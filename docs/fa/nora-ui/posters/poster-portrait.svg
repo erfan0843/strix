@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="پوستر رویداد">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E6FD0"/><stop offset="1" stop-color="#0A3A82"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.86" cy="0.08" r="0.75">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".34"/>
+    </linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.5" fill="#fff" fill-opacity=".13"/>
+    </pattern>
+    <g id="mark">
+      <rect x="0" y="0" width="52" height="52" rx="16" fill="#fff" fill-opacity=".16"/>
+      <path d="M16 37V15h7l11 14V15h6v22h-7L22 23v14z" fill="#fff" fill-opacity=".92"/>
+    </g>
+  </defs>
+  <rect width="900" height="560" fill="url(#bg)"/>
+  <rect width="900" height="560" fill="url(#dots)"/>
+  <rect width="900" height="560" fill="url(#glow)"/>
+  <g opacity=".9">
+  <g transform="translate(450 255)">
+    <rect x="-160" y="-150" width="320" height="300" rx="34" fill="#fff" fill-opacity=".12"/>
+    <rect x="-160" y="-150" width="320" height="300" rx="34" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="7"/>
+    <circle cx="0" cy="-34" r="66" fill="#fff" fill-opacity=".9"/>
+    <path d="M-118 132c14-72 62-112 118-112s104 40 118 112z" fill="#fff" fill-opacity=".9"/>
+    <circle cx="-96" cy="-118" r="20" fill="#fff" fill-opacity=".35"/>
+    <circle cx="104" cy="-96" r="13" fill="#fff" fill-opacity=".28"/>
+  </g>
+</g>
+  <rect width="900" height="560" fill="url(#shade)"/>
+  <use href="#mark" x="44" y="446"/>
+</svg>

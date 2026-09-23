@@ -166,3 +166,57 @@ main.wrap{animation:pageIn .3s var(--ease) both}
 /* ── شماره‌ها: درشت‌تر و هم‌تراز ── */
 .statstrip .s b,.hstats .s b,.ev .prc,.pstat b,.brand .tx b{font-variant-numeric:tabular-nums}
 .tile .ci{background:var(--brand-tint);color:var(--brand-ink)}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   کارت رویداد با پوستر (v6)
+   ──────────────────────────────────────────────────────────────────────────
+   یک کارت برای همه‌جا: پوستر بالا، عنوان و نشانی و قیمت پایین. پیشرو دکمهٔ
+   ثبت‌نام دارد و برگزارشده نشان «برگزار شد» و دکمهٔ خرید بازپخش. اگر رویداد
+   پوستر نداشت، گرادیان و آیکون خودش می‌آید.
+   ══════════════════════════════════════════════════════════════════════════ */
+.evcard{position:relative;display:grid;border:.5px solid var(--hairline);border-radius:var(--r-xl);
+  background:var(--surface);box-shadow:var(--sh-1);overflow:hidden;
+  transition:transform var(--t) var(--ease),box-shadow var(--t) var(--ease),border-color var(--t) var(--ease)}
+.evcard:hover{transform:translateY(-2px);box-shadow:var(--sh-2);border-color:color-mix(in oklab,var(--brand) 26%,transparent)}
+.evc-cov{position:relative;display:block;width:100%;aspect-ratio:16/10;padding:0;margin:0;border:0;
+  background:var(--surface-sunk);cursor:pointer;overflow:hidden}
+.evc-cov img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s var(--ease)}
+.evcard:hover .evc-cov img{transform:scale(1.035)}
+.evc-grad{position:absolute;inset:0;display:grid;place-items:center;background-image:var(--g);color:#fff}
+.evc-grad .i{width:42px;height:42px;opacity:.95}
+.evc-cov::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,20,40,.18),rgba(8,20,40,0) 40%,rgba(8,20,40,.40))}
+.evc-tags{position:absolute;top:10px;inset-inline-start:10px;z-index:2;display:flex;gap:5px;flex-wrap:wrap;max-width:calc(100% - 86px)}
+.evc-tag{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 10px;border-radius:99px;
+  background:rgba(255,255,255,.94);color:#0E2A55;font-size:11.5px;font-weight:600;
+  box-shadow:0 4px 12px rgba(6,20,40,.18)}
+.evc-tag.dark{background:rgba(11,36,71,.8);color:#fff}
+.evc-day{position:absolute;top:10px;inset-inline-end:10px;z-index:2;display:grid;justify-items:center;gap:1px;
+  min-width:54px;padding:7px 9px;border-radius:16px;background:rgba(255,255,255,.94);color:#0E2A55;line-height:1.15;
+  box-shadow:0 6px 16px rgba(6,20,40,.2)}
+.evc-day b{font-family:var(--f-h);font-size:17.5px;font-variant-numeric:tabular-nums}
+.evc-day span{font-size:10.5px;color:#4A5568}
+.evc-body{display:grid;gap:8px;padding:14px}
+.evc-ttl{font-family:var(--f-h);font-size:15.5px;font-weight:700;letter-spacing:-.2px;line-height:1.55}
+.evc-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-3)}
+.evc-meta .mi{display:inline-flex;align-items:center;gap:5px}
+.evc-meta .i{width:15px;height:15px;color:var(--ink-4)}
+.evc-note{font-size:12px;color:var(--ink-3);line-height:1.8}
+.evc-foot{display:flex;align-items:center;gap:9px}
+.evc-ava{width:32px;height:32px;border-radius:50%;flex:0 0 auto;overflow:hidden;display:grid;place-items:center;
+  background:var(--brand-tint);color:var(--brand-ink);font-size:12px;font-weight:700}
+.evc-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.evc-who{display:grid;min-width:0}
+.evc-who b{font-size:12.5px}
+.evc-who small{font-size:11px;color:var(--ink-3)}
+.evc-price{font-family:var(--f-h);font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.evc-price.free{color:var(--ok)}
+.evc-bar{height:5px;border-radius:99px;background:var(--surface-sunk);overflow:hidden}
+.evc-bar i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.evc-cta{justify-self:start;margin-top:2px}
+.evcard.past .evc-cov{aspect-ratio:16/9}
+/* ردیف افقی کارت‌های پوستردار */
+.evrail{display:flex;gap:10px;overflow:auto;padding:2px 2px 8px;margin:0 -2px;scroll-snap-type:x mandatory}
+.evrail>*{flex:0 0 290px;scroll-snap-align:start}
+@media (max-width:420px){.evcard .evc-body{padding:13px} .evrail>*{flex:0 0 264px}
+  .evrail .evc-who small{display:none} .evrail .evc-price{font-size:13.5px}}

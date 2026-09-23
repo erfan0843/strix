@@ -29,3 +29,10 @@
 .dotpulse{width:6px;height:6px;border-radius:50%;background:currentColor;margin-inline-end:4px;
   animation:dotp 1.6s ease-in-out infinite}
 @keyframes dotp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+
+/* ── ردیف صافی‌ها: چیپ‌ها کنار هم و افقی می‌لغزند (v6) ── */
+.fcrow{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;
+  padding:2px 2px 7px;margin:0 -2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.fcrow::-webkit-scrollbar{display:none}
+.fcrow .chip{flex:0 0 auto}
+.fcrow:last-of-type{margin-bottom:4px}

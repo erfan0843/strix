@@ -516,3 +516,48 @@ function initUI(){
 if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,initKeys,download,svgToPNG,
   certificateSVG,certificateFile,CERT_G,
   words,money,faN,fa,faDigits,tkQR,tkFit,ticketMeta};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   کارت رویداد با پوستر — یک کارت، مشترک خانه و صفحهٔ رویدادها
+   ──────────────────────────────────────────────────────────────────────────
+   هر رویداد می‌تواند «پوستر» داشته باشد؛ اگر داشت همان نشان داده می‌شود وگرنه
+   گرادیان و آیکون خودِ رویداد می‌آید. برگزارشده‌ها هم با همین کارت ساخته
+   می‌شوند، فقط با نشان «برگزار شد» و دکمهٔ خرید بازپخش.
+   ورودی دوم (o) ظاهر کارت را می‌سازد: attr، badge، meta، note، person،
+   price، free، bar، cta، ctaKind، ctaIcon، past، cls.
+   ══════════════════════════════════════════════════════════════════════════ */
+const escH=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function evPosterCard(e,o){
+  o=o||{};
+  /* دو حالت: پیوند (خانه) یا دکمهٔ ورقهٔ جزئیات (صفحهٔ رویدادها) */
+  const act=o.href?`href="${escH(o.href)}"`:`data-${o.key||'ev'}="${escH(e.id)}"`;
+  const wrap=o.href?'a':'button';
+  const p=o.person||null;
+  const tags=(o.tags||[]).filter(Boolean).map(t=>`<span class="evc-tag${o.past&&t==='برگزار شد'?' dark':''}">${escH(t)}</span>`).join('');
+  const metas=(o.meta||[]).filter(Boolean).map(m=>`<span class="mi"><svg class="i"><use href="#${m[0]}"/></svg>${escH(m[1])}</span>`).join('');
+  const cover=e.poster
+    ? `<img src="${escH(e.poster)}" alt="پوستر ${escH(e.t)}" loading="lazy" decoding="async"/>`
+    : `<span class="evc-grad" style="--g:${escH(e.g||'')}"><svg class="i"><use href="#${escH(e.icon||'i-calendar')}"/></svg></span>`;
+  const cta=o.cta?`<${wrap} class="btn sm evc-cta ${o.ctaKind||'primary'}" ${act}>
+      <svg class="i"><use href="#${o.ctaIcon||'i-pen'}"/></svg> ${escH(o.cta)}</${wrap}>`:'';
+  return `<article class="evcard${o.past?' past':''}${o.cls?' '+o.cls:''}">
+    <${wrap} class="evc-cov" ${act} aria-label="جزئیات ${escH(e.t)}">
+      ${cover}
+      ${tags?`<span class="evc-tags">${tags}</span>`:''}
+      ${o.badge?`<span class="evc-day">${o.badge}</span>`:''}
+    </${wrap}>
+    <div class="evc-body">
+      <div class="evc-ttl">${escH(e.t)}</div>
+      ${metas?`<div class="evc-meta">${metas}</div>`:''}
+      ${o.note?`<div class="evc-note">${escH(o.note)}</div>`:''}
+      <div class="evc-foot">
+        ${p?`<span class="evc-ava" style="--g:${escH(p.g||'')}">${p.photo?`<img src="${escH(p.photo)}" alt="${escH(p.n)}"/>`:escH(p.ini||'')}</span>
+          <span class="evc-who"><b>${escH(p.n)}</b><small>${escH(p.r||'')}</small></span>`:''}
+        <span class="sp"></span>
+        <span class="evc-price${o.free?' free':''}">${o.price||''}</span>
+      </div>
+      ${o.bar?`<div class="evc-bar"><i style="width:${o.bar}%"></i></div>`:''}
+      ${cta}
+    </div>
+  </article>`;
+}

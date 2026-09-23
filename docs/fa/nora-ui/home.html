@@ -115,16 +115,6 @@
 
   .daybar{display:flex;gap:8px;align-items:center;overflow:auto;padding-bottom:2px;margin-bottom:9px}
 
-  /* ── برگزارشده‌ها ── */
-  .past{display:grid;gap:8px}
-  .pastcard{display:grid;gap:8px;padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);
-    background:var(--surface-2)}
-  .pastcard .prow{display:flex;align-items:center;gap:10px}
-  .pastcard .pi{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
-    background:var(--surface);border:.5px solid var(--hairline);color:var(--brand-ink)}
-  .pastcard b{font-size:var(--fs-sub);font-weight:600}
-  .pastcard .pc-actions{display:flex;gap:7px;flex-wrap:wrap}
-
   /* ── باشگاه کتاب‌خوانی ── */
   .club{border-radius:var(--r-xl);overflow:hidden;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
   .club .cl-hero{position:relative;padding:16px;display:grid;gap:9px;color:#fff;background-image:var(--g);isolation:isolate}
@@ -517,12 +507,6 @@
       <input id="q" type="search" placeholder="رویداد، کارگاه، استاد، مطلب…" aria-label="جست‌وجو در خانه"/>
       <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button>
     </div>
-    <div class="row tight" style="margin-top:10px">
-      <a class="chip" href="events.html#cal"><svg class="i" style="width:15px;height:15px"><use href="#i-grid"/></svg> تقویم رویدادها</a>
-      <a class="chip" href="events.html#list"><svg class="i" style="width:15px;height:15px"><use href="#i-calendar"/></svg> فهرست رویدادها</a>
-      <a class="chip" href="#articles">مطالب و مقالات</a>
-      <a class="chip" href="#teachers">اساتید</a>
-    </div>
   </section>
 
   <!-- ── نتیجهٔ جست‌وجو: رویداد، مطلب و استاد ── -->
@@ -544,7 +528,7 @@
       <span class="sp"></span>
       <span class="cap" id="evCount">—</span>
     </div>
-    <div class="stack tight" id="evTop"></div>
+    <div class="evrail" id="evTop"></div>
     <div class="row" style="margin-top:12px">
       <a class="btn sm primary" href="events.html#list"><svg class="i"><use href="#i-calendar"/></svg> همهٔ رویدادها</a>
       <a class="btn sm quiet" href="events.html#cal"><svg class="i"><use href="#i-grid"/></svg> تقویم رویدادها</a>
@@ -558,10 +542,14 @@
     <div class="sec-hd">
       <span class="fw">برگزارشده‌ها</span>
       <span class="sp"></span>
-      <span class="cap">ضبط، جزوه و گواهینامه</span>
+      <span class="cap">ضبط و بازپخش</span>
     </div>
-    <p class="sub" style="margin-bottom:10px">این کارگاه‌ها تمام شده‌اند؛ ویدیوی ضبط‌شده، جزوه و گواهینامه‌شان همان‌جا در دسترس شرکت‌کننده‌هاست.</p>
-    <div class="past" id="pastList"></div>
+    <div class="evrail" id="pastList"></div>
+    <div class="row" style="margin-top:8px">
+      <a class="btn sm primary" href="events.html#past"><svg class="i"><use href="#i-archive"/></svg> همهٔ برگزارشده‌ها</a>
+      <span class="sp" style="flex:1"></span>
+      <span class="cap">خرید بازپخش و جزئیات، در منوی رویدادها</span>
+    </div>
     <div class="card sunk" style="margin-top:12px" id="actBox" aria-label="نمای فعالیت‌های نورا"></div>
   </section>
 
@@ -1011,17 +999,16 @@ function renderSearch(){
 }
 
 /* ═════════ رویدادها ═════════ */
+const MON={sh:'شهریور', mehr:'مهر'};
 function evMini(e){
-  const full=e.cap&&left(e)===0, pin=e.pin||isPinned('ev',e.id);
-  const tag=pin?'پیشنهادی':(full?'لیست انتظار':(e.tags||[])[0]||e.kind);
-  return `<a class="ev3 ${pin?'pinned':''}" href="events.html?ev=${e.id}" aria-label="جزئیات ${esc(e.t)} در منوی رویدادها">
-    <span class="e3g" style="--g:${e.g}"><svg class="i"><use href="#${e.icon}"/></svg></span>
-    <span class="e3t"><b>${esc(e.t)}</b><span class="hrow">${esc(e.when)} · ${esc(e.time)}</span></span>
-    <span class="tagg ${pin?'star':(full?'stop':'ok')}">${esc(tag)}</span>
-    <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-  </a>`;
+  const p=person(e.tchr), full=e.cap&&left(e)===0, pin=e.pin||isPinned('ev',e.id);
+  const month=MON[e.dm]||'';
+  return evPosterCard(e,{href:'events.html?ev='+e.id, person:p, cls:pin?'pinned':'',
+    tags:[pin?'پیشنهادی':(full?'لیست انتظار':(e.tags||[])[0]||e.kind)],
+    badge:`<b>${faN(e.dn)}</b><span>${esc(month||e.dm)}</span>`,
+    meta:[['i-clock',e.when+' · '+e.time],['i-pin',e.place]],
+    price:e.price?rialTxt(e.price):'رایگان', free:!e.price});
 }
-
 
 function renderEvents(){
   const order=EVENTS.slice().sort((a,b)=>((b.pin||isPinned('ev',b.id))?1:0)-((a.pin||isPinned('ev',a.id))?1:0));
@@ -1032,24 +1019,10 @@ function renderEvents(){
 
 /* ═════════ برگزارشده‌ها ═════════ */
 function renderPast(){
-  $('#pastList').innerHTML=PAST.map(h=>`
-    <div class="pastcard">
-      <div class="prow">
-        <span class="pi"><svg class="i"><use href="#i-archive"/></svg></span>
-        <span style="flex:1;min-width:0">
-          <b>${esc(h.t)}</b>
-          <div class="hrow">${esc(h.d)} · مدرس: ${esc(person(h.tchr).n)} · ${faN(h.n)} شرکت‌کننده</div>
-        </span>
-        ${h.cert?'<span class="tagg ok">گواهی‌دار</span>':'<span class="tagg">بدون گواهی</span>'}
-      </div>
-      <div class="hrow">${esc(h.note)} — ${esc(h.rec)}</div>
-      <div class="pc-actions">
-        <button class="btn sm primary" data-rec="${h.id}"><svg class="i"><use href="#i-play"/></svg> تماشای ضبط</button>
-        <button class="btn sm quiet" data-sheetdl="${h.id}"><svg class="i"><use href="#i-download"/></svg> جزوهٔ دوره</button>
-        ${h.cert?`<button class="btn sm quiet" data-cert="${h.id}"><svg class="i"><use href="#i-medal"/></svg> درخواست گواهینامه</button>`:''}
-        <button class="btn sm quiet" data-again="${h.id}"><svg class="i"><use href="#i-plus"/></svg> دورهٔ تکرار</button>
-      </div>
-    </div>`).join('');
+  $('#pastList').innerHTML=PAST.slice(0,3).map(h=>evPosterCard(h,{href:'events.html?past='+h.id,
+    past:true, person:person(h.tchr), tags:['برگزار شد',(h.tags||[])[0]],
+    meta:[['i-calendar',h.d],['i-clock',h.rec],['i-users',faN(h.n)+' نفر']],
+    price:h.price?rialTxt(h.price):'رایگان', free:!h.price})).join('');
 }
 
 function renderActivity(){
@@ -1598,13 +1571,6 @@ document.addEventListener('click',e=>{
     const p=person(tp.dataset.teach); location.href='events.html?q='+encodeURIComponent(p.n.split(' ').slice(-1)[0]); return}
   if(t.closest('#artMore')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderArticles(); goto('articles');
     toast(faN(ARTICLES.length)+' مطلب نورا'); return}
-  const rec=t.closest('[data-rec]'); if(rec){toast('ضبط در پخش‌کنندهٔ نورا باز می‌شود — جلسهٔ کامل'); log('تماشای ضبط'); return}
-  const dl=t.closest('[data-sheetdl]'); if(dl){toast('جزوهٔ دوره در حساب کاربری‌ات ذخیره شد'); return}
-  const ct=t.closest('[data-cert]'); if(ct){
-    if(!S.user){openF('shAccount'); toast('برای درخواست گواهینامه اول وارد شو'); return}
-    const h=PAST.find(x=>x.id===ct.dataset.cert);
-    log('درخواست گواهینامه: '+h.t); toast('درخواست ثبت شد — گواهینامه با تأیید سرپرست صادر می‌شود'); return}
-  const ag=t.closest('[data-again]'); if(ag){closeSheets(); goto('evSec'); toast('دورهٔ تکرار در فهرست پیش‌رو می‌آید'); return}
   if(t.closest('[data-clubjoin]')){
     if(!S.user){openF('shAccount'); toast('برای عضویت در باشگاه اول وارد شو'); return}
     toast('عضویت ترم مهر ثبت شد — بستهٔ کتاب ماه در حساب کاربری‌ات است'); log('عضویت باشگاه کتاب‌خوانی'); return}

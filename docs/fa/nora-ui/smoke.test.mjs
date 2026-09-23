@@ -559,9 +559,10 @@ async function load(file,store,q){
   p.click('[data-q="club"]'); ok(p.doc.querySelector('#shClub').className.includes('on'),'کاشی باشگاه ورقه‌اش را باز می‌کند');
   p.click('#shClub [data-close]');
   /* رویدادها در خانه: فقط سه کارت نمایشی */
-  ok(p.all('#evTop .ev3').length===3,'خانه فقط سه کارت رویداد دارد');
-  ok(p.txt('#evTop').includes('·') && p.all('#evTop .tagg').length===3,'هر کارت تاریخ و یک تگ دارد');
-  ok(p.all('#evTop a[href^="events.html?ev="]').length===3,'هر سه کارت خانه به منوی جداگانهٔ رویدادها پیوند دارند');
+  ok(p.all('#evTop .evcard').length===3,'خانه فقط سه کارت رویداد دارد');
+  ok(p.all('#evTop .evcard .evc-cov img').length===3,'هر کارت رویداد پوسترش را نشان می‌دهد');
+  ok(p.all('#evTop .evcard .evc-tag').length===3 && p.all('#evTop .evcard .evc-day').length===3,'هر کارت یک تگ و روز خودش را دارد');
+  ok(p.all('#evTop a.evc-cov[href^="events.html?ev="]').length===3,'هر سه کارت خانه به منوی جداگانهٔ رویدادها پیوند دارند');
   ok(p.doc.querySelector('#evSec a[href="events.html#list"]')!==null,'دکمهٔ «همهٔ رویدادها» به منوی رویدادها می‌رود');
   ok(p.doc.querySelector('#evSec a[href="events.html#cal"]')!==null,'دکمهٔ «تقویم رویدادها» هم به همان منو می‌رود');
   ok(p.doc.querySelector('#evBrowser')===null && p.doc.querySelector('#shEvents')===null,'خانه ورقهٔ رویداد ندارد — رویدادها منوی جداست');
@@ -580,13 +581,13 @@ async function load(file,store,q){
   p.click('#qClear');
   ok(p.doc.querySelector('#searchRes').hidden && !p.doc.querySelector('#evSec').hidden,'پاک کردن جست‌وجو');
   /* برگزارشده‌ها، برچسب درخواست گواهینامه، نمای فعالیت */
-  ok(p.all('#pastList .pastcard').length===4,'چهار کارگاه برگزارشده');
-  ok(p.txt('#pastList').includes('درخواست گواهینامه'),'دکمهٔ درخواست گواهینامه (نه صدور خودکار)');
+  ok(p.all('#pastList .evcard').length===3,'خانه سه برگزارشده را ویترین می‌کند');
+  ok(p.all('#pastList .evcard .evc-cov img').length===3,'کارت برگزارشده هم پوستر دارد');
+  ok(p.txt('#pastList').includes('برگزار شد') && p.txt('#pastList').includes('ریال'),'نشان «برگزار شد» و مبلغ بازپخش روی کارت');
+  ok(p.doc.querySelector('#pastSec a[href="events.html#past"]')!==null,'پیوند «همهٔ برگزارشده‌ها» به منوی رویدادها می‌رود');
+  ok(p.all('#pastList a.evc-cov').every(a=>a.getAttribute('href').startsWith('events.html?past=')),'هر کارت برگزارشده به جزئیات خودش می‌رود');
   ok(p.doc.querySelector('#shEvent')===null,'خانه ورقهٔ رویداد هم ندارد — همه‌چیز رویداد در صفحهٔ خودش است');
-  ok(p.txt('#pastList').includes('تماشای ضبط') && p.txt('#pastList').includes('جزوهٔ دوره'),'ضبط و جزوه در برگزارشده‌ها');
   ok(p.all('#actBox .minibars i').length===12,'نمای فعالیت: دوازده ستون ماهانه');
-  p.click('#pastList .pastcard [data-sheetdl]');
-  ok(p.txt('#toast').includes('جزوه'),'جزوهٔ دوره پیام می‌دهد');
   /* باشگاه کتاب‌خوانی */
   ok(p.txt('#club').includes('باشگاه کتاب‌خوانی'),'بلوک اختصاصی باشگاه');
   ok(p.txt('#club').includes('مریم داوودی'),'سرپرست باشگاه با نام');
@@ -697,8 +698,7 @@ async function load(file,store,q){
   p.click('[data-close]');
   ok(p.txt('#mine').includes('برای تو، سارا') && p.all('#mine .pcard').length===6,'بعد از ورود، شش کارت شخصی');
   ok(p.txt('#mine').includes('تأیید سرپرست'),'کارت گواهینامه هم همین رویه را می‌گوید');
-  p.click('#pastList .pastcard [data-cert]');
-  ok(p.txt('#toast').includes('تأیید سرپرست'),'درخواست گواهینامه به سرپرست ارجاع می‌شود');
+  ok(p.doc.querySelector('#pastList [data-cert]')===null,'خانه خودش گواهینامه صادر/درخواست نمی‌کند — در ورقهٔ برگزارشدهٔ صفحهٔ رویدادهاست');
   /* زبان و پوسته */
   ok(!/بلیت/.test(p.txt('body')),'هیچ وعدهٔ بلیتی در خانه نیست');
   ok(p.doc.querySelector('#tabs button[data-tab="home"]')!==null,'تب خانه سرجایش است');
@@ -733,26 +733,31 @@ async function load(file,store,q){
   ok(links(shellHome)[0]==='glass.css' && links(shellHome)[1]==='nora.css','ترتیب بارگذاری یکسان است');
   ok(p.txt('#hstats').includes('گواهی‌دار') && p.txt('#hstats').includes('آنلاین'),'آمار حالت‌ها هست');
   /* فهرست و صافی‌ها */
-  ok(p.all('#evList .ev').length===11,'فهرست کامل: یازده رویداد');
+  ok(p.all('#evList .evcard').length===11,'فهرست کامل: یازده رویداد');
+  ok(p.all('#evList .evcard .evc-cov img').length===11,'هر رویداد پوستر خودش را دارد');
+  ok(p.all('#evList .evcard .evc-price').length===11,'قیمت روی هر کارت هست');
   ok(p.all('#dayChips .chip').length===5 && p.all('#catChips .chip').length===6 && p.all('#modeChips .chip').length===5,'سه ردیف صافی (روز، دسته، حالت)');
+  const evcss=fs.readFileSync(DIR+'events.css','utf8');
+  ok(/\.fcrow\{display:flex/.test(evcss) && /\.fcrow \.chip\{flex:0 0 auto\}/.test(evcss),'ردیف صافی‌ها افقی و مرتب است (نه چیپ‌های سرگردان)');
+  ok(/\.evcard\{/.test(fs.readFileSync(DIR+'nora.css','utf8')) && /\.evcard\{\}/.test('') === false,'کارت پوستردار رویداد در پوستهٔ مشترک تعریف شده');
   p.click('#dayChips [data-day="tomorrow"]');
-  ok(p.all('#evList .ev').length===2,'صافی «فردا» دو رویداد');
+  ok(p.all('#evList .evcard').length===2,'صافی «فردا» دو رویداد');
   p.click('#dayChips [data-day="tomorrow"]');
   p.click('#catChips [data-cat="workshop"]');
-  ok(p.all('#evList .ev').length===4,'صافی «کارگاه» چهار رویداد');
+  ok(p.all('#evList .evcard').length===4,'صافی «کارگاه» چهار رویداد');
   p.click('#modeChips [data-mode="آنلاین"]');
-  ok(p.all('#evList .ev').length===0,'کارگاه آنلاین نداریم — فهرست خالی می‌شود');
+  ok(p.all('#evList .evcard').length===0,'کارگاه آنلاین نداریم — فهرست خالی می‌شود');
   ok(p.txt('#evList').includes('چیزی پیدا نشد'),'حالت خالی پیام خودش را دارد');
   p.click('#catChips [data-cat="workshop"]');
   p.click('#modeChips [data-mode="آنلاین"]');
   p.click('#clearFilters');
-  ok(p.all('#evList .ev').length===11,'برداشتن صافی‌ها');
+  ok(p.all('#evList .evcard').length===11,'برداشتن صافی‌ها');
   /* جست‌وجو */
   p.doc.querySelector('#q').value='عکاسی';
   p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
-  ok(p.all('#evList .ev').length===2,'جست‌وجوی «عکاسی» دو رویداد');
+  ok(p.all('#evList .evcard').length===2,'جست‌وجوی «عکاسی» دو رویداد');
   p.click('#qClear');
-  ok(p.all('#evList .ev').length===11,'پاک کردن جست‌وجو');
+  ok(p.all('#evList .evcard').length===11,'پاک کردن جست‌وجو');
   /* تقویم ماهانه */
   p.click('[data-view="cal"]');
   ok(p.all('#monthsw button').length===2,'دو ماه در تقویم (شهریور و مهر)');
@@ -770,7 +775,7 @@ async function load(file,store,q){
   p.click('[data-view="cat"]');
   ok(p.all('#catGrid .cattile').length===10,'دسته‌ها: شش دسته + چهار نشان');
   p.click('#catGrid [data-cat="camp"]');
-  ok(!p.doc.querySelector('#listView').hidden && p.all('#evList .ev').length===1,'از دسته به فهرست صافی‌شده می‌رود');
+  ok(!p.doc.querySelector('#listView').hidden && p.all('#evList .evcard').length===1,'از دسته به فهرست صافی‌شده می‌رود');
   p.click('#clearFilters');
   /* ورقهٔ رویداد: جزئیات، تقویم گوشی، ثبت‌نام */
   p.click('#evList [data-ev="e3"]');
@@ -790,6 +795,31 @@ async function load(file,store,q){
   p.click('#evBody [data-wait]');
   ok(p.txt('#toast').includes('لیست انتظار'),'ثبت در لیست انتظار پیام می‌دهد');
   p.click('[data-close]');
+  /* برگزارشده‌ها: خرید بازپخش و جزئیات (تسک ۲۱) */
+  p.click('[data-view="past"]');
+  ok(!p.doc.querySelector('#pastView').hidden,'نمای برگزارشده‌ها باز می‌شود');
+  ok(p.all('#pastList .evcard').length===4,'چهار رویداد برگزارشده در منوی رویدادها');
+  ok(p.all('#pastList .evcard .evc-cov img').length===4,'هر کارت برگزارشده پوستر دارد');
+  ok(p.txt('#pastList').includes('برگزار شد') && p.txt('#pastList').includes('جزئیات و خرید'),'نشان «برگزار شد» و دکمهٔ «جزئیات و خرید»');
+  ok(p.all('#pastChips .chip').length===4,'چهار صافی برگزارشده‌ها');
+  p.click('#pastChips [data-pastf="cert"]');
+  ok(p.all('#pastList .evcard').length===3,'صافی «گواهی‌دار»: سه برنامه');
+  p.click('#pastChips [data-pastf="free"]');
+  ok(p.all('#pastList .evcard').length===1 && p.txt('#pastList').includes('رایگان'),'صافی «رایگان»: یک نشست');
+  p.click('#pastChips [data-pastf="all"]');
+  p.click('#pastList [data-past="h1"]');
+  ok(p.doc.querySelector('#shPast').className.includes('on'),'ورقهٔ جزئیات برگزارشده باز می‌شود');
+  ok(p.txt('#pastBody').includes('کارگاه عکاسی مقدماتی') && p.txt('#pastBody').includes('تیر و مرداد ۱۴۰۵'),'عنوان و تاریخ برگزاری در جزئیات');
+  ok(p.all('#pastBody .srow').length>=5 && p.txt('#pastBody').includes('ضبط کامل چهار جلسه'),'سطرهای اطلاعات و اجزای بازپخش');
+  ok(/ریال/.test(p.txt('#pastBody')) && p.txt('#pastBody').includes('تومان'),'مبلغ بازپخش هم ریال و هم تومان');
+  ok(p.doc.querySelector('#pastBody a.btn.primary').getAttribute('href')==='form.html','خرید بازپخش به فرم می‌رود');
+  ok(p.doc.querySelector('#pastBody [data-person="p2"]')!==null,'مدرس بازپخش هم در ورقه هست');
+  ok(p.txt('#pastBody').includes('تأیید سرپرست'),'گواهینامهٔ بازپخش هم با تأیید سرپرست است');
+  p.click('#pastBody [data-pastcert]');
+  ok(p.txt('#toast').includes('تأیید سرپرست'),'درخواست گواهینامهٔ بازپخش به سرپرست می‌رود');
+  p.click('[data-close]');
+  ok(p.doc.querySelector('#shPast').className.indexOf('on')<0,'ورقهٔ برگزارشده بسته می‌شود');
+
   /* تب‌بار: خانه، این صفحه، حساب من */
   ok(p.all('.tabbar a').length===3,'تب‌بار سه لینک دارد');
   ok(p.doc.querySelector('.tabbar a.on small').textContent==='رویدادها','تب فعال همین صفحه است');
@@ -797,9 +827,13 @@ async function load(file,store,q){
   ok(p.doc.querySelector('.tabbar a.on use').getAttribute('href')==='#i-calendar-f','آیکون تب فعال پُر است');
   /* نشانی‌های ورودی */
   const p2=await load('events.html',makeStore(),'?q='+encodeURIComponent('عکاسی')+'#list');
-  ok(p2.all('#evList .ev').length===2,'ورود با ?q= صافی می‌کند');
+  ok(p2.all('#evList .evcard').length===2,'ورود با ?q= صافی می‌کند');
   const p3=await load('events.html',makeStore(),'?ev=e5#list');
   ok(p3.doc.querySelector('#shEvent').className.includes('on'),'ورود با ?ev= مستقیم ورقه را باز می‌کند');
+  const p4=await load('events.html',makeStore(),'?past=h2');
+  ok(p4.doc.querySelector('#shPast').className.includes('on') && p4.txt('#pastBody').includes('کارگاه فن بیان — ترم تیر'),'ورود با ?past= ورقهٔ برگزارشده را باز می‌کند');
+  const p5=await load('events.html',makeStore(),'#past');
+  ok(!p5.doc.querySelector('#pastView').hidden && p5.all('#pastList .evcard').length===4,'ورود با #past هم نمای برگزارشده‌ها را می‌آورد');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
