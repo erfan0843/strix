@@ -493,6 +493,7 @@ async function load(file,store,q){
   ok(p.all('#swatchGrid > div').length===9,'نُه رنگ از خود توکن‌ها خوانده شد');
   ok(p.txt('#swatchGrid').includes('#0071E3')&&p.txt('#swatchGrid').includes('#9C7C3C'),'رنگ‌ها همان توکن‌های تازه‌اند (کنش آبی، طلا تزئینی)');
   ok(p.doc.querySelector('#skinRow')===null && p.doc.querySelector('#rcDemo')===null,'بخش بلیت و رسید از زبان طراحی برداشته شد');
+  ok(p.doc.querySelector('a[href="home.html"]')!==null,'پیوند خانه در زبان طراحی هست');
   ok(/تباین متن اصلی روی سطح: \d+\.\d+ به ۱/.test(p.txt('#contrastNote')),'تباین واقعی حساب و نوشته شد');
 
   ok(p.txt('#contrastNote').includes('شیشه فقط روی ناوبری'),'قاعدهٔ شیشه یادآوری شده');
@@ -529,6 +530,107 @@ async function load(file,store,q){
   ok(/گروه انتخاب/.test(p.txt('#review')),'مرور، گروه را نشان می‌دهد');
   ok(/نوع شرکت/.test(p.txt('#review')),'مرور، نام گروه را نشان می‌دهد');
   ok(/اجباری/.test(p.txt('#review')),'مرور، قطعهٔ اجباری را نشان می‌دهد');
+}
+
+/* ═══════════ home.html — خانهٔ وب‌اپ ═══════════ */
+{
+  console.log('\n── خانه (home.html) ──');
+  const p=await load('home.html',makeStore());
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.doc.querySelectorAll('#bsdeck .bs').length===3,'سه بنر با تیتر و کنش');
+  ok(p.doc.querySelectorAll('#bdots i').length===3,'نقطه‌های بنر به تعداد بنرها');
+  ok(p.all('#evList .ev').length===11,'فهرست رویدادهای پیش‌رو پر است');
+  ok(p.all('#evList .ev')[0].tagName==='BUTTON','هر رویداد دکمهٔ واقعی است (صفحه‌کلید ذاتی)');
+  ok(p.txt('#evCount').includes('۱۱ رویداد'),'شمار رویدادها نوشته می‌شود');
+  ok(p.all('#catGrid .cattile').length===6,'شش موضوع');
+  ok(p.all('#archRail .hcard').length===3,'آرشیو ضبط‌شده');
+  ok(p.all('#voiceList .voice').length===3,'نظر شرکت‌کننده‌ها');
+  ok(p.all('#helpList .helprow').length===4,'ردیف‌های پشتیبانی و راهنما');
+  ok(p.all('#live .livecard').length===2,'جریان زنده و شروع نزدیک');
+  ok(p.doc.querySelector('#pin .pincard')!==null,'کارت سنجاق‌شدهٔ کارشناس');
+  ok(p.doc.querySelector('#tabs button[data-tab="home"]').className.includes('on'),'تب خانه فعال است');
+  ok(p.all('#tabs button').length===5,'پنج تب پایین صفحه');
+  ok(!/بلیت/.test(p.txt('body')),'هیچ وعدهٔ بلیتی در خانه نیست');
+  ok(p.doc.querySelector('#mine').innerHTML.includes('ورود / ساخت حساب'),'مهمان: کارت ورود به حساب');
+  /* صافی‌ها */
+  p.click('[data-day="tomorrow"]');
+  ok(p.all('#evList .ev').length===2,'صافی «فردا» دو رویداد');
+  p.click('[data-day="all"]');
+  p.click('#quickCats [data-cat="workshop"]');
+  ok(p.all('#evList .ev').length===4,'صافی «کارگاه» چهار رویداد');
+  ok(p.doc.querySelector('#catGrid [data-cat="workshop"]').className.includes('on'),'کاشی موضوع هم روشن می‌شود');
+  p.click('#quickCats [data-cat="workshop"]');
+  ok(p.all('#evList .ev').length===11,'برداشتن صافی');
+  /* جست‌وجو */
+  p.doc.querySelector('#q').value='عکاسی';
+  p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.all('#evList .ev').length===2,'جست‌وجو در نام رویداد و مدرس کار می‌کند');
+  p.click('#qClear');
+  ok(p.all('#evList .ev').length===11 && p.doc.querySelector('#qClear').hidden,'پاک کردن جست‌وجو');
+  /* ورقهٔ رویداد */
+  p.click('[data-ev="e3"]');
+  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ جزئیات باز شد');
+  ok(p.txt('#evBody').includes('کارگاه عکاسی در طبیعت'),'عنوان رویداد در ورقه');
+  ok(p.txt('#evBody').includes('۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده (۲۴ − ۱۳)');
+  ok(/ریال/.test(p.txt('#evBody')) && /تومان/.test(p.txt('#evBody')),'مبلغ هم ریال و هم تومان');
+  ok(p.doc.querySelector('#evBody a.btn.primary').getAttribute('href')==='form.html','دکمهٔ ثبت‌نام به فرم کاربر می‌رود');
+  p.click('#evBody [data-close]');
+  p.click('[data-ev="e8"]');
+  ok(p.txt('#evBody').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل گفته می‌شود');
+  p.click('#evBody [data-wait]');
+  ok(p.txt('#toast').includes('لیست انتظار'),'ثبت در لیست انتظار پیام می‌دهد');
+  /* ورود و بخش‌های شخصی */
+  p.click('#acctBtn');
+  ok(p.doc.querySelector('#shAccount').className.includes('on') && p.doc.querySelector('#mob')!==null,'ورقهٔ ورود با شمارهٔ موبایل');
+  p.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
+  p.click('[data-login]');
+  ok(p.doc.querySelector('#code')!==null,'مرحلهٔ کد یک‌بارمصرف');
+  p.doc.querySelector('#code').value='54321';
+  p.click('[data-code]');
+  ok(p.window.NORA_HOME.S.user && p.window.NORA_HOME.S.user.name==='سارا محمدی','ورود با کد نمایشی انجام شد');
+  ok(p.txt('#mine').includes('ثبت‌نام بعدی')&&p.txt('#mine').includes('۳ روز مانده'),'بعد از ورود، بخش «برای تو» می‌آید');
+  ok(p.txt('#mine').includes('گواهینامهٔ من')&&/ریال/.test(p.txt('#mine')),'کارت گواهینامه و کیف پول');
+  ok(p.doc.querySelector('#bellBadge').textContent==='۲','نشان اعلان‌ها شمرده شد');
+  ok(p.txt('#clubLvl').includes('نقره‌ای'),'سطح باشگاه بعد از ورود');
+  p.click('[data-close]');
+  /* استعلام گواهینامه */
+  p.click('#helpList [data-f="shVerify"]');
+  p.doc.querySelector('#serial').value='nl-t4k7m9x';
+  p.click('[data-verify]');
+  ok(p.txt('#verifyBody').includes('معتبر')&&p.txt('#verifyBody').includes('سارا محمدی'),'استعلام سریال معتبر');
+  p.doc.querySelector('#serial').value='NL-000000';
+  p.click('[data-verify]');
+  ok(p.txt('#verifyBody').includes('ثبت نشده'),'سریال ناشناس رد می‌شود');
+  p.click('[data-close]');
+  /* پرسش‌ها، پشتیبانی، دعوت، اعلان */
+  p.click('#helpList [data-f="shFaq"]');
+  ok(p.all('#faqBody details.faq').length===5,'پرسش‌های پرتکرار');
+  p.click('[data-close]');
+  p.click('#helpList [data-f="shSupport"]');
+  ok(p.doc.querySelector('#supBody textarea')!==null,'ورقهٔ پیام به پشتیبانی');
+  p.doc.querySelector('#msg').value='سؤال دربارهٔ تأیید رسید';
+  p.click('[data-send]');
+  ok(p.txt('#toast').includes('ثبت شد'),'پیام پشتیبانی ثبت می‌شود');
+  p.click('[data-close]');
+  p.click('[data-f="shInvite"]');
+  ok(/lifeline1\.ir\/i\//.test(p.txt('#inviteBody')),'لینک دعوت دوستان');
+  p.click('[data-close]');
+  p.click('[data-sheet="shNotice"]');
+  ok(p.all('#noticeBody .notif').length===3,'سه اعلان');
+  p.click('[data-readall]');
+  ok(p.doc.querySelector('#bellBadge').hidden,'خواندن همه، نشان را برمی‌دارد');
+  p.click('[data-close]');
+  /* خروج */
+  p.click('#acctBtn');
+  p.click('[data-logout]');
+  ok(p.window.NORA_HOME.S.user===null && p.txt('#mine').includes('ورود / ساخت حساب'),'خروج از حساب');
+  /* بنر و پوسته */
+  p.click('[data-bnext]');
+  ok(p.window.NORA_HOME.S.slide===1,'بنر بعدی می‌رود');
+  p.click('[data-bs="0"]');
+  ok(p.window.NORA_HOME.S.slide===0,'با نقطهٔ بنر برمی‌گردد');
+  p.click('[data-theme-toggle]');
+  ok(p.doc.documentElement.dataset.theme==='dark','شب و روز کار می‌کند');
 }
 
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');

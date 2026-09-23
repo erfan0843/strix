@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>نورا — خانه</title>
+<meta name="description" content="خانهٔ نورا — رویدادها، کارگاه‌ها و جلسه‌های گروه فرهنگی خط زندگی"/>
+<meta name="theme-color" content="#F5F3EE"/>
+<link rel="stylesheet" href="glass.css"/>
+<style>
+  /* ══════════ خانهٔ نورا — چیزهایی که فقط این صفحه لازم دارد ══════════ */
+  .wrap{max-width:620px;margin:0 auto;padding:12px 12px calc(112px + var(--safe-b))}
+  .topbar .wrap{display:flex;align-items:center;gap:8px;padding-block:9px}
+  .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit;min-width:0}
+  .brand .mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;color:#fff;
+    font-weight:700;font-size:16px;background:linear-gradient(160deg,var(--brand),var(--brand-2));
+    box-shadow:0 6px 16px rgba(10,86,184,.28), 0 1px 0 rgba(255,255,255,.45) inset}
+  .brand .tx{display:grid;line-height:1.25;min-width:0}
+  .brand .tx b{font-size:var(--fs-sub);font-weight:700}
+  .brand .tx small{font-size:11.5px;color:var(--ink-3)}
+  .icon-btn{position:relative}
+  .icon-btn.avatar{width:34px;height:34px;border-radius:50%;font-size:13px;font-weight:600;
+    color:var(--brand-ink);background:var(--brand-tint);border-color:transparent}
+  .badge{position:absolute;top:-4px;inset-inline-end:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;
+    display:grid;place-items:center;background:var(--brand);color:#fff;font-size:10.5px;font-weight:700;
+    border:1.5px solid var(--surface);font-variant-numeric:tabular-nums}
+
+  /* ── جست‌وجو ── */
+  .sfield{display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:var(--r-pill);
+    background:var(--surface-2);border:.5px solid var(--hairline);transition:border-color var(--t-fast) var(--ease)}
+  .sfield:focus-within{border-color:color-mix(in oklab,var(--brand) 55%,transparent);background:var(--surface)}
+  .sfield .i{width:18px;height:18px;color:var(--ink-4);flex:0 0 auto}
+  .sfield input{flex:1;min-width:0;border:0;background:none;outline:0;font:inherit;font-size:var(--fs-sub);
+    color:var(--ink);padding:10px 0}
+  .sfield input::placeholder{color:var(--ink-4)}
+
+  /* ── بنر چرخشی ── */
+  .bwrap{position:relative;margin-top:12px;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-sunk)}
+  .bsdeck{display:flex;transition:transform var(--t-slow) var(--ease);will-change:transform}
+  .bs{position:relative;flex:0 0 100%;min-height:186px;padding:18px 18px 30px;display:grid;align-content:end;gap:6px;color:#fff;
+    background-image:var(--g);isolation:isolate}
+  .bs::before{content:'';position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(120% 90% at 100% 0,rgba(255,255,255,.28),transparent 58%)}
+  .bs .btag{align-self:start;justify-self:start;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;
+    border-radius:99px;background:rgba(255,255,255,.22);border:.5px solid rgba(255,255,255,.4);
+    font-size:11.5px;font-weight:600;backdrop-filter:blur(8px)}
+  .bs h2{margin:0;font-size:19px;font-weight:700;letter-spacing:-.3px;text-shadow:0 1px 12px rgba(0,0,0,.22)}
+  .bs .bmeta{font-size:var(--fs-cap);opacity:.94}
+  .bs .bnote{font-size:var(--fs-cap);opacity:.82}
+  .bs .bacts{display:flex;gap:8px;margin-top:6px}
+  .bs .bbtn{-webkit-appearance:none;appearance:none;height:36px;padding:0 14px;border-radius:99px;border:.5px solid rgba(255,255,255,.5);cursor:pointer;
+    background:rgba(255,255,255,.9);color:#10306B;font:inherit;font-size:var(--fs-sub);font-weight:600;
+    display:inline-flex;align-items:center;gap:6px}
+  .bs .bbtn.ghost{background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(10px)}
+  .bdots{position:absolute;left:0;right:0;bottom:11px;display:flex;justify-content:center;gap:6px;z-index:2}
+  .bdots i{-webkit-appearance:none;appearance:none;border:0;padding:0;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:width var(--t) var(--ease),background var(--t) var(--ease)}
+  .bdots i.on{width:20px;background:#fff}
+  .bnav{position:absolute;top:12px;inset-inline-end:12px;display:flex;gap:6px;z-index:2}
+  .bnav button{width:32px;height:32px;border-radius:50%;border:.5px solid rgba(255,255,255,.45);background:rgba(255,255,255,.18);
+    color:#fff;backdrop-filter:blur(10px);cursor:pointer;display:grid;place-items:center}
+  .bnav .i{width:16px;height:16px}
+
+  /* ── نوار آمار ── */
+  .statstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:12px;border-radius:var(--r-lg);margin-top:12px}
+  .statstrip .s{text-align:center;padding:2px 4px}
+  .statstrip .s b{display:block;font-size:16px;font-weight:700;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+  .statstrip .s span{font-size:11px;color:var(--ink-3);line-height:1.5}
+  @media (max-width:420px){.statstrip{grid-template-columns:repeat(2,1fr);gap:8px}}
+  .srcline{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11.5px;color:var(--ink-3)}
+
+  /* ── سرتیتر بخش‌ها ── */
+  .sec{margin-top:14px}
+  .sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .sec-hd .fw{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .sec-hd .cap{font-size:var(--fs-cap)}
+  .more{-webkit-appearance:none;appearance:none;border:0;display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-cap);color:var(--brand-ink);
+    font-weight:600;background:none;border:0;cursor:pointer;padding:6px 2px;font-family:inherit}
+
+  /* ── رویداد: ردیف ── */
+  .evlist{display:grid;gap:8px}
+  .ev{-webkit-appearance:none;appearance:none;display:flex;gap:11px;align-items:center;width:100%;text-align:start;cursor:pointer;font:inherit;color:inherit;
+    padding:11px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface);
+    box-shadow:var(--sh-1);transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
+  .ev:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
+  .ev:active{transform:scale(.995)}
+  .ev .th{width:52px;height:52px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;color:#fff;
+    background-image:var(--g);position:relative;overflow:hidden}
+  .ev .th::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 80% at 100% 0,rgba(255,255,255,.3),transparent 60%)}
+  .ev .th .i{width:22px;height:22px;position:relative;z-index:1}
+  .ev .bod{min-width:0;flex:1;display:grid;gap:3px}
+  .ev .ttl{font-size:var(--fs-sub);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev .meta{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ev .side{display:grid;justify-items:end;gap:4px;flex:0 0 auto}
+  .ev .prc{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+  .ev .prc.free{color:var(--ok)}
+  .ev.full .th{filter:saturate(.5) opacity(.85)}
+  .mini-chips{display:flex;gap:5px;flex-wrap:wrap}
+  .mini-chip{font-size:10.5px;height:20px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;
+    background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-2)}
+  .mini-chip.live{background:var(--stop-tint);border-color:transparent;color:var(--stop);font-weight:600}
+  .mini-chip.soon{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink);font-weight:600}
+  .dotpulse{width:6px;height:6px;border-radius:50%;background:currentColor;margin-inline-end:4px;
+    animation:pulse 1.6s var(--ease) infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+
+  /* ── روزها: کنترل سگمنت ── */
+  .daybar{display:flex;gap:8px;align-items:center;overflow:auto;padding-bottom:2px;margin-bottom:10px}
+
+  /* ── کارت‌های افقی (برای تو، آرشیو) ── */
+  .hrail{display:flex;gap:10px;overflow:auto;padding:2px 2px 6px;scroll-snap-type:x mandatory;margin:0 -2px}
+  .hcard{scroll-snap-align:start;flex:0 0 226px;border-radius:var(--r-lg);padding:13px;border:.5px solid var(--hairline);
+    background:var(--surface);box-shadow:var(--sh-1);display:grid;gap:7px;align-content:start}
+  .hcard .hd{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3);font-weight:600}
+  .hcard .hd .i{width:15px;height:15px;color:var(--brand-ink)}
+  .hcard b{font-size:var(--fs-sub);font-weight:700;letter-spacing:-.2px}
+  .hcard .val{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .hcard .val small{font-size:11px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+  .hcard .hrow{font-size:11.5px;color:var(--ink-2);line-height:1.8}
+  .hcard .i.cw{width:14px;height:14px;color:var(--ink-4);align-self:center}
+
+  /* ── جریان زنده ── */
+  .livecard{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);
+    padding:14px;display:grid;gap:10px}
+  .livecard .ll{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--stop)}
+  .livecard h3{margin:0;font-size:15px;font-weight:700}
+
+  /* ── دسته‌ها ── */
+  .catgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  @media (max-width:420px){.catgrid{grid-template-columns:repeat(2,1fr)}}
+  .cattile{-webkit-appearance:none;appearance:none;display:grid;justify-items:center;gap:7px;padding:14px 8px;border-radius:var(--r-md);cursor:pointer;
+    font:inherit;color:inherit;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);
+    transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
+  .cattile:active{transform:scale(.97)}
+  .cattile.on{border-color:var(--brand);background:var(--brand-tint)}
+  .cattile .ci{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
+  .cattile.on .ci{background:var(--brand);color:#fff}
+  .cattile .i{width:19px;height:19px}
+  .cattile b{font-size:var(--fs-sub);font-weight:600}
+  .cattile span{font-size:10.5px;color:var(--ink-3)}
+
+  /* ── سنجاق‌شده ── */
+  .pincard{border-radius:var(--r-lg);overflow:hidden;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
+  .pincard .head{display:flex;align-items:center;gap:7px;padding:11px 14px;background:var(--brand-tint);color:var(--brand-ink);
+    font-size:11.5px;font-weight:700}
+  .pincard .bodyc{padding:14px;display:grid;gap:8px}
+  .quote{display:flex;gap:9px;align-items:flex-start;font-size:var(--fs-sub);color:var(--ink-2);
+    background:var(--surface-2);border-radius:var(--r-md);padding:11px 12px}
+
+  /* ── باشگاه ── */
+  .clubhead{display:flex;align-items:center;gap:12px}
+  .clubhead .ring{width:52px;height:52px}
+  .clubhead .ring::after{width:40px;height:40px}
+  .clubhead .ring span{font-size:12.5px}
+  .clupline{display:flex;align-items:center;gap:8px;font-size:var(--fs-sub);padding:9px 0;border-bottom:.5px solid var(--hairline-2)}
+  .clupline:last-child{border-bottom:0}
+  .clupline .i{width:17px;height:17px;color:var(--brand-ink);flex:0 0 auto}
+
+  /* ── نظرها ── */
+  .voice{display:grid;gap:8px;padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface-2)}
+  .voice .wh{display:flex;align-items:center;gap:9px}
+  .voice .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700;
+    background:var(--brand-tint);color:var(--brand-ink);flex:0 0 auto}
+  .voice .wt b{display:block;font-size:var(--fs-sub);font-weight:600}
+  .voice .wt span{font-size:11px;color:var(--ink-3)}
+  .voice p{margin:0;font-size:var(--fs-sub);color:var(--ink-2);line-height:1.85}
+  .stars{display:flex;gap:2px;color:var(--accent)}
+  .stars .i{width:13px;height:13px}
+
+  /* ── پشتیبانی ── */
+  .helprow{-webkit-appearance:none;appearance:none;display:flex;align-items:center;gap:11px;width:100%;text-align:start;font:inherit;color:inherit;cursor:pointer;
+    padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
+  .helprow .hi{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);flex:0 0 auto}
+  .helprow .ht{flex:1;min-width:0}
+  .helprow .ht b{display:block;font-size:var(--fs-sub);font-weight:600}
+  .helprow .ht span{font-size:11.5px;color:var(--ink-3)}
+
+  /* ── پاصفحه ── */
+  .hfoot{margin-top:16px;padding:16px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface-2);
+    display:grid;gap:9px;font-size:11.5px;color:var(--ink-3);text-align:center}
+  .hfoot .fl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .hfoot a{color:var(--brand-ink);text-decoration:none}
+
+  /* ── تب‌بار ── */
+  .tabbar{grid-template-columns:repeat(5,1fr)}
+  .tabbar button{-webkit-appearance:none;appearance:none;border:0;background:none;cursor:pointer;font:inherit;color:var(--ink-3);display:grid;justify-items:center;gap:3px;
+    padding:7px 2px;border-radius:var(--r-md);transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+  .tabbar button .i{width:21px;height:21px}
+  .tabbar button small{font-size:10.5px}
+  .tabbar button.on{color:var(--brand-ink);background:var(--brand-tint)}
+  .tabbar button.on small{font-weight:600}
+
+  /* ── کارت‌های ورقه ── */
+  .srow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:.5px solid var(--hairline-2);font-size:var(--fs-sub)}
+  .srow:last-child{border-bottom:0}
+  .srow .i{width:18px;height:18px;color:var(--ink-4);flex:0 0 auto}
+  .srow .sp{flex:1}
+  .srow b{font-weight:600}
+  .notif{display:flex;gap:10px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
+  .notif .ni{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-tint);color:var(--brand-ink)}
+  .notif.unread{background:var(--brand-tint);border-color:transparent}
+  .notif .nt{font-size:var(--fs-sub);font-weight:600}
+  .notif .nd{font-size:11.5px;color:var(--ink-3);line-height:1.7}
+  .copyrow{display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
+  .copyrow code{flex:1;font-size:12px;color:var(--ink-2);word-break:break-all;text-align:start;direction:ltr}
+  .cap-acc{font-size:11.5px;color:var(--ink-3);line-height:1.9}
+  details.faq{border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);padding:0 12px;margin-bottom:8px}
+  details.faq summary{cursor:pointer;padding:12px 0;font-size:var(--fs-sub);font-weight:600;list-style:none}
+  details.faq summary::-webkit-details-marker{display:none}
+  details.faq[open] summary{color:var(--brand-ink)}
+  details.faq p{margin:0 0 12px;font-size:var(--fs-sub);color:var(--ink-2);line-height:1.9}
+  .accthead{display:flex;align-items:center;gap:12px}
+  .accthead .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:700;
+    background:linear-gradient(160deg,var(--brand),var(--brand-2));color:#fff;font-size:16px}
+  .empty{padding:18px;border-radius:var(--r-md);background:var(--surface-2);border:.5px dashed var(--hairline);
+    text-align:center;font-size:var(--fs-sub);color:var(--ink-3)}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
+<!-- ══ مجموعهٔ آیکون نورا — شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
+
+<symbol id="i-plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.2v13.6M5.2 12h13.6"/></g></symbol>
+
+<symbol id="i-drag" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9.2" cy="7" r="1.35"/><circle cx="14.8" cy="7" r="1.35"/><circle cx="9.2" cy="12" r="1.35"/><circle cx="14.8" cy="12" r="1.35"/><circle cx="9.2" cy="17" r="1.35"/><circle cx="14.8" cy="17" r="1.35"/></g></symbol>
+
+<symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
+
+<symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
+
+<symbol id="i-trend" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 18.4l4.6-5.2 3.3 2.9 5.9-7.6"/><path d="M13.6 8.2h4.4v4.4"/></g></symbol>
+
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
+
+<symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.6A2.6 2.6 0 0 1 6.2 6h11.6a2.6 2.6 0 0 1 2.6 2.6v6.8a2.6 2.6 0 0 1-2.6 2.6H6.2a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M3.6 11.6h16.8"/><circle cx="16.6" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-ticket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 9.4V7.8a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v1.6a2.8 2.8 0 0 0 0 5.2v1.6a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6v-1.6a2.8 2.8 0 0 0 0-5.2z"/><path d="M14.2 6.2v11.6" stroke-dasharray="2.2 2.6"/></g></symbol>
+
+<symbol id="i-medal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.4" r="4.6"/><path d="M9.1 13.4 7.4 20.6l4.6-2.4 4.6 2.4-1.7-7.2"/></g></symbol>
+
+<symbol id="i-idcard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><circle cx="8.9" cy="10.6" r="2.1"/><path d="M5.4 16c.5-1.9 1.9-2.9 3.5-2.9s3 1 3.5 2.9"/><path d="M14.6 10.2h3.4M14.6 13.4h2.2"/></g></symbol>
+
+<symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 10.6h16M8.6 3.6v3.4M15.4 3.6v3.4"/></g></symbol>
+
+<symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.1 2"/></g></symbol>
+
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20.2 20.2"/></g></symbol>
+
+<symbol id="i-filter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.2 6.4h15.6M7.2 12h9.6M10.2 17.6h3.6"/></g></symbol>
+
+<symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
+
+<symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
+
+<symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
+<symbol id="i-chev-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 6.4 8.8 12l5.6 5.6"/></g></symbol>
+
+<symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"/></g></symbol>
+
+<symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.6h8.4M17.4 8.6h2.6M4 15.4h3.4M12.4 15.4h7.6"/><circle cx="15.4" cy="8.6" r="2.1"/><circle cx="10.4" cy="15.4" r="2.1"/></g></symbol>
+
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 14.4 14.4 9.6"/><path d="M11.4 7.2 12.9 5.7a4 4 0 0 1 5.6 5.6l-1.5 1.5"/><path d="M12.6 16.8 11.1 18.3a4 4 0 0 1-5.6-5.6l1.5-1.5"/></g></symbol>
+
+<symbol id="i-qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4.2 8V5.8A1.6 1.6 0 0 1 5.8 4.2H8M16 4.2h2.2A1.6 1.6 0 0 1 19.8 5.8V8M19.8 16v2.2a1.6 1.6 0 0 1-1.6 1.6H16M8 19.8H5.8a1.6 1.6 0 0 1-1.6-1.6V16"/><rect x="7.4" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="13" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="7.4" y="13" width="3.6" height="3.6" rx="1"/><path d="M13 13h1.8v1.8H13zM16.6 16.6H18.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8A2.4 2.4 0 0 1 6 5.6h12A2.4 2.4 0 0 1 20.4 8v8a2.4 2.4 0 0 1-2.4 2.4H6A2.4 2.4 0 0 1 3.6 16z"/><path d="M4.4 7.6 12 13.2l7.6-5.6"/></g></symbol>
+
+<symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
+
+<symbol id="i-star" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.4l2.5 5 5.5.8-4 3.9.95 5.5L12 17.1l-4.95 2.5.95-5.5-4-3.9 5.5-.8z"/></g></symbol>
+
+<symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.8s-7.2-4.4-7.2-9.4A4.4 4.4 0 0 1 12 7.1a4.4 4.4 0 0 1 7.2 3.3c0 5-7.2 9.4-7.2 9.4z"/></g></symbol>
+
+<symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 7.4h14.4"/><path d="M9.2 7.4V5.6h5.6v1.8"/><path d="M6.6 7.4 7.6 20h8.8l1-12.6"/><path d="M10.4 11v5.4M13.6 11v5.4"/></g></symbol>
+
+<symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9.6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2z"/><path d="M6.4 15.8a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2"/></g></symbol>
+
+<symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="6.2" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17.8" r="1.5"/></g></symbol>
+
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6 5 12l6 6"/></g></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></g></symbol>
+
+<symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2v10.4"/><path d="M7.8 10.6 12 14.8l4.2-4.2"/><path d="M5 19.4h14"/></g></symbol>
+
+<symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.4V9"/><path d="M7.8 13.2 12 9l4.2 4.2"/><path d="M5 4.6h14"/></g></symbol>
+
+<symbol id="i-branch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 4.6v6.6a3.6 3.6 0 0 0 3.6 3.6h6"/><path d="M14.4 11.6 17.6 14.8l-3.2 3.2"/><path d="M7.2 15.4v4.2"/></g></symbol>
+
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 11.6a1.6 1.6 0 0 1 1.6-1.6h10a1.6 1.6 0 0 1 1.6 1.6v6.8a1.6 1.6 0 0 1-1.6 1.6H7a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M8.6 10V8.2a3.4 3.4 0 0 1 6.8 0V10"/></g></symbol>
+
+<symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4"/><path d="M12 3.8c2.5 2.6 2.5 13.8 0 16.4-2.5-2.6-2.5-13.8 0-16.4z"/></g></symbol>
+
+<symbol id="i-mobile" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.4h8.4a1.6 1.6 0 0 1 1.6 1.6v12a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V6a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M10.8 17.6h2.4"/></g></symbol>
+
+<symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 18.4 10 6.2l4.4 12.2"/><path d="M7.2 14.2h5.6"/></g></symbol>
+
+<symbol id="i-number" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8.4 4.4 7 19.6M16 4.4 14.6 19.6M4.6 9.2h15M4 14.8h15"/></g></symbol>
+
+<symbol id="i-radio" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7.8"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-checkbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="4.4"/><path d="M8.4 12.2l2.6 2.6 4.6-5"/></g></symbol>
+
+<symbol id="i-lines" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.2" y="4.6" width="15.6" height="14.8" rx="3.4"/><path d="M7.6 9.4h8.8M7.6 12.6h8.8M7.6 15.8h5.2"/></g></symbol>
+
+<symbol id="i-file-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.6h6.6l4.2 4.2v12.6H6.6z"/><path d="M13.2 3.6v4.2h4.2"/><path d="M12 16.4v-4.6M10 13.8l2-2 2 2"/></g></symbol>
+
+<symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+
+<symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 4.6l3 3L9.2 17.8l-4 1.2 1.2-4z"/><path d="M14.6 6.6l3 3"/></g></symbol>
+
+<symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></g></symbol>
+
+<symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 5.6 17.8 12l-9.4 6.4z"/></g></symbol>
+
+<symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 3.8 3.8 10.4l6.4 3 3 6.4z"/><path d="M10.2 13.4 13.6 10"/></g></symbol>
+
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4.4" y="4.4" width="6" height="6" rx="2"/><rect x="13.6" y="4.4" width="6" height="6" rx="2"/><rect x="4.4" y="13.6" width="6" height="6" rx="2"/><rect x="13.6" y="13.6" width="6" height="6" rx="2"/></g></symbol>
+
+<symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="17" r="1.3" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-bag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 8.4h12.8l1.2 11.6H4.4z"/><path d="M9.2 8.4V6.6a2.8 2.8 0 0 1 5.6 0v1.8"/></g></symbol>
+
+<symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.8v16.8"/><path d="M6.4 5.2h11.2l-2.2 3.6 2.2 3.6H6.4z"/></g></symbol>
+
+<symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 3.8 8.2 12 12.8l8.2-4.6z"/><path d="M4.6 12.4 12 16.6l7.4-4.2"/><path d="M4.6 16.4 12 20.6l7.4-4.2"/></g></symbol>
+
+<symbol id="i-bolt" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 3.4 6.2 13.2h4.6l-.8 7.4 7.2-9.8h-4.6z"/></g></symbol>
+
+<symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.2" cy="8.2" r="4"/><path d="M11.1 11.1 19 19"/><path d="M16.4 16.4 18.8 14M14.2 14.2 16.6 11.8"/></g></symbol>
+
+<symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
+
+<symbol id="i-inbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 12.6 6.6 5.4h10.8l2.4 7.2v5.2a1.6 1.6 0 0 1-1.6 1.6H5.8a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M4.2 12.6h4.2l.8 2.2h5.6l.8-2.2h4.2"/></g></symbol>
+
+<symbol id="i-align" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.4 6.6h15.2M4.4 12h9.4M4.4 17.4h12"/></g></symbol>
+
+<symbol id="i-type" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 6.2h12.8M12 6.2v11.6"/></g></symbol>
+
+<symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="home.html" aria-label="خانهٔ نورا">
+      <span class="mark" aria-hidden="true">ن</span>
+      <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span>
+    </a>
+    <span class="sp"></span>
+    <button class="icon-btn" data-theme-toggle aria-label="شب و روز"><svg class="i"><use href="#i-eye"/></svg></button>
+    <button class="icon-btn" data-sheet="shNotice" aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
+    <button class="icon-btn avatar" id="acctBtn" aria-label="حساب من">م</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ── جست‌وجو ── -->
+  <section class="card paper" aria-label="جست‌وجو">
+    <div class="sfield">
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="دنبال چه رویدادی هستی؟ کارگاه، وبینار، مدرس…" aria-label="جست‌وجوی رویداد"/>
+      <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="row tight" style="margin-top:10px" id="quickCats"></div>
+  </section>
+
+  <!-- ── بنرها ── -->
+  <section class="bwrap" id="bnr" aria-label="بنرهای اعلان" aria-roledescription="carousel">
+    <div class="bsdeck" id="bsdeck"></div>
+    <div class="bnav">
+      <button data-bprev aria-label="بنر قبلی"><svg class="i"><use href="#i-chev-right"/></svg></button>
+      <button data-bnext aria-label="بنر بعدی"><svg class="i"><use href="#i-chev-left"/></svg></button>
+    </div>
+    <div class="bdots" id="bdots" role="tablist" aria-label="انتخاب بنر"></div>
+  </section>
+
+  <!-- ── آمار ── -->
+  <section class="glass statstrip" aria-label="نورا در یک نگاه">
+    <div class="s"><b>۱۲</b><span>سال فعالیت</span></div>
+    <div class="s"><b>۳٬۴۰۰</b><span>شرکت‌کننده</span></div>
+    <div class="s"><b>۴۸</b><span>کارگاه در سال</span></div>
+    <div class="s"><b>۹۶٪</b><span>رضایت ۱۴۰۴</span></div>
+  </section>
+  <div class="srcline">
+    <svg class="i" style="width:15px;height:15px"><use href="#i-shield"/></svg>
+    <span>گواهینامه‌ها با شمارهٔ یکتا و کیوآر راستی‌آزمایی صادر می‌شوند — <a href="#help" data-jump="help" style="color:var(--brand-ink);text-decoration:none">استعلام گواهینامه</a></span>
+  </div>
+
+  <!-- ── برای تو / حساب ── -->
+  <section class="sec" id="mine" aria-label="برای تو"></section>
+
+  <!-- ── رویدادها ── -->
+  <section class="sec card paper" id="evSec" aria-label="رویدادها">
+    <div class="sec-hd">
+      <span class="fw">رویدادها</span>
+      <span class="sp"></span>
+      <span class="cap" id="evCount">—</span>
+    </div>
+    <div class="daybar" id="daybar" role="tablist" aria-label="بازهٔ زمانی"></div>
+    <div class="evlist" id="evList"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="more" id="evMore"><span>همهٔ رویدادهای پیش‌رو</span><svg class="i" style="width:15px;height:15px"><use href="#i-chev-left"/></svg></button>
+      <span class="sp"></span>
+      <span class="cap" id="filterNote" hidden></span>
+    </div>
+  </section>
+
+  <!-- ── جریان زنده ── -->
+  <section class="sec" id="live" aria-label="جریان زنده"></section>
+
+  <!-- ── دسته‌ها ── -->
+  <section class="sec card paper" id="cats" aria-label="دسته‌ها">
+    <div class="sec-hd"><span class="fw">موضوع‌ها</span><span class="sp"></span><span class="cap">برای دیدن رویدادها بزنید</span></div>
+    <div class="catgrid" id="catGrid"></div>
+  </section>
+
+  <!-- ── سنجاق‌شده ── -->
+  <section class="sec" id="pin" aria-label="سنجاق‌شدهٔ کارشناس"></section>
+
+  <!-- ── باشگاه و امتیاز ── -->
+  <section class="sec card paper" id="club" aria-label="باشگاه و امتیاز">
+    <div class="sec-hd"><span class="fw">باشگاه و امتیاز</span><span class="sp"></span><span class="cap" id="clubLvl">سطح نقره‌ای</span></div>
+    <div class="clubhead">
+      <span class="ring" id="clubRing" style="--p:0" role="img" aria-label="امتیاز باشگاه"><span id="clubPct">۰٪</span></span>
+      <div style="flex:1;min-width:0">
+        <div class="sub" id="clubLine">—</div>
+        <div class="bar" style="margin-top:8px" aria-hidden="true"><i id="clubBar" style="width:0%"></i></div>
+      </div>
+    </div>
+    <div style="margin-top:10px" id="clubRows"></div>
+  </section>
+
+  <!-- ── آرشیو ── -->
+  <section class="sec card paper" id="arch" aria-label="آرشیو ضبط‌شده">
+    <div class="sec-hd"><span class="fw">آرشیو ضبط‌شده</span><span class="sp"></span><span class="cap">هر وقت خواستی ببین</span></div>
+    <div class="hrail" id="archRail"></div>
+  </section>
+
+  <!-- ── نظر شرکت‌کننده‌ها ── -->
+  <section class="sec card paper" id="voices" aria-label="نظر شرکت‌کننده‌ها">
+    <div class="sec-hd"><span class="fw">شرکت‌کننده‌ها چه می‌گویند</span><span class="sp"></span><span class="cap">۹۶٪ رضایت</span></div>
+    <div class="stack tight" id="voiceList"></div>
+  </section>
+
+  <!-- ── پشتیبانی ── -->
+  <section class="sec card paper" id="help" aria-label="پشتیبانی و راهنما">
+    <div class="sec-hd"><span class="fw">پشتیبانی و راهنما</span><span class="sp"></span><span class="cap">شنبه تا پنجشنبه، ۹ تا ۱۸</span></div>
+    <div class="stack tight" id="helpList"></div>
+  </section>
+
+  <footer class="hfoot">
+    <div class="fl"><b>گروه فرهنگی خط زندگی</b><span>·</span><span>تهران، خیابان ولی‌عصر، پلاک ۱۲</span></div>
+    <div class="fl"><span>۰۲۱–۸۸۸۸۱۲۳۴</span><span>·</span><span>info@lifeline1.ir</span><span>·</span><a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
+    <div>© ۱۴۰۵ — همهٔ حقوق برای گروه فرهنگی خط زندگی محفوظ است.</div>
+  </footer>
+</main>
+
+<nav class="tabbar" id="tabs" aria-label="ناوبری اصلی">
+  <button data-tab="home" class="on" aria-current="page"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></button>
+  <button data-tab="events"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></button>
+  <button data-tab="club"><svg class="i"><use href="#i-medal"/></svg><small>باشگاه</small></button>
+  <button data-tab="help"><svg class="i"><use href="#i-mobile"/></svg><small>پشتیبانی</small></button>
+  <button data-tab="me"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></button>
+</nav>
+
+<!-- ── ورقه‌ها ── -->
+<aside class="sheet" id="shEvent" role="dialog" aria-modal="false" aria-label="جزئیات رویداد"><div id="evBody"></div></aside>
+<aside class="sheet" id="shNotice" role="dialog" aria-modal="false" aria-label="اعلان‌ها"><div id="noticeBody"></div></aside>
+<aside class="sheet" id="shAccount" role="dialog" aria-modal="false" aria-label="حساب من"><div id="acctBody"></div></aside>
+<aside class="sheet" id="shInvite" role="dialog" aria-modal="false" aria-label="دعوت دوستان"><div id="inviteBody"></div></aside>
+<aside class="sheet" id="shVerify" role="dialog" aria-modal="false" aria-label="استعلام گواهینامه"><div id="verifyBody"></div></aside>
+<aside class="sheet" id="shFaq" role="dialog" aria-modal="false" aria-label="پرسش‌های پرتکرار"><div id="faqBody"></div></aside>
+<aside class="sheet" id="shSupport" role="dialog" aria-modal="false" aria-label="پیام به پشتیبانی"><div id="supBody"></div></aside>
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="ui.js"></script>
+<script>
+/* صفحهٔ خانه جدا از موتور مشترک می‌ماند: همهٔ کارها داخل یک بستهٔ بسته است تا
+   نام‌ها با ui.js تناقض پیدا نکنند؛ فقط یک دستهٔ کوچک برای بازبینی بیرون می‌ماند. */
+(function(){
+/* ══════════════════════════════════════════════════════════════════════════
+   خانهٔ نورا — اولین صفحه‌ای که کاربر می‌بیند
+   ──────────────────────────────────────────────────────────────────────────
+   ویترین عمومی است: بنر دست کارشناس، آمار، رویدادهای پیش‌رو، دسته‌ها،
+   جریان زنده، آرشیو، باشگاه و امتیاز، نظر شرکت‌کننده‌ها و پشتیبانی.
+   بعد از ورود، بخش‌های شخصی (ثبت‌نام بعدی، گواهینامه، کیف پول، پیام) هم
+   بالای همین صفحه می‌آید. ابزارها و مبالغ از موتور مشترک `ui.js` می‌آید.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── بنرها: عکس، تیتر و ترتیب دست کارشناس روابط عمومی است ── */
+const BANNERS=[
+ {tag:'ویژه', t:'جشنوارهٔ هفتهٔ فرهنگی پاییز', m:'۲۰ تا ۳۰ مهر · تهران و آنلاین',
+  n:'۱۲ کارگاه، ۴ نمایشگاه و ۳ شب اجرای موسیقی', g:'linear-gradient(135deg,#0A56B8,#1E3A8A 55%,#0B2447)',
+  a:{l:'برنامه را ببین', j:'week'}, b:{l:'کارگاه‌ها', ev:'e5'}},
+ {tag:'ثبت‌نام باز', t:'باشگاه کتاب‌خوانی خط زندگی', m:'ترم مهر · پنجشنبه‌ها ۱۸:۰۰',
+  n:'ظرفیت ۴۰ نفر — ۹ جا مانده', g:'linear-gradient(135deg,#0B7A57,#0A56B8)',
+  a:{l:'جزئیات و ثبت‌نام', ev:'e2'}, b:{l:'قواعد باشگاه', f:'shFaq'}},
+ {tag:'رایگان', t:'نشست آنلاین سواد رسانه در خانواده', m:'دوشنبه ۳۰ شهریور · ۲۰:۳۰',
+  n:'ورود آزاد است؛ لازم نیست ثبت‌نام کنی', g:'linear-gradient(135deg,#6E4B1F,#9C7C3C 60%,#0A56B8)',
+  a:{l:'جزئیات نشست', ev:'e4'}, b:{l:'یادآوری', f:'shNotice'}}
+];
+
+/* ── رویدادها: همان چیزی که پنل سازنده می‌سازد ── */
+const EVENTS=[
+ {id:'e1', kind:'جلسه', cat:'session', day:'tonight', live:true, icon:'i-users',
+  t:'جلسهٔ شعر و موسیقی', teacher:'استاد رضا نیکو',
+  when:'امروز شنبه', time:'۲۰:۳۰', place:'آنلاین', mode:'آنلاین',
+  price:0, cap:200, taken:147, g:'linear-gradient(135deg,#0A56B8,#123A7A)',
+  d:'شب شعر و موسیقی زنده با حضور شاعران مهمان؛ بخش دوم جلسه به پرسش و پاسخ اختصاص دارد. ورود از پیوند جلسه، نیم ساعت قبل باز می‌شود.',
+  bio:'۳۲ سال تدریس ادبیات و سرپرستی گروه موسیقی نیکو'},
+ {id:'e2', kind:'جلسه', cat:'session', day:'tonight', icon:'i-star',
+  t:'حلقهٔ مطالعهٔ ادبیات', teacher:'خانم مریم داوودی',
+  when:'امروز شنبه', time:'۱۹:۰۰', place:'کتابخانهٔ نورا، ونک', mode:'حضوری',
+  price:0, cap:18, taken:15, g:'linear-gradient(135deg,#0B7A57,#0A56B8)',
+  d:'این جلسه دربارهٔ داستان‌های کوتاه علی‌محمد افغانی است؛ متن‌ها از قبل فرستاده می‌شود و در جلسه خوانش گروهی داریم.',
+  bio:'کارشناس ادبیات داستانی و دبیر باشگاه کتاب‌خوانی'},
+ {id:'e3', kind:'کارگاه', cat:'workshop', day:'tomorrow', pin:true, icon:'i-image',
+  t:'کارگاه عکاسی در طبیعت', teacher:'مهندس کیوان مرادی',
+  when:'یکشنبه ۲۹ شهریور', time:'۱۹:۳۰', place:'فرهنگسرای نیاوران', mode:'حضوری',
+  price:900000, cap:24, taken:13, g:'linear-gradient(135deg,#0A56B8,#4EA1FF)',
+  d:'سه جلسهٔ عملی نوردهی، ترکیب‌بندی و ویرایش رنگ در فضای باز؛ دوربین لازم است، لنز و سه‌پایه در کارگاه هست.',
+  bio:'عکاس طبیعت با ۱۶ سال سابقهٔ تدریس'},
+ {id:'e4', kind:'وبینار', cat:'webinar', day:'tomorrow', icon:'i-play',
+  t:'سواد رسانه در خانواده', teacher:'دکتر شیرین رستگار',
+  when:'دوشنبه ۳۰ شهریور', time:'۲۰:۳۰', place:'آنلاین', mode:'آنلاین',
+  price:0, cap:300, taken:214, g:'linear-gradient(135deg,#54719B,#0A56B8)',
+  d:'چطور دربارهٔ اخبار جعلی با فرزندمان حرف بزنیم؛ همراه با چهار تمرین خانوادگی و فهرست منابع فارسی.',
+  bio:'پژوهشگر رسانه و مدرس سواد رسانه'},
+ {id:'e5', kind:'کارگاه', cat:'workshop', day:'week', icon:'i-users',
+  t:'کارگاه فن بیان مقدماتی', teacher:'خانم الهه رضایی',
+  when:'چهارشنبه ۸ مهر', time:'۱۶:۰۰', place:'تهران، ولی‌عصر، پلاک ۱۲', mode:'حضوری و آنلاین',
+  price:1300000, cap:30, taken:27, g:'linear-gradient(135deg,#0A56B8,#0B7A57)',
+  d:'سه جلسهٔ عملی تنفس، لحن و اعتماد روی صحنه؛ هر جلسه تمرین ضبط‌شده دارد و بازخورد شخصی می‌گیری.',
+  bio:'مدرس فن بیان و مجری همایش‌های آموزشی'},
+ {id:'e6', kind:'کارگاه', cat:'workshop', day:'week', icon:'i-shield',
+  t:'کارگاه امداد و نجات', teacher:'آقای امیر کاظمی',
+  when:'پنجشنبه ۹ مهر', time:'۱۴:۰۰', place:'پایگاه هلال، سعادت‌آباد', mode:'حضوری',
+  price:650000, cap:20, taken:6, g:'linear-gradient(135deg,#B4453C,#8A6A25)',
+  d:'کمک‌های اولیه، ارزیابی مصدوم و تمرین عملی احیای قلبی-ریوی روی مانکن؛ گواهینامهٔ پایان دوره صادر می‌شود.',
+  bio:'مربی رسمی کمک‌های اولیهٔ هلال احمر'},
+ {id:'e7', kind:'نشست', cat:'webinar', day:'week', icon:'i-wallet',
+  t:'نشست مالی و برنامه‌ریزی خانواده', teacher:'دکتر حسن مقدم',
+  when:'جمعه ۱۰ مهر', time:'۱۰:۰۰', place:'آنلاین', mode:'آنلاین',
+  price:0, cap:200, taken:88, g:'linear-gradient(135deg,#0B7A57,#6E4B1F)',
+  d:'بودجه‌بندی خانوار، پس‌انداز و بیمهٔ عمر؛ همراه با برگهٔ کار قابل چاپ و پاسخ به پرسش‌های شرکت‌کننده‌ها.',
+  bio:'مشاور مالی خانواده و مدرس دوره‌های اقتصادی'},
+ {id:'e8', kind:'اردو', cat:'camp', day:'next', icon:'i-flag',
+  t:'اردوی یک‌روزهٔ کوه‌پیمایی', teacher:'گروه ورزش نورا',
+  when:'جمعه ۱۷ مهر', time:'۰۶:۰۰', place:'دربند، میدان سرآسیاب', mode:'حضوری',
+  price:750000, cap:45, taken:45, g:'linear-gradient(135deg,#0B7A57,#1E3A8A)',
+  d:'مسیر آسان تا آبشار؛ رفت‌وآمد، صبحانه و ناهار در برنامهٔ اردو هست. ظرفیت تکمیل شده و اسم‌ها به لیست انتظار می‌رود.',
+  bio:'گروه ورزش نورا — سرپرست: آقای سعید رحیمی'},
+ {id:'e9', kind:'آزمون', cat:'exam', day:'next', icon:'i-doc',
+  t:'آزمون پایان دورهٔ سواد رسانه', teacher:'واحد آموزش نورا',
+  when:'پنجشنبه ۱۶ مهر', time:'۱۸:۰۰', place:'آنلاین', mode:'آنلاین',
+  price:0, cap:500, taken:132, g:'linear-gradient(135deg,#54719B,#1E3A8A)',
+  d:'۳۰ پرسش چهارگزینه‌ای در ۴۰ دقیقه؛ کارنامه و پاسخ تشریحی همان روز در پیام‌رسان بله برایت می‌آید.',
+  bio:'آزمون زیر نظر کارشناس آموزشی برگزار می‌شود'},
+ {id:'e10', kind:'کارگاه', cat:'workshop', day:'next', icon:'i-image',
+  t:'کارگاه عکاسی پرتره — پیشرفته', teacher:'مهندس کیوان مرادی',
+  when:'پنجشنبه ۱۶ مهر', time:'۱۷:۰۰', place:'استودیوی نورا، جردن', mode:'حضوری',
+  price:1450000, cap:16, taken:4, g:'linear-gradient(135deg,#123A7A,#9C7C3C)',
+  d:'نورپردازی سه‌نقطه، هدایت مدل و ویرایش حرفه‌ای؛ پیش‌نیاز: کارگاه عکاسی مقدماتی یا آشنایی با دوربین.',
+  bio:'عکاس طبیعت و پرتره با ۱۶ سال سابقهٔ تدریس'},
+ {id:'e11', kind:'پویش', cat:'charity', day:'next', icon:'i-heart',
+  t:'پویش نوشت‌افزار برای کودکان', teacher:'گروه فرهنگی خط زندگی',
+  when:'شنبه ۱۸ مهر', time:'۱۰:۰۰ تا ۱۸:۰۰', place:'دفتر مرکزی، ولی‌عصر', mode:'حضوری',
+  price:0, cap:0, taken:312, g:'linear-gradient(135deg,#B4453C,#0A56B8)',
+  d:'نوشت‌افزار، کیف و کتاب برای ۴۰۰ دانش‌آموز در حاشیهٔ شهر؛ کمک نقدی یا حضوری در بسته‌بندی. گزارش هزینه‌ها منتشر می‌شود.',
+  bio:'به‌همراهی دفتر خیریهٔ خط زندگی'}
+];
+
+/* ── پخش زنده و شروع نزدیک ── */
+const LIVE=[
+ {ev:'e1', t:'شعر و موسیقی — شب شنبه', at:'۲۰:۳۰ تا ۲۲:۰۰', past:38, total:90, where:'آنلاین'},
+ {ev:'e2', t:'حلقهٔ مطالعه — گفت‌وگوی پایانی', at:'۲۱:۱۵ تا ۲۲:۰۰', past:0, total:45, where:'کتابخانهٔ نورا', soon:21}
+];
+
+/* ── آرشیو ضبط‌شده ── */
+const ARCHIVE=[
+ {t:'دورهٔ عکاسی — جلسهٔ اول', w:'۹۰ دقیقه', d:'۲ هفته پیش', ev:'e3'},
+ {t:'کارگاه فن بیان — ضبط کامل', w:'۱۲۰ دقیقه', d:'ماه پیش', ev:'e5'},
+ {t:'نشست سواد رسانه — ضبط و منابع', w:'۷۵ دقیقه', d:'۲ ماه پیش', ev:'e4'}
+];
+
+/* ── نظر شرکت‌کننده‌ها ── */
+const VOICES=[
+ {n:'نگار شریفی', c:'کارگاه فن بیان — ترم تیر', r:5,
+  q:'از جلسهٔ دوم روی صحنه رفتم و لرزش صدایم ریخت. تمرین‌ها را همان هفته در محل کارم استفاده کردم.'},
+ {n:'امیر کاظمی', c:'کارگاه امداد و نجات — ترم مرداد', r:4.5,
+  q:'مربی با حوصله همهٔ پرسش‌ها را جواب داد. بعد از دوره در کارگاه‌مان مسئول ایمنی شدم.'},
+ {n:'مهسا احمدی', c:'باشگاه کتاب‌خوانی — ترم شهریور', r:4.5,
+  q:'هفته‌ای یک جلسه است، ولی کتاب‌خواندنم عوض شد؛ بچه‌ها هم شب‌ها با من می‌خوانند.'}
+];
+
+/* ── اعلان‌ها ── */
+const NOTICES=[
+ {t:'رسید پرداخت تأیید شد', d:'کارگاه فن بیان مقدماتی — ثبت‌نامت قطعی شد؛ کارت ورود در حساب کاربری هست.', w:'۲ روز پیش', unread:true, i:'i-check'},
+ {t:'امشب ۲۰:۳۰ — جلسهٔ شعر و موسیقی', d:'پیوند ورود نیم ساعت قبل در همین صفحه می‌آید؛ برای یادآوری پیامک هم می‌فرستیم.', w:'امروز', unread:true, i:'i-clock'},
+ {t:'گواهینامهٔ دورهٔ عکاسی صادر شد', d:'شمارهٔ سریال NL-T4K7M9X — با همین شماره در بخش استعلام قابل بررسی است.', w:'هفتهٔ پیش', unread:false, i:'i-medal'}
+];
+
+/* ── پرسش‌های پرتکرار ── */
+const FAQ=[
+ ['ثبت‌نام چطور قطعی می‌شود؟','پرداخت با درگاه رسمی بله همان لحظه قطعی است؛ کارت‌به‌کارت بعد از تأیید کارشناس قطعی می‌شود و تا آن روز موقت می‌ماند.'],
+ ['اگر رسید تأیید نشود چه می‌شود؟','ثبت‌نام موقت باطل می‌شود و پاسخ‌های تو می‌ماند؛ فقط پرداخت را از ابتدا انجام می‌دهی.'],
+ ['همراه می‌توانم بیاورم؟','در کارگاه‌های حضوری بله، تا سقفی که برگزارکننده گذاشته؛ هر نفر سهم پرداخت خودش را دارد.'],
+ ['گواهینامه کِی صادر می‌شود؟','در کارگاه‌های گواهی‌دار، بعد از تأیید پرداخت یا پس از پایان دوره — بسته به تنظیم برگزارکننده.'],
+ ['لغو یا جابه‌جایی ثبت‌نام ممکن است؟','تا پایان مهلت اعلام‌شده، بله؛ در بخش پیام به پشتیبانی درخواستت را بنویس.']
+];
+
+/* ── گواهینامه‌های صادرشده (برای استعلام) ── */
+const CERTS={
+ 'NL-T4K7M9X':{n:'سارا محمدی', c:'کارگاه عکاسی مقدماتی', d:'۲۱ شهریور ۱۴۰۵', h:'۲۴ ساعت'},
+ 'NL-QW83ZP':{n:'مهسا احمدی', c:'کارگاه فن بیان مقدماتی', d:'۸ مهر ۱۴۰۵', h:'۱۸ ساعت'},
+ 'NL-7HD24K':{n:'امیر کاظمی', c:'کارگاه امداد و نجات', d:'۱۲ مرداد ۱۴۰۵', h:'۱۲ ساعت'}
+};
+
+const CATS=[
+ {k:'workshop', n:'کارگاه', d:'تمرین عملی', i:'i-users'},
+ {k:'webinar', n:'وبینار', d:'آنلاین و زنده', i:'i-play'},
+ {k:'session', n:'جلسه', d:'هفتگی', i:'i-calendar'},
+ {k:'camp', n:'اردو', d:'یک‌روزه', i:'i-flag'},
+ {k:'exam', n:'آزمون', d:'با کارنامه', i:'i-doc'},
+ {k:'charity', n:'خیریه', d:'پویش و کمک', i:'i-heart'}
+];
+const DAYS=[{k:'all',n:'همه'},{k:'tonight',n:'امشب'},{k:'tomorrow',n:'فردا'},{k:'week',n:'این هفته'},{k:'next',n:'هفتهٔ بعد'}];
+
+const S={q:'', day:'all', cat:'all', slide:0, timer:null, step:'phone', phone:'', user:null, ev:null};
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const left=e=>e.cap?Math.max(0,e.cap-e.taken):Infinity;
+const priceOf=e=>e.price?rialTxt(e.price):'رایگان';
+const dayName=k=>({tonight:'امشب',tomorrow:'فردا',week:'این هفته',next:'هفتهٔ بعد'}[k]||'');
+const stars=r=>{let h=''; for(let i=1;i<=5;i++) h+='<svg class="i" style="'+(i<=Math.round(r)?'':'opacity:.35')+'"><use href="#i-star"/></svg>'; return '<span class="stars" aria-label="امتیاز '+faN(r)+' از ۵">'+h+'</span>'};
+
+/* ═════════ بنر ═════════ */
+function renderBanner(){
+  $('#bsdeck').innerHTML=BANNERS.map((b,i)=>`
+    <article class="bs" style="--g:${b.g}" role="tabpanel" aria-label="بنر ${faN(i+1)} از ${faN(BANNERS.length)}" ${i?'aria-hidden="true"':''}>
+      <span class="btag">${esc(b.tag)}</span>
+      <h2>${esc(b.t)}</h2>
+      <div class="bmeta">${esc(b.m)}</div>
+      <div class="bnote">${esc(b.n)}</div>
+      <div class="bacts">
+        <button class="bbtn" data-ba="${i}">${esc(b.a.l)}</button>
+        <button class="bbtn ghost" data-bb="${i}">${esc(b.b.l)}</button>
+      </div>
+    </article>`).join('');
+  $('#bdots').innerHTML=BANNERS.map((b,i)=>
+    `<i role="tab" tabindex="0" data-bs="${i}" class="${i===S.slide?'on':''}" aria-label="بنر ${faN(i+1)}" aria-selected="${i===S.slide}"></i>`).join('');
+  slide(S.slide,true);
+}
+function slide(i,silent){
+  S.slide=(i+BANNERS.length)%BANNERS.length;
+  $('#bsdeck').style.transform='translateX('+(S.slide*100)+'%)';
+  $$('#bdots i').forEach((d,k)=>{d.classList.toggle('on',k===S.slide); d.setAttribute('aria-selected',k===S.slide)});
+  if(!silent) return;
+}
+function autoBanner(){
+  clearInterval(S.timer);
+  S.timer=setInterval(()=>{ if(document.hidden) return; slide(S.slide+1,true); }, 6500);
+}
+
+/* ═════════ رویدادها ═════════ */
+function match(e){
+  if(S.day!=='all'&&e.day!==S.day) return false;
+  if(S.cat!=='all'&&e.cat!==S.cat) return false;
+  const q=S.q.trim();
+  if(q&&!(e.t+' '+e.teacher+' '+e.place+' '+e.kind).includes(q)) return false;
+  return true;
+}
+function evRow(e){
+  const l=left(e), full=e.cap&&l===0;
+  return `<button class="ev ${full?'full':''}" data-ev="${e.id}" aria-label="جزئیات ${esc(e.t)}">
+    <span class="th" style="--g:${e.g}"><svg class="i"><use href="#${e.icon}"/></svg></span>
+    <span class="bod">
+      <span class="ttl">${esc(e.t)}</span>
+      <span class="meta">${esc(e.when)} · ${esc(e.time)} · ${esc(e.place)}</span>
+      <span class="mini-chips">
+        <span class="mini-chip">${esc(e.kind)}</span>
+        <span class="mini-chip">${esc(e.mode)}</span>
+        ${e.live?'<span class="mini-chip live"><span class="dotpulse"></span>همین حالا</span>':''}
+        ${full?'<span class="mini-chip soon">لیست انتظار</span>':(e.cap&&l<=5?'<span class="mini-chip soon">'+faN(l)+' جا مانده</span>':'')}
+      </span>
+    </span>
+    <span class="side">
+      <span class="prc ${e.price?'':'free'}">${e.price?rialTxt(e.price):'رایگان'}</span>
+      <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+    </span>
+  </button>`;
+}
+function renderEvents(){
+  const list=EVENTS.filter(match);
+  $('#evList').innerHTML=list.length?list.map(evRow).join(''):'<div class="empty">چیزی با این صافی پیدا نشد؛ دسته یا روز را عوض کن.</div>';
+  $('#evCount').textContent=faN(list.length)+' رویداد از '+faN(EVENTS.length)+(S.day!=='all'?' — '+dayName(S.day):'');
+  const f=S.cat!=='all'||S.q.trim();
+  $('#filterNote').hidden=!f;
+  $('#filterNote').textContent=f?'صافی فعال — برای برداشتن، «همهٔ رویدادها» را بزن':'';
+  $('#daybar').innerHTML=DAYS.map(d=>`<button class="chip ${S.day===d.k?'on':''}" role="tab" aria-selected="${S.day===d.k}" data-day="${d.k}">${d.n}</button>`).join('');
+}
+function renderQuickCats(){
+  $('#quickCats').innerHTML=[{k:'all',n:'همه'}].concat(CATS.slice(0,4)).map(c=>
+    `<button class="chip ${S.cat===c.k?'on':''}" data-cat="${c.k}">${c.n==='همه'?'همهٔ موضوع‌ها':c.n}</button>`).join('');
+}
+function renderCats(){
+  $('#catGrid').innerHTML=CATS.map(c=>`<button class="cattile ${S.cat===c.k?'on':''}" data-cat="${c.k}">
+    <span class="ci"><svg class="i"><use href="#${c.i}"/></svg></span><b>${c.n}</b><span>${c.d}</span></button>`).join('');
+}
+
+/* ═════════ برای تو / حساب ═════════ */
+function renderMine(){
+  const box=$('#mine');
+  if(!S.user){
+    box.innerHTML=`<div class="card paper">
+      <div class="sec-hd"><span class="fw">حساب کاربری نورا</span><span class="sp"></span><span class="cap">رایگان</span></div>
+      <p class="sub">با شمارهٔ موبایل وارد شو تا ثبت‌نام‌ها، گواهینامه‌ها و پیام‌ها همیشه در دست باشد.</p>
+      <div class="stack tight" style="margin-top:12px">
+        <div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">پیگیری ثبت‌نام و رسید پرداخت</span></div>
+        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها با شمارهٔ راستی‌آزمایی</span></div>
+        <div class="srow"><svg class="i"><use href="#i-bell"/></svg><span class="sp">یادآوری جلسه‌ها و پیام کارشناس</span></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" data-f="shAccount"><svg class="i"><use href="#i-mobile"/></svg> ورود / ساخت حساب</button>
+        <span class="sp"></span><span class="cap">با کد یک‌بارمصرف، بدون رمز</span>
+      </div>
+    </div>`;
+    return;
+  }
+  const u=S.user;
+  box.innerHTML=`<div class="sec-hd"><span class="fw">برای تو، ${esc(u.name.split(' ')[0])}</span><span class="sp"></span>
+      <button class="more" data-f="shAccount">حساب من<svg class="i" style="width:14px;height:14px"><use href="#i-chev-left"/></svg></button></div>
+    <div class="hrail">
+      <div class="hcard">
+        <span class="hd"><svg class="i"><use href="#i-calendar"/></svg> ثبت‌نام بعدی</span>
+        <b>کارگاه فن بیان مقدماتی</b>
+        <span class="hrow">چهارشنبه ۸ مهر · ۱۶:۰۰ — سالن شمارهٔ ۲</span>
+        <span class="row" style="color:var(--brand-ink);font-weight:600">۳ روز مانده</span>
+        <button class="btn sm quiet" data-ev="e5" style="margin-top:2px">جزئیات ثبت‌نام</button>
+      </div>
+      <div class="hcard">
+        <span class="hd"><svg class="i"><use href="#i-medal"/></svg> گواهینامهٔ من</span>
+        <span class="val">${faN(u.certs)} برگ</span>
+        <span class="hrow">آخرین: کارگاه عکاسی مقدماتی — سریال NL-T4K7M9X</span>
+        <button class="btn sm quiet" data-f="shVerify" style="margin-top:2px">دیدن و بررسی</button>
+      </div>
+      <div class="hcard">
+        <span class="hd"><svg class="i"><use href="#i-wallet"/></svg> کیف پول</span>
+        <span class="val">${fa(u.wallet)} <small>ریال</small></span>
+        <span class="hrow">۳ تراکنش اخیر — آخرین: بازگشت وجه ۴۵۰٬۰۰۰ ریال</span>
+        <button class="btn sm quiet" data-wallet style="margin-top:2px">شارژ و صورت‌حساب</button>
+      </div>
+      <div class="hcard">
+        <span class="hd"><svg class="i"><use href="#i-mail"/></svg> پیام‌ها</span>
+        <span class="val">${faN(u.msgs)} <small>خوانده‌نشده</small></span>
+        <span class="hrow">خانم رستگار: برای جلسهٔ اول یک روز قبل هماهنگ می‌کنیم.</span>
+        <button class="btn sm quiet" data-f="shSupport" style="margin-top:2px">پاسخ دادن</button>
+      </div>
+    </div>`;
+}
+
+/* ═════════ جریان زنده ═════════ */
+function renderLive(){
+  $('#live').innerHTML=`<div class="sec-hd"><span class="fw">جریان زنده</span><span class="sp"></span><span class="cap">${faN(LIVE.length)} برنامه</span></div>`
+   +LIVE.map(x=>{
+    const e=EVENTS.find(v=>v.id===x.ev)||{};
+    const pct=x.past?Math.round(x.past/x.total*100):0;
+    return `<div class="livecard" style="margin-bottom:8px">
+      <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
+      <h3>${esc(x.t)}</h3>
+      <div class="hrow" style="color:var(--ink-3)">${esc(x.at)} · ${esc(x.where)}${e.teacher?' · '+esc(e.teacher):''}</div>
+      <div class="bar" aria-hidden="true"><i style="width:${x.past?pct:0}%"></i></div>
+      <div class="row"><span class="cap">${x.past?faN(x.past)+' دقیقه از '+faN(x.total)+' دقیقه گذشته':'هنوز شروع نشده'}</span><span class="sp"></span>
+        <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${x.ev}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
+    </div>`}).join('');
+}
+
+/* ═════════ سنجاق‌شدهٔ کارشناس ═════════ */
+function renderPin(){
+  const e=EVENTS.find(x=>x.pin); if(!e){$('#pin').innerHTML=''; return}
+  const l=left(e);
+  $('#pin').innerHTML=`<div class="pincard">
+    <div class="head"><svg class="i" style="width:15px;height:15px"><use href="#i-pin"/></svg>
+      سنجاق‌شدهٔ کارشناس آموزش — خانم رستگار</div>
+    <div class="bodyc">
+      <b style="font-size:15px">${esc(e.t)}</b>
+      <div class="hrow" style="color:var(--ink-3)">${esc(e.when)} · ${esc(e.time)} · ${esc(e.place)}</div>
+      <div class="quote"><svg class="i" style="width:17px;height:17px;color:var(--brand-ink)"><use href="#i-bell"/></svg>
+        <span>ظرفیت این کارگاه محدود است و هر ترم پر می‌شود؛ اگر می‌خواهی جا بمانی، همین هفته ثبت‌نام کن.</span></div>
+      <div class="row"><span class="cap">${faN(e.taken)} نفر ثبت‌نام کرده‌اند — ${faN(l)} جا مانده</span><span class="sp"></span>
+        <span class="hrow" style="font-weight:700">${rialTxt(e.price)}</span></div>
+      <div class="bar" aria-hidden="true"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
+      <div class="row" style="margin-top:2px">
+        <a class="btn primary" href="form.html" style="text-decoration:none"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام در این کارگاه</a>
+        <button class="btn quiet" data-ev="${e.id}">جزئیات</button>
+      </div>
+    </div></div>`;
+}
+
+/* ═════════ باشگاه و امتیاز ═════════ */
+const CLUB={points:420, goal:500, level:'نقره‌ای', next:'طلایی', invites:3, inviteGoal:5, reward:50000};
+function renderClub(){
+  const u=S.user;
+  const p=u?CLUB.points:0, pct=Math.round(p/CLUB.goal*100);
+  $('#clubRing').style.setProperty('--p',pct);
+  $('#clubPct').textContent=faN(pct)+'٪';
+  $('#clubBar').style.width=pct+'%';
+  $('#clubLvl').textContent=u?'سطح '+CLUB.level: 'با ورود فعال می‌شود';
+  $('#clubLine').textContent=u
+    ? faN(CLUB.points)+' از '+faN(CLUB.goal)+' امتیاز تا سطح '+CLUB.next+' — '+faN(CLUB.goal-CLUB.points)+' امتیاز مانده'
+    : 'امتیاز، کیف پول و دعوت دوستان بعد از ورود به حساب نشان داده می‌شود';
+  $('#clubRows').innerHTML=`
+    <div class="clupline"><svg class="i"><use href="#i-star"/></svg><span class="sp">${u?'هر کارگاه ۵۰ امتیاز، هر نظرسنجی ۲۰ امتیاز':'امتیاز هر کارگاه: ۵۰'}</span>
+      <b>${u?faN(CLUB.points):'—'}</b></div>
+    <div class="clupline"><svg class="i"><use href="#i-users"/></svg><span class="sp">دعوت دوستان — هر دعوت ${rialTxt(CLUB.reward)} اعتبار</span>
+      <b>${u?faN(CLUB.invites)+' از '+faN(CLUB.inviteGoal):'—'}</b>
+      <button class="btn sm quiet" data-f="shInvite">لینک دعوت</button></div>
+    <div class="clupline"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">اعتبار کیف پول</span>
+      <b>${u?rialTxt(u.wallet):'—'}</b>${u?'<button class="btn sm quiet" data-wallet>شارژ</button>':''}</div>`;
+}
+
+/* ═════════ آرشیو، نظرها، پشتیبانی ═════════ */
+function renderArchive(){
+  $('#archRail').innerHTML=ARCHIVE.map(a=>`<div class="hcard">
+    <span class="hd"><svg class="i"><use href="#i-play"/></svg> ضبط‌شده · ${esc(a.w)}</span>
+    <b>${esc(a.t)}</b>
+    <span class="hrow">${esc(a.d)}</span>
+    <button class="btn sm quiet" data-ev="${a.ev}" style="margin-top:2px">دیدن ضبط</button></div>`).join('');
+}
+function renderVoices(){
+  $('#voiceList').innerHTML=VOICES.map(v=>`<div class="voice">
+    <div class="wh"><span class="av">${esc(v.n[0])}</span>
+      <span class="wt"><b>${esc(v.n)}</b><span>${esc(v.c)}</span></span>
+      <span class="sp"></span>${stars(v.r)}</div>
+    <p>${esc(v.q)}</p></div>`).join('');
+}
+function renderHelp(){
+  const rows=[
+    ['shSupport','i-send','پیام به پشتیبانی','پاسخ در همان روز کاری — شنبه تا پنجشنبه'],
+    ['shVerify','i-qr','استعلام گواهینامه','با شمارهٔ سریال یا کد پیگیری'],
+    ['shFaq','i-doc','پرسش‌های پرتکرار','ثبت‌نام، پرداخت، لغو و گواهینامه'],
+    [null,'i-mail','رایانامه و تلفن','info@lifeline1.ir — ۰۲۱–۸۸۸۸۱۲۳۴']
+  ];
+  $('#helpList').innerHTML=rows.map(r=>r[0]
+    ? `<button class="helprow" data-f="${r[0]}"><span class="hi"><svg class="i"><use href="#${r[1]}"/></svg></span>
+        <span class="ht"><b>${r[2]}</b><span>${r[3]}</span></span>
+        <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`
+    : `<a class="helprow" href="mailto:info@lifeline1.ir" style="text-decoration:none"><span class="hi"><svg class="i"><use href="#${r[1]}"/></svg></span>
+        <span class="ht"><b>${r[2]}</b><span>${r[3]}</span></span></a>`).join('');
+}
+
+/* ═════════ ورقه‌ها ═════════ */
+function sheetHead(title,sub){
+  return `<div class="row" style="align-items:center;margin-bottom:10px">
+    <div><div class="head">${title}</div>${sub?'<div class="cap">'+sub+'</div>':''}</div>
+    <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>`;
+}
+function openSheet(id){
+  $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===id));
+  $('#scrim').classList.toggle('on',!!id);
+}
+function closeSheets(){openSheet(null)}
+
+function renderEventSheet(){
+  const e=EVENTS.find(x=>x.id===S.ev); if(!e) return;
+  const l=left(e), full=e.cap&&l===0;
+  $('#evBody').innerHTML=sheetHead(esc(e.kind)+' · '+esc(e.mode),'کد رویداد '+e.id.toUpperCase())+`
+    <div class="row tight" style="margin-bottom:8px">
+      <span class="tag brand">${esc(e.kind)}</span><span class="tag">${esc(e.mode)}</span>
+      ${e.live?'<span class="tag stop">همین حالا در حال برگزاری</span>':''}
+      ${full?'<span class="tag warn">ظرفیت تکمیل</span>':''}</div>
+    <h3 style="margin:2px 0 6px;font-size:17px">${esc(e.t)}</h3>
+    <div class="stack tight" style="margin:8px 0 12px">
+      <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">${esc(e.when)}</span><b>ساعت ${esc(e.time)}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${esc(e.place)}</span></div>
+      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">مدرس</span><b>${esc(e.teacher)}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-idcard"/></svg><span class="sp">${esc(e.bio)}</span></div>
+      <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span>
+        <b>${priceOf(e)}</b></div>
+    </div>
+    ${e.cap?`<div class="bar" aria-hidden="true"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
+      <div class="cap" style="margin-top:7px">${full?'ظرفیت تکمیل — ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(l)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
+    <p class="sub" style="margin-top:12px">${esc(e.d)}</p>
+    ${e.price?`<div class="moneyline t" style="margin-top:12px"><span>مبلغ ثبت‌نام</span><span class="num">${money(e.price)}</span></div>`:''}
+    <div class="row" style="margin-top:14px">
+      ${full?`<button class="btn primary" data-wait="${e.id}"><svg class="i"><use href="#i-clock"/></svg> ثبت‌نام در لیست انتظار</button>`
+            :`<a class="btn primary" href="form.html" style="text-decoration:none"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`}
+      <button class="btn quiet" data-share="${e.id}"><svg class="i"><use href="#i-link"/></svg> کپی لینک رویداد</button>
+    </div>
+    <p class="cap" style="margin-top:10px">با درگاه رسمی بله همان لحظه قطعی می‌شود؛ کارت‌به‌کارت بعد از تأیید کارشناس.</p>`;
+}
+
+function renderAccount(){
+  const u=S.user;
+  if(u){
+    $('#acctBody').innerHTML=sheetHead('حساب من','عضو از '+u.joined)+`
+      <div class="accthead" style="margin-bottom:12px">
+        <span class="av">${esc(u.name[0])}</span>
+        <div style="min-width:0"><b style="font-size:15px">${esc(u.name)}</b><div class="cap">${maskPhone(u.mobile)}</div></div>
+      </div>
+      <div class="stack tight">
+        <div class="srow"><svg class="i"><use href="#i-star"/></svg><span class="sp">امتیاز باشگاه</span><b>${faN(CLUB.points)} از ${faN(CLUB.goal)}</b></div>
+        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها</span><b>${faN(u.certs)} برگ</b></div>
+        <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">کیف پول</span><b>${rialTxt(u.wallet)}</b></div>
+        <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">دعوت دوستان</span><b>${faN(CLUB.invites)} از ${faN(CLUB.inviteGoal)}</b></div>
+        <div class="srow"><svg class="i"><use href="#i-bell"/></svg><span class="sp">اعلان‌ها</span><b>${faN(NOTICES.filter(n=>n.unread).length)} خوانده‌نشده</b></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn quiet" data-f="shInvite"><svg class="i"><use href="#i-users"/></svg> دعوت دوستان</button>
+        <span class="sp"></span><button class="btn stop" data-logout>خروج از حساب</button>
+      </div>`;
+    return;
+  }
+  if(S.step==='phone'){
+    $('#acctBody').innerHTML=sheetHead('ورود / ساخت حساب','با شمارهٔ موبایل و کد یک‌بارمصرف')+`
+      <label class="lbl" for="mob">شمارهٔ موبایل</label>
+      <input class="input num" id="mob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${esc(S.phone)}"/>
+      <div class="cap" style="margin-top:7px">اگر حساب نداری، همین‌جا ساخته می‌شود؛ رمزی لازم نیست.</div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" data-login><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
+        <span class="sp"></span><button class="btn quiet" data-close>بستن</button>
+      </div>`;
+    return;
+  }
+  $('#acctBody').innerHTML=sheetHead('کد تأیید','به '+maskPhone(S.phone)+' فرستادیم')+`
+    <label class="lbl" for="code">کد پنج‌رقمی</label>
+    <input class="input num" id="code" inputmode="numeric" placeholder="•••••" autocomplete="one-time-code"/>
+    <div class="cap" style="margin-top:7px">کد نمایشی این نمونه: ۵۴۳۲۱ — در نسخهٔ نهایی پیامک می‌شود.</div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" data-code><svg class="i"><use href="#i-check"/></svg> ورود</button>
+      <button class="btn quiet" data-back>تغییر شماره</button>
+    </div>`;
+}
+
+function renderInvite(){
+  const u=S.user, link='https://lifeline1.ir/i/'+shortCode('NORAINV'+CLUB.invites);
+  $('#inviteBody').innerHTML=sheetHead('دعوت دوستان','هر دعوت '+rialTxt(CLUB.reward)+' اعتبار')+`
+    <p class="sub">لینک زیر را برای دوستت بفرست؛ با ثبت‌نام او هم امتیاز می‌گیری و هم اعتبار به کیف پولت می‌نشیند.</p>
+    <div class="copyrow" style="margin-top:12px"><code>${link}</code>
+      <button class="btn sm quiet" data-copy="${link}"><svg class="i"><use href="#i-copy"/></svg> کپی</button></div>
+    <div class="stack tight" style="margin-top:12px">
+      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">دعوت‌های موفق</span><b>${u?faN(CLUB.invites)+' از '+faN(CLUB.inviteGoal):'—'}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">اعتبار گرفته‌شده</span><b>${u?rialTxt(CLUB.invites*CLUB.reward):'—'}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">جایزهٔ دعوت پنجم</span><b>۱ کارگاه رایگان</b></div>
+    </div>
+    ${u?'':'<p class="cap" style="margin-top:10px">برای شمردن دعوت‌ها باید وارد حساب شوی.</p>'}`;
+}
+
+function renderVerify(){
+  const r=S.verify;
+  $('#verifyBody').innerHTML=sheetHead('استعلام گواهینامه','شمارهٔ سریال روی برگ را وارد کن')+`
+    <label class="lbl" for="serial">شمارهٔ سریال</label>
+    <input class="input num" id="serial" placeholder="NL-T4K7M9X" value="${esc(S.serial||'')}" style="direction:ltr;text-align:start"/>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-verify><svg class="i"><use href="#i-search"/></svg> بررسی</button>
+      <span class="sp"></span><span class="cap">سریال با حروف لاتین است</span></div>
+    ${r===undefined?'':'<div style="margin-top:14px">'+(r
+      ?`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--ok)"><use href="#i-check"/></svg>
+         <span><b class="sub">گواهینامهٔ معتبر</b><div class="cap">${esc(r.n)} — ${esc(r.c)} — ${esc(r.d)} — ${esc(r.h)}</div>
+         <div class="cap">صادرشده از گروه فرهنگی خط زندگی · lifeline1.ir/c</div></span></div></div>`
+      :`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--stop)"><use href="#i-close"/></svg>
+         <span><b class="sub">چنین سریالی ثبت نشده</b><div class="cap">شماره را از پایین برگ گواهینامه بردار یا با کد پیگیری درخواست کن.</div></span></div></div>`)
+      +'</div>'}`;
+}
+
+function renderFaq(){
+  $('#faqBody').innerHTML=sheetHead('پرسش‌های پرتکرار','۵ پرسش پرتکرار کاربران')+
+    FAQ.map((f,i)=>`<details class="faq" ${i===0?'open':''}><summary>${esc(f[0])}</summary><p>${esc(f[1])}</p></details>`).join('')+
+    `<p class="cap">پاسخ پرسشت را پیدا نکردی؟ از «پیام به پشتیبانی» بنویس.</p>`;
+}
+
+function renderSupport(){
+  $('#supBody').innerHTML=sheetHead('پیام به پشتیبانی','شنبه تا پنجشنبه ۹ تا ۱۸ — پاسخ در همان روز')+`
+    <div class="stack tight" style="margin-bottom:12px">
+      <div class="srow"><svg class="i"><use href="#i-mobile"/></svg><span class="sp">تلفن</span><b>۰۲۱–۸۸۸۸۱۲۳۴</b></div>
+      <div class="srow"><svg class="i"><use href="#i-mail"/></svg><span class="sp">رایانامه</span><b>info@lifeline1.ir</b></div>
+      ${S.user?`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">کارشناس پیگیری</span><b>خانم رستگار</b></div>`:''}
+    </div>
+    <label class="lbl" for="msg">متن پیام</label>
+    <textarea class="input" id="msg" rows="4" placeholder="مثلاً دربارهٔ تأیید رسید کارت‌به‌کارت سؤال دارم…"></textarea>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-send><svg class="i"><use href="#i-send"/></svg> فرستادن پیام</button>
+      <span class="sp"></span><span class="cap">شمارهٔ پیگیری در همان روز پیامک می‌شود</span></div>`;
+}
+
+function renderNotices(){
+  $('#noticeBody').innerHTML=sheetHead('اعلان‌ها',faN(NOTICES.filter(n=>n.unread).length)+' خوانده‌نشده')+
+    '<div class="stack tight">'+NOTICES.map(n=>`<div class="notif ${n.unread?'unread':''}">
+      <span class="ni"><svg class="i" style="width:16px;height:16px"><use href="#${n.i}"/></svg></span>
+      <span><span class="nt">${esc(n.t)}</span><div class="nd">${esc(n.d)}</div>
+      <div class="cap" style="margin-top:4px">${esc(n.w)}</div></span></div>`).join('')+'</div>'+
+    '<div class="row" style="margin-top:12px"><button class="btn quiet" data-readall><svg class="i"><use href="#i-check"/></svg> همه خوانده شد</button></div>';
+}
+
+/* ═════════ پوسته، حساب، ورقه‌ها ═════════ */
+function setTheme(v){document.documentElement.dataset.theme=v; try{localStorage.setItem('nora-theme',v)}catch(e){}}
+function loadSession(){
+  try{S.user=JSON.parse(localStorage.getItem('nora-home-user')||'null')}catch(e){S.user=null}
+}
+function saveSession(){ try{localStorage.setItem('nora-home-user',JSON.stringify(S.user))}catch(e){} }
+function renderAll(){
+  renderMine(); renderClub(); renderEvents();
+  const n=NOTICES.filter(x=>x.unread).length;
+  const b=$('#bellBadge'); b.hidden=!n; b.textContent=faN(n);
+  $('#acctBtn').textContent=S.user?S.user.name[0]:'م';
+  $('#acctBtn').setAttribute('aria-label',S.user?'حساب '+S.user.name:'ورود به حساب');
+}
+
+/* ═════════ رویدادها: کلیک‌ها ═════════ */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const bs=t.closest('[data-bs]'); if(bs){slide(Number(bs.dataset.bs),true); return}
+  const bp=t.closest('[data-bprev]'); if(bp){slide(S.slide-1,true); return}
+  const bn=t.closest('[data-bnext]'); if(bn){slide(S.slide+1,true); return}
+  const ba=t.closest('[data-ba]'); if(ba){bannerAct(Number(ba.dataset.ba),'a'); return}
+  const bb=t.closest('[data-bb]'); if(bb){bannerAct(Number(bb.dataset.bb),'b'); return}
+  const ev=t.closest('[data-ev]'); if(ev){S.ev=ev.dataset.ev; renderEventSheet(); openSheet('shEvent'); return}
+  const day=t.closest('[data-day]'); if(day){S.day=day.dataset.day; renderEvents(); return}
+  const cat=t.closest('[data-cat]'); if(cat){
+    S.cat=(S.cat===cat.dataset.cat)?'all':cat.dataset.cat;
+    renderQuickCats(); renderCats(); renderEvents();
+    if(S.cat!=='all') $('#evSec').scrollIntoView({behavior:'smooth',block:'start'});
+    return}
+  const f=t.closest('[data-f]'); if(f){openF(f.dataset.f); return}
+  const ds=t.closest('[data-sheet]'); if(ds){openF(ds.dataset.sheet); return}
+  const cl=t.closest('[data-close]'); if(cl){closeSheets(); return}
+  const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy); return}
+  const sh=t.closest('[data-share]'); if(sh){const v=EVENTS.find(x=>x.id===sh.dataset.share); copyText('https://lifeline1.ir/e/'+v.id); return}
+  const wt=t.closest('[data-wait]'); if(wt){
+    const v=EVENTS.find(x=>x.id===wt.dataset.wait);
+    log('درخواست لیست انتظار «'+v.t+'» ثبت شد');
+    closeSheets(); toast('در لیست انتظار ثبت شدی — اگر جا خالی شد خبر می‌دهیم'); return}
+  const wl=t.closest('[data-wallet]'); if(wl){toast(S.user?'درگاه کیف پول در نسخهٔ نهایی وصل می‌شود':'برای دیدن کیف پول وارد حساب شو'); return}
+  const th=t.closest('[data-theme-toggle]'); if(th){setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'); return}
+  const rd=t.closest('[data-readall]'); if(rd){NOTICES.forEach(n=>n.unread=false); renderNotices(); renderAll(); toast('همهٔ اعلان‌ها خوانده شد'); return}
+  const lg=t.closest('[data-login]'); if(lg){
+    const v=unFa(($('#mob')||{}).value||'').replace(/\D/g,'');
+    if(!/^09\d{9}$/.test(v)){toast('شمارهٔ موبایل را کامل بنویس — ۱۱ رقم، با ۰۹'); return}
+    S.phone=v; S.step='code'; renderAccount(); ($('#code')||{}).focus?.(); return}
+  const cd=t.closest('[data-code]'); if(cd){
+    const v=unFa(($('#code')||{}).value||'').replace(/\D/g,'');
+    if(v!=='54321'){toast('کد نمایشی ۵۴۳۲۱ است'); return}
+    S.user={name:'سارا محمدی',mobile:S.phone,joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1};
+    saveSession(); S.step='phone'; log('ورود با شمارهٔ '+maskPhone(S.phone));
+    renderAll(); renderAccount(); toast('خوش آمدی سارا — ثبت‌نام‌ها و گواهینامه‌ها آمد'); return}
+  const bk=t.closest('[data-back]'); if(bk){S.step='phone'; renderAccount(); return}
+  const lo=t.closest('[data-logout]'); if(lo){S.user=null; saveSession(); renderAll(); closeSheets(); toast('از حساب بیرون آمدی'); return}
+  const vr=t.closest('[data-verify]'); if(vr){
+    const v=unFa(($('#serial')||{}).value||'').trim().toUpperCase().replace(/\s/g,'');
+    if(!v){toast('شمارهٔ سریال را بنویس'); return}
+    S.serial=($('#serial')||{}).value; S.verify=CERTS[v]||false; renderVerify(); return}
+  const sd=t.closest('[data-send]'); if(sd){
+    const m=(($('#msg')||{}).value||'').trim();
+    if(m.length<5){toast('متن پیام کوتاه است — کمی بیشتر بنویس'); return}
+    log('پیام پشتیبانی: «'+m.slice(0,40)+'»'); closeSheets();
+    toast('پیام ثبت شد — کارشناس در همان روز کاری پاسخ می‌دهد'); return}
+  const jp=t.closest('[data-jump]'); if(jp){$('#'+jp.dataset.jump).scrollIntoView({behavior:'smooth',block:'start'}); return}
+  const tb=t.closest('#tabs [data-tab]'); if(tb){
+    const k=tb.dataset.tab;
+    $$('#tabs button').forEach(b=>{b.classList.toggle('on',b===tb); if(b===tb) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current')});
+    if(k==='home') window.scrollTo({top:0,behavior:'smooth'});
+    if(k==='events') $('#evSec').scrollIntoView({behavior:'smooth',block:'start'});
+    if(k==='club') $('#club').scrollIntoView({behavior:'smooth',block:'start'});
+    if(k==='help') $('#help').scrollIntoView({behavior:'smooth',block:'start'});
+    if(k==='me') openF('shAccount');
+    return}
+  const card=t.closest('[data-ev-card]'); if(card){openF(card.dataset.evCard)}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closeSheets()});
+$('#scrim').addEventListener('click',closeSheets);
+$('#q').addEventListener('input',e=>{
+  S.q=e.target.value; $('#qClear').hidden=!S.q; renderEvents();
+});
+$('#qClear').addEventListener('click',()=>{S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderEvents(); $('#q').focus()});
+$('#acctBtn').addEventListener('click',()=>openF('shAccount'));
+$('#evMore').addEventListener('click',()=>{S.day='all'; S.cat='all'; S.q=''; $('#q').value=''; $('#qClear').hidden=true;
+  renderQuickCats(); renderCats(); renderEvents(); toast('همهٔ رویدادهای پیش‌رو آمد')});
+$('#bnr').addEventListener('mouseenter',()=>clearInterval(S.timer));
+$('#bnr').addEventListener('mouseleave',autoBanner);
+$('#bnr').addEventListener('focusin',()=>clearInterval(S.timer));
+$('#bnr').addEventListener('focusout',autoBanner);
+
+function bannerAct(i,which){
+  const b=BANNERS[i][which];
+  if(b.ev){S.ev=b.ev; renderEventSheet(); openSheet('shEvent'); return}
+  if(b.j){S.day=b.j; renderEvents(); $('#evSec').scrollIntoView({behavior:'smooth',block:'start'}); return}
+  if(b.f){openF(b.f); return}
+}
+function openF(id){
+  if(id==='shAccount') renderAccount();
+  if(id==='shInvite') renderInvite();
+  if(id==='shVerify') renderVerify();
+  if(id==='shFaq') renderFaq();
+  if(id==='shSupport') renderSupport();
+  if(id==='shNotice') renderNotices();
+  openSheet(id);
+}
+/* ریز کارها را همان‌جا می‌نویسیم تا در سابقهٔ کاربر بماند */
+function log(w){ try{const k='nora-home-log'; const a=JSON.parse(localStorage.getItem(k)||'[]'); a.unshift({w:w,at:nowFa()}); localStorage.setItem(k,JSON.stringify(a.slice(0,30)))}catch(e){} }
+
+initKeys(document);
+try{const th=localStorage.getItem('nora-theme'); if(th) setTheme(th); else if(matchMedia('(prefers-color-scheme:dark)').matches) setTheme('dark');}catch(e){}
+loadSession();
+renderBanner(); renderQuickCats(); renderCats(); renderEvents(); renderLive(); renderPin();
+renderArchive(); renderVoices(); renderHelp(); renderAll();
+autoBanner();
+
+window.NORA_HOME={S:S,EVENTS:EVENTS,BANNERS:BANNERS,CATS:CATS,CLUB:CLUB,ARCHIVE:ARCHIVE};
+})();
+</script>
+</body>
+</html>
