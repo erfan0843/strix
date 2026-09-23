@@ -561,10 +561,9 @@ const FORMS=[
  seen:2140,started:412,resp:128,paid:109,money:103375000,
  start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:150,wait:true,per:3,skin:'blue',
  head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
- fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
-       {l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
-       {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''},
-       {l:'ارسال گواهینامه با پست',p:120000,off:0,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
+ fin:[{l:'شرکت حضوری در سالن',p:850000,off:15,req:false,g:'نوع شرکت',d:'روی صندلی، همراه با جزوهٔ کارگاه'},
+       {l:'شرکت آنلاین و زنده',p:600000,off:0,req:false,g:'نوع شرکت',d:'پخش زندهٔ همان کلاس'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''}],
  groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
  guestsOn:true,guestsMax:3,guests:['علی رضایی'],
  gw:['بله','کارت‌به‌کارت'], parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
@@ -572,7 +571,7 @@ const FORMS=[
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
  event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
  flags:['receipts','cert','excel'],
- certOn:true,certMode:'auto',certHours:'۲۴ ساعت',certIssued:{},
+ certOn:true,certHours:'۲۴ ساعت',certIssued:{},certReq:{},
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
  changes:[['۱۰ مهر — ظرفیت از ۱۲۰ به ۱۵۰ رسید','خانم رستگار'],['۸ مهر — کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر — پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
  answers:['برای جلسهٔ دوم نمی‌توانم بیایم؛ فایل صوتی دارید؟','دنبال کارگاه پیشرفته هستم.']},
@@ -605,7 +604,7 @@ const FORMS=[
  links:['گزارش هزینهکرد'],
  event:null,
  flags:['receipts','excel','cert'],
- certOn:true,certMode:'auto',certHours:'۱۲ ساعت',certIssued:{},
+ certOn:true,certHours:'۱۲ ساعت',certIssued:{},certReq:{},
  fields:[['نام و نام خانوادگی',0],['شماره موبایل',0],['مبلغ ماهانه',0]],
  changes:[],
  answers:[]},
@@ -622,7 +621,7 @@ const FORMS=[
  links:['سرفصل کتاب‌ها'],
  event:null,
  flags:['excel','exam','results','cert','anti-cheat'],
- certOn:true,certMode:'after',certHours:'',certIssued:{},
+ certOn:true,certHours:'',certIssued:{},certReq:{},
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['کد ملی',100],['انتخاب حوزه',100]],
  changes:[['۹ مهر — تصویربرداری هنگام آزمون روشن شد','خانم صادقی']],
  answers:[]}
@@ -788,7 +787,7 @@ function renderStats(){
             <span class="tx"><b>پیوند نتیجهٔ آزمون</b><span>با کد پیگیری و کد ملی</span></span>
             <svg class="i"><use href="#i-chev-left"/></svg></button>`:''}
           ${f.flags.includes('cert')?`<button class="chrow" data-change="cert"><span class="ic"><svg class="i"><use href="#i-medal"/></svg></span>
-            <span class="tx"><b>صدور گواهینامه</b><span>برای ${fa(f.paid)} پرداخت‌شده</span></span>
+            <span class="tx"><b>گواهینامه</b><span>درخواست برای ${fa(f.paid)} پرداخت‌شده — با تأیید سرپرست</span></span>
             <svg class="i"><use href="#i-chev-left"/></svg></button>`:''}
         </div>
       </div>
@@ -850,8 +849,8 @@ function renderInfo(){
         <div class="answer"><span class="k">کد تخفیف</span><span class="v">${f.coupon}</span></div>
         <div class="answer"><span class="k">وضعیت</span><span class="v">${f.status}</span></div>
         ${f.flags.includes('cert')?`<div class="answer"><span class="k">گواهینامه</span><span class="v">
-          ${f.certMode==='auto'?'صدور خودکار برای پرداخت‌شده‌ها':'صدور پس از پایان دوره'}
-          <span class="cap">— ${faN(Object.keys(f.certIssued||{}).length)} صادرشده از ${faN(f.paid)}</span></span></div>`:''}
+          صدور فقط با تأیید سرپرست
+          <span class="cap">— ${faN(Object.keys(f.certIssued||{}).length)} صادرشده · ${faN(Object.keys(f.certReq||{}).length)} در انتظار تأیید، از ${faN(f.paid)} پرداخت‌شده</span></span></div>`:''}
       </div>
       <div class="card paper">
         <div class="row" style="margin-bottom:6px"><span class="fw">متن پایانی و پیوندها</span><span class="sp"></span>
@@ -915,7 +914,7 @@ function renderChanges(){
   if(f.flags.includes('exam'))special.push(['scorecard','i-chart','کارنامه و تصحیح','درست و غلط و بی‌پاسخ']);
   if(f.flags.includes('exam'))special.push(['anticheat','i-shield','ضد‌تقلب آزمون','تصویر کاربر، تشخیص ورود چندگانه']);
   if(f.flags.includes('raffle'))special.push(['raffle','i-medal','قرعه‌کشی','انتخاب برنده میان پاسخ‌دهنده‌ها']);
-  if(f.flags.includes('cert'))special.push(['cert','i-medal','گواهینامه','صدور خودکار برای پرداخت‌شده‌ها']);
+  if(f.flags.includes('cert'))special.push(['cert','i-medal','گواهینامه','درخواست با تأیید سرپرست']);
   if(f.money)special.push(['_money','i-wallet','رفتن به بخش مالی','تسویه و تراکنش‌ها']);
   const R={
     addfield:['i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],text:['i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید'],
@@ -1023,11 +1022,11 @@ function openUser(id){
       </div>`:''}
       ${f.flags.includes('cert')?`<div class="card paper">
         <div class="row" style="margin-bottom:8px"><span class="fw">گواهینامه</span><span class="sp"></span>
-          <span class="tag ${CURP.cert?'ok':(CURP.state==='paid'?'quiet':'stop')}">${CURP.cert?('صادر شد — '+CURP.cert):(CURP.state==='paid'?'صادر نشده':'پس از پرداخت قطعی')}</span>
-          ${CURP.state==='paid'?`<button class="btn sm quiet" data-certone="${CURP.id}"><svg class="i"><use href="#i-medal"/></svg> صدور</button>`:''}
+          <span class="tag ${CURP.cert?'ok':(CURP.certReq?'warn':(CURP.state==='paid'?'quiet':'stop'))}">${CURP.cert?('صادر شد — '+CURP.cert):(CURP.certReq?'در انتظار تأیید سرپرست':(CURP.state==='paid'?'صدور با تأیید سرپرست':'پس از پرداخت قطعی'))}</span>
+          ${CURP.state==='paid'&&!CURP.cert&&!CURP.certReq?`<button class="btn sm quiet" data-certreq="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> درخواست گواهینامه</button>`:''}
         </div>
         ${CURP.cert?`<div style="overflow:hidden;border-radius:14px">${certificateSVG(certFields(f,CURP))}</div>`
-          :`<p class="sub">${CURP.state==='paid'?'هنوز صادر نشده؛ با یک کلیک صادر می‌شود و با کیوآر راستی‌آزمایی در بله می‌رود.':'تا رسید تأیید و ثبت‌نام قطعی نشود، گواهینامه صادر نمی‌شود.'}</p>`}
+          :`<p class="sub">${CURP.certReq?'درخواست ثبت شد؛ برگ پس از تأیید سرپرست ساخته می‌شود و با کیوآر راستی‌آزمایی در بله می‌رود.':(CURP.state==='paid'?'صدور دست ما نیست: درخواست می‌فرستیم و سرپرست تأیید می‌کند.':'تا رسید تأیید و پرداخت قطعی نشود، درخواست گواهینامه فرستاده نمی‌شود.')}</p>`}
       </div>`:''}
       <div class="card paper">
         <div class="row" style="margin-bottom:8px"><span class="fw">پیام‌ها</span><span class="sp"></span><span class="cap">کارشناس ${f.expert}</span></div>
@@ -1435,33 +1434,37 @@ const CHANGES={
  raffle:{t:'قرعه‌کشی',body:()=>`<p class="sub">میان ${fa(CUR.resp)} پاسخ‌دهنده قرعه می‌اندازیم و برنده‌ها را پیام می‌دهیم.</p>
    <div class="row tight">${['۱ برنده','۳ برنده','۵ برنده'].map((x,i)=>`<button class="chip ${i===0?'on':''}" data-chip>${x}</button>`).join('')}</div>`,
   go:()=>{log('قرعه‌کشی انجام شد'); closeSheets(); toast('قرعه‌کشی انجام شد')}},
- cert:{t:'گواهینامه',body:()=>`
-   <p class="sub">برای ${faN(CUR.paid)} نفر پرداخت‌شده، گواهینامه با کد یکتا و کیوآر صادر می‌شود.</p>
+ cert:{t:'گواهینامه',body:()=>{
+   const now=Object.keys(CUR.certIssued||{}).length, req=Object.keys(CUR.certReq||{}).length;
+   return `
+   <p class="sub">گواهینامه برای ${faN(CUR.paid)} نفر پرداخت‌شده با کد یکتا و کیوآر راستی‌آزمایی صادر می‌شود؛ صدور فقط با <b>تأیید سرپرست</b> است و اینجا درخواست ثبت می‌شود.</p>
    <div class="card sunk" style="margin-top:10px;padding:10px">
      <div class="row" style="margin-bottom:8px"><span class="fw">پیش‌نمایش</span><span class="sp"></span>
        <span class="cap">همان برگی که در بله می‌رود</span></div>
      <div id="chCertPrev" style="overflow:hidden;border-radius:14px"></div>
    </div>
-   <div class="row" style="margin-top:12px"><span class="sub" style="flex:1">صدور خودکار برای هر پرداخت‌شده</span>
-     <span class="switch ${CUR.certMode==='auto'?'on':''}" id="chCertAuto" role="switch"></span></div>
-   <div class="row"><span class="sub" style="flex:1">صدور پس از پایان دوره</span>
-     <span class="switch ${CUR.certMode==='after'?'on':''}" id="chCertAfter" role="switch"></span></div>
+   <div class="srow" style="margin-top:12px"><svg class="i"><use href="#i-shield"/></svg>
+     <span class="sp">سرپرست این رویداد: مریم داوودی — درخواست‌ها آنجا تأیید می‌شود</span></div>
+   <div class="row tight" style="margin-top:8px">
+     <span class="tag ok">${faN(now)} صادرشده</span>
+     <span class="tag warn">${faN(req)} در انتظار تأیید</span>
+     <span class="tag">${faN(Math.max(CUR.paid-now-req,0))} بی‌درخواست</span>
+   </div>
    <div><label class="lbl" style="margin-top:10px">مدت دوره روی گواهینامه (دلخواه)</label>
      <input class="input" id="chCertHours" value="${CUR.certHours||''}" placeholder="مثلاً ۲۴ ساعت"/></div>
    <div class="row tight" style="margin-top:12px">
-     <button class="btn primary" id="chCertGo"><svg class="i"><use href="#i-medal"/></svg> صدور برای ${faN(CUR.paid)} نفر</button>
+     <button class="btn primary" id="chCertGo"><svg class="i"><use href="#i-send"/></svg> درخواست برای ${faN(CUR.paid)} نفر</button>
      <button class="btn quiet" id="chCertOne"><svg class="i"><use href="#i-eye"/></svg> دیدن یکی از آن‌ها</button>
-   </div>`,
+   </div>`},
   after:()=>prevCert(),
   go:()=>{
-   CUR.certMode=document.getElementById('chCertAuto').classList.contains('on')?'auto':'after';
    CUR.certHours=document.getElementById('chCertHours').value.trim();
    closeSheets(); renderInfo(); renderPanel();
    toast('تنظیم گواهینامه ذخیره شد')}},
  _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
 };
 function log(w){CUR.changes.unshift([w,nowFa()]); renderChanges();}
-/* پیش‌نمایش و صدور گواهینامه — همان موتور برگ گواهینامه در ui.js */
+/* پیش‌نمایش برگ و ثبت درخواست گواهینامه — برگ از همان موتور ui.js ساخته می‌شود */
 function certFields(f,p){
   return {name:p.name==='بی‌نام'?'شرکت‌کننده':p.name,title:f.head,kind:'گواهینامهٔ پایان دوره',
     date:ticketMeta(f.start),hours:f.certHours||'',code:p.code||'',
@@ -1472,12 +1475,15 @@ function prevCert(){
   const p=PEOPLE.filter(x=>x.form===CUR.id&&x.state==='paid')[0]||{name:'شرکت‌کننده',code:''};
   el.innerHTML=certificateSVG(certFields(CUR,p));
 }
-function issueCerts(one){
+function requestCerts(one){
   const list=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid'&&(one==null||p.id===one));
-  list.forEach(p=>{CUR.certIssued=CUR.certIssued||{};
-    CUR.certIssued[p.id]={at:'امروز',serial:'NL-'+shortCode(p.code||p.name)};
-    p.cert=CUR.certIssued[p.id].serial;});
-  log(list.length===1?('گواهینامهٔ «'+(list[0]?list[0].name:'')+'» صادر شد'):('گواهینامه برای '+faN(list.length)+' نفر صادر شد'));
+  CUR.certReq=CUR.certReq||{};
+  list.forEach(p=>{ if(CUR.certIssued&&CUR.certIssued[p.id]) return;
+    if(!CUR.certReq[p.id]) CUR.certReq[p.id]={at:'امروز'};
+    p.certReq=true;});
+  const fresh=list.filter(p=>CUR.certReq[p.id]&&!p.cert).length;
+  log(list.length===1?('درخواست گواهینامهٔ «'+(list[0]?list[0].name:'')+'» ثبت شد — در انتظار تأیید سرپرست')
+                     :('درخواست گواهینامه برای '+faN(fresh)+' نفر ثبت شد — در انتظار تأیید سرپرست'));
   return list;
 }
 function openChange(key){
@@ -1531,9 +1537,9 @@ document.addEventListener('click',e=>{
   const po=e.target.closest('[data-passto]');
   if(po){passTo=po.dataset.passto;
     document.querySelectorAll('#passWho .chip').forEach(c=>c.classList.toggle('on',c===po)); return}
-  const co=e.target.closest('[data-certone]');
-  if(co){const p=PEOPLE.find(x=>x.id===co.dataset.certone);
-    if(p){issueCerts(p.id); renderInfo(); renderPanel(); openUser(p.id); toast('گواهینامهٔ '+p.name+' صادر شد');} return}
+  const co=e.target.closest('[data-certreq]');
+  if(co){const p=PEOPLE.find(x=>x.id===co.dataset.certreq);
+    if(p){requestCerts(p.id); renderInfo(); renderPanel(); openUser(p.id); toast('درخواست گواهینامهٔ '+p.name+' ثبت شد — در انتظار تأیید سرپرست');} return}
   const mu=e.target.closest('[data-msg]');
   if(mu){msgWho=mu.dataset.msg; openMsg(); return}
   const mo=e.target.closest('[data-msgone]');
@@ -1625,12 +1631,12 @@ let passId='', passTo=null;
 document.addEventListener('click',e=>{
   if(e.target.closest('#chCertOne')){const l=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
     if(!l.length){toast('هنوز کسی پرداخت‌شده نیست'); return}
-    openUser(l[0].id); toast('گواهینامهٔ '+l[0].name+' — در بله هم می‌رود'); return}
+    openUser(l[0].id); toast('گواهینامهٔ '+l[0].name+' — وضعیتش را ببین'); return}
   if(e.target.closest('#chCertGo')){
-    const l=issueCerts(null);
+    const l=requestCerts(null);
     if(!l.length){toast('هنوز کسی پرداخت‌شده نیست'); return}
     closeSheets(); renderInfo(); renderPanel(); renderAnswers();
-    toast(l.length===1?('گواهینامهٔ '+l[0].name+' صادر شد'):(faN(l.length)+' گواهینامه صادر شد — در بله هم رفت')); return}
+    toast(l.length===1?('درخواست گواهینامهٔ '+l[0].name+' ثبت شد'):(faN(l.length)+' درخواست ثبت شد — در انتظار تأیید سرپرست')); return}
 });
 document.getElementById('passGo').onclick=()=>{
   const p=PEOPLE.find(x=>x.id===passId); if(!p) return;

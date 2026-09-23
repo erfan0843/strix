@@ -247,10 +247,11 @@ async function load(file,store,q){
   ok(p.window.eval("CUR.guestsOn")===true,'و باز کردن دوباره');
   ok(p.doc.querySelector('[data-change="ticket"]')===null,'آیتم «بلیت» از ورقهٔ تغییرات برداشته شد');
   ok(p.doc.querySelector('#chTkPrev')===null,'پیش‌نمایش بلیت در پنل نیست');
-  /* ── گواهینامه: پیش‌نمایش زنده + صدور ── */
+  /* ── گواهینامه: پیش‌نمایش زنده + درخواست با تأیید سرپرست ── */
   p.click('[data-close]');
   p.click('#pSeg [data-tab="info"]');
-  ok(/گواهینامه/.test(p.txt('#infoBox')) && /صادرشده از/.test(p.txt('#infoBox')),'تب اطلاعات، وضعیت گواهینامه را می‌گوید');
+  ok(/گواهینامه/.test(p.txt('#infoBox')) && /تأیید سرپرست/.test(p.txt('#infoBox')) && /در انتظار تأیید/.test(p.txt('#infoBox')),
+     'تب اطلاعات می‌گوید صدور فقط با تأیید سرپرست است');
   p.click('#pSeg [data-tab="changes"]');
   p.click('[data-change="cert"]');
   ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ گواهینامه باز شد');
@@ -261,17 +262,30 @@ async function load(file,store,q){
   ok(p.window.eval("certificateSVG(certFields(FORMS[0],PEOPLE[0]))").includes('lifeline1.ir/c'),'کیوآر به نشانی راستی‌آزمایی اشاره می‌کند');
   ok(/صحت این گواهینامه/.test(p.txt('#chCertPrev')),'جملهٔ راستی‌آزمایی در پای برگ');
   const paidC=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid').length");
+  ok(p.doc.querySelector('#chCertAuto')===null && p.doc.querySelector('#chCertAfter')===null,
+     'کلید «صدور خودکار/پس از پایان دوره» از پنل برداشته شد');
+  ok(/صدور فقط با تأیید سرپرست/.test(p.txt('#chBody')),'ورقهٔ گواهینامه می‌گوید صدور دست پنل نیست');
+  ok(/مریم داوودی/.test(p.txt('#chBody')),'سرپرست همان‌جا نامش آمده');
   p.click('#chCertGo');
-  ok(p.window.eval("Object.keys(CUR.certIssued||{}).length")===paidC,'برای همهٔ پرداخت‌شده‌ها صادر شد ('+paidC+')');
-  ok(/صادر شد/.test(p.txt('#toast')),'پیام صدور آمد');
+  ok(p.window.eval("Object.keys(CUR.certIssued||{}).length")===0,'با یک کلیک هیچ گواهینامه‌ای صادر نمی‌شود');
+  ok(p.window.eval("Object.keys(CUR.certReq||{}).length")===paidC,'به‌جایش برای همهٔ پرداخت‌شده‌ها درخواست ثبت شد ('+paidC+')');
+  ok(/در انتظار تأیید سرپرست/.test(p.txt('#toast')),'پیام درخواست، تأیید سرپرست را می‌گوید');
   p.window.eval("CUR.id='f1'");
   p.click('#pSeg [data-tab="info"]');
-  ok(new RegExp(p.window.eval('faN('+paidC+')')+' صادرشده').test(p.txt('#infoBox')),'شمار صادرشده در تب اطلاعات به‌روز شد');
+  ok(new RegExp(p.window.eval('faN('+paidC+')')+' در انتظار تأیید').test(p.txt('#infoBox')),'شمار در انتظار تأیید در تب اطلاعات به‌روز شد');
   /* صدور تک‌نفر از جزئیات پاسخ‌دهنده */
   p.click('[data-go="fKartabl"]');
   p.click('#kartabl [data-person]');
   ok(/گواهینامه/.test(p.txt('#usBody')),'کارت گواهینامه در جزئیات پاسخ‌دهنده');
-  ok(p.doc.querySelector('#usBody .tkqr')!==null || /صادر نشده|پس از پرداخت قطعی/.test(p.txt('#usBody')),'وضعیت گواهینامه در جزئیات پاسخ‌دهنده دیده می‌شود');
+  ok(p.doc.querySelector('#usBody .tkqr')!==null || /در انتظار تأیید سرپرست|صدور با تأیید سرپرست|پس از پرداخت قطعی/.test(p.txt('#usBody')),
+     'وضعیت گواهینامه در جزئیات پاسخ‌دهنده دیده می‌شود');
+  ok(p.doc.querySelector('#usBody [data-certone]')===null,'دکمهٔ «صدور» در جزئیات پاسخ‌دهنده نیست');
+  const paidId=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid')[0].id");
+  p.window.eval("CUR.certReq={}; PEOPLE.forEach(x=>x.certReq=false); openUser('"+paidId+"')");
+  ok(p.doc.querySelector('#usBody [data-certreq]')!==null,'برای پرداخت‌شدهٔ بی‌درخواست، دکمهٔ «درخواست گواهینامه» هست');
+  p.click('#usBody [data-certreq]');
+  ok(p.window.eval("Object.keys(CUR.certReq||{}).length")===1,'درخواست تک‌نفره ثبت شد');
+  ok(/در انتظار تأیید سرپرست/.test(p.txt('#usBody')),'و همان‌جا وضعیت «در انتظار تأیید سرپرست» شد');
   p.click('[data-close]');
   p.click('#pSeg [data-tab="answers"]');
   ok(p.all('#answersBox tbody tr').length===7,'هفت ردیف پاسخ‌دهنده');
@@ -502,8 +516,8 @@ async function load(file,store,q){
   ok(p.window.eval("S.fin[2].l")!=='آب و میوه بین دو جلسه','توضیح با عنوان قاطی نمی‌شود');
   ta.value=''; ta.dispatchEvent(new p.window.Event('input',{bubbles:true}));
   ok(p.window.eval("S.fin[2].d")==='','خالی کردن توضیح هم ثبت می‌شود');
-  p.click('#finList [data-freq="3"]');
-  ok(p.window.eval('S.fin[3].req')===true,'کلید اجباری روشن شد');
+  p.click('#finList [data-freq="2"]');
+  ok(p.window.eval('S.fin[2].req')===true,'کلید اجباری روشن شد');
   p.click('#finList [data-fgrp="0"]');
   ok(p.doc.getElementById('shFinGroup').classList.contains('on'),'ورقهٔ گروه انتخاب باز شد');
   ok(p.doc.querySelector('#fgName').value==='نوع شرکت','نام گروه فعلی نشان داده شد');
