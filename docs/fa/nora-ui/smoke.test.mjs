@@ -265,6 +265,31 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#chTkPrev svg #tkqr')!==null,'پیش‌نمایش زندهٔ بلیت با کیوآر');
   const partChips=p.all('#chBody .chip[data-part]');
   ok(partChips.length===11 && partChips.every(c=>c.tagName==='BUTTON'),'بخش‌های بلیت دکمهٔ واقعی‌اند (صفحه‌کلید ذاتی)');
+  /* ── گواهینامه: پیش‌نمایش زنده + صدور ── */
+  p.click('[data-close]');
+  p.click('#pSeg [data-tab="info"]');
+  ok(/گواهینامه/.test(p.txt('#infoBox')) && /صادرشده از/.test(p.txt('#infoBox')),'تب اطلاعات، وضعیت گواهینامه را می‌گوید');
+  p.click('#pSeg [data-tab="changes"]');
+  p.click('[data-change="cert"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ گواهینامه باز شد');
+  ok(p.doc.querySelector('#chCertPrev svg')!==null,'پیش‌نمایش برگ گواهینامه ساخته شد');
+  ok(p.txt('#chCertPrev').includes('گواهینامهٔ پایان دوره'),'نوع گواهینامه روی برگ');
+  ok(p.txt('#chCertPrev').includes('مؤسسهٔ خط زندگی'),'نام مؤسسه روی برگ');
+  ok(p.doc.querySelector('#chCertPrev #tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
+  ok(p.window.eval("certificateSVG(certFields(FORMS[0],PEOPLE[0]))").includes('lifeline1.ir/c'),'کیوآر به نشانی راستی‌آزمایی اشاره می‌کند');
+  ok(/صحت این گواهینامه/.test(p.txt('#chCertPrev')),'جملهٔ راستی‌آزمایی در پای برگ');
+  const paidC=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid').length");
+  p.click('#chCertGo');
+  ok(p.window.eval("Object.keys(CUR.certIssued||{}).length")===paidC,'برای همهٔ پرداخت‌شده‌ها صادر شد ('+paidC+')');
+  ok(/صادر شد/.test(p.txt('#toast')),'پیام صدور آمد');
+  p.window.eval("CUR.id='f1'");
+  p.click('#pSeg [data-tab="info"]');
+  ok(new RegExp(p.window.eval('faN('+paidC+')')+' صادرشده').test(p.txt('#infoBox')),'شمار صادرشده در تب اطلاعات به‌روز شد');
+  /* صدور تک‌نفر از جزئیات پاسخ‌دهنده */
+  p.click('[data-go="fKartabl"]');
+  p.click('#kartabl [data-person]');
+  ok(/گواهینامه/.test(p.txt('#usBody')),'کارت گواهینامه در جزئیات پاسخ‌دهنده');
+  ok(p.doc.querySelector('#usBody #tkqr')!==null || /صادر شد/.test(p.txt('#usBody')),'برگ گواهینامه یا وضعیت صدورش دیده می‌شود');
   p.click('[data-close]');
   p.click('#pSeg [data-tab="answers"]');
   ok(p.all('#answersBox tbody tr').length===7,'هفت ردیف پاسخ‌دهنده');
@@ -437,7 +462,6 @@ async function load(file,store,q){
   ok(/غایب/.test(p.txt('#msgAud')) || p.txt('#msgCount')!=='۰ گیرنده','دستهٔ غایب‌ها انتخاب‌شده آمد ('+p.txt('#msgCount')+')');
   const absentN=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid'&&!p.att).length");
   ok(p.txt('#msgCount')===p.window.eval(`faN(${absentN})`)+' گیرنده','شمار غایب‌ها درست است');
-  p.click('[data-close]');
   p.click('[data-go="fTeam"]');
   ok(p.all('#teamBox .card').length===4,'چهار کارشناس');
   ok(/بخش آموزش/.test(p.txt('#teamBox'))&&/بخش رسانه/.test(p.txt('#teamBox')),'کارشناسان زیر بخش خودشان گروه شده‌اند');

@@ -530,6 +530,68 @@ const TICKET_STYLES=Object.fromEntries(Object.entries(TK_SKIN_NAMES).map(([k,v])
 const TICKET_PARTS={title:'عنوان رویداد',kind:'نوع بلیت',code:'کد بلیت',name:'نام دارنده',date:'تاریخ و ساعت',
   venue:'نشانی',seat:'ردیف و صندلی',no:'شمارهٔ بلیت',qr:'کیوآرکد',logo:'نشان خط زندگی',note:'یادداشت ورود'};
 
+/* ══════════════════════════════════════════════════════════════════════════
+   گواهینامه — برگ افقی در همان خط طراحی؛ برای پایان دوره و آزمون
+   ══════════════════════════════════════════════════════════════════════════ */
+const CERT_G={size:[1100,780],card:[36,36,1064,744]};
+function certificateSVG(o,opt){
+  o=o||{}; opt=opt||{};
+  const [W,H]=CERT_G.size, [cx0,cy0,cx1,cy1]=CERT_G.card;
+  const RTL=' direction="rtl"';
+  const ink='#12201B', muted='#6E7A75', brand='#0E5A4E', gold='#9C7C3C';
+  const name=o.name||'نام و نام خانوادگی';
+  const kind=o.kind||'گواهینامهٔ پایان دوره';
+  const title=o.title||'کارگاه';
+  const date=o.date||'';
+  const code=o.code||'';
+  const short=o.short||shortCode(code||'');
+  const serial=o.serial||'NL-'+short;
+  const hours=o.hours||'';
+  const fit=(t,size,maxW,min)=>{let x=size; const k=/^[A-Za-z0-9]/.test(String(t))?.58:.54;
+    while(x>min && String(t).length*x*k>maxW) x-=.5; return x.toFixed(1)};
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" style="font-family:${TK_FONTS}"
+    aria-label="گواهینامهٔ ${tkEsc(title)} برای ${tkEsc(name)}">
+  <defs>
+    <linearGradient id="certbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F4F8F6"/><stop offset=".45" stop-color="#EAF1EE"/><stop offset="1" stop-color="#E3EDE9"/>
+    </linearGradient>
+    <linearGradient id="certline" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="${brand}" stop-opacity=".55"/><stop offset=".5" stop-color="${gold}" stop-opacity=".45"/>
+      <stop offset="1" stop-color="${brand}" stop-opacity=".55"/>
+    </linearGradient>
+    <radialGradient id="certhalo" cx=".5" cy=".3" r=".7">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".85"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="certclip"><rect x="${cx0}" y="${cy0}" width="${cx1-cx0}" height="${cy1-cy0}" rx="40"/></clipPath>
+    ${opt.embed?`<style>${TK_CSS}</style>`:''}
+  </defs>
+  <rect x="0" y="0" width="${W}" height="${H}" fill="#E9EFEC"/>
+  <g clip-path="url(#certclip)">
+    <rect x="${cx0}" y="${cy0}" width="${cx1-cx0}" height="${cy1-cy0}" fill="url(#certbg)"/>
+    <rect x="${cx0}" y="${cy0}" width="${cx1-cx0}" height="${cy1-cy0}" fill="url(#certhalo)"/>
+    <rect x="${cx0+22}" y="${cy0+22}" width="${cx1-cx0-44}" height="${cy1-cy0-44}" rx="26" fill="none" stroke="url(#certline)" stroke-width="2"/>
+    <rect x="${cx0+34}" y="${cy0+34}" width="${cx1-cx0-68}" height="${cy1-cy0-68}" rx="20" fill="none" stroke="${brand}" stroke-opacity=".18" stroke-width="1"/>
+  </g>
+  <circle cx="${cx0+92}" cy="${cy0+92}" r="26" fill="${brand}" fill-opacity=".10"/>
+  <text x="${cx0+92}" y="${cy0+100}" text-anchor="middle" font-size="19" font-weight="700" fill="${brand}"${RTL}>خ</text>
+  <text x="${cx1-92}" y="${cy0+88}" text-anchor="end" font-size="17" font-weight="700" fill="${brand}"${RTL}>مؤسسهٔ خط زندگی</text>
+  <text x="${cx1-92}" y="${cy0+112}" text-anchor="end" font-size="13.5" fill="${muted}"${RTL}>گروه فرهنگی و اجتماعی</text>
+  <text x="${(cx0+cx1)/2}" y="${cy0+176}" text-anchor="middle" font-size="15" font-weight="600" letter-spacing=".4" fill="${gold}"${RTL}>${tkEsc(kind)}</text>
+  <text x="${(cx0+cx1)/2}" y="${cy0+248}" text-anchor="middle" font-size="${fit(title,40,860,24)}" font-weight="700" fill="${ink}" letter-spacing="-.3"${RTL}>${tkEsc(title)}</text>
+  <rect x="${(cx0+cx1)/2-70}" y="${cy0+270}" width="140" height="3" rx="1.5" fill="url(#certline)"/>
+  <text x="${(cx0+cx1)/2}" y="${cy0+322}" text-anchor="middle" font-size="16" fill="${muted}"${RTL}>این گواهینامه به پاس شرکت و تکمیل دوره به نام زیر صادر شده است</text>
+  <text x="${(cx0+cx1)/2}" y="${cy0+408}" text-anchor="middle" font-size="${fit(name,52,760,30)}" font-weight="700" fill="${brand}"${RTL}>${tkEsc(name)}</text>
+  <text x="${(cx0+cx1)/2}" y="${cy0+446}" text-anchor="middle" font-size="14.5" fill="${muted}"${RTL}>${tkEsc([date,hours?('به مدت '+hours):''].filter(Boolean).join(' · '))}</text>
+  <line x1="${cx0+120}" y1="${cy0+560}" x2="${cx0+400}" y2="${cy0+560}" stroke="${muted}" stroke-opacity=".45" stroke-width="1"/>
+  <text x="${cx0+260}" y="${cy0+588}" text-anchor="middle" font-size="13.5" fill="${muted}"${RTL}>مهر و امضای مؤسسه</text>
+  <line x1="${cx1-400}" y1="${cy0+560}" x2="${cx1-120}" y2="${cy0+560}" stroke="${muted}" stroke-opacity=".45" stroke-width="1"/>
+  <text x="${cx1-260}" y="${cy0+588}" text-anchor="middle" font-size="13.5" fill="${muted}"${RTL}>کارشناس آموزش</text>
+  ${o.qr===false?'':tkQR(null,o.payload||('https://lifeline1.ir/c/'+short),(cx0+cx1)/2-48,cy0+588,96)}
+  <text x="${(cx0+cx1)/2}" y="${cy0+736}" text-anchor="middle" font-size="12.5" fill="${muted}"${RTL}>صحت این گواهینامه با شمارهٔ ${tkEsc(serial)} در lifeline1.ir/c بررسی می‌شود</text>
+</svg>`;
+}
+function certificateFile(o){return certificateSVG(o,{embed:true});}
+
 /* بلیت و رسید تصویری — قاب و دکمه‌های کار */
 function ticketFile(o){return ticketSVG(o,{embed:true})}
 function receiptFile(o){return receiptSVG(o,{embed:true})}
@@ -682,5 +744,6 @@ function initUI(){
 /* برای آزمون در محیط نود؛ در مرورگر نادیده می‌ماند */
 if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,initKeys,printNode,download,svgToPNG,
   ticketFile,receiptFile,ticketSVG,receiptSVG,ticketHTML,receiptHTML,sendTicketToBot,TICKET_STYLES,TICKET_PARTS,
+  certificateSVG,certificateFile,CERT_G,
   qrMatrix,qrSVG,QRCODE,shortCode,ticketMeta,icsFor,parseJ,jalaliOf,gregOf,isLeapJ,daysInJ,weekdayOf,maskPhone,
   words,money,faN,fa,faDigits,TK_SKIN_NAMES,TK_GEO,TK_PLATES,RC_PLATES,tkQR,tkFit,ticketFile,receiptFile};

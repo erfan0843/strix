@@ -10,6 +10,7 @@
      node ticket-render.mjs bilet.json out.svg        (SVG، همیشه)
      node ticket-render.mjs --sample out.png          (نمونهٔ آماده)
      node ticket-render.mjs --sheet preview-ticket.png (ورق پنج پوسته + رسید)
+     node ticket-render.mjs --cert out.png           (برگ گواهینامه)
 
    پیش‌نیاز یک‌باره:
      pip install fonttools brotli resvg-py     (ورک‌اسپیس مجازی یا سیستمی)
@@ -26,7 +27,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-const EXPORTS='ticketFile,receiptFile,shortCode,ticketPayload,TK_SKIN_NAMES,TK_GEO';
+const EXPORTS='ticketFile,receiptFile,certificateFile,shortCode,ticketPayload,TK_SKIN_NAMES,TK_GEO';
 
 /* ui.js را در محیط نود می‌خوانیم: فقط موتور و ابزارها، بدون بخش مرورگر.
    تصویر خودِ مرجع (صفحه‌های خالی) در tickets/plates.js است و پیش از موتور
@@ -154,6 +155,25 @@ export const SAMPLE={kind:'بلیت نفر اصلی',title:'کارگاه فن ب
 
 if(process.argv[1]&&process.argv[1].endsWith('ticket-render.mjs')){
   const args=process.argv.slice(2);
+  if(args[0]==='--cert'){
+    const out=path.resolve(args[1]||'certificate.png');
+    const m=await loadEngine();
+    const svg=m.certificateFile({name:'سارا محمدی',title:'کارگاه عکاسی مقدماتی',kind:'گواهینامهٔ پایان دوره',
+      date:'جمعه ۲۱ شهریور ۱۴۰۵',hours:'۲۴ ساعت',code:'TL1307BVUC1981',serial:'NL-T4K7M9X'});
+    const svgPath=path.join(process.env.TMPDIR||'/tmp','nora-cert.svg');
+    fs.writeFileSync(svgPath,svg);
+    const pyExe=pythonExe(), fonts=fontDir(pyExe);
+    const py=`import sys, os, resvg_py
+d=os.environ.get('NORA_FONT_DIR') or ''
+fonts=[os.path.join(d,f) for f in sorted(os.listdir(d)) if f.endswith('.ttf')] if d else []
+png=resvg_py.svg_to_bytes(svg_path=sys.argv[1], width=int(sys.argv[2]), font_files=fonts, background='#E9EFEC')
+open(sys.argv[3],'wb').write(bytes(png))`;
+    try{
+      execFileSync(pyExe,['-c',py,svgPath,'1240',out],{stdio:'pipe',env:{...process.env,NORA_FONT_DIR:fonts||''}});
+      console.log('گواهینامه نوشته شد:',out,Math.round(fs.statSync(out).size/1024),'کیلوبایت');
+    }catch(err){fs.writeFileSync(out.replace(/\.png$/,'.svg'),svg); console.log('resvg نبود — SVG نوشته شد');}
+    process.exit(0);
+  }
   if(args[0]==='--sheet'){
     const out=path.resolve(args[1]||'preview-ticket.png');
     const buf=await previewSheet();
