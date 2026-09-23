@@ -14,55 +14,20 @@
   .opt.on{border-color:var(--brand);background:var(--brand-tint)}
   .opt.on .mk{border-color:var(--brand);background:var(--brand);color:#fff}
   .opt.sq .mk{border-radius:7px}
-  /* نوار همراه: پایین هر اسلاید فرم، بالای نوار دکمه‌ها */
-  .buddybar{position:fixed;inset-inline:0;bottom:calc(12px + var(--safe-b) + 68px);z-index:49;display:none;
-       gap:8px;align-items:center;padding:6px;width:min(536px,calc(100% - 24px));margin-inline:auto;border-radius:var(--r-lg)}
-  .buddybar.on{display:flex}
-  .buddy-invite{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;padding:8px 10px;border-radius:var(--r-md);
-       border:.5px solid var(--hairline);background:var(--surface);cursor:pointer;font:inherit;color:inherit;text-align:start}
-  .buddy-invite:hover{background:var(--brand-tint);border-color:var(--brand)}
-  .buddy-invite .bicon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-tint);color:var(--brand-ink)}
-  .buddy-invite .btxt{display:flex;flex-direction:column;gap:1px;min-width:0}
-  .buddy-invite b{font-size:var(--fs-cap);font-weight:650}
-  .buddy-invite .cap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bchips{display:flex;gap:6px;overflow-x:auto;max-width:52%;flex:0 0 auto}
-  body.hasbuddy .wrap{padding-bottom:calc(180px + var(--safe-b))}
-  .opt.pending{border-style:dashed;border-color:var(--brand)}
+  /* کارت همراه در اسلاید مالی (جای نوار شناور) */
+  .guestcard .gadd{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:11px 12px;border-radius:var(--r-md);
+       border:.5px solid var(--hairline);background:var(--surface-2);font:inherit;color:inherit;cursor:pointer;text-align:start}
+  .guestcard .gadd:hover{background:var(--brand-tint);border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
+  .guestcard .gadd .bicon{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-tint);color:var(--brand-ink)}
+  .guestcard .gadd b{font-size:var(--fs-sub);font-weight:600}
+  .guestcard .gadd .cap{display:block;margin-top:1px}
+  .opt.pending{border:1.5px solid var(--brand)}
   .botbar{position:fixed;inset-inline:0;bottom:calc(12px + var(--safe-b));z-index:50;display:flex;gap:8px;align-items:center;padding:8px;width:min(536px,calc(100% - 24px));margin-inline:auto;border-radius:var(--r-xl)}
   .drop{border:1.5px dashed var(--hairline);border-radius:var(--r-md);padding:22px;text-align:center;background:var(--surface-2);cursor:pointer}
   .fld{position:relative}
   .fld .reqbar{position:absolute;inset-inline-start:-10px;top:2px;bottom:2px;width:3px;border-radius:99px;background:var(--req)}
   .personrow{display:flex;gap:8px;align-items:center}
   .personrow .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);font-size:var(--fs-cap);font-weight:600;flex:0 0 auto}
-  /* ── کارت دعوت دوست ───────────────────────────────────────────── */
-  .invite{position:relative;overflow:hidden;border-radius:var(--r-xl);padding:18px;color:#F3FBF7;
-    background:linear-gradient(142deg,#12655A 0%,#0E7C63 42%,#1F8F6E 72%,#3FA981 105%);
-    box-shadow:0 14px 34px -14px rgba(11,84,68,.55),inset 0 1px 0 rgba(255,255,255,.22)}
-  .invite .iglow{position:absolute;inset-inline-end:-30%;top:-58%;width:230px;height:230px;border-radius:50%;
-    background:radial-gradient(circle,rgba(255,255,255,.30),rgba(255,255,255,0) 66%);pointer-events:none}
-  .invite .ihead,.invite .ichips{position:relative}
-  .invite .ihead{display:flex;align-items:flex-start;gap:12px}
-  .invite .iicon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;
-    background:rgba(255,255,255,.18);border:.5px solid rgba(255,255,255,.30);backdrop-filter:blur(8px)}
-  .invite .iicon .i{width:23px;height:23px}
-  .invite .ititle{display:block;font-size:var(--fs-title);font-weight:700;letter-spacing:-.2px;line-height:1.5}
-  .invite .icap{display:block;font-size:var(--fs-cap);color:rgba(243,251,247,.86);margin-top:3px;line-height:1.7}
-  .invite .islot{flex:0 0 auto;font-size:var(--fs-cap);font-weight:600;padding:5px 11px;border-radius:99px;
-    background:rgba(255,255,255,.20);border:.5px solid rgba(255,255,255,.28);color:#fff}
-  .invite .ichips{margin-top:14px}
-  .sheet .ichips{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
-  .sheet .islot{flex:0 0 auto;font-size:var(--fs-cap);font-weight:600;padding:5px 11px;border-radius:99px;background:var(--brand-tint);color:var(--brand-ink)}
-  .gchips{display:flex;flex-wrap:wrap;gap:8px}
-  .gchip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;font-size:var(--fs-sub);font-weight:600;
-    background:var(--brand-tint);color:var(--brand-ink);border:.5px solid var(--hairline)}
-  .invite .gchip{background:rgba(255,255,255,.92);color:#0B5A46;border-color:transparent}
-  .invite .gchip .gn{background:rgba(11,90,70,.12)}
-  .gchip .gn{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:var(--fs-cap);
-    background:rgba(11,122,87,.14);font-weight:700}
-  .gchip .gx{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:0;cursor:pointer;
-    background:transparent;color:inherit;opacity:.55}
-  .gchip .gx:hover{opacity:1;background:rgba(180,69,60,.14);color:#B4453C}
-  .gchip .gx .i{width:13px;height:13px}
   .gempty{font-size:var(--fs-cap);opacity:.7}
   .certframe{background:var(--surface-2);.gcardborder:.5px solid var(--hairline);border-radius:var(--r-md);padding:14px}
   .gcard .grow{display:flex;align-items:center;gap:9px}
@@ -304,14 +269,18 @@
       <div class="stack tight" style="margin-top:14px" id="finOpts"></div>
     </div>
 
-    <div class="card paper" id="guestsCard" style="margin-top:12px;display:none">
-      <div class="row" style="margin-bottom:10px">
-        <div><div class="head">همراهان</div><div class="cap">هر کس بلیت خودش را دارد</div></div>
+    <div class="card paper guestcard" id="guestsCard" style="margin-top:12px">
+      <div class="row" style="margin-bottom:2px">
+        <div><div class="head">همراه می‌آوری؟</div>
+          <div class="cap">اختیاری — هر همراه بلیت و صندلی خودش را دارد.</div></div>
         <span class="sp"></span><span class="cap" id="countTxt">۱ نفر</span>
       </div>
-      <div class="gchips" id="guestChips"></div>
-      <button class="btn sm quiet" id="editGuests" style="margin-top:10px">
-        <svg class="i"><use href="#i-users"/></svg> اصلاح همراهان</button>
+      <div class="gchips" id="guestChips" style="margin-top:10px"></div>
+      <button class="gadd" id="editGuests" type="button">
+        <span class="bicon"><svg class="i"><use href="#i-plus"/></svg></span>
+        <span style="flex:1"><b id="gaddTitle">افزودن همراه</b>
+          <span class="cap">نام و موبایلش را همان‌جا می‌پرسی؛ بقیهٔ پاسخ‌ها از خودت می‌آید.</span></span>
+      </button>
     </div>
 
     <div class="card paper" style="margin-top:12px">
@@ -510,14 +479,6 @@
   </section>
 </div>
 
-<div class="buddybar glass-thin" id="buddyBar" role="region" aria-label="همراه">
-  <button class="buddy-invite" id="buddyOpen" type="button">
-    <span class="bicon"><svg class="i"><use href="#i-plus"/></svg></span>
-    <span class="btxt"><b>دوستت را هم بیار</b><span class="cap" id="buddyHint">بلیت و صندلی جدا؛ همین‌جا کنارِ فرم پر کن</span></span>
-  </button>
-  <span class="bchips" id="buddySlot"></span>
-</div>
-
 <div class="botbar glass" id="botbar">
   <button class="btn quiet" id="prev"><svg class="i"><use href="#i-chev-right"/></svg> قبلی</button>
   <span class="sp"></span><span class="cap" id="pos">—</span><span class="sp"></span>
@@ -567,7 +528,6 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="tickets/plates.js"></script>
 <script src="ui.js"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
@@ -591,7 +551,7 @@ const CFG={
   coupon:{code:'NORA10',off:10,all:false},
   companion:{on:true,max:3,fields:'نام و موبایل'},
   cert:{on:true,mode:'auto',hours:'۲۴ ساعت'},
-  ticket:{style:'forest',parts:['title','date','venue','name','seat','no','code','qr','logo','note']},
+  ticket:{style:'blue',parts:['title','date','venue','name','seat','no','code','qr','logo','note']},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan',i:'i-globe'},
          {t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan',i:'i-users'}],
@@ -654,39 +614,30 @@ function guestChips(el,withX){
     `</span>`).join('')||`<span class="gempty">هنوز کسی را اضافه نکردی</span>`;
 }
 /* صفحهٔ مالی و پرداخت: فقط نام‌ها */
-function renderGuests(){
-  const card=document.getElementById('guestsCard');
-  if(!GUEST_ON||!S.guests.length){ if(card) card.style.display='none'; return }
-  card.style.display='';
-  guestChips(document.getElementById('guestChips'),false);
-  document.getElementById('countTxt').textContent=faN(S.guests.length+1)+' نفر';
-}
-/* نوار همراه: پایین هر اسلاید فرم، از همان اول — فرم دوست در شیت باز می‌شود */
+/* کارت همراه در اسلاید مالی + فرم همراه در شیت */
 function buddyTip(){
-  if(S.guests.length>=GUEST_MAX) return 'جای همراه پر شد — '+faN(GUEST_MAX)+' نفر';
-  if(S.guests.length) return faN(S.guests.length+1)+' نفر می‌آیید؛ می‌توانی یکی دیگر هم بیاوری';
-  return 'بلیت و صندلی جدا؛ همین‌جا کنارِ فرم پر کن';
+  if(S.guests.length>=GUEST_MAX) return ' — جا پر شد';
+  if(S.guests.length) return ' — '+faN(GUEST_MAX-S.guests.length)+' جای دیگر مانده';
+  return '';
 }
 function renderBuddy(){
-  const bar=document.getElementById('buddyBar'); if(!bar) return;
-  const on=GUEST_ON&&BUDDY_SCREENS.includes(cur);
-  bar.classList.toggle('on',on);
-  document.body.classList.toggle('hasbuddy',on);
-  if(!on) return;
+  const card=document.getElementById('guestsCard'); if(!card) return;
+  card.style.display=GUEST_ON?'':'none';
+  if(!GUEST_ON) return;
   const full=S.guests.length>=GUEST_MAX;
-  document.getElementById('buddyHint').textContent=buddyTip();
-  document.getElementById('buddyOpen').style.display=full?'none':'flex';
-  const slot=document.getElementById('buddySlot');
-  slot.innerHTML=S.guests.length
-    ? S.guests.map((g,i)=>`<span class="gchip"><span class="gn">${faN(i+2)}</span>${g.name}`+
-        `<button class="gx" data-del="${i}" aria-label="برداشتن ${g.name}"><svg class="i"><use href="#i-close"/></svg></button></span>`).join('')
-    : '';
-  /* داخل شیت */
+  document.getElementById('countTxt').textContent=faN(S.guests.length+1)+' نفر';
+  const chips=document.getElementById('guestChips');
+  chips.innerHTML=S.guests.map((g,i)=>`<span class="gchip"><span class="gn">${faN(i+2)}</span>${g.name}`+
+    `<button class="gx" data-del="${i}" aria-label="برداشتن ${g.name}"><svg class="i"><use href="#i-close"/></svg></button></span>`).join('')
+    || '<span class="gempty">بدون همراه می‌آیی</span>';
+  document.getElementById('editGuests').style.display=full?'none':'flex';
+  document.getElementById('gaddTitle').textContent='افزودن همراه'+buddyTip();
   document.getElementById('friendCard').style.display=full?'none':'';
   document.getElementById('addFriend').style.display=full?'none':'flex';
   document.getElementById('buddyCount').textContent='همراه '+faN(Math.min(S.guests.length+1,GUEST_MAX))+' از '+faN(GUEST_MAX);
-  const chips=document.getElementById('friendChips');
-  chips.style.display=S.guests.length?'':'none'; if(S.guests.length) guestChips(chips,true);
+  const fchips=document.getElementById('friendChips');
+  fchips.style.display=S.guests.length?'':'none';
+  if(S.guests.length) fchips.innerHTML=chips.innerHTML;
 }
 /* صفحهٔ پرداخت: فقط اسم دوست + مبلغ */
 function renderPayGuests(){
@@ -756,7 +707,6 @@ function renderFacts(){
 
 /* ── پیش‌نویس: کاربر نیمه‌کاره که می‌رود، با همان لینک ادامه می‌دهد ── */
 const DKEY='nora:draft:'+CFG.slug;
-const BUDDY_SCREENS=['u1','u2','u3','u4','u5','u6','u7','u8'];   /* هر اسلاید فرم */
 const DRAFT_SCREENS=['u2','u3','u4','u5','u6','u7','u8','u9','u10','u11','u12','u13'];
 const DRAFT_DAYS=30;   /* نوبت نیمه‌کاره بیش از یک ماه نمی‌ماند */
 function collectDraft(){
@@ -776,7 +726,7 @@ function restoreDraft(d){
   CFG.confirmed=!!d.confirmed;
   (d.fin||[]).forEach((on,i)=>{if(CFG.fin[i]) CFG.fin[i].on=on});
   (d.picked||[]).forEach(i=>{if(CFG.fin[i]) PICKED.add(i)});
-  renderGuests();renderBill();renderFin();renderFacts();
+  renderBuddy();renderBill();renderFin();renderFacts();
   document.querySelectorAll('[data-method]').forEach(x=>{
     const on2=x.dataset.method===S.method; x.classList.toggle('on',on2); x.setAttribute('aria-pressed',on2?'true':'false')});
   show(d.cur&&DRAFT_SCREENS.includes(d.cur)?d.cur:'u2');
@@ -852,8 +802,7 @@ function show(id){
   document.getElementById('pos').textContent=CAP[id];
   document.getElementById('botbar').style.display=BTN[id]?'flex':'none';
   if(BTN[id]) document.getElementById('next').innerHTML=BTN[id]+' <svg class="i"><use href="#i-chev-left"/></svg>';
-  renderBuddy();
-  if(id==='u8'){renderGuests();renderBill();renderFin()}
+  if(id==='u8'){renderBuddy();renderBill();renderFin()}
   if(id==='u12'){renderReceipt()}
   if(id==='u9'){renderPayGuests()}
   if(id==='u13'){renderTickets();renderEnd();renderReceipt()}
@@ -875,8 +824,7 @@ document.getElementById('next').onclick=()=>{
 };
 document.getElementById('prev').onclick=()=>{const i=ORDER.indexOf(cur); if(i>0) show(ORDER[i-1])};
 document.getElementById('sameOpt').onclick=()=>document.getElementById('sameOpt').classList.toggle('on');
-document.getElementById('buddyOpen').onclick=()=>openSheet('shBuddy');
-document.getElementById('editGuests').onclick=()=>openSheet('shBuddy');
+document.getElementById('editGuests').onclick=()=>{renderBuddy();openSheet('shBuddy')};
 document.getElementById('addFriend').onclick=()=>{
   const n=document.getElementById('fName').value.trim();
   const m=unFa(document.getElementById('fMobile').value).replace(/\D/g,'');
@@ -887,7 +835,7 @@ document.getElementById('addFriend').onclick=()=>{
   S.guests.push({name:n,mobile:m,email:document.getElementById('fEmail').value.trim(),
     same:document.getElementById('sameOpt').classList.contains('on')});
   ['fName','fMobile','fEmail'].forEach(k=>document.getElementById(k).value='');
-  renderBuddy(); renderGuests(); renderBill(); saveDraft();
+  renderBuddy(); renderBill(); saveDraft();
   toast(n+' اضافه شد — بلیتش هم صادر می‌شود');
 };
 document.addEventListener('change',e=>{if(e.target.closest('.screen')&&cur!=='u1') saveDraft()});
@@ -895,7 +843,7 @@ document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g){show(g.dataset.go);return}
   if(e.target.closest('[data-saveexit]')){saveDraft();closeSheets();toast('ذخیره شد — با همین لینک برگردید');return}
   const x=e.target.closest('[data-del]');
-  if(x){S.guests.splice(NR(x.dataset.del),1);renderBuddy();renderGuests();renderBill();saveDraft();toast('برداشته شد');return}
+  if(x){S.guests.splice(NR(x.dataset.del),1);renderBuddy();renderBill();saveDraft();toast('برداشته شد');return}
   const f=e.target.closest('[data-fin]');
   if(f){const i=NR(f.dataset.fin); const o=CFG.fin[i];
     const grp=(CFG.groups||[]).find(g=>g.of.includes(i));
@@ -951,7 +899,7 @@ document.getElementById('topTitle').textContent=CFG.title;
 document.getElementById('evTitle').textContent=CFG.title;
 document.getElementById('evMeta').textContent=ticketMeta(CFG.date,CFG.venue);
 document.title='نورا — '+CFG.title;
-renderFin();renderGuests();renderBill();renderTickets();renderEnd();renderReceipt();renderFacts();showResume();show('u1');
+renderFin();renderBuddy();renderBill();renderTickets();renderEnd();renderReceipt();renderFacts();showResume();show('u1');
 </script>
 </body>
 </html>

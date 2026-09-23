@@ -550,7 +550,6 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="tickets/plates.js"></script>
 <script src="ui.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
@@ -560,7 +559,7 @@ const FORMS=[
 {id:'f1',name:'ثبت‌نام کارگاه فن بیان',kind:'رویداد',tone:'ok',status:'در حال ثبت‌نام',
  slug:'lifeline1.ir/events/fanbayan/register',expert:'خانم رستگار',dept:'edu',
  seen:2140,started:412,resp:128,paid:109,money:103375000,
- start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:150,wait:true,per:3,skin:'forest',
+ start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:150,wait:true,per:3,skin:'blue',
  head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
        {l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
@@ -900,7 +899,7 @@ const GROUPS=[
    ['dates','i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],
    ['cap','i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
    ['per','i-ticket','تعداد بلیت هر نفر','همراه داشتن یا نداشتن'],
-   ['per','i-users','دعوت دوست','باز یا بسته — پیش‌فرض بسته']]},
+   ['per','i-users','همراه‌آوردن','باز یا بسته — پیش‌فرض بسته']]},
  {t:'مالی',rows:[
    ['fin','i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
    ['coupon','i-star','کد تخفیف','درصد یا مبلغ'],'gw']},
@@ -1352,8 +1351,8 @@ const CHANGES={
    <div class="mini" style="margin-top:6px">حالت پیش‌فرض: بسته</div>`,
   go:()=>{const g=document.getElementById('chGuests');
    CUR.guestsOn=g.classList.contains('on');
-   log(CUR.guestsOn?'«دعوت دوست» باز شد':'«دعوت دوست» بسته شد'); closeSheets(); renderPanel();
-   toast(CUR.guestsOn?'دعوت دوست باز شد':'دعوت دوست بسته شد')}},
+   log(CUR.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد'); closeSheets(); renderPanel();
+   toast(CUR.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد')}},
  fin:{t:'افزودن قطعهٔ مالی',body:()=>`<p class="cap">هر قطعه یک قیمت دارد؛ اگر دو قیمت دارید دو قطعه بسازید.</p>
    <div><label class="lbl">عنوان</label><input class="input" id="chFinL" placeholder="مثلاً: کارگاه با گواهینامه"/></div>
    <div class="g2"><div><label class="lbl">مبلغ (ریال)</label><input class="input num" id="chFinP" placeholder="۸۵۰۰۰۰"/></div>

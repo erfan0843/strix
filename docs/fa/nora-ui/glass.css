@@ -18,10 +18,10 @@
   color-scheme:light;
 
   /* ── رنگ‌ها: نقش‌محور، نه تزئینی — برگرفته از «خط طراحی نورا» ── */
-  --brand:        #0E5A4E;      /* سبز مؤسسه */
-  --brand-2:      #0B4A40;
-  --brand-tint:   rgba(14,90,78,.10);
-  --brand-ink:    #0B4A40;
+  --brand:        #0071E3;      /* آبی اپل — رنگ کنش‌ها */
+  --brand-2:      #0A56B8;
+  --brand-tint:   rgba(0,113,227,.10);
+  --brand-ink:    #0A5ABC;      /* متن روی پس‌زمینهٔ آبی‌کم‌رنگ (تباین ۶٫۵) */
   --accent:       #9C7C3C;      /* طلایی خاک‌گرفته — تزئینی */
   --accent-ink:   #86682B;      /* همان طلا، برای متن (تباین ۵٫۱) */
   --accent-tint:  rgba(156,124,60,.13);
@@ -85,7 +85,7 @@
 /* ── شب ─────────────────────────────────────────────────────────────────── */
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --brand:#7FC4B2; --brand-2:#5FB0A0; --brand-tint:rgba(127,196,178,.16); --brand-ink:#CFE9E2;
+  --brand:#4EA1FF; --brand-2:#3B8FE8; --brand-tint:rgba(78,161,255,.18); --brand-ink:#BFDBFF;
   --accent:#C9A96A; --accent-ink:#D8BE85; --accent-tint:rgba(201,169,106,.16);
   --ok:#7BC7A6; --ok-tint:rgba(123,199,166,.14);
   --warn:#D9B45B; --warn-tint:rgba(217,180,91,.14);
@@ -207,11 +207,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .btn:active{transform:scale(.975)}
 .btn .i{width:19px;height:19px}
 .btn.primary{
-  color:#fff; border-color:transparent;
-  background:linear-gradient(178deg,var(--brand) 0%,var(--brand-2) 100%);
-  box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 6px 18px rgba(15,111,209,.28);
+  color:#fff; border-color:transparent;   /* کنش اصلی: آبی اپل، لبهٔ نوری بالا، سایهٔ نرم */
+  background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 86%,#fff) 0%,var(--brand) 58%,var(--brand-2) 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.30) inset, 0 4px 14px rgba(0,86,182,.26);
 }
-.btn.primary:hover{filter:brightness(1.05)}
+.btn.primary:hover{filter:brightness(1.04)}
+.btn.primary:active{transform:scale(.97); box-shadow:0 1px 0 rgba(255,255,255,.22) inset, 0 2px 6px rgba(0,86,182,.22)}
 .btn.tint{background:var(--brand-tint); color:var(--brand-ink); border-color:transparent; box-shadow:none}
 .btn.quiet{background:transparent; border-color:transparent; box-shadow:none; color:var(--ink-2)}
 .btn.quiet:hover{background:var(--surface-sunk)}

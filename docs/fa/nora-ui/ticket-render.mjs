@@ -27,17 +27,15 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-const EXPORTS='ticketFile,receiptFile,certificateFile,shortCode,ticketPayload,TK_SKIN_NAMES,TK_GEO';
+const EXPORTS='ticketFile,receiptFile,certificateFile,shortCode,ticketPayload,TK_SKIN_NAMES';
 
 /* ui.js را در محیط نود می‌خوانیم: فقط موتور و ابزارها، بدون بخش مرورگر.
-   بلیت با موتور خودِ ui.js کشیده می‌شود؛ نگاره‌های tickets/plates.js فقط برای رسید است.
+   بلیت و رسید با موتور خودِ ui.js کشیده می‌شوند؛ هیچ نگارهٔ بیرونی لازم نیست.
    خوانده می‌شود؛ همان چیزی که صفحه‌ها هم در مرورگر لود می‌کنند. */
 export async function loadEngine(){
   const src=fs.readFileSync(path.join(here,'ui.js'),'utf8');
-  const plates=fs.readFileSync(path.join(here,'tickets','plates.js'),'utf8');
   const tmp=path.join(process.env.TMPDIR||'/tmp','nora-ticket-engine.mjs');
-  const js=plates.replace(/if\(typeof module[\s\S]*$/,'')+'\n'+
-    src.replace(/if\(typeof module[\s\S]*$/,'')+`\nexport {${EXPORTS}};\n`;
+  const js=src.replace(/if\(typeof module[\s\S]*$/,'')+`\nexport {${EXPORTS}};\n`;
   fs.writeFileSync(tmp,js);
   return import('file://'+tmp+'?v='+Date.now());
 }
@@ -126,7 +124,7 @@ open(sys.argv[3],'wb').write(bytes(png))`;
   };
   const D={title:'کارگاه عکاسی مقدماتی',day:'جمعه',date:'۱۴۰۵/۰۶/۲۱',time:'۱۷:۰۰',venue:'فرهنگسرای نیاوران',
     name:'سارا محمدی',seat:'ردیف ۳ — صندلی ۱۷',no:'۱۲۴۵',code:'TL1307BVUC1981',short:'T4K7M9X'};
-  for(const skin of ['clear','forest','gold','ocean','night'])
+  for(const skin of ['blue','clear','forest','gold','ocean','night'])
     await one(m.ticketFile({...D,skin,parts:['title','date','venue','name','seat','no','code','qr','logo']}),skin,width);
   await one(m.receiptFile({skin:'clear',amount:900000,discount:100000,program:'کارگاه عکاسی مقدماتی',
     when:'جمعه ۲۰ شهریور · ساعت ۱۷:۰۰',payer:'سارا محمدی',method:'درگاه رسمی بله',at:'جمعه ۲۰ شهریور',

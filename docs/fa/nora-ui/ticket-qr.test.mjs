@@ -10,7 +10,7 @@ import jsQR from 'jsqr';
 
 /* ماتریس مدول‌های کیوآر را از خود SVG بیرون می‌کشد و با jsQR دیکود می‌کند */
 export function decodeSVG(svg){
-  const g=svg.querySelector('#tkqr');
+  const g=svg.querySelector('.tkqr');
   if(!g) return null;
   const rects=[...g.querySelectorAll('rect')];
   if(!rects.length) return null;

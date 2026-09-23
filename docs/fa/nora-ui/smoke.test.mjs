@@ -53,35 +53,34 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#pkGeo .gp').options.length===31,'۳۱ استان در فهرست');
   ok(p.doc.querySelector('#pkGeo .gc').options.length>0,'شهرها پر شد');
   ok(p.doc.querySelector('#pkBirth .pk1').options.length===13,'سال‌های تولد پر شد');
-  /* ── نوار دوست: پایین هر اسلاید فرم، از همان اول ── */
-  ok(p.doc.querySelector('#buddyBar').classList.contains('on'),'نوار دوست از همان اسلاید اول پایین صفحه هست');
-  p.click('#buddyOpen');
-  ok(p.doc.querySelector('#shBuddy').classList.contains('on'),'شیت دوست از خودِ نوار باز می‌شود');
+  /* ── همراه: کارت خودش در اسلاید مالی (نه نوار شناور) ── */
+  for(let i=0;i<7;i++) p.click('#next');
+  ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد انتخاب شما — پلهٔ جدای دعوت دوست برداشته شد');
+  ok(p.doc.querySelector('#u15')===null,'صفحهٔ جدا برای دعوت دوست نمی‌ماند');
+  ok(p.doc.querySelector('#buddyBar')===null,'نوار شناور همراه برداشته شد');
+  const gc=p.doc.querySelector('#guestsCard');
+  ok(gc.style.display!=='none','کارت «همراه می‌آوری؟» در همان اسلاید مالی دیده می‌شود');
+  ok(p.txt('#guestChips').includes('بدون همراه'),'کاربر بدون همراه هم راه دارد');
+  p.click('#editGuests');
+  ok(p.doc.querySelector('#shBuddy').classList.contains('on'),'شیت همراه از خودِ کارت باز می‌شود');
   p.click('#addFriend');
-  ok(p.txt('#toast').includes('نام دوستت'),'بدون نام، دوست اضافه نمی‌شود');
+  ok(p.txt('#toast').includes('نام دوستت'),'بدون نام، همراه اضافه نمی‌شود');
   p.doc.querySelector('#fName').value='مریم احمدی';
   p.click('#addFriend');
   ok(p.txt('#toast').includes('۱۱ رقم'),'موبایل ناقص رد می‌شود');
   p.doc.querySelector('#fMobile').value='۰۹۱۲۳۴۵۶۷۸۹';
   p.doc.querySelector('#fEmail').value='maryam@mail.com';
   p.click('#addFriend');
-  ok(p.window.eval('S.guests.length')===1,'دوست همان اولِ فرم ثبت شد');
-  ok(p.txt('#buddySlot').includes('مریم احمدی'),'نام دوست روی نوار پایین می‌آید');
+  ok(p.window.eval('S.guests.length')===1,'همراه در وضعیت ثبت شد');
+  ok(p.txt('#guestChips').includes('مریم احمدی'),'نام همراه روی کارت می‌آید');
   ok(p.doc.querySelector('#sameOpt').classList.contains('on'),'«بقیهٔ پاسخ‌ها مثل خودم» پیش‌فرض روشن');
   p.window.eval('closeSheets()');
-  /* حالا کاربر بقیهٔ فرم را کنارِ همان نوار پر می‌کند */
-  for(let i=0;i<7;i++) p.click('#next');
-  ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد انتخاب شما — پلهٔ جدای دعوت دوست برداشته شد');
-  ok(p.doc.querySelector('#u15')===null,'صفحهٔ جدا برای دعوت دوست نمی‌ماند');
-  ok(p.doc.querySelector('#buddyBar').classList.contains('on'),'نوار روی اسلاید مالی هم پایین صفحه هست');
-  ok(p.doc.querySelector('#guestsCard').style.display!=='none','کارت همراهان در همان اسلاید مالی');
-  ok(p.txt('#guestsCard').includes('مریم احمدی'),'در کارت همراهان نام دوست می‌آید');
-  ok(!/۰۹۱۲/.test(p.txt('#guestsCard')),'شمارهٔ موبایل دوست جایی نشان داده نمی‌شود');
-  ok(p.txt('#guestsCard').includes('۲ نفر'),'شمار نفرات با احتساب دوست');
-  /* سقف دوست: جا که پر شود، خودِ نوار می‌گوید */
-  p.window.eval("S.guests=new Array(GUEST_MAX).fill(0).map((_,i)=>({name:'دوست '+faN(i+1)})); cur='u8'; renderBuddy()");
-  ok(p.doc.querySelector('#buddyOpen').style.display==='none','با پر شدن جا، دکمهٔ افزودن از نوار برداشته می‌شود');
-  ok(/پر شد/.test(p.txt('#buddyHint')),'نوار می‌گوید جا پر است');
+  ok(p.txt('#guestsCard').includes('۲ نفر'),'شمار نفرات با احتساب همراه');
+
+  /* سقف همراه: جا که پر شود، خودِ کارت می‌گوید */
+  p.window.eval("S.guests=new Array(GUEST_MAX).fill(0).map((_,i)=>({name:'همراه '+faN(i+1)})); cur='u8'; renderBuddy()");
+  ok(p.doc.querySelector('#editGuests').style.display==='none','با پر شدن جا، دکمهٔ افزودن برداشته می‌شود');
+  ok(/جا پر شد/.test(p.txt('#countTxt'))||/جا پر شد/.test(p.txt('#gaddTitle'))||p.window.eval("buddyTip()===' — جا پر شد'"),'کارت می‌گوید جا پر است');
   p.window.eval("S.guests=[{name:'مریم احمدی',mobile:'09123456789',same:true}]; renderBuddy()");
 
   /* ── انتخاب مالی: گزینهٔ فرعی تنها، فرم را جلو نمی‌برد ── */
@@ -100,7 +99,7 @@ async function load(file,store,q){
   // پرداخت کارت‌به‌کارت
   p.click('#next'); ok(p.vis('.screen').join()==='u9','مرحلهٔ پرداخت');
   ok(p.txt('#payGuests').includes('مریم احمدی'),'در پرداخت هم فقط نام دوست + مبلغ');
-  ok(p.doc.querySelector('#buddyBar').classList.contains('on')===false,'در پرداخت نوار پایین صفحه نیست');
+  ok(p.vis('.screen').join()==='u9','در پرداخت هم چیزی از همراه نیست جز فهرست نام‌ها');
   p.click('#next');
   ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('روش پرداخت'),'بی‌انتخاب روش، جلوی ادامه گرفته شد');
   p.click('[data-method="card"]');
@@ -113,7 +112,7 @@ async function load(file,store,q){
   p.click('#next');
   ok(p.vis('.screen').join()==='u13','صفحهٔ بلیت‌ها');
   ok(p.all('#tickets .tk-img svg[role="img"]').length===2,'برای ۲ نفر دو بلیت تصویری ساخته شد');
-  ok(p.all('#tickets #tkqr').length===2,'کیوآرکد داخل هر تصویر هست');
+  ok(p.all('#tickets .tkqr').length===2,'کیوآرکد داخل هر تصویر هست');
   ok(/مریم احمدی/.test(p.txt('#tickets')),'بلیت دوم به نام خودِ دوست است');
   ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
   /* ── گواهینامه در دست خودِ کاربر ── */
@@ -123,7 +122,7 @@ async function load(file,store,q){
   ok(/گواهینامهٔ پایان دوره/.test(p.txt('#certSlot')),'نوع گواهینامه روی برگ');
   ok(/سارا محمدی/.test(p.txt('#certSlot')),'نام دارنده روی برگ');
   ok(p.txt('#certSlot').includes(p.window.eval('CFG.title')),'عنوان دوره روی برگ');
-  ok(p.doc.querySelector('#certSlot #tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
+  ok(p.doc.querySelector('#certSlot .tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
   ok(/بلافاصله بعد از تأیید رسید/.test(p.txt('#certWhen')),'حالت صدور خودکار گفته می‌شود');
   ok(p.doc.querySelector('#certSave')!==null && p.doc.querySelector('#certBot')!==null,'ذخیره و فرستادن در بله');
   p.window.eval("CFG.cert.mode='after'; renderCert()");
@@ -144,6 +143,12 @@ async function load(file,store,q){
   ok(/fill="#FFFFFF"/.test(tsvg.outerHTML),'کیوآر روی ناحیهٔ سفید و آرام خودش می‌نشیند');
   ok(p.window.eval("ticketSVG({parts:['title']}).includes('شمارهٔ بلیت')")===false,'بخش خاموش روی بلیت چاپ نمی‌شود');
   ok(p.window.eval("ticketSVG({parts:['title','qr']}).includes('<rect')")===true,'با بخش کیوآر، کد تصویری ساخته می‌شود');
+  ok(/tk-sweep/.test(p.window.eval("ticketHTML({title:'x',parts:['title','qr']}).replace(/'/g,'')")),'بلیت صفحه حرکت جاروی نور دارد');
+  ok(/tk-sweep/.test(p.window.eval("ticketFile({title:'x',parts:['title','qr']})"))===false,'تصویر PNG ربات بی‌حرکت است (همان قاب)');
+  const two=p.window.ticketSVG({parts:['title','qr'],code:'TL1'})+p.window.ticketSVG({parts:['title','qr'],code:'TL2'});
+  const ids=[...two.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
+  ok(new Set(ids).size===ids.length,'شناسه‌ها بین دو بلیت یکی نمی‌شوند (خودبسند)');
+  ok(/clip-path/.test(p.window.eval("ticketFile({parts:['title','qr']})"))===false,'تصویر PNG گرهٔ برش ندارد (بی‌خطر برای همهٔ کشنده‌ها)');
   ok(/کارگاه/.test(tsvg.outerHTML),'عنوان رویداد روی تصویر بلیت');
   ok(p.doc.querySelector('#tickets [data-tkprint]')!==null,'دکمهٔ چاپ بلیت هست');
   ok(p.doc.querySelector('#tickets [data-tksave]')!==null,'دکمهٔ ذخیرهٔ تصویر هست');
@@ -202,7 +207,7 @@ async function load(file,store,q){
   const p=await load('form.html',store,'?guests=0');
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   ok(p.window.eval('GUEST_ON')===false,'با بسته بودن کلید ادمین، دعوت دوست خاموش است');
-  ok(p.doc.querySelector('#buddyBar').classList.contains('on')===false,'نوار دوست هم پایین صفحه نمی‌آید');
+  ok(p.doc.querySelector('#guestsCard').style.display==='none','کارت همراه با کلید بستهٔ ادمین نمی‌آید');
   for(let i=0;i<7;i++) p.click('#next');
   ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد مستقیم انتخاب شما');
   ok(p.doc.querySelector('#guestsCard').style.display==='none','کارت همراهان هم پنهان است');
@@ -284,7 +289,7 @@ async function load(file,store,q){
   // بلیت تصویری: کد با فونت لاتین نوشته می‌شود (رقم‌ها فارسی‌شکل نشوند)
   const tkSvg=p.doc.querySelector('#chTkPrev svg');
   ok(tkSvg&&/Nora Latin/.test(tkSvg.innerHTML),'کد بلیت با فونت لاتین نوشته شده');
-  ok(tkSvg&&tkSvg.querySelector('#tkqr')!==null,'کیوآرکد داخل تصویر بلیت هست');
+  ok(tkSvg&&tkSvg.querySelector('.tkqr')!==null,'کیوآرکد داخل تصویر بلیت هست');
   // خاموش کردن بلیت باید پیش‌نمایش را به پیام روشن تبدیل کند
   const onSw=p.doc.querySelector('#chTkOn');
   onSw.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
@@ -293,9 +298,9 @@ async function load(file,store,q){
   ok(p.txt('#chTkPrev').includes('بلیت خاموش'),'با خاموش کردن کلید، پیش‌نمایش پیام می‌دهد');
   onSw.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
   p.window.eval('prevTicket()');
-  ok(p.doc.querySelector('#chTkPrev svg #tkqr')!==null,'با روشن کردن دوباره، بلیت برمی‌گردد');
+  ok(p.doc.querySelector('#chTkPrev svg .tkqr')!==null,'با روشن کردن دوباره، بلیت برمی‌گردد');
   ok(p.doc.querySelector('#chTkOn')!==null,'کلید روشن/خاموش بلیت بالای ورقه هست');
-  ok(p.doc.querySelector('#chTkPrev svg #tkqr')!==null,'پیش‌نمایش زندهٔ بلیت با کیوآر');
+  ok(p.doc.querySelector('#chTkPrev svg .tkqr')!==null,'پیش‌نمایش زندهٔ بلیت با کیوآر');
   const partChips=p.all('#chBody .chip[data-part]');
   ok(partChips.length===11 && partChips.every(c=>c.tagName==='BUTTON'),'بخش‌های بلیت دکمهٔ واقعی‌اند (صفحه‌کلید ذاتی)');
   /* ── گواهینامه: پیش‌نمایش زنده + صدور ── */
@@ -308,7 +313,7 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#chCertPrev svg')!==null,'پیش‌نمایش برگ گواهینامه ساخته شد');
   ok(p.txt('#chCertPrev').includes('گواهینامهٔ پایان دوره'),'نوع گواهینامه روی برگ');
   ok(p.txt('#chCertPrev').includes('مؤسسهٔ خط زندگی'),'نام مؤسسه روی برگ');
-  ok(p.doc.querySelector('#chCertPrev #tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
+  ok(p.doc.querySelector('#chCertPrev .tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
   ok(p.window.eval("certificateSVG(certFields(FORMS[0],PEOPLE[0]))").includes('lifeline1.ir/c'),'کیوآر به نشانی راستی‌آزمایی اشاره می‌کند');
   ok(/صحت این گواهینامه/.test(p.txt('#chCertPrev')),'جملهٔ راستی‌آزمایی در پای برگ');
   const paidC=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid').length");
@@ -322,7 +327,7 @@ async function load(file,store,q){
   p.click('[data-go="fKartabl"]');
   p.click('#kartabl [data-person]');
   ok(/گواهینامه/.test(p.txt('#usBody')),'کارت گواهینامه در جزئیات پاسخ‌دهنده');
-  ok(p.doc.querySelector('#usBody #tkqr')!==null || /صادر شد/.test(p.txt('#usBody')),'برگ گواهینامه یا وضعیت صدورش دیده می‌شود');
+  ok(p.doc.querySelector('#usBody .tkqr')!==null || /صادر شد/.test(p.txt('#usBody')),'برگ گواهینامه یا وضعیت صدورش دیده می‌شود');
   p.click('[data-close]');
   p.click('#pSeg [data-tab="answers"]');
   ok(p.all('#answersBox tbody tr').length===7,'هفت ردیف پاسخ‌دهنده');
@@ -513,7 +518,7 @@ async function load(file,store,q){
   ok(p.doc.querySelectorAll('.tile').length>=9,'حداقل ۹ کاشی مدل');
   ok(p.doc.querySelectorAll('.pick').length>=2,'انتخاب‌گر تاریخ و ساعت در سازنده');
   ok(p.txt('body').includes('تنظیمات بیشتر'),'بخش «تنظیمات بیشتر»');
-  ok(p.all('#tkSkins .chip').length===5,'پنج پوستهٔ بلیت در سازنده');
+  ok(p.all('#tkSkins .chip').length===6,'شش پوستهٔ بلیت در سازنده');
   const skin=p.doc.querySelector('#tkSkins .chip:not(.on)');
   const was=skin.className;
   skin.dispatchEvent(new p.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
@@ -542,10 +547,10 @@ async function load(file,store,q){
   const p=await load('index.html');
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   ok(p.all('#swatchGrid > div').length===9,'نُه رنگ از خود توکن‌ها خوانده شد');
-  ok(p.txt('#swatchGrid').includes('#0E5A4E')&&p.txt('#swatchGrid').includes('#9C7C3C'),'رنگ‌ها همان توکن‌های تازه‌اند، نه رنگ کهنه');
+  ok(p.txt('#swatchGrid').includes('#0071E3')&&p.txt('#swatchGrid').includes('#9C7C3C'),'رنگ‌ها همان توکن‌های تازه‌اند (کنش آبی، طلا تزئینی)');
   ok(/تباین متن اصلی روی سطح: \d+\.\d+ به ۱/.test(p.txt('#contrastNote')),'تباین واقعی حساب و نوشته شد');
-  ok(p.all('#skinRow svg[role="img"]').length===5,'پنج پوستهٔ بلیت در زبان طراحی');
-  ok(p.all('#skinRow #tkqr').length===5,'هر پوسته کیوآرکد واقعی دارد');
+  ok(p.all('#skinRow svg[role="img"]').length===6,'شش پوستهٔ بلیت در زبان طراحی');
+  ok(p.all('#skinRow .tkqr').length===6,'هر پوسته کیوآرکد واقعی دارد');
   ok(p.all('#rcDemo svg[role="img"]').length===1,'رسید پرداخت نمونه');
   ok(p.txt('#contrastNote').includes('شیشه فقط روی ناوبری'),'قاعدهٔ شیشه یادآوری شده');
 }

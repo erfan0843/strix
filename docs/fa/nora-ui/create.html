@@ -539,7 +539,6 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="tickets/plates.js"></script>
 <script src="ui.js"></script>
 <script>
 /* ══ داده ══ */
@@ -796,7 +795,7 @@ function renderReview(){
     ['موارد مالی',S.fin.map(f=>f.l+(f.d?' ('+f.d+')':'')+' — '+fa(net(f))+(f.req?' — اجباری':'')).join(' · ')||'رایگان'],
     ['گروه انتخاب',(S.groups||[]).map(g=>g.n+' ('+g.of.map(i=>S.fin[i]?S.fin[i].l:'?').join(' / ')+')'+(g.req?' — یکی اجباری':'')).join(' · ')||'—'],
     ['تعداد بلیت',faN(S.maxPer)+' نفر'],
-    ['دعوت دوست',S.guestsOn?'باز':'بسته'],
+    ['همراه‌آوردن',S.guestsOn?'باز':'بسته'],
     ['پرداخت',onM.join(' · ')],
     ['بلیت',TICKET_STYLES[S.ticket.style]+' · '+faN(S.ticket.parts.length)+' بخش'],
     ['پیوندهای پایانی',faN(S.links.length)+' دکمه'],
@@ -993,10 +992,10 @@ initUI();
     S.notify.expert=d.expert+' — '+d.n; S.dept=d.id;
     $('#deptHint').textContent='پیش‌فرض پیگیری و رسیدها: '+d.expert;};
   dp.addEventListener('change',fill); fill();})();
-/* سوئیچ «دعوت دوست» — روی خود عنصر، مثل بلیت (پیش از هندلر سراسری اجرا می‌شود) */
+/* سوئیچ «همراه‌آوردن» — روی خود عنصر، مثل بلیت (پیش از هندلر سراسری اجرا می‌شود) */
 (()=>{const g=$('#guestsOn'); if(!g) return;
   g.addEventListener('click',()=>{S.guestsOn=!g.classList.contains('on');renderPreview();renderReview();
-    toast(S.guestsOn?'«دعوت دوست» باز شد':'«دعوت دوست» بسته شد')});})();
+    toast(S.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد')});})();
 $('#pkStart').innerHTML=pickHTML('datetime',S.start);
 $('#pkEnd').innerHTML=pickHTML('datetime',S.end);
 initAll(document);

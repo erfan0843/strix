@@ -220,11 +220,6 @@ const nowFa=()=>{const g=new Date(), j=jalaliOf(g.getFullYear(),g.getMonth()+1,g
 /* پوشاندن بخشی از شمارهٔ موبایل در فهرست‌ها (حریم خصوصی) */
 const maskPhone=s=>{const d=unFa(String(s||'')); return d.length===11?d.replace(/^(\d{4})\d{3}(\d{4})$/,(m,a,b)=>faDigits(a)+'***'+faDigits(b)):d;};
 
-/* ── صفحهٔ تصویری رسید (tickets/plates.js) ─────────────────────────────── */
-/* رسید هنوز روی نگارهٔ خودِ مرجع می‌نشیند؛ بلیت دیگر نگاره ندارد و همه‌چیزش کشیده می‌شود */
-let RC_PLATES_ALL={}, TK_GEO_DATA=null;
-if(typeof RC_PLATES!=='undefined') RC_PLATES_ALL=RC_PLATES;
-if(typeof TK_GEO!=='undefined') TK_GEO_DATA=TK_GEO;
 
 /* ── کیوآرکد واقعی: حالت بایت، سطح M/L، نسخهٔ ۱ تا ۵ ───────────────────── */
 const QRCODE=(function(){
@@ -380,6 +375,15 @@ const TK_CSS=`@font-face{font-family:'Vazirmatn UI FD';font-weight:400;src:url(d
 @font-face{font-family:'Vazirmatn UI FD';font-weight:700;src:url(data:font/woff2;base64,${TK_FACE_B}) format('woff2')}
 @font-face{font-family:'Nora Latin';font-weight:400;src:url(data:font/woff2;base64,${TK_FACE_LR}) format('woff2')}
 @font-face{font-family:'Nora Latin';font-weight:700;src:url(data:font/woff2;base64,${TK_FACE_LB}) format('woff2')}`;
+/* حرکت اختصاصی بلیت: یک جاروی نورِ یک‌باره روی کارت و پالس ملایم دور کیوآر.
+   فقط در مرورگر (opt.animate)؛ برای PNG هیچ المان متحرکی ساخته نمی‌شود تا
+   تصویر ربات مو به مو همان چیزی باشد که کاربر می‌بیند. */
+const TK_ANIM_CSS=`@keyframes tkSweep{0%{transform:translateX(-62%)}62%{transform:translateX(146%)}100%{transform:translateX(146%)}}
+@keyframes tkRing{0%{opacity:.5;transform:scale(.94)}70%{opacity:0;transform:scale(1.07)}100%{opacity:0;transform:scale(1.07)}}
+.tk-sweep{animation:tkSweep 1.5s cubic-bezier(.34,1.02,.4,1) .25s 1 both}
+.tk-ring{animation:tkRing 2.1s cubic-bezier(.32,.72,0,1) .2s 2 both;transform-origin:center}
+@media (prefers-reduced-motion:reduce){.tk-sweep,.tk-ring{animation:none;opacity:0}}
+@media print{.tk-sweep,.tk-ring{display:none}}`;
 const TK_FONTS="'Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif";
 const TK_FONTS_LAT="'Nora Latin','Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif";
 
@@ -388,8 +392,8 @@ const TK_FONTS_LAT="'Nora Latin','Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sa
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* پوسته‌ها: گرادیان کارت از چپ (ته‌برگ) به راست (متن) — نمونه‌برداری‌شده از مرجع */
-/* نام پوسته‌ها؛ خودِ تصویرها در tickets/plates.js هستند */
-const TK_SKIN_NAMES={clear:'شفاف',forest:'جنگلی',gold:'طلایی',ocean:'اقیانوسی',night:'شب'};
+/* نام پوسته‌ها؛ همهٔ تصویرها با همین موتور کشیده می‌شوند */
+const TK_SKIN_NAMES={blue:'آبی',clear:'شفاف',forest:'جنگلی',gold:'طلایی',ocean:'اقیانوسی',night:'شب'};
 
 /* اندازهٔ قلم را می‌رساند که متن از لبه بیرون نزند */
 function tkFit(text, size, maxW, minSize) {
@@ -402,7 +406,7 @@ const tkEsc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</
 
 /* ── کیوآرکد واقعی روی کارت سفید ───────────────────────────────────────── */
 
-function tkQR(host, text, x, y, size, dark) {
+function tkQR(host, text, x, y, size, dark, uid) {
   const made = QRCODE.make(text);
   if(!made) return '';
   const m = made.matrix, n = made.size, cell = size / n;
@@ -411,145 +415,215 @@ function tkQR(host, text, x, y, size, dark) {
     for (let c = 0; c < n; c++)
       if (m[r][c])
         cells += `<rect x="${(x + c * cell).toFixed(2)}" y="${(y + r * cell).toFixed(2)}" width="${cell.toFixed(2)}" height="${cell.toFixed(2)}"/>`;
-  return `<g id="tkqr" fill="${dark || '#101D19'}">${cells}</g>`;
+  return `<g class="tkqr"${uid ? ` id="${uid}"` : ''} fill="${dark || '#101D19'}">${cells}</g>`;
 }
 
 /* ── بلیت ──────────────────────────────────────────────────────────────── */
-/* بلیت استاندارد: ۱۴۰ در ۵۱ میلی‌متر (رایج‌ترین اندازهٔ بلیت رویداد — ۵٫۵ در ۲ اینچ).
-   ته‌برگ جداشدنی یک‌سوم از سمت چپ با پرفراژ و برش؛ کیوآر در ناحیهٔ سفید و آرام
-   ته‌برگ می‌نشیند و شمارهٔ بلیت هم همان‌جا چاپ می‌شود؛ متن‌ها در کارت اصلی. */
+/* بلیت شیشه‌ای استاندارد: ۱۴۰ در ۵۱ میلی‌متر (۵٫۵ در ۲ اینچ — اندازهٔ رایج بلیت
+   رویداد). ته‌برگ یک‌سوم از سمت چپ با خط پرفراژ و دو برش؛ کیوآر ۱۹ میلی‌متری در
+   ناحیهٔ سفید ته‌برگ، شمارهٔ بلیت بالای آن و کد کوتاه پایینش؛ متن‌ها در کارت اصلی.
+   همه‌چیز خودبسنده است — نه clip، نه <use>، نه شناسهٔ مشترک بین چند بلیت؛
+   پس مرورگر و تصویر PNG مو به مو یک چیز نشان می‌دهند. */
 const TK_SKINS={
-  clear:{n:'شفاف',bg:['#FFFFFF','#F4F9F7'],ink:'#12201B',muted:'#7C8681',accent:'#0E5A4E',line:'#E1EAE6'},
+  blue:{n:'آبی',bg:['#1E86FF','#0A56C8'],ink:'#F7FBFF',muted:'#CFE3FF',accent:'#FFE9B0',line:'#5FA6F0'},
+  clear:{n:'شفاف',bg:['#FFFFFF','#EFF5F3'],ink:'#12201B',muted:'#7C8681',accent:'#0071E3',line:'#E1EAE6'},
   forest:{n:'جنگلی',bg:['#17584A','#2E8B6E'],ink:'#F7FCFA',muted:'#CBE6DC',accent:'#FFE9B0',line:'#5FAF95'},
   gold:{n:'طلایی',bg:['#FDF8EE','#F3E7CE'],ink:'#3A2E12',muted:'#8C7B54',accent:'#9C7C3C',line:'#E3D6B4'},
   ocean:{n:'اقیانوسی',bg:['#F2F8FC','#E1EFF7'],ink:'#12303F',muted:'#6E8593',accent:'#1B6C8C',line:'#D3E4EE'},
   night:{n:'شب',bg:['#28302E','#121A18'],ink:'#FBFDFC',muted:'#A9B4B0',accent:'#9FE3C8',line:'#4A5653'}};
 const TK_MM=10;                                  /* یک واحد = یک‌دهم میلی‌متر */
 const TK_W=140*TK_MM, TK_H=51*TK_MM;             /* ۱۴۰۰ × ۵۱۰ */
-const TK_SAFE=20, TK_STUB=Math.round(TK_W/3);    /* حاشیهٔ امن ۲mm — ته‌برگ یک‌سوم */
-const TK_PAGE='#E9EFEC';
+const TK_SAFE=20, TK_STUB=Math.round(TK_W/3);
+const TK_R=26, TK_PAGE='#E9EFEC';
+let TK_SEQ=0;                                    /* شناسه‌های یکتا برای هر بلیت */
 
+/* کارت گردگوشه به‌شکل مسیر — بی‌نیاز از clipPath */
+function tkRound(x, y, w, h, r, bottom){
+  const b = bottom === false ? 0 : r;            /* ته‌برگ شیشه‌ای: گوشهٔ پایین گرد نباشد */
+  return `M${x+r},${y}H${x+w-r}A${r},${r} 0 0 1 ${x+w},${y+r}V${y+h-b}`+
+    (b ? `A${b},${b} 0 0 1 ${x+w-b},${y+h}H${x+b}A${b},${b} 0 0 1 ${x},${y+h-b}` : `H${x}`)+
+    `V${y+r}A${r},${r} 0 0 1 ${x+r},${y}Z`;
+}
 function ticketSVG(o, opt) {
   o = o || {}; opt = opt || {};
   const sk = TK_SKINS[o.skin] ? o.skin : (TK_SKINS[o.style] ? o.style : 'clear');
   const T = TK_SKINS[sk];
+  const uid = 'tk' + (++TK_SEQ);
   const W = TK_W, H = TK_H;
-  const card = [8, 8, W - 8, H - 8];
-  const perf = TK_STUB;                          /* خط پرفراژ و برش */
+  const C = [8, 8, W - 16, H - 16];              /* کارت */
+  const perf = TK_STUB, cx = Math.round((C[0] + perf) / 2), stubR = C[0] + C[2];
   const parts = o.parts || ['title','date','venue','name','seat','no','code','qr','logo','note'];
   const has = k => parts.includes(k);
   const code = o.code || 'TL0000000000';
   const short = o.displayCode || o.short || shortCode(code);
   const title = (o.title || 'رویداد').slice(0, 52);
-  const dupTime = !!(o.time && String(o.date || '').includes(o.time));   /* تاریخ خودش ساعت را دارد */
+  const dupTime = !!(o.time && String(o.date || '').includes(o.time));
   const meta = [o.weekday || o.day, o.date, (o.time && !dupTime ? 'ساعت ' + o.time : ''), o.venue]
     .filter(Boolean).join(' · ') || o.meta || '';
   const fit=(t,size,maxW,min)=>{let x=size; const k=/^[A-Za-z0-9]/.test(String(t))?.56:.52;
     while(x>min && String(t||'').length*x*k>maxW) x-=.5; return x.toFixed(1)};
   const RTL=' direction="rtl"';
-  const mainR = card[2] - TK_SAFE;               /* لبهٔ راست کارت اصلی */
-  const mainX0 = perf + TK_SAFE;                 /* شروع کارت اصلی */
+  const mainR = C[0] + C[2] - TK_SAFE;
+  const mainX0 = perf + TK_SAFE;
+  const mainW = mainR - mainX0;
 
-  /* ته‌برگ: شمارهٔ بلیت بالا، کیوآر وسط در ناحیهٔ سفید، کد پایین */
-  const stubCX = Math.round((8 + perf) / 2), qrS = 190;      /* ۱۹mm — کمینهٔ مطمئن برای اسکن */
-  const qrX = Math.round(stubCX - qrS / 2), qrY = 8 + 162;
+  /* کارت + سایهٔ نرم (چند لایهٔ کم‌رنگ، نه فیلتر؛ resvg و مرورگر یکسان می‌کشند) */
+  const card = tkRound(C[0], C[1], C[2], C[3], TK_R);
+  const shadow = [[3,.055],[6,.045],[11,.03]].map(([dy,a])=>
+    `<path d="${tkRound(C[0], C[1]+dy, C[2], C[3], TK_R)}" fill="#2A3A34" opacity="${a}"/>`).join('');
+
+  /* بازتاب شیشه: نوار روشن بالای کارت، با گوشهٔ گرد بالا و لبهٔ صاف پایین */
+  const sheenH = Math.round(C[3] * .30);
+  const sheen = `<path d="${tkRound(C[0], C[1], C[2], sheenH, TK_R, false)}" fill="url(#${uid}-sheen)"/>`;
+
+  /* ته‌برگ: شماره، کیوآر با ناحیهٔ سفید، کد کوتاه */
+  const qrS = 190, qrX = Math.round(cx - qrS/2), qrY = C[1] + 162;
   const stub = [
-    has('no') && o.no ? `<text x="${stubCX}" y="${8+74}" text-anchor="middle" font-size="14" fill="${T.muted}"${RTL}>شمارهٔ بلیت</text>
-      <text x="${stubCX}" y="${8+106}" text-anchor="middle" font-size="24" font-weight="700" fill="${T.ink}"${RTL}>${tkEsc(o.no)}</text>` : '',
-    has('qr') ? `<rect x="${qrX-9}" y="${qrY-9}" width="${qrS+18}" height="${qrS+18}" rx="9" fill="#FFFFFF"/>
-      ${tkQR(null, o.payload || ('https://lifeline1.ir/t/' + short), qrX, qrY, qrS, '#101D19')}
-      <text x="${stubCX}" y="${qrY+qrS+30}" text-anchor="middle" font-size="12" fill="${T.muted}"${RTL}>برای ورود اسکن شود</text>` : '',
-    has('code') ? `<text x="${stubCX}" y="${H-8-56}" text-anchor="middle" font-size="14" fill="${T.muted}"${RTL}>کد بلیت</text>
-      <text x="${stubCX}" y="${H-8-22}" text-anchor="middle" font-size="25" font-weight="700" letter-spacing="5" font-family="${TK_FONTS_LAT}" direction="ltr" fill="${T.ink}">${tkEsc(short)}</text>` : ''
+    has('no') && o.no ? `<text x="${cx}" y="${C[1]+74}" text-anchor="middle" font-size="14" fill="${T.muted}"${RTL}>شمارهٔ بلیت</text>
+      <text x="${cx}" y="${C[1]+106}" text-anchor="middle" font-size="24" font-weight="700" fill="${T.ink}"${RTL}>${tkEsc(o.no)}</text>` : '',
+    has('qr') ? `<path d="${tkRound(qrX-10, qrY-10+2, qrS+20, qrS+20, 14)}" fill="#0F1A16" opacity=".10"/>
+      <rect x="${qrX-10}" y="${qrY-10}" width="${qrS+20}" height="${qrS+20}" rx="14" fill="#FFFFFF"/>
+      ${tkQR(null, o.payload || ('https://lifeline1.ir/t/' + short), qrX, qrY, qrS, '#101D19', uid + '-qr')}
+      <text x="${cx}" y="${qrY+qrS+32}" text-anchor="middle" font-size="12" fill="${T.muted}"${RTL}>برای ورود اسکن شود</text>` : '',
+    has('code') ? `<text x="${cx}" y="${C[1]+C[3]-56}" text-anchor="middle" font-size="14" fill="${T.muted}"${RTL}>کد بلیت</text>
+      <text x="${cx}" y="${C[1]+C[3]-22}" text-anchor="middle" font-size="25" font-weight="700" letter-spacing="5" font-family="${TK_FONTS_LAT}" direction="ltr" fill="${T.ink}">${tkEsc(short)}</text>` : ''
   ].filter(Boolean).join('\n    ');
 
-  /* کارت اصلی: نشان و نوع، نام رویداد، زمان و جا، دارنده */
-  const rows = [];
-  if(has('title')) rows.push(`<text x="${mainR}" y="${TK_SAFE+128}" text-anchor="end" font-size="${fit(title,44,1350-perf-TK_SAFE*2,24)}" font-weight="700" fill="${T.ink}" letter-spacing="-.3"${RTL}>${tkEsc(title)}</text>`);
-  if(meta) rows.push(`<text x="${mainR}" y="${TK_SAFE+170}" text-anchor="end" font-size="${fit(meta,19,1350-perf-TK_SAFE*2,13)}" fill="${T.muted}"${RTL}>${tkEsc(meta)}</text>`);
-  const who = has('name') && o.name ? `<text x="${mainR}" y="${H-TK_SAFE-56}" text-anchor="end" font-size="14" fill="${T.muted}"${RTL}>شرکت‌کننده</text>
-    <text x="${mainR}" y="${H-TK_SAFE-22}" text-anchor="end" font-size="${fit(o.name,28,420,16)}" font-weight="700" fill="${T.ink}"${RTL}>${tkEsc(o.name)}</text>` : '';
-  const seat = has('seat') && o.seat ? `<text x="${mainR-470}" y="${H-TK_SAFE-56}" text-anchor="end" font-size="14" fill="${T.muted}"${RTL}>صندلی</text>
-    <text x="${mainR-470}" y="${H-TK_SAFE-22}" text-anchor="end" font-size="${fit(o.seat,20,220,13)}" font-weight="600" fill="${T.ink}"${RTL}>${tkEsc(o.seat)}</text>` : '';
+  /* کارت اصلی: نشان و عنوان رویداد، زمان و جا، دارنده، صندلی */
+  const head = [];
+  if(has('title')) head.push(`<text x="${mainR}" y="${C[1]+150}" text-anchor="end" font-size="${fit(title,44,mainW,24)}" font-weight="700" fill="${T.ink}" letter-spacing="-.3"${RTL}>${tkEsc(title)}</text>`);
+  if(meta) head.push(`<text x="${mainR}" y="${C[1]+192}" text-anchor="end" font-size="${fit(meta,19,mainW,13)}" fill="${T.muted}"${RTL}>${tkEsc(meta)}</text>`);
+  const note = has('note') && o.noteText ? `<text x="${mainX0}" y="${C[1]+96}" text-anchor="start" font-size="14" fill="${T.muted}"${RTL}>${tkEsc(o.noteText)}</text>` : '';
+  const logo = has('logo') ? `<g><circle cx="${mainR-30}" cy="${C[1]+30}" r="15" fill="none" stroke="${T.accent}" stroke-width="1.6"/>
+      <text x="${mainR-30}" y="${C[1]+36}" text-anchor="middle" font-size="15" font-weight="700" fill="${T.accent}"${RTL}>خ</text>
+      <text x="${mainR-56}" y="${C[1]+36}" text-anchor="end" font-size="16" font-weight="600" fill="${T.accent}"${RTL}>خط زندگی</text></g>` : '';
   const stateTxt = o.state || (o.confirmed === true ? 'قطعی' : (o.confirmed === false ? 'موقت' : ''));
-  const state = stateTxt ? `<text x="${mainX0}" y="${H-TK_SAFE-22}" text-anchor="start" font-size="16" font-weight="700" fill="${T.accent}"${RTL}>${tkEsc(stateTxt)}</text>` : '';
-  const note = has('note') && o.noteText ? `<text x="${mainX0}" y="${TK_SAFE+96}" text-anchor="start" font-size="14" fill="${T.muted}"${RTL}>${tkEsc(o.noteText)}</text>` : '';
-  const kind = has('kind') && o.kind ? `<text x="${mainX0}" y="${H-TK_SAFE-56}" text-anchor="start" font-size="15" font-weight="600" fill="${T.accent}"${RTL}>${tkEsc(o.kind)}</text>` : '';
-  const logo = has('logo') ? `<g><circle cx="${mainR-30}" cy="${TK_SAFE+30}" r="15" fill="none" stroke="${T.accent}" stroke-width="1.6"/>
-      <text x="${mainR-30}" y="${TK_SAFE+36}" text-anchor="middle" font-size="15" font-weight="700" fill="${T.accent}"${RTL}>خ</text>
-      <text x="${mainR-56}" y="${TK_SAFE+36}" text-anchor="end" font-size="16" font-weight="600" fill="${T.accent}"${RTL}>خط زندگی</text></g>` : '';
+  const foot = [];
+  if(has('kind') && o.kind) foot.push(`<text x="${mainX0}" y="${C[1]+C[3]-56}" text-anchor="start" font-size="15" font-weight="600" fill="${T.accent}"${RTL}>${tkEsc(o.kind)}</text>`);
+  if(stateTxt) foot.push(`<text x="${mainX0}" y="${C[1]+C[3]-22}" text-anchor="start" font-size="16" font-weight="700" fill="${T.accent}"${RTL}>${tkEsc(stateTxt)}</text>`);
+  if(has('seat') && o.seat) foot.push(`<text x="${mainR-470}" y="${C[1]+C[3]-56}" text-anchor="end" font-size="14" fill="${T.muted}"${RTL}>صندلی</text>
+    <text x="${mainR-470}" y="${C[1]+C[3]-22}" text-anchor="end" font-size="${fit(o.seat,20,220,13)}" font-weight="600" fill="${T.ink}"${RTL}>${tkEsc(o.seat)}</text>`);
+  if(has('name') && o.name) foot.push(`<text x="${mainR}" y="${C[1]+C[3]-56}" text-anchor="end" font-size="14" fill="${T.muted}"${RTL}>شرکت‌کننده</text>
+    <text x="${mainR}" y="${C[1]+C[3]-22}" text-anchor="end" font-size="${fit(o.name,28,420,16)}" font-weight="700" fill="${T.ink}"${RTL}>${tkEsc(o.name)}</text>`);
 
+  const anim = !!opt.animate;
+  const sweep = anim ? `<g clip-path="url(#${uid}-clip)"><rect class="tk-sweep" x="${C[0]}" y="${C[1]}" width="${Math.round(C[2]*.34)}" height="${C[3]}" fill="url(#${uid}-glow)"/></g>` : '';
+  const ring = anim && has('qr')
+    ? `<circle class="tk-ring" cx="${qrX+qrS/2}" cy="${qrY+qrS/2}" r="${qrS*.62}" fill="none" stroke="${T.accent}" stroke-width="3" opacity="0"/>` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" style="font-family:${TK_FONTS}"
     aria-label="بلیت ${tkEsc(title)}${o.name ? ' برای ' + tkEsc(o.name) : ''}">
   <defs>
-    <linearGradient id="tkbg-${sk}" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="${uid}-bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="${T.bg[0]}"/><stop offset="1" stop-color="${T.bg[1]}"/>
     </linearGradient>
-    <clipPath id="tkclip"><rect x="${card[0]}" y="${card[1]}" width="${card[2]-card[0]}" height="${card[3]-card[1]}" rx="26"/></clipPath>
-    ${opt.embed ? `<style>${TK_CSS}</style>` : ''}
+    <linearGradient id="${uid}-sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".42"/>
+      <stop offset=".55" stop-color="#FFFFFF" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="${uid}-glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="${uid}-clip"><path d="${card}"/></clipPath>
+    ${opt.embed ? `<style>${TK_CSS}${anim ? TK_ANIM_CSS : ''}</style>` : ''}
   </defs>
   <rect x="0" y="0" width="${W}" height="${H}" fill="${TK_PAGE}"/>
-  <g clip-path="url(#tkclip)">
-    <rect x="${card[0]}" y="${card[1]}" width="${card[2]-card[0]}" height="${card[3]-card[1]}" fill="url(#tkbg-${sk})"/>
-  </g>
-  <rect x="${card[0]}" y="${card[1]}" width="${card[2]-card[0]}" height="${card[3]-card[1]}" rx="26" fill="none" stroke="${T.line}" stroke-width="1.5"/>
-  <line x1="${perf}" y1="${card[1]+34}" x2="${perf}" y2="${card[3]-34}" stroke="${T.line}" stroke-width="2" stroke-dasharray="12 10"/>
-  <circle cx="${perf}" cy="${card[1]}" r="13" fill="${TK_PAGE}"/>
-  <circle cx="${perf}" cy="${card[3]}" r="13" fill="${TK_PAGE}"/>
-  <g clip-path="url(#tkclip)">
-    ${logo}
-    ${note}
-    ${rows.join('\n    ')}
-    ${who}
-    ${seat}
-    ${kind}
-    ${state}
-    ${stub}
-  </g>
+  ${shadow}
+  <path d="${card}" fill="url(#${uid}-bg)"/>
+  ${sheen}
+  <path d="${card}" fill="none" stroke="${T.line}" stroke-width="1.5"/>
+  <path d="${tkRound(C[0]+1, C[1]+1, C[2]-2, C[3]-2, TK_R-1)}" fill="none" stroke="#FFFFFF" stroke-opacity=".30" stroke-width="1"/>
+  <line x1="${perf}" y1="${C[1]+34}" x2="${perf}" y2="${C[1]+C[3]-34}" stroke="${T.line}" stroke-width="2" stroke-dasharray="12 10"/>
+  <circle cx="${perf}" cy="${C[1]}" r="13" fill="${TK_PAGE}"/>
+  <circle cx="${perf}" cy="${C[1]+C[3]}" r="13" fill="${TK_PAGE}"/>
+  ${logo}
+  ${note}
+  ${head.join('\n    ')}
+  ${foot.join('\n    ')}
+  ${stub}
+  ${sweep}
+  ${ring}
 </svg>`;
 }
 
-/* ── رسید ─────────────────────────────────────────────────────────────── */
+/* ── رسید ──────────────────────────────────────────────────────────────── */
+/* رسید پرداخت هم‌خانوادهٔ بلیت: همان کارت شیشه‌ای، همان ته‌رنگ و همان کنش آبی —
+   بی‌نگاره و خودبسند، تا نه لایهٔ محو بماند و نه مرورگر با PNG فرق کند. */
+const RC_G={size:[620,700],card:[10,10,600,680]};
 function receiptSVG(o, opt) {
   o = o || {}; opt = opt || {};
-  const skin = RC_PLATES_ALL[o.skin] ? o.skin : (o.skin === 'night' ? 'night' : 'clear');
-  const G = TK_GEO_DATA.geo.receipt, P = TK_GEO_DATA.palette['rc-' + skin];
-  const plate = RC_PLATES_ALL[skin];
+  const uid = 'rc' + (++TK_SEQ);
+  const [W,H] = RC_G.size, [cx0,cy0,cx1,cy1] = RC_G.card;
+  const light = o.skin !== 'night';
+  const P = light ? {bg:['#FFFFFF','#EFF5F3'],ink:'#12201B',muted:'#7C8681',line:'#E1EAE6',brand:'#0071E3'}
+                  : {bg:['#28302E','#121A18'],ink:'#FBFDFC',muted:'#A9B4B0',line:'#4A5653',brand:'#4EA1FF'};
   const RTL = ' direction="rtl"';
   const state = o.state || 'ok';
   const pill = { ok: ['پرداخت شد', '#0B7A57', 'rgba(11,122,87,.13)'],
                  wait: ['در انتظار تأیید', '#8A6A25', 'rgba(138,106,37,.15)'],
-                 stop: ['پرداخت نشد', '#B4453C', 'rgba(180,69,60,.14)'] }[state];
+                 stop: ['پرداخت نشد', '#B4453C', 'rgba(180,69,60,.14)'] }[state] || ['—', P.muted, 'rgba(0,0,0,.06)'];
   const rows = [['برنامه', o.program], ['زمان برنامه', o.when], ['پرداخت‌کننده', o.payer],
                 ['روش', o.method], ['تاریخ پرداخت', o.at], ['بلیت', o.ticket]].filter(([, v]) => v);
+  const R0 = cy0 + 326, RGAP = 36, RS = 16;
   const rowTags = rows.map(([k, v], i) => {
-    const y = G.rows.first + i * G.rows.gap;
+    const y = R0 + i * RGAP;
     const ltr = /^[A-Za-z0-9]/.test(String(v)) ? ' direction="ltr" font-family="' + TK_FONTS_LAT + '"' : RTL;
-    return `<text x="${G.rows.labelX}" y="${y}" text-anchor="end" font-size="${G.rows.size}" fill="${P.muted}"${RTL}>${tkEsc(k)}</text>
-      <text x="${G.rows.valueX}" y="${y}" font-size="${G.rows.size}" font-weight="600" fill="${P.ink}"${ltr}>${tkEsc(v)}</text>`;
+    return `<text x="${cx1-26}" y="${y}" text-anchor="end" font-size="${RS}" fill="${P.muted}"${RTL}>${tkEsc(k)}</text>
+      <text x="${cx0+26}" y="${y}" font-size="${RS}" font-weight="600" fill="${P.ink}"${ltr}>${tkEsc(v)}</text>`;
   }).join('\n    ');
+  const rowsBottom = R0 + Math.max(0, rows.length - 1) * RGAP;
+  const footY = Math.max(cy1 - 116, rowsBottom + 48);
+  const qrS = 96, qrX = cx0 + 26, qrY = footY - 6;
+  const anim = !!opt.animate;
+  const sweep = anim ? `<g clip-path="url(#${uid}-clip)"><rect class="tk-sweep" x="${cx0}" y="${cy0}" width="${Math.round((cx1-cx0)*.34)}" height="${cy1-cy0}" fill="url(#${uid}-glow)"/></g>` : '';
+  const card = tkRound(cx0, cy0, cx1-cx0, cy1-cy0, 30);
+  const shadow = [[3,.055],[6,.045],[11,.03]].map(([dy,a])=>
+    `<path d="${tkRound(cx0, cy0+dy, cx1-cx0, cy1-cy0, 30)}" fill="#2A3A34" opacity="${a}"/>`).join('');
+  const sheenH = Math.round((cy1-cy0) * .26);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${G.size[0]} ${G.size[1]}" width="${G.size[0]}" height="${G.size[1]}" role="img" style="font-family:${TK_FONTS}"
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" style="font-family:${TK_FONTS}"
     aria-label="رسید پرداخت ${tkEsc(o.program || '')}">
   <defs>
-    <clipPath id="rclip-${skin}"><rect x="${G.card[0]}" y="${G.card[1]}" width="${G.card[2] - G.card[0]}" height="${G.card[3] - G.card[1]}" rx="34"/></clipPath>
-    ${opt.embed ? `<style>${TK_CSS}</style>` : ''}
+    <linearGradient id="${uid}-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${P.bg[0]}"/><stop offset="1" stop-color="${P.bg[1]}"/>
+    </linearGradient>
+    <linearGradient id="${uid}-sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="${light ? '.42' : '.12'}"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="${uid}-glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="${uid}-clip"><path d="${card}"/></clipPath>
+    ${opt.embed ? `<style>${TK_CSS}${anim ? TK_ANIM_CSS : ''}</style>` : ''}
   </defs>
-  <g clip-path="url(#rclip-${skin})">
-    <image x="0" y="0" width="${G.size[0]}" height="${G.size[1]}" href="${plate}" preserveAspectRatio="none"/>
-    ${o.state ? `<g><rect x="${G.pill.x}" y="${G.pill.y}" width="${Math.max(120, pill[0].length * 9 + 44)}" height="${G.pill.h}" rx="${G.pill.h / 2}" fill="${pill[2]}"/>
-      <circle cx="${G.pill.x + 26}" cy="${G.pill.y + G.pill.h / 2}" r="4.5" fill="${pill[1]}"/>
-      <text x="${G.pill.x + 42}" y="${G.pill.y + G.pill.h / 2 + 5}" font-size="13.5" font-weight="700" fill="${pill[1]}"${RTL}>${pill[0]}</text></g>` : ''}
-    <text x="${G.title.x}" y="${G.title.base}" text-anchor="end" font-size="${G.title.size}" font-weight="700" fill="${P.ink}"${RTL}>رسید پرداخت</text>
-    <text x="${G.amountCap.cx}" y="${G.amountCap.base}" text-anchor="middle" font-size="${G.amountCap.size}" fill="${P.muted}"${RTL}>مبلغ</text>
-    <text x="${G.amount.cx}" y="${G.amount.base}" text-anchor="middle" font-size="${G.amount.size}" font-weight="700" fill="${P.ink}" letter-spacing="-1"${RTL}>${fa(o.amount || 0)} ریال</text>
-    ${o.discount ? `<text x="${G.discount.cx}" y="${G.discount.base}" text-anchor="middle" font-size="${G.discount.size}" fill="${P.muted}"${RTL}>تخفیف ${fa(o.discount)} ریال</text>
-    <text x="${G.discount.cx}" y="${G.discount.base + 20}" text-anchor="middle" font-size="${G.discount.size}" fill="${P.muted}"${RTL}>${tomanTxt(o.amount || 0)}</text>`
-    : `<text x="${G.discount.cx}" y="${G.discount.base}" text-anchor="middle" font-size="${G.discount.size}" fill="${P.muted}"${RTL}>${tomanTxt(o.amount || 0)}</text>`}
-    ${rowTags}
-    <text x="${G.track.x}" y="${G.track.base}" text-anchor="end" font-size="${G.track.size}" font-weight="700" fill="${P.ink}" font-family="${TK_FONTS_LAT}" direction="ltr">${tkEsc(o.track || '—')}</text>
-    ${tkQR(null, o.payload || ('https://lifeline1.ir/r/' + (o.track || '')), G.qr.x0, G.qr.y0, G.qr.size)}
-  </g>
+  <rect x="0" y="0" width="${W}" height="${H}" fill="${TK_PAGE}"/>
+  ${shadow}
+  <path d="${card}" fill="url(#${uid}-bg)"/>
+  <path d="${tkRound(cx0, cy0, cx1-cx0, sheenH, 30, false)}" fill="url(#${uid}-sheen)"/>
+  <path d="${card}" fill="none" stroke="${P.line}" stroke-width="1.5"/>
+  ${o.state ? `<g><rect x="${cx0+26}" y="${cy0+40}" width="${Math.max(120, pill[0].length*9+44)}" height="30" rx="15" fill="${pill[2]}"/>
+    <circle cx="${cx0+52}" cy="${cy0+55}" r="4.5" fill="${pill[1]}"/>
+    <text x="${cx0+68}" y="${cy0+60}" font-size="13.5" font-weight="700" fill="${pill[1]}"${RTL}>${pill[0]}</text></g>` : ''}
+  <text x="${cx1-26}" y="${cy0+66}" text-anchor="end" font-size="30" font-weight="700" fill="${P.ink}"${RTL}>رسید پرداخت</text>
+  <text x="${W/2}" y="${cy0+150}" text-anchor="middle" font-size="14" fill="${P.muted}"${RTL}>مبلغ</text>
+  <text x="${W/2}" y="${cy0+198}" text-anchor="middle" font-size="42" font-weight="700" fill="${P.ink}" letter-spacing="-1"${RTL}>${fa(o.amount || 0)} ریال</text>
+  ${o.discount ? `<text x="${W/2}" y="${cy0+232}" text-anchor="middle" font-size="14" fill="${P.muted}"${RTL}>تخفیف ${fa(o.discount)} ریال</text>
+  <text x="${W/2}" y="${cy0+256}" text-anchor="middle" font-size="14" fill="${P.muted}"${RTL}>${tomanTxt(o.amount || 0)}</text>`
+  : `<text x="${W/2}" y="${cy0+232}" text-anchor="middle" font-size="14" fill="${P.muted}"${RTL}>${tomanTxt(o.amount || 0)}</text>`}
+  <line x1="${cx0+26}" y1="${cy0+292}" x2="${cx1-26}" y2="${cy0+292}" stroke="${P.line}" stroke-width="1"/>
+  ${rowTags}
+  <line x1="${cx0+26}" y1="${footY-34}" x2="${cx1-26}" y2="${footY-34}" stroke="${P.line}" stroke-width="1"/>
+  <rect x="${qrX-8}" y="${qrY-8}" width="${qrS+16}" height="${qrS+16}" rx="12" fill="#FFFFFF"/>
+  ${tkQR(null, o.payload || ('https://lifeline1.ir/r/' + (o.track || '')), qrX, qrY, qrS, '#101D19', uid + '-qr')}
+  <text x="${cx1-26}" y="${footY+18}" text-anchor="end" font-size="13" fill="${P.muted}"${RTL}>کد پیگیری</text>
+  <text x="${cx1-26}" y="${footY+50}" text-anchor="end" font-size="19" font-weight="700" fill="${P.ink}" font-family="${TK_FONTS_LAT}" direction="ltr">${tkEsc(o.track || '—')}</text>
+  <text x="${cx1-26}" y="${footY+82}" text-anchor="end" font-size="12" fill="${P.muted}"${RTL}>${tkEsc(o.footNote || 'این رسید سند مالی نیست؛ مهر و امضا ندارد.')}</text>
+  ${sweep}
 </svg>`;
 }
 
@@ -577,7 +651,7 @@ function certificateSVG(o,opt){
   o=o||{}; opt=opt||{};
   const [W,H]=CERT_G.size, [cx0,cy0,cx1,cy1]=CERT_G.card;
   const RTL=' direction="rtl"';
-  const ink='#12201B', muted='#6E7A75', brand='#0E5A4E', gold='#9C7C3C';
+  const ink='#12201B', muted='#6E7A75', brand='#0071E3', gold='#9C7C3C';   /* کنش آبی اپل، طلا برای مهر */
   const name=o.name||'نام و نام خانوادگی';
   const kind=o.kind||'گواهینامهٔ پایان دوره';
   const title=o.title||'کارگاه';
@@ -625,7 +699,7 @@ function certificateSVG(o,opt){
   <text x="${cx0+260}" y="${cy0+588}" text-anchor="middle" font-size="13.5" fill="${muted}"${RTL}>مهر و امضای مؤسسه</text>
   <line x1="${cx1-400}" y1="${cy0+560}" x2="${cx1-120}" y2="${cy0+560}" stroke="${muted}" stroke-opacity=".45" stroke-width="1"/>
   <text x="${cx1-260}" y="${cy0+588}" text-anchor="middle" font-size="13.5" fill="${muted}"${RTL}>کارشناس آموزش</text>
-  ${o.qr===false?'':tkQR(null,o.payload||('https://lifeline1.ir/c/'+short),(cx0+cx1)/2-48,cy0+588,96)}
+  ${o.qr===false?'':tkQR(null,o.payload||('https://lifeline1.ir/c/'+short),(cx0+cx1)/2-48,cy0+588,96,null,'cert-qr')}
   <text x="${(cx0+cx1)/2}" y="${cy0+736}" text-anchor="middle" font-size="12.5" fill="${muted}"${RTL}>صحت این گواهینامه با شمارهٔ ${tkEsc(serial)} در lifeline1.ir/c بررسی می‌شود</text>
 </svg>`;
 }
@@ -641,7 +715,7 @@ function sendTicketToBot(o,where){
 }
 function ticketHTML(o){
   o=o||{};
-  const svg=ticketSVG(o);
+  const svg=ticketSVG(o,{animate:true});
   const code=(o.code||''), short=o.short||shortCode(code);
   const ics=JSON.stringify({code,date:o.date||'',title:o.title||'',venue:o.venue||'',short});
   return `<figure class="tk-wrap">
@@ -785,4 +859,4 @@ if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,init
   ticketFile,receiptFile,ticketSVG,receiptSVG,ticketHTML,receiptHTML,sendTicketToBot,TICKET_STYLES,TICKET_PARTS,
   certificateSVG,certificateFile,CERT_G,
   qrMatrix,qrSVG,QRCODE,shortCode,ticketMeta,icsFor,parseJ,jalaliOf,gregOf,isLeapJ,daysInJ,weekdayOf,maskPhone,
-  words,money,faN,fa,faDigits,TK_SKIN_NAMES,TK_GEO,RC_PLATES,tkQR,tkFit,ticketFile,receiptFile};
+  words,money,faN,fa,faDigits,TK_SKIN_NAMES,tkQR,tkFit,ticketFile,receiptFile};
