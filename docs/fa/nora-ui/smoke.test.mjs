@@ -101,6 +101,23 @@ async function load(file,store,q){
   ok(p.all('#tickets #tkqr').length===2,'کیوآرکد داخل هر تصویر هست');
   ok(/مریم احمدی/.test(p.txt('#tickets')),'بلیت دوم به نام خودِ دوست است');
   ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
+  /* ── گواهینامه در دست خودِ کاربر ── */
+  p.click('#next');                       /* از بلیت‌ها به گواهینامه */
+  ok(p.vis('.screen').join()==='u16','صفحهٔ گواهینامه باز شد');
+  ok(p.doc.querySelector('#certSlot svg')!==null,'برگ گواهینامه ساخته شد');
+  ok(/گواهینامهٔ پایان دوره/.test(p.txt('#certSlot')),'نوع گواهینامه روی برگ');
+  ok(/سارا محمدی/.test(p.txt('#certSlot')),'نام دارنده روی برگ');
+  ok(p.txt('#certSlot').includes(p.window.eval('CFG.title')),'عنوان دوره روی برگ');
+  ok(p.doc.querySelector('#certSlot #tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
+  ok(/بلافاصله بعد از تأیید رسید/.test(p.txt('#certWhen')),'حالت صدور خودکار گفته می‌شود');
+  ok(p.doc.querySelector('#certSave')!==null && p.doc.querySelector('#certBot')!==null,'ذخیره و فرستادن در بله');
+  p.window.eval("CFG.cert.mode='after'; renderCert()");
+  ok(/پس از پایان دوره/.test(p.txt('#certWhen')),'حالت «پس از پایان دوره» هم درست می‌آید');
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u13','با دکمهٔ آخر به بلیت‌ها برمی‌گردد');
+  ok(p.window.eval("ORDER.indexOf('u16')===ORDER.indexOf('u13')+1"),'گواهینامه بعد از بلیت‌ها است');
+  p.window.eval("CFG.cert.on=false; show('u16')");
+  ok(p.vis('.screen').join()==='u13','با خاموش بودن گواهینامه، صفحه‌اش کاربر را به بلیت‌ها برمی‌گرداند');
   const tkTxt=p.txt('#tickets');
   ok(/کد بلیت/.test(tkTxt) && /[2-9ACDEFGHJKLMNPQRSTUVWXYZ]{7}/.test(tkTxt),'کد بلیت روی بلیت چاپ شده');
   const tsvg=p.all('#tickets .tk-img svg')[0];
