@@ -317,10 +317,11 @@
                   <option>کارتابل کارشناس</option><option>کارتابل + پیام‌رسان بله</option>
                   <option>کارتابل + ایمیل</option><option>پیام‌رسان بله</option>
                 </select></div>
+              <div><label class="lbl" for="deptPick">بخش</label>
+                <select id="deptPick" class="input"></select></div>
               <div><label class="lbl" for="expertPick">کارشناس مسئول</label>
-                <select id="expertPick" class="input">
-                  <option>خانم رستگار — از بخش آموزش (پیش‌فرض)</option><option>آقای صادقی — پشتیبانی</option><option>تیم آموزش</option>
-                </select></div>
+                <select id="expertPick" class="input"></select>
+                <div class="mini" id="deptHint" style="margin-top:6px">—</div></div>
             </div>
           </details>
 
@@ -612,6 +613,12 @@ const PACKS=[
 const byT=t=>CATALOG.find(c=>c.t===t)||{t:t,n:t,ic:'i-doc',g:'ویژه'};
 
 /* ══ وضعیت ══ */
+/* بخش‌های سازمان: هر فرم از یک بخش می‌آید و کارشناس همان بخش پیگیرش است */
+const DEPTS=[
+ {id:'edu',n:'آموزش',expert:'خانم رستگار',hint:'کارگاه‌ها و دوره‌ها'},
+ {id:'data',n:'پژوهش و نظرسنجی',expert:'آقای نادری',hint:'نظرسنجی و پرسش‌نامه'},
+ {id:'media',n:'رسانه و تولید محتوا',expert:'خانم صادقی',hint:'آزمون و محتوای آموزشی'},
+ {id:'sup',n:'پشتیبانی',expert:'آقای موسوی',hint:'پیگیری و پاسخ‌گویی'}];
 const S={
   step:'s1', model:'registration',
   title:'ثبت‌نام کارگاه فن بیان مقدماتی', slug:'events/fanbayan/register', nested:true,
@@ -629,6 +636,7 @@ const S={
        {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:'',g:null},
        {l:'ارسال گواهینامه با پست',p:120000,off:0,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد',g:null}],
   groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
+  dept:'edu',
   maxPer:3, compFields:'نام و موبایل', guestsOn:false,
   coupon:{code:'NORA10',off:10,all:false},
   methods:{card:true,bale:true,zarin:false,payping:false,instal:false},
@@ -977,6 +985,14 @@ $('#btnBack').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i>0) go(
 
 /* ══ آغاز ══ */
 initUI();
+/* بخش و کارشناس مسئول: فهرست کارشناسان از بخش می‌آید */
+(()=>{const dp=$('#deptPick'), ep=$('#expertPick'); if(!dp||!ep) return;
+  dp.innerHTML=DEPTS.map(d=>`<option value="${d.id}" ${S.dept===d.id?'selected':''}>${d.n} — ${d.hint}</option>`).join('');
+  const fill=()=>{const d=DEPTS.find(x=>x.id===dp.value)||DEPTS[0];
+    ep.innerHTML=`<option>${d.expert} — کارشناس ${d.n}</option>`;
+    S.notify.expert=d.expert+' — '+d.n; S.dept=d.id;
+    $('#deptHint').textContent='پیش‌فرض پیگیری و رسیدها: '+d.expert;};
+  dp.addEventListener('change',fill); fill();})();
 /* سوئیچ «دعوت دوست» — روی خود عنصر، مثل بلیت (پیش از هندلر سراسری اجرا می‌شود) */
 (()=>{const g=$('#guestsOn'); if(!g) return;
   g.addEventListener('click',()=>{S.guestsOn=!g.classList.contains('on');renderPreview();renderReview();

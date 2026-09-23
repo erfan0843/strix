@@ -272,6 +272,12 @@
         <span class="sp"></span>
         <span class="tag warn" id="kTop">—</span>
       </header>
+      <div class="row tight" style="margin-top:12px" id="kFilters">
+        <button class="chip on" data-kd="">همهٔ بخش‌ها</button>
+        <span class="row tight" id="kDeptChips" style="gap:8px"></span>
+        <span class="sp"></span>
+        <span class="cap" id="kWho">—</span>
+      </div>
       <div class="stack" id="kartabl" style="margin-top:12px"></div>
     </section>
 
@@ -459,7 +465,7 @@
    ══════════════════════════════════════════════════════════════════ */
 const FORMS=[
 {id:'f1',name:'ثبت‌نام کارگاه فن بیان',kind:'رویداد',tone:'ok',status:'در حال ثبت‌نام',
- slug:'lifeline1.ir/events/fanbayan/register',expert:'خانم رستگار',
+ slug:'lifeline1.ir/events/fanbayan/register',expert:'خانم رستگار',dept:'edu',
  seen:2140,started:412,resp:128,paid:109,money:103375000,
  start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:150,wait:true,per:3,skin:'forest',
  head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
@@ -481,7 +487,7 @@ const FORMS=[
  answers:['برای جلسهٔ دوم نمی‌توانم بیایم؛ فایل صوتی دارید؟','دنبال کارگاه پیشرفته هستم.']},
 
 {id:'f2',name:'نظرسنجی رضایت دورهٔ بهار',kind:'نظرسنجی',tone:'ok',status:'در حال ثبت‌نام',
- slug:'lifeline1.ir/f/bahar-satisfaction',expert:'آقای نادری',
+ slug:'lifeline1.ir/f/bahar-satisfaction',expert:'آقای نادری',dept:'data',
  seen:1610,started:520,resp:342,paid:0,money:0,
  start:'۱۴۰۵/۰۶/۰۱ — ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
@@ -495,7 +501,7 @@ const FORMS=[
  answers:['مربی‌ها عالی بودند؛ صدا در سالن ضعیف بود.']},
 
 {id:'f3',name:'فرم عضویت خیرین',kind:'عضویت',tone:'warn',status:'پیش‌نویس',
- slug:'lifeline1.ir/f/kheyreen',expert:'خودم',
+ slug:'lifeline1.ir/f/kheyreen',expert:'خودم',dept:'edu',
  seen:0,started:0,resp:0,paid:0,money:0,
  start:'۱۴۰۵/۰۸/۰۱ — ۰۸:۰۰',ends:'۱۴۰۶/۰۱/۰۱ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'عضویت در باشگاه خیرین',intro:'ماهانه یا سالانه، هر مبلغی که در توان دارید.',
@@ -513,7 +519,7 @@ const FORMS=[
  answers:[]},
 
 {id:'f4',name:'آزمون کتابخوانی پاییز',kind:'آزمون',tone:'ok',status:'در حال ثبت‌نام',
- slug:'lifeline1.ir/f/ketabkhani-paeez',expert:'خانم صادقی',
+ slug:'lifeline1.ir/f/ketabkhani-paeez',expert:'خانم صادقی',dept:'media',
  seen:820,started:300,resp:96,paid:96,money:28800000,
  start:'۱۴۰۵/۰۷/۱۰ — ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ — ۲۳:۰۰',cap:150,wait:false,per:1,
  head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
@@ -605,7 +611,7 @@ function renderList(){
           <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':f.kind==='عضویت'?'users':'ticket'}"/></svg></span>
         <div style="min-width:0">
           <div class="head tight">${f.name}</div>
-          <div class="cap">${f.kind} — کارشناس ${f.expert} — تا ${f.ends}</div>
+          <div class="cap">${f.kind} — <b>بخش ${DEPT_OF(f).n}</b> — کارشناس ${f.expert} — تا ${f.ends}</div>
         </div>
         <span class="sp"></span>
         ${pendings().filter(p=>p.form===f.id).length?`<span class="tag warn">${faN(pendings().filter(p=>p.form===f.id).length)} رسید در انتظار</span>`:''}
@@ -731,6 +737,8 @@ function renderInfo(){
       <div class="card paper">
         <div class="fw" style="margin-bottom:6px">شناسنامهٔ فرم</div>
         <div class="answer"><span class="k">نوع فرم</span><span class="v">${f.kind}</span></div>
+        <div class="answer"><span class="k">بخش</span><span class="v">${DEPT_OF(f).n}</span></div>
+        <div class="answer"><span class="k">کارشناس بخش</span><span class="v">${DEPT_OF(f).expert}</span></div>
         <div class="answer"><span class="k">پیوند</span><span class="v num" style="direction:ltr">${f.slug}</span></div>
         <div class="answer"><span class="k">کارشناس مسئول</span><span class="v">${f.expert}</span></div>
         <div class="answer"><span class="k">سربرگ</span><span class="v">${f.head}</span></div>
@@ -986,9 +994,18 @@ function openUser(id){
   go('fUser');
 }
 /* ── کارتابل ─────────────────────────────────────────────────── */
+let KDEPT='';
 function renderKartabl(){
-  const list=pendings();
-  document.getElementById('kTop').textContent=faN(list.length)+' در انتظار';
+  const list=pendings().filter(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR; return !KDEPT||f.dept===KDEPT;});
+  const dc=document.getElementById('kDeptChips');
+  if(dc&&!dc.dataset.done){dc.dataset.done='1';
+    dc.innerHTML=DEPTS.map(d=>`<button class="chip" data-kd="${d.id}">${d.n}</button>`).join('');}
+  document.querySelectorAll('#kFilters .chip').forEach(c=>c.classList.toggle('on',(c.dataset.kd||'')===KDEPT));
+  const w=document.getElementById('kWho');
+  if(w) w.textContent=KDEPT?(DEPT_OF({dept:KDEPT}).expert+' — کارشناس '+DEPT_OF({dept:KDEPT}).n):'همهٔ بخش‌ها';
+  const all=pendings().length;
+  document.getElementById('kTop').textContent=faN(list.length)+' در انتظار'+(KDEPT&&list.length!==all?' از '+faN(all):'');
   document.getElementById('kBadge').textContent=faN(list.length);
   document.getElementById('kartabl').innerHTML=list.map(p=>{
     const f=FORMS.find(x=>x.id===p.form)||CUR, m=pay(p);
@@ -996,7 +1013,8 @@ function renderKartabl(){
       <div class="row">
         <span class="personrow" style="gap:10px"><span class="n">${p.name.slice(0,1)}</span>
           <span><b class="sub">${p.name}</b><div class="cap num">${maskPhone(p.mobile)} — ${p.at}</div></span></span>
-        <span class="sp"></span><span class="tag brand">${f.name}</span>
+        <span class="sp"></span><span class="tag brand">بخش ${DEPT_OF(f).n}</span>
+        <span class="tag quiet">${f.name}</span>
       </div>
       <div class="row" style="margin-top:12px;align-items:flex-start;gap:14px">
         <div class="receipt" style="max-width:132px"></div>
@@ -1045,14 +1063,21 @@ function renderMoney(){
 }
 /* ── کارشناسان ───────────────────────────────────────────────── */
 let CARD_DEST={no:'6104-3378-1234-5674',bank:'بانک ملت',owner:'مؤسسهٔ خط زندگی'};
+/* ── بخش‌های سازمان: هر فرم از یک بخش می‌آید و کارشناس همان بخش پیگیرش است ── */
+const DEPTS=[
+ {id:'edu',n:'آموزش',expert:'خانم رستگار',i:'i-medal'},
+ {id:'sup',n:'پشتیبانی',expert:'آقای موسوی',i:'i-inbox'},
+ {id:'data',n:'پژوهش و نظرسنجی',expert:'آقای نادری',i:'i-chart'},
+ {id:'media',n:'رسانه و تولید محتوا',expert:'خانم صادقی',i:'i-image'}];
+const DEPT_OF=f=>(DEPTS.find(d=>d.id===f.dept)||DEPTS[0]);
 const TEAM=[
- {n:'خانم رستگار',r:'کارشناس آموزش',f:'کارگاه فن بیان، عضویت خیرین',k:true,m:true},
- {n:'آقای نادری',r:'کارشناس نظرسنجی',f:'نظرسنجی بهار',k:false,m:false},
- {n:'خانم صادقی',r:'کارشناس آزمون',f:'آزمون کتابخوانی',k:true,m:false},
- {n:'آقای موسوی',r:'پاسخگوی پشتیبانی',f:'همهٔ فرم‌ها — فقط دیدن',k:false,m:false}
+ {n:'خانم رستگار',r:'کارشناس آموزش',d:'edu',f:'کارگاه فن بیان، عضویت خیرین',k:true,m:true},
+ {n:'آقای نادری',r:'کارشناس پژوهش و نظرسنجی',d:'data',f:'نظرسنجی بهار',k:false,m:false},
+ {n:'خانم صادقی',r:'کارشناس رسانه',d:'media',f:'آزمون کتابخوانی',k:true,m:false},
+ {n:'آقای موسوی',r:'پاسخگوی پشتیبانی',d:'sup',f:'همهٔ فرم‌ها — فقط دیدن',k:false,m:false}
 ];
 function renderTeam(){
-  document.getElementById('teamBox').innerHTML=TEAM.map(t=>`
+  const card=t=>`
     <div class="card paper">
       <div class="row">
         <span class="personrow" style="gap:10px"><span class="n">${t.n.split(' ').pop().slice(0,1)}</span>
@@ -1063,7 +1088,15 @@ function renderTeam(){
         <span class="sub" style="flex:1">کارتابل رسیدها</span><span class="switch ${t.k?'on':''}" role="switch" aria-checked="${t.k}"></span>
         <span class="sub" style="flex:1">دیدن بخش مالی</span><span class="switch ${t.m?'on':''}" role="switch" aria-checked="${t.m}"></span>
       </div>
-    </div>`).join('');
+    </div>`;
+  document.getElementById('teamBox').innerHTML=DEPTS.map(d=>{
+    const members=TEAM.filter(t=>t.d===d.id);
+    if(!members.length) return '';
+    return `<div class="row" style="margin:6px 4px 0"><span class="fw">بخش ${d.n}</span><span class="sp"></span>
+      <span class="cap">کارشناس مسئول: ${d.expert}</span>
+      <button class="btn sm quiet" data-change="dept"><svg class="i"><use href="#i-sliders"/></svg> جابه‌جایی بخش‌ها</button></div>
+      ${members.map(card).join('')}`;
+  }).join('')+TEAM.filter(t=>!DEPTS.some(d=>d.id===t.d)).map(card).join('');
 }
 
 /* ── ورقهٔ تغییر: هر تغییر یک ورقه، فرم مخصوص خودش ───────────── */
@@ -1158,6 +1191,17 @@ const CHANGES={
  gw:{t:'درگاه‌ها',body:()=>`<p class="sub">درگاه‌ها در بخش «مالی» سامانه روشن و خاموش می‌شوند؛ سازندهٔ فرم فقط از میان آن‌ها انتخاب می‌کند.</p>
    <div class="row tight">${FORMS[0].gw.map(g=>`<span class="chip on">${g}</span>`).join('')}</div>`,
   go:()=>{closeSheets(); go('fMoney')}},
+ dept:{t:'بخش فرم',body:()=>`
+   <p class="cap">هر فرم از یک بخش سازمان می‌آید؛ رسیدها و پیام‌ها پیش‌فرض به کارشناس همان بخش می‌رود.</p>
+   <div class="row tight">${DEPTS.map(d=>`<button class="chip ${CUR.dept===d.id?'on':''}" data-chip data-dp="${d.id}">
+     <svg class="i" style="width:15px"><use href="#${d.i}"/></svg> ${d.n}</button>`).join('')}</div>
+   <div class="mini" style="margin-top:8px">با انتخاب بخش، کارشناس مسئول هم به کارشناس همان بخش تغییر می‌کند.</div>`,
+  go:()=>{const c=document.querySelector('#chBody .chip.on[data-dp]'); if(!c){toast('یک بخش را انتخاب کنید');return}
+   const d=DEPTS.find(x=>x.id===c.dataset.dp);
+   CUR.dept=d.id; CUR.expert=d.expert;
+   CUR.changes.unshift(['امروز — فرم به بخش «'+d.n+'» رفت','خودم']);
+   log('فرم به بخش «'+d.n+'» و کارشناس «'+d.expert+'» سپرده شد');
+   closeSheets(); renderInfo(); renderPanel(); renderList(); toast('به بخش '+d.n+' رفت')}},
  event:{t:'اتصال به رویداد',body:()=>`
    <p class="cap">فرم می‌تواند زیر یک رویداد برود؛ آن‌وقت ظرفیت و تاریخ‌ها از رویداد خوانده می‌شود.</p>
    <div><label class="lbl">رویداد</label>
@@ -1298,6 +1342,8 @@ document.addEventListener('click',e=>{
     if(CURP&&CURP.id===p.id) openUser(p.id); toast('رسید تأیید شد'); return}
   const rj=e.target.closest('[data-reject]');
   if(rj){rejectId=rj.dataset.reject; openSheet('shReject'); return}
+  const kd=e.target.closest('[data-kd]');
+  if(kd){KDEPT=kd.dataset.kd||''; renderKartabl(); return}
   const lc=e.target.closest('#listChips .chip');
   if(lc){document.querySelectorAll('#listChips .chip').forEach(x=>x.classList.remove('on'));lc.classList.add('on');
     FILTER=lc.dataset.chip; renderList(); return}
