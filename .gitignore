@@ -102,3 +102,6 @@ schema.graphql
 # نورا — صفحه‌های میانی بلیت (از tickets/*.png با tools-make-plates.py ساخته می‌شوند؛
 # خودِ خروجی نهایی در tickets/plates.js امبد شده است)
 docs/fa/nora-ui/tickets/*-plate.png
+
+# فایل‌های ساختهٔ گواهینامهٔ نمونه (با cert-render.mjs از نو ساخته می‌شوند)
+docs/fa/nora-ui/certs/
