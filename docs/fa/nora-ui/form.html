@@ -7,24 +7,22 @@
 <link rel="stylesheet" href="glass.css"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
-  .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);
-       background:var(--surface-2);border:.5px solid var(--hairline);cursor:pointer;
-       transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease),transform var(--t-fast) var(--spring)}
+  .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
+       border:.5px solid var(--hairline);cursor:pointer;transition:background var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
   .opt:hover{background:var(--surface)}
-  .opt:active{transform:scale(.99)}
   .opt .mk{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--ink-4);display:grid;place-items:center;flex:0 0 auto;color:transparent}
   .opt.on{border-color:var(--brand);background:var(--brand-tint)}
   .opt.on .mk{border-color:var(--brand);background:var(--brand);color:#fff}
-  .ticketline{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-sub)}
-  .qr{width:104px;height:104px;border-radius:var(--r-md);border:6px solid #fff;box-shadow:var(--sh-2);
-      background:repeating-conic-gradient(var(--ink) 0 25%, #fff 0 50%) 0/13px 13px}
+  .opt.sq .mk{border-radius:7px}
   .botbar{position:fixed;inset-inline:12px;bottom:calc(12px + var(--safe-b));z-index:50;display:flex;gap:8px;align-items:center;padding:8px;border-radius:var(--r-xl)}
   .drop{border:1.5px dashed var(--hairline);border-radius:var(--r-md);padding:22px;text-align:center;background:var(--surface-2);cursor:pointer}
-  .drop:hover{border-color:var(--brand)}
   .fld{position:relative}
   .fld .reqbar{position:absolute;inset-inline-start:-10px;top:2px;bottom:2px;width:3px;border-radius:99px;background:var(--req)}
   .personrow{display:flex;gap:8px;align-items:center}
   .personrow .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);font-size:var(--fs-cap);font-weight:600;flex:0 0 auto}
+  .linkbtn{display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:var(--r-md);border:.5px solid var(--hairline);
+    background:var(--surface);box-shadow:var(--sh-1);font-size:var(--fs-sub);font-weight:600;text-decoration:none;color:var(--ink)}
+  .linkbtn:hover{background:var(--surface-2)}
 </style>
 </head>
 <body>
@@ -164,16 +162,16 @@
     <button class="icon-btn" data-sheet="shExit" aria-label="خروج"><svg class="i"><use href="#i-close"/></svg></button>
   </header>
 
-  <!-- ══ لندینگ ══ -->
+  <!-- ═ ۱ لندینگ ═ -->
   <section class="screen on" id="u1" style="margin-top:12px">
     <div class="card paper">
-      <div class="glass sheen" style="height:112px;border-radius:var(--r-lg);display:grid;place-items:center;margin-bottom:16px">
+      <div class="glass sheen" style="height:108px;border-radius:var(--r-lg);display:grid;place-items:center;margin-bottom:16px">
         <svg class="i" style="width:34px;height:34px"><use href="#i-users"/></svg>
       </div>
       <div class="title">کارگاه فن بیان مقدماتی</div>
       <p class="sub" style="margin-top:6px">سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با گواهینامهٔ پایان دوره.</p>
       <div class="row tight" style="margin-top:14px">
-        <span class="tag brand"><svg class="i"><use href="#i-clock"/></svg> ۳ دقیقه</span>
+        <span class="tag brand"><svg class="i"><use href="#i-clock"/></svg> ۴ دقیقه</span>
         <span class="tag accent"><svg class="i"><use href="#i-wallet"/></svg> از ۵۱۰٬۰۰۰ ریال</span>
         <span class="tag ok"><span class="dot"></span> ۴۰ جا مانده</span>
       </div>
@@ -182,39 +180,71 @@
         <div class="row"><svg class="i"><use href="#i-ticket"/></svg><span class="sub">بلیت با کیوآرکد ورود</span></div>
         <div class="row"><svg class="i"><use href="#i-medal"/></svg><span class="sub">گواهینامهٔ پایان دوره</span></div>
         <div class="row"><svg class="i"><use href="#i-users"/></svg><span class="sub">تا ۳ نفر می‌توانید ثبت‌نام کنید</span></div>
-        <div class="row"><svg class="i"><use href="#i-calendar"/></svg><span class="sub">مهلت تا ۳۰ مهر</span></div>
       </div>
     </div>
   </section>
 
-  <!-- ══ نام ══ -->
+  <!-- ═ ۲ نام ═ -->
   <section class="screen" id="u2" style="margin-top:12px">
     <div class="card paper">
-      <div class="cap">سوال ۱ از ۵</div>
+      <div class="cap">سوال ۱ از ۶</div>
       <div class="title" style="margin:4px 0 14px">نام و نام خانوادگی<span class="required-dot"></span></div>
       <div class="fld"><span class="reqbar"></span><input class="input" value="سارا محمدی" autocomplete="name"/></div>
       <p class="cap" style="margin-top:8px">از پروفایل شما خوانده شد.</p>
     </div>
   </section>
 
-  <!-- ══ موبایل ══ -->
+  <!-- ═ ۳ موبایل ═ -->
   <section class="screen" id="u3" style="margin-top:12px">
     <div class="card paper">
-      <div class="cap">سوال ۲ از ۵</div>
+      <div class="cap">سوال ۲ از ۶</div>
       <div class="title" style="margin:4px 0 14px">شماره موبایل<span class="required-dot"></span></div>
       <div class="fld"><span class="reqbar"></span>
         <input class="input num" style="direction:ltr;text-align:start" value="09123456876" inputmode="tel" placeholder="09__________"/>
       </div>
-      <p class="cap" style="margin-top:8px">یازده رقم؛ با ۰۹ شروع می‌شود. اگر سازنده خواسته باشد، با کد پیامکی هم تأیید می‌شود.</p>
+      <p class="cap" style="margin-top:8px">یازده رقم؛ با ۰۹ شروع می‌شود.</p>
     </div>
   </section>
 
-  <!-- ══ تک‌انتخاب ══ -->
+  <!-- ═ ۴ تاریخ تولد: انتخابی ═ -->
   <section class="screen" id="u4" style="margin-top:12px">
     <div class="card paper">
-      <div class="cap">سوال ۴ از ۵</div>
+      <div class="cap">سوال ۳ از ۶</div>
+      <div class="title" style="margin:4px 0 14px">تاریخ تولد</div>
+      <div id="pkBirth"></div>
+      <p class="cap" style="margin-top:8px">سال و ماه و روز را از فهرست بردارید؛ لازم نیست چیزی بنویسید.</p>
+    </div>
+  </section>
+
+  <!-- ═ ۵ استان و شهر ═ -->
+  <section class="screen" id="u5" style="margin-top:12px">
+    <div class="card paper">
+      <div class="cap">سوال ۴ از ۶</div>
+      <div class="title" style="margin:4px 0 14px">استان و شهر</div>
+      <div id="pkGeo"></div>
+      <p class="cap" style="margin-top:8px">شهرها بر پایهٔ استان انتخابی می‌آید.</p>
+    </div>
+  </section>
+
+  <!-- ═ ۶ دانشگاه و شغل: کشویی با «سایر» ═ -->
+  <section class="screen" id="u6" style="margin-top:12px">
+    <div class="card paper">
+      <div class="cap">سوال ۵ از ۶</div>
+      <div class="title" style="margin:4px 0 14px">دانشگاه</div>
+      <div id="pkUni"></div>
+      <p class="cap" style="margin-top:8px">دانشگاه خود را از فهرست بردارید؛ اگر نبود «سایر» را بزنید و بنویسید.</p>
+      <hr class="hr"/>
+      <div class="title" style="margin:4px 0 12px;font-size:var(--fs-head)">شغل</div>
+      <div id="pkJob"></div>
+    </div>
+  </section>
+
+  <!-- ═ ۷ تک‌انتخاب ═ -->
+  <section class="screen" id="u7" style="margin-top:12px">
+    <div class="card paper">
+      <div class="cap">سوال ۶ از ۶</div>
       <div class="title" style="margin:4px 0 14px">سطح تجربه</div>
-      <div class="stack tight">
+      <div class="stack tight" id="expOpts">
         <label class="opt on"><span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span><span>تازه‌کار</span></label>
         <label class="opt"><span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span><span>متوسط</span></label>
         <label class="opt"><span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span><span>حرفه‌ای</span></label>
@@ -222,19 +252,18 @@
     </div>
   </section>
 
-  <!-- ══ نوع شرکت + همراهان ══ -->
-  <section class="screen" id="u5" style="margin-top:12px">
+  <!-- ═ ۸ مالی و همراهان ═ -->
+  <section class="screen" id="u8" style="margin-top:12px">
     <div class="card paper">
-      <div class="title" style="margin-bottom:4px">نوع شرکت<span class="required-dot"></span></div>
-      <p class="sub">هر کدام را می‌خواهید انتخاب کنید؛ می‌توانید چند گزینه را با هم بردارید.</p>
-      <div class="stack tight" style="margin-top:14px" id="payOpts"></div>
+      <div class="title" style="margin-bottom:4px">انتخاب شما<span class="required-dot"></span></div>
+      <p class="sub">هر مورد یک مبلغ دارد؛ هر کدام را می‌خواهید بردارید.</p>
+      <div class="stack tight" style="margin-top:14px" id="finOpts"></div>
     </div>
 
     <div class="card paper" style="margin-top:12px">
       <div class="row">
         <div><div class="head">همراه</div><div class="cap">تا <span class="num" id="maxTxt">۳</span> نفر — برای هر نفر یک بلیت جدا</div></div>
-        <span class="sp"></span>
-        <span class="cap" id="countTxt">۱ نفر</span>
+        <span class="sp"></span><span class="cap" id="countTxt">۱ نفر</span>
       </div>
       <div class="stack tight" style="margin-top:12px" id="peopleRows"></div>
       <button class="addperson" id="addPerson" style="margin-top:10px">
@@ -256,8 +285,8 @@
     </div>
   </section>
 
-  <!-- ══ روش پرداخت ══ -->
-  <section class="screen" id="u6" style="margin-top:12px">
+  <!-- ═ ۹ روش پرداخت ═ -->
+  <section class="screen" id="u9" style="margin-top:12px">
     <div class="card paper">
       <div class="title" style="margin-bottom:4px">پرداخت</div>
       <p class="sub">قابل پرداخت: <b class="num" id="payAmount">—</b></p>
@@ -270,16 +299,15 @@
         </button>
         <button class="opt" data-method="bale">
           <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
-          <span style="flex:1;text-align:start"><b>درگاه رسمی بله</b><br><span class="cap">همان لحظه پرداخت می‌کنید و بلیت قطعی می‌شود</span></span>
+          <span style="flex:1;text-align:start"><b>درگاه رسمی بله</b><br><span class="cap">همان لحظه پرداخت؛ بلیت قطعی می‌شود</span></span>
           <svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg>
         </button>
       </div>
-      <p class="cap" style="margin-top:12px">با کارت‌به‌کارت، بلیت پس از تأیید رسید نهایی می‌شود.</p>
     </div>
   </section>
 
-  <!-- ══ کارت‌به‌کارت ══ -->
-  <section class="screen" id="u7" style="margin-top:12px">
+  <!-- ═ ۱۰ کارت‌به‌کارت ═ -->
+  <section class="screen" id="u10" style="margin-top:12px">
     <div class="bankcard">
       <div class="row1">
         <span class="chip"></span>
@@ -289,28 +317,23 @@
       <div class="num lbl2" style="font-size:19px;font-weight:600;margin:16px 0 4px;direction:ltr">6104 3378 1234 5678</div>
       <div class="who lbl2"><span>مؤسسهٔ خط زندگی</span><span>شمارهٔ کارت</span></div>
     </div>
-
     <div class="card paper" style="margin-top:12px">
-      <div class="copyrow">
-        <span class="sub">شمارهٔ کارت</span><span class="sp"></span>
-        <span class="v num" style="direction:ltr" id="cardNum2">6104-3378-1234-5678</span>
-        <button class="btn sm tint" data-copy="#cardNum2"><svg class="i"><use href="#i-copy"/></svg> کپی</button>
-      </div>
+      <div class="copyrow"><span class="sub">شمارهٔ کارت</span><span class="sp"></span>
+        <span class="v num" style="direction:ltr">6104-3378-1234-5678</span>
+        <button class="btn sm tint" data-copy="#cardNum">کپی</button><span id="cardNum" class="sr">6104-3378-1234-5678</span></div>
       <hr class="hr"/>
-      <div class="copyrow">
-        <span class="sub">مبلغ دقیق</span><span class="sp"></span>
+      <div class="copyrow"><span class="sub">مبلغ دقیق</span><span class="sp"></span>
         <span class="v num" id="exactAmount">—</span>
-        <button class="btn sm tint" data-copy="#exactAmount"><svg class="i"><use href="#i-copy"/></svg> کپی</button>
-      </div>
+        <button class="btn sm tint" data-copy="#exactAmount"><svg class="i"><use href="#i-copy"/></svg> کپی</button></div>
       <div class="mini" style="margin-top:6px" id="wordsAmount">—</div>
       <hr class="hr"/>
       <div class="copyrow"><span class="sub">به نام</span><span class="sp"></span><span class="v">مؤسسهٔ خط زندگی</span></div>
-      <p class="cap" style="margin-top:12px">مبلغ را دقیقاً همین عدد واریز کنید؛ کمتر یا بیشتر، تأیید را عقب می‌اندازد.</p>
+      <p class="cap" style="margin-top:12px">مبلغ را دقیقاً همین عدد واریز کنید. کارت مقصد را مدیر سامانه تعیین کرده است.</p>
     </div>
   </section>
 
-  <!-- ══ رسید ══ -->
-  <section class="screen" id="u8" style="margin-top:12px">
+  <!-- ═ ۱۱ رسید ═ -->
+  <section class="screen" id="u11" style="margin-top:12px">
     <div class="card paper">
       <div class="title" style="margin-bottom:4px">تصویر رسید</div>
       <p class="sub">عکس رسید را بگذارید تا کارشناس ببیند.</p>
@@ -330,10 +353,13 @@
       <label class="lbl" for="note">یادداشت برای کارشناس (اختیاری)</label>
       <textarea class="input" id="note" placeholder="مثلاً: واریز از حساب همسرم انجام شد."></textarea>
     </div>
+    <div class="card sunk" style="margin-top:12px">
+      <div class="row"><svg class="i"><use href="#i-inbox"/></svg><span class="sub">رسید به کارتابل کارشناس می‌رود و او تأیید یا رد می‌کند.</span></div>
+    </div>
   </section>
 
-  <!-- ══ ثبت شد ══ -->
-  <section class="screen" id="u9" style="margin-top:12px">
+  <!-- ═ ۱۲ ثبت شد ═ -->
+  <section class="screen" id="u12" style="margin-top:12px">
     <div class="card paper">
       <div class="row">
         <span class="glass-thin" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center"><svg class="i lg" style="color:var(--ok)"><use href="#i-check"/></svg></span>
@@ -343,49 +369,52 @@
       <div class="stack tight">
         <div class="ticketline"><span class="mute">کد پیگیری</span><span class="num">TL1307BVUC1981</span></div>
         <div class="ticketline"><span class="mute">وضعیت</span><span class="tag warn">در انتظار تأیید رسید</span></div>
-        <div class="ticketline"><span class="mute">بلیت‌ها</span><span class="num" id="ticketCount">۳ بلیت — موقت</span></div>
+        <div class="ticketline"><span class="mute">بلیت‌ها</span><span class="num" id="ticketCount">—</span></div>
       </div>
       <div class="card sunk" style="margin-top:12px">
         <div class="row"><svg class="i" style="color:var(--warn)"><use href="#i-bell"/></svg>
           <span class="sub">بلیت تا تأیید کارشناس موقت است؛ اگر تأیید نشود باطل می‌شود و ثبت‌نام از ابتدا انجام می‌شود.</span></div>
       </div>
       <div class="row" style="margin-top:14px">
-        <button class="btn primary" data-go="u10"><svg class="i"><use href="#i-ticket"/></svg> دیدن بلیت‌ها</button>
-        <button class="btn quiet" data-go="u8"><svg class="i"><use href="#i-pen"/></svg> ویرایش رسید</button>
+        <button class="btn primary" data-go="u13"><svg class="i"><use href="#i-ticket"/></svg> دیدن بلیت‌ها</button>
+        <button class="btn quiet" data-go="u11"><svg class="i"><use href="#i-pen"/></svg> ویرایش رسید</button>
       </div>
     </div>
   </section>
 
-  <!-- ══ بلیت‌ها ══ -->
-  <section class="screen" id="u10" style="margin-top:12px">
+  <!-- ═ ۱۳ بلیت‌ها، پیام، پیوندها ═ -->
+  <section class="screen" id="u13" style="margin-top:12px">
     <div class="row" style="margin-bottom:10px">
       <span class="head">بلیت‌های شما</span><span class="sp"></span>
       <button class="btn sm"><svg class="i"><use href="#i-download"/></svg> دانلود همه</button>
     </div>
-    <div class="stack tight" id="tickets"></div>
-    <div class="card paper" style="margin-top:14px">
+    <div class="stack" id="tickets"></div>
+
+    <div class="card paper" style="margin-top:16px">
       <div class="head" style="margin-bottom:10px">پیام کارشناس</div>
       <div class="card sunk row" style="padding:12px">
         <span class="personrow" style="gap:10px"><span class="n">ر</span>
         <span class="sub">خانم رستگار — برای هماهنگی جلسهٔ اول، یک روز قبل پیام می‌دهیم.</span></span>
       </div>
-      <div class="row tight" style="margin-top:12px">
-        <a class="btn sm" href="#"><svg class="i"><use href="#i-globe"/></svg> صفحهٔ رویداد</a>
-        <a class="btn sm quiet" href="#"><svg class="i"><use href="#i-users"/></svg> گروه اطلاع‌رسانی</a>
-        <a class="btn sm quiet" href="#"><svg class="i"><use href="#i-pin"/></svg> نشانی</a>
-      </div>
     </div>
+
+    <div class="card paper" style="margin-top:12px">
+      <div class="head" style="margin-bottom:10px">در همین باره</div>
+      <div class="stack tight" id="endLinks"></div>
+      <p class="sub" style="margin-top:12px" id="endText"></p>
+    </div>
+
     <div class="card sunk" style="margin-top:12px">
       <div class="row"><svg class="i"><use href="#i-clock"/></svg><span class="sub">تا پایان مهلت می‌توانید ثبت‌نام را ویرایش کنید.</span></div>
       <div class="row" style="margin-top:10px">
-        <button class="btn sm quiet" data-go="u5"><svg class="i"><use href="#i-pen"/></svg> ویرایش</button>
-        <button class="btn sm stop" data-go="u11"><svg class="i"><use href="#i-close"/></svg> انصراف</button>
+        <button class="btn sm quiet" data-go="u8"><svg class="i"><use href="#i-pen"/></svg> ویرایش</button>
+        <button class="btn sm stop" data-go="u14"><svg class="i"><use href="#i-close"/></svg> انصراف</button>
       </div>
     </div>
   </section>
 
-  <!-- ══ باطل ══ -->
-  <section class="screen" id="u11" style="margin-top:12px">
+  <!-- ═ ۱۴ باطل ═ -->
+  <section class="screen" id="u14" style="margin-top:12px">
     <div class="card paper">
       <div class="row">
         <span class="glass-thin" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center"><svg class="i lg" style="color:var(--stop)"><use href="#i-close"/></svg></span>
@@ -394,10 +423,10 @@
       <hr class="hr"/>
       <p class="sub">دلیل کارشناس: «مبلغ واریزی با صورت‌حساب یکی نیست».</p>
       <div class="card sunk" style="margin-top:12px">
-        <span class="sub">می‌توانید از ابتدا ثبت‌نام کنید؛ اطلاعاتتان نگه داشته شده و لازم نیست دوباره پر کنید.</span>
+        <span class="sub">اطلاعاتتان نگه داشته شده؛ لازم نیست دوباره پر کنید.</span>
       </div>
       <div class="row" style="margin-top:14px">
-        <button class="btn primary" data-go="u6">شروع دوبارهٔ پرداخت</button>
+        <button class="btn primary" data-go="u9">شروع دوبارهٔ پرداخت</button>
         <button class="btn quiet" data-sheet="shHelp">گفتن به کارشناس</button>
       </div>
     </div>
@@ -423,61 +452,50 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
+<script src="ui.js"></script>
 <script>
-/* ═══════ تنظیمات فرم — همان‌هایی که سازنده چیده ═══════ */
+/* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
-  maxPer:3,                              /* هر کس چند بلیت */
-  options:[                              /* فیلد قیمت‌دار */
-    {l:'کارگاه با گواهینامه', p:850000, off:15, on:true},
-    {l:'کارگاه بدون گواهینامه', p:600000, off:0, on:false}
-  ],
+  title:'ثبت‌نام کارگاه فن بیان مقدماتی',
+  venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',
+  date:'۱۴۰۵/۰۷/۰۸ — ۱۶:۰۰',
+  maxPer:3,
+  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:true,req:true},
+       {l:'کارگاه بدون گواهینامه',p:600000,off:0,on:false,req:false}],
   coupon:{code:'NORA10',off:10,all:false},
-  companion:{fields:'نام و موبایل'}
+  companion:{fields:'نام و موبایل'},
+  ticket:{style:'classic',color:'#0F6FD1',parts:['title','name','code','date','venue','qr','logo']},
+  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
+  links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/event/fanbayan',i:'i-globe'},
+         {t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan',i:'i-users'}],
+  confirmed:false
 };
-
-/* ═══════ عدد به حروف ═══════ */
-const YEK=['','یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه'];
-const DAH=['ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
-const DAHGAN=['','','بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
-const SAD=['','صد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
-function w3(n){const o=[],h=Math.floor(n/100),r=n%100;if(h)o.push(SAD[h]);
-  if(r>=10&&r<20)o.push(DAH[r-10]);else{const d=Math.floor(r/10),y=r%10;if(d>=2)o.push(DAHGAN[d]);if(y)o.push(YEK[y]);}
-  return o.join(' و ');}
-function words(n){n=Math.round(n);if(n<=0)return 'صفر';const p=[];const b=Math.floor(n/1e9),m=Math.floor(n%1e9/1e6),k=Math.floor(n%1e6/1000),r=n%1000;
-  if(b)p.push(w3(b)+' میلیارد');if(m)p.push(w3(m)+' میلیون');if(k)p.push((k===1?'':w3(k)+' ')+'هزار');if(r)p.push(w3(r));return p.join(' و ');}
-const fa=n=>Number(n).toLocaleString('fa-IR');
-const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
-/* عدد به ریال — تومان به حروف */
-const rial=n=>fa(Math.round(n))+' ریال';
-const tomanWords=rial=>words(rial/10)+' تومان';
-
-/* ═══════ وضعیت ═══════ */
-const S={people:0,discount:0,code:'',method:'card',paid:false};
+const S={people:0,discount:0,code:'',method:'card'};
 const NAMES=['علی رضایی','مریم احمدی','حسن کریمی'];
 const MOBILES=['۰۹۱۲۳۴۵۶۷۸۹','۰۹۱۲۲۲۳۳۴۴۵','۰۹۹۱۲۳۴۵۶۷۸'];
+const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
 
-function sumOptions(){ return CFG.options.filter(o=>o.on).reduce((a,o)=>a+net(o),0); }
+function perPerson(){return CFG.fin.filter(o=>o.on).reduce((a,o)=>a+net(o),0)}
 function calc(){
-  const per=sumOptions();
-  const count=S.people+1;
-  const sub=per*count;
+  const per=perPerson(), count=S.people+1, sub=per*count;
   const dis=S.discount?Math.round(sub*S.discount/100):0;
   return {per,count,sub,dis,sum:sub-dis};
 }
 
-/* ═══════ رندر ═══════ */
-function renderOptions(){
-  document.getElementById('payOpts').innerHTML=CFG.options.map((o,i)=>`
-    <label class="opt ${o.on?'on':''}" data-option="${i}">
+/* ══ رندر ══ */
+function renderFin(){
+  const box=document.getElementById('finOpts');
+  box.innerHTML=CFG.fin.map((o,i)=>`
+    <label class="opt sq ${o.on?'on':''}" data-fin="${i}">
       <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
       <span style="flex:1;text-align:start">
         <b>${o.l}</b>
         <span class="price" style="margin-top:6px">
-          ${o.off?`<span class="old num">${fa(o.p)}</span><span class="off">٪${fa(o.off)} تخفیف</span>`:''}
+          ${o.off?`<span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)} تخفیف</span>`:''}
           <span class="now num">${fa(net(o))}</span><span class="cap">ریال</span>
         </span>
       </span>
-    </label>`).join('');
+    </label>`).join('')||'<div class="empty"><div class="body">موردی برای انتخاب نیست</div></div>';
 }
 function renderPeople(){
   let html=`<div class="personrow">
@@ -487,124 +505,108 @@ function renderPeople(){
     </div>`;
   for(let i=0;i<S.people;i++){
     html+=`<div class="personrow">
-      <span class="n">${fa(i+2)}</span>
+      <span class="n">${faN(i+2)}</span>
       <input class="input" value="${NAMES[i]||''}" placeholder="نام همراه"/>
       <input class="input num" value="${MOBILES[i]||''}" style="max-width:140px" placeholder="موبایل"/>
     </div>`;
   }
   document.getElementById('peopleRows').innerHTML=html;
-  document.getElementById('countTxt').textContent=fa(S.people+1)+' نفر';
-  document.getElementById('maxTxt').textContent=fa(CFG.maxPer);
+  document.getElementById('countTxt').textContent=faN(S.people+1)+' نفر';
+  document.getElementById('maxTxt').textContent=faN(CFG.maxPer);
   document.getElementById('addPerson').style.display=S.people+1>=CFG.maxPer?'none':'flex';
 }
 function renderBill(){
   const c=calc();
-  document.getElementById('bill').innerHTML=`
-    ${CFG.options.filter(o=>o.on).map(o=>`
-      <div class="r"><span>${o.l}</span>
+  document.getElementById('bill').innerHTML=
+    (CFG.fin.filter(o=>o.on).map(o=>`<div class="r"><span>${o.l}</span>
         <span class="num">${o.off?`<span class="old">${fa(o.p)}</span> `:''}${fa(net(o))}</span></div>`).join('')
-      ||'<div class="r"><span class="mute">گزینهٔ شرکت انتخاب نشده</span><span></span></div>'}
-    ${c.count>1?`<div class="r"><span>مبلغ هر نفر × ${fa(c.count)} نفر</span><span class="num">${fa(c.per*c.count)}</span></div>`:''}
-    ${c.dis?`<div class="r"><span>تخفیف ${S.code} (٪${fa(S.discount)})</span><span class="num" style="color:var(--ok)">−${fa(c.dis)}</span></div>`:''}
-    <div class="r t"><span>قابل پرداخت</span><span class="num">${rial(c.sum)}</span></div>
-    <div class="mini" style="margin-top:6px">${tomanWords(c.sum)}</div>`;
-  document.getElementById('multBadge').textContent='برای '+fa(c.count)+' نفر';
-  document.getElementById('payAmount').textContent=rial(c.sum);
-  document.getElementById('payWords').textContent=tomanWords(c.sum);
-  document.getElementById('exactAmount').textContent=rial(c.sum);
-  document.getElementById('wordsAmount').textContent=tomanWords(c.sum);
-  document.getElementById('ticketCount').textContent=fa(c.count)+' بلیت — موقت';
+      ||'<div class="r"><span class="mute">موردی انتخاب نشده</span><span></span></div>')
+    + (c.count>1?`<div class="r"><span>مبلغ هر نفر × ${faN(c.count)} نفر</span><span class="num">${fa(c.per*c.count)}</span></div>`:'')
+    + (c.dis?`<div class="r"><span>تخفیف ${S.code} (٪${faN(S.discount)})</span><span class="num" style="color:var(--ok)">−${fa(c.dis)}</span></div>`:'')
+    + `<div class="r t"><span>قابل پرداخت</span><span class="num">${rialTxt(c.sum)}</span></div>
+       <div class="mini" style="margin-top:6px">${tomanTxt(c.sum)}</div>`;
+  document.getElementById('multBadge').textContent='برای '+faN(c.count)+' نفر';
+  document.getElementById('payAmount').textContent=rialTxt(c.sum);
+  document.getElementById('payWords').textContent=tomanTxt(c.sum);
+  document.getElementById('exactAmount').textContent=rialTxt(c.sum);
+  document.getElementById('wordsAmount').textContent=tomanTxt(c.sum);
+  document.getElementById('ticketCount').textContent=faN(c.count)+' بلیت — '+(CFG.confirmed?'قطعی':'موقت');
 }
 function renderTickets(){
   const c=calc(); let html='';
   for(let i=0;i<c.count;i++){
-    const code='TL1307BVUC19'+(81+i);
     const who=i===0?'سارا محمدی':(NAMES[i-1]||'همراه');
-    html+=`<div class="ticketcard ${i===0?'':'glass'}" style="--tk:${i===0?'#0F6FD1':'#0B7A57'}">
-      <div class="tk-top"><span>بلیت ${i===0?'نفر اصلی':'همراه '+fa(i)}</span><span class="tag ${S.paid?'ok':'warn'}">${S.paid?'قطعی':'موقت'}</span></div>
-      <div class="tk-strip"></div>
-      <div class="sumbox" style="background:transparent;border:0;padding:0">
-        <div class="r"><span class="mute">به نام</span><span>${who}</span></div>
-        <div class="r"><span class="mute">کد پیگیری</span><span class="num">${code}</span></div>
-        <div class="r"><span class="mute">جلسه</span><span class="num">۱۴۰۵/۰۷/۰۸ — ۱۶:۰۰</span></div>
-      </div>
-      <div style="display:grid;place-items:center;margin:12px 0"><div class="qr" role="img" aria-label="کیوآرکد بلیت"></div></div>
-      <div class="row"><button class="btn sm"><svg class="i"><use href="#i-download"/></svg> دانلود</button>
-      <button class="btn sm quiet"><svg class="i"><use href="#i-calendar"/></svg> تقویم</button></div>
-    </div>`;
+    html+=ticketHTML({style:i===0?CFG.ticket.style:'glass',color:i===0?CFG.ticket.color:'#0B7A57',
+      parts:CFG.ticket.parts,title:CFG.title.replace('ثبت‌نام ',''),kind:i===0?'بلیت نفر اصلی':'بلیت همراه',
+      name:who,code:'TL1307BVUC19'+(81+i),no:faN(1245+i),date:CFG.date,venue:CFG.venue,
+      seat:'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3),confirmed:CFG.confirmed});
   }
   document.getElementById('tickets').innerHTML=html;
 }
+function renderEnd(){
+  document.getElementById('endLinks').innerHTML=CFG.links.map(l=>
+    `<a class="linkbtn" href="${l.u}" target="_blank" rel="noopener"><svg class="i"><use href="#${l.i||'i-link'}"/></svg> ${l.t}
+      <span class="sp"></span><svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>`).join('');
+  document.getElementById('endText').textContent=CFG.endText;
+}
 
-/* ═══════ حرکت ═══════ */
-const ORDER=['u1','u2','u3','u4','u5','u6','u7','u8','u9','u10','u11'];
-const CAP={u1:'پنج سوال',u2:'سوال ۱ از ۵',u3:'سوال ۲ از ۵',u4:'سوال ۴ از ۵',u5:'نوع شرکت و همراه',
-  u6:'پرداخت',u7:'کارت‌به‌کارت',u8:'رسید',u9:'ثبت شد',u10:'بلیت‌ها',u11:'باطل'};
-const PROG={u1:0,u2:20,u3:40,u4:80,u5:85,u6:90,u7:94,u8:97,u9:100,u10:100,u11:100};
-const BTN={u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'ادامه و پرداخت',u6:'ادامه',u7:'تأیید و ادامه',u8:'ارسال رسید',u9:'دیدن بلیت‌ها'};
-const NEXT={u2:'u3',u3:'u4',u4:'u5',u5:'u6'};
+/* ══ حرکت ══ */
+const ORDER=['u1','u2','u3','u4','u5','u6','u7','u8','u9','u10','u11','u12','u13','u14'];
+const CAP={u1:'شش سوال',u2:'سوال ۱ از ۶',u3:'سوال ۲ از ۶',u4:'سوال ۳ از ۶',u5:'سوال ۴ از ۶',u6:'سوال ۵ از ۶',u7:'سوال ۶ از ۶',
+  u8:'انتخاب و همراه',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u13:'بلیت‌ها',u14:'باطل'};
+const PROG={u1:0,u2:17,u3:34,u4:50,u5:67,u6:84,u7:100,u8:100,u9:100,u10:100,u11:100,u12:100,u13:100,u14:100};
+const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',u12:'دیدن بلیت‌ها'};
+const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:'u8',u8:'u9'};
 let cur='u1';
 function show(id){
   cur=id;
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
   document.getElementById('stepCap').textContent=CAP[id];
   const r=document.getElementById('ring'); r.style.setProperty('--p',PROG[id]);
-  document.getElementById('ringT').textContent=fa(PROG[id])+'٪';
+  document.getElementById('ringT').textContent=faN(PROG[id])+'٪';
   document.getElementById('pos').textContent=CAP[id];
   document.getElementById('botbar').style.display=BTN[id]?'flex':'none';
   if(BTN[id]) document.getElementById('next').innerHTML=BTN[id]+' <svg class="i"><use href="#i-chev-left"/></svg>';
-  if(id==='u5'){renderPeople();renderBill()}
-  if(id==='u10')renderTickets();
+  if(id==='u8'){renderPeople();renderBill();renderFin()}
+  if(id==='u13'){renderTickets();renderEnd()}
   window.scrollTo({top:0,behavior:'instant'});
 }
 document.getElementById('next').onclick=()=>{
-  if(cur==='u6') return show(S.method==='card'?'u7':'u9');
-  if(cur==='u7') return show('u8');
-  if(cur==='u8'){toast('رسید برای کارشناس رفت');return show('u9')}
-  if(cur==='u9') return show('u10');
+  if(cur==='u9') return show(S.method==='card'?'u10':'u12');
+  if(cur==='u10') return show('u11');
+  if(cur==='u11'){toast('رسید برای کارشناس رفت');return show('u12')}
+  if(cur==='u12') return show('u13');
   if(NEXT[cur]) show(NEXT[cur]);
 };
-document.getElementById('prev').onclick=()=>{
-  const list=ORDER.slice(0,10); const i=list.indexOf(cur); if(i>0) show(list[i-1]);
-};
+document.getElementById('prev').onclick=()=>{const i=ORDER.slice(0,13).indexOf(cur); if(i>0) show(ORDER[i-1])};
 document.getElementById('addPerson').onclick=()=>{
   if(S.people+1>=CFG.maxPer){toast('بیشترین تعداد همین است');return}
   S.people++; renderPeople(); renderBill();
 };
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g){show(g.dataset.go);return}
-  const o=e.target.closest('[data-option]');
-  if(o){const i=Number(o.dataset.option);CFG.options[i].on=!CFG.options[i].on;renderOptions();renderBill();return}
-  const m=e.target.closest('[data-method]'); if(m){S.method=m.dataset.method;show(m.dataset.method==='card'?'u7':'u9');return}
-  const c=e.target.closest('[data-copy]'); if(c){copyIt(c.dataset.copy);return}
-  const s=e.target.closest('[data-sheet]'); if(s){document.getElementById('scrim').classList.add('on');document.getElementById(s.dataset.sheet).classList.add('on');return}
-  if(e.target.closest('[data-close]')||e.target.closest('.scrim')){
-    document.querySelectorAll('.sheet').forEach(x=>x.classList.remove('on'));document.getElementById('scrim').classList.remove('on');return}
-  const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');sw.setAttribute('aria-checked',sw.classList.contains('on'))}
+  const f=e.target.closest('[data-fin]'); if(f){const i=NR(f.dataset.fin);CFG.fin[i].on=!CFG.fin[i].on;renderFin();renderBill();return}
+  const m=e.target.closest('[data-method]'); if(m){S.method=m.dataset.method;show(m.dataset.method==='card'?'u10':'u12');return}
+  const o=e.target.closest('.opt:not([data-fin]):not([data-method])');
+  if(o){o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');return}
 });
 document.getElementById('applyCoupon').onclick=()=>{
   const v=(document.getElementById('coupon').value||'').trim().toUpperCase();
-  if(v===CFG.coupon.code){S.code=v;S.discount=CFG.coupon.off;document.getElementById('couponNote').textContent='کد اعمال شد — '+fa(S.discount)+' درصد.'}
+  if(v===CFG.coupon.code){S.code=v;S.discount=CFG.coupon.off;document.getElementById('couponNote').textContent='کد اعمال شد — '+faN(S.discount)+' درصد.'}
   else{S.code='';S.discount=0;document.getElementById('couponNote').textContent=v?'این کد معتبر نیست.':'کد تخفیف روی نفر اصلی حساب می‌شود.'}
   renderBill();
 };
 document.getElementById('drop').onclick=()=>{document.getElementById('drop').style.display='none';document.getElementById('receiptDone').style.display='block';toast('رسید پیوست شد')};
 document.getElementById('dropAgain').onclick=()=>{document.getElementById('drop').style.display='block';document.getElementById('receiptDone').style.display='none'};
-function copyIt(sel){
-  const txt=document.querySelector(sel).textContent.replace(/[^\d۰-۹]/g,'');
-  const done=()=>toast('کپی شد');
-  try{navigator.clipboard.writeText(txt).then(done).catch(fb)}catch(e){fb()}
-  function fb(){const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}t.remove();done()}
-}
-function toast(m){const t=document.getElementById('toast');t.lastChild.textContent=' '+m;t.classList.add('on');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('on'),1700)}
-document.addEventListener('pointermove',e=>{
-  const s=e.target.closest('.sheen'); if(!s)return; const r=s.getBoundingClientRect();
-  s.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
-  s.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
-});
-try{const th=localStorage.getItem('nora-theme'); if(th) document.documentElement.dataset.theme=th}catch(e){}
 
-renderOptions();renderPeople();renderBill();renderTickets();show('u1');
+/* ══ آغاز ══ */
+initUI();
+document.getElementById('pkBirth').innerHTML=pickHTML('date','1370/05/12');
+document.getElementById('pkGeo').innerHTML=geoHTML('geo1',{p:'تهران',c:'تهران'});
+document.getElementById('pkUni').innerHTML=listHTML('uni','دانشگاه تهران');
+document.getElementById('pkJob').innerHTML=listHTML('job','کارمند شرکت خصوصی');
+initAll(document);
+renderFin();renderPeople();renderBill();renderTickets();renderEnd();show('u1');
 </script>
 </body>
 </html>

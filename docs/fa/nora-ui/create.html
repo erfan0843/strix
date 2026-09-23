@@ -14,8 +14,11 @@
   .stepper4 button.on .n{background:var(--brand);color:#fff}
   .stepper4 button.done .n{background:var(--ok-tint);color:var(--ok)}
   @media (max-width:560px){.stepper4 button span.t{display:none}}
-  .cat-item{padding:10px 12px}
   .prevbox{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface-2);padding:12px}
+  .finrow{display:grid;grid-template-columns:1.4fr .8fr .6fr auto;gap:8px;align-items:center}
+  @media (max-width:560px){.finrow{grid-template-columns:1fr 1fr;gap:6px}}
+  .linkrow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:8px;align-items:center}
+  @media (max-width:560px){.linkrow{grid-template-columns:1fr;gap:6px}}
 </style>
 </head>
 <body>
@@ -148,12 +151,12 @@
   <aside class="rail">
     <div class="row" style="padding:6px 8px 12px">
       <span class="glass-thin" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center"><svg class="i lg"><use href="#i-doc"/></svg></span>
-      <div><div class="head tight">فرم تازه</div><div class="cap" id="railOrigin">رویداد: کارگاه فن بیان</div></div>
+      <div><div class="head tight">فرم تازه</div><div class="cap">رویداد: کارگاه فن بیان</div></div>
     </div>
     <nav class="col tight">
       <a class="btn quiet block" href="index.html"><svg class="i"><use href="#i-layers"/></svg> زبان طراحی</a>
+      <a class="btn quiet block" href="builder.html"><svg class="i"><use href="#i-align"/></svg> فرم‌های من</a>
       <a class="btn quiet block" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> نمای کاربر</a>
-      <a class="btn quiet block" href="builder.html"><svg class="i"><use href="#i-align"/></svg> فهرست فرم‌ها</a>
     </nav>
     <hr class="hr"/>
     <button class="btn quiet block" id="theme"><svg class="i"><use href="#i-eye"/></svg> شب / روز</button>
@@ -163,14 +166,13 @@
     <header class="topbar glass" style="border-radius:var(--r-lg);padding:8px 10px">
       <div class="stepper4" id="stepper"></div>
       <div class="row tight" style="padding:0 6px 6px">
-        <span class="cap" id="stepHint"></span>
-        <span class="sp"></span>
+        <span class="cap" id="stepHint"></span><span class="sp"></span>
         <button class="btn sm quiet" id="btnBack"><svg class="i"><use href="#i-chev-right"/></svg> عقب</button>
         <button class="btn sm primary" id="btnNext">جلو <svg class="i"><use href="#i-chev-left"/></svg></button>
       </div>
     </header>
 
-    <!-- ══════ ۱: مدل، نام و نشانی ══════ -->
+    <!-- ══ ۱: مدل، نام و نشانی ══ -->
     <section class="screen on" id="s1">
       <div class="card paper">
         <div class="row">
@@ -183,7 +185,7 @@
         <div class="tiles" id="tiles"></div>
       </div>
 
-      <div class="card paper" style="margin-top:12px" id="nameCard">
+      <div class="card paper" style="margin-top:12px">
         <div class="head" style="margin-bottom:12px">نام و نشانی</div>
         <div class="g2">
           <div>
@@ -195,14 +197,15 @@
             <label class="lbl" for="fSlug">نشانی</label>
             <div class="row tight">
               <input id="fSlug" class="input" style="flex:1;direction:ltr" value="events/fanbayan/register"/>
-              <span class="switch on" id="slugAuto" role="switch" aria-checked="true" tabindex="0" title="تو در تو"></span>
+              <span class="switch on" id="slugAuto" role="switch" aria-checked="true" tabindex="0"></span>
             </div>
-            <div class="mnote" style="margin-top:6px" id="slugNote">تو در تو با صفحهٔ رویداد — دلخواه خودتان هم می‌شود.</div>
+            <div class="mnote" style="margin-top:6px" id="slugNote"></div>
           </div>
         </div>
         <div class="prevbox" style="margin-top:10px">
-          <div class="row tight"><svg class="i"><use href="#i-link"/></svg><span class="num" style="direction:ltr" id="slugView">lifeline1.ir/events/fanbayan/register</span>
-            <span class="sp"></span><span class="tag ok">پیوند با رویداد</span></div>
+          <div class="row tight"><svg class="i"><use href="#i-link"/></svg>
+            <span class="num" style="direction:ltr" id="slugView">—</span><span class="sp"></span>
+            <button class="btn sm quiet" data-copy="#slugView"><svg class="i"><use href="#i-copy"/></svg></button></div>
         </div>
         <hr class="hr"/>
         <div class="row"><span class="sub">نمایش در صفحهٔ رویداد</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
@@ -210,13 +213,13 @@
       </div>
     </section>
 
-    <!-- ══════ ۲: فیلدها + تنظیمات بیشتر ══════ -->
+    <!-- ══ ۲: فیلدها + تنظیمات ══ -->
     <section class="screen" id="s2">
       <div class="split">
         <div class="canvas">
           <div class="fixedblock">
             <span class="ic"><svg class="i"><use href="#i-type"/></svg></span>
-            <div style="flex:1;min-width:0"><div class="mini">سربرگ — ثابت</div><div class="hdline" id="hdTitle">ثبت‌نام کارگاه فن بیان مقدماتی</div></div>
+            <div style="flex:1;min-width:0"><div class="mini">سربرگ — ثابت</div><div class="hdline" id="hdTitle">—</div></div>
             <button class="btn sm quiet" data-go="s1"><svg class="i"><use href="#i-pen"/></svg> ویرایش</button>
           </div>
 
@@ -230,26 +233,18 @@
             <textarea class="input" id="introText">سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با گواهینامهٔ پایان دوره.</textarea>
           </div>
 
-          <!-- بعلاوهٔ افزودن فیلد، زیر توضیحات ابتدا -->
           <div class="plusline"><span class="line"></span><button id="addTop" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
-
           <div class="blocks" id="fieldList"></div>
-
           <hr class="hr"/>
           <div class="row tight" style="margin-bottom:8px"><span class="cap">بسته‌های پیش‌فرض همین فرم</span></div>
           <div class="row tight" id="quickPacks"></div>
-
-          <!-- همان بعلاوه = افزودن فیلد -->
-          <div class="plusline" style="margin-top:10px">
-            <span class="line"></span><button id="addBottom" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span>
-          </div>
+          <div class="plusline" style="margin-top:10px"><span class="line"></span><button id="addBottom" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
         </div>
 
-        <!-- تنظیمات بیشتر، همین‌جا کنار فیلدها -->
         <div class="stack" id="morePanel">
           <div class="card" style="padding:12px">
             <div class="row"><svg class="i lg" style="color:var(--ink-2)"><use href="#i-sliders"/></svg>
-              <div><div class="head tight">تنظیمات بیشتر</div><div class="cap">همراه همین فیلدها — باز کنید و ببندید</div></div></div>
+              <div><div class="head tight">تنظیمات بیشتر</div><div class="cap">همراه همین فیلدها — باز و بسته کنید</div></div></div>
           </div>
 
           <details class="panel" open>
@@ -267,9 +262,15 @@
           <details class="panel">
             <summary><svg class="i"><use href="#i-calendar"/></svg> بازه، ظرفیت و لیست انتظار</summary>
             <div class="pbody">
+              <div>
+                <span class="pick-label">شروع ثبت‌نام</span>
+                <div id="pkStart"></div>
+              </div>
+              <div>
+                <span class="pick-label">بسته‌شدن فرم</span>
+                <div id="pkEnd"></div>
+              </div>
               <div class="g2">
-                <div><label class="lbl" for="tStart">شروع ثبت‌نام</label><input id="tStart" class="input num" value="۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰"/></div>
-                <div><label class="lbl" for="tEnd">بسته‌شدن فرم</label><input id="tEnd" class="input num" value="۱۴۰۵/۰۷/۳۰ — ۲۳:۵۹"/></div>
                 <div><label class="lbl" for="cap">ظرفیت</label><input id="cap" class="input num" value="۴۰"/></div>
                 <div><label class="lbl" for="wcount">تعداد لیست انتظار</label><input id="wcount" class="input num" value="۲۰"/></div>
               </div>
@@ -286,7 +287,7 @@
                 <option value="attended">فقط حاضران جلسهٔ پیشین</option>
                 <option value="invite">فهرست افراد یا کد دعوت</option>
               </select>
-              <div class="row"><span class="sub">سینک با رویداد (زنده)</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
+              <div class="row"><span class="sub">سینک زندهٔ محدودیت با رویداد</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
               <div class="row"><span class="sub">هر نفر یک بار</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
             </div>
           </details>
@@ -300,11 +301,9 @@
                 <span class="chip" data-tk="gold">طلایی</span><span class="chip" data-tk="minimal">مینیمال</span>
               </div>
               <div class="swatches" id="swatches"></div>
-              <div class="ticketcard" id="tkPreview">
-                <div class="tk-top"><span>بلیت کارگاه فن بیان</span><span class="tag ok">تأییدشده</span></div>
-                <div class="tk-strip"></div>
-                <div class="row" style="justify-content:space-between"><span class="mini">سارا محمدی</span><span class="mini num">TL1307BVUC1981</span></div>
-              </div>
+              <div class="lbl" style="margin-top:4px">چیزهایی که روی بلیت چاپ شود</div>
+              <div class="row tight" id="tkParts"></div>
+              <div id="tkPreview" style="margin-top:12px"></div>
             </div>
           </details>
 
@@ -325,26 +324,31 @@
           </details>
 
           <details class="panel">
-            <summary><svg class="i"><use href="#i-lines"/></svg> متن پایانی</summary>
+            <summary><svg class="i"><use href="#i-lines"/></svg> متن پایانی و پیوندها</summary>
             <div class="pbody">
               <textarea class="input" id="endText">ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.</textarea>
+              <div class="lbl">پیوندهایی که کاربر در پایان می‌بیند</div>
+              <div class="stack tight" id="linkList"></div>
+              <button class="btn sm quiet" id="addLink"><svg class="i"><use href="#i-plus"/></svg> افزودن پیوند</button>
+              <div class="mnote">هر پیوند در صفحهٔ پایانی به یک دکمه تبدیل می‌شود.</div>
             </div>
           </details>
         </div>
       </div>
     </section>
 
-    <!-- ══════ ۳: دوره، پول و پرداخت ══════ -->
+    <!-- ══ ۳: مالی و پرداخت ══ -->
     <section class="screen" id="s3">
       <div class="split">
         <div class="stack">
           <div class="card">
             <div class="row">
-              <div><div class="head">گزینه‌های قیمت‌دار</div><div class="cap">فیلد ثابتی که خودتان اضافه می‌کنید؛ کاربر انتخاب می‌کند</div></div>
+              <div><div class="head">فیلدهای مالی</div>
+                <div class="cap">هر مورد مالی یک قیمت دارد؛ اگر چند مورد می‌خواهید، چند فیلد اضافه کنید</div></div>
               <span class="sp"></span>
-              <button class="btn sm" id="addPriceField"><svg class="i"><use href="#i-plus"/></svg> فیلد قیمت‌دار</button>
+              <button class="btn sm" id="addFin"><svg class="i"><use href="#i-plus"/></svg> افزودن مورد مالی</button>
             </div>
-            <div class="stack tight" id="priceFields" style="margin-top:12px"></div>
+            <div class="stack tight" id="finList" style="margin-top:12px"></div>
           </div>
 
           <div class="card">
@@ -369,7 +373,7 @@
           </div>
 
           <div class="card">
-            <div class="head" style="margin-bottom:10px">روش‌های پرداخت</div>
+            <div class="head" style="margin-bottom:10px">روش‌های پرداخت مجاز</div>
             <div class="stack tight">
               <div class="row"><span class="sub">کارت‌به‌کارت با ارسال رسید</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
               <div class="row"><span class="sub">درگاه رسمی بله</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
@@ -377,7 +381,7 @@
               <div class="row"><span class="sub">پی‌پینگ</span><span class="sp"></span><span class="switch" role="switch" aria-checked="false" tabindex="0"></span></div>
               <div class="row"><span class="sub">اقساط (نورا پی)</span><span class="sp"></span><span class="switch" role="switch" aria-checked="false" tabindex="0"></span></div>
             </div>
-            <div class="mnote" style="margin-top:10px">درگاه‌ها را مدیر سامانه تعریف می‌کند؛ شما فقط تیک می‌زنید.</div>
+            <div class="mnote" style="margin-top:10px">درگاه‌ها در بخش «مالی» سامانه تعریف می‌شوند؛ اینجا فقط تیک می‌زنید.</div>
           </div>
 
           <div class="card">
@@ -385,22 +389,19 @@
             <div class="row"><span class="sub">با درگاه رسمی بله، بلیت قطعی است</span><span class="sp"></span><span class="tag ok">قطعی</span></div>
             <div class="row"><span class="sub">رسید کارت‌به‌کارت را کارشناس تأیید کند</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
             <div class="row"><span class="sub">تأیید نشد ⇒ بلیت باطل، ثبت‌نام از ابتدا</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
-            <div class="g2" style="margin-top:12px">
-              <div><label class="lbl" for="gmin">کف مبلغ</label><input id="gmin" class="input num" value="۵۰٬۰۰۰"/></div>
-              <div><label class="lbl" for="gmax">سقف مبلغ</label><input id="gmax" class="input num" value="۲۰٬۰۰۰٬۰۰۰"/></div>
-            </div>
           </div>
         </div>
 
         <div class="stack">
           <div class="card">
-            <div class="head" style="margin-bottom:10px">کارت مقصد</div>
-            <div class="g2">
-              <div><label class="lbl" for="cb">نام صاحب کارت</label><input id="cb" class="input" value="مؤسسهٔ خط زندگی"/></div>
-              <div><label class="lbl" for="cn">شمارهٔ کارت</label><input id="cn" class="input num" style="direction:ltr" value="6104-3378-1234-5678"/></div>
-              <div><label class="lbl" for="cnb">بانک</label><input id="cnb" class="input" value="بانک ملت"/></div>
-              <div><label class="lbl" for="csh">شبا</label><input id="csh" class="input num" style="direction:ltr" value="IR120120000000000000000000"/></div>
+            <div class="head" style="margin-bottom:8px">کارت مقصد — از بخش مالی سامانه</div>
+            <div class="prevbox">
+              <div class="answer"><span class="k">صاحب کارت</span><span class="v">مؤسسهٔ خط زندگی</span></div>
+              <div class="answer"><span class="k">شمارهٔ کارت</span><span class="v num" style="direction:ltr">6104-3378-1234-5678</span></div>
+              <div class="answer"><span class="k">بانک</span><span class="v">بانک ملت</span></div>
             </div>
+            <a class="btn sm quiet block" style="margin-top:10px" href="#"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات مالی سامانه</a>
+            <div class="mnote" style="margin-top:8px">کارت را مدیر سامانه تعیین می‌کند؛ در فرم تکرار نمی‌شود.</div>
           </div>
 
           <div class="card">
@@ -411,7 +412,7 @@
       </div>
     </section>
 
-    <!-- ══════ ۴: مرور و انتشار ══════ -->
+    <!-- ══ ۴: مرور و انتشار ══ -->
     <section class="screen" id="s4">
       <div class="split">
         <div class="card paper">
@@ -429,7 +430,7 @@
             <div class="head" style="margin-bottom:10px">نشانی و کیوآرکد</div>
             <div class="row tight"><span class="num" style="direction:ltr" id="revLink">—</span><span class="sp"></span>
               <button class="btn sm quiet" data-copy="#revLink"><svg class="i"><use href="#i-copy"/></svg></button></div>
-            <div style="display:grid;place-items:center;margin-top:12px"><div class="qr" style="width:92px;height:92px" role="img" aria-label="کیوآرکد فرم"></div></div>
+            <div style="display:grid;place-items:center;margin-top:12px" id="revQR"></div>
           </div>
           <div class="card">
             <div class="head" style="margin-bottom:10px">فهرست کارها</div>
@@ -443,7 +444,7 @@
             <div class="cap" style="margin-top:4px">پاسخ‌ها در کارتابل کارشناس می‌نشیند.</div>
             <div class="row" style="justify-content:center;margin-top:12px">
               <a class="btn sm primary" href="form.html" target="_blank" rel="noopener">دیدن فرم</a>
-              <a class="btn sm" href="builder.html">فهرست فرم‌ها</a>
+              <a class="btn sm" href="builder.html">شناسنامهٔ فرم</a>
             </div>
           </div>
         </div>
@@ -452,13 +453,12 @@
   </main>
 </div>
 
-<!-- ══ ورقه‌ها ══ -->
 <div class="scrim" id="scrim"></div>
 
 <aside class="sheet" id="shAdd" role="dialog" aria-label="افزودن فیلد">
   <div class="grabber"></div>
   <div class="row"><span class="head">افزودن فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-  <input class="input" id="catSearch" style="margin:12px 0" placeholder="جستجو؛ مثلاً کد ملی، امتیاز، فایل"/>
+  <input class="input" id="catSearch" style="margin:12px 0" placeholder="جستجو؛ مثلاً کد ملی، امتیاز، استان"/>
   <div class="row tight" id="catChips" style="margin-bottom:6px"></div>
   <div id="catList"></div>
 </aside>
@@ -471,7 +471,7 @@
     <div><label class="lbl" for="fdTitle">عنوان</label><input id="fdTitle" class="input"/></div>
     <div>
       <label class="lbl" for="fdHelp">راهنما</label>
-      <div class="row tight"><input id="fdHelp" class="input" style="flex:1" placeholder="یک خط، اختیاری"/><button class="btn sm quiet" id="fdHelpDefault">پیش‌فرض</button></div>
+      <div class="row tight"><input id="fdHelp" class="input" style="flex:1"/><button class="btn sm quiet" id="fdHelpDefault">پیش‌فرض</button></div>
     </div>
     <div>
       <div class="lbl">رسانه</div>
@@ -486,10 +486,6 @@
       <div class="row"><span class="sub">تأیید با کد پیامکی</span><span class="sp"></span><span class="switch" id="fdVerify" role="switch" aria-checked="false" tabindex="0"></span></div>
       <div class="mnote">اختیاری است؛ پیش‌فرض خاموش.</div>
     </div>
-    <div id="fdRangeBox" style="display:none">
-      <div class="row"><span class="sub">حد کم</span><span class="sp"></span><input class="input num" id="fdMin" style="max-width:110px"/></div>
-      <div class="row"><span class="sub">حد زیاد</span><span class="sp"></span><input class="input num" id="fdMax" style="max-width:110px"/></div>
-    </div>
     <div id="fdCountBox" style="display:none">
       <div class="row"><span class="sub">سقف تعداد فایل</span><span class="sp"></span><input class="input num" id="fdCount" style="max-width:110px" value="۵"/></div>
     </div>
@@ -497,7 +493,6 @@
       <div class="lbl">گزینه‌ها</div>
       <div class="stack tight" id="fdOptions"></div>
       <button class="btn sm quiet" id="fdAddOption" style="margin-top:8px"><svg class="i"><use href="#i-plus"/></svg> گزینه</button>
-      <div class="mnote" id="fdPriceNote" style="margin-top:6px"></div>
     </div>
     <hr class="hr"/>
     <div class="row"><span class="sub">اجباری <span class="required-dot"></span></span><span class="sp"></span><span class="switch" id="fdReq" role="switch" aria-checked="false" tabindex="0"></span></div>
@@ -521,8 +516,9 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
+<script src="ui.js"></script>
 <script>
-/* ═══════ داده ═══════ */
+/* ══ داده ══ */
 const MODELS=[
   {k:'registration',ic:'i-users',tn:'ثبت‌نام',d:'بلیت و پرداخت'},
   {k:'questionnaire',ic:'i-lines',tn:'پرسشنامه',d:'پرسش باز و بسته'},
@@ -534,22 +530,20 @@ const MODELS=[
   {k:'order',ic:'i-bag',tn:'سفارش',d:'کالا و خدمت'},
   {k:'election',ic:'i-key',tn:'رأی‌گیری',d:'هر نفر یک رأی'}
 ];
-
-/* ویژگی ساختاری هر فیلد — همان چیزی که کاربر می‌بیند */
-const STRUCT={
-  text:'ورودی تک‌خطی', area:'کادر چندخطی', number:'فقط رقم، صفحه‌کلید عددی', amount:'رقم با جداکنندهٔ هزار',
-  mobile:'باکس تلفن با ماسک ۰۹', nid:'ده رقم با رقم کنترل', email:'نشانی با @', fullname:'از پروفایل',
-  date:'تقویم شمسی', time:'ساعت ۲۴ ساعتی', datetime:'تقویم و ساعت', slot:'انتخاب بازهٔ زمانی',
-  choice:'گزینه‌های تک‌انتخابی', multi:'گزینه‌های چندانتخابی', dropdown:'فهرست کشویی', yesno:'دو گزینه', imgchoice:'گزینه‌های تصویری',
-  rating:'پنج ستاره', scale:'خط‌کش ۰ تا ۱۰', bars:'نمودار میله‌ای',
-  image:'آپلود تصویر از گالری یا دوربین', file:'آپلود سند', voice:'ضبط یا ارسال صدا', sign:'امضا روی صفحه',
-  province:'فهرست استان و شهر', address:'نشانی چندخطی', gender:'دو گزینه', edu:'فهرست مقاطع', job:'متن کوتاه',
-  price:'گزینه با مبلغ و تخفیف', coupon:'کد با درصد یا مبلغ', terms:'پذیرش اجباری', location:'نقشه',
-};
+const STRUCT={text:'ورودی تک‌خطی',area:'کادر چندخطی',number:'فقط رقم',amount:'رقم با جداکنندهٔ هزار',
+  mobile:'باکس تلفن با ماسک ۰۹',nid:'ده رقم با رقم کنترل',email:'نشانی با @',fullname:'از پروفایل',
+  date:'تقویم شمسی — انتخابی',time:'ساعت — انتخابی',datetime:'تقویم و ساعت',slot:'انتخاب بازه',
+  choice:'گزینه‌های تک‌انتخابی',multi:'گزینه‌های چندانتخابی',dropdown:'فهرست کشویی',yesno:'دو گزینه',imgchoice:'گزینه‌های تصویری',
+  rating:'پنج ستاره',scale:'خط‌کش ۰ تا ۱۰',bars:'نمودار میله‌ای',
+  image:'آپلود تصویر',file:'آپلود سند',voice:'ضبط یا ارسال صدا',sign:'امضا روی صفحه',
+  province:'فهرست استان و شهر — انتخابی',address:'نشانی چندخطی',gender:'دو گزینه',edu:'فهرست مقاطع — انتخابی',
+  job:'فهرست شغل‌ها — انتخابی',uni:'فهرست دانشگاه‌ها — انتخابی',marital:'انتخابی',
+  price:'یک مبلغ با تخفیف',coupon:'کد با درصد',terms:'پذیرش اجباری',location:'نقشه'};
 const HELP={text:'کوتاه بنویسید.',area:'توضیح کامل بدهید.',number:'فقط رقم.',mobile:'یازده رقم؛ با ۰۹ شروع می‌شود.',
-  nid:'ده رقم، بدون خط تیره.',email:'نشانی رایگان‌ساز.',date:'روز/ماه/سال.',time:'مثل ۱۶:۳۰.',
+  nid:'ده رقم، بدون خط تیره.',email:'نشانی رایگان‌ساز.',date:'از فهرست انتخاب کنید.',time:'از فهرست انتخاب کنید.',
   rating:'۱ کم، ۵ زیاد.',file:'هر فایل تا ۱۰ مگابایت.',terms:'برای ادامه باید بپذیرید.',
-  fullname:'همان‌طور که در شناسنامه آمده.',province:'استان و شهر خود را انتخاب کنید.',price:'برای ادامه حداقل یک گزینه انتخاب کنید.'};
+  fullname:'همان‌طور که در شناسنامه آمده.',province:'استان و شهر خود را انتخاب کنید.',price:'برای ادامه حداقل یک مورد انتخاب کنید.',
+  uni:'دانشگاه خود را از فهرست بردارید؛ اگر نبود «سایر».',job:'شغل خود را از فهرست بردارید؛ اگر نبود «سایر».'};
 
 const CATALOG=[
   {g:'نوشتاری',t:'text',n:'متن کوتاه',ic:'i-text'},
@@ -566,6 +560,10 @@ const CATALOG=[
   {g:'پروفایل',t:'nid',n:'کد ملی',ic:'i-idcard',prof:1},
   {g:'پروفایل',t:'date',n:'تاریخ تولد',ic:'i-calendar'},
   {g:'پروفایل',t:'gender',n:'جنسیت',ic:'i-users',opts:1},
+  {g:'پروفایل',t:'marital',n:'وضعیت تأهل',ic:'i-users',opts:1},
+  {g:'تحصیلی و شغلی',t:'uni',n:'دانشگاه',ic:'i-medal'},
+  {g:'تحصیلی و شغلی',t:'edu',n:'مقطع تحصیلی',ic:'i-doc'},
+  {g:'تحصیلی و شغلی',t:'job',n:'شغل',ic:'i-bag'},
   {g:'تماس',t:'email',n:'ایمیل',ic:'i-mail'},
   {g:'تماس',t:'address',n:'نشانی',ic:'i-home'},
   {g:'تماس',t:'province',n:'استان و شهر',ic:'i-pin'},
@@ -580,67 +578,47 @@ const CATALOG=[
   {g:'سنجه',t:'rating',n:'ستاره',ic:'i-star'},
   {g:'سنجه',t:'scale',n:'بازهٔ ۰ تا ۱۰',ic:'i-sliders'},
   {g:'سنجه',t:'bars',n:'نمودار میله‌ای',ic:'i-chart'},
-  {g:'مالی',t:'price',n:'انتخاب قیمت‌دار',ic:'i-wallet',opts:1,price:1},
-  {g:'مالی',t:'amount',n:'مبلغ',ic:'i-wallet'},
-  {g:'مالی',t:'coupon',n:'کد تخفیف',ic:'i-ticket'},
-  {g:'مقررات',t:'terms',n:'پذیرش قوانین',ic:'i-shield',opts:0},
+  {g:'مقررات',t:'terms',n:'پذیرش قوانین',ic:'i-shield'},
   {g:'ویژه',t:'location',n:'موقعیت مکانی',ic:'i-pin'}
 ];
-
 const PACKS=[
   {id:'basic',n:'پایه',f:['fullname','mobile','nid']},
   {id:'full',n:'کامل',f:['fullname','mobile','nid','email','date','gender','province'],best:true},
-  {id:'max',n:'کامل‌تر',f:['fullname','mobile','nid','email','date','gender','province','address','edu','job','image','terms'],top:true}
+  {id:'max',n:'کامل‌تر',f:['fullname','mobile','nid','email','date','gender','province','address','edu','uni','job','image','terms'],top:true}
 ];
 const byT=t=>CATALOG.find(c=>c.t===t)||{t:t,n:t,ic:'i-doc',g:'ویژه'};
 
-/* ═══════ وضعیت ═══════ */
+/* ══ وضعیت ══ */
 const S={
   step:'s1', model:'registration',
   title:'ثبت‌نام کارگاه فن بیان مقدماتی', slug:'events/fanbayan/register', nested:true,
   intro:'سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با گواهینامهٔ پایان دوره.', introMedia:'',
-  fields:[], pack:'full', uid:1, sel:null,
+  fields:[], pack:'full', uid:1,
   display:'one', dir:'rtl', after:'edit',
+  start:'1405/07/01 — 08:00', end:'1405/07/30 — 23:45',
   cap:40, wait:20, limit:'event',
-  ticket:{on:true,style:'classic',color:'#0F6FD1'},
-  notify:{on:true,to:'cartable',expert:'رستگار'},
+  ticket:{on:true,style:'classic',color:'#0F6FD1',parts:['title','name','code','date','venue','qr','logo']},
+  notify:{on:true,to:'کارتابل کارشناس',expert:'خانم رستگار — آموزش'},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
-  price:[{l:'کارگاه با گواهینامه',p:850000,off:15},{l:'کارگاه بدون گواهینامه',p:600000,off:0}],
+  links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/event/fanbayan'},{t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan'}],
+  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:true},{l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false}],
   maxPer:3, compFields:'نام و موبایل',
   coupon:{code:'NORA10',off:10,all:false},
   methods:{card:true,bale:true,zarin:false,payping:false,instal:false},
-  guard:{min:50000,max:20000000}, manual:true, voidOnReject:true,
-  card:{holder:'مؤسسهٔ خط زندگی',bank:'بانک ملت',num:'6104-3378-1234-5678',sheba:'IR120120000000000000000000'}
+  confirmed:false
 };
-const STEPS=[{k:'s1',n:'مدل و نام'},{k:'s2',n:'فیلدها و تنظیمات'},{k:'s3',n:'دوره و پرداخت'},{k:'s4',n:'مرور و انتشار'}];
-const HINT={s1:'مدل فرم را بزنید، بعد نام و نشانی را تأیید کنید',s2:'فیلدها را بچینید و تنظیمات را همین‌جا کنارشان ببندید',
-  s3:'گزینه‌های قیمت‌دار، تعداد بلیت و روش‌های پرداخت',s4:'یک نگاه آخر و انتشار'};
+const STEPS=[{k:'s1',n:'مدل و نام'},{k:'s2',n:'فیلدها و تنظیمات'},{k:'s3',n:'مالی و پرداخت'},{k:'s4',n:'مرور و انتشار'}];
+const HINT={s1:'مدل را بزنید، بعد نام و نشانی را تأیید کنید',s2:'فیلدها را بچینید؛ تنظیمات همین‌جا کنارشان است',
+  s3:'هر مورد مالی یک قیمت؛ روش‌های پرداخت را تیک بزنید',s4:'یک نگاه آخر و انتشار'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const fa=n=>Number(n).toLocaleString('fa-IR');
-const money=n=>fa(Math.round(n))+' ریال';
-
-/* مبلغ پس از تخفیف */
 const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
 
-/* ═══════ عدد به حروف ═══════ */
-const YEK=['','یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه'];
-const DAH=['ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
-const DAHGAN=['','','بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
-const SAD=['','صد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
-function w3(n){const o=[],h=Math.floor(n/100),r=n%100;if(h)o.push(SAD[h]);
-  if(r>=10&&r<20)o.push(DAH[r-10]);else{const d=Math.floor(r/10),y=r%10;if(d>=2)o.push(DAHGAN[d]);if(y)o.push(YEK[y]);}
-  return o.join(' و ');}
-function words(n){n=Math.round(n);if(n<=0)return 'صفر';const p=[];const b=Math.floor(n/1e9),m=Math.floor(n%1e9/1e6),k=Math.floor(n%1e6/1000),r=n%1000;
-  if(b)p.push(w3(b)+' میلیارد');if(m)p.push(w3(m)+' میلیون');if(k)p.push((k===1?'':w3(k)+' ')+'هزار');if(r)p.push(w3(r));return p.join(' و ');}
-/* عدد به ریال، تومان به حروف */
-const tomanWords=rial=>words(rial/10)+' تومان';
-
-/* ═══════ رندر ═══════ */
+/* ══ رندر ══ */
 function renderStepper(){
   const i=STEPS.findIndex(s=>s.k===S.step);
   $('#stepper').innerHTML=STEPS.map((s,j)=>
     `<button class="${j===i?'on':j<i?'done':''}" data-go="${s.k}">
-      <span class="n">${j<i?'✓':fa(j+1)}</span><span class="t">${s.n}</span></button>`).join('');
+      <span class="n">${j<i?'<svg class="i" style="width:14px"><use href="#i-check"/></svg>':faN(j+1)}</span><span class="t">${s.n}</span></button>`).join('');
   $('#stepHint').textContent=HINT[S.step];
   $('#btnBack').style.visibility=i===0?'hidden':'visible';
   $('#btnNext').style.visibility=i===3?'hidden':'visible';
@@ -652,13 +630,7 @@ function renderTiles(){
       <div class="d">${m.d}</div></button>`).join('');
 }
 function fieldBlock(f){
-  const c=byT(f.t), isPrice=f.t==='price';
-  let sum='';
-  if(isPrice&&f.opts&&f.opts.length){
-    const all=f.opts.every(o=>o.p>0);
-    const total=f.opts.reduce((a,o)=>a+(o.on?net(o):0),0);
-    if(all) sum=`<div class="row tight" style="margin-top:6px"><span class="cap">جمع انتخاب‌شده</span><span class="num sub">${money(total)}</span></div>`;
-  }
+  const c=byT(f.t);
   return `<article class="block" data-block="${f.id}">
     ${f.req?'<span class="reqbar"></span>':''}
     <span class="handle"><svg class="i"><use href="#i-drag"/></svg></span>
@@ -672,7 +644,6 @@ function fieldBlock(f){
         ${f.verify?'<span class="tag brand"><svg class="i"><use href="#i-shield"/></svg> تأیید کد</span>':''}
         ${f.condField?'<span class="tag brand"><svg class="i"><use href="#i-branch"/></svg> شرطی</span>':''}
       </div>
-      ${sum}
     </div>
     <button class="icon-btn" data-edit="${f.id}" aria-label="تنظیمات"><svg class="i"><use href="#i-sliders"/></svg></button>
     <div class="ctxbar">
@@ -687,73 +658,85 @@ function renderCanvas(){
   $('#hdTitle').textContent=S.title;
   $('#fieldList').innerHTML=S.fields.length?S.fields.map(fieldBlock).join('')
     :`<div class="empty"><svg class="i lg"><use href="#i-plus"/></svg><div class="body" style="margin-top:8px">هنوز فیلدی نچیده‌اید</div><div class="cap">از بعلاوهٔ بالا یا بسته‌های زیر شروع کنید</div></div>`;
-  $('#quickPacks').innerHTML=PACKS.map(p=>`<span class="chip" data-quick="${p.id}"><svg class="i"><use href="#i-doc"/></svg> ${p.n} · ${fa(p.f.length)} فیلد</span>`).join('')
+  $('#quickPacks').innerHTML=PACKS.map(p=>`<span class="chip" data-quick="${p.id}"><svg class="i"><use href="#i-doc"/></svg> ${p.n} · ${faN(p.f.length)} فیلد</span>`).join('')
     +`<span class="chip" data-quick="empty"><svg class="i"><use href="#i-plus"/></svg> خالی</span>`
     +`<span class="chip" data-quick="save"><svg class="i"><use href="#i-copy"/></svg> ذخیره به‌عنوان بستهٔ سازمانی</span>`;
 }
-function renderPriceFields(){
-  const pf=S.fields.filter(f=>f.t==='price');
-  $('#priceFields').innerHTML=pf.length?pf.map(f=>`
+function renderFin(){
+  $('#finList').innerHTML=S.fin.map((o,i)=>`
     <div class="card sunk" style="padding:12px">
-      <div class="row"><b>${f.l}</b><span class="sp"></span>
-        <button class="btn sm quiet" data-edit="${f.id}"><svg class="i"><use href="#i-sliders"/></svg> ویرایش</button></div>
-      <div class="stack tight" style="margin-top:8px">
-        ${f.opts.map(o=>`<div class="row">
-          <span class="sub" style="flex:1">${o.l}</span>
-          <span class="price">
-            ${o.off?`<span class="old num">${fa(o.p)}</span><span class="off">٪${fa(o.off)}</span>`:''}
-            <span class="now num">${fa(net(o))}</span>
-            <span class="cap">ریال</span>
-          </span></div>`).join('')}
+      <div class="finrow">
+        <div><span class="pick-label">عنوان مورد مالی</span><input class="input" value="${o.l}" data-fl="${i}"/></div>
+        <div><span class="pick-label">مبلغ (ریال)</span><input class="input num" value="${fa(o.p)}" data-fp="${i}"/></div>
+        <div><span class="pick-label">تخفیف</span>
+          <select class="input" data-fo="${i}">${[0,5,10,15,20,25,30,40,50].map(v=>`<option value="${v}" ${o.off===v?'selected':''}>٪${faN(v)}</option>`).join('')}</select></div>
+        <button class="icon-btn" data-fdel="${i}" aria-label="حذف"><svg class="i"><use href="#i-trash"/></svg></button>
       </div>
-    </div>`).join('')
-    : `<div class="empty"><div class="body">هنوز فیلد قیمت‌داری ندارید</div>
-       <button class="btn sm primary" style="margin-top:10px" id="addPriceField2"><svg class="i"><use href="#i-plus"/></svg> افزودن</button></div>`;
-  const b=$('#addPriceField2'); if(b) b.onclick=addPrice;
+      <div class="row tight" style="margin-top:8px">
+        <span class="price">
+          ${o.off?`<span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)} تخفیف</span>`:''}
+          <span class="now num">${fa(net(o))}</span><span class="cap">ریال</span>
+        </span>
+        <span class="sp"></span>
+        <span class="mini num">${tomanTxt(net(o))}</span>
+        <span class="switch ${o.req?'on':''}" data-freq="${i}" role="switch" aria-checked="${o.req}" tabindex="0"></span>
+      </div>
+    </div>`).join('')||`<div class="empty"><div class="body">مورد مالی‌ای اضافه نشده — فرم رایگان است</div></div>`;
 }
-function renderUserPreview(){
-  const per=S.price.reduce((a,o)=>a+net(o),0);
-  const total=per*S.maxPer;
-  $('#userPreview').innerHTML=`
-    <div class="r"><span>مبلغ هر نفر (انتخاب‌های کاربر)</span><span class="num">${fa(per)}</span></div>
-    <div class="r"><span>تعداد نفرات</span><span class="num">${fa(S.maxPer)}</span></div>
-    <div class="r t"><span>جمع — برای ${fa(S.maxPer)} نفر</span><span class="num">${money(total)}</span></div>
-    <div class="mini" style="margin-top:8px">${tomanWords(total)}</div>`;
+function renderLinks(){
+  $('#linkList').innerHTML=S.links.map((l,i)=>`
+    <div class="card sunk" style="padding:10px">
+      <div class="linkrow">
+        <input class="input" value="${l.t}" data-lt="${i}" placeholder="عنوان دکمه"/>
+        <input class="input" style="direction:ltr" value="${l.u}" data-lu="${i}" placeholder="https://"/>
+        <button class="icon-btn" data-ldel="${i}" aria-label="حذف"><svg class="i"><use href="#i-trash"/></svg></button>
+      </div>
+    </div>`).join('');
 }
 function renderTicket(){
   $('#swatches').innerHTML=['#0F6FD1','#0B7A57','#A2701C','#8A4BA8','#B33A2B','#2F5D8A','#3C6E47','#6B4E8C']
     .map(c=>`<span class="swatch ${S.ticket.color===c?'on':''}" data-color="${c}" style="--sw:${c}" role="button" tabindex="0" aria-label="رنگ بلیت"></span>`).join('');
-  const t=$('#tkPreview'); t.className='ticketcard '+S.ticket.style; t.style.setProperty('--tk',S.ticket.color);
+  $('#tkParts').innerHTML=Object.entries(TICKET_PARTS).map(([k,n])=>{
+    const on=S.ticket.parts.includes(k);
+    return `<span class="chip ${on?'on':''}" data-part="${k}"><svg class="i"><use href="#${k==='qr'?'i-qr':k==='code'?'i-key':k==='name'?'i-users':k==='date'?'i-calendar':k==='venue'?'i-pin':k==='seat'?'i-grid':k==='no'?'i-ticket':k==='logo'?'i-layers':'i-doc'}"/></svg> ${n}</span>`;
+  }).join('');
+  $('#tkPreview').innerHTML=ticketHTML({style:S.ticket.style,color:S.ticket.color,parts:S.ticket.parts,
+    title:S.title.replace('ثبت‌نام ',''),name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',date:'۱۴۰۵/۰۷/۰۸ — ۱۶:۰۰',
+    venue:'تهران، ولی‌عصر، پلاک ۱۲',seat:'ردیف ۳ — صندلی ۱۷',confirmed:S.confirmed});
+}
+function renderPreview(){
+  const per=S.fin.filter(f=>f.req||true).reduce((a,o)=>a+net(o),0)*0; /* مبلغ نهایی به انتخاب کاربر است */
+  const one=S.fin[0]||{p:0,off:0};
+  $('#userPreview').innerHTML=`
+    ${S.fin.map((o,i)=>`<div class="r"><span>${o.l}</span><span class="num">${o.off?`<span class="old">${fa(o.p)}</span> `:''}${fa(net(o))}</span></div>`).join('')}
+    <div class="r"><span>هر نفر انتخاب کند — جمع در فرم ساخته می‌شود</span><span></span></div>
+    <div class="r t"><span>نمونه: یک نفر با «${S.fin[0]?S.fin[0].l:'—'}»</span><span class="num">${money(net(one))}</span></div>
+    <div class="mini" style="margin-top:6px">با ${faN(S.maxPer)} نفر — ${money(net(one)*S.maxPer)}</div>`;
 }
 function renderReview(){
-  const pf=S.fields.filter(f=>f.t==='price');
-  const per=S.price.reduce((a,o)=>a+net(o),0);
+  const onM=Object.entries(S.methods).filter(([,v])=>v).map(([k])=>({card:'کارت‌به‌کارت',bale:'درگاه بله',zarin:'زرین‌پال',payping:'پی‌پینگ',instal:'اقساط'})[k]);
   const rows=[
-    ['مدل فرم',(MODELS.find(m=>m.k===S.model)||{tn:'—'}).tn],
+    ['مدل',(MODELS.find(m=>m.k===S.model)||{tn:'—'}).tn],
     ['عنوان',S.title],
     ['نشانی','lifeline1.ir/'+S.slug],
-    ['فیلدها',fa(S.fields.length)+' فیلد · '+fa(S.fields.filter(f=>f.req).length)+' اجباری'],
+    ['فیلدها',faN(S.fields.length)+' فیلد · '+faN(S.fields.filter(f=>f.req).length)+' اجباری'],
     ['نمایش',S.display==='one'?'هر مرحله یک سوال':'همه در یک صفحه'],
-    ['بازه','۱۴۰۵/۰۷/۰۱ تا ۱۴۰۵/۰۷/۳۰'],
-    ['ظرفیت',fa(S.cap)+' نفر + '+fa(S.wait)+' نفر لیست انتظار'],
-    ['محدودیت افراد',{none:'آزاد',event:'ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'}[S.limit]],
-    ['قیمت هر نفر',money(per)],
-    ['تعداد بلیت هر نفر',fa(S.maxPer)+' نفر'],
-    ['روش‌های پرداخت',Object.entries(S.methods).filter(([,v])=>v).map(([k])=>({card:'کارت‌به‌کارت',bale:'درگاه بله',zarin:'زرین‌پال',payping:'پی‌پینگ',instal:'اقساط'})[k]).join(' · ')],
-    ['بلیت',(S.ticket.style==='classic'?'کلاسیک':S.ticket.style==='glass'?'شیشه‌ای':S.ticket.style==='gold'?'طلایی':'مینیمال')+' · '+S.ticket.color],
-    ['ارسال به کارشناس',S.notify.to+' — '+S.notify.expert]
+    ['بازه',S.start+' تا '+S.end],
+    ['ظرفیت',faN(S.cap)+' نفر + '+faN(S.wait)+' نفر لیست انتظار'],
+    ['محدودیت',{none:'آزاد',event:'ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'}[S.limit]],
+    ['موارد مالی',S.fin.map(f=>f.l+' — '+fa(net(f))).join(' · ')||'رایگان'],
+    ['تعداد بلیت',faN(S.maxPer)+' نفر'],
+    ['پرداخت',onM.join(' · ')],
+    ['بلیت',TICKET_STYLES[S.ticket.style]+' · '+faN(S.ticket.parts.length)+' بخش'],
+    ['پیوندهای پایانی',faN(S.links.length)+' دکمه'],
+    ['کارشناس',S.notify.expert]
   ];
-  $('#review').innerHTML=rows.map(([k,v])=>`<div class="r"><span class="mute">${k}</span><span>${v}</span></div>`).join('')
-    +`<div class="r t"><span>جمع برای ${fa(S.maxPer)} نفر</span><span class="num">${money(S.price.reduce((a,o)=>a+net(o),0)*S.maxPer)}</span></div>
-      <div class="mini" style="margin-top:6px">${tomanWords(S.price.reduce((a,o)=>a+net(o),0)*S.maxPer)}</div>`;
+  $('#review').innerHTML=rows.map(([k,v])=>`<div class="r"><span class="mute">${k}</span><span style="text-align:end">${v}</span></div>`).join('');
   $('#revLink').textContent='lifeline1.ir/'+S.slug;
-  const todos=[
-    ['عنوان و توضیحات',!!S.title&&S.intro.length>10],
-    ['حداقل سه فیلد',S.fields.length>=3],
-    ['گزینهٔ قیمت‌دار',pf.length>0],
-    ['روش پرداخت',Object.values(S.methods).some(Boolean)],
-    ['کارشناس مسئول',!!S.notify.expert]
-  ];
+  $('#revQR').innerHTML=qrSVG('lifeline1.ir/'+S.slug,104);
+  const todos=[['عنوان و توضیحات',!!S.title&&S.intro.length>10],['حداقل سه فیلد',S.fields.length>=3],
+    ['مورد مالی',S.fin.length>0],['روش پرداخت',Object.values(S.methods).some(Boolean)],
+    ['پیوند پایانی',S.links.length>0],['کارشناس مسئول',!!S.notify.expert]];
   $('#todos').innerHTML=todos.map(([t,ok])=>
     `<div class="row"><svg class="i" style="color:${ok?'var(--ok)':'var(--warn)'}"><use href="#${ok?'i-check':'i-bell'}"/></svg><span class="sub">${t}</span></div>`).join('');
 }
@@ -772,81 +755,59 @@ function renderCatalog(){
   });
   $('#catList').innerHTML=html||'<div class="empty"><div class="body">چیزی پیدا نشد</div></div>';
 }
+function slugView(){
+  $('#slugView').textContent=S.nested?('lifeline1.ir/'+S.slug):('lifeline1.ir/f/'+S.slug.split('/').pop());
+  $('#slugNote').textContent=S.nested?'تو در تو با صفحهٔ رویداد — دلخواه هم می‌شود.':'نشانی مستقل، جدا از رویداد.';
+}
 
-/* ═══════ حرکت ═══════ */
+/* ══ حرکت ══ */
 function go(k){
   S.step=k;
   $$('.screen').forEach(s=>s.classList.toggle('on',s.id===k));
   renderStepper();
-  if(k==='s2') renderCanvas();
-  if(k==='s3'){renderPriceFields();renderUserPreview()}
+  if(k==='s2'){renderCanvas();initAll($('#morePanel'))}
+  if(k==='s3'){renderFin();renderPreview();initAll($('#s3'))}
   if(k==='s4') renderReview();
   window.scrollTo({top:0,behavior:'instant'});
 }
-function openSheet(id){closeSheets(); if(!id)return; $('#scrim').classList.add('on'); $('#'+id).classList.add('on');}
-function closeSheets(){ $$('.sheet').forEach(s=>s.classList.remove('on')); $('#scrim').classList.remove('on');}
-function slugView(){
-  const s=S.nested?S.slug:(S.slug.replace(/^.*\//,''));
-  $('#slugView').textContent=S.nested?('lifeline1.ir/'+S.slug):('lifeline1.ir/f/'+s);
-  $('#slugNote').textContent=S.nested?'تو در تو با صفحهٔ رویداد — دلخواه خودتان هم می‌شود.':'نشانی مستقل، جدا از رویداد.';
-}
 function addField(t){
   const c=byT(t), cat=CATALOG.find(x=>x.t===t)||{};
-  const f={id:S.uid++,t:t,l:c.n,help:HELP[t]||'',req:false,media:'none',verify:false,
-           min:'',max:'',count:5,prof:!!cat.prof,col:true,
-           opts:cat.opts?[{l:'تازه‌کار',p:0,off:0},{l:'متوسط',p:0,off:0},{l:'حرفه‌ای',p:0,off:0}]:[],
-           condField:'',condOp:'eq',condVal:''};
-  if(t==='yesno') f.opts=[{l:'بله',p:0,off:0},{l:'خیر',p:0,off:0}];
-  if(t==='price'){f.l='نوع شرکت';f.opts=[{l:'کارگاه با گواهینامه',p:850000,off:15},{l:'کارگاه بدون گواهینامه',p:600000,off:0}]}
-  S.fields.push(f); renderCanvas(); renderPriceFields(); openSheet(null); editField(f.id);
-}
-function addPrice(){
-  const t='price', cat=CATALOG.find(x=>x.t===t);
-  S.fields.push({id:S.uid++,t:'price',l:'نوع شرکت',help:'',req:true,media:'none',verify:false,min:'',max:'',count:5,prof:false,col:true,
-    opts:[{l:'کارگاه با گواهینامه',p:850000,off:15},{l:'کارگاه بدون گواهینامه',p:600000,off:0}],condField:'',condOp:'eq',condVal:''});
-  renderCanvas(); renderPriceFields(); go('s2'); editField(S.fields[S.fields.length-1].id);
+  const f={id:S.uid++,t:t,l:c.n,help:HELP[t]||'',req:false,media:'none',verify:false,count:5,
+    prof:!!cat.prof,col:true,opts:cat.opts?[{l:'گزینهٔ یک'},{l:'گزینهٔ دو'}]:[],condField:'',condOp:'eq',condVal:''};
+  if(t==='yesno') f.opts=[{l:'بله'},{l:'خیر'}];
+  if(t==='gender') f.opts=[{l:'زن'},{l:'مرد'}];
+  if(t==='marital') f.opts=[{l:'مجرد'},{l:'متأهل'}];
+  S.fields.push(f); renderCanvas(); closeSheets(); editField(f.id);
+  if($('#shField').classList.contains('on')) $('#shField').scrollTop=0;
 }
 function applyPack(id){
-  if(id==='empty'){S.fields=[];S.pack='empty';renderCanvas();renderPriceFields();openSheet('shAdd');return}
+  if(id==='empty'){S.fields=[];S.pack='empty';renderCanvas();openSheet('shAdd');return}
   if(id==='save'){toast('بستهٔ سازمانی ذخیره شد');return}
-  const p=PACKS.find(x=>x.id===id); S.pack=id; S.fields=[];
+  const p=PACKS.find(x=>x.id===id); if(!p)return;
+  S.pack=id; S.fields=[];
   p.f.forEach(t=>{const c=byT(t),cat=CATALOG.find(x=>x.t===t)||{};
     S.fields.push({id:S.uid++,t:t,l:c.n,help:HELP[t]||'',req:['fullname','mobile','nid','terms'].includes(t),
-      media:'none',verify:false,min:'',max:'',count:5,prof:!!cat.prof,col:true,
-      opts:cat.opts?[{l:'گزینهٔ یک',p:0,off:0},{l:'گزینهٔ دو',p:0,off:0}]:[],condField:'',condOp:'eq',condVal:''})});
-  renderCanvas(); renderPriceFields();
+      media:'none',verify:false,count:5,prof:!!cat.prof,col:true,
+      opts:cat.opts?[{l:'گزینهٔ یک'},{l:'گزینهٔ دو'}]:[],condField:'',condOp:'eq',condVal:''})});
+  renderCanvas();
 }
 let editing=null,catGroup='همه';
 function editField(id){
   const f=S.fields.find(x=>x.id===id); if(!f)return; editing=id;
   const c=byT(f.t), cat=CATALOG.find(x=>x.t===f.t)||{};
-  $('#fdType').textContent=c.n;
-  $('#fdStruct').textContent=STRUCT[f.t]||'—';
-  $('#fdTitle').value=f.l;
-  $('#fdHelp').value=f.help||'';
-  $('#fdReq').classList.toggle('on',!!f.req); $('#fdReq').setAttribute('aria-checked',!!f.req);
-  $('#fdProf').classList.toggle('on',!!f.prof); $('#fdProf').setAttribute('aria-checked',!!f.prof);
+  $('#fdType').textContent=c.n; $('#fdStruct').textContent=STRUCT[f.t]||'—';
+  $('#fdTitle').value=f.l; $('#fdHelp').value=f.help||'';
+  $('#fdReq').classList.toggle('on',!!f.req); $('#fdProf').classList.toggle('on',!!f.prof);
   $('#fdVerifyBox').style.display=cat.verify?'block':'none';
-  $('#fdVerify').classList.toggle('on',!!f.verify); $('#fdVerify').setAttribute('aria-checked',!!f.verify);
-  $('#fdRangeBox').style.display=(f.t==='number'||f.t==='amount'||f.t==='scale')?'block':'none';
-  $('#fdMin').value=f.min||''; $('#fdMax').value=f.max||'';
+  $('#fdVerify').classList.toggle('on',!!f.verify);
   $('#fdCountBox').style.display=cat.count?'block':'none'; $('#fdCount').value=f.count||5;
   $$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));
   $('#fdOptionsBox').style.display=f.opts.length?'block':'none';
-  $('#fdPriceNote').textContent=f.t==='price'?'مبلغ و درصد تخفیف را بنویسید؛ کاربر مبلغ خط‌خورده و قیمت نهایی را می‌بیند.':'';
-  $('#fdOptions').innerHTML=f.opts.map((o,i)=>`
-    <div class="card sunk" style="padding:8px">
-      <div class="row" style="align-items:center">
-        <svg class="i" style="color:var(--ink-4)"><use href="#i-drag"/></svg>
-        <input class="input" style="flex:1;min-width:120px" value="${o.l}" data-optl="${i}" placeholder="عنوان گزینه"/>
-        ${f.t==='price'?`
-          <input class="input num" style="max-width:110px" value="${fa(o.p)}" data-optp="${i}" placeholder="مبلغ"/>
-          <select class="input" style="max-width:96px" data-optoff="${i}">
-            ${[0,5,10,15,20,25,30,40,50].map(v=>`<option value="${v}" ${o.off===v?'selected':''}>٪${fa(v)}</option>`).join('')}
-          </select>`:''}
-        <button class="icon-btn" data-optdel="${i}" aria-label="حذف"><svg class="i"><use href="#i-trash"/></svg></button>
-      </div>
-    </div>`).join('');
+  $('#fdOptions').innerHTML=(f.opts||[]).map((o,i)=>`
+    <div class="card sunk row" style="padding:8px">
+      <svg class="i" style="color:var(--ink-4)"><use href="#i-drag"/></svg>
+      <input class="input" style="flex:1" value="${o.l}" data-optl="${i}"/>
+      <button class="icon-btn" data-optdel="${i}" aria-label="حذف"><svg class="i"><use href="#i-trash"/></svg></button></div>`).join('');
   const others=S.fields.filter(x=>x.id!==id);
   $('#fdCondField').innerHTML='<option value="">بدون شرط</option>'+
     others.map(o=>`<option value="${o.id}" ${f.condField===o.id?'selected':''}>${o.l}</option>`).join('');
@@ -857,77 +818,92 @@ function editField(id){
 function saveField(){
   const f=S.fields.find(x=>x.id===editing); if(!f)return;
   f.l=$('#fdTitle').value||f.l; f.help=$('#fdHelp').value;
-  f.req=$('#fdReq').classList.contains('on');
-  f.prof=$('#fdProf').classList.contains('on');
-  f.verify=$('#fdVerify').classList.contains('on');
-  f.min=$('#fdMin').value; f.max=$('#fdMax').value; f.count=$('#fdCount').value;
+  f.req=$('#fdReq').classList.contains('on'); f.prof=$('#fdProf').classList.contains('on');
+  f.verify=$('#fdVerify').classList.contains('on'); f.count=$('#fdCount').value;
   const m=$('#shField [data-media].on'); f.media=m?m.dataset.media:'none';
   f.condField=$('#fdCondField').value?Number($('#fdCondField').value):'';
   f.condOp=$('#fdCondOp').value; f.condVal=$('#fdCondVal').value;
-  renderCanvas(); renderPriceFields(); renderUserPreview();
+  renderCanvas(); renderFin(); renderPreview();
 }
-function toast(m){const t=$('#toast');t.lastChild.textContent=' '+m;t.classList.add('on');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('on'),1600)}
 
-/* ═══════ رویدادها ═══════ */
+/* ══ رویدادها ══ */
 document.addEventListener('click',e=>{
-  const g=e.target.closest('[data-go]'); if(g){go(g.dataset.go);return}
+  const g=e.target.closest('[data-go]'); if(g){saveField();go(g.dataset.go);return}
   const mo=e.target.closest('[data-model]'); if(mo){S.model=mo.dataset.model;renderTiles();return}
-  const pk=e.target.closest('[data-pack]'); if(pk){applyPack(pk.dataset.pack);return}
   const qk=e.target.closest('[data-quick]'); if(qk){applyPack(qk.dataset.quick);return}
-  const sh=e.target.closest('[data-sheet]'); if(sh){openSheet(sh.dataset.sheet);return}
   const ad=e.target.closest('[data-add]'); if(ad){addField(ad.dataset.add);return}
   const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();return}
   const ed=e.target.closest('[data-edit]'); if(ed){editField(Number(ed.dataset.edit));return}
-  const cp=e.target.closest('[data-copy]'); if(cp){S.fields.splice(S.fields.indexOf(S.fields.find(x=>x.id===Number(cp.dataset.copy)))+1,0,{...S.fields.find(x=>x.id===Number(cp.dataset.copy)),id:S.uid++});renderCanvas();renderPriceFields();toast('کپی شد');return}
-  const dl=e.target.closest('[data-del]'); if(dl){S.fields=S.fields.filter(x=>x.id!==Number(dl.dataset.del));renderCanvas();renderPriceFields();toast('حذف شد');return}
-  const up=e.target.closest('[data-up]'); if(up){const i=S.fields.findIndex(x=>x.id===Number(up.dataset.up));if(i>0){[S.fields[i-1],S.fields[i]]=[S.fields[i],S.fields[i-1]];renderCanvas()}return}
-  const dn=e.target.closest('[data-down]'); if(dn){const i=S.fields.findIndex(x=>x.id===Number(dn.dataset.down));if(i<S.fields.length-1){[S.fields[i+1],S.fields[i]]=[S.fields[i],S.fields[i+1]];renderCanvas()}return}
+  const cp=e.target.closest('[data-copy]'); if(cp){const src=S.fields.find(x=>x.id===Number(cp.dataset.copy));
+    if(src) S.fields.splice(S.fields.indexOf(src)+1,0,{...src,id:S.uid++}); renderCanvas();toast('کپی شد');return}
+  const dl=e.target.closest('[data-del]'); if(dl){S.fields=S.fields.filter(x=>x.id!==Number(dl.dataset.del));renderCanvas();toast('حذف شد');return}
+  const up=e.target.closest('[data-up]'); if(up){const i=S.fields.findIndex(x=>x.id===Number(up.dataset.up));
+    if(i>0){[S.fields[i-1],S.fields[i]]=[S.fields[i],S.fields[i-1]];renderCanvas()}return}
+  const dn=e.target.closest('[data-down]'); if(dn){const i=S.fields.findIndex(x=>x.id===Number(dn.dataset.down));
+    if(i<S.fields.length-1){[S.fields[i+1],S.fields[i]]=[S.fields[i],S.fields[i+1]];renderCanvas()}return}
   const bl=e.target.closest('[data-block]'); if(bl){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return}
   const md=e.target.closest('[data-media]'); if(md){$$('#shField [data-media]').forEach(c=>c.classList.remove('on'));md.classList.add('on');return}
+  const pk=e.target.closest('[data-part]'); if(pk){const k=pk.dataset.part;
+    S.ticket.parts=S.ticket.parts.includes(k)?S.ticket.parts.filter(x=>x!==k):[...S.ticket.parts,k];
+    renderTicket();return}
   const cl=e.target.closest('[data-color]'); if(cl){S.ticket.color=cl.dataset.color;renderTicket();return}
   const tk=e.target.closest('[data-tk]'); if(tk){S.ticket.style=tk.dataset.tk;$$('[data-tk]').forEach(c=>c.classList.remove('on'));tk.classList.add('on');renderTicket();return}
   const dr=e.target.closest('[data-dir]'); if(dr){S.dir=dr.dataset.dir;$$('[data-dir]').forEach(c=>c.classList.remove('on'));dr.classList.add('on');return}
   const sgd=e.target.closest('#segDisplay button'); if(sgd){[...sgd.parentElement.children].forEach(x=>x.classList.remove('on'));sgd.classList.add('on');S.display=sgd.textContent.includes('هر مرحله')?'one':'all';return}
   const sga=e.target.closest('#segAfter button'); if(sga){[...sga.parentElement.children].forEach(x=>x.classList.remove('on'));sga.classList.add('on');return}
-  const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');sw.setAttribute('aria-checked',sw.classList.contains('on'));
-    if(sw.id==='slugAuto'){S.nested=sw.classList.contains('on');slugView();} return}
-  if(e.target.closest('#addPriceField')||e.target.closest('#addPriceField2')) return addPrice();
+  const fdel=e.target.closest('[data-fdel]'); if(fdel){S.fin.splice(Number(fdel.dataset.fdel),1);renderFin();renderPreview();return}
+  const freq=e.target.closest('[data-freq]'); if(freq){const i=Number(freq.dataset.freq);S.fin[i].req=!S.fin[i].req;renderFin();return}
+  const ldel=e.target.closest('[data-ldel]'); if(ldel){S.links.splice(Number(ldel.dataset.ldel),1);renderLinks();return}
+  if(e.target.closest('#addFin')){S.fin.push({l:'مورد مالی تازه',p:0,off:0,req:false});renderFin();renderPreview();return}
+  if(e.target.closest('#addLink')){S.links.push({t:'پیوند تازه',u:'https://'});renderLinks();return}
+  if(e.target.closest('#addTop')||e.target.closest('#addBottom')){openSheet('shAdd');return}
+  const sw=e.target.closest('.switch');
+  if(sw){if(sw.id==='slugAuto'){S.nested=!sw.classList.contains('on');slugView();return}return}
+  if(e.target.closest('#fdAddOption')){const f=S.fields.find(x=>x.id===editing);f.opts.push({l:'گزینهٔ تازه'});editField(editing);return}
+  const od=e.target.closest('[data-optdel]'); if(od){const f=S.fields.find(x=>x.id===editing);f.opts.splice(Number(od.dataset.optdel),1);editField(editing);return}
+  if(e.target.closest('#fdHelpDefault')){const f=S.fields.find(x=>x.id===editing);$('#fdHelp').value=HELP[f.t]||'';toast('راهنمای پیش‌فرض گذاشته شد');return}
+  if(e.target.closest('#fdDelete')){S.fields=S.fields.filter(x=>x.id!==editing);closeSheets();renderCanvas();toast('حذف شد');return}
   if(e.target.closest('[data-close]')){saveField();closeSheets();toast('ذخیره شد');return}
-  if(e.target.closest('.scrim')){closeSheets();return}
-  if(e.target.closest('#publish')){$('#doneCard').style.display='block';toast('فرم منتشر شد');return}
+  if(e.target.closest('#publish')){$('#doneCard').style.display='block';S.confirmed=true;renderTicket();toast('فرم منتشر شد');return}
+  if(e.target.closest('#introMedia')){const order=['','image','file','video'];
+    S.introMedia=order[(order.indexOf(S.introMedia)+1)%order.length];
+    $('#introMediaLbl').textContent={ '':'رسانه','image':'تصویر','file':'فایل','video':'ویدیو' }[S.introMedia];
+    toast('رسانهٔ توضیحات: '+($('#introMediaLbl').textContent));return}
 });
 document.addEventListener('input',e=>{
   const i=e.target;
   if(i.id==='catSearch') return renderCatalog();
-  if(i.id==='fTitle'){S.title=i.value;$('#hdTitle').textContent=i.value}
+  if(i.id==='fTitle'){S.title=i.value;$('#hdTitle').textContent=i.value;renderTicket()}
   if(i.id==='fSlug'){S.slug=i.value;slugView()}
   if(i.id==='introText') S.intro=i.value;
-  if(i.id==='maxPer'){S.maxPer=Math.max(1,Math.min(9,Number(i.value.replace(/[^\d]/g,''))||1));renderUserPreview();renderReview()}
-  if(i.id==='limitMode') S.limit=i.value;
-  if(i.dataset.optl!==undefined){const f=S.fields.find(x=>x.id===editing);f.opts[Number(i.dataset.optl)].l=i.value;renderCanvas();renderPriceFields()}
-  if(i.dataset.optp!==undefined){const f=S.fields.find(x=>x.id===editing);f.opts[Number(i.dataset.optp)].p=Number(i.value.replace(/[^\d]/g,''))||0;renderPriceFields();renderUserPreview()}
+  if(i.id==='endText') S.endText=i.value;
+  if(i.id==='maxPer'){S.maxPer=Math.max(1,Math.min(9,NR(unFa(i.value))||1));renderPreview();renderReview()}
+  if(i.id==='cap'){S.cap=NR(unFa(i.value))||0}
+  if(i.id==='wcount'){S.wait=NR(unFa(i.value))||0}
+  if(i.dataset.fl!==undefined){S.fin[NR(i.dataset.fl)].l=i.value;renderPreview()}
+  if(i.dataset.fp!==undefined){S.fin[NR(i.dataset.fp)].p=NR(unFa(i.value).replace(/[^\d]/g,''))||0;renderFin();renderPreview()}
+  if(i.dataset.lt!==undefined){S.links[NR(i.dataset.lt)].t=i.value}
+  if(i.dataset.lu!==undefined){S.links[NR(i.dataset.lu)].u=i.value}
+  if(i.dataset.optl!==undefined){const f=S.fields.find(x=>x.id===editing);if(f)f.opts[NR(i.dataset.optl)].l=i.value}
   if(i.id==='fdCondField'){$('#fdCondBox').style.display=i.value?'flex':'none'}
 });
 document.addEventListener('change',e=>{
-  const s=e.target.closest('[data-optoff]');
-  if(s){const f=S.fields.find(x=>x.id===editing);f.opts[Number(s.dataset.optoff)].off=Number(s.value);renderPriceFields();renderUserPreview()}
+  const s=e.target.closest('[data-fo]'); if(s){S.fin[NR(s.dataset.fo)].off=NR(s.value);renderFin();renderPreview()}
+  if(e.target.id==='limitMode') S.limit=e.target.value;
+  if(e.target.id==='notifyTo') S.notify.to=e.target.value;
+  if(e.target.id==='expertPick') S.notify.expert=e.target.value;
+  if(e.target.id==='compFields') S.compFields=e.target.value;
 });
-$('#addTop').onclick=$('#addBottom').onclick=()=>openSheet('shAdd');
-$('#fdAddOption').onclick=()=>{const f=S.fields.find(x=>x.id===editing);f.opts.push({l:'گزینهٔ تازه',p:0,off:0});editField(editing)};
-document.addEventListener('click',e=>{
-  const d=e.target.closest('[data-optdel]');
-  if(d){const f=S.fields.find(x=>x.id===editing);f.opts.splice(Number(d.dataset.optdel),1);editField(editing);return}
-});
-$('#fdHelpDefault').onclick=()=>{const f=S.fields.find(x=>x.id===editing);$('#fdHelp').value=HELP[f.t]||'';toast('راهنمای پیش‌فرض گذاشته شد')};
-$('#fdDelete').onclick=()=>{S.fields=S.fields.filter(x=>x.id!==editing);closeSheets();renderCanvas();renderPriceFields();toast('حذف شد')};
 $('#btnNext').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i<3){saveField();go(STEPS[i+1].k)}};
 $('#btnBack').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i>0) go(STEPS[i-1].k)};
-try{const th=localStorage.getItem('nora-theme'); if(th) document.documentElement.dataset.theme=th;
-    else if(matchMedia('(prefers-color-scheme:dark)').matches) document.documentElement.dataset.theme='dark'}catch(e){}
-$('#theme').onclick=()=>{const v=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=v;try{localStorage.setItem('nora-theme',v)}catch(e){}};
 
-/* ═══════ آغاز ═══════ */
-renderStepper(); renderTiles(); slugView(); renderCatalog(); applyPack('full'); renderTicket(); renderUserPreview(); renderReview(); go('s1');
+/* ══ آغاز ══ */
+initUI();
+$('#pkStart').innerHTML=pickHTML('datetime',S.start);
+$('#pkEnd').innerHTML=pickHTML('datetime',S.end);
+initAll(document);
+renderStepper();renderTiles();slugView();renderCatalog();applyPack('full');
+renderTicket();renderLinks();renderFin();renderPreview();renderReview();go('s1');
 </script>
 </body>
 </html>
