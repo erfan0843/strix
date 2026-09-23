@@ -474,6 +474,7 @@ const FORMS=[
  parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
+ event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
  flags:['ticket','receipts','cert','excel'],
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
  changes:[['۱۰ مهر — ظرفیت از ۱۲۰ به ۱۵۰ رسید','خانم رستگار'],['۸ مهر — کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر — پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
@@ -487,6 +488,7 @@ const FORMS=[
  fin:[],groups:[],ticketOn:false,guestsOn:false,guestsMax:1,guests:[],gw:[],ticket:null,skin:null,coupon:'—',
  endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
  links:['صفحهٔ دوره'],
+ event:null,
  flags:['excel','raffle'],
  fields:[['رضایت کلی',100],['نقطهٔ قوت دوره',94],['پیشنهاد بهبود',61],['از من تماس بگیرید',22]],
  changes:[['۱۲ مهر — پرسش «پیشنهاد بهبود» اضافه شد','آقای نادری']],
@@ -504,6 +506,7 @@ const FORMS=[
  ticket:null,skin:null,coupon:'—',
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
+ event:null,
  flags:['receipts','excel','cert'],
  fields:[['نام و نام خانوادگی',0],['شماره موبایل',0],['مبلغ ماهانه',0]],
  changes:[],
@@ -519,6 +522,7 @@ const FORMS=[
  parts:['title','date','venue','name','code','qr'],
  coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
  links:['سرفصل کتاب‌ها'],
+ event:null,
  flags:['ticket','excel','exam','results','cert','anti-cheat'],
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['کد ملی',100],['انتخاب حوزه',100]],
  changes:[['۹ مهر — تصویربرداری هنگام آزمون روشن شد','خانم صادقی']],
@@ -575,6 +579,13 @@ function pay(p){const f=FORMS.find(x=>x.id===p.form); const o=(f.fin&&f.fin[p.pi
   const per=net(o), sub=per*p.count, dis=p.coupon?Math.round(sub*p.coupon/100):0;
   return {per,sub,dis,sum:sub-dis};}
 const pendings=()=>PEOPLE.filter(p=>p.state==='pending');
+
+/* ── رویدادها: فرم زیر صفحهٔ رویداد می‌نشیند؛ ظرفیت/تاریخ/محدودیت با آن همگام می‌شود ── */
+const EVENTS=[
+ {id:'ev1',n:'کارگاه فن بیان مقدماتی',at:'۱۴۰۵/۰۷/۰۸',v:'فرهنگسرای نیاوران',slug:'https://lifeline1.ir/events/fanbayan'},
+ {id:'ev2',n:'نشست ماهانهٔ خیرین',at:'۱۴۰۵/۰۷/۲۰',v:'سالن مؤسسه',slug:'https://lifeline1.ir/events/kheyreen'},
+ {id:'ev3',n:'اردوی پاییزهٔ نوجوانان',at:'۱۴۰۵/۰۸/۱۲',v:'لواسان',slug:'https://lifeline1.ir/events/ordoo'}];
+const RESTRICT={free:'آزاد برای همه',event:'فقط ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'};
 
 /* ── گشت ─────────────────────────────────────────────────────── */
 function go(id){
@@ -691,6 +702,32 @@ function renderInfo(){
   document.getElementById('infoBox').innerHTML=`
   <div class="split">
     <div class="stack">
+      ${f.event?`<div class="card paper">
+        <div class="row" style="margin-bottom:10px"><span class="fw">رویداد</span><span class="sp"></span>
+          ${f.event.nested?'<span class="tag brand">فرم زیر صفحهٔ رویداد</span>':''}
+          <button class="btn sm quiet" data-copy="${(EVENTS.find(e=>e.id===f.event.id)||{}).slug||''}">
+            <svg class="i"><use href="#i-link"/></svg> صفحهٔ رویداد</button>
+          <button class="btn sm quiet" data-evdetach="1"><svg class="i"><use href="#i-close"/></svg> جدا کردن</button>
+        </div>
+        <div class="answer"><span class="k">رویداد</span><span class="v">${(EVENTS.find(e=>e.id===f.event.id)||{}).n||'—'}</span></div>
+        <div class="answer"><span class="k">تاریخ و جا</span><span class="v num">${(EVENTS.find(e=>e.id===f.event.id)||{}).at||'—'} — ${(EVENTS.find(e=>e.id===f.event.id)||{}).v||'—'}</span></div>
+        <div class="answer"><span class="k">پیوند</span><span class="v num" style="direction:ltr">${(EVENTS.find(e=>e.id===f.event.id)||{}).slug||'—'}</span></div>
+        <div class="answer"><span class="k">چه کسی می‌تواند پر کند</span><span class="v">${RESTRICT[f.event.restrict]||RESTRICT.free}</span></div>
+        <div class="row tight" style="margin-top:10px">
+          <span class="tag ${f.event.sync.cap?'ok':'quiet'}">${f.event.sync.cap?'ظرفیت همگام':'ظرفیت دستی'}</span>
+          <span class="tag ${f.event.sync.dates?'ok':'quiet'}">${f.event.sync.dates?'تاریخ‌ها همگام':'تاریخ‌ها دستی'}</span>
+          <span class="tag ${f.event.sync.limit?'ok':'quiet'}">${f.event.sync.limit?'محدودیت همگام':'محدودیت دستی'}</span>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-change="event"><svg class="i"><use href="#i-pen"/></svg> تنظیم اتصال</button>
+        </div>
+        <p class="mnote" style="margin-top:8px">فرم زیر همین رویداد منتشر می‌شود؛ ظرفیت و بازهٔ ثبت‌نام از رویداد خوانده می‌شود و هر تغییر اینجا در سابقهٔ فرم می‌ماند.</p>
+      </div>`:`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">رویداد</span><span class="sp"></span>
+          <span class="tag quiet">وصل نیست</span></div>
+        <p class="sub">این فرم رویداد ندارد؛ خودش تنها منتشر می‌شود. اگر زیر یک رویداد برود، ظرفیت و تاریخ‌ها از آن خوانده می‌شود.</p>
+        <button class="btn sm" style="margin-top:10px" data-change="event">
+          <svg class="i"><use href="#i-link"/></svg> اتصال به رویداد</button>
+      </div>`}
       <div class="card paper">
         <div class="fw" style="margin-bottom:6px">شناسنامهٔ فرم</div>
         <div class="answer"><span class="k">نوع فرم</span><span class="v">${f.kind}</span></div>
@@ -1121,6 +1158,29 @@ const CHANGES={
  gw:{t:'درگاه‌ها',body:()=>`<p class="sub">درگاه‌ها در بخش «مالی» سامانه روشن و خاموش می‌شوند؛ سازندهٔ فرم فقط از میان آن‌ها انتخاب می‌کند.</p>
    <div class="row tight">${FORMS[0].gw.map(g=>`<span class="chip on">${g}</span>`).join('')}</div>`,
   go:()=>{closeSheets(); go('fMoney')}},
+ event:{t:'اتصال به رویداد',body:()=>`
+   <p class="cap">فرم می‌تواند زیر یک رویداد برود؛ آن‌وقت ظرفیت و تاریخ‌ها از رویداد خوانده می‌شود.</p>
+   <div><label class="lbl">رویداد</label>
+     <div class="row tight">${EVENTS.map(e=>`<button class="chip ${CUR.event&&CUR.event.id===e.id?'on':''}" data-chip data-ev="${e.id}">${e.n}</button>`).join('')}
+       <button class="chip ${CUR.event?'':'on'}" data-chip data-ev="">بدون رویداد</button></div></div>
+   <div class="row" style="margin-top:12px"><span class="sub" style="flex:1">نمایش در صفحهٔ رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.nested?'on':''}" id="chEvNested" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک ظرفیت با رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.sync.cap?'on':''}" id="chEvCap" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک تاریخ‌ها با رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.sync.dates?'on':''}" id="chEvDates" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک محدودیت‌ها با رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.sync.limit?'on':''}" id="chEvLimit" role="switch"></span></div>
+   <div><label class="lbl">چه کسی می‌تواند پر کند</label>
+     <select class="input" id="chEvWho">${Object.entries(RESTRICT).map(([k,v])=>`<option value="${k}" ${CUR.event&&CUR.event.restrict===k?'selected':''}>${v}</option>`).join('')}</select></div>`,
+  go:()=>{const chip=document.querySelector('#chBody .chip.on[data-ev]'); const id=chip?chip.dataset.ev:'';
+   const on=b=>document.getElementById(b).classList.contains('on');
+   if(!id){CUR.event=null; log('فرم از رویداد جدا شد');}
+   else{CUR.event={id,nested:on('chEvNested'),sync:{cap:on('chEvCap'),dates:on('chEvDates'),limit:on('chEvLimit')},
+     restrict:document.getElementById('chEvWho').value};
+     log('فرم زیر رویداد «'+((EVENTS.find(e=>e.id===id)||{}).n||'')+'» رفت');}
+   CUR.changes.unshift(['امروز — '+(id?'اتصال فرم به رویداد تغییر کرد':'فرم از رویداد جدا شد'),'خودم']);
+   closeSheets(); renderInfo(); renderPanel(); toast(id?'به رویداد وصل شد':'از رویداد جدا شد')}},
  ticket:{t:'بلیت: پوسته و بخش‌ها',body:()=>{
    const cur=CUR.skin||'clear', parts=CUR.parts||['title','date','venue','name','code','qr'];
    return `<div class="row"><span class="sub" style="flex:1">این فرم بلیت داشته باشد</span>
@@ -1228,6 +1288,9 @@ document.addEventListener('click',e=>{
   const op=e.target.closest('[data-open]'); if(op){go(op.dataset.open);return}
   const tb=e.target.closest('#pSeg button'); if(tb){tab(tb.dataset.tab);return}
   const pf=e.target.closest('[data-pf]'); if(pf){PFILTER=pf.dataset.pf;renderAnswers();return}
+  const evd=e.target.closest('[data-evdetach]');
+  if(evd){CUR.event=null; CUR.changes.unshift(['امروز — فرم از رویداد جدا شد','خودم']);
+    renderInfo(); renderPanel(); toast('از رویداد جدا شد'); return}
   const ch=e.target.closest('[data-change]'); if(ch){openChange(ch.dataset.change);return}
   const ap=e.target.closest('[data-approve]');
   if(ap){const p=PEOPLE.find(x=>x.id===ap.dataset.approve); p.state='paid';

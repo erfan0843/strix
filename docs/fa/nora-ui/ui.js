@@ -622,7 +622,14 @@ function initUI(){
       copyText(el?el.textContent.trim():cp.dataset.copy);return}
     const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');sw.setAttribute('aria-checked',sw.classList.contains('on'));return}
     const sg=e.target.closest('.seg button'); if(sg){[...sg.parentElement.children].forEach(x=>x.classList.remove('on'));sg.classList.add('on');return}
-    const ch=e.target.closest('.chip[data-chip]'); if(ch) ch.classList.toggle('on');
+    const ch=e.target.closest('.chip[data-chip]'); if(ch){
+      /* چیپ‌های «یک از چند» (تعداد، رویداد، دلیل…) انتخاب را جابه‌جا می‌کنند،
+         نه خاموش/روشن؛ وگرنه دو هندلر روی هم، انتخاب را برمی‌داشتند */
+      if(ch.matches('.chip[data-n],.chip[data-x],.chip[data-st],.chip[data-ev]')){
+        ch.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+        ch.classList.add('on');
+      } else ch.classList.toggle('on');
+    }
     const pa=e.target.closest('[data-printall]');
     if(pa){const nodes=document.querySelectorAll(pa.dataset.printall||'.tk');
       if(!nodes.length){toast('چیزی برای چاپ نیست');return}

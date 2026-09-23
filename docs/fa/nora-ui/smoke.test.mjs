@@ -196,6 +196,32 @@ async function load(file,store,q){
   p.click('#pSeg [data-tab="info"]');
   ok(p.txt('#infoBox').includes('قطعه‌های مالی'),'تب اطلاعات: قطعه‌های مالی');
   ok(p.txt('#infoBox').includes('۷۲۲٬۵۰۰'),'قیمت با تخفیف ٪۱۵ محاسبه شد');
+  /* ── اتصال فرم به رویداد ── */
+  const info=p.txt('#infoBox');
+  ok(info.includes('رویداد')&&info.includes('کارگاه فن بیان مقدماتی'),'کارت رویداد با نام رویداد در تب اطلاعات');
+  ok(info.includes('lifeline1.ir/events/fanbayan'),'پیوند صفحهٔ رویداد نوشته شده');
+  ok(info.includes('فرم زیر صفحهٔ رویداد'),'نشان «زیر صفحهٔ رویداد»');
+  ok(info.includes('ظرفیت همگام')&&info.includes('تاریخ‌ها همگام')&&info.includes('محدودیت همگام'),'وضعیت سه سینک');
+  ok(info.includes('فقط ثبت‌نام‌کرده‌های رویداد'),'محدودیت پر کردن فرم از رویداد خوانده شد');
+  ok(p.all('#chBody .chip[data-ev]').length===0,'پیش از باز کردن ورقه، چیپی نیست');
+  p.window.eval("openChange('per')");       /* رفتار چیپ‌های یک‌ازچند در همین ورقه */
+  const perChip=p.doc.querySelector('#chBody .chip[data-n]');
+  perChip.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.doc.querySelectorAll('#chBody .chip.on').length===1,'چیپ یک‌ازچند بعد از کلیک هم انتخاب‌شده می‌ماند');
+  p.click('[data-close]');
+  p.click('#infoBox [data-change="event"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ اتصال به رویداد باز شد');
+  ok(p.all('#chBody .chip[data-ev]').length===4,'سه رویداد + «بدون رویداد» در فهرست');
+  p.click('#chBody .chip[data-ev="ev2"]');
+  p.click('#chEvCap');                                     /* ظرفیت دستی شود */
+  p.click('#chApply');
+  ok(p.window.eval("CUR.event.id")==='ev2','ادمین رویداد فرم را عوض کرد');
+  ok(p.window.eval("CUR.event.sync.cap")===false,'سینک ظرفیت خاموش شد');
+  ok(p.txt('#infoBox').includes('نشست ماهانهٔ خیرین'),'کارت رویداد با رویداد تازه به‌روز شد');
+  p.click('#infoBox [data-evdetach]');
+  ok(p.window.eval("CUR.event")===null,'دکمهٔ «جدا کردن» فرم را از رویداد جدا کرد');
+  ok(p.txt('#infoBox').includes('وصل نیست'),'حالت بی‌رویداد نشان داده شد');
+  ok(p.txt('#changesBox').includes('رویداد'),'تغییر اتصال در سابقهٔ فرم ثبت شد');
   p.click('#pSeg [data-tab="changes"]');
   ok(p.txt('#changesBox').includes('تغییراتی که می‌خواهم بدهم'),'تب تغییرات');
   ok(p.txt('#changesBox').includes('سابقهٔ تغییرات'),'سابقهٔ تغییرات');
