@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>نورا — سفر کاربر فرم (نمونهٔ UI اصولی)</title>
+<link rel="stylesheet" href="tokens.css"/>
+</head>
+<body>
+<main style="max-width:1120px;margin:0 auto;padding:14px">
+  <div class="topbar">
+    <a class="btn sm ghost" href="index.html">🏠 فهرست نمونه‌ها</a>
+    <h1 style="font-size:var(--fs-h2);margin:0">سفر کاربر: از لینک تا گواهینامه</h1>
+    <span class="sp"></span>
+    <span class="badge brand">📱 موبایل‌فرست</span>
+  </div>
+
+  <div class="card head" style="overflow:auto">
+    <button class="chip on" data-u="u1">۱ لینک و لندینگ</button>
+    <button class="chip" data-u="u2">۲ گیت ورود</button>
+    <button class="chip" data-u="u3">۳ سوال دونه‌دونه</button>
+    <button class="chip" data-u="u4">۴ همه سوالات یک‌جا</button>
+    <button class="chip" data-u="u5">۵ بررسی و فاکتور</button>
+    <button class="chip" data-u="u6">۶ پرداخت</button>
+    <button class="chip" data-u="u7">۷ ثبت موفق</button>
+    <button class="chip" data-u="u8">۸ پاسخ من</button>
+    <button class="chip" data-u="u9">۹ بلیت / گواهینامه</button>
+  </div>
+
+  <div class="stage mt">
+    <div class="phone">
+      <!-- ═══ U1 — لنــــدینگ ═══ -->
+      <div class="screen on" data-screen="u1">
+        <div class="center" style="margin-bottom:14px">
+          <div style="height:96px;border-radius:var(--r-lg);background:linear-gradient(140deg,var(--brand-soft),var(--surface-3));border:1px solid var(--line);display:grid;place-items:center;font-size:32px">🎤</div>
+          <h2 style="margin:12px 0 4px;font-size:var(--fs-h1)">ثبت‌نام کارگاه فن بیان</h2>
+          <p class="muted" style="margin:0">سه جلسهٔ عملی فشرده، با گواهینامهٔ پایان دوره.</p>
+        </div>
+        <div class="row" style="justify-content:center">
+          <span class="badge brand">۶ سوال ≈ ۳ دقیقه</span>
+          <span class="badge gold">💳 ۴۵۰٬۰۰۰ ریال</span>
+          <span class="badge ok">ظرفیت: ۴۰ نفر مانده</span>
+        </div>
+        <div class="stack sm mt">
+          <div class="row"><span class="muted">🎫 با بلیت</span><span class="sp end"></span><span class="muted">🎓 گواهینامهٔ پایان دوره</span></div>
+          <div class="row"><span class="muted">🗓️ مهلت ثبت‌نام</span><span class="sp end"></span><span class="muted">۱۴۰۵/۰۷/۳۰</span></div>
+        </div>
+        <button class="btn primary block mt" data-u="u3">▶️ شروع ثبت‌نام</button>
+        <div class="row mt-s" style="justify-content:center"><a class="muted" href="#" data-u="u8">قبلاً پر کرده‌ام — مشاهدهٔ پاسخ من</a></div>
+        <p class="muted center mt-s">اطلاعات شما محفوظ است · فقط برای همین کارگاه استفاده می‌شود</p>
+      </div>
+
+      <!-- ═══ U2 — گیت‌ها ═══ -->
+      <div class="screen" data-screen="u2">
+        <h2 style="font-size:var(--fs-h2);margin:4px 0 10px">حالت‌های «نمی‌شود وارد شد»</h2>
+        <p class="muted">هر کدام یک صفحهٔ مستقل با یک راه‌حل روشن است — نه پیام خطای خشک.</p>
+        <div class="stack sm mt">
+          <div class="qcard">
+            <span class="badge warn">⏳ هنوز شروع نشده</span>
+            <p style="margin:8px 0 4px"><b>ثبت‌نام از ۱۴۰۵/۰۷/۰۱ باز می‌شود</b></p>
+            <p class="muted" style="margin:0">با یک دکمه یادآوری می‌کنیم و خبر می‌دهیم.</p>
+            <button class="btn sm mt-s">🔔 یادآوری کن</button>
+          </div>
+          <div class="qcard">
+            <span class="badge danger">🔒 خصوصی</span>
+            <p style="margin:8px 0 4px"><b>این فرم نیاز به کد دعوت دارد</b></p>
+            <input class="field mt-s" placeholder="کد دعوت را بنویسید"/>
+            <button class="btn sm primary mt-s">ورود</button>
+          </div>
+          <div class="qcard">
+            <span class="badge brand">👤 پروفایل ناقص</span>
+            <p style="margin:8px 0 4px"><b>برای ثبت‌نام، پروفایل باید کامل باشد</b></p>
+            <div class="progress-pill"><span>۴۲٪</span><span class="bar" style="flex:1"><i style="width:42%"></i></span><span>۷۰٪</span></div>
+            <button class="btn sm primary mt-s">تکمیل پروفایل</button>
+          </div>
+          <div class="qcard">
+            <span class="badge ok">✅ قبلاً پر کرده‌اید</span>
+            <p style="margin:8px 0 4px"><b>کد پیگیری شما: TL1307BVUC1981</b></p>
+            <div class="row"><button class="btn sm" data-u="u8">مشاهدهٔ پاسخ من</button><button class="btn sm ghost">🎫 بلیت</button></div>
+          </div>
+          <div class="qcard">
+            <span class="badge danger">🎟️ ظرفیت پر شد</span>
+            <p style="margin:8px 0 4px"><b>۴۰ نفر تکمیل شد — در لیست انتظار بمانید؟</b></p>
+            <button class="btn sm">افزودن به لیست انتظار</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ U3 — سوال دونه‌دونه ═══ -->
+      <div class="screen" data-screen="u3">
+        <div class="progress-pill" style="margin-bottom:10px">
+          <span>سوال ۴ از ۶</span>
+          <span class="bar" style="flex:1"><i style="width:66%"></i></span>
+          <span class="badge plain">ذخیرهٔ خودکار</span>
+        </div>
+        <div class="qcard">
+          <h3 style="font-size:var(--fs-h3);margin:0 0 2px">سطح تجربه شما در فن بیان؟</h3>
+          <p class="muted" style="margin:0 0 12px">یک گزینه انتخاب کنید؛ بعد از انتخاب، خودکار به سوال بعد می‌رویم.</p>
+          <div class="opt sel"><span class="mk">✓</span> تازه‌کار</div>
+          <div class="opt"><span class="mk"></span> متوسط</div>
+          <div class="opt"><span class="mk"></span> حرفه‌ای</div>
+        </div>
+        <div class="hint mt-s">💡 پاسخ این سوال، سوال ۵ را باز می‌کند.</div>
+        <div class="row mt">
+          <button class="btn ghost">قبلی</button>
+          <button class="btn ghost">رد کردن</button>
+          <span class="sp"></span>
+          <button class="btn primary">بعدی</button>
+        </div>
+        <p class="muted center mt-s">می‌توانید نیمه‌کاره بمانید — پاسخ‌ها ذخیره می‌شود.</p>
+      </div>
+
+      <!-- ═══ U4 — همه سوالات یک‌جا ═══ -->
+      <div class="screen" data-screen="u4">
+        <div class="row"><h3 style="margin:0">همه سوالات</h3><span class="sp"></span><span class="badge brand">۳ از ۶ پاسخ داده</span></div>
+        <div class="stack sm mt">
+          <div class="opt-row"><span class="badge ok">✓</span><div style="flex:1"><b>نام و نام خانوادگی</b><div class="muted">سارا محمدی</div></div><button class="btn sm ghost">✏️</button></div>
+          <div class="opt-row"><span class="badge ok">✓</span><div style="flex:1"><b>شماره موبایل</b><div class="muted">۰۹۱۲***۸۷۶</div></div><button class="btn sm ghost">✏️</button></div>
+          <div class="opt-row"><span class="badge ok">✓</span><div style="flex:1"><b>کد ملی</b><div class="muted">۱۲۳۴۵۶۷۸۹۰</div></div><button class="btn sm ghost">✏️</button></div>
+          <div class="opt-row" style="border-color:var(--brand)"><span class="badge brand">۴</span><div style="flex:1"><b>سطح تجربه</b><div class="muted">در حال پاسخ…</div></div></div>
+          <div class="opt-row"><span class="badge plain">۵</span><div style="flex:1"><b>کدام کارگاه را گذرانده‌اید؟</b><div class="muted">🔀 شرطی</div></div></div>
+          <div class="opt-row"><span class="badge plain">۶</span><div style="flex:1"><b>انتخاب بلیت</b><div class="muted">💰 قیمت‌دار</div></div></div>
+        </div>
+        <button class="btn primary block mt" data-u="u5">▶️ ادامه و بررسی نهایی</button>
+      </div>
+
+      <!-- ═══ U5 — بررسی و فاکتور ═══ -->
+      <div class="screen" data-screen="u5">
+        <h3 style="margin:4px 0 10px">بررسی و تأیید</h3>
+        <div class="card tight">
+          <div class="stack sm">
+            <div class="row"><span class="muted">نام</span><span class="sp end">سارا محمدی</span></div>
+            <div class="row"><span class="muted">موبایل</span><span class="sp end">۰۹۱۲۳۴۵۶۸۷۶ <span class="badge ok">تأییدشده</span></span></div>
+            <div class="row"><span class="muted">کد ملی</span><span class="sp end">۱۲۳۴۵۶۷۸۹۰</span></div>
+            <div class="row"><span class="muted">سطح تجربه</span><span class="sp end">تازه‌کار</span></div>
+          </div>
+        </div>
+        <div class="card tight mt">
+          <h3>فاکتور</h3>
+          <div class="stack sm">
+            <div class="row"><span>بلیت عادی</span><span class="sp end">۴۵۰٬۰۰۰ ریال</span></div>
+            <div class="row"><span>تخفیف عضویت</span><span class="sp end" style="color:var(--ok)">−۵۰٬۰۰۰</span></div>
+            <div class="row" style="border-top:1px solid var(--line-2);padding-top:8px"><b>قابل پرداخت</b><span class="sp end"><b>۴۰۰٬۰۰۰ ریال</b></span></div>
+          </div>
+        </div>
+        <label class="row mt-s" style="cursor:pointer"><input type="checkbox" checked/> <span class="muted">قوانین کارگاه را خواندم و می‌پذیرم</span></label>
+        <button class="btn primary block mt" data-u="u6">✅ تأیید و پرداخت</button>
+      </div>
+
+      <!-- ═══ U6 — پرداخت ═══ -->
+      <div class="screen" data-screen="u6">
+        <h3 style="margin:4px 0 10px">پرداخت ۴۰۰٬۰۰۰ ریال</h3>
+        <div class="seg" style="width:100%">
+          <button class="on">💳 کارت به کارت</button><button>🏦 کیف پول</button><button>🌐 درگاه</button>
+        </div>
+        <div class="card tight mt">
+          <p class="muted" style="margin:0 0 8px">مبلغ را به کارت زیر واریز کنید، سپس تصویر رسید را بفرستید.</p>
+          <div class="row"><code class="k" style="font-size:var(--fs-h3)">6104-3378-1234-5678</code><button class="btn sm">📋 کپی</button></div>
+          <div class="row mt-s"><span class="muted">به نام</span><span class="sp end">مؤسسهٔ خط زندگی</span></div>
+        </div>
+        <div class="card tight mt">
+          <label class="lbl">تصویر رسید</label>
+          <div style="border:1.5px dashed var(--line-2);border-radius:var(--r-md);padding:20px;text-align:center;background:var(--surface-2)">
+            <span style="font-size:26px">📎</span><div class="muted">برای انتخاب فایل بزنید</div>
+          </div>
+          <p class="muted mt-s">🏦 یا با کیف پول بله، در یک کلیک — بدون رسید.</p>
+        </div>
+        <div class="hint mt-s">🛡️ تأیید پرداخت دستی است؛ کارشناس بررسی می‌کند و به شما پیام می‌آید.</div>
+        <button class="btn primary block mt" data-u="u7">📤 ارسال رسید</button>
+      </div>
+
+      <!-- ═══ U7 — ثبت موفق ═══ -->
+      <div class="screen" data-screen="u7">
+        <div class="center">
+          <div style="font-size:44px">🎉</div>
+          <h2 style="margin:6px 0">ثبت‌نام شما دریافت شد</h2>
+          <p class="muted" style="margin:0">پس از تأیید کارشناس، بلیت و گواهینامه برایتان صادر می‌شود.</p>
+        </div>
+        <div class="card tight mt">
+          <div class="row"><span class="muted">کد پیگیری</span><span class="sp end"><code class="k">TL1307BVUC1981</code><button class="btn sm ghost">📋</button></span></div>
+          <div class="row mt-s"><span class="muted">وضعیت</span><span class="sp end"><span class="badge warn">در انتظار تأیید پرداخت</span></span></div>
+        </div>
+        <div class="row mt" style="justify-content:center"><div class="qr" role="img" aria-label="کیوآرکد پیگیری"></div></div>
+        <p class="muted center mt-s">این کد را نگه دارید؛ با آن بلیت و وضعیت ثبت‌نام را می‌بینید.</p>
+        <div class="row mt-s"><button class="btn block" data-u="u9">🎫 دیدن بلیت</button></div>
+        <div class="row mt-s"><button class="btn ghost block" data-u="u8">✏️ ویرایش پاسخ‌هایم</button></div>
+        <p class="muted center mt-s">📩 پیام تأیید در پیام‌رسان هم برایتان آمد.</p>
+      </div>
+
+      <!-- ═══ U8 — پاسخ من ═══ -->
+      <div class="screen" data-screen="u8">
+        <h3 style="margin:4px 0 10px">پاسخ من</h3>
+        <div class="card tight">
+          <p class="muted" style="margin:0 0 8px">سارا محمدی · کد TL1307BVUC1981 · ۱۴۰۵/۰۶/۲۱</p>
+          <div class="stack sm">
+            <div class="row"><span class="badge ok">تأییدشده</span><span class="sp"></span><span class="badge brand">🎓 گواهینامه صادر شد</span></div>
+          </div>
+        </div>
+        <div class="stack sm mt">
+          <div class="opt-row"><div style="flex:1"><b>نام و نام خانوادگی</b><div class="muted">سارا محمدی</div></div></div>
+          <div class="opt-row"><div style="flex:1"><b>سطح تجربه</b><div class="muted">تازه‌کار</div></div></div>
+          <div class="opt-row"><div style="flex:1"><b>انتخاب بلیت</b><div class="muted">بلیت عادی</div></div></div>
+        </div>
+        <p class="muted mt-s">تا پایان مهلت می‌توانید ویرایش کنید.</p>
+        <div class="row mt-s"><button class="btn">✏️ ویرایش پاسخ‌ها</button><button class="btn danger">🚪 انصراف از ثبت‌نام</button></div>
+        <p class="muted center mt-s">با انصراف، داده پاک نمی‌شود؛ فقط علامت «انصراف» می‌خورد.</p>
+      </div>
+
+      <!-- ═══ U9 — بلیت / گواهینامه ═══ -->
+      <div class="screen" data-screen="u9">
+        <div class="ticket">
+          <div class="row"><b>🎫 بلیت کارگاه فن بیان</b><span class="sp"></span><span class="badge ok">تأییدشده</span></div>
+          <div class="stack sm mt-s">
+            <div class="row"><span class="muted">به نام</span><span class="sp end">سارا محمدی</span></div>
+            <div class="row"><span class="muted">کد پیگیری</span><span class="sp end"><code class="k">TL1307BVUC1981</code></span></div>
+            <div class="row"><span class="muted">جلسه</span><span class="sp end">چهارشنبه ۱۴۰۵/۰۷/۰۸ — ۱۶:۰۰</span></div>
+          </div>
+          <div class="row mt" style="justify-content:center"><div class="qr" role="img" aria-label="کیوآرکد بلیت"></div></div>
+          <div class="row mt"><button class="btn sm">⬇️ دریافت تصویر</button><button class="btn sm ghost">➕ افزودن به تقویم</button></div>
+        </div>
+        <div class="ticket mt">
+          <div class="row"><b>🎓 گواهینامهٔ پایان دوره</b><span class="sp"></span><span class="badge gold">آماده</span></div>
+          <p class="muted" style="margin:8px 0 0">کد اعتبارسنجی: <code class="k">NT-1405-00412</code> — در صفحهٔ «استعلام گواهینامه» سایت قابل بررسی است.</p>
+          <div class="row mt-s"><button class="btn sm">⬇️ دانلود</button><button class="btn sm ghost">🆔 آیدی‌کارت دوره</button></div>
+        </div>
+        <p class="muted center mt-s">همان لحظهٔ تأیید کارشناس صادر می‌شود — نه دستی.</p>
+      </div>
+
+      <!-- ناوبری نمونه -->
+      <div class="pnav">
+        <button class="btn sm ghost" data-step="-1">◀️ مرحلهٔ قبل</button>
+        <button class="btn sm ghost" data-step="1">مرحلهٔ بعد ▶️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt" style="max-width:720px;margin-inline:auto">
+    <h3>یادداشت طراحی این سفر</h3>
+    <div class="grid g2 mt-s">
+      <div class="muted">✅ یک کار در هر صفحه — نه فهرست بلند و بی‌پایان</div>
+      <div class="muted">✅ پیشروی خودکار بعد از پاسخ + دکمهٔ قبلی همیشه در دسترس</div>
+      <div class="muted">✅ ذخیرهٔ خودکار؛ خروج ناگهانی داده را از بین نمی‌برد</div>
+      <div class="muted">✅ هر پیام خطا یک راه‌حل دارد، نه فقط «مجاز نیست»</div>
+      <div class="muted">✅ مبلغ، شرط‌ها و وضعیت‌ها همه از پیش دیده می‌شوند</div>
+      <div class="muted">✅ فونت ≥ ۱۲px و اندازهٔ لمسی ≥ ۴۴px در همهٔ دکمه‌ها</div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  const order = ['u1','u2','u3','u4','u5','u6','u7','u8','u9'];
+  const show = id => {
+    document.querySelectorAll('[data-screen]').forEach(s => s.classList.toggle('on', s.dataset.screen === id));
+    document.querySelectorAll('[data-u]').forEach(b => b.classList.toggle('on', b.dataset.u === id));
+    if (id !== 'u7' && id !== 'u8') window.scrollTo({top:0,behavior:'instant'});
+  };
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-u],[data-step]');
+    if (!t) return;
+    if (t.dataset.u) return show(t.dataset.u);
+    const cur = document.querySelector('[data-screen].on').dataset.screen;
+    const i = order.indexOf(cur) + Number(t.dataset.step);
+    if (i >= 0 && i < order.length) show(order[i]);
+  });
+})();
+</script>
+</body>
+</html>

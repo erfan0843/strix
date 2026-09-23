@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>نورا — سازندهٔ فرم (نمونهٔ UI اصولی)</title>
+<link rel="stylesheet" href="tokens.css"/>
+</head>
+<body>
+<div class="app">
+  <!-- ═══ ریل کنار (دسکتاپ) ═══ -->
+  <aside class="rail">
+    <div class="brand">
+      <span class="logo">📝</span>
+      <div><b>فرم‌ساز نورا</b><small>پنل مدیریت · نمونه</small></div>
+    </div>
+    <div class="nav-sep">فرم</div>
+    <button class="nav-item on" data-s="A1"><span class="ic">📋</span> فرم‌های من</button>
+    <button class="nav-item" data-s="A2"><span class="ic">➕</span> ساخت فرم جدید</button>
+    <button class="nav-item" data-s="A3"><span class="ic">🎛️</span> خانهٔ فرم</button>
+    <button class="nav-item" data-s="A4"><span class="ic">🧩</span> سوال‌ها و ترتیب</button>
+    <button class="nav-item" data-s="A6"><span class="ic">🔀</span> شرط نمایش</button>
+    <button class="nav-item" data-s="A7"><span class="ic">🔐</span> دسترسی و ورود</button>
+    <button class="nav-item" data-s="A8"><span class="ic">🎁</span> پرداخت و خروجی‌ها</button>
+    <div class="nav-sep">پاسخ‌ها</div>
+    <button class="nav-item" data-s="A9"><span class="ic">📊</span> پاسخ‌ها <span class="badge danger end">۴</span></button>
+    <button class="nav-item" data-s="A10"><span class="ic">📈</span> گزارش و تحلیل</button>
+    <div class="nav-sep">دسترسی‌ها</div>
+    <button class="nav-item" data-s="A11"><span class="ic">👥</span> کارشناسان و مجوزها</button>
+    <button class="nav-item" data-s="U1"><span class="ic">👁️</span> پیش‌نمایش سفر کاربر</button>
+  </aside>
+
+  <main class="main">
+    <!-- ═══════════ A1 — فهرست فرم‌ها ═══════════ -->
+    <section class="screen on" id="A1">
+      <div class="topbar">
+        <h1>فرم‌های من</h1>
+        <span class="muted">۷ فرم</span>
+        <span class="sp"></span>
+        <span class="chip">🔍 جستجو</span>
+        <span class="chip">🎛️ فیلتر</span>
+        <button class="btn primary" data-go="A2">➕ ساخت فرم جدید</button>
+      </div>
+
+      <div class="grid g4">
+        <div class="stat"><div class="n">۷</div><div class="l">کل فرم‌ها</div><div class="d">۵ فعال · ۲ پیش‌نویس</div></div>
+        <div class="stat"><div class="n">۱٬۲۴۸</div><div class="l">پاسخ دریافتی</div><div class="d">↗ ۹۶ در ۷ روز</div></div>
+        <div class="stat"><div class="n">۴</div><div class="l">منتظر تأیید</div><div class="d" style="color:var(--danger)">نیاز به بررسی</div></div>
+        <div class="stat"><div class="n">٪۶۱</div><div class="l">نرخ تکمیل</div><div class="d">↗ ۴٪ بهتر از ماه قبل</div></div>
+      </div>
+
+      <div class="card mt">
+        <div class="card head">
+          <div class="seg">
+            <button class="on">همه</button><button>فعال</button><button>پیش‌نویس</button><button>بایگانی</button>
+          </div>
+          <span class="sp"></span>
+          <span class="muted">مرتب‌سازی: تازه‌ترین</span>
+        </div>
+        <div class="stack sm mt">
+          <div class="opt-row">
+            <span style="font-size:18px">👤</span>
+            <div style="flex:1;min-width:0">
+              <b>ثبت‌نام کارگاه فن بیان</b>
+              <div class="muted">🔗 فقط با لینک · ۴۲۱ پاسخ · 💳 ۴۵۰٬۰۰۰ ریال</div>
+            </div>
+            <span class="badge ok">🟢 فعال</span>
+            <button class="btn sm" data-go="A9">📊 پاسخ‌ها</button>
+            <button class="btn sm" data-go="A4">🧩 سوال‌ها</button>
+            <button class="btn sm ghost" data-go="A3">🎛️</button>
+          </div>
+          <div class="opt-row">
+            <span style="font-size:18px">🏆</span>
+            <div style="flex:1;min-width:0">
+              <b>مسابقهٔ عکاسی پاییز</b>
+              <div class="muted">🌍 عمومی · ۳۱۲ پاسخ · جدول رتبه‌بندی فعال</div>
+            </div>
+            <span class="badge ok">🟢 فعال</span>
+            <button class="btn sm" data-go="A9">📊 پاسخ‌ها</button>
+            <button class="btn sm" data-go="A4">🧩 سوال‌ها</button>
+            <button class="btn sm ghost" data-go="A3">🎛️</button>
+          </div>
+          <div class="opt-row">
+            <span style="font-size:18px">✅</span>
+            <div style="flex:1;min-width:0">
+              <b>نظرسنجی کارگاه عکاسی</b>
+              <div class="muted">🔗 با لینک · ۲۸۸ پاسخ · ناشناس</div>
+            </div>
+            <span class="badge ok">🟢 فعال</span>
+            <button class="btn sm" data-go="A9">📊 پاسخ‌ها</button>
+            <button class="btn sm" data-go="A4">🧩 سوال‌ها</button>
+            <button class="btn sm ghost" data-go="A3">🎛️</button>
+          </div>
+          <div class="opt-row">
+            <span style="font-size:18px">📄</span>
+            <div style="flex:1;min-width:0">
+              <b>آزمون دورهٔ سواد رسانه</b>
+              <div class="muted">🧩 متصل به بخش «آموزش» · ۱۲۷ پاسخ · نمرهٔ قبولی ۷۰</div>
+            </div>
+            <span class="badge warn">📝 پیش‌نویس</span>
+            <button class="btn sm" data-go="A9">📊 پاسخ‌ها</button>
+            <button class="btn sm" data-go="A4">🧩 سوال‌ها</button>
+            <button class="btn sm ghost" data-go="A3">🎛️</button>
+          </div>
+        </div>
+        <div class="row mt">
+          <span class="muted">صفحهٔ ۱ از ۲</span><span class="sp"></span>
+          <button class="btn sm ghost">⬅️ قبلی</button><button class="btn sm ghost">بعدی ➡️</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A2 — ساخت فرم جدید ═══════════ -->
+    <section class="screen" id="A2">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A1">🔙</button>
+        <h1>ساخت فرم جدید</h1>
+        <span class="crumb">گام ۱ از ۳ · نوع فرم</span>
+      </div>
+      <div class="card">
+        <div class="progress-pill"><span>گام ۱</span><span class="bar" style="flex:1"><i style="width:33%"></i></span><span>۳</span></div>
+        <h2 class="mt-s">این فرم برای چه کاری است؟</h2>
+        <p class="muted">نوع فرم، امکانات ویژه‌اش را از قبل می‌چیند (نمره، جدول رتبه، کنترل موجودی و…). بعداً هم قابل تغییر است.</p>
+        <div class="grid g3 mt">
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">📝</span><div style="text-align:start"><b>پرسشنامه</b><div class="muted">سوال باز و بسته</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">✅</span><div style="text-align:start"><b>نظرسنجی</b><div class="muted">ناشناس + آمار</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">👤</span><div style="text-align:start"><b>ثبت‌نام</b><div class="muted">بلیت و پرداخت</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">🗳️</span><div style="text-align:start"><b>انتخابات</b><div class="muted">هر نفر یک رأی</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">📁</span><div style="text-align:start"><b>ثبت اطلاعات</b><div class="muted">بانک اطلاعاتی</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">🏆</span><div style="text-align:start"><b>مسابقه</b><div class="muted">امتیاز و رتبه</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">✋</span><div style="text-align:start"><b>حضور و غیاب</b><div class="muted">ثبت حضور جلسه</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">📄</span><div style="text-align:start"><b>آزمون</b><div class="muted">کلید و نمرهٔ خودکار</div></div></button>
+          <button class="opt-row" data-go="A4"><span style="font-size:20px">🛒</span><div style="text-align:start"><b>ثبت سفارش</b><div class="muted">کالا/خدمت + ارسال</div></div></button>
+        </div>
+        <div class="hint mt">💡 «کپی از فرم موجود» هم هست — یعنی ۹۰٪ فرم‌های تکراری در سه کلیک ساخته می‌شوند.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A3 — خانهٔ فرم ═══════════ -->
+    <section class="screen" id="A3">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A1">🔙</button>
+        <h1>ثبت‌نام کارگاه فن بیان</h1>
+        <span class="badge ok">🟢 فعال</span>
+        <span class="sp"></span>
+        <button class="btn sm" data-go="U1">👁️ پیش‌نمایش</button>
+        <button class="btn sm primary" data-go="A9">📊 پاسخ‌ها</button>
+      </div>
+      <div class="split">
+        <div class="stack">
+          <div class="card">
+            <h2>قیف فرم</h2>
+            <div class="funnel mt-s">
+              <div class="f"><span>بازدید لینک</span><span class="bar"><i style="width:100%"></i></span><b>۱٬۹۸۰</b></div>
+              <div class="f"><span>شروع پر کردن</span><span class="bar"><i style="width:74%"></i></span><b>۱٬۴۶۵</b></div>
+              <div class="f"><span>ثبت نهایی</span><span class="bar"><i style="width:29%"></i></span><b>۴۲۱</b></div>
+              <div class="f"><span>پرداخت‌شده</span><span class="bar"><i style="width:26%"></i></span><b>۳۸۷</b></div>
+            </div>
+            <p class="muted mt-s">۱۸۰ نفر فرم را نیمه‌کاره رها کرده‌اند — بیشترین ریزش روی سوال ۴ (کد ملی) است.</p>
+          </div>
+          <div class="card">
+            <h2>لینک و انتشار</h2>
+            <div class="row mt-s">
+              <input class="field" style="flex:1;min-width:220px" value="lifeline1.ir/f/fanbayan1405" readonly/>
+              <button class="btn sm">📋 کپی</button>
+              <button class="btn sm">📱 کیوآر</button>
+            </div>
+            <div class="row mt-s">
+              <button class="btn sm">⬇️ دریافت بنر</button>
+              <button class="btn sm">📤 انتشار در پیام‌رسان</button>
+              <button class="btn sm ghost">🔗 اتصال به رویداد</button>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <h3>وضعیت و دسترسی</h3>
+            <div class="stack sm">
+              <div class="row"><span>حالت انتشار</span><span class="sp end"></span><span class="badge brand">🔗 فقط با لینک</span></div>
+              <div class="row"><span>مهلت</span><span class="end muted">۱۴۰۵/۰۷/۳۰ — ۲۱ روز مانده</span></div>
+              <div class="row"><span>ظرفیت</span><span class="end muted">۶۰ از ۱۰۰</span></div>
+              <div class="row"><span>هر نفر یک بار</span><span class="end"><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>خروجی‌ها</h3>
+            <div class="stack sm">
+              <div class="row"><span>🎫 بلیت</span><span class="end"><span class="switch on"></span></span></div>
+              <div class="row"><span>🎓 گواهینامه</span><span class="end"><span class="switch on"></span></span></div>
+              <div class="row"><span>🆔 آیدی‌کارت</span><span class="end"><span class="switch"></span></span></div>
+              <div class="row"><span>🔗 وبهوک</span><span class="end"><span class="switch"></span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A4 — سازندهٔ سوال‌ها ═══════════ -->
+    <section class="screen" id="A4">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A3">🔙</button>
+        <h1>سوال‌ها و ترتیب</h1>
+        <span class="badge plain">۶ سوال</span>
+        <span class="sp"></span>
+        <span class="seg"><button class="on">ساخت</button><button data-go="U3">پیش‌نمایش</button></span>
+        <button class="btn primary" data-drawer="drawerField">➕ افزودن سوال</button>
+      </div>
+      <div class="split">
+        <div class="card">
+          <div class="stack sm">
+            <div class="opt-row"><span class="grip">⠿</span><span class="badge plain">۱</span>
+              <div style="flex:1;min-width:0"><b>نام و نام خانوادگی</b><div class="muted">منوی پروفایل · اجباری · بدون شرط</div></div>
+              <span class="badge brand">👤 شبکه</span>
+              <button class="btn sm ghost" data-drawer="drawerField">✏️</button>
+            </div>
+            <div class="opt-row"><span class="grip">⠿</span><span class="badge plain">۲</span>
+              <div style="flex:1;min-width:0"><b>شماره موبایل + تأیید کد</b><div class="muted">فقط رقم · ۱۱ رقم · ارسال کد پیامکی</div></div>
+              <span class="badge ok">✅ تأیید</span>
+              <button class="btn sm ghost" data-drawer="drawerField">✏️</button>
+            </div>
+            <div class="opt-row"><span class="grip">⠿</span><span class="badge plain">۳</span>
+              <div style="flex:1;min-width:0"><b>کد ملی</b><div class="muted">رقم کنترل · ۱۰ رقم</div></div>
+              <span class="badge plain">🆔 هویتی</span>
+              <button class="btn sm ghost" data-drawer="drawerField">✏️</button>
+            </div>
+            <div class="opt-row"><span class="grip">⠿</span><span class="badge plain">۴</span>
+              <div style="flex:1;min-width:0"><b>سطح تجربه</b><div class="muted">۳ گزینه · اجباری</div></div>
+              <span class="badge plain">⚪ تک‌انتخاب</span>
+              <button class="btn sm ghost" data-drawer="drawerField">✏️</button>
+            </div>
+            <div class="opt-row" style="border-inline-start:3px solid var(--brand)">
+              <span class="grip">⠿</span><span class="badge plain">۵</span>
+              <div style="flex:1;min-width:0"><b>کدام کارگاه را قبلاً گذرانده‌اید؟</b>
+                <div class="muted">🔀 فقط اگر «سطح تجربه» ≠ «تازه‌کار»</div></div>
+              <span class="badge warn">شرطی</span>
+              <button class="btn sm ghost" data-go="A6">🔀</button>
+            </div>
+            <div class="opt-row"><span class="grip">⠿</span><span class="badge plain">۶</span>
+              <div style="flex:1;min-width:0"><b>انتخاب بلیت</b><div class="muted">۳ نوع · با هزینه و ظرفیت · چندتایی</div></div>
+              <span class="badge gold">💰 قیمت‌دار</span>
+              <button class="btn sm ghost" data-drawer="drawerField">✏️</button>
+            </div>
+          </div>
+          <div class="hint mt">💡 با ⠿ جابه‌جا کنید — ترتیب خودکار ذخیره می‌شود. سوال شرطی همیشه بعد از سوال شرط می‌آید (سیستم اجازهٔ خلافش را نمی‌دهد).</div>
+        </div>
+
+        <div class="card">
+          <h3>افزودن سوال از کاتالوگ</h3>
+          <input class="field" placeholder="🔍 جستجو در ۷۸ نوع سوال…"/>
+          <div class="row mt-s">
+            <span class="chip on">پرکاربرد</span><span class="chip">👤 شخصی</span><span class="chip">📞 تماس</span>
+            <span class="chip">📝 سوال</span><span class="chip">⭐ امتیاز</span><span class="chip">📎 رسانه</span>
+            <span class="chip">💰 قیمت‌دار</span><span class="chip">📜 مقررات</span>
+          </div>
+          <div class="stack sm mt">
+            <button class="opt-row" data-drawer="drawerField"><span>➖</span><span style="flex:1;text-align:start">متن کوتاه</span><span class="muted">۲۰۰ نویسه</span></button>
+            <button class="opt-row" data-drawer="drawerField"><span>📄</span><span style="flex:1;text-align:start">متن چند خطی</span><span class="muted">۲٬۰۰۰ نویسه</span></button>
+            <button class="opt-row" data-drawer="drawerField"><span>☑️</span><span style="flex:1;text-align:start">چند انتخابی همزمان</span><span class="muted">با حداقل/حداکثر</span></button>
+            <button class="opt-row" data-drawer="drawerField"><span>🖼️</span><span style="flex:1;text-align:start">تصویر</span><span class="muted">سقف تعداد · فرمت</span></button>
+            <button class="opt-row" data-drawer="drawerField"><span>⭐</span><span style="flex:1;text-align:start">کیفیت — ستاره</span><span class="muted">۱ تا ۵</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A6 — شرط نمایش ═══════════ -->
+    <section class="screen" id="A6">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A4">🔙</button>
+        <h1>شرط نمایش سوال</h1>
+        <span class="crumb">سوال ۵</span>
+      </div>
+      <div class="card" style="max-width:620px">
+        <p class="muted">این سوال فقط وقتی به کاربر نشان داده می‌شود که شرط زیر برقرار باشد.</p>
+        <div class="grid g3 mt">
+          <div><label class="lbl">سوال مرجع</label>
+            <select class="field"><option>۴ — سطح تجربه</option><option>۱ — نام و نام خانوادگی</option></select></div>
+          <div><label class="lbl">عملگر</label>
+            <select class="field">
+              <option>مساوی نیست با ≠</option><option>مساوی است با =</option><option>شامل است ⊃</option>
+              <option>شامل نیست ⊅</option><option>بزرگ‌تر از &gt;</option><option>کوچک‌تر از &lt;</option>
+              <option>خالی است ∅</option><option>خالی نیست ✔</option>
+            </select></div>
+          <div><label class="lbl">مقدار</label>
+            <select class="field"><option>تازه‌کار</option><option>متوسط</option><option>حرفه‌ای</option></select></div>
+        </div>
+        <div class="hint mt">🔀 «اگر <b>سطح تجربه</b> مساوی نیست با <b>تازه‌کار</b> → این سوال را بپرس.»</div>
+        <div class="row mt">
+          <button class="btn primary" data-go="A4">✅ ذخیره و بازگشت</button>
+          <button class="btn ghost">حذف شرط</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A7 — دسترسی و ورود ═══════════ -->
+    <section class="screen" id="A7">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A3">🔙</button>
+        <h1>دسترسی و ورود</h1>
+      </div>
+      <div class="split">
+        <div class="stack">
+          <div class="card">
+            <h2>چه کسی فرم را ببیند؟</h2>
+            <div class="grid g2 mt-s">
+              <button class="opt-row"><span>🌍</span><div style="text-align:start"><b>عمومی</b><div class="muted">در فهرست فرم‌ها به همه</div></div></button>
+              <button class="opt-row sel" style="border-color:var(--brand);background:var(--brand-soft)"><span>🔗</span><div style="text-align:start"><b>فقط با لینک</b><div class="muted">در فهرست نیست</div></div></button>
+              <button class="opt-row"><span>🧩</span><div style="text-align:start"><b>متصل به بخش ربات</b><div class="muted">همکاری با ما، پشتیبانی…</div></div></button>
+              <button class="opt-row"><span>🔒</span><div style="text-align:start"><b>خصوصی با کد</b><div class="muted">کد دعوت یا افراد مجاز</div></div></button>
+            </div>
+          </div>
+          <div class="card">
+            <h2>شرط‌های ورود</h2>
+            <div class="stack sm">
+              <div class="row"><span>احراز هویت لازم است</span><span class="end"><span class="switch on"></span></span></div>
+              <div class="row"><span>پروفایل کامل (بالای ۷۰٪) لازم است</span><span class="end"><span class="switch"></span></span></div>
+              <div class="row"><span>هر نفر فقط یک بار</span><span class="end"><span class="switch on"></span></span></div>
+              <div class="row"><span>تأیید پاسخ توسط کارشناس</span><span class="end"><span class="switch on"></span></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <h3>بازه و ظرفیت</h3>
+            <div class="grid g2 mt-s">
+              <div><label class="lbl">شروع</label><input class="field" value="1405/07/01"/></div>
+              <div><label class="lbl">پایان</label><input class="field" value="1405/07/30"/></div>
+              <div><label class="lbl">ظرفیت</label><input class="field" value="۱۰۰"/></div>
+              <div><label class="lbl">لیست انتظار وقتی پر شد</label><select class="field"><option>روشن</option><option>خاموش</option></select></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>کاربر بعد از ثبت چه کند؟</h3>
+            <div class="seg mt-s"><button>👁️ فقط مشاهده</button><button class="on">✏️ ویرایش</button><button>🚪 انصراف</button><button>🔒 بسته</button></div>
+            <p class="muted mt-s">انصراف یعنی داده پاک نمی‌شود، فقط علامت می‌خورد — همان قاعده‌ای که در ربات هم داشتیم.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A8 — پرداخت و خروجی‌ها ═══════════ -->
+    <section class="screen" id="A8">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A3">🔙</button>
+        <h1>پرداخت و خروجی‌ها</h1>
+      </div>
+      <div class="split">
+        <div class="card">
+          <h2>پرداخت</h2>
+          <div class="stack sm">
+            <div class="row"><span>فرم پولی است</span><span class="end"><span class="switch on"></span></span></div>
+            <div class="row"><span>نمایش مبلغ در ابتدای فرم</span><span class="end"><span class="switch"></span></span></div>
+          </div>
+          <div class="grid g2 mt">
+            <div><label class="lbl">روش‌های مجاز</label>
+              <select class="field" multiple size="5">
+                <option selected>💳 کارت به کارت</option><option selected>🏦 کیف پول بله</option>
+                <option>🔗 درگاه سفارشی</option><option>🧾 اقساط (نورا پی)</option>
+              </select></div>
+            <div><label class="lbl">تأیید پرداخت</label>
+              <select class="field"><option>دستی (کارشناس تأیید کند)</option><option>خودکار</option></select>
+              <label class="lbl mt">سقف/کف محافظ</label>
+              <div class="row"><input class="field" value="۵۰٬۰۰۰" style="flex:1"/><input class="field" value="۲۰٬۰۰۰٬۰۰۰" style="flex:1"/></div>
+            </div>
+          </div>
+          <div class="hint mt">🛡️ همین دو عدد مانع فاجعهٔ «تایپ یک صفر اضافه» می‌شوند — در ربات هم داشتیم و در وب هم باید بماند.</div>
+        </div>
+        <div class="card">
+          <h2>خروجی پس از ثبت</h2>
+          <div class="stack sm">
+            <div class="row"><span>🎫 بلیت</span><span class="end"><span class="switch on"></span><select class="field" style="width:auto"><option>کلاسیک</option><option>شیشه‌ای</option><option>طلایی</option><option>مینیمال</option></select></span></div>
+            <div class="row"><span>🎓 گواهینامه</span><span class="end"><span class="switch on"></span><button class="btn sm">انتخاب قالب</button></span></div>
+            <div class="row"><span>🆔 آیدی‌کارت</span><span class="end"><span class="switch"></span></span></div>
+            <div class="row"><span>🔗 وبهوک</span><span class="end"><span class="switch"></span></span></div>
+            <div class="row"><span>🔀 گردش کار تأیید</span><span class="end"><span class="switch"></span></span></div>
+          </div>
+          <div class="mt"><label class="lbl">رخدادهای وبهوک</label><input class="field" value="completed, paid"/></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A9 — پاسخ‌ها ═══════════ -->
+    <section class="screen" id="A9">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A3">🔙</button>
+        <h1>پاسخ‌ها</h1>
+        <span class="badge danger">۴ منتظر تأیید</span>
+        <span class="sp"></span>
+        <button class="btn sm">📄 خروجی اکسل</button>
+        <button class="btn sm ghost">🏷️ برچسب‌ها</button>
+      </div>
+      <div class="card head">
+        <div class="seg"><button class="on">همه</button><button>تأییدشده</button><button>منتظر</button><button>نیمه‌کاره</button><button>انصراف</button></div>
+        <span class="sp"></span>
+        <input class="field" placeholder="🔍 جستجوی نام، کد پیگیری، موبایل" style="max-width:280px"/>
+      </div>
+      <div class="tbl-wrap mt">
+        <table class="tbl">
+          <thead><tr>
+            <th></th><th>کاربر</th><th>کد پیگیری</th><th>وضعیت</th><th>پرداخت</th><th>امتیاز</th><th>تاریخ</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" aria-label="انتخاب"/></td><td><b>سارا محمدی</b></td><td><code class="k">TL1307BVUC1981</code></td><td><span class="badge ok">تأییدشده</span></td><td>۴۵۰٬۰۰۰ ریال</td><td>۸۵</td><td>۱۴۰۵/۰۶/۲۱</td><td><button class="btn sm ghost">مشاهده</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="انتخاب"/></td><td><b>حسن کریمی</b></td><td><code class="k">TL1307XQPM4420</code></td><td><span class="badge warn">منتظر تأیید</span></td><td>رسید کارت‌به‌کارت</td><td>—</td><td>۱۴۰۵/۰۶/۲۱</td><td><button class="btn sm ok">تأیید</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="انتخاب"/></td><td><b>مریم احمدی</b></td><td><code class="k">TL1307LMNW7731</code></td><td><span class="badge ok">تأییدشده</span></td><td>🏦 کیف پول</td><td>۷۲</td><td>۱۴۰۵/۰۶/۲۰</td><td><button class="btn sm ghost">مشاهده</button></td></tr>
+            <tr><td><input type="checkbox" aria-label="انتخاب"/></td><td><b>رضا نوری</b></td><td><code class="k">TL1307PQRS2290</code></td><td><span class="badge plain">نیمه‌کاره</span></td><td>—</td><td>—</td><td>۱۴۰۵/۰۶/۱۹</td><td><button class="btn sm ghost">یادآوری</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted mt-s">صفحه‌بندی سمت سرور — هدف: جدول ۱٬۵۰۰ ردیفی زیر ۳۰۰ms.</p>
+    </section>
+
+    <!-- ═══════════ A10 — گزارش و تحلیل ═══════════ -->
+    <section class="screen" id="A10">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A3">🔙</button>
+        <h1>گزارش و تحلیل</h1>
+      </div>
+      <div class="grid g4">
+        <div class="stat"><div class="n">۴۲۱</div><div class="l">پاسخ کامل</div></div>
+        <div class="stat"><div class="n">۱۸۰</div><div class="l">نیمه‌کاره</div></div>
+        <div class="stat"><div class="n">۴:۳۲</div><div class="l">میانگین زمان تکمیل</div></div>
+        <div class="stat"><div class="n">۵۴٪</div><div class="l">موبایل / دسکتاپ</div></div>
+      </div>
+      <div class="split mt">
+        <div class="card">
+          <h2>تحلیل سوال ۴ — سطح تجربه</h2>
+          <div class="stack sm mt-s">
+            <div class="row"><span style="width:80px">تازه‌کار</span><span class="bar" style="flex:1"><i style="width:62%"></i></span><span class="muted">۲۶۱</span></div>
+            <div class="row"><span style="width:80px">متوسط</span><span class="bar" style="flex:1"><i style="width:29%"></i></span><span class="muted">۱۲۲</span></div>
+            <div class="row"><span style="width:80px">حرفه‌ای</span><span class="bar" style="flex:1"><i style="width:9%"></i></span><span class="muted">۳۸</span></div>
+          </div>
+          <div class="hint mt">💡 ۳۸ نفر (۹٪) با شرط پیش رفتند و سوال ۵ برایشان باز شد.</div>
+        </div>
+        <div class="card">
+          <h2>کیفیت پاسخ‌ها</h2>
+          <div class="stack sm mt-s">
+            <div class="row"><span>شماره‌های نامعتبر رد‌شده</span><span class="end muted">۷</span></div>
+            <div class="row"><span>کد ملی تکراری</span><span class="end muted">۲</span></div>
+            <div class="row"><span>برچسب «مشکوک»</span><span class="end muted">۵</span></div>
+            <div class="row"><span>میانگین امتیاز آزمون</span><span class="end muted">۸۵ از ۱۰۰</span></div>
+          </div>
+          <div class="row mt"><button class="btn sm">📄 خروجی اکسل ۶ شیتی</button><button class="btn sm ghost">📑 خروجی متنی</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ A11 — کارشناسان و مجوزها ═══════════ -->
+    <section class="screen" id="A11">
+      <div class="topbar">
+        <button class="btn sm ghost" data-go="A1">🔙</button>
+        <h1>کارشناسان و مجوزها</h1>
+        <span class="sp"></span>
+        <button class="btn primary">➕ افزودن کارشناس</button>
+      </div>
+      <div class="split">
+        <div class="card">
+          <h2>دسترسی این فرم</h2>
+          <div class="stack sm mt-s">
+            <div class="opt-row"><span class="badge brand">مالک</span><div style="flex:1"><b>مدیر کل</b><div class="muted">دسترسی کامل</div></div><button class="btn sm ghost">—</button></div>
+            <div class="opt-row"><span class="badge plain">ویرایشگر</span><div style="flex:1"><b>خانم رستگار</b><div class="muted">مشاهدهٔ پاسخ + تأیید + خروجی</div></div><button class="btn sm ghost">✏️</button></div>
+            <div class="opt-row"><span class="badge plain">بیننده</span><div style="flex:1"><b>آقای صادقی</b><div class="muted">فقط گزارش‌ها</div></div><button class="btn sm ghost">✏️</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>مجوزهای تفکیکی</h2>
+          <div class="stack sm mt-s">
+            <div class="row"><span>➕ ایجاد فرم</span><span class="end"><span class="switch on"></span></span></div>
+            <div class="row"><span>✏️ ویرایش فرم</span><span class="end"><span class="switch on"></span></span></div>
+            <div class="row"><span>📊 دیدن پاسخ‌ها</span><span class="end"><span class="switch on"></span></span></div>
+            <div class="row"><span>📤 خروجی گرفتن</span><span class="end"><span class="switch on"></span></span></div>
+            <div class="row"><span>🗑️ حذف فرم</span><span class="end"><span class="switch"></span></span></div>
+          </div>
+          <div class="hint mt">🔐 هر پنج مجوز سمت سرور بررسی می‌شود، نه در رابط کاربری. «کارشناس این فرم» با «کارشناس سازمان» دو چیز جدا هستند.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ═══ دراور ویرایش فیلد ═══ -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawerField" aria-label="ویرایش سوال">
+  <div class="topbar">
+    <h1 style="font-size:var(--fs-h3)">ویرایش سوال</h1><span class="sp"></span>
+    <button class="btn sm ghost" id="drawerClose">✕</button>
+  </div>
+  <div class="stack">
+    <div><label class="lbl">نوع سوال</label>
+      <select class="field"><option>⚪ چند گزینه‌ای (تک انتخاب)</option><option>➖ متن کوتاه</option><option>☑️ چند انتخابی</option><option>💰 قیمت‌دار</option></select></div>
+    <div><label class="lbl">عنوان سوال</label><input class="field" value="سطح تجربه"/></div>
+    <div><label class="lbl">توضیح زیر سوال (اختیاری)</label><input class="field" placeholder="یک خط راهنما برای کاربر"/></div>
+    <div><label class="lbl">گزینه‌ها</label>
+      <div class="stack sm">
+        <div class="opt-row"><span class="grip">⠿</span><input class="field" value="تازه‌کار" style="flex:1"/><button class="btn sm ghost">🗑️</button></div>
+        <div class="opt-row"><span class="grip">⠿</span><input class="field" value="متوسط" style="flex:1"/><button class="btn sm ghost">🗑️</button></div>
+        <div class="opt-row"><span class="grip">⠿</span><input class="field" value="حرفه‌ای" style="flex:1"/><button class="btn sm ghost">🗑️</button></div>
+      </div>
+      <button class="btn sm mt-s">➕ افزودن گزینه</button>
+    </div>
+    <div class="row"><span>اجباری</span><span class="end"><span class="switch on"></span></span></div>
+    <div class="row"><span>پاسخ از پروفایل کاربر پیشنهاد شود</span><span class="end"><span class="switch"></span></span></div>
+    <div class="card tight"><h3>پیش‌نمایش</h3>
+      <div class="qcard">
+        <div class="progress-pill"><span>سوال ۴ از ۶</span><span class="bar" style="flex:1"><i style="width:66%"></i></span></div>
+        <p style="font-weight:600; margin:10px 0 8px">سطح تجربه</p>
+        <div class="opt sel"><span class="mk">✓</span> تازه‌کار</div>
+        <div class="opt"><span class="mk"></span> متوسط</div>
+        <div class="opt"><span class="mk"></span> حرفه‌ای</div>
+      </div>
+    </div>
+    <div class="row"><button class="btn danger">حذف سوال</button><span class="sp"></span><button class="btn primary" id="drawerSave">ذخیره</button></div>
+  </div>
+</aside>
+
+<!-- ═══ نوار پایین موبایل ═══ -->
+<nav class="tabbar">
+  <button class="on" data-go="A1"><span class="ic">📋</span> فرم‌ها</button>
+  <button data-go="A4"><span class="ic">🧩</span> سوال‌ها</button>
+  <button data-go="A9"><span class="ic">📊</span> پاسخ‌ها</button>
+  <button data-go="A11"><span class="ic">👥</span> دسترسی</button>
+</nav>
+
+<script>
+(function(){
+  const show = id => {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('on', b.dataset.s === id));
+    document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.go === id));
+    window.scrollTo({top:0,behavior:'instant'});
+  };
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-go],[data-s],[data-drawer]');
+    if (!t) return;
+    if (t.dataset.go) return show(t.dataset.go);
+    if (t.dataset.s)  return show(t.dataset.s);
+    if (t.dataset.drawer){ document.getElementById('scrim').classList.add('on'); document.getElementById(t.dataset.drawer).classList.add('on'); }
+  });
+  const close = () => { document.getElementById('scrim').classList.remove('on'); document.getElementById('drawerField').classList.remove('on'); };
+  document.getElementById('scrim').onclick = close;
+  document.getElementById('drawerClose').onclick = close;
+  document.getElementById('drawerSave').onclick = close;
+  document.addEventListener('click', e => { const sw = e.target.closest('.switch'); if (sw) sw.classList.toggle('on'); });
+  document.addEventListener('click', e => { const seg = e.target.closest('.seg button'); if (seg){
+    seg.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on')); seg.classList.add('on'); } });
+  document.addEventListener('click', e => { const ch = e.target.closest('.chip'); if (ch) ch.classList.toggle('on'); });
+})();
+</script>
+</body>
+</html>
