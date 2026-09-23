@@ -8,6 +8,7 @@
    اجرا:
      node cert-render.mjs --cert out.png     (PNG اگر resvg باشد، وگرنه SVG)
      node cert-render.mjs --cert out.svg     (SVG، همیشه)
+     با سوییچ‌های اختیاری: --name --title --date --hours --code --serial --width
 
    پیش‌نیاز یک‌باره:
      pip install fonttools brotli resvg-py     (ورک‌اسپیس مجازی یا سیستمی)
@@ -93,10 +94,17 @@ open(sys.argv[3],'wb').write(bytes(png))`;
 
 if(process.argv[1]&&process.argv[1].endsWith('cert-render.mjs')){
   const args=process.argv.slice(2);
+  const val=(k,d)=>{const j=args.indexOf('--'+k); return j>=0&&args[j+1]?args[j+1]:d};
   const i=args.indexOf('--cert');
   const out=path.resolve(args[i+1]||'certificate.png');
-  const r=await certPNG({title:'کارگاه عکاسی مقدماتی',date:'جمعه ۲۱ شهریور ۱۴۰۵',
-    hours:'۲۴ ساعت',code:'TL1307BVUC1981',serial:'NL-T4K7M9X'});
+  const {width=1240,...fields}={
+    name:val('name','سارا محمدی'), title:val('title','کارگاه عکاسی مقدماتی'),
+    kind:val('kind','گواهینامهٔ پایان دوره'),
+    date:val('date','جمعه ۲۱ شهریور ۱۴۰۵'), hours:val('hours','۲۴ ساعت'),
+    code:val('code','TL1307BVUC1981'), serial:val('serial','NL-T4K7M9X'),
+    width:+val('width',1240)
+  };
+  const r=await certPNG(fields,{width});
   if(out.endsWith('.svg')){fs.writeFileSync(out,r.svg); console.log('SVG نوشته شد:',out,r.svg.length,'بایت');}
   else if(r.png){fs.writeFileSync(out,r.png); console.log('PNG نوشته شد:',out,Math.round(r.png.length/1024),'کیلوبایت');}
   else{

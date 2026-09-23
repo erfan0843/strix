@@ -22,13 +22,6 @@
   .ev .prc{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
   .ev .prc.free{color:var(--ok)}
   .ev.full .th{filter:saturate(.5) opacity(.85)}
-  .mini-chips{display:flex;gap:5px;flex-wrap:wrap}
-  .mini-chip{font-size:10.5px;height:20px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;
-    background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-2)}
-  .mini-chip.live{background:var(--stop-tint);border-color:transparent;color:var(--stop);font-weight:600}
-  .mini-chip.soon{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink);font-weight:600}
-  .mini-chip.ok{background:var(--ok-tint);border-color:transparent;color:var(--ok);font-weight:600}
-
 /* ══ جریان زنده ══ */
 .livecard{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);
   padding:14px;display:grid;gap:10px;margin-bottom:8px}

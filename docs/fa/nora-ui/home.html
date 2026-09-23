@@ -7,51 +7,9 @@
 <meta name="description" content="خانهٔ نورا — ویترین رویدادها، کارگاه‌ها، مطالب، اساتید و باشگاه کتاب‌خوانی گروه فرهنگی خط زندگی"/>
 <meta name="theme-color" content="#F5F3EE"/>
 <link rel="stylesheet" href="glass.css"/>
-<link rel="stylesheet" href="events.css"/>
+<link rel="stylesheet" href="nora.css"/>
 <style>
-  /* ══════════════ خانهٔ نورا — چیزهایی که فقط این صفحه لازم دارد ══════════════ */
-  .wrap{max-width:660px;margin:0 auto;padding:12px 12px calc(112px + var(--safe-b))}
-  .topbar .wrap{display:flex;align-items:center;gap:8px;padding-block:9px}
-  .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit;min-width:0}
-  .brand .mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;color:#fff;
-    font-weight:700;font-size:16px;background:linear-gradient(160deg,var(--brand),var(--brand-2));
-    box-shadow:0 6px 16px rgba(10,86,184,.28), 0 1px 0 rgba(255,255,255,.45) inset}
-  .brand .tx{display:grid;line-height:1.25;min-width:0}
-  .brand .tx b{font-size:var(--fs-sub);font-weight:700}
-  .brand .tx small{font-size:11.5px;color:var(--ink-3)}
-  .icon-btn{position:relative}
-  .icon-btn.avatar{width:34px;height:34px;border-radius:50%;font-size:13px;font-weight:600;
-    color:var(--brand-ink);background:var(--brand-tint);border-color:transparent}
-  .badge{position:absolute;top:-4px;inset-inline-end:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;
-    display:grid;place-items:center;background:var(--brand);color:#fff;font-size:10.5px;font-weight:700;
-    border:1.5px solid var(--surface);font-variant-numeric:tabular-nums}
-  .menubtn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:var(--r-pill);
-    border:.5px solid var(--hairline);background:var(--surface);cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink)}
-  .menubtn .i{width:17px;height:17px;color:var(--brand-ink)}
-
-  /* ── جست‌وجو ── */
-  .sfield{display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:var(--r-pill);
-    background:var(--surface-2);border:.5px solid var(--hairline);transition:border-color var(--t-fast) var(--ease)}
-  .sfield:focus-within{border-color:color-mix(in oklab,var(--brand) 55%,transparent);background:var(--surface)}
-  .sfield .i{width:18px;height:18px;color:var(--ink-4);flex:0 0 auto}
-  .sfield input{flex:1;min-width:0;border:0;background:none;outline:0;font:inherit;font-size:var(--fs-sub);
-    color:var(--ink);padding:10px 0}
-  .sfield input::placeholder{color:var(--ink-4)}
-
-  /* ── تگ‌ها ── */
-  .tagg{display:inline-flex;align-items:center;gap:5px;height:23px;padding:0 9px;border-radius:99px;
-    font-size:11px;font-weight:600;background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-2)}
-  .tagg .i{width:12.5px;height:12.5px}
-  .tagg.brand{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink)}
-  .tagg.star{background:var(--accent-tint);border-color:transparent;color:var(--accent-ink)}
-  .tagg.ok{background:var(--ok-tint);border-color:transparent;color:var(--ok)}
-  .tagg.warn{background:var(--warn-tint);border-color:transparent;color:var(--warn)}
-  .tagg.stop{background:var(--stop-tint);border-color:transparent;color:var(--stop)}
-  .tagg.pin{background:var(--ink);color:var(--surface);border-color:transparent}
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
-  .mon{background-image:var(--g);color:#fff;display:grid;place-items:center;font-weight:700;flex:0 0 auto}
-  .tagg.on{background:var(--brand);color:#fff;border-color:transparent}
-  .taggline{display:flex;gap:6px;flex-wrap:wrap}
 
   /* ── بنر (بالای صفحه) ── */
   .bwrap{position:relative;border-radius:var(--r-xl);overflow:hidden;background:var(--surface-sunk);
@@ -137,12 +95,6 @@
   .statstrip .s span{font-size:11px;color:var(--ink-3);line-height:1.5}
   @media (max-width:420px){.statstrip{grid-template-columns:repeat(2,1fr);gap:8px}}
   .srcline{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11.5px;color:var(--ink-3)}
-
-  /* ── سرتیتر بخش‌ها ── */
-  .sec{margin-top:16px}
-  .sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-  .sec-hd .fw{font-size:15.5px;font-weight:700;letter-spacing:-.2px}
-  .sec-hd .cap{font-size:var(--fs-cap)}
   .more{-webkit-appearance:none;appearance:none;display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-cap);
     color:var(--brand-ink);font-weight:600;background:none;border:0;cursor:pointer;padding:6px 2px;font-family:inherit}
 
@@ -168,9 +120,6 @@
   .pinb.on .i{animation:iPop .5s var(--spring)}
   .pcard.pinned{border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
   .pc-pin{position:absolute;top:10px;inset-inline-end:10px;z-index:2}
-
-  .dotpulse{width:6px;height:6px;border-radius:50%;background:currentColor;margin-inline-end:4px;
-    animation:pulse 1.6s var(--ease) infinite}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
 
   .daybar{display:flex;gap:8px;align-items:center;overflow:auto;padding-bottom:2px;margin-bottom:9px}
@@ -197,9 +146,6 @@
   .club .cl-hero .bk .cv .i{width:24px;height:24px}
   .club .cl-hero h3{margin:0;font-size:16.5px;font-weight:700;letter-spacing:-.2px}
   .club .cl-body{padding:14px;display:grid;gap:10px}
-  .suprow{display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--r-md);
-    background:var(--brand-tint);cursor:pointer;border:.5px solid transparent;font:inherit;color:inherit;text-align:start;width:100%}
-  .suprow:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
   .memberline{display:flex;align-items:center;gap:8px;font-size:var(--fs-sub);padding:7px 0;border-bottom:.5px solid var(--hairline-2)}
   .memberline:last-child{border-bottom:0}
   .memberline .i{width:16px;height:16px;color:var(--ink-4);flex:0 0 auto}
@@ -247,7 +193,6 @@
     padding:14px;display:grid;gap:10px}
   .livecard .ll{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--stop)}
   .livecard h3{margin:0;font-size:15px;font-weight:700}
-  .hrow{font-size:11.5px;color:var(--ink-2);line-height:1.85}
 
   /* ── نظرها ── */
   .voice{display:grid;gap:8px;padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface-2)}
@@ -255,8 +200,6 @@
   .voice .wt b{display:block;font-size:var(--fs-sub);font-weight:600}
   .voice .wt span{font-size:11px;color:var(--ink-3)}
   .voice p{margin:0;font-size:var(--fs-sub);color:var(--ink-2);line-height:1.85}
-  .stars{display:flex;gap:2px;color:var(--accent)}
-  .stars .i{width:13px;height:13px}
 
   /* ── پشتیبانی ── */
   .helprow{-webkit-appearance:none;appearance:none;display:flex;align-items:center;gap:11px;width:100%;text-align:start;
@@ -267,30 +210,6 @@
   .helprow .ht{flex:1;min-width:0}
   .helprow .ht b{display:block;font-size:var(--fs-sub);font-weight:600}
   .helprow .ht span{font-size:11.5px;color:var(--ink-3)}
-
-  /* ── پاصفحه ── */
-  .hfoot{margin-top:16px;padding:16px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface-2);
-    display:grid;gap:9px;font-size:11.5px;color:var(--ink-3);text-align:center}
-  .hfoot .fl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center}
-  .hfoot a{color:var(--brand-ink);text-decoration:none}
-  .hfoot .lrow{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:2px}
-
-  /* ── تب‌بار: سه تب ── */
-  .tabbar{grid-template-columns:repeat(3,1fr)}
-  .tabbar button{-webkit-appearance:none;appearance:none;border:0;background:none;cursor:pointer;font:inherit;
-    color:var(--ink-3);display:grid;justify-items:center;gap:3px;padding:8px 2px;border-radius:var(--r-md);
-    transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
-  .tabbar button .i{width:22px;height:22px}
-  .tabbar button small{font-size:11px}
-  .tabbar button.on{color:var(--brand-ink);background:var(--brand-tint)}
-  .tabbar button.on small{font-weight:600}
-
-  /* ── ورقه‌ها ── */
-  .srow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:.5px solid var(--hairline-2);font-size:var(--fs-sub)}
-  .srow:last-child{border-bottom:0}
-  .srow .i{width:18px;height:18px;color:var(--ink-4);flex:0 0 auto}
-  .srow .sp{flex:1}
-  .srow b{font-weight:600}
   .notif{display:flex;gap:10px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
   .notif .ni{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-tint);color:var(--brand-ink)}
   .notif.unread{background:var(--brand-tint);border-color:transparent}
@@ -307,8 +226,6 @@
   .accthead .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:700;
     background:linear-gradient(160deg,var(--brand),var(--brand-2));color:#fff;font-size:16px;overflow:hidden}
   .accthead .av img{width:100%;height:100%;object-fit:cover;display:block}
-  .empty{padding:18px;border-radius:var(--r-md);background:var(--surface-2);border:.5px dashed var(--hairline);
-    text-align:center;font-size:var(--fs-sub);color:var(--ink-3)}
 
   /* ── منوی نورا ── */
   .mhead{position:relative;border-radius:var(--r-lg);padding:14px;color:#fff;background-image:linear-gradient(150deg,#0A56B8,#123A7A 60%,#0B2447);
@@ -342,22 +259,9 @@
 
   /* ═════════ لایهٔ سومی: اندازهٔ آیکون، شیشهٔ اسکرول، استوری و کارت‌های تازه ═════════ */
   .i{width:24px;height:24px}
-  .btn .i{width:20px;height:20px}
-  .btn.sm .i{width:17px;height:17px}
-  .chip .i{width:17px;height:17px}
-  .tagg .i{width:13px;height:13px}
-  .tabbar button .i{width:27px;height:27px}
   .tile .ci{width:48px;height:48px;border-radius:16px}
   .tile .ci .i{width:25px;height:25px}
   .mrow .mi .i{width:20px;height:20px}
-  .srow .i{width:20px;height:20px}
-  .menubtn .i{width:18px;height:18px}
-  .icon-btn .i{width:21px;height:21px}
-  .topbar{transition:background-color .28s var(--ease),box-shadow .28s var(--ease),backdrop-filter .28s var(--ease)}
-  html:not(.atscroll) .topbar{background:color-mix(in oklab,var(--surface) 88%,transparent);
-    backdrop-filter:blur(7px) saturate(1.05);box-shadow:none}
-  html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
-    backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
   .storyrail{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x mandatory}
   .story{flex:0 0 134px;scroll-snap-align:start;-webkit-appearance:none;appearance:none;font:inherit;color:inherit;
     cursor:pointer;display:grid;gap:7px;padding:11px;border-radius:var(--r-lg);border:.5px solid var(--hairline);
@@ -415,13 +319,6 @@
   .voteopt .vt{display:grid}.voteopt .vt b{font-size:13px}.voteopt .vt span{font-size:10.5px;color:var(--ink-3)}
   .vbar{height:7px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;display:block}
   .vbar i{display:block;height:100%;background:var(--brand)}
-  .seg{display:inline-flex;gap:3px;padding:3px;border-radius:99px;background:var(--surface-sunk);
-    border:.5px solid var(--hairline);margin-bottom:12px}
-  .seg button{-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-    padding:7px 14px;border-radius:99px;border:0;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:600}
-  .seg button.on{background:var(--surface);color:var(--brand-ink);box-shadow:var(--sh-1)}
-  .seg .i{width:17px;height:17px}
-  .dim{opacity:.5}
   /* ── کارت استاد ── */
   .tcard{flex:0 0 244px;scroll-snap-align:start;display:grid;border-radius:var(--r-xl);overflow:hidden;
     border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
@@ -760,7 +657,6 @@
 
 <!-- ── ورقه‌ها ── -->
 <aside class="sheet" id="shMenu" role="dialog" aria-modal="false" aria-label="منوی نورا"><div id="menuBody"></div></aside>
-<aside class="sheet" id="shEvent" role="dialog" aria-modal="false" aria-label="جزئیات رویداد"><div id="evBody"></div></aside>
 <aside class="sheet" id="shPerson" role="dialog" aria-modal="false" aria-label="پروفایل"><div id="personBody"></div></aside>
 <aside class="sheet" id="shArticle" role="dialog" aria-modal="false" aria-label="مطلب"><div id="articleBody"></div></aside>
 <aside class="sheet" id="shClub" role="dialog" aria-modal="false" aria-label="باشگاه کتاب‌خوانی"><div id="clubBody"></div></aside>
@@ -1075,51 +971,6 @@ function evTagsHTML(e,max){
     +(e.cap&&l===0?'<span class="mini-chip soon">لیست انتظار</span>':(e.cap&&l<=5?'<span class="mini-chip soon">'+faN(l)+' جا مانده</span>':''))
     +'</span>';
 }
-function evRow(e){
-  const full=e.cap&&left(e)===0;
-  return `<button class="ev ${full?'full':''} ${isPinned('ev',e.id)?'pinned':''}" data-ev="${e.id}" aria-label="جزئیات ${esc(e.t)}">
-    <span class="th" style="--g:${e.g}"><svg class="i"><use href="#${e.icon}"/></svg></span>
-    <span class="bod">
-      <span class="ttl">${esc(e.t)}</span>
-      <span class="meta">${esc(e.when)} · ${esc(e.time)} · ${esc(e.place)}</span>
-      <span class="mini-chips"><span class="mini-chip">${esc(e.kind)}</span><span class="mini-chip">${esc(e.mode)}</span></span>
-      ${evTagsHTML(e,2)}
-    </span>
-    <span class="side">
-      <span class="prc ${e.price?'':'free'}">${e.price?rialTxt(e.price):'رایگان'}</span>
-      ${isPinned('ev',e.id)?'<span class="tagg pin" style="height:20px;font-size:10px">سنجاق</span>':''}
-      <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-    </span>
-  </button>`;
-}
-function evFeatured(e){
-  const full=e.cap&&left(e)===0;
-  return `<div class="pcard ${isPinned('ev',e.id)?'pinned':''}">
-    <div class="pc-cov" style="--g:${e.g}">
-      <div class="pc-tags"><span class="tagg tag-g">${esc(e.kind)}</span>${(e.tags||[]).includes('پیشنهادی')?'<span class="tagg tag-g">پیشنهادی</span>':''}</div>
-      <svg class="i"><use href="#${e.icon}"/></svg>
-      <button class="pinb pc-pin ${isPinned('ev',e.id)?'on':''}" data-pin="ev:${e.id}" aria-label="سنجاق کردن ${esc(e.t)}" title="سنجاق"><svg class="i"><use href="#i-pin"/></svg></button>
-    </div>
-    <div class="pc-body">
-      <span class="pc-ttl">${esc(e.t)}</span>
-      <span class="pc-meta">${esc(e.when)} · ${esc(e.time)}<br/>${esc(e.place)}</span>
-      <div class="authrow">${av(e.tchr)}<span>${esc(person(e.tchr).n)}</span></div>
-      ${evTagsHTML(e,3)}
-      ${e.cap?`<div class="bar" aria-hidden="true"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>`:''}
-    </div>
-    <div class="pc-foot">
-      <span class="prc ${e.price?'':'free'}" style="font-weight:700">${e.price?rialTxt(e.price):'رایگان'}</span>
-      <span class="sp" style="flex:1"></span>
-      <button class="btn sm quiet" data-ev="${e.id}">${full?'لیست انتظار':'جزئیات'}</button>
-    </div>
-  </div>`;
-}
-function renderEvents(){
-  const order=EVENTS.slice().sort((a,b)=>((b.pin||isPinned('ev',b.id))?1:0)-((a.pin||isPinned('ev',a.id))?1:0));
-  $('#evTop').innerHTML=order.slice(0,3).map(evMini).join('');
-  $('#evCount').textContent='سه برنامهٔ نزدیک از '+faN(EVENTS.length);
-  renderSearch();
-}
 /* ═════════ استوری‌های کوتاه ═════════ */
 function renderStories(){
   $('#stories').innerHTML=`<div class="sec-hd"><span class="fw">استوری‌های کوتاه</span><span class="sp"></span><span class="cap">۳۰ ثانیه‌های نورا</span></div>
@@ -1178,9 +1029,16 @@ function evMini(e){
     <span class="e3t"><b>${esc(e.t)}</b><span class="hrow">${esc(e.when)} · ${esc(e.time)}</span></span>
     <span class="tagg ${pin?'star':(full?'stop':'ok')}">${esc(tag)}</span>
     <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-  </button>`;
+  </a>`;
 }
 
+
+function renderEvents(){
+  const order=EVENTS.slice().sort((a,b)=>((b.pin||isPinned('ev',b.id))?1:0)-((a.pin||isPinned('ev',a.id))?1:0));
+  $('#evTop').innerHTML=order.slice(0,3).map(evMini).join('');
+  $('#evCount').textContent='سه برنامهٔ نزدیک از '+faN(EVENTS.length);
+  renderSearch();
+}
 
 /* ═════════ برگزارشده‌ها ═════════ */
 function renderPast(){
@@ -1386,40 +1244,6 @@ function renderMenu(){
       <div>۰۲۱–۸۸۸۸۱۲۳۴ · info@lifeline1.ir</div>
       <div><button class="more" data-href="form.html">راهنمای ثبت‌نام در یک نگاه<svg class="i" style="width:14px;height:14px"><use href="#i-chev-left"/></svg></button></div>
     </div>`;
-}
-
-function renderEventSheet(){
-  const e=ev(S.ev); if(!e.id) return;
-  const l=left(e), full=e.cap&&l===0, p=person(e.tchr);
-  $('#evBody').innerHTML=sheetHead(esc(e.kind)+' · '+esc(e.mode),'کد رویداد '+e.id.toUpperCase())+`
-    <div class="row tight" style="margin-bottom:8px">
-      <span class="tag brand">${esc(e.kind)}</span><span class="tag">${esc(e.mode)}</span>
-      ${(e.tags||[]).map(t=>`<span class="tag accent">${esc(t)}</span>`).join('')}
-      ${e.live?'<span class="tag stop">همین حالا در حال برگزاری</span>':''}
-      ${full?'<span class="tag warn">ظرفیت تکمیل</span>':''}</div>
-    <h3 style="margin:2px 0 6px;font-size:17px">${esc(e.t)}</h3>
-    <button class="suprow" data-person="${p.id}" style="margin-bottom:10px">
-      ${av(p.id,'ava')}<span style="flex:1;min-width:0"><b class="sub">${esc(p.n)}</b>
-        <div class="hrow">${esc(p.r)} — پروفایل مدرس</div></span>
-      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-    <div class="stack tight" style="margin:8px 0 12px">
-      <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">${esc(e.when)}</span><b>ساعت ${esc(e.time)}</b></div>
-      <div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${esc(e.place)}</span></div>
-      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span>
-        <b>${e.price?rialTxt(e.price):'رایگان'}</b></div>
-    </div>
-    ${e.cap?`<div class="bar" aria-hidden="true"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
-      <div class="cap" style="margin-top:7px">${full?'ظرفیت تکمیل — ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(l)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
-    <p class="sub" style="margin-top:12px">${esc(e.d)}</p>
-    ${e.parts?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
-    ${e.price?`<div class="moneyline t" style="margin-top:12px"><span>مبلغ ثبت‌نام</span><span class="num">${money(e.price)}</span></div>`:''}
-    <div class="row" style="margin-top:8px">
-      ${full?`<button class="btn primary" data-wait="${e.id}"><svg class="i"><use href="#i-clock"/></svg> ثبت‌نام در لیست انتظار</button>`
-            :`<a class="btn primary" href="form.html"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`}
-      <button class="btn quiet" data-share="${e.id}"><svg class="i"><use href="#i-link"/></svg> کپی لینک رویداد</button>
-      <button class="pinb ${isPinned('ev',e.id)?'on':''}" data-pin="ev:${e.id}" style="width:38px;height:38px" aria-label="سنجاق"><svg class="i"><use href="#i-pin"/></svg></button>
-    </div>
-    <p class="cap" style="margin-top:10px">با درگاه رسمی بله همان لحظه قطعی می‌شود؛ کارت‌به‌کارت بعد از تأیید کارشناس.</p>`;
 }
 
 function renderPersonSheet(){
@@ -1738,7 +1562,7 @@ function openF(id){
 function personSheet(id){S.person=id; renderPersonSheet(); openSheet('shPerson')}
 function articleSheet(id){S.article=id; renderArticleSheet(); openSheet('shArticle')}
 function partnerSheet(id){S.partner=id; renderPartnerSheet(); openSheet('shPartner')}
-function eventSheet(id){S.ev=id; renderEventSheet(); openSheet('shEvent')}
+function eventSheet(id){location.href='events.html?ev='+encodeURIComponent(id)}
 function log(w){try{const k='nora-home-log'; const a=JSON.parse(localStorage.getItem(k)||'[]');
   a.unshift({w:w,at:nowFa()}); localStorage.setItem(k,JSON.stringify(a.slice(0,30)))}catch(e){}}
 
@@ -1870,6 +1694,11 @@ function openHash(){
   const h=location.hash.replace('#','');
   if(!h) return;
   if(h==='me'){openF('shAccount'); return}
+  if(h==='menu'){openF('shMenu'); return}
+  if(h==='notice'){openF('shNotice'); return}
+  if(h==='verify'){openF('shVerify'); return}
+  if(h==='faq'){openF('shFaq'); return}
+  if(h==='support'){openF('shSupport'); return}
   if(h.startsWith('p=')){personSheet(h.slice(2)); return}
   if(h.startsWith('ev=')){location.href='events.html?ev='+encodeURIComponent(h.slice(3)); return}
 }

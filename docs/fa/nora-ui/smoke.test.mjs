@@ -582,6 +582,7 @@ async function load(file,store,q){
   /* برگزارشده‌ها، برچسب درخواست گواهینامه، نمای فعالیت */
   ok(p.all('#pastList .pastcard').length===4,'چهار کارگاه برگزارشده');
   ok(p.txt('#pastList').includes('درخواست گواهینامه'),'دکمهٔ درخواست گواهینامه (نه صدور خودکار)');
+  ok(p.doc.querySelector('#shEvent')===null,'خانه ورقهٔ رویداد هم ندارد — همه‌چیز رویداد در صفحهٔ خودش است');
   ok(p.txt('#pastList').includes('تماشای ضبط') && p.txt('#pastList').includes('جزوهٔ دوره'),'ضبط و جزوه در برگزارشده‌ها');
   ok(p.all('#actBox .minibars i').length===12,'نمای فعالیت: دوازده ستون ماهانه');
   p.click('#pastList .pastcard [data-sheetdl]');
@@ -715,6 +716,21 @@ async function load(file,store,q){
   ok(p.all('#hstats .s').length===5,'نوار آمار: چهار ستون + ردیف رایگان‌ها');
   ok(p.all('#liveList .livecard').length===2,'جریان زنده در صفحهٔ رویدادها');
   ok(p.txt('#liveList').includes('در حال برگزاری'),'یکی در حال برگزاری است');
+  /* پوستهٔ مشترک: نوار بالا و تب‌بار باید مو‌به‌مو مثل خانه باشند */
+  const shellHome=await load('home.html',makeStore());
+  const shape=pp=>pp.doc.querySelector('.topbar').innerHTML.replace(/>\s+</g,'><').replace(/\s+/g,' ').trim();
+  const hb=shape(shellHome), eb=shape(p);
+  ok(hb.includes('class="brand"')&&eb.includes('class="brand"'),'نوار بالا در هر دو صفحه نشان و نام یکسان دارد');
+  ok(hb.includes('menubtn')&&eb.includes('menubtn'),'دکمهٔ منو در هر دو صفحه هست');
+  ok(/icon-btn avatar/.test(hb)&&/icon-btn avatar/.test(eb),'آواتار حساب در هر دو صفحه هست');
+  ok(/badge/.test(hb)&&/badge/.test(eb),'نشان اعلان در هر دو صفحه هست');
+  const cls=sel=>[...sel.classList].sort().join('.');
+  ok(cls(shellHome.doc.querySelector('.tabbar'))===cls(p.doc.querySelector('.tabbar')),'تب‌بار دو صفحه یک کلاس و ساختار دارد');
+  ok(shellHome.all('.tabbar a,.tabbar button').length===3 && p.all('.tabbar a,.tabbar button').length===3,'هر دو تب‌بار سه تب');
+  ok(shellHome.txt('.tabbar')===p.txt('.tabbar'),'نام تب‌ها یکی است: '+p.txt('.tabbar'));
+  const links=pp=>[...pp.doc.querySelectorAll('link[rel=stylesheet]')].map(l=>l.getAttribute('href'));
+  ok(links(shellHome).includes('nora.css') && links(p).includes('nora.css'),'هر دو صفحه پوستهٔ مشترک nora.css را می‌خوانند');
+  ok(links(shellHome)[0]==='glass.css' && links(shellHome)[1]==='nora.css','ترتیب بارگذاری یکسان است');
   ok(p.txt('#hstats').includes('گواهی‌دار') && p.txt('#hstats').includes('آنلاین'),'آمار حالت‌ها هست');
   /* فهرست و صافی‌ها */
   ok(p.all('#evList .ev').length===11,'فهرست کامل: یازده رویداد');
