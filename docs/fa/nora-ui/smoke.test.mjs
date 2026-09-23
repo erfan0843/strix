@@ -26,6 +26,7 @@ async function load(file,store,q){
     ...(q?{url:'file://'+DIR+file+q}:{}),
     beforeParse(w){
       w.scrollTo=()=>{};
+      if(w.Element&&!w.Element.prototype.scrollIntoView) w.Element.prototype.scrollIntoView=()=>{};
       if(store) Object.defineProperty(w,'localStorage',{configurable:true,value:store});
       if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
       w.addEventListener('error',e=>errs.push('error: '+e.message));
@@ -536,64 +537,139 @@ async function load(file,store,q){
 {
   console.log('\n── خانه (home.html) ──');
   const p=await load('home.html',makeStore());
+  const H=p.window.NORA_HOME;
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
-  ok(p.doc.querySelectorAll('#bsdeck .bs').length===3,'سه بنر با تیتر و کنش');
-  ok(p.doc.querySelectorAll('#bdots i').length===3,'نقطه‌های بنر به تعداد بنرها');
-  ok(p.all('#evList .ev').length===11,'فهرست رویدادهای پیش‌رو پر است');
-  ok(p.all('#evList .ev')[0].tagName==='BUTTON','هر رویداد دکمهٔ واقعی است (صفحه‌کلید ذاتی)');
-  ok(p.txt('#evCount').includes('۱۱ رویداد'),'شمار رویدادها نوشته می‌شود');
-  ok(p.all('#catGrid .cattile').length===6,'شش موضوع');
-  ok(p.all('#archRail .hcard').length===3,'آرشیو ضبط‌شده');
-  ok(p.all('#voiceList .voice').length===3,'نظر شرکت‌کننده‌ها');
-  ok(p.all('#helpList .helprow').length===4,'ردیف‌های پشتیبانی و راهنما');
-  ok(p.all('#live .livecard').length===2,'جریان زنده و شروع نزدیک');
-  ok(p.doc.querySelector('#pin .pincard')!==null,'کارت سنجاق‌شدهٔ کارشناس');
-  ok(p.doc.querySelector('#tabs button[data-tab="home"]').className.includes('on'),'تب خانه فعال است');
-  ok(p.all('#tabs button').length===5,'پنج تب پایین صفحه');
-  ok(!/بلیت/.test(p.txt('body')),'هیچ وعدهٔ بلیتی در خانه نیست');
-  ok(p.doc.querySelector('#mine').innerHTML.includes('ورود / ساخت حساب'),'مهمان: کارت ورود به حساب');
-  /* صافی‌ها */
+  /* بنر بالای صفحه */
+  ok(p.all('#bsdeck .bs').length===3,'سه بنر با تیتر و کنش');
+  ok(p.all('#bdots i').length===3,'نقطه‌های بنر به تعداد بنرها');
+  ok(p.doc.querySelector('main.wrap > *').id==='bnr','بنر اولین چیز صفحه است (بالای هر بخش دیگر)');
+  ok(p.txt('#bsdeck').includes('باشگاه کتاب‌خوانی خط زندگی'),'بنر باشگاه کتاب‌خوانی هست');
+  p.click('[data-bnext]');
+  ok(H.S.slide===1,'بنر بعدی می‌رود');
+  p.click('[data-bs="2"]');
+  ok(H.S.slide===2,'با نقطهٔ بنر جابه‌جا می‌شود');
+  /* منوی سریع: هشت کاشی با آیکون زنده */
+  ok(p.all('#quick .tile').length===8,'هشت کاشی منوی سریع');
+  ok(p.all('#quick .tile .ci svg').length===8,'هر کاشی آیکون دارد');
+  ok(p.all('#quick .tile[data-anim]').filter(t=>t.dataset.anim).length>=3,'چند آیکون حرکت سبک دارند');
+  ok(/@keyframes iFloat/.test(p.doc.documentElement.innerHTML) || /iFloat/.test(p.doc.querySelector('style').textContent),'انیمیشن آیکون‌ها در صفحه هست');
+  p.click('[data-q="club"]');
+  ok(p.doc.querySelector('#shClub').className.includes('on'),'کاشی باشگاه، ورقهٔ باشگاه را باز می‌کند');
+  p.click('#shClub [data-close]');
+  /* صافی‌های سریع و روزها */
+  ok(p.all('#qTags .chip').length===5,'پنج صافی سریع');
+  p.click('[data-qt="گواهی‌دار"]');
+  ok(p.all('#evList .ev').length===3,'صافی «گواهی‌دار» سه رویداد');
+  p.click('[data-qt="all"]');
   p.click('[data-day="tomorrow"]');
   ok(p.all('#evList .ev').length===2,'صافی «فردا» دو رویداد');
   p.click('[data-day="all"]');
-  p.click('#quickCats [data-cat="workshop"]');
+  p.click('#catChips [data-cat="workshop"]');
   ok(p.all('#evList .ev').length===4,'صافی «کارگاه» چهار رویداد');
-  ok(p.doc.querySelector('#catGrid [data-cat="workshop"]').className.includes('on'),'کاشی موضوع هم روشن می‌شود');
-  p.click('#quickCats [data-cat="workshop"]');
-  ok(p.all('#evList .ev').length===11,'برداشتن صافی');
-  /* جست‌وجو */
+  p.click('#catChips [data-cat="workshop"]');
+  ok(p.all('#evList .ev').length===11,'برداشتن صافی روز و موضوع');
+  /* جست‌وجو در رویداد و مطلب */
   p.doc.querySelector('#q').value='عکاسی';
   p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
-  ok(p.all('#evList .ev').length===2,'جست‌وجو در نام رویداد و مدرس کار می‌کند');
+  ok(p.all('#evList .ev').length===2,'جست‌وجو در رویدادها (۲ عکاسی)');
+  ok(p.all('#artRail .pcard').length===1,'جست‌وجو در مطالب هم صافی می‌کند');
   p.click('#qClear');
-  ok(p.all('#evList .ev').length===11 && p.doc.querySelector('#qClear').hidden,'پاک کردن جست‌وجو');
-  /* ورقهٔ رویداد */
+  ok(p.all('#evList .ev').length===11 && p.all('#artRail .pcard').length===6,'پاک کردن جست‌وجو');
+  /* کارت حرفه‌ای رویداد */
+  ok(p.all('#evFeat .pcard').length>=3,'ریل رویدادهای پیشنهادی با کارت حرفه‌ای');
+  ok(p.doc.querySelector('#evFeat .pcard .pc-tags')!==null,'کارت رویداد تگ دارد');
   p.click('[data-ev="e3"]');
-  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ جزئیات باز شد');
-  ok(p.txt('#evBody').includes('کارگاه عکاسی در طبیعت'),'عنوان رویداد در ورقه');
+  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ رویداد باز شد');
   ok(p.txt('#evBody').includes('۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده (۲۴ − ۱۳)');
-  ok(/ریال/.test(p.txt('#evBody')) && /تومان/.test(p.txt('#evBody')),'مبلغ هم ریال و هم تومان');
+  ok(p.txt('#evBody').includes('مدرس')||p.txt('#evBody').includes('کیوان مرادی'),'مدرس با پروفایل در ورقه');
   ok(p.doc.querySelector('#evBody a.btn.primary').getAttribute('href')==='form.html','دکمهٔ ثبت‌نام به فرم کاربر می‌رود');
-  p.click('#evBody [data-close]');
+  p.click('#evBody suprow, #evBody .suprow');
+  ok(p.doc.querySelector('#shPerson').className.includes('on'),'از ورقهٔ رویداد به پروفایل مدرس می‌رود');
+  ok(p.txt('#personBody').includes('کیوان مرادی') && p.txt('#personBody').includes('۱۶ سال'),'پروفایل: نام و سابقه');
+  ok(p.txt('#personBody').includes('عکاسی مقدماتی'),'دوره‌های ایشان در پروفایل (برگزارشده هم می‌آید)');
+  p.click('#shPerson [data-close]');
+  p.click('#shEvent [data-close]');
   p.click('[data-ev="e8"]');
-  ok(p.txt('#evBody').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل گفته می‌شود');
+  ok(p.txt('#evBody').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل');
   p.click('#evBody [data-wait]');
   ok(p.txt('#toast').includes('لیست انتظار'),'ثبت در لیست انتظار پیام می‌دهد');
+  /* برگزارشده‌ها: ضبط و گواهینامه */
+  ok(p.all('#pastList .pastcard').length===4,'چهار کارگاه برگزارشده');
+  ok(p.all('#actBox .minibars i').length===12,'نمای فعالیت: دوازده ستون ماهانه');
+  ok(p.txt('#actBox').includes('۱٬۲۴۰') && p.txt('#actBox').includes('مهر پرکارترین ماه'),'نمای فعالیت: عددها و یادداشت');
+  ok(p.txt('#pastList').includes('تماشای ضبط') && p.txt('#pastList').includes('گواهینامهٔ من'),'ضبط و گواهینامه در برگزارشده‌ها');
+  p.click('#pastList .pastcard [data-download], #pastList [data-sheetdl]');
+  ok(p.txt('#toast').includes('جزوه'),'جزوهٔ دوره پیام می‌دهد');
+  /* باشگاه کتاب‌خوانی: سرپرست و کتاب ماه */
+  ok(p.txt('#club').includes('باشگاه کتاب‌خوانی'),'بلوک اختصاصی باشگاه');
+  ok(p.txt('#club').includes('مریم داوودی'),'سرپرست باشگاه با نام');
+  ok(p.txt('#club').includes('چراغ‌ها را من خاموش می‌کنم'),'کتاب ماه در بلوک باشگاه');
+  ok(p.txt('#club').includes('۷۲٪'),'درصد خواندن کتاب ماه');
+  p.click('#club [data-clubjoin]');
+  ok(p.doc.querySelector('#shAccount').className.includes('on')||p.txt('#toast').includes('باشگاه'),'عضویت مهمان را به ورود می‌برد');
+  p.click('[data-close]');
+  p.click('#club [data-f="shClub"]');
+  ok(p.all('#clubBody .srow').length>=6,'ورقهٔ باشگاه: قواعد و جلسه‌ها');
+  p.click('#clubBody [data-close]');
+  /* اساتید و دست‌اندرکاران */
+  ok(p.all('#peopleRail .pcard-person').length===6,'شش استاد در تب اساتید');
+  ok(p.doc.querySelector('#peopleRail .av')!==null,'کارت استاد جای عکس دارد');
+  p.click('[data-ptab="staff"]');
+  ok(p.all('#peopleRail .pcard-person').length===2,'تب دست‌اندرکاران: دو نفر');
+  p.click('[data-ptab="teacher"]');
+  p.click('#peopleRail [data-person="p1"]');
+  ok(p.doc.querySelector('#shPerson').className.includes('on'),'پروفایل استاد باز شد');
+  ok(p.txt('#personBody').includes('۳۳۳۳')===false && p.txt('#personBody').includes('الهه رضایی'),'نام استاد در پروفایل');
+  ok(p.txt('#personBody').includes('صدا ابزار کار است'),'جملهٔ استاد در پروفایل');
+  ok(p.txt('#personBody').includes('فن بیان مقدماتی'),'دوره‌های استاد فهرست شده');
+  p.click('#shPerson [data-close]');
+  p.click('#peopleRail [data-teach="p2"]');
+  ok(p.txt('#toast').includes('دوره‌های'),'دکمهٔ «دوره‌های ایشان» صافی می‌کند');
+  p.click('#evMore');
+  /* مطالب و مقالات */
+  ok(p.all('#artRail .pcard-ar').length===6,'شش مطلب و مقاله');
+  p.click('[data-article="a1"]');
+  ok(p.doc.querySelector('#shArticle').className.includes('on'),'ورقهٔ مطلب باز شد');
+  ok(p.txt('#articleBody').includes('هفت تمرین تنفس'),'تیتر مطلب در ورقه');
+  ok(p.txt('#articleBody').includes('فهرست کوتاه'),'فهرست کوتاه مطلب');
+  p.click('#articleBody [data-close]');
+  /* نهادهای همکار */
+  ok(p.all('#logoWall .logo').length===8,'هشت نهاد همکار با نشان');
+  ok(p.txt('#logoWall').includes('دانشگاه علوم پزشکی تهران'),'نام نهاد در دیوار نشان‌ها');
+  p.click('#logoWall [data-partner="o7"]');
+  ok(p.txt('#partnerBody').includes('بنیاد نیکوکاری مهر') && p.txt('#partnerBody').includes('۱۴۰۲'),'ورقهٔ نهاد همکار: نام و سال همکاری');
+  p.click('#partnerBody [data-close]');
+  ok(p.all('#footLogos .mon').length===6,'نشان نهادها در پاصفحه هم هست');
+  /* سنجاق کردن */
+  p.click('[data-pin="ev:e4"]');
+  ok(!p.doc.querySelector('#pins').hidden,'با سنجاق، بلند سنجاق‌شده‌ها می‌آید');
+  ok(p.txt('#pins').includes('سواد رسانه در خانواده'),'نام رویداد سنجاق‌شده بالا می‌آید');
+  ok(p.window.localStorage.getItem('nora-home-pins').includes('ev:e4'),'سنجاق در حافظهٔ مرورگر می‌ماند');
+  ok(p.doc.querySelector('#evList .ev[data-ev="e4"]').className.includes('pinned'),'رویداد سنجاق‌شده نشان می‌گیرد');
+  p.click('[data-clearpins]');
+  ok(p.doc.querySelector('#pins').hidden,'برداشتن همهٔ سنجاق‌ها');
+  /* منوی نورا */
+  p.click('.menubtn');
+  ok(p.doc.querySelector('#shMenu').className.includes('on'),'منوی نورا باز شد');
+  ok(p.all('#menuBody .mgroup').length===5,'منو پنج گروه دارد');
+  ok(p.all('#menuBody .mrow').length===21,'منو ۲۱ ردیف دارد');
+  ok(p.txt('#menuBody').includes('باشگاه کتاب‌خوانی') && p.txt('#menuBody').includes('اساتید و مربیان'),'باشگاه و اساتید در منو');
+  ok(p.all('#menuBody .mfoot .mon').length===8,'نهادهای همکار در پاصفحهٔ منو');
+  p.click('#menuBody [data-jump="people"]');
+  ok(!p.doc.querySelector('#shMenu').className.includes('on'),'ردیف منو ورقه را می‌بندد و می‌رود سر بخش');
   /* ورود و بخش‌های شخصی */
   p.click('#acctBtn');
   ok(p.doc.querySelector('#shAccount').className.includes('on') && p.doc.querySelector('#mob')!==null,'ورقهٔ ورود با شمارهٔ موبایل');
   p.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
   p.click('[data-login]');
-  ok(p.doc.querySelector('#code')!==null,'مرحلهٔ کد یک‌بارمصرف');
   p.doc.querySelector('#code').value='54321';
   p.click('[data-code]');
-  ok(p.window.NORA_HOME.S.user && p.window.NORA_HOME.S.user.name==='سارا محمدی','ورود با کد نمایشی انجام شد');
-  ok(p.txt('#mine').includes('ثبت‌نام بعدی')&&p.txt('#mine').includes('۳ روز مانده'),'بعد از ورود، بخش «برای تو» می‌آید');
-  ok(p.txt('#mine').includes('گواهینامهٔ من')&&/ریال/.test(p.txt('#mine')),'کارت گواهینامه و کیف پول');
+  ok(H.S.user && H.S.user.name==='سارا محمدی','ورود با کد نمایشی');
+  ok(p.txt('#mine').includes('برای تو، سارا') && p.all('#mine .pcard').length===6,'بعد از ورود، شش کارت شخصی');
+  ok(p.txt('#mine').includes('باشگاه کتاب‌خوانی'),'کارت باشگاه در بخش شخصی');
   ok(p.doc.querySelector('#bellBadge').textContent==='۲','نشان اعلان‌ها شمرده شد');
-  ok(p.txt('#clubLvl').includes('نقره‌ای'),'سطح باشگاه بعد از ورود');
   p.click('[data-close]');
-  /* استعلام گواهینامه */
+  /* استعلام گواهینامه، اعلان‌ها، پشتیبانی */
   p.click('#helpList [data-f="shVerify"]');
   p.doc.querySelector('#serial').value='nl-t4k7m9x';
   p.click('[data-verify]');
@@ -602,33 +678,32 @@ async function load(file,store,q){
   p.click('[data-verify]');
   ok(p.txt('#verifyBody').includes('ثبت نشده'),'سریال ناشناس رد می‌شود');
   p.click('[data-close]');
-  /* پرسش‌ها، پشتیبانی، دعوت، اعلان */
   p.click('#helpList [data-f="shFaq"]');
-  ok(p.all('#faqBody details.faq').length===5,'پرسش‌های پرتکرار');
+  ok(p.all('#faqBody details.faq').length===7,'هفت پرسش پرتکرار (شامل باشگاه کتاب)');
   p.click('[data-close]');
   p.click('#helpList [data-f="shSupport"]');
-  ok(p.doc.querySelector('#supBody textarea')!==null,'ورقهٔ پیام به پشتیبانی');
   p.doc.querySelector('#msg').value='سؤال دربارهٔ تأیید رسید';
   p.click('[data-send]');
   ok(p.txt('#toast').includes('ثبت شد'),'پیام پشتیبانی ثبت می‌شود');
   p.click('[data-close]');
-  p.click('[data-f="shInvite"]');
-  ok(/lifeline1\.ir\/i\//.test(p.txt('#inviteBody')),'لینک دعوت دوستان');
-  p.click('[data-close]');
-  p.click('[data-sheet="shNotice"]');
+  p.click('[data-f="shNotice"]');
   ok(p.all('#noticeBody .notif').length===3,'سه اعلان');
   p.click('[data-readall]');
   ok(p.doc.querySelector('#bellBadge').hidden,'خواندن همه، نشان را برمی‌دارد');
   p.click('[data-close]');
-  /* خروج */
-  p.click('#acctBtn');
+  /* جریان زنده، نظرها، پشتیبانی */
+  ok(p.all('#live .livecard').length===2,'جریان زنده و شروع نزدیک');
+  ok(p.all('#voiceList .voice').length===3,'سه نظر شرکت‌کننده');
+  ok(p.all('#helpList .helprow').length===4,'چهار ردیف پشتیبانی');
+  /* تب‌بار سه‌تایی */
+  ok(p.all('#tabs button').length===3,'تب‌بار سه تب دارد');
+  ok(p.all('#tabs button small').map(x=>x.textContent).join('|')==='خانه|رویدادها|حساب من','نام تب‌ها: خانه، رویدادها، حساب من');
+  p.click('#tabs [data-tab="me"]');
+  ok(p.doc.querySelector('#shAccount').className.includes('on'),'تب «حساب من» ورقهٔ حساب را باز می‌کند');
   p.click('[data-logout]');
-  ok(p.window.NORA_HOME.S.user===null && p.txt('#mine').includes('ورود / ساخت حساب'),'خروج از حساب');
-  /* بنر و پوسته */
-  p.click('[data-bnext]');
-  ok(p.window.NORA_HOME.S.slide===1,'بنر بعدی می‌رود');
-  p.click('[data-bs="0"]');
-  ok(p.window.NORA_HOME.S.slide===0,'با نقطهٔ بنر برمی‌گردد');
+  ok(H.S.user===null && p.txt('#mine').includes('ورود / ساخت حساب'),'خروج از حساب');
+  /* زبان و پوسته */
+  ok(!/بلیت/.test(p.txt('body')),'هیچ وعدهٔ بلیتی در خانه نیست');
   p.click('[data-theme-toggle]');
   ok(p.doc.documentElement.dataset.theme==='dark','شب و روز کار می‌کند');
 }
