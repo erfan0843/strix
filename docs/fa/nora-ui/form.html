@@ -272,7 +272,7 @@
     <div class="card paper guestcard" id="guestsCard" style="margin-top:12px">
       <div class="row" style="margin-bottom:2px">
         <div><div class="head">همراه می‌آوری؟</div>
-          <div class="cap">اختیاری — هر همراه بلیت و صندلی خودش را دارد.</div></div>
+          <div class="cap">اختیاری — هر همراه سهم پرداخت خودش را دارد.</div></div>
         <span class="sp"></span><span class="cap" id="countTxt">۱ نفر</span>
       </div>
       <div class="gchips" id="guestChips" style="margin-top:10px"></div>
@@ -317,7 +317,7 @@
         </button>
         <button class="opt" data-method="bale" aria-pressed="false">
           <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
-          <span style="flex:1;text-align:start"><b>درگاه رسمی بله</b><br><span class="cap">همان لحظه پرداخت؛ بلیت قطعی می‌شود</span></span>
+          <span style="flex:1;text-align:start"><b>درگاه رسمی بله</b><br><span class="cap">همان لحظه پرداخت؛ ثبت‌نام قطعی می‌شود</span></span>
           <svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg>
         </button>
       </div>
@@ -408,32 +408,15 @@
       <div class="stack tight">
         <div class="ticketline"><span class="mute">کد پیگیری</span><span class="num">TL1307BVUC1981</span></div>
         <div class="ticketline"><span class="mute">وضعیت</span><span class="tag warn">در انتظار تأیید رسید</span></div>
-        <div class="ticketline"><span class="mute">بلیت‌ها</span><span class="num" id="ticketCount">—</span></div>
+        <div class="ticketline"><span class="mute">پرداخت</span><span class="num" id="payDone">—</span></div>
       </div>
       <div class="card sunk" style="margin-top:12px">
         <div class="row"><svg class="i" style="color:var(--warn)"><use href="#i-bell"/></svg>
-          <span class="sub">بلیت تا تأیید کارشناس موقت است؛ اگر تأیید نشود باطل می‌شود و ثبت‌نام از ابتدا انجام می‌شود.</span></div>
+          <span class="sub">ثبت‌نام تا تأیید کارشناس موقت است؛ اگر تأیید نشود باطل می‌شود و ثبت‌نام از ابتدا انجام می‌شود.</span></div>
       </div>
-      <div id="receiptSlot" style="margin-top:14px"></div>
       <div class="row" style="margin-top:14px">
-        <button class="btn primary" data-go="u13"><svg class="i"><use href="#i-ticket"/></svg> دیدن بلیت‌ها</button>
         <button class="btn quiet" data-go="u11"><svg class="i"><use href="#i-pen"/></svg> ویرایش رسید</button>
       </div>
-    </div>
-  </section>
-
-  <!-- ═ ۱۳ بلیت‌ها، پیام، پیوندها ═ -->
-  <section class="screen" id="u13" style="margin-top:12px">
-    <div class="row" style="margin-bottom:10px">
-      <span class="head">بلیت‌های شما</span><span class="sp"></span>
-      <button class="btn sm" data-printall=".tk-wrap"><svg class="i"><use href="#i-print"/></svg> چاپ همه</button>
-    </div>
-    <div class="stack" id="tickets"></div>
-
-    <div class="card paper" style="margin-top:14px">
-      <div class="row"><svg class="i" style="color:var(--brand)"><use href="#i-send"/></svg>
-        <span><b class="sub">بلیت همیشه در دسترس است</b>
-        <div class="cap">در ربات نورا و پیام‌رسان بله، با کد پیگیری <span class="num">TL1307BVUC1981</span> یا شمارهٔ موبایل، همین بلیت را دوباره می‌گیرید.</div></span></div>
     </div>
 
     <div class="card paper" style="margin-top:12px">
@@ -464,7 +447,7 @@
     <div class="card paper">
       <div class="row">
         <span class="glass-thin" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center"><svg class="i lg" style="color:var(--stop)"><use href="#i-close"/></svg></span>
-        <div><div class="title tight">رسید تأیید نشد</div><div class="cap">بلیت باطل شد</div></div>
+        <div><div class="title tight">رسید تأیید نشد</div><div class="cap">ثبت‌نام باطل شد</div></div>
       </div>
       <hr class="hr"/>
       <p class="sub">دلیل کارشناس: «مبلغ واریزی با صورت‌حساب یکی نیست».</p>
@@ -495,7 +478,7 @@
   <div class="grabber"></div>
   <div class="row" style="align-items:center">
     <div><div class="head">دوستت را هم بیار</div>
-      <div class="cap">هر همراه بلیت و صندلی خودش را دارد؛ بقیهٔ پاسخ‌ها از تو می‌آید.</div></div>
+      <div class="cap">هر همراه سهم پرداخت خودش را دارد؛ بقیهٔ پاسخ‌ها از تو می‌آید.</div></div>
     <span class="sp"></span><span class="islot" id="buddyCount">همراه ۱ از ۱</span>
   </div>
   <div class="ichips" id="friendChips" style="display:none"></div>
@@ -515,7 +498,7 @@
   <div class="card sunk" style="margin-top:12px">
     <div class="row"><svg class="i"><use href="#i-wallet"/></svg>
       <span><b class="sub">مبلغ هر نفر در تعداد ضرب می‌شود</b>
-      <div class="cap">در صورت‌حساب و بلیت‌ها می‌بینی‌اش.</div></span></div>
+      <div class="cap">در صورت‌حساب می‌بینی‌اش.</div></span></div>
   </div>
   <button class="addperson" id="addFriend" style="margin-top:12px">
     <span class="big"><svg class="i"><use href="#i-plus"/></svg></span> افزودن این همراه
@@ -542,7 +525,6 @@ const CFG={
   code:'TL1307BVUC1981',
   cap:150,taken:110,
   questions:['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','شغل','تحصیلات','چطور ما را شناختید'],
-  ticketOn:true,
   fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:false,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
        {l:'کارگاه بدون گواهینامه',p:600000,off:0,on:false,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
        {l:'ناهار و پذیرایی',p:150000,off:0,on:false,req:false,d:''},
@@ -551,7 +533,6 @@ const CFG={
   coupon:{code:'NORA10',off:10,all:false},
   companion:{on:true,max:3,fields:'نام و موبایل'},
   cert:{on:true,mode:'auto',hours:'۲۴ ساعت'},
-  ticket:{style:'blue',parts:['title','date','venue','name','seat','no','code','qr','logo','note']},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan',i:'i-globe'},
          {t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan',i:'i-users'}],
@@ -662,28 +643,7 @@ function renderBill(){
   document.getElementById('payWords').textContent=tomanTxt(c.sum);
   document.getElementById('exactAmount').textContent=rialTxt(c.sum);
   document.getElementById('wordsAmount').textContent=tomanTxt(c.sum);
-  document.getElementById('ticketCount').textContent=faN(c.count)+' بلیت — '+(CFG.confirmed?'قطعی':'موقت');
-}
-function renderTickets(){
-  const c=calc(); let html='';
-  const box=document.getElementById('tickets');
-  if(!CFG.ticketOn){                                   /* سازنده بلیت را خاموش کرده */
-    if(box) box.innerHTML=`<div class="card sunk"><div class="row">
-      <svg class="i" style="color:var(--ink-3)"><use href="#i-ticket"/></svg>
-      <span><b class="sub">این رویداد بلیت ندارد</b>
-      <div class="cap">ثبت‌نام شما با کد پیگیری و رسید پرداخت پیگیری می‌شود.</div></span></div></div>`;
-    const tc=document.getElementById('ticketCount'); if(tc) tc.textContent='بدون بلیت';
-    return;
-  }
-  for(let i=0;i<c.count;i++){
-    const who=i===0?'سارا محمدی':((S.guests[i-1]&&S.guests[i-1].name)||'همراه');
-    html+=ticketHTML({style:CFG.ticket.style,parts:CFG.ticket.parts,
-      kind:i===0?'بلیت نفر اصلی':'بلیت همراه '+faN(i+1),
-      title:CFG.title,name:who,code:'TL1307BVUC19'+(81+i),no:faN(1245+i),
-      date:CFG.date,time:'۱۶:۰۰',venue:CFG.venue,seat:'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3),
-      confirmed:CFG.confirmed});
-  }
-  document.getElementById('tickets').innerHTML=html;
+  const pd=document.getElementById('payDone'); if(pd) pd.textContent=rialTxt(c.sum)+' — '+faN(c.count)+' نفر';
 }
 /* ── اعداد لندینگ از خودِ تنظیمات فرم ── */
 function renderFacts(){
@@ -698,7 +658,6 @@ function renderFacts(){
     CFG.cap?`<span class="tag ok"><span class="dot"></span> ${faN(left)} جا مانده</span>`:''
   ].join('');
   const perks=[];
-  if(CFG.ticketOn&&CFG.ticket.parts.includes('qr')) perks.push(['i-ticket','بلیت با کیوآرکد ورود']);
   if(fin.some(o=>/گواهی/.test(o.l))) perks.push(['i-medal','گواهینامهٔ پایان دوره']);
   if(CFG.maxPer>1) perks.push(['i-users','تا '+faN(CFG.maxPer)+' نفر می‌توانید ثبت‌نام کنید']);
   document.getElementById('evPerks').innerHTML=perks.map(([i,t])=>
@@ -707,7 +666,7 @@ function renderFacts(){
 
 /* ── پیش‌نویس: کاربر نیمه‌کاره که می‌رود، با همان لینک ادامه می‌دهد ── */
 const DKEY='nora:draft:'+CFG.slug;
-const DRAFT_SCREENS=['u2','u3','u4','u5','u6','u7','u8','u9','u10','u11','u12','u13'];
+const DRAFT_SCREENS=['u2','u3','u4','u5','u6','u7','u8','u9','u10','u11','u12'];
 const DRAFT_DAYS=30;   /* نوبت نیمه‌کاره بیش از یک ماه نمی‌ماند */
 function collectDraft(){
   const d={cur:cur,guests:S.guests,discount:S.discount,code:S.code,method:S.method,
@@ -747,24 +706,13 @@ function showResume(){
 }
 
 /* رسید پرداخت: همان چیزی که به کاربر و کارشناس نشان می‌دهیم */
-function renderReceipt(){
-  const c=calc();
-  const slot=document.getElementById('receiptSlot'); if(!slot) return;
-  const pending=S.method==='card'&&!CFG.confirmed;
-  slot.innerHTML=receiptHTML({
-    amount:c.sum, discount:c.dis, program:CFG.title,
-    when:ticketMeta(CFG.date,CFG.venue), payer:'سارا محمدی', method:S.method==='card'?'کارت‌به‌کارت':(S.method==='bale'?'درگاه رسمی بله':'—'),
-    at:nowFa(), ticket:shortCode(CFG.code),
-    track:CFG.code, state:pending?'wait':'ok',
-    payload:'https://lifeline1.ir/r/'+CFG.code});
-}
 /* گواهینامه — همان برگ تصویری که پنل و ربات می‌سازند */
 function renderCert(){
   const slot=document.getElementById('certSlot'); if(!slot) return;
   /* گارد دوباره‌چین: فقط اگر هم تنظیم فرم و هم کلید سازنده روشن باشد */
   if(!CERT_ON||!(CFG.cert&&CFG.cert.on)||typeof certificateSVG!=='function'){
     document.getElementById('u16').classList.remove('on');
-    if(cur==='u16') show('u13');
+    if(cur==='u16') show('u12');
     return;
   }
   slot.innerHTML=certificateSVG({name:'سارا محمدی',title:CFG.title,kind:'گواهینامهٔ پایان دوره',
@@ -782,16 +730,17 @@ function renderEnd(){
 /* ══ حرکت ══ */
 const CERT_ON=!!(CFG.cert&&CFG.cert.on);
 const ORDER=['u1','u2','u3','u4','u5','u6','u7']
-  .concat(['u8','u9','u10','u11','u12','u13'])
+  .concat(['u8','u9','u10','u11','u12'])
   .concat(CERT_ON?['u16']:[])
   .concat(['u14']);
 const QCOUNT=CFG.questions.length;
 const CAP={u1:'هفت پرسش',u2:'پرسش ۱ از ۷',u3:'پرسش ۲ از ۷',u4:'پرسش ۳ از ۷',u5:'پرسش ۴ از ۷',u6:'پرسش ۵ و ۶ از ۷',u7:'پرسش ۷ از ۷',
-  u8:'انتخاب شما',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u13:'بلیت‌ها',u16:'گواهینامه',u14:'باطل'};
-const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u8:100,u9:100,u10:100,u11:100,u12:100,u13:100,u16:100,u14:100};
-const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',u12:'دیدن بلیت‌ها',u13:'گواهینامه‌ام',u16:'بازگشت به بلیت‌ها'};
+  u8:'انتخاب شما',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u16:'گواهینامه',u14:'باطل'};
+const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u8:100,u9:100,u10:100,u11:100,u12:100,u16:100,u14:100};
+const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',
+  u12:CERT_ON?'گواهینامه‌ام':'',u16:'بازگشت'};
 const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:'u8',u8:'u9',
-  u13:CERT_ON?'u16':'u13',u16:'u13'};   /* u13 ⇒ گواهینامه ⇒ برگشت */
+  u12:CERT_ON?'u16':'u12',u16:'u12'};   /* ثبت شد ⇒ گواهینامه ⇒ برگشت */
 let cur='u1';
 function show(id){
   cur=id;
@@ -803,9 +752,8 @@ function show(id){
   document.getElementById('botbar').style.display=BTN[id]?'flex':'none';
   if(BTN[id]) document.getElementById('next').innerHTML=BTN[id]+' <svg class="i"><use href="#i-chev-left"/></svg>';
   if(id==='u8'){renderBuddy();renderBill();renderFin()}
-  if(id==='u12'){renderReceipt()}
+  if(id==='u12'){renderEnd();renderBill()}
   if(id==='u9'){renderPayGuests()}
-  if(id==='u13'){renderTickets();renderEnd();renderReceipt()}
   if(id==='u16'){renderCert()}
   if(DRAFT_SCREENS.includes(id)) saveDraft();
   window.scrollTo({top:0,behavior:'instant'});
@@ -819,7 +767,6 @@ document.getElementById('next').onclick=()=>{
   }
   if(cur==='u10') return show('u11');
   if(cur==='u11'){toast('رسید برای کارشناس رفت');return show('u12')}
-  if(cur==='u12') return show('u13');
   if(NEXT[cur]) show(NEXT[cur]);
 };
 document.getElementById('prev').onclick=()=>{const i=ORDER.indexOf(cur); if(i>0) show(ORDER[i-1])};
@@ -836,7 +783,7 @@ document.getElementById('addFriend').onclick=()=>{
     same:document.getElementById('sameOpt').classList.contains('on')});
   ['fName','fMobile','fEmail'].forEach(k=>document.getElementById(k).value='');
   renderBuddy(); renderBill(); saveDraft();
-  toast(n+' اضافه شد — بلیتش هم صادر می‌شود');
+  toast(n+' اضافه شد');
 };
 document.addEventListener('change',e=>{if(e.target.closest('.screen')&&cur!=='u1') saveDraft()});
 document.addEventListener('click',e=>{
@@ -858,10 +805,9 @@ document.addEventListener('click',e=>{
   const m=e.target.closest('[data-method]');
   if(m){S.method=m.dataset.method;
     document.querySelectorAll('[data-method]').forEach(x=>{x.classList.toggle('on',x===m);x.setAttribute('aria-pressed',x===m?'true':'false')});
-    document.getElementById('pickHint').textContent=m.dataset.method==='card'?'کارت‌به‌کارت: رسید را می‌فرستید و کارشناس تأیید می‌کند.':'درگاه بله: همان لحظه پرداخت و بلیت قطعی.';
+    document.getElementById('pickHint').textContent=m.dataset.method==='card'?'کارت‌به‌کارت: رسید را می‌فرستید و کارشناس تأیید می‌کند.':'درگاه بله: همان لحظه پرداخت و ثبت‌نام قطعی.';
     CFG.confirmed=(m.dataset.method==='bale');
-    document.getElementById('ticketCount').textContent=faN(calc().count)+' بلیت — '+(CFG.confirmed?'قطعی':'موقت');
-    renderBill();renderReceipt();
+    renderBill();
     show(m.dataset.method==='card'?'u10':'u12'); return}
   const o=e.target.closest('.opt:not([data-fin]):not([data-method])');
   if(o){o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');return}
@@ -899,7 +845,7 @@ document.getElementById('topTitle').textContent=CFG.title;
 document.getElementById('evTitle').textContent=CFG.title;
 document.getElementById('evMeta').textContent=ticketMeta(CFG.date,CFG.venue);
 document.title='نورا — '+CFG.title;
-renderFin();renderBuddy();renderBill();renderTickets();renderEnd();renderReceipt();renderFacts();showResume();show('u1');
+renderFin();renderBuddy();renderBill();renderEnd();renderFacts();showResume();show('u1');
 </script>
 </body>
 </html>

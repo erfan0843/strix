@@ -294,21 +294,6 @@
           </details>
 
           <details class="panel">
-            <summary><svg class="i"><use href="#i-ticket"/></svg> بلیت</summary>
-            <div class="pbody">
-              <div class="row"><span class="sub">صدور بلیت</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
-              <div class="row"><span class="sub" style="flex:1">این فرم بلیت داشته باشد</span>
-                <span class="switch on" id="ticketOn" role="switch" aria-checked="true" tabindex="0"></span></div>
-              <div class="mini" style="margin-bottom:6px">خاموش باشد، بلیت صادر نمی‌شود و ثبت‌نام با کد پیگیری و رسید ادامه می‌یابد.</div>
-              <div class="lbl" style="margin-top:2px">پوسته</div>
-              <div class="row tight" id="tkSkins"></div>
-              <div class="lbl" style="margin-top:6px">چیزهایی که روی بلیت چاپ شود</div>
-              <div class="row tight" id="tkParts"></div>
-              <div id="tkPreview" style="margin-top:12px"></div>
-            </div>
-          </details>
-
-          <details class="panel">
             <summary><svg class="i"><use href="#i-send"/></svg> ارسال به کارشناس</summary>
             <div class="pbody">
               <div class="row"><span class="sub">ارسال فعال</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
@@ -354,7 +339,7 @@
           </div>
 
           <div class="card">
-            <div class="head" style="margin-bottom:10px">تعداد بلیت</div>
+            <div class="head" style="margin-bottom:10px">تعداد نفرات</div>
             <div class="row" style="margin-bottom:12px">
               <span><b class="sub">«دوستاتم با خودت بیار»</b>
                 <div class="cap">افزودن همراه را برای شرکت‌کننده باز می‌کند. بسته باشد، در فرم چیزی نشان داده نمی‌شود.</div></span>
@@ -362,7 +347,7 @@
               <span class="switch" id="guestsOn" role="switch" aria-checked="false" tabindex="0"></span>
             </div>
             <div class="g2">
-              <div><label class="lbl" for="maxPer">هر کس چند بلیت می‌تواند بگیرد</label><input id="maxPer" class="input num" value="۳"/></div>
+              <div><label class="lbl" for="maxPer">هر کس چند نفر می‌تواند ثبت‌نام کند</label><input id="maxPer" class="input num" value="۳"/></div>
               <div><label class="lbl" for="compFields">اطلاعات همراهان</label>
                 <select id="compFields" class="input"><option>نام و موبایل</option><option>نام، موبایل، کد ملی</option><option>همان فیلدهای نفر اصلی</option></select></div>
             </div>
@@ -394,9 +379,9 @@
 
           <div class="card">
             <div class="head" style="margin-bottom:10px">تأیید پرداخت</div>
-            <div class="row"><span class="sub">با درگاه رسمی بله، بلیت قطعی است</span><span class="sp"></span><span class="tag ok">قطعی</span></div>
+            <div class="row"><span class="sub">با درگاه رسمی بله، ثبت‌نام قطعی است</span><span class="sp"></span><span class="tag ok">قطعی</span></div>
             <div class="row"><span class="sub">رسید کارت‌به‌کارت را کارشناس تأیید کند</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
-            <div class="row"><span class="sub">تأیید نشد ⇒ بلیت باطل، ثبت‌نام از ابتدا</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
+            <div class="row"><span class="sub">تأیید نشد ⇒ ثبت‌نام باطل، از ابتدا</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
           </div>
         </div>
 
@@ -543,7 +528,7 @@
 <script>
 /* ══ داده ══ */
 const MODELS=[
-  {k:'registration',ic:'i-users',tn:'ثبت‌نام',d:'بلیت و پرداخت'},
+  {k:'registration',ic:'i-users',tn:'ثبت‌نام',d:'ثبت‌نام و پرداخت'},
   {k:'questionnaire',ic:'i-lines',tn:'پرسشنامه',d:'پرسش باز و بسته'},
   {k:'survey',ic:'i-check',tn:'نظرسنجی',d:'بی‌نام و آمار'},
   {k:'contest',ic:'i-medal',tn:'مسابقه',d:'امتیاز و رتبه'},
@@ -626,7 +611,6 @@ const S={
   display:'one', dir:'rtl', after:'edit',
   start:'1405/07/01 — 08:00', end:'1405/07/30 — 23:45',
   cap:40, wait:20, limit:'event',
-  ticket:{on:true,style:'clear',parts:['title','date','venue','name','seat','no','code','qr','logo','note']},
   notify:{on:true,to:'کارتابل کارشناس',expert:'خانم رستگار — آموزش'},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan'},{t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan'}],
@@ -747,30 +731,6 @@ function renderLinks(){
       </div>
     </div>`).join('');
 }
-function renderTicket(){
-  const on=$('#ticketOn');
-  if(on){
-    const isOn=S.ticket.on!==false;
-    on.classList.toggle('on',isOn); on.setAttribute('aria-checked',isOn?'true':'false');
-    if(!on.dataset.wired){on.dataset.wired='1';
-      on.addEventListener('click',()=>{S.ticket.on=!on.classList.contains('on');renderTicket();renderReview();
-        toast(S.ticket.on?'بلیت روشن شد':'بلیت خاموش شد')});}
-  }
-  if(S.ticket.on===false){
-    $('#tkPreview').innerHTML=`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--warn)"><use href="#i-close"/></svg>
-      <span class="sub">بلیت خاموش است.</span></div></div>`;
-    return;
-  }
-  $('#tkSkins').innerHTML=Object.entries(TICKET_STYLES)
-    .map(([k,n])=>`<span class="chip ${S.ticket.style===k?'on':''}" data-tk="${k}" role="button" tabindex="0">${n}</span>`).join('');
-  $('#tkParts').innerHTML=Object.entries(TICKET_PARTS).map(([k,n])=>{
-    const on=S.ticket.parts.includes(k);
-    return `<span class="chip ${on?'on':''}" data-part="${k}"><svg class="i"><use href="#${k==='qr'?'i-qr':k==='code'?'i-key':k==='name'?'i-users':k==='date'?'i-calendar':k==='venue'?'i-pin':k==='seat'?'i-grid':k==='no'?'i-ticket':k==='logo'?'i-layers':'i-doc'}"/></svg> ${n}</span>`;
-  }).join('');
-  $('#tkPreview').innerHTML=ticketHTML({style:S.ticket.style,parts:S.ticket.parts,
-    kind:'بلیت ورود',title:S.title.replace('ثبت‌نام ',''),name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',
-    date:S.start,time:S.time||'۱۶:۰۰',venue:S.venue||'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۳ — صندلی ۱۷',confirmed:S.confirmed});
-}
 function renderPreview(){
   const per=S.fin.filter(f=>f.req||true).reduce((a,o)=>a+net(o),0)*0; /* مبلغ نهایی به انتخاب کاربر است */
   const one=S.fin[0]||{p:0,off:0};
@@ -794,10 +754,9 @@ function renderReview(){
     ['محدودیت',{none:'آزاد',event:'ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'}[S.limit]],
     ['موارد مالی',S.fin.map(f=>f.l+(f.d?' ('+f.d+')':'')+' — '+fa(net(f))+(f.req?' — اجباری':'')).join(' · ')||'رایگان'],
     ['گروه انتخاب',(S.groups||[]).map(g=>g.n+' ('+g.of.map(i=>S.fin[i]?S.fin[i].l:'?').join(' / ')+')'+(g.req?' — یکی اجباری':'')).join(' · ')||'—'],
-    ['تعداد بلیت',faN(S.maxPer)+' نفر'],
+    ['تعداد نفرات',faN(S.maxPer)+' نفر'],
     ['همراه‌آوردن',S.guestsOn?'باز':'بسته'],
     ['پرداخت',onM.join(' · ')],
-    ['بلیت',TICKET_STYLES[S.ticket.style]+' · '+faN(S.ticket.parts.length)+' بخش'],
     ['پیوندهای پایانی',faN(S.links.length)+' دکمه'],
     ['کارشناس',S.notify.expert]
   ];
@@ -917,11 +876,6 @@ document.addEventListener('click',e=>{
     if(i<S.fields.length-1){[S.fields[i+1],S.fields[i]]=[S.fields[i],S.fields[i+1]];renderCanvas()}return}
   const bl=e.target.closest('[data-block]'); if(bl){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return}
   const md=e.target.closest('[data-media]'); if(md){$$('#shField [data-media]').forEach(c=>c.classList.remove('on'));md.classList.add('on');return}
-  const pk=e.target.closest('[data-part]'); if(pk){const k=pk.dataset.part;
-    S.ticket.parts=S.ticket.parts.includes(k)?S.ticket.parts.filter(x=>x!==k):[...S.ticket.parts,k];
-    renderTicket();return}
-
-  const tk=e.target.closest('[data-tk]'); if(tk){S.ticket.style=tk.dataset.tk;$$('[data-tk]').forEach(c=>c.classList.remove('on'));tk.classList.add('on');renderTicket();return}
   const dr=e.target.closest('[data-dir]'); if(dr){S.dir=dr.dataset.dir;$$('[data-dir]').forEach(c=>c.classList.remove('on'));dr.classList.add('on');return}
   const sgd=e.target.closest('#segDisplay button'); if(sgd){[...sgd.parentElement.children].forEach(x=>x.classList.remove('on'));sgd.classList.add('on');S.display=sgd.textContent.includes('هر مرحله')?'one':'all';return}
   const sga=e.target.closest('#segAfter button'); if(sga){[...sga.parentElement.children].forEach(x=>x.classList.remove('on'));sga.classList.add('on');return}
@@ -948,7 +902,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#fdHelpDefault')){const f=S.fields.find(x=>x.id===editing);$('#fdHelp').value=HELP[f.t]||'';toast('راهنمای پیش‌فرض گذاشته شد');return}
   if(e.target.closest('#fdDelete')){S.fields=S.fields.filter(x=>x.id!==editing);closeSheets();renderCanvas();toast('حذف شد');return}
   if(e.target.closest('[data-close]')){saveField();closeSheets();toast('ذخیره شد');return}
-  if(e.target.closest('#publish')){$('#doneCard').style.display='block';S.confirmed=true;renderTicket();toast('فرم منتشر شد');return}
+  if(e.target.closest('#publish')){$('#doneCard').style.display='block';S.confirmed=true;toast('فرم منتشر شد');return}
   if(e.target.closest('#introMedia')){const order=['','image','file','video'];
     S.introMedia=order[(order.indexOf(S.introMedia)+1)%order.length];
     $('#introMediaLbl').textContent={ '':'رسانه','image':'تصویر','file':'فایل','video':'ویدیو' }[S.introMedia];
@@ -957,7 +911,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const i=e.target;
   if(i.id==='catSearch') return renderCatalog();
-  if(i.id==='fTitle'){S.title=i.value;$('#hdTitle').textContent=i.value;renderTicket()}
+  if(i.id==='fTitle'){S.title=i.value;$('#hdTitle').textContent=i.value;renderReview()}
   if(i.id==='fSlug'){S.slug=i.value;slugView()}
   if(i.id==='introText') S.intro=i.value;
   if(i.id==='endText') S.endText=i.value;
@@ -992,7 +946,7 @@ initUI();
     S.notify.expert=d.expert+' — '+d.n; S.dept=d.id;
     $('#deptHint').textContent='پیش‌فرض پیگیری و رسیدها: '+d.expert;};
   dp.addEventListener('change',fill); fill();})();
-/* سوئیچ «همراه‌آوردن» — روی خود عنصر، مثل بلیت (پیش از هندلر سراسری اجرا می‌شود) */
+/* سوئیچ «همراه‌آوردن» — روی خود عنصر (پیش از هندلر سراسری اجرا می‌شود) */
 (()=>{const g=$('#guestsOn'); if(!g) return;
   g.addEventListener('click',()=>{S.guestsOn=!g.classList.contains('on');renderPreview();renderReview();
     toast(S.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد')});})();
@@ -1000,7 +954,7 @@ $('#pkStart').innerHTML=pickHTML('datetime',S.start);
 $('#pkEnd').innerHTML=pickHTML('datetime',S.end);
 initAll(document);
 renderStepper();renderTiles();slugView();renderCatalog();applyPack('full');
-renderTicket();renderLinks();renderFin();renderPreview();renderReview();go('s1');
+renderLinks();renderFin();renderPreview();renderReview();go('s1');
 </script>
 </body>
 </html>

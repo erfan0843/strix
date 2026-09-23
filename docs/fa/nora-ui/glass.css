@@ -430,7 +430,6 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   .switch{height:34px}
   .switch::after{width:28px;height:28px;top:2.5px}
   .switch.on::after{inset-inline-start:17px}
-  .tk-acts .btn,.rc-acts .btn{min-height:44px}
   .paycard,.pick,.opt{padding-block:14px}
 }
 
@@ -619,13 +618,6 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   border-bottom:.5px solid var(--hairline-2)}
 .ticketline:last-child{border-bottom:0}
 .ticketline .sp{flex:1}
-/* ── بلیت و رسید: تصویری؛ خودِ تصویر سایه و گوشهٔ خودش را دارد ── */
-.tk-wrap,.rc-wrap{margin:0;display:grid;gap:10px}
-.tk-img,.rc-wrap .tk-img{display:block;line-height:0}
-.tk-img svg{width:100%;height:auto;display:block}   /* نه برش گوشه، نه سایهٔ دوباره */
-.tk-acts,.rc-acts{display:flex;gap:8px;flex-wrap:wrap}
-@media print{.tk-img{break-inside:avoid}}
-
 /* ── شناسنامهٔ فرم ── */
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:900px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -661,16 +653,11 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .timeline .t.future .dot2{background:var(--ink-4)}
 .reviewbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px;border-radius:var(--r-lg);background:var(--brand-tint)}
 
-/* ── چاپ: فقط همان بلیت یا رسید روی کاغذ ───────────────────────────────── */
+/* ── چاپ: گواهینامه بدون حاشیهٔ رابط روی کاغذ ───────────────────────────── */
 @media print{
   body{background:#fff;padding:0}
-  body>#printzone{display:block}
-  body>*:not(#printzone){display:none!important}
-  #printzone .tk-acts,#printzone .rc-acts{display:none!important}
   .no-print,.rail,.topbar,.botbar,.buddybar,.tabbar,.fab,.ctxbar,.scrim,.sheet,.toast,.actionbar,.steps{display:none!important}
   .shell{display:block;padding:0;max-width:none}
   .main{padding:0}
   .card{box-shadow:none}
-  .tk-wrap,.rc-wrap,.tk-img{break-inside:avoid;box-shadow:none}
-  .tk-img svg{box-shadow:none;border-radius:0}
 }

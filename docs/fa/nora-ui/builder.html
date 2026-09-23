@@ -210,7 +210,7 @@
 
       <div class="card sunk" style="margin-top:16px">
         <div class="row"><svg class="i"><use href="#i-shield"/></svg>
-          <span class="sub">هر فرم یک شناسنامه دارد: نوع، پیوند، بازه، ظرفیت، قطعه‌های مالی، بلیت و پیوندهای پایانی. تنظیمات فرم همیشه آخر همان صفحه است.</span></div>
+          <span class="sub">هر فرم یک شناسنامه دارد: نوع، پیوند، بازه، ظرفیت، قطعه‌های مالی و پیوندهای پایانی. تنظیمات فرم همیشه آخر همان صفحه است.</span></div>
       </div>
     </section>
 
@@ -288,7 +288,7 @@
       <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
         <div style="min-width:0">
           <div class="head tight">کارتابل رسیدها</div>
-          <div class="cap">رسیدهای کارت‌به‌کارت تا تأیید کارشناس، بلیت موقت است.</div>
+          <div class="cap">رسیدهای کارت‌به‌کارت تا تأیید کارشناس، ثبت‌نام موقت است.</div>
         </div>
         <span class="sp"></span>
         <span class="tag warn" id="kTop">—</span>
@@ -331,7 +331,7 @@
               <span class="cap" id="gwState"></span></div>
             <div class="stack tight" id="gwBox">
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">درگاه بله</b><div class="cap">قطعی — کارمزد ٪۰ — بلافاصله بلیت صادر می‌شود</div>
+                <div style="flex:1"><b class="sub">درگاه بله</b><div class="cap">قطعی — کارمزد ٪۰ — بلافاصله ثبت‌نام قطعی می‌شود</div>
                   <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
                     <span class="switch" data-rcauto="درگاه بله" role="switch" aria-checked="false"></span>
                     <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
@@ -411,13 +411,13 @@
 
       <div class="card paper" style="margin-top:12px">
         <div class="row" style="margin-bottom:8px"><span class="fw">ثبت ورود</span><span class="sp"></span>
-          <span class="cap">کد بلیت را از روی کیوآر بخوانید یا موبایل را بنویسید.</span></div>
+          <span class="cap">کد پیگیری را از روی کیوآر بخوانید یا موبایل را بنویسید.</span></div>
         <div class="row tight">
           <input class="input" id="attCode" style="flex:1;direction:ltr" placeholder="T4K7M9X یا ۰۹۱۲…"/>
           <button class="btn primary" id="attGo"><svg class="i"><use href="#i-check"/></svg> ثبت ورود</button>
         </div>
         <div class="row tight" style="margin-top:10px">
-          <button class="chip on" data-attmode="code">کد بلیت</button>
+          <button class="chip on" data-attmode="code">کد پیگیری</button>
           <button class="chip" data-attmode="manual">دستی از فهرست</button>
           <button class="chip" data-attmode="auto">خودکار (لینک جلسه)</button>
           <span class="sp"></span>
@@ -468,7 +468,7 @@
     <div><label class="lbl">پایان ثبت‌نام</label><div id="setEnd"></div></div>
     <div class="g2">
       <div><label class="lbl">ظرفیت</label><input class="input num" id="setCap" value="80"/></div>
-      <div><label class="lbl">هر نفر چند بلیت</label><input class="input num" id="setPer" value="3"/></div>
+      <div><label class="lbl">هر نفر چند نفر</label><input class="input num" id="setPer" value="3"/></div>
     </div>
     <div class="row"><div style="flex:1"><b class="sub">لیست انتظار</b><div class="cap">پر شدن ظرفیت، ثبت‌نام را به لیست انتظار می‌برد</div></div>
       <span class="switch on" id="setWait" role="switch" aria-checked="true"></span></div>
@@ -503,7 +503,7 @@
   <div class="head">رد رسید</div>
   <div class="card sunk" style="margin-top:10px">
     <div class="row"><svg class="i" style="color:var(--stop)"><use href="#i-close"/></svg>
-      <span class="sub">با رد رسید، بلیت موقت باطل می‌شود و اطلاعات پاسخ‌دهنده می‌ماند؛ فقط پرداخت را از ابتدا انجام می‌دهد.</span></div>
+      <span class="sub">با رد رسید، ثبت‌نام موقت باطل می‌شود و اطلاعات پاسخ‌دهنده می‌ماند؛ فقط پرداخت را از ابتدا انجام می‌دهد.</span></div>
   </div>
   <div style="margin-top:12px"><label class="lbl">دلیل</label>
     <div class="row tight" id="reasons">
@@ -511,7 +511,7 @@
       <button class="chip" data-chip>واریز پیدا نشد</button><button class="chip" data-chip>فرستندهٔ دیگری است</button></div></div>
   <label class="lbl" style="margin-top:10px">توضیح برای پاسخ‌دهنده</label>
   <textarea class="input" id="rejNote" placeholder="کوتاه و روشن بنویسید"></textarea>
-  <div class="row" style="margin-top:12px"><button class="btn stop" id="rejGo">رد و باطل‌کردن بلیت</button></div>
+  <div class="row" style="margin-top:12px"><button class="btn stop" id="rejGo">رد و باطل‌کردن ثبت‌نام</button></div>
 </aside>
 
 <aside class="sheet" id="shMsg" role="dialog" aria-label="پیام به پاسخ‌دهنده‌ها">
@@ -530,7 +530,7 @@
   <div class="row tight" style="margin-top:10px">
     <button class="btn sm quiet" data-quick="جای جلسه عوض شد؛ نشانی تازه را در همین پیام ببینید.">جای جلسه</button>
     <button class="btn sm quiet" data-quick="یادتان باشد کارت شناسایی همراه داشته باشید.">کارت شناسایی</button>
-    <button class="btn sm quiet" data-quick="رسیدتان تأیید شد؛ بلیت قطعی در ربات و بله در دسترس است.">تأیید رسید</button>
+    <button class="btn sm quiet" data-quick="رسیدتان تأیید شد؛ ثبت‌نام قطعی شد و نتیجه را در بله پیام می‌دهیم.">تأیید رسید</button>
   </div>
   <div class="row" style="margin-top:12px"><button class="btn primary" id="msgGo"><svg class="i"><use href="#i-send"/></svg> ارسال</button><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
 </aside>
@@ -566,14 +566,12 @@ const FORMS=[
        {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''},
        {l:'ارسال گواهینامه با پست',p:120000,off:0,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
  groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
- ticketOn:true,
  guestsOn:true,guestsMax:3,guests:['علی رضایی'],
- gw:['بله','کارت‌به‌کارت'],ticket:'جنگلی',
- parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
+ gw:['بله','کارت‌به‌کارت'], parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
  event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
- flags:['ticket','receipts','cert','excel'],
+ flags:['receipts','cert','excel'],
  certOn:true,certMode:'auto',certHours:'۲۴ ساعت',certIssued:{},
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
  changes:[['۱۰ مهر — ظرفیت از ۱۲۰ به ۱۵۰ رسید','خانم رستگار'],['۸ مهر — کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر — پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
@@ -584,7 +582,7 @@ const FORMS=[
  seen:1610,started:520,resp:342,paid:0,money:0,
  start:'۱۴۰۵/۰۶/۰۱ — ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
- fin:[],groups:[],ticketOn:false,guestsOn:false,guestsMax:1,guests:[],gw:[],ticket:null,skin:null,coupon:'—',
+ fin:[],groups:[],guestsOn:false,guestsMax:1,guests:[],gw:[],coupon:'—',
  endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
  links:['صفحهٔ دوره'],
  event:null,
@@ -601,8 +599,8 @@ const FORMS=[
  fin:[{l:'حق عضویت سالانه',p:2000000,off:0,req:false,g:'دورهٔ عضویت',d:'یک سال کامل'},
        {l:'حق عضویت ماهانه',p:200000,off:0,req:false,g:'دورهٔ عضویت',d:'هر ماه، تا وقتی خودتان بخواهید'}],
  groups:[{n:'دورهٔ عضویت',of:[0,1],req:true,one:true}],
- ticketOn:false,guestsOn:false,guestsMax:1,guests:[],gw:['بله','زرین‌پال'],
- ticket:null,skin:null,coupon:'—',
+ guestsOn:false,guestsMax:1,guests:[],gw:['بله','زرین‌پال'],
+ coupon:'—',
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
  event:null,
@@ -618,12 +616,12 @@ const FORMS=[
  start:'۱۴۰۵/۰۷/۱۰ — ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ — ۲۳:۰۰',cap:150,wait:false,per:1,
  head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
  fin:[{l:'ورودی آزمون',p:300000,off:0,req:true,d:'یک بار؛ بازگشت به آزمون ممکن نیست'}],
- groups:[],ticketOn:true,gw:['بله'],ticket:'شفاف',skin:'clear',
+ groups:[],gw:['بله'],
  parts:['title','date','venue','name','code','qr'],
  coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
  links:['سرفصل کتاب‌ها'],
  event:null,
- flags:['ticket','excel','exam','results','cert','anti-cheat'],
+ flags:['excel','exam','results','cert','anti-cheat'],
  certOn:true,certMode:'after',certHours:'',certIssued:{},
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['کد ملی',100],['انتخاب حوزه',100]],
  changes:[['۹ مهر — تصویربرداری هنگام آزمون روشن شد','خانم صادقی']],
@@ -678,7 +676,6 @@ const PEOPLE=[
 ];
 
 const STATE_TAG={paid:['ok','پرداخت قطعی'],pending:['warn','در انتظار تأیید رسید'],void:['stop','باطل'],half:['','نیمه‌کاره']};
-/* بخش‌های بلیت از موتور مشترک می‌آید تا یک جا تعریف شده باشد */
 let CUR=FORMS[0], CURP=null, FILTER='all';
 
 /* ── حساب و کتاب ─────────────────────────────────────────────── */
@@ -712,7 +709,7 @@ function renderList(){
     return `<div class="card paper fcard sheen" data-form="${f.id}">
       <div class="row">
         <span class="glass-thin" style="width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto">
-          <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':f.kind==='عضویت'?'users':'ticket'}"/></svg></span>
+          <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':'users'}"/></svg></span>
         <div style="min-width:0">
           <div class="head tight">${f.name}</div>
           <div class="cap">${f.kind} — <b>بخش ${DEPT_OF(f).n}</b> — کارشناس ${f.expert} — تا ${f.ends}</div>
@@ -849,8 +846,7 @@ function renderInfo(){
         <div class="answer"><span class="k">توضیحات ابتدا</span><span class="v">${f.intro}</span></div>
         <div class="answer"><span class="k">بازهٔ ثبت‌نام</span><span class="v num">${f.start} تا ${f.ends}</span></div>
         <div class="answer"><span class="k">ظرفیت</span><span class="v">${f.cap?fa(f.cap)+' نفر'+(f.wait?' + لیست انتظار':''):'بی‌کران'}</span></div>
-        <div class="answer"><span class="k">هر نفر</span><span class="v">تا ${faN(f.per)} بلیت</span></div>
-        <div class="answer"><span class="k">بلیت</span><span class="v">${f.ticket}</span></div>
+        <div class="answer"><span class="k">هر نفر</span><span class="v">تا ${faN(f.per)} نفر</span></div>
         <div class="answer"><span class="k">کد تخفیف</span><span class="v">${f.coupon}</span></div>
         <div class="answer"><span class="k">وضعیت</span><span class="v">${f.status}</span></div>
         ${f.flags.includes('cert')?`<div class="answer"><span class="k">گواهینامه</span><span class="v">
@@ -884,7 +880,7 @@ function renderInfo(){
           <div class="t past"><span class="dot2"></span><span>ساخته شد — ${f.kind}، کارشناس ${f.expert}</span></div>
           <div class="t past"><span class="dot2"></span><span>منتشر شد — پیوند روی صفحهٔ ${f.kind==='رویداد'?'رویداد':'فرم'} نشست</span></div>
           <div class="t"><span class="dot2"></span><span>در حال ثبت‌نام — ${fa(f.resp)} پاسخ از ${fa(f.seen)} بازدید</span></div>
-          <div class="t future"><span class="dot2"></span><span>پایان ${f.ends} — بستن خودکار و بلیت قطعی</span></div>
+          <div class="t future"><span class="dot2"></span><span>پایان ${f.ends} — بستن خودکار و قطعی‌شدن ثبت‌نام</span></div>
         </div>
       </div>
     </div>
@@ -898,13 +894,12 @@ const GROUPS=[
  {t:'مهلت و ظرفیت',rows:[
    ['dates','i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],
    ['cap','i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
-   ['per','i-ticket','تعداد بلیت هر نفر','همراه داشتن یا نداشتن'],
+   ['per','i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],
    ['per','i-users','همراه‌آوردن','باز یا بسته — پیش‌فرض بسته']]},
  {t:'مالی',rows:[
    ['fin','i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
    ['coupon','i-star','کد تخفیف','درصد یا مبلغ'],'gw']},
- {t:'بلیت و پایان',rows:[
-   ['ticket','i-ticket','بلیت: استایل و بخش‌ها','چه چیزی روی بلیت چاپ شود'],
+ {t:'گواهینامه و پایان',rows:[
    ['endtext','i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه']]},
  {t:'برخورد با پاسخ‌دهنده‌ها',rows:[
    ['msg','i-send','پیام گروهی','بی‌اسکای و پیامک'],
@@ -925,14 +920,14 @@ function renderChanges(){
   const R={
     addfield:['i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],text:['i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید'],
     dates:['i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],cap:['i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
-    per:['i-ticket','تعداد بلیت هر نفر','همراه داشتن یا نداشتن'],fin:['i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
+    per:['i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],fin:['i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
     coupon:['i-star','کد تخفیف','درصد یا مبلغ'],gw:['i-shield','درگاه‌ها','فقط در بخش مالی'],
-    ticket:['i-ticket','بلیت: استایل و بخش‌ها','چه چیزی روی بلیت چاپ شود'],endtext:['i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه'],
+    endtext:['i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه'],
     msg:['i-send','پیام گروهی','بی‌اسکای و پیامک'],excel:['i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
     kartabl:['i-inbox','کارتابل رسیدها','تأیید و رد رسیدهای کارت‌به‌کارت'],expert:['i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری'],
     ...Object.fromEntries(special.map(s=>[s[0],[s[1],s[2],s[3]]]))
   };
-  const allowed=['addfield','text','dates','cap','per','msg','excel','kartabl','expert','endtext','ticket',
+  const allowed=['addfield','text','dates','cap','per','msg','excel','kartabl','expert','endtext',
     ...(f.fin.length?['fin','coupon','gw']:[]), ...special.map(s=>s[0])];
   const row=k=>{const [ic,t,c]=R[k]; if(!ic) return '';
     return `<button class="chrow" data-change="${k}"><span class="ic"><svg class="i"><use href="#${ic}"/></svg></span>
@@ -951,15 +946,6 @@ function renderChanges(){
     ${f.changes.length?`<div class="timeline">${f.changes.map(([w,who])=>`<div class="t past"><span class="dot2"></span><span>${w} — <span class="cap">${who}</span></span></div>`).join('')}</div>`
       :'<div class="empty" style="padding:14px"><div class="body">هنوز تغییری ثبت نشده</div></div>'}
   </div>`;
-}
-/* ── بلیت‌های یک ثبت‌نام: نفر اصلی + همراهان (همان چیزی که فرم صادر می‌کند) ── */
-function ticketStack(f,p){
-  p=p||CURP;
-  const who=[{name:p.name,kind:'بلیت نفر اصلی'}].concat((p.guests||[]).map((g,i)=>({name:g.name,kind:'بلیت همراه '+faN(i+1)})));
-  return who.map((w,i)=>ticketHTML({style:f.skin||'clear',parts:f.parts||['title','date','venue','name','code','qr'],
-    title:f.head,kind:w.kind,name:w.name,code:p.code.slice(0,10)+(81+i),no:faN(1245+i),
-    date:f.start,venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3),
-    confirmed:p.state==='paid'})).join('');
 }
 /* ── پاسخ‌ها ──────────────────────────────────────────────────── */
 let PFILTER='all';
@@ -1030,19 +1016,18 @@ function openUser(id){
       </div>
       ${(CURP.guests||[]).length?`<div class="card paper">
         <div class="row" style="margin-bottom:8px"><span class="fw">همراهان</span><span class="sp"></span>
-          <span class="cap">${faN(CURP.guests.length)} نفر — هر کدام بلیت جدا</span></div>
+          <span class="cap">${faN(CURP.guests.length)} نفر — هر کدام سهم پرداخت جدا</span></div>
         ${CURP.guests.map((g,i)=>`<div class="answer"><span class="k">همراه ${faN(i+1)}</span>
           <span class="v">${g.name} <span class="cap num">${g.mobile}</span></span></div>`).join('')}
         <p class="mnote" style="margin-top:8px">اطلاعات همراهان همان‌جا در فرم پر شده بود؛ در صفحهٔ بعد فقط نامشان آمده.</p>
       </div>`:''}
-      ${f.flags.includes('cert')&&CURP.state==='paid'?`<div class="card paper">
+      ${f.flags.includes('cert')?`<div class="card paper">
         <div class="row" style="margin-bottom:8px"><span class="fw">گواهینامه</span><span class="sp"></span>
-          <span class="tag ${CURP.cert?'ok':'quiet'}">${CURP.cert?('صادر شد — '+CURP.cert):'صادر نشده'}</span>
-          <button class="btn sm quiet" data-certone="${CURP.id}"><svg class="i"><use href="#i-medal"/></svg> صدور</button>
-          <button class="btn sm quiet" data-bot="${CURP.code}"><svg class="i"><use href="#i-send"/></svg> فرستادن در بله</button>
+          <span class="tag ${CURP.cert?'ok':(CURP.state==='paid'?'quiet':'stop')}">${CURP.cert?('صادر شد — '+CURP.cert):(CURP.state==='paid'?'صادر نشده':'پس از پرداخت قطعی')}</span>
+          ${CURP.state==='paid'?`<button class="btn sm quiet" data-certone="${CURP.id}"><svg class="i"><use href="#i-medal"/></svg> صدور</button>`:''}
         </div>
         ${CURP.cert?`<div style="overflow:hidden;border-radius:14px">${certificateSVG(certFields(f,CURP))}</div>`
-          :`<p class="sub">هنوز صادر نشده؛ با یک کلیک صادر می‌شود و با کیوآر راستی‌آزمایی در بله می‌رود.</p>`}
+          :`<p class="sub">${CURP.state==='paid'?'هنوز صادر نشده؛ با یک کلیک صادر می‌شود و با کیوآر راستی‌آزمایی در بله می‌رود.':'تا رسید تأیید و ثبت‌نام قطعی نشود، گواهینامه صادر نمی‌شود.'}</p>`}
       </div>`:''}
       <div class="card paper">
         <div class="row" style="margin-bottom:8px"><span class="fw">پیام‌ها</span><span class="sp"></span><span class="cap">کارشناس ${f.expert}</span></div>
@@ -1051,8 +1036,8 @@ function openUser(id){
           ${CURP.receipt?`<div class="t past"><span class="dot2"></span><span>رسید پیوست شد — ${CURP.receipt}</span></div>`:''}
           ${(CURP.msgs||[]).map(g=>`<div class="t past"><span class="dot2"></span><span>پیام ${g.who} — ${g.at}: <span class="cap">${g.t}</span></span></div>`).join('')}
           ${CURP.state==='pending'?`<div class="t"><span class="dot2"></span><span>در انتظار بررسی کارشناس</span></div>`:''}
-          ${CURP.state==='paid'?`<div class="t past"><span class="dot2"></span><span>پرداخت قطعی — بلیت صادر شد</span></div>`:''}
-          ${CURP.state==='void'?`<div class="t"><span class="dot2" style="background:var(--stop)"></span><span>رسید رد شد — بلیت باطل، پرداخت از ابتدا</span></div>`:''}
+          ${CURP.state==='paid'?`<div class="t past"><span class="dot2"></span><span>پرداخت قطعی — ثبت‌نام قطعی شد</span></div>`:''}
+          ${CURP.state==='void'?`<div class="t"><span class="dot2" style="background:var(--stop)"></span><span>رسید رد شد — ثبت‌نام باطل، پرداخت از ابتدا</span></div>`:''}
         </div>
         <div class="row" style="margin-top:10px"><textarea class="input" style="flex:1" placeholder="پیام به همین نفر"></textarea></div>
         <div class="row" style="margin-top:8px"><button class="btn sm primary" data-sheet="shMsg"><svg class="i"><use href="#i-send"/></svg> ارسال پیام</button>
@@ -1070,7 +1055,7 @@ function openUser(id){
           <div class="moneyline t"><span>پرداخت‌شده</span><span class="num">${rialTxt(m.sum)}</span></div>
           <div class="mini" style="margin-top:6px">${tomanTxt(m.sum)}</div>
           <div class="answer" style="margin-top:6px"><span class="k">درگاه</span><span class="v">${CURP.gw}</span></div>
-          <div class="answer"><span class="k">بلیت</span><span class="v">${faN(CURP.count)} بلیت ${CURP.state==='paid'?'قطعی':'موقت'}</span></div>`
+          <div class="answer"><span class="k">نفرات</span><span class="v">${faN(CURP.count)} نفر</span></div>`
         :'<div class="empty" style="padding:14px"><div class="body">این فرم مالی ندارد</div></div>'}
       </div>
       ${CURP.gw==='کارت‌به‌کارت'?`<div class="card paper">
@@ -1083,26 +1068,7 @@ function openUser(id){
           <button class="btn sm quiet" data-copy="${CURP.code}"><svg class="i"><use href="#i-copy"/></svg> کد پیگیری</button>
           <button class="btn sm quiet" data-msg="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> پیام</button>
         </div>
-        <p class="mnote" style="margin-top:8px">رد شدن یعنی بلیت باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
-      </div>`:''}
-      ${f.ticketOn&&f.ticket?`<div class="card paper">
-        <div class="row" style="margin-bottom:8px"><span class="fw">بلیت‌ها — پوستهٔ ${f.ticket}</span><span class="sp"></span>
-          <span class="cap">${faN(CURP.count)} بلیت — در ربات و بله هم در دسترس</span></div>
-        ${ticketStack(f)}
-        <div class="row" style="margin-top:10px">
-          <button class="btn sm quiet" data-bot="${CURP.code}"><svg class="i"><use href="#i-send"/></svg> فرستادن دوبارهٔ بلیت</button>
-          ${CURP.count>1?`<button class="btn sm quiet" data-botall="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> فرستادن هر ${faN(CURP.count)} بلیت</button>`:''}
-          <button class="btn sm quiet" data-copy="${shortCode(CURP.code)}"><svg class="i"><use href="#i-copy"/></svg> کد بلیت</button>
-        </div>
-        <p class="mnote" style="margin-top:8px">خودِ کاربر هم می‌تواند در ربات نورا و پیام‌رسان بله با کد پیگیری یا شمارهٔ موبایل بلیتش را بگیرد.</p>
-      </div>`:''}
-      ${f.ticketOn===false?`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--ink-3)"><use href="#i-ticket"/></svg>
-        <span class="sub">بلیت این فرم خاموش است؛ پاسخ‌دهنده فقط کد پیگیری و رسید دارد.</span></div></div>`:''}
-      ${f.fin.length&&CURP.state!=='half'?`<div class="card paper">
-        <div class="fw" style="margin-bottom:8px">رسید پرداخت</div>
-        ${receiptHTML({amount:m.sum,discount:m.dis,program:f.head,when:ticketMeta(f.start),
-          payer:CURP.name,method:CURP.gw,at:CURP.at,ticket:shortCode(CURP.code),track:CURP.code,
-          state:CURP.state==='void'?'stop':CURP.state==='pending'?'wait':'ok'})}
+        <p class="mnote" style="margin-top:8px">رد شدن یعنی ثبت‌نام باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
       </div>`:''}
       <div class="card sunk">
         <div class="row"><svg class="i"><use href="#i-shield"/></svg><span class="sub">هر تغییری روی همین پاسخ‌دهنده ثبت می‌شود و در سابقهٔ فرم می‌ماند.</span></div>
@@ -1113,7 +1079,7 @@ function openUser(id){
 }
 /* ── کارتابل ─────────────────────────────────────────────────── */
 let KDEPT='';
-/* ── بورد حضور و غیاب: کیوآر بلیت، دستی، و پیام به غایب‌ها ── */
+/* ── بورد حضور و غیاب: کیوآر کد پیگیری، دستی، و پیام به غایب‌ها ── */
 let ATTMODE='code';
 const attList=()=>PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
 const attIn=()=>attList().filter(p=>p.att).length;
@@ -1141,7 +1107,7 @@ function renderAttend(q){
 }
 function attToggle(id,code){
   const p=PEOPLE.find(x=>x.id===id)||(code?PEOPLE.find(x=>x.code===code||shortCode(x.code||'')===code):null);
-  if(!p){toast('کسی با این کد بلیت پیدا نشد'); return}
+  if(!p){toast('کسی با این کد پیگیری پیدا نشد'); return}
   if(p.att){toast(p.name+' قبلاً ثبت شده ('+p.attAt+')'); renderAttend(); return}
   p.att=true; p.attAt=new Date().toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
   log(p.name+' حاضر شد — '+p.attAt);
@@ -1198,7 +1164,7 @@ function renderMine(){
           ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
           <div class="row" style="margin-top:10px">
             ${mine?'':'<button class="btn sm" data-take="'+p.id+'"><svg class="i"><use href="#i-eye"/></svg> این را برمی‌دارم</button>'}
-            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و بلیت قطعی</button>
+            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و قطعی‌کردن ثبت‌نام</button>
             <button class="btn sm stop" data-reject="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد رسید</button>
             <button class="btn sm quiet" data-pass="${p.id}"><svg class="i"><use href="#i-users"/></svg> سپردن به کارشناس دیگر</button>
             <button class="btn sm quiet" data-msgone="${p.id}"><svg class="i"><use href="#i-send"/></svg> پیام به خودش</button>
@@ -1235,10 +1201,10 @@ function renderKartabl(){
         <div style="flex:1;min-width:0">
           <div class="moneyline"><span>مبلغ صورت‌حساب</span><span class="num">${rialTxt(m.sum)}</span></div>
           <div class="mini">${tomanTxt(m.sum)}</div>
-          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر — هر نفر بلیت خودش${(p.guests||[]).length?' ('+p.guests.map(g=>g.name).join('، ')+')':''}</div>`:''}
+          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر — هر نفر سهم پرداخت خودش${(p.guests||[]).length?' ('+p.guests.map(g=>g.name).join('، ')+')':''}</div>`:''}
           ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
           <div class="row" style="margin-top:10px">
-            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و بلیت قطعی</button>
+            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و قطعی‌کردن ثبت‌نام</button>
             <button class="btn sm stop" data-reject="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد رسید</button>
             <button class="btn sm quiet" data-person="${p.id}"><svg class="i"><use href="#i-search"/></svg> جزئیات</button>
           </div>
@@ -1339,10 +1305,10 @@ const CHANGES={
   go:()=>{CUR.cap=NR(unFa(document.getElementById('chCap').value))||0;
    CUR.wait=document.getElementById('chWait').classList.contains('on');
    log('ظرفیت به '+faN(CUR.cap)+' نفر'+(CUR.wait?' با لیست انتظار':' بدون لیست انتظار')+' رسید'); closeSheets(); renderPanel(); toast('ظرفیت ذخیره شد')}},
- per:{t:'تعداد بلیت هر نفر',body:()=>`
+ per:{t:'تعداد نفرات همراه',body:()=>`
    <div><label class="lbl">بیشترین تعداد</label>
      <div class="row tight">${[1,2,3,5].map(n=>`<button class="chip ${CUR.per===n?'on':''}" data-chip data-n="${n}">${faN(n)} نفر</button>`).join('')}</div></div>
-   <p class="cap">با افزودن همراه، مبلغ در تعداد ضرب می‌شود و برای هر نفر یک بلیت صادر می‌شود.</p>
+   <p class="cap">با افزودن همراه، مبلغ در تعداد ضرب می‌شود و هر نفر سهم پرداخت خودش را دارد.</p>
    <hr class="hr"/>
    <div class="row"><span><b class="sub">«دوستاتم با خودت بیار»</b>
      <div class="cap">باز باشد، فرم یک کارت خوش‌گرافیک نشان می‌دهد و دوست همان‌جا پر می‌شود؛ بسته باشد هیچ‌جا دیده نمی‌شود.</div></span>
@@ -1439,26 +1405,6 @@ const CHANGES={
      log('فرم زیر رویداد «'+((EVENTS.find(e=>e.id===id)||{}).n||'')+'» رفت');}
    CUR.changes.unshift(['امروز — '+(id?'اتصال فرم به رویداد تغییر کرد':'فرم از رویداد جدا شد'),'خودم']);
    closeSheets(); renderInfo(); renderPanel(); toast(id?'به رویداد وصل شد':'از رویداد جدا شد')}},
- ticket:{t:'بلیت: پوسته و بخش‌ها',body:()=>{
-   const cur=CUR.skin||'clear', parts=CUR.parts||['title','date','venue','name','code','qr'];
-   return `<div class="row"><span class="sub" style="flex:1">این فرم بلیت داشته باشد</span>
-     <span class="switch ${CUR.ticketOn?'on':''}" id="chTkOn" role="switch" aria-checked="${CUR.ticketOn?'true':'false'}" tabindex="0"></span></div>
-   <div class="mini">خاموش باشد، کاربر بدون بلیت ثبت‌نام می‌کند و فقط رسید پرداخت می‌ماند.</div>
-   <label class="lbl">پوسته</label>
-   <div class="row tight">${Object.entries(TICKET_STYLES).map(([k,v])=>`<button class="chip ${cur===k?'on':''}" data-chip data-st="${k}">${v}</button>`).join('')}</div>
-   <label class="lbl" style="margin-top:8px">چه چیزی روی بلیت باشد</label>
-   <div class="row tight">${Object.entries(TICKET_PARTS).map(([k,v])=>`<button class="chip ${parts.includes(k)?'on':''}" data-chip data-part="${k}">${v}</button>`).join('')}</div>
-   <p class="cap">پیش‌نمایش همان لحظه ساخته می‌شود؛ پوستهٔ پیش‌فرض «شفاف» است و پوسته و بخش‌ها را سازندهٔ فرم انتخاب می‌کند.</p>
-   <div style="margin-top:10px" id="chTkPrev"></div>`},
-  open:()=>prevTicket(),
-  go:btn=>{const sheet=btn.closest('#shChange');
-   const onEl=sheet.querySelector('#chTkOn');
-   CUR.ticketOn=onEl?onEl.classList.contains('on'):CUR.ticketOn!==false;
-   CUR.skin=sheet.querySelector('.chip.on[data-st]')?.dataset.st||CUR.skin||'clear';
-   CUR.parts=[...sheet.querySelectorAll('.chip.on[data-part]')].map(x=>x.dataset.part);
-   CUR.ticket=CUR.ticketOn?(TICKET_STYLES[CUR.skin]+' — '+faN(CUR.parts.length)+' بخش'):null;
-   log(CUR.ticketOn?'بلیت با پوستهٔ '+TICKET_STYLES[CUR.skin]+' و '+faN(CUR.parts.length)+' بخش':'بلیت خاموش شد');
-   closeSheets(); renderPanel(); toast(CUR.ticketOn?'بلیت روشن شد':'بلیت خاموش شد')}},
  endtext:{t:'متن پایانی و پیوندها',body:()=>`
    <div><label class="lbl">متن پایانی</label><textarea class="input" id="chEnd2">${CUR.endText}</textarea></div>
    <div><label class="lbl">پیوند یکم</label><div class="row"><input class="input" id="chL1" style="flex:1" value="${CUR.links[0]||''}"/></div></div>
@@ -1514,25 +1460,6 @@ const CHANGES={
    toast('تنظیم گواهینامه ذخیره شد')}},
  _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
 };
-function prevTicket(){const el=document.getElementById('chTkPrev'); if(!el) return;
-  const sw=document.getElementById('chTkOn');
-  if(sw&&!sw.classList.contains('on')){
-    el.innerHTML=`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--warn)"><use href="#i-close"/></svg>
-      <span class="sub">بلیت خاموش است — برای این فرم بلیتی صادر نمی‌شود.</span></div></div>`;
-    return}
-  const draw=()=>{
-    const st=document.querySelector('#chBody .chip.on[data-st]');
-    const parts=[...document.querySelectorAll('#chBody .chip.on[data-part]')].map(x=>x.dataset.part);
-    el.innerHTML=ticketHTML({style:st?st.dataset.st:'clear',parts,title:CUR.head,kind:'بلیت ورود',
-      name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',date:CUR.start,venue:'تهران، ولی‌عصر، پلاک ۱۲',
-      seat:'ردیف ۳ — صندلی ۱۷',confirmed:CUR.status!=='پیش‌نویس'});
-  };
-  draw();
-  /* با هر تیک و برداشتن تیک، پیش‌نمایش همان لحظه تازه می‌شود */
-  document.querySelectorAll('#chBody .chip[data-st],#chBody .chip[data-part]').forEach(ch=>{
-    if(ch.dataset.wired) return; ch.dataset.wired='1';
-    ch.addEventListener('click',()=>setTimeout(draw,0));
-  });}
 function log(w){CUR.changes.unshift([w,nowFa()]); renderChanges();}
 /* پیش‌نمایش و صدور گواهینامه — همان موتور برگ گواهینامه در ui.js */
 function certFields(f,p){
@@ -1574,15 +1501,6 @@ document.addEventListener('click',e=>{
   const card=e.target.closest('[data-form]');
   if(card&&!e.target.closest('[data-copy]')){openForm(card.dataset.form);return}
   const pr=e.target.closest('[data-person]'); if(pr){openUser(pr.dataset.person);return}
-  const botall=e.target.closest('[data-botall]');
-  if(botall){const p=PEOPLE.find(x=>x.id===botall.dataset.botall)||CURP;
-    const n=(p.guests||[]).length+1;
-    log(faN(n)+' بلیت برای «'+p.name+'» به بله فرستاده شد');
-    toast(faN(n)+' بلیت فرستاده شد — یکی برای خودش و یکی برای هر همراه');return}
-  const bot=e.target.closest('[data-bot]');
-  if(bot){const p=PEOPLE.find(x=>x.code===bot.dataset.bot)||CURP;
-    log('بلیت «'+(p?p.name:'')+'» دوباره به بله فرستاده شد');
-    toast('بلیت دوباره در بله فرستاده شد — تصویر PNG با کیوآرکد');return}
   const op=e.target.closest('[data-open]'); if(op){go(op.dataset.open);return}
   const tb=e.target.closest('#pSeg button'); if(tb){tab(tb.dataset.tab);return}
   const pf=e.target.closest('[data-pf]'); if(pf){PFILTER=pf.dataset.pf;renderAnswers();return}
@@ -1622,7 +1540,7 @@ document.addEventListener('click',e=>{
   if(mo){msgWho=mo.dataset.msgone; openMsg(); return}
   const ap=e.target.closest('[data-approve]');
   if(ap){const p=PEOPLE.find(x=>x.id===ap.dataset.approve); p.state='paid';
-    log('رسید '+p.name+' تأیید شد — بلیت قطعی'); renderKartabl(); renderMine(); renderAnswers(); renderMoney();
+    log('رسید '+p.name+' تأیید شد — ثبت‌نام قطعی'); renderKartabl(); renderMine(); renderAnswers(); renderMoney();
     if(CURP&&CURP.id===p.id) openUser(p.id); toast('رسید تأیید شد'); return}
   const rj=e.target.closest('[data-reject]');
   if(rj){rejectId=rj.dataset.reject; openSheet('shReject'); return}
@@ -1656,7 +1574,7 @@ document.getElementById('q').addEventListener('input',renderList);
 document.getElementById('attQ').addEventListener('input',()=>renderAttend());
 document.getElementById('attGo').onclick=()=>{
   const c=unFa((document.getElementById('attCode').value||'').trim()).toUpperCase();
-  if(!c){toast('کد بلیت را بخوانید'); return}
+  if(!c){toast('کد پیگیری را بخوانید'); return}
   attToggle(null,c);
   document.getElementById('attCode').value='';
 };
@@ -1725,9 +1643,9 @@ document.getElementById('passGo').onclick=()=>{
 document.getElementById('rejGo').onclick=()=>{
   const p=PEOPLE.find(x=>x.id===(rejectId||(CURP&&CURP.id)))||CURP;
   const note=document.getElementById('rejNote').value||'رسید تأیید نشد';
-  if(p){p.state='void'; p.note=note; log('رسید '+p.name+' رد شد — بلیت باطل و پرداخت از ابتدا');
+  if(p){p.state='void'; p.note=note; log('رسید '+p.name+' رد شد — ثبت‌نام باطل و پرداخت از ابتدا');
     if(CURP&&CURP.id===p.id) openUser(p.id);}
-  closeSheets(); renderKartabl(); renderAnswers(); renderMoney(); toast('رد شد و بلیت باطل شد');
+  closeSheets(); renderKartabl(); renderAnswers(); renderMoney(); toast('رد شد و ثبت‌نام باطل شد');
 };
 document.getElementById('excelGo').onclick=()=>{const cols=[...document.querySelectorAll('#cols .chip.on')].length;
   closeSheets(); log('خروجی اکسل با '+faN(cols)+' ستون ساخته شد'); toast('فایل اکسل آماده شد')};
@@ -1806,7 +1724,7 @@ document.getElementById('gwBox').addEventListener('click',e=>{
 });
 renderGw();
 document.getElementById('cols').innerHTML=['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','دانشگاه','شغل','سطح تجربه',
-  'مبلغ','کد پیگیری','وضعیت پرداخت','درگاه','بلیت','تاریخ ثبت','یادداشت'].map((c,i)=>
+  'مبلغ','کد پیگیری','وضعیت پرداخت','درگاه','تاریخ ثبت','یادداشت'].map((c,i)=>
   `<button class="chip ${i<9?'on':''}" data-chip>${c}</button>`).join('');
 document.getElementById('setStart').innerHTML=pickHTML('datetime',FORMS[0].start);
 document.getElementById('setEnd').innerHTML=pickHTML('datetime',FORMS[0].ends);

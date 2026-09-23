@@ -292,16 +292,6 @@
       </div>
     </section>
 
-    <!-- ── بلیت و رسید ── -->
-    <section id="tk" class="card" style="margin-top:12px">
-      <div class="row"><div class="head">بلیت و رسید</div><span class="sp"></span>
-        <span class="cap">یک خانواده، شش پوسته — پیش‌فرض «آبی»</span></div>
-      <p class="cap" style="margin-top:6px">پوسته را سازندهٔ فرم انتخاب می‌کند؛ کیوآرکد واقعی است و با هر دو دیکودر مستقل خوانده می‌شود.</p>
-      <div class="mini" style="margin-top:6px">همین تصویرها در ربات نورا و پیام‌رسان بله هم فرستاده می‌شوند؛
-        جاروی نور و نشان پالس‌دار در صفحه حرکت می‌کنند و در تصویر PNG همان قاب اول می‌ماند.</div>
-      <div class="stack" style="margin-top:12px" id="skinRow"></div>
-      <div style="margin-top:16px" id="rcDemo"></div>
-    </section>
 
     <p class="cap" style="margin:16px 4px">زبان طراحی نورا · ساخته‌شده برای خط زندگی — <a href="builder.html">پنل فرم‌ها</a> · <a href="form.html">فرم کاربر</a></p>
   </main>
@@ -387,16 +377,6 @@
   const t=document.getElementById('theme');
   if(t) t.addEventListener('click',()=>setTimeout(paint,0));
 
-  /* ── خانوادهٔ بلیت: یک نمونه از هر پوسته، با کیوآرکد واقعی ── */
-  const row=document.getElementById('skinRow');
-  if(row) row.innerHTML=Object.entries(TICKET_STYLES).map(([k,n],i)=>
-    ticketHTML({style:k,parts:['title','date','venue','name','seat','no','code','qr','logo','note'],
-      title:'نمونهٔ پوستهٔ '+n,date:'۱۴۰۵/۰۷/۰۹',time:'۱۶:۰۰',venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',
-      name:'سارا محمدی',seat:'ردیف ۱ — صندلی '+faN(17+i),no:faN(1245+i),code:'TL1307BVUC19'+(81+i)})).join('');
-  const rc=document.getElementById('rcDemo');
-  if(rc) rc.innerHTML=receiptHTML({amount:1300500,discount:144500,program:'کارگاه فن بیان مقدماتی',
-    when:'چهارشنبه ۸ مهر · ساعت ۱۶:۰۰ · تهران، ولی‌عصر',payer:'سارا محمدی',method:'کارت‌به‌کارت',
-    at:nowFa(),ticket:shortCode('TL1307BVUC1981'),track:'TL1307BVUC1981',state:'ok'});
 })();
 </script>
 </body>

@@ -1,9 +1,9 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   آزمون بلیت تصویری: کیوآر را از دل تصویری که صفحه ساخته می‌خواند
+   آزمون کیوآر گواهینامه: کد را از دل تصویری که صفحه ساخته می‌خواند
    ──────────────────────────────────────────────────────────────────────────
    اجرا (از پوشهٔ همین فایل):
      npm i jsdom jsqr          # یک بار
-     node ticket-qr.test.mjs
+     node qr.test.mjs
    ══════════════════════════════════════════════════════════════════════════ */
 import {JSDOM} from 'jsdom';
 import jsQR from 'jsqr';
@@ -56,37 +56,39 @@ async function open(file,q){
 let checks=0, fails=0;
 const ok=(c,t)=>{checks++; if(!c){fails++; console.log('   ✗',t);}};
 
+/* ── ۱) برگ گواهینامه در فرم: کیوآر باید واقعاً خوانده شود ── */
 const dom=await open('./form.html','?guests=1');
 const {window}=dom, d=window.document;
 const click=s=>d.querySelector(s)?.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
-const set=(s,v)=>{d.querySelector(s).value=v};
 
-/* تا آخر فرم برو تا بلیت نفر اصلی، بلیت دوست و رسید ساخته شوند */
-for(let i=0;i<7;i++) click('#next');          /* …تا کارت «دوستاتم با خودت بیار» */
-set('#fName','مریم احمدی'); set('#fMobile','۰۹۱۲۳۴۵۶۷۸۹');
-click('#addFriend');
-click('#next'); click('#next');               /* مالی → پرداخت */
-click('[data-method="bale"]'); click('#next'); click('#next');
+for(let i=0;i<7;i++) click('#next');
+d.querySelector('#fName').value='مریم احمدی'; d.querySelector('#fMobile').value='۰۹۱۲۳۴۵۶۷۸۹';
+click('#addFriend'); click('#next'); click('#next');
+click('[data-method="bale"]');
+for(let i=0;i<3;i++) click('#next');        /* پرداخت → رسید → ثبт شد */
+ok(!!d.querySelector('.screen.on'),'فرم تا انتها رفت: '+(d.querySelector('.screen.on')||{}).id);
 
-const svgs=[...d.querySelectorAll('#tickets .tk-img svg'), ...d.querySelectorAll('#receiptSlot .tk-img svg')];
-const texts=[];
-for(const svg of svgs){
-  const txt=decodeSVG(svg);
-  texts.push(txt);
-  ok(txt&&txt.startsWith('https://lifeline1.ir/'),
-     'کیوآر تصویر خوانده نشد: '+(svg.getAttribute('aria-label')||'').slice(0,34));
-}
-ok(svgs.length===3,'سه تصویر ساخته شد (دو بلیت و یک رسید)');
-ok(new Set(texts).size===3,'هر سه کیوآر یکتا هستند');
-ok(/\/t\//.test(texts[0]||'')&&/\/r\//.test(texts[2]||''),'بلیت و رسید نشانی جدا دارند');
-ok(d.querySelector('#tickets .tk-img svg text')!==null,'متن روی تصویر هست (فونت درست نشسته)');
+window.eval("show('u16')");
+const csvg=d.querySelector('#certSlot .tk-img svg')||d.querySelector('#certSlot svg');
+ok(csvg!==null,'برگ گواهینامه ساخته شد');
+const text=decodeSVG(csvg);
+ok(text&&text.startsWith('https://lifeline1.ir/c/'),'کیوآر برگ گواهینامه خوانده شد: '+text);
+ok(d.querySelector('#certSlot .tk-img svg text')!==null||d.querySelector('#certSlot svg text')!==null,'متن روی برگ هست (فونت درست نشسته)');
+ok(d.querySelectorAll('#certSlot .tkqr').length===1,'فقط یک کیوآر روی برگ');
+ok(d.querySelector('#u13')===null && d.querySelector('#tickets')===null,'صفحهٔ بلیت‌ها کلاً برداشته شد');
+ok(d.querySelector('#receiptSlot')===null,'جای رسید تصویری هم نیست');
+console.log('   کیوآر:',text);
 
-/* پوستهٔ خاموش/روشن هم روی همان صفحه */
-window.eval('CFG.ticketOn=false; renderTickets();');
-ok(d.querySelectorAll('#tickets .tk-img svg').length===0,'با خاموش بودن بلیت، تصویری ساخته نمی‌شود');
-window.eval('CFG.ticketOn=true; renderTickets();');
-ok(d.querySelectorAll('#tickets .tk-img svg').length===2,'با روشن کردن دوباره، هر دو بلیت برمی‌گردند');
+/* ── ۲) پیش‌نمایش گواهینامه در پنل سازنده: همان موتور، همان کد ── */
+const bd=await open('./builder.html');
+const w2=bd.window, d2=w2.document;
+w2.eval("openForm('f1'); go('fChanges')");
+d2.querySelector('[data-change="cert"]')?.dispatchEvent(new w2.MouseEvent('click',{bubbles:true}));
+const psvg=d2.querySelector('#chCertPrev svg');
+ok(psvg!==null,'پیش‌نمایش گواهینامه در پنل ساخته شد');
+const ptxt=decodeSVG(psvg);
+ok(ptxt&&ptxt.startsWith('https://lifeline1.ir/c/'),'کیوآر پیش‌نمایش پنل هم خوانده شد: '+ptxt);
+ok(d2.querySelector('#chTkPrev')===null,'پیش‌نمایش بلیت در پنل نیست');
 
-for(const t of texts) console.log('   کیوآر:',t);
-console.log('\nticket-qr: '+checks+' بررسی، '+fails+' خطا');
+console.log('\nqr: '+checks+' بررسی، '+fails+' خطا');
 process.exit(fails?1:0);
