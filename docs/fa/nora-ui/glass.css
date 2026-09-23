@@ -415,6 +415,19 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   .card.paper{padding:var(--sp-5) var(--sp-4)}
 }
 
+/* ── لمس: هدف انگشتی ۴۴ پیکسل، طبق راهنمای اپل ─────────────────────────── */
+.switch::before{content:'';position:absolute;inset:-7px;border-radius:var(--r-pill)}
+@media (pointer:coarse){
+  .chip,.seg button{min-height:44px;height:auto;padding-block:7px}
+  .tag{height:28px}
+  .swatch{width:38px;height:38px}
+  .switch{height:34px}
+  .switch::after{width:28px;height:28px;top:2.5px}
+  .switch.on::after{inset-inline-start:17px}
+  .tk-acts .btn,.rc-acts .btn{min-height:44px}
+  .paycard,.pick,.opt{padding-block:14px}
+}
+
 /* ── دسترس‌پذیری ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
@@ -593,83 +606,20 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .pick .other{flex:1 1 100%}
 .pick-label{font-size:var(--fs-cap);color:var(--ink-3)}
 
-/* ── بلیت: یک خانواده، پنج پوسته (شفاف، جنگلی، طلایی، اقیانوسی، شب) ── */
-.tk{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 26px 168px;overflow:hidden;
-  border-radius:var(--r-xl);border:.5px solid var(--tk-line);background:var(--tk-bg);color:var(--tk-ink);
-  box-shadow:var(--sh-2);isolation:isolate}
-.tk::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
-  background:linear-gradient(158deg,rgba(255,255,255,.34),transparent 48%)}
-.tk-main{position:relative;z-index:1;padding:18px 20px 16px;display:grid;align-content:start;gap:6px;min-width:0}
-.tk-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.tk-brand{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-cap);font-weight:600;opacity:.95}
-.tk-pulse{width:23px;height:23px;padding:3px;border-radius:50%;border:1.3px solid currentColor;fill:none;
-  stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.tk-kind{font-size:var(--fs-cap);opacity:.7}
-.tk-title{font-size:20px;font-weight:700;line-height:1.5;letter-spacing:-.2px}
-.tk-meta{font-size:var(--fs-sub);opacity:.82;line-height:2}
-.tk-bottom{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:10px}
-.tk-who .k,.tk-side .k{display:block;font-size:11px;opacity:.68;font-weight:400}
-.tk-who b{font-size:var(--fs-head);font-weight:700}
-.tk-side{display:flex;gap:18px;text-align:end}
-.tk-side b{font-size:var(--fs-sub);font-weight:600}
-.tk-note{font-size:var(--fs-cap);opacity:.7;margin-top:8px}
-.tk-perf{position:relative;z-index:1;display:grid;grid-template-rows:20px 1fr 20px;justify-items:center;align-items:center}
-.tk-perf .cut{width:20px;height:20px;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 .5px var(--hairline)}
-.tk-perf .dash{width:0;height:100%;border-inline-start:1.5px dashed var(--tk-dash)}
-.tk-stub{position:relative;z-index:1;display:grid;align-content:center;justify-items:center;gap:10px;
-  padding:16px 12px;background:var(--tk-stub)}
-.tk-stub .qr{width:112px;height:112px;border-radius:14px;background:#fff;box-shadow:var(--sh-1)}
-.tk-code{text-align:center}
-.tk-code .k{display:block;font-size:11px;opacity:.68}
-.tk-code b{font-size:16px;font-weight:700;letter-spacing:2px;direction:ltr;display:inline-block;font-variant-numeric:tabular-nums}
-.tk-state{font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill);background:var(--tk-pill)}
-.tk-acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px;border-top:.5px solid var(--tk-line);
-  background:var(--surface);color:var(--ink)}
-/* پنج پوسته — از «خط طراحی نورا» */
-.tk-clear{--tk-bg:linear-gradient(150deg,#FFFFFF,#F6F6F2 58%,#EEF0EA);--tk-ink:#1E2B27;
-  --tk-line:rgba(30,43,39,.10);--tk-stub:rgba(255,255,255,.45);--tk-dash:rgba(30,43,39,.22);--tk-pill:rgba(30,43,39,.07)}
-.tk-forest{--tk-bg:linear-gradient(150deg,#17735F,#0B4A40 58%,#093B33);--tk-ink:#F1F7F5;
-  --tk-line:rgba(255,255,255,.16);--tk-stub:rgba(255,255,255,.10);--tk-dash:rgba(255,255,255,.42);--tk-pill:rgba(255,255,255,.16)}
-.tk-gold{--tk-bg:linear-gradient(150deg,#FCF7EC,#F2E6CB 60%,#E9DBB9);--tk-ink:#3B2E13;
-  --tk-line:rgba(59,46,19,.14);--tk-stub:rgba(255,255,255,.42);--tk-dash:rgba(59,46,19,.30);--tk-pill:rgba(59,46,19,.10)}
-.tk-ocean{--tk-bg:linear-gradient(150deg,#EEF4FA,#DBE7F3 60%,#CBDCEA);--tk-ink:#1B2C3D;
-  --tk-line:rgba(27,44,61,.14);--tk-stub:rgba(255,255,255,.45);--tk-dash:rgba(27,44,61,.28);--tk-pill:rgba(27,44,61,.10)}
-.tk-night{--tk-bg:linear-gradient(160deg,#2A322D,#1B211E 58%,#141A17);--tk-ink:#F2F4F1;
-  --tk-line:rgba(255,255,255,.14);--tk-stub:rgba(255,255,255,.06);--tk-dash:rgba(255,255,255,.34);--tk-pill:rgba(255,255,255,.14)}
-@media (max-width:640px){
-  .tk{grid-template-columns:1fr}
-  .tk-perf{display:none}
-  .tk-stub{border-top:1.5px dashed var(--tk-dash);grid-auto-flow:column;justify-content:center;gap:16px;padding:14px}
-  .tk-stub .qr{width:96px;height:96px}
-}
 
-/* ── رسید پرداخت: همان زبان، مبلغ قهرمان ── */
-.rc{position:relative;background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-xl);
-  box-shadow:var(--sh-2);padding:20px;max-width:430px}
-.rc-head{display:flex;align-items:center;gap:10px}
-.rc-brand{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-cap);font-weight:600;color:var(--ink-2)}
-.rc-brand .tk-pulse{width:23px;height:23px;color:var(--brand)}
-.rc-pill{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-cap);font-weight:700;
-  padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-sunk);color:var(--ink-2)}
-.rc-ok{background:var(--ok-tint);color:var(--ok)}
-.rc-wait{background:var(--warn-tint);color:var(--warn)}
-.rc-stop{background:var(--stop-tint);color:var(--stop)}
-.rc-title{font-size:var(--fs-head);font-weight:700;margin-top:16px;padding-bottom:7px;position:relative}
-.rc-title::after{content:'';position:absolute;inset-inline-start:0;bottom:0;width:46px;height:3px;border-radius:9px;background:var(--brand)}
-.rc-amount{display:flex;align-items:baseline;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:20px}
-.rc-amount .n{font-size:34px;font-weight:700;letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
-.rc-amount .u{font-size:var(--fs-sub);color:var(--ink-3)}
-.rc-off{flex:1 1 100%;text-align:center;font-size:var(--fs-cap);color:var(--stop)}
-.rc-words{text-align:center;font-size:var(--fs-cap);color:var(--ink-3);margin-top:4px}
-.rc-rows{margin-top:18px;border-top:.5px solid var(--hairline);padding-top:8px}
-.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;
-  border-top:.5px solid var(--hairline);padding-top:16px}
-.rc-qr .qr{width:104px;height:104px;border-radius:12px;background:#fff;box-shadow:var(--sh-1)}
-.rc-track{text-align:end}
-.rc-track .k{display:block;font-size:11px;color:var(--ink-3)}
-.rc-track b{font-size:19px;font-weight:700;letter-spacing:.4px}
-.rc-note{text-align:center;font-size:11.5px;color:var(--ink-3);margin-top:14px}
-.rc-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+/* ── خطوط رویداد و صورت‌حساب ── */
+.ev-line{display:block;font-size:var(--fs-sub);color:var(--ink-2);line-height:2}
+.ticketline{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:var(--fs-sub);
+  border-bottom:.5px solid var(--hairline-2)}
+.ticketline:last-child{border-bottom:0}
+.ticketline .sp{flex:1}
+/* ── بلیت و رسید: تصویری؛ قاب دور تصویر و دکمه‌های کار ── */
+.tk-wrap,.rc-wrap{margin:0;display:grid;gap:10px}
+.tk-img,.rc-wrap .tk-img{display:block;line-height:0}
+.tk-img svg{width:100%;height:auto;display:block;border-radius:var(--r-xl);
+  box-shadow:var(--sh-2);transition:transform var(--t) var(--ease)}
+@media (hover:hover){.tk-img:hover svg{transform:translateY(-1px) scale(1.004)}}
+.tk-acts,.rc-acts{display:flex;gap:8px;flex-wrap:wrap}
 
 /* ── شناسنامهٔ فرم ── */
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
@@ -706,10 +656,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .timeline .t.future .dot2{background:var(--ink-4)}
 .reviewbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px;border-radius:var(--r-lg);background:var(--brand-tint)}
 
-/* ══════════════════════════════════════════════════════════════════════════
-   چاپ — بلیت و رسید باید تمیز بیرون بیایند
-   ══════════════════════════════════════════════════════════════════════════ */
-#printzone{display:none}
+/* ── چاپ: فقط همان بلیت یا رسید روی کاغذ ───────────────────────────────── */
 @media print{
   body{background:#fff;padding:0}
   body>#printzone{display:block}
@@ -718,7 +665,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   .no-print,.rail,.topbar,.botbar,.tabbar,.fab,.ctxbar,.scrim,.sheet,.toast,.actionbar,.steps{display:none!important}
   .shell{display:block;padding:0;max-width:none}
   .main{padding:0}
-  .card,.tk,.rc{box-shadow:none}
-  .tk,.rc{break-inside:avoid}
-  .tk-perf .cut{background:#fff}
+  .card{box-shadow:none}
+  .tk-wrap,.rc-wrap,.tk-img{break-inside:avoid;box-shadow:none}
+  .tk-img svg{box-shadow:none;border-radius:0}
 }

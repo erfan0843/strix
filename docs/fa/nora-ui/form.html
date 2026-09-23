@@ -171,7 +171,7 @@
       </div>
       <div class="title" id="evTitle">—</div>
       <p class="sub" style="margin-top:8px">سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با گواهینامهٔ پایان دوره.</p>
-      <p class="tk-meta" id="evMeta" style="margin-top:8px;color:var(--ink-2)">—</p>
+      <p class="ev-line" id="evMeta" style="margin-top:8px;color:var(--ink-2)">—</p>
       <div id="resumeRow" style="display:none;margin-top:14px"></div>
       <div class="row tight" style="margin-top:14px" id="evFacts"></div>
       <hr class="hr"/>
@@ -386,11 +386,17 @@
   <section class="screen" id="u13" style="margin-top:12px">
     <div class="row" style="margin-bottom:10px">
       <span class="head">بلیت‌های شما</span><span class="sp"></span>
-      <button class="btn sm" data-printall="#tickets .tk"><svg class="i"><use href="#i-print"/></svg> چاپ همه</button>
+      <button class="btn sm" data-printall=".tk-wrap"><svg class="i"><use href="#i-print"/></svg> چاپ همه</button>
     </div>
     <div class="stack" id="tickets"></div>
 
-    <div class="card paper" style="margin-top:16px">
+    <div class="card paper" style="margin-top:14px">
+      <div class="row"><svg class="i" style="color:var(--brand)"><use href="#i-send"/></svg>
+        <span><b class="sub">بلیت همیشه در دسترس است</b>
+        <div class="cap">در ربات نورا و پیام‌رسان بله، با کد پیگیری <span class="num">TL1307BVUC1981</span> یا شمارهٔ موبایل، همین بلیت را دوباره می‌گیرید.</div></span></div>
+    </div>
+
+    <div class="card paper" style="margin-top:12px">
       <div class="head" style="margin-bottom:10px">پیام کارشناس</div>
       <div class="card sunk row" style="padding:12px">
         <span class="personrow" style="gap:10px"><span class="n">ر</span>
@@ -466,8 +472,12 @@ const CFG={
   code:'TL1307BVUC1981',
   cap:150,taken:110,
   questions:['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','شغل','تحصیلات','چطور ما را شناختید'],
-  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:true,req:true},
-       {l:'کارگاه بدون گواهینامه',p:600000,off:0,on:false,req:false}],
+  ticketOn:true,
+  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:true,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
+       {l:'کارگاه بدون گواهینامه',p:600000,off:0,on:false,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,on:false,req:false,d:''},
+       {l:'ارسال گواهینامه با پست',p:120000,off:0,on:false,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
+  groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
   coupon:{code:'NORA10',off:10,all:false},
   companion:{fields:'نام و موبایل'},
   ticket:{style:'forest',parts:['title','date','venue','name','seat','no','code','qr','logo','note']},
@@ -491,11 +501,14 @@ function calc(){
 /* ══ رندر ══ */
 function renderFin(){
   const box=document.getElementById('finOpts');
-  box.innerHTML=CFG.fin.map((o,i)=>`
+  const extra=(CFG.fin.some(o=>o.g)||CFG.fin.some(o=>o.req));
+  box.innerHTML=(extra?`<div class="cap" style="margin:2px 2px 8px">${(CFG.groups||[]).filter(g=>g.req).map(g=>`«${g.n}» را انتخاب کنید`).join(' — ')||'هر کدام را لازم دارید بردارید'}</div>`:'')+
+  CFG.fin.map((o,i)=>`
     <label class="opt sq ${o.on?'on':''}" data-fin="${i}">
       <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
       <span style="flex:1;text-align:start">
-        <b>${o.l}</b>
+        <b>${o.l}${o.req?' <span class="tag brand" style="margin-inline-start:6px">اجباری</span>':''}</b>
+        ${o.d?`<div class="cap" style="margin-top:2px">${o.d}</div>`:''}
         <span class="price" style="margin-top:6px">
           ${o.off?`<span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)} تخفیف</span>`:''}
           <span class="now num">${fa(net(o))}</span><span class="cap">ریال</span>
@@ -524,7 +537,7 @@ function renderPeople(){
 function renderBill(){
   const c=calc();
   document.getElementById('bill').innerHTML=
-    (CFG.fin.filter(o=>o.on).map(o=>`<div class="r"><span>${o.l}</span>
+    (CFG.fin.filter(o=>o.on).map(o=>`<div class="r"><span>${o.l}${o.d?`<span class="cap">${o.d}</span>`:''}</span>
         <span class="num">${o.off?`<span class="old">${fa(o.p)}</span> `:''}${fa(net(o))}</span></div>`).join('')
       ||'<div class="r"><span class="mute">موردی انتخاب نشده</span><span></span></div>')
     + (c.count>1?`<div class="r"><span>مبلغ هر نفر × ${faN(c.count)} نفر</span><span class="num">${fa(c.per*c.count)}</span></div>`:'')
@@ -540,12 +553,21 @@ function renderBill(){
 }
 function renderTickets(){
   const c=calc(); let html='';
+  const box=document.getElementById('tickets');
+  if(!CFG.ticketOn){                                   /* سازنده بلیت را خاموش کرده */
+    if(box) box.innerHTML=`<div class="card sunk"><div class="row">
+      <svg class="i" style="color:var(--ink-3)"><use href="#i-ticket"/></svg>
+      <span><b class="sub">این رویداد بلیت ندارد</b>
+      <div class="cap">ثبت‌نام شما با کد پیگیری و رسید پرداخت پیگیری می‌شود.</div></span></div></div>`;
+    const tc=document.getElementById('ticketCount'); if(tc) tc.textContent='بدون بلیت';
+    return;
+  }
   for(let i=0;i<c.count;i++){
     const who=i===0?'سارا محمدی':(NAMES[i-1]||'همراه');
     html+=ticketHTML({style:CFG.ticket.style,parts:CFG.ticket.parts,
       kind:i===0?'بلیت نفر اصلی':'بلیت همراه '+faN(i+1),
       title:CFG.title,name:who,code:'TL1307BVUC19'+(81+i),no:faN(1245+i),
-      date:CFG.date,venue:CFG.venue,seat:'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3),
+      date:CFG.date,time:'۱۶:۰۰',venue:CFG.venue,seat:'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3),
       confirmed:CFG.confirmed});
   }
   document.getElementById('tickets').innerHTML=html;
@@ -561,7 +583,7 @@ function renderFacts(){
     CFG.cap?`<span class="tag ok"><span class="dot"></span> ${faN(left)} جا مانده</span>`:''
   ].join('');
   const perks=[];
-  if(CFG.ticket.parts.includes('qr')) perks.push(['i-ticket','بلیت با کیوآرکد ورود']);
+  if(CFG.ticketOn&&CFG.ticket.parts.includes('qr')) perks.push(['i-ticket','بلیت با کیوآرکد ورود']);
   if(fin.some(o=>/گواهی/.test(o.l))) perks.push(['i-medal','گواهینامهٔ پایان دوره']);
   if(CFG.maxPer>1) perks.push(['i-users','تا '+faN(CFG.maxPer)+' نفر می‌توانید ثبت‌نام کنید']);
   document.getElementById('evPerks').innerHTML=perks.map(([i,t])=>
@@ -655,6 +677,10 @@ document.getElementById('next').onclick=()=>{
   if(cur==='u9'){
     if(!S.method){toast('روش پرداخت را انتخاب کنید');return}
     if(!CFG.fin.some(o=>o.on)){toast('حداقل یک مورد را انتخاب کنید');return}
+    const need=(CFG.groups||[]).find(g=>g.req&&!g.of.some(k=>CFG.fin[k]&&CFG.fin[k].on));
+    if(need){toast('یکی از گزینه‌های «'+need.n+'» را انتخاب کنید');return}
+    const must=CFG.fin.find(o=>o.req&&!o.on);
+    if(must){toast('«'+must.l+'» اجباری است');return}
     return show(S.method==='card'?'u10':'u12');
   }
   if(cur==='u10') return show('u11');
@@ -671,7 +697,13 @@ document.addEventListener('change',e=>{if(e.target.closest('.screen')&&cur!=='u1
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g){show(g.dataset.go);return}
   if(e.target.closest('[data-saveexit]')){saveDraft();closeSheets();toast('ذخیره شد — با همین لینک برگردید');return}
-  const f=e.target.closest('[data-fin]'); if(f){const i=NR(f.dataset.fin);CFG.fin[i].on=!CFG.fin[i].on;renderFin();renderBill();return}
+  const f=e.target.closest('[data-fin]');
+  if(f){const i=NR(f.dataset.fin); const o=CFG.fin[i];
+    const grp=(CFG.groups||[]).find(g=>g.of.includes(i));
+    const turningOn=!o.on;
+    if(grp&&grp.one&&turningOn) grp.of.forEach(k=>{CFG.fin[k].on=(k===i)});   /* یکی از گروه */
+    else o.on=turningOn;
+    renderFin();renderBill();saveDraft();return}
   const m=e.target.closest('[data-method]');
   if(m){S.method=m.dataset.method;
     document.querySelectorAll('[data-method]').forEach(x=>{x.classList.toggle('on',x===m);x.setAttribute('aria-pressed',x===m?'true':'false')});

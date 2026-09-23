@@ -74,16 +74,18 @@ async function load(file,store){
   ok(p.vis('.screen').join()==='u12','صفحهٔ «اطلاعات شما ثبت شد»');
   p.click('#next');
   ok(p.vis('.screen').join()==='u13','صفحهٔ بلیت‌ها');
-  ok(p.all('#tickets .tk').length===2,'برای ۲ نفر دو بلیت ساخته شد');
-  ok(p.all('#tickets svg.qr').length===2,'هر بلیت کیوآرکد دارد');
+  ok(p.all('#tickets .tk-img svg[role="img"]').length===2,'برای ۲ نفر دو بلیت تصویری ساخته شد');
+  ok(p.all('#tickets #tkqr').length===2,'کیوآرکد داخل هر تصویر هست');
   ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
   const tkTxt=p.txt('#tickets');
   ok(/کد بلیت/.test(tkTxt) && /[2-9ACDEFGHJKLMNPQRSTUVWXYZ]{7}/.test(tkTxt),'کد بلیت روی بلیت چاپ شده');
-  const labels=p.all('#tickets .qr').map(q=>q.getAttribute('aria-label').replace('کیوآرکد','').trim());
-  ok(labels.length===2 && labels.every(l=>tkTxt.includes(l)),'کد چاپ‌شده با کیوآرکد یکی است');
-  ok(p.all('#tickets .tk-perf .dash').length===2,'پرفراژ جداکنندهٔ ته‌بلیت هست');
-  ok(p.all('#tickets .tk-title')[0].textContent.includes('کارگاه'),'عنوان رویداد روی بلیت');
+  const tsvg=p.all('#tickets .tk-img svg')[0];
+  ok(/ZYRA2JR/.test(tsvg.outerHTML),'کد کوتاه روی تصویر بلیت چاپ شده');
+  ok(tsvg.querySelector('#punch')!==null,'برش و پرفراژ ته‌بلیت روی تصویر هست');
+  ok(/کارگاه/.test(tsvg.outerHTML),'عنوان رویداد روی تصویر بلیت');
   ok(p.doc.querySelector('#tickets [data-tkprint]')!==null,'دکمهٔ چاپ بلیت هست');
+  ok(p.doc.querySelector('#tickets [data-tksave]')!==null,'دکمهٔ ذخیرهٔ تصویر هست');
+  ok(p.doc.querySelector('#tickets [data-tkbot]')!==null,'دکمهٔ فرستادن در بله هست');
   const ics=p.doc.querySelector('#tickets [data-tkics]');
   let icsOK=false; try{const o=JSON.parse(ics.getAttribute('data-tkics')); icsOK=/^[۰-۹]{4}\/[۰-۹]{2}\/[۰-۹]{2}/.test(o.date)&&!!o.title&&!!o.venue;}catch(e){}
   ok(icsOK,'دکمهٔ تقویم دادهٔ درست دارد');
@@ -95,14 +97,29 @@ async function load(file,store){
   // صفحه‌کلید: ناحیهٔ رها کردن رسید با Enter هم باز می‌شود
   const drop=p.doc.querySelector('#drop');
   ok(drop.getAttribute('role')==='button' && drop.getAttribute('tabindex')==='0','ناحیهٔ رسید برای صفحه‌کلید هم باز است');
-  ok(p.txt('#receiptSlot').includes('کد پیگیری') && p.all('#receiptSlot .rc-qr svg').length===1,'رسید پرداخت با کد پیگیری و کیوآر');
+  ok(p.all('#receiptSlot .tk-img svg[role="img"]').length===1 && p.txt('#receiptSlot').includes('کد پیگیری'),'رسید پرداخت تصویری با کد پیگیری');
   ok(p.txt('#receiptSlot').includes('تومان'),'رسید: مبلغ به حروف');
   // اعداد لندینگ باید از خود تنظیمات دربیایند
   ok(p.txt('#evFacts').includes('۷ پرسش')&&p.txt('#evFacts').includes('۷۲۲٬۵۰۰'),'اعداد لندینگ از تنظیمات فرم حساب شده');
   ok(p.txt('#evFacts').includes('۴۰ جا مانده'),'جای مانده از ظرفیت و ثبت‌شده‌ها حساب شده');
   ok(p.txt('#evPerks').includes('گواهینامه')&&p.txt('#evPerks').includes('۳ نفر'),'مزیت‌های لندینگ از مالی و سقف نفرات');
   const pa=p.doc.querySelector('[data-printall]');
-  ok(pa && pa.dataset.printall==='#tickets .tk','دکمهٔ «چاپ همه» به بلیت‌ها وصل است');
+  ok(pa && pa.dataset.printall==='.tk-wrap','دکمهٔ «چاپ همه» به بلیت‌ها وصل است');
+  ok(p.txt('#finOpts').includes('شامل گواهینامهٔ پایان دوره'),'توضیح قطعهٔ مالی روی صفحهٔ کاربر');
+  ok(p.txt('#finOpts').includes('نوع شرکت'),'نام گروه انتخاب روی صفحهٔ کاربر');
+  // ── گروه اجباری: تا یکی انتخاب نشود، فرم جلو نمی‌رود ──
+  ok(p.window.eval("CFG.groups[0].req")===true,'گروه «نوع شرکت» اجباری است');
+  p.window.eval("CFG.groups[0].of.forEach(k=>CFG.fin[k].on=false); CFG.fin[2].on=false; CFG.fin[3].on=false; show('u9')");
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('حداقل یک مورد'),'با هیچ انتخابی، جلوی ادامه گرفته شد');
+  p.window.eval("CFG.fin[1].on=true");                       /* کاربر «بدون گواهینامه» را می‌زند */
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u10','با انتخاب یکی از گروه، ادامه ممکن شد');
+  // زدن گزینهٔ دوم گروه، اولی را برمی‌دارد (انتخاب یکی)
+  p.window.eval("show('u8')"); p.click('#next');
+  p.click('[data-fin="0"]');
+  ok(p.window.eval("CFG.fin[0].on && !CFG.fin[1].on"),'در گروه، انتخاب یکی از دو گزینه جابه‌جا می‌شود');
+  p.window.eval("show('u13'); saveDraft()");   /* حالت آزمون به جای اولش برگردد */
   p.window.eval('saveDraft()');
   const keys=store._dump();
   ok(keys.some(k=>k.startsWith('nora:draft:')),'پیش‌نویس در انبار محلی ذخیره می‌شود');
@@ -144,10 +161,20 @@ async function load(file,store){
   ok(p.doc.querySelector('#chStart .pk4').options.length===24,'ساعت ۰ تا ۲۳');
   p.click('[data-close]');
   p.click('[data-change="ticket"]');
-  ok(p.all('#chBody .chip[data-part]').length===10,'ده بخش بلیت قابل انتخاب');
-  ok(p.doc.querySelector('#chTkPrev svg.qr')!==null,'پیش‌نمایش زندهٔ بلیت با کیوآر');
+  ok(p.all('#chBody .chip[data-part]').length===11,'یازده بخش بلیت قابل انتخاب');
+  // خاموش کردن بلیت باید پیش‌نمایش را به پیام روشن تبدیل کند
+  const onSw=p.doc.querySelector('#chTkOn');
+  onSw.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  p.doc.querySelector('#chTkPrev').innerHTML='';
+  p.window.eval('prevTicket()');
+  ok(p.txt('#chTkPrev').includes('بلیت خاموش'),'با خاموش کردن کلید، پیش‌نمایش پیام می‌دهد');
+  onSw.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  p.window.eval('prevTicket()');
+  ok(p.doc.querySelector('#chTkPrev svg #tkqr')!==null,'با روشن کردن دوباره، بلیت برمی‌گردد');
+  ok(p.doc.querySelector('#chTkOn')!==null,'کلید روشن/خاموش بلیت بالای ورقه هست');
+  ok(p.doc.querySelector('#chTkPrev svg #tkqr')!==null,'پیش‌نمایش زندهٔ بلیت با کیوآر');
   const partChips=p.all('#chBody .chip[data-part]');
-  ok(partChips.length===10 && partChips.every(c=>c.tagName==='BUTTON'),'بخش‌های بلیت دکمهٔ واقعی‌اند (صفحه‌کلید ذاتی)');
+  ok(partChips.length===11 && partChips.every(c=>c.tagName==='BUTTON'),'بخش‌های بلیت دکمهٔ واقعی‌اند (صفحه‌کلید ذاتی)');
   p.click('[data-close]');
   p.click('#pSeg [data-tab="answers"]');
   ok(p.all('#answersBox tbody tr').length===7,'هفت ردیف پاسخ‌دهنده');
@@ -204,10 +231,23 @@ async function load(file,store){
   ok(p.all('#swatchGrid > div').length===9,'نُه رنگ از خود توکن‌ها خوانده شد');
   ok(p.txt('#swatchGrid').includes('#0E5A4E')&&p.txt('#swatchGrid').includes('#9C7C3C'),'رنگ‌ها همان توکن‌های تازه‌اند، نه رنگ کهنه');
   ok(/تباین متن اصلی روی سطح: \d+\.\d+ به ۱/.test(p.txt('#contrastNote')),'تباین واقعی حساب و نوشته شد');
-  ok(p.all('#skinRow .tk').length===5,'پنج پوستهٔ بلیت در زبان طراحی');
-  ok(p.all('#skinRow svg.qr').length===5,'هر پوسته کیوآرکد واقعی دارد');
-  ok(p.all('#rcDemo .rc').length===1,'رسید پرداخت نمونه');
+  ok(p.all('#skinRow svg[role="img"]').length===5,'پنج پوستهٔ بلیت در زبان طراحی');
+  ok(p.all('#skinRow #tkqr').length===5,'هر پوسته کیوآرکد واقعی دارد');
+  ok(p.all('#rcDemo svg[role="img"]').length===1,'رسید پرداخت نمونه');
   ok(p.txt('#contrastNote').includes('شیشه فقط روی ناوبری'),'قاعدهٔ شیشه یادآوری شده');
+}
+
+/* ═══════════ بلیت خاموش ═══════════ */
+{
+  console.log('\n── بلیت خاموش (form.html) ──');
+  const p=await load('form.html',makeStore());
+  p.window.eval('CFG.ticketOn=false; renderTickets(); renderFacts();');
+  ok(p.txt('#tickets').includes('این رویداد بلیت ندارد'),'با خاموش بودن بلیت، پیام روشن می‌آید');
+  ok(p.all('#tickets svg[role="img"]').length===0,'هیچ بلیتی ساخته نمی‌شود');
+  ok(p.txt('#ticketCount').includes('بدون بلیت'),'خط بلیت‌ها هم‌گام شد');
+  ok(p.txt('#evPerks').includes('بلیت')===false,'مزیت بلیت از لندینگ برداشته شد');
+  p.window.eval('CFG.ticketOn=true; renderTickets();');
+  ok(p.all('#tickets svg[role="img"]').length===1,'با روشن کردن، بلیت برمی‌گردد');
 }
 
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');

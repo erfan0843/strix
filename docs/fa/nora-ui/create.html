@@ -297,6 +297,9 @@
             <summary><svg class="i"><use href="#i-ticket"/></svg> بلیت</summary>
             <div class="pbody">
               <div class="row"><span class="sub">صدور بلیت</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
+              <div class="row"><span class="sub" style="flex:1">این فرم بلیت داشته باشد</span>
+                <span class="switch on" id="ticketOn" role="switch" aria-checked="true" tabindex="0"></span></div>
+              <div class="mini" style="margin-bottom:6px">خاموش باشد، بلیت صادر نمی‌شود و ثبت‌نام با کد پیگیری و رسید ادامه می‌یابد.</div>
               <div class="lbl" style="margin-top:2px">پوسته</div>
               <div class="row tight" id="tkSkins"></div>
               <div class="lbl" style="margin-top:6px">چیزهایی که روی بلیت چاپ شود</div>
@@ -692,6 +695,19 @@ function renderLinks(){
     </div>`).join('');
 }
 function renderTicket(){
+  const on=$('#ticketOn');
+  if(on){
+    const isOn=S.ticket.on!==false;
+    on.classList.toggle('on',isOn); on.setAttribute('aria-checked',isOn?'true':'false');
+    if(!on.dataset.wired){on.dataset.wired='1';
+      on.addEventListener('click',()=>{S.ticket.on=!on.classList.contains('on');renderTicket();renderReview();
+        toast(S.ticket.on?'بلیت روشن شد':'بلیت خاموش شد')});}
+  }
+  if(S.ticket.on===false){
+    $('#tkPreview').innerHTML=`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--warn)"><use href="#i-close"/></svg>
+      <span class="sub">بلیت خاموش است.</span></div></div>`;
+    return;
+  }
   $('#tkSkins').innerHTML=Object.entries(TICKET_STYLES)
     .map(([k,n])=>`<span class="chip ${S.ticket.style===k?'on':''}" data-tk="${k}" role="button" tabindex="0">${n}</span>`).join('');
   $('#tkParts').innerHTML=Object.entries(TICKET_PARTS).map(([k,n])=>{
@@ -700,7 +716,7 @@ function renderTicket(){
   }).join('');
   $('#tkPreview').innerHTML=ticketHTML({style:S.ticket.style,parts:S.ticket.parts,
     kind:'بلیت ورود',title:S.title.replace('ثبت‌نام ',''),name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',
-    date:S.start,venue:S.venue||'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۳ — صندلی ۱۷',confirmed:S.confirmed});
+    date:S.start,time:S.time||'۱۶:۰۰',venue:S.venue||'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۳ — صندلی ۱۷',confirmed:S.confirmed});
 }
 function renderPreview(){
   const per=S.fin.filter(f=>f.req||true).reduce((a,o)=>a+net(o),0)*0; /* مبلغ نهایی به انتخاب کاربر است */

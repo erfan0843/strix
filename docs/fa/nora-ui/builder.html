@@ -462,7 +462,12 @@ const FORMS=[
  seen:2140,started:412,resp:128,paid:109,money:103375000,
  start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:150,wait:true,per:3,skin:'forest',
  head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
- fin:[{l:'کارگاه با گواهینامه',p:850000,off:15},{l:'کارگاه بدون گواهینامه',p:600000,off:0}],
+ fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
+       {l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''},
+       {l:'ارسال گواهینامه با پست',p:120000,off:0,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
+ groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
+ ticketOn:true,
  gw:['بله','کارت‌به‌کارت'],ticket:'جنگلی',
  parts:['title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
@@ -477,7 +482,7 @@ const FORMS=[
  seen:1610,started:520,resp:342,paid:0,money:0,
  start:'۱۴۰۵/۰۶/۰۱ — ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
- fin:[],gw:[],ticket:null,skin:null,coupon:'—',
+ fin:[],groups:[],ticketOn:false,gw:[],ticket:null,skin:null,coupon:'—',
  endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
  links:['صفحهٔ دوره'],
  flags:['excel','raffle'],
@@ -490,7 +495,10 @@ const FORMS=[
  seen:0,started:0,resp:0,paid:0,money:0,
  start:'۱۴۰۵/۰۸/۰۱ — ۰۸:۰۰',ends:'۱۴۰۶/۰۱/۰۱ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'عضویت در باشگاه خیرین',intro:'ماهانه یا سالانه، هر مبلغی که در توان دارید.',
- fin:[{l:'حق عضویت سالانه',p:2000000,off:0}],gw:['بله','زرین‌پال'],
+ fin:[{l:'حق عضویت سالانه',p:2000000,off:0,req:false,g:'دورهٔ عضویت',d:'یک سال کامل'},
+       {l:'حق عضویت ماهانه',p:200000,off:0,req:false,g:'دورهٔ عضویت',d:'هر ماه، تا وقتی خودتان بخواهید'}],
+ groups:[{n:'دورهٔ عضویت',of:[0,1],req:true,one:true}],
+ ticketOn:false,gw:['بله','زرین‌پال'],
  ticket:null,skin:null,coupon:'—',
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
@@ -504,7 +512,8 @@ const FORMS=[
  seen:820,started:300,resp:96,paid:96,money:28800000,
  start:'۱۴۰۵/۰۷/۱۰ — ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ — ۲۳:۰۰',cap:150,wait:false,per:1,
  head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
- fin:[{l:'ورودی آزمون',p:300000,off:0}],gw:['بله'],ticket:'شفاف',skin:'clear',
+ fin:[{l:'ورودی آزمون',p:300000,off:0,req:true,d:'یک بار؛ بازگشت به آزمون ممکن نیست'}],
+ groups:[],ticketOn:true,gw:['بله'],ticket:'شفاف',skin:'clear',
  parts:['title','date','venue','name','code','qr'],
  coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
  links:['سرفصل کتاب‌ها'],
@@ -890,13 +899,21 @@ function openUser(id){
         </div>
         <p class="mnote" style="margin-top:8px">رد شدن یعنی بلیت باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
       </div>`:''}
-      ${f.ticket?`<div class="card paper">
-        <div class="fw" style="margin-bottom:8px">بلیت — پوستهٔ ${f.ticket}</div>
+      ${f.ticketOn&&f.ticket?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">بلیت — پوستهٔ ${f.ticket}</span><span class="sp"></span>
+          <span class="cap">در ربات و بله هم در دسترس</span></div>
         ${ticketHTML({style:f.skin||'clear',parts:f.parts||['title','date','venue','name','code','qr'],
           title:f.head,kind:'بلیت ورود',name:CURP.name,code:CURP.code,no:'۱۲۴۵',
           date:f.start,venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۱ — صندلی ۱۷',
           confirmed:CURP.state==='paid'})}
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm quiet" data-bot="${CURP.code}"><svg class="i"><use href="#i-send"/></svg> فرستادن دوبارهٔ بلیت</button>
+          <button class="btn sm quiet" data-copy="${shortCode(CURP.code)}"><svg class="i"><use href="#i-copy"/></svg> کد بلیت</button>
+        </div>
+        <p class="mnote" style="margin-top:8px">خودِ کاربر هم می‌تواند در ربات نورا و پیام‌رسان بله با کد پیگیری یا شمارهٔ موبایل بلیتش را بگیرد.</p>
       </div>`:''}
+      ${f.ticketOn===false?`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--ink-3)"><use href="#i-ticket"/></svg>
+        <span class="sub">بلیت این فرم خاموش است؛ پاسخ‌دهنده فقط کد پیگیری و رسید دارد.</span></div></div>`:''}
       ${f.fin.length&&CURP.state!=='half'?`<div class="card paper">
         <div class="fw" style="margin-bottom:8px">رسید پرداخت</div>
         ${receiptHTML({amount:m.sum,discount:m.dis,program:f.head,when:ticketMeta(f.start),
@@ -945,7 +962,13 @@ function renderMoney(){
   document.getElementById('moneyPieces').innerHTML=FORMS.filter(f=>f.fin.length).map(f=>`
     <div style="margin-bottom:12px">
       <div class="row"><b class="sub">${f.name}</b><span class="sp"></span><span class="cap">${fa(f.resp)} پاسخ</span></div>
-      ${f.fin.map(o=>`<div class="moneyline"><span>${o.l}</span><span class="num">
+      ${f.fin.map((o,i)=>`<div class="moneyline">
+        <span><b>${esc(o.l)}</b>${o.d?`<div class="mini">${esc(o.d)}</div>`:''}
+          <div class="row tight" style="margin-top:5px">
+            ${o.req?'<span class="tag brand">اجباری</span>':''}
+            ${(f.groups||[]).filter(g=>g.of.includes(i)).map(g=>`<span class="tag accent">${esc(g.n)}${g.req?' — انتخاب یکی':''}</span>`).join('')}
+          </div></span>
+        <span class="num">
         ${o.off?`<span class="price"><span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)}</span><span class="now num">${fa(net(o))}</span><span class="cap">ریال</span></span>`:fa(o.p)+' ریال'}</span></div>`).join('')}
       <div class="mini">${tomanTxt(f.fin.reduce((a,o)=>a+net(o),0))} — هر نفر</div>
     </div>`).join('');
@@ -962,7 +985,7 @@ function renderMoney(){
       <td>${p.gw}</td><td><span class="tag ${t[0]}">${t[1]}</span></td></tr>`}).join('');
 }
 /* ── کارشناسان ───────────────────────────────────────────────── */
-let CARD={no:'6104-3378-1234-5674',bank:'بانک ملت',owner:'مؤسسهٔ خط زندگی'};
+let CARD_DEST={no:'6104-3378-1234-5674',bank:'بانک ملت',owner:'مؤسسهٔ خط زندگی'};
 const TEAM=[
  {n:'خانم رستگار',r:'کارشناس آموزش',f:'کارگاه فن بیان، عضویت خیرین',k:true,m:true},
  {n:'آقای نادری',r:'کارشناس نظرسنجی',f:'نظرسنجی بهار',k:false,m:false},
@@ -1020,12 +1043,44 @@ const CHANGES={
    <div><label class="lbl">عنوان</label><input class="input" id="chFinL" placeholder="مثلاً: کارگاه با گواهینامه"/></div>
    <div class="g2"><div><label class="lbl">مبلغ (ریال)</label><input class="input num" id="chFinP" placeholder="۸۵۰۰۰۰"/></div>
      <div><label class="lbl">٪ تخفیف</label><input class="input num" id="chFinO" placeholder="۰"/></div></div>
+   <div><label class="lbl">توضیحات (دلخواه)</label>
+     <textarea class="input" id="chFinD" placeholder="زیر عنوان همین قطعه نشان داده می‌شود"></textarea>
+     <div class="mini">خالی بماند، چیزی نشان داده نمی‌شود.</div></div>
+   <div class="row"><span class="sub" style="flex:1">این قطعه اجباری باشد</span>
+     <span class="switch" id="chFinReq" role="switch" aria-checked="false" tabindex="0"></span></div>
+   <div><label class="lbl">در گروه انتخاب (دلخواه)</label>
+     <select class="input" id="chFinG"><option value="">بدون گروه</option>
+       ${(CUR.groups||[]).map(g=>`<option>${esc(g.n)}</option>`).join('')}</select></div>
    <div class="mini" id="chFinW"></div>`,
   go:()=>{const p=NR(unFa(document.getElementById('chFinP').value))||0,o=NR(unFa(document.getElementById('chFinO').value))||0;
    if(!p){toast('مبلغ را بنویسید');return}
    const l=document.getElementById('chFinL').value||'قطعهٔ تازه';
-   CUR.fin.push({l,p,off:o}); if(!CUR.flags.includes('excel'))CUR.flags.push('excel');
-   log('قطعهٔ مالی «'+l+'» با قیمت '+fa(p)+' ریال اضافه شد'); closeSheets(); renderPanel(); renderMoney(); toast('قطعه اضافه شد')}},
+   const d=document.getElementById('chFinD').value.trim();
+   const req=document.getElementById('chFinReq').classList.contains('on');
+   const g=document.getElementById('chFinG').value||null;
+   CUR.fin.push({l,p,off:o,d,req,g});
+   if(g){const grp=(CUR.groups||[]).find(x=>x.n===g); if(grp) grp.of.push(CUR.fin.length-1);}
+   if(!CUR.flags.includes('excel'))CUR.flags.push('excel');
+   log('قطعهٔ مالی «'+l+'» با قیمت '+fa(p)+' ریال اضافه شد'+(req?' — اجباری':''));
+   closeSheets(); renderPanel(); renderMoney(); toast('قطعه اضافه شد')}},
+ fingroup:{t:'گروه انتخاب',body:()=>`
+   <p class="cap">گروه یعنی چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد — مثل «با گواهینامه» و «بدون گواهینامه».</p>
+   <div><label class="lbl">نام گروه</label><input class="input" id="chGrpN" placeholder="مثلاً: نوع شرکت"/></div>
+   <div><label class="lbl">کدام قطعه‌ها در این گروه باشند</label>
+     <div class="row tight">${CUR.fin.map((o,i)=>`<button class="chip" data-chip data-gp="${i}">${esc(o.l)}</button>`).join('')}</div></div>
+   <div class="row"><span class="sub" style="flex:1">انتخاب یکی از این‌ها اجباری باشد</span>
+     <span class="switch on" id="chGrpReq" role="switch" aria-checked="true" tabindex="0"></span></div>
+   <div class="mini">خاموش باشد، کاربر می‌تواند هیچ‌کدام را هم برندارد.</div>`,
+  go:btn=>{const sheet=btn.closest('#shChange');
+   const n=sheet.querySelector('#chGrpN').value.trim();
+   const of=[...sheet.querySelectorAll('.chip.on[data-gp]')].map(x=>NR(x.dataset.gp));
+   const req=sheet.querySelector('#chGrpReq').classList.contains('on');
+   if(!n||of.length<2){toast('نام گروه و حداقل دو قطعه لازم است');return}
+   CUR.groups=(CUR.groups||[]).filter(g=>g.n!==n);
+   CUR.groups.push({n,of,req,one:true});
+   of.forEach(i=>{if(CUR.fin[i])CUR.fin[i].g=n});
+   log('گروه انتخاب «'+n+'» با '+faN(of.length)+' گزینه ساخته شد'+(req?' — انتخاب یکی اجباری':''));
+   closeSheets(); renderPanel(); renderMoney(); toast('گروه ساخته شد')}},
  coupon:{t:'کد تخفیف',body:()=>`<div class="g2">
    <div><label class="lbl">کد</label><input class="input" id="chCode" style="direction:ltr" placeholder="NORA10"/></div>
    <div><label class="lbl">درصد</label><input class="input num" id="chPct" placeholder="۱۰"/></div></div>
@@ -1038,7 +1093,10 @@ const CHANGES={
   go:()=>{closeSheets(); go('fMoney')}},
  ticket:{t:'بلیت: پوسته و بخش‌ها',body:()=>{
    const cur=CUR.skin||'clear', parts=CUR.parts||['title','date','venue','name','code','qr'];
-   return `<label class="lbl">پوسته</label>
+   return `<div class="row"><span class="sub" style="flex:1">این فرم بلیت داشته باشد</span>
+     <span class="switch ${CUR.ticketOn?'on':''}" id="chTkOn" role="switch" aria-checked="${CUR.ticketOn?'true':'false'}" tabindex="0"></span></div>
+   <div class="mini">خاموش باشد، کاربر بدون بلیت ثبت‌نام می‌کند و فقط رسید پرداخت می‌ماند.</div>
+   <label class="lbl">پوسته</label>
    <div class="row tight">${Object.entries(TICKET_STYLES).map(([k,v])=>`<button class="chip ${cur===k?'on':''}" data-chip data-st="${k}">${v}</button>`).join('')}</div>
    <label class="lbl" style="margin-top:8px">چه چیزی روی بلیت باشد</label>
    <div class="row tight">${Object.entries(TICKET_PARTS).map(([k,v])=>`<button class="chip ${parts.includes(k)?'on':''}" data-chip data-part="${k}">${v}</button>`).join('')}</div>
@@ -1046,11 +1104,13 @@ const CHANGES={
    <div style="margin-top:10px" id="chTkPrev"></div>`},
   open:()=>prevTicket(),
   go:btn=>{const sheet=btn.closest('#shChange');
-   CUR.skin=sheet.querySelector('.chip.on[data-st]').dataset.st;
+   const onEl=sheet.querySelector('#chTkOn');
+   CUR.ticketOn=onEl?onEl.classList.contains('on'):CUR.ticketOn!==false;
+   CUR.skin=sheet.querySelector('.chip.on[data-st]')?.dataset.st||CUR.skin||'clear';
    CUR.parts=[...sheet.querySelectorAll('.chip.on[data-part]')].map(x=>x.dataset.part);
-   CUR.ticket=TICKET_STYLES[CUR.skin]+' — '+faN(CUR.parts.length)+' بخش';
-   log('بلیت به پوستهٔ '+TICKET_STYLES[CUR.skin]+' با '+faN(CUR.parts.length)+' بخش تغییر کرد');
-   closeSheets(); renderPanel(); toast('بلیت عوض شد')}},
+   CUR.ticket=CUR.ticketOn?(TICKET_STYLES[CUR.skin]+' — '+faN(CUR.parts.length)+' بخش'):null;
+   log(CUR.ticketOn?'بلیت با پوستهٔ '+TICKET_STYLES[CUR.skin]+' و '+faN(CUR.parts.length)+' بخش':'بلیت خاموش شد');
+   closeSheets(); renderPanel(); toast(CUR.ticketOn?'بلیت روشن شد':'بلیت خاموش شد')}},
  endtext:{t:'متن پایانی و پیوندها',body:()=>`
    <div><label class="lbl">متن پایانی</label><textarea class="input" id="chEnd2">${CUR.endText}</textarea></div>
    <div><label class="lbl">پیوند یکم</label><div class="row"><input class="input" id="chL1" style="flex:1" value="${CUR.links[0]||''}"/></div></div>
@@ -1087,6 +1147,11 @@ const CHANGES={
  _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
 };
 function prevTicket(){const el=document.getElementById('chTkPrev'); if(!el) return;
+  const sw=document.getElementById('chTkOn');
+  if(sw&&!sw.classList.contains('on')){
+    el.innerHTML=`<div class="card sunk"><div class="row"><svg class="i" style="color:var(--warn)"><use href="#i-close"/></svg>
+      <span class="sub">بلیت خاموش است — برای این فرم بلیتی صادر نمی‌شود.</span></div></div>`;
+    return}
   const draw=()=>{
     const st=document.querySelector('#chBody .chip.on[data-st]');
     const parts=[...document.querySelectorAll('#chBody .chip.on[data-part]')].map(x=>x.dataset.part);
@@ -1121,6 +1186,10 @@ document.addEventListener('click',e=>{
   const card=e.target.closest('[data-form]');
   if(card&&!e.target.closest('[data-copy]')){openForm(card.dataset.form);return}
   const pr=e.target.closest('[data-person]'); if(pr){openUser(pr.dataset.person);return}
+  const bot=e.target.closest('[data-bot]');
+  if(bot){const p=PEOPLE.find(x=>x.code===bot.dataset.bot)||CURP;
+    log('بلیت «'+(p?p.name:'')+'» دوباره به بله فرستاده شد');
+    toast('بلیت دوباره در بله فرستاده شد — تصویر PNG با کیوآرکد');return}
   const op=e.target.closest('[data-open]'); if(op){go(op.dataset.open);return}
   const tb=e.target.closest('#pSeg button'); if(tb){tab(tb.dataset.tab);return}
   const pf=e.target.closest('[data-pf]'); if(pf){PFILTER=pf.dataset.pf;renderAnswers();return}
@@ -1202,8 +1271,8 @@ document.querySelector('[data-save="card"]').onclick=()=>{
   if(d.length!==16){toast('شمارهٔ کارت باید ۱۶ رقم باشد');return}
   if(!luhn(d)){toast('شمارهٔ کارت درست نیست — یک بار دیگر بررسی کنید');return}
   document.getElementById('mCard').value=fmtCard(d);
-  CARD={no:fmtCard(d),bank:document.getElementById('mBank').value,owner:document.getElementById('mOwner').value};
-  log('کارت مقصد به '+CARD.bank+' — …'+d.slice(-4)+' تغییر کرد');
+  CARD_DEST={no:fmtCard(d),bank:document.getElementById('mBank').value,owner:document.getElementById('mOwner').value};
+  log('کارت مقصد به '+CARD_DEST.bank+' — …'+d.slice(-4)+' تغییر کرد');
   toast('کارت مقصد ذخیره شد');
 };
 /* کلیدهای درگاه با فرمِ باز‌شده هم‌گام می‌شوند */
@@ -1212,7 +1281,7 @@ function syncGw(){
     const on=CUR.gw.includes(sw.dataset.gw);
     sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on?'true':'false');
   });
-  const c=document.getElementById('mCard'); if(c&&CARD) c.value=CARD.no;
+  const c=document.getElementById('mCard'); if(c&&CARD_DEST) c.value=CARD_DEST.no;
   renderGw();
 }
 /* وضعیت درگاه‌ها از خودِ کلیدها خوانده می‌شود، نه از عدد ثابت */
