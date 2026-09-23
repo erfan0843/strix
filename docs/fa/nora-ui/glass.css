@@ -549,3 +549,40 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .sumbox{background:var(--surface-2);border:.5px solid var(--hairline);border-radius:var(--r-md);padding:12px}
 .sumbox .r{display:flex;justify-content:space-between;font-size:var(--fs-sub);padding:3px 0}
 .sumbox .r.t{font-weight:700;border-top:.5px solid var(--hairline);margin-top:6px;padding-top:8px}
+
+/* ══ اجزای تازهٔ مرحلهٔ دوم ══ */
+:root{--req:#B45309;--req-tint:rgba(180,83,9,.12)}
+:root[data-theme="dark"]{--req:#EFA95A;--req-tint:rgba(239,169,90,.16)}
+
+/* نشانهٔ فیلد اجباری: رنگ و شکل مخصوص */
+.reqbar{position:absolute;inset-inline-start:0;top:12px;bottom:12px;width:3px;border-radius:99px;background:var(--req)}
+.tag.req{background:var(--req-tint);color:var(--req)}
+.required-dot{width:7px;height:7px;border-radius:50%;background:var(--req);display:inline-block;vertical-align:middle;margin-inline-start:6px}
+
+/* مبلغ به سبک فروشگاهی: اصلی خط‌خورده، درصد تخفیف، نهایی بزرگ‌تر */
+.price{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.price .old{position:relative;color:var(--ink-3);font-size:var(--fs-sub)}
+.price .old::after{content:'';position:absolute;inset-inline:-2px;top:52%;height:1.5px;background:var(--stop);transform:rotate(-4deg)}
+.price .off{background:var(--stop);color:#fff;border-radius:var(--r-pill);font-size:var(--fs-cap);font-weight:700;padding:2px 8px;line-height:1.7}
+.price .now{font-size:var(--fs-head);font-weight:700;font-variant-numeric:tabular-nums}
+.mnote{font-size:var(--fs-cap);color:var(--ink-3)}
+.mult{display:inline-flex;align-items:center;gap:6px;background:var(--brand-tint);color:var(--brand-ink);
+  border-radius:var(--r-pill);padding:3px 10px;font-size:var(--fs-cap);font-weight:700}
+
+/* دکمهٔ بزرگ افزودن همراه */
+.addperson{width:100%;border:1.5px dashed var(--hairline);border-radius:var(--r-lg);background:transparent;
+  padding:16px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;color:var(--ink-2);cursor:pointer;
+  transition:border-color var(--t) var(--ease),background var(--t) var(--ease),color var(--t) var(--ease)}
+.addperson:hover{border-color:var(--brand);color:var(--brand-ink);background:var(--brand-tint)}
+.addperson .big{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
+
+/* گروه‌های بازشو در تنظیمات */
+.panel{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--sh-1);overflow:hidden}
+.panel>summary{padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600;font-size:var(--fs-sub);list-style:none}
+.panel>summary::-webkit-details-marker{display:none}
+.panel>summary .i{color:var(--ink-3)}
+.panel[open]>summary{border-bottom:.5px solid var(--hairline)}
+.panel .pbody{padding:12px 14px;display:grid;gap:10px}
+
+/* ویژگی ساختاری فیلد */
+.structchips{display:flex;flex-wrap:wrap;gap:6px}
