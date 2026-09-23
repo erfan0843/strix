@@ -339,7 +339,7 @@ async function load(file,store,q){
   p.click('#pSeg [data-tab="changes"]');
   ok(p.txt('#changesBox').includes('پیام گروهی'),'دکمهٔ پیام گروهی در تب تغییرات');
   p.click('[data-change="msg"]');
-  ok(p.all('#msgAud .chip').length===4,'چهار دستهٔ مخاطب از خود داده');
+  ok(p.all('#msgAud .chip').length===5,'پنج دستهٔ مخاطب از خود داده (با «غایب‌های این جلسه»)');
   const allN=p.window.eval("PEOPLE.filter(p=>p.form==='f1').length");
   ok(p.txt('#msgCount')===p.window.eval(`faN(${allN})`)+' گیرنده','شمار گیرنده‌ها از داده می‌آید ('+p.txt('#msgCount')+')');
   p.click('#msgAud [data-aud="pending"]');
@@ -392,6 +392,52 @@ async function load(file,store,q){
   ok(/خانم رستگار/.test(p.txt('#kWho')),'کارشناس همان بخش کنار صافی نوشته شده');
   p.click('#kFilters [data-kd=""]');
   ok(p.all('#kartabl .card.paper').length===kAll,'با «همهٔ بخش‌ها» همه برمی‌گردند');
+  /* ── بورد حضور و غیاب ── */
+  p.click('[data-go="fList"]');
+  p.click('[data-form="f1"]');
+  p.click('[data-go="fAttend"]');
+  ok(p.vis('.screen').join()==='fAttend','بورد حضور باز شد');
+  const paidF1=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid').length");
+  ok(p.txt('#attAll')===p.window.eval(`faN(${paidF1})`),'شمار ثبت‌نام قطعی از خود داده ('+p.txt('#attAll')+')');
+  ok(/کد ورود/.test(p.txt('#attSub')),'کد ورود جلسه نشان داده می‌شود');
+  ok(p.all('#attBody tr').length===paidF1,'فهرست بورد به اندازهٔ ثبت‌نام قطعی است');
+  ok(/غایب|حاضر/.test(p.txt('#attBody')),'وضعیت هر نفر در فهرست');
+  /* ثبت ورود با کد بلیت */
+  const code=p.window.eval("PEOPLE.find(p=>p.form==='f1'&&p.state==='paid').code");
+  p.doc.querySelector('#attCode').value=p.window.eval(`shortCode('${code}')`);
+  p.click('#attGo');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length")===1,'با کد بلیت (کد کوتاه) ورود ثبت شد');
+  ok(!/کد بلیت/.test(p.txt('#toast')) ,'گزارش ثبت ورود آمد: '+p.txt('#toast'));
+  ok(p.txt('#attIn')===p.window.eval('faN(1)') && p.txt('#attOut')===p.window.eval(`faN(${paidF1}-1)`),
+     'شمار حاضر/غایب به‌روز شد ('+p.txt('#attIn')+' حاضر، '+p.txt('#attOut')+' غایب)');
+  /* ثبت دوباره نباید دوباره بشمارد */
+  p.doc.querySelector('#attCode').value='ZZZZZZZ';
+  p.click('#attGo');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length")===1,'کد ناشناس چیزی ثبت نمی‌کند');
+  ok(/پیدا نشد/.test(p.txt('#toast')),'و پیام روشن می‌دهد');
+  /* دستی از فهرست */
+  p.click('[data-attmode="manual"]');
+  ok(p.doc.getElementById('attCode').style.display==='none','در حالت دستی، کادر کد کنار می‌رود');
+  const before=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length");
+  const freeRow=p.all('#attBody tr').find(tr=>/غایب/.test(tr.textContent));
+  freeRow.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length")===before+1,'با زدن روی ردیف، حاضر شد');
+  ok(/٪/.test(p.txt('#attPct')),'درصد حضور حساب شد ('+p.txt('#attPct')+')');
+  /* جست‌وجو */
+  p.doc.querySelector('#attQ').value='زهرا';
+  p.doc.querySelector('#attQ').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.all('#attBody tr').length===1 && /زهرا/.test(p.txt('#attBody')),'جست‌وجوی نام در بورد کار می‌کند');
+  p.doc.querySelector('#attQ').value='';
+  p.doc.querySelector('#attQ').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  /* خروجی و پیام به غایب‌ها */
+  p.click('[data-abexport]');
+  ok(/آماده شد/.test(p.txt('#toast')),'خروجی حضور ساخته شد');
+  p.click('[data-absentmsg]');
+  ok(p.doc.getElementById('shMsg').classList.contains('on'),'پیام به غایب‌ها ورقهٔ پیام را باز کرد');
+  ok(/غایب/.test(p.txt('#msgAud')) || p.txt('#msgCount')!=='۰ گیرنده','دستهٔ غایب‌ها انتخاب‌شده آمد ('+p.txt('#msgCount')+')');
+  const absentN=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid'&&!p.att).length");
+  ok(p.txt('#msgCount')===p.window.eval(`faN(${absentN})`)+' گیرنده','شمار غایب‌ها درست است');
+  p.click('[data-close]');
   p.click('[data-go="fTeam"]');
   ok(p.all('#teamBox .card').length===4,'چهار کارشناس');
   ok(/بخش آموزش/.test(p.txt('#teamBox'))&&/بخش رسانه/.test(p.txt('#teamBox')),'کارشناسان زیر بخش خودشان گروه شده‌اند');

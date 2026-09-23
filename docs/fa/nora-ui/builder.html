@@ -195,6 +195,7 @@
         <label class="searchbox glass-thin"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
           <input id="q" placeholder="نام فرم یا پیوند را بنویسید"/></label>
         <button class="btn quiet" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل</button>
+        <button class="btn quiet" data-go="fAttend"><svg class="i"><use href="#i-check"/></svg> حضور</button>
       </div>
 
       <div class="row tight" id="listChips">
@@ -390,6 +391,56 @@
     </section>
 
     <!-- ══════════ کارشناسان ══════════ -->
+    <!-- ══════════ بورد حضور و غیاب ══════════ -->
+    <section id="fAttend" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">بورد حضور</div>
+          <div class="cap" id="attSub">—</div>
+        </div>
+        <span class="sp"></span>
+        <button class="btn quiet" data-go="fPanel"><svg class="i"><use href="#i-chev-right"/></svg> پنل فرم</button>
+      </header>
+
+      <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:12px">
+        <div class="metric"><div class="n" id="attAll">—</div><div class="l">ثبت‌نام قطعی</div></div>
+        <div class="metric brand"><div class="n" id="attIn">—</div><div class="l">حاضر</div></div>
+        <div class="metric"><div class="n" id="attOut">—</div><div class="l">غایب</div></div>
+        <div class="metric"><div class="n" id="attPct">—</div><div class="l">درصد حضور</div></div>
+      </div>
+
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:8px"><span class="fw">ثبت ورود</span><span class="sp"></span>
+          <span class="cap">کد بلیت را از روی کیوآر بخوانید یا موبایل را بنویسید.</span></div>
+        <div class="row tight">
+          <input class="input" id="attCode" style="flex:1;direction:ltr" placeholder="T4K7M9X یا ۰۹۱۲…"/>
+          <button class="btn primary" id="attGo"><svg class="i"><use href="#i-check"/></svg> ثبت ورود</button>
+        </div>
+        <div class="row tight" style="margin-top:10px">
+          <button class="chip on" data-attmode="code">کد بلیت</button>
+          <button class="chip" data-attmode="manual">دستی از فهرست</button>
+          <button class="chip" data-attmode="auto">خودکار (لینک جلسه)</button>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-abexport><svg class="i"><use href="#i-download"/></svg> خروجی حضور</button>
+          <button class="btn sm quiet" data-absentmsg><svg class="i"><use href="#i-send"/></svg> پیام به غایب‌ها</button>
+        </div>
+      </div>
+
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:10px">
+          <label class="searchbox glass-thin" style="flex:1"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+            <input id="attQ" placeholder="نام یا موبایل را بنویسید"/></label>
+          <span class="cap" id="attCount">—</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t">
+            <thead><tr><th>#</th><th>شرکت‌کننده</th><th>صندلی</th><th>ورود</th><th>وضعیت</th></tr></thead>
+            <tbody id="attBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <section id="fTeam" class="screen">
       <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
         <div style="min-width:0"><div class="head tight">کارشناسان</div>
@@ -645,6 +696,7 @@ const RESTRICT={free:'آزاد برای همه',event:'فقط ثبت‌نام‌
 /* ── گشت ─────────────────────────────────────────────────────── */
 function go(id){
   if(id==='fMine') renderMine();
+  if(id==='fAttend') renderAttend();
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
   document.querySelectorAll('.rail [data-go]').forEach(b=>b.classList.toggle('tint',b.dataset.go===id));
   window.scrollTo({top:0,behavior:'instant'});
@@ -1047,7 +1099,41 @@ function openUser(id){
 }
 /* ── کارتابل ─────────────────────────────────────────────────── */
 let KDEPT='';
-/* ── کارتابل من: هر کارشناس، رسیدهای بخش خودش، قدیمی‌ترین اول ── */
+/* ── بورد حضور و غیاب: کیوآر بلیت، دستی، و پیام به غایب‌ها ── */
+let ATTMODE='code';
+const attList=()=>PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
+const attIn=()=>attList().filter(p=>p.att).length;
+function renderAttend(q){
+  q=(q===undefined?((document.getElementById('attQ')||{}).value||''):q).trim();
+  const list=attList();
+  const inn=attIn();
+  document.getElementById('attSub').textContent='فرم «'+CUR.name+'» — '+CUR.start+' — کد ورود: '+shortCode(CUR.id+CUR.slug);
+  document.getElementById('attAll').textContent=faN(list.length);
+  document.getElementById('attIn').textContent=faN(inn);
+  document.getElementById('attOut').textContent=faN(list.length-inn);
+  document.getElementById('attPct').textContent=faN(list.length?Math.round(inn/list.length*100):0)+'٪';
+  document.querySelectorAll('#fAttend .chip[data-attmode]').forEach(c=>c.classList.toggle('on',c.dataset.attmode===ATTMODE));
+  document.getElementById('attCode').style.display=ATTMODE==='code'?'':'none';
+  document.getElementById('attGo').style.display=ATTMODE==='code'?'':'none';
+  const rows=list.filter(p=>!q||p.name.includes(q)||unFa(p.mobile).includes(unFa(q)));
+  document.getElementById('attCount').textContent=faN(rows.length)+' از '+faN(list.length);
+  document.getElementById('attBody').innerHTML=rows.map((p,i)=>`<tr data-att="${p.id}" style="cursor:pointer">
+      <td class="num">${faN(i+1)}</td>
+      <td><b>${p.name}</b><div class="cap num">${maskPhone(p.mobile)}</div></td>
+      <td class="num">${'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3)}</td>
+      <td class="num">${p.attAt||'—'}</td>
+      <td><span class="tag ${p.att?'ok':'quiet'}"><span class="dot"></span> ${p.att?'حاضر':'غایب'}</span></td>
+    </tr>`).join('')||`<tr><td colspan="5"><div class="empty" style="padding:14px"><div class="body">کسی با این نشانه پیدا نشد</div></div></td></tr>`;
+}
+function attToggle(id,code){
+  const p=PEOPLE.find(x=>x.id===id)||(code?PEOPLE.find(x=>x.code===code||shortCode(x.code||'')===code):null);
+  if(!p){toast('کسی با این کد بلیت پیدا نشد'); return}
+  if(p.att){toast(p.name+' قبلاً ثبت شده ('+p.attAt+')'); renderAttend(); return}
+  p.att=true; p.attAt=new Date().toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+  log(p.name+' حاضر شد — '+p.attAt);
+  renderAttend(); toast(p.name+' حاضر شد');
+}
+/* ── کارتابل من: هر کارشناس، رسیدهای فرم خودش، قدیمی‌ترین اول ── */
 let ME='خانم رستگار';
 const meExpert=()=>TEAM.find(t=>t.n===ME)||TEAM[0];
 const meDept=()=>({dept:meExpert().d});
@@ -1450,6 +1536,16 @@ document.addEventListener('click',e=>{
   if(evd){CUR.event=null; CUR.changes.unshift(['امروز — فرم از رویداد جدا شد','خودم']);
     renderInfo(); renderPanel(); toast('از رویداد جدا شد'); return}
   const ch=e.target.closest('[data-change]'); if(ch){openChange(ch.dataset.change);return}
+  const am=e.target.closest('[data-attmode]');
+  if(am){ATTMODE=am.dataset.attmode; renderAttend();
+    if(ATTMODE==='auto') toast('با لینک جلسه، ورود خودش ثبت می‌شود'); return}
+  const tr=e.target.closest('[data-att]');
+  if(tr){attToggle(tr.dataset.att); return}
+  const abe=e.target.closest('[data-abexport]');
+  if(abe){log('خروجی حضور فرم «'+CUR.name+'» ساخته شد — '+faN(attIn())+' حاضر از '+faN(attList().length));
+    toast('فایل حضور آماده شد'); return}
+  const abm=e.target.closest('[data-absentmsg]');
+  if(abm){msgWho=null; msgAud='absent'; renderMsg(); openSheet('shMsg'); return}
   const me=e.target.closest('[data-me]');
   if(me){ME=me.dataset.me; renderMine(); toast('کارتابل '+ME+' آمد'); return}
   const tk=e.target.closest('[data-take]');
@@ -1500,12 +1596,20 @@ document.addEventListener('click',e=>{
   one.classList.add('on');
 });
 document.getElementById('q').addEventListener('input',renderList);
+document.getElementById('attQ').addEventListener('input',()=>renderAttend());
+document.getElementById('attGo').onclick=()=>{
+  const c=unFa((document.getElementById('attCode').value||'').trim()).toUpperCase();
+  if(!c){toast('کد بلیت را بخوانید'); return}
+  attToggle(null,c);
+  document.getElementById('attCode').value='';
+};
 /* ── پیام به پاسخ‌دهنده: تک‌نفر یا گروهی، با تاریخچه ── */
 let msgWho=null, msgAud='all';
 const AUD={
   all:{t:'همهٔ پاسخ‌دهنده‌ها',f:list=>list},
   paid:{t:'فقط پرداخت‌شده‌ها',f:list=>list.filter(p=>p.state==='paid')},
   pending:{t:'فقط در انتظار تأیید',f:list=>list.filter(p=>p.state==='pending')},
+  absent:{t:'غایب‌های این جلسه',f:list=>list.filter(p=>p.state==='paid'&&!p.att)},
   half:{t:'نیمه‌کاره‌ها (یادآوری)',f:list=>list.filter(p=>p.state==='half')}};
 function msgTargets(){
   if(msgWho){const p=PEOPLE.find(x=>x.id===msgWho); return p?[p]:[]}   /* تک‌نفر: فرقی نمی‌کند فرم باز کدام است */
