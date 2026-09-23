@@ -107,6 +107,9 @@ async function load(file,store){
   ok(pa && pa.dataset.printall==='.tk-wrap','دکمهٔ «چاپ همه» به بلیت‌ها وصل است');
   ok(p.txt('#finOpts').includes('شامل گواهینامهٔ پایان دوره'),'توضیح قطعهٔ مالی روی صفحهٔ کاربر');
   ok(p.txt('#finOpts').includes('نوع شرکت'),'نام گروه انتخاب روی صفحهٔ کاربر');
+  // توضیح هر قطعه فقط وقتی هست که نوشته شده باشد (قطعهٔ بی‌توضیح، خط خالی ندارد)
+  ok(p.window.eval("CFG.fin.some(o=>!o.d)")===true,'قطعهٔ بی‌توضیح هم در داده هست');
+  ok(p.all('#finOpts .cap').filter(e=>/^$/.test(e.textContent.trim())).length===0,'هیچ خط خالی برای توضیح نمانده');
   // ── گروه اجباری: تا یکی انتخاب نشود، فرم جلو نمی‌رود ──
   ok(p.window.eval("CFG.groups[0].req")===true,'گروه «نوع شرکت» اجباری است');
   p.window.eval("CFG.groups[0].of.forEach(k=>CFG.fin[k].on=false); CFG.fin[2].on=false; CFG.fin[3].on=false; show('u9')");
@@ -162,6 +165,10 @@ async function load(file,store){
   p.click('[data-close]');
   p.click('[data-change="ticket"]');
   ok(p.all('#chBody .chip[data-part]').length===11,'یازده بخش بلیت قابل انتخاب');
+  // بلیت تصویری: کد با فونت لاتین نوشته می‌شود (رقم‌ها فارسی‌شکل نشوند)
+  const tkSvg=p.doc.querySelector('#chTkPrev svg');
+  ok(tkSvg&&/Nora Latin/.test(tkSvg.innerHTML),'کد بلیت با فونت لاتین نوشته شده');
+  ok(tkSvg&&tkSvg.querySelector('#tkqr')!==null,'کیوآرکد داخل تصویر بلیت هست');
   // خاموش کردن بلیت باید پیش‌نمایش را به پیام روشن تبدیل کند
   const onSw=p.doc.querySelector('#chTkOn');
   onSw.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
@@ -248,6 +255,38 @@ async function load(file,store){
   ok(p.txt('#evPerks').includes('بلیت')===false,'مزیت بلیت از لندینگ برداشته شد');
   p.window.eval('CFG.ticketOn=true; renderTickets();');
   ok(p.all('#tickets svg[role="img"]').length===1,'با روشن کردن، بلیت برمی‌گردد');
+}
+
+/* ═══════════ سازندهٔ فرم: توضیح مالی و گروه ═══════════ */
+{
+  console.log('\n── سازندهٔ فرم (create.html) ──');
+  const p=await load('create.html',makeStore());
+  p.window.eval("go('s3')");                          /* مرحلهٔ مالی و پرداخت */
+  {
+    const n=p.all('#finList > .card').length;
+    ok(n>0 && p.all('#finList textarea[data-fd]').length===n,'هر قطعهٔ مالی ورودی توضیحات دارد ('+n+' قطعه)');
+  }
+  const ta=p.doc.querySelector('#finList textarea[data-fd="2"]');
+  ta.value='آب و میوه بین دو جلسه'; ta.dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.window.eval('S.fin[2].d')==='آب و میوه بین دو جلسه','توضیح در داده می‌نشیند');
+  ok(p.window.eval("S.fin[2].l")!=='آب و میوه بین دو جلسه','توضیح با عنوان قاطی نمی‌شود');
+  ta.value=''; ta.dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.window.eval("S.fin[2].d")==='','خالی کردن توضیح هم ثبت می‌شود');
+  p.click('#finList [data-freq="3"]');
+  ok(p.window.eval('S.fin[3].req')===true,'کلید اجباری روشن شد');
+  p.click('#finList [data-fgrp="0"]');
+  ok(p.doc.getElementById('shFinGroup').classList.contains('on'),'ورقهٔ گروه انتخاب باز شد');
+  ok(p.doc.querySelector('#fgName').value==='نوع شرکت','نام گروه فعلی نشان داده شد');
+  ok(p.all('#fgPick .chip.on').length===2,'دو گزینهٔ گروه تیک خورده‌اند');
+  p.click('#fgReq');                                  /* آزمون: خاموش کردن اجباری */
+  ok(!p.doc.getElementById('fgReq').classList.contains('on'),'کلید اجباری گروه خاموش شد');
+  p.click('#fgApply');
+  ok(p.window.eval("S.groups[0].req")===false,'گروه با انتخاب آزاد ذخیره شد');
+  ok(p.window.eval("S.groups[0].of.join()")==='0,1','گروه همان دو قطعه را دارد');
+  p.window.eval("go('s4')");                          /* مرحلهٔ مرور */
+  ok(/گروه انتخاب/.test(p.txt('#review')),'مرور، گروه را نشان می‌دهد');
+  ok(/نوع شرکت/.test(p.txt('#review')),'مرور، نام گروه را نشان می‌دهد');
+  ok(/اجباری/.test(p.txt('#review')),'مرور، قطعهٔ اجباری را نشان می‌دهد');
 }
 
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');

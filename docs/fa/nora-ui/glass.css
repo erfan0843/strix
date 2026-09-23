@@ -10,6 +10,9 @@
 @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-UI-FD-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
 @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-UI-FD-SemiBold.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}
 @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-UI-FD-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+/* فونت دوم برای کدها و شناسه‌های لاتین: رقم‌ها را فارسی‌شکل نمی‌کند */
+@font-face{font-family:'Nora Latin';src:url('fonts/Nora-Latin-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Nora Latin';src:url('fonts/Nora-Latin-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 
 :root{
   color-scheme:light;
@@ -139,6 +142,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sub    {font-size:var(--fs-sub);   color:var(--ink-2); margin:0}
 .cap    {font-size:var(--fs-cap);   color:var(--ink-3); margin:0; font-weight:500}
 .num    {font-variant-numeric:tabular-nums; font-feature-settings:'tnum'}
+/* شناسه‌ها و کدهای لاتین: با فونت دوم نوشته می‌شوند تا رقم‌ها فارسی‌شکل نشوند */
+.num,code,kbd,samp,[dir="ltr"]{font-family:'Nora Latin',Vazirmatn,system-ui,Tahoma,sans-serif}
 .mute   {color:var(--ink-3)}
 .tight  {letter-spacing:-.2px}
 
@@ -613,13 +618,12 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   border-bottom:.5px solid var(--hairline-2)}
 .ticketline:last-child{border-bottom:0}
 .ticketline .sp{flex:1}
-/* ── بلیت و رسید: تصویری؛ قاب دور تصویر و دکمه‌های کار ── */
+/* ── بلیت و رسید: تصویری؛ خودِ تصویر سایه و گوشهٔ خودش را دارد ── */
 .tk-wrap,.rc-wrap{margin:0;display:grid;gap:10px}
 .tk-img,.rc-wrap .tk-img{display:block;line-height:0}
-.tk-img svg{width:100%;height:auto;display:block;border-radius:var(--r-xl);
-  box-shadow:var(--sh-2);transition:transform var(--t) var(--ease)}
-@media (hover:hover){.tk-img:hover svg{transform:translateY(-1px) scale(1.004)}}
+.tk-img svg{width:100%;height:auto;display:block}   /* نه برش گوشه، نه سایهٔ دوباره */
 .tk-acts,.rc-acts{display:flex;gap:8px;flex-wrap:wrap}
+@media print{.tk-img{break-inside:avoid}}
 
 /* ── شناسنامهٔ فرم ── */
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}

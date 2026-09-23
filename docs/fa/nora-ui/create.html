@@ -464,6 +464,21 @@
   <div id="catList"></div>
 </aside>
 
+<aside class="sheet" id="shFinGroup" role="dialog" aria-label="گروه انتخاب">
+  <div class="grabber"></div>
+  <div class="row"><span class="head">گروه انتخاب</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <p class="cap" style="margin-top:8px">گروه یعنی چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد — مثل «با گواهینامه» و «بدون گواهینامه».</p>
+  <div style="margin-top:10px"><label class="lbl" for="fgName">نام گروه</label><input id="fgName" class="input" placeholder="مثلاً نوع شرکت"/></div>
+  <div style="margin-top:10px"><div class="lbl">کدام قطعه‌ها در این گروه باشند</div>
+    <div class="row tight" id="fgPick" style="margin-top:6px"></div></div>
+  <div class="row" style="margin-top:12px"><span class="sub" style="flex:1">انتخاب یکی از این‌ها اجباری باشد</span>
+    <span class="switch on" id="fgReq" role="switch" aria-checked="true" tabindex="0"></span></div>
+  <div class="mnote" style="margin-top:6px">خاموش باشد، کاربر می‌تواند هیچ‌کدام را هم برندارد.</div>
+  <div class="row" style="margin-top:14px">
+    <button class="btn primary" id="fgApply"><svg class="i"><use href="#i-check"/></svg> ساخت گروه</button>
+    <button class="btn quiet" data-close>بی‌خیال</button></div>
+</aside>
+
 <aside class="sheet" id="shField" role="dialog" aria-label="تنظیمات فیلد">
   <div class="grabber"></div>
   <div class="row"><span class="head">تنظیمات فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
@@ -602,7 +617,11 @@ const S={
   notify:{on:true,to:'کارتابل کارشناس',expert:'خانم رستگار — آموزش'},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan'},{t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan'}],
-  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:true},{l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false}],
+  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:false,d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه',g:'نوع شرکت'},
+       {l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false,d:'بدون گواهینامه؛ همان کلاس',g:'نوع شرکت'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:'',g:null},
+       {l:'ارسال گواهینامه با پست',p:120000,off:0,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد',g:null}],
+  groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
   maxPer:3, compFields:'نام و موبایل',
   coupon:{code:'NORA10',off:10,all:false},
   methods:{card:true,bale:true,zarin:false,payping:false,instal:false},
@@ -663,15 +682,35 @@ function renderCanvas(){
     +`<span class="chip" data-quick="empty"><svg class="i"><use href="#i-plus"/></svg> خالی</span>`
     +`<span class="chip" data-quick="save"><svg class="i"><use href="#i-copy"/></svg> ذخیره به‌عنوان بستهٔ سازمانی</span>`;
 }
+/* گروه انتخاب: چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد */
+function openFinGroup(idx){
+  const cur=S.fin[idx]||{};
+  const g=(S.groups||[]).find(x=>x.n===cur.g);
+  $('#fgName').value=g?g.n:'';
+  $('#fgReq').classList.toggle('on',g?!!g.req:true);
+  $('#fgPick').innerHTML=S.fin.map((o,i)=>`<button class="chip ${g&&g.of.includes(i)?'on':''}" data-fgp="${i}">${esc(o.l)}</button>`).join('');
+  openSheet('shFinGroup');
+}
 function renderFin(){
   $('#finList').innerHTML=S.fin.map((o,i)=>`
     <div class="card sunk" style="padding:12px">
       <div class="finrow">
-        <div><span class="pick-label">عنوان مورد مالی</span><input class="input" value="${o.l}" data-fl="${i}"/></div>
+        <div><span class="pick-label">عنوان مورد مالی</span><input class="input" value="${esc(o.l)}" data-fl="${i}"/></div>
         <div><span class="pick-label">مبلغ (ریال)</span><input class="input num" value="${fa(o.p)}" data-fp="${i}"/></div>
         <div><span class="pick-label">تخفیف</span>
           <select class="input" data-fo="${i}">${[0,5,10,15,20,25,30,40,50].map(v=>`<option value="${v}" ${o.off===v?'selected':''}>٪${faN(v)}</option>`).join('')}</select></div>
         <button class="icon-btn" data-fdel="${i}" aria-label="حذف"><svg class="i"><use href="#i-trash"/></svg></button>
+      </div>
+      <div style="margin-top:8px">
+        <span class="pick-label">توضیحات (دلخواه)</span>
+        <textarea class="input" data-fd="${i}" rows="2" placeholder="زیر عنوان همین قطعه نشان داده می‌شود">${esc(o.d||'')}</textarea>
+        <div class="mini">خالی بماند، چیزی نشان داده نمی‌شود.</div>
+      </div>
+      <div class="row tight" style="margin-top:8px">
+        <button class="chip ${o.req?'on':''}" data-freq="${i}">اجباری</button>
+        <button class="chip ${o.g?'on':''}" data-fgrp="${i}"><svg class="i"><use href="#i-branch"/></svg> ${o.g?esc(o.g):'در گروه انتخاب'}</button>
+        <span class="sp"></span>
+        <span class="mini">${o.g&&(S.groups||[]).some(g=>g.n===o.g&&g.req)?'انتخاب یکی اجباری است':''}</span>
       </div>
       <div class="row tight" style="margin-top:8px">
         <span class="price">
@@ -738,7 +777,8 @@ function renderReview(){
     ['بازه',S.start+' تا '+S.end],
     ['ظرفیت',faN(S.cap)+' نفر + '+faN(S.wait)+' نفر لیست انتظار'],
     ['محدودیت',{none:'آزاد',event:'ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'}[S.limit]],
-    ['موارد مالی',S.fin.map(f=>f.l+' — '+fa(net(f))).join(' · ')||'رایگان'],
+    ['موارد مالی',S.fin.map(f=>f.l+(f.d?' ('+f.d+')':'')+' — '+fa(net(f))+(f.req?' — اجباری':'')).join(' · ')||'رایگان'],
+    ['گروه انتخاب',(S.groups||[]).map(g=>g.n+' ('+g.of.map(i=>S.fin[i]?S.fin[i].l:'?').join(' / ')+')'+(g.req?' — یکی اجباری':'')).join(' · ')||'—'],
     ['تعداد بلیت',faN(S.maxPer)+' نفر'],
     ['پرداخت',onM.join(' · ')],
     ['بلیت',TICKET_STYLES[S.ticket.style]+' · '+faN(S.ticket.parts.length)+' بخش'],
@@ -871,8 +911,18 @@ document.addEventListener('click',e=>{
   const sga=e.target.closest('#segAfter button'); if(sga){[...sga.parentElement.children].forEach(x=>x.classList.remove('on'));sga.classList.add('on');return}
   const fdel=e.target.closest('[data-fdel]'); if(fdel){S.fin.splice(Number(fdel.dataset.fdel),1);renderFin();renderPreview();return}
   const freq=e.target.closest('[data-freq]'); if(freq){const i=Number(freq.dataset.freq);S.fin[i].req=!S.fin[i].req;renderFin();return}
+  const fgrp=e.target.closest('[data-fgrp]'); if(fgrp){openFinGroup(Number(fgrp.dataset.fgrp));return}
+  const fgp=e.target.closest('[data-fgp]'); if(fgp){fgp.classList.toggle('on');return}
+  if(e.target.closest('#fgApply')){
+    const n=($('#fgName').value||'').trim();
+    const of=[...document.querySelectorAll('#fgPick .chip.on')].map(x=>NR(x.dataset.fgp));
+    const req=$('#fgReq').classList.contains('on');
+    if(!n||of.length<2){toast('نام گروه و حداقل دو قطعه لازم است');return}
+    S.groups=(S.groups||[]).filter(g=>g.n!==n); S.groups.push({n,of,req,one:true});
+    S.fin.forEach((o,i)=>{o.g=of.includes(i)?n:(o.g===n?null:o.g)});
+    closeSheets(); renderFin(); renderReview(); toast('گروه ساخته شد'); return}
   const ldel=e.target.closest('[data-ldel]'); if(ldel){S.links.splice(Number(ldel.dataset.ldel),1);renderLinks();return}
-  if(e.target.closest('#addFin')){S.fin.push({l:'مورد مالی تازه',p:0,off:0,req:false});renderFin();renderPreview();return}
+  if(e.target.closest('#addFin')){S.fin.push({l:'مورد مالی تازه',p:0,off:0,req:false,d:'',g:null});renderFin();renderPreview();return}
   if(e.target.closest('#addLink')){S.links.push({t:'پیوند تازه',u:'https://'});renderLinks();return}
   if(e.target.closest('#addTop')||e.target.closest('#addBottom')){openSheet('shAdd');return}
   const sw=e.target.closest('.switch');
@@ -899,6 +949,7 @@ document.addEventListener('input',e=>{
   if(i.id==='cap'){S.cap=NR(unFa(i.value))||0}
   if(i.id==='wcount'){S.wait=NR(unFa(i.value))||0}
   if(i.dataset.fl!==undefined){S.fin[NR(i.dataset.fl)].l=i.value;renderPreview()}
+  if(i.dataset.fd!==undefined){S.fin[NR(i.dataset.fd)].d=i.value;renderPreview()}
   if(i.dataset.fp!==undefined){S.fin[NR(i.dataset.fp)].p=NR(unFa(i.value).replace(/[^\d]/g,''))||0;renderFin();renderPreview()}
   if(i.dataset.lt!==undefined){S.links[NR(i.dataset.lt)].t=i.value}
   if(i.dataset.lu!==undefined){S.links[NR(i.dataset.lu)].u=i.value}
