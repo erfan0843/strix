@@ -290,7 +290,70 @@ async function load(file,store,q){
   // تأیید رسید از کارتابل
   p.click('[data-go="fKartabl"]');
   const kb=p.txt('#kBadge');
-  ok(p.all('#kartabl [data-approve]').length===2,'دو رسید در کارتابل');
+  ok(p.all('#kartabl [data-approve]').length===4,'چهار رسید در کارتابل');
+  /* ── کارتابل من (کارشناس) ── */
+  p.click('[data-go="fMine"]');
+  ok(p.vis('.screen').join()==='fMine','صفحهٔ «کارتابل من» باز شد');
+  ok(p.all('#meChips .chip').length===4,'چهار کارشناس برای دیدن');
+  ok(/خانم رستگار/.test(p.txt('#meChips')) && p.doc.querySelector('#meChips .chip.on').textContent.includes('رستگار'),
+     'پیش‌فرض: خانم رستگار (آموزش)');
+  const mineEd=p.all('#mineBox .card.paper').map(c=>c.textContent);
+  ok(mineEd.length===3,'کارشناس آموزش سه رسید روی میزش دارد (آموزش نه رسید بخش‌های دیگر)');
+  ok(!mineEd.some(t=>/الهام داوودی/.test(t)),'رسید بخش رسانه در کارتابل آموزش نیست');
+  ok(/۱ روز در انتظار/.test(mineEd[0]) && /۶ ساعت در انتظار/.test(mineEd[1]) && /۳ ساعت در انتظار/.test(mineEd[2]),
+     'ترتیب اقدام: قدیمی‌ترین بالا ('+mineEd.map(t=>(t.match(/(\d+ (روز|ساعت)) در انتظار/)||[])[0]).join(' | ')+')');
+  /* برداشتن رسید */
+  p.click('#mineBox [data-take]');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='p1').owner")==='خانم رستگار','رسید به نام خودم برداشته شد');
+  ok(/برداشته‌ام/.test(p.txt('#mineBox')),'نشان «برداشته‌ام» روی کارت آمد');
+  ok(p.txt('#myBadge')==='۳' || /۳/.test(p.txt('#myBadge')),'نشان کارتابل من در ریل به‌روز است');
+  /* سپردن به کارشناس دیگر */
+  const p3=p.all('#mineBox [data-pass]')[0];
+  p3.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.doc.getElementById('shPass').classList.contains('on'),'ورقهٔ «سپردن به کارشناس دیگر» باز شد');
+  p.click('#passWho [data-passto]');
+  p.doc.querySelector('#passNote').value='مبلغ کم است؛ خودم پیگیری کردم.';
+  p.click('#passGo');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='p1').owner")!=='خانم رستگار','رسید به کارشناس دیگری سپرده شد');
+  ok(/به .+ سپرده شد|سپرده شد/.test(p.txt('#toast')),'پیام سپردن آمد');
+  /* کارشناس نظرسنجی: کارتابل خالی (فرم‌هایش مالی ندارد) */
+  p.click('#meChips [data-me="آقای نادری"]');
+  ok(/کارتابلت خالی است/.test(p.txt('#mineBox')),'بخش نظرسنجی رسیدی ندارد و همین را می‌گوید');
+  p.click('#meChips [data-me="خانم صادقی"]');
+  ok(/الهام داوودی/.test(p.txt('#mineBox')),'کارشناس رسانه، رسید خودش را می‌بیند');
+  ok(p.window.eval("CUR.id")==='f1','فرمِ بازِ پنل هنوز همان ثبت‌نام است (پیام تک‌نفره به آن کاری ندارد)');
+  /* ── پیام به پاسخ‌دهنده ── */
+  p.click('#mineBox [data-msgone]');
+  ok(p.doc.getElementById('shMsg').classList.contains('on'),'ورقهٔ پیام باز شد');
+  ok(/پیام به الهام داوودی/.test(p.txt('#shMsg')),'پیام تک‌نفره به خودِ او');
+  ok(p.doc.getElementById('msgAudBox').style.display==='none','برای تک‌نفر، انتخاب مخاطب پنهان است');
+  const qk=p.all('#shMsg [data-quick]')[1];
+  qk.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.doc.querySelector('#msgText').value.includes('کارت شناسایی'),'متن آماده در کادر نشست');
+  p.click('#msgGo');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='p12').msgs.length")===1,'پیام در تاریخچهٔ پاسخ‌دهنده ثبت شد');
+  ok(/۱ پیام|پیام به/.test(p.txt('#toast')),'پیام ارسال گزارش شد');
+  /* پیام گروهی از تب تغییرات */
+  p.click('[data-go="fList"]');
+  p.click('[data-form="f1"]');
+  p.click('#pSeg [data-tab="changes"]');
+  ok(p.txt('#changesBox').includes('پیام گروهی'),'دکمهٔ پیام گروهی در تب تغییرات');
+  p.click('[data-change="msg"]');
+  ok(p.all('#msgAud .chip').length===4,'چهار دستهٔ مخاطب از خود داده');
+  const allN=p.window.eval("PEOPLE.filter(p=>p.form==='f1').length");
+  ok(p.txt('#msgCount')===p.window.eval(`faN(${allN})`)+' گیرنده','شمار گیرنده‌ها از داده می‌آید ('+p.txt('#msgCount')+')');
+  p.click('#msgAud [data-aud="pending"]');
+  ok(/گیرنده/.test(p.txt('#msgCount')) && p.txt('#msgCount')!=='۰ گیرنده','دستهٔ «در انتظار تأیید» گیرنده دارد');
+  p.doc.querySelector('#msgText').value='یادآوری: رسید کارت‌به‌کارت را بفرستید.';
+  p.click('#msgGo');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='pending').every(p=>p.msgs&&p.msgs.length)")===true,
+     'پیام گروهی فقط به دستهٔ انتخاب‌شده رفت');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state!=='pending').every(p=>!p.msgs)")===true,'به بقیه نرفت');
+  /* تاریخچه در جزئیات پاسخ‌دهنده */
+  p.click('[data-go="fKartabl"]');
+  p.click('#kartabl [data-person]');
+  ok(/پیام/.test(p.txt('#usBody')),'تاریخچهٔ پیام‌ها در جزئیات پاسخ‌دهنده');
+  ok(/کارت شناسایی|یادآوری/.test(p.txt('#usBody')),'متن پیام در تاریخچه هست');
   p.click('#kartabl [data-approve]');
   ok(p.txt('#kBadge')!==kb,'تأیید رسید، شمار کارتابل را کم کرد');
   p.click('[data-go="fMoney"]');
@@ -319,8 +382,10 @@ async function load(file,store,q){
   ok(kAll>0,'کارتابل پر است ('+kAll+')');
   ok(/بخش/.test(p.txt('#kartabl')),'روی هر رسید، بخشش نوشته شده');
   ok(p.doc.querySelector('#kFilters [data-kd="edu"]')!==null,'صافی بخش‌ها در کارتابل هست');
-  p.click('#kFilters [data-kd="media"]');
+  p.click('#kFilters [data-kd="sup"]');
   ok(/کارتابل خالی است/.test(p.txt('#kartabl')),'بخشی که رسید ندارد، کارتابلش خالی است');
+  p.click('#kFilters [data-kd="media"]');
+  ok(/الهام داوودی/.test(p.txt('#kartabl'))&&!/حسن کریمی/.test(p.txt('#kartabl')),'صافی «رسانه» فقط رسید رسانه را می‌آورد');
   p.click('#kFilters [data-kd="edu"]');
   const kEdu=[...p.doc.querySelectorAll('#kartabl .card.paper')];
   ok(kEdu.length>0 && kEdu.every(c=>/بخش آموزش/.test(c.textContent)),'با صافی «آموزش» فقط رسیدهای آموزشی می‌مانند ('+kEdu.length+')');
