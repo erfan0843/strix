@@ -144,6 +144,7 @@
 
 <symbol id="i-type" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 6.2h12.8M12 6.2v11.6"/></g></symbol>
 
+<symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
 </svg>
 
 
@@ -296,12 +297,9 @@
             <summary><svg class="i"><use href="#i-ticket"/></svg> بلیت</summary>
             <div class="pbody">
               <div class="row"><span class="sub">صدور بلیت</span><span class="sp"></span><span class="switch on" role="switch" aria-checked="true" tabindex="0"></span></div>
-              <div class="row tight">
-                <span class="chip on" data-tk="classic">کلاسیک</span><span class="chip" data-tk="glass">شیشه‌ای</span>
-                <span class="chip" data-tk="gold">طلایی</span><span class="chip" data-tk="minimal">مینیمال</span>
-              </div>
-              <div class="swatches" id="swatches"></div>
-              <div class="lbl" style="margin-top:4px">چیزهایی که روی بلیت چاپ شود</div>
+              <div class="lbl" style="margin-top:2px">پوسته</div>
+              <div class="row tight" id="tkSkins"></div>
+              <div class="lbl" style="margin-top:6px">چیزهایی که روی بلیت چاپ شود</div>
               <div class="row tight" id="tkParts"></div>
               <div id="tkPreview" style="margin-top:12px"></div>
             </div>
@@ -422,7 +420,7 @@
           <div class="row tight">
             <button class="btn primary" id="publish"><svg class="i"><use href="#i-send"/></svg> انتشار فرم</button>
             <a class="btn" href="form.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-eye"/></svg> پیش‌نمایش کاربر</a>
-            <button class="btn quiet"><svg class="i"><use href="#i-copy"/></svg> پیوند به رویداد</button>
+            <button class="btn quiet" id="copyEvent"><svg class="i"><use href="#i-copy"/></svg> پیوند رویداد</button>
           </div>
         </div>
         <div class="stack">
@@ -597,10 +595,10 @@ const S={
   display:'one', dir:'rtl', after:'edit',
   start:'1405/07/01 — 08:00', end:'1405/07/30 — 23:45',
   cap:40, wait:20, limit:'event',
-  ticket:{on:true,style:'classic',color:'#0F6FD1',parts:['title','name','code','date','venue','qr','logo']},
+  ticket:{on:true,style:'clear',parts:['title','date','venue','name','seat','no','code','qr','logo','note']},
   notify:{on:true,to:'کارتابل کارشناس',expert:'خانم رستگار — آموزش'},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
-  links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/event/fanbayan'},{t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan'}],
+  links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan'},{t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan'}],
   fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,req:true},{l:'کارگاه بدون گواهینامه',p:600000,off:0,req:false}],
   maxPer:3, compFields:'نام و موبایل',
   coupon:{code:'NORA10',off:10,all:false},
@@ -694,15 +692,15 @@ function renderLinks(){
     </div>`).join('');
 }
 function renderTicket(){
-  $('#swatches').innerHTML=['#0F6FD1','#0B7A57','#A2701C','#8A4BA8','#B33A2B','#2F5D8A','#3C6E47','#6B4E8C']
-    .map(c=>`<span class="swatch ${S.ticket.color===c?'on':''}" data-color="${c}" style="--sw:${c}" role="button" tabindex="0" aria-label="رنگ بلیت"></span>`).join('');
+  $('#tkSkins').innerHTML=Object.entries(TICKET_STYLES)
+    .map(([k,n])=>`<span class="chip ${S.ticket.style===k?'on':''}" data-tk="${k}" role="button" tabindex="0">${n}</span>`).join('');
   $('#tkParts').innerHTML=Object.entries(TICKET_PARTS).map(([k,n])=>{
     const on=S.ticket.parts.includes(k);
     return `<span class="chip ${on?'on':''}" data-part="${k}"><svg class="i"><use href="#${k==='qr'?'i-qr':k==='code'?'i-key':k==='name'?'i-users':k==='date'?'i-calendar':k==='venue'?'i-pin':k==='seat'?'i-grid':k==='no'?'i-ticket':k==='logo'?'i-layers':'i-doc'}"/></svg> ${n}</span>`;
   }).join('');
-  $('#tkPreview').innerHTML=ticketHTML({style:S.ticket.style,color:S.ticket.color,parts:S.ticket.parts,
-    title:S.title.replace('ثبت‌نام ',''),name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',date:'۱۴۰۵/۰۷/۰۸ — ۱۶:۰۰',
-    venue:'تهران، ولی‌عصر، پلاک ۱۲',seat:'ردیف ۳ — صندلی ۱۷',confirmed:S.confirmed});
+  $('#tkPreview').innerHTML=ticketHTML({style:S.ticket.style,parts:S.ticket.parts,
+    kind:'بلیت ورود',title:S.title.replace('ثبت‌نام ',''),name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',
+    date:S.start,venue:S.venue||'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۳ — صندلی ۱۷',confirmed:S.confirmed});
 }
 function renderPreview(){
   const per=S.fin.filter(f=>f.req||true).reduce((a,o)=>a+net(o),0)*0; /* مبلغ نهایی به انتخاب کاربر است */
@@ -757,6 +755,10 @@ function renderCatalog(){
 }
 function slugView(){
   $('#slugView').textContent=S.nested?('lifeline1.ir/'+S.slug):('lifeline1.ir/f/'+S.slug.split('/').pop());
+  /* «پیوند رویداد» همان نشانی صفحهٔ رویدادی است که فرم زیر آن نشسته */
+  const ev='https://lifeline1.ir/'+S.slug.replace(/\/register$/,'');
+  const btn=$('#copyEvent');
+  if(btn){btn.dataset.copy=ev; btn.title=ev}
   $('#slugNote').textContent=S.nested?'تو در تو با صفحهٔ رویداد — دلخواه هم می‌شود.':'نشانی مستقل، جدا از رویداد.';
 }
 
@@ -846,7 +848,7 @@ document.addEventListener('click',e=>{
   const pk=e.target.closest('[data-part]'); if(pk){const k=pk.dataset.part;
     S.ticket.parts=S.ticket.parts.includes(k)?S.ticket.parts.filter(x=>x!==k):[...S.ticket.parts,k];
     renderTicket();return}
-  const cl=e.target.closest('[data-color]'); if(cl){S.ticket.color=cl.dataset.color;renderTicket();return}
+
   const tk=e.target.closest('[data-tk]'); if(tk){S.ticket.style=tk.dataset.tk;$$('[data-tk]').forEach(c=>c.classList.remove('on'));tk.classList.add('on');renderTicket();return}
   const dr=e.target.closest('[data-dir]'); if(dr){S.dir=dr.dataset.dir;$$('[data-dir]').forEach(c=>c.classList.remove('on'));dr.classList.add('on');return}
   const sgd=e.target.closest('#segDisplay button'); if(sgd){[...sgd.parentElement.children].forEach(x=>x.classList.remove('on'));sgd.classList.add('on');S.display=sgd.textContent.includes('هر مرحله')?'one':'all';return}

@@ -151,6 +151,7 @@
 
 <symbol id="i-type" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 6.2h12.8M12 6.2v11.6"/></g></symbol>
 
+<symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
 </svg>
 
 
@@ -163,7 +164,7 @@
     </div>
     <nav class="col tight">
       <button class="btn quiet block" data-go="fList"><svg class="i"><use href="#i-doc"/></svg> فرم‌ها</button>
-      <button class="btn quiet block" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل رسیدها <span class="sp"></span><span class="tag warn" id="kBadge">۴</span></button>
+      <button class="btn quiet block" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل رسیدها <span class="sp"></span><span class="tag warn" id="kBadge">—</span></button>
       <button class="btn quiet block" data-go="fMoney"><svg class="i"><use href="#i-wallet"/></svg> مالی</button>
       <button class="btn quiet block" data-go="fTeam"><svg class="i"><use href="#i-users"/></svg> کارشناسان</button>
     </nav>
@@ -242,7 +243,7 @@
 
       <!-- دکمهٔ آخر صفحه: تنظیمات فرم -->
       <div class="settingbtn">
-        <button class="btn primary block" data-sheet="shSettings"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم</button>
+        <button class="btn primary block" id="openSettings"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم</button>
         <div class="row">
           <a class="btn quiet" href="create.html"><svg class="i"><use href="#i-pen"/></svg> ویرایش ساختار</a>
           <a class="btn quiet" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> دیدن فرم</a>
@@ -269,7 +270,7 @@
           <div class="cap">رسیدهای کارت‌به‌کارت تا تأیید کارشناس، بلیت موقت است.</div>
         </div>
         <span class="sp"></span>
-        <span class="tag warn" id="kTop">۴ در انتظار</span>
+        <span class="tag warn" id="kTop">—</span>
       </header>
       <div class="stack" id="kartabl" style="margin-top:12px"></div>
     </section>
@@ -289,7 +290,7 @@
           <div class="card paper sheen">
             <div class="row" style="margin-bottom:12px"><svg class="i"><use href="#i-wallet"/></svg><span class="fw">کارت مقصد کارت‌به‌کارت</span><span class="sp"></span><span class="tag ok">فعال</span></div>
             <label class="lbl">شماره کارت</label>
-            <input class="input num" id="mCard" style="direction:ltr" value="6104-3378-1234-5678"/>
+            <input class="input num" id="mCard" style="direction:ltr" value="6104-3378-1234-5674"/>
             <div class="g2" style="margin-top:10px">
               <div><label class="lbl">بانک</label><input class="input" id="mBank" value="بانک ملت"/></div>
               <div><label class="lbl">به نام</label><input class="input" id="mOwner" value="مؤسسهٔ خط زندگی"/></div>
@@ -299,23 +300,40 @@
           </div>
 
           <div class="card paper">
-            <div class="fw" style="margin-bottom:6px">درگاه‌ها</div>
-            <div class="stack tight">
+            <div class="row" style="margin-bottom:6px"><div class="fw">درگاه‌ها</div><span class="sp"></span>
+              <span class="cap" id="gwState"></span></div>
+            <div class="stack tight" id="gwBox">
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">درگاه بله</b><div class="cap">قطعی — کارمزد ٪۰ — بلافاصله بلیت صادر می‌شود</div></div>
-                <span class="switch on" role="switch" aria-checked="true"></span></div>
+                <div style="flex:1"><b class="sub">درگاه بله</b><div class="cap">قطعی — کارمزد ٪۰ — بلافاصله بلیت صادر می‌شود</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="درگاه بله" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch on" data-gw="درگاه بله" role="switch" aria-checked="true"></span></div>
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">زرین‌پال</b><div class="cap">کارمزد ٪۱ — تسویهٔ روز بعد</div></div>
-                <span class="switch on" role="switch" aria-checked="true"></span></div>
+                <div style="flex:1"><b class="sub">زرین‌پال</b><div class="cap">کارمزد ٪۱ — تسویهٔ روز بعد</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="زرین‌پال" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch on" data-gw="زرین‌پال" role="switch" aria-checked="true"></span></div>
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">پی‌پینگ</b><div class="cap">کارمزد ٪۱ — برای پرداخت با موبایل</div></div>
-                <span class="switch on" role="switch" aria-checked="true"></span></div>
+                <div style="flex:1"><b class="sub">پی‌پینگ</b><div class="cap">کارمزد ٪۱ — برای پرداخت با موبایل</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="پی‌پینگ" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch on" data-gw="پی‌پینگ" role="switch" aria-checked="true"></span></div>
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">اقساطی</b><div class="cap">فقط برای مبالغ بالای ۵ میلیون ریال</div></div>
-                <span class="switch" role="switch" aria-checked="false"></span></div>
-              <div class="row" style="padding:10px 0">
-                <div style="flex:1"><b class="sub">کارت‌به‌کارت</b><div class="cap">با تأیید دستی کارشناس — رد شدن یعنی باطل و شروع دوباره</div></div>
-                <span class="switch on" role="switch" aria-checked="true"></span></div>
+                <div style="flex:1"><b class="sub">اقساطی</b><div class="cap">فقط برای مبالغ بالای ۵ میلیون ریال</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="اقساطی" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch" data-gw="اقساطی" role="switch" aria-checked="false"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">کارت‌به‌کارت</b><div class="cap">با تأیید دستی کارشناس — رد شدن یعنی باطل و شروع دوباره</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="کارت‌به‌کارت" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch on" data-gw="کارت‌به‌کارت" role="switch" aria-checked="true"></span></div>
+            </div>
             </div>
           </div>
 
@@ -440,17 +458,18 @@
    ══════════════════════════════════════════════════════════════════ */
 const FORMS=[
 {id:'f1',name:'ثبت‌نام کارگاه فن بیان',kind:'رویداد',tone:'ok',status:'در حال ثبت‌نام',
- slug:'lifeline1.ir/event/fanbayan/register',expert:'خانم رستگار',
+ slug:'lifeline1.ir/events/fanbayan/register',expert:'خانم رستگار',
  seen:2140,started:412,resp:128,paid:109,money:103375000,
- start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:80,wait:true,per:3,
+ start:'۱۴۰۵/۰۷/۰۱ — ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ — ۲۳:۴۵',cap:150,wait:true,per:3,skin:'forest',
  head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15},{l:'کارگاه بدون گواهینامه',p:600000,off:0}],
- gw:['بله','کارت‌به‌کارت'],ticket:'کلاسیک — ۷ بخش، رنگ آبی',coupon:'NORA10 — ٪۱۰',
+ gw:['بله','کارت‌به‌کارت'],ticket:'جنگلی',
+ parts:['title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
  flags:['ticket','receipts','cert','excel'],
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
- changes:[['۱۰ مهر — ظرفیت از ۶۰ به ۸۰ رسید','خانم رستگار'],['۸ مهر — کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر — پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
+ changes:[['۱۰ مهر — ظرفیت از ۱۲۰ به ۱۵۰ رسید','خانم رستگار'],['۸ مهر — کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر — پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
  answers:['برای جلسهٔ دوم نمی‌توانم بیایم؛ فایل صوتی دارید؟','دنبال کارگاه پیشرفته هستم.']},
 
 {id:'f2',name:'نظرسنجی رضایت دورهٔ بهار',kind:'نظرسنجی',tone:'ok',status:'در حال ثبت‌نام',
@@ -458,7 +477,7 @@ const FORMS=[
  seen:1610,started:520,resp:342,paid:0,money:0,
  start:'۱۴۰۵/۰۶/۰۱ — ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
- fin:[],gw:[],ticket:'ندارد',coupon:'—',
+ fin:[],gw:[],ticket:null,skin:null,coupon:'—',
  endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
  links:['صفحهٔ دوره'],
  flags:['excel','raffle'],
@@ -472,7 +491,7 @@ const FORMS=[
  start:'۱۴۰۵/۰۸/۰۱ — ۰۸:۰۰',ends:'۱۴۰۶/۰۱/۰۱ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'عضویت در باشگاه خیرین',intro:'ماهانه یا سالانه، هر مبلغی که در توان دارید.',
  fin:[{l:'حق عضویت سالانه',p:2000000,off:0}],gw:['بله','زرین‌پال'],
- ticket:'ندارد',coupon:'—',
+ ticket:null,skin:null,coupon:'—',
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
  flags:['receipts','excel','cert'],
@@ -485,7 +504,8 @@ const FORMS=[
  seen:820,started:300,resp:96,paid:96,money:28800000,
  start:'۱۴۰۵/۰۷/۱۰ — ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ — ۲۳:۰۰',cap:150,wait:false,per:1,
  head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
- fin:[{l:'ورودی آزمون',p:300000,off:0}],gw:['بله'],ticket:'مینیمال — ۵ بخش',
+ fin:[{l:'ورودی آزمون',p:300000,off:0}],gw:['بله'],ticket:'شفاف',skin:'clear',
+ parts:['title','date','venue','name','code','qr'],
  coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
  links:['سرفصل کتاب‌ها'],
  flags:['ticket','excel','exam','results','cert','anti-cheat'],
@@ -514,13 +534,25 @@ const PEOPLE=[
 {id:'p6',form:'f1',name:'رضا شریفی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'TL1307BVUC1986',state:'half',
  city:'کرج — کرج',uni:'شهید بهشتی',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۵/۰۹/۰۹',
  at:'۱۴۰۵/۰۷/۰۴ — ۰۸:۰۵',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
+{id:'p8',form:'f2',name:'بی‌نام',mobile:'۰۹۱۲۰۰۰۰۰۰۰',code:'—',state:'paid',
+ city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ — ۱۰:۱۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'رضایت کلی':'۴ از ۵','نقطهٔ قوت دوره':'مربی‌ها','پیشنهاد بهبود':'صدا در سالن ضعیف بود','از من تماس بگیرید':'نه'}},
+{id:'p9',form:'f2',name:'بی‌نام',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'—',state:'paid',
+ city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ — ۱۴:۴۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:['پیشنهاد بهبود'],receipt:'',
+ ans:{'رضایت کلی':'۵ از ۵','نقطهٔ قوت دوره':'برنامه‌ریزی و نظم','از من تماس بگیرید':'بله'}},
+{id:'p10',form:'f4',name:'مینا کاظمی',mobile:'۰۹۱۲۹۹۸۸۷۷۶',code:'TL1307EXAM2041',state:'paid',
+ city:'قم — قم',uni:'قم',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۵/۰۴/۰۲',at:'۱۴۰۵/۰۷/۱۲ — ۱۱:۲۰',gw:'بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'کد ملی':'۰۰۱۲۳۴۵۶۷۸','انتخاب حوزه':'داستان فارسی'}},
+{id:'p11',form:'f4',name:'سعید رحیمی',mobile:'۰۹۳۰۵۵۵۴۴۳۳',code:'TL1307EXAM2042',state:'paid',
+ city:'یزد — یزد',uni:'یزد',job:'معلم و استاد',edu:'کارشناسی ارشد',exp:'متوسط',birth:'۱۳۶۲/۱۲/۱۰',at:'۱۴۰۵/۰۷/۱۳ — ۰۹:۰۵',gw:'بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'کد ملی':'۰۰۶۹۸۷۶۵۴۳','انتخاب حوزه':'شعر معاصر'}},
 {id:'p7',form:'f1',name:'نگار سلطانی',mobile:'۰۹۰۲۹۹۸۸۷۷۶',code:'TL1307BVUC1987',state:'void',
  city:'اهواز — اهواز',uni:'شهید چمران اهواز',job:'حسابدار و مالی',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۲/۰۱/۲۸',
  at:'۱۴۰۵/۰۷/۰۱ — ۱۳:۱۲',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:0,note:'رسید رد شد: مبلغ کم بود.',skip:[],receipt:'۱ مهر، ۱۳:۳۰'}
 ];
 
 const STATE_TAG={paid:['ok','پرداخت قطعی'],pending:['warn','در انتظار تأیید رسید'],void:['stop','باطل'],half:['','نیمه‌کاره']};
-const TICKET_PARTS_LIST={title:'عنوان رویداد',code:'کد پیگیری',name:'نام دارنده',date:'تاریخ و ساعت',venue:'نشانی',seat:'ردیف و صندلی',no:'شمارهٔ بلیت',qr:'کیوآرکد',logo:'نشان رویداد',note:'یادداشت ورود'};
+/* بخش‌های بلیت از موتور مشترک می‌آید تا یک جا تعریف شده باشد */
 let CUR=FORMS[0], CURP=null, FILTER='all';
 
 /* ── حساب و کتاب ─────────────────────────────────────────────── */
@@ -567,6 +599,7 @@ function tab(name){
   document.querySelectorAll('.ptab').forEach(s=>s.classList.toggle('on',s.id==='tab'+name[0].toUpperCase()+name.slice(1)));
 }
 function renderPanel(){
+  syncGw();
   tab('stats');
   document.getElementById('pName').textContent=CUR.name;
   document.getElementById('pSub').textContent=CUR.kind+' — '+CUR.expert+' — تا '+CUR.ends;
@@ -771,7 +804,7 @@ function renderAnswers(){
     <table class="t">
       <thead><tr><th>پاسخ‌دهنده</th><th>زمان</th><th>مبلغ</th><th>درگاه</th><th>وضعیت</th><th></th></tr></thead>
       <tbody>${list.map(p=>{const m=pay(p),t=st(p);return `<tr data-person="${p.id}" style="cursor:pointer">
-        <td><b>${p.name}</b><div class="cap num">${p.mobile}</div></td>
+        <td><b>${p.name}</b><div class="cap num">${f.id==='f2'?'نظرسنجی ناشناس':maskPhone(p.mobile)}</div></td>
         <td class="num">${p.at}</td>
         <td class="num">${f.fin.length?fa(m.sum):'—'}</td>
         <td>${p.gw}</td>
@@ -790,7 +823,7 @@ function openUser(id){
   document.getElementById('usSub').textContent='کد پیگیری '+CURP.code+' — '+CURP.at;
   const tag=document.getElementById('usPay'); tag.className='tag '+t[0]; tag.innerHTML='<span class="dot"></span> '+t[1];
   const answers=f.fields.map(([n])=>{
-    const v={['نام و نام خانوادگی']:CURP.name,['شماره موبایل']:CURP.mobile,['تاریخ تولد']:CURP.birth,
+    const v=(CURP.ans&&CURP.ans[n])||{['نام و نام خانوادگی']:CURP.name,['شماره موبایل']:CURP.mobile,['تاریخ تولد']:CURP.birth,
       ['استان و شهر']:CURP.city,['دانشگاه']:CURP.uni,['شغل']:CURP.job,['سطح تجربه']:CURP.exp,['تحصیلات']:CURP.edu}[n];
     const skipped=CURP.skip.includes(n)||!v;
     return `<div class="answer"><span class="k">${n}</span><span class="v ${skipped?'mute':''}">${skipped?'پاسخ نداده':v}</span></div>`}).join('');
@@ -847,7 +880,7 @@ function openUser(id){
         :'<div class="empty" style="padding:14px"><div class="body">این فرم مالی ندارد</div></div>'}
       </div>
       ${CURP.gw==='کارت‌به‌کارت'?`<div class="card paper">
-        <div class="row" style="margin-bottom:10px"><span class="fw">رسید</span><span class="sp"></span>
+        <div class="row" style="margin-bottom:10px"><span class="fw">رسید کاربر</span><span class="sp"></span>
           <span class="tag ${CURP.state==='pending'?'warn':CURP.state==='void'?'stop':'ok'}">${CURP.state==='pending'?'در انتظار تأیید':CURP.state==='void'?'رد شده':'تأییدشده'}</span></div>
         <div class="receipt"><svg class="i lg"><use href="#i-image"/></svg></div>
         <div class="row" style="margin-top:10px">
@@ -857,11 +890,19 @@ function openUser(id){
         </div>
         <p class="mnote" style="margin-top:8px">رد شدن یعنی بلیت باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
       </div>`:''}
-      <div class="card paper">
-        <div class="fw" style="margin-bottom:8px">بلیت‌ها</div>
-        ${ticketHTML({style:'classic',color:'#0F6FD1',parts:['title','name','code','qr'],title:f.head,kind:'بلیت ورود',
-          name:CURP.name,code:CURP.code,confirmed:CURP.state==='paid'})}
-      </div>
+      ${f.ticket?`<div class="card paper">
+        <div class="fw" style="margin-bottom:8px">بلیت — پوستهٔ ${f.ticket}</div>
+        ${ticketHTML({style:f.skin||'clear',parts:f.parts||['title','date','venue','name','code','qr'],
+          title:f.head,kind:'بلیت ورود',name:CURP.name,code:CURP.code,no:'۱۲۴۵',
+          date:f.start,venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۱ — صندلی ۱۷',
+          confirmed:CURP.state==='paid'})}
+      </div>`:''}
+      ${f.fin.length&&CURP.state!=='half'?`<div class="card paper">
+        <div class="fw" style="margin-bottom:8px">رسید پرداخت</div>
+        ${receiptHTML({amount:m.sum,discount:m.dis,program:f.head,when:ticketMeta(f.start),
+          payer:CURP.name,method:CURP.gw,at:CURP.at,ticket:shortCode(CURP.code),track:CURP.code,
+          state:CURP.state==='void'?'stop':CURP.state==='pending'?'wait':'ok'})}
+      </div>`:''}
       <div class="card sunk">
         <div class="row"><svg class="i"><use href="#i-shield"/></svg><span class="sub">هر تغییری روی همین پاسخ‌دهنده ثبت می‌شود و در سابقهٔ فرم می‌ماند.</span></div>
       </div>
@@ -879,7 +920,7 @@ function renderKartabl(){
     return `<div class="card paper">
       <div class="row">
         <span class="personrow" style="gap:10px"><span class="n">${p.name.slice(0,1)}</span>
-          <span><b class="sub">${p.name}</b><div class="cap num">${p.mobile} — ${p.at}</div></span></span>
+          <span><b class="sub">${p.name}</b><div class="cap num">${maskPhone(p.mobile)} — ${p.at}</div></span></span>
         <span class="sp"></span><span class="tag brand">${f.name}</span>
       </div>
       <div class="row" style="margin-top:12px;align-items:flex-start;gap:14px">
@@ -921,6 +962,7 @@ function renderMoney(){
       <td>${p.gw}</td><td><span class="tag ${t[0]}">${t[1]}</span></td></tr>`}).join('');
 }
 /* ── کارشناسان ───────────────────────────────────────────────── */
+let CARD={no:'6104-3378-1234-5674',bank:'بانک ملت',owner:'مؤسسهٔ خط زندگی'};
 const TEAM=[
  {n:'خانم رستگار',r:'کارشناس آموزش',f:'کارگاه فن بیان، عضویت خیرین',k:true,m:true},
  {n:'آقای نادری',r:'کارشناس نظرسنجی',f:'نظرسنجی بهار',k:false,m:false},
@@ -994,18 +1036,21 @@ const CHANGES={
  gw:{t:'درگاه‌ها',body:()=>`<p class="sub">درگاه‌ها در بخش «مالی» سامانه روشن و خاموش می‌شوند؛ سازندهٔ فرم فقط از میان آن‌ها انتخاب می‌کند.</p>
    <div class="row tight">${FORMS[0].gw.map(g=>`<span class="chip on">${g}</span>`).join('')}</div>`,
   go:()=>{closeSheets(); go('fMoney')}},
- ticket:{t:'بلیت: استایل و بخش‌ها',body:()=>`
-   <label class="lbl">استایل</label>
-   <div class="row tight">${Object.entries(TICKET_STYLES).map(([k,v],i)=>`<button class="chip ${i===0?'on':''}" data-chip data-st="${k}">${v}</button>`).join('')}</div>
+ ticket:{t:'بلیت: پوسته و بخش‌ها',body:()=>{
+   const cur=CUR.skin||'clear', parts=CUR.parts||['title','date','venue','name','code','qr'];
+   return `<label class="lbl">پوسته</label>
+   <div class="row tight">${Object.entries(TICKET_STYLES).map(([k,v])=>`<button class="chip ${cur===k?'on':''}" data-chip data-st="${k}">${v}</button>`).join('')}</div>
    <label class="lbl" style="margin-top:8px">چه چیزی روی بلیت باشد</label>
-   <div class="row tight">${Object.entries(TICKET_PARTS_LIST).map(([k,v])=>`<button class="chip on" data-chip data-part="${k}">${v}</button>`).join('')}</div>
-   <div style="margin-top:10px" id="chTkPrev"></div>`,
-  open:()=>{prevTicket()},
+   <div class="row tight">${Object.entries(TICKET_PARTS).map(([k,v])=>`<button class="chip ${parts.includes(k)?'on':''}" data-chip data-part="${k}">${v}</button>`).join('')}</div>
+   <p class="cap">پیش‌نمایش همان لحظه ساخته می‌شود؛ پوستهٔ پیش‌فرض «شفاف» است و پوسته و بخش‌ها را سازندهٔ فرم انتخاب می‌کند.</p>
+   <div style="margin-top:10px" id="chTkPrev"></div>`},
+  open:()=>prevTicket(),
   go:btn=>{const sheet=btn.closest('#shChange');
-   const st=sheet.querySelector('.chip.on[data-st]').dataset.st;
-   const parts=[...sheet.querySelectorAll('.chip.on[data-part]')].map(x=>x.dataset.part);
-   CUR.ticket=TICKET_STYLES[st]+' — '+faN(parts.length)+' بخش'; CUR._tk={st,parts};
-   log('بلیت به استایل '+TICKET_STYLES[st]+' با '+faN(parts.length)+' بخش تغییر کرد'); closeSheets(); renderPanel(); toast('بلیت عوض شد')}},
+   CUR.skin=sheet.querySelector('.chip.on[data-st]').dataset.st;
+   CUR.parts=[...sheet.querySelectorAll('.chip.on[data-part]')].map(x=>x.dataset.part);
+   CUR.ticket=TICKET_STYLES[CUR.skin]+' — '+faN(CUR.parts.length)+' بخش';
+   log('بلیت به پوستهٔ '+TICKET_STYLES[CUR.skin]+' با '+faN(CUR.parts.length)+' بخش تغییر کرد');
+   closeSheets(); renderPanel(); toast('بلیت عوض شد')}},
  endtext:{t:'متن پایانی و پیوندها',body:()=>`
    <div><label class="lbl">متن پایانی</label><textarea class="input" id="chEnd2">${CUR.endText}</textarea></div>
    <div><label class="lbl">پیوند یکم</label><div class="row"><input class="input" id="chL1" style="flex:1" value="${CUR.links[0]||''}"/></div></div>
@@ -1042,9 +1087,20 @@ const CHANGES={
  _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
 };
 function prevTicket(){const el=document.getElementById('chTkPrev'); if(!el) return;
-  el.innerHTML=ticketHTML({style:'classic',color:'#0F6FD1',parts:['title','name','code','date','qr'],title:CUR.head,
-    kind:'بلیت ورود',name:'سارا محمدی',code:'TL1307BVUC1981',date:CUR.ends,confirmed:false});}
-function log(w){CUR.changes.unshift([w,'خودم — همین حالا']); renderChanges();}
+  const draw=()=>{
+    const st=document.querySelector('#chBody .chip.on[data-st]');
+    const parts=[...document.querySelectorAll('#chBody .chip.on[data-part]')].map(x=>x.dataset.part);
+    el.innerHTML=ticketHTML({style:st?st.dataset.st:'clear',parts,title:CUR.head,kind:'بلیت ورود',
+      name:'سارا محمدی',code:'TL1307BVUC1981',no:'۱۲۴۵',date:CUR.start,venue:'تهران، ولی‌عصر، پلاک ۱۲',
+      seat:'ردیف ۳ — صندلی ۱۷',confirmed:CUR.status!=='پیش‌نویس'});
+  };
+  draw();
+  /* با هر تیک و برداشتن تیک، پیش‌نمایش همان لحظه تازه می‌شود */
+  document.querySelectorAll('#chBody .chip[data-st],#chBody .chip[data-part]').forEach(ch=>{
+    if(ch.dataset.wired) return; ch.dataset.wired='1';
+    ch.addEventListener('click',()=>setTimeout(draw,0));
+  });}
+function log(w){CUR.changes.unshift([w,nowFa()]); renderChanges();}
 function openChange(key){
   const c=CHANGES[key]; if(!c) return;
   if(c.sheet){openSheet(c.sheet);return}
@@ -1080,6 +1136,19 @@ document.addEventListener('click',e=>{
     FILTER=lc.dataset.chip; renderList(); return}
 });
 let rejectId=null;
+/* ورقهٔ تنظیمات باید مقادیر همین فرم را نشان دهد، نه فرم نخست */
+function fillSettings(){
+  document.getElementById('setForm').textContent=CUR.name+' — '+CUR.slug;
+  document.querySelectorAll('#setStatus button').forEach(b=>b.classList.toggle('on',b.dataset.v===CUR.status));
+  document.getElementById('setCap').value=faN(CUR.cap||0);
+  document.getElementById('setPer').value=faN(CUR.per);
+  document.getElementById('setSlug').value=CUR.slug;
+  document.getElementById('setWait').classList.toggle('on',!!CUR.wait);
+  document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR.start);
+  document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR.ends);
+  initAll(document.getElementById('shSettings'));
+}
+document.getElementById('openSettings').onclick=()=>{fillSettings();openSheet('shSettings')};
 document.addEventListener('click',e=>{
   const one=e.target.closest('.chip[data-n],.chip[data-x],.chip[data-st],#reasons .chip');
   if(!one) return;
@@ -1109,14 +1178,70 @@ document.getElementById('setSave').onclick=()=>{
   CUR.start=pickVal(document.getElementById('setStart')).full;
   CUR.ends=pickVal(document.getElementById('setEnd')).full;
   log('تنظیمات فرم ذخیره شد — '+CUR.status+'، ظرفیت '+faN(CUR.cap)); closeSheets(); renderPanel(); renderList(); toast('تنظیمات ذخیره شد')};
-document.getElementById('setArchive').onclick=()=>{CUR.status='بسته'; CUR.tone='';
+let archArm=false;
+document.getElementById('setArchive').onclick=e=>{
+  if(!archArm){archArm=true; e.target.textContent='مطمئنید؟ بایگانی کن'; e.target.classList.add('stop');
+    setTimeout(()=>{if(archArm){archArm=false; e.target.textContent='بایگانی فرم';}},5000); return}
+  archArm=false; e.target.textContent='بایگانی فرم';
+  CUR.status='بسته'; CUR.tone='';
   log('فرم بایگانی شد'); closeSheets(); renderPanel(); renderList(); toast('بایگانی شد')};
 document.getElementById('invite').onclick=()=>toast('دعوت‌نامهٔ کارشناس فرستاده شد');
 
 /* ── آغاز ────────────────────────────────────────────────────── */
 initUI();
 document.getElementById('mCard').addEventListener('change',e=>toast('شمارهٔ کارت ذخیره شد'));
-document.querySelector('[data-save="card"]').onclick=()=>{log('شمارهٔ کارت مقصد به‌روز شد'); toast('کارت مقصد ذخیره شد')};
+/* ── مالی: کارت مقصد و درگاه‌ها، با منطق واقعی ── */
+function cardDigits(){return (document.getElementById('mCard').value||'').replace(/\D/g,'')}
+function fmtCard(d){return d.replace(/(\d{4})(?=\d)/g,'$1-')}
+function luhn(d){let sum=0; for(let i=0;i<d.length;i++){let n=+d[d.length-1-i]; if(i%2){n*=2; if(n>9) n-=9} sum+=n} return sum%10===0}
+document.getElementById('mCard').addEventListener('blur',()=>{
+  const d=cardDigits(); if(d.length===16) document.getElementById('mCard').value=fmtCard(d);
+});
+document.querySelector('[data-save="card"]').onclick=()=>{
+  const d=cardDigits();
+  if(d.length!==16){toast('شمارهٔ کارت باید ۱۶ رقم باشد');return}
+  if(!luhn(d)){toast('شمارهٔ کارت درست نیست — یک بار دیگر بررسی کنید');return}
+  document.getElementById('mCard').value=fmtCard(d);
+  CARD={no:fmtCard(d),bank:document.getElementById('mBank').value,owner:document.getElementById('mOwner').value};
+  log('کارت مقصد به '+CARD.bank+' — …'+d.slice(-4)+' تغییر کرد');
+  toast('کارت مقصد ذخیره شد');
+};
+/* کلیدهای درگاه با فرمِ باز‌شده هم‌گام می‌شوند */
+function syncGw(){
+  document.querySelectorAll('#gwBox [data-gw]').forEach(sw=>{
+    const on=CUR.gw.includes(sw.dataset.gw);
+    sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on?'true':'false');
+  });
+  const c=document.getElementById('mCard'); if(c&&CARD) c.value=CARD.no;
+  renderGw();
+}
+/* وضعیت درگاه‌ها از خودِ کلیدها خوانده می‌شود، نه از عدد ثابت */
+function renderGw(){
+  const on=[...document.querySelectorAll('#gwBox [data-gw].on')].map(x=>x.dataset.gw);
+  const el=document.getElementById('gwState');
+  el.textContent=on.length?faN(on.length)+' درگاه روشن':'هیچ درگاهی روشن نیست';
+  el.style.color=on.length?'':'var(--stop)';
+}
+document.getElementById('gwBox').addEventListener('click',e=>{
+  const sw=e.target.closest('[data-gw]');
+  if(sw){
+    const g=sw.dataset.gw, on=!sw.classList.contains('on');
+    sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on?'true':'false');
+    CUR.gw=on?[...new Set([...CUR.gw,g])]:CUR.gw.filter(x=>x!==g);
+    renderGw(); renderPanel();
+    log('درگاه '+g+(on?' روشن شد':' خاموش شد'));
+    if(!CUR.gw.length) toast('بدون درگاه، کاربر راهی برای پرداخت ندارد');
+    return;
+  }
+  const rc=e.target.closest('[data-rcauto]');
+  if(rc){
+    const on=!rc.classList.contains('on');
+    rc.classList.toggle('on',on); rc.setAttribute('aria-checked',on?'true':'false');
+    log('ارسال خودکار رسید '+rc.dataset.rcauto+(on?' روشن شد':' خاموش شد'));
+    if(rc.dataset.rcauto==='کارت‌به‌کارت'&&on) toast('رسید کارت‌به‌کارت پس از تأیید خودکار فرستاده می‌شود');
+  }
+});
+renderGw();
 document.getElementById('cols').innerHTML=['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','دانشگاه','شغل','سطح تجربه',
   'مبلغ','کد پیگیری','وضعیت پرداخت','درگاه','بلیت','تاریخ ثبت','یادداشت'].map((c,i)=>
   `<button class="chip ${i<9?'on':''}" data-chip>${c}</button>`).join('');

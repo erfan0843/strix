@@ -184,13 +184,10 @@
       </div>
 
       <div class="card">
-        <div class="head" style="margin-bottom:12px">رنگ</div>
-        <div class="g4">
-          <div class="stack tight"><div style="height:52px;border-radius:var(--r-md);background:var(--brand)"></div><div class="cap num">#0F6FD1 · برند</div></div>
-          <div class="stack tight"><div style="height:52px;border-radius:var(--r-md);background:var(--accent)"></div><div class="cap num">#A2701C · گواهینامه</div></div>
-          <div class="stack tight"><div style="height:52px;border-radius:var(--r-md);background:var(--ok)"></div><div class="cap num">#0B7A57 · تأیید</div></div>
-          <div class="stack tight"><div style="height:52px;border-radius:var(--r-md);background:var(--stop)"></div><div class="cap num">#B33A2B · توقف</div></div>
-        </div>
+        <div class="row"><div class="head" style="margin-bottom:12px">رنگ</div><span class="sp"></span>
+          <span class="cap">از خودِ توکن‌ها خوانده می‌شود</span></div>
+        <div class="g4" id="swatchGrid"></div>
+        <div class="cap" style="margin-top:12px" id="contrastNote"></div>
       </div>
     </section>
 
@@ -295,6 +292,15 @@
       </div>
     </section>
 
+    <!-- ── بلیت و رسید ── -->
+    <section id="tk" class="card" style="margin-top:12px">
+      <div class="row"><div class="head">بلیت و رسید</div><span class="sp"></span>
+        <span class="cap">یک خانواده، پنج پوسته — پیش‌فرض «شفاف»</span></div>
+      <p class="cap" style="margin-top:6px">پوسته را سازندهٔ فرم انتخاب می‌کند؛ کیوآرکد واقعی است و با هر دو دیکودر مستقل خوانده می‌شود.</p>
+      <div class="stack" style="margin-top:12px" id="skinRow"></div>
+      <div style="margin-top:16px" id="rcDemo"></div>
+    </section>
+
     <p class="cap" style="margin:16px 4px">زبان طراحی نورا · ساخته‌شده برای خط زندگی — <a href="builder.html">پنل فرم‌ها</a> · <a href="form.html">فرم کاربر</a></p>
   </main>
 </div>
@@ -314,6 +320,7 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
+<script src="ui.js"></script>
 <script>
 (function(){
   /* آیکون‌ها */
@@ -350,6 +357,44 @@
   const set=v=>{document.documentElement.dataset.theme=v;try{localStorage.setItem('nora-theme',v)}catch(e){}};
   try{const s=localStorage.getItem('nora-theme'); if(s) set(s); else if(matchMedia('(prefers-color-scheme:dark)').matches) set('dark');}catch(e){}
   t.onclick=()=>set(document.documentElement.dataset.theme==='dark'?'light':'dark');
+})();
+</script>
+<script>
+/* ── رنگ‌ها از خود توکن‌ها؛ اگر توکن عوض شود، این صفحه هم عوض می‌شود ── */
+(function(){
+  const cs=()=>getComputedStyle(document.documentElement);
+  const ROLE=[['--brand','مؤسسه'],['--accent','گواهینامه'],['--ok','تأیید'],['--warn','هشدار'],
+              ['--stop','توقف'],['--info','اطلاع'],['--paper','زمینهٔ صفحه'],['--surface','سطح کارت'],['--ink','متن']];
+  const paint=()=>{
+    document.getElementById('swatchGrid').innerHTML=ROLE.map(([v,n])=>{
+      const val=cs().getPropertyValue(v).trim();
+      return `<div class="stack tight"><div style="height:52px;border-radius:var(--r-md);background:var(${v});border:.5px solid var(--hairline)"></div>
+        <div class="cap num" style="direction:ltr;text-align:start">${val}</div><div class="cap">${n}</div></div>`;
+    }).join('');
+    /* تباین متن اصلی روی سطح، همان لحظه حساب و نمایش داده می‌شود */
+    const lum=h=>{const t=h.trim().replace('#','');if(t.length!==6)return null;
+      const v=[0,2,4].map(i=>parseInt(t.slice(i,i+2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4);
+      return .2126*v[0]+.7152*v[1]+.0722*v[2]};
+    const li=lum(cs().getPropertyValue('--ink')), ls=lum(cs().getPropertyValue('--surface'));
+    const r=(li&&ls)?((Math.max(li,ls)+.05)/(Math.min(li,ls)+.05)):null;
+    document.getElementById('contrastNote').textContent=
+      (r?'تباین متن اصلی روی سطح: '+r.toFixed(2)+' به ۱':'')+
+      ' · قاعده: متن ریز از ۴٫۵ و متن درشت از ۳ کمتر نشود · شیشه فقط روی ناوبری، پشت سر هم نه.';
+  };
+  paint();
+  const t=document.getElementById('theme');
+  if(t) t.addEventListener('click',()=>setTimeout(paint,0));
+
+  /* ── خانوادهٔ بلیت: یک نمونه از هر پوسته، با کیوآرکد واقعی ── */
+  const row=document.getElementById('skinRow');
+  if(row) row.innerHTML=Object.entries(TICKET_STYLES).map(([k,n],i)=>
+    ticketHTML({style:k,parts:['title','date','venue','name','seat','no','code','qr','logo','note'],
+      title:'نمونهٔ پوستهٔ '+n,date:'۱۴۰۵/۰۷/۰۹ — ۱۶:۰۰',venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',
+      name:'سارا محمدی',seat:'ردیف ۱ — صندلی '+faN(17+i),no:faN(1245+i),code:'TL1307BVUC19'+(81+i)})).join('');
+  const rc=document.getElementById('rcDemo');
+  if(rc) rc.innerHTML=receiptHTML({amount:1300500,discount:144500,program:'کارگاه فن بیان مقدماتی',
+    when:'چهارشنبه ۸ مهر · ساعت ۱۶:۰۰ · تهران، ولی‌عصر',payer:'سارا محمدی',method:'کارت‌به‌کارت',
+    at:nowFa(),ticket:shortCode('TL1307BVUC1981'),track:'TL1307BVUC1981',state:'ok'});
 })();
 </script>
 </body>

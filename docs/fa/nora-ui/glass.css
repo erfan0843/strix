@@ -14,52 +14,55 @@
 :root{
   color-scheme:light;
 
-  /* ── رنگ‌ها: نقش‌محور، نه تزئینی ── */
-  --brand:        #0F6FD1;
-  --brand-2:      #0B5AA8;
-  --brand-tint:   rgba(15,111,209,.10);
-  --brand-ink:    #0A3F77;
-  --accent:       #A2701C;      /* طلایی خاک‌گرفته، برای گواهینامه/تقدیر */
-  --accent-tint:  rgba(162,112,28,.12);
+  /* ── رنگ‌ها: نقش‌محور، نه تزئینی — برگرفته از «خط طراحی نورا» ── */
+  --brand:        #0E5A4E;      /* سبز مؤسسه */
+  --brand-2:      #0B4A40;
+  --brand-tint:   rgba(14,90,78,.10);
+  --brand-ink:    #0B4A40;
+  --accent:       #9C7C3C;      /* طلایی خاک‌گرفته — تزئینی */
+  --accent-ink:   #86682B;      /* همان طلا، برای متن (تباین ۵٫۱) */
+  --accent-tint:  rgba(156,124,60,.13);
   --ok:           #0B7A57;
   --ok-tint:      rgba(11,122,87,.10);
-  --warn:         #8A5A0B;
-  --warn-tint:    rgba(138,90,11,.12);
-  --stop:         #B33A2B;
-  --stop-tint:    rgba(179,58,43,.10);
+  --warn:         #8A6A25;
+  --warn-tint:    rgba(138,106,37,.13);
+  --stop:         #B4453C;
+  --stop-tint:    rgba(180,69,60,.12);
+  --info:         #54719B;
+  --info-tint:    rgba(84,113,155,.12);
 
-  --ink:          #101A21;
-  --ink-2:        #465B68;
-  --ink-3:        #7C8F9B;
-  --ink-4:        #A9B8C2;
+  --ink:          #1E2B27;
+  --ink-2:        #4C5551;
+  --ink-3:        #5F655F;      /* متن راهنما — تباین ۵٫۹ روی سطح */
+  --ink-4:        #7C837E;      /* فقط تزئینی (نشان، خط، جای‌نگهدار) */
 
   /* ── سطح‌ها: لایهٔ محتوا (سطح معمولی، تقریباً مات) ── */
-  --paper:        #F2F5F8;
-  --surface:      #FFFFFF;
-  --surface-2:    #F7F9FB;
-  --surface-sunk: #EDF1F5;
-  --hairline:     rgba(16,26,33,.09);
-  --hairline-2:   rgba(16,26,33,.055);
+  --paper:        #F5F3EE;
+  --surface:      #FDFDFC;
+  --surface-2:    #F7F5F0;
+  --surface-sunk: #EDEAE3;
+  --hairline:     rgba(30,43,39,.10);
+  --hairline-2:   rgba(30,43,39,.06);
 
   /* ── شیشه: فقط برای لایهٔ ناوبری ── */
-  --glass:        rgba(255,255,255,.62);
-  --glass-2:      rgba(255,255,255,.74);
-  --glass-line:   rgba(255,255,255,.72);
-  --glass-edge:   rgba(16,26,33,.07);
-  --blur:         blur(28px) saturate(180%);
-  --blur-thin:    blur(18px) saturate(160%);
+  --glass:        rgba(255,255,255,.58);
+  --glass-2:      rgba(255,255,255,.72);
+  --glass-line:   rgba(255,255,255,.65);
+  --glass-edge:   rgba(30,43,39,.08);
+  --blur:         blur(24px) saturate(150%);
+  --blur-thin:    blur(16px) saturate(140%);
 
-  /* ── هندسه ── */
-  --r-xl:26px; --r-lg:20px; --r-md:14px; --r-sm:10px; --r-pill:999px;
+  /* ── هندسه: کارت ۲۸ · کنترل ۱۶ · چیپ ۱۴ ── */
+  --r-xl:28px; --r-lg:22px; --r-md:16px; --r-sm:12px; --r-pill:999px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
   --tap:44px;
 
   /* ── سایه: کم، دقیق ── */
-  --sh-1:0 1px 2px rgba(16,26,33,.05), 0 4px 14px rgba(16,26,33,.05);
-  --sh-2:0 2px 6px rgba(16,26,33,.06), 0 14px 34px rgba(16,26,33,.09);
-  --sh-3:0 30px 70px rgba(16,26,33,.16);
-  --sheen-top:inset 0 1px 0 rgba(255,255,255,.75);
-  --sheen-edge:inset 0 -1px 0 rgba(16,26,33,.04);
+  --sh-1:0 1px 2px rgba(20,40,35,.05), 0 4px 14px rgba(20,40,35,.05);
+  --sh-2:0 2px 6px rgba(20,40,35,.06), 0 14px 34px rgba(20,40,35,.09);
+  --sh-3:0 30px 70px rgba(20,40,35,.16);
+  --sheen-top:inset 0 1px 0 rgba(255,255,255,.70);
+  --sheen-edge:inset 0 -1px 0 rgba(20,40,35,.04);
 
   /* ── حرکت: فنری، کوتاه ── */
   --ease:      cubic-bezier(.32,.72,0,1);
@@ -77,24 +80,24 @@
 }
 
 /* ── شب ─────────────────────────────────────────────────────────────────── */
-:root[data-theme="dark"],@media (prefers-color-scheme:dark){}
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --brand:#4D9FEB; --brand-2:#79B8F2; --brand-tint:rgba(77,159,235,.16); --brand-ink:#BEDCFA;
-  --accent:#D9AE5E; --accent-tint:rgba(217,174,94,.15);
-  --ok:#4CC79A; --ok-tint:rgba(76,199,154,.14);
-  --warn:#E0B45C; --warn-tint:rgba(224,180,92,.14);
-  --stop:#F0816F; --stop-tint:rgba(240,129,111,.14);
+  --brand:#7FC4B2; --brand-2:#5FB0A0; --brand-tint:rgba(127,196,178,.16); --brand-ink:#CFE9E2;
+  --accent:#C9A96A; --accent-ink:#D8BE85; --accent-tint:rgba(201,169,106,.16);
+  --ok:#7BC7A6; --ok-tint:rgba(123,199,166,.14);
+  --warn:#D9B45B; --warn-tint:rgba(217,180,91,.14);
+  --stop:#E08B82; --stop-tint:rgba(224,139,130,.14);
+  --info:#9FB4D4; --info-tint:rgba(159,180,212,.14);
 
-  --ink:#E9F0F5; --ink-2:#AFC2CE; --ink-3:#8598A5; --ink-4:#5F7280;
-  --paper:#0A1016; --surface:#141C23; --surface-2:#19232B; --surface-sunk:#101922;
-  --hairline:rgba(255,255,255,.10); --hairline-2:rgba(255,255,255,.06);
-  --glass:rgba(28,38,48,.58); --glass-2:rgba(30,41,52,.72);
-  --glass-line:rgba(255,255,255,.13); --glass-edge:rgba(0,0,0,.35);
+  --ink:#F2F4F1; --ink-2:#C4CCC7; --ink-3:#9AA39E; --ink-4:#6E7873;
+  --paper:#1B211E; --surface:#242B27; --surface-2:#2A322D; --surface-sunk:#1E2521;
+  --hairline:rgba(255,255,255,.12); --hairline-2:rgba(255,255,255,.07);
+  --glass:rgba(36,43,39,.60); --glass-2:rgba(42,50,45,.74);
+  --glass-line:rgba(255,255,255,.16); --glass-edge:rgba(0,0,0,.35);
   --sh-1:0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.3);
   --sh-2:0 2px 6px rgba(0,0,0,.35), 0 16px 36px rgba(0,0,0,.45);
   --sh-3:0 30px 70px rgba(0,0,0,.55);
-  --sheen-top:inset 0 1px 0 rgba(255,255,255,.09);
+  --sheen-top:inset 0 1px 0 rgba(255,255,255,.10);
 }
 
 /* ── پایه ──────────────────────────────────────────────────────────────── */
@@ -233,7 +236,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tag.warn{background:var(--warn-tint); color:var(--warn)}
 .tag.stop{background:var(--stop-tint); color:var(--stop)}
 .tag.brand{background:var(--brand-tint); color:var(--brand-ink)}
-.tag.accent{background:var(--accent-tint); color:var(--accent)}
+.tag.accent{background:var(--accent-tint); color:var(--accent-ink)}
 .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
 
 /* ── سگمنت و سوییچ ─────────────────────────────────────────────────────── */
@@ -500,16 +503,10 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .cat-item .hint{font-size:var(--fs-cap);color:var(--ink-3)}
 .cat-group{margin:14px 0 6px;font-size:var(--fs-cap);color:var(--ink-3);font-weight:600}
 
-/* ── رنگ بلیت ──────────────────────────────────────────────────────────── */
+/* ── رنگ دلخواه بلیت ─────────────────────────────────────────────────── */
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
 .swatch{width:32px;height:32px;border-radius:50%;border:.5px solid var(--hairline);cursor:pointer;position:relative;background:var(--sw)}
 .swatch.on{box-shadow:0 0 0 2.5px var(--surface),0 0 0 4.5px var(--sw)}
-.ticketcard{--tk:var(--brand);border-radius:var(--r-lg);padding:14px;background:linear-gradient(150deg,color-mix(in oklab,var(--tk) 18%,var(--surface)),var(--surface));border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
-.ticketcard.gold{--tk:var(--accent)}
-.ticketcard.glass{background:var(--glass);-webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin)}
-.ticketcard.minimal{background:var(--surface);border-style:dashed}
-.ticketcard .tk-top{display:flex;justify-content:space-between;align-items:center;font-size:var(--fs-sub);font-weight:600;color:var(--ink)}
-.ticketcard .tk-strip{height:4px;border-radius:99px;background:var(--tk);margin:10px 0}
 
 /* ── کارت بانکی (کارت‌به‌کارت) ─────────────────────────────────────────── */
 .bankcard{
@@ -596,35 +593,83 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .pick .other{flex:1 1 100%}
 .pick-label{font-size:var(--fs-cap);color:var(--ink-3)}
 
-/* ── بلیت ── */
-.tk{position:relative;border-radius:var(--r-xl);overflow:hidden;background:var(--surface);
-  border:.5px solid var(--hairline);box-shadow:var(--sh-2);color:var(--ink)}
-.tk::before{content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(158deg,color-mix(in oklab,var(--tk) 16%,transparent),transparent 46%)}
-.tk-head{position:relative;display:flex;align-items:center;gap:10px;padding:16px 18px 12px}
-.tk-logo{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
-  background:color-mix(in oklab,var(--tk) 18%,var(--surface));color:var(--tk)}
-.tk-title{font-size:var(--fs-head);font-weight:700;letter-spacing:-.2px}
-.tk-sub{font-size:var(--fs-cap);color:var(--ink-3)}
-.tk-rip{position:relative;display:flex;align-items:center;padding:0 18px}
-.tk-rip .cut{width:20px;height:20px;border-radius:50%;background:var(--paper);flex:0 0 auto;
-  box-shadow:inset 0 0 0 .5px var(--hairline)}
-.tk-rip .perf{flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--hairline) 0 6px,transparent 6px 12px)}
-.tk-body{position:relative;padding:14px 18px 6px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
-.tk-rows{flex:1 1 190px;min-width:0;display:grid;gap:7px}
-.tk-rows .r{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-sub)}
-.tk-rows .r>span{color:var(--ink-3)}
-.tk-rows .r>b{font-weight:600;text-align:end}
-.tk-qr{flex:0 0 auto;display:grid;justify-items:center;gap:6px;color:var(--ink)}
-.tk-qr .qr{width:112px;height:112px;border-radius:12px;border:.5px solid var(--hairline);box-shadow:var(--sh-1);background:#fff}
-.tk-qrn{font-size:11px;color:var(--ink-3);max-width:118px;text-align:center}
-.tk-foot{position:relative;padding:6px 18px 12px;font-size:var(--fs-cap);color:var(--ink-3)}
-.tk-actions{position:relative;display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px 16px;border-top:.5px solid var(--hairline-2)}
-.tk-glass{background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
-.tk-gold::before{background:linear-gradient(158deg,color-mix(in oklab,var(--accent) 22%,transparent),transparent 50%)}
-.tk-minimal{background:var(--surface);border-style:dashed;box-shadow:var(--sh-1)}
-.tk-minimal::before{display:none}
-@media (max-width:430px){.tk-body{flex-direction:column}.tk-qr{align-self:center}.tk-qr .qr{width:128px;height:128px}}
+/* ── بلیت: یک خانواده، پنج پوسته (شفاف، جنگلی، طلایی، اقیانوسی، شب) ── */
+.tk{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 26px 168px;overflow:hidden;
+  border-radius:var(--r-xl);border:.5px solid var(--tk-line);background:var(--tk-bg);color:var(--tk-ink);
+  box-shadow:var(--sh-2);isolation:isolate}
+.tk::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(158deg,rgba(255,255,255,.34),transparent 48%)}
+.tk-main{position:relative;z-index:1;padding:18px 20px 16px;display:grid;align-content:start;gap:6px;min-width:0}
+.tk-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.tk-brand{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-cap);font-weight:600;opacity:.95}
+.tk-pulse{width:23px;height:23px;padding:3px;border-radius:50%;border:1.3px solid currentColor;fill:none;
+  stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tk-kind{font-size:var(--fs-cap);opacity:.7}
+.tk-title{font-size:20px;font-weight:700;line-height:1.5;letter-spacing:-.2px}
+.tk-meta{font-size:var(--fs-sub);opacity:.82;line-height:2}
+.tk-bottom{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:10px}
+.tk-who .k,.tk-side .k{display:block;font-size:11px;opacity:.68;font-weight:400}
+.tk-who b{font-size:var(--fs-head);font-weight:700}
+.tk-side{display:flex;gap:18px;text-align:end}
+.tk-side b{font-size:var(--fs-sub);font-weight:600}
+.tk-note{font-size:var(--fs-cap);opacity:.7;margin-top:8px}
+.tk-perf{position:relative;z-index:1;display:grid;grid-template-rows:20px 1fr 20px;justify-items:center;align-items:center}
+.tk-perf .cut{width:20px;height:20px;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 .5px var(--hairline)}
+.tk-perf .dash{width:0;height:100%;border-inline-start:1.5px dashed var(--tk-dash)}
+.tk-stub{position:relative;z-index:1;display:grid;align-content:center;justify-items:center;gap:10px;
+  padding:16px 12px;background:var(--tk-stub)}
+.tk-stub .qr{width:112px;height:112px;border-radius:14px;background:#fff;box-shadow:var(--sh-1)}
+.tk-code{text-align:center}
+.tk-code .k{display:block;font-size:11px;opacity:.68}
+.tk-code b{font-size:16px;font-weight:700;letter-spacing:2px;direction:ltr;display:inline-block;font-variant-numeric:tabular-nums}
+.tk-state{font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill);background:var(--tk-pill)}
+.tk-acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px;border-top:.5px solid var(--tk-line);
+  background:var(--surface);color:var(--ink)}
+/* پنج پوسته — از «خط طراحی نورا» */
+.tk-clear{--tk-bg:linear-gradient(150deg,#FFFFFF,#F6F6F2 58%,#EEF0EA);--tk-ink:#1E2B27;
+  --tk-line:rgba(30,43,39,.10);--tk-stub:rgba(255,255,255,.45);--tk-dash:rgba(30,43,39,.22);--tk-pill:rgba(30,43,39,.07)}
+.tk-forest{--tk-bg:linear-gradient(150deg,#17735F,#0B4A40 58%,#093B33);--tk-ink:#F1F7F5;
+  --tk-line:rgba(255,255,255,.16);--tk-stub:rgba(255,255,255,.10);--tk-dash:rgba(255,255,255,.42);--tk-pill:rgba(255,255,255,.16)}
+.tk-gold{--tk-bg:linear-gradient(150deg,#FCF7EC,#F2E6CB 60%,#E9DBB9);--tk-ink:#3B2E13;
+  --tk-line:rgba(59,46,19,.14);--tk-stub:rgba(255,255,255,.42);--tk-dash:rgba(59,46,19,.30);--tk-pill:rgba(59,46,19,.10)}
+.tk-ocean{--tk-bg:linear-gradient(150deg,#EEF4FA,#DBE7F3 60%,#CBDCEA);--tk-ink:#1B2C3D;
+  --tk-line:rgba(27,44,61,.14);--tk-stub:rgba(255,255,255,.45);--tk-dash:rgba(27,44,61,.28);--tk-pill:rgba(27,44,61,.10)}
+.tk-night{--tk-bg:linear-gradient(160deg,#2A322D,#1B211E 58%,#141A17);--tk-ink:#F2F4F1;
+  --tk-line:rgba(255,255,255,.14);--tk-stub:rgba(255,255,255,.06);--tk-dash:rgba(255,255,255,.34);--tk-pill:rgba(255,255,255,.14)}
+@media (max-width:640px){
+  .tk{grid-template-columns:1fr}
+  .tk-perf{display:none}
+  .tk-stub{border-top:1.5px dashed var(--tk-dash);grid-auto-flow:column;justify-content:center;gap:16px;padding:14px}
+  .tk-stub .qr{width:96px;height:96px}
+}
+
+/* ── رسید پرداخت: همان زبان، مبلغ قهرمان ── */
+.rc{position:relative;background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-xl);
+  box-shadow:var(--sh-2);padding:20px;max-width:430px}
+.rc-head{display:flex;align-items:center;gap:10px}
+.rc-brand{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-cap);font-weight:600;color:var(--ink-2)}
+.rc-brand .tk-pulse{width:23px;height:23px;color:var(--brand)}
+.rc-pill{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-cap);font-weight:700;
+  padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-sunk);color:var(--ink-2)}
+.rc-ok{background:var(--ok-tint);color:var(--ok)}
+.rc-wait{background:var(--warn-tint);color:var(--warn)}
+.rc-stop{background:var(--stop-tint);color:var(--stop)}
+.rc-title{font-size:var(--fs-head);font-weight:700;margin-top:16px;padding-bottom:7px;position:relative}
+.rc-title::after{content:'';position:absolute;inset-inline-start:0;bottom:0;width:46px;height:3px;border-radius:9px;background:var(--brand)}
+.rc-amount{display:flex;align-items:baseline;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:20px}
+.rc-amount .n{font-size:34px;font-weight:700;letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
+.rc-amount .u{font-size:var(--fs-sub);color:var(--ink-3)}
+.rc-off{flex:1 1 100%;text-align:center;font-size:var(--fs-cap);color:var(--stop)}
+.rc-words{text-align:center;font-size:var(--fs-cap);color:var(--ink-3);margin-top:4px}
+.rc-rows{margin-top:18px;border-top:.5px solid var(--hairline);padding-top:8px}
+.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;
+  border-top:.5px solid var(--hairline);padding-top:16px}
+.rc-qr .qr{width:104px;height:104px;border-radius:12px;background:#fff;box-shadow:var(--sh-1)}
+.rc-track{text-align:end}
+.rc-track .k{display:block;font-size:11px;color:var(--ink-3)}
+.rc-track b{font-size:19px;font-weight:700;letter-spacing:.4px}
+.rc-note{text-align:center;font-size:11.5px;color:var(--ink-3);margin-top:14px}
+.rc-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
 /* ── شناسنامهٔ فرم ── */
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
@@ -633,7 +678,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .metric .n{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
 .metric .l{font-size:var(--fs-cap);color:var(--ink-3)}
 .metric .d{font-size:var(--fs-cap);color:var(--ok)}
-.metric.acc .n{color:var(--accent)}
+.metric.acc .n{color:var(--accent-ink)}
 .metric.brand .n{color:var(--brand)}
 .funnel2{display:grid;gap:10px}
 .funnel2 .f{display:grid;grid-template-columns:104px 1fr 64px;gap:10px;align-items:center;font-size:var(--fs-sub)}
@@ -660,3 +705,20 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .timeline .t.past .dot2{background:var(--ok)}
 .timeline .t.future .dot2{background:var(--ink-4)}
 .reviewbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px;border-radius:var(--r-lg);background:var(--brand-tint)}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   چاپ — بلیت و رسید باید تمیز بیرون بیایند
+   ══════════════════════════════════════════════════════════════════════════ */
+#printzone{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body>#printzone{display:block}
+  body>*:not(#printzone){display:none!important}
+  #printzone .tk-acts,#printzone .rc-acts{display:none!important}
+  .no-print,.rail,.topbar,.botbar,.tabbar,.fab,.ctxbar,.scrim,.sheet,.toast,.actionbar,.steps{display:none!important}
+  .shell{display:block;padding:0;max-width:none}
+  .main{padding:0}
+  .card,.tk,.rc{box-shadow:none}
+  .tk,.rc{break-inside:avoid}
+  .tk-perf .cut{background:#fff}
+}

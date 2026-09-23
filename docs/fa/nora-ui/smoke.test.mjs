@@ -12,12 +12,18 @@ const DIR='/home/user/strix/docs/fa/nora-ui/';
 let fails=0, checks=0;
 const ok=(c,m)=>{checks++; if(!c){fails++; console.log('   ✗ '+m);} else console.log('   ✓ '+m);};
 
-async function load(file){
+function makeStore(){const m=new Map(); return {
+  getItem:k=>m.has(k)?m.get(k):null, setItem:(k,v)=>m.set(k,String(v)),
+  removeItem:k=>m.delete(k), clear:()=>m.clear(), key:i=>[...m.keys()][i],
+  get length(){return m.size}, _dump:()=>[...m.keys()]};}
+
+async function load(file,store){
   const errs=[];
   const dom=await JSDOM.fromFile(DIR+file,{
     runScripts:'dangerously', resources:'usable', pretendToBeVisual:true,
     beforeParse(w){
       w.scrollTo=()=>{};
+      if(store) Object.defineProperty(w,'localStorage',{configurable:true,value:store});
       if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
       w.addEventListener('error',e=>errs.push('error: '+e.message));
       const ce=w.console.error; w.console.error=(...a)=>{errs.push('console.error: '+a.join(' '));};
@@ -36,7 +42,8 @@ async function load(file){
 /* ═══════════ form.html ═══════════ */
 {
   console.log('\n── فرم کاربر (form.html) ──');
-  const p=await load('form.html');
+  const store=makeStore();
+  const p=await load('form.html',store);
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   ok(p.vis('.screen').join()==='u1','صفحهٔ اول لندینگ است');
   ok(p.all('.pick').length===4,'چهار انتخاب‌گر ساخته شد ('+p.all('.pick').length+')');
@@ -56,17 +63,53 @@ async function load(file){
   ok(p.txt('#multBadge').includes('۲ نفر'),'نشان «برای ۲ نفر» درست است');
   // پرداخت کارت‌به‌کارت
   p.click('#next'); ok(p.vis('.screen').join()==='u9','مرحلهٔ پرداخت');
-  p.click('[data-method="card"]'); ok(p.vis('.screen').join()==='u10','کارت‌به‌کارت باز شد');
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('روش پرداخت'),'بی‌انتخاب روش، جلوی ادامه گرفته شد');
+  p.click('[data-method="card"]');
+  ok(p.doc.querySelector('[data-method="card"]').getAttribute('aria-pressed')==='true','روش انتخاب‌شده به صفحه‌خوان معرفی شد'); ok(p.vis('.screen').join()==='u10','کارت‌به‌کارت باز شد');
   ok(p.txt('#exactAmount').includes('۱٬۳۰۰٬۵۰۰'),'مبلغ دقیق روی کارت‌به‌کارت');
   p.click('#next'); ok(p.vis('.screen').join()==='u11','مرحلهٔ رسید');
-  p.click('#drop'); p.click('#next');
+  ok(p.doc.querySelector('#file')!==null && p.doc.querySelector('#file').getAttribute('accept').includes('image/png'),'ورودی فایل فقط تصویر می‌پذیرد');
+  p.click('#next');
   ok(p.vis('.screen').join()==='u12','صفحهٔ «اطلاعات شما ثبت شد»');
   p.click('#next');
   ok(p.vis('.screen').join()==='u13','صفحهٔ بلیت‌ها');
   ok(p.all('#tickets .tk').length===2,'برای ۲ نفر دو بلیت ساخته شد');
   ok(p.all('#tickets svg.qr').length===2,'هر بلیت کیوآرکد دارد');
   ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
-  ok(/TL/.test(p.txt('#tickets')),'کد پیگیری روی بلیت هست');
+  const tkTxt=p.txt('#tickets');
+  ok(/کد بلیت/.test(tkTxt) && /[2-9ACDEFGHJKLMNPQRSTUVWXYZ]{7}/.test(tkTxt),'کد بلیت روی بلیت چاپ شده');
+  const labels=p.all('#tickets .qr').map(q=>q.getAttribute('aria-label').replace('کیوآرکد','').trim());
+  ok(labels.length===2 && labels.every(l=>tkTxt.includes(l)),'کد چاپ‌شده با کیوآرکد یکی است');
+  ok(p.all('#tickets .tk-perf .dash').length===2,'پرفراژ جداکنندهٔ ته‌بلیت هست');
+  ok(p.all('#tickets .tk-title')[0].textContent.includes('کارگاه'),'عنوان رویداد روی بلیت');
+  ok(p.doc.querySelector('#tickets [data-tkprint]')!==null,'دکمهٔ چاپ بلیت هست');
+  const ics=p.doc.querySelector('#tickets [data-tkics]');
+  let icsOK=false; try{const o=JSON.parse(ics.getAttribute('data-tkics')); icsOK=/^[۰-۹]{4}\/[۰-۹]{2}\/[۰-۹]{2}/.test(o.date)&&!!o.title&&!!o.venue;}catch(e){}
+  ok(icsOK,'دکمهٔ تقویم دادهٔ درست دارد');
+  // پاک‌سازی: نام کاربر نباید HTML بسازد
+  const evil=p.window.ticketHTML({parts:['title','name'],title:'<img src=x onerror=alert(1)>',name:'<b onmouseover=alert(2)>سارا</b>'});
+  const evilDoc=new p.window.DOMParser().parseFromString(evil,'text/html');
+  ok(evilDoc.querySelector('img,b[onmouseover]')===null,'نام و عنوان کاربر HTML تزریق نمی‌کند');
+  ok(evilDoc.body.textContent.includes('سارا'),'متن کاربر سالم نمایش داده می‌شود');
+  // صفحه‌کلید: ناحیهٔ رها کردن رسید با Enter هم باز می‌شود
+  const drop=p.doc.querySelector('#drop');
+  ok(drop.getAttribute('role')==='button' && drop.getAttribute('tabindex')==='0','ناحیهٔ رسید برای صفحه‌کلید هم باز است');
+  ok(p.txt('#receiptSlot').includes('کد پیگیری') && p.all('#receiptSlot .rc-qr svg').length===1,'رسید پرداخت با کد پیگیری و کیوآر');
+  ok(p.txt('#receiptSlot').includes('تومان'),'رسید: مبلغ به حروف');
+  // اعداد لندینگ باید از خود تنظیمات دربیایند
+  ok(p.txt('#evFacts').includes('۷ پرسش')&&p.txt('#evFacts').includes('۷۲۲٬۵۰۰'),'اعداد لندینگ از تنظیمات فرم حساب شده');
+  ok(p.txt('#evFacts').includes('۴۰ جا مانده'),'جای مانده از ظرفیت و ثبت‌شده‌ها حساب شده');
+  ok(p.txt('#evPerks').includes('گواهینامه')&&p.txt('#evPerks').includes('۳ نفر'),'مزیت‌های لندینگ از مالی و سقف نفرات');
+  const pa=p.doc.querySelector('[data-printall]');
+  ok(pa && pa.dataset.printall==='#tickets .tk','دکمهٔ «چاپ همه» به بلیت‌ها وصل است');
+  p.window.eval('saveDraft()');
+  const keys=store._dump();
+  ok(keys.some(k=>k.startsWith('nora:draft:')),'پیش‌نویس در انبار محلی ذخیره می‌شود');
+  const p2=await load('form.html',store);                    /* برگشت کاربر با همان لینک */
+  ok(p2.doc.querySelector('#resumeRow').style.display==='block','با برگشت، نوبت نیمه‌کاره پیشنهاد می‌شود');
+  p2.click('[data-resume]');
+  ok(p2.vis('.screen').join()==='u13' && p2.txt('#multBadge').includes('۲ نفر'),'ادامه، همان جا و با همان داده برمی‌گرداند');
   ok(p.errs.length===0, p.errs.length?('خطای پایان: '+p.errs.slice(0,3).join(' | ')):'تا آخر بی‌خطا');
 }
 
@@ -103,6 +146,8 @@ async function load(file){
   p.click('[data-change="ticket"]');
   ok(p.all('#chBody .chip[data-part]').length===10,'ده بخش بلیت قابل انتخاب');
   ok(p.doc.querySelector('#chTkPrev svg.qr')!==null,'پیش‌نمایش زندهٔ بلیت با کیوآر');
+  const partChips=p.all('#chBody .chip[data-part]');
+  ok(partChips.length===10 && partChips.every(c=>c.tagName==='BUTTON'),'بخش‌های بلیت دکمهٔ واقعی‌اند (صفحه‌کلید ذاتی)');
   p.click('[data-close]');
   p.click('#pSeg [data-tab="answers"]');
   ok(p.all('#answersBox tbody tr').length===7,'هفت ردیف پاسخ‌دهنده');
@@ -122,7 +167,9 @@ async function load(file){
   p.click('[data-go="fMoney"]');
   ok(p.txt('#moneyPieces').includes('۸۵۰٬۰۰۰'),'قطعه‌های مالی با یک قیمت');
   ok(p.txt('#settle').includes('تومان'),'تسویه با تومان به حروف');
-  ok(p.all('#txBody tr').length===6,'تراکنش‌های اخیر');
+  const rows=Number(p.window.eval("PEOPLE.filter(x=>x.state!=='half').length"));
+  ok(p.all('#txBody tr').length===rows,'هر پرداخت یک ردیف در تراکنش‌های اخیر');
+  ok(p.all('#txBody .tag').length===rows,'هر تراکنش وضعیت خودش را دارد');
   p.click('[data-go="fTeam"]');
   ok(p.all('#teamBox .card').length===4,'چهار کارشناس');
   p.click('[data-go="fList"]');
@@ -139,6 +186,28 @@ async function load(file){
   ok(p.doc.querySelectorAll('.tile').length>=9,'حداقل ۹ کاشی مدل');
   ok(p.doc.querySelectorAll('.pick').length>=2,'انتخاب‌گر تاریخ و ساعت در سازنده');
   ok(p.txt('body').includes('تنظیمات بیشتر'),'بخش «تنظیمات بیشتر»');
+  ok(p.all('#tkSkins .chip').length===5,'پنج پوستهٔ بلیت در سازنده');
+  const skin=p.doc.querySelector('#tkSkins .chip:not(.on)');
+  const was=skin.className;
+  skin.dispatchEvent(new p.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  ok(skin.className!==was,'پوستهٔ بلیت با Enter هم عوض می‌شود');
+  ok(!!p.doc.__keys,'سامانهٔ کلید برای نقش‌های غیردکمه‌ای وصل است');
+  const evBtn=p.doc.querySelector('#copyEvent');
+  ok(evBtn && /^https:\/\/lifeline1\.ir\/events\//.test(evBtn.dataset.copy||''),'«پیوند رویداد» نشانی واقعی را کپی می‌کند');
+}
+
+/* ═══════════ index.html ═══════════ */
+{
+  console.log('\n── زبان طراحی (index.html) ──');
+  const p=await load('index.html');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.all('#swatchGrid > div').length===9,'نُه رنگ از خود توکن‌ها خوانده شد');
+  ok(p.txt('#swatchGrid').includes('#0E5A4E')&&p.txt('#swatchGrid').includes('#9C7C3C'),'رنگ‌ها همان توکن‌های تازه‌اند، نه رنگ کهنه');
+  ok(/تباین متن اصلی روی سطح: \d+\.\d+ به ۱/.test(p.txt('#contrastNote')),'تباین واقعی حساب و نوشته شد');
+  ok(p.all('#skinRow .tk').length===5,'پنج پوستهٔ بلیت در زبان طراحی');
+  ok(p.all('#skinRow svg.qr').length===5,'هر پوسته کیوآرکد واقعی دارد');
+  ok(p.all('#rcDemo .rc').length===1,'رسید پرداخت نمونه');
+  ok(p.txt('#contrastNote').includes('شیشه فقط روی ناوبری'),'قاعدهٔ شیشه یادآوری شده');
 }
 
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');
