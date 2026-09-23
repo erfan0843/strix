@@ -30,7 +30,7 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const EXPORTS='ticketFile,receiptFile,certificateFile,shortCode,ticketPayload,TK_SKIN_NAMES,TK_GEO';
 
 /* ui.js را در محیط نود می‌خوانیم: فقط موتور و ابزارها، بدون بخش مرورگر.
-   تصویر خودِ مرجع (صفحه‌های خالی) در tickets/plates.js است و پیش از موتور
+   بلیت با موتور خودِ ui.js کشیده می‌شود؛ نگاره‌های tickets/plates.js فقط برای رسید است.
    خوانده می‌شود؛ همان چیزی که صفحه‌ها هم در مرورگر لود می‌کنند. */
 export async function loadEngine(){
   const src=fs.readFileSync(path.join(here,'ui.js'),'utf8');

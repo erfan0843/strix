@@ -220,9 +220,9 @@ const nowFa=()=>{const g=new Date(), j=jalaliOf(g.getFullYear(),g.getMonth()+1,g
 /* پوشاندن بخشی از شمارهٔ موبایل در فهرست‌ها (حریم خصوصی) */
 const maskPhone=s=>{const d=unFa(String(s||'')); return d.length===11?d.replace(/^(\d{4})\d{3}(\d{4})$/,(m,a,b)=>faDigits(a)+'***'+faDigits(b)):d;};
 
-/* ── صفحه‌های تصویری بلیت و رسید (tickets/plates.js) ────────────────────── */
-let TK_PLATES_ALL={}, RC_PLATES_ALL={}, TK_GEO_DATA=null;
-if(typeof TK_PLATES!=='undefined') TK_PLATES_ALL=TK_PLATES;
+/* ── صفحهٔ تصویری رسید (tickets/plates.js) ─────────────────────────────── */
+/* رسید هنوز روی نگارهٔ خودِ مرجع می‌نشیند؛ بلیت دیگر نگاره ندارد و همه‌چیزش کشیده می‌شود */
+let RC_PLATES_ALL={}, TK_GEO_DATA=null;
 if(typeof RC_PLATES!=='undefined') RC_PLATES_ALL=RC_PLATES;
 if(typeof TK_GEO!=='undefined') TK_GEO_DATA=TK_GEO;
 
@@ -401,7 +401,6 @@ function tkFit(text, size, maxW, minSize) {
 const tkEsc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /* ── کیوآرکد واقعی روی کارت سفید ───────────────────────────────────────── */
-function tkReady(){return !!TK_GEO_DATA && !!TK_PLATES_ALL.clear;}
 
 function tkQR(host, text, x, y, size, dark) {
   const made = QRCODE.make(text);
@@ -416,56 +415,96 @@ function tkQR(host, text, x, y, size, dark) {
 }
 
 /* ── بلیت ──────────────────────────────────────────────────────────────── */
+/* بلیت استاندارد: ۱۴۰ در ۵۱ میلی‌متر (رایج‌ترین اندازهٔ بلیت رویداد — ۵٫۵ در ۲ اینچ).
+   ته‌برگ جداشدنی یک‌سوم از سمت چپ با پرفراژ و برش؛ کیوآر در ناحیهٔ سفید و آرام
+   ته‌برگ می‌نشیند و شمارهٔ بلیت هم همان‌جا چاپ می‌شود؛ متن‌ها در کارت اصلی. */
+const TK_SKINS={
+  clear:{n:'شفاف',bg:['#FFFFFF','#F4F9F7'],ink:'#12201B',muted:'#7C8681',accent:'#0E5A4E',line:'#E1EAE6'},
+  forest:{n:'جنگلی',bg:['#17584A','#2E8B6E'],ink:'#F7FCFA',muted:'#CBE6DC',accent:'#FFE9B0',line:'#5FAF95'},
+  gold:{n:'طلایی',bg:['#FDF8EE','#F3E7CE'],ink:'#3A2E12',muted:'#8C7B54',accent:'#9C7C3C',line:'#E3D6B4'},
+  ocean:{n:'اقیانوسی',bg:['#F2F8FC','#E1EFF7'],ink:'#12303F',muted:'#6E8593',accent:'#1B6C8C',line:'#D3E4EE'},
+  night:{n:'شب',bg:['#28302E','#121A18'],ink:'#FBFDFC',muted:'#A9B4B0',accent:'#9FE3C8',line:'#4A5653'}};
+const TK_MM=10;                                  /* یک واحد = یک‌دهم میلی‌متر */
+const TK_W=140*TK_MM, TK_H=51*TK_MM;             /* ۱۴۰۰ × ۵۱۰ */
+const TK_SAFE=20, TK_STUB=Math.round(TK_W/3);    /* حاشیهٔ امن ۲mm — ته‌برگ یک‌سوم */
+const TK_PAGE='#E9EFEC';
+
 function ticketSVG(o, opt) {
   o = o || {}; opt = opt || {};
-  if(!tkReady()) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410"><text x="880" y="200" text-anchor="end" font-size="18" fill="#8A928E">صفحهٔ بلیت بار نشده (tickets/plates.js)</text></svg>';
-  const skin = TK_PLATES_ALL[o.skin] ? o.skin : 'clear';
-  const G = TK_GEO_DATA.geo.ticket, P = TK_GEO_DATA.palette[skin];
-  const plate = TK_PLATES_ALL[skin];
-  const parts = o.parts || ['title', 'date', 'venue', 'name', 'seat', 'no', 'code', 'qr', 'logo', 'note'];
+  const sk = TK_SKINS[o.skin] ? o.skin : (TK_SKINS[o.style] ? o.style : 'clear');
+  const T = TK_SKINS[sk];
+  const W = TK_W, H = TK_H;
+  const card = [8, 8, W - 8, H - 8];
+  const perf = TK_STUB;                          /* خط پرفراژ و برش */
+  const parts = o.parts || ['title','date','venue','name','seat','no','code','qr','logo','note'];
   const has = k => parts.includes(k);
   const code = o.code || 'TL0000000000';
-  const short = o.short || shortCode(code);
-  const title = (o.title || 'کارگاه').slice(0, 46);
-  const meta = [o.weekday || o.day, o.date, (o.time ? 'ساعت ' + o.time : ''), o.venue].filter(Boolean).join(' · ') || o.meta || '';
-  const RTL = ' direction="rtl"';
-  const clip = `clip-${skin}`;
+  const short = o.displayCode || o.short || shortCode(code);
+  const title = (o.title || 'رویداد').slice(0, 52);
+  const dupTime = !!(o.time && String(o.date || '').includes(o.time));   /* تاریخ خودش ساعت را دارد */
+  const meta = [o.weekday || o.day, o.date, (o.time && !dupTime ? 'ساعت ' + o.time : ''), o.venue]
+    .filter(Boolean).join(' · ') || o.meta || '';
+  const fit=(t,size,maxW,min)=>{let x=size; const k=/^[A-Za-z0-9]/.test(String(t))?.56:.52;
+    while(x>min && String(t||'').length*x*k>maxW) x-=.5; return x.toFixed(1)};
+  const RTL=' direction="rtl"';
+  const mainR = card[2] - TK_SAFE;               /* لبهٔ راست کارت اصلی */
+  const mainX0 = perf + TK_SAFE;                 /* شروع کارت اصلی */
 
+  /* ته‌برگ: شمارهٔ بلیت بالا، کیوآر وسط در ناحیهٔ سفید، کد پایین */
+  const stubCX = Math.round((8 + perf) / 2), qrS = 190;      /* ۱۹mm — کمینهٔ مطمئن برای اسکن */
+  const qrX = Math.round(stubCX - qrS / 2), qrY = 8 + 162;
+  const stub = [
+    has('no') && o.no ? `<text x="${stubCX}" y="${8+74}" text-anchor="middle" font-size="14" fill="${T.muted}"${RTL}>شمارهٔ بلیت</text>
+      <text x="${stubCX}" y="${8+106}" text-anchor="middle" font-size="24" font-weight="700" fill="${T.ink}"${RTL}>${tkEsc(o.no)}</text>` : '',
+    has('qr') ? `<rect x="${qrX-9}" y="${qrY-9}" width="${qrS+18}" height="${qrS+18}" rx="9" fill="#FFFFFF"/>
+      ${tkQR(null, o.payload || ('https://lifeline1.ir/t/' + short), qrX, qrY, qrS, '#101D19')}
+      <text x="${stubCX}" y="${qrY+qrS+30}" text-anchor="middle" font-size="12" fill="${T.muted}"${RTL}>برای ورود اسکن شود</text>` : '',
+    has('code') ? `<text x="${stubCX}" y="${H-8-56}" text-anchor="middle" font-size="14" fill="${T.muted}"${RTL}>کد بلیت</text>
+      <text x="${stubCX}" y="${H-8-22}" text-anchor="middle" font-size="25" font-weight="700" letter-spacing="5" font-family="${TK_FONTS_LAT}" direction="ltr" fill="${T.ink}">${tkEsc(short)}</text>` : ''
+  ].filter(Boolean).join('\n    ');
+
+  /* کارت اصلی: نشان و نوع، نام رویداد، زمان و جا، دارنده */
   const rows = [];
-  if (has('title')) rows.push(`<text x="${G.title.x}" y="${G.title.base}" text-anchor="end" font-size="${tkFit(title, G.title.size, G.title.x - G.perf - 40, 21).toFixed(1)}" font-weight="700" fill="${P.ink}" letter-spacing="-.4"${RTL}>${tkEsc(title)}</text>`);
-  if (meta) rows.push(`<text x="${G.meta.x}" y="${G.meta.base}" text-anchor="end" font-size="${tkFit(meta, G.meta.size, G.meta.x - G.perf - 40, 12.5).toFixed(1)}" fill="${P.muted}"${RTL}>${tkEsc(meta)}</text>`);
+  if(has('title')) rows.push(`<text x="${mainR}" y="${TK_SAFE+128}" text-anchor="end" font-size="${fit(title,44,1350-perf-TK_SAFE*2,24)}" font-weight="700" fill="${T.ink}" letter-spacing="-.3"${RTL}>${tkEsc(title)}</text>`);
+  if(meta) rows.push(`<text x="${mainR}" y="${TK_SAFE+170}" text-anchor="end" font-size="${fit(meta,19,1350-perf-TK_SAFE*2,13)}" fill="${T.muted}"${RTL}>${tkEsc(meta)}</text>`);
+  const who = has('name') && o.name ? `<text x="${mainR}" y="${H-TK_SAFE-56}" text-anchor="end" font-size="14" fill="${T.muted}"${RTL}>شرکت‌کننده</text>
+    <text x="${mainR}" y="${H-TK_SAFE-22}" text-anchor="end" font-size="${fit(o.name,28,420,16)}" font-weight="700" fill="${T.ink}"${RTL}>${tkEsc(o.name)}</text>` : '';
+  const seat = has('seat') && o.seat ? `<text x="${mainR-470}" y="${H-TK_SAFE-56}" text-anchor="end" font-size="14" fill="${T.muted}"${RTL}>صندلی</text>
+    <text x="${mainR-470}" y="${H-TK_SAFE-22}" text-anchor="end" font-size="${fit(o.seat,20,220,13)}" font-weight="600" fill="${T.ink}"${RTL}>${tkEsc(o.seat)}</text>` : '';
+  const stateTxt = o.state || (o.confirmed === true ? 'قطعی' : (o.confirmed === false ? 'موقت' : ''));
+  const state = stateTxt ? `<text x="${mainX0}" y="${H-TK_SAFE-22}" text-anchor="start" font-size="16" font-weight="700" fill="${T.accent}"${RTL}>${tkEsc(stateTxt)}</text>` : '';
+  const note = has('note') && o.noteText ? `<text x="${mainX0}" y="${TK_SAFE+96}" text-anchor="start" font-size="14" fill="${T.muted}"${RTL}>${tkEsc(o.noteText)}</text>` : '';
+  const kind = has('kind') && o.kind ? `<text x="${mainX0}" y="${H-TK_SAFE-56}" text-anchor="start" font-size="15" font-weight="600" fill="${T.accent}"${RTL}>${tkEsc(o.kind)}</text>` : '';
+  const logo = has('logo') ? `<g><circle cx="${mainR-30}" cy="${TK_SAFE+30}" r="15" fill="none" stroke="${T.accent}" stroke-width="1.6"/>
+      <text x="${mainR-30}" y="${TK_SAFE+36}" text-anchor="middle" font-size="15" font-weight="700" fill="${T.accent}"${RTL}>خ</text>
+      <text x="${mainR-56}" y="${TK_SAFE+36}" text-anchor="end" font-size="16" font-weight="600" fill="${T.accent}"${RTL}>خط زندگی</text></g>` : '';
 
-  const side = [has('seat') ? ['صندلی', o.seat] : null, has('no') ? ['شمارهٔ بلیت', o.no] : null].filter(Boolean);
-  if (has('name') && o.name) rows.push(`<text x="${G.nameLabel.x}" y="${G.nameLabel.base}" text-anchor="end" font-size="${G.nameLabel.size}" fill="${P.muted}"${RTL}>شرکت‌کننده</text>
-    <text x="${G.name.x}" y="${G.name.base}" text-anchor="end" font-size="${tkFit(o.name, G.name.size, 230, 15).toFixed(1)}" font-weight="700" fill="${P.ink}"${RTL}>${tkEsc(o.name)}</text>`);
-  if (side.length) rows.push(side.map(([k, v], i) => {
-    const x = G.name.x - 232 - i * 132;
-    return `<text x="${x}" y="${G.nameLabel.base}" text-anchor="end" font-size="${G.nameLabel.size}" fill="${P.muted}"${RTL}>${k}</text>
-      <text x="${x}" y="${G.name.base}" text-anchor="end" font-size="${tkFit(v, 16, 122, 11).toFixed(1)}" font-weight="600" fill="${P.ink}"${/^[A-Za-z0-9]/.test(v) ? ' direction="ltr" font-family="' + TK_FONTS_LAT + '"' : RTL}>${tkEsc(v)}</text>`;
-  }).join(''));
-
-  const codeBlock = has('code') ? `<text x="${G.codeLabel.cx}" y="${G.codeLabel.base}" text-anchor="middle" font-size="${G.codeLabel.size}" fill="${P.muted}"${RTL}>کد بلیت</text>
-    <text x="${G.code.cx}" y="${G.code.base}" text-anchor="middle" font-size="${G.code.size}" font-weight="700" fill="${P.ink}" letter-spacing="${G.code.track}" font-family="${TK_FONTS_LAT}" direction="ltr">${tkEsc(o.displayCode || short)}</text>` : '';
-  const qrBlock = has('qr') ? tkQR(null, o.payload || ('https://lifeline1.ir/t/' + short), G.qr.x0, G.qr.y0, G.qr.size) : '';
-  /* نوع بلیت در ستون سمت چپ، میان کیوآر و کد بلیت (همان‌جای خالی خودِ تصویر) */
-  const kind = has('kind') && o.kind ? `<text x="${G.codeLabel.cx}" y="${G.qr.y0 + G.qr.size + 40}" text-anchor="middle" font-size="13" font-weight="600" fill="${P.muted}"${RTL}>${tkEsc(o.kind)}</text>` : '';
-  const note = has('note') && o.noteText ? `<text x="${G.perf + 18}" y="82" font-size="12.5" fill="${P.muted}"${RTL}>${tkEsc(o.noteText)}</text>` : '';
-  const state = o.state ? `<text x="${G.code.cx}" y="${G.nameLabel.base - 26}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${P.ink}"${RTL}>${tkEsc(o.state)}</text>` : '';
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${G.size[0]} ${G.size[1]}" width="${G.size[0]}" height="${G.size[1]}" role="img" style="font-family:${TK_FONTS}"
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" style="font-family:${TK_FONTS}"
     aria-label="بلیت ${tkEsc(title)}${o.name ? ' برای ' + tkEsc(o.name) : ''}">
   <defs>
-    <clipPath id="${clip}"><rect x="${G.card[0]}" y="${G.card[1]}" width="${G.card[2] - G.card[0]}" height="${G.card[3] - G.card[1]}" rx="40"/></clipPath>
+    <linearGradient id="tkbg-${sk}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${T.bg[0]}"/><stop offset="1" stop-color="${T.bg[1]}"/>
+    </linearGradient>
+    <clipPath id="tkclip"><rect x="${card[0]}" y="${card[1]}" width="${card[2]-card[0]}" height="${card[3]-card[1]}" rx="26"/></clipPath>
     ${opt.embed ? `<style>${TK_CSS}</style>` : ''}
   </defs>
-  <g clip-path="url(#${clip})">
-    <image x="0" y="0" width="${G.size[0]}" height="${G.size[1]}" href="${plate}" preserveAspectRatio="none"/>
-    ${has('qr') ? qrBlock : ''}
-    ${codeBlock}
-    ${state}
-    ${kind}
+  <rect x="0" y="0" width="${W}" height="${H}" fill="${TK_PAGE}"/>
+  <g clip-path="url(#tkclip)">
+    <rect x="${card[0]}" y="${card[1]}" width="${card[2]-card[0]}" height="${card[3]-card[1]}" fill="url(#tkbg-${sk})"/>
+  </g>
+  <rect x="${card[0]}" y="${card[1]}" width="${card[2]-card[0]}" height="${card[3]-card[1]}" rx="26" fill="none" stroke="${T.line}" stroke-width="1.5"/>
+  <line x1="${perf}" y1="${card[1]+34}" x2="${perf}" y2="${card[3]-34}" stroke="${T.line}" stroke-width="2" stroke-dasharray="12 10"/>
+  <circle cx="${perf}" cy="${card[1]}" r="13" fill="${TK_PAGE}"/>
+  <circle cx="${perf}" cy="${card[3]}" r="13" fill="${TK_PAGE}"/>
+  <g clip-path="url(#tkclip)">
+    ${logo}
     ${note}
     ${rows.join('\n    ')}
+    ${who}
+    ${seat}
+    ${kind}
+    ${state}
+    ${stub}
   </g>
 </svg>`;
 }
@@ -746,4 +785,4 @@ if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,init
   ticketFile,receiptFile,ticketSVG,receiptSVG,ticketHTML,receiptHTML,sendTicketToBot,TICKET_STYLES,TICKET_PARTS,
   certificateSVG,certificateFile,CERT_G,
   qrMatrix,qrSVG,QRCODE,shortCode,ticketMeta,icsFor,parseJ,jalaliOf,gregOf,isLeapJ,daysInJ,weekdayOf,maskPhone,
-  words,money,faN,fa,faDigits,TK_SKIN_NAMES,TK_GEO,TK_PLATES,RC_PLATES,tkQR,tkFit,ticketFile,receiptFile};
+  words,money,faN,fa,faDigits,TK_SKIN_NAMES,TK_GEO,RC_PLATES,tkQR,tkFit,ticketFile,receiptFile};

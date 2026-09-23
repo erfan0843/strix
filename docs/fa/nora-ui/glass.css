@@ -666,7 +666,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   body>#printzone{display:block}
   body>*:not(#printzone){display:none!important}
   #printzone .tk-acts,#printzone .rc-acts{display:none!important}
-  .no-print,.rail,.topbar,.botbar,.tabbar,.fab,.ctxbar,.scrim,.sheet,.toast,.actionbar,.steps{display:none!important}
+  .no-print,.rail,.topbar,.botbar,.buddybar,.tabbar,.fab,.ctxbar,.scrim,.sheet,.toast,.actionbar,.steps{display:none!important}
   .shell{display:block;padding:0;max-width:none}
   .main{padding:0}
   .card{box-shadow:none}

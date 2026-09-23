@@ -53,14 +53,10 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#pkGeo .gp').options.length===31,'۳۱ استان در فهرست');
   ok(p.doc.querySelector('#pkGeo .gc').options.length>0,'شهرها پر شد');
   ok(p.doc.querySelector('#pkBirth .pk1').options.length===13,'سال‌های تولد پر شد');
-  // رفتن تا مرحلهٔ مالی
-  for(let i=0;i<7;i++) p.click('#next');
-  /* ── دعوت دوست: داخل خودِ فرم، نه در پرداخت ── */
-  ok(p.vis('.screen').join()==='u15','کارت دعوت دوست داخل خودِ فرم می‌آید');
-  ok(p.txt('#u15').includes('دوستاتم با خودت بیار'),'کارت خوش‌گرافیک «دوستاتم با خودت بیار»');
-  ok(p.doc.querySelector('#addPerson')===null && p.doc.querySelector('#peopleRows')===null,
-     'فرم همراه از مرحلهٔ پرداخت برداشته شد');
-  ok(p.txt('#friendCount').includes('۱ از ۳'),'شمار دوست‌ها نشان داده می‌شود');
+  /* ── نوار دوست: پایین هر اسلاید فرم، از همان اول ── */
+  ok(p.doc.querySelector('#buddyBar').classList.contains('on'),'نوار دوست از همان اسلاید اول پایین صفحه هست');
+  p.click('#buddyOpen');
+  ok(p.doc.querySelector('#shBuddy').classList.contains('on'),'شیت دوست از خودِ نوار باز می‌شود');
   p.click('#addFriend');
   ok(p.txt('#toast').includes('نام دوستت'),'بدون نام، دوست اضافه نمی‌شود');
   p.doc.querySelector('#fName').value='مریم احمدی';
@@ -69,15 +65,33 @@ async function load(file,store,q){
   p.doc.querySelector('#fMobile').value='۰۹۱۲۳۴۵۶۷۸۹';
   p.doc.querySelector('#fEmail').value='maryam@mail.com';
   p.click('#addFriend');
-  ok(p.window.eval('S.guests.length')===1,'دوست در وضعیت ثبت شد');
-  ok(p.txt('#friendChips').includes('مریم احمدی'),'چیپ نام دوست ساخته شد');
+  ok(p.window.eval('S.guests.length')===1,'دوست همان اولِ فرم ثبت شد');
+  ok(p.txt('#buddySlot').includes('مریم احمدی'),'نام دوست روی نوار پایین می‌آید');
   ok(p.doc.querySelector('#sameOpt').classList.contains('on'),'«بقیهٔ پاسخ‌ها مثل خودم» پیش‌فرض روشن');
-  p.click('#next');
-  ok(p.vis('.screen').join()==='u8','صفحهٔ بعد: مرحلهٔ مالی');
-  ok(p.doc.querySelector('#guestsCard').style.display!=='none','کارت همراهان در مرحلهٔ بعد دیده می‌شود');
-  ok(p.txt('#guestsCard').includes('مریم احمدی'),'در صفحهٔ بعد فقط نام دوست می‌آید');
-  ok(!/۰۹۱۲/.test(p.txt('#guestsCard')),'شمارهٔ موبایل دوست در صفحهٔ بعد نشان داده نمی‌شود');
+  p.window.eval('closeSheets()');
+  /* حالا کاربر بقیهٔ فرم را کنارِ همان نوار پر می‌کند */
+  for(let i=0;i<7;i++) p.click('#next');
+  ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد انتخاب شما — پلهٔ جدای دعوت دوست برداشته شد');
+  ok(p.doc.querySelector('#u15')===null,'صفحهٔ جدا برای دعوت دوست نمی‌ماند');
+  ok(p.doc.querySelector('#buddyBar').classList.contains('on'),'نوار روی اسلاید مالی هم پایین صفحه هست');
+  ok(p.doc.querySelector('#guestsCard').style.display!=='none','کارت همراهان در همان اسلاید مالی');
+  ok(p.txt('#guestsCard').includes('مریم احمدی'),'در کارت همراهان نام دوست می‌آید');
+  ok(!/۰۹۱۲/.test(p.txt('#guestsCard')),'شمارهٔ موبایل دوست جایی نشان داده نمی‌شود');
   ok(p.txt('#guestsCard').includes('۲ نفر'),'شمار نفرات با احتساب دوست');
+  /* سقف دوست: جا که پر شود، خودِ نوار می‌گوید */
+  p.window.eval("S.guests=new Array(GUEST_MAX).fill(0).map((_,i)=>({name:'دوست '+faN(i+1)})); cur='u8'; renderBuddy()");
+  ok(p.doc.querySelector('#buddyOpen').style.display==='none','با پر شدن جا، دکمهٔ افزودن از نوار برداشته می‌شود');
+  ok(/پر شد/.test(p.txt('#buddyHint')),'نوار می‌گوید جا پر است');
+  p.window.eval("S.guests=[{name:'مریم احمدی',mobile:'09123456789',same:true}]; renderBuddy()");
+
+  /* ── انتخاب مالی: گزینهٔ فرعی تنها، فرم را جلو نمی‌برد ── */
+  ok(p.window.eval("CFG.fin.every(o=>!o.on)"),'هیچ گزینه‌ای از پیش انتخاب نشده');
+  p.click('[data-fin="2"]');                      /* ناهار و پذیرایی — گزینهٔ فرعی */
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u8' && p.txt('#toast').includes('نوع شرکت'),'با فقط گزینهٔ فرعی، جلوی ادامه گرفته شد');
+  p.click('[data-fin="0"]');                      /* انتخاب صریح گروه اجباری */
+  p.click('[data-fin="2"]');                      /* ناهار برداشته می‌شود */
+  ok(p.window.eval("CFG.fin[0].on && PICKED.has(0) && !CFG.fin[2].on"),'انتخاب صریح ثبت و گزینهٔ فرعی برداشته شد');
   p.doc.querySelector('#coupon').value='NORA10'; p.click('#applyCoupon');
   const bill=p.txt('#bill');
   ok(bill.includes('۱٬۳۰۰٬۵۰۰'),'صورت‌حساب ۲ نفر با کوپن ٪۱۰ = ۱٬۳۰۰٬۵۰۰ ریال');
@@ -86,6 +100,7 @@ async function load(file,store,q){
   // پرداخت کارت‌به‌کارت
   p.click('#next'); ok(p.vis('.screen').join()==='u9','مرحلهٔ پرداخت');
   ok(p.txt('#payGuests').includes('مریم احمدی'),'در پرداخت هم فقط نام دوست + مبلغ');
+  ok(p.doc.querySelector('#buddyBar').classList.contains('on')===false,'در پرداخت نوار پایین صفحه نیست');
   p.click('#next');
   ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('روش پرداخت'),'بی‌انتخاب روش، جلوی ادامه گرفته شد');
   p.click('[data-method="card"]');
@@ -122,8 +137,13 @@ async function load(file,store,q){
   ok(/کد بلیت/.test(tkTxt) && /[2-9ACDEFGHJKLMNPQRSTUVWXYZ]{7}/.test(tkTxt),'کد بلیت روی بلیت چاپ شده');
   const tsvg=p.all('#tickets .tk-img svg')[0];
   ok(/ZYRA2JR/.test(tsvg.outerHTML),'کد کوتاه روی تصویر بلیت چاپ شده');
-  ok(/<image[^>]+href="data:image\/jpeg/.test(tsvg.outerHTML),'خودِ تصویر مرجع، زیرِ متن بلیت نشسته');
-  ok(p.window.eval('TK_GEO_DATA.geo.ticket.perf')>0,'پرفراژ از هندسهٔ تصویر مرجع خوانده می‌شود');
+  ok(p.window.eval('TK_W===1400 && TK_H===510'),'بلیت ۱۴۰×۵۱ میلی‌متر (۱۰ واحد در میلی‌متر)');
+  ok(tsvg.getAttribute('viewBox')==='0 0 1400 510','قاب تصویر با همان نسبت استاندارد');
+  ok(/stroke-dasharray/.test(tsvg.outerHTML),'خط پرفراژ ته‌برگ روی بلیت هست');
+  ok(/شمارهٔ بلیت/.test(tsvg.outerHTML) && /کد بلیت/.test(tsvg.outerHTML),'شماره و کد بلیت، هر دو روی ته‌برگ');
+  ok(/fill="#FFFFFF"/.test(tsvg.outerHTML),'کیوآر روی ناحیهٔ سفید و آرام خودش می‌نشیند');
+  ok(p.window.eval("ticketSVG({parts:['title']}).includes('شمارهٔ بلیت')")===false,'بخش خاموش روی بلیت چاپ نمی‌شود');
+  ok(p.window.eval("ticketSVG({parts:['title','qr']}).includes('<rect')")===true,'با بخش کیوآر، کد تصویری ساخته می‌شود');
   ok(/کارگاه/.test(tsvg.outerHTML),'عنوان رویداد روی تصویر بلیت');
   ok(p.doc.querySelector('#tickets [data-tkprint]')!==null,'دکمهٔ چاپ بلیت هست');
   ok(p.doc.querySelector('#tickets [data-tksave]')!==null,'دکمهٔ ذخیرهٔ تصویر هست');
@@ -142,7 +162,7 @@ async function load(file,store,q){
   ok(p.all('#receiptSlot .tk-img svg[role="img"]').length===1 && p.txt('#receiptSlot').includes('کد پیگیری'),'رسید پرداخت تصویری با کد پیگیری');
   ok(p.txt('#receiptSlot').includes('تومان'),'رسید: مبلغ به حروف');
   // اعداد لندینگ باید از خود تنظیمات دربیایند
-  ok(p.txt('#evFacts').includes('۷ پرسش')&&p.txt('#evFacts').includes('۷۲۲٬۵۰۰'),'اعداد لندینگ از تنظیمات فرم حساب شده');
+  ok(p.txt('#evFacts').includes('۷ پرسش')&&p.txt('#evFacts').includes('۶۰۰٬۰۰۰'),'اعداد لندینگ از تنظیمات فرم حساب شده');
   ok(p.txt('#evFacts').includes('۴۰ جا مانده'),'جای مانده از ظرفیت و ثبت‌شده‌ها حساب شده');
   ok(p.txt('#evPerks').includes('گواهینامه')&&p.txt('#evPerks').includes('۳ نفر'),'مزیت‌های لندینگ از مالی و سقف نفرات');
   const pa=p.doc.querySelector('[data-printall]');
@@ -152,18 +172,18 @@ async function load(file,store,q){
   // توضیح هر قطعه فقط وقتی هست که نوشته شده باشد (قطعهٔ بی‌توضیح، خط خالی ندارد)
   ok(p.window.eval("CFG.fin.some(o=>!o.d)")===true,'قطعهٔ بی‌توضیح هم در داده هست');
   ok(p.all('#finOpts .cap').filter(e=>/^$/.test(e.textContent.trim())).length===0,'هیچ خط خالی برای توضیح نمانده');
-  // ── گروه اجباری: تا یکی انتخاب نشود، فرم جلو نمی‌رود ──
+  // ── گروه اجباری: تا انتخاب خودِ کاربر نباشد، فرم جلو نمی‌رود ──
   ok(p.window.eval("CFG.groups[0].req")===true,'گروه «نوع شرکت» اجباری است');
-  p.window.eval("CFG.groups[0].of.forEach(k=>CFG.fin[k].on=false); CFG.fin[2].on=false; CFG.fin[3].on=false; show('u9')");
+  p.window.eval("show('u8'); CFG.groups[0].of.forEach(k=>{CFG.fin[k].on=false}); CFG.fin[2].on=true; CFG.fin[3].on=false; PICKED.clear(); renderFin()");
   p.click('#next');
-  ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('حداقل یک مورد'),'با هیچ انتخابی، جلوی ادامه گرفته شد');
-  p.window.eval("CFG.fin[1].on=true");                       /* کاربر «بدون گواهینامه» را می‌زند */
+  ok(p.vis('.screen').join()==='u8' && p.txt('#toast').includes('نوع شرکت'),'تنها گزینهٔ فرعی روشن، فرم را جلو نمی‌برد');
+  p.click('[data-fin="1"]');                                  /* کاربر «بدون گواهینامه» را می‌زند */
   p.click('#next');
-  ok(p.vis('.screen').join()==='u10','با انتخاب یکی از گروه، ادامه ممکن شد');
-  // زدن گزینهٔ دوم گروه، اولی را برمی‌دارد (انتخاب یکی)
-  p.window.eval("show('u8')"); p.click('#next');
+  ok(p.vis('.screen').join()==='u9','با انتخاب خودِ کاربر، ادامه ممکن می‌شود');
+  p.window.eval("show('u8')");
   p.click('[data-fin="0"]');
   ok(p.window.eval("CFG.fin[0].on && !CFG.fin[1].on"),'در گروه، انتخاب یکی از دو گزینه جابه‌جا می‌شود');
+  ok(p.window.eval("PICKED.has(0) && !PICKED.has(1)"),'رد انتخاب صریح هم با گروه جابه‌جا می‌شود');
   p.window.eval("show('u13'); saveDraft()");   /* حالت آزمون به جای اولش برگردد */
   p.window.eval('saveDraft()');
   const keys=store._dump();
@@ -182,14 +202,10 @@ async function load(file,store,q){
   const p=await load('form.html',store,'?guests=0');
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   ok(p.window.eval('GUEST_ON')===false,'با بسته بودن کلید ادمین، دعوت دوست خاموش است');
+  ok(p.doc.querySelector('#buddyBar').classList.contains('on')===false,'نوار دوست هم پایین صفحه نمی‌آید');
   for(let i=0;i<7;i++) p.click('#next');
-  ok(p.vis('.screen').join()==='u8','بدون کلید ادمین، مستقیم به مالی می‌رود');
-  ok(p.window.eval("NEXT.u7")==='u8','گام پاسخ‌دهنده از u15 رد می‌شود');
-  ok(p.vis('.screen').join()!=='u15','صفحهٔ دعوت هرگز باز نمی‌شود');
+  ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد مستقیم انتخاب شما');
   ok(p.doc.querySelector('#guestsCard').style.display==='none','کارت همراهان هم پنهان است');
-  p.window.eval('show(\'u15\')');
-  ok(/دوستاتم/.test(p.txt('#u15')),'متن صفحه هست');
-  ok(p.doc.querySelector('#friendCard').style.display!=='none','…ولی هیچ دکمهٔ افزودنی به کاربر نمی‌رسد');
   ok(p.window.eval('S.guests.length')===0,'فهرست دوستان دست‌نخورده');
   p.window.eval("show('u9'); CFG.ticketOn=true");
   ok(p.doc.querySelector('#payGuests').style.display==='none','در پرداخت هم چیزی از دوست نیست');

@@ -14,6 +14,20 @@
   .opt.on{border-color:var(--brand);background:var(--brand-tint)}
   .opt.on .mk{border-color:var(--brand);background:var(--brand);color:#fff}
   .opt.sq .mk{border-radius:7px}
+  /* نوار همراه: پایین هر اسلاید فرم، بالای نوار دکمه‌ها */
+  .buddybar{position:fixed;inset-inline:0;bottom:calc(12px + var(--safe-b) + 68px);z-index:49;display:none;
+       gap:8px;align-items:center;padding:6px;width:min(536px,calc(100% - 24px));margin-inline:auto;border-radius:var(--r-lg)}
+  .buddybar.on{display:flex}
+  .buddy-invite{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;padding:8px 10px;border-radius:var(--r-md);
+       border:.5px solid var(--hairline);background:var(--surface);cursor:pointer;font:inherit;color:inherit;text-align:start}
+  .buddy-invite:hover{background:var(--brand-tint);border-color:var(--brand)}
+  .buddy-invite .bicon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-tint);color:var(--brand-ink)}
+  .buddy-invite .btxt{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .buddy-invite b{font-size:var(--fs-cap);font-weight:650}
+  .buddy-invite .cap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bchips{display:flex;gap:6px;overflow-x:auto;max-width:52%;flex:0 0 auto}
+  body.hasbuddy .wrap{padding-bottom:calc(180px + var(--safe-b))}
+  .opt.pending{border-style:dashed;border-color:var(--brand)}
   .botbar{position:fixed;inset-inline:0;bottom:calc(12px + var(--safe-b));z-index:50;display:flex;gap:8px;align-items:center;padding:8px;width:min(536px,calc(100% - 24px));margin-inline:auto;border-radius:var(--r-xl)}
   .drop{border:1.5px dashed var(--hairline);border-radius:var(--r-md);padding:22px;text-align:center;background:var(--surface-2);cursor:pointer}
   .fld{position:relative}
@@ -36,6 +50,8 @@
   .invite .islot{flex:0 0 auto;font-size:var(--fs-cap);font-weight:600;padding:5px 11px;border-radius:99px;
     background:rgba(255,255,255,.20);border:.5px solid rgba(255,255,255,.28);color:#fff}
   .invite .ichips{margin-top:14px}
+  .sheet .ichips{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+  .sheet .islot{flex:0 0 auto;font-size:var(--fs-cap);font-weight:600;padding:5px 11px;border-radius:99px;background:var(--brand-tint);color:var(--brand-ink)}
   .gchips{display:flex;flex-wrap:wrap;gap:8px}
   .gchip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:99px;font-size:var(--fs-sub);font-weight:600;
     background:var(--brand-tint);color:var(--brand-ink);border:.5px solid var(--hairline)}
@@ -280,50 +296,6 @@
   </section>
 
 
-  <!-- ═ ۷٫۵ دعوت دوست (فقط اگر ادمین باز کرده باشد) ═ -->
-  <section class="screen" id="u15" style="margin-top:12px">
-    <div class="invite">
-      <span class="iglow"></span>
-      <div class="ihead">
-        <span class="iicon"><svg class="i"><use href="#i-users"/></svg></span>
-        <span>
-          <b class="ititle">دوستاتم با خودت بیار</b>
-          <span class="icap">یک نفر را مهمان کن؛ بلیت و صندلی خودش را دارد.</span>
-        </span>
-        <span class="sp"></span>
-        <span class="islot" id="friendCount">دوست ۱ از ۳</span>
-      </div>
-      <div class="ichips" id="friendChips" style="display:none"></div>
-    </div>
-
-    <div class="card paper" id="friendCard" style="margin-top:12px">
-      <div class="row" style="margin-bottom:12px">
-        <div class="head">مشخصات دوست</div><span class="sp"></span>
-        <span class="cap">همان اطلاعاتی که روی بلیتش می‌نشیند</span>
-      </div>
-      <label class="lbl" for="fName">نام و نام خانوادگی</label>
-      <input class="input" id="fName" placeholder="مثلاً: مریم احمدی" autocomplete="off"/>
-      <label class="lbl" for="fMobile" style="margin-top:12px">موبایل</label>
-      <input class="input num" id="fMobile" inputmode="numeric" maxlength="11" placeholder="۰۹۱۲۳۴۵۶۷۸۹"/>
-      <label class="lbl" for="fEmail" style="margin-top:12px">ایمیل (اختیاری)</label>
-      <input class="input" id="fEmail" dir="ltr" placeholder="name@mail.com"/>
-      <label class="opt sq on" id="sameOpt" style="margin-top:14px">
-        <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
-        <span style="flex:1;text-align:start"><b>بقیهٔ پاسخ‌ها مثل خودم</b>
-          <div class="cap" style="margin-top:2px">همان پاسخ‌هایی که خودت دادی برای او هم ثبت می‌شود.</div></span>
-      </label>
-      <button class="addperson" id="addFriend" style="margin-top:12px">
-        <span class="big"><svg class="i"><use href="#i-plus"/></svg></span> افزودن این دوست
-      </button>
-    </div>
-
-    <div class="card sunk" style="margin-top:12px">
-      <div class="row"><svg class="i"><use href="#i-wallet"/></svg>
-        <span><b class="sub">به صورت‌حساب اضافه می‌شود</b>
-        <div class="cap">مبلغ هر نفر در تعداد ضرب می‌شود؛ صفحهٔ بعد فقط نام دوستت و پرداخت را می‌بینی.</div></span></div>
-    </div>
-  </section>
-
   <!-- ═ ۸ مالی (بدون همراه) ═ -->
   <section class="screen" id="u8" style="margin-top:12px">
     <div class="card paper">
@@ -538,6 +510,14 @@
   </section>
 </div>
 
+<div class="buddybar glass-thin" id="buddyBar" role="region" aria-label="همراه">
+  <button class="buddy-invite" id="buddyOpen" type="button">
+    <span class="bicon"><svg class="i"><use href="#i-plus"/></svg></span>
+    <span class="btxt"><b>دوستت را هم بیار</b><span class="cap" id="buddyHint">بلیت و صندلی جدا؛ همین‌جا کنارِ فرم پر کن</span></span>
+  </button>
+  <span class="bchips" id="buddySlot"></span>
+</div>
+
 <div class="botbar glass" id="botbar">
   <button class="btn quiet" id="prev"><svg class="i"><use href="#i-chev-right"/></svg> قبلی</button>
   <span class="sp"></span><span class="cap" id="pos">—</span><span class="sp"></span>
@@ -549,6 +529,36 @@
   <div class="grabber"></div><div class="head">نیمه‌کاره برویم؟</div>
   <p class="sub" style="margin-top:6px">پاسخ‌ها ذخیره می‌شود؛ با همان لینک برگردید و ادامه دهید.</p>
   <div class="row" style="margin-top:14px"><button class="btn quiet" data-close>بمانم</button><span class="sp"></span><button class="btn" data-saveexit>ذخیره و بروم</button></div>
+</aside>
+<aside class="sheet" id="shBuddy" role="dialog" aria-label="همراه">
+  <div class="grabber"></div>
+  <div class="row" style="align-items:center">
+    <div><div class="head">دوستت را هم بیار</div>
+      <div class="cap">هر همراه بلیت و صندلی خودش را دارد؛ بقیهٔ پاسخ‌ها از تو می‌آید.</div></div>
+    <span class="sp"></span><span class="islot" id="buddyCount">همراه ۱ از ۱</span>
+  </div>
+  <div class="ichips" id="friendChips" style="display:none"></div>
+  <div id="friendCard" style="margin-top:12px">
+    <label class="lbl" for="fName">نام و نام خانوادگی</label>
+    <input class="input" id="fName" placeholder="مثلاً: مریم احمدی" autocomplete="off"/>
+    <label class="lbl" for="fMobile" style="margin-top:12px">موبایل</label>
+    <input class="input num" id="fMobile" inputmode="numeric" maxlength="11" placeholder="۰۹۱۲۳۴۵۶۷۸۹"/>
+    <label class="lbl" for="fEmail" style="margin-top:12px">ایمیل (اختیاری)</label>
+    <input class="input" id="fEmail" dir="ltr" placeholder="name@mail.com"/>
+    <label class="opt sq on" id="sameOpt" style="margin-top:14px">
+      <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
+      <span style="flex:1;text-align:start"><b>بقیهٔ پاسخ‌ها مثل خودم</b>
+        <div class="cap" style="margin-top:2px">همان پاسخ‌هایی که خودت دادی برای او هم ثبت می‌شود.</div></span>
+    </label>
+  </div>
+  <div class="card sunk" style="margin-top:12px">
+    <div class="row"><svg class="i"><use href="#i-wallet"/></svg>
+      <span><b class="sub">مبلغ هر نفر در تعداد ضرب می‌شود</b>
+      <div class="cap">در صورت‌حساب و بلیت‌ها می‌بینی‌اش.</div></span></div>
+  </div>
+  <button class="addperson" id="addFriend" style="margin-top:12px">
+    <span class="big"><svg class="i"><use href="#i-plus"/></svg></span> افزودن این همراه
+  </button>
 </aside>
 <aside class="sheet" id="shHelp" role="dialog" aria-label="پیام به کارشناس">
   <div class="grabber"></div><div class="head">پیام به کارشناس</div>
@@ -573,7 +583,7 @@ const CFG={
   cap:150,taken:110,
   questions:['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','شغل','تحصیلات','چطور ما را شناختید'],
   ticketOn:true,
-  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:true,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
+  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:false,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
        {l:'کارگاه بدون گواهینامه',p:600000,off:0,on:false,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
        {l:'ناهار و پذیرایی',p:150000,off:0,on:false,req:false,d:''},
        {l:'ارسال گواهینامه با پست',p:120000,off:0,on:false,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
@@ -588,6 +598,8 @@ const CFG={
   confirmed:false
 };
 const S={guests:[],discount:0,code:'',method:''};
+/* هر گزینه‌ای که کاربر خودش زده — پیش‌فرض ادمین کافی نیست، انتخاب باید صریح باشد */
+const PICKED=new Set();
 /* گیت ادمین: «افزودن همراه» پیش‌فرض بسته است؛ سازندهٔ فرم بازش می‌کند.
    برای دیدن هر دو حالت در همین دمو: ?guests=1 و ?guests=0 */
 const GUEST_ON=(()=>{const q=(location.search.match(/[?&]guests=(\d)/)||[])[1];
@@ -596,6 +608,18 @@ const GUEST_MAX=(CFG.companion&&CFG.companion.max)||1;
 const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
 
 function perPerson(){return CFG.fin.filter(o=>o.on).reduce((a,o)=>a+net(o),0)}
+/* گزینهٔ فرعی تنها، کاربر را جلو نمی‌برد: انتخاب گروه اجباری باید خودِ کاربر زده باشد */
+function finGate(){
+  for(const g of (CFG.groups||[]).filter(g=>g.req)){
+    const inG=k=>CFG.fin[k]&&CFG.fin[k].on;
+    if(!g.of.some(inG)) return 'برای ادامه، «'+g.n+'» را انتخاب کنید';
+    if(!g.of.some(k=>inG(k)&&PICKED.has(k))) return 'انتخاب «'+g.n+'» را تأیید کنید';
+  }
+  const must=CFG.fin.findIndex(o=>o.req&&!o.on);
+  if(must>-1) return '«'+CFG.fin[must].l+'» اجباری است';
+  if(!CFG.fin.some(o=>o.on)) return 'حداقل یکی از موارد را انتخاب کنید';
+  return null;
+}
 function calc(){
   const per=perPerson(), count=S.guests.length+1, sub=per*count;
   const dis=S.discount?Math.round(sub*S.discount/100):0;
@@ -607,18 +631,20 @@ function renderFin(){
   const box=document.getElementById('finOpts');
   const extra=(CFG.fin.some(o=>o.g)||CFG.fin.some(o=>o.req));
   box.innerHTML=(extra?`<div class="cap" style="margin:2px 2px 8px">${(CFG.groups||[]).filter(g=>g.req).map(g=>`«${g.n}» را انتخاب کنید`).join(' — ')||'هر کدام را لازم دارید بردارید'}</div>`:'')+
-  CFG.fin.map((o,i)=>`
-    <label class="opt sq ${o.on?'on':''}" data-fin="${i}">
+  CFG.fin.map((o,i)=>{
+    const pend=o.req&&o.on&&!PICKED.has(i);   /* اجباری، ولی کاربر خودش برنداشته */
+    return `
+    <label class="opt sq ${o.on?'on':''}${pend?' pending':''}" data-fin="${i}">
       <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
       <span style="flex:1;text-align:start">
-        <b>${o.l}${o.req?' <span class="tag brand" style="margin-inline-start:6px">اجباری</span>':''}</b>
+        <b>${o.l}${o.req?` <span class="tag brand" style="margin-inline-start:6px">${pend?'تأیید کنید':'اجباری'}</span>`:''}</b>
         ${o.d?`<div class="cap" style="margin-top:2px">${o.d}</div>`:''}
         <span class="price" style="margin-top:6px">
           ${o.off?`<span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)} تخفیف</span>`:''}
           <span class="now num">${fa(net(o))}</span><span class="cap">ریال</span>
         </span>
       </span>
-    </label>`).join('')||'<div class="empty"><div class="body">موردی برای انتخاب نیست</div></div>';
+    </label>`}).join('')||'<div class="empty"><div class="body">موردی برای انتخاب نیست</div></div>';
 }
 /* چیپ نام مهمان‌ها */
 function guestChips(el,withX){
@@ -635,16 +661,32 @@ function renderGuests(){
   guestChips(document.getElementById('guestChips'),false);
   document.getElementById('countTxt').textContent=faN(S.guests.length+1)+' نفر';
 }
-/* صفحهٔ دعوت دوست — فرم دوست همان‌جا پر می‌شود */
-function renderInvite(){
-  if(!GUEST_ON) return;
+/* نوار همراه: پایین هر اسلاید فرم، از همان اول — فرم دوست در شیت باز می‌شود */
+function buddyTip(){
+  if(S.guests.length>=GUEST_MAX) return 'جای همراه پر شد — '+faN(GUEST_MAX)+' نفر';
+  if(S.guests.length) return faN(S.guests.length+1)+' نفر می‌آیید؛ می‌توانی یکی دیگر هم بیاوری';
+  return 'بلیت و صندلی جدا؛ همین‌جا کنارِ فرم پر کن';
+}
+function renderBuddy(){
+  const bar=document.getElementById('buddyBar'); if(!bar) return;
+  const on=GUEST_ON&&BUDDY_SCREENS.includes(cur);
+  bar.classList.toggle('on',on);
+  document.body.classList.toggle('hasbuddy',on);
+  if(!on) return;
   const full=S.guests.length>=GUEST_MAX;
-  document.getElementById('friendCount').textContent='دوست '+faN(Math.min(S.guests.length+1,GUEST_MAX))+' از '+faN(GUEST_MAX);
-  const chips=document.getElementById('friendChips');
-  chips.style.display=S.guests.length?'':'none'; if(S.guests.length) guestChips(chips,true);
+  document.getElementById('buddyHint').textContent=buddyTip();
+  document.getElementById('buddyOpen').style.display=full?'none':'flex';
+  const slot=document.getElementById('buddySlot');
+  slot.innerHTML=S.guests.length
+    ? S.guests.map((g,i)=>`<span class="gchip"><span class="gn">${faN(i+2)}</span>${g.name}`+
+        `<button class="gx" data-del="${i}" aria-label="برداشتن ${g.name}"><svg class="i"><use href="#i-close"/></svg></button></span>`).join('')
+    : '';
+  /* داخل شیت */
   document.getElementById('friendCard').style.display=full?'none':'';
   document.getElementById('addFriend').style.display=full?'none':'flex';
-  document.getElementById('next').innerHTML=(S.guests.length?'ادامه و پرداخت':'رد شدن از این بخش')+' <svg class="i"><use href="#i-chev-left"/></svg>';
+  document.getElementById('buddyCount').textContent='همراه '+faN(Math.min(S.guests.length+1,GUEST_MAX))+' از '+faN(GUEST_MAX);
+  const chips=document.getElementById('friendChips');
+  chips.style.display=S.guests.length?'':'none'; if(S.guests.length) guestChips(chips,true);
 }
 /* صفحهٔ پرداخت: فقط اسم دوست + مبلغ */
 function renderPayGuests(){
@@ -694,7 +736,9 @@ function renderTickets(){
 }
 /* ── اعداد لندینگ از خودِ تنظیمات فرم ── */
 function renderFacts(){
-  const fin=CFG.fin.filter(o=>o.on);
+  /* لندینگ از خودِ گزینه‌ها می‌گوید نه از انتخاب کاربر؛ «از» یعنی ارزان‌ترین راه شرکت */
+  const reqIdx=new Set((CFG.groups||[]).filter(g=>g.req).flatMap(g=>g.of));
+  const fin=reqIdx.size?[...reqIdx].map(i=>CFG.fin[i]).filter(Boolean):CFG.fin;
   const from=Math.min(...fin.map(o=>Math.round(o.p*(100-o.off)/100)));
   const left=CFG.cap?Math.max(0,CFG.cap-CFG.taken):0;
   document.getElementById('evFacts').innerHTML=[
@@ -712,11 +756,12 @@ function renderFacts(){
 
 /* ── پیش‌نویس: کاربر نیمه‌کاره که می‌رود، با همان لینک ادامه می‌دهد ── */
 const DKEY='nora:draft:'+CFG.slug;
+const BUDDY_SCREENS=['u1','u2','u3','u4','u5','u6','u7','u8'];   /* هر اسلاید فرم */
 const DRAFT_SCREENS=['u2','u3','u4','u5','u6','u7','u8','u9','u10','u11','u12','u13'];
 const DRAFT_DAYS=30;   /* نوبت نیمه‌کاره بیش از یک ماه نمی‌ماند */
 function collectDraft(){
   const d={cur:cur,guests:S.guests,discount:S.discount,code:S.code,method:S.method,
-    confirmed:CFG.confirmed,at:nowFa(),savedAt:Date.now(),inputs:{},picks:{},fin:CFG.fin.map(o=>o.on)};
+    confirmed:CFG.confirmed,at:nowFa(),savedAt:Date.now(),inputs:{},picks:{},fin:CFG.fin.map(o=>o.on),picked:[...PICKED]};
   document.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{if(el.type!=='file') d.inputs[el.id]=el.value});
   document.querySelectorAll('[data-pick],[data-geo]').forEach(el=>{if(el.dataset.val) d.picks[el.id]=el.dataset.val});
   return d;
@@ -730,6 +775,7 @@ function restoreDraft(d){
   S.guests=d.guests||[]; S.discount=d.discount||0; S.code=d.code||''; S.method=d.method||'';
   CFG.confirmed=!!d.confirmed;
   (d.fin||[]).forEach((on,i)=>{if(CFG.fin[i]) CFG.fin[i].on=on});
+  (d.picked||[]).forEach(i=>{if(CFG.fin[i]) PICKED.add(i)});
   renderGuests();renderBill();renderFin();renderFacts();
   document.querySelectorAll('[data-method]').forEach(x=>{
     const on2=x.dataset.method===S.method; x.classList.toggle('on',on2); x.setAttribute('aria-pressed',on2?'true':'false')});
@@ -785,16 +831,16 @@ function renderEnd(){
 
 /* ══ حرکت ══ */
 const CERT_ON=!!(CFG.cert&&CFG.cert.on);
-const ORDER=(GUEST_ON?['u1','u2','u3','u4','u5','u6','u7','u15']:['u1','u2','u3','u4','u5','u6','u7'])
+const ORDER=['u1','u2','u3','u4','u5','u6','u7']
   .concat(['u8','u9','u10','u11','u12','u13'])
   .concat(CERT_ON?['u16']:[])
   .concat(['u14']);
 const QCOUNT=CFG.questions.length;
 const CAP={u1:'هفت پرسش',u2:'پرسش ۱ از ۷',u3:'پرسش ۲ از ۷',u4:'پرسش ۳ از ۷',u5:'پرسش ۴ از ۷',u6:'پرسش ۵ و ۶ از ۷',u7:'پرسش ۷ از ۷',
-  u8:'انتخاب شما',u15:'دعوت دوست',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u13:'بلیت‌ها',u16:'گواهینامه',u14:'باطل'};
-const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u15:100,u8:100,u9:100,u10:100,u11:100,u12:100,u13:100,u16:100,u14:100};
-const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u15:'ادامه و پرداخت',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',u12:'دیدن بلیت‌ها',u13:'گواهینامه‌ام',u16:'بازگشت به بلیت‌ها'};
-const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:GUEST_ON?'u15':'u8',u15:'u8',u8:'u9',
+  u8:'انتخاب شما',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u13:'بلیت‌ها',u16:'گواهینامه',u14:'باطل'};
+const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u8:100,u9:100,u10:100,u11:100,u12:100,u13:100,u16:100,u14:100};
+const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',u12:'دیدن بلیت‌ها',u13:'گواهینامه‌ام',u16:'بازگشت به بلیت‌ها'};
+const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:'u8',u8:'u9',
   u13:CERT_ON?'u16':'u13',u16:'u13'};   /* u13 ⇒ گواهینامه ⇒ برگشت */
 let cur='u1';
 function show(id){
@@ -806,7 +852,7 @@ function show(id){
   document.getElementById('pos').textContent=CAP[id];
   document.getElementById('botbar').style.display=BTN[id]?'flex':'none';
   if(BTN[id]) document.getElementById('next').innerHTML=BTN[id]+' <svg class="i"><use href="#i-chev-left"/></svg>';
-  if(id==='u15'){renderInvite()}
+  renderBuddy();
   if(id==='u8'){renderGuests();renderBill();renderFin()}
   if(id==='u12'){renderReceipt()}
   if(id==='u9'){renderPayGuests()}
@@ -816,13 +862,10 @@ function show(id){
   window.scrollTo({top:0,behavior:'instant'});
 }
 document.getElementById('next').onclick=()=>{
+  if(cur==='u8'){const bad=finGate(); if(bad){toast(bad);return}}
   if(cur==='u9'){
     if(!S.method){toast('روش پرداخت را انتخاب کنید');return}
-    if(!CFG.fin.some(o=>o.on)){toast('حداقل یک مورد را انتخاب کنید');return}
-    const need=(CFG.groups||[]).find(g=>g.req&&!g.of.some(k=>CFG.fin[k]&&CFG.fin[k].on));
-    if(need){toast('یکی از گزینه‌های «'+need.n+'» را انتخاب کنید');return}
-    const must=CFG.fin.find(o=>o.req&&!o.on);
-    if(must){toast('«'+must.l+'» اجباری است');return}
+    const bad=finGate(); if(bad){toast(bad);return}
     return show(S.method==='card'?'u10':'u12');
   }
   if(cur==='u10') return show('u11');
@@ -832,11 +875,8 @@ document.getElementById('next').onclick=()=>{
 };
 document.getElementById('prev').onclick=()=>{const i=ORDER.indexOf(cur); if(i>0) show(ORDER[i-1])};
 document.getElementById('sameOpt').onclick=()=>document.getElementById('sameOpt').classList.toggle('on');
-document.getElementById('editGuests').onclick=()=>show('u15');
-document.getElementById('friendChips').onclick=e=>{
-  const b=e.target.closest('.gx'); if(!b) return;
-  S.guests.splice(NR(b.dataset.del),1); renderInvite(); renderGuests(); renderBill(); saveDraft(); toast('برداشته شد');
-};
+document.getElementById('buddyOpen').onclick=()=>openSheet('shBuddy');
+document.getElementById('editGuests').onclick=()=>openSheet('shBuddy');
 document.getElementById('addFriend').onclick=()=>{
   const n=document.getElementById('fName').value.trim();
   const m=unFa(document.getElementById('fMobile').value).replace(/\D/g,'');
@@ -847,19 +887,25 @@ document.getElementById('addFriend').onclick=()=>{
   S.guests.push({name:n,mobile:m,email:document.getElementById('fEmail').value.trim(),
     same:document.getElementById('sameOpt').classList.contains('on')});
   ['fName','fMobile','fEmail'].forEach(k=>document.getElementById(k).value='');
-  renderInvite(); renderGuests(); renderBill(); saveDraft();
-  toast(n+' اضافه شد');
+  renderBuddy(); renderGuests(); renderBill(); saveDraft();
+  toast(n+' اضافه شد — بلیتش هم صادر می‌شود');
 };
 document.addEventListener('change',e=>{if(e.target.closest('.screen')&&cur!=='u1') saveDraft()});
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g){show(g.dataset.go);return}
   if(e.target.closest('[data-saveexit]')){saveDraft();closeSheets();toast('ذخیره شد — با همین لینک برگردید');return}
+  const x=e.target.closest('[data-del]');
+  if(x){S.guests.splice(NR(x.dataset.del),1);renderBuddy();renderGuests();renderBill();saveDraft();toast('برداشته شد');return}
   const f=e.target.closest('[data-fin]');
   if(f){const i=NR(f.dataset.fin); const o=CFG.fin[i];
     const grp=(CFG.groups||[]).find(g=>g.of.includes(i));
-    const turningOn=!o.on;
-    if(grp&&grp.one&&turningOn) grp.of.forEach(k=>{CFG.fin[k].on=(k===i)});   /* یکی از گروه */
-    else o.on=turningOn;
+    if(o.req&&o.on&&!PICKED.has(i)){PICKED.add(i)}      /* تأیید صریح گزینهٔ اجباری */
+    else{
+      const turningOn=!o.on;
+      if(grp&&grp.one&&turningOn) grp.of.forEach(k=>{CFG.fin[k].on=(k===i); if(k!==i) PICKED.delete(k)});   /* یکی از گروه */
+      else o.on=turningOn;
+      if(o.on) PICKED.add(i); else PICKED.delete(i);
+    }
     renderFin();renderBill();saveDraft();return}
   const m=e.target.closest('[data-method]');
   if(m){S.method=m.dataset.method;
