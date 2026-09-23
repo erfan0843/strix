@@ -367,6 +367,89 @@
     background:var(--brand-tint);border-radius:0 var(--r-md) var(--r-md) 0;font-size:var(--fs-sub);color:var(--ink-2)}
   .artbody ul{margin:0;padding-inline-start:18px;display:grid;gap:5px}
   .tagline{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3);margin-top:8px}
+
+  /* ═════════ لایهٔ سومی: اندازهٔ آیکون، شیشهٔ اسکرول، استوری و کارت‌های تازه ═════════ */
+  .i{width:24px;height:24px}
+  .btn .i{width:20px;height:20px}
+  .btn.sm .i{width:17px;height:17px}
+  .chip .i{width:17px;height:17px}
+  .tagg .i{width:13px;height:13px}
+  .tabbar button .i{width:27px;height:27px}
+  .tile .ci{width:48px;height:48px;border-radius:16px}
+  .tile .ci .i{width:25px;height:25px}
+  .mrow .mi .i{width:20px;height:20px}
+  .srow .i{width:20px;height:20px}
+  .menubtn .i{width:18px;height:18px}
+  .icon-btn .i{width:21px;height:21px}
+  .topbar{transition:background-color .28s var(--ease),box-shadow .28s var(--ease),backdrop-filter .28s var(--ease)}
+  html:not(.atscroll) .topbar{background:color-mix(in oklab,var(--surface) 88%,transparent);
+    backdrop-filter:blur(7px) saturate(1.05);box-shadow:none}
+  html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
+    backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
+  .storyrail{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x mandatory}
+  .story{flex:0 0 134px;scroll-snap-align:start;-webkit-appearance:none;appearance:none;font:inherit;color:inherit;
+    cursor:pointer;display:grid;gap:7px;padding:11px;border-radius:var(--r-lg);border:.5px solid var(--hairline);
+    background:var(--surface);text-align:start;transition:transform .2s var(--ease),border-color .2s var(--ease)}
+  .story:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent);transform:translateY(-2px)}
+  .story .sg{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background-image:var(--g);
+    color:#fff;box-shadow:0 6px 16px rgba(10,30,60,.2)}
+  .story .sg .i{width:25px;height:25px}
+  .story b{font-size:12.5px;font-weight:600;line-height:1.5}
+  .story small{font-size:10.5px;color:var(--ink-3);line-height:1.5}
+  .storybig{display:grid;gap:8px;justify-items:center;text-align:center;padding:26px 16px;border-radius:var(--r-xl);
+    background-image:var(--g);color:#fff}
+  .storybig .i{width:34px;height:34px}
+  .storybig b{font-size:17px}
+  .storybig span{font-size:12.5px;opacity:.9}
+  .ev3{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;width:100%;text-align:start;
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r-lg);border:.5px solid var(--hairline);
+    background:var(--surface);transition:transform .2s var(--ease),border-color .2s var(--ease)}
+  .ev3:hover{border-color:color-mix(in oklab,var(--brand) 42%,transparent);transform:translateY(-1px)}
+  .ev3 .e3g{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background-image:var(--g);color:#fff;flex:0 0 auto}
+  .ev3 .e3g .i{width:22px;height:22px}
+  .ev3 .e3t{flex:1;min-width:0;display:grid;gap:2px}
+  .ev3 .e3t b{font-size:13.5px;font-weight:600}
+  .sres{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;width:100%;text-align:start;
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface)}
+  .sres:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
+  .sres .si{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background-image:var(--g);color:#fff;flex:0 0 auto}
+  .sres .si .i{width:20px;height:20px}
+  .calwrap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  @media (max-width:640px){.calwrap{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .calcol{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface-2);padding:10px;display:grid;gap:7px;align-content:start}
+  .calhd{display:flex;justify-content:space-between;align-items:baseline}
+  .calhd b{font-size:12.5px}.calhd span{font-size:10.5px;color:var(--ink-3)}
+  .calrow{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:start;display:grid;gap:2px;
+    padding:8px 9px;border-radius:12px;background:var(--surface);border:.5px solid var(--hairline-2)}
+  .calrow b{font-size:12px;font-weight:600}.calrow span{font-size:10.5px;color:var(--ink-3)}
+  .suphead{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:var(--r-lg);
+    border:.5px solid var(--hairline);background:var(--surface-2)}
+  .chans{display:grid;gap:8px;margin-top:10px}
+  .chan{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--r-lg);
+    border:.5px solid var(--hairline);background:var(--surface);text-decoration:none;color:inherit}
+  .chan .chi{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
+  .chan .cht{flex:1;min-width:0;display:grid}
+  .chan .cht b{font-size:13px}.chan .cht span{font-size:11px;color:var(--ink-3)}
+  .badges{display:flex;gap:7px;flex-wrap:wrap}
+  .badge-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:99px;
+    font-size:11.5px;font-weight:600;background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-3)}
+  .badge-pill.on{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink)}
+  .badge-pill .i{width:15px;height:15px}
+  .votebox{display:grid;gap:8px}
+  .voteopt{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:start;
+    display:grid;grid-template-columns:1fr 84px 62px;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--r-lg);
+    border:.5px solid var(--hairline);background:var(--surface)}
+  .voteopt.on{border-color:var(--brand);background:var(--brand-tint)}
+  .voteopt .vt{display:grid}.voteopt .vt b{font-size:13px}.voteopt .vt span{font-size:10.5px;color:var(--ink-3)}
+  .vbar{height:7px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;display:block}
+  .vbar i{display:block;height:100%;background:var(--brand)}
+  .seg{display:inline-flex;gap:3px;padding:3px;border-radius:99px;background:var(--surface-sunk);
+    border:.5px solid var(--hairline);margin-bottom:12px}
+  .seg button{-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    padding:7px 14px;border-radius:99px;border:0;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:600}
+  .seg button.on{background:var(--surface);color:var(--brand-ink);box-shadow:var(--sh-1)}
+  .seg .i{width:17px;height:17px}
+  .dim{opacity:.5}
 </style>
 </head>
 <body>
@@ -386,6 +469,7 @@
 <symbol id="i-trend" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 18.4l4.6-5.2 3.3 2.9 5.9-7.6"/><path d="M13.6 8.2h4.4v4.4"/></g></symbol>
 
 <symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></g></symbol>
 
 <symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.6A2.6 2.6 0 0 1 6.2 6h11.6a2.6 2.6 0 0 1 2.6 2.6v6.8a2.6 2.6 0 0 1-2.6 2.6H6.2a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M3.6 11.6h16.8"/><circle cx="16.6" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
 
@@ -502,6 +586,9 @@
 <symbol id="i-handshake" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.4 6.6 8a2 2 0 0 1 2.8 0l2.6 2.6"/><path d="M20.8 11.4 17.4 8a2 2 0 0 0-2.8 0l-2.6 2.6"/><path d="m8.4 12.6 3 3 3-3"/><path d="m10.2 15.2 1.8 1.8 1.8-1.8"/></g></symbol>
 <symbol id="i-headphone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 15.4v-2.6a7.4 7.4 0 0 1 14.8 0v2.6"/><path d="M4.6 14.2h1.9c.6 0 1.1.5 1.1 1.1v2.3c0 .6-.5 1.1-1.1 1.1H5.7a1.1 1.1 0 0 1-1.1-1.1z"/><path d="M19.4 14.2h-1.9c-.6 0-1.1.5-1.1 1.1v2.3c0 .6.5 1.1 1.1 1.1h.8a1.1 1.1 0 0 0 1.1-1.1z"/></g></symbol>
 <symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.6l1.6 4.6 4.6 1.6-4.6 1.6L12 17l-1.6-4.6L5.8 10.8l4.6-1.6z"/><path d="M18.6 15.8l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/></g></symbol>
+<symbol id="i-home-f" viewBox="0 0 24 24"><path fill="currentColor" d="M11.3 3.3a1 1 0 0 1 1.4 0l7.6 7c.2.2.3.4.3.7v8.5c0 .8-.7 1.5-1.5 1.5h-4.3v-5.3a2 2 0 0 0-2-2h-1.6a2 2 0 0 0-2 2V21H4.9a1.5 1.5 0 0 1-1.5-1.5V11c0-.3.1-.5.3-.7z"/></symbol>
+<symbol id="i-calendar-f" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5.4h14a2 2 0 0 1 2 2v11.2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.4a2 2 0 0 1 2-2z"/><path d="M3 9.9h18" stroke="var(--surface)" stroke-width="1.7"/><path d="M7.8 3.4v3.4M16.2 3.4v3.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-idcard-f" viewBox="0 0 24 24"><path fill="currentColor" d="M4.6 4.6h14.8a2.6 2.6 0 0 1 2.6 2.6v9.6a2.6 2.6 0 0 1-2.6 2.6H4.6A2.6 2.6 0 0 1 2 16.8V7.2a2.6 2.6 0 0 1 2.6-2.6z"/><circle cx="8.6" cy="10.6" r="2.1" fill="var(--surface)"/><path d="M5.2 16.4c.5-1.7 1.9-2.7 3.4-2.7s2.9 1 3.4 2.7" stroke="var(--surface)" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14.6 10h5M14.6 13.6h5" stroke="var(--surface)" stroke-width="1.6" stroke-linecap="round"/></symbol>
 <symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="6.4" width="12.6" height="11.2" rx="2.2"/><path d="M16 10.6l4.6-2.4v7.6L16 13.4z"/><path d="M6.6 9.4v1.4M9.4 9.4v1.4M6.6 13.4v1.4M9.4 13.4v1.4"/></g></symbol>
 
 
@@ -531,6 +618,9 @@
     <div class="bdots" id="bdots" role="tablist" aria-label="انتخاب بنر"></div>
   </section>
 
+  <!-- ── استوری‌های کوتاه ── -->
+  <section class="sec" id="stories" aria-label="استوری‌های نورا"></section>
+
   <!-- ── جست‌وجو و صافی سریع ── -->
   <section class="card paper" style="margin-top:12px" aria-label="جست‌وجو">
     <div class="sfield">
@@ -540,6 +630,9 @@
     </div>
     <div class="row tight" style="margin-top:10px" id="qTags"></div>
   </section>
+
+  <!-- ── نتیجهٔ جست‌وجو: رویداد، مطلب و استاد ── -->
+  <section class="sec card paper" id="searchRes" aria-label="نتیجهٔ جست‌وجو" hidden></section>
 
   <!-- ── منوی سریع ── -->
   <section class="sec" id="quick" aria-label="منوی سریع"></section>
@@ -570,14 +663,12 @@
       <span class="sp"></span>
       <span class="cap" id="evCount">—</span>
     </div>
-    <div class="feat" id="evFeat"></div>
-    <div class="daybar" id="daybar" role="tablist" aria-label="بازهٔ زمانی"></div>
-    <div class="row tight" style="margin-bottom:10px" id="catChips"></div>
-    <div class="evlist" id="evList"></div>
-    <div class="row" style="margin-top:10px">
-      <button class="more" id="evMore"><span>همهٔ رویدادهای پیش‌رو</span><svg class="i" style="width:15px;height:15px"><use href="#i-chev-left"/></svg></button>
-      <span class="sp"></span>
-      <span class="cap" id="filterNote" hidden></span>
+    <div class="stack tight" id="evTop"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn sm primary" data-f="shEvents"><svg class="i"><use href="#i-calendar"/></svg> همهٔ رویدادها</button>
+      <button class="btn sm quiet" data-f="shEvents" data-cal="1"><svg class="i"><use href="#i-grid"/></svg> تقویم رویدادها</button>
+      <span class="sp" style="flex:1"></span>
+      <span class="cap">فهرست کامل در تب رویدادها</span>
     </div>
   </section>
 
@@ -639,12 +730,6 @@
     <div class="stack tight" id="voiceList"></div>
   </section>
 
-  <!-- ── پشتیبانی ── -->
-  <section class="sec card paper" id="help" aria-label="پشتیبانی و راهنما">
-    <div class="sec-hd"><span class="fw">پشتیبانی و راهنما</span><span class="sp"></span><span class="cap">شنبه تا پنجشنبه، ۹ تا ۱۸</span></div>
-    <div class="stack tight" id="helpList"></div>
-  </section>
-
   <footer class="hfoot">
     <div class="fl"><b>گروه فرهنگی خط زندگی</b><span>·</span><span>تهران، خیابان ولی‌عصر، پلاک ۱۲</span></div>
     <div class="fl"><span>۰۲۱–۸۸۸۸۱۲۳۴</span><span>·</span><span>info@lifeline1.ir</span><span>·</span><a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
@@ -654,9 +739,9 @@
 </main>
 
 <nav class="tabbar" id="tabs" aria-label="ناوبری اصلی">
-  <button data-tab="home" class="on" aria-current="page"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></button>
-  <button data-tab="events"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></button>
-  <button data-tab="me"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></button>
+  <button data-tab="home" class="on" aria-current="page" data-i="i-home" data-if="i-home-f"><svg class="i"><use href="#i-home-f"/></svg><small>خانه</small></button>
+  <button data-tab="events" data-i="i-calendar" data-if="i-calendar-f"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></button>
+  <button data-tab="me" data-i="i-idcard" data-if="i-idcard-f"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></button>
 </nav>
 
 <!-- ── ورقه‌ها ── -->
@@ -672,6 +757,8 @@
 <aside class="sheet" id="shVerify" role="dialog" aria-modal="false" aria-label="استعلام گواهینامه"><div id="verifyBody"></div></aside>
 <aside class="sheet" id="shFaq" role="dialog" aria-modal="false" aria-label="پرسش‌های پرتکرار"><div id="faqBody"></div></aside>
 <aside class="sheet" id="shSupport" role="dialog" aria-modal="false" aria-label="پیام به پشتیبانی"><div id="supBody"></div></aside>
+<aside class="sheet" id="shEvents" role="dialog" aria-modal="false" aria-label="همهٔ رویدادها"><div id="evBrowser"></div></aside>
+<aside class="sheet" id="shStory" role="dialog" aria-modal="false" aria-label="استوری"><div id="storyBody"></div></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -902,6 +989,9 @@ const partner=id=>PARTNERS.find(o=>o.id===id)||{};
 const CLUB={
  sup:'p5', book:'چراغ‌ها را من خاموش می‌کنم', bookBy:'زویا پیرزاد', term:'ترم مهر ۱۴۰۵',
  session:'پنجشنبه‌ها ۱۸:۰۰ — کتابخانهٔ نورا، ونک', members:38, cap:40, meetings:12, progress:72, next:'پنجشنبهٔ پیش‌رو، فصل ۴',
+ vote:[{k:'v1', t:'سووشون', by:'سیمین دانشور', n:14},
+        {k:'v2', t:'بوف کور', by:'صادق هدایت', n:9},
+        {k:'v3', t:'همسایه‌ها', by:'احمد محمود', n:6}],
  rules:['هر جلسه با یادداشت یک‌صفحه‌ای خودت می‌آیی.','کتاب ماه را از بستهٔ باشگاه می‌گیری یا فایلش را می‌خوانی.','جلسهٔ غایب را می‌شود از ضبط دید، ولی یادداشت لازم است.'],
  log:[{d:'پنجشنبهٔ پیش', t:'فصل ۳ — زاویهٔ روایت', n:34},
       {d:'دو هفته پیش', t:'فصل ۲ — شخصیت‌ها', n:36},
@@ -921,6 +1011,24 @@ const ACT={
  note:'مهر پرکارترین ماه سال است؛ جشنوارهٔ هفتهٔ فرهنگی و ترم تازهٔ باشگاه کتاب‌خوانی همان‌جا شروع می‌شود.'
 };
 
+/* ── استوری‌های کوتاه خانه ── */
+const STORIES=[
+ {id:'st1', t:'پشت صحنهٔ کارگاه عکاسی', s:'سه پرده از جلسهٔ دوم', g:'linear-gradient(135deg,#0A56B8,#4EA1FF)', i:'i-image', to:'ev:e3'},
+ {id:'st2', t:'کتاب ماه مهر', s:'چراغ‌ها را من خاموش می‌کنم', g:'linear-gradient(135deg,#6E4B1F,#0B7A57)', i:'i-book', to:'club'},
+ {id:'st3', t:'یک دقیقه با الهه رضایی', s:'تمرین تنفس پیش از صحنه', g:'linear-gradient(135deg,#B4453C,#8A6A25)', i:'i-user', to:'pe:p1'},
+ {id:'st4', t:'گواهینامه؛ با تأیید سرپرست', s:'روند صدور و استعلام', g:'linear-gradient(135deg,#123A7A,#9C7C3C)', i:'i-medal', to:'me'},
+ {id:'st5', t:'نهادهای همکار مهر', s:'هشت همراه تازه', g:'linear-gradient(135deg,#54719B,#0A56B8)', i:'i-handshake', to:'partners'}
+];
+
+/* ── نشان‌های عضو ── */
+const BADGES=[
+ {i:'i-sparkle', n:'شروع‌کنندهٔ تازه', on:true},
+ {i:'i-book', n:'کتاب‌خوان مهر', on:true},
+ {i:'i-calendar', n:'شرکت‌کنندهٔ ۵ کارگاه', on:true},
+ {i:'i-medal', n:'شرکت‌کنندهٔ ۱۰ کارگاه', on:false},
+ {i:'i-users', n:'دعوت ۵ دوست', on:false}
+];
+
 /* ── نظر شرکت‌کننده‌ها ── */
 const VOICES=[
  {n:'نگار شریفی', c:'کارگاه فن بیان — ترم تیر', r:5, p:'p1',
@@ -935,7 +1043,7 @@ const VOICES=[
 const NOTICES=[
  {t:'رسید پرداخت تأیید شد', d:'کارگاه فن بیان مقدماتی — ثبت‌نامت قطعی شد؛ کارت ورود در حساب کاربری هست.', w:'۲ روز پیش', unread:true, i:'i-check'},
  {t:'امشب ۲۰:۳۰ — جلسهٔ شعر و موسیقی', d:'پیوند ورود نیم ساعت قبل در همین صفحه می‌آید؛ پیامک یادآوری هم می‌فرستیم.', w:'امروز', unread:true, i:'i-clock'},
- {t:'گواهینامهٔ دورهٔ عکاسی صادر شد', d:'شمارهٔ سریال NL-T4K7M9X — با همین شماره در بخش استعلام قابل بررسی است.', w:'هفتهٔ پیش', unread:false, i:'i-medal'}
+ {t:'درخواست گواهینامه ثبت شد', d:'کارگاه عکاسی مقدماتی — سرپرست باشگاه بازبینی می‌کند؛ بعد از تأیید، سریال برایت می‌آید.', w:'هفتهٔ پیش', unread:false, i:'i-medal'}
 ];
 
 /* ── پرسش‌های پرتکرار ── */
@@ -1012,7 +1120,8 @@ const MENU=[
 
 /* ── وضعیت صفحه ── */
 const S={q:'', day:'all', cat:'all', tag:'all', ptab:'teacher', slide:0, timer:null, art:'all',
-  step:'phone', phone:'', user:null, ev:null, person:null, article:null, partner:null, verify:undefined, serial:'', pins:new Set()};
+  step:'guest', phone:'', user:null, ev:null, person:null, article:null, partner:null, verify:undefined, serial:'',
+  evview:'list', story:'st1', vote:null, remind:false, acctFlow:false, pins:new Set()};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const left=e=>e.cap?Math.max(0,e.cap-e.taken):Infinity;
@@ -1095,7 +1204,7 @@ function renderMine(){
       <p class="sub">با شمارهٔ موبایل وارد شو تا ثبت‌نام‌ها، گواهینامه‌ها و پیام‌ها همیشه در دست باشد.</p>
       <div class="stack tight" style="margin-top:10px">
         <div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">پیگیری ثبت‌نام و رسید پرداخت</span></div>
-        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها با شمارهٔ راستی‌آزمایی</span></div>
+        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها با تأیید سرپرست و شمارهٔ راستی‌آزمایی</span></div>
         <div class="srow"><svg class="i"><use href="#i-book"/></svg><span class="sp">بستهٔ کتاب باشگاه و ضبط کارگاه‌ها</span></div>
         <div class="srow"><svg class="i"><use href="#i-bell"/></svg><span class="sp">یادآوری جلسه‌ها و پیام کارشناس</span></div>
       </div>
@@ -1124,10 +1233,10 @@ function renderMine(){
         <div class="pc-cov" style="--g:linear-gradient(135deg,#0B7A57,#0A56B8)"><svg class="i"><use href="#i-medal"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">${faN(u.certs)} برگ گواهینامه</span>
-          <span class="pc-meta">آخرین: کارگاه عکاسی مقدماتی — سریال NL-T4K7M9X</span>
-          <span class="taggline"><span class="tagg ok">قابل استعلام</span></span>
+          <span class="pc-meta">صدور با تأیید سرپرست انجام می‌شود؛ وضعیت هر دوره در کارت برگزارشده آمده است.</span>
+          <span class="taggline"><span class="tagg">در انتظار تأیید سرپرست</span></span>
         </div>
-        <div class="pc-foot"><button class="btn sm quiet" data-f="shVerify">دیدن و بررسی</button>
+        <div class="pc-foot"><button class="btn sm quiet" data-f="shVerify">استعلام سریال</button>
           <button class="btn sm quiet" data-f="shAccount">همهٔ گواهی‌ها</button></div>
       </div>
       <div class="pcard">
@@ -1224,19 +1333,135 @@ function evFeatured(e){
   </div>`;
 }
 function renderEvents(){
-  const list=EVENTS.filter(match).sort((a,b)=>(isPinned('ev',b.id)?1:0)-(isPinned('ev',a.id)?1:0));
-  const feat=EVENTS.filter(e=>(e.tags||[]).includes('پیشنهادی')||e.pin).slice(0,5);
-  $('#evFeat').innerHTML=feat.map(evFeatured).join('');
-  $('#evList').innerHTML=list.length?list.map(evRow).join(''):'<div class="empty">چیزی با این صافی پیدا نشد؛ روز یا موضوع را عوض کن.</div>';
-  $('#evCount').textContent=faN(list.length)+' رویداد از '+faN(EVENTS.length)+(S.day!=='all'?' — '+dayName(S.day):'');
-  const f=S.cat!=='all'||S.q.trim()||S.tag!=='all';
-  $('#filterNote').hidden=!f;
-  $('#filterNote').textContent=f?'صافی فعال — «همهٔ رویدادها» را بزن':'';
-  $('#daybar').innerHTML=DAYS.map(d=>`<button class="chip ${S.day===d.k?'on':''}" role="tab" aria-selected="${S.day===d.k}" data-day="${d.k}">${d.n}</button>`).join('');
-  $('#catChips').innerHTML=CATS.map(c=>`<button class="chip ${S.cat===c.k?'on':''}" data-cat="${c.k}" title="${esc(c.d)}">${c.n}</button>`).join('');
+  const order=EVENTS.slice().sort((a,b)=>((b.pin||isPinned('ev',b.id))?1:0)-((a.pin||isPinned('ev',a.id))?1:0));
+  $('#evTop').innerHTML=order.slice(0,3).map(evMini).join('');
+  $('#evCount').textContent=faN(EVENTS.length)+' برنامه در پیش';
+  renderEvBrowser();
+  renderSearch();
 }
 function renderQTags(){
   $('#qTags').innerHTML=QTAGS.map(t=>`<button class="chip ${S.tag===t.k?'on':''}" data-qt="${t.k}">${t.n}</button>`).join('');
+}
+
+/* ═════════ استوری‌های کوتاه ═════════ */
+function renderStories(){
+  $('#stories').innerHTML=`<div class="sec-hd"><span class="fw">استوری‌های کوتاه</span><span class="sp"></span><span class="cap">۳۰ ثانیه‌های نورا</span></div>
+    <div class="storyrail">${STORIES.map(x=>`
+      <button class="story" data-story="${x.id}">
+        <span class="sg" style="--g:${x.g}"><svg class="i"><use href="#${x.i}"/></svg></span>
+        <b>${esc(x.t)}</b><small>${esc(x.s)}</small>
+      </button>`).join('')}</div>`;
+}
+function renderStory(){
+  const x=STORIES.find(v=>v.id===S.story)||STORIES[0];
+  $('#storyBody').innerHTML=sheetHead('استوری','یک تکهٔ واقعی از کار نورا')+`
+    <div class="storybig" style="--g:${x.g}">
+      <svg class="i xl"><use href="#${x.i}"/></svg>
+      <b>${esc(x.t)}</b><span>${esc(x.s)}</span>
+    </div>
+    <p class="sub" style="margin-top:12px">هر استوری یک پنجرهٔ کوتاه است؛ اگر خواستی، از دکمهٔ پایین سر همان بخش برو.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" data-storygo="${x.to}"><svg class="i"><use href="#i-arrow-left"/></svg> رفتن به همین بخش</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div>`;
+}
+
+/* ═════════ جست‌وجو: رویداد، مطلب و استاد ═════════ */
+function renderSearch(){
+  const box=$('#searchRes'), q=S.q.trim();
+  if(!q){box.hidden=true; box.innerHTML=''; $('#evSec').hidden=false; return}
+  const ev=EVENTS.filter(match).slice(0,4);
+  const ar=ARTICLES.filter(a=>(a.t+' '+a.cat+' '+(a.tags||[]).join(' ')).includes(q)).slice(0,3);
+  const pe=PEOPLE.filter(p=>(p.n+' '+p.r+' '+(p.tags||[]).join(' ')).includes(q)).slice(0,3);
+  const none=!ev.length&&!ar.length&&!pe.length;
+  $('#evSec').hidden=true;
+  box.hidden=false;
+  box.innerHTML=`<div class="sec-hd"><span class="fw">نتیجهٔ «${esc(q)}»</span><span class="sp"></span>
+      <span class="cap">${faN(ev.length)} رویداد · ${faN(ar.length)} مطلب · ${faN(pe.length)} نفر</span>
+      <button class="more" id="qClear2" style="padding:0;font-size:11.5px">پاک کردن</button></div>`+
+    (none?'<div class="empty"><svg class="i"><use href="#i-search"/></svg><p>چیزی پیدا نشد — واژهٔ کوتاه‌تری بنویس یا صافی‌ها را از تب رویدادها ببین.</p></div>':
+    `<div class="stack tight">
+      ${ev.map(e=>`<button class="sres" data-ev="${e.id}"><span class="si" style="--g:${e.g}"><svg class="i"><use href="#i-calendar"/></svg></span>
+        <span class="sp" style="flex:1;min-width:0"><b>${esc(e.t)}</b><span class="hrow">رویداد · ${esc(e.when)} · ${esc(e.time)}</span></span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('')}
+      ${ar.map(a=>`<button class="sres" data-article="${a.id}"><span class="si" style="--g:${a.g}"><svg class="i"><use href="#i-article"/></svg></span>
+        <span class="sp" style="flex:1;min-width:0"><b>${esc(a.t)}</b><span class="hrow">مطلب · ${esc(a.cat)} · ${faN(a.min)} دقیقه</span></span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('')}
+      ${pe.map(x=>`<button class="sres" data-person="${x.id}"><span class="si" style="--g:${x.g}"><svg class="i"><use href="#i-user"/></svg></span>
+        <span class="sp" style="flex:1;min-width:0"><b>${esc(x.n)}</b><span class="hrow">${x.kind==='staff'?'دست‌اندرکار':'استاد'} · ${esc(x.r)}</span></span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('')}
+    </div>`);
+}
+
+/* ═════════ رویدادها ═════════ */
+function evMini(e){
+  const full=e.cap&&left(e)===0, pin=e.pin||isPinned('ev',e.id);
+  const tag=pin?'پیشنهادی':(full?'لیست انتظار':(e.tags||[])[0]||e.kind);
+  return `<button class="ev3 ${pin?'pinned':''}" data-ev="${e.id}" aria-label="جزئیات ${esc(e.t)}">
+    <span class="e3g" style="--g:${e.g}"><svg class="i"><use href="#${e.icon}"/></svg></span>
+    <span class="e3t"><b>${esc(e.t)}</b><span class="hrow">${esc(e.when)} · ${esc(e.time)}</span></span>
+    <span class="tagg ${pin?'star':(full?'stop':'ok')}">${esc(tag)}</span>
+    <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+  </button>`;
+}
+function calendarHTML(){
+  const g=[['tonight','امشب'],['tomorrow','فردا'],['week','این هفته'],['next','هفتهٔ بعد']];
+  return `<div class="calwrap">${g.map(([k,n])=>{
+    const evs=EVENTS.filter(e=>e.day===k);
+    return `<div class="calcol"><div class="calhd"><b>${n}</b><span>${faN(evs.length)} برنامه</span></div>
+      ${evs.map(e=>`<button class="calrow" data-ev="${e.id}"><b>${esc(e.t)}</b><span>${esc(e.time)}${e.place?' · '+esc(e.place):''}</span></button>`).join('')||'<div class="cap" style="padding:6px 2px">برنامه‌ای نیست</div>'}</div>`;
+  }).join('')}</div>`;
+}
+function renderEvBrowser(){
+  const box=$('#evBrowser'); if(!box) return;
+  const list=EVENTS.filter(match).sort((a,b)=>(isPinned('ev',b.id)?1:0)-(isPinned('ev',a.id)?1:0));
+  box.innerHTML=sheetHead('همهٔ رویدادها و برنامه‌ها',faN(EVENTS.length)+' برنامه · فهرست و تقویم')+`
+    <div class="seg" role="tablist" aria-label="نما">
+      <button class="${S.evview==='list'?'on':''}" data-evview="list" role="tab" aria-selected="${S.evview==='list'}"><svg class="i"><use href="#i-archive"/></svg> فهرست</button>
+      <button class="${S.evview==='cal'?'on':''}" data-evview="cal" role="tab" aria-selected="${S.evview==='cal'}"><svg class="i"><use href="#i-grid"/></svg> تقویم</button>
+    </div>
+    ${S.evview==='cal'?calendarHTML():`
+      <div class="daybar" id="daybar" role="tablist" aria-label="بازهٔ زمانی"></div>
+      <div class="row tight" style="margin-bottom:10px" id="catChips"></div>
+      <div class="evlist" id="evList"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="more" id="evMore"><span>برداشتن صافی‌ها</span><svg class="i" style="width:15px;height:15px"><use href="#i-chev-left"/></svg></button>
+        <span class="sp" style="flex:1"></span><span class="cap" id="filterNote" hidden></span>
+      </div>`}`;
+  if(S.evview==='list'){
+    $('#evList').innerHTML=list.length?list.map(evRow).join(''):'<div class="empty">چیزی با این صافی پیدا نشد؛ روز یا موضوع را عوض کن.</div>';
+    $('#daybar').innerHTML=DAYS.map(d=>`<button class="chip ${S.day===d.k?'on':''}" role="tab" aria-selected="${S.day===d.k}" data-day="${d.k}">${d.n}</button>`).join('');
+    $('#catChips').innerHTML=CATS.map(c=>`<button class="chip ${S.cat===c.k?'on':''}" data-cat="${c.k}" title="${esc(c.d)}">${c.n}</button>`).join('');
+    const f=S.cat!=='all'||S.q.trim()||S.tag!=='all';
+    $('#filterNote').hidden=!f; $('#filterNote').textContent=f?'صافی فعال — «برداشتن صافی‌ها» را بزن':'';
+  }
+}
+
+/* ═════════ افزودن به تقویم ═════════ */
+function icsFor(e){
+  const off={tonight:0,tomorrow:1,week:3,next:8}[e.day]??1;
+  const d=new Date(); d.setDate(d.getDate()+off);
+  const tm=(unFa(e.time).match(/\d{1,2}/g)||['19','30']).map(Number);
+  d.setHours(tm[0]||19,tm[1]||30,0,0);
+  const end=new Date(d.getTime()+90*60000), z=n=>String(n).padStart(2,'0');
+  const st=`${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}T${z(d.getHours())}${z(d.getMinutes())}00`;
+  const en=`${end.getFullYear()}${z(end.getMonth()+1)}${z(end.getDate())}T${z(end.getHours())}${z(end.getMinutes())}00`;
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Nora//Home//FA','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    'UID:'+e.id+'@lifeline1.ir','DTSTAMP:'+st,'DTSTART:'+st,'DTEND:'+en,
+    'SUMMARY:'+e.t,'LOCATION:'+(e.place||''),'DESCRIPTION:'+(e.kind+' — '+e.when+' '+e.time),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+}
+function gcalURL(e){
+  const off={tonight:0,tomorrow:1,week:3,next:8}[e.day]??1;
+  const d=new Date(); d.setDate(d.getDate()+off);
+  const tm=(unFa(e.time).match(/\d{1,2}/g)||['19','30']).map(Number);
+  d.setHours(tm[0]||19,tm[1]||30,0,0);
+  const end=new Date(d.getTime()+90*60000), u=x=>x.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(e.t)
+    +'&dates='+u(d)+'/'+u(end)+'&location='+encodeURIComponent(e.place||'')+'&details='+encodeURIComponent('نورا — '+e.kind);
+}
+function saveText(name,text,mime){
+  const a=document.createElement('a');
+  a.href='data:'+mime+';charset=utf-8,'+encodeURIComponent(text);
+  a.download=name; document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* ═════════ برگزارشده‌ها ═════════ */
@@ -1255,7 +1480,7 @@ function renderPast(){
       <div class="pc-actions">
         <button class="btn sm primary" data-rec="${h.id}"><svg class="i"><use href="#i-play"/></svg> تماشای ضبط</button>
         <button class="btn sm quiet" data-sheetdl="${h.id}"><svg class="i"><use href="#i-download"/></svg> جزوهٔ دوره</button>
-        ${h.cert?`<button class="btn sm quiet" data-cert="${h.id}"><svg class="i"><use href="#i-medal"/></svg> گواهینامهٔ من</button>`:''}
+        ${h.cert?`<button class="btn sm quiet" data-cert="${h.id}"><svg class="i"><use href="#i-medal"/></svg> درخواست گواهینامه</button>`:''}
         <button class="btn sm quiet" data-again="${h.id}"><svg class="i"><use href="#i-plus"/></svg> دورهٔ تکرار</button>
       </div>
     </div>`).join('');
@@ -1401,21 +1626,6 @@ function renderVoices(){
       <span class="sp" style="flex:1"></span>${stars(v.r)}</div>
     <p>${esc(v.q)}</p></div>`).join('');
 }
-function renderHelp(){
-  const rows=[
-    ['shSupport','i-headphone','پیام به پشتیبانی','پاسخ در همان روز کاری — شنبه تا پنجشنبه'],
-    ['shVerify','i-qr','استعلام گواهینامه','با شمارهٔ سریال یا کد پیگیری'],
-    ['shFaq','i-doc','پرسش‌های پرتکرار','ثبت‌نام، پرداخت، باشگاه کتاب و گواهینامه'],
-    [null,'i-mail','رایانامه و تلفن','info@lifeline1.ir — ۰۲۱–۸۸۸۸۱۲۳۴']
-  ];
-  $('#helpList').innerHTML=rows.map(r=>r[0]
-    ? `<button class="helprow" data-f="${r[0]}"><span class="hi"><svg class="i"><use href="#${r[1]}"/></svg></span>
-        <span class="ht"><b>${r[2]}</b><span>${r[3]}</span></span>
-        <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`
-    : `<a class="helprow" href="mailto:info@lifeline1.ir"><span class="hi"><svg class="i"><use href="#${r[1]}"/></svg></span>
-        <span class="ht"><b>${r[2]}</b><span>${r[3]}</span></span></a>`).join('');
-}
-
 /* ═════════ ورقه‌ها ═════════ */
 function sheetHead(title,sub){
   return `<div class="row" style="align-items:center;margin-bottom:10px">
@@ -1423,7 +1633,7 @@ function sheetHead(title,sub){
     <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>`;
 }
 function openSheet(id){$$('.sheet').forEach(s=>s.classList.toggle('on',s.id===id)); $('#scrim').classList.toggle('on',!!id)}
-function closeSheets(){openSheet(null)}
+function closeSheets(){S.acctFlow=false; openSheet(null)}
 
 function renderMenu(){
   const badge=n=>n?`<span class="tagg brand">${n}</span>`:'';
@@ -1476,7 +1686,11 @@ function renderEventSheet(){
     <p class="sub" style="margin-top:12px">${esc(e.d)}</p>
     ${e.parts?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
     ${e.price?`<div class="moneyline t" style="margin-top:12px"><span>مبلغ ثبت‌نام</span><span class="num">${money(e.price)}</span></div>`:''}
-    <div class="row" style="margin-top:14px">
+    <div class="row" style="margin-top:12px">
+      <button class="btn sm quiet" data-ics="${e.id}"><svg class="i"><use href="#i-calendar"/></svg> افزودن به تقویم گوشی</button>
+      <a class="btn sm quiet" href="${gcalURL(e)}" target="_blank" rel="noopener"><svg class="i"><use href="#i-grid"/></svg> گوگل‌کلندر</a>
+    </div>
+    <div class="row" style="margin-top:8px">
       ${full?`<button class="btn primary" data-wait="${e.id}"><svg class="i"><use href="#i-clock"/></svg> ثبت‌نام در لیست انتظار</button>`
             :`<a class="btn primary" href="form.html"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`}
       <button class="btn quiet" data-share="${e.id}"><svg class="i"><use href="#i-link"/></svg> کپی لینک رویداد</button>
@@ -1568,6 +1782,14 @@ function renderClubSheet(){
     <div class="stack tight" style="margin-bottom:14px">${CLUB.log.map(l=>`
       <div class="srow"><svg class="i"><use href="#i-video"/></svg><span class="sp">${esc(l.t)}<div class="hrow">${esc(l.d)} — ${faN(l.n)} نفر حاضر</div></span>
         <button class="btn sm quiet" data-clubrec>تماشا</button></div>`).join('')}</div>
+    <div class="fw" style="margin-bottom:6px">کتاب ماه بعد را با هم انتخاب کنیم</div>
+    <div class="votebox">${(()=>{const tot=CLUB.vote.reduce((a,b)=>a+b.n,0)+(S.vote?1:0);
+      return CLUB.vote.map(v=>{const n=v.n+(S.vote===v.k?1:0);
+        return `<button class="voteopt ${S.vote===v.k?'on':''}" data-vote="${v.k}">
+          <span class="vt"><b>${esc(v.t)}</b><span>${esc(v.by)}</span></span>
+          <span class="vbar"><i style="width:${Math.round(n/tot*100)}%"></i></span>
+          <span class="cap num">${faN(n)} رأی</span></button>`}).join('')})()}</div>
+    <p class="cap" style="margin:8px 0 14px">${S.vote?'رأیت ثبت شد — نتیجه زنده به‌روز می‌شود.':'با زدن هر گزینه، رأیت ثبت می‌شود.'}</p>
     <div class="row"><button class="btn primary" data-clubjoin><svg class="i"><use href="#i-plus"/></svg> عضو شدن در ترم مهر</button>
       <span class="sp" style="flex:1"></span><span class="cap">${faN(CLUB.cap-CLUB.members)} جا مانده</span></div>`;
 }
@@ -1590,25 +1812,68 @@ function renderPartnerSheet(){
 
 function renderAccount(){
   const u=S.user;
+  const svcRows=(logged=>`
+    <div class="stack tight">
+      <button class="srow" ${logged?'data-f="shClub"':'data-needlogin'}><svg class="i"><use href="#i-book"/></svg><span class="sp">باشگاه کتاب‌خوانی</span>
+        ${logged?'<b>ترم مهر</b>':'<span class="tagg">نیاز به ورود</span>'}
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shSupport"><svg class="i"><use href="#i-headphone"/></svg><span class="sp">پیام به پشتیبانی</span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-doc"/></svg><span class="sp">راهنما و پرسش‌های پرتکرار</span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shVerify"><svg class="i"><use href="#i-qr"/></svg><span class="sp">استعلام گواهینامه</span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shNotice"><svg class="i"><use href="#i-bell"/></svg><span class="sp">اعلان‌ها</span><b>${faN(NOTICES.filter(n=>n.unread).length)} خوانده‌نشده</b></button>
+      <div class="srow"><svg class="i"><use href="#i-mobile"/></svg><span class="sp">یادآوری پیامکی و تلگرام یک روز قبل</span>
+        <span class="sp" style="flex:1"></span><button class="switch ${S.remind?'on':''}" data-remind aria-label="یادآوری پیامکی"></button></div>
+    </div>`);
   if(u){
     $('#acctBody').innerHTML=sheetHead('حساب من','عضو از '+u.joined)+`
       <div class="accthead" style="margin-bottom:12px">
         <span class="av">${esc(u.name[0])}</span>
-        <div style="min-width:0"><b style="font-size:15px">${esc(u.name)}</b><div class="cap">${maskPhone(u.mobile)}</div></div>
+        <div style="min-width:0"><b style="font-size:15px">${esc(u.name)}</b><div class="cap">${maskPhone(u.mobile)} · سطح ${esc(CLUB_POINTS.level)}</div></div>
+        <span class="sp" style="flex:1"></span><span class="tagg ok">${faN(CLUB_POINTS.points)} امتیاز</span>
       </div>
+      <div class="badges">${BADGES.map(b=>`<span class="badge-pill ${b.on?'on':''}" title="${b.on?'گرفته‌ای':'در راه'}">
+        <svg class="i"><use href="#${b.i}"/></svg>${esc(b.n)}</span>`).join('')}</div>
+      <div class="cap" style="margin:12px 0 4px">کارهای من</div>
       <div class="stack tight">
-        <div class="srow"><svg class="i"><use href="#i-star"/></svg><span class="sp">امتیاز باشگاه</span><b>${faN(CLUB_POINTS.points)} از ${faN(CLUB_POINTS.goal)}</b></div>
-        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها</span><b>${faN(u.certs)} برگ</b></div>
+        <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">ثبت‌نام‌های من</span><b>۲ برنامه</b></div>
+        <div class="srow"><svg class="i"><use href="#i-archive"/></svg><span class="sp">ضبط و جزوهٔ کارگاه‌ها</span><b>۳ دوره</b></div>
         <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">کیف پول</span><b>${rialTxt(u.wallet)}</b></div>
-        <div class="srow"><svg class="i"><use href="#i-book"/></svg><span class="sp">عضویت باشگاه کتاب</span><b>ترم مهر</b></div>
-        <div class="srow"><svg class="i"><use href="#i-archive"/></svg><span class="sp">ضبط کارگاه‌ها</span><b>۳ دوره</b></div>
+        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها</span><b>پس از تأیید سرپرست</b></div>
+        <div class="srow"><svg class="i"><use href="#i-star"/></svg><span class="sp">امتیاز باشگاه</span><b>${faN(CLUB_POINTS.points)} از ${faN(CLUB_POINTS.goal)}</b></div>
         <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">دعوت دوستان</span><b>${faN(CLUB_POINTS.invites)} از ${faN(CLUB_POINTS.inviteGoal)}</b></div>
-        <div class="srow"><svg class="i"><use href="#i-bell"/></svg><span class="sp">اعلان‌ها</span><b>${faN(NOTICES.filter(n=>n.unread).length)} خوانده‌نشده</b></div>
       </div>
+      <div class="cap" style="margin:14px 0 4px">خدمات و پشتیبانی</div>
+      ${svcRows(true)}
       <div class="row" style="margin-top:14px">
         <button class="btn quiet" data-f="shInvite"><svg class="i"><use href="#i-users"/></svg> دعوت دوستان</button>
         <span class="sp" style="flex:1"></span><button class="btn stop" data-logout>خروج از حساب</button>
       </div>`;
+    return;
+  }
+  if(S.step==='guest'){
+    $('#acctBody').innerHTML=sheetHead('حساب من','بدون ورود هم پشتیبانی و راهنما باز است')+`
+      <div class="card paper" style="margin-bottom:14px">
+        <div class="sec-hd"><span class="fw">ورود / ساخت حساب</span><span class="sp"></span><span class="cap">کد یک‌بارمصرف، بدون رمز</span></div>
+        <p class="sub">با شمارهٔ موبایل وارد شو تا ثبت‌نام‌ها، ضبط کارگاه‌ها و باشگاه کتاب همیشه در دست باشد.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" data-next><svg class="i"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
+          <span class="sp" style="flex:1"></span><span class="cap">رایگان</span>
+        </div>
+      </div>
+      <div class="cap" style="margin:0 0 4px">کارهای من — بعد از ورود باز می‌شود</div>
+      <div class="stack tight dim">
+        <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">ثبت‌نام‌های من</span><b>—</b></div>
+        <div class="srow"><svg class="i"><use href="#i-archive"/></svg><span class="sp">ضبط و جزوهٔ کارگاه‌ها</span><b>—</b></div>
+        <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">کیف پول</span><b>—</b></div>
+        <div class="srow"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه‌ها</span><b>پس از تأیید سرپرست</b></div>
+        <div class="srow"><svg class="i"><use href="#i-star"/></svg><span class="sp">نشان و امتیاز باشگاه</span><b>—</b></div>
+      </div>
+      <div class="cap" style="margin:14px 0 4px">خدمات و پشتیبانی — بدون ورود باز است</div>
+      ${svcRows(false)}
+      <p class="cap" style="margin-top:12px">پشتیبانی، راهنما و استعلام بدون ورود باز است؛ باشگاه کتاب‌خوانی عضویتی است.</p>`;
     return;
   }
   if(S.step==='phone'){
@@ -1668,13 +1933,33 @@ function renderFaq(){
 }
 
 function renderSupport(){
-  $('#supBody').innerHTML=sheetHead('پیام به پشتیبانی','شنبه تا پنجشنبه ۹ تا ۱۸ — پاسخ در همان روز')+`
-    <div class="stack tight" style="margin-bottom:12px">
-      <div class="srow"><svg class="i"><use href="#i-mobile"/></svg><span class="sp">تلفن</span><b>۰۲۱–۸۸۸۸۱۲۳۴</b></div>
-      <div class="srow"><svg class="i"><use href="#i-mail"/></svg><span class="sp">رایانامه</span><b>info@lifeline1.ir</b></div>
-      ${S.user?`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">کارشناس پیگیری</span><b>خانم رستگار</b></div>`:''}
+  const sup=person('p6');
+  $('#supBody').innerHTML=sheetHead('پشتیبانی و راهنما','کارشناس پاسخ می‌دهد — شنبه تا پنجشنبه، ۹ تا ۱۸')+`
+    <div class="suphead">
+      ${av('p6','ava')}
+      <span style="flex:1;min-width:0"><b class="sub">${esc(sup.n)}</b>
+        <div class="hrow">کارشناس پشتیبانی نورا — پاسخ تا پایان روز کاری</div></span>
+      <span class="tagg ok">آنلاین</span>
     </div>
-    <label class="lbl" for="msg">متن پیام</label>
+    <div class="chans">
+      <a class="chan" href="tel:02188881234"><span class="chi"><svg class="i"><use href="#i-mobile"/></svg></span>
+        <span class="cht"><b>تلفن</b><span>۰۲۱–۸۸۸۸۱۲۳۴</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
+      <a class="chan" href="https://wa.me/989120000000" target="_blank" rel="noopener"><span class="chi"><svg class="i"><use href="#i-send"/></svg></span>
+        <span class="cht"><b>واتساپ</b><span>۰۹۱۲–۰۰۰–۰۰۰۰</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
+      <a class="chan" href="https://ble.ir/nora" target="_blank" rel="noopener"><span class="chi"><svg class="i"><use href="#i-users"/></svg></span>
+        <span class="cht"><b>بله</b><span>پیام مستقیم به نورا</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
+      <a class="chan" href="mailto:info@lifeline1.ir"><span class="chi"><svg class="i"><use href="#i-mail"/></svg></span>
+        <span class="cht"><b>رایانامه</b><span>info@lifeline1.ir</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
+    </div>
+    <hr class="hr"/>
+    <div class="fw" style="font-size:14px;margin-bottom:6px">راهنمای گام‌به‌گام</div>
+    <div class="stack tight" style="margin-bottom:12px">
+      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-pen"/></svg><span class="sp">چطور در یک رویداد ثبت‌نام کنم؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">پرداخت و رسید — چه زمانی قطعی می‌شود؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-archive"/></svg><span class="sp">ضبط کارگاه و جزوه را از کجا بگیرم؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <button class="srow" data-f="shVerify"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه کی صادر می‌شود؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+    </div>
+    <label class="lbl" for="msg">یا همین‌جا بنویس</label>
     <textarea class="input" id="msg" rows="4" placeholder="مثلاً دربارهٔ تأیید رسید کارت‌به‌کارت سؤال دارم…"></textarea>
     <div class="row" style="margin-top:12px"><button class="btn primary" data-send><svg class="i"><use href="#i-send"/></svg> فرستادن پیام</button>
       <span class="sp" style="flex:1"></span><span class="cap">شمارهٔ پیگیری در همان روز پیامک می‌شود</span></div>`;
@@ -1696,7 +1981,7 @@ function saveSession(){try{localStorage.setItem('nora-home-user',JSON.stringify(
 function loadPins(){try{(JSON.parse(localStorage.getItem('nora-home-pins')||'[]')).forEach(k=>S.pins.add(k))}catch(e){}}
 function savePins(){try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
 function renderAll(){
-  renderQuick(); renderPins(); renderMine(); renderEvents(); renderPast(); renderActivity(); renderClub();
+  renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub();
   renderPeople(); renderArticles(); renderPartners();
   const n=NOTICES.filter(x=>x.unread).length;
   const b=$('#bellBadge'); b.hidden=!n; b.textContent=faN(n);
@@ -1708,13 +1993,15 @@ function renderAll(){
 function goto(id){const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'})}
 function openF(id){
   if(id==='shMenu') renderMenu();
-  if(id==='shAccount') renderAccount();
+  if(id==='shAccount'){if(!S.user&&!S.acctFlow) S.step='guest'; renderAccount()}
   if(id==='shInvite') renderInvite();
   if(id==='shVerify') renderVerify();
   if(id==='shFaq') renderFaq();
   if(id==='shSupport') renderSupport();
   if(id==='shNotice') renderNotices();
   if(id==='shClub') renderClubSheet();
+  if(id==='shEvents') renderEvBrowser();
+  if(id==='shStory') renderStory();
   openSheet(id);
 }
 function personSheet(id){S.person=id; renderPersonSheet(); openSheet('shPerson')}
@@ -1731,6 +2018,29 @@ document.addEventListener('click',e=>{
   if(t.closest('[data-bnext]')){slide(S.slide+1); return}
   const ba=t.closest('[data-ba]'); if(ba){bannerAct(+ba.dataset.ba,'a'); return}
   const bb=t.closest('[data-bb]'); if(bb){bannerAct(+bb.dataset.bb,'b'); return}
+  const st=t.closest('[data-story]'); if(st){S.story=st.dataset.story; renderStory(); openSheet('shStory'); return}
+  const sg=t.closest('[data-storygo]'); if(sg){
+    const to=sg.dataset.storygo; closeSheets();
+    if(to.startsWith('ev:')) eventSheet(to.slice(3));
+    else if(to.startsWith('pe:')) personSheet(to.slice(3));
+    else if(to==='me') openF('shAccount');
+    else goto(to); return}
+  const evv=t.closest('[data-evview]'); if(evv){S.evview=evv.dataset.evview; renderEvBrowser(); return}
+  const vt=t.closest('[data-vote]'); if(vt){
+    if(!S.user){S.acctFlow=true; S.step='phone'; renderAccount(); toast('برای رأی دادن اول وارد شو'); return}
+    S.vote=vt.dataset.vote; renderClubSheet(); log('رأی کتاب ماه: '+vt.dataset.vote);
+    toast('رأیت ثبت شد — نتیجه زنده به‌روز شد'); return}
+  const ics=t.closest('[data-ics]'); if(ics){
+    const ev0=ev(ics.dataset.ics);
+    saveText('nora-'+ev0.id+'.ics',icsFor(ev0),'text/calendar');
+    log('افزودن به تقویم: '+ev0.t); toast('فایل تقویم ساخته شد — در گوشی‌ات بازش کن'); return}
+  if(t.closest('[data-remind]')){
+    S.remind=!S.remind;
+    if(S.user) renderAccount();
+    toast(S.remind?'یادآوری پیامکی و تلگرام روشن شد — یک روز قبل خبر می‌دهیم':'یادآوری خاموش شد'); return}
+  if(t.closest('[data-next]')){S.acctFlow=true; S.step='phone'; renderAccount(); if($('#mob')) $('#mob').focus(); return}
+  if(t.closest('[data-needlogin]')){S.acctFlow=true; S.step='phone'; renderAccount(); toast('باشگاه کتاب‌خوانی عضویتی است — اول وارد شو'); return}
+  if(t.closest('#qClear2')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderEvents(); renderArticles(); return}
   const pin=t.closest('[data-pin]'); if(pin){const [k,id]=pin.dataset.pin.split(':'); togglePin(k,id); return}
   if(t.closest('[data-clearpins]')){S.pins.clear(); savePins(); renderAll(); toast('سنجاق‌ها برداشته شد'); return}
   const op=t.closest('[data-openpin]'); if(op){
@@ -1763,8 +2073,9 @@ document.addEventListener('click',e=>{
   const rec=t.closest('[data-rec]'); if(rec){toast('ضبط در پخش‌کنندهٔ نورا باز می‌شود — جلسهٔ کامل'); log('تماشای ضبط'); return}
   const dl=t.closest('[data-sheetdl]'); if(dl){toast('جزوهٔ دوره در حساب کاربری‌ات ذخیره شد'); return}
   const ct=t.closest('[data-cert]'); if(ct){
-    if(!S.user){openF('shAccount'); toast('برای دیدن گواهینامه اول وارد شو'); return}
-    openF('shVerify'); toast('سریال گواهینامه‌ات را بزن: NL-T4K7M9X'); return}
+    if(!S.user){openF('shAccount'); toast('برای درخواست گواهینامه اول وارد شو'); return}
+    const h=PAST.find(x=>x.id===ct.dataset.cert);
+    log('درخواست گواهینامه: '+h.t); toast('درخواست ثبت شد — گواهینامه با تأیید سرپرست صادر می‌شود'); return}
   const ag=t.closest('[data-again]'); if(ag){closeSheets(); goto('evSec'); toast('دورهٔ تکرار در فهرست پیش‌رو می‌آید'); return}
   if(t.closest('[data-clubjoin]')){
     if(!S.user){openF('shAccount'); toast('برای عضویت در باشگاه اول وارد شو'); return}
@@ -1790,10 +2101,10 @@ document.addEventListener('click',e=>{
     const v=unFa(($('#code')||{}).value||'').replace(/\D/g,'');
     if(v!=='54321'){toast('کد نمایشی ۵۴۳۲۱ است'); return}
     S.user={name:'سارا محمدی',mobile:S.phone,joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1};
-    saveSession(); S.step='phone'; log('ورود با شمارهٔ '+maskPhone(S.phone));
+    saveSession(); S.acctFlow=false; S.step='guest'; log('ورود با شمارهٔ '+maskPhone(S.phone));
     renderAll(); renderAccount(); toast('خوش آمدی سارا — ثبت‌نام‌ها، گواهی‌ها و باشگاه آمد'); return}
   if(t.closest('[data-back]')){S.step='phone'; renderAccount(); return}
-  if(t.closest('[data-logout]')){S.user=null; saveSession(); renderAll(); closeSheets(); toast('از حساب بیرون آمدی'); return}
+  if(t.closest('[data-logout]')){S.user=null; S.acctFlow=false; S.step='guest'; saveSession(); renderAll(); closeSheets(); toast('از حساب بیرون آمدی'); return}
   if(t.closest('[data-verify]')){
     const v=unFa(($('#serial')||{}).value||'').trim().toUpperCase().replace(/\s/g,'');
     if(!v){toast('شمارهٔ سریال را بنویس'); return}
@@ -1806,15 +2117,18 @@ document.addEventListener('click',e=>{
     const k=tb.dataset.tab;
     $$('#tabs button').forEach(b=>{b.classList.toggle('on',b===tb);
       if(b===tb) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current')});
-    if(k==='home') window.scrollTo({top:0,behavior:'smooth'});
-    if(k==='events'){S.tag='all'; renderQTags(); renderEvents(); goto('evSec')}
+    $$('#tabs button').forEach(b=>{const u=b.querySelector('use');
+      if(u) u.setAttribute('href','#'+(b===tb?b.dataset.if:b.dataset.i))});
+    if(k==='home'){closeSheets(); window.scrollTo({top:0,behavior:'smooth'})}
+    if(k==='events'){S.tag='all'; renderQTags(); renderEvents(); openF('shEvents')}
     if(k==='me') openF('shAccount');
     return}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape') closeSheets()});
 $('#scrim').addEventListener('click',closeSheets);
-$('#q').addEventListener('input',e=>{S.q=e.target.value; $('#qClear').hidden=!S.q; renderEvents(); renderArticles()});
+$('#q').addEventListener('input',e=>{S.q=e.target.value; $('#qClear').hidden=!S.q; renderSearch(); renderArticles()});
 $('#qClear').addEventListener('click',()=>{S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderEvents(); renderArticles(); $('#q').focus()});
+window.addEventListener('scroll',()=>{document.documentElement.classList.toggle('atscroll',window.scrollY>10)},{passive:true});
 $('#acctBtn').addEventListener('click',()=>openF('shAccount'));
 $('#bnr').addEventListener('mouseenter',()=>clearInterval(S.timer));
 $('#bnr').addEventListener('mouseleave',autoBanner);
@@ -1840,7 +2154,7 @@ function bannerAct(i,which){
 initKeys(document);
 try{const th=localStorage.getItem('nora-theme'); if(th) setTheme(th); else if(matchMedia('(prefers-color-scheme:dark)').matches) setTheme('dark');}catch(e){}
 loadSession(); loadPins();
-renderBanner(); renderQTags(); renderAll(); renderLive(); renderVoices(); renderHelp();
+renderBanner(); renderQTags(); renderAll(); renderLive(); renderVoices();
 autoBanner();
 
 window.NORA_HOME={S:S,EVENTS:EVENTS,PEOPLE:PEOPLE,ARTICLES:ARTICLES,PARTNERS:PARTNERS,CLUB:CLUB,PAST:PAST,
