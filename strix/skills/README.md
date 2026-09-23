@@ -33,7 +33,7 @@ The skills are dynamically injected into the agent's system prompt, allowing it 
 | **`/frameworks`** | Specific testing methods for popular frameworks e.g. Django, Express, FastAPI, and Next.js |
 | **`/technologies`** | Specialized techniques for third-party services such as Supabase, Firebase, Auth0, and payment gateways |
 | **`/protocols`** | Protocol-specific testing patterns for GraphQL, WebSocket, OAuth, and other communication standards |
-| **`/tooling`** | Command-line playbooks for core sandbox tools (nmap, nuclei, httpx, ffuf, subfinder, naabu, katana, sqlmap) |
+| **`/tooling`** | Command-line playbooks for core sandbox tools (nmap, nuclei, httpx, ffuf, subfinder, naabu, katana, sqlmap) plus the agent-workflow toolchain (`context7`, `playwright_cli`, `supabase_cli`, `ui_skills`) |
 | **`/cloud`** | Cloud provider security testing for AWS, Azure, GCP, and Kubernetes environments |
 | **`/reconnaissance`** | Advanced information gathering and enumeration techniques for comprehensive attack surface mapping |
 | **`/custom`** | Community-contributed skills for specialized or industry-specific testing scenarios |
@@ -50,6 +50,13 @@ Notable source-aware skills:
 - `infrastructure_lifecycle` (reconnaissance): abandoned or mutable external dependencies such as update endpoints, MX, storage, and control domains
 - `argument_injection` (vulnerabilities): shell-free CLI option smuggling, secondary argument-file parsing, and platform-specific argv transformation boundaries
 - `electron_desktop_apps` (technologies): Electron renderer-to-native trust boundaries, preload/IPC exposure, and navigation analysis
+
+Notable toolchain and delivery skills:
+- `context7` (tooling): version-accurate library docs over the Context7 MCP server or `ctx7` CLI, so fixes are written against a real signature
+- `supabase_cli` (tooling): local Supabase stack, migrations, `db lint`/`db advisors`, and the Supabase MCP connection, with the RLS-first defaults to hold while building (the `supabase` skill remains the attack playbook)
+- `playwright_cli` (tooling): Playwright agent CLI for browser evidence — ref-based snapshots, named sessions, saved storage state, request inspection, route mocking, tracing, and recorded flows converted to Playwright code
+- `ui_skills` (tooling): design-engineering skill registry (ui-skills.com) plus the Baseline UI constraint set for frontend code written during remediation
+- `secure_stack_loop` (custom): the docs → code → browser proof → re-scan loop that closes a finding with evidence
 
 Notable LLM security skills:
 - `llm_applications` (technologies): end-to-end OWASP 2026 LLM01-LLM10 coverage across models, RAG, vectors, agents, tools, outputs, supply chain, and resource controls
