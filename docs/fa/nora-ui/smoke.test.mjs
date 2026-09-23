@@ -565,8 +565,9 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#evSec a[href="events.html#list"]')!==null,'دکمهٔ «همهٔ رویدادها» به منوی رویدادها می‌رود');
   ok(p.doc.querySelector('#evSec a[href="events.html#cal"]')!==null,'دکمهٔ «تقویم رویدادها» هم به همان منو می‌رود');
   ok(p.doc.querySelector('#evBrowser')===null && p.doc.querySelector('#shEvents')===null,'خانه ورقهٔ رویداد ندارد — رویدادها منوی جداست');
-  p.click('[data-qt="گواهی‌دار"]');
-  ok(p.txt('#toast').includes('منوی رویدادها')===false,'چیپ‌های خانه بی‌خطا کار می‌کنند');
+  ok(p.doc.querySelector('#qTags')===null,'صافی رویداد در خانه نمانده');
+  ok(p.doc.querySelector('#live')===null && p.doc.querySelector('.livecard')===null,'جریان زنده از خانه رفت به صفحهٔ رویدادها');
+  ok(p.doc.querySelector('a[href="events.html#cal"]')!==null && p.doc.querySelector('a[href="events.html#list"]')!==null,'پیوندهای خانه به تقویم و فهرست رویدادها');
   /* جست‌وجو: رویداد، مطلب و استاد */
   p.doc.querySelector('#q').value='عکاسی';
   p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
@@ -712,6 +713,8 @@ async function load(file,store,q){
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   ok(N && N.EVENTS.length===11,'دادهٔ مشترک از data.js می‌آید (یازده رویداد)');
   ok(p.all('#hstats .s').length===5,'نوار آمار: چهار ستون + ردیف رایگان‌ها');
+  ok(p.all('#liveList .livecard').length===2,'جریان زنده در صفحهٔ رویدادها');
+  ok(p.txt('#liveList').includes('در حال برگزاری'),'یکی در حال برگزاری است');
   ok(p.txt('#hstats').includes('گواهی‌دار') && p.txt('#hstats').includes('آنلاین'),'آمار حالت‌ها هست');
   /* فهرست و صافی‌ها */
   ok(p.all('#evList .ev').length===11,'فهرست کامل: یازده رویداد');

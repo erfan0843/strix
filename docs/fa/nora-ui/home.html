@@ -634,7 +634,12 @@
       <input id="q" type="search" placeholder="رویداد، کارگاه، استاد، مطلب…" aria-label="جست‌وجو در خانه"/>
       <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button>
     </div>
-    <div class="row tight" style="margin-top:10px" id="qTags"></div>
+    <div class="row tight" style="margin-top:10px">
+      <a class="chip" href="events.html#cal"><svg class="i" style="width:15px;height:15px"><use href="#i-grid"/></svg> تقویم رویدادها</a>
+      <a class="chip" href="events.html#list"><svg class="i" style="width:15px;height:15px"><use href="#i-calendar"/></svg> فهرست رویدادها</a>
+      <a class="chip" href="#articles">مطالب و مقالات</a>
+      <a class="chip" href="#teachers">اساتید</a>
+    </div>
   </section>
 
   <!-- ── نتیجهٔ جست‌وجو: رویداد، مطلب و استاد ── -->
@@ -665,7 +670,7 @@
   <!-- ── رویدادها و برنامه‌ها ── -->
   <section class="sec card paper" id="evSec" aria-label="رویدادها و برنامه‌ها">
     <div class="sec-hd">
-      <span class="fw">رویدادها و برنامه‌ها</span>
+      <span class="fw">ویترین رویدادها</span>
       <span class="sp"></span>
       <span class="cap" id="evCount">—</span>
     </div>
@@ -674,12 +679,9 @@
       <a class="btn sm primary" href="events.html#list"><svg class="i"><use href="#i-calendar"/></svg> همهٔ رویدادها</a>
       <a class="btn sm quiet" href="events.html#cal"><svg class="i"><use href="#i-grid"/></svg> تقویم رویدادها</a>
       <span class="sp" style="flex:1"></span>
-      <span class="cap">خانه فقط نمایش است — فهرست کامل در منوی رویدادها</span>
+      <span class="cap">همه‌چیز رویدادها در صفحهٔ خودش است</span>
     </div>
   </section>
-
-  <!-- ── جریان زنده ── -->
-  <section class="sec" id="live" aria-label="جریان زنده"></section>
 
   <!-- ── برگزارشده‌ها: گواهینامه و ضبط آفلاین ── -->
   <section class="sec card paper" id="pastSec" aria-label="کارگاه‌های برگزارشده">
@@ -1115,13 +1117,9 @@ function evFeatured(e){
 function renderEvents(){
   const order=EVENTS.slice().sort((a,b)=>((b.pin||isPinned('ev',b.id))?1:0)-((a.pin||isPinned('ev',a.id))?1:0));
   $('#evTop').innerHTML=order.slice(0,3).map(evMini).join('');
-  $('#evCount').textContent=faN(EVENTS.length)+' برنامه در پیش';
+  $('#evCount').textContent='سه برنامهٔ نزدیک از '+faN(EVENTS.length);
   renderSearch();
 }
-function renderQTags(){
-  $('#qTags').innerHTML=QTAGS.map(t=>`<button class="chip ${S.tag===t.k?'on':''}" data-qt="${t.k}">${t.n}</button>`).join('');
-}
-
 /* ═════════ استوری‌های کوتاه ═════════ */
 function renderStories(){
   $('#stories').innerHTML=`<div class="sec-hd"><span class="fw">استوری‌های کوتاه</span><span class="sp"></span><span class="cap">۳۰ ثانیه‌های نورا</span></div>
@@ -1183,33 +1181,6 @@ function evMini(e){
   </button>`;
 }
 
-/* ═════════ افزودن به تقویم ═════════ */
-function icsFor(e){
-  const off={tonight:0,tomorrow:1,week:3,next:8}[e.day]??1;
-  const d=new Date(); d.setDate(d.getDate()+off);
-  const tm=(unFa(e.time).match(/\d{1,2}/g)||['19','30']).map(Number);
-  d.setHours(tm[0]||19,tm[1]||30,0,0);
-  const end=new Date(d.getTime()+90*60000), z=n=>String(n).padStart(2,'0');
-  const st=`${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}T${z(d.getHours())}${z(d.getMinutes())}00`;
-  const en=`${end.getFullYear()}${z(end.getMonth()+1)}${z(end.getDate())}T${z(end.getHours())}${z(end.getMinutes())}00`;
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Nora//Home//FA','CALSCALE:GREGORIAN','BEGIN:VEVENT',
-    'UID:'+e.id+'@lifeline1.ir','DTSTAMP:'+st,'DTSTART:'+st,'DTEND:'+en,
-    'SUMMARY:'+e.t,'LOCATION:'+(e.place||''),'DESCRIPTION:'+(e.kind+' — '+e.when+' '+e.time),'END:VEVENT','END:VCALENDAR'].join('\r\n');
-}
-function gcalURL(e){
-  const off={tonight:0,tomorrow:1,week:3,next:8}[e.day]??1;
-  const d=new Date(); d.setDate(d.getDate()+off);
-  const tm=(unFa(e.time).match(/\d{1,2}/g)||['19','30']).map(Number);
-  d.setHours(tm[0]||19,tm[1]||30,0,0);
-  const end=new Date(d.getTime()+90*60000), u=x=>x.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(e.t)
-    +'&dates='+u(d)+'/'+u(end)+'&location='+encodeURIComponent(e.place||'')+'&details='+encodeURIComponent('نورا — '+e.kind);
-}
-function saveText(name,text,mime){
-  const a=document.createElement('a');
-  a.href='data:'+mime+';charset=utf-8,'+encodeURIComponent(text);
-  a.download=name; document.body.appendChild(a); a.click(); a.remove();
-}
 
 /* ═════════ برگزارشده‌ها ═════════ */
 function renderPast(){
@@ -1375,19 +1346,6 @@ function renderPartners(){
 }
 
 /* ═════════ زنده، نظرها، پشتیبانی ═════════ */
-function renderLive(){
-  $('#live').innerHTML=`<div class="sec-hd"><span class="fw">جریان زنده</span><span class="sp"></span><span class="cap">${faN(LIVE.length)} برنامه</span></div>`
-   +LIVE.map(x=>{
-    const e=ev(x.ev), pct=x.past?Math.round(x.past/x.total*100):0;
-    return `<div class="livecard" style="margin-bottom:8px">
-      <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
-      <h3>${esc(x.t)}</h3>
-      <div class="hrow">${esc(x.at)} · ${esc(x.where)}${e.tchr?' · '+esc(person(e.tchr).n):''}</div>
-      <div class="bar" aria-hidden="true"><i style="width:${x.past?pct:0}%"></i></div>
-      <div class="row"><span class="cap">${x.past?faN(x.past)+' دقیقه از '+faN(x.total)+' دقیقه گذشته':'هنوز شروع نشده'}</span><span class="sp" style="flex:1"></span>
-        <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${x.ev}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
-    </div>`}).join('');
-}
 function renderVoices(){
   $('#voiceList').innerHTML=VOICES.map(v=>`<div class="voice">
     <div class="wh">${av(v.p)}
@@ -1455,10 +1413,6 @@ function renderEventSheet(){
     <p class="sub" style="margin-top:12px">${esc(e.d)}</p>
     ${e.parts?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
     ${e.price?`<div class="moneyline t" style="margin-top:12px"><span>مبلغ ثبت‌نام</span><span class="num">${money(e.price)}</span></div>`:''}
-    <div class="row" style="margin-top:12px">
-      <button class="btn sm quiet" data-ics="${e.id}"><svg class="i"><use href="#i-calendar"/></svg> افزودن به تقویم گوشی</button>
-      <a class="btn sm quiet" href="${gcalURL(e)}" target="_blank" rel="noopener"><svg class="i"><use href="#i-grid"/></svg> گوگل‌کلندر</a>
-    </div>
     <div class="row" style="margin-top:8px">
       ${full?`<button class="btn primary" data-wait="${e.id}"><svg class="i"><use href="#i-clock"/></svg> ثبت‌نام در لیست انتظار</button>`
             :`<a class="btn primary" href="form.html"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`}
@@ -1806,10 +1760,6 @@ document.addEventListener('click',e=>{
     if(!S.user){S.acctFlow=true; S.step='phone'; renderAccount(); toast('برای رأی دادن اول وارد شو'); return}
     S.vote=vt.dataset.vote; renderClubSheet(); log('رأی کتاب ماه: '+vt.dataset.vote);
     toast('رأیت ثبت شد — نتیجه زنده به‌روز شد'); return}
-  const ics=t.closest('[data-ics]'); if(ics){
-    const ev0=ev(ics.dataset.ics);
-    saveText('nora-'+ev0.id+'.ics',icsFor(ev0),'text/calendar');
-    log('افزودن به تقویم: '+ev0.t); toast('فایل تقویم ساخته شد — در گوشی‌ات بازش کن'); return}
   if(t.closest('[data-remind]')){
     S.remind=!S.remind;
     if(S.user) renderAccount();
@@ -1832,9 +1782,6 @@ document.addEventListener('click',e=>{
   const evb=t.closest('[data-ev]'); if(evb){eventSheet(evb.dataset.ev); return}
   const tp=t.closest('[data-teach]'); if(tp){
     const p=person(tp.dataset.teach); location.href='events.html?q='+encodeURIComponent(p.n.split(' ').slice(-1)[0]); return}
-  const qt=t.closest('[data-qt]'); if(qt){
-    S.tag=qt.dataset.qt; renderQTags();
-    location.href='events.html'+(S.tag==='all'?'':'?tag='+encodeURIComponent(S.tag))+'#list'; return}
   if(t.closest('#artMore')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderArticles(); goto('articles');
     toast(faN(ARTICLES.length)+' مطلب نورا'); return}
   const rec=t.closest('[data-rec]'); if(rec){toast('ضبط در پخش‌کنندهٔ نورا باز می‌شود — جلسهٔ کامل'); log('تماشای ضبط'); return}
@@ -1931,7 +1878,7 @@ try{const th=localStorage.getItem('nora-theme'); if(th) setTheme(th); else if(ma
 openHash();
 window.addEventListener('hashchange',openHash);
 loadSession(); loadPins();
-renderBanner(); renderQTags(); renderAll(); renderLive(); renderVoices();
+renderBanner(); renderAll(); renderVoices();
 autoBanner();
 
 window.NORA_HOME={S:S,EVENTS:EVENTS,PEOPLE:PEOPLE,ARTICLES:ARTICLES,PARTNERS:PARTNERS,CLUB:CLUB,PAST:PAST,

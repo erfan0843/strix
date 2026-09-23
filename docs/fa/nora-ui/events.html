@@ -218,6 +218,11 @@
     <div class="hstats" id="hstats"></div>
   </section>
 
+  <section class="sec card paper" id="live" aria-label="جریان زنده و شروع نزدیک">
+    <div class="sec-hd"><span class="fw">جریان زنده و شروع نزدیک</span><span class="sp"></span><span class="cap" id="liveCount">—</span></div>
+    <div id="liveList"></div>
+  </section>
+
   <section class="card paper sec" aria-label="جست‌وجو">
     <div class="sfield">
       <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
@@ -288,7 +293,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-const {EVENTS,PEOPLE,CATS,DAYS,QTAGS}=window.NORA;
+const {EVENTS,PEOPLE,CATS,DAYS,QTAGS,LIVE}=window.NORA;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#54719B,#0A56B8)'};
@@ -332,6 +337,23 @@ window.addEventListener('scroll',()=>document.documentElement.classList.toggle('
 function setTheme(v){document.documentElement.dataset.theme=v; try{localStorage.setItem('nora-theme',v)}catch(e){}}
 
 /* ── سرصفحه: عددها ── */
+/* ── جریان زنده ── */
+function renderLive(){
+  const box=$('#liveList'); if(!box) return;
+  box.innerHTML=LIVE.map(x=>{
+    const e0=ev(x.ev), pct=x.past?Math.round(x.past/x.total*100):0;
+    return `<div class="livecard">
+      <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
+      <h3>${esc(x.t)}</h3>
+      <div class="cap">${esc(x.at)} · ${esc(x.where)}${e0.tchr?' · '+esc(person(e0.tchr).n):''}</div>
+      <div class="bar"><i style="width:${x.past?pct:0}%"></i></div>
+      <div class="row"><span class="cap">${x.past?faN(x.past)+' دقیقه از '+faN(x.total)+' دقیقه گذشته':'هنوز شروع نشده'}</span>
+        <span class="sp"></span>
+        <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${x.ev}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
+    </div>`}).join('');
+  $('#liveCount').textContent=faN(LIVE.length)+' برنامه — '+(LIVE.some(x=>x.past)?'همین حالا یکی در حال برگزاری است':'شروع نزدیک');
+}
+
 function renderStats(){
   const online=EVENTS.filter(e=>e.mode==='آنلاین').length, free=EVENTS.filter(e=>!e.price).length;
   const cert=EVENTS.filter(e=>(e.tags||[]).includes('گواهی‌دار')).length;
@@ -536,7 +558,7 @@ if(P.get('q')){S.q=P.get('q'); S.view='list'}
 if(P.get('tag')){S.tag=P.get('tag'); S.view='list'}
 if(P.get('cat')){S.cat=P.get('cat'); S.view='list'}
 if(P.get('day')){S.dayF=P.get('day'); S.view='list'}
-renderStats(); renderQTags(); render();
+renderStats(); renderLive(); renderQTags(); render();
 if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
 if(P.get('ev')) openEvent(P.get('ev'));
 initKeys(document);
