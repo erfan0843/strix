@@ -249,6 +249,18 @@ async function load(file,store,q){
   ok(us.includes('۱٬۳۰۰٬۵۰۰'),'مبلغ همان کاربر درست');
   ok(us.includes('پاسخ نداده'),'پرسش بی‌پاسخ نشان داده شد');
   ok(us.includes('بلیت'),'بلیت کاربر');
+  /* همراهان: همان چیزی که در فرم پر شده، باید در پنل دیده شود */
+  ok(p.txt('#answersBox').includes('+۱ همراه'),'در جدول پاسخ‌ها نشان همراه هست');
+  ok(us.includes('همراهان')&&us.includes('الهام موسوی'),'کارت همراهان با نام همراه');
+  ok(us.includes('هر کدام بلیت جدا')||us.includes('هر نفر بلیت خودش'),'توضیح بلیت جدا برای هر نفر');
+  ok(p.all('#usBody .tk-wrap').length===2,'برای دو نفر دو بلیت ساخته شد ('+p.all('#usBody .tk-wrap').length+')');
+  ok(/بلیت همراه ۱/.test(us),'نوع بلیت همراه روی بلیت دوم');
+  ok(p.doc.querySelector('#usBody [data-botall]')!==null,'دکمهٔ فرستادن هر دو بلیت در بله');
+  p.click('#usBody [data-botall]');
+  ok(/۲ بلیت فرستاده شد/.test(p.txt('#toast')),'با یک کلیک هر دو بلیت به بله می‌رود');
+  /* کارتابل: کارشناس باید بداند پرداخت برای چند نفر است */
+  p.click('[data-go="fKartabl"]');
+  ok(/برای ۲ نفر/.test(p.txt('#kartabl')),'در کارتابل، شمار نفرات روی رسید هست');
   // تأیید رسید از کارتابل
   p.click('[data-go="fKartabl"]');
   const kb=p.txt('#kBadge');

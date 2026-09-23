@@ -447,6 +447,8 @@ function ticketSVG(o, opt) {
   const codeBlock = has('code') ? `<text x="${G.codeLabel.cx}" y="${G.codeLabel.base}" text-anchor="middle" font-size="${G.codeLabel.size}" fill="${P.muted}"${RTL}>کد بلیت</text>
     <text x="${G.code.cx}" y="${G.code.base}" text-anchor="middle" font-size="${G.code.size}" font-weight="700" fill="${P.ink}" letter-spacing="${G.code.track}" font-family="${TK_FONTS_LAT}" direction="ltr">${tkEsc(o.displayCode || short)}</text>` : '';
   const qrBlock = has('qr') ? tkQR(null, o.payload || ('https://lifeline1.ir/t/' + short), G.qr.x0, G.qr.y0, G.qr.size) : '';
+  /* نوع بلیت در ستون سمت چپ، میان کیوآر و کد بلیت (همان‌جای خالی خودِ تصویر) */
+  const kind = has('kind') && o.kind ? `<text x="${G.codeLabel.cx}" y="${G.qr.y0 + G.qr.size + 40}" text-anchor="middle" font-size="13" font-weight="600" fill="${P.muted}"${RTL}>${tkEsc(o.kind)}</text>` : '';
   const note = has('note') && o.noteText ? `<text x="${G.perf + 18}" y="82" font-size="12.5" fill="${P.muted}"${RTL}>${tkEsc(o.noteText)}</text>` : '';
   const state = o.state ? `<text x="${G.code.cx}" y="${G.nameLabel.base - 26}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${P.ink}"${RTL}>${tkEsc(o.state)}</text>` : '';
 
@@ -461,6 +463,7 @@ function ticketSVG(o, opt) {
     ${has('qr') ? qrBlock : ''}
     ${codeBlock}
     ${state}
+    ${kind}
     ${note}
     ${rows.join('\n    ')}
   </g>

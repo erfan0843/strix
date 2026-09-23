@@ -471,7 +471,7 @@ const FORMS=[
  ticketOn:true,
  guestsOn:true,guestsMax:3,guests:['علی رضایی'],
  gw:['بله','کارت‌به‌کارت'],ticket:'جنگلی',
- parts:['title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
+ parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
  flags:['ticket','receipts','cert','excel'],
@@ -529,19 +529,22 @@ const PEOPLE=[
 {id:'p1',form:'f1',name:'سارا محمدی',mobile:'۰۹۱۲۳۴۵۶۸۷۶',code:'TL1307BVUC1981',state:'pending',
  city:'تهران — تهران',uni:'دانشگاه تهران',job:'برنامه‌نویس و فناوری اطلاعات',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۰/۰۵/۱۲',
  at:'۱۴۰۵/۰۷/۰۴ — ۰۹:۱۴',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:10,note:'واریز از حساب همسرم انجام شد.',
+ guests:[{name:'الهام موسوی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',same:true}],
  skip:['دانشگاه'],receipt:'۸ مهر، ۰۹:۲۰'},
 {id:'p2',form:'f1',name:'علی رضایی',mobile:'۰۹۱۲۰۰۰۰۰۰۱',code:'TL1307BVUC1982',state:'paid',
  city:'اصفهان — اصفهان',uni:'صنعتی اصفهان',job:'مهندس',edu:'کارشناسی ارشد',exp:'تازه‌کار',birth:'۱۳۷۵/۰۲/۰۳',
  at:'۱۴۰۵/۰۷/۰۳ — ۱۸:۴۰',gw:'بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
 {id:'p3',form:'f1',name:'مریم احمدی',mobile:'۰۹۱۲۲۲۳۳۴۴۵',code:'TL1307BVUC1983',state:'paid',
  city:'مشهد — مشهد',uni:'فردوسی مشهد',job:'معلم و استاد',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۸/۱۱/۲۲',
- at:'۱۴۰۵/۰۷/۰۳ — ۱۲:۰۵',gw:'بله',piece:0,count:3,coupon:10,note:'',skip:[],receipt:''},
+ at:'۱۴۰۵/۰۷/۰۳ — ۱۲:۰۵',gw:'بله',piece:0,count:3,coupon:10,note:'',skip:[],receipt:'',
+ guests:[{name:'رضا شریفی',mobile:'۰۹۱۲۳۳۳۴۴۵۵',same:true},{name:'نگار توکلی',mobile:'۰۹۱۹۸۸۷۷۶۶۵',same:false}]},
 {id:'p4',form:'f1',name:'حسن کریمی',mobile:'۰۹۹۱۲۳۴۵۶۷۸',code:'TL1307BVUC1984',state:'pending',
  city:'شیراز — شیراز',uni:'شیراز',job:'کارمند شرکت خصوصی',edu:'دیپلم',exp:'تازه‌کار',birth:'۱۳۸۰/۰۷/۳۰',
  at:'۱۴۰۵/۰۷/۰۴ — ۱۰:۵۰',gw:'کارت‌به‌کارت',piece:1,count:1,coupon:0,note:'',skip:[],receipt:'۸ مهر، ۱۱:۰۲'},
 {id:'p5',form:'f1',name:'زهرا نیک‌پور',mobile:'۰۹۱۳۴۵۶۷۸۹۰',code:'TL1307BVUC1985',state:'paid',
  city:'تبریز — تبریز',uni:'تبریز',job:'دانشجو',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۸۲/۰۳/۱۵',
- at:'۱۴۰۵/۰۷/۰۲ — ۲۱:۳۰',gw:'بله',piece:1,count:2,coupon:0,note:'',skip:[],receipt:''},
+ at:'۱۴۰۵/۰۷/۰۲ — ۲۱:۳۰',gw:'بله',piece:1,count:2,coupon:0,note:'',skip:[],receipt:'',
+ guests:[{name:'سینا رحیمی',mobile:'۰۹۳۳۴۴۵۵۶۶۷',same:true}]},
 {id:'p6',form:'f1',name:'رضا شریفی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'TL1307BVUC1986',state:'half',
  city:'کرج — کرج',uni:'شهید بهشتی',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۵/۰۹/۰۹',
  at:'۱۴۰۵/۰۷/۰۴ — ۰۸:۰۵',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
@@ -797,6 +800,15 @@ function renderChanges(){
       :'<div class="empty" style="padding:14px"><div class="body">هنوز تغییری ثبت نشده</div></div>'}
   </div>`;
 }
+/* ── بلیت‌های یک ثبت‌نام: نفر اصلی + همراهان (همان چیزی که فرم صادر می‌کند) ── */
+function ticketStack(f,p){
+  p=p||CURP;
+  const who=[{name:p.name,kind:'بلیت نفر اصلی'}].concat((p.guests||[]).map((g,i)=>({name:g.name,kind:'بلیت همراه '+faN(i+1)})));
+  return who.map((w,i)=>ticketHTML({style:f.skin||'clear',parts:f.parts||['title','date','venue','name','code','qr'],
+    title:f.head,kind:w.kind,name:w.name,code:p.code.slice(0,10)+(81+i),no:faN(1245+i),
+    date:f.start,venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف '+faN(i+1)+' — صندلی '+faN(17+i*3),
+    confirmed:p.state==='paid'})).join('');
+}
 /* ── پاسخ‌ها ──────────────────────────────────────────────────── */
 let PFILTER='all';
 function renderAnswers(){
@@ -816,9 +828,10 @@ function renderAnswers(){
     <table class="t">
       <thead><tr><th>پاسخ‌دهنده</th><th>زمان</th><th>مبلغ</th><th>درگاه</th><th>وضعیت</th><th></th></tr></thead>
       <tbody>${list.map(p=>{const m=pay(p),t=st(p);return `<tr data-person="${p.id}" style="cursor:pointer">
-        <td><b>${p.name}</b><div class="cap num">${f.id==='f2'?'نظرسنجی ناشناس':maskPhone(p.mobile)}</div></td>
+        <td><b>${p.name}</b>${(p.guests||[]).length?`<span class="tag brand" style="margin-inline-start:6px">+${faN(p.guests.length)} همراه</span>`:''}
+          <div class="cap num">${f.id==='f2'?'نظرسنجی ناشناس':maskPhone(p.mobile)}</div></td>
         <td class="num">${p.at}</td>
-        <td class="num">${f.fin.length?fa(m.sum):'—'}</td>
+        <td class="num">${f.fin.length?fa(m.sum):'—'}${p.count>1?`<div class="cap">${faN(p.count)} نفر</div>`:''}</td>
         <td>${p.gw}</td>
         <td><span class="tag ${t[0]}">${t[1]}</span></td>
         <td><svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg></td></tr>`}).join('')}
@@ -863,6 +876,13 @@ function openUser(id){
         <div class="answer"><span class="k">تحصیلات</span><span class="v">${CURP.edu}</span></div>
         <div class="answer"><span class="k">عضویت پروفایل</span><span class="v">از پروفایل خوانده شد</span></div>
       </div>
+      ${(CURP.guests||[]).length?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">همراهان</span><span class="sp"></span>
+          <span class="cap">${faN(CURP.guests.length)} نفر — هر کدام بلیت جدا</span></div>
+        ${CURP.guests.map((g,i)=>`<div class="answer"><span class="k">همراه ${faN(i+1)}</span>
+          <span class="v">${g.name} <span class="cap num">${g.mobile}</span></span></div>`).join('')}
+        <p class="mnote" style="margin-top:8px">اطلاعات همراهان همان‌جا در فرم پر شده بود؛ در صفحهٔ بعد فقط نامشان آمده.</p>
+      </div>`:''}
       <div class="card paper">
         <div class="row" style="margin-bottom:8px"><span class="fw">پیام‌ها</span><span class="sp"></span><span class="cap">کارشناس ${f.expert}</span></div>
         <div class="timeline">
@@ -903,14 +923,12 @@ function openUser(id){
         <p class="mnote" style="margin-top:8px">رد شدن یعنی بلیت باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
       </div>`:''}
       ${f.ticketOn&&f.ticket?`<div class="card paper">
-        <div class="row" style="margin-bottom:8px"><span class="fw">بلیت — پوستهٔ ${f.ticket}</span><span class="sp"></span>
-          <span class="cap">در ربات و بله هم در دسترس</span></div>
-        ${ticketHTML({style:f.skin||'clear',parts:f.parts||['title','date','venue','name','code','qr'],
-          title:f.head,kind:'بلیت ورود',name:CURP.name,code:CURP.code,no:'۱۲۴۵',
-          date:f.start,venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',seat:'ردیف ۱ — صندلی ۱۷',
-          confirmed:CURP.state==='paid'})}
+        <div class="row" style="margin-bottom:8px"><span class="fw">بلیت‌ها — پوستهٔ ${f.ticket}</span><span class="sp"></span>
+          <span class="cap">${faN(CURP.count)} بلیت — در ربات و بله هم در دسترس</span></div>
+        ${ticketStack(f)}
         <div class="row" style="margin-top:10px">
           <button class="btn sm quiet" data-bot="${CURP.code}"><svg class="i"><use href="#i-send"/></svg> فرستادن دوبارهٔ بلیت</button>
+          ${CURP.count>1?`<button class="btn sm quiet" data-botall="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> فرستادن هر ${faN(CURP.count)} بلیت</button>`:''}
           <button class="btn sm quiet" data-copy="${shortCode(CURP.code)}"><svg class="i"><use href="#i-copy"/></svg> کد بلیت</button>
         </div>
         <p class="mnote" style="margin-top:8px">خودِ کاربر هم می‌تواند در ربات نورا و پیام‌رسان بله با کد پیگیری یا شمارهٔ موبایل بلیتش را بگیرد.</p>
@@ -948,6 +966,7 @@ function renderKartabl(){
         <div style="flex:1;min-width:0">
           <div class="moneyline"><span>مبلغ صورت‌حساب</span><span class="num">${rialTxt(m.sum)}</span></div>
           <div class="mini">${tomanTxt(m.sum)}</div>
+          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر — هر نفر بلیت خودش${(p.guests||[]).length?' ('+p.guests.map(g=>g.name).join('، ')+')':''}</div>`:''}
           ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
           <div class="row" style="margin-top:10px">
             <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و بلیت قطعی</button>
@@ -1197,6 +1216,11 @@ document.addEventListener('click',e=>{
   const card=e.target.closest('[data-form]');
   if(card&&!e.target.closest('[data-copy]')){openForm(card.dataset.form);return}
   const pr=e.target.closest('[data-person]'); if(pr){openUser(pr.dataset.person);return}
+  const botall=e.target.closest('[data-botall]');
+  if(botall){const p=PEOPLE.find(x=>x.id===botall.dataset.botall)||CURP;
+    const n=(p.guests||[]).length+1;
+    log(faN(n)+' بلیت برای «'+p.name+'» به بله فرستاده شد');
+    toast(faN(n)+' بلیت فرستاده شد — یکی برای خودش و یکی برای هر همراه');return}
   const bot=e.target.closest('[data-bot]');
   if(bot){const p=PEOPLE.find(x=>x.code===bot.dataset.bot)||CURP;
     log('بلیت «'+(p?p.name:'')+'» دوباره به بله فرستاده شد');
