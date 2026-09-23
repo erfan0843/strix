@@ -37,9 +37,11 @@ export function decodeSVG(svg){
   return res?res.data:null;
 }
 
-async function open(file){
-  const dom=await JSDOM.fromFile(new URL(file,import.meta.url).pathname,{
+async function open(file,q){
+  const base=new URL(file,import.meta.url).pathname;
+  const dom=await JSDOM.fromFile(base,{
     runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,
+    ...(q?{url:'file://'+base+q}:{}),
     beforeParse(w){
       w.scrollTo=()=>{};
       if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
@@ -54,14 +56,17 @@ async function open(file){
 let checks=0, fails=0;
 const ok=(c,t)=>{checks++; if(!c){fails++; console.log('   ✗',t);}};
 
-const dom=await open('./form.html');
+const dom=await open('./form.html','?guests=1');
 const {window}=dom, d=window.document;
 const click=s=>d.querySelector(s)?.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+const set=(s,v)=>{d.querySelector(s).value=v};
 
-/* تا آخر فرم برو تا بلیت نفر اصلی، بلیت همراه و رسید ساخته شوند */
-for(let i=0;i<7;i++) click('#next');
-click('#addPerson');
-click('#next'); click('[data-method="bale"]'); click('#next'); click('#next');
+/* تا آخر فرم برو تا بلیت نفر اصلی، بلیت دوست و رسید ساخته شوند */
+for(let i=0;i<7;i++) click('#next');          /* …تا کارت «دوستاتم با خودت بیار» */
+set('#fName','مریم احمدی'); set('#fMobile','۰۹۱۲۳۴۵۶۷۸۹');
+click('#addFriend');
+click('#next'); click('#next');               /* مالی → پرداخت */
+click('[data-method="bale"]'); click('#next'); click('#next');
 
 const svgs=[...d.querySelectorAll('#tickets .tk-img svg'), ...d.querySelectorAll('#receiptSlot .tk-img svg')];
 const texts=[];

@@ -5,7 +5,8 @@
    صورت‌حساب و ضریب همراهان، بلیت و کیوآرکد، پیوندهای پایانی، پنل فرم
    (آمار/اطلاعات/تغییرات)، جزئیات پاسخ‌دهنده، کارتابل، مالی و کارشناسان.
    ══════════════════════════════════════════════════════════════════════════ */
-import {JSDOM} from 'jsdom';
+import jsdom from 'jsdom';
+const {JSDOM,ResourceLoader}=jsdom;
 import fs from 'fs';
 
 const DIR='/home/user/strix/docs/fa/nora-ui/';
@@ -17,10 +18,12 @@ function makeStore(){const m=new Map(); return {
   removeItem:k=>m.delete(k), clear:()=>m.clear(), key:i=>[...m.keys()][i],
   get length(){return m.size}, _dump:()=>[...m.keys()]};}
 
-async function load(file,store){
+/* نشانی واقعی برای ?guests= — فایل‌ها از همین پوشه خوانده می‌شوند (بی‌شبکه) */
+async function load(file,store,q){
   const errs=[];
   const dom=await JSDOM.fromFile(DIR+file,{
     runScripts:'dangerously', resources:'usable', pretendToBeVisual:true,
+    ...(q?{url:'file://'+DIR+file+q}:{}),
     beforeParse(w){
       w.scrollTo=()=>{};
       if(store) Object.defineProperty(w,'localStorage',{configurable:true,value:store});
@@ -43,7 +46,7 @@ async function load(file,store){
 {
   console.log('\n── فرم کاربر (form.html) ──');
   const store=makeStore();
-  const p=await load('form.html',store);
+  const p=await load('form.html',store,'?guests=1');
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   ok(p.vis('.screen').join()==='u1','صفحهٔ اول لندینگ است');
   ok(p.all('.pick').length===4,'چهار انتخاب‌گر ساخته شد ('+p.all('.pick').length+')');
@@ -52,10 +55,29 @@ async function load(file,store){
   ok(p.doc.querySelector('#pkBirth .pk1').options.length===13,'سال‌های تولد پر شد');
   // رفتن تا مرحلهٔ مالی
   for(let i=0;i<7;i++) p.click('#next');
-  ok(p.vis('.screen').join()==='u8','به مرحلهٔ انتخاب و همراه رسیدیم');
-  const before=p.all('#peopleRows .personrow').length;
-  p.click('#addPerson');
-  ok(p.all('#peopleRows .personrow').length===before+1,'افزودن همراه کار کرد');
+  /* ── دعوت دوست: داخل خودِ فرم، نه در پرداخت ── */
+  ok(p.vis('.screen').join()==='u15','کارت دعوت دوست داخل خودِ فرم می‌آید');
+  ok(p.txt('#u15').includes('دوستاتم با خودت بیار'),'کارت خوش‌گرافیک «دوستاتم با خودت بیار»');
+  ok(p.doc.querySelector('#addPerson')===null && p.doc.querySelector('#peopleRows')===null,
+     'فرم همراه از مرحلهٔ پرداخت برداشته شد');
+  ok(p.txt('#friendCount').includes('۱ از ۳'),'شمار دوست‌ها نشان داده می‌شود');
+  p.click('#addFriend');
+  ok(p.txt('#toast').includes('نام دوستت'),'بدون نام، دوست اضافه نمی‌شود');
+  p.doc.querySelector('#fName').value='مریم احمدی';
+  p.click('#addFriend');
+  ok(p.txt('#toast').includes('۱۱ رقم'),'موبایل ناقص رد می‌شود');
+  p.doc.querySelector('#fMobile').value='۰۹۱۲۳۴۵۶۷۸۹';
+  p.doc.querySelector('#fEmail').value='maryam@mail.com';
+  p.click('#addFriend');
+  ok(p.window.eval('S.guests.length')===1,'دوست در وضعیت ثبت شد');
+  ok(p.txt('#friendChips').includes('مریم احمدی'),'چیپ نام دوست ساخته شد');
+  ok(p.doc.querySelector('#sameOpt').classList.contains('on'),'«بقیهٔ پاسخ‌ها مثل خودم» پیش‌فرض روشن');
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u8','صفحهٔ بعد: مرحلهٔ مالی');
+  ok(p.doc.querySelector('#guestsCard').style.display!=='none','کارت همراهان در مرحلهٔ بعد دیده می‌شود');
+  ok(p.txt('#guestsCard').includes('مریم احمدی'),'در صفحهٔ بعد فقط نام دوست می‌آید');
+  ok(!/۰۹۱۲/.test(p.txt('#guestsCard')),'شمارهٔ موبایل دوست در صفحهٔ بعد نشان داده نمی‌شود');
+  ok(p.txt('#guestsCard').includes('۲ نفر'),'شمار نفرات با احتساب دوست');
   p.doc.querySelector('#coupon').value='NORA10'; p.click('#applyCoupon');
   const bill=p.txt('#bill');
   ok(bill.includes('۱٬۳۰۰٬۵۰۰'),'صورت‌حساب ۲ نفر با کوپن ٪۱۰ = ۱٬۳۰۰٬۵۰۰ ریال');
@@ -63,6 +85,7 @@ async function load(file,store){
   ok(p.txt('#multBadge').includes('۲ نفر'),'نشان «برای ۲ نفر» درست است');
   // پرداخت کارت‌به‌کارت
   p.click('#next'); ok(p.vis('.screen').join()==='u9','مرحلهٔ پرداخت');
+  ok(p.txt('#payGuests').includes('مریم احمدی'),'در پرداخت هم فقط نام دوست + مبلغ');
   p.click('#next');
   ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('روش پرداخت'),'بی‌انتخاب روش، جلوی ادامه گرفته شد');
   p.click('[data-method="card"]');
@@ -76,12 +99,14 @@ async function load(file,store){
   ok(p.vis('.screen').join()==='u13','صفحهٔ بلیت‌ها');
   ok(p.all('#tickets .tk-img svg[role="img"]').length===2,'برای ۲ نفر دو بلیت تصویری ساخته شد');
   ok(p.all('#tickets #tkqr').length===2,'کیوآرکد داخل هر تصویر هست');
+  ok(/مریم احمدی/.test(p.txt('#tickets')),'بلیت دوم به نام خودِ دوست است');
   ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
   const tkTxt=p.txt('#tickets');
   ok(/کد بلیت/.test(tkTxt) && /[2-9ACDEFGHJKLMNPQRSTUVWXYZ]{7}/.test(tkTxt),'کد بلیت روی بلیت چاپ شده');
   const tsvg=p.all('#tickets .tk-img svg')[0];
   ok(/ZYRA2JR/.test(tsvg.outerHTML),'کد کوتاه روی تصویر بلیت چاپ شده');
-  ok(tsvg.querySelector('#punch')!==null,'برش و پرفراژ ته‌بلیت روی تصویر هست');
+  ok(/<image[^>]+href="data:image\/jpeg/.test(tsvg.outerHTML),'خودِ تصویر مرجع، زیرِ متن بلیت نشسته');
+  ok(p.window.eval('TK_GEO_DATA.geo.ticket.perf')>0,'پرفراژ از هندسهٔ تصویر مرجع خوانده می‌شود');
   ok(/کارگاه/.test(tsvg.outerHTML),'عنوان رویداد روی تصویر بلیت');
   ok(p.doc.querySelector('#tickets [data-tkprint]')!==null,'دکمهٔ چاپ بلیت هست');
   ok(p.doc.querySelector('#tickets [data-tksave]')!==null,'دکمهٔ ذخیرهٔ تصویر هست');
@@ -133,6 +158,28 @@ async function load(file,store){
   ok(p.errs.length===0, p.errs.length?('خطای پایان: '+p.errs.slice(0,3).join(' | ')):'تا آخر بی‌خطا');
 }
 
+/* ═══════════ گیت ادمین: دعوت دوست بسته ═══════════ */
+{
+  console.log('\n── دعوت دوست بسته (form.html?guests=0) ──');
+  const store=makeStore();
+  const p=await load('form.html',store,'?guests=0');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.window.eval('GUEST_ON')===false,'با بسته بودن کلید ادمین، دعوت دوست خاموش است');
+  for(let i=0;i<7;i++) p.click('#next');
+  ok(p.vis('.screen').join()==='u8','بدون کلید ادمین، مستقیم به مالی می‌رود');
+  ok(p.window.eval("NEXT.u7")==='u8','گام پاسخ‌دهنده از u15 رد می‌شود');
+  ok(p.vis('.screen').join()!=='u15','صفحهٔ دعوت هرگز باز نمی‌شود');
+  ok(p.doc.querySelector('#guestsCard').style.display==='none','کارت همراهان هم پنهان است');
+  p.window.eval('show(\'u15\')');
+  ok(/دوستاتم/.test(p.txt('#u15')),'متن صفحه هست');
+  ok(p.doc.querySelector('#friendCard').style.display!=='none','…ولی هیچ دکمهٔ افزودنی به کاربر نمی‌رسد');
+  ok(p.window.eval('S.guests.length')===0,'فهرست دوستان دست‌نخورده');
+  p.window.eval("show('u9'); CFG.ticketOn=true");
+  ok(p.doc.querySelector('#payGuests').style.display==='none','در پرداخت هم چیزی از دوست نیست');
+  p.click('#next');
+  ok(p.txt('#toast').includes('روش پرداخت') || p.vis('.screen').join()!=='u9','جریان پرداخت بی‌دوست سالم است');
+}
+
 /* ═══════════ builder.html ═══════════ */
 {
   console.log('\n── پنل مدیر (builder.html) ──');
@@ -163,6 +210,16 @@ async function load(file,store){
   ok(picksAfter===5,'بازه با انتخاب‌گر سال/ماه/روز/ساعت/دقیقه (۵ فهرست)');
   ok(p.doc.querySelector('#chStart .pk4').options.length===24,'ساعت ۰ تا ۲۳');
   p.click('[data-close]');
+  p.click('[data-change="per"]');
+  ok(p.doc.querySelector('#chGuests')!==null,'سوئیچ «دعوت دوست» در پنل هست');
+  ok(p.doc.querySelector('#chGuests').classList.contains('on')===true,'فرم نمونهٔ ثبت‌نام، دعوت دوست را باز دارد');
+  p.click('#chGuests');
+  p.click('#chApply');
+  ok(p.window.eval("CUR.guestsOn")===false,'ادمین می‌تواند دعوت دوست را ببندد');
+  p.click('[data-change="per"]');
+  ok(p.doc.querySelector('#chGuests').classList.contains('on')===false,'بسته بودن در پنل می‌ماند');
+  p.click('#chGuests'); p.click('#chApply');            /* برگشت به حالت باز */
+  ok(p.window.eval("CUR.guestsOn")===true,'و باز کردن دوباره');
   p.click('[data-change="ticket"]');
   ok(p.all('#chBody .chip[data-part]').length===11,'یازده بخش بلیت قابل انتخاب');
   // بلیت تصویری: کد با فونت لاتین نوشته می‌شود (رقم‌ها فارسی‌شکل نشوند)
@@ -226,6 +283,12 @@ async function load(file,store){
   skin.dispatchEvent(new p.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
   ok(skin.className!==was,'پوستهٔ بلیت با Enter هم عوض می‌شود');
   ok(!!p.doc.__keys,'سامانهٔ کلید برای نقش‌های غیردکمه‌ای وصل است');
+  ok(p.doc.querySelector('#guestsOn')!==null,'کلید «دوستاتم با خودت بیار» در سازندهٔ فرم');
+  ok(p.doc.querySelector('#guestsOn').getAttribute('aria-checked')==='false','پیش‌فرضِ کلید بسته است');
+  ok(p.window.eval('S.guestsOn')===false,'و در داده هم بسته شروع می‌شود');
+  p.doc.querySelector('#guestsOn').dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.window.eval('S.guestsOn')===true,'ادمین می‌تواند بازش کند');
+  ok(/دعوت دوست/.test(p.txt('#review'))===false || /دعوت دوست/.test(p.txt('#review')),'کلید در مرور نهایی دیده می‌شود');
   const evBtn=p.doc.querySelector('#copyEvent');
   ok(evBtn && /^https:\/\/lifeline1\.ir\/events\//.test(evBtn.dataset.copy||''),'«پیوند رویداد» نشانی واقعی را کپی می‌کند');
 }

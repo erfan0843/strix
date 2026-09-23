@@ -220,6 +220,12 @@ const nowFa=()=>{const g=new Date(), j=jalaliOf(g.getFullYear(),g.getMonth()+1,g
 /* پوشاندن بخشی از شمارهٔ موبایل در فهرست‌ها (حریم خصوصی) */
 const maskPhone=s=>{const d=unFa(String(s||'')); return d.length===11?d.replace(/^(\d{4})\d{3}(\d{4})$/,(m,a,b)=>faDigits(a)+'***'+faDigits(b)):d;};
 
+/* ── صفحه‌های تصویری بلیت و رسید (tickets/plates.js) ────────────────────── */
+let TK_PLATES_ALL={}, RC_PLATES_ALL={}, TK_GEO_DATA=null;
+if(typeof TK_PLATES!=='undefined') TK_PLATES_ALL=TK_PLATES;
+if(typeof RC_PLATES!=='undefined') RC_PLATES_ALL=RC_PLATES;
+if(typeof TK_GEO!=='undefined') TK_GEO_DATA=TK_GEO;
+
 /* ── کیوآرکد واقعی: حالت بایت، سطح M/L، نسخهٔ ۱ تا ۵ ───────────────────── */
 const QRCODE=(function(){
   const EXP=new Array(512), LOG=new Array(256);
@@ -382,205 +388,129 @@ const TK_FONTS_LAT="'Nora Latin','Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sa
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* پوسته‌ها: گرادیان کارت از چپ (ته‌برگ) به راست (متن) — نمونه‌برداری‌شده از مرجع */
-const TK_SKINS={
-  clear:{n:'شفاف',halo:'rgba(255,255,255,.75)',  g:['#F7F6F1','#F1F4F7','#E3E8E7'], ink:'#12211C', muted:'#6B736E', line:'#C9D2D6', edge:'#DBD7C9'},
-  forest:{n:'جنگلی',halo:'rgba(255,255,255,.12)',g:['#31706A','#3E7164','#8E855A'], ink:'#F7FBF9', muted:'#DCEAE4', muted2:'#E7F1EC', line:'#8FB6A6', edge:'#0C4E43'},
-  gold:  {n:'طلایی',halo:'rgba(255,255,255,.6)',g:['#EFE7D2','#FAF6EC','#E7E3DA'], ink:'#3B2E13', muted:'#7C6B4A', line:'#CDBEA0', edge:'#CEBA8C'},
-  ocean: {n:'اقیانوسی',halo:'rgba(255,255,255,.6)',g:['#D7E1EC','#F1F5FA','#DFE3E8'],ink:'#16283A', muted:'#5D6B7B', line:'#B6C5D6', edge:'#97ABC5'},
-  night: {n:'شب',halo:'rgba(255,255,255,.10)',   g:['#2F4C46','#3E4845','#303936'], ink:'#F6F8F6', muted:'#C7D2CD', muted2:'#D8E1DD', line:'#6B7C76', edge:'#11322B'}
-};
+/* نام پوسته‌ها؛ خودِ تصویرها در tickets/plates.js هستند */
+const TK_SKIN_NAMES={clear:'شفاف',forest:'جنگلی',gold:'طلایی',ocean:'اقیانوسی',night:'شب'};
 
-/* هندسهٔ کارت */
-const TK_W=880, TK_H=410, PAD=30;
-const CARD={x:PAD,y:29,w:TK_W-2*PAD,h:350,r:40};
-/* هندسه از روی تصویر مرجع اندازه‌گیری شده — همان بوم ۸۸۰×۴۱۰ و همان ترازها */
-const PERF_X=254;                     /* خط چیندار، ته‌برگ سمت چپ */
-const TX=808;                         /* لبهٔ راست متن‌ها */
-const STUB_C=(CARD.x+PERF_X)/2;       /* مرکز ته‌برگ: کیوآر و کد اینجا می‌نشینند */
-const L={brand:77, logo:72, kind:126, title:153, meta:202,
-  qrY:91, qrS:110, codeCap:281, codeY:320,
-  rowLabel:285, rowValue:319, stateY:236};
+/* اندازهٔ قلم را می‌رساند که متن از لبه بیرون نزند */
+function tkFit(text, size, maxW, minSize) {
+  const k = /^[A-Za-z0-9]/.test(String(text || '')) ? .58 : .54;
+  let s = size;
+  while (s > minSize && String(text || '').length * s * k > maxW) s -= .5;
+  return s;
+}
+const tkEsc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/* کیوآرکد: ماژول‌ها را از موتور مشترک می‌گیرد و به rect تبدیل می‌کند */
-function tkQR(text,x,y,size){
-  const made=QRCODE.make(text);
+/* ── کیوآرکد واقعی روی کارت سفید ───────────────────────────────────────── */
+function tkReady(){return !!TK_GEO_DATA && !!TK_PLATES_ALL.clear;}
+
+function tkQR(host, text, x, y, size, dark) {
+  const made = QRCODE.make(text);
   if(!made) return '';
-  const {matrix,size:n}=made, quiet=1, total=n+quiet*2, u=size/total;
-  let cells='';
-  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(matrix[r][c])
-    cells+=`<rect x="${(x+(c+quiet)*u).toFixed(2)}" y="${(y+(r+quiet)*u).toFixed(2)}" width="${u.toFixed(2)}" height="${u.toFixed(2)}"/>`;
-  return `<g id="tkqr" fill="#0E1513">${cells}</g>`;
+  const m = made.matrix, n = made.size, cell = size / n;
+  let cells = '';
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if (m[r][c])
+        cells += `<rect x="${(x + c * cell).toFixed(2)}" y="${(y + r * cell).toFixed(2)}" width="${cell.toFixed(2)}" height="${cell.toFixed(2)}"/>`;
+  return `<g id="tkqr" fill="${dark || '#101D19'}">${cells}</g>`;
 }
 
-/* نشان خط زندگی — پالس روی دایره؛ خط پالس آرام می‌زند (گیف سبک، بدون فایل) */
-function tkLogo(x,y,color,fill){
-  return `<g>
-    <circle cx="${x}" cy="${y}" r="17" fill="${fill||'none'}"/>
-    <circle cx="${x}" cy="${y}" r="16" fill="none" stroke="${color}" stroke-width="1.6" opacity=".85"/>
-    <path d="M${x-9} ${y} h3.2 l2.2 5.6 3.4-11.2 2.6 5.6 h6.6" fill="none" stroke="${color}"
-      stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-      <animate attributeName="opacity" values="1;.35;1" dur="2.6s" repeatCount="indefinite"/>
-    </path></g>`;
-}
+/* ── بلیت ──────────────────────────────────────────────────────────────── */
+function ticketSVG(o, opt) {
+  o = o || {}; opt = opt || {};
+  if(!tkReady()) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410"><text x="880" y="200" text-anchor="end" font-size="18" fill="#8A928E">صفحهٔ بلیت بار نشده (tickets/plates.js)</text></svg>';
+  const skin = TK_PLATES_ALL[o.skin] ? o.skin : 'clear';
+  const G = TK_GEO_DATA.geo.ticket, P = TK_GEO_DATA.palette[skin];
+  const plate = TK_PLATES_ALL[skin];
+  const parts = o.parts || ['title', 'date', 'venue', 'name', 'seat', 'no', 'code', 'qr', 'logo', 'note'];
+  const has = k => parts.includes(k);
+  const code = o.code || 'TL0000000000';
+  const short = o.short || shortCode(code);
+  const title = (o.title || 'کارگاه').slice(0, 46);
+  const meta = [o.weekday || o.day, o.date, (o.time ? 'ساعت ' + o.time : ''), o.venue].filter(Boolean).join(' · ') || o.meta || '';
+  const RTL = ' direction="rtl"';
+  const clip = `clip-${skin}`;
 
-/* جاروی نور: نوار روشن که آرام روی کارت می‌گذرد */
-function tkSheen(w,h,op){
-  return `<g clip-path="url(#clip)" opacity="${op}">
-    <rect x="${CARD.x-580}" y="${CARD.y-40}" width="440" height="${CARD.h+80}" fill="url(#sheen)" filter="url(#soft)">
-      <animate attributeName="x" values="${CARD.x-580};${CARD.x+CARD.w+40}" dur="7.5s" begin="0.6s" repeatCount="indefinite" calcMode="spline"
-        keySplines=".25 .1 .25 1" keyTimes="0;1"/>
-    </rect></g>`;
-}
+  const rows = [];
+  if (has('title')) rows.push(`<text x="${G.title.x}" y="${G.title.base}" text-anchor="end" font-size="${tkFit(title, G.title.size, G.title.x - G.perf - 40, 21).toFixed(1)}" font-weight="700" fill="${P.ink}" letter-spacing="-.4"${RTL}>${tkEsc(title)}</text>`);
+  if (meta) rows.push(`<text x="${G.meta.x}" y="${G.meta.base}" text-anchor="end" font-size="${tkFit(meta, G.meta.size, G.meta.x - G.perf - 40, 12.5).toFixed(1)}" fill="${P.muted}"${RTL}>${tkEsc(meta)}</text>`);
 
-function ticketSVG(o){
-  o=o||{};
-  const skin=TK_SKINS[o.skin]?o.skin:'clear', S=TK_SKINS[skin];
-  const parts=o.parts||['title','date','venue','name','seat','no','code','qr','logo','note'];
-  const has=k=>parts.includes(k);
-  const code=o.code||'TL0000000000';
-  const short=o.short||shortCode(code);
-  const title=(o.title||'کارگاه').slice(0,42);
-  const meta=[o.weekday||o.day,o.date,(o.time?'ساعت '+o.time:''),o.venue].filter(Boolean).join(' · ')||o.meta||'';
-  const RTL=' direction="rtl"';          /* متن چندتکهٔ فارسی: ترتیب تکه‌ها از راست */
-  const avail=TX-PERF_X-52;              /* عرض ستون راست تا خط چیندار */
-  const rows=[];
-  if(o.kind) rows.push(`<text x="${TX}" y="${L.kind}" text-anchor="end" font-size="13.5" fill="${S.muted}"${RTL}>${esc(o.kind)}</text>`);
-  if(has('title')) rows.push(`<text x="${TX}" y="${L.title}" text-anchor="end" font-size="${tkFit(title,36,avail,22).toFixed(1)}" font-weight="700" fill="${S.ink}" letter-spacing="-.4"${RTL}>${esc(title)}</text>`);
-  if(meta) rows.push(`<text x="${TX}" y="${L.meta}" text-anchor="end" font-size="${tkFit(meta,20,avail,12.5).toFixed(1)}" fill="${S.muted}"${RTL}>${esc(meta)}</text>`);
-  if(o.noteText) rows.push(`<text x="${TX}" y="${L.meta+26}" text-anchor="end" font-size="12.5" fill="${S.muted2||S.muted}"${RTL}>${esc(o.noteText)}</text>`);
-  /* ستون چپ: کیوآر روی کارت سفید، بعد کد بلیت وسط ته‌برگ */
-  const qr=has('qr')?`<rect x="${STUB_C-L.qrS/2-13}" y="${L.qrY-13}" width="${L.qrS+26}" height="${L.qrS+26}" rx="18" fill="#FFFFFF"/>`+
-      tkQR(o.payload||('https://lifeline1.ir/t/'+short), STUB_C-L.qrS/2, L.qrY, L.qrS):'';
-  const codeBlock=has('code')?`<text x="${STUB_C}" y="${L.codeCap}" text-anchor="middle" font-size="14" fill="${S.muted}"${RTL}>کد بلیت</text>
-      <text x="${STUB_C}" y="${L.codeY}" text-anchor="middle" font-size="29" font-weight="700" fill="${S.ink}" letter-spacing="7" font-family="${TK_FONTS_LAT}" direction="ltr">${esc(o.displayCode||short)}</text>`:'';
-  const stateChip=o.state?`<rect x="${STUB_C-72}" y="${L.stateY-15}" width="144" height="30" rx="15" fill="${S.ink}" opacity=".12"/>
-      <text x="${STUB_C}" y="${L.stateY+5}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${S.ink}">${esc(o.state)}</text>`:'';
-  /* ردیف پایین: شرکت‌کننده راست، صندلی و شمارهٔ بلیت کنارش — هم‌تراز با کد بلیت */
-  const side=[has('seat')?['صندلی',o.seat]:null, has('no')?['شمارهٔ بلیت',o.no]:null].filter(Boolean);
-  if(has('name')&&o.name) rows.push(`<text x="${TX}" y="${L.rowLabel}" text-anchor="end" font-size="14" fill="${S.muted}"${RTL}>شرکت‌کننده</text>
-    <text x="${TX}" y="${L.rowValue}" text-anchor="end" font-size="${tkFit(o.name,27,260,15).toFixed(1)}" font-weight="700" fill="${S.ink}"${RTL}>${esc(o.name)}</text>`);
-  if(side.length) rows.push(side.map(([k,v],i)=>{
-    const x=TX-270-i*152;
-    return `<text x="${x}" y="${L.rowLabel}" text-anchor="end" font-size="13" fill="${S.muted}"${RTL}>${k}</text>
-     <text x="${x}" y="${L.rowValue}" text-anchor="end" font-size="${tkFit(v,16,140,11).toFixed(1)}" font-weight="600" fill="${S.ink}"${/^[A-Za-z0-9]/.test(v)?' direction="ltr" font-family="'+TK_FONTS_LAT+'"':RTL}>${esc(v)}</text>`;}).join(''));
+  const side = [has('seat') ? ['صندلی', o.seat] : null, has('no') ? ['شمارهٔ بلیت', o.no] : null].filter(Boolean);
+  if (has('name') && o.name) rows.push(`<text x="${G.nameLabel.x}" y="${G.nameLabel.base}" text-anchor="end" font-size="${G.nameLabel.size}" fill="${P.muted}"${RTL}>شرکت‌کننده</text>
+    <text x="${G.name.x}" y="${G.name.base}" text-anchor="end" font-size="${tkFit(o.name, G.name.size, 230, 15).toFixed(1)}" font-weight="700" fill="${P.ink}"${RTL}>${tkEsc(o.name)}</text>`);
+  if (side.length) rows.push(side.map(([k, v], i) => {
+    const x = G.name.x - 232 - i * 132;
+    return `<text x="${x}" y="${G.nameLabel.base}" text-anchor="end" font-size="${G.nameLabel.size}" fill="${P.muted}"${RTL}>${k}</text>
+      <text x="${x}" y="${G.name.base}" text-anchor="end" font-size="${tkFit(v, 16, 122, 11).toFixed(1)}" font-weight="600" fill="${P.ink}"${/^[A-Za-z0-9]/.test(v) ? ' direction="ltr" font-family="' + TK_FONTS_LAT + '"' : RTL}>${tkEsc(v)}</text>`;
+  }).join(''));
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${TK_W} ${TK_H}" width="${TK_W}" height="${TK_H}" overflow="hidden" role="img"
-     aria-label="بلیت ${esc(title)}${o.name?' برای '+esc(o.name):''}" style="font-family:'Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif">
+  const codeBlock = has('code') ? `<text x="${G.codeLabel.cx}" y="${G.codeLabel.base}" text-anchor="middle" font-size="${G.codeLabel.size}" fill="${P.muted}"${RTL}>کد بلیت</text>
+    <text x="${G.code.cx}" y="${G.code.base}" text-anchor="middle" font-size="${G.code.size}" font-weight="700" fill="${P.ink}" letter-spacing="${G.code.track}" font-family="${TK_FONTS_LAT}" direction="ltr">${tkEsc(o.displayCode || short)}</text>` : '';
+  const qrBlock = has('qr') ? tkQR(null, o.payload || ('https://lifeline1.ir/t/' + short), G.qr.x0, G.qr.y0, G.qr.size) : '';
+  const note = has('note') && o.noteText ? `<text x="${G.perf + 18}" y="82" font-size="12.5" fill="${P.muted}"${RTL}>${tkEsc(o.noteText)}</text>` : '';
+  const state = o.state ? `<text x="${G.code.cx}" y="${G.nameLabel.base - 26}" text-anchor="middle" font-size="12.5" font-weight="700" fill="${P.ink}"${RTL}>${tkEsc(o.state)}</text>` : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${G.size[0]} ${G.size[1]}" width="${G.size[0]}" height="${G.size[1]}" role="img" style="font-family:${TK_FONTS}"
+    aria-label="بلیت ${tkEsc(title)}${o.name ? ' برای ' + tkEsc(o.name) : ''}">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="${S.g[0]}"/><stop offset=".45" stop-color="${S.g[1]}"/><stop offset="1" stop-color="${S.g[2]}"/>
-    </linearGradient>
-    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".5"/><stop offset=".55" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
-      <stop offset=".35" stop-color="#FFFFFF" stop-opacity=".5"/>
-      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".75"/>
-      <stop offset=".65" stop-color="#FFFFFF" stop-opacity=".5"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
-    <filter id="soft" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="16"/></filter>
-    <filter id="card" filterUnits="userSpaceOnUse" x="0" y="0" width="${TK_W}" height="${TK_H}">
-      <feDropShadow dx="0" dy="7" stdDeviation="12" flood-color="#10201A" flood-opacity=".15"/></filter>
-    <mask id="punch">
-      <rect x="${CARD.x}" y="${CARD.y}" width="${CARD.w}" height="${CARD.h}" rx="${CARD.r}" fill="#fff"/>
-      <circle cx="${PERF_X}" cy="${CARD.y}" r="15" fill="#000"/>
-      <circle cx="${PERF_X}" cy="${CARD.y+CARD.h}" r="15" fill="#000"/>
-    </mask>
-    <clipPath id="clip"><rect x="${CARD.x}" y="${CARD.y}" width="${CARD.w}" height="${CARD.h}" rx="${CARD.r}"/></clipPath>
+    <clipPath id="${clip}"><rect x="${G.card[0]}" y="${G.card[1]}" width="${G.card[2] - G.card[0]}" height="${G.card[3] - G.card[1]}" rx="40"/></clipPath>
+    ${opt.embed ? `<style>${TK_CSS}</style>` : ''}
   </defs>
-  <g filter="url(#card)">
-    <rect x="${CARD.x}" y="${CARD.y}" width="${CARD.w}" height="${CARD.h}" rx="${CARD.r}" fill="url(#bg)" mask="url(#punch)"/>
-  </g>
-  <g clip-path="url(#clip)">
-    <rect x="${CARD.x}" y="${CARD.y}" width="${CARD.w}" height="${CARD.h*.55}" fill="url(#top)"/>
-    ${tkSheen(CARD.w*2,CARD.h,skin==='clear'||skin==='gold'||skin==='ocean'?.30:.12)}
-    <line x1="${PERF_X}" y1="${CARD.y+36}" x2="${PERF_X}" y2="${CARD.y+CARD.h-35}" stroke="${S.ink}" stroke-width="1.6" stroke-dasharray="7 7" stroke-opacity=".55"/>
-    ${qr}
+  <g clip-path="url(#${clip})">
+    <image x="0" y="0" width="${G.size[0]}" height="${G.size[1]}" href="${plate}" preserveAspectRatio="none"/>
+    ${has('qr') ? qrBlock : ''}
     ${codeBlock}
-    ${stateChip}
-    ${has('logo')?tkLogo(TX-18,L.logo,S.ink,S.halo):''}
-    ${has('logo')?`<text x="${TX-44}" y="${L.brand}" text-anchor="end" font-size="13.5" font-weight="600" fill="${S.ink}"${RTL}>خط زندگی</text>`:''}
+    ${state}
+    ${note}
     ${rows.join('\n    ')}
   </g>
-  <rect x="${CARD.x+.5}" y="${CARD.y+.5}" width="${CARD.w-1}" height="${CARD.h-1}" rx="${CARD.r}" fill="none" stroke="${S.edge}" stroke-opacity=".55" mask="url(#punch)"/>
 </svg>`;
 }
 
-
-/* ══════════════════════════════════════════════════════════════════════════
-   رسید پرداخت — همان خانواده، تصویری
-   ══════════════════════════════════════════════════════════════════════════ */
-function receiptSVG(o){
-  o=o||{};
-  const skin=TK_SKINS[o.skin]?o.skin:'clear', S=TK_SKINS[skin];
-  const W=660, PAD=16;
-  const rows=[
-    ['برنامه',o.program],['زمان برنامه',o.when],['پرداخت‌کننده',o.payer],
-    ['روش',o.method],['تاریخ پرداخت',o.at],['بلیت',o.ticket]
-  ].filter(([,v])=>v);
-  const rowH=30, listTop=344;
-  const H=listTop+rows.length*rowH+168;
-  const state=o.state||'ok';
-  const pill={ok:['پرداخت شد','#0B7A57','rgba(11,122,87,.13)'],
-              wait:['در انتظار تأیید','#8A6A25','rgba(138,106,37,.15)'],
-              stop:['پرداخت نشد','#B4453C','rgba(180,69,60,.14)']}[state];
-  const X2=W-PAD-28; const RTL=' direction="rtl"';
-  let ry=listTop;
-  const rowTags=rows.map(([k,v])=>{
-    const y=ry; ry+=rowH;
-    const ltr=/^[A-Za-z0-9]/.test(String(v))?' direction="ltr" font-family="'+TK_FONTS_LAT+'"':'';
-    return `<text x="${X2}" y="${y}" text-anchor="end" font-size="14" fill="${S.muted}"${RTL}>${esc(k)}</text>
-      <text x="${X2-150}" y="${y}" text-anchor="end" font-size="14.5" font-weight="600" fill="${S.ink}"${ltr}>${esc(v)}</text>
-      <line x1="${PAD+28}" y1="${y+11}" x2="${X2}" y2="${y+11}" stroke="${S.line}" stroke-width="1" opacity=".32"/>`;
+/* ── رسید ─────────────────────────────────────────────────────────────── */
+function receiptSVG(o, opt) {
+  o = o || {}; opt = opt || {};
+  const skin = RC_PLATES_ALL[o.skin] ? o.skin : (o.skin === 'night' ? 'night' : 'clear');
+  const G = TK_GEO_DATA.geo.receipt, P = TK_GEO_DATA.palette['rc-' + skin];
+  const plate = RC_PLATES_ALL[skin];
+  const RTL = ' direction="rtl"';
+  const state = o.state || 'ok';
+  const pill = { ok: ['پرداخت شد', '#0B7A57', 'rgba(11,122,87,.13)'],
+                 wait: ['در انتظار تأیید', '#8A6A25', 'rgba(138,106,37,.15)'],
+                 stop: ['پرداخت نشد', '#B4453C', 'rgba(180,69,60,.14)'] }[state];
+  const rows = [['برنامه', o.program], ['زمان برنامه', o.when], ['پرداخت‌کننده', o.payer],
+                ['روش', o.method], ['تاریخ پرداخت', o.at], ['بلیت', o.ticket]].filter(([, v]) => v);
+  const rowTags = rows.map(([k, v], i) => {
+    const y = G.rows.first + i * G.rows.gap;
+    const ltr = /^[A-Za-z0-9]/.test(String(v)) ? ' direction="ltr" font-family="' + TK_FONTS_LAT + '"' : RTL;
+    return `<text x="${G.rows.labelX}" y="${y}" text-anchor="end" font-size="${G.rows.size}" fill="${P.muted}"${RTL}>${tkEsc(k)}</text>
+      <text x="${G.rows.valueX}" y="${y}" font-size="${G.rows.size}" font-weight="600" fill="${P.ink}"${ltr}>${tkEsc(v)}</text>`;
   }).join('\n    ');
-  const footY=ry+34;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img"
-    aria-label="رسید پرداخت ${esc(o.program||'')}" style="font-family:'Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif">
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${G.size[0]} ${G.size[1]}" width="${G.size[0]}" height="${G.size[1]}" role="img" style="font-family:${TK_FONTS}"
+    aria-label="رسید پرداخت ${tkEsc(o.program || '')}">
   <defs>
-    <linearGradient id="rbg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="${S.g[1]}"/><stop offset="1" stop-color="${S.g[2]}"/></linearGradient>
-    <linearGradient id="rsheen" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
-      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".7"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
-    <filter id="rsoft" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="18"/></filter>
-    <filter id="rcard" x="-8%" y="-8%" width="116%" height="116%">
-      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#10201A" flood-opacity=".18"/></filter>
-    <clipPath id="rclip"><rect x="${PAD}" y="${PAD}" width="${W-2*PAD}" height="${H-2*PAD}" rx="30"/></clipPath>
+    <clipPath id="rclip-${skin}"><rect x="${G.card[0]}" y="${G.card[1]}" width="${G.card[2] - G.card[0]}" height="${G.card[3] - G.card[1]}" rx="34"/></clipPath>
+    ${opt.embed ? `<style>${TK_CSS}</style>` : ''}
   </defs>
-  <g filter="url(#rcard)">
-    <rect x="${PAD}" y="${PAD}" width="${W-2*PAD}" height="${H-2*PAD}" rx="30" fill="url(#rbg)"/>
-  </g>
-  <g clip-path="url(#rclip)">
-    <g opacity="${(skin==='night'||skin==='forest')?.10:.26}">
-      <rect x="-460" y="-80" width="420" height="${H+160}" fill="url(#rsheen)" filter="url(#rsoft)">
-        <animate attributeName="x" values="-460;${W+60}" dur="8s" repeatCount="indefinite"/></rect></g>
-    ${tkLogo(X2-6,74,S.ink,S.halo)}
-    <text x="${X2-32}" y="80" text-anchor="end" font-size="14.5" font-weight="600" fill="${S.ink}"${RTL}>خط زندگی</text>
-    ${o.state?`<g><rect x="${PAD+28}" y="58" width="150" height="32" rx="16" fill="${pill[2]}"/>
-      <circle cx="${PAD+52}" cy="74" r="4" fill="${pill[1]}"/>
-      <text x="${PAD+66}" y="79" font-size="13.5" font-weight="700" fill="${pill[1]}">${pill[0]}</text></g>`:''}
-    <text x="${X2}" y="146" text-anchor="end" font-size="19" font-weight="700" fill="${S.ink}">رسید پرداخت</text>
-    <rect x="${X2-52}" y="158" width="52" height="4" rx="2" fill="${S.ink}" opacity=".85"/>
-    <text x="${W/2}" y="232" text-anchor="middle" font-size="42" font-weight="700" fill="${S.ink}" letter-spacing="-1">${fa(o.amount||0)}</text>
-    <text x="${W/2}" y="258" text-anchor="middle" font-size="14" fill="${S.muted}"${RTL}>ریال</text>
-    ${o.discount?`<text x="${W/2}" y="286" text-anchor="middle" font-size="13.5" fill="${pill[1]}">تخفیف ${rialTxt(o.discount)}</text>`:''}
-    <text x="${W/2}" y="${o.discount?314:290}" text-anchor="middle" font-size="13" fill="${S.muted}">${tomanTxt(o.amount||0)}</text>
+  <g clip-path="url(#rclip-${skin})">
+    <image x="0" y="0" width="${G.size[0]}" height="${G.size[1]}" href="${plate}" preserveAspectRatio="none"/>
+    ${o.state ? `<g><rect x="${G.pill.x}" y="${G.pill.y}" width="${Math.max(120, pill[0].length * 9 + 44)}" height="${G.pill.h}" rx="${G.pill.h / 2}" fill="${pill[2]}"/>
+      <circle cx="${G.pill.x + 26}" cy="${G.pill.y + G.pill.h / 2}" r="4.5" fill="${pill[1]}"/>
+      <text x="${G.pill.x + 42}" y="${G.pill.y + G.pill.h / 2 + 5}" font-size="13.5" font-weight="700" fill="${pill[1]}"${RTL}>${pill[0]}</text></g>` : ''}
+    <text x="${G.title.x}" y="${G.title.base}" text-anchor="end" font-size="${G.title.size}" font-weight="700" fill="${P.ink}"${RTL}>رسید پرداخت</text>
+    <text x="${G.amountCap.cx}" y="${G.amountCap.base}" text-anchor="middle" font-size="${G.amountCap.size}" fill="${P.muted}"${RTL}>مبلغ</text>
+    <text x="${G.amount.cx}" y="${G.amount.base}" text-anchor="middle" font-size="${G.amount.size}" font-weight="700" fill="${P.ink}" letter-spacing="-1"${RTL}>${fa(o.amount || 0)} ریال</text>
+    ${o.discount ? `<text x="${G.discount.cx}" y="${G.discount.base}" text-anchor="middle" font-size="${G.discount.size}" fill="${P.muted}"${RTL}>تخفیف ${fa(o.discount)} ریال</text>
+    <text x="${G.discount.cx}" y="${G.discount.base + 20}" text-anchor="middle" font-size="${G.discount.size}" fill="${P.muted}"${RTL}>${tomanTxt(o.amount || 0)}</text>`
+    : `<text x="${G.discount.cx}" y="${G.discount.base}" text-anchor="middle" font-size="${G.discount.size}" fill="${P.muted}"${RTL}>${tomanTxt(o.amount || 0)}</text>`}
     ${rowTags}
-    <line x1="${PAD+28}" y1="${ry+8}" x2="${X2}" y2="${ry+8}" stroke="${S.line}" stroke-width="1" opacity=".5"/>
-    <rect x="${X2-118}" y="${footY}" width="118" height="118" rx="18" fill="#FFFFFF"/>
-    ${tkQR(o.payload||('receipt:'+(o.track||'')),X2-108,footY+10,98)}
-    <text x="${X2-134}" y="${footY+52}" text-anchor="end" font-size="13" fill="${S.muted}">کد پیگیری</text>
-    <text x="${X2-134}" y="${footY+80}" text-anchor="end" font-size="23" font-weight="700" fill="${S.ink}" font-family="${TK_FONTS_LAT}" direction="ltr">${esc(o.track||'—')}</text>
-    <text x="${W/2}" y="${H-40}" text-anchor="middle" font-size="12.5" fill="${S.muted}"${RTL}>صدور الکترونیکی؛ بدون مهر و امضا معتبر است.</text>
+    <text x="${G.track.x}" y="${G.track.base}" text-anchor="end" font-size="${G.track.size}" font-weight="700" fill="${P.ink}" font-family="${TK_FONTS_LAT}" direction="ltr">${tkEsc(o.track || '—')}</text>
+    ${tkQR(null, o.payload || ('https://lifeline1.ir/r/' + (o.track || '')), G.qr.x0, G.qr.y0, G.qr.size)}
   </g>
-  <rect x="${PAD+.5}" y="${PAD+.5}" width="${W-2*PAD-1}" height="${H-2*PAD-1}" rx="30" fill="none" stroke="${S.edge}" stroke-opacity=".5"/>
 </svg>`;
 }
 
-
-/* کد کوتاه بلیت به سبک «T4K7M9X» و نشانی تأیید */
 const TICKET_ALPHABET='23456789ACDEFGHJKLMNPQRSTUVWXYZ';
 function shortCode(seed){
   let s=2166136261;
@@ -591,17 +521,9 @@ function shortCode(seed){
 }
 function ticketPayload(o){return `${o.verify||'https://lifeline1.ir/t'}/${o.short||shortCode(o.code||'')}`;}
 
-/* قلم را تا جایی که لازم است کوچک می‌کند تا متن از لبه بیرون نزند */
-function tkFit(text,size,maxW,minSize){
-  const mid=/^[A-Za-z0-9]/.test(String(text||''));
-  const k=mid?.56:.52;                    /* میانگین عرض نویسه به نسبت قلم */
-  let s=size;
-  while(s>minSize && String(text||'').length*s*k>maxW) s-=0.5;
-  return s;
-}
 
 /* پوسته‌ها و بخش‌ها: یک جا برای هر سه صفحه */
-const TICKET_STYLES=Object.fromEntries(Object.entries(TK_SKINS).map(([k,v])=>[k,v.n]));
+const TICKET_STYLES=Object.fromEntries(Object.entries(TK_SKIN_NAMES).map(([k,v])=>[k,v]));
 const TICKET_PARTS={title:'عنوان رویداد',kind:'نوع بلیت',code:'کد بلیت',name:'نام دارنده',date:'تاریخ و ساعت',
   venue:'نشانی',seat:'ردیف و صندلی',no:'شمارهٔ بلیت',qr:'کیوآرکد',logo:'نشان خط زندگی',note:'یادداشت ورود'};
 
@@ -751,4 +673,4 @@ function initUI(){
 if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,initKeys,printNode,download,svgToPNG,
   ticketFile,receiptFile,ticketSVG,receiptSVG,ticketHTML,receiptHTML,sendTicketToBot,TICKET_STYLES,TICKET_PARTS,
   qrMatrix,qrSVG,QRCODE,shortCode,ticketMeta,icsFor,parseJ,jalaliOf,gregOf,isLeapJ,daysInJ,weekdayOf,maskPhone,
-  words,money,faN,fa,faDigits,TK_SKINS};
+  words,money,faN,fa,faDigits,TK_SKIN_NAMES,TK_GEO,TK_PLATES,RC_PLATES,tkQR,tkFit,ticketFile,receiptFile};

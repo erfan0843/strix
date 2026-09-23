@@ -451,6 +451,7 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
+<script src="tickets/plates.js"></script>
 <script src="ui.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
@@ -468,6 +469,7 @@ const FORMS=[
        {l:'ارسال گواهینامه با پست',p:120000,off:0,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
  groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
  ticketOn:true,
+ guestsOn:true,guestsMax:3,guests:['علی رضایی'],
  gw:['بله','کارت‌به‌کارت'],ticket:'جنگلی',
  parts:['title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
@@ -482,7 +484,7 @@ const FORMS=[
  seen:1610,started:520,resp:342,paid:0,money:0,
  start:'۱۴۰۵/۰۶/۰۱ — ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ — ۲۳:۰۰',cap:0,wait:false,per:1,
  head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
- fin:[],groups:[],ticketOn:false,gw:[],ticket:null,skin:null,coupon:'—',
+ fin:[],groups:[],ticketOn:false,guestsOn:false,guestsMax:1,guests:[],gw:[],ticket:null,skin:null,coupon:'—',
  endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
  links:['صفحهٔ دوره'],
  flags:['excel','raffle'],
@@ -498,7 +500,7 @@ const FORMS=[
  fin:[{l:'حق عضویت سالانه',p:2000000,off:0,req:false,g:'دورهٔ عضویت',d:'یک سال کامل'},
        {l:'حق عضویت ماهانه',p:200000,off:0,req:false,g:'دورهٔ عضویت',d:'هر ماه، تا وقتی خودتان بخواهید'}],
  groups:[{n:'دورهٔ عضویت',of:[0,1],req:true,one:true}],
- ticketOn:false,gw:['بله','زرین‌پال'],
+ ticketOn:false,guestsOn:false,guestsMax:1,guests:[],gw:['بله','زرین‌پال'],
  ticket:null,skin:null,coupon:'—',
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
@@ -741,7 +743,8 @@ const GROUPS=[
  {t:'مهلت و ظرفیت',rows:[
    ['dates','i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],
    ['cap','i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
-   ['per','i-ticket','تعداد بلیت هر نفر','همراه داشتن یا نداشتن']]},
+   ['per','i-ticket','تعداد بلیت هر نفر','همراه داشتن یا نداشتن'],
+   ['per','i-users','دعوت دوست','باز یا بسته — پیش‌فرض بسته']]},
  {t:'مالی',rows:[
    ['fin','i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
    ['coupon','i-star','کد تخفیف','درصد یا مبلغ'],'gw']},
@@ -1036,9 +1039,17 @@ const CHANGES={
  per:{t:'تعداد بلیت هر نفر',body:()=>`
    <div><label class="lbl">بیشترین تعداد</label>
      <div class="row tight">${[1,2,3,5].map(n=>`<button class="chip ${CUR.per===n?'on':''}" data-chip data-n="${n}">${faN(n)} نفر</button>`).join('')}</div></div>
-   <p class="cap">با افزودن همراه، مبلغ در تعداد ضرب می‌شود و برای هر نفر یک بلیت صادر می‌شود.</p>`,
-  go:btn=>{const c=btn.closest('#shChange').querySelector('.chip.on[data-n]'); CUR.per=NR(c.dataset.n);
-   log('هر نفر تا '+faN(CUR.per)+' بلیت'); closeSheets(); renderPanel(); toast('ذخیره شد')}},
+   <p class="cap">با افزودن همراه، مبلغ در تعداد ضرب می‌شود و برای هر نفر یک بلیت صادر می‌شود.</p>
+   <hr class="hr"/>
+   <div class="row"><span><b class="sub">«دوستاتم با خودت بیار»</b>
+     <div class="cap">باز باشد، فرم یک کارت خوش‌گرافیک نشان می‌دهد و دوست همان‌جا پر می‌شود؛ بسته باشد هیچ‌جا دیده نمی‌شود.</div></span>
+     <span class="sp"></span>
+     <span class="switch ${CUR.guestsOn?'on':''}" id="chGuests" role="switch" aria-checked="${CUR.guestsOn?'true':'false'}"></span></div>
+   <div class="mini" style="margin-top:6px">حالت پیش‌فرض: بسته</div>`,
+  go:()=>{const g=document.getElementById('chGuests');
+   CUR.guestsOn=g.classList.contains('on');
+   log(CUR.guestsOn?'«دعوت دوست» باز شد':'«دعوت دوست» بسته شد'); closeSheets(); renderPanel();
+   toast(CUR.guestsOn?'دعوت دوست باز شد':'دعوت دوست بسته شد')}},
  fin:{t:'افزودن قطعهٔ مالی',body:()=>`<p class="cap">هر قطعه یک قیمت دارد؛ اگر دو قیمت دارید دو قطعه بسازید.</p>
    <div><label class="lbl">عنوان</label><input class="input" id="chFinL" placeholder="مثلاً: کارگاه با گواهینامه"/></div>
    <div class="g2"><div><label class="lbl">مبلغ (ریال)</label><input class="input num" id="chFinP" placeholder="۸۵۰۰۰۰"/></div>
