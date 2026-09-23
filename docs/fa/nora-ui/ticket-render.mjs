@@ -10,6 +10,9 @@
      node ticket-render.mjs bilet.json out.svg        (SVG، همیشه)
      node ticket-render.mjs --sample out.png          (نمونهٔ آماده)
 
+   پیش‌نیاز یک‌باره:
+     pip install fonttools brotli resvg-py     (ورک‌اسپیس مجازی یا سیستمی)
+
    bilet.json نمونه:
      {"kind":"بلیت نفر اصلی","title":"کارگاه فن بیان مقدماتی",
       "day":"جمعه","date":"۱۴۰۵/۰۷/۰۸","time":"۱۶:۰۰","venue":"تهران، ولی‌عصر",
@@ -37,6 +40,40 @@ export async function loadEngine(){
 const clean=o=>Object.fromEntries(Object.entries(o||{}).map(([k,v])=>[k,
   typeof v==='string'?v.replace(/[\u0000-\u001f]/g,''):v]));
 
+/* ── فونت‌ها: resvg فقط TTF می‌خواند؛ اگر نبود، از woff2 ریپو می‌سازیم ── */
+function fontDir(pyExe){
+  const cands=[process.env.NORA_FONT_DIR,'/tmp/fonts-ttf',path.join(here,'fonts-ttf')].filter(Boolean);
+  const has=dir=>dir&&fs.existsSync(dir)&&fs.readdirSync(dir).some(f=>f.endsWith('.ttf'));
+  for(const dir of cands) if(has(dir)) return dir;
+  const out=path.join(process.env.TMPDIR||'/tmp','nora-fonts-ttf');
+  const srcDir=path.join(here,'fonts');
+  if(!fs.existsSync(srcDir)) return null;
+  fs.mkdirSync(out,{recursive:true});
+  const py=`
+import sys, os
+from fontTools.ttLib import TTFont
+src,out=sys.argv[1],sys.argv[2]
+for f in os.listdir(src):
+    if not f.endswith('.woff2'): continue
+    dst=os.path.join(out,f.replace('.woff2','.ttf'))
+    if os.path.exists(dst): continue
+    ft=TTFont(os.path.join(src,f)); ft.flavor=None; ft.save(dst)
+`;
+  try{
+    execFileSync(pyExe,['-c',py,srcDir,out],{stdio:'pipe'});
+    return fs.readdirSync(out).some(f=>f.endsWith('.ttf'))?out:null;
+  }catch(err){return null;}
+}
+
+function pythonExe(){
+  const cands=[process.env.NORA_PYTHON,'/tmp/qvenv/bin/python3',path.join(here,'.venv/bin/python3'),'python3'];
+  for(const p of cands){
+    if(p==='python3') return p;
+    if(fs.existsSync(p)) return p;
+  }
+  return 'python3';
+}
+
 export async function ticketPNG(fields,{width=1100,skin,receipt=false}={}){
   const m=await loadEngine();
   const o=clean(fields);
@@ -44,20 +81,22 @@ export async function ticketPNG(fields,{width=1100,skin,receipt=false}={}){
   const svg=receipt?m.receiptFile(o):m.ticketFile(o);
   const svgPath=path.join(process.env.TMPDIR||'/tmp','nora-ticket-'+Date.now()+'.svg');
   fs.writeFileSync(svgPath,svg);
+  const pyExe=pythonExe();
+  const fonts=fontDir(pyExe);
   const py=`
 import sys, os, resvg_py
-fonts=[f for f in [os.environ.get('NORA_FONT_DIR','')+'/Vazirmatn-%s.ttf'%w for w in ['Regular','Bold','SemiBold','Medium']] if os.path.exists(f)]
+d=os.environ.get('NORA_FONT_DIR') or ''
+fonts=[os.path.join(d,f) for f in sorted(os.listdir(d)) if f.endswith('.ttf')] if d else []
 png=resvg_py.svg_to_bytes(svg_path=sys.argv[1], width=int(sys.argv[2]), font_files=fonts, background='#FFFFFF')
 open(sys.argv[3],'wb').write(bytes(png))
 `;
   const pngPath=svgPath.replace(/\.svg$/,'.png');
-  const pyExe=process.env.NORA_PYTHON||(fs.existsSync('/tmp/qvenv/bin/python3')?'/tmp/qvenv/bin/python3':'python3');
-  const fontDir=process.env.NORA_FONT_DIR||'/tmp/fonts-ttf';
   try{
-    execFileSync(pyExe,['-c',py,svgPath,String(width),pngPath],{stdio:'pipe',env:{...process.env,NORA_FONT_DIR:fontDir}});
-    return {png:fs.readFileSync(pngPath),svg,file:pngPath};
+    execFileSync(pyExe,['-c',py,svgPath,String(width),pngPath],
+      {stdio:'pipe',env:{...process.env,NORA_FONT_DIR:fonts||''}});
+    return {png:fs.readFileSync(pngPath),svg,file:pngPath,fonts};
   }catch(err){
-    return {png:null,svg,file:svgPath,why:String(err.stderr||err.message).split('\n').slice(-1)[0]};
+    return {png:null,svg,file:svgPath,fonts,why:String(err.stderr||err.message).split('\n').slice(-1)[0]};
   }
 }
 
