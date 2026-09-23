@@ -7,6 +7,7 @@
 <meta name="description" content="خانهٔ نورا — ویترین رویدادها، کارگاه‌ها، مطالب، اساتید و باشگاه کتاب‌خوانی گروه فرهنگی خط زندگی"/>
 <meta name="theme-color" content="#F5F3EE"/>
 <link rel="stylesheet" href="glass.css"/>
+<link rel="stylesheet" href="events.css"/>
 <style>
   /* ══════════════ خانهٔ نورا — چیزهایی که فقط این صفحه لازم دارد ══════════════ */
   .wrap{max-width:660px;margin:0 auto;padding:12px 12px calc(112px + var(--safe-b))}
@@ -168,35 +169,6 @@
   .pcard.pinned{border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
   .pc-pin{position:absolute;top:10px;inset-inline-end:10px;z-index:2}
 
-  .feat{display:flex;gap:10px;overflow:auto;padding:2px 2px 8px;margin:0 -2px;scroll-snap-type:x mandatory}
-  .feat>*{scroll-snap-align:start;flex:0 0 268px}
-  .feat .pcard .pc-cov{height:118px}
-
-  /* ── رویداد: ردیف ── */
-  .evlist{display:grid;gap:8px}
-  .ev{-webkit-appearance:none;appearance:none;position:relative;display:flex;gap:11px;align-items:center;width:100%;
-    text-align:start;cursor:pointer;font:inherit;color:inherit;padding:11px;border-radius:var(--r-md);
-    border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);overflow:hidden;
-    transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
-  .ev:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
-  .ev.pinned{border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
-  .ev .th{width:52px;height:52px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;color:#fff;
-    background-image:var(--g);position:relative;overflow:hidden}
-  .ev .th::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 80% at 100% 0,rgba(255,255,255,.3),transparent 60%)}
-  .ev .th .i{width:22px;height:22px;position:relative;z-index:1}
-  .ev .bod{min-width:0;flex:1;display:grid;gap:4px}
-  .ev .ttl{font-size:var(--fs-sub);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ev .meta{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ev .side{display:grid;justify-items:end;gap:5px;flex:0 0 auto}
-  .ev .prc{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
-  .ev .prc.free{color:var(--ok)}
-  .ev.full .th{filter:saturate(.5) opacity(.85)}
-  .mini-chips{display:flex;gap:5px;flex-wrap:wrap}
-  .mini-chip{font-size:10.5px;height:20px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;
-    background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-2)}
-  .mini-chip.live{background:var(--stop-tint);border-color:transparent;color:var(--stop);font-weight:600}
-  .mini-chip.soon{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink);font-weight:600}
-  .mini-chip.ok{background:var(--ok-tint);border-color:transparent;color:var(--ok);font-weight:600}
   .dotpulse{width:6px;height:6px;border-radius:50%;background:currentColor;margin-inline-end:4px;
     animation:pulse 1.6s var(--ease) infinite}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
@@ -450,6 +422,40 @@
   .seg button.on{background:var(--surface);color:var(--brand-ink);box-shadow:var(--sh-1)}
   .seg .i{width:17px;height:17px}
   .dim{opacity:.5}
+  /* ── کارت استاد ── */
+  .tcard{flex:0 0 244px;scroll-snap-align:start;display:grid;border-radius:var(--r-xl);overflow:hidden;
+    border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
+  .tcard.pinned{border-color:color-mix(in oklab,var(--brand) 46%,transparent)}
+  .tcard .tcov{position:relative;height:78px;background-image:var(--g)}
+  .tcard .tcov::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 92% 6%,rgba(255,255,255,.3),transparent 60%)}
+  .tcard .tci{position:absolute;top:11px;inset-inline-start:12px;color:rgba(255,255,255,.9);z-index:1}
+  .tcard .tci .i{width:22px;height:22px}
+  .tcard .av{position:absolute;bottom:-24px;inset-inline-start:13px;width:60px;height:60px;border-radius:50%;
+    border:3px solid var(--surface);background:var(--surface);display:grid;place-items:center;overflow:hidden;
+    font-weight:700;font-size:20px;color:var(--brand-ink);z-index:2;box-shadow:0 8px 20px rgba(10,30,60,.22)}
+  .tcard .av img{width:100%;height:100%;object-fit:cover;display:block}
+  .tcard .tbody{padding:30px 13px 10px;display:grid;gap:6px}
+  .tcard .nm{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .tcard .rl{font-size:11.5px;color:var(--ink-3)}
+  .tcard .tstars{display:flex;align-items:center;gap:6px}
+  .tcard .tmeta{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
+  .tcard .tmeta b{color:var(--ink);font-size:13px}
+  .tcard .tmeta .hl{background:var(--accent-tint);color:var(--accent-ink);padding:2px 8px;border-radius:99px;font-weight:600}
+  .tcard .tnext{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--brand-ink);
+    background:var(--brand-tint);border-radius:11px;padding:7px 9px}
+  .tcard .tnext .i{width:15px;height:15px}
+  .tcard .tfoot{display:flex;gap:7px;padding:0 13px 13px}
+  /* ── ردیف دست‌اندرکار ── */
+  .scard{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:start;width:100%;
+    display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-lg);
+    border:.5px solid var(--hairline);background:var(--surface);transition:transform .2s var(--ease),border-color .2s var(--ease)}
+  .scard:hover{border-color:color-mix(in oklab,var(--brand) 42%,transparent);transform:translateY(-1px)}
+  .scard .sav{width:52px;height:52px;border-radius:16px;overflow:hidden;flex:0 0 auto;display:grid;place-items:center;
+    background-image:var(--g);color:#fff;font-weight:700;font-size:19px}
+  .scard .sav img{width:100%;height:100%;object-fit:cover}
+  .scard .sbody{flex:1;min-width:0;display:grid;gap:4px}
+  .scard .sbody b{font-size:14px}
+  .scard .sbody .rl{font-size:11.5px;color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -665,10 +671,10 @@
     </div>
     <div class="stack tight" id="evTop"></div>
     <div class="row" style="margin-top:12px">
-      <button class="btn sm primary" data-f="shEvents"><svg class="i"><use href="#i-calendar"/></svg> همهٔ رویدادها</button>
-      <button class="btn sm quiet" data-f="shEvents" data-cal="1"><svg class="i"><use href="#i-grid"/></svg> تقویم رویدادها</button>
+      <a class="btn sm primary" href="events.html#list"><svg class="i"><use href="#i-calendar"/></svg> همهٔ رویدادها</a>
+      <a class="btn sm quiet" href="events.html#cal"><svg class="i"><use href="#i-grid"/></svg> تقویم رویدادها</a>
       <span class="sp" style="flex:1"></span>
-      <span class="cap">فهرست کامل در تب رویدادها</span>
+      <span class="cap">خانه فقط نمایش است — فهرست کامل در منوی رویدادها</span>
     </div>
   </section>
 
@@ -691,17 +697,23 @@
   <section class="sec" id="club" aria-label="باشگاه کتاب‌خوانی"></section>
 
   <!-- ── اساتید و دست‌اندرکاران ── -->
-  <section class="sec card paper" id="people" aria-label="اساتید و دست‌اندرکاران">
+  <section class="sec card paper" id="teachers" aria-label="اساتید و مدرسان">
     <div class="sec-hd">
-      <span class="fw">اساتید و دست‌اندرکاران</span>
+      <span class="fw">اساتید و مدرسان</span>
       <span class="sp"></span>
-      <span class="cap" id="peopleCount">—</span>
-    </div>
-    <div class="ptabs" role="tablist" aria-label="دستهٔ افراد">
-      <button class="chip on" data-ptab="teacher" role="tab" aria-selected="true">اساتید و مربیان</button>
-      <button class="chip" data-ptab="staff" role="tab" aria-selected="false">دست‌اندرکاران</button>
+      <span class="cap" id="teacherCount">—</span>
+      <a class="more" href="events.html#cat">دوره‌هایشان<svg class="i" style="width:14px;height:14px"><use href="#i-chev-left"/></svg></a>
     </div>
     <div class="prail" id="peopleRail"></div>
+  </section>
+
+  <section class="sec card paper" id="staff" aria-label="دست‌اندرکاران">
+    <div class="sec-hd">
+      <span class="fw">دست‌اندرکاران</span>
+      <span class="sp"></span>
+      <span class="cap">تیم پشت صحنهٔ نورا</span>
+    </div>
+    <div class="evlist" id="staffList"></div>
   </section>
 
   <!-- ── مطالب و مقالات ── -->
@@ -757,11 +769,11 @@
 <aside class="sheet" id="shVerify" role="dialog" aria-modal="false" aria-label="استعلام گواهینامه"><div id="verifyBody"></div></aside>
 <aside class="sheet" id="shFaq" role="dialog" aria-modal="false" aria-label="پرسش‌های پرتکرار"><div id="faqBody"></div></aside>
 <aside class="sheet" id="shSupport" role="dialog" aria-modal="false" aria-label="پیام به پشتیبانی"><div id="supBody"></div></aside>
-<aside class="sheet" id="shEvents" role="dialog" aria-modal="false" aria-label="همهٔ رویدادها"><div id="evBrowser"></div></aside>
 <aside class="sheet" id="shStory" role="dialog" aria-modal="false" aria-label="استوری"><div id="storyBody"></div></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="data.js"></script>
 <script src="ui.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
@@ -778,238 +790,36 @@
 'use strict';
 
 /* ── بنرها: تیتر، تگ و ترتیب دست کارشناس روابط عمومی است ── */
-const BANNERS=[
- {tag:'ویژه', tag2:'پیشنهادی', t:'جشنوارهٔ هفتهٔ فرهنگی پاییز', m:'۲۰ تا ۳۰ مهر · تهران و آنلاین',
-  n:'۱۲ کارگاه، ۴ نمایشگاه و ۳ شب اجرای موسیقی', g:'linear-gradient(135deg,#0A56B8,#1E3A8A 55%,#0B2447)',
-  a:{l:'برنامهٔ جشنواره', j:'evSec'}, b:{l:'کارگاه‌های جشنواره', f:'shMenu'}},
- {tag:'ثبت‌نام باز', t:'باشگاه کتاب‌خوانی خط زندگی', m:'ترم مهر · پنجشنبه‌ها ۱۸:۰۰',
-  n:'۲ جا مانده از ۴۰ نفر — سرپرست: خانم داوودی', g:'linear-gradient(135deg,#0B7A57,#0A56B8)',
-  a:{l:'ورود به باشگاه', f:'shClub'}, b:{l:'پروفایل سرپرست', p:'p5'}},
- {tag:'رایگان', tag2:'آنلاین', t:'نشست سواد رسانه در خانواده', m:'دوشنبه ۳۰ شهریور · ۲۰:۳۰',
-  n:'ورود آزاد است؛ لازم نیست ثبت‌نام کنی', g:'linear-gradient(135deg,#6E4B1F,#9C7C3C 60%,#0A56B8)',
-  a:{l:'جزئیات نشست', ev:'e4'}, b:{l:'ضبط نشست‌های قبل', j:'pastSec'}}
-];
+const {BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS}=window.NORA;
+;
 
 /* ── آدم‌های نورا: اساتید و دست‌اندرکاران ── */
-const PEOPLE=[
- {id:'p1', kind:'teacher', n:'خانم الهه رضایی', r:'مدرس فن بیان و مجری‌گری', ini:'ه',
-  g:'linear-gradient(135deg,#0A56B8,#4EA1FF)', exp:['فن بیان','اعتماد روی صحنه','لحن و تنفس'],
-  rate:'۴٫۸', courses:14, yrs:'۹ سال', tag:'پیشنهادی', pin:true,
-  bio:'از ۱۳۹۶ کارگاه‌های فن بیان نورا را پیش می‌برد؛ سابقهٔ اجرای همایش‌های آموزشی و تدریس در سه فرهنگسرا.',
-  quote:'صدا ابزار کار است؛ اول تنفس، بعد جسارت، بعد زیبایی.',
-  where:'تهران، ولی‌عصر — سالن شمارهٔ ۲',photo:'people/p1.svg'},
- {id:'p2', kind:'teacher', n:'مهندس کیوان مرادی', r:'عکاس طبیعت و مدرس عکاسی', ini:'ک',
-  g:'linear-gradient(135deg,#0B7A57,#0A56B8)', exp:['عکاسی طبیعت','پرتره','نورپردازی'],
-  rate:'۴٫۹', courses:11, yrs:'۱۶ سال', tag:'پرطرفدار',
-  bio:'شانزده سال عکاسی مستند طبیعت؛ آثارش در سه نمایشگاه گروهی به نمایش درآمده و داور جشنوارهٔ عکس استان است.',
-  quote:'نور را باید ببینی، نه اینکه فقط دنبال سوژه باشی.',
-  where:'استودیوی نورا، جردن',photo:'people/p2.svg'},
- {id:'p3', kind:'teacher', n:'دکتر شیرین رستگار', r:'پژوهشگر رسانه و سواد رسانه', ini:'ش',
-  g:'linear-gradient(135deg,#54719B,#0A56B8)', exp:['سواد رسانه','رسانه و خانواده','جنگ شناختی'],
-  rate:'۴٫۷', courses:8, yrs:'۱۲ سال', tag:'جدید',
-  bio:'پژوهشگر ارتباطات؛ دورهٔ سواد رسانه را برای والدین و دانش‌آموزان طراحی کرده و مربی تربیت رسانه‌ای است.',
-  quote:'کودک لازم نیست از رسانه بترسد؛ لازم است رسانه را بفهمد.',
-  where:'آنلاین — کلاس‌های نورا',photo:'people/p3.svg'},
- {id:'p4', kind:'teacher', n:'آقای امیر کاظمی', r:'مربی کمک‌های اولیه و ایمنی', ini:'ا',
-  g:'linear-gradient(135deg,#B4453C,#8A6A25)', exp:['امداد و نجات','کمک‌های اولیه','ایمنی کارگاه'],
-  rate:'۴٫۶', courses:6, yrs:'۷ سال', tag:'گواهی‌دار',
-  bio:'مربی رسمی کمک‌های اولیهٔ هلال احمر؛ دوره‌هایش با تمرین عملی روی مانکن و کارنامهٔ حضور برگزار می‌شود.',
-  quote:'اولین دقیقه، مهم‌ترین دقیقه است.',
-  where:'پایگاه هلال، سعادت‌آباد و دفتر مرکزی',photo:'people/p4.svg'},
- {id:'p5', kind:'teacher', n:'خانم مریم داوودی', r:'سرپرست باشگاه کتاب‌خوانی', ini:'م',
-  g:'linear-gradient(135deg,#6E4B1F,#0B7A57)', exp:['ادبیات داستانی','حلقهٔ مطالعه','نوشتن خلاق'],
-  rate:'۴٫۹', courses:5, yrs:'۸ سال', role2:'دبیر باشگاه، ترم مهر',
-  bio:'کارشناس ادبیات داستانی؛ باشگاه کتاب‌خوانی را از سال ۱۴۰۱ راه انداخته و حلقه‌های مطالعهٔ محله‌ای را تربیت می‌کند.',
-  quote:'یک کتاب، اگر درباره‌اش حرف نزنیم، نصفش خوانده نشده.',
-  where:'کتابخانهٔ نورا، ونک',photo:'people/p5.svg'},
- {id:'p6', kind:'teacher', n:'دکتر حسن مقدم', r:'مشاور مالی خانواده', ini:'ح',
-  g:'linear-gradient(135deg,#0B7A57,#1E3A8A)', exp:['بودجه‌بندی','پس‌انداز','بیمه'],
-  rate:'۴٫۵', courses:7, yrs:'۱۴ سال', tag:'پرطرفدار',
-  bio:'مشاور مالی خانواده و مدرس دوره‌های اقتصاد خانوار؛ برگه‌های کار دوره‌اش میان شرکت‌کننده‌ها دست‌به‌دست می‌شود.',
-  quote:'مالی خانواده با عدد ساده می‌شود، ولی با عادت می‌ماند.',
-  where:'آنلاین — کلاس‌های نورا',photo:'people/p6.svg'},
- {id:'p7', kind:'staff', n:'خانم نگار شریفی', r:'مسئول روابط عمومی و رسانه', ini:'ن',
-  g:'linear-gradient(135deg,#0A56B8,#6E4B1F)', exp:['خبر و گزارش','شبکه‌های اجتماعی','عکاسی رویداد'],
-  rate:'—', courses:0, yrs:'۵ سال', tag:'دستاندرکار',
-  bio:'مسئول اطلاع‌رسانی رویدادها؛ تیتر و تگ بنرهای خانه را او می‌چیند و گزارش تصویری کارگاه‌ها زیر دستش است.',
-  quote:'خبر خوب را باید جوری نوشت که آدم بخواهد بیاید.',
-  where:'دفتر مرکزی',photo:'people/p7.svg'},
- {id:'p8', kind:'staff', n:'آقای سعید رحیمی', r:'مسئول اجرا و پشتیبانی', ini:'س',
-  g:'linear-gradient(135deg,#54719B,#0B2447)', exp:['اجرای رویداد','پشتیبانی کاربران','امور مالی'],
-  rate:'—', courses:0, yrs:'۶ سال', tag:'دستاندرکار',
-  bio:'هماهنگی سالن، تجهیزات و حضور و غیاب کارگاه‌ها؛ پیگیری رسیدهای کارت‌به‌کارت هم با اوست.',
-  quote:'رویداد بی‌نقص، یعنی کسی متوجهِ کار ما نشود.',
-  where:'دفتر مرکزی'}
-];
+;
 const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#54719B,#0A56B8)'};
 
 /* ── رویدادهای پیش‌رو ── */
-const EVENTS=[
- {id:'e1', kind:'جلسه', cat:'session', day:'tonight', live:true, icon:'i-users', tags:['آنلاین'],
-  t:'جلسهٔ شعر و موسیقی', tchr:'p7', when:'امروز شنبه', time:'۲۰:۳۰', place:'آنلاین', mode:'آنلاین',
-  price:0, cap:200, taken:147, g:'linear-gradient(135deg,#0A56B8,#123A7A)',
-  d:'شب شعر و موسیقی زنده با حضور شاعران مهمان؛ بخش دوم جلسه به پرسش و پاسخ اختصاص دارد. پیوند جلسه نیم ساعت قبل از شروع باز می‌شود.',
-  parts:['شعرخوانی و اجرای زنده','پرسش و پاسخ آزاد','آرشیو جلسات پیش'],photo:'people/p8.svg'},
- {id:'e2', kind:'جلسه', cat:'session', day:'tonight', icon:'i-book', tags:['باشگاه کتاب‌خوانی'],
-  t:'حلقهٔ مطالعهٔ ادبیات', tchr:'p5', when:'امروز شنبه', time:'۱۹:۰۰', place:'کتابخانهٔ نورا، ونک', mode:'حضوری',
-  price:0, cap:18, taken:15, g:'linear-gradient(135deg,#0B7A57,#0A56B8)',
-  d:'این جلسه دربارهٔ داستان‌های کوتاه علی‌محمد افغانی است؛ متن‌ها از قبل فرستاده می‌شود و در جلسه خوانش گروهی داریم.',
-  parts:['خوانش گروهی متن','یادداشت‌های سرپرست باشگاه','کتاب ماه بعد']},
- {id:'e3', kind:'کارگاه', cat:'workshop', day:'tomorrow', pin:true, icon:'i-image', tags:['پیشنهادی','ظرفیت محدود'],
-  t:'کارگاه عکاسی در طبیعت', tchr:'p2', when:'یکشنبه ۲۹ شهریور', time:'۱۹:۳۰', place:'فرهنگسرای نیاوران', mode:'حضوری',
-  price:900000, cap:24, taken:13, g:'linear-gradient(135deg,#0A56B8,#4EA1FF)',
-  d:'سه جلسهٔ عملی نوردهی، ترکیب‌بندی و ویرایش رنگ در فضای باز؛ دوربین لازم است، لنز و سه‌پایه در کارگاه هست.',
-  parts:['سه جلسهٔ عملی در فضای باز','بازخورد عکس‌های خودت','جزوهٔ تنظیمات دوربین']},
- {id:'e4', kind:'وبینار', cat:'webinar', day:'tomorrow', icon:'i-play', tags:['رایگان','آنلاین','پیشنهادی'],
-  t:'سواد رسانه در خانواده', tchr:'p3', when:'دوشنبه ۳۰ شهریور', time:'۲۰:۳۰', place:'آنلاین', mode:'آنلاین',
-  price:0, cap:300, taken:214, g:'linear-gradient(135deg,#54719B,#0A56B8)',
-  d:'چطور دربارهٔ اخبار جعلی با فرزندمان حرف بزنیم؛ همراه با چهار تمرین خانوادگی و فهرست منابع فارسی.',
-  parts:['چهار تمرین خانوادگی','فهرست منابع فارسی','پرسش و پاسخ با پژوهشگر']},
- {id:'e5', kind:'کارگاه', cat:'workshop', day:'week', icon:'i-users', tags:['پیشنهادی','گواهی‌دار'],
-  t:'کارگاه فن بیان مقدماتی', tchr:'p1', when:'چهارشنبه ۸ مهر', time:'۱۶:۰۰', place:'تهران، ولی‌عصر، پلاک ۱۲', mode:'حضوری و آنلاین',
-  price:1300000, cap:30, taken:27, g:'linear-gradient(135deg,#0A56B8,#0B7A57)',
-  d:'سه جلسهٔ عملی تنفس، لحن و اعتماد روی صحنه؛ هر جلسه تمرین ضبط‌شده دارد و بازخورد شخصی می‌گیری.',
-  parts:['سه جلسه با تمرین ضبط‌شده','بازخورد شخصی مدرس','گواهینامهٔ پایان دوره']},
- {id:'e6', kind:'کارگاه', cat:'workshop', day:'week', icon:'i-shield', tags:['گواهی‌دار'],
-  t:'کارگاه امداد و نجات', tchr:'p4', when:'پنجشنبه ۹ مهر', time:'۱۴:۰۰', place:'پایگاه هلال، سعادت‌آباد', mode:'حضوری',
-  price:650000, cap:20, taken:6, g:'linear-gradient(135deg,#B4453C,#8A6A25)',
-  d:'کمک‌های اولیه، ارزیابی مصدوم و تمرین عملی احیای قلبی-ریوی روی مانکن؛ گواهینامهٔ پایان دوره صادر می‌شود.',
-  parts:['تمرین عملی روی مانکن','جزوهٔ جیبی امداد','گواهینامهٔ پایان دوره']},
- {id:'e7', kind:'نشست', cat:'webinar', day:'week', icon:'i-wallet', tags:['آنلاین','رایگان'],
-  t:'نشست مالی و برنامه‌ریزی خانواده', tchr:'p6', when:'جمعه ۱۰ مهر', time:'۱۰:۰۰', place:'آنلاین', mode:'آنلاین',
-  price:0, cap:200, taken:88, g:'linear-gradient(135deg,#0B7A57,#6E4B1F)',
-  d:'بودجه‌بندی خانوار، پس‌انداز و بیمهٔ عمر؛ همراه با برگهٔ کار قابل چاپ و پاسخ به پرسش‌های شرکت‌کننده‌ها.',
-  parts:['برگهٔ کار قابل چاپ','مثال‌های واقعی خانوار','پرسش و پاسخ']},
- {id:'e8', kind:'اردو', cat:'camp', day:'next', icon:'i-flag', tags:['ظرفیت محدود'],
-  t:'اردوی یک‌روزهٔ کوه‌پیمایی', tchr:'p8', when:'جمعه ۱۷ مهر', time:'۰۶:۰۰', place:'دربند، میدان سرآسیاب', mode:'حضوری',
-  price:750000, cap:45, taken:45, g:'linear-gradient(135deg,#0B7A57,#1E3A8A)',
-  d:'مسیر آسان تا آبشار؛ رفت‌وآمد، صبحانه و ناهار در برنامهٔ اردو هست. ظرفیت تکمیل شده و اسم‌ها به لیست انتظار می‌رود.',
-  parts:['رفت‌وآمد و وعده‌ها','سرپرست و کمک‌های اولیه','بیمهٔ یک‌روزه']},
- {id:'e9', kind:'آزمون', cat:'exam', day:'next', icon:'i-doc', tags:['کارنامه‌دار','آنلاین'],
-  t:'آزمون پایان دورهٔ سواد رسانه', tchr:'p3', when:'پنجشنبه ۱۶ مهر', time:'۱۸:۰۰', place:'آنلاین', mode:'آنلاین',
-  price:0, cap:500, taken:132, g:'linear-gradient(135deg,#54719B,#1E3A8A)',
-  d:'۳۰ پرسش چهارگزینه‌ای در ۴۰ دقیقه؛ کارنامه و پاسخ تشریحی همان روز در پیام‌رسان بله برایت می‌آید.',
-  parts:['۳۰ پرسش، ۴۰ دقیقه','کارنامهٔ همان روز','پاسخ تشریحی']},
- {id:'e10', kind:'کارگاه', cat:'workshop', day:'next', icon:'i-image', tags:['جدید','گواهی‌دار'],
-  t:'کارگاه عکاسی پرتره — پیشرفته', tchr:'p2', when:'پنجشنبه ۱۶ مهر', time:'۱۷:۰۰', place:'استودیوی نورا، جردن', mode:'حضوری',
-  price:1450000, cap:16, taken:4, g:'linear-gradient(135deg,#123A7A,#9C7C3C)',
-  d:'نورپردازی سه‌نقطه، هدایت مدل و ویرایش حرفه‌ای؛ پیش‌نیاز: کارگاه عکاسی مقدماتی یا آشنایی با دوربین.',
-  parts:['نورپردازی سه‌نقطه','هدایت مدل','ویرایش حرفه‌ای']},
- {id:'e11', kind:'پویش', cat:'charity', day:'next', icon:'i-heart', tags:['خیریه','حضوری'],
-  t:'پویش نوشت‌افزار برای کودکان', tchr:'p7', when:'شنبه ۱۸ مهر', time:'۱۰:۰۰ تا ۱۸:۰۰', place:'دفتر مرکزی، ولی‌عصر', mode:'حضوری',
-  price:0, cap:0, taken:312, g:'linear-gradient(135deg,#B4453C,#0A56B8)',
-  d:'نوشت‌افزار، کیف و کتاب برای ۴۰۰ دانش‌آموز در حاشیهٔ شهر؛ کمک نقدی یا حضوری در بسته‌بندی. گزارش هزینه‌ها منتشر می‌شود.',
-  parts:['گزارش شفاف هزینه‌ها','کمک نقدی یا حضوری','گواهی مشارکت خیریه']}
-];
+;
 const ev=id=>EVENTS.find(e=>e.id===id)||{};
 
 /* ── کارگاه‌های برگزارشده: ضبط، جزوه و گواهینامه ── */
-const PAST=[
- {id:'h1', t:'کارگاه عکاسی مقدماتی', tchr:'p2', d:'تیر و مرداد ۱۴۰۵', cert:true, rec:'۴ جلسه — ۵ ساعت', note:'ضبط کامل با جزوهٔ تنظیمات و تمرین‌های هفتگی', n:22},
- {id:'h2', t:'کارگاه فن بیان — ترم تیر', tchr:'p1', d:'تیر ۱۴۰۵', cert:true, rec:'۳ جلسه — ۴ ساعت', note:'ضبط جلسه‌ها + فایل تمرین‌های تنفس', n:29},
- {id:'h3', t:'کارگاه امداد و نجات', tchr:'p4', d:'مرداد ۱۴۰۵', cert:true, rec:'۲ جلسه — ۳ ساعت', note:'ضبط تمرین‌های عملی و جزوهٔ جیبی', n:18},
- {id:'h4', t:'نشست سواد رسانه در خانواده', tchr:'p3', d:'شهریور ۱۴۰۵', cert:false, rec:'۱ جلسه — ۹۰ دقیقه', note:'ضبط نشست + فهرست منابع فارسی', n:206}
-];
+;
 
 /* ── مطالب و مقالات ── */
-const ARTICLES=[
- {id:'a1', t:'هفت تمرین تنفس پیش از صحبت روی صحنه', cat:'فن بیان', min:6, tchr:'p1', g:'linear-gradient(135deg,#0A56B8,#4EA1FF)',
-  tags:['پیشنهادی'], pin:true, views:'۲٬۴۰۰',
-  lead:'تنفس، اولین چیزی است که وقتی می‌ترسیم خراب می‌کنیم؛ درست همین‌جا صدایمان می‌لرزد.',
-  body:['پیش از هر تمرین، سه نفس چهار-هفت-هشت بکش: چهار شماره دم، هفت شماره نگه‌داشتن، هشت شماره بازدم. این ریتم ضربان را پایین می‌آورد و لرزش صدا را کم می‌کند.',
-        'بعد صدای «هوم» را روی بازدم بنشین و دست را روی سینه بگذار؛ اگر سینه بیشتر تکان خورد، تنفس سینه‌ای است و باید به شکم برگردد.'],
-  quote:'صدا ابزار کار است؛ اول تنفس، بعد جسارت، بعد زیبایی.',
-  list:['چهار-هفت-هشت، سه دور','هوم روی بازدم، ده بار','خواندن یک بند بلند با یک نفس','ضبط صدا و شنیدن فردا','شل‌کردن شانه و فک','نگاه به سه نقطهٔ اتاق','یک دقیقه سکوت پیش از شروع'],
-  tagsEnd:['تمرین خانگی','۶ دقیقه مطالعه']},
- {id:'a2', t:'چطور خبر جعلی را در ۳۰ ثانیه بشناسیم', cat:'سواد رسانه', min:5, tchr:'p3', g:'linear-gradient(135deg,#54719B,#1E3A8A)',
-  tags:['پیشنهادی','رایگان'], views:'۳٬۱۰۰',
-  lead:'خبر جعلی همیشه دروغ کامل نیست؛ بیشتر وقت‌ها یک حقیقت ناقص است که از جایش کنده شده.',
-  body:['اول تاریخ را ببین: خیلی از خبرهای قدیمی در بحران‌های تازه بازنشر می‌شوند. بعد منبع را بشکاف — اگر خبرگزاری نیست، سراغ متن اصلی برو.',
-        'سه پرسش کوتاه کافی است: چه کسی می‌گوید؟ از کجا برداشته؟ اگر درست نباشد به کی ضرر می‌رسد؟'],
-  quote:'کودک لازم نیست از رسانه بترسد؛ لازم است رسانه را بفهمد.',
-  list:['تاریخ انتشار و محل نخستین انتشار','منبع اصلی، نه بازنشر','صاحب نفع خبر','دو منبع مستقل','طنز یا واقعیت؟'],
-  tagsEnd:['خانواده','۵ دقیقه مطالعه']},
- {id:'a3', t:'ده اصل ترکیب‌بندی در عکاسی طبیعت', cat:'عکاسی', min:9, tchr:'p2', g:'linear-gradient(135deg,#0B7A57,#0A56B8)',
-  tags:['پرطرفدار'], views:'۱٬۸۰۰',
-  lead:'قاب خوب، سوژهٔ بیشتر نمی‌خواهد؛ فقط حواس‌پرتیِ کمتر.',
-  body:['خطوط راهنما را از طبیعت بردار: مسیر جویبار، لبهٔ صخره، ردیف درخت. سوژه را روی یک‌سوم بگذار و بگذارِ نور جهت بدهد، نه فلاش.',
-        'پیش از فشردن دکمه، قاب را از چهار طرف ببین؛ اگر چیزی در گوشه لازم نیست، یک قدم جلو برو.'],
-  quote:'نور را باید ببینی، نه اینکه فقط دنبال سوژه باشی.',
-  list:['یک‌سوم‌ها','خطوط راهنما','عمق میدان انتخاب‌شده','حذف شلوغی گوشه‌ها','ساعت طلایی','آب و بازتاب'],
-  tagsEnd:['کاربردی','۹ دقیقه مطالعه']},
- {id:'a4', t:'کتاب ماه: چراغ‌ها را من خاموش می‌کنم', cat:'باشگاه کتاب‌خوانی', min:7, tchr:'p5', g:'linear-gradient(135deg,#6E4B1F,#0B7A57)',
-  tags:['باشگاه'], views:'۹۴۰',
-  lead:'این ماه در باشگاه، روایتی از یک زندگی روزمره را می‌خوانیم که تکه‌تکه فرو می‌ریزد و دوباره ساخته می‌شود.',
-  body:['جلسهٔ اول دربارهٔ صدا و زاویهٔ روایت است؛ جلسهٔ دوم به شخصیت‌ها می‌رسیم و جلسهٔ آخر یادداشت‌های خودمان را می‌خوانیم.',
-        'نوشتن یک صفحه یادداشت پیش از هر جلسه، شرط ورود به گفت‌وگوست؛ همان چیزی که حلقهٔ مطالعه را از یک نشست معمولی جدا می‌کند.'],
-  quote:'یک کتاب، اگر درباره‌اش حرف نزنیم، نصفش خوانده نشده.',
-  list:['سه جلسهٔ گفت‌وگو','یادداشت یک‌صفحه‌ای پیش از جلسه','چهار کتاب پیشنهادی جایگزین'],
-  tagsEnd:['باشگاه کتاب‌خوانی','۷ دقیقه مطالعه']},
- {id:'a5', t:'بودجهٔ خانواده در شرایط تورمی', cat:'مالی خانواده', min:8, tchr:'p6', g:'linear-gradient(135deg,#0B7A57,#6E4B1F)',
-  tags:['رایگان'], views:'۱٬۴۰۰',
-  lead:'در تورم، ریاضیِ بودجه عوض نمی‌شود؛ ولی ترتیب تصمیم‌ها عوض می‌شود.',
-  body:['سه سبد بساز: ثابت، متغیر، پس‌انداز. اول سبد ثابت را پر کن، بعد متغیر؛ اگر ماه بدی پیش آمد، پس‌انداز را دست نزن و از متغیر بزن.',
-        'هر سه ماه یک بار شماره‌ها را بازبینی کن؛ بودجهٔ نوشته‌شده و فراموش‌شده از بودجهٔ نانوشته بدتر است.'],
-  quote:'مالی خانواده با عدد ساده می‌شود، ولی با عادت می‌ماند.',
-  list:['سه سبد بودجه','بازبینی سه‌ماهه','برگهٔ کار قابل چاپ'],
-  tagsEnd:['برگهٔ کار','۸ دقیقه مطالعه']},
- {id:'a6', t:'کمک‌های اولیهٔ درست؛ چهار اشتباه رایج', cat:'امداد', min:6, tchr:'p4', g:'linear-gradient(135deg,#B4453C,#8A6A25)',
-  tags:['پیشنهادی'], views:'۱٬۱۰۰',
-  lead:'چهار کار ساده که خیلی‌ها در لحظهٔ حادثه اشتباه انجام می‌دهند و حال مصدوم را بدتر می‌کند.',
-  body:['مصدوم بیهوش را نمی‌نشانیم و آب نمی‌دهیم؛ اول راه هوایی و تماس با اورژانس، بعد کارهای دیگر.',
-        'شمارهٔ ۱۱۵ را با اطلاعات روشن بده: نشانی، تعداد مصدوم، وضعیت تنفس. همین سه چیز، زمان رسیدن را کم می‌کند.'],
-  quote:'اولین دقیقه، مهم‌ترین دقیقه است.',
-  list:['راه هوایی پیش از هر چیز','بی‌حرکت‌کردن گردن مشکوک','تماس روشن با ۱۱۵','تمرین روی مانکن'],
-  tagsEnd:['ایمنی','۶ دقیقه مطالعه']}
-];
+;
 const art=id=>ARTICLES.find(a=>a.id===id)||{};
 
 /* ── نهادهای همکار ── */
-const PARTNERS=[
- {id:'o1', n:'دانشگاه علوم پزشکی تهران', mon:'دان', type:'دانشگاهی', g:'linear-gradient(135deg,#0A56B8,#123A7A)', since:'۱۳۹۹',
-  d:'همکاری در برگزاری کارگاه‌های سلامت و سواد رسانه؛ مدرسان افتخاری و بازبینی علمی محتوا.'},
- {id:'o2', n:'فرهنگسرای نیاوران', mon:'نیا', type:'فرهنگی', g:'linear-gradient(135deg,#0B7A57,#0A56B8)', since:'۱۳۹۷',
-  d:'میزبان کارگاه‌های حضوری عکاسی و فن بیان؛ سالن و تجهیزات صوتی را در اختیار نورا می‌گذارد.'},
- {id:'o3', n:'هلال احمر — سعادت‌آباد', mon:'هلا', type:'خدمات', g:'linear-gradient(135deg,#B4453C,#8A6A25)', since:'۱۳۹۸',
-  d:'برگزاری دوره‌های امداد و نجات با مربیان رسمی و صدور گواهینامهٔ معتبر کمک‌های اولیه.'},
- {id:'o4', n:'خانهٔ کتاب ایران', mon:'کتا', type:'کتاب', g:'linear-gradient(135deg,#6E4B1F,#0B7A57)', since:'۱۴۰۱',
-  d:'تأمین‌کنندهٔ بسته‌های کتاب باشگاه کتاب‌خوانی و برگزارکنندهٔ نشست‌های نقد کتاب.'},
- {id:'o5', n:'شبکهٔ مستند سیما', mon:'مست', type:'رسانه', g:'linear-gradient(135deg,#54719B,#1E3A8A)', since:'۱۴۰۰',
-  d:'همکار رسانه‌ای رویدادها؛ تولید گزارش تصویری و پوشش جشنوارهٔ هفتهٔ فرهنگی.'},
- {id:'o6', n:'شهرداری منطقهٔ ۳', mon:'من۳', type:'شهری', g:'linear-gradient(135deg,#0A56B8,#4EA1FF)', since:'۱۳۹۶',
-  d:'در اختیار گذاشتن فضاهای محله‌ای برای کلاس‌های رایگان و پویش‌های خیریه.'},
- {id:'o7', n:'بنیاد نیکوکاری مهر', mon:'مهر', type:'حامی', g:'linear-gradient(135deg,#0B7A57,#1E3A8A)', since:'۱۴۰۲',
-  d:'حامی مالی پویش نوشت‌افزار و بورسیهٔ شرکت‌کننده‌های کم‌برخوردار.'},
- {id:'o8', n:'انجمن عکاسان ایران', mon:'عکس', type:'تخصصی', g:'linear-gradient(135deg,#123A7A,#9C7C3C)', since:'۱۳۹۹',
-  d:'داوری نمایشگاه‌های نورا و معرفی مدرسان عکاسی با سابقه.'}
-];
+;
 const partner=id=>PARTNERS.find(o=>o.id===id)||{};
 
 /* ── باشگاه کتاب‌خوانی: سرپرست، کتاب ماه، جلسه‌ها ── */
-const CLUB={
- sup:'p5', book:'چراغ‌ها را من خاموش می‌کنم', bookBy:'زویا پیرزاد', term:'ترم مهر ۱۴۰۵',
- session:'پنجشنبه‌ها ۱۸:۰۰ — کتابخانهٔ نورا، ونک', members:38, cap:40, meetings:12, progress:72, next:'پنجشنبهٔ پیش‌رو، فصل ۴',
- vote:[{k:'v1', t:'سووشون', by:'سیمین دانشور', n:14},
-        {k:'v2', t:'بوف کور', by:'صادق هدایت', n:9},
-        {k:'v3', t:'همسایه‌ها', by:'احمد محمود', n:6}],
- rules:['هر جلسه با یادداشت یک‌صفحه‌ای خودت می‌آیی.','کتاب ماه را از بستهٔ باشگاه می‌گیری یا فایلش را می‌خوانی.','جلسهٔ غایب را می‌شود از ضبط دید، ولی یادداشت لازم است.'],
- log:[{d:'پنجشنبهٔ پیش', t:'فصل ۳ — زاویهٔ روایت', n:34},
-      {d:'دو هفته پیش', t:'فصل ۲ — شخصیت‌ها', n:36},
-      {d:'سه هفته پیش', t:'شروع کتاب ماه — فصل ۱', n:38}]};
+;
 
 /* ── جریان زنده و شروع نزدیک ── */
-const LIVE=[
- {ev:'e1', t:'شعر و موسیقی — شب شنبه', at:'۲۰:۳۰ تا ۲۲:۰۰', past:38, total:90, where:'آنلاین'},
- {ev:'e2', t:'حلقهٔ مطالعه — گفت‌وگوی پایانی', at:'۲۱:۱۵ تا ۲۲:۰۰', past:0, total:45, where:'کتابخانهٔ نورا', soon:21}
-];
+;
 
 /* ── نمای فعالیت‌ها: ویترین عددی نورا ── */
-const ACT={
- months:['فرو','ارد','خرد','تیر','مرد','شهر','مهر','آبا','آذر','دی','بهم','اسف'],
- vals:[4,5,6,7,3,2,8,9,7,6,5,4],
- sum:[['کارگاه برگزارشده','۴۸'],['ورکشاپ و نشست آنلاین','۳۱'],['گواهینامهٔ صادرشده','۱٬۲۴۰'],['شرکت‌کننده','۳٬۴۰۰']],
- note:'مهر پرکارترین ماه سال است؛ جشنوارهٔ هفتهٔ فرهنگی و ترم تازهٔ باشگاه کتاب‌خوانی همان‌جا شروع می‌شود.'
-};
+;
 
 /* ── استوری‌های کوتاه خانه ── */
 const STORIES=[
@@ -1030,55 +840,25 @@ const BADGES=[
 ];
 
 /* ── نظر شرکت‌کننده‌ها ── */
-const VOICES=[
- {n:'نگار شریفی', c:'کارگاه فن بیان — ترم تیر', r:5, p:'p1',
-  q:'از جلسهٔ دوم روی صحنه رفتم و لرزش صدایم ریخت. تمرین‌ها را همان هفته در محل کارم استفاده کردم.'},
- {n:'امیر کاظمی', c:'کارگاه امداد و نجات — ترم مرداد', r:4.5, p:'p4',
-  q:'مربی با حوصله همهٔ پرسش‌ها را جواب داد. بعد از دوره در کارگاه‌مان مسئول ایمنی شدم.'},
- {n:'مهسا احمدی', c:'باشگاه کتاب‌خوانی — ترم شهریور', r:4.5, p:'p5',
-  q:'هفته‌ای یک جلسه است، ولی کتاب‌خواندنم عوض شد؛ بچه‌ها هم شب‌ها با من می‌خوانند.'}
-];
+;
 
 /* ── اعلان‌ها ── */
-const NOTICES=[
- {t:'رسید پرداخت تأیید شد', d:'کارگاه فن بیان مقدماتی — ثبت‌نامت قطعی شد؛ کارت ورود در حساب کاربری هست.', w:'۲ روز پیش', unread:true, i:'i-check'},
- {t:'امشب ۲۰:۳۰ — جلسهٔ شعر و موسیقی', d:'پیوند ورود نیم ساعت قبل در همین صفحه می‌آید؛ پیامک یادآوری هم می‌فرستیم.', w:'امروز', unread:true, i:'i-clock'},
- {t:'درخواست گواهینامه ثبت شد', d:'کارگاه عکاسی مقدماتی — سرپرست باشگاه بازبینی می‌کند؛ بعد از تأیید، سریال برایت می‌آید.', w:'هفتهٔ پیش', unread:false, i:'i-medal'}
-];
+;
 
 /* ── پرسش‌های پرتکرار ── */
-const FAQ=[
- ['ثبت‌نام چطور قطعی می‌شود؟','پرداخت با درگاه رسمی بله همان لحظه قطعی است؛ کارت‌به‌کارت بعد از تأیید کارشناس قطعی می‌شود و تا آن روز موقت می‌ماند.'],
- ['اگر رسید تأیید نشود چه می‌شود؟','ثبت‌نام موقت باطل می‌شود و پاسخ‌های تو می‌ماند؛ فقط پرداخت را از ابتدا انجام می‌دهی.'],
- ['همراه می‌توانم بیاورم؟','در کارگاه‌های حضوری بله، تا سقفی که برگزارکننده گذاشته؛ هر نفر سهم پرداخت خودش را دارد.'],
- ['گواهینامه کِی صادر می‌شود؟','در کارگاه‌های گواهی‌دار، بعد از تأیید پرداخت یا پس از پایان دوره — بسته به تنظیم برگزارکننده.'],
- ['باشگاه کتاب‌خوانی چطور کار می‌کند؟','هر ترم یک کتاب ماه داریم و پنجشنبه‌ها یک جلسهٔ گفت‌وگو؛ سرپرست باشگاه خانم داوودی است و جلسه‌ها ضبط می‌شود.'],
- ['کارگاه برگزارشده را از کجا ببینم؟','در بخش «برگزارشده‌ها» ضبط، جزوه و گواهینامهٔ همان دوره در دسترس شرکت‌کننده‌هاست.'],
- ['لغو یا جابه‌جایی ثبت‌نام ممکن است؟','تا پایان مهلت اعلام‌شده، بله؛ در بخش پیام به پشتیبانی درخواستت را بنویس.']
-];
+;
 
 /* ── گواهینامه‌های صادرشده (برای استعلام) ── */
-const CERTS={
- 'NL-T4K7M9X':{n:'سارا محمدی', c:'کارگاه عکاسی مقدماتی', d:'۲۱ شهریور ۱۴۰۵', h:'۲۴ ساعت'},
- 'NL-QW83ZP':{n:'مهسا احمدی', c:'کارگاه فن بیان مقدماتی', d:'۸ مهر ۱۴۰۵', h:'۱۸ ساعت'},
- 'NL-7HD24K':{n:'امیر کاظمی', c:'کارگاه امداد و نجات', d:'۱۲ مرداد ۱۴۰۵', h:'۱۲ ساعت'}
-};
+;
 
 /* ── موضوع‌ها و صافی‌ها ── */
-const CATS=[
- {k:'workshop', n:'کارگاه', d:'تمرین عملی'},
- {k:'webinar', n:'وبینار', d:'آنلاین و زنده'},
- {k:'session', n:'جلسه', d:'هفتگی'},
- {k:'camp', n:'اردو', d:'یک‌روزه'},
- {k:'exam', n:'آزمون', d:'با کارنامه'},
- {k:'charity', n:'خیریه', d:'پویش و کمک'}
-];
-const DAYS=[{k:'all',n:'همه'},{k:'tonight',n:'امشب'},{k:'tomorrow',n:'فردا'},{k:'week',n:'این هفته'},{k:'next',n:'هفتهٔ بعد'}];
-const QTAGS=[{k:'all',n:'همهٔ برنامه‌ها'},{k:'پیشنهادی',n:'پیشنهادی'},{k:'رایگان',n:'رایگان'},{k:'آنلاین',n:'آنلاین'},{k:'گواهی‌دار',n:'گواهی‌دار'}];
+;
+;
+;
 
 /* ── منوی سریع خانه ── */
 const QUICK=[
- {k:'events', i:'i-calendar', n:'رویدادها', s:'پیش‌رو و امشب', tone:'brand', anim:'tick', j:'evSec'},
+ {k:'events', i:'i-calendar', n:'رویدادها', s:'پیش‌رو و امشب', tone:'brand', anim:'tick', href:'events.html#list'},
  {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و گواهینامه', tone:'info', j:'pastSec'},
  {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', tone:'ok', anim:'float', f:'shClub', tag:'پیشنهادی'},
  {k:'people', i:'i-graduation', n:'اساتید', s:'۸ نفر', tone:'star', j:'people'},
@@ -1091,14 +871,14 @@ const QUICK=[
 /* ── منوی کامل نورا (ورقهٔ منو) ── */
 const MENU=[
  {g:'برنامه‌ها و رویدادها', i:'i-calendar', rows:[
-   {i:'i-calendar', t:'رویدادهای پیش‌رو', s:'۱۱ برنامه در پیش', j:'evSec', badge:'۱۱'},
+   {i:'i-calendar', t:'رویدادهای پیش‌رو', s:'۱۱ برنامه در پیش', href:'events.html#list', badge:'۱۱'},
    {i:'i-archive', t:'کارگاه‌های برگزارشده', s:'ضبط، جزوه و گواهینامه', j:'pastSec'},
-   {i:'i-play', t:'جریان زنده و شروع نزدیک', s:'امشب دو برنامه', j:'live', badge:'۲'},
+   {i:'i-play', t:'جریان زنده و شروع نزدیک', s:'امشب دو برنامه', href:'events.html#list', badge:'۲'},
    {i:'i-book', t:'باشگاه کتاب‌خوانی', s:'سرپرست: خانم داوودی', f:'shClub', tag:'پیشنهادی'},
    {i:'i-heart', t:'پویش‌های خیریه', s:'مشارکت و گزارش شفاف', rel:'e11'}]},
  {g:'آموزش و محتوا', i:'i-graduation', rows:[
    {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:'۶'},
-   {i:'i-graduation', t:'دوره‌ها و کارگاه‌ها', s:'با گواهینامهٔ پایان دوره', j:'evSec'},
+   {i:'i-graduation', t:'دوره‌ها و کارگاه‌ها', s:'با گواهینامهٔ پایان دوره', href:'events.html#list'},
    {i:'i-doc', t:'آزمون و کارنامه', s:'کارنامهٔ همان روز', rel:'e9'},
    {i:'i-qr', t:'استعلام گواهینامه', s:'با شمارهٔ سریال روی برگ', f:'shVerify'}]},
  {g:'افراد', i:'i-users', rows:[
@@ -1336,7 +1116,6 @@ function renderEvents(){
   const order=EVENTS.slice().sort((a,b)=>((b.pin||isPinned('ev',b.id))?1:0)-((a.pin||isPinned('ev',a.id))?1:0));
   $('#evTop').innerHTML=order.slice(0,3).map(evMini).join('');
   $('#evCount').textContent=faN(EVENTS.length)+' برنامه در پیش';
-  renderEvBrowser();
   renderSearch();
 }
 function renderQTags(){
@@ -1380,9 +1159,9 @@ function renderSearch(){
       <button class="more" id="qClear2" style="padding:0;font-size:11.5px">پاک کردن</button></div>`+
     (none?'<div class="empty"><svg class="i"><use href="#i-search"/></svg><p>چیزی پیدا نشد — واژهٔ کوتاه‌تری بنویس یا صافی‌ها را از تب رویدادها ببین.</p></div>':
     `<div class="stack tight">
-      ${ev.map(e=>`<button class="sres" data-ev="${e.id}"><span class="si" style="--g:${e.g}"><svg class="i"><use href="#i-calendar"/></svg></span>
-        <span class="sp" style="flex:1;min-width:0"><b>${esc(e.t)}</b><span class="hrow">رویداد · ${esc(e.when)} · ${esc(e.time)}</span></span>
-        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('')}
+      ${ev.map(e=>`<a class="sres" href="events.html?ev=${e.id}"><span class="si" style="--g:${e.g}"><svg class="i"><use href="#i-calendar"/></svg></span>
+        <span class="sp" style="flex:1;min-width:0"><b>${esc(e.t)}</b><span class="hrow">رویداد · ${esc(e.when)} · ${esc(e.time)} — در منوی رویدادها</span></span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>`).join('')}
       ${ar.map(a=>`<button class="sres" data-article="${a.id}"><span class="si" style="--g:${a.g}"><svg class="i"><use href="#i-article"/></svg></span>
         <span class="sp" style="flex:1;min-width:0"><b>${esc(a.t)}</b><span class="hrow">مطلب · ${esc(a.cat)} · ${faN(a.min)} دقیقه</span></span>
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('')}
@@ -1396,44 +1175,12 @@ function renderSearch(){
 function evMini(e){
   const full=e.cap&&left(e)===0, pin=e.pin||isPinned('ev',e.id);
   const tag=pin?'پیشنهادی':(full?'لیست انتظار':(e.tags||[])[0]||e.kind);
-  return `<button class="ev3 ${pin?'pinned':''}" data-ev="${e.id}" aria-label="جزئیات ${esc(e.t)}">
+  return `<a class="ev3 ${pin?'pinned':''}" href="events.html?ev=${e.id}" aria-label="جزئیات ${esc(e.t)} در منوی رویدادها">
     <span class="e3g" style="--g:${e.g}"><svg class="i"><use href="#${e.icon}"/></svg></span>
     <span class="e3t"><b>${esc(e.t)}</b><span class="hrow">${esc(e.when)} · ${esc(e.time)}</span></span>
     <span class="tagg ${pin?'star':(full?'stop':'ok')}">${esc(tag)}</span>
     <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
   </button>`;
-}
-function calendarHTML(){
-  const g=[['tonight','امشب'],['tomorrow','فردا'],['week','این هفته'],['next','هفتهٔ بعد']];
-  return `<div class="calwrap">${g.map(([k,n])=>{
-    const evs=EVENTS.filter(e=>e.day===k);
-    return `<div class="calcol"><div class="calhd"><b>${n}</b><span>${faN(evs.length)} برنامه</span></div>
-      ${evs.map(e=>`<button class="calrow" data-ev="${e.id}"><b>${esc(e.t)}</b><span>${esc(e.time)}${e.place?' · '+esc(e.place):''}</span></button>`).join('')||'<div class="cap" style="padding:6px 2px">برنامه‌ای نیست</div>'}</div>`;
-  }).join('')}</div>`;
-}
-function renderEvBrowser(){
-  const box=$('#evBrowser'); if(!box) return;
-  const list=EVENTS.filter(match).sort((a,b)=>(isPinned('ev',b.id)?1:0)-(isPinned('ev',a.id)?1:0));
-  box.innerHTML=sheetHead('همهٔ رویدادها و برنامه‌ها',faN(EVENTS.length)+' برنامه · فهرست و تقویم')+`
-    <div class="seg" role="tablist" aria-label="نما">
-      <button class="${S.evview==='list'?'on':''}" data-evview="list" role="tab" aria-selected="${S.evview==='list'}"><svg class="i"><use href="#i-archive"/></svg> فهرست</button>
-      <button class="${S.evview==='cal'?'on':''}" data-evview="cal" role="tab" aria-selected="${S.evview==='cal'}"><svg class="i"><use href="#i-grid"/></svg> تقویم</button>
-    </div>
-    ${S.evview==='cal'?calendarHTML():`
-      <div class="daybar" id="daybar" role="tablist" aria-label="بازهٔ زمانی"></div>
-      <div class="row tight" style="margin-bottom:10px" id="catChips"></div>
-      <div class="evlist" id="evList"></div>
-      <div class="row" style="margin-top:10px">
-        <button class="more" id="evMore"><span>برداشتن صافی‌ها</span><svg class="i" style="width:15px;height:15px"><use href="#i-chev-left"/></svg></button>
-        <span class="sp" style="flex:1"></span><span class="cap" id="filterNote" hidden></span>
-      </div>`}`;
-  if(S.evview==='list'){
-    $('#evList').innerHTML=list.length?list.map(evRow).join(''):'<div class="empty">چیزی با این صافی پیدا نشد؛ روز یا موضوع را عوض کن.</div>';
-    $('#daybar').innerHTML=DAYS.map(d=>`<button class="chip ${S.day===d.k?'on':''}" role="tab" aria-selected="${S.day===d.k}" data-day="${d.k}">${d.n}</button>`).join('');
-    $('#catChips').innerHTML=CATS.map(c=>`<button class="chip ${S.cat===c.k?'on':''}" data-cat="${c.k}" title="${esc(c.d)}">${c.n}</button>`).join('');
-    const f=S.cat!=='all'||S.q.trim()||S.tag!=='all';
-    $('#filterNote').hidden=!f; $('#filterNote').textContent=f?'صافی فعال — «برداشتن صافی‌ها» را بزن':'';
-  }
 }
 
 /* ═════════ افزودن به تقویم ═════════ */
@@ -1544,26 +1291,48 @@ function renderClub(){
 }
 
 /* ═════════ اساتید و دست‌اندرکاران ═════════ */
-function renderPeople(){
-  const list=PEOPLE.filter(x=>x.kind===S.ptab)
+function nextCourse(p){
+  const order=['tonight','tomorrow','week','next'];
+  return EVENTS.filter(e=>e.tchr===p.id).sort((a,b)=>order.indexOf(a.day)-order.indexOf(b.day))[0];
+}
+function renderTeachers(){
+  const list=PEOPLE.filter(x=>x.kind==='teacher')
     .sort((a,b)=>(isPinned('pe',b.id)?1:0)-(isPinned('pe',a.id)?1:0));
-  $('#peopleCount').textContent=faN(list.length)+' نفر'+(S.user?'':' — پروفایل‌ها برای همه باز است');
-  $('#peopleRail').innerHTML=list.map(p=>`
-    <div class="pcard pcard-person ${isPinned('pe',p.id)?'pinned':''}">
-      <div class="pc-cov" style="--g:${p.g}">
-        <div class="pc-tags">${p.tag?`<span class="tagg tag-g">${esc(p.tag)}</span>`:''}</div>
-        <svg class="i" style="opacity:.5"><use href="#i-graduation"/></svg>
-        <button class="pinb pc-pin ${isPinned('pe',p.id)?'on':''}" data-pin="pe:${p.id}" aria-label="سنجاق کردن ${esc(p.n)}"><svg class="i"><use href="#i-pin"/></svg></button>
-        ${av(p.id,'av')}
+  $('#teacherCount').textContent=faN(list.length)+' مدرس · پروفایل‌ها برای همه باز است';
+  $('#peopleRail').innerHTML=list.map(p=>{
+    const nx=nextCourse(p);
+    return `<div class="tcard ${isPinned('pe',p.id)?'pinned':''}">
+      <div class="tcov" style="--g:${p.g}">
+        <span class="tci"><svg class="i"><use href="#${p.id==='p5'?'i-book':'i-graduation'}"/></svg></span>
+        <button class="pinb pc-pin ${isPinned('pe',p.id)?'on':''}" data-pin="pe:${p.id}" aria-label="سنجاق کردن ${esc(p.n)}" title="سنجاق"><svg class="i"><use href="#i-pin"/></svg></button>
+        <span class="av">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.n)}"/>`:esc(p.ini)}</span>
       </div>
-      <div class="pc-body">
-        <div><div class="nm">${esc(p.n)}</div><div class="rl">${esc(p.r)}</div></div>
-        <div class="taggline">${p.exp.slice(0,2).map(x=>`<span class="tagg">${esc(x)}</span>`).join('')}</div>
-        <div class="pstat">${p.rate!=='—'?`<span><b>${p.rate}</b> امتیاز</span>`:''}<span><b>${faN(p.courses)}</b> دوره</span><span><b>${esc(p.yrs)}</b> تجربه</span></div>
+      <div class="tbody">
+        <b class="nm">${esc(p.n)}</b>
+        <span class="rl">${esc(p.r)}</span>
+        <div class="tstars">${stars(p.rate)}<span class="cap">${p.rate} از ۵</span></div>
+        <div class="tmeta"><span><b>${faN(p.courses)}</b> دوره</span><span><b>${esc(p.yrs)}</b> تجربه</span>${p.id==='p5'?'<span class="hl">سرپرست باشگاه کتاب</span>':''}</div>
+        <div class="taggline">${p.exp.slice(0,3).map(x=>`<span class="tagg">${esc(x)}</span>`).join('')}</div>
+        ${nx?`<div class="tnext"><svg class="i"><use href="#i-calendar"/></svg><span>${esc(nx.t)} — ${esc(nx.when)}</span></div>`:''}
       </div>
-      <div class="pc-foot"><button class="btn sm quiet" data-person="${p.id}">پروفایل</button>
-        ${p.courses?`<button class="btn sm quiet" data-teach="${p.id}">دوره‌های ایشان</button>`:''}</div>
-    </div>`).join('');
+      <div class="tfoot">
+        <button class="btn sm primary" data-person="${p.id}"><svg class="i"><use href="#i-user"/></svg> پروفایل</button>
+        <a class="btn sm quiet" href="events.html?q=${encodeURIComponent(p.n.split(' ').slice(-1)[0])}"><svg class="i"><use href="#i-calendar"/></svg> دوره‌های ایشان</a>
+      </div>
+    </div>`}).join('');
+}
+function renderStaff(){
+  $('#staffList').innerHTML=PEOPLE.filter(x=>x.kind==='staff').map(p=>`
+    <button class="scard" data-person="${p.id}" aria-label="پروفایل ${esc(p.n)}">
+      <span class="sav" style="--g:${p.g}">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(p.ini)}</span>
+      <span class="sbody">
+        <b>${esc(p.n)}</b>
+        <span class="rl">${esc(p.r)}</span>
+        <span class="mini-chips">${p.exp.map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</span>
+        <span class="cap">${esc(p.bio.split('؛')[0])} — ${esc(p.yrs)} سابقه</span>
+      </span>
+      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+    </button>`).join('');
 }
 
 /* ═════════ مقالات ═════════ */
@@ -1718,6 +1487,15 @@ function renderPersonSheet(){
       <div class="taggline" style="margin-top:8px">${p.tag?`<span class="tagg brand">${esc(p.tag)}</span>`:''}
         ${p.exp.map(x=>`<span class="tagg">${esc(x)}</span>`).join('')}</div>
     </div>
+    ${p.kind==='staff'?`<div class="card sunk" style="margin-top:10px;padding:12px">
+      <div class="fw" style="font-size:13.5px;margin-bottom:6px">کارهای ${esc(p.n.split(' ').slice(-1)[0])}</div>
+      <div class="mini-chips">${p.exp.map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</div>
+      <div class="cap" style="margin-top:8px">${esc(p.bio)}</div>
+      <div class="srow" style="border:0;padding-top:10px"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${esc(p.where)}</span></div>
+    </div>`:''}
+    ${p.kind!=='staff'?(()=>{const nx=nextCourse(p); return nx?`<div class="tnext" style="margin-top:10px"><svg class="i"><use href="#i-calendar"/></svg>
+      <span>دورهٔ بعدی ایشان: ${esc(nx.t)} — ${esc(nx.when)}</span>
+      <span class="sp" style="flex:1"></span><a class="btn sm quiet" href="events.html?ev=${nx.id}">جزئیات</a></div>`:''})():''}
     <div class="stack tight" style="margin-top:10px">
       ${p.rate!=='—'?`<div class="srow"><svg class="i"><use href="#i-star"/></svg><span class="sp">امتیاز شرکت‌کننده‌ها</span><b>${p.rate} از ۵</b></div>`:''}
       <div class="srow"><svg class="i"><use href="#i-graduation"/></svg><span class="sp">دوره‌ها و کارگاه‌ها</span><b>${faN(p.courses)} دوره</b></div>
@@ -1982,7 +1760,7 @@ function loadPins(){try{(JSON.parse(localStorage.getItem('nora-home-pins')||'[]'
 function savePins(){try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
 function renderAll(){
   renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub();
-  renderPeople(); renderArticles(); renderPartners();
+  renderTeachers(); renderStaff(); renderArticles(); renderPartners();
   const n=NOTICES.filter(x=>x.unread).length;
   const b=$('#bellBadge'); b.hidden=!n; b.textContent=faN(n);
   $('#acctBtn').textContent=S.user?S.user.name[0]:'م';
@@ -2000,7 +1778,6 @@ function openF(id){
   if(id==='shSupport') renderSupport();
   if(id==='shNotice') renderNotices();
   if(id==='shClub') renderClubSheet();
-  if(id==='shEvents') renderEvBrowser();
   if(id==='shStory') renderStory();
   openSheet(id);
 }
@@ -2025,7 +1802,6 @@ document.addEventListener('click',e=>{
     else if(to.startsWith('pe:')) personSheet(to.slice(3));
     else if(to==='me') openF('shAccount');
     else goto(to); return}
-  const evv=t.closest('[data-evview]'); if(evv){S.evview=evv.dataset.evview; renderEvBrowser(); return}
   const vt=t.closest('[data-vote]'); if(vt){
     if(!S.user){S.acctFlow=true; S.step='phone'; renderAccount(); toast('برای رأی دادن اول وارد شو'); return}
     S.vote=vt.dataset.vote; renderClubSheet(); log('رأی کتاب ماه: '+vt.dataset.vote);
@@ -2055,19 +1831,10 @@ document.addEventListener('click',e=>{
   const pt=t.closest('[data-partner]'); if(pt){partnerSheet(pt.dataset.partner); return}
   const evb=t.closest('[data-ev]'); if(evb){eventSheet(evb.dataset.ev); return}
   const tp=t.closest('[data-teach]'); if(tp){
-    const id=tp.dataset.teach, p=person(id);
-    closeSheets(); toast('دوره‌های '+p.n+' صافی شد'); goto('evSec');
-    setTimeout(()=>{S.q=p.n.split(' ').slice(-1)[0]; $('#q').value=S.q; renderEvents()},220); return}
-  const day=t.closest('[data-day]'); if(day){S.day=day.dataset.day; renderEvents(); return}
-  const cat=t.closest('[data-cat]'); if(cat){S.cat=S.cat===cat.dataset.cat?'all':cat.dataset.cat; renderEvents();
-    if(S.cat!=='all') goto('evSec'); return}
-  const qt=t.closest('[data-qt]'); if(qt){S.tag=qt.dataset.qt; renderQTags(); renderEvents(); return}
-  const ptab=t.closest('[data-ptab]'); if(ptab){
-    S.ptab=ptab.dataset.ptab;
-    $$('.ptabs button').forEach(b=>{b.classList.toggle('on',b===ptab); b.setAttribute('aria-selected',b===ptab)});
-    renderPeople(); return}
-  if(t.closest('#evMore')){S.day='all'; S.cat='all'; S.tag='all'; S.q=''; $('#q').value=''; $('#qClear').hidden=true;
-    renderQTags(); renderEvents(); toast('همهٔ رویدادهای پیش‌رو آمد'); return}
+    const p=person(tp.dataset.teach); location.href='events.html?q='+encodeURIComponent(p.n.split(' ').slice(-1)[0]); return}
+  const qt=t.closest('[data-qt]'); if(qt){
+    S.tag=qt.dataset.qt; renderQTags();
+    location.href='events.html'+(S.tag==='all'?'':'?tag='+encodeURIComponent(S.tag))+'#list'; return}
   if(t.closest('#artMore')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderArticles(); goto('articles');
     toast(faN(ARTICLES.length)+' مطلب نورا'); return}
   const rec=t.closest('[data-rec]'); if(rec){toast('ضبط در پخش‌کنندهٔ نورا باز می‌شود — جلسهٔ کامل'); log('تماشای ضبط'); return}
@@ -2120,7 +1887,7 @@ document.addEventListener('click',e=>{
     $$('#tabs button').forEach(b=>{const u=b.querySelector('use');
       if(u) u.setAttribute('href','#'+(b===tb?b.dataset.if:b.dataset.i))});
     if(k==='home'){closeSheets(); window.scrollTo({top:0,behavior:'smooth'})}
-    if(k==='events'){S.tag='all'; renderQTags(); renderEvents(); openF('shEvents')}
+    if(k==='events') location.href='events.html#list';
     if(k==='me') openF('shAccount');
     return}
 });
@@ -2151,8 +1918,18 @@ function bannerAct(i,which){
   if(b.j) goto(b.j);
 }
 
+/* نشانی‌های ورودی: home.html#me · #p=p1 · #ev=e3 */
+function openHash(){
+  const h=location.hash.replace('#','');
+  if(!h) return;
+  if(h==='me'){openF('shAccount'); return}
+  if(h.startsWith('p=')){personSheet(h.slice(2)); return}
+  if(h.startsWith('ev=')){location.href='events.html?ev='+encodeURIComponent(h.slice(3)); return}
+}
 initKeys(document);
 try{const th=localStorage.getItem('nora-theme'); if(th) setTheme(th); else if(matchMedia('(prefers-color-scheme:dark)').matches) setTheme('dark');}catch(e){}
+openHash();
+window.addEventListener('hashchange',openHash);
 loadSession(); loadPins();
 renderBanner(); renderQTags(); renderAll(); renderLive(); renderVoices();
 autoBanner();

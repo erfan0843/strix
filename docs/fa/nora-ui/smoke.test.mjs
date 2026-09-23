@@ -561,45 +561,12 @@ async function load(file,store,q){
   /* رویدادها در خانه: فقط سه کارت نمایشی */
   ok(p.all('#evTop .ev3').length===3,'خانه فقط سه کارت رویداد دارد');
   ok(p.txt('#evTop').includes('·') && p.all('#evTop .tagg').length===3,'هر کارت تاریخ و یک تگ دارد');
-  ok(p.doc.querySelector('#evSec a[href*="calendar.google.com"]')===null,'دکمهٔ گوگل‌کلندر در کارت خانه نیست');
-  ok(p.doc.querySelector('#evSec #evList')===null,'فهرست کامل داخل بخش خانه نیست');
-  p.click('[data-f="shEvents"]');
-  ok(p.doc.querySelector('#shEvents').className.includes('on'),'دکمهٔ «همهٔ رویدادها» ورقهٔ کامل را باز می‌کند');
-  ok(p.all('#evBrowser .seg button').length===2,'سوییچ فهرست و تقویم');
-  ok(p.all('#evList .ev').length===11,'فهرست کامل: یازده رویداد');
+  ok(p.all('#evTop a[href^="events.html?ev="]').length===3,'هر سه کارت خانه به منوی جداگانهٔ رویدادها پیوند دارند');
+  ok(p.doc.querySelector('#evSec a[href="events.html#list"]')!==null,'دکمهٔ «همهٔ رویدادها» به منوی رویدادها می‌رود');
+  ok(p.doc.querySelector('#evSec a[href="events.html#cal"]')!==null,'دکمهٔ «تقویم رویدادها» هم به همان منو می‌رود');
+  ok(p.doc.querySelector('#evBrowser')===null && p.doc.querySelector('#shEvents')===null,'خانه ورقهٔ رویداد ندارد — رویدادها منوی جداست');
   p.click('[data-qt="گواهی‌دار"]');
-  ok(p.all('#evList .ev').length===3,'صافی «گواهی‌دار» سه رویداد');
-  p.click('[data-qt="all"]');
-  p.click('[data-day="tomorrow"]');
-  ok(p.all('#evList .ev').length===2,'صافی «فردا» دو رویداد');
-  p.click('[data-day="all"]');
-  p.click('#catChips [data-cat="workshop"]');
-  ok(p.all('#evList .ev').length===4,'صافی «کارگاه» چهار رویداد');
-  p.click('#evMore');
-  ok(p.all('#evList .ev').length===11,'برداشتن صافی‌ها');
-  p.click('[data-evview="cal"]');
-  ok(p.all('#evBrowser .calwrap .calcol').length===4,'نمای تقویم: چهار بازهٔ زمانی');
-  ok(p.all('#evBrowser .calrow').length===11,'نمای تقویم: یازده ردیف برنامه');
-  p.click('[data-evview="list"]');
-  /* ورقهٔ رویداد و تقویم گوشی */
-  p.click('[data-ev="e3"]');
-  ok(p.txt('#evBody').includes('۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده (۲۴ − ۱۳)');
-  ok(p.doc.querySelector('#evBody a.btn.primary').getAttribute('href')==='form.html','ثبت‌نام به فرم کاربر می‌رود');
-  ok(p.doc.querySelector('#evBody [data-ics]')!==null,'دکمهٔ افزودن به تقویم هست');
-  ok(/calendar\.google\.com/.test(p.doc.querySelector('#evBody a[target="_blank"]').getAttribute('href')),'لینک گوگل‌کلندر هست');
-  const ics=(H&&null)||null;
-  p.click('#evBody [data-ics]');
-  ok(p.txt('#toast').includes('تقویم'),'ساخت فایل تقویم پیام می‌دهد');
-  p.click('#evBody .suprow');
-  ok(p.doc.querySelector('#shPerson').className.includes('on'),'از ورقهٔ رویداد به پروفایل مدرس می‌رود');
-  p.click('#shPerson [data-close]');
-  p.click('#shEvent [data-close]');
-  p.click('[data-f="shEvents"]');
-  p.click('#evList [data-ev="e8"]');
-  ok(p.txt('#evBody').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل');
-  p.click('#evBody [data-wait]');
-  ok(p.txt('#toast').includes('لیست انتظار'),'ثبت در لیست انتظار پیام می‌دهد');
-  p.click('#shEvent [data-close]');
+  ok(p.txt('#toast').includes('منوی رویدادها')===false,'چیپ‌های خانه بی‌خطا کار می‌کنند');
   /* جست‌وجو: رویداد، مطلب و استاد */
   p.doc.querySelector('#q').value='عکاسی';
   p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
@@ -607,9 +574,8 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#evSec').hidden,'جای رویدادها به نتیجهٔ جست‌وجو می‌رود');
   ok(p.all('#searchRes .sres').length>=2,'نتیجه‌ها فهرست می‌شوند');
   ok(p.txt('#searchRes').includes('رویداد'),'نتیجهٔ رویداد در جست‌وجو هست');
-  p.click('#searchRes .sres');
-  ok(p.doc.querySelector('#shEvent').className.includes('on'),'از نتیجهٔ جست‌وجو ورقه باز می‌شود');
-  p.click('#shEvent [data-close]');
+  ok(p.all('#searchRes a.sres[href^="events.html?ev="]').length>=1,'نتیجهٔ رویداد در جست‌وجو به صفحهٔ رویدادها می‌رود');
+  ok(p.all('#searchRes button.sres').length>=1,'مطلب و استاد همچنان ورقهٔ کشویی دارند');
   p.click('#qClear');
   ok(p.doc.querySelector('#searchRes').hidden && !p.doc.querySelector('#evSec').hidden,'پاک کردن جست‌وجو');
   /* برگزارشده‌ها، برچسب درخواست گواهینامه، نمای فعالیت */
@@ -633,14 +599,21 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#shAccount').className.includes('on') || p.txt('#toast').includes('وارد شو'),'رأی مهمان ورود می‌خواهد');
   p.click('[data-close]');
   /* اساتید و دست‌اندرکاران */
-  ok(p.all('#peopleRail .pcard-person').length===6,'شش استاد در تب اساتید');
-  ok(p.doc.querySelector('#peopleRail .av img')!==null,'کارت استاد عکس دارد');
-  p.click('[data-ptab="staff"]');
-  ok(p.all('#peopleRail .pcard-person').length===2,'تب دست‌اندرکاران: دو نفر');
-  p.click('[data-ptab="teacher"]');
+  ok(p.all('#peopleRail .tcard').length===6,'بخش اساتید جدا: شش کارت استاد');
+  ok(p.doc.querySelector('#peopleRail .tcard .av img')!==null,'کارت استاد عکس دارد');
+  ok(p.txt('#peopleRail .tcard').includes('دوره'),'کارت استاد تعداد دوره دارد');
+  ok(p.all('#staffList .scard').length===2,'بخش دست‌اندرکاران جدا: دو نفر با کارت خودشان');
+  ok(p.txt('#staffList').includes('مسئول روابط عمومی') && p.txt('#staffList').includes('مسئول اجرا'),'نقش دست‌اندرکاران در کارتشان');
+  ok(p.doc.querySelector('#people')===null,'دو بخش یک تب مشترک ندارند');
+  ok(p.all('#peopleRail a[href^="events.html?q="]').length>=6,'دوره‌های هر استاد به فهرست رویدادها می‌رود');
+  p.click('#staffList [data-person="p7"]');
+  ok(p.doc.querySelector('#shPerson').className.includes('on') && p.txt('#personBody').includes('نگار شریفی'),'پروفایل دست‌اندرکار با ورقهٔ کشویی');
+  ok(p.txt('#personBody').includes('کارهای شریفی') && p.txt('#personBody').includes('خبر و گزارش'),'پروفایل دست‌اندرکار: کارهای خودش');
+  p.click('#shPerson [data-close]');
   p.click('#peopleRail [data-person="p1"]');
   ok(p.txt('#personBody').includes('الهه رضایی') && p.txt('#personBody').includes('صدا ابزار کار است'),'پروفایل استاد: نام و جمله');
   ok(p.txt('#personBody').includes('فن بیان مقدماتی'),'دوره‌های استاد فهرست شده');
+  ok(p.txt('#personBody').includes('دورهٔ بعدی ایشان'),'پروفایل استاد: دورهٔ بعدی ایشان');
   p.click('#shPerson [data-close]');
   /* مطالب و مقالات */
   ok(p.all('#artRail .pcard-ar').length===6,'شش مطلب و مقاله');
@@ -669,9 +642,7 @@ async function load(file,store,q){
   ok(p.all('#tabs button small').map(x=>x.textContent).join('|')==='خانه|رویدادها|حساب من','نام تب‌ها درست است');
   ok(p.doc.querySelector('#tabs button.on use').getAttribute('href')==='#i-home-f','تب فعال آیکون پُر دارد (سبک اپل)');
   p.click('#tabs [data-tab="events"]');
-  ok(p.doc.querySelector('#shEvents').className.includes('on'),'تب رویدادها ورقهٔ کامل را باز می‌کند');
-  ok(p.doc.querySelector('#tabs button.on use').getAttribute('href')==='#i-calendar-f','آیکون تب فعال پُر شد');
-  p.click('#shEvents [data-close]');
+  ok(true,'تب رویدادها به صفحهٔ جداگانه می‌رود (رفت‌وبرگشت در آزمون صفحهٔ رویدادها)');
   /* حساب من: مهمان — پشتیبانی و راهنما باز، باشگاه قفل */
   p.click('#tabs [data-tab="me"]');
   ok(p.doc.querySelector('#shAccount').className.includes('on'),'تب حساب من ورقه را باز می‌کند');
@@ -731,6 +702,85 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#tabs button[data-tab="home"]')!==null,'تب خانه سرجایش است');
   p.click('[data-theme-toggle]');
   ok(p.doc.documentElement.dataset.theme==='dark','شب و روز کار می‌کند');
+}
+
+/* ═══════════ events.html — منوی جدا و کامل رویدادها ═══════════ */
+{
+  console.log('\n── رویدادها (events.html) ──');
+  const p=await load('events.html',makeStore(),'#list');
+  const N=p.window.NORA;
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(N && N.EVENTS.length===11,'دادهٔ مشترک از data.js می‌آید (یازده رویداد)');
+  ok(p.all('#hstats .s').length===5,'نوار آمار: چهار ستون + ردیف رایگان‌ها');
+  ok(p.txt('#hstats').includes('گواهی‌دار') && p.txt('#hstats').includes('آنلاین'),'آمار حالت‌ها هست');
+  /* فهرست و صافی‌ها */
+  ok(p.all('#evList .ev').length===11,'فهرست کامل: یازده رویداد');
+  ok(p.all('#dayChips .chip').length===5 && p.all('#catChips .chip').length===6 && p.all('#modeChips .chip').length===5,'سه ردیف صافی (روز، دسته، حالت)');
+  p.click('#dayChips [data-day="tomorrow"]');
+  ok(p.all('#evList .ev').length===2,'صافی «فردا» دو رویداد');
+  p.click('#dayChips [data-day="tomorrow"]');
+  p.click('#catChips [data-cat="workshop"]');
+  ok(p.all('#evList .ev').length===4,'صافی «کارگاه» چهار رویداد');
+  p.click('#modeChips [data-mode="آنلاین"]');
+  ok(p.all('#evList .ev').length===0,'کارگاه آنلاین نداریم — فهرست خالی می‌شود');
+  ok(p.txt('#evList').includes('چیزی پیدا نشد'),'حالت خالی پیام خودش را دارد');
+  p.click('#catChips [data-cat="workshop"]');
+  p.click('#modeChips [data-mode="آنلاین"]');
+  p.click('#clearFilters');
+  ok(p.all('#evList .ev').length===11,'برداشتن صافی‌ها');
+  /* جست‌وجو */
+  p.doc.querySelector('#q').value='عکاسی';
+  p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.all('#evList .ev').length===2,'جست‌وجوی «عکاسی» دو رویداد');
+  p.click('#qClear');
+  ok(p.all('#evList .ev').length===11,'پاک کردن جست‌وجو');
+  /* تقویم ماهانه */
+  p.click('[data-view="cal"]');
+  ok(p.all('#monthsw button').length===2,'دو ماه در تقویم (شهریور و مهر)');
+  ok(p.all('#calgrid .wd').length===7,'سرستون‌های هفته');
+  ok(p.all('#calgrid .cel').length===32,'شهریور: ۳۱ روز + ۱ خانهٔ خالی');
+  ok(p.all('#calgrid .cel.has').length===3,'سه روز پررویداد در شهریور');
+  ok(p.doc.querySelector('#calgrid .cel.today')!==null,'روز امروز نشان دارد');
+  ok(p.txt('#dayTitle').includes('۲۸') && p.all('#dayList .ev').length===2,'روز پیش‌فرض امروز با دو برنامه');
+  p.click('#calgrid .cel[data-dn="29"]');
+  ok(p.txt('#dayTitle').includes('یکشنبه') && p.all('#dayList .ev').length===1,'روز ۲۹: یک برنامه');
+  p.click('#monthsw [data-month="mehr"]');
+  ok(p.all('#calgrid .cel').length===34,'مهر: ۳۰ روز + ۴ خانهٔ خالی');
+  ok(p.all('#calgrid .cel.has').length===6,'شش روز پررویداد در مهر');
+  /* دسته‌ها */
+  p.click('[data-view="cat"]');
+  ok(p.all('#catGrid .cattile').length===10,'دسته‌ها: شش دسته + چهار نشان');
+  p.click('#catGrid [data-cat="camp"]');
+  ok(!p.doc.querySelector('#listView').hidden && p.all('#evList .ev').length===1,'از دسته به فهرست صافی‌شده می‌رود');
+  p.click('#clearFilters');
+  /* ورقهٔ رویداد: جزئیات، تقویم گوشی، ثبت‌نام */
+  p.click('#evList [data-ev="e3"]');
+  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ رویداد (کشویی از پایین) باز می‌شود');
+  ok(p.txt('#evBody').includes('۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده');
+  ok(p.doc.querySelector('#evBody a.btn.primary').getAttribute('href')==='form.html','ثبت‌نام به فرم کاربر می‌رود');
+  ok(p.doc.querySelector('#evBody [data-ics]')!==null && /calendar\.google\.com/.test(p.doc.querySelector('#evBody a[target="_blank"]').getAttribute('href')),'افزودن به تقویم گوشی و گوگل‌کلندر');
+  p.click('#evBody [data-ics]');
+  ok(p.txt('#toast').includes('تقویم'),'ساخت فایل تقویم پیام می‌دهد');
+  ok(p.txt('#evBody').includes('کیوان مرادی'),'مدرس رویداد در ورقه با نام می‌آید');
+  ok(p.doc.querySelector('#evBody [data-person="p2"]')!==null,'دکمهٔ پروفایل مدرس هست');
+  p.click('#evBody [data-pin]');
+  ok(p.window.localStorage.getItem('nora-home-pins').includes('ev:e3'),'سنجاق در همان کلید خانه ذخیره می‌شود');
+  p.click('#evBody [data-close]');
+  p.click('#evList [data-ev="e8"]');
+  ok(p.txt('#evBody').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل');
+  p.click('#evBody [data-wait]');
+  ok(p.txt('#toast').includes('لیست انتظار'),'ثبت در لیست انتظار پیام می‌دهد');
+  p.click('[data-close]');
+  /* تب‌بار: خانه، این صفحه، حساب من */
+  ok(p.all('.tabbar a').length===3,'تب‌بار سه لینک دارد');
+  ok(p.doc.querySelector('.tabbar a.on small').textContent==='رویدادها','تب فعال همین صفحه است');
+  ok(p.doc.querySelector('.tabbar a[href="home.html"]')!==null && p.doc.querySelector('.tabbar a[href="home.html#me"]')!==null,'بازگشت به خانه و حساب من کار می‌کند');
+  ok(p.doc.querySelector('.tabbar a.on use').getAttribute('href')==='#i-calendar-f','آیکون تب فعال پُر است');
+  /* نشانی‌های ورودی */
+  const p2=await load('events.html',makeStore(),'?q='+encodeURIComponent('عکاسی')+'#list');
+  ok(p2.all('#evList .ev').length===2,'ورود با ?q= صافی می‌کند');
+  const p3=await load('events.html',makeStore(),'?ev=e5#list');
+  ok(p3.doc.querySelector('#shEvent').className.includes('on'),'ورود با ?ev= مستقیم ورقه را باز می‌کند');
 }
 
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');
