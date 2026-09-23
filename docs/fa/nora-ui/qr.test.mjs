@@ -56,7 +56,7 @@ async function open(file,q){
 let checks=0, fails=0;
 const ok=(c,t)=>{checks++; if(!c){fails++; console.log('   ✗',t);}};
 
-/* ── ۱) برگ گواهینامه در فرم: کیوآر باید واقعاً خوانده شود ── */
+/* ── ۱) فرم دیگر گواهینامه صادر نمی‌کند؛ موتور برگ باید جدا هم کار کند ── */
 const dom=await open('./form.html','?guests=1');
 const {window}=dom, d=window.document;
 const click=s=>d.querySelector(s)?.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
@@ -65,18 +65,19 @@ for(let i=0;i<7;i++) click('#next');
 d.querySelector('#fName').value='مریم احمدی'; d.querySelector('#fMobile').value='۰۹۱۲۳۴۵۶۷۸۹';
 click('#addFriend'); click('#next'); click('#next');
 click('[data-method="bale"]');
-for(let i=0;i<3;i++) click('#next');        /* پرداخت → رسید → ثبт شد */
+for(let i=0;i<3;i++) click('#next');        /* پرداخت → رسید → ثبت شد */
 ok(!!d.querySelector('.screen.on'),'فرم تا انتها رفت: '+(d.querySelector('.screen.on')||{}).id);
+ok(d.querySelector('#u16')===null,'در نقشهٔ حرکت فرم صفحهٔ گواهینامه نیست');
+ok(!/گواهی/.test(d.body.textContent),'هیچ وعدهٔ گواهینامه‌ای ته فرم نمانده');
 
-window.eval("show('u16')");
-const csvg=d.querySelector('#certSlot .tk-img svg')||d.querySelector('#certSlot svg');
-ok(csvg!==null,'برگ گواهینامه ساخته شد');
-const text=decodeSVG(csvg);
+/* موتور برگ گواهینامه (ui.js) بی‌واسطهٔ صفحهٔ فرم هم باید برگ و کیوآر بسازد */
+const svg=window.eval("certificateSVG({name:'مریم احمدی',title:'کارگاه فن بیان',kind:'گواهینامهٔ پایان دوره',date:'۲۸ شهریور ۱۴۰۵',hours:'۲۴ ساعت',code:'NR-1405-0217'})")
+  && new window.DOMParser().parseFromString(window.eval("certificateSVG({name:'مریم احمدی',title:'کارگاه فن بیان',kind:'گواهینامهٔ پایان دوره',date:'۲۸ شهریور ۱۴۰۵',hours:'۲۴ ساعت',code:'NR-1405-0217'})"),'image/svg+xml').documentElement;
+ok(svg!==null,'موتور برگ گواهینامه جدا از فرم هم برگ می‌سازد');
+const text=decodeSVG(svg);
 ok(text&&text.startsWith('https://lifeline1.ir/c/'),'کیوآر برگ گواهینامه خوانده شد: '+text);
-ok(d.querySelector('#certSlot .tk-img svg text')!==null||d.querySelector('#certSlot svg text')!==null,'متن روی برگ هست (فونت درست نشسته)');
-ok(d.querySelectorAll('#certSlot .tkqr').length===1,'فقط یک کیوآر روی برگ');
+ok(svg.querySelectorAll('.tkqr').length===1,'فقط یک کیوآر روی برگ');
 ok(d.querySelector('#u13')===null && d.querySelector('#tickets')===null,'صفحهٔ بلیت‌ها کلاً برداشته شد');
-ok(d.querySelector('#receiptSlot')===null,'جای رسید تصویری هم نیست');
 console.log('   کیوآر:',text);
 
 /* ── ۲) پیش‌نمایش گواهینامه در پنل سازنده: همان موتور، همان کد ── */

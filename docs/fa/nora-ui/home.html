@@ -13,15 +13,12 @@
 
   /* ── بنر (بالای صفحه) ── */
   .bwrap{position:relative;border-radius:var(--r-xl);overflow:hidden;background:var(--surface-sunk);
-    box-shadow:var(--sh-2);touch-action:pan-y}
+    box-shadow:var(--sh-1);touch-action:pan-y}
   .bsdeck{display:flex;transition:transform var(--t-slow) var(--ease);will-change:transform}
   .bs{position:relative;flex:0 0 100%;min-height:206px;padding:18px 18px 34px;display:grid;align-content:end;gap:7px;
     color:#fff;background-image:var(--g);isolation:isolate}
   .bs::before{content:'';position:absolute;inset:0;z-index:-1;
-    background:radial-gradient(120% 90% at 100% 0,rgba(255,255,255,.3),transparent 58%)}
-  .bs::after{content:'';position:absolute;inset:0;z-index:-1;opacity:.5;
-    background-image:radial-gradient(circle at 20% 80%,rgba(255,255,255,.22) 0 2px,transparent 2px);
-    background-size:22px 22px}
+    background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 55%)}
   .bs .btop{position:absolute;top:14px;inset-inline-start:14px;display:flex;gap:6px;flex-wrap:wrap}
   .bs .btag{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;
     border-radius:99px;background:rgba(255,255,255,.22);border:.5px solid rgba(255,255,255,.42);
@@ -56,12 +53,8 @@
     background:linear-gradient(160deg,var(--brand-tint),color-mix(in oklab,var(--brand) 6%,transparent));
     color:var(--brand-ink);transition:transform var(--t-fast) var(--spring)}
   .tile .ci .i{width:23px;height:23px}
-  .tile[data-tone="ok"] .ci{background:linear-gradient(160deg,var(--ok-tint),transparent);color:var(--ok)}
-  .tile[data-tone="star"] .ci{background:linear-gradient(160deg,var(--accent-tint),transparent);color:var(--accent-ink)}
-  .tile[data-tone="stop"] .ci{background:linear-gradient(160deg,var(--stop-tint),transparent);color:var(--stop)}
-  .tile[data-tone="info"] .ci{background:linear-gradient(160deg,var(--info-tint),transparent);color:var(--info)}
   .tile b{font-size:12.5px;font-weight:600;line-height:1.4}
-  .tile small{font-size:10.5px;color:var(--ink-3);line-height:1.4}
+  .tile small{font-size:11.5px;color:var(--ink-3);line-height:1.4}
   .tile .tn{position:absolute;top:8px;inset-inline-end:8px}
   .tile .mini-chip{height:18px;font-size:10px}
 
@@ -92,9 +85,9 @@
   .statstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:12px;border-radius:var(--r-lg)}
   .statstrip .s{text-align:center;padding:2px 4px}
   .statstrip .s b{display:block;font-size:16px;font-weight:700;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
-  .statstrip .s span{font-size:11px;color:var(--ink-3);line-height:1.5}
+  .statstrip .s span{font-size:12px;color:var(--ink-3);line-height:1.5}
   @media (max-width:420px){.statstrip{grid-template-columns:repeat(2,1fr);gap:8px}}
-  .srcline{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11.5px;color:var(--ink-3)}
+  .srcline{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:12px;color:var(--ink-3)}
   .more{-webkit-appearance:none;appearance:none;display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-cap);
     color:var(--brand-ink);font-weight:600;background:none;border:0;cursor:pointer;padding:6px 2px;font-family:inherit}
 
@@ -102,14 +95,12 @@
   .pcard{position:relative;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface);
     box-shadow:var(--sh-1);overflow:hidden;display:grid}
   .pcard .pc-cov{position:relative;height:96px;background-image:var(--g);display:grid;place-items:center;color:#fff;overflow:hidden}
-  .pcard .pc-cov::after{content:'';position:absolute;inset:0;
-    background:radial-gradient(120% 90% at 100% 0,rgba(255,255,255,.28),transparent 60%)}
   .pcard .pc-cov .i{width:30px;height:30px;position:relative;z-index:1;opacity:.95}
   .pcard .pc-tags{position:absolute;top:10px;inset-inline-start:10px;display:flex;gap:5px;flex-wrap:wrap;z-index:2}
   .pcard .pc-tags .tag-g{background:rgba(255,255,255,.9);color:#0E2A55;border-color:transparent}
   .pcard .pc-body{padding:12px;display:grid;gap:8px}
   .pcard .pc-ttl{font-size:15px;font-weight:700;letter-spacing:-.2px;line-height:1.55}
-  .pcard .pc-meta{font-size:11.5px;color:var(--ink-3);line-height:1.75}
+  .pcard .pc-meta{font-size:12px;color:var(--ink-3);line-height:1.75}
   .pcard .pc-foot{display:flex;align-items:center;gap:8px;padding:0 12px 12px}
   .pinb{-webkit-appearance:none;appearance:none;width:30px;height:30px;border-radius:50%;cursor:pointer;
     border:.5px solid var(--hairline);background:var(--surface-2);color:var(--ink-3);display:grid;place-items:center;
@@ -135,10 +126,8 @@
   .pastcard .pc-actions{display:flex;gap:7px;flex-wrap:wrap}
 
   /* ── باشگاه کتاب‌خوانی ── */
-  .club{border-radius:var(--r-xl);overflow:hidden;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-2)}
+  .club{border-radius:var(--r-xl);overflow:hidden;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
   .club .cl-hero{position:relative;padding:16px;display:grid;gap:9px;color:#fff;background-image:var(--g);isolation:isolate}
-  .club .cl-hero::after{content:'';position:absolute;inset:0;z-index:-1;
-    background:radial-gradient(120% 90% at 100% 0,rgba(255,255,255,.26),transparent 60%)}
   .club .cl-hero .bk{display:flex;gap:11px;align-items:center}
   .club .cl-hero .bk .cv{width:58px;height:76px;border-radius:9px;flex:0 0 auto;
     background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,.1));
@@ -161,8 +150,8 @@
   .pcard-person .av img{width:100%;height:100%;object-fit:cover;display:block}
   .pcard-person .pc-body{padding-top:12px}
   .pcard-person .nm{font-size:14.5px;font-weight:700;letter-spacing:-.2px}
-  .pcard-person .rl{font-size:11.5px;color:var(--ink-3);margin-top:1px}
-  .pstat{display:flex;gap:10px;font-size:11.5px;color:var(--ink-2)}
+  .pcard-person .rl{font-size:12px;color:var(--ink-3);margin-top:1px}
+  .pstat{display:flex;gap:10px;font-size:12px;color:var(--ink-2)}
   .pstat b{font-variant-numeric:tabular-nums;color:var(--ink)}
 
   /* ── مقالات ── */
@@ -170,7 +159,7 @@
   .arail>*{scroll-snap-align:start;flex:0 0 244px}
   .pcard-ar .pc-cov{height:104px;align-items:flex-start;justify-items:start;padding:12px}
   .pcard-ar .pc-cov .kn{position:absolute;bottom:10px;inset-inline-start:12px;display:flex;gap:6px;align-items:center;z-index:2}
-  .authrow{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3)}
+  .authrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
   .ava{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;overflow:hidden;
     background:var(--brand-tint);color:var(--brand-ink);font-size:11px;font-weight:700}
   .ava img{width:100%;height:100%;object-fit:cover;display:block}
@@ -185,20 +174,20 @@
   .logo:active{transform:scale(.97)}
   .logo .mon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px;
     background-image:var(--g);box-shadow:0 6px 14px rgba(16,42,80,.16)}
-  .logo b{font-size:11px;font-weight:600;line-height:1.5}
-  .logo span{font-size:9.5px;color:var(--ink-3)}
+  .logo b{font-size:11.5px;font-weight:600;line-height:1.5}
+  .logo span{font-size:10.5px;color:var(--ink-3)}
 
   /* ── جریان زنده ── */
   .livecard{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);
     padding:14px;display:grid;gap:10px}
-  .livecard .ll{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--stop)}
+  .livecard .ll{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--stop)}
   .livecard h3{margin:0;font-size:15px;font-weight:700}
 
   /* ── نظرها ── */
   .voice{display:grid;gap:8px;padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface-2)}
   .voice .wh{display:flex;align-items:center;gap:9px}
   .voice .wt b{display:block;font-size:var(--fs-sub);font-weight:600}
-  .voice .wt span{font-size:11px;color:var(--ink-3)}
+  .voice .wt span{font-size:12px;color:var(--ink-3)}
   .voice p{margin:0;font-size:var(--fs-sub);color:var(--ink-2);line-height:1.85}
 
   /* ── پشتیبانی ── */
@@ -209,12 +198,12 @@
     color:var(--brand-ink);flex:0 0 auto}
   .helprow .ht{flex:1;min-width:0}
   .helprow .ht b{display:block;font-size:var(--fs-sub);font-weight:600}
-  .helprow .ht span{font-size:11.5px;color:var(--ink-3)}
+  .helprow .ht span{font-size:12px;color:var(--ink-3)}
   .notif{display:flex;gap:10px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
   .notif .ni{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;background:var(--brand-tint);color:var(--brand-ink)}
   .notif.unread{background:var(--brand-tint);border-color:transparent}
   .notif .nt{font-size:var(--fs-sub);font-weight:600}
-  .notif .nd{font-size:11.5px;color:var(--ink-3);line-height:1.7}
+  .notif .nd{font-size:12px;color:var(--ink-3);line-height:1.7}
   .copyrow{display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
   .copyrow code{flex:1;font-size:12px;color:var(--ink-2);word-break:break-all;text-align:start;direction:ltr}
   details.faq{border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);padding:0 12px;margin-bottom:8px}
@@ -230,11 +219,10 @@
   /* ── منوی نورا ── */
   .mhead{position:relative;border-radius:var(--r-lg);padding:14px;color:#fff;background-image:linear-gradient(150deg,#0A56B8,#123A7A 60%,#0B2447);
     display:grid;gap:6px;margin-bottom:12px;overflow:hidden}
-  .mhead::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 100% 0,rgba(255,255,255,.28),transparent 60%)}
   .mhead .mt{position:relative;font-size:16px;font-weight:700}
-  .mhead .ms{position:relative;font-size:11.5px;opacity:.9}
+  .mhead .ms{position:relative;font-size:12px;opacity:.9}
   .mgroup{margin-bottom:12px}
-  .mgroup .gh{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--ink-3);margin:0 4px 7px}
+  .mgroup .gh{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink-3);margin:0 4px 7px}
   .mrow{-webkit-appearance:none;appearance:none;display:flex;align-items:center;gap:11px;width:100%;text-align:start;
     font:inherit;color:inherit;cursor:pointer;padding:11px 12px;border-radius:var(--r-md);border:.5px solid var(--hairline);
     background:var(--surface);box-shadow:var(--sh-1);margin-bottom:7px;text-decoration:none}
@@ -244,18 +232,17 @@
   .mrow .mi .i{width:19px;height:19px}
   .mrow .mtx{flex:1;min-width:0}
   .mrow .mtx b{display:block;font-size:var(--fs-sub);font-weight:600}
-  .mrow .mtx span{font-size:11px;color:var(--ink-3)}
+  .mrow .mtx span{font-size:12px;color:var(--ink-3)}
   .mrow .sp{flex:0 0 auto}
-  .mfoot{padding:13px;border-radius:var(--r-md);background:var(--surface-2);display:grid;gap:9px;text-align:center;font-size:11.5px;color:var(--ink-3)}
+  .mfoot{padding:13px;border-radius:var(--r-md);background:var(--surface-2);display:grid;gap:9px;text-align:center;font-size:12px;color:var(--ink-3)}
   .prof-cov{height:104px;border-radius:var(--r-md);background-image:var(--g);position:relative;overflow:hidden;
     display:grid;place-items:center;color:#fff}
-  .prof-cov::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 100% 0,rgba(255,255,255,.28),transparent 60%)}
   .artbody{display:grid;gap:10px;font-size:var(--fs-sub);color:var(--ink-2);line-height:2}
   .artbody h4{margin:4px 0 0;font-size:var(--fs-sub);color:var(--ink);font-weight:700}
   .artbody blockquote{margin:0;padding:11px 13px;border-inline-start:3px solid var(--brand);
     background:var(--brand-tint);border-radius:0 var(--r-md) var(--r-md) 0;font-size:var(--fs-sub);color:var(--ink-2)}
   .artbody ul{margin:0;padding-inline-start:18px;display:grid;gap:5px}
-  .tagline{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3);margin-top:8px}
+  .tagline{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);margin-top:8px}
 
   /* ═════════ لایهٔ سومی: اندازهٔ آیکون، شیشهٔ اسکرول، استوری و کارت‌های تازه ═════════ */
   .i{width:24px;height:24px}
@@ -271,7 +258,7 @@
     color:#fff;box-shadow:0 6px 16px rgba(10,30,60,.2)}
   .story .sg .i{width:25px;height:25px}
   .story b{font-size:12.5px;font-weight:600;line-height:1.5}
-  .story small{font-size:10.5px;color:var(--ink-3);line-height:1.5}
+  .story small{font-size:11.5px;color:var(--ink-3);line-height:1.5}
   .storybig{display:grid;gap:8px;justify-items:center;text-align:center;padding:26px 16px;border-radius:var(--r-xl);
     background-image:var(--g);color:#fff}
   .storybig .i{width:34px;height:34px}
@@ -294,10 +281,10 @@
   @media (max-width:640px){.calwrap{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .calcol{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface-2);padding:10px;display:grid;gap:7px;align-content:start}
   .calhd{display:flex;justify-content:space-between;align-items:baseline}
-  .calhd b{font-size:12.5px}.calhd span{font-size:10.5px;color:var(--ink-3)}
+  .calhd b{font-size:12.5px}.calhd span{font-size:11.5px;color:var(--ink-3)}
   .calrow{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:start;display:grid;gap:2px;
     padding:8px 9px;border-radius:12px;background:var(--surface);border:.5px solid var(--hairline-2)}
-  .calrow b{font-size:12px;font-weight:600}.calrow span{font-size:10.5px;color:var(--ink-3)}
+  .calrow b{font-size:12px;font-weight:600}.calrow span{font-size:11.5px;color:var(--ink-3)}
   .suphead{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:var(--r-lg);
     border:.5px solid var(--hairline);background:var(--surface-2)}
   .chans{display:grid;gap:8px;margin-top:10px}
@@ -305,7 +292,7 @@
     border:.5px solid var(--hairline);background:var(--surface);text-decoration:none;color:inherit}
   .chan .chi{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
   .chan .cht{flex:1;min-width:0;display:grid}
-  .chan .cht b{font-size:13px}.chan .cht span{font-size:11px;color:var(--ink-3)}
+  .chan .cht b{font-size:13px}.chan .cht span{font-size:12px;color:var(--ink-3)}
   .badges{display:flex;gap:7px;flex-wrap:wrap}
   .badge-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:99px;
     font-size:11.5px;font-weight:600;background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-3)}
@@ -316,7 +303,7 @@
     display:grid;grid-template-columns:1fr 84px 62px;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--r-lg);
     border:.5px solid var(--hairline);background:var(--surface)}
   .voteopt.on{border-color:var(--brand);background:var(--brand-tint)}
-  .voteopt .vt{display:grid}.voteopt .vt b{font-size:13px}.voteopt .vt span{font-size:10.5px;color:var(--ink-3)}
+  .voteopt .vt{display:grid}.voteopt .vt b{font-size:13px}.voteopt .vt span{font-size:11.5px;color:var(--ink-3)}
   .vbar{height:7px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;display:block}
   .vbar i{display:block;height:100%;background:var(--brand)}
   /* ── کارت استاد ── */
@@ -324,7 +311,6 @@
     border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
   .tcard.pinned{border-color:color-mix(in oklab,var(--brand) 46%,transparent)}
   .tcard .tcov{position:relative;height:78px;background-image:var(--g)}
-  .tcard .tcov::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 92% 6%,rgba(255,255,255,.3),transparent 60%)}
   .tcard .tci{position:absolute;top:11px;inset-inline-start:12px;color:rgba(255,255,255,.9);z-index:1}
   .tcard .tci .i{width:22px;height:22px}
   .tcard .av{position:absolute;bottom:-24px;inset-inline-start:13px;width:60px;height:60px;border-radius:50%;
@@ -333,12 +319,12 @@
   .tcard .av img{width:100%;height:100%;object-fit:cover;display:block}
   .tcard .tbody{padding:30px 13px 10px;display:grid;gap:6px}
   .tcard .nm{font-size:15px;font-weight:700;letter-spacing:-.2px}
-  .tcard .rl{font-size:11.5px;color:var(--ink-3)}
+  .tcard .rl{font-size:12px;color:var(--ink-3)}
   .tcard .tstars{display:flex;align-items:center;gap:6px}
-  .tcard .tmeta{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
+  .tcard .tmeta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
   .tcard .tmeta b{color:var(--ink);font-size:13px}
   .tcard .tmeta .hl{background:var(--accent-tint);color:var(--accent-ink);padding:2px 8px;border-radius:99px;font-weight:600}
-  .tcard .tnext{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--brand-ink);
+  .tcard .tnext{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--brand-ink);
     background:var(--brand-tint);border-radius:11px;padding:7px 9px}
   .tcard .tnext .i{width:15px;height:15px}
   .tcard .tfoot{display:flex;gap:7px;padding:0 13px 13px}
@@ -352,7 +338,7 @@
   .scard .sav img{width:100%;height:100%;object-fit:cover}
   .scard .sbody{flex:1;min-width:0;display:grid;gap:4px}
   .scard .sbody b{font-size:14px}
-  .scard .sbody .rl{font-size:11.5px;color:var(--ink-3)}
+  .scard .sbody .rl{font-size:12px;color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -540,7 +526,7 @@
   </section>
 
   <!-- ── نتیجهٔ جست‌وجو: رویداد، مطلب و استاد ── -->
-  <section class="sec card paper" id="searchRes" aria-label="نتیجهٔ جست‌وجو" hidden></section>
+  <section class="sec" id="searchRes" aria-label="نتیجهٔ جست‌وجو" hidden></section>
 
   <!-- ── منوی سریع ── -->
   <section class="sec" id="quick" aria-label="منوی سریع"></section>
@@ -548,24 +534,11 @@
   <!-- ── سنجاق‌شده‌های من ── -->
   <section class="sec" id="pins" aria-label="سنجاق‌شده‌های من" hidden></section>
 
-  <!-- ── آمار ── -->
-  <section class="glass statstrip" style="margin-top:12px" aria-label="نورا در یک نگاه">
-    <div class="s"><b>۱۲</b><span>سال فعالیت</span></div>
-    <div class="s"><b>۳٬۴۰۰</b><span>شرکت‌کننده</span></div>
-    <div class="s"><b>۴۸</b><span>کارگاه در سال</span></div>
-    <div class="s"><b>۹۶٪</b><span>رضایت ۱۴۰۴</span></div>
-  </section>
-  <div class="srcline">
-    <svg class="i" style="width:15px;height:15px"><use href="#i-shield"/></svg>
-    <span>گواهینامه‌ها با شمارهٔ یکتا و کیوآر راستی‌آزمایی صادر می‌شوند —
-      <button class="more" data-f="shVerify" style="padding:0;font-size:11.5px">استعلام گواهینامه</button></span>
-  </div>
-
   <!-- ── برای تو / حساب ── -->
   <section class="sec" id="mine" aria-label="برای تو"></section>
 
   <!-- ── رویدادها و برنامه‌ها ── -->
-  <section class="sec card paper" id="evSec" aria-label="رویدادها و برنامه‌ها">
+  <section class="sec" id="evSec" aria-label="رویدادها و برنامه‌ها">
     <div class="sec-hd">
       <span class="fw">ویترین رویدادها</span>
       <span class="sp"></span>
@@ -581,7 +554,7 @@
   </section>
 
   <!-- ── برگزارشده‌ها: گواهینامه و ضبط آفلاین ── -->
-  <section class="sec card paper" id="pastSec" aria-label="کارگاه‌های برگزارشده">
+  <section class="sec" id="pastSec" aria-label="کارگاه‌های برگزارشده">
     <div class="sec-hd">
       <span class="fw">برگزارشده‌ها</span>
       <span class="sp"></span>
@@ -596,7 +569,7 @@
   <section class="sec" id="club" aria-label="باشگاه کتاب‌خوانی"></section>
 
   <!-- ── اساتید و دست‌اندرکاران ── -->
-  <section class="sec card paper" id="teachers" aria-label="اساتید و مدرسان">
+  <section class="sec" id="teachers" aria-label="اساتید و مدرسان">
     <div class="sec-hd">
       <span class="fw">اساتید و مدرسان</span>
       <span class="sp"></span>
@@ -606,7 +579,7 @@
     <div class="prail" id="peopleRail"></div>
   </section>
 
-  <section class="sec card paper" id="staff" aria-label="دست‌اندرکاران">
+  <section class="sec" id="staff" aria-label="دست‌اندرکاران">
     <div class="sec-hd">
       <span class="fw">دست‌اندرکاران</span>
       <span class="sp"></span>
@@ -616,7 +589,7 @@
   </section>
 
   <!-- ── مطالب و مقالات ── -->
-  <section class="sec card paper" id="articles" aria-label="مطالب و مقالات">
+  <section class="sec" id="articles" aria-label="مطالب و مقالات">
     <div class="sec-hd">
       <span class="fw">مطالب و مقالات</span>
       <span class="sp"></span>
@@ -626,7 +599,7 @@
   </section>
 
   <!-- ── نهادهای همکار ── -->
-  <section class="sec card paper" id="partners" aria-label="نهادهای همکار">
+  <section class="sec" id="partners" aria-label="نهادهای همکار">
     <div class="sec-hd">
       <span class="fw">نهادهای همکار</span>
       <span class="sp"></span>
@@ -636,9 +609,26 @@
   </section>
 
   <!-- ── نظر شرکت‌کننده‌ها ── -->
-  <section class="sec card paper" id="voices" aria-label="نظر شرکت‌کننده‌ها">
+  <section class="sec" id="voices" aria-label="نظر شرکت‌کننده‌ها">
     <div class="sec-hd"><span class="fw">شرکت‌کننده‌ها چه می‌گویند</span><span class="sp"></span><span class="cap">۹۶٪ رضایت</span></div>
     <div class="stack tight" id="voiceList"></div>
+  </section>
+
+  <!-- ── نورا در یک نگاه: پای صفحه، پیش از نشانی‌ها ── -->
+  <section class="sec" id="about" aria-label="نورا در یک نگاه">
+    <div class="sec-hd"><span class="fw">نورا در یک نگاه</span><span class="sp"></span>
+      <span class="cap">از ۱۳۹۳ تا امروز</span></div>
+    <div class="glass statstrip">
+      <div class="s"><b>۱۲</b><span>سال فعالیت</span></div>
+      <div class="s"><b>۳٬۴۰۰</b><span>شرکت‌کننده</span></div>
+      <div class="s"><b>۴۸</b><span>کارگاه در سال</span></div>
+      <div class="s"><b>۹۶٪</b><span>رضایت ۱۴۰۴</span></div>
+    </div>
+    <div class="srcline">
+      <svg class="i" style="width:16px;height:16px"><use href="#i-shield"/></svg>
+      <span>گواهینامه‌ها با شمارهٔ یکتا و کیوآر راستی‌آزمایی صادر می‌شوند —
+        <button class="more" data-f="shVerify" style="padding:0;font-size:12px">استعلام گواهینامه</button></span>
+    </div>
   </section>
 
   <footer class="hfoot">
@@ -693,7 +683,7 @@ const {BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES
 
 /* ── آدم‌های نورا: اساتید و دست‌اندرکاران ── */
 ;
-const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#54719B,#0A56B8)'};
+const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#3E5B84,#0B2447)'};
 
 /* ── رویدادهای پیش‌رو ── */
 ;
@@ -721,11 +711,11 @@ const partner=id=>PARTNERS.find(o=>o.id===id)||{};
 
 /* ── استوری‌های کوتاه خانه ── */
 const STORIES=[
- {id:'st1', t:'پشت صحنهٔ کارگاه عکاسی', s:'سه پرده از جلسهٔ دوم', g:'linear-gradient(135deg,#0A56B8,#4EA1FF)', i:'i-image', to:'ev:e3'},
- {id:'st2', t:'کتاب ماه مهر', s:'چراغ‌ها را من خاموش می‌کنم', g:'linear-gradient(135deg,#6E4B1F,#0B7A57)', i:'i-book', to:'club'},
- {id:'st3', t:'یک دقیقه با الهه رضایی', s:'تمرین تنفس پیش از صحنه', g:'linear-gradient(135deg,#B4453C,#8A6A25)', i:'i-user', to:'pe:p1'},
- {id:'st4', t:'گواهینامه؛ با تأیید سرپرست', s:'روند صدور و استعلام', g:'linear-gradient(135deg,#123A7A,#9C7C3C)', i:'i-medal', to:'me'},
- {id:'st5', t:'نهادهای همکار مهر', s:'هشت همراه تازه', g:'linear-gradient(135deg,#54719B,#0A56B8)', i:'i-handshake', to:'partners'}
+ {id:'st1', t:'پشت صحنهٔ کارگاه عکاسی', s:'سه پرده از جلسهٔ دوم', g:'linear-gradient(135deg,#1E6FD0,#0A3A82)', i:'i-image', to:'ev:e3'},
+ {id:'st2', t:'کتاب ماه مهر', s:'چراغ‌ها را من خاموش می‌کنم', g:'linear-gradient(135deg,#2E6B7A,#0B2447)', i:'i-book', to:'club'},
+ {id:'st3', t:'یک دقیقه با الهه رضایی', s:'تمرین تنفس پیش از صحنه', g:'linear-gradient(135deg,#7A5A2A,#123A7A)', i:'i-user', to:'pe:p1'},
+ {id:'st4', t:'گواهینامه؛ با تأیید سرپرست', s:'روند صدور و استعلام', g:'linear-gradient(135deg,#7A5A2A,#123A7A)', i:'i-medal', to:'me'},
+ {id:'st5', t:'نهادهای همکار مهر', s:'هشت همراه تازه', g:'linear-gradient(135deg,#3E5B84,#0B2447)', i:'i-handshake', to:'partners'}
 ];
 
 /* ── نشان‌های عضو ── */
@@ -756,14 +746,14 @@ const BADGES=[
 
 /* ── منوی سریع خانه ── */
 const QUICK=[
- {k:'events', i:'i-calendar', n:'رویدادها', s:'پیش‌رو و امشب', tone:'brand', anim:'tick', href:'events.html#list'},
- {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و گواهینامه', tone:'info', j:'pastSec'},
- {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', tone:'ok', anim:'float', f:'shClub', tag:'پیشنهادی'},
- {k:'people', i:'i-graduation', n:'اساتید', s:'۸ نفر', tone:'star', j:'people'},
- {k:'articles', i:'i-article', n:'مطالب', s:'۶ مطلب تازه', tone:'brand', j:'articles'},
- {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:'۸ نهاد', tone:'info', j:'partners'},
- {k:'verify', i:'i-qr', n:'استعلام گواهی', s:'با شمارهٔ سریال', tone:'ok', f:'shVerify'},
- {k:'support', i:'i-headphone', n:'پشتیبانی', s:'پیام و راهنما', tone:'stop', anim:'wiggle', f:'shSupport'}
+ {k:'events', i:'i-calendar', n:'رویدادها', s:'پیش‌رو و امشب', anim:'tick', href:'events.html#list'},
+ {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و گواهینامه', j:'pastSec'},
+ {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', anim:'float', f:'shClub', tag:'پیشنهادی'},
+ {k:'people', i:'i-graduation', n:'اساتید', s:'۸ نفر', j:'people'},
+ {k:'articles', i:'i-article', n:'مطالب', s:'۶ مطلب تازه', j:'articles'},
+ {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:'۸ نهاد', j:'partners'},
+ {k:'verify', i:'i-qr', n:'استعلام گواهی', s:'با شمارهٔ سریال', f:'shVerify'},
+ {k:'support', i:'i-headphone', n:'پشتیبانی', s:'پیام و راهنما', anim:'wiggle', f:'shSupport'}
 ];
 
 /* ── منوی کامل نورا (ورقهٔ منو) ── */
@@ -849,7 +839,7 @@ function renderQuick(){
   $('#quick').innerHTML=`<div class="sec-hd"><span class="fw">از کجا شروع کنیم؟</span><span class="sp"></span>
     <span class="cap">منوی کامل: دکمهٔ «منو» بالای صفحه</span></div>
     <div class="quick">${QUICK.map(q=>`
-      <button class="tile" data-q="${q.k}" data-anim="${q.anim||''}" data-tone="${q.tone||'brand'}" title="${esc(q.n)}">
+      <button class="tile" data-q="${q.k}" data-anim="${q.anim||''}" title="${esc(q.n)}">
         ${q.tag?`<span class="tn"><span class="tagg brand" style="height:19px;font-size:10px;padding:0 7px">${esc(q.tag)}</span></span>`:''}
         <span class="ci"><svg class="i"><use href="#${q.i}"/></svg></span>
         <b>${esc(q.n)}</b><small>${esc(q.s)}</small>
@@ -898,7 +888,7 @@ function renderMine(){
       <button class="more" data-f="shAccount">حساب من<svg class="i" style="width:14px;height:14px"><use href="#i-chev-left"/></svg></button></div>
     <div class="arail">
       <div class="pcard">
-        <div class="pc-cov" style="--g:linear-gradient(135deg,#0A56B8,#4EA1FF)"><svg class="i"><use href="#i-calendar"/></svg></div>
+        <div class="pc-cov" style="--g:linear-gradient(135deg,#1E6FD0,#0A3A82)"><svg class="i"><use href="#i-calendar"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">کارگاه فن بیان مقدماتی</span>
           <span class="pc-meta">چهارشنبه ۸ مهر · ۱۶:۰۰ — سالن شمارهٔ ۲</span>
@@ -908,7 +898,7 @@ function renderMine(){
         <div class="pc-foot"><button class="btn sm quiet" data-ev="e5">جزئیات ثبت‌نام</button></div>
       </div>
       <div class="pcard">
-        <div class="pc-cov" style="--g:linear-gradient(135deg,#0B7A57,#0A56B8)"><svg class="i"><use href="#i-medal"/></svg></div>
+        <div class="pc-cov" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)"><svg class="i"><use href="#i-medal"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">${faN(u.certs)} برگ گواهینامه</span>
           <span class="pc-meta">صدور با تأیید سرپرست انجام می‌شود؛ وضعیت هر دوره در کارت برگزارشده آمده است.</span>
@@ -918,7 +908,7 @@ function renderMine(){
           <button class="btn sm quiet" data-f="shAccount">همهٔ گواهی‌ها</button></div>
       </div>
       <div class="pcard">
-        <div class="pc-cov" style="--g:linear-gradient(135deg,#6E4B1F,#0B7A57)"><svg class="i"><use href="#i-wallet"/></svg></div>
+        <div class="pc-cov" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)"><svg class="i"><use href="#i-wallet"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">${rialTxt(u.wallet)}</span>
           <span class="pc-meta">کیف پول — ۳ تراکنش اخیر؛ آخرین: بازگشت وجه ۴۵۰٬۰۰۰ ریال</span>
@@ -926,7 +916,7 @@ function renderMine(){
         <div class="pc-foot"><button class="btn sm quiet" data-wallet>شارژ و صورت‌حساب</button></div>
       </div>
       <div class="pcard">
-        <div class="pc-cov" style="--g:linear-gradient(135deg,#54719B,#1E3A8A)"><svg class="i"><use href="#i-book"/></svg></div>
+        <div class="pc-cov" style="--g:linear-gradient(135deg,#3E5B84,#0B2447)"><svg class="i"><use href="#i-book"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">باشگاه کتاب‌خوانی</span>
           <span class="pc-meta">جلسهٔ بعد: ${esc(CLUB.next)} — کتاب ماه: ${esc(CLUB.book)}</span>
@@ -935,7 +925,7 @@ function renderMine(){
         <div class="pc-foot"><button class="btn sm quiet" data-f="shClub">ورود به باشگاه</button></div>
       </div>
       <div class="pcard">
-        <div class="pc-cov" style="--g:linear-gradient(135deg,#0B7A57,#1E3A8A)"><svg class="i"><use href="#i-archive"/></svg></div>
+        <div class="pc-cov" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)"><svg class="i"><use href="#i-archive"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">ضبط کارگاه‌هایت</span>
           <span class="pc-meta">۳ کارگاه برگزارشده با ضبط کامل و جزوه در دسترس است</span>
@@ -943,7 +933,7 @@ function renderMine(){
         <div class="pc-foot"><button class="btn sm quiet" data-jump="pastSec">دیدن ضبط‌ها</button></div>
       </div>
       <div class="pcard">
-        <div class="pc-cov" style="--g:linear-gradient(135deg,#123A7A,#9C7C3C)"><svg class="i"><use href="#i-mail"/></svg></div>
+        <div class="pc-cov" style="--g:linear-gradient(135deg,#7A5A2A,#123A7A)"><svg class="i"><use href="#i-mail"/></svg></div>
         <div class="pc-body">
           <span class="pc-ttl">${faN(u.msgs)} پیام خوانده‌نشده</span>
           <span class="pc-meta">خانم رستگار: برای جلسهٔ اول یک روز قبل هماهنگ می‌کنیم.</span>
@@ -1083,7 +1073,7 @@ function renderActivity(){
 function renderClub(){
   const sup=person(CLUB.sup), l=CLUB.cap-CLUB.members;
   $('#club').innerHTML=`<div class="club">
-    <div class="cl-hero" style="--g:linear-gradient(135deg,#6E4B1F,#0B7A57 70%,#0A56B8)">
+    <div class="cl-hero" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)">
       <div class="btop" style="position:static;display:flex;gap:6px">
         <span class="tagg tag-g">باشگاه کتاب‌خوانی</span>
         <span class="tagg tag-g">${esc(CLUB.term)}</span>
@@ -1321,7 +1311,7 @@ function renderArticleSheet(){
 function renderClubSheet(){
   const sup=person(CLUB.sup);
   $('#clubBody').innerHTML=sheetHead('باشگاه کتاب‌خوانی','ترم مهر — پنجشنبه‌ها ۱۸:۰۰')+`
-    <div class="mhead" style="background-image:linear-gradient(150deg,#6E4B1F,#0B7A57 70%,#0A56B8)">
+    <div class="mhead" style="background-image:linear-gradient(150deg,#2E6B7A,#0B2447)">
       <div class="mt">کتاب ماه: ${esc(CLUB.book)}</div>
       <div class="ms">${esc(CLUB.bookBy)} · ${faN(CLUB.meetings)} جلسه برگزار شده · ${faN(CLUB.members)} عضو</div>
       <div class="bar" aria-hidden="true" style="background:rgba(255,255,255,.22)"><i style="width:${CLUB.progress}%;background:#fff"></i></div>

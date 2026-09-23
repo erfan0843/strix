@@ -13,10 +13,9 @@
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
   .evHero{border-radius:var(--r-xl);padding:18px;color:#fff;position:relative;overflow:hidden;
-    background:linear-gradient(135deg,#0A56B8,#123A7A 60%,#0B7A57)}
-  .evHero::after{content:'';position:absolute;inset:0;background:radial-gradient(120% 90% at 92% 4%,rgba(255,255,255,.28),transparent 58%)}
+    background:linear-gradient(135deg,#0A56B8,#0B2447)}
   .evHero h1{margin:0 0 6px;font-size:21px;letter-spacing:-.5px}
-  .evHero p{margin:0;font-size:12.5px;color:rgba(255,255,255,.9);line-height:1.8;max-width:44ch}
+  .evHero p{margin:0;font-size:13px;color:rgba(255,255,255,.9);line-height:1.8;max-width:44ch}
   .hstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px;position:relative;z-index:1}
   .hstats .s{background:rgba(255,255,255,.14);border:.5px solid rgba(255,255,255,.2);border-radius:var(--r-md);padding:8px 6px;text-align:center}
   .hstats .s b{display:block;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -125,7 +124,7 @@
     <div class="hstats" id="hstats"></div>
   </section>
 
-  <section class="sec card paper" id="live" aria-label="جریان زنده و شروع نزدیک">
+  <section class="sec" id="live" aria-label="جریان زنده و شروع نزدیک">
     <div class="sec-hd"><span class="fw">جریان زنده و شروع نزدیک</span><span class="sp"></span><span class="cap" id="liveCount">—</span></div>
     <div id="liveList"></div>
   </section>
@@ -149,7 +148,7 @@
   </div>
 
   <!-- تقویم -->
-  <section class="sec card paper" id="calView" aria-label="تقویم ماهانه">
+  <section class="sec" id="calView" aria-label="تقویم ماهانه">
     <div class="monthsw" id="monthsw"></div>
     <div class="calgrid" id="calgrid" role="grid" aria-label="روزهای ماه"></div>
     <div class="dayhd"><b id="dayTitle">—</b><span class="sp"></span><span class="cap" id="dayCount">—</span></div>
@@ -157,7 +156,7 @@
   </section>
 
   <!-- فهرست -->
-  <section class="sec card paper" id="listView" hidden aria-label="فهرست رویدادها">
+  <section class="sec" id="listView" hidden aria-label="فهرست رویدادها">
     <div class="fcrow" id="dayChips"></div>
     <div class="fcrow" id="catChips"></div>
     <div class="fcrow" id="modeChips"></div>
@@ -169,7 +168,7 @@
   </section>
 
   <!-- دسته‌ها -->
-  <section class="sec card paper" id="catView" hidden aria-label="دسته‌بندی‌ها">
+  <section class="sec" id="catView" hidden aria-label="دسته‌بندی‌ها">
     <div class="catgrid" id="catGrid"></div>
   </section>
 
@@ -203,7 +202,7 @@
 const {EVENTS,PEOPLE,CATS,DAYS,QTAGS,LIVE,NOTICES}=window.NORA;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#54719B,#0A56B8)'};
+const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#3E5B84,#0B2447)'};
 const ev=id=>EVENTS.find(e=>e.id===id)||{};
 const left=e=>e.cap?Math.max(0,e.cap-e.taken):Infinity;
 const key=(k,i)=>k+':'+i;

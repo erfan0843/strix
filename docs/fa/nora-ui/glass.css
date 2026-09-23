@@ -12,6 +12,8 @@
 @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-UI-FD-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 /* فونت دوم برای کدها و شناسه‌های لاتین: رقم‌ها را فارسی‌شکل نمی‌کند */
 @font-face{font-family:'Nora Latin';src:url('fonts/Nora-Latin-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+/* استداد — فونت نمایشی تیترها (از پروتوتایپ کاربر)؛ متن بدنه با وزیرمتن می‌ماند */
+@font-face{font-family:'Estedad';src:url('fonts/Estedad-Variable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
 @font-face{font-family:'Nora Latin';src:url('fonts/Nora-Latin-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
 
 :root{
@@ -661,3 +663,23 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   .main{padding:0}
   .card{box-shadow:none}
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v5 — حروف نمایشی (الهام از پروتوتایپ کاربر)
+   ──────────────────────────────────────────────────────────────────────────
+   تیتر، دکمه، قیمت و شماره‌ها با «استداد» نوشته می‌شوند و متن بدنه با
+   وزیرمتن می‌ماند؛ همین یک قاعده، صفحه را از حالت «همه‌چیز یک‌اندازه» بیرون
+   می‌آورد. ارقام هم هم‌عرض می‌شوند تا ستون‌های عددی سر جا بایستند.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root{--f-h:'Estedad',var(--f)}
+
+h1,h2,h3,h4,h5,
+.display,.title,.head,.ttl,.fw,
+.btn,.chip,.tag,.tagg,.mini-chip,
+.brand .tx b,.tabbar small,.tile b,.cattile b,
+.statstrip .s b,.hstats .s b,.price b,.pstat b,
+.sec-hd .fw,.mgroup .gh,.dayhd b{font-family:var(--f-h); letter-spacing:-.15px}
+
+/* ارقام فارسی هم‌عرض و درشت‌ترها با استداد */
+.numbook, .ev .prc, .cel{font-variant-numeric:tabular-nums}

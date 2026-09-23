@@ -21,7 +21,7 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
   box-shadow:0 6px 16px rgba(10,86,184,.28),0 1px 0 rgba(255,255,255,.45) inset}
 .brand .tx{display:grid;line-height:1.25;min-width:0}
 .brand .tx b{font-size:var(--fs-sub);font-weight:700}
-.brand .tx small{font-size:11.5px;color:var(--ink-3)}
+.brand .tx small{font-size:12px;color:var(--ink-3)}
 .icon-btn{position:relative;-webkit-appearance:none;appearance:none;width:38px;height:38px;border-radius:12px;
   border:.5px solid var(--hairline);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);
   cursor:pointer;text-decoration:none;transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
@@ -47,7 +47,7 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
   -webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6)}
 .tabbar a,.tabbar button{-webkit-appearance:none;appearance:none;border:0;background:none;font:inherit;cursor:pointer;
   display:grid;justify-items:center;gap:3px;padding:6px 2px;border-radius:var(--r-md);text-decoration:none;
-  color:var(--ink-3);font-size:10.5px;font-weight:600;
+  color:var(--ink-3);font-size:11.5px;font-weight:600;
   transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
 .tabbar .i{width:26px;height:26px}
 .tabbar .on{color:var(--brand-ink);background:var(--brand-tint)}
@@ -65,7 +65,7 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .sp{flex:1}
 .dim{opacity:.5}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.hrow{font-size:11.5px;color:var(--ink-2);line-height:1.85}
+.hrow{font-size:12px;color:var(--ink-2);line-height:1.85}
 .srow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:.5px solid var(--hairline-2);font-size:var(--fs-sub)}
 .srow:last-child{border-bottom:0}
 .srow .i{width:20px;height:20px;color:var(--ink-4);flex:0 0 auto}
@@ -127,7 +127,7 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .stars .i{width:13px;height:13px}
 .dotpulse{width:6px;height:6px;border-radius:50%;background:currentColor;margin-inline-end:4px;
   animation:dotp 1.6s var(--ease) infinite}
-.hfoot{margin-top:16px;padding:16px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface-2);
+.hfoot{margin-top:22px;padding:16px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface-2);
   display:grid;gap:9px;font-size:11.5px;color:var(--ink-3);text-align:center}
 .hfoot .fl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center}
 .hfoot a{color:var(--brand-ink);text-decoration:none}
@@ -141,3 +141,28 @@ main.wrap{animation:pageIn .3s var(--ease) both}
   main.wrap{animation:none}
   .dotpulse{animation:none}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v5 — پاس کیفیت: ریتم بخش‌ها، سطح‌های آرام، خوانایی
+   ──────────────────────────────────────────────────────────────────────────
+   از پروتوتایپ کاربر یاد گرفتیم یک صفحه باید نفس بکشد: فاصلهٔ بخش‌ها یکی،
+   پوستهٔ کارت‌ها یکی، کارت روی کارت بی‌سایه، و متن ریزِ کمتر. این لایه بعد از
+   glass.css می‌آید، پس فقط صفحه‌های خود اپ (خانه و رویدادها) را نرم می‌کند.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── ریتم: یکی‌بودن فاصلهٔ بخش‌ها ── */
+.sec{margin-top:22px}
+.sec-hd{margin-bottom:12px}
+.sec-hd .fw{font-size:16.5px;letter-spacing:-.25px}
+
+/* ── سطح‌ها: یک شعاع، یک سایه، یک پدینگ ── */
+.card.paper{border-radius:var(--r-lg);padding:18px;box-shadow:var(--sh-1)}
+/* کارت روی کارت: بی‌سایه و یک پله پایین‌تر تا عمق صفحه قاطی نشود */
+.card .card,.card .pastcard,.card .voice,.card .helprow,.card .notif,
+.card .ev,.card .tile,.card .cattile,.card .guestcard,.card .linkbtn{box-shadow:none}
+.glass.statstrip{background:var(--surface);border-radius:var(--r-lg)}
+
+
+/* ── شماره‌ها: درشت‌تر و هم‌تراز ── */
+.statstrip .s b,.hstats .s b,.ev .prc,.pstat b,.brand .tx b{font-variant-numeric:tabular-nums}
+.tile .ci{background:var(--brand-tint);color:var(--brand-ink)}

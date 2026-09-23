@@ -29,7 +29,6 @@
   .personrow{display:flex;gap:8px;align-items:center}
   .personrow .n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);font-size:var(--fs-cap);font-weight:600;flex:0 0 auto}
   .gempty{font-size:var(--fs-cap);opacity:.7}
-  .certframe{background:var(--surface-2);.gcardborder:.5px solid var(--hairline);border-radius:var(--r-md);padding:14px}
   .gcard .grow{display:flex;align-items:center;gap:9px}
   .gcard .grow .i{width:18px;height:18px;color:var(--brand-ink)}
   .gcard .gchips{margin-top:11px}
@@ -183,7 +182,7 @@
         <svg class="i" style="width:34px;height:34px"><use href="#i-users"/></svg>
       </div>
       <div class="title" id="evTitle">—</div>
-      <p class="sub" style="margin-top:8px">سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با گواهینامهٔ پایان دوره.</p>
+      <p class="sub" style="margin-top:8px">سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با تمرین روی صحنه و بازخوردِ مدرس.</p>
       <p class="ev-line" id="evMeta" style="margin-top:8px;color:var(--ink-2)">—</p>
       <div id="resumeRow" style="display:none;margin-top:14px"></div>
       <div class="row tight" style="margin-top:14px" id="evFacts"></div>
@@ -379,24 +378,6 @@
     </div>
   </section>
 
-  <!-- ═ ۱۱٫۵ گواهینامه — فقط اگر فرم گواهینامه داشته باشد ═ -->
-  <section class="screen" id="u16" style="margin-top:12px">
-    <div class="card paper">
-      <div class="row">
-        <span class="glass-thin" style="width:48px;height:48px;border-radius:16px;display:grid;place-items:center"><svg class="i lg" style="color:var(--brand-ink)"><use href="#i-medal"/></svg></span>
-        <div><div class="title tight">گواهینامه‌ات آماده شد</div>
-          <div class="cap" id="certWhen">با تأیید رسید، خودش صادر می‌شود</div></div>
-      </div>
-      <div class="certframe" id="certSlot" style="margin-top:14px"></div>
-      <div class="row tight" style="margin-top:12px">
-        <button class="btn sm" id="certSave"><svg class="i"><use href="#i-download"/></svg> ذخیرهٔ تصویر</button>
-        <button class="btn sm quiet" id="certBot"><svg class="i"><use href="#i-send"/></svg> فرستادن در بله</button>
-        <button class="btn sm quiet" id="certPrint"><svg class="i"><use href="#i-print"/></svg> چاپ</button>
-      </div>
-      <p class="cap" style="margin-top:10px">برای دیگرانی که گواهینامه‌شان صادر شده، کارشناس دسته‌ای در بله می‌فرستد.</p>
-    </div>
-  </section>
-
   <!-- ═ ۱۲ ثبت شد ═ -->
   <section class="screen" id="u12" style="margin-top:12px">
     <div class="card paper">
@@ -525,14 +506,12 @@ const CFG={
   code:'TL1307BVUC1981',
   cap:150,taken:110,
   questions:['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','شغل','تحصیلات','چطور ما را شناختید'],
-  fin:[{l:'کارگاه با گواهینامه',p:850000,off:15,on:false,req:false,g:'نوع شرکت',d:'شامل گواهینامهٔ پایان دوره و جزوهٔ کارگاه'},
-       {l:'کارگاه بدون گواهینامه',p:600000,off:0,on:false,req:false,g:'نوع شرکت',d:'بدون گواهینامه؛ همان کلاس'},
-       {l:'ناهار و پذیرایی',p:150000,off:0,on:false,req:false,d:''},
-       {l:'ارسال گواهینامه با پست',p:120000,off:0,on:false,req:false,d:'برای کسانی که تهران نیستند؛ تا ده روز کاری می‌رسد'}],
+  fin:[{l:'شرکت حضوری در سالن',p:850000,off:15,on:false,req:false,g:'نوع شرکت',d:'روی صندلی، همراه با جزوهٔ کارگاه'},
+       {l:'شرکت آنلاین و زنده',p:600000,off:0,on:false,req:false,g:'نوع شرکت',d:'پیوند ورود به جلسهٔ زنده'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,on:false,req:false,d:''}],
   groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
   coupon:{code:'NORA10',off:10,all:false},
   companion:{on:true,max:3,fields:'نام و موبایل'},
-  cert:{on:true,mode:'auto',hours:'۲۴ ساعت'},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan',i:'i-globe'},
          {t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan',i:'i-users'}],
@@ -658,7 +637,6 @@ function renderFacts(){
     CFG.cap?`<span class="tag ok"><span class="dot"></span> ${faN(left)} جا مانده</span>`:''
   ].join('');
   const perks=[];
-  if(fin.some(o=>/گواهی/.test(o.l))) perks.push(['i-medal','گواهینامهٔ پایان دوره']);
   if(CFG.maxPer>1) perks.push(['i-users','تا '+faN(CFG.maxPer)+' نفر می‌توانید ثبت‌نام کنید']);
   document.getElementById('evPerks').innerHTML=perks.map(([i,t])=>
     `<div class="row"><svg class="i"><use href="#${i}"/></svg><span class="sub">${t}</span></div>`).join('');
@@ -706,20 +684,6 @@ function showResume(){
 }
 
 /* رسید پرداخت: همان چیزی که به کاربر و کارشناس نشان می‌دهیم */
-/* گواهینامه — همان برگ تصویری که پنل و ربات می‌سازند */
-function renderCert(){
-  const slot=document.getElementById('certSlot'); if(!slot) return;
-  /* گارد دوباره‌چین: فقط اگر هم تنظیم فرم و هم کلید سازنده روشن باشد */
-  if(!CERT_ON||!(CFG.cert&&CFG.cert.on)||typeof certificateSVG!=='function'){
-    document.getElementById('u16').classList.remove('on');
-    if(cur==='u16') show('u12');
-    return;
-  }
-  slot.innerHTML=certificateSVG({name:'سارا محمدی',title:CFG.title,kind:'گواهینامهٔ پایان دوره',
-    date:CFG.date,hours:(CFG.cert&&CFG.cert.hours)||'',code:'TL1307BVUC1981',serial:'NL-T4K7M9X'});
-  document.getElementById('certWhen').textContent=CFG.cert.mode==='auto'
-    ? 'بلافاصله بعد از تأیید رسید صادر می‌شود':'پس از پایان دوره صادر می‌شود';
-}
 function renderEnd(){
   document.getElementById('endLinks').innerHTML=CFG.links.map(l=>
     `<a class="linkbtn" href="${l.u}" target="_blank" rel="noopener"><svg class="i"><use href="#${l.i||'i-link'}"/></svg> ${l.t}
@@ -728,19 +692,16 @@ function renderEnd(){
 }
 
 /* ══ حرکت ══ */
-const CERT_ON=!!(CFG.cert&&CFG.cert.on);
 const ORDER=['u1','u2','u3','u4','u5','u6','u7']
   .concat(['u8','u9','u10','u11','u12'])
-  .concat(CERT_ON?['u16']:[])
   .concat(['u14']);
 const QCOUNT=CFG.questions.length;
 const CAP={u1:'هفت پرسش',u2:'پرسش ۱ از ۷',u3:'پرسش ۲ از ۷',u4:'پرسش ۳ از ۷',u5:'پرسش ۴ از ۷',u6:'پرسش ۵ و ۶ از ۷',u7:'پرسش ۷ از ۷',
-  u8:'انتخاب شما',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u16:'گواهینامه',u14:'باطل'};
-const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u8:100,u9:100,u10:100,u11:100,u12:100,u16:100,u14:100};
+  u8:'انتخاب شما',u9:'پرداخت',u10:'کارت‌به‌کارت',u11:'رسید',u12:'ثبت شد',u14:'باطل'};
+const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u8:100,u9:100,u10:100,u11:100,u12:100,u14:100};
 const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',
-  u12:CERT_ON?'گواهینامه‌ام':'',u16:'بازگشت'};
-const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:'u8',u8:'u9',
-  u12:CERT_ON?'u16':'u12',u16:'u12'};   /* ثبت شد ⇒ گواهینامه ⇒ برگشت */
+  u12:''};
+const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:'u8',u8:'u9'};
 let cur='u1';
 function show(id){
   cur=id;
@@ -754,7 +715,6 @@ function show(id){
   if(id==='u8'){renderBuddy();renderBill();renderFin()}
   if(id==='u12'){renderEnd();renderBill()}
   if(id==='u9'){renderPayGuests()}
-  if(id==='u16'){renderCert()}
   if(DRAFT_SCREENS.includes(id)) saveDraft();
   window.scrollTo({top:0,behavior:'instant'});
 }

@@ -115,23 +115,9 @@ async function load(file,store,q){
   ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
   ok(p.txt('#endText').length>0,'متن پایانی هست');
   ok(/کد پیگیری/.test(p.txt('#u12')),'کد پیگیری روی صفحهٔ پایان');
-  p.click('#next');
-  ok(p.vis('.screen').join()==='u16','صفحهٔ گواهینامه باز شد');
-  ok(p.doc.querySelector('#certSlot svg')!==null,'برگ گواهینامه ساخته شد');
-  ok(/گواهینامهٔ پایان دوره/.test(p.txt('#certSlot')),'نوع گواهینامه روی برگ');
-  ok(/سارا محمدی/.test(p.txt('#certSlot')),'نام دارنده روی برگ');
-  ok(p.txt('#certSlot').includes(p.window.eval('CFG.title')),'عنوان دوره روی برگ');
-  ok(p.doc.querySelector('#certSlot .tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
-  ok(/بلافاصله بعد از تأیید رسید/.test(p.txt('#certWhen')),'حالت صدور خودکار گفته می‌شود');
-  ok(p.doc.querySelector('#certSave')!==null && p.doc.querySelector('#certBot')!==null,'ذخیره و فرستادن در بله');
-  p.window.eval("CFG.cert.mode='after'; renderCert()");
-  ok(/پس از پایان دوره/.test(p.txt('#certWhen')),'حالت «پس از پایان دوره» هم درست می‌آید');
-  p.click('#next');
-  ok(p.vis('.screen').join()==='u12','با دکمهٔ آخر به صفحهٔ پایان برمی‌گردد');
-  ok(p.window.eval("ORDER.indexOf('u16')===ORDER.indexOf('u12')+1"),'گواهینامه بعد از صفحهٔ پایان است');
-  p.window.eval("CFG.cert.on=false; show('u16')");
-  ok(p.vis('.screen').join()==='u12','با خاموش بودن گواهینامه، صفحه‌اش کاربر را به پایان برمی‌گرداند');
-  p.window.eval("CFG.cert.on=true");
+  ok(p.doc.querySelector('#u16')===null,'صفحهٔ گواهینامه کلاً از فرم برداشته شد');
+  ok(p.window.eval("ORDER.includes('u16')")===false,'گواهینامه در نقشهٔ حرکت فرم نیست');
+  ok(!/گواهی/.test(p.txt('body')),'هیچ وعده یا صدور گواهینامه‌ای در فرم نمانده');
   ok(p.window.eval("typeof ticketSVG")==='undefined' && p.window.eval("typeof receiptSVG")==='undefined','موتور بلیت/رسید از ui.js برداشته شد');
   ok(p.doc.querySelector('[data-printall]')===null,'دکمهٔ «چاپ همه» نیست');
   // پاک‌سازی: نام کاربر نباید HTML بسازد
@@ -146,18 +132,18 @@ async function load(file,store,q){
   // اعداد لندینگ باید از خود تنظیمات دربیایند
   ok(p.txt('#evFacts').includes('۷ پرسش')&&p.txt('#evFacts').includes('۶۰۰٬۰۰۰'),'اعداد لندینگ از تنظیمات فرم حساب شده');
   ok(p.txt('#evFacts').includes('۴۰ جا مانده'),'جای مانده از ظرفیت و ثبت‌شده‌ها حساب شده');
-  ok(p.txt('#evPerks').includes('گواهینامه')&&p.txt('#evPerks').includes('۳ نفر'),'مزیت‌های لندینگ از مالی و سقف نفرات');
-  ok(p.txt('#finOpts').includes('شامل گواهینامهٔ پایان دوره'),'توضیح قطعهٔ مالی روی صفحهٔ کاربر');
+  ok(p.txt('#evPerks').includes('۳ نفر'),'مزیت‌های لندینگ از مالی و سقف نفرات');
+  ok(p.txt('#finOpts').includes('شرکت حضوری در سالن'),'توضیح قطعهٔ مالی روی صفحهٔ کاربر');
   ok(p.txt('#finOpts').includes('نوع شرکت'),'نام گروه انتخاب روی صفحهٔ کاربر');
   // توضیح هر قطعه فقط وقتی هست که نوشته شده باشد (قطعهٔ بی‌توضیح، خط خالی ندارد)
   ok(p.window.eval("CFG.fin.some(o=>!o.d)")===true,'قطعهٔ بی‌توضیح هم در داده هست');
   ok(p.all('#finOpts .cap').filter(e=>/^$/.test(e.textContent.trim())).length===0,'هیچ خط خالی برای توضیح نمانده');
   // ── گروه اجباری: تا انتخاب خودِ کاربر نباشد، فرم جلو نمی‌رود ──
   ok(p.window.eval("CFG.groups[0].req")===true,'گروه «نوع شرکت» اجباری است');
-  p.window.eval("show('u8'); CFG.groups[0].of.forEach(k=>{CFG.fin[k].on=false}); CFG.fin[2].on=true; CFG.fin[3].on=false; PICKED.clear(); renderFin()");
+  p.window.eval("show('u8'); CFG.groups[0].of.forEach(k=>{CFG.fin[k].on=false}); CFG.fin[2].on=true; PICKED.clear(); renderFin()");
   p.click('#next');
   ok(p.vis('.screen').join()==='u8' && p.txt('#toast').includes('نوع شرکت'),'تنها گزینهٔ فرعی روشن، فرم را جلو نمی‌برد');
-  p.click('[data-fin="1"]');                                  /* کاربر «بدون گواهینامه» را می‌زند */
+  p.click('[data-fin="1"]');                                  /* کاربر «شرکت آنلاین» را می‌زند */
   p.click('#next');
   ok(p.vis('.screen').join()==='u9','با انتخاب خودِ کاربر، ادامه ممکن می‌شود');
   p.window.eval("show('u8')");
@@ -800,6 +786,50 @@ async function load(file,store,q){
   ok(p2.all('#evList .ev').length===2,'ورود با ?q= صافی می‌کند');
   const p3=await load('events.html',makeStore(),'?ev=e5#list');
   ok(p3.doc.querySelector('#shEvent').className.includes('on'),'ورود با ?ev= مستقیم ورقه را باز می‌کند');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v5 — پاس کیفیت: حروف نمایشی، ریتم بخش‌ها، یکدستی رنگ روی جلدها
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  const glass=fs.readFileSync(DIR+'glass.css','utf8');
+  const nora=fs.readFileSync(DIR+'nora.css','utf8');
+  const home=fs.readFileSync(DIR+'home.html','utf8');
+  const evp=fs.readFileSync(DIR+'events.html','utf8');
+  const data=fs.readFileSync(DIR+'data.js','utf8');
+
+  /* حروف: تیترها با استداد، متن با وزیرمتن */
+  ok(/@font-face\{[^}]*font-family:'Estedad'/.test(glass),'فونت نمایشی استداد در لایهٔ پایه تعریف شده');
+  ok(fs.existsSync(DIR+'fonts/Estedad-Variable.woff2') && fs.statSync(DIR+'fonts/Estedad-Variable.woff2').size>50000,
+     'فایل فونت استداد کنار بقیهٔ فونت‌ها هست');
+  ok(/--f-h:'Estedad',var\(--f\)/.test(glass),'متغیر فونت تیتر به وزیرمتن برمی‌گردد (اگر استداد نبود)');
+  ok(/\.display,\.title,\.head,\.ttl,\.fw,/.test(glass)&&/\.tabbar small/.test(glass)&&/\.tile b/.test(glass),
+     'تیترها، تب‌بار و کاشی‌ها استداد می‌خوانند');
+  ok(!/--f-h:/.test(nora)&&/font-variant-numeric:tabular-nums/.test(nora),'ارقام هم‌عرض در پوستهٔ اپ هست');
+
+  /* ریتم و سطح‌ها */
+  ok(/\.sec\{margin-top:22px\}/.test(nora) && /\/\* ── ریتم/.test(nora),'فاصلهٔ بخش‌ها یکدست شد');
+  ok(/\.card\.paper\{border-radius:var\(--r-lg\);padding:18px;box-shadow:var\(--sh-1\)\}/.test(nora),
+     'کارت‌ها یک شعاع و یک سایه دارند');
+  ok(/\.card \.card,/.test(nora) && /box-shadow:none/.test(nora),'کارت روی کارت بی‌سایه است');
+  ok(/\.glass\.statstrip\{background:var\(--surface\)/.test(nora),'نوار آمار دیگر شیشه نیست (شیشه فقط ناوبری)');
+
+  /* سطح آرام: هاله‌های شعاعی و نقطه‌چین تزئینی رفتند */
+  ok(!/radial-gradient/.test(home),'هیچ هالهٔ شعاعی تزئینی در خانه نمانده');
+  ok(!/data-tone=/.test(home) && !/tone:'/.test(home),'کاشی‌ها یک رنگ دارند، نه چهار رنگ');
+  ok(!/radial-gradient/.test(evp),'صفحهٔ رویدادها هم سطح تخت دارد');
+  ok(!/class="sec card paper"/.test(home) && !/class="sec card paper"/.test(evp),'بخش‌ها بیرون کارت‌اند (کارت‌ها فقط خود آیتم‌ها)');
+
+  /* جلدها: یک خانوادهٔ رنگی آرام */
+  const covers=[...data.matchAll(/linear-gradient\([^)]*\)/g)].map(m=>m[0]);
+  ok(!covers.some(g=>/#B4453C|#0B7A57|#6E4B1F|#9C7C3C|#4EA1FF/.test(g)),
+     'رنگ‌های پرش‌وکنار جلدها (قرمز، سبز، قهوه‌ای، طلایی) رفتند');
+  const fam=[...new Set(covers.map(g=>g.replace(/^linear-gradient\(\d+deg,/,'(unused,')))];
+  ok(new Set(covers).size<=6,'جلدها فقط پنج گرادیان هم‌خانواده دارند، نه رنگ‌قلمی');
+
+  /* ریتم صفحه: نوار آمار پای صفحه، پیش از نشانی‌ها */
+  ok(home.indexOf('id="about"')>home.indexOf('id="voices"') && home.indexOf('id="about"')<home.indexOf('class="hfoot"'),
+     '«نورا در یک نگاه» به پای صفحه رفت');
 }
 
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');
