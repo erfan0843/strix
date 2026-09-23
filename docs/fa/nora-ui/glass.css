@@ -521,7 +521,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .cat-item .hint{font-size:var(--fs-cap);color:var(--ink-3)}
 .cat-group{margin:14px 0 6px;font-size:var(--fs-cap);color:var(--ink-3);font-weight:600}
 
-/* ── رنگ دلخواه بلیت ─────────────────────────────────────────────────── */
+/* ── رنگ دلخواه ──────────────────────────────────────────────────────── */
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
 .swatch{width:32px;height:32px;border-radius:50%;border:.5px solid var(--hairline);cursor:pointer;position:relative;background:var(--sw)}
 .swatch.on{box-shadow:0 0 0 2.5px var(--surface),0 0 0 4.5px var(--sw)}
@@ -602,7 +602,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 /* ویژگی ساختاری فیلد */
 .structchips{display:flex;flex-wrap:wrap;gap:6px}
 
-/* ══ انتخاب‌گرها، بلیت، شناسنامهٔ فرم، جزئیات پاسخ‌دهنده ══ */
+/* ══ انتخاب‌گرها، شناسنامهٔ فرم، جزئیات پاسخ‌دهنده ══ */
 
 /* ── انتخاب‌گر: هیچ‌جا تایپ نمی‌کنیم ── */
 .pick{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
