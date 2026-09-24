@@ -504,7 +504,10 @@ function bookState(){
   let v=null; try{v=JSON.parse(localStorage.getItem(BC_KEY)||'null')}catch(e){v=null}
   return Object.assign({member:false, cstep:'form', form:{}, plan:'m', feeAt:'', feeNext:'',
     att:{}, voice:null, likes:{}, posts:[], chals:{}, entered:{}, seats:{}, tag:'پیشنهاد',
-    joined:false, seat:false, pages:0, note:'', vote:''}, v||{});
+    joined:false, seat:false, pages:0, note:'', vote:'',
+    /* ابزارهای سرپرست: پین، مطلب در پنل‌گذاشته، فرم، آزمون */
+    sup:false, supStep:'home', pins:[], sent:[], forms:[], formDraft:null, formOn:'',
+    qz:[], qzDraft:null, qzOn:'', pinKind:'خبر'}, v||{});
 }
 function bookSet(patch){ const v=Object.assign(bookState(),patch); try{localStorage.setItem(BC_KEY,JSON.stringify(v))}catch(e){} return v }
 /* ── باشگاه از خودِ داده می‌آید ───────────────────────────────────────── */
@@ -520,6 +523,22 @@ function clubMe(){
   return (CCLUB.board||[]).find(x=>x.me)||{n:name,l:'تازه‌وارهٔ باشگاه',s:+bc.sessions||0};
 }
 const clubPanelView=()=>S.ctab||(CTABS[0]||{}).k||'home';
+/* پیش‌نویس‌ها: با هر بازسازی فهرست، آنچه تایپ شده از دست نرود */
+function formDraftSync(){
+  const d=bookState().formDraft; if(!d) return null;
+  const fields=(d.fields||[]).map(f=>Object.assign({},f,{
+    l:String(($('#fl_'+f.k)||{}).value||f.l||''),
+    req:!!(($('[data-field-req="'+f.k+'"]')||{}).checked)}));
+  return Object.assign({},d,{n:String(($('#cfName')||{}).value||d.n||''), fields:fields});
+}
+function qzDraftSync(){
+  const d=bookState().qzDraft; if(!d) return null;
+  const qs=(d.qs||[]).map(q=>Object.assign({},q,{
+    l:String(($('[data-qq-label="'+q.k+'"]')||{}).value||q.l||''),
+    o:(q.o||[]).map((o,i)=>String(($('[data-qq-opt="'+q.k+'"][data-opt="'+i+'"]')||{}).value||o||''))}));
+  return Object.assign({},d,{n:String(($('#qzName')||{}).value||d.n||''),
+    min:+unFa(String(($('#qzMin')||{}).value||d.min||10)).replace(/\D/g,'')||10, qs:qs});
+}
 function clubSet(patch,msg){ bookSet(patch); render(); if(msg) toast(msg) }
 
 /* ── گام‌های ورود به باشگاه ─────────────────────────────────────────── */
@@ -613,6 +632,12 @@ function clubSupervisor(locked){
         <span class="qi" style="width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(150deg,#7A5A2A,#123A7A);color:#fff;font-weight:700;font-size:17px">${esc(String(sup.n||'م').slice(0,1))}</span>
         <span class="sp">${esc(sup.n||'مریم داوودی')}<small>${esc(sup.r||'سرپرست باشگاه کتاب‌خوانی')}</small></span>
         <button class="btn sm quiet" data-go="support">پرسش</button></div>
+      ${bookState().sup
+        ? `<button class="btn sm primary block" style="margin-top:10px" data-sup-tool="home">${ico('i-pin')} کارهای سرپرست</button>`
+        : `<details class="npmore2" style="margin-top:10px"><summary>${ico('i-shield')} ابزارهای سرپرست</summary>
+            <p class="cap">اگر سرپرست همین باشگاهی، از اینجا پنل اعضا را بچین: پین کن، مطلب بگذار، فرم بساز و آزمون بگذار.</p>
+            <button class="btn sm primary block" style="margin-top:8px" data-sup-on>${ico('i-key')} روشن کردن ابزار سرپرست</button>
+            <small class="cap" style="display:block;margin-top:6px">این نسخهٔ نمایشی است؛ سرپرست واقعی را مدیر سامانه تعیین می‌کند.</small></details>`}
       <details class="npmore2" style="margin-top:10px"><summary>${ico('i-doc')} قوانین باشگاه</summary>
         ${(CCLUB.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join('')}</details></div>
     <div class="card acct anim"><div class="head">${ico('i-link')} گروه و لینک اختصاصی</div>
@@ -663,7 +688,7 @@ function clubTasks(){
 function clubHome(){
   const bc=bookState(), C=CCLUB, meet=C.meet||[], plan=clubPlan(bc.plan);
   const m0=meet[0]||{}, m1=meet[1]||{};
-  return clubCard()+
+  return clubLead()+clubCard()+
     card('جلسهٔ این هفته',(C.session||'')+' · میزبان '+(clubSup().n||'—'),'i-calendar',
       `<div class="clmeet">
         <span class="clm-date"><b>${esc(m0.w||'')}</b><small>${esc(m0.mode||'')}</small></span>
@@ -698,7 +723,23 @@ function clubHome(){
       `<div class="srow">${ico('i-users')}<span class="sp">${esc((CCLUB.group||{}).n||'گروه اعضا')}
           <small class="num" dir="ltr">${esc((CCLUB.group||{}).code||'')}</small></span>
         <button class="btn sm quiet" data-copy="${esc((CCLUB.group||{}).link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>`)+
+    clubSupEntry()+
     trustLine('club');
+}
+/* درِ ابزارهای سرپرست: سرپرست از همین‌جا پنل اعضا را می‌چیند */
+function clubSupEntry(){
+  if(bookState().sup)
+    return card('کارهای سرپرست باشگاه','پین، مطلب، فرم و آزمون؛ همه از یک جا','i-pin',
+      `<div class="srow">${ico('i-pin')}<span class="sp">پنل اعضا دست توست
+          <small>هر چیزی بسازی، همان لحظه در پنل عضوها می‌نشیند</small></span>
+        <button class="btn sm primary" data-sup-tool="home">باز کن</button></div>`+
+      `<div class="srow">${ico('i-article')}<span class="sp">فهرست کارها
+          <small>پین‌ها، فرم‌ها، آزمون‌ها و مطلب‌های در پنل‌گذاشته</small></span>
+        <button class="btn sm quiet" data-sup-tool="home">نگات کنم</button></div>`);
+  return card('سرپرست همین باشگاهی؟','ابزارهای سرپرست را روشن کن','i-shield',
+    `<p class="cap">با روشن‌کردن، دو لنگر در پنل باشگاه می‌آید: «پنل اعضا» و «کارهای سرپرست». آنجا می‌توانی پین کنی، مطلبی از سامانه در پنل بگذاری، فرم بسازی و لینکش را بدهی، یا آزمون بگذاری و نتیجه ببینی.</p>
+     <button class="btn primary block" style="margin-top:10px" data-sup-on>${ico('i-key')} روشن کردن ابزار سرپرست</button>
+     <small class="cap" style="display:block;margin-top:6px">این نسخهٔ نمایشی است؛ سرپرست واقعی را مدیر سامانه تعیین می‌کند.</small>`);
 }
 /* ── جلسه‌ها: هفتگی، ثبت حضور، سطح‌بندی ─────────────────────────────── */
 function clubMeet(){
@@ -823,6 +864,7 @@ function clubGame(){
   return `<div class="clgrid">
       ${card('مسابقه‌های ماهانه',faN((C.contests||[]).length)+' مسابقه باز','i-medal',`<div class="clconts">${contests}</div>`)}
       ${card('چالش‌های باشگاه','کوتاه، روزانه و با امتیاز','i-star',`<div class="clchals">${chals}</div>`)}
+      ${clubQuiz()}
     </div>
     ${card('کارگاه‌های باشگاه','کارگاه‌های ویژهٔ اعضا؛ پرداخت با نورا پی','i-pen',`<div class="clwss">${ws}</div>`)}
     ${card('جایگاه من',esc(me.l||'')+' · '+faN(+me.s||0)+' جلسه','i-chart',
@@ -857,13 +899,352 @@ function clubTalk(){
         <button class="btn sm quiet" data-go="support">پرسش</button></div>`)+
     trustLine('club');
 }
-/* ── خود پنل ───────────────────────────────────────────────────────── */
-function clubPanel(t){
-  const C=CCLUB, v=clubPanelView();
-  const body = v==='meet'?clubMeet() : v==='media'?clubMedia() : v==='game'?clubGame() : v==='talk'?clubTalk() : clubHome();
-  const sub=(C.term||'')+(C.book?' · '+C.book:'');
-  return viewHead(t,sub,CTABS,'ctab')+`<div class="panel">${body}</div>`;
+/* ══ ابزارهای سرپرست باشگاه ══════════════════════════════════════════
+   سرپرست از همین‌جا پنل اعضا را می‌چیند: چیزی را پین می‌کند، مطلبی که در
+   سامانه منتشر شده در پنل می‌گذارد، فرم می‌سازد و لینکش را می‌دهد و آزمون
+   می‌سازد و نتیجهٔ اعضا را می‌بیند. هر چه بسازد زیر همان شماره‌ها ذخیره
+   می‌شود و همان لحظه در پنل اعضا می‌نشیند. */
+const CTOOLS=CCLUB.supTools||{}, CTQ=CTOOLS.quiz||{}, CTF=CTOOLS.forms||{}, CTP=CTOOLS.pin||{};
+const clubPosts=()=>(bookState().posts||[]).concat(((CCLUB.tribune||{}).posts)||[]);
+const allForms=()=>{ const del=bookState().formDel||[];
+  return (bookState().forms||[]).concat(CTF.list||[]).filter(f=>del.indexOf(f.k)<0) };
+const allQuiz=()=>{ const del=bookState().qzDel||[];
+  return (bookState().qz||[]).concat(CTQ.list||[]).filter(q=>del.indexOf(q.k)<0) };
+const cfOf=k=>allForms().find(x=>x.k===k)||{};
+const qzOf=k=>allQuiz().find(x=>x.k===k)||{};
+const quizQs=q=>(q.qs&&q.qs.length?q.qs:(CTQ.qFields||[]));
+const supIs=()=>!!bookState().sup;
+const artIn=id=>(N.ARTICLES||[]).find(a=>a.id===id)||{};
+const pinIcon=k=>({'خبر':'i-bell','جلسه':'i-calendar','کتاب':'i-book','مطلب':'i-article',
+  'مسابقه':'i-medal','فرم':'i-list','گروه':'i-users'})[k]||'i-pin';
+const supUrl=u=>!!u && /^(https?:\/\/|[\w-]+\.html)/.test(String(u).trim());
+function supCopy(u){ return supUrl(u)?String(u).trim():'' }
+const supCopyBtn=(u,cls)=>supUrl(u)?`<button class="btn sm quiet ${cls||''}" data-copy="${esc(String(u).trim())}"
+  data-copy-msg="لینک رونوشت شد">${ico('i-link')} رونوشت لینک</button>`:'';
+const supRel=u=>supUrl(u)||!!String(u||'').trim();
+
+/* ── پین ───────────────────────────────────────────────────────────── */
+function pinRow(p2){
+  return `<div class="pinrow"><span class="pn-ic">${ico(pinIcon(p2.kind))}</span>
+    <span class="tx"><b>${esc(p2.t)}</b><small>${esc([p2.kind,p2.d,p2.at].filter(Boolean).join(' · '))}</small></span>
+    <button class="btn sm quiet" data-pin-del="${esc(p2.t)}" aria-label="برداشتن پین">${ico('i-trash')}</button></div>`;
 }
+function pinsBox(){
+  const pins=bookState().pins||[], max=CTP.max||3, left=Math.max(0,max-pins.length);
+  return `<div class="pinbox">
+    ${pins.length?pins.map(pinRow).join(''):empty2('هنوز چیزی پین نشده','پین‌ها بالای پنل اعضا می‌نشینند.','i-pin')}
+    <p class="cap" style="margin:8px 2px 0">${left?faN(left)+' جا مانده':'جا پر است؛ یکی را بردار یا جایش را عوض کن'}</p>
+    <button class="btn sm quiet block" style="margin-top:8px" data-pin-add>${ico('i-plus')} پین تازه</button></div>`;
+}
+function clubPins(){
+  const pins=bookState().pins||[];
+  if(!pins.length) return '';
+  return `<div class="pinsbar anim" aria-label="پین‌های سرپرست">${pins.map(p2=>`
+    <span class="pin"><span class="pn-ic">${ico(pinIcon(p2.kind))}</span>
+      <span class="tx"><b>${esc(p2.t)}</b>${p2.d?`<small>${esc(p2.d)}</small>`:''}</span>
+      <span class="pin-k">${esc(p2.kind||'خبر')}</span></span>`).join('')}</div>`;
+}
+function pinPicker(){
+  const items=(CTP.items||[]), kinds=CTP.kinds||['خبر'];
+  return `<div class="picker">
+    <label class="hint" for="pinName">پین تازه بساز</label>
+    <input class="input" id="pinName" placeholder="مثلاً جلسهٔ پنجشنبه تعطیل شد"/>
+    <div class="pinchips">${kinds.map(k=>`<button class="tag${(bookState().pinKind||'خبر')===k?' on':''}"
+      type="button" data-pin-kind="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" data-pin-save>${ico('i-pin')} پین کن</button>
+      <span class="cap">سه پین بیشتر جا نیست</span></div></div>`;
+}
+function pinIdeas(){
+  const P=(CTP.items||[]), posts=clubPosts();
+  return `<details class="npmore2" open><summary>${ico('i-pin')} چیزی که در سامانه هست</summary>
+      ${P.length?P.map((x,j)=>`<div class="srow">${ico(pinIcon(x.kind))}
+        <span class="sp">${esc(x.t)}<small>${esc([x.kind,x.d].filter(Boolean).join(' · '))}</small></span>
+        <button class="btn sm primary" data-pin-add-id="${j}">پین کن</button></div>`).join('')
+        :`<p class="cap">چیز آماده‌ای نمانده؛ پین تازه بساز.</p>`}
+      ${(CCLUB.news||[]).map((n,j)=>`<div class="srow">${ico(n.i||'i-bell')}
+        <span class="sp">${esc(n.t)}<small>${esc(n.d||'')} · خبر سرپرست</small></span>
+        <button class="btn sm primary" data-pin-news="${j}">پین کن</button></div>`).join('')}
+      ${posts.length?`<div class="subhead">پیشنهادهای اعضا در تریبون</div>
+        ${posts.slice(0,3).map(t=>`<div class="srow">${ico('i-chat')}
+          <span class="sp">${esc(t.t)}<small>${esc(t.n||'عضو باشگاه')} · ${esc(t.tag||'')}</small></span>
+          <button class="btn sm primary" data-pin-post="${esc(t.k)}">پین کن</button></div>`).join('')}`:''}
+    </details>`;
+}
+/* ── مطلبی از سامانه ──────────────────────────────────────────────── */
+function sentBox(){
+  const ids=bookState().sent||[];
+  if(!ids.length) return empty2('مطلبی در پنل نگذاشتی','از فهرست بالا یکی را انتخاب کن.','i-article');
+  return `<div class="sentbox">${ids.map(id=>{ const a=artIn(id);
+    return `<div class="sentrow"><span class="th"><span class="ic">${ico('i-article')}</span></span>
+      <span class="tx"><b>${esc(a.t||id)}</b><small>${esc(a.cat||'')} · در پنل اعضا دیده می‌شود</small></span>
+      ${supCopyBtn('home.html')}
+      <button class="btn sm quiet" data-sent-del="${esc(id)}" aria-label="برداشتن">${ico('i-trash')}</button></div>`}).join('')}</div>`;
+}
+function sentPicker(){
+  return `<div class="artpick">${(N.ARTICLES||[]).map(a=>{
+    const on=(bookState().sent||[]).indexOf(a.id)>=0;
+    return `<button class="artopt${on?' on':''}" type="button" data-send-art="${esc(a.id)}" aria-pressed="${on}">
+      ${on?ico('i-check'):ico('i-plus')}
+      <span class="tx"><b>${esc(a.t)}</b><small>${esc(a.cat||'')}${a.min?' · '+faN(a.min)+' دقیقه':''}</small></span>
+      ${a.club?chip('باشگاهی','gold'):''}</button>`}).join('')}</div>`;
+}
+function clubSent(){
+  const ids=bookState().sent||[];
+  if(!ids.length) return '';
+  return card('از سامانه برایت گذاشته','مطلب‌هایی که سرپرست در پنل گذاشته','i-article',
+    `<div class="clubread">${ids.map(id=>{const a=artIn(id);
+      return `<div class="crrow"><span class="ic">${ico('i-article')}</span>
+        <span class="tx"><b>${esc(a.t||id)}</b><small>${esc(a.cat||'')}${a.views?' · '+esc(a.views)+' بازدید':''}</small></span>
+        <button class="btn sm quiet" data-go="support">پرسش</button></div>`}).join('')}</div>`);
+}
+/* ── فرم‌ها ───────────────────────────────────────────────────────── */
+function formRow(f){
+  const open=(f.state!=='closed');
+  return `<div class="frow">
+    <span class="fr-h"><b>${esc(f.n)}</b><small>${esc(f.d||'')}</small></span>
+    <span class="fr-m">${chip(open?(CTF.status||{}).open||'باز':(CTF.status||{}).closed||'بسته',open?'ok':'')}
+      <span class="cap">${faN((f.fields||[]).length||f.nOf||0)} فیلد</span>
+      ${f.ends?`<span class="cap">تا ${esc(f.ends)}</span>`:''}
+      <span class="cap">${faN(f.got||0)} پاسخ</span></span>
+    <span class="acts"><button class="btn sm quiet" data-club-form="${esc(f.k)}">${ico('i-inbox')} پاسخ‌ها</button>
+      ${supCopyBtn(f.link)}
+      <button class="btn sm quiet" data-form-del="${esc(f.k)}" aria-label="حذف فرم">${ico('i-trash')}</button></span></div>`;
+}
+function formsBox(){
+  const list=allForms(), draft=bookState().formDraft;
+  return `<div class="formsbox">
+    <div class="fb-head"><b>فرم‌های من</b>${list.length?`<span class="cap">${faN(list.length)} فرم</span>`:''}
+      ${draft?'':`<button class="btn sm primary" style="margin-inline-start:auto" data-form-new>${ico('i-plus')} فرم تازه</button>`}</div>
+    ${draft?formBuilder(draft):''}
+    ${list.length?list.map(formRow).join(''):(draft?'':empty2('فرمی نساختی','با «فرم تازه» شروع کن.','i-list'))}</div>`;
+}
+function formBuilder(d){
+  const kinds=CTF.fields||[];
+  const mine=(d.fields||[]).map(f=>Object.assign({},f,{l:($('#fl_'+f.k)||{}).value||f.l}));
+  return `<div class="fbuild">
+    <label class="hint" for="cfName">نام فرم</label>
+    <input class="input" id="cfName" value="${esc(d.n||'')}" placeholder="مثلاً فرم ثبت‌نام مسابقهٔ مهر"/>
+    <span class="hint" style="margin-top:8px">پرسش‌های فرم</span>
+    <div class="ffields">${(d.fields||[]).map(formFieldRow).join('')}</div>
+    ${(d.fields||[]).length>=8?'':`<div class="fadd">
+      <button class="btn sm quiet" data-field-add>${ico('i-plus')} پرسش تازه</button>
+      ${kinds.length?`<button class="btn sm quiet" data-field-ready="${esc(kinds[0].k)}">${ico('i-star')} از پرسش‌های آماده</button>`:''}</div>`}
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-form-save>${ico('i-check')} ذخیرهٔ فرم</button>
+      <button class="btn quiet" data-form-cancel>بی‌خیال</button></div></div>`;
+}
+function formFieldRow(f){
+  const k=(CTF.fields||[]).find(x=>x.k===f.k);
+  const w=k?k.w:(f.w||'text');
+  return `<div class="ffrow">
+    <span class="ff-k">${ico(w==='pick'?'i-list':'i-pen')}<small>${w==='pick'?'انتخابی':'نوشتنی'}</small></span>
+    <input class="input" id="fl_${esc(f.k)}" value="${esc(f.l||'')}" placeholder="متن پرسش" style="margin:0"/>
+    <label class="ff-req"><input type="checkbox" data-field-req="${esc(f.k)}" ${f.req?'checked':''}/> اجباری</label>
+    <button class="btn sm quiet" data-field-del="${esc(f.k)}" aria-label="برداشتن پرسش">${ico('i-close')}</button></div>`;
+}
+function formAnswers(id){
+  const f=cfOf(id);
+  const names=(CCLUB.board||[]).map(b=>b.n);
+  const rows=Math.max(0,Math.min(8,Math.round((+f.got||0)/2)));
+  return `<div class="fansbox"><div class="head">${ico('i-inbox')} پاسخ‌های «${esc(f.n||'')}»</div>
+    <p class="cap" style="margin-top:5px">${esc(f.link||'')} · لینک را در گروه اعضا بگذار</p>
+    ${rows?Array.from({length:rows}).map((_,i)=>`<div class="fanrow">
+      <span class="av">${esc(String(names[i%names.length]||'ع').slice(0,1))}</span>
+      <span class="tx"><b>${esc(names[i%names.length]||'عضو باشگاه')}</b>
+        <small>پاسخ ${faN(i+1)}${f.ends?' · تا '+esc(f.ends):''}</small></span>${chip('رسید','ok')}</div>`).join('')
+      :empty2('هنوز پاسخی نرسیده','لینک را برای اعضا بفرست.','i-archive')}
+    <div class="row" style="margin-top:10px">${supCopyBtn(f.link)}
+      <button class="btn sm quiet" data-form-csv="${esc(id)}">${ico('i-doc')} برون‌بری پاسخ‌ها</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div></div>`;
+}
+function clubFill(id){
+  const f=cfOf(id), ans=(bookState().formFills||{})[id]||{};
+  return `<div class="grabber"></div><div class="head">${ico('i-pen')} ${esc(f.n||'فرم سرپرست')}</div>
+    <p class="sub" style="margin-top:6px">${esc(f.d||'')}${f.ends?' · تا '+esc(f.ends):''}</p>
+    <div class="clsform">${(f.fields||[]).map(x=>x.w==='pick'
+      ? `<div class="fld"><span class="hint">${esc(x.l)}</span>
+          <div class="seg">${(x.opts||[]).map(o=>`<button class="segbtn${ans[x.k]===o?' on':''}" type="button"
+            data-ff-pick="${esc(x.k)}" data-ff-val="${esc(o)}" aria-pressed="${ans[x.k]===o}">${esc(o)}</button>`).join('')}</div>
+          <input type="hidden" id="ff_${esc(x.k)}" value="${esc(ans[x.k]||'')}"/></div>`
+      : `<div class="fld"><label class="hint" for="ff_${esc(x.k)}">${esc(x.l)}${x.req?' *':''}</label>
+          <input class="input" id="ff_${esc(x.k)}" value="${esc(ans[x.k]||'')}" placeholder="${esc(x.ph||'')}" style="margin-top:6px"/></div>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" data-cf-send="${esc(f.k)}">${ico('i-send')} بفرست</button>
+      <button class="btn quiet" data-close>بی‌خیال</button></div>`;
+}
+function quizSitting(id){
+  const q=qzOf(id), qs=quizQs(q), ans=(bookState().quizAns||{})[id]||{};
+  if(!qs.length) return `<div class="grabber"></div><div class="head">${ico('i-medal')} ${esc(q.n||'آزمون')}</div>
+    <p class="sub" style="margin-top:8px">پرسش‌های این آزمون هنوز آماده نیست.</p>
+    <div class="row" style="margin-top:12px"><button class="btn quiet" data-close>بستن</button></div>`;
+  return `<div class="grabber"></div><div class="head">${ico('i-medal')} ${esc(q.n||'آزمون')}</div>
+    <p class="sub" style="margin-top:6px">${faN(qs.length)} پرسش${q.min?' · '+faN(q.min)+' دقیقه':''}؛ هر پرسش یک گزینهٔ درست دارد.</p>
+    <div class="qqs" style="margin-top:10px">${qs.map((x,i)=>`<div class="qq">
+      <b style="font-size:12.5px">${faN(i+1)}. ${esc(x.l)}</b>
+      <div class="qqopts">${(x.o||[]).map((o,j)=>`<div class="qqopt">
+        <button class="btn sm quiet${ans[x.k]===j?' on':''}" data-qa="${esc(x.k)}" data-qi="${j}"
+          aria-pressed="${ans[x.k]===j}">${ico('i-check')} ${esc(o)}</button></div>`).join('')}</div></div>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" data-qz-submit="${esc(id)}">${ico('i-send')} بفرست</button>
+      <button class="btn quiet" data-close>بی‌خیال</button></div>`;
+}
+function clubQuiz(){
+  const list=allQuiz().filter(q=>q.state==='open');
+  if(!list.length) return '';
+  const picks=bookState().picks||{};
+  return card('آزمون‌های باشگاه',faN(list.length)+' آزمون باز؛ نتیجه‌اش را سرپرست می‌بیند','i-medal',
+    `<div class="qzbox">${list.map(q=>{ const done=picks[q.k]!==undefined;
+      return `<div class="qzrow"><span class="qz-ic">${ico('i-medal')}</span>
+        <span class="tx"><b>${esc(q.n)}</b><small>${esc(q.q||'')}${q.min?' · '+faN(q.min)+' دقیقه':''}
+          ${done?' · نمرهٔ تو: '+faN(+picks[q.k])+' از '+faN(quizQs(q).length):''}</small></span>
+        <span class="acts">${done?chip('داده‌ای','ok'):chip('باز','brand')}
+          <button class="btn sm ${done?'quiet':'primary'}" data-qz-take="${esc(q.k)}">${ico('i-pen')} ${done?'دوباره':'شرکت کن'}</button></span></div>`}).join('')}</div>`);
+}
+function clubForms(){
+  const list=allForms().filter(f=>f.state!=='closed');
+  if(!list.length) return '';
+  return card('فرم‌های سرپرست',faN(list.length)+' فرم باز؛ انتخاب و فرستادن، بی تایپ','i-list',
+    `<div class="cfrm">${list.map(f=>`<div class="frow">
+      <span class="fr-h"><b>${esc(f.n)}</b><small>${esc(f.d||'')}</small></span>
+      <span class="fr-m">${chip((CTF.status||{}).open||'باز','ok')}${f.ends?`<span class="cap">تا ${esc(f.ends)}</span>`:''}</span>
+      <span class="acts"><button class="btn sm primary" data-cf-fill="${esc(f.k)}">${ico('i-pen')} پر کردن</button>
+        <button class="btn sm quiet" data-cf-link="${esc(f.k)}">${ico('i-link')} لینک</button></span></div>`).join('')}</div>`);
+}
+/* ── آزمون‌ساز ────────────────────────────────────────────────────── */
+function quizRow(q){
+  const draft=(q.state==='draft'), open=(q.state==='open');
+  return `<div class="qzrow"><span class="qz-ic">${ico('i-medal')}</span>
+    <span class="tx"><b>${esc(q.n)}</b><small>${esc(q.q||'')}${q.min?' · '+faN(q.min)+' دقیقه':''} · ${faN(q.took||0)} نفر داده‌اند</small></span>
+    <span class="acts">${chip(draft?'پیش‌نویس':open?'باز':'بسته',draft?'warn':open?'ok':'')}
+      <button class="btn sm quiet" data-qz-res="${esc(q.k)}">نتیجه‌ها</button>
+      ${draft?`<button class="btn sm primary" data-qz-open="${esc(q.k)}">منتشر کن</button>`
+        :`<button class="btn sm quiet" data-qz-close="${esc(q.k)}">ببند</button>`}
+      <button class="btn sm quiet" data-copy="account.html#book" data-copy-msg="لینک آزمون رونوشت شد" aria-label="لینک آزمون">${ico('i-link')}</button>
+      <button class="btn sm quiet" data-qz-del="${esc(q.k)}" aria-label="برداشتن آزمون">${ico('i-trash')}</button></span></div>`;
+}
+function quizBox(){
+  const list=allQuiz(), d=bookState().qzDraft;
+  return `<div class="qzbox">
+    <div class="fb-head"><b>آزمون‌های من</b>${list.length?`<span class="cap">${faN(list.length)} آزمون</span>`:''}
+      ${d?'':`<button class="btn sm primary" style="margin-inline-start:auto" data-qz-new>${ico('i-plus')} آزمون تازه</button>`}</div>
+    ${d?quizBuilder(d):''}
+    ${list.length?list.map(quizRow).join(''):(d?'':empty2('آزمونی نساختی','یک آزمون کوتاه کافی است.','i-medal'))}
+    <details class="npmore2"><summary>${ico('i-shield')} قاعده‌های آزمون</summary>
+      <div class="srow">${ico('i-check')}<span class="sp">لینک آزمون فقط به گروه اعضا می‌رود</span></div>
+      <div class="srow">${ico('i-check')}<span class="sp">نتیجه‌ها را سرپرست می‌بیند، بقیه نه</span></div></details></div>`;
+}
+function quizBuilder(d){
+  return `<div class="qzbuild">
+    <label class="hint" for="qzName">نام آزمون</label>
+    <input class="input" id="qzName" value="${esc(d.n||'')}" placeholder="مثلاً آزمون کتاب ماه — فصل ۵"/>
+    <div class="row" style="margin-top:8px;align-items:center"><label class="hint" for="qzMin">مدت (دقیقه)</label>
+      <input class="input" id="qzMin" style="width:84px" inputmode="numeric" value="${esc(d.min||10)}"/>
+      <span class="cap">پس از این مدت زمان‌سنج صفر می‌شود؛ لینک بسته نمی‌شود.</span></div>
+    <span class="hint" style="margin-top:10px">پرسش‌ها</span>
+    <div class="qqs">${(d.qs||[]).map(q=>`<div class="qq">
+      <input class="input" value="${esc(q.l||'')}" placeholder="متن پرسش" data-qq-label="${esc(q.k)}"/>
+      <div class="qqopts">${(q.o||['','','','']).map((o,i)=>
+        `<div class="qqopt"><span class="num">${faN(i+1)}</span>
+          <input class="input" value="${esc(o)}" placeholder="گزینه" data-qq-opt="${esc(q.k)}" data-opt="${i}"/>
+          <button class="btn sm quiet${((q.a|0)===i)?' on':''}" data-qq-right="${esc(q.k)}" data-opt="${i}"
+            aria-pressed="${((q.a|0)===i)}" aria-label="گزینهٔ درست">${ico('i-check')}</button></div>`).join('')}</div></div>`).join('')}</div>
+    <div class="fadd"><button class="btn sm quiet" data-qq-add>${ico('i-plus')} پرسش تازه</button>
+      <button class="btn sm quiet" data-qq-ready>${ico('i-star')} پرسش آماده</button></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-qz-save>${ico('i-check')} ذخیرهٔ آزمون</button>
+      <button class="btn quiet" data-qz-cancel>بی‌خیال</button></div></div>`;
+}
+function quizResults(id){
+  const q=qzOf(id);
+  const seed=((CTQ.results||{})[id])||[];
+  const mine=(bookState().picks||{})[id]!==undefined?[id]:[];
+  const total=quizQs(q).length||(+String(q.q||'').replace(/[^\d۰-۹]/g,'')||0);
+  const rows=seed.concat(mine.map(()=>({n:(prof().fullName||'عضو')+' (تو)',
+      s:faN(+((bookState().picks||{})[id]||0))+' از '+faN(total||0), at:'همین حالا'})))
+    .map((r,i)=>`<div class="resrow"><span class="medal m${Math.min(3,i+1)}">${ico('i-medal')}</span>
+      <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.at||'')}</small></span><b class="num">${esc(r.s)}</b></div>`).join('');
+  return `<div class="qzres anim"><div class="head">${ico('i-medal')} نتیجهٔ «${esc(q.n||'')}»</div>
+      ${rows||empty2('نتیجه‌ای نیست','آزمون پیش‌نویس است یا کسی نداده.','i-archive')}
+      <div class="npstats" style="margin-top:10px">
+        <span><b class="num">${faN(q.took||seed.length)}</b><small>شرکت‌کننده</small></span>
+        <span><b>${esc(q.avg||'—')}</b><small>میانگین</small></span>
+        <span><b>${esc(q.pass||'—')}</b><small>قبولی</small></span>
+        <span><b>${esc(q.top||'—')}</b><small>بهترین</small></span></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm quiet" data-qz-csv="${esc(id)}">${ico('i-doc')} برون‌بری نتیجه‌ها</button>
+        <button class="btn sm quiet" data-qz-close="${esc(id)}">${ico('i-lock')} بستن آزمون</button>
+        <span class="sp" style="flex:1"></span><button class="btn quiet" data-qz-res="${esc(id)}">بستن نتیجه</button></div></div>`;
+}
+/* ── کارتابل سرپرست: خانه، بخش‌ها و کنش‌ها ────────────────────────── */
+function supShare(){
+  const u=(CCLUB.group||{}).link||'';
+  return card('گروه و لینک اختصاصی','لینک فرم و آزمون را همین‌جا برای اعضا بگذار','i-link',
+    `<div class="srow">${ico('i-users')}<span class="sp">${esc((CCLUB.group||{}).n||'گروه اعضا')}
+        <small class="num" dir="ltr">${esc((CCLUB.group||{}).code||'')}</small></span>${supCopyBtn(u)}</div>
+     <div class="srow">${ico('i-book')}<span class="sp">کتاب ماه و ضبط&zwnj;های تازه
+        <small>خبر هر ترم در گروه می‌آید</small></span>${supCopyBtn('account.html#book')}</div>`);
+}
+function supHome(){
+  const T=CTOOLS, b=bookState(), pins=b.pins||[], forms=(b.forms||[]);
+  const openQ=(b.qz||[]).filter(x=>x.state==='open').length;
+  const cover = `<div class="supcover anim">${ico('i-medal')}
+      <span class="tx"><b>پنل سرپرست باشگاه</b><small>${esc(T.lead||'')}</small></span>
+      <div class="row" style="margin-top:12px;width:100%">
+        <button class="btn primary" data-sup-member>${ico('i-users')} پنل اعضا</button>
+        <button class="btn quiet" data-copy="account.html#book" data-copy-msg="لینک پنل باشگاه رونوشت شد">${ico('i-link')} لینک پنل</button></div></div>
+    <div class="npstats" style="margin-top:10px">
+      <span><b class="num">${faN(pins.length)}</b><small>پین فعال</small></span>
+      <span><b class="num">${faN(forms.length)}</b><small>فرم</small></span>
+      <span><b class="num">${faN(CCLUB.members||0)}</b><small>عضو</small></span>
+      <span><b class="num">${faN(openQ)}</b><small>آزمون باز</small></span></div>`;
+  const voice=b.voice?card('درخواست ضبط پادکست','عضوها می‌توانند در ضبط شرکت کنند','i-play-f',
+      `<div class="srow">${ico('i-play-f')}<span class="sp">${esc(b.voice.role||'')}
+        <small>${esc(b.voice.slot||'')}</small></span>${chip('در نوبت','warn')}</div>`):'';
+  return cover+
+    card('چهار کار سرپرست','هر کار یک بخش جدا دارد','i-list',
+      `<div class="toolsGrid">${[['pin','پین کردن','i-pin'],['send','فرستادن مطلب','i-article'],
+        ['form','ساختن فرم','i-list'],['quiz','آزمون‌ساز','i-medal']]
+        .map(([k,n,ic])=>`<button class="tool" data-sup-tool="${k}"><span class="ic">${ico(ic)}</span><b>${esc(n)}</b></button>`).join('')}</div>`)+
+    voice;
+}
+function supBody(sv){
+  if(sv==='pin') return card('پین‌های باشگاه',esc(CTP.lead||''),'i-pin',pinsBox())+
+    card('از خود سامانه','خبر، جلسه، کتاب، مطلب یا پیشنهاد عضو را پین کن','i-pin',pinIdeas())+
+    card('پین تازه','چیزی که فقط سرپرست می‌داند','i-plus',pinPicker());
+  if(sv==='send') return card('مطالبی که سامانه منتشر کرده',esc((CTOOLS.articles||{}).lead||''),'i-article',sentPicker())+
+    card('در پنل اعضا گذاشته‌شده',faN((bookState().sent||[]).length)+' مطلب','i-check',sentBox())+supShare();
+  if(sv==='form') return card('فرم‌های باشگاه',esc(CTF.lead||''),'i-list',formsBox())+supShare();
+  if(sv==='quiz'){ const on=bookState().qzOn;
+    return (on?quizResults(on):'')+card('آزمون‌ساز',esc(CTQ.lead||''),'i-medal',quizBox()); }
+  return '';
+}
+function supLane(cur){
+  return `<div class="lanes anim" role="tablist" aria-label="لنگرهای باشگاه">
+    <button class="lane${cur==='member'?' on':''}" data-sup-member aria-selected="${cur==='member'}">${ico('i-users')} پنل اعضا</button>
+    <button class="lane${cur!=='member'?' on':''}" data-sup-tool="${cur==='member'?'home':cur}" aria-selected="${cur!=='member'}">${ico('i-pin')} کارهای سرپرست</button></div>`;
+}
+function supNav(cur){
+  return `<div class="supnav anim">${[['pin','پین','i-pin'],['send','مطلب','i-article'],['form','فرم','i-list'],['quiz','آزمون','i-medal']]
+    .map(([k,n,ic])=>`<button class="ctab${cur===k?' on':''}" data-sup-tool="${k}"
+      aria-selected="${cur===k}">${ico(ic)} ${n}</button>`).join('')}</div>`;
+}
+/* ── خود پنل: دو لنگر، پنل اعضا و کارهای سرپرست ───────────────────── */
+function clubPanel(t){
+  const C=CCLUB, v=clubPanelView(), sup=supIs(), sst=bookState().supStep||'pin';
+  if(sup && v==='sup'){
+    const body = sst==='home'?supHome() : (supBody(sst)||supHome());
+    const tabs = sst==='home'
+      ? `<div class="clsub anim">${CTABS.filter(x=>x.k!=='sup').map(x=>`<button class="tag" data-ctab="${esc(x.k)}">${x.i?ico(x.i):''} ${esc(x.n)}</button>`).join('')}</div>`
+      : supNav(sst);
+    const sub=(C.term||'')+(sst==='home'?'':' · کارهای سرپرست');
+    return viewHead(t,sub,null)+supLane(sst)+tabs+`<div class="panel">${body}</div>`;
+  }
+  const body = v==='meet'?clubMeet() : v==='media'?clubMedia() : v==='game'?clubGame() : v==='talk'?clubTalk() : clubHome();
+  const tabs = sup ? CTABS.concat([{k:'sup',n:'سرپرست',i:'i-medal'}]) : CTABS;
+  const sub=(C.term||'')+(C.book?' · '+C.book:'');
+  return viewHead(t,sub,tabs,'ctab')+(supIs()?supLane('member'):'')+`<div class="panel">${body}</div>`;
+}
+/* پنل عضو: پین‌ها، مطلب‌های سرپرست و فرم‌هایش بالا می‌آیند */
+function clubLead(){
+  return clubPins()+clubSent()+clubForms();
+}
+
 
 
 /* ══ اطلاعات و تنظیمات حساب ═════════════════════════════════════════ */
@@ -1658,6 +2039,13 @@ function render(){
 }
 function route(){
   const raw=(location.hash||'').replace('#','');
+  if(raw.indexOf('fill=')===0){                       /* نشانی فرمی که سرپرست فرستاده */
+    const id=raw.slice(5); S.view='book'; S.ctab='home'; render();
+    const f=cfOf(id);
+    if(!f.k) toast('این فرم را پیدا نکردم');
+    else if(!clubIsMember()) toast('اول عضویت باشگاه را کامل کن؛ بعد فرم را پر کن');
+    else { fillSheet('shClubFill',clubFill(id)); openSheet('shClubFill') }
+    try{window.scrollTo({top:0})}catch(e){}; return }
   if(raw==='support'){ goSupport(); return }
   if(ALIAS[raw]){ const [v,f,val]=ALIAS[raw]; S.view=v; S[f]=val; S.edit=false; S.errs={}; render();
     try{window.scrollTo({top:0})}catch(e){}; return }
@@ -1782,7 +2170,168 @@ document.addEventListener('click',ev=>{
     if(likes[lk.dataset.like]) delete likes[lk.dataset.like]; else likes[lk.dataset.like]=true;
     bookSet({likes:likes}); renderView(); return }
 
-  /* نورا پی */
+  /* ── ابزارهای سرپرست باشگاه ──────────────────────────────────────── */
+  if(t.closest('[data-sup-on]')){
+    bookSet({sup:true, supStep:'home'}); S.ctab='sup'; render();
+    toast('ابزارهای سرپرست روشن شد؛ پنل اعضا دست توست'); return }
+  if(t.closest('[data-sup-member]')){ bookSet({supStep:'home'}); S.ctab='home'; render(); return }
+  const stl=t.closest('[data-sup-tool]');
+  if(stl){ const k=stl.dataset.supTool;
+    bookSet({supStep:k}); S.ctab='sup'; render(); try{window.scrollTo({top:0})}catch(e){} return }
+  if(t.closest('[data-cfhome]')){ bookSet({supStep:'home'}); S.ctab='home'; render(); return }
+  const pk=t.closest('[data-pin-kind]');
+  if(pk){ bookSet({pinKind:pk.dataset.pinKind}); renderView(); return }
+  if(t.closest('[data-pin-add]')){
+    const e=$('#pinName'); if(e){ e.value=''; if(e.focus) e.focus() } return }
+  if(t.closest('[data-pin-save]')){
+    const v=String(($('#pinName')||{}).value||'').trim();
+    if(!v){ toast('متن پین را بنویس'); const e=$('#pinName'); if(e&&e.focus) e.focus(); return }
+    const pins=(bookState().pins||[]).slice(0,2);
+    bookSet({pins:[{t:v, d:'از طرف سرپرست', kind:bookState().pinKind||'خبر', at:nowFa()}].concat(pins)});
+    render(); toast('پین شد؛ بالای پنل اعضا نشست'); return }
+  const pde=t.closest('[data-pin-del]');
+  if(pde){ bookSet({pins:(bookState().pins||[]).filter(x=>x.t!==pde.dataset.pinDel)});
+    render(); toast('پین برداشته شد'); return }
+  const pai=t.closest('[data-pin-add-id]');
+  if(pai){ const x=((CTP.items||[])[+pai.dataset.pinAddId])||{};
+    const pins=(bookState().pins||[]).slice(0,2);
+    if((bookState().pins||[]).some(y=>y.t===x.t)){ toast('این یکی از قبل پین است'); return }
+    bookSet({pins:[{t:x.t, d:x.d||'', kind:x.kind||'خبر', at:nowFa()}].concat(pins)});
+    render(); toast('پین شد'); return }
+  const pnw=t.closest('[data-pin-news]');
+  if(pnw){ const n=((CCLUB.news||[])[+pnw.dataset.pinNews])||{};
+    const pins=(bookState().pins||[]).slice(0,2);
+    bookSet({pins:[{t:n.t, d:n.d||'', kind:'خبر', at:nowFa()}].concat(pins)});
+    render(); toast('خبر سرپرست پین شد'); return }
+  const ppo=t.closest('[data-pin-post]');
+  if(ppo){ const pr=clubPosts().find(x=>x.k===ppo.dataset.pinPost)||{};
+    const pins=(bookState().pins||[]).slice(0,2);
+    bookSet({pins:[{t:pr.t||'', d:(pr.n||'عضو باشگاه')+' · تریبون آزاد', kind:'خبر', at:nowFa()}].concat(pins)});
+    render(); toast('پیشنهاد عضو پین شد'); return }
+  const sar=t.closest('[data-send-art]');
+  if(sar){ const id=sar.dataset.sendArt, sent=(bookState().sent||[]).slice();
+    const at=sent.indexOf(id);
+    if(at>=0){ sent.splice(at,1); bookSet({sent:sent}); renderView(); toast('از پنل اعضا برداشته شد'); return }
+    sent.push(id); bookSet({sent:sent}); renderView(); toast('در پنل اعضا گذاشته شد'); return }
+  const sdl=t.closest('[data-sent-del]');
+  if(sdl){ bookSet({sent:(bookState().sent||[]).filter(x=>x!==sdl.dataset.sentDel)});
+    render(); toast('برداشته شد'); return }
+  if(t.closest('[data-form-new]')){
+    bookSet({formDraft:{n:'', fields:[{k:'f_name', l:'نام و نام خانوادگی', w:'text', req:true}]}});
+    render(); toast('فرم تازه؛ پرسش‌ها را بچین'); return }
+  if(t.closest('[data-form-cancel]')){ bookSet({formDraft:null}); render(); return }
+  const fra=t.closest('[data-field-ready]');
+  if(fra){ const d=formDraftSync(); if(!d) return;
+    const k=fra.dataset.fieldReady, src=(CTF.fields||[]).find(x=>x.k===k)||{};
+    const has=(d.fields||[]).some(x=>x.k===k);
+    const fields=(d.fields||[]).concat(has?[]:[{k:src.k, l:src.l, w:src.w, req:!!src.req, opts:src.opts||[]}]);
+    bookSet({formDraft:Object.assign({},d,{fields:fields.slice(0,8)})}); render(); return }
+  if(t.closest('[data-field-add]')){ const d=formDraftSync(); if(!d) return;
+    const k='f_'+(Date.now()%10000);
+    bookSet({formDraft:Object.assign({},d,{fields:(d.fields||[]).concat([{k:k, l:'', w:'text', req:false}]).slice(0,8)})});
+    render(); const e=$('#fl_'+k); if(e&&e.focus) e.focus(); return }
+  const fdl=t.closest('[data-field-del]');
+  if(fdl){ const d=formDraftSync(); if(!d) return;
+    bookSet({formDraft:Object.assign({},d,{fields:(d.fields||[]).filter(x=>x.k!==fdl.dataset.fieldDel)})});
+    render(); return }
+  if(t.closest('[data-form-save]')){
+    const d=formDraftSync(); if(!d) return;
+    const name=String(($('#cfName')||{}).value||'').trim();
+    if(!name){ toast('برای فرم یک نام بگذار'); const e=$('#cfName'); if(e&&e.focus) e.focus(); return }
+    const fields=(d.fields||[]).map(f=>Object.assign({},f,{l:String(f.l||'').trim()}));
+    if(!fields.length||fields.some(f=>!f.l)){ toast('هر پرسش یک متن لازم دارد'); return }
+    const k='cf'+(Date.now()%100000);
+    const f={k:k, n:name, d:fields.length?fields.map(x=>x.l).join('، ').slice(0,60):'فرم باشگاه',
+      fields:fields, ends:'۳۰ آبان', state:'open', got:0, link:'account.html#fill='+k};
+    bookSet({forms:[f].concat(bookState().forms||[]), formDraft:null});
+    render(); toast('فرم ساخته شد؛ پیوندش '+f.link); return }
+  const fde=t.closest('[data-form-del]');
+  if(fde){ const k=fde.dataset.formDel;
+    bookSet({forms:(bookState().forms||[]).filter(x=>x.k!==k), formDel:(bookState().formDel||[]).concat([k])});
+    render(); toast('فرم برداشته شد'); return }
+  const qde=t.closest('[data-qz-del]');
+  if(qde){ const k=qde.dataset.qzDel;
+    bookSet({qz:(bookState().qz||[]).filter(x=>x.k!==k), qzDel:(bookState().qzDel||[]).concat([k]), qzOn:''});
+    render(); toast('آزمون برداشته شد'); return }
+  const cfr=t.closest('[data-club-form]');
+  if(cfr){ fillSheet('shClubForm',formAnswers(cfr.dataset.clubForm)); openSheet('shClubForm'); return }
+  if(t.closest('[data-form-csv]')){ toast('پاسخ‌ها آماده شد؛ فایل برایت می‌آید'); return }
+  const ffp=t.closest('[data-ff-pick]');
+  if(ffp){ const k=ffp.dataset.ffPick, v=ffp.dataset.ffVal;
+    const box=ffp.closest('.fld'); if(box){ box.querySelectorAll('[data-ff-pick]').forEach(b=>{
+      const on=b===ffp; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on) });
+      const hid=box.querySelector('input[type=hidden]'); if(hid) hid.value=v }
+    return }
+  const cff=t.closest('[data-cf-fill]');
+  if(cff){ fillSheet('shClubFill',clubFill(cff.dataset.cfFill)); openSheet('shClubFill'); return }
+  const cfl=t.closest('[data-cf-link]');
+  if(cfl){ const f=cfOf(cfl.dataset.cfLink);
+    toast('پیوند فرم: '+(f.link||('account.html#fill='+f.k))); return }
+  if(t.closest('[data-qz-new]')){
+    bookSet({qzDraft:{n:'', min:10, qs:[{k:'q1', l:'', o:['','','',''], a:0}]}});
+    render(); toast('آزمون تازه؛ پرسش‌ها را بنویس'); return }
+  if(t.closest('[data-qz-cancel]')){ bookSet({qzDraft:null}); render(); return }
+  if(t.closest('[data-qq-add]')){ const d=qzDraftSync(); if(!d) return;
+    const qs=(d.qs||[]).concat([{k:'q'+(Date.now()%10000), l:'', o:['','','',''], a:0}]).slice(0,8);
+    bookSet({qzDraft:Object.assign({},d,{qs:qs})}); render(); return }
+  if(t.closest('[data-qq-ready]')){ const d=qzDraftSync(); if(!d) return;
+    const src=(CTQ.qFields||[])[0]||{l:'',o:['','','',''],a:0};
+    const qs=(d.qs||[]).concat([{k:'q'+(Date.now()%10000), l:src.l, o:src.o.slice(), a:src.a||0}]).slice(0,8);
+    bookSet({qzDraft:Object.assign({},d,{qs:qs})}); render(); return }
+  const qri=t.closest('[data-qq-right]');
+  if(qri){ const d=qzDraftSync(); if(!d) return;
+    const qs=(d.qs||[]).map(q=>q.k===qri.dataset.qqRight?Object.assign({},q,{a:+qri.dataset.opt}):q);
+    bookSet({qzDraft:Object.assign({},d,{qs:qs})}); render(); return }
+  if(t.closest('[data-qz-save]')){
+    const d=qzDraftSync(); if(!d) return;
+    const name=String(($('#qzName')||{}).value||'').trim();
+    if(!name){ toast('نام آزمون را بنویس'); const e=$('#qzName'); if(e&&e.focus) e.focus(); return }
+    const min=+unFa(String(($('#qzMin')||{}).value||'10')).replace(/\D/g,'')||10;
+    const qs=(d.qs||[]).map(q=>Object.assign({},q,{l:String(q.l||'').trim(),o:(q.o||[]).map(o=>String(o||'').trim())}));
+    if(!qs.length||qs.some(q=>!q.l||q.o.some(o=>!o))){ toast('هر پرسش یک متن و چهار گزینه لازم دارد'); return }
+    const k='qz'+(Date.now()%100000);
+    const q={k:k, n:name, q:faN(qs.length)+' پرسش', min:min, state:'draft', took:0,
+      avg:'—', pass:'—', top:'—', by:(prof().fullName||'سرپرست'), qs:qs,
+      link:'account.html#book'};
+    bookSet({qz:[q].concat(bookState().qz||[]), qzDraft:null});
+    render(); toast('آزمون ساخته شد؛ حالا منتشرش کن'); return }
+  const qop=t.closest('[data-qz-open]');
+  if(qop){ bookSet({qz:(bookState().qz||[]).map(x=>x.k===qop.dataset.qzOpen?Object.assign({},x,{state:'open'}):x)});
+    render(); toast('آزمون منتشر شد؛ لینکش را برای اعضا بفرست'); return }
+  const qcl=t.closest('[data-qz-close]');
+  if(qcl){ bookSet({qz:(bookState().qz||[]).map(x=>x.k===qcl.dataset.qzClose?Object.assign({},x,{state:'closed'}):x)});
+    render(); toast('آزمون بسته شد'); return }
+  const qrs=t.closest('[data-qz-res]');
+  if(qrs){ const k=qrs.dataset.qzRes, on=bookState().qzOn===k;
+    bookSet({qzOn:on?'':k}); render(); try{window.scrollTo({top:0})}catch(e){} return }
+  if(t.closest('[data-qz-csv]')){ toast('نتیجه‌ها آماده شد؛ فایل برایت می‌آید'); return }
+  const qta=t.closest('[data-qz-take]');
+  if(qta){ fillSheet('shQuiz',quizSitting(qta.dataset.qzTake)); openSheet('shQuiz'); return }
+  const qa=t.closest('[data-qa]');
+  if(qa){ const box=qa.closest('.qqopts');
+    if(box) box.querySelectorAll('[data-qa]').forEach(b=>{ const on=b===qa;
+      b.classList.toggle('on',on); b.setAttribute('aria-pressed',on) });
+    return }
+  const qsb=t.closest('[data-qz-submit]');
+  if(qsb){ const id=qsb.dataset.qzSubmit, q=qzOf(id), qs=quizQs(q);
+    const ans={}; let empty=0;
+    qs.forEach(x=>{ const on=(document.querySelectorAll('[data-qa="'+x.k+'"]')) ;
+      const pick=[...on].find(b=>b.classList.contains('on'));
+      if(pick===undefined) empty++; else ans[x.k]=+pick.dataset.qi });
+    if(empty){ toast('هر '+faN(qs.length)+' پرسش یک گزینه لازم دارد'); return }
+    let right=0; qs.forEach(x=>{ if(+ans[x.k]===+(x.a|0)) right++ });
+    const picks=Object.assign({},bookState().picks); picks[id]=right;
+    bookSet({picks:picks, quizAns:Object.assign({},bookState().quizAns,{[id]:ans})});
+    closeSheets(); render();
+    toast('نمرهٔ تو: '+faN(right)+' از '+faN(qs.length)); return }
+  const cfs=t.closest('[data-cf-send]');
+  if(cfs){ const f=cfOf(cfs.dataset.cfSend), need=(f.fields||[]).filter(x=>x.req);
+    const miss=need.find(x=>!String(($('#ff_'+x.k)||{}).value||'').trim());
+    if(miss){ toast('«'+miss.l+'» را پر کن'); const e=$('#ff_'+miss.k); if(e&&e.focus) e.focus(); return }
+    const ans={}; (f.fields||[]).forEach(x=>{ ans[x.k]=String(($('#ff_'+x.k)||{}).value||'').trim() });
+    const fills=Object.assign({},bookState().formFills); fills[f.k]=ans;
+    bookSet({formFills:fills}); closeSheets(); render();
+    toast('پاسخت به سرپرست رسید'); return }
   const pm=t.closest('[data-paym]');
   if(pm){ methodSheet(pm.dataset.paym, pm.dataset.inChoose?(S.payCtx||{}):{}); return }
   if(t.closest('[data-topup]')){ topSheet(); return }

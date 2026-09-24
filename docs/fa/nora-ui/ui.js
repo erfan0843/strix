@@ -467,8 +467,8 @@ function toast(msg){
   const last=t.lastChild; if(last&&last.nodeType===3) last.textContent=' '+msg; else t.appendChild(document.createTextNode(' '+msg));
   t.classList.add('on'); clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.classList.remove('on'),1700);
 }
-function copyText(txt,after){
-  const done=()=>{toast('کپی شد'); if(after) after();};
+function copyText(txt,after,msg){
+  const done=()=>{toast(msg||'کپی شد'); if(after) after();};
   try{navigator.clipboard.writeText(txt).then(done).catch(fb)}catch(e){fb()}
   function fb(){const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();
     try{document.execCommand('copy')}catch(e){}t.remove();done()}
@@ -530,7 +530,7 @@ function initUI(){
     if(e.target.closest('[data-close]')||e.target.closest('.scrim')){closeSheets();return}
     const cp=e.target.closest('[data-copy]');
     if(cp){const el=cp.dataset.copy.startsWith('#')?document.querySelector(cp.dataset.copy):null;
-      copyText(el?el.textContent.trim():cp.dataset.copy);return}
+      copyText(el?el.textContent.trim():cp.dataset.copy,null,cp.dataset.copyMsg);return}
     const sw=e.target.closest('.switch'); if(sw){sw.classList.toggle('on');sw.setAttribute('aria-checked',sw.classList.contains('on'));return}
     const sg=e.target.closest('.seg button'); if(sg){[...sg.parentElement.children].forEach(x=>x.classList.remove('on'));sg.classList.add('on');return}
     const ch=e.target.closest('.chip[data-chip]'); if(ch){
@@ -1313,7 +1313,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v18') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v19') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

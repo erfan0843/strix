@@ -481,6 +481,110 @@ async function load(store,hash){
   ok(p.txt('#viewBox').includes('خبرهای سرپرست'),'خبرهای سرپرست');
 }
 
+/* ── ۹.۵) ابزارهای سرپرست: پین، مطلب، فرم و آزمون ── */
+{
+  console.log('\n── ابزارهای سرپرست باشگاه ──');
+  const store=makeStore(reg());
+  store.setItem('nora-home-bookclub',JSON.stringify({member:true, cstep:'done', plan:'m', form:{},
+    att:{}, likes:{}, posts:[], chals:{}, entered:{}, seats:{}, pages:20}));
+  const p=await load(store,'#book');
+  ok(p.txt('#viewBox').includes('سرپرست همین باشگاهی؟'),'درِ ابزارهای سرپرست در پنل عضو هست');
+  p.click('[data-sup-on]'); await wait(240);
+  ok(p.all('#viewBox .lanes .lane').length===2,'دو لنگر: پنل اعضا و کارهای سرپرست');
+  ok(JSON.parse(store.getItem('nora-home-bookclub')).sup===true,'روشن‌کردن سرپرست در حافظه می‌ماند');
+  p.click('[data-sup-member]'); await wait(240);
+  ok(p.doc.querySelector('[data-ctab="sup"]')!==null,'تب سرپرست به تب‌های باشگاه اضافه می‌شود');
+  ok(p.all('#viewBox .lanes .lane').length===2,'لنگرها در پنل عضو هم می‌مانند');
+  /* پین */
+  p.click('[data-sup-tool="home"]'); await wait(230);
+  ok(p.doc.querySelectorAll('.toolsGrid .tool').length===4,'چهار کار سرپرست در یک نگاه');
+  p.click('[data-sup-tool="pin"]'); await wait(240);
+  ok(p.txt('#viewBox').includes('پین‌های باشگاه')&&p.doc.querySelectorAll('[data-pin-add-id]').length>=1,
+    'بخش پین، از خود سامانه هم پیشنهاد می‌دهد');
+  p.click('[data-pin-add-id]'); await wait(240);
+  const bc1=JSON.parse(store.getItem('nora-home-bookclub'));
+  ok((bc1.pins||[]).length===1,'پین ساخته می‌شود');
+  p.click('[data-sup-member]'); await wait(230);
+  ok(p.txt('.pinsbar').includes((bc1.pins[0]||{}).t||'—'),'پین همان لحظه بالای پنل اعضا می‌نشیند');
+  p.click('[data-ctab="sup"]'); await wait(220);
+  p.click('[data-sup-tool="pin"]'); await wait(200);
+  p.click('[data-pin-del]'); await wait(220);
+  ok((JSON.parse(store.getItem('nora-home-bookclub')).pins||[]).length===0,'پین برداشته می‌شود');
+  /* فرستادن مطلب سامانه */
+  p.click('[data-sup-tool="send"]'); await wait(220);
+  ok(p.doc.querySelectorAll('[data-send-art]').length>=5,'فهرست مطلب‌های منتشرشدهٔ سامانه می‌آید');
+  p.click('[data-send-art]'); await wait(230);
+  const bc2=JSON.parse(store.getItem('nora-home-bookclub'));
+  ok((bc2.sent||[]).length===1,'مطلب انتخابی در پنل اعضا گذاشته می‌شود');
+  ok(p.txt('.sentrow').length>0 && p.txt('#toast').includes('پنل اعضا'),'ردیف مطلب در پنل‌گذاشته دیده می‌شود');
+  /* ساختن فرم و پیوند */
+  p.click('[data-sup-tool="form"]'); await wait(220);
+  ok(p.doc.querySelectorAll('.frow').length>=3,'فرم‌های باشگاه فهرست می‌شوند');
+  p.click('[data-club-form]'); await wait(240);
+  ok(p.open().includes('shClubForm')&&p.all('#shClubForm .fanrow').length>=1,'پاسخ‌های فرم در ورقه می‌آید');
+  p.click('#shClubForm [data-close]'); await wait(170);
+  p.click('[data-form-new]'); await wait(230);
+  ok(p.doc.querySelector('.fbuild')!==null,'سازندهٔ فرم باز می‌شود');
+  p.set('#cfName','فرم مسابقهٔ داستان کوتاه');
+  p.set('#fl_f_name','نام و نام خانوادگی');
+  p.click('[data-field-add]'); await wait(200);
+  const extra=p.all('.ffrow input.input').length;
+  ok(extra>=2,'فیلد تازه به فرم اضافه می‌شود');
+  const blank=p.all('.ffrow input.input').find(e=>!e.value);
+  if(blank){ blank.value='چه چیزی برایت مهم است؟'; blank.dispatchEvent(new p.window.Event('change',{bubbles:true})) }
+  p.click('[data-form-save]'); await wait(260);
+  const made=(JSON.parse(store.getItem('nora-home-bookclub')).forms||[])[0]||{};
+  ok(made.n==='فرم مسابقهٔ داستان کوتاه' && /^account\.html#fill=/.test(made.link||''),'فرم تازه با پیوند ساخته می‌شود');
+  ok(p.txt('#toast').includes('account.html#fill='),'پیوند فرم همان لحظه نشان داده می‌شود');
+  ok(p.doc.querySelector('[data-copy]')!==null,'دکمهٔ رونوشت لینک روی فرم هست');
+  p.click('[data-form-del]'); await wait(240);
+  ok((JSON.parse(store.getItem('nora-home-bookclub')).forms||[]).length===0,'فرم برداشته می‌شود');
+  /* آزمون‌ساز */
+  p.click('[data-sup-tool="quiz"]'); await wait(220);
+  p.click('[data-qz-new]'); await wait(230);
+  ok(p.doc.querySelector('.qzbuild')!==null,'سازندهٔ آزمون باز می‌شود');
+  p.set('#qzName','آزمون فصل ۵');
+  p.set('[data-qq-label]','راوی چرا پنهان می‌کند؟');
+  p.all('[data-qq-opt="q1"]').forEach((e,i)=>{e.value='گزینهٔ '+i; e.dispatchEvent(new p.window.Event('change',{bubbles:true}))});
+  p.click('[data-qq-right][data-opt="1"]'); await wait(120);
+  p.click('[data-qq-add]'); await wait(200);
+  ok(p.all('.qq').length===2,'پرسش تازه به آزمون اضافه می‌شود');
+  const q2=p.all('.qq')[1];
+  const q2label=q2.querySelector('[data-qq-label]'); if(q2label){ q2label.value='کتاب ماه این ترم کدام است؟' }
+  q2.querySelectorAll('[data-qq-opt]').forEach((e,i)=>{ e.value='گزینهٔ '+(i+1) });
+  q2.querySelector('[data-qq-right][data-opt="2"]').dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  await wait(140);
+  p.click('[data-qz-save]'); await wait(260);
+  const qz=(JSON.parse(store.getItem('nora-home-bookclub')).qz||[])[0]||{};
+  ok(qz.n==='آزمون فصل ۵' && qz.state==='draft','آزمون ساخته می‌شود و پیش‌نویس است');
+  p.click('[data-qz-open]'); await wait(240);
+  ok((JSON.parse(store.getItem('nora-home-bookclub')).qz||[])[0].state==='open','آزمون منتشر می‌شود');
+  p.click('[data-qz-res]'); await wait(240);
+  ok(p.txt('.qzres').includes('نتیجهٔ')&&p.doc.querySelector('.qzres')!==null,'ورقهٔ نتیجه‌ها باز می‌شود');
+  ok(p.all('[data-qz-csv]').length>=1,'برون‌بری نتیجه‌ها هست');
+  /* عضو همان لحظه می‌بیند */
+  const p2=await load(store,'#book');
+  ok(p2.txt('.pinsbar').length>0||p2.doc.querySelectorAll('.sentrow').length===0,'پنل عضو بی‌خطا باز می‌شود');
+  ok(p2.txt('#viewBox').includes('از سامانه برایت گذاشته'),'مطلب سرپرست در پنل عضو می‌آید');
+  ok(p2.txt('#viewBox').includes('فرم‌های سرپرست'),'فرم‌های سرپرست در پنل عضو می‌آید');
+  const firstForm=(JSON.parse(store.getItem('nora-home-bookclub')).forms||[])[0];
+  const p3=await load(store,'#'+(firstForm?String(firstForm.link).split('#')[1]:'fill=cf1'));
+  ok(p3.open().includes('shClubFill'),'نشانی فرمی که سرپرست فرستاده، همان فرم را برای عضو باز می‌کند');
+  ok(p3.txt('#shClubFill').includes('بفرست'),'ورقهٔ فرم دکمهٔ فرستادن دارد');
+  p2.click('[data-ctab="game"]'); await wait(230);
+  ok(p2.txt('#viewBox').includes('آزمون‌های باشگاه')&&p2.txt('#viewBox').includes('آزمون فصل ۵'),'آزمون سرپرست در پنل عضو هست');
+  p2.click('[data-qz-take]'); await wait(240);
+  ok(p2.open().includes('shQuiz')&&p2.all('#shQuiz .qq').length>=1,'ورقهٔ آزمون برای عضو باز می‌شود');
+  const groups=p2.all('#shQuiz .qq');
+  if(groups[0]) groups[0].querySelectorAll('[data-qa]')[1].dispatchEvent(new p2.window.MouseEvent('click',{bubbles:true}));
+  if(groups[1]) groups[1].querySelectorAll('[data-qa]')[2].dispatchEvent(new p2.window.MouseEvent('click',{bubbles:true}));
+  await wait(140);
+  p2.click('[data-qz-submit]'); await wait(300);
+  const picks=JSON.parse(store.getItem('nora-home-bookclub')).picks||{};
+  ok(Object.keys(picks).length===1,'نمرهٔ آزمون ذخیره می‌شود');
+  ok(p2.txt('#toast').includes('نمرهٔ تو'),'نمره به عضو نشان داده می‌شود');
+}
+
 /* ── ۱۰) اطلاعات، فرم و حریم خصوصی ── */
 {
   console.log('\n── اطلاعات و حریم خصوصی ──');
