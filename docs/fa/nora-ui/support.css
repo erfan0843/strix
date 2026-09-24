@@ -1,300 +1,323 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   نورا — پشتیبانی و راهنما (صفحهٔ جدا)
-   کاشی بخش‌های ربات، پاپ‌آپ پرسش‌ها و راهنما، تیکت با پیوست، پیام‌رسان‌ها.
-   روی نشانه‌های رنگ و شعاع خودِ سامانه سوار است؛ چیز تازه‌ای تعریف نمی‌کند.
+   نورا · پشتیبانی و راهنما
+   ──────────────────────────────────────────────────────────────────────────
+   یک صفحه، سه کار: راهنما پیدا کن، با کارشناس حرف بزن، تیکت بگذار.
+   روی همان زبان نمونهٔ کاربر نشسته: دیوارپشتِ نقطه‌ای از پیش در glass.css
+   هست؛ اینجا فقط شیشه و کاشی و حباب‌های گفت‌وگو می‌آید.
+
+   ترتیب بارگذاری: glass.css → nora.css → support.css
    ══════════════════════════════════════════════════════════════════════════ */
 
-[hidden]{display:none !important}
+[hidden]{display:none!important}
 body.modal-open{overflow:hidden}
 
-/* ── سرِ پشتیبانی ──────────────────────────────────────────────────── */
-.sup-hero{position:relative;overflow:hidden;border-radius:var(--r-xl);border:.5px solid var(--glass-line);
-  background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
-  box-shadow:var(--sh-2);padding:16px 15px 14px;margin-top:12px;animation:rise .42s var(--ease) both}
-.shglow{position:absolute;inset-inline-end:-40px;top:-70px;width:210px;height:210px;border-radius:50%;
-  background:radial-gradient(circle at 30% 30%,var(--brand-tint),transparent 68%);pointer-events:none}
-.shtop{position:relative;display:flex;align-items:center;gap:11px}
-.shico{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;color:#fff;
-  background:linear-gradient(150deg,var(--brand),var(--brand-2));box-shadow:0 6px 16px -6px var(--brand)}
-.shico .i{width:23px;height:23px}
-.shtx{display:grid;gap:2px;min-width:0;flex:1 1 auto}
-.shtx b{font-size:16px;font-weight:700;letter-spacing:-.25px}
-.shtx small{font-size:11.5px;color:var(--ink-3);line-height:1.65}
-.shtag{flex:0 0 auto;height:24px;padding:0 10px;border-radius:99px;display:inline-flex;align-items:center;gap:5px;
-  font-size:11px;font-weight:650;background:var(--ok-tint);color:var(--ok)}
-.shtag::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;
-  box-shadow:0 0 0 3px color-mix(in oklab,var(--ok) 22%,transparent)}
-.shmeta{position:relative;display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:11px;
-  font-size:11.5px;color:var(--ink-2)}
-.shmeta span{display:inline-flex;align-items:center;gap:5px}
-.shmeta b{font-weight:600;color:var(--ink)}
-.shmeta .i{width:14px;height:14px;color:var(--ink-4)}
-.shsearch{position:relative;display:flex;align-items:center;gap:8px;margin-top:12px;
-  border:.5px solid var(--hairline-2);border-radius:var(--r-pill);background:var(--surface);padding:0 12px;height:42px;
-  transition:border-color var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
-.shsearch:focus-within{border-color:var(--brand);box-shadow:0 0 0 3.5px var(--brand-tint)}
-.shsearch .i{width:17px;height:17px;color:var(--ink-4);flex:0 0 auto}
-.shsearch input{flex:1 1 auto;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:13px;color:var(--ink)}
+/* ── سرِ صفحه ─────────────────────────────────────────────────────────── */
+.shead{padding:6px 2px 2px;display:grid;gap:10px}
+.shrow{display:flex;align-items:center;gap:9px}
+.shtitle{font-size:23px;font-weight:800;letter-spacing:-.5px}
+.shnote{font-size:var(--fs-sub);color:var(--ink-3);line-height:1.9;margin:0}
+.bd-live{background:var(--ok-tint);color:var(--ok);border-color:transparent;font-weight:700}
+
+/* ── کادر جست‌وجو ─────────────────────────────────────────────────────── */
+.shsearch{display:flex;align-items:center;gap:9px;height:48px;border-radius:var(--r-lg);padding:0 14px;
+  background:color-mix(in oklab,var(--surface) 78%,transparent);border:.5px solid var(--hairline);
+  box-shadow:var(--sh-1)}
+.shsearch:focus-within{border-color:color-mix(in oklab,var(--brand) 45%,transparent);
+  box-shadow:var(--sh-1),0 0 0 4px var(--brand-tint)}
+.shsearch .i{width:20px;height:20px;color:var(--ink-4);flex:0 0 auto}
+.shsearch input{flex:1;border:0;background:none;font:inherit;font-size:var(--fs-sub);color:var(--ink);min-width:0}
 .shsearch input::placeholder{color:var(--ink-4)}
-.shsearch button{flex:0 0 auto;width:26px;height:26px;border:0;background:none;color:var(--ink-4);
-  display:grid;place-items:center;border-radius:50%;cursor:pointer}
-.shsearch button:hover{color:var(--ink-2);background:var(--surface-sunk)}
-.shsearch button .i{width:14px;height:14px}
+.shsearch input:focus{outline:none}
+.shsearch button{border:0;background:none;padding:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  color:var(--ink-3);cursor:pointer;flex:0 0 auto}
+.shsearch button:hover{background:var(--surface-sunk);color:var(--ink)}
+.shsearch button .i{width:16px;height:16px}
 
-/* رنگ نشان‌های ریز داخل ردیف‌ها */
-.dic.brand{background:var(--brand-tint);color:var(--brand-ink)}
-.dic.gold{background:var(--accent-tint);color:var(--accent-ink)}
-.dic.green{background:var(--ok-tint);color:var(--ok)}
-.dic.red{background:var(--stop-tint);color:var(--stop)}
-.dic.blue{background:var(--info-tint);color:var(--info)}
-.dic.plain{background:var(--surface-2);color:var(--ink-2)}
-.tag.xs{height:22px;font-size:10.5px}
+/* ── شیشه: کارت پایهٔ این صفحه ────────────────────────────────────────── */
+.sp-card{border-radius:var(--r-xl);padding:15px;position:relative;
+  background:color-mix(in oklab,var(--surface) 76%,transparent);
+  border:.5px solid var(--hairline);box-shadow:var(--sh-1);
+  -webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin)}
+.sp-card+.sp-card{margin-top:10px}
 
-/* ── کاشی بخش‌های ربات ─────────────────────────────────────────────── */
-.stiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-@media (min-width:620px){.stiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (min-width:900px){.stiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.stile{position:relative;text-align:start;display:grid;gap:5px;padding:13px 12px 12px;cursor:pointer;
-  border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface);
-  box-shadow:var(--sh-1);font:inherit;color:inherit;overflow:hidden;
-  transition:transform var(--t-fast) var(--spring),box-shadow var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
-.stile:hover{border-color:color-mix(in oklab,var(--brand) 38%,transparent);
-  box-shadow:0 10px 24px -16px rgba(10,20,40,.42)}
-.stile:active{transform:scale(.975)}
-.stile .sico{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
-  background:var(--brand-tint);color:var(--brand-ink);margin-bottom:2px}
-.stile .sico .i{width:19px;height:19px}
-.stile b{font-size:13px;font-weight:700;letter-spacing:-.2px;line-height:1.45}
-.stile small{font-size:11px;color:var(--ink-3);line-height:1.7;min-height:2.6em}
-.stile .smeta{font-size:10.5px;color:var(--ink-4);font-weight:600}
-.stile .sbars{position:absolute;inset-inline-start:0;top:0;bottom:0;width:3px;
-  display:flex;flex-direction:column;gap:2px;padding:0}
-.stile .sbars i{flex:1 1 auto;background:linear-gradient(180deg,var(--brand),var(--brand-2));opacity:.5}
-.stile .sbars i:nth-child(2n){opacity:.24}
+/* ── دو کارِ زودِ سرِ صفحه ────────────────────────────────────────────── */
+.hl{display:grid;gap:10px;margin-top:14px}
+.hl .sp-card{margin:0}
+.lead,.anon{display:grid;gap:12px}
+.leadrow{display:flex;align-items:center;gap:11px}
+.av{width:46px;height:46px;border-radius:16px;flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:18px;
+  color:#fff;background:linear-gradient(150deg,var(--brand),var(--brand-2));box-shadow:0 6px 16px color-mix(in oklab,var(--brand) 30%,transparent)}
+.anon .iw{width:46px;height:46px;border-radius:16px}
+.ltx{display:grid;gap:2px;min-width:0}
+.ltx b{font-size:var(--fs-head);font-weight:700;letter-spacing:-.2px}
+.ltx small{font-size:12.5px;color:var(--ink-3)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ok);font-weight:700}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-tint)}
 
-/* ── نتیجهٔ جست‌وجو ────────────────────────────────────────────────── */
-.qrow{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:start;font:inherit;color:inherit;cursor:pointer;
-  padding:11px 12px;margin-top:8px;border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
-.qrow:hover{border-color:color-mix(in oklab,var(--brand) 34%,transparent)}
-.qrow>.i{width:17px;height:17px;color:var(--brand-ink);flex:0 0 auto;margin-top:1px}
-.qtx{display:grid;gap:3px;flex:1 1 auto;min-width:0}
-.qtx b{font-size:12.5px;font-weight:650}
-.qtx small{font-size:10.5px;color:var(--ink-4)}
-.qans{font-size:11.5px;color:var(--ink-2);line-height:1.85;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* ── خانهٔ رنگ آیکون‌ها: همان سلیقهٔ نمونه، با رنگ‌های نهاد نورا ───────── */
+.iw{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;flex:0 0 auto}
+.iw .i{width:22px;height:22px}
+.iw.brand{background:var(--brand-tint);color:var(--brand-ink)}
+.iw.gold{background:var(--accent-tint);color:var(--accent-ink)}
+.iw.sky{background:var(--info-tint);color:var(--info)}
+.iw.green{background:var(--ok-tint);color:var(--ok)}
+.iw.rose{background:var(--stop-tint);color:var(--stop)}
+.iw.plain{background:var(--surface-sunk);color:var(--ink-2)}
 
-/* ── ردیف‌های راه‌های ارتباط ───────────────────────────────────────── */
-.direct{display:grid;gap:8px}
-.drow{display:flex;align-items:center;gap:11px;padding:11px 12px;width:100%;text-align:start;
-  font:inherit;color:inherit;cursor:pointer;text-decoration:none;
-  border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);
-  transition:border-color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
-.drow:hover{border-color:color-mix(in oklab,var(--brand) 34%,transparent);background:var(--surface-2)}
-.drow:active{transform:scale(.99)}
-.dic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;background:var(--surface-2)}
-.dic .i{width:18px;height:18px}
-.dtx{display:grid;gap:2px;flex:1 1 auto;min-width:0}
-.dtx b{font-size:12.5px;font-weight:650}
-.dtx small{font-size:11px;color:var(--ink-3);line-height:1.7}
-.drow .chev{width:15px;height:15px;color:var(--ink-4);flex:0 0 auto}
-.drow>.i:not(.chev){width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
+/* ── کارشناس‌ها و پیام‌رسان‌ها ─────────────────────────────────────────── */
+.exrow{display:flex;align-items:stretch;gap:10px;overflow-x:auto;padding:2px 2px 12px;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.exrow::-webkit-scrollbar{height:0}
+.ecard{scroll-snap-align:start;flex:0 0 44%;min-width:150px;border-radius:var(--r-lg);padding:12px;text-align:center;
+  background:color-mix(in oklab,var(--surface) 78%,transparent);border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
+.ecard .eav{width:52px;height:52px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;
+  font-weight:800;color:#fff;background:linear-gradient(150deg,var(--brand),var(--brand-2));font-size:19px}
+.ecard b{display:block;font-size:var(--fs-sub);font-weight:700}
+.ecard small{display:block;font-size:12px;color:var(--ink-3);margin-top:3px;line-height:1.6}
+.ecard .tag{margin-top:8px}
+.mlinks{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.mchip{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 11px;border-radius:99px;text-decoration:none;
+  font-size:12.5px;font-weight:600;color:var(--brand-ink);background:var(--brand-tint);border:.5px solid transparent}
+.mchip:hover{border-color:color-mix(in oklab,var(--brand) 35%,transparent)}
+.mchip .i{width:15px;height:15px}
+.mh{font-size:12.5px;color:var(--ink-3);margin:2px 0 0}
 
-/* ── کارشناس‌ها و پیام‌رسان‌ها ─────────────────────────────────────── */
-.erow2{display:flex;align-items:flex-start;gap:11px;padding:12px;margin-top:8px;
-  border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
-.eav{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
-  font-size:15px;font-weight:700;color:#fff;background:linear-gradient(150deg,var(--brand),var(--brand-2))}
-.etx{display:grid;gap:3px;flex:1 1 auto;min-width:0}
-.etx b{font-size:12.5px;font-weight:650}
-.etx small{font-size:11px;color:var(--ink-3)}
-.mlinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
-.mchip{display:inline-flex;align-items:center;gap:5px;height:27px;padding:0 9px;text-decoration:none;
-  border:.5px solid var(--hairline-2);border-radius:99px;background:var(--surface-2);
-  font-size:11px;font-weight:600;color:var(--brand-ink)}
-.mchip:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent);background:var(--brand-tint)}
-.mchip .mh{font-size:10px;color:var(--ink-4);font-weight:500;direction:ltr}
+/* ── صافی موضوع‌ها ────────────────────────────────────────────────────── */
+.grpchips{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 9px;-webkit-overflow-scrolling:touch}
+.grpchips::-webkit-scrollbar{height:0}
+.fchip{flex:0 0 auto;height:32px;padding:0 13px;border-radius:99px;border:.5px solid var(--hairline);
+  background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+  transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease)}
+.fchip:active{transform:scale(.95)}
+.fchip.sel{background:var(--brand);color:#fff;border-color:transparent}
 
-/* ── تیکت‌های من ───────────────────────────────────────────────────── */
-.tkrow{display:flex;align-items:flex-start;gap:11px;width:100%;text-align:start;font:inherit;color:inherit;cursor:pointer;
-  padding:12px;margin-top:8px;border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
-.tkrow:hover{border-color:color-mix(in oklab,var(--brand) 34%,transparent)}
-.tki{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;
-  background:var(--warn-tint);color:var(--warn)}
-.tki.ok{background:var(--ok-tint);color:var(--ok)}
-.tki .i{width:17px;height:17px}
-.tktx{display:grid;gap:3px;flex:1 1 auto;min-width:0}
-.tktx b{font-size:12.5px;font-weight:650}
-.tktx small{font-size:11.5px;color:var(--ink-2);line-height:1.75}
-.tkmeta{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--ink-4)}
-.tkmeta .i{width:12px;height:12px}
+/* ── کاشی موضوع‌ها: هر بخش ربات ───────────────────────────────────────── */
+.stiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stile{appearance:none;text-align:start;font:inherit;color:inherit;cursor:pointer;text-decoration:none;
+  border-radius:var(--r-lg);padding:13px;display:grid;gap:9px;
+  background:color-mix(in oklab,var(--surface) 80%,transparent);border:.5px solid var(--hairline);box-shadow:var(--sh-1);
+  transition:transform var(--t-fast) var(--spring),box-shadow var(--t) var(--ease),border-color var(--t-fast) var(--ease)}
+.stile:hover{transform:translateY(-2px);box-shadow:var(--sh-2);border-color:color-mix(in oklab,var(--brand) 30%,transparent)}
+.stile:active{transform:scale(.97)}
+.stile b{font-size:var(--fs-sub);font-weight:700;letter-spacing:-.2px;display:block}
+.stile .sb{font-size:12px;color:var(--ink-3);line-height:1.7;display:block;margin-top:2px}
+.stile.wide{grid-column:1/-1;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;
+  background:linear-gradient(135deg,var(--brand-tint),color-mix(in oklab,var(--surface) 70%,transparent))}
+.stile .wtx{min-width:0;display:grid}
+.stile .go{width:18px;height:18px;color:var(--brand-ink)}
+.stile .sbars{display:flex;gap:6px;align-items:center;margin-top:7px}
+.sbar{flex:1;height:5px;border-radius:99px;background:var(--surface-sunk);overflow:hidden}
+.sbar i{display:block;height:100%;width:0;background:var(--ok);border-radius:99px;transition:width .3s var(--ease)}
+.sbar.on i{width:100%}
+.smic{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-4);font-weight:600}
+.smic .i{width:13px;height:13px}
+.stile.flash{animation:flash 1.1s var(--ease)}
+@keyframes flash{0%,100%{box-shadow:var(--sh-1)}30%{box-shadow:0 0 0 4px var(--brand-tint),var(--sh-2)}}
+.anim{animation:rise .42s var(--ease) both;animation-delay:calc(var(--i,0) * 26ms)}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 
-/* ── پاپ‌آپ کاشی ───────────────────────────────────────────────────── */
-.modal{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;
-  padding:0;animation:fade .22s var(--ease) both}
-@media (min-width:760px){.modal{align-items:center;padding:22px}}
-@keyframes fade{from{opacity:0}}
-.mdlg{width:100%;max-width:660px;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden;
-  background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
-  border:.5px solid var(--glass-line);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--sh-3);
-  animation:up .3s var(--ease) both}
-@media (min-width:760px){.mdlg{border-radius:var(--r-xl);max-height:86dvh}}
-@keyframes up{from{transform:translateY(26px);opacity:.6}}
-.mhead{display:flex;align-items:center;gap:11px;padding:13px 14px;border-bottom:.5px solid var(--hairline-2);flex:0 0 auto}
-.mico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+/* ── پرسش‌ها: پرتکرار و نتیجهٔ جست‌وجو ────────────────────────────────── */
+.qrow{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 80%,transparent);
+  margin-bottom:8px;overflow:hidden}
+.qrow+.qrow{margin-top:0}
+.qbtn{appearance:none;border:0;background:none;font:inherit;color:inherit;width:100%;text-align:start;cursor:pointer;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;padding:12px 13px}
+.qbtn b{font-size:var(--fs-sub);font-weight:700;display:block}
+.qbtn small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:2px}
+.qbtn .go{width:18px;height:18px;color:var(--ink-4);transition:transform var(--t) var(--ease)}
+.qrow.open .qbtn .go{transform:rotate(-90deg)}
+.qans{padding:0 13px 13px;font-size:var(--fs-sub);color:var(--ink-2);line-height:1.95;animation:rise .3s var(--ease) both}
+.qans .acl{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.hitmark{background:var(--accent-tint);border-radius:5px;padding:0 2px}
+
+/* ── بالاچه: تازه‌ترین پاسخ صندوق ─────────────────────────────────────── */
+.bubble{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface-2);padding:13px;margin-bottom:8px}
+.bubble .who{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--brand-ink);margin-bottom:6px}
+.bubble .who .i{width:15px;height:15px}
+.bubble p{margin:0;font-size:var(--fs-sub);line-height:1.95}
+.bubble .fine{text-align:start;margin-top:8px}
+
+/* ── حباب‌های گفت‌وگوی پاپ‌آپ ─────────────────────────────────────────── */
+.thread{display:grid;gap:9px}
+.frow{display:flex}
+.frow.me{justify-content:flex-end}
+.fbubble{max-width:86%;border-radius:20px;border-start-start-radius:7px;padding:11px 13px;font-size:var(--fs-sub);line-height:1.9;
+  background:var(--surface);border:.5px solid var(--hairline);box-shadow:var(--sh-1);white-space:pre-wrap;word-break:break-word}
+.frow.me .fbubble{background:var(--brand);color:#fff;border-color:transparent;border-radius:20px;border-start-end-radius:7px}
+.fbubble .fwho{display:block;font-size:11.5px;font-weight:700;color:var(--brand-ink);margin-bottom:4px}
+.fbubble .fmeta{display:block;font-size:11px;color:var(--ink-4);margin-top:6px}
+.frow.me .fbubble .fmeta{color:rgba(255,255,255,.8)}
+.fx{display:flex;align-items:center;gap:7px;border-radius:var(--r-md);padding:8px 10px;margin-top:8px;
+  background:var(--surface-sunk);font-size:12px;color:var(--ink-2);text-decoration:none}
+.fx .i{width:16px;height:16px;color:var(--brand-ink);flex:0 0 auto}
+.fx b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fx audio{flex:1;min-width:0;height:30px}
+
+/* ── فرم تیکت ─────────────────────────────────────────────────────────── */
+.tkt{padding:13px;border-radius:var(--r-lg);background:var(--surface-2);border:.5px solid var(--hairline);display:grid;gap:10px}
+.tkt label{font-size:12.5px;font-weight:700;color:var(--ink-2);display:block}
+.tkt input,.tkt select,.tkt textarea,.pickc input,.pickc select,.pickc textarea{
+  width:100%;margin-top:6px;border:0;border-radius:var(--r-sm);padding:11px;font:inherit;font-size:var(--fs-sub);
+  color:var(--ink);background:var(--surface);outline:1px solid var(--hairline)}
+.tkt textarea,.pickc textarea{min-height:104px;resize:vertical;line-height:1.9}
+.tkt input:focus,.tkt select:focus,.tkt textarea:focus,.pickc input:focus,.pickc select:focus,.pickc textarea:focus{
+  outline:2px solid var(--brand);outline-offset:0}
+.tbtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tbtop .sp{flex:1}
+.chipsline{display:flex;gap:6px;flex-wrap:wrap}
+.tag.tg{height:26px;font-size:12px;cursor:pointer;background:var(--surface);border-color:var(--hairline);color:var(--ink-2)}
+.tag.tg.on{background:var(--brand);color:#fff;border-color:transparent}
+.abtn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 12px;border-radius:var(--r-md);cursor:pointer;
+  border:.5px solid var(--hairline);background:var(--surface);color:var(--ink-2);font:inherit;font-size:12.5px;font-weight:600}
+.abtn:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent);color:var(--brand-ink)}
+.abtn .i{width:17px;height:17px}
+.abtn.rec{background:var(--stop-tint);color:var(--stop);border-color:transparent}
+.abtn.rec.on{background:var(--stop);color:#fff}
+.abtn.rec.on .pbar{background:rgba(255,255,255,.35)}
+.pbox{border:.5px dashed var(--hairline);border-radius:var(--r-md);padding:10px}
+
+/* ── پیوست‌های تیکت ───────────────────────────────────────────────────── */
+.linrow{display:flex;flex-wrap:wrap;gap:7px}
+.linrow:empty{display:none}
+.pin{display:inline-flex;align-items:center;gap:6px;max-width:100%;border-radius:99px;padding:6px 10px;
+  background:var(--surface);border:.5px solid var(--hairline);font-size:12px;color:var(--ink-2)}
+.pin .i{width:15px;height:15px;color:var(--brand-ink);flex:0 0 auto}
+.pin span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
+.pin button{border:0;background:none;padding:0;color:var(--ink-4);cursor:pointer;display:grid;place-items:center}
+.pin button:hover{color:var(--stop)}
+
+/* ── تیکت‌های من ───────────────────────────────────────────────────────── */
+.tkrow{display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:start;padding:13px;border-radius:var(--r-lg);
+  background:color-mix(in oklab,var(--surface) 80%,transparent);border:.5px solid var(--hairline);box-shadow:var(--sh-1);
+  text-decoration:none;color:inherit;cursor:pointer;width:100%;text-align:start;font:inherit;appearance:none}
+.tkrow+.tkrow{margin-top:9px}
+.tkrow:hover{border-color:color-mix(in oklab,var(--brand) 30%,transparent)}
+.tki{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
+.tki .i{width:21px;height:21px}
+.tktx{min-width:0;display:grid;gap:3px}
+.tktx b{font-size:var(--fs-sub);font-weight:700}
+.tktx .s{font-size:12.5px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkmeta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px}
+.tkmeta .fine{text-align:start;margin:0}
+.fine{font-size:11.5px;color:var(--ink-4);line-height:1.7}
+.tkt-acc{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center;
+  padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);margin-top:8px}
+.tkt-acc .pb{height:5px;border-radius:99px;background:var(--surface-sunk);overflow:hidden}
+.tkt-acc .pb i{display:block;height:100%;width:0;background:var(--brand);border-radius:99px}
+.tkt-acc.on .pb i{background:var(--ok)}
+
+/* ── پاپ‌آپ ───────────────────────────────────────────────────────────── */
+.modal{position:fixed;inset:0;z-index:60;display:grid;align-items:end;justify-items:center}
+.mdlg{position:relative;z-index:2;width:100%;max-width:660px;max-height:88dvh;display:grid;grid-template-rows:auto 1fr auto;
+  border-radius:var(--r-xl) var(--r-xl) 0 0;overflow:hidden;background:var(--surface);box-shadow:var(--sh-3);
+  animation:pop .34s var(--spring) both}
+@keyframes pop{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.mhead{display:flex;align-items:center;gap:11px;padding:13px 13px 11px;border-bottom:.5px solid var(--hairline);
+  background:color-mix(in oklab,var(--surface-2) 88%,transparent)}
+.mico{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;flex:0 0 auto;
   background:var(--brand-tint);color:var(--brand-ink)}
-.mico .i{width:19px;height:19px}
-.mtx{display:grid;gap:1px;min-width:0;flex:1 1 auto}
-.mtx b{font-size:14.5px;font-weight:700;letter-spacing:-.2px}
-.mtx small{font-size:11px;color:var(--ink-3);line-height:1.6}
-.mbody{padding:13px 14px;overflow:auto;display:grid;gap:10px;-webkit-overflow-scrolling:touch}
-.mpart{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink-2);
-  margin-top:4px;padding-top:10px;border-top:.5px solid var(--hairline-2)}
-.mpart:first-child{margin-top:0;padding-top:0;border-top:0}
-.mpart .i{width:16px;height:16px;color:var(--brand-ink)}
-.mfoot{display:flex;align-items:center;gap:9px;padding:11px 14px calc(13px + var(--safe-b));
-  border-top:.5px solid var(--hairline-2);background:var(--surface-2);flex:0 0 auto}
-.mfoot .btn{flex:0 0 auto}
+.mico .i{width:23px;height:23px}
+.mtx{display:grid;min-width:0;flex:1}
+.mtx b{font-size:var(--fs-head);font-weight:700;letter-spacing:-.2px}
+.mtx small{font-size:12px;color:var(--ink-3)}
+.mbody{padding:13px;overflow:auto;display:grid;gap:11px;align-content:start}
+.mbody>*{margin:0}
+.mfoot{padding:11px 13px calc(11px + var(--safe-b));border-top:.5px solid var(--hairline);background:var(--surface-2)}
+.tipit{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:11px;border-radius:var(--r-md);background:var(--surface-2)}
+.tipit b{font-size:13px;font-weight:700;display:block}
+.tipit span{font-size:12.5px;color:var(--ink-3);line-height:1.85}
+.mpart{border-radius:var(--r-lg);border:.5px solid var(--hairline);overflow:hidden}
+.mpart .hd{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface-2);font-size:13px;font-weight:700}
+.mpart .hd .i{width:17px;height:17px;color:var(--brand-ink)}
+.mpart .pbd{padding:11px 12px;display:grid;gap:8px}
+.mpart .pbd .fine{text-align:start}
+.mlink{display:flex;align-items:center;gap:9px;padding:11px;border-radius:var(--r-md);background:var(--surface-2);
+  text-decoration:none;color:inherit}
+.mlink .iw{width:36px;height:36px;border-radius:13px}
+.mlink .iw .i{width:19px;height:19px}
+.mlink b{font-size:13px;font-weight:700;display:block}
+.mlink small{font-size:11.5px;color:var(--ink-3)}
+.mlink .go{width:17px;height:17px;color:var(--ink-4)}
+.mcards{display:grid;gap:9px}
+.mcard{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface);overflow:hidden}
+.mthumb{height:150px;display:grid;place-items:center;position:relative;color:#fff;font-size:12px;
+  background:linear-gradient(135deg,#1E2B27,#3A4A44)}
+.mthumb .mock{position:absolute;inset:12px;border-radius:14px;border:1px solid rgba(255,255,255,.28);
+  display:grid;align-content:center;gap:7px;padding:14px;text-align:center}
+.mthumb .mock b{font-size:13px}
+.mthumb .mock small{font-size:11px;opacity:.85}
+.mplay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,20,18,.28);border:0;cursor:pointer;color:#fff}
+.mplay .i{width:30px;height:30px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
+.mcbody{padding:12px;display:grid;gap:8px}
+.mcbody b{font-size:13.5px;font-weight:700}
+.mcbody .fine{text-align:start}
+.psim{display:flex;align-items:center;gap:9px;padding:10px;border-radius:var(--r-md);background:var(--surface-2)}
+.psim .play{width:36px;height:36px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;border:0;cursor:pointer;
+  background:var(--brand);color:#fff}
+.psim .play .i{width:17px;height:17px}
+.pbarsim{flex:1;height:30px;display:flex;align-items:center}
+.pbarsim svg{width:100%;height:26px}
+.psim .dur{font-size:11.5px;color:var(--ink-4);font-variant-numeric:tabular-nums}
+.pbsim{display:flex;align-items:flex-end;gap:3px;height:30px;flex:1}
+.pbsim i{flex:1;border-radius:2px;background:var(--ink-4);opacity:.55;height:20%}
+.pbsim.on i{background:var(--brand);opacity:.9;animation:wave 1.4s ease-in-out infinite}
+.pbsim.on i:nth-child(2n){animation-delay:.18s}
+.pbsim.on i:nth-child(3n){animation-delay:.36s}
+.pbsim.on i:nth-child(4n){animation-delay:.54s}
+@keyframes wave{0%,100%{height:22%}50%{height:88%}}
+.pbar{flex:1;min-width:60px;height:6px;border-radius:99px;background:var(--surface-sunk);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:var(--stop)}
 
-/* راهنمای مدیر */
-.tips{list-style:none;margin:0;padding:0;display:grid;gap:7px}
-.tips li{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--ink-2);line-height:1.8}
-.tips li .i{width:15px;height:15px;color:var(--ok);flex:0 0 auto;margin-top:2px}
+/* ── کشوی راهنمای تصویری ─────────────────────────────────────────────── */
+#shMedia .sbody,#shContacts .sbody{padding:16px 13px calc(30px + var(--safe-b));display:grid;gap:10px}
+.shglow{width:44px;height:44px;margin:4px auto 0;border-radius:16px;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--brand),var(--brand-2));color:#fff}
+.shglow .i{width:23px;height:23px}
+.shtop{text-align:center}
+.shtx{display:block;margin:2px 0 6px}
+.shtx b{font-size:var(--fs-body);font-weight:700;display:block}
+.shtx small{font-size:12.5px;color:var(--ink-3)}
+.dtx{padding:11px 0;border-bottom:.5px solid var(--hairline-2);display:flex;align-items:center;gap:10px}
+.dtx:last-child{border-bottom:0}
+.dtx .ml{display:grid;min-width:0;flex:1}
+.dtx .ml b{font-size:13.5px;font-weight:700}
+.dtx .ml small{font-size:11.5px;color:var(--ink-3);margin-top:2px}
 
-/* کارت راهنمای تصویری و صوتی */
-.mcards{display:grid;gap:8px}
-@media (min-width:560px){.mcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.mcard{display:flex;align-items:center;gap:10px;width:100%;text-align:start;font:inherit;color:inherit;cursor:pointer;
-  padding:9px;border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
-.mcard:hover{border-color:color-mix(in oklab,var(--brand) 34%,transparent)}
-.mthumb{position:relative;width:62px;height:44px;border-radius:10px;overflow:hidden;flex:0 0 auto;
-  background:linear-gradient(150deg,var(--brand-tint),var(--surface-sunk));display:grid;place-items:center}
-.mthumb img{width:100%;height:100%;object-fit:cover}
-.mthumb .mmock{color:var(--brand-ink);display:grid;place-items:center}
-.mthumb .mmock .i{width:20px;height:20px}
-.mthumb .mplay{position:absolute;inset:0;margin:auto;width:24px;height:24px;border-radius:50%;
-  display:grid;place-items:center;background:rgba(255,255,255,.92);color:#0E2A55;box-shadow:var(--sh-1)}
-.mthumb .mplay .i{width:13px;height:13px}
-.mthumb.audio{background:linear-gradient(150deg,var(--accent-tint),var(--surface-sunk))}
-.mcard .mtx{display:grid;gap:2px;flex:1 1 auto;min-width:0}
-.mcard .mtx b{font-size:12px;font-weight:650}
-.mcard .mtx small{font-size:10.5px;color:var(--ink-4)}
-.mcard>.i{width:15px;height:15px;color:var(--ink-4);flex:0 0 auto}
-
-/* ── ورقهٔ پخش راهنما ─────────────────────────────────────────────── */
-.sheet .sbody{display:grid;gap:10px}
-.pbox{position:relative;border-radius:var(--r-lg);overflow:hidden;border:.5px solid var(--hairline);
-  background:var(--surface-sunk);aspect-ratio:16/9;display:grid;place-items:center}
-.pbox img{width:100%;height:100%;object-fit:cover}
-.pbox.audio{aspect-ratio:auto;height:112px;background:linear-gradient(150deg,var(--brand-tint),var(--surface-sunk))}
-.pbsim{display:flex;align-items:flex-end;gap:5px;height:56px}
-.pbsim i{width:5px;border-radius:99px;background:var(--brand);opacity:.75;
-  animation:wv 1.1s var(--ease) infinite alternate;height:30%}
-.pbsim i:nth-child(1){animation-delay:.0s;height:35%}
-.pbsim i:nth-child(2){animation-delay:.1s;height:60%}
-.pbsim i:nth-child(3){animation-delay:.2s;height:45%}
-.pbsim i:nth-child(4){animation-delay:.3s;height:80%}
-.pbsim i:nth-child(5){animation-delay:.4s;height:52%}
-.pbsim i:nth-child(6){animation-delay:.5s;height:72%}
-.pbsim i:nth-child(7){animation-delay:.6s;height:40%}
-.pbsim i:nth-child(8){animation-delay:.7s;height:64%}
-.pbar{height:5px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;margin-top:11px}
-.pbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand-2));
-  transition:width .6s linear}
-
-/* ── تیکت: دسته، متن، پیوست ────────────────────────────────────────── */
-.ticketbox{border:1px solid color-mix(in oklab,var(--brand) 26%,transparent);border-radius:var(--r-lg);
-  background:color-mix(in oklab,var(--brand-tint) 55%,var(--surface));padding:12px}
-.tbtop{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700}
-.tbtop .i{width:16px;height:16px;color:var(--brand-ink)}
-.tbtop .cap{font-weight:500}
-.chipsline{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
-.arow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.abtn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;cursor:pointer;
-  font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-2);
-  border:.5px solid var(--hairline-2);border-radius:99px;background:var(--surface)}
-.abtn:hover{border-color:color-mix(in oklab,var(--brand) 38%,transparent);color:var(--brand-ink);background:var(--brand-tint)}
-.abtn .i{width:15px;height:15px;color:var(--ink-3)}
-.abtn:hover .i{color:currentColor}
-.linrow{display:flex;gap:7px;margin-top:9px}
-.linrow .input{flex:1 1 auto;min-width:0}
-.fchips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.fchip{display:inline-flex;align-items:center;gap:8px;padding:7px 9px;max-width:100%;
-  border:.5px solid var(--hairline-2);border-radius:var(--r-md);background:var(--surface)}
-.fchip>.i{width:16px;height:16px;color:var(--brand-ink);flex:0 0 auto}
-.fchip .ftx{display:grid;gap:1px;min-width:0}
-.fchip .ftx b{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;direction:ltr;text-align:start}
-.fchip .ftx small{font-size:10px;color:var(--ink-4)}
-.fchip .fx{border:0;background:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
-  color:var(--ink-4);cursor:pointer;flex:0 0 auto}
-.fchip .fx:hover{color:var(--stop);background:var(--stop-tint)}
-.fchip .fx .i{width:13px;height:13px}
-#recNote:empty{display:none}
-
-/* ── گفت‌وگو با کارشناس ───────────────────────────────────────────── */
-.thread{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface);padding:11px}
-.thhead{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--ink-2);
-  padding-bottom:9px;border-bottom:.5px solid var(--hairline-2)}
-.thhead .i{width:15px;height:15px;color:var(--brand-ink)}
-.bubble{position:relative;max-width:86%;margin-top:10px;padding:9px 11px;border-radius:14px;font-size:12px;line-height:1.85}
-.bubble p{margin:2px 0 0;white-space:pre-wrap;word-break:break-word}
-.bubble .who{font-size:10px;font-weight:700;color:var(--ink-4);display:block}
-.bubble small{display:block;margin-top:5px;font-size:10px;color:var(--ink-4)}
-.bubble.me{margin-inline-start:auto;background:var(--brand-tint);color:var(--ink);border-end-end-radius:5px}
-.bubble.ag{background:var(--surface-2);border:.5px solid var(--hairline);border-end-start-radius:5px}
-.fbubble{display:inline-flex;align-items:center;gap:6px;margin-top:7px;padding:5px 8px;
-  border-radius:9px;background:rgba(255,255,255,.6);border:.5px solid var(--hairline-2);font-size:10.5px;color:var(--ink-2)}
-.fbubble .i{width:13px;height:13px;color:var(--brand-ink)}
-.fbubble span{direction:ltr;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* ── ورود نرم کارت‌ها و نشان نوار بالا (همان زبان حساب، محلی) ─────── */
-@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-.anim{animation:rise .40s var(--ease) both;animation-delay:calc(var(--i,0) * 42ms)}
-.help-btn{color:var(--ink-2)}
-.help-btn[hidden]{display:none}
-
-/* ── دستهٔ تیکت و پرسش باز و بسته ───────────────────────────────── */
-.pickc{border:0;font:inherit;cursor:pointer;height:30px;padding:0 12px;border-radius:99px;
-  background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:600;transition:all var(--t-fast) var(--ease)}
-.pickc.on{background:var(--brand);color:#fff}
-
-.faq{border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);margin-top:8px;overflow:hidden}
-.faq summary{padding:12px 13px;font-size:12.5px;font-weight:650;cursor:pointer;list-style:none;
-  display:flex;align-items:center;gap:8px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:'';width:8px;height:8px;border-inline-end:1.6px solid var(--ink-3);border-bottom:1.6px solid var(--ink-3);
-  transform:rotate(45deg);margin-inline-start:auto;transition:transform var(--t-fast) var(--ease)}
-.faq[open] summary::after{transform:rotate(-135deg)}
-.faq p{margin:0;padding:0 13px 12px;font-size:12px;color:var(--ink-2);line-height:1.9}
-
-/* ── پرسش‌های پرتکرار کلی و دکمهٔ منو ─────────────────────────────── */
-#faqAll{display:grid;gap:8px}
-#faqAll .faq{margin-top:0}
-.hfoot .btn{justify-self:center}
-
-/* ── نوار بالا: نشان پشتیبانی ─────────────────────────────────────── */
-.help-btn.on{color:var(--brand-ink);border-color:color-mix(in oklab,var(--brand) 34%,transparent);background:var(--brand-tint)}
-
-/* ── حالت شب و کنتراست ────────────────────────────────────────────── */
-[data-theme="dark"] .shico,[data-theme="dark"] .eav{box-shadow:none}
-[data-theme="dark"] .stile .sbars i{opacity:.42}
-[data-theme="dark"] .mthumb .mplay{background:rgba(255,255,255,.9);color:#0E2A55}
-
-/* ── دسترس‌پذیری و حرکت ──────────────────────────────────────────── */
-.stile:focus-visible,.drow:focus-visible,.mcard:focus-visible,.tkrow:focus-visible,.qrow:focus-visible,
-.abtn:focus-visible,.mchip:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+/* ── نمایشگر موبایل؛ پیش‌نمایش همان است، پنجره که تنگ شود ───────────── */
+@media (max-width:420px){
+  .stiles{grid-template-columns:1fr}
+  .hl{grid-template-columns:1fr}
+  .ecard{flex:0 0 60%}
+}
+@media (min-width:430px){
+  .hl{grid-template-columns:1fr 1fr}
+}
+@media (min-width:680px){
+  .modal{align-items:center}
+  .mdlg{border-radius:var(--r-xl);max-height:86dvh}
+}
 @media (prefers-reduced-motion:reduce){
-  .sup-hero,.mdlg,.modal,.anim{animation:none}
-  .pbsim i{animation:none;height:45%}
-  .pbar i{transition:none}
-}
-@media (max-width:380px){
-  .shtx small{display:none}
-  .stile small{min-height:0}
+  .anim,.qans,.mdlg,.sbar i{animation:none!important;transition:none!important}
+  .pbsim.on i{animation:none;height:60%}
 }
 
-/* ── چاپ: پرسش‌ها بی‌دکمه ────────────────────────────────────────── */
-@media print{
-  .topbar,.tabbar,.mfoot,.arow,.chipsline,.shsearch,.direct,.stiles{display:none}
-  .mdlg,.mbody{max-height:none;overflow:visible;box-shadow:none}
-  .modal{position:static}
-}
+/* ── قطعه‌های کوچک مشترک این صفحه ─────────────────────────────────────── */
+.lab{font-size:12.5px;font-weight:700;color:var(--ink-3);margin:0 0 8px}
+.adrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--hairline-2);
+  text-decoration:none;color:inherit}
+.adrow:last-of-type{border-bottom:0}
+.adrow .i{width:19px;height:19px;color:var(--brand-ink);flex:0 0 auto}
+.adrow b{font-size:13.5px;font-weight:600;flex:1;min-width:0}
+.adrow .bd{flex:0 0 auto}
+.bd{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;
+  border:.5px solid var(--hairline);background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.tag.xs{height:20px;padding:0 8px;font-size:11px}
+.flash{animation:flash .6s var(--ease)}
+.qrow:not(.open) .qans{display:none}
+.cinput{display:flex;align-items:center;gap:8px;margin-top:2px}
+.cinput input{flex:1;min-width:0;border:0;border-radius:var(--r-md);padding:12px;font:inherit;font-size:var(--fs-sub);
+  color:var(--ink);background:var(--surface);outline:1px solid var(--hairline)}
+.cinput input:focus{outline:2px solid var(--brand)}
+.cinput .abtn{width:44px;height:44px;justify-content:center;padding:0;border-radius:50%}
+#mFoot .btn-row{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:stretch}
+#mFoot .btn-row:only-child{grid-template-columns:1fr}

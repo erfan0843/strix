@@ -28,6 +28,9 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .icon-btn:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
 .icon-btn:active{transform:scale(.93)}
 .icon-btn .i{width:21px;height:21px}
+/* نشان پشتیبانی: در هر صفحه هست؛ در خودِ صفحهٔ پشتیبانی رنگ می‌گیرد */
+.help-btn{color:var(--ink-2)}
+.help-btn.on,.help-btn[aria-current="page"]{color:var(--brand-ink);background:var(--brand-tint);border-color:transparent}
 .icon-btn.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(150deg,var(--brand),var(--brand-2));
   color:#fff;border-color:transparent;font-weight:600;font-size:13px}
 .brand .mark{transition:transform var(--t) var(--spring)}
