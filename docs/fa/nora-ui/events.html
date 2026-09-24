@@ -125,8 +125,13 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.8v16.8"/><path d="M6.4 5.2h11.2l-2.2 3.6 2.2 3.6H6.4z"/></g></symbol>
 <symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.8s-7.2-4.4-7.2-9.4A4.4 4.4 0 0 1 12 7.1a4.4 4.4 0 0 1 7.2 3.3c0 5-7.2 9.4-7.2 9.4z"/></g></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2v10.4"/><path d="M7.8 10.6 12 14.8l4.2-4.2"/><path d="M5 19.4h14"/></g></symbol>
-</svg>
 
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 11.6a1.6 1.6 0 0 1 1.6-1.6h10a1.6 1.6 0 0 1 1.6 1.6v6.8a1.6 1.6 0 0 1-1.6 1.6H7a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M8.6 10V8.2a3.4 3.4 0 0 1 6.8 0V10"/></g></symbol>
+<symbol id="i-play-f" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 5.9c0-.83-.9-1.35-1.62-.94L5.6 10.06c-.72.41-.72 1.47 0 1.88l8.28 5.1c.72.41 1.62-.11 1.62-.94z"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 8.4h12.8l1.2 11.6H4.4z"/><path d="M9.2 8.4V6.6a2.8 2.8 0 0 1 5.6 0v1.8"/></g></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor"><rect x="7.3" y="5.4" width="3.4" height="13.2" rx="1.5"/><rect x="13.3" y="5.4" width="3.4" height="13.2" rx="1.5"/></g></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.6 5.8 8.4 12l6.2 6.2"/><path d="M8.6 12h9.4" opacity=".4"/></g></symbol>
+</svg>
 <header class="topbar">
   <div class="wrap">
     <a class="brand" href="home.html" aria-label="خانهٔ نورا">
@@ -134,10 +139,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
       <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span>
     </a>
     <span class="sp"></span>
-    <a class="menubtn" href="home.html#menu" aria-label="منوی نورا"><svg class="i"><use href="#i-grid"/></svg> منو</a>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
-    <a class="icon-btn" href="home.html#notice" aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></a>
-    <a class="icon-btn avatar" href="home.html#me" aria-label="حساب من">م</a>
+    <button class="icon-btn" data-notice aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
   </div>
 </header>
 
@@ -167,8 +170,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="seg" role="tablist" aria-label="نما">
       <button data-view="cal" role="tab"><svg class="i"><use href="#i-grid"/></svg> تقویم</button>
       <button data-view="list" role="tab"><svg class="i"><use href="#i-archive"/></svg> فهرست</button>
-      <button data-view="cat" role="tab"><svg class="i"><use href="#i-layers"/></svg> دسته‌ها</button>
-      <button data-view="past" role="tab"><svg class="i"><use href="#i-archive"/></svg> برگزارشده‌ها</button>
+      <button data-view="media" role="tab"><svg class="i"><use href="#i-play"/></svg> رسانه</button>
+      <button data-view="lib" role="tab"><svg class="i"><use href="#i-idcard"/></svg> کتابخانهٔ من</button>
     </div>
     <span class="cap" id="cnt">—</span>
   </div>
@@ -189,6 +192,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="evlist" id="evList"></div>
     <div class="row" style="margin-top:10px">
       <button class="btn sm quiet" id="clearFilters"><svg class="i"><use href="#i-close"/></svg> برداشتن صافی‌ها</button>
+      <button class="btn sm quiet" data-view="cat"><svg class="i"><use href="#i-layers"/></svg> دسته‌بندی‌ها</button>
       <span class="sp"></span><span class="cap" id="filterNote" hidden></span>
     </div>
   </section>
@@ -198,18 +202,37 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="catgrid" id="catGrid"></div>
   </section>
 
-  <!-- برگزارشده‌ها: خرید بازپخش و جزئیات -->
-  <section class="sec" id="pastView" hidden aria-label="رویدادهای برگزارشده">
-    <div class="sec-hd"><span class="fw">برگزارشده‌ها</span><span class="sp"></span>
+  <!-- فروشگاه رسانه: برگزارشده‌ها با ضبط، صدا و فایل -->
+  <section class="sec" id="pastView" hidden aria-label="فروشگاه رسانه">
+    <div class="sec-hd"><span class="fw">فروشگاه رسانه</span><span class="sp"></span>
       <span class="cap" id="pastCount">—</span></div>
+    <p class="sub" style="margin:0 0 10px">هر برنامهٔ برگزارشده یک بسته است: ضبط ویدیویی، صدای جلسه، جزوه و اسلاید.
+      هر بسته را یک‌جا بگیر یا فقط قطعه‌ای که می‌خواهی؛ بعدش تا همیشه در کتابخانه‌ات می‌ماند و آنلاین تماشا می‌کنی.</p>
+    <div class="fcrow" id="storeKinds"></div>
     <div class="fcrow" id="pastChips"></div>
+    <div class="row" style="margin:2px 0 10px"><span class="sp"></span>
+      <div class="seg" id="sortSeg" role="tablist" aria-label="ترتیب">
+        <button data-sort="new" role="tab">تازه‌ترین</button>
+        <button data-sort="top" role="tab">پرفروش</button>
+        <button data-sort="cheap" role="tab">ارزان‌ترین</button>
+      </div></div>
     <div class="stack" id="pastList" style="gap:12px"></div>
+  </section>
+
+  <!-- کتابخانهٔ من: هرچه تهیه کرده‌ام -->
+  <section class="sec" id="libView" hidden aria-label="کتابخانهٔ من">
+    <div class="sec-hd"><span class="fw">کتابخانهٔ من</span><span class="sp"></span>
+      <span class="cap" id="libCount">—</span></div>
+    <div id="libBox"></div>
   </section>
 
   <footer class="hfoot">
     <div><b>گروه فرهنگی خط زندگی</b> — تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
     <div>۰۲۱–۸۸۸۸۱۲۳۴ · <a href="mailto:info@lifeline1.ir">info@lifeline1.ir</a> · <a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
-    <div><a href="home.html">بازگشت به خانه</a> · <a href="home.html#me">حساب من</a> · © ۱۴۰۵</div>
+    <div class="row" style="justify-content:center;margin:4px 0 8px">
+      <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
+    </div>
+    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html#lib">کتابخانهٔ من</a> · © ۱۴۰۵</div>
   </footer>
 </main>
 
@@ -252,9 +275,11 @@ const WD=['ش','ی','د','س','چ','پ','ج'];
 const WDNAME={'ش':'شنبه','ی':'یکشنبه','د':'دوشنبه','س':'سه‌شنبه','چ':'چهارشنبه','پ':'پنجشنبه','ج':'جمعه'};
 
 const S={view:'cal', month:'sh', day:28, dayF:'all', cat:'all', mode:'all', tag:'all', q:'', open:null,
-  pastF:'all', pins:new Set()};
+  pastF:'all', kind:'all', sort:'new', pins:new Set()};
 /* صافی برگزارشده‌ها */
-const PASTF=[{k:'all',n:'همه'},{k:'cert',n:'گواهی‌دار'},{k:'paid',n:'خریدنی'},{k:'free',n:'رایگان'}];
+const PASTF=[{k:'all',n:'همه'},{k:'cert',n:'گواهی‌دار'},{k:'paid',n:'خریدنی'},{k:'free',n:'رایگان'},{k:'mine',n:'در کتابخانه‌ام'}];
+const KINDF=[{k:'all',n:'همهٔ رسانه‌ها'},{k:'video',n:'ویدیو'},{k:'audio',n:'صدا'},{k:'pdf',n:'فایل'},{k:'slide',n:'اسلاید'}];
+const SORTS=[{k:'new',n:'تازه‌ترین'},{k:'top',n:'پرفروش'},{k:'cheap',n:'ارزان‌ترین'}];
 const isPinned=(k,i)=>S.pins.has(key(k,i));
 function togglePin(k,i){const kk=key(k,i); S.pins.has(kk)?S.pins.delete(kk):S.pins.add(kk);
   try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
@@ -336,7 +361,7 @@ function renderDay(){
   $('#dayTitle').textContent=`${wname} ${faN(S.day)} ${m.n}`;
   $('#dayCount').textContent=evs.length?faN(evs.length)+' برنامه':'برنامه‌ای نیست';
   $('#dayList').innerHTML=evs.length?evs.map(evRow).join(''):
-    `<div class="empty"><svg class="i"><use href="#i-calendar"/></svg><p>این روز خالی است — روز پرنقطه را بزن یا از «فهرست» همه را ببین.</p></div>`;
+    `<div class="empty"><svg class="i"><use href="#i-calendar"/></svg><p>این روز خالی است؛ روز پرنقطه را بزن یا از «فهرست» همه را ببین.</p></div>`;
 }
 
 /* ── فهرست ── */
@@ -361,7 +386,7 @@ function evCard(e){
     badge:`<b>${faN(e.dn)}</b><span>${esc(month||e.dm)}</span>`,
     meta:[['i-calendar',e.when+' · '+e.time],['i-pin',e.place],
           ['i-users',e.cap?faN(e.taken)+' نفر از '+faN(e.cap):'بی‌ظرفیت']],
-    note:full?'ظرفیت تکمیل — ثبت‌نام به لیست انتظار می‌رود':(e.cap&&n<=5?'فقط '+faN(n)+' جا مانده':((e.parts||[])[0]||'')),
+    note:full?'ظرفیت تکمیل؛ ثبت‌نام به لیست انتظار می‌رود':(e.cap&&n<=5?'فقط '+faN(n)+' جا مانده':((e.parts||[])[0]||'')),
     price:priceTxt(e), free:!e.price, bar:e.cap?Math.round(e.taken/e.cap*100):0,
     cta:full?'جزئیات و لیست انتظار':'جزئیات و ثبت‌نام',
     ctaKind:full?'quiet':'primary', ctaIcon:full?'i-clock':'i-pen'});
@@ -388,6 +413,8 @@ function evRow(e){
 /* ── برگزارشده‌ها: خرید بازپخش و جزئیات ── */
 function pastMatch(h){
   const q=S.q.trim();
+  if(typeof NORA_UI!=='undefined'&&S.pastF==='mine'&&!NORA_UI.hasLib(h.id)) return false;
+  if(S.kind!=='all'&&!(h.counts||{})[S.kind]) return false;
   if(q&&!(h.t+' '+person(h.tchr).n+' '+(h.tags||[]).join(' ')+' '+h.note).includes(q)) return false;
   if(S.pastF==='cert'&&!h.cert) return false;
   if(S.pastF==='paid'&&!h.price) return false;
@@ -395,20 +422,72 @@ function pastMatch(h){
   return true;
 }
 function pastCard(h){
-  return evPosterCard(h,{key:'past', past:true, person:person(h.tchr),
-    tags:['برگزار شد',...(h.tags||[]).slice(0,2)],
-    meta:[['i-calendar',h.d],['i-clock',h.rec],['i-users',faN(h.n)+' شرکت‌کننده']],
-    note:h.note, price:h.price?rialTxt(h.price):'رایگان', free:!h.price,
-    cta:h.price?'جزئیات و خرید':'جزئیات و تماشا', ctaKind:'primary', ctaIcon:h.price?'i-bag':'i-play'});
+  return window.NORA_UI?NORA_UI.bundleCard(h):'';
+}
+/** کتابخانهٔ من: هرچه خریده‌ام، با جای ادامهٔ تماشا */
+function renderLib(){
+  const L=(window.NORA_UI&&NORA_UI.library())||[];
+  const login=!!(window.NORA_UI&&NORA_UI.uid&&NORA_UI.uid());
+  const mine=L.filter(x=>x&&x.k==='past');
+  const bundles=PAST.filter(h=>NORA_UI&&NORA_UI.hasLib(h.id));
+  const items=PAST.map(h=>(h.media||[]).map(m=>({h:h,m:m}))).flat().filter(x=>NORA_UI&&NORA_UI.hasLib(x.m.id));
+  $('#libCount').textContent=login?(faN(items.length)+' رسانه · '+faN(bundles.length)+' بستهٔ کامل'):'برای دیدن، وارد شو';
+  if(!login){
+    $('#libBox').innerHTML=`<div class="card paper" style="text-align:center;padding:22px">
+      <svg class="i" style="width:30px;height:30px;color:var(--ink-3)"><use href="#i-lock"/></svg>
+      <p class="sub" style="margin:10px 0 0">کتابخانه مالِ حساب خودت است. با شمارهٔ موبایل وارد شو تا هرچه تهیه کرده‌ای همین‌جا بیاید.</p>
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button class="btn primary" data-uilogin><svg class="i"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
+        <a class="btn quiet" href="events.html#media" style="text-decoration:none">دیدن فروشگاه رسانه</a></div></div>`;
+    return;
+  }
+  if(!items.length && !bundles.length){
+    $('#libBox').innerHTML=`<div class="empty"><svg class="i"><use href="#i-play"/></svg>
+      <p>هنوز چیزی تهیه نکرده‌ای. از فروشگاه رسانه، ضبط و جزوهٔ کارگاه‌ها را نگاه کن.</p>
+      <a class="btn sm primary" href="events.html#media" style="text-decoration:none;margin-top:10px">رفتن به فروشگاه رسانه</a></div>`;
+    return;
+  }
+  const rows=PAST.filter(h=>NORA_UI.hasLib(h.id)||(h.media||[]).some(m=>NORA_UI.hasLib(m.id)));
+  $('#libBox').innerHTML=`<div class="stack" style="gap:14px">${rows.map(h=>{
+    const own=NORA_UI.hasLib(h.id);
+    const pr=m=>({m:m,pct:Math.min(100,Math.round((NORA_UI.progressOf(m.id)||0)/90/60*100))});
+    const list=(h.media||[]).filter(m=>own||NORA_UI.hasLib(m.id));
+    const done=list.filter(m=>NORA_UI.progressOf(m.id)>0);
+    return `<div class="card paper">
+      <div class="row" style="align-items:center;gap:10px">
+        <span class="mthumb ${list[0]?list[0].k:'video'}" style="width:40px;height:40px"><svg class="i" style="width:18px;height:18px"><use href="#i-archive"/></svg></span>
+        <span style="flex:1;min-width:0"><b style="font-size:14px">${esc(h.t)}</b>
+          <div class="cap">${esc(h.d)} · ${faN(list.length)} رسانه${own?' · بستهٔ کامل':''}</div></span>
+        <span class="sp" style="flex:1"></span>
+        <span class="tag ${done.length?'ok':'brand'}">${done.length?faN(done.length)+' نیمه‌کاره':'تازه'}</span>
+      </div>
+      <div class="stack tight" style="margin-top:10px">${list.slice(0,4).map(m=>{
+        const kd=(window.NORA.MEDIA_KINDS||{})[m.k]||{n:'رسانه',i:'i-play',v:'تماشا'}, o=pr(m);
+        return `<div class="mrow2">
+          <button class="mthumb ${m.k}" data-uimedia="${esc(h.id)}:${esc(m.id)}" aria-label="${esc(m.t)}">
+            <svg class="i" style="width:19px;height:19px"><use href="#${kd.i}"/></svg>
+            ${o.pct?`<span class="mprog"><i style="width:${o.pct}%"></i></span>`:''}</button>
+          <span class="mtx"><b>${esc(m.t)}</b><small>${kd.n} · ${esc(m.d)}${o.pct?' · '+faN(o.pct)+'٪ دیده‌ای':''}</small></span>
+          <span class="sp" style="flex:1"></span>
+          <button class="btn sm ${o.pct?'quiet':'primary'}" data-uimedia="${esc(h.id)}:${esc(m.id)}">
+            <svg class="i"><use href="#${kd.i}"/></svg> ${o.pct?'ادامه':'پخش'}</button></div>`}).join('')}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm quiet" data-past="${esc(h.id)}"><svg class="i"><use href="#i-archive"/></svg> جزئیات بسته</button>
+        <span class="sp" style="flex:1"></span><span class="cap">${esc(h.access||'دسترسی همیشگی')}</span>
+      </div></div>`}).join('')}</div>`;
 }
 function renderPastView(){
+  chips($('#storeKinds'),KINDF,S.kind,'kind');
   chips($('#pastChips'),PASTF,S.pastF,'pastf');
-  const list=PAST.filter(pastMatch);
+  chips($('#sortSeg')||{innerHTML:''},SORTS,S.sort,'sort');
+  const list=PAST.filter(pastMatch).slice().sort((a,b)=>
+    S.sort==='cheap'?(a.price-b.price):S.sort==='top'?((b.sold||0)-(a.sold||0)):0);
   $('#pastList').innerHTML=list.length?list.map(pastCard).join('')
     :`<div class="empty"><svg class="i"><use href="#i-archive"/></svg><p>با این صافی چیزی نبود؛ «همه» را بزن.</p></div>`;
   return list.length;
 }
 function openPast(id){
+  if(window.NORA_UI){NORA_UI.eventSheet(id); return}
   const h=PAST.filter(x=>x.id===id)[0]; if(!h) return;
   const p=person(h.tchr);
   $('#pastBody').innerHTML=`<div class="row" style="align-items:center;margin-bottom:10px">
@@ -482,6 +561,7 @@ function saveText(name,text,mime){
   a.download=name; document.body.appendChild(a); a.click(); a.remove();
 }
 function openEvent(id){
+  if(window.NORA_UI){NORA_UI.eventSheet(id); return}
   const e=ev(id); if(!e.id) return;
   const l=left(e), full=e.cap&&l===0, p=person(e.tchr);
   $('#evBody').innerHTML=`<div class="row" style="align-items:center;margin-bottom:10px">
@@ -503,7 +583,7 @@ function openEvent(id){
       <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span><b>${priceTxt(e)}</b></div>
     </div>
     ${e.cap?`<div class="bar"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
-      <div class="cap" style="margin-top:7px">${full?'ظرفیت تکمیل — ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(l)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
+      <div class="cap" style="margin-top:7px">${full?'ظرفیت تکمیل؛ ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(l)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
     <p class="sub" style="margin-top:12px">${esc(e.d)}</p>
     ${e.parts?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
     ${e.price?`<div class="moneyline"><span>مبلغ ثبت‌نام</span><span class="num">${money(e.price)}</span></div>`:''}
@@ -515,7 +595,9 @@ function openEvent(id){
       ${full?`<button class="btn primary" data-wait="${e.id}"><svg class="i"><use href="#i-clock"/></svg> ثبت‌نام در لیست انتظار</button>`
             :`<a class="btn primary" href="form.html"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`}
       <button class="btn quiet" data-share="${e.id}"><svg class="i"><use href="#i-share"/></svg> اشتراک</button>
-      <button class="btn quiet ${isPinned('ev',e.id)?'primary':''}" data-pin="ev:${e.id}"><svg class="i"><use href="#i-pin"/></svg> ${isPinned('ev',e.id)?'سنجاق‌شده':'سنجاق'}</button>
+      <button class="btn quiet ${isPinned('ev',e.id)?'primary':''}" data-pin="ev:${e.id}"><svg class="i"><use href="#i-pin"/>
+
+</svg> ${isPinned('ev',e.id)?'سنجاق‌شده':'سنجاق'}</button>
     </div>
     <p class="cap" style="margin-top:10px">با درگاه رسمی بله همان لحظه قطعی می‌شود؛ کارت‌به‌کارت بعد از تأیید کارشناس.</p>`;
   $('#shEvent').classList.add('on'); $('#scrim').classList.add('on');
@@ -526,7 +608,12 @@ function goto(id){const el=document.getElementById(id); if(el) el.scrollIntoView
 /* ── کنش‌ها ── */
 document.addEventListener('click',e=>{
   const t=e.target;
-  const v=t.closest('[data-view]'); if(v){S.view=v.dataset.view; render(); return}
+  const v=t.closest('[data-view]'); if(v){S.view=v.dataset.view; render();
+    try{history.replaceState(null,'','#'+({media:'media',lib:'lib'}[S.view]||S.view))}catch(e){} return}
+  const sk=t.closest('[data-kind]'); if(sk){S.kind=sk.dataset.kind; renderPastView(); return}
+  const so=t.closest('[data-sort]'); if(so){S.sort=so.dataset.sort; renderPastView(); return}
+  const lg=t.closest('[data-uilogin]'); if(lg){NORA_UI.authSheet(()=>{renderLib();
+    $('#cnt').textContent=faN(NORA_UI.library().length)+' قلم در کتابخانهٔ تو'}); return}
   const m=t.closest('[data-month]'); if(m){S.month=m.dataset.month; S.day=MONTHS[S.month].today||1; renderCal(); renderMonths(); return}
   const cel=t.closest('[data-dn]'); if(cel){S.day=+cel.dataset.dn; renderCal(); return}
   const d=t.closest('[data-day]'); if(d){S.dayF=S.dayF===d.dataset.day?'all':d.dataset.day; renderList(); return}
@@ -537,7 +624,7 @@ document.addEventListener('click',e=>{
   const pch=t.closest('[data-pastf]'); if(pch){S.pastF=pch.dataset.pastf; renderPastView();
     const n=PAST.filter(pastMatch).length; $('#cnt').textContent=faN(n)+' برگزارشده'; return}
   const prow=t.closest('[data-past]'); if(prow){openPast(prow.dataset.past); return}
-  const pcert=t.closest('[data-pastcert]'); if(pcert){toast('درخواست گواهینامه ثبت شد — در انتظار تأیید سرپرست');
+  const pcert=t.closest('[data-pastcert]'); if(pcert){toast('درخواست گواهینامه ثبت شد؛ در انتظار تأیید سرپرست');
     log('درخواست گواهینامهٔ بازپخش: '+pcert.dataset.pastcert); return}
   const row=t.closest('[data-ev]'); if(row){openEvent(row.dataset.ev); return}
   const ics=t.closest('[data-ics]'); if(ics){const e0=ev(ics.dataset.ics); saveText('nora-'+e0.id+'.ics',icsFor(e0),'text/calendar');
@@ -568,29 +655,38 @@ function render(){
   $('#calView').hidden=S.view!=='cal';
   $('#listView').hidden=S.view!=='list';
   $('#catView').hidden=S.view!=='cat';
-  $('#pastView').hidden=S.view!=='past';
+  $('#pastView').hidden=S.view!=='media';
+  $('#libView').hidden=S.view!=='lib';
+  $('#live').hidden=(S.view==='media'||S.view==='lib');
+  $('#storeKinds').closest('section').querySelector('#pastCount').textContent='';
   if(S.view==='cal'){renderMonths(); renderCal()}
   if(S.view==='list'){const n=renderList(); $('#cnt').textContent=faN(n)+' از '+faN(EVENTS.length)}
   if(S.view==='cat'){renderCats(); $('#cnt').textContent=faN(CATS.length)+' دسته'}
-  if(S.view==='past'){const n=renderPastView(); $('#cnt').textContent=faN(n)+' برگزارشده'
-    +' · '+faN(PAST.filter(x=>x.price).length)+' خریدنی'}
+  if(S.view==='media'){const n=renderPastView();
+    $('#pastCount').textContent=faN(n)+' بسته · '+faN(PAST.reduce((a,h)=>a+h.mediaCount,0))+' رسانه';
+    $('#cnt').textContent=faN(n)+' بسته در فروشگاه'}
+  if(S.view==='lib'){renderLib(); $('#cnt').textContent=(window.NORA_UI?faN(NORA_UI.library().length):'۰')+' قلم در کتابخانهٔ تو'}
 }
 /* لینک‌های ورودی: #cal/#list/#cat و ?ev= · ?q= · ?tag= · ?cat= · ?day= */
 const hash=location.hash.replace('#','');
-if(hash==='cal'||hash==='list'||hash==='cat'||hash==='past') S.view=hash;
+if(hash==='cal'||hash==='list'||hash==='cat') S.view=hash;
+if(hash==='media'||hash==='past') S.view='media';
+if(hash==='lib'||hash==='library') S.view='lib';
 const P=new URLSearchParams(location.search);
 if(P.get('ev')) S.view='list';
 if(P.get('q')){S.q=P.get('q'); S.view='list'}
 if(P.get('tag')){S.tag=P.get('tag'); S.view='list'}
 if(P.get('cat')){S.cat=P.get('cat'); S.view='list'}
 if(P.get('day')){S.dayF=P.get('day'); S.view='list'}
-if(P.get('past')) S.view='past';
-const unread=(NOTICES||[]).filter(n=>n.unread).length;
-const bb=$('#bellBadge'); if(bb&&unread){bb.hidden=false; bb.textContent=faN(unread)}
+if(P.get('past')){S.view='media'; S.openPastId=P.get('past')}
+if(P.get('lib')) S.view='lib';
+if(P.get('buy')) S.view='media';
+if(window.NORA_UI) NORA_UI.syncBell();
 renderStats(); renderLive(); renderQTags(); render();
 if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
 if(P.get('ev')) openEvent(P.get('ev'));
-if(P.get('past')) openPast(P.get('past'));
+if(S.openPastId) openPast(S.openPastId);
+if(P.get('buy')) setTimeout(()=>{const [h,m]=P.get('buy').split(':'); NORA_UI.doBuy(h,m||null)},80);
 initKeys(document);
 themeInit();
 try{JSON.parse(localStorage.getItem('nora-home-pins')||'[]').forEach(k=>S.pins.add(k))}catch(e){}

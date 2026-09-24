@@ -655,9 +655,503 @@ function evPosterCard(e,o){
   </article>`;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   اجزای مشترک فروشگاه و منو (v8)
+   ──────────────────────────────────────────────────────────────────────────
+   این‌ها را هر صفحه‌ای می‌تواند صدا بزند: منو، اعلان‌ها، کلیات رویداد،
+   رسانه و پخش، خرید، و ورود. هیچ‌کدام به صفحهٔ خاصی وابسته نیستند و اگر
+   صفحه ورقه‌شان را نداشته باشد، خودشان می‌سازند.
+   ══════════════════════════════════════════════════════════════════════════ */
+const LIB_KEY='nora-home-library', PROG_KEY='nora-home-progress', READ_KEY='nora-home-read', SESS_KEY='nora-home-user';
+const jread=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null'); return v==null?d:v}catch(e){return d}};
+const jwrite=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const price=n=>n?rialTxt(n):'رایگان';
+
+/* ── کتابخانهٔ من: چه چیزی تهیه کرده‌ام ── */
+function library(){const a=jread(LIB_KEY,[]); return Array.isArray(a)?a:[]}
+function hasLib(id){return library().some(x=>x&&x.id===id)}
+function addLib(id,meta){
+  if(hasLib(id)) return false;
+  const a=library(); a.unshift(Object.assign({id:id,at:Date.now()},meta||{})); jwrite(LIB_KEY,a.slice(0,60));
+  return true;
+}
+function progressOf(id){const p=jread(PROG_KEY,{}); return p&&typeof p==='object'?(p[id]||0):0}
+function setProgress(id,sec){const p=jread(PROG_KEY,{})||{}; p[id]=Math.max(0,Math.round(sec)); jwrite(PROG_KEY,p)}
+
+/* ── اعلان‌ها: یک نسخه برای همهٔ صفحه‌ها ── */
+function readNotices(){const a=jread(READ_KEY,[]); return Array.isArray(a)?a:[]}
+function unreadCount(){
+  const N=(window.NORA&&window.NORA.NOTICES)||[], r=readNotices();
+  return N.filter(n=>!r.includes(n.t)).length;
+}
+function markRead(title){
+  const r=readNotices(); if(title&&!r.includes(title)) r.push(title); jwrite(READ_KEY,r); syncBell();
+}
+function syncBell(){
+  const b=document.getElementById('bellBadge'); if(!b) return;
+  const n=unreadCount(); b.hidden=!n; b.textContent=faN(n);
+}
+function noticesSheet(){
+  const N=(window.NORA&&window.NORA.NOTICES)||[], r=readNotices();
+  return `<div class="grabber"></div>
+    <div class="row" style="align-items:center;margin-bottom:8px">
+      <div><div class="head">اعلان‌ها</div><div class="cap">${faN(unreadCount())} خوانده‌نشده از ${faN(N.length)}</div></div>
+      <span class="sp"></span>
+      <button class="btn sm quiet" data-uireadall><svg class="i"><use href="#i-check"/></svg> همه خوانده شد</button>
+      <button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="stack tight">${N.map((n,i)=>`<div class="notif ${r.includes(n.t)?'':'unread'}">
+      <span class="ni"><svg class="i" style="width:16px;height:16px"><use href="#${n.i}"/></svg></span>
+      <span><span class="nt">${escH(n.t)}</span><div class="nd">${escH(n.d)}</div>
+      <div class="cap" style="margin-top:4px">${escH(n.w)}${n.ev?' · <button class="lnk" data-uiev="'+escH(n.ev)+'">دیدن رویداد</button>':''}</div></span></div>`).join('')}</div>
+    <p class="cap" style="margin-top:12px">اعلان‌ها همین‌جا خوانده می‌شوند؛ هر جا باشی، از خود نوار بالا باز می‌شوند.</p>`;
+}
+
+/* ── منو: همان پنج گروه و ۲۱ ردیف، در هر صفحه ── */
+function menuSheet(){
+  const M=(window.NORA&&window.NORA.MENU)||[], P=(window.NORA&&window.NORA.PARTNERS)||[];
+  return `<div class="grabber"></div>
+    <div class="row" style="align-items:center;margin-bottom:8px">
+      <div><div class="head">منوی نورا</div><div class="cap">همهٔ بخش‌ها، یک‌جا</div></div>
+      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="mhead">
+      <div class="mt">نورا — گروه فرهنگی خط زندگی</div>
+      <div class="ms">${((window.NORA&&window.NORA.EVENTS)||[]).length?faN(window.NORA.EVENTS.length)+' رویداد پیش‌رو':''} · ${faN((window.NORA&&window.NORA.TOTAL_MEDIA)||0)} رسانه در فروشگاه</div>
+    </div>
+    ${M.map(g=>`<div class="mgroup">
+      <div class="gh"><svg class="i" style="width:14px;height:14px"><use href="#${g.i}"/></svg>${escH(g.g)}</div>
+      ${g.rows.map(r=>`<button class="mrow" ${r.href?`data-uihref="${escH(r.href)}"`:r.rel?`data-uiev="${escH(r.rel)}"`:r.f?`data-uif="${escH(r.f)}"`:`data-uijump="${escH(r.j||'')}"`}>
+        <span class="mi"><svg class="i"><use href="#${r.i}"/></svg></span>
+        <span class="mtx"><b>${escH(r.t)}</b><span>${escH(r.s)}</span></span>
+        <span class="sp" style="flex:1"></span>
+        ${r.badge?`<span class="tag">${escH(r.badge)}</span>`:''}
+        ${r.tag?`<span class="tag brand">${escH(r.tag)}</span>`:''}
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('')}
+    </div>`).join('')}
+    <div class="mfoot">
+      <div class="cap">نهادهای همکار</div>
+      <div class="lrow">${P.slice(0,8).map(o=>`<span class="mon" style="--g:${escH(o.g)};width:26px;height:26px;border-radius:8px;font-size:10px;display:grid;place-items:center;color:#fff" title="${escH(o.n)}">${escH(o.mon)}</span>`).join('')}</div>
+    </div>`;
+}
+
+/* ── ورقه‌ای که اگر نبود، ساخته می‌شود ── */
+function ensureSheet(id,label,full){
+  let el=document.getElementById(id);
+  if(el){ if(full) el.classList.add('full'); return el }
+  el=document.createElement('aside');
+  el.className='sheet'+(full?' full':''); el.id=id;
+  el.setAttribute('role','dialog'); el.setAttribute('aria-modal','false'); el.setAttribute('aria-label',label||'');
+  el.innerHTML='<div class="sbody"></div>';
+  document.body.appendChild(el);
+  if(!document.getElementById('scrim')){
+    const s=document.createElement('div'); s.className='scrim'; s.id='scrim'; document.body.appendChild(s);
+    s.addEventListener('click',closeSheets);
+  }
+  return el;
+}
+function fillSheet(id,html,full){
+  /* ورقهٔ تازه‌ساخته هم باید در همان لحظه سوار شود */
+  const el=ensureSheet(id,'',full);
+  const b=el.querySelector('.sbody')||el.querySelector('[id$="Body"]')||el;
+  b.innerHTML=html; initAll(el);
+  document.querySelectorAll('.sheet').forEach(s=>s.setAttribute('aria-modal','false'));
+  el.classList.add('on'); el.setAttribute('aria-modal','true');
+  const sc=document.getElementById('scrim'); if(sc) sc.classList.add('on');
+  return el;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   فروشگاه رسانه
+   ══════════════════════════════════════════════════════════════════════════ */
+function libState(item,past){
+  if(!item.p) return {k:'open', t:item.preview?'نمونهٔ رایگان':'باز', i:'i-play'};
+  if(hasLib(item.id)||hasLib(past&&past.id)) return {k:'mine', t:'تهیه شده', i:'i-check'};
+  return {k:'lock', t:price(item.p).replace(' ریال',''), i:'i-lock'};
+}
+/* فهرست رسانهٔ یک بسته: وضعیت هر قلم، دکمهٔ پخش/خرید، و نوار پیشرفت */
+function mediaList(past,o){
+  o=o||{};
+  let items=past.media||[];
+  if(o.filter&&o.filter!=='all') items=items.filter(m=>m.k===o.filter);
+  if(!items.length) return '<div class="empty"><svg class="i"><use href="#i-archive"/></svg><p>با این صافی چیزی در این بسته نیست.</p></div>';
+  return `<div class="stack tight">${items.map(m=>{
+    const kd=(window.NORA.MEDIA_KINDS||{})[m.k]||{i:'i-play',n:'رسانه'}, st=libState(m,past);
+    const pr=progressOf(m.id), pct=pr?Math.min(100,Math.round(pr/60/90*100)):0;
+    const locked=st.k==='lock';
+    return `<div class="mrow2 ${locked?'locked':''}">
+      <button class="mthumb ${m.k}" data-uimedia="${escH(past.id)}:${escH(m.id)}" aria-label="${locked?'خرید':'پخش'} ${escH(m.t)}">
+        <svg class="i" style="width:19px;height:19px"><use href="#${locked?'i-lock':kd.i}"/></svg>
+        ${pct?`<span class="mprog"><i style="width:${pct}%"></i></span>`:''}
+      </button>
+      <span class="mtx"><b>${escH(m.t)}</b>
+        <small>${kd.n} · ${escH(m.d)} · ${escH(m.s)}${pr?' · نیمه‌کاره':''}</small></span>
+      <span class="sp" style="flex:1"></span>
+      ${locked
+        ? `<button class="btn sm quiet" data-uibuy="${escH(past.id)}:${escH(m.id)}">${st.t}</button>`
+        : `<button class="btn sm ${st.k==='mine'?'quiet':'primary'}" data-uimedia="${escH(past.id)}:${escH(m.id)}">
+             <svg class="i"><use href="#${kd.i}"/></svg> ${st.k==='open'&&m.preview?'تماشای نمونه':kd.v}</button>`}
+    </div>`}).join('')}</div>`;
+}
+/* کارت بستهٔ فروشگاه (برگزارشده‌ها) */
+function bundleCard(past,o){
+  const p=((window.NORA&&window.NORA.PEOPLE)||[]).find(x=>x.id===past.tchr)||{n:'—',ini:'؟',r:'',g:''};
+  const chips=Object.keys(past.counts||{}).map(k=>`<span class="tag">${faN(past.counts[k])} ${((window.NORA.MEDIA_KINDS||{})[k]||{}).n||''}</span>`).join('');
+  const mine=hasLib(past.id);
+  return `<article class="evcard ${mine?'pinned':''}">
+    <button class="evc-cov" data-past="${escH(past.id)}" aria-label="جزئیات ${escH(past.t)}">
+      ${past.poster?`<img src="${escH(past.poster)}" alt="پوستر ${escH(past.t)}" loading="lazy" decoding="async"/>`
+        :`<span class="evc-grad" style="--g:${escH(past.g||'')}"><svg class="i"><use href="#${escH(past.icon||'i-archive')}"/></svg></span>`}
+      <span class="evc-tags"><span class="evc-tag dark">برگزار شد</span>${mine?'<span class="evc-tag dark">در کتابخانه‌ات</span>':''}</span>
+      ${past.price?`<span class="evc-day">${escH(price(past.price))}</span>`:'<span class="evc-day">رایگان</span>'}
+      <span class="mplay"><svg class="i" style="width:18px;height:18px"><use href="#i-play-f"/></svg></span>
+    </button>
+    <div class="evc-body">
+      <div class="evc-ttl">${escH(past.t)}</div>
+      <div class="evc-meta"><span class="mi"><svg class="i"><use href="#i-calendar"/></svg>${escH(past.d)}</span>
+        <span class="mi"><svg class="i"><use href="#i-play"/></svg>${faN(past.mediaCount)} رسانه</span>
+        <span class="mi"><svg class="i"><use href="#i-users"/></svg>${faN(past.sold)} خرید</span></div>
+      <div class="row tight" style="margin:8px 0 2px">${chips}${past.cert?'<span class="tag accent">گواهی‌دار</span>':''}</div>
+      <div class="evc-foot">
+        <span class="evc-ava" style="--g:${escH(p.g||'')}">${p.photo?`<img src="${escH(p.photo)}" alt="${escH(p.n)}" loading="lazy"/>`:escH(p.ini||'')}</span>
+        <span class="evc-who"><b>${escH(p.n)}</b><small>${escH(p.r||'')}</small></span>
+        <span class="sp"></span><span class="evc-price${past.price?'':' free'}">${past.price?price(past.price):'رایگان'}</span>
+      </div>
+      <button class="btn ${past.price?'primary':'quiet'} block" data-past="${escH(past.id)}" style="margin-top:10px">
+        <svg class="i"><use href="#${mine?'i-play':past.price?'i-bag':'i-download'}"/></svg>
+        ${mine?'تماشا و دانلود':past.price?'دیدن جزئیات و تهیه':'دیدن و دریافت رایگان'}</button>
+    </div>
+  </article>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   کلیات رویداد: ورقهٔ تمام‌صفحه‌ای که پیش از صفحهٔ اختصاصی می‌آید
+   ══════════════════════════════════════════════════════════════════════════ */
+function eventSheet(id){
+  const N=window.NORA||{}, E=(N.EVENTS||[]).find(x=>x.id===id), H=(N.PAST||[]).find(x=>x.id===id);
+  const e=E||H; if(!e) return;
+  const P=(N.PEOPLE||[]), p=P.find(x=>x.id===e.tchr)||{n:'—',ini:'؟',r:'',g:''};
+  const past=!!H, price1=e.price||0, full=e.cap&&(e.cap-e.taken)<=0;
+  const tag=t=>`<span class="tag ${t[1]||''}">${escH(t[0])}</span>`;
+  const when=past?e.d:(e.when+' · ساعت '+e.time);
+  const room=e.mode&&e.mode.indexOf('حضوری')<0?'آنلاین':(e.mode==='حضوری و آنلاین'?'حضوری و آنلاین':'حضوری');
+  const online=room!=='حضوری';
+  const href='event.html?id='+encodeURIComponent(e.id);
+  const mediaHtml=past?`
+    <div class="sec-hd" style="margin-top:14px"><span class="fw">داخل این بسته</span><span class="sp"></span>
+      <span class="cap">${faN(e.mediaCount)} رسانه · ${escH(e.access)}</span></div>
+    ${mediaList(e)}`: '';
+  fillSheet('shEvent',`
+    <div class="esh">
+      <button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button>
+      <span class="esh-cover" style="--g:${escH(e.g||'')}">
+        ${e.poster?`<img src="${escH(e.poster)}" alt="پوستر ${escH(e.t)}" loading="lazy"/>`:''}
+        <span class="esh-veil"></span>
+        <span class="esh-top">
+          <span class="row tight">${tag([e.kind,'brand'])}${tag([room])}${past?tag(['برگزار شد','ok']):(e.live?tag(['همین حالا در حال برگزاری','stop']):'')}
+            ${full?tag(['ظرفیت تکمیل','warn']):''}</span>
+        </span>
+      </span>
+      <h2 class="esh-t">${escH(e.t)}</h2>
+      <div class="cap">${escH(when)}${e.place?' · '+escH(e.place):''}</div>
+    </div>
+    <div class="row tight" style="margin:10px 0 4px">
+      ${(e.tags||[]).map(t=>tag([t])).join('')}${online?tag(['آنلاین']):''}${past&&e.cert?tag(['گواهی‌دار','accent']):''}
+    </div>
+    <button class="suprow" data-uiperson="${escH(p.id)}" style="margin:10px 0">
+      <span class="ava" style="--g:${escH(p.g||'')}">${p.photo?`<img src="${escH(p.photo)}" alt="${escH(p.n)}"/>`:escH(p.ini||'')}</span>
+      <span style="flex:1;min-width:0"><b class="sub">${escH(p.n)}</b><div class="cap">${escH(p.r||'')}</div></span>
+      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+    <div class="stack tight">
+      <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">${past?'برگزار شد':'زمان'}</span><b>${escH(when)}</b></div>
+      ${past?`<div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">حجم بسته</span><b>${escH(e.rec)}</b></div>`
+           :`<div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${escH(e.place)}</span><b>${room}</b></div>`}
+      ${past?`<div class="srow"><svg class="i"><use href="#i-play"/></svg><span class="sp">رسانه‌ها</span><b>${faN(e.mediaCount)} قلم · ${faN(e.sold)} خرید</b></div>`
+           :`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span><b>${price(price1)}</b></div>`}
+      ${online?`<div class="srow"><svg class="i"><use href="#i-video"/></svg><span class="sp">${past?'این برنامه ضبط شده؛ آنلاین تماشا می‌کنی':'جلسه آنلاین؛ لینک ورود ۱۵ دقیقه قبل می‌آید'}</span><b>${escH(past?'ضبط شده':'زنده')}</b></div>`:''}
+    </div>
+    ${(!past&&e.cap)?`<div class="bar" style="margin-top:10px"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
+      <div class="cap" style="margin-top:6px">${full?'ظرفیت تکمیل؛ ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(e.cap-e.taken)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
+    <p class="sub" style="margin-top:12px">${escH(e.d||'')}</p>
+    ${(e.parts||[]).length?`<div class="stack tight" style="margin-top:10px">${e.parts.slice(0,3).map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${escH(x)}</span></div>`).join('')}</div>`:''}
+    ${mediaHtml}
+    <div class="moneyline" style="margin-top:14px">
+      <span>${past?(price1?'بستهٔ کامل':'این بسته'):(price1?'مبلغ ثبت‌نام':'شرکت رایگان')}</span>
+      <span class="num">${past?price(price1):priceTxt2(price1)}</span></div>
+    <div class="row" style="margin-top:10px">
+      <a class="btn primary" href="${href}"><svg class="i"><use href="#i-${past?'play':'pen'}"/></svg> جزئیات و ${past?'تهیه':'ثبت‌نام'}</a>
+      <button class="btn quiet" data-uipin="${past?'pa':'ev'}:${escH(e.id)}"><svg class="i"><use href="#i-pin"/></svg> سنجاق</button>
+      <button class="btn quiet" data-uishare="${escH(e.id)}"><svg class="i"><use href="#i-share"/></svg> اشتراک</button>
+    </div>
+    <p class="cap" style="margin-top:10px">صفحهٔ اختصاصی رویداد، جزئیات کامل و لینک ثبت‌نام را باز می‌کند.</p>`,true);
+}
+const priceTxt2=price;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   پخش‌کنندهٔ ویدیو، صدا و فایل، همه آنلاین
+   ══════════════════════════════════════════════════════════════════════════ */
+let PLAY={id:null,past:null,item:null,sec:0,len:0,timer:null,rate:1,playing:false};
+function playState(){
+  const box=document.getElementById('playIn');
+  if(!box||!PLAY.item) return;
+  const len=PLAY.len, sec=PLAY.sec, pct=Math.min(100,sec/len*100);
+  const t=box.querySelector('[data-uidx]');
+  if(t){t.style.width=pct+'%';
+    box.querySelector('[data-utime]').textContent=faN(Math.floor(sec/60))+':'+String(faN(Math.floor(sec%60))).padStart(2,'۰');
+    box.querySelector('[data-ulen]').textContent=faN(Math.floor(len/60))+':'+String(faN(Math.floor(len%60))).padStart(2,'۰');}
+  const b=box.querySelector('[data-uiplay]');
+  if(b) b.innerHTML=`<svg class="i" style="width:22px;height:22px"><use href="#${PLAY.playing?'i-pause':'i-play-f'}"/></svg>`;
+}
+function playTick(){
+  clearInterval(PLAY.timer);
+  PLAY.timer=setInterval(()=>{
+    if(!PLAY.playing) return;
+    PLAY.sec+=1*PLAY.rate;
+    if(PLAY.sec>=PLAY.len){PLAY.sec=PLAY.len; PLAY.playing=false; setProgress(PLAY.id,0); playState(); return}
+    setProgress(PLAY.id,PLAY.sec); playState();
+  },1000);
+}
+function player(pastId,mediaId){
+  const N=window.NORA||{}, H=(N.PAST||[]).find(x=>x.id===pastId); if(!H) return;
+  const i=(H.media||[]).findIndex(m=>m.id===mediaId); if(i<0) return;
+  const m=H.media[i], kd=(N.MEDIA_KINDS||{})[m.k]||{n:'رسانه',v:'تماشا'};
+  if(m.p&&!hasLib(m.id)&&!hasLib(H.id)){buySheet(pastId,mediaId); return}
+  PLAY={id:m.id,past:pastId,item:m,sec:progressOf(m.id),len:m.k==='audio'?30*60:m.k==='video'?95*60:12*60,rate:1,playing:true,timer:null};
+  const nx=H.media[i+1], pv=H.media[i-1];
+  fillSheet('shPlay',`
+    <div class="grabber"></div>
+    <div class="row" style="align-items:center;margin-bottom:10px">
+      <div><div class="head">${escH(kd.n)} · ${escH(H.t)}</div><div class="cap">${escH(m.t)}</div></div>
+      <span class="sp"></span>
+      <button class="btn sm quiet" data-uishare="${escH(H.id)}"><svg class="i"><use href="#i-share"/></svg> اشتراک</button>
+      <button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div id="playIn">
+      ${m.k==='pdf'||m.k==='slide'?`
+        <div class="pdoc"><svg class="i" style="width:34px;height:34px"><use href="#i-${m.k==='pdf'?'i-doc'.slice(2):'layers'}"/></svg>
+          <b>${escH(m.t)}</b><div class="cap">${escH(m.d)} · ${escH(m.s)}</div></div>`
+      :`<div class="pstage" style="--g:${escH(H.g||'')}">
+          ${H.poster?`<img src="${escH(H.poster)}" alt="" loading="lazy"/>`:''}
+          <span class="esh-veil"></span>
+          ${m.k==='audio'?`<span class="pwaves">${Array.from({length:26},(_,k)=>`<i style="height:${18+((k*7)%46)}%"></i>`).join('')}</span>`:''}
+          <button class="pbig" data-uiplay="${escH(m.id)}" aria-label="پخش"><svg class="i" style="width:22px;height:22px"><use href="#i-play-f"/></svg></button>
+          <span class="cap pcap">${escH(H.t)}</span>
+        </div>`}
+      <div class="pbar">
+        <div class="ptrack" data-uiseek><i data-uidx style="width:0%"></i></div>
+        <div class="row" style="align-items:center;margin-top:6px">
+          <span class="cap num" data-utime>۰:۰۰</span><span class="cap">/</span><span class="cap num" data-ulen>۰:۰۰</span>
+          <span class="sp" style="flex:1"></span>
+          ${pv?`<button class="icon-btn" data-uimedia="${escH(H.id)}:${escH(pv.id)}" aria-label="قبلی"><svg class="i"><use href="#i-back"/></svg></button>`:''}
+          <button class="pbtn" data-uiplay="${escH(m.id)}" aria-label="پخش/توقف"></button>
+          ${nx?`<button class="icon-btn" data-uimedia="${escH(H.id)}:${escH(nx.id)}" aria-label="بعدی"><svg class="i" style="transform:scaleX(-1)"><use href="#i-back"/></svg></button>`:''}
+          <span class="sp" style="flex:1"></span>
+          <span class="row tight">${[1,1.25,1.5,2].map(r=>`<button class="chip${r===1?' on':''}" data-uirate="${r}">${faN(r)}×</button>`).join('')}</span>
+        </div>
+      </div>
+    </div>
+    <div class="stack tight" style="margin-top:12px">
+      ${(m.k==='pdf'||m.k==='slide')
+        ? `<button class="btn primary block" data-uidl="${escH(m.id)}"><svg class="i"><use href="#i-download"/></svg> دانلود ${escH(m.s)}</button>
+           <button class="btn quiet block" data-uiopen="${escH(H.id)}:${escH(m.id)}"><svg class="i"><use href="#i-link"/></svg> باز کردن در تب تازه</button>`
+        : `<div class="srow"><svg class="i"><use href="#i-wifi"/></svg><span class="sp">کیفیت پخش</span><b>۷۲۰p · خودکار</b></div>
+           <div class="srow"><svg class="i"><use href="#i-download"/></svg><span class="sp">دانلود برای تماشای بی‌آفلاین</span><b>${escH(m.s)}</b></div>`}
+      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">دسترسی</span><b>${escH(H.access||'دسترسی همیشگی')}</b></div>
+    </div>
+    <div class="sec-hd" style="margin-top:14px"><span class="fw">ادامهٔ بسته</span><span class="sp"></span><span class="cap">${faN(H.media.length)} قلم</span></div>
+    ${mediaList(H)}`);
+  playState(); playTick();
+  document.querySelectorAll('.sheet').forEach(s=>{if(s.id!=='shPlay') s.classList.remove('on')});
+}
+
+/* ── خرید: کیف پول یا درگاه ── */
+function uid(){const u=walletUser(); return u?u.mobile||u.name:''}
+function walletUser(){
+  const u=jread(SESS_KEY,null);
+  return (u&&typeof u==='object'&&u.name)?u:null;
+}
+function saveWalletUser(u){jwrite(SESS_KEY,u)}
+function buySheet(pastId,mediaId){
+  const N=window.NORA||{}, H=(N.PAST||[]).find(x=>x.id===pastId); if(!H) return;
+  const m=mediaId?(H.media||[]).find(x=>x.id===mediaId):null;
+  const amount=m?m.p:H.bundle, title=m?m.t:H.t+'، بستهٔ کامل';
+  const u=walletUser();
+  const method=jread('nora-home-pay',{k:'wallet'})||{k:'wallet'};
+  fillSheet('shBuy',`
+    <div class="grabber"></div>
+    <div class="row" style="align-items:center;margin-bottom:10px">
+      <div><div class="head">${m?'خرید تک‌قلم':'خرید بستهٔ کامل'}</div><div class="cap">${escH(H.t)}</div></div>
+      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="stack tight">
+      <div class="srow"><svg class="i"><use href="#${m?(((N.MEDIA_KINDS||{})[m.k]||{}).i||'i-play'):'i-archive'}"/></svg><span class="sp">${escH(title)}</span><b>${price(amount)}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${m?'قطعهٔ انتخاب‌شده':faN(H.mediaCount)+' رسانه، همهٔ قطعه‌ها'}</span><b>${escH(H.access||'همیشگی')}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-shield"/></svg><span class="sp">ضمانت</span><b>۷ روز بازگشت وجه</b></div>
+    </div>
+    <div class="cap" style="margin:12px 0 4px">راه پرداخت</div>
+    <div class="stack tight">
+      <button class="opt ${method.k==='wallet'?'on':''}" data-uipay="wallet">
+        <span class="mk"></span><span class="sp">کیف پول نورا ${u?'· '+faN(u.wallet||0)+' ریال':''}</span>
+        ${u&&(u.wallet||0)>=amount?'<span class="cap ok">موجود</span>':'<span class="cap warn">شارژ لازم است</span>'}</button>
+      <button class="opt ${method.k==='gateway'?'on':''}" data-uipay="gateway">
+        <span class="mk"></span><span class="sp">پرداخت آنلاین (درگاه بله)</span><span class="cap">کارت‌های شتاب</span></button>
+    </div>
+    <div class="moneyline" style="margin-top:12px"><span>مبلغ پرداخت</span><span class="num">${price(amount)}</span></div>
+    <button class="btn primary block" style="margin-top:10px" data-uipayyes="${escH(pastId)}:${escH(mediaId||'')}">
+      <svg class="i"><use href="#i-bag"/></svg> پرداخت و دسترسی فوری</button>
+    <p class="cap" style="margin-top:10px">بعد از پرداخت، همین لحظه در «کتابخانهٔ من» می‌آید و بی‌آنکه جایی بروی، باز می‌شود.</p>`);
+}
+function doBuy(pastId,mediaId){
+  const N=window.NORA||{}, H=(N.PAST||[]).find(x=>x.id===pastId); if(!H) return;
+  const m=mediaId?(H.media||[]).find(x=>x.id===mediaId):null;
+  const amount=m?m.p:H.bundle;
+  let u=walletUser();
+  if(!u){ authSheet(()=>doBuy(pastId,mediaId)); return }
+  const method=(jread('nora-home-pay',{k:'wallet'})||{k:'wallet'}).k;
+  if(method==='wallet'){
+    if((u.wallet||0)<amount){toast('کیف پول کمتر از مبلغ است؛ درگاه را بزن یا کیف پول را شارژ کن'); return}
+    u.wallet=(u.wallet||0)-amount; saveWalletUser(u);
+  }
+  if(m) addLib(m.id,{k:'past',past:pastId,t:m.t,kind:m.k});
+  else (H.media||[]).forEach(x=>addLib(x.id,{k:'past',past:pastId,t:x.t,kind:x.k})), addLib(H.id,{k:'bundle',t:H.t});
+  closeSheets(); toast('ثبت شد؛ «'+ (m?m.t:H.t) +'» در کتابخانهٔ تو نشست');
+  document.dispatchEvent(new CustomEvent('nora:library'));
+  if(m && (m.k==='video'||m.k==='audio')) player(pastId,m.id);
+}
+
+/* ── ورود: یک نسخهٔ کوچک برای خرید و کارهای نیازمند حساب ── */
+function authSheet(after){
+  const pend=jread('nora-home-auth',null)||null;
+  const step=pend&&pend.step==='code'?'code':'phone', mob=(pend&&pend.mobile)||'';
+  fillSheet('shAuth',`
+    <div class="grabber"></div>
+    <div class="row" style="align-items:center;margin-bottom:10px">
+      <div><div class="head">${step==='code'?'کد تأیید':'ورود با شمارهٔ موبایل'}</div>
+        <div class="cap">${step==='code'?'کد به '+(mob?'۰'+'۹…'+mob.slice(-4):'شماره‌ات')+' فرستادیم':'برای تهیه و کتابخانه لازم است؛ رمزی ندارد'}</div></div>
+      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+    ${step==='code'
+      ? `<label class="lbl" for="uicode">کد پنج‌رقمی</label>
+         <input class="input num" id="uicode" inputmode="numeric" placeholder="•••••" autocomplete="one-time-code"/>
+         <div class="cap" style="margin-top:7px">کد نمایشی این نمونه: ۵۴۳۲۱</div>
+         <div class="row" style="margin-top:12px"><button class="btn primary" data-uicode><svg class="i"><use href="#i-check"/></svg> ورود</button>
+           <button class="btn quiet" data-uiback>تغییر شماره</button></div>`
+      : `<label class="lbl" for="uimob">شمارهٔ موبایل</label>
+         <input class="input num" id="uimob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(mob)}"/>
+         <div class="row" style="margin-top:12px"><button class="btn primary" data-uiphone><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
+           <button class="btn quiet" data-close>بعداً</button></div>`}
+    <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>`);
+  if(typeof after==='function') authSheet.after=after;   /* از پله‌های ورود رد نشو */
+  else if(authSheet.after===undefined) authSheet.after=null;
+}
+function authDone(){
+  const after=authSheet.after; authSheet.after=null;
+  closeSheets();
+  if(typeof after==='function') setTimeout(after,60);
+}
+
+/* ── سنجاق و اشتراک مشترک ── */
+function sharedPin(key,id){
+  let a=jread('nora-home-pins',[]); if(!Array.isArray(a)) a=[];
+  const k=key+':'+id;
+  if(a.includes(k)) a=a.filter(x=>x!==k); else a.push(k);
+  jwrite('nora-home-pins',a); return a.includes(k);
+}
+function sharedShare(id){
+  const N=window.NORA||{};
+  const e=(N.EVENTS||[]).find(x=>x.id===id)||(N.PAST||[]).find(x=>x.id===id);
+  shareItem({title:(e?e.t:'رویداد نورا'),text:(e?(e.d||e.when||''):'رویداد گروه فرهنگی خط زندگی'),url:'https://lifeline1.ir/e/'+id});
+}
+
+/* ── جهت‌دهی منو بر پایهٔ صفحه ── */
+function menuRoute(el){
+  const N=window.NORA||{};
+  if(el.dataset.uihref){ location.href=el.dataset.uihref; return }
+  if(el.dataset.uiev){ eventSheet(el.dataset.uiev); return }
+  const H=window.NORA_HOME;                          /* در خانه، خودِ صفحه صاحب ورقه‌هاست */
+  const f=el.dataset.uif, j=el.dataset.uijump;
+  if(f){
+    if(H&&H.openF){ H.openF(f); return }
+    if(document.getElementById(f)){ uiOpen(f); return }
+    const map={shClub:'club', shAccount:'me', shInvite:'me', shNotice:'notice', shVerify:'verify', shFaq:'faq', shSupport:'support'};
+    location.href='home.html#'+(map[f]||'menu'); return;
+  }
+  if(j){
+    if(H){ closeSheets(); const t=document.getElementById(j); if(t){t.scrollIntoView({behavior:'smooth',block:'start'}); return} }
+    else { const t=document.getElementById(j); if(t){closeSheets(); t.scrollIntoView({behavior:'smooth',block:'start'}); return} }
+    const map={pastSec:'media', articles:'articles', teachers:'teachers', staff:'staff', partners:'partners'};
+    location.href = (j==='pastSec') ? 'events.html#media' : 'home.html#'+j;
+    return;
+  }
+  closeSheets();
+}
+
+/* ── باز کردن هر ورقهٔ مشترک ── */
+function uiOpen(id){
+  if(id==='shNotice'||id==='notice'){ fillSheet('shNotice',noticesSheet()); openSheet('shNotice'); return }
+  if(id==='shMenu'||id==='menu'){ fillSheet('shMenu',menuSheet()); openSheet('shMenu'); return }
+  if(id.sheet) return;
+  openSheet(id);
+}
+
+/* ── رهگیری کلیک‌های مشترک: هر صفحه‌ای که ui.js را دارد ── */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const nb=t.closest('[data-notice],[href$="#notice"]');
+  if(nb){e.preventDefault(); uiOpen('shNotice'); return}
+  const mb=t.closest('[data-menu],[href$="#menu"]');
+  if(mb){e.preventDefault(); uiOpen('shMenu'); return}
+  const mr=t.closest('[data-uihref],[data-uiev],[data-uif],[data-uijump]');
+  if(mr){menuRoute(mr); return}
+  const pd=t.closest('[data-uiperson]'); if(pd){location.href='home.html#p='+pd.dataset.uiperson; return}
+  const pin=t.closest('[data-uipin]'); if(pin){const [k,i]=pin.dataset.uipin.split(':');
+    toast(sharedPin(k,i)?'سنجاق شد':'از سنجاق درآمد'); return}
+  const sh=t.closest('[data-uishare]'); if(sh){sharedShare(sh.dataset.uishare); return}
+  const rd=t.closest('[data-uireadall]'); if(rd){
+    ((window.NORA&&window.NORA.NOTICES)||[]).forEach(n=>markRead(n.t)); uiOpen('shNotice'); toast('همه خوانده شد'); return}
+  const md=t.closest('[data-uimedia]'); if(md){const [h,m]=md.dataset.uimedia.split(':'); player(h,m); return}
+  const by=t.closest('[data-uibuy]'); if(by){const [h,m]=by.dataset.uibuy.split(':'); buySheet(h,m); return}
+  const py=t.closest('[data-uipay]'); if(py){jwrite('nora-home-pay',{k:py.dataset.uipay});
+    const [h,m]=((document.querySelector('[data-uipayyes]')||{}).dataset||{}).uipayyes.split(':'); buySheet(h,m); return}
+  const pz=t.closest('[data-uipayyes]'); if(pz){const [h,m]=pz.dataset.uipayyes.split(':'); doBuy(h,m||null); return}
+  const pl=t.closest('[data-uiplay]');
+  if(pl){ if(pl.dataset.uiplay&&pl.dataset.uiplay!==PLAY.id){return}
+    PLAY.playing=!PLAY.playing; playState(); playTick(); return }
+  const sk=t.closest('[data-uiseek]');
+  if(sk){const r=sk.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width; PLAY.sec=Math.round(PLAY.len*(document.dir==='rtl'?1-x:x));
+    setProgress(PLAY.id,PLAY.sec); playState(); return}
+  const rt=t.closest('[data-uirate]'); if(rt){PLAY.rate=+rt.dataset.uirate;
+    document.querySelectorAll('#shPlay [data-uirate]').forEach(b=>b.classList.toggle('on',b===rt)); toast('سرعت پخش: '+faN(PLAY.rate)+' برابر'); return}
+  const dl=t.closest('[data-uidl]'); if(dl){toast('دانلود شروع شد؛ در پوشهٔ دانلود گوشی'); return}
+  const op=t.closest('[data-uiopen]'); if(op){toast('فایل در تب تازه باز شد'); return}
+  const ph=t.closest('[data-uiphone]'); if(ph){
+    const v=unFa((document.getElementById('uimob')||{}).value||'').replace(/\D/g,'');
+    if(!/^09\d{9}$/.test(v)){toast('شماره را کامل بنویس؛ ۱۱ رقم، با ۰۹'); return}
+    jwrite('nora-home-auth',{step:'code',mobile:v}); authSheet(); return}
+  const cd=t.closest('[data-uicode]'); if(cd){
+    const v=unFa((document.getElementById('uicode')||{}).value||'').replace(/\D/g,'');
+    if(v!=='54321'){toast('کد نمایشی ۵۴۳۲۱ است'); return}
+    const pend=jread('nora-home-auth',null)||{};
+    jwrite(SESS_KEY,{name:'سارا محمدی',mobile:pend.mobile||'',joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1});
+    jwrite('nora-home-auth',null); syncBell(); authDone(); toast('خوش آمدی؛ حالا خرید و کتابخانه در دسترس است'); return}
+  const bk=t.closest('[data-uiback]'); if(bk){jwrite('nora-home-auth',{step:'phone',mobile:''}); authSheet(); return}
+},false);
+
+/* ── نشانی‌های مشترک: #notice · #menu · #media · #lib · ?ev=/id ── */
+function uiHash(){
+  const h=(location.hash||'').replace('#','');
+  const P=new URLSearchParams(location.search);
+  if(P.get('notice')||h==='notice') uiOpen('shNotice');
+  if(P.get('menu')||h==='menu') uiOpen('shMenu');
+  const eid=P.get('ev')||P.get('id');
+  if(eid&&!document.getElementById('shEvent')) eventSheet(eid);
+}
+addEventListener('hashchange',uiHash);
+
 /* ── راه‌اندازی پوستهٔ مشترک ── */
 sheetA11y();
-window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y});
+syncBell();
+try{uiHash()}catch(e){}
+window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
+  uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
+  authSheet:authSheet,uid:uid,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
+  unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>نورا — رویدادها و برنامه‌ها</title>
+<meta name="description" content="همهٔ رویدادها و برگزارشده‌ها با صافی و خرید بازپخش"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="نورا — گروه فرهنگی خط زندگی"/>
+<link rel="canonical" href="https://lifeline1.ir/event.html"/>
+<meta property="og:title" content="رویدادهای نورا — خط زندگی"/>
+<meta property="og:description" content="رویدادهای پیش‌رو و برگزارشده، با صافی و بازپخش."/>
+<meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
+<meta property="og:locale" content="fa_IR"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="icon" href="icon-192.png"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+
+<meta name="description" content="همهٔ رویدادها، کارگاه‌ها و برنامه‌های گروه فرهنگی خط زندگی — تقویم ماهانه، فهرست و دسته‌بندی"/>
+<meta name="theme-color" content="#F5F3EE"/>
+<script>/* تم پیش از نخستین رنگ‌آمیزی می‌نشیند تا در حالت شب، سفیدیِ اولیه دیده نشود */
+(function(){try{var v=localStorage.getItem('nora-theme');
+if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
+var m=document.querySelector('meta[name="theme-color"]');
+if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
+<link rel="stylesheet" href="glass.css"/>
+<link rel="stylesheet" href="nora.css"/>
+<link rel="stylesheet" href="events.css"/>
+<style>
+  html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
+    backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
+  .evHero{border-radius:var(--r-xl);padding:18px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#0A56B8,#0B2447)}
+  .evHero h1{margin:0 0 6px;font-size:21px;letter-spacing:-.5px}
+  .evHero p{margin:0;font-size:13px;color:rgba(255,255,255,.9);line-height:1.8;max-width:44ch}
+  .hstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px;position:relative;z-index:1}
+  .hstats .s{background:rgba(255,255,255,.14);border:.5px solid rgba(255,255,255,.2);border-radius:var(--r-md);padding:8px 6px;text-align:center}
+  .hstats .s b{display:block;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .hstats .s span{font-size:10.5px;color:rgba(255,255,255,.86)}
+  @media (max-width:420px){.hstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .monthsw{display:flex;gap:7px;margin-bottom:10px}
+  .monthsw button{-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;padding:7px 13px;border-radius:99px;
+    border:.5px solid var(--hairline);background:var(--surface);color:var(--ink-2);font-size:12px;font-weight:600}
+  .monthsw button.on{background:var(--brand);border-color:transparent;color:#fff}
+  .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .calgrid .wd{text-align:center;font-size:10.5px;color:var(--ink-4);padding-bottom:2px}
+  .cel{position:relative;-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;aspect-ratio:1/1;border-radius:13px;
+    border:.5px solid var(--hairline);background:var(--surface);color:var(--ink);display:grid;place-items:center;
+    font-size:13px;font-variant-numeric:tabular-nums;transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
+  .cel.blank{border:0;background:none;cursor:default}
+  .cel:hover:not(.blank){border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
+  .cel:active:not(.blank){transform:scale(.94)}
+  .cel.has{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink);font-weight:700}
+  .cel.today{border-color:var(--brand);border-width:1.5px}
+  .cel.sel{background:var(--brand);color:#fff;border-color:transparent}
+  .cel .dots{position:absolute;bottom:5px;display:flex;gap:2.5px;justify-content:center}
+  .cel .dots i{width:4.5px;height:4.5px;border-radius:50%;background:currentColor;opacity:.75}
+  .cel.sel .dots i{background:#fff}
+  .dayhd{display:flex;align-items:center;gap:8px;margin:16px 0 8px}
+  .dayhd b{font-size:14px}
+  .dayhd .sp{flex:1}
+  .catgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  @media (min-width:560px){.catgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .cattile{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:start;display:grid;gap:5px;
+    padding:13px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface)}
+  .cattile:hover{border-color:color-mix(in oklab,var(--brand) 42%,transparent);transform:translateY(-1.5px)}
+  .cattile .ci{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
+  .cattile .ci .i{width:21px;height:21px}
+  .cattile b{font-size:13px}
+  .cattile small{font-size:10.5px;color:var(--ink-3)}
+  @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);border-end-start-radius:26px;border-end-end-radius:26px}
+    .sheet.on{transform:translate(-50%,0)}}
+  .fcrow{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 8px}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
+<!-- ══ مجموعهٔ آیکون نورا — شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
+
+<symbol id="i-plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.2v13.6M5.2 12h13.6"/></g></symbol>
+
+<symbol id="i-drag" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9.2" cy="7" r="1.35"/><circle cx="14.8" cy="7" r="1.35"/><circle cx="9.2" cy="12" r="1.35"/><circle cx="14.8" cy="12" r="1.35"/><circle cx="9.2" cy="17" r="1.35"/><circle cx="14.8" cy="17" r="1.35"/></g></symbol>
+
+<symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11z" fill="currentColor"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
+
+<symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
+
+<symbol id="i-trend" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 18.4l4.6-5.2 3.3 2.9 5.9-7.6"/><path d="M13.6 8.2h4.4v4.4"/></g></symbol>
+
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></g></symbol>
+
+<symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.6A2.6 2.6 0 0 1 6.2 6h11.6a2.6 2.6 0 0 1 2.6 2.6v6.8a2.6 2.6 0 0 1-2.6 2.6H6.2a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M3.6 11.6h16.8"/><circle cx="16.6" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-ticket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 9.4V7.8a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v1.6a2.8 2.8 0 0 0 0 5.2v1.6a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6v-1.6a2.8 2.8 0 0 0 0-5.2z"/><path d="M14.2 6.2v11.6" stroke-dasharray="2.2 2.6"/></g></symbol>
+
+<symbol id="i-medal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.4" r="4.6"/><path d="M9.1 13.4 7.4 20.6l4.6-2.4 4.6 2.4-1.7-7.2"/></g></symbol>
+
+<symbol id="i-idcard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><circle cx="8.9" cy="10.6" r="2.1"/><path d="M5.4 16c.5-1.9 1.9-2.9 3.5-2.9s3 1 3.5 2.9"/><path d="M14.6 10.2h3.4M14.6 13.4h2.2"/></g></symbol>
+
+<symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 10.6h16M8.6 3.6v3.4M15.4 3.6v3.4"/></g></symbol>
+
+<symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.1 2"/></g></symbol>
+
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20.2 20.2"/></g></symbol>
+
+<symbol id="i-filter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.2 6.4h15.6M7.2 12h9.6M10.2 17.6h3.6"/></g></symbol>
+
+<symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
+
+<symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
+
+<symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
+<symbol id="i-chev-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 6.4 8.8 12l5.6 5.6"/></g></symbol>
+
+<symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"/></g></symbol>
+
+<symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.6h8.4M17.4 8.6h2.6M4 15.4h3.4M12.4 15.4h7.6"/><circle cx="15.4" cy="8.6" r="2.1"/><circle cx="10.4" cy="15.4" r="2.1"/></g></symbol>
+
+<symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6v10.2"/><path d="M8.4 7.2 12 3.6l3.6 3.6"/><path d="M7.4 11.4H6.2a1.8 1.8 0 0 0-1.8 1.8v5a1.8 1.8 0 0 0 1.8 1.8h11.6a1.8 1.8 0 0 0 1.8-1.8v-5a1.8 1.8 0 0 0-1.8-1.8h-1.2"/></g></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 14.4 14.4 9.6"/><path d="M11.4 7.2 12.9 5.7a4 4 0 0 1 5.6 5.6l-1.5 1.5"/><path d="M12.6 16.8 11.1 18.3a4 4 0 0 1-5.6-5.6l1.5-1.5"/></g></symbol>
+
+<symbol id="i-qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4.2 8V5.8A1.6 1.6 0 0 1 5.8 4.2H8M16 4.2h2.2A1.6 1.6 0 0 1 19.8 5.8V8M19.8 16v2.2a1.6 1.6 0 0 1-1.6 1.6H16M8 19.8H5.8a1.6 1.6 0 0 1-1.6-1.6V16"/><rect x="7.4" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="13" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="7.4" y="13" width="3.6" height="3.6" rx="1"/><path d="M13 13h1.8v1.8H13zM16.6 16.6H18.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8A2.4 2.4 0 0 1 6 5.6h12A2.4 2.4 0 0 1 20.4 8v8a2.4 2.4 0 0 1-2.4 2.4H6A2.4 2.4 0 0 1 3.6 16z"/><path d="M4.4 7.6 12 13.2l7.6-5.6"/></g></symbol>
+
+<symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
+
+<symbol id="i-star" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.4l2.5 5 5.5.8-4 3.9.95 5.5L12 17.1l-4.95 2.5.95-5.5-4-3.9 5.5-.8z"/></g></symbol>
+
+<symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.8s-7.2-4.4-7.2-9.4A4.4 4.4 0 0 1 12 7.1a4.4 4.4 0 0 1 7.2 3.3c0 5-7.2 9.4-7.2 9.4z"/></g></symbol>
+
+<symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 7.4h14.4"/><path d="M9.2 7.4V5.6h5.6v1.8"/><path d="M6.6 7.4 7.6 20h8.8l1-12.6"/><path d="M10.4 11v5.4M13.6 11v5.4"/></g></symbol>
+
+<symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9.6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2z"/><path d="M6.4 15.8a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2"/></g></symbol>
+
+<symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="6.2" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17.8" r="1.5"/></g></symbol>
+
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6 5 12l6 6"/></g></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></g></symbol>
+
+<symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2v10.4"/><path d="M7.8 10.6 12 14.8l4.2-4.2"/><path d="M5 19.4h14"/></g></symbol>
+
+<symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.4V9"/><path d="M7.8 13.2 12 9l4.2 4.2"/><path d="M5 4.6h14"/></g></symbol>
+
+<symbol id="i-branch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 4.6v6.6a3.6 3.6 0 0 0 3.6 3.6h6"/><path d="M14.4 11.6 17.6 14.8l-3.2 3.2"/><path d="M7.2 15.4v4.2"/></g></symbol>
+
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 11.6a1.6 1.6 0 0 1 1.6-1.6h10a1.6 1.6 0 0 1 1.6 1.6v6.8a1.6 1.6 0 0 1-1.6 1.6H7a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M8.6 10V8.2a3.4 3.4 0 0 1 6.8 0V10"/></g></symbol>
+
+<symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4"/><path d="M12 3.8c2.5 2.6 2.5 13.8 0 16.4-2.5-2.6-2.5-13.8 0-16.4z"/></g></symbol>
+
+<symbol id="i-mobile" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.4h8.4a1.6 1.6 0 0 1 1.6 1.6v12a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V6a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M10.8 17.6h2.4"/></g></symbol>
+
+<symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 18.4 10 6.2l4.4 12.2"/><path d="M7.2 14.2h5.6"/></g></symbol>
+
+<symbol id="i-number" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8.4 4.4 7 19.6M16 4.4 14.6 19.6M4.6 9.2h15M4 14.8h15"/></g></symbol>
+
+<symbol id="i-radio" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7.8"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-checkbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="4.4"/><path d="M8.4 12.2l2.6 2.6 4.6-5"/></g></symbol>
+
+<symbol id="i-lines" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.2" y="4.6" width="15.6" height="14.8" rx="3.4"/><path d="M7.6 9.4h8.8M7.6 12.6h8.8M7.6 15.8h5.2"/></g></symbol>
+
+<symbol id="i-file-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.6h6.6l4.2 4.2v12.6H6.6z"/><path d="M13.2 3.6v4.2h4.2"/><path d="M12 16.4v-4.6M10 13.8l2-2 2 2"/></g></symbol>
+
+<symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+
+<symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 4.6l3 3L9.2 17.8l-4 1.2 1.2-4z"/><path d="M14.6 6.6l3 3"/></g></symbol>
+
+<symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></g></symbol>
+
+<symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 5.6 17.8 12l-9.4 6.4z"/></g></symbol>
+
+<symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 3.8 3.8 10.4l6.4 3 3 6.4z"/><path d="M10.2 13.4 13.6 10"/></g></symbol>
+
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4.4" y="4.4" width="6" height="6" rx="2"/><rect x="13.6" y="4.4" width="6" height="6" rx="2"/><rect x="4.4" y="13.6" width="6" height="6" rx="2"/><rect x="13.6" y="13.6" width="6" height="6" rx="2"/></g></symbol>
+
+<symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="17" r="1.3" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-bag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 8.4h12.8l1.2 11.6H4.4z"/><path d="M9.2 8.4V6.6a2.8 2.8 0 0 1 5.6 0v1.8"/></g></symbol>
+
+<symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.8v16.8"/><path d="M6.4 5.2h11.2l-2.2 3.6 2.2 3.6H6.4z"/></g></symbol>
+
+<symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 3.8 8.2 12 12.8l8.2-4.6z"/><path d="M4.6 12.4 12 16.6l7.4-4.2"/><path d="M4.6 16.4 12 20.6l7.4-4.2"/></g></symbol>
+
+<symbol id="i-bolt" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 3.4 6.2 13.2h4.6l-.8 7.4 7.2-9.8h-4.6z"/></g></symbol>
+
+<symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.2" cy="8.2" r="4"/><path d="M11.1 11.1 19 19"/><path d="M16.4 16.4 18.8 14M14.2 14.2 16.6 11.8"/></g></symbol>
+
+<symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
+
+<symbol id="i-inbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 12.6 6.6 5.4h10.8l2.4 7.2v5.2a1.6 1.6 0 0 1-1.6 1.6H5.8a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M4.2 12.6h4.2l.8 2.2h5.6l.8-2.2h4.2"/></g></symbol>
+
+<symbol id="i-align" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.4 6.6h15.2M4.4 12h9.4M4.4 17.4h12"/></g></symbol>
+
+<symbol id="i-type" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 6.2h12.8M12 6.2v11.6"/></g></symbol>
+
+<symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
+
+<symbol id="i-wifi" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 9.9a11.4 11.4 0 0 1 14.8 0"/><path d="M7.4 13.1a7.4 7.4 0 0 1 9.2 0"/><path d="M10 16.2a3.6 3.6 0 0 1 4 0"/><circle cx="12" cy="19.3" r="1.05" fill="currentColor" stroke="none"/></g></symbol>
+<symbol id="i-play-f" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 5.9c0-.83-.9-1.35-1.62-.94L5.6 10.06c-.72.41-.72 1.47 0 1.88l8.28 5.1c.72.41 1.62-.11 1.62-.94z"/></symbol>
+<symbol id="i-calendar-f" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5.4h14a2 2 0 0 1 2 2v11.2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.4a2 2 0 0 1 2-2z"/><path d="M3 9.9h18" stroke="var(--surface)" stroke-width="1.7"/><path d="M7.8 3.4v3.4M16.2 3.4v3.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="6.4" width="12.6" height="11.2" rx="2.2"/><path d="M16 10.6l4.6-2.4v7.6L16 13.4z"/><path d="M6.6 9.4v1.4M9.4 9.4v1.4M6.6 13.4v1.4M9.4 13.4v1.4"/></g></symbol>
+<symbol id="i-headphone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 15.4v-2.6a7.4 7.4 0 0 1 14.8 0v2.6"/><path d="M4.6 14.2h1.9c.6 0 1.1.5 1.1 1.1v2.3c0 .6-.5 1.1-1.1 1.1H5.7a1.1 1.1 0 0 1-1.1-1.1z"/><path d="M19.4 14.2h-1.9c-.6 0-1.1.5-1.1 1.1v2.3c0 .6.5 1.1 1.1 1.1h.8a1.1 1.1 0 0 0 1.1-1.1z"/></g></symbol>
+<symbol id="i-graduation" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.8 3.4 8.8 12 12.8l8.6-4z"/><path d="M6.8 10.9v4.4c0 1.3 2.3 2.4 5.2 2.4s5.2-1.1 5.2-2.4v-4.4"/><path d="M20.6 8.8v4.6"/></g></symbol>
+<symbol id="i-article" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.8c0-.6.5-1.1 1.1-1.1h10.2c.6 0 1.1.5 1.1 1.1v10.4c0 .6.5 1.1 1.1 1.1H6.6A2.6 2.6 0 0 1 4 15.7z"/><path d="M16.4 9.4h3.5v6.3a2.6 2.6 0 0 1-2.6 2.6"/><path d="M6.8 9.4h6.4M6.8 12.6h6.4M6.8 15.8h3.6"/></g></symbol>
+<symbol id="i-handshake" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.4 6.6 8a2 2 0 0 1 2.8 0l2.6 2.6"/><path d="M20.8 11.4 17.4 8a2 2 0 0 0-2.8 0l-2.6 2.6"/><path d="m8.4 12.6 3 3 3-3"/><path d="m10.2 15.2 1.8 1.8 1.8-1.8"/></g></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 8.6h15.6v9.8a1.4 1.4 0 0 1-1.4 1.4H5.6a1.4 1.4 0 0 1-1.4-1.4z"/><path d="M3.2 5.4h17.6v3.2H3.2z"/><path d="M9.8 12.2h4.4"/></g></symbol><symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor"><rect x="7.3" y="5.4" width="3.4" height="13.2" rx="1.5"/><rect x="13.3" y="5.4" width="3.4" height="13.2" rx="1.5"/></g></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.6 5.8 8.4 12l6.2 6.2"/><path d="M8.6 12h9.4" opacity=".4"/></g></symbol>
+</svg>
+<a class="skip" href="#reg">پرش به ثبت‌نام</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="home.html" aria-label="خانهٔ نورا">
+      <span class="mark" aria-hidden="true">ن</span>
+      <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span>
+    </a>
+    <span class="sp"></span>
+    <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
+    <button class="icon-btn" data-notice aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
+  </div>
+</header>
+
+<main class="wrap" id="page" style="padding-bottom:190px"></main>
+
+<nav class="tabbar" aria-label="ناوبری اصلی">
+  <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
+  <a href="events.html" class="on" aria-current="page"><svg class="i"><use href="#i-calendar-f"/></svg><small>رویدادها</small></a>
+  <a href="events.html#lib"><svg class="i"><use href="#i-idcard"/></svg><small>کتابخانهٔ من</small></a>
+</nav>
+
+<div class="ctabar" id="ctabar" hidden><div class="inbar" id="ctaIn"></div></div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="data.js"></script>
+<script src="ui.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   صفحهٔ اختصاصی رویداد و بستهٔ رسانه
+   ──────────────────────────────────────────────────────────────────────
+   از ورقهٔ کلیات این‌جا می‌آییم: جزئیات کامل، لینک ثبت‌نام، رسانه‌ها،
+   تقویم، یادآوری و پشتیبانی، همه در یک صفحهٔ آرام و بی‌شلوغی.
+   ══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const N=window.NORA||{};
+const {EVENTS=[],PAST=[],PEOPLE=[],MEDIA_KINDS={}}=N;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const P=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:''};
+const id=new URLSearchParams(location.search).get('id')||location.hash.replace('#','')||'';
+const E=EVENTS.find(x=>x.id===id), H=PAST.find(x=>x.id===id), e=E||H;
+
+if(!e){
+  $('#page').innerHTML=`<div class="empty" style="margin-top:40px"><svg class="i"><use href="#i-search"/></svg>
+    <p>این رویداد را پیدا نکردم. از فهرست رویدادها یکی را انتخاب کن.</p>
+    <a class="btn primary" href="events.html#list" style="text-decoration:none;margin-top:12px">رفتن به فهرست رویدادها</a></div>`;
+} else { render() }
+
+function room(){
+  const m=e.mode||'';
+  return m.indexOf('حضوری')<0?'آنلاین':(m==='حضوری و آنلاین'?'حضوری و آنلاین':'حضوری');
+}
+function remindOn(){try{return !!JSON.parse(localStorage.getItem('nora-home-remind')||'null')}catch(err){return false}}
+function setRemind(v){try{localStorage.setItem('nora-home-remind',JSON.stringify(v))}catch(err){}}
+
+function render(){
+  const past=!!H, p=P(e.tchr), r=room(), online=r!=='حضوری';
+  const free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0, n=e.cap?Math.max(0,e.cap-e.taken):0;
+  const when=past?e.d:(e.when+' · ساعت '+e.time);
+  document.title=(e.t||'رویداد')+'، نورا';
+  /* اشتراک‌گذاری: عنوان و توضیح همان رویداد، نه متن عمومی صفحه */
+  const og=(sel,txt)=>{const el=document.querySelector(sel); if(el&&txt) el.setAttribute('content',txt)};
+  const desc=(past?'بستهٔ رسانهٔ ':'برنامهٔ ')+e.t+'، '+(past?e.d:(e.when+' ساعت '+e.time))+(e.place?'، '+e.place:'');
+  og('meta[property="og:title"]',(e.t||'رویداد')+'، نورا');
+  og('meta[property="og:description"]',desc);
+  og('meta[name="description"]',desc);
+  const cn=document.querySelector('link[rel="canonical"]'); if(cn) cn.setAttribute('href','https://lifeline1.ir/event.html?id='+(e.id||''));
+
+  $('#page').innerHTML=`
+  <div class="evhero" style="--g:${esc(e.g||'')}">
+    ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}"/>`:''}
+    <span class="eh-veil"></span>
+    <span class="eh-top">
+      <button class="icon-btn" data-back aria-label="بازگشت"><svg class="i"><use href="#i-chev-right"/></svg></button>
+      <span class="sp" style="flex:1"></span>
+      <button class="icon-btn" data-share-this aria-label="اشتراک‌گذاری"><svg class="i"><use href="#i-share"/></svg></button>
+      <button class="icon-btn" data-pin-this aria-label="سنجاق"><svg class="i"><use href="#i-pin"/></svg></button>
+    </span>
+    <span class="eh-in">
+      <span class="row tight">
+        <span class="tag brand">${esc(e.kind||'برنامه')}</span>
+        <span class="tag">${esc(r)}</span>
+        ${past?'<span class="tag ok">برگزار شد</span>':(e.live?'<span class="tag stop">همین حالا در حال برگزاری</span>':'')}
+        ${full&&!past?'<span class="tag warn">ظرفیت تکمیل</span>':''}</span>
+      <h1>${esc(e.t)}</h1>
+      <span class="cap">${esc(when)}${e.place?' · '+esc(e.place):''}${e.time&&!past?' · '+esc(e.time):''}</span>
+    </span>
+  </div>
+
+  <div class="row tight" style="margin-bottom:12px">${(e.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
+    ${online?'<span class="tag accent">آنلاین</span>':''}${past&&e.cert?'<span class="tag accent">گواهی‌دار</span>':''}</div>
+
+  ${online?`<div class="card paper" style="margin-bottom:12px;background:var(--brand-tint);border-color:transparent">
+    <div class="row" style="align-items:center;gap:9px">
+      <svg class="i" style="width:20px;height:20px;color:var(--brand-ink)"><use href="#i-video"/></svg>
+      <span style="flex:1;min-width:0"><b style="font-size:13.5px">${past?'این برنامه ضبط شده و آنلاین می‌بینی':'جلسه آنلاین است، از هر جا شرکت کن'}</b>
+        <div class="cap">${past?'لینک پخش بعد از تهیه، همین‌جا باز می‌شود':'لینک ورود ۱۵ دقیقه قبل در حساب و پیامک می‌آید'}</div></span>
+    </div>
+    ${past?'':`<div class="row tight" style="margin-top:10px">
+      <button class="btn sm quiet" data-remind-here><svg class="i"><use href="#i-bell"/></svg> ${remindOn()?'یادآوری روشن است':'یادآوری یادم بنداز'}</button>
+      <button class="btn sm quiet" data-testlink><svg class="i"><use href="#i-wifi"/></svg> تست اتصال</button>
+      <span class="tag">پلتفرم فارسی، بدون فیلترشکن</span></div>`}
+  </div>`:''}
+
+  <button class="suprow" data-uiperson="${esc(p.id)}" style="margin-bottom:12px">
+    <span class="ava" style="--g:${esc(p.g||'')}">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.n)}"/>`:esc(p.ini||'')}</span>
+    <span style="flex:1;min-width:0"><b class="sub">${esc(p.n)}</b><div class="cap">${esc(p.r||'')}</div></span>
+    <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+
+  <div class="sec-hd"><span class="fw">کلیات</span><span class="sp"></span><span class="cap">کد ${esc(String(e.id).toUpperCase())}</span></div>
+  <div class="stack tight">
+    <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">${past?'تاریخ برگزاری':'زمان'}</span><b>${esc(when)}</b></div>
+    <div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">${past?'حجم بسته':'مدت'}</span><b>${esc(past?e.rec:'حدود ۹۰ دقیقه')}</b></div>
+    <div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${esc(e.place||'—')}</span><b>${esc(r)}</b></div>
+    ${past?`<div class="srow"><svg class="i"><use href="#i-play"/></svg><span class="sp">رسانه‌ها</span><b>${faN(e.mediaCount)} قلم</b></div>`
+         :`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'بدون محدودیت ظرفیت'}</span><b>${e.price?rialTxt(e.price):'رایگان'}</b></div>`}
+    <div class="srow"><svg class="i"><use href="#i-shield"/></svg><span class="sp">گواهینامه</span><b>${e.cert!==false&&(past?e.cert:true)?'با تأیید سرپرست':'ندارد'}</b></div>
+  </div>
+  ${(!past&&e.cap)?`<div class="bar" style="margin-top:10px"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
+    <div class="cap" style="margin-top:6px">${full?'ظرفیت تکمیل؛ ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(n)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
+
+  <div class="sec-hd" style="margin-top:16px"><span class="fw">این برنامه دربارهٔ چیست</span></div>
+  <p class="sub">${esc(e.d||'')}</p>
+  ${(e.parts||[]).length?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
+
+  ${past?`<div class="sec-hd" style="margin-top:16px"><span class="fw">رسانه‌های این بسته</span><span class="sp"></span>
+      <span class="cap">${faN(e.mediaCount)} قلم · ${esc(e.access||'دسترسی همیشگی')}</span></div>
+    <div class="fcrow" id="mfilter"></div>
+    <div id="mlist"></div>
+    <div class="card paper" style="margin-top:12px">
+      <div class="row" style="align-items:center;gap:10px">
+        <svg class="i" style="width:22px;height:22px;color:var(--brand)"><use href="#i-bag"/></svg>
+        <span style="flex:1;min-width:0"><b style="font-size:13.5px">${e.price?'بستهٔ کامل، ارزان‌تر از تک‌تک':'همهٔ رسانه‌ها باز است'}</b>
+          <div class="cap">${e.price?faN(e.mediaCount)+' رسانه · '+esc(e.access||''):'لازم نیست چیزی بخری'}</div></span>
+        <span class="evc-price${e.price?'':' free'}">${e.price?price2(e.price):'رایگان'}</span>
+      </div>
+      ${e.price?`<button class="btn primary block" style="margin-top:10px" data-buy-bundle>
+        <svg class="i"><use href="#i-bag"/></svg> تهیهٔ بستهٔ کامل</button>`:''}
+    </div>
+    ${e.cert?`<div class="card paper" style="margin-top:12px">
+      <div class="row" style="align-items:center;gap:10px">
+        <svg class="i" style="width:22px;height:22px;color:var(--accent-ink)"><use href="#i-medal"/></svg>
+        <span style="flex:1;min-width:0"><b style="font-size:13.5px">گواهینامهٔ پایان دوره</b>
+          <div class="cap">با تماشای کامل رسانه‌ها و تأیید سرپرست صادر می‌شود</div></span>
+      </div>
+      <button class="btn quiet block" style="margin-top:10px" data-cert-req><svg class="i"><use href="#i-medal"/></svg> درخواست گواهینامه</button>
+    </div>`:''}`
+  :`<div class="sec-hd" style="margin-top:16px"><span class="fw">مسیر ثبت‌نام</span></div>
+    <div class="stack tight">
+      <div class="srow"><svg class="i"><use href="#i-pen"/></svg><span class="sp">۱) فرم ثبت‌نام را پر کن</span><b>۳ دقیقه</b></div>
+      <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">۲) پرداخت آنلاین یا کارت‌به‌کارت</span><b>${e.price?rialTxt(e.price):'رایگان'}</b></div>
+      <div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">۳) کارت ورود و لینک جلسه می‌آید</span><b>پیامک</b></div>
+    </div>
+    <div class="copyrow" style="margin-top:12px"><code>lifeline1.ir/reg/${esc(String(e.id).toLowerCase())}</code>
+      <button class="btn sm quiet" data-copy-reg><svg class="i"><use href="#i-copy"/></svg> کپی لینک ثبت‌نام</button></div>`}
+
+  <div class="sec-hd" style="margin-top:16px"><span class="fw">پرسش‌های همین برنامه</span></div>
+  <div class="stack tight">
+    ${[
+      ['ثبت‌نام چطور قطعی می‌شود؟', e.price?'با پرداخت آنلاین همان لحظه؛ کارت‌به‌کارت بعد از تأیید کارشناس.':'رایگان است؛ فرم را پر کن و کارت ورود می‌آید.'],
+      [online?'اگر اینترنتم قطع شد؟':'اگر نتوانستم بیایم؟', online?'لینک ضبط بعد از جلسه در حسابت می‌ماند؛ صدای جلسه هم جدا ذخیره می‌شود.':'تا ۲۴ ساعت قبل لغو کن؛ مبلغ برمی‌گردد یا به برنامهٔ دیگر منتقل می‌شود.'],
+      ['گواهینامه چه زمانی صادر می‌شود؟', 'بعد از پایان دوره، درخواست می‌دهی و سرپرست تأیید می‌کند؛ برگ از حساب قابل استعلام است.']
+    ].map(q=>`<div class="srow" style="align-items:flex-start"><svg class="i" style="margin-top:3px"><use href="#i-doc"/></svg>
+      <span style="flex:1;min-width:0"><b style="display:block;font-size:13px">${esc(q[0])}</b>
+        <span class="cap" style="display:block;line-height:1.8">${esc(q[1])}</span></span></div>`).join('')}
+    <button class="btn quiet" data-menu><svg class="i"><use href="#i-headphone"/></svg> پرسش دیگری دارم؛ پشتیبانی</button>
+  </div>
+
+  <div class="sec-hd" style="margin-top:16px"><span class="fw">${past?'بسته‌های مشابه':'برنامه‌های مشابه'}</span><span class="sp"></span>
+    <a class="more" href="events.html#${past?'media':'list'}">همه</a></div>
+  <div class="evrail" id="related"></div>
+
+  <footer class="hfoot" style="margin-top:18px">
+    <div><b>گروه فرهنگی خط زندگی</b> — تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
+    <div>۰۲۱–۸۸۸۸۱۲۳۴ · <a href="mailto:info@lifeline1.ir">info@lifeline1.ir</a></div>
+    <div><a href="events.html">همهٔ رویدادها</a> · <a href="home.html">بازگشت به خانه</a> · © ۱۴۰۵</div>
+  </footer>`;
+  renderMedia(); renderRelated(); renderCta();
+}
+
+function price2(n){return n?window.rialTxt?rialTxt(n):String(n)+' ریال':'رایگان'}
+
+function renderMedia(){
+  const box=$('#mlist'); if(!box) return;
+  const K=[{k:'all',n:'همه'},{k:'video',n:'ویدیو'},{k:'audio',n:'صدا'},{k:'pdf',n:'فایل'},{k:'slide',n:'اسلاید'}];
+  const cur=renderMedia.f||'all';
+  $('#mfilter').innerHTML=K.map(x=>`<button class="chip ${cur===x.k?'on':''}" data-mk="${x.k}">${x.n}</button>`).join('');
+  box.innerHTML=NORA_UI?NORA_UI.mediaList(e,{filter:cur}):'';
+  /* رسانه‌ها رو‌به‌روی چشم، با نوار پیشرفت */
+  const ownall=NORA_UI&&NORA_UI.hasLib(e.id);
+  const tiles=(e.media||[]).filter(m=>cur==='all'||m.k===cur).map(m=>{
+    const kd=MEDIA_KINDS[m.k]||{n:'رسانه',i:'i-play'};
+    const open=!m.p||ownall||(NORA_UI&&NORA_UI.hasLib(m.id));
+    return `<div class="stack tight" style="margin-bottom:10px">
+      <div class="cap">${kd.n}</div>
+      <button class="mediatile ${open?'':'locked'}" data-uimedia="${esc(e.id)}:${esc(m.id)}">
+        <span class="mimg" style="--g:${esc(e.g||'')}">
+          ${e.poster?`<img src="${esc(e.poster)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5"/>`:''}
+          <svg class="i"><use href="#${kd.i}"/></svg>
+          ${open?'':`<span class="mlock"><svg class="i" style="width:14px;height:14px"><use href="#i-lock"/></svg></span>`}
+        </span>
+        <span class="mb"><b>${esc(m.t)}</b><small>${esc(m.d)} · ${open?'باز است':price2(m.p)}</small></span>
+      </button></div>`}).join('');
+  box.innerHTML+=`<div class="sec-hd" style="margin-top:14px"><span class="fw">تماشا و دانلود</span><span class="sp"></span>
+      <span class="cap">روی هر قطعه بزن</span></div><div class="mediagrid">${tiles}</div>`;
+}
+
+function renderRelated(){
+  const box=$('#related'); if(!box) return;
+  const list=(H?PAST:EVENTS).filter(x=>x.id!==e.id).slice(0,4);
+  box.innerHTML=list.map(x=>`<button class="rtile" data-goto="${esc(x.id)}">
+    <span class="ri" style="--g:${esc(x.g||'')}"><svg class="i"><use href="#${esc(x.icon||'i-calendar')}"/></svg></span>
+    <b>${esc(x.t)}</b><span class="cap">${esc(H?x.d:(x.when||''))}</span></button>`).join('');
+}
+
+function renderCta(){
+  const past=!!H, free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0;
+  const own=past&&NORA_UI&&(NORA_UI.hasLib(e.id)||(e.media||[]).some(m=>NORA_UI.hasLib(m.id)));
+  const firstFree=past&&(e.media||[]).find(m=>!m.p||(NORA_UI&&NORA_UI.hasLib(m.id)));
+  $('#ctabar').hidden=false;
+  $('#ctaIn').innerHTML=`
+    <span><b style="font-size:14px">${past?(e.price?price2(e.price):'رایگان'):(e.price?price2(e.price):'رایگان')}</b>
+      <div class="cap">${past?(e.cert?'با گواهینامه':'بدون گواهی'):(full?'لیست انتظار':(e.cap?'ظرفیت باز':'بدون ظرفیت'))}</div></span>
+    <span class="sp" style="flex:1"></span>
+    ${past
+      ? (own?`<button class="btn primary" data-uimedia="${esc(e.id)}:${esc((firstFree||(e.media||[])[0]||{}).id||'')}">
+            <svg class="i"><use href="#i-play-f"/></svg> ${firstFree?'پخش':'تماشا'}</button>`
+           :`<button class="btn primary" data-buy-bundle><svg class="i"><use href="#i-bag"/></svg> تهیهٔ بسته</button>`)
+      : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
+             :`<a class="btn primary" id="reg" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' — رایگان':''}</a>`)}
+    <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
+}
+
+/* ── کنش‌ها ── */
+document.addEventListener('click',ev=>{
+  const t=ev.target;
+  if(t.closest('[data-back]')){ if(history.length>1) history.back(); else location.href='events.html#list'; return }
+  const sh=t.closest('[data-share-this]'); if(sh){shareNow(); return}
+  const pin=t.closest('[data-pin-this]'); if(pin){pinNow(); return}
+  const mk=t.closest('[data-mk]'); if(mk){renderMedia.f=mk.dataset.mk; renderMedia(); return}
+  const bb=t.closest('[data-buy-bundle]'); if(bb){NORA_UI.buySheet(e.id,null); return}
+  const cr=t.closest('[data-cert-req]'); if(cr){toast('درخواست گواهینامه ثبت شد؛ در انتظار تأیید سرپرست'); return}
+  const cr2=t.closest('[data-copy-reg]'); if(cr2){NORA_UI.copyText('https://lifeline1.ir/reg/'+String(e.id).toLowerCase()); return}
+  const rm=t.closest('[data-remind-here]'); if(rm){setRemind(!remindOn()); render(); toast(remindOn()?'یادآوری روشن شد؛ یک روز قبل و ۱۵ دقیقه قبل خبر می‌دهیم':'یادآوری خاموش شد'); return}
+  const tl=t.closest('[data-testlink]'); if(tl){toast('اتصال تست شد؛ تصویر و صدا روان است'); return}
+  const wl=t.closest('[data-waitlist]'); if(wl){toast('در لیست انتظار ثبت شدی؛ اگر جا خالی شد خبر می‌دهیم'); return}
+  const gt=t.closest('[data-goto]'); if(gt){location.href='event.html?id='+gt.dataset.goto; return}
+});
+
+function shareNow(){
+  NORA_UI.shareItem({title:e.t,text:(e.d||'')+' '+(e.when||e.d||''),url:'https://lifeline1.ir/e/'+e.id});
+}
+function pinNow(){
+  const k=(H?'pa':'ev')+':'+e.id;
+  let a=[]; try{a=JSON.parse(localStorage.getItem('nora-home-pins')||'[]')}catch(err){a=[]}
+  const on=a.includes(k); a=on?a.filter(x=>x!==k):a.concat(k);
+  try{localStorage.setItem('nora-home-pins',JSON.stringify(a))}catch(err){}
+  toast(on?'از سنجاق درآمد':'سنجاق شد');
+}
+function toast(m){
+  let el=$('#toast');
+  if(!el){el=document.createElement('div'); el.className='toast'; el.id='toast'; el.setAttribute('role','status'); document.body.appendChild(el)}
+  el.textContent=m; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2400);
+}
+addEventListener('hashchange',()=>location.reload());
+})();
+</script>
+</body>
+</html>

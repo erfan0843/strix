@@ -284,5 +284,85 @@ const CATS=[
 ]
 const DAYS=[{k:'all',n:'همه'},{k:'tonight',n:'امشب'},{k:'tomorrow',n:'فردا'},{k:'week',n:'این هفته'},{k:'next',n:'هفتهٔ بعد'}]
 const QTAGS=[{k:'all',n:'همهٔ برنامه‌ها'},{k:'پیشنهادی',n:'پیشنهادی'},{k:'رایگان',n:'رایگان'},{k:'آنلاین',n:'آنلاین'},{k:'گواهی‌دار',n:'گواهی‌دار'}]
-window.NORA={BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS};
+
+/* ══ فروشگاه رسانه: بستهٔ هر رویداد برگزارشده ══
+   هر برنامه یک بستهٔ رسانه دارد؛ کاربر می‌تواند کل بسته را بگیرد یا تک‌تک.
+   `p` قیمت تک‌فروشی است (۰ = همان‌جا باز است) و `preview` یعنی نمونهٔ رایگان. */
+const MEDIA_KINDS={
+  video:{i:'i-play', n:'ویدیو', v:'تماشا'},
+  audio:{i:'i-headphone', n:'صدا', v:'شنیدن'},
+  pdf:  {i:'i-doc', n:'فایل', v:'باز کردن'},
+  slide:{i:'i-layers', n:'اسلاید', v:'دیدن'}
+};
+const BUNDLES={
+  h1:{sold:124, rate:'۴٫۸ از ۵', reviews:31, media:[
+    {id:'h1m1', k:'video', t:'جلسهٔ اول: دوربین، نور و تنظیمات', d:'۹۴ دقیقه', s:'۶۲۰ مگابایت', p:0, preview:true},
+    {id:'h1m2', k:'video', t:'جلسهٔ دوم: ترکیب‌بندی و کادر', d:'۸۸ دقیقه', s:'۵۸۰ مگابایت', p:120000},
+    {id:'h1m3', k:'audio', t:'صوت جلسهٔ سوم: نقد و بررسی عکس‌ها', d:'۷۱ دقیقه', s:'۴۸ مگابایت', p:90000},
+    {id:'h1m4', k:'pdf', t:'جزوهٔ تنظیمات و تمرین‌های هفتگی', d:'۳۲ صفحه', s:'۶ مگابایت', p:60000},
+    {id:'h1m5', k:'slide', t:'اسلایدهای کارگاه', d:'۴۸ اسلاید', s:'۱۲ مگابایت', p:0}]},
+  h2:{sold:210, rate:'۴٫۹ از ۵', reviews:58, media:[
+    {id:'h2m1', k:'video', t:'جلسهٔ اول: صدا، تنفس و گرم‌کردن', d:'۸۲ دقیقه', s:'۵۴۰ مگابایت', p:0, preview:true},
+    {id:'h2m2', k:'video', t:'جلسهٔ دوم: زبان بدن و ایستادن روی صحنه', d:'۷۶ دقیقه', s:'۵۱۰ مگابایت', p:110000},
+    {id:'h2m3', k:'video', t:'جلسهٔ سوم: اجرای رو‌به‌رو و پرسش و پاسخ', d:'۶۸ دقیقه', s:'۴۶۰ مگابایت', p:110000},
+    {id:'h2m4', k:'audio', t:'صوت تمرین‌های تنفس (تمرین خانه)', d:'۲۴ دقیقه', s:'۱۸ مگابایت', p:0},
+    {id:'h2m5', k:'pdf', t:'نمونهٔ اجرای پایان دوره', d:'۱۸ صفحه', s:'۴ مگابایت', p:50000}]},
+  h3:{sold:96, rate:'۴٫۷ از ۵', reviews:22, media:[
+    {id:'h3m1', k:'video', t:'جلسهٔ اول: ارزیابی صحنه و ایمنی', d:'۶۴ دقیقه', s:'۴۲۰ مگابایت', p:0, preview:true},
+    {id:'h3m2', k:'video', t:'جلسهٔ دوم: احیای قلبی و ریوی', d:'۷۸ دقیقه', s:'۵۱۰ مگابایت', p:150000},
+    {id:'h3m3', k:'pdf', t:'جزوهٔ جیبی امداد (چاپ‌کردنی)', d:'۲۴ صفحه', s:'۵ مگابایت', p:80000},
+    {id:'h3m4', k:'pdf', t:'فهرست تماس‌های اضطراری', d:'۲ صفحه', s:'۱ مگابایت', p:0},
+    {id:'h3m5', k:'slide', t:'اسلایدهای آموزشی امداد', d:'۶۰ اسلاید', s:'۱۵ مگابایت', p:70000}]},
+  h4:{sold:340, rate:'۴٫۶ از ۵', reviews:74, media:[
+    {id:'h4m1', k:'video', t:'ضبط کامل نشست (۹۰ دقیقه)', d:'۹۰ دقیقه', s:'۵۹۰ مگابایت', p:0},
+    {id:'h4m2', k:'audio', t:'صوت پرسش و پاسخ پایانی', d:'۲۸ دقیقه', s:'۲۲ مگابایت', p:0},
+    {id:'h4m3', k:'pdf', t:'فهرست منابع فارسی سواد رسانه', d:'۱۲ صفحه', s:'۳ مگابایت', p:0}]}
+};
+PAST.forEach(h=>{
+  const b=BUNDLES[h.id]||{media:[],sold:0,rate:'—',reviews:0};
+  h.media=b.media; h.sold=b.sold; h.rate2=b.rate; h.reviews=b.reviews;
+  h.bundle=h.price;                       /* بستهٔ کامل */
+  h.counts=b.media.reduce((a,m)=>(a[m.k]=(a[m.k]||0)+1,a),{});
+  h.mediaCount=b.media.length;
+  h.hours=b.media.reduce((a,m)=>a+(parseInt(String(m.d).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/\D/g,''))||0),0)/60;
+  h.access='دسترسی همیشگی';
+  h.support=true;
+});
+const TOTAL_MEDIA=PAST.reduce((a,h)=>a+h.mediaCount,0);
+const ONLINE_COUNT=EVENTS.filter(e=>e.mode!=='حضوری').length;
+
+/* ══ منوی کامل نورا (یک نسخه برای همهٔ صفحه‌ها) ══
+   هر ردیف یا `href` دارد (همه‌جا کار می‌کند) یا `j`/`f`/`rel` که در خانه
+   مستقیم انجام می‌شود و در صفحه‌های دیگر به مقصد معادل می‌رود. */
+const faD=n=>String(n).replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[+d]);
+const MENU=[
+ {g:'برنامه‌ها و رویدادها', i:'i-calendar', rows:[
+   {i:'i-calendar', t:'رویدادهای پیش‌رو', s:faD(EVENTS.length)+' برنامه در پیش', href:'events.html#list', badge:faD(EVENTS.length)},
+   {i:'i-archive', t:'رسانهٔ کارگاه‌های برگزارشده', s:faD(PAST.length)+' بستهٔ ضبط، صدا و جزوه', href:'events.html#media'},
+   {i:'i-play', t:'جریان زنده و شروع نزدیک', s:'امشب دو برنامه', href:'events.html#live', badge:faD(LIVE.length)},
+   {i:'i-book', t:'باشگاه کتاب‌خوانی', s:'سرپرست: خانم داوودی', f:'shClub', tag:'پیشنهادی'},
+   {i:'i-heart', t:'پویش‌های خیریه', s:'مشارکت و گزارش شفاف', rel:'e11'}]},
+ {g:'آموزش و محتوا', i:'i-graduation', rows:[
+   {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:faD(ARTICLES.length)},
+   {i:'i-play', t:'کتابخانهٔ من', s:'هرچه تهیه کرده‌ای، همین‌جا', href:'events.html#lib'},
+   {i:'i-doc', t:'آزمون و کارنامه', s:'کارنامهٔ همان روز', rel:'e9'},
+   {i:'i-qr', t:'استعلام گواهینامه', s:'با شمارهٔ سریال روی برگ', f:'shVerify'}]},
+ {g:'افراد', i:'i-users', rows:[
+   {i:'i-graduation', t:'اساتید و مربیان', s:faD(PEOPLE.filter(p=>p.kind==='teacher').length)+' استاد با پروفایل و عکس', j:'teachers'},
+   {i:'i-idcard', t:'دست‌اندرکاران', s:faD(PEOPLE.filter(p=>p.kind==='staff').length)+' نفر، تیم اجرا و پشتیبانی', j:'staff'},
+   {i:'i-handshake', t:'نهادهای همکار', s:faD(PARTNERS.length)+' نهاد همکار و حامی', j:'partners', badge:faD(PARTNERS.length)},
+   {i:'i-send', t:'فرصت‌های همکاری', s:'تدریس، اجرا، حمایت مالی', f:'shSupport'}]},
+ {g:'حساب من', i:'i-idcard', rows:[
+   {i:'i-idcard', t:'حساب کاربری', s:'ثبت‌نام‌ها، اعلان‌ها، خروج', f:'shAccount'},
+   {i:'i-wallet', t:'کیف پول و پرداخت‌ها', s:'شارژ، صورت‌حساب، بازگشت وجه', f:'shAccount'},
+   {i:'i-users', t:'دعوت دوستان', s:'هر دعوت اعتبار کیف پول', f:'shInvite'},
+   {i:'i-bell', t:'اعلان‌ها', s:'یادآوری جلسه و پیام کارشناس', f:'shNotice', badge:faD(NOTICES.filter(n=>n.unread).length)}]},
+ {g:'پشتیبانی', i:'i-headphone', rows:[
+   {i:'i-send', t:'پیام به پشتیبانی', s:'پاسخ در همان روز کاری', f:'shSupport'},
+   {i:'i-doc', t:'پرسش‌های پرتکرار', s:'ثبت‌نام، پرداخت، لغو', f:'shFaq'},
+   {i:'i-lock', t:'قواعد و شرایط', s:'سیاست‌های ثبت‌نام و بازگشت وجه', f:'shFaq'},
+   {i:'i-mobile', t:'راهنمای ثبت‌نام', s:'قدم‌به‌قدم تا گواهینامه', href:'form.html'}]}
+];
+window.NORA={BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS,
+  MENU,MEDIA_KINDS,BUNDLES,TOTAL_MEDIA,ONLINE_COUNT};
 })();
