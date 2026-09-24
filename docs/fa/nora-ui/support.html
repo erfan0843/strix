@@ -24,9 +24,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=24"/>
-<link rel="stylesheet" href="nora.css?v=24"/>
-<link rel="stylesheet" href="support.css?v=24"/>
+<link rel="stylesheet" href="glass.css?v=25"/>
+<link rel="stylesheet" href="nora.css?v=25"/>
+<link rel="stylesheet" href="support.css?v=25"/>
 </head>
 <body>
 
@@ -161,6 +161,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   </footer>
 </main>
 
+<p class="trustline center" data-trust="support"></p>
+
 <nav class="tabbar" aria-label="ناوبری اصلی">
   <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
   <a href="events.html"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></a>
@@ -185,8 +187,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=24"></script>
-<script src="ui.js?v=24"></script>
-<script src="support.js?v=24"></script>
+<script src="data.js?v=25"></script>
+<script src="ui.js?v=25"></script>
+<script src="support.js?v=25"></script>
 </body>
 </html>

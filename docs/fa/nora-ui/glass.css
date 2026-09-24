@@ -686,3 +686,10 @@ h1,h2,h3,h4,h5,
 
 /* ارقام فارسی هم‌عرض و درشت‌ترها با استداد */
 .numbook, .ev .prc, .cel{font-variant-numeric:tabular-nums}
+/* ── خط اطمینان: یک جملهٔ کوتاه، ته هر بخش ────────────────────────── */
+.trustline{display:flex;align-items:center;gap:7px;margin:10px 2px 0;font-size:11.5px;
+  line-height:1.75;color:var(--ink-3)}
+.trustline .i{width:15px;height:15px;color:var(--ok);flex:0 0 auto}
+.trustline span{min-width:0}
+.trustline.center{justify-content:center;text-align:center}
+@media print{.trustline{display:none}}

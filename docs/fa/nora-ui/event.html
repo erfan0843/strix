@@ -25,9 +25,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=24"/>
-<link rel="stylesheet" href="nora.css?v=24"/>
-<link rel="stylesheet" href="events.css?v=24"/>
+<link rel="stylesheet" href="glass.css?v=25"/>
+<link rel="stylesheet" href="nora.css?v=25"/>
+<link rel="stylesheet" href="events.css?v=25"/>
 <style>
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
@@ -73,6 +73,29 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);border-end-start-radius:26px;border-end-end-radius:26px}
     .sheet.on{transform:translate(-50%,0)}}
   .fcrow{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 8px}
+
+/* ── جعبهٔ «رویداد من»: همهٔ جزئیات همین رویداد، یک‌جا و بی‌قاطی‌شدن ── */
+.mybox{margin:0 0 14px;border-radius:var(--r-lg);overflow:hidden;
+  background:linear-gradient(158deg,rgba(0,113,227,.13),rgba(0,113,227,.05));
+  border:.5px solid rgba(0,113,227,.18);box-shadow:none}
+.mybox .mbh{display:flex;align-items:center;gap:9px;padding:13px 14px 8px}
+.mybox .mbh .i{width:20px;height:20px;color:var(--brand-ink)}
+.mybox .mbh b{font-size:13.5px}
+.mybox .mbh .cap{margin-inline-start:auto}
+.mycd{display:flex;align-items:center;gap:7px;padding:0 14px 10px;font-size:12px;color:var(--ink-2)}
+.mycd .n{font-size:18px;font-weight:800;color:var(--brand-ink);font-variant-numeric:tabular-nums}
+.mbtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0 11px 12px}
+.mb3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:0 11px 12px}
+.mbt{display:grid;gap:3px;padding:11px;border-radius:14px;border:.5px solid rgba(0,113,227,.14);
+  background:rgba(255,255,255,.66);text-align:start;font:inherit;cursor:pointer;color:var(--ink)}
+.mbt:hover{background:rgba(255,255,255,.95)}
+.mbt .i{width:17px;height:17px;color:var(--brand-ink)}
+.mbt b{font-size:12.5px;font-weight:700}
+.mbt small{font-size:10.5px;color:var(--ink-3);line-height:1.6}
+:root[data-theme="dark"] .mybox{background:linear-gradient(158deg,rgba(78,161,255,.18),rgba(78,161,255,.06));border-color:rgba(78,161,255,.24)}
+:root[data-theme="dark"] .mbt{background:rgba(255,255,255,.08);border-color:rgba(78,161,255,.20)}
+:root[data-theme="dark"] .mbt:hover{background:rgba(255,255,255,.14)}
+@media (max-width:400px){.mbtiles,.mb3{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -232,6 +255,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <main class="wrap" id="page" style="padding-bottom:190px"></main>
 
+<p class="trustline center" data-trust="secure"></p>
+
 <nav class="tabbar" aria-label="ناوبری اصلی">
   <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
   <a href="events.html" class="on" aria-current="page"><svg class="i"><use href="#i-calendar-f"/></svg><small>رویدادها</small></a>
@@ -242,8 +267,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=24"></script>
-<script src="ui.js?v=24"></script>
+<script src="data.js?v=25"></script>
+<script src="ui.js?v=25"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ اختصاصی رویداد و بستهٔ رسانه
@@ -258,6 +283,9 @@ const {EVENTS=[],PAST=[],PEOPLE=[],MEDIA_KINDS={}}=N;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const P=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:''};
+/* اعلان‌های زودهنگام: render() همین پایین‌تر صدا زده می‌شود و این‌ها را لازم دارد */
+const ico=(n,st)=>`<svg class="i"${st?` style="${st}"`:''} aria-hidden="true"><use href="#${n}"/></svg>`;
+const cdClock={t:0};
 const id=new URLSearchParams(location.search).get('id')||location.hash.replace('#','')||'';
 const E=EVENTS.find(x=>x.id===id), H=PAST.find(x=>x.id===id), e=E||H;
 
@@ -274,6 +302,51 @@ function room(){
 function remindOn(){try{return !!JSON.parse(localStorage.getItem('nora-home-remind')||'null')}catch(err){return false}}
 function setRemind(v){try{localStorage.setItem('nora-home-remind',JSON.stringify(v))}catch(err){}}
 
+/* ── «رویداد من»: فقط برای رویدادی که کاربر ثبت‌نام یا تهیه کرده ──────
+   همهٔ جزئیات همین رویداد این‌جاست: شمارش تا برگزاری، بلیت، گواهی،
+   رسانه و ضبط؛ هیچ چیز از رویدادهای دیگر قاطی نمی‌شود. */
+function signedIn(){ try{ return !!JSON.parse(localStorage.getItem('nora-home-user')||'null') }catch(e){ return false } }
+function myIds(){ const M=(N.ACCOUNT&&N.ACCOUNT.myEvents)||{}; return [].concat(M.up||[],M.past||[]) }
+function isMine(e){ return !!e&&signedIn()&&myIds().indexOf(e.id)>-1 }
+function cdText(e){
+  const days=+String(e.dn||'').replace(/\D/g,'')||0;
+  const total=((days*24+7)*60+37)*60*1000;
+  const passed=cdClock.t0?Date.now()-cdClock.t0:0;
+  let s=Math.max(0,Math.floor((total-passed)/1000));
+  const d=Math.floor(s/86400); s-=d*86400;
+  const h=Math.floor(s/3600); s-=h*3600;
+  const m=Math.floor(s/60), sec=s-m*60;
+  return `${faN(d)} روز و ${faN(h)} ساعت و ${faN(m)} دقیقه`+(sec>=0?` و ${faN(sec)} ثانیه`:'');
+}
+function myBox(e,past){
+  const M=(N.ACCOUNT&&N.ACCOUNT.myEvents)||{}, T=M.ticket||{}, CT=M.certTxt||{}, MD=M.media||{}, RC=M.rec||{}, AT=M.att||{}, RV=M.review||{};
+  const tiles=past?[
+      [CT.n||'گواهینامه', CT.d||'', `data-my-cert="${esc(e.id)}"`, 'i-medal'],
+      [MD.n||'رسانه‌های رویداد', MD.d||'', `data-my-media="${esc(e.id)}"`, 'i-image'],
+      [RC.n||'ضبط‌شده', RC.d||'', `data-my-rec="${esc(e.id)}"`, 'i-play'],
+      [AT.n||'کارنامهٔ حضور', AT.d||'', `data-my-att="${esc(e.id)}"`, 'i-check']]
+    :[[T.n||'کارت ورود و بلیت', T.d||'', `data-my-ticket="${esc(e.id)}"`, 'i-ticket'],
+      [T.dl||'دانلود بلیت', 'فایل بلیت همین رویداد', `data-my-ticket-dl="${esc(e.id)}"`, 'i-download'],
+      [MD.n||'رسانه‌های رویداد', MD.d||'', `data-my-media="${esc(e.id)}"`, 'i-image'],
+      [AT.n||'کارنامهٔ حضور', AT.d||'', `data-my-att="${esc(e.id)}"`, 'i-check'],
+      [RV.n||'نظر و امتیاز من', RV.d||'', `data-my-review="${esc(e.id)}"`, 'i-star']];
+  return `<div class="mybox anim">
+    <div class="mbh">${ico('i-check')}<b>رویداد من</b>
+      <span class="cap">${esc(M.inEvent||'همهٔ جزئیات همین رویداد این‌جاست.')}</span></div>
+    ${past?'':`<div class="mycd" id="myCd">${ico('i-clock')}<span>تا برگزاری:</span>
+      <span class="n" id="myCdN">${cdText(e)}</span></div>`}
+    <div class="${tiles.length===3?'mb3':'mbtiles'}">
+      ${tiles.map(t=>`<button class="mbt" type="button" ${t[2]}>
+        ${ico(t[3])}<b>${esc(t[0])}</b><small>${esc(t[1])}</small></button>`).join('')}
+    </div>
+    <p class="trustline" data-trust="secure" style="margin:0 14px 12px"></p>
+  </div>`;
+}
+function myClockStart(e){
+  clearInterval(cdClock.t); cdClock.t0=Date.now();
+  const el=$('#myCdN'); if(!el) return;
+  cdClock.t=setInterval(()=>{ const n=$('#myCdN'); if(!n){ clearInterval(cdClock.t); return } n.textContent=cdText(e) },1000);
+}
 function render(){
   const past=!!H, p=P(e.tchr), r=room(), online=r!=='حضوری';
   const free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0, n=e.cap?Math.max(0,e.cap-e.taken):0;
@@ -310,6 +383,8 @@ function render(){
 
   <div class="row tight" style="margin-bottom:12px">${(e.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
     ${online?'<span class="tag accent">آنلاین</span>':''}${past&&e.cert?'<span class="tag accent">گواهی‌دار</span>':''}</div>
+
+  ${isMine(e)?myBox(e,past):''}
 
   ${online?`<div class="card paper" style="margin-bottom:12px;background:var(--brand-tint);border-color:transparent">
     <div class="row" style="align-items:center;gap:9px">
@@ -399,6 +474,9 @@ function render(){
     <div><a href="events.html">همهٔ رویدادها</a> · <a href="home.html">بازگشت به خانه</a> · © ۱۴۰۵</div>
   </footer>`;
   renderMedia(); renderRelated(); renderCta();
+  if(isMine(e)&&!past) myClockStart(e); else clearInterval(cdClock.t);
+  /* خط اطمینان: ui.js هر [data-trust] را پر می‌کند؛ اگر دیرتر آمد، خودمان می‌نویسیم */
+  if(window.NORA_UI&&NORA_UI.fillTrust) NORA_UI.fillTrust();
 }
 
 function price2(n){return n?window.rialTxt?rialTxt(n):String(n)+' ریال':'رایگان'}
@@ -464,6 +542,14 @@ document.addEventListener('click',ev=>{
   const t=ev.target;
   if(t.closest('[data-back]')){ if(history.length>1) history.back(); else location.href='events.html'; return }
   const sh=t.closest('[data-share-this]'); if(sh){shareNow(); return}
+  /* جزئیات «رویداد من»: هر کنش، فقط مالِ همین رویداد */
+  const mt=t.closest('[data-my-ticket]'); if(mt){toast('کارت ورود همین رویداد آماده است؛ بارکد در ورودی خوانده می‌شود'); return}
+  const mb=t.closest('[data-my-ticket-dl]'); if(mb){toast('بلیت همین رویداد دانلود شد'); return}
+  const mc=t.closest('[data-my-cert]'); if(mc){toast(e.cert===false?'این رویداد گواهی ندارد':'گواهینامهٔ همین رویداد آماده است؛ بعد از تأیید سرپرست دانلود می‌شود'); return}
+  const mm=t.closest('[data-my-media]'); if(mm){const host=$('#mlist'); if(host) host.scrollIntoView({behavior:'smooth',block:'start'}); toast('رسانه‌های همین رویداد'); return}
+  const mr=t.closest('[data-my-rec]'); if(mr){toast('ضبط جلسه‌های همین رویداد، همین‌جا در رسانه‌ها'); return}
+  const ma=t.closest('[data-my-att]'); if(ma){toast('کارنامهٔ حضور همین رویداد: جلسه‌به‌جلسه'); return}
+  const mv=t.closest('[data-my-review]'); if(mv){toast('نظر و امتیازت برای همین رویداد ثبت شد'); return}
   const pin=t.closest('[data-pin-this]'); if(pin){pinNow(); return}
   const mk=t.closest('[data-mk]'); if(mk){renderMedia.f=mk.dataset.mk; renderMedia(); return}
   const bb=t.closest('[data-buy-bundle]'); if(bb){NORA_UI.buySheet(e.id,null); return}

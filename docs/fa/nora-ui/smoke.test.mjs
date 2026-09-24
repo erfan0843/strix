@@ -1403,6 +1403,31 @@ async function load(file,store,q){
   await wait(40);
   ok(fh.txt('#shEvent').includes('بسته')||fh.txt('#shEvent').includes('رسانه'),'ورقهٔ بستهٔ رسانه در خانه هم باز می‌شود');
 
+  /* ح.۲) رویداد من: جزئیات هر رویداد، فقط داخل صفحهٔ خودش */
+  const fmine=await load('event.html',withSara(),'?id=e1');
+  ok(fmine.errs.length===0,'صفحهٔ رویداد ثبت‌نام‌شده بی‌خطا بالا آمد');
+  ok(fmine.doc.querySelector('.mybox')!==null,'جعبهٔ «رویداد من» در صفحهٔ همان رویداد');
+  ok(fmine.txt('.mycd').includes('روز')&&fmine.txt('.mycd').includes('دقیقه'),'شمارش روز و ساعت و دقیقه تا برگزاری');
+  ok(fmine.all('.mybox .mbt').length===5,'پنج کنش: کارت ورود، دانلود بلیت، رسانه، حضور، نظر');
+  ok(fmine.txt('.mycd').includes('ثانیه'),'شمارش ثانیه‌ای هم دارد');
+  fmine.click('[data-my-ticket]');
+  ok(fmine.txt('#toast').includes('همین رویداد'),'کارت ورود، پیام همین رویداد را می‌دهد');
+  fmine.click('[data-my-media]');
+  ok(fmine.txt('#toast').includes('رسانه‌های همین رویداد'),'رسانه، داخل همین رویداد باز می‌شود');
+  fmine.click('[data-my-ticket-dl]');
+  ok(fmine.txt('#toast').includes('دانلود'),'بلیت همین رویداد دانلود می‌شود');
+  const fmineP=await load('event.html',withSara(),'?id=h1');
+  ok(fmineP.doc.querySelector('.mybox')!==null,'رویداد برگزارشدهٔ من هم جعبهٔ خودش را دارد');
+  ok(fmineP.txt('.mybox').includes('ضبط')&&fmineP.txt('.mybox').includes('کارنامهٔ حضور'),'ضبط و کارنامهٔ حضور داخل صفحهٔ همان رویداد');
+  fmineP.click('[data-my-cert]');
+  ok(fmineP.txt('#toast').includes('گواهی'),'گواهینامه هم داخل صفحهٔ همان رویداد');
+  ok(fmineP.doc.querySelector('.mycd')===null,'رویداد برگزارشده، شمارش معکوس ندارد');
+  const fother=await load('event.html',withSara(),'?id=e2');
+  ok(fother.doc.querySelector('.mybox')===null,'رویدادی که ثبت‌نام نکرده‌ام، جعبهٔ «رویداد من» ندارد');
+  const fguest=await load('event.html',makeStore(),'?id=e1');
+  ok(fguest.doc.querySelector('.mybox')===null,'بی ورود، جعبهٔ «رویداد من» نمی‌آید');
+  ok(fguest.doc.querySelector('.trustline')!==null,'خط اطمینان روی صفحهٔ رویداد هست');
+
   /* ح) نشانه‌گذاری و پیوندهای صفحهٔ اختصاصی */
   const evSrc=fs.readFileSync(DIR+'event.html','utf8');
   ok(/<link rel="canonical"/.test(evSrc),'صفحهٔ اختصاصی canonical دارد');

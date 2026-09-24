@@ -523,6 +523,7 @@ function closeSheets(){document.querySelectorAll('.sheet').forEach(s=>s.classLis
   const s=document.getElementById('scrim'); if(s)s.classList.remove('on');}
 function initUI(){
   initKeys(document);
+  fillTrust(document);
   /* ورقه‌ها، سوییچ، سگمنت، چیپ، درخشش، کپی */
   document.addEventListener('click',e=>{
     const op=e.target.closest('[data-sheet]'); if(op){openSheet(op.dataset.sheet);return}
@@ -644,20 +645,46 @@ function saveProfile(v){
   try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
   return p;
 }
+/* ══ خط اطمینان — هر [data-trust] را با جملهٔ کوتاه خودش پر می‌کند ═══ */
+function trustPick(kind){
+  const T=(window.NORA&&window.NORA.TRUST)||{}, rows=T.row||[], short=T.short||{};
+  if(short[kind]) return short[kind];
+  const hit=rows.find(r=>String(r[0]).indexOf(kind)>-1);
+  return (hit&&hit[1])||(rows[0]&&rows[0][1])||'اطلاعاتت رمزنگاری‌شده است.';
+}
+function fillTrust(root){
+  const scope=root||document;
+  [...scope.querySelectorAll('[data-trust]')].forEach(el=>{
+    if(el.getAttribute('data-filled')) return;
+    const kind=el.getAttribute('data-trust')||'secure';
+    el.innerHTML='<svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>'+
+      esc(trustPick(kind))+'</span>';
+    el.setAttribute('data-filled','1');
+  });
+}
 /* شمارهٔ تماس از خود نشست می‌آید و در پروفایل قفل است */
 function phoneOf(){const u=sessUser(); return (u&&u.mobile)||''}
 function profileFilled(p,withPhone){
   const A=(window.NORA&&window.NORA.ACCOUNT)||{}, out={};
+  /* پارامتر تصویری، در شمارش درصد نمی‌آید */
   (A.fields||[]).forEach(f=>{ out[f.k]= f.lock ? !!withPhone : !!(p&&p[f.k]) });
   return out;
 }
+const softField=f=>f.input==='image';   /* پارامتر عکس، درصد پروفایل را پایین نمی‌آورد */
+function hardMissing(p,withPhone){
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
+  return (A.fields||[]).filter(x=>f[x.k]||softField(x));
+}
 function profilePercent(p,withPhone){
-  const f=profileFilled(p,withPhone), all=Object.keys(f);
-  return all.length?Math.round(all.filter(k=>f[k]).length/all.length*100):0;
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
+  /* همهٔ پارامترها جز عکس */
+  const hard=(A.fields||[]).filter(x=>!softField(x));
+  const all=hard.length?hard:Object.keys(f);
+  return all.length?Math.round(all.filter(x=>f[x.k]).length/all.length*100):0;
 }
 function profileMissing(p,withPhone){
   const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
-  return (A.fields||[]).filter(x=>!f[x.k]);
+  return (A.fields||[]).filter(x=>!f[x.k]&&!softField(x));
 }
 /* سطح از جدول خودِ داده می‌آید؛ نه دستی در هر صفحه */
 function levelOf(points){
@@ -1268,6 +1295,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
+  fillTrust:fillTrust,trustPick:trustPick,
   levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
@@ -1285,7 +1313,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v13') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v14') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

@@ -146,7 +146,7 @@ async function load(store,hash){
   ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، فرم‌ها، حریم');
   ok(!p.doc.querySelector('#viewBox [data-ptab="book"]'),'باشگاه کتاب دیگر تب پروفایل نیست');
   await p.nav('profile');
-  ok(p.view().includes('اطلاعات حساب من') && p.view().includes('تأیید پروفایل'),'تب اطلاعات، فرم و فرایند تأیید را می‌آورد');
+  ok(p.view().includes('اطلاعات من') && p.view().includes('تأیید پروفایل'),'تب اطلاعات، فرم و فرایند تأیید را می‌آورد');
   p.click('[data-ptab="privacy"]'); await wait(170);
   ok(p.view().includes('حریم خصوصی') && p.view().includes('دانلود'),'تب حریم خصوصی');
   await p.nav('club');
@@ -256,10 +256,13 @@ async function load(store,hash){
   console.log('\n── رویدادهای من ──');
   const p=await load(makeStore(reg()),'#events');
   ok(p.all('#viewBox .vtab').length===5,'پنج تب رویدادها');
-  ok(p.all('#viewBox .erow').length===11,'پیش‌رو: یازده ثبت‌نام');
-  ok(p.all('#viewBox .erow .bt button').length===22,'هر ردیف کارت ورود و لغو دارد');
+  ok(p.all('#viewBox .erow').length===3,'پیش‌رو: فقط سه رویداد ثبت‌نام‌شدهٔ خودم');
+  ok(p.view().includes('فقط رویدادهایی که خودت'),'و همان جملهٔ «فقط مالِ خودت» بالا می‌آید');
+  ok(p.all('#viewBox .erow .bt button').length===6,'هر ردیف کارت ورود و لغو دارد');
+  ok(p.all('#viewBox .cdline').length===3&&p.txt('.cdline').includes('دقیقه'),'شمارش روز و ساعت و دقیقه روی هر ردیف');
+  ok(p.all('#viewBox .erow a[href^="event.html?id="]').length===3,'هر ردیف به صفحهٔ خودِ رویداد می‌رود');
   p.click('[data-vtab="past"]'); await wait(170);
-  ok(p.all('#viewBox .erow').length===12 && p.view().includes('برگزارشده‌ها'),'برگزارشده‌ها: دوازده رویداد');
+  ok(p.all('#viewBox .erow').length===3 && p.view().includes('برگزارشده‌های من'),'برگزارشده‌ها: فقط سه رویداد خودم');
   p.click('[data-vtab="tickets"]'); await wait(170);
   ok(p.doc.querySelector('#viewBox .idcard')!==null,'کارت عضویت');
   ok(p.all('#viewBox .kind').length===4,'چهار گونهٔ گواهی');
@@ -313,9 +316,10 @@ async function load(store,hash){
   const saved=JSON.parse(p.window.localStorage.getItem('nora-home-profile')||'{}');
   ok(saved.nationalId==='0012345679','ذخیرهٔ پیش‌نویس در حافظه می‌نشیند');
   await p.nav('forms');
-  ok(p.all('#viewBox .tk').length===3,'سه فرم: پیش‌نویس، در صف، تأییدشده');
-  p.click('[data-form-new]'); await wait(140);
-  ok(p.txt('#toast').includes('کارشناس'),'فرم تازه پیام می‌دهد');
+  ok(p.all('#viewBox .tk').length===4,'چهار فرم: پروفایل، پیش‌نویس، در صف، تأییدشده');
+  ok(p.view().includes('فرم‌ها را مدیر سامانه می‌سازد'),'فرم‌ها از پنل مدیر می‌آید');
+  ok(p.doc.querySelector('#viewBox [data-form-new]')===null,'کاربر این‌جا فرم نمی‌سازد');
+  await p.nav('');
   await p.nav('privacy');
   ok(p.all('#viewBox .srow').length===5,'دانلود، حذف و سه ردیف نگه‌داشتنی');
   p.click('#dlBtn'); await wait(160);
@@ -326,6 +330,11 @@ async function load(store,hash){
   ok(p.txt('#toast').includes('کد'),'کد نادرست رد می‌شود');
   p.set('#delCode','54321'); p.click('#delYes'); await wait(220);
   ok((JSON.parse(p.window.localStorage.getItem('nora-home-profile')||'{}')).askedDelete===true,'با دو تأیید، درخواست حذف ثبت می‌شود');
+  ok(p.txt('#toast').includes('کارشناس'),'و پیام می‌گوید کارشناس تأیید می‌کند');
+  await p.nav('privacy');
+  ok(p.view().includes('در انتظار تأیید')&&p.view().includes('بررسی کارشناس'),'مسیر سه‌پله‌ای تأیید کارشناس');
+  ok(p.doc.querySelector('#delBtn').disabled===true,'تا تأیید کارشناس، درخواست تکرار نمی‌شود');
+  ok(p.all('#viewBox .step').length>=3,'پله‌های تأیید در صفحه هست');
 }
 
 /* ── ۱۱) دسترس‌پذیری ── */

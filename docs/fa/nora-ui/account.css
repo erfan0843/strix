@@ -116,6 +116,27 @@ body.hasbotbar{padding-bottom:178px}
 .pbtn:active{transform:scale(.98)}
 .pbtn .i{width:16px;height:16px}
 
+/* ── خط اطمینان، پارامترها و عکس پروفایل ─────────────────────────── */
+.trustline{display:flex;align-items:center;gap:7px;margin:9px 2px 0;font-size:11.5px;line-height:1.75;color:var(--ink-3)}
+.trustline .i{width:15px;height:15px;color:var(--ok);flex:0 0 auto}
+.paybar .trustline{margin:0 15px 12px;color:var(--ink-3)}
+.trustcard{display:flex;align-items:center;gap:11px;margin-top:12px;padding:13px 14px;border-radius:var(--r-lg);
+  background:linear-gradient(160deg,rgba(52,199,89,.10),rgba(0,113,227,.06));
+  border:.5px solid var(--hairline);box-shadow:none}
+.trustcard>.i{width:22px;height:22px;color:var(--ok);flex:0 0 auto}
+.trustcard .tx{display:grid;gap:2px;min-width:0;flex:1}
+.trustcard .tx b{font-size:13.5px;font-weight:800;color:var(--ink)}
+.trustcard .tx small{font-size:11.5px;color:var(--ink-3);line-height:1.7}
+.prms{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.prm{display:inline-block;margin-inline-start:6px;padding:1px 6px;border-radius:7px;font-style:normal;
+  font-size:10px;font-weight:700;letter-spacing:.2px;direction:ltr;color:var(--ink-3);
+  background:var(--surface-sunk);border:.5px solid var(--hairline)}
+.prm.on{color:var(--brand-ink);background:var(--brand-tint);border-color:transparent;margin:0}
+.phrow .v.phv{display:flex;align-items:center;gap:10px}
+.phthumb{width:52px;height:52px;border-radius:16px;overflow:hidden;flex:0 0 auto;background:var(--surface-sunk)}
+.phthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.phead .av img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+
 /* حالت شب: کارت نورا پی همان سبکی، با شیشهٔ تیره‌تر */
 :root[data-theme="dark"] .paybar{background:linear-gradient(158deg,rgba(78,161,255,.20) 0%,rgba(78,161,255,.10) 55%,rgba(78,161,255,.04) 100%);
   border-color:rgba(78,161,255,.22)}

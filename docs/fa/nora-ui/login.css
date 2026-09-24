@@ -1,8 +1,8 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا — صفحهٔ ورود (login.html)
    ──────────────────────────────────────────────────────────────────────────
-   یک کارت، وسط صفحه، آرام: نشان، نام، شماره، دکمهٔ ورود، و سه پیام‌گیر.
-   هیچ چیز دیگری روی صفحه نیست تا چشم راه را گم نکند.
+   یک کارت، وسط صفحه، آرام: نشان، نام، شماره، کد امنیتی، دکمهٔ ورود و دو
+   پیام‌گیر. هیچ چیز دیگری روی صفحه نیست تا چشم راه را گم نکند.
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── حرکت: کوتاه و نرم، مثل بقیهٔ صفحه‌ها ────────────────────────── */
@@ -25,21 +25,22 @@
 .lgmark img{width:40px;height:40px}
 .lgeye{margin:0;font-size:11.5px;font-weight:700;color:var(--ink-4);letter-spacing:.4px}
 .lgcard h1{margin:0;font-size:21px;font-weight:800;letter-spacing:-.4px;color:var(--brand-ink)}
-.lglead{margin:2px 0 0;font-size:12.8px;line-height:1.95;color:var(--ink-3);max-width:34ch}
+.lglead{margin:2px 0 0;font-size:13px;line-height:1.6;color:var(--ink-3)}
 .lglead:empty{display:none}
 
 /* ── پله‌ها ────────────────────────────────────────────────────────── */
 .lgstep{display:grid;gap:9px;animation:rise .3s var(--ease) both}
 .lglbl{font-size:13px;font-weight:700;color:var(--ink-2);margin:2px 2px 0}
-.lgtel{display:flex;align-items:center;gap:8px;height:54px;padding:0 14px;
+.lgtel{display:flex;direction:ltr;align-items:center;gap:8px;height:56px;padding:0 14px;
   border-radius:var(--r-md);background:var(--surface-sunk);
   box-shadow:inset 0 0 0 1px var(--hairline);transition:box-shadow var(--t) var(--ease)}
 .lgtel:focus-within{box-shadow:inset 0 0 0 1.5px var(--brand),0 0 0 4px var(--brand-tint)}
-.lgtel .pref{font-size:17px;font-weight:800;color:var(--ink-3);letter-spacing:.5px}
+.lgtel .pref{font-size:18px;font-weight:800;color:var(--ink-2);letter-spacing:.5px;
+  padding-inline-end:2px;border-inline-end:1px solid var(--hairline)}
 .lgtel .pref[hidden]{display:none}
-.lginp{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:17px;font-weight:700;
+.lginp{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:18px;font-weight:700;
   color:var(--ink);letter-spacing:1.5px;font-variant-numeric:tabular-nums;outline:none;padding:0}
-.lginp.num{direction:ltr;text-align:right}
+.lginp.num{direction:ltr;text-align:left;letter-spacing:2px}
 .lginp::placeholder{color:var(--ink-4);font-weight:600;letter-spacing:2px}
 .lgtel .fic{width:22px;height:22px;color:var(--ink-4);display:grid;place-items:center}
 .lgtel .fic .i{width:20px;height:20px}
@@ -76,6 +77,26 @@
 .lgmsg:hover .lgmk,.lgmsg:focus-visible .lgmk{transform:translateY(-2px) scale(1.05)}
 .lgmsg:active .lgmk{transform:scale(.96)}
 .lgmk.big{width:50px;height:50px;border-radius:16px}
+
+/* ── کد امنیتی تصویری: تصویر، کادر، دکمهٔ تصویر تازه ─────────────── */
+.lgcapbox{display:flex;align-items:center;gap:9px;height:56px;padding:0 8px 0 10px;border-radius:var(--r-md);
+  background:var(--surface-sunk);box-shadow:inset 0 0 0 1px var(--hairline);transition:box-shadow var(--t) var(--ease)}
+.lgcapbox:focus-within{box-shadow:inset 0 0 0 1.5px var(--brand),0 0 0 4px var(--brand-tint)}
+.lgcapbox .capimg{width:104px;height:50px;border-radius:11px;overflow:hidden;flex:0 0 auto;display:grid;place-items:center}
+.lgcapbox .capimg svg{width:100%;height:100%;display:block}
+.lgcapbox .capinp{flex:1;font-size:16px;letter-spacing:3px}
+.lgcapbox .capinp::placeholder{letter-spacing:0;font-size:12.5px;font-weight:600}
+.lgcapbox .capnew{width:38px;height:38px;border-radius:12px;border:0;background:var(--surface);cursor:pointer;
+  color:var(--brand-ink);display:grid;place-items:center;box-shadow:inset 0 0 0 .5px var(--hairline);flex:0 0 auto}
+.lgcapbox .capnew:hover{background:var(--brand-tint)}
+.lgcapbox .capnew .i{width:18px;height:18px}
+.lgcapbox .capnew[disabled]{opacity:.45;cursor:not-allowed}
+.lgcapbox.bad{box-shadow:inset 0 0 0 1.5px var(--stop),0 0 0 4px var(--stop-tint);animation:shake .4s var(--ease)}
+.lgcapbox.lock{opacity:.72}
+.caplock{margin:0 3px;font-size:12px;font-weight:700;color:var(--req);line-height:1.8}
+.lgtrust{display:flex;align-items:center;gap:7px;margin:4px 2px 0;font-size:11.5px;line-height:1.7;color:var(--ink-3)}
+.lgtrust .i{width:15px;height:15px;color:var(--ok);flex:0 0 auto}
+.lgtrust span{min-width:0}
 
 /* ── پلهٔ کد: نگارهٔ ربات، شماره، متن با لینک ربات، چهار خانه ─────── */
 .lgotpstep{justify-items:stretch;text-align:center;gap:0}

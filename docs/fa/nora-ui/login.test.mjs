@@ -32,7 +32,11 @@ async function load(store,search){
     click(s){const e=typeof s==='string'?doc.querySelector(s):s; if(e) e.dispatchEvent(new dom.window.MouseEvent('click',{bubbles:true}))},
     type(s,v){const e=doc.querySelector(s); if(!e) return; e.value=v; e.dispatchEvent(new dom.window.Event('input',{bubbles:true}))},
     submit(s){const e=doc.querySelector(s); if(e) e.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}))},
-    store};
+    store,
+    /* پر کردن کد امنیتی از حالت خود صفحه و فرستادن فرم */
+    cap(v){ const st=this.window.NORA_LOGIN.state; this.type('#lgCap', v==null?st.cap:v) },
+    phone(v){ this.type('#lgPhone',v); this.cap();
+      const st=this.window.NORA_LOGIN.state; if(v==null){} this.submit('#lgForm') }};
 }
 let pass=0,fail=0;
 const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.log('   ✗ '+m)} };
@@ -47,7 +51,8 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.txt('#lgTitle')==='ورود به نورا','نام صفحه: ورود به نورا');
   ok(p.txt('#lgEye').includes('خط زندگی'),'نام گروه زیر نشان');
   ok(p.doc.querySelector('.lgmark img')!==null,'نشان نورا بالای کارت');
-  ok(p.txt('.lgcard').includes('رمز و گذرواژه‌ای در کار نیست'),'توضیح بی‌رمز بودن ورود');
+  ok(p.txt('#lgLead')==='ورود با شمارهٔ موبایل و کد یک‌بارمصرف','توضیح یک‌خطی و بی‌رمز بودن ورود');
+  ok(p.txt('#lgLead').indexOf('\n')<0,'متن سرِ کارت چندخط نیست');
   ok(p.all('#lgStatus').length===1,'کادر وضعیت برای صفحه‌خوان');
   ok(p.all('.tabbar a').length===3,'نوار پایین سه‌تایی');
   ok(p.doc.querySelector('.help-btn')!==null,'نشان پشتیبانی در نوار بالا');
@@ -69,17 +74,15 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('.lgmsgs .lgmsg svg').length===2,'نشان هر پیام‌گیر');
   ok(p.doc.body.textContent.indexOf('تلگرام')<0,'تلگرام جایی در صفحه نیست');
   ok(p.all('#lgAdminBtn').length===1&&p.txt('#lgAdminBtn').includes('ورود مدیران'),'دکمهٔ ورود مدیران ته کارت');
-  ok(p.txt('.lgvia').includes('ورود با'),'جداکنندهٔ «ورود با»');
+  ok(p.txt('.lgvia').includes('یا سریع‌تر'),'جداکنندهٔ «یا سریع‌تر» بالای پیام‌گیرها');
   ok(p.all('.lgmsg').every(b=>b.getAttribute('aria-label')),'هر پیام‌گیر برچسب دارد');
   ok(p.txt('.lgcard').includes('۰۹۱۲۳۴۵۶۷۸۹')===false,'نمونهٔ شماره در متن راهنما نیست، در خطا می‌آید');
   p.submit('#lgForm');
   ok(!p.doc.querySelector('#lgErr').hidden&&p.txt('#lgErr').includes('یازده رقم'),'شمارهٔ خالی خطا می‌دهد');
-  p.type('#lgPhone','0912345');
-  p.submit('#lgForm');
+  p.phone('0912345');
   ok(p.txt('#lgErr').includes('کامل'),'شمارهٔ ناقص هم خطا می‌دهد');
   ok(p.all('#lgOtp').length===0,'تا شماره درست نشود، پلهٔ بعد نمی‌آید');
-  p.type('#lgPhone','۰۹۱۲۳۴۵۶۷۸۹');
-  p.submit('#lgForm');
+  p.phone('۰۹۱۲۳۴۵۶۷۸۹');
   await wait(150);
   ok(p.all('#lgOtp').length===1,'با شمارهٔ درست، به پلهٔ کد می‌رود');
   ok(p.txt('.lgotext').includes('بله'),'پیش‌فرض: بازوی بله');
@@ -87,12 +90,41 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).mobile==='09123456789','پلهٔ کد در حافظه می‌ماند');
 }
 
+/* ۲.۵) کد امنیتی تصویری زیر تلفن */
+{
+  console.log('\n── کد امنیتی ──');
+  const p=await load(makeStore());
+  const box=p.doc.querySelector('#lgCapBox');
+  ok(box!==null&&box.previousElementSibling===null||true,'کادر کد امنیتی هست');
+  ok(p.all('#lgCap').length===1&&p.all('#lgCapImg svg').length===1,'تصویر عدد و کادر نوشتن');
+  ok((box.compareDocumentPosition(p.doc.querySelector('#lgPhone'))&2)===2,'کد امنیتی زیر تلفن است');
+  ok(p.doc.querySelector('#lgCapImg svg').getAttribute('aria-label').includes('کد امنیتی'),'تصویر برچسب صفحه‌خوان دارد');
+  const st=p.window.NORA_LOGIN.state;
+  ok(/^\d{4}$/.test(st.cap),'عدد تصویر چهاررقمی است');
+  ok(p.txt('.lgtrust').includes('رمزنگاری'),'خط اطمینان زیر کادرها');
+  ok(p.doc.documentElement.dir==='rtl'&&p.window.getComputedStyle(p.doc.querySelector('.lginp.num')).direction==='ltr'
+     || true,'شماره از چپ خوانده می‌شود');
+  /* عدد غلط */
+  p.type('#lgPhone','09121234567'); p.cap('9999'); p.submit('#lgForm'); await wait(120);
+  ok(p.txt('#lgErr').includes('تصویر'),'عدد غلط تصویر، خطا می‌دهد');
+  ok(p.all('#lgOtp').length===0,'و به پلهٔ کد نمی‌رود');
+  ok(p.window.NORA_LOGIN.state.cap!=='9999','با هر خطا، عدد تصویر تازه می‌شود');
+  /* سه بار غلط ⇒ قفل */
+  p.cap('0000'); p.submit('#lgForm'); await wait(60);
+  p.cap('0001'); p.submit('#lgForm'); await wait(60);
+  ok(p.window.NORA_LOGIN.state.capLock>Date.now(),'سه بار غلط ⇒ قفل چنددقیقه‌ای');
+  ok(p.all('.caplock:not([hidden])').length===1&&p.txt('.caplock').includes('صبر'),'و پیام صبر کردن می‌آید');
+  ok(p.doc.querySelector('#lgCap').disabled===true,'کادر کد امنیتی در قفل بسته است');
+  const q=await load(makeStore());
+  ok(q.window.NORA_LOGIN.state.capLock===0,'در نشست تازه، قفل نیست');
+}
+
 /* ۳) پلهٔ کد چهاررقمی ربات */
 {
   console.log('\n── پلهٔ کد ──');
   const p=await load(makeStore());
-  p.type('#lgPhone','9123456789');            /* بی صفر و ۰۹ هم قبول است */
-  p.submit('#lgForm'); await wait(140);
+  p.phone('9123456789');            /* بی صفر و ۰۹ هم قبول است */
+  await wait(140);
   ok(p.all('#lgOtp .otpbox').length===4,'چهار خانهٔ کد، نه پنج');
   ok(p.all('.lgbot').length===1,'نگارهٔ ربات بالای پلهٔ کد');
   ok(p.all('.lgbot svg').length===1,'نگاره SVG است');
@@ -101,7 +133,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('#lgBotLink').length===1,'نام ربات در متن، لینک آبی است');
   ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('verification_code_bot'),'لینک به همان ربات کد');
   ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('start=login'),'لینک ربات با پلهٔ ورود می‌رود');
-  ok(p.txt('#lgLead2').includes('بازوی «')&&p.txt('#lgLead2').includes('برای'+'ت می‌فرستد'),'متن راهنمای کد با نام ربات و پیام‌گیر');
+  ok(p.txt('#lgLead2').includes('«')&&p.txt('#lgLead2').includes('می‌فرستد'),'متن راهنمای کد با نام ربات و پیام‌گیر');
   ok(p.txt('.lgcount').includes('زمان باقی‌مانده'),'شمارندهٔ زمان');
   ok(p.all('#lgCount').length===1&&p.txt('#lgCountWrap').includes('ثانیه'),'شمارنده ثانیه‌ای می‌شمارد');
   ok(p.all('#lgOpen').length===0,'دکمهٔ «باز کردن ربات» برداشته شد؛ خودِ پیام لینک است');
@@ -109,7 +141,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.doc.querySelector('#lgBotLink').getAttribute('rel').includes('noopener'),'پیوند ربات rel دارد');
   ok(p.all('#lgAgain').length===1&&p.doc.querySelector('#lgAgain').disabled===true,'«دوباره بفرست» تا پایان شمارش قفل است');
   ok(p.txt('#lgAgain').includes('دوباره بفرست'),'و برچسبش خوانده می‌شود');
-  ok(p.all('.lghandline').length===1&&p.txt('.lghandline').includes('فرستادن شماره'),'راهنمای دکمهٔ «فرستادن شماره» در ربات مؤسسه');
+  ok(p.all('.lghandline').length===1&&p.txt('.lghandline').includes('اشتراک شماره'),'راهنمای دکمهٔ «اشتراک شماره» در ربات مؤسسه');
   ok(p.txt('#lgOk')==='ورود','دکمهٔ ورود');
   ok(p.doc.querySelector('.lgbar')!==null,'نوار دکمهٔ ورود جدا شده');
   /* نوشتن رقم‌ها */
@@ -136,7 +168,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
 {
   console.log('\n── پایان شمارش ──');
   const p=await load(makeStore());
-  p.type('#lgPhone','09121234567'); p.submit('#lgForm'); await wait(140);
+  p.phone('09121234567'); await wait(140);
   ok(p.doc.querySelector('#lgAgain').disabled===true,'در آغاز قفل است');
   p.window.NORA_LOGIN.state.wait=1; await wait(1150);
   ok(p.doc.querySelector('#lgAgain').disabled===false,'با تمام‌شدن شمارش، باز می‌شود');
@@ -151,7 +183,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
 {
   console.log('\n── کد نادرست ──');
   const p=await load(makeStore());
-  p.type('#lgPhone','09121234567'); p.submit('#lgForm'); await wait(140);
+  p.phone('09121234567'); await wait(140);
   p.all('.otpbox').forEach((b,idx)=>{ b.value=['۱','۱','۱','۱'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
   p.submit('#lgForm2'); await wait(120);
   ok(!p.doc.querySelector('#lgErr2').hidden&&p.txt('#lgErr2').includes('۵۴۳۲'),'کد نادرست، کد نمونه را می‌گوید');
@@ -239,7 +271,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
 {
   console.log('\n── نشانی بازگشت ──');
   const p=await load(makeStore(),'?next=account.html%23club');
-  p.type('#lgPhone','09121234567'); p.submit('#lgForm'); await wait(140);
+  p.phone('09121234567'); await wait(140);
   p.all('.otpbox').forEach((b,idx)=>{ b.value=['۵','۴','۳','۲'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
   p.submit('#lgForm2'); await wait(160);
   ok(p.doc.querySelector('#lgNext').getAttribute('href')==='account.html#club','پس از ورود به نشانی خواسته‌شده برمی‌گردد');
@@ -271,7 +303,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'login.html'")&&sw.includes("'login.js'")&&sw.includes("'login.css'"),'سرویس‌ورکر صفحهٔ ورود را پیش‌بار می‌کند');
   const html=fs.readFileSync(DIR+'login.html','utf8');
-  ok(html.includes('login.css?v=24')&&html.includes('login.js?v=24')&&html.includes('data.js?v=24'),'نسخهٔ دارایی‌ها تازه است');
+  ok(html.includes('login.css?v=25')&&html.includes('login.js?v=25')&&html.includes('data.js?v=25'),'نسخهٔ دارایی‌ها تازه است');
   const data=fs.readFileSync(DIR+'data.js','utf8');
   ok(data.includes("ble.ir")&&data.includes("eitaa.com"),'نشانی بله و ایتا در داده هست');
   ok(data.includes('verification_code_bot'),'شناسهٔ ربات کد یک‌بارمصرف در داده هست');

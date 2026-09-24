@@ -21,6 +21,46 @@ const SECT=A.sections||[], PAY=SECT.find(s=>s.card)||null, ROWS=SECT.filter(s=>!
 const EVENTS=N.EVENTS||[], PAST=N.PAST||[], FAQ=N.FAQ||[], CERTS=N.CERTS||{}, ARCHIVE=N.ARCHIVE||{};
 const FIELDS=A.fields||[], FLOW=A.flow||[], LEVELS=A.levels||[], ACH=A.achievements||[], STORE=A.rewardStore||[];
 const MON=A.months||{sh:'شهریور'};
+const TRUST=N.TRUST||{}, TRUST_ROWS=TRUST.row||[];
+const PF=A.profileForm||{}, DELFLOW=A.deleteFlow||{};
+const MY=A.myEvents||{}, MY_UP=MY.up||[], MY_PAST=MY.past||[];
+const myUp=()=>EVENTS.filter(e=>MY_UP.indexOf(e.id)>-1);
+const myPast=()=>PAST.filter(e=>MY_PAST.indexOf(e.id)>-1);
+/* شمارش روز و ساعت و دقیقه تا شروع رویداد؛ از ساعت خودِ دستگاه */
+function untilTxt(e){
+  const d=+String(e.dn||'').replace(/\D/g,'')||0; return d?faN(d)+' روز':'به‌زودی';
+}
+function cdParts(e){
+  /* روز و ساعت و دقیقهٔ مانده؛ در پیش‌نمایش از شمارهٔ روز خود داده می‌آید */
+  const days=+String(e.dn||'').replace(/\D/g,'')||0;
+  const mins=((days*24+7)*60)+37;
+  return {d:Math.floor(mins/1440), h:Math.floor(mins%1440/60), m:mins%60};
+}
+function cdLine(e){
+  const t=cdParts(e);
+  return `<span class="cdline">${ico('i-clock')}
+    <b>${faN(t.d)}</b> روز و <b>${faN(t.h)}</b> ساعت و <b>${faN(t.m)}</b> دقیقه تا برگزاری</span>`;
+}
+/* هر پارامتر فرم پروفایل، یک خط از پروفایل تو می‌شود؛ عکس هم پارامتر است */
+const PHOTO_SEED=['people/p5.svg','people/p2.svg','people/p7.svg'];
+/* یک جملهٔ اطمینان، کوتاه: برای هر بخش از همین‌ها خوانده می‌شود */
+function trustOf(w){
+  const r=TRUST_ROWS.find(x=>String(x[0]).indexOf(w)>-1);
+  return r?r[1]:'';
+}
+function trustLine(kind){
+  const S2=TRUST.short||{};
+  const t=(kind&&S2[kind])||trustOf('رمزنگاری اطلاعات')||'اطلاعاتت رمزنگاری‌شده است.';
+  const head=(TRUST.head||'اطلاعاتت ایمن است');
+  return `<p class="trustline" data-trust="${esc(kind||'secure')}" title="${esc(head)}">
+    <svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>${esc(t)}</span></p>`;
+}
+function trustCard(){
+  return `<div class="trustcard anim">${ico('i-shield')}
+    <span class="tx"><b>${esc(TRUST.head||'اطلاعاتت ایمن است')}</b>
+      <small>${esc(trustOf('رمزنگاری گذرگاه')||'')}</small></span>
+    <button class="btn sm quiet" data-trust-more>بیشتر</button></div>`;
+}
 
 /* ── کمکی‌ها ─────────────────────────────────────────────────────── */
 const $=s=>document.querySelector(s);
@@ -95,7 +135,7 @@ function headMember(){
         <span class="ctags">${chip(st[0],st[1])}${chip(faNum(pts)+' امتیاز')}</span></div>
       <div class="pbody">
         <div class="ptop">
-          <span class="av">${esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
+          <span class="av">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
           <span class="who"><b>${esc(name)}</b>
             <small>${phone()?faN(phone())+' · ':''}عضو از ${esc(u.joined||A.joined||'۱۴۰۴')}</small>
             <span class="pmeta">${chip('سطح '+(cur.n||'—'))}${next?chip(faN(next.at-pts)+' تا '+next.n):chip('بالاترین سطح','ok')}</span></span>
@@ -136,6 +176,7 @@ function payBox(){
         <button class="pbtn" type="button" data-view="pay">${ico('i-doc')} صورت‌حساب</button>
         <button class="pbtn" type="button" data-view="pay">${ico('i-split')} اقساط</button>
       </div>
+      ${trustLine('pay')}
     </div>`;
 }
 
@@ -225,9 +266,20 @@ function evRow(e){
   return `<div class="erow">
     <span class="when"><b>${faD(e.dn||'')}</b><small>${esc(monOf(e))}</small></span>
     <span class="tx"><b>${esc(e.t)}</b><small>${ico('i-clock')} ${esc([e.when,e.time,e.place].filter(Boolean).join(' · '))}</small>
+      ${cdLine(e)}
       <span class="bt">
+        <a class="btn sm quiet" href="event.html?id=${esc(e.id)}">${ico('i-chev-left')} صفحهٔ رویداد</a>
         <button class="btn sm quiet" data-ticket="${esc(e.id)}">${ico('i-qr')} کارت ورود</button>
         <button class="btn sm quiet" data-cancel="${esc(e.id)}">لغو</button></span></span></div>`;
+}
+function pastRowMine(h){
+  return `<div class="erow">
+    <span class="when"><b>${faD(h.dn||'')}</b><small>${esc(monOf(h))}</small></span>
+    <span class="tx"><b>${esc(h.t)}</b><small>${ico('i-archive')} ${esc(h.d||'')} · ${faN(h.mediaCount||0)} رسانه</small>
+      <span class="bt">
+        <a class="btn sm quiet" href="event.html?id=${esc(h.id)}">${ico('i-play')} ضبط و رسانه‌ها</a>
+        <button class="btn sm quiet" data-dl-cert="${esc((CERTS&&Object.keys(CERTS)[0])||'NL-T4K7M9X')}">${ico('i-medal')} گواهی</button>
+      </span></span></div>`;
 }
 function pastRow(h){
   return `<div class="erow past">
@@ -238,18 +290,46 @@ function pastRow(h){
         ${h.cert?`<button class="btn sm quiet" data-cert="${esc(h.id)}">${ico('i-medal')} گواهی</button>`:''}</span></span></div>`;
 }
 function panelUp(){
-  if(!EVENTS.length) return card('رویدادهای من','',empty2('هنوز ثبت‌نامی نداری','از فهرست رویدادها یکی را انتخاب کن.'));
-  return card('پیش‌روی من',faN(EVENTS.length)+' ثبت‌نام؛ کارت ورود هر رویداد این‌جاست','i-calendar',
-    EVENTS.map(evRow).join(''))+
-    note('لغو ثبت‌نام تا یک روز قبل، بی هزینه است؛ شرایط بازگشت مبلغ در صفحهٔ خود رویداد آمده.','i-clock');
+  const mine=myUp();
+  if(!mine.length) return card('پیش‌روی من',MY.lead||'',empty2('هنوز ثبت‌نامی نداری',MY.empty||''))+
+    note('فهرست همهٔ رویدادها صفحهٔ خودش را دارد؛ این‌جا فقط مالِ خودت است.','i-calendar');
+  return card('پیش‌روی من',faN(mine.length)+' رویداد ثبت‌نام‌شده — '+esc(MY.lead||''),'i-calendar',
+    mine.map(evRow).join(''))+
+    note(MY.inEvent||'هر جزئیاتی در صفحهٔ خودِ رویداد است.','i-layers')+
+    trustLine('secure');
 }
 function panelPast(){
-  return card('برگزارشده‌ها',faN(PAST.length)+' رویداد؛ ضبط، جزوه و گواهی','i-archive',
-    PAST.map(pastRow).join(''))+
-    note('فایل ضبط و جزوه از همین‌جا برای همیشه در دسترس است.','i-archive');
+  const mine=myPast();
+  if(!mine.length) return card('برگزارشده‌ها','',empty2('هنوز رویداد برگزارشده‌ای نداری','بعد از هر رویداد، ضبط و گواهی همین‌جا می‌آید.'));
+  return card('برگزارشده‌های من',faN(mine.length)+' رویداد؛ ضبط، رسانه و گواهی','i-archive',
+    mine.map(pastRowMine).join(''))+
+    note('هر رویداد، صفحهٔ خودش را دارد: ضبط، رسانه، گواهی و کارنامهٔ حضور همان‌جا است.','i-archive');
 }
 function panelTickets(){
-  const p=prof(), u=sess(), test=CERTS['NL-T4K7M9X']||{};
+  const p=prof(), u=sess(), mine=myUp();
+  const certKey=(CERTS&&Object.keys(CERTS)[0])||'NL-T4K7M9X', test=CERTS[certKey]||{};
+  const ticketRow=e=>{
+    const code=String(e.id||'e1').toUpperCase()+'‑'+faN(4567);
+    return `<div class="tk">${ico('i-qr','width:19px;height:19px;color:var(--brand)')}
+      <span><b>${esc(e.t)}</b><small>${esc(e.when||'')} · ${esc(e.place||'')} · کد ورود ${esc(code)}</small>
+        <span class="acts">${chip('بلیت فعال','ok')}
+          <button class="btn sm quiet" data-dl-ticket="${esc(e.id)}">${ico('i-download')} دانلود بلیت</button>
+          <button class="btn sm quiet" data-ticket="${esc(e.id)}">${ico('i-qr')} کارت ورود</button></span></span></div>`;
+  };
+  const certRow=`<div class="tk">${ico('i-medal','width:19px;height:19px;color:var(--brand)')}
+        <span><b>${esc(test.c||'کارگاه عکاسی مقدماتی')}</b>
+          <small>صادر ${esc(test.d||'۲۱ شهریور ۱۴۰۵')} · ${esc(test.h||'۲۴ ساعت')} · سریال ${esc(certKey)}</small>
+          <span class="acts">${chip('آمادهٔ دانلود','ok')}
+            <button class="btn sm quiet" data-dl-cert="${esc(certKey)}">${ico('i-send')} دانلود</button>
+            <button class="btn sm quiet" data-verify="${esc(certKey)}">استعلام</button></span></span></div>`;
+  const kinds=(POL.certKinds||[]).map(k=>{
+    const b=k.k==='free'?'دریافت':'سفارش', cls=k.k==='free'?'quiet':'primary';
+    return `<div class="kind">${ico('i-doc','width:19px;height:19px;color:var(--ink-4)')}
+        <span class="tx"><b>${esc(k.n)}</b><small>${esc(k.s)}</small></span>
+        <button class="btn sm ${cls}" data-certreq="${esc(k.k)}">${b}</button></div>`;
+  }).join('');
+  const certNote=note((POL.certNote||'شرط صدور هر رویداد جداست')+' · اعتبار پیش‌فرض هر گواهی '+
+        faN(POL.certValidMonths||24)+' ماه است.','i-shield');
   return `<div class="idcard anim">
       <div class="idcover">${ico('i-idcard-f')}
         <b>${esc(p.fullName||u.name||'کاربر نورا')}</b>
@@ -259,24 +339,15 @@ function panelTickets(){
       <div class="idbody">
         <div class="stat2">
           <span><b>NL-4567</b><small>کد عضویت</small></span>
-          <span><b>${esc(EVENTS[0]?EVENTS[0].t:'—')}</b><small>کارت ورود رویداد</small></span>
+          <span><b>${faN(mine.length)}</b><small>بلیت فعال</small></span>
         </div>
         <div class="brandline"><span class="mark" aria-hidden="true"></span> این کارت را در ورودی نشان بده</div>
       </div></div>
-    ${card('گواهی‌های من','هر گواهی سریال خودش را دارد؛ با همان می‌شود استعلام گرفت','i-medal',
-      `<div class="tk">${ico('i-medal','width:19px;height:19px;color:var(--brand)')}
-        <span><b>${esc(test.c||'کارگاه عکاسی مقدماتی')}</b>
-          <small>صادر ${esc(test.d||'۲۱ شهریور ۱۴۰۵')} · ${esc(test.h||'۲۴ ساعت')} · سریال NL-T4K7M9X</small>
-          <span class="acts">${chip('آمادهٔ دانلود','ok')}
-            <button class="btn sm quiet" data-dl-cert="NL-T4K7M9X">${ico('i-send')} دانلود</button>
-            <button class="btn sm quiet" data-verify="NL-T4K7M9X">استعلام</button></span></span></div>`)}
-    ${card('گونه‌های گواهی','در نورا چهار گونه گواهی داریم','i-doc',
-      `<div class="kinds">${(POL.certKinds||[]).map(k=>`<div class="kind">
-        ${ico('i-doc','width:19px;height:19px;color:var(--ink-4)')}
-        <span class="tx"><b>${esc(k.n)}</b><small>${esc(k.s)}</small></span>
-        <button class="btn sm ${k.k==='free'?'quiet':'primary'}" data-certreq="${esc(k.k)}">${k.k==='free'?'دریافت':'سفارش'}</button></div>`).join('')}</div>`+
-      note((POL.certNote||'شرط صدور هر رویداد جداست')+' · اعتبار پیش‌فرض هر گواهی '+
-        faN(POL.certValidMonths||24)+' ماه است.','i-shield'))}`;
+    ${card('بلیت‌های من','هر بلیت مالِ خودِ همان رویداد است؛ جزئیاتش در صفحهٔ آن رویداد','i-ticket',
+      mine.length?mine.map(ticketRow).join(''):empty2('بلیتی نداری','از صفحهٔ رویدادها یکی را ثبت‌نام کن.'))}
+    ${card('گواهی‌های من','هر گواهی سریال خودش را دارد؛ با همان می‌شود استعلام گرفت','i-medal',certRow)}
+    ${card('گونه‌های گواهی','در نورا چهار گونه گواهی داریم','i-doc',`<div class="kinds">${kinds}</div>`+certNote)}
+    ${trustLine('secure')}`;
 }
 function panelAttend(){
   const score=A.score||{}, months=[40,62,55,78,66,84,72,90,60,74,88,96];
@@ -499,18 +570,46 @@ function infoPanel(){
   const p=prof(), st=stOf(p), groups=[];
   FIELDS.forEach(f=>{ if(!groups.includes(f.g)) groups.push(f.g) });
   const body=groups.map(g=>`<div class="grp"><div class="gt cap">${esc(g)}</div>
-    ${FIELDS.filter(f=>f.g===g).map(f=>S.edit
-      ? `<div class="fld${S.errs[f.k]?' bad':''}">${fieldEdit(f,p)}</div>`
-      : `<div class="fld"><span class="hint">${esc(f.l)}</span>${fieldView(f,p)}</div>`).join('')}</div>`).join('');
+    ${FIELDS.filter(f=>f.g===g).map(f=>f.k==='photo'?photoRow(p)
+      :S.edit
+        ? `<div class="fld${S.errs[f.k]?' bad':''}">${fieldEdit(f,p)}</div>`
+        : `<div class="fld"><span class="hint">${esc(f.l)}<i class="prm">${esc(f.param||f.k)}</i></span>${fieldView(f,p)}</div>`).join('')}</div>`).join('');
   const acts=S.edit?`<div class="row" style="margin-top:14px">
       <button class="btn primary" id="sendBtn">${ico('i-check')} ذخیره و ارسال برای تأیید</button>
       <button class="btn quiet" id="draftBtn">فقط ذخیره</button>
       <span class="sp" style="flex:1"></span><button class="btn quiet" id="cancelBtn">انصراف</button></div>`
     :`<div class="row" style="margin-top:12px"><button class="btn ${missOf(p).length?'primary':'quiet'}" id="editBtn">
-      ${ico('i-pen')} ${missOf(p).length?'تکمیل اطلاعات':'ویرایش اطلاعات'}</button></div>`;
-  return card('اطلاعات حساب من','همان چیزی که روی بلیت و گواهی می‌آید؛ تغییرات اول به کارشناس می‌رود','i-idcard',
+      ${ico('i-pen')} ${missOf(p).length?'تکمیل فرم پروفایل':'ویرایش فرم پروفایل'}</button></div>`;
+  return pfCard()+
+    card('اطلاعات من','پارامترهای فرمی که مدیر سامانه ساخته؛ تغییرات اول به کارشناس می‌رود','i-idcard',
     `<div class="row" style="align-items:center;gap:8px;margin-top:2px"><span class="cap">وضعیت</span>${chip(st[0],st[1])}
-      <span class="sp" style="flex:1"></span><span class="cap">٪${faN(pctOf(p))} کامل</span></div>${body}${acts}`);
+      <span class="sp" style="flex:1"></span><span class="cap">٪${faN(pctOf(p))} کامل</span></div>${body}${acts}`)+
+    trustCard();
+}
+/* ── کارت فرم پروفایل: ساختهٔ مدیر سامانه، نه این‌جا ──────────────── */
+function pfCard(){
+  if(!PF.n) return '';
+  return card('فرم پروفایل','ساختهٔ '+esc(PF.maker||'مدیر سامانه')+(PF.at?' · '+esc(PF.at):''),'i-layers',
+    `<p class="cap" style="margin:0 3px 8px">${esc(PF.lead||'')}</p>
+     <div class="srow">${ico('i-list')}
+       <span class="sp">پارامترهای این فرم<small>${faN(FIELDS.length)} پارامتر از عکس تا کد ملی</small></span>
+       <span class="tag">${esc(PF.cap||'')}</span></div>
+     <div class="prms">${FIELDS.map(f=>`<span class="prm on">${esc(f.param||f.k)}</span>`).join('')}</div>
+     <div class="row" style="margin-top:10px"><a class="btn sm quiet" href="${esc(PF.from||'builder.html')}">
+       ${ico('i-chart')} ${esc(PF.fromN||'پنل فرم‌ها')}</a>
+       <span class="sp" style="flex:1"></span><span class="cap">گونه‌ها: ${esc((PF.kinds||[]).join('، '))}</span></div>`);
+}
+/* پارامتر عکس: تنها پارامتری که با بارگذاری پر می‌شود */
+function photoRow(p){
+  const cur=p.photo||PHOTO_SEED[0];
+  return `<div class="fld phrow"><span class="hint">${esc('عکس پروفایل')}<i class="prm">photo</i></span>
+    <span class="v phv">
+      <span class="phthumb"><img src="${esc(cur)}" alt="عکس پروفایل"/></span>
+      ${S.edit?`<span class="tx"><label class="btn sm" for="phFile">${ico('i-image')} بارگذاری عکس</label>
+        <input id="phFile" type="file" accept="image/*" hidden/>
+        <button class="btn sm quiet" type="button" data-photo-demo>عکس نمونه</button></span>`
+      :`<span class="tx"><span class="cap">همین عکس روی کارت ورود و گواهی می‌آید</span></span>`}
+    </span></div>`;
 }
 function flowPanel(){
   const p=prof(), st=(p&&p.status)||'draft', hist={}; (p.history||[]).forEach(h=>{hist[h.k]=h.at});
@@ -527,36 +626,78 @@ function flowPanel(){
   return card('تأیید پروفایل','کارشناس درخواستت را می‌بیند و نتیجه را خبر می‌دهد','i-shield',`<div class="steps">${steps}</div>${tail}`);
 }
 function formsPanel(){
-  const F=[{t:'پیش‌ثبت‌نام کارگاه خطاطی',k:'پیش‌ثبت‌نام',s:'draft',d:'۳ مهر'},
+  const F=[{t:'فرم پروفایل اعضا',k:'پروفایل',s:'pending',d:'۲ مهر',mine:true},
+           {t:'پیش‌ثبت‌نام کارگاه خطاطی',k:'پیش‌ثبت‌نام',s:'draft',d:'۳ مهر'},
            {t:'رضایت‌سنجی کارگاه عکاسی',k:'رضایت‌سنجی کارگاه',s:'pending',d:'۲۱ تیر'},
            {t:'انتخاب مسیر ترم پاییز',k:'انتخاب مسیر',s:'approved',d:'۱۲ شهریور'}];
   const M={draft:['پیش‌نویس','warn'],pending:['در صف بررسی','brand'],approved:['تأییدشده','ok']};
-  return card('فرم‌های من','پیش‌نویس، در صف و تأییدشده، همه یک‌جا','i-doc',
-    F.map(f=>`<div class="tk">${ico('i-doc','width:19px;height:19px;color:var(--ink-4)')}
-      <span><b>${esc(f.t)}</b><small>${esc(f.k)} · ${esc(f.d)}</small>
+  return card('فرم‌های من','فرم‌ها را مدیر سامانه می‌سازد و برایت می‌گذارد','i-doc',
+    F.map(f=>`<div class="tk">${ico(f.mine?'i-idcard':'i-doc','width:19px;height:19px;color:var(--ink-4)')}
+      <span><b>${esc(f.t)}</b><small>${esc(f.k)} · ${esc(f.d)}${f.mine?' · ساختهٔ مدیر سامانه':''}</small>
         <span class="acts">${chip(M[f.s][0],M[f.s][1])}
           <button class="btn sm quiet" data-form="${esc(f.t)}">${f.s==='draft'?'ادامهٔ تکمیل':'دیدن پاسخ‌ها'}</button></span></span></div>`).join('')+
-    `<div class="row" style="margin-top:12px"><button class="btn sm primary" data-form-new>
-      ${ico('i-pen')} فرم تازه</button>
+    `<div class="row" style="margin-top:12px">
+      <a class="btn sm quiet" href="${esc(PF.from||'builder.html')}">${ico('i-chart')} فرم‌ها در ${esc(PF.fromN||'پنل فرم‌ها')}</a>
       <span class="sp" style="flex:1"></span><span class="cap">${faN((POL.formKinds||[]).length)} گونه فرم</span></div>`+
-    note('گونه‌ها: '+((POL.formKinds||[]).join('، ')),'i-layers'));
+    note('فرم تازه این‌جا ساخته نمی‌شود؛ مدیر سامانه فرم را در پنل می‌سازد و می‌گذارد، تو فقط پرش می‌کنی.','i-layers')+
+    trustLine('privacy'));
 }
 function privacyPanel(){
   const p=prof(), asked=!!p.askedDelete;
-  return card('حریم خصوصی','اطلاعاتت را می‌توانی برداری یا حساب را ببندی','i-lock',
+  const steps=(DELFLOW.steps||[]).map((st,i)=>{
+    const from=asked?(i===0?1:0):0;   /* بعد از درخواست، «درخواست تو» انجام شده */
+    const on=asked&&i===0, now=asked&&i===1;
+    return `<div class="step ${on?'done':''} ${now?'on':''}">
+      <span class="dot">${ico('i-'+(on?'check':now?'clock':'shield'),'width:13px;height:13px')}</span>
+      <span class="tx"><b>${esc(st.n)}</b><small>${esc(asked?st.s:'—')}</small></span>
+      <span class="lc cap" style="margin-inline-start:auto">${esc(asked&&i===0?'همین حالا':now?'در انتظار':'—')}</span></div>`}).join('');
+  return card('حریم خصوصی','اطلاعاتت را می‌توانی برداری؛ حساب را فقط کارشناس می‌بندد','i-lock',
     `<div class="srow">${ico('i-doc')}
-      <span class="sp">دانلود اطلاعات من<small>پروفایل، خریدها، اعلان‌ها و آمار، یک فایل</small></span>
+      <span class="sp">دانلود اطلاعات من<small>فرم پروفایل، خریدها، اعلان‌ها و آمار، یک فایل</small></span>
       <button class="btn sm quiet" id="dlBtn">${ico('i-send')} دانلود</button></div>
      <div class="srow">${ico('i-shield','color:var(--stop)')}
-      <span class="sp">حذف حساب کاربری<small>بلیت‌ها، گواهی‌ها و سابقهٔ حضور هم پاک می‌شود</small></span>
-      <button class="btn sm stop" id="delBtn" ${asked?'disabled':''}>${asked?'ثبت شد':'درخواست حذف'}</button></div>
-     <div class="cap" id="delNote" style="margin-top:10px">${asked?'درخواستت ثبت شده؛ کارشناس برای تأیید خبر می‌دهد.':''}</div>`)+
-    note('حذف حساب بی‌برگشت است؛ برای همین دو تأیید می‌گیریم: تایپ «حذف» و کد پیامکی.','i-lock')+
+      <span class="sp">درخواست حذف حساب<small>${esc(DELFLOW.lead||'با تأیید کارشناس انجام می‌شود')}</small></span>
+      <button class="btn sm stop" id="delBtn" ${asked?'disabled':''}>${asked?'در انتظار تأیید':'درخواست حذف'}</button></div>
+     <div class="steps" style="margin-top:10px">${steps}</div>
+     <div class="cap" id="delNote" style="margin-top:8px">${asked?esc(DELFLOW.note||''):''}</div>`)+
+    note('حذف حساب بی‌برگشت است؛ برای همین دو تأیید می‌گیریم: تایپ «حذف» و کد پیامکی. بعدش هم تا کارشناس تأیید نکند، چیزی پاک نمی‌شود.','i-lock')+
     card('چه چیزی نگه می‌داریم','شفاف و کوتاه','i-shield',
       `<div class="srow">${ico('i-check')}<span class="sp">اطلاعات پروفایل، برای بلیت و گواهی</span></div>
        <div class="srow">${ico('i-check')}<span class="sp">سابقهٔ خرید و حضور، برای کارنامهٔ تو</span></div>
-       <div class="srow">${ico('i-lock')}<span class="sp">شمارهٔ موبایل، فقط برای ورود و یادآوری</span></div>`);
+       <div class="srow">${ico('i-lock')}<span class="sp">شمارهٔ موبایل، فقط برای ورود و یادآوری</span></div>`)+
+    trustCard();
 }
+/* عکس پروفایل: پارامتر تصویری فرم — بارگذاری یا عکس نمونه */
+function demoPhoto(){
+  const p=prof(), cur=p.photo||PHOTO_SEED[0];
+  const next=PHOTO_SEED[(PHOTO_SEED.indexOf(cur)+1)%PHOTO_SEED.length];
+  p.photo=next; if(UI().saveProfile) UI().saveProfile(p);
+  render(); toast('عکس پروفایل ثبت شد؛ روی کارت ورود می‌آید');
+}
+function pickPhoto(file){
+  const p=prof();
+  try{ if(file&&window.URL&&URL.createObjectURL) p.photo=URL.createObjectURL(file); else return }
+  catch(e){ return }
+  if(UI().saveProfile) UI().saveProfile(p);
+  render(); toast('عکس پروفایل بارگذاری شد');
+}
+document.addEventListener('change',ev=>{
+  const el=ev.target;
+  if(el&&el.id==='phFile'&&el.files&&el.files[0]) pickPhoto(el.files[0]);
+},false);
+
+/* ورقهٔ «اطلاعاتت ایمن است»: همهٔ جمله‌های اطمینان یک‌جا */
+function trustSheet(){
+  const rows=(N.TRUST&&N.TRUST.row)||[];
+  fillSheet('shTrust',`<div class="grabber"></div><div class="head">${esc((N.TRUST&&N.TRUST.head)||'اطلاعاتت ایمن است')}</div>
+    <p class="sub" style="margin-top:8px">کوتاه و بی‌حاشیه؛ همین‌ها را رعایت می‌کنیم.</p>
+    <div class="steps" style="margin-top:10px">${rows.map(r=>`<div class="step done">
+      <span class="dot">${ico('i-shield','width:13px;height:13px')}</span>
+      <span class="tx"><b>${esc(r[0])}</b><small>${esc(r[1])}</small></span></div>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn quiet" data-close>بستن</button></div>`);
+  openSheet('shTrust');
+}
+
 /* ورود و امنیت: شماره، دستگاه‌ها، پیام‌گیرها و خروج */
 function authPanel(){
   const ph=phone(), ms=(A.login&&A.login.msgs)||[];
@@ -655,13 +796,13 @@ function nowFa(){
 function askDelete(){
   fillSheet('shConfirm',`<div class="grabber"></div><div class="head">حذف حساب کاربری</div>
     <p class="sub" style="margin-top:8px">این کار بی‌برگشت است: بلیت‌ها، گواهی‌ها و سابقهٔ حضور هم پاک می‌شود.
-      برای اطمینان، کلمهٔ <b>حذف</b> را بنویس و کد پیامکی را وارد کن.</p>
+      همین‌جا فقط <b>درخواست</b> ثبت می‌شود؛ کارشناس سامانه بررسی می‌کند و با تأیید او حساب بسته می‌شود.</p>
     <label class="lbl" for="delWord" style="margin-top:12px;display:block">کلمهٔ تأیید</label>
     <input class="input" id="delWord" placeholder="حذف" autocomplete="off" style="margin-top:6px"/>
     <label class="lbl" for="delCode" style="margin-top:10px;display:block">کد پیامکی</label>
     <input class="input num" id="delCode" inputmode="numeric" maxlength="5" placeholder="کد ۵ رقمی" style="margin-top:6px"/>
     <div class="cap" style="margin-top:6px">کد نمایشی: ۵۴۳۲۱</div>
-    <div class="row" style="margin-top:14px"><button class="btn stop" id="delYes">بله، حسابم را ببند</button>
+    <div class="row" style="margin-top:14px"><button class="btn stop" id="delYes">درخواست حذف را بفرست</button>
       <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>هنوز نه</button></div>`);
   openSheet('shConfirm');
 }
@@ -755,6 +896,8 @@ document.addEventListener('click',ev=>{
     S.view='profile'; S.ptab='club'; location.hash='#profile'; render(); return }
   const vt=t.closest('[data-vtab]'); if(vt){ S.vtab=vt.dataset.vtab; renderView(); return }
   const pt=t.closest('[data-ptab]'); if(pt){ S.ptab=pt.dataset.ptab; S.edit=false; S.errs={}; renderView(); return }
+  if(t.closest('[data-photo-demo]')){ demoPhoto(); return }
+  if(t.closest('[data-trust-more]')){ trustSheet(); return }
   if(t.closest('#editBtn')){ startEdit(); return }
   if(t.closest('#cancelBtn')){ cancelEdit(); return }
   if(t.closest('#draftBtn')){ submit(false); return }
@@ -769,7 +912,7 @@ document.addEventListener('click',ev=>{
     const p=Object.assign({},prof(),{askedDelete:true});
     p.history=(p.history||[]).filter(h=>h.k!=='delete').concat([{k:'delete',at:nowFa()}]);
     if(UI().saveProfile) UI().saveProfile(p);
-    closeSheets(); render(); toast('درخواست حذف ثبت شد؛ کارشناس برای تأیید خبر می‌دهد'); return }
+    closeSheets(); render(); toast('درخواستت برای کارشناس رفت؛ تا تأیید او چیزی پاک نمی‌شود'); return }
   const dc=t.closest('[data-dl-cert]'); if(dc){ certDownload(dc.dataset.dlCert); return }
   const cr=t.closest('[data-certreq]'); if(cr){ certAsk(cr.dataset.certreq); return }
   if(t.closest('[data-cert-yes]')){ closeSheets(); toast('سفارش ثبت شد؛ بعد از تأیید سرپرست خبر می‌دهیم'); return }

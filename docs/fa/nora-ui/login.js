@@ -1,12 +1,12 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا — صفحهٔ ورود
    ──────────────────────────────────────────────────────────────────────────
-   یک کار: شماره می‌گیری، بعد می‌سپاریش به ربات پیام‌گیر (بله، ایتا، تلگرام)،
-   بعد کد چهاررقمی را می‌گیری و حساب باز می‌شود.
+   یک کار: شماره و کد امنیتی می‌گیری، بعد کد چهاررقمی می‌آید و حساب باز می‌شود.
+   ورود اصلی همین است: کد را سفیر بله می‌فرستد.
 
-   پله‌ها:  شماره → کد چهاررقمی ربات → پایان
-   دکمه‌های پیام‌گیر لینک مستقیم همان ربات‌اند: ربات باز می‌شود، شماره را
-   می‌خواهد و کد را می‌فرستد؛ ادامه همین‌جا در چهار خانه نوشته می‌شود.
+   پله‌ها:  شماره → کد چهاررقمی ربات → پایان · و برای مدیران: پلهٔ خودش
+   دکمه‌های بله و ایتا لینک مستقیم ربات مؤسسه‌اند: برنامه باز می‌شود، کاربر
+   دکمهٔ «اشتراک شماره» را می‌زند و ادامه همان‌جا در پیام‌گیر می‌رود.
    ══════════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
@@ -27,6 +27,7 @@ const unFa=s=>String(s==null?'':s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.
 const isMob=v=>/^09\d{9}$/.test(v);
 /* ۰۹۱۲۳۴۵۶۷۸۹ ← +۹۸ ۹۱۲ ۱۲۳ ۴۵۶۷ */
 const phonePretty=m=>m?'+۹۸ '+faN(m.slice(1,4))+' '+faN(m.slice(4,7))+' '+faN(m.slice(7)):'';
+/* قفل کد امنیتی از نشست پیشین هم خوانده می‌شود */
 const store={
   get(k){ try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null} },
   set(k,v){ try{localStorage.setItem(k,JSON.stringify(v))}catch(e){} },
@@ -41,22 +42,31 @@ const sheet=(id,html)=>{
 };
 const shut=()=>{ if(typeof closeSheets==='function') closeSheets() };
 
-/* ── نگارهٔ ربات: حباب سبز با تیک، همان‌جور که در پیام‌گیر دیده می‌شود ── */
-const TINT={bale:'#12A594', eitaa:'#F5821F'};
-function botArt(k){
-  const c=TINT[k]||TINT.bale;
-  return `<svg viewBox="0 0 64 64" aria-hidden="true">
-    <path d="M32 6c14.4 0 26 10 26 25S46.4 58 32 58 6 49 6 34 17.6 6 32 6z" fill="${c}"/>
-    <path d="M18 12c-4.6 1.4-8.4 3.8-11 7 3.2.5 6.4.1 9.4-1.2z" fill="${c}"/>
-    <path d="M21.6 33.6l7.2 7.4 14.4-15.6" fill="none" stroke="#fff" stroke-width="6.4"
+/* ── نگارهٔ ربات‌ها: همان نشان خودِ پیام‌گیرها ───────────────────────
+   بله: حباب سبز با تیک سفید. ایتا: دایرهٔ نارنجی با «ه» سفید. */
+const TINT={bale:'#14A85C', eitaa:'#F5821F'};
+function baleArt(size){
+  return `<svg viewBox="0 0 48 48" ${size?`width="${size}" height="${size}"`:''} aria-hidden="true">
+    <defs><linearGradient id="blg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2FC46E"/><stop offset="1" stop-color="#0E9A55"/></linearGradient></defs>
+    <path d="M6.5 8.2c-.4-2.1 1.8-3.8 3.7-2.8l5.2 2.7c3.9-2 8.4-3.1 13.1-3.1 12 0 19.5 7 19.5 17.9 0 10.6-8.4 17.6-19.9 17.6S7.4 33.6 7.4 22.9c0-2.6.4-5 1.3-7.1z"
+      fill="url(#blg)"/>
+    <path d="M15.6 25.2l6.1 6.3 11.7-13" fill="none" stroke="#fff" stroke-width="5"
       stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
-
-/* ── نشان پیام‌گیرها ──────────────────────────────────────────────── */
-const MARK={
-  bale:'<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="gb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3FBD6D"/><stop offset="1" stop-color="#0E9B62"/></linearGradient></defs><circle cx="20" cy="20" r="20" fill="url(#gb)"/><path d="M11.6 20.8l5.1 5.3L28.4 14" fill="none" stroke="#fff" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  eitaa:'<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="0" y="0" width="40" height="40" rx="11" fill="#26303B"/><path d="M13.4 20.2v-4.6a6.6 6.6 0 0 1 13.2 0v4.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><rect x="12.2" y="19.4" width="15.6" height="11.4" rx="3.2" fill="#F5821F"/><circle cx="20" cy="25.1" r="1.9" fill="#26303B"/></svg>'
-};
+function eitaaArt(size){
+  return `<svg viewBox="0 0 48 48" ${size?`width="${size}" height="${size}"`:''} aria-hidden="true">
+    <defs><linearGradient id="eig" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FB9418"/><stop offset="1" stop-color="#EE7A0B"/></linearGradient></defs>
+    <circle cx="24" cy="24" r="24" fill="url(#eig)"/>
+    <path d="M33.2 24.6c0-5.6-3.9-9.7-9.4-9.7-5.2 0-9.2 4.1-9.2 9.6 0 5.6 4 9.6 9.6 9.6 2.9 0 5.4-.9 7.1-2.4"
+      fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M15.4 24.4h17.4" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+}
+function botArt(k){
+  return `<span class="botart">${k==='eitaa'?eitaaArt(30):baleArt(30)}</span>`;
+}
+const MARK={ bale:baleArt(), eitaa:eitaaArt() };
 const markOf=k=>MARK[k]||MARK.bale;
 const msgOf=k=>MSGS.find(m=>m.k===k)||MSGS[0]||{k:'bale',n:'بله',hand:'',href:'#'};
 /* دو پیوند جدا: ربات مؤسسه برای فرستادن شماره، ربات رمز برای گرفتن کد */
@@ -67,7 +77,12 @@ function otpName(m){ return (m&&(m.otpBot||m.inst||m.n))||'ربات' }
 function handOf(m){ return (m&&m.hand)||'' }
 
 /* ── حالت ─────────────────────────────────────────────────────────── */
-const S={step:'phone', mobile:'', via:(MSGS[0]||{}).k||'bale', err:'', wait:TTL, fromBot:false, tries:0};
+const CAP=L.cap||{}, CAP_CODES=(CAP.codes||[]).slice();
+const CAP_TRIES=+(CAP.tries||3), CAP_LOCK=+(CAP.lockMin||5)*60000;
+const LOCK_KEY='nora-home-caplock';
+const S={step:'phone', mobile:'', via:(MSGS[0]||{}).k||'bale', err:'', wait:TTL, fromBot:false, tries:0,
+         cap:'', capTries:0, capLock:0};
+(function(){ const t=+store.get(LOCK_KEY)||0; if(t>Date.now()) S.capLock=t })();
 
 /* ── وضعیت ────────────────────────────────────────────────────────── */
 function status(t){ const el=$('#lgStatus'); if(!el) return; el.hidden=!t; el.textContent=t||'' }
@@ -75,6 +90,73 @@ function err(t,sel){ S.err=t||'';
   const el=$(sel||'#lgErr'); if(el){ el.hidden=!t; el.textContent=t||'' }
   const hit=$(sel==='#lgErr2'?'#lgOtp':(sel||'#lgErr')==='#lgErr2'?'#lgOtp':'#lgTel');
   if(hit&&t){ hit.classList.add('bad'); setTimeout(()=>hit.classList.remove('bad'),460) }
+}
+
+/* ── جمله‌های اطمینان ────────────────────────────────────────────── */
+const TRUST=((N.TRUST&&N.TRUST.row)||(L.trust&&L.trust.row)||[]);
+const trustOf=w=>{ const r=TRUST.find(x=>String(x[0]).indexOf(w)>-1); return r?r[1]:'' };
+function trustLine(){
+  const a=trustOf('رمزنگاری گذرگاه')||'همهٔ رفت‌وآمد این صفحه رمزنگاری‌شده است.';
+  const b=trustOf('کد یک‌بارمصرف')||'ورود با کد یک‌بارمصرف است.';
+  return `<p class="lgtrust"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
+    <span>${esc(a)} ${esc(b)}</span></p>`;
+}
+
+/* ── کد امنیتی تصویری ─────────────────────────────────────────────── */
+function capPick(){ return CAP_CODES[Math.floor(Math.random()*CAP_CODES.length)]||'4173' }
+function rndOf(seed,i){ const x=Math.sin(seed*127.1+i*311.7)*43758.5453; return x-Math.floor(x) }
+/* تصویر عدد: چهار رقم با چرخش و جابه‌جایی و چند خط و نقطهٔ نویز */
+function capSVG(code,seed){
+  const cols=['#123A6B','#0E6E4E','#7A3E12','#4A2A7A','#0B5D7A','#6B1230'];
+  const digits=String(code).split('');
+  const parts=digits.map((d,i)=>{
+    const r1=rndOf(seed,i*3+1), r2=rndOf(seed,i*3+2), r3=rndOf(seed,i*3+3);
+    const x=14+i*21+(r1*7-3.5), y=33+(r2*9-4.5), rot=(r3*54-27).toFixed(1);
+    const size=(25+r1*5).toFixed(1), col=cols[Math.floor(r3*cols.length)];
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${col}" font-size="${size}"
+      font-weight="800" font-family="inherit" text-anchor="middle"
+      transform="rotate(${rot} ${x.toFixed(1)} ${y.toFixed(1)})">${faN(d)}</text>`;
+  }).join('');
+  const lines=[0,1,2].map(i=>{
+    const a=rndOf(seed,i+41), b=rndOf(seed,i+47), c=rndOf(seed,i+53), e=rndOf(seed,i+59);
+    return `<path d="M${(a*12).toFixed(1)} ${(b*52).toFixed(1)} Q ${(40+c*20).toFixed(1)} ${(e*52).toFixed(1)}
+      ${(96-a*10).toFixed(1)} ${(c*52).toFixed(1)}" fill="none" stroke="${cols[Math.floor(a*cols.length)]}"
+      stroke-width="1.1" opacity=".45"/>`;
+  }).join('');
+  const dots=Array.from({length:16},(_,i)=>{
+    const a=rndOf(seed,i+71), b=rndOf(seed,i+79);
+    return `<circle cx="${(a*100).toFixed(1)}" cy="${(b*50).toFixed(1)}" r="${(0.7+a*1.2).toFixed(1)}"
+      fill="${cols[Math.floor(b*cols.length)]}" opacity=".35"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 100 50" role="img" aria-label="${esc(CAP.alt||'تصویر کد امنیتی')}">
+    <rect width="100" height="50" rx="9" fill="rgba(0,113,227,.06)"/>${parts}${lines}${dots}</svg>`;
+}
+function capLocked(){ return S.capLock>Date.now() }
+function capLeft(){ return Math.max(0,Math.ceil((S.capLock-Date.now())/1000)) }
+function capLockTxt(){ return String(CAP.lockLead||'چند بار اشتباه زدی؛ تا {t} صبر کن.')
+  .replace('{t}',faN(capLeft())+' ثانیه') }
+function capNew(fresh){
+  if(capLocked()) return;
+  if(fresh!==false) S.cap=capPick();
+  const el=$('#lgCapImg'); if(el) el.innerHTML=capSVG(S.cap,Math.floor(Math.random()*9999));
+  const f=$('#lgCap'); if(f){ f.value=''; if(fresh!==false){ try{f.focus()}catch(e){} } }
+}
+const lockClock={t:0};
+function lockTick(){
+  clearInterval(lockClock.t);
+  const draw=()=>{
+    const box=$('#lgCapBox'); if(!box) return;
+    if(capLocked()){
+      box.classList.add('lock');
+      const note=$('#lgCapNote'); if(note){ note.hidden=false; note.textContent=capLockTxt() }
+      const f=$('#lgCap'); if(f) f.disabled=true;
+      const b=$('#lgCapNew'); if(b) b.disabled=true;
+    } else {
+      clearInterval(lockClock.t); S.capLock=0; store.del(LOCK_KEY);
+      err(''); paint(); return;
+    }
+  };
+  draw(); lockClock.t=setInterval(draw,1000);
 }
 
 /* ── پلهٔ ۱: شماره ────────────────────────────────────────────────── */
@@ -86,13 +168,23 @@ function stepPhone(){
     <div class="lgtel" id="lgTel">
       <span class="pref" id="lgPref" aria-hidden="true">۰۹</span>
       <input class="lginp num" id="lgPhone" type="tel" inputmode="numeric" autocomplete="tel-national"
-        maxlength="11" placeholder="---------" aria-describedby="lgHint" value=""/>
+        maxlength="11" placeholder="--------" aria-describedby="lgHint" value=""/>
       <span class="fic" aria-hidden="true"><svg class="i"><use href="#i-mobile"/></svg></span>
     </div>
+    <label class="lglbl" for="lgCap">${esc(CAP.l||'کد امنیتی تصویر را بنویس:')}</label>
+    <div class="lgcapbox" id="lgCapBox">
+      <span class="capimg" id="lgCapImg"></span>
+      <input class="lginp num capinp" id="lgCap" type="text" inputmode="numeric" maxlength="4"
+        autocomplete="off" placeholder="${esc(CAP.ph||'چهار رقم تصویر')}" aria-label="${esc(CAP.l||'کد امنیتی تصویر')}"/>
+      <button class="capnew" type="button" id="lgCapNew" aria-label="${esc(CAP.newCap||'تصویر تازه')}"
+        title="${esc(CAP.newCap||'تصویر تازه')}"><svg class="i"><use href="#i-refresh"/></svg></button>
+    </div>
+    <p class="caplock" id="lgCapNote" hidden></p>
     <p class="lghint" id="lgHint">${esc(L.hint||'')}</p>
     <p class="lgerr" id="lgErr" hidden></p>
+    ${trustLine()}
     <button class="lgbtn" type="submit" id="lgGo">${esc(L.go||'ورود')}</button>
-    <div class="lgvia"><span>${esc(L.via||'ورود با')}</span></div>
+    <div class="lgvia"><span>${esc(L.via||'یا سریع‌تر')}</span></div>
     <div class="lgmsgs" role="group" aria-label="${esc(L.via||'ورود با')}">${rows}</div>
     <p class="lgcap">${esc(L.sms||'')}</p>
   </form>
@@ -127,6 +219,7 @@ function stepCode(){
       <button class="lgbtn" type="submit" id="lgOk">${esc(L.go||'ورود')}</button>
     </div>
     <button class="lgbtn quiet again" type="button" id="lgAgain" disabled aria-disabled="true">${esc(L.resend||'دوباره بفرست')}</button>
+    ${trustLine()}
     <p class="lgcap">${esc(L.otpNote||'')}</p>
   </form>`;
 }
@@ -210,7 +303,10 @@ function paint(){
   const bare=(S.step==='done'||S.step==='already'||S.step==='admin'||S.step==='adminDone');
   if(leadEl) leadEl.textContent = bare ? '' : (L.lead||'');
   status('');
-  if(S.step==='phone'){ const f=$('#lgPhone'); if(f){ f.value=faN(S.mobile); pref() } }
+  if(S.step==='phone'){
+    const f=$('#lgPhone'); if(f){ f.value=faN(S.mobile); pref() }
+    if(capLocked()){ capNew(false); lockTick() } else { capNew() }
+  }
   if(S.step==='admin'){ const u=$('#lgUser'); if(u&&matchMedia('(min-width:520px)').matches) setTimeout(()=>{try{u.focus()}catch(e){}},140) }
   if(S.step==='code'){ tick(); const b=$('.otpbox'); if(b) setTimeout(()=>{ try{b.focus()}catch(e){} },140) }
   if(S.step==='done'){ clearInterval(clock.t); setTimeout(()=>{ if(S.step==='done') location.href=nextUrl() },2200) }
@@ -272,11 +368,26 @@ function gotoCode(via,openBot){
     status('کد چهاررقمی به '+(m.n)+' فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است.');
   }
 }
-/* پلهٔ ۱ با شماره */
+/* پلهٔ ۱: شماره و کد امنیتی تصویر */
+function capVal(){ const f=$('#lgCap'); return unFa(f?f.value:'').replace(/\D/g,'') }
+function capWrong(){
+  S.capTries=(S.capTries||0)+1;
+  if(S.capTries>=CAP_TRIES){
+    S.capLock=Date.now()+CAP_LOCK; store.set(LOCK_KEY,S.capLock); S.capTries=0;
+    err(''); capNew(); lockTick();
+    return;
+  }
+  err((CAP.wrong||'عدد تصویر درست نیست؛ دوباره بنویس.')+' ('+faN(CAP_TRIES-S.capTries)+' بار دیگر)');
+  shake('#lgCapBox'); capNew();
+}
 function tryPhone(){
+  if(capLocked()){ err(capLockTxt()); return false }
   const v=phoneVal();
-  if(!isMob(v)){ err('شماره را کامل بنویس؛ یازده رقم، با ۰۹. نمونه: ۰۹۱۲۳۴۵۶۷۸۹'); return false }
-  S.mobile=v; err('');
+  if(!isMob(v)){ err('شماره را کامل بنویس؛ یازده رقم، با ۰۹. نمونه: ۰۹۱۲۳۴۵۶۷۸۹'); shake('#lgTel'); return false }
+  const c=capVal();
+  if(!c){ err(CAP.empty||'عدد تصویر را بنویس.'); shake('#lgCapBox'); return false }
+  if(c!==S.cap){ capWrong(); return false }
+  S.mobile=v; err(''); S.capTries=0;
   gotoCode('',false);
   return true;
 }
@@ -375,6 +486,7 @@ document.addEventListener('submit',e=>{
 document.addEventListener('click',e=>{
   const t=e.target;
   if(t.closest('#rulesBtn')){ e.preventDefault(); rulesSheet(); return }
+  if(t.closest('#lgCapNew')){ e.preventDefault(); capNew(); return }
   if(t.closest('#lgAdminBtn')){ e.preventDefault(); toAdmin(); return }
   if(t.closest('#lgAdminBack')){ e.preventDefault(); toPhone(); return }
   if(t.closest('#lgPassEye')){ e.preventDefault(); togglePass(); return }
@@ -394,6 +506,11 @@ document.addEventListener('input',e=>{
   if(el.id==='lgPhone'){
     const v=unFa(el.value).replace(/\D/g,'').slice(0,11);
     el.value=faN(v); pref();
+    if(S.err) err('');
+  }
+  if(el.id==='lgCap'){
+    const v=unFa(el.value).replace(/\D/g,'').slice(0,4);
+    el.value=faN(v);
     if(S.err) err('');
   }
   if(el.classList&&el.classList.contains('otpbox')){
