@@ -7,13 +7,17 @@
    • تصویر، فونت و پوستر: کش اول (این‌ها کم عوض می‌شوند) با به‌روزرسانی پس‌زمینه.
    • بقیهٔ درخواست‌ها: مستقیم از شبکه.
    ══════════════════════════════════════════════════════════════════════════ */
-const V='nora-v11';
+const V='nora-v12';
 const SHELL=['home.html','account.html','login.html','events.html','event.html','support.html','offline.html',
   'glass.css','nora.css','events.css','account.css','login.css','support.css','ui.js','data.js','login.js','support.js','manifest.webmanifest'];
 const MEDIA=/\/(people|posters|fonts)\//;
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()));
+});
+/* کارگر نو زودتر بنشیند و کهنه کنار برود */
+self.addEventListener('message',e=>{
+  if(e.data&&e.data.k==='skip'&&self.skipWaiting) self.skipWaiting();
 });
 self.addEventListener('activate',e=>{
   e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));

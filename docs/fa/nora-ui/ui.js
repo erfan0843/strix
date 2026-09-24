@@ -1272,7 +1272,22 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){
-  addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+  addEventListener('load',()=>{
+    /* نسخهٔ کش‌شدهٔ کهنه نماند: هر بار بارگذاری، تازه‌ترین کارگر سرویس را می‌خواهیم */
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+      try{reg.update()}catch(e){}
+      const wake=w=>{ try{w.postMessage({k:'skip'})}catch(e){} };
+      if(reg.waiting) wake(reg.waiting);
+      reg.addEventListener('updatefound',()=>{
+        const w=reg.installing; if(!w) return;
+        w.addEventListener('statechange',()=>{
+          if(w.state==='installed'&&navigator.serviceWorker.controller) wake(w);
+        });
+      });
+      /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v12') caches.delete(k) })).catch(()=>{});
+    }).catch(()=>{});
+  });
   const offlineBar=(on)=>{
     let el=document.getElementById('offBar');
     if(!on){if(el) el.remove(); return}
