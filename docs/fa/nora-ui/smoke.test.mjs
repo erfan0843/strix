@@ -760,7 +760,7 @@ async function load(file,store,q){
 
   /* ب۳) ردیف‌های افقی و نوار مرتب‌سازی */
   ok(p.all('#railUp .etile').length>=4 && p.all('#railBest .etile').length>=4,'دو ردیف افقی: نزدیک‌ترین‌ها و پرفروش‌ها');
-  ok(p.all('.more').length>=2,'هر ردیف «مشاهده همه» دارد');
+  ok(p.all('.evmore').length>=2,'هر ردیف «مشاهده همه» دارد');
   ok(p.all('#sort option').length===4,'مرتب‌سازی چهار حالت دارد');
   p.doc.querySelector('#sort').value='cheap';
   p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
