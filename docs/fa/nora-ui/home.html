@@ -649,8 +649,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <aside class="sheet" id="shAccount" role="dialog" aria-modal="false" aria-label="حساب من"><div id="acctBody"></div></aside>
 <aside class="sheet" id="shInvite" role="dialog" aria-modal="false" aria-label="دعوت دوستان"><div id="inviteBody"></div></aside>
 <aside class="sheet" id="shVerify" role="dialog" aria-modal="false" aria-label="استعلام گواهینامه"><div id="verifyBody"></div></aside>
-<aside class="sheet" id="shFaq" role="dialog" aria-modal="false" aria-label="پرسش‌های پرتکرار"><div id="faqBody"></div></aside>
-<aside class="sheet" id="shSupport" role="dialog" aria-modal="false" aria-label="پیام به پشتیبانی"><div id="supBody"></div></aside>
 <aside class="sheet" id="shStory" role="dialog" aria-modal="false" aria-label="استوری"><div id="storyBody"></div></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -750,7 +748,7 @@ const QUICK=[
  {k:'articles', i:'i-article', n:'مطالب', s:faN(ARTICLES.length)+' مطلب تازه', j:'articles'},
  {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد', j:'partners'},
  {k:'verify', i:'i-qr', n:'استعلام گواهی', s:'با شمارهٔ سریال', f:'shVerify'},
- {k:'support', i:'i-headphone', n:'پشتیبانی', s:'پیام و راهنما', anim:'wiggle', f:'shSupport'}
+ {k:'support', i:'i-headphone', n:'پشتیبانی', s:'پیام و راهنما', anim:'wiggle', href:'account.html#support'}
 ];
 
 /* ── منوی کامل نورا (ورقهٔ منو) ── */
@@ -770,16 +768,14 @@ const MENU=[
    {i:'i-graduation', t:'اساتید و مربیان', s:faN(TEACHERS.length)+' استاد با پروفایل و عکس', j:'teachers', badge:faN(TEACHERS.length)},
    {i:'i-idcard', t:'دست‌اندرکاران', s:faN(STAFF.length)+' نفر، تیم اجرا و پشتیبانی', j:'staff'},
    {i:'i-handshake', t:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد همکار و حامی', j:'partners', badge:faN(PARTNERS.length)},
-   {i:'i-send', t:'فرصت‌های همکاری', s:'تدریس، اجرا، حمایت مالی', f:'shSupport'}]},
+   {i:'i-send', t:'فرصت‌های همکاری', s:'تدریس، اجرا، حمایت مالی', href:'account.html#support'}]},
  {g:'حساب من', i:'i-idcard', rows:[
-   {i:'i-idcard', t:'حساب کاربری', s:'ثبت‌نام‌ها، اعلان‌ها، خروج', f:'shAccount'},
-   {i:'i-wallet', t:'کیف پول و پرداخت‌ها', s:'شارژ، صورت‌حساب، بازگشت وجه', f:'shAccount'},
-   {i:'i-users', t:'دعوت دوستان', s:'هر دعوت اعتبار کیف پول', f:'shInvite', badge:faN(CLUB_POINTS.invites)+'/'+faN(CLUB_POINTS.inviteGoal)},
-   {i:'i-bell', t:'اعلان‌ها', s:'یادآوری جلسه و پیام کارشناس', f:'shNotice', badge:faN(NOTICES.filter(n=>n.unread).length)}]},
+   {i:'i-wallet', t:'نورا پی', s:'کیف پول، شارژ و صورت‌حساب', href:'account.html#pay', tag:'فاز بعد'},
+   {i:'i-calendar', t:'رویدادهای من', s:'ثبت‌نام، بلیت و گواهی، کارنامهٔ حضور', href:'account.html#events'},
+   {i:'i-idcard', t:'پروفایل من', s:'اطلاعات، باشگاه و امتیاز، فرم‌ها، حریم خصوصی', href:'account.html#profile'}]},
  {g:'پشتیبانی', i:'i-headphone', rows:[
-   {i:'i-send', t:'پیام به پشتیبانی', s:'پاسخ در همان روز کاری', f:'shSupport'},
-   {i:'i-doc', t:'پرسش‌های پرتکرار', s:'ثبت‌نام، پرداخت، لغو', f:'shFaq'},
-   {i:'i-lock', t:'قواعد و شرایط', s:'سیاست‌های ثبت‌نام و بازگشت وجه', f:'shFaq'},
+   {i:'i-headphone', t:'پشتیبانی و راهنما', s:'گفت‌وگو با کارشناس و پرسش‌های پرتکرار', href:'account.html#support'},
+   {i:'i-doc', t:'قواعد و شرایط', s:'سیاست‌های ثبت‌نام و بازگشت وجه', href:'account.html#support'},
    {i:'i-mobile', t:'راهنمای ثبت‌نام', s:'قدم‌به‌قدم تا گواهینامه', href:'form.html'}]}
 ];
 
@@ -993,7 +989,7 @@ function renderMine(){
           <span class="pc-ttl">${faN(u.msgs)} پیام خوانده‌نشده</span>
           <span class="pc-meta">خانم رستگار: برای جلسهٔ اول یک روز قبل هماهنگ می‌کنیم.</span>
         </div>
-        <div class="pc-foot"><button class="btn sm quiet" data-f="shSupport">پاسخ دادن</button></div>
+        <div class="pc-foot"><a class="btn sm quiet" href="account.html#support">پاسخ دادن</a></div>
       </div>
     </div>`;
 }
@@ -1439,7 +1435,7 @@ function renderPartnerSheet(){
       <div class="srow"><svg class="i"><use href="#i-handshake"/></svg><span class="sp">زمینهٔ همکاری</span><b>${esc(o.type)}</b></div>
       <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">شروع همکاری</span><b>${esc(o.since)}</b></div>
     </div>
-    <div class="row" style="margin-top:14px"><button class="btn primary" data-f="shSupport"><svg class="i"><use href="#i-send"/></svg> پیشنهاد همکاری</button>
+    <div class="row" style="margin-top:14px"><a class="btn primary" href="account.html#support"><svg class="i"><use href="#i-send"/></svg> پیشنهاد همکاری</a>
       <span class="sp" style="flex:1"></span><span class="cap">${faN(PARTNERS.length)} نهاد همکار</span></div>`;
 }
 
@@ -1450,10 +1446,8 @@ function renderAccount(){
       <button class="srow" ${logged?'data-f="shClub"':'data-needlogin'}><svg class="i"><use href="#i-book"/></svg><span class="sp">باشگاه کتاب‌خوانی</span>
         ${logged?'<b>ترم مهر</b>':'<span class="tagg">نیاز به ورود</span>'}
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-      <button class="srow" data-f="shSupport"><svg class="i"><use href="#i-headphone"/></svg><span class="sp">پیام به پشتیبانی</span>
-        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-doc"/></svg><span class="sp">راهنما و پرسش‌های پرتکرار</span>
-        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <a class="srow" href="account.html#support" style="text-decoration:none;color:inherit"><svg class="i"><use href="#i-headphone"/></svg><span class="sp">پشتیبانی و راهنما</span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
       <button class="srow" data-f="shVerify"><svg class="i"><use href="#i-qr"/></svg><span class="sp">استعلام گواهینامه</span>
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
       <button class="srow" data-f="shNotice"><svg class="i"><use href="#i-bell"/></svg><span class="sp">اعلان‌ها</span><b>${faN(NOTICES.filter(n=>n.unread).length)} خوانده‌نشده</b></button>
@@ -1558,45 +1552,6 @@ function renderVerify(){
       +'</div>'}`;
 }
 
-function renderFaq(){
-  $('#faqBody').innerHTML=sheetHead('پرسش‌های پرتکرار',faN(FAQ.length)+' پرسش پرتکرار کاربران')+
-    FAQ.map((f,i)=>`<details class="faq" ${i===0?'open':''}><summary>${esc(f[0])}</summary><p>${esc(f[1])}</p></details>`).join('')+
-    `<p class="cap">پاسخ پرسشت را پیدا نکردی؟ از «پیام به پشتیبانی» بنویس.</p>`;
-}
-
-function renderSupport(){
-  const sup=person('p6');
-  $('#supBody').innerHTML=sheetHead('پشتیبانی و راهنما','کارشناس پاسخ می‌دهد — شنبه تا پنجشنبه، ۹ تا ۱۸')+`
-    <div class="suphead">
-      ${av('p6','ava')}
-      <span style="flex:1;min-width:0"><b class="sub">${esc(sup.n)}</b>
-        <div class="hrow">کارشناس پشتیبانی نورا — پاسخ تا پایان روز کاری</div></span>
-      <span class="tagg ok">آنلاین</span>
-    </div>
-    <div class="chans">
-      <a class="chan" href="tel:02188881234"><span class="chi"><svg class="i"><use href="#i-mobile"/></svg></span>
-        <span class="cht"><b>تلفن</b><span>۰۲۱–۸۸۸۸۱۲۳۴</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
-      <a class="chan" href="https://wa.me/989120000000" target="_blank" rel="noopener"><span class="chi"><svg class="i"><use href="#i-send"/></svg></span>
-        <span class="cht"><b>واتساپ</b><span>۰۹۱۲–۰۰۰–۰۰۰۰</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
-      <a class="chan" href="https://ble.ir/nora" target="_blank" rel="noopener"><span class="chi"><svg class="i"><use href="#i-users"/></svg></span>
-        <span class="cht"><b>بله</b><span>پیام مستقیم به نورا</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
-      <a class="chan" href="mailto:info@lifeline1.ir"><span class="chi"><svg class="i"><use href="#i-mail"/></svg></span>
-        <span class="cht"><b>رایانامه</b><span>info@lifeline1.ir</span></span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
-    </div>
-    <hr class="hr"/>
-    <div class="fw" style="font-size:14px;margin-bottom:6px">راهنمای گام‌به‌گام</div>
-    <div class="stack tight" style="margin-bottom:12px">
-      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-pen"/></svg><span class="sp">چطور در یک رویداد ثبت‌نام کنم؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">پرداخت و رسید — چه زمانی قطعی می‌شود؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-      <button class="srow" data-f="shFaq"><svg class="i"><use href="#i-archive"/></svg><span class="sp">ضبط کارگاه و جزوه را از کجا بگیرم؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-      <button class="srow" data-f="shVerify"><svg class="i"><use href="#i-medal"/></svg><span class="sp">گواهینامه کی صادر می‌شود؟</span><svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-    </div>
-    <label class="lbl" for="msg">یا همین‌جا بنویس</label>
-    <textarea class="input" id="msg" rows="4" placeholder="مثلاً دربارهٔ تأیید رسید کارت‌به‌کارت سؤال دارم…"></textarea>
-    <div class="row" style="margin-top:12px"><button class="btn primary" data-send><svg class="i"><use href="#i-send"/></svg> فرستادن پیام</button>
-      <span class="sp" style="flex:1"></span><span class="cap">شمارهٔ پیگیری در همان روز پیامک می‌شود</span></div>`;
-}
-
 function renderNotices(){
   if(window.NORA_UI){NORA_UI.uiOpen('shNotice'); return}
   $('#noticeBody').innerHTML=sheetHead('اعلان‌ها',faN(NOTICES.filter(n=>n.unread).length)+' خوانده‌نشده')+
@@ -1694,8 +1649,7 @@ function openF(id){
   if(id==='shAccount'){if(!S.user&&!S.acctFlow) S.step='guest'; renderAccount()}
   if(id==='shInvite') renderInvite();
   if(id==='shVerify') renderVerify();
-  if(id==='shFaq') renderFaq();
-  if(id==='shSupport') renderSupport();
+
   if(id==='shNotice') renderNotices();
   if(id==='shClub') renderClubSheet();
   if(id==='shStory') renderStory();
@@ -1780,7 +1734,7 @@ document.addEventListener('click',e=>{
     if(k==='ev') eventSheet(id); else if(k==='ar') articleSheet(id); else personSheet(id); return}
   const q=t.closest('[data-q]'); if(q){
     const cfg=QUICK.find(x=>x.k===q.dataset.q)||{};
-    if(cfg.f) openF(cfg.f); else if(cfg.j) goto(cfg.j);
+    if(cfg.f) openF(cfg.f); else if(cfg.href){location.href=cfg.href; return} else if(cfg.j) goto(cfg.j);
     toast(cfg.n); return}
   const pn=t.closest('[data-person]'); if(pn){personSheet(pn.dataset.person); return}
   const ar=t.closest('[data-article]'); if(ar){articleSheet(ar.dataset.article); return}
@@ -1832,10 +1786,6 @@ document.addEventListener('click',e=>{
     const v=unFa(($('#serial')||{}).value||'').trim().toUpperCase().replace(/\s/g,'');
     if(!v){toast('شمارهٔ سریال را بنویس'); return}
     S.serial=$('#serial').value; S.verify=CERTS[v]||false; renderVerify(); return}
-  if(t.closest('[data-send]')){
-    const m=(($('#msg')||{}).value||'').trim();
-    if(m.length<5){toast('متن پیام کوتاه است — کمی بیشتر بنویس'); return}
-    log('پیام پشتیبانی: «'+m.slice(0,40)+'»'); closeSheets(); toast('پیام ثبت شد — کارشناس در همان روز کاری پاسخ می‌دهد'); return}
   const tb=t.closest('#tabs [data-tab]'); if(tb){
     const k=tb.dataset.tab;
     $$('#tabs button').forEach(b=>{b.classList.toggle('on',b===tb);
@@ -1903,8 +1853,7 @@ function openHash(){
   if(h==='library'){location.href='events.html#lib'; return}
   if(h==='notice'){openF('shNotice'); return}
   if(h==='verify'){openF('shVerify'); return}
-  if(h==='faq'){openF('shFaq'); return}
-  if(h==='support'){openF('shSupport'); return}
+  if(h==='faq'||h==='support'){location.href='account.html#support'; return}
   if(h.startsWith('p=')){personSheet(h.slice(2)); return}
   if(h.startsWith('ev=')){location.href='events.html?ev='+encodeURIComponent(h.slice(3)); return}
 }

@@ -23,9 +23,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=14"/>
-<link rel="stylesheet" href="nora.css?v=14"/>
-<link rel="stylesheet" href="account.css?v=14"/>
+<link rel="stylesheet" href="glass.css?v=15"/>
+<link rel="stylesheet" href="nora.css?v=15"/>
+<link rel="stylesheet" href="account.css?v=15"/>
 </head>
 <body>
 
@@ -79,7 +79,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     </a>
     <span class="sp"></span>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
-    <button class="icon-btn" data-notice aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
   </div>
 </header>
 
@@ -87,73 +86,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
   <h1 class="sr">حساب من</h1>
 
-  <div id="hubBox">
-
-  <!-- سرِ حساب: نام، سطح، وضعیت تأیید و درصد تکمیل -->
-  <section class="sec" id="secHead" aria-label="سرِ حساب">
-    <div id="headBox"></div>
-  </section>
-
-  <!-- بخش‌های حساب من: هر کاشی یک نشانی، هر بخش یک نما -->
-  <section class="sec" id="secTiles" aria-label="بخش‌های حساب من">
-    <div class="card acct">
-      <div class="row" style="align-items:center;gap:9px">
-        <div class="head">بخش‌های حساب من</div>
-        <span class="sp"></span>
-        <span class="cap">هر بخش نشانی خودش را دارد</span>
-      </div>
-      <div class="cap" style="margin-top:5px">از این‌جا هر بخشی را باز کن؛ برگشت، همیشه به همین سرِ حساب است.</div>
-      <div class="tiles" id="tilesBox"></div>
-    </div>
-  </section>
-
-  <!-- اطلاعات حساب من: هویتی و تماس و نشانی -->
-  <section class="sec" id="secInfo" aria-label="اطلاعات حساب من" hidden>
-    <div class="card acct" id="infoCard">
-      <div class="row" style="align-items:center;gap:9px">
-        <div class="head">اطلاعات حساب من</div>
-        <span class="sp"></span>
-        <span id="infoState"></span>
-        <button class="btn sm quiet" id="editBtn" hidden><svg class="i" aria-hidden="true"><use href="#i-pen"/></svg> ویرایش</button>
-      </div>
-      <div class="cap" style="margin-top:5px">همان چیزی که روی بلیت و گواهی می‌آید. تغییرات، اول به کارشناس می‌رود.</div>
-      <div id="infoBody"></div>
-      <div class="row" id="infoActs" style="margin-top:14px" hidden>
-        <button class="btn primary" id="sendBtn"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg> ذخیره و ارسال برای تأیید</button>
-        <button class="btn quiet" id="draftBtn">فقط ذخیره</button>
-        <span class="sp" style="flex:1"></span>
-        <button class="btn quiet" id="cancelBtn">انصراف</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- وضعیت تأیید پروفایل -->
-  <section class="sec" id="secFlow" aria-label="وضعیت تأیید" hidden>
-    <div class="card acct">
-      <div class="head">تأیید پروفایل</div>
-      <div class="cap" style="margin-top:5px">کارشناس درخواستت را می‌بیند و نتیجه را خبر می‌دهد.</div>
-      <div class="steps" id="flowSteps"></div>
-      <div id="flowNote"></div>
-    </div>
-  </section>
-
-  <!-- سطح و مزیت‌ها -->
-  <section class="sec" id="secLevel" aria-label="سطح و مزیت‌ها" hidden>
-    <div class="card acct">
-      <div class="row" style="align-items:center;gap:8px">
-        <div class="head">سطح و مزیت‌ها</div>
-        <span class="sp"></span>
-        <span class="cap" id="lvNote"></span>
-      </div>
-      <div class="ladder" id="ladder" style="margin-top:12px"></div>
-      <p class="cap" style="margin:11px 3px 0">هر ثبت‌نام، حضور و تکمیل فرم خودکار امتیاز دارد؛ تولد و مناسبت‌ها هم جدا حساب می‌شود.</p>
-    </div>
-  </section>
-
-
-
-
-  </div>
+  <!-- نمای پروفایل: همین‌جا ساخته می‌شود (سرِ پروفایل، نورا پی، بخش‌ها) -->
+  <div id="hubBox"></div>
 
   <!-- نمای هر بخش، همین‌جا می‌نشیند -->
   <div id="viewBox" hidden></div>
@@ -164,9 +98,27 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="row" style="justify-content:center;margin:4px 0 8px">
       <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
     </div>
-    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html">رویدادها</a> · <a href="home.html#support">پشتیبانی</a> · © ۱۴۰۵</div>
+    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html">رویدادها</a> · <a href="#support">پشتیبانی</a> · © ۱۴۰۵</div>
   </footer>
 </main>
+
+<!-- پشتیبانی و راهنما: یک جا، چسبیده به نوار پایین؛ از پایین باز می‌شود -->
+<button class="supbar" id="supBar" data-sheet="shSupport" aria-label="پشتیبانی و راهنما">
+  <span class="si"><svg class="i" aria-hidden="true"><use href="#i-headphone"/></svg></span>
+  <span class="st"><b>پشتیبانی و راهنما</b><small>کارشناس، پرسش‌های پرتکرار و تماس</small></span>
+  <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+</button>
+
+<nav class="tabbar" aria-label="ناوبری اصلی">
+  <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
+  <a href="events.html"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></a>
+  <a href="account.html" class="on" aria-current="page"><svg class="i"><use href="#i-idcard-f"/></svg><small>حساب من</small></a>
+</nav>
+
+<aside class="sheet" id="shSupport" role="dialog" aria-modal="false" aria-label="پشتیبانی و راهنما"><div class="sbody" id="supBody"></div></aside>
+<aside class="sheet" id="shConfirm" role="dialog" aria-modal="false" aria-label="تأیید"><div class="sbody"></div></aside>
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <nav class="tabbar" aria-label="ناوبری اصلی">
   <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
@@ -178,8 +130,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=14"></script>
-<script src="ui.js?v=14"></script>
-<script src="account.js?v=14"></script>
+<script src="data.js?v=15"></script>
+<script src="ui.js?v=15"></script>
+<script src="account.js?v=15"></script>
 </body>
 </html>

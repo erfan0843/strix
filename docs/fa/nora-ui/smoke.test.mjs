@@ -652,7 +652,7 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#pins').hidden,'برداشتن همهٔ سنجاق‌ها');
   /* منوی نورا */
   p.click('[data-menu]');
-  ok(p.all('#menuBody .mgroup').length===5 && p.all('#menuBody .mrow').length===21,'منو: پنج گروه و ۲۱ ردیف');
+  ok(p.all('#menuBody .mgroup').length===5 && p.all('#menuBody .mrow').length===19,'منو: پنج گروه و ۱۹ ردیف');
   ok(p.all('#menuBody .mfoot .mon').length===8,'نهادهای همکار در پاصفحهٔ منو');
   ok(p.doc.querySelector('#menuBody [data-jump="people"]')===null,'هیچ ردیفی به بخش بی‌وجود «people» پرش نمی‌کند');
   ok(p.all('#menuBody [data-uijump="teachers"]').length===1 && p.doc.querySelector('#menuBody [data-uijump="staff"]')!==null,'ردیف استادان و دست‌اندرکاران به بخش‌های خودشان می‌روند');
@@ -671,18 +671,13 @@ async function load(file,store,q){
      'خانه، حساب من را به account.html می‌فرستد');
   ok(/f==='shAccount'\)\{ location\.href='account\.html'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
      'منوی مشترک هم به همان صفحه می‌رود');
-  /* خدمات و پشتیبانی بی ورود باز می‌شود */
-  H.openF('shSupport');
-  ok(p.doc.querySelector('#shSupport').className.includes('on'),'پشتیبانی بدون لاگین باز می‌شود');
-  ok(p.all('#supBody .chan').length===4,'چهار کانال پشتیبانی');
-  ok(p.txt('#supBody').includes('حسن مقدم') && p.txt('#supBody').includes('آنلاین'),'کارشناس با نام و وضعیت');
-  p.doc.querySelector('#msg').value='سؤال دربارهٔ تأیید رسید';
-  p.click('[data-send]');
-  ok(p.txt('#toast').includes('ثبت شد'),'پیام پشتیبانی ثبت می‌شود');
-  p.click('[data-close]');
-  H.openF('shFaq');
-  ok(p.all('#faqBody details.faq').length===7,'هفت پرسش پرتکرار');
-  p.click('[data-close]');
+  /* پشتیبانی و راهنما یک جا است: ورقه‌های خانه برداشته شد و همه به حساب من می‌روند */
+  ok(p.doc.querySelector('#shSupport')===null && p.doc.querySelector('#shFaq')===null,'ورقهٔ پشتیبانی خانه برداشته شد');
+  ok(!/renderSupport|supBody|faqBody/.test(fs.readFileSync(DIR+'home.html','utf8')),'دیگر پشتیبانی جدا در خانه ساخته نمی‌شود');
+  ok(p.all('#menuBody [data-uihref="account.html#support"]').length>=2,'ردیف‌های پشتیبانی منو به حساب من می‌روند');
+  ok((H.QUICK.find(q=>q.k==='support')||{}).href==='account.html#support','میان‌بر پشتیبانی نشانی حساب من را دارد');
+  ok(/f==='shSupport'\|\|f==='shFaq'\)\{ location\.href='account\.html#support'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
+     'منوی مشترک هم پشتیبانی را به حساب من می‌فرستد');
   H.openF('shVerify');
   p.doc.querySelector('#serial').value='nl-t4k7m9x';
   p.click('[data-verify]');
@@ -713,7 +708,7 @@ async function load(file,store,q){
   ok(p.txt('#mine').includes('تأیید سرپرست'),'کارت گواهینامه هم همین رویه را می‌گوید');
   ok(p.doc.querySelector('#pastList [data-cert]')===null,'خانه خودش گواهینامه صادر/درخواست نمی‌کند — در ورقهٔ برگزارشدهٔ صفحهٔ رویدادهاست');
   /* زبان و پوسته */
-  ok(!/بلیت/.test(p.txt('body')),'هیچ وعدهٔ بلیتی در خانه نیست');
+  ok(!/خرید بلیت|بلیت بخر|بلیت فروش/.test(p.txt('body')),'خانه بلیت نمی‌فروشد؛ بلیت و گواهی در حساب من است');
   ok(p.doc.querySelector('#tabs button[data-tab="home"]')!==null,'تب خانه سرجایش است');
   p.click('[data-theme-toggle]');
   ok(p.doc.documentElement.dataset.theme==='dark','شب و روز کار می‌کند');
@@ -1217,7 +1212,7 @@ async function load(file,store,q){
   const pl=await load('home.html',makeStore());
   const tile=pl.doc.querySelector('#quick .tile[href="events.html#list"]');
   ok(tile && tile.tagName==='A','کاشی «رویدادها» یک پیوند واقعی است');
-  ok(pl.all('#quick a.tile').length===1 && pl.all('#quick button.tile').length===7,'هفت کاشی دیگر همچنان ورقه/پرش درون‌صفحه‌اند');
+  ok(pl.all('#quick a.tile').length===2 && pl.all('#quick button.tile').length===6,'کاشی‌های خانه: دو پیوند و شش ورقه/پرش درون‌صفحه');
   pl.click('.themesw');
   pl.window.NORA_HOME.renderAll();
   ok(pl.doc.documentElement.dataset.theme==='dark' && pl.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','رندر دوبارهٔ صفحه، وضعیت کلید را به هم نمی‌ریزد');
@@ -1310,7 +1305,7 @@ async function load(file,store,q){
   const menuSrc=fs.readFileSync(DIR+'event.html','utf8');
   ok(menuSrc.includes('data-menu')||fe.doc.querySelector('[data-menu]')!==null,'در صفحهٔ رویداد هم راهی به منو هست');
   fe.window.NORA_UI.uiOpen('shMenu');
-  ok(fe.all('#shMenu .mgroup').length===5 && fe.all('#shMenu .mrow').length===21,'منوی مشترک با پنج گروه در این صفحه هم می‌آید');
+  ok(fe.all('#shMenu .mgroup').length===5 && fe.all('#shMenu .mrow').length===19,'منوی مشترک با پنج گروه در این صفحه هم می‌آید');
   ok(fe.doc.querySelector('.topbar .menubtn')===null && fe.doc.querySelector('.topbar #acctBtn')===null,'نوار بالای صفحهٔ رویداد بی منو و بی پروفایل است');
   fe.window.NORA_UI.uiOpen('shNotice');
   fe.click('[data-uireadall]');

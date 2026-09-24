@@ -1161,6 +1161,8 @@ function menuRoute(el){
   const f=el.dataset.uif, j=el.dataset.uijump;
   if(f){
     if(f==='shAccount'){ location.href='account.html'; return }    /* حساب من صفحهٔ جدا دارد، نه ورقه */
+    if(f==='shSupport'||f==='shFaq'){ location.href='account.html#support'; return }  /* راهنما و پشتیبانی یک جا */
+    if(f==='shInvite'){ location.href='account.html#club'; return }
     if(H&&H.openF){ H.openF(f); return }
     if(document.getElementById(f)){ uiOpen(f); return }
     const map={shClub:'club', shInvite:'me', shNotice:'notice', shVerify:'verify', shFaq:'faq', shSupport:'support'};
