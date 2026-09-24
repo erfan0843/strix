@@ -23,9 +23,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=27"/>
-<link rel="stylesheet" href="nora.css?v=27"/>
-<link rel="stylesheet" href="events.css?v=27"/>
+<link rel="stylesheet" href="glass.css?v=28"/>
+<link rel="stylesheet" href="nora.css?v=28"/>
+<link rel="stylesheet" href="events.css?v=28"/>
 <style>
   /* نوار بالا و نوار جست‌وجو، وقت اسکرول شیشه می‌شوند */
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
@@ -471,8 +471,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=27"></script>
-<script src="ui.js?v=27"></script>
+<script src="data.js?v=28"></script>
+<script src="ui.js?v=28"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    آرشیو رویدادها — هر برنامه‌ای که برگزار شده یا در پیش است
@@ -737,7 +737,7 @@ function tileUp(e){
       ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}" loading="lazy" decoding="async"/>`:''}
       <span class="eveil"></span>
       <span class="edate"><b>${faN(e.dn)}</b><span>${esc(e.mname||'')}</span></span>
-      <span class="etags">${tag(e.kind,'brand')}<span class="tag">${esc(e.mode)}</span>${full?tag('ظرفیت تکمیل','stop'):''}</span>
+      <span class="etags">${e.club?tag('باشگاه کتاب‌خوانی','club'):''}${tag(e.kind,'brand')}<span class="tag">${esc(e.mode)}</span>${full?tag('ظرفیت تکمیل','stop'):''}</span>
       ${e.live?'<span class="elive"><span class="dotpulse"></span>در حال برگزاری</span>':''}
       ${e.cap?`<span class="ebar"><i style="width:${pct}%"></i></span>`:''}
     </button>
@@ -769,7 +769,7 @@ function tilePast(h){
       ${h.poster?`<img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" loading="lazy" decoding="async"/>`:''}
       <span class="eveil"></span>
       <span class="edate"><b>${faN(h.dn)}</b><span>${esc(h.mname||'')}</span></span>
-      <span class="etags">${tag(h.kind)}${tag(faN(h.mediaCount)+' رسانه','ok')}${h.cert?tag('گواهی‌دار','gold'):''}</span>
+      <span class="etags">${h.club?tag('باشگاه کتاب‌خوانی','club'):''}${tag(h.kind)}${tag(faN(h.mediaCount)+' رسانه','ok')}${h.cert?tag('گواهی‌دار','gold'):''}</span>
     </button>
     <div class="ebody">
       <b class="ettl">${esc(h.t)}</b>

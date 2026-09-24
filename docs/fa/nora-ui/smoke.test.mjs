@@ -631,7 +631,11 @@ async function load(file,store,q){
   ok(p.txt('#personBody').includes('دورهٔ بعدی ایشان'),'پروفایل استاد: دورهٔ بعدی ایشان');
   p.click('#shPerson [data-close]');
   /* مطالب و مقالات */
-  ok(p.all('#artRail .pcard-ar').length===6,'شش مطلب و مقاله');
+  ok(p.all('#artRail .pcard-ar').length===9,'نُه مطلب و مقاله، سه‌تایش باشگاه کتاب‌خوانی');
+  ok(p.all('#artRail .tag-club').length===3,'مطلب‌های باشگاه لیبل «عضو باشگاه کتاب‌خوانی» می‌خورند');
+  p.click('[data-article="a7"]');
+  ok(p.txt('#articleBody').includes('نبض ورق'),'مطلب پادکست باشگاه باز می‌شود');
+  p.click('#articleBody [data-close]');
   p.click('[data-article="a1"]');
   ok(p.txt('#articleBody').includes('هفت تمرین تنفس') && p.txt('#articleBody').includes('فهرست کوتاه'),'ورقهٔ مطلب: تیتر و فهرست');
   p.click('#articleBody [data-close]');
@@ -720,6 +724,7 @@ async function load(file,store,q){
   ok(shellHome.all('.tabbar a,.tabbar button').length===3 && p.all('.tabbar a,.tabbar button').length===3,'هر دو تب‌بار سه تب');
   ok(shellHome.txt('.tabbar')===p.txt('.tabbar'),'نام تب‌ها یکی است: '+p.txt('.tabbar'));
   ok(p.doc.querySelector('.topbar .menubtn')===null && p.doc.querySelector('.topbar #acctBtn')===null,'نوار بالا بی منو و بی پروفایل است');
+  ok(p.all('#grid .etile .tag.club').length>=1,'رویدادهای باشگاه کتاب‌خوانی لیبل باشگاه می‌خورند');
 
   /* الف) بنر: نزدیک‌ترین برنامه‌ها، یک اسلاید در قاب */
   ok(p.doc.querySelector('h1')!==null && p.doc.querySelector('h1').className.includes('sr'),'تیتر اصلی صفحه هست و دیدنی نیست');

@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=27"/>
-<link rel="stylesheet" href="nora.css?v=27"/>
+<link rel="stylesheet" href="glass.css?v=28"/>
+<link rel="stylesheet" href="nora.css?v=28"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -655,8 +655,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=27"></script>
-<script src="ui.js?v=27"></script>
+<script src="data.js?v=28"></script>
+<script src="ui.js?v=28"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا — ویترین گروه فرهنگی خط زندگی
@@ -1183,10 +1183,11 @@ function renderClub(){
       <div class="stack tight">
         <div class="memberline"><svg class="i"><use href="#i-clock"/></svg><span class="sp" style="flex:1">${esc(CLUB.session)}</span></div>
         <div class="memberline"><svg class="i"><use href="#i-book"/></svg><span style="flex:1">بستهٔ کتاب ماه و فایل فصل‌ها</span></div>
-        <div class="memberline"><svg class="i"><use href="#i-video"/></svg><span style="flex:1">ضبط جلسه‌ها برای اعضا</span></div>
+        <div class="memberline"><svg class="i"><use href="#i-video"/></svg><span style="flex:1">ضبط جلسه‌ها و پادکست نبض ورق برای اعضا</span></div>
+        <div class="memberline"><svg class="i"><use href="#i-users"/></svg><span style="flex:1">گروه و لینک اختصاصی اعضا</span></div>
       </div>
       <div class="row">
-        <button class="btn primary" data-clubjoin><svg class="i"><use href="#i-plus"/></svg> عضو شدن در ترم مهر</button>
+        <button class="btn primary" data-clubjoin><svg class="i"><use href="#i-plus"/></svg> عضویت در باشگاه و پنل اعضا</button>
         <button class="btn quiet" data-uihref="account.html#book">قواعد و جلسه‌ها</button>
       </div>
     </div>
@@ -1243,7 +1244,7 @@ function artCard(a){
   const p=person(a.tchr);
   return `<div class="pcard pcard-ar ${isPinned('ar',a.id)?'pinned':''}">
     <div class="pc-cov" style="--g:${a.g}">
-      <div class="pc-tags">${a.tags.map(t=>`<span class="tagg tag-g">${esc(t)}</span>`).join('')}</div>
+      <div class="pc-tags">${(a.club?[CLUB.badge.n]:[]).concat(a.tags).map(t=>`<span class="tagg ${t===CLUB.badge.n?'tag-club':'tag-g'}">${esc(t)}</span>`).join('')}</div>
       <button class="pinb pc-pin ${isPinned('ar',a.id)?'on':''}" data-pin="ar:${a.id}" aria-label="سنجاق کردن ${esc(a.t)}"><svg class="i"><use href="#i-pin"/></svg></button>
       <span class="kn"><svg class="i" style="width:15px;height:15px"><use href="#i-article"/></svg>
         <span class="tagg tag-g">${esc(a.cat)}</span></span>
@@ -1715,8 +1716,9 @@ document.addEventListener('click',e=>{
   if(t.closest('#artMore')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderArticles(); goto('articles');
     toast(faN(ARTICLES.length)+' مطلب نورا'); return}
   if(t.closest('[data-clubjoin]')){
+    /* عضویت از پنل باشگاه می‌گذرد: اول فرم سرپرست، بعد حق عضویت */
     if(!S.user){S.acctFlow=true; S.step='phone'; renderAccount(); openSheet('shAccount'); toast('برای عضویت در باشگاه اول وارد شو'); return}
-    toast('عضویت ترم مهر ثبت شد — بستهٔ کتاب ماه در حساب کاربری‌ات است'); log('عضویت باشگاه کتاب‌خوانی'); return}
+    location.href='account.html#book'; return}
   if(t.closest('[data-clubrec]')){toast('ضبط جلسهٔ باشگاه برای اعضا باز می‌شود'); return}
   const f=t.closest('[data-f]'); if(f){openF(f.dataset.f); return}
   const jp=t.closest('[data-jump]'); if(jp){

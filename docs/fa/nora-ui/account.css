@@ -169,6 +169,69 @@ body.hasbotbar{padding-bottom:178px}
 .mycm.ok .i{color:var(--ok)}
 #shMyNote textarea{width:100%;resize:vertical;line-height:1.9;font-family:inherit}
 
+/* ── باشگاه کتاب‌خوانی: درِ باشگاه، کارت عضویت، جلسه، پادکست، تریبون ── */
+.clubgate{display:flex;align-items:center;gap:11px;padding:14px;border-radius:var(--r-lg);margin:2px 0 10px;
+  background:linear-gradient(150deg,rgba(122,90,42,.16),rgba(18,58,122,.08));
+  border:.5px solid color-mix(in oklab,var(--accent-ink) 26%,transparent)}
+.cg-ic{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(150deg,#7A5A2A,#123A7A);color:#fff}.cg-ic .i{width:21px;height:21px}
+.clubgate .ctx{display:grid;gap:3px;min-width:0}
+.clubgate .ctx b{font-size:14px;font-weight:800}
+.clubgate .ctx small{font-size:11.5px;color:var(--ink-3)}
+.csteps{display:grid;gap:2px;margin:4px 0 10px}
+.cstep{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:14px;border:.5px solid var(--hairline)}
+.cstep .cdot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;font-size:11px;
+  background:var(--surface-sunk);color:var(--ink-3)}
+.cstep.done .cdot{background:color-mix(in oklab,var(--ok) 16%,transparent);color:var(--ok)}
+.cstep.done{border-color:color-mix(in oklab,var(--ok) 26%,transparent)}
+.cstep .ctx{display:grid;gap:1px}.cstep .ctx b{font-size:12.5px;font-weight:700}
+.cstep .ctx small{font-size:10.5px;color:var(--ink-3)}
+.clubcard{display:flex;gap:11px;padding:13px;border-radius:var(--r-lg);margin:2px 0 10px;
+  background:linear-gradient(150deg,rgba(0,113,227,.10),rgba(122,90,42,.10));
+  border:.5px solid color-mix(in oklab,var(--brand) 22%,transparent)}
+.cc-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:var(--brand);color:#fff}
+.cc-ic .i{width:20px;height:20px}
+.clubcard .ctx{display:grid;gap:4px;min-width:0}
+.clubcard .ctx b{font-size:14px;font-weight:800}
+.clubcard .ctx small{font-size:11px;color:var(--ink-3)}
+.clubcard .meter{height:6px;border-radius:99px;background:rgba(0,113,227,.14);overflow:hidden}
+.clubcard .meter i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.mtrow{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-top:.5px solid var(--hairline)}
+.mtrow:first-of-type{border-top:0}
+.mt-when{display:grid;justify-items:center;gap:2px;flex:0 0 auto;color:var(--brand-ink);min-width:56px}
+.mt-when .i{width:17px;height:17px}.mt-when b{font-size:10.5px;font-weight:700;text-align:center;line-height:1.5}
+.mtrow .tx{display:grid;gap:3px;min-width:0;flex:1}
+.mtrow .tx>b{font-size:12.5px}
+.mtrow .tx small{font-size:10.5px;color:var(--ink-3)}
+.bkrow,.chlrow,.trpost,.pdcard{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-top:.5px solid var(--hairline)}
+.bkrow:first-of-type,.chlrow:first-of-type,.trpost:first-of-type,.pdcard:first-of-type{border-top:0}
+.bk-th{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand-tint);color:var(--brand-ink)}.bk-th .i{width:17px;height:17px}
+.bkrow .tx,.chlrow .tx,.trpost .tx,.pdcard .tx{display:grid;gap:3px;min-width:0;flex:1}
+.bkrow .tx>b,.chlrow .tx>b,.trpost .tx>b,.pdcard .tx>b{font-size:12.5px;font-weight:700}
+.bkrow .tx small,.chlrow .tx small,.trpost .tx small,.pdcard .tx small{font-size:10.5px;color:var(--ink-3)}
+.bkrow .acts,.trpost>.btn{flex:0 0 auto}
+.chlrow .meter{height:5px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;margin-top:2px}
+.chlrow .meter i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.pdplay{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;cursor:pointer;
+  border:.5px solid color-mix(in oklab,var(--brand) 26%,transparent);background:var(--brand-tint);color:var(--brand-ink)}
+.pdplay .i{width:16px;height:16px}
+.tr-av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;font-weight:700;
+  background:linear-gradient(150deg,#7A5A2A,#123A7A);color:#fff;font-size:13px}
+.trpost.mine .tr-av{background:var(--brand)}
+.trpost .tx .cap{line-height:1.9}
+.trnew{padding:2px 0 10px}
+.trnew .input{width:100%;resize:vertical}
+.lvrow{display:flex;align-items:center;gap:9px;padding:9px 2px;border-top:.5px solid var(--hairline)}
+.lvrow:first-of-type{border-top:0}
+.lvrow .dot{width:10px;height:10px;border-radius:50%;background:var(--hairline-2,rgba(0,0,0,.14));flex:0 0 auto}
+.lvrow.cur .dot{background:var(--brand);box-shadow:0 0 0 4px color-mix(in oklab,var(--brand) 18%,transparent)}
+.lvrow .tx{display:grid;gap:1px;flex:1;min-width:0}
+.lvrow .tx b{font-size:12.5px}.lvrow .tx small{font-size:10.5px;color:var(--ink-3)}
+:root[data-theme="dark"] .clubgate{background:linear-gradient(150deg,rgba(160,124,64,.18),rgba(30,80,160,.10))}
+:root[data-theme="dark"] .clubcard{background:linear-gradient(150deg,rgba(78,161,255,.12),rgba(160,124,64,.10))}
+:root[data-theme="dark"] .cg-ic,:root[data-theme="dark"] .tr-av{background:linear-gradient(150deg,#9A7434,#1E4E9E)}
+
 /* ── نورا پی: کیف پول، روش‌ها، صورتحساب و بدهی ─────────────────────── */
 .payhero{display:grid;gap:9px;padding:13px;border-radius:var(--r-lg);margin:2px 0 4px;
   background:linear-gradient(150deg,rgba(0,113,227,.12),rgba(0,113,227,.03));

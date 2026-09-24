@@ -117,6 +117,10 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .tagg.pin{background:var(--ink);color:var(--surface);border-color:transparent}
 .tagg.on{background:var(--brand);color:#fff;border-color:transparent}
 .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
+.tag-club{background:#0E2A55;color:#fff;border-color:transparent;font-weight:700}
+.tag.club{background:#0E2A55;color:#fff;border-color:transparent;font-weight:700}
+.tag.club .i{width:12px;height:12px;vertical-align:-2px;margin-inline-end:3px}
+.tag-club .i{width:12px;height:12px}
 .taggline{display:flex;gap:6px;flex-wrap:wrap}
 .mini-chips{display:flex;gap:5px;flex-wrap:wrap}
 .mini-chip{font-size:10.5px;height:20px;padding:0 7px;border-radius:99px;display:inline-flex;align-items:center;

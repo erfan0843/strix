@@ -108,7 +108,7 @@ const stOf=p=>({draft:['تکمیل نشده','warn'],pending:['در صف تأی�
 const monOf=e=>(e&&e.dm&&MON[e.dm])||'';
 
 /* ── حالت صفحه ───────────────────────────────────────────────────── */
-const S={view:'',vtab:'up',ptab:'info',edit:false,errs:{},after:''};
+const S={view:'',vtab:'up',ptab:'info',ctab:'home',edit:false,errs:{},after:''};
 
 /* ── رفتن به یک بخش: مهمان، ورقهٔ ورود؛ عضو، همان بخش ─────────────── */
 function go(k){
@@ -149,7 +149,8 @@ function headMember(){
   const missTxt=miss.length?faN(miss.length)+' قلم مانده: '+miss.slice(0,2).map(f=>f.l).join('، '):'اطلاعات کامل است';
   return `<div class="phead anim">
       <div class="cover"><span class="blob b1" aria-hidden="true"></span>
-        <span class="ctags">${chip(st[0],st[1])}${chip(faNum(pts)+' امتیاز')}</span></div>
+        <span class="ctags">${chip(st[0],st[1])}${chip(faNum(pts)+' امتیاز')}
+          ${clubIsMember()?`<span class="tag tag-club">${ico('i-medal')} ${esc(clubBadge().n)}</span>`:''}</span></div>
       <div class="pbody">
         <div class="ptop">
           <span class="av">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
@@ -246,7 +247,8 @@ function rowsBox(){
         <span class="cap">${faN(ROWS.length)} بخش</span></div>
       ${ROWS.map(r=>`<button class="mrow2" data-view="${r.k}">
       <span class="ic">${ico(r.i)}</span>
-      <span class="tx"><b>${esc(r.n)}</b><small>${esc(subOf(r.k)||r.s)}</small></span>
+      <span class="tx"><b>${esc(r.n)}${r.k==='book'&&clubIsMember()?` <span class="tag tag-club">${ico('i-medal')} عضو</span>`:''}</b>
+        <small>${esc(subOf(r.k)||r.s)}</small></span>
       ${miniOf(r.k)?`<span class="mini">${ico('i-check')}${miniOf(r.k)}</span>`:''}
       <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
       </button>`).join('')}</div>`;
@@ -500,32 +502,145 @@ function clubTab(){
 const BC_KEY='nora-home-bookclub';
 function bookState(){
   let v=null; try{v=JSON.parse(localStorage.getItem(BC_KEY)||'null')}catch(e){v=null}
-  return Object.assign({joined:true,seat:false,pages:0,note:'',vote:''},v||{});
+  return Object.assign({member:false, cstep:'form', form:{}, plan:'m', feeAt:'', feeNext:'',
+    att:{}, voice:null, likes:{}, posts:[], chals:{}, entered:{}, seats:{}, tag:'پیشنهاد',
+    joined:false, seat:false, pages:0, note:'', vote:''}, v||{});
 }
 function bookSet(patch){ const v=Object.assign(bookState(),patch); try{localStorage.setItem(BC_KEY,JSON.stringify(v))}catch(e){} return v }
-function bookPanel(){
-  const C=N.CLUB||{}, bc=bookState(), sup=(N.PEOPLE||[]).find(p=>p.id===C.sup)||{};
-  const pct=Math.max(0,Math.min(100,+C.progress||0)), plan=C.plan||[], shelf=C.shelf||[], log=C.log||[];
+/* ── باشگاه از خودِ داده می‌آید ───────────────────────────────────────── */
+const CCLUB=N.CLUB||{}, CFEE=CCLUB.fee||{}, CGATE=CCLUB.gate||{}, CTABS=CCLUB.tabs||[];
+const clubIsMember=()=>!!bookState().member;
+const clubBadge=()=>(CCLUB.badge||{n:'عضو باشگاه کتاب‌خوانی',s:''});
+const clubSup=()=>(N.PEOPLE||[]).find(x=>x.id===CCLUB.sup)||{};
+const clubPlan=k=>{ const P=CFEE.plans||[]; return P.find(x=>x.k===k)||P[0]||{k:'m',n:'ماهانه',amount:0,s:''} };
+const clubLevel=n=>{ const L=CCLUB.levels||[]; let cur=L[0]||{n:'—',at:0,perks:''}, nx=null;
+  L.forEach((x,i)=>{ if(n>=x.at){cur=x; nx=L[i+1]||null} }); return {cur:cur,nx:nx} };
+function clubMe(){
+  const bc=bookState(), name=prof().fullName||'عضو تازه';
+  return (CCLUB.board||[]).find(x=>x.me)||{n:name,l:'تازه‌وارهٔ باشگاه',s:+bc.sessions||0};
+}
+const clubPanelView=()=>S.ctab||(CTABS[0]||{}).k||'home';
+function clubSet(patch,msg){ bookSet(patch); render(); if(msg) toast(msg) }
+
+/* ── گام‌های ورود به باشگاه ─────────────────────────────────────────── */
+function clubSteps(cur){
+  const st=CGATE.steps||[], i=st.findIndex(x=>x.k===cur);
+  return `<div class="csteps anim">${st.map((x,n)=>`<div class="cstep${n<=i?' done':''}">
+    <span class="cdot">${n<i?ico('i-check','width:12px;height:12px;'):faN(n+1)}</span>
+    <span class="ctx"><b>${esc(x.n)}</b><small>${esc(x.s)}</small></span></div>`).join('')}</div>`;
+}
+function clubField(f){
+  const v=(bookState().form||{})[f.k]||'';
+  if(f.w==='pick')
+    return `<div class="fld"><span class="hint">${esc(f.l)}</span>
+      <div class="seg">${(f.opts||[]).map(o=>`<button class="segbtn${o===v?' on':''}" type="button"
+        data-cf="${esc(f.k)}" data-cv="${esc(o)}" aria-pressed="${o===v}">${esc(o)}</button>`).join('')}</div></div>`;
+  return `<div class="fld"><label class="hint" for="cf_${f.k}">${esc(f.l)}</label>
+    <input class="input" id="cf_${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}" style="margin-top:6px"/></div>`;
+}
+function clubJoinHero(){
+  const C=CCLUB, b=clubBadge();
+  return `<div class="clubgate anim">
+    <span class="cg-ic">${ico('i-book')}</span>
+    <span class="ctx"><b>${esc(C.n||'باشگاه کتاب‌خوانی خط زندگی')}</b>
+      <small>${esc((C.term||'')+(C.book?' · کتاب ماه: '+C.book:''))}</small>
+      <span class="pmeta">${chip(b.n,'gold')}${chip('عضویت برایت باز است','')}</span></span></div>`;
+}
+function clubJoin(t){
+  const bc=bookState(), C=CCLUB, step=(bc.cstep==='fee'?'fee':'form');
+  const req=(CGATE.fields||[]).filter(f=>f.req), have=req.filter(f=>bc.form[f.k]).length;
+  const formCard = step==='form'
+    ? card('فرم عضویت',CGATE.lead+' ساختهٔ '+CGATE.maker,'i-idcard',
+        `<div class="row" style="align-items:center;gap:8px;margin-top:2px">
+          <span class="cap">٪${faN(Math.round(have/req.length*100))} پر شده</span>
+          <span class="sp" style="flex:1"></span><span class="cap">تایپ لازم نیست؛ از فهرست انتخاب کن</span></div>
+        ${(CGATE.fields||[]).map(clubField).join('')}
+        <div class="row" style="margin-top:14px"><button class="btn primary" data-clubsend>
+          ${ico('i-send')} فرم را برای سرپرست بفرست</button></div>`)
+    : card('فرم سرپرست','فرستاده شد؛ حالا حق عضویت','i-check',
+        `<div class="stack tight" style="margin-top:2px">${(CGATE.fields||[]).filter(f=>bc.form[f.k]).map(f=>
+          `<div class="srow">${ico('i-check')}<span class="sp">${esc(f.l)}<small>${esc(bc.form[f.k])}</small></span></div>`).join('')}</div>
+         <div class="row" style="margin-top:12px"><button class="btn quiet" data-clubedit>${ico('i-pen')} ویرایش فرم</button>
+          <span class="sp" style="flex:1"></span><span class="tag ok">به دست سرپرست رسید</span></div>`);
+  const feeCard = step==='fee'
+    ? card('حق عضویت باشگاه',(CFEE.cycle||'ماهانه')+' · '+(CFEE.note||''),'i-wallet',
+        `<div class="chipsline" style="margin-top:2px">${(CFEE.plans||[]).map(p=>
+          `<button class="tag${bc.plan===p.k?' on':''}" type="button" data-clanplan="${esc(p.k)}">${esc(p.n)} · ${money(p.amount)}</button>`).join('')}</div>
+         <div class="srow" style="margin-top:10px">${ico('i-calendar')}<span class="sp">سررسید<small>${esc(CFEE.due||'')}</small></span>
+           <b class="num">${money(clubPlan(bc.plan).amount)}</b></div>
+         <div class="srow">${ico('i-star')}<span class="sp">دانشجویان<small>${esc(CFEE.studentNote||'')}</small></span>
+           <b class="num">${money(CFEE.student||0)}</b></div>
+         <div class="row" style="margin-top:12px"><button class="btn primary" data-clubsend2 data-clubpay>
+           ${ico('i-shield')} پرداخت با نورا پی و باز شدن پنل</button></div>
+         <p class="cap" style="margin-top:8px">تا پرداخت، پنل باشگاه بسته می‌ماند؛ قوانین را در پایین بخوان.</p>`)
+    : '';
+  return viewHead(t,CGATE.n||'ورود به باشگاه',null)+`<div class="panel">
+    ${clubJoinHero()}
+    ${clubSteps(step==='fee'?'fee':'form').replace('csteps','csteps')}
+    ${formCard}${feeCard}${clubSupervisor()}${trustLine('club')}</div>`;
+}
+/* ── ورقهٔ پرداخت حق عضویت ─────────────────────────────────────────── */
+function clubFeeSheet(){
+  const bc=bookState(), plan=clubPlan(bc.plan), ms=(CFEE.methods||['wallet','bale','card']);
+  fillSheet('shClub',`<div class="grabber"></div>
+    <div class="head">${ico('i-wallet')} حق عضویت باشگاه</div>
+    <p class="cap" style="margin-top:5px">${esc(CFEE.note||'')}</p>
+    <div class="chipsline" style="margin-top:10px">${(CFEE.plans||[]).map(p=>
+      `<button class="tag${bc.plan===p.k?' on':''}" type="button" data-clanplan="${esc(p.k)}">${esc(p.n)} · ${money(p.amount)}</button>`).join('')}</div>
+    <div class="payamt"><span>${esc(plan.n)}</span><b class="num">${money(plan.amount)}</b>
+      <span class="cap">${esc(plan.s||'')}</span></div>
+    <div class="stack tight">${ms.map(k=>{const m=methodOf(k);
+      return `<button class="opt" data-clubm="${esc(k)}">
+        <span class="mk">${ico(m.i||'i-wallet','width:16px')}</span>
+        <span style="flex:1;text-align:start"><b>${esc(m.n||k)}</b><br><span class="cap">${esc(m.s||'')}</span></span>
+        ${ico('i-chev-left','color:var(--ink-4)')}</button>`}).join('')}</div>
+    <div class="row" style="margin-top:12px"><span class="sp" style="flex:1"></span>
+      <button class="btn quiet" data-close>بعداً</button></div>
+    <p class="cap" style="margin-top:10px">${esc(CFEE.studentNote||'')}</p>`);
+  openSheet('shClub');
+}
+/* ── سرپرست و قوانین ───────────────────────────────────────────────── */
+function clubSupervisor(){
+  const sup=clubSup();
+  return card('سرپرست باشگاه','جلسه‌ها، پادکست و کارگاه‌ها را او می‌گرداند','i-users',
+    `<div class="srow"><span class="qi" style="width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);font-weight:700">${esc(String(sup.n||'م').slice(0,1))}</span>
+      <span class="sp">${esc(sup.n||'مریم داوودی')}<small>${esc(sup.r||'سرپرست باشگاه کتاب‌خوانی')}</small></span>
+      <button class="btn sm quiet" data-go="support">پرسش</button></div>`+
+    (CCLUB.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join(''));
+}
+/* ── کارت عضویت: نشان باشگاه روی پروفایل ───────────────────────────── */
+function clubCard(){
+  const bc=bookState(), me=clubMe(), L=clubLevel(+me.s||0), C=CCLUB;
+  const next=L.nx?Math.max(0,L.nx.at-(+me.s||0)):0, pct=L.nx?Math.min(100,Math.round((+me.s||0)/L.nx.at*100)):100;
+  return `<div class="clubcard anim">
+    <span class="cc-ic">${ico('i-medal')}</span>
+    <span class="ctx"><b>${esc(clubBadge().n)}</b>
+      <small>${esc(me.n||'')} · ${esc(L.cur.n||'')} · ${faN(+me.s||0)} جلسه</small>
+      <span class="pmeta">${chip((C.term||'')+' فعال','ok')}${bc.voice?chip('ضبط پادکست','gold'):''}
+        ${bc.feeAt?chip('حق عضویت پرداخت شد','ok'):chip('حق عضویت مانده','warn')}</span>
+      <span class="meter" role="img" aria-label="تا سطح بعدی ٪${faN(pct)}"><i style="width:${pct}%"></i></span>
+      <small class="cap">${L.nx?'تا «'+esc(L.nx.n)+'» '+faN(next)+' جلسه مانده؛ پاداش آن: '+esc(L.nx.perks||''):'بالاترین سطح باشگاه؛ حالا میزبانی هم دست توست.'}</small>
+    </span></div>`;
+}
+/* ── خبرهای سرپرست ─────────────────────────────────────────────────── */
+function clubNews(){
+  return (CCLUB.news||[]).map(n=>`<div class="srow">${ico(n.i||'i-sparkle')}
+    <span class="sp">${esc(n.t)}<small>${esc(n.d||'')}</small></span></div>`).join('');
+}
+/* ── گروه و لینک اختصاصی ───────────────────────────────────────────── */
+function clubGroup(){
+  const g=CCLUB.group||{};
+  return `<div class="srow">${ico('i-users')}<span class="sp">${esc(g.n||'گروه اعضا')}
+      <small>${esc(g.lead||'')}</small></span>
+    <button class="btn sm quiet" data-copy="${esc(g.link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>
+    <div class="capex">کد یکتا: <b class="num" dir="ltr">${esc(g.code||'')}</b></div>
+    ${(g.rules||[]).map(r=>`<div class="srow">${ico('i-lock')}<span class="sp">${esc(r)}</span></div>`).join('')}`;
+}
+/* ── خانه: عضویت، جلسهٔ هفته، کارهای من ────────────────────────────── */
+function clubHome(){
+  const bc=bookState(), C=CCLUB, meet=(C.meet||[])[0]||{}, plan=clubPlan(bc.plan);
+  const pct=Math.max(0,Math.min(100,+C.progress||0)), mine=Math.round(Math.min(200,+bc.pages||0)/200*100);
   const vote=bc.vote, VOTE=C.vote||[], tot=VOTE.reduce((a,b)=>a+(+b.n||0),0)+(vote?1:0);
-  const mine=Math.round(Math.min(200,+bc.pages||0)/200*100);
-  const hero=`<div class="bkhero anim">
-      <div class="bkcover">
-        ${ico('i-book','')}
-        <span class="bkkind">کتاب ماه باشگاه خط زندگی · ${esc(C.term||'')}</span>
-        <b>${esc(C.book||'')}</b>
-        <small>${esc(C.bookBy||'')} · ${esc(C.session||'')}</small>
-        <span class="bktags">${chip(faN(C.members||0)+' عضو')}${chip(faN(C.meetings||0)+' جلسه')}${chip(bc.joined?'عضو این ترم':'عضو نیستی',bc.joined?'ok':'warn')}</span>
-        <div class="bkbar" role="img" aria-label="پیشرفت کتاب ماه ٪${faN(pct)}"><i style="width:${pct}%"></i></div>
-        <div class="bkfoot">${ico('i-clock')} ٪${faN(pct)} خوانده شده · جلسهٔ بعد: ${esc(C.next||'جلسهٔ پیش‌رو')}</div>
-      </div>
-      <div class="bkbody">
-        <div class="bkstats">
-          ${[['اعضا',faN(C.members||0)+' از '+faN(C.cap||0)],['جلسه‌ها',faN(C.meetings||0)],
-             ['صفحهٔ من',faN(bc.pages||0)],['قفسه',faN(shelf.length)]]
-            .map(([l,v])=>`<span><b>${esc(v)}</b><small>${esc(l)}</small></span>`).join('')}
-        </div>
-        <div class="cap">${bc.joined?'عضویتت در ترم جاری فعال است؛ جلسه‌ها پنجشنبه‌ها ۱۸:۰۰ برپا می‌شود.':'عضو ترم نیستی؛ با یک پیام به سرپرست، جایت را رزرو کن.'}</div>
-      </div></div>`;
   const tasks=`<div class="bktasks anim" style="--i:1">
       <div class="bktask ${bc.seat?'done':''}"><span class="bx">${ico('i-check')}</span>
         <span class="tx"><b>صندلی جلسهٔ پنجشنبه</b><small>${bc.seat?'رزرو شد؛ یک ساعت قبل یادآوری می‌کنیم':'جای محدود؛ از همین‌جا رزرو کن'}</small></span>
@@ -541,24 +656,120 @@ function bookPanel(){
         <span class="tx"><b>رأی به کتاب ماه بعد</b><small>${vote?'رأیت ثبت شد؛ نتیجه زنده به‌روز می‌شود':'از میان سه کتاب، یکی را انتخاب کن'}</small></span>
         <span class="cap">${vote?'انجام شد':'مانده'}</span></div>
     </div>`;
-  return hero+tasks+
-    card('پیشرفت مطالعهٔ من','صفحه‌هایی که خوانده‌ای را خودت ثبت کن','i-book',
+  return clubCard()+
+    card('جلسهٔ این هفته',(C.session||'')+' · سرپرست: '+((clubSup().n)||'—'),'i-calendar',
+      `<div class="srow">${ico('i-book')}<span class="sp">${esc(meet.c||C.next||'جلسهٔ پیش‌رو')}
+        <small>${esc(meet.w||'')} · ${esc(meet.mode||'')}</small></span>
+        ${bc.att[meet.k]?chip('ثبت شد: '+bc.att[meet.k],'ok'):chip('ثبت حضور مانده','warn')}</div>
+       <div class="row tight" style="margin-top:10px">${['حاضر','آنلاین','نمی‌آیم'].map(st=>
+         `<button class="btn sm ${bc.att[meet.k]===st?'primary':'quiet'}" data-att="${esc(meet.k||'')}" data-attst="${esc(st)}">${esc(st)}</button>`).join('')}</div>
+       <div class="cap" style="margin-top:8px">ثبت حضور از سطح‌بندی باشگاه حساب می‌شود؛ غیبت با یادداشت هم قبول است.</div>`)+
+    tasks+
+    card('کارهای من در باشگاه','پیشرفت مطالعه و یادداشت و رأی','i-book',
       `<div class="meter" role="img" aria-label="پیشرفت من ٪${faN(mine)}"><i style="width:${mine}%"></i></div>
        <div class="row" style="margin-top:10px">
          <button class="btn sm quiet" data-pages="10">+۱۰ صفحه</button>
          <button class="btn sm quiet" data-pages="25">+۲۵ صفحه</button>
-         <span class="sp" style="flex:1"></span>
-         <span class="cap">٪${faN(mine)} از کتاب ماه</span></div>`)+
-    card('یادداشت من برای جلسه','سرپرست باشگاه پیش از جلسه یادداشت‌ها را می‌خواند','i-pen',
-      `<label class="lbl" for="bcNote" style="display:block;font-size:11.5px;color:var(--ink-3);font-weight:600">یادداشت یک‌صفحه‌ای</label>
+         <span class="sp" style="flex:1"></span><span class="cap">٪${faN(mine)} از کتاب ماه</span></div>
+       <label class="lbl" for="bcNote" style="display:block;margin-top:12px;font-size:11.5px;color:var(--ink-3);font-weight:600">یادداشت یک‌صفحه‌ای</label>
        <textarea class="input" id="bcNote" rows="3" placeholder="مثلاً فصل ۴: راوی چه چیزی را پنهان می‌کند؟" style="margin-top:6px">${esc(bc.note)}</textarea>
        <div class="row" style="width:100%;margin-top:10px"><button class="btn sm primary" data-save-note>
-         ${ico('i-check')} ذخیرهٔ یادداشت</button>
-         <span class="sp" style="flex:1"></span>
+         ${ico('i-check')} ذخیرهٔ یادداشت</button><span class="sp" style="flex:1"></span>
          <span class="cap">${bc.note?'ذخیره شده، قابل ویرایش':'خالی'}</span></div>`)+
-    card('جلسه‌های پیش‌رو',esc(C.session||'پنجشنبه‌ها ۱۸:۰۰')+' · کتابخانهٔ نورا، ونک','i-calendar',
-      plan.map(p=>`<div class="tk">${ico('i-calendar','width:19px;height:19px;color:var(--brand)')}
-        <span><b>${esc(p.c)}</b><small>${esc(p.d)} · ${esc(p.w)}</small></span></div>`).join(''))+
+    card('حق عضویت باشگاه',(CFEE.cycle||'ماهانه')+' · سرپرست تعیین می‌کند','i-wallet',
+      `<div class="srow">${ico('i-calendar')}<span class="sp">پلن من<b>${esc(plan.n)}</b>
+        <small>${bc.feeAt?'پرداخت‌شده در '+esc(bc.feeAt):'پرداخت‌نشده'}</small></span>
+        <b class="num">${money(plan.amount)}</b></div>
+       <div class="srow">${ico('i-clock')}<span class="sp">سررسید بعدی<small>${esc(bc.feeNext||CFEE.due||'')}</small></span>
+         ${chip(bc.feeAt?'فعال':'مانده',bc.feeAt?'ok':'warn')}</div>
+       <div class="row" style="margin-top:10px">
+         <button class="btn primary" data-clubpay>${ico('i-shield')} ${bc.feeAt?'تمدید حق عضویت':'پرداخت حق عضویت'}</button>
+         <span class="sp" style="flex:1"></span><span class="cap">${esc(CFEE.studentNote||'')}</span></div>`)+
+    card('خبرهای سرپرست','',"i-bell",clubNews())+
+    card('گروه و لینک اختصاصی','خبرها و فایل‌ها همان‌جا','i-users',clubGroup())+
+    trustLine('club');
+}
+/* ── جلسه‌ها: هفتگی، ثبت حضور، سطح‌بندی ─────────────────────────────── */
+function clubMeet(){
+  const bc=bookState(), C=CCLUB, me=clubMe(), L=clubLevel(+me.s||0);
+  const meet=(C.meet||[]).map(m=>`<div class="mtrow">
+      <span class="mt-when">${ico('i-calendar')}<b>${esc(m.w||'')}</b></span>
+      <span class="tx"><b>${esc(m.c||'')}</b><small>${esc(m.mode||'')} · میزبان ${esc(m.host||'')}${m.took?' · '+faN(m.took)+' نفر حاضر':''}</small>
+        <span class="row tight" style="margin-top:6px">${['حاضر','آنلاین','نمی‌آیم'].map(st=>
+          `<button class="tag${bc.att[m.k]===st?' on':''}" type="button" data-att="${esc(m.k)}" data-attst="${esc(st)}">${esc(st)}</button>`).join('')}
+          ${bc.att[m.k]?chip('ثبت شد','ok'):''}</span></span></div>`).join('');
+  const levelRows=(C.levels||[]).map(x=>`<div class="lvrow${x.k===L.cur.k?' cur':''}">
+      <span class="dot"></span><span class="tx"><b>${esc(x.n)}</b><small>از ${faN(x.at)} جلسه · ${esc(x.perks||'')}</small></span>
+      ${x.k===L.cur.k?chip('سطح من','ok'):''}</div>`).join('');
+  const boardRows=(C.board||[]).map(b=>`<div class="srow">${ico(b.me?'i-medal':'i-user')}
+      <span class="sp">${esc(b.n)}${b.me?' (تو)':''}<small>${esc(b.l)}</small></span>
+      <span class="tag">${faN(b.s)} جلسه</span></div>`).join('');
+  return card('جلسه‌های هفتگی',(C.session||'')+' · '+(C.meetings||0)+' جلسه برگزار شده','i-calendar',meet)+
+    card('ثبت حضور من','حضور، آنلاین و غیبت با یادداشت','i-check',
+      (C.att||[]).map(a=>`<div class="srow">${ico(a.st.indexOf('حاضر')===0?'i-check':'i-clock')}
+        <span class="sp">${esc(a.c)}<small>${esc(a.d)}</small></span>${chip(a.st,a.st.indexOf('حاضر')===0?'ok':'warn')}</div>`).join('')+
+      `<p class="cap" style="margin-top:8px">حضور هر جلسه، یک پله در سطح‌بندی جلو می‌برد.</p>`)+
+    card('سطح‌بندی اعضا','چهار سطح، از تازه‌وارد تا راهبر باشگاه','i-medal',levelRows)+
+    card('اعضای باشگاه',faN((C.members||0))+' عضو از '+faN((C.cap||0))+' جا','i-users',boardRows)+
+    trustLine('club');
+}
+/* ── کتاب و پادکست ──────────────────────────────────────────────────── */
+function clubVoiceForm(){
+  const bc=bookState(), call=(CCLUB.podcast||{}).call||{};
+  if(bc.voice)
+    return `<div class="srow">${ico('i-check')}<span class="sp">فرم ضبط پادکست فرستاده شد
+        <small>${esc(bc.voice.role||'')}${bc.voice.slot?' · '+esc(bc.voice.slot):''}</small></span>${chip('در نوبت سرپرست','ok')}</div>`;
+  return `<p class="cap" style="margin:6px 0">${esc(call.lead||'')}</p>
+    <div class="fld"><span class="hint">چه کاری دوست داری؟</span>
+      <div class="seg">${(call.roles||[]).map(r=>`<button class="segbtn${bc.voiceRole===r?' on':''}" type="button"
+        data-cvoice="${esc(r)}" aria-pressed="${bc.voiceRole===r}">${esc(r)}</button>`).join('')}</div></div>
+    <div class="fld"><span class="hint">کدام وقت راحت‌تری؟</span>
+      <div class="seg">${(call.slots||[]).map(s=>`<button class="segbtn${bc.voiceSlot===s?' on':''}" type="button"
+        data-cslot="${esc(s)}" aria-pressed="${bc.voiceSlot===s}">${esc(s)}</button>`).join('')}</div></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-cvoice-send>
+      ${ico('i-send')} فرم را بفرست</button></div>`;
+}
+function clubMedia(){
+  const bc=bookState(), C=CCLUB, sup=clubSup();
+  const pct=Math.max(0,Math.min(100,+C.progress||0));
+  const hero=`<div class="bkhero anim">
+      <div class="bkcover">
+        ${ico('i-book','')}
+        <span class="bkkind">کتاب ماه باشگاه خط زندگی · ${esc(C.term||'')}</span>
+        <b>${esc(C.book||'')}</b>
+        <small>${esc(C.bookBy||'')} · ${esc(C.session||'')}</small>
+        <span class="bktags">${chip(faN(C.members||0)+' عضو')}${chip(faN(C.meetings||0)+' جلسه')}${chip('عضو این ترم','ok')}</span>
+        <div class="bkbar" role="img" aria-label="پیشرفت کتاب ماه ٪${faN(pct)}"><i style="width:${pct}%"></i></div>
+        <div class="bkfoot">${ico('i-clock')} ٪${faN(pct)} خوانده شده · جلسهٔ بعد: ${esc(C.next||'جلسهٔ پیش‌رو')}</div>
+      </div>
+      <div class="bkbody">
+        <div class="bkstats">
+          ${[['اعضا',faN(C.members||0)+' از '+faN(C.cap||0)],['جلسه‌ها',faN(C.meetings||0)],
+             ['صفحهٔ من',faN(bc.pages||0)],['قفسه',faN((C.shelf||[]).length)]]
+            .map(([l,v])=>`<span><b>${esc(v)}</b><small>${esc(l)}</small></span>`).join('')}
+        </div>
+        <div class="cap">جلسه‌ها ${esc(C.session||'')} برپا می‌شود؛ یادداشتت را پیش از جلسه بفرست.</div>
+        <div class="row tight" style="margin-top:10px">
+          <button class="btn sm quiet" data-pages="10">+۱۰ صفحه</button>
+          <button class="btn sm quiet" data-pages="25">+۲۵ صفحه</button>
+          <span class="sp" style="flex:1"></span><span class="cap">صفحه‌های خوانده‌شده را خودت ثبت کن</span></div>
+      </div></div>`;
+  const books=(C.books||[]).map(b=>`<div class="bkrow">
+      <span class="bk-th" aria-hidden="true">${ico(b.kind==='کتاب ماه'?'i-star':b.kind==='خلاصه'?'i-headphone':'i-book')}</span>
+      <span class="tx"><b>${esc(b.t)}</b><small>${esc(b.by||'')} · ${esc(b.kind||'')}${b.min?' · '+faN(b.min)+' دقیقه':''}</small>
+        <span class="cap">${esc(b.note||'')}</span></span>
+      <span class="acts">${b.kind==='خلاصه'?`<button class="btn sm quiet" data-watch="${esc(b.t)}">${ico('i-headphone')} شنیدن</button>`
+        :`<button class="btn sm quiet" data-watch="${esc(b.t)}">${ico('i-book')} باز کردن</button>`}</span></div>`).join('');
+  const podcast=(C.podcast||{});
+  const eps=(podcast.eps||[]).map(e=>`<div class="pdcard">
+      <button class="pdplay" type="button" data-watch="${esc(e.n)}" aria-label="پخش ${esc(e.n)}">${ico('i-play-f')}</button>
+      <span class="tx"><b>${esc(e.n)}</b><small>${esc(e.at||'')} · ${faN(e.min||0)} دقیقه · ${esc(podcast.host||'')}</small></span>
+      ${chip(e.st||'',e.st==='تازه'?'gold':'')}</div>`).join('');
+  const vote=bc.vote, VOTE=C.vote||[], tot=VOTE.reduce((a,b)=>a+(+b.n||0),0)+(vote?1:0);
+  return hero+
+    card('معرفی و خلاصهٔ کتاب',(C.books||[]).length+' کتاب، از معرفی تا خلاصهٔ صوتی','i-book',books)+
+    card('پادکست '+(podcast.n||'نبض ورق'),(podcast.lead||'')+' · '+(podcast.studio||''),'i-headphone',eps)+
+    card('دعوت به ضبط پادکست','فرمی که سرپرست گذاشته؛ اگر قبول شدی، اسمت پای قسمت می‌آید','i-star',clubVoiceForm())+
     card('کتاب ماه بعد را با هم انتخاب کنیم','رأی تو در فهرست ماه بعد حساب می‌شود','i-star',
       `<div class="votebox">${VOTE.map(v=>{const n=(+v.n||0)+(vote===v.k?1:0), pc2=tot?Math.round(n/tot*100):0;
         return `<button class="voteopt${vote===v.k?' on':''}" data-vote="${esc(v.k)}" aria-pressed="${vote===v.k}">
@@ -567,19 +778,75 @@ function bookPanel(){
             <span class="num">${faN(n)} رأی</span></span>
             <span class="vtrack"><i style="width:${pc2}%"></i></span></span></button>`}).join('')}</div>
        <p class="cap" style="margin:8px 2px 0">${vote?'رأیت ثبت شد؛ نتیجه زنده به‌روز می‌شود.':'با زدن هر گزینه، رأیت ثبت می‌شود.'}</p>`)+
-    card('جلسه‌های گذشته','ضبط هر جلسه هست','i-play-f',
-      log.map(l=>`<div class="tk">${ico('i-play-f','width:19px;height:19px;color:var(--ink-4)')}
-        <span><b>${esc(l.t)}</b><small>${esc(l.d)} · ${faN(l.n)} نفر حاضر</small>
-          <span class="acts"><button class="btn sm quiet" data-watch="${esc(l.t)}">${ico('i-play-f')} تماشا</button></span></span></div>`).join(''))+
-    card('قفسهٔ باشگاه','سه کتاب ماه گذشته','i-archive',
-      `<div class="shelf">${shelf.map(b=>`<div class="book">
+    card('قفسهٔ باشگاه','کتاب‌های ماه گذشته','i-archive',
+      `<div class="shelf">${(C.shelf||[]).map(b=>`<div class="book">
         <span class="bt2" aria-hidden="true"></span>
         <span class="btx"><b>${esc(b.t)}</b><small>${esc(b.by)} · ${esc(b.d)} · ${'★'.repeat(Math.round(+b.r||0))}</small></span></div>`).join('')}</div>`)+
-    card('سرپرست باشگاه','جلسه‌ها را او می‌گرداند','i-users',
-      `<div class="srow"><span class="qi" style="width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);font-weight:700">${esc(String(sup.n||'م').slice(0,1))}</span>
-        <span class="sp">${esc(sup.n||'مریم داوودی')}<small>${esc(sup.r||'سرپرست باشگاه کتاب‌خوانی')}</small></span>
-        <button class="btn sm quiet" data-go="support">پرسش</button></div>`+
-      (C.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join(''));
+    card('جلسه‌های گذشته','ضبط هر جلسه هست؛ غایب هم عقب نمی‌ماند','i-play-f',
+      (C.log||[]).map(l=>`<div class="tk">${ico('i-play-f','width:19px;height:19px;color:var(--ink-4)')}
+        <span><b>${esc(l.t)}</b><small>${esc(l.d)} · ${faN(l.n)} نفر حاضر</small>
+          <span class="acts"><button class="btn sm quiet" data-watch="${esc(l.t)}">${ico('i-play-f')} تماشا</button></span></span></div>`).join(''))+
+    trustLine('club');
+}
+/* ── مسابقه، چالش و کارگاه ─────────────────────────────────────────── */
+function clubGame(){
+  const bc=bookState(), C=CCLUB, me=clubMe();
+  const contests=(C.contests||[]).map(c=>`<div class="srow">${ico('i-medal')}
+      <span class="sp">${esc(c.n)}<small>${esc(c.d)} · تا ${esc(c.until)} · ${faN(c.entrants||0)} نفر</small>
+        <span class="cap">جایزه: ${esc(c.prize||'')}</span></span>
+      ${bc.entered[c.k]?chip('ثبت‌نام کردی','ok'):(c.state==='open'
+        ?`<button class="btn sm primary" data-contest="${esc(c.k)}">شرکت می‌کنم</button>`:chip('به‌زودی','warn'))}</div>`).join('');
+  const chals=(C.challenges||[]).map(ch=>{
+    const mine=+bc.chals[ch.k]||0, pc=Math.min(100,Math.round(mine/ch.goal*100)), done=mine>=ch.goal;
+    return `<div class="chlrow">
+      <span class="tx"><b>${esc(ch.n)}</b><small>${esc(ch.d)} · پاداش ${faN(ch.reward||0)} امتیاز</small>
+        <span class="meter" role="img" aria-label="پیشرفت ٪${faN(pc)}"><i style="width:${pc}%"></i></span>
+        <span class="cap">${faN(mine)} از ${faN(ch.goal)} ${esc(ch.unit||'')} · ٪${faN(pc)}</span></span>
+      ${done?chip('تمام شد','ok'):`<button class="btn sm quiet" data-chal="${esc(ch.k)}">+ یک ${esc(ch.unit||'')}</button>`}</div>`}).join('');
+  const ws=(C.workshops||[]).map(w=>`<div class="srow">${ico('i-pen')}
+      <span class="sp">${esc(w.t)}<small>${esc(w.d)} · میزبان ${esc(w.host)} · ${faN(w.left||0)} جا مانده</small></span>
+      ${bc.seats[w.k]?chip('جا گرفتی','ok'):`<button class="btn sm primary" data-clubw="${esc(w.k)}">${w.price?'ثبت‌نام · '+money(w.price):'ثبت‌نام رایگان'}</button>`}</div>`).join('');
+  return card('مسابقه‌های ماهانه','سرپرست هر ماه یک مسابقه می‌گذارد','i-medal',contests)+
+    card('چالش‌های باشگاه','کوتاه، روزانه و با امتیاز','i-star',chals)+
+    card('کارگاه‌های باشگاه','کارگاه‌های ویژهٔ اعضا؛ پرداخت با نورا پی','i-pen',ws)+
+    card('جایگاه من',esc(me.l||'')+' · '+faN(+me.s||0)+' جلسه','i-chart',
+      `<div class="meter"><i style="width:${Math.min(100,Math.round((+me.s||0)/20*100))}%"></i></div>
+       <p class="cap" style="margin-top:8px">هر مسابقه و چالش، امتیاز باشگاه و یک گام به سطح بعدی است.</p>`)+
+    trustLine('club');
+}
+/* ── تریبون آزاد ───────────────────────────────────────────────────── */
+function clubTalk(){
+  const bc=bookState(), T=CCLUB.tribune||{}, mine=bc.posts||[];
+  const all=mine.concat(T.posts||[]);
+  const posts=all.map(p=>{const liked=bc.likes[p.k], n=(+p.likes||0)+(liked?1:0);
+    return `<div class="trpost${p.mine?' mine':''}">
+      <span class="tr-av">${esc(p.g||String(p.n||'ع').slice(0,1))}</span>
+      <span class="tx"><b>${esc(p.n||'عضو باشگاه')} <span class="tag">${esc(p.tag||'نظر')}</span></b>
+        <small>${esc(p.at||'')}</small>
+        <span class="cap">${esc(p.t||'')}</span></span>
+      <button class="btn sm quiet${liked?' primary':''}" data-like="${esc(p.k)}" aria-pressed="${!!liked}">
+        ${ico('i-star')} ${faN(n)}</button></div>`}).join('');
+  return card('تریبون آزاد',(T.lead||'')+' · سرپرست هر هفته می‌خواند ('+faN(all.length)+' نظر)','i-chat',
+      `<div class="trnew">
+        <div class="seg">${(T.tags||[]).map(t=>`<button class="segbtn${bc.tag===t?' on':''}" type="button"
+          data-ctag="${esc(t)}" aria-pressed="${bc.tag===t}">${esc(t)}</button>`).join('')}</div>
+        <label class="hint" for="trText" style="display:block;margin-top:10px">نظر یا پیشنهادت</label>
+        <textarea class="input" id="trText" rows="3" maxlength="${faN(T.max||280)}"
+          placeholder="کوتاه و روشن بنویس؛ سرپرست هر هفته می‌خواند" style="margin-top:6px"></textarea>
+        <div class="row" style="margin-top:10px"><button class="btn primary" data-post>${ico('i-send')} بفرست</button>
+          <span class="sp" style="flex:1"></span><span class="cap">بی‌نام هم می‌شود؛ اسمت نمی‌آید</span></div></div>
+      <div class="gt cap" style="margin:14px 3px 6px">نظرهای اعضا</div>${posts}
+      <div class="srow" style="margin-top:10px">${ico('i-users')}<span class="sp">${esc((N.PEOPLE||[]).find(x=>x.id===(N.CLUB||{}).sup)?.n||'سرپرست باشگاه')}
+        <small>سرپرست باشگاه؛ پیشنهادها را می‌خواند و هر هفته یکی را جلو می‌برد</small></span>
+        <button class="btn sm quiet" data-go="support">پرسش</button></div>`)+
+    trustLine('club');
+}
+/* ── خود پنل ───────────────────────────────────────────────────────── */
+function clubPanel(t){
+  const C=CCLUB, v=clubPanelView();
+  const body = v==='meet'?clubMeet() : v==='media'?clubMedia() : v==='game'?clubGame() : v==='talk'?clubTalk() : clubHome();
+  const sub=(C.term||'')+(C.book?' · '+C.book:'');
+  return viewHead(t,sub,CTABS,'ctab')+`<div class="panel">${body}</div>`;
 }
 
 /* ══ اطلاعات و تنظیمات حساب ═════════════════════════════════════════ */
@@ -902,11 +1169,13 @@ VS.profile=function(t){
   const sub=(PTABS.find(x=>x.k===S.ptab)||{}).s||'';
   return viewHead(t,sub,PTABS,'ptab')+`<div class="panel">${body}</div>`;
 };
-/* باشگاه کتاب‌خوانی خط زندگی: بخش خودش، با همان تنِ باشگاه */
+/* ══ باشگاه کتاب‌خوانی خط زندگی ══════════════════════════════════════════
+   تا عضو نشوی، پنل بسته است: اول فرمی که سرپرست گذاشته، بعد حق عضویت،
+   بعد امکانات باشگاه. هر چیزی که سرپرست می‌فرستد همین‌جا می‌نشیند. */
 VS.book=function(t){
   if(!login()) return viewHead(t,'',null)+gate(t);
-  const C=N.CLUB||{};
-  return viewHead(t,(C.term?'ترم '+C.term+' · ':'')+(C.book||''),null)+`<div class="panel">${bookPanel()}</div>`;
+  if(!clubIsMember()) return clubJoin(t);
+  return clubPanel(t);
 };
 
 /* ══ نورا پی: همهٔ پرداخت‌ها و خریدهای سامانه ══════════════════════════
@@ -1355,6 +1624,7 @@ document.addEventListener('click',ev=>{
     if(!login()){ S.after=k==='tickets'?'events':'club'; loginSheet(); return }
     if(k==='tickets'){ S.view='events'; S.vtab='tickets'; location.hash='#events'; render(); return }
     S.view='profile'; S.ptab='club'; location.hash='#profile'; render(); return }
+  const ct=t.closest('[data-ctab]'); if(ct){ S.ctab=ct.dataset.ctab; renderView(); return }
   const vt=t.closest('[data-vtab]'); if(vt){ S.vtab=vt.dataset.vtab; renderView(); return }
   const pt=t.closest('[data-ptab]'); if(pt){ S.ptab=pt.dataset.ptab; S.edit=false; S.errs={}; renderView(); return }
   if(t.closest('[data-photo-demo]')){ demoPhoto(); return }
@@ -1385,6 +1655,67 @@ document.addEventListener('click',ev=>{
   const stb=t.closest('[data-star]');
   if(stb){ S.myStars=stb.dataset.star;
     stb.parentElement.querySelectorAll('.chip').forEach(x=>{ x.classList.toggle('on',x===stb) }); return }
+  /* باشگاه کتاب‌خوانی */
+  const cf=t.closest('[data-cf]');
+  if(cf){ const f={}; f[cf.dataset.cf]=cf.dataset.cv; bookSet({form:Object.assign({},bookState().form,f)});
+    renderView(); return }
+  const clp=t.closest('[data-clanplan]');
+  if(clp){ bookSet({plan:clp.dataset.clanplan}); render(); return }
+  if(t.closest('[data-clubsend]')){
+    const req=(CGATE.fields||[]).filter(f=>f.req), missing=req.find(f=>!bookState().form[f.k]);
+    if(missing){ toast('یک قلم مانده: '+missing.l); return }
+    bookSet({cstep:'fee'}); render(); toast('فرم برای سرپرست رفت؛ حالا حق عضویت'); return }
+  if(t.closest('[data-clubedit]')){ bookSet({cstep:'form'}); render(); return }
+  if(t.closest('[data-clubsend2]')){ clubFeeSheet(); return }
+  const cbm=t.closest('[data-clubm]');
+  if(cbm){
+    /* حق عضویت هم از نورا پی می‌گذرد؛ کیف پول اگر کم بیاید، اول شارژ */
+    const plan=clubPlan(bookState().plan), kind=cbm.dataset.clubm, st=payState();
+    if(kind==='wallet'&&st.bal<plan.amount){ toast('موجودی کیف پول کم است؛ اول شارژ کن'); return }
+    paySave({bal:kind==='wallet'?st.bal-plan.amount:st.bal,
+      txs:[{k:'buy', t:'حق عضویت باشگاه · '+plan.n, amount:-plan.amount, by:kind, state:'paid',
+        track:'CL-'+faN(Math.floor(10000+Math.random()*89999)), at:nowFa()}].concat(st.txs).slice(0,12)});
+    bookSet({member:true, cstep:'ok', joined:true, plan:plan.k, feeAt:nowFa(),
+      feeNext:(CFEE.due||''), sessions:1}); closeSheets(); render();
+    toast('عضو باشگاه شدی · پنل باز شد و نشانت روی پروفایل نشست'); return }
+  if(t.closest('[data-clubpay]')){ clubFeeSheet(); return }
+  const ca=t.closest('[data-att]');
+  if(ca){ const att=Object.assign({},bookState().att); att[ca.dataset.att]=ca.dataset.attst;
+    bookSet({att:att, sessions:(+bookState().sessions||0)+(ca.dataset.attst==='نمی‌آیم'?0:1)});
+    renderView(); toast('ثبت شد: '+ca.dataset.attst); return }
+  const cch=t.closest('[data-chal]');
+  if(cch){ const ch=(CCLUB.challenges||[]).find(x=>x.k===cch.dataset.chal)||{};
+    const chals=Object.assign({},bookState().chals);
+    chals[cch.dataset.chal]=Math.min(ch.goal,(+chals[cch.dataset.chal]||0)+1);
+    bookSet({chals:chals}); renderView();
+    toast(chals[cch.dataset.chal]>=ch.goal?'چالش را تمام کردی · '+faN(ch.reward||0)+' امتیاز گرفتی':'یک گام جلوتر رفت؛ ادامه بده'); return }
+  const con=t.closest('[data-contest]');
+  if(con){ const entered=Object.assign({},bookState().entered); entered[con.dataset.contest]=true;
+    bookSet({entered:entered}); renderView(); toast('ثبت‌نامت در مسابقه نشست؛ سرپرست خبر می‌دهد'); return }
+  const cw=t.closest('[data-clubw]');
+  if(cw){ const w=(CCLUB.workshops||[]).find(x=>x.k===cw.dataset.clubw)||{};
+    const seats=Object.assign({},bookState().seats); seats[cw.dataset.clubw]=true;
+    bookSet({seats:seats}); renderView();
+    toast(w.price?('جا گرفتی؛ مبلغش را از نورا پی بپرداز · '+money(w.price)):'جا گرفتی؛ رایگان است'); return }
+  const cvo=t.closest('[data-cvoice]'); if(cvo){ bookSet({voiceRole:cvo.dataset.cvoice}); renderView(); return }
+  const csl=t.closest('[data-cslot]'); if(csl){ bookSet({voiceSlot:csl.dataset.cslot}); renderView(); return }
+  if(t.closest('[data-cvoice-send]')){
+    const bc2=bookState();
+    if(!bc2.voiceRole){ toast('یکی از کارها را انتخاب کن'); return }
+    bookSet({voice:{role:bc2.voiceRole, slot:bc2.voiceSlot||'', at:nowFa()}}); renderView();
+    toast('فرمت برای سرپرست رفت؛ برای جلسهٔ آزمایشی خبر می‌دهد'); return }
+  const ctg=t.closest('[data-ctag]'); if(ctg){ bookSet({tag:ctg.dataset.ctag}); renderView(); return }
+  if(t.closest('[data-post]')){
+    const el=$('#trText'), v=el?String(el.value||'').trim():'';
+    if(v.length<8){ toast('کمی بیشتر بنویس؛ یک جمله هم کافی است'); if(el&&el.focus) el.focus(); return }
+    const bc3=bookState(), nm=(prof().fullName||'عضو باشگاه');
+    const p2={k:'tr'+Date.now(), n:nm, g:String(nm).slice(0,1), tag:bc3.tag||'پیشنهاد', likes:0, at:nowFa(), t:v, mine:true};
+    bookSet({posts:[p2].concat(bc3.posts||[]).slice(0,10)}); renderView(); toast('نظرت روی تریبون نشست'); return }
+  const lk=t.closest('[data-like]');
+  if(lk){ const likes=Object.assign({},bookState().likes);
+    if(likes[lk.dataset.like]) delete likes[lk.dataset.like]; else likes[lk.dataset.like]=true;
+    bookSet({likes:likes}); renderView(); return }
+
   /* نورا پی */
   const pm=t.closest('[data-paym]');
   if(pm){ methodSheet(pm.dataset.paym, pm.dataset.inChoose?(S.payCtx||{}):{}); return }
