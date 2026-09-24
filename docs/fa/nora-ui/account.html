@@ -23,88 +23,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=13"/>
-<link rel="stylesheet" href="nora.css?v=13"/>
-<style>
-  /* ── سرِ حساب: کارت شیشه‌ای، حلقهٔ سطح و نوار تکمیل ── */
-  .acct .who{display:flex;align-items:center;gap:11px}
-  .acct .ava{width:52px;height:52px;border-radius:18px;flex:0 0 auto;display:grid;place-items:center;
-    color:#fff;font-weight:700;font-size:20px;font-family:var(--f-h);
-    background:linear-gradient(150deg,var(--brand),var(--brand-2));box-shadow:0 8px 20px -12px rgba(10,58,130,.8)}
-  .acct .nm{min-width:0;display:grid;gap:2px}
-  .acct .nm b{font-size:15.5px;font-weight:700;letter-spacing:-.2px}
-  .acct .lv{display:flex;align-items:center;gap:11px;margin-top:14px}
-  .lvring{--p:0;width:62px;height:62px;border-radius:50%;flex:0 0 auto;position:relative;display:grid;place-items:center;
-    background:conic-gradient(var(--brand) calc(var(--p)*1%), color-mix(in oklab,var(--ink-4) 22%,transparent) 0)}
-  .lvring::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
-  .lvring b{position:relative;z-index:1;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
-  .acct .lvt{min-width:0;display:grid;gap:3px}
-  .acct .lvt b{font-size:13.5px;font-weight:600}
-  .meter{height:8px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;margin-top:14px}
-  .meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand-2))}
-  .acct .mfoot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
-
-  /* ── فیلدهای اطلاعات حساب ── */
-  .grp{margin-top:12px}
-  .grp>.gt{font-size:11.5px;color:var(--ink-3);margin:0 3px 2px}
-  .fld{display:grid;gap:5px;padding:11px 0;border-bottom:.5px solid var(--hairline-2)}
-  .fld:last-child{border-bottom:0}
-  .fld .v{display:flex;align-items:center;gap:8px;min-width:0;font-size:var(--fs-sub)}
-  .fld .v span.tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .fld .v .miss{color:var(--ink-4)}
-  .fld .hint{font-size:11px;color:var(--ink-3)}
-  .fld .err{font-size:11.5px;color:var(--stop);font-weight:600}
-  .fld.bad .input{border-color:var(--stop)}
-  .fld .input{margin:0}
-  .fld .num{direction:ltr;text-align:start;font-variant-numeric:tabular-nums}
-
-  /* ── مسیر تأیید: سه پله ── */
-  .steps{display:grid;gap:2px;margin-top:6px}
-  .step{display:flex;gap:10px;align-items:flex-start;padding:9px 0}
-  .step .dot{width:22px;height:22px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
-    background:var(--surface-sunk);color:var(--ink-4);margin-top:2px}
-  .step .dot .i{width:13px;height:13px}
-  .step.done .dot{background:color-mix(in oklab,var(--ok) 20%,transparent);color:var(--ok)}
-  .step.now .dot{background:var(--brand);color:#fff}
-  .step .tt{display:grid;gap:2px;min-width:0}
-  .step .tt b{font-size:13.5px;font-weight:600}
-  .step .tt small{font-size:11.5px;color:var(--ink-3)}
-  .step .at{margin-inline-start:auto;font-size:11px;color:var(--ink-4);white-space:nowrap;padding-top:4px}
-  .step:not(:last-child) .line{position:relative}
-  .step.pend .dot{background:color-mix(in oklab,var(--warn) 22%,transparent);color:var(--warn)}
-
-  /* ── نردبان سطح ── */
-  .ladder{display:grid;gap:8px}
-  .lvrow{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:var(--r-md);
-    border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 88%,transparent)}
-  .lvrow.on{border-color:color-mix(in oklab,var(--brand) 40%,transparent);background:color-mix(in oklab,var(--brand) 9%,transparent)}
-  .lvrow .dot2{width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:var(--ink-4)}
-  .lvrow.on .dot2{background:var(--brand);box-shadow:0 0 0 4px var(--brand-tint)}
-  .lvrow .tx{display:grid;gap:1px;min-width:0;flex:1}
-  .lvrow .tx b{font-size:13px;font-weight:600}
-  .lvrow .tx small{font-size:11px;color:var(--ink-3)}
-  .lvrow .at{font-size:11px;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
-
-  /* ── در راه: چیزهایی که فاز بعد می‌آید ── */
-  .road{display:flex;flex-wrap:wrap;gap:6px}
-  .road .rchip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:99px;
-    background:color-mix(in oklab,var(--surface-2) 80%,transparent);border:.5px solid var(--hairline);
-    font-size:12px;color:var(--ink-2)}
-  .road .rchip .i{width:14px;height:14px;color:var(--ink-4)}
-  .road .rchip small{font-size:10px;color:var(--ink-4)}
-
-  /* ── ناحیهٔ خطر ── */
-  .stopcard{border-color:color-mix(in oklab,var(--stop) 30%,transparent);
-    background:color-mix(in oklab,var(--stop-tint) 45%,transparent)}
-
-  /* اگر کاربر شفافیت کمتر خواسته باشد، مات می‌شود */
-  @media (prefers-reduced-transparency:reduce){
-    .acct,.lvrow{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
-  }
-  @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);
-    border-end-start-radius:26px;border-end-end-radius:26px}
-    .sheet.on{transform:translate(-50%,0)}}
-</style>
+<link rel="stylesheet" href="glass.css?v=14"/>
+<link rel="stylesheet" href="nora.css?v=14"/>
+<link rel="stylesheet" href="account.css?v=14"/>
 </head>
 <body>
 
@@ -166,9 +87,24 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
   <h1 class="sr">حساب من</h1>
 
+  <div id="hubBox">
+
   <!-- سرِ حساب: نام، سطح، وضعیت تأیید و درصد تکمیل -->
   <section class="sec" id="secHead" aria-label="سرِ حساب">
     <div id="headBox"></div>
+  </section>
+
+  <!-- بخش‌های حساب من: هر کاشی یک نشانی، هر بخش یک نما -->
+  <section class="sec" id="secTiles" aria-label="بخش‌های حساب من">
+    <div class="card acct">
+      <div class="row" style="align-items:center;gap:9px">
+        <div class="head">بخش‌های حساب من</div>
+        <span class="sp"></span>
+        <span class="cap">هر بخش نشانی خودش را دارد</span>
+      </div>
+      <div class="cap" style="margin-top:5px">از این‌جا هر بخشی را باز کن؛ برگشت، همیشه به همین سرِ حساب است.</div>
+      <div class="tiles" id="tilesBox"></div>
+    </div>
   </section>
 
   <!-- اطلاعات حساب من: هویتی و تماس و نشانی -->
@@ -214,45 +150,13 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     </div>
   </section>
 
-  <!-- کارهای من: چیزهایی که همین حالا باز است -->
-  <section class="sec" id="secQuick" aria-label="کارهای من" hidden>
-    <div class="card acct">
-      <div class="head">کارهای من</div>
-      <div class="cap" style="margin-top:5px">هر چه تهیه کرده‌ای و آنچه به آن سر می‌زنی.</div>
-      <div id="quickBox" style="margin-top:6px"></div>
-    </div>
-  </section>
 
-  <!-- در راه: بخش‌هایی که فاز بعد ساخته می‌شوند -->
-  <section class="sec" id="secRoad" aria-label="در راه">
-    <div class="card acct">
-      <div class="row" style="align-items:center;gap:8px">
-        <div class="head">در راه</div>
-        <span class="sp"></span>
-        <span class="tag">فاز بعد</span>
-      </div>
-      <div class="cap" style="margin-top:5px">این بخش‌ها هنوز ساخته نشده‌اند و در فاز بعد یکی‌یکی اضافه می‌شوند.</div>
-      <div class="road" id="roadBox" style="margin-top:11px"></div>
-    </div>
-  </section>
 
-  <!-- حریم خصوصی: دانلود اطلاعات و حذف حساب (حذف: تأیید + تایپ «حذف» + کد پیامکی) -->
-  <section class="sec" id="secPrivacy" aria-label="حریم خصوصی" hidden>
-    <div class="card acct">
-      <div class="head">حریم خصوصی</div>
-      <div class="srow" style="border-bottom:.5px solid var(--hairline-2)">
-        <svg class="i" aria-hidden="true"><use href="#i-doc"/></svg>
-        <span class="sp">دانلود اطلاعات من<small class="cap" style="display:block">پروفایل، خریدها و اعلان‌ها، یک فایل</small></span>
-        <button class="btn sm quiet" id="dlBtn"><svg class="i" aria-hidden="true"><use href="#i-send"/></svg> دانلود</button>
-      </div>
-      <div class="srow" style="border-bottom:0">
-        <svg class="i" aria-hidden="true" style="color:var(--stop)"><use href="#i-shield"/></svg>
-        <span class="sp">حذف حساب کاربری<small class="cap" style="display:block">بلیت‌ها، گواهی‌ها و سابقهٔ حضور هم پاک می‌شود</small></span>
-        <button class="btn sm stop" id="delBtn">درخواست حذف</button>
-      </div>
-      <div class="cap" id="delNote" style="margin-top:10px"></div>
-    </div>
-  </section>
+
+  </div>
+
+  <!-- نمای هر بخش، همین‌جا می‌نشیند -->
+  <div id="viewBox" hidden></div>
 
   <footer class="hfoot">
     <div><b>گروه فرهنگی خط زندگی</b>، تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
@@ -274,382 +178,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=13"></script>
-<script src="ui.js?v=13"></script>
-<script>
-/* ══════════════════════════════════════════════════════════════════════════
-   حساب من — سرِ حساب، اطلاعات حساب، وضعیت تأیید و سطح
-   ──────────────────────────────────────────────────────────────────────────
-   پروفایل یک منبع دارد: ui.js (PROF_KEY) و جدول فیلدها و سطح‌ها از data.js
-   می‌آید. این صفحه فقط نمایش و ویرایش می‌کند؛ هیچ عددی را از خودش نمی‌سازد.
-   دکمه‌ها همه از خود یوآی نورا می‌آیند: btn / btn.primary / btn.quiet /
-   btn.stop / btn.sm / icon-btn / tag / input / card.
-   ══════════════════════════════════════════════════════════════════════════ */
-(function(){
-'use strict';
-const {ACCOUNT={},NOTICES=[],TOTAL_MEDIA=0,ARCHIVE={}}=window.NORA||{};
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const UI=()=>window.NORA_UI||{};
-const faN=n=>String(n==null?'':n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-const unFa=s=>String(s==null?'':s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-const faNum=n=>faN(String(Math.round(+n||0)).replace(/\B(?=(\d{3})+(?!\d))/g,'٬'));
-const FIELDS=ACCOUNT.fields||[], LEVELS=ACCOUNT.levels||[], FLOW=ACCOUNT.flow||[];
-
-let S={edit:false, errs:{}};
-const uid=()=>UI().uid?UI().uid():'';
-const login=()=>!!uid();
-const statusOf=p=>p&&p.status||'draft';
-const S_META={draft:{n:'تکمیل نشده',c:'warn'},pending:{n:'در صف تأیید',c:'brand'},
-  approved:{n:'تأیید شده',c:'ok'},rejected:{n:'رد شده',c:'stop'}};
-
-/* ── تاریخ و ساعت فارسی، برای سابقهٔ تأیید ── */
-function nowFa(){
-  try{
-    const parts=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).formatToParts(new Date());
-    const g=k=>(parts.find(x=>x.type===k)||{}).value||'';
-    return (g('hour')?g('hour')+':'+g('minute')+' · ':'')+g('day')+' '+g('month')+' '+g('year');
-  }catch(e){return 'همین حالا'}
-}
-
-/* ── پیش‌نمایش اطلاعات، بدون وابستگی به صفحه‌های دیگر ── */
-function prof(){return UI().profile?UI().profile():{}}
-function phone(){return UI().phoneOf?UI().phoneOf():''}
-function filledMap(p){return UI().profileFilled?UI().profileFilled(p,!!phone()):{}}
-function percentOf(p){return UI().profilePercent?UI().profilePercent(p,!!phone()):0}
-function missingOf(p){return UI().profileMissing?UI().profileMissing(p,!!phone()):[]}
-function levelInfo(){return UI().levelOf?UI().levelOf(+ACCOUNT.points||0):{cur:{},next:null}}
-
-/* ── اعتبارسنجی: همان قواعد ربات ── */
-const ERR={};
-function validNationalId(v){
-  const d=unFa(v).replace(/\D/g,'');
-  if(!/^\d{10}$/.test(d)) return false;
-  if(/^(\d)\1{9}$/.test(d)) return false;
-  const w=[10,9,8,7,6,5,4,3,2];
-  let s=0; for(let i=0;i<9;i++) s+=(+d[i])*w[i];
-  const r=+d[9], m=s%11;
-  return m<2 ? r===m : r===11-m;
-}
-function validBirth(v){
-  const d=unFa(v).replace(/[^\d/]/g,'');
-  const m=d.match(/^(1[23]\d{2})\/(\d{1,2})\/(\d{1,2})$/);
-  if(!m) return false;
-  const y=+m[1], mo=+m[2], day=+m[3];
-  return y>=1300&&y<=1420&&mo>=1&&mo<=12&&day>=1&&day<=31;
-}
-function validate(p){
-  const e={};
-  for(const f of FIELDS){
-    const v=String(p[f.k]||'').trim();
-    if(f.lock){ if(!v) e[f.k]='از حساب خودت خوانده می‌شود؛ یک بار بیرون بیا و دوباره وارد شو'; continue }
-    if(f.req&&!v){e[f.k]='این یکی اجباری است'; continue}
-    if(!v) continue;
-    if(f.k==='nationalId'&&!validNationalId(v)) e[f.k]='کد ملی ۱۰ رقمی درست نیست';
-    if(f.k==='birthDate'&&!validBirth(v)) e[f.k]='تاریخ را شمسی بنویس، مثل ۱۳۷۰/۰۱/۱۵';
-    if(f.k==='email'&&!/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(v)) e[f.k]='ایمیل کامل نیست';
-    if((f.k==='province'||f.k==='city')&&v.length<2) e[f.k]='نام را کامل بنویس';
-  }
-  return e;
-}
-
-/* ── سرِ حساب ── */
-function renderHead(){
-  const box=$('#headBox');
-  if(!login()){
-    box.innerHTML=`<div class="card acct">
-      <div class="row" style="align-items:center;gap:11px">
-        <span class="ava" style="width:46px;height:46px;border-radius:16px;background:var(--surface-sunk);color:var(--ink-3)">؟</span>
-        <div class="nm"><b>وارد نشده‌ای</b><div class="cap">با شمارهٔ موبایل و کد یک‌بارمصرف وارد شو</div></div>
-      </div>
-      <p class="sub" style="margin:12px 0 0">اطلاعات حساب، بلیت‌ها و گواهی‌ها مالِ حساب خودت است. با ورود، همه‌شان همین‌جا می‌آید.</p>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" data-login><svg class="i" aria-hidden="true"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
-        <span class="sp" style="flex:1"></span>
-        <span class="cap">پشتیبانی و راهنما بی ورود باز است</span>
-      </div></div>`;
-    return;
-  }
-  const p=prof(), u=UI().sessUser?UI().sessUser():{}, pc=percentOf(p), miss=missingOf(p);
-  const st=S_META[statusOf(p)]||S_META.draft;
-  const {cur,next}=levelInfo(), pts=+ACCOUNT.points||0;
-  const span=next?Math.max(1,next.at-cur.at):1;
-  const inLevel=next?Math.max(0,Math.min(100,Math.round((pts-cur.at)/span*100))):100;
-  const toNext=next?Math.max(0,next.at-pts):0;
-  const initial=String(p.fullName||u.name||'ن').trim().slice(0,1)||'ن';
-  const missTxt=miss.length?faN(miss.length)+' مورد مانده: '+miss.slice(0,3).map(f=>f.l).join('، '):'اطلاعات کامل است';
-  box.innerHTML=`<div class="card acct">
-    <div class="who">
-      <span class="ava">${esc(initial)}</span>
-      <div class="nm"><b>${esc(p.fullName||u.name||'کاربر نورا')}</b>
-        <div class="cap">عضو از ${esc(u.joined||ACCOUNT.joined||'—')} · سطح ${esc(cur.n||'—')}</div></div>
-      <span class="sp" style="flex:1"></span>
-      <span class="tag ${st.c}">${esc(st.n)}</span>
-    </div>
-    <div class="lv">
-      <span class="lvring" style="--p:${inLevel}" role="img" aria-label="پیشرفت تا سطح بعدی: ٪${faN(inLevel)}"><b>٪${faN(inLevel)}</b></span>
-      <div class="lvt">
-        <b>${faNum(pts)} امتیاز${next?' از '+faNum(next.at):''}</b>
-        <div class="cap">${next?('تا سطح '+esc(next.n)+' '+faNum(toNext)+' امتیاز مانده'):'در بالاترین سطحی'}</div>
-        <div class="cap">${esc(cur.perks||'')}</div>
-      </div>
-    </div>
-    <div class="meter" role="img" aria-label="اطلاعات حساب ٪${faN(pc)} کامل است"><i style="width:${pc}%"></i></div>
-    <div class="mfoot">
-      <span class="cap">اطلاعات حساب: ٪${faN(pc)} کامل · ${esc(missTxt)}</span>
-      <span class="sp" style="flex:1"></span>
-      ${statusOf(p)==='rejected'&&p.reason?`<span class="tag stop">دلیل رد: ${esc(p.reason)}</span>`:''}
-      <button class="btn sm ${miss.length?'primary':'quiet'}" data-edit="${miss.length?'1':'0'}">
-        <svg class="i" aria-hidden="true"><use href="#i-${miss.length?'pen':'check'}"/></svg> ${miss.length?'تکمیل اطلاعات':'ویرایش'}</button>
-    </div></div>`;
-}
-
-/* ── اطلاعات حساب: حالت نمایش و حالت ویرایش ── */
-function fieldView(f,p,filled){
-  const raw=String(p[f.k]||'').trim();
-  /* عددها در نما فارسی می‌شوند، مثل بقیهٔ سامانه؛ در فرم لاتین می‌مانند */
-  const val=f.lock?faN(phone()):(!raw?'':(f.input==='numeric'||f.k==='birthDate'?faN(raw):raw));
-  if(f.lock) return `<span class="v"><svg class="i" aria-hidden="true" style="width:15px;height:15px;color:var(--ok)"><use href="#i-check"/></svg>
-      <span class="tx">${esc(val||'—')}</span><span class="tag ok" style="height:20px;font-size:10px">تأییدشده</span></span>`;
-  if(!val) return `<span class="v"><span class="tx miss">${f.req?'ثبت نشده':'اختیاری، خالی'}</span></span>`;
-  return `<span class="v"><span class="tx">${esc(val)}</span>${f.req?'':''}</span>`;
-}
-function fieldEdit(f,p){
-  const bad=S.errs[f.k];
-  const v=f.lock?phone():String(p[f.k]||'');
-  return `<label class="lbl" for="f_${f.k}" style="margin:0">${esc(f.l)}${f.req?'':' <span class="cap">اختیاری</span>'}</label>
-    <input class="input${f.input==='numeric'?' num':''}" id="f_${f.k}" name="${f.k}" type="${f.input==='email'?'email':'text'}"
-      ${f.input==='numeric'?'inputmode="numeric"':''} ${f.max?`maxlength="${f.max}"`:''}
-      value="${esc(v)}" placeholder="${esc(f.ph||'')}" ${f.lock?'readonly aria-readonly="true"':''}
-      ${bad?`aria-invalid="true" aria-describedby="e_${f.k}"`:(f.hint?`aria-describedby="h_${f.k}"`:'')}/>
-    ${bad?`<span class="err" id="e_${f.k}" role="alert">${esc(bad)}</span>`:(f.hint?`<span class="hint" id="h_${f.k}">${esc(f.hint)}${f.lock?': برای عوض‌کردنش با پشتیبانی حرف بزن':''}</span>`:'')}`;
-}
-function renderInfo(){
-  const box=$('#infoBody'), p=prof();
-  if(!login()){ $('#secInfo').hidden=true; return }
-  $('#secInfo').hidden=false;
-  const filled=filledMap(p);
-  const groups=[];
-  FIELDS.forEach(f=>{ if(!groups.includes(f.g)) groups.push(f.g) });
-  if(S.edit){
-    box.innerHTML=groups.map(g=>`<div class="grp"><div class="gt">${esc(g)}</div>
-      ${FIELDS.filter(f=>f.g===g).map(f=>`<div class="fld${S.errs[f.k]?' bad':''}">${fieldEdit(f,p)}</div>`).join('')}
-      </div>`).join('');
-  }else{
-    box.innerHTML=groups.map(g=>`<div class="grp"><div class="gt">${esc(g)}</div>
-      ${FIELDS.filter(f=>f.g===g).map(f=>`<div class="fld"><span class="hint">${esc(f.l)}</span>${fieldView(f,p,filled[f.k])}</div>`).join('')}
-      </div>`).join('');
-  }
-  const st=S_META[statusOf(p)]||S_META.draft;
-  $('#infoState').innerHTML=`<span class="tag ${st.c}">${esc(st.n)}</span>`;
-  $('#editBtn').hidden=S.edit;
-  $('#infoActs').hidden=!S.edit;
-  $('#infoCard').classList.toggle('editing',S.edit);
-}
-
-/* ── مسیر تأیید ── */
-function renderFlow(){
-  const box=$('#flowSteps'); const p=prof();
-  $('#secFlow').hidden=!login();
-  if(!login()) return;
-  const st=statusOf(p);
-  const done={filled:['draft','pending','approved'],pending:['pending','approved'],approved:['approved']};
-  const hit=k=>(done[k]||[]).includes(st);
-  const hist={}; (p.history||[]).forEach(h=>{hist[h.k]=h.at});
-  box.innerHTML=FLOW.map(f=>{
-    const on=hit(f.k), now=(st==='pending'&&f.k==='pending');
-    const cls=f.k==='pending'?'now':'done';
-    const at=hist[f.k]||(on?'':'—');
-    return `<div class="step ${on?'done':''} ${now?'now':''}">
-      <span class="dot"><svg class="i" aria-hidden="true"><use href="#i-${on?'check':f.k==='pending'?'clock':'pen'}"/></svg></span>
-      <span class="tt"><b>${esc(f.n)}</b><small>${esc(f.s)}</small></span>
-      <span class="at">${esc(at)}</span></div>`}).join('');
-  const note=$('#flowNote');
-  if(st==='rejected') note.innerHTML=`<div class="fld bad" style="border:0;padding-top:10px">
-    <span class="err">دلیل رد: ${esc(p.reason||'نامشخص')}</span>
-    <span class="hint">اطلاعات را درست کن و دوباره بفرست.</span></div>`;
-  else if(st==='pending') note.innerHTML=`<p class="cap" style="margin:10px 3px 0">معمولاً تا یک روز کاری بررسی می‌شود؛ تا آن موقع می‌توانی رویدادها را ببینی.</p>`;
-  else if(st==='draft') note.innerHTML=`<p class="cap" style="margin:10px 3px 0">هر وقت اطلاعات را فرستادی، وضعیتش همین‌جا عوض می‌شود.</p>`;
-  else note.innerHTML=`<p class="cap" style="margin:10px 3px 0">پروفایلت تأیید شده است؛ اگر چیزی را عوض کردی، دوباره می‌رود صف تأیید.</p>`;
-}
-
-/* ── نردبان سطح ── */
-function renderLevel(){
-  $('#secLevel').hidden=!login();
-  if(!login()) return;
-  const pts=+ACCOUNT.points||0, {cur,next}=levelInfo();
-  $('#lvNote').textContent=next?('تا '+next.n+' '+faNum(Math.max(0,next.at-pts))+' امتیاز'):'بالاترین سطح';
-  $('#ladder').innerHTML=LEVELS.map(l=>`<div class="lvrow ${l.k===cur.k?'on':''}">
-    <span class="dot2"></span>
-    <span class="tx"><b>${esc(l.n)}</b><small>${esc(l.perks)}</small></span>
-    <span class="at">${faNum(l.at)} امتیاز</span></div>`).join('');
-}
-
-/* ── کارهای من و در راه ── */
-function renderQuick(){
-  $('#secQuick').hidden=!login();
-  if(!login()) return;
-  const lib=UI().library?UI().library():[], unread=NOTICES.filter(n=>n.unread).length;
-  const rows=[
-    {i:'i-archive', t:'کتابخانهٔ من', s:lib.length?faN(lib.length)+' قلم تهیه کرده‌ای':'هنوز چیزی تهیه نکرده‌ای', href:'events.html#lib'},
-    {i:'i-play-f', t:'آرشیو برگزارشده‌ها', s:faN(ARCHIVE.past||0)+' برنامه با ضبط و جزوه', href:'events.html?status=past'},
-    {i:'i-bell', t:'اعلان‌ها', s:unread?faN(unread)+' خوانده‌نشده':'همه خوانده شده', open:'notice'},
-    {i:'i-headphone', t:'پشتیبانی و راهنما', s:'پرسش‌های پرتکرار و گفت‌وگو با کارشناس', href:'home.html#support'},
-    {i:'i-qr', t:'استعلام گواهی', s:'با کد روی برگ یا کیو‌آر', href:'home.html#verify'},
-    {i:'i-grid', t:'منوی کامل نورا', s:'همهٔ بخش‌ها، یک‌جا', open:'menu'}
-  ];
-  $('#quickBox').innerHTML=rows.map(r=>`<button class="srow" style="width:100%;text-align:start;background:none;border:0;cursor:pointer;font:inherit"
-      ${r.href?`data-goto="${esc(r.href)}"`:`data-open="${esc(r.open)}"`}>
-      <svg class="i" aria-hidden="true"><use href="#${r.i}"/></svg>
-      <span class="sp">${esc(r.t)}<small class="cap" style="display:block">${esc(r.s)}</small></span>
-      <svg class="i" aria-hidden="true" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`).join('');
-}
-function renderRoad(){
-  const items=[
-    {i:'i-calendar', t:'رویدادهای من', s:'بلیت، حضور و گواهی'},
-    {i:'i-medal', t:'بلیت و گواهی', s:'دانلود و استعلام'},
-    {i:'i-star', t:'باشگاه من', s:'دستاورد و رتبه'},
-    {i:'i-check', t:'کارنامهٔ حضور', s:'جلسه به جلسه'},
-    {i:'i-users', t:'دعوت دوستان', s:'کد و کارت دعوت'},
-    {i:'i-wallet', t:'نورا پی', s:'کیف پول و اقساط'}
-  ];
-  $('#roadBox').innerHTML=items.map(x=>`<span class="rchip"><svg class="i" aria-hidden="true"><use href="#${x.i}"/></svg>
-    ${esc(x.t)} <small>${esc(x.s)}</small></span>`).join('');
-}
-
-/* ── رندر کل ── */
-function render(){
-  renderHead(); renderInfo(); renderFlow(); renderLevel(); renderQuick(); renderRoad();
-  const p=prof();
-  $('#secPrivacy').hidden=!login();
-  $('#delNote').textContent=p.askedDelete?'درخواستت ثبت شده؛ کارشناس برای تأیید خبر می‌دهد.':'';
-  $('#delBtn').textContent=p.askedDelete?'ثبت شد':'درخواست حذف';
-  $('#delBtn').disabled=!!p.askedDelete;
-  if(UI().syncBell) UI().syncBell();
-}
-
-/* ── ویرایش و ذخیره ── */
-function startEdit(){ if(!login()){loginSheet(); return} S.edit=true; S.errs={}; renderInfo();
-  const el=$('#f_fullName')||$('#infoCard input'); if(el) el.focus() }
-function cancelEdit(){ S.edit=false; S.errs={}; renderInfo() }
-function collect(){
-  const p=Object.assign({},prof());
-  FIELDS.forEach(f=>{ if(f.lock){ p[f.k]=phone(); return }   /* شمارهٔ تماس مالِ حساب است، نه دست کاربر */
-    const el=$('#f_'+f.k); if(el) p[f.k]=el.value.trim() });
-  return p;
-}
-/* مقدارها به شکل یکدست ذخیره می‌شوند: رقم لاتین، تاریخ با صفر پیش‌رو */
-function tidy(p){
-  const nat=unFa(p.nationalId||'').replace(/\D/g,''); if(nat) p.nationalId=nat;
-  const b=unFa(p.birthDate||'').replace(/[^\d/]/g,'');
-  const m=b.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
-  if(m) p.birthDate=m[1]+'/'+String(+m[2]).padStart(2,'0')+'/'+String(+m[3]).padStart(2,'0');
-  FIELDS.forEach(f=>{ if(f.lock) return; p[f.k]=unFa(p[f.k]||'') });
-  return p;
-}
-function pushHist(p,k){ p.history=(p.history||[]).filter(h=>h.k!==k).concat([{k:k,at:nowFa()}]); return p }
-function submit(send){
-  if(!login()){loginSheet(); return}
-  const p=tidy(collect());
-  if(send){
-    const e=validate(p);
-    if(Object.keys(e).length){ S.errs=e; renderInfo(); toast('چند جا مانده یا درست نیست؛ همان‌ها را ببین'); 
-      const first=$('#infoCard .fld.bad .input'); if(first&&first.focus) first.focus(); return }
-  }
-  p.status=send?'pending':(statusOf(p)==='draft'?'draft':statusOf(p));
-  if(send) pushHist(p,'pending'); else if(statusOf(p)!=='draft') pushHist(p,'filled');
-  const saved=UI().saveProfile?UI().saveProfile(p):p;
-  S.edit=false; S.errs={}; render();
-  const miss=missingOf(saved).length;
-  toast(send?(miss?('فرستادیم برای تأیید؛ '+faN(miss)+' مورد هنوز خالی است'):'فرستادیم برای تأیید؛ نتیجه را از بله می‌گوییم'):'ذخیره شد');
-  const flow=$('#secFlow'); if(flow&&flow.scrollIntoView) flow.scrollIntoView({behavior:'smooth',block:'start'});
-}
-function loginSheet(){ if(UI().authSheet) UI().authSheet(()=>{S.edit=false; render()}); }
-function openSheet(html){
-  const el=$('#shConfirm'); if(!el) return;
-  (el.querySelector('.sbody')||el).innerHTML=html;
-  if(UI().uiOpen) UI().uiOpen('shConfirm'); else el.classList.add('on');
-}
-function closeSheet(){ const el=$('#shConfirm'); if(el) el.classList.remove('on'); const sc=$('#scrim'); if(sc) sc.classList.remove('on') }
-
-function askDelete(){
-  openSheet(`<div class="grabber"></div>
-    <div class="head">حذف حساب کاربری</div>
-    <p class="sub" style="margin-top:8px">با حذف حساب، بلیت‌ها، گواهی‌ها و سابقهٔ حضور پاک می‌شود. این کار برنمی‌گردد،
-      پس دو تأیید می‌گیریم: کلمهٔ «حذف» و کد پیامکی.</p>
-    <label class="lbl" for="delWord" style="margin-top:12px">برای تأیید، کلمهٔ «حذف» را بنویس</label>
-    <input class="input" id="delWord" value="" placeholder="حذف" autocomplete="off"/>
-    <label class="lbl" for="delCode" style="margin-top:12px">کد پیامکی</label>
-    <input class="input num" id="delCode" inputmode="numeric" placeholder="•••••" autocomplete="one-time-code"/>
-    <div class="cap" style="margin-top:7px">کد نمایشی این نمونه: ۵۴۳۲۱</div>
-    <div class="row" style="margin-top:14px">
-      <button class="btn stop" id="delYes">حذف حساب</button>
-      <span class="sp" style="flex:1"></span>
-      <button class="btn quiet" data-close>هنوز نه</button>
-    </div>`);
-}
-
-/* ── دانلود اطلاعات من: یک فایل خوانا، بی هیچ داده‌ای بیرون از حساب خودت ── */
-function downloadInfo(){
-  const u=UI().sessUser?UI().sessUser():{};
-  const pack={
-    ساخته:new Date().toISOString(),
-    حساب:{نام:u.name||'',موبایل:u.mobile||'',عضویت:u.joined||ACCOUNT.joined||'',سطح:levelInfo().cur.n||''},
-    پروفایل:UI().profile?UI().profile():{},
-    کتابخانه:UI().library?UI().library():[],
-    اعلان‌ها:(NOTICES||[]).map(n=>({تیتر:n.t,تاریخ:n.d,خوانده:!n.unread})),
-    رویدادها:{برگزارشده:(ARCHIVE.past||0),رسانه:(ARCHIVE.media||0),پیش‌رو:(ARCHIVE.upcoming||0)}
-  };
-  const txt=JSON.stringify(pack,null,2);
-  try{
-    const url=URL.createObjectURL(new Blob([txt],{type:'application/json'}));
-    const a=document.createElement('a'); a.href=url; a.download='nora-account.json';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),4000);
-    toast('فایل اطلاعات حسابت آماده شد');
-  }catch(e){ toast('این مرورگر فایل نمی‌سازد؛ از پشتیبانی بخواه برایت بفرستند') }
-}
-
-/* ── کنش‌ها ── */
-document.addEventListener('click',ev=>{
-  const t=ev.target;
-  if(t.closest('[data-login]')){loginSheet(); return}
-  const ed=t.closest('[data-edit]'); if(ed){ if(!login()){loginSheet(); return} startEdit(); return }
-  if(t.closest('#editBtn')){startEdit(); return}
-  if(t.closest('#cancelBtn')){cancelEdit(); return}
-  if(t.closest('#draftBtn')){submit(false); return}
-  if(t.closest('#sendBtn')){submit(true); return}
-  if(t.closest('#dlBtn')){ if(!login()){loginSheet(); return} downloadInfo(); return }
-  if(t.closest('#delBtn')){ if(!login()){loginSheet(); return} askDelete(); return }
-  if(t.closest('#delYes')){
-    const w=unFa((($('#delWord')||{}).value||'')).replace(/[\s\u200c«»"]/g,'');
-    const code=unFa((($('#delCode')||{}).value||'')).replace(/\D/g,'');
-    if(w!=='حذف'){ toast('برای تأیید، کلمهٔ «حذف» را بنویس'); if($('#delWord')) $('#delWord').focus(); return }
-    if(code!=='54321'){ toast('کد پیامکی را درست بنویس؛ کد نمایشی ۵۴۳۲۱ است'); if($('#delCode')) $('#delCode').focus(); return }
-    const p=Object.assign({},prof(),{askedDelete:true});
-    p.history=(p.history||[]).filter(h=>h.k!=='delete').concat([{k:'delete',at:nowFa()}]);
-    if(UI().saveProfile) UI().saveProfile(p);
-    closeSheet(); render(); toast('درخواست حذف ثبت شد؛ کارشناس برای تأیید خبر می‌دهد'); return }
-  if(t.closest('[data-close]')){closeSheet(); return}
-  const go=t.closest('[data-goto]'); if(go){location.href=go.dataset.goto; return}
-  const op=t.closest('[data-open]'); if(op){ if(UI().uiOpen) UI().uiOpen(op.dataset.open==='notice'?'shNotice':'shMenu'); return }
-});
-$('#scrim').addEventListener('click',closeSheet);
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeSheet(); if(UI().authSheet){const s=document.getElementById('shAuth'); if(s&&s.classList.contains('on')) s.classList.remove('on')}}
-});
-document.addEventListener('change',e=>{
-  const el=e.target; if(!el.id||!el.id.startsWith('f_')) return;
-  const k=el.id.slice(2); if(!S.errs[k]) return;
-  delete S.errs[k]; renderInfo();
-});
-/* ورود یا خروج از هر جای دیگر، همین صفحه را تازه می‌کند */
-document.addEventListener('nora:library',()=>{render()});
-
-if(UI().syncBell) UI().syncBell();
-render();
-themeInit();
-})();
-</script>
+<script src="data.js?v=14"></script>
+<script src="ui.js?v=14"></script>
+<script src="account.js?v=14"></script>
 </body>
 </html>

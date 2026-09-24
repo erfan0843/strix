@@ -1,0 +1,179 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   حساب من — سبک صفحه، سرِ حساب، فرم پروفایل و نمای بخش‌ها
+   ══════════════════════════════════════════════════════════════════════════ */
+/* ── سرِ حساب: کارت شیشه‌ای، حلقهٔ سطح و نوار تکمیل ── */
+  .acct .who{display:flex;align-items:center;gap:11px}
+  .acct .ava{width:52px;height:52px;border-radius:18px;flex:0 0 auto;display:grid;place-items:center;
+    color:#fff;font-weight:700;font-size:20px;font-family:var(--f-h);
+    background:linear-gradient(150deg,var(--brand),var(--brand-2));box-shadow:0 8px 20px -12px rgba(10,58,130,.8)}
+  .acct .nm{min-width:0;display:grid;gap:2px}
+  .acct .nm b{font-size:15.5px;font-weight:700;letter-spacing:-.2px}
+  .acct .lv{display:flex;align-items:center;gap:11px;margin-top:14px}
+  .lvring{--p:0;width:62px;height:62px;border-radius:50%;flex:0 0 auto;position:relative;display:grid;place-items:center;
+    background:conic-gradient(var(--brand) calc(var(--p)*1%), color-mix(in oklab,var(--ink-4) 22%,transparent) 0)}
+  .lvring::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
+  .lvring b{position:relative;z-index:1;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+  .acct .lvt{min-width:0;display:grid;gap:3px}
+  .acct .lvt b{font-size:13.5px;font-weight:600}
+  .meter{height:8px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;margin-top:14px}
+  .meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--brand-2))}
+  .acct .mfoot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+
+  /* ── فیلدهای اطلاعات حساب ── */
+  .grp{margin-top:12px}
+  .grp>.gt{font-size:11.5px;color:var(--ink-3);margin:0 3px 2px}
+  .fld{display:grid;gap:5px;padding:11px 0;border-bottom:.5px solid var(--hairline-2)}
+  .fld:last-child{border-bottom:0}
+  .fld .v{display:flex;align-items:center;gap:8px;min-width:0;font-size:var(--fs-sub)}
+  .fld .v span.tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fld .v .miss{color:var(--ink-4)}
+  .fld .hint{font-size:11px;color:var(--ink-3)}
+  .fld .err{font-size:11.5px;color:var(--stop);font-weight:600}
+  .fld.bad .input{border-color:var(--stop)}
+  .fld .input{margin:0}
+  .fld .num{direction:ltr;text-align:start;font-variant-numeric:tabular-nums}
+
+  /* ── مسیر تأیید: سه پله ── */
+  .steps{display:grid;gap:2px;margin-top:6px}
+  .step{display:flex;gap:10px;align-items:flex-start;padding:9px 0}
+  .step .dot{width:22px;height:22px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+    background:var(--surface-sunk);color:var(--ink-4);margin-top:2px}
+  .step .dot .i{width:13px;height:13px}
+  .step.done .dot{background:color-mix(in oklab,var(--ok) 20%,transparent);color:var(--ok)}
+  .step.now .dot{background:var(--brand);color:#fff}
+  .step .tt{display:grid;gap:2px;min-width:0}
+  .step .tt b{font-size:13.5px;font-weight:600}
+  .step .tt small{font-size:11.5px;color:var(--ink-3)}
+  .step .at{margin-inline-start:auto;font-size:11px;color:var(--ink-4);white-space:nowrap;padding-top:4px}
+  .step:not(:last-child) .line{position:relative}
+  .step.pend .dot{background:color-mix(in oklab,var(--warn) 22%,transparent);color:var(--warn)}
+
+  /* ── نردبان سطح ── */
+  .ladder{display:grid;gap:8px}
+  .lvrow{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:var(--r-md);
+    border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 88%,transparent)}
+  .lvrow.on{border-color:color-mix(in oklab,var(--brand) 40%,transparent);background:color-mix(in oklab,var(--brand) 9%,transparent)}
+  .lvrow .dot2{width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:var(--ink-4)}
+  .lvrow.on .dot2{background:var(--brand);box-shadow:0 0 0 4px var(--brand-tint)}
+  .lvrow .tx{display:grid;gap:1px;min-width:0;flex:1}
+  .lvrow .tx b{font-size:13px;font-weight:600}
+  .lvrow .tx small{font-size:11px;color:var(--ink-3)}
+  .lvrow .at{font-size:11px;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  /* ── در راه: چیزهایی که فاز بعد می‌آید ── */
+  .road{display:flex;flex-wrap:wrap;gap:6px}
+  .road .rchip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:99px;
+    background:color-mix(in oklab,var(--surface-2) 80%,transparent);border:.5px solid var(--hairline);
+    font-size:12px;color:var(--ink-2)}
+  .road .rchip .i{width:14px;height:14px;color:var(--ink-4)}
+  .road .rchip small{font-size:10px;color:var(--ink-4)}
+
+  /* ── ناحیهٔ خطر ── */
+  .stopcard{border-color:color-mix(in oklab,var(--stop) 30%,transparent);
+    background:color-mix(in oklab,var(--stop-tint) 45%,transparent)}
+
+  /* اگر کاربر شفافیت کمتر خواسته باشد، مات می‌شود */
+  @media (prefers-reduced-transparency:reduce){
+    .acct,.lvrow{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+  }
+  @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);
+    border-end-start-radius:26px;border-end-end-radius:26px}
+    .sheet.on{transform:translate(-50%,0)}}
+
+/* ══ بخش‌های حساب من: کاشی‌های بخش، سرِ نما، تب‌ها، جدول و نوارها ═════════ */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:9px;margin-top:12px}
+.tile{display:flex;gap:10px;align-items:center;padding:11px 12px;border-radius:var(--r-md);text-align:start;
+  border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 82%,transparent);
+  cursor:pointer;font:inherit;color:inherit;transition:background .18s, transform .18s}
+.tile:hover{background:var(--surface-2)}
+.tile:active{transform:scale(.985)}
+.tile .ic{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand-tint);color:var(--brand-ink)}
+.tile .ic .i{width:18px;height:18px}
+.tile .tx{display:grid;gap:2px;min-width:0}
+.tile .tx b{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.tile .tx small{font-size:11px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.next .ic{background:color-mix(in oklab,var(--ink-4) 16%,transparent);color:var(--ink-3)}
+
+.vhead{display:flex;align-items:center;gap:9px;margin:0 0 10px}
+.vh2{font-size:19px;font-weight:700;letter-spacing:-.4px;margin:0 2px 3px}
+.vhsub{font-size:12.5px;color:var(--ink-3);margin:0 2px 12px;line-height:1.8}
+
+.vtabs{display:flex;gap:7px;overflow-x:auto;padding:1px 0 5px;margin-bottom:9px;scrollbar-width:none}
+.vtabs::-webkit-scrollbar{display:none}
+.vtab{flex:0 0 auto;border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 85%,transparent);
+  color:var(--ink-2);border-radius:99px;padding:7px 13px;font:inherit;font-size:12.5px;cursor:pointer}
+.vtab.on{background:var(--brand);color:#fff;border-color:transparent}
+
+.erow{display:flex;gap:11px;align-items:center;padding:11px 0;border-bottom:.5px solid var(--hairline-2)}
+.erow:last-child{border-bottom:0}
+.erow .dbox{width:46px;height:46px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;gap:1px;
+  background:var(--surface-2);border:.5px solid var(--hairline);line-height:1}
+.erow .dbox b{font-size:15px;font-variant-numeric:tabular-nums}
+.erow .dbox small{font-size:9.5px;color:var(--ink-3)}
+.erow .ex{display:grid;gap:3px;min-width:0;flex:1}
+.erow .ex b{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.erow .ex small{font-size:11.5px;color:var(--ink-3)}
+.erow .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(102px,1fr));gap:8px}
+.stat2{padding:11px;border-radius:var(--r-md);border:.5px solid var(--hairline);
+  background:color-mix(in oklab,var(--surface) 82%,transparent)}
+.stat2 b{display:block;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.stat2 small{font-size:11px;color:var(--ink-3)}
+
+.bars{display:flex;align-items:flex-end;gap:5px;height:94px;margin-top:12px}
+.bars i{flex:1;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--brand),var(--brand-2));opacity:.88}
+.bars i.off{background:var(--surface-sunk);opacity:1}
+.barscap{display:flex;align-items:center;gap:8px;margin-top:6px}
+
+.acks{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:8px}
+.ack{display:grid;gap:5px;padding:11px 9px;border-radius:var(--r-md);border:.5px solid var(--hairline);
+  background:color-mix(in oklab,var(--surface) 82%,transparent);justify-items:center;text-align:center}
+.ack .i{width:20px;height:20px;color:var(--ink-4)}
+.ack b{font-size:12px;font-weight:600}
+.ack small{font-size:10px;color:var(--ink-3)}
+.ack.on{border-color:color-mix(in oklab,var(--brand) 40%,transparent);
+  background:color-mix(in oklab,var(--brand) 8%,transparent)}
+.ack.on .i{color:var(--brand)}
+
+.idcard{border-radius:var(--r-lg);padding:15px;color:#fff;overflow:hidden;
+  background:linear-gradient(140deg,#0A3C86,#0B2447);box-shadow:0 16px 32px -20px rgba(8,30,70,.9)}
+.idcard .c1{display:flex;align-items:center;gap:11px}
+.idcard .nm{display:grid;gap:3px;min-width:0}
+.idcard .nm b{font-size:15px;font-weight:700}
+.idcard .nm small{font-size:11px;opacity:.85}
+.idcard .meta{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px;font-size:11.5px}
+.idcard .meta small{display:block;opacity:.75;font-size:10px;margin-bottom:2px}
+.idcard .ser{margin-top:12px;font-size:12.5px;letter-spacing:1.5px;direction:ltr;text-align:start}
+.idcard .brandline{display:flex;align-items:center;gap:7px;margin-top:11px;font-size:11px;opacity:.92}
+
+.kinds{display:grid;gap:7px;margin-top:11px}
+.kind{display:flex;gap:9px;align-items:center;padding:10px 11px;border-radius:var(--r-md);
+  border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 82%,transparent)}
+.kind .tx{display:grid;gap:2px;min-width:0;flex:1}
+.kind .tx b{font-size:12.5px;font-weight:600}
+.kind .tx small{font-size:11px;color:var(--ink-3)}
+
+.gate{text-align:center;padding:18px 10px}
+.gate .i{width:26px;height:26px;color:var(--ink-4)}
+.gate .gt{font-size:15px;font-weight:700;margin-top:9px}
+.gate .gs{font-size:12px;color:var(--ink-3);margin-top:6px;line-height:1.85}
+.gate .gacts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:13px}
+
+.note{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--ink-3);
+  margin:11px 2px 0;line-height:1.85}
+.note .i{width:15px;height:15px;flex:0 0 auto;margin-top:2px}
+.chipsline{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.srowbtn{width:100%;text-align:start;background:none;border:0;cursor:pointer;font:inherit;color:inherit}
+.srowbtn:hover .sp{color:var(--brand-ink)}
+.tk{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:.5px solid var(--hairline-2)}
+.tk:last-child{border-bottom:0}
+.tk .tx{display:grid;gap:3px;min-width:0;flex:1}
+.tk .tx b{font-size:13px;font-weight:600}
+.tk .tx small{font-size:11.5px;color:var(--ink-3)}
+.abrow{display:flex;gap:9px;align-items:flex-start;padding:10px 0;border-bottom:.5px solid var(--hairline-2);font-size:12.5px}
+.abrow:last-child{border-bottom:0}
+.abrow .i{width:17px;height:17px;color:var(--ink-4);flex:0 0 auto;margin-top:1px}
+.abrow .sp{min-width:0;flex:1}
+.abrow small{display:block;color:var(--ink-3);font-size:11px;margin-top:2px}
