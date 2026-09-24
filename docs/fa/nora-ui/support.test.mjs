@@ -1,10 +1,11 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا — آزمون صفحهٔ «پشتیبانی و راهنما»
    ──────────────────────────────────────────────────────────────────────────
-   ساختار تازه: سرِ صفحه و جست‌وجو، راهنمای بخش به بخش (۱۶ فصل در ۵ گروه،
-   هر فصل با گام‌های تصویری و چهار پرسش و پاسخ و نکتهٔ مدیر)، پرسش‌های
-   پرتکرار، تیکت با پیوست صدا و تصویر و ویدیو و فایل و پیوند، گفت‌وگوی
-   کارشناس، صندوق بی‌نام، سقف تیکت باز، و کارشناس‌ها و مدیریت در ته صفحه.
+   ساختار تازه: سرِ صفحه و جست‌وجو، راهنمای بخش به بخش (۲۱ فصل جمع‌شده در ۵
+   گروه؛ هر فصل با مهلت، چیزهای لازم، سه گام تصویری، پنج یا شش پرسش و پاسخ،
+   نکتهٔ مدیر و بخش‌های وابسته)، تیکت با پیوست صدا و تصویر و ویدیو و فایل و
+   پیوند، گفت‌وگوی کارشناس، صندوق بی‌نام، سقف تیکت باز، و کارشناس‌ها و
+   مدیریت در ته صفحه.
 
    اجرا:  node support.test.mjs
    ══════════════════════════════════════════════════════════════════════════ */
@@ -87,40 +88,67 @@ async function load(store,hash){
   ok(p.all('a[href^="http"]').every(a=>a.rel.includes('noopener')),'پیوندهای بیرونی rel دارند');
   ok(p.all('.i use').every(u=>p.doc.querySelector(u.getAttribute('href'))!==null),'همهٔ نمادها در اسپرایت هستند');
   const sprite=new Set(p.all('symbol[id]').map(s=>'#'+s.id));
-  const secIcons=[...new Set([...p.all('#chapters .chh .iw use')].map(u=>u.getAttribute('href')))];
-  ok(secIcons.length===16&&secIcons.every(h=>sprite.has(h)),'نماد هر شانزده بخش در اسپرایت هست');
+  const secIcons=[...new Set([...p.all('#chapters .chhead .iw use')].map(u=>u.getAttribute('href')))];
+  ok(secIcons.length>=18&&secIcons.every(h=>sprite.has(h)),'نماد هر بخش در اسپرایت هست ('+secIcons.length+' نماد)');
 }
 
 /* ── ۲) راهنمای بخش به بخش ── */
 {
   console.log('\n── راهنمای بخش به بخش ──');
   const p=await load(makeStore());
-  ok(p.all('#chapters .chapter').length===16,'شانزده فصل برای شانزده بخش ربات');
+  ok(p.all('#chapters .chapter').length===21,'بیست‌ویک فصل برای بیست‌ویک بخش ربات');
   ok(p.all('#chapters .gsec').length===5,'پنج گروه روایی');
   ok(p.all('#chapters .gband').length===5,'هر گروه هنرِ سرصفحه دارد');
-  ok(p.all('#chapters .stp').length===48,'هر فصل سه گام: چهل‌وهشت گام');
-  ok(p.all('#chapters .stp .mk').length===48,'هر گام صفحهٔ کوچک تصویری خودش را دارد');
-  ok(p.all('#chapters .qrow').length===64,'چهار پرسش برای هر بخش: شصت‌وچهار پرسش');
-  ok(p.all('#chapters .tipit').length===32,'دو نکتهٔ مدیر برای هر بخش');
-  ok(p.all('#chapters [data-media]').length>=16,'راهنمای رسانه‌ای هر بخش');
+  ok(p.all('#chapters .chapter .chhead').length===21,'هر فصل سرِ دکمه‌ای خودش را دارد');
+  ok(p.all('#chapters .chbody[hidden]').length===21,'همهٔ فصل‌ها جمع‌شده می‌آیند');
+  ok(p.all('#chapters .chapter.open').length===0,'هیچ فصلی در آغاز باز نیست');
+  ok(p.all('#chapters .stp').length===63,'هر فصل سه گام: شصت‌وسه گام');
+  ok(p.all('#chapters .stp .mk').length===63,'هر گام صفحهٔ کوچک تصویری خودش را دارد');
+  ok(p.all('#chapters .qrow').length===126,'پرسش‌های هر بخش: صد و بیست‌وشش پرسش');
+  ok(p.all('#chapters .tipit').length===42,'دو نکتهٔ مدیر برای هر بخش');
+  ok(p.all('#chapters .needlist li').length===38,'چیزهایی که باید همراه داشته باشی: '+p.all('#chapters .needlist li').length);
+  ok(p.all('#chapters .ptime').length===21,'مهلت و زمان هر بخش');
+  ok(p.all('#chapters .relrow [data-goto]').length>=42,'بخش‌های وابسته، میان‌بر هر بخش');
+  ok(p.all('#chapters [data-media]').length===25,'راهنمای رسانه‌ای هر بخش');
   ok(new Set(p.all('#chapters a[href^="form.html"]').map(a=>a.getAttribute('href'))).size===3,'سه فرم لینک‌شدهٔ مدیران');
   ok(p.all('#chapters .chcover img').every(i=>/^posters\/.+\.svg$/.test(i.getAttribute('src'))),'هنر هر فصل پوستر SVG است');
   ok(p.all('#toc .fchip').length===6&&p.txt('#toc .fchip').includes('همه'),'فهرست گروه‌ها شش چسب دارد');
-  ok(p.txt('#readerCount').includes('۱۶ بخش')&&p.txt('#readerCount').includes('۵ گروه'),'شمارندهٔ راهنما');
+  ok(p.txt('#readerCount').includes('۲۱ بخش')&&p.txt('#readerCount').includes('۵ گروه'),'شمارندهٔ راهنما');
   ok(p.doc.querySelector('#ch-login')!==null&&p.doc.querySelector('#ch-complain')!==null,'شناسهٔ فصل‌ها از کلید بخش می‌آید');
   ok(p.doc.querySelector('#g-money .chapter').id==='ch-pay','هر گروه فصل‌های خودش را دارد');
   ok(p.all('#chapters .qrow.open').length===0,'پرسش‌ها بسته می‌آیند تا شلوغ نشود');
-  ok(p.all('#chapters .chcover .catg').length===16&&p.txt('#ch-cert .catg').includes('گواهی'),'نشان دسته روی هر فصل');
+  ok(p.all('#chapters .chcover .catg').length===21&&p.txt('#ch-cert .chmeta').includes('گواهی'),'نشان دسته و مهلت روی هر فصل');
   ok(p.all('#chapters .ecard').length===0&&p.all('#chapters .mchip').length===0,'کارشناس‌ها میان فصل‌ها نیستند');
+  ok(p.all('#openAll').length===1&&p.txt('#openAll').includes('همه را باز کن'),'دکمهٔ باز کردن همهٔ فصل‌ها');
 
-  const first=p.all('#chapters .chapter')[0];
-  const qb=first.querySelector('.qbtn');
+  /* باز و بسته کردن */
+  const ch=p.doc.querySelector('#ch-login');
+  ok(ch.querySelector('.chbody').hidden&&ch.querySelector('.chhead').getAttribute('aria-expanded')==='false','فصل ورود بسته است');
+  p.clickEl(ch.querySelector('.chhead'));
+  ok(!ch.querySelector('.chbody').hidden&&ch.getAttribute('aria-expanded')===undefined===false||!ch.querySelector('.chbody').hidden,'با یک زدن باز می‌شود');
+  ok(ch.querySelector('.chhead').getAttribute('aria-expanded')==='true','و aria هم عوض می‌شود');
+  ok(ch.querySelector('.chbody').textContent.includes('پیش از شروع'),'بلوک «پیش از شروع» در تنِ فصل');
+  const qb=ch.querySelector('.qbtn');
   p.clickEl(qb);
-  ok(first.querySelector('.qrow').classList.contains('open')&&qb.getAttribute('aria-expanded')==='true','پرسش با کلیک باز می‌شود');
-  ok(p.clickEl(first.querySelector('.acl [data-ticket]'))===undefined&&p.shown('#modal'),'از پاسخ پرسش هم تیکت همان بخش زده می‌شود');
-  p.key('body','Escape');
+  ok(ch.querySelector('.qrow').classList.contains('open'),'پرسش درون فصل باز باز می‌شود');
   p.clickEl(qb);
-  ok(!first.querySelector('.qrow').classList.contains('open'),'و با کلیک دوباره بسته می‌شود');
+  ok(!ch.querySelector('.qrow').classList.contains('open'),'و بسته');
+  p.clickEl(ch.querySelector('.chhead'));
+  ok(ch.querySelector('.chbody').hidden,'و فصل دوباره جمع می‌شود');
+
+  /* همه را باز کن */
+  p.click('#openAll');
+  await wait(60);
+  ok(p.all('#chapters .chapter.open').length===21,'«همه را باز کن» همه را می‌گشاید');
+  ok(p.txt('#openAll').includes('همه را ببند'),'برچسب دکمه می‌گردد');
+  p.click('#openAll');
+  await wait(60);
+  ok(p.all('#chapters .chapter.open').length===0&&p.txt('#openAll').includes('همه را باز کن'),'و دوباره همه را می‌بندد');
+
+  /* وابسته‌ها: از یک بخش به بخش دیگر */
+  p.clickEl(p.doc.querySelector('#ch-pay [data-goto]'));
+  await wait(120);
+  ok(p.doc.querySelector('#ch-installment').classList.contains('open'),'چسب وابسته، بخش مربوط را باز می‌کند');
 }
 
 /* ── ۳) جست‌وجو ── */
@@ -128,12 +156,16 @@ async function load(store,hash){
   console.log('\n── جست‌وجو ──');
   const p=await load(makeStore());
   ok(!p.shown('#results'),'نتیجهٔ جست‌وجو در آغاز پنهان است');
-  p.set('#supQ','گواهی');
+  p.set('#supQ','اقساط');
   await wait(300);
   ok(p.shown('#results'),'با واژه، کادر نتیجه باز می‌شود');
   ok(p.all('#resList .qrow').length>=1&&p.all('#resList .qrow').length<=10,'پاسخ‌های پیداشده، سقف ده تا');
   ok(p.all('#resList .hitmark').length>=1,'واژهٔ جست‌وجو نشانه می‌خورد');
   ok(p.txt('#resCount').includes('پاسخ'),'شمارندهٔ پاسخ‌ها');
+  ok(p.all('#resList [data-goto]').length>=1,'هر پاسخ میان‌بر «راهنمای همین بخش» دارد');
+  p.clickEl(p.doc.querySelector('#resList [data-goto]'));
+  await wait(140);
+  ok(p.all('#chapters .chapter.open').length>=1,'از نتیجهٔ جست‌وجو، فصل همان بخش باز می‌شود');
   ok(p.all('#chapters .chapter').filter(c=>!c.hidden).length>0,'فصل‌های مربوط هم می‌مانند');
   ok(p.all('#chapters .chapter').filter(c=>c.hidden).length>0,'و فصل‌های بی‌ربط می‌روند');
   ok(p.all('#chapters .gsec').filter(g=>g.hidden).length>0,'گروه‌های بی‌فصل هم پنهان می‌شوند');
@@ -141,7 +173,7 @@ async function load(store,hash){
   p.click('#supQClear');
   await wait(300);
   ok(!p.shown('#results')&&p.all('#chapters .chapter').filter(c=>c.hidden).length===0,'پاک‌کردن جست‌وجو همه را برمی‌گرداند');
-  ok(p.txt('#readerCount').includes('۱۶ بخش'),'شمارنده هم به حال نخست برمی‌گردد');
+  ok(p.txt('#readerCount').includes('۲۱ بخش'),'شمارنده هم به حال نخست برمی‌گردد');
   p.set('#supQ','زِرِشت');
   await wait(300);
   ok(p.shown('#resMiss')&&p.all('#resMiss [data-ticket]').length===1,'واژهٔ بی‌نتیجه راه تیکت را نشان می‌دهد');
@@ -311,6 +343,8 @@ async function load(store,hash){
   console.log('\n── راهنمای تصویری و صوتی ──');
   const p=await load(makeStore());
   ok(p.all('#chapters [data-media]').length>=16,'از هر فصل یک ورقه باز می‌شود');
+  p.clickEl(p.doc.querySelector('#ch-login .chhead'));
+  await wait(40);
   p.click('#ch-login [data-media]');
   await wait(120);
   ok(p.openSheets().includes('shMedia')&&p.doc.querySelector('#scrim').classList.contains('on'),'راهنما در ورقهٔ خودش باز می‌شود');
@@ -346,10 +380,15 @@ async function load(store,hash){
   const raw=fs.readFileSync(DIR+'data.js','utf8');
   const W={}; new Function('window','document',raw)(W,{});
   const S=W.NORA.SUPPORT;
-  ok(S.sections.length===16&&S.grps.length===6,'شانزده بخش در شش گروه (همه + پنج)');
-  ok(S.sections.every(s=>s.grp&&s.cover&&s.steps.length===3&&s.faq.length===4),'هر بخش: گروه، هنر، سه گام، چهار پرسش');
+  ok(S.sections.length===21&&S.grps.length===6,'بیست‌ویک بخش در شش گروه (همه + پنج)');
+  ok(S.sections.every(s=>s.grp&&s.cover&&s.steps.length===3&&s.faq.length===6),'هر بخش: گروه، هنر، سه گام، شش پرسش');
+  ok(S.sections.every(s=>s.time&&s.need.length>=1&&s.rel.length>=2),'هر بخش: مهلت، چیزهای لازم و بخش‌های وابسته');
+  const keys=new Set(S.sections.map(x=>x.k));
+  ok(S.sections.every(s=>s.rel.every(r=>keys.has(r))),'هر وابسته به بخشی هست که وجود دارد');
+  ok(S.sections.every(s=>!s.faq.some(f=>f.length!==2)),'هر پرسش یک پاسخ دارد');
   ok(S.sections.every(s=>(s.media||[]).length>=1),'هر بخش راهنمای رسانه‌ای دارد');
   ok(S.sections.filter(s=>s.form).length===3,'سه فرم لینک‌شده');
+  ok(S.sections.some(s=>s.k==='library')&&S.sections.some(s=>s.k==='exam')&&S.sections.some(s=>s.k==='live'),'بخش‌های تازه: کتابخانه، آزمون، پخش زنده');
   ok(S.sections.every(s=>!/—/.test(JSON.stringify(s))),'دش میان متن فارسی نیست');
   ok(/grps:\[/.test(raw)&&/tones:\{/.test(raw)&&/lead:\{/.test(raw)&&/sla:\[/.test(raw)&&/howto:\[/.test(raw),
     'گروه‌ها، رنگ‌ها، کارشناس لید و جدول‌ها همه در data.js');
@@ -361,7 +400,7 @@ async function load(store,hash){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=19')&&html.includes('support.js?v=19')&&html.includes('data.js?v=19'),'نسخهٔ دارایی‌ها تازه شده (v=19)');
+  ok(html.includes('support.css?v=20')&&html.includes('support.js?v=20')&&html.includes('data.js?v=20'),'نسخهٔ دارایی‌ها تازه شده (v=20)');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');

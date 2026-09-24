@@ -129,6 +129,8 @@ function mock(k,tone){
     qricon:'<span class="mcirc">'+ico('i-qr')+'</span><span class="mcode"><i></i><i class="on"></i><i></i></span>',
     archive:'<span class="mcirc">'+ico('i-archive')+'</span><span class="mrows">'+mrow.repeat(2)+'</span>',
     user:'<span class="mcirc">'+ico('i-user')+'</span><span class="mfield"></span>',
+    video:'<span class="mthumb"><span class="mplay">'+ico('i-play-f')+'</span></span><span class="mline s"></span>',
+    link:'<span class="mcirc">'+ico('i-link')+'</span><span class="mfield"></span><span class="mline s"></span>',
     mobile:'<span class="mcirc">'+ico('i-mobile')+'</span><span class="mcode"><i class="on"></i><i></i><i class="on"></i><i></i></span>'
   };
   return '<span class="mk t-'+esc(tone||'brand')+'">'+(B[k]||'<span class="mline"></span>')+'</span>';
@@ -145,7 +147,7 @@ function hl(txt){
   const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
   return s.replace(re,'<span class="hitmark">$1</span>');
 }
-function faqRow(s,i,open,num){
+function faqRow(s,i,open,num,goto){
   const qa=s.faq[i]||['',''];
   return '<div class="qrow'+(open?' open':'')+'" data-qrow="'+s.k+':'+i+'">'+
     '<button class="qbtn" type="button" data-faq="'+s.k+':'+i+'" aria-expanded="'+(open?'true':'false')+'">'+
@@ -155,8 +157,24 @@ function faqRow(s,i,open,num){
     '</button>'+
     '<div class="qans">'+hl(qa[1])+
       '<div class="acl"><button class="abtn" type="button" data-ticket="'+s.k+'">'+ico('i-pen')+' تیکت از همین بخش</button>'+
+      (goto?'<button class="abtn" type="button" data-goto="'+s.k+'">'+ico('i-book-open')+' راهنمای همین بخش</button>':'')+
       (s.form?'<a class="abtn" href="'+esc(s.form.href)+'">'+ico('i-doc')+' '+esc(s.form.t)+'</a>':'')+
       '</div></div></div>';
+}
+
+/* «پیش از شروع»: چه همراه داشته باشی و مهلت کار */
+function prepHTML(s){
+  const need=(s.need||[]).map(x=>'<li>'+ico('i-check')+esc(x)+'</li>').join('');
+  return '<div class="prep">'+
+    (need?'<div class="pcol"><span class="lab">پیش از شروع</span><ul class="needlist">'+need+'</ul></div>':'')+
+    (s.time?'<div class="pcol"><span class="lab">مهلت و زمان</span><p class="ptime">'+ico('i-clock')+esc(s.time)+'</p></div>':'')+
+  '</div>';
+}
+/* بخش‌های وابسته: راه میان‌بر را کوتاه می‌کند */
+function relHTML(s){
+  const items=(s.rel||[]).map(k=>{ const r=secOf(k);
+    return r?'<button class="abtn" type="button" data-goto="'+k+'">'+ico(r.i||'i-q')+' '+esc(r.n)+'</button>':'' }).join('');
+  return items?'<div class="cblk"><span class="lab">بخش‌های وابسته</span><div class="relrow">'+items+'</div></div>':'';
 }
 
 /* ── فصل‌ها و گروه‌ها ─────────────────────────────────────────────────── */
@@ -166,25 +184,63 @@ function chapterHTML(s,i){
     const k=KIND[m.kind]||KIND.video;
     return '<button class="abtn" type="button" data-media="'+s.k+':'+j+'">'+ico(k.i)+' '+esc(m.kind==='audio'?'راهنمای صوتی':m.kind==='image'?'تصویر گام‌به‌گام':'ویدیو')+'</button>';
   }).join('');
-  return '<article class="chapter anim" id="ch-'+s.k+'" style="--i:'+i+'">'+
-    '<div class="chcover"><img src="'+esc(cover)+'" alt="" loading="lazy" onerror="this.remove()"/>'+
-      '<span class="tag catg">'+esc(s.cat||'')+'</span>'+
-      '<div class="chh"><span class="iw">'+ico(s.i||'i-q')+'</span>'+
-        '<span class="cht"><b>'+esc(s.n)+'</b><small>'+esc(s.s||'')+'</small></span></div></div>'+
-    '<div class="cbody">'+
-      '<div class="cblk"><span class="lab">گام‌های تصویری</span><div class="stprow">'+
-        (s.steps||[]).map((st,j)=>stepHTML(st,j,tone)).join('')+'</div></div>'+
-      '<div class="cblk"><span class="lab">پرسش و پاسخ</span>'+
-        (s.faq||[]).map((_,j)=>faqRow(s,j,false,true)).join('')+'</div>'+
-      ((s.tips||[]).length?'<div class="cblk"><span class="lab">نکتهٔ مدیر سامانه</span>'+
-        s.tips.map(t=>'<div class="tipit"><span class="iw '+tone+'" style="width:32px;height:32px;border-radius:11px">'+
-          ico('i-shield-check')+'</span><span class="tx">'+esc(t)+'</span></div>').join('')+'</div>':'')+
-      '<div class="cha">'+
-        '<button class="btn primary sm" type="button" data-ticket="'+s.k+'">'+ico('i-pen')+' تیکت از همین بخش</button>'+
-        (s.form?'<a class="abtn" href="'+esc(s.form.href)+'">'+ico('i-doc')+' '+esc(s.form.t)+'</a>':'')+
-        '<span class="sp"></span>'+media+
+  return '<article class="chapter" id="ch-'+s.k+'" data-sec="'+s.k+'" style="--i:'+i+'">'+
+    '<button class="chhead" type="button" data-open="'+s.k+'" aria-expanded="false" aria-controls="cb-'+s.k+'">'+
+      '<span class="iw '+tone+'">'+ico(s.i||'i-q')+'</span>'+
+      '<span class="chtx"><b>'+esc(s.n)+'</b><small>'+esc(s.s||'')+'</small>'+
+        '<span class="chmeta"><span class="bd">'+faN((s.steps||[]).length)+' گام</span>'+
+        '<span class="bd">'+faN((s.faq||[]).length)+' پرسش</span>'+
+        (s.cat?'<span class="bd">'+esc(s.cat)+'</span>':'')+'</span></span>'+
+      '<svg class="i chgo" aria-hidden="true"><use href="#i-chev-down"/></svg>'+
+    '</button>'+
+    '<div class="chbody" id="cb-'+s.k+'" hidden>'+
+      '<div class="chcover"><img src="'+esc(cover)+'" alt="" loading="lazy" onerror="this.remove()"/>'+
+        (s.time?'<span class="tag catg">'+ico('i-clock')+' '+esc(s.time)+'</span>':'')+'</div>'+
+      prepHTML(s)+
+      '<div class="cbody">'+
+        '<div class="cblk"><span class="lab">گام‌های تصویری</span><div class="stprow">'+
+          (s.steps||[]).map((st,j)=>stepHTML(st,j,tone)).join('')+'</div></div>'+
+        '<div class="cblk"><span class="lab">پرسش و پاسخ</span>'+
+          (s.faq||[]).map((_,j)=>faqRow(s,j,false,true)).join('')+'</div>'+
+        ((s.tips||[]).length?'<div class="cblk"><span class="lab">نکتهٔ مدیر سامانه</span>'+
+          s.tips.map(t=>'<div class="tipit"><span class="iw '+tone+'" style="width:32px;height:32px;border-radius:11px">'+
+            ico('i-shield-check')+'</span><span class="tx">'+esc(t)+'</span></div>').join('')+'</div>':'')+
+        relHTML(s)+
+        '<div class="cha">'+
+          '<button class="btn primary sm" type="button" data-ticket="'+s.k+'">'+ico('i-pen')+' تیکت از همین بخش</button>'+
+          (s.form?'<a class="abtn" href="'+esc(s.form.href)+'">'+ico('i-doc')+' '+esc(s.form.t)+'</a>':'')+
+          '<span class="sp"></span>'+media+
+        '</div>'+
       '</div>'+
     '</div></article>';
+}
+/* باز و بسته کردن فصل، و هم‌گام‌کردن دکمهٔ «همه را باز کن» */
+function toggleChapter(k,force){
+  const art=document.getElementById('ch-'+k); if(!art) return false;
+  const body=art.querySelector('.chbody'), head=art.querySelector('.chhead');
+  const open=force==null?!art.classList.contains('open'):!!force;
+  art.classList.toggle('open',open);
+  if(body) body.hidden=!open;
+  if(head) head.setAttribute('aria-expanded',open?'true':'false');
+  syncOpenAll();
+  return open;
+}
+function gotoChapter(k){
+  const art=document.getElementById('ch-'+k); if(!art) return;
+  const g=art.closest('.gsec'); if(g) g.hidden=false;
+  art.hidden=false;
+  toggleChapter(k,true);
+  setTimeout(()=>{ try{ art.scrollIntoView({behavior:'smooth',block:'start'}) }catch(e){} },80);
+}
+function syncOpenAll(){
+  const oa=$('#openAll'); if(!oa) return;
+  const all=$$('#chapters .chapter');
+  const allOpen=all.length>0&&all.every(a=>a.classList.contains('open'));
+  oa.setAttribute('aria-pressed',allOpen?'true':'false');
+  const tx=oa.querySelector('[data-oatx]');
+  if(tx) tx.textContent=allOpen?'همه را ببند':'همه را باز کن';
+  const use=oa.querySelector('use');
+  if(use) use.setAttribute('href',allOpen?'#i-chev-down':'#i-layers');
 }
 function groupHTML(g,i){
   const list=SECT.filter(s=>s.grp===g.k);
@@ -225,7 +281,7 @@ function renderResults(){
     if((qa[0]+' '+qa[1]+' '+(s.tips||[]).join(' ')).toLowerCase().indexOf(q.toLowerCase())>-1) hits.push({s,j});
   }));
   if(cnt) cnt.textContent=faN(hits.length)+' پاسخ';
-  if(list) list.innerHTML=hits.slice(0,10).map(h=>faqRow(h.s,h.j,false,false)).join('');
+  if(list) list.innerHTML=hits.slice(0,10).map(h=>faqRow(h.s,h.j,false,false,true)).join('');
   if(miss) miss.hidden=hits.length>0;
   /* فصل‌ها هم با همان واژه صاف می‌شوند؛ نه شلوغی، نه گم‌شدن */
   const chs=SECT.filter(s=>[s.n,s.s,s.cat||'',(s.tips||[]).join(' '),(s.faq||[]).map(x=>x.join(' ')).join(' ')]
@@ -604,6 +660,10 @@ document.addEventListener('click',e=>{
   const q=t.closest('[data-qrow] .qbtn');
   if(q){ e.preventDefault(); const row=q.closest('.qrow'), open=row.classList.toggle('open');
     q.setAttribute('aria-expanded',open?'true':'false'); return }
+  const gl=t.closest('[data-goto]');
+  if(gl){ e.preventDefault(); closeSheets(); closeModal(); gotoChapter(gl.dataset.goto); return }
+  const op=t.closest('[data-open]');
+  if(op){ e.preventDefault(); toggleChapter(op.dataset.open); return }
   const tk=t.closest('[data-ticket]');
   if(tk){ e.preventDefault(); closeSheets(); openTicket(tk.dataset.ticket); return }
   const th=t.closest('[data-thread]');
@@ -682,6 +742,13 @@ function measureTop(){
   document.documentElement.style.setProperty('--tb',(h||56)+'px');
 }
 measureTop(); addEventListener('resize',measureTop);
+const oaBtn=$('#openAll');
+if(oaBtn) oaBtn.addEventListener('click',()=>{
+  const all=$$('#chapters .chapter');
+  const anyClosed=all.some(a=>!a.classList.contains('open'));
+  all.forEach(a=>toggleChapter(a.dataset.sec,anyClosed));
+  toast(anyClosed?faN(all.length)+' بخش باز شد':'همه بسته شد');
+});
 addEventListener('scroll',()=>{
   const on=(window.scrollY||document.documentElement.scrollTop)>4;
   document.documentElement.classList.toggle('atscroll',on);
@@ -693,12 +760,11 @@ renderReader();
 renderAll();
 if(typeof initUI==='function'){ try{ initUI() }catch(e){} }
 const h=location.hash.replace('#','');
-if(h){
-  setTimeout(()=>{
-    const el=document.getElementById(h.startsWith('ch-')||h.startsWith('g-')?h:'ch-'+h);
-    if(el&&el.scrollIntoView) el.scrollIntoView({block:'start'});
-    else if(h==='mine'){ const m=$('#mine'); if(m&&m.scrollIntoView) m.scrollIntoView({block:'start'}) }
-  },140);
-}
+if(h) setTimeout(()=>{
+  const k=h.replace(/^ch-/,''), sec=secOf(k);
+  if(sec&&document.getElementById('ch-'+k)){ gotoChapter(k); return }
+  const el=document.getElementById(h);
+  if(el&&el.scrollIntoView) el.scrollIntoView({block:'start'});
+},160);
 addEventListener('storage',ev=>{ if(ev.key===TK_KEY) renderAll() });
 })();

@@ -90,22 +90,47 @@ body.modal-open{overflow:hidden}
 .gband .gtx b{font-size:17px;font-weight:800;letter-spacing:-.3px}
 .gband .gtx small{font-size:11.5px;opacity:.85}
 
-/* ── فصل: یک بخش ربات، کامل ───────────────────────────────────────────── */
+/* ── فصل: یک بخش ربات، جمع‌شده تا بازش کنی ─────────────────────────────── */
 /* پرش به فصل نباید زیر نوار بالا و نوار چسبِ گروه‌ها گم شود */
 .gsec,.chapter{scroll-margin-top:calc(var(--tb,56px) + 62px)}
-.chapter{border-radius:var(--r-xl);overflow:hidden;margin-bottom:12px;
-  background:color-mix(in oklab,var(--surface) 80%,transparent);border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
-.chcover{position:relative;aspect-ratio:16/4.4;overflow:hidden;background:#123}
+.chapter{border-radius:var(--r-xl);overflow:hidden;margin-bottom:9px;
+  background:color-mix(in oklab,var(--surface) 82%,transparent);border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
+.chapter.open{box-shadow:var(--sh-2);border-color:color-mix(in oklab,var(--brand) 22%,var(--hairline))}
+.chhead{appearance:none;width:100%;border:0;background:none;font:inherit;color:inherit;cursor:pointer;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;padding:12px;text-align:start}
+.chhead:hover{background:color-mix(in oklab,var(--surface-2) 60%,transparent)}
+.chhead .iw{border-radius:14px;width:40px;height:40px}
+.chtx{display:grid;gap:3px;min-width:0}
+.chtx b{font-size:14.5px;font-weight:800;letter-spacing:-.2px}
+.chtx small{font-size:11.5px;color:var(--ink-3);line-height:1.6}
+.chmeta{display:flex;gap:5px;flex-wrap:wrap;margin-top:1px}
+.chmeta .bd{font-size:10.5px;padding:3px 8px}
+.chgo{width:18px;height:18px;color:var(--ink-4);transition:transform var(--t) var(--ease)}
+.chapter.open .chgo{transform:rotate(180deg);color:var(--brand-ink)}
+.chbody{border-top:.5px solid var(--hairline);animation:rise .28s var(--ease) both}
+.chcover{position:relative;aspect-ratio:16/3.6;overflow:hidden;background:#123}
 .chcover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.9}
-.chcover::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,26,22,.74),rgba(8,26,22,.2) 72%)}
-.chcover .chh{position:absolute;inset-inline:14px;bottom:11px;top:auto;z-index:1;display:flex;align-items:center;gap:10px;padding:0;border:0;background:none}
-.chcover .chh .iw{width:40px;height:40px;border-radius:14px;background:rgba(255,255,255,.16);color:#fff}
-.chcover .chh .cht{display:grid;gap:1px;min-width:0;color:#fff}
-.chcover .chh .cht b{font-size:15.5px;font-weight:800;letter-spacing:-.3px}
-.chcover .chh .cht small{font-size:11.5px;opacity:.85}
-.chcover .catg{position:absolute;top:10px;inset-inline-start:12px;z-index:1;
-  background:rgba(255,255,255,.18);color:#fff;border-color:transparent;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.cbody{padding:14px;display:grid;gap:13px}
+.chcover::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,26,22,.66),rgba(8,26,22,.16) 74%)}
+.chcover .catg{position:absolute;bottom:10px;inset-inline-start:12px;z-index:1;max-width:92%;
+  background:rgba(255,255,255,.2);color:#fff;border-color:transparent;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.chcover .catg .i{width:13px;height:13px}
+.cbody{padding:13px;display:grid;gap:13px}
+
+/* ── پیش از شروع و مهلت ───────────────────────────────────────────────── */
+.prep{display:grid;gap:10px;padding:12px 13px 0}
+.pcol .lab{margin-bottom:6px}
+.needlist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.needlist li{display:grid;grid-template-columns:auto 1fr;gap:7px;align-items:start;
+  font-size:12.8px;color:var(--ink-2);line-height:1.7}
+.needlist .i{width:15px;height:15px;color:var(--ok);margin-top:3px}
+.ptime{margin:0;display:grid;grid-template-columns:auto 1fr;gap:7px;align-items:start;
+  font-size:12.8px;color:var(--ink-2);line-height:1.7}
+.ptime .i{width:15px;height:15px;color:var(--brand-ink);margin-top:3px}
+.relrow{display:flex;gap:7px;flex-wrap:wrap}
+@media (min-width:520px){
+  .prep{grid-template-columns:1fr 1fr;padding:13px 13px 0}
+}
 .cblk{display:grid;gap:9px}
 .cblk>.lab{margin:0}
 
@@ -195,6 +220,13 @@ body.modal-open{overflow:hidden}
 .sico .i{width:15px;height:15px}
 .msearchbar{width:82%;height:24px;border-radius:99px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--hairline);position:relative}
 .msearchbar::after{content:'';position:absolute;inset-inline-start:9px;top:8px;width:34%;height:8px;border-radius:99px;background:var(--mk-t)}
+
+/* صفحهٔ کوچک پخش: کادر فیلم با دکمهٔ گرد */
+.mthumb{width:72%;aspect-ratio:16/9;border-radius:12px;background:var(--surface);
+  box-shadow:inset 0 0 0 1px var(--hairline);display:grid;place-items:center}
+.mthumb .mplay{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:var(--mk-i);color:#fff}
+.mthumb .mplay .i{width:13px;height:13px;color:#fff}
 
 /* ── پرسش و پاسخ ──────────────────────────────────────────────────────── */
 .qrow{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:color-mix(in oklab,var(--surface) 86%,transparent)}
