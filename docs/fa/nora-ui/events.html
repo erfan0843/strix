@@ -4,20 +4,19 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>نورا — رویدادها و برنامه‌ها</title>
-<meta name="description" content="همهٔ رویدادها و برگزارشده‌ها با صافی و خرید بازپخش"/>
+<meta name="description" content="همهٔ رویدادها و برنامه‌های گروه فرهنگی خط زندگی؛ تقویم ماهانه، فهرست کامل و ضبط برگزارشده‌ها"/>
+<meta name="theme-color" content="#F5F3EE"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="نورا — گروه فرهنگی خط زندگی"/>
 <meta property="og:title" content="رویدادهای نورا — خط زندگی"/>
-<meta property="og:description" content="رویدادهای پیش‌رو و برگزارشده، با صافی و بازپخش."/>
+<meta property="og:description" content="رویدادهای پیش‌رو و برگزارشده، با تقویم، صافی و بازپخش."/>
 <meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
 <meta property="og:locale" content="fa_IR"/>
 <meta name="twitter:card" content="summary_large_image"/>
+<link rel="canonical" href="https://lifeline1.ir/nora-ui/events.html"/>
 <link rel="icon" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="manifest" href="manifest.webmanifest"/>
-
-<meta name="description" content="همهٔ رویدادها، کارگاه‌ها و برنامه‌های گروه فرهنگی خط زندگی — تقویم ماهانه، فهرست و دسته‌بندی"/>
-<meta name="theme-color" content="#F5F3EE"/>
 <script>/* تم پیش از نخستین رنگ‌آمیزی می‌نشیند تا در حالت شب، سفیدیِ اولیه دیده نشود */
 (function(){try{var v=localStorage.getItem('nora-theme');
 if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
@@ -28,21 +27,11 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="stylesheet" href="nora.css"/>
 <link rel="stylesheet" href="events.css"/>
 <style>
+  /* نوار بالا فقط وقت اسکرول شیشه می‌شود */
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
-  .evHero{border-radius:var(--r-xl);padding:18px;color:#fff;position:relative;overflow:hidden;
-    background:linear-gradient(135deg,#0A56B8,#0B2447)}
-  .evHero h1{margin:0 0 6px;font-size:21px;letter-spacing:-.5px}
-  .evHero p{margin:0;font-size:13px;color:rgba(255,255,255,.9);line-height:1.8;max-width:44ch}
-  .hstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px;position:relative;z-index:1}
-  .hstats .s{background:rgba(255,255,255,.14);border:.5px solid rgba(255,255,255,.2);border-radius:var(--r-md);padding:8px 6px;text-align:center}
-  .hstats .s b{display:block;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
-  .hstats .s span{font-size:10.5px;color:rgba(255,255,255,.86)}
-  @media (max-width:420px){.hstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  .monthsw{display:flex;gap:7px;margin-bottom:10px}
-  .monthsw button{-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;padding:7px 13px;border-radius:99px;
-    border:.5px solid var(--hairline);background:var(--surface);color:var(--ink-2);font-size:12px;font-weight:600}
-  .monthsw button.on{background:var(--brand);border-color:transparent;color:#fff}
+
+  /* تقویم ماهانه */
   .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
   .calgrid .wd{text-align:center;font-size:10.5px;color:var(--ink-4);padding-bottom:2px}
   .cel{position:relative;-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;aspect-ratio:1/1;border-radius:13px;
@@ -54,29 +43,24 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .cel.has{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink);font-weight:700}
   .cel.today{border-color:var(--brand);border-width:1.5px}
   .cel.sel{background:var(--brand);color:#fff;border-color:transparent}
+  .cel.was{color:var(--ink-3)}
+  .cel.sel.was{color:var(--ink)}
   .cel .dots{position:absolute;bottom:5px;display:flex;gap:2.5px;justify-content:center}
   .cel .dots i{width:4.5px;height:4.5px;border-radius:50%;background:currentColor;opacity:.75}
+  .cel .dots i.p{background:var(--ink-4)}
   .cel.sel .dots i{background:#fff}
   .dayhd{display:flex;align-items:center;gap:8px;margin:16px 0 8px}
   .dayhd b{font-size:14px}
   .dayhd .sp{flex:1}
-  .catgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-  @media (min-width:560px){.catgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  .cattile{-webkit-appearance:none;appearance:none;font:inherit;color:inherit;cursor:pointer;text-align:start;display:grid;gap:5px;
-    padding:13px;border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface)}
-  .cattile:hover{border-color:color-mix(in oklab,var(--brand) 42%,transparent);transform:translateY(-1.5px)}
-  .cattile .ci{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)}
-  .cattile .ci .i{width:21px;height:21px}
-  .cattile b{font-size:13px}
-  .cattile small{font-size:10.5px;color:var(--ink-3)}
-  @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);border-end-start-radius:26px;border-end-end-radius:26px}
+
+  /* ورقهٔ کلیات روی نمایشگر بزرگ، پنجرهٔ میانی */
+  @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);
+    border-end-start-radius:26px;border-end-end-radius:26px}
     .sheet.on{transform:translate(-50%,0)}}
-  .fcrow{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 8px}
 </style>
 </head>
 <body>
 
-<!-- ══ مجموعهٔ آیکون نورا — مشترک ══ -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
 <symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6v10.2"/><path d="M8.4 7.2 12 3.6l3.6 3.6"/><path d="M7.4 11.4H6.2a1.8 1.8 0 0 0-1.8 1.8v5a1.8 1.8 0 0 0 1.8 1.8h11.6a1.8 1.8 0 0 0 1.8-1.8v-5a1.8 1.8 0 0 0-1.8-1.8h-1.2"/></g></symbol>
@@ -132,6 +116,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor"><rect x="7.3" y="5.4" width="3.4" height="13.2" rx="1.5"/><rect x="13.3" y="5.4" width="3.4" height="13.2" rx="1.5"/></g></symbol>
 <symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.6 5.8 8.4 12l6.2 6.2"/><path d="M8.6 12h9.4" opacity=".4"/></g></symbol>
 </svg>
+
 <header class="topbar">
   <div class="wrap">
     <a class="brand" href="home.html" aria-label="خانهٔ نورا">
@@ -153,21 +138,21 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   </section>
 
   <!-- آمار آرشیو -->
-  <section class="sec" aria-label="آمار رویدادها">
+  <section class="sec" aria-label="آمار آرشیو">
     <div class="stats" id="stats"></div>
     <p class="cap" id="statsNote" style="margin:9px 3px 0"></p>
   </section>
 
-  <!-- کتابخانهٔ من: وقتی چیزی تهیه کرده‌ای -->
+  <!-- کتابخانهٔ من: میان‌بر، وقتی چیزی تهیه کرده‌ای -->
   <section class="sec" id="libBar" hidden>
     <a class="libbar" href="events.html#lib">
-      <span class="li"><svg class="i"><use href="#i-play-f"/></svg></span>
+      <span class="li"><svg class="i" aria-hidden="true"><use href="#i-play-f"/></svg></span>
       <span class="lt"><b>کتابخانهٔ من</b><small id="libBarTx">—</small></span>
-      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+      <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
     </a>
   </section>
 
-  <!-- همین حالا -->
+  <!-- همین حالا: جلسهٔ در حال برگزاری -->
   <section class="sec" id="live" hidden aria-label="همین حالا">
     <div class="sec-hd"><span class="fw">همین حالا</span><span class="sp"></span><span class="cap" id="liveCount">—</span></div>
     <div id="liveList"></div>
@@ -175,22 +160,22 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
   <!-- نما: تقویم یا فهرست -->
   <div class="row sec" id="viewRow" style="justify-content:space-between;gap:10px">
-    <div class="seg" role="tablist" aria-label="نما">
-      <button data-view="cal" role="tab"><svg class="i"><use href="#i-calendar"/></svg> تقویم</button>
-      <button data-view="list" role="tab"><svg class="i"><use href="#i-archive"/></svg> فهرست</button>
+    <div class="seg" role="tablist" aria-label="نمای آرشیو">
+      <button data-view="cal" role="tab" aria-selected="false"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> تقویم</button>
+      <button data-view="list" role="tab" aria-selected="true"><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg> فهرست</button>
     </div>
     <span class="sp"></span><span class="cap" id="cnt">—</span>
   </div>
 
-  <!-- صافی‌ها: بالا به پایین -->
-  <section class="sec" id="filterSec" aria-label="صافی‌ها">
+  <!-- صافی‌ها: جست‌وجو و سه مدل، بالا به پایین -->
+  <section class="sec" id="filterSec" aria-label="صافی‌های آرشیو">
     <div class="filters" id="filters">
       <div class="frow">
         <span class="flbl">جست‌وجو در آرشیو</span>
         <div class="sfield">
           <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
           <input id="q" type="search" placeholder="نام برنامه، مدرس یا شهر…" aria-label="جست‌وجو در آرشیو رویدادها"/>
-          <button class="icon-btn" id="qClear" aria-label="پاک کردن" hidden style="width:30px;height:30px"><svg class="i"><use href="#i-close"/></svg></button>
+          <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden style="width:30px;height:30px"><svg class="i"><use href="#i-close"/></svg></button>
         </div>
       </div>
       <div id="frows"></div>
@@ -198,14 +183,14 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <p class="cap" style="margin:8px 3px 0">هر صافی را با زدن دوباره‌اش برمی‌داری؛ فهرست همیشه به ترتیب تاریخ است.</p>
   </section>
 
-  <!-- فهرست: کاشی‌های آرشیو -->
-  <section class="sec" id="listView" aria-label="آرشیو رویدادها">
+  <!-- فهرست آرشیو -->
+  <section class="sec" id="listView" aria-label="فهرست آرشیو">
     <div class="tgrid" id="grid"></div>
   </section>
 
-  <!-- تقویم -->
+  <!-- تقویم ماهانه -->
   <section class="sec" id="calView" hidden aria-label="تقویم ماهانه">
-    <div class="monthsw" id="monthsw"></div>
+    <div class="chips" id="monthsw" role="tablist" aria-label="ماه‌ها" style="margin-bottom:12px"></div>
     <div class="calgrid" id="calgrid" role="grid" aria-label="روزهای ماه"></div>
     <div class="dayhd"><b id="dayTitle">—</b><span class="sp"></span><span class="cap" id="dayCount">—</span></div>
     <div class="tgrid" id="dayGrid"></div>
@@ -219,7 +204,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   </section>
 
   <footer class="hfoot">
-    <div><b>گروه فرهنگی خط زندگی</b> — تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
+    <div><b>گروه فرهنگی خط زندگی</b>، تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
     <div>۰۲۱–۸۸۸۸۱۲۳۴ · <a href="mailto:info@lifeline1.ir">info@lifeline1.ir</a> · <a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
     <div class="row" style="justify-content:center;margin:4px 0 8px">
       <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
@@ -247,6 +232,10 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
    دو نما: تقویم و فهرست. صافی‌ها بالا به پایین و بی دکمهٔ «همه»؛ هر
    صافی را با زدن دوباره‌اش برمی‌داری. فهرست همیشه به ترتیب تاریخ است:
    پیش‌روها از نزدیک به دور، برگزارشده‌ها از تازه به قدیم.
+
+   همهٔ دکمه‌ها از خود یوآی نورا می‌آیند: btn / btn.primary / btn.quiet /
+   btn.sm / chip / seg / icon-btn. هیچ دکمهٔ دست‌ساز جداگانه‌ای این‌جا
+   نیست تا صفحه با بقیهٔ اپ یک زبان داشته باشد.
    ══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
@@ -272,8 +261,8 @@ const S={view:'list', status:'', kind:'', mode:'', q:'', month:'sh', day:28, spo
 /* ── صافی‌ها: سه مدل، بی ردیف «همه» ── */
 const KINDS=[...new Set(EVENTS.map(e=>e.kind).concat(PAST.map(h=>h.kind)))];
 function chipRow(label,list,cur,attr){
-  return `<div class="frow"><span class="flbl">${label}</span><div class="fchips">`+
-    list.map(x=>`<button class="fchip ${cur===x.k?'on':''}" data-${attr}="${esc(x.k)}" aria-pressed="${cur===x.k?'true':'false'}">
+  return `<div class="frow"><span class="flbl">${label}</span><div class="chips">`+
+    list.map(x=>`<button class="chip ${cur===x.k?'on':''}" data-${attr}="${esc(x.k)}" aria-pressed="${cur===x.k?'true':'false'}">
       <svg class="i" aria-hidden="true"><use href="#i-check"/></svg>${esc(x.n)}${x.c?' '+faN(x.c):''}</button>`).join('')+
     `</div></div>`;
 }
@@ -309,10 +298,10 @@ function spotList(){
 function slide(e){
   const p=person(e.tchr), pre=!!(UI().isPre&&UI().isPre(e.id));
   let act;
-  if(e.live) act=`<a class="btn primary" href="event.html?id=${esc(e.id)}"><svg class="i"><use href="#i-video"/></svg> ورود به جلسه</a>`;
+  if(e.live) act=`<a class="btn primary" href="event.html?id=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-video"/></svg> ورود به جلسه</a>`;
   else if(e.pre||pre) act=`<button class="btn ${pre?'quiet':'primary'}" data-uipre="${esc(e.id)}">
-      <svg class="i"><use href="#${pre?'i-check':'i-bell'}"/></svg> ${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
-  else act=`<a class="btn primary" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`;
+      <svg class="i" aria-hidden="true"><use href="#${pre?'i-check':'i-bell'}"/></svg> ${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
+  else act=`<a class="btn primary" href="form.html?ev=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-pen"/></svg> ${e.price?'ثبت‌نام':'ثبت‌نام رایگان'}</a>`;
   return `<article class="spot" style="--g:${esc(e.g||'')}">
     ${e.poster?`<img class="pbg" src="${esc(e.poster)}" alt="" loading="lazy"/>`:''}
     <span class="veil"></span>
@@ -324,8 +313,8 @@ function slide(e){
       <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${esc(e.place||'آنلاین')}</span>
       <svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span></div>
     <div class="acts">${act}
-      <a class="btn quiet" href="event.html?id=${esc(e.id)}"><svg class="i"><use href="#i-chev-left"/></svg> جزئیات</a>
-      <button class="btn quiet" data-uishare="${esc(e.id)}" aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button></div>
+      <a class="btn quiet" href="event.html?id=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-chev-left"/></svg> جزئیات</a>
+      <button class="btn quiet" data-uishare="${esc(e.id)}" aria-label="اشتراک‌گذاری"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg></button></div>
   </article>`;
 }
 function renderSpot(){
@@ -379,7 +368,7 @@ function renderLive(){
   box.innerHTML=list.map(x=>{
     const e0=EVENTS.find(e=>e.id===x.ev)||{}, pct=x.past?Math.round(x.past/x.total*100):0;
     return `<div class="livecard">
-      <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
+      <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
       <h3>${esc(x.t)}</h3>
       <div class="cap">${esc(x.at)} · ${esc(x.where)}${e0.tchr?' · '+esc(person(e0.tchr).n):''}</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
@@ -415,12 +404,15 @@ function rows(){
   if(S.status==='past') return ps;
   return up.concat(ps);
 }
+/* کاشی پیش رو: پوستر و مشخصات، بعدش دکمه‌های خود یوآی */
 function tileUp(e){
   const p=person(e.tchr), full=e.cap&&e.spots<=0, pct=e.cap?Math.round(e.taken/e.cap*100):0;
   const pre=!!(UI().isPre&&UI().isPre(e.id)), open=e.pre||pre;
   const cta=open
-    ? `<button class="mini" data-uipre="${esc(e.id)}" aria-label="پیش‌ثبت‌نام ${esc(e.t)}"><svg class="i"><use href="#${pre?'i-check':'i-bell'}"/></svg>${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
-    : `<a class="mini" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg>${full?'لیست انتظار':'ثبت‌نام'}</a>`;
+    ? `<button class="btn sm ${pre?'quiet':'primary'} block" data-uipre="${esc(e.id)}" aria-label="پیش‌ثبت‌نام ${esc(e.t)}">
+        <svg class="i" aria-hidden="true"><use href="#${pre?'i-check':'i-bell'}"/></svg>${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
+    : `<a class="btn sm primary block" href="form.html?ev=${esc(e.id)}">
+        <svg class="i" aria-hidden="true"><use href="#i-pen"/></svg>${full?'لیست انتظار':'ثبت‌نام'}</a>`;
   return `<article class="etile" style="--g:${esc(e.g||'')}">
     <button class="ecov" data-ev="${esc(e.id)}" aria-label="جزئیات ${esc(e.t)}">
       ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}" loading="lazy"/>`:''}
@@ -437,17 +429,19 @@ function tileUp(e){
         <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${full?'ظرفیت تکمیل':faN(e.spots)+' جا مانده از '+faN(e.cap)+' نفر'}</span></span>`:''}
     </div>
     <div class="efoot">
-      <span class="eprice ${e.price?'':'free'}">${price(e.price)}</span>
-      <span class="ebtns">${cta}</span>
+      <div class="erow"><span class="eprice ${e.price?'':'free'}">${price(e.price)}</span>
+        ${e.sess>1?`<span class="cap">${faN(e.sess)} جلسه</span>`:''}<span class="sp"></span></div>
+      <div class="tacts">${cta}</div>
     </div>
   </article>`;
 }
+/* کاشی برگزارشده: بستهٔ رسانه، نمونهٔ رایگان و تهیه/تماشا */
 function tilePast(h){
   const p=person(h.tchr), own=!!(UI().hasLib&&UI().hasLib(h.id));
   const hasFree=(h.media||[]).some(m=>!m.p||m.preview);
   const cta=own
-    ? `<button class="mini" data-uimedia="${esc(h.id)}:${esc((h.media[0]||{}).id||'')}"><svg class="i"><use href="#i-play-f"/></svg>تماشا</button>`
-    : `<a class="mini" href="event.html?id=${esc(h.id)}"><svg class="i"><use href="#i-bag"/></svg>${h.price?'تهیه':'دریافت'}</a>`;
+    ? `<button class="btn sm primary block" data-uimedia="${esc(h.id)}:${esc((h.media[0]||{}).id||'')}"><svg class="i" aria-hidden="true"><use href="#i-play-f"/></svg>تماشا</button>`
+    : `<a class="btn sm primary block" href="event.html?id=${esc(h.id)}"><svg class="i" aria-hidden="true"><use href="#i-bag"/></svg>${h.price?'تهیهٔ بسته':'دریافت'}</a>`;
   return `<article class="etile past" style="--g:${esc(h.g||'')}">
     <button class="ecov" data-ev="${esc(h.id)}" aria-label="جزئیات ${esc(h.t)}">
       ${h.poster?`<img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" loading="lazy"/>`:''}
@@ -462,11 +456,11 @@ function tilePast(h){
       <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-layers"/></svg><span>${esc(h.rec)}${h.cert?' · گواهی‌دار':''}</span></span>
     </div>
     <div class="efoot">
-      <span class="eprice ${h.price?'':'free'}">${price(h.price)}</span>
-      <span class="erate"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>${esc(h.rate2||'')}</span>
-      <span class="ebtns">
-        ${hasFree?`<button class="mini" data-uipreview="${esc(h.id)}"><svg class="i"><use href="#i-eye"/></svg>پیش‌نمایش</button>`:''}
-        ${cta}</span>
+      <div class="erow"><span class="eprice ${h.price?'':'free'}">${price(h.price)}</span>
+        <span class="erate"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>${esc(h.rate2||'')}</span></div>
+      <div class="tacts">
+        ${hasFree?`<button class="btn sm quiet block" data-uipreview="${esc(h.id)}"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg>پیش‌نمایش رایگان</button>`:''}
+        ${cta}</div>
     </div>
   </article>`;
 }
@@ -491,7 +485,8 @@ function firstBusy(m){
 }
 function renderMonths(){
   $('#monthsw').innerHTML=Object.entries(MONTHS).map(([k,m])=>
-    `<button class="${S.month===k?'on':''} ${m.past?'was':''}" data-month="${k}">${m.n}</button>`).join('');
+    `<button class="chip ${S.month===k?'on':''} ${m.past?'was':''}" data-month="${k}" role="tab" aria-selected="${S.month===k?'true':'false'}">
+      <svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>${m.n}</button>`).join('');
 }
 function renderCal(){
   const m=MONTHS[S.month], cells=[];
@@ -527,10 +522,10 @@ function renderLib(){
   $('#libCount').textContent=login?(faN(items.length)+' رسانه · '+faN(bundles.length)+' بستهٔ کامل'):'برای دیدن، وارد شو';
   if(!login){
     $('#libBox').innerHTML=`<div class="card paper" style="text-align:center;padding:22px">
-      <svg class="i" style="width:30px;height:30px;color:var(--ink-3)"><use href="#i-lock"/></svg>
+      <svg class="i" aria-hidden="true" style="width:30px;height:30px;color:var(--ink-3)"><use href="#i-lock"/></svg>
       <p class="sub" style="margin:10px 0 0">کتابخانه مالِ حساب خودت است. با شمارهٔ موبایل وارد شو تا هرچه تهیه کرده‌ای همین‌جا بیاید.</p>
       <div class="row" style="justify-content:center;margin-top:12px">
-        <button class="btn primary" data-uilogin><svg class="i"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
+        <button class="btn primary" data-uilogin><svg class="i" aria-hidden="true"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
         <a class="btn quiet" href="events.html#list" style="text-decoration:none">دیدن آرشیو رویدادها</a></div></div>`;
     return;
   }
@@ -547,7 +542,7 @@ function renderLib(){
     const done=list.filter(m=>ui.progressOf(m.id)>0);
     return `<div class="card paper">
       <div class="row" style="align-items:center;gap:10px">
-        <span class="mthumb video" style="width:40px;height:40px"><svg class="i" style="width:18px;height:18px"><use href="#i-archive"/></svg></span>
+        <span class="mthumb video" style="width:40px;height:40px"><svg class="i" aria-hidden="true" style="width:18px;height:18px"><use href="#i-archive"/></svg></span>
         <span style="flex:1;min-width:0"><b style="font-size:14px">${esc(h.t)}</b>
           <div class="cap">${esc(h.d)} · ${faN(list.length)} رسانه${own?' · بستهٔ کامل':''}</div></span>
         <span class="tag ${done.length?'ok':'brand'}">${done.length?faN(done.length)+' نیمه‌کاره':'تازه'}</span>
@@ -557,14 +552,14 @@ function renderLib(){
         const pct=Math.min(100,Math.round((ui.progressOf(m.id)||0)/90/60*100));
         return `<div class="mrow2">
           <button class="mthumb ${m.k}" data-uimedia="${esc(h.id)}:${esc(m.id)}" aria-label="${esc(m.t)}">
-            <svg class="i" style="width:19px;height:19px"><use href="#${kd.i}"/></svg>
+            <svg class="i" aria-hidden="true" style="width:19px;height:19px"><use href="#${kd.i}"/></svg>
             ${pct?`<span class="mprog"><i style="width:${pct}%"></i></span>`:''}</button>
           <span class="mtx"><b>${esc(m.t)}</b><small>${kd.n} · ${esc(m.d)}${pct?' · '+faN(pct)+'٪ دیده‌ای':''}</small></span>
           <span class="sp" style="flex:1"></span>
           <button class="btn sm ${pct?'quiet':'primary'}" data-uimedia="${esc(h.id)}:${esc(m.id)}">
-            <svg class="i"><use href="#${kd.i}"/></svg> ${pct?'ادامه':'پخش'}</button></div>`}).join('')}</div>
+            <svg class="i" aria-hidden="true"><use href="#${kd.i}"/></svg> ${pct?'ادامه':'پخش'}</button></div>`}).join('')}</div>
       <div class="row" style="margin-top:10px">
-        <button class="btn sm quiet" data-ev="${esc(h.id)}"><svg class="i"><use href="#i-archive"/></svg> جزئیات بسته</button>
+        <button class="btn sm quiet" data-ev="${esc(h.id)}"><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg> جزئیات بسته</button>
         <span class="sp" style="flex:1"></span><span class="cap">${esc(h.access||'دسترسی همیشگی')}</span>
       </div></div>`}).join('')}</div>`;
 }
@@ -601,7 +596,7 @@ document.addEventListener('click',ev=>{
   const row=t.closest('[data-ev]'); if(row){openEvent(row.dataset.ev); return}
   /* روی تنِ کاشی (نه دکمه‌هایش) هم کلیک کار می‌کند */
   const tile=t.closest('.etile');
-  if(tile&&!t.closest('.ebtns')&&!t.closest('a')){const c=tile.querySelector('[data-ev]'); if(c) openEvent(c.dataset.ev); return}
+  if(tile&&!t.closest('.tacts')&&!t.closest('a')){const c=tile.querySelector('[data-ev]'); if(c) openEvent(c.dataset.ev); return}
   const lg=t.closest('[data-uilogin]'); if(lg){UI().authSheet(()=>{renderLib(); renderLibBar()}); return}
   if(t.closest('#qClear')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderList(); $('#q').focus(); return}
   if(t.closest('[data-close]')){if(UI().closeSheets) UI().closeSheets(); return}
@@ -634,10 +629,7 @@ if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
 
 /* خرید یا پیش‌ثبت‌نام که تمام شد، همین‌جا تازه می‌شود */
 document.addEventListener('nora:library',()=>{renderLibBar(); render(); if(S.view!=='lib') renderList()});
-document.addEventListener('nora:prereg',()=>{
-  const on=$$('[data-uipre]').filter(b=>UI().isPre(b.dataset.uipre)).length;
-  renderSpot(); renderList(); if(S.view==='cal') renderDay();
-});
+document.addEventListener('nora:prereg',()=>{renderSpot(); renderList(); if(S.view==='cal') renderDay()});
 if(P.get('ev')) openEvent(P.get('ev'));
 if(P.get('past')) openEvent(P.get('past'));
 if(P.get('buy')) setTimeout(()=>{const [h,m]=P.get('buy').split(':'); UI().doBuy(h,m||null)},90);

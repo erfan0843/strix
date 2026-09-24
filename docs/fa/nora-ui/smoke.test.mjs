@@ -766,7 +766,8 @@ async function load(file,store,q){
   ok(p.all('#filters .frow').length===4,'چهار ردیف بالا به پایین: جست‌وجو + سه صافی');
   ok(p.doc.querySelector('#filters #q')!==null,'جست‌وجو بالای صافی‌ها نشسته است');
   ok(p.txt('#filters').includes('وضعیت') && p.txt('#filters').includes('نوع برنامه') && p.txt('#filters').includes('شیوهٔ برگزاری'),'نام سه مدل صافی');
-  ok(p.all('#filters .fchip').filter(c=>/همه/.test(c.textContent)).length===0,'هیچ دکمهٔ «همه» ای نمانده');
+  ok(p.all('#filters .chip').length>=7 && p.all('#filters .chip').filter(c=>/همه/.test(c.textContent)).length===0,'چیپ‌های صافی از یوآی می‌آیند و هیچ دکمهٔ «همه» ای نمانده');
+  ok(p.all('#filters .chip.on').length===0 && p.all('#filters .chip .i').length===p.all('#filters .chip').length,'هیچ صافی‌ای از پیش روشن نیست و هر چیپ نشان تیک خودش را دارد');
   ok(p.all('#filters [data-status="up"]').length===1 && p.all('#filters [data-status="past"]').length===1,'وضعیت: پیش رو / برگزارشده');
   ok(p.all('#filters [data-kind]').length>=5,'صافی نوع برنامه از خود داده می‌آید');
   p.click('#filters [data-status="past"]');
