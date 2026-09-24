@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="light">
+<html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>نورا — خانه</title>
 <meta name="description" content="خانهٔ نورا — ویترین رویدادها، کارگاه‌ها، مطالب، اساتید و باشگاه کتاب‌خوانی گروه فرهنگی خط زندگی"/>
 <meta name="theme-color" content="#F5F3EE"/>
+<script>/* تم پیش از نخستین رنگ‌آمیزی می‌نشیند تا در حالت شب، سفیدیِ اولیه دیده نشود */
+(function(){try{var v=localStorage.getItem('nora-theme');
+if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
+var m=document.querySelector('meta[name="theme-color"]');
+if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
 <link rel="stylesheet" href="glass.css"/>
 <link rel="stylesheet" href="nora.css"/>
 <style>
@@ -43,7 +49,7 @@
   /* ── منوی سریع ── */
   .quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
   @media (max-width:400px){.quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  .tile{-webkit-appearance:none;appearance:none;position:relative;display:grid;justify-items:center;gap:7px;
+  .tile{-webkit-appearance:none;appearance:none;position:relative;display:grid;justify-items:center;gap:7px;text-decoration:none;
     padding:13px 7px 11px;border-radius:var(--r-lg);cursor:pointer;font:inherit;color:inherit;text-align:center;
     border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);overflow:hidden;
     transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
@@ -341,6 +347,8 @@
 
 <symbol id="i-drag" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9.2" cy="7" r="1.35"/><circle cx="14.8" cy="7" r="1.35"/><circle cx="9.2" cy="12" r="1.35"/><circle cx="14.8" cy="12" r="1.35"/><circle cx="9.2" cy="17" r="1.35"/><circle cx="14.8" cy="17" r="1.35"/></g></symbol>
 
+<symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11z" fill="currentColor"/></symbol>
 <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
 
 <symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
@@ -479,7 +487,7 @@
     </a>
     <span class="sp"></span>
     <button class="menubtn" data-f="shMenu" aria-label="منوی نورا"><svg class="i"><use href="#i-grid"/></svg> منو</button>
-    <button class="icon-btn" data-theme-toggle aria-label="شب و روز"><svg class="i"><use href="#i-eye"/></svg></button>
+    <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
     <button class="icon-btn" data-f="shNotice" aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
     <button class="icon-btn avatar" id="acctBtn" aria-label="حساب من">م</button>
   </div>
@@ -733,13 +741,16 @@ const BADGES=[
 ;
 
 /* ── منوی سریع خانه ── */
+/* گروه‌های ثابت افراد — یک‌بار حساب می‌شوند، نه در هر رندر */
+const TEACHERS=PEOPLE.filter(x=>x.kind!=='staff'), STAFF=PEOPLE.filter(x=>x.kind==='staff');
+const CLUB_POINTS={points:420, goal:500, level:'نقره‌ای', next:'طلایی', invites:3, inviteGoal:5, reward:50000};
 const QUICK=[
  {k:'events', i:'i-calendar', n:'رویدادها', s:'پیش‌رو و امشب', anim:'tick', href:'events.html#list'},
- {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و گواهینامه', j:'pastSec'},
+ {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و بازپخش', j:'pastSec'},
  {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', anim:'float', f:'shClub', tag:'پیشنهادی'},
- {k:'people', i:'i-graduation', n:'اساتید', s:'۸ نفر', j:'people'},
- {k:'articles', i:'i-article', n:'مطالب', s:'۶ مطلب تازه', j:'articles'},
- {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:'۸ نهاد', j:'partners'},
+ {k:'people', i:'i-graduation', n:'اساتید', s:faN(TEACHERS.length)+' نفر', j:'teachers'},
+ {k:'articles', i:'i-article', n:'مطالب', s:faN(ARTICLES.length)+' مطلب تازه', j:'articles'},
+ {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد', j:'partners'},
  {k:'verify', i:'i-qr', n:'استعلام گواهی', s:'با شمارهٔ سریال', f:'shVerify'},
  {k:'support', i:'i-headphone', n:'پشتیبانی', s:'پیام و راهنما', anim:'wiggle', f:'shSupport'}
 ];
@@ -747,26 +758,26 @@ const QUICK=[
 /* ── منوی کامل نورا (ورقهٔ منو) ── */
 const MENU=[
  {g:'برنامه‌ها و رویدادها', i:'i-calendar', rows:[
-   {i:'i-calendar', t:'رویدادهای پیش‌رو', s:'۱۱ برنامه در پیش', href:'events.html#list', badge:'۱۱'},
-   {i:'i-archive', t:'کارگاه‌های برگزارشده', s:'ضبط، جزوه و گواهینامه', j:'pastSec'},
-   {i:'i-play', t:'جریان زنده و شروع نزدیک', s:'امشب دو برنامه', href:'events.html#list', badge:'۲'},
+   {i:'i-calendar', t:'رویدادهای پیش‌رو', s:faN(EVENTS.length)+' برنامه در پیش', href:'events.html#list', badge:faN(EVENTS.length)},
+   {i:'i-archive', t:'کارگاه‌های برگزارشده', s:'ضبط و بازپخش، با گواهی', j:'pastSec'},
+   {i:'i-play', t:'جریان زنده و شروع نزدیک', s:'امشب دو برنامه', href:'events.html#list', badge:faN(LIVE.length)},
    {i:'i-book', t:'باشگاه کتاب‌خوانی', s:'سرپرست: خانم داوودی', f:'shClub', tag:'پیشنهادی'},
    {i:'i-heart', t:'پویش‌های خیریه', s:'مشارکت و گزارش شفاف', rel:'e11'}]},
  {g:'آموزش و محتوا', i:'i-graduation', rows:[
-   {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:'۶'},
+   {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:faN(ARTICLES.length)},
    {i:'i-graduation', t:'دوره‌ها و کارگاه‌ها', s:'با گواهینامهٔ پایان دوره', href:'events.html#list'},
    {i:'i-doc', t:'آزمون و کارنامه', s:'کارنامهٔ همان روز', rel:'e9'},
    {i:'i-qr', t:'استعلام گواهینامه', s:'با شمارهٔ سریال روی برگ', f:'shVerify'}]},
  {g:'افراد', i:'i-users', rows:[
-   {i:'i-graduation', t:'اساتید و مربیان', s:'۶ استاد با پروفایل و عکس', j:'people', badge:'۶'},
-   {i:'i-idcard', t:'دست‌اندرکاران', s:'تیم اجرا و پشتیبانی', j:'people'},
-   {i:'i-handshake', t:'نهادهای همکار', s:'۸ نهاد همکار و حامی', j:'partners', badge:'۸'},
+   {i:'i-graduation', t:'اساتید و مربیان', s:faN(TEACHERS.length)+' استاد با پروفایل و عکس', j:'teachers', badge:faN(TEACHERS.length)},
+   {i:'i-idcard', t:'دست‌اندرکاران', s:faN(STAFF.length)+' نفر، تیم اجرا و پشتیبانی', j:'staff'},
+   {i:'i-handshake', t:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد همکار و حامی', j:'partners', badge:faN(PARTNERS.length)},
    {i:'i-send', t:'فرصت‌های همکاری', s:'تدریس، اجرا، حمایت مالی', f:'shSupport'}]},
  {g:'حساب من', i:'i-idcard', rows:[
    {i:'i-idcard', t:'حساب کاربری', s:'ثبت‌نام‌ها، اعلان‌ها، خروج', f:'shAccount'},
    {i:'i-wallet', t:'کیف پول و پرداخت‌ها', s:'شارژ، صورت‌حساب، بازگشت وجه', f:'shAccount'},
-   {i:'i-users', t:'دعوت دوستان', s:'هر دعوت اعتبار کیف پول', f:'shInvite', badge:'۳/۵'},
-   {i:'i-bell', t:'اعلان‌ها', s:'یادآوری جلسه و پیام کارشناس', f:'shNotice', badge:'۲'}]},
+   {i:'i-users', t:'دعوت دوستان', s:'هر دعوت اعتبار کیف پول', f:'shInvite', badge:faN(CLUB_POINTS.invites)+'/'+faN(CLUB_POINTS.inviteGoal)},
+   {i:'i-bell', t:'اعلان‌ها', s:'یادآوری جلسه و پیام کارشناس', f:'shNotice', badge:faN(NOTICES.filter(n=>n.unread).length)}]},
  {g:'پشتیبانی', i:'i-headphone', rows:[
    {i:'i-send', t:'پیام به پشتیبانی', s:'پاسخ در همان روز کاری', f:'shSupport'},
    {i:'i-doc', t:'پرسش‌های پرتکرار', s:'ثبت‌نام، پرداخت، لغو', f:'shFaq'},
@@ -793,7 +804,7 @@ function togglePin(kind,id){
   toast(S.pins.has(k)?'سنجاق شد — بالای خانه می‌بینی‌اش':'سنجاق برداشته شد');
 }
 const av=(p,cls)=>{const q=person(p);
-  return `<span class="${cls||'ava'}" style="--g:${q.g}">${q.photo?`<img src="${esc(q.photo)}" alt="${esc(q.n)}"/>`:esc(q.ini||'؟')}</span>`};
+  return `<span class="${cls||'ava'}" style="--g:${q.g}">${q.photo?`<img src="${esc(q.photo)}" alt="${esc(q.n)}" loading="lazy" decoding="async"/>`:esc(q.ini||'؟')}</span>`};
 
 /* ═════════ بنر ═════════ */
 function renderBanner(){
@@ -826,12 +837,15 @@ function autoBanner(){clearInterval(S.timer); S.timer=setInterval(()=>{if(!docum
 function renderQuick(){
   $('#quick').innerHTML=`<div class="sec-hd"><span class="fw">از کجا شروع کنیم؟</span><span class="sp"></span>
     <span class="cap">منوی کامل: دکمهٔ «منو» بالای صفحه</span></div>
-    <div class="quick">${QUICK.map(q=>`
-      <button class="tile" data-q="${q.k}" data-anim="${q.anim||''}" title="${esc(q.n)}">
-        ${q.tag?`<span class="tn"><span class="tagg brand" style="height:19px;font-size:10px;padding:0 7px">${esc(q.tag)}</span></span>`:''}
+    <div class="quick">${QUICK.map(q=>{
+      /* کاشی‌ای که مقصد صفحه دارد پیوند است، نه دکمهٔ بی‌کار */
+      const inner=`${q.tag?`<span class="tn"><span class="tagg brand" style="height:19px;font-size:10px;padding:0 7px">${esc(q.tag)}</span></span>`:''}
         <span class="ci"><svg class="i"><use href="#${q.i}"/></svg></span>
-        <b>${esc(q.n)}</b><small>${esc(q.s)}</small>
-      </button>`).join('')}</div>`;
+        <b>${esc(q.n)}</b><small>${esc(q.s)}</small>`;
+      return q.href
+        ? `<a class="tile" href="${escAttr(q.href)}" title="${esc(q.n)}">${inner}</a>`
+        : `<button class="tile" data-q="${q.k}" data-anim="${q.anim||''}" title="${esc(q.n)}">${inner}</button>`;
+    }).join('')}</div>`;
 }
 function renderPins(){
   const items=[];
@@ -1088,7 +1102,7 @@ function nextCourse(p){
   return EVENTS.filter(e=>e.tchr===p.id).sort((a,b)=>order.indexOf(a.day)-order.indexOf(b.day))[0];
 }
 function renderTeachers(){
-  const list=PEOPLE.filter(x=>x.kind==='teacher')
+  const list=TEACHERS
     .sort((a,b)=>(isPinned('pe',b.id)?1:0)-(isPinned('pe',a.id)?1:0));
   $('#teacherCount').textContent=faN(list.length)+' مدرس · پروفایل‌ها برای همه باز است';
   $('#peopleRail').innerHTML=list.map(p=>{
@@ -1114,7 +1128,7 @@ function renderTeachers(){
     </div>`}).join('');
 }
 function renderStaff(){
-  $('#staffList').innerHTML=PEOPLE.filter(x=>x.kind==='staff').map(p=>`
+  $('#staffList').innerHTML=STAFF.map(p=>`
     <button class="scard" data-person="${p.id}" aria-label="پروفایل ${esc(p.n)}">
       <span class="sav" style="--g:${p.g}">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(p.ini)}</span>
       <span class="sbody">
@@ -1413,7 +1427,6 @@ function renderAccount(){
       <button class="btn primary" data-code><svg class="i"><use href="#i-check"/></svg> ورود</button>
       <button class="btn quiet" data-back>تغییر شماره</button></div>`;
 }
-const CLUB_POINTS={points:420, goal:500, level:'نقره‌ای', next:'طلایی', invites:3, inviteGoal:5, reward:50000};
 
 function renderInvite(){
   const u=S.user, link='https://lifeline1.ir/i/'+shortCode('NORAINV'+CLUB_POINTS.invites);
@@ -1494,10 +1507,32 @@ function renderNotices(){
 }
 
 /* ═════════ وضعیت: پوسته، سنجاق‌ها، حساب ═════════ */
-function setTheme(v){document.documentElement.dataset.theme=v; try{localStorage.setItem('nora-theme',v)}catch(e){}}
-function loadSession(){try{S.user=JSON.parse(localStorage.getItem('nora-home-user')||'null')}catch(e){S.user=null}}
+/* تم: کارِ ui.js است؛ این فقط نام کوتاه برای صدازنی‌های همین صفحه */
+function setTheme(v){return themeApply(v)}
+/* نشست از حافظهٔ مرورگر می‌آید؛ هر چه آنجا نشسته باشد «داده» نیست، «ورودی» است */
+function cleanUser(v){
+  if(!v||typeof v!=='object'||typeof v.name!=='string') return null;
+  const name=v.name.trim().replace(/[\u0000-\u001f<>]/g,'').slice(0,60);
+  if(!name) return null;
+  const num=(x,lo,hi)=>{const n=Number(unFa(String(x||'').replace(/[^0-9۰-۹-]/g,'')));
+    return Number.isFinite(n)?Math.min(hi,Math.max(lo,Math.round(n))):0};
+  return {name:name,
+    mobile:/^09\d{9}$/.test(String(v.mobile||''))?String(v.mobile):'',
+    joined:typeof v.joined==='string'?v.joined.replace(/[\u0000-\u001f<>]/g,'').slice(0,30):'',
+    certs:num(v.certs,0,999), wallet:num(v.wallet,0,1e12), msgs:num(v.msgs,0,999)};
+}
+function loadSession(){
+  let v=null;
+  try{v=JSON.parse(localStorage.getItem('nora-home-user')||'null')}catch(e){v=null}
+  S.user=cleanUser(v);
+  if(v&&!S.user) saveSession();   /* دادهٔ خراب پاک می‌شود تا صفحه سالم بماند */
+}
 function saveSession(){try{localStorage.setItem('nora-home-user',JSON.stringify(S.user))}catch(e){}}
-function loadPins(){try{(JSON.parse(localStorage.getItem('nora-home-pins')||'[]')).forEach(k=>S.pins.add(k))}catch(e){}}
+function loadPins(){
+  let a=[]; try{a=JSON.parse(localStorage.getItem('nora-home-pins')||'[]')}catch(e){a=[]}
+  if(!Array.isArray(a)) return;
+  a.filter(k=>typeof k==='string'&&/^(ev|ar|pe):[A-Za-z0-9_-]{1,12}$/.test(k)).forEach(k=>S.pins.add(k));
+}
 function savePins(){try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
 function renderAll(){
   renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub();
@@ -1554,7 +1589,14 @@ document.addEventListener('click',e=>{
   if(t.closest('[data-next]')){S.acctFlow=true; S.step='phone'; renderAccount(); if($('#mob')) $('#mob').focus(); return}
   if(t.closest('[data-needlogin]')){S.acctFlow=true; S.step='phone'; renderAccount(); toast('باشگاه کتاب‌خوانی عضویتی است — اول وارد شو'); return}
   if(t.closest('#qClear2')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderEvents(); renderArticles(); return}
-  const pin=t.closest('[data-pin]'); if(pin){const [k,id]=pin.dataset.pin.split(':'); togglePin(k,id); return}
+  const pin=t.closest('[data-pin]'); if(pin){
+    const [k,id]=pin.dataset.pin.split(':'); togglePin(k,id);
+    /* سنجاق فقط سنجاق‌ها و کارت‌های خودش را عوض می‌کند، نه کل صفحه را */
+    renderPins(); if(k==='pe') renderTeachers(); if(k==='ar') renderArticles();
+    if(k==='pe'&&S.person===id) renderPersonSheet();
+    if(k==='ar'&&S.article===id) renderArticleSheet();
+    toast(S.pins.has(k+':'+id)?'سنجاق شد':'از سنجاق درآمد');
+    return}
   if(t.closest('[data-clearpins]')){S.pins.clear(); savePins(); renderAll(); toast('سنجاق‌ها برداشته شد'); return}
   const op=t.closest('[data-openpin]'); if(op){
     const [k,id]=op.dataset.openpin.split(':');
@@ -1579,13 +1621,18 @@ document.addEventListener('click',e=>{
   const jp=t.closest('[data-jump]'); if(jp){
     if(jp.dataset.closeFirst) closeSheets();
     const id=jp.dataset.jump; if($('#'+id+'.sheet')) openSheet(id); else {closeSheets(); goto(id)}; return}
-  const hr=t.closest('[data-href]'); if(hr){location.href=hr.dataset.href; return}
+  const hr=t.closest('[data-href]'); if(hr){
+    /* فقط مسیرهای خود سامانه؛ مقدار ناشناخته در نشانی، جابه‌جایی نمی‌سازد */
+    const to=hr.dataset.href||'';
+    if(/^[a-z][a-z0-9-]*\.html(#(me|menu|notice|verify|faq|support|p=[\w-]+|ev=[\w-]+))?$/.test(to)) location.href=to;
+    else toast('این پیوند در نسخهٔ نمایشی فعال نیست');
+    return}
   if(t.closest('[data-close]')){closeSheets(); return}
   const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy); return}
   const sh=t.closest('[data-share]'); if(sh){copyText('https://lifeline1.ir/e/'+sh.dataset.share); return}
   const wt=t.closest('[data-wait]'); if(wt){log('درخواست لیست انتظار'); closeSheets(); toast('در لیست انتظار ثبت شدی — اگر جا خالی شد خبر می‌دهیم'); return}
   if(t.closest('[data-wallet]')){toast(S.user?'درگاه کیف پول در نسخهٔ نهایی وصل می‌شود':'برای دیدن کیف پول وارد حساب شو'); return}
-  const th=t.closest('[data-theme-toggle]'); if(th){setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'); return}
+  if(t.closest('[data-theme-toggle]')){themeToggle(); return}
   if(t.closest('[data-readall]')){NOTICES.forEach(n=>n.unread=false); renderNotices(); renderAll(); toast('همهٔ اعلان‌ها خوانده شد'); return}
   if(t.closest('[data-login]')){
     const v=unFa(($('#mob')||{}).value||'').replace(/\D/g,'');
@@ -1620,7 +1667,12 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape') closeSheets()});
 $('#scrim').addEventListener('click',closeSheets);
-$('#q').addEventListener('input',e=>{S.q=e.target.value; $('#qClear').hidden=!S.q; renderSearch(); renderArticles()});
+let qTimer=0;
+$('#q').addEventListener('input',e=>{
+  S.q=e.target.value; $('#qClear').hidden=!S.q;
+  clearTimeout(qTimer);   /* قاب‌بندی تایپ: هر کلید، همهٔ کارت‌ها را از نو نمی‌سازد */
+  qTimer=setTimeout(()=>{renderSearch(); renderArticles()},120);
+});
 $('#qClear').addEventListener('click',()=>{S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderEvents(); renderArticles(); $('#q').focus()});
 window.addEventListener('scroll',()=>{document.documentElement.classList.toggle('atscroll',window.scrollY>10)},{passive:true});
 $('#acctBtn').addEventListener('click',()=>openF('shAccount'));
@@ -1659,7 +1711,7 @@ function openHash(){
   if(h.startsWith('ev=')){location.href='events.html?ev='+encodeURIComponent(h.slice(3)); return}
 }
 initKeys(document);
-try{const th=localStorage.getItem('nora-theme'); if(th) setTheme(th); else if(matchMedia('(prefers-color-scheme:dark)').matches) setTheme('dark');}catch(e){}
+themeInit();
 openHash();
 window.addEventListener('hashchange',openHash);
 loadSession(); loadPins();
@@ -1668,7 +1720,8 @@ autoBanner();
 
 window.NORA_HOME={S:S,EVENTS:EVENTS,PEOPLE:PEOPLE,ARTICLES:ARTICLES,PARTNERS:PARTNERS,CLUB:CLUB,PAST:PAST,
   BANNERS:BANNERS,QUICK:QUICK,MENU:MENU,CATS:CATS,QTAGS:QTAGS,CLUB_POINTS:CLUB_POINTS,
-  openF:openF,personSheet:personSheet,articleSheet:articleSheet,togglePin:togglePin,renderAll:renderAll};
+  openF:openF,personSheet:personSheet,articleSheet:articleSheet,partnerSheet:partnerSheet,
+  togglePin:togglePin,renderAll:renderAll,themeApply:themeApply,themeToggle:themeToggle,themeNow:themeNow};
 })();
 </script>
 </body>

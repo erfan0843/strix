@@ -19,6 +19,7 @@ function makeStore(){const m=new Map(); return {
   get length(){return m.size}, _dump:()=>[...m.keys()]};}
 
 /* نشانی واقعی برای ?guests= — فایل‌ها از همین پوشه خوانده می‌شوند (بی‌شبکه) */
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function load(file,store,q){
   const errs=[];
   const dom=await JSDOM.fromFile(DIR+file,{
@@ -572,6 +573,7 @@ async function load(file,store,q){
   /* جست‌وجو: رویداد، مطلب و استاد */
   p.doc.querySelector('#q').value='عکاسی';
   p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  await wait(180);   /* جست‌وجو قاب‌بندی دارد تا هر کلید، همهٔ کارت‌ها را از نو نسازد */
   ok(!p.doc.querySelector('#searchRes').hidden,'نتیجهٔ جست‌وجو می‌آید');
   ok(p.doc.querySelector('#evSec').hidden,'جای رویدادها به نتیجهٔ جست‌وجو می‌رود');
   ok(p.all('#searchRes .sres').length>=2,'نتیجه‌ها فهرست می‌شوند');
@@ -638,7 +640,9 @@ async function load(file,store,q){
   p.click('.menubtn');
   ok(p.all('#menuBody .mgroup').length===5 && p.all('#menuBody .mrow').length===21,'منو: پنج گروه و ۲۱ ردیف');
   ok(p.all('#menuBody .mfoot .mon').length===8,'نهادهای همکار در پاصفحهٔ منو');
-  p.click('#menuBody [data-jump="people"]');
+  ok(p.doc.querySelector('#menuBody [data-jump="people"]')===null,'هیچ ردیفی به بخش بی‌وجود «people» پرش نمی‌کند');
+  ok(p.all('#menuBody [data-jump="teachers"]').length===1 && p.doc.querySelector('#menuBody [data-jump="staff"]')!==null,'ردیف استادان و دست‌اندرکاران به بخش‌های خودشان می‌روند');
+  p.click('#menuBody [data-jump="teachers"]');
   ok(!p.doc.querySelector('#shMenu').className.includes('on'),'ردیف منو ورقه را می‌بندد و می‌رود سر بخش');
   /* تب‌بار: خانه، رویدادها، حساب من */
   ok(p.all('#tabs button').length===3,'تب‌بار سه تب دارد');
@@ -834,6 +838,127 @@ async function load(file,store,q){
   ok(p4.doc.querySelector('#shPast').className.includes('on') && p4.txt('#pastBody').includes('کارگاه فن بیان — ترم تیر'),'ورود با ?past= ورقهٔ برگزارشده را باز می‌کند');
   const p5=await load('events.html',makeStore(),'#past');
   ok(!p5.doc.querySelector('#pastView').hidden && p5.all('#pastList .evcard').length===4,'ورود با #past هم نمای برگزارشده‌ها را می‌آورد');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v6 — بازبینی منوی خانه: امنیت، کارایی، یو‌آی، کلید شب و روز
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── بازبینی خانه (v6) ──');
+  const homeSrc=fs.readFileSync(DIR+'home.html','utf8');
+  const nora=fs.readFileSync(DIR+'nora.css','utf8');
+
+  /* الف) کلید شب و روز به سبک اپل */
+  const p=await load('home.html',makeStore());
+  const sw=p.doc.querySelector('.topbar [data-theme-toggle]');
+  ok(sw!==null && sw.classList.contains('themesw'),'کلید شب و روز در نوار بالا هست');
+  ok(sw.getAttribute('role')==='switch' && sw.getAttribute('aria-checked')!==null,'کلید نقش switch و وضعیت aria دارد');
+  ok(p.all('.themesw .tsw-ico').length===2,'کلید دو سر دارد: خورشید و ماه');
+  ok(p.doc.querySelector('.themesw use[href="#i-sun"]')!==null && p.doc.querySelector('.themesw use[href="#i-moon"]')!==null,'خورشید و ماه نماد خودشان را دارند');
+  ok(p.doc.querySelectorAll('.themesw .tsw-knob').length===1,'گرهِ لغزان روی شیار هست');
+  const before=p.doc.documentElement.dataset.theme;
+  p.click('.themesw');
+  const after=p.doc.documentElement.dataset.theme;
+  ok(before==='light'&&after==='dark','یک کلیک، تم را روز↔شب می‌کند');
+  ok(p.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','وضعیت کلید با تم هم‌گام است');
+  ok(p.window.localStorage.getItem('nora-theme')==='dark','تم در حافظهٔ مرورگر می‌ماند');
+  ok(p.doc.querySelector('meta[name="theme-color"]').getAttribute('content')==='#1B211E','رنگ نوار مرورگر با تم عوض می‌شود');
+  p.click('.themesw');
+  ok(p.doc.documentElement.dataset.theme==='light' && p.doc.querySelector('.themesw').getAttribute('aria-checked')==='false','برگشت به روز هم کار می‌کند');
+
+  /* صفحهٔ دوم پوسته هم همان کلید را دارد */
+  const pe=await load('events.html',makeStore());
+  ok(pe.doc.querySelector('.topbar .themesw')!==null && pe.doc.querySelectorAll('.themesw .tsw-ico').length===2,'صفحهٔ رویدادها هم همان کلید را دارد');
+  pe.click('.themesw');
+  ok(pe.doc.documentElement.dataset.theme==='dark' && pe.window.localStorage.getItem('nora-theme')==='dark','کلید در صفحهٔ رویدادها هم تم را می‌برد');
+
+  /* بی‌فلش: تم پیش از رنگ‌آمیزی می‌نشیند */
+  const head=homeSrc.slice(homeSrc.indexOf('<head>'),homeSrc.indexOf('</head>'));
+  const cssAt=head.indexOf('rel="stylesheet"');
+  const scriptAt=head.indexOf("localStorage.getItem('nora-theme')");
+  ok(scriptAt>0 && scriptAt<cssAt,'تم پیش از بارگذاری پوسته‌ها خوانده می‌شود (بدون فلش سفید)');
+  ok(!/data-theme="light"/.test(homeSrc.slice(0,homeSrc.indexOf('<head>'))+head.slice(0,scriptAt)),'حالت اولیه در نشانه‌گذاری قفل نشده');
+
+  /* ب) پیوندها و هدف‌های پرش: هیچ ردیف مرده‌ای نماند */
+  const jumpIds=[...homeSrc.matchAll(/data-jump="([^"]+)"/g)].map(m=>m[1]);
+  const declared=new Set([...homeSrc.matchAll(/id="([A-Za-z0-9_-]+)"/g)].map(m=>m[1]));
+  const jumpTargets=new Set([...homeSrc.matchAll(/\bj:'([A-Za-z0-9_-]+)'/g)].map(m=>m[1]));
+  ok([...jumpTargets].every(j=>declared.has(j)),'هر پرش منو/کاشی به بخش موجود می‌رود: '+[...jumpTargets].join('، '));
+  ok(!jumpTargets.has('people'),'پرش مردهٔ «people» برداشته شد');
+  ok(/\{k:'events'[^}]*href:'events\.html#list'/.test(homeSrc) &&
+     /q\.href[\s\S]{0,120}?<a class="tile" href=/.test(homeSrc),
+     'کاشی «رویدادها» پیوند واقعی است، نه دکمهٔ بی‌کار');
+  ok(/\^\[a-z\]\[a-z0-9-\]\*\\\.html/.test(homeSrc),'مسیرهای data-href فقط درون سامانه باز می‌شوند');
+
+  /* ج) امنیت: دادهٔ خراب در حافظهٔ مرورگر صفحه را نمی‌شکند */
+  const bad=makeStore();
+  bad.setItem('nora-home-user',JSON.stringify({nothing:true}));
+  bad.setItem('nora-home-pins',JSON.stringify(['ev:e3',{'x':1},'javascript:alert(1)',42]));
+  const pb=await load('home.html',bad);
+  ok(pb.errs.length===0&&pb.txt('#acctBtn')==='م','نشست خراب در حافظه، صفحه را سفید نمی‌کند');
+  ok(pb.window.localStorage.getItem('nora-home-user')==='null','نشست بی‌اعتبار پاک می‌شود');
+  ok(pb.window.NORA_HOME.S.pins.size===1 && pb.window.NORA_HOME.S.pins.has('ev:e3'),'از سنجاق‌ها فقط کلیدهای معتبر می‌مانند');
+  const bad2=makeStore();
+  bad2.setItem('nora-home-user',JSON.stringify({name:'<img src=x onerror=alert(1)>سارا',mobile:'12',certs:'۹۹۹۹۹',wallet:-5}));
+  const pb2=await load('home.html',bad2);
+  ok(pb2.errs.length===0 && pb2.doc.querySelector('#acctBtn img')===null,'نام آلوده به نشانه‌گذاری، تصویر/اسکریپت نمی‌سازد');
+  ok(pb2.window.NORA_HOME.S.user.certs===999 && pb2.window.NORA_HOME.S.user.wallet===0,'عددهای نشست در بازهٔ مجاز می‌مانند');
+
+  /* د) کارایی */
+  ok(/qTimer=setTimeout/.test(homeSrc),'تایپ در جست‌وجو قاب‌بندی شده (نه رندر در هر کلید)');
+  ok(/renderPins\(\); if\(k==='pe'\) renderTeachers\(\)/.test(homeSrc),'سنجاق فقط بخش‌های خودش را از نو می‌سازد');
+  const uijs=fs.readFileSync(DIR+'ui.js','utf8');
+  ok(/sheenRaf=requestAnimationFrame/.test(uijs),'درخشش زیر ماوس قاب‌بندی شده و هر حرکت، چیدمان نمی‌خواند');
+
+  /* ه) یو‌آی: پرش درون‌صفحه زیر نوار بالا نرود */
+  ok(/\.sec\[id\],section\[id\]\{scroll-margin-top:64px\}/.test(nora),'سرِ بخش هنگام پرش، زیر نوار بالا پنهان نمی‌شود');
+  ok(/\.themesw\{\.\.\.\}/.test(nora)||/\.themesw\{/.test(nora),'پوستهٔ مشترک، کلید تم را می‌شناسد');
+  ok(/html\[dir="rtl"\]\[data-theme="dark"\] \.tsw-knob\{transform:translateX\(-32px\)\}/.test(nora),
+     'گره در چیدمان راست‌به‌چپ به سمت ماه می‌لغزد (قرینه)');
+
+  /* ز) سلامت نشانه‌گذاری: شناسه تکراری، ورقهٔ بی‌مقصد، آیکون تعریف‌نشده */
+  const pl0=await load('home.html',makeStore());
+  const pe0=await load('events.html',makeStore(),'#list');
+  for(const [file,src] of [['home.html',homeSrc],['events.html',fs.readFileSync(DIR+'events.html','utf8')]]){
+    const body=src.slice(src.indexOf('</head>'));
+    const ids=[...body.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
+    const dup=ids.filter((x,i)=>ids.indexOf(x)!==i);
+    ok(dup.length===0,file+': شناسهٔ تکراری ندارد'+(dup.length?' → '+[...new Set(dup)].join('، '):''));
+    const sheets=new Set([...body.matchAll(/<aside class="sheet" id="([^"]+)"/g)].map(m=>m[1]));
+    const targets=[...body.matchAll(/data-f="([^"]+)"/g)].map(m=>m[1]).filter(f=>!/[${}]/.test(f));
+    const deadF=[...new Set(targets)].filter(f=>!sheets.has(f));
+    ok(deadF.length===0,file+': هر دکمهٔ ورقه، ورقهٔ خودش را دارد'+(deadF.length?' → '+deadF.join('، '):''));
+    const syms=new Set([...src.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
+    const used=[...new Set([...body.matchAll(/<use href="#([^"]+)"/g)].map(m=>m[1]))].filter(u=>!/[${}]/.test(u));
+    const missing=used.filter(u=>!syms.has(u));
+    ok(missing.length===0,file+': همهٔ آیکون‌های ثابت تعریف شده‌اند'+(missing.length?' → '+missing.join('، '):''));
+  }
+
+  /* آیکون‌های پویا: در صفحهٔ رندرشده، هر آیکون باید نماد خودش را داشته باشد */
+  for(const [file,chk] of [['خانه',pl0],['رویدادها',pe0]]){
+    const syms=new Set([...chk.doc.querySelectorAll('symbol')].map(x=>x.id));
+    const used=[...new Set([...chk.doc.querySelectorAll('use')].map(u=>(u.getAttribute('href')||'').slice(1)))].filter(Boolean);
+    const missing=used.filter(u=>!syms.has(u));
+    ok(missing.length===0,file+': هر آیکونِ رندرشده نمادش را دارد'+(missing.length?' → '+missing.join('، '):''));
+  }
+
+  /* ح) کاشی‌های پیوندی و برگشت‌پذیری تم بین دو صفحه */
+  const pl=await load('home.html',makeStore());
+  const tile=pl.doc.querySelector('#quick .tile[href="events.html#list"]');
+  ok(tile && tile.tagName==='A','کاشی «رویدادها» یک پیوند واقعی است');
+  ok(pl.all('#quick a.tile').length===1 && pl.all('#quick button.tile').length===7,'هفت کاشی دیگر همچنان ورقه/پرش درون‌صفحه‌اند');
+  pl.click('.themesw');
+  pl.window.NORA_HOME.renderAll();
+  ok(pl.doc.documentElement.dataset.theme==='dark' && pl.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','رندر دوبارهٔ صفحه، وضعیت کلید را به هم نمی‌ریزد');
+  const store2=makeStore(); store2.setItem('nora-theme','dark');
+  const pd=await load('home.html',store2);
+  ok(pd.doc.documentElement.dataset.theme==='dark' && pd.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','صفحه با تم ذخیره‌شده درست بالا می‌آید');
+
+  /* و) شمارش‌های منو زنده‌اند، نه هاردکد */
+  ok(/s:faN\(TEACHERS\.length\)/.test(homeSrc) && !/s:'۸ نفر'/.test(homeSrc),'شمارش استادان از خود داده می‌آید');
+  const pm=await load('home.html',makeStore());
+  pm.click('.menubtn');
+  ok(pm.txt('#menuBody').includes('۶ استاد'),'منو عدد درست را نشان می‌دهد (۶ استاد)');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

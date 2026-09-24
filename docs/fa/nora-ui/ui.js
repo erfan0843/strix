@@ -498,17 +498,24 @@ function initUI(){
       } else ch.classList.toggle('on');
     }
   });
+  /* درخشش ملایم زیر انگشت/ماوس — با قاب‌بندی تا هر حرکت، چیدمان را نخواند */
+  let sheenQ=null, sheenRaf=0;
   document.addEventListener('pointermove',e=>{
-    const s=e.target.closest('.sheen'); if(!s)return; const r=s.getBoundingClientRect();
-    s.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
-    s.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
-  });
+    if(!(e.target instanceof Element)) return;
+    const s=e.target.closest('.sheen'); if(!s) return;
+    sheenQ={el:s,x:e.clientX,y:e.clientY};
+    if(sheenRaf) return;
+    sheenRaf=requestAnimationFrame(()=>{
+      sheenRaf=0; const q=sheenQ; sheenQ=null; if(!q||!q.el.isConnected) return;
+      const r=q.el.getBoundingClientRect();
+      q.el.style.setProperty('--mx',((q.x-r.left)/r.width*100).toFixed(1)+'%');
+      q.el.style.setProperty('--my',((q.y-r.top)/r.height*100).toFixed(1)+'%');
+    });
+  },{passive:true});
   /* شب و روز */
-  try{const th=localStorage.getItem('nora-theme'); if(th) document.documentElement.dataset.theme=th;
-      else if(matchMedia('(prefers-color-scheme:dark)').matches) document.documentElement.dataset.theme='dark'}catch(e){}
+  themeInit();
   const t=document.getElementById('theme');
-  if(t) t.onclick=()=>{const v=document.documentElement.dataset.theme==='dark'?'light':'dark';
-    document.documentElement.dataset.theme=v; try{localStorage.setItem('nora-theme',v)}catch(e){}};
+  if(t) t.onclick=themeToggle;
   initAll(document);
 }
 
@@ -516,6 +523,49 @@ function initUI(){
 if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,initKeys,download,svgToPNG,
   certificateSVG,certificateFile,CERT_G,
   words,money,faN,fa,faDigits,tkQR,tkFit,ticketMeta};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   تم روز و شب — یک منبع حقیقت برای همهٔ صفحه‌های نورا
+   ──────────────────────────────────────────────────────────────────────────
+   کلید حافظه: nora-theme · مقدارها: light | dark
+   رنگ نوار وضعیت مرورگر (theme-color) هم با تم عوض می‌شود.
+   هر عنصر [data-theme-toggle] یک کلید کشویی خورشید/ماه است که با وضعیت
+   هم‌گام می‌ماند؛ خودِ نشانه‌گذاری‌اش را themeSwitchHTML می‌سازد.
+   ══════════════════════════════════════════════════════════════════════════ */
+const THEME_KEY='nora-theme';
+const THEME_BAR={light:'#F5F3EE', dark:'#1B211E'};
+function themeNow(){return document.documentElement.dataset.theme==='dark'?'dark':'light'}
+function themeApply(v,save){
+  v=(v==='dark')?'dark':'light';
+  document.documentElement.dataset.theme=v;
+  document.documentElement.style.colorScheme=v;
+  if(save!==false){try{localStorage.setItem(THEME_KEY,v)}catch(e){}}
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content',THEME_BAR[v]);
+  document.querySelectorAll('[data-theme-toggle]').forEach(b=>{
+    const on=v==='dark';
+    b.setAttribute('aria-checked',on?'true':'false');
+    b.dataset.state=v;
+    const lab=b.dataset.labelDark;
+    if(lab) b.setAttribute('aria-label',on?lab:(b.dataset.labelLight||lab));
+  });
+  return v;
+}
+function themeToggle(){return themeApply(themeNow()==='dark'?'light':'dark')}
+function themeInit(){
+  let v=null;
+  try{v=localStorage.getItem(THEME_KEY)}catch(e){}
+  if(v!=='dark'&&v!=='light')
+    v=(typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+  return themeApply(v,false);
+}
+/* نشانه‌گذاری کلید کشویی: خورشید در یک سر، ماه در سر دیگر، گرهٔ لغزان بین‌شان */
+function themeSwitchHTML(o){
+  o=o||{};
+  return `<span class="tsw-trk" aria-hidden="true">
+    <span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span>
+    <span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span>
+    <span class="tsw-knob"></span></span>`;
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    کارت رویداد با پوستر — یک کارت، مشترک خانه و صفحهٔ رویدادها
