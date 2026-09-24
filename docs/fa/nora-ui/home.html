@@ -4,6 +4,18 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>نورا — خانه</title>
+<meta name="description" content="رویدادها، کارگاه‌ها، مطالب و باشگاه کتاب‌خوانی گروه فرهنگی خط زندگی — در یک خانه"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="نورا — گروه فرهنگی خط زندگی"/>
+<meta property="og:title" content="نورا — رویدادها و مطالب خط زندگی"/>
+<meta property="og:description" content="رویدادهای پیش‌رو، کارگاه‌ها، مطالب و باشگاه کتاب‌خوانی؛ یک‌جا و مرتب."/>
+<meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
+<meta property="og:locale" content="fa_IR"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="icon" href="icon-192.png"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+
 <meta name="description" content="خانهٔ نورا — ویترین رویدادها، کارگاه‌ها، مطالب، اساتید و باشگاه کتاب‌خوانی گروه فرهنگی خط زندگی"/>
 <meta name="theme-color" content="#F5F3EE"/>
 <script>/* تم پیش از نخستین رنگ‌آمیزی می‌نشیند تا در حالت شب، سفیدیِ اولیه دیده نشود */
@@ -338,6 +350,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 </style>
 </head>
 <body>
+<a class="skip" href="#quick">پرش به بخش‌های خانه</a>
+<h1 class="vh">خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی</h1>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
 <!-- ══ مجموعهٔ آیکون نورا — شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
 
@@ -386,6 +400,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.6h8.4M17.4 8.6h2.6M4 15.4h3.4M12.4 15.4h7.6"/><circle cx="15.4" cy="8.6" r="2.1"/><circle cx="10.4" cy="15.4" r="2.1"/></g></symbol>
 
+<symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6v10.2"/><path d="M8.4 7.2 12 3.6l3.6 3.6"/><path d="M7.4 11.4H6.2a1.8 1.8 0 0 0-1.8 1.8v5a1.8 1.8 0 0 0 1.8 1.8h11.6a1.8 1.8 0 0 0 1.8-1.8v-5a1.8 1.8 0 0 0-1.8-1.8h-1.2"/></g></symbol>
 <symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 14.4 14.4 9.6"/><path d="M11.4 7.2 12.9 5.7a4 4 0 0 1 5.6 5.6l-1.5 1.5"/><path d="M12.6 16.8 11.1 18.3a4 4 0 0 1-5.6-5.6l1.5-1.5"/></g></symbol>
 
 <symbol id="i-qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4.2 8V5.8A1.6 1.6 0 0 1 5.8 4.2H8M16 4.2h2.2A1.6 1.6 0 0 1 19.8 5.8V8M19.8 16v2.2a1.6 1.6 0 0 1-1.6 1.6H16M8 19.8H5.8a1.6 1.6 0 0 1-1.6-1.6V16"/><rect x="7.4" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="13" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="7.4" y="13" width="3.6" height="3.6" rx="1"/><path d="M13 13h1.8v1.8H13zM16.6 16.6H18.4" fill="currentColor" stroke="none"/></g></symbol>
@@ -512,9 +527,12 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <section class="card paper" style="margin-top:12px" aria-label="جست‌وجو">
     <div class="sfield">
       <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
-      <input id="q" type="search" placeholder="رویداد، کارگاه، استاد، مطلب…" aria-label="جست‌وجو در خانه"/>
+      <input id="q" type="search" placeholder="رویداد، کارگاه، استاد، مطلب…" aria-label="جست‌وجو در خانه"
+             autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugBox" aria-autocomplete="list"/>
       <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button>
     </div>
+    <div id="sugBox" class="sugbox" role="listbox" aria-label="پیشنهادهای جست‌وجو" hidden></div>
+    <div id="hotRow" class="row tight" style="margin-top:10px"></div>
   </section>
 
   <!-- ── نتیجهٔ جست‌وجو: رویداد، مطلب و استاد ── -->
@@ -635,10 +653,12 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   </footer>
 </main>
 
-<nav class="tabbar" id="tabs" aria-label="ناوبری اصلی">
-  <button data-tab="home" class="on" aria-current="page" data-i="i-home" data-if="i-home-f"><svg class="i"><use href="#i-home-f"/></svg><small>خانه</small></button>
-  <button data-tab="events" data-i="i-calendar" data-if="i-calendar-f"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></button>
-  <button data-tab="me" data-i="i-idcard" data-if="i-idcard-f"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></button>
+<section class="sec" id="continue"></section>
+
+<nav class="tabbar" id="tabs" role="tablist" aria-label="ناوبری اصلی">
+  <button data-tab="home" role="tab" aria-selected="true" class="on" aria-current="page" data-i="i-home" data-if="i-home-f"><svg class="i"><use href="#i-home-f"/></svg><small>خانه</small></button>
+  <button data-tab="events" role="tab" aria-selected="false" data-i="i-calendar" data-if="i-calendar-f"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></button>
+  <button data-tab="me" role="tab" aria-selected="false" data-i="i-idcard" data-if="i-idcard-f"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></button>
 </nav>
 
 <!-- ── ورقه‌ها ── -->
@@ -788,7 +808,8 @@ const MENU=[
 /* ── وضعیت صفحه ── */
 const S={q:'', day:'all', cat:'all', tag:'all', ptab:'teacher', slide:0, timer:null, art:'all',
   step:'guest', phone:'', user:null, ev:null, person:null, article:null, partner:null, verify:undefined, serial:'',
-  evview:'list', story:'st1', vote:null, remind:false, acctFlow:false, pins:new Set()};
+  evview:'list', story:'st1', vote:null, remind:false, acctFlow:false, pins:new Set(),
+  sug:-1, searches:[], recent:[], authPend:null, hideRec:0};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const left=e=>e.cap?Math.max(0,e.cap-e.taken):Infinity;
@@ -860,8 +881,62 @@ function renderPins(){
       <span class="cap">${faN(items.length)} مورد — سنجاق‌ها در همین مرورگر می‌مانند</span></div>
     <div class="row tight">${items.map(x=>`
       <button class="chip on" data-openpin="${x.kind}:${x.id}">
-        <svg class="i"><use href="#${x.i}"/></svg> ${esc(x.t)}</button>`).join('')}
+        <svg class="i"><use href="#${x.i}"/></svg> ${esc(x.t)}${S.recent.some(r=>r.k===x.kind&&r.id===x.id)?'':' <span class="tagg brand">تازه</span>'}</button>`).join('')}
       <button class="chip" data-clearpins><svg class="i"><use href="#i-close"/></svg> برداشتن همه</button></div>
+  </div>`;
+}
+
+/* ═════════ ادامه بده: آخرین بازدیدها و کار نیمه‌تمام ═════════ */
+const KINDS={
+  ev:{i:'i-calendar',n:'رویداد',go:id=>{location.href='events.html?ev='+encodeURIComponent(id)}},
+  ar:{i:'i-article',n:'مطلب',go:id=>articleSheet(id)},
+  pe:{i:'i-graduation',n:'استاد',go:id=>personSheet(id)},
+  pa:{i:'i-handshake',n:'نهاد',go:id=>partnerSheet(id)}
+};
+function titleOf(k,id){
+  if(k==='ev'){const e=EVENTS.find(x=>x.id===id); return e?e.t:''}
+  if(k==='ar'){const a=ARTICLES.find(x=>x.id===id); return a?a.t:''}
+  if(k==='pe'){const p=PEOPLE.find(x=>x.id===id); return p?p.n:''}
+  if(k==='pa'){const c=PARTNERS.find(x=>x.id===id); return c?c.n:''}
+  return '';
+}
+/* زمان نسبی: کاربر باید بفهمد «کی» آن را دیده، نه تاریخ خام */
+function agoFa(ts){
+  const s=Math.max(0,Math.round((Date.now()-Number(ts||0))/1000));
+  if(s<90) return 'همین حالا';
+  const m=Math.round(s/60); if(m<60) return faN(m)+' دقیقه پیش';
+  const h=Math.round(m/60); if(h<24) return faN(h)+' ساعت پیش';
+  const d=Math.round(h/24); if(d===1) return 'دیروز'; if(d<30) return faN(d)+' روز پیش';
+  return faN(Math.max(2,Math.round(d/30)))+' ماه پیش';
+}
+function renderContinue(){
+  const box=$('#continue'); if(!box) return;
+  const items=S.recent.filter(x=>titleOf(x.k,x.id)).slice(0,4);
+  const pend=S.authPend;
+  const hid=S.hideRec&&Date.now()-S.hideRec<7*24*3600*1000;
+  if((!pend&&!items.length)||(hid&&!pend)){box.hidden=true; box.innerHTML=''; return}
+  box.hidden=false;
+  box.innerHTML=`<div class="card paper">
+    <div class="sec-hd"><span class="fw">ادامه بده</span><span class="sp"></span>
+      <span class="cap">آخرین بازدیدها و کار نیمه‌تمام</span>
+      ${pend?'':`<button class="more" data-hiderec style="padding:0;font-size:11.5px">پنهان کن</button>`}</div>
+    <div class="stack tight">
+      ${pend?`<button class="sres" data-resume-auth>
+        <span class="si" style="--g:linear-gradient(150deg,#C08A1E,#7A5A2A)"><svg class="i"><use href="#i-mobile"/></svg></span>
+        <span class="sp" style="flex:1;min-width:0"><b>ورودت را تمام کن</b>
+          <span class="hrow">${pend.mobile?'کد به '+maskPhone(pend.mobile)+' فرستادیم':'شمارهٔ موبایل را بزن و کد را بگیر'}</span></span>
+        <span class="tagg brand">ادامه</span>
+        <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`:''}
+      ${items.map(x=>{const k=KINDS[x.k]; return `<div class="crow">
+        <button class="sres" data-openrec="${x.k}:${x.id}">
+          <span class="si" style="--g:var(--g-1)"><svg class="i"><use href="#${k.i}"/></svg></span>
+          <span class="sp" style="flex:1;min-width:0"><b>${esc(titleOf(x.k,x.id))}</b>
+            <span class="hrow">${k.n} · ${agoFa(x.at)}</span></span>
+          ${isPinned(x.k,x.id)?'<span class="tagg">سنجاق</span>':''}
+          <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+        <button class="icon-btn" data-droprec="${x.k}:${x.id}" aria-label="برداشتن ${esc(titleOf(x.k,x.id))} از ادامه بده"><svg class="i"><use href="#i-close"/></svg></button></div>`}).join('')}
+    </div>
+    ${items.length?`<div class="row" style="margin-top:10px"><button class="btn sm quiet" data-clearrec><svg class="i"><use href="#i-archive"/></svg> پاک کردن فهرست</button></div>`:''}
   </div>`;
 }
 
@@ -943,6 +1018,51 @@ function renderMine(){
         <div class="pc-foot"><button class="btn sm quiet" data-f="shSupport">پاسخ دادن</button></div>
       </div>
     </div>`;
+}
+
+/* ═════════ جست‌وجو: پیشنهاد زنده، سابقهٔ خود کاربر، چیپ‌های داغ ═════════ */
+const HOTTAGS=['پیشنهادی','رایگان','آنلاین','گواهی‌دار'];
+function renderHot(){
+  const box=$('#hotRow'); if(!box) return;
+  if(S.q.trim()){box.hidden=true; box.innerHTML=''; return}
+  box.hidden=false;
+  const chip=(ic,label,attr)=>`<button class="chip" ${attr}><svg class="i"><use href="#${ic}"/></svg> ${esc(label)}</button>`;
+  box.innerHTML=
+    (S.searches.length?S.searches.map(t=>chip('i-clock',t,`data-sq="${esc(t)}"`)).join('')+
+      chip('i-close','پاک کردن سابقه','data-clearhistory'):'')+
+    HOTTAGS.map(t=>chip('i-star',t,`data-sq="${esc(t)}"`)).join('')+
+    ARTICLES.slice(0,2).map(a=>chip('i-article',a.t,`data-sq="${esc(a.t)}"`)).join('');
+}
+function renderSug(){
+  const box=$('#sugBox'), q=S.q.trim();
+  if(!q){box.hidden=true; box.innerHTML=''; S.sug=-1; $('#q').setAttribute('aria-expanded','false'); return}
+  const sug=[];
+  EVENTS.filter(match).slice(0,3).forEach(e=>sug.push({k:'ev',id:e.id,t:e.t,s:'رویداد · '+e.when+' · '+e.time}));
+  ARTICLES.filter(a=>(a.t+' '+a.cat+' '+(a.tags||[]).join(' ')).includes(q)).slice(0,2)
+    .forEach(a=>sug.push({k:'ar',id:a.id,t:a.t,s:'مطلب · '+a.cat+' · '+faN(a.min)+' دقیقه'}));
+  PEOPLE.filter(p=>(p.n+' '+p.r+' '+(p.tags||[]).join(' ')).includes(q)).slice(0,2)
+    .forEach(x=>sug.push({k:'pe',id:x.id,t:x.n,s:(x.kind==='staff'?'دست‌اندرکار':'استاد')+' · '+x.r}));
+  CATS.filter(c=>(c.n||'').includes(q)).slice(0,1).forEach(c=>sug.push({k:'cat',id:c.n,t:c.n,s:'صافی دستهٔ برنامه‌ها'}));
+  box.hidden=false; $('#q').setAttribute('aria-expanded','true');
+  box.innerHTML=sug.map((x,i)=>`<button class="sug${i===S.sug?' on':''}" role="option" aria-selected="${i===S.sug}" id="sug${i}"
+      data-sug="${x.k}:${esc(x.id)}"><svg class="i"><use href="#${x.k==='ev'?'i-calendar':x.k==='ar'?'i-article':x.k==='pe'?'i-graduation':'i-layers'}"/></svg>
+      <span class="sp" style="flex:1;min-width:0"><b>${esc(x.t)}</b><span class="hrow">${esc(x.s)}</span></span>
+      ${i===S.sug?'<span class="cap">↵</span>':''}</button>`).join('')
+    +(q.length>=2?`<button class="sug last" data-sugall="${esc(q)}"><svg class="i"><use href="#i-search"/></svg>
+      <span class="sp" style="flex:1;min-width:0"><b>همهٔ نتیجه‌های «${esc(q)}»</b><span class="hrow">در بخش نتیجه‌های همین صفحه</span></span></button>`:'');
+  /* نقش listbox بدون گزینهٔ فعال هم معتبر می‌ماند */
+  $('#q').setAttribute('aria-activedescendant',S.sug>=0?'sug'+S.sug:'');
+}
+function pickSug(i){
+  const el=$$('#sugBox .sug')[i]; if(!el){S.sug=-1; renderSug(); return}
+  const all=el.dataset.sugall;
+  if(all){S.q=all; $('#q').value=all; saveSearchTerm(all); S.sug=-1; $('#sugBox').hidden=true;
+    $('#q').setAttribute('aria-expanded','false'); renderSearch(); renderArticles(); renderHot(); $('#q').focus(); return}
+  const [k,id]=(el.dataset.sug||'').split(':'); saveSearchTerm(S.q.trim());
+  S.sug=-1; $('#sugBox').hidden=true; $('#q').setAttribute('aria-expanded','false');
+  if(k==='cat'){S.q=id; $('#q').value=id; renderSearch(); renderArticles(); renderHot(); return}
+  const go={ev:()=>{location.href='events.html?ev='+encodeURIComponent(id)},ar:()=>articleSheet(id),pe:()=>personSheet(id)}[k];
+  if(go) go();
 }
 
 /* ═════════ رویدادها ═════════ */
@@ -1528,6 +1648,46 @@ function loadSession(){
   if(v&&!S.user) saveSession();   /* دادهٔ خراب پاک می‌شود تا صفحه سالم بماند */
 }
 function saveSession(){try{localStorage.setItem('nora-home-user',JSON.stringify(S.user))}catch(e){}}
+const REC_KEY='nora-home-recent', SEARCH_KEY='nora-home-search', AUTH_KEY='nora-home-auth', HIDE_KEY='nora-home-hiderec';
+const REC_RE=/^[A-Za-z0-9_-]{1,12}$/;
+function loadRecent(){
+  let a=[]; try{a=JSON.parse(localStorage.getItem(REC_KEY)||'[]')}catch(e){a=[]}
+  if(!Array.isArray(a)) return;
+  const now=Date.now();
+  a.filter(x=>x&&typeof x==='object'&&REC_RE.test(String(x.id||''))&&KINDS[String(x.k||'')]
+           &&titleOf(String(x.k),String(x.id))&&now-Number(x.at||0)<30*24*3600*1000)
+   .slice(0,8).forEach(x=>S.recent.push({k:String(x.k),id:String(x.id),at:Number(x.at)||now}));
+  const hid=Number(localStorage.getItem(HIDE_KEY)||0);
+  if(hid&&now-hid<7*24*3600*1000) S.hideRec=hid;
+}
+function saveRecent(){try{localStorage.setItem(REC_KEY,JSON.stringify(S.recent.slice(0,8)))}catch(e){}}
+/* هر بازدیدی که ثبت می‌شود، بالای فهرست می‌آید؛ کلید ناشناس وارد نمی‌شود */
+function pushRecent(k,id){
+  id=String(id||''); if(!KINDS[k]||!REC_RE.test(id)||!titleOf(k,id)) return;
+  S.recent=[{k:k,id:id,at:Date.now()}].concat(S.recent.filter(x=>!(x.k===k&&x.id===id))).slice(0,8);
+  S.hideRec=0; try{localStorage.removeItem(HIDE_KEY)}catch(e){}
+  saveRecent(); renderContinue(); renderPins();
+}
+function loadSearches(){
+  let a=[]; try{a=JSON.parse(localStorage.getItem(SEARCH_KEY)||'[]')}catch(e){a=[]}
+  if(!Array.isArray(a)) return;
+  a.filter(x=>typeof x==='string'&&x.trim().length>=2&&x.length<=40&&!/[<>]/.test(x)).slice(0,6).forEach(x=>S.searches.push(x.trim()));
+}
+function saveSearchTerm(t){
+  t=String(t||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,40);
+  if(t.length<2) return;
+  S.searches=[t].concat(S.searches.filter(x=>x!==t)).slice(0,6);
+  try{localStorage.setItem(SEARCH_KEY,JSON.stringify(S.searches))}catch(e){}
+}
+function loadAuthPend(){
+  let v=null; try{v=JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch(e){v=null}
+  if(S.user){saveAuthPend(null); return}
+  if(v&&typeof v==='object'){
+    const mob=/^09\d{9}$/.test(String(v.mobile||''))?String(v.mobile):'';
+    S.authPend={step:v.step==='code'?'code':'phone',mobile:mob};
+  }
+}
+function saveAuthPend(v){try{v?localStorage.setItem(AUTH_KEY,JSON.stringify(v)):localStorage.removeItem(AUTH_KEY)}catch(e){}}
 function loadPins(){
   let a=[]; try{a=JSON.parse(localStorage.getItem('nora-home-pins')||'[]')}catch(e){a=[]}
   if(!Array.isArray(a)) return;
@@ -1535,7 +1695,7 @@ function loadPins(){
 }
 function savePins(){try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
 function renderAll(){
-  renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub();
+  renderContinue(); renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub(); renderHot();
   renderTeachers(); renderStaff(); renderArticles(); renderPartners();
   const n=NOTICES.filter(x=>x.unread).length;
   const b=$('#bellBadge'); b.hidden=!n; b.textContent=faN(n);
@@ -1557,10 +1717,10 @@ function openF(id){
   if(id==='shStory') renderStory();
   openSheet(id);
 }
-function personSheet(id){S.person=id; renderPersonSheet(); openSheet('shPerson')}
-function articleSheet(id){S.article=id; renderArticleSheet(); openSheet('shArticle')}
-function partnerSheet(id){S.partner=id; renderPartnerSheet(); openSheet('shPartner')}
-function eventSheet(id){location.href='events.html?ev='+encodeURIComponent(id)}
+function personSheet(id){pushRecent('pe',id); S.person=id; renderPersonSheet(); openSheet('shPerson')}
+function articleSheet(id){pushRecent('ar',id); S.article=id; renderArticleSheet(); openSheet('shArticle')}
+function partnerSheet(id){pushRecent('pa',id); S.partner=id; renderPartnerSheet(); openSheet('shPartner')}
+function eventSheet(id){pushRecent('ev',id); location.href='events.html?ev='+encodeURIComponent(id)}
 function log(w){try{const k='nora-home-log'; const a=JSON.parse(localStorage.getItem(k)||'[]');
   a.unshift({w:w,at:nowFa()}); localStorage.setItem(k,JSON.stringify(a.slice(0,30)))}catch(e){}}
 
@@ -1598,6 +1758,33 @@ document.addEventListener('click',e=>{
     toast(S.pins.has(k+':'+id)?'سنجاق شد':'از سنجاق درآمد');
     return}
   if(t.closest('[data-clearpins]')){S.pins.clear(); savePins(); renderAll(); toast('سنجاق‌ها برداشته شد'); return}
+  const rec=t.closest('[data-openrec]'); if(rec){
+    const [k,id]=rec.dataset.openrec.split(':'); const kd=KINDS[k];
+    if(kd&&kd.go){saveSearchTerm(S.q.trim()); kd.go(id)}
+    return}
+  const drop=t.closest('[data-droprec]'); if(drop){
+    const [k,id]=drop.dataset.droprec.split(':');
+    S.recent=S.recent.filter(x=>!(x.k===k&&x.id===id)); saveRecent(); renderContinue(); renderPins();
+    toast('از «ادامه بده» برداشته شد'); return}
+  if(t.closest('[data-clearrec]')){S.recent=[]; saveRecent(); renderContinue(); renderPins(); toast('فهرست ادامه بده پاک شد'); return}
+  if(t.closest('[data-hiderec]')){
+    S.hideRec=Date.now(); try{localStorage.setItem(HIDE_KEY,String(S.hideRec))}catch(e){}
+    renderContinue(); toast('تا یک هفته نشانش نمی‌دهیم؛ با اولین بازدید برمی‌گردد'); return}
+  if(t.closest('[data-resume-auth]')){
+    if(!S.authPend) return;
+    S.acctFlow=true; S.step=S.authPend.step; S.phone=S.authPend.mobile||'';
+    openF('shAccount'); return}
+  const sq=t.closest('[data-sq]'); if(sq){
+    S.q=sq.dataset.sq; $('#q').value=S.q; $('#qClear').hidden=false;
+    saveSearchTerm(S.q); renderSearch(); renderSug(); renderArticles(); renderHot();
+    $('#q').focus(); toast('واژهٔ «'+S.q+'» را گذاشتیم'); return}
+  if(t.closest('[data-clearhistory]')){
+    S.searches=[]; try{localStorage.removeItem(SEARCH_KEY)}catch(e){}
+    renderHot(); toast('سابقهٔ جست‌وجو پاک شد'); return}
+  const sg2=t.closest('[data-sug]'); if(sg2){const i=$$('#sugBox .sug').indexOf(sg2); if(i>=0) pickSug(i); return}
+  const sga=t.closest('[data-sugall]');
+  if(sga){S.q=sga.dataset.sugall; $('#q').value=S.q; saveSearchTerm(S.q); renderSearch(); renderArticles(); renderHot();
+    $('#sugBox').hidden=true; $('#q').setAttribute('aria-expanded','false'); return}
   const op=t.closest('[data-openpin]'); if(op){
     const [k,id]=op.dataset.openpin.split(':');
     if(k==='ev') eventSheet(id); else if(k==='ar') articleSheet(id); else personSheet(id); return}
@@ -1629,7 +1816,10 @@ document.addEventListener('click',e=>{
     return}
   if(t.closest('[data-close]')){closeSheets(); return}
   const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy); return}
-  const sh=t.closest('[data-share]'); if(sh){copyText('https://lifeline1.ir/e/'+sh.dataset.share); return}
+  const sh=t.closest('[data-share]'); if(sh){
+    const id=sh.dataset.share, ev=EVENTS.find(x=>x.id===id);
+    shareItem({title:(ev?ev.t:'رویداد نورا'),text:(ev?ev.when+' · '+ev.time+' · '+ev.place:'رویداد گروه فرهنگی خط زندگی'),
+      url:'https://lifeline1.ir/e/'+id}); return}
   const wt=t.closest('[data-wait]'); if(wt){log('درخواست لیست انتظار'); closeSheets(); toast('در لیست انتظار ثبت شدی — اگر جا خالی شد خبر می‌دهیم'); return}
   if(t.closest('[data-wallet]')){toast(S.user?'درگاه کیف پول در نسخهٔ نهایی وصل می‌شود':'برای دیدن کیف پول وارد حساب شو'); return}
   if(t.closest('[data-theme-toggle]')){themeToggle(); return}
@@ -1637,15 +1827,15 @@ document.addEventListener('click',e=>{
   if(t.closest('[data-login]')){
     const v=unFa(($('#mob')||{}).value||'').replace(/\D/g,'');
     if(!/^09\d{9}$/.test(v)){toast('شمارهٔ موبایل را کامل بنویس — ۱۱ رقم، با ۰۹'); return}
-    S.phone=v; S.step='code'; renderAccount(); if($('#code')) $('#code').focus(); return}
+    S.phone=v; S.step='code'; saveAuthPend({step:'code',mobile:v}); renderAccount(); if($('#code')) $('#code').focus(); return}
   if(t.closest('[data-code]')){
     const v=unFa(($('#code')||{}).value||'').replace(/\D/g,'');
     if(v!=='54321'){toast('کد نمایشی ۵۴۳۲۱ است'); return}
     S.user={name:'سارا محمدی',mobile:S.phone,joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1};
-    saveSession(); S.acctFlow=false; S.step='guest'; log('ورود با شمارهٔ '+maskPhone(S.phone));
+    saveSession(); saveAuthPend(null); S.authPend=null; S.acctFlow=false; S.step='guest'; log('ورود با شمارهٔ '+maskPhone(S.phone));
     renderAll(); renderAccount(); toast('خوش آمدی سارا — ثبت‌نام‌ها، گواهی‌ها و باشگاه آمد'); return}
   if(t.closest('[data-back]')){S.step='phone'; renderAccount(); return}
-  if(t.closest('[data-logout]')){S.user=null; S.acctFlow=false; S.step='guest'; saveSession(); renderAll(); closeSheets(); toast('از حساب بیرون آمدی'); return}
+  if(t.closest('[data-logout]')){S.user=null; saveAuthPend(null); S.authPend=null; S.acctFlow=false; S.step='guest'; saveSession(); renderAll(); closeSheets(); toast('از حساب بیرون آمدی'); return}
   if(t.closest('[data-verify]')){
     const v=unFa(($('#serial')||{}).value||'').trim().toUpperCase().replace(/\s/g,'');
     if(!v){toast('شمارهٔ سریال را بنویس'); return}
@@ -1663,17 +1853,30 @@ document.addEventListener('click',e=>{
     if(k==='home'){closeSheets(); window.scrollTo({top:0,behavior:'smooth'})}
     if(k==='events') location.href='events.html#list';
     if(k==='me') openF('shAccount');
+    $$('#tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===k?'true':'false'));
     return}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape') closeSheets()});
 $('#scrim').addEventListener('click',closeSheets);
 let qTimer=0;
 $('#q').addEventListener('input',e=>{
-  S.q=e.target.value; $('#qClear').hidden=!S.q;
+  S.q=e.target.value; S.sug=-1; $('#qClear').hidden=!S.q;
   clearTimeout(qTimer);   /* قاب‌بندی تایپ: هر کلید، همهٔ کارت‌ها را از نو نمی‌سازد */
-  qTimer=setTimeout(()=>{renderSearch(); renderArticles()},120);
+  qTimer=setTimeout(()=>{renderSearch(); renderSug(); renderArticles(); renderHot()},120);
 });
-$('#qClear').addEventListener('click',()=>{S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderEvents(); renderArticles(); $('#q').focus()});
+$('#q').addEventListener('keydown',e=>{
+  const n=$$('#sugBox .sug').length;
+  if(e.key==='ArrowDown'&&n){e.preventDefault(); S.sug=(S.sug+1)%n; renderSug(); return}
+  if(e.key==='ArrowUp'&&n){e.preventDefault(); S.sug=(S.sug-1+n)%n; renderSug(); return}
+  if(e.key==='Enter'){
+    if(S.sug>=0&&n){e.preventDefault(); pickSug(S.sug); return}
+    if(S.q.trim()){saveSearchTerm(S.q.trim()); renderHot(); toast('«'+S.q.trim()+'» در سابقهٔ جست‌وجو ماند')}
+    return}
+  if(e.key==='Escape'){S.sug=-1; $('#sugBox').hidden=true; $('#q').setAttribute('aria-expanded','false')}
+});
+$('#qClear').addEventListener('click',()=>{S.q=''; $('#q').value=''; $('#qClear').hidden=true; S.sug=-1;
+  $('#sugBox').hidden=true; $('#q').setAttribute('aria-expanded','false');
+  renderEvents(); renderArticles(); renderHot(); $('#q').focus()});
 window.addEventListener('scroll',()=>{document.documentElement.classList.toggle('atscroll',window.scrollY>10)},{passive:true});
 $('#acctBtn').addEventListener('click',()=>openF('shAccount'));
 $('#bnr').addEventListener('mouseenter',()=>clearInterval(S.timer));
@@ -1687,6 +1890,7 @@ $('#bnr').addEventListener('touchend',e=>{
   const dx=e.changedTouches[0].clientX-tx0; tx0=null;
   if(Math.abs(dx)>36) slide(S.slide+(dx>0?-1:1));
   autoBanner();
+window.NORA_REFRESH=()=>{renderBanner(); renderAll(); renderVoices()};
 },{passive:true});
 
 function bannerAct(i,which){
@@ -1714,14 +1918,16 @@ initKeys(document);
 themeInit();
 openHash();
 window.addEventListener('hashchange',openHash);
-loadSession(); loadPins();
+loadSession(); loadPins(); loadRecent(); loadSearches(); loadAuthPend();
 renderBanner(); renderAll(); renderVoices();
 autoBanner();
 
 window.NORA_HOME={S:S,EVENTS:EVENTS,PEOPLE:PEOPLE,ARTICLES:ARTICLES,PARTNERS:PARTNERS,CLUB:CLUB,PAST:PAST,
   BANNERS:BANNERS,QUICK:QUICK,MENU:MENU,CATS:CATS,QTAGS:QTAGS,CLUB_POINTS:CLUB_POINTS,
   openF:openF,personSheet:personSheet,articleSheet:articleSheet,partnerSheet:partnerSheet,
-  togglePin:togglePin,renderAll:renderAll,themeApply:themeApply,themeToggle:themeToggle,themeNow:themeNow};
+  togglePin:togglePin,renderAll:renderAll,themeApply:themeApply,themeToggle:themeToggle,themeNow:themeNow,
+  titleOf:titleOf,agoFa:agoFa,pushRecent:pushRecent,renderContinue:renderContinue,renderSug:renderSug,pickSug:pickSug,
+  saveSearchTerm:saveSearchTerm,cleanUser:cleanUser,SESSION_KEY:'nora-home-user',REC_KEY:REC_KEY,SEARCH_KEY:SEARCH_KEY,AUTH_KEY:AUTH_KEY};
 })();
 </script>
 </body>

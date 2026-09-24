@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>نورا — بی‌اتصال</title>
+<meta name="theme-color" content="#1B211E"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="stylesheet" href="glass.css"/>
+<link rel="stylesheet" href="nora.css"/>
+</head>
+<body>
+<div class="wrap" style="max-width:460px;padding-top:56px;text-align:center">
+  <div class="card paper" style="padding:22px">
+    <svg class="i" style="width:34px;height:34px;color:var(--ink-3)"><use href="#i-cloud-off"/></svg>
+    <h1 style="font-size:17px;margin:10px 0 6px">اینترنت وصل نیست</h1>
+    <p class="sub" style="margin:0">صفحه‌هایی که قبلاً دیده‌ای در دسترس‌اند. تا اتصال برگردد، همین‌جا بمان؛ خودش تازه می‌شود.</p>
+    <div class="row" style="justify-content:center;margin-top:14px">
+      <button class="btn primary" id="retry"><svg class="i"><use href="#i-refresh"/></svg> دوباره تلاش کن</button>
+      <a class="btn quiet" href="home.html">خانه</a>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('retry').addEventListener('click',()=>location.reload());
+addEventListener('online',()=>location.replace('home.html'));
+</script>
+<svg style="display:none" aria-hidden="true">
+<symbol id="i-cloud-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.4 18.4h9.2a3.6 3.6 0 0 0 .6-7.15 5.2 5.2 0 0 0-8.6-2.4"/><path d="M6.8 8.9A3.7 3.7 0 0 0 7.2 16.3"/><path d="M3.4 3.4l17.2 17.2"/></g></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19.6 12a7.6 7.6 0 1 1-2.3-5.4"/><path d="M19.8 4.2v4.4h-4.4"/></g></symbol>
+</svg>
+</body>
+</html>

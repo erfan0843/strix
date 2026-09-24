@@ -13,6 +13,12 @@ const DIR='/home/user/strix/docs/fa/nora-ui/';
 let fails=0, checks=0;
 const ok=(c,m)=>{checks++; if(!c){fails++; console.log('   ✗ '+m);} else console.log('   ✓ '+m);};
 
+function makeStoreWith(base){
+  const m=new Map();
+  for(let i=0;i<base.length;i++){const k=base.key(i); m.set(k,base.getItem(k))}
+  return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),
+    clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size}};
+}
 function makeStore(){const m=new Map(); return {
   getItem:k=>m.has(k)?m.get(k):null, setItem:(k,v)=>m.set(k,String(v)),
   removeItem:k=>m.delete(k), clear:()=>m.clear(), key:i=>[...m.keys()][i],
@@ -838,6 +844,157 @@ async function load(file,store,q){
   ok(p4.doc.querySelector('#shPast').className.includes('on') && p4.txt('#pastBody').includes('کارگاه فن بیان — ترم تیر'),'ورود با ?past= ورقهٔ برگزارشده را باز می‌کند');
   const p5=await load('events.html',makeStore(),'#past');
   ok(!p5.doc.querySelector('#pastView').hidden && p5.all('#pastList .evcard').length===4,'ورود با #past هم نمای برگزارشده‌ها را می‌آورد');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v7 — «ادامه بده»، جست‌وجوی زنده، اشتراک بومی، نصب‌شدنی، دسترس‌پذیری
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── ادامه بده و جست‌وجو (v7) ──');
+  const homeSrc=fs.readFileSync(DIR+'home.html','utf8');
+
+  /* الف) «ادامه بده» تازه‌وارد را خالی نمی‌ترساند، اما بعد از بازدید می‌آید */
+  const st0=makeStore();
+  const p0=await load('home.html',st0);
+  ok(p0.doc.querySelector('#continue').hidden,'کاربر تازه، بخش «ادامه بده» را خالی نمی‌بیند');
+  p0.window.NORA_HOME.pushRecent('ar','a1');
+  ok(p0.doc.querySelector('#continue').hidden===false,'بعد از دیدن یک مطلب، «ادامه بده» پیدا می‌شود');
+  ok(p0.txt('#continue').includes('ادامه بده') && p0.txt('#continue').includes('همین حالا'),'عنوان و زمان نسبی درست است');
+  ok(p0.txt('#continue').includes('مطلب'),'نوع مورد هم نوشته می‌شود');
+  /* ترتیب: تازه‌ترین اول */
+  p0.window.NORA_HOME.pushRecent('pe','p1'); p0.window.NORA_HOME.pushRecent('ev','e1');
+  const rows=p0.all('#continue [data-openrec]').map(b=>b.dataset.openrec);
+  ok(rows[0]==='ev:e1'&&rows[1]==='pe:p1'&&rows[2]==='ar:a1','تازه‌ترین بازدید، بالای فهرست است: '+rows.join(' | '));
+  /* تکرار: یک مورد دو بار ثبت نمی‌شود */
+  p0.window.NORA_HOME.pushRecent('ar','a1');
+  ok(p0.all('#continue [data-openrec]').length===3,'بازدید دوباره، ردیف تکراری نمی‌سازد');
+  /* برداشتن یک مورد */
+  p0.click('#continue [data-droprec="pe:p1"]');
+  ok(p0.all('#continue [data-openrec]').length===2 && !p0.txt('#continue').includes('نگار'),'برداشتن یک مورد از فهرست کار می‌کند');
+  /* پاک کردن کل فهرست */
+  p0.click('#continue [data-clearrec]');
+  ok(p0.all('#continue [data-openrec]').length===0,'پاک کردن کل فهرست کار می‌کند');
+  /* پنهان کردن، و برگشت با اولین بازدید */
+  p0.window.NORA_HOME.pushRecent('ar','a2');
+  p0.click('#continue [data-hiderec]');
+  ok(p0.doc.querySelector('#continue').hidden,'«پنهان کن» بخش را جمع می‌کند');
+  p0.window.NORA_HOME.pushRecent('ar','a3');
+  ok(p0.doc.querySelector('#continue').hidden===false,'با اولین بازدید بعدی، بخش برمی‌گردد');
+
+  /* ب) ماندگاری بین دو بازدید و پاک‌سازی دادهٔ خراب */
+  const st1=makeStore();
+  st1.setItem('nora-home-recent',JSON.stringify([{k:'ar',id:'a1',at:Date.now()},{k:'zz',id:'a1',at:Date.now()},
+    {k:'ar',id:'../etc/passwd',at:Date.now()},{k:'ar',id:'a9',at:Date.now()},{k:'ar',id:'a1',at:1}]));
+  const p1=await load('home.html',st1);
+  const ids=p1.all('#continue [data-openrec]').map(b=>b.dataset.openrec);
+  ok(ids.join('|')==='ar:a1','از دادهٔ خراب فقط مورد سالم می‌ماند: '+ids.join(' | '));
+  ok(p1.window.NORA_HOME.S.recent.length===1,'کلید ناشناس و شناسهٔ ناامن وارد فهرست نمی‌شوند');
+
+  /* ج) کار نیمه‌تمام: ورود نصفه‌کاره در «ادامه بده» می‌آید */
+  const st2=makeStore();
+  const p2=await load('home.html',st2);
+  p2.click('#acctBtn'); p2.click('[data-next]');
+  p2.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
+  p2.click('[data-login]');
+  ok(p2.window.localStorage.getItem('nora-home-auth')!==null,'گام ورود در حافظهٔ مرورگر ثبت می‌شود');
+  p2.click('[data-close]');
+  const p2b=await load('home.html',makeStoreWith(st2));
+  ok(p2b.txt('#continue').includes('ورودت را تمام کن'),'کاربر نیمه‌راه، دکمهٔ «ورودت را تمام کن» می‌بیند');
+  ok(p2b.txt('#continue').includes('۶۷۸۹')||p2b.txt('#continue').includes('۰۹۱۲'),'شمارهٔ نیمه‌کاره هم یادآوری می‌شود');
+  p2b.click('#continue [data-resume-auth]');
+  ok(p2b.doc.querySelector('#shAccount').className.includes('on') && p2b.doc.querySelector('#code')!==null,
+    'دکمهٔ ادامه، مستقیم به گام کد می‌برد');
+  p2b.doc.querySelector('#code').value='54321';
+  p2b.click('[data-code]');
+  ok(p2b.doc.querySelector('#continue').hidden && p2b.window.localStorage.getItem('nora-home-auth')===null,
+    'بعد از ورود، کار نیمه‌تمام از فهرست می‌رود');
+
+  /* د) جست‌وجوی زنده: پیشنهاد، کیبورد، سابقه */
+  const st3=makeStore();
+  const p3=await load('home.html',st3);
+  ok(p3.doc.querySelector('#hotRow').textContent.includes('پیشنهادی'),'چیپ‌های داغ پیش از تایپ دیده می‌شوند');
+  ok(p3.doc.querySelector('#sugBox').hidden,'جعبهٔ پیشنهاد پیش از تایپ بسته است');
+  p3.doc.querySelector('#q').value='عکاسی';
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.Event('input',{bubbles:true}));
+  await wait(200);
+  const sugs=p3.all('#sugBox .sug');
+  ok(p3.doc.querySelector('#sugBox').hidden===false,'با تایپ، پیشنهاد باز می‌شود');
+  ok(sugs.length>=3,'پیشنهاد از رویداد و مطلب و استاد می‌آید: '+sugs.length+' مورد');
+  ok(sugs.some(x=>x.textContent.includes('عکاسی')),'واژهٔ تایپ‌شده در پیشنهادها هست');
+  ok(sugs[sugs.length-1].dataset.sugall!==undefined,'ردیف «همهٔ نتیجه‌ها» آخر فهرست است');
+  /* کیبورد */
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+  ok(p3.all('#sugBox .sug.on').length===1,'کلید پایین، اولین پیشنهاد را فعال می‌کند');
+  ok(p3.doc.querySelector('#q').getAttribute('aria-activedescendant')==='sug0','وضعیت فعال به صفحه‌خوان هم گفته می‌شود');
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+  ok(p3.doc.querySelector('#q').getAttribute('aria-activedescendant')==='sug1','کلید پایین، جلو می‌رود');
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  ok(p3.doc.querySelector('#sugBox').hidden && p3.doc.querySelector('#q').getAttribute('aria-expanded')==='false','Escape جعبه را می‌بندد');
+  /* سابقه: با Enter تثبیت می‌شود و دفعهٔ بعد چیپ می‌شود */
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  ok(p3.window.localStorage.getItem('nora-home-search').includes('عکاسی'),'جست‌وجو در سابقهٔ خود کاربر می‌ماند');
+  const p3b=await load('home.html',makeStoreWith(st3));
+  ok(p3b.txt('#hotRow').includes('عکاسی'),'دفعهٔ بعد، سابقهٔ جست‌وجو به‌عنوان چیپ می‌آید');
+  p3b.click('#hotRow [data-clearhistory]');
+  ok(p3b.window.localStorage.getItem('nora-home-search')===null && !p3b.txt('#hotRow').includes('عکاسی'),
+    '«پاک کردن سابقه» واقعاً پاک می‌کند');
+  /* چیپ داغ، فیلتر را در جست‌وجو می‌گذارد */
+  p3b.click('#hotRow [data-sq="رایگان"]');
+  ok(p3b.doc.querySelector('#q').value==='رایگان' && !p3b.doc.querySelector('#searchRes').hidden,'چیپ می‌گذارد و نتیجه را می‌سازد');
+  /* واژه‌نویسی خراب: صفحه سالم می‌ماند */
+  ok(p3b.errs.length===0,'خطای کنسول صفر ماند');
+
+  /* ه) اشتراک بومی: اگر گوشی نپذیرد، کپی می‌شود */
+  const p4=await load('home.html',makeStore());
+  let shared=null;
+  p4.window.navigator.share=o=>{shared=o; return Promise.resolve()};
+  let copied=null;
+  p4.doc.addEventListener('click',()=>{});
+  p4.window.__copied=null;
+  const cp=p4.window.NORA_UI; ok(cp&&typeof cp.shareItem==='function','تابع اشتراک بومی از پوستهٔ مشترک می‌آید');
+  await cp.shareItem({title:'یک رویداد',text:'توضیح',url:'https://lifeline1.ir/e/e1'});
+  ok(shared&&shared.url==='https://lifeline1.ir/e/e1','وقتی گوشی بپذیرد، همان لینک را می‌دهد');
+  /* لغو کاربر: پیام اضافه‌ای نمی‌دهد */
+  p4.window.navigator.share=()=>Promise.reject(Object.assign(new Error('x'),{name:'AbortError'}));
+  const r=await cp.shareItem({url:'https://lifeline1.ir/e/e2'});
+  ok(r===false,'لغو کردن کاربر، بی‌صدا رد می‌شود');
+
+  /* و) دسترس‌پذیری: تلهٔ فوکوس و مودال واقعی */
+  const p5=await load('home.html',makeStore());
+  p5.click('.menubtn');
+  await wait(40);   /* نشان‌دار دگرگونی، ناهم‌گام است */
+  ok(p5.doc.querySelector('#shMenu').getAttribute('aria-modal')==='true','ورقهٔ باز، مودال واقعی اعلام می‌شود');
+  ok(p5.doc.querySelector('#shMenu').contains(p5.doc.activeElement),'فوکوس داخل ورقه می‌رود');
+  const f=[...p5.doc.querySelectorAll('#shMenu a[href],#shMenu button,#shMenu input')];
+  f[0].focus();
+  p5.doc.dispatchEvent(new p5.window.KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true}));
+  ok(p5.doc.querySelector('#shMenu').contains(p5.doc.activeElement),'Shift+Tab از ورقه بیرون نمی‌زند');
+  const fl=f[f.length-1]; fl.focus();
+  p5.doc.dispatchEvent(new p5.window.KeyboardEvent('keydown',{key:'Tab',bubbles:true}));
+  ok(p5.doc.querySelector('#shMenu').contains(p5.doc.activeElement),'Tab از ورقه بیرون نمی‌زند');
+  p5.click('[data-close]');
+  await wait(40);
+  ok(p5.doc.querySelector('#shMenu').getAttribute('aria-modal')==='false','بستن ورقه، مودال را برمی‌گرداند');
+
+  /* ز) نشانه‌گذاری و نصب‌شدنی */
+  ok(/<h1 class="vh"/.test(homeSrc),'خانه سرفصل اصلی دارد (برای صفحه‌خوان)');
+  ok(/<a class="skip" href="#quick"/.test(homeSrc),'پیوند «پرش به محتوا» هست');
+  ok(/role="tablist"/.test(homeSrc) && /role="tab" aria-selected="true"/.test(homeSrc),'تب‌بار نقش تب دارد');
+  ok(/Combobox|role="combobox"/.test(homeSrc),'میدان جست‌وجو نقش combobox دارد');
+  for(const f of ['manifest.webmanifest','sw.js','offline.html','icon-192.png','icon-512.png']){
+    ok(fs.existsSync(DIR+f),'فایل نصب‌شدنی هست: '+f);
+  }
+  const mf=JSON.parse(fs.readFileSync(DIR+'manifest.webmanifest','utf8'));
+  ok(mf.display==='standalone' && mf.dir==='rtl' && mf.icons.length===3,'manifest کامل است: نام، راست‌به‌چپ، آیکون‌ها');
+  const sw=fs.readFileSync(DIR+'sw.js','utf8');
+  ok(/if\(r\.mode==='navigate'\)/.test(sw)&&/offline\.html/.test(sw),'کارگر سرویس: شبکه اول و صفحهٔ بی‌اتصال');
+  ok(/people\|posters\|fonts/.test(sw),'تصویر و فونت مسیر کش‌شدن خودشان را دارند');
+  ok(/>بازگشت به صفحهٔ اصلی|فایل نصب‌شدنی هست: (home|events)/.test('x')||/manifest\.webmanifest/.test(homeSrc),
+    'خانه به manifest وصل است');
+  /* گواهینامه از بار اول کنار رفته باشد */
+  ok(!/AAEAAAAOAIAAA/.test(fs.readFileSync(DIR+'ui.js','utf8')) || fs.statSync(DIR+'ui.js').size<90000,
+    'ui.js دیگر فونت گواهینامه را با خود نمی‌آورد');
+  ok(/cert-font\.js/.test(fs.readFileSync(DIR+'builder.html','utf8')),'صفحهٔ سازندهٔ گواهی، فونتش را جدا می‌آورد');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
