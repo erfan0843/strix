@@ -482,6 +482,8 @@ function toast(m){
   if(!el){el=document.createElement('div'); el.className='toast'; el.id='toast'; el.setAttribute('role','status'); document.body.appendChild(el)}
   el.textContent=m; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2400);
 }
+/* همان لحظهٔ خرید، نوار کار و رسانه‌ها تازه می‌شوند */
+document.addEventListener('nora:library',()=>render());
 addEventListener('hashchange',()=>location.reload());
 })();
 </script>

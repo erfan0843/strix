@@ -1243,6 +1243,8 @@ async function load(file,store,q){
   ok(lib1.some(x=>x.k==='bundle'&&x.id==='h1'),'خودِ بسته هم نشان‌دار کتابخانه شد');
   ok(JSON.parse(fb.window.localStorage.getItem('nora-home-user')).wallet===1250000,'پرداخت درگاه به کیف پول دست نزد');
 
+  ok(fb.txt('#ctaIn').includes('تماشا')||fb.txt('#ctaIn').includes('پخش'),'بعد از خرید، نوار کار «تماشا» می‌شود نه «تهیه»');
+
   /* د) دسترسی آنلاین: پخش با پیشرفت و ادامه */
   fb.window.NORA_UI.player('h1','h1m1');
   await wait(40);
@@ -1252,8 +1254,14 @@ async function load(file,store,q){
   ok(fb.doc.querySelector('#shPlay [data-uirate="1.5"]').classList.contains('on'),'سرعت پخش تا یک‌ونیم برابر تنطیم می‌شود');
   fb.window.NORA_UI.setProgress('h1m1',60);
   ok(fb.window.NORA_UI.progressOf('h1m1')===60,'ثانیهٔ تماشا ذخیره می‌شود');
-  const pg=await load('events.html',makeStoreWith({...fb.window.localStorage,getItem:k=>fb.window.localStorage.getItem(k),key:i=>fb.window.localStorage.key(i),length:5}),'#lib');
-  ok(pg.txt('#libView').includes('ادامه')||pg.all('#libView .evcard').length>0||pg.txt('#libView').includes('کتابخانه'),'کتابخانهٔ من در تب رویدادها مسیر خودش را دارد');
+  const libStore=makeStoreWith(fb.window.localStorage);
+  const pg=await load('events.html',libStore,'#lib');
+  ok(pg.txt('#libBox').includes('دوربین، نور و تنظیمات'),'کتابخانهٔ من قطعه‌های خریداری‌شده را می‌آورد');
+  ok(pg.txt('#libBox').includes('ادامه'),'روی قطعهٔ نیمه‌دیده «ادامه» می‌آید');
+  ok(/[۰-۹]+ رسانه/.test(pg.txt('#libCount')),'شمار رسانه‌های کتابخانه در سرصفحه می‌آید');
+  pg.window.NORA_UI.doBuy('h3','h3m2');
+  await wait(60);
+  ok(pg.txt('#libBox').includes('احیای قلبی')||pg.txt('#libBox').includes('امداد'),'خرید تازه، بی نوکردن صفحه در کتابخانه می‌نشیند');
 
   /* ه) خرید تک‌قلم با کیف پول */
   const fm=await load('events.html',withSara(),'#media');

@@ -687,6 +687,8 @@ if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
 if(P.get('ev')) openEvent(P.get('ev'));
 if(S.openPastId) openPast(S.openPastId);
 if(P.get('buy')) setTimeout(()=>{const [h,m]=P.get('buy').split(':'); NORA_UI.doBuy(h,m||null)},80);
+/* خرید که تمام شد، همین‌جا تازه می‌شود؛ کاربر لازم نیست صفحه را نو کند */
+document.addEventListener('nora:library',()=>{ renderLib(); if(S.view==='media') renderPastView(); });
 initKeys(document);
 themeInit();
 try{JSON.parse(localStorage.getItem('nora-home-pins')||'[]').forEach(k=>S.pins.add(k))}catch(e){}
