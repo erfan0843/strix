@@ -29,6 +29,14 @@ const secOf=k=>SECT.find(x=>x.k===k)||null;
 const KIND={image:{i:'i-image',n:'تصویر'},video:{i:'i-video',n:'ویدیو'},voice:{i:'i-mic',n:'پیام صوتی'},
   audio:{i:'i-wave',n:'صدا'},link:{i:'i-link',n:'پیوند'},file:{i:'i-file-up',n:'فایل'}};
 const MESS={bale:'ble.ir/',tel:'t.me/',soroush:'splus.ir/',gap:'gap.im/'};
+/* شکل نوار صدا: از خودِ نام ساخته می‌شود، پس همیشه یک‌شکل و بی‌تصادف می‌ماند */
+function bars(seed,n){
+  let out='',k=0; const src=String(seed||'نورا');
+  for(let i=0;i<src.length;i++) k=(k*31+src.charCodeAt(i))%9973;
+  for(let i=0;i<(n||20);i++){ k=(k*1103515245+12345)%2147483647;
+    out+='<i style="height:'+(20+(Math.abs(k)%66))+'%"></i>'; }
+  return out;
+}
 
 const TK_KEY='nora-support-tickets', SEED_KEY='nora-support-seeded';
 
@@ -260,12 +268,12 @@ function hl(txt){
   const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
   return s.replace(re,'<span class="hitmark">$1</span>');
 }
-function faqRow(s,i,open,scope){
+function faqRow(s,i,open){
   const qa=s.faq[i]||['',''];
   return '<div class="qrow'+(open?' open':'')+'" data-qrow="'+s.k+':'+i+'">'+
     '<button class="qbtn" type="button" data-faq="'+s.k+':'+i+'" aria-expanded="'+(open?'true':'false')+'">'+
       '<span class="iw '+toneOf(s)+'" style="width:36px;height:36px;border-radius:13px">'+ico(s.i||'i-q')+'</span>'+
-      '<span><b>'+hl(qa[0])+'</b><small>'+esc(s.n)+(scope==='hit'?'':(s.cat?' · '+esc(s.cat):''))+'</small></span>'+
+      '<span><b>'+hl(qa[0])+'</b><small>'+esc(s.n)+(s.cat?' · '+esc(s.cat):'')+'</small></span>'+
       '<svg class="i go" aria-hidden="true"><use href="#i-chev-left"/></svg>'+
     '</button>'+
     '<div class="qans">'+hl(qa[1])+
@@ -283,7 +291,7 @@ function renderFaq(){
         const hay=(qa[0]+' '+qa[1]).toLowerCase();
         if(hay.indexOf(q.toLowerCase())<0) return;
       }
-      out+=faqRow(s,i,false,'all'); n++;
+      out+=faqRow(s,i,false); n++;
     });
   });
   box.innerHTML=out;
@@ -296,7 +304,7 @@ function renderFaq(){
       SECT.forEach(s=>(s.faq||[]).forEach((qa,i)=>{
         if((qa[0]+' '+qa[1]).toLowerCase().indexOf(q.toLowerCase())>-1) rows.push({s,i});
       }));
-      ql.innerHTML=rows.length?rows.slice(0,8).map(r=>faqRow(r.s,r.i,false,'hit')).join('')
+      ql.innerHTML=rows.length?rows.slice(0,8).map(r=>faqRow(r.s,r.i,false)).join('')
         :'<div class="sp-card"><b>پاسخی برای «'+esc(q)+'» پیدا نشد.</b>'+
           '<p class="cap" style="margin-top:6px">تیکت بگذار؛ کارشناس همان بخش جواب می‌دهد.</p>'+
           '<button class="btn primary block" type="button" data-ticket="'+SECT[0].k+'" style="margin-top:10px">'+ico('i-pen')+' ثبت تیکت</button></div>';
@@ -387,19 +395,20 @@ function mediaCard(s,m,i){
   if(m.kind==='audio'||m.kind==='voice'){
     return '<div class="mcard"><div class="mcbody"><b>'+esc(m.t)+'</b>'+
       '<div class="psim"><button class="play" type="button" data-media="'+s.k+':'+i+'" aria-label="پخش نمونه">'+ico('i-play-f')+'</button>'+
-      '<span class="pbsim" aria-hidden="true">'+'<i></i>'.repeat(22)+'</span>'+
+      '<span class="pbsim" aria-hidden="true">'+bars(m.t,22)+'</span>'+
       '<span class="dur">'+esc(m.len||'۰:۳۰')+'</span></div>'+
       '<span class="fine">راهنمای شنیدنی · '+esc(k.n)+'</span></div></div>';
   }
-  return '<div class="mcard"><div class="mthumb"><span class="mock"><b>'+esc(m.t)+'</b>'+
-    '<small>'+(m.kind==='image'?'تصویر گام‌به‌گام':k.n)+(m.len?' · '+esc(m.len):'')+'</small></span>'+
+  return '<div class="mcard"><div class="mthumb"><span class="mock">'+
+    '<span class="mico-sm">'+ico(k.i)+'</span><b>'+(m.kind==='image'?'تصویر گام‌به‌گام':k.n)+'</b>'+
+    '<small>'+(m.len?esc(m.len)+' · ':'')+'پیش‌نمایش راهنما</small></span>'+
     '<button class="mplay" type="button" data-media="'+s.k+':'+i+'" aria-label="نمایش راهنما">'+ico('i-play-f')+'</button></div>'+
-    '<div class="mcbody"><b>'+esc(m.t)+'</b><span class="fine">'+k.n+(m.len?' · '+esc(m.len):'')+' — از راهنمای همین بخش</span></div></div>';
+    '<div class="mcbody"><b>'+esc(m.t)+'</b><span class="fine">'+k.n+(m.len?' · '+esc(m.len):'')+'، از راهنمای همین بخش</span></div></div>';
 }
 function secBody(s){
   const parts=[];
   parts.push('<div class="mpart"><div class="hd">'+ico('i-q')+' پرسش‌های پرتکرار «'+esc(s.n)+'»</div>'+
-    '<div class="pbd">'+(s.faq||[]).map((_,i)=>faqRow(s,i,i===0,'sec')).join('')+'</div></div>');
+    '<div class="pbd">'+(s.faq||[]).map((_,i)=>faqRow(s,i,i===0)).join('')+'</div></div>');
   if((s.tips||[]).length){
     parts.push('<div class="mpart"><div class="hd">'+ico('i-shield')+' راهنمای مدیر سامانه</div><div class="pbd">'+
       s.tips.map(t=>'<div class="tipit"><span class="iw '+toneOf(s)+'" style="width:34px;height:34px;border-radius:12px">'+
@@ -431,7 +440,7 @@ function openSec(k,fi){
 function fxHTML(a){
   const k=KIND[a.kind]||KIND.file;
   if(a.kind==='audio'||a.kind==='voice'){
-    return '<div class="fx">'+ico('i-wave')+'<span class="pbsim on" aria-hidden="true">'+'<i></i>'.repeat(18)+'</span>'+
+    return '<div class="fx">'+ico('i-wave')+'<span class="pbsim" aria-hidden="true">'+bars(a.t||a.len,18)+'</span>'+
       '<span class="fine">'+esc(a.len||a.t||k.n)+'</span></div>';
   }
   if(a.kind==='link'){
@@ -467,10 +476,11 @@ function openThread(id){
   const s=secOf(t.sec)||{};
   modal({ico:s.i||'i-headphone', tone:toneOf(s), title:'گفت‌وگوی تیکت', sub:s.n+' · کد '+faN(t.code),
     body:threadBody(t),
-    foot:'<div class="btnrow" style="display:flex;gap:8px"><button class="btn quiet" type="button" data-mclose>بستن</button>'+
+    foot:'<div class="btn-row"><button class="btn quiet" type="button" data-mclose>بستن</button>'+
       (stateOf(t)==='closed'?'':'<button class="btn block" type="button" data-closetk="'+t.id+'">'+ico('i-check')+' پایان تیکت</button>')+'</div>'});
   state.open=t.sec; state.thread=id;
-  const box=$('[data-thread-box]'); if(box) box.scrollIntoView({block:'end'});
+  const box=$('[data-thread-box]'), mb=$('#mBody');
+  try{ if(mb) mb.scrollTop=mb.scrollHeight; else if(box&&box.scrollIntoView) box.scrollIntoView({block:'end'}); }catch(e){}
 }
 function msgToThread(id, m){
   const all=readT(); const t=all.find(x=>x.id===id); if(!t) return;

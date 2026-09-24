@@ -9,6 +9,11 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 [hidden]{display:none!important}
+/* همان ورود نرم کارت‌ها و نشان پشتیبانی، اینجا محلی، تا صفحه به account.css
+   وابسته نباشد */
+.anim{animation:rise .40s var(--ease) both;animation-delay:calc(var(--i,0) * 26ms)}
+.help-btn{color:var(--ink-2)}
+.help-btn.on,.help-btn[aria-current="page"]{color:var(--brand-ink);background:var(--brand-tint);border-color:transparent}
 body.modal-open{overflow:hidden}
 
 /* ── سرِ صفحه ─────────────────────────────────────────────────────────── */
@@ -244,6 +249,9 @@ body.modal-open{overflow:hidden}
   background:linear-gradient(135deg,#1E2B27,#3A4A44)}
 .mthumb .mock{position:absolute;inset:12px;border-radius:14px;border:1px solid rgba(255,255,255,.28);
   display:grid;align-content:center;gap:7px;padding:14px;text-align:center}
+.mthumb .mock .mico-sm{display:grid;place-items:center;width:34px;height:34px;margin:0 auto 2px;border-radius:12px;
+  background:rgba(255,255,255,.16);color:#fff}
+.mthumb .mock .mico-sm .i{width:18px;height:18px}
 .mthumb .mock b{font-size:13px}
 .mthumb .mock small{font-size:11px;opacity:.85}
 .mplay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,20,18,.28);border:0;cursor:pointer;color:#fff}
@@ -321,3 +329,8 @@ body.modal-open{overflow:hidden}
 .cinput .abtn{width:44px;height:44px;justify-content:center;padding:0;border-radius:50%}
 #mFoot .btn-row{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:stretch}
 #mFoot .btn-row:only-child{grid-template-columns:1fr}
+.miss{text-align:center;display:grid;justify-items:center;gap:8px;margin-top:12px;
+  background:linear-gradient(135deg,var(--brand-tint),color-mix(in oklab,var(--surface) 72%,transparent))}
+.miss b{font-size:var(--fs-head);font-weight:700}
+.miss .cap{max-width:44ch}
+.miss .btn{max-width:320px}
