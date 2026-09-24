@@ -110,6 +110,7 @@ async function load(store,hash){
   ok(p.all('#chapters .ptime').length===21,'مهلت و زمان هر بخش');
   ok(p.all('#chapters .relrow [data-goto]').length>=42,'بخش‌های وابسته، میان‌بر هر بخش');
   ok(p.all('#chapters [data-media]').length===25,'راهنمای رسانه‌ای هر بخش');
+  ok(p.txt('#ch-live .cha').length>0&&p.all('#ch-live [data-media]').every(b=>b.textContent.trim().length>3),'نام و زمان هر راهنما روی چسبش');
   ok(new Set(p.all('#chapters a[href^="form.html"]').map(a=>a.getAttribute('href'))).size===3,'سه فرم لینک‌شدهٔ مدیران');
   ok(p.all('#chapters .chcover img').every(i=>/^posters\/.+\.svg$/.test(i.getAttribute('src'))),'هنر هر فصل پوستر SVG است');
   ok(p.all('#toc .fchip').length===6&&p.txt('#toc .fchip').includes('همه'),'فهرست گروه‌ها شش چسب دارد');
@@ -367,6 +368,8 @@ async function load(store,hash){
   await wait(150);
   ok(p.shown('#modal')&&p.openSheets().length===0,'از راهنما هم می‌شود تیکت زد');
   p.key('body','Escape');
+  p.clickEl(p.doc.querySelector('#ch-complain .chhead'));
+  await wait(40);
   p.click('#ch-complain [data-media]');
   await wait(100);
   p.click('#scrim');
@@ -400,7 +403,7 @@ async function load(store,hash){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=20')&&html.includes('support.js?v=20')&&html.includes('data.js?v=20'),'نسخهٔ دارایی‌ها تازه شده (v=20)');
+  ok(html.includes('support.css?v=21')&&html.includes('support.js?v=21')&&html.includes('data.js?v=21'),'نسخهٔ دارایی‌ها تازه شده (v=21)');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');

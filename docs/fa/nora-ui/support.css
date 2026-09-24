@@ -128,6 +128,7 @@ body.modal-open{overflow:hidden}
   font-size:12.8px;color:var(--ink-2);line-height:1.7}
 .ptime .i{width:15px;height:15px;color:var(--brand-ink);margin-top:3px}
 .relrow{display:flex;gap:7px;flex-wrap:wrap}
+.cha .abtn .len{font-size:10.5px;color:var(--ink-4);padding-inline-start:3px}
 @media (min-width:520px){
   .prep{grid-template-columns:1fr 1fr;padding:13px 13px 0}
 }

@@ -182,7 +182,8 @@ function chapterHTML(s,i){
   const tone=toneOf(s), cover=cov(s.cover);
   const media=(s.media||[]).map((m,j)=>{
     const k=KIND[m.kind]||KIND.video;
-    return '<button class="abtn" type="button" data-media="'+s.k+':'+j+'">'+ico(k.i)+' '+esc(m.kind==='audio'?'راهنمای صوتی':m.kind==='image'?'تصویر گام‌به‌گام':'ویدیو')+'</button>';
+    const lab=m.t||(m.kind==='audio'?'راهنمای صوتی':m.kind==='image'?'تصویر گام‌به‌گام':'ویدیو');
+    return '<button class="abtn" type="button" data-media="'+s.k+':'+j+'">'+ico(k.i)+' '+esc(lab)+(m.len?'<span class="len">'+esc(m.len)+'</span>':'')+'</button>';
   }).join('');
   return '<article class="chapter" id="ch-'+s.k+'" data-sec="'+s.k+'" style="--i:'+i+'">'+
     '<button class="chhead" type="button" data-open="'+s.k+'" aria-expanded="false" aria-controls="cb-'+s.k+'">'+
