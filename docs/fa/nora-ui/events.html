@@ -71,7 +71,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .spotrail::-webkit-scrollbar{display:none}
 .spot{flex:0 0 100%;scroll-snap-align:center;position:relative;overflow:hidden;isolation:isolate;
   border-radius:var(--r-xl);min-height:236px;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:15px;color:#fff;background-image:var(--g);box-shadow:0 10px 26px -18px rgba(6,18,38,.65)}
+  padding:15px;color:#fff;background-image:var(--g);
+  box-shadow:0 10px 26px -18px rgba(6,18,38,.65),inset 0 1px 0 rgba(255,255,255,.22)}
 .spot .pbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .spot .veil{position:absolute;inset:0;z-index:-1;
   background:linear-gradient(0deg,rgba(5,14,30,.88),rgba(5,14,30,.34) 58%,rgba(5,14,30,.52))}
@@ -86,20 +87,26 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .spot .cd{margin-inline-start:auto;font-size:12px;background:rgba(255,255,255,.14);
   border:.5px solid rgba(255,255,255,.24);padding:4px 9px;border-radius:99px;backdrop-filter:blur(8px)}
 .dots{display:flex;gap:6px;justify-content:center;margin-top:9px}
-.dots i{width:6px;height:6px;border-radius:99px;background:var(--ink-4);opacity:.45;transition:all var(--t) var(--ease)}
-.dots i.on{width:18px;background:var(--brand);opacity:1}
+.dots .sdot{-webkit-appearance:none;appearance:none;padding:0;border:0;cursor:pointer;
+  width:6px;height:6px;border-radius:99px;background:var(--ink-4);opacity:.45;
+  transition:all var(--t) var(--ease)}
+.dots .sdot.on{width:18px;background:var(--brand);opacity:1}
+.dots .sdot:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 
-/* ── آمار ── */
+/* ── آمار: چهار قاب شیشه‌ای روی دیوارپشت ── */
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.stat{background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-md);
+.stat{position:relative;background:var(--glass-2);-webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-md);box-shadow:var(--sh-1),var(--sheen-top);
   padding:11px 9px;text-align:center;display:grid;gap:3px}
 .stat b{font-family:var(--font-disp);font-size:19px;font-weight:700}
 .stat span{font-size:10.5px;color:var(--ink-3);line-height:1.5}
 @media(max-width:400px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* ── نوار کتابخانهٔ من ── */
-.libbar{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid var(--hairline);
-  border-radius:var(--r-md);padding:11px 13px;text-decoration:none;color:inherit}
+.libbar{display:flex;align-items:center;gap:10px;background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-md);box-shadow:var(--sh-1),var(--sheen-top);
+  padding:11px 13px;text-decoration:none;color:inherit}
 .libbar .li{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;
   background:linear-gradient(135deg,var(--brand),#0A3A82)}
 .libbar .li .i{width:17px;height:17px}
@@ -108,8 +115,10 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .libbar .lt small{font-size:11px;color:var(--ink-3)}
 
 /* ── صافی‌ها: بالا به پایین، بی دکمهٔ «همه» ── */
-.filters{display:grid;gap:11px;background:var(--surface);border:.5px solid var(--hairline);
-  border-radius:var(--r-lg);padding:12px 13px}
+.filters{display:grid;gap:11px;background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-lg);box-shadow:var(--sh-1),var(--sheen-top);
+  padding:12px 13px}
 .frow{display:grid;gap:7px}
 .frow>.flbl{font-size:11.5px;color:var(--ink-3)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -120,7 +129,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .chip.was{opacity:.82}
 .fchips{display:flex;gap:6px;flex-wrap:wrap}
 .fchip{-webkit-appearance:none;appearance:none;font:inherit;font-size:12.5px;cursor:pointer;
-  padding:6px 12px;border-radius:99px;border:.5px solid var(--hairline);background:var(--surface-2);
+  padding:6px 12px;border-radius:99px;border:.5px solid var(--hairline);
+  background:color-mix(in oklab,var(--surface-2) 78%,transparent);
   color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;
   transition:transform var(--t-fast) var(--spring),background var(--t),color var(--t),border-color var(--t)}
 .fchip:active{transform:scale(.95)}
@@ -133,7 +143,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
 @media(min-width:720px){.tgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1060px){.tgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.etile{display:flex;flex-direction:column;background:var(--surface);border:.5px solid var(--hairline);
+.etile{display:flex;flex-direction:column;background:color-mix(in oklab,var(--surface) 88%,transparent);
+  border:.5px solid var(--hairline);box-shadow:var(--sheen-top);
   border-radius:var(--r-lg);overflow:hidden;transition:transform var(--t-fast) var(--spring),border-color var(--t)}
 .etile:active{transform:scale(.985)}
 .etile .ecov{position:relative;display:block;width:100%;border:0;padding:0;cursor:pointer;
@@ -184,11 +195,15 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 /* ── ردیف جست‌وجو، داخل همان نوار چسبان بالا ── */
 .topbar .searchrow{display:flex;align-items:center;gap:8px;padding-block:0 10px}
-.topbar .searchrow .sfield{flex:1;min-width:0;background:var(--surface-2)}
+.topbar .searchrow .sfield{flex:1;min-width:0;background:color-mix(in oklab,var(--surface) 56%,transparent);
+  border-color:color-mix(in oklab,var(--glass-line) 80%,transparent);box-shadow:var(--sheen-top)}
+.topbar .searchrow .sfield:focus-within{background:color-mix(in oklab,var(--surface) 82%,transparent)}
 
 /* ── نوار شمارش معکوس نزدیک‌ترین ثبت‌نام ── */
-.deal{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--brand),#0A3A82);color:#fff;
-  border-radius:var(--r-lg);padding:11px 13px;box-shadow:0 10px 24px -16px rgba(10,58,130,.85)}
+.deal{position:relative;display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,var(--brand),#0A3A82);color:#fff;
+  border:.5px solid rgba(255,255,255,.22);border-radius:var(--r-lg);padding:11px 13px;
+  box-shadow:0 10px 24px -16px rgba(10,58,130,.85),inset 0 1px 0 rgba(255,255,255,.34)}
 .deal .dl{display:grid;gap:2px;min-width:0;flex:1}
 .deal .dlt{display:inline-flex;align-items:center;gap:5px;font-size:11px;opacity:.92}
 .deal .dlt .i{width:13px;height:13px}
@@ -201,7 +216,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .catrail{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity}
 .catrail::-webkit-scrollbar{display:none}
 .catrail .chip.cat{flex:0 0 auto;flex-direction:column;height:auto;padding:9px 13px;gap:4px;border-radius:var(--r-lg);
-  scroll-snap-align:start;background:var(--surface)}
+  scroll-snap-align:start;background:color-mix(in oklab,var(--surface) 82%,transparent);
+  border-color:var(--glass-line);box-shadow:var(--sheen-top)}
 .catrail .cat .i{width:21px;height:21px;opacity:1;color:var(--brand-ink)}
 .catrail .cat .cn{font-size:12px;font-weight:600}
 .catrail .cat .cc{font-size:10px;color:var(--ink-3)}
@@ -221,14 +237,23 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 @media(min-width:560px){.evrail .etile{flex:0 0 196px}}
 
 /* ── نوار ابزار: مرتب‌سازی، نما و شمار ── */
+.toolbar .seg{background:color-mix(in oklab,var(--surface-sunk) 62%,transparent)}
+.toolbar .selw select{background:color-mix(in oklab,var(--surface) 62%,transparent)}
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:2px 0 12px;
-  background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-lg)}
+  background:var(--glass-2);-webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-lg);box-shadow:var(--sh-1),var(--sheen-top)}
 .sels{display:flex;align-items:center;gap:7px}
 .sels .flbl{font-size:11.5px;color:var(--ink-3)}
 .selw{position:relative;display:inline-flex;align-items:center}
 .selw select{-webkit-appearance:none;appearance:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
   background:var(--surface-2);border:.5px solid var(--hairline);border-radius:var(--r-pill);padding:7px 12px 7px 30px;cursor:pointer}
 .selw .i{position:absolute;inset-inline-end:10px;width:13px;height:13px;color:var(--ink-4);pointer-events:none;transform:rotate(90deg)}
+
+/* اگر کاربر شفافیت کمتر خواسته باشد، همهٔ این قاب‌ها مات می‌شوند */
+@media (prefers-reduced-transparency:reduce){
+  .stat,.libbar,.filters,.toolbar,.etile,.catrail .chip.cat,.topbar .searchrow .sfield{
+    background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 
 /* نشان طلایی: گواهی‌دار */
 .tag.gold{background:color-mix(in oklab,#C08A1E 15%,transparent);color:#8A6420}
@@ -315,6 +340,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <main class="wrap">
 
+  <h1 class="sr">رویدادها و برنامه‌های نورا</h1>
+
   <!-- بنر: نزدیک‌ترین برنامه‌ها -->
   <section class="sec" id="spotSec" aria-label="برنامه‌های نزدیک">
     <div class="spotrail" id="spotrail"></div>
@@ -336,7 +363,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <!-- دسته‌ها: نوار افقی مثل دسته‌بندی فروشگاه‌ها -->
   <section class="sec" id="catSec" aria-label="دسته‌بندی برنامه‌ها">
     <div class="sec-hd"><span class="fw">دسته‌ها</span><span class="sp"></span><span class="cap" id="catNote"></span></div>
-    <div class="catrail" id="catrail" role="tablist" aria-label="دسته‌بندی"></div>
+    <div class="catrail" id="catrail" role="group" aria-label="دسته‌بندی"></div>
   </section>
 
   <!-- آمار آرشیو -->
@@ -409,7 +436,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <!-- تقویم ماهانه -->
   <section class="sec" id="calView" hidden aria-label="تقویم ماهانه">
     <div class="chips" id="monthsw" role="tablist" aria-label="ماه‌ها" style="margin-bottom:12px"></div>
-    <div class="calgrid" id="calgrid" role="grid" aria-label="روزهای ماه"></div>
+    <div class="calgrid" id="calgrid" role="group" aria-label="روزهای ماه"></div>
     <div class="dayhd"><b id="dayTitle"></b><span class="sp"></span><span class="cap" id="dayCount"></span></div>
     <div class="tgrid" id="dayGrid"></div>
   </section>
@@ -477,6 +504,7 @@ const WDNAME={'ش':'شنبه','ی':'یکشنبه','د':'دوشنبه','س':'سه
 const ICONS={'کارگاه':'i-pen','جلسه':'i-users','نشست':'i-article','اردو':'i-pin','پویش':'i-heart',
   'وبینار':'i-video','آزمون':'i-check','جشنواره':'i-sparkle','آنلاین':'i-mobile','حضوری':'i-pin'};
 
+const SORTS=['near','best','cheap','dear'];
 const S={view:'list', status:'', kind:'', mode:'', q:'', sort:'near', month:'sh', day:28, spot:0};
 
 /* ── صافی‌ها: سه مدل، بی ردیف «همه» ── */
@@ -553,22 +581,34 @@ function slide(e){
 }
 function renderSpot(){
   const list=spotList();
+  $('#spotSec').hidden=!list.length;
+  if(!list.length) return;
+  if(S.spot>list.length-1) S.spot=0;
   $('#spotrail').innerHTML=list.map(slide).join('');
   const box=$('#spotdots');
   box.hidden=list.length<2;
-  box.innerHTML=list.map((e,i)=>`<i class="${i===S.spot?'on':''}" data-spot="${i}" role="button" aria-label="اسلاید ${faN(i+1)}"></i>`).join('');
+  box.innerHTML=list.map((e,i)=>`<button type="button" class="sdot ${i===S.spot?'on':''}" data-spot="${i}"
+    aria-label="اسلاید ${faN(i+1)}: ${esc(e.t)}"${i===S.spot?' aria-current="true"':''}></button>`).join('');
+}
+function spotSet(i){
+  S.spot=i;
+  $$('#spotdots .sdot').forEach((d,j)=>{
+    d.classList.toggle('on',j===i);
+    if(j===i) d.setAttribute('aria-current','true'); else d.removeAttribute('aria-current');
+  });
 }
 function spotTo(i){
   const el=$$('#spotrail .spot')[i];
   if(el) el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-  S.spot=i; $$('#spotdots i').forEach((d,j)=>d.classList.toggle('on',j===i));
+  spotSet(i);
 }
 function bindSpot(){
   $('#spotdots').addEventListener('click',ev=>{const d=ev.target.closest('[data-spot]'); if(d) spotTo(+d.dataset.spot)});
   $('#spotrail').addEventListener('scroll',()=>{
     const r=$('#spotrail'), w=r.clientWidth||1;
-    const i=Math.max(0,Math.min(2,Math.round(Math.abs(r.scrollLeft)/w)));
-    if(i!==S.spot){S.spot=i; $$('#spotdots i').forEach((d,j)=>d.classList.toggle('on',j===i))}
+    const n=$$('#spotrail .spot').length;
+    const i=Math.max(0,Math.min(n?n-1:0,Math.round(Math.abs(r.scrollLeft)/w)));
+    if(i!==S.spot) spotSet(i);
   },{passive:true});
 }
 
@@ -588,8 +628,9 @@ function renderDeal(){
   if(!e){$('#dealSec').hidden=true; return}
   $('#dealSec').hidden=false;
   $('#dealTx').textContent=e.t;
+  const full=e.cap&&e.spots<=0;
   $('#dealCta').setAttribute('href', e.pre?('event.html?id='+e.id):('form.html?ev='+e.id));
-  $('#dealCta').textContent = e.pre?'پیش‌ثبت‌نام':'ثبت‌نام';
+  $('#dealCta').textContent = full?'لیست انتظار':(e.pre?'پیش‌ثبت‌نام':'ثبت‌نام');
   dealLeft=Math.max(0,secsTo(e));
   $('#dealCd').textContent=cdClock(dealLeft);
   if(dealTimer) clearInterval(dealTimer);
@@ -632,7 +673,7 @@ function renderLive(){
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="row"><span class="cap">${x.past?faN(x.past)+' دقیقه از '+faN(x.total)+' دقیقه گذشته':'هنوز شروع نشده'}</span>
         <span class="sp"></span>
-        <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${x.ev}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
+        <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${esc(x.ev)}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
     </div>`}).join('');
   $('#liveCount').textContent=list.some(x=>x.past)?'یکی در حال برگزاری':'شروع نزدیک';
 }
@@ -655,15 +696,15 @@ function passPast(h){
   if(q&&!hit(h.t+' '+person(h.tchr).n+' '+(h.place||'')+' '+h.kind+' '+(h.tags||[]).join(' ')+' '+(h.note||''),q)) return false;
   return true;
 }
+const byDate=(list,dir)=>list.slice().sort((a,b)=>dir*(a.x.ord-b.x.ord));
 function rows(){
   const up=EVENTS.filter(passUp).map(x=>({t:'up',x:x,pop:x.taken||0,price:x.price||0}));
   const ps=PAST.filter(passPast).map(x=>({t:'past',x:x,pop:x.sold||0,price:x.price||0}));
-  if(S.status==='up') return S.sort==='near'?sortNear(up):sortBy(up);
-  if(S.status==='past') return sortBy(ps);
-  if(S.sort==='near') return up.sort((a,b)=>a.x.ord-b.x.ord).concat(ps.sort((a,b)=>b.x.ord-a.x.ord));
+  if(S.status==='up') return S.sort==='near'?byDate(up,1):sortBy(up);
+  if(S.status==='past') return S.sort==='near'?byDate(ps,-1):sortBy(ps);
+  if(S.sort==='near') return byDate(up,1).concat(byDate(ps,-1));
   return sortBy(up.concat(ps));
 }
-function sortNear(list){return list}
 function sortBy(list){
   const l=list.slice();
   if(S.sort==='best') l.sort((a,b)=>b.pop-a.pop);
@@ -690,7 +731,7 @@ function tileUp(e){
     .concat(!e.price?['رایگان']:[]);
   return `<article class="etile" style="--g:${esc(e.g||'')}">
     <button class="ecov" data-ev="${esc(e.id)}" aria-label="جزئیات ${esc(e.t)}">
-      ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}" loading="lazy"/>`:''}
+      ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}" loading="lazy" decoding="async"/>`:''}
       <span class="eveil"></span>
       <span class="edate"><b>${faN(e.dn)}</b><span>${esc(e.mname||'')}</span></span>
       <span class="etags">${tag(e.kind,'brand')}<span class="tag">${esc(e.mode)}</span>${full?tag('ظرفیت تکمیل','stop'):''}</span>
@@ -722,7 +763,7 @@ function tilePast(h){
     : `<a class="btn sm primary" href="event.html?id=${esc(h.id)}"><svg class="i" aria-hidden="true"><use href="#i-bag"/></svg>${h.price?'تهیه':'دریافت'}</a>`;
   return `<article class="etile past" style="--g:${esc(h.g||'')}">
     <button class="ecov" data-ev="${esc(h.id)}" aria-label="جزئیات ${esc(h.t)}">
-      ${h.poster?`<img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" loading="lazy"/>`:''}
+      ${h.poster?`<img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" loading="lazy" decoding="async"/>`:''}
       <span class="eveil"></span>
       <span class="edate"><b>${faN(h.dn)}</b><span>${esc(h.mname||'')}</span></span>
       <span class="etags">${tag(h.kind)}${tag(faN(h.mediaCount)+' رسانه','ok')}${h.cert?tag('گواهی‌دار','gold'):''}</span>
@@ -873,6 +914,15 @@ function render(){
   $('#catrail').hidden=view==='lib';
 }
 function openEvent(id){ if(UI().eventSheet) UI().eventSheet(id); }
+/* پیوندهای درون‌صفحه‌ای مثل events.html#cal وقتی همین صفحه باز است، مرورگر
+   فقط هش را عوض می‌کند و صفحه دوباره خوانده نمی‌شود؛ پس خودمان می‌خوانیمش. */
+function viewFromHash(){
+  const h=location.hash.replace('#','');
+  const v=(h==='cal')?'cal':(h==='lib'||h==='library')?'lib':(h==='list'||h==='live'||h==='')?'list':'';
+  if(!v||v===S.view) return;
+  S.view=v; render();
+}
+addEventListener('hashchange',viewFromHash);
 function toList(){ if(S.view!=='list'){S.view='list'; render()} $('#listView').scrollIntoView({behavior:'smooth',block:'start'}) }
 
 /* ── کنش‌ها ── */
@@ -917,15 +967,17 @@ if(hash==='cal'||hash==='list') S.view=hash;
 if(hash==='lib'||hash==='library') S.view='lib';
 if(hash==='live') S.view='list';
 if(P.get('status')==='past'||P.get('status')==='up') S.status=P.get('status');
-if(P.get('kind')) S.kind=P.get('kind');
-if(P.get('mode')) S.mode=P.get('mode');
+if(KINDS.includes(P.get('kind'))) S.kind=P.get('kind');
+if(P.get('mode')==='حضوری'||P.get('mode')==='آنلاین') S.mode=P.get('mode');
 if(P.get('q')) S.q=P.get('q');
-if(P.get('sort')) S.sort=P.get('sort');
+if(SORTS.includes(P.get('sort'))) S.sort=P.get('sort');
+if(!MONTHS[S.month]){S.month='sh'; S.day=MONTHS.sh.today||1}
 if(P.get('ev')) S.view='list';
 if(P.get('lib')) S.view='lib';
 if(P.get('buy')) S.view='list';
 
 if(UI().syncBell) UI().syncBell();
+$('#sort').value=SORTS.includes(S.sort)?S.sort:'near';
 $('#qClear').hidden=!S.q;
 renderSpot(); renderDeal(); renderCats(); renderStats(); renderLive(); renderFilters(); renderLibBar(); renderRails(); render(); bindSpot();
 if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
@@ -935,7 +987,11 @@ document.addEventListener('nora:library',()=>{renderLibBar(); render(); renderRa
 document.addEventListener('nora:prereg',()=>{renderSpot(); renderDeal(); renderList(); renderRails(); if(S.view==='cal') renderDay()});
 if(P.get('ev')) openEvent(P.get('ev'));
 if(P.get('past')) openEvent(P.get('past'));
-if(P.get('buy')) setTimeout(()=>{const [h,m]=P.get('buy').split(':'); UI().doBuy(h,m||null)},90);
+if(P.get('buy')) setTimeout(()=>{
+  const [h,m]=P.get('buy').split(':');
+  const H=PAST.find(x=>x.id===h);
+  if(H&&(!m||(H.media||[]).some(x=>x.id===m))) UI().doBuy(h,m||null);
+},90);
 initKeys(document);
 themeInit();
 })();

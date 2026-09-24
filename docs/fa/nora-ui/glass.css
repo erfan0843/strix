@@ -107,6 +107,9 @@
 
 /* ── پایه ──────────────────────────────────────────────────────────────── */
 *{box-sizing:border-box}
+/* عنصری که hidden است باید پنهان بماند؛ وگرنه کلاس‌هایی مثل .toolbar یا
+   .icon-btn که display می‌گذارند، از خودِ hidden جلو می‌زنند. */
+[hidden]{display:none!important}
 html,body{margin:0;padding:0}
 body{
   font-family:var(--f); font-size:var(--fs-body); line-height:var(--lh);

@@ -737,12 +737,14 @@ async function load(file,store,q){
   ok(p.doc.querySelector('.topbar .menubtn')===null && p.doc.querySelector('.topbar #acctBtn')===null,'نوار بالا بی منو و بی پروفایل است');
 
   /* الف) بنر: نزدیک‌ترین برنامه‌ها، یک اسلاید در قاب */
+  ok(p.doc.querySelector('h1')!==null && p.doc.querySelector('h1').className.includes('sr'),'تیتر اصلی صفحه هست و دیدنی نیست');
+  ok(p.doc.querySelector('#catrail').getAttribute('role')==='group' && p.doc.querySelector('#calgrid').getAttribute('role')==='group','نقش نوار دسته‌ها و تقویم درست است');
   ok(p.all('#spotrail .spot').length===3,'بنر سه برنامهٔ نزدیک را نشان می‌دهد');
   ok(p.txt('#spotrail .spot h2').length>3,'تیتر اسلاید اول پر است');
   ok(p.all('#spotrail .spot')[0].querySelector('.cd')!==null,'شمار روزهای مانده روی اسناید');
   ok(/روز مانده|امشب|فردا|در حال برگزاری/.test(p.txt('#spotrail .spot .cd')),'متن شمارش معکوس درست است: '+p.txt('#spotrail .spot .cd'));
   ok(p.all('#spotrail .spot .acts .btn').length>=2,'هر اسلاید دکمهٔ ثبت‌نام/پیش‌ثبت‌نام و جزئیات دارد');
-  ok(p.all('#spotdots i').length===3,'سه نقطهٔ اسلایدر');
+  ok(p.all('#spotdots .sdot').length===3 && p.all('#spotdots .sdot')[0].tagName==='BUTTON','سه نقطهٔ اسلایدر، دکمهٔ واقعی');
   ok(p.doc.querySelector('#spotrail .spot img.pbg')!==null,'پوستر برنامه در بنر نشسته');
 
   /* ب) آمار زیر بنر */
@@ -781,7 +783,7 @@ async function load(file,store,q){
   ok(p.txt('#cnt').includes('۲۳ برنامه'),'شمار کل در سرصفحه: '+p.txt('#cnt'));
   const order=p.all('#grid .etile').map(x=>x.querySelector('.ettl').textContent.trim());
   ok(order[0]==='جلسهٔ شعر و موسیقی','فهرست از نزدیک‌ترین برنامه شروع می‌شود: '+order[0]);
-  ok(order[order.length-1].includes('امداد و نجات — ترم تیر')||order[order.length-1].includes('اردوی کوه‌پیمایی — ترم تیر'),
+  ok(order[order.length-1].includes('امداد و نجات، ترم تیر')||order[order.length-1].includes('اردوی کوه‌پیمایی، ترم تیر'),
     'و به قدیمی‌ترین برگزارشده می‌رسد: '+order[order.length-1]);
 
   /* د) صافی‌ها: بالا به پایین، سه مدل، بی دکمهٔ «همه» */
@@ -899,6 +901,8 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#toolbar').hidden===false,'نوار مرتب‌سازی و نما سرجایش هست');
   const p5=await load('events.html',makeStore(),'#lib');
   ok(p5.doc.querySelector('#libView').hidden===false && p5.doc.querySelector('#toolbar').hidden,'#lib کتابخانه را جدا نشان می‌دهد');
+  const glassSrc=fs.readFileSync(DIR+'glass.css','utf8');
+  ok(/\[hidden\]\s*\{\s*display:none!important/.test(glassSrc),'قاعدهٔ [hidden] در پوسته هست تا کلاس‌های display باطلش نکنند');
   ok(p5.txt('#libBox').includes('وارد شو'),'بی ورود، کتابخانه ورود می‌خواهد');
 
   /* ک) نشانی‌های ورودی */
@@ -909,7 +913,50 @@ async function load(file,store,q){
   const p3=await load('events.html',makeStore(),'?ev=e5');
   ok(p3.doc.querySelector('#shEvent').className.includes('on') && p3.txt('#shEvent').includes('الهه رضایی'),'ورود با ?ev= مستقیم ورقهٔ کلیات را باز می‌کند');
   const p4=await load('events.html',makeStore(),'?past=h2');
-  ok(p4.doc.querySelector('#shEvent').className.includes('on') && p4.txt('#shEvent').includes('کارگاه فن بیان — ترم تیر'),'ورود با ?past= ورقهٔ بسته را باز می‌کند');
+  ok(p4.doc.querySelector('#shEvent').className.includes('on') && p4.txt('#shEvent').includes('کارگاه فن بیان، ترم تیر'),'ورود با ?past= ورقهٔ بسته را باز می‌کند');
+
+  /* ل) نشانی دست‌کاری‌شده: نه بترکد، نه حرف ناشناس را بپذیرد */
+  const p7=await load('events.html',makeStore(),'?sort=cheap');
+  ok(p7.doc.querySelector('#sort').value==='cheap','?sort=cheap روی فهرست بازشو هم می‌نشیند');
+  ok(p7.txt('#grid .etile:first-child .eprice').includes('رایگان'),'و فهرست از ارزان‌ترین شروع می‌شود');
+  const p10=await load('events.html',makeStore(),'?sort=zzz&kind=نامعلوم&mode=نامعلوم&status=نامعلوم');
+  ok(p10.doc.querySelector('#sort').value==='near' && p10.all('#grid .etile').length===23,'مقدارهای ناشناس نشانی نادیده گرفته می‌شوند');
+  const p11=await load('events.html',makeStore(),'?q='+encodeURIComponent('<img src=x onerror=alert(1)>'));
+  ok(p11.doc.querySelectorAll('img[src=\"x\"]').length===0,'پارامترهای نشانی تزریق نمی‌کنند');
+  const p13=await load('events.html',makeStore(),'?buy=h1:نامعلوم');
+  await wait(200);
+  ok(!JSON.parse(p13.window.localStorage.getItem('nora-home-library')||'[]').length && p13.doc.querySelector('.sheet.on')===null,
+    'شناسهٔ ناموجود، بستهٔ کامل را نمی‌خرد و پنجرهٔ ورود باز نمی‌کند');
+
+  /* م) برگزارشده‌ها با «نزدیک‌ترین» هم به ترتیب تاریخ می‌آیند */
+  const p8=await load('events.html',makeStore(),'?status=past&sort=near');
+  const gotOrder=p8.all('#grid .etile').map(x=>x.querySelector('.ettl').textContent.trim());
+  const wantOrder=p8.window.NORA.PAST.slice().sort((a,b)=>b.ord-a.ord).map(h=>h.t);
+  ok(gotOrder.join('|')===wantOrder.join('|'),'ترتیب برگزارشده‌ها با تاریخ می‌خواند');
+
+  /* ن) پیوند درون‌صفحه‌ای و شیشهٔ نوار بالا */
+  const p9=await load('events.html',makeStore(),'#cal');
+  ok(p9.doc.querySelector('#calView').hidden===false,'#cal تقویم را باز می‌کند');
+  p9.window.location.hash='#lib';
+  p9.window.dispatchEvent(new p9.window.HashChangeEvent('hashchange'));
+  await wait(60);
+  ok(p9.doc.querySelector('#libView').hidden===false && p9.doc.querySelector('#calView').hidden,'تغییر هش به #lib کتابخانه را باز می‌کند');
+  const dashFields=[];
+  for(const r of p8.window.NORA.EVENTS.concat(p8.window.NORA.PAST)){
+    const walk=(o,path)=>{ for(const k of Object.keys(o||{})){
+      const v=o[k];
+      if(typeof v==='string'&&/[\u2014\u2013]/.test(v)) dashFields.push(path+k);
+      else if(Array.isArray(v)) v.forEach((m,i)=>{ if(m&&typeof m==='object') walk(m,path+k+'['+i+'].') });
+    }};
+    walk(r,'');
+  }
+  ok(dashFields.length===0,'متن رویدادها و آرشیو خط تیره ندارد'+(dashFields.length?': '+dashFields.slice(0,4).join('، '):''));
+
+  const p12=await load('events.html',makeStore());
+  Object.defineProperty(p12.window,'scrollY',{value:160,configurable:true});
+  p12.window.dispatchEvent(new p12.window.Event('scroll'));
+  await wait(30);
+  ok(p12.doc.documentElement.classList.contains('atscroll'),'با اسکرول، نوار بالا شیشه می‌شود');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

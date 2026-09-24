@@ -91,6 +91,9 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .sfield input{flex:1;min-width:0;border:0;background:none;outline:0;font:inherit;font-size:var(--fs-sub);
   color:var(--ink);padding:10px 0}
 .sfield input::placeholder{color:var(--ink-4)}
+/* سافاری برای input[type=search] خودش یک ✕ می‌گذارد؛ ما ✕ خودمان را داریم */
+.sfield input[type="search"]::-webkit-search-cancel-button,
+.sfield input[type="search"]::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
 .seg{display:inline-flex;gap:3px;padding:3px;border-radius:99px;background:var(--surface-sunk);
   border:.5px solid var(--hairline)}
 .seg button{-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;display:inline-flex;align-items:center;

@@ -1185,6 +1185,21 @@ addEventListener('hashchange',uiHash);
 sheetA11y();
 syncBell();
 try{uiHash()}catch(e){}
+/* ── نوار بالا: وقت اسکرول، شیشهٔ پررنگ‌تر می‌شود (همان حس نوار آی‌اواس) ──
+   پیش‌تر فقط صفحهٔ خانه این کلاس را می‌گذاشت و نوار رویدادها همیشه مات
+   می‌ماند؛ حالا هر صفحه‌ای که ui.js را دارد همین رفتار را دارد. */
+(function(){
+  let was=null;
+  const sync=()=>{
+    const on=(window.scrollY||window.pageYOffset||0)>10;
+    if(on===was) return; was=on;
+    document.documentElement.classList.toggle('atscroll',on);
+  };
+  addEventListener('scroll',sync,{passive:true});
+  addEventListener('pageshow',sync);
+  try{sync()}catch(e){}
+})();
+
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
