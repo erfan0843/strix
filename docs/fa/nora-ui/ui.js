@@ -670,7 +670,7 @@ function profileFilled(p,withPhone){
   (A.fields||[]).forEach(f=>{ out[f.k]= f.lock ? !!withPhone : !!(p&&p[f.k]) });
   return out;
 }
-const softField=f=>f.input==='image';   /* پارامتر عکس، درصد پروفایل را پایین نمی‌آورد */
+const softField=f=>f.input==='image'||!f.req;   /* عکس و پارامترهای اختیاری، درصد را پایین نمی‌آورند */
 function hardMissing(p,withPhone){
   const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
   return (A.fields||[]).filter(x=>f[x.k]||softField(x));
@@ -1313,7 +1313,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v15') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v16') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

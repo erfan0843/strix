@@ -19,12 +19,28 @@
 const N=window.NORA||{}, A=N.ACCOUNT||{}, POL=A.policy||{}, SUP=A.support||{};
 const SECT=A.sections||[], PAY=SECT.find(s=>s.card)||null, ROWS=SECT.filter(s=>!s.card);
 const EVENTS=N.EVENTS||[], PAST=N.PAST||[], FAQ=N.FAQ||[], CERTS=N.CERTS||{}, ARCHIVE=N.ARCHIVE||{};
-const FIELDS=A.fields||[], FLOW=A.flow||[], LEVELS=A.levels||[], ACH=A.achievements||[], STORE=A.rewardStore||[];
+const FIELDS=A.fields||[], LEVELS=A.levels||[], ACH=A.achievements||[], STORE=A.rewardStore||[];
 const MON=A.months||{sh:'شهریور'};
 const TRUST=N.TRUST||{}, TRUST_ROWS=TRUST.row||[];
 const PF=A.profileForm||{}, DELFLOW=A.deleteFlow||{};
 const MY=A.myEvents||{}, MY_UP=MY.up||[], MY_PAST=MY.past||[];
 const MY_INFO=MY.info||{}, TABS=MY.tabs||{}, GRP=MY.groups||{};
+const PAYINFO=A.pay||{}, PAYM=PAYINFO.methods||[], PAY_EV=PAYINFO.eventModels||{},
+      PAY_DEF=PAYINFO.defaultModels||['bale','wallet','card'];
+const PAY_KEY='nora-home-pay';                 /* موجودی، بدهی و پرداخت‌های همین کاربر */
+/* پروفایل: استان و شهر از فهرست، تاریخ از سه فهرست روز و ماه و سال */
+const GEO=(A.geo||[]).map(r=>{ const t=String(r).split('|'); return {p:t[0], cities:(t[1]||'').split('،').filter(Boolean)} });
+const MONF=A.monthsFa||[];
+const LEAPJ=[1,5,9,13,17,22,26,30];
+const leapJ=y=>LEAPJ.indexOf(((y%33)+33)%33)>-1;
+const daysInJ=(y,m)=>m<=6?31:(m<=11?30:(leapJ(y)?30:29));
+const geoCities=p=>{ const g=GEO.find(x=>x.p===p); return g?g.cities:[] };
+function dtParts(v){
+  const m=unFa(String(v||'')).replace(/[^\d/]/g,'').match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  return m?{y:+m[1], m:+m[2], d:+m[3]}:null;
+}
+const dtTxt=t=>t?(t.y+'/'+String(t.m).padStart(2,'0')+'/'+String(t.d).padStart(2,'0')):'';
+const dtFa=t=>t?(faN(t.y)+'/'+faN(String(t.m).padStart(2,'0'))+'/'+faN(String(t.d).padStart(2,'0'))):'—';
 const myUp=()=>EVENTS.filter(e=>MY_UP.indexOf(e.id)>-1);
 const myPast=()=>PAST.filter(e=>MY_PAST.indexOf(e.id)>-1);
 /* شمارش روز و ساعت و دقیقه تا شروع رویداد؛ از ساعت خودِ دستگاه */
@@ -162,13 +178,14 @@ function headMember(){
 /* ══ نورا پی: کارت خودش، سرِ صفحه و جدا از ردیف‌ها ═══════════════════ */
 function payBox(){
   const su=sess()||{};
-  const bal=faNum(su.wallet||A.wallet||0);
-  const tags=(PAY&&PAY.tags||['کیف پول','شارژ','صورت‌حساب']).slice(0,3);
+  const debt=login()?debtAmt():0;
+  const bal=login()?money(walletBal()):'وارد شو و موجودی‌ات را ببین';
+  const tags=debt?['بدهی '+money(debt),'پرداخت','قفل گواهی']:(PAY&&PAY.tags||['کیف پول','شارژ','صورت‌حساب']).slice(0,3);
   return `<div class="paybar anim" style="--i:1">
       <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی">
         <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
-        <span class="ptx"><small>نورا پی · کیف پول</small>
-          <b>${login()?bal+' تومان':'وارد شو و موجودی‌ات را ببین'}</b>
+        <span class="ptx"><small>نورا پی · کیف پول${debt?' · بدهکار':''}</small>
+          <b>${bal}</b>
           <span class="pmeta">${tags.map(x=>chip(x)).join('')}</span></span>
         <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
       </button>
@@ -281,7 +298,7 @@ function pendingNotes(){ return mineAll().filter(x=>{ const st=noteState(x.e.id)
 function chipsOf(id,past){
   const inf=myInfo(id), st=noteState(id), chips=[];
   if(inf.ticket&&inf.ticket.ok) chips.push(chip('بلیت فعال','ok'));
-  if(inf.cert&&inf.cert.st==='ready') chips.push(chip('گواهی آماده','gold'));
+  if(inf.cert&&inf.cert.st==='ready') chips.push(chip(certLocked()?'گواهی · قفل بدهی':'گواهی آماده',certLocked()?'stop':'gold'));
   if(inf.cert&&inf.cert.st==='pending') chips.push(chip('گواهی در انتظار تأیید','warn'));
   if((inf.off||[]).length) chips.push(chip(faN(inf.off.length)+' فایل آفلاین'));
   if(past&&(inf.att||[]).length) chips.push(chip('کارنامهٔ حضور'));
@@ -340,7 +357,7 @@ function panelNotes(){
     return `<div class="tk">${ico('i-star','width:19px;height:19px;color:var(--accent-ink)')}
       <span><b>${esc(e.t)}</b>
         <small>${esc(past?'برگزار شد':'پیش‌رو')} · ${esc(e.when||e.d||'')}${st.askS?' · '+esc((st.n.survey||{}).n||'نظرسنجی'):''}</small>
-        ${st.hasS?`<span class="cap">${esc(((st.n.survey||{}).answers||[]).join(' · '))}</span>`:''}
+        ${st.hasS?`<span class="cap">${esc((st.n.survey||{}).n||'نظرسنجی')} · ${esc(((st.n.survey||{}).answers||[]).join(' · '))}</span>`:''}
         <span class="acts">${st.hasS?chip(MY.surveyDone||'نظرسنجی پر شد','ok'):''}
           ${chip(st.askS?(MY.surveyAsk||'نظرسنجی'):(MY.noteAsk||'نظر'),'warn')}
           <button class="btn sm primary" data-myev="${esc(e.id)}" data-ask="${st.askS?'survey':'comment'}">
@@ -348,8 +365,9 @@ function panelNotes(){
   };
   const givenRow=({e})=>{
     const st=noteState(e.id), c=st.n.comment||{}, sv=st.n.survey||{};
-    const body=[st.hasC?esc(c.text||'نظرت'):'', st.hasS?esc((sv.answers||[]).join(' · ')):''].filter(Boolean).join(' · ');
-    const meta=[st.hasC?esc(c.at||'')+' · '+faN(c.stars||'۵')+' از ۵':'', st.hasS?esc(sv.n||'نظرسنجی'):''].filter(Boolean).join(' · ');
+    const body=[st.hasC?esc(c.text||'نظرت را نوشتی'):'', st.hasS?esc((sv.answers||[]).join(' · ')):''].filter(Boolean).join(' · ');
+    const meta=[st.hasC?esc(c.at||'')+' · '+faN(c.stars||'۵')+' از ۵':'',
+      st.hasS?esc(sv.n||'نظرسنجی'):''].filter(Boolean).join(' · ');
     return `<div class="tk">${ico('i-check','width:19px;height:19px;color:var(--ok)')}
       <span><b>${esc(e.t)}</b>
         <small>${body}</small>
@@ -397,9 +415,14 @@ function myEventSheet(id){
       <button class="btn sm quiet" data-my-ticket-dl="${esc(id)}">${ico('i-download')} دانلود بلیت</button>
       ${t.ok?chip('معتبر','ok'):(past?chip('بلیت مصرف شد'):chip('هنوز صادر نشده','warn'))}
     </div>`);
+  const locked=certLocked();
   const cert=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.cert||'گواهینامه')}</div>
-    <div class="srow">${ico('i-medal')}<span class="sp">${esc(cTxt)}<small>${esc(c.id?('سریال '+c.id):'با تأیید سرپرست صادر می‌شود')}</small></span>
-      ${c.st==='ready'?`<button class="btn sm quiet" data-my-cert="${esc(id)}">${ico('i-download')} دانلود</button>`:''}</div>`;
+    <div class="srow">${ico(locked?'i-lock':'i-medal')}
+      <span class="sp">${esc(locked?'قفل تا تسویهٔ نورا پی':cTxt)}
+        <small>${esc(locked?(PAYINFO.debt||{}).lock||'بدهی نورا پی داری؛ گواهینامه تا تسویه دانلود نمی‌شود.'
+          :(c.id?('سریال '+c.id):'با تأیید سرپرست صادر می‌شود'))}</small></span>
+      ${locked?`<button class="btn sm primary" data-debtpay>${ico('i-wallet')} پرداخت بدهی</button>`
+        :(c.st==='ready'?`<button class="btn sm quiet" data-my-cert="${esc(id)}">${ico('i-download')} دانلود</button>`:'')}</div>`;
   const off=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.off||'فایل‌های آفلاین')}</div>
     ${(inf.off||[]).map(o=>offRow(o,id)).join('')}
     <div class="row tight" style="margin-top:8px">
@@ -605,50 +628,106 @@ function fieldView(f,p){
   if(!val) return `<span class="v"><span class="tx miss">${f.req?'ثبت نشده':'اختیاری، خالی'}</span></span>`;
   return `<span class="v"><span class="tx">${esc(val)}</span></span>`;
 }
+/* کادرهای انتخاب: هر جا فهرست هست، تایپ لازم نیست */
+const selOpts=(cur,list,ph)=>{
+  const C=String(cur===undefined||cur===null?'':cur);
+  return `<option value=""${C?'':' selected'} disabled>${esc(ph||'انتخاب کن')}</option>`+
+    list.map(o=>{ const v=String(o&&o.v!==undefined?o.v:o), l=(o&&o.l!==undefined)?o.l:o;
+      return `<option value="${esc(v)}"${v===C?' selected':''}>${esc(l)}</option>` }).join('');
+};
+function pickEdit(f,p){
+  const cur=String(p[f.k]||''), opts=f.opts||[];
+  if(opts.length<=3)                 /* دو سه گزینه: دکمه، نه فهرست */
+    return `<div class="seg" role="group" aria-label="${esc(f.l)}">
+      ${opts.map(o=>`<button class="segbtn${o===cur?' on':''}" type="button" data-fpick="${esc(f.k)}" data-val="${esc(o)}">${esc(o)}</button>`).join('')}
+      <input type="hidden" id="f_${f.k}" value="${esc(cur)}"/></div>`;
+  return `<select class="input" id="f_${f.k}">${selOpts(cur,opts,'انتخاب کن')}</select>`;
+}
+function dateEdit(f,p){
+  const pk=f.pick||{}, from=pk.from||1330, to=pk.to||1390;
+  const t=dtParts(p[f.k])||{y:to-25,m:1,d:1};
+  const years=[]; for(let y=to;y>=from;y--) years.push({v:y,l:faN(y)});
+  const months=MONF.map((n,i)=>({v:i+1,l:n}));
+  const days=[]; for(let d=1;d<=daysInJ(t.y,t.m);d++) days.push({v:d,l:faN(d)});
+  return `<div class="datepick">
+    <select class="input sm" id="f_${f.k}_d" aria-label="روز">${selOpts(t.d,days)}</select>
+    <select class="input sm" id="f_${f.k}_m" aria-label="ماه">${selOpts(t.m,months)}</select>
+    <select class="input sm" id="f_${f.k}_y" aria-label="سال">${selOpts(t.y,years)}</select>
+    <input type="hidden" id="f_${f.k}" value="${esc(dtTxt(t))}"/></div>`;
+}
+function hintLine(f){
+  const bits=[];
+  if(f.lock) bits.push('تأییدشده؛ برای عوض‌کردنش با پشتیبانی حرف بزن');
+  else if(f.w==='geo'||f.w==='city') bits.push('از فهرست انتخاب کن؛ تایپ لازم نیست');
+  else if(f.w==='date') bits.push('از فهرست روز و ماه و سال بردار');
+  else if(f.w==='pick') bits.push('');
+  else if(f.hint) bits.push(f.hint);
+  const t=bits.filter(Boolean);
+  return t.length?`<span class="hint" id="h_${f.k}">${esc(t.join('؛ '))}</span>`:'';
+}
 function fieldEdit(f,p){
   const bad=S.errs[f.k], v=f.lock?phone():String(p[f.k]||'');
+  let box;
+  if(f.lock) box=`<input class="input num" id="f_${f.k}" value="${esc(faN(v))}" readonly aria-readonly="true"/>`;
+  else if(f.w==='geo') box=`<select class="input" id="f_${f.k}">${selOpts(String(p[f.k]||''),GEO.map(g=>g.p),'استانت را انتخاب کن')}</select>`;
+  else if(f.w==='city') box=`<select class="input" id="f_${f.k}">${selOpts(String(p[f.k]||''),geoCities(String(p.province||'')),'شهرت را انتخاب کن')}</select>`;
+  else if(f.w==='date') box=dateEdit(f,p);
+  else if(f.w==='pick') box=pickEdit(f,p);
+  else box=`<input class="input${f.input==='numeric'||f.w==='num'?' num':''}" id="f_${f.k}" name="${f.k}" type="${f.input==='email'?'email':'text'}"
+    ${f.w==='num'||f.input==='numeric'?'inputmode="numeric"':''} ${f.max?`maxlength="${f.max}"`:''}
+    value="${esc(v)}" placeholder="${esc(f.ph||'')}" ${bad?`aria-invalid="true"`:(f.hint?`aria-describedby="h_${f.k}"`:'')}/>`;
   return `<label class="lbl" for="f_${f.k}" style="margin:0">${esc(f.l)}${f.req?'':' <span class="cap">اختیاری</span>'}</label>
-    <input class="input${f.input==='numeric'?' num':''}" id="f_${f.k}" name="${f.k}" type="${f.input==='email'?'email':'text'}"
-      ${f.input==='numeric'?'inputmode="numeric"':''} ${f.max?`maxlength="${f.max}"`:''}
-      value="${esc(v)}" placeholder="${esc(f.ph||'')}" ${f.lock?'readonly aria-readonly="true"':''}
-      ${bad?`aria-invalid="true" aria-describedby="e_${f.k}"`:(f.hint?`aria-describedby="h_${f.k}"`:'')}/>
-    ${bad?`<span class="err" id="e_${f.k}" role="alert">${esc(bad)}</span>`
-        :(f.hint?`<span class="hint" id="h_${f.k}">${esc(f.hint)}${f.lock?': برای عوض‌کردنش با پشتیبانی حرف بزن':''}</span>`:'')}`;
+    ${box}
+    ${bad?`<span class="err" id="e_${f.k}" role="alert">${esc(bad)}</span>`:hintLine(f)}`;
+}
+/* شهرها با استان عوض می‌شوند و روزها با ماه و سال */
+function syncCity(){
+  const sel=$('#f_province'), box=$('#f_city'); if(!sel||!box) return;
+  const list=geoCities(sel.value), cur=box.value;
+  box.innerHTML=selOpts(list.indexOf(cur)>-1?cur:'',list,'شهرت را انتخاب کن');
+}
+function syncDate(k){
+  const y=$('#f_'+k+'_y'), m=$('#f_'+k+'_m'), d=$('#f_'+k+'_d'), hid=$('#f_'+k);
+  if(!y||!m||!d||!hid) return;
+  const days=[]; for(let i=1;i<=daysInJ(+y.value,+m.value);i++) days.push({v:i,l:faN(i)});
+  const keep=+d.value<=days.length?+d.value:days.length;
+  d.innerHTML=selOpts(keep,days);
+  hid.value=dtTxt({y:+y.value,m:+m.value,d:keep});
+}
+/* انتخاب‌های دکمه‌ای: جنسیت و مانندش */
+function pickSet(k,val){
+  const hid=$('#f_'+k); if(hid) hid.value=val;
+  document.querySelectorAll('[data-fpick="'+k+'"]').forEach(b=>b.classList.toggle('on',b.dataset.val===val));
 }
 function infoPanel(){
-  const p=prof(), st=stOf(p), groups=[];
+  const p=prof(), groups=[];
   FIELDS.forEach(f=>{ if(!groups.includes(f.g)) groups.push(f.g) });
   const body=groups.map(g=>`<div class="grp"><div class="gt cap">${esc(g)}</div>
     ${FIELDS.filter(f=>f.g===g).map(f=>f.k==='photo'?photoRow(p)
       :S.edit
         ? `<div class="fld${S.errs[f.k]?' bad':''}">${fieldEdit(f,p)}</div>`
-        : `<div class="fld"><span class="hint">${esc(f.l)}<i class="prm">${esc(f.param||f.k)}</i></span>${fieldView(f,p)}</div>`).join('')}</div>`).join('');
+        : `<div class="fld"><span class="hint">${esc(f.l)}</span>${fieldView(f,p)}</div>`).join('')}</div>`).join('');
+  const miss=missOf(p).length;
   const acts=S.edit?`<div class="row" style="margin-top:14px">
-      <button class="btn primary" id="sendBtn">${ico('i-check')} ذخیره و ارسال برای تأیید</button>
-      <button class="btn quiet" id="draftBtn">فقط ذخیره</button>
+      <button class="btn primary" id="sendBtn">${ico('i-check')} ذخیره کن</button>
       <span class="sp" style="flex:1"></span><button class="btn quiet" id="cancelBtn">انصراف</button></div>`
-    :`<div class="row" style="margin-top:12px"><button class="btn ${missOf(p).length?'primary':'quiet'}" id="editBtn">
-      ${ico('i-pen')} ${missOf(p).length?'تکمیل فرم پروفایل':'ویرایش فرم پروفایل'}</button></div>`;
-  return pfCard()+
-    card('اطلاعات من','پارامترهای فرمی که مدیر سامانه ساخته؛ تغییرات اول به کارشناس می‌رود','i-idcard',
-    `<div class="row" style="align-items:center;gap:8px;margin-top:2px"><span class="cap">وضعیت</span>${chip(st[0],st[1])}
-      <span class="sp" style="flex:1"></span><span class="cap">٪${faN(pctOf(p))} کامل</span></div>${body}${acts}`)+
+    :`<div class="row" style="margin-top:12px"><button class="btn ${miss?'primary':'quiet'}" id="editBtn">
+      ${ico('i-pen')} ${miss?'تکمیل اطلاعات':'ویرایش اطلاعات'}</button>
+      ${inviteRow()}</div>`;
+  return card('اطلاعات من','کم تایپ کن؛ هر چیزی که فهرست دارد از فهرست انتخاب می‌شود','i-idcard',
+    `<div class="row" style="align-items:center;gap:8px;margin-top:2px">
+      <span class="cap">٪${faN(pctOf(p))} کامل</span>
+      ${miss?`<span class="tag">${faN(miss)} قلم مانده</span>`:chip('کامل','ok')}
+      <span class="sp" style="flex:1"></span><span class="cap">همین‌جا ذخیره می‌شود</span></div>${body}${acts}`)+
     trustCard();
 }
-/* ── کارت فرم پروفایل: ساختهٔ مدیر سامانه، نه این‌جا ──────────────── */
-function pfCard(){
-  if(!PF.n) return '';
-  return card('فرم پروفایل','ساختهٔ '+esc(PF.maker||'مدیر سامانه')+(PF.at?' · '+esc(PF.at):''),'i-layers',
-    `<p class="cap" style="margin:0 3px 8px">${esc(PF.lead||'')}</p>
-     <div class="srow">${ico('i-list')}
-       <span class="sp">پارامترهای این فرم<small>${faN(FIELDS.length)} پارامتر از عکس تا کد ملی</small></span>
-       <span class="tag">${esc(PF.cap||'')}</span></div>
-     <div class="prms">${FIELDS.map(f=>`<span class="prm on">${esc(f.param||f.k)}</span>`).join('')}</div>
-     <div class="row" style="margin-top:10px"><a class="btn sm quiet" href="${esc(PF.from||'builder.html')}">
-       ${ico('i-chart')} ${esc(PF.fromN||'پنل فرم‌ها')}</a>
-       <span class="sp" style="flex:1"></span><span class="cap">گونه‌ها: ${esc((PF.kinds||[]).join('، '))}</span></div>`);
+/* کد دعوت: اگر با کد آمده، همین‌جا معلوم می‌شود */
+function inviteRow(){
+  let inv={}; try{ inv=JSON.parse(localStorage.getItem('nora-home-invite')||'{}')||{} }catch(e){ inv={} }
+  if(!inv.code) return '';
+  return `<span class="tag ok" style="height:26px">${ico('i-users')} کد دعوت: <b class="num">${esc(inv.code)}</b>
+    ${inv.by?' · دعوت '+esc(inv.by):''}</span>`;
 }
-/* پارامتر عکس: تنها پارامتری که با بارگذاری پر می‌شود */
 function photoRow(p){
   const cur=p.photo||PHOTO_SEED[0];
   return `<div class="fld phrow"><span class="hint">${esc('عکس پروفایل')}<i class="prm">photo</i></span>
@@ -659,20 +738,6 @@ function photoRow(p){
         <button class="btn sm quiet" type="button" data-photo-demo>عکس نمونه</button></span>`
       :`<span class="tx"><span class="cap">همین عکس روی کارت ورود و گواهی می‌آید</span></span>`}
     </span></div>`;
-}
-function flowPanel(){
-  const p=prof(), st=(p&&p.status)||'draft', hist={}; (p.history||[]).forEach(h=>{hist[h.k]=h.at});
-  const hit={filled:['draft','pending','approved'],pending:['pending','approved'],approved:['approved']};
-  const steps=FLOW.map(f=>{const on=(hit[f.k]||[]).includes(st), now=(st==='pending'&&f.k==='pending');
-    return `<div class="step ${on?'done':''} ${now?'on':''}">
-      <span class="dot">${ico('i-'+(on?'check':f.k==='pending'?'clock':'pen'),'width:13px;height:13px')}</span>
-      <span class="tx"><b>${esc(f.n)}</b><small>${esc(f.s)}</small></span>
-      <span class="lc cap" style="margin-inline-start:auto">${esc(hist[f.k]||(on?'':'—'))}</span></div>`}).join('');
-  const tail = st==='rejected' ? `<span class="err" style="display:block;margin-top:8px">دلیل رد: ${esc(p.reason||'نامشخص')}</span>`
-    : st==='pending' ? '<p class="cap" style="margin:10px 3px 0">معمولاً تا یک روز کاری بررسی می‌شود.</p>'
-    : st==='approved' ? '<p class="cap" style="margin:10px 3px 0">پروفایلت تأیید شده است؛ اگر چیزی را عوض کنی، دوباره می‌رود صف تأیید.</p>'
-    : '<p class="cap" style="margin:10px 3px 0">هر وقت اطلاعات را فرستادی، وضعیت همین‌جا عوض می‌شود.</p>';
-  return card('تأیید پروفایل','کارشناس درخواستت را می‌بیند و نتیجه را خبر می‌دهد','i-shield',`<div class="steps">${steps}</div>${tail}`);
 }
 function formsPanel(){
   const F=[{t:'فرم پروفایل اعضا',k:'پروفایل',s:'pending',d:'۲ مهر',mine:true},
@@ -833,7 +898,7 @@ VS.profile=function(t){
     : S.ptab==='book'?bookPanel()
     : S.ptab==='forms'?formsPanel()
     : S.ptab==='privacy'?privacyPanel()
-    : infoPanel()+flowPanel();
+    : infoPanel();
   const sub=(PTABS.find(x=>x.k===S.ptab)||{}).s||'';
   return viewHead(t,sub,PTABS,'ptab')+`<div class="panel">${body}</div>`;
 };
@@ -843,18 +908,309 @@ VS.book=function(t){
   const C=N.CLUB||{};
   return viewHead(t,(C.term?'ترم '+C.term+' · ':'')+(C.book||''),null)+`<div class="panel">${bookPanel()}</div>`;
 };
-VS.pay=function(t){
-  const bits=POL.payBits||['کیف پول','شارژ','صورت‌حساب','اقساط','بازگشت وجه','کد تخفیف'];
-  return viewHead(t)+card('نورا پی','این بخش را در یک فاز جدا می‌سازیم','i-wallet',
-    `<div class="gate">${ico('i-wallet')}
-      <div class="head">فعلاً قفل است</div>
-      <div class="cap">حساب، رویدادها و امتیاز کار می‌کند؛ کیف پول و پرداخت‌ها فاز بعد می‌آید تا
-        شماره‌ها و صورت‌حساب‌ها از اول درست بنشینند.</div>
-      <div class="chipsline" style="justify-content:center">${bits.map(b=>chip(b)).join('')}</div>
-      <div class="gacts"><button class="btn primary" data-go="support">پیشنهادت را بگو</button>
-        <button class="btn quiet" data-go="events">رویدادهای من</button></div></div>`);
-};
 
+/* ══ نورا پی: همهٔ پرداخت‌ها و خریدهای سامانه ══════════════════════════
+   شش مدل روی یک لایه: کیف پول نورا پی، درگاه رسمی بله، کارت‌به‌کارت،
+   حضوری، امتیاز و «نصف الان، نصف اول ماه آینده». تا وقتی کاربر به نورا پی
+   بدهکار است، گواهینامه‌اش دانلود نمی‌شود. */
+function payState(){
+  const d={bal:(PAYINFO.wallet||{}).bal||0, debt:((PAYINFO.debt||{}).amount)||0,
+    paid:{}, part:{'NP-2417':true}, refunds:{}, txs:[]};
+  try{
+    const v=JSON.parse(localStorage.getItem(PAY_KEY)||'{}')||{};
+    return {bal:typeof v.bal==='number'?v.bal:d.bal, debt:typeof v.debt==='number'?v.debt:d.debt,
+      paid:v.paid||{}, part:Object.assign({},d.part,v.part||{}), refunds:v.refunds||{}, txs:v.txs||[]};
+  }catch(e){ return d }
+}
+function paySave(patch){
+  const next=Object.assign({},payState(),patch||{});
+  try{ localStorage.setItem(PAY_KEY,JSON.stringify(next)) }catch(e){}
+  return next;
+}
+const walletBal=()=>payState().bal;
+const debtAmt=()=>payState().debt;
+const certLocked=()=>debtAmt()>0;
+const methodOf=k=>PAYM.find(m=>m.k===k)||{};
+const money=n=>faNum(n)+'  تومان';
+const modelsOf=eid=>(PAY_EV&&PAY_EV[eid])||PAY_DEF;
+function invState(v){ const st=payState();
+  return st.paid[v.id]?'paid':(st.refunds[v.id]?'refunded':(st.part[v.id]?'partial':v.state)) }
+function invTone(s){ return s==='paid'?'ok':(s==='refunded'||s==='failed'||s==='rejected')?'stop':s==='partial'?'gold':'brand' }
+function invStateTxt(s){ return (PAYINFO.states||{})[s]||s }
+function addTx(t){
+  const st=payState(); paySave({txs:[Object.assign({at:nowFa()},t)].concat(st.txs).slice(0,12)});
+}
+/* ── کارت کیف پول ─────────────────────────────────────────────────── */
+function payHero(){
+  const w=PAYINFO.wallet||{}, bal=walletBal(), cap=w.cap||0, debt=debtAmt();
+  const pct=cap?Math.min(100,Math.round(bal/cap*100)):0;
+  return `<div class="payhero anim">
+    <div class="ph-top"><span class="ph-ic">${ico('i-wallet')}</span>
+      <span class="ph-tx"><small>${esc(w.n||'کیف پول نورا پی')}</small>
+        <b class="num">${money(bal)}</b>
+        <span class="ph-meta">${chip('سقف '+money(cap))}${w.auto?chip('پرداخت خودکار','ok'):''}
+          ${debt?chip('بدهی '+money(debt),'stop'):chip('بی بدهی','ok')}</span></span></div>
+    <div class="meter"><i style="width:${faN(pct)}%"></i></div>
+    <p class="cap" style="margin:8px 2px 0">${esc(w.autoNote||'')}</p>
+    <div class="row tight" style="margin-top:11px">
+      <button class="btn primary" data-topup>${ico('i-plus')} شارژ کیف پول</button>
+      <button class="btn quiet" data-paytx>${ico('i-doc')} تراکنش‌ها</button>
+      <button class="btn quiet" data-linkgo>${ico('i-link')} لینک پرداخت</button>
+    </div></div>`;
+}
+/* ── بدهی و قفل گواهینامه ─────────────────────────────────────────── */
+function debtBox(){
+  const d=PAYINFO.debt||{}, amt=debtAmt();
+  if(!amt)
+    return `<div class="payclear anim">${ico('i-check')}<span class="tx"><b>به نورا پی بدهکار نیستی</b>
+      <small>گواهینامه‌ها باز است و هر وقت بخواهی دانلود می‌شوند.</small></span></div>`;
+  return `<div class="paydebt anim">${ico('i-clock')}<span class="tx">
+      <b>${money(amt)} بدهی داری</b>
+      <small>${esc(d.t||'')}${d.due?' · مهلت '+esc(d.due):''}${d.plan?' · '+esc(d.plan):''}</small>
+      <span class="cap">${esc(d.lock||'تا تسویهٔ بدهی، گواهینامه قابل دانلود نیست.')}</span></span>
+    <button class="btn sm primary" data-debtpay>پرداخت کن</button></div>`;
+}
+/* ── شش مدل پرداخت ────────────────────────────────────────────────── */
+function methodTile(m){
+  const off=!m.on;
+  return `<button class="paym${off?' off':''}" type="button" data-paym="${esc(m.k)}"${off?' disabled aria-disabled="true"':''}>
+    <span class="pm-ic">${ico(m.i||'i-wallet')}</span>
+    <span class="tx"><b>${esc(m.n)}</b><small>${esc(m.s)}</small></span>
+    <span class="pm-go">${ico('i-chev-left')}</span></button>`;
+}
+function methodsBox(){
+  return `<div class="payms">${PAYM.map(methodTile).join('')}</div>
+    <p class="cap" style="margin:9px 2px 0">مدل هر رویداد را مدیر یا سازندهٔ رویداد انتخاب می‌کند؛
+      روی هر روش بزنی، شرط و مهلت خودش را می‌بینی.</p>`;
+}
+/* ── صورتحساب و تراکنش ────────────────────────────────────────────── */
+function invRow(v){
+  const st=invState(v), dow=v.paid<v.amount&&v.amount>0;
+  return `<div class="ivrow">
+    <span class="iv-ic">${ico('i-doc')}</span>
+    <span class="tx"><b>${esc(v.t)}</b>
+      <small>${esc(v.at)} · ${esc(methodOf(v.method).n||v.method||'')}</small>
+      ${v.track&&v.track!=='—'?`<span class="cap">کد رهگیری <b class="num" dir="ltr">${esc(v.track)}</b>
+        ${dow?' · پرداخت‌شده '+money(v.paid||0):''}</span>`:''}</span>
+    <span class="iv-end"><b class="num">${v.amount?money(v.amount):'رایگان'}</b>${chip(invStateTxt(st),invTone(st))}
+      ${st==='paid'&&v.amount>0?`<button class="btn sm quiet" data-refund="${esc(v.id)}">برگشت وجه</button>`
+        :(st==='paid'?'':`<button class="btn sm primary" data-invpay="${esc(v.id)}">پرداخت</button>`)}</span></div>`;
+}
+function txRow(t){
+  const up=(+t.amount||0)>0, pts=+t.pts||0;
+  const amt=t.amount?`<b class="num ${up?'up':'down'}">${up?'+':'−'}${money(Math.abs(t.amount))}</b>`
+    :(pts?`<b class="num up">+${faN(pts)} امتیاز</b>`:'<b class="num">—</b>');
+  return `<div class="txrow"><span class="tx-ic">${ico(t.k==='top'?'i-plus':t.k==='refund'?'i-refresh':t.k==='bonus'?'i-star':'i-bag')}</span>
+    <span class="tx"><b>${esc(t.t)}</b><small>${esc(t.at||'')}${t.by?' · '+esc(methodOf(t.by).n||t.by):''}</small></span>
+    <span class="tx-end">${amt}${chip(pts?'امتیاز':invStateTxt(t.state),pts?'gold':invTone(t.state))}</span></div>`;
+}
+/* ── ورقه‌ها: پرداخت، شارژ، برگشت و لینک ─────────────────────────── */
+function payTrace(){
+  return `<div class="trace">${[['i-doc','فاکتور نورا پی'],['i-check','تأیید پرداخت'],['i-medal','رسید و کد رهگیری']]
+    .map(([i,t])=>`<span class="tr">${ico(i)}${esc(t)}</span>`).join('<i class="tr-line"></i>')}</div>`;
+}
+function methodSheet(k,ctx){
+  const m=methodOf(k); if(!m||!m.on) return;
+  ctx=ctx||{};
+  const amt=ctx.amount||0, bal=walletBal();
+  const ev=(ctx&&ctx.eid)?((EVENTS.find(x=>x.id===ctx.eid)||PAST.find(x=>x.id===ctx.eid)||{}).t||''):'';
+  let body='',act='';
+  if(k==='bale'){
+    body=`<p class="sub" style="margin-top:8px">فاکتور رسمی بله برای ${amt?money(amt):'این خرید'} ساخته می‌شود
+      و از کیف پول بله خودت پرداخت می‌شود؛ همان لحظه قطعی است.</p>${payTrace()}
+      <div class="srow">${ico('i-shield')}<span class="sp">درگاه<small>درگاه رسمی بله؛ برگشت وجه هم از همان درگاه</small></span>${chip('رسمی','ok')}</div>`;
+    act=`<button class="btn primary" data-paynow="bale">پرداخت با درگاه بله</button>`;
+  }else if(k==='wallet'){
+    const enough=bal>=amt;
+    body=`<p class="sub" style="margin-top:8px">از موجودی نورا پی خودت پرداخت می‌شود${amt?`؛ مبلغ ${money(amt)}`:''}.</p>
+      <div class="srow">${ico('i-wallet')}<span class="sp">موجودی<b class="num">${money(bal)}</b></span>
+        ${enough||!amt?chip('کافی','ok'):chip('کم است','warn')}</div>${payTrace()}`;
+    act=`<button class="btn primary" data-paynow="wallet"${amt&&!enough?' disabled aria-disabled="true"':''}>پرداخت از کیف پول</button>
+      ${amt&&!enough?`<button class="btn quiet" data-topup>شارژ کیف پول</button>`:''}`;
+  }else if(k==='card'){
+    const c=PAYINFO.card||{};
+    body=`<p class="sub" style="margin-top:8px">مبلغ را کارت‌به‌کارت کن و رسید را همین‌جا بفرست؛
+      تا تأیید کارشناس، جا تا ${esc(c.hold||'۳۰ دقیقه')} نگه داشته می‌شود.</p>
+      <div class="stack tight">
+        <div class="srow">${ico('i-card')}<span class="sp">شماره کارت<b class="num" dir="ltr">${esc(c.no||'')}</b></span>
+          <button class="btn sm quiet" data-copy="${esc(c.no||'')}" data-copy-msg="شماره کارت رونوشت شد">رونوشت</button></div>
+        <div class="srow">${ico('i-users')}<span class="sp">به نام<small>${esc(c.bank||'')} · ${esc(c.name||'')}</small></span></div>
+        <div class="srow">${ico('i-pin')}<span class="sp">شناسه<small class="num" dir="ltr">${esc(c.sheba||'')}</small></span></div>
+      </div>`;
+    act=`<label class="btn primary" for="rcFile">${ico('i-image')} پیوست رسید</label>
+      <input id="rcFile" type="file" accept="image/*,application/pdf" hidden/>
+      <button class="btn quiet" data-paynow="card">رسید را فرستادم</button>`;
+  }else if(k==='inperson'){
+    body=`<p class="sub" style="margin-top:8px">پول را در ورودی یا دفتر بده؛ با کد رزرو تا ۴۸ ساعت جایت می‌ماند.</p>
+      <div class="srow">${ico('i-ticket')}<span class="sp">کد رزرو<b class="num" dir="ltr">NP-${faN((ctx&&ctx.eid)||'e6')}</b></span>${chip('۴۸ ساعت','brand')}</div>`;
+    act=`<button class="btn primary" data-paynow="inperson">کد رزرو را بگیر</button>`;
+  }else if(k==='points'){
+    const rate=m.rate||100, each=m.each||10000, cap=m.cap||30, have=+A.points||0;
+    const maxByCap=Math.round(amt*cap/100), canPay=Math.min(have*each/rate,maxByCap);
+    body=`<p class="sub" style="margin-top:8px">${faNum(rate)} امتیاز = ${money(each)}؛ تا ${faNum(cap)}٪ هر خرید.</p>
+      <div class="srow">${ico('i-star')}<span class="sp">امتیاز تو<b class="num">${faNum(have)}</b></span>
+        ${amt?chip('ارزش '+money(Math.round(have*each/rate)),''):chip('آماده','ok')}</div>
+      ${amt?`<div class="srow">${ico('i-check')}<span class="sp">با امتیاز<small>سقف ${faNum(cap)}٪ این خرید: ${money(maxByCap)}</small></span>
+        <b class="num">${money(Math.round(canPay))}</b></div>`:''}`;
+    act=`<button class="btn primary" data-paynow="points"${amt&&canPay<=0?' disabled aria-disabled="true"':''}>با امتیاز پرداخت کن</button>`;
+  }else if(k==='half'){
+    const half=Math.round(amt/2);
+    body=`<p class="sub" style="margin-top:8px">نصف الان، نصف تا اول تا پنجم ماه آینده.</p>
+      <div class="steps">${[['نیمهٔ نخست',half,'همین حالا'],['نیمهٔ دوم',amt-half,(PAYINFO.debt||{}).due||'۱ تا ۵ ماه آینده']]
+        .map(([n,v,at])=>`<div class="step done"><span class="dot">${ico('i-check','width:13px;height:13px')}</span>
+          <span class="tx"><b>${esc(n)}</b><small>${money(v)} · ${esc(at)}</small></span></div>`).join('')}</div>
+      <div class="paywarn">${ico('i-clock')}<span>تا تسویهٔ نیمهٔ دوم، گواهینامهٔ همین رویداد دانلود نمی‌شود؛
+        خودِ گواهی سرِ جایش می‌ماند.</span></div>`;
+    act=`<button class="btn primary" data-paynow="half">نیمهٔ نخست را بپرداز</button>`;
+  }
+  fillSheet('shPay',`<div class="grabber"></div>
+    <div class="head">${ico(m.i||'i-wallet')} ${esc(m.n)}</div>
+    <p class="cap" style="margin-top:5px">${ev?esc(ev)+' · ':''}${esc(m.rule||'')}</p>
+    ${ctx.payDebt?`<p class="sub" style="margin-top:8px">تسویهٔ بدهی نورا پی؛ با پرداخت کامل،
+      قفل گواهینامه‌ها باز می‌شود و پرونده‌ات پاک می‌شود.</p>`:''}
+    ${amt?`<div class="payamt"><span>مبلغ</span><b class="num">${money(amt)}</b>${
+      (PAYINFO.fee&&PAYINFO.fee.onUser&&PAYINFO.fee.pct&&k==='bale')?`<span class="cap">+ ${esc(PAYINFO.fee.title||'کارمزد درگاه')} ٪${faN(PAYINFO.fee.pct)} = ${money(Math.round(amt*PAYINFO.fee.pct/100))}</span>`:''}</div>`:''}
+    ${body}
+    <div class="row" style="margin-top:14px">${act}<span class="sp" style="flex:1"></span>
+      ${ctx.eid&&methodOf(ctx.eid)?'':''}<button class="btn quiet" data-close>بستن</button></div>
+    <p class="cap" style="margin-top:10px">${esc(trustOf('پرداخت امن')||'پرداخت‌ها روی گذرگاه امن انجام می‌شود.')}</p>`);
+  S.payCtx=ctx;
+  openSheet('shPay');
+}
+/* پیش از هر روشی: رویداد مدل‌های خودش را دارد؛ کاربر یکی را برمی‌دارد */
+function chooseSheet(eid,ctx){
+  const keys=modelsOf(eid).filter(k=>methodOf(k).on);
+  const e=(EVENTS.find(x=>x.id===eid)||PAST.find(x=>x.id===eid)||{});
+  S.payCtx=Object.assign({},ctx||{},{eid:eid});
+  fillSheet('shChoose',`<div class="grabber"></div>
+    <div class="head">${ico('i-wallet')} مدل پرداخت این رویداد</div>
+    <p class="cap" style="margin-top:5px">${e.t?esc(e.t)+' · ':''}این‌ها را مدیر یا سازندهٔ رویداد روشن کرده؛
+      یکی را بردار${ctx&&ctx.payDebt?' تا بدهی تسویه شود':''}.</p>
+    <div class="stack tight" style="margin-top:10px">${keys.map(k=>{const m=methodOf(k);
+      return `<button class="opt" data-paym="${esc(k)}" data-in-choose="1">
+        <span class="mk">${ico(m.i||'i-wallet','width:16px')}</span>
+        <span style="flex:1;text-align:start"><b>${esc(m.n)}</b><br><span class="cap">${esc(m.s)}</span></span>
+        ${ico('i-chev-left','color:var(--ink-4)')}</button>`}).join('')}</div>
+    <div class="row" style="margin-top:12px"><span class="sp" style="flex:1"></span>
+      <button class="btn quiet" data-close>بستن</button></div>`);
+  openSheet('shChoose');
+}
+function topSheet(){
+  const w=PAYINFO.wallet||{}, tiles=w.topTiles||[200000,500000,1000000,2000000];
+  fillSheet('shTop',`<div class="grabber"></div>
+    <div class="head">${ico('i-plus')} شارژ کیف پول نورا پی</div>
+    <p class="cap" style="margin-top:5px">از درگاه رسمی بله؛ همان لحظه به موجودی‌ات می‌رسد.
+      کف ${money(w.topMin||0)} و سقف ${money(w.topMax||0)}.</p>
+    <div class="chipsline" style="margin-top:12px">${tiles.map(t=>
+      `<button class="tag ${t===tiles[1]?'on':''}" type="button" data-topamt="${faN(t)}">${money(t)}</button>`).join('')}</div>
+    <label class="lbl" for="topAmt" style="margin-top:12px;display:block">یا مبلغ دلخواه</label>
+    <input class="input num" id="topAmt" inputmode="numeric" placeholder="مثلاً ۳۰۰۰۰۰" style="margin-top:6px"/>
+    ${payTrace()}
+    <div class="row" style="margin-top:14px"><button class="btn primary" data-topgo>${ico('i-shield')} شارژ از درگاه بله</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بعداً</button></div>`);
+  S.topAmt=(tiles[1]||0);
+  openSheet('shTop');
+}
+function refundSheet(id){
+  const v=(PAYINFO.invoices||[]).find(x=>x.id===id)||{};
+  S.refundId=id;
+  fillSheet('shRefund',`<div class="grabber"></div>
+    <div class="head">${ico('i-refresh')} درخواست برگشت وجه</div>
+    <p class="sub" style="margin-top:8px">${esc((PAYINFO.refund||{}).lead||'')}</p>
+    <div class="steps">${((PAYINFO.refund||{}).steps||[]).map(([n,s2])=>`<div class="step">
+      <span class="dot">${ico('i-clock','width:13px;height:13px')}</span>
+      <span class="tx"><b>${esc(n)}</b><small>${esc(s2)}</small></span></div>`).join('')}</div>
+    <label class="lbl" for="rfWhy" style="margin-top:12px;display:block">دلیل برگشت</label>
+    <textarea class="input" id="rfWhy" rows="3" placeholder="کوتاه بنویس…" style="margin-top:6px"></textarea>
+    <div class="row" style="margin-top:14px"><button class="btn primary" data-refundo="${esc(id)}">درخواست برگشت</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div>`);
+  openSheet('shRefund');
+}
+function linkSheet(){
+  const l=PAYINFO.link||{};
+  fillSheet('shLink',`<div class="grabber"></div>
+    <div class="head">${ico('i-link')} ${esc(l.n||'لینک پرداخت')}</div>
+    <p class="cap" style="margin-top:5px">${esc(l.hint||'')}</p>
+    <label class="lbl" for="lkCode" style="margin-top:12px;display:block">کد لینک</label>
+    <input class="input" id="lkCode" placeholder="${esc(l.ph||'')}" style="margin-top:6px"/>
+    <div class="capex">نمونهٔ نمایشی: <b class="num" dir="ltr">${esc(l.demo||'')}</b></div>
+    <div class="row" style="margin-top:14px"><button class="btn primary" data-linkok>باز کن</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div>`);
+  openSheet('shLink');
+}
+/* پرداخت: صورتحساب، کیف پول، بدهی و تراکنش‌ها را جلو می‌برد */
+function doPay(kind,ctx){
+  ctx=ctx||S.payCtx||{};
+  const m=methodOf(kind), st=payState();
+  const invId=ctx.inv||'', inv=(PAYINFO.invoices||[]).find(x=>x.id===invId)||{};
+  const isDebt=!!ctx.payDebt, isHalf=!isDebt&&kind==='half';
+  const total=isDebt?st.debt:(+ctx.amount||0);
+  if(total<=0&&!isHalf){ toast('مبلغی برای پرداخت نیست'); return }
+  let payNow=isHalf?Math.round(total/2):total;
+  if(kind==='points'){                       /* امتیاز فقط تا سقف همان خرید می‌پردازد */
+    const have=+A.points||0, rate=m.rate||100, each=m.each||10000, cap=(m.cap||30)/100;
+    payNow=Math.min(Math.round(have*each/rate),Math.round(payNow*cap));
+    if(payNow<=0){ toast('امتیازت برای این خرید کافی نیست'); return }
+  }
+  if(kind==='wallet'&&st.bal<payNow){ toast('موجودی کیف پول کم است؛ اول شارژ کن'); return }
+  const paid=Object.assign({},st.paid), part=Object.assign({},st.part), refunds=Object.assign({},st.refunds);
+  if(invId){ if(isHalf){ part[invId]=true } else { paid[invId]=true; delete part[invId] } }
+  const debt=isDebt?0:Math.max(0,total-payNow);
+  const txs=[{k:'buy', t:isDebt?('تسویهٔ بدهی'+(ctx.eid?' رویداد':'')):(inv.t||ctx.t||'پرداخت نورا پی'),
+    amount:-payNow, by:kind, state:'paid', track:inv.track||'—', at:nowFa()}].concat(st.txs).slice(0,12);
+  paySave({paid:paid, part:part, refunds:refunds, debt:debt,
+    bal:kind==='wallet'?st.bal-payNow:st.bal, txs:txs});
+  closeSheets(); render();
+  if(debt===0&&(isDebt||paid[invId])) toast(isDebt?'بدهی تسویه شد؛ گواهینامه‌ها باز شد':'پرداخت ثبت شد · '+money(payNow));
+  else if(isHalf) toast('نیمهٔ نخست پرداخت شد؛ باقی‌اش تا اول ماه آینده');
+  else toast('پرداخت ثبت شد · '+money(payNow));
+}
+function topup(amount){
+  const w=PAYINFO.wallet||{}, amt=+amount||0;
+  if(!amt){ toast('مبلغ شارژ را بنویس'); return }
+  if(amt<(w.topMin||0)){ toast('کف شارژ '+money(w.topMin||0)+' است'); return }
+  if(amt>(w.topMax||0)){ toast('بیشتر از سقف هر شارژ است'); return }
+  const st=payState(), cap=w.cap||0;
+  if(cap&&st.bal+amt>cap){ toast('بیشتر از سقف کیف پول می‌شود'); return }
+  paySave({bal:st.bal+amt, txs:[{k:'top',t:'شارژ کیف پول',amount:amt,by:'bale',state:'paid',
+    track:'BL-'+faN(Math.floor(10000+Math.random()*89999)),at:nowFa()}].concat(st.txs).slice(0,12)});
+  closeSheets(); render(); toast(money(amt)+' به کیف پولت اضافه شد');
+}
+function refundDo(id){
+  const why=($('#rfWhy')||{}).value||'';
+  const refunds=Object.assign({},payState().refunds); refunds[id]=true;
+  paySave({refunds:refunds, txs:[{k:'refund',t:'درخواست برگشت وجه '+(id||''),amount:0,by:'bale',
+    state:'pending',track:id||'—',at:nowFa()}].concat(payState().txs).slice(0,12)});
+  closeSheets(); render();
+  toast((PAYINFO.refund||{}).ok||'درخواست برگشت ثبت شد');
+}
+function linkGo(){
+  const l=PAYINFO.link||{}, v=String(($('#lkCode')||{}).value||'').trim().toUpperCase();
+  if(!v||v!==String(l.demo||'').toUpperCase()){ toast(l.bad||'این لینک پرداخت پیدا نشد'); return }
+  closeSheets();
+  methodSheet('bale',{amount:250000,t:'لینک پرداخت '+v,inv:''});
+  toast(l.ok||'لینک باز شد');
+}
+function payPanel(){
+  const inv=(PAYINFO.invoices||[]), txs=payState().txs.concat(PAYINFO.txs||[]).slice(0,8);
+  return card('نورا پی','همهٔ پرداخت‌ها و خریدهای نورا از همین‌جا می‌گذرد؛ یک‌جا و روشن','i-wallet',
+      payHero())+
+    card('بدهی و گواهینامه','تا تسویهٔ بدهی، دانلود گواهینامه قفل است','i-clock',debtBox())+
+    card('مدل‌های پرداخت','شش مدل؛ هر رویداد مدل‌های خودش را دارد','i-list',methodsBox())+
+    card('صورتحساب‌های من',faN(inv.length)+' صورتحساب؛ رسید و کد رهگیری همین‌جا می‌ماند','i-doc',
+      inv.length?inv.map(invRow).join(''):
+        empty2('صورتحسابی نیست','هر خریدی که بکنی، رسیدش همین‌جا می‌آید.'))+
+    card('تراکنش‌ها','شارژ، خرید، امتیاز و برگشت وجه','i-chart',
+      txs.length?txs.map(txRow).join(''):empty2('تراکنشی نیست','اولین شارژ یا خریدت همین‌جا می‌نشیند.'))+
+    card('شرط‌های نورا پی','سه بند کوتاه','i-shield',
+      (PAYINFO.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join(''))+
+    trustLine('pay');
+}
+
+VS.pay=function(t){
+  if(!login()) return viewHead(t,'',null)+gate(t);
+  return viewHead(t)+payPanel();
+};
 /* ══ پشتیبانی: صفحهٔ جدای خودش ══════════════════════════════════════
    تیکت، پرسش‌های پرتکرار، راهنمای هر بخش و پیام‌رسان‌ها همه در support.html
    است؛ از این صفحه فقط می‌رویم آن طرف. */
@@ -873,6 +1229,7 @@ function cancelEdit(){ S.edit=false; S.errs={}; renderView() }
 function collect(){
   const p=Object.assign({},prof());
   FIELDS.forEach(f=>{ if(f.lock) return; const el=$('#f_'+f.k); if(el) p[f.k]=el.value });
+  if(p.birthDate) p.birthDate=dtTxt(dtParts(p.birthDate))||p.birthDate;
   if(!p.phone) p.phone=phone();
   return p;
 }
@@ -881,11 +1238,11 @@ function submit(send){
   S.errs=errs;
   if(Object.keys(errs).length){ renderView(); toast('چند قلم را ببین و درست کن'); return }
   p.phone=phone();
-  if(send) p.status='pending';
-  p.history=(p.history||[]).filter(h=>h.k!==(send?'pending':'draft')).concat([{k:send?'pending':'draft',at:nowFa()}]);
+  p.status='approved';                       /* پروفایل خودش ذخیره می‌شود؛ فرایند تأیید ندارد */
+  p.history=(p.history||[]).filter(h=>h.k!=='filled').concat([{k:'filled',at:nowFa()}]);
   if(UI().saveProfile) UI().saveProfile(p);
   S.edit=false; render();
-  toast(send?'ذخیره شد و برای تأیید رفت':'ذخیره شد؛ هر وقت خواستی برای تأیید بفرست');
+  toast('ذخیره شد');
 }
 function nowFa(){
   try{ return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{day:'numeric',month:'long'}).format(new Date()) }
@@ -976,6 +1333,12 @@ function route(){
 }
 
 /* ══ کنش‌ها ══════════════════════════════════════════════════════════ */
+document.addEventListener('change',ev=>{
+  const el=ev.target; if(!el||!el.id) return;
+  if(el.id==='f_province'){ syncCity(); return }
+  if(/^f_birthDate_[dmy]$/.test(el.id)){ syncDate('birthDate'); return }
+  if(el.id==='f_city'&&S.errs&&S.errs.city) S.errs.city='';
+});
 document.addEventListener('click',ev=>{
   const t=ev.target;
   if(t.closest('[data-back]')){ try{history.replaceState(null,'',location.pathname)}catch(e){}
@@ -996,9 +1359,10 @@ document.addEventListener('click',ev=>{
   const pt=t.closest('[data-ptab]'); if(pt){ S.ptab=pt.dataset.ptab; S.edit=false; S.errs={}; renderView(); return }
   if(t.closest('[data-photo-demo]')){ demoPhoto(); return }
   if(t.closest('[data-trust-more]')){ trustSheet(); return }
+  const fp=t.closest('[data-fpick]'); if(fp){ pickSet(fp.dataset.fpick,fp.dataset.val); return }
   if(t.closest('#editBtn')){ startEdit(); return }
   if(t.closest('#cancelBtn')){ cancelEdit(); return }
-  if(t.closest('#draftBtn')){ submit(false); return }
+
   if(t.closest('#sendBtn')){ submit(true); return }
   if(t.closest('#dlBtn')){ login()?downloadInfo():loginSheet(); return }
   if(t.closest('#delBtn')){ login()?askDelete():loginSheet(); return }
@@ -1021,6 +1385,26 @@ document.addEventListener('click',ev=>{
   const stb=t.closest('[data-star]');
   if(stb){ S.myStars=stb.dataset.star;
     stb.parentElement.querySelectorAll('.chip').forEach(x=>{ x.classList.toggle('on',x===stb) }); return }
+  /* نورا پی */
+  const pm=t.closest('[data-paym]');
+  if(pm){ methodSheet(pm.dataset.paym, pm.dataset.inChoose?(S.payCtx||{}):{}); return }
+  if(t.closest('[data-topup]')){ topSheet(); return }
+  const ta=t.closest('[data-topamt]'); if(ta){ S.topAmt=unFa(ta.dataset.topamt).replace(/\D/g,'');
+    document.querySelectorAll('[data-topamt]').forEach(b=>b.classList.toggle('on',b===ta)); return }
+  if(t.closest('[data-topgo]')){
+    const v=($('#topAmt')||{}).value||''; const amt=+unFa(v).replace(/\D/g,'')||S.topAmt||0; topup(amt); return }
+  if(t.closest('[data-paytx]')){ S.payTx=!S.payTx; renderView(); toast('تراکنش‌ها همین‌جا هستند'); return }
+  const dp=t.closest('[data-debtpay]');
+  if(dp){ chooseSheet((PAYINFO.debt||{}).e||'',{payDebt:true,amount:debtAmt(),t:'تسویهٔ بدهی نورا پی',
+    inv:(PAYINFO.debt||{}).invoice||''}); return }
+  const ip=t.closest('[data-invpay]');
+  if(ip){ const v=(PAYINFO.invoices||[]).find(x=>x.id===ip.dataset.invpay)||{};
+    chooseSheet(v.e,{inv:v.id,amount:Math.max(0,(v.amount||0)-(v.paid||0)),t:v.t}); return }
+  if(t.closest('[data-linkgo]')){ linkSheet(); return }
+  if(t.closest('[data-linkok]')){ linkGo(); return }
+  const rf=t.closest('[data-refund]'); if(rf){ refundSheet(rf.dataset.refund); return }
+  if(t.closest('[data-refundo]')){ refundDo(($('#rfWhy')||{}).value?payState().refundId||'':''); return }
+  const pn=t.closest('[data-paynow]'); if(pn){ doPay(pn.dataset.paynow,S.payCtx||{}); return }
   const mtk=t.closest('[data-my-ticket]'); if(mtk){ toast('کارت ورود همین رویداد آماده است؛ بارکد در ورودی خوانده می‌شود'); return }
   const mtd=t.closest('[data-my-ticket-dl]'); if(mtd){ toast('بلیت همین رویداد دانلود شد'); return }
   const mcr=t.closest('[data-my-cert]');
@@ -1048,7 +1432,8 @@ document.addEventListener('click',ev=>{
   if(t.closest('[data-form-new]')){ toast('کارشناس فرم را برایت می‌فرستد؛ بعد از آن همین‌جا باز می‌شود'); return }
   const fm=t.closest('[data-form]'); if(fm){ toast('فرم «'+fm.dataset.form+'» در فاز بعد باز می‌شود'); return }
   const rw=t.closest('[data-reward]'); if(rw){ toast('«'+rw.dataset.reward+'» با امتیازت گرفته شد؛ در فروشگاه پاداش کامل می‌شود'); return }
-  const cp=t.closest('[data-copy]'); if(cp){ copyText(cp.dataset.copy,'کد دعوت کپی شد'); return }
+  const cp=t.closest('[data-copy]');
+  if(cp){ const msg=cp.dataset.copyMsg||''; copyText(cp.dataset.copy,msg?()=>toast(msg):null); return }
   if(t.closest('[data-invite]')){ toast('پیوند دعوت ساخته شد؛ برای دوستت بفرست'); return }
   const pg=t.closest('[data-ptab-go]');
   if(pg){ S.view='profile'; S.ptab=pg.dataset.ptabGo; location.hash='#profile'; render(); return }
@@ -1091,7 +1476,11 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target; if(!el.id||el.id.indexOf('f_')!==0) return;
-  const k=el.id.slice(2); if(!S.errs[k]) return; delete S.errs[k]; renderView();
+  /* خطای همان کادر پاک می‌شود، بی آن که بقیهٔ نوشته‌ها از دست برود */
+  const k=el.id.slice(2).replace(/_[dmy]$/,''); if(!S.errs||!S.errs[k]) return;
+  delete S.errs[k];
+  const fld=el.closest?el.closest('.fld'):null;
+  if(fld){ fld.classList.remove('bad'); const er=fld.querySelector('.err'); if(er) er.remove() }
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){ closeSheets(); return }

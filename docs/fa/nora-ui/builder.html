@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا — فرم‌ها و گزارش</title>
-<link rel="stylesheet" href="glass.css?v=26"/>
+<link rel="stylesheet" href="glass.css?v=27"/>
 <style>
   .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
   .fcard:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
@@ -307,7 +307,7 @@
       <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
         <div style="min-width:0">
           <div class="head tight">مالی</div>
-          <div class="cap">شماره کارت و درگاه‌ها را مدیر سامانه تعیین می‌کند؛ فرم‌ها فقط نمایش می‌دهند.</div>
+          <div class="cap">شماره کارت و مدل‌های پرداخت را مدیر سامانه تعیین می‌کند؛ سازندهٔ رویداد از همین فهرست انتخاب می‌کند.</div>
         </div>
         <span class="sp"></span>
         <span class="tag brand">مدیر سامانه</span>
@@ -327,40 +327,39 @@
           </div>
 
           <div class="card paper">
-            <div class="row" style="margin-bottom:6px"><div class="fw">درگاه‌ها</div><span class="sp"></span>
+            <div class="row" style="margin-bottom:6px"><div class="fw">مدل‌های پرداخت نورا پی</div><span class="sp"></span>
               <span class="cap" id="gwState"></span></div>
+            <p class="cap" style="margin:0 0 8px">کاربر فقط مدل‌هایی را می‌بیند که این‌جا روشن باشد؛
+              هر رویداد می‌تواند ترکیب خودش را داشته باشد.</p>
             <div class="stack tight" id="gwBox">
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">درگاه بله</b><div class="cap">قطعی — کارمزد ٪۰ — بلافاصله ثبت‌نام قطعی می‌شود</div>
-                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
-                    <span class="switch" data-rcauto="درگاه بله" role="switch" aria-checked="false"></span>
-                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
-                <span class="switch on" data-gw="درگاه بله" role="switch" aria-checked="true"></span></div>
+                <div style="flex:1"><b class="sub">کیف پول نورا پی</b><div class="cap">همان لحظه، بی درگاه؛ اگر کم بیاید بقیه از روش دیگر</div>
+                  </div>
+                <span class="switch on" data-gw="کیف پول نورا پی" role="switch" aria-checked="true"></span></div>
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">زرین‌پال</b><div class="cap">کارمزد ٪۱ — تسویهٔ روز بعد</div>
+                <div style="flex:1"><b class="sub">درگاه رسمی بله</b><div class="cap">قطعی و رسمی؛ فاکتور بله و برگشت وجه از همان درگاه</div>
                   <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
-                    <span class="switch" data-rcauto="زرین‌پال" role="switch" aria-checked="false"></span>
+                    <span class="switch" data-rcauto="درگاه رسمی بله" role="switch" aria-checked="false"></span>
                     <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
-                <span class="switch on" data-gw="زرین‌پال" role="switch" aria-checked="true"></span></div>
+                <span class="switch on" data-gw="درگاه رسمی بله" role="switch" aria-checked="true"></span></div>
               <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">پی‌پینگ</b><div class="cap">کارمزد ٪۱ — برای پرداخت با موبایل</div>
-                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
-                    <span class="switch" data-rcauto="پی‌پینگ" role="switch" aria-checked="false"></span>
-                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
-                <span class="switch on" data-gw="پی‌پینگ" role="switch" aria-checked="true"></span></div>
-              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">اقساطی</b><div class="cap">فقط برای مبالغ بالای ۵ میلیون ریال</div>
-                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
-                    <span class="switch" data-rcauto="اقساطی" role="switch" aria-checked="false"></span>
-                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
-                <span class="switch" data-gw="اقساطی" role="switch" aria-checked="false"></span></div>
-              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
-                <div style="flex:1"><b class="sub">کارت‌به‌کارت</b><div class="cap">با تأیید دستی کارشناس — رد شدن یعنی باطل و شروع دوباره</div>
+                <div style="flex:1"><b class="sub">کارت‌به‌کارت</b><div class="cap">با تأیید دستی کارشناس؛ تا تأیید، جا ۳۰ دقیقه نگه داشته می‌شود</div>
                   <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
                     <span class="switch" data-rcauto="کارت‌به‌کارت" role="switch" aria-checked="false"></span>
                     <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
                 <span class="switch on" data-gw="کارت‌به‌کارت" role="switch" aria-checked="true"></span></div>
-            </div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">حضوری و در محل</b><div class="cap">پرداخت در ورودی یا دفتر؛ با کد رزرو تا ۴۸ ساعت</div>
+                  </div>
+                <span class="switch on" data-gw="حضوری و در محل" role="switch" aria-checked="true"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">پرداخت با امتیاز</b><div class="cap">۱۰۰ امتیاز = ۱۰٬۰۰۰ تومان؛ تا ٪۳۰ هر خرید</div>
+                  </div>
+                <span class="switch" data-gw="پرداخت با امتیاز" role="switch" aria-checked="false"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">نصف الان، نصف اول ماه</b><div class="cap">نیمهٔ دوم تا پنجم ماه آینده؛ تا تسویه گواهی قفل است</div>
+                  </div>
+                <span class="switch" data-gw="نصف الان، نصف اول ماه" role="switch" aria-checked="false"></span></div>
             </div>
           </div>
 
@@ -381,7 +380,7 @@
             <div class="fw" style="margin-bottom:8px">تراکنش‌های اخیر</div>
             <div class="table-wrap">
               <table class="t">
-                <thead><tr><th>پاسخ‌دهنده</th><th>مبلغ</th><th>درگاه</th><th>وضعیت</th></tr></thead>
+                <thead><tr><th>پاسخ‌دهنده</th><th>مبلغ</th><th>مدل پرداخت</th><th>وضعیت</th></tr></thead>
                 <tbody id="txBody"></tbody>
               </table>
             </div>
@@ -552,7 +551,7 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script src="cert-font.js"></script>
-<script src="ui.js?v=26"></script>
+<script src="ui.js?v=27"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
@@ -568,7 +567,7 @@ const FORMS=[
        {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''}],
  groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
  guestsOn:true,guestsMax:3,guests:['علی رضایی'],
- gw:['بله','کارت‌به‌کارت'], parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
+ gw:['درگاه رسمی بله','کارت‌به‌کارت'], parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 — ٪۱۰',
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
  event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
@@ -600,7 +599,7 @@ const FORMS=[
  fin:[{l:'حق عضویت سالانه',p:2000000,off:0,req:false,g:'دورهٔ عضویت',d:'یک سال کامل'},
        {l:'حق عضویت ماهانه',p:200000,off:0,req:false,g:'دورهٔ عضویت',d:'هر ماه، تا وقتی خودتان بخواهید'}],
  groups:[{n:'دورهٔ عضویت',of:[0,1],req:true,one:true}],
- guestsOn:false,guestsMax:1,guests:[],gw:['بله','زرین‌پال'],
+ guestsOn:false,guestsMax:1,guests:[],gw:['درگاه رسمی بله','کیف پول نورا پی'],
  coupon:'—',
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
@@ -617,7 +616,7 @@ const FORMS=[
  start:'۱۴۰۵/۰۷/۱۰ — ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ — ۲۳:۰۰',cap:150,wait:false,per:1,
  head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
  fin:[{l:'ورودی آزمون',p:300000,off:0,req:true,d:'یک بار؛ بازگشت به آزمون ممکن نیست'}],
- groups:[],gw:['بله'],
+ groups:[],gw:['درگاه رسمی بله'],
  parts:['title','date','venue','name','code','qr'],
  coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
  links:['سرفصل کتاب‌ها'],
@@ -637,17 +636,17 @@ const PEOPLE=[
  skip:['دانشگاه'],receipt:'۸ مهر، ۰۹:۲۰',wait:30,owner:''},
 {id:'p2',form:'f1',name:'علی رضایی',mobile:'۰۹۱۲۰۰۰۰۰۰۱',code:'TL1307BVUC1982',state:'paid',
  city:'اصفهان — اصفهان',uni:'صنعتی اصفهان',job:'مهندس',edu:'کارشناسی ارشد',exp:'تازه‌کار',birth:'۱۳۷۵/۰۲/۰۳',
- at:'۱۴۰۵/۰۷/۰۳ — ۱۸:۴۰',gw:'بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
+ at:'۱۴۰۵/۰۷/۰۳ — ۱۸:۴۰',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
 {id:'p3',form:'f1',name:'مریم احمدی',mobile:'۰۹۱۲۲۲۳۳۴۴۵',code:'TL1307BVUC1983',state:'paid',
  city:'مشهد — مشهد',uni:'فردوسی مشهد',job:'معلم و استاد',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۸/۱۱/۲۲',
- at:'۱۴۰۵/۰۷/۰۳ — ۱۲:۰۵',gw:'بله',piece:0,count:3,coupon:10,note:'',skip:[],receipt:'',
+ at:'۱۴۰۵/۰۷/۰۳ — ۱۲:۰۵',gw:'درگاه رسمی بله',piece:0,count:3,coupon:10,note:'',skip:[],receipt:'',
  guests:[{name:'رضا شریفی',mobile:'۰۹۱۲۳۳۳۴۴۵۵',same:true},{name:'نگار توکلی',mobile:'۰۹۱۹۸۸۷۷۶۶۵',same:false}]},
 {id:'p4',form:'f1',name:'حسن کریمی',mobile:'۰۹۹۱۲۳۴۵۶۷۸',code:'TL1307BVUC1984',state:'pending',
  city:'شیراز — شیراز',uni:'شیراز',job:'کارمند شرکت خصوصی',edu:'دیپلم',exp:'تازه‌کار',birth:'۱۳۸۰/۰۷/۳۰',
  at:'۱۴۰۵/۰۷/۰۴ — ۱۰:۵۰',gw:'کارت‌به‌کارت',piece:1,count:1,coupon:0,note:'',skip:[],receipt:'۸ مهر، ۱۱:۰۲',wait:6,owner:''},
 {id:'p5',form:'f1',name:'زهرا نیک‌پور',mobile:'۰۹۱۳۴۵۶۷۸۹۰',code:'TL1307BVUC1985',state:'paid',
  city:'تبریز — تبریز',uni:'تبریز',job:'دانشجو',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۸۲/۰۳/۱۵',
- at:'۱۴۰۵/۰۷/۰۲ — ۲۱:۳۰',gw:'بله',piece:1,count:2,coupon:0,note:'',skip:[],receipt:'',
+ at:'۱۴۰۵/۰۷/۰۲ — ۲۱:۳۰',gw:'درگاه رسمی بله',piece:1,count:2,coupon:0,note:'',skip:[],receipt:'',
  guests:[{name:'سینا رحیمی',mobile:'۰۹۳۳۴۴۵۵۶۶۷',same:true}]},
 {id:'p6',form:'f1',name:'رضا شریفی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'TL1307BVUC1986',state:'half',
  city:'کرج — کرج',uni:'شهید بهشتی',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۵/۰۹/۰۹',
@@ -659,10 +658,10 @@ const PEOPLE=[
  city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ — ۱۴:۴۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:['پیشنهاد بهبود'],receipt:'',
  ans:{'رضایت کلی':'۵ از ۵','نقطهٔ قوت دوره':'برنامه‌ریزی و نظم','از من تماس بگیرید':'بله'}},
 {id:'p10',form:'f4',name:'مینا کاظمی',mobile:'۰۹۱۲۹۹۸۸۷۷۶',code:'TL1307EXAM2041',state:'paid',
- city:'قم — قم',uni:'قم',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۵/۰۴/۰۲',at:'۱۴۰۵/۰۷/۱۲ — ۱۱:۲۰',gw:'بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ city:'قم — قم',uni:'قم',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۵/۰۴/۰۲',at:'۱۴۰۵/۰۷/۱۲ — ۱۱:۲۰',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
  ans:{'کد ملی':'۰۰۱۲۳۴۵۶۷۸','انتخاب حوزه':'داستان فارسی'}},
 {id:'p11',form:'f4',name:'سعید رحیمی',mobile:'۰۹۳۰۵۵۵۴۴۳۳',code:'TL1307EXAM2042',state:'paid',
- city:'یزد — یزد',uni:'یزد',job:'معلم و استاد',edu:'کارشناسی ارشد',exp:'متوسط',birth:'۱۳۶۲/۱۲/۱۰',at:'۱۴۰۵/۰۷/۱۳ — ۰۹:۰۵',gw:'بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ city:'یزد — یزد',uni:'یزد',job:'معلم و استاد',edu:'کارشناسی ارشد',exp:'متوسط',birth:'۱۳۶۲/۱۲/۱۰',at:'۱۴۰۵/۰۷/۱۳ — ۰۹:۰۵',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
  ans:{'کد ملی':'۰۰۶۹۸۷۶۵۴۳','انتخاب حوزه':'شعر معاصر'}},
 {id:'p12',form:'f4',name:'الهام داوودی',mobile:'۰۹۱۲۷۷۶۶۵۵۴',code:'TL1307EXAM2043',state:'pending',
  city:'کرمان — کرمان',uni:'شهید باهنر',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۶/۱۰/۰۳',at:'۱۴۰۵/۰۷/۱۱ — ۱۶:۴۰',gw:'کارت‌به‌کارت',piece:0,count:1,coupon:0,
@@ -873,7 +872,7 @@ function renderInfo(){
             <div class="mini">${tomanTxt(f.fin.reduce((a,o)=>a+net(o),0))}</div>`
           :'<div class="empty" style="padding:14px"><div class="body">این فرم مالی ندارد</div></div>'}
         <div class="row tight" style="margin-top:10px">${f.gw.length?f.gw.map(g=>`<span class="chip on">${g}</span>`).join(''):'<span class="cap">درگاهی فعال نیست</span>'}</div>
-        <p class="mnote" style="margin-top:8px">قطعه‌ها و درگاه‌ها از بخش «مالی» سامانه مدیریت می‌شوند؛ این‌جا فقط نشان داده می‌شود.</p>
+        <p class="mnote" style="margin-top:8px">قطعه‌ها و مدل‌های پرداخت از بخش «مالی» سامانه مدیریت می‌شوند؛ این‌جا فقط نشان داده می‌شود.</p>
       </div>
       <div class="card paper">
         <div class="fw" style="margin-bottom:8px">حلقهٔ کار</div>
@@ -922,7 +921,7 @@ function renderChanges(){
     addfield:['i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],text:['i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید'],
     dates:['i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],cap:['i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
     per:['i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],fin:['i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
-    coupon:['i-star','کد تخفیف','درصد یا مبلغ'],gw:['i-shield','درگاه‌ها','فقط در بخش مالی'],
+    coupon:['i-star','کد تخفیف','درصد یا مبلغ'],gw:['i-wallet','مدل‌های پرداخت','فقط در بخش مالی'],
     endtext:['i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه'],
     msg:['i-send','پیام گروهی','بی‌اسکای و پیامک'],excel:['i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
     kartabl:['i-inbox','کارتابل رسیدها','تأیید و رد رسیدهای کارت‌به‌کارت'],expert:['i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری'],
@@ -965,7 +964,7 @@ function renderAnswers(){
   </div>
   <div class="table-wrap">
     <table class="t">
-      <thead><tr><th>پاسخ‌دهنده</th><th>زمان</th><th>مبلغ</th><th>درگاه</th><th>وضعیت</th><th></th></tr></thead>
+      <thead><tr><th>پاسخ‌دهنده</th><th>زمان</th><th>مبلغ</th><th>مدل پرداخت</th><th>وضعیت</th><th></th></tr></thead>
       <tbody>${list.map(p=>{const m=pay(p),t=st(p);return `<tr data-person="${p.id}" style="cursor:pointer">
         <td><b>${p.name}</b>${(p.guests||[]).length?`<span class="tag brand" style="margin-inline-start:6px">+${faN(p.guests.length)} همراه</span>`:''}
           <div class="cap num">${f.id==='f2'?'نظرسنجی ناشناس':maskPhone(p.mobile)}</div></td>
@@ -1235,15 +1234,17 @@ function renderMoney(){
   document.getElementById('settle').innerHTML=`
     <div class="r"><span>تسویه‌شده</span><span class="num">${rialTxt(sum)}</span></div>
     <div class="r"><span>در انتظار تأیید</span><span class="num">${rialTxt(psum)}</span></div>
-    <div class="r"><span>کارمزد درگاه‌ها</span><span class="num">${rialTxt(Math.round(sum*0.01))}</span></div>
-    <div class="r t"><span>خالص</span><span class="num">${rialTxt(sum-Math.round(sum*0.01))}</span></div>
-    <div class="mini" style="margin-top:6px">${tomanTxt(sum-Math.round(sum*0.01))}</div>`;
+    <div class="r"><span>کارمزد درگاه رسمی</span><span class="num">${rialTxt(Math.round(sum*PAY_FEE_PCT/100))}</span></div>
+    <div class="r t"><span>خالص</span><span class="num">${rialTxt(sum-Math.round(sum*PAY_FEE_PCT/100))}</span></div>
+    <div class="mini" style="margin-top:6px">${tomanTxt(sum-Math.round(sum*PAY_FEE_PCT/100))} — کارمزد درگاه رسمی بله روی کاربر نیست</div>`;
   document.getElementById('txBody').innerHTML=PEOPLE.filter(p=>p.state!=='half').map(p=>{const t=STATE_TAG[p.state];
     return `<tr data-person="${p.id}" style="cursor:pointer"><td>${p.name}</td><td class="num">${fa(pay(p).sum)}</td>
       <td>${p.gw}</td><td><span class="tag ${t[0]}">${t[1]}</span></td></tr>`}).join('');
 }
 /* ── کارشناسان ───────────────────────────────────────────────── */
 let CARD_DEST={no:'6104-3378-1234-5674',bank:'بانک ملت',owner:'مؤسسهٔ خط زندگی'};
+/* کارمزد درگاه رسمی: ٪۰ روی کاربر؛ مدیر می‌تواند عوضش کند */
+const PAY_FEE_PCT=0;
 /* ── بخش‌های سازمان: هر فرم از یک بخش می‌آید و کارشناس همان بخش پیگیرش است ── */
 const DEPTS=[
  {id:'edu',n:'آموزش',expert:'خانم رستگار',i:'i-medal'},
@@ -1369,7 +1370,7 @@ const CHANGES={
   go:()=>{const c=document.getElementById('chCode').value,p=NR(unFa(document.getElementById('chPct').value))||0;
    if(!c||!p){toast('کد و درصد لازم است');return}
    CUR.coupon=c+' — ٪'+faN(p); log('کد تخفیف '+c+' با ٪'+faN(p)+' ساخته شد'); closeSheets(); renderPanel(); toast('کد ساخته شد')}},
- gw:{t:'درگاه‌ها',body:()=>`<p class="sub">درگاه‌ها در بخش «مالی» سامانه روشن و خاموش می‌شوند؛ سازندهٔ فرم فقط از میان آن‌ها انتخاب می‌کند.</p>
+ gw:{t:'مدل‌های پرداخت',body:()=>`<p class="sub">مدل‌های پرداخت در بخش «مالی» سامانه روشن و خاموش می‌شوند؛ سازندهٔ رویداد فقط از میان آن‌ها انتخاب می‌کند.</p>
    <div class="row tight">${FORMS[0].gw.map(g=>`<span class="chip on">${g}</span>`).join('')}</div>`,
   go:()=>{closeSheets(); go('fMoney')}},
  dept:{t:'بخش فرم',body:()=>`
@@ -1679,7 +1680,7 @@ document.getElementById('invite').onclick=()=>toast('دعوت‌نامهٔ کا�
 /* ── آغاز ────────────────────────────────────────────────────── */
 initUI();
 document.getElementById('mCard').addEventListener('change',e=>toast('شمارهٔ کارت ذخیره شد'));
-/* ── مالی: کارت مقصد و درگاه‌ها، با منطق واقعی ── */
+/* ── مالی: کارت مقصد و مدل‌های پرداخت نورا پی ── */
 function cardDigits(){return (document.getElementById('mCard').value||'').replace(/\D/g,'')}
 function fmtCard(d){return d.replace(/(\d{4})(?=\d)/g,'$1-')}
 function luhn(d){let sum=0; for(let i=0;i<d.length;i++){let n=+d[d.length-1-i]; if(i%2){n*=2; if(n>9) n-=9} sum+=n} return sum%10===0}
@@ -1695,7 +1696,7 @@ document.querySelector('[data-save="card"]').onclick=()=>{
   log('کارت مقصد به '+CARD_DEST.bank+' — …'+d.slice(-4)+' تغییر کرد');
   toast('کارت مقصد ذخیره شد');
 };
-/* کلیدهای درگاه با فرمِ باز‌شده هم‌گام می‌شوند */
+/* کلیدهای مدل پرداخت با رویدادِ باز‌شده هم‌گام می‌شوند */
 function syncGw(){
   document.querySelectorAll('#gwBox [data-gw]').forEach(sw=>{
     const on=CUR.gw.includes(sw.dataset.gw);
@@ -1704,11 +1705,11 @@ function syncGw(){
   const c=document.getElementById('mCard'); if(c&&CARD_DEST) c.value=CARD_DEST.no;
   renderGw();
 }
-/* وضعیت درگاه‌ها از خودِ کلیدها خوانده می‌شود، نه از عدد ثابت */
+/* وضعیت مدل‌ها از خودِ کلیدها خوانده می‌شود، نه از عدد ثابت */
 function renderGw(){
   const on=[...document.querySelectorAll('#gwBox [data-gw].on')].map(x=>x.dataset.gw);
   const el=document.getElementById('gwState');
-  el.textContent=on.length?faN(on.length)+' درگاه روشن':'هیچ درگاهی روشن نیست';
+  el.textContent=on.length?faN(on.length)+' مدل روشن':'هیچ مدلی روشن نیست';
   el.style.color=on.length?'':'var(--stop)';
 }
 document.getElementById('gwBox').addEventListener('click',e=>{
@@ -1718,8 +1719,8 @@ document.getElementById('gwBox').addEventListener('click',e=>{
     sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on?'true':'false');
     CUR.gw=on?[...new Set([...CUR.gw,g])]:CUR.gw.filter(x=>x!==g);
     renderGw(); renderPanel();
-    log('درگاه '+g+(on?' روشن شد':' خاموش شد'));
-    if(!CUR.gw.length) toast('بدون درگاه، کاربر راهی برای پرداخت ندارد');
+    log('مدل پرداخت '+g+(on?' روشن شد':' خاموش شد'));
+    if(!CUR.gw.length) toast('بی مدل پرداخت، کاربر راهی برای پرداخت ندارد');
     return;
   }
   const rc=e.target.closest('[data-rcauto]');

@@ -193,6 +193,20 @@
   .lgotp.bad .otpbox{animation:none}
 }
 
+/* ── کد دعوت: بستهٔ کوچک و اختیاری، ته پلهٔ شماره ──────────────────── */
+.lginv{margin:11px 0 2px;border:.5px solid var(--hairline);border-radius:var(--r-lg);
+  background:var(--surface-sunk);overflow:hidden}
+.lginv summary{display:flex;align-items:center;gap:7px;padding:11px 13px;font-size:12.5px;font-weight:700;
+  color:var(--ink-2);cursor:pointer;list-style:none}
+.lginv summary::-webkit-details-marker{display:none}
+.lginv summary .i{width:16px;height:16px;color:var(--brand-ink);flex:0 0 auto}
+.lginv[open] summary{border-bottom:.5px solid var(--hairline);color:var(--ink)}
+.lginv .lginp{margin:11px 13px 0;width:calc(100% - 26px);letter-spacing:.05em;text-transform:uppercase}
+.lginv .lghint{padding:6px 13px 12px;margin:0;text-align:start}
+.lginvok{margin:9px 0 0;padding:9px 12px;border-radius:var(--r-md);
+  background:color-mix(in oklab,var(--ok) 12%,transparent);color:var(--ok);
+  font-size:12px;font-weight:700;text-align:center}
+
 /* ── نگارهٔ پلهٔ کد: یک نشان ساده، بی رنگ پیام‌گیر ─────────────────── */
 .lgbot.plain{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;
   background:var(--brand-tint);box-shadow:none;margin:2px auto 2px}

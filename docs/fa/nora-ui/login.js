@@ -47,6 +47,10 @@ const shut=()=>{ if(typeof closeSheets==='function') closeSheets() };
 const OTP=(L.otp||{});
 const OTP_NAME=OTP.n||'ربات رمز یک‌بارمصرف نورا';
 const OTP_HREF=(OTP.href||'https://ble.ir/verification_code_bot')+'?start=login';
+/* کد دعوت: اختیاری، در همان پلهٔ شماره؛ کلیدش برای حساب من هم می‌ماند */
+const INV=L.invite||{}, INV_CODES=INV.codes||{}, INV_KEY='nora-home-invite';
+const invNorm=v=>String(v||'').replace(/\s/g,'')
+  .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]).toUpperCase();
 
 /* ── حالت ─────────────────────────────────────────────────────────── */
 const CAP=L.cap||{}, CAP_CODES=(CAP.codes||[]).slice();
@@ -150,6 +154,13 @@ function stepPhone(){
         title="${esc(CAP.newCap||'تصویر تازه')}"><svg class="i"><use href="#i-refresh"/></svg></button>
     </div>
     <p class="caplock" id="lgCapNote" hidden></p>
+    <details class="lginv" id="lgInvBox"${S.invite?' open':''}>
+      <summary><svg class="i" aria-hidden="true"><use href="#i-users"/></svg> ${esc(INV.l||'کد دعوت داری؟')}</summary>
+      <input class="lginp inv" id="lgInv" type="text" autocomplete="off" spellcheck="false"
+        placeholder="${esc(INV.ph||'مثل NL-4F7K')}" aria-label="${esc(INV.l||'کد دعوت')}"
+        value="${esc(S.invite||'')}"/>
+      <p class="lghint">${esc(INV.hint||'')}</p>
+    </details>
     <p class="lghint" id="lgHint">${esc(L.hint||'')}</p>
     <p class="lgerr" id="lgErr" hidden></p>
     ${trustLine()}
@@ -176,6 +187,7 @@ function stepCode(){
   return `<form class="lgstep lgotpstep" id="lgForm2" novalidate>
     <span class="lgbot plain" id="lgBot"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg></span>
     <div class="lgpline">${line}</div>
+    ${S.inviteOk?`<p class="lginvok">${esc(INV.ok||'کد دعوت ثبت شد.')}</p>`:''}
     <p class="lgotext" id="lgLead2">${lead}</p>
     <div class="lgotp" id="lgOtp" dir="ltr" role="group" aria-label="${esc(L.codeCap||'کد چهاررقمی ربات')}">${boxes}</div>
     <p class="lgcount" id="lgCountWrap">${esc(L.otpWait||'زمان باقی‌مانده:')} <b id="lgCount">${faN(TTL)}</b> ${esc(L.otpSec||'ثانیه')}</p>
@@ -270,6 +282,7 @@ function paint(){
   status('');
   if(S.step==='phone'){
     const f=$('#lgPhone'); if(f){ f.value=faN(S.mobile); pref() }
+    const iv=$('#lgInv'); if(iv) iv.value=S.invite||'';
     if(capLocked()){ capNew(false); lockTick() } else { capNew() }
   }
   if(S.step==='admin'){ const u=$('#lgUser'); if(u&&matchMedia('(min-width:520px)').matches) setTimeout(()=>{try{u.focus()}catch(e){}},140) }
@@ -337,8 +350,23 @@ function capWrong(){
   err((CAP.wrong||'عدد تصویر درست نیست؛ دوباره بنویس.')+' ('+faN(CAP_TRIES-S.capTries)+' بار دیگر)');
   shake('#lgCapBox'); capNew();
 }
+/* کد دعوت: خالی باشد گذر است، غلط باشد نمی‌گذرد */
+function tryInvite(){
+  const f=$('#lgInv'); const raw=invNorm(f?f.value:'');
+  S.invite=raw;
+  if(!f) return true;
+  if(!raw){ try{store.del(INV_KEY)}catch(e){} return true }
+  if(!Object.prototype.hasOwnProperty.call(INV_CODES,raw)){
+    err(INV.bad||'این کد دعوت شناخته نشد؛ بی آن هم می‌توانی وارد شوی.');
+    shake('#lgInv'); return false;
+  }
+  try{ store.set(INV_KEY,JSON.stringify({code:raw,by:INV_CODES[raw]})) }catch(e){}
+  S.inviteOk=true;
+  return true;
+}
 function tryPhone(){
   if(capLocked()){ err(capLockTxt()); return false }
+  if(!tryInvite()) return false;
   const v=phoneVal();
   if(!isMob(v)){ err('شماره را کامل بنویس؛ یازده رقم، با ۰۹. نمونه: ۰۹۱۲۳۴۵۶۷۸۹'); shake('#lgTel'); return false }
   const c=capVal();
@@ -462,6 +490,7 @@ document.addEventListener('input',e=>{
     el.value=faN(v);
     if(S.err) err('');
   }
+  if(el.id==='lgInv'){ el.value=el.value.replace(/\s/g,'').toUpperCase().slice(0,14); if(S.err) err('') }
   if(el.classList&&el.classList.contains('otpbox')){
     const d=unFa(el.value).replace(/\D/g,'');
     el.value=d?faN(d.slice(-1)):'';

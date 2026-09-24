@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا — فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=26"/>
+<link rel="stylesheet" href="glass.css?v=27"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -307,18 +307,8 @@
         <div class="gchips" id="payChips"></div>
       </div>
       <p class="cap" id="pickHint" style="margin-top:10px">یکی را انتخاب کنید تا ادامه روشن شود.</p>
-      <div class="stack tight" style="margin-top:10px">
-        <button class="opt" data-method="card" aria-pressed="false">
-          <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
-          <span style="flex:1;text-align:start"><b>کارت‌به‌کارت</b><br><span class="cap">شمارهٔ کارت را می‌بینید و رسید را می‌فرستید</span></span>
-          <svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-        </button>
-        <button class="opt" data-method="bale" aria-pressed="false">
-          <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
-          <span style="flex:1;text-align:start"><b>درگاه رسمی بله</b><br><span class="cap">همان لحظه پرداخت؛ ثبت‌نام قطعی می‌شود</span></span>
-          <svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-        </button>
-      </div>
+      <div class="stack tight" id="payMethods" style="margin-top:10px"></div>
+      <p class="cap" id="payAllowed" style="margin-top:8px"></p>
     </div>
   </section>
 
@@ -491,7 +481,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="ui.js?v=26"></script>
+<script src="data.js?v=27"></script>
+<script src="ui.js?v=27"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
@@ -514,8 +505,40 @@ const CFG={
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan',i:'i-globe'},
          {t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan',i:'i-users'}],
-  confirmed:false
+  confirmed:false,
+  /* مدل‌های پرداختی که مدیر سامانه و سازندهٔ رویداد برای همین رویداد روشن کرده‌اند؛
+     کاربر فقط همین‌ها را می‌بیند. */
+  methods:['bale','wallet','card','points']
 };
+/* نام و توضیح هر مدل از خودِ سامانه می‌آید؛ اگر نبود، همین فهرست کوتاه کافی است */
+const PAY_DEF={
+  wallet:{n:'کیف پول نورا پی', s:'همان لحظه، بی درگاه', i:'i-wallet'},
+  bale:{n:'درگاه رسمی بله', s:'همان لحظه پرداخت؛ ثبت‌نام قطعی می‌شود', i:'i-shield'},
+  card:{n:'کارت‌به‌کارت', s:'شمارهٔ کارت را می‌بینید و رسید را می‌فرستید', i:'i-card'},
+  inperson:{n:'حضوری و در محل', s:'پرداخت در ورودی یا دفتر؛ با کد رزرو جا می‌ماند', i:'i-users'},
+  points:{n:'پرداخت با امتیاز', s:'۱۰۰ امتیاز = ۱۰٬۰۰۰ تومان؛ تا ٪۳۰ هر خرید', i:'i-star'},
+  half:{n:'نصف الان، نصف اول ماه', s:'نیمهٔ دوم تا پنجم ماه آینده', i:'i-split'}
+};
+function payOf(k){
+  const A=(window.NORA&&window.NORA.ACCOUNT&&window.NORA.ACCOUNT.pay)||{};
+  const m=(A.methods||[]).find(x=>x.k===k)||{};
+  return {k:k, n:m.n||PAY_DEF[k].n, s:m.s||PAY_DEF[k].s, i:m.i||PAY_DEF[k].i, rule:m.rule||''};
+}
+/* روش پرداخت این رویداد: کارت مسیر رسید دارد، بقیه همان لحظه قطعی می‌شوند */
+function renderPayMethods(){
+  const box=document.getElementById('payMethods');
+  const list=(CFG.methods||[]).filter(k=>PAY_DEF[k]);
+  box.innerHTML=list.map(k=>{const m=payOf(k);return `
+    <button class="opt" data-method="${k}" aria-pressed="false">
+      <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
+      <span style="flex:1;text-align:start"><b>${m.n}</b><br><span class="cap">${m.s}</span></span>
+      <svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+    </button>`}).join('')+
+    (list.length?'':'<div class="cap">برای این رویداد مدل پرداختی روشن نشده؛ با پشتیبانی حرف بزن.</div>');
+  const el=document.getElementById('payAllowed');
+  if(el) el.textContent=list.length?('مدل‌های همین رویداد: '+list.map(k=>payOf(k).n).join(' · ')
+    +' — بقیه را مدیر و سازندهٔ رویداد روشن نکرده‌اند.'):'';
+}
 const S={guests:[],discount:0,code:'',method:''};
 /* هر گزینه‌ای که کاربر خودش زده — پیش‌فرض ادمین کافی نیست، انتخاب باید صریح باشد */
 const PICKED=new Set();
@@ -687,7 +710,10 @@ function renderEnd(){
   document.getElementById('endLinks').innerHTML=CFG.links.map(l=>
     `<a class="linkbtn" href="${l.u}" target="_blank" rel="noopener"><svg class="i"><use href="#${l.i||'i-link'}"/></svg> ${l.t}
       <span class="sp"></span><svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>`).join('');
-  document.getElementById('endText').textContent=CFG.endText;
+  const extra=S.method==='half'?'نیمهٔ دوم تا پنجم ماه آینده؛ با تسویه‌اش پروندهٔ همین رویداد کامل می‌شود.'
+    :(S.method==='inperson'?'با کد رزرو تا ۴۸ ساعت جایت می‌ماند؛ در ورودی پرداخت کن.'
+    :(S.method==='points'?'امتیازت همان لحظه کم شد؛ باقی‌اش از روش دیگر می‌آید.':''));
+  document.getElementById('endText').textContent=CFG.endText+(extra?' '+extra:'');
 }
 
 /* ══ حرکت ══ */
@@ -713,7 +739,7 @@ function show(id){
   if(BTN[id]) document.getElementById('next').innerHTML=BTN[id]+' <svg class="i"><use href="#i-chev-left"/></svg>';
   if(id==='u8'){renderBuddy();renderBill();renderFin()}
   if(id==='u12'){renderEnd();renderBill()}
-  if(id==='u9'){renderPayGuests()}
+  if(id==='u9'){renderPayGuests();renderPayMethods()}
   if(DRAFT_SCREENS.includes(id)) saveDraft();
   window.scrollTo({top:0,behavior:'instant'});
 }
@@ -764,10 +790,11 @@ document.addEventListener('click',e=>{
   const m=e.target.closest('[data-method]');
   if(m){S.method=m.dataset.method;
     document.querySelectorAll('[data-method]').forEach(x=>{x.classList.toggle('on',x===m);x.setAttribute('aria-pressed',x===m?'true':'false')});
-    document.getElementById('pickHint').textContent=m.dataset.method==='card'?'کارت‌به‌کارت: رسید را می‌فرستید و کارشناس تأیید می‌کند.':'درگاه بله: همان لحظه پرداخت و ثبت‌نام قطعی.';
-    CFG.confirmed=(m.dataset.method==='bale');
+    const mm=payOf(S.method);
+    document.getElementById('pickHint').textContent=mm.n+' — '+(mm.rule||mm.s);
+    CFG.confirmed=(S.method!=='card')&&(S.method!=='inperson');
     renderBill();
-    show(m.dataset.method==='card'?'u10':'u12'); return}
+    show(S.method==='card'?'u10':'u12'); return}
   const o=e.target.closest('.opt:not([data-fin]):not([data-method])');
   if(o){o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');return}
 });

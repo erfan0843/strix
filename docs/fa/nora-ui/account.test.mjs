@@ -46,7 +46,8 @@ async function load(store,hash){
     clickEl:el=>el.dispatchEvent(new window.MouseEvent('click',{bubbles:true})),
     key:sel=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel);
       el.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true,cancelable:true}))},
-    set:(sel,v)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel); el.value=v},
+    set:(sel,v)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel); el.value=v;
+      el.dispatchEvent(new window.Event('change',{bubbles:true}))},
     txt:sel=>{const el=doc.querySelector(sel); return el?el.textContent.replace(/\s+/g,' ').trim():''},
     all:sel=>[...doc.querySelectorAll(sel)],
     open:()=>[...doc.querySelectorAll('.sheet.on')].map(e=>e.id),
@@ -75,12 +76,17 @@ async function load(store,hash){
   ok(p.prof().includes('شهریور ۱۴۰۴'),'تاریخ عضویت');
   ok(p.all('.pstat').length===3,'سه عدد کلیدی: امتیاز، تا سطح بعد، برنامه‌ها');
   ok(p.prof().includes('۲٬۴۵۰') && p.prof().includes('تا طلایی'),'امتیاز و فاصله تا سطح بعدی');
-  ok(p.prof().includes('٪۷۸') && p.all('.meter').length>=1,'نوار تکمیل اطلاعات');
-  ok(p.prof().includes('۲ قلم مانده'),'کارهای مانده روی سرِ پروفایل');
+  ok(p.prof().includes('٪۸۳') && p.all('.meter').length>=1,'نوار تکمیل اطلاعات');
+  ok(p.prof().includes('۱ قلم مانده'),'کارهای مانده روی سرِ پروفایل');
   p.click('.phead .edit'); await wait(200);
   ok(p.inView() && p.onTab('ptab')==='info','نشان ویرایش، پروفایل را روی تب اطلاعات می‌آورد');
   p.click('#editBtn'); await wait(200);
-  ok(p.all('#viewBox input').length>=5,'تکمیل اطلاعات، فرم ویرایش را باز می‌کند');
+  ok(p.all('#viewBox input').length>=4 && p.all('#viewBox select').length>=4,'تکمیل اطلاعات، کادرهای انتخاب را باز می‌کند');
+  ok(p.all('#viewBox [data-fpick="gender"]').length===3,'جنسیت با سه دکمه، بی تایپ');
+  ok(p.all('#viewBox .datepick select').length===3,'تاریخ تولد سه فهرست روز و ماه و سال');
+  p.set('#f_province','فارس'); await wait(120);
+  ok(p.doc.querySelector('#f_city').options.length>=4 && p.doc.querySelector('#f_city').options[1].textContent.includes('شیراز'),'شهرها با استان عوض می‌شوند');
+  p.set('#f_city','شیراز');
   p.click('[data-back]'); await wait(180);
   ok(!p.inView() && !p.doc.querySelector('#profBox').hidden,'بازگشت، صفحهٔ پروفایل را برمی‌گرداند');
 }
@@ -146,7 +152,8 @@ async function load(store,hash){
   ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، فرم‌ها، حریم');
   ok(!p.doc.querySelector('#viewBox [data-ptab="book"]'),'باشگاه کتاب دیگر تب پروفایل نیست');
   await p.nav('profile');
-  ok(p.view().includes('اطلاعات من') && p.view().includes('تأیید پروفایل'),'تب اطلاعات، فرم و فرایند تأیید را می‌آورد');
+  ok(p.view().includes('اطلاعات من') && p.view().includes('کم تایپ کن'),'تب اطلاعات، پروفایل ساده می‌آورد');
+  ok(!/فرایند تأیید|فرم پروفایل/.test(p.view()),'خبری از فرم و صف تأیید پروفایل نیست');
   p.click('[data-ptab="privacy"]'); await wait(170);
   ok(p.view().includes('حریم خصوصی') && p.view().includes('دانلود'),'تب حریم خصوصی');
   await p.nav('club');
@@ -190,7 +197,7 @@ async function load(store,hash){
   await p.nav('events');
   ok(p.doc.title==='نورا · رویدادهای من','#events نمای رویدادها');
   await p.nav('pay');
-  ok(p.view().includes('نورا پی') && p.view().includes('قفل است'),'#pay نمای نورا پی');
+  ok(p.view().includes('نورا پی') && p.view().includes('کیف پول'),'#pay نمای نورا پی');
   await p.nav('چیز-نامعلوم');
   ok(!p.inView() && p.txt('#toast').includes('برگشتیم'),'نشانی ناشناس، پیام می‌دهد و برمی‌گردد');
 }
@@ -220,7 +227,65 @@ async function load(store,hash){
   ok(/function goLogin\(/.test(ajs)&&/login\.html\?next=/.test(ajs),'ردیف مهمان به صفحهٔ ورود می‌فرستد و بازگشت را نگه می‌دارد');
   ok(ajs.includes("'account.html'+(after?'#'+after:'')"),'بازگشت به همان بخش، پس از ورود');
   p.click('[data-view="pay"]'); await wait(200);
-  ok(p.inView() && p.view().includes('قفل است'),'نورا پی بی‌ورود هم باز می‌شود');
+  ok(p.inView() && p.view().includes('با حساب خودت باز می‌شود'),'نورا پی مهمان را به ورود می‌فرستد');
+}
+
+/* ── ۶.۵) نورا پی: کیف پول، روش‌ها، صورتحساب، بدهی و قفل گواهی ── */
+{
+  console.log('\n── نورا پی ──');
+  const store=makeStore(reg()), p=await load(store,'#pay');
+  ok(p.all('#viewBox .paym').length===6,'شش مدل پرداخت روی یک لایه');
+  ok(p.view().includes('کیف پول نورا پی')&&p.view().includes('درگاه رسمی بله')&&p.view().includes('کارت‌به‌کارت'),
+    'کیف پول، درگاه رسمی بله و کارت‌به‌کارت میان روش‌هاست');
+  ok(p.view().includes('حضوری')&&p.view().includes('پرداخت با امتیاز')&&p.view().includes('نصف الان'),
+    'حضوری، امتیاز و نصف‌ونصف هم هست');
+  ok(p.txt('.payhero').includes('۱٬۲۵۰٬۰۰۰'),'موجودی کیف پول در نورا پی');
+  ok(p.txt('.paydebt').includes('۳۲۵٬۰۰۰')&&p.txt('.paydebt').includes('۵ آبان'),'بدهی و مهلتش روی صفحه');
+  ok(p.doc.querySelectorAll('#viewBox .ivrow').length===4,'چهار صورتحساب');
+  ok(p.view().includes('PL7K2M9QX4A')&&p.view().includes('کد رهگیری'),'کد رهگیری صورتحساب‌ها');
+  ok(p.doc.querySelectorAll('#viewBox .txrow').length===4,'تراکنش‌ها با شارژ و خرید و امتیاز');
+  ok(p.view().includes('تا تسویهٔ بدهی'),'شرط قفل گواهینامه نوشته شده');
+  p.click('[data-topup]'); await wait(230);
+  ok(p.open().includes('shTop'),'ورقهٔ شارژ کیف پول باز می‌شود');
+  p.clickEl(p.all('#shTop [data-topamt]')[1]); await wait(130);
+  p.click('[data-topgo]'); await wait(280);
+  ok(p.txt('#toast').includes('اضافه شد')&&p.txt('.payhero').includes('۱٬۷۵۰٬۰۰۰'),'شارژ، موجودی را جلو می‌برد');
+  ok(JSON.parse(store.getItem('nora-home-pay')).txs[0].k==='top','شارژ در تراکنش‌ها می‌نشیند');
+  p.click('[data-paym="bale"]'); await wait(230);
+  ok(p.open().includes('shPay')&&p.txt('#shPay').includes('درگاه رسمی بله'),'ورقهٔ درگاه رسمی بله');
+  p.click('#shPay [data-close]'); await wait(170);
+  p.click('[data-paym="card"]'); await wait(230);
+  ok(p.txt('#shPay').includes('۶۰۳۷')&&p.all('#shPay [data-copy]').length===1,'کارت‌به‌کارت: شماره کارت و رونوشت');
+  p.click('#shPay [data-close]'); await wait(170);
+  p.click('[data-paym="half"]'); await wait(210);
+  ok(p.txt('#shPay').includes('نیمهٔ نخست')&&p.txt('#shPay').includes('نیمهٔ دوم'),'نصف الان، نصف اول ماه');
+  ok(p.txt('#shPay').includes('گواهینامهٔ همین رویداد دانلود نمی‌شود'),'قاعدهٔ قفل روی همان ورقه');
+  p.click('#shPay [data-close]'); await wait(170);
+  p.click('[data-paym="points"]'); await wait(210);
+  ok(p.txt('#shPay').includes('۱۰۰ امتیاز')&&p.txt('#shPay').includes('۲٬۴۵۰'),'پرداخت با امتیاز و نرخش');
+  p.click('#shPay [data-close]'); await wait(170);
+  p.click('[data-linkgo]'); await wait(210);
+  p.set('#lkCode','NPL-4F7K'); p.click('[data-linkok]'); await wait(280);
+  ok(p.open().includes('shPay'),'لینک پرداخت باز می‌شود');
+  p.click('#shPay [data-close]'); await wait(170);
+  p.click('[data-debtpay]'); await wait(230);
+  ok(p.open().includes('shChoose')&&p.txt('#shChoose').includes('مدل پرداخت این رویداد'),'بدهی: اول مدل‌های همین رویداد');
+  p.click('#shChoose [data-paym="wallet"]'); await wait(230);
+  ok(p.open().includes('shPay')&&p.txt('#shPay').includes('تسویهٔ بدهی'),'ورقهٔ تسویهٔ بدهی');
+  p.click('[data-paynow="wallet"]'); await wait(340);
+  ok(p.txt('#toast').includes('گواهینامه‌ها باز شد'),'تسویهٔ بدهی، گواهینامه را باز می‌کند');
+  ok(JSON.parse(store.getItem('nora-home-pay')).debt===0,'بدهی صفر می‌شود');
+  ok(p.txt('.payclear').includes('بدهکار نیستی'),'حال بی‌بدهی روی صفحه');
+  p.click('[data-refund="NP-2409"]'); await wait(210);
+  ok(p.open().includes('shRefund'),'ورقهٔ برگشت وجه');
+  p.set('#rfWhy','ثبت‌نام را لغو کردم'); p.click('[data-refundo="NP-2409"]'); await wait(280);
+  ok(p.txt('#toast').includes('برگشت'),'درخواست برگشت ثبت می‌شود');
+  const p3=await load(store,'#events');
+  p3.click('[data-vtab="past"]'); await wait(220);
+  p3.click('[data-myev="h1"]'); await wait(240);
+  ok(p3.all('#shMyEvent [data-my-cert="h1"]').length===1,'با تسویه، دکمهٔ دانلود گواهی برمی‌گردد');
+  p3.click('#shMyEvent [data-my-cert="h1"]'); await wait(160);
+  ok(p3.txt('#toast').includes('NL-T4K7M9X'),'دانلود گواهی با سریال خودش پیام می‌دهد');
 }
 
 /* ── ۷) پشتیبانی ── */
@@ -283,14 +348,14 @@ async function load(store,hash){
   ok(p.all('#viewBox .evcard .ec-tag').length===3,'نشان «برگزار شد» روی کارت‌های گذشته');
   p.click('[data-myev="h1"]'); await wait(240);
   sh=p.txt('#shMyEvent');
-  ok(p.all('#shMyEvent [data-my-cert="h1"]').length===1 && sh.includes('NL-T4K7M9X'),'گواهی آمادهٔ h1 با سریال، داخل رویداد');
+  ok(sh.includes('قفل تا تسویهٔ نورا پی') && p.all('#shMyEvent [data-my-cert="h1"]').length===0,
+    'با بدهی نورا پی، گواهی قفل است و دکمهٔ دانلود نمی‌آید');
+  ok(p.all('#shMyEvent [data-debtpay]').length===1,'از خودِ ورقه هم می‌شود بدهی را پرداخت کرد');
   ok(p.all('#shMyEvent .step').length===3 && sh.includes('کارنامهٔ حضور'),'کارنامهٔ حضور با سه جلسه');
   ok(sh.includes('نظرسنجی رضایت دورهٔ عکاسی'),'نظر و نظرسنجی داده‌شده همان‌جا دیده می‌شود');
   p.click('#shMyEvent [data-off]'); await wait(160);
   ok(p.txt('#toast').includes('آفلاین'),'دانلود فایل آفلاین پیام می‌دهد');
   ok(!p.doc.querySelector('#shMyEvent [data-my-ticket="h1"]'),'رویدادی که بلیت جدا ندارد، دکمهٔ کارت ورود نشان نمی‌دهد');
-  p.click('#shMyEvent [data-my-cert="h1"]'); await wait(140);
-  ok(p.txt('#toast').includes('NL-T4K7M9X'),'دانلود گواهی با سریال خودش پیام می‌دهد');
   p.click('#shMyEvent [data-close]'); await wait(200);
   p.click('[data-vtab="up"]'); await wait(200);
   p.click('[data-myev="e1"]'); await wait(240);
@@ -357,12 +422,18 @@ async function load(store,hash){
   p.click('#editBtn'); await wait(200);
   p.set('#f_nationalId','۱۲۳'); p.click('#sendBtn'); await wait(200);
   ok(p.all('#viewBox .fld.bad').length>=1 && p.txt('#toast').includes('درست کن'),'کد ملی ناقص، خطا می‌نشاند');
-  p.set('#f_nationalId','0012345679'); p.click('#draftBtn'); await wait(240);
+  p.set('#f_nationalId','0012345679');
+  p.click('[data-fpick="gender"][data-val="زن"]'); await wait(120);
+  p.set('#f_birthDate_d','12'); await wait(90);
+  p.click('#sendBtn'); await wait(240);
   const saved=JSON.parse(p.window.localStorage.getItem('nora-home-profile')||'{}');
-  ok(saved.nationalId==='0012345679','ذخیرهٔ پیش‌نویس در حافظه می‌نشیند');
+  ok(saved.nationalId==='0012345679','ذخیره در حافظه می‌نشیند');
+  ok(saved.birthDate==='1378/05/12','تاریخ از فهرست‌ها درست خوانده می‌شود');
+  ok(saved.status==='approved','پروفایل بی صف تأیید ذخیره می‌شود');
   await p.nav('forms');
   ok(p.all('#viewBox .tk').length===4,'چهار فرم: پروفایل، پیش‌نویس، در صف، تأییدشده');
   ok(p.view().includes('فرم‌ها را مدیر سامانه می‌سازد'),'فرم‌ها از پنل مدیر می‌آید');
+  ok(p.all('#viewBox .tk').length===4,'چهار فرم در فهرست فرم‌ها');
   ok(p.doc.querySelector('#viewBox [data-form-new]')===null,'کاربر این‌جا فرم نمی‌سازد');
   await p.nav('');
   await p.nav('privacy');
