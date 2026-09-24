@@ -64,9 +64,11 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('#lgPhone').length===1,'کادر شماره');
   ok(p.all('.lgtel .pref').length===1&&p.txt('.lgtel .pref')==='۰۹','پیش‌شمارهٔ ۰۹ در کادر');
   ok(p.all('#lgForm .lgbtn').length===1&&p.txt('#lgGo')==='ورود','یک دکمهٔ ورود');
-  ok(p.all('.lgmsgs .lgmsg').length===3,'سه پیام‌گیر');
-  ok(p.all('.lgmsgs .lgmsg').map(b=>b.textContent.trim()).join(',')==='بله,ایتا,تلگرام','نام پیام‌گیرها: بله، ایتا، تلگرام');
-  ok(p.all('.lgmsgs .lgmsg svg').length===3,'نشان هر پیام‌گیر');
+  ok(p.all('.lgmsgs .lgmsg').length===2,'دو پیام‌گیر');
+  ok(p.all('.lgmsgs .lgmsg').map(b=>b.textContent.trim()).join(',')==='بله,ایتا','نام پیام‌گیرها: بله، ایتا');
+  ok(p.all('.lgmsgs .lgmsg svg').length===2,'نشان هر پیام‌گیر');
+  ok(p.doc.body.textContent.indexOf('تلگرام')<0,'تلگرام جایی در صفحه نیست');
+  ok(p.all('#lgAdminBtn').length===1&&p.txt('#lgAdminBtn').includes('ورود مدیران'),'دکمهٔ ورود مدیران ته کارت');
   ok(p.txt('.lgvia').includes('ورود با'),'جداکنندهٔ «ورود با»');
   ok(p.all('.lgmsg').every(b=>b.getAttribute('aria-label')),'هر پیام‌گیر برچسب دارد');
   ok(p.txt('.lgcard').includes('۰۹۱۲۳۴۵۶۷۸۹')===false,'نمونهٔ شماره در متن راهنما نیست، در خطا می‌آید');
@@ -99,11 +101,15 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('#lgBotLink').length===1,'نام ربات در متن، لینک آبی است');
   ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('verification_code_bot'),'لینک به همان ربات کد');
   ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('start=login'),'لینک ربات با پلهٔ ورود می‌رود');
-  ok(p.txt('#lgLead2').includes('کد ارسال‌شده در بازوی'),'متن راهنمای کد');
+  ok(p.txt('#lgLead2').includes('بازوی «')&&p.txt('#lgLead2').includes('برای'+'ت می‌فرستد'),'متن راهنمای کد با نام ربات و پیام‌گیر');
   ok(p.txt('.lgcount').includes('زمان باقی‌مانده'),'شمارندهٔ زمان');
   ok(p.all('#lgCount').length===1&&p.txt('#lgCountWrap').includes('ثانیه'),'شمارنده ثانیه‌ای می‌شمارد');
-  ok(p.all('#lgOpen').length===1&&p.doc.querySelector('#lgOpen').getAttribute('target')==='_blank','دکمهٔ باز کردن ربات');
-  ok(p.doc.querySelector('#lgOpen').getAttribute('rel').includes('noopener'),'پیوند ربات rel دارد');
+  ok(p.all('#lgOpen').length===0,'دکمهٔ «باز کردن ربات» برداشته شد؛ خودِ پیام لینک است');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('target')==='_blank','لینک ربات در تب تازه باز می‌شود');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('rel').includes('noopener'),'پیوند ربات rel دارد');
+  ok(p.all('#lgAgain').length===1&&p.doc.querySelector('#lgAgain').disabled===true,'«دوباره بفرست» تا پایان شمارش قفل است');
+  ok(p.txt('#lgAgain').includes('دوباره بفرست'),'و برچسبش خوانده می‌شود');
+  ok(p.all('.lghandline').length===1&&p.txt('.lghandline').includes('فرستادن شماره'),'راهنمای دکمهٔ «فرستادن شماره» در ربات مؤسسه');
   ok(p.txt('#lgOk')==='ورود','دکمهٔ ورود');
   ok(p.doc.querySelector('.lgbar')!==null,'نوار دکمهٔ ورود جدا شده');
   /* نوشتن رقم‌ها */
@@ -126,6 +132,21 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.store.getItem('nora-home-auth')===null,'پلهٔ نیمه‌کارهٔ ورود پاک می‌شود');
 }
 
+/* ۳.۲) پایان شمارش: «دوباره بفرست» باز می‌شود */
+{
+  console.log('\n── پایان شمارش ──');
+  const p=await load(makeStore());
+  p.type('#lgPhone','09121234567'); p.submit('#lgForm'); await wait(140);
+  ok(p.doc.querySelector('#lgAgain').disabled===true,'در آغاز قفل است');
+  p.window.NORA_LOGIN.state.wait=1; await wait(1150);
+  ok(p.doc.querySelector('#lgAgain').disabled===false,'با تمام‌شدن شمارش، باز می‌شود');
+  ok(p.all('#lgCountWrap.over').length===1,'و شمارنده رنگ پایان می‌گیرد');
+  ok(p.txt('#lgErr2').includes('سر آمد')===true||p.doc.querySelector('#lgErr2').hidden===false,'پیام پایان زمان می‌آید');
+  p.click('#lgAgain'); await wait(180);
+  ok(p.doc.querySelector('#lgAgain').disabled===true,'«دوباره بفرست» دوباره قفل می‌کند');
+  ok(p.window.NORA_LOGIN.state.wait>80,'و شمارنده از نو می‌شمارد');
+}
+
 /* ۳.۵) کد نادرست و دوباره فرست */
 {
   console.log('\n── کد نادرست ──');
@@ -136,16 +157,17 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(!p.doc.querySelector('#lgErr2').hidden&&p.txt('#lgErr2').includes('۵۴۳۲'),'کد نادرست، کد نمونه را می‌گوید');
   ok(p.store.getItem('nora-home-user')===null,'و کسی وارد نمی‌شود');
   ok(p.doc.querySelector('#lgOtp').classList.contains('bad'),'خانه‌های کد نشان خطا می‌گیرند');
-  p.click('#lgAgain'); await wait(80);
+  p.window.NORA_LOGIN.state.wait=0; await wait(60);
+  p.click('#lgAgain'); await wait(120);
   ok(p.all('.otpbox').every(b=>!b.value),'«دوباره بفرست» خانه‌ها را خالی می‌کند');
   ok(p.doc.querySelector('#lgErr2').hidden,'و خطا برداشته می‌شود');
   ok(p.txt('#lgCount')!=='', 'شمارنده از نو می‌شمارد');
   ok(p.window.NORA_LOGIN.state.wait>=88,'و زمان به ابتدا برمی‌گردد');
 }
 
-/* ۴) دکمهٔ پیام‌گیر: ربات باز می‌شود و شماره را می‌پرسد */
+/* ۴) دکمهٔ پیام‌گیر: ربات مؤسسه باز می‌شود و شماره را می‌پرسد */
 {
-  console.log('\n── بله و ایتا و تلگرام ──');
+  console.log('\n── بله و ایتا ──');
   const p=await load(makeStore());
   const openBefore=p.window.open&&p.window.open.calls?p.window.open.calls.length:0;
   p.type('#lgPhone','09121234567');
@@ -156,22 +178,48 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.txt('.lgpline').includes('۹۱۲'),'شماره‌ای که نوشته بودیم همراه می‌رود');
   ok(p.window.NORA_LOGIN.state.fromBot===true,'حالت «از ربات آمده» ثبت می‌شود');
   ok(p.window.open&&p.window.open.calls.length>openBefore,'ربات در تب تازه باز می‌شود');
-  ok(p.window.open.calls[p.window.open.calls.length-1].includes('eitaa.com/verification_code_bot'),'نشانی باز‌شده همان ربات است');
+  ok(p.window.open.calls[p.window.open.calls.length-1].includes('eitaa.com/nora_bot'),'نشانی باز‌شده ربات مؤسسه در ایتاست');
   ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).via==='eitaa','پیام‌گیرِ انتخابی در حافظه می‌ماند');
   /* بدون شماره: ربات خودش شماره را می‌پرسد */
   const q=await load(makeStore());
   q.click('[data-via="bale"]'); await wait(150);
   ok(q.all('#lgOtp').length===1,'بی شماره هم به پلهٔ کد می‌رود');
   ok(q.txt('.lgpline').includes('ربات می‌فرستی'),'و می‌گوید شماره را ربات می‌پرسد');
-  ok(q.window.open.calls[q.window.open.calls.length-1].includes('ble.ir/verification_code_bot'),'ربات بله باز می‌شود');
+  ok(q.window.open.calls[q.window.open.calls.length-1].includes('ble.ir/nora_bot'),'ربات مؤسسه در بله باز می‌شود');
+  ok(q.doc.querySelector('#lgBotLink').getAttribute('href').includes('ble.ir/verification_code_bot'),'و لینک آبی به ربات رمز یک‌بارمصرف می‌رود');
   q.click('#lgEditPhone'); await wait(140);
   ok(q.all('#lgPhone').length===1,'مدادِ شماره به پلهٔ نخست برمی‌گردد');
-  q.type('#lgPhone','09121234567'); q.click('[data-via="telegram"]'); await wait(150);
-  ok(q.txt('.lgotext').includes('تلگرام'),'تحویل به تلگرام');
-  ok(q.doc.querySelector('#lgOpen').getAttribute('href').includes('t.me/verification_code_bot'),'پیوند باز کردن ربات تلگرام');
-  /* با شماره، مداد برمی‌گرداند و شماره می‌ماند */
-  q.click('#lgEditPhone'); await wait(140);
-  ok(q.doc.querySelector('#lgPhone').value==='۰۹۱۲۱۲۳۴۵۶۷','شماره در کادر می‌ماند تا فقط عوضش کنی');
+  /* با شماره، مداد برمی‌گرداند و شماره در کادر می‌ماند */
+  p.click('#lgEditPhone'); await wait(140);
+  ok(p.doc.querySelector('#lgPhone').value==='۰۹۱۲۱۲۳۴۵۶۷','شماره در کادر می‌ماند تا فقط عوضش کنی');
+  ok(p.doc.body.textContent.indexOf('تلگرام')<0&&q.doc.body.textContent.indexOf('تلگرام')<0,'هیچ نشانی از تلگرام در صفحه نیست');
+}
+
+/* ۴.۵) ورود مدیران: نام کاربری و گذرواژه، بی رمز پویا */
+{
+  console.log('\n── ورود مدیران ──');
+  const p=await load(makeStore());
+  p.click('#lgAdminBtn'); await wait(160);
+  ok(p.all('#lgUser').length===1&&p.all('#lgPass').length===1,'پلهٔ مدیران: نام کاربری و گذرواژه');
+  ok(p.doc.querySelector('#lgPass').type==='password','گذرواژه پوشیده است');
+  ok(p.all('.lgbot').length===0&&p.all('#lgOtp').length===0,'رمز پویا و کد در این راه نیست');
+  ok(p.txt('#lgAdminForm .lghint').includes('admin / nora'),'نمونهٔ پیش‌نمایش نوشته شده');
+  p.submit('#lgAdminForm'); await wait(120);
+  ok(!p.doc.querySelector('#lgErr3').hidden&&p.txt('#lgErr3').includes('بنویس'),'خالی، خطا می‌دهد');
+  p.type('#lgUser','admin'); p.type('#lgPass','123'); p.submit('#lgAdminForm'); await wait(140);
+  ok(p.txt('#lgErr3').includes('درست نیست'),'گذرواژهٔ نادرست رد می‌شود');
+  ok(p.store.getItem('nora-admin')===null,'و نشست مدیر ساخته نمی‌شود');
+  p.type('#lgPass','nora'); p.click('#lgPassEye'); await wait(80);
+  ok(p.doc.querySelector('#lgPass').type==='text','چشم، گذرواژه را نشان می‌دهد');
+  p.submit('#lgAdminForm'); await wait(180);
+  ok(p.txt('.lgdtitle').includes('مدیر سامانه'),'با درست‌ها، به پلهٔ مدیر می‌رسد');
+  ok(p.store.getItem('nora-admin')!==null,'نشست مدیر نوشته می‌شود');
+  ok(p.doc.querySelector('#lgAdminPanel').getAttribute('href')==='builder.html','و راه پنل، فرم‌ها و گزارش‌هاست');
+  p.click('#lgAdminBack')||true;
+  const q=await load(makeStore());
+  q.click('#lgAdminBtn'); await wait(140);
+  q.click('#lgAdminBack'); await wait(140);
+  ok(q.all('#lgPhone').length===1,'«بازگشت» به پلهٔ شماره برمی‌گرداند');
 }
 
 /* ۵) کسی که وارد شده و کسی که نیمه‌کاره مانده */
@@ -223,10 +271,11 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'login.html'")&&sw.includes("'login.js'")&&sw.includes("'login.css'"),'سرویس‌ورکر صفحهٔ ورود را پیش‌بار می‌کند');
   const html=fs.readFileSync(DIR+'login.html','utf8');
-  ok(html.includes('login.css?v=23')&&html.includes('login.js?v=23')&&html.includes('data.js?v=23'),'نسخهٔ دارایی‌ها تازه است');
+  ok(html.includes('login.css?v=24')&&html.includes('login.js?v=24')&&html.includes('data.js?v=24'),'نسخهٔ دارایی‌ها تازه است');
   const data=fs.readFileSync(DIR+'data.js','utf8');
   ok(data.includes("ble.ir")&&data.includes("eitaa.com"),'نشانی بله و ایتا در داده هست');
   ok(data.includes('verification_code_bot'),'شناسهٔ ربات کد یک‌بارمصرف در داده هست');
+  ok(data.indexOf('t.me/')<0&&data.indexOf('telegram')<0,'تلگرام از داده برداشته شده');
   ok(data.includes("otpLead")&&data.includes('{bot}'),'متن پلهٔ کد، نام ربات را از داده می‌گیرد');
   const css=fs.readFileSync(DIR+'login.css','utf8');
   ok(/@keyframes rise/.test(css)&&/@keyframes shake/.test(css),'انیمیشن‌های صفحه در CSS خودش هست');

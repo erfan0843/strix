@@ -23,7 +23,7 @@ function makeStore(init){
   return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),
     clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size},_m:m};
 }
-const MEMBER={name:'سارا محمدی',mobile:'09121234567',joined:'شهریور ۱۴۰۴'};
+const MEMBER={name:'سارا محمدی',mobile:'09121234567',joined:'شهریور ۱۴۰۴',wallet:1250000,certs:2,msgs:1};
 const reg=()=>({'nora-home-user':JSON.stringify(MEMBER)});
 
 async function load(store,hash){
@@ -85,17 +85,23 @@ async function load(store,hash){
   ok(!p.inView() && !p.doc.querySelector('#profBox').hidden,'بازگشت، صفحهٔ پروفایل را برمی‌گرداند');
 }
 
-/* ── ۲) میان‌بُرها و رویداد نزدیک ── */
+/* ── ۲) نورا پی سرِ صفحه و رویداد نزدیک ── */
 {
-  console.log('\n── میان‌بُرها ──');
+  console.log('\n── نورا پی و رویداد نزدیک ──');
   const p=await load(makeStore(reg()));
-  ok(p.all('.qtiles .qtile').length===3,'سه میان‌بُر');
-  ok(p.prof().includes('کارت ورود') && p.prof().includes('دعوت دوست') && p.prof().includes('پشتیبانی'),'نام میان‌بُرها');
-  p.click('[data-qt="tickets"]'); await wait(200);
-  ok(p.inView() && p.onTab('vtab')==='tickets','میان‌بُر کارت ورود، تب بلیت و گواهی را باز می‌کند');
+  ok(p.doc.querySelector('.paybar')!==null,'کارت نورا پی، جدا و سرِ صفحه');
+  ok(p.txt('.paybar').includes('۱٬۲۵۰٬۰۰۰')&&p.txt('.paybar').includes('تومان'),'موجودی کیف پول روی کارت');
+  ok(p.all('.paybar .pbrow .pbtn').length===3,'سه کنش کیف پول: شارژ، صورت‌حساب، اقساط');
+  ok(p.all('.paybar .pmeta .tag').length===3,'سه برچسب کوتاه زیر موجودی');
+  ok(p.all('.qtiles .qtile').length===0,'کاشی‌های میان‌بُر برداشته شده');
+  const prof=p.prof();
+  ok(prof.indexOf('دعوت دوست')<0&&p.all('.qtile').length===0,'میان‌بُرها از فهرست حساب رفته');
+  ok(prof.indexOf('نورا پی')<prof.indexOf('رویدادهای من'),'نورا پی بالای بخش‌ها می‌آید');
+  p.click('.paybar .pbmain'); await wait(200);
+  ok(p.inView()&&p.view().includes('نورا پی'),'کارت نورا پی نما را باز می‌کند');
   await p.nav('');
-  p.click('[data-qt="invite"]'); await wait(220);
-  ok(p.inView() && p.onTab('ptab')==='club' && p.view().includes('دعوت دوستان'),'میان‌بُر دعوت، امتیاز و دعوت را می‌آورد');
+  p.click('.pbrow .pbtn:nth-child(2)'); await wait(190);
+  ok(p.inView(),'کنش‌های کیف پول هم به همان نما می‌روند');
   await p.nav('');
   const card=p.doc.querySelector('.qcard');
   ok(card!==null && card.querySelector('.qc-date')!==null,'کارت رویداد نزدیک با تاریخ');
@@ -104,16 +110,21 @@ async function load(store,hash){
   ok(p.txt('#toast').includes('کارت ورود'),'دکمهٔ کارت ورود پیام می‌دهد');
 }
 
-/* ── ۳) چهار بخش ── */
+/* ── ۳) سه بخش ── */
 {
   console.log('\n── چهار بخش ──');
   const p=await load(makeStore(reg()));
   const rows=p.all('.mrow2');
-  ok(rows.length===4,'چهار ردیف بخش');
+  ok(rows.length===3,'سه ردیف بخش');
   const order=rows.map(r=>r.dataset.view).join(',');
-  ok(order==='pay,events,profile,club','ترتیب: نورا پی، رویدادهای من، پروفایل من، باشگاه و امتیاز من');
-  ok(p.prof().includes('نورا پی') && p.prof().includes('به‌زودی'),'نورا پی یک بخش است، نه کارت جدا');
-  ok(p.all('.mrow2 .mini').length===4,'هر ردیف نشان کوتاه خودش را دارد');
+  ok(order==='events,profile,book','ترتیب: رویدادهای من، پروفایل من، باشگاه کتاب‌خوانی');
+  ok(p.prof().includes('باشگاه کتاب‌خوانی خط زندگی'),'ردیف باشگاه کتاب‌خوانی خط زندگی');
+  ok(!p.doc.querySelector('.mrow2[data-view="pay"]')&&!p.doc.querySelector('.mrow2[data-view="club"]'),'نورا پی و باشگاه امتیاز ردیف نیستند');
+  ok(p.all('.mrow2 .mini').length===3,'هر ردیف نشان کوتاه خودش را دارد');
+  p.click('.mrow2[data-view="book"]'); await wait(200);
+  ok(p.inView()&&p.doc.title.includes('باشگاه کتاب‌خوانی'),'ردیف کتاب، باشگاه کتاب‌خوانی را باز می‌کند');
+  ok(p.view().includes('کتاب ماه')&&p.view().includes('جلسه‌ها'),'صفحهٔ باشگاه با کتاب ماه و جلسه‌ها');
+  await p.nav('');
   p.click('[data-view="profile"]'); await wait(200);
   ok(p.inView() && p.doc.title==='نورا · پروفایل من','ردیف پروفایل، نمای پروفایل را باز می‌کند');
   await p.nav('');
@@ -121,7 +132,9 @@ async function load(store,hash){
   const src=fs.readFileSync(DIR+'data.js','utf8');
   const W={}; new Function('window','document',src)(W,{querySelector:()=>null,documentElement:{}});
   const SEC=(W.NORA&&W.NORA.ACCOUNT&&W.NORA.ACCOUNT.sections)||[];
-  ok(SEC.length===4 && SEC.map(x=>x.k).join(',')==='pay,events,profile,club','بخش‌ها از data.js می‌آید');
+  ok(SEC.length===4 && SEC.map(x=>x.k).join(',')==='pay,events,profile,book','بخش‌ها از data.js می‌آید');
+  ok(SEC[0].card===true&&SEC[0].k==='pay','نورا پی کارتِ سرِ صفحه است');
+  ok(SEC[3].n.includes('باشگاه کتاب‌خوانی'),'و ردیف آخر باشگاه کتاب‌خوانی خط زندگی');
 }
 
 /* ── ۴) پروفایل سه تب، باشگاه دو تب ── */
@@ -129,23 +142,23 @@ async function load(store,hash){
   console.log('\n── تب‌های درونی ──');
   const p=await load(makeStore(reg()));
   await p.nav('profile');
-  ok(p.all('#viewBox .vtab').length===6,'پروفایل شش تب دارد');
-  ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,book,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، کتاب، فرم‌ها، حریم');
+  ok(p.all('#viewBox .vtab').length===5,'پروفایل پنج تب دارد');
+  ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، فرم‌ها، حریم');
+  ok(!p.doc.querySelector('#viewBox [data-ptab="book"]'),'باشگاه کتاب دیگر تب پروفایل نیست');
   await p.nav('profile');
   ok(p.view().includes('اطلاعات حساب من') && p.view().includes('تأیید پروفایل'),'تب اطلاعات، فرم و فرایند تأیید را می‌آورد');
   p.click('[data-ptab="privacy"]'); await wait(170);
   ok(p.view().includes('حریم خصوصی') && p.view().includes('دانلود'),'تب حریم خصوصی');
   await p.nav('club');
   ok(p.onTab('ptab')==='club','#club تب امتیاز و سطح را باز می‌کند');
-  p.click('[data-ptab="book"]'); await wait(190);
-  ok(p.view().includes('کتاب ماه') && p.view().includes('باشگاه کتاب‌خوانی'),'تب باشگاه کتاب‌خوانی زیر پروفایل من');
+  ok(!p.doc.querySelector('[data-ptab="book"]'),'تب کتاب از پروفایل برداشته شد');
   p.click('[data-ptab="club"]'); await wait(190);
   ok(p.view().includes('امتیاز و سطح من') && p.view().includes('دستاوردها'),'تب امتیاز و سطح');
-  p.click('[data-ptab="book"]'); await wait(190);
-  ok(p.view().includes('چراغ‌ها را من خاموش می‌کنم'),'برگشت به باشگاه کتاب');
   p.click('[data-ptab="auth"]'); await wait(180);
   ok(p.view().includes('شمارهٔ ورود و رمز')&&p.view().includes('دستگاه‌های واردشده'),'تب ورود و امنیت');
-  ok(p.view().includes('بله')&&p.view().includes('ایتا')&&p.view().includes('تلگرام'),'راه‌های ورود با پیام‌گیر');
+  ok(p.view().includes('بله')&&p.view().includes('ایتا'),'راه‌های ورود: بله و ایتا');
+  ok(!p.view().includes('تلگرام'),'تلگرام در راه‌های ورود نیست');
+  ok(p.view().includes('ورود مدیران')===false,'ورود مدیران در حساب من نیست، در صفحهٔ ورود است');
   ok(p.all('#viewBox .drow').length===3,'سه دستگاه واردشده');
   ok(p.all('#viewBox [data-enddev]').length===2,'دو دستگاه دیگر نشست بسته‌شدنی دارند');
   p.click('#viewBox [data-enddev]'); await wait(120);
@@ -163,7 +176,7 @@ async function load(store,hash){
   console.log('\n── نشانی‌ها ──');
   const p=await load(makeStore(reg()));
   await p.nav('book');
-  ok(p.doc.title==='نورا · پروفایل من' && p.onTab('ptab')==='book','#book تب باشگاه کتاب');
+  ok(p.doc.title.includes('باشگاه کتاب‌خوانی')&&!p.onTab('ptab'),'#book بخش باشگاه کتاب‌خوانی را باز می‌کند');
   await p.nav('club');
   ok(p.onTab('ptab')==='club','#club تب امتیاز و سطح');
   await p.nav('points');
@@ -197,8 +210,8 @@ async function load(store,hash){
   p.click('[data-logout-yes]'); await wait(200);
   ok(p.doc.querySelector('.guestcard')!==null,'و با خروج، به حال مهمان برمی‌گردد');
   await p.nav('');
-  ok(p.all('.mrow2').length===4 && !p.prof().includes('قفل'),'چهار ردیف، بی نشان قفل');
-  ok(p.all('.qtiles .qtile').length===0 && p.doc.querySelector('.qcard')===null,'میان‌بُر و رویداد نزدیک برای مهمان نیست');
+  ok(p.all('.mrow2').length===3 && !p.prof().includes('قفل'),'سه ردیف، بی نشان قفل');
+  ok(p.doc.querySelector('.qcard')===null&&p.doc.querySelector('.paybar')!==null,'رویداد نزدیک برای مهمان نیست؛ کارت نورا پی هست');
   ok(p.doc.querySelector('#shAuth')===null,'ورقهٔ ورود در این صفحه نیست؛ ورود صفحهٔ خودش را دارد');
   p.click('[data-view="events"]'); await wait(200);
   ok(p.open().length===0,'مهمان با ورقه روبه‌رو نمی‌شود');
@@ -228,8 +241,8 @@ async function load(store,hash){
   /* میان‌بُر و دکمه‌های داخل صفحه هم به همان صفحه می‌روند */
   await p.nav('support');
   ok(p.window.location.href.indexOf('support.html')>=0 || true,'نشانی #support به صفحهٔ تازه می‌رود');
-  const qt=p.doc.querySelector('[data-qt="support"]');
-  ok(qt!==null,'میان‌بُر پشتیبانی روی سرِ پروفایل');
+  ok(p.doc.querySelector('.topbar [data-open-support]')!==null,'نشان پشتیبانی در نوار بالا هست');
+  ok(p.doc.querySelector('#supBar')!==null,'و نوار پشتیبانی پایین صفحه');
   const css=fs.readFileSync(DIR+'account.css','utf8');
   ok(/\.supbar\{position:fixed[\s\S]*?bottom:calc\(74px/.test(css),'نوار پشتیبانی چسبیده به بالای نوار پایین');
   ok(/\.supbar\[hidden\]\{display:none\}/.test(css) && js.includes('supportVisible'),'پشتیبانی قابل خاموش‌کردن از دادهٔ خودش است');
@@ -268,7 +281,7 @@ async function load(store,hash){
   ok(p.all('#viewBox .kind').length===10,'هشت دستاورد و دو پاداش');
   p.click('[data-reward]'); await wait(140);
   ok(p.txt('#toast').includes('گرفته شد'),'خرید از فروشگاه پاداش پیام می‌دهد');
-  p.click('[data-ptab="book"]'); await wait(200);
+  await p.nav('book');
   ok(p.view().includes('کتاب ماه') && p.txt('.bkhero').includes('زویا پیرزاد'),'باشگاه کتاب: کتاب ماه و نویسنده');
   ok(p.txt('.bkhero').includes('٪۷۲'),'درصد خوانده‌شدهٔ کتاب ماه');
   ok(p.all('.bktask').length===4,'چهار کار این ترم');

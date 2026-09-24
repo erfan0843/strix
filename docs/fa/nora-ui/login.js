@@ -42,7 +42,7 @@ const sheet=(id,html)=>{
 const shut=()=>{ if(typeof closeSheets==='function') closeSheets() };
 
 /* ── نگارهٔ ربات: حباب سبز با تیک، همان‌جور که در پیام‌گیر دیده می‌شود ── */
-const TINT={bale:'#12A594', eitaa:'#F5821F', telegram:'#2AABEE'};
+const TINT={bale:'#12A594', eitaa:'#F5821F'};
 function botArt(k){
   const c=TINT[k]||TINT.bale;
   return `<svg viewBox="0 0 64 64" aria-hidden="true">
@@ -55,13 +55,16 @@ function botArt(k){
 /* ── نشان پیام‌گیرها ──────────────────────────────────────────────── */
 const MARK={
   bale:'<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="gb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3FBD6D"/><stop offset="1" stop-color="#0E9B62"/></linearGradient></defs><circle cx="20" cy="20" r="20" fill="url(#gb)"/><path d="M11.6 20.8l5.1 5.3L28.4 14" fill="none" stroke="#fff" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  eitaa:'<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="0" y="0" width="40" height="40" rx="11" fill="#26303B"/><path d="M13.4 20.2v-4.6a6.6 6.6 0 0 1 13.2 0v4.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><rect x="12.2" y="19.4" width="15.6" height="11.4" rx="3.2" fill="#F5821F"/><circle cx="20" cy="25.1" r="1.9" fill="#26303B"/></svg>',
-  telegram:'<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="gt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3FB0E8"/><stop offset="1" stop-color="#1E8BC4"/></linearGradient></defs><circle cx="20" cy="20" r="20" fill="url(#gt)"/><path d="M9.8 19.9l19-7.4-3 15.1-5.6-4.1-3 3.1-.6-4.6z" fill="#fff"/><path d="M16.6 22l11.2-8.6-8.2 12z" fill="#D6EBF7"/></svg>'
+  eitaa:'<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="0" y="0" width="40" height="40" rx="11" fill="#26303B"/><path d="M13.4 20.2v-4.6a6.6 6.6 0 0 1 13.2 0v4.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><rect x="12.2" y="19.4" width="15.6" height="11.4" rx="3.2" fill="#F5821F"/><circle cx="20" cy="25.1" r="1.9" fill="#26303B"/></svg>'
 };
 const markOf=k=>MARK[k]||MARK.bale;
 const msgOf=k=>MSGS.find(m=>m.k===k)||MSGS[0]||{k:'bale',n:'بله',hand:'',href:'#'};
-/* لینک مستقیم ربات، با پلهٔ ورود در پیام */
-function botHref(m){ const u=(m&&m.botUrl)||''; if(!u) return '#'; return u+(u.indexOf('?')>-1?'&':'?')+'start='+((m&&m.start)||'login') }
+/* دو پیوند جدا: ربات مؤسسه برای فرستادن شماره، ربات رمز برای گرفتن کد */
+function withStart(u,start){ if(!u) return '#'; return u+(u.indexOf('?')>-1?'&':'?')+'start='+(start||'login') }
+function botHref(m){ return withStart((m&&m.href)||'',(m&&m.start)||'login') }      /* ربات مؤسسه */
+function otpHref(m){ return withStart((m&&(m.otpUrl||m.href))||'',(m&&m.start)||'login') }  /* ربات رمز */
+function otpName(m){ return (m&&(m.otpBot||m.inst||m.n))||'ربات' }
+function handOf(m){ return (m&&m.hand)||'' }
 
 /* ── حالت ─────────────────────────────────────────────────────────── */
 const S={step:'phone', mobile:'', via:(MSGS[0]||{}).k||'bale', err:'', wait:TTL, fromBot:false, tries:0};
@@ -92,7 +95,8 @@ function stepPhone(){
     <div class="lgvia"><span>${esc(L.via||'ورود با')}</span></div>
     <div class="lgmsgs" role="group" aria-label="${esc(L.via||'ورود با')}">${rows}</div>
     <p class="lgcap">${esc(L.sms||'')}</p>
-  </form>`;
+  </form>
+  <button class="lgbtn quiet admin" type="button" id="lgAdminBtn"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg> ${esc(L.adminBtn||'ورود مدیران')}</button>`;
 }
 
 /* ── پلهٔ ۲: کد چهاررقمی ربات ─────────────────────────────────────── */
@@ -101,8 +105,9 @@ function stepCode(){
   const boxes=Array.from({length:len},(_,i)=>
     `<input class="otpbox num" type="text" inputmode="numeric" autocomplete="${i===0?'one-time-code':'off'}"
       maxlength="1" aria-label="رقم ${faN(i+1)} از ${faN(len)}" data-otp="${i}"/>`).join('');
-  const bot=`<a class="lgblink" id="lgBotLink" href="${esc(botHref(m))}" target="_blank" rel="noopener">${esc(m.botName||m.n)}</a>`;
-  const lead=esc(L.otpLead||'کد ارسال‌شده در بازوی «{bot}» را وارد کنید.').replace('{bot}',bot);
+  const bot=`<a class="lgblink" id="lgBotLink" href="${esc(otpHref(m))}" target="_blank" rel="noopener">${esc(otpName(m))}</a>`;
+  const lead=esc(L.otpLead||'کد ارسال‌شده در بازوی «{bot}» در {arm} را وارد کنید.')
+    .replace('{bot}',bot).replace('{arm}',esc(m.n||''));
   const line=S.mobile
     ? `<b class="num" dir="ltr">${phonePretty(S.mobile)}</b>
        <button class="lgedit" type="button" id="lgEditPhone" aria-label="${esc(L.otpEdit||'عوض کردن شماره')}">
@@ -114,18 +119,54 @@ function stepCode(){
     <span class="lgbot${S.fromBot?' from':''}" id="lgBot">${botArt(S.via)}</span>
     <div class="lgpline">${line}</div>
     <p class="lgotext" id="lgLead2">${lead}</p>
+    <p class="lghandline">${esc(handOf(m))}</p>
     <div class="lgotp" id="lgOtp" dir="ltr" role="group" aria-label="${esc(L.codeCap||'کد چهاررقمی ربات')}">${boxes}</div>
     <p class="lgcount" id="lgCountWrap">${esc(L.otpWait||'زمان باقی‌مانده:')} <b id="lgCount">${faN(TTL)}</b> ${esc(L.otpSec||'ثانیه')}</p>
     <p class="lgerr" id="lgErr2" hidden></p>
     <div class="lgbar">
       <button class="lgbtn" type="submit" id="lgOk">${esc(L.go||'ورود')}</button>
     </div>
-    <div class="lgacts">
-      <button class="lgbtn quiet" type="button" id="lgAgain">${esc(L.resend||'دوباره بفرست')}</button>
-      <a class="lgbtn quiet" id="lgOpen" href="${esc(botHref(m))}" target="_blank" rel="noopener">${esc(L.otpOpen||'باز کردن ربات')}</a>
-    </div>
+    <button class="lgbtn quiet again" type="button" id="lgAgain" disabled aria-disabled="true">${esc(L.resend||'دوباره بفرست')}</button>
     <p class="lgcap">${esc(L.otpNote||'')}</p>
   </form>`;
+}
+
+/* ── پلهٔ ۴: ورود مدیران (نام کاربری و گذرواژه، بی رمز پویا) ──────── */
+function stepAdmin(){
+  return `<form class="lgstep lgadmin" id="lgAdminForm" novalidate>
+    <span class="lgadm" aria-hidden="true"><svg class="i"><use href="#i-shield"/></svg></span>
+    <b class="lgdtitle">${esc(L.adminTitle||'ورود مدیران')}</b>
+    <p class="lgdle">${esc(L.adminLead||'')}</p>
+    <label class="lglbl" for="lgUser">${esc(L.adminUser||'نام کاربری')}</label>
+    <div class="lgtel" id="lgUserWrap">
+      <span class="fic" aria-hidden="true"><svg class="i"><use href="#i-user"/></svg></span>
+      <input class="lginp" id="lgUser" type="text" autocomplete="username" autocapitalize="off"
+        spellcheck="false" value=""/>
+    </div>
+    <label class="lglbl" for="lgPass">${esc(L.adminPass||'گذرواژه')}</label>
+    <div class="lgtel" id="lgPassWrap">
+      <span class="fic" aria-hidden="true"><svg class="i"><use href="#i-lock"/></svg></span>
+      <input class="lginp" id="lgPass" type="password" autocomplete="current-password" value=""/>
+      <button class="lgedit" type="button" id="lgPassEye" aria-label="نمایش گذرواژه">
+        <svg class="i"><use href="#i-eye"/></svg></button>
+    </div>
+    <p class="lghint">${esc(L.adminDemo||'')}</p>
+    <p class="lgerr" id="lgErr3" hidden></p>
+    <button class="lgbtn" type="submit" id="lgAdminGo">${esc(L.adminGo||'ورود به پنل مدیران')}</button>
+    <p class="lgcap">${esc(L.adminNote||'')}</p>
+    <button class="lgbtn quiet" type="button" id="lgAdminBack">${esc(L.change||'بازگشت')}</button>
+  </form>`;
+}
+
+/* ── پلهٔ ۵: مدیر وارد شد ────────────────────────────────────────── */
+function stepAdminDone(){
+  return `<div class="lgstep lgdones" id="lgAdminDone">
+    <span class="lgcheck ok" aria-hidden="true"><svg class="i"><use href="#i-shield"/></svg></span>
+    <b class="lgdtitle">${esc(L.adminOk||'خوش آمدی مدیر سامانه')}</b>
+    <p class="lgdle">${esc(L.adminOkLead||'')}</p>
+    <a class="lgbtn" href="builder.html" id="lgAdminPanel">${esc(L.adminGo2||'رفتن به فرم‌ها و گزارش‌ها')}</a>
+    <a class="lgbtn quiet" href="account.html">حساب من</a>
+  </div>`;
 }
 
 /* ── پلهٔ ۳: پایان ────────────────────────────────────────────────── */
@@ -163,12 +204,14 @@ function nextUrl(){
 /* ── نشستن پله‌ها ─────────────────────────────────────────────────── */
 function paint(){
   const box=$('#lgBody'); if(!box) return;
-  const map={phone:stepPhone,code:stepCode,done:stepDone,already:stepAlready};
+  const map={phone:stepPhone,code:stepCode,done:stepDone,already:stepAlready,admin:stepAdmin,adminDone:stepAdminDone};
   box.innerHTML=(map[S.step]||stepPhone)();
   const leadEl=$('#lgLead');
-  if(leadEl) leadEl.textContent = (S.step==='done'||S.step==='already') ? '' : (L.lead||'');
+  const bare=(S.step==='done'||S.step==='already'||S.step==='admin'||S.step==='adminDone');
+  if(leadEl) leadEl.textContent = bare ? '' : (L.lead||'');
   status('');
   if(S.step==='phone'){ const f=$('#lgPhone'); if(f){ f.value=faN(S.mobile); pref() } }
+  if(S.step==='admin'){ const u=$('#lgUser'); if(u&&matchMedia('(min-width:520px)').matches) setTimeout(()=>{try{u.focus()}catch(e){}},140) }
   if(S.step==='code'){ tick(); const b=$('.otpbox'); if(b) setTimeout(()=>{ try{b.focus()}catch(e){} },140) }
   if(S.step==='done'){ clearInterval(clock.t); setTimeout(()=>{ if(S.step==='done') location.href=nextUrl() },2200) }
 }
@@ -179,14 +222,17 @@ function pref(){ const f=$('#lgPhone'), p=$('#lgPref'); if(!f||!p) return;
 const clock={t:0};
 function tick(){
   clearInterval(clock.t); S.wait=TTL;
-  const el=$('#lgCount');
+  const el=$('#lgCount'), again=$('#lgAgain');
   const draw=()=>{
     if(el) el.textContent=faN(Math.max(0,S.wait));
+    if(again&&S.wait>0){ again.disabled=true; again.setAttribute('aria-disabled','true') }
     if(S.wait<=0){
       clearInterval(clock.t);
       const w=$('#lgCountWrap'); if(w) w.classList.add('over');
+      /* تا شمارش تمام نشود، «دوباره بفرست» قفل است */
+      if(again){ again.disabled=false; again.removeAttribute('aria-disabled') }
       const e2=$('#lgErr2');
-      if(e2&&e2.hidden){ e2.hidden=false; e2.textContent=(L.otpOver||'زمان کد سر آمد') + ' ' + (L.resend||'دوباره بفرست') }
+      if(e2&&e2.hidden){ e2.hidden=false; e2.textContent=(L.otpOver||'زمان کد سر آمد')+' '+(L.otpTtlDone||'') }
     }
   };
   const w=$('#lgCountWrap'); if(w) w.classList.remove('over');
@@ -221,9 +267,9 @@ function gotoCode(via,openBot){
   S.step='code'; S.tries=0; paint();
   if(openBot){
     try{ window.open(botHref(m),'_blank','noopener') }catch(e){}
-    status('ربات '+(m.n)+' باز شد؛ شماره‌ات را همان‌جا بفرست تا کد برسد.');
+    status((m.inst||('ربات '+m.n))+' باز شد؛ دکمهٔ «فرستادن شماره» را بزن تا کد برسد.');
   } else {
-    status('کد چهاررقمی به '+(m.n)+' فرستاده شد.');
+    status('کد چهاررقمی به '+(m.n)+' فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است.');
   }
 }
 /* پلهٔ ۱ با شماره */
@@ -254,18 +300,39 @@ function tryCode(){
   S.step='done'; paint();
 }
 function again(){
-  if(S.wait<=0) S.wait=TTL;
   const boxes=$$('.otpbox'); boxes.forEach((b,i)=>{ b.value=''; if(i===0){ try{b.focus()}catch(e){} } });
   S.wait=TTL; const e2=$('#lgErr2'); if(e2) e2.hidden=true;
   const w=$('#lgCountWrap'); if(w) w.classList.remove('over');
   tick();
-  const m=msgOf(S.via);
-  try{ window.open(botHref(m),'_blank','noopener') }catch(e){}
-  status('کد تازه به '+m.n+' رفت.');
+  status('کد تازه به '+otpName(msgOf(S.via))+' رفت.');
+  toast2('کد تازه فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است');
 }
 function toPhone(){
   clearInterval(clock.t); S.step='phone'; S.err=''; paint();
   setTimeout(()=>{ const f=$('#lgPhone'); if(f){ try{f.focus()}catch(e){} } },140);
+}
+
+/* ── ورود مدیران: نام کاربری و گذرواژه، بی رمز پویا ─────────────── */
+function toAdmin(){ clearInterval(clock.t); S.step='admin'; S.err=''; paint() }
+function adminIn(){
+  const u=($('#lgUser')||{}).value||'', p=($('#lgPass')||{}).value||'';
+  const e3=$('#lgErr3');
+  const say=t=>{ if(e3){ e3.hidden=false; e3.textContent=t } };
+  if(!u.trim()||!p){ say('نام کاربری و گذرواژه را بنویس.'); return }
+  if(u.trim().toLowerCase()!=='admin'||p!=='nora'){
+    say('نام کاربری یا گذرواژه درست نیست. '+(L.adminDemo||''));
+    const w=$('#lgPassWrap'); if(w){ w.classList.add('bad'); setTimeout(()=>w.classList.remove('bad'),460) }
+    return
+  }
+  try{ localStorage.setItem('nora-home-user',JSON.stringify({name:'مدیر سامانه',role:'admin',
+    mobile:'',joined:'۱۴۰۴',certs:0,wallet:0,msgs:0})) }catch(e){}
+  try{ localStorage.setItem('nora-admin',JSON.stringify({u:u.trim(),role:'admin',at:Date.now()})) }catch(e){}
+  S.step='adminDone'; paint(); toast2('خوش آمدی مدیر سامانه');
+}
+function togglePass(){
+  const f=$('#lgPass'); if(!f) return;
+  f.type = f.type==='password' ? 'text' : 'password';
+  const b=$('#lgPassEye'); if(b) b.setAttribute('aria-label', f.type==='password'?'نمایش گذرواژه':'پنهان‌کردن گذرواژه');
 }
 
 /* ── ورقهٔ قوانین ─────────────────────────────────────────────────── */
@@ -302,11 +369,15 @@ document.addEventListener('submit',e=>{
   const f=e.target;
   if(f&&f.id==='lgForm'){ e.preventDefault(); tryPhone() }
   if(f&&f.id==='lgForm2'){ e.preventDefault(); tryCode() }
+  if(f&&f.id==='lgAdminForm'){ e.preventDefault(); adminIn() }
 },false);
 
 document.addEventListener('click',e=>{
   const t=e.target;
   if(t.closest('#rulesBtn')){ e.preventDefault(); rulesSheet(); return }
+  if(t.closest('#lgAdminBtn')){ e.preventDefault(); toAdmin(); return }
+  if(t.closest('#lgAdminBack')){ e.preventDefault(); toPhone(); return }
+  if(t.closest('#lgPassEye')){ e.preventDefault(); togglePass(); return }
   if(t.closest('[data-go-support]')){ location.href='support.html'; return }
   if(t.closest('#lgOutMost')){ signOut(); S.step='phone'; S.mobile=''; paint(); toast2('از حساب بیرون آمدی'); return }
   if(t.closest('#lgAgain')){ e.preventDefault(); again(); return }

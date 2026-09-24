@@ -113,7 +113,30 @@
 .lgcount{margin:0 0 4px;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .lgcount b{font-weight:800;color:var(--ink-2)}
 .lgcount.over b{color:var(--stop)}
+.lghandline{margin:-10px auto 14px;max-width:36ch;font-size:12.4px;line-height:2;color:var(--ink-3);text-align:center}
 .lgbar{margin:12px -20px 0;padding:14px 20px 0;border-top:.5px solid var(--hairline)}
+
+/* «دوباره بفرست» تا پایان شمارش قفل است */
+.lgbtn.quiet.again{margin-top:10px;text-decoration:none;color:var(--ink-4)}
+.lgbtn.quiet.again:disabled,.lgbtn.quiet.again[aria-disabled='true']{cursor:default;color:var(--ink-4);opacity:.55}
+.lgbtn.quiet.again:not(:disabled){color:var(--brand-ink);text-decoration:underline;
+  text-underline-offset:5px;text-decoration-color:color-mix(in oklab,var(--brand) 40%,transparent)}
+
+/* «ورود مدیران» ته کارت: کوتاه و کم‌رنگ */
+.lgbtn.quiet.admin{margin-top:4px;height:40px;font-size:12.8px;color:var(--ink-3);text-decoration:none;
+  display:inline-flex;gap:6px;align-items:center;justify-content:center;width:100%}
+.lgbtn.quiet.admin .i{width:15px;height:15px}
+.lgbtn.quiet.admin:hover{color:var(--brand-ink)}
+
+/* پلهٔ مدیران */
+.lgadmin{justify-items:stretch;text-align:center;gap:8px}
+.lgadmin .lglbl{text-align:start;margin-top:2px}
+.lgadm{width:60px;height:60px;border-radius:20px;display:grid;place-items:center;margin:2px auto 8px;
+  background:var(--brand-tint);color:var(--brand-ink)}
+.lgadm .i{width:28px;height:28px}
+.lgadmin .lgdle{margin-inline:auto}
+.lgadmin .lgbtn{width:100%}
+.lgadmin .lgtel .fic{order:-1}
 .lgbar .lgbtn{width:100%}
 
 /* ── پلهٔ پایان و «همین حالا وارد شده‌ای» ─────────────────────────── */

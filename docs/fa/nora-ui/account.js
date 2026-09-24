@@ -118,14 +118,24 @@ function headMember(){
       </div></div>`;
 }
 
-/* ══ میان‌بُرها: کارهایی که بیشتر از همه لازم می‌شود ══════════════════ */
-function icoMini(i){ return `<span class="qi">${ico(i)}</span>` }
-function tilesBox(){
-  if(!login()) return '';
-  return `<div class="qtiles anim" style="--i:1">
-      <button class="qtile" data-qt="tickets">${icoMini('i-qr')}<b>کارت ورود</b></button>
-      <button class="qtile gold" data-qt="invite">${icoMini('i-medal')}<b>دعوت دوست</b></button>
-      <button class="qtile ok" data-qt="support">${icoMini('i-headphone')}<b>پشتیبانی</b></button>
+/* ══ نورا پی: کارت خودش، سرِ صفحه و جدا از ردیف‌ها ═══════════════════ */
+function payBox(){
+  const su=sess()||{};
+  const bal=faNum(su.wallet||A.wallet||0);
+  const tags=(PAY&&PAY.tags||['کیف پول','شارژ','صورت‌حساب']).slice(0,3);
+  return `<div class="paybar anim" style="--i:1">
+      <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی">
+        <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
+        <span class="ptx"><small>نورا پی · کیف پول</small>
+          <b>${login()?bal+' تومان':'وارد شو و موجودی‌ات را ببین'}</b>
+          <span class="pmeta">${tags.map(x=>chip(x)).join('')}</span></span>
+        <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+      </button>
+      <div class="pbrow">
+        <button class="pbtn" type="button" data-view="pay">${ico('i-plus')} شارژ</button>
+        <button class="pbtn" type="button" data-view="pay">${ico('i-doc')} صورت‌حساب</button>
+        <button class="pbtn" type="button" data-view="pay">${ico('i-split')} اقساط</button>
+      </div>
     </div>`;
 }
 
@@ -151,28 +161,31 @@ function subOf(k){
   }
   if(k==='profile'){
     if(!login()) return (ROWS.find(r=>r.k===k)||{}).s||'';
-    const bc=bookState();
-    return 'اطلاعات ٪'+faN(pctOf(p))+' · ورود و امنیت · باشگاه کتاب'+(bc.seat?' (صندلی رزرو کن)':'');
+    return 'اطلاعات ٪'+faN(pctOf(p))+' · ورود و امنیت · امتیاز و سطح';
   }
   if(k==='club'){
     if(!login()) return (ROWS.find(r=>r.k===k)||{}).s||'';
     return 'سطح '+(cur.n||'—')+' · '+faNum(pts)+' امتیاز · دعوت دوستان';
   }
+  if(k==='book'){
+    const C=N.CLUB||{}, bc=bookState();
+    if(!login()) return (ROWS.find(r=>r.k===k)||{}).s||'';
+    return 'کتاب ماه: '+esc(C.book||'—')+(bc.pages?' · '+faN(bc.pages)+' صفحه خوانده‌ای':'');
+  }
   return (ROWS.find(r=>r.k===k)||{}).s||'';
 }
 function miniOf(k){
   if(!login()) return '';
-  if(k==='pay') return 'به‌زودی';
   if(k==='events') return faN(EVENTS.length)+' مورد';
   if(k==='profile') return '٪'+faN(pctOf(prof()));
-  if(k==='club') return 'ترم مهر ۱۴۰۵';
+  if(k==='book') return login()?(N.CLUB&&N.CLUB.term?'ترم '+esc(N.CLUB.term):'عضو باشگاه'):'';
   return '';
 }
 function rowsBox(){
   return `<div class="mrows anim" style="--i:3">
-      <div class="mhead">${ico('i-layers')}<b>بخش‌های حساب من</b><span class="sp" style="flex:1"></span>
-        <span class="cap">${faN(SECT.length)} بخش</span></div>
-      ${ROWS.map(r=>`<button class="mrow2${r.k==='pay'||r.k==='club'?' gold':''}" data-view="${r.k}">
+      <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
+        <span class="cap">${faN(ROWS.length)} بخش</span></div>
+      ${ROWS.map(r=>`<button class="mrow2" data-view="${r.k}">
       <span class="ic">${ico(r.i)}</span>
       <span class="tx"><b>${esc(r.n)}</b><small>${esc(subOf(r.k)||r.s)}</small></span>
       ${miniOf(r.k)?`<span class="mini">${ico('i-check')}${miniOf(r.k)}</span>`:''}
@@ -181,7 +194,7 @@ function rowsBox(){
 }
 /* ══ صفحهٔ پروفایل: سر، میان‌بُرها، رویداد نزدیک و چهار بخش ══════════ */
 function profileHTML(){
-  return (login()?headMember():headGuest())+tilesBox()+nextBox()+rowsBox();
+  return (login()?headMember():headGuest())+payBox()+nextBox()+rowsBox();
 }
 function renderProfile(){
   const box=$('#profBox'); if(!box) return;
@@ -585,6 +598,12 @@ VS.profile=function(t){
   const sub=(PTABS.find(x=>x.k===S.ptab)||{}).s||'';
   return viewHead(t,sub,PTABS,'ptab')+`<div class="panel">${body}</div>`;
 };
+/* باشگاه کتاب‌خوانی خط زندگی: بخش خودش، با همان تنِ باشگاه */
+VS.book=function(t){
+  if(!login()) return viewHead(t,'',null)+gate(t);
+  const C=N.CLUB||{};
+  return viewHead(t,(C.term?'ترم '+C.term+' · ':'')+(C.book||''),null)+`<div class="panel">${bookPanel()}</div>`;
+};
 VS.pay=function(t){
   const bits=POL.payBits||['کیف پول','شارژ','صورت‌حساب','اقساط','بازگشت وجه','کد تخفیف'];
   return viewHead(t)+card('نورا پی','این بخش را در یک فاز جدا می‌سازیم','i-wallet',
@@ -685,12 +704,13 @@ function certAsk(kind){
 }
 
 /* ══ رندر ════════════════════════════════════════════════════════════ */
-function viewOf(k){ return k==='events'?VS.events : k==='profile'?VS.profile : k==='pay'?VS.pay : null }
+function viewOf(k){ return k==='events'?VS.events : k==='profile'?VS.profile
+  : k==='pay'?VS.pay : k==='book'?VS.book : null }
 /* نشانی‌های کوتاه، همان تب پروفایل را باز می‌کنند */
 const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
   auth:['profile','ptab','auth'], login:['profile','ptab','auth'],
   forms:['profile','ptab','forms'], privacy:['profile','ptab','privacy'],
-  book:['profile','ptab','book'], club:['profile','ptab','club'], points:['profile','ptab','club']};
+  club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club']};
 function renderView(){
   const box=$('#viewBox'), t=SECT.find(s=>s.k===S.view), fn=viewOf(S.view);
   if(!box||!t||!fn) return;
@@ -726,12 +746,13 @@ document.addEventListener('click',ev=>{
   if(vw){ const k=vw.dataset.view;
     if(k==='pay'||login()){ location.hash='#'+k; return }
     S.after=k; loginSheet(); return }
+  const pb=t.closest('[data-pay]'); if(pb){ location.hash='#pay'; return }
   const qt=t.closest('[data-qt]');
-  if(qt){ const k=qt.dataset.qt;
+  if(qt){ const k=qt.dataset.qt;                     /* میان‌بُرهای کهنه، اگر جایی ماند */
     if(k==='support'){ goSupport(); return }
     if(!login()){ S.after=k==='tickets'?'events':'club'; loginSheet(); return }
     if(k==='tickets'){ S.view='events'; S.vtab='tickets'; location.hash='#events'; render(); return }
-    S.view='club'; S.ctab='points'; location.hash='#club'; render(); return }
+    S.view='profile'; S.ptab='club'; location.hash='#profile'; render(); return }
   const vt=t.closest('[data-vtab]'); if(vt){ S.vtab=vt.dataset.vtab; renderView(); return }
   const pt=t.closest('[data-ptab]'); if(pt){ S.ptab=pt.dataset.ptab; S.edit=false; S.errs={}; renderView(); return }
   if(t.closest('#editBtn')){ startEdit(); return }
