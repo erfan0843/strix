@@ -584,3 +584,8 @@ main.wrap{overflow:visible}
 .calgrid .dots i.p{background:var(--ink-4)}
 .monthsw button.was{opacity:.82}
 .etile .ebody{cursor:pointer}
+
+/* کاشی‌ها آرام بالا می‌آیند — نه پرش، نه صدا */
+@keyframes tileIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tgrid>.etile{animation:tileIn .3s var(--ease) both}
+@media(prefers-reduced-motion:reduce){.tgrid>.etile{animation:none}}
