@@ -1688,6 +1688,8 @@ function renderAll(){
 /* ═════════ کنش‌ها ═════════ */
 function goto(id){const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'})}
 function openF(id){
+  /* حساب من از خانه جدا شد؛ این ورقه فقط برای ورود درجای مهمان می‌ماند */
+  if(id==='shAccount'&&!S.acctFlow){ location.href='account.html'; return }
   if(id==='shMenu') renderMenu();
   if(id==='shAccount'){if(!S.user&&!S.acctFlow) S.step='guest'; renderAccount()}
   if(id==='shInvite') renderInvite();
@@ -1789,7 +1791,7 @@ document.addEventListener('click',e=>{
   if(t.closest('#artMore')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderArticles(); goto('articles');
     toast(faN(ARTICLES.length)+' مطلب نورا'); return}
   if(t.closest('[data-clubjoin]')){
-    if(!S.user){openF('shAccount'); toast('برای عضویت در باشگاه اول وارد شو'); return}
+    if(!S.user){S.acctFlow=true; S.step='phone'; renderAccount(); openSheet('shAccount'); toast('برای عضویت در باشگاه اول وارد شو'); return}
     toast('عضویت ترم مهر ثبت شد — بستهٔ کتاب ماه در حساب کاربری‌ات است'); log('عضویت باشگاه کتاب‌خوانی'); return}
   if(t.closest('[data-clubrec]')){toast('ضبط جلسهٔ باشگاه برای اعضا باز می‌شود'); return}
   const f=t.closest('[data-f]'); if(f){openF(f.dataset.f); return}
@@ -1821,7 +1823,7 @@ document.addEventListener('click',e=>{
   if(t.closest('[data-code]')){
     const v=unFa(($('#code')||{}).value||'').replace(/\D/g,'');
     if(v!=='54321'){toast('کد نمایشی ۵۴۳۲۱ است'); return}
-    S.user={name:'سارا محمدی',mobile:S.phone,joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1};
+    S.user={name:'سارا محمدی',mobile:S.phone,joined:'شهریور ۱۴۰۴',certs:2,wallet:1250000,msgs:1};
     saveSession(); saveAuthPend(null); S.authPend=null; S.acctFlow=false; S.step='guest'; log('ورود با شمارهٔ '+maskPhone(S.phone));
     renderAll(); renderAccount(); toast('خوش آمدی سارا — ثبت‌نام‌ها، گواهی‌ها و باشگاه آمد'); return}
   if(t.closest('[data-back]')){S.step='phone'; renderAccount(); return}

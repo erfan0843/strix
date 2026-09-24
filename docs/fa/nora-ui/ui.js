@@ -610,6 +610,63 @@ function themeSwitchHTML(o){
     <span class="tsw-knob"></span></span>`;
 }
 
+/* ── پروفایل حساب ─────────────────────────────────────────────────────────
+   یک منبع حقیقت برای خانه و صفحهٔ حساب من. رشته‌ها پاک‌سازی می‌شوند و وضعیت
+   فقط از میان چهار حالت خودش می‌آید، وگرنه دادهٔ خراب صفحه را به‌هم می‌زند. */
+const P_STATUS=['draft','pending','approved','rejected'];
+function cleanProfile(v){
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, out={};
+  (A.fields||[]).forEach(f=>{
+    const raw=v&&v[f.k];
+    out[f.k]=typeof raw==='string'?raw.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,120):'';
+  });
+  out.status=P_STATUS.includes(v&&v.status)?v.status:'draft';
+  out.reason=typeof (v&&v.reason)==='string'?(v.reason||'').replace(/[\u0000-\u001f<>]/g,'').slice(0,200):'';
+  out.askedDelete=!!(v&&v.askedDelete);
+  const h=(v&&Array.isArray(v.history))?v.history:[], H_KIND=P_STATUS.concat(['filled','delete']);
+  out.history=h.filter(x=>x&&H_KIND.includes(x.k)&&typeof x.at==='string')
+                .slice(-6).map(x=>({k:x.k,at:x.at.slice(0,20)}));
+  return out;
+}
+function sessUser(){ try{const v=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
+  return v&&typeof v==='object'&&typeof v.name==='string'?v:null}catch(e){return null} }
+function profile(){
+  let v=null; try{v=JSON.parse(localStorage.getItem(PROF_KEY)||'null')}catch(e){v=null}
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{};
+  if(!v){
+    /* کاربر واردشده و پروفایل دست‌نخورده: نمونهٔ خودِ داده می‌نشیند */
+    return cleanProfile(uid()&&A.seed?Object.assign({},A.seed):null);
+  }
+  return cleanProfile(v);
+}
+function saveProfile(v){
+  const p=cleanProfile(v);
+  try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
+  return p;
+}
+/* شمارهٔ تماس از خود نشست می‌آید و در پروفایل قفل است */
+function phoneOf(){const u=sessUser(); return (u&&u.mobile)||''}
+function profileFilled(p,withPhone){
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, out={};
+  (A.fields||[]).forEach(f=>{ out[f.k]= f.lock ? !!withPhone : !!(p&&p[f.k]) });
+  return out;
+}
+function profilePercent(p,withPhone){
+  const f=profileFilled(p,withPhone), all=Object.keys(f);
+  return all.length?Math.round(all.filter(k=>f[k]).length/all.length*100):0;
+}
+function profileMissing(p,withPhone){
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
+  return (A.fields||[]).filter(x=>!f[x.k]);
+}
+/* سطح از جدول خودِ داده می‌آید؛ نه دستی در هر صفحه */
+function levelOf(points){
+  const L=((window.NORA&&window.NORA.ACCOUNT)||{}).levels||[];
+  let cur=L[0]||{k:'-',n:'—',at:0,perks:''}, next=null;
+  L.forEach((x,i)=>{ if(points>=x.at){cur=x; next=L[i+1]||null} });
+  return {cur:cur, next:next};
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    کارت رویداد با پوستر — یک کارت، مشترک خانه و صفحهٔ رویدادها
    ──────────────────────────────────────────────────────────────────────────
@@ -663,6 +720,7 @@ function evPosterCard(e,o){
    صفحه ورقه‌شان را نداشته باشد، خودشان می‌سازند.
    ══════════════════════════════════════════════════════════════════════════ */
 const LIB_KEY='nora-home-library', PROG_KEY='nora-home-progress', READ_KEY='nora-home-read', SESS_KEY='nora-home-user';
+const PROF_KEY='nora-home-profile';   /* پروفایل حساب: هویت، نشانی، وضعیت تأیید */
 const PRE_KEY='nora-home-prereg';                 /* پیش‌ثبت‌نام و یادآوری برنامه‌ها */
 const jread=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null'); return v==null?d:v}catch(e){return d}};
 const jwrite=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
@@ -1102,9 +1160,10 @@ function menuRoute(el){
   const H=window.NORA_HOME;                          /* در خانه، خودِ صفحه صاحب ورقه‌هاست */
   const f=el.dataset.uif, j=el.dataset.uijump;
   if(f){
+    if(f==='shAccount'){ location.href='account.html'; return }    /* حساب من صفحهٔ جدا دارد، نه ورقه */
     if(H&&H.openF){ H.openF(f); return }
     if(document.getElementById(f)){ uiOpen(f); return }
-    const map={shClub:'club', shAccount:'me', shInvite:'me', shNotice:'notice', shVerify:'verify', shFaq:'faq', shSupport:'support'};
+    const map={shClub:'club', shInvite:'me', shNotice:'notice', shVerify:'verify', shFaq:'faq', shSupport:'support'};
     location.href='home.html#'+(map[f]||'menu'); return;
   }
   if(j){
@@ -1165,7 +1224,7 @@ document.addEventListener('click',e=>{
     const v=unFa((document.getElementById('uicode')||{}).value||'').replace(/\D/g,'');
     if(v!=='54321'){toast('کد نمایشی ۵۴۳۲۱ است'); return}
     const pend=jread('nora-home-auth',null)||{};
-    jwrite(SESS_KEY,{name:'سارا محمدی',mobile:pend.mobile||'',joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1});
+    jwrite(SESS_KEY,{name:'سارا محمدی',mobile:pend.mobile||'',joined:'شهریور ۱۴۰۴',certs:2,wallet:1250000,msgs:1});
     jwrite('nora-home-auth',null); syncBell(); authDone(); toast('خوش آمدی؛ حالا خرید و کتابخانه در دسترس است'); return}
   const bk=t.closest('[data-uiback]'); if(bk){jwrite('nora-home-auth',{step:'phone',mobile:''}); authSheet(); return}
 },false);
@@ -1203,7 +1262,9 @@ try{uiHash()}catch(e){}
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
-  unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY});
+  unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
+  profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
+  levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){

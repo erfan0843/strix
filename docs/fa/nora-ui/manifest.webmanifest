@@ -29,5 +29,19 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "حساب من",
+      "short_name": "حساب من",
+      "url": "account.html",
+      "description": "اطلاعات حساب، وضعیت تأیید و امتیاز"
+    },
+    {
+      "name": "رویدادها",
+      "short_name": "رویدادها",
+      "url": "events.html",
+      "description": "برنامه‌ها، ثبت‌نام و آرشیو"
+    }
   ]
 }

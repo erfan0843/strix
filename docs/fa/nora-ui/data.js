@@ -461,8 +461,45 @@ const MENU=[
    {i:'i-lock', t:'قواعد و شرایط', s:'سیاست‌های ثبت‌نام و بازگشت وجه', f:'shFaq'},
    {i:'i-mobile', t:'راهنمای ثبت‌نام', s:'قدم‌به‌قدم تا گواهینامه', href:'form.html'}]}
 ];
+/* ══ حساب کاربری ══════════════════════════════════════════════════════════
+   یک جا برای هر چیزی که «حساب من» لازم دارد: سطح‌ها، فیلدهای پروفایل و
+   ریزه‌کاری‌های حساب. صفحهٔ حساب و صفحه‌های دیگر از همین یک منبع می‌خوانند تا
+   عدد و برچسب دو جا فرق نکند. */
+const ACCOUNT={
+  /* سطح‌ها: آستانه و مزیت هر سطح */
+  levels:[
+    {k:'bronze', n:'برنزی',  at:50,   perks:'دسترسی به تخفیف‌های رویدادها'},
+    {k:'silver', n:'نقره‌ای', at:2000, perks:'٪۱۰ تخفیف روی همهٔ رویدادها + اولویت در ظرفیت'},
+    {k:'gold',   n:'طلایی',  at:3000, perks:'٪۱۵ تخفیف + دعوت به نشست‌های خصوصی'},
+    {k:'plat',   n:'پلاتینی',at:5000, perks:'٪۲۰ تخفیف + اولویت در همکاری‌ها'}
+  ],
+  points:2450,                    /* امتیاز کاربر نمونه */
+  joined:'شهریور ۱۴۰۴',
+  /* فیلدهای پروفایل: req یعنی بی آن، پروفایل کامل نیست (هم‌خوان با فرم ربات) */
+  fields:[
+    {k:'fullName',  g:'هویتی',        l:'نام و نام خانوادگی', req:true,  ph:'مثل: سارا محمدی'},
+    {k:'fatherName',g:'هویتی',        l:'نام پدر',            req:false, ph:'اختیاری'},
+    {k:'nationalId',g:'هویتی',        l:'کد ملی',             req:true,  ph:'۱۰ رقم', input:'numeric', max:10, hint:'روی گواهی و بلیت می‌آید'},
+    {k:'birthDate', g:'هویتی',        l:'تاریخ تولد',         req:true,  ph:'۱۳۷۰/۰۱/۱۵', input:'numeric', max:10},
+    {k:'phone',     g:'تماس و نشانی', l:'شمارهٔ تماس',        req:true,  lock:true, hint:'با کد یک‌بارمصرف تأیید شده است'},
+    {k:'province',  g:'تماس و نشانی', l:'استان',              req:true,  ph:'مثل: تهران'},
+    {k:'city',      g:'تماس و نشانی', l:'شهر',                req:true,  ph:'مثل: تهران'},
+    {k:'address',   g:'تماس و نشانی', l:'نشانی',              req:false, ph:'برای ارسال پستی گواهی و جوایز'},
+    {k:'email',     g:'تماس و نشانی', l:'ایمیل',              req:false, ph:'name@mail.com', input:'email'}
+  ],
+  /* پروفایل نمونه؛ دو جا عمداً خالی است تا مسیر «تکمیل» پیدا باشد */
+  seed:{fullName:'سارا محمدی', fatherName:'علی', nationalId:'', birthDate:'۱۳۷۸/۰۵/۱۲',
+        province:'تهران', city:'تهران', address:'', email:'sara@mail.com', status:'approved'},
+  /* مسیر تأیید، همان مسیر ربات */
+  flow:[
+    {k:'filled',  n:'تکمیل شد',    s:'اطلاعاتت ثبت شد'},
+    {k:'pending', n:'در صف تأیید', s:'کارشناس مربوطه می‌بیند'},
+    {k:'approved',n:'تأیید شد',    s:'پروفایلت فعال است'}
+  ]
+};
+
 window.NORA={BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS,
-  MENU,MEDIA_KINDS,BUNDLES,TOTAL_MEDIA,ONLINE_COUNT,MPOS,MNUM,
+  MENU,MEDIA_KINDS,BUNDLES,TOTAL_MEDIA,ONLINE_COUNT,MPOS,MNUM,ACCOUNT,
   ARCHIVE:{past:PAST.length, media:TOTAL_MEDIA, upcoming:EVENTS.length, online:ONLINE_COUNT,
            hours:PAST.reduce((a,h)=>a+h.hours,0)}};
 })();

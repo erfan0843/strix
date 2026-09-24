@@ -664,17 +664,15 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#tabs button.on use').getAttribute('href')==='#i-home-f','تب فعال آیکون پُر دارد (سبک اپل)');
   p.click('#tabs [data-tab="events"]');
   ok(true,'تب رویدادها به صفحهٔ جداگانه می‌رود (رفت‌وبرگشت در آزمون صفحهٔ رویدادها)');
-  /* حساب من: مهمان — پشتیبانی و راهنما باز، باشگاه قفل */
+  /* حساب من: صفحهٔ جدا — تب خانه ورقه باز نمی‌کند و ورود درجا سرجایش است */
   p.click('#tabs [data-tab="me"]');
-  ok(p.doc.querySelector('#shAccount').className.includes('on'),'تب حساب من ورقه را باز می‌کند');
-  ok(p.txt('#acctBody').includes('بدون ورود هم پشتیبانی و راهنما باز است'),'مهمان می‌بیند که خدمات باز است');
-  ok(p.all('#acctBody .dim .srow').length===5,'پیش‌نمایش کم‌رنگ کارهای شخصی');
-  ok(p.doc.querySelector('#acctBody [data-needlogin]')!==null,'باشگاه برای مهمان قفل است');
-  p.click('#acctBody [data-needlogin]');
-  ok(p.doc.querySelector('#mob')!==null,'قفل باشگاه به ورود می‌برد');
-  p.click('[data-close]');
-  p.click('#tabs [data-tab="me"]');
-  p.click('#acctBody [data-f="shSupport"]');
+  ok(!p.doc.querySelector('#shAccount').className.includes('on'),'تب حساب من دیگر ورقه باز نمی‌کند');
+  ok(/id==='shAccount'&&!S\.acctFlow\)\{ location\.href='account\.html'/.test(fs.readFileSync(DIR+'home.html','utf8')),
+     'خانه، حساب من را به account.html می‌فرستد');
+  ok(/f==='shAccount'\)\{ location\.href='account\.html'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
+     'منوی مشترک هم به همان صفحه می‌رود');
+  /* خدمات و پشتیبانی بی ورود باز می‌شود */
+  H.openF('shSupport');
   ok(p.doc.querySelector('#shSupport').className.includes('on'),'پشتیبانی بدون لاگین باز می‌شود');
   ok(p.all('#supBody .chan').length===4,'چهار کانال پشتیبانی');
   ok(p.txt('#supBody').includes('حسن مقدم') && p.txt('#supBody').includes('آنلاین'),'کارشناس با نام و وضعیت');
@@ -682,33 +680,30 @@ async function load(file,store,q){
   p.click('[data-send]');
   ok(p.txt('#toast').includes('ثبت شد'),'پیام پشتیبانی ثبت می‌شود');
   p.click('[data-close]');
-  p.click('#acctBody [data-f="shFaq"]');
+  H.openF('shFaq');
   ok(p.all('#faqBody details.faq').length===7,'هفت پرسش پرتکرار');
   p.click('[data-close]');
-  p.click('#acctBody [data-f="shVerify"]');
+  H.openF('shVerify');
   p.doc.querySelector('#serial').value='nl-t4k7m9x';
   p.click('[data-verify]');
   ok(p.txt('#verifyBody').includes('معتبر'),'استعلام سریال معتبر');
   p.click('[data-close]');
-  /* ورود */
-  p.click('#tabs [data-tab="me"]');
-  p.click('#acctBody [data-next]');
+  /* ورود درجای مهمان: از راه عضویت باشگاه، بی رفتن به صفحهٔ دیگر */
+  p.click('#club [data-clubjoin]');
+  ok(p.doc.querySelector('#shAccount').className.includes('on'),'عضویت مهمان، ورود درجا می‌آورد');
+  ok(p.doc.querySelector('#mob')!==null,'قفل باشگاه به پلهٔ شماره می‌برد');
   p.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
   p.click('[data-login]');
   p.doc.querySelector('#code').value='54321';
   p.click('[data-code]');
   ok(H.S.user && H.S.user.name==='سارا محمدی','ورود با کد نمایشی');
-  ok(p.txt('#acctBody').includes('کارهای من') && p.txt('#acctBody').includes('خدمات و پشتیبانی'),'چیدمان شخصی بالا، خدماتی پایین');
-  ok(p.all('#acctBody .badge-pill').length===5,'پنج نشان عضو');
-  ok(p.txt('#acctBody').includes('پس از تأیید سرپرست'),'گواهینامه با تأیید سرپرست');
-  p.click('#acctBody [data-remind]');
-  ok(p.txt('#toast').includes('یادآوری پیامکی'),'کلید یادآوری پیامکی کار می‌کند');
-  p.click('#acctBody [data-f="shClub"]');
+  ok(H.S.user.joined==='شهریور ۱۴۰۴','تاریخ عضویت با دادهٔ حساب یکی است');
+  p.click('#club [data-f="shClub"]');
   ok(p.doc.querySelector('#shClub').className.includes('on'),'عضویت، باشگاه را باز می‌کند');
   p.click('#clubBody [data-vote="v2"]');
   ok(H.S.vote==='v2' && p.txt('#toast').includes('رأیت'),'رأی عضو ثبت می‌شود');
   p.click('[data-close]');
-  p.click('#acctBody [data-f="shNotice"]');
+  H.openF('shNotice');
   ok(p.all('#noticeBody .notif').length===3,'سه اعلان');
   ok(p.txt('#noticeBody').includes('سرپرست'),'اعلان گواهینامه: در انتظار سرپرست');
   p.click('[data-uireadall]');
@@ -1006,7 +1001,7 @@ async function load(file,store,q){
   /* ج) کار نیمه‌تمام: ورود نصفه‌کاره در «ادامه بده» می‌آید */
   const st2=makeStore();
   const p2=await load('home.html',st2);
-  p2.click('#tabs [data-tab="me"]'); p2.click('[data-next]');
+  p2.click('#club [data-clubjoin]');   /* حساب من دیگر ورقه نیست؛ ورود درجا از راه عضویت باشگاه */
   p2.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
   p2.click('[data-login]');
   ok(p2.window.localStorage.getItem('nora-home-auth')!==null,'گام ورود در حافظهٔ مرورگر ثبت می‌شود');
