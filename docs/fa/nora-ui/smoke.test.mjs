@@ -750,6 +750,28 @@ async function load(file,store,q){
   ok(p.txt('#stats').includes('برنامهٔ برگزارشده') && p.txt('#stats').includes('رسانه در آرشیو'),'آمار برگزارشده و آرشیو هست');
   ok(/[۰-۹]+/.test(p.txt('#stats')) && p.txt('#statsNote').includes('آرشیو'),'عددها فارسی و زیرنویس آرشیو دارد');
 
+  /* ب۲) نوار شمارش معکوس و نوار دسته‌ها */
+  ok(!p.doc.querySelector('#dealSec').hidden,'نوار شمارش معکوس نزدیک‌ترین ثبت‌نام دیده می‌شود');
+  ok(/[۰-۹]/.test(p.txt('#dealCd')) && p.txt('#dealCd').includes(':'),'شمارش معکوس ساعت دارد: '+p.txt('#dealCd'));
+  ok(p.all('#dealSec .btn.primary').length===1,'دکمهٔ ثبت‌نام کنار شمارش معکوس');
+  ok(p.all('#catrail .chip').length>=6,'نوار دسته‌ها دست‌کم شش دسته دارد');
+  ok(p.all('#catrail .chip').filter(c=>/همه/.test(c.textContent)).length===0,'در دسته‌ها هم دکمهٔ «همه» نیست');
+  ok(p.all('#catrail .chip')[0].querySelector('svg.i')!==null,'هر دسته آیکون خودش را دارد');
+
+  /* ب۳) ردیف‌های افقی و نوار مرتب‌سازی */
+  ok(p.all('#railUp .etile').length>=4 && p.all('#railBest .etile').length>=4,'دو ردیف افقی: نزدیک‌ترین‌ها و پرفروش‌ها');
+  ok(p.all('.more').length>=2,'هر ردیف «مشاهده همه» دارد');
+  ok(p.all('#sort option').length===4,'مرتب‌سازی چهار حالت دارد');
+  p.doc.querySelector('#sort').value='cheap';
+  p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(p.txt('#grid .etile:first-child .eprice').includes('رایگان'),'مرتب‌سازی ارزان‌ترین، رایگان‌ها را اول می‌آورد');
+  p.doc.querySelector('#sort').value='best';
+  p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(p.doc.querySelector('#grid .etile:first-child .erating')!==null,'مرتب‌سازی پرفروش‌ترین، آرشیو را اول می‌آورد');
+  p.doc.querySelector('#sort').value='near';
+  p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(p.all('#grid .etile').length===23 && p.txt('#grid .etile:first-child .ettl').includes('شعر'),'برگشت به ترتیب نزدیک‌ترین');
+
   /* ج) دو نما: تقویم و فهرست */
   ok(p.all('.seg [data-view]').length===2,'بالای صفحه فقط دو نما: تقویم و فهرست');
   ok(!p.doc.querySelector('#listView').hidden && p.doc.querySelector('#calView').hidden,'فهرست نمای پیش‌فرض است');
@@ -763,8 +785,8 @@ async function load(file,store,q){
     'و به قدیمی‌ترین برگزارشده می‌رسد: '+order[order.length-1]);
 
   /* د) صافی‌ها: بالا به پایین، سه مدل، بی دکمهٔ «همه» */
-  ok(p.all('#filters .frow').length===4,'چهار ردیف بالا به پایین: جست‌وجو + سه صافی');
-  ok(p.doc.querySelector('#filters #q')!==null,'جست‌وجو بالای صافی‌ها نشسته است');
+  ok(p.all('#filters .frow').length===3,'سه ردیف صافی، بالا به پایین');
+  ok(p.doc.querySelector('#searchBar #q')!==null,'جست‌وجو در نوار چسبان بالای صفحه نشسته است');
   ok(p.txt('#filters').includes('وضعیت') && p.txt('#filters').includes('نوع برنامه') && p.txt('#filters').includes('شیوهٔ برگزاری'),'نام سه مدل صافی');
   ok(p.all('#filters .chip').length>=7 && p.all('#filters .chip').filter(c=>/همه/.test(c.textContent)).length===0,'چیپ‌های صافی از یوآی می‌آیند و هیچ دکمهٔ «همه» ای نمانده');
   ok(p.all('#filters .chip.on').length===0 && p.all('#filters .chip .i').length===p.all('#filters .chip').length,'هیچ صافی‌ای از پیش روشن نیست و هر چیپ نشان تیک خودش را دارد');
@@ -814,6 +836,7 @@ async function load(file,store,q){
   ok(pastTile.querySelector('[data-uipreview]')!==null,'کاشی برگزارشده دکمهٔ پیش‌نمایش دارد');
   ok(pastTile.querySelector('a[href^="event.html?id="]')!==null,'و راه تهیه/دریافت دارد');
   ok(/ریال|رایگان/.test(pastTile.querySelector('.eprice').textContent),'مبلغ روی کاشی برگزارشده');
+  ok(pastTile.querySelector('.erating')!==null && /[۰-۹]/.test(pastTile.querySelector('.erating').textContent),'امتیاز و شمار خرید روی کاشی برگزارشده');
   ok(pastTile.querySelector('.etags').textContent.includes('رسانه'),'شمار رسانه روی کاشی برگزارشده');
   const h1tile=[...p.all('#grid .etile.past')].find(x=>x.querySelector('[data-uipreview="h1"]'));
   ok(h1tile!==undefined,'کاشی کارگاه عکاسی مقدماتی در آرشیو هست');
@@ -873,9 +896,9 @@ async function load(file,store,q){
 
   /* ی) کتابخانهٔ من، پشت دکمهٔ خودش */
   ok(p.doc.querySelector('#libBar').hidden,'بی حساب، نوار کتابخانه پنهان است');
-  ok(p.doc.querySelector('#viewRow').hidden===false,'نوار تقویم/فهرست سرجایش هست');
+  ok(p.doc.querySelector('#toolbar').hidden===false,'نوار مرتب‌سازی و نما سرجایش هست');
   const p5=await load('events.html',makeStore(),'#lib');
-  ok(p5.doc.querySelector('#libView').hidden===false && p5.doc.querySelector('#viewRow').hidden,'#lib کتابخانه را جدا نشان می‌دهد');
+  ok(p5.doc.querySelector('#libView').hidden===false && p5.doc.querySelector('#toolbar').hidden,'#lib کتابخانه را جدا نشان می‌دهد');
   ok(p5.txt('#libBox').includes('وارد شو'),'بی ورود، کتابخانه ورود می‌خواهد');
 
   /* ک) نشانی‌های ورودی */
