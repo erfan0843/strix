@@ -173,15 +173,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div id="liveList"></div>
   </section>
 
-  <!-- جست‌وجو در آرشیو -->
-  <section class="card paper sec" aria-label="جست‌وجو">
-    <div class="sfield">
-      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
-      <input id="q" type="search" placeholder="نام برنامه، مدرس یا شهر…" aria-label="جست‌وجو در آرشیو رویدادها"/>
-      <button class="icon-btn" id="qClear" aria-label="پاک کردن" hidden style="width:30px;height:30px"><svg class="i"><use href="#i-close"/></svg></button>
-    </div>
-  </section>
-
   <!-- نما: تقویم یا فهرست -->
   <div class="row sec" id="viewRow" style="justify-content:space-between;gap:10px">
     <div class="seg" role="tablist" aria-label="نما">
@@ -193,7 +184,17 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
   <!-- صافی‌ها: بالا به پایین -->
   <section class="sec" id="filterSec" aria-label="صافی‌ها">
-    <div class="filters" id="filters"></div>
+    <div class="filters" id="filters">
+      <div class="frow">
+        <span class="flbl">جست‌وجو در آرشیو</span>
+        <div class="sfield">
+          <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+          <input id="q" type="search" placeholder="نام برنامه، مدرس یا شهر…" aria-label="جست‌وجو در آرشیو رویدادها"/>
+          <button class="icon-btn" id="qClear" aria-label="پاک کردن" hidden style="width:30px;height:30px"><svg class="i"><use href="#i-close"/></svg></button>
+        </div>
+      </div>
+      <div id="frows"></div>
+    </div>
     <p class="cap" style="margin:8px 3px 0">هر صافی را با زدن دوباره‌اش برمی‌داری؛ فهرست همیشه به ترتیب تاریخ است.</p>
   </section>
 
@@ -281,7 +282,7 @@ function renderFilters(){
     .sort((a,b)=>b.c-a.c);
   const modes=['حضوری','آنلاین'].map(m=>({k:m,n:m,
     c:EVENTS.filter(e=>e.mode.indexOf(m)>-1).length+PAST.filter(h=>h.mode.indexOf(m)>-1).length}));
-  $('#filters').innerHTML=
+  $('#frows').innerHTML=
     chipRow('وضعیت',[{k:'up',n:'پیش رو',c:EVENTS.length},{k:'past',n:'برگزارشده',c:PAST.length}],S.status,'status')+
     chipRow('نوع برنامه',kinds,S.kind,'kind')+
     chipRow('شیوهٔ برگزاری',modes,S.mode,'mode');
@@ -578,7 +579,7 @@ function render(){
   $('#viewRow').hidden=view==='lib';
   $('#filterSec').hidden=view!=='list';
   $('#spotSec').hidden=view==='lib';
-  if(view==='list'&&!$('#filters').innerHTML) renderFilters();
+  if(view==='list'&&!$('#frows').innerHTML) renderFilters();
   if(view==='list') renderList();
   if(view==='cal'){renderMonths(); renderCal()}
   if(view==='lib'){renderLib(); $('#cnt').textContent=(UI().library?faN(UI().library().length):'۰')+' قلم در کتابخانهٔ تو'}

@@ -763,7 +763,8 @@ async function load(file,store,q){
     'و به قدیمی‌ترین برگزارشده می‌رسد: '+order[order.length-1]);
 
   /* د) صافی‌ها: بالا به پایین، سه مدل، بی دکمهٔ «همه» */
-  ok(p.all('#filters .frow').length===3,'سه ردیف صافی، بالا به پایین');
+  ok(p.all('#filters .frow').length===4,'چهار ردیف بالا به پایین: جست‌وجو + سه صافی');
+  ok(p.doc.querySelector('#filters #q')!==null,'جست‌وجو بالای صافی‌ها نشسته است');
   ok(p.txt('#filters').includes('وضعیت') && p.txt('#filters').includes('نوع برنامه') && p.txt('#filters').includes('شیوهٔ برگزاری'),'نام سه مدل صافی');
   ok(p.all('#filters .fchip').filter(c=>/همه/.test(c.textContent)).length===0,'هیچ دکمهٔ «همه» ای نمانده');
   ok(p.all('#filters [data-status="up"]').length===1 && p.all('#filters [data-status="past"]').length===1,'وضعیت: پیش رو / برگزارشده');
