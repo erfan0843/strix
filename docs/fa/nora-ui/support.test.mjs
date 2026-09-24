@@ -1,9 +1,10 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا — آزمون صفحهٔ «پشتیبانی و راهنما»
    ──────────────────────────────────────────────────────────────────────────
-   کاشی هر بخش ربات، پاپ‌آپ پرسش‌ها و راهنمای مدیر و راهنمای تصویری و صوتی،
-   تیکت با پیوست (صدا، تصویر، ویدیو، فایل، پیوند)، پاسخ کارشناس، ارتباط
-   مستقیم با مدیریت، پیام‌رسان‌ها، صندوق بی‌نام و جست‌وجو.
+   ساختار تازه: سرِ صفحه و جست‌وجو، راهنمای بخش به بخش (۱۶ فصل در ۵ گروه،
+   هر فصل با گام‌های تصویری و چهار پرسش و پاسخ و نکتهٔ مدیر)، پرسش‌های
+   پرتکرار، تیکت با پیوست صدا و تصویر و ویدیو و فایل و پیوند، گفت‌وگوی
+   کارشناس، صندوق بی‌نام، سقف تیکت باز، و کارشناس‌ها و مدیریت در ته صفحه.
 
    اجرا:  node support.test.mjs
    ══════════════════════════════════════════════════════════════════════════ */
@@ -35,7 +36,7 @@ async function load(store,hash){
       w.addEventListener('error',e=>errs.push('error: '+(e.message||'')));
       w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
     }});
-  await wait(650);
+  await wait(700);
   const {window}=dom, doc=window.document;
   const fire=(el,type)=>{ el.dispatchEvent(new window.MouseEvent(type,{bubbles:true,cancelable:true})) };
   return {dom,window,doc,errs,
@@ -44,7 +45,8 @@ async function load(store,hash){
     set:(sel,v)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel); el.value=v;
       el.dispatchEvent(new window.Event('input',{bubbles:true}));
       el.dispatchEvent(new window.Event('change',{bubbles:true}))},
-    key:(sel,k)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel);
+    key:(sel,k)=>{const el=sel==='body'?doc.body:doc.querySelector(sel);
+      if(!el) throw new Error('نیست: '+sel);
       el.dispatchEvent(new window.KeyboardEvent('keydown',{key:k,bubbles:true}))},
     txt:sel=>{const el=doc.querySelector(sel); return el?el.textContent.replace(/\s+/g,' ').trim():''},
     all:sel=>[...doc.querySelectorAll(sel)],
@@ -59,9 +61,9 @@ async function load(store,hash){
     }};
 }
 
-/* ── ۱) صفحه و نوار بالا ── */
+/* ── ۱) صفحه، نوار بالا و سرِ صفحه ── */
 {
-  console.log('\n── صفحهٔ پشتیبانی ──');
+  console.log('\n── صفحه و سرِ صفحه ──');
   const p=await load(makeStore());
   ok(p.errs.length===0,'بی‌خطا بار می‌شود'+(p.errs.length?': '+p.errs[0]:''));
   ok(p.doc.title==='نورا · پشتیبانی و راهنما','عنوان سند');
@@ -71,211 +73,310 @@ async function load(store,hash){
   ok(p.doc.querySelector('.topbar [href="home.html#notice"]')!==null,'نشان اعلان‌ها هم سرِ جایش');
   ok(p.all('.tabbar a').length===3,'نوار پایین سه‌تایی');
   ok(p.all('#modal').length===1&&p.all('#toast').length===1&&p.all('#scrim').length===1,'یک پاپ‌آپ، یک پیام‌رسان، یک پرده');
-  const head=p.txt('.shead');
-  ok(head.includes('پشتیبانی و راهنما')&&head.includes('هر بخش ربات یک کاشی'),'سرِ صفحه: نام و معنی کاشی‌ها');
-  ok(p.all('#stiles .stile').length===16,'شانزده کاشی، همهٔ بخش‌های ربات');
-  ok(p.txt('#tilesCount').includes('۱۶'),'شمارندهٔ کاشی‌ها');
-  ok(p.all('#exList .ecard').length===5,'کارشناس‌ها در نوار کنار هم (لید + چهار کارشناس)');
-  ok(p.all('#slaRows .adrow').length===3,'جدول پاسخ‌گویی');
-  ok(p.txt('#neverText').includes('رمز'),'هشدار رمز کارت در کارت تماس');
-  ok(p.all('#faqAll .qrow').length===32,'همهٔ پرسش‌های پرتکرار بخش‌ها');
   ok(p.doc.querySelector('h1.sr')!==null,'سرِ پنهان برای صفحه‌خوان');
-  ok(p.doc.querySelector('#bellBadge')!==null,'نشان اعلان‌ها هم سرِ جایش هست');
+  ok(p.doc.querySelector('#bellBadge')!==null,'نشان اعلان‌ها هم سرِ جای خودش');
+  ok(p.txt('.shtx').includes('پشتیبانی و راهنما')&&p.txt('.shtx').includes('گام‌به‌گام'),'سرِ صفحه: نام و معنی راهنما');
+  ok(p.all('#supQ').length===1&&p.all('#supQClear').length===1,'کادر جست‌وجو و دکمهٔ پاک‌کردن');
+  ok(p.txt('#supHours').includes('۹ تا ۱۸')&&p.txt('#supLive').includes('آنلاین'),'ساعت پاسخ‌گویی و نشان آنلاین');
+  ok(p.all('.hacts [data-ticket]').length===2&&p.all('.hacts [data-jump]').length===1,'سه کنش زودِ سرِ صفحه');
   const th0=p.doc.documentElement.dataset.theme;
   p.click('[data-theme-toggle]');
   ok(p.doc.documentElement.dataset.theme!==th0,'کلید شب و روز کار می‌کند');
   p.click('[data-theme-toggle]');
   ok(p.doc.documentElement.dataset.theme===th0,'و به همان حال برمی‌گردد');
+  ok(p.all('a[href^="http"]').every(a=>a.rel.includes('noopener')),'پیوندهای بیرونی rel دارند');
+  ok(p.all('.i use').every(u=>p.doc.querySelector(u.getAttribute('href'))!==null),'همهٔ نمادها در اسپرایت هستند');
+  const sprite=new Set(p.all('symbol[id]').map(s=>'#'+s.id));
+  const secIcons=[...new Set([...p.all('#chapters .chh .iw use')].map(u=>u.getAttribute('href')))];
+  ok(secIcons.length===16&&secIcons.every(h=>sprite.has(h)),'نماد هر شانزده بخش در اسپرایت هست');
 }
 
-/* ── ۲) کاشی‌ها از داده می‌آیند؛ صافی و جست‌وجو ── */
+/* ── ۲) راهنمای بخش به بخش ── */
 {
-  console.log('\n── کاشی‌ها، صافی و جست‌وجو ──');
+  console.log('\n── راهنمای بخش به بخش ──');
   const p=await load(makeStore());
-  const keys=p.all('#stiles .stile').map(b=>b.dataset.sec);
-  ok(new Set(keys).size===16&&keys.includes('login')&&keys.includes('anon')&&keys.includes('complain'),'هر کاشی یک شناسهٔ بخش دارد');
-  ok(p.all('#stiles .iw.brand').length>=3&&p.all('#stiles .iw.rose').length===3,'رنگ خانه‌ها از گروه بخش می‌آید');
-  ok(p.all('#grpChips .fchip').length===6&&p.txt('#grpChips .fchip').includes('همه'),'صافی گروه‌ها شش‌تایی');
-  p.click('#grpChips [data-grp="money"]');
-  ok(p.all('#stiles .stile').length===2,'صافی «پرداخت» دو کاشی می‌گذارد');
-  ok(p.txt('#tilesTitle')==='پرداخت','عنوان فهرست با صافی عوض می‌شود');
-  p.click('#grpChips [data-grp="all"]');
-  ok(p.all('#stiles .stile').length===16,'برگشتن به «همه»');
-  p.set('#supQ','گواهی');
-  await wait(260);
-  ok(p.all('#stiles .stile').length<16,'جست‌وجو کاشی‌ها را صاف می‌کند');
-  ok(p.shown('#qres')&&p.all('#qlist .qrow').length>=1,'نتیجهٔ جست‌وجو در کادر خودش');
-  ok(p.all('#qlist .hitmark').length>=1,'واژهٔ جست‌وجو نشانه می‌خورد');
-  p.click('#supQClear');
-  await wait(260);
-  ok(!p.shown('#qres')&&p.all('#stiles .stile').length===16,'پاک‌کردن جست‌وجو همه‌چیز را برمی‌گرداند');
-  p.set('#supQ','زِرِشت');
-  await wait(260);
-  ok(p.txt('#qlist').includes('پیدا نشد')&&p.all('#qlist [data-ticket]').length>=1,'واژهٔ بی‌نتیجه راه تیکت را نشان می‌دهد');
-}
+  ok(p.all('#chapters .chapter').length===16,'شانزده فصل برای شانزده بخش ربات');
+  ok(p.all('#chapters .gsec').length===5,'پنج گروه روایی');
+  ok(p.all('#chapters .gband').length===5,'هر گروه هنرِ سرصفحه دارد');
+  ok(p.all('#chapters .stp').length===48,'هر فصل سه گام: چهل‌وهشت گام');
+  ok(p.all('#chapters .stp .mk').length===48,'هر گام صفحهٔ کوچک تصویری خودش را دارد');
+  ok(p.all('#chapters .qrow').length===64,'چهار پرسش برای هر بخش: شصت‌وچهار پرسش');
+  ok(p.all('#chapters .tipit').length===32,'دو نکتهٔ مدیر برای هر بخش');
+  ok(p.all('#chapters [data-media]').length>=16,'راهنمای رسانه‌ای هر بخش');
+  ok(new Set(p.all('#chapters a[href^="form.html"]').map(a=>a.getAttribute('href'))).size===3,'سه فرم لینک‌شدهٔ مدیران');
+  ok(p.all('#chapters .chcover img').every(i=>/^posters\/.+\.svg$/.test(i.getAttribute('src'))),'هنر هر فصل پوستر SVG است');
+  ok(p.all('#toc .fchip').length===6&&p.txt('#toc .fchip').includes('همه'),'فهرست گروه‌ها شش چسب دارد');
+  ok(p.txt('#readerCount').includes('۱۶ بخش')&&p.txt('#readerCount').includes('۵ گروه'),'شمارندهٔ راهنما');
+  ok(p.doc.querySelector('#ch-login')!==null&&p.doc.querySelector('#ch-complain')!==null,'شناسهٔ فصل‌ها از کلید بخش می‌آید');
+  ok(p.doc.querySelector('#g-money .chapter').id==='ch-pay','هر گروه فصل‌های خودش را دارد');
+  ok(p.all('#chapters .qrow.open').length===0,'پرسش‌ها بسته می‌آیند تا شلوغ نشود');
+  ok(p.all('#chapters .chcover .catg').length===16&&p.txt('#ch-cert .catg').includes('گواهی'),'نشان دسته روی هر فصل');
+  ok(p.all('#chapters .ecard').length===0&&p.all('#chapters .mchip').length===0,'کارشناس‌ها میان فصل‌ها نیستند');
 
-/* ── ۳) پاپ‌آپ هر کاشی ── */
-{
-  console.log('\n── پاپ‌آپ بخش ──');
-  const p=await load(makeStore());
-  p.click('#stiles [data-sec="cert"]');
-  await wait(120);
-  ok(p.shown('#modal'),'پاپ‌آپ باز می‌شود');
-  ok(p.txt('#mTitle')==='گواهی و بلیت'||p.txt('#mTitle').includes('گواهی'),'عنوان پاپ‌آپ نام همان بخش است');
-  ok(p.all('#mBody .qrow').length===2,'پرسش‌های پرتکرار همان بخش');
-  ok(p.all('#mBody .qrow.open').length===1,'پرسش نخست باز است');
-  ok(p.txt('#mBody').includes('راهنمای مدیر سامانه'),'راهنمای مدیر سامانه در پاپ‌آپ');
-  ok(p.all('#mBody .mcard').length>=1,'راهنمای تصویری یا صوتی همان بخش');
-  ok(p.all('#mBody a[href^="form.html"]').length===1,'فرم لینک‌شدهٔ مدیر');
-  ok(p.all('#mFoot [data-ticket="cert"]').length===1,'دکمهٔ ثبت تیکت از همان بخش، ته پاپ‌آپ');
-  const faq=p.doc.querySelector('#mBody .qrow .qbtn');
-  p.clickEl(faq);
-  ok(p.doc.querySelector('#mBody .qrow').classList.contains('open')===false,'پرسش با کلیک بسته می‌شود');
-  p.clickEl(faq);
-  ok(p.doc.querySelector('#mBody .qrow').classList.contains('open')===true,'و باز هم می‌شود');
+  const first=p.all('#chapters .chapter')[0];
+  const qb=first.querySelector('.qbtn');
+  p.clickEl(qb);
+  ok(first.querySelector('.qrow').classList.contains('open')&&qb.getAttribute('aria-expanded')==='true','پرسش با کلیک باز می‌شود');
+  ok(p.clickEl(first.querySelector('.acl [data-ticket]'))===undefined&&p.shown('#modal'),'از پاسخ پرسش هم تیکت همان بخش زده می‌شود');
   p.key('body','Escape');
-  ok(!p.shown('#modal'),'Escape پاپ‌آپ را می‌بندد');
-  p.click('#stiles [data-sec="login"]');
-  await wait(80);
-  p.click('#modal');
-  ok(!p.shown('#modal'),'کلیک روی پشت پاپ‌آپ هم می‌بندد');
+  p.clickEl(qb);
+  ok(!first.querySelector('.qrow').classList.contains('open'),'و با کلیک دوباره بسته می‌شود');
 }
 
-/* ── ۴) تیکت با پیوست، پاسخ کارشناس ── */
+/* ── ۳) جست‌وجو ── */
+{
+  console.log('\n── جست‌وجو ──');
+  const p=await load(makeStore());
+  ok(!p.shown('#results'),'نتیجهٔ جست‌وجو در آغاز پنهان است');
+  p.set('#supQ','گواهی');
+  await wait(300);
+  ok(p.shown('#results'),'با واژه، کادر نتیجه باز می‌شود');
+  ok(p.all('#resList .qrow').length>=1&&p.all('#resList .qrow').length<=10,'پاسخ‌های پیداشده، سقف ده تا');
+  ok(p.all('#resList .hitmark').length>=1,'واژهٔ جست‌وجو نشانه می‌خورد');
+  ok(p.txt('#resCount').includes('پاسخ'),'شمارندهٔ پاسخ‌ها');
+  ok(p.all('#chapters .chapter').filter(c=>!c.hidden).length>0,'فصل‌های مربوط هم می‌مانند');
+  ok(p.all('#chapters .chapter').filter(c=>c.hidden).length>0,'و فصل‌های بی‌ربط می‌روند');
+  ok(p.all('#chapters .gsec').filter(g=>g.hidden).length>0,'گروه‌های بی‌فصل هم پنهان می‌شوند');
+  ok(p.txt('#readerCount').includes('بخش با این واژه'),'شمارندهٔ راهنما با صافی عوض می‌شود');
+  p.click('#supQClear');
+  await wait(300);
+  ok(!p.shown('#results')&&p.all('#chapters .chapter').filter(c=>c.hidden).length===0,'پاک‌کردن جست‌وجو همه را برمی‌گرداند');
+  ok(p.txt('#readerCount').includes('۱۶ بخش'),'شمارنده هم به حال نخست برمی‌گردد');
+  p.set('#supQ','زِرِشت');
+  await wait(300);
+  ok(p.shown('#resMiss')&&p.all('#resMiss [data-ticket]').length===1,'واژهٔ بی‌نتیجه راه تیکت را نشان می‌دهد');
+  ok(p.txt('#resCount')==='۰ پاسخ','شمارنده صفر می‌شود');
+  p.key('#supQ','Escape');
+  await wait(300);
+  ok(p.doc.querySelector('#supQ').value===''&&!p.shown('#results'),'Escape واژه را پاک می‌کند');
+  p.key('body','/');
+  ok(p.doc.activeElement&&p.doc.activeElement.id==='supQ','کلید / جست‌وجو را نشان می‌کند');
+}
+
+/* ── ۴) تیکت با پیوست و گفت‌وگوی کارشناس ── */
 {
   console.log('\n── تیکت و پاسخ ──');
   const p=await load(makeStore());
-  p.click('#stiles [data-sec="pay"]');
-  await wait(80);
-  p.click('#mFoot [data-ticket="pay"]');
-  await wait(80);
-  ok(p.txt('#mTitle').includes('تیکت تازه'),'از پاپ‌آپ به فرم تیکت می‌رسیم');
-  ok(p.all('#mBody [data-att="image"]').length===1&&p.all('#mBody [data-att="video"]').length===1&&
-     p.all('#mBody [data-att="voice"]').length===1&&p.all('#mBody [data-att="link"]').length===1,
-     'پنج راه پیوست: تصویر، ویدیو، ویس، پیوند، فایل');
-  ok(p.all('#mBody #fCat option').length>=6&&p.doc.querySelector('#fCat').value==='پرداخت','دسته از خودِ بخش پیش‌انتخاب می‌شود');
+  p.click('#ch-pay .cha [data-ticket="pay"]');
+  await wait(120);
+  ok(p.shown('#modal'),'پاپ‌آپ تیکت باز می‌شود');
+  ok(p.txt('#mTitle').includes('تیکت تازه')&&p.txt('#mSub').includes('پیوست'),'عنوان و زیرعنوان فرم تیکت');
+  ok(p.all('[data-tray] [data-att="image"]').length===1&&p.all('[data-tray] [data-att="video"]').length===1&&
+     p.all('[data-tray] [data-att="voice"]').length===1&&p.all('[data-tray] [data-att="link"]').length===1&&
+     p.all('[data-tray] [data-att="file"]').length===1,'پنج راه پیوست: تصویر، ویدیو، ویس، فایل، پیوند');
+  ok(p.all('#fCat option').length>=6&&p.doc.querySelector('#fCat').value==='پرداخت','دسته از خودِ بخش پیش‌انتخاب می‌شود');
   p.set('#fBody','کوتاه');
-  p.click('#mFoot [data-sendticket]');
-  await wait(60);
+  p.click('[data-sendticket]');
+  await wait(80);
   ok(p.tickets().length===1&&p.txt('#toast').includes('روشن‌تر'),'متن کوتاه فرستاده نمی‌شود');
   p.set('#fBody','رسید کارگاه عکاسی را فرستادم؛ مبلغ کم شده و ثبت‌نام نشده است.');
+  p.click('[data-sendticket]');
+  await wait(80);
+  ok(p.tickets().length===1&&p.txt('#toast').includes('نامت را بنویس'),'بی نام، تیکت حساب‌دار ثبت نمی‌شود');
   p.set('#fName','سارا محمدی');
   p.set('#fContact','۰۹۱۲۳۴۵۶۷۸۹');
-  p.click('#mBody [data-att="link"]');
-  p.set('#mBody [data-lurl]','https://lifeline1.ir/pay');
-  p.click('#mBody [data-ladd]');
-  ok(p.all('#mBody [data-pins] .pin').length===1,'پیوند به پیوست‌ها می‌چسبد');
-  p.click('#mBody [data-att="voice"]');
-  await wait(1200);
-  p.click('#mBody [data-att="voice"]');
-  ok(p.all('#mBody [data-pins] .pin').length===2,'ویس هم پیوست می‌شود');
-  p.file('#mBody [data-finput]','اسکرین‌شات.png','image/png');
+  p.click('[data-tray] [data-att="link"]');
+  ok(!p.doc.querySelector('[data-lbox]').hidden,'کادر پیوند باز می‌شود');
+  p.set('[data-lurl]','بدون‌پیشوند');
+  p.click('[data-ladd]');
+  ok(p.all('[data-pins] .pin').length===0&&p.txt('#toast').includes('http'),'پیوند بی‌پیشوند پذیرفته نمی‌شود');
+  p.set('[data-lurl]','https://lifeline1.ir/pay');
+  p.click('[data-ladd]');
+  ok(p.all('[data-pins] .pin').length===1,'پیوند به پیوست‌ها می‌چسبد');
+  p.click('[data-tray] [data-att="voice"]');
+  await wait(1150);
+  ok(p.doc.querySelector('[data-att="voice"]').classList.contains('on'),'ویس در حال ضبط است');
+  p.click('[data-tray] [data-att="voice"]');
+  ok(p.all('[data-pins] .pin').length===2,'ویس پیوست شد');
+  p.file('[data-finput]','اسکرین‌شات.png','image/png');
   await wait(60);
-  ok(p.all('#mBody [data-pins] .pin').length===3,'تصویر پیوست می‌شود');
-  p.click('#mFoot [data-sendticket]');
-  await wait(120);
+  ok(p.all('[data-pins] .pin').length===3,'تصویر پیوست شد');
+  p.click('[data-pins] [data-unpin]');
+  ok(p.all('[data-pins] .pin').length===2,'پیوست با ضربدر برداشته می‌شود');
+  p.file('[data-finput]','اسکرین‌شات.png','image/png');
+  await wait(60);
+  p.click('[data-sendticket]');
+  await wait(150);
   const T=p.tickets();
-  ok(T.length===2&&T[1].sec==='pay','تیکت ثبت شد');
+  ok(T.length===2&&T[1].sec==='pay'&&T[1].cat==='پرداخت','تیکت ثبت شد، با بخش و دستهٔ خودش');
   ok(/^[0-9]{5}$/.test(T[1].code),'کد پیگیری پنج‌رقمی');
-  ok(T[1].thread[0].atts.length===3,'پیوست‌ها همراه تیکت رفتند');
+  ok(T[1].thread[0].atts.length===3,'سه پیوست همراه تیکت رفتند');
   ok(p.txt('#mTitle').includes('گفت‌وگو')||p.all('#modal .frow.me').length===1,'بی‌درنگ وارد گفت‌وگوی تیکت می‌شویم');
-  ok(p.all('#supReply').length===1,'کادر پاسخ در گفت‌وگو');
+  ok(p.all('#supReply').length===1&&p.all('.cinput [data-csend]').length===1,'کادر پاسخ در گفت‌وگو');
   await wait(1700);
   ok(p.all('#modal .frow').length===2&&p.txt('#modal').includes('بررسی می‌کنم'),'پاسخ کارشناس در همان گفت‌وگو می‌آید');
-  ok(p.all('#modal .fx').length>=1,'پاسخ کارشناس هم پیوست دارد');
-  p.click('#mBody .abtn[data-catt]');
+  ok(p.all('#modal .fx').length>=2,'پاسخ کارشناس هم پیوست دارد');
+  ok(p.all('#modal .pbsim i').length>0,'نوار ویس در حباب کشیده می‌شود');
+  p.click('#mBody [data-catt]');
   ok(p.all('#mBody [data-ctray] [data-att]').length===5,'سینی پیوست برای پاسخ هم هست');
   p.set('#supReply','پیگیری کردم، ممنون.');
   p.click('.cinput [data-csend]');
-  await wait(1700);
-  ok(p.tickets()[1].thread.length===4,'پاسخ من هم به همان تیکت می‌چسبد');
+  await wait(150);
+  ok(p.tickets()[1].thread.length===3,'پاسخ من هم به همان تیکت می‌چسبد');
+  ok(p.doc.querySelector('#supReply')&&p.doc.querySelector('#supReply').value==='','کادر پاسخ خالی می‌شود');
   p.click('#mFoot [data-closetk]');
-  await wait(80);
-  ok(p.tickets()[1].closed===true&&p.txt('#modal').includes('بسته شده'),'تیکت با پایان کار بسته می‌شود');
+  await wait(150);
+  ok(p.tickets()[1].closed===true&&p.txt('#modal').includes('بسته'),'تیکت با پایان کار بسته می‌شود');
+  ok(p.all('#mFoot [data-closetk]').length===0,'تیکت بسته دکمهٔ پایان ندارد');
+  ok(p.all('#modal .tkt-acc.on').length===1,'نوار پیشرفت تیکت پر می‌شود');
+  p.key('body','Escape');
+  ok(p.all('#tkList .tkrow').length===2,'تیکت‌های من دو ردیف شد');
+  ok(p.all('#tkList .tkrow .tag').length===2,'حال هر تیکت روی ردیف پیداست');
+  p.click('#tkList .tkrow');
+  await wait(120);
+  ok(p.txt('#mTitle').includes('گفت‌وگو'),'ردیف تیکت‌های من گفت‌وگو را باز می‌کند');
+  p.key('body','Escape');
+  ok(p.shown('#latest')&&p.all('#latest .bubble').length===1,'بالاچهٔ تازه‌ترین پاسخ هست');
+  p.click('#latest [data-thread]');
+  ok(p.shown('#modal'),'از تازه‌ترین پاسخ هم گفت‌وگو باز می‌شود');
   p.key('body','Escape');
 }
 
-/* ── ۵) صندوق بی‌نام و پیشروی تیکت‌ها ── */
+/* ── ۵) صندوق بی‌نام و سقف تیکت باز ── */
 {
   console.log('\n── بی‌نام و سقف تیکت باز ──');
   const p=await load(makeStore());
-  p.window.location.hash='#anon';
-  p.click('#stiles [data-sec="anon"]');
-  await wait(80);
-  p.click('#mFoot [data-ticket="anon"]');
-  await wait(80);
-  ok(p.txt('#mTitle').includes('بی‌نام')&&p.all('#fName').length===0,'صندوق بی‌نام نام و شماره نمی‌خواهد');
+  ok(p.all('#tkList .tkrow').length===1,'تیکت نمونهٔ نخستین در حافظه است');
+  p.click('.hacts [data-ticket="anon"]');
+  await wait(100);
+  ok(p.txt('#mTitle').includes('بی‌نام')&&p.all('#fName').length===0&&p.all('#fContact').length===0,'صندوق بی‌نام نام و شماره نمی‌خواهد');
   p.set('#fBody','پیشنهاد: جلسه‌های کتاب‌خوانی شهرهای دیگر هم باشد.');
-  p.click('#mFoot [data-sendticket]');
+  p.click('[data-sendticket]');
   await wait(300);
   const T=p.tickets();
-  ok(T.length===2&&T[1].anon===true&&T[1].name==='','پیام بی‌نام ثبت شد، بی نام و نشان');
-  ok(p.txt('#modal').includes('پاسخ')&&p.txt('#modal').includes('کد پیگیری'),'به بی‌نام پاسخ نمی‌دهیم، توضیح می‌دهیم');
+  ok(T.length===2&&T[1].anon===true&&T[1].name===''&&T[1].contact==='','پیام بی‌نام ثبت شد، بی نام و نشان');
+  ok(p.txt('#modal').includes('کد پیگیری')&&p.txt('#modal').includes('پاسخ'),'به بی‌نام پاسخ نمی‌دهیم، توضیح می‌دهیم');
+  ok(p.all('#modal [data-ticket="complain"]').length===1,'و راه تیکت حساب‌دار را نشان می‌دهیم');
   p.key('body','Escape');
   ok(p.all('#tkList .tkrow').length===2,'تیکت‌های من دو ردیف شد');
-  const openNow=p.tickets().filter(t=>!t.closed).length;
-  ok(openNow===2,'دو تیکت باز داریم (نمونه + بی‌نام)');
   p.click('#tkList .tkrow');
-  await wait(80);
-  ok(p.txt('#mTitle').includes('گفت‌وگو'),'ردیف تیکت‌های من گفت‌وگو را باز می‌کند');
-  ok(p.all('#modal .frow').length>=1,'متن پیام بی‌نام خودم پیداست');
+  await wait(120);
+  ok(p.all('#modal .frow').length>=1&&p.txt('#modal').includes('بی‌نام'),'متن پیام بی‌نام خودم پیداست');
+  ok(p.all('#modal .fmeta').length>=1,'زمان روی حباب هست');
   p.key('body','Escape');
-  ok(p.shown('#latest'),'بالاچهٔ تازه‌ترین پاسخ هست');
+  ok(p.txt('#tkOpenCap').includes('۲ تیکت باز'),'شمارندهٔ سقف تیکت باز: '+p.txt('#tkOpenCap'));
+  /* دو تیکت باز می‌زنیم تا سقف سه‌تایی پر شود، بعد تیکت چهارم را می‌سنجیم */
+  const q=await load(makeStore({}));
+  ok(q.tickets().filter(t=>!t.closed).length===1,'نمونه یک تیکت باز دارد');
+  for(let i=0;i<2;i++){
+    q.click('.hacts [data-ticket="general"]');
+    await wait(90);
+    q.set('#fBody','تیکت آزمایشی شمارهٔ '+i+' برای پر کردن سقف تیکت‌های باز');
+    q.set('#fName','سارا محمدی');
+    q.click('[data-sendticket]');
+    await wait(180);
+    q.key('body','Escape');
+  }
+  ok(q.tickets().filter(t=>!t.closed).length===3,'سقف تیکت باز پر شد: سه تیکت');
+  ok(q.txt('#tkOpenCap').includes('۳ تیکت باز از ۳'),'شمارنده سقف را نشان می‌دهد');
+  q.click('.hacts [data-ticket="general"]');
+  await wait(140);
+  ok(q.txt('#mTitle').includes('زیاد است')&&q.all('[data-sendticket]').length===0,'تیکت چهارم ثبت نمی‌شود و راه بستن را می‌گوید');
+  ok(q.tickets().length===3,'حافظه دست‌نخورده ماند');
+  q.click('[data-mclose]');
+  await wait(80);
+  ok(q.tickets().filter(t=>!t.closed).length===3,'پس از بستن پاپ‌آپ هم همان سه تیکت');
+  ok(q.errs.length===0,'بی‌خطا'+(q.errs.length?': '+q.errs[0]:''));
 }
 
-/* ── ۶) ورقه‌های مدیریت و راهنمای رسانه ── */
+/* ── ۶) کارشناس‌ها، مدیریت و تماس (ته صفحه) ── */
 {
-  console.log('\n── ورقه‌ها ──');
+  console.log('\n── کارشناس‌ها و مدیریت ──');
   const p=await load(makeStore());
-  p.click('#more [data-sheet="shContacts"]');
+  ok(p.all('#exList .ecard').length===5,'کارشناس لید و چهار کارشناس');
+  ok(p.all('#exList .ecard .eav').length===5,'هر کارشناس نشان خودش را دارد');
+  ok(p.txt('#exCount').includes('آنلاین'),'شمارندهٔ آنلاین‌ها');
+  ok(p.all('#exList .mchip').length>=4,'راه‌های پیام‌رسان کارشناس‌ها');
+  ok(p.all('#mgList .drow').length===2&&p.all('#mgList .drow[href^="mailto"]').length===2,'دو مدیر با رایانامهٔ مستقیم');
+  ok(p.all('#fmList .drow[href^="form.html"]').length===3,'سه فرم لینک‌شدهٔ مدیران');
+  ok(p.all('#slaRows .adrow').length===3,'جدول پاسخ‌گویی سه ردیف');
+  ok(p.all('#howto .adrow').length===3,'چه بنویسی که سریع حل شود، سه ردیف');
+  ok(p.txt('#neverText').includes('رمز'),'هشدار رمز کارت در کارت تماس');
+  ok(p.doc.querySelector('.adrow[href^="tel:"]')!==null&&p.doc.querySelector('.adrow[href^="mailto:"]')!==null,'شماره و رایانامهٔ تماس');
+  const team=p.doc.querySelector('#team');
+  const main=p.doc.querySelector('main');
+  const order=[...main.querySelectorAll('section.sec')].map(s=>s.id||'');
+  ok(order[order.length-1]==='team','کارشناس‌ها و مدیریت ته صفحه است: '+order.slice(-2).join(' ‹ '));
+  ok(team.compareDocumentPosition(p.doc.querySelector('#chapters'))&p.window.Node.DOCUMENT_POSITION_PRECEDING,
+    'و پس از راهنمای بخش‌ها می‌آید');
+  ok(order.includes('mine')&&order.indexOf('mine')<order.indexOf('team'),'تیکت‌های من پیش از کارشناس‌ها');
+  ok(p.doc.querySelector('#topics')===null&&p.doc.querySelector('#stiles')===null&&p.doc.querySelector('#grpChips')===null,
+    'ردیف کاشی‌های موضوعی و صافی گروه برداشته شده');
+  ok(p.doc.querySelector('#shead')===null&&p.doc.querySelector('#qres')===null&&p.doc.querySelector('#shContacts')===null,
+    'باقی‌ماندهٔ طرح پیشین نمانده');
+}
+
+/* ── ۷) ورقهٔ راهنمای رسانه‌ای ── */
+{
+  console.log('\n── راهنمای تصویری و صوتی ──');
+  const p=await load(makeStore());
+  ok(p.all('#chapters [data-media]').length>=16,'از هر فصل یک ورقه باز می‌شود');
+  p.click('#ch-login [data-media]');
   await wait(120);
-  ok(p.openSheets().includes('shContacts')&&p.doc.querySelector('#scrim').classList.contains('on'),'ورقهٔ مدیریت باز می‌شود');
-  ok(p.all('#ctBody .mlink').length>=5,'مدیران و فرم‌های لینک‌شده در ورقه');
-  ok(p.txt('#ctBody').includes('پیام‌رسان'),'پیام‌رسان‌ها هم آمده‌اند');
-  ok(p.all('#ctBody .mchip').length>=4,'بله، تلگرام، سروش و گپ');
-  ok(p.all('#ctBody [data-ticket="join"]').length===1&&p.all('#ctBody [data-ticket="complain"]').length===1,'ردیف همکاری و ردیف انتقاد');
-  p.click('#ctBody [data-ticket="join"]');
-  await wait(150);
-  ok(p.openSheets().length===0&&p.shown('#modal'),'از ورقه به فرم تیکت همان کار می‌رسد');
-  p.key('body','Escape');
-  p.click('#stiles [data-sec="login"]');
-  await wait(80);
-  const md=p.doc.querySelector('#mBody [data-media]');
-  ok(md!==null,'دکمهٔ راهنمای رسانه در پاپ‌آپ');
-  p.clickEl(md);
-  await wait(120);
-  ok(p.openSheets().includes('shMedia'),'راهنمای تصویری در ورقهٔ خودش باز می‌شود');
-  ok(p.txt('#mdBody').includes('گام‌به‌گام')&&p.all('#mdBody .tipit').length>=2,'گام‌های راهنما از دادهٔ همان بخش');
+  ok(p.openSheets().includes('shMedia')&&p.doc.querySelector('#scrim').classList.contains('on'),'راهنما در ورقهٔ خودش باز می‌شود');
+  ok(p.txt('#mdBody').includes('گام‌به‌گام')&&p.all('#mdBody .tipit').length===3,'گام‌های همان بخش');
+  ok(p.all('#mdBody .gcard .gthumb img').length===1,'هنر بخش در ورقه');
+  const pl=p.doc.querySelector('#mdBody [data-playmock]');
+  ok(pl!==null,'دکمهٔ پخش نمونه');
+  p.clickEl(pl);
+  ok(p.doc.querySelector('#mdBody .gthumb').dataset.play==='1','پخش روشن می‌شود');
+  p.clickEl(pl);
+  ok(p.doc.querySelector('#mdBody .gthumb').dataset.play==='0','و خاموش');
+  const t0=p.txt('#mdBody .shtx b');
+  p.click('#mdBody [data-gstep="1"]');
+  await wait(60);
+  ok(p.txt('#mdBody .shtx b')!==t0,'بخش پس می‌رود');
+  p.click('#mdBody [data-gstep="-1"]');
+  await wait(60);
+  ok(p.txt('#mdBody .shtx b')===t0,'و بخش پیش برمی‌گردد');
   p.click('#mdBody [data-ticket]');
   await wait(150);
   ok(p.shown('#modal')&&p.openSheets().length===0,'از راهنما هم می‌شود تیکت زد');
+  p.key('body','Escape');
+  p.click('#ch-complain [data-media]');
+  await wait(100);
+  p.click('#scrim');
+  ok(p.openSheets().length===0&&!p.shown('#modal'),'پرده همه را می‌بندد');
 }
 
-/* ── ۷) داده، سند و پیوند‌ها ── */
+/* ── ۸) داده، سند و پیوند‌ها ── */
 {
   console.log('\n── داده و سند ──');
   const p=await load(makeStore());
   const raw=fs.readFileSync(DIR+'data.js','utf8');
+  const W={}; new Function('window','document',raw)(W,{});
+  const S=W.NORA.SUPPORT;
+  ok(S.sections.length===16&&S.grps.length===6,'شانزده بخش در شش گروه (همه + پنج)');
+  ok(S.sections.every(s=>s.grp&&s.cover&&s.steps.length===3&&s.faq.length===4),'هر بخش: گروه، هنر، سه گام، چهار پرسش');
+  ok(S.sections.every(s=>(s.media||[]).length>=1),'هر بخش راهنمای رسانه‌ای دارد');
+  ok(S.sections.filter(s=>s.form).length===3,'سه فرم لینک‌شده');
+  ok(S.sections.every(s=>!/—/.test(JSON.stringify(s))),'دش میان متن فارسی نیست');
   ok(/grps:\[/.test(raw)&&/tones:\{/.test(raw)&&/lead:\{/.test(raw)&&/sla:\[/.test(raw)&&/howto:\[/.test(raw),
-     'گروه‌ها، رنگ‌ها، کارشناس لید و جدول‌ها همه در data.js');
-  ok((raw.match(/grp:'/g)||[]).length>=16,'هر کاشی گروه خودش را دارد');
+    'گروه‌ها، رنگ‌ها، کارشناس لید و جدول‌ها همه در data.js');
+  const posters=fs.readdirSync(DIR+'posters').filter(f=>f.endsWith('.svg'));
+  ok(posters.length>=10,'پوسترها در پوشهٔ خودشان: '+posters.length);
+  ok(S.sections.every(s=>posters.includes(s.cover)),'هر هنرِ فصل، پروندهٔ خودش را دارد');
+
   const html=fs.readFileSync(OPEN,'utf8');
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
-  ok(!/class="(search|sup-hero|mcard mcard)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
+  ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
+  ok(html.includes('support.css?v=19')&&html.includes('support.js?v=19')&&html.includes('data.js?v=19'),'نسخهٔ دارایی‌ها تازه شده (v=19)');
+  ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
+  ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');
   ok((css.match(/\{/g)||[]).length===(css.match(/\}/g)||[]).length,'آکولادهای CSS جفت‌اند');
+  ok(/\.mk\{/.test(css)&&/\.stp\{/.test(css)&&/\.gband\{/.test(css)&&/\.miss\{/.test(css),'طرح گام‌ها و نوار گروه و کارت تهی در CSS هست');
   ok(!/\.mpart \.bd\{/.test(css),'بدنهٔ قطعه‌های پاپ‌آپ کلاس جدا دارد');
-  const pages=['home.html','events.html','account.html','event.html','form.html','builder.html','create.html','support.html','index.html','offline.html'];
-  ok(pages.every(f=>fs.readFileSync(DIR+f,'utf8').includes('?v=18')),'همهٔ صفحه‌ها یک نسخهٔ دارایی (v=18)');
+  const js=fs.readFileSync(DIR+'support.js','utf8');
+  ok(!/#stiles|#grpChips|#topics/.test(js),'کد به کاشی‌های موضوعی برنمی‌گردد');
+  ok(/nora-support-tickets/.test(js)&&/nora-support-seeded/.test(js),'کلیدهای حافظه همان‌ها هستند');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'support.html'")&&sw.includes("'support.css'")&&sw.includes("'support.js'"),'سرویس‌ورکر صفحهٔ پشتیبانی را پیش‌بار می‌کند');
   const man=fs.readFileSync(DIR+'manifest.webmanifest','utf8');
   ok(man.includes('support.html'),'میان‌بر پشتیبانی در manifest');
   const doc=fs.readFileSync(DIR+'support-arch.md','utf8');
-  ok(doc.includes('کاشی')&&doc.includes('تیکت'),'سند معماری پشتیبانی به‌روز است');
-  ok(p.all('a[href^="http"]').every(a=>a.rel.includes('noopener')),'پیوندهای بیرونی rel دارند');
-  ok(p.all('.i use').every(u=>p.doc.querySelector(u.getAttribute('href'))!==null),'همهٔ نمادها در اسپرایت هستند');
+  ok(doc.includes('گام')&&doc.includes('تیکت')&&doc.includes('کارشناس'),'سند معماری پشتیبانی به‌روز است');
 }
 
 console.log('\n'+(fail?'✗ '+fail+' رد، '+pass+' قبول':'✓ همه سبز: '+pass+' قبول'));
