@@ -2,8 +2,9 @@
    نورا — آزمون صفحهٔ «حساب من»
    ──────────────────────────────────────────────────────────────────────────
    معماری تازه: صفحهٔ پروفایل (سر، میان‌بُرها، رویداد نزدیک، چهار بخش) و
-   چهار نما: نورا پی، رویدادهای من، پروفایل من (سه تب)، باشگاه و امتیاز من
-   (دو تب). پشتیبانی ورقه‌ای است که به نوار پایین چسبیده.
+   چهار نما: نورا پی، رویدادهای من، پروفایل من (شش تب، با «ورود و امنیت»)،
+   باشگاه و امتیاز من. ورود، صفحهٔ جدای خودش (login.html) را دارد و پشتیبانی
+   صفحهٔ خودش را؛ این صفحه فقط میان‌برشان را می‌گذارد.
 
    اجرا:  node account.test.mjs
    ══════════════════════════════════════════════════════════════════════════ */
@@ -128,7 +129,9 @@ async function load(store,hash){
   console.log('\n── تب‌های درونی ──');
   const p=await load(makeStore(reg()));
   await p.nav('profile');
-  ok(p.all('#viewBox .vtab').length===5,'پروفایل پنج تب دارد');
+  ok(p.all('#viewBox .vtab').length===6,'پروفایل شش تب دارد');
+  ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,book,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، کتاب، فرم‌ها، حریم');
+  await p.nav('profile');
   ok(p.view().includes('اطلاعات حساب من') && p.view().includes('تأیید پروفایل'),'تب اطلاعات، فرم و فرایند تأیید را می‌آورد');
   p.click('[data-ptab="privacy"]'); await wait(170);
   ok(p.view().includes('حریم خصوصی') && p.view().includes('دانلود'),'تب حریم خصوصی');
@@ -140,6 +143,19 @@ async function load(store,hash){
   ok(p.view().includes('امتیاز و سطح من') && p.view().includes('دستاوردها'),'تب امتیاز و سطح');
   p.click('[data-ptab="book"]'); await wait(190);
   ok(p.view().includes('چراغ‌ها را من خاموش می‌کنم'),'برگشت به باشگاه کتاب');
+  p.click('[data-ptab="auth"]'); await wait(180);
+  ok(p.view().includes('شمارهٔ ورود و رمز')&&p.view().includes('دستگاه‌های واردشده'),'تب ورود و امنیت');
+  ok(p.view().includes('بله')&&p.view().includes('ایتا')&&p.view().includes('تلگرام'),'راه‌های ورود با پیام‌گیر');
+  ok(p.all('#viewBox .drow').length===3,'سه دستگاه واردشده');
+  ok(p.all('#viewBox [data-enddev]').length===2,'دو دستگاه دیگر نشست بسته‌شدنی دارند');
+  p.click('#viewBox [data-enddev]'); await wait(120);
+  ok(p.txt('#toast').includes('بسته شد'),'بستن نشست پیام می‌دهد');
+  ok(p.all('#logoutBtn').length===1,'دکمهٔ خروج از حساب');
+  p.click('#logoutBtn'); await wait(160);
+  ok(p.open().includes('shConfirm')&&p.txt('#shConfirm').includes('خروج از حساب'),'خروج، پیش از انجام تأیید می‌گیرد');
+  p.click('[data-logout-yes]'); await wait(200);
+  ok(p.window.localStorage.getItem('nora-home-user')===null,'با تأیید، نشست پاک می‌شود');
+  ok(p.doc.querySelector('.guestcard')!==null,'و صفحه به حال مهمان برمی‌گردد');
 }
 
 /* ── ۵) نشانی‌های کوتاه ── */
@@ -174,9 +190,13 @@ async function load(store,hash){
   ok(p.all('[data-login]').length===1,'یک دکمهٔ ورود، بی تکرار');
   ok(p.all('.mrow2').length===4 && !p.prof().includes('قفل'),'چهار ردیف، بی نشان قفل');
   ok(p.all('.qtiles .qtile').length===0 && p.doc.querySelector('.qcard')===null,'میان‌بُر و رویداد نزدیک برای مهمان نیست');
+  ok(p.doc.querySelector('#shAuth')===null,'ورقهٔ ورود در این صفحه نیست؛ ورود صفحهٔ خودش را دارد');
   p.click('[data-view="events"]'); await wait(200);
-  ok(p.open().includes('shAuth'),'ردیف مهمان ورقهٔ ورود را می‌آورد');
+  ok(p.open().length===0,'مهمان با ورقه روبه‌رو نمی‌شود');
   ok(!p.inView(),'تا ورود نکرده، نمای رویدادها باز نمی‌شود');
+  const ajs=fs.readFileSync(DIR+'account.js','utf8');
+  ok(/function goLogin\(/.test(ajs)&&/login\.html\?next=/.test(ajs),'ردیف مهمان به صفحهٔ ورود می‌فرستد و بازگشت را نگه می‌دارد');
+  ok(ajs.includes("'account.html'+(after?'#'+after:'')"),'بازگشت به همان بخش، پس از ورود');
   p.click('[data-view="pay"]'); await wait(200);
   ok(p.inView() && p.view().includes('قفل است'),'نورا پی بی‌ورود هم باز می‌شود');
 }

@@ -18,29 +18,30 @@ body.hasbotbar{padding-bottom:178px}
 @media (prefers-reduced-motion:reduce){.anim,.panel .card,.panel .mrows,.panel .bkhero{animation:none}}
 
 /* ══ سرِ پروفایل ══════════════════════════════════════════════════════ */
+/* آرام و خوانا: نوار باریک بالای کارت، بعد نام و شماره، بعد سه عدد و یک نوار */
 .phead{position:relative;border-radius:var(--r-lg);overflow:hidden;
   border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
-.phead .cover{height:118px;position:relative;background:linear-gradient(135deg,#0A4FB4 0%,#0071E3 48%,#3E9BFF 100%)}
+.phead .cover{height:72px;position:relative;background:linear-gradient(135deg,#0A4FB4 0%,#0071E3 52%,#3E9BFF 100%)}
 .phead .cover .blob{position:absolute;border-radius:50%;pointer-events:none}
-.phead .cover .b1{width:170px;height:170px;inset-inline-end:-46px;top:-74px;background:radial-gradient(circle,rgba(255,255,255,.34),rgba(255,255,255,0) 70%)}
-.phead .cover .b2{width:210px;height:210px;inset-inline-start:-66px;bottom:-130px;background:radial-gradient(circle,rgba(120,200,255,.42),rgba(120,200,255,0) 70%)}
-.phead .cover .cmark{position:absolute;inset-inline-start:14px;top:12px;width:26px;height:26px;color:rgba(255,255,255,.55)}
-.phead .cover .ctags{position:absolute;inset-inline-end:14px;top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+.phead .cover .b1{width:190px;height:190px;inset-inline-end:-54px;top:-92px;
+  background:radial-gradient(circle,rgba(255,255,255,.30),rgba(255,255,255,0) 70%)}
+.phead .cover .ctags{position:absolute;inset-inline-end:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:74%}
 .phead .cover .ctags .tag{background:rgba(255,255,255,.20);border:1px solid rgba(255,255,255,.34);color:#fff;
   height:23px;font-size:10.5px;backdrop-filter:blur(6px)}
-.phead .pbody{padding:0 14px 14px;margin-top:-30px;position:relative}
-.phead .ptop{display:flex;align-items:flex-end;gap:11px}
-.phead .av{width:74px;height:74px;border-radius:24px;flex:0 0 auto;display:grid;place-items:center;
-  font-size:27px;font-weight:800;color:var(--brand-ink);background:linear-gradient(160deg,#FFFFFF,#E6F0FF);
-  box-shadow:0 0 0 4px var(--surface),0 10px 24px rgba(10,79,180,.20);
+.phead .pbody{padding:0 15px 15px;margin-top:-26px;position:relative}
+.phead .ptop{display:flex;align-items:center;gap:12px}
+.phead .av{width:62px;height:62px;border-radius:20px;flex:0 0 auto;display:grid;place-items:center;position:relative;
+  font-size:23px;font-weight:800;color:var(--brand-ink);background:linear-gradient(160deg,#FFFFFF,#E6F0FF);
+  box-shadow:0 0 0 4px var(--surface),0 8px 20px rgba(10,79,180,.18);
   border:1px solid rgba(255,255,255,.9)}
-.phead .who{min-width:0;display:grid;gap:3px;padding-bottom:3px}
-.phead .who b{font-size:15px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.phead .who small{font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.phead .who small .i{width:13px;height:13px;color:var(--ink-4)}
-.phead .edit{margin-inline-start:auto;margin-bottom:5px}
-.phead .pmeta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:11px}
-.pstats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:13px;border-radius:var(--r-md);
+.phead .av .pdot{position:absolute;inset-inline-end:-2px;bottom:-2px;width:15px;height:15px;border-radius:50%;
+  background:var(--ok);box-shadow:0 0 0 3px var(--surface)}
+.phead .who{min-width:0;display:grid;gap:4px}
+.phead .who b{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.phead .who small{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.phead .edit{margin-inline-start:auto}
+.phead .pmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-radius:var(--r-md);
   border:.5px solid var(--hairline);overflow:hidden;background:color-mix(in oklab,var(--surface-2) 72%,transparent)}
 .pstat{background:none;border:0;font:inherit;color:inherit;cursor:pointer;padding:11px 6px;text-align:center;
   display:grid;gap:2px;transition:background var(--t-fast) var(--ease)}
@@ -49,17 +50,25 @@ body.hasbotbar{padding-bottom:178px}
 .pstat:active{background:var(--surface-sunk)}
 .pstat b{font-size:16px;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.4px;
   display:flex;align-items:center;justify-content:center;gap:5px}
-.pstat b .i{width:14px;height:14px;color:var(--accent-ink)}
 .pstat small{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.meter{height:7px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;margin-top:13px;
+.phead .pfoot{display:grid;gap:7px;margin-top:13px}
+.meter{height:7px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;
   position:relative;box-shadow:inset 0 1px 2px rgba(20,40,35,.07)}
 .meter i{display:block;height:100%;border-radius:99px;
   background:linear-gradient(90deg,var(--brand),#3E9BFF);position:relative;
   transition:width var(--t-slow) var(--ease)}
 .meter i::after{content:'';position:absolute;inset:0;border-radius:99px;
   background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,0))}
-.phead .mfoot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
-.phead .mfoot .cap{flex:1;min-width:130px}
+.phead .pacts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.phead .pacts .btn{flex:1;justify-content:center}
+
+/* ردیف دستگاه‌های واردشده */
+.drow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:.5px solid var(--hairline-2)}
+.drow:last-child{border-bottom:0}
+.drow>.i{width:19px;height:19px;color:var(--ink-4);flex:0 0 auto}
+.drow .tx{display:grid;gap:2px;min-width:0;flex:1}
+.drow .tx b{font-size:13.5px;font-weight:750}
+.drow .tx small{font-size:11.5px;color:var(--ink-3)}
 
 /* کارت مهمان */
 .guestcard{text-align:center;padding:24px 18px 20px;position:relative;overflow:hidden;
@@ -405,9 +414,9 @@ body.hasbotbar{padding-bottom:178px}
 
 /* ══ واکنش‌گرایی ═════════════════════════════════════════════════════ */
 @media (max-width:400px){
-  .phead .cover{height:106px}
+  .phead .cover{height:64px}
   .phead .cover .cnote b{font-size:18px}
-  .phead .av{width:66px;height:66px;font-size:24px}
+  .phead .av{width:58px;height:58px;font-size:21px}
   .qcard .qc-date{width:50px;height:52px}
   .qtile b{font-size:11px}
 }

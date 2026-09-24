@@ -1129,7 +1129,8 @@ function authSheet(after){
          <input class="input num" id="uimob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(mob)}"/>
          <div class="row" style="margin-top:12px"><button class="btn primary" data-uiphone><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
            <button class="btn quiet" data-close>بعداً</button></div>`}
-    <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>`);
+    <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>
+    <p class="cap" style="margin-top:8px"><a href="login.html" style="font-weight:700">ورود با بله و ایتا و تلگرام</a></p>`);
   if(typeof after==='function') authSheet.after=after;   /* از پله‌های ورود رد نشو */
   else if(authSheet.after===undefined) authSheet.after=null;
 }

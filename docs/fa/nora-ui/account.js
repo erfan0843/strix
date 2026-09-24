@@ -59,7 +59,9 @@ function go(k){
   if(!login()){ S.after=k; loginSheet(); return }
   location.hash='#'+k;
 }
-function loginSheet(){ if(UI().authSheet) UI().authSheet(()=>{ const k=S.after; S.after=''; render(); if(k) location.hash='#'+k }) }
+/* ورود، صفحهٔ خودش را دارد: login.html؛ بعد از ورود همین‌جا برمی‌گردد */
+function goLogin(after){ location.href='login.html?next='+encodeURIComponent('account.html'+(after?'#'+after:'')) }
+function loginSheet(){ const k=S.after; S.after=''; goLogin(k) }
 
 /* ══ سرِ پروفایل ═════════════════════════════════════════════════════ */
 function headGuest(){
@@ -75,7 +77,9 @@ function headGuest(){
         <div class="row">${ico('i-check')}<span>امتیاز، باشگاه کتاب و فرم‌ها</span></div>
       </div>
       <button class="btn primary" data-login>${ico('i-mobile')} ورود با شمارهٔ موبایل</button>
-      <p class="cap" style="margin:11px 2px 0">${esc(SUP.n||'پشتیبانی')} و راهنما هم صفحهٔ خودش را دارد و بدون ورود باز
+      <p class="cap" style="margin:11px 2px 0">شماره را که بنویسی، به بله یا ایتا تحویل می‌شود و کد را از همان
+        پیام می‌گیری. رمز و گذرواژه‌ای در کار نیست.</p>
+      <p class="cap" style="margin:6px 2px 0">${esc(SUP.n||'پشتیبانی')} و راهنما هم صفحهٔ خودش را دارد و بدون ورود باز
         می‌شود؛ نشانش هم کنار اعلان‌ها بالای صفحه است.</p>
     </div>`;
 }
@@ -84,30 +88,32 @@ function headMember(){
   const {cur,next}=lvl(), pts=+A.points||0;
   const name=p.fullName||u.name||'کاربر نورا';
   const initial=String(name).trim().slice(0,1)||'ن';
-  const missTxt=miss.length?faN(miss.length)+' مورد مانده: '+miss.slice(0,2).map(f=>f.l).join('، '):'اطلاعات کامل است';
+  const missTxt=miss.length?faN(miss.length)+' قلم مانده: '+miss.slice(0,2).map(f=>f.l).join('، '):'اطلاعات کامل است';
   return `<div class="phead anim">
-      <div class="cover">
-        <span class="blob b1" aria-hidden="true"></span><span class="blob b2" aria-hidden="true"></span>
-        <svg class="i cmark" aria-hidden="true"><use href="#i-idcard-f"/></svg>
-        <span class="ctags">${chip(st[0],st[1])}${chip(faNum(pts)+' امتیاز')}</span>
-      </div>
+      <div class="cover"><span class="blob b1" aria-hidden="true"></span>
+        <span class="ctags">${chip(st[0],st[1])}${chip(faNum(pts)+' امتیاز')}</span></div>
       <div class="pbody">
         <div class="ptop">
-          <span class="av">${esc(initial)}</span>
+          <span class="av">${esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
           <span class="who"><b>${esc(name)}</b>
-            <small>${ico('i-calendar')} عضو از ${esc(u.joined||A.joined||'۱۴۰۴')}${phone()?' · '+faN(phone()):''}</small>
-            <span class="pmeta">${miss.length?chip(faN(miss.length)+' قلم مانده'):chip('پروفایل کامل','ok')}${chip('سطح '+(cur.n||'—'))}</span></span>
+            <small>${phone()?faN(phone())+' · ':''}عضو از ${esc(u.joined||A.joined||'۱۴۰۴')}</small>
+            <span class="pmeta">${chip('سطح '+(cur.n||'—'))}${next?chip(faN(next.at-pts)+' تا '+next.n):chip('بالاترین سطح','ok')}</span></span>
           <button class="icon-btn edit" data-go="account" aria-label="ویرایش اطلاعات حساب">${ico('i-pen')}</button>
         </div>
         <div class="pstats">
-          <button class="pstat" data-go="club"><b>${faNum(pts)}</b><small>امتیاز</small></button>
-          <button class="pstat" data-go="club"><b>${next?faNum(next.at-pts):'—'}</b><small>${next?('تا '+esc(next.n)):'بالاترین سطح'}</small></button>
+          <button class="pstat" data-go="club"><b>${faNum(pts)}</b><small>امتیاز باشگاه</small></button>
+          <button class="pstat" data-go="club"><b>${next?faNum(next.at-pts):'—'}</b><small>${next?'تا '+esc(next.n):'بالاترین سطح'}</small></button>
           <button class="pstat" data-go="events"><b>${faN(EVENTS.length)}</b><small>برنامهٔ پیش‌رو</small></button>
         </div>
-        <div class="meter" role="img" aria-label="اطلاعات حساب ٪${faN(pc)} کامل است"><i style="width:${pc}%"></i></div>
-        <div class="mfoot"><span class="cap">اطلاعات حساب: ٪${faN(pc)} کامل · ${esc(missTxt)}</span>
+        <div class="pfoot">
+          <span class="meter" role="img" aria-label="اطلاعات حساب ٪${faN(pc)} کامل است"><i style="width:${pc}%"></i></span>
+          <span class="cap">اطلاعات حساب: ٪${faN(pc)} کامل · ${esc(missTxt)}</span>
+        </div>
+        <div class="pacts">
           <button class="btn sm ${miss.length?'primary':'quiet'}" data-go="account">
-            ${ico(miss.length?'i-pen':'i-check')} ${miss.length?'تکمیل اطلاعات':'ویرایش'}</button></div>
+            ${ico(miss.length?'i-pen':'i-check')} ${miss.length?'تکمیل اطلاعات':'ویرایش اطلاعات'}</button>
+          <button class="btn sm quiet" data-ptab-go="auth">${ico('i-lock')} ورود و امنیت</button>
+        </div>
       </div></div>`;
 }
 
@@ -145,7 +151,7 @@ function subOf(k){
   if(k==='profile'){
     if(!login()) return (ROWS.find(r=>r.k===k)||{}).s||'';
     const bc=bookState();
-    return 'اطلاعات ٪'+faN(pctOf(p))+' · باشگاه کتاب'+(bc.seat?' (صندلی رزرو کن)':'');
+    return 'اطلاعات ٪'+faN(pctOf(p))+' · ورود و امنیت · باشگاه کتاب'+(bc.seat?' (صندلی رزرو کن)':'');
   }
   if(k==='club'){
     if(!login()) return (ROWS.find(r=>r.k===k)||{}).s||'';
@@ -537,11 +543,40 @@ function privacyPanel(){
        <div class="srow">${ico('i-check')}<span class="sp">سابقهٔ خرید و حضور، برای کارنامهٔ تو</span></div>
        <div class="srow">${ico('i-lock')}<span class="sp">شمارهٔ موبایل، فقط برای ورود و یادآوری</span></div>`);
 }
-/* پروفایل من: پنج تب، هر چیزی که به خودِ عضو برمی‌گردد، یک‌جا */
+/* ورود و امنیت: شماره، دستگاه‌ها، پیام‌گیرها و خروج */
+function authPanel(){
+  const ph=phone(), ms=(A.login&&A.login.msgs)||[];
+  const devs=[{k:'this', n:'همین دستگاه', d:'کروم · اندروید', i:'i-mobile', at:'همین حالا', now:true},
+              {k:'phone', n:'گوشی اندروید', d:'اپلی نورا', i:'i-mobile', at:'دیروز، ۱۹:۱۲'},
+              {k:'home', n:'رایانهٔ خانه', d:'سافاری · مک', i:'i-monitor', at:'۱۲ مهر، ۲۱:۴۰'}];
+  return card('شمارهٔ ورود و رمز','همین شماره شناسهٔ توست؛ کد یک‌بارمصرف به آن می‌رسد','i-mobile',
+      `<div class="srow">${ico('i-mobile')}
+        <span class="sp">شمارهٔ ورود<small class="num">${ph?'۰۹'+faN(ph.slice(2,5))+'…'+faN(ph.slice(-4)):'—'}</small></span>
+        <button class="btn sm quiet" data-relogin>تغییر شماره</button></div>
+       <div class="srow">${ico('i-lock')}
+        <span class="sp">رمز و گذرواژه<small>نداریم؛ هر ورود یک کد یک‌بارمصرف است</small></span>${chip('بی رمز','ok')}</div>
+       <div class="srow">${ico('i-shield')}
+        <span class="sp">دو دستگاه هم‌زمان<small>بیشتر از این، دستگاه تازه نشست قبلی را می‌بندد</small></span>${chip('روشن','ok')}</div>`) +
+    card('راه‌های ورود','شماره به یکی از این پیام‌گیرها تحویل می‌شود و کد را از همان‌جا می‌گیری','i-chat',
+      `<div class="kinds">${ms.map(m=>`<div class="kind">${ico('i-chat','width:19px;height:19px;color:var(--ink-4)')}
+        <span class="tx"><b>${esc(m.n)}</b><small>${esc(m.s||'')}</small></span>
+        <a class="btn sm quiet" href="${esc(m.href||'#')}" target="_blank" rel="noopener">باز کردن</a></div>`).join('')}</div>` +
+      (devs.length?'':'')) +
+    card('دستگاه‌های واردشده',faN(devs.length)+' دستگاه این حساب را باز کرده‌اند','i-users',
+      devs.map(d=>`<div class="drow">${ico(d.i||'i-mobile')}
+        <span class="tx"><b>${esc(d.n)}</b><small>${esc(d.d)} · ${esc(d.at)}</small></span>
+        ${d.now?chip('این دستگاه','brand'):`<button class="btn sm quiet" data-enddev="${esc(d.k)}">بستن نشست</button>`}</div>`).join('')) +
+    card('خروج از حساب','فقط نشست همین دستگاه بسته می‌شود','i-lock',
+      `<button class="btn stop" id="logoutBtn">${ico('i-close')} خروج از حساب</button>
+       <p class="cap" style="margin-top:9px">خروج، بلیت و گواهی و امتیازت را پاک نمی‌کند؛ فقط تا ورود تازه، حساب بسته است.</p>`);
+}
+
+/* پروفایل من: شش تب، هر چیزی که به خودِ عضو برمی‌گردد، یک‌جا */
 const PTABS=A.profileTabs||[{k:'info',n:'اطلاعات من'}];
 VS.profile=function(t){
   if(!login()) return viewHead(t,'',PTABS,'ptab')+gate(t);
-  const body=S.ptab==='club'?clubTab()
+  const body=S.ptab==='auth'?authPanel()
+    : S.ptab==='club'?clubTab()
     : S.ptab==='book'?bookPanel()
     : S.ptab==='forms'?formsPanel()
     : S.ptab==='privacy'?privacyPanel()
@@ -652,6 +687,7 @@ function certAsk(kind){
 function viewOf(k){ return k==='events'?VS.events : k==='profile'?VS.profile : k==='pay'?VS.pay : null }
 /* نشانی‌های کوتاه، همان تب پروفایل را باز می‌کنند */
 const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
+  auth:['profile','ptab','auth'], login:['profile','ptab','auth'],
   forms:['profile','ptab','forms'], privacy:['profile','ptab','privacy'],
   book:['profile','ptab','book'], club:['profile','ptab','club'], points:['profile','ptab','club']};
 function renderView(){
@@ -734,6 +770,23 @@ document.addEventListener('click',ev=>{
   const rw=t.closest('[data-reward]'); if(rw){ toast('«'+rw.dataset.reward+'» با امتیازت گرفته شد؛ در فروشگاه پاداش کامل می‌شود'); return }
   const cp=t.closest('[data-copy]'); if(cp){ copyText(cp.dataset.copy,'کد دعوت کپی شد'); return }
   if(t.closest('[data-invite]')){ toast('پیوند دعوت ساخته شد؛ برای دوستت بفرست'); return }
+  const pg=t.closest('[data-ptab-go]');
+  if(pg){ S.view='profile'; S.ptab=pg.dataset.ptabGo; location.hash='#profile'; render(); return }
+  if(t.closest('[data-relogin]')){ goLogin('account'); return }
+  const ed=t.closest('[data-enddev]');
+  if(ed){ toast('نشست «'+(ed.closest('.drow')?ed.closest('.drow').querySelector('b').textContent:ed.dataset.enddev)+'» بسته شد'); return }
+  if(t.closest('#logoutBtn')){
+    fillSheet('shConfirm',`<div class="grabber"></div><div class="head">خروج از حساب</div>
+      <p class="sub" style="margin-top:8px">از این دستگاه بیرون بیایم؟ بعداً با همان شماره و یک کد برمی‌گردی.</p>
+      <div class="row" style="margin-top:14px"><button class="btn stop" data-logout-yes>بله، خارج شو</button>
+        <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>نه</button></div>`);
+    openSheet('shConfirm'); return }
+  if(t.closest('[data-logout-yes]')){
+    try{ localStorage.removeItem('nora-home-user') }catch(e){}
+    try{ document.dispatchEvent(new CustomEvent('nora:logout')) }catch(e){}
+    closeSheets(); S.view=''; S.ptab='info';
+    try{history.replaceState(null,'',location.pathname)}catch(e){}
+    render(); toast('از حساب بیرون آمدی؛ هر وقت خواستی دوباره وارد شو'); return }
   if(t.closest('[data-login]')){ S.after=''; loginSheet(); return }
   if(t.closest('[data-close]')){ closeSheets(); return }
   if(t.closest('[data-open-support]')){ goSupport(); return }

@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>نورا · حساب من</title>
-<meta name="description" content="حساب کاربری نورا: اطلاعات حساب، وضعیت تأیید، سطح و امتیاز، و میان‌بر کارهای شخصی"/>
+<title>نورا · ورود</title>
+<meta name="description" content="ورود به نورا با شمارهٔ موبایل و کد یک‌بارمصرف، یا از راه پیام‌گیر بله و ایتا و تلگرام"/>
 <meta name="theme-color" content="#F5F3EE"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="نورا · گروه فرهنگی خط زندگی"/>
-<meta property="og:title" content="حساب من · نورا"/>
-<meta property="og:description" content="اطلاعات حساب، وضعیت تأیید و سطح عضویت، یک‌جا."/>
+<meta property="og:title" content="ورود · نورا"/>
+<meta property="og:description" content="با شمارهٔ موبایل و کد یک‌بارمصرف وارد شو؛ رمزی ندارد."/>
 <meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
 <meta property="og:locale" content="fa_IR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<link rel="canonical" href="https://lifeline1.ir/nora-ui/account.html"/>
+<link rel="canonical" href="https://lifeline1.ir/nora-ui/login.html"/>
 <link rel="icon" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="manifest" href="manifest.webmanifest"/>
@@ -25,9 +25,9 @@ var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
 <link rel="stylesheet" href="glass.css?v=22"/>
 <link rel="stylesheet" href="nora.css?v=22"/>
-<link rel="stylesheet" href="account.css?v=22"/>
+<link rel="stylesheet" href="login.css?v=22"/>
 </head>
-<body class="hasbotbar">
+<body class="hasbotbar loginpage">
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
@@ -71,9 +71,9 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
 <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
 <symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
-<symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 6.8A2.4 2.4 0 0 1 6.8 4.4h10.4a2.4 2.4 0 0 1 2.4 2.4v6.4a2.4 2.4 0 0 1-2.4 2.4h-4.6L8 19.4v-3.8H6.8a2.4 2.4 0 0 1-2.4-2.4z"/><path d="M9 9.6h6M9 12.4h3.6"/></g></symbol>
-<symbol id="i-monitor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 6.4a1.8 1.8 0 0 1 1.8-1.8h12a1.8 1.8 0 0 1 1.8 1.8v8.2a1.8 1.8 0 0 1-1.8 1.8H6a1.8 1.8 0 0 1-1.8-1.8z"/><path d="M9.6 19.4h4.8M12 16.2v3.2"/></g></symbol>
 <symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 6.8A2.4 2.4 0 0 1 6.8 4.4h10.4a2.4 2.4 0 0 1 2.4 2.4v6.4a2.4 2.4 0 0 1-2.4 2.4h-4.6L8 19.4v-3.8H6.8a2.4 2.4 0 0 1-2.4-2.4z"/><path d="M9 9.6h6M9 12.4h3.6"/></g></symbol>
+<symbol id="i-spinner" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4.2v3.2M12 16.6v3.2M4.2 12h3.2M16.6 12h3.2" opacity=".45"/><path d="M18.4 5.6l-2.3 2.3M7.9 16.1l-2.3 2.3M18.4 18.4l-2.3-2.3M7.9 7.9 5.6 5.6" opacity=".7"/></g></symbol>
 </svg>
 
 <header class="topbar">
@@ -88,45 +88,49 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   </div>
 </header>
 
-<main class="wrap">
+<main class="wrap lwrap">
 
-  <h1 class="sr">حساب من</h1>
-
-  <!-- صفحهٔ پروفایل: سرِ پروفایل، میان‌بُرها، رویداد نزدیک و چهار بخش -->
-  <div id="profBox" class="profwrap"></div>
-
-  <!-- نمای هر بخش، همین‌جا می‌نشیند -->
-  <div id="viewBox" hidden></div>
-
-  <footer class="hfoot">
-    <div><b>گروه فرهنگی خط زندگی</b>، تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
-    <div>۰۲۱–۸۸۸۸۱۲۳۴ · <a href="mailto:info@lifeline1.ir">info@lifeline1.ir</a> · <a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
-    <div class="row" style="justify-content:center;margin:4px 0 8px">
-      <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
+  <section class="lgcard" id="lgCard" aria-labelledby="lgTitle">
+    <div class="lghead">
+      <span class="lgmark" aria-hidden="true"><img src="nora-mark.svg" alt=""/></span>
+      <p class="lgeye" id="lgEye"></p>
+      <h1 id="lgTitle">ورود به نورا</h1>
+      <p class="lglead" id="lgLead"></p>
     </div>
-    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html">رویدادها</a> · <a href="support.html">پشتیبانی</a> · © ۱۴۰۵</div>
-  </footer>
+
+    <!-- پله‌های ورود: شماره، تحویل به پیام‌گیر، کد، پایان -->
+    <div class="lgbody" id="lgBody"></div>
+
+    <div class="lgstatus" id="lgStatus" role="status" aria-live="polite" hidden></div>
+  </section>
+
+  <nav class="lglinks" aria-label="پیوندهای ورود">
+    <a href="support.html#reader">راهنما</a><span class="dot" aria-hidden="true">·</span>
+    <a href="support.html">پشتیبانی</a><span class="dot" aria-hidden="true">·</span>
+    <button type="button" id="rulesBtn">قوانین</button>
+  </nav>
+
+  <p class="lgfoot">گروه فرهنگی خط زندگی · تهران · © ۱۴۰۵</p>
 </main>
 
-<!-- پشتیبانی و راهنما: نوار پایین، به صفحهٔ خودش می‌رود -->
 <a class="supbar" id="supBar" href="support.html" data-open-support aria-label="پشتیبانی و راهنما">
   <span class="si"><svg class="i" aria-hidden="true"><use href="#i-headphone"/></svg></span>
-  <span class="st"><b>پشتیبانی و راهنما</b><small>گفت‌وگو با کارشناس و پرسش‌های پرتکرار</small></span>
+  <span class="st"><b>پشتیبانی و راهنما</b><small>بی ورود باز است؛ گفت‌وگو با کارشناس و پرسش‌های پرتکرار</small></span>
   <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
 </a>
 
 <nav class="tabbar" aria-label="ناوبری اصلی">
   <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
   <a href="events.html"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></a>
-  <a href="account.html" class="on" aria-current="page"><svg class="i"><use href="#i-idcard-f"/></svg><small>حساب من</small></a>
+  <a href="account.html"><svg class="i"><use href="#i-idcard-f"/></svg><small>حساب من</small></a>
 </nav>
 
-<aside class="sheet" id="shConfirm" role="dialog" aria-modal="false" aria-label="تأیید"><div class="sbody"></div></aside>
+<aside class="sheet" id="shRules" role="dialog" aria-modal="false" aria-label="قوانین و شرایط استفاده"><div class="sbody"></div></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="data.js?v=22"></script>
 <script src="ui.js?v=22"></script>
-<script src="account.js?v=22"></script>
+<script src="login.js?v=22"></script>
 </body>
 </html>
