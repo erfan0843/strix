@@ -582,7 +582,7 @@ function clubJoin(t){
   return viewHead(t,CGATE.n||'ورود به باشگاه',null)+`<div class="panel">
     ${cover}${clubSteps(step)}
     <div class="clgrid">${formCard}${feeCard}</div>
-    ${clubSupervisor()}${trustLine('club')}</div>`;
+    ${clubSupervisor(true)}${trustLine('club')}</div>`;
 }
 /* ── ورقهٔ پرداخت حق عضویت ─────────────────────────────────────────── */
 function clubFeeSheet(){
@@ -605,7 +605,7 @@ function clubFeeSheet(){
   openSheet('shClub');
 }
 /* ── سرپرست و قوانین ───────────────────────────────────────────────── */
-function clubSupervisor(){
+function clubSupervisor(locked){
   const sup=clubSup(), g=CCLUB.group||{};
   return `<div class="clgrid">
     <div class="card acct anim"><div class="head">${ico('i-users')} سرپرست باشگاه</div>
@@ -617,9 +617,11 @@ function clubSupervisor(){
         ${(CCLUB.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join('')}</details></div>
     <div class="card acct anim"><div class="head">${ico('i-link')} گروه و لینک اختصاصی</div>
       <p class="cap" style="margin-top:5px">${esc(g.lead||'')}</p>
-      <div class="srow">${ico('i-users')}<span class="sp">${esc(g.n||'گروه اعضا')}
+      ${locked?`<div class="srow">${ico('i-lock')}<span class="sp">گروه اعضا و لینک اختصاصی
+          <small>پس از تکمیل عضویت، کد گروه و لینک ورود همین‌جا می‌آید</small></span>${chip('بسته','warn')}</div>`
+      :`<div class="srow">${ico('i-users')}<span class="sp">${esc(g.n||'گروه اعضا')}
         <small class="num" dir="ltr">${esc(g.code||'')}</small></span>
-        <button class="btn sm quiet" data-copy="${esc(g.link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>
+        <button class="btn sm quiet" data-copy="${esc(g.link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>`}
       ${(g.rules||[]).map(r=>`<div class="srow">${ico('i-lock')}<span class="sp">${esc(r)}</span></div>`).join('')}</div>
   </div>`;
 }

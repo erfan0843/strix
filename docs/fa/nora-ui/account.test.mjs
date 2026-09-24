@@ -400,6 +400,7 @@ async function load(store,hash){
     'ورود به باشگاه: اول فرم سرپرست، بعد حق عضویت');
   ok(p.all('#viewBox .segbtn').length>=6,'فرم باشگاه با انتخاب، نه تایپ');
   ok(!p.txt('#viewBox').includes('تریبون آزاد'),'تا عضو نشوی، تریبون آزاد بسته است');
+  ok(p.txt('#viewBox').includes('پس از تکمیل عضویت')&&!p.txt('#viewBox').includes('NVP'),'لینک گروه پیش از عضویت بسته است');
   p.click('[data-clubsend]'); await wait(200);
   ok(p.txt('#toast').includes('مانده'),'فرم ناقص، جلوی ادامه را می‌گیرد');
   const cf=(k,v)=>p.click(`[data-cf="${k}"][data-cv="${v}"]`);
