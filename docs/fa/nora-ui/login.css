@@ -1,8 +1,9 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا — صفحهٔ ورود (login.html)
    ──────────────────────────────────────────────────────────────────────────
-   یک کارت، وسط صفحه، آرام: نشان، نام، شماره، کد امنیتی، دکمهٔ ورود و دو
-   پیام‌گیر. هیچ چیز دیگری روی صفحه نیست تا چشم راه را گم نکند.
+   یک کارت، وسط صفحه، آرام: نشان، نام، شماره، کد امنیتی تصویری، دکمهٔ ورود و
+   خط اطمینان. هیچ چیز دیگری روی صفحه نیست تا چشم راه را گم نکند؛ هیچ دکمه یا
+   نشان پیام‌گیری هم این‌جا نیست.
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* ── حرکت: کوتاه و نرم، مثل بقیهٔ صفحه‌ها ────────────────────────── */
@@ -64,19 +65,6 @@
   height:44px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--hairline)}
 .lgbtn.quiet:hover{color:var(--ink)}
 .lgacts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-
-/* ── «ورود با» و پیام‌گیرها ───────────────────────────────────────── */
-.lgvia{display:flex;align-items:center;gap:10px;margin:6px 0 0;color:var(--ink-3);font-size:12.5px;font-weight:700}
-.lgvia::before,.lgvia::after{content:'';flex:1;height:1px;background:var(--hairline)}
-.lgmsgs{display:flex;justify-content:center;gap:26px;padding:6px 0 2px}
-.lgmsg{display:grid;justify-items:center;gap:6px;border:0;background:none;font:inherit;cursor:pointer;padding:2px 4px}
-.lgmsg small{font-size:11.5px;font-weight:700;color:var(--ink-3)}
-.lgmk{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;overflow:hidden;
-  box-shadow:var(--sh-1),0 0 0 .5px var(--hairline);transition:transform var(--t) var(--spring)}
-.lgmk svg{width:100%;height:100%;display:block}
-.lgmsg:hover .lgmk,.lgmsg:focus-visible .lgmk{transform:translateY(-2px) scale(1.05)}
-.lgmsg:active .lgmk{transform:scale(.96)}
-.lgmk.big{width:50px;height:50px;border-radius:16px}
 
 /* ── کد امنیتی تصویری: تصویر، کادر، دکمهٔ تصویر تازه ─────────────── */
 .lgcapbox{display:flex;align-items:center;gap:9px;height:56px;padding:0 8px 0 10px;border-radius:var(--r-md);
@@ -204,3 +192,9 @@
   .lgbot.from svg{animation:none}
   .lgotp.bad .otpbox{animation:none}
 }
+
+/* ── نگارهٔ پلهٔ کد: یک نشان ساده، بی رنگ پیام‌گیر ─────────────────── */
+.lgbot.plain{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;
+  background:var(--brand-tint);box-shadow:none;margin:2px auto 2px}
+.lgbot.plain .i{width:26px;height:26px;color:var(--brand-ink)}
+.lgbot.from{display:none}

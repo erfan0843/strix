@@ -24,6 +24,7 @@ const MON=A.months||{sh:'شهریور'};
 const TRUST=N.TRUST||{}, TRUST_ROWS=TRUST.row||[];
 const PF=A.profileForm||{}, DELFLOW=A.deleteFlow||{};
 const MY=A.myEvents||{}, MY_UP=MY.up||[], MY_PAST=MY.past||[];
+const MY_INFO=MY.info||{}, TABS=MY.tabs||{}, GRP=MY.groups||{};
 const myUp=()=>EVENTS.filter(e=>MY_UP.indexOf(e.id)>-1);
 const myPast=()=>PAST.filter(e=>MY_PAST.indexOf(e.id)>-1);
 /* شمارش روز و ساعت و دقیقه تا شروع رویداد؛ از ساعت خودِ دستگاه */
@@ -118,8 +119,8 @@ function headGuest(){
       </div>
       <button class="btn primary" data-login>${ico('i-mobile')} ورود با شمارهٔ موبایل</button>
       <button class="btn quiet sm demo" type="button" data-demo>${ico('i-eye')} نمای نمونهٔ حساب را ببین</button>
-      <p class="cap" style="margin:11px 2px 0">شماره را که بنویسی، به بله یا ایتا تحویل می‌شود و کد را از همان
-        پیام می‌گیری. رمز و گذرواژه‌ای در کار نیست.</p>
+      <p class="cap" style="margin:11px 2px 0">شماره را که بنویسی، کد چهاررقمی به بله می‌آید و همان‌جا
+        می‌گیری. رمز و گذرواژه‌ای در کار نیست.</p>
       <p class="cap" style="margin:6px 2px 0">${esc(SUP.n||'پشتیبانی')} و راهنما هم صفحهٔ خودش را دارد و بدون ورود باز
         می‌شود؛ نشانش هم کنار اعلان‌ها بالای صفحه است.</p>
     </div>`;
@@ -260,135 +261,183 @@ const gate=t=>`<div class="card acct gate">${ico('i-lock')}
     <button class="btn quiet" data-go="support">پشتیبانی، بدون ورود</button></div></div>`;
 
 /* ══ رویدادهای من ═══════════════════════════════════════════════════ */
-const VTABS=[{k:'up',n:'پیش‌رو'},{k:'past',n:'برگزارشده'},{k:'tickets',n:'بلیت و گواهی'},
-             {k:'attend',n:'کارنامهٔ حضور'},{k:'reviews',n:'نظرهای من'}];
-function evRow(e){
-  return `<div class="erow">
-    <span class="when"><b>${faD(e.dn||'')}</b><small>${esc(monOf(e))}</small></span>
-    <span class="tx"><b>${esc(e.t)}</b><small>${ico('i-clock')} ${esc([e.when,e.time,e.place].filter(Boolean).join(' · '))}</small>
-      ${cdLine(e)}
-      <span class="bt">
-        <a class="btn sm quiet" href="event.html?id=${esc(e.id)}">${ico('i-chev-left')} صفحهٔ رویداد</a>
-        <button class="btn sm quiet" data-ticket="${esc(e.id)}">${ico('i-qr')} کارت ورود</button>
-        <button class="btn sm quiet" data-cancel="${esc(e.id)}">لغو</button></span></span></div>`;
+const VTABS=[{k:'up',n:'پیش‌رو'},{k:'past',n:'برگزارشده'},{k:'notes',n:'نظر و نظرسنجی'}];
+
+/* ══ باشگاه و امتیاز من ═════════════════════════════════════════════ */
+/* ══ رویدادهای من: کارت‌های شخصی و جزئیات داخل خودشان ══════════════
+   این‌جا فهرست رویدادهای رویدادها نیست؛ فقط چیزهای خودِ کاربر است و روی
+   هر کارت که بزند، جزئیات همان رویداد (بلیت، گواهی، فایل آفلاین، نظر و
+   نظرسنجی) در همان صفحه باز می‌شود، نه در صفحهٔ رویدادها. */
+function myInfo(id){ return MY_INFO[id]||{} }
+function noteState(id){
+  const inf=myInfo(id), n=inf.note||{};
+  const hasC=!!n.comment, hasS=!!(n.survey&&!n.survey.ask), askS=!!(n.survey&&n.survey.ask);
+  return {hasC, hasS, askS, done:hasC&&!askS, pending:!hasC||askS, n};
 }
-function pastRowMine(h){
-  return `<div class="erow">
-    <span class="when"><b>${faD(h.dn||'')}</b><small>${esc(monOf(h))}</small></span>
-    <span class="tx"><b>${esc(h.t)}</b><small>${ico('i-archive')} ${esc(h.d||'')} · ${faN(h.mediaCount||0)} رسانه</small>
-      <span class="bt">
-        <a class="btn sm quiet" href="event.html?id=${esc(h.id)}">${ico('i-play')} ضبط و رسانه‌ها</a>
-        <button class="btn sm quiet" data-dl-cert="${esc((CERTS&&Object.keys(CERTS)[0])||'NL-T4K7M9X')}">${ico('i-medal')} گواهی</button>
-      </span></span></div>`;
+function mineAll(){
+  return [].concat(myUp().map(e=>({e,past:false})), myPast().map(e=>({e,past:true})));
 }
-function pastRow(h){
-  return `<div class="erow past">
-    <span class="when"><b>${faD(h.dn||'')}</b><small>${esc(monOf(h))}</small></span>
-    <span class="tx"><b>${esc(h.t)}</b><small>${ico('i-play-f')} ${esc(h.d)} · ${esc(h.rec||'')}</small>
-      <span class="bt">
-        <button class="btn sm quiet" data-open-past="${esc(h.id)}">${ico('i-play-f')} ضبط و جزوه</button>
-        ${h.cert?`<button class="btn sm quiet" data-cert="${esc(h.id)}">${ico('i-medal')} گواهی</button>`:''}</span></span></div>`;
+function pendingNotes(){ return mineAll().filter(x=>{ const st=noteState(x.e.id); return !st.hasC||st.askS }) }
+function chipsOf(id,past){
+  const inf=myInfo(id), st=noteState(id), chips=[];
+  if(inf.ticket&&inf.ticket.ok) chips.push(chip('بلیت فعال','ok'));
+  if(inf.cert&&inf.cert.st==='ready') chips.push(chip('گواهی آماده','gold'));
+  if(inf.cert&&inf.cert.st==='pending') chips.push(chip('گواهی در انتظار تأیید','warn'));
+  if((inf.off||[]).length) chips.push(chip(faN(inf.off.length)+' فایل آفلاین'));
+  if(past&&(inf.att||[]).length) chips.push(chip('کارنامهٔ حضور'));
+  if(st.hasC) chips.push(chip(MY.noteDone||'نظر دادم','ok'));
+  if(st.pending) chips.push(chip(st.askS?(MY.surveyAsk||'نظرسنجی'):(MY.noteAsk||'نظر'),'warn'));
+  return chips.join('');
+}
+function evCard(e,past){
+  const st=noteState(e.id);
+  return `<button class="evcard" type="button" data-myev="${esc(e.id)}" aria-label="${esc(e.t)}، جزئیات">
+    <span class="ec-cover" style="--g:${esc(e.g||'')}">
+      ${e.poster?`<img src="${esc(e.poster)}" alt=""/>`:''}
+      <span class="ec-when"><b>${faD(e.dn||'')}</b><small>${esc(monOf(e))}</small></span>
+      <span class="ec-tag${past?'':' live'}">${past?'برگزار شد':esc(e.when||'')}</span>
+    </span>
+    <span class="ec-body">
+      <b class="ec-t">${esc(e.t)}</b>
+      <small class="ec-s">${esc([e.time,e.place].filter(Boolean).join(' · '))}</small>
+      ${past?'':cdLine(e)}
+      <span class="ec-chips">${chipsOf(e.id,past)}</span>
+      <span class="ec-go">${ico('i-chev-left')} ${esc((MY.sheet||{}).open||'دیدن جزئیات')}
+        ${st.pending?`<i class="ec-dot" aria-label="منتظر نظر"></i>`:''}</span>
+    </span></button>`;
+}
+function cardsBox(cards){ return `<div class="evcards">${cards.map(x=>evCard(x.e,x.past)).join('')}</div>` }
+function notesBar(){
+  const p=pendingNotes();
+  if(!p.length) return '';
+  return `<div class="notebar anim">${ico('i-star')}
+    <span class="tx"><b>${faN(p.length)} رویداد منتظر نظر توست</b>
+      <small>نظر یا نظرسنجی‌ات را همان‌جا بنویس</small></span>
+    <button class="btn sm primary" data-goto-notes>ببینم</button></div>`;
 }
 function panelUp(){
-  const mine=myUp();
+  const mine=myUp().map(e=>({e,past:false}));
   if(!mine.length) return card('پیش‌روی من',MY.lead||'',empty2('هنوز ثبت‌نامی نداری',MY.empty||''))+
     note('فهرست همهٔ رویدادها صفحهٔ خودش را دارد؛ این‌جا فقط مالِ خودت است.','i-calendar');
-  return card('پیش‌روی من',faN(mine.length)+' رویداد ثبت‌نام‌شده — '+esc(MY.lead||''),'i-calendar',
-    mine.map(evRow).join(''))+
-    note(MY.inEvent||'هر جزئیاتی در صفحهٔ خودِ رویداد است.','i-layers')+
+  return notesBar()+card('پیش‌روی من',faN(mine.length)+' رویداد ثبت‌نام‌شده — '+esc(MY.lead||''),'i-calendar',
+    cardsBox(mine)+`<p class="cap" style="margin:10px 3px 0">${esc(MY.inEvent||'')}</p>`)+
     trustLine('secure');
 }
 function panelPast(){
-  const mine=myPast();
+  const mine=myPast().map(e=>({e,past:true}));
   if(!mine.length) return card('برگزارشده‌ها','',empty2('هنوز رویداد برگزارشده‌ای نداری','بعد از هر رویداد، ضبط و گواهی همین‌جا می‌آید.'));
-  return card('برگزارشده‌های من',faN(mine.length)+' رویداد؛ ضبط، رسانه و گواهی','i-archive',
-    mine.map(pastRowMine).join(''))+
-    note('هر رویداد، صفحهٔ خودش را دارد: ضبط، رسانه، گواهی و کارنامهٔ حضور همان‌جا است.','i-archive');
+  return notesBar()+card('برگزارشده‌های من',faN(mine.length)+' رویداد؛ بلیت، گواهی، ضبط و کارنامه','i-archive',
+    cardsBox(mine)+`<p class="cap" style="margin:10px 3px 0">${esc(MY.inEvent||'')}</p>`)+
+    trustLine('secure');
 }
-function panelTickets(){
-  const p=prof(), u=sess(), mine=myUp();
-  const certKey=(CERTS&&Object.keys(CERTS)[0])||'NL-T4K7M9X', test=CERTS[certKey]||{};
-  const ticketRow=e=>{
-    const code=String(e.id||'e1').toUpperCase()+'‑'+faN(4567);
-    return `<div class="tk">${ico('i-qr','width:19px;height:19px;color:var(--brand)')}
-      <span><b>${esc(e.t)}</b><small>${esc(e.when||'')} · ${esc(e.place||'')} · کد ورود ${esc(code)}</small>
-        <span class="acts">${chip('بلیت فعال','ok')}
-          <button class="btn sm quiet" data-dl-ticket="${esc(e.id)}">${ico('i-download')} دانلود بلیت</button>
-          <button class="btn sm quiet" data-ticket="${esc(e.id)}">${ico('i-qr')} کارت ورود</button></span></span></div>`;
+function panelNotes(){
+  const all=mineAll();
+  const pend=all.filter(x=>noteState(x.e.id).pending);
+  /* یک رویداد یک ردیف دارد: یا چیزی داده‌ای، یا منتظر توست */
+  const given=all.filter(x=>{ const st=noteState(x.e.id); return st.hasC&&!st.askS });
+  const askRow=({e,past})=>{
+    const st=noteState(e.id);
+    return `<div class="tk">${ico('i-star','width:19px;height:19px;color:var(--accent-ink)')}
+      <span><b>${esc(e.t)}</b>
+        <small>${esc(past?'برگزار شد':'پیش‌رو')} · ${esc(e.when||e.d||'')}${st.askS?' · '+esc((st.n.survey||{}).n||'نظرسنجی'):''}</small>
+        ${st.hasS?`<span class="cap">${esc(((st.n.survey||{}).answers||[]).join(' · '))}</span>`:''}
+        <span class="acts">${st.hasS?chip(MY.surveyDone||'نظرسنجی پر شد','ok'):''}
+          ${chip(st.askS?(MY.surveyAsk||'نظرسنجی'):(MY.noteAsk||'نظر'),'warn')}
+          <button class="btn sm primary" data-myev="${esc(e.id)}" data-ask="${st.askS?'survey':'comment'}">
+            ${st.askS?'شرکت در نظرسنجی':'نوشتن نظر'}</button></span></span></div>`;
   };
-  const certRow=`<div class="tk">${ico('i-medal','width:19px;height:19px;color:var(--brand)')}
-        <span><b>${esc(test.c||'کارگاه عکاسی مقدماتی')}</b>
-          <small>صادر ${esc(test.d||'۲۱ شهریور ۱۴۰۵')} · ${esc(test.h||'۲۴ ساعت')} · سریال ${esc(certKey)}</small>
-          <span class="acts">${chip('آمادهٔ دانلود','ok')}
-            <button class="btn sm quiet" data-dl-cert="${esc(certKey)}">${ico('i-send')} دانلود</button>
-            <button class="btn sm quiet" data-verify="${esc(certKey)}">استعلام</button></span></span></div>`;
-  const kinds=(POL.certKinds||[]).map(k=>{
-    const b=k.k==='free'?'دریافت':'سفارش', cls=k.k==='free'?'quiet':'primary';
-    return `<div class="kind">${ico('i-doc','width:19px;height:19px;color:var(--ink-4)')}
-        <span class="tx"><b>${esc(k.n)}</b><small>${esc(k.s)}</small></span>
-        <button class="btn sm ${cls}" data-certreq="${esc(k.k)}">${b}</button></div>`;
-  }).join('');
-  const certNote=note((POL.certNote||'شرط صدور هر رویداد جداست')+' · اعتبار پیش‌فرض هر گواهی '+
-        faN(POL.certValidMonths||24)+' ماه است.','i-shield');
-  return `<div class="idcard anim">
-      <div class="idcover">${ico('i-idcard-f')}
-        <b>${esc(p.fullName||u.name||'کاربر نورا')}</b>
-        <small>کارت عضویت نورا · عضو از ${esc(u.joined||A.joined||'۱۴۰۴')}</small>
-        <div class="bktags" style="display:flex;gap:6px;margin-top:9px">${chip('فعال','ok')}</div>
-      </div>
-      <div class="idbody">
-        <div class="stat2">
-          <span><b>NL-4567</b><small>کد عضویت</small></span>
-          <span><b>${faN(mine.length)}</b><small>بلیت فعال</small></span>
-        </div>
-        <div class="brandline"><span class="mark" aria-hidden="true"></span> این کارت را در ورودی نشان بده</div>
-      </div></div>
-    ${card('بلیت‌های من','هر بلیت مالِ خودِ همان رویداد است؛ جزئیاتش در صفحهٔ آن رویداد','i-ticket',
-      mine.length?mine.map(ticketRow).join(''):empty2('بلیتی نداری','از صفحهٔ رویدادها یکی را ثبت‌نام کن.'))}
-    ${card('گواهی‌های من','هر گواهی سریال خودش را دارد؛ با همان می‌شود استعلام گرفت','i-medal',certRow)}
-    ${card('گونه‌های گواهی','در نورا چهار گونه گواهی داریم','i-doc',`<div class="kinds">${kinds}</div>`+certNote)}
-    ${trustLine('secure')}`;
+  const givenRow=({e})=>{
+    const st=noteState(e.id), c=st.n.comment||{}, sv=st.n.survey||{};
+    const body=[st.hasC?esc(c.text||'نظرت'):'', st.hasS?esc((sv.answers||[]).join(' · ')):''].filter(Boolean).join(' · ');
+    const meta=[st.hasC?esc(c.at||'')+' · '+faN(c.stars||'۵')+' از ۵':'', st.hasS?esc(sv.n||'نظرسنجی'):''].filter(Boolean).join(' · ');
+    return `<div class="tk">${ico('i-check','width:19px;height:19px;color:var(--ok)')}
+      <span><b>${esc(e.t)}</b>
+        <small>${body}</small>
+        <span class="cap">${meta}</span>
+        <span class="acts">${st.hasC?chip(MY.noteDone||'نظر دادم','ok'):''}${st.hasS?chip(MY.surveyDone||'نظرسنجی پر شد','ok'):''}
+          <button class="btn sm quiet" data-myev="${esc(e.id)}">دیدن</button></span></span></div>`;
+  };
+  return card('نظر و نظرسنجی','نظر و نظرسنجی‌ات مالِ خودِ همان رویداد است؛ همین‌جا می‌بینی و می‌نویسی','i-star',
+    (pend.length?`<div class="gt cap" style="margin:2px 3px 8px">منتظر نظر تو</div>`+pend.map(askRow).join(''):'')+
+    (given.length?`<div class="gt cap" style="margin:14px 3px 8px">نظرها و نظرسنجی‌های تو</div>`+given.map(givenRow).join(''):'')+
+    (!pend.length&&!given.length?empty2('چیزی نمانده','هر رویدادی که بگذرد، نظر و نظرسنجی‌اش همین‌جا می‌آید.'):''))+
+    trustLine('privacy');
 }
-function panelAttend(){
-  const score=A.score||{}, months=[40,62,55,78,66,84,72,90,60,74,88,96];
-  const sess5=[{d:'امروز شنبه',t:'حلقهٔ مطالعهٔ ادبیات',s:'حاضر'},{d:'شنبهٔ پیش',t:'جلسهٔ شعر و موسیقی',s:'حاضر'},
-    {d:'۲۹ شهریور',t:'کارگاه عکاسی در طبیعت',s:'غایب'},{d:'۲۶ شهریور',t:'نشست مالی خانواده',s:'حاضر'},
-    {d:'۲۱ شهریور',t:'کارگاه فن بیان',s:'حاضر'}];
-  const mons=['فرو','ارد','خرد','تیر','مرد','شهر','مهر','آبا','آذر','دی','بهم','اسف'];
-  return card('کارنامهٔ حضور من','حضور، غیبت و ساعت‌هایی که با نورا بودی','i-chart',
-      `<div class="stat2">
-        ${[['٪'+faN(score.attend||88),'نرخ حضور'],['۱۱','برنامهٔ پیش‌رو امسال'],
-           [faN(ARCHIVE.hours||0),'ساعت کارگاه'],['٪'+faN(score.growth?Math.min(100,Math.round(score.growth/2)):90),'پیشرفت امسال']]
-          .map(([v,l])=>`<span><b>${v}</b><small>${esc(l)}</small></span>`).join('')}</div>
-      <div class="bars" role="img" aria-label="حضور دوازده ماه گذشته">
-        ${months.map((v,i)=>`<span class="bar${i===2||i===4?' off':''}"><span class="bcol"><i class="bfill" style="height:${Math.max(8,Math.round(v*0.86))}%"></i></span><small>${esc(mons[i])}</small></span>`).join('')}</div>
-      <div class="barscap"><span class="cap">دوازده ماه گذشته</span><span class="sp" style="flex:1"></span>
-        <span class="cap">کم‌رنگ‌ها ماه‌های کم‌حضور</span></div>`)+
-    card('جلسه‌های آخر',faN(sess5.length)+' جلسهٔ گذشته','i-clock',
-      sess5.map(x=>`<div class="tk">${ico('i-calendar','width:19px;height:19px;color:var(--ink-4)')}
-        <span><b>${esc(x.t)}</b><small>${esc(x.d)} · حضور و غیاب جلسه</small></span>
-        ${chip(x.s,x.s==='حاضر'?'ok':'stop')}</div>`).join(''));
+/* ── ورقهٔ «رویداد من»: بلیت، گواهی، آفلاین، حضور و نظر، همه در یک جا ── */
+function offRow(o,id){
+  const kd={pdf:'فایل', audio:'صدا', video:'ویدیو'}[o[0]]||'قلم';
+  return `<div class="offrow">${ico(o[0]==='pdf'?'i-doc':o[0]==='audio'?'i-headphone':'i-play',
+      'width:19px;height:19px;color:var(--ink-4)')}
+    <span class="sp">${esc(o[1])}<small>${esc(kd)} · ${esc(o[2])}</small></span>
+    <button class="btn sm quiet" data-off="1">${ico('i-download')} دانلود</button></div>`;
 }
-function panelReviews(){
-  const R=[{e:'کارگاه فن بیان، ترم تیر',r:5,d:'۲۹ تیر',q:'تمرین‌های هفتگی باعث شد بالاخره جلوی جمع حرف بزنم.'},
-           {e:'نشست مالی خانواده',r:4,d:'۱۲ تیر',q:'مثال‌های واقعی خوب بود؛ کاش یک جلسهٔ بیشتر داشت.'},
-           {e:'حلقهٔ مطالعهٔ ادبیات',r:5,d:'۵ تیر',q:'یادداشت سرپرست باشگاه هر جلسه ارزشش را دارد.'}];
-  return card('نظرهای من',faN(R.length)+' نظر نوشته‌ای؛ ممنون که راه را برای بقیه روشن می‌کنی','i-star',
-      R.map(x=>`<div class="tk">${ico('i-star','width:19px;height:19px;color:#C9A96A')}
-        <span><b>${esc(x.e)}</b><small>${esc(x.d)} · ${'★'.repeat(x.r)}</small>
-          <p class="sub" style="margin:4px 0 0">${esc(x.q)}</p>
-          <span class="acts"><button class="btn sm quiet" data-edit-review="${esc(x.e)}">ویرایش</button></span></span></div>`).join(''))+
-    card('نظر تازه','بعد از هر رویداد می‌توانی امتیاز بدهی','i-pen',
-      `<button class="btn primary" data-go="events">${ico('i-pen')} نوشتن نظر برای رویداد آخر</button>`);
+function myEventSheet(id){
+  const e=EVENTS.find(x=>x.id===id)||PAST.find(x=>x.id===id)||{};
+  const past=!EVENTS.find(x=>x.id===id), inf=myInfo(id), st=noteState(id);
+  const c=(inf.cert||{}), cTxt=c.st==='ready'?'آمادهٔ دانلود':c.st==='pending'?'در انتظار تأیید سرپرست':'بعد از پایان برنامه';
+  const t=(inf.ticket||{});
+  const att=(inf.att||[]);
+  const head=`<div class="grabber"></div>
+    <div class="head">${esc(e.t||'رویداد من')}</div>
+    <p class="sub" style="margin-top:6px">${esc([past?'برگزار شد':e.when,e.time,e.place].filter(Boolean).join(' · '))}</p>`;
+  const countdown=past?'':cdLine(e);
+  const info=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.info||'اطلاعات ثبت‌نام')}</div>
+    <div class="stack tight">
+      <div class="srow">${ico('i-ticket')}<span class="sp">کد ثبت‌نام</span><b class="num">${esc(inf.code||'—')}</b></div>
+      <div class="srow">${ico('i-users')}<span class="sp">نوع شرکت</span><b>${esc(inf.kind||'حضوری')}</b></div>
+      ${(inf.seat||inf.link)?`<div class="srow">${ico('i-pin')}<span class="sp">${esc(inf.seat?'جای نشستن':'راه ورود')}</span>
+        <b>${esc(inf.seat||inf.link)}</b></div>`:''}
+      <div class="srow">${ico('i-wallet')}<span class="sp">پرداخت‌شده</span><b>${esc(inf.pay||'رایگان')}</b></div>
+    </div>`;
+  const ticket=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.ticket||'بلیت و ورود')}</div>`+
+    (t.ok===undefined
+      ? `<div class="srow">${ico('i-ticket')}<span class="sp">بلیت جدا ندارد<small>با همین حساب باز می‌شود؛ کارت ورود لازم نیست</small></span></div>`
+      : `<div class="row tight">
+      <button class="btn sm primary" data-my-ticket="${esc(id)}">${ico('i-qr')} کارت ورود</button>
+      <button class="btn sm quiet" data-my-ticket-dl="${esc(id)}">${ico('i-download')} دانلود بلیت</button>
+      ${t.ok?chip('معتبر','ok'):(past?chip('بلیت مصرف شد'):chip('هنوز صادر نشده','warn'))}
+    </div>`);
+  const cert=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.cert||'گواهینامه')}</div>
+    <div class="srow">${ico('i-medal')}<span class="sp">${esc(cTxt)}<small>${esc(c.id?('سریال '+c.id):'با تأیید سرپرست صادر می‌شود')}</small></span>
+      ${c.st==='ready'?`<button class="btn sm quiet" data-my-cert="${esc(id)}">${ico('i-download')} دانلود</button>`:''}</div>`;
+  const off=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.off||'فایل‌های آفلاین')}</div>
+    ${(inf.off||[]).map(o=>offRow(o,id)).join('')}
+    <div class="row tight" style="margin-top:8px">
+      <button class="btn sm quiet" data-off-all="${esc(id)}">${ico('i-download')} ${esc(MY.offAll||'دانلود همه')}</button>
+      <span class="cap" style="flex:1">${esc(MY.offHint||'')}</span></div>`;
+  const attBox=att.length?`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.att||'کارنامهٔ حضور')}</div>
+    <div class="steps">${att.map(r=>`<div class="step done">
+      <span class="dot">${ico(r[1]==='حاضر'?'i-check':'i-close','width:13px;height:13px')}</span>
+      <span class="tx"><b>${esc(r[0])}</b><small>${esc(r[1])}</small></span></div>`).join('')}</div>`:'';
+  const note=st.hasC?`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.note||'نظر و نظرسنجی')}</div>
+      <div class="mycm">${ico('i-star')}<span class="tx"><b>${faN((st.n.comment||{}).stars||'۵')} از ۵ · نظر تو</b>
+        <small>${esc((st.n.comment||{}).text||'')}</small>
+        <span class="cap">${esc((st.n.comment||{}).at||'')}</span></span></div>
+      ${st.hasS?`<div class="mycm ok">${ico('i-check')}<span class="tx"><b>${esc((st.n.survey||{}).n||'نظرسنجی')}</b>
+        <small>${esc(((st.n.survey||{}).answers||[]).join(' · '))}</small></span></div>`:''}`
+    :`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.note||'نظر و نظرسنجی')}</div>
+      <div class="notebar" style="margin:0">${ico('i-star')}
+        <span class="tx"><b>${esc(st.askS?((st.n.survey||{}).n||'نظرسنجی')+' مانده':'نظرت را ننوشتی')}</b>
+          <small>${st.askS?'یک دقیقه وقت می‌برد؛ بی‌خبر نگذار':'کوتاه بنویس؛ هر وقت خواستی'}</small></span>
+        <button class="btn sm primary" data-ask="${st.askS?'survey':'comment'}" data-myev="${esc(id)}">
+          ${st.askS?'شرکت در نظرسنجی':'نوشتن نظر'}</button></div>`;
+  return `${head}${countdown}${info}${ticket}${cert}${attBox}${off}${note}
+    ${trustLine('secure')}
+    <div class="row" style="margin-top:14px"><button class="btn quiet" data-close>بستن</button></div>`;
 }
+function openMyEvent(id){
+  if(!$('#shMyEvent')) return;
+  fillSheet('shMyEvent',myEventSheet(id));
+  openSheet('shMyEvent');
+}
+
 const VS={};
 VS.events=function(t){
   if(!login()) return viewHead(t,'',VTABS)+gate(t);
-  const body={up:panelUp,past:panelPast,tickets:panelTickets,attend:panelAttend,reviews:panelReviews}[S.vtab];
+  const body={up:panelUp,past:panelPast,notes:panelNotes}[S.vtab];
   return viewHead(t,(VTABS.find(x=>x.k===S.vtab)||{}).n||'',VTABS)+(body?body():'');
 };
 
-/* ══ باشگاه و امتیاز من ═════════════════════════════════════════════ */
 function invitePanel(){
   const code='NORA-4567', need=+POL.inviteNeed||2, done=1;
   return card('دعوت دوستان','هر دوست که با کد تو بیاید، هر دو امتیاز می‌گیرید','i-users',
@@ -667,6 +716,53 @@ function privacyPanel(){
        <div class="srow">${ico('i-lock')}<span class="sp">شمارهٔ موبایل، فقط برای ورود و یادآوری</span></div>`)+
     trustCard();
 }
+/* نوشتن نظر و پر کردن نظرسنجی: همان رویداد، همان ورقه.
+   نظرهای نوشته‌شده زیر کلید خودش می‌مانند تا بعد از بستن هم سرِ جایشان باشند. */
+const NOTE_KEY='nora-home-mynotes';
+function noteStore(){ try{ const v=JSON.parse(localStorage.getItem(NOTE_KEY)||'{}'); return v&&typeof v==='object'?v:{} }catch(e){ return {} } }
+function notePick(text){ return String(text||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,300) }
+function mergeNotes(){
+  const st=noteStore();
+  Object.keys(st).forEach(id=>{ const inf=MY_INFO[id]; if(!inf) return;
+    inf.note=Object.assign({},inf.note||{},st[id]); });
+}
+function askNote(id,kind){
+  const e=EVENTS.find(x=>x.id===id)||PAST.find(x=>x.id===id)||{};
+  const survey=kind==='survey';
+  S.myStars='۵';
+  const stars=survey?'':`<div class="row tight" style="margin:10px 0 4px">${['۱','۲','۳','۴','۵'].map(n=>
+    `<button class="chip${n==='۵'?' on':''}" data-star="${n}" type="button">${n}</button>`).join('')}</div>`;
+  fillSheet('shMyNote',`<div class="grabber"></div>
+    <div class="head">${survey?'نظرسنجی':'نظر تو'}</div>
+    <p class="sub" style="margin-top:6px">${esc(e.t||'')}</p>
+    <label class="lbl" for="myNoteText" style="margin-top:12px;display:block">
+      ${survey?'پاسخ‌هایت را بنویس':'نظرت را بنویس'}</label>
+    <textarea class="input" id="myNoteText" rows="3" placeholder="${survey?'مثلاً: محتوا خوب بود، صدا ضعیف بود':'کوتاه و صادقانه بنویس…'}"></textarea>
+    ${stars}
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" id="myNoteGo">${survey?'فرستادن نظرسنجی':'ثبت نظر'}</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بعداً</button></div>`);
+  S.myNote=id; S.myKind=survey?'survey':'comment';
+  openSheet('shMyNote');
+}
+function noteStoreAndSave(id,n){
+  const st=noteStore(); const one={};
+  if(n.comment) one.comment=n.comment;
+  if(n.survey) one.survey=n.survey;
+  st[id]=one; try{localStorage.setItem(NOTE_KEY,JSON.stringify(st))}catch(e){}
+}
+function saveNote(text,survey){
+  const id=S.myNote||''; if(!id) return;
+  const inf=myInfo(id), n=Object.assign({},inf.note||{});
+  const body=notePick(text);
+  if(survey) n.survey={n:((n.survey||{}).n)||'نظرسنجی این رویداد', at:nowFa(), answers:[body||'پاسخ ثبت شد']};
+  else { const st=S.myStars||'۵'; n.comment={at:nowFa(), stars:st, text:body||'نظر ثبت شد'} }
+  inf.note=n; MY_INFO[id]=inf;
+  noteStoreAndSave(id,n);
+  closeSheets(); render();
+  toast(survey?'نظرسنجی ثبت شد؛ ممنون که وقت گذاشتی':'نظرت ثبت شد؛ همین‌جا می‌ماند');
+  setTimeout(()=>openMyEvent(id),260);
+}
 /* عکس پروفایل: پارامتر تصویری فرم — بارگذاری یا عکس نمونه */
 function demoPhoto(){
   const p=prof(), cur=p.photo||PHOTO_SEED[0];
@@ -700,7 +796,7 @@ function trustSheet(){
 
 /* ورود و امنیت: شماره، دستگاه‌ها، پیام‌گیرها و خروج */
 function authPanel(){
-  const ph=phone(), ms=(A.login&&A.login.msgs)||[];
+  const ph=phone(), otp=(A.login&&A.login.otp)||{};
   const devs=[{k:'this', n:'همین دستگاه', d:'کروم · اندروید', i:'i-mobile', at:'همین حالا', now:true},
               {k:'phone', n:'گوشی اندروید', d:'اپلی نورا', i:'i-mobile', at:'دیروز، ۱۹:۱۲'},
               {k:'home', n:'رایانهٔ خانه', d:'سافاری · مک', i:'i-monitor', at:'۱۲ مهر، ۲۱:۴۰'}];
@@ -712,11 +808,13 @@ function authPanel(){
         <span class="sp">رمز و گذرواژه<small>نداریم؛ هر ورود یک کد یک‌بارمصرف است</small></span>${chip('بی رمز','ok')}</div>
        <div class="srow">${ico('i-shield')}
         <span class="sp">دو دستگاه هم‌زمان<small>بیشتر از این، دستگاه تازه نشست قبلی را می‌بندد</small></span>${chip('روشن','ok')}</div>`) +
-    card('راه‌های ورود','شماره به یکی از این پیام‌گیرها تحویل می‌شود و کد را از همان‌جا می‌گیری','i-chat',
-      `<div class="kinds">${ms.map(m=>`<div class="kind">${ico('i-chat','width:19px;height:19px;color:var(--ink-4)')}
-        <span class="tx"><b>${esc(m.n)}</b><small>${esc(m.s||'')}</small></span>
-        <a class="btn sm quiet" href="${esc(m.href||'#')}" target="_blank" rel="noopener">باز کردن</a></div>`).join('')}</div>` +
-      (devs.length?'':'')) +
+    card('راه ورود','کد یک‌بارمصرف را ربات نورا در بله می‌فرستد؛ رمزی نگه نمی‌داریم','i-chat',
+      `<div class="srow">${ico('i-chat')}
+        <span class="sp">${esc(otp.n||'ربات رمز یک‌بارمصرف')}<small>کد چهاررقمی، از همان‌جا</small></span>
+        <a class="btn sm quiet" href="${esc(otp.href||'#')}" target="_blank" rel="noopener">باز کردن در بله</a></div>
+       <div class="srow">${ico('i-refresh')}
+        <span class="sp">اگر کد نیامد<small>در صفحهٔ ورود، «ارسال دوباره» بعد از پایان شمارشگر روشن می‌شود</small></span>
+        <button class="btn sm quiet" data-relogin>صفحهٔ ورود</button></div>`) +
     card('دستگاه‌های واردشده',faN(devs.length)+' دستگاه این حساب را باز کرده‌اند','i-users',
       devs.map(d=>`<div class="drow">${ico(d.i||'i-mobile')}
         <span class="tx"><b>${esc(d.n)}</b><small>${esc(d.d)} · ${esc(d.at)}</small></span>
@@ -913,6 +1011,23 @@ document.addEventListener('click',ev=>{
     p.history=(p.history||[]).filter(h=>h.k!=='delete').concat([{k:'delete',at:nowFa()}]);
     if(UI().saveProfile) UI().saveProfile(p);
     closeSheets(); render(); toast('درخواستت برای کارشناس رفت؛ تا تأیید او چیزی پاک نمی‌شود'); return }
+  /* رویدادهای من: جزئیات همان رویداد، در همین صفحه */
+  const me=t.closest('[data-myev]');
+  if(me){ const ask=t.closest('[data-ask]');
+    if(ask){ askNote(me.dataset.myev,ask.dataset.ask); return }
+    openMyEvent(me.dataset.myev); return }
+  if(t.closest('[data-goto-notes]')){ S.vtab='notes'; render(); return }
+  if(t.closest('#myNoteGo')){ const v=($('#myNoteText')||{}).value||''; saveNote(v,S.myKind==='survey'); return }
+  const stb=t.closest('[data-star]');
+  if(stb){ S.myStars=stb.dataset.star;
+    stb.parentElement.querySelectorAll('.chip').forEach(x=>{ x.classList.toggle('on',x===stb) }); return }
+  const mtk=t.closest('[data-my-ticket]'); if(mtk){ toast('کارت ورود همین رویداد آماده است؛ بارکد در ورودی خوانده می‌شود'); return }
+  const mtd=t.closest('[data-my-ticket-dl]'); if(mtd){ toast('بلیت همین رویداد دانلود شد'); return }
+  const mcr=t.closest('[data-my-cert]');
+  if(mcr){ const cc=(myInfo(mcr.dataset.myCert).cert)||{};
+    toast(cc.id?('گواهینامه با سریال '+cc.id+' دانلود شد'):'گواهینامه پس از تأیید سرپرست دانلود می‌شود'); return }
+  const moff=t.closest('[data-off]'); if(moff){ toast('فایل آفلاین دانلود شد؛ بی اینترنت هم باز می‌شود'); return }
+  const moffa=t.closest('[data-off-all]'); if(moffa){ toast('همهٔ فایل‌های آفلاین همین رویداد دانلود شد'); return }
   const dc=t.closest('[data-dl-cert]'); if(dc){ certDownload(dc.dataset.dlCert); return }
   const cr=t.closest('[data-certreq]'); if(cr){ certAsk(cr.dataset.certreq); return }
   if(t.closest('[data-cert-yes]')){ closeSheets(); toast('سفارش ثبت شد؛ بعد از تأیید سرپرست خبر می‌دهیم'); return }
@@ -999,5 +1114,6 @@ window.addEventListener('hashchange',route);
 
 /* ══ بوت ═════════════════════════════════════════════════════════════ */
 if(typeof initUI==='function') initUI();
+mergeNotes();
 route();
 })();

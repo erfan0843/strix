@@ -1157,7 +1157,7 @@ function authSheet(after){
          <div class="row" style="margin-top:12px"><button class="btn primary" data-uiphone><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
            <button class="btn quiet" data-close>بعداً</button></div>`}
     <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>
-    <p class="cap" style="margin-top:8px"><a href="login.html" style="font-weight:700">ورود با بله و ایتا و تلگرام</a></p>`);
+    <p class="cap" style="margin-top:8px"><a href="login.html" style="font-weight:700">ورود با شمارهٔ موبایل و کد یک‌بارمصرف</a></p>`);
   if(typeof after==='function') authSheet.after=after;   /* از پله‌های ورود رد نشو */
   else if(authSheet.after===undefined) authSheet.after=null;
 }
@@ -1313,7 +1313,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v14') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v15') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

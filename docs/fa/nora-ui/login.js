@@ -5,15 +5,14 @@
    ورود اصلی همین است: کد را سفیر بله می‌فرستد.
 
    پله‌ها:  شماره → کد چهاررقمی ربات → پایان · و برای مدیران: پلهٔ خودش
-   دکمه‌های بله و ایتا لینک مستقیم ربات مؤسسه‌اند: برنامه باز می‌شود، کاربر
-   دکمهٔ «اشتراک شماره» را می‌زند و ادامه همان‌جا در پیام‌گیر می‌رود.
+   هیچ دکمه یا نشان پیام‌گیری این‌جا نیست؛ تنها یک پیوند متنی به ربات رمز
+   یک‌بارمصرف هست تا اگر کد نیامد، خودِ کاربر سراغش برود.
    ══════════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
 
 /* ── داده ─────────────────────────────────────────────────────────── */
 const N=window.NORA||{}, A=N.ACCOUNT||{}, L=A.login||{};
-const MSGS=(L.msgs||[]).slice();
 const CODE_DEMO=String(L.codeDemo||'5432'), CODE_LEN=+(L.codeLen||4);
 const TTL=+(L.ttl||90);                       /* ثانیه، مثل خودِ پیام‌گیر */
 const SESS_KEY='nora-home-user', PEND_KEY='nora-home-auth';
@@ -42,45 +41,18 @@ const sheet=(id,html)=>{
 };
 const shut=()=>{ if(typeof closeSheets==='function') closeSheets() };
 
-/* ── نگارهٔ ربات‌ها: همان نشان خودِ پیام‌گیرها ───────────────────────
-   بله: حباب سبز با تیک سفید. ایتا: دایرهٔ نارنجی با «ه» سفید. */
-const TINT={bale:'#14A85C', eitaa:'#F5821F'};
-function baleArt(size){
-  return `<svg viewBox="0 0 48 48" ${size?`width="${size}" height="${size}"`:''} aria-hidden="true">
-    <defs><linearGradient id="blg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2FC46E"/><stop offset="1" stop-color="#0E9A55"/></linearGradient></defs>
-    <path d="M6.5 8.2c-.4-2.1 1.8-3.8 3.7-2.8l5.2 2.7c3.9-2 8.4-3.1 13.1-3.1 12 0 19.5 7 19.5 17.9 0 10.6-8.4 17.6-19.9 17.6S7.4 33.6 7.4 22.9c0-2.6.4-5 1.3-7.1z"
-      fill="url(#blg)"/>
-    <path d="M15.6 25.2l6.1 6.3 11.7-13" fill="none" stroke="#fff" stroke-width="5"
-      stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-}
-function eitaaArt(size){
-  return `<svg viewBox="0 0 48 48" ${size?`width="${size}" height="${size}"`:''} aria-hidden="true">
-    <defs><linearGradient id="eig" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FB9418"/><stop offset="1" stop-color="#EE7A0B"/></linearGradient></defs>
-    <circle cx="24" cy="24" r="24" fill="url(#eig)"/>
-    <path d="M33.2 24.6c0-5.6-3.9-9.7-9.4-9.7-5.2 0-9.2 4.1-9.2 9.6 0 5.6 4 9.6 9.6 9.6 2.9 0 5.4-.9 7.1-2.4"
-      fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
-    <path d="M15.4 24.4h17.4" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg>`;
-}
-function botArt(k){
-  return `<span class="botart">${k==='eitaa'?eitaaArt(30):baleArt(30)}</span>`;
-}
-const MARK={ bale:baleArt(), eitaa:eitaaArt() };
-const markOf=k=>MARK[k]||MARK.bale;
-const msgOf=k=>MSGS.find(m=>m.k===k)||MSGS[0]||{k:'bale',n:'بله',hand:'',href:'#'};
-/* دو پیوند جدا: ربات مؤسسه برای فرستادن شماره، ربات رمز برای گرفتن کد */
-function withStart(u,start){ if(!u) return '#'; return u+(u.indexOf('?')>-1?'&':'?')+'start='+(start||'login') }
-function botHref(m){ return withStart((m&&m.href)||'',(m&&m.start)||'login') }      /* ربات مؤسسه */
-function otpHref(m){ return withStart((m&&(m.otpUrl||m.href))||'',(m&&m.start)||'login') }  /* ربات رمز */
-function otpName(m){ return (m&&(m.otpBot||m.inst||m.n))||'ربات' }
-function handOf(m){ return (m&&m.hand)||'' }
+/* ── پیوند ربات رمز یکبارمصرف (سفیر بله) ───────────────────────────
+   روی صفحه، هیچ نشان و دکمهٔ پیام‌گیری نیست؛ فقط همین یک لینک ساده
+   می‌ماند که اگر کاربر خواست، ربات را در تب تازه باز کند. */
+const OTP=(L.otp||{});
+const OTP_NAME=OTP.n||'ربات رمز یک‌بارمصرف نورا';
+const OTP_HREF=(OTP.href||'https://ble.ir/verification_code_bot')+'?start=login';
 
 /* ── حالت ─────────────────────────────────────────────────────────── */
 const CAP=L.cap||{}, CAP_CODES=(CAP.codes||[]).slice();
 const CAP_TRIES=+(CAP.tries||3), CAP_LOCK=+(CAP.lockMin||5)*60000;
 const LOCK_KEY='nora-home-caplock';
-const S={step:'phone', mobile:'', via:(MSGS[0]||{}).k||'bale', err:'', wait:TTL, fromBot:false, tries:0,
+const S={step:'phone', mobile:'', err:'', wait:TTL, tries:0,
          cap:'', capTries:0, capLock:0};
 (function(){ const t=+store.get(LOCK_KEY)||0; if(t>Date.now()) S.capLock=t })();
 
@@ -161,8 +133,6 @@ function lockTick(){
 
 /* ── پلهٔ ۱: شماره ────────────────────────────────────────────────── */
 function stepPhone(){
-  const rows=MSGS.map(m=>`<button class="lgmsg" type="button" data-via="${esc(m.k)}" title="${esc(m.hand||m.s||'')}" aria-label="ورود با ${esc(m.n)}">
-      <span class="lgmk">${markOf(m.k)}</span><small>${esc(m.n)}</small></button>`).join('');
   return `<form class="lgstep" id="lgForm" novalidate>
     <label class="lglbl" for="lgPhone">${esc(L.q||'تلفن همراه خود را وارد کنید:')}</label>
     <div class="lgtel" id="lgTel">
@@ -184,22 +154,18 @@ function stepPhone(){
     <p class="lgerr" id="lgErr" hidden></p>
     ${trustLine()}
     <button class="lgbtn" type="submit" id="lgGo">${esc(L.go||'ورود')}</button>
-    <div class="lgvia"><span>${esc(L.via||'یا سریع‌تر')}</span></div>
-    <div class="lgmsgs" role="group" aria-label="${esc(L.via||'ورود با')}">${rows}</div>
-    <p class="lgcap">${esc(L.sms||'')}</p>
   </form>
   <button class="lgbtn quiet admin" type="button" id="lgAdminBtn"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg> ${esc(L.adminBtn||'ورود مدیران')}</button>`;
 }
 
 /* ── پلهٔ ۲: کد چهاررقمی ربات ─────────────────────────────────────── */
 function stepCode(){
-  const m=msgOf(S.via), len=CODE_LEN;
+  const len=CODE_LEN;
   const boxes=Array.from({length:len},(_,i)=>
     `<input class="otpbox num" type="text" inputmode="numeric" autocomplete="${i===0?'one-time-code':'off'}"
       maxlength="1" aria-label="رقم ${faN(i+1)} از ${faN(len)}" data-otp="${i}"/>`).join('');
-  const bot=`<a class="lgblink" id="lgBotLink" href="${esc(otpHref(m))}" target="_blank" rel="noopener">${esc(otpName(m))}</a>`;
-  const lead=esc(L.otpLead||'کد ارسال‌شده در بازوی «{bot}» در {arm} را وارد کنید.')
-    .replace('{bot}',bot).replace('{arm}',esc(m.n||''));
+  const bot=`<a class="lgblink" id="lgBotLink" href="${esc(OTP_HREF)}" target="_blank" rel="noopener">${esc(OTP_NAME)}</a>`;
+  const lead=esc(L.otpLead||'کد چهاررقمی را «{bot}» می‌فرستد.').replace('{bot}',bot);
   const line=S.mobile
     ? `<b class="num" dir="ltr">${phonePretty(S.mobile)}</b>
        <button class="lgedit" type="button" id="lgEditPhone" aria-label="${esc(L.otpEdit||'عوض کردن شماره')}">
@@ -208,10 +174,9 @@ function stepCode(){
        <button class="lgedit" type="button" id="lgEditPhone" aria-label="${esc(L.change||'تغییر شماره')}">
          <svg class="i"><use href="#i-pen"/></svg></button>`;
   return `<form class="lgstep lgotpstep" id="lgForm2" novalidate>
-    <span class="lgbot${S.fromBot?' from':''}" id="lgBot">${botArt(S.via)}</span>
+    <span class="lgbot plain" id="lgBot"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg></span>
     <div class="lgpline">${line}</div>
     <p class="lgotext" id="lgLead2">${lead}</p>
-    <p class="lghandline">${esc(handOf(m))}</p>
     <div class="lgotp" id="lgOtp" dir="ltr" role="group" aria-label="${esc(L.codeCap||'کد چهاررقمی ربات')}">${boxes}</div>
     <p class="lgcount" id="lgCountWrap">${esc(L.otpWait||'زمان باقی‌مانده:')} <b id="lgCount">${faN(TTL)}</b> ${esc(L.otpSec||'ثانیه')}</p>
     <p class="lgerr" id="lgErr2" hidden></p>
@@ -354,19 +319,11 @@ function phoneVal(){
   if(/^9\d{9}$/.test(v)) return '0'+v;              /* بی صفر و ۰۹ هم می‌شود */
   return v;
 }
-/* رفتن به پلهٔ کد؛ اگر از دکمهٔ پیام‌گیر آمده باشیم، ربات هم باز می‌شود */
-function gotoCode(via,openBot){
-  if(via) S.via=via;
-  const m=msgOf(S.via);
-  S.fromBot=!!openBot;
-  store.set(PEND_KEY,{step:'code',mobile:S.mobile,via:S.via});
+/* رفتن به پلهٔ کد: کد را سفیر بله به همین شماره می‌فرستد */
+function gotoCode(){
+  store.set(PEND_KEY,{step:'code',mobile:S.mobile});
   S.step='code'; S.tries=0; paint();
-  if(openBot){
-    try{ window.open(botHref(m),'_blank','noopener') }catch(e){}
-    status((m.inst||('ربات '+m.n))+' باز شد؛ دکمهٔ «فرستادن شماره» را بزن تا کد برسد.');
-  } else {
-    status('کد چهاررقمی به '+(m.n)+' فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است.');
-  }
+  status('کد چهاررقمی به شماره‌ات فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است.');
 }
 /* پلهٔ ۱: شماره و کد امنیتی تصویر */
 function capVal(){ const f=$('#lgCap'); return unFa(f?f.value:'').replace(/\D/g,'') }
@@ -388,14 +345,8 @@ function tryPhone(){
   if(!c){ err(CAP.empty||'عدد تصویر را بنویس.'); shake('#lgCapBox'); return false }
   if(c!==S.cap){ capWrong(); return false }
   S.mobile=v; err(''); S.capTries=0;
-  gotoCode('',false);
+  gotoCode();
   return true;
-}
-/* پلهٔ ۱ با دکمهٔ پیام‌گیر: شماره اگر هست، همراه می‌رود؛ اگر نیست، ربات می‌پرسد */
-function withMessenger(k){
-  const f=$('#lgPhone'); const v=phoneVal();
-  S.mobile=isMob(v)?v:''; err('');
-  gotoCode(k,true);
 }
 function otpVal(){ return $$('.otpbox').map(b=>unFa(b.value).replace(/\D/g,'')).join('') }
 function shake(sel){ const el=$(sel); if(!el) return; el.classList.add('bad'); setTimeout(()=>el.classList.remove('bad'),460) }
@@ -415,7 +366,7 @@ function again(){
   S.wait=TTL; const e2=$('#lgErr2'); if(e2) e2.hidden=true;
   const w=$('#lgCountWrap'); if(w) w.classList.remove('over');
   tick();
-  status('کد تازه به '+otpName(msgOf(S.via))+' رفت.');
+  status('کد تازه به شماره‌ات رفت.');
   toast2('کد تازه فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است');
 }
 function toPhone(){
@@ -496,8 +447,6 @@ document.addEventListener('click',e=>{
   if(t.closest('#lgBack')){ e.preventDefault(); toPhone(); return }
   if(t.closest('#lgEditPhone')){ e.preventDefault(); toPhone(); return }
   if(t.closest('[data-close]')){ shut(); return }
-  const vm=t.closest('[data-via]');
-  if(vm){ e.preventDefault(); withMessenger(vm.dataset.via); return }
   if(t.closest('#scrim')){ shut(); return }
 },false);
 
@@ -558,8 +507,7 @@ function boot(){
   const u=store.get(SESS_KEY);
   const pend=store.get(PEND_KEY);
   if(u&&u.name) S.step='already';
-  else if(pend&&pend.step==='code'&&(pend.mobile&&isMob(pend.mobile))){ S.mobile=pend.mobile; S.via=pend.via||S.via; S.step='code' }
-  else if(pend&&pend.step==='code'&&pend.via){ S.via=pend.via; S.fromBot=true; S.step='code' }
+  else if(pend&&pend.step==='code'&&(pend.mobile&&isMob(pend.mobile))){ S.mobile=pend.mobile; S.step='code' }
   const eye=$('#lgEye'); if(eye) eye.textContent=L.eye||'گروه فرهنگی خط زندگی';
   paint();
   if(S.step==='phone'){ const f=$('#lgPhone'); if(f&&matchMedia('(min-width:520px)').matches){ try{f.focus()}catch(e){} } }
@@ -567,5 +515,5 @@ function boot(){
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 
 /* برای آزمون و صفحه‌های دیگر */
-window.NORA_LOGIN={state:S,signIn:signIn,signOut:signOut,nextUrl:nextUrl,botHref:botHref,otpVal:otpVal};
+window.NORA_LOGIN={state:S,signIn:signIn,signOut:signOut,nextUrl:nextUrl,otpUrl:()=>OTP_HREF,otpVal:otpVal};
 })();

@@ -14,6 +14,7 @@ const DIR=new URL('./',import.meta.url).pathname;
 const wait=(t=120)=>new Promise(r=>setTimeout(r,t));
 function makeStore(init){ const m=new Map(Object.entries(init||{}));
   return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size},_m:m} }
+const fs=await import('fs');
 async function load(store,search){
   const errs=[];
   const dom=await JSDOM.fromFile(DIR+'login.html',{runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,
@@ -69,12 +70,12 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('#lgPhone').length===1,'کادر شماره');
   ok(p.all('.lgtel .pref').length===1&&p.txt('.lgtel .pref')==='۰۹','پیش‌شمارهٔ ۰۹ در کادر');
   ok(p.all('#lgForm .lgbtn').length===1&&p.txt('#lgGo')==='ورود','یک دکمهٔ ورود');
-  ok(p.all('.lgmsgs .lgmsg').length===2,'دو پیام‌گیر');
-  ok(p.all('.lgmsgs .lgmsg').map(b=>b.textContent.trim()).join(',')==='بله,ایتا','نام پیام‌گیرها: بله، ایتا');
-  ok(p.all('.lgmsgs .lgmsg svg').length===2,'نشان هر پیام‌گیر');
+  ok(p.all('.lgmsgs .lgmsg').length===0&&p.all('.lgmsgs').length===0,'هیچ پیام‌گیری روی صفحه نیست');
+  ok(p.all('.lgmk svg').length===0,'نشان بله و ایتا هم برداشته شد');
+  ok(p.doc.body.textContent.indexOf('ایتا')<0,'نام ایتا جایی در صفحه نیست');
   ok(p.doc.body.textContent.indexOf('تلگرام')<0,'تلگرام جایی در صفحه نیست');
   ok(p.all('#lgAdminBtn').length===1&&p.txt('#lgAdminBtn').includes('ورود مدیران'),'دکمهٔ ورود مدیران ته کارت');
-  ok(p.txt('.lgvia').includes('یا سریع‌تر'),'جداکنندهٔ «یا سریع‌تر» بالای پیام‌گیرها');
+  ok(p.all('.lgvia').length===0,'جداکنندهٔ «ورود با» برداشته شد، ورود یک راه است');
   ok(p.all('.lgmsg').every(b=>b.getAttribute('aria-label')),'هر پیام‌گیر برچسب دارد');
   ok(p.txt('.lgcard').includes('۰۹۱۲۳۴۵۶۷۸۹')===false,'نمونهٔ شماره در متن راهنما نیست، در خطا می‌آید');
   p.submit('#lgForm');
@@ -85,7 +86,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   p.phone('۰۹۱۲۳۴۵۶۷۸۹');
   await wait(150);
   ok(p.all('#lgOtp').length===1,'با شمارهٔ درست، به پلهٔ کد می‌رود');
-  ok(p.txt('.lgotext').includes('بله'),'پیش‌فرض: بازوی بله');
+  ok(p.txt('.lgotext').includes('رمز یک‌بارمصرف'),'متن پلهٔ کد: ربات رمز یک‌بارمصرف');
   ok(p.window.NORA_LOGIN.state.mobile==='09123456789','شماره در حالت صفحه می‌ماند');
   ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).mobile==='09123456789','پلهٔ کد در حافظه می‌ماند');
 }
@@ -141,7 +142,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.doc.querySelector('#lgBotLink').getAttribute('rel').includes('noopener'),'پیوند ربات rel دارد');
   ok(p.all('#lgAgain').length===1&&p.doc.querySelector('#lgAgain').disabled===true,'«دوباره بفرست» تا پایان شمارش قفل است');
   ok(p.txt('#lgAgain').includes('دوباره بفرست'),'و برچسبش خوانده می‌شود');
-  ok(p.all('.lghandline').length===1&&p.txt('.lghandline').includes('اشتراک شماره'),'راهنمای دکمهٔ «اشتراک شماره» در ربات مؤسسه');
+  ok(p.all('.lghandline').length===0,'راهنمای پیام‌گیر برداشته شد');
   ok(p.txt('#lgOk')==='ورود','دکمهٔ ورود');
   ok(p.doc.querySelector('.lgbar')!==null,'نوار دکمهٔ ورود جدا شده');
   /* نوشتن رقم‌ها */
@@ -197,34 +198,25 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.window.NORA_LOGIN.state.wait>=88,'و زمان به ابتدا برمی‌گردد');
 }
 
-/* ۴) دکمهٔ پیام‌گیر: ربات مؤسسه باز می‌شود و شماره را می‌پرسد */
+/* ۴) بی پیام‌گیر: هیچ دکمه و نشانی از بله و ایتا نمانده */
 {
-  console.log('\n── بله و ایتا ──');
+  console.log('\n── بی پیام‌گیر ──');
   const p=await load(makeStore());
   const openBefore=p.window.open&&p.window.open.calls?p.window.open.calls.length:0;
-  p.type('#lgPhone','09121234567');
-  p.click('[data-via="eitaa"]'); await wait(150);
-  ok(p.all('#lgOtp').length===1,'دکمهٔ ایتا به پلهٔ کد می‌رود');
-  ok(p.txt('.lgotext').includes('ایتا'),'متن، بازوی ایتا را می‌گوید');
-  ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('eitaa.com'),'لینک آبی به ربات ایتا');
-  ok(p.txt('.lgpline').includes('۹۱۲'),'شماره‌ای که نوشته بودیم همراه می‌رود');
-  ok(p.window.NORA_LOGIN.state.fromBot===true,'حالت «از ربات آمده» ثبت می‌شود');
-  ok(p.window.open&&p.window.open.calls.length>openBefore,'ربات در تب تازه باز می‌شود');
-  ok(p.window.open.calls[p.window.open.calls.length-1].includes('eitaa.com/nora_bot'),'نشانی باز‌شده ربات مؤسسه در ایتاست');
-  ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).via==='eitaa','پیام‌گیرِ انتخابی در حافظه می‌ماند');
-  /* بدون شماره: ربات خودش شماره را می‌پرسد */
-  const q=await load(makeStore());
-  q.click('[data-via="bale"]'); await wait(150);
-  ok(q.all('#lgOtp').length===1,'بی شماره هم به پلهٔ کد می‌رود');
-  ok(q.txt('.lgpline').includes('ربات می‌فرستی'),'و می‌گوید شماره را ربات می‌پرسد');
-  ok(q.window.open.calls[q.window.open.calls.length-1].includes('ble.ir/nora_bot'),'ربات مؤسسه در بله باز می‌شود');
-  ok(q.doc.querySelector('#lgBotLink').getAttribute('href').includes('ble.ir/verification_code_bot'),'و لینک آبی به ربات رمز یک‌بارمصرف می‌رود');
-  q.click('#lgEditPhone'); await wait(140);
-  ok(q.all('#lgPhone').length===1,'مدادِ شماره به پلهٔ نخست برمی‌گردد');
-  /* با شماره، مداد برمی‌گرداند و شماره در کادر می‌ماند */
+  p.phone('09121234567'); await wait(160);
+  ok(p.all('#lgOtp').length===1,'با شماره به پلهٔ کد می‌رود');
+  ok(p.all('[data-via]').length===0,'دکمهٔ پیام‌گیر در صفحه نیست');
+  ok(p.doc.body.textContent.indexOf('بله')<0&&p.doc.body.textContent.indexOf('ایتا')<0,'نه «بله» و نه «ایتا» در متن صفحه');
+  ok((p.window.open.calls?p.window.open.calls.length:0)===openBefore,'هیچ پنجره‌ای خودبه‌خود باز نمی‌شود');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('verification_code_bot'),'لینک آبی به ربات رمز یک‌بارمصرف می‌رود');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('start=login'),'و با پلهٔ ورود می‌رود');
+  ok(p.window.NORA_LOGIN.state.via===undefined,'حالت صفحه دیگر «پیام‌گیر» ندارد');
+  ok(!/msgs:/.test(fs.readFileSync(DIR+'data.js','utf8')),'دادهٔ پیام‌گیرها از data.js برداشته شد');
+  /* شماره‌ای که نوشتیم در پلهٔ کد می‌ماند */
+  ok(p.txt('.lgpline').includes('۹۱۲'),'شمارهٔ نوشته‌شده در پلهٔ کد هست');
   p.click('#lgEditPhone'); await wait(140);
+  ok(p.all('#lgPhone').length===1,'مدادِ شماره به پلهٔ نخست برمی‌گردد');
   ok(p.doc.querySelector('#lgPhone').value==='۰۹۱۲۱۲۳۴۵۶۷','شماره در کادر می‌ماند تا فقط عوضش کنی');
-  ok(p.doc.body.textContent.indexOf('تلگرام')<0&&q.doc.body.textContent.indexOf('تلگرام')<0,'هیچ نشانی از تلگرام در صفحه نیست');
 }
 
 /* ۴.۵) ورود مدیران: نام کاربری و گذرواژه، بی رمز پویا */
@@ -296,16 +288,16 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
 /* ۸) پیمان با بقیهٔ صفحه‌ها */
 {
   console.log('\n── پیوند با بقیهٔ صفحه‌ها ──');
-  const fs=await import('fs');
   const acc=fs.readFileSync(DIR+'account.js','utf8');
   ok(acc.includes("login.html?next="),'حساب من به صفحهٔ ورود می‌فرستد');
   ok(acc.includes('data-logout-yes'),'و خروج از حساب دارد');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'login.html'")&&sw.includes("'login.js'")&&sw.includes("'login.css'"),'سرویس‌ورکر صفحهٔ ورود را پیش‌بار می‌کند');
   const html=fs.readFileSync(DIR+'login.html','utf8');
-  ok(html.includes('login.css?v=25')&&html.includes('login.js?v=25')&&html.includes('data.js?v=25'),'نسخهٔ دارایی‌ها تازه است');
+  ok(html.includes('login.css?v=26')&&html.includes('login.js?v=26')&&html.includes('data.js?v=26'),'نسخهٔ دارایی‌ها تازه است');
   const data=fs.readFileSync(DIR+'data.js','utf8');
-  ok(data.includes("ble.ir")&&data.includes("eitaa.com"),'نشانی بله و ایتا در داده هست');
+  ok(data.includes('ble.ir/verification_code_bot'),'نشانی ربات رمز یک‌بارمصرف در داده هست');
+  ok(!/eitaa\.com/.test(data)&&!/msgs:/.test(data),'ایتا و فهرست پیام‌گیرها از داده برداشته شد');
   ok(data.includes('verification_code_bot'),'شناسهٔ ربات کد یک‌بارمصرف در داده هست');
   ok(data.indexOf('t.me/')<0&&data.indexOf('telegram')<0,'تلگرام از داده برداشته شده');
   ok(data.includes("otpLead")&&data.includes('{bot}'),'متن پلهٔ کد، نام ربات را از داده می‌گیرد');
