@@ -32,6 +32,12 @@
   ],
   "shortcuts": [
     {
+      "name": "پشتیبانی و راهنما",
+      "short_name": "پشتیبانی",
+      "url": "support.html",
+      "description": "پرسش‌های پرتکرار هر بخش، راهنمای تصویری و صوتی و ثبت تیکت"
+    },
+    {
       "name": "حساب من",
       "short_name": "حساب من",
       "url": "account.html",

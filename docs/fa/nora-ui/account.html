@@ -23,11 +23,11 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=15"/>
-<link rel="stylesheet" href="nora.css?v=15"/>
-<link rel="stylesheet" href="account.css?v=16"/>
+<link rel="stylesheet" href="glass.css?v=17"/>
+<link rel="stylesheet" href="nora.css?v=17"/>
+<link rel="stylesheet" href="account.css?v=17"/>
 </head>
-<body>
+<body class="hasbotbar">
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
@@ -69,6 +69,9 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
 <symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 3.8 3.8 10.4l6.4 3 3 6.4z"/><path d="M10.2 13.4 13.6 10"/></g></symbol>
 <symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
 </svg>
 
 <header class="topbar">
@@ -79,6 +82,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     </a>
     <span class="sp"></span>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
+    <a class="icon-btn help-btn" href="support.html" data-open-support aria-label="پشتیبانی و راهنما" title="پشتیبانی و راهنما"><svg class="i"><use href="#i-headphone"/></svg></a>
   </div>
 </header>
 
@@ -86,8 +90,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
   <h1 class="sr">حساب من</h1>
 
-  <!-- نمای پروفایل: همین‌جا ساخته می‌شود (سرِ پروفایل، نورا پی، بخش‌ها) -->
-  <div id="hubBox"></div>
+  <!-- صفحهٔ پروفایل: سرِ پروفایل، میان‌بُرها، رویداد نزدیک و چهار بخش -->
+  <div id="profBox" class="profwrap"></div>
 
   <!-- نمای هر بخش، همین‌جا می‌نشیند -->
   <div id="viewBox" hidden></div>
@@ -98,16 +102,16 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="row" style="justify-content:center;margin:4px 0 8px">
       <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
     </div>
-    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html">رویدادها</a> · <a href="#support">پشتیبانی</a> · © ۱۴۰۵</div>
+    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html">رویدادها</a> · <a href="support.html">پشتیبانی</a> · © ۱۴۰۵</div>
   </footer>
 </main>
 
-<!-- پشتیبانی و راهنما: یک جا، چسبیده به نوار پایین؛ از پایین باز می‌شود -->
-<button class="supbar" id="supBar" data-sheet="shSupport" aria-label="پشتیبانی و راهنما">
+<!-- پشتیبانی و راهنما: نوار پایین، به صفحهٔ خودش می‌رود -->
+<a class="supbar" id="supBar" href="support.html" data-open-support aria-label="پشتیبانی و راهنما">
   <span class="si"><svg class="i" aria-hidden="true"><use href="#i-headphone"/></svg></span>
-  <span class="st"><b>پشتیبانی و راهنما</b><small>کارشناس، پرسش‌های پرتکرار و تماس</small></span>
+  <span class="st"><b>پشتیبانی و راهنما</b><small>گفت‌وگو با کارشناس و پرسش‌های پرتکرار</small></span>
   <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-</button>
+</a>
 
 <nav class="tabbar" aria-label="ناوبری اصلی">
   <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
@@ -115,13 +119,12 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <a href="account.html" class="on" aria-current="page"><svg class="i"><use href="#i-idcard-f"/></svg><small>حساب من</small></a>
 </nav>
 
-<aside class="sheet" id="shSupport" role="dialog" aria-modal="false" aria-label="پشتیبانی و راهنما"><div class="sbody" id="supBody"></div></aside>
 <aside class="sheet" id="shConfirm" role="dialog" aria-modal="false" aria-label="تأیید"><div class="sbody"></div></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=16"></script>
-<script src="ui.js?v=16"></script>
-<script src="account.js?v=16"></script>
+<script src="data.js?v=17"></script>
+<script src="ui.js?v=17"></script>
+<script src="account.js?v=17"></script>
 </body>
 </html>

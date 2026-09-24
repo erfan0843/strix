@@ -7,8 +7,9 @@
    • تصویر، فونت و پوستر: کش اول (این‌ها کم عوض می‌شوند) با به‌روزرسانی پس‌زمینه.
    • بقیهٔ درخواست‌ها: مستقیم از شبکه.
    ══════════════════════════════════════════════════════════════════════════ */
-const V='nora-v5';
-const SHELL=['home.html','account.html','events.html','offline.html','glass.css','nora.css','events.css','account.css','ui.js','data.js','manifest.webmanifest'];
+const V='nora-v6';
+const SHELL=['home.html','account.html','events.html','event.html','support.html','offline.html',
+  'glass.css','nora.css','events.css','account.css','support.css','ui.js','data.js','support.js','manifest.webmanifest'];
 const MEDIA=/\/(people|posters|fonts)\//;
 
 self.addEventListener('install',e=>{

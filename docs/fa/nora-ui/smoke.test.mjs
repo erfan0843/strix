@@ -667,13 +667,15 @@ async function load(file,store,q){
      'خانه، حساب من را به account.html می‌فرستد');
   ok(/f==='shAccount'\)\{ location\.href='account\.html'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
      'منوی مشترک هم به همان صفحه می‌رود');
-  /* پشتیبانی و راهنما یک جا است: ورقه‌های خانه برداشته شد و همه به حساب من می‌روند */
+  /* پشتیبانی صفحهٔ جدای خودش را دارد: ورقه‌های خانه برداشته شد و همه به support.html می‌روند */
   ok(p.doc.querySelector('#shSupport')===null && p.doc.querySelector('#shFaq')===null,'ورقهٔ پشتیبانی خانه برداشته شد');
   ok(!/renderSupport|supBody|faqBody/.test(fs.readFileSync(DIR+'home.html','utf8')),'دیگر پشتیبانی جدا در خانه ساخته نمی‌شود');
-  ok(p.all('#menuBody [data-uihref="account.html#support"]').length>=2,'ردیف‌های پشتیبانی منو به حساب من می‌روند');
-  ok((H.QUICK.find(q=>q.k==='support')||{}).href==='account.html#support','میان‌بر پشتیبانی نشانی حساب من را دارد');
-  ok(/f==='shSupport'\|\|f==='shFaq'\)\{ location\.href='account\.html#support'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
-     'منوی مشترک هم پشتیبانی را به حساب من می‌فرستد');
+  ok(p.all('#menuBody [data-uihref="support.html"]').length>=2,'ردیف‌های پشتیبانی منو به صفحهٔ پشتیبانی می‌روند');
+  ok((H.QUICK.find(q=>q.k==='support')||{}).href==='support.html','میان‌بر پشتیبانی نشانی صفحهٔ پشتیبانی را دارد');
+  ok(/f==='shSupport'\|\|f==='shFaq'\)\{ location\.href='support\.html'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
+     'منوی مشترک هم پشتیبانی را به صفحهٔ پشتیبانی می‌فرستد');
+  ok(fs.readFileSync(DIR+'sw.js','utf8').includes("'support.html'") &&
+     fs.readFileSync(DIR+'sw.js','utf8').includes("'support.css'"),'صفحهٔ پشتیبانی در پیش‌بارگذاری سرویس‌ورکر هست');
   H.openF('shVerify');
   p.doc.querySelector('#serial').value='nl-t4k7m9x';
   p.click('[data-verify]');

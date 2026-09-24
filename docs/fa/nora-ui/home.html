@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css"/>
-<link rel="stylesheet" href="nora.css"/>
+<link rel="stylesheet" href="glass.css?v=17"/>
+<link rel="stylesheet" href="nora.css?v=17"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -480,6 +480,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <span class="sp"></span>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
     <button class="icon-btn" data-notice aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
+    <a class="icon-btn help-btn" href="support.html" aria-label="پشتیبانی و راهنما" title="پشتیبانی و راهنما"><svg class="i"><use href="#i-headphone"/></svg></a>
   </div>
 </header>
 
@@ -652,8 +653,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js"></script>
-<script src="ui.js"></script>
+<script src="data.js?v=17"></script>
+<script src="ui.js?v=17"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا — ویترین گروه فرهنگی خط زندگی
@@ -747,7 +748,7 @@ const QUICK=[
  {k:'articles', i:'i-article', n:'مطالب', s:faN(ARTICLES.length)+' مطلب تازه', j:'articles'},
  {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد', j:'partners'},
  {k:'verify', i:'i-qr', n:'استعلام گواهی', s:'با شمارهٔ سریال', f:'shVerify'},
- {k:'support', i:'i-headphone', n:'پشتیبانی', s:'پیام و راهنما', anim:'wiggle', href:'account.html#support'}
+ {k:'support', i:'i-headphone', n:'پشتیبانی', s:'راهنما و تیکت', anim:'wiggle', href:'support.html'}
 ];
 
 /* ── منوی کامل نورا (ورقهٔ منو) ── */
@@ -767,14 +768,14 @@ const MENU=[
    {i:'i-graduation', t:'اساتید و مربیان', s:faN(TEACHERS.length)+' استاد با پروفایل و عکس', j:'teachers', badge:faN(TEACHERS.length)},
    {i:'i-idcard', t:'دست‌اندرکاران', s:faN(STAFF.length)+' نفر، تیم اجرا و پشتیبانی', j:'staff'},
    {i:'i-handshake', t:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد همکار و حامی', j:'partners', badge:faN(PARTNERS.length)},
-   {i:'i-send', t:'فرصت‌های همکاری', s:'تدریس، اجرا، حمایت مالی', href:'account.html#support'}]},
+   {i:'i-send', t:'فرصت‌های همکاری', s:'تدریس، اجرا، حمایت مالی', href:'support.html'}]},
  {g:'حساب من', i:'i-idcard', rows:[
    {i:'i-wallet', t:'نورا پی', s:'کیف پول، شارژ و صورت‌حساب', href:'account.html#pay', tag:'فاز بعد'},
    {i:'i-calendar', t:'رویدادهای من', s:'ثبت‌نام، بلیت و گواهی، کارنامهٔ حضور', href:'account.html#events'},
    {i:'i-idcard', t:'پروفایل من', s:'اطلاعات، باشگاه و امتیاز، فرم‌ها، حریم خصوصی', href:'account.html#profile'}]},
  {g:'پشتیبانی', i:'i-headphone', rows:[
-   {i:'i-headphone', t:'پشتیبانی و راهنما', s:'گفت‌وگو با کارشناس و پرسش‌های پرتکرار', href:'account.html#support'},
-   {i:'i-doc', t:'قواعد و شرایط', s:'سیاست‌های ثبت‌نام و بازگشت وجه', href:'account.html#support'},
+   {i:'i-headphone', t:'پشتیبانی و راهنما', s:'گفت‌وگو با کارشناس و پرسش‌های پرتکرار', href:'support.html'},
+   {i:'i-doc', t:'قواعد و شرایط', s:'سیاست‌های ثبت‌نام و بازگشت وجه', href:'support.html'},
    {i:'i-mobile', t:'راهنمای ثبت‌نام', s:'قدم‌به‌قدم تا گواهینامه', href:'form.html'}]}
 ];
 
@@ -988,7 +989,7 @@ function renderMine(){
           <span class="pc-ttl">${faN(u.msgs)} پیام خوانده‌نشده</span>
           <span class="pc-meta">خانم رستگار: برای جلسهٔ اول یک روز قبل هماهنگ می‌کنیم.</span>
         </div>
-        <div class="pc-foot"><a class="btn sm quiet" href="account.html#support">پاسخ دادن</a></div>
+        <div class="pc-foot"><a class="btn sm quiet" href="support.html">پاسخ دادن</a></div>
       </div>
     </div>`;
 }
@@ -1403,7 +1404,7 @@ function renderPartnerSheet(){
       <div class="srow"><svg class="i"><use href="#i-handshake"/></svg><span class="sp">زمینهٔ همکاری</span><b>${esc(o.type)}</b></div>
       <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">شروع همکاری</span><b>${esc(o.since)}</b></div>
     </div>
-    <div class="row" style="margin-top:14px"><a class="btn primary" href="account.html#support"><svg class="i"><use href="#i-send"/></svg> پیشنهاد همکاری</a>
+    <div class="row" style="margin-top:14px"><a class="btn primary" href="support.html"><svg class="i"><use href="#i-send"/></svg> پیشنهاد همکاری</a>
       <span class="sp" style="flex:1"></span><span class="cap">${faN(PARTNERS.length)} نهاد همکار</span></div>`;
 }
 
@@ -1414,7 +1415,7 @@ function renderAccount(){
       <button class="srow" ${logged?'data-uihref="account.html#book"':'data-needlogin'}><svg class="i"><use href="#i-book"/></svg><span class="sp">باشگاه کتاب‌خوانی</span>
         ${logged?'<b>ترم مهر</b>':'<span class="tagg">نیاز به ورود</span>'}
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-      <a class="srow" href="account.html#support" style="text-decoration:none;color:inherit"><svg class="i"><use href="#i-headphone"/></svg><span class="sp">پشتیبانی و راهنما</span>
+      <a class="srow" href="support.html" style="text-decoration:none;color:inherit"><svg class="i"><use href="#i-headphone"/></svg><span class="sp">پشتیبانی و راهنما</span>
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></a>
       <button class="srow" data-f="shVerify"><svg class="i"><use href="#i-qr"/></svg><span class="sp">استعلام گواهینامه</span>
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
@@ -1820,7 +1821,7 @@ function openHash(){
   if(h==='library'){location.href='events.html#lib'; return}
   if(h==='notice'){openF('shNotice'); return}
   if(h==='verify'){openF('shVerify'); return}
-  if(h==='faq'||h==='support'){location.href='account.html#support'; return}
+  if(h==='faq'||h==='support'){location.href='support.html'; return}
   if(h.startsWith('p=')){personSheet(h.slice(2)); return}
   if(h.startsWith('ev=')){location.href='events.html?ev='+encodeURIComponent(h.slice(3)); return}
 }
