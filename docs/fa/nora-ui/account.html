@@ -407,9 +407,10 @@ function renderHead(){
 /* ── اطلاعات حساب: حالت نمایش و حالت ویرایش ── */
 function fieldView(f,p,filled){
   const raw=String(p[f.k]||'').trim();
-  const val=f.lock?phone():(f.k==='birthDate'&&raw?faN(raw):raw);
+  /* عددها در نما فارسی می‌شوند، مثل بقیهٔ سامانه؛ در فرم لاتین می‌مانند */
+  const val=f.lock?faN(phone()):(!raw?'':(f.input==='numeric'||f.k==='birthDate'?faN(raw):raw));
   if(f.lock) return `<span class="v"><svg class="i" aria-hidden="true" style="width:15px;height:15px;color:var(--ok)"><use href="#i-check"/></svg>
-      <span class="tx" dir="ltr">${esc(val||'—')}</span><span class="tag ok" style="height:20px;font-size:10px">تأییدشده</span></span>`;
+      <span class="tx">${esc(val||'—')}</span><span class="tag ok" style="height:20px;font-size:10px">تأییدشده</span></span>`;
   if(!val) return `<span class="v"><span class="tx miss">${f.req?'ثبت نشده':'اختیاری، خالی'}</span></span>`;
   return `<span class="v"><span class="tx">${esc(val)}</span>${f.req?'':''}</span>`;
 }

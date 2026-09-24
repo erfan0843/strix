@@ -78,6 +78,7 @@ const st=makeStore(session());
   ok(h.includes('مانده'),'فاصله تا سطح بعدی شمرده می‌شود');
   ok(p.txt('#infoBody').includes('کد ملی') && p.txt('#infoBody').includes('ثبت نشده'),'فیلد خالی «ثبت نشده» می‌شود');
   ok(p.txt('#infoBody').includes('تأییدشده'),'شمارهٔ تماس نشان تأیید دارد');
+  ok(p.txt('#infoBody').includes('۰۹۱۲۱۲۳۴۵۶۷'),'شمارهٔ تماس در نما با رقم فارسی');
   ok(p.doc.querySelector('.meter i').style.width==='78%','نوار تکمیل ۷۸٪ برای نمونهٔ داده');
   ok(h.includes('کد ملی') && h.includes('نشانی'),'موردهای مانده روی سرِ حساب نوشته می‌شود');
   ok(p.all('#quickBox .srow').length===6,'شش میان‌بر در «کارهای من»');
@@ -121,6 +122,7 @@ const st=makeStore(session());
   ok(p.txt('#flowSteps').includes('در صف تأیید') && p.all('#flowSteps .step.done').length>=1,'پله‌های تأیید تازه می‌شوند');
   ok(p.txt('#toast').includes('تأیید'),'پیام ارسال برای تأیید');
   ok(p.txt('#infoBody').includes('۱۳۷۸/۰۵/۱۲'),'تاریخ در نما با رقم فارسی');
+  ok(p.txt('#infoBody').includes('۰۰۷۹۵۴۳۹۴۴'),'کد ملی در نما با رقم فارسی');
   /* پیش‌نویس */
   p.click('#editBtn'); await new Promise(r=>setTimeout(r,50));
   p.set('#f_email','sara@nora.ir');
