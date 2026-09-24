@@ -643,7 +643,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <aside class="sheet" id="shMenu" role="dialog" aria-modal="false" aria-label="منوی نورا"><div id="menuBody"></div></aside>
 <aside class="sheet" id="shPerson" role="dialog" aria-modal="false" aria-label="پروفایل"><div id="personBody"></div></aside>
 <aside class="sheet" id="shArticle" role="dialog" aria-modal="false" aria-label="مطلب"><div id="articleBody"></div></aside>
-<aside class="sheet" id="shClub" role="dialog" aria-modal="false" aria-label="باشگاه کتاب‌خوانی"><div id="clubBody"></div></aside>
 <aside class="sheet" id="shPartner" role="dialog" aria-modal="false" aria-label="نهاد همکار"><div id="partnerBody"></div></aside>
 <aside class="sheet" id="shNotice" role="dialog" aria-modal="false" aria-label="اعلان‌ها"><div id="noticeBody"></div></aside>
 <aside class="sheet" id="shAccount" role="dialog" aria-modal="false" aria-label="حساب من"><div id="acctBody"></div></aside>
@@ -743,7 +742,7 @@ const CLUB_POINTS={points:420, goal:500, level:'نقره‌ای', next:'طلای
 const QUICK=[
  {k:'events', i:'i-calendar', n:'رویدادها', s:'پیش‌رو و امشب', anim:'tick', href:'events.html#list'},
  {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و بازپخش', j:'pastSec'},
- {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', anim:'float', f:'shClub', tag:'پیشنهادی'},
+ {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', anim:'float', href:'account.html#book', tag:'پیشنهادی'},
  {k:'people', i:'i-graduation', n:'اساتید', s:faN(TEACHERS.length)+' نفر', j:'teachers'},
  {k:'articles', i:'i-article', n:'مطالب', s:faN(ARTICLES.length)+' مطلب تازه', j:'articles'},
  {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد', j:'partners'},
@@ -757,7 +756,7 @@ const MENU=[
    {i:'i-calendar', t:'رویدادهای پیش‌رو', s:faN(EVENTS.length)+' برنامه در پیش', href:'events.html#list', badge:faN(EVENTS.length)},
    {i:'i-archive', t:'کارگاه‌های برگزارشده', s:'ضبط و بازپخش، با گواهی', j:'pastSec'},
    {i:'i-play', t:'جریان زنده و شروع نزدیک', s:'امشب دو برنامه', href:'events.html#list', badge:faN(LIVE.length)},
-   {i:'i-book', t:'باشگاه کتاب‌خوانی', s:'سرپرست: خانم داوودی', f:'shClub', tag:'پیشنهادی'},
+   {i:'i-book', t:'باشگاه کتاب‌خوانی', s:'زیر پروفایل من · سرپرست: خانم داوودی', href:'account.html#book', tag:'پیشنهادی'},
    {i:'i-heart', t:'پویش‌های خیریه', s:'مشارکت و گزارش شفاف', rel:'e11'}]},
  {g:'آموزش و محتوا', i:'i-graduation', rows:[
    {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:faN(ARTICLES.length)},
@@ -973,7 +972,7 @@ function renderMine(){
           <span class="pc-meta">جلسهٔ بعد: ${esc(CLUB.next)} — کتاب ماه: ${esc(CLUB.book)}</span>
           <span class="taggline"><span class="tagg ok">عضو ترم مهر</span></span>
         </div>
-        <div class="pc-foot"><button class="btn sm quiet" data-f="shClub">ورود به باشگاه</button></div>
+        <div class="pc-foot"><button class="btn sm quiet" data-uihref="account.html#book">ورود به باشگاه</button></div>
       </div>
       <div class="pcard">
         <div class="pc-cov" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)"><svg class="i"><use href="#i-archive"/></svg></div>
@@ -1185,7 +1184,7 @@ function renderClub(){
       </div>
       <div class="row">
         <button class="btn primary" data-clubjoin><svg class="i"><use href="#i-plus"/></svg> عضو شدن در ترم مهر</button>
-        <button class="btn quiet" data-f="shClub">قواعد و جلسه‌ها</button>
+        <button class="btn quiet" data-uihref="account.html#book">قواعد و جلسه‌ها</button>
       </div>
     </div>
   </div>`;
@@ -1391,37 +1390,6 @@ function renderArticleSheet(){
     </div>`;
 }
 
-function renderClubSheet(){
-  const sup=person(CLUB.sup);
-  $('#clubBody').innerHTML=sheetHead('باشگاه کتاب‌خوانی','ترم مهر — پنجشنبه‌ها ۱۸:۰۰')+`
-    <div class="mhead" style="background-image:linear-gradient(150deg,#2E6B7A,#0B2447)">
-      <div class="mt">کتاب ماه: ${esc(CLUB.book)}</div>
-      <div class="ms">${esc(CLUB.bookBy)} · ${faN(CLUB.meetings)} جلسه برگزار شده · ${faN(CLUB.members)} عضو</div>
-      <div class="bar" aria-hidden="true" style="background:rgba(255,255,255,.22)"><i style="width:${CLUB.progress}%;background:#fff"></i></div>
-      <div class="ms">${faN(CLUB.progress)}٪ خوانده شده — جلسهٔ بعد: ${esc(CLUB.next)}</div>
-    </div>
-    <button class="suprow" data-person="${sup.id}" style="margin-bottom:12px">
-      ${av(sup.id,'ava')}<span style="flex:1;min-width:0"><b class="sub">سرپرست باشگاه: ${esc(sup.n)}</b>
-        <div class="hrow">${esc(sup.role2||sup.r)}</div></span>
-      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-    <div class="fw" style="margin-bottom:6px">قواعد باشگاه</div>
-    <div class="stack tight" style="margin-bottom:12px">${CLUB.rules.map(r=>`
-      <div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(r)}</span></div>`).join('')}</div>
-    <div class="fw" style="margin-bottom:6px">جلسه‌های گذشته</div>
-    <div class="stack tight" style="margin-bottom:14px">${CLUB.log.map(l=>`
-      <div class="srow"><svg class="i"><use href="#i-video"/></svg><span class="sp">${esc(l.t)}<div class="hrow">${esc(l.d)} — ${faN(l.n)} نفر حاضر</div></span>
-        <button class="btn sm quiet" data-clubrec>تماشا</button></div>`).join('')}</div>
-    <div class="fw" style="margin-bottom:6px">کتاب ماه بعد را با هم انتخاب کنیم</div>
-    <div class="votebox">${(()=>{const tot=CLUB.vote.reduce((a,b)=>a+b.n,0)+(S.vote?1:0);
-      return CLUB.vote.map(v=>{const n=v.n+(S.vote===v.k?1:0);
-        return `<button class="voteopt ${S.vote===v.k?'on':''}" data-vote="${v.k}">
-          <span class="vt"><b>${esc(v.t)}</b><span>${esc(v.by)}</span></span>
-          <span class="vbar"><i style="width:${Math.round(n/tot*100)}%"></i></span>
-          <span class="cap num">${faN(n)} رأی</span></button>`}).join('')})()}</div>
-    <p class="cap" style="margin:8px 0 14px">${S.vote?'رأیت ثبت شد — نتیجه زنده به‌روز می‌شود.':'با زدن هر گزینه، رأیت ثبت می‌شود.'}</p>
-    <div class="row"><button class="btn primary" data-clubjoin><svg class="i"><use href="#i-plus"/></svg> عضو شدن در ترم مهر</button>
-      <span class="sp" style="flex:1"></span><span class="cap">${faN(CLUB.cap-CLUB.members)} جا مانده</span></div>`;
-}
 
 function renderPartnerSheet(){
   const o=partner(S.partner); if(!o.id) return;
@@ -1443,7 +1411,7 @@ function renderAccount(){
   const u=S.user;
   const svcRows=(logged=>`
     <div class="stack tight">
-      <button class="srow" ${logged?'data-f="shClub"':'data-needlogin'}><svg class="i"><use href="#i-book"/></svg><span class="sp">باشگاه کتاب‌خوانی</span>
+      <button class="srow" ${logged?'data-uihref="account.html#book"':'data-needlogin'}><svg class="i"><use href="#i-book"/></svg><span class="sp">باشگاه کتاب‌خوانی</span>
         ${logged?'<b>ترم مهر</b>':'<span class="tagg">نیاز به ورود</span>'}
         <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
       <a class="srow" href="account.html#support" style="text-decoration:none;color:inherit"><svg class="i"><use href="#i-headphone"/></svg><span class="sp">پشتیبانی و راهنما</span>
@@ -1651,7 +1619,6 @@ function openF(id){
   if(id==='shVerify') renderVerify();
 
   if(id==='shNotice') renderNotices();
-  if(id==='shClub') renderClubSheet();
   if(id==='shStory') renderStory();
   openSheet(id);
 }
@@ -1848,7 +1815,7 @@ function openHash(){
   if(!h) return;
   if(h==='me'){openF('shAccount'); return}
   if(h==='menu'){openF('shMenu'); return}
-  if(h==='club'){openF('shClub'); return}
+  if(h==='club'){location.href='account.html#book'; return}
   if(h==='teachers'||h==='staff'||h==='partners'||h==='articles'||h==='voices'||h==='quick'){goto(h); return}
   if(h==='library'){location.href='events.html#lib'; return}
   if(h==='notice'){openF('shNotice'); return}

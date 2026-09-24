@@ -1163,6 +1163,7 @@ function menuRoute(el){
     if(f==='shAccount'){ location.href='account.html'; return }    /* حساب من صفحهٔ جدا دارد، نه ورقه */
     if(f==='shSupport'||f==='shFaq'){ location.href='account.html#support'; return }  /* راهنما و پشتیبانی یک جا */
     if(f==='shInvite'){ location.href='account.html#club'; return }
+    if(f==='shClub'){ location.href='account.html#book'; return }      /* باشگاه کتاب زیر پروفایل من است */
     if(H&&H.openF){ H.openF(f); return }
     if(document.getElementById(f)){ uiOpen(f); return }
     const map={shClub:'club', shInvite:'me', shNotice:'notice', shVerify:'verify', shFaq:'faq', shSupport:'support'};

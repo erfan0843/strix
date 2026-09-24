@@ -563,8 +563,8 @@ async function load(file,store,q){
   ok(p.all('#quick .tile').length===8,'هشت کاشی منوی سریع');
   ok(p.all('#quick .tile .ci svg').length===8,'هر کاشی آیکون دارد');
   ok(p.all('#quick .tile[data-anim]').length>=3,'چند آیکون حرکت سبک دارند');
-  p.click('[data-q="club"]'); ok(p.doc.querySelector('#shClub').className.includes('on'),'کاشی باشگاه ورقه‌اش را باز می‌کند');
-  p.click('#shClub [data-close]');
+  ok(p.doc.querySelector('#quick a.tile[href="account.html#book"]')!==null,'کاشی باشگاه کتاب به پروفایل من می‌رود');
+  ok(p.doc.querySelector('#shClub')===null,'ورقهٔ باشگاه از خانه برداشته شد — زیر پروفایل من است');
   /* رویدادها در خانه: فقط سه کارت نمایشی */
   ok(p.all('#evTop .evcard').length===3,'خانه فقط سه کارت رویداد دارد');
   ok(p.all('#evTop .evcard .evc-cov img').length===3,'هر کارت رویداد پوسترش را نشان می‌دهد');
@@ -611,12 +611,8 @@ async function load(file,store,q){
   p.click('#club [data-clubjoin]');
   ok(p.doc.querySelector('#shAccount').className.includes('on'),'عضویت مهمان را به ورود می‌برد');
   p.click('[data-close]');
-  p.click('#club [data-f="shClub"]');
-  ok(p.all('#clubBody .srow').length>=6,'ورقهٔ باشگاه: قواعد و جلسه‌ها');
-  ok(p.all('#clubBody .voteopt').length===3,'رأی‌گیری کتاب ماه: سه گزینه');
-  p.click('#clubBody [data-vote]');
-  ok(p.doc.querySelector('#shAccount').className.includes('on') || p.txt('#toast').includes('وارد شو'),'رأی مهمان ورود می‌خواهد');
-  p.click('[data-close]');
+  ok(p.doc.querySelector('#club [data-uihref="account.html#book"]')!==null,'بلوک باشگاه در خانه به تب باشگاه کتاب می‌رود');
+  ok(p.doc.querySelector('#clubBody')===null,'ورقهٔ باشگاه کتاب از خانه برداشته شد');
   /* اساتید و دست‌اندرکاران */
   ok(p.all('#peopleRail .tcard').length===6,'بخش اساتید جدا: شش کارت استاد');
   ok(p.doc.querySelector('#peopleRail .tcard .av img')!==null,'کارت استاد عکس دارد');
@@ -693,11 +689,8 @@ async function load(file,store,q){
   p.click('[data-code]');
   ok(H.S.user && H.S.user.name==='سارا محمدی','ورود با کد نمایشی');
   ok(H.S.user.joined==='شهریور ۱۴۰۴','تاریخ عضویت با دادهٔ حساب یکی است');
-  p.click('#club [data-f="shClub"]');
-  ok(p.doc.querySelector('#shClub').className.includes('on'),'عضویت، باشگاه را باز می‌کند');
-  p.click('#clubBody [data-vote="v2"]');
-  ok(H.S.vote==='v2' && p.txt('#toast').includes('رأیت'),'رأی عضو ثبت می‌شود');
-  p.click('[data-close]');
+  ok(p.doc.querySelector('#club a[data-uihref="account.html#book"], #club [data-uihref="account.html#book"]')!==null,
+     'دکمهٔ باشگاه در خانه هم به تب باشگاه کتاب می‌رود');
   H.openF('shNotice');
   ok(p.all('#noticeBody .notif').length===3,'سه اعلان');
   ok(p.txt('#noticeBody').includes('سرپرست'),'اعلان گواهینامه: در انتظار سرپرست');
@@ -1212,7 +1205,7 @@ async function load(file,store,q){
   const pl=await load('home.html',makeStore());
   const tile=pl.doc.querySelector('#quick .tile[href="events.html#list"]');
   ok(tile && tile.tagName==='A','کاشی «رویدادها» یک پیوند واقعی است');
-  ok(pl.all('#quick a.tile').length===2 && pl.all('#quick button.tile').length===6,'کاشی‌های خانه: دو پیوند و شش ورقه/پرش درون‌صفحه');
+  ok(pl.all('#quick a.tile').length===3 && pl.all('#quick button.tile').length===5,'کاشی‌های خانه: سه پیوند و پنج ورقه/پرش درون‌صفحه');
   pl.click('.themesw');
   pl.window.NORA_HOME.renderAll();
   ok(pl.doc.documentElement.dataset.theme==='dark' && pl.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','رندر دوبارهٔ صفحه، وضعیت کلید را به هم نمی‌ریزد');
