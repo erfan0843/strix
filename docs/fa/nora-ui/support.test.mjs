@@ -403,7 +403,7 @@ async function load(store,hash){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=28')&&html.includes('support.js?v=28')&&html.includes('data.js?v=28'),'نسخهٔ دارایی‌ها تازه شده (v=26)');
+  ok(html.includes('support.css?v=29')&&html.includes('support.js?v=29')&&html.includes('data.js?v=29'),'نسخهٔ دارایی‌ها تازه شده (v=26)');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');

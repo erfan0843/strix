@@ -239,7 +239,7 @@ async function load(store,hash){
     'کیف پول، درگاه رسمی بله و کارت‌به‌کارت میان روش‌هاست');
   ok(p.view().includes('حضوری')&&p.view().includes('پرداخت با امتیاز')&&p.view().includes('نصف الان'),
     'حضوری، امتیاز و نصف‌ونصف هم هست');
-  ok(p.txt('.payhero').includes('۱٬۲۵۰٬۰۰۰'),'موجودی کیف پول در نورا پی');
+  ok(p.txt('.nphero').includes('۱٬۲۵۰٬۰۰۰'),'موجودی کیف پول در نورا پی');
   ok(p.txt('.paydebt').includes('۳۲۵٬۰۰۰')&&p.txt('.paydebt').includes('۵ آبان'),'بدهی و مهلتش روی صفحه');
   ok(p.doc.querySelectorAll('#viewBox .ivrow').length===4,'چهار صورتحساب');
   ok(p.view().includes('PL7K2M9QX4A')&&p.view().includes('کد رهگیری'),'کد رهگیری صورتحساب‌ها');
@@ -249,7 +249,7 @@ async function load(store,hash){
   ok(p.open().includes('shTop'),'ورقهٔ شارژ کیف پول باز می‌شود');
   p.clickEl(p.all('#shTop [data-topamt]')[1]); await wait(130);
   p.click('[data-topgo]'); await wait(280);
-  ok(p.txt('#toast').includes('اضافه شد')&&p.txt('.payhero').includes('۱٬۷۵۰٬۰۰۰'),'شارژ، موجودی را جلو می‌برد');
+  ok(p.txt('#toast').includes('اضافه شد')&&p.txt('.nphero').includes('۱٬۷۵۰٬۰۰۰'),'شارژ، موجودی را جلو می‌برد');
   ok(JSON.parse(store.getItem('nora-home-pay')).txs[0].k==='top','شارژ در تراکنش‌ها می‌نشیند');
   p.click('[data-paym="bale"]'); await wait(230);
   ok(p.open().includes('shPay')&&p.txt('#shPay').includes('درگاه رسمی بله'),'ورقهٔ درگاه رسمی بله');
@@ -414,7 +414,7 @@ async function load(store,hash){
   ok(p.txt('#toast').includes('عضو باشگاه شدی'),'پس از پرداخت، عضویت می‌نشیند');
   ok(JSON.parse(p.window.localStorage.getItem('nora-home-bookclub')).member===true,'عضویت در حافظه می‌ماند');
   await p.nav('pay'); await wait(220);
-  ok(p.txt('.payhero').includes('۱٬۰۷۰٬۰۰۰'),'حق عضویت از کیف پول نورا پی کم شد');
+  ok(p.txt('.nphero').includes('۱٬۰۷۰٬۰۰۰'),'حق عضویت از کیف پول نورا پی کم شد');
   ok(JSON.parse(p.window.localStorage.getItem('nora-home-pay')).txs[0].t.includes('حق عضویت'),'تراکنش حق عضویت در نورا پی');
   await p.nav('book'); await wait(220);
   ok(p.all('#viewBox .clubcard').length===1&&p.txt('.clubcard').includes('عضو باشگاه کتاب‌خوانی'),'کارت عضویت با نشان باشگاه');
@@ -422,24 +422,24 @@ async function load(store,hash){
   ok(p.txt('.phead').includes('عضو باشگاه کتاب‌خوانی'),'نشان باشگاه روی پروفایل می‌نشیند');
   /* جلسه‌ها و ثبت حضور */
   p.click('[data-ctab="meet"]'); await wait(220);
-  ok(p.all('#viewBox .mtrow').length===3,'سه جلسهٔ هفتگی');
+  ok(p.all('#viewBox .clmeet').length===3,'سه جلسهٔ هفتگی');
   ok(p.all('#viewBox .lvrow').length===4&&p.all('#viewBox .lvrow.cur').length===1,'چهار سطح با سطح جاری');
   p.click('[data-att][data-attst="حاضر"]'); await wait(220);
   ok(p.txt('#toast').includes('حاضر'),'ثبت حضور جواب می‌دهد');
   ok(p.txt('#viewBox').includes('حضور'),'کارنامهٔ حضور در پنل هست');
   /* کتاب و پادکست */
   p.click('[data-ctab="media"]'); await wait(230);
-  ok(p.txt('.bkhero').includes('زویا پیرزاد')&&p.txt('.bkhero').includes('٪۷۲'),'کتاب ماه و درصد خوانده‌شده');
-  const before=p.all('.bkstats span b')[2].textContent;
+  ok(p.txt('.clbook').includes('زویا پیرزاد')&&p.txt('.clbk-cover').includes('زویا پیرزاد')&&p.txt('.clbook').includes('٪۷۲'),'کتاب ماه و درصد خوانده‌شده');
+  const before=p.all('.clbk-stats span b')[2].textContent;
   p.click('[data-pages="25"]'); await wait(210);
-  ok(before!==p.all('.bkstats span b')[2].textContent,'ثبت صفحه، عدد را جلو می‌برد');
+  ok(before!==p.all('.clbk-stats span b')[2].textContent,'ثبت صفحه، عدد را جلو می‌برد');
   ok(p.all('#viewBox .pdcard').length===3&&p.txt('#viewBox').includes('نبض ورق'),'پادکست نبض ورق با سه قسمت');
   ok(p.txt('#viewBox').includes('دعوت به ضبط پادکست'),'دعوت به ضبط پادکست در همان صفحه');
   p.click('[data-cvoice="روایت و خوانش"]'); await wait(160);
   p.click('[data-cvoice-send]'); await wait(220);
   ok(p.txt('#toast').includes('سرپرست')&&p.txt('#viewBox').includes('در نوبت سرپرست'),'فرم ضبط پادکست ثبت می‌شود');
   ok(p.txt('#viewBox').includes('معرفی و خلاصهٔ کتاب')&&p.txt('#viewBox').includes('خلاصهٔ صوتی'),'معرفی و خلاصهٔ کتاب');
-  ok(p.all('#viewBox .book').length===3,'قفسهٔ باشگاه');
+  ok(p.all('#viewBox .clbk').length===3,'قفسهٔ باشگاه');
   p.click('[data-vote]'); await wait(210);
   ok(p.doc.querySelector('#viewBox .voteopt.on')!==null,'رأی کتاب ماه ثبت و نشان‌دار می‌شود');
   /* مسابقه، چالش و کارگاه */
@@ -447,7 +447,7 @@ async function load(store,hash){
   ok(p.all('#viewBox [data-contest]').length>=1&&p.txt('#viewBox').includes('مسابقهٔ ماهانه'),'مسابقهٔ ماهانه');
   p.click('[data-contest="c1"]'); await wait(200);
   ok(p.txt('#viewBox').includes('ثبت‌نام کردی'),'ثبت‌نام در مسابقه');
-  ok(p.all('#viewBox .chlrow').length===3,'سه چالش با نوار پیشرفت');
+  ok(p.all('#viewBox .clchal').length===3,'سه چالش با نوار پیشرفت');
   p.click('[data-chal="ch1"]'); await wait(200);
   ok(p.txt('#toast').includes('گام')||p.txt('#toast').includes('تمام'),'چالش یک گام جلو می‌رود');
   ok(p.all('#viewBox [data-clubw]').length>=1&&p.txt('#viewBox').includes('کارگاه'),'کارگاه‌های باشگاه');

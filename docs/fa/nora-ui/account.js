@@ -108,7 +108,7 @@ const stOf=p=>({draft:['تکمیل نشده','warn'],pending:['در صف تأی�
 const monOf=e=>(e&&e.dm&&MON[e.dm])||'';
 
 /* ── حالت صفحه ───────────────────────────────────────────────────── */
-const S={view:'',vtab:'up',ptab:'info',ctab:'home',edit:false,errs:{},after:''};
+const S={view:'',vtab:'up',ptab:'info',ctab:'home',invF:'all',txAll:false,edit:false,errs:{},after:''};
 
 /* ── رفتن به یک بخش: مهمان، ورقهٔ ورود؛ عضو، همان بخش ─────────────── */
 function go(k){
@@ -525,59 +525,64 @@ function clubSet(patch,msg){ bookSet(patch); render(); if(msg) toast(msg) }
 /* ── گام‌های ورود به باشگاه ─────────────────────────────────────────── */
 function clubSteps(cur){
   const st=CGATE.steps||[], i=st.findIndex(x=>x.k===cur);
-  return `<div class="csteps anim">${st.map((x,n)=>`<div class="cstep${n<=i?' done':''}">
-    <span class="cdot">${n<i?ico('i-check','width:12px;height:12px;'):faN(n+1)}</span>
-    <span class="ctx"><b>${esc(x.n)}</b><small>${esc(x.s)}</small></span></div>`).join('')}</div>`;
+  return `<div class="clsteps anim">${st.map((x,n)=>`<span class="clst${n<i?' done':''}${n===i?' now':''}">
+    <b class="n">${n<i?ico('i-check','width:12px;height:12px;'):faN(n+1)}</b>
+    <span class="tx"><b>${esc(x.n)}</b><small>${esc(x.s)}</small></span></span>`).join('<i class="cllink"></i>')}</div>`;
 }
 function clubField(f){
   const v=(bookState().form||{})[f.k]||'';
   if(f.w==='pick')
     return `<div class="fld"><span class="hint">${esc(f.l)}</span>
       <div class="seg">${(f.opts||[]).map(o=>`<button class="segbtn${o===v?' on':''}" type="button"
-        data-cf="${esc(f.k)}" data-cv="${esc(o)}" aria-pressed="${o===v}">${esc(o)}</button>`).join('')}</div></div>`;
+        data-cf="${esc(f.k)}" data-cv="${esc(o)}" aria-pressed="${o===v}">${o===v?ico('i-check','width:13px;height:13px;'):''}${esc(o)}</button>`).join('')}</div></div>`;
   return `<div class="fld"><label class="hint" for="cf_${f.k}">${esc(f.l)}</label>
     <input class="input" id="cf_${f.k}" value="${esc(v)}" placeholder="${esc(f.ph||'')}" style="margin-top:6px"/></div>`;
 }
-function clubJoinHero(){
-  const C=CCLUB, b=clubBadge();
-  return `<div class="clubgate anim">
-    <span class="cg-ic">${ico('i-book')}</span>
-    <span class="ctx"><b>${esc(C.n||'باشگاه کتاب‌خوانی خط زندگی')}</b>
-      <small>${esc((C.term||'')+(C.book?' · کتاب ماه: '+C.book:''))}</small>
-      <span class="pmeta">${chip(b.n,'gold')}${chip('عضویت برایت باز است','')}</span></span></div>`;
-}
+/* درِ باشگاه: یک جلد گرافیکی، بعد فرم، بعد حق عضویت */
 function clubJoin(t){
   const bc=bookState(), C=CCLUB, step=(bc.cstep==='fee'?'fee':'form');
   const req=(CGATE.fields||[]).filter(f=>f.req), have=req.filter(f=>bc.form[f.k]).length;
+  const pct=req.length?Math.round(have/req.length*100):0;
+  const cover=`<div class="clcover anim">
+      <span class="clbadge">${ico('i-medal')} ${esc(clubBadge().n)}</span>
+      <span class="clttl"><b>${esc(C.n||'باشگاه کتاب‌خوانی خط زندگی')}</b>
+        <small>${esc(C.term||'')}${C.book?' · کتاب ماه: '+esc(C.book):''}</small></span>
+      <span class="clstats">
+        <span><b class="num">${faN(C.members||0)}</b><small>عضو</small></span>
+        <span><b class="num">${faN(C.meetings||0)}</b><small>جلسه</small></span>
+        <span><b class="num">${faN((CCLUB.podcast||{}).eps?CCLUB.podcast.eps.length:0)}</b><small>قسمت پادکست</small></span>
+        <span><b class="num">${faN((CCLUB.workshops||[]).length)}</b><small>کارگاه</small></span></span>
+      <span class="cllead">${esc(CGATE.lead||'')}</span></div>`;
   const formCard = step==='form'
-    ? card('فرم عضویت',CGATE.lead+' ساختهٔ '+CGATE.maker,'i-idcard',
-        `<div class="row" style="align-items:center;gap:8px;margin-top:2px">
-          <span class="cap">٪${faN(Math.round(have/req.length*100))} پر شده</span>
-          <span class="sp" style="flex:1"></span><span class="cap">تایپ لازم نیست؛ از فهرست انتخاب کن</span></div>
-        ${(CGATE.fields||[]).map(clubField).join('')}
-        <div class="row" style="margin-top:14px"><button class="btn primary" data-clubsend>
-          ${ico('i-send')} فرم را برای سرپرست بفرست</button></div>`)
-    : card('فرم سرپرست','فرستاده شد؛ حالا حق عضویت','i-check',
-        `<div class="stack tight" style="margin-top:2px">${(CGATE.fields||[]).filter(f=>bc.form[f.k]).map(f=>
-          `<div class="srow">${ico('i-check')}<span class="sp">${esc(f.l)}<small>${esc(bc.form[f.k])}</small></span></div>`).join('')}</div>
-         <div class="row" style="margin-top:12px"><button class="btn quiet" data-clubedit>${ico('i-pen')} ویرایش فرم</button>
-          <span class="sp" style="flex:1"></span><span class="tag ok">به دست سرپرست رسید</span></div>`);
+    ? `<div class="card acct anim">${donut(pct,'٪'+faN(pct),'فرم عضویت','small')}
+        <div class="head" style="margin-top:8px">${ico('i-idcard')} فرم عضویت</div>
+        <p class="cap" style="margin-top:5px">ساختهٔ ${esc(CGATE.maker||'سرپرست باشگاه')}؛ همه‌اش انتخاب است، تایپ لازم نیست.</p>
+        <div class="clsform">${(CGATE.fields||[]).map(clubField).join('')}</div>
+        <button class="btn primary block" style="margin-top:12px" data-clubsend>
+          ${ico('i-send')} فرم را برای سرپرست بفرست</button></div>`
+    : `<div class="card acct anim"><div class="head">${ico('i-check')} فرم سرپرست</div>
+        <p class="cap" style="margin-top:5px">فرستاده شد؛ <b>حالا حق عضویت</b></p>
+        <div class="stack tight" style="margin-top:8px">${(CGATE.fields||[]).filter(f=>bc.form[f.k]).map(f=>
+          `<div class="srow">${ico(f.w==='pick'?'i-check':'i-pen')}<span class="sp">${esc(f.l)}<small>${esc(bc.form[f.k])}</small></span></div>`).join('')}</div>
+        <div class="row" style="margin-top:12px"><button class="btn quiet" data-clubedit>${ico('i-pen')} ویرایش فرم</button>
+          <span class="sp" style="flex:1"></span><span class="tag ok">به دست سرپرست رسید</span></div></div>`;
   const feeCard = step==='fee'
-    ? card('حق عضویت باشگاه',(CFEE.cycle||'ماهانه')+' · '+(CFEE.note||''),'i-wallet',
-        `<div class="chipsline" style="margin-top:2px">${(CFEE.plans||[]).map(p=>
-          `<button class="tag${bc.plan===p.k?' on':''}" type="button" data-clanplan="${esc(p.k)}">${esc(p.n)} · ${money(p.amount)}</button>`).join('')}</div>
-         <div class="srow" style="margin-top:10px">${ico('i-calendar')}<span class="sp">سررسید<small>${esc(CFEE.due||'')}</small></span>
-           <b class="num">${money(clubPlan(bc.plan).amount)}</b></div>
-         <div class="srow">${ico('i-star')}<span class="sp">دانشجویان<small>${esc(CFEE.studentNote||'')}</small></span>
-           <b class="num">${money(CFEE.student||0)}</b></div>
-         <div class="row" style="margin-top:12px"><button class="btn primary" data-clubsend2 data-clubpay>
-           ${ico('i-shield')} پرداخت با نورا پی و باز شدن پنل</button></div>
-         <p class="cap" style="margin-top:8px">تا پرداخت، پنل باشگاه بسته می‌ماند؛ قوانین را در پایین بخوان.</p>`)
+    ? `<div class="card acct anim"><div class="head">${ico('i-wallet')} حق عضویت باشگاه</div>
+        <p class="cap" style="margin-top:5px">${esc(CFEE.cycle||'ماهانه')} · ${esc(CFEE.note||'')}</p>
+        <div class="clplans">${(CFEE.plans||[]).map(p=>`<button class="clplan${(bc.plan||'m')===p.k?' on':''}" type="button" data-clanplan="${esc(p.k)}">
+          <b>${esc(p.n)}</b><small class="num">${money(p.amount)}</small>
+          <span class="cap">${esc(p.s||'')}</span>${(bc.plan||'m')===p.k?`<span class="pmark">${ico('i-check','width:12px;height:12px;')}</span>`:''}</button>`).join('')}</div>
+        <div class="npstats" style="margin-top:12px">
+          <span><b class="num">${money(clubPlan(bc.plan).amount)}</b><small>پلن ${esc(clubPlan(bc.plan).n)}</small></span>
+          <span><b>${esc(CFEE.due||'')}</b><small>سررسید هر ماه</small></span>
+          <span><b class="num">${money(CFEE.student||0)}</b><small>سهم دانشجو</small></span></div>
+        <button class="btn primary block" style="margin-top:12px" data-clubsend2>${ico('i-shield')} پرداخت با نورا پی و باز شدن پنل</button>
+        <p class="cap" style="margin-top:8px">${esc(CFEE.studentNote||'')}</p></div>`
     : '';
   return viewHead(t,CGATE.n||'ورود به باشگاه',null)+`<div class="panel">
-    ${clubJoinHero()}
-    ${clubSteps(step==='fee'?'fee':'form').replace('csteps','csteps')}
-    ${formCard}${feeCard}${clubSupervisor()}${trustLine('club')}</div>`;
+    ${cover}${clubSteps(step)}
+    <div class="clgrid">${formCard}${feeCard}</div>
+    ${clubSupervisor()}${trustLine('club')}</div>`;
 }
 /* ── ورقهٔ پرداخت حق عضویت ─────────────────────────────────────────── */
 function clubFeeSheet(){
@@ -585,15 +590,15 @@ function clubFeeSheet(){
   fillSheet('shClub',`<div class="grabber"></div>
     <div class="head">${ico('i-wallet')} حق عضویت باشگاه</div>
     <p class="cap" style="margin-top:5px">${esc(CFEE.note||'')}</p>
-    <div class="chipsline" style="margin-top:10px">${(CFEE.plans||[]).map(p=>
-      `<button class="tag${bc.plan===p.k?' on':''}" type="button" data-clanplan="${esc(p.k)}">${esc(p.n)} · ${money(p.amount)}</button>`).join('')}</div>
+    <div class="clplans" style="margin-top:10px">${(CFEE.plans||[]).map(p=>`<button class="clplan${(bc.plan||'m')===p.k?' on':''}" type="button" data-clanplan="${esc(p.k)}">
+      <b>${esc(p.n)}</b><small class="num">${money(p.amount)}</small><span class="cap">${esc(p.s||'')}</span></button>`).join('')}</div>
     <div class="payamt"><span>${esc(plan.n)}</span><b class="num">${money(plan.amount)}</b>
       <span class="cap">${esc(plan.s||'')}</span></div>
-    <div class="stack tight">${ms.map(k=>{const m=methodOf(k);
-      return `<button class="opt" data-clubm="${esc(k)}">
-        <span class="mk">${ico(m.i||'i-wallet','width:16px')}</span>
-        <span style="flex:1;text-align:start"><b>${esc(m.n||k)}</b><br><span class="cap">${esc(m.s||'')}</span></span>
-        ${ico('i-chev-left','color:var(--ink-4)')}</button>`}).join('')}</div>
+    <div class="payms" style="grid-template-columns:1fr">${ms.map(k=>{const m=methodOf(k);
+      return `<button class="paym" data-clubm="${esc(k)}">
+        <span class="pm-ic">${ico(m.i||'i-wallet')}</span>
+        <span class="tx"><b>${esc(m.n||k)}</b><small>${esc(m.s||'')}</small></span>
+        <span class="pm-go">${ico('i-chev-left')}</span></button>`}).join('')}</div>
     <div class="row" style="margin-top:12px"><span class="sp" style="flex:1"></span>
       <button class="btn quiet" data-close>بعداً</button></div>
     <p class="cap" style="margin-top:10px">${esc(CFEE.studentNote||'')}</p>`);
@@ -601,117 +606,125 @@ function clubFeeSheet(){
 }
 /* ── سرپرست و قوانین ───────────────────────────────────────────────── */
 function clubSupervisor(){
-  const sup=clubSup();
-  return card('سرپرست باشگاه','جلسه‌ها، پادکست و کارگاه‌ها را او می‌گرداند','i-users',
-    `<div class="srow"><span class="qi" style="width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink);font-weight:700">${esc(String(sup.n||'م').slice(0,1))}</span>
-      <span class="sp">${esc(sup.n||'مریم داوودی')}<small>${esc(sup.r||'سرپرست باشگاه کتاب‌خوانی')}</small></span>
-      <button class="btn sm quiet" data-go="support">پرسش</button></div>`+
-    (CCLUB.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join(''));
+  const sup=clubSup(), g=CCLUB.group||{};
+  return `<div class="clgrid">
+    <div class="card acct anim"><div class="head">${ico('i-users')} سرپرست باشگاه</div>
+      <div class="srow" style="margin-top:8px">
+        <span class="qi" style="width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(150deg,#7A5A2A,#123A7A);color:#fff;font-weight:700;font-size:17px">${esc(String(sup.n||'م').slice(0,1))}</span>
+        <span class="sp">${esc(sup.n||'مریم داوودی')}<small>${esc(sup.r||'سرپرست باشگاه کتاب‌خوانی')}</small></span>
+        <button class="btn sm quiet" data-go="support">پرسش</button></div>
+      <details class="npmore2" style="margin-top:10px"><summary>${ico('i-doc')} قوانین باشگاه</summary>
+        ${(CCLUB.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join('')}</details></div>
+    <div class="card acct anim"><div class="head">${ico('i-link')} گروه و لینک اختصاصی</div>
+      <p class="cap" style="margin-top:5px">${esc(g.lead||'')}</p>
+      <div class="srow">${ico('i-users')}<span class="sp">${esc(g.n||'گروه اعضا')}
+        <small class="num" dir="ltr">${esc(g.code||'')}</small></span>
+        <button class="btn sm quiet" data-copy="${esc(g.link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>
+      ${(g.rules||[]).map(r=>`<div class="srow">${ico('i-lock')}<span class="sp">${esc(r)}</span></div>`).join('')}</div>
+  </div>`;
 }
-/* ── کارت عضویت: نشان باشگاه روی پروفایل ───────────────────────────── */
+/* ── کارت عضویت: نشان باشگاه، سطح و حلقهٔ پیشرفت ───────────────────── */
 function clubCard(){
   const bc=bookState(), me=clubMe(), L=clubLevel(+me.s||0), C=CCLUB;
-  const next=L.nx?Math.max(0,L.nx.at-(+me.s||0)):0, pct=L.nx?Math.min(100,Math.round((+me.s||0)/L.nx.at*100)):100;
+  const next=L.nx?Math.max(0,L.nx.at-(+me.s||0)):0;
+  const from=L.cur.at||0, to=L.nx?L.nx.at:from+1, pct=L.nx?Math.round(((+me.s||0)-from)/Math.max(1,to-from)*100):100;
   return `<div class="clubcard anim">
-    <span class="cc-ic">${ico('i-medal')}</span>
+    ${donut(pct,faN(+me.s||0),'جلسه‌های باشگاه','gold')}
     <span class="ctx"><b>${esc(clubBadge().n)}</b>
-      <small>${esc(me.n||'')} · ${esc(L.cur.n||'')} · ${faN(+me.s||0)} جلسه</small>
-      <span class="pmeta">${chip((C.term||'')+' فعال','ok')}${bc.voice?chip('ضبط پادکست','gold'):''}
-        ${bc.feeAt?chip('حق عضویت پرداخت شد','ok'):chip('حق عضویت مانده','warn')}</span>
-      <span class="meter" role="img" aria-label="تا سطح بعدی ٪${faN(pct)}"><i style="width:${pct}%"></i></span>
-      <small class="cap">${L.nx?'تا «'+esc(L.nx.n)+'» '+faN(next)+' جلسه مانده؛ پاداش آن: '+esc(L.nx.perks||''):'بالاترین سطح باشگاه؛ حالا میزبانی هم دست توست.'}</small>
+      <small>${esc(me.n||'')} · سطح ${esc(L.cur.n||'')}${bc.voice?' · ضبط پادکست':''}</small>
+      <span class="pmeta">${chip((C.term||'')+' فعال','ok')}${bc.feeAt?chip('حق عضویت پرداخت شد','ok'):chip('حق عضویت مانده','warn')}</span>
+      <small class="cap">${L.nx?'تا «'+esc(L.nx.n)+'» '+faN(next)+' جلسه مانده · پاداش: '+esc(L.nx.perks||''):'بالاترین سطح باشگاه؛ حالا میزبانی هم دست توست.'}</small>
     </span></div>`;
 }
 /* ── خبرهای سرپرست ─────────────────────────────────────────────────── */
 function clubNews(){
-  return (CCLUB.news||[]).map(n=>`<div class="srow">${ico(n.i||'i-sparkle')}
-    <span class="sp">${esc(n.t)}<small>${esc(n.d||'')}</small></span></div>`).join('');
-}
-/* ── گروه و لینک اختصاصی ───────────────────────────────────────────── */
-function clubGroup(){
-  const g=CCLUB.group||{};
-  return `<div class="srow">${ico('i-users')}<span class="sp">${esc(g.n||'گروه اعضا')}
-      <small>${esc(g.lead||'')}</small></span>
-    <button class="btn sm quiet" data-copy="${esc(g.link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>
-    <div class="capex">کد یکتا: <b class="num" dir="ltr">${esc(g.code||'')}</b></div>
-    ${(g.rules||[]).map(r=>`<div class="srow">${ico('i-lock')}<span class="sp">${esc(r)}</span></div>`).join('')}`;
+  return `<div class="clnews">${(CCLUB.news||[]).map(n=>`<span class="cn">
+    <span class="ic">${ico(n.i||'i-sparkle')}</span>
+    <span class="tx"><b>${esc(n.t)}</b><small>${esc(n.d||'')}</small></span></span>`).join('')}</div>`;
 }
 /* ── خانه: عضویت، جلسهٔ هفته، کارهای من ────────────────────────────── */
+function clubTasks(){
+  const bc=bookState(), VOTE=CCLUB.vote||[];
+  return `<div class="bktasks">${[
+    {on:bc.seat,  t:'صندلی جلسهٔ پنجشنبه', s:bc.seat?'رزرو شد؛ یک ساعت قبل یادآوری می‌کنیم':'جای محدود؛ از همین‌جا رزرو کن',
+      act:bc.seat?'':`<button class="btn sm primary" data-seat>رزرو صندلی</button>`, i:'i-users'},
+    {on:bc.pages>=10, t:'پیشرفت مطالعه', s:bc.pages?faN(bc.pages)+' صفحه از ۲۰۰ ثبت شده':'صفحه‌هایی که خوانده‌ای را ثبت کن',
+      act:`<span class="bt" style="display:flex;gap:6px"><button class="btn sm quiet" data-pages="10">+۱۰</button>
+        <button class="btn sm quiet" data-pages="25">+۲۵</button></span>`, i:'i-book'},
+    {on:!!bc.note, t:'یادداشت جلسه', s:bc.note?'ذخیره شده؛ سرپرست پیش از جلسه می‌خواند':'یک جمله هم کافی است',
+      act:bc.note?chip('انجام شد','ok'):'<span class="cap">مانده</span>', i:'i-pen'},
+    {on:!!bc.vote, t:'رأی کتاب ماه بعد', s:bc.vote?'رأیت ثبت شد؛ نتیجه زنده به‌روز می‌شود':'از میان '+faN(VOTE.length)+' کتاب یکی را انتخاب کن',
+      act:bc.vote?chip('انجام شد','ok'):'<span class="cap">مانده</span>', i:'i-star'}]
+    .map(x=>`<div class="bktask ${x.on?'done':''}"><span class="bx">${ico(x.on?'i-check':x.i)}</span>
+      <span class="tx"><b>${esc(x.t)}</b><small>${esc(x.s)}</small></span>${x.act}</div>`).join('')}</div>`;
+}
 function clubHome(){
-  const bc=bookState(), C=CCLUB, meet=(C.meet||[])[0]||{}, plan=clubPlan(bc.plan);
-  const pct=Math.max(0,Math.min(100,+C.progress||0)), mine=Math.round(Math.min(200,+bc.pages||0)/200*100);
-  const vote=bc.vote, VOTE=C.vote||[], tot=VOTE.reduce((a,b)=>a+(+b.n||0),0)+(vote?1:0);
-  const tasks=`<div class="bktasks anim" style="--i:1">
-      <div class="bktask ${bc.seat?'done':''}"><span class="bx">${ico('i-check')}</span>
-        <span class="tx"><b>صندلی جلسهٔ پنجشنبه</b><small>${bc.seat?'رزرو شد؛ یک ساعت قبل یادآوری می‌کنیم':'جای محدود؛ از همین‌جا رزرو کن'}</small></span>
-        ${bc.seat?chip('رزرو شد','ok'):`<button class="btn sm primary" data-seat>رزرو صندلی</button>`}</div>
-      <div class="bktask ${bc.pages>=10?'done':''}"><span class="bx">${ico('i-check')}</span>
-        <span class="tx"><b>ثبت پیشرفت مطالعه</b><small>${bc.pages?faN(bc.pages)+' صفحه از ۲۰۰ ثبت شده':'صفحه‌هایی که خوانده‌ای را خودت ثبت کن'}</small></span>
-        <span class="bt" style="display:flex;gap:6px"><button class="btn sm quiet" data-pages="10">+۱۰</button>
-          <button class="btn sm quiet" data-pages="25">+۲۵</button></span></div>
-      <div class="bktask ${bc.note?'done':''}"><span class="bx">${ico('i-check')}</span>
-        <span class="tx"><b>یادداشت یک‌صفحه‌ای جلسه</b><small>${bc.note?'ذخیره شده؛ سرپرست پیش از جلسه می‌خواند':'یک جمله هم کافی است'}</small></span>
-        <span class="cap">${bc.note?'انجام شد':'مانده'}</span></div>
-      <div class="bktask ${vote?'done':''}"><span class="bx">${ico('i-check')}</span>
-        <span class="tx"><b>رأی به کتاب ماه بعد</b><small>${vote?'رأیت ثبت شد؛ نتیجه زنده به‌روز می‌شود':'از میان سه کتاب، یکی را انتخاب کن'}</small></span>
-        <span class="cap">${vote?'انجام شد':'مانده'}</span></div>
-    </div>`;
+  const bc=bookState(), C=CCLUB, meet=C.meet||[], plan=clubPlan(bc.plan);
+  const m0=meet[0]||{}, m1=meet[1]||{};
   return clubCard()+
-    card('جلسهٔ این هفته',(C.session||'')+' · سرپرست: '+((clubSup().n)||'—'),'i-calendar',
-      `<div class="srow">${ico('i-book')}<span class="sp">${esc(meet.c||C.next||'جلسهٔ پیش‌رو')}
-        <small>${esc(meet.w||'')} · ${esc(meet.mode||'')}</small></span>
-        ${bc.att[meet.k]?chip('ثبت شد: '+bc.att[meet.k],'ok'):chip('ثبت حضور مانده','warn')}</div>
-       <div class="row tight" style="margin-top:10px">${['حاضر','آنلاین','نمی‌آیم'].map(st=>
-         `<button class="btn sm ${bc.att[meet.k]===st?'primary':'quiet'}" data-att="${esc(meet.k||'')}" data-attst="${esc(st)}">${esc(st)}</button>`).join('')}</div>
-       <div class="cap" style="margin-top:8px">ثبت حضور از سطح‌بندی باشگاه حساب می‌شود؛ غیبت با یادداشت هم قبول است.</div>`)+
-    tasks+
-    card('کارهای من در باشگاه','پیشرفت مطالعه و یادداشت و رأی','i-book',
-      `<div class="meter" role="img" aria-label="پیشرفت من ٪${faN(mine)}"><i style="width:${mine}%"></i></div>
-       <div class="row" style="margin-top:10px">
-         <button class="btn sm quiet" data-pages="10">+۱۰ صفحه</button>
-         <button class="btn sm quiet" data-pages="25">+۲۵ صفحه</button>
-         <span class="sp" style="flex:1"></span><span class="cap">٪${faN(mine)} از کتاب ماه</span></div>
-       <label class="lbl" for="bcNote" style="display:block;margin-top:12px;font-size:11.5px;color:var(--ink-3);font-weight:600">یادداشت یک‌صفحه‌ای</label>
-       <textarea class="input" id="bcNote" rows="3" placeholder="مثلاً فصل ۴: راوی چه چیزی را پنهان می‌کند؟" style="margin-top:6px">${esc(bc.note)}</textarea>
-       <div class="row" style="width:100%;margin-top:10px"><button class="btn sm primary" data-save-note>
-         ${ico('i-check')} ذخیرهٔ یادداشت</button><span class="sp" style="flex:1"></span>
-         <span class="cap">${bc.note?'ذخیره شده، قابل ویرایش':'خالی'}</span></div>`)+
-    card('حق عضویت باشگاه',(CFEE.cycle||'ماهانه')+' · سرپرست تعیین می‌کند','i-wallet',
-      `<div class="srow">${ico('i-calendar')}<span class="sp">پلن من<b>${esc(plan.n)}</b>
-        <small>${bc.feeAt?'پرداخت‌شده در '+esc(bc.feeAt):'پرداخت‌نشده'}</small></span>
-        <b class="num">${money(plan.amount)}</b></div>
-       <div class="srow">${ico('i-clock')}<span class="sp">سررسید بعدی<small>${esc(bc.feeNext||CFEE.due||'')}</small></span>
-         ${chip(bc.feeAt?'فعال':'مانده',bc.feeAt?'ok':'warn')}</div>
-       <div class="row" style="margin-top:10px">
-         <button class="btn primary" data-clubpay>${ico('i-shield')} ${bc.feeAt?'تمدید حق عضویت':'پرداخت حق عضویت'}</button>
-         <span class="sp" style="flex:1"></span><span class="cap">${esc(CFEE.studentNote||'')}</span></div>`)+
-    card('خبرهای سرپرست','',"i-bell",clubNews())+
-    card('گروه و لینک اختصاصی','خبرها و فایل‌ها همان‌جا','i-users',clubGroup())+
+    card('جلسهٔ این هفته',(C.session||'')+' · میزبان '+(clubSup().n||'—'),'i-calendar',
+      `<div class="clmeet">
+        <span class="clm-date"><b>${esc(m0.w||'')}</b><small>${esc(m0.mode||'')}</small></span>
+        <span class="tx"><b>${esc(m0.c||C.next||'جلسهٔ پیش‌رو')}</b>
+          <small>${faN(m0.took||0)} نفر تا حالا ثبت کرده‌اند${m1.w?' · جلسهٔ بعد: '+esc(m1.w):''}</small>
+          <span class="clatt">${['حاضر','آنلاین','نمی‌آیم'].map(st=>
+            `<button class="tag${bc.att[m0.k]===st?' on':''}" type="button" data-att="${esc(m0.k||'')}" data-attst="${esc(st)}">${esc(st)}</button>`).join('')}
+            ${bc.att[m0.k]?chip('ثبت شد','ok'):chip('ثبت حضور مانده','warn')}</span></span></div>`)+
+    clubTasks()+
+    card('کتاب ماه و پیشرفت من',esc(C.book||'')+' · '+esc(C.bookBy||''),'i-book',
+      `<div class="clread">${donut(Math.round(Math.min(200,+bc.pages||0)/200*100),'٪'+faN(Math.round(Math.min(200,+bc.pages||0)/200*100)),'پیشرفت من')}
+        <span class="tx"><b>${faN(bc.pages||0)} صفحه از ۲۰۰</b>
+          <small>کتاب ماه: ٪${faN(C.progress||0)} خوانده شده · جلسهٔ بعد ${esc(C.next||'')}</small>
+          <span class="bartrack"><i style="width:${Math.min(100,+C.progress||0)}%"></i></span></span>
+        <span class="clacts"><button class="btn sm quiet" data-pages="10">+۱۰</button>
+          <button class="btn sm quiet" data-pages="25">+۲۵</button></span></div>
+      <label class="lbl" for="bcNote" style="display:block;margin-top:12px;font-size:11.5px;color:var(--ink-3);font-weight:600">یادداشت یک‌صفحه‌ای</label>
+      <textarea class="input" id="bcNote" rows="3" placeholder="مثلاً فصل ۴: راوی چه چیزی را پنهان می‌کند؟" style="margin-top:6px">${esc(bc.note)}</textarea>
+      <div class="row" style="width:100%;margin-top:10px"><button class="btn sm primary" data-save-note>
+        ${ico('i-check')} ذخیرهٔ یادداشت</button><span class="sp" style="flex:1"></span>
+        <span class="cap">${bc.note?'ذخیره شده، قابل ویرایش':'خالی'}</span></div>`)+
+    `<div class="clgrid">
+      ${card('حق عضویت باشگاه',(CFEE.cycle||'ماهانه')+' · سرپرست تعیین می‌کند','i-wallet',
+        `<div class="npstats">
+          <span><b class="num">${money(plan.amount)}</b><small>پلن ${esc(plan.n)}</small></span>
+          <span><b>${esc(bc.feeNext||CFEE.due||'')}</b><small>سررسید بعدی</small></span>
+          <span>${chip(bc.feeAt?'فعال':'مانده',bc.feeAt?'ok':'warn')}<small>وضعیت</small></span></div>
+        <button class="btn primary block" style="margin-top:10px" data-clubpay>${ico('i-shield')} ${bc.feeAt?'تمدید حق عضویت':'پرداخت حق عضویت'}</button>`)}
+      ${card('خبرهای سرپرست','',"i-bell",clubNews())}
+    </div>`+
+    card('گروه و لینک اختصاصی',esc((CCLUB.group||{}).lead||''),'i-users',
+      `<div class="srow">${ico('i-users')}<span class="sp">${esc((CCLUB.group||{}).n||'گروه اعضا')}
+          <small class="num" dir="ltr">${esc((CCLUB.group||{}).code||'')}</small></span>
+        <button class="btn sm quiet" data-copy="${esc((CCLUB.group||{}).link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>`)+
     trustLine('club');
 }
 /* ── جلسه‌ها: هفتگی، ثبت حضور، سطح‌بندی ─────────────────────────────── */
 function clubMeet(){
   const bc=bookState(), C=CCLUB, me=clubMe(), L=clubLevel(+me.s||0);
-  const meet=(C.meet||[]).map(m=>`<div class="mtrow">
-      <span class="mt-when">${ico('i-calendar')}<b>${esc(m.w||'')}</b></span>
-      <span class="tx"><b>${esc(m.c||'')}</b><small>${esc(m.mode||'')} · میزبان ${esc(m.host||'')}${m.took?' · '+faN(m.took)+' نفر حاضر':''}</small>
-        <span class="row tight" style="margin-top:6px">${['حاضر','آنلاین','نمی‌آیم'].map(st=>
+  const meet=(C.meet||[]).map((m,i)=>`<div class="clmeet${i===0?' now':''}">
+      <span class="clm-n">${faN(i+1)}</span>
+      <span class="tx"><b>${esc(m.c||'')}</b>
+        <small>${esc(m.w||'')} · ${esc(m.mode||'')} · میزبان ${esc(m.host||'')}${m.took?' · '+faN(m.took)+' نفر حاضر':''}</small>
+        <span class="clatt">${['حاضر','آنلاین','نمی‌آیم'].map(st=>
           `<button class="tag${bc.att[m.k]===st?' on':''}" type="button" data-att="${esc(m.k)}" data-attst="${esc(st)}">${esc(st)}</button>`).join('')}
           ${bc.att[m.k]?chip('ثبت شد','ok'):''}</span></span></div>`).join('');
-  const levelRows=(C.levels||[]).map(x=>`<div class="lvrow${x.k===L.cur.k?' cur':''}">
-      <span class="dot"></span><span class="tx"><b>${esc(x.n)}</b><small>از ${faN(x.at)} جلسه · ${esc(x.perks||'')}</small></span>
+  const levels=(C.levels||[]).map((x,i)=>`<div class="lvrow${x.k===L.cur.k?' cur':''}">
+      <span class="lvn">${faN(i+1)}</span>
+      <span class="tx"><b>${esc(x.n)}</b><small>از ${faN(x.at)} جلسه · ${esc(x.perks||'')}</small></span>
       ${x.k===L.cur.k?chip('سطح من','ok'):''}</div>`).join('');
-  const boardRows=(C.board||[]).map(b=>`<div class="srow">${ico(b.me?'i-medal':'i-user')}
-      <span class="sp">${esc(b.n)}${b.me?' (تو)':''}<small>${esc(b.l)}</small></span>
-      <span class="tag">${faN(b.s)} جلسه</span></div>`).join('');
-  return card('جلسه‌های هفتگی',(C.session||'')+' · '+(C.meetings||0)+' جلسه برگزار شده','i-calendar',meet)+
-    card('ثبت حضور من','حضور، آنلاین و غیبت با یادداشت','i-check',
+  const board=(C.board||[]).map((b,i)=>`<span class="clmem">
+      <span class="av">${esc(String(b.n||'ع').slice(0,1))}</span>
+      <span class="tx"><b>${esc(b.n)}${b.me?' (تو)':''}</b><small>${esc(b.l)} · ${faN(b.s)} جلسه</small></span>
+      ${i<3?`<span class="medal m${i+1}">${ico('i-medal')}</span>`:''}</span>`).join('');
+  return `<div class="clgrid">
+      ${card('جلسه‌های هفتگی',faN((C.meet||[]).length)+' جلسه پیش‌رو · '+(C.session||''),'i-calendar',meet)}
+      ${card('سطح‌بندی اعضا','حضور هر جلسه یک پله جلو می‌برد','i-medal',levels)}
+    </div>
+    ${card('اعضای باشگاه',faN(C.members||0)+' عضو از '+faN(C.cap||0)+' جا','i-users',`<div class="clmems">${board}</div>`)}
+    ${card('ثبت حضور من','حضور، آنلاین و غیبت با یادداشت','i-check',
       (C.att||[]).map(a=>`<div class="srow">${ico(a.st.indexOf('حاضر')===0?'i-check':'i-clock')}
-        <span class="sp">${esc(a.c)}<small>${esc(a.d)}</small></span>${chip(a.st,a.st.indexOf('حاضر')===0?'ok':'warn')}</div>`).join('')+
-      `<p class="cap" style="margin-top:8px">حضور هر جلسه، یک پله در سطح‌بندی جلو می‌برد.</p>`)+
-    card('سطح‌بندی اعضا','چهار سطح، از تازه‌وارد تا راهبر باشگاه','i-medal',levelRows)+
-    card('اعضای باشگاه',faN((C.members||0))+' عضو از '+faN((C.cap||0))+' جا','i-users',boardRows)+
-    trustLine('club');
+        <span class="sp">${esc(a.c)}<small>${esc(a.d)}</small></span>${chip(a.st,a.st.indexOf('حاضر')===0?'ok':'warn')}</div>`).join(''))}
+    ${trustLine('club')}`;
 }
 /* ── کتاب و پادکست ──────────────────────────────────────────────────── */
 function clubVoiceForm(){
@@ -719,57 +732,53 @@ function clubVoiceForm(){
   if(bc.voice)
     return `<div class="srow">${ico('i-check')}<span class="sp">فرم ضبط پادکست فرستاده شد
         <small>${esc(bc.voice.role||'')}${bc.voice.slot?' · '+esc(bc.voice.slot):''}</small></span>${chip('در نوبت سرپرست','ok')}</div>`;
-  return `<p class="cap" style="margin:6px 0">${esc(call.lead||'')}</p>
-    <div class="fld"><span class="hint">چه کاری دوست داری؟</span>
-      <div class="seg">${(call.roles||[]).map(r=>`<button class="segbtn${bc.voiceRole===r?' on':''}" type="button"
-        data-cvoice="${esc(r)}" aria-pressed="${bc.voiceRole===r}">${esc(r)}</button>`).join('')}</div></div>
-    <div class="fld"><span class="hint">کدام وقت راحت‌تری؟</span>
-      <div class="seg">${(call.slots||[]).map(s=>`<button class="segbtn${bc.voiceSlot===s?' on':''}" type="button"
-        data-cslot="${esc(s)}" aria-pressed="${bc.voiceSlot===s}">${esc(s)}</button>`).join('')}</div></div>
+  return `<div class="seg">${(call.roles||[]).map(r=>`<button class="segbtn${bc.voiceRole===r?' on':''}" type="button"
+      data-cvoice="${esc(r)}" aria-pressed="${bc.voiceRole===r}">${bc.voiceRole===r?ico('i-check','width:13px;height:13px;'):''}${esc(r)}</button>`).join('')}</div>
+    <div class="seg" style="margin-top:8px">${(call.slots||[]).map(s=>`<button class="segbtn${bc.voiceSlot===s?' on':''}" type="button"
+      data-cslot="${esc(s)}" aria-pressed="${bc.voiceSlot===s}">${esc(s)}</button>`).join('')}</div>
     <div class="row" style="margin-top:12px"><button class="btn primary" data-cvoice-send>
-      ${ico('i-send')} فرم را بفرست</button></div>`;
+      ${ico('i-send')} فرم را بفرست</button><span class="sp" style="flex:1"></span>
+      <span class="cap">${esc(call.need?call.need[0]:'')}</span></div>`;
 }
 function clubMedia(){
-  const bc=bookState(), C=CCLUB, sup=clubSup();
-  const pct=Math.max(0,Math.min(100,+C.progress||0));
-  const hero=`<div class="bkhero anim">
-      <div class="bkcover">
-        ${ico('i-book','')}
-        <span class="bkkind">کتاب ماه باشگاه خط زندگی · ${esc(C.term||'')}</span>
-        <b>${esc(C.book||'')}</b>
+  const bc=bookState(), C=CCLUB, P=C.podcast||{};
+  const pct=Math.max(0,Math.min(100,+C.progress||0)), mine=Math.round(Math.min(200,+bc.pages||0)/200*100);
+  const hero=`<div class="clbook anim">
+      <span class="clbk-cover" style="--g:linear-gradient(150deg,#2E6B7A,#0B2447)">${ico('i-book')}
+        <b>${esc(C.book||'')}</b><small>${esc(C.bookBy||'')}</small></span>
+      <span class="tx"><span class="clbk-k">${ico('i-star')} کتاب ماه · ${esc(C.term||'')}</span>
+        <b class="clbk-t">${esc(C.book||'')}</b>
         <small>${esc(C.bookBy||'')} · ${esc(C.session||'')}</small>
-        <span class="bktags">${chip(faN(C.members||0)+' عضو')}${chip(faN(C.meetings||0)+' جلسه')}${chip('عضو این ترم','ok')}</span>
-        <div class="bkbar" role="img" aria-label="پیشرفت کتاب ماه ٪${faN(pct)}"><i style="width:${pct}%"></i></div>
-        <div class="bkfoot">${ico('i-clock')} ٪${faN(pct)} خوانده شده · جلسهٔ بعد: ${esc(C.next||'جلسهٔ پیش‌رو')}</div>
-      </div>
-      <div class="bkbody">
-        <div class="bkstats">
-          ${[['اعضا',faN(C.members||0)+' از '+faN(C.cap||0)],['جلسه‌ها',faN(C.meetings||0)],
-             ['صفحهٔ من',faN(bc.pages||0)],['قفسه',faN((C.shelf||[]).length)]]
-            .map(([l,v])=>`<span><b>${esc(v)}</b><small>${esc(l)}</small></span>`).join('')}
-        </div>
-        <div class="cap">جلسه‌ها ${esc(C.session||'')} برپا می‌شود؛ یادداشتت را پیش از جلسه بفرست.</div>
-        <div class="row tight" style="margin-top:10px">
-          <button class="btn sm quiet" data-pages="10">+۱۰ صفحه</button>
-          <button class="btn sm quiet" data-pages="25">+۲۵ صفحه</button>
-          <span class="sp" style="flex:1"></span><span class="cap">صفحه‌های خوانده‌شده را خودت ثبت کن</span></div>
-      </div></div>`;
-  const books=(C.books||[]).map(b=>`<div class="bkrow">
-      <span class="bk-th" aria-hidden="true">${ico(b.kind==='کتاب ماه'?'i-star':b.kind==='خلاصه'?'i-headphone':'i-book')}</span>
-      <span class="tx"><b>${esc(b.t)}</b><small>${esc(b.by||'')} · ${esc(b.kind||'')}${b.min?' · '+faN(b.min)+' دقیقه':''}</small>
+        ${donut(pct,'٪'+faN(pct),'پیشرفت کتاب ماه')}
+        <span class="bartrack"><i style="width:${pct}%"></i></span>
+        <span class="clbk-stats">
+          <span><b class="num">${faN(C.members||0)}</b><small>عضو</small></span>
+          <span><b class="num">${faN(C.meetings||0)}</b><small>جلسه</small></span>
+          <span><b class="num">${faN(bc.pages||0)}</b><small>صفحهٔ من</small></span>
+          <span><b class="num">${faN((C.shelf||[]).length)}</b><small>کتاب قفسه</small></span></span>
+        <span class="clread2">${ico('i-book')} پیشرفت من ٪${faN(mine)}
+          <button class="btn sm quiet" data-pages="10">+۱۰</button>
+          <button class="btn sm quiet" data-pages="25">+۲۵</button></span></span></div>`;
+  const books=(C.books||[]).map(b=>`<div class="clbkrow">
+      <span class="bk-th">${ico(b.kind==='کتاب ماه'?'i-star':b.kind==='خلاصه'?'i-headphone':'i-book')}</span>
+      <span class="tx"><b>${esc(b.t)}</b><small>${esc(b.by||'')}${b.min?' · '+faN(b.min)+' دقیقه':''}</small>
         <span class="cap">${esc(b.note||'')}</span></span>
-      <span class="acts">${b.kind==='خلاصه'?`<button class="btn sm quiet" data-watch="${esc(b.t)}">${ico('i-headphone')} شنیدن</button>`
-        :`<button class="btn sm quiet" data-watch="${esc(b.t)}">${ico('i-book')} باز کردن</button>`}</span></div>`).join('');
-  const podcast=(C.podcast||{});
-  const eps=(podcast.eps||[]).map(e=>`<div class="pdcard">
+      <span class="acts">${chip(b.kind||'','gold')}
+        <button class="btn sm quiet" data-watch="${esc(b.t)}">${ico(b.kind==='خلاصه'?'i-headphone':'i-book')} ${b.kind==='خلاصه'?'شنیدن':'باز کردن'}</button></span></div>`).join('');
+  const eps=(P.eps||[]).map((e,i)=>`<div class="pdcard${i===0?' now':''}">
       <button class="pdplay" type="button" data-watch="${esc(e.n)}" aria-label="پخش ${esc(e.n)}">${ico('i-play-f')}</button>
-      <span class="tx"><b>${esc(e.n)}</b><small>${esc(e.at||'')} · ${faN(e.min||0)} دقیقه · ${esc(podcast.host||'')}</small></span>
+      <span class="tx"><b>${esc(e.n)}</b><small>${esc(e.at||'')} · ${faN(e.min||0)} دقیقه · ${esc(P.host||'')}</small>
+        <span class="pddur"><i style="width:${Math.min(100,Math.round((e.min||0)/45*100))}%"></i></span></span>
       ${chip(e.st||'',e.st==='تازه'?'gold':'')}</div>`).join('');
   const vote=bc.vote, VOTE=C.vote||[], tot=VOTE.reduce((a,b)=>a+(+b.n||0),0)+(vote?1:0);
   return hero+
-    card('معرفی و خلاصهٔ کتاب',(C.books||[]).length+' کتاب، از معرفی تا خلاصهٔ صوتی','i-book',books)+
-    card('پادکست '+(podcast.n||'نبض ورق'),(podcast.lead||'')+' · '+(podcast.studio||''),'i-headphone',eps)+
-    card('دعوت به ضبط پادکست','فرمی که سرپرست گذاشته؛ اگر قبول شدی، اسمت پای قسمت می‌آید','i-star',clubVoiceForm())+
+    `<div class="clgrid">
+      ${card('معرفی و خلاصهٔ کتاب',faN((C.books||[]).length)+' کتاب باشگاه','i-book',`<div class="clbooks">${books}</div>`)}
+      ${card('پادکست '+(P.n||'نبض ورق'),esc(P.lead||'')+' · '+esc(P.studio||''),'i-headphone',
+        `<div class="clpod">${eps}</div>
+         <div class="npfoot">${ico('i-play-f')} ضبط قسمت‌ها در استودیوی نورا انجام می‌شود؛ اعضا می‌توانند در ضبط شرکت کنند.</div>`)}
+    </div>`+
+    card('دعوت به ضبط پادکست','فرمی که سرپرست گذاشته؛ اسمت پای قسمت می‌آید','i-star',clubVoiceForm())+
     card('کتاب ماه بعد را با هم انتخاب کنیم','رأی تو در فهرست ماه بعد حساب می‌شود','i-star',
       `<div class="votebox">${VOTE.map(v=>{const n=(+v.n||0)+(vote===v.k?1:0), pc2=tot?Math.round(n/tot*100):0;
         return `<button class="voteopt${vote===v.k?' on':''}" data-vote="${esc(v.k)}" aria-pressed="${vote===v.k}">
@@ -779,40 +788,45 @@ function clubMedia(){
             <span class="vtrack"><i style="width:${pc2}%"></i></span></span></button>`}).join('')}</div>
        <p class="cap" style="margin:8px 2px 0">${vote?'رأیت ثبت شد؛ نتیجه زنده به‌روز می‌شود.':'با زدن هر گزینه، رأیت ثبت می‌شود.'}</p>`)+
     card('قفسهٔ باشگاه','کتاب‌های ماه گذشته','i-archive',
-      `<div class="shelf">${(C.shelf||[]).map(b=>`<div class="book">
-        <span class="bt2" aria-hidden="true"></span>
-        <span class="btx"><b>${esc(b.t)}</b><small>${esc(b.by)} · ${esc(b.d)} · ${'★'.repeat(Math.round(+b.r||0))}</small></span></div>`).join('')}</div>`)+
+      `<div class="clshelf">${(C.shelf||[]).map(b=>`<span class="clbk" style="--g:linear-gradient(150deg,${esc(b.c||'#2E6B7A')},#0B2447)">
+        <b>${esc(b.t)}</b><small>${esc(b.by)}</small><span class="st">${'★'.repeat(Math.round(+b.r||0))}</span>
+        <span class="cap">${esc(b.d)}</span></span>`).join('')}</div>`)+
     card('جلسه‌های گذشته','ضبط هر جلسه هست؛ غایب هم عقب نمی‌ماند','i-play-f',
-      (C.log||[]).map(l=>`<div class="tk">${ico('i-play-f','width:19px;height:19px;color:var(--ink-4)')}
+      `<div class="clpast">${(C.log||[]).map(l=>`<span class="tk">${ico('i-play-f','width:19px;height:19px;color:var(--ink-4)')}
         <span><b>${esc(l.t)}</b><small>${esc(l.d)} · ${faN(l.n)} نفر حاضر</small>
-          <span class="acts"><button class="btn sm quiet" data-watch="${esc(l.t)}">${ico('i-play-f')} تماشا</button></span></span></div>`).join(''))+
+          <span class="acts"><button class="btn sm quiet" data-watch="${esc(l.t)}">${ico('i-play-f')} تماشا</button></span></span></span>`).join('')}</div>`)+
     trustLine('club');
 }
 /* ── مسابقه، چالش و کارگاه ─────────────────────────────────────────── */
 function clubGame(){
   const bc=bookState(), C=CCLUB, me=clubMe();
-  const contests=(C.contests||[]).map(c=>`<div class="srow">${ico('i-medal')}
-      <span class="sp">${esc(c.n)}<small>${esc(c.d)} · تا ${esc(c.until)} · ${faN(c.entrants||0)} نفر</small>
-        <span class="cap">جایزه: ${esc(c.prize||'')}</span></span>
+  const contests=(C.contests||[]).map((c,i)=>`<div class="clcontest g${i+1}">
+      <span class="cc-ttl">${ico('i-medal')} ${esc(c.n)}</span>
+      <span class="cc-d">${esc(c.d)}</span>
+      <span class="cc-meta">${chip('تا '+esc(c.until||''))}${chip(faN(c.entrants||0)+' نفر')}${chip(c.prize||'','gold')}</span>
       ${bc.entered[c.k]?chip('ثبت‌نام کردی','ok'):(c.state==='open'
         ?`<button class="btn sm primary" data-contest="${esc(c.k)}">شرکت می‌کنم</button>`:chip('به‌زودی','warn'))}</div>`).join('');
   const chals=(C.challenges||[]).map(ch=>{
     const mine=+bc.chals[ch.k]||0, pc=Math.min(100,Math.round(mine/ch.goal*100)), done=mine>=ch.goal;
-    return `<div class="chlrow">
-      <span class="tx"><b>${esc(ch.n)}</b><small>${esc(ch.d)} · پاداش ${faN(ch.reward||0)} امتیاز</small>
-        <span class="meter" role="img" aria-label="پیشرفت ٪${faN(pc)}"><i style="width:${pc}%"></i></span>
-        <span class="cap">${faN(mine)} از ${faN(ch.goal)} ${esc(ch.unit||'')} · ٪${faN(pc)}</span></span>
+    return `<div class="clchal${done?' done':''}">${donut(pc,faN(mine),ch.n,done?'ok':'')}
+      <span class="tx"><b>${esc(ch.n)}</b><small>${esc(ch.d)}</small>
+        <span class="cap">${faN(mine)} از ${faN(ch.goal)} ${esc(ch.unit||'')} · پاداش ${faN(ch.reward||0)} امتیاز</span></span>
       ${done?chip('تمام شد','ok'):`<button class="btn sm quiet" data-chal="${esc(ch.k)}">+ یک ${esc(ch.unit||'')}</button>`}</div>`}).join('');
-  const ws=(C.workshops||[]).map(w=>`<div class="srow">${ico('i-pen')}
-      <span class="sp">${esc(w.t)}<small>${esc(w.d)} · میزبان ${esc(w.host)} · ${faN(w.left||0)} جا مانده</small></span>
-      ${bc.seats[w.k]?chip('جا گرفتی','ok'):`<button class="btn sm primary" data-clubw="${esc(w.k)}">${w.price?'ثبت‌نام · '+money(w.price):'ثبت‌نام رایگان'}</button>`}</div>`).join('');
-  return card('مسابقه‌های ماهانه','سرپرست هر ماه یک مسابقه می‌گذارد','i-medal',contests)+
-    card('چالش‌های باشگاه','کوتاه، روزانه و با امتیاز','i-star',chals)+
-    card('کارگاه‌های باشگاه','کارگاه‌های ویژهٔ اعضا؛ پرداخت با نورا پی','i-pen',ws)+
-    card('جایگاه من',esc(me.l||'')+' · '+faN(+me.s||0)+' جلسه','i-chart',
-      `<div class="meter"><i style="width:${Math.min(100,Math.round((+me.s||0)/20*100))}%"></i></div>
-       <p class="cap" style="margin-top:8px">هر مسابقه و چالش، امتیاز باشگاه و یک گام به سطح بعدی است.</p>`)+
-    trustLine('club');
+  const ws=(C.workshops||[]).map(w=>`<div class="clws">
+      <span class="ic">${ico('i-pen')}</span>
+      <span class="tx"><b>${esc(w.t)}</b><small>${esc(w.d)} · میزبان ${esc(w.host)}</small>
+        <span class="cap">${faN(w.left||0)} جا مانده از ${faN(w.seats||0)}</span></span>
+      <span class="acts">${chip(w.price?money(w.price):'رایگان',w.price?'':'ok')}
+        ${bc.seats[w.k]?chip('جا گرفتی','ok'):`<button class="btn sm primary" data-clubw="${esc(w.k)}">ثبت‌نام</button>`}</span></div>`).join('');
+  return `<div class="clgrid">
+      ${card('مسابقه‌های ماهانه',faN((C.contests||[]).length)+' مسابقه باز','i-medal',`<div class="clconts">${contests}</div>`)}
+      ${card('چالش‌های باشگاه','کوتاه، روزانه و با امتیاز','i-star',`<div class="clchals">${chals}</div>`)}
+    </div>
+    ${card('کارگاه‌های باشگاه','کارگاه‌های ویژهٔ اعضا؛ پرداخت با نورا پی','i-pen',`<div class="clwss">${ws}</div>`)}
+    ${card('جایگاه من',esc(me.l||'')+' · '+faN(+me.s||0)+' جلسه','i-chart',
+      `<div class="bartrack"><i style="width:${Math.min(100,Math.round((+me.s||0)/20*100))}%"></i></div>
+       <p class="cap" style="margin-top:8px">هر مسابقه و چالش، امتیاز باشگاه و یک گام به سطح بعدی است.</p>`)}
+    ${trustLine('club')}`;
 }
 /* ── تریبون آزاد ───────────────────────────────────────────────────── */
 function clubTalk(){
@@ -824,19 +838,19 @@ function clubTalk(){
       <span class="tx"><b>${esc(p.n||'عضو باشگاه')} <span class="tag">${esc(p.tag||'نظر')}</span></b>
         <small>${esc(p.at||'')}</small>
         <span class="cap">${esc(p.t||'')}</span></span>
-      <button class="btn sm quiet${liked?' primary':''}" data-like="${esc(p.k)}" aria-pressed="${!!liked}">
-        ${ico('i-star')} ${faN(n)}</button></div>`}).join('');
-  return card('تریبون آزاد',(T.lead||'')+' · سرپرست هر هفته می‌خواند ('+faN(all.length)+' نظر)','i-chat',
+      <button class="likebtn${liked?' on':''}" data-like="${esc(p.k)}" aria-pressed="${!!liked}"
+        aria-label="پسندیدن">${ico('i-star')}<b class="num">${faN(n)}</b></button></div>`}).join('');
+  return card('تریبون آزاد',faN(all.length)+' نظر و پیشنهاد عضوها','i-chat',
       `<div class="trnew">
         <div class="seg">${(T.tags||[]).map(t=>`<button class="segbtn${bc.tag===t?' on':''}" type="button"
           data-ctag="${esc(t)}" aria-pressed="${bc.tag===t}">${esc(t)}</button>`).join('')}</div>
-        <label class="hint" for="trText" style="display:block;margin-top:10px">نظر یا پیشنهادت</label>
-        <textarea class="input" id="trText" rows="3" maxlength="${faN(T.max||280)}"
-          placeholder="کوتاه و روشن بنویس؛ سرپرست هر هفته می‌خواند" style="margin-top:6px"></textarea>
+        <textarea class="input" id="trText" rows="3" maxlength="${faN(T.max||280)}" aria-label="نظر یا پیشنهادت"
+          placeholder="کوتاه و روشن بنویس؛ سرپرست هر هفته می‌خواند" style="margin-top:10px;width:100%"></textarea>
         <div class="row" style="margin-top:10px"><button class="btn primary" data-post>${ico('i-send')} بفرست</button>
-          <span class="sp" style="flex:1"></span><span class="cap">بی‌نام هم می‌شود؛ اسمت نمی‌آید</span></div></div>
-      <div class="gt cap" style="margin:14px 3px 6px">نظرهای اعضا</div>${posts}
-      <div class="srow" style="margin-top:10px">${ico('i-users')}<span class="sp">${esc((N.PEOPLE||[]).find(x=>x.id===(N.CLUB||{}).sup)?.n||'سرپرست باشگاه')}
+          <span class="sp" style="flex:1"></span><span class="cap">${esc(T.lead||'')}</span></div></div>
+      <div class="gt cap" style="margin:14px 3px 6px">نظرهای اعضا</div>
+      <div class="trposts">${posts}</div>
+      <div class="srow" style="margin-top:10px">${ico('i-users')}<span class="sp">${esc(clubSup().n||'سرپرست باشگاه')}
         <small>سرپرست باشگاه؛ پیشنهادها را می‌خواند و هر هفته یکی را جلو می‌برد</small></span>
         <button class="btn sm quiet" data-go="support">پرسش</button></div>`)+
     trustLine('club');
@@ -848,6 +862,7 @@ function clubPanel(t){
   const sub=(C.term||'')+(C.book?' · '+C.book:'');
   return viewHead(t,sub,CTABS,'ctab')+`<div class="panel">${body}</div>`;
 }
+
 
 /* ══ اطلاعات و تنظیمات حساب ═════════════════════════════════════════ */
 function validNationalId(v){
@@ -1179,16 +1194,18 @@ VS.book=function(t){
 };
 
 /* ══ نورا پی: همهٔ پرداخت‌ها و خریدهای سامانه ══════════════════════════
-   شش مدل روی یک لایه: کیف پول نورا پی، درگاه رسمی بله، کارت‌به‌کارت،
-   حضوری، امتیاز و «نصف الان، نصف اول ماه آینده». تا وقتی کاربر به نورا پی
-   بدهکار است، گواهینامه‌اش دانلود نمی‌شود. */
+   یک داشبورد: کیف پول بالا، کنش‌های سریع، بدهی اگر هست، بعد سه تکهٔ روشن —
+   روش‌های پرداخت، صورت‌حساب‌ها و تراکنش‌ها. شش مدل روی یک لایه: کیف پول
+   نورا پی، درگاه رسمی بله، کارت‌به‌کارت، حضوری، امتیاز و نصف‌ونصف. تا وقتی
+   کاربر به نورا پی بدهکار است، گواهینامه‌اش دانلود نمی‌شود. */
 function payState(){
   const d={bal:(PAYINFO.wallet||{}).bal||0, debt:((PAYINFO.debt||{}).amount)||0,
-    paid:{}, part:{'NP-2417':true}, refunds:{}, txs:[]};
+    paid:{}, part:{'NP-2417':true}, refunds:{}, txs:[], def:PAY_DEF[0]||'bale'};
   try{
     const v=JSON.parse(localStorage.getItem(PAY_KEY)||'{}')||{};
     return {bal:typeof v.bal==='number'?v.bal:d.bal, debt:typeof v.debt==='number'?v.debt:d.debt,
-      paid:v.paid||{}, part:Object.assign({},d.part,v.part||{}), refunds:v.refunds||{}, txs:v.txs||[]};
+      paid:v.paid||{}, part:Object.assign({},d.part,v.part||{}), refunds:v.refunds||{},
+      txs:v.txs||[], def:v.def||d.def};
   }catch(e){ return d }
 }
 function paySave(patch){
@@ -1209,62 +1226,95 @@ function invStateTxt(s){ return (PAYINFO.states||{})[s]||s }
 function addTx(t){
   const st=payState(); paySave({txs:[Object.assign({at:nowFa()},t)].concat(st.txs).slice(0,12)});
 }
-/* ── کارت کیف پول ─────────────────────────────────────────────────── */
+/* ── گرافیک کوچک: نمودار خرج و حلقهٔ درصد ──────────────────────────── */
+function payBars(){
+  const w=PAYINFO.wallet||{}, t=w.trend||[], max=Math.max(1,...t), n=t.length;
+  if(!n) return '';
+  return `<span class="npbars" role="img" aria-label="${esc(w.trendNote||'خرج ماه‌های گذشته')}">
+    ${t.map((v,i)=>`<i style="height:${Math.max(12,Math.round(v/max*100))}%" class="${i===n-1?'on':''}"></i>`).join('')}</span>`;
+}
+function donut(pct,inner,label,tone){
+  const v=Math.min(100,Math.max(0,+pct||0)), r=26, c=2*Math.PI*r;
+  return `<span class="donut${tone?' '+tone:''}" role="img" aria-label="${esc(label||'')}">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="dt" cx="32" cy="32" r="${r}"/>
+      <circle class="dv" cx="32" cy="32" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c*(1-v/100)).toFixed(1)}"/></svg>
+    <b>${inner}</b></span>`;
+}
+/* ── کیف پول، بالا و یک‌تکه ────────────────────────────────────────── */
 function payHero(){
   const w=PAYINFO.wallet||{}, bal=walletBal(), cap=w.cap||0, debt=debtAmt();
-  const pct=cap?Math.min(100,Math.round(bal/cap*100)):0;
-  return `<div class="payhero anim">
-    <div class="ph-top"><span class="ph-ic">${ico('i-wallet')}</span>
-      <span class="ph-tx"><small>${esc(w.n||'کیف پول نورا پی')}</small>
-        <b class="num">${money(bal)}</b>
-        <span class="ph-meta">${chip('سقف '+money(cap))}${w.auto?chip('پرداخت خودکار','ok'):''}
-          ${debt?chip('بدهی '+money(debt),'stop'):chip('بی بدهی','ok')}</span></span></div>
-    <div class="meter"><i style="width:${faN(pct)}%"></i></div>
-    <p class="cap" style="margin:8px 2px 0">${esc(w.autoNote||'')}</p>
-    <div class="row tight" style="margin-top:11px">
-      <button class="btn primary" data-topup>${ico('i-plus')} شارژ کیف پول</button>
-      <button class="btn quiet" data-paytx>${ico('i-doc')} تراکنش‌ها</button>
-      <button class="btn quiet" data-linkgo>${ico('i-link')} لینک پرداخت</button>
+  const pct=cap?Math.min(100,Math.round(bal/cap*100)):0, n=(PAYINFO.txs||[]).length;
+  return `<div class="nphero anim">
+    <div class="npcover">
+      <span class="npk">${ico('i-wallet')} ${esc(w.n||'کیف پول نورا پی')}</span>
+      <span class="npbal"><b class="num">${money(bal)}</b></span>
+      <span class="npsub">
+        ${w.auto?`<span class="nptag">${ico('i-check')} پرداخت خودکار</span>`:''}
+        <span class="nptag">${ico('i-chart')} سقف ${money(cap)}</span>
+        ${debt?`<span class="nptag stop">${ico('i-clock')} بدهی ${money(debt)}</span>`:''}
+      </span>
+      ${payBars()}
+      <span class="npmeter"><i style="width:${pct}%"></i></span>
+      <span class="npnote">${faN(pct)}٪ سقف پر شده · ${faN(n)} تراکنش در کارنامه</span>
+    </div>
+    <div class="npacts">
+      <button class="npact" type="button" data-topup><span class="ic">${ico('i-plus')}</span><b>شارژ</b></button>
+      <button class="npact" type="button" data-linkgo><span class="ic">${ico('i-link')}</span><b>لینک پرداخت</b></button>
+      <button class="npact" type="button" data-debtpay><span class="ic">${ico('i-clock')}</span><b>${debt?'تسویهٔ بدهی':'بی بدهی'}</b></button>
+      <button class="npact" type="button" data-paytx><span class="ic">${ico('i-refresh')}</span><b>تراکنش‌ها</b></button>
     </div></div>`;
 }
 /* ── بدهی و قفل گواهینامه ─────────────────────────────────────────── */
 function debtBox(){
   const d=PAYINFO.debt||{}, amt=debtAmt();
   if(!amt)
-    return `<div class="payclear anim">${ico('i-check')}<span class="tx"><b>به نورا پی بدهکار نیستی</b>
+    return `<div class="payclear npalert anim">${ico('i-check')}<span class="tx"><b>به نورا پی بدهکار نیستی</b>
       <small>گواهینامه‌ها باز است و هر وقت بخواهی دانلود می‌شوند.</small></span></div>`;
-  return `<div class="paydebt anim">${ico('i-clock')}<span class="tx">
+  return `<div class="paydebt npalert anim">${ico('i-lock')}<span class="tx">
       <b>${money(amt)} بدهی داری</b>
       <small>${esc(d.t||'')}${d.due?' · مهلت '+esc(d.due):''}${d.plan?' · '+esc(d.plan):''}</small>
       <span class="cap">${esc(d.lock||'تا تسویهٔ بدهی، گواهینامه قابل دانلود نیست.')}</span></span>
-    <button class="btn sm primary" data-debtpay>پرداخت کن</button></div>`;
+    <button class="btn sm primary" data-debtpay>پرداخت بدهی</button></div>`;
 }
-/* ── شش مدل پرداخت ────────────────────────────────────────────────── */
+/* ── شش مدل پرداخت: کاشی‌های کوتاه، بی پاراگراف ────────────────────── */
 function methodTile(m){
   const off=!m.on;
   return `<button class="paym${off?' off':''}" type="button" data-paym="${esc(m.k)}"${off?' disabled aria-disabled="true"':''}>
     <span class="pm-ic">${ico(m.i||'i-wallet')}</span>
     <span class="tx"><b>${esc(m.n)}</b><small>${esc(m.s)}</small></span>
+    ${m.k===payState().def?chip('پیش‌فرض من','ok'):''}
     <span class="pm-go">${ico('i-chev-left')}</span></button>`;
 }
 function methodsBox(){
   return `<div class="payms">${PAYM.map(methodTile).join('')}</div>
-    <p class="cap" style="margin:9px 2px 0">مدل هر رویداد را مدیر یا سازندهٔ رویداد انتخاب می‌کند؛
-      روی هر روش بزنی، شرط و مهلت خودش را می‌بینی.</p>`;
+    <p class="npfoot">مدل هر رویداد را مدیر یا سازندهٔ رویداد انتخاب می‌کند؛ روی هر روش بزنی شرط و مهلت خودش را می‌بینی.</p>`;
 }
-/* ── صورتحساب و تراکنش ────────────────────────────────────────────── */
+/* ── صورت‌حساب‌ها: صافی کوتاه و ردیف‌های جمع‌وجور ───────────────────── */
+function invFilterBar(){
+  const inv=PAYINFO.invoices||[];
+  const count=k=>inv.filter(v=>k==='all'||invState(v)===k).length;
+  const F=[['all','همه'],['paid','پرداخت‌شده'],['open','در انتظار'],['partial','نیمه‌پرداخت'],['refunded','برگشت وجه']];
+  return `<div class="npfilters">${F.map(([k,n])=>`<button class="tag${(S.invF||'all')===k?' on':''}"
+      type="button" data-invf="${k}">${esc(n)} <b class="num">${faN(count(k))}</b></button>`).join('')}</div>`;
+}
 function invRow(v){
   const st=invState(v), dow=v.paid<v.amount&&v.amount>0;
-  return `<div class="ivrow">
-    <span class="iv-ic">${ico('i-doc')}</span>
+  return `<div class="ivrow st-${esc(invTone(st))}">
+    <span class="iv-ic">${ico(v.amount?'i-doc':'i-star')}</span>
     <span class="tx"><b>${esc(v.t)}</b>
-      <small>${esc(v.at)} · ${esc(methodOf(v.method).n||v.method||'')}</small>
-      ${v.track&&v.track!=='—'?`<span class="cap">کد رهگیری <b class="num" dir="ltr">${esc(v.track)}</b>
-        ${dow?' · پرداخت‌شده '+money(v.paid||0):''}</span>`:''}</span>
+      <small>${esc(v.at)} · ${esc(methodOf(v.method).n||v.method||'')}${dow?' · پرداخت‌شده '+money(v.paid||0):''}</small>
+      ${v.track&&v.track!=='—'?`<small class="cap">کد رهگیری <b class="num">${esc(v.track)}</b></small>`:''}</span>
     <span class="iv-end"><b class="num">${v.amount?money(v.amount):'رایگان'}</b>${chip(invStateTxt(st),invTone(st))}
-      ${st==='paid'&&v.amount>0?`<button class="btn sm quiet" data-refund="${esc(v.id)}">برگشت وجه</button>`
-        :(st==='paid'?'':`<button class="btn sm primary" data-invpay="${esc(v.id)}">پرداخت</button>`)}</span></div>`;
+      ${st==='paid'&&v.amount>0?`<button class="btn sm quiet" data-refund="${esc(v.id)}">برگشت</button>`
+        :(st==='paid'||st==='refunded'?'':`<button class="btn sm primary" data-invpay="${esc(v.id)}">پرداخت</button>`)}</span></div>`;
 }
+function invoicesBox(){
+  const inv=(PAYINFO.invoices||[]), f=S.invF||'all';
+  const list=inv.filter(v=>f==='all'||invState(v)===f);
+  return invFilterBar()+(list.length?list.map(invRow).join('')
+    :empty2('در این حالت چیزی نیست','صافی را برگردان تا بقیهٔ صورت‌حساب‌ها را ببینی.'));
+}
+/* ── تراکنش‌ها: خط زمانی جمع‌وجور ──────────────────────────────────── */
 function txRow(t){
   const up=(+t.amount||0)>0, pts=+t.pts||0;
   const amt=t.amount?`<b class="num ${up?'up':'down'}">${up?'+':'−'}${money(Math.abs(t.amount))}</b>`
@@ -1272,6 +1322,22 @@ function txRow(t){
   return `<div class="txrow"><span class="tx-ic">${ico(t.k==='top'?'i-plus':t.k==='refund'?'i-refresh':t.k==='bonus'?'i-star':'i-bag')}</span>
     <span class="tx"><b>${esc(t.t)}</b><small>${esc(t.at||'')}${t.by?' · '+esc(methodOf(t.by).n||t.by):''}</small></span>
     <span class="tx-end">${amt}${chip(pts?'امتیاز':invStateTxt(t.state),pts?'gold':invTone(t.state))}</span></div>`;
+}
+function txBox(){
+  const all=payState().txs.concat(PAYINFO.txs||[]);
+  const list=(S.txAll?all:all.slice(0,4));
+  return list.length?list.map(txRow).join('')+
+    (all.length>4&&!S.txAll?`<button class="npmore" type="button" data-paytx>${ico('i-plus')} همهٔ ${faN(all.length)} تراکنش</button>`:'')
+    :empty2('تراکنشی نیست','اولین شارژ یا خریدت همین‌جا می‌نشیند.');
+}
+/* ── خلاصهٔ این ماه: سه عدد گرافیکی ────────────────────────────────── */
+function payStats(){
+  const st=payState(), inv=PAYINFO.invoices||[];
+  const spent=inv.reduce((a,v)=>a+(+v.paid||0),0), left=inv.reduce((a,v)=>a+Math.max(0,(+v.amount||0)-(+v.paid||0)),0);
+  return `<div class="npstats">
+    <span><b class="num">${money(spent)}</b><small>پرداخت‌شده تا امروز</small></span>
+    <span><b class="num">${money(left)}</b><small>ماندهٔ صورت‌حساب‌ها</small></span>
+    <span><b class="num">${faN(+A.points||0)}</b><small>امتیاز من</small></span></div>`;
 }
 /* ── ورقه‌ها: پرداخت، شارژ، برگشت و لینک ─────────────────────────── */
 function payTrace(){
@@ -1341,12 +1407,11 @@ function methodSheet(k,ctx){
       (PAYINFO.fee&&PAYINFO.fee.onUser&&PAYINFO.fee.pct&&k==='bale')?`<span class="cap">+ ${esc(PAYINFO.fee.title||'کارمزد درگاه')} ٪${faN(PAYINFO.fee.pct)} = ${money(Math.round(amt*PAYINFO.fee.pct/100))}</span>`:''}</div>`:''}
     ${body}
     <div class="row" style="margin-top:14px">${act}<span class="sp" style="flex:1"></span>
-      ${ctx.eid&&methodOf(ctx.eid)?'':''}<button class="btn quiet" data-close>بستن</button></div>
+      <button class="btn quiet" data-close>بستن</button></div>
     <p class="cap" style="margin-top:10px">${esc(trustOf('پرداخت امن')||'پرداخت‌ها روی گذرگاه امن انجام می‌شود.')}</p>`);
   S.payCtx=ctx;
   openSheet('shPay');
 }
-/* پیش از هر روشی: رویداد مدل‌های خودش را دارد؛ کاربر یکی را برمی‌دارد */
 function chooseSheet(eid,ctx){
   const keys=modelsOf(eid).filter(k=>methodOf(k).on);
   const e=(EVENTS.find(x=>x.id===eid)||PAST.find(x=>x.id===eid)||{});
@@ -1407,7 +1472,7 @@ function linkSheet(){
       <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div>`);
   openSheet('shLink');
 }
-/* پرداخت: صورتحساب، کیف پول، بدهی و تراکنش‌ها را جلو می‌برد */
+/* پرداخت: صورت‌حساب، کیف پول، بدهی و تراکنش‌ها را جلو می‌برد */
 function doPay(kind,ctx){
   ctx=ctx||S.payCtx||{};
   const m=methodOf(kind), st=payState();
@@ -1416,7 +1481,7 @@ function doPay(kind,ctx){
   const total=isDebt?st.debt:(+ctx.amount||0);
   if(total<=0&&!isHalf){ toast('مبلغی برای پرداخت نیست'); return }
   let payNow=isHalf?Math.round(total/2):total;
-  if(kind==='points'){                       /* امتیاز فقط تا سقف همان خرید می‌پردازد */
+  if(kind==='points'){
     const have=+A.points||0, rate=m.rate||100, each=m.each||10000, cap=(m.cap||30)/100;
     payNow=Math.min(Math.round(have*each/rate),Math.round(payNow*cap));
     if(payNow<=0){ toast('امتیازت برای این خرید کافی نیست'); return }
@@ -1425,10 +1490,10 @@ function doPay(kind,ctx){
   const paid=Object.assign({},st.paid), part=Object.assign({},st.part), refunds=Object.assign({},st.refunds);
   if(invId){ if(isHalf){ part[invId]=true } else { paid[invId]=true; delete part[invId] } }
   const debt=isDebt?0:Math.max(0,total-payNow);
-  const txs=[{k:'buy', t:isDebt?('تسویهٔ بدهی'+(ctx.eid?' رویداد':'')):(inv.t||ctx.t||'پرداخت نورا پی'),
-    amount:-payNow, by:kind, state:'paid', track:inv.track||'—', at:nowFa()}].concat(st.txs).slice(0,12);
-  paySave({paid:paid, part:part, refunds:refunds, debt:debt,
-    bal:kind==='wallet'?st.bal-payNow:st.bal, txs:txs});
+  paySave({paid:paid, part:part, refunds:refunds, debt:debt, def:kind,
+    bal:kind==='wallet'?st.bal-payNow:st.bal,
+    txs:[{k:'buy', t:isDebt?('تسویهٔ بدهی'+(ctx.eid?' رویداد':'')):(inv.t||ctx.t||'پرداخت نورا پی'),
+      amount:-payNow, by:kind, state:'paid', track:inv.track||'—', at:nowFa()}].concat(st.txs).slice(0,12)});
   closeSheets(); render();
   if(debt===0&&(isDebt||paid[invId])) toast(isDebt?'بدهی تسویه شد؛ گواهینامه‌ها باز شد':'پرداخت ثبت شد · '+money(payNow));
   else if(isHalf) toast('نیمهٔ نخست پرداخت شد؛ باقی‌اش تا اول ماه آینده');
@@ -1446,7 +1511,6 @@ function topup(amount){
   closeSheets(); render(); toast(money(amt)+' به کیف پولت اضافه شد');
 }
 function refundDo(id){
-  const why=($('#rfWhy')||{}).value||'';
   const refunds=Object.assign({},payState().refunds); refunds[id]=true;
   paySave({refunds:refunds, txs:[{k:'refund',t:'درخواست برگشت وجه '+(id||''),amount:0,by:'bale',
     state:'pending',track:id||'—',at:nowFa()}].concat(payState().txs).slice(0,12)});
@@ -1460,26 +1524,26 @@ function linkGo(){
   methodSheet('bale',{amount:250000,t:'لینک پرداخت '+v,inv:''});
   toast(l.ok||'لینک باز شد');
 }
-function payPanel(){
-  const inv=(PAYINFO.invoices||[]), txs=payState().txs.concat(PAYINFO.txs||[]).slice(0,8);
-  return card('نورا پی','همهٔ پرداخت‌ها و خریدهای نورا از همین‌جا می‌گذرد؛ یک‌جا و روشن','i-wallet',
-      payHero())+
-    card('بدهی و گواهینامه','تا تسویهٔ بدهی، دانلود گواهینامه قفل است','i-clock',debtBox())+
-    card('مدل‌های پرداخت','شش مدل؛ هر رویداد مدل‌های خودش را دارد','i-list',methodsBox())+
-    card('صورتحساب‌های من',faN(inv.length)+' صورتحساب؛ رسید و کد رهگیری همین‌جا می‌ماند','i-doc',
-      inv.length?inv.map(invRow).join(''):
-        empty2('صورتحسابی نیست','هر خریدی که بکنی، رسیدش همین‌جا می‌آید.'))+
-    card('تراکنش‌ها','شارژ، خرید، امتیاز و برگشت وجه','i-chart',
-      txs.length?txs.map(txRow).join(''):empty2('تراکنشی نیست','اولین شارژ یا خریدت همین‌جا می‌نشیند.'))+
-    card('شرط‌های نورا پی','سه بند کوتاه','i-shield',
-      (PAYINFO.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join(''))+
-    trustLine('pay');
-}
-
+/* ── داشبورد نورا پی ───────────────────────────────────────────────── */
+/* نما: مهمان درگاه ورود را می‌بیند، عضو داشبورد کامل را */
 VS.pay=function(t){
   if(!login()) return viewHead(t,'',null)+gate(t);
   return viewHead(t)+payPanel();
 };
+function payPanel(){
+  return payHero()+debtBox()+
+    `<div class="npgrid">
+      ${card('روش‌های پرداخت','شش مدل؛ هر رویداد مدل‌های خودش را دارد','i-list',methodsBox())}
+      ${card('صورت‌حساب‌های من',faN((PAYINFO.invoices||[]).length)+' صورتحساب با کد رهگیری','i-doc',invoicesBox())}
+      ${card('تراکنش‌ها','شارژ، خرید، امتیاز و برگشت وجه','i-chart',txBox())}
+    </div>`+
+    card('جمع و تفریق نورا پی','یک نگاه به حسابم','i-wallet',payStats())+
+    `<details class="npmore2"><summary>${ico('i-shield')} شرط‌های نورا پی</summary>
+      ${(PAYINFO.rules||[]).map(r=>`<div class="srow">${ico('i-check')}<span class="sp">${esc(r)}</span></div>`).join('')}
+      <p class="cap">${esc((PAYINFO.fee||{}).note||'')}</p></details>`+
+    trustLine('pay');
+}
+
 /* ══ پشتیبانی: صفحهٔ جدای خودش ══════════════════════════════════════
    تیکت، پرسش‌های پرتکرار، راهنمای هر بخش و پیام‌رسان‌ها همه در support.html
    است؛ از این صفحه فقط می‌رویم آن طرف. */
@@ -1724,7 +1788,8 @@ document.addEventListener('click',ev=>{
     document.querySelectorAll('[data-topamt]').forEach(b=>b.classList.toggle('on',b===ta)); return }
   if(t.closest('[data-topgo]')){
     const v=($('#topAmt')||{}).value||''; const amt=+unFa(v).replace(/\D/g,'')||S.topAmt||0; topup(amt); return }
-  if(t.closest('[data-paytx]')){ S.payTx=!S.payTx; renderView(); toast('تراکنش‌ها همین‌جا هستند'); return }
+  if(t.closest('[data-paytx]')){ S.txAll=!S.txAll; renderView(); return }
+  const ivf=t.closest('[data-invf]'); if(ivf){ S.invF=ivf.dataset.invf; renderView(); return }
   const dp=t.closest('[data-debtpay]');
   if(dp){ chooseSheet((PAYINFO.debt||{}).e||'',{payDebt:true,amount:debtAmt(),t:'تسویهٔ بدهی نورا پی',
     inv:(PAYINFO.debt||{}).invoice||''}); return }
@@ -1734,7 +1799,10 @@ document.addEventListener('click',ev=>{
   if(t.closest('[data-linkgo]')){ linkSheet(); return }
   if(t.closest('[data-linkok]')){ linkGo(); return }
   const rf=t.closest('[data-refund]'); if(rf){ refundSheet(rf.dataset.refund); return }
-  if(t.closest('[data-refundo]')){ refundDo(($('#rfWhy')||{}).value?payState().refundId||'':''); return }
+  const rfb=t.closest('[data-refundo]');
+  if(rfb){ if(!String(($('#rfWhy')||{}).value||'').trim()){ toast('کوتاه بنویس چرا برگشت می‌خواهی');
+      const e=$('#rfWhy'); if(e&&e.focus) e.focus(); return }
+    refundDo(rfb.dataset.refundo); return }
   const pn=t.closest('[data-paynow]'); if(pn){ doPay(pn.dataset.paynow,S.payCtx||{}); return }
   const mtk=t.closest('[data-my-ticket]'); if(mtk){ toast('کارت ورود همین رویداد آماده است؛ بارکد در ورودی خوانده می‌شود'); return }
   const mtd=t.closest('[data-my-ticket-dl]'); if(mtd){ toast('بلیت همین رویداد دانلود شد'); return }
