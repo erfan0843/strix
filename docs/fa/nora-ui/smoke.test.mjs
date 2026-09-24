@@ -596,7 +596,7 @@ async function load(file,store,q){
   ok(p.all('#pastList .evcard').length===3,'خانه سه برگزارشده را ویترین می‌کند');
   ok(p.all('#pastList .evcard .evc-cov img').length===3,'کارت برگزارشده هم پوستر دارد');
   ok(p.txt('#pastList').includes('برگزار شد') && p.txt('#pastList').includes('ریال'),'نشان «برگزار شد» و مبلغ بازپخش روی کارت');
-  ok(p.doc.querySelector('#pastSec a[href="events.html#past"]')!==null,'پیوند «همهٔ برگزارشده‌ها» به منوی رویدادها می‌رود');
+  ok(p.doc.querySelector('#pastSec a[href="events.html?status=past"]')!==null,'پیوند «همهٔ برگزارشده‌ها» به آرشیو می‌رود');
   ok(p.all('#pastList button.evc-cov[data-past]').length===3,'هر کارت برگزارشده، ورقهٔ بستهٔ رسانه را باز می‌کند');
   p.click('#pastList [data-past="h1"]');
   ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ بستهٔ رسانه باز می‌شود');
@@ -724,139 +724,165 @@ async function load(file,store,q){
   ok(p.doc.documentElement.dataset.theme==='dark','شب و روز کار می‌کند');
 }
 
-/* ═══════════ events.html — منوی جدا و کامل رویدادها ═══════════ */
+/* ═══════════ events.html — آرشیو رویدادها (v9) ═══════════ */
 {
-  console.log('\n── رویدادها (events.html) ──');
-  const p=await load('events.html',makeStore(),'#list');
-  const N=p.window.NORA;
-  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
-  ok(N && N.EVENTS.length===11,'دادهٔ مشترک از data.js می‌آید (یازده رویداد)');
-  ok(p.all('#hstats .s').length===5,'نوار آمار: چهار ستون + ردیف رایگان‌ها');
-  ok(p.all('#liveList .livecard').length===2,'جریان زنده در صفحهٔ رویدادها');
-  ok(p.txt('#liveList').includes('در حال برگزاری'),'یکی در حال برگزاری است');
-  /* پوستهٔ مشترک: نوار بالا و تب‌بار باید مو‌به‌مو مثل خانه باشند */
+  console.log('\n── آرشیو رویدادها (events.html) ──');
   const shellHome=await load('home.html',makeStore());
-  const shape=pp=>pp.doc.querySelector('.topbar').innerHTML.replace(/>\s+</g,'><').replace(/\s+/g,' ').trim();
-  const hb=shape(shellHome), eb=shape(p);
-  ok(hb.includes('class="brand"')&&eb.includes('class="brand"'),'نوار بالا در هر دو صفحه نشان و نام یکسان دارد');
-  /* v8: ناوبری بالای صفحه سبک شد؛ منو و پروفایل از نوار بالا رفتند */
-  for(const [nm,pp] of [['خانه',shellHome],['رویدادها',p]]){
-    ok(pp.doc.querySelector('.topbar .menubtn')===null,'نوار بالا در '+nm+' دکمهٔ منو ندارد');
-    ok(pp.doc.querySelector('.topbar #acctBtn')===null,'نوار بالا در '+nm+' آواتار پروفایل ندارد');
-    ok(pp.doc.querySelector('.topbar [data-notice]')!==null,'نوار بالا در '+nm+' اعلان دارد');
-    ok(pp.doc.querySelector('.topbar .themesw')!==null,'نوار بالا در '+nm+' کلید شب و روز دارد');
-  }
-  ok(/badge/.test(hb)&&/badge/.test(eb),'نشان اعلان در هر دو صفحه هست');
+  const p=await load('events.html',makeStore());
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
   const cls=sel=>[...sel.classList].sort().join('.');
   ok(cls(shellHome.doc.querySelector('.tabbar'))===cls(p.doc.querySelector('.tabbar')),'تب‌بار دو صفحه یک کلاس و ساختار دارد');
   ok(shellHome.all('.tabbar a,.tabbar button').length===3 && p.all('.tabbar a,.tabbar button').length===3,'هر دو تب‌بار سه تب');
   ok(shellHome.txt('.tabbar')===p.txt('.tabbar'),'نام تب‌ها یکی است: '+p.txt('.tabbar'));
-  const links=pp=>[...pp.doc.querySelectorAll('link[rel=stylesheet]')].map(l=>l.getAttribute('href'));
-  ok(links(shellHome).includes('nora.css') && links(p).includes('nora.css'),'هر دو صفحه پوستهٔ مشترک nora.css را می‌خوانند');
-  ok(links(shellHome)[0]==='glass.css' && links(shellHome)[1]==='nora.css','ترتیب بارگذاری یکسان است');
-  ok(p.txt('#hstats').includes('گواهی‌دار') && p.txt('#hstats').includes('آنلاین'),'آمار حالت‌ها هست');
-  /* فهرست و صافی‌ها */
-  ok(p.all('#evList .evcard').length===11,'فهرست کامل: یازده رویداد');
-  ok(p.all('#evList .evcard .evc-cov img').length===11,'هر رویداد پوستر خودش را دارد');
-  ok(p.all('#evList .evcard .evc-price').length===11,'قیمت روی هر کارت هست');
-  ok(p.all('#dayChips .chip').length===5 && p.all('#catChips .chip').length===6 && p.all('#modeChips .chip').length===5,'سه ردیف صافی (روز، دسته، حالت)');
-  const evcss=fs.readFileSync(DIR+'events.css','utf8');
-  ok(/\.fcrow\{display:flex/.test(evcss) && /\.fcrow \.chip\{flex:0 0 auto\}/.test(evcss),'ردیف صافی‌ها افقی و مرتب است (نه چیپ‌های سرگردان)');
-  ok(/\.evcard\{/.test(fs.readFileSync(DIR+'nora.css','utf8')) && /\.evcard\{\}/.test('') === false,'کارت پوستردار رویداد در پوستهٔ مشترک تعریف شده');
-  p.click('#dayChips [data-day="tomorrow"]');
-  ok(p.all('#evList .evcard').length===2,'صافی «فردا» دو رویداد');
-  p.click('#dayChips [data-day="tomorrow"]');
-  p.click('#catChips [data-cat="workshop"]');
-  ok(p.all('#evList .evcard').length===4,'صافی «کارگاه» چهار رویداد');
-  p.click('#modeChips [data-mode="آنلاین"]');
-  ok(p.all('#evList .evcard').length===0,'کارگاه آنلاین نداریم — فهرست خالی می‌شود');
-  ok(p.txt('#evList').includes('چیزی پیدا نشد'),'حالت خالی پیام خودش را دارد');
-  p.click('#catChips [data-cat="workshop"]');
-  p.click('#modeChips [data-mode="آنلاین"]');
-  p.click('#clearFilters');
-  ok(p.all('#evList .evcard').length===11,'برداشتن صافی‌ها');
-  /* جست‌وجو */
+  ok(p.doc.querySelector('.topbar .menubtn')===null && p.doc.querySelector('.topbar #acctBtn')===null,'نوار بالا بی منو و بی پروفایل است');
+
+  /* الف) بنر: نزدیک‌ترین برنامه‌ها، یک اسلاید در قاب */
+  ok(p.all('#spotrail .spot').length===3,'بنر سه برنامهٔ نزدیک را نشان می‌دهد');
+  ok(p.txt('#spotrail .spot h2').length>3,'تیتر اسلاید اول پر است');
+  ok(p.all('#spotrail .spot')[0].querySelector('.cd')!==null,'شمار روزهای مانده روی اسناید');
+  ok(/روز مانده|امشب|فردا|در حال برگزاری/.test(p.txt('#spotrail .spot .cd')),'متن شمارش معکوس درست است: '+p.txt('#spotrail .spot .cd'));
+  ok(p.all('#spotrail .spot .acts .btn').length>=2,'هر اسلاید دکمهٔ ثبت‌نام/پیش‌ثبت‌نام و جزئیات دارد');
+  ok(p.all('#spotdots i').length===3,'سه نقطهٔ اسلایدر');
+  ok(p.doc.querySelector('#spotrail .spot img.pbg')!==null,'پوستر برنامه در بنر نشسته');
+
+  /* ب) آمار زیر بنر */
+  ok(p.all('#stats .stat').length===4,'چهار عدد آماری زیر بنر');
+  ok(p.txt('#stats').includes('برنامهٔ برگزارشده') && p.txt('#stats').includes('رسانه در آرشیو'),'آمار برگزارشده و آرشیو هست');
+  ok(/[۰-۹]+/.test(p.txt('#stats')) && p.txt('#statsNote').includes('آرشیو'),'عددها فارسی و زیرنویس آرشیو دارد');
+
+  /* ج) دو نما: تقویم و فهرست */
+  ok(p.all('.seg [data-view]').length===2,'بالای صفحه فقط دو نما: تقویم و فهرست');
+  ok(!p.doc.querySelector('#listView').hidden && p.doc.querySelector('#calView').hidden,'فهرست نمای پیش‌فرض است');
+  ok(p.all('#grid .etile').length===23,'آرشیو: ۲۳ برنامه (۱۱ پیش رو + ۱۲ برگزارشده)');
+  ok(p.all('#grid .etile:not(.past)').length===11 && p.all('#grid .etile.past').length===12,'پیش‌روها و برگزارشده‌ها کنار هم');
+  ok(p.all('#grid .etile .ecov img').length===23,'هر کاشی پوستر خودش را دارد');
+  ok(p.txt('#cnt').includes('۲۳ برنامه'),'شمار کل در سرصفحه: '+p.txt('#cnt'));
+  const order=p.all('#grid .etile').map(x=>x.querySelector('.ettl').textContent.trim());
+  ok(order[0]==='جلسهٔ شعر و موسیقی','فهرست از نزدیک‌ترین برنامه شروع می‌شود: '+order[0]);
+  ok(order[order.length-1].includes('امداد و نجات — ترم تیر')||order[order.length-1].includes('اردوی کوه‌پیمایی — ترم تیر'),
+    'و به قدیمی‌ترین برگزارشده می‌رسد: '+order[order.length-1]);
+
+  /* د) صافی‌ها: بالا به پایین، سه مدل، بی دکمهٔ «همه» */
+  ok(p.all('#filters .frow').length===3,'سه ردیف صافی، بالا به پایین');
+  ok(p.txt('#filters').includes('وضعیت') && p.txt('#filters').includes('نوع برنامه') && p.txt('#filters').includes('شیوهٔ برگزاری'),'نام سه مدل صافی');
+  ok(p.all('#filters .fchip').filter(c=>/همه/.test(c.textContent)).length===0,'هیچ دکمهٔ «همه» ای نمانده');
+  ok(p.all('#filters [data-status="up"]').length===1 && p.all('#filters [data-status="past"]').length===1,'وضعیت: پیش رو / برگزارشده');
+  ok(p.all('#filters [data-kind]').length>=5,'صافی نوع برنامه از خود داده می‌آید');
+  p.click('#filters [data-status="past"]');
+  ok(p.all('#grid .etile').length===12 && p.all('#grid .etile.past').length===12,'صافی «برگزارشده» فقط آرشیو را می‌آورد');
+  ok(p.doc.querySelector('#filters [data-status="past"]').classList.contains('on'),'صافی فعال، نشان خودش را دارد');
+  p.click('#filters [data-status="past"]');
+  ok(p.all('#grid .etile').length===23,'زدن دوبارهٔ صافی، آن را برمی‌دارد');
+  p.click('#filters [data-kind="کارگاه"]');
+  ok(p.all('#grid .etile').length===10,'صافی «کارگاه» ده برنامه');
+  p.click('#filters [data-mode="آنلاین"]');
+  const onlineKind=p.all('#grid .etile').length;
+  ok(onlineKind>0 && onlineKind<10,'دو صافی با هم کار می‌کنند: '+onlineKind+' برنامه');
+  p.click('#filters [data-kind="کارگاه"]');
+  p.click('#filters [data-mode="آنلاین"]');
+  ok(p.all('#grid .etile').length===23,'هر دو صافی برداشته شد');
+
+  /* ه) جست‌وجو */
   p.doc.querySelector('#q').value='عکاسی';
   p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
-  ok(p.all('#evList .evcard').length===2,'جست‌وجوی «عکاسی» دو رویداد');
+  ok(p.all('#grid .etile').length===4,'جست‌وجوی «عکاسی» چهار برنامه');
   p.click('#qClear');
-  ok(p.all('#evList .evcard').length===11,'پاک کردن جست‌وجو');
-  /* تقویم ماهانه */
-  p.click('[data-view="cal"]');
-  ok(p.all('#monthsw button').length===2,'دو ماه در تقویم (شهریور و مهر)');
-  ok(p.all('#calgrid .wd').length===7,'سرستون‌های هفته');
-  ok(p.all('#calgrid .cel').length===32,'شهریور: ۳۱ روز + ۱ خانهٔ خالی');
-  ok(p.all('#calgrid .cel.has').length===3,'سه روز پررویداد در شهریور');
-  ok(p.doc.querySelector('#calgrid .cel.today')!==null,'روز امروز نشان دارد');
-  ok(p.txt('#dayTitle').includes('۲۸') && p.all('#dayList .ev').length===2,'روز پیش‌فرض امروز با دو برنامه');
-  p.click('#calgrid .cel[data-dn="29"]');
-  ok(p.txt('#dayTitle').includes('یکشنبه') && p.all('#dayList .ev').length===1,'روز ۲۹: یک برنامه');
-  p.click('#monthsw [data-month="mehr"]');
-  ok(p.all('#calgrid .cel').length===34,'مهر: ۳۰ روز + ۴ خانهٔ خالی');
-  ok(p.all('#calgrid .cel.has').length===6,'شش روز پررویداد در مهر');
-  /* دسته‌ها */
-  p.click('[data-view="cat"]');
-  ok(p.all('#catGrid .cattile').length===10,'دسته‌ها: شش دسته + چهار نشان');
-  p.click('#catGrid [data-cat="camp"]');
-  ok(!p.doc.querySelector('#listView').hidden && p.all('#evList .evcard').length===1,'از دسته به فهرست صافی‌شده می‌رود');
-  p.click('#clearFilters');
-  /* ورقهٔ کلیات رویداد: پیش از صفحهٔ اختصاصی (v8) */
-  p.click('#evList [data-ev="e3"]');
-  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ کلیات رویداد باز می‌شود');
+  ok(p.all('#grid .etile').length===23,'پاک کردن جست‌وجو');
+
+  /* و) پیش‌ثبت‌نام برای برنامه‌های پیش رو */
+  const preTile=p.doc.querySelector('#grid .etile [data-uipre="e5"]');
+  ok(preTile!==null,'کارت برنامهٔ پیش رو دکمهٔ پیش‌ثبت‌نام دارد');
+  ok(p.txt('#grid .etile [data-uipre="e5"]').includes('پیش‌ثبت‌نام'),'متن دکمه پیش‌ثبت‌نام است');
+  ok(p.doc.querySelector('#grid .etile a[href="form.html?ev=e1"]')!==null,'برنامهٔ با ثبت‌نام باز، دکمهٔ ثبت‌نام دارد');
+  p.click('#grid .etile [data-uipre="e5"]');
+  await wait(40);
+  ok(p.doc.querySelector('#shAuth').className.includes('on'),'بی حساب، پیش‌ثبت‌نام اول ورود می‌خواهد');
+  p.doc.querySelector('#uimob').value='09121234567';
+  p.click('[data-uiphone]');
+  await wait(30);
+  p.doc.querySelector('#uicode').value='54321';
+  p.click('[data-uicode]');
+  await wait(160);
+  ok(p.window.localStorage.getItem('nora-home-prereg').includes('e5'),'پیش‌ثبت‌نام بعد از ورود ثبت می‌شود');
+  ok(p.txt('#toast').includes('پیش‌ثبت‌نام'),'پیام پیش‌ثبت‌نام نشان داده می‌شود');
+  ok(p.txt('#grid').includes('پیش‌ثبت‌نام شده'),'کاشی بی‌نوکردن صفحه، حالت تازه را می‌گیرد');
+
+  /* ز) کاشی برگزارشده: پیش‌نمایش و تهیه */
+  const pastTile=p.doc.querySelector('#grid .etile.past');
+  ok(pastTile.querySelector('[data-uipreview]')!==null,'کاشی برگزارشده دکمهٔ پیش‌نمایش دارد');
+  ok(pastTile.querySelector('a[href^="event.html?id="]')!==null,'و راه تهیه/دریافت دارد');
+  ok(/ریال|رایگان/.test(pastTile.querySelector('.eprice').textContent),'مبلغ روی کاشی برگزارشده');
+  ok(pastTile.querySelector('.etags').textContent.includes('رسانه'),'شمار رسانه روی کاشی برگزارشده');
+  const h1tile=[...p.all('#grid .etile.past')].find(x=>x.querySelector('[data-uipreview="h1"]'));
+  ok(h1tile!==undefined,'کاشی کارگاه عکاسی مقدماتی در آرشیو هست');
+  p.click('#grid [data-uipreview="h1"]');
+  await wait(60);
+  ok(p.doc.querySelector('#shPlay').className.includes('on'),'پیش‌نمایش، پخش‌کننده را باز می‌کند');
+  ok(p.txt('#shPlay').includes('دوربین')||p.txt('#shPlay').length>40,'نام قطعهٔ نمونه در پخش‌کننده');
+  p.click('#shPlay [data-close]');
+  await wait(30);
+
+  /* ح) ورقهٔ کلیات از کاشی */
+  p.click('#grid .etile [data-ev="e3"]');
+  await wait(40);
+  ok(p.doc.querySelector('#shEvent').className.includes('on'),'کلیک کاشی، ورقهٔ کلیات را باز می‌کند');
   ok(p.doc.querySelector('#shEvent').className.includes('full'),'ورقه تمام‌صفحه است');
-  ok(p.txt('#shEvent').includes('۱۱ جا مانده') || p.txt('#shEvent').includes('فقط ۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده');
+  ok(p.txt('#shEvent').includes('فقط ۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده');
   ok(p.doc.querySelector('#shEvent a.btn.primary').getAttribute('href')==='event.html?id=e3','از ورقه به صفحهٔ اختصاصی رویداد می‌رود');
   ok(p.txt('#shEvent').includes('کیوان مرادی'),'مدرس رویداد در ورقه با نام می‌آید');
-  ok(p.txt('#shEvent').includes('ظرفیت محدود')||p.txt('#shEvent').includes('پیشنهادی'),'برچسب‌های رویداد در کلیات');
+  ok(p.txt('#shEvent').includes('۳ جلسه'),'برنامهٔ چندجلسه‌ای، شمار جلسه‌ها را نشان می‌دهد');
   p.click('#shEvent [data-close]');
-  p.click('#evList [data-ev="e4"]');
+  p.click('#grid .etile:not(.past) .ettl');
+  await wait(30);
+  ok(p.txt('#shEvent').includes('زمان')||p.doc.querySelector('#shEvent').className.includes('on'),'کلیک روی تنِ کاشی هم ورقه را باز می‌کند');
+  p.click('#shEvent [data-close]');
+  await wait(20);
+  p.click('#grid .etile [data-ev="e4"]');
+  await wait(40);
   ok(p.txt('#shEvent').includes('لینک ورود'),'برای برنامهٔ آنلاین، لینک ورود یادآوری می‌شود');
   p.click('#shEvent [data-close]');
-  p.click('#evList [data-ev="e8"]');
+  p.click('#grid .etile [data-ev="e8"]');
+  await wait(40);
   ok(p.txt('#shEvent').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل در کلیات');
   p.click('#shEvent [data-close]');
 
-  /* فروشگاه رسانه: بستهٔ برگزارشده‌ها (v8) */
-  p.click('[data-view="media"]');
-  ok(!p.doc.querySelector('#pastView').hidden,'نمای فروشگاه رسانه باز می‌شود');
-  ok(p.all('#pastList .evcard').length===4,'چهار بستهٔ رسانه در فروشگاه');
-  ok(p.all('#pastList .evcard .evc-cov img').length===4,'هر بسته پوستر دارد');
-  ok(p.txt('#pastList').includes('برگزار شد') && /رسانه/.test(p.txt('#pastList')),'نشان «برگزار شد» و شمار رسانه‌ها روی کارت');
-  ok(/[۰-۹]+ خرید/.test(p.txt('#pastList')),'شمار خرید با ارقام فارسی روی کارت می‌آید');
-  ok(p.all('#storeKinds .chip').length===5,'پنج صافی نوع رسانه');
-  ok(p.all('#pastChips .chip').length===5,'پنج صافی بسته‌ها');
-  p.click('#storeKinds [data-kind="video"]');
-  ok(p.txt('#pastList').includes('ویدیو') || p.all('#pastList .evcard').length>0,'صافی ویدیو کار می‌کند');
-  p.click('#storeKinds [data-kind="all"]');
-  p.click('#pastChips [data-pastf="free"]');
-  ok(p.all('#pastList .evcard').length===1,'صافی «رایگان»: یک بسته');
-  p.click('#pastChips [data-pastf="mine"]');
-  ok(p.txt('#pastList').includes('چیزی نبود')||p.all('#pastList .evcard').length===0,'«در کتابخانه‌ام» پیش از خرید خالی است');
-  p.click('#pastChips [data-pastf="all"]');
-  p.click('#sortSeg [data-sort="cheap"]');
-  ok(p.all('#sortSeg .on').length===0 || true,'ترتیب ارزان‌ترین انتخاب می‌شود');
+  /* ط) تقویم: گذشته و پیش رو */
+  p.click('.seg [data-view="cal"]');
+  ok(!p.doc.querySelector('#calView').hidden && p.doc.querySelector('#listView').hidden,'نمای تقویم باز می‌شود');
+  ok(p.all('#monthsw button').length===4,'چهار ماه در تقویم: تیر، مرداد، شهریور، مهر');
+  ok(p.all('#monthsw button.was').length===2,'تیر و مرداد نشان گذشته دارند');
+  ok(p.all('#calgrid .wd').length===7,'سرستون‌های هفته');
+  ok(p.all('#calgrid .cel').length===32,'شهریور: ۳۱ روز + ۱ خانهٔ خالی');
+  ok(p.all('#calgrid .cel.has').length>=3,'روزهای پررویداد نشان دارند');
+  ok(p.doc.querySelector('#calgrid .cel.today')!==null,'روز امروز نشان دارد');
+  ok(p.txt('#dayTitle').includes('۲۸') && p.all('#dayGrid .etile').length===2,'روز پیش‌فرض امروز با دو برنامه');
+  p.click('#calgrid .cel[data-dn="29"]');
+  ok(p.txt('#dayTitle').includes('یکشنبه') && p.all('#dayGrid .etile').length===1,'روز ۲۹: یک برنامه');
+  p.click('#monthsw [data-month="tir"]');
+  ok(p.all('#calgrid .cel').length===33,'تیر: ۳۱ روز + ۲ خانهٔ خالی');
+  ok(p.all('#dayGrid .etile.past').length>0,'ماه گذشته، خودش روی روز پررویداد می‌ایستد');
+  ok(p.txt('#dayTitle').includes('تیر'),'عنوان روز از همان ماه است: '+p.txt('#dayTitle'));
+  p.click('#calgrid .cel[data-dn="9"]');
+  ok(p.txt('#dayGrid').includes('حلقهٔ مطالعهٔ ادبیات'),'روز ۹ تیر: حلقهٔ مطالعه');
+  p.click('#monthsw [data-month="mehr"]');
+  ok(p.all('#calgrid .cel').length===34,'مهر: ۳۰ روز + ۴ خانهٔ خالی');
+  p.click('.seg [data-view="list"]');
+  ok(!p.doc.querySelector('#listView').hidden,'برگشت به فهرست');
 
-  /* جزئیات بسته + خرید */
-  p.click('#pastList [data-past="h1"]');
-  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ بستهٔ رسانه باز می‌شود');
-  ok(p.txt('#shEvent').includes('کارگاه عکاسی مقدماتی') && p.txt('#shEvent').includes('تیر و مرداد ۱۴۰۵'),'عنوان و تاریخ بسته در ورقه');
-  ok(p.all('#shEvent .mrow2').length===5,'پنج قلم رسانه در بسته');
-  ok(p.txt('#shEvent').includes('تماشای نمونه'),'قطعهٔ نمونهٔ رایگان هست');
-  ok(/ریال/.test(p.txt('#shEvent')),'مبلغ بسته با ریال');
-  ok(p.doc.querySelector('#shEvent [data-uiperson="p2"]')!==null,'مدرس بسته در ورقه هست');
-  ok(p.doc.querySelector('#shEvent a.btn.primary').getAttribute('href')==='event.html?id=h1','به صفحهٔ اختصاصی بسته می‌رود');
-  p.click('[data-close]');
+  /* ی) کتابخانهٔ من، پشت دکمهٔ خودش */
+  ok(p.doc.querySelector('#libBar').hidden,'بی حساب، نوار کتابخانه پنهان است');
+  ok(p.doc.querySelector('#viewRow').hidden===false,'نوار تقویم/فهرست سرجایش هست');
+  const p5=await load('events.html',makeStore(),'#lib');
+  ok(p5.doc.querySelector('#libView').hidden===false && p5.doc.querySelector('#viewRow').hidden,'#lib کتابخانه را جدا نشان می‌دهد');
+  ok(p5.txt('#libBox').includes('وارد شو'),'بی ورود، کتابخانه ورود می‌خواهد');
 
-  /* تب‌بار: خانه، این صفحه، کتابخانهٔ من */
-  ok(p.all('.tabbar a').length===3,'تب‌بار سه لینک دارد');
-  ok(p.doc.querySelector('.tabbar a.on small').textContent==='رویدادها','تب فعال همین صفحه است');
-  ok(p.doc.querySelector('.tabbar a[href="home.html"]')!==null,'بازگشت به خانه هست');
-  ok(p.doc.querySelector('.tabbar a.on use').getAttribute('href')==='#i-calendar-f','آیکون تب فعال پُر است');
-  /* نشانی‌های ورودی */
-  const p2=await load('events.html',makeStore(),'?q='+encodeURIComponent('عکاسی')+'#list');
-  ok(p2.all('#evList .evcard').length===2,'ورود با ?q= صافی می‌کند');
-  const p3=await load('events.html',makeStore(),'?ev=e5#list');
-  ok(p3.doc.querySelector('#shEvent').className.includes('on'),'ورود با ?ev= مستقیم ورقهٔ کلیات را باز می‌کند');
+  /* ک) نشانی‌های ورودی */
+  const p2=await load('events.html',makeStore(),'?q='+encodeURIComponent('عکاسی'));
+  ok(p2.all('#grid .etile').length===4,'ورود با ?q= صافی می‌کند');
+  const p6=await load('events.html',makeStore(),'?status=past');
+  ok(p6.all('#grid .etile.past').length===12 && p6.all('#grid .etile:not(.past)').length===0,'ورود با ?status=past فقط آرشیو را می‌آورد');
+  const p3=await load('events.html',makeStore(),'?ev=e5');
+  ok(p3.doc.querySelector('#shEvent').className.includes('on') && p3.txt('#shEvent').includes('الهه رضایی'),'ورود با ?ev= مستقیم ورقهٔ کلیات را باز می‌کند');
   const p4=await load('events.html',makeStore(),'?past=h2');
   ok(p4.doc.querySelector('#shEvent').className.includes('on') && p4.txt('#shEvent').includes('کارگاه فن بیان — ترم تیر'),'ورود با ?past= ورقهٔ بسته را باز می‌کند');
 }
@@ -1265,11 +1291,10 @@ async function load(file,store,q){
 
   /* ه) خرید تک‌قلم با کیف پول */
   const fm=await load('events.html',withSara(),'#media');
-  fm.click('#pastList [data-past="h2"]');
-  await wait(30);
+  fm.click('#grid .etile [data-ev="h2"]');
+  await wait(40);
   ok(fm.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ بستهٔ دوم باز می‌شود');
-  const onePrice=fm.txt('#shEvent');
-  ok(/ریال/.test(onePrice),'مبلغ بسته دوم با ریال');
+  ok(/ریال/.test(fm.txt('#shEvent')),'مبلغ بسته دوم با ریال');
   fm.window.NORA_UI.buySheet('h2','h2m2');
   await wait(30);
   ok(fm.txt('#shBuy').includes('خرید تک‌قلم') && fm.txt('#shBuy').includes('۱۱۰'),'ورقهٔ تک‌قلم مبلغ قطعه را می‌دهد');

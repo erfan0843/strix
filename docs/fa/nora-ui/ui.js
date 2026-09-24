@@ -663,6 +663,7 @@ function evPosterCard(e,o){
    صفحه ورقه‌شان را نداشته باشد، خودشان می‌سازند.
    ══════════════════════════════════════════════════════════════════════════ */
 const LIB_KEY='nora-home-library', PROG_KEY='nora-home-progress', READ_KEY='nora-home-read', SESS_KEY='nora-home-user';
+const PRE_KEY='nora-home-prereg';                 /* پیش‌ثبت‌نام و یادآوری برنامه‌ها */
 const jread=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null'); return v==null?d:v}catch(e){return d}};
 const jwrite=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const price=n=>n?rialTxt(n):'رایگان';
@@ -823,6 +824,33 @@ function bundleCard(past,o){
   </article>`;
 }
 
+/* ── پیش‌ثبت‌نام: برای برنامه‌هایی که ثبت‌نامشان باز نشده ── */
+function preList(){const a=jread(PRE_KEY,[]); return Array.isArray(a)?a:[]}
+function isPre(id){return preList().indexOf(id)>-1}
+function prereg(id,after){
+  const N=window.NORA||{}, e=(N.EVENTS||[]).find(x=>x.id===id);
+  if(!e) return;
+  if(!walletUser()){ authSheet(()=>prereg(id,after)); return }
+  const a=preList();
+  if(a.indexOf(id)>-1){
+    jwrite(PRE_KEY,a.filter(x=>x!==id));
+    toast('پیش‌ثبت‌نامت برداشته شد');
+  } else {
+    a.push(id); jwrite(PRE_KEY,a);
+    toast('پیش‌ثبت‌نام شد — باز شدن ثبت‌نام را همان روز خبر می‌دهیم');
+  }
+  document.dispatchEvent(new CustomEvent('nora:prereg',{detail:{id:id}}));
+  if(typeof after==='function') after();
+}
+/* ── پیش‌نمایش: رایگان‌ترین قطعهٔ بسته را همان‌جا نشان می‌دهد ── */
+function preview(id){
+  const N=window.NORA||{}, H=(N.PAST||[]).find(x=>x.id===id); if(!H) return;
+  const free=(H.media||[]).find(m=>!m.p||(m.preview&&!hasLib(m.id)));
+  if(!free){ toast('برای این بسته نمونهٔ رایگان نگذاشته‌اند؛ جزئیاتش را ببین'); eventSheet(id); return }
+  player(id,free.id);
+  if(!hasLib(free.id) && free.p) toast('نمونهٔ رایگان — بستهٔ کامل در «جزئیات و تهیه»');
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    کلیات رویداد: ورقهٔ تمام‌صفحه‌ای که پیش از صفحهٔ اختصاصی می‌آید
    ══════════════════════════════════════════════════════════════════════════ */
@@ -836,6 +864,10 @@ function eventSheet(id){
   const room=e.mode&&e.mode.indexOf('حضوری')<0?'آنلاین':(e.mode==='حضوری و آنلاین'?'حضوری و آنلاین':'حضوری');
   const online=room!=='حضوری';
   const href='event.html?id='+encodeURIComponent(e.id);
+  const hasFree=(e.media||[]).some(m=>!m.p||m.preview);
+  const previewBtn=(past&&hasFree)?`<button class="btn quiet" data-uipreview="${escH(e.id)}"><svg class="i"><use href="#i-play-f"/></svg> پیش‌نمایش</button>`:'';
+  const preOn=!past&&isPre(e.id);
+  const preBtn=past?'':`<button class="btn ${preOn?'primary':'quiet'}" data-uipre="${escH(e.id)}"><svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
   const mediaHtml=past?`
     <div class="sec-hd" style="margin-top:14px"><span class="fw">داخل این بسته</span><span class="sp"></span>
       <span class="cap">${faN(e.mediaCount)} رسانه · ${escH(e.access)}</span></div>
@@ -865,6 +897,8 @@ function eventSheet(id){
       <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">${past?'برگزار شد':'زمان'}</span><b>${escH(when)}</b></div>
       ${past?`<div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">حجم بسته</span><b>${escH(e.rec)}</b></div>`
            :`<div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${escH(e.place)}</span><b>${room}</b></div>`}
+      ${!past&&e.sess>1?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${faN(e.sess)} جلسه</b></div>`:''}
+      ${past&&e.rec?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${escH(e.rec)}</b></div>`:''}
       ${past?`<div class="srow"><svg class="i"><use href="#i-play"/></svg><span class="sp">رسانه‌ها</span><b>${faN(e.mediaCount)} قلم · ${faN(e.sold)} خرید</b></div>`
            :`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span><b>${price(price1)}</b></div>`}
       ${online?`<div class="srow"><svg class="i"><use href="#i-video"/></svg><span class="sp">${past?'این برنامه ضبط شده؛ آنلاین تماشا می‌کنی':'جلسه آنلاین؛ لینک ورود ۱۵ دقیقه قبل می‌آید'}</span><b>${escH(past?'ضبط شده':'زنده')}</b></div>`:''}
@@ -879,6 +913,7 @@ function eventSheet(id){
       <span class="num">${past?price(price1):priceTxt2(price1)}</span></div>
     <div class="row" style="margin-top:10px">
       <a class="btn primary" href="${href}"><svg class="i"><use href="#i-${past?'play':'pen'}"/></svg> جزئیات و ${past?'تهیه':'ثبت‌نام'}</a>
+      ${previewBtn}${preBtn}
       <button class="btn quiet" data-uipin="${past?'pa':'ev'}:${escH(e.id)}"><svg class="i"><use href="#i-pin"/></svg> سنجاق</button>
       <button class="btn quiet" data-uishare="${escH(e.id)}"><svg class="i"><use href="#i-share"/></svg> اشتراک</button>
     </div>
@@ -1076,7 +1111,7 @@ function menuRoute(el){
     if(H){ closeSheets(); const t=document.getElementById(j); if(t){t.scrollIntoView({behavior:'smooth',block:'start'}); return} }
     else { const t=document.getElementById(j); if(t){closeSheets(); t.scrollIntoView({behavior:'smooth',block:'start'}); return} }
     const map={pastSec:'media', articles:'articles', teachers:'teachers', staff:'staff', partners:'partners'};
-    location.href = (j==='pastSec') ? 'events.html#media' : 'home.html#'+j;
+    location.href = (j==='pastSec') ? 'events.html?status=past' : 'home.html#'+j;
     return;
   }
   closeSheets();
@@ -1105,6 +1140,8 @@ document.addEventListener('click',e=>{
   const sh=t.closest('[data-uishare]'); if(sh){sharedShare(sh.dataset.uishare); return}
   const rd=t.closest('[data-uireadall]'); if(rd){
     ((window.NORA&&window.NORA.NOTICES)||[]).forEach(n=>markRead(n.t)); uiOpen('shNotice'); toast('همه خوانده شد'); return}
+  const pr=t.closest('[data-uipre]'); if(pr){prereg(pr.dataset.uipre); return}
+  const pv=t.closest('[data-uipreview]'); if(pv){preview(pv.dataset.uipreview); return}
   const md=t.closest('[data-uimedia]'); if(md){const [h,m]=md.dataset.uimedia.split(':'); player(h,m); return}
   const by=t.closest('[data-uibuy]'); if(by){const [h,m]=by.dataset.uibuy.split(':'); buySheet(h,m); return}
   const py=t.closest('[data-uipay]'); if(py){jwrite('nora-home-pay',{k:py.dataset.uipay});
@@ -1150,7 +1187,7 @@ syncBell();
 try{uiHash()}catch(e){}
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
-  authSheet:authSheet,uid:uid,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
+  authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */

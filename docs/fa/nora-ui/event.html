@@ -334,6 +334,8 @@ function render(){
     <div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${esc(e.place||'—')}</span><b>${esc(r)}</b></div>
     ${past?`<div class="srow"><svg class="i"><use href="#i-play"/></svg><span class="sp">رسانه‌ها</span><b>${faN(e.mediaCount)} قلم</b></div>`
          :`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'بدون محدودیت ظرفیت'}</span><b>${e.price?rialTxt(e.price):'رایگان'}</b></div>`}
+    ${past?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${esc(e.rec)}</b></div>`
+         :(e.sess>1?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${faN(e.sess)} جلسه، هفته‌ای یک بار</b></div>`:'')}
     <div class="srow"><svg class="i"><use href="#i-shield"/></svg><span class="sp">گواهینامه</span><b>${e.cert!==false&&(past?e.cert:true)?'با تأیید سرپرست':'ندارد'}</b></div>
   </div>
   ${(!past&&e.cap)?`<div class="bar" style="margin-top:10px"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
@@ -437,24 +439,29 @@ function renderCta(){
   const past=!!H, free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0;
   const own=past&&NORA_UI&&(NORA_UI.hasLib(e.id)||(e.media||[]).some(m=>NORA_UI.hasLib(m.id)));
   const firstFree=past&&(e.media||[]).find(m=>!m.p||(NORA_UI&&NORA_UI.hasLib(m.id)));
+  const preOn=!past&&NORA_UI&&NORA_UI.isPre&&NORA_UI.isPre(e.id);
+  const preNeed=!past&&(e.pre||preOn);
   $('#ctabar').hidden=false;
   $('#ctaIn').innerHTML=`
     <span><b style="font-size:14px">${past?(e.price?price2(e.price):'رایگان'):(e.price?price2(e.price):'رایگان')}</b>
-      <div class="cap">${past?(e.cert?'با گواهینامه':'بدون گواهی'):(full?'لیست انتظار':(e.cap?'ظرفیت باز':'بدون ظرفیت'))}</div></span>
+      <div class="cap">${past?(e.cert?'با گواهینامه':'بدون گواهی'):(e.sess>1?faN(e.sess)+' جلسه':(preNeed?'ثبت‌نام باز نشده':(full?'لیست انتظار':'ظرفیت باز')))}</div></span>
     <span class="sp" style="flex:1"></span>
     ${past
       ? (own?`<button class="btn primary" data-uimedia="${esc(e.id)}:${esc((firstFree||(e.media||[])[0]||{}).id||'')}">
             <svg class="i"><use href="#i-play-f"/></svg> ${firstFree?'پخش':'تماشا'}</button>`
            :`<button class="btn primary" data-buy-bundle><svg class="i"><use href="#i-bag"/></svg> تهیهٔ بسته</button>`)
-      : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
-             :`<a class="btn primary" id="reg" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' — رایگان':''}</a>`)}
+      : (preNeed
+          ? `<button class="btn ${preOn?'quiet':'primary'}" data-uipre="${esc(e.id)}">
+               <svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
+          : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
+             :`<a class="btn primary" id="reg" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' — رایگان':''}</a>`))}
     <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
 }
 
 /* ── کنش‌ها ── */
 document.addEventListener('click',ev=>{
   const t=ev.target;
-  if(t.closest('[data-back]')){ if(history.length>1) history.back(); else location.href='events.html#list'; return }
+  if(t.closest('[data-back]')){ if(history.length>1) history.back(); else location.href='events.html'; return }
   const sh=t.closest('[data-share-this]'); if(sh){shareNow(); return}
   const pin=t.closest('[data-pin-this]'); if(pin){pinNow(); return}
   const mk=t.closest('[data-mk]'); if(mk){renderMedia.f=mk.dataset.mk; renderMedia(); return}
@@ -484,6 +491,7 @@ function toast(m){
 }
 /* همان لحظهٔ خرید، نوار کار و رسانه‌ها تازه می‌شوند */
 document.addEventListener('nora:library',()=>render());
+document.addEventListener('nora:prereg',()=>render());
 addEventListener('hashchange',()=>location.reload());
 })();
 </script>

@@ -146,80 +146,71 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <main class="wrap">
 
-  <section class="evHero" aria-label="رویدادها و برنامه‌ها">
-    <h1>رویدادها و برنامه‌ها</h1>
-    <p>کارگاه، وبینار، اردو، جلسه و پویش — با تقویم ماهانه، فهرست کامل و دسته‌بندی. خانه فقط ویترین است؛ کارِ اصلی اینجاست.</p>
-    <div class="hstats" id="hstats"></div>
+  <!-- بنر: نزدیک‌ترین برنامه‌ها -->
+  <section class="sec" id="spotSec" aria-label="برنامه‌های نزدیک">
+    <div class="spotrail" id="spotrail"></div>
+    <div class="dots" id="spotdots" hidden></div>
   </section>
 
-  <section class="sec" id="live" aria-label="جریان زنده و شروع نزدیک">
-    <div class="sec-hd"><span class="fw">جریان زنده و شروع نزدیک</span><span class="sp"></span><span class="cap" id="liveCount">—</span></div>
+  <!-- آمار آرشیو -->
+  <section class="sec" aria-label="آمار رویدادها">
+    <div class="stats" id="stats"></div>
+    <p class="cap" id="statsNote" style="margin:9px 3px 0"></p>
+  </section>
+
+  <!-- کتابخانهٔ من: وقتی چیزی تهیه کرده‌ای -->
+  <section class="sec" id="libBar" hidden>
+    <a class="libbar" href="events.html#lib">
+      <span class="li"><svg class="i"><use href="#i-play-f"/></svg></span>
+      <span class="lt"><b>کتابخانهٔ من</b><small id="libBarTx">—</small></span>
+      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+    </a>
+  </section>
+
+  <!-- همین حالا -->
+  <section class="sec" id="live" hidden aria-label="همین حالا">
+    <div class="sec-hd"><span class="fw">همین حالا</span><span class="sp"></span><span class="cap" id="liveCount">—</span></div>
     <div id="liveList"></div>
   </section>
 
+  <!-- جست‌وجو در آرشیو -->
   <section class="card paper sec" aria-label="جست‌وجو">
     <div class="sfield">
       <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
-      <input id="q" type="search" placeholder="نام رویداد، مدرس یا شهر…" aria-label="جست‌وجو در رویدادها"/>
+      <input id="q" type="search" placeholder="نام برنامه، مدرس یا شهر…" aria-label="جست‌وجو در آرشیو رویدادها"/>
       <button class="icon-btn" id="qClear" aria-label="پاک کردن" hidden style="width:30px;height:30px"><svg class="i"><use href="#i-close"/></svg></button>
     </div>
-    <div class="fcrow" style="margin-top:10px" id="qTags"></div>
   </section>
 
-  <div class="row sec" style="justify-content:space-between">
+  <!-- نما: تقویم یا فهرست -->
+  <div class="row sec" id="viewRow" style="justify-content:space-between;gap:10px">
     <div class="seg" role="tablist" aria-label="نما">
-      <button data-view="cal" role="tab"><svg class="i"><use href="#i-grid"/></svg> تقویم</button>
+      <button data-view="cal" role="tab"><svg class="i"><use href="#i-calendar"/></svg> تقویم</button>
       <button data-view="list" role="tab"><svg class="i"><use href="#i-archive"/></svg> فهرست</button>
-      <button data-view="media" role="tab"><svg class="i"><use href="#i-play"/></svg> رسانه</button>
-      <button data-view="lib" role="tab"><svg class="i"><use href="#i-idcard"/></svg> کتابخانهٔ من</button>
     </div>
-    <span class="cap" id="cnt">—</span>
+    <span class="sp"></span><span class="cap" id="cnt">—</span>
   </div>
 
+  <!-- صافی‌ها: بالا به پایین -->
+  <section class="sec" id="filterSec" aria-label="صافی‌ها">
+    <div class="filters" id="filters"></div>
+    <p class="cap" style="margin:8px 3px 0">هر صافی را با زدن دوباره‌اش برمی‌داری؛ فهرست همیشه به ترتیب تاریخ است.</p>
+  </section>
+
+  <!-- فهرست: کاشی‌های آرشیو -->
+  <section class="sec" id="listView" aria-label="آرشیو رویدادها">
+    <div class="tgrid" id="grid"></div>
+  </section>
+
   <!-- تقویم -->
-  <section class="sec" id="calView" aria-label="تقویم ماهانه">
+  <section class="sec" id="calView" hidden aria-label="تقویم ماهانه">
     <div class="monthsw" id="monthsw"></div>
     <div class="calgrid" id="calgrid" role="grid" aria-label="روزهای ماه"></div>
     <div class="dayhd"><b id="dayTitle">—</b><span class="sp"></span><span class="cap" id="dayCount">—</span></div>
-    <div class="evlist" id="dayList"></div>
+    <div class="tgrid" id="dayGrid"></div>
   </section>
 
-  <!-- فهرست -->
-  <section class="sec" id="listView" hidden aria-label="فهرست رویدادها">
-    <div class="fcrow" id="dayChips"></div>
-    <div class="fcrow" id="catChips"></div>
-    <div class="fcrow" id="modeChips"></div>
-    <div class="evlist" id="evList"></div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn sm quiet" id="clearFilters"><svg class="i"><use href="#i-close"/></svg> برداشتن صافی‌ها</button>
-      <button class="btn sm quiet" data-view="cat"><svg class="i"><use href="#i-layers"/></svg> دسته‌بندی‌ها</button>
-      <span class="sp"></span><span class="cap" id="filterNote" hidden></span>
-    </div>
-  </section>
-
-  <!-- دسته‌ها -->
-  <section class="sec" id="catView" hidden aria-label="دسته‌بندی‌ها">
-    <div class="catgrid" id="catGrid"></div>
-  </section>
-
-  <!-- فروشگاه رسانه: برگزارشده‌ها با ضبط، صدا و فایل -->
-  <section class="sec" id="pastView" hidden aria-label="فروشگاه رسانه">
-    <div class="sec-hd"><span class="fw">فروشگاه رسانه</span><span class="sp"></span>
-      <span class="cap" id="pastCount">—</span></div>
-    <p class="sub" style="margin:0 0 10px">هر برنامهٔ برگزارشده یک بسته است: ضبط ویدیویی، صدای جلسه، جزوه و اسلاید.
-      هر بسته را یک‌جا بگیر یا فقط قطعه‌ای که می‌خواهی؛ بعدش تا همیشه در کتابخانه‌ات می‌ماند و آنلاین تماشا می‌کنی.</p>
-    <div class="fcrow" id="storeKinds"></div>
-    <div class="fcrow" id="pastChips"></div>
-    <div class="row" style="margin:2px 0 10px"><span class="sp"></span>
-      <div class="seg" id="sortSeg" role="tablist" aria-label="ترتیب">
-        <button data-sort="new" role="tab">تازه‌ترین</button>
-        <button data-sort="top" role="tab">پرفروش</button>
-        <button data-sort="cheap" role="tab">ارزان‌ترین</button>
-      </div></div>
-    <div class="stack" id="pastList" style="gap:12px"></div>
-  </section>
-
-  <!-- کتابخانهٔ من: هرچه تهیه کرده‌ام -->
+  <!-- کتابخانهٔ من -->
   <section class="sec" id="libView" hidden aria-label="کتابخانهٔ من">
     <div class="sec-hd"><span class="fw">کتابخانهٔ من</span><span class="sp"></span>
       <span class="cap" id="libCount">—</span></div>
@@ -232,7 +223,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="row" style="justify-content:center;margin:4px 0 8px">
       <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
     </div>
-    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html#lib">کتابخانهٔ من</a> · © ۱۴۰۵</div>
+    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html#lib">کتابخانهٔ من</a> · <a href="events.html#cal">تقویم</a> · © ۱۴۰۵</div>
   </footer>
 </main>
 
@@ -242,8 +233,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <a href="home.html#me"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></a>
 </nav>
 
-<aside class="sheet" id="shEvent" role="dialog" aria-modal="false" aria-label="جزئیات رویداد"><div id="evBody"></div></aside>
-<aside class="sheet" id="shPast" role="dialog" aria-modal="false" aria-label="جزئیات برگزارشده"><div id="pastBody"></div></aside>
+<aside class="sheet full" id="shEvent" role="dialog" aria-modal="false" aria-label="کلیات رویداد"></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -251,186 +241,288 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <script src="ui.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
-   صفحهٔ رویدادها — منوی جدا از خانه
+   آرشیو رویدادها — هر برنامه‌ای که برگزار شده یا در پیش است
    ──────────────────────────────────────────────────────────────────────
-   دادهٔ مشترک از data.js می‌آید (window.NORA) و ابزارهای عددی از ui.js.
+   دو نما: تقویم و فهرست. صافی‌ها بالا به پایین و بی دکمهٔ «همه»؛ هر
+   صافی را با زدن دوباره‌اش برمی‌داری. فهرست همیشه به ترتیب تاریخ است:
+   پیش‌روها از نزدیک به دور، برگزارشده‌ها از تازه به قدیم.
    ══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-const {EVENTS,PEOPLE,CATS,DAYS,QTAGS,LIVE,NOTICES,PAST}=window.NORA;
+const {EVENTS=[],PEOPLE=[],PAST=[],LIVE=[],TOTAL_MEDIA=0,ARCHIVE={}}=window.NORA||{};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#3E5B84,#0B2447)'};
-const ev=id=>EVENTS.find(e=>e.id===id)||{};
-const left=e=>e.cap?Math.max(0,e.cap-e.taken):Infinity;
-const key=(k,i)=>k+':'+i;
-const av=p=>{const q=person(p); return `<span class="ava" style="--g:${q.g}">${q.photo?`<img src="${esc(q.photo)}" alt="${esc(q.n)}"/>`:esc(q.ini)}</span>`};
+const UI=()=>window.NORA_UI||{};
+const tag=(t,cls)=>`<span class="tag ${cls||''}">${esc(t)}</span>`;
 
-/* ماه‌های تقویم: شهریور ۱۴۰۵ و مهر ۱۴۰۵ (هفته از شنبه) */
+/* ماه‌های تقویم: تیر و مرداد گذشته‌اند، شهریور جاری و مهر پیش رو */
 const MONTHS={
+  tir:{n:'تیر ۱۴۰۵', days:31, start:2, past:true},
+  mordad:{n:'مرداد ۱۴۰۵', days:31, start:5, past:true},
   sh:{n:'شهریور ۱۴۰۵', days:31, start:1, today:28},
-  mehr:{n:'مهر ۱۴۰۵', days:30, start:4, today:null}
+  mehr:{n:'مهر ۱۴۰۵', days:30, start:4}
 };
 const WD=['ش','ی','د','س','چ','پ','ج'];
 const WDNAME={'ش':'شنبه','ی':'یکشنبه','د':'دوشنبه','س':'سه‌شنبه','چ':'چهارشنبه','پ':'پنجشنبه','ج':'جمعه'};
 
-const S={view:'cal', month:'sh', day:28, dayF:'all', cat:'all', mode:'all', tag:'all', q:'', open:null,
-  pastF:'all', kind:'all', sort:'new', pins:new Set()};
-/* صافی برگزارشده‌ها */
-const PASTF=[{k:'all',n:'همه'},{k:'cert',n:'گواهی‌دار'},{k:'paid',n:'خریدنی'},{k:'free',n:'رایگان'},{k:'mine',n:'در کتابخانه‌ام'}];
-const KINDF=[{k:'all',n:'همهٔ رسانه‌ها'},{k:'video',n:'ویدیو'},{k:'audio',n:'صدا'},{k:'pdf',n:'فایل'},{k:'slide',n:'اسلاید'}];
-const SORTS=[{k:'new',n:'تازه‌ترین'},{k:'top',n:'پرفروش'},{k:'cheap',n:'ارزان‌ترین'}];
-const isPinned=(k,i)=>S.pins.has(key(k,i));
-function togglePin(k,i){const kk=key(k,i); S.pins.has(kk)?S.pins.delete(kk):S.pins.add(kk);
-  try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
+const S={view:'list', status:'', kind:'', mode:'', q:'', month:'sh', day:28, spot:0};
 
-function match(e){
-  const q=S.q.trim();
-  if(q&&!(e.t+' '+person(e.tchr).n+' '+e.place+' '+e.kind+' '+e.mode+' '+(e.tags||[]).join(' ')).includes(q)) return false;
-  if(S.dayF!=='all'&&e.day!==S.dayF) return false;
-  if(S.cat!=='all'&&e.cat!==S.cat) return false;
-  if(S.mode!=='all'&&e.mode!==S.mode) return false;
-  if(S.tag!=='all'&&!(e.tags||[]).includes(S.tag)) return false;
-  return true;
+/* ── صافی‌ها: سه مدل، بی ردیف «همه» ── */
+const KINDS=[...new Set(EVENTS.map(e=>e.kind).concat(PAST.map(h=>h.kind)))];
+function chipRow(label,list,cur,attr){
+  return `<div class="frow"><span class="flbl">${label}</span><div class="fchips">`+
+    list.map(x=>`<button class="fchip ${cur===x.k?'on':''}" data-${attr}="${esc(x.k)}" aria-pressed="${cur===x.k?'true':'false'}">
+      <svg class="i" aria-hidden="true"><use href="#i-check"/></svg>${esc(x.n)}${x.c?' '+faN(x.c):''}</button>`).join('')+
+    `</div></div>`;
 }
-const priceTxt=e=>e.price?rialTxt(e.price):'رایگان';
+function renderFilters(){
+  const kinds=KINDS.map(k=>({k:k,n:k,c:EVENTS.filter(e=>e.kind===k).length+PAST.filter(h=>h.kind===k).length}))
+    .sort((a,b)=>b.c-a.c);
+  const modes=['حضوری','آنلاین'].map(m=>({k:m,n:m,
+    c:EVENTS.filter(e=>e.mode.indexOf(m)>-1).length+PAST.filter(h=>h.mode.indexOf(m)>-1).length}));
+  $('#filters').innerHTML=
+    chipRow('وضعیت',[{k:'up',n:'پیش رو',c:EVENTS.length},{k:'past',n:'برگزارشده',c:PAST.length}],S.status,'status')+
+    chipRow('نوع برنامه',kinds,S.kind,'kind')+
+    chipRow('شیوهٔ برگزاری',modes,S.mode,'mode');
+}
 
-function toast(m){const t=$('#toast'); t.textContent=m; t.classList.add('on');
-  clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
-function log(w){try{const k='nora-home-log'; const a=JSON.parse(localStorage.getItem(k)||'[]');
-  a.push({w:new Date().toISOString(),m:w}); localStorage.setItem(k,JSON.stringify(a.slice(-80)))}catch(e){}}
+/* ── بنر ── */
+function daysTo(e){
+  if(e.dm==='sh') return Math.max(0,e.dn-28);
+  if(e.dm==='mehr') return 3+e.dn;
+  if(e.dm==='aban') return 33+e.dn;
+  return 0;
+}
+function cdTxt(e){
+  if(e.live) return 'همین حالا در حال برگزاری';
+  const d=daysTo(e);
+  if(d===0) return 'امشب';
+  if(d===1) return 'فردا';
+  return faN(d)+' روز مانده';
+}
+function spotList(){
+  const up=EVENTS.slice().sort((a,b)=>a.ord-b.ord);
+  return up.filter(e=>e.live).concat(up.filter(e=>!e.live)).slice(0,3);
+}
+function slide(e){
+  const p=person(e.tchr), pre=!!(UI().isPre&&UI().isPre(e.id));
+  let act;
+  if(e.live) act=`<a class="btn primary" href="event.html?id=${esc(e.id)}"><svg class="i"><use href="#i-video"/></svg> ورود به جلسه</a>`;
+  else if(e.pre||pre) act=`<button class="btn ${pre?'quiet':'primary'}" data-uipre="${esc(e.id)}">
+      <svg class="i"><use href="#${pre?'i-check':'i-bell'}"/></svg> ${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
+  else act=`<a class="btn primary" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`;
+  return `<article class="spot" style="--g:${esc(e.g||'')}">
+    ${e.poster?`<img class="pbg" src="${esc(e.poster)}" alt="" loading="lazy"/>`:''}
+    <span class="veil"></span>
+    <div class="stop">${tag(e.kind,'brand')}${e.sess>1?tag(faN(e.sess)+' جلسه'):tag(e.mode)}
+      <span class="cd">${cdTxt(e)}</span></div>
+    <h2>${esc(e.t)}</h2>
+    <div class="meta">
+      <svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${esc(e.when)} · ${esc(e.time)}</span>
+      <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${esc(e.place||'آنلاین')}</span>
+      <svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span></div>
+    <div class="acts">${act}
+      <a class="btn quiet" href="event.html?id=${esc(e.id)}"><svg class="i"><use href="#i-chev-left"/></svg> جزئیات</a>
+      <button class="btn quiet" data-uishare="${esc(e.id)}" aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button></div>
+  </article>`;
+}
+function renderSpot(){
+  const list=spotList();
+  $('#spotrail').innerHTML=list.map(slide).join('');
+  const box=$('#spotdots');
+  box.hidden=list.length<2;
+  box.innerHTML=list.map((e,i)=>`<i class="${i===S.spot?'on':''}" data-spot="${i}" role="button" aria-label="اسلاید ${faN(i+1)}"></i>`).join('');
+}
+function spotTo(i){
+  const el=$$('#spotrail .spot')[i];
+  if(el) el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  S.spot=i; $$('#spotdots i').forEach((d,j)=>d.classList.toggle('on',j===i));
+}
+function bindSpot(){
+  $('#spotdots').addEventListener('click',ev=>{const d=ev.target.closest('[data-spot]'); if(d) spotTo(+d.dataset.spot)});
+  $('#spotrail').addEventListener('scroll',()=>{
+    const r=$('#spotrail'), w=r.clientWidth||1;
+    const i=Math.max(0,Math.min(2,Math.round(Math.abs(r.scrollLeft)/w)));
+    if(i!==S.spot){S.spot=i; $$('#spotdots i').forEach((d,j)=>d.classList.toggle('on',j===i))}
+  },{passive:true});
+}
 
-/* ── نوار بالا: شیشه‌ای وقت اسکرول ── */
-window.addEventListener('scroll',()=>document.documentElement.classList.toggle('atscroll',window.scrollY>10),{passive:true});
-/* تم: کارِ ui.js است؛ این فقط نام کوتاه برای صدازنی‌های همین صفحه */
-function setTheme(v){return themeApply(v)}
+/* ── آمار ── */
+function renderStats(){
+  const items=[
+    [faN(PAST.length),'برنامهٔ برگزارشده'],
+    [faN(EVENTS.length),'برنامهٔ پیش رو'],
+    [faN(TOTAL_MEDIA),'رسانه در آرشیو'],
+    [faN(Math.round(ARCHIVE.hours||0)),'ساعت ویدیو و صدا']
+  ];
+  $('#stats').innerHTML=items.map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
+  $('#statsNote').textContent='آرشیو از تیر ۱۴۰۵ تا امروز؛ ضبط، صدا و جزوهٔ هر برنامه همین‌جا می‌ماند.';
+}
 
-/* ── سرصفحه: عددها ── */
-/* ── جریان زنده ── */
+/* ── کتابخانهٔ من: نوار میان‌بر ── */
+function renderLibBar(){
+  const ui=UI(), n=ui.library?ui.library().length:0, id=ui.uid?ui.uid():'';
+  if(!id||!n){$('#libBar').hidden=true; return}
+  const bundles=PAST.filter(h=>ui.hasLib&&ui.hasLib(h.id)).length;
+  $('#libBar').hidden=false;
+  $('#libBarTx').textContent=`${faN(n)} رسانه و ${faN(bundles)} بستهٔ کامل، همین‌جا ادامه بده`;
+}
+
+/* ── همین حالا ── */
 function renderLive(){
-  const box=$('#liveList'); if(!box) return;
-  box.innerHTML=LIVE.map(x=>{
-    const e0=ev(x.ev), pct=x.past?Math.round(x.past/x.total*100):0;
+  const box=$('#liveList');
+  const list=LIVE.filter(x=>x.past>0||x.soon<=30);
+  $('#live').hidden=!list.length;
+  if(!list.length) return;
+  box.innerHTML=list.map(x=>{
+    const e0=EVENTS.find(e=>e.id===x.ev)||{}, pct=x.past?Math.round(x.past/x.total*100):0;
     return `<div class="livecard">
       <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
       <h3>${esc(x.t)}</h3>
       <div class="cap">${esc(x.at)} · ${esc(x.where)}${e0.tchr?' · '+esc(person(e0.tchr).n):''}</div>
-      <div class="bar"><i style="width:${x.past?pct:0}%"></i></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="row"><span class="cap">${x.past?faN(x.past)+' دقیقه از '+faN(x.total)+' دقیقه گذشته':'هنوز شروع نشده'}</span>
         <span class="sp"></span>
         <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${x.ev}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
     </div>`}).join('');
-  $('#liveCount').textContent=faN(LIVE.length)+' برنامه — '+(LIVE.some(x=>x.past)?'همین حالا یکی در حال برگزاری است':'شروع نزدیک');
+  $('#liveCount').textContent=list.some(x=>x.past)?'یکی در حال برگزاری':'شروع نزدیک';
 }
 
-function renderStats(){
-  const online=EVENTS.filter(e=>e.mode==='آنلاین').length, free=EVENTS.filter(e=>!e.price).length;
-  const cert=EVENTS.filter(e=>(e.tags||[]).includes('گواهی‌دار')).length;
-  $('#hstats').innerHTML=[
-    [faN(EVENTS.length),'برنامه در پیش'],
-    [faN(EVENTS.length-online),'حضوری'],
-    [faN(online),'آنلاین'],
-    [faN(cert),'گواهی‌دار']
-  ].map(x=>`<div class="s"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')+
-  `<div class="s" style="grid-column:span 4"><b>${faN(free)} برنامهٔ رایگان</b><span>رایگان‌ها را از صافی فهرست هم می‌گیری</span></div>`;
+/* ── فهرست ── */
+function hit(txt,q){return txt.indexOf(q)>-1}
+function passUp(e){
+  if(S.status==='past') return false;
+  if(S.kind&&e.kind!==S.kind) return false;
+  if(S.mode&&e.mode.indexOf(S.mode)<0) return false;
+  const q=S.q.trim();
+  if(q&&!hit(e.t+' '+person(e.tchr).n+' '+(e.place||'')+' '+e.kind+' '+e.mode+' '+(e.tags||[]).join(' '),q)) return false;
+  return true;
+}
+function passPast(h){
+  if(S.status==='up') return false;
+  if(S.kind&&h.kind!==S.kind) return false;
+  if(S.mode&&h.mode.indexOf(S.mode)<0) return false;
+  const q=S.q.trim();
+  if(q&&!hit(h.t+' '+person(h.tchr).n+' '+(h.place||'')+' '+h.kind+' '+(h.tags||[]).join(' ')+' '+(h.note||''),q)) return false;
+  return true;
+}
+function rows(){
+  const up=EVENTS.filter(passUp).sort((a,b)=>a.ord-b.ord).map(x=>({t:'up',x:x}));
+  const ps=PAST.filter(passPast).sort((a,b)=>b.ord-a.ord).map(x=>({t:'past',x:x}));
+  if(S.status==='up') return up;
+  if(S.status==='past') return ps;
+  return up.concat(ps);
+}
+function tileUp(e){
+  const p=person(e.tchr), full=e.cap&&e.spots<=0, pct=e.cap?Math.round(e.taken/e.cap*100):0;
+  const pre=!!(UI().isPre&&UI().isPre(e.id)), open=e.pre||pre;
+  const cta=open
+    ? `<button class="mini" data-uipre="${esc(e.id)}" aria-label="پیش‌ثبت‌نام ${esc(e.t)}"><svg class="i"><use href="#${pre?'i-check':'i-bell'}"/></svg>${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
+    : `<a class="mini" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg>${full?'لیست انتظار':'ثبت‌نام'}</a>`;
+  return `<article class="etile" style="--g:${esc(e.g||'')}">
+    <button class="ecov" data-ev="${esc(e.id)}" aria-label="جزئیات ${esc(e.t)}">
+      ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}" loading="lazy"/>`:''}
+      <span class="eveil"></span>
+      <span class="edate"><b>${faN(e.dn)}</b><span>${esc(e.mname||'')}</span></span>
+      <span class="etags">${tag(e.kind,'brand')}${e.sess>1?tag(faN(e.sess)+' جلسه'):''}</span>
+      ${e.live?'<span class="elive"><span class="dotpulse"></span>در حال برگزاری</span>':''}
+    </button>
+    <div class="ebody">
+      <b class="ettl">${esc(e.t)}</b>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span></span>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span>${esc(e.when)} · ${esc(e.time)}</span></span>
+      ${e.cap?`<span class="ebar"><i style="width:${pct}%"></i></span>
+        <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${full?'ظرفیت تکمیل':faN(e.spots)+' جا مانده از '+faN(e.cap)+' نفر'}</span></span>`:''}
+    </div>
+    <div class="efoot">
+      <span class="eprice ${e.price?'':'free'}">${price(e.price)}</span>
+      <span class="ebtns">${cta}</span>
+    </div>
+  </article>`;
+}
+function tilePast(h){
+  const p=person(h.tchr), own=!!(UI().hasLib&&UI().hasLib(h.id));
+  const hasFree=(h.media||[]).some(m=>!m.p||m.preview);
+  const cta=own
+    ? `<button class="mini" data-uimedia="${esc(h.id)}:${esc((h.media[0]||{}).id||'')}"><svg class="i"><use href="#i-play-f"/></svg>تماشا</button>`
+    : `<a class="mini" href="event.html?id=${esc(h.id)}"><svg class="i"><use href="#i-bag"/></svg>${h.price?'تهیه':'دریافت'}</a>`;
+  return `<article class="etile past" style="--g:${esc(h.g||'')}">
+    <button class="ecov" data-ev="${esc(h.id)}" aria-label="جزئیات ${esc(h.t)}">
+      ${h.poster?`<img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" loading="lazy"/>`:''}
+      <span class="eveil"></span>
+      <span class="edate"><b>${faN(h.dn)}</b><span>${esc(h.mname||'')}</span></span>
+      <span class="etags">${tag(h.kind)}${tag(faN(h.mediaCount)+' رسانه','ok')}</span>
+    </button>
+    <div class="ebody">
+      <b class="ettl">${esc(h.t)}</b>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span></span>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${esc(h.d)}</span></span>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-layers"/></svg><span>${esc(h.rec)}${h.cert?' · گواهی‌دار':''}</span></span>
+    </div>
+    <div class="efoot">
+      <span class="eprice ${h.price?'':'free'}">${price(h.price)}</span>
+      <span class="erate"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg>${esc(h.rate2||'')}</span>
+      <span class="ebtns">
+        ${hasFree?`<button class="mini" data-uipreview="${esc(h.id)}"><svg class="i"><use href="#i-eye"/></svg>پیش‌نمایش</button>`:''}
+        ${cta}</span>
+    </div>
+  </article>`;
+}
+function renderList(){
+  const list=rows();
+  $('#grid').innerHTML=list.map(r=>r.t==='up'?tileUp(r.x):tilePast(r.x)).join('') ||
+    `<div class="empty" style="grid-column:1/-1"><svg class="i"><use href="#i-search"/></svg>
+      <p>با این صافی چیزی پیدا نشد؛ واژه را کوتاه‌تر کن یا صافی را بردار.</p></div>`;
+  const up=list.filter(r=>r.t==='up').length, ps=list.length-up;
+  $('#cnt').textContent=list.length?(faN(list.length)+' برنامه · '+faN(up)+' پیش رو و '+faN(ps)+' برگزارشده'):'چیزی پیدا نشد';
+  return list.length;
 }
 
-/* ── تقویم ماهانه ── */
+/* ── تقویم ── */
+/* وقتی ماه عوض می‌شود، اول روی روزی می‌ایستیم که برنامه دارد */
+function firstBusy(m){
+  const M=MONTHS[m];
+  if(M.today) return M.today;
+  for(let d=1;d<=M.days;d++)
+    if(EVENTS.some(e=>e.dm===m&&e.dn===d)||PAST.some(h=>h.dm===m&&h.dn===d)) return d;
+  return 1;
+}
 function renderMonths(){
   $('#monthsw').innerHTML=Object.entries(MONTHS).map(([k,m])=>
-    `<button class="${S.month===k?'on':''}" data-month="${k}">${m.n}</button>`).join('');
+    `<button class="${S.month===k?'on':''} ${m.past?'was':''}" data-month="${k}">${m.n}</button>`).join('');
 }
 function renderCal(){
-  const m=MONTHS[S.month];
-  const cells=[];
+  const m=MONTHS[S.month], cells=[];
   for(let i=0;i<m.start;i++) cells.push('<span class="cel blank"></span>');
   for(let d=1;d<=m.days;d++){
-    const evs=EVENTS.filter(e=>e.dm===S.month&&e.dn===d);
+    const up=EVENTS.filter(e=>e.dm===S.month&&e.dn===d).length;
+    const ps=PAST.filter(h=>h.dm===S.month&&h.dn===d).length;
     const today=S.month==='sh'&&d===m.today;
-    cells.push(`<button class="cel ${evs.length?'has':''} ${today?'today':''} ${S.day===d?'sel':''}" data-dn="${d}"
-      aria-label="${faN(d)} ${m.n}${evs.length?' — '+faN(evs.length)+' برنامه':''}">
-      ${faN(d)}${evs.length?`<span class="dots">${evs.slice(0,3).map(()=>'<i></i>').join('')}</span>`:''}</button>`);
+    cells.push(`<button class="cel ${up||ps?'has':''} ${(!up&&ps)?'was':''} ${today?'today':''} ${S.day===d?'sel':''}" data-dn="${d}"
+      aria-label="${faN(d)} ${m.n}${up?'، '+faN(up)+' برنامهٔ پیش رو':''}${ps?'، '+faN(ps)+' برگزارشده':''}">
+      ${faN(d)}<span class="dots">${up?'<i></i>':''}${ps?'<i class="p"></i>':''}</span></button>`);
   }
   $('#calgrid').innerHTML=WD.map(w=>`<span class="wd">${w}</span>`).join('')+cells.join('');
   renderDay();
 }
 function renderDay(){
   const m=MONTHS[S.month];
-  const evs=EVENTS.filter(e=>e.dm===S.month&&e.dn===S.day);
+  const up=EVENTS.filter(e=>e.dm===S.month&&e.dn===S.day).sort((a,b)=>a.ord-b.ord);
+  const ps=PAST.filter(h=>h.dm===S.month&&h.dn===S.day).sort((a,b)=>b.ord-a.ord);
   const wname=WDNAME[WD[(m.start+S.day-1)%7]];
   $('#dayTitle').textContent=`${wname} ${faN(S.day)} ${m.n}`;
-  $('#dayCount').textContent=evs.length?faN(evs.length)+' برنامه':'برنامه‌ای نیست';
-  $('#dayList').innerHTML=evs.length?evs.map(evRow).join(''):
-    `<div class="empty"><svg class="i"><use href="#i-calendar"/></svg><p>این روز خالی است؛ روز پرنقطه را بزن یا از «فهرست» همه را ببین.</p></div>`;
+  $('#dayCount').textContent=(up.length+ps.length)?`${faN(up.length)} پیش رو · ${faN(ps.length)} برگزارشده`:'برنامه‌ای نیست';
+  $('#dayGrid').innerHTML=(up.map(tileUp).join('')+ps.map(tilePast).join('')) ||
+    `<div class="empty" style="grid-column:1/-1"><svg class="i"><use href="#i-calendar"/></svg>
+      <p>این روز خالی است؛ روز پرنقطه را بزن یا از فهرست، همهٔ آرشیو را ببین.</p></div>`;
 }
 
-/* ── فهرست ── */
-function chips(host,list,cur,attr){
-  host.innerHTML=list.map(x=>`<button class="chip ${cur===x.k?'on':''}" data-${attr}="${x.k}">${esc(x.n)}</button>`).join('');
-}
-function renderList(){
-  chips($('#dayChips'),DAYS,S.dayF,'day');
-  chips($('#catChips'),CATS,S.cat,'cat');
-  chips($('#modeChips'),[{k:'all',n:'حضوری و آنلاین'},{k:'حضوری',n:'حضوری'},{k:'آنلاین',n:'آنلاین'},{k:'رایگان',n:'رایگان'},{k:'گواهی‌دار',n:'گواهی‌دار'}],S.mode,'mode');
-  const list=EVENTS.filter(match);
-  const f=S.dayF!=='all'||S.cat!=='all'||S.mode!=='all'||S.tag!=='all'||S.q.trim();
-  $('#filterNote').hidden=!f; $('#filterNote').textContent=f?'صافی فعال':'';
-  $('#evList').innerHTML=list.length?list.map(evCard).join(''):
-    `<div class="empty"><svg class="i"><use href="#i-search"/></svg><p>با این صافی چیزی پیدا نشد؛ صافی‌ها را کمتر کن.</p></div>`;
-  return list.length;
-}
-function evCard(e){
-  const full=e.cap&&left(e)===0, n=left(e), p=person(e.tchr);
-  const month=((MONTHS[e.dm]||{}).n||'').split(' ')[0];
-  return evPosterCard(e,{person:p, tags:(e.tags||[]).slice(0,3),
-    badge:`<b>${faN(e.dn)}</b><span>${esc(month||e.dm)}</span>`,
-    meta:[['i-calendar',e.when+' · '+e.time],['i-pin',e.place],
-          ['i-users',e.cap?faN(e.taken)+' نفر از '+faN(e.cap):'بی‌ظرفیت']],
-    note:full?'ظرفیت تکمیل؛ ثبت‌نام به لیست انتظار می‌رود':(e.cap&&n<=5?'فقط '+faN(n)+' جا مانده':((e.parts||[])[0]||'')),
-    price:priceTxt(e), free:!e.price, bar:e.cap?Math.round(e.taken/e.cap*100):0,
-    cta:full?'جزئیات و لیست انتظار':'جزئیات و ثبت‌نام',
-    ctaKind:full?'quiet':'primary', ctaIcon:full?'i-clock':'i-pen'});
-}
-/* ردیف فشرده — در فهرست روزِ تقویم جا کم است */
-function evRow(e){
-  const full=e.cap&&left(e)===0, n=left(e);
-  return `<button class="ev ${full?'full':''} ${isPinned('ev',e.id)?'pinned':''}" data-ev="${e.id}" aria-label="جزئیات ${esc(e.t)}">
-    <span class="th" style="--g:${e.g}"><svg class="i"><use href="#${e.icon}"/></svg></span>
-    <span class="bod">
-      <span class="ttl">${esc(e.t)}</span>
-      <span class="meta">${esc(e.when)} · ${esc(e.time)} · ${esc(e.place)}</span>
-      <span class="mini-chips"><span class="mini-chip">${esc(e.kind)}</span><span class="mini-chip">${esc(e.mode)}</span>
-        ${e.cap&&n>0&&n<=5?`<span class="mini-chip soon">${faN(n)} جا مانده</span>`:''}
-        ${full?'<span class="mini-chip soon">لیست انتظار</span>':''}</span>
-    </span>
-    <span class="side">
-      <span class="prc ${e.price?'':'free'}">${priceTxt(e)}</span>
-      <svg class="i" style="width:15px;height:15px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-    </span>
-  </button>`;
-}
-
-/* ── برگزارشده‌ها: خرید بازپخش و جزئیات ── */
-function pastMatch(h){
-  const q=S.q.trim();
-  if(typeof NORA_UI!=='undefined'&&S.pastF==='mine'&&!NORA_UI.hasLib(h.id)) return false;
-  if(S.kind!=='all'&&!(h.counts||{})[S.kind]) return false;
-  if(q&&!(h.t+' '+person(h.tchr).n+' '+(h.tags||[]).join(' ')+' '+h.note).includes(q)) return false;
-  if(S.pastF==='cert'&&!h.cert) return false;
-  if(S.pastF==='paid'&&!h.price) return false;
-  if(S.pastF==='free'&&h.price) return false;
-  return true;
-}
-function pastCard(h){
-  return window.NORA_UI?NORA_UI.bundleCard(h):'';
-}
-/** کتابخانهٔ من: هرچه خریده‌ام، با جای ادامهٔ تماشا */
+/* ── کتابخانهٔ من ── */
 function renderLib(){
-  const L=(window.NORA_UI&&NORA_UI.library())||[];
-  const login=!!(window.NORA_UI&&NORA_UI.uid&&NORA_UI.uid());
-  const mine=L.filter(x=>x&&x.k==='past');
-  const bundles=PAST.filter(h=>NORA_UI&&NORA_UI.hasLib(h.id));
-  const items=PAST.map(h=>(h.media||[]).map(m=>({h:h,m:m}))).flat().filter(x=>NORA_UI&&NORA_UI.hasLib(x.m.id));
+  const ui=UI(), L=ui.library?ui.library():[], login=!!(ui.uid&&ui.uid());
+  const bundles=PAST.filter(h=>ui.hasLib&&ui.hasLib(h.id));
+  const items=PAST.map(h=>(h.media||[]).map(m=>({h:h,m:m}))).flat().filter(x=>ui.hasLib&&ui.hasLib(x.m.id));
   $('#libCount').textContent=login?(faN(items.length)+' رسانه · '+faN(bundles.length)+' بستهٔ کامل'):'برای دیدن، وارد شو';
   if(!login){
     $('#libBox').innerHTML=`<div class="card paper" style="text-align:center;padding:22px">
@@ -438,260 +530,118 @@ function renderLib(){
       <p class="sub" style="margin:10px 0 0">کتابخانه مالِ حساب خودت است. با شمارهٔ موبایل وارد شو تا هرچه تهیه کرده‌ای همین‌جا بیاید.</p>
       <div class="row" style="justify-content:center;margin-top:12px">
         <button class="btn primary" data-uilogin><svg class="i"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
-        <a class="btn quiet" href="events.html#media" style="text-decoration:none">دیدن فروشگاه رسانه</a></div></div>`;
+        <a class="btn quiet" href="events.html#list" style="text-decoration:none">دیدن آرشیو رویدادها</a></div></div>`;
     return;
   }
-  if(!items.length && !bundles.length){
+  if(!items.length&&!bundles.length){
     $('#libBox').innerHTML=`<div class="empty"><svg class="i"><use href="#i-play"/></svg>
-      <p>هنوز چیزی تهیه نکرده‌ای. از فروشگاه رسانه، ضبط و جزوهٔ کارگاه‌ها را نگاه کن.</p>
-      <a class="btn sm primary" href="events.html#media" style="text-decoration:none;margin-top:10px">رفتن به فروشگاه رسانه</a></div>`;
+      <p>هنوز چیزی تهیه نکرده‌ای؛ از آرشیو، ضبط کارگاه‌ها را ببین و هرکدام را خواستی بردار.</p>
+      <a class="btn sm primary" href="events.html#list" style="text-decoration:none;margin-top:10px">رفتن به آرشیو</a></div>`;
     return;
   }
-  const rows=PAST.filter(h=>NORA_UI.hasLib(h.id)||(h.media||[]).some(m=>NORA_UI.hasLib(m.id)));
-  $('#libBox').innerHTML=`<div class="stack" style="gap:14px">${rows.map(h=>{
-    const own=NORA_UI.hasLib(h.id);
-    const pr=m=>({m:m,pct:Math.min(100,Math.round((NORA_UI.progressOf(m.id)||0)/90/60*100))});
-    const list=(h.media||[]).filter(m=>own||NORA_UI.hasLib(m.id));
-    const done=list.filter(m=>NORA_UI.progressOf(m.id)>0);
+  const rowsH=PAST.filter(h=>(ui.hasLib(h.id))||(h.media||[]).some(m=>ui.hasLib(m.id)));
+  $('#libBox').innerHTML=`<div class="stack" style="gap:14px">${rowsH.map(h=>{
+    const own=ui.hasLib(h.id);
+    const list=(h.media||[]).filter(m=>own||ui.hasLib(m.id));
+    const done=list.filter(m=>ui.progressOf(m.id)>0);
     return `<div class="card paper">
       <div class="row" style="align-items:center;gap:10px">
-        <span class="mthumb ${list[0]?list[0].k:'video'}" style="width:40px;height:40px"><svg class="i" style="width:18px;height:18px"><use href="#i-archive"/></svg></span>
+        <span class="mthumb video" style="width:40px;height:40px"><svg class="i" style="width:18px;height:18px"><use href="#i-archive"/></svg></span>
         <span style="flex:1;min-width:0"><b style="font-size:14px">${esc(h.t)}</b>
           <div class="cap">${esc(h.d)} · ${faN(list.length)} رسانه${own?' · بستهٔ کامل':''}</div></span>
-        <span class="sp" style="flex:1"></span>
         <span class="tag ${done.length?'ok':'brand'}">${done.length?faN(done.length)+' نیمه‌کاره':'تازه'}</span>
       </div>
       <div class="stack tight" style="margin-top:10px">${list.slice(0,4).map(m=>{
-        const kd=(window.NORA.MEDIA_KINDS||{})[m.k]||{n:'رسانه',i:'i-play',v:'تماشا'}, o=pr(m);
+        const kd=(window.NORA.MEDIA_KINDS||{})[m.k]||{n:'رسانه',i:'i-play',v:'تماشا'};
+        const pct=Math.min(100,Math.round((ui.progressOf(m.id)||0)/90/60*100));
         return `<div class="mrow2">
           <button class="mthumb ${m.k}" data-uimedia="${esc(h.id)}:${esc(m.id)}" aria-label="${esc(m.t)}">
             <svg class="i" style="width:19px;height:19px"><use href="#${kd.i}"/></svg>
-            ${o.pct?`<span class="mprog"><i style="width:${o.pct}%"></i></span>`:''}</button>
-          <span class="mtx"><b>${esc(m.t)}</b><small>${kd.n} · ${esc(m.d)}${o.pct?' · '+faN(o.pct)+'٪ دیده‌ای':''}</small></span>
+            ${pct?`<span class="mprog"><i style="width:${pct}%"></i></span>`:''}</button>
+          <span class="mtx"><b>${esc(m.t)}</b><small>${kd.n} · ${esc(m.d)}${pct?' · '+faN(pct)+'٪ دیده‌ای':''}</small></span>
           <span class="sp" style="flex:1"></span>
-          <button class="btn sm ${o.pct?'quiet':'primary'}" data-uimedia="${esc(h.id)}:${esc(m.id)}">
-            <svg class="i"><use href="#${kd.i}"/></svg> ${o.pct?'ادامه':'پخش'}</button></div>`}).join('')}</div>
+          <button class="btn sm ${pct?'quiet':'primary'}" data-uimedia="${esc(h.id)}:${esc(m.id)}">
+            <svg class="i"><use href="#${kd.i}"/></svg> ${pct?'ادامه':'پخش'}</button></div>`}).join('')}</div>
       <div class="row" style="margin-top:10px">
-        <button class="btn sm quiet" data-past="${esc(h.id)}"><svg class="i"><use href="#i-archive"/></svg> جزئیات بسته</button>
+        <button class="btn sm quiet" data-ev="${esc(h.id)}"><svg class="i"><use href="#i-archive"/></svg> جزئیات بسته</button>
         <span class="sp" style="flex:1"></span><span class="cap">${esc(h.access||'دسترسی همیشگی')}</span>
       </div></div>`}).join('')}</div>`;
 }
-function renderPastView(){
-  chips($('#storeKinds'),KINDF,S.kind,'kind');
-  chips($('#pastChips'),PASTF,S.pastF,'pastf');
-  chips($('#sortSeg')||{innerHTML:''},SORTS,S.sort,'sort');
-  const list=PAST.filter(pastMatch).slice().sort((a,b)=>
-    S.sort==='cheap'?(a.price-b.price):S.sort==='top'?((b.sold||0)-(a.sold||0)):0);
-  $('#pastList').innerHTML=list.length?list.map(pastCard).join('')
-    :`<div class="empty"><svg class="i"><use href="#i-archive"/></svg><p>با این صافی چیزی نبود؛ «همه» را بزن.</p></div>`;
-  return list.length;
-}
-function openPast(id){
-  if(window.NORA_UI){NORA_UI.eventSheet(id); return}
-  const h=PAST.filter(x=>x.id===id)[0]; if(!h) return;
-  const p=person(h.tchr);
-  $('#pastBody').innerHTML=`<div class="row" style="align-items:center;margin-bottom:10px">
-      <div><div class="head">${esc(h.kind)} · برگزار شد</div><div class="cap">${esc(h.d)} — ${esc(h.place)}</div></div>
-      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-    <div class="row tight" style="margin-bottom:8px">
-      <span class="tag ok">برگزار شد</span><span class="tag">${esc(h.mode)}</span>
-      ${h.cert?'<span class="tag accent">گواهی‌دار</span>':'<span class="tag">بدون گواهی</span>'}
-      <span class="tag brand">${h.price?'بازپخش':'رایگان'}</span>
-      ${h.rate?`<span class="tag">${esc(h.rate)}</span>`:''}</div>
-    <h3 style="margin:2px 0 6px;font-size:17px">${esc(h.t)}</h3>
-    <button class="suprow" data-person="${p.id}" style="margin-bottom:10px">${av(p.id)}
-      <span style="flex:1;min-width:0"><b class="sub">${esc(p.n)}</b>
-        <div class="cap">${esc(p.r)} — پروفایل کامل در خانه</div></span>
-      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-    ${h.poster?`<div style="overflow:hidden;border-radius:18px;margin-bottom:12px">
-      <img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" style="width:100%;display:block"/></div>`:''}
-    <div class="stack tight" style="margin:8px 0 12px">
-      <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">تاریخ برگزاری</span><b>${esc(h.d)}</b></div>
-      <div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">مدت ضبط</span><b>${esc(h.rec)}</b></div>
-      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">شرکت‌کننده‌ها</span><b>${faN(h.n)} نفر</b></div>
-      <div class="srow"><svg class="i"><use href="#i-download"/></svg><span class="sp">فایل‌های همراه</span><b>${esc(h.note)}</b></div>
-    </div>
-    <p class="sub">${esc(h.desc)}</p>
-    ${(h.parts||[]).length?`<div class="stack tight" style="margin-top:10px">${h.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
-    <div class="moneyline"><span>${h.price?'مبلغ بازپخش':'بازپخش این نشست'}</span><span class="num">${h.price?money(h.price):'رایگان'}</span></div>
-    <div class="row" style="margin-top:12px">
-      <a class="btn primary" href="form.html"><svg class="i"><use href="${h.price?'i-bag':'i-play'}"/></svg> ${h.price?'خرید بازپخش':'تماشای رایگان'}</a>
-      ${h.cert?`<button class="btn quiet" data-pastcert="${h.id}"><svg class="i"><use href="#i-medal"/></svg> درخواست گواهینامه</button>`:''}
-      <button class="btn quiet" data-share="${h.id}"><svg class="i"><use href="#i-share"/></svg> اشتراک</button>
-    </div>
-    <p class="cap" style="margin-top:10px">بازپخش در حساب شما می‌ماند؛ گواهینامه فقط با تأیید سرپرست صادر می‌شود.</p>`;
-  $('#shPast').classList.add('on'); $('#scrim').classList.add('on');
-}
-
-/* ── دسته‌ها ── */
-function renderCats(){
-  const tiles=CATS.map(c=>{const n=EVENTS.filter(e=>e.cat===c.k).length;
-    return `<button class="cattile" data-cat="${c.k}"><span class="ci"><svg class="i"><use href="#${c.i||'i-layers'}"/></svg></span>
-      <b>${esc(c.n)}</b><small>${esc(c.d)} · ${faN(n)} برنامه</small></button>`}).join('');
-  const tagTiles=QTAGS.filter(t=>t.k!=='all').map(t=>{const n=EVENTS.filter(e=>(e.tags||[]).includes(t.k)).length;
-    return `<button class="cattile" data-tag="${t.k}"><span class="ci"><svg class="i"><use href="#i-star"/></svg></span>
-      <b>${esc(t.n)}</b><small>${faN(n)} برنامه با این نشان</small></button>`}).join('');
-  $('#catGrid').innerHTML=tiles+tagTiles;
-}
-
-/* ── ورقهٔ رویداد (کشویی از پایین) ── */
-function icsFor(e){
-  const off={tonight:0,tomorrow:1,week:3,next:8}[e.day]??1;
-  const d=new Date(); d.setDate(d.getDate()+off);
-  const tm=(unFa(e.time).match(/\d{1,2}/g)||['19','30']).map(Number);
-  d.setHours(tm[0]||19,tm[1]||30,0,0);
-  const end=new Date(d.getTime()+90*60000), z=n=>String(n).padStart(2,'0');
-  const st=`${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}T${z(d.getHours())}${z(d.getMinutes())}00`;
-  const en=`${end.getFullYear()}${z(end.getMonth()+1)}${z(end.getDate())}T${z(end.getHours())}${z(end.getMinutes())}00`;
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Nora//Events//FA','CALSCALE:GREGORIAN','BEGIN:VEVENT',
-    'UID:'+e.id+'@lifeline1.ir','DTSTAMP:'+st,'DTSTART:'+st,'DTEND:'+en,'SUMMARY:'+e.t,'LOCATION:'+(e.place||''),
-    'DESCRIPTION:'+(e.kind+' — '+e.when+' '+e.time),'END:VEVENT','END:VCALENDAR'].join('\r\n');
-}
-function gcalURL(e){
-  const off={tonight:0,tomorrow:1,week:3,next:8}[e.day]??1;
-  const d=new Date(); d.setDate(d.getDate()+off);
-  const tm=(unFa(e.time).match(/\d{1,2}/g)||['19','30']).map(Number);
-  d.setHours(tm[0]||19,tm[1]||30,0,0);
-  const end=new Date(d.getTime()+90*60000), u=x=>x.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(e.t)
-    +'&dates='+u(d)+'/'+u(end)+'&location='+encodeURIComponent(e.place||'')+'&details='+encodeURIComponent('نورا — '+e.kind);
-}
-function saveText(name,text,mime){
-  const a=document.createElement('a'); a.href='data:'+mime+';charset=utf-8,'+encodeURIComponent(text);
-  a.download=name; document.body.appendChild(a); a.click(); a.remove();
-}
-function openEvent(id){
-  if(window.NORA_UI){NORA_UI.eventSheet(id); return}
-  const e=ev(id); if(!e.id) return;
-  const l=left(e), full=e.cap&&l===0, p=person(e.tchr);
-  $('#evBody').innerHTML=`<div class="row" style="align-items:center;margin-bottom:10px">
-      <div><div class="head">${esc(e.kind)} · ${esc(e.mode)}</div><div class="cap">کد رویداد ${e.id.toUpperCase()} — ${esc(e.cat==='session'?'جلسه':e.kind)}</div></div>
-      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-    <div class="row tight" style="margin-bottom:8px">
-      <span class="tag brand">${esc(e.kind)}</span><span class="tag">${esc(e.mode)}</span>
-      ${(e.tags||[]).map(t=>`<span class="tag ok">${esc(t)}</span>`).join('')}
-      ${e.live?'<span class="tag stop">همین حالا در حال برگزاری</span>':''}
-      ${full?'<span class="tag warn">ظرفیت تکمیل</span>':''}</div>
-    <h3 style="margin:2px 0 6px;font-size:17px">${esc(e.t)}</h3>
-    <button class="suprow" data-person="${p.id}" style="margin-bottom:10px">${av(p.id)}
-      <span style="flex:1;min-width:0"><b class="sub">${esc(p.n)}</b>
-        <div class="cap">${esc(p.r)} — پروفایل کامل در خانه</div></span>
-      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
-    <div class="stack tight" style="margin:8px 0 12px">
-      <div class="srow"><svg class="i"><use href="#i-calendar"/></svg><span class="sp">${esc(e.when)}</span><b>ساعت ${esc(e.time)}</b></div>
-      <div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${esc(e.place)}</span></div>
-      <div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span><b>${priceTxt(e)}</b></div>
-    </div>
-    ${e.cap?`<div class="bar"><i style="width:${Math.round(e.taken/e.cap*100)}%"></i></div>
-      <div class="cap" style="margin-top:7px">${full?'ظرفیت تکمیل؛ ثبت‌نام به لیست انتظار می‌رود':'فقط '+faN(l)+' جا مانده از '+faN(e.cap)+' نفر'}</div>`:''}
-    <p class="sub" style="margin-top:12px">${esc(e.d)}</p>
-    ${e.parts?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
-    ${e.price?`<div class="moneyline"><span>مبلغ ثبت‌نام</span><span class="num">${money(e.price)}</span></div>`:''}
-    <div class="row" style="margin-top:12px">
-      <button class="btn sm quiet" data-ics="${e.id}"><svg class="i"><use href="#i-calendar"/></svg> افزودن به تقویم گوشی</button>
-      <a class="btn sm quiet" href="${gcalURL(e)}" target="_blank" rel="noopener"><svg class="i"><use href="#i-grid"/></svg> گوگل‌کلندر</a>
-    </div>
-    <div class="row" style="margin-top:8px">
-      ${full?`<button class="btn primary" data-wait="${e.id}"><svg class="i"><use href="#i-clock"/></svg> ثبت‌نام در لیست انتظار</button>`
-            :`<a class="btn primary" href="form.html"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${e.price?'':' — رایگان'}</a>`}
-      <button class="btn quiet" data-share="${e.id}"><svg class="i"><use href="#i-share"/></svg> اشتراک</button>
-      <button class="btn quiet ${isPinned('ev',e.id)?'primary':''}" data-pin="ev:${e.id}"><svg class="i"><use href="#i-pin"/>
-
-</svg> ${isPinned('ev',e.id)?'سنجاق‌شده':'سنجاق'}</button>
-    </div>
-    <p class="cap" style="margin-top:10px">با درگاه رسمی بله همان لحظه قطعی می‌شود؛ کارت‌به‌کارت بعد از تأیید کارشناس.</p>`;
-  $('#shEvent').classList.add('on'); $('#scrim').classList.add('on');
-}
-function closeSheets(){$('#shEvent').classList.remove('on'); $('#shPast').classList.remove('on'); $('#scrim').classList.remove('on')}
-function goto(id){const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'})}
-
-/* ── کنش‌ها ── */
-document.addEventListener('click',e=>{
-  const t=e.target;
-  const v=t.closest('[data-view]'); if(v){S.view=v.dataset.view; render();
-    try{history.replaceState(null,'','#'+({media:'media',lib:'lib'}[S.view]||S.view))}catch(e){} return}
-  const sk=t.closest('[data-kind]'); if(sk){S.kind=sk.dataset.kind; renderPastView(); return}
-  const so=t.closest('[data-sort]'); if(so){S.sort=so.dataset.sort; renderPastView(); return}
-  const lg=t.closest('[data-uilogin]'); if(lg){NORA_UI.authSheet(()=>{renderLib();
-    $('#cnt').textContent=faN(NORA_UI.library().length)+' قلم در کتابخانهٔ تو'}); return}
-  const m=t.closest('[data-month]'); if(m){S.month=m.dataset.month; S.day=MONTHS[S.month].today||1; renderCal(); renderMonths(); return}
-  const cel=t.closest('[data-dn]'); if(cel){S.day=+cel.dataset.dn; renderCal(); return}
-  const d=t.closest('[data-day]'); if(d){S.dayF=S.dayF===d.dataset.day?'all':d.dataset.day; renderList(); return}
-  const c=t.closest('[data-cat]'); if(c){S.cat=c.dataset.cat; S.view='list'; render(); return}
-  const tg=t.closest('[data-tag]'); if(tg){S.tag=tg.dataset.tag; S.view='list'; render(); return}
-  const md=t.closest('[data-mode]'); if(md){S.mode=md.dataset.mode; renderList(); return}
-  const qt=t.closest('[data-qt]'); if(qt){S.tag=S.tag===qt.dataset.qt?'all':qt.dataset.qt; renderQTags(); renderList(); return}
-  const pch=t.closest('[data-pastf]'); if(pch){S.pastF=pch.dataset.pastf; renderPastView();
-    const n=PAST.filter(pastMatch).length; $('#cnt').textContent=faN(n)+' برگزارشده'; return}
-  const prow=t.closest('[data-past]'); if(prow){openPast(prow.dataset.past); return}
-  const pcert=t.closest('[data-pastcert]'); if(pcert){toast('درخواست گواهینامه ثبت شد؛ در انتظار تأیید سرپرست');
-    log('درخواست گواهینامهٔ بازپخش: '+pcert.dataset.pastcert); return}
-  const row=t.closest('[data-ev]'); if(row){openEvent(row.dataset.ev); return}
-  const ics=t.closest('[data-ics]'); if(ics){const e0=ev(ics.dataset.ics); saveText('nora-'+e0.id+'.ics',icsFor(e0),'text/calendar');
-    toast('فایل تقویم ساخته شد'); log('تقویم: '+e0.t); return}
-  const wt=t.closest('[data-wait]'); if(wt){log('لیست انتظار: '+wt.dataset.wait); closeSheets(); toast('در لیست انتظار ثبت شدی'); return}
-  const sh=t.closest('[data-share]'); if(sh){
-    const id=sh.dataset.share, e=EVENTS.find(x=>x.id===id);
-    shareItem({title:(e?e.t:'رویداد نورا'),text:(e?e.when+' · '+e.time+' · '+e.place:'رویداد گروه فرهنگی خط زندگی'),
-      url:'https://lifeline1.ir/e/'+id}); return}
-  const pin=t.closest('[data-pin]'); if(pin){const [k,i]=pin.dataset.pin.split(':'); togglePin(k,i); openEvent(S.open); render(); return}
-  const pr=t.closest('[data-person]'); if(pr){location.href='home.html#p='+pr.dataset.person; return}
-  if(t.closest('#clearFilters')){S.dayF='all'; S.cat='all'; S.mode='all'; S.tag='all'; S.q=''; $('#q').value=''; $('#qClear').hidden=true; render(); toast('صافی‌ها برداشته شد'); return}
-  if(t.closest('#qClear')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; render(); $('#q').focus(); return}
-  if(t.closest('[data-close]')){closeSheets(); return}
-  if(t.closest('[data-theme-toggle]')){themeToggle(); return}
-});
-$('#scrim').addEventListener('click',closeSheets);
-document.addEventListener('keydown',e=>{if(e.key==='Escape') closeSheets()});
-$('#q').addEventListener('input',e=>{S.q=e.target.value; $('#qClear').hidden=!S.q; if(S.view!=='list'){S.view='list'; render()} else renderList()});
 
 /* ── رندر کل ── */
-function renderQTags(){
-  $('#qTags').innerHTML=QTAGS.map(t=>`<button class="chip ${S.tag===t.k?'on':''}" data-qt="${t.k}">${esc(t.n)}</button>`).join('');
-}
-window.NORA_REFRESH=()=>render();
 function render(){
-  $$('.seg button').forEach(b=>{const on=b.dataset.view===S.view; b.classList.toggle('on',on); b.setAttribute('aria-selected',on)});
-  $('#calView').hidden=S.view!=='cal';
-  $('#listView').hidden=S.view!=='list';
-  $('#catView').hidden=S.view!=='cat';
-  $('#pastView').hidden=S.view!=='media';
-  $('#libView').hidden=S.view!=='lib';
-  $('#live').hidden=(S.view==='media'||S.view==='lib');
-  $('#storeKinds').closest('section').querySelector('#pastCount').textContent='';
-  if(S.view==='cal'){renderMonths(); renderCal()}
-  if(S.view==='list'){const n=renderList(); $('#cnt').textContent=faN(n)+' از '+faN(EVENTS.length)}
-  if(S.view==='cat'){renderCats(); $('#cnt').textContent=faN(CATS.length)+' دسته'}
-  if(S.view==='media'){const n=renderPastView();
-    $('#pastCount').textContent=faN(n)+' بسته · '+faN(PAST.reduce((a,h)=>a+h.mediaCount,0))+' رسانه';
-    $('#cnt').textContent=faN(n)+' بسته در فروشگاه'}
-  if(S.view==='lib'){renderLib(); $('#cnt').textContent=(window.NORA_UI?faN(NORA_UI.library().length):'۰')+' قلم در کتابخانهٔ تو'}
+  const view=S.view;
+  $$('.seg [data-view]').forEach(b=>{const on=b.dataset.view===view; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false')});
+  $('#listView').hidden=view!=='list';
+  $('#calView').hidden=view!=='cal';
+  $('#libView').hidden=view!=='lib';
+  $('#viewRow').hidden=view==='lib';
+  $('#filterSec').hidden=view!=='list';
+  $('#spotSec').hidden=view==='lib';
+  if(view==='list'&&!$('#filters').innerHTML) renderFilters();
+  if(view==='list') renderList();
+  if(view==='cal'){renderMonths(); renderCal()}
+  if(view==='lib'){renderLib(); $('#cnt').textContent=(UI().library?faN(UI().library().length):'۰')+' قلم در کتابخانهٔ تو'}
 }
-/* لینک‌های ورودی: #cal/#list/#cat و ?ev= · ?q= · ?tag= · ?cat= · ?day= */
-const hash=location.hash.replace('#','');
-if(hash==='cal'||hash==='list'||hash==='cat') S.view=hash;
-if(hash==='media'||hash==='past') S.view='media';
-if(hash==='lib'||hash==='library') S.view='lib';
+function openEvent(id){ if(UI().eventSheet) UI().eventSheet(id); }
+
+/* ── کنش‌ها ── */
+document.addEventListener('click',ev=>{
+  const t=ev.target;
+  const v=t.closest('.seg [data-view]'); if(v){S.view=v.dataset.view; render();
+    try{history.replaceState(null,'','#'+(S.view==='lib'?'lib':S.view))}catch(err){} window.scrollTo({top:0,behavior:'smooth'}); return}
+  const st=t.closest('[data-status]'); if(st){S.status=S.status===st.dataset.status?'':st.dataset.status; renderFilters(); renderList();
+    if(S.view!=='list'){S.view='list'; render()}; return}
+  const kd=t.closest('[data-kind]'); if(kd){S.kind=S.kind===kd.dataset.kind?'':kd.dataset.kind; renderFilters(); renderList(); if(S.view!=='list'){S.view='list'; render()}; return}
+  const md=t.closest('[data-mode]'); if(md){S.mode=S.mode===md.dataset.mode?'':md.dataset.mode; renderFilters(); renderList(); if(S.view!=='list'){S.view='list'; render()}; return}
+  const mo=t.closest('[data-month]'); if(mo){S.month=mo.dataset.month; S.day=firstBusy(S.month); renderMonths(); renderCal();
+    log('تقویم: '+MONTHS[S.month].n); return}
+  const cel=t.closest('[data-dn]'); if(cel){S.day=+cel.dataset.dn; renderCal(); return}
+  const row=t.closest('[data-ev]'); if(row){openEvent(row.dataset.ev); return}
+  /* روی تنِ کاشی (نه دکمه‌هایش) هم کلیک کار می‌کند */
+  const tile=t.closest('.etile');
+  if(tile&&!t.closest('.ebtns')&&!t.closest('a')){const c=tile.querySelector('[data-ev]'); if(c) openEvent(c.dataset.ev); return}
+  const lg=t.closest('[data-uilogin]'); if(lg){UI().authSheet(()=>{renderLib(); renderLibBar()}); return}
+  if(t.closest('#qClear')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderList(); $('#q').focus(); return}
+  if(t.closest('[data-close]')){if(UI().closeSheets) UI().closeSheets(); return}
+  if(t.closest('[data-theme-toggle]')){themeToggle(); return}
+});
+$('#scrim').addEventListener('click',()=>{if(UI().closeSheets) UI().closeSheets()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI().closeSheets) UI().closeSheets()});
+$('#q').addEventListener('input',e=>{S.q=e.target.value; $('#qClear').hidden=!S.q;
+  if(S.view!=='list'){S.view='list'; render()} else renderList()});
+function log(w){try{const k='nora-home-log', a=JSON.parse(localStorage.getItem(k)||'[]');
+  a.push({w:new Date().toISOString(),m:w}); localStorage.setItem(k,JSON.stringify(a.slice(-80)))}catch(e){}}
+
+/* ── ورودی‌ها: #cal/#list/#lib و ?status= ?kind= ?mode= ?q= ?ev= ?buy= ── */
 const P=new URLSearchParams(location.search);
+const hash=location.hash.replace('#','');
+if(hash==='cal'||hash==='list') S.view=hash;
+if(hash==='lib'||hash==='library') S.view='lib';
+if(hash==='live') S.view='list';
+if(P.get('status')==='past'||P.get('status')==='up') S.status=P.get('status');
+if(P.get('kind')) S.kind=P.get('kind');
+if(P.get('mode')) S.mode=P.get('mode');
+if(P.get('q')) S.q=P.get('q');
 if(P.get('ev')) S.view='list';
-if(P.get('q')){S.q=P.get('q'); S.view='list'}
-if(P.get('tag')){S.tag=P.get('tag'); S.view='list'}
-if(P.get('cat')){S.cat=P.get('cat'); S.view='list'}
-if(P.get('day')){S.dayF=P.get('day'); S.view='list'}
-if(P.get('past')){S.view='media'; S.openPastId=P.get('past')}
 if(P.get('lib')) S.view='lib';
-if(P.get('buy')) S.view='media';
-if(window.NORA_UI) NORA_UI.syncBell();
-renderStats(); renderLive(); renderQTags(); render();
+if(P.get('buy')) S.view='list';
+
+if(UI().syncBell) UI().syncBell();
+renderSpot(); renderStats(); renderLive(); renderFilters(); renderLibBar(); render(); bindSpot();
 if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
+
+/* خرید یا پیش‌ثبت‌نام که تمام شد، همین‌جا تازه می‌شود */
+document.addEventListener('nora:library',()=>{renderLibBar(); render(); if(S.view!=='lib') renderList()});
+document.addEventListener('nora:prereg',()=>{
+  const on=$$('[data-uipre]').filter(b=>UI().isPre(b.dataset.uipre)).length;
+  renderSpot(); renderList(); if(S.view==='cal') renderDay();
+});
 if(P.get('ev')) openEvent(P.get('ev'));
-if(S.openPastId) openPast(S.openPastId);
-if(P.get('buy')) setTimeout(()=>{const [h,m]=P.get('buy').split(':'); NORA_UI.doBuy(h,m||null)},80);
-/* خرید که تمام شد، همین‌جا تازه می‌شود؛ کاربر لازم نیست صفحه را نو کند */
-document.addEventListener('nora:library',()=>{ renderLib(); if(S.view==='media') renderPastView(); });
+if(P.get('past')) openEvent(P.get('past'));
+if(P.get('buy')) setTimeout(()=>{const [h,m]=P.get('buy').split(':'); UI().doBuy(h,m||null)},90);
 initKeys(document);
 themeInit();
-try{JSON.parse(localStorage.getItem('nora-home-pins')||'[]').forEach(k=>S.pins.add(k))}catch(e){}
 })();
 </script>
 </body>
