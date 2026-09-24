@@ -16,9 +16,9 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
   -webkit-backdrop-filter:blur(22px) saturate(1.7);backdrop-filter:blur(22px) saturate(1.7);
   box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
 .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit;min-width:0}
-.brand .mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;color:#fff;
-  font-weight:700;font-size:16px;background:linear-gradient(160deg,var(--brand),var(--brand-2));
-  box-shadow:0 6px 16px rgba(10,86,184,.28),0 1px 0 rgba(255,255,255,.45) inset}
+.brand .mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+  background:url("nora-mark-mini.svg") center/contain no-repeat;
+  filter:drop-shadow(0 3px 7px rgba(60,60,140,.20))}
 .brand .tx{display:grid;line-height:1.25;min-width:0}
 .brand .tx b{font-size:var(--fs-sub);font-weight:700}
 .brand .tx small{font-size:12px;color:var(--ink-3)}
