@@ -21,6 +21,7 @@ async function load(store,search){
     beforeParse(w){ w.scrollTo=()=>{}; if(w.Element&&!w.Element.prototype.scrollIntoView) w.Element.prototype.scrollIntoView=()=>{};
       if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
       if(store) Object.defineProperty(w,'localStorage',{configurable:true,value:store});
+      w.open=url=>{ (w.open.calls=w.open.calls||[]).push(String(url)); return null };
       w.addEventListener('error',e=>errs.push('error: '+(e.message||'')));
       const ce=w.console.error; w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
     }});
@@ -67,35 +68,57 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('.lgmsgs .lgmsg').map(b=>b.textContent.trim()).join(',')==='بله,ایتا,تلگرام','نام پیام‌گیرها: بله، ایتا، تلگرام');
   ok(p.all('.lgmsgs .lgmsg svg').length===3,'نشان هر پیام‌گیر');
   ok(p.txt('.lgvia').includes('ورود با'),'جداکنندهٔ «ورود با»');
+  ok(p.all('.lgmsg').every(b=>b.getAttribute('aria-label')),'هر پیام‌گیر برچسب دارد');
   ok(p.txt('.lgcard').includes('۰۹۱۲۳۴۵۶۷۸۹')===false,'نمونهٔ شماره در متن راهنما نیست، در خطا می‌آید');
   p.submit('#lgForm');
   ok(!p.doc.querySelector('#lgErr').hidden&&p.txt('#lgErr').includes('یازده رقم'),'شمارهٔ خالی خطا می‌دهد');
   p.type('#lgPhone','0912345');
   p.submit('#lgForm');
   ok(p.txt('#lgErr').includes('کامل'),'شمارهٔ ناقص هم خطا می‌دهد');
-  ok(p.all('.lghand').length===0,'تا شماره درست نشود، پلهٔ بعد نمی‌آید');
+  ok(p.all('#lgOtp').length===0,'تا شماره درست نشود، پلهٔ بعد نمی‌آید');
   p.type('#lgPhone','۰۹۱۲۳۴۵۶۷۸۹');
   p.submit('#lgForm');
   await wait(150);
-  ok(p.all('.lghand').length===1,'با شمارهٔ درست، به پلهٔ تحویل می‌رود');
-  ok(p.txt('.lghand').includes('بله'),'پیش‌فرض: تحویل به بله');
-  ok(p.txt('.lghand').includes('۰۹۱۲۳…۶۷۸۹')||p.txt('.lghand').includes('…'),'شمارهٔ پوشیده روی کارت تحویل');
+  ok(p.all('#lgOtp').length===1,'با شمارهٔ درست، به پلهٔ کد می‌رود');
+  ok(p.txt('.lgotext').includes('بله'),'پیش‌فرض: بازوی بله');
+  ok(p.window.NORA_LOGIN.state.mobile==='09123456789','شماره در حالت صفحه می‌ماند');
   ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).mobile==='09123456789','پلهٔ کد در حافظه می‌ماند');
 }
 
-/* ۳) پلهٔ کد و ورود */
+/* ۳) پلهٔ کد چهاررقمی ربات */
 {
   console.log('\n── پلهٔ کد ──');
   const p=await load(makeStore());
   p.type('#lgPhone','9123456789');            /* بی صفر و ۰۹ هم قبول است */
   p.submit('#lgForm'); await wait(140);
-  ok(p.all('#lgCode').length===1,'کادر کد پنج‌رقمی');
-  ok(p.txt('#lgCodeHint').includes('۵۴۳۲۱'),'کد نمونه روی صفحه هست');
-  ok(p.all('#lgTtl').length===1,'شمارندهٔ اعتبار کد');
-  p.type('#lgCode','12345'); p.submit('#lgForm2'); await wait(120);
-  ok(!p.doc.querySelector('#lgErr2').hidden,'کد نادرست خطا می‌دهد');
-  ok(p.store.getItem('nora-home-user')===null,'با کد نادرست کسی وارد نمی‌شود');
-  p.type('#lgCode','۵۴۳۲۱'); p.submit('#lgForm2'); await wait(160);
+  ok(p.all('#lgOtp .otpbox').length===4,'چهار خانهٔ کد، نه پنج');
+  ok(p.all('.lgbot').length===1,'نگارهٔ ربات بالای پلهٔ کد');
+  ok(p.all('.lgbot svg').length===1,'نگاره SVG است');
+  ok(p.txt('.lgpline').includes('۹۱۲')&&p.txt('.lgpline').includes('+۹۸'),'شماره با کد کشور روی صفحه');
+  ok(p.all('#lgEditPhone').length===1,'مدادِ عوض‌کردن شماره');
+  ok(p.all('#lgBotLink').length===1,'نام ربات در متن، لینک آبی است');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('verification_code_bot'),'لینک به همان ربات کد');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('start=login'),'لینک ربات با پلهٔ ورود می‌رود');
+  ok(p.txt('#lgLead2').includes('کد ارسال‌شده در بازوی'),'متن راهنمای کد');
+  ok(p.txt('.lgcount').includes('زمان باقی‌مانده'),'شمارندهٔ زمان');
+  ok(p.all('#lgCount').length===1&&p.txt('#lgCountWrap').includes('ثانیه'),'شمارنده ثانیه‌ای می‌شمارد');
+  ok(p.all('#lgOpen').length===1&&p.doc.querySelector('#lgOpen').getAttribute('target')==='_blank','دکمهٔ باز کردن ربات');
+  ok(p.doc.querySelector('#lgOpen').getAttribute('rel').includes('noopener'),'پیوند ربات rel دارد');
+  ok(p.txt('#lgOk')==='ورود','دکمهٔ ورود');
+  ok(p.doc.querySelector('.lgbar')!==null,'نوار دکمهٔ ورود جدا شده');
+  /* نوشتن رقم‌ها */
+  const boxes=p.all('.otpbox');
+  boxes[0].value='۱'; boxes[0].dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.window.NORA_LOGIN.otpVal().length===1,'رقم در خانهٔ خودش می‌نشیند');
+  boxes[1].value='۲۳'; boxes[1].dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(boxes[1].value.length===1&&p.window.NORA_LOGIN.otpVal()==='123','رقم اضافی به خانهٔ بعد می‌رود');
+  p.submit('#lgForm2'); await wait(120);
+  ok(!p.doc.querySelector('#lgErr2').hidden&&p.txt('#lgErr2').includes('کامل'),'کد ناقص خطا می‌دهد');
+  ok(p.doc.querySelector('#lgOtp').classList.contains('bad'),'خانه‌ها نشان خطا می‌گیرند');
+  ok(p.store.getItem('nora-home-user')===null,'با کد ناقص کسی وارد نمی‌شود');
+  /* کد درست */
+  boxes.forEach((b,idx)=>{ b.value=['۵','۴','۳','۲'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
+  p.submit('#lgForm2'); await wait(160);
   const u=p.store.getItem('nora-home-user');
   ok(u&&JSON.parse(u).mobile==='09123456789','با کد درست، نشست نوشته می‌شود');
   ok(p.all('.lgcheck').length===1&&p.txt('.lgdtitle').includes('خوش آمدی'),'پلهٔ پایان با نشان تیک');
@@ -103,24 +126,52 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.store.getItem('nora-home-auth')===null,'پلهٔ نیمه‌کارهٔ ورود پاک می‌شود');
 }
 
-/* ۴) پیام‌گیرهای دیگر و بازگشت */
+/* ۳.۵) کد نادرست و دوباره فرست */
 {
-  console.log('\n── ایتا و برگشت ──');
+  console.log('\n── کد نادرست ──');
   const p=await load(makeStore());
+  p.type('#lgPhone','09121234567'); p.submit('#lgForm'); await wait(140);
+  p.all('.otpbox').forEach((b,idx)=>{ b.value=['۱','۱','۱','۱'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
+  p.submit('#lgForm2'); await wait(120);
+  ok(!p.doc.querySelector('#lgErr2').hidden&&p.txt('#lgErr2').includes('۵۴۳۲'),'کد نادرست، کد نمونه را می‌گوید');
+  ok(p.store.getItem('nora-home-user')===null,'و کسی وارد نمی‌شود');
+  ok(p.doc.querySelector('#lgOtp').classList.contains('bad'),'خانه‌های کد نشان خطا می‌گیرند');
+  p.click('#lgAgain'); await wait(80);
+  ok(p.all('.otpbox').every(b=>!b.value),'«دوباره بفرست» خانه‌ها را خالی می‌کند');
+  ok(p.doc.querySelector('#lgErr2').hidden,'و خطا برداشته می‌شود');
+  ok(p.txt('#lgCount')!=='', 'شمارنده از نو می‌شمارد');
+  ok(p.window.NORA_LOGIN.state.wait>=88,'و زمان به ابتدا برمی‌گردد');
+}
+
+/* ۴) دکمهٔ پیام‌گیر: ربات باز می‌شود و شماره را می‌پرسد */
+{
+  console.log('\n── بله و ایتا و تلگرام ──');
+  const p=await load(makeStore());
+  const openBefore=p.window.open&&p.window.open.calls?p.window.open.calls.length:0;
   p.type('#lgPhone','09121234567');
   p.click('[data-via="eitaa"]'); await wait(150);
-  ok(p.txt('.lghand').includes('ایتا'),'تحویل به ایتا');
-  ok(p.doc.querySelector('#lgOpen').getAttribute('href').includes('eitaa.com'),'پیوند باز کردن ایتا');
-  ok(p.doc.querySelector('#lgOpen').getAttribute('rel').includes('noopener'),'پیوند بیرونی rel دارد');
-  ok(p.doc.querySelector('#lgOpen').getAttribute('target')==='_blank','پیوند در تب تازه باز می‌شود');
-  p.click('#lgBack'); await wait(150);
-  ok(p.all('#lgPhone').length===1,'«تغییر شماره» به پلهٔ نخست برمی‌گردد');
-  p.type('#lgPhone','09121234567'); p.click('[data-via="telegram"]'); await wait(150);
-  ok(p.txt('.lghand').includes('تلگرام'),'تحویل به تلگرام');
-  p.click('#lgAgain'); await wait(60);
-  ok(p.doc.querySelector('#lgCode').value==='','«دوباره بفرست» کادر کد را خالی می‌کند');
-  ok(p.txt('#lgCodeHint').includes('کد تازه'),'و پیام تازه می‌دهد');
-  ok(p.all('#lgTtl').length===1,'شمارنده از نو می‌شمارد');
+  ok(p.all('#lgOtp').length===1,'دکمهٔ ایتا به پلهٔ کد می‌رود');
+  ok(p.txt('.lgotext').includes('ایتا'),'متن، بازوی ایتا را می‌گوید');
+  ok(p.doc.querySelector('#lgBotLink').getAttribute('href').includes('eitaa.com'),'لینک آبی به ربات ایتا');
+  ok(p.txt('.lgpline').includes('۹۱۲'),'شماره‌ای که نوشته بودیم همراه می‌رود');
+  ok(p.window.NORA_LOGIN.state.fromBot===true,'حالت «از ربات آمده» ثبت می‌شود');
+  ok(p.window.open&&p.window.open.calls.length>openBefore,'ربات در تب تازه باز می‌شود');
+  ok(p.window.open.calls[p.window.open.calls.length-1].includes('eitaa.com/verification_code_bot'),'نشانی باز‌شده همان ربات است');
+  ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).via==='eitaa','پیام‌گیرِ انتخابی در حافظه می‌ماند');
+  /* بدون شماره: ربات خودش شماره را می‌پرسد */
+  const q=await load(makeStore());
+  q.click('[data-via="bale"]'); await wait(150);
+  ok(q.all('#lgOtp').length===1,'بی شماره هم به پلهٔ کد می‌رود');
+  ok(q.txt('.lgpline').includes('ربات می‌فرستی'),'و می‌گوید شماره را ربات می‌پرسد');
+  ok(q.window.open.calls[q.window.open.calls.length-1].includes('ble.ir/verification_code_bot'),'ربات بله باز می‌شود');
+  q.click('#lgEditPhone'); await wait(140);
+  ok(q.all('#lgPhone').length===1,'مدادِ شماره به پلهٔ نخست برمی‌گردد');
+  q.type('#lgPhone','09121234567'); q.click('[data-via="telegram"]'); await wait(150);
+  ok(q.txt('.lgotext').includes('تلگرام'),'تحویل به تلگرام');
+  ok(q.doc.querySelector('#lgOpen').getAttribute('href').includes('t.me/verification_code_bot'),'پیوند باز کردن ربات تلگرام');
+  /* با شماره، مداد برمی‌گرداند و شماره می‌ماند */
+  q.click('#lgEditPhone'); await wait(140);
+  ok(q.doc.querySelector('#lgPhone').value==='۰۹۱۲۱۲۳۴۵۶۷','شماره در کادر می‌ماند تا فقط عوضش کنی');
 }
 
 /* ۵) کسی که وارد شده و کسی که نیمه‌کاره مانده */
@@ -133,7 +184,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.store.getItem('nora-home-user')===null,'خروج، نشست را پاک می‌کند');
   ok(p.all('#lgPhone').length===1,'و به پلهٔ شماره برمی‌گردد');
   const q=await load(makeStore({'nora-home-auth':JSON.stringify({step:'code',mobile:'09121112233'})}));
-  ok(q.all('.lghand').length===1&&q.txt('.lghand').includes('۲۲۳۳')||q.txt('.lghand').includes('…'),'ورود نیمه‌کاره، از پلهٔ کد ادامه می‌دهد');
+  ok(q.all('#lgOtp').length===1&&q.txt('.lgpline').includes('۲۲۳۳'),'ورود نیمه‌کاره، از پلهٔ کد ادامه می‌دهد');
 }
 
 /* ۶) بازگشت به صفحهٔ خواسته‌شده */
@@ -141,7 +192,8 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   console.log('\n── نشانی بازگشت ──');
   const p=await load(makeStore(),'?next=account.html%23club');
   p.type('#lgPhone','09121234567'); p.submit('#lgForm'); await wait(140);
-  p.type('#lgCode','54321'); p.submit('#lgForm2'); await wait(140);
+  p.all('.otpbox').forEach((b,idx)=>{ b.value=['۵','۴','۳','۲'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
+  p.submit('#lgForm2'); await wait(160);
   ok(p.doc.querySelector('#lgNext').getAttribute('href')==='account.html#club','پس از ورود به نشانی خواسته‌شده برمی‌گردد');
   const bad=await load(makeStore(),'?next=https%3A%2F%2Fbad.example');
   ok(bad.window.NORA_LOGIN.nextUrl()==='account.html','نشانی بیرونی پذیرفته نمی‌شود');
@@ -171,9 +223,11 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'login.html'")&&sw.includes("'login.js'")&&sw.includes("'login.css'"),'سرویس‌ورکر صفحهٔ ورود را پیش‌بار می‌کند');
   const html=fs.readFileSync(DIR+'login.html','utf8');
-  ok(html.includes('login.css?v=22')&&html.includes('login.js?v=22')&&html.includes('data.js?v=22'),'نسخهٔ دارایی‌ها تازه است');
+  ok(html.includes('login.css?v=23')&&html.includes('login.js?v=23')&&html.includes('data.js?v=23'),'نسخهٔ دارایی‌ها تازه است');
   const data=fs.readFileSync(DIR+'data.js','utf8');
   ok(data.includes("ble.ir")&&data.includes("eitaa.com"),'نشانی بله و ایتا در داده هست');
+  ok(data.includes('verification_code_bot'),'شناسهٔ ربات کد یک‌بارمصرف در داده هست');
+  ok(data.includes("otpLead")&&data.includes('{bot}'),'متن پلهٔ کد، نام ربات را از داده می‌گیرد');
   const css=fs.readFileSync(DIR+'login.css','utf8');
   ok(/@keyframes rise/.test(css)&&/@keyframes shake/.test(css),'انیمیشن‌های صفحه در CSS خودش هست');
 }

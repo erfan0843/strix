@@ -81,6 +81,7 @@ body.hasbotbar{padding-bottom:178px}
 .guestcard .gl .row{gap:9px;align-items:flex-start;font-size:12.5px;color:var(--ink-2)}
 .guestcard .gl .i{width:17px;height:17px;color:var(--ok);flex:0 0 auto;margin-top:1px}
 .guestcard .btn.primary{width:100%;justify-content:center;margin-top:14px}
+.guestcard .demo{margin-top:8px;display:inline-flex;margin-inline:auto}
 
 /* ══ میان‌بُرها ════════════════════════════════════════════════════════ */
 .qtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}

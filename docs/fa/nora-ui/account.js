@@ -77,6 +77,7 @@ function headGuest(){
         <div class="row">${ico('i-check')}<span>امتیاز، باشگاه کتاب و فرم‌ها</span></div>
       </div>
       <button class="btn primary" data-login>${ico('i-mobile')} ورود با شمارهٔ موبایل</button>
+      <button class="btn quiet sm demo" type="button" data-demo>${ico('i-eye')} نمای نمونهٔ حساب را ببین</button>
       <p class="cap" style="margin:11px 2px 0">شماره را که بنویسی، به بله یا ایتا تحویل می‌شود و کد را از همان
         پیام می‌گیری. رمز و گذرواژه‌ای در کار نیست.</p>
       <p class="cap" style="margin:6px 2px 0">${esc(SUP.n||'پشتیبانی')} و راهنما هم صفحهٔ خودش را دارد و بدون ورود باز
@@ -787,6 +788,11 @@ document.addEventListener('click',ev=>{
     closeSheets(); S.view=''; S.ptab='info';
     try{history.replaceState(null,'',location.pathname)}catch(e){}
     render(); toast('از حساب بیرون آمدی؛ هر وقت خواستی دوباره وارد شو'); return }
+  if(t.closest('[data-demo]')){
+    /* برای بازبینی: حساب نمونه را همان‌جا می‌نشانیم؛ خروجش هم در «ورود و امنیت» است */
+    try{ localStorage.setItem('nora-home-user',JSON.stringify({name:(A.seed||{}).fullName||'سارا محمدی',
+      mobile:'09121234567',joined:'شهریور ۱۴۰۴',certs:2,wallet:1250000,msgs:1})) }catch(e){}
+    render(); toast('حساب نمونه نشست؛ هر وقت خواستی از «ورود و امنیت» بیرون بیا'); return }
   if(t.closest('[data-login]')){ S.after=''; loginSheet(); return }
   if(t.closest('[data-close]')){ closeSheets(); return }
   if(t.closest('[data-open-support]')){ goSupport(); return }

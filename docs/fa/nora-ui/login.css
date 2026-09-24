@@ -31,21 +31,20 @@
 /* ── پله‌ها ────────────────────────────────────────────────────────── */
 .lgstep{display:grid;gap:9px;animation:rise .3s var(--ease) both}
 .lglbl{font-size:13px;font-weight:700;color:var(--ink-2);margin:2px 2px 0}
-.lgtel,.lgcode{display:flex;align-items:center;gap:8px;height:54px;padding:0 14px;
+.lgtel{display:flex;align-items:center;gap:8px;height:54px;padding:0 14px;
   border-radius:var(--r-md);background:var(--surface-sunk);
   box-shadow:inset 0 0 0 1px var(--hairline);transition:box-shadow var(--t) var(--ease)}
-.lgtel:focus-within,.lgcode:focus-within{box-shadow:inset 0 0 0 1.5px var(--brand),0 0 0 4px var(--brand-tint)}
+.lgtel:focus-within{box-shadow:inset 0 0 0 1.5px var(--brand),0 0 0 4px var(--brand-tint)}
 .lgtel .pref{font-size:17px;font-weight:800;color:var(--ink-3);letter-spacing:.5px}
 .lgtel .pref[hidden]{display:none}
 .lginp{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:17px;font-weight:700;
   color:var(--ink);letter-spacing:1.5px;font-variant-numeric:tabular-nums;outline:none;padding:0}
 .lginp.num{direction:ltr;text-align:right}
 .lginp::placeholder{color:var(--ink-4);font-weight:600;letter-spacing:2px}
-.lginp.code{direction:ltr;text-align:center;letter-spacing:9px;font-size:19px}
-.lgtel .fic,.lgcode .fic{width:22px;height:22px;color:var(--ink-4);display:grid;place-items:center}
-.lgtel .fic .i,.lgcode .fic .i{width:20px;height:20px}
+.lgtel .fic{width:22px;height:22px;color:var(--ink-4);display:grid;place-items:center}
+.lgtel .fic .i{width:20px;height:20px}
 .lginp.bad{color:var(--stop)}
-.lgtel.bad,.lgcode.bad{box-shadow:inset 0 0 0 1.5px var(--stop),0 0 0 4px var(--stop-tint);animation:shake .4s var(--ease)}
+.lgtel.bad{box-shadow:inset 0 0 0 1.5px var(--stop),0 0 0 4px var(--stop-tint);animation:shake .4s var(--ease)}
 .lghint{margin:0 3px;font-size:11.8px;line-height:1.85;color:var(--ink-3)}
 .lghint b{color:var(--ink-2);font-variant-numeric:tabular-nums}
 .lgerr{margin:0 3px;font-size:12px;font-weight:700;color:var(--stop);line-height:1.8}
@@ -78,20 +77,44 @@
 .lgmsg:active .lgmk{transform:scale(.96)}
 .lgmk.big{width:50px;height:50px;border-radius:16px}
 
-/* ── پلهٔ تحویل به پیام‌گیر ────────────────────────────────────────── */
-.lghand{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
-  padding:13px;border-radius:var(--r-lg);background:var(--brand-tint);box-shadow:inset 0 0 0 .5px var(--hairline)}
-.lghand .tx{display:grid;gap:2px;min-width:0}
-.lghand .tx b{font-size:14px;font-weight:800;color:var(--ink)}
-.lghand .tx small{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.lghhelp{margin:0 3px;font-size:12.8px;line-height:1.95;color:var(--ink-2)}
-.lgwait{display:flex;gap:4px;align-items:center}
-.lgwait i{width:6px;height:6px;border-radius:50%;background:var(--brand);opacity:.35;
-  animation:pw 1.15s var(--ease) infinite}
-.lgwait i:nth-child(2){animation-delay:.16s}
-.lgwait i:nth-child(3){animation-delay:.32s}
-.lgwait.ping i{animation-duration:.6s}
-@keyframes pw{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+/* ── پلهٔ کد: نگارهٔ ربات، شماره، متن با لینک ربات، چهار خانه ─────── */
+.lgotpstep{justify-items:stretch;text-align:center;gap:0}
+.lgbot{display:grid;place-items:center;width:92px;height:92px;margin:2px auto 14px;position:relative}
+.lgbot svg{width:100%;height:100%;filter:drop-shadow(0 10px 22px rgba(18,165,148,.26))}
+.lgbot::after{content:'';position:absolute;inset:-6px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,color-mix(in oklab,var(--brand-tint) 70%,transparent),transparent 68%);
+  animation:breathe 2.6s var(--ease) infinite}
+.lgbot.from svg{animation:pop-in .5s var(--spring) both}
+@keyframes breathe{0%,100%{opacity:.5;transform:scale(.94)}50%{opacity:1;transform:scale(1.04)}}
+@keyframes pop-in{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
+.lgpline{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px}
+.lgpline b{font-size:17.5px;font-weight:800;letter-spacing:.6px;color:var(--ink);
+  font-variant-numeric:tabular-nums;direction:ltr}
+.lgpline b.lgnone{font-size:14px;font-weight:700;color:var(--ink-3);letter-spacing:0;direction:rtl}
+.lgedit{width:34px;height:34px;border-radius:50%;border:0;background:none;cursor:pointer;
+  color:var(--ink-3);display:grid;place-items:center;transition:background var(--t-fast) var(--ease)}
+.lgedit:hover{background:var(--surface-sunk);color:var(--ink)}
+.lgedit .i{width:17px;height:17px}
+.lgotext{margin:0 auto 16px;max-width:34ch;font-size:13px;line-height:2.05;color:var(--ink-2);text-align:center}
+.lgblink{color:var(--brand-ink);font-weight:800;text-decoration:none;
+  border-bottom:1.5px solid color-mix(in oklab,var(--brand) 45%,transparent);
+  padding-bottom:1px;white-space:nowrap}
+.lgblink:hover{border-bottom-color:var(--brand)}
+
+/* چهار خانهٔ کد: راست‌به‌چپ نیست، رقم از چپ خوانده می‌شود */
+.lgotp{display:flex;justify-content:center;gap:12px;direction:ltr;margin-bottom:14px}
+.otpbox{width:58px;height:60px;border:0;border-radius:16px;text-align:center;
+  font:inherit;font-size:24px;font-weight:800;color:var(--ink);
+  background:var(--surface);box-shadow:inset 0 0 0 1px var(--hairline),var(--sh-1);
+  outline:none;padding:0;transition:box-shadow var(--t) var(--ease),transform var(--t-fast) var(--ease)}
+.otpbox:focus{box-shadow:inset 0 0 0 1.8px var(--brand),0 0 0 4px var(--brand-tint);transform:translateY(-1px)}
+.otpbox:not(:placeholder-shown){color:var(--ink)}
+.lgotp.bad .otpbox{box-shadow:inset 0 0 0 1.8px var(--stop),0 0 0 4px var(--stop-tint);animation:shake .42s var(--ease)}
+.lgcount{margin:0 0 4px;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.lgcount b{font-weight:800;color:var(--ink-2)}
+.lgcount.over b{color:var(--stop)}
+.lgbar{margin:12px -20px 0;padding:14px 20px 0;border-top:.5px solid var(--hairline)}
+.lgbar .lgbtn{width:100%}
 
 /* ── پلهٔ پایان و «همین حالا وارد شده‌ای» ─────────────────────────── */
 .lgdones{justify-items:center;text-align:center;gap:7px;padding:6px 2px 2px}
@@ -132,6 +155,8 @@
 /* ── حرکت کمتر ────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion:reduce){
   .lgcard,.lgstep{animation:none}
-  .lgwait i{animation:none;opacity:.7}
-  .lgtel.bad,.lgcode.bad{animation:none}
+  .lgtel.bad{animation:none}
+  .lgbot::after{animation:none;opacity:.7}
+  .lgbot.from svg{animation:none}
+  .lgotp.bad .otpbox{animation:none}
 }

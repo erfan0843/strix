@@ -188,6 +188,15 @@ async function load(store,hash){
   const p=await load(makeStore({}));
   ok(p.doc.querySelector('.guestcard')!==null,'کارت خوش‌آمد برای مهمان');
   ok(p.all('[data-login]').length===1,'یک دکمهٔ ورود، بی تکرار');
+  ok(p.all('[data-demo]').length===1,'دکمهٔ نمای نمونه برای بازبینی');
+  p.click('[data-demo]'); await wait(220);
+  ok(p.doc.querySelector('.phead')!==null,'نمای نمونه، سرِ پروفایل عضو را می‌آورد');
+  ok(p.prof().includes('سارا محمدی')&&p.all('.pstat').length===3,'و حساب نمونه را نشان می‌دهد');
+  await p.nav('auth');
+  p.click('#logoutBtn'); await wait(160);
+  p.click('[data-logout-yes]'); await wait(200);
+  ok(p.doc.querySelector('.guestcard')!==null,'و با خروج، به حال مهمان برمی‌گردد');
+  await p.nav('');
   ok(p.all('.mrow2').length===4 && !p.prof().includes('قفل'),'چهار ردیف، بی نشان قفل');
   ok(p.all('.qtiles .qtile').length===0 && p.doc.querySelector('.qcard')===null,'میان‌بُر و رویداد نزدیک برای مهمان نیست');
   ok(p.doc.querySelector('#shAuth')===null,'ورقهٔ ورود در این صفحه نیست؛ ورود صفحهٔ خودش را دارد');
