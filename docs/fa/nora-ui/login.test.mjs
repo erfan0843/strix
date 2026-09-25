@@ -294,7 +294,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'login.html'")&&sw.includes("'login.js'")&&sw.includes("'login.css'"),'سرویس‌ورکر صفحهٔ ورود را پیش‌بار می‌کند');
   const html=fs.readFileSync(DIR+'login.html','utf8');
-  ok(html.includes('login.css?v=45')&&html.includes('login.js?v=45')&&html.includes('data.js?v=45'),'نسخهٔ دارایی‌ها تازه است');
+  ok(html.includes('login.css?v=46')&&html.includes('login.js?v=46')&&html.includes('data.js?v=46'),'نسخهٔ دارایی‌ها تازه است');
   const data=fs.readFileSync(DIR+'data.js','utf8');
   ok(data.includes('ble.ir/verification_code_bot'),'نشانی ربات رمز یک‌بارمصرف در داده هست');
   ok(!/eitaa\.com/.test(data)&&!/msgs:/.test(data),'ایتا و فهرست پیام‌گیرها از داده برداشته شد');

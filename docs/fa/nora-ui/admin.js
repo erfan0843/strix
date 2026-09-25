@@ -46,7 +46,7 @@ const SKEY='nora-admin';
 const SVER=49;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
-  wiz:{step:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
+  wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
     poster:'',posterUp:'',theme:'glass',mode:'physical',date:'',time:'',to:'',end:'',
     dur:90,sessions:1,sess:[],place:'',link:'',privacy:'public',regFrom:'',regTo:'',
     held:0,who:0,rep:'',media:'',
@@ -1034,14 +1034,12 @@ function cardDefs(){
           <button class="btn sm quiet" data-defno="${esc(r.id)}" aria-label="${esc(W.back||'برگشت برای اصلاح')}">${ico('i-close')}</button>`:''}</div>`}).join('')}</div>
   </section>`;
 }
-function vNewev(){
+function vEventWizard(){
   const Z=NE(), L=Z.l||{}, w=S.wiz, isEv=w.kind==='event',
     stepsAll=wizSteps(), st=Math.max(0,Math.min(stepsAll.length-1,+w.step||0));
   const sem=isEv?st:(st===0?0:4);
   const steps=stepsAll.map((n,i)=>`<div class="st ${i<st?'done':i===st?'on':''}"><i></i>
       <small>${esc(fa(i+1))}. ${esc(n)}</small></div>`).join('');
-  const kinds=(DEFD().kinds||[]).map(k=>`<button class="admkind ${w.kind===k.k?'on':''}" data-wkind="${esc(k.k)}">
-      ${ico(k.i)}<b>${esc(k.n)}</b><small>${esc(k.s||'')}</small></button>`).join('');
   const types=(Z.kinds||[]).map(k=>`<button class="admkind ${w.et===k.k?'on':''}" data-wet="${esc(k.k)}">
       ${ico(k.i)}<b>${esc(k.n)}</b></button>`).join('');
   const toggles=(Z.features||[]).map(x=>`<button class="admfeat ${featOn(x.k)?'on':''}" data-wfeat="${esc(x.k)}">
@@ -1051,9 +1049,7 @@ function vNewev(){
   let inner='';
   if(sem===0){
     const th=themeOf(w.theme);
-    inner=`<p class="cap">${esc((Z.hints||{}).kind||'')}</p>
-    <div class="admkinds">${kinds}</div>
-    ${isEv?`<span class="lbl twolbl">${esc('نوع رویداد')}</span>
+    inner=`${isEv?`<span class="lbl twolbl">${esc('نوع رویداد')}</span>
       <div class="admkinds types">${types}</div>`:''}
     <div class="wgrid">
       <label class="fld"><span class="lbl">${esc(L.name||'نام')}</span>
@@ -1221,7 +1217,8 @@ function vNewev(){
   const last=stepsAll.length-1, wEdit=!!w.edit;
   return `<section class="card stack admwiz">
     <div class="row"><div class="head">${esc(Z.lead||'تعریف تازه')}</div><span class="sp"></span>
-      <span class="cap">${esc(W.steps||'گام')} ${esc(fa(st+1))} ${esc(W.of||'از')} ${esc(fa(stepsAll.length))}</span></div>
+      <span class="cap">${esc(W.steps||'گام')} ${esc(fa(st+1))} ${esc(W.of||'از')} ${esc(fa(stepsAll.length))}</span>
+      ${btn('بازگشت به فهرست','data-evback','i-back')}</div>
     <div class="admsteps">${steps}</div>
     ${wEdit?`<div class="admchips"><span class="tag brand">${esc(W.editEvent||'در حال ویرایش')} · ${esc(w.name||'')}</span>
       <span class="cap">${esc(W.editKeeps||'وضعیت عوض نمی‌شود')}</span></div>`:''}
@@ -1253,7 +1250,7 @@ function vEvents(){
   }).join('');
   return `<section class="card stack">
     <div class="row"><div class="head">${esc(EV.lead||'')}</div><span class="sp"></span>
-      ${btn(secOf('newev').n,'data-sec="newev"','i-plus')}</div>
+      ${btn('رویداد جدید','data-evnew','i-calendar')}</div>
     <div class="admfilters">${filt}</div>
     <div class="admlist">${rows||emptyBox(T.empty)}</div>
   </section>`;
@@ -1678,6 +1675,8 @@ const PTY={p:{n:'پاراگراف',i:'i-pen'},h:{n:'تیتر',i:'i-align'},img:{
   box:{n:'جعبهٔ توجه',i:'i-bell'},tog:{n:'جمع‌شونده',i:'i-chev-down'},hr:{n:'جداکننده',i:'i-close'}};
 function U(){try{return (window.NORA_UI&&NORA_UI)||null}catch(e){return null}}
 function pedPosts(){const u=U(); return u&&u.postsAll?u.postsAll():[]}
+function pedFresh(){return {id:'np'+Date.now(), t:'', cat:'', tags:'', lead:'', author:(me().n||''), cover:{g:PGRADS[0]},
+  pin:0, club:0, blocks:[], ev:'', fm:'', pub:0, pend:0, views:0, at:0}}
 function pedSave(p){const u=U(); if(u&&u.postPut) u.postPut(p)}
 function pedMin(p){const u=U(); return u&&u.postMin?u.postMin(p):1}
 const BLK=v=>({ty:v});
@@ -1785,7 +1784,7 @@ function postEditor(){
 }
 function vPosts(){
   if(S.psec==='edit') return postEditor();
-  const u=U(), rows=pedPosts();
+  const u=U(), rows=pedPosts().filter(p=>p.pub||p.pend);
   const list=rows.map(p=>rowLink({attrs:`data-pedit="${esc(p.id)}"`, i:'i-article',
     b:esc(p.t||'بی نام'),
     s:`${esc(p.cat||'مطلب')} · ${faN(pedMin(p))} دقیقه · ${faN(+p.views||0)} بازدید${p.ev?' · پیوند رویداد':''}${p.fm?' · پیوند فرم':''}`,
@@ -1806,6 +1805,12 @@ function vPosts(){
   </section>`;
 }
 
+/* تعریف جدید: همین‌جا فقط مطلب ساخته می‌شود؛ رویداد از بخش رویدادها باز می‌شود */
+function vNewev(){
+  if(!S.ped||S.ped.pub||S.ped.pend) S.ped=pedFresh();
+  return postEditor();
+}
+
 /* ══ رندر ══════════════════════════════════════════════════════════════ */
 const VIEWS={dash:vDash, newev:vNewev, events:vEvents, users:vUsers, forms:vForms, posts:vPosts,
   reports:vReports, cert:vCert, settings:vSettings};
@@ -1815,6 +1820,7 @@ function body(){
     <div class="row" style="justify-content:center">
       ${btn(W.view||'نمای کاربر','data-sec="dash"','i-grid')}
       ${btn(D.mine||'نمای من','data-who-sheet','i-shield')}</div></section>`;
+  if(S.sec==='events'&&S.wiz.open) return vEventWizard();
   const v=VIEWS[S.sec];
   return v?v():emptyBox(T.none);
 }
@@ -1920,8 +1926,7 @@ document.addEventListener('click',e=>{
     if(r){r.on=!r.on; toast(r.on?'فرم باز شد':'فرم بسته شد'); renderBody()} return}
   /* ── مطلبها: فهرست و ویرایشگر بلوکی ── */
   const pnew=q('[data-pnew]'); if(pnew){
-    S.ped={id:'np'+Date.now(), t:'', cat:'', tags:'', lead:'', author:(me().n||''), cover:{g:PGRADS[0]},
-      pin:0, club:0, blocks:[], ev:'', fm:'', pub:0, pend:0, views:0, at:0};
+    S.ped=pedFresh();
     S.psec='edit'; save(); renderBody(); return}
   const pedit=q('[data-pedit]'); if(pedit){const pid=pedit.dataset.pedit, pp=pedPosts().find(x=>String(x.id)===String(pid));
     if(pp){S.ped=JSON.parse(JSON.stringify(pp)); S.ped.tags=(pp.tags||[]).join('، '); S.psec='edit'; save(); renderBody()} return}
@@ -1965,7 +1970,8 @@ document.addEventListener('click',e=>{
     d2.min=pedMin(d2); d2.pub=0; d2.pend=1; d2.at=d2.at||Date.now(); pedSave(d2);
     S.ped=null; S.psec='list'; save(); renderBody(); toast('مطلب رفت در صف تأیید'); return}
 
-  const wk=q('[data-wkind]'); if(wk){S.wiz.kind=wk.dataset.wkind; S.wiz.step=0; S.dp=null; save(); renderBody(); return}
+  const evnew=q('[data-evnew]'); if(evnew){S.wiz.kind='event'; S.wiz.step=0; S.wiz.open=1; S.dp=null; save(); renderBody(); return}
+  const evback=q('[data-evback]'); if(evback){S.wiz.open=0; save(); renderBody(); return}
   const wpo=q('[data-wposter]'); if(wpo){const k=wpo.dataset.wposter;
     S.wiz.poster=S.wiz.poster===k?'':k; save(); renderBody(); return}
   const wth=q('[data-wtheme]'); if(wth){S.wiz.theme=wth.dataset.wtheme; save(); renderBody(); return}
@@ -2137,7 +2143,7 @@ document.addEventListener('click',e=>{
     S.wiz.stamp=(e.id||'').replace(/^nx/,'')||Date.now();
     /* جلسه‌ها اگر جا مانده باشد، از شمار جلسه‌ها ساخته می‌شود */
     if(!S.wiz.sess.length&&+S.wiz.sessions>1) S.wiz.sess=[{d:S.wiz.date,t:S.wiz.time,to:S.wiz.to}];
-    closeSheets(); save(); toast(W.editEvent||'در حال ویرایش'); go('newev'); return}}
+    S.wiz.open=1; closeSheets(); save(); toast(W.editEvent||'در حال ویرایش'); go('events'); return}}
   const ub=q('[data-ublock]'); if(ub){const id=ub.dataset.ublock;
     S.uov[id]=Object.assign({},S.uov[id],{st:['مسدود','stop']}); save();
     toast('دسترسی این کاربر بسته شد'); sheetUser(id); renderBody(); return}

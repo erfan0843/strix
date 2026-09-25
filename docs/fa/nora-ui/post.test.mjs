@@ -223,5 +223,31 @@ console.log('\n── ۷) related با برچسب مشترک ──');
   ok(/دوم/.test(p.txt('.pb-relcard')),'و همان مطلب دوم است');
 }
 
+
+console.log('\n── ۸) تعریف جدید: فقط مطلب ──');
+{
+  const store=makeStore();
+  const p=await load('admin.html',store,'#newev');
+  ok(p.errs.length===0,'تعریف جدید بی‌خطا'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.txt('#admBar .head')==='تعریف جدید','بخش تعریف جدید باز شد');
+  ok(!!p.doc.querySelector('[data-pf="t"]')&&p.all('[data-badd]').length>=12,'همین‌جا ویرایشگر بلوکی مطلب است');
+  ok(p.all('[data-wkind]').length===0,'انتخابگر رویداد و مطلب از ویزارد رفت');
+  p.type('[data-pf="t"]','مطلب تعریف جدید');
+  p.click('[data-badd="p"]');
+  p.type('[data-bi="0"][data-bf="x"]','متن مطلب تعریف جدید.');
+  ok(!!p.doc.querySelector('[data-pprev]')&&!!p.doc.querySelector('[data-ppub]'),'پیش‌نمایش و انتشار سرِ کار است');
+  p.click('[data-ppub]');
+  const P=JSON.parse(store.getItem('nora-posts'));
+  ok(P.length===1&&P[0].pub===1,'از تعریف جدید منتشر شد');
+  ok(p.doc.querySelector('[data-pf="t"]').value==='','و ویرایشگر برای تعریف بعدی تازه شد');
+  /* رویداد از بخش رویدادها */
+  p.click('#admNav [data-sec="events"]');
+  ok(/رویداد جدید/.test(p.txt('#admBody')),'رویدادها دکمهٔ رویداد جدید دارد');
+  p.click('[data-evnew]');
+  ok(!!p.doc.querySelector('#wzName')&&p.all('.admsteps .st').length===5,'ویزارد پنج گامی رویداد زیر همین بخش باز می‌شود');
+  p.click('[data-evback]');
+  ok(p.all('[data-ev]').length>=1&&p.all('.admsteps .st').length===0,'با بازگشت، فهرست رویدادها میآید');
+}
+
 console.log('\nخلاصه: '+(checks-fails)+' قبول، '+fails+' خطا');
 process.exit(fails?1:0);

@@ -114,10 +114,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const p=await load();
   p.click('#admNav [data-sec="events"]');
   const before=p.all('[data-ev]').length;
-  p.click('#admNav [data-sec="newev"]');
-  ok(p.txt('#admBar .head')==='تعریف جدید','بخش تعریف تازه باز شد');
+  p.click('[data-evnew]');
+  ok(p.txt('#admBar .head')==='رویدادها','ویزارد رویداد در همین بخش رویدادها باز می‌شود');
   ok(p.all('.admsteps .st').length===5,'ویزارد پنج گام دارد: چیستی و پوستر، کی و کجا، ظرفیت و ثبت‌نام، فرم‌ها و اطلاع‌رسانی، کارت و صفحه');
-  ok(p.all('[data-wkind]').length===4,'چهار نوع تعریف هست: رویداد، مطلب، فرم، اطلاع‌رسانی');
+  ok(p.all('[data-wkind]').length===0,'اینجا جای تعریف مطلب نیست؛ تعریف جدید فقط مطلب دارد');
+  ok(!!p.doc.querySelector('[data-evback]'),'و بازگشت به فهرست سرِ ویزارد هست');
   ok(p.all('[data-wet]').length===9,'و نه قالب رویداد: کارگاه، وبینار، مسابقه، همایش، اردو و بقیه');
   ok(p.all('[data-wposter]').length===10,'گالری پوستر ده طرح دارد');
   ok(p.all('[data-wtheme]').length===4,'و چهار تم کارت: شیشه‌ای، شب، طلایی، سبز');
@@ -462,7 +463,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#admTabs a').length===5,'و نوار پایین کامل است');
 }
 
-/* ── ۱۰) تعریف تازه: هر کس می‌سازد، مالک یا سرپرست تأیید می‌کند ── */
+/* ── ۱۰) تعریف جدید: فقط مطلب؛ کارشناس می‌فرستد، مالک منتشر می‌کند ── */
 {
   console.log('\n── تعریف تازه و تأیید ──');
   const p=await load();
@@ -470,27 +471,32 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#shAdm [data-who="p10"]');
   ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'تعریف تازه برای کارشناس هم باز است');
   p.click('#admNav [data-sec="newev"]');
-  p.click('[data-wkind="post"]');
-  p.type('#wzName','یادداشت کارشناس');
-  ok(p.all('.admsteps .st').length===2,'تعریف غیررویدادی دو گام دارد');
-  p.click('[data-wstep="1"][data-wgo="1"]');
-  ok(p.all('.revrow').length>=2,'مرور نام و نوع را نشان می‌دهد');
-  p.click('[data-wsend]');
-  const mine=p.all('.admlirow').find(r=>/یادداشت کارشناس/.test(r.textContent));
-  ok(!!mine&&/در انتظار تأیید/.test(mine.textContent),'تعریف کارشناس در انتظار تأیید می‌نشیند');
-  ok(!/منتشر شد/.test((mine||{}).textContent||''),'و خودش منتشر نمی‌شود');
-  ok(p.all('.admsteps .st').length===0,'ویزارد بعد از فرستادن بسته می‌شود');
+  ok(p.txt('#admBar .head')==='تعریف جدید','بخش تعریف جدید باز شد');
+  ok(!!p.doc.querySelector('[data-pf="t"]')&&p.all('[data-badd]').length>=12,'تعریف جدید همین‌جا ویرایشگر بلوکی مطلب است');
+  ok(p.all('[data-wkind]').length===0,'اینجا دیگر رویداد تعریف نمی‌شود');
+  p.type('[data-pf="t"]','یادداشت کارشناس');
+  p.type('[data-pf="lead"]','سه خط دربارهٔ کلاس.');
+  p.click('[data-badd="p"]');
+  p.type('[data-bi="0"][data-bf="x"]','متن یادداشت کارشناس.');
+  ok(!p.doc.querySelector('[data-ppub]')&&!!p.doc.querySelector('[data-psend]'),'کارشناس فقط فرستادن برای تأیید دارد');
+  p.click('[data-psend]');
+  const P10=JSON.parse(p.store.getItem('nora-posts')||'[]');
+  ok(P10.length===1&&P10[0].pend===1&&P10[0].pub===0,'مطلب کارشناس در صف تأیید نشست');
+  ok(p.txt('#admBar .head')==='تعریف جدید'&&p.doc.querySelector('[data-pf="t"]').value==='','و ویرایشگر برای تعریف بعدی تازه شد');
 
-  /* مالک تأیید می‌کند */
+  /* مالک: از بخش مطلبها باز می‌کند و منتشر می‌کند */
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p1"]');
-  ok(p.all('[data-defok]').length>=3,'مالک همهٔ تعریف‌های در انتظار را می‌بیند');
-  const row=p.all('.admlirow').find(r=>/یادداشت کارشناس/.test(r.textContent));
-  const btn=row&&row.querySelector('[data-defok]');
-  ok(!!btn,'و دکمهٔ تأیید روی همان ردیف است');
-  if(btn) p.click(btn);
-  const after=p.all('.admlirow').find(r=>/یادداشت کارشناس/.test(r.textContent));
-  ok(!!after&&/منتشر شد/.test(after.textContent),'با یک دکمه منتشر می‌شود');
+  p.click('#admNav [data-sec="posts"]');
+  const row=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
+  ok(!!row&&/در انتظار تأیید/.test(row.textContent),'مالک مطلب در صف تأیید را می‌بیند');
+  if(row) p.click(row);
+  ok(!!p.doc.querySelector('[data-ppub]'),'مالک دکمهٔ انتشار دارد');
+  p.click('[data-ppub]');
+  const P11=JSON.parse(p.store.getItem('nora-posts'));
+  ok(P11[0].pub===1&&P11[0].pend===0,'با یک دکمه منتشر می‌شود');
+  const row2=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
+  ok(!!row2&&/منتشر شده/.test(row2.textContent),'و در فهرست، منتشر شده خوانده می‌شود');
 }
 
 /* ── ۱۱) ویرایش آزاد؛ نه پیش‌نویس، نه ردیف تازه ── */
@@ -503,7 +509,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-ev="e3"]');
   ok(p.all('[data-evedit]').length===1,'برگهٔ رویداد دکمهٔ ویرایش دارد');
   p.click('[data-evedit]');
-  ok(p.txt('#admBar .head')==='تعریف جدید'&&/ویرایش/.test(p.txt('.admchips')),'ویرایش از خود رویداد شروع می‌شود');
+  ok(p.txt('#admBar .head')==='رویدادها'&&/ویرایش/.test(p.txt('.admchips')),'ویرایش از خود رویداد شروع می‌شود و زیر همین بخش باز است');
   ok(/وضعیت عوض نمی‌شود/.test(p.txt('.admchips')),'و می‌گوید وضعیت عوض نمی‌شود');
   ok(p.all('[data-wstep="1"][data-wgo="1"]:not([disabled])').length===1,'گام‌های بعدی برای ویرایش باز است');
   p.type('#wzName','کارگاه روایت اول‌شخص، دور دوم');
@@ -606,7 +612,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
 {
   console.log('\n── پوستر خودم و رویداد گذشته ──');
   const p=await load();
-  p.click('#admNav [data-sec="newev"]');
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-evnew]');
   ok(p.all('[data-wfile]').length===1,'کاشی «پوستر خودم» در گام اول هست');
   const inp=p.doc.querySelector('[data-wfile]');
   const pic=new p.window.File([new Uint8Array([137,80,78,71,13,10,26,10,7,7,7,7])],'poster.png',{type:'image/png'});
@@ -688,8 +695,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
 {
   console.log('\n── نظرسنجی آماده و خودکار ──');
   const p=await load();
-  p.click('#admNav [data-sec="newev"]');
-  p.click('[data-wkind="event"]');
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-evnew]');
   p.click('[data-wet="workshop"]');
   p.type('#wzName','کارگاه با نظرسنجی آماده');
   p.click('[data-wstep="1"][data-wgo="1"]');
@@ -716,8 +723,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(ev.svyOff===0,'پرچم نظرسنجی روشن مانده');
   /* برداشتن: رویداد بی نظرسنجی میشود و در ویرایش برنمیگردد */
   const p2=await load();
-  p2.click('#admNav [data-sec="newev"]');
-  p2.click('[data-wkind="event"]'); p2.click('[data-wet="workshop"]');
+  p2.click('#admNav [data-sec="events"]');
+  p2.click('[data-evnew]'); p2.click('[data-wet="workshop"]');
   p2.type('#wzName','بی نظرسنجی');
   p2.click('[data-wstep="1"][data-wgo="1"]');
   p2.type('#wz-date','۱۴۰۴/۰۸/۰۶','change');
@@ -795,7 +802,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
     cap:30,wait:8,start:'۱۴۰۴/۰۷/۰۱ · ۰۸:۰۰',ends:'۱۴۰۴/۰۷/۲۰ · ۲۳:۴۵',
     fin:[{l:'شرکت حضوری',p:900000,off:10,d:''},{l:'پذیرایی',p:150000,off:0,d:''}],
     methods:['کیف پول بله'],coupon:'SYNC',maxPer:2,fields:[['نام و نام خانوادگی',100]],on:1});
-  p.click('#admNav [data-sec="newev"]');
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-evnew]');
   p.click('[data-wet="workshop"]');
   p.type('#wzName','رویداد سینک');
   p.click('[data-wstep="1"][data-wgo="1"]');
@@ -886,9 +894,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=45')&&html.includes('admin.js?v=45'),'نسخهٔ پرونده‌های پنل ۴۲ است');
+  ok(html.includes('admin.css?v=46')&&html.includes('admin.js?v=46'),'نسخهٔ پرونده‌های پنل ۴۲ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v34'"),'کارگر سرویس نسخهٔ ۳۱ است');
+  ok(sw.includes("'nora-v35'"),'کارگر سرویس نسخهٔ ۳۱ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
