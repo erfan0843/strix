@@ -674,7 +674,12 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 'use strict';
 
 /* ── بنرها: تیتر، تگ و ترتیب دست کارشناس روابط عمومی است ── */
-const {BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS}=window.NORA;
+const {BANNERS,PEOPLE,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS}=window.NORA;
+/* رویدادهای منتشرشدهٔ پنل: خانهٔ کاربر هم همان‌ها را نشان میدهد */
+let EVENTS=(window.NORA&&window.NORA.EVENTS)||[];
+let PAST=(window.NORA&&window.NORA.PAST)||[];
+const PUB=(window.NORA_UI&&NORA_UI.pubEvents)?NORA_UI.pubEvents():[];
+if(PUB.length){EVENTS=EVENTS.concat(PUB.filter(x=>!x.past)); PAST=PAST.concat(PUB.filter(x=>x.past));}
 ;
 
 /* ── آدم‌های نورا: اساتید و دست‌اندرکاران ── */

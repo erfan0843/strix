@@ -1415,7 +1415,8 @@ function pubEvents(){
       poster:ev.posterUp||(ev.poster?('posters/'+ev.poster):''), g:PUB_GRAD,
       d:ev.about||ev.rep||'', tags:ev.held?[]:['جدید'], club:false,
       sess:nSes, dm:JM_KEY[jm]||'mehr', dn:dn, mname:JM_NAME[jm-1]||'',
-      ord:0, live:live, pub:true, pubPast:past, forms:ev.forms||[]};
+      ord:0, live:live, pub:true, pubPast:past, forms:ev.forms||[],
+      tchr:'', icon:'i-calendar', day:'', pre:false, pin:false, cert:ev.held?false:undefined};
     if(past){
       base.past=true; base.mediaCount=0; base.media=[]; base.who=+ev.who||0;
       base.album=ev.media||'';

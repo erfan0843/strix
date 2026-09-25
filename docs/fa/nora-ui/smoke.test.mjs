@@ -1581,6 +1581,16 @@ async function load(file,store,q){
   ok(/فرم شما دریافت شد/.test(fm.doc.body.textContent),'متن پایان فرم هست');
   ok(fm.errs.length===0,'form.html با فرم واقعی بی‌خطا است'+(fm.errs.length?': '+fm.errs[0]:''));
 
+  /* خانهٔ کاربر: جست‌وجو رویداد منتشرشده را پیدا می‌کند */
+  const hm=await load('home.html',store);
+  const qh=hm.doc.querySelector('#q');
+  qh.value='سینک';
+  qh.dispatchEvent(new hm.window.Event('input',{bubbles:true}));
+  await new Promise(r=>setTimeout(r,150));
+  ok(/کارگاه سینک از پنل/.test(hm.doc.querySelector('#sugBox').textContent),
+    'خانهٔ کاربر در جست‌وجو رویداد منتشرشده را پیدا می‌کند');
+  ok(hm.errs.length===0,'home.html با رویداد منتشرشده بی‌خطا است'+(hm.errs.length?': '+hm.errs[0]:''));
+
   /* دمو بی‌انبار دست‌نخورده */
   const dm=await load('form.html',makeStore());
   ok(dm.txt('#topTitle')==='کارگاه فن بیان مقدماتی','بی ?ev= همان فرم نمونه است');
