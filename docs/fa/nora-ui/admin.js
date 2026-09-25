@@ -1360,19 +1360,17 @@ function vEvents(){
 /* ── کاربران ───────────────────────────────────────────────────────────── */
 /* بخش کاربران: پنج گروه روشن، نه چهارده ردیف؛ هر گروه اگر لازم داشت زیرتب دارد
    و پروندهٔ هر کاربر خودش صفحهٔ کامل با تبهای جدا است. */
-const UGROUPS=[['req','درخواست‌ها','i-check','پروفایل در صف، غیبت مجاز و تحویل پاداش؛ هر کدام تأیید یا رد'],
-  ['club','باشگاه و امتیاز','i-star','امتیاز شرطی، نشان‌ها، فروشگاه پاداش و رتبه‌بندی'],
-  ['occ','مناسبت‌ها و تولدها','i-calendar','تبریک تولد و مناسبت‌ها با پیام و امتیاز'],
-  ['report','گزارش کاربران','i-chart','آمار، جنسیت، فعالیت، شهر و منبع عضویت'],
-  ['tools','ابزارها','i-sliders','پارامتر پروفایل، افزودن، اکسل، برچسب، مسدود، صندوق و لاگ']];
+/* چهار کاشی سرِ کاربران؛ خط جمعبندی هر کاشی در vUList با عدد زنده ساخته میشود */
+const UTILES=[['req','درخواست‌ها','i-check'],['club','باشگاه و امتیاز','i-star'],
+  ['occ','مناسبت‌ها و تولدها','i-calendar'],['tools','ابزارها و گزارش','i-sliders']];
 const UCLUBTABS=[['rules','امتیاز شرطی'],['ach','نشان‌ها'],['shop','فروشگاه پاداش'],['rank','رتبه‌بندی']];
-const UTOOLTABS=[['par','پارامتر پروفایل'],['add','افزودن دستی'],['imp','ورودی اکسل'],['tags','برچسب‌ها'],
-  ['blocked','مسدودها'],['inbox','صندوق پیام‌ها'],['log','لاگ عملیات']];
+const UTOOLTABS=[['report','گزارش کاربران'],['par','پارامتر پروفایل'],['add','افزودن دستی'],
+  ['imp','ورودی اکسل'],['tags','برچسب‌ها'],['blocked','مسدودها'],['inbox','صندوق پیام‌ها'],['log','لاگ عملیات']];
 const UPTABS=[['info','اطلاعات'],['club','باشگاه'],['ev','رویدادها و فرم‌ها'],['msg','پیام‌ها'],['log','تاریخچه']];
 function vUsers(){
   const v=S.uV||'';
   if(v==='req') return vUReq(); if(v==='club') return vUClub();
-  if(v==='occ') return vUOcc(); if(v==='report') return vUReport();
+  if(v==='occ') return vUOcc();
   if(v==='tools') return vUTools(); if(v==='user') return vUUser();
   return vUList();
 }
@@ -1391,31 +1389,30 @@ function vUList(){
   const filt=UF.map(x=>`<button class="tag ${cur===x.k&&!curTag?'on':''}" data-uF="${x.k}">${esc(x.n)}
       <b>${esc(fa(ufCount(x.k)))}</b></button>`).join('');
   const lab=Object.keys(uLabels()).slice(0,6).map(t=>`<button class="chip ${curTag===t?'on':''}" data-uTag="${esc(t)}">${esc(t)}</button>`).join('');
-  const reqs=memList().filter(m=>m.st[1]==='warn').length+uAbs().filter(a=>a.st==='در انتظار').length
-    +uShopReq().filter(r=>r.st==='در انتظار').length;
-  const unread=uInbox().filter(i=>!i.read).length;
-  const rows=UGROUPS.map(g=>{
-    let b='';
-    if(g[0]==='req') b=reqs?tag(fa(reqs)+' درخواست','warn'):'';
-    if(g[0]==='tools'&&unread) b=tag(fa(unread)+' پیام تازه','warn');
-    return rowLink({attrs:`data-uv="${g[0]}"`, i:g[2], chev:1, b:esc(g[1]), s:esc(g[3]), right:b})}).join('');
+  const prof=ufCount('pending'), absR=uAbs().filter(a=>a.st==='در انتظار').length,
+    shopR=uShopReq().filter(r=>r.st==='در انتظار').length, reqs=prof+absR+shopR;
+  const unread=uInbox().filter(i=>!i.read).length, occL=occAll(),
+    occOnN=occL.filter(occOn).length, bdayN=memList().filter(m=>m.bd).length;
+  const sum={
+    req:{s:`پروفایل ${fa(prof)} · غیبت مجاز ${fa(absR)} · پاداش ${fa(shopR)}`,
+      b:reqs?tag(fa(reqs)+' در انتظار','warn'):''},
+    club:{s:`${fa(ufCount('club'))} عضو باشگاه · ${fa(ufCount('vip'))} ویژه`,b:''},
+    occ:{s:`${fa(bdayN)} تولد · ${fa(occOnN)} از ${fa(occL.length)} مناسبت روشن`,b:''},
+    tools:{s:`${fa(unread)} پیام ناخوانده · ${fa(ufCount('blocked'))} مسدود · گزارش و اکسل`,
+      b:unread?tag(fa(unread)+' پیام تازه','warn'):''}};
+  const rows=UTILES.map(t=>{const d=sum[t[0]];
+    return `<button class="utile" data-uv="${t[0]}"><span class="tt">${ico(t[2])}<b>${esc(t[1])}</b>${d.b}</span>
+      <small>${d.s}</small></button>`}).join('');
   const tbody=list.map(m=>`<tr data-user="${esc(m.id)}">
       <td><b>${esc(m.n)}</b>${m.vip?' ⭐':''}</td><td class="num">${esc(m.code)}</td><td class="num">${esc(fa(m.ph))}</td>
       <td>${tag(m.st[0],m.st[1])}</td><td>${esc(m.tags.filter(t=>isMoney()||!moneyTag(t)).join('، '))}</td>
       <td class="num">${esc(fa(m.ev))}</td><td class="num">${esc(fa(m.pt))}</td></tr>`).join('');
   const cards=list.map(m=>rowLink({attrs:`data-user="${esc(m.id)}"`, i:'i-users', chev:1,
       b:esc(m.n), s:`${esc(m.code)} · ${esc(fa(m.ph))}`, right:tag(m.st[0],m.st[1])})).join('');
-  const kpi=`<div class="admkpi">
-      <div class="k"><small>همه</small>${bits(fa(memList().length))}</div>
-      <div class="k"><small>در صف تأیید</small>${bits(fa(ufCount('pending')))}</div>
-      <div class="k"><small>ویژه</small>${bits(fa(ufCount('vip')))}</div>
-      <div class="k"><small>مسدود</small>${bits(fa(ufCount('blocked')))}</div></div>`;
   return `<section class="card stack">
     ${uHead(L.users,`<span class="cap">${esc(fa(list.length))} ${esc(W.people||'نفر')}</span>
       ${btn(T.export||'خروجی اکسل','data-uexport','i-download')}`)}
-    ${kpi}
-    <div class="head">چه کارهایی از این بخش برمی‌آید</div>
-    <div class="admlist">${rows}</div>
+    <div class="admtiles">${rows}</div>
     <hr class="hr"/>
     <div class="head">فهرست کاربران</div>
     <div class="admfilters">${filt}</div>
@@ -1427,8 +1424,8 @@ function vUList(){
     <p class="cap">${esc('با زدن هر نفر، پروندهٔ کاملش با تبهای اطلاعات و باشگاه و رویدادها باز میشود.')}</p>
   </section>`;
 }
-/* گزارش کاربران: آمار، جنسیت، فعالیت، شهر، تحصیلات و منبع عضویت */
-function vUReport(){
+/* گزارش کاربران: زیرتب اول ابزارها: آمار، جنسیت، فعالیت، شهر، تحصیلات و منبع عضویت */
+function cUReport(){
   const L0=memList(), tot=L0.length;
   const pend=L0.filter(m=>m.st[1]==='warn').length, vip=L0.filter(m=>m.vip).length,
     blk=L0.filter(m=>m.st[1]==='stop').length, ok=L0.filter(m=>m.st[1]==='ok').length,
@@ -1443,9 +1440,7 @@ function vUReport(){
   const topEdu=Object.keys(edu).sort((a,b)=>edu[b]-edu[a]).slice(0,5);
   const bar=(v,t)=>{const w=t?Math.round(v/t*10):0; return '▓'.repeat(w)+'░'.repeat(10-w)};
   const per=(RP.periods||[]).map(x=>`<button class="chip ${S.rp===x?'on':''}" data-rp="${esc(x)}">${esc(x)}</button>`).join('');
-  return `<section class="card stack">${uBack}
-    ${uHead('گزارش کاربران')}
-    <div class="admfilters">${per}</div>
+  return `<div class="admfilters">${per}</div>
     <div class="admkpi">
       <div class="k"><small>کل</small>${bits(fa(tot))}</div>
       <div class="k"><small>تأییدشده</small>${bits(fa(ok))}</div>
@@ -1469,8 +1464,7 @@ function vUReport(){
     <div class="head">منبع عضویت</div>
     ${table([['با دعوت دوستان',fa(ref)+' نفر'],['ورود گروهی اکسل',fa(imp)+' نفر'],
       ['مستقیم',fa(Math.max(0,tot-ref-imp))+' نفر']])}
-    <div class="row tight">${btn(T.export||'خروجی اکسل','data-uexport','i-download')}<span class="sp"></span></div>
-  </section>`;
+    <div class="row tight">${btn(T.export||'خروجی اکسل','data-uexport','i-download')}</div>`;
 }
 /* مناسبتها و تولدها */
 function vUOcc(){
@@ -1709,11 +1703,11 @@ function cULog(){
 }
 /* پوستهٔ زیرتبهای ابزارها */
 function vUTools(){
-  const cur=S.uTool||'par';
+  const cur=S.uTool||'report';
   const tabs=UTOOLTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-utool="${t[0]}">${esc(t[1])}</button>`).join('');
-  const body=cur==='add'?cUAdd():cur==='imp'?cUImp():cur==='tags'?cUTags():cur==='blocked'?cUBlocked():cur==='inbox'?cUInbox():cur==='log'?cULog():cUPar();
+  const body=cur==='report'?cUReport():cur==='add'?cUAdd():cur==='imp'?cUImp():cur==='tags'?cUTags():cur==='blocked'?cUBlocked():cur==='inbox'?cUInbox():cur==='log'?cULog():cUPar();
   return `<section class="card stack">${uBack}
-    ${uHead('ابزارها')}
+    ${uHead('ابزارها و گزارش')}
     <div class="admfilters">${tabs}</div>
     ${body}</section>`;
 }
@@ -2492,9 +2486,10 @@ function sanitize(){
   if(S.ped&&(!Array.isArray(S.ped.blocks))) S.ped=null;
   if(S.sec==='posts') S.sec='events';
   if(UCLUBTABS.every(t=>t[0]!==S.uClub)) S.uClub='rules';
-  if(UTOOLTABS.every(t=>t[0]!==S.uTool)) S.uTool='par';
+  if(UTOOLTABS.every(t=>t[0]!==S.uTool)) S.uTool='report';
   if(UPTABS.every(t=>t[0]!==S.uTab)) S.uTab='info';
   if(S.uV==='user'&&!memOf(S.uSel)) S.uV='';
+  if(S.uV&&['req','club','occ','tools','user'].indexOf(S.uV)<0) S.uV='';
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
 }
@@ -2794,7 +2789,7 @@ document.addEventListener('click',e=>{
       who:fa(6)+' نفر', way:((A.cert||{}).publish||[]).filter(p=>p.k===S.cert.pub).map(p=>p.n)[0]||'اعلان',
       at:'همین حالا', st:'wait'}].concat(S.jobs||[]);
     save(); renderBody(); toast(W.published||'منتشر شد'); return}
-  const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; save(); renderBody(); return}
+  const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; save(); renderBody(); return}
   const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; save(); renderBody(); return}
   const utag=q('[data-uTag]'); if(utag){S.uTag=(S.uTag===utag.dataset.utag)?'':utag.dataset.utag; save(); renderBody(); return}
   const uok=q('[data-uok]'); if(uok){const id=uok.dataset.uok;

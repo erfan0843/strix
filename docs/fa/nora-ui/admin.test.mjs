@@ -318,13 +318,15 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('table.admtable tbody tr').length===2,'بعد از تأیید، از صف کم شد ('+p.all('table.admtable tbody tr').length+')');
 }
 
-/* ── ۴ب) کاربران: چهارده زیربخش، پرونده، باشگاه و ابزار ── */
+/* ── ۴ب) کاربران: کاشیها، پرونده، باشگاه و ابزار ── */
 {
   console.log('\n── کاربران: زیربخش‌ها ──');
   const p=await load();
   p.click('#admNav [data-sec="users"]');
-  ok(p.all('.admkpi .k').length===4,'آمار سریع سرِ فهرست است');
-  ok(p.all('.admlist [data-uv]').length===5,'پنج گروه روشن جای چهارده ردیف را گرفته');
+  ok(p.all('.admtiles .utile').length===4,'چهار کاشی سرِ بخش است');
+  ok(p.all('[data-uv]').length===4,'دقیقا چهار مسیر، نه بیشتر');
+  ok(/پروفایل ۳ · غیبت مجاز ۲ · پاداش ۲/.test(p.txt('.admtiles')),'کاشی درخواستها سه صف را با عدد جمع میکند');
+  ok(/در انتظار/.test(p.txt('.admtiles')),'کاشی پرکار، نشان در انتظار دارد');
   ok(p.all('[data-uF]').length===5,'صافی وضعیت با ویژه پنج تاست');
   ok(p.all('[data-uTag]').length>=3,'برچسبها فیلتر یکزبانه دارند');
   p.click('[data-uTag="عکاس"]');
@@ -343,8 +345,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const SU=JSON.parse(p.store.getItem('nora-admin'));
   ok(SU.uabs[0].st==='تأیید شد'&&!SU.ushop[0]||SU.ushop.some(r=>r.st==='رد شد'),'وضعیت درخواستها در خانه مینشیند');
   /* گزارش */
-  p.click('[data-uback]'); p.click('[data-uv="report"]');
-  ok(/گزارش کاربران/.test(p.txt('#admBody'))&&/جنسیت/.test(p.txt('#admBody')),'گزارش کاربران با جنسیت و فعالیت است');
+  p.click('[data-uback]'); p.click('[data-uv="tools"]');
+  ok(/گزارش کاربران/.test(p.txt('#admBody'))&&/جنسیت/.test(p.txt('#admBody')),'گزارش کاربران زیرتب اول ابزارهاست');
   ok(/منبع عضویت/.test(p.txt('#admBody'))&&/با دعوت دوستان/.test(p.txt('#admBody')),'منبع عضویت با دعوت آمده');
   ok(p.all('[data-rp]').length>=7,'دورههای زمانی گزارش هست');
   /* مناسبتها */
@@ -398,10 +400,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-uF="vip"]');
   ok(p.all('table.admtable tbody tr').length===1,'فیلتر ویژه همان یک نفر را میآورد');
   p.click('[data-uF="all"]');
-  /* ابزارها: هفت زیرتب */
+  /* ابزارها و گزارش: هشت زیرتب */
   p.click('[data-uv="tools"]');
-  ok(p.all('[data-utool]').length===7,'ابزارها هفت زیرتب دارد');
-  ok(/فعال.*فیلد/.test(p.txt('#admBody')),'زب پیشفرض پارامترهای پروفایل است');
+  ok(p.all('[data-utool]').length===8,'ابزارها و گزارش هشت زیرتب دارد');
+  ok(/جنسیت/.test(p.txt('#admBody')),'زب پیشفرض گزارش کاربران است');
+  p.click('[data-utool="par"]');
   p.click('[data-upar="bio"]');
   p.click('[data-uparreq="bio"]');
   const SU3=JSON.parse(p.store.getItem('nora-admin'));
@@ -1031,9 +1034,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=50')&&html.includes('admin.js?v=50'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=51')&&html.includes('admin.js?v=51'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v39'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v40'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
