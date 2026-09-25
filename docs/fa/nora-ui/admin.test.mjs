@@ -434,9 +434,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=36')&&html.includes('admin.js?v=36'),'نسخهٔ پرونده‌های پنل ۳۶ است');
+  ok(html.includes('admin.css?v=37')&&html.includes('admin.js?v=37'),'نسخهٔ پرونده‌های پنل ۳۷ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v25'"),'کارگر سرویس نسخهٔ ۲۵ است');
+  ok(sw.includes("'nora-v26'"),'کارگر سرویس نسخهٔ ۲۶ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
@@ -460,8 +460,13 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const bad=p2.all('#admNav .btn').map(b=>{const sp=b.querySelector('span');
       return sp?sp.textContent.trim():''}).filter(t=>t&&data.indexOf(t)===-1);
   ok(bad.length===0,'هر برچسب بخش، همان واژهٔ data.js است'+(bad.length?': '+bad.join('، '):''));
-  const nums=p2.all('.kpi b').map(b=>b.textContent.trim()).filter(t=>data.indexOf(t)===-1);
+  const nums=p2.all('.kpi b').map(b=>{const u=b.querySelector('.ku');
+    return (u?b.textContent.replace(u.textContent,''):b.textContent).trim();})
+    .filter(t=>t&&data.indexOf(t)===-1);
   ok(nums.length===0,'عددهای سرِ پنل هم از داده می‌آید'+(nums.length?': '+nums.join('، '):''));
+  const units=p2.all('.kpi .ku').map(u=>u.textContent.trim()).filter(t=>t&&data.indexOf(t)===-1);
+  ok(units.length===0,'و یکای هر عدد هم از داده می‌آید'+(units.length?': '+units.join('، '):''));
+  ok(p2.all('.kpi .ku').length>=3,'یکا ریز و جدا نوشته می‌شود، نه چسبیده به رقم');
 }
 
 console.log('\nadmin-test: '+checks+' بررسی، '+fails+' خطا');

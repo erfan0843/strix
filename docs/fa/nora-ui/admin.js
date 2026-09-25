@@ -137,6 +137,10 @@ const EV=A.events||{}, EVROWS=EV.rows||[];
 const evAll=()=>(S.added||[]).concat(EVROWS);
 const evOf=id=>evAll().find(e=>e.id===id)||null;
 const fN=n=>fa(Number(n).toLocaleString?Number(n).toLocaleString('en-US'):n);
+/* عدد و یکا: رقم درشت می‌ماند و واژهٔ یکا ریز و کم‌رنگ کنارش می‌نشیند تا هیچ
+   عددی درشت و بی‌توضیح نماند و در تنگی جا هم شکسته شود، نه سرریز */
+const bits=v=>{const t=String(v==null?'':v).trim(), i=t.search(/\s/);
+  return i<0?`<b>${esc(t)}</b>`:`<b>${esc(t.slice(0,i))} <small class="ku">${esc(t.slice(i+1))}</small></b>`;};
 const evFilter=f=>f==='live'?e=>e.state==='live' : f==='soon'?e=>e.state==='soon'||e.state==='draft'
   : f==='past'?e=>e.state==='past' : ()=>true;
 
@@ -256,13 +260,15 @@ function dashHead(){
 /* چهار عدد کلیدی: برای مالک و سرپرست از حوزه، برای کارشناس از کارنامهٔ خودش */
 function kpiRow(){
   const p=me(), f=myField(), own=isOwner(), lead=isLead();
-  const rows=(own||lead)?(f.rings||[]).map(r=>[r[0],r[1],r[3]||'']):[
-    [D.rOpen||'کار باز من', fa(p.open), p.late?fa(p.late)+' '+(D.late||''):''],
-    [D.rDone||'انجام‌شده این هفته', fa(p.done), ''],
-    [D.rAvg||'میانگین پاسخ', fa(p.avg)+' '+(D.minute||'دقیقه'), D.alertGoal||''],
+  /* هدف پاسخ‌گویی از دادهٔ خود حوزه خوانده می‌شود، نه از عدد سخت‌نوشته */
+  const goal=((f.rings||[]).find(r=>/پاسخ/.test(String(r[0])))||[])[3]||'';
+  const rows=(own||lead)?(f.rings||[]).map(r=>[r[0],String(r[1])+(r[4]?' '+r[4]:''),r[3]||'']):[
+    [D.rOpen||'کار باز من', fa(p.open)+' '+(D.qWork||'کار'), p.late?fa(p.late)+' '+(D.late||''):''],
+    [D.rDone||'انجام‌شده این هفته', fa(p.done)+' '+(D.qWork||'کار'), ''],
+    [D.rAvg||'میانگین پاسخ', fa(p.avg)+' '+(D.minute||'دقیقه'), goal],
     [D.rScore||'امتیاز هفته', fa(p.score), (D.of||'از')+' ۱۰۰']];
   return `<div class="kpis">${rows.map(r=>`<div class="kpi">
-    <small>${esc(r[0])}</small><b>${esc(r[1])}</b><span class="cap">${esc(r[2]||'')}</span></div>`).join('')}</div>`;
+    <small>${esc(r[0])}</small>${bits(r[1])}<span class="cap">${esc(r[2]||'')}</span></div>`).join('')}</div>`;
 }
 
 /* وضعیت سامانه: چند خط ساده با چراغ */
@@ -364,10 +370,10 @@ function cardWeek(){
       ${bars(wk.bars||[],true)}
       <div class="admbarsx">${(wk.days||[]).map(d=>`<span>${esc(d)}</span>`).join('')}</div>
       <div class="admkpi">
-        <div class="k"><small>${esc(D.qDone||'انجام‌شده')}</small><b>${esc(fa(p.done))}</b></div>
-        <div class="k"><small>${esc(D.qOpen||'کار باز')}</small><b>${esc(fa(p.open))}</b></div>
-        <div class="k"><small>${esc(D.late||'دیرکرد')}</small><b>${esc(fa(p.late))}</b></div>
-        <div class="k"><small>${esc(D.rAvg||'میانگین پاسخ')}</small><b>${esc(fa(p.avg))} ${esc(D.minute||'دقیقه')}</b></div></div>
+        <div class="k"><small>${esc(D.qDone||'انجام‌شده')}</small>${bits(fa(p.done)+' '+(D.qWork||'کار'))}</div>
+        <div class="k"><small>${esc(D.qOpen||'کار باز')}</small>${bits(fa(p.open)+' '+(D.qWork||'کار'))}</div>
+        <div class="k"><small>${esc(D.late||'دیرکرد')}</small>${bits(fa(p.late)+' '+(D.qWork||'کار'))}</div>
+        <div class="k"><small>${esc(D.rAvg||'میانگین پاسخ')}</small>${bits(fa(p.avg)+' '+(D.minute||'دقیقه'))}</div></div>
     </section>`;
   }
   return `<section class="card stack">
@@ -425,7 +431,7 @@ function cardMoney(){
   return `<section class="card stack">
     <div class="row"><div class="head">${esc(D.money||'مالی امروز')}</div><span class="sp"></span>
       <button class="btn sm quiet" data-sec="reports">${ico('i-chart')}${esc(D.reportsToday||'گزارش')}</button></div>
-    <div class="admkpi">${rows.map(r=>`<div class="k"><small>${esc(r[0])}</small><b>${esc(r[1])}</b></div>`).join('')}</div>
+    <div class="admkpi">${rows.map(r=>`<div class="k"><small>${esc(r[0])}</small>${bits(r[1])}</div>`).join('')}</div>
     ${bars(sp.v||[],true)}
     <span class="cap">${esc(sp.n||'')}</span>
     <p class="cap">${esc(D.moneyNote||'')}</p>
@@ -771,8 +777,8 @@ function sheetUser(id){
     <div class="row"><span class="ic" style="width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-ink)">${ico('i-users')}</span>
       <span class="tx" style="min-width:0"><div class="head">${esc(m.n)}</div><div class="cap">${esc(m.code)} · ${esc(fa(m.ph))}</div></span>
       <span class="sp"></span>${tag(m.st[0],m.st[1])}</div>
-    <div class="admkpi"><div class="k"><small>رویداد</small><b>${esc(fa(m.ev))}</b></div>
-      <div class="k"><small>امتیاز</small><b>${esc(fa(m.pt))}</b></div></div>
+    <div class="admkpi"><div class="k"><small>رویداد</small>${bits(fa(m.ev)+' رویداد')}</div>
+      <div class="k"><small>امتیاز</small>${bits(fa(m.pt)+' از ۱۰۰')}</div></div>
     <div class="admchips">${m.tags.filter(t=>isMoney()||!moneyTag(t)).map(t=>tag(t,'brand')).join('')}${tag('عضویت '+m.reg,'')}</div>
     ${m.note?`<div class="admtext"><span class="lbl">یادداشت پرونده</span><span>${esc(m.note)}</span></div>`:''}
     <div class="row tight">${btn(W.approve||'تأیید پروفایل','data-uok="'+esc(m.id)+'"','i-check')}
@@ -797,7 +803,7 @@ function sheetRep(k){
     ${att.length?`<div class="stack tight"><div class="head">${esc(W.alert||'')}</div>
       ${att.map(a=>`<div class="admlirow">${ico('i-bell')}<span class="sp">${esc(a.t)}</span></div>`).join('')}</div>`:''}
     <div class="admkpi">${(RP.periods||[]).slice(0,4).map(p=>`<div class="k"><small>${esc(p)}</small>
-      <b>${esc(r.v||'')}</b></div>`).join('')}</div>
+      ${bits(r.v||'')}</div>`).join('')}</div>
     <div class="row tight">
       <a class="btn sm" href="builder.html">${ico('i-chart')}${esc('نمودار کامل')}</a>
       ${btn(T.export||'خروجی اکسل','data-rexport','i-download')}

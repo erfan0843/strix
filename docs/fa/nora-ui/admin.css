@@ -26,9 +26,13 @@
 .admbar .searchbox .i{width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
 .admbar .searchbox input{border:0;background:none;font:inherit;font-size:var(--fs-sub);color:var(--ink);outline:none;width:100%}
 .admbar .searchbox input::placeholder{color:var(--ink-4)}
-.admkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
-.admkpi .k{padding:12px;border-radius:var(--r-md);background:var(--surface-2);display:grid;gap:3px}
-.admkpi .k b{font-size:19px;font-weight:800;line-height:1.4}
+.admkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2);align-items:stretch}
+.admkpi .k{padding:12px;border-radius:var(--r-md);background:var(--surface-2);display:grid;gap:3px;
+  align-content:space-between;min-height:76px}
+.admkpi .k b{font-size:19px;font-weight:800;line-height:1.4;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.admkpi .k b .ku{font-size:.64em;font-weight:700;color:var(--ink-3);margin-inline-start:4px;
+  white-space:nowrap;letter-spacing:0}
 .admkpi .k small{font-size:var(--fs-cap);color:var(--ink-3)}
 .admkpi .k .up{color:var(--ok);font-size:11.5px;font-weight:700}
 .admbars{display:flex;align-items:flex-end;gap:6px;height:74px;padding:6px 2px 0}
@@ -220,8 +224,13 @@
 .kpi{display:grid;gap:3px;padding:14px 16px;border-radius:var(--r-lg);
   background:var(--surface);border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
 .kpi small{font-size:11.5px;color:var(--ink-3)}
-.kpi b{font-size:22px;font-weight:800;line-height:1.4;letter-spacing:-.2px}
-.kpi .cap{font-size:11px;color:var(--ink-4)}
+.kpi b{font-size:22px;font-weight:800;line-height:1.4;letter-spacing:-.2px;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi b .ku{font-size:.62em;font-weight:700;color:var(--ink-3);margin-inline-start:4px;
+  white-space:nowrap;letter-spacing:0}
+.kpi .cap{font-size:11px;color:var(--ink-4);overflow-wrap:anywhere}
+.sline .sp{min-width:0}
+.sline .cap{overflow-wrap:anywhere}
 
 /* وضعیت سامانه: هر خط یک چراغ کوچک دارد و یک توضیح کوتاه */
 .slist{display:grid;gap:2px}
