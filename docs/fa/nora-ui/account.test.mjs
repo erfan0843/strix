@@ -113,7 +113,9 @@ async function load(store,hash){
   ok(card!==null && card.querySelector('.qc-date')!==null,'کارت رویداد نزدیک با تاریخ');
   ok(p.txt('.qcard').includes('کارت ورودت آماده است'),'یادآوری کارت ورود روی کارت رویداد');
   p.click('.qcard .qc-go'); await wait(160);
-  ok(p.txt('#toast').includes('کارت ورود'),'دکمهٔ کارت ورود پیام می‌دهد');
+  ok(p.open().includes('shTicket')&&p.all('#shTicket .tk-qr svg').length===1,'کارت ورود با کیوآرکد باز می‌شود');
+  ok(p.txt('#shTicket').includes('کد ثبت‌نام')&&p.txt('#shTicket').includes('lifeline1.ir/c/'),'کارت ورود نشانی و کد را نشان می‌دهد');
+  p.click('#shTicket [data-close]'); await wait(170);
 }
 
 /* ── ۳) سه بخش ── */
@@ -360,7 +362,7 @@ async function load(store,hash){
   p.click('[data-vtab="up"]'); await wait(200);
   p.click('[data-myev="e1"]'); await wait(240);
   p.click('#shMyEvent [data-my-ticket="e1"]'); await wait(140);
-  ok(p.txt('#toast').includes('کارت ورود'),'کارت ورود همین رویداد پیام می‌دهد');
+  ok(p.open().includes('shTicket')&&p.all('#shTicket .tk-qr svg').length===1,'کارت ورود داخل رویداد هم کیوآرکد دارد');
   p.click('#shMyEvent [data-my-ticket-dl="e1"]'); await wait(140);
   ok(p.txt('#toast').includes('بلیت'),'دانلود بلیت پیام می‌دهد');
   p.click('#shMyEvent [data-close]'); await wait(200);

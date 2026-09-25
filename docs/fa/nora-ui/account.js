@@ -103,7 +103,7 @@ const stOf=p=>({draft:['تکمیل نشده','warn'],pending:['در صف تأی�
 const monOf=e=>(e&&e.dm&&MON[e.dm])||'';
 
 /* ── حالت صفحه ───────────────────────────────────────────────────── */
-const S={view:'',vtab:'up',ptab:'info',ctab:'home',invF:'all',txAll:false,edit:false,errs:{},after:''};
+const S={view:'',vtab:'up',ptab:'info',ctab:'home',invF:'all',txAll:false,edit:false,errs:{},after:'',ticketId:''};
 
 /* ── رفتن به یک بخش: مهمان، ورقهٔ ورود؛ عضو، همان بخش ─────────────── */
 function go(k){
@@ -386,6 +386,30 @@ function offRow(o,id){
     <span class="sp">${esc(o[1])}<small>${esc(kd)} · ${esc(o[2])}</small></span>
     <button class="btn sm quiet" data-off="1">${ico('i-download')} دانلود</button></div>`;
 }
+/* ── کارت ورود: برگه‌ای که در ورودی نشان می‌دهی ──────────────────────── */
+function ticketSheet(id){
+  const e=EVENTS.find(x=>x.id===id)||PAST.find(x=>x.id===id)||{};
+  const inf=myInfo(id), t=inf.ticket||{}, code=String(inf.code||('NP-'+String(id||'e1'))).trim();
+  const slug=code.replace(/[^\w-]/g,'');
+  const link='lifeline1.ir/c/'+slug;
+  fillSheet('shTicket',`<div class="grabber"></div>
+    <div class="tickcard">
+      <div class="tk-top"><span>${ico('i-qr')} نورا · گروه فرهنگی خط زندگی</span>${t.ok?chip('معتبر','ok'):chip('در انتظار تأیید','warn')}</div>
+      <b class="tk-t">${esc(e.t||'رویداد من')}</b>
+      <span class="tk-m">${esc([e.when||e.d,e.time,e.place||e.where].filter(Boolean).join(' · '))}</span>
+      <span class="tk-qr">${typeof qrSVG==='function'?qrSVG(link,138,{label:code}):''}</span>
+      <span class="tk-code">کد ثبت‌نام <b class="num" dir="ltr">${esc(code)}</b></span>
+      <span class="tk-link num" dir="ltr">${esc(link)}</span>
+      <span class="tk-cut"></span>
+      <span class="tk-note">در ورودی همین کارت را نشان بده. اگر گوشی‌ات جا ماند، با شمارهٔ خودت هم پیدایت می‌کنیم.</span>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" data-tk-dl>${ico('i-download')} دانلود کارت</button>
+      <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div>
+    <p class="cap" style="margin-top:10px">${esc(trustOf('امنیت شماره')||'شمارهٔ تو روی کارت نمی‌آید.')}</p>`);
+  S.ticketId=id;
+  openSheet('shTicket');
+}
 function myEventSheet(id){
   const e=EVENTS.find(x=>x.id===id)||PAST.find(x=>x.id===id)||{};
   const past=!EVENTS.find(x=>x.id===id), inf=myInfo(id), st=noteState(id);
@@ -522,10 +546,11 @@ function clubTab(){
         <span class="tx"><b>${esc(a.n)}</b><small>${a.on?esc(a.r||'گرفته‌ای'):faNum(a.at)+' امتیاز'}</small></span>
         ${a.on?chip('باز شد','ok'):chip('قفل','')}</div>`).join('')}</div>`)+
     card('فروشگاه پاداش','امتیازت را خرج کن','i-wallet',
-      `<div class="kinds">${STORE.map(r=>{const can=pts>=r.cost; return `<div class="kind">
-        ${ico('i-wallet','width:19px;height:19px;color:var(--ink-4)')}
+      `<div class="kinds">${STORE.map(r=>{const can=pts>=r.cost, got=!!(bookState().rewards||{})[r.n];
+        return `<div class="kind">
+        ${ico(got?'i-check':'i-wallet','width:19px;height:19px;color:'+(got?'var(--ok)':'var(--ink-4)'))}
         <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
-        <button class="btn sm ${can?'primary':'quiet'}" ${can?'':'disabled'} data-reward="${esc(r.n)}">${faNum(r.cost)} امتیاز</button></div>`}).join('')}</div>`)+
+        ${got?chip('گرفته شد','ok'):`<button class="btn sm ${can?'primary':'quiet'}" ${can?'':'disabled'} data-reward="${esc(r.n)}">${faNum(r.cost)} امتیاز</button>`}</div>`}).join('')}</div>`)+
     invitePanel();
 }
 
@@ -2332,7 +2357,8 @@ document.addEventListener('click',ev=>{
       const e=$('#rfWhy'); if(e&&e.focus) e.focus(); return }
     refundDo(rfb.dataset.refundo); return }
   const pn=t.closest('[data-paynow]'); if(pn){ doPay(pn.dataset.paynow,S.payCtx||{}); return }
-  const mtk=t.closest('[data-my-ticket]'); if(mtk){ toast('کارت ورود همین رویداد آماده است؛ بارکد در ورودی خوانده می‌شود'); return }
+  const mtk=t.closest('[data-my-ticket]'); if(mtk){ ticketSheet(mtk.dataset.myTicket); return }
+  if(t.closest('[data-tk-dl]')){ toast('کارت ورود همین رویداد ذخیره شد'); return }
   const mtd=t.closest('[data-my-ticket-dl]'); if(mtd){ toast('بلیت همین رویداد دانلود شد'); return }
   const mcr=t.closest('[data-my-cert]');
   if(mcr){ const cc=(myInfo(mcr.dataset.myCert).cert)||{};
@@ -2344,7 +2370,7 @@ document.addEventListener('click',ev=>{
   const cv=t.closest('[data-verify]');
   if(cv){ const ser=cv.dataset.verify||'';
     copyText(ser,()=>{ location.href='home.html#verify' },'سریال رونوشت شد؛ در صفحهٔ استعلام بچسبانش'); return }
-  if(t.closest('[data-ticket]')){ toast('کارت ورود آماده است؛ در ورودی نشانش بده'); return }
+  const ntk=t.closest('[data-ticket]'); if(ntk){ ticketSheet(ntk.dataset.ticket); return }
   const cx=t.closest('[data-cancel]');
   if(cx){ const e=EVENTS.find(x=>x.id===cx.dataset.cancel)||{};
     fillSheet('shConfirm',`<div class="grabber"></div><div class="head">لغو ثبت‌نام</div>
@@ -2354,7 +2380,10 @@ document.addEventListener('click',ev=>{
         <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>نه</button></div>`);
     openSheet('shConfirm'); return }
   if(t.closest('[data-cancel-yes]')){ closeSheets(); toast('ثبت‌نام لغو شد؛ مبلغ طبق شرایط هم رویداد برمی‌گردد'); return }
-  const rw=t.closest('[data-reward]'); if(rw){ toast('«'+rw.dataset.reward+'» با امتیازت گرفته شد؛ در فروشگاه پاداش کامل می‌شود'); return }
+  const rw=t.closest('[data-reward]');
+  if(rw){ const n=rw.dataset.reward||'';
+    bookSet({rewards:Object.assign({},bookState().rewards,{[n]:nowFa()})}); render();
+    toast('«'+n+'» گرفته شد؛ کدش در بله برایت می‌آید'); return }
   const cp=t.closest('[data-copy]');
   if(cp){ const msg=cp.dataset.copyMsg||''; copyText(cp.dataset.copy,msg?()=>toast(msg):null); return }
   if(t.closest('[data-invite]')){
