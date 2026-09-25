@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>نورا — ساخت فرم</title>
-<link rel="stylesheet" href="glass.css?v=32"/>
+<title>نورا · ساخت فرم</title>
+<link rel="stylesheet" href="glass.css?v=33"/>
 <style>
   .stepper4{display:flex;gap:4px;padding:5px}
   .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:7px;
@@ -23,7 +23,7 @@
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
-<!-- ══ مجموعهٔ آیکون نورا — شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+<!-- ══ مجموعهٔ آیکون نورا · شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
 
 <symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
 
@@ -219,7 +219,7 @@
         <div class="canvas">
           <div class="fixedblock">
             <span class="ic"><svg class="i"><use href="#i-type"/></svg></span>
-            <div style="flex:1;min-width:0"><div class="mini">سربرگ — ثابت</div><div class="hdline" id="hdTitle">—</div></div>
+            <div style="flex:1;min-width:0"><div class="mini">سربرگ · ثابت</div><div class="hdline" id="hdTitle">—</div></div>
             <button class="btn sm quiet" data-go="s1"><svg class="i"><use href="#i-pen"/></svg> ویرایش</button>
           </div>
 
@@ -244,7 +244,7 @@
         <div class="stack" id="morePanel">
           <div class="card" style="padding:12px">
             <div class="row"><svg class="i lg" style="color:var(--ink-2)"><use href="#i-sliders"/></svg>
-              <div><div class="head tight">تنظیمات بیشتر</div><div class="cap">همراه همین فیلدها — باز و بسته کنید</div></div></div>
+              <div><div class="head tight">تنظیمات بیشتر</div><div class="cap">همراه همین فیلدها · باز و بسته کنید</div></div></div>
           </div>
 
           <details class="panel" open>
@@ -282,7 +282,7 @@
             <summary><svg class="i"><use href="#i-users"/></svg> محدودیت افراد</summary>
             <div class="pbody">
               <select class="input" id="limitMode">
-                <option value="none">بدون محدودیت — هر کسی با لینک</option>
+                <option value="none">بدون محدودیت · هر کسی با لینک</option>
                 <option value="event" selected>فقط ثبت‌نام‌کرده‌های رویداد</option>
                 <option value="attended">فقط حاضران جلسهٔ پیشین</option>
                 <option value="invite">فهرست افراد یا کد دعوت</option>
@@ -386,7 +386,7 @@
 
         <div class="stack">
           <div class="card">
-            <div class="head" style="margin-bottom:8px">کارت مقصد — از بخش مالی سامانه</div>
+            <div class="head" style="margin-bottom:8px">کارت مقصد · از بخش مالی سامانه</div>
             <div class="prevbox">
               <div class="answer"><span class="k">صاحب کارت</span><span class="v">مؤسسهٔ خط زندگی</span></div>
               <div class="answer"><span class="k">شمارهٔ کارت</span><span class="v num" style="direction:ltr">6104-3378-1234-5678</span></div>
@@ -459,7 +459,7 @@
 <aside class="sheet" id="shFinGroup" role="dialog" aria-label="گروه انتخاب">
   <div class="grabber"></div>
   <div class="row"><span class="head">گروه انتخاب</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-  <p class="cap" style="margin-top:8px">گروه یعنی چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد — مثل «با گواهینامه» و «بدون گواهینامه».</p>
+  <p class="cap" style="margin-top:8px">گروه یعنی چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد · مثل «با گواهینامه» و «بدون گواهینامه».</p>
   <div style="margin-top:10px"><label class="lbl" for="fgName">نام گروه</label><input id="fgName" class="input" placeholder="مثلاً نوع شرکت"/></div>
   <div style="margin-top:10px"><div class="lbl">کدام قطعه‌ها در این گروه باشند</div>
     <div class="row tight" id="fgPick" style="margin-top:6px"></div></div>
@@ -524,7 +524,7 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="ui.js?v=32"></script>
+<script src="ui.js?v=33"></script>
 <script>
 /* ══ داده ══ */
 const MODELS=[
@@ -540,12 +540,12 @@ const MODELS=[
 ];
 const STRUCT={text:'ورودی تک‌خطی',area:'کادر چندخطی',number:'فقط رقم',amount:'رقم با جداکنندهٔ هزار',
   mobile:'باکس تلفن با ماسک ۰۹',nid:'ده رقم با رقم کنترل',email:'نشانی با @',fullname:'از پروفایل',
-  date:'تقویم شمسی — انتخابی',time:'ساعت — انتخابی',datetime:'تقویم و ساعت',slot:'انتخاب بازه',
+  date:'تقویم شمسی · انتخابی',time:'ساعت · انتخابی',datetime:'تقویم و ساعت',slot:'انتخاب بازه',
   choice:'گزینه‌های تک‌انتخابی',multi:'گزینه‌های چندانتخابی',dropdown:'فهرست کشویی',yesno:'دو گزینه',imgchoice:'گزینه‌های تصویری',
   rating:'پنج ستاره',scale:'خط‌کش ۰ تا ۱۰',bars:'نمودار میله‌ای',
   image:'آپلود تصویر',file:'آپلود سند',voice:'ضبط یا ارسال صدا',sign:'امضا روی صفحه',
-  province:'فهرست استان و شهر — انتخابی',address:'نشانی چندخطی',gender:'دو گزینه',edu:'فهرست مقاطع — انتخابی',
-  job:'فهرست شغل‌ها — انتخابی',uni:'فهرست دانشگاه‌ها — انتخابی',marital:'انتخابی',
+  province:'فهرست استان و شهر · انتخابی',address:'نشانی چندخطی',gender:'دو گزینه',edu:'فهرست مقاطع · انتخابی',
+  job:'فهرست شغل‌ها · انتخابی',uni:'فهرست دانشگاه‌ها · انتخابی',marital:'انتخابی',
   price:'یک مبلغ با تخفیف',coupon:'کد با درصد',terms:'پذیرش اجباری',location:'نقشه'};
 const HELP={text:'کوتاه بنویسید.',area:'توضیح کامل بدهید.',number:'فقط رقم.',mobile:'یازده رقم؛ با ۰۹ شروع می‌شود.',
   nid:'ده رقم، بدون خط تیره.',email:'نشانی رایگان‌ساز.',date:'از فهرست انتخاب کنید.',time:'از فهرست انتخاب کنید.',
@@ -609,9 +609,9 @@ const S={
   intro:'سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با گواهینامهٔ پایان دوره.', introMedia:'',
   fields:[], pack:'full', uid:1,
   display:'one', dir:'rtl', after:'edit',
-  start:'1405/07/01 — 08:00', end:'1405/07/30 — 23:45',
+  start:'1405/07/01 · 08:00', end:'1405/07/30 · 23:45',
   cap:40, wait:20, limit:'event',
-  notify:{on:true,to:'کارتابل کارشناس',expert:'خانم رستگار — آموزش'},
+  notify:{on:true,to:'کارتابل کارشناس',expert:'خانم رستگار · آموزش'},
   endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
   links:[{t:'صفحهٔ رویداد',u:'https://lifeline1.ir/events/fanbayan'},{t:'گروه اطلاع‌رسانی',u:'https://ble.ir/join/fanbayan'}],
   fin:[{l:'شرکت حضوری در سالن',p:850000,off:15,req:false,d:'روی صندلی، همراه با جزوهٔ کارگاه',g:'نوع شرکت'},
@@ -718,7 +718,7 @@ function renderFin(){
         <span class="mini num">${tomanTxt(net(o))}</span>
         <span class="switch ${o.req?'on':''}" data-freq="${i}" role="switch" aria-checked="${o.req}" tabindex="0"></span>
       </div>
-    </div>`).join('')||`<div class="empty"><div class="body">مورد مالی‌ای اضافه نشده — فرم رایگان است</div></div>`;
+    </div>`).join('')||`<div class="empty"><div class="body">مورد مالی‌ای اضافه نشده · فرم رایگان است</div></div>`;
 }
 function renderLinks(){
   $('#linkList').innerHTML=S.links.map((l,i)=>`
@@ -735,9 +735,9 @@ function renderPreview(){
   const one=S.fin[0]||{p:0,off:0};
   $('#userPreview').innerHTML=`
     ${S.fin.map((o,i)=>`<div class="r"><span>${o.l}</span><span class="num">${o.off?`<span class="old">${fa(o.p)}</span> `:''}${fa(net(o))}</span></div>`).join('')}
-    <div class="r"><span>هر نفر انتخاب کند — جمع در فرم ساخته می‌شود</span><span></span></div>
+    <div class="r"><span>هر نفر انتخاب کند · جمع در فرم ساخته می‌شود</span><span></span></div>
     <div class="r t"><span>نمونه: یک نفر با «${S.fin[0]?S.fin[0].l:'—'}»</span><span class="num">${money(net(one))}</span></div>
-    <div class="mini" style="margin-top:6px">با ${faN(S.maxPer)} نفر — ${money(net(one)*S.maxPer)}</div>
+    <div class="mini" style="margin-top:6px">با ${faN(S.maxPer)} نفر · ${money(net(one)*S.maxPer)}</div>
     ${S.guestsOn?'':'<div class="mini" style="margin-top:4px">افزودن همراه بسته است</div>'}`;
 }
 function renderReview(){
@@ -751,8 +751,8 @@ function renderReview(){
     ['بازه',S.start+' تا '+S.end],
     ['ظرفیت',faN(S.cap)+' نفر + '+faN(S.wait)+' نفر لیست انتظار'],
     ['محدودیت',{none:'آزاد',event:'ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'}[S.limit]],
-    ['موارد مالی',S.fin.map(f=>f.l+(f.d?' ('+f.d+')':'')+' — '+fa(net(f))+(f.req?' — اجباری':'')).join(' · ')||'رایگان'],
-    ['گروه انتخاب',(S.groups||[]).map(g=>g.n+' ('+g.of.map(i=>S.fin[i]?S.fin[i].l:'?').join(' / ')+')'+(g.req?' — یکی اجباری':'')).join(' · ')||'—'],
+    ['موارد مالی',S.fin.map(f=>f.l+(f.d?' ('+f.d+')':'')+' · '+fa(net(f))+(f.req?' · اجباری':'')).join(' · ')||'رایگان'],
+    ['گروه انتخاب',(S.groups||[]).map(g=>g.n+' ('+g.of.map(i=>S.fin[i]?S.fin[i].l:'?').join(' / ')+')'+(g.req?' · یکی اجباری':'')).join(' · ')||'—'],
     ['تعداد نفرات',faN(S.maxPer)+' نفر'],
     ['همراه‌آوردن',S.guestsOn?'باز':'بسته'],
     ['پرداخت',onM.join(' · ')],
@@ -789,7 +789,7 @@ function slugView(){
   const ev='https://lifeline1.ir/'+S.slug.replace(/\/register$/,'');
   const btn=$('#copyEvent');
   if(btn){btn.dataset.copy=ev; btn.title=ev}
-  $('#slugNote').textContent=S.nested?'تو در تو با صفحهٔ رویداد — دلخواه هم می‌شود.':'نشانی مستقل، جدا از رویداد.';
+  $('#slugNote').textContent=S.nested?'تو در تو با صفحهٔ رویداد · دلخواه هم می‌شود.':'نشانی مستقل، جدا از رویداد.';
 }
 
 /* ══ حرکت ══ */
@@ -939,13 +939,13 @@ $('#btnBack').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i>0) go(
 initUI();
 /* بخش و کارشناس مسئول: فهرست کارشناسان از بخش می‌آید */
 (()=>{const dp=$('#deptPick'), ep=$('#expertPick'); if(!dp||!ep) return;
-  dp.innerHTML=DEPTS.map(d=>`<option value="${d.id}" ${S.dept===d.id?'selected':''}>${d.n} — ${d.hint}</option>`).join('');
+  dp.innerHTML=DEPTS.map(d=>`<option value="${d.id}" ${S.dept===d.id?'selected':''}>${d.n} · ${d.hint}</option>`).join('');
   const fill=()=>{const d=DEPTS.find(x=>x.id===dp.value)||DEPTS[0];
-    ep.innerHTML=`<option>${d.expert} — کارشناس ${d.n}</option>`;
-    S.notify.expert=d.expert+' — '+d.n; S.dept=d.id;
+    ep.innerHTML=`<option>${d.expert} · کارشناس ${d.n}</option>`;
+    S.notify.expert=d.expert+' · '+d.n; S.dept=d.id;
     $('#deptHint').textContent='پیش‌فرض پیگیری و رسیدها: '+d.expert;};
   dp.addEventListener('change',fill); fill();})();
-/* سوئیچ «همراه‌آوردن» — روی خود عنصر (پیش از هندلر سراسری اجرا می‌شود) */
+/* سوئیچ «همراه‌آوردن» · روی خود عنصر (پیش از هندلر سراسری اجرا می‌شود) */
 (()=>{const g=$('#guestsOn'); if(!g) return;
   g.addEventListener('click',()=>{S.guestsOn=!g.classList.contains('on');renderPreview();renderReview();
     toast(S.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد')});})();

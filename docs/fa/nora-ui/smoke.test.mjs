@@ -1441,5 +1441,34 @@ async function load(file,store,q){
   ok(!/href="event\.html\?id=\$\{id\}<\/a>/.test(evSrc),'لینک مرده به خودِ صفحه نمانده');
 }
 
+/* ═══════════ admin.html: پنل مدیران ═══════════ */
+{
+  console.log('\n── پنل مدیران (admin.html) ──');
+  const p=await load('admin.html',makeStore());
+  ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
+  ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
+  ok(p.all('.admstat').length===3,'سه عدد وضعیت بالای پنل');
+  ok(p.doc.querySelector('#admBody').innerHTML.length>500,'داشبورد پر است');
+  ok(p.doc.querySelector('a[href="account.html"]')!==null,'نمای کاربر از پنل باز می‌شود');
+  ok(p.doc.querySelector('a[href="builder.html"]')!==null,'فرم‌ها و گزارش از پنل باز می‌شود');
+  ok(p.doc.querySelector('a[href="index.html"]')!==null,'زبان طراحی از پنل باز می‌شود');
+  /* پرونده‌های پنل همان نسخهٔ بقیهٔ صفحه‌ها باشد */
+  const ver=(f)=>[...fs.readFileSync(DIR+f,'utf8').matchAll(/\?v=(\d+)/g)].map(m=>m[1]);
+  const vAdmin=[...new Set(ver('admin.html'))];
+  ok(vAdmin.length===1,'همهٔ پرونده‌های پنل یک نسخه دارند ('+vAdmin.join()+')');
+  const vHome=[...new Set(ver('home.html'))];
+  ok(vAdmin[0]===vHome[0],'نسخهٔ پنل با نسخهٔ بقیهٔ صفحه‌ها یکی است');
+  const swSrc=fs.readFileSync(DIR+'sw.js','utf8');
+  ok(swSrc.includes("'admin.html'")&&swSrc.includes("'admin.js'")&&swSrc.includes("'admin.css'"),
+    'پنل در پوستهٔ کش کارگر سرویس هست');
+  /* پیوند دو طرفهٔ پنل مدیران و پنل فرم‌ها */
+  ok(fs.readFileSync(DIR+'builder.html','utf8').includes('href="admin.html"'),'پنل فرم‌ها به پنل مدیران راه دارد');
+  ok(fs.readFileSync(DIR+'index.html','utf8').includes('href="admin.html"'),'زبان طراحی هم پنل مدیران را فهرست کرده');
+  ok(fs.readFileSync(DIR+'login.js','utf8').includes('href="admin.html"'),'ورود مدیر به پنل مدیران می‌رسد');
+  const pages=['admin.html','admin.js','admin.css','builder.html','create.html'];
+  const dash=pages.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
+  ok(dash.length===0,'پنل و صفحه‌های فرم، خط تیرهٔ بلند ندارند'+(dash.length?': '+dash.join('، '):''));
+}
+
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');
 process.exit(fails?1:0);

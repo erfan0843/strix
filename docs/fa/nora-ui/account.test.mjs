@@ -657,7 +657,8 @@ async function load(store,hash){
   ok(nameless.length===0,'هیچ دکمه‌ای بی‌نام نیست'+(nameless.length?': '+nameless.length:''));
   ok(!/[\u2014]/.test(p.prof()),'خط تیرهٔ بلند در متن رابط نیست');
   /* خط تیرهٔ بلند، نشانهٔ متن ماشینی است؛ در متن فارسی حساب من و خانه جایی ندارد */
-  const dFiles=['account.html','account.js','data.js','ui.js','login.js','support.js','home.html','events.html','event.html','form.html'];
+  const dFiles=['account.html','account.js','data.js','ui.js','login.js','support.js','home.html','events.html','event.html','form.html',
+    'admin.html','admin.js','admin.css','builder.html','create.html'];
   const dBad=dFiles.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dBad.length===0,'خط تیرهٔ بلند در متن فارسی نمانده'+(dBad.length?': '+dBad.join('، '):''));
 }

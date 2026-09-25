@@ -234,7 +234,7 @@ function stepAdminDone(){
     <span class="lgcheck ok" aria-hidden="true"><svg class="i"><use href="#i-shield"/></svg></span>
     <b class="lgdtitle">${esc(L.adminOk||'خوش آمدی مدیر سامانه')}</b>
     <p class="lgdle">${esc(L.adminOkLead||'')}</p>
-    <a class="lgbtn" href="builder.html" id="lgAdminPanel">${esc(L.adminGo2||'رفتن به فرم‌ها و گزارش‌ها')}</a>
+    <a class="lgbtn" href="admin.html" id="lgAdminPanel">${esc(L.adminGo2||'رفتن به پنل مدیران')}</a>
     <a class="lgbtn quiet" href="account.html">حساب من</a>
   </div>`;
 }

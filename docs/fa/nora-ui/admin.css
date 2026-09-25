@@ -1,0 +1,221 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   نورا · پنل مدیران
+   ──────────────────────────────────────────────────────────────────────────
+   همان زبان طراحی، فقط چیدمانِ میز کار: ریل شیشه‌ای، نوار بالا با سه عدد
+   وضعیت، و هفت بخش که هر کدام یک کار انجام می‌دهد. هر عدد و هر برچسب از
+   data.js می‌آید؛ این‌جا فقط شکل است.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── سرِ ریل: نشان پنل ─────────────────────────────────────────────────── */
+.nmark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(160deg,#123A7A,#0B2447);color:#fff;box-shadow:var(--sh-1)}
+.nmark .i{width:20px;height:20px}
+#admNav .btn.on{background:var(--brand-tint);color:var(--brand-ink);font-weight:700}
+#admNav .btn .bd{margin-inline-start:auto}
+#admNav .btn[disabled]{opacity:.42}
+
+/* ── نوار بالا: عنوان، سه عدد، نقش و جست‌وجو ───────────────────────────── */
+.admbar{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;
+  border-radius:var(--r-lg);padding:10px 14px;border-bottom:0}
+.admbar .tt{min-width:0}
+.admbar .tt .head{margin:0}
+.admbar .sp{flex:1}
+.admbar .searchbox{display:flex;align-items:center;gap:8px;padding:0 12px;height:38px;min-width:210px;
+  border-radius:var(--r-pill);background:var(--surface-sunk);border:.5px solid var(--hairline)}
+.admbar .searchbox .i{width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
+.admbar .searchbox input{border:0;background:none;font:inherit;font-size:var(--fs-sub);color:var(--ink);outline:none;width:100%}
+.admbar .searchbox input::placeholder{color:var(--ink-4)}
+.admstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin:0 0 var(--sp-3)}
+.admstat{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-lg);
+  background:var(--surface);border:.5px solid var(--hairline);box-shadow:var(--sh-1);cursor:pointer;
+  text-align:start;font:inherit;color:inherit;transition:transform var(--t-fast) var(--ease)}
+.admstat:active{transform:scale(.985)}
+.admstat .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand-tint);color:var(--brand-ink)}
+.admstat .ic .i{width:18px;height:18px}
+.admstat .tx{display:grid;gap:2px;min-width:0}
+.admstat .tx small{font-size:var(--fs-cap);color:var(--ink-3)}
+.admstat .tx b{font-size:16px;font-weight:800;line-height:1.5}
+
+/* ── کارت‌های داشبورد ─────────────────────────────────────────────────── */
+.admgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);align-items:start}
+.admtasks{display:grid;gap:var(--sp-2)}
+.admtask{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:var(--r-md);
+  border:.5px solid var(--hairline);background:var(--surface);font:inherit;color:inherit;cursor:pointer;text-align:start}
+.admtask:active{transform:scale(.99)}
+.admtask .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--warn-tint);color:var(--warn)}
+.admtask .ic .i{width:17px;height:17px}
+.admtask .tx{display:grid;gap:2px;flex:1;min-width:0}
+.admtask .tx small{font-size:var(--fs-cap);color:var(--ink-3)}
+.admkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
+.admkpi .k{padding:12px;border-radius:var(--r-md);background:var(--surface-2);display:grid;gap:3px}
+.admkpi .k b{font-size:19px;font-weight:800;line-height:1.4}
+.admkpi .k small{font-size:var(--fs-cap);color:var(--ink-3)}
+.admkpi .k .up{color:var(--ok);font-size:11.5px;font-weight:700}
+.admbars{display:flex;align-items:flex-end;gap:6px;height:74px;padding:6px 2px 0}
+.admbars i{flex:1;border-radius:7px 7px 3px 3px;background:var(--brand-tint);min-height:8px}
+.admbars i.hi{background:var(--brand)}
+.admbarsx{display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--ink-4)}
+.admli{display:grid;gap:var(--sp-2)}
+.admlirow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--hairline-2)}
+.admlirow:last-child{border-bottom:0}
+
+/* ── ویزارد سه‌گامی ───────────────────────────────────────────────────── */
+.admwiz{display:grid;gap:var(--sp-3)}
+.admsteps{display:flex;align-items:center;gap:6px}
+.admsteps .st{flex:1;display:grid;gap:5px}
+.admsteps .st i{display:block;height:5px;border-radius:99px;background:var(--surface-sunk)}
+.admsteps .st.on i{background:var(--brand)}
+.admsteps .st.done i{background:var(--ok)}
+.admsteps .st small{font-size:10.5px;color:var(--ink-3);text-align:center}
+.admkinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2)}
+.admkind{display:grid;gap:6px;justify-items:center;padding:14px 8px;border-radius:var(--r-md);cursor:pointer;
+  border:.5px solid var(--hairline);background:var(--surface);font:inherit;color:inherit}
+.admkind .i{width:22px;height:22px;color:var(--brand-ink)}
+.admkind.on{border-color:var(--brand);background:var(--brand-tint)}
+.admkind.on .i{color:var(--brand-ink)}
+.admkind b{font-size:var(--fs-sub);font-weight:700}
+.admfields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3)}
+.admreview{display:grid;gap:2px;padding:14px;border-radius:var(--r-lg);
+  background:linear-gradient(160deg,rgba(0,113,227,.10),rgba(255,255,255,0));border:.5px solid var(--hairline)}
+.admreview b{font-size:18px;font-weight:800}
+.admreview .row{color:var(--ink-2);font-size:var(--fs-sub)}
+.admchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+
+/* ── فهرست‌ها و صافی‌ها ────────────────────────────────────────────────── */
+.admfilters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 var(--sp-3)}
+.admfilters .tag{cursor:pointer;font:inherit;height:32px;padding:0 13px;display:inline-flex;align-items:center;gap:6px;
+  border:.5px solid var(--hairline);background:var(--surface);border-radius:var(--r-pill)}
+.admfilters .tag.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.admlist{display:grid;gap:var(--sp-2)}
+.admrow2{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-md);cursor:pointer;
+  border:.5px solid var(--hairline);background:var(--surface);font:inherit;color:inherit;text-align:start;width:100%}
+.admrow2:active{transform:scale(.995)}
+.admrow2 .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--surface-sunk);color:var(--ink-2)}
+.admrow2 .ic .i{width:18px;height:18px}
+.admrow2 .tx{display:grid;gap:3px;flex:1;min-width:0}
+.admrow2 .tx small{font-size:var(--fs-cap);color:var(--ink-3);line-height:1.9}
+.admrow2 .mini{display:flex;align-items:center;gap:8px}
+.admrow2 .chev{width:16px;height:16px;color:var(--ink-4);flex:0 0 auto}
+.admbar-line{height:6px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;min-width:74px}
+.admbar-line i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+.admbar-line.full i{background:var(--stop)}
+
+/* ── جدول کاربران ─────────────────────────────────────────────────────── */
+.admtable{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-sub)}
+.admtable th{font-size:var(--fs-cap);color:var(--ink-3);font-weight:600;text-align:start;padding:8px 10px;
+  border-bottom:.5px solid var(--hairline)}
+.admtable td{padding:10px;border-bottom:.5px solid var(--hairline-2);vertical-align:middle}
+.admtable tr:last-child td{border-bottom:0}
+.admtable tbody tr{cursor:pointer}
+.admtable tbody tr:hover{background:var(--surface-2)}
+.admtable .num{font-family:'Nora Latin',var(--f)}
+.admtable td .tag{margin-inline-end:4px}
+.admcard-user{display:none}
+
+/* ── مرکز گواهینامه ───────────────────────────────────────────────────── */
+.admcert{display:grid;gap:var(--sp-3)}
+.admcertsteps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.admcertsteps button{padding:10px 6px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface);
+  font:inherit;font-size:11.5px;color:var(--ink-2);cursor:pointer;display:grid;gap:4px;justify-items:center}
+.admcertsteps button .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;
+  background:var(--surface-sunk);color:var(--ink-2)}
+.admcertsteps button.on{border-color:var(--brand);background:var(--brand-tint);color:var(--brand-ink);font-weight:700}
+.admcertsteps button.on .n{background:var(--brand);color:#fff}
+.admcertsteps button.done .n{background:var(--ok);color:#fff}
+.admtpl{display:grid;gap:var(--sp-2)}
+.admtpl .t{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--r-md);
+  border:.5px solid var(--hairline);background:var(--surface);cursor:pointer;font:inherit;color:inherit;text-align:start;width:100%}
+.admtpl .t.on{border-color:var(--brand);background:var(--brand-tint)}
+.admtpl .t .tx{display:grid;gap:2px;flex:1;min-width:0}
+.admtpl .t small{font-size:var(--fs-cap);color:var(--ink-3)}
+.admkindrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2)}
+.admkindbox{padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface-2);display:grid;gap:4px}
+.admkindbox b{font-size:var(--fs-sub)}
+.admkindbox small{font-size:var(--fs-cap);color:var(--ink-3);line-height:1.9}
+.admparam{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--hairline-2)}
+.admparam:last-child{border-bottom:0}
+.admparam .sp{flex:1;min-width:0}
+.admparam .sp b{font-weight:600;font-size:var(--fs-sub)}
+.admparam .sp small{display:block;font-size:10.5px;color:var(--ink-3)}
+.admparam input{max-width:210px}
+.admpub{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
+.admpub button{display:flex;align-items:center;gap:10px;padding:12px;border-radius:var(--r-md);cursor:pointer;text-align:start;
+  border:.5px solid var(--hairline);background:var(--surface);font:inherit;color:inherit}
+.admpub button.on{border-color:var(--brand);background:var(--brand-tint)}
+.admpub .tx{display:grid;gap:2px}
+.admpub small{font-size:10.5px;color:var(--ink-3)}
+.admcertcard{display:grid;gap:8px;justify-items:center;text-align:center;padding:16px;border-radius:var(--r-lg);
+  border:.5px solid var(--hairline);background:linear-gradient(180deg,var(--surface),var(--surface-sunk))}
+.admcertcard .c1{font-size:11.5px;color:var(--ink-3);letter-spacing:.4px}
+.admcertcard .c2{font-size:17px;font-weight:800}
+.admcertcard .c3{font-size:12.5px;color:var(--ink-2)}
+.admcertcard .c4{display:flex;gap:14px;align-items:center;margin-top:4px}
+.admcertcard .c4 svg.qr{display:block;border-radius:10px}
+.admcertcard .sig{font-size:11px;color:var(--ink-3);border-top:1px dashed var(--hairline);padding-top:7px;width:100%}
+
+/* ── تنظیمات: خاموش و روشن ────────────────────────────────────────────── */
+.admset{display:grid;gap:var(--sp-3)}
+.admsetgroup{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface);overflow:hidden}
+.admsetgroup>.gh{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface-2)}
+.admsetgroup>.gh .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  background:var(--brand-tint);color:var(--brand-ink);flex:0 0 auto}
+.admsetgroup>.gh .tx{display:grid;gap:2px;flex:1;min-width:0}
+.admsetgroup>.gh small{font-size:var(--fs-cap);color:var(--ink-3)}
+.admsw{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:.5px solid var(--hairline-2)}
+.admsw .sp{flex:1;font-size:var(--fs-sub)}
+.admsw small{display:block;font-size:10.5px;color:var(--ink-3)}
+.admtext{display:grid;gap:6px;padding:11px 14px;border-top:.5px solid var(--hairline-2)}
+.admtext .lbl{margin:0}
+.admmatrix{overflow:auto}
+.admmatrix table{border-collapse:separate;border-spacing:0;font-size:11.5px;min-width:520px;width:100%}
+.admmatrix th{position:sticky;top:0;background:var(--surface-2);padding:8px 9px;text-align:start;font-weight:600;
+  color:var(--ink-2);border-bottom:.5px solid var(--hairline);white-space:nowrap}
+.admmatrix td{padding:7px 9px;border-bottom:.5px solid var(--hairline-2);white-space:nowrap}
+.admmatrix td.yn{text-align:center;color:var(--ink-3)}
+.admmatrix td.yes{color:var(--ok);font-weight:700}
+.admmatrix tr.super td{background:var(--accent-tint)}
+.admrole{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--r-md);
+  border:.5px solid var(--hairline);background:var(--surface);cursor:pointer;font:inherit;color:inherit;text-align:start;width:100%}
+.admrole.on{border-color:var(--brand);background:var(--brand-tint)}
+.admrole .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2)}
+.admrole .tx{display:grid;gap:2px;flex:1;min-width:0}
+.admrole small{font-size:10.5px;color:var(--ink-3)}
+
+/* ── نوار پایین (موبایل): پنج بخش ─────────────────────────────────────── */
+#admTabs{grid-template-columns:repeat(5,1fr)}
+#admTabs a{display:grid;place-items:center;gap:3px;padding:7px 2px;border-radius:14px;text-decoration:none;
+  color:var(--ink-3);font-size:10.5px}
+#admTabs a .i{width:21px;height:21px}
+#admTabs a.on{color:var(--brand-ink);background:var(--brand-tint);font-weight:700}
+
+/* ── ورقهٔ جزئیات ─────────────────────────────────────────────────────── */
+.admsheet{display:grid;gap:var(--sp-2)}
+.admsheet .hit{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:.5px solid var(--hairline-2)}
+.admsheet .hit:last-child{border-bottom:0}
+.admsheet .hit .sp{flex:1;min-width:0}
+.admsheet .hit small{display:block;font-size:10.5px;color:var(--ink-3)}
+
+/* ── واکنش‌گرایی ──────────────────────────────────────────────────────── */
+@media (max-width:1180px){
+  .admgrid{grid-template-columns:1fr}
+  .admstats{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  .admcertsteps{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .admkindrow,.admpub{grid-template-columns:1fr}
+  .admfields{grid-template-columns:1fr}
+  .admtable{display:none}
+  .admcard-user{display:grid;gap:var(--sp-2)}
+}
+@media (max-width:620px){
+  .admkinds{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admkpi{grid-template-columns:1fr}
+  .admbar .searchbox{min-width:0;width:100%}
+}
+@media print{
+  .rail,.tabbar,.scrim,.sheet,.toast,#admTabs{display:none !important}
+  body{background:#fff}
+}
