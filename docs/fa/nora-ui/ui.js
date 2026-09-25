@@ -1382,6 +1382,55 @@ const AUTO_SURVEY={id:'auto', name:'نظرسنجی آمادهٔ نورا', kind:
 addEventListener('storage',e=>{if(e.key===FORMS_KEY) formsAnnounce()});
 addEventListener('nora-forms-changed',()=>{});
 
+/* ── مطلب‌ها: انبار مشترکِ سازنده و خواننده ────────────────────────────────
+   مطلب در پنل، بخش «مطلب‌ها» بلوکی ساخته می‌شود: پاراگراف، تیتر، عکس،
+   ویدیو (آپارات، یوتیوب یا فایل)، صدا، نقل قول، فهرست، دکمهٔ لینک،
+   جعبهٔ توجه، جمع‌شونده و جداکننده؛ هر کدام هر چند تا و به هر ترتیب.
+   رویداد و فرم هم می‌توانند به مطلب پیوند بخورند. */
+const POSTS_KEY='nora-posts';
+function postsAll(){
+  try{const a=JSON.parse(localStorage.getItem(POSTS_KEY)||'[]'); return Array.isArray(a)?a:[]}catch(e){return []}
+}
+function postsAnnounce(){try{dispatchEvent(new CustomEvent('nora-posts-changed'))}catch(e){}}
+function postsSave(list){try{localStorage.setItem(POSTS_KEY,JSON.stringify(list))}catch(e){}; postsAnnounce()}
+function postById(id){return postsAll().find(p=>String(p.id)===String(id))||null}
+function postPut(p){
+  const list=postsAll(), i=list.findIndex(x=>String(x.id)===String(p.id));
+  const row=Object.assign({}, i>=0?list[i]:{}, p, {at:p.at||Date.now()});
+  if(i>=0) list[i]=row; else list.unshift(row);
+  postsSave(list); return row;
+}
+function postPatch(id,patch){const p=postById(id); if(!p) return null; return postPut(Object.assign({},p,patch))}
+function postDrop(id){postsSave(postsAll().filter(p=>String(p.id)!==String(id)))}
+function postsPub(){return postsAll().filter(p=>p.pub&&!p.pend)}
+/* زمان خواندن: هر ۱۷۰ واژه فارسی یک دقیقه؛ ویدیو و صدا و عکس هم اضافه می‌کنند */
+function postMin(p){
+  const bs=(p&&p.blocks)||[];
+  const words=(String(p&&p.lead||'')+' '+bs.map(b=>{if(!b) return '';
+    return Array.isArray(b.x)?b.x.join(' '):(b.x||b.t||b.by||b.cap||'')}).join(' '))
+    .trim().split(/\s+/).filter(Boolean).length;
+  const heavy=bs.filter(b=>b&&['vid','aud'].indexOf(b.ty)>-1).length;
+  const imgs=bs.filter(b=>b&&b.ty==='img').length;
+  return Math.max(1,Math.round(words/170+heavy*1.5+imgs*0.15));
+}
+/* شکل کارت مطلب برای خانهٔ کاربر؛ همان‌قدر خودی که نمونه‌های ثابت‌اند */
+function postsFeed(){return postsPub().map(p=>({id:p.id, t:p.t||'بی نام', cat:p.cat||'مطلب',
+  min:p.min||postMin(p), lead:p.lead||'', who:p.author||'', cov:(p.cover&&p.cover.up)||'',
+  g:(p.cover&&p.cover.g)||'linear-gradient(135deg,#1E6FD0,#0A3A82)',
+  tags:(p.tags||[]).slice(0,2), pin:!!p.pin, club:!!p.club, views:faN(+p.views||0), mine:1}))}
+/* تاریخ مطلب: «جمعه ۴ مهر» از زمان انتشار */
+const postDate=at=>{try{const g=new Date(at||Date.now()), j=jalaliOf(g.getFullYear(),g.getMonth()+1,g.getDate());
+  return faJDate(j.jy,j.jm,j.jd)}catch(e){return ''}};
+/* شمار بازدید: در هر نشست یک بار برای هر مطلب */
+function postView(id){
+  let seen=false;
+  try{seen=!!sessionStorage.getItem('nora-pv-'+id)}catch(e){}
+  if(seen) return;
+  const p=postById(id); if(!p) return;
+  postPatch(id,{views:(+p.views||0)+1});
+  try{sessionStorage.setItem('nora-pv-'+id,'1')}catch(e){}
+}
+
 /* ── رویدادهای منتشرشدهٔ پنل: همان انبار مدیر، دست کاربر هم می‌آید ─────────
    ردیف پنل را به شکل صفحه‌های کاربر برمی‌گردانیم تا در فهرست رویدادها،
    برگهٔ رویداد و ورقهٔ کلیات همان‌قدر خودی باشند که نمونه‌های ثابت‌اند.
@@ -1451,7 +1500,9 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   clockNow:clockNow,clockParts:clockParts,clockHM:clockHM,clockFull:clockFull,clockDay:clockDay,
   clockState:()=>CLK.state,clockAt:()=>CLK.at,netSyncClock:netSyncClock,
   FORMS_KEY:FORMS_KEY,formsAll:formsAll,formById:formById,formPut:formPut,formPatch:formPatch,
-  formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents,autoSurvey:AUTO_SURVEY});
+  formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents,autoSurvey:AUTO_SURVEY,
+  POSTS_KEY:POSTS_KEY,postsAll:postsAll,postsPub:postsPub,postById:postById,postPut:postPut,
+  postPatch:postPatch,postDrop:postDrop,postsFeed:postsFeed,postMin:postMin,postDate:postDate,postView:postView});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){
@@ -1468,7 +1519,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v33') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v34') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

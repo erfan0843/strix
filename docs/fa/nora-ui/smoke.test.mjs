@@ -1446,7 +1446,7 @@ async function load(file,store,q){
   console.log('\n── پنل مدیران (admin.html) ──');
   const p=await load('admin.html',makeStore());
   ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
-  ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
+  ok(p.all('#admNav .btn').length===9,'نه بخش در ریل پنل نشسته');
   ok(p.all('.kpi').length===4,'چهار عدد کلیدی سرِ داشبورد پنل');
   ok(p.all('.qrow').length===8,'کارتابل مالک پنل کوتاه است (۸ کار)');
   ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» روی کارتابل هست');
@@ -1461,7 +1461,7 @@ async function load(file,store,q){
   p.click('[data-who-sheet]');
   ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');
   p.click('#shAdm [data-who="p10"]');
-  ok(p.all('#admNav [data-locked]').length===4,'کارشناس چهار بخش بسته دارد');
+  ok(p.all('#admNav [data-locked]').length===5,'کارشناس پنج بخش بسته دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس یک کار است');
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p2"]');
@@ -1518,7 +1518,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:48, added:[
+  store.setItem('nora-admin', JSON.stringify({v:49, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,
@@ -1593,6 +1593,26 @@ async function load(file,store,q){
   const adx=await load('admin.html',store,'#events');
   adx.click('[data-ev="u10"]');
   ok(/برگزار شده/.test(adx.txt('#shAdm'))&&/آرشیو/.test(adx.txt('#shAdm')),'برگهٔ برگزارشده با جعبهٔ آرشیو در پنل هست');
+
+  /* مطلب: خانهٔ کاربر ریل مطلبها را از پنل میخواند و post.html بلوکی میخواند */
+  const pst=makeStore();
+  pst.setItem('nora-posts', JSON.stringify([{id:'npSmoke1', t:'مطلب دودی باشگاه', cat:'گزارش',
+    tags:['باشگاه'], lead:'سرآغاز مطلب دودی.', author:'نویسندهٔ دمو', cover:{g:''},
+    pub:1, pend:0, views:4, at:Date.now(), min:3,
+    blocks:[{ty:'p',x:'متن اول.'},{ty:'h',x:'بخش دوم',lv:2},{ty:'p',x:'متن دوم.'},
+      {ty:'vid',src:'https://www.aparat.com/v/xyz99'},{ty:'btn',x:'بیشتر',href:'https://lifeline1.ir',kind:'quiet'}],
+    ev:'e1', fm:''}]));
+  const ph=await load('home.html',pst);
+  ok(/مطلب دودی باشگاه/.test(ph.txt('#artRail')),'ریل خانه، مطلب منتشرشدهٔ پنل را میبیند');
+  const pp=await load('post.html',pst,'?id=npSmoke1');
+  ok(pp.errs.length===0,'post.html با مطلب دودی بی‌خطا است'+(pp.errs.length?': '+pp.errs[0]:''));
+  ok(pp.all('.pb-h2').length===1&&!pp.doc.querySelector('.pb-toc'),'تیتر داخل مطلب است و فهرست با زیر دو تیتر نمیآید');
+  ok(/videohash\/xyz99\/vt\/frame/.test(pp.doc.querySelector('.pb-vid iframe').src),'امبد آپارات درست است');
+  ok(!!pp.doc.querySelector('.pb-ev')&&/event\.html\?id=e1/.test(pp.doc.querySelector('.pb-ev').getAttribute('href')),'کارت رویداد پیوندی در دود هست');
+  ok(!!pp.doc.querySelector('#pbShare')&&!!pp.doc.querySelector('#pbCopy'),'همرسانی و رونوشت هست');
+  const pf=await load('form.html',pst,'?fr=fDemo');
+  ok(pf.errs.length===0,'form.html حالت fr بی‌خطا است'+(pf.errs.length?': '+pf.errs[0]:''));
+  ok(/فرم شما دریافت شد|ثبت/.test(pf.txt('#u12'))||!pf.doc.querySelector('#sqp0'),'حالت fr با فرم نایافته هم نمی‌شکند');
 
   /* خانهٔ کاربر: جست‌وجو رویداد منتشرشده را پیدا می‌کند */
   const hm=await load('home.html',store);

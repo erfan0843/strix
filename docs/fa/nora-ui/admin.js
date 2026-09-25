@@ -43,7 +43,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=48;
+const SVER=49;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -58,7 +58,8 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
     stamp:0,edit:''},
   defs:[], evEdit:{},
   cert:{step:0,tpl:'t1',kind:'per',params:{},who:'ev',whoVal:'',pub:'notify'},
-  setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:''};
+  setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'',
+  psec:'list', ped:null};
 let S=JSON.parse(JSON.stringify(BASE));
 try{
   const v=JSON.parse(localStorage.getItem(SKEY)||'null');
@@ -66,6 +67,7 @@ try{
     S=Object.assign(S,v);
     S.wiz=Object.assign({},BASE.wiz,v.wiz||{});
     S.cert=Object.assign({},BASE.cert,v.cert||{});
+    if(v.ped){ if(!Array.isArray(v.ped.blocks)) delete v.ped; }
     ['jobs','added','qdone','qextra','extra','defs'].forEach(k=>{if(!Array.isArray(S[k])) S[k]=[]});
     ['qgive','leads','specPerms','specExtra'].forEach(k=>{if(!S[k]||typeof S[k]!=='object') S[k]={}});
     /* حالت دور پیش پنل: نقش تخت جایش را به حوزه داده */
@@ -1662,8 +1664,150 @@ function sheetSetLead(fk){
       ${ico('i-chev-left','chev')}</button>`).join('')||emptyBox(D.qEmpty||'')}</div></div>`);
 }
 
+/* ══ مطلبها: فهرست و ویرایشگر بلوکی ══════════════════════════════════════
+   مطلب بلوکی است: پاراگراف، تیتر، عکس، ویدیو (آپارات، یوتیوب یا فایل)،
+   صدا، نقل قول، فهرست، دکمهٔ لینک، جعبهٔ توجه، جمع‌شونده و جداکننده؛
+   هر کدام هر چند تا. رویداد و فرم هم پیوند می‌خورند و پیش‌نمایش، پیش از
+   انتشار در post.html دیده می‌شود. مالک و سرپرست منتشر می‌کنند؛ بقیه
+   می‌فرستند برای تأیید. */
+const PGRADS=['linear-gradient(135deg,#1E6FD0,#0A3A82)','linear-gradient(135deg,#3E5B84,#0B2447)',
+  'linear-gradient(135deg,#0E7B61,#083D33)','linear-gradient(135deg,#8A5A2B,#3D2714)'];
+const PTY={p:{n:'پاراگراف',i:'i-pen'},h:{n:'تیتر',i:'i-align'},img:{n:'عکس',i:'i-image'},
+  vid:{n:'ویدیو',i:'i-play'},aud:{n:'صدا',i:'i-headphone'},q:{n:'نقل قول',i:'i-doc'},
+  ul:{n:'فهرست',i:'i-list'},ol:{n:'شمارشی',i:'i-list'},btn:{n:'دکمهٔ لینک',i:'i-link'},
+  box:{n:'جعبهٔ توجه',i:'i-bell'},tog:{n:'جمع‌شونده',i:'i-chev-down'},hr:{n:'جداکننده',i:'i-close'}};
+function U(){try{return (window.NORA_UI&&NORA_UI)||null}catch(e){return null}}
+function pedPosts(){const u=U(); return u&&u.postsAll?u.postsAll():[]}
+function pedSave(p){const u=U(); if(u&&u.postPut) u.postPut(p)}
+function pedMin(p){const u=U(); return u&&u.postMin?u.postMin(p):1}
+const BLK=v=>({ty:v});
+function blockEd(b,i){
+  const T=PTY[b.ty]||{n:'بلوک',i:'i-doc'};
+  const ctl=`<span class="sp"></span>
+    <button class="btn sm quiet" data-bup="${i}" aria-label="بالا">${ico('i-chev-right','transform:rotate(-90deg)')}</button>
+    <button class="btn sm quiet" data-bdown="${i}" aria-label="پایین">${ico('i-chev-right','transform:rotate(90deg)')}</button>
+    <button class="btn sm quiet" data-bdel="${i}" aria-label="برداشتن">${ico('i-trash')}</button></div>`;
+  const head=`<div class="row tight"><span class="tag brand">${ico(T.i)}${esc(T.n)}</span><small class="cap">${faN(i+1)}</small>${ctl}`;
+  const inp=(f,ph,val,extra)=>`<input class="input" data-bi="${i}" data-bf="${f}" value="${esc(val==null?'':val)}" placeholder="${esc(ph)}" ${extra||''}/>`;
+  const ta=(f,ph,val,rows)=>`<textarea class="input" data-bi="${i}" data-bf="${f}" rows="${rows||3}" placeholder="${esc(ph)}">${esc(val==null?'':val)}</textarea>`;
+  let body='';
+  switch(b.ty){
+    case 'p': body=ta('x','متن پاراگراف…',b.x); break;
+    case 'h': body=inp('x','متن تیتر',b.x)+`<select class="input" data-bi="${i}" data-bf="lv">
+        <option value="2"${+b.lv!==3?' selected':''}>تیتر اصلی</option>
+        <option value="3"${+b.lv===3?' selected':''}>تیتر کوچک</option></select>`; break;
+    case 'img': body=`${b.up?`<img src="${esc(b.up)}" alt="" style="width:100%;max-height:150px;object-fit:cover;border-radius:12px"/>`:''}
+      <label class="btn sm quiet">${ico('i-file-up')}آپلود عکس<input type="file" accept="image/*" data-bfile="${i}" hidden/></label>
+      ${inp('src','یا لینک عکس',b.src)}
+      ${inp('cap','زیرنویس عکس',b.cap)}${inp('alt','متن جایگزین (دسترس‌پذیری)',b.alt)}`; break;
+    case 'vid': body=inp('src','لینک آپارات، یوتیوب یا فایل mp4',b.src)+inp('cap','زیرنویس ویدیو',b.cap)
+      +`<small class="cap">لینک آپارات و یوتیوب خودش پخش‌شونده می‌شود.</small>`; break;
+    case 'aud': body=inp('src','لینک مستقیم فایل صوتی (mp3)',b.src)+inp('cap','نام یا زیرنویس صدا',b.cap); break;
+    case 'q': body=ta('x','متن نقل قول…',b.x)+inp('by','گوینده یا منبع',b.by); break;
+    case 'ul': case 'ol': body=ta('x','هر سطر یک مورد',Array.isArray(b.x)?b.x.join('\n'):''); break;
+    case 'btn': body=inp('x','نوشتهٔ دکمه',b.x)+inp('href','نشانی لینک',b.href)
+      +`<div class="row tight"><button class="chip ${b.kind!=='quiet'?'on':''}" data-bbtn="${i}" data-bk="primary">اصلی</button>
+        <button class="chip ${b.kind==='quiet'?'on':''}" data-bbtn="${i}" data-bk="quiet">آرام</button></div>`; break;
+    case 'box': body=ta('x','متن جعبه…',b.x)+`<select class="input" data-bi="${i}" data-bf="ic">
+        <option value="i-info"${b.ic!=='i-star'&&b.ic!=='i-bell'?' selected':''}>نکته</option>
+        <option value="i-star"${b.ic==='i-star'?' selected':''}>پیشنهاد</option>
+        <option value="i-bell"${b.ic==='i-bell'?' selected':''}>هشدار</option></select>`; break;
+    case 'tog': body=inp('t','عنوان جمع‌شونده',b.t)+ta('x','متن پنهان…',b.x); break;
+    case 'hr': body=`<small class="cap">خط جداکنندهٔ ساده.</small>`; break;
+    default: body='';
+  }
+  return `<div class="card sunk" style="padding:12px;display:grid;gap:8px">${head}${body}</div>`;
+}
+function postEditor(){
+  const d=S.ped||{}, blocks=d.blocks||[];
+  const catList=(()=>{try{return (window.NORA&&NORA.ARTICLES||[]).map(a=>a.cat).concat(pedPosts().map(x=>x.cat||''))
+    .filter((v,i,arr)=>v&&arr.indexOf(v)===i)}catch(e){return []}})();
+  const evs=evAll(), mades=madeForms(), demos=demoForms();
+  const cov=d.cover||{};
+  return `<section class="card stack">
+    <div class="row"><div class="head">${d.id?'ویرایش مطلب':'مطلب تازه'}</div><span class="sp"></span>
+      ${btn(W.back||'بازگشت','data-pback','i-back')}</div>
+    <div class="pb-covprev" style="--g:${esc(cov.g||PGRADS[0])};position:relative;height:120px;border-radius:14px;overflow:hidden;border:.5px solid var(--hairline)">
+      ${cov.up?`<img src="${esc(cov.up)}" alt="" style="width:100%;height:100%;object-fit:cover"/>`:''}</div>
+    <div class="row tight">
+      ${PGRADS.map((g,i)=>`<button class="chip ${!cov.up&&cov.g===g?'on':''}" data-pgrad="${i}" aria-label="تم ${faN(i+1)}"><span style="display:inline-block;width:26px;height:14px;border-radius:6px;background:${g}"></span></button>`).join('')}
+      <label class="btn sm quiet">${ico('i-file-up')}جلد خودم<input type="file" accept="image/*" data-pfile="1" hidden/></label>
+      ${cov.up?`<button class="btn sm quiet" data-pclear="1">${ico('i-trash')}بردار</button>`:''}
+    </div>
+    <div class="fld"><span class="lbl">عنوان مطلب</span>
+      <input class="input" data-pf="t" value="${esc(d.t||'')}" placeholder="مثلاً: گزارش کارگاه عکاسی"/></div>
+    <div class="fld"><span class="lbl">سرآغاز (یک تا دو خط، بالای مطلب می‌نشیند)</span>
+      <textarea class="input" rows="2" data-pf="lead" placeholder="چرا این مطلب را باید خواند؟">${esc(d.lead||'')}</textarea></div>
+    <div class="row tight">
+      <div class="fld" style="flex:1"><span class="lbl">دسته</span>
+        <input class="input" data-pf="cat" value="${esc(d.cat||'')}" list="pcats" placeholder="مثلاً: گزارش"/>
+        <datalist id="pcats">${catList.map(c=>`<option value="${esc(c)}"/>`).join('')}</datalist></div>
+      <div class="fld" style="flex:1"><span class="lbl">برچسب‌ها (با ویرگول)</span>
+        <input class="input" data-pf="tags" value="${esc(d.tags||'')}" placeholder="گزارش، عکاسی"/></div>
+    </div>
+    <div class="row tight">
+      <div class="fld" style="flex:1"><span class="lbl">نویسنده</span>
+        <input class="input" data-pf="author" value="${esc(d.author||'')}" placeholder="نام نویسنده"/></div>
+      <div class="fld"><span class="lbl">نماد</span>
+        <div class="row tight">
+          <button class="chip ${d.pin?'on':''}" data-ptog="pin">${ico('i-pin')} پین</button>
+          <button class="chip ${d.club?'on':''}" data-ptog="club">${ico('i-book')} باشگاه</button>
+        </div></div>
+    </div>
+    <hr class="hr"/>
+    <div class="head">بن‌مایهٔ مطلب</div>
+    ${blocks.length?blocks.map(blockEd).join(''):`<div class="empty cap">${ico('i-doc')}<p style="margin-top:6px">هنوز بلوکی نیست؛ از پالت پایین اضافه کن.</p></div>`}
+    <div class="fld"><span class="lbl">افزودن بلوک</span>
+      <div class="row tight" style="flex-wrap:wrap">
+        ${Object.keys(PTY).map(k=>`<button class="chip" data-badd="${k}">${ico(PTY[k].i)}${esc(PTY[k].n)}</button>`).join('')}
+      </div></div>
+    <hr class="hr"/>
+    <div class="row tight">
+      <div class="fld" style="flex:1"><span class="lbl">پیوند رویداد</span>
+        <select class="input" data-pev="1"><option value="">بدون پیوند</option>
+          ${evs.map(e=>`<option value="${esc(e.id)}"${String(d.ev)===String(e.id)?' selected':''}>${esc(e.n||e.t||e.id)}</option>`).join('')}
+        </select></div>
+      <div class="fld" style="flex:1"><span class="lbl">پیوند فرم</span>
+        <select class="input" data-pfm="1"><option value="">بدون فرم</option>
+          ${mades.map(f=>`<option value="${esc(f.id)}"${String(d.fm)===String(f.id)?' selected':''}>${esc(f.name||f.n||f.id)} · فرم‌ساز</option>`).join('')}
+          ${demos.map(f=>`<option value="${esc(f.id)}"${String(d.fm)===String(f.id)?' selected':''}>${esc(f.name||f.n||f.id)} · نمونه</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="row">
+      <span class="sp"></span>
+      <button class="btn quiet" data-pprev="1">${ico('i-eye')} پیش‌نمایش</button>
+      ${isOwner()||isLead()
+        ?`<button class="btn primary" data-ppub="1">${ico('i-check')} انتشار</button>`
+        :`<button class="btn primary" data-psend="1">${ico('i-send')} فرستادن برای تأیید</button>`}
+    </div>
+    <p class="cap">پیش‌نمایش پیش از انتشار در post.html باز می‌شود؛ خواننده مطلب را با فهرست، رسانه و پیوند رویداد و فرم می‌بیند.</p>
+  </section>`;
+}
+function vPosts(){
+  if(S.psec==='edit') return postEditor();
+  const u=U(), rows=pedPosts();
+  const list=rows.map(p=>rowLink({attrs:`data-pedit="${esc(p.id)}"`, i:'i-article',
+    b:esc(p.t||'بی نام'),
+    s:`${esc(p.cat||'مطلب')} · ${faN(pedMin(p))} دقیقه · ${faN(+p.views||0)} بازدید${p.ev?' · پیوند رویداد':''}${p.fm?' · پیوند فرم':''}`,
+    right:`${p.pend?tag('در انتظار تأیید','warn'):(p.pub?tag('منتشر شده','ok'):tag('پیش‌نویس',''))}
+      <a class="btn sm quiet" href="post.html?id=${encodeURIComponent(p.id)}${p.pub?'':'&d=1'}" target="_blank" rel="noopener" aria-label="دیدن">${ico('i-eye')}</a>
+      <button class="btn sm quiet" data-ppin="${esc(p.id)}" aria-label="پین">${ico('i-pin')}</button>
+      <button class="btn sm quiet" data-pdel="${esc(p.id)}" aria-label="حذف">${ico('i-trash')}</button>`})).join('');
+  const demo=((window.NORA&&NORA.ARTICLES)||[]).map(a=>rowLink({attrs:`data-pprevgo="${esc(a.id)}"`, i:'i-article',
+    b:esc(a.t), s:`${esc(a.cat)} · ${faN(a.min)} دقیقه · نمونهٔ ثابت`, right:tag('نمونه','')})).join('');
+  return `<section class="card stack">
+    <div class="row"><div class="head">مطلب‌ها</div><span class="sp"></span>
+      ${btn('مطلب تازه','data-pnew','i-plus')}</div>
+    <div class="admlist">${list||emptyBox('هنوز مطلبی نساخته‌ای')}</div>
+    <hr class="hr"/>
+    <div class="head">نمونه‌های ثابت</div>
+    <div class="admlist">${demo}</div>
+    <p class="cap">مطلب منتشرشده در خانهٔ کاربران، بخش «مطالب» می‌نشیند و پیش‌نمایشش در post.html باز می‌شود.</p>
+  </section>`;
+}
+
 /* ══ رندر ══════════════════════════════════════════════════════════════ */
-const VIEWS={dash:vDash, newev:vNewev, events:vEvents, users:vUsers, forms:vForms,
+const VIEWS={dash:vDash, newev:vNewev, events:vEvents, users:vUsers, forms:vForms, posts:vPosts,
   reports:vReports, cert:vCert, settings:vSettings};
 function body(){
   if(!canSec(S.sec)) return `<section class="card stack">${emptyBox(W.locked||'')}
@@ -1683,6 +1827,8 @@ function sanitize(){
   if(S.addF&&(!personOf(S.addF)||fieldOf(S.addF).k!==S.addF)) delete S.addF;
   if(['all','بالا','میان','معمولی'].indexOf(S.qf)<0) S.qf='all';
   if(['info','reg','att','money','cert','news'].indexOf(S.evTab)<0) S.evTab='info';
+  if(['list','edit'].indexOf(S.psec)<0) S.psec='list';
+  if(S.ped&&(!Array.isArray(S.ped.blocks))) S.ped=null;
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
 }
@@ -1772,6 +1918,53 @@ document.addEventListener('click',e=>{
     toast((tg.dataset.toglabel||'')+(on?' روشن شد':' خاموش شد')); return}
   const fs=q('[data-formsw]'); if(fs){const i=+fs.dataset.formsw, r=((A.forms||{}).rows||[])[i];
     if(r){r.on=!r.on; toast(r.on?'فرم باز شد':'فرم بسته شد'); renderBody()} return}
+  /* ── مطلبها: فهرست و ویرایشگر بلوکی ── */
+  const pnew=q('[data-pnew]'); if(pnew){
+    S.ped={id:'np'+Date.now(), t:'', cat:'', tags:'', lead:'', author:(me().n||''), cover:{g:PGRADS[0]},
+      pin:0, club:0, blocks:[], ev:'', fm:'', pub:0, pend:0, views:0, at:0};
+    S.psec='edit'; save(); renderBody(); return}
+  const pedit=q('[data-pedit]'); if(pedit){const pid=pedit.dataset.pedit, pp=pedPosts().find(x=>String(x.id)===String(pid));
+    if(pp){S.ped=JSON.parse(JSON.stringify(pp)); S.ped.tags=(pp.tags||[]).join('، '); S.psec='edit'; save(); renderBody()} return}
+  const pback=q('[data-pback]'); if(pback){S.ped=null; S.psec='list'; save(); renderBody(); return}
+  const pdel=q('[data-pdel]'); if(pdel){const u=U(); if(u&&u.postDrop) u.postDrop(pdel.dataset.pdel);
+    if(S.ped&&String(S.ped.id)===String(pdel.dataset.pdel)){S.ped=null; S.psec='list'}
+    toast('مطلب برداشته شد'); save(); renderBody(); return}
+  const ppin=q('[data-ppin]'); if(ppin){const u=U(), pp=u&&u.postById?u.postById(ppin.dataset.ppin):null;
+    if(u&&u.postPatch&&pp){u.postPatch(pp.id,{pin:pp.pin?0:1}); toast(pp.pin?'پین برداشته شد':'مطلب پین شد'); renderBody()} return}
+  const pprevgo=q('[data-pprevgo]'); if(pprevgo){window.open('post.html?id='+encodeURIComponent(pprevgo.dataset.pprevgo)+'&d=1','_blank','noopener'); return}
+  const pgrad=q('[data-pgrad]'); if(pgrad&&S.ped){S.ped.cover=Object.assign({},S.ped.cover||{},{g:PGRADS[+pgrad.dataset.pgrad],up:''});
+    save(); renderBody(); return}
+  const pclear=q('[data-pclear]'); if(pclear&&S.ped){S.ped.cover={g:PGRADS[0]}; save(); renderBody(); return}
+  const ptog=q('[data-ptog]'); if(ptog&&S.ped){const k2=ptog.dataset.ptog; S.ped[k2]=S.ped[k2]?0:1; save(); renderBody(); return}
+  const badd=q('[data-badd]'); if(badd&&S.ped){
+    const ty=badd.dataset.badd, nb=BLK(ty);
+    if(ty==='h'){nb.x=''; nb.lv=2}
+    S.ped.blocks.push(nb); save(); renderBody(); return}
+  const bdel=q('[data-bdel]'); if(bdel&&S.ped){S.ped.blocks.splice(+bdel.dataset.bdel,1); save(); renderBody(); return}
+  const bup=q('[data-bup]'); if(bup&&S.ped){const i=+bup.dataset.bup;
+    if(i>0){const bl=S.ped.blocks; const t=bl[i-1]; bl[i-1]=bl[i]; bl[i]=t; save(); renderBody()} return}
+  const bdown=q('[data-bdown]'); if(bdown&&S.ped){const i=+bdown.dataset.bdown, bl=S.ped.blocks;
+    if(i<bl.length-1){const t=bl[i+1]; bl[i+1]=bl[i]; bl[i]=t; save(); renderBody()} return}
+  const bbtn=q('[data-bbtn]'); if(bbtn&&S.ped){const b=S.ped.blocks[+bbtn.dataset.bbtn];
+    if(b){b.kind=bbtn.dataset.bk; save(); renderBody()} return}
+  const pprev=q('[data-pprev]'); if(pprev&&S.ped){
+    const d2=JSON.parse(JSON.stringify(S.ped));
+    d2.tags=String(d2.tags||'').split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+    d2.min=pedMin(d2); d2.pub=0; d2.pend=0; pedSave(d2);
+    window.open('post.html?id='+encodeURIComponent(d2.id)+'&d=1','_blank','noopener'); return}
+  const ppub=q('[data-ppub]'); if(ppub&&S.ped){
+    const d2=JSON.parse(JSON.stringify(S.ped));
+    if(!String(d2.t||'').trim()){toast('عنوان مطلب را بنویس'); return}
+    d2.tags=String(d2.tags||'').split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+    d2.min=pedMin(d2); d2.pub=1; d2.pend=0; d2.at=d2.at||Date.now(); pedSave(d2);
+    S.ped=null; S.psec='list'; save(); renderBody(); toast('مطلب منتشر شد؛ خانهٔ کاربران هم می‌بیند'); return}
+  const psend=q('[data-psend]'); if(psend&&S.ped){
+    const d2=JSON.parse(JSON.stringify(S.ped));
+    if(!String(d2.t||'').trim()){toast('عنوان مطلب را بنویس'); return}
+    d2.tags=String(d2.tags||'').split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+    d2.min=pedMin(d2); d2.pub=0; d2.pend=1; d2.at=d2.at||Date.now(); pedSave(d2);
+    S.ped=null; S.psec='list'; save(); renderBody(); toast('مطلب رفت در صف تأیید'); return}
+
   const wk=q('[data-wkind]'); if(wk){S.wiz.kind=wk.dataset.wkind; S.wiz.step=0; S.dp=null; save(); renderBody(); return}
   const wpo=q('[data-wposter]'); if(wpo){const k=wpo.dataset.wposter;
     S.wiz.poster=S.wiz.poster===k?'':k; save(); renderBody(); return}
@@ -1962,6 +2155,14 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
+  if(el.dataset.pev&&S.ped){S.ped.ev=el.value; save(); return}
+  if(el.dataset.pfm&&S.ped){S.ped.fm=el.value; save(); return}
+  if(el.dataset.pfile){const f=(el.files||[])[0]; if(!f||!S.ped) return;
+    shrinkPoster(f,url=>{ if(!url){toast('این تصویر خوانده نشد'); return}
+      S.ped.cover={up:url}; save(); renderBody(); toast('جلد خودم نشست');}); return}
+  if(el.dataset.bfile&&S.ped){const i=+el.dataset.bfile, f=(el.files||[])[0]; if(!f) return;
+    shrinkPoster(f,url=>{ if(!url){toast('این تصویر خوانده نشد'); return}
+      const b=S.ped.blocks[i]; if(b){b.up=url; delete b.src; save(); renderBody()}}); return}
   if(el.dataset.cparam){S.cert.params[el.dataset.cparam]=String(el.value||'').trim(); save(); return}
   if(el.dataset.text){S.texts[el.dataset.text]=String(el.value||''); save(); return}
   if(el.dataset.sessd!==undefined){const ses=S.wiz.sess||[], s2=ses[+el.dataset.sessd]; if(s2) s2.d=el.value; save(); return}
@@ -2011,6 +2212,15 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{
   const el=e.target; if(!el||!el.dataset) return;
+  if(el.dataset.pf&&S.ped){S.ped[el.dataset.pf]=el.value; save(); return}
+  if(el.dataset.bf&&S.ped){
+    const bi=el.closest('[data-bi]'), i=bi?+bi.dataset.bi:-1, b=i>-1?S.ped.blocks[i]:null;
+    if(b){const f=el.dataset.bf;
+      if(b.ty==='ul'||b.ty==='ol') b.x=el.value.split('\n');
+      else if(f==='lv') b.lv=+el.value||2;
+      else b[f]=el.value;
+      save()}
+    return}
   if(el.id==='admQ'){S.q=el.value; renderBody(); return}
   if(el.dataset.remn!==undefined){const i=+el.dataset.remn, r=remList()[i];
     if(r){r.n=Math.max(0,+un(el.value)||0); rcap(el,i); save()}

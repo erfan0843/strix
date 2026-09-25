@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=44"/>
-<link rel="stylesheet" href="nora.css?v=44"/>
+<link rel="stylesheet" href="glass.css?v=45"/>
+<link rel="stylesheet" href="nora.css?v=45"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -657,8 +657,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=44"></script>
-<script src="ui.js?v=44"></script>
+<script src="data.js?v=45"></script>
+<script src="ui.js?v=45"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -675,6 +675,9 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 /* ── بنرها: تیتر، تگ و ترتیب دست کارشناس روابط عمومی است ── */
 const {BANNERS,PEOPLE,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS}=window.NORA;
+/* مطلبهای منتشرشدهٔ پنل بالای نمونههای ثابت می‌نشینند؛ مطلب بلوکی در post.html خوانده می‌شود */
+const ARALL=()=>((window.NORA_UI&&NORA_UI.postsFeed)?NORA_UI.postsFeed():[]).concat(ARTICLES);
+const isPanelPost=id=>String(id).slice(0,2)==='np';
 /* رویدادهای منتشرشدهٔ پنل: خانهٔ کاربر هم همان‌ها را نشان میدهد */
 let EVENTS=(window.NORA&&window.NORA.EVENTS)||[];
 let PAST=(window.NORA&&window.NORA.PAST)||[];
@@ -754,7 +757,7 @@ const QUICK=[
  {k:'past', i:'i-archive', n:'برگزارشده‌ها', s:'ضبط و بازپخش', j:'pastSec'},
  {k:'club', i:'i-book', n:'باشگاه کتاب', s:'ترم مهر', anim:'float', href:'account.html#book', tag:'پیشنهادی'},
  {k:'people', i:'i-graduation', n:'اساتید', s:faN(TEACHERS.length)+' نفر', j:'teachers'},
- {k:'articles', i:'i-article', n:'مطالب', s:faN(ARTICLES.length)+' مطلب تازه', j:'articles'},
+ {k:'articles', i:'i-article', n:'مطالب', s:faN(ARALL().length)+' مطلب تازه', j:'articles'},
  {k:'partners', i:'i-handshake', n:'نهادهای همکار', s:faN(PARTNERS.length)+' نهاد', j:'partners'},
  {k:'verify', i:'i-qr', n:'استعلام گواهی', s:'با شمارهٔ سریال', f:'shVerify'},
  {k:'support', i:'i-headphone', n:'پشتیبانی', s:'راهنما و تیکت', anim:'wiggle', href:'support.html'}
@@ -769,7 +772,7 @@ const MENU=[
    {i:'i-book', t:'باشگاه کتاب‌خوانی', s:'زیر پروفایل من · سرپرست: خانم داوودی', href:'account.html#book', tag:'پیشنهادی'},
    {i:'i-heart', t:'پویش‌های خیریه', s:'مشارکت و گزارش شفاف', rel:'e11'}]},
  {g:'آموزش و محتوا', i:'i-graduation', rows:[
-   {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:faN(ARTICLES.length)},
+   {i:'i-article', t:'مطالب و مقالات', s:'فن بیان، رسانه، عکاسی، مالی', j:'articles', badge:faN(ARALL().length)},
    {i:'i-graduation', t:'دوره‌ها و کارگاه‌ها', s:'با گواهینامهٔ پایان دوره', href:'events.html#list'},
    {i:'i-doc', t:'آزمون و کارنامه', s:'کارنامهٔ همان روز', rel:'e9'},
    {i:'i-qr', t:'استعلام گواهینامه', s:'با شمارهٔ سریال روی برگ', f:'shVerify'}]},
@@ -854,7 +857,7 @@ function renderQuick(){
 function renderPins(){
   const items=[];
   EVENTS.forEach(e=>{if(isPinned('ev',e.id)) items.push({kind:'ev',id:e.id,t:e.t,s:dayName(e.day)+' · '+e.time,i:e.icon})});
-  ARTICLES.forEach(a=>{if(isPinned('ar',a.id)) items.push({kind:'ar',id:a.id,t:a.t,s:a.cat+' · '+faN(a.min)+' دقیقه',i:'i-article'})});
+  ARALL().forEach(a=>{if(isPinned('ar',a.id)) items.push({kind:'ar',id:a.id,t:a.t,s:a.cat+' · '+faN(a.min)+' دقیقه',i:'i-article'})});
   PEOPLE.forEach(p=>{if(isPinned('pe',p.id)) items.push({kind:'pe',id:p.id,t:p.n,s:p.r,i:'i-graduation'})});
   const box=$('#pins');
   box.hidden=!items.length;
@@ -1014,14 +1017,14 @@ function renderHot(){
     (S.searches.length?S.searches.map(t=>chip('i-clock',t,`data-sq="${esc(t)}"`)).join('')+
       chip('i-close','پاک کردن سابقه','data-clearhistory'):'')+
     HOTTAGS.map(t=>chip('i-star',t,`data-sq="${esc(t)}"`)).join('')+
-    ARTICLES.slice(0,2).map(a=>chip('i-article',a.t,`data-sq="${esc(a.t)}"`)).join('');
+    ARALL().slice(0,2).map(a=>chip('i-article',a.t,`data-sq="${esc(a.t)}"`)).join('');
 }
 function renderSug(){
   const box=$('#sugBox'), q=S.q.trim();
   if(!q){box.hidden=true; box.innerHTML=''; S.sug=-1; $('#q').setAttribute('aria-expanded','false'); return}
   const sug=[];
   EVENTS.filter(match).slice(0,3).forEach(e=>sug.push({k:'ev',id:e.id,t:e.t,s:'رویداد · '+e.when+' · '+e.time}));
-  ARTICLES.filter(a=>(a.t+' '+a.cat+' '+(a.tags||[]).join(' ')).includes(q)).slice(0,2)
+  ARALL().filter(a=>(a.t+' '+a.cat+' '+(a.tags||[]).join(' ')).includes(q)).slice(0,2)
     .forEach(a=>sug.push({k:'ar',id:a.id,t:a.t,s:'مطلب · '+a.cat+' · '+faN(a.min)+' دقیقه'}));
   PEOPLE.filter(p=>(p.n+' '+p.r+' '+(p.tags||[]).join(' ')).includes(q)).slice(0,2)
     .forEach(x=>sug.push({k:'pe',id:x.id,t:x.n,s:(x.kind==='staff'?'دست‌اندرکار':'استاد')+' · '+x.r}));
@@ -1093,7 +1096,7 @@ function renderSearch(){
   const box=$('#searchRes'), q=S.q.trim();
   if(!q){box.hidden=true; box.innerHTML=''; $('#evSec').hidden=false; return}
   const ev=EVENTS.filter(match).slice(0,4);
-  const ar=ARTICLES.filter(a=>(a.t+' '+a.cat+' '+(a.tags||[]).join(' ')).includes(q)).slice(0,3);
+  const ar=ARALL().filter(a=>(a.t+' '+a.cat+' '+(a.tags||[]).join(' ')).includes(q)).slice(0,3);
   const pe=PEOPLE.filter(p=>(p.n+' '+p.r+' '+(p.tags||[]).join(' ')).includes(q)).slice(0,3);
   const none=!ev.length&&!ar.length&&!pe.length;
   $('#evSec').hidden=true;
@@ -1250,7 +1253,7 @@ function renderStaff(){
 function artCard(a){
   const p=person(a.tchr);
   return `<div class="pcard pcard-ar ${isPinned('ar',a.id)?'pinned':''}">
-    <div class="pc-cov" style="--g:${a.g}">
+    <div class="pc-cov" style="--g:${a.g}">${a.cov?`<img src="${esc(a.cov)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover"/>`:''}
       <div class="pc-tags">${(a.club?[CLUB.badge.n]:[]).concat(a.tags).map(t=>`<span class="tagg ${t===CLUB.badge.n?'tag-club':'tag-g'}">${esc(t)}</span>`).join('')}</div>
       <button class="pinb pc-pin ${isPinned('ar',a.id)?'on':''}" data-pin="ar:${a.id}" aria-label="سنجاق کردن ${esc(a.t)}"><svg class="i"><use href="#i-pin"/></svg></button>
       <span class="kn"><svg class="i" style="width:15px;height:15px"><use href="#i-article"/></svg>
@@ -1258,17 +1261,17 @@ function artCard(a){
     </div>
     <div class="pc-body">
       <span class="pc-ttl">${esc(a.t)}</span>
-      <div class="authrow">${av(a.tchr)}<span>${esc(p.n)} · ${faN(a.min)} دقیقه مطالعه</span></div>
+      <div class="authrow">${a.who?`<span class="av" style="--g:${esc(a.g)};display:grid;place-items:center">${esc(String(a.who).trim().slice(0,1))}</span>`:av(a.tchr)}<span>${esc(a.who||p.n)} · ${faN(a.min)} دقیقه مطالعه</span></div>
     </div>
     <div class="pc-foot"><button class="btn sm primary" data-article="${a.id}">خواندن</button>
       <button class="btn sm quiet" data-person="${a.tchr}">دربارهٔ نویسنده</button></div>
   </div>`;
 }
 function renderArticles(){
-  const list=ARTICLES.filter(a=>{
+  const list=ARALL().filter(a=>{
     if(S.art!=='all'&&a.cat!==S.art) return false;
     const q=S.q.trim();
-    return !q||(a.t+' '+a.cat+' '+person(a.tchr).n).includes(q);
+    return !q||(a.t+' '+a.cat+' '+(a.who||person(a.tchr).n)).includes(q);
   }).sort((a,b)=>(isPinned('ar',b.id)?1:0)-(isPinned('ar',a.id)?1:0));
   $('#artRail').innerHTML=list.length?list.map(artCard).join(''):'<div class="empty">مطلبی با این صافی پیدا نشد.</div>';
 }
@@ -1715,7 +1718,7 @@ document.addEventListener('click',e=>{
     if(cfg.f) openF(cfg.f); else if(cfg.href){location.href=cfg.href; return} else if(cfg.j) goto(cfg.j);
     toast(cfg.n); return}
   const pn=t.closest('[data-person]'); if(pn){personSheet(pn.dataset.person); return}
-  const ar=t.closest('[data-article]'); if(ar){articleSheet(ar.dataset.article); return}
+  const ar=t.closest('[data-article]'); if(ar){if(isPanelPost(ar.dataset.article)){location.href='post.html?id='+encodeURIComponent(ar.dataset.article); return} articleSheet(ar.dataset.article); return}
   const pt=t.closest('[data-partner]'); if(pt){partnerSheet(pt.dataset.partner); return}
   const evb=t.closest('[data-ev]'); if(evb){eventSheet(evb.dataset.ev); return}
   const tp=t.closest('[data-teach]'); if(tp){
