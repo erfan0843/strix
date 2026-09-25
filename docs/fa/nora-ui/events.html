@@ -23,9 +23,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=42"/>
-<link rel="stylesheet" href="nora.css?v=42"/>
-<link rel="stylesheet" href="events.css?v=42"/>
+<link rel="stylesheet" href="glass.css?v=43"/>
+<link rel="stylesheet" href="nora.css?v=43"/>
+<link rel="stylesheet" href="events.css?v=43"/>
 <style>
   /* نوار بالا و نوار جست‌وجو، وقت اسکرول شیشه می‌شوند */
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
@@ -473,8 +473,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=42"></script>
-<script src="ui.js?v=42"></script>
+<script src="data.js?v=43"></script>
+<script src="ui.js?v=43"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    آرشیو رویدادها؛ هر برنامه‌ای که برگزار شده یا در پیش است
@@ -489,7 +489,13 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
    ══════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
-const {EVENTS=[],PEOPLE=[],PAST=[],LIVE=[],TOTAL_MEDIA=0,ARCHIVE={}}=window.NORA||{};
+const {PEOPLE=[],LIVE=[],TOTAL_MEDIA=0,ARCHIVE={}}=window.NORA||{};
+/* رویدادهای منتشرشدهٔ پنل: مدیر که در ویزارد انتشار داد، همین‌جا در فهرست می‌آید؛
+   برگزارشده‌ها هم در بخش آرشیو. بی‌انبارِ منتشرشده، همه‌چیز مثل قبل است. */
+const PUB=(window.NORA_UI&&NORA_UI.pubEvents)?NORA_UI.pubEvents():[];
+let EVENTS=(window.NORA&&window.NORA.EVENTS)||[];
+let PAST=(window.NORA&&window.NORA.PAST)||[];
+if(PUB.length){EVENTS=EVENTS.concat(PUB.filter(x=>!x.past)); PAST=PAST.concat(PUB.filter(x=>x.past));}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#3E5B84,#0B2447)'};

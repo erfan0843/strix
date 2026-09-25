@@ -1501,5 +1501,92 @@ async function load(file,store,q){
   ok(dash.length===0,'پنل و صفحه‌های فرم، خط تیرهٔ بلند ندارند'+(dash.length?': '+dash.join('، '):''));
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   سینک تا دست کاربر: رویداد و فرمِ منتشرشدهٔ پنل، در فهرست و برگه و فرم کاربر
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── سینک تا دست کاربر (events/event/form) ──');
+  const pad=n=>String(n).padStart(2,'0');
+  const mLen=(jy,jm)=>jm<=6?31:jm<=11?30:29;
+  const p0=await load('home.html',makeStore());
+  const c=p0.window.NORA_UI.clockParts();
+  const shift=(off)=>{let {jy,jm,jd}=c;
+    for(let i=0;i<Math.abs(off);i++){
+      if(off>0){ if(jd<mLen(jy,jm)) jd++; else {jd=1; jm++; if(jm>12){jm=1; jy++}} }
+      else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
+    return jy+'/'+pad(jm)+'/'+pad(jd)};
+  const d1=shift(2), d2=shift(9), dPast=shift(-9);
+  const store=makeStore();
+  store.setItem('nora-admin', JSON.stringify({v:48, added:[
+    {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
+     end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
+     sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,
+     price:250000, poster:'poster-book.svg', posterUp:'', about:'دو جلسهٔ آزمایشی',
+     forms:[{id:'f-u1', need:'reg', n:'فرم ثبت‌نام کارگاه سینک', ev:'u9', money:250000,
+       link:'form.html?ev=u9&kind=reg'}]},
+    {id:'u10', n:'اردوی گذشتهٔ ثبت‌شده', kind:'اردو', when:'', on:dPast,
+     time:'۰۸:۰۰', end:dPast, place:'دربند', cap:30, reg:27, state:'past',
+     held:1, who:27, rep:'بی‌حادثه، آلبوم فرستاده شد', media:'https://ble.ir/album',
+     sess:[], sessions:1, price:0}]}));
+  store.setItem('nora-forms', JSON.stringify([{id:'f-u1', name:'فرم ثبت‌نام کارگاه سینک',
+    kind:'form', need:'reg', model:'reg', slug:'u9-reg', cap:30, wait:'auto', ev:'u9',
+    guestsOn:1, maxPer:2, start:d1, ends:d2,
+    fin:[{l:'شهریهٔ کارگاه', p:250000, off:0},{l:'ناهار', p:120000, off:0}],
+    groups:[{n:'دورهٔ شرکت', of:[0,1], req:true, one:true}], methods:['bale','wallet'],
+    coupon:{code:'NORA10', off:10}, intro:'فرم شما دریافت شد؛ تا یک روز پیام می‌دهیم.',
+    fields:[{t:'text',l:'نام'},{t:'tel',l:'موبایل'}], on:1}]));
+
+  /* فهرست کاربر */
+  const ev=await load('events.html',store);
+  ok(/کارگاه سینک از پنل/.test(ev.doc.body.textContent),'رویداد منتشرشدهٔ پنل در فهرست کاربر می‌آید');
+  ok(/اردوی گذشتهٔ ثبت‌شده/.test(ev.doc.body.textContent),'برگزارشدهٔ پنل در بخش آرشیو فهرست هست');
+  ok(ev.doc.querySelector('[data-ev="u9"]')!==null,'کارتش ورقهٔ کلیات را باز می‌کند');
+  ok(ev.errs.length===0,'events.html با رویداد منتشرشده بی‌خطا است'+(ev.errs.length?': '+ev.errs[0]:''));
+
+  /* ورقهٔ کلیات */
+  const sh=await load('events.html',store,'?ev=u9');
+  ok(/کارگاه سینک از پنل/.test(sh.txt('#shEvent')),'ورقهٔ کلیات برای رویداد منتشرشده باز می‌شود');
+  ok(/۲ جلسه/.test(sh.txt('#shEvent')),'ورقه شمار جلسه‌ها را می‌گوید');
+  ok([...sh.all('#shEvent a')].some(a=>/event\.html\?id=u9/.test(a.getAttribute('href')||'')),
+    'ورقه پیوند صفحهٔ اختصاصی دارد');
+
+  /* صفحهٔ رویداد: رو به راه */
+  const pg=await load('event.html',store,'?id=u9');
+  ok(/کارگاه سینک از پنل/.test(pg.txt('#page')),'صفحهٔ اختصاصی رویداد منتشرشده باز می‌شود');
+  ok(/۲ جلسه/.test(pg.txt('#page')),'ردیف جلسه‌ها در صفحه هست');
+  ok([...pg.all('#ctaIn a')].some(a=>/form\.html\?ev=u9/.test(a.getAttribute('href')||'')),
+    'دکمهٔ ثبت‌نام به فرم واقعی همان رویداد می‌رود');
+  ok(pg.errs.length===0,'event.html بی‌خطا است'+(pg.errs.length?': '+pg.errs[0]:''));
+
+  /* صفحهٔ رویداد: برگزارشده */
+  const ps=await load('event.html',store,'?id=u10');
+  const psBody=pg.txt('#page')+ps.txt('#page')+ps.txt('#ctabar');
+  ok(/برگزار شد/.test(psBody),'رویداد برگزارشده برچسب برگزار شد دارد');
+  ok(/گزارش برگزاری/.test(ps.txt('#page'))&&/بی‌حادثه/.test(ps.txt('#page')),
+    'گزارش برگزاری با متن مدیر می‌آید');
+  ok(/۲۷ نفر/.test(ps.txt('#page')),'شمار شرکت‌کننده در گزارش هست');
+  ok(ps.all('a[href="https://ble.ir/album"]').length===1,'لینک آلبوم در گزارش هست');
+  ok(!/form\.html\?ev=u10/.test(ps.txt('#ctabar')),'برگزارشده دکمهٔ ثبت‌نام ندارد');
+  ok(ps.doc.querySelector('#ctaIn [data-back]')!==null,'برگزارشده دکمهٔ برگشت دارد');
+
+  /* فرم واقعی روی form.html */
+  const fm=await load('form.html',store,'?ev=u9&kind=reg');
+  ok(fm.txt('#topTitle')==='فرم ثبت‌نام کارگاه سینک','form.html با ?ev= فرم خودِ رویداد را باز می‌کند');
+  ok(/کتابخانهٔ نورا/.test(fm.txt('#evMeta')),'جا و تاریخ فرم از رویداد می‌آید: '+fm.txt('#evMeta'));
+  ok(/شهریهٔ کارگاه/.test(fm.doc.body.textContent)&&/ناهار/.test(fm.doc.body.textContent),
+    'اقلام مالی خود فرم هست');
+  ok(/دورهٔ شرکت/.test(fm.doc.body.textContent),'گروه اجباری فرم هست');
+  ok(/NORA10/.test(fm.doc.body.textContent),'کد تخفیف فرم هست');
+  ok(/فرم شما دریافت شد/.test(fm.doc.body.textContent),'متن پایان فرم هست');
+  ok(fm.errs.length===0,'form.html با فرم واقعی بی‌خطا است'+(fm.errs.length?': '+fm.errs[0]:''));
+
+  /* دمو بی‌انبار دست‌نخورده */
+  const dm=await load('form.html',makeStore());
+  ok(dm.txt('#topTitle')==='کارگاه فن بیان مقدماتی','بی ?ev= همان فرم نمونه است');
+  const de=await load('events.html',makeStore());
+  ok(!/کارگاه سینک از پنل/.test(de.doc.body.textContent),'بی انبار، فهرست همان نمونه‌هاست');
+}
+
 console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');
 process.exit(fails?1:0);

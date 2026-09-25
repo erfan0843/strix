@@ -786,9 +786,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=42')&&html.includes('admin.js?v=42'),'نسخهٔ پرونده‌های پنل ۴۲ است');
+  ok(html.includes('admin.css?v=43')&&html.includes('admin.js?v=43'),'نسخهٔ پرونده‌های پنل ۴۲ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v31'"),'کارگر سرویس نسخهٔ ۳۱ است');
+  ok(sw.includes("'nora-v32'"),'کارگر سرویس نسخهٔ ۳۱ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

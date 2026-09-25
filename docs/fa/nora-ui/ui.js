@@ -940,10 +940,14 @@ function preview(id){
    کلیات رویداد: ورقهٔ تمام‌صفحه‌ای که پیش از صفحهٔ اختصاصی می‌آید
    ══════════════════════════════════════════════════════════════════════════ */
 function eventSheet(id){
-  const N=window.NORA||{}, E=(N.EVENTS||[]).find(x=>x.id===id), H=(N.PAST||[]).find(x=>x.id===id);
-  const e=E||H; if(!e) return;
+  const N=window.NORA||{};
+  /* رویدادهای منتشرشدهٔ پنل هم برگه دارند؛ برگزارشده‌ها در بخش خودشان */
+  const PUB=pubEvents(), PE=PUB.find(x=>x.id===id);
+  const E=PE&&!PE.past?PE:(N.EVENTS||[]).find(x=>x.id===id);
+  const H=(PE&&PE.past)?null:(N.PAST||[]).find(x=>x.id===id);
+  const e=PE||E||H; if(!e) return;
   const P=(N.PEOPLE||[]), p=P.find(x=>x.id===e.tchr)||{n:'—',ini:'؟',r:'',g:''};
-  const past=!!H, price1=e.price||0, full=e.cap&&(e.cap-e.taken)<=0;
+  const past=PE?(!!PE.past):!!H, price1=e.price||0, full=e.cap&&(e.cap-e.taken)<=0;
   const tag=t=>`<span class="tag ${t[1]||''}">${escH(t[0])}</span>`;
   const when=past?e.d:(e.when+' · ساعت '+e.time);
   const room=e.mode&&e.mode.indexOf('حضوری')<0?'آنلاین':(e.mode==='حضوری و آنلاین'?'حضوری و آنلاین':'حضوری');
@@ -953,7 +957,7 @@ function eventSheet(id){
   const previewBtn=(past&&hasFree)?`<button class="btn quiet" data-uipreview="${escH(e.id)}"><svg class="i"><use href="#i-play-f"/></svg> پیش‌نمایش</button>`:'';
   const preOn=!past&&isPre(e.id);
   const preBtn=past?'':`<button class="btn ${preOn?'primary':'quiet'}" data-uipre="${escH(e.id)}"><svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
-  const mediaHtml=past?`
+  const mediaHtml=(past&&!e.pubPast)?`
     <div class="sec-hd" style="margin-top:14px"><span class="fw">داخل این بسته</span><span class="sp"></span>
       <span class="cap">${faN(e.mediaCount)} رسانه · ${escH(e.access)}</span></div>
     ${mediaList(e)}`: '';
@@ -1373,6 +1377,55 @@ function formsFor(evId){return formsAll().filter(f=>f.ev&&String(f.ev)===String(
 addEventListener('storage',e=>{if(e.key===FORMS_KEY) formsAnnounce()});
 addEventListener('nora-forms-changed',()=>{});
 
+/* ── رویدادهای منتشرشدهٔ پنل: همان انبار مدیر، دست کاربر هم می‌آید ─────────
+   ردیف پنل را به شکل صفحه‌های کاربر برمی‌گردانیم تا در فهرست رویدادها،
+   برگهٔ رویداد و ورقهٔ کلیات همان‌قدر خودی باشند که نمونه‌های ثابت‌اند.
+   وضعیت از خود تاریخ‌ها درمی‌آید: از روز جلسهٔ اول تا پایانِ آخرین جلسه
+   «در حال برگزاری»، بعدش در برگزارشده‌ها. */
+const PUB_GRAD='linear-gradient(135deg,#1E6FD0,#0A3A82)';
+const JM_KEY=['','','','','','','sh','mehr','aban','','','',''];
+const JM_NAME=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+function pubEvents(){
+  let added=null;
+  try{const a=JSON.parse(localStorage.getItem('nora-admin')||'null');
+    if(a&&Array.isArray(a.added)) added=a.added;}catch(e){}
+  if(!added||!added.length) return [];
+  const c=clockParts(), today=j2d(c.jy,c.jm,c.jd), nowMin=c.h*60+c.mi;
+  const dOf=s=>{const p=parseJ(s); return p?j2d(p.jy,p.jm,p.jd):null};
+  const tOf=s=>{const p=parseJ('1400/01/01، '+String(s||'')); return p?(p.hh*60+p.mm):null};
+  return added.map(ev=>{
+    if(!ev||!ev.id) return null;
+    const ses=(ev.sess||[]).filter(x=>x&&parseJ(x.d));
+    const first=dOf(ses.length?ses[0].d:ev.on)||dOf(ev.on);
+    const last=dOf(ses.length?ses[ses.length-1].d:(ev.end||ev.on))||first;
+    const endMin=(ses.length?(tOf(ses[ses.length-1].to)||tOf(ses[ses.length-1].t)):null)
+      ||tOf(ev.time)||1439;
+    const past=ev.held?true:(last!=null&&(today>last||(today===last&&nowMin>=endMin)));
+    const live=!past&&first!=null&&today>=first;
+    const fj=parseJ(ses.length?ses[0].d:ev.on)||parseJ(ev.on)||null;
+    const jm=fj?fj.jm:7, dn=fj?fj.jd:1;
+    const nSes=Math.max(+ev.sessions||0,ses.length,1);
+    const place=ev.place||'';
+    const online=!place||place==='آنلاین'||/^https?:/i.test(place);
+    const base={id:String(ev.id), t:ev.n||'برنامه', kind:ev.kind||'برنامه',
+      when:ev.when||(fj?faJDate(fj.jy,fj.jm,fj.jd):''), time:ev.time||'',
+      place:online?'آنلاین':place, mode:online?'آنلاین':'حضوری',
+      price:+ev.price||0, cap:+ev.cap||0, taken:+ev.reg||0,
+      spots:Math.max(0,(+ev.cap||0)-(+ev.reg||0)),
+      poster:ev.posterUp||(ev.poster?('posters/'+ev.poster):''), g:PUB_GRAD,
+      d:ev.about||ev.rep||'', tags:ev.held?[]:['جدید'], club:false,
+      sess:nSes, dm:JM_KEY[jm]||'mehr', dn:dn, mname:JM_NAME[jm-1]||'',
+      ord:0, live:live, pub:true, pubPast:past, forms:ev.forms||[]};
+    if(past){
+      base.past=true; base.mediaCount=0; base.media=[]; base.who=+ev.who||0;
+      base.album=ev.media||'';
+      base.rec=nSes>1?(faN(nSes)+' جلسه برگزار شد'):'برگزاری پایان یافت';
+      base.d=ev.rep||base.d; base.sold=+ev.who||0; base.price=0; base.access='آرشیو رویداد';
+    }
+    return base;
+  }).filter(Boolean);
+}
+
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
@@ -1383,7 +1436,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   clockNow:clockNow,clockParts:clockParts,clockHM:clockHM,clockFull:clockFull,clockDay:clockDay,
   clockState:()=>CLK.state,clockAt:()=>CLK.at,netSyncClock:netSyncClock,
   FORMS_KEY:FORMS_KEY,formsAll:formsAll,formById:formById,formPut:formPut,formPatch:formPatch,
-  formDrop:formDrop,formsFor:formsFor});
+  formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){
@@ -1400,7 +1453,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v31') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v32') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

@@ -25,9 +25,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=42"/>
-<link rel="stylesheet" href="nora.css?v=42"/>
-<link rel="stylesheet" href="events.css?v=42"/>
+<link rel="stylesheet" href="glass.css?v=43"/>
+<link rel="stylesheet" href="nora.css?v=43"/>
+<link rel="stylesheet" href="events.css?v=43"/>
 <style>
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
@@ -269,8 +269,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=42"></script>
-<script src="ui.js?v=42"></script>
+<script src="data.js?v=43"></script>
+<script src="ui.js?v=43"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ اختصاصی رویداد و بستهٔ رسانه
@@ -289,7 +289,13 @@ const P=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:''};
 const ico=(n,st)=>`<svg class="i"${st?` style="${st}"`:''} aria-hidden="true"><use href="#${n}"/></svg>`;
 const cdClock={t:0};
 const id=new URLSearchParams(location.search).get('id')||location.hash.replace('#','')||'';
-const E=EVENTS.find(x=>x.id===id), H=PAST.find(x=>x.id===id), e=E||H;
+/* رویدادهای منتشرشدهٔ پنل اول خوانده می‌شوند؛ نمونه‌های ثابت همان‌طور که بودند */
+const PUB=(window.NORA_UI&&NORA_UI.pubEvents)?NORA_UI.pubEvents():[];
+const PE=PUB.find(x=>x.id===id);
+const E=PE&&!PE.past?PE:EVENTS.find(x=>x.id===id);
+const H=(PE&&PE.past)?null:PAST.find(x=>x.id===id);
+const e=PE||E||H;
+const pubPast=!!(PE&&PE.past);
 
 if(!e){
   $('#page').innerHTML=`<div class="empty" style="margin-top:40px"><svg class="i"><use href="#i-search"/></svg>
@@ -357,8 +363,22 @@ function myClockStart(e){
   const el=$('#myCdN'); if(!el) return;
   cdClock.t=setInterval(()=>{ const n=$('#myCdN'); if(!n){ clearInterval(cdClock.t); return } n.textContent=cdText(e) },1000);
 }
+/* گزارش برگزاری: برای رویدادهای برگزارشدهای که مدیر ثبت کرده */
+function pubReport(){
+  return `<div class="sec-hd" style="margin-top:16px"><span class="fw">گزارش برگزاری</span></div>
+  <div class="stack tight">
+    ${e.who?`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">شرکت‌کننده‌ها</span><b>${faN(e.who)} نفر از ${faN(e.cap||0)} نفر</b></div>`:''}
+    ${e.sess>1?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${faN(e.sess)} جلسه</b></div>`:''}
+  </div>
+  ${e.d?`<p class="sub" style="margin-top:10px">${esc(e.d)}</p>`:''}
+  ${e.album?`<div class="card paper" style="margin-top:12px"><div class="row" style="align-items:center;gap:10px">
+    <svg class="i" style="width:22px;height:22px;color:var(--brand)"><use href="#i-image"/></svg>
+    <span style="flex:1;min-width:0"><b style="font-size:13.5px">آلبوم و فیلم رویداد</b>
+      <div class="cap">لینک رسانه‌ها از مدیر همین برنامه</div></span>
+    <a class="btn sm quiet" href="${esc(e.album)}" target="_blank" rel="noopener">باز کردن</a></div></div>`:''}`;
+}
 function render(){
-  const past=!!H, p=P(e.tchr), r=room(), online=r!=='حضوری';
+  const past=!!H||pubPast, p=P(e.tchr), r=room(), online=r!=='حضوری';
   const free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0, n=e.cap?Math.max(0,e.cap-e.taken):0;
   const when=past?e.d:(e.when+' · ساعت '+e.time);
   document.title=(e.t||'رویداد')+'، نورا';
@@ -431,7 +451,7 @@ function render(){
   <p class="sub">${esc(e.d||'')}</p>
   ${(e.parts||[]).length?`<div class="stack tight" style="margin-top:10px">${e.parts.map(x=>`<div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">${esc(x)}</span></div>`).join('')}</div>`:''}
 
-  ${past?`<div class="sec-hd" style="margin-top:16px"><span class="fw">رسانه‌های این بسته</span><span class="sp"></span>
+  ${past&&!pubPast?`<div class="sec-hd" style="margin-top:16px"><span class="fw">رسانه‌های این بسته</span><span class="sp"></span>
       <span class="cap">${faN(e.mediaCount)} قلم · ${esc(e.access||'دسترسی همیشگی')}</span></div>
     <div class="fcrow" id="mfilter"></div>
     <div id="mlist"></div>
@@ -453,7 +473,7 @@ function render(){
       </div>
       <button class="btn quiet block" style="margin-top:10px" data-cert-req><svg class="i"><use href="#i-medal"/></svg> درخواست گواهینامه</button>
     </div>`:''}`
-  :`<div class="sec-hd" style="margin-top:16px"><span class="fw">مسیر ثبت‌نام</span></div>
+  :(pubPast?pubReport():`<div class="sec-hd" style="margin-top:16px"><span class="fw">مسیر ثبت‌نام</span></div>
     <div class="stack tight">
       <div class="srow"><svg class="i"><use href="#i-pen"/></svg><span class="sp">۱) فرم ثبت‌نام را پر کن</span><b>۳ دقیقه</b></div>
       <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">۲) پرداخت با نورا پی</span><b>${e.price?rialTxt(e.price):'رایگان'}</b></div>
@@ -461,7 +481,7 @@ function render(){
       <div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">۳) کارت ورود و لینک جلسه می‌آید</span><b>پیامک</b></div>
     </div>
     <div class="copyrow" style="margin-top:12px"><code>lifeline1.ir/reg/${esc(String(e.id).toLowerCase())}</code>
-      <button class="btn sm quiet" data-copy-reg><svg class="i"><use href="#i-copy"/></svg> کپی لینک ثبت‌نام</button></div>`}
+      <button class="btn sm quiet" data-copy-reg><svg class="i"><use href="#i-copy"/></svg> کپی لینک ثبت‌نام</button></div>`)}
 
   <div class="sec-hd" style="margin-top:16px"><span class="fw">پرسش‌های همین برنامه</span></div>
   <div class="stack tight">
@@ -526,7 +546,17 @@ function renderRelated(){
 }
 
 function renderCta(){
-  const past=!!H, free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0;
+  const past=!!H||pubPast, free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0;
+  if(pubPast){
+    $('#ctabar').hidden=false;
+    $('#ctaIn').innerHTML=`
+      <span><b style="font-size:14px">برگزار شد</b>
+        <div class="cap">${e.who?faN(e.who)+' نفر شرکت کردند':(e.sess>1?faN(e.sess)+' جلسه':'گزارش بالای صفحه')}</div></span>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn quiet" data-back><svg class="i"><use href="#i-chev-right"/></svg> بازگشت</button>
+      <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
+    return;
+  }
   const own=past&&NORA_UI&&(NORA_UI.hasLib(e.id)||(e.media||[]).some(m=>NORA_UI.hasLib(m.id)));
   const firstFree=past&&(e.media||[]).find(m=>!m.p||(NORA_UI&&NORA_UI.hasLib(m.id)));
   const preOn=!past&&NORA_UI&&NORA_UI.isPre&&NORA_UI.isPre(e.id);
