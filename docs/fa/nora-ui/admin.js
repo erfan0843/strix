@@ -1779,7 +1779,7 @@ function postEditor(){
         ?`<button class="btn primary" data-ppub="1">${ico('i-check')} انتشار</button>`
         :`<button class="btn primary" data-psend="1">${ico('i-send')} فرستادن برای تأیید</button>`}
     </div>
-    <p class="cap">پیش‌نمایش پیش از انتشار در post.html باز می‌شود؛ خواننده مطلب را با فهرست، رسانه و پیوند رویداد و فرم می‌بیند.</p>
+    <p class="cap">پیش‌نمایش پیش از انتشار در post.html باز می‌شود؛ خواننده مطلب را با فهرست، رسانه و پیوند رویداد و فرم می‌بیند. مطلب منتشرشده در بخش «مطلب‌ها» فهرست می‌شود و خانهٔ کاربران هم همان‌جا می‌بیندش.</p>
   </section>`;
 }
 function vPosts(){
@@ -1807,7 +1807,7 @@ function vPosts(){
 
 /* تعریف جدید: همین‌جا فقط مطلب ساخته می‌شود؛ رویداد از بخش رویدادها باز می‌شود */
 function vNewev(){
-  if(!S.ped||S.ped.pub||S.ped.pend) S.ped=pedFresh();
+  if(!S.ped||S.ped.pub||S.ped.pend){S.ped=pedFresh(); S.psec='list'}
   return postEditor();
 }
 
@@ -1962,13 +1962,17 @@ document.addEventListener('click',e=>{
     if(!String(d2.t||'').trim()){toast('عنوان مطلب را بنویس'); return}
     d2.tags=String(d2.tags||'').split(/[،,]/).map(x=>x.trim()).filter(Boolean);
     d2.min=pedMin(d2); d2.pub=1; d2.pend=0; d2.at=d2.at||Date.now(); pedSave(d2);
-    S.ped=null; S.psec='list'; save(); renderBody(); toast('مطلب منتشر شد؛ خانهٔ کاربران هم می‌بیند'); return}
+    S.ped=null; S.psec='list'; save();
+    toast('«'+(d2.t||'بی نام')+'» منتشر شد؛ در خانهٔ کاربران هم نشست');
+    if(S.sec==='newev') go('posts'); else renderBody(); return}
   const psend=q('[data-psend]'); if(psend&&S.ped){
     const d2=JSON.parse(JSON.stringify(S.ped));
     if(!String(d2.t||'').trim()){toast('عنوان مطلب را بنویس'); return}
     d2.tags=String(d2.tags||'').split(/[،,]/).map(x=>x.trim()).filter(Boolean);
     d2.min=pedMin(d2); d2.pub=0; d2.pend=1; d2.at=d2.at||Date.now(); pedSave(d2);
-    S.ped=null; S.psec='list'; save(); renderBody(); toast('مطلب رفت در صف تأیید'); return}
+    S.ped=null; S.psec='list'; save();
+    toast('مطلب رفت در صف تأیید؛ مالک یا سرپرست منتشر می‌کند');
+    if(S.sec==='newev') go('posts'); else renderBody(); return}
 
   const evnew=q('[data-evnew]'); if(evnew){S.wiz.kind='event'; S.wiz.step=0; S.wiz.open=1; S.dp=null; save(); renderBody(); return}
   const evback=q('[data-evback]'); if(evback){S.wiz.open=0; save(); renderBody(); return}

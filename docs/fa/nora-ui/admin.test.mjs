@@ -429,7 +429,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(who.length===15,'ورقهٔ «نمای من» پانزده نفر دارد: مالک، شش سرپرست و هشت کارشناس');
   p.click('#shAdm [data-who="p10"]');
   ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.dhead')),'چیپ نوار بالا و سرصفحهٔ داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
-  ok(p.all('#admNav [data-locked]').length===5,'پنج بخش روی کارشناس قفل است');
+  ok(p.all('#admNav [data-locked]').length===4,'چهار بخش روی کارشناس قفل است');
   ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'ولی تعریف جدید برایش باز است');
   ok(p.all('#admTabs a').length===3,'نوار پایین کارشناس سه بخش دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس فقط کار خودش را دارد');
@@ -482,7 +482,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-psend]');
   const P10=JSON.parse(p.store.getItem('nora-posts')||'[]');
   ok(P10.length===1&&P10[0].pend===1&&P10[0].pub===0,'مطلب کارشناس در صف تأیید نشست');
-  ok(p.txt('#admBar .head')==='تعریف جدید'&&p.doc.querySelector('[data-pf="t"]').value==='','و ویرایشگر برای تعریف بعدی تازه شد');
+  ok(p.txt('#admBar .head')==='مطلب‌ها','و خودش به فهرست مطلبها برده میشود تا مطلبش را ببیند');
+  ok(/یادداشت کارشناس/.test(p.txt('#admBody'))&&/در انتظار تأیید/.test(p.txt('#admBody')),'مطلب در صف، همان‌جا دیده میشود');
+  p.click('#admNav [data-sec="newev"]');
+  ok(p.doc.querySelector('[data-pf="t"]').value==='','تعریف جدید برای تعریف بعدی تازه است');
 
   /* مالک: از بخش مطلبها باز می‌کند و منتشر می‌کند */
   p.click('[data-who-sheet]');
@@ -495,6 +498,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-ppub]');
   const P11=JSON.parse(p.store.getItem('nora-posts'));
   ok(P11[0].pub===1&&P11[0].pend===0,'با یک دکمه منتشر می‌شود');
+  ok(p.txt('#admBar .head')==='مطلب‌ها','بعد از انتشار، فهرست مطلبها جلوی چشم است');
   const row2=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
   ok(!!row2&&/منتشر شده/.test(row2.textContent),'و در فهرست، منتشر شده خوانده می‌شود');
 }

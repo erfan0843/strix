@@ -239,6 +239,9 @@ console.log('\n── ۸) تعریف جدید: فقط مطلب ──');
   p.click('[data-ppub]');
   const P=JSON.parse(store.getItem('nora-posts'));
   ok(P.length===1&&P[0].pub===1,'از تعریف جدید منتشر شد');
+  ok(p.txt('#admBar .head')==='مطلب‌ها','بعد از انتشار، فهرست مطلبها باز میشود');
+  ok(/مطلب تعریف جدید/.test(p.txt('#admBody'))&&/منتشر شده/.test(p.txt('#admBody')),'و مطلب تازه همان‌جا دیده میشود');
+  p.click('#admNav [data-sec="newev"]');
   ok(p.doc.querySelector('[data-pf="t"]').value==='','و ویرایشگر برای تعریف بعدی تازه شد');
   /* رویداد از بخش رویدادها */
   p.click('#admNav [data-sec="events"]');
