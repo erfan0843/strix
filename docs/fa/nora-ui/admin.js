@@ -851,18 +851,19 @@ function evState(e){
   const start=jParse(e.on||'');
   const ses=(e.sess||[]).filter(x=>x&&jParse(x.d));
   if(!start&&!ses.length) return e.state||'soon';
-  const c=(typeof clockParts==='function')?clockParts():null;
-  if(!c) return e.state||'soon';
+  /* امروز شمسی از همان ساعت مشترک سامانه: jNow خودش تاریخ و ساعت را می‌دهد */
+  const n=jNow(), today=j2d(n.jy,n.jm,n.jd), nowMin=n.h*60+n.mi;
+  const first=ses.length?jParse(ses[0].d):start;
   const lastSes=ses[ses.length-1];
   const last=jParse(lastSes?lastSes.d:(e.end||''))||start;
   const t=minOfT(lastSes?lastSes.to:e.to)||1440;
   if(!last) return e.state||'soon';
-  const today=j2d(c.jy,c.jm,c.jd), lastDay=j2d(last.jy,last.jm,last.jd), nowMin=c.h*60+c.mi;
+  const lastDay=j2d(last.jy,last.jm,last.jd);
   if(today>lastDay) return 'past';
   if(today===lastDay&&nowMin>=t) return 'past';
-  /* امروز یکی از جلسه‌هاست؟ پس رویداد همین حالا در جریان است */
-  const onToday=ses.some(x=>{const j=jParse(x.d); return j&&j2d(j.jy,j.jm,j.jd)===today});
-  if(onToday) return 'live';
+  /* از روز جلسهٔ اول تا روز جلسهٔ آخر، رویداد در جریان است؛ چندجلسه‌ای
+     میان دو جلسه نه «پیش‌رو» می‌ماند نه می‌رود در برگزار شده */
+  if(first&&today>=j2d(first.jy,first.jm,first.jd)) return 'live';
   return (e.state==='past')?'soon':(e.state||'soon');
 }
 function afterEvent(e){  /* رویداد گذشته: فهرست «برگزار شده» و آرشیو */

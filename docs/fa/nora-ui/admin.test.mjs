@@ -654,6 +654,36 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#shAdm [data-close]');
 }
 
+/* ── ۱۴ب) گذر خودکار وضعیت: پایان یعنی پایانِ آخرین جلسه ── */
+{
+  console.log('\n── گذر خودکار وضعیت رویداد ──');
+  const U=(await load()).window.NORA_UI, c=U.clockParts();
+  const pad=n=>String(n).padStart(2,'0');
+  const mLen=(jy,jm)=>jm<=6?31:jm<=11?30:29;
+  const g=off=>{let {jy,jm,jd}=c;
+    for(let i=0;i<Math.abs(off);i++){
+      if(off>0){ if(jd<mLen(jy,jm)) jd++; else {jd=1; jm++; if(jm>12){jm=1; jy++}} }
+      else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
+    return jy+'/'+pad(jm)+'/'+pad(jd)};
+  const seed=makeStore();
+  seed.setItem('nora-admin', JSON.stringify({v:48, evF:'all', added:[
+    {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
+     place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
+    {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
+     place:'لانه', cap:20, reg:8, state:'soon', sessions:3,
+     sess:[{d:g(-2),t:'17:00',to:'19:00'},{d:g(1),t:'17:00',to:'19:00'},{d:g(3),t:'17:00',to:'19:00'}]}]}));
+  const p=await load(seed,'#events');
+  const row=id=>p.all('[data-ev]').find(r=>r.getAttribute('data-ev')===id);
+  ok(!!row('z-done')&&/برگزار شده/.test(row('z-done').textContent),'تک‌جلسهٔ گذشته خودش «برگزار شده» می‌شود');
+  ok(!!row('z-mid')&&/جاری/.test(row('z-mid').textContent),'چندجلسه‌ای میان دو جلسه «جاری» می‌ماند');
+  p.click('[data-evF="past"]');
+  ok(p.all('[data-ev="z-done"]').length===1&&p.all('[data-ev="z-mid"]').length===0,
+    'صافی برگزار شده فقط تمام‌شده‌ها را می‌آورد');
+  p.click('[data-evF="live"]');
+  ok(p.all('[data-ev="z-mid"]').length===1&&p.all('[data-ev="z-done"]').length===0,
+    'و صافی جاری در جریان‌ها را نشان می‌دهد');
+}
+
 /* ── ۱۵) یک رویداد رو به راه، برای سینک فرم و مبالغ ── */
 {
   console.log('\n── سینک فرم‌ساز با رویداد ──');
