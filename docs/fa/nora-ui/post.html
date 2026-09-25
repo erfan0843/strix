@@ -21,9 +21,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=47"/>
-<link rel="stylesheet" href="nora.css?v=47"/>
-<link rel="stylesheet" href="events.css?v=47"/>
+<link rel="stylesheet" href="glass.css?v=48"/>
+<link rel="stylesheet" href="nora.css?v=48"/>
+<link rel="stylesheet" href="events.css?v=48"/>
 <style>
 /* ── صفحهٔ خواندن مطلب: ستون آرام، تیترها با نفس، رسانه بی‌لرزش ── */
 #rbar{position:fixed;top:0;right:0;height:3px;width:0;background:#0071E3;z-index:60;transition:width .1s linear;border-radius:0 0 2px 2px}
@@ -309,8 +309,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=47"></script>
-<script src="ui.js?v=47"></script>
+<script src="data.js?v=48"></script>
+<script src="ui.js?v=48"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ خواندن مطلب
@@ -382,15 +382,17 @@ function blockHTML(b,i){
       if(!src) return '';
       return `<figure class="pb-fig"><img src="${esc(src)}" alt="${esc(b.alt||b.cap||'')}" loading="lazy"/>${cap}</figure>`}
     case 'vid':{
+      if(b.up) return `<figure class="pb-fig"><div class="pb-vid"><video controls playsinline preload="metadata" src="${esc(b.up)}"></video></div>${cap}</figure>`;
       const v=videoBits(b.src);
       if(!v) return '';
       if(v.host==='file') return `<figure class="pb-fig"><div class="pb-vid"><video controls playsinline preload="metadata" src="${esc(v.url)}"></video></div>${cap}</figure>`;
       return `<figure class="pb-fig"><div class="pb-vid"><iframe src="${esc(v.url)}" loading="lazy" allowfullscreen title="ویدیو" allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>${cap}</figure>`}
     case 'aud':{
-      if(!b.src) return '';
+      const src=b.up||b.src;
+      if(!src) return '';
       const nm=b.cap||'فایل صوتی';
       return `<div class="pb-aud"><div class="pb-audrow">${ico('i-headphone')}<span>${esc(nm)}</span></div>
-        <audio controls preload="metadata" src="${esc(b.src)}"></audio></div>`}
+        <audio controls preload="metadata" src="${esc(src)}"></audio></div>`}
     case 'q': return `<blockquote class="pb-q"><p>${esc(b.x)}</p>${b.by?`<cite>${esc(b.by)}</cite>`:''}</blockquote>`;
     case 'gal':{
       const imgs=(Array.isArray(b.x)?b.x:[]).filter(Boolean);

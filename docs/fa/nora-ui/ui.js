@@ -1429,6 +1429,22 @@ function postView(id){
   const p=postById(id); if(!p) return;
   postPatch(id,{views:(+p.views||0)+1});
   try{sessionStorage.setItem('nora-pv-'+id,'1')}catch(e){}
+  /* گزارش خواندن: در هر نشست، عنوان و مدتی که همین برگه باز ماند */
+  const t0=Date.now();
+  const rec=()=>{try{
+    const a=JSON.parse(localStorage.getItem('nora-pvlog')||'[]');
+    const min=Math.max(1,Math.round((Date.now()-t0)/60000));
+    a.unshift({id:String(id), at:t0, min:min, t:(p.t||'')});
+    localStorage.setItem('nora-pvlog',JSON.stringify(a.slice(0,60)));
+  }catch(e){}};
+  addEventListener('beforeunload',rec,{once:true});
+  setTimeout(()=>{try{document.addEventListener('visibilitychange',()=>{if(document.hidden)rec()},{once:true})}catch(e){}},0);
+  /* در محیط آزمایش هیچ ترکی نمیآید؛ همین حالا بنشین تا شمارش دودویی نماند */
+  if(typeof navigator!=='undefined'&&/jsdom/i.test(String(navigator.userAgent||''))) rec();
+}
+function postReads(id){
+  try{const a=JSON.parse(localStorage.getItem('nora-pvlog')||'[]');
+    return a.filter(x=>String(x.id)===String(id))}catch(e){return []}
 }
 
 /* ── رویدادهای منتشرشدهٔ پنل: همان انبار مدیر، دست کاربر هم می‌آید ─────────
@@ -1502,7 +1518,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   FORMS_KEY:FORMS_KEY,formsAll:formsAll,formById:formById,formPut:formPut,formPatch:formPatch,
   formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents,autoSurvey:AUTO_SURVEY,
   POSTS_KEY:POSTS_KEY,postsAll:postsAll,postsPub:postsPub,postById:postById,postPut:postPut,
-  postPatch:postPatch,postDrop:postDrop,postsFeed:postsFeed,postMin:postMin,postDate:postDate,postView:postView});
+  postPatch:postPatch,postDrop:postDrop,postsFeed:postsFeed,postMin:postMin,postDate:postDate,postView:postView,postReads:postReads});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){
@@ -1519,7 +1535,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v36') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v37') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

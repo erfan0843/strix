@@ -472,10 +472,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'تعریف تازه برای کارشناس هم باز است');
   p.click('#admNav [data-sec="newev"]');
   ok(p.txt('#admBar .head')==='تعریف جدید','بخش تعریف جدید باز شد');
-  ok(!!p.doc.querySelector('[data-pf="t"]')&&p.all('[data-badd]').length>=12,'تعریف جدید همین‌جا ویرایشگر بلوکی مطلب است');
+  ok(!!p.doc.querySelector('[data-pf="t"]')&&!!p.doc.querySelector('[data-pgo="2"]'),'تعریف جدید همین‌جا ویرایشگر دوگامی مطلب است');
   ok(p.all('[data-wkind]').length===0,'اینجا دیگر رویداد تعریف نمی‌شود');
   p.type('[data-pf="t"]','یادداشت کارشناس');
   p.type('[data-pf="lead"]','سه خط دربارهٔ کلاس.');
+  p.click('[data-pgo="2"]');
   p.click('[data-badd="p"]');
   p.type('[data-bi="0"][data-bf="x"]','متن یادداشت کارشناس.');
   ok(!p.doc.querySelector('[data-ppub]')&&!!p.doc.querySelector('[data-psend]'),'کارشناس فقط فرستادن برای تأیید دارد');
@@ -483,23 +484,25 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const P10=JSON.parse(p.store.getItem('nora-posts')||'[]');
   ok(P10.length===1&&P10[0].pend===1&&P10[0].pub===0,'مطلب کارشناس در صف تأیید نشست');
   ok(p.txt('#admBar .head')==='رویدادها و مطالب','و خودش به بخش رویدادها و مطالب برده میشود تا مطلبش را ببیند');
+  p.click('[data-pmgrback]');
   ok(/یادداشت کارشناس/.test(p.txt('#admBody'))&&/در انتظار تأیید/.test(p.txt('#admBody')),'مطلب در صف، همان‌جا دیده میشود');
   p.click('#admNav [data-sec="newev"]');
   ok(p.doc.querySelector('[data-pf="t"]').value==='','تعریف جدید برای تعریف بعدی تازه است');
-
-  /* مالک: از بخش مطلبها باز می‌کند و منتشر می‌کند */
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p1"]');
   p.click('#admNav [data-sec="events"]');
   const row=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
   ok(!!row&&/در انتظار تأیید/.test(row.textContent),'مالک مطلب در صف تأیید را می‌بیند');
   if(row) p.click(row);
-  ok(!!p.doc.querySelector('[data-ppub]'),'مالک دکمهٔ انتشار دارد');
+  ok(!!p.doc.querySelector('[data-pf="t"]'),'مالک مطلب صف را در ویرایشگر باز می‌کند');
+  p.click('[data-pgo="2"]');
+  ok(!!p.doc.querySelector('[data-ppub]'),'مالک در گام دوم دکمهٔ انتشار دارد');
   p.click('[data-ppub]');
   const P11=JSON.parse(p.store.getItem('nora-posts'));
   ok(P11[0].pub===1&&P11[0].pend===0,'با یک دکمه منتشر می‌شود');
-  ok(p.txt('#admBar .head')==='رویدادها و مطالب','بعد از انتشار، فهرست مطلبها جلوی چشم است');
-  const row2=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب'&&/مدیریت مطلب/.test(p.txt('#admBody')),'بعد از انتشار، مدیریت مطلب جلوی چشم است');
+  p.click('[data-pmgrback]');
+  const row2=p.all('[data-pmgr]').find(r=>/یادداشت کارشناس/.test(r.textContent));
   ok(!!row2&&/منتشر شده/.test(row2.textContent),'و در فهرست، منتشر شده خوانده می‌شود');
 }
 
@@ -759,11 +762,13 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/هفت تمرین تنفس/.test(p.txt('#admBody')),'نمونهٔ ثابت با پیش‌نمایش هست');
   p.click('[data-pnew]');
   ok(!!p.doc.querySelector('[data-pf="t"]'),'مطلب جدید، ویرایشگر را زیر همین بخش باز می‌کند');
-  ok(p.all('[data-badd]').length>=16,'پالت بلوکها با گالری و فایل و لینک و جدول کامل است');
+  ok(p.all('[data-badd]').length===0,'در گام یک هنوز پالتی نیست');
   p.type('[data-pf="t"]','خبر تازهٔ باشگاه');
   p.type('[data-pf="lead"]','سه خط دربارهٔ باشگاه.');
   p.type('[data-pf="cat"]','گزارش');
   p.type('[data-pf="tags"]','گزارش، باشگاه');
+  p.click('[data-pgo="2"]');
+  ok(p.all('[data-badd]').length>=16,'پالت بلوکها با گالری و فایل و لینک و جدول کامل است');
   p.click('[data-badd="p"]'); p.click('[data-badd="h"]'); p.click('[data-badd="vid"]');
   p.type('[data-bi="0"][data-bf="x"]','متن اول مطلب تازه.');
   p.type('[data-bi="1"][data-bf="x"]','تیتر میانی');
@@ -782,10 +787,13 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(Array.isArray(S2[0].tags)&&S2[0].tags.length===2,'برچسبها از قلم جدا شدند');
   ok(S2[0].blocks.length===3,'بلوکها به همان ترتیب ذخیره شدند');
   ok(S2[0].ev===evSel&&!!evSel,'پیوند رویداد ذخیره شد');
+  ok(/مدیریت مطلب/.test(p.txt('#admBody'))&&/بازدید/.test(p.txt('#admBody')),'بعد از انتشار، مدیریت مطلب با بازدید باز میشود');
+  p.click('[data-pmgrback]');
   ok(/خبر تازهٔ باشگاه/.test(p.txt('#admBody'))&&/منتشر شده/.test(p.txt('#admBody')),'فهرست، منتشرشده را میگوید');
   p.click('[data-ppin]');
   ok(JSON.parse(p.store.getItem('nora-posts'))[0].pin===1,'پین از فهرست میچرخد');
   p.click('[data-pedit]');
+  p.click('[data-pgo="2"]');
   ok(!!p.doc.querySelector('[data-bi="0"][data-bf="x"]'),'ویرایش دوباره، بلوکها را برمیگرداند');
   p.type('[data-bi="0"][data-bf="x"]','تیتر ویرایششده');
   p.click('[data-pprev]');
@@ -793,6 +801,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(S3[0].blocks[0].x==='تیتر ویرایششده'&&S3[0].pub===0,'ویرایش با پیش‌نمایش در انبار می‌نشیند');
   p.click('[data-ppub]');
   ok(JSON.parse(p.store.getItem('nora-posts'))[0].blocks[0].x==='تیتر ویرایششده','و انتشار، ویرایش را زنده میبرد');
+  p.click('[data-pmgrback]');
   p.click('[data-pdel]');
   ok(JSON.parse(p.store.getItem('nora-posts')).length===0,'برداشتن مطلب هم هست');
 }
@@ -900,9 +909,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=47')&&html.includes('admin.js?v=47'),'نسخهٔ پرونده‌های پنل ۴۲ است');
+  ok(html.includes('admin.css?v=48')&&html.includes('admin.js?v=48'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v36'"),'کارگر سرویس نسخهٔ ۳۱ است');
+  ok(sw.includes("'nora-v37'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
