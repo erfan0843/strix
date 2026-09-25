@@ -318,6 +318,116 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('table.admtable tbody tr').length===2,'بعد از تأیید، از صف کم شد ('+p.all('table.admtable tbody tr').length+')');
 }
 
+/* ── ۴ب) کاربران: چهارده زیربخش، پرونده، باشگاه و ابزار ── */
+{
+  console.log('\n── کاربران: زیربخش‌ها ──');
+  const p=await load();
+  p.click('#admNav [data-sec="users"]');
+  ok(p.all('.admkpi .k').length===4,'آمار سریع سرِ فهرست است');
+  ok(p.all('[data-uv]').length===15&&p.all('.admlist [data-uv]').length===14,'چهارده زیربخش و دکمهٔ افزودن در سربرگ');
+  ok(p.all('[data-uF]').length===5,'صافی وضعیت با ویژه پنج تاست');
+  ok(p.all('[data-uTag]').length>=3,'برچسبها فیلتر یکزبانه دارند');
+  p.click('[data-uTag="عکاس"]');
+  ok(p.all('table.admtable tbody tr').length===2,'فیلتر برچسب «عکاس» دو نفر دارد');
+  p.click('[data-uTag="عکاس"]');
+  ok(p.all('table.admtable tbody tr').length===15,'برداشتن فیلتر برچسب، همه را میآورد');
+  /* درخواستها */
+  p.click('[data-uv="req"]');
+  ok(/درخواست پروفایل \(۳\)/.test(p.txt('#admBody')),'صف پروفایل سه نفر دارد');
+  ok(/غیبت مجاز \(۲\)/.test(p.txt('#admBody')),'غیبتهای مجاز دو درخواست دارد');
+  ok(/تحویل پاداش \(۲\)/.test(p.txt('#admBody')),'درخواست پاداش دو تا است');
+  p.click('[data-uabsok]');
+  ok(/غیبت مجاز \(۱\)/.test(p.txt('#admBody')),'تأیید غیبت مجاز همان‌جا کم میشود');
+  p.click('[data-ushopno]');
+  ok(/تحویل پاداش \(۱\)/.test(p.txt('#admBody')),'رد پاداش از صف برمیدارد');
+  const SU=JSON.parse(p.store.getItem('nora-admin'));
+  ok(SU.uabs[0].st==='تأیید شد'&&!SU.ushop[0]||SU.ushop.some(r=>r.st==='رد شد'),'وضعیت درخواستها در خانه مینشیند');
+  /* گزارش */
+  p.click('[data-uback]'); p.click('[data-uv="report"]');
+  ok(/گزارش کاربران/.test(p.txt('#admBody'))&&/جنسیت/.test(p.txt('#admBody')),'گزارش کاربران با جنسیت و فعالیت است');
+  ok(/منبع عضویت/.test(p.txt('#admBody'))&&/با دعوت دوستان/.test(p.txt('#admBody')),'منبع عضویت با دعوت آمده');
+  ok(p.all('[data-rp]').length>=7,'دورههای زمانی گزارش هست');
+  /* مناسبتها */
+  p.click('[data-uback]'); p.click('[data-uv="occ"]');
+  ok(/\(۱۴ روشن از ۱۴\)/.test(p.txt('#admBody')),'چهارده مناسبت آماده روشن است');
+  p.click('[data-uocc="nowruz"]');
+  ok(/\(۱۳ روشن از ۱۴\)/.test(p.txt('#admBody')),'مناسبت آماده حذف نمیشود؛ خاموش میشود');
+  p.click('[data-uoccnew]'); p.type('#occN','روز خانه‌سازی'); p.type('#occM','7'); p.type('#occD','20');
+  p.click('[data-uoccadd]');
+  ok(/روز خانه‌سازی/.test(p.txt('#admBody')),'مناسبت سفارشی ساخته شد');
+  ok(!!p.doc.querySelector('[data-uoccdel]'),'مناسبت سفارشی برداشتن دارد');
+  /* امتیاز شرطی */
+  p.click('[data-uback]'); p.click('[data-uv="rules"]');
+  ok(/سقف‌های محافظ/.test(p.txt('#admBody'))&&/حداکثر ۳۰۰/.test(p.txt('#admBody')),'سقفهای محافظ امتیاز نشان داده میشود');
+  p.click('[data-urulenew]'); p.type('#rulN','قهرمان فرم'); p.click('[data-uruleadd]');
+  ok(/قهرمان فرم/.test(p.txt('#admBody')),'قانون امتیاز سفارشی ساخته شد');
+  p.click('[data-urule="form3"]');
+  const SU2=JSON.parse(p.store.getItem('nora-admin'));
+  ok(SU2.urules.form3===0,'قانون آماده خاموش روشن دارد');
+  /* نشانها و رتبه */
+  p.click('[data-uback]'); p.click('[data-uv="ach"]');
+  ok(/۱۳ نشان در ۴ سطح/.test(p.txt('#admBody'))&&/افسانه‌ای/.test(p.txt('#admBody')),'سیزده نشان در چهار سطح است');
+  p.click('[data-uback]'); p.click('[data-uv="rank"]');
+  ok(/امتیاز کل/.test(p.txt('#admBody'))&&/بیشترین دعوت/.test(p.txt('#admBody')),'رتبه‌بندی چهار جدول دارد');
+  p.click('[data-urankhide]');
+  ok(/\*\*\*/.test(p.txt('#admBody')),'نام مخفی برای حریم خصوصی هست');
+  /* فروشگاه */
+  p.click('[data-uback]'); p.click('[data-uv="shop"]');
+  ok(/کسر امتیاز اتمیک/.test(p.txt('#admBody')),'فروشگاه با قاعدهٔ بازگشت امتیاز است');
+  ok(/VIP طلایی/.test(p.txt('#admBody'))&&/۵۰۰۰ امتیاز/.test(p.txt('#admBody')),'پاداشها با قیمتاند');
+  /* پروندهٔ کاربر */
+  p.click('[data-uback]'); p.click('[data-user="u7"]');
+  const sh=p.txt('#shAdm');
+  ok(/سطح باشگاه/.test(sh)&&/رتبه/.test(sh),'پرونده، سطح باشگاه و رتبه دارد');
+  ok(/تکمیل پروفایل/.test(sh)&&/کد معرف/.test(sh),'درصد تکمیل و دعوت دوستان در پرونده است');
+  ok(/نشان‌ها/.test(sh)&&/دستاورد بعدی/.test(sh),'نشانهای گرفته و بعدی نشان داده میشود');
+  p.type('#uNoteTxt','برای اردوی پاییز اولویت دارد'); p.click('[data-unotego="u7"]');
+  ok(/برای اردوی پاییز/.test(p.txt('#shAdm')),'یادداشت در پرونده می‌نشیند');
+  p.click('[data-uvip="u7"]');
+  ok(/برداشتن VIP/.test(p.txt('#shAdm')),'کلید VIP میچرخد');
+  p.click('#shAdm [data-close]');
+  p.click('[data-uF="vip"]');
+  ok(p.all('table.admtable tbody tr').length===1,'فیلتر ویژه همان یک نفر را میآورد');
+  p.click('[data-uF="all"]');
+  /* پارامترهای پروفایل */
+  p.click('[data-uv="par"]');
+  ok(/فعال.*فیلد/.test(p.txt('#admBody')),'پارامترهای پروفایل با شمار فعال است');
+  p.click('[data-upar="bio"]');
+  p.click('[data-uparreq="bio"]');
+  const SU3=JSON.parse(p.store.getItem('nora-admin'));
+  ok(SU3.upar['bio|on']===0&&SU3.upar['bio|req']===true,'روشن و اجباری هر فیلد در خانه مینشیند');
+  p.click('[data-uparreset]');
+  ok(!Object.keys(JSON.parse(p.store.getItem('nora-admin')).upar).length,'بازگشت به پیشفرض خالی میکند');
+  /* افزودن دستی و ورودی اکسل */
+  p.click('[data-uback]'); p.click('[data-uv="add"]');
+  p.type('#uAddTxt','علی محمدی، ۰۰۲۳۴۵۶۷۸۷\nزهرا کریمی ۰۹۱۲۱۲۳۴۵۶۷');
+  p.click('[data-uaddgo]');
+  ok(p.all('table.admtable tbody tr').length===17,'افزودن دستی دوخطی دو نفر اضافه میکند');
+  const SU4=JSON.parse(p.store.getItem('nora-admin'));
+  ok(SU4.uextra.length===2&&SU4.uextra[1].ph==='09121234567'&&SU4.uextra[0].nid==='۰۰۲۳۴۵۶۷۸۷','موبایل و کد ملی از خط جدا میشود');
+  p.click('[data-uv="imp"]');
+  p.type('#uImpTxt','نام و نام خانوادگی\tشماره\tشهر\nحسین رحیمی\t09120000001\tقم');
+  p.click('[data-uimpparse]');
+  ok(/پیش‌نمایش \(۱ ردیف\)/.test(p.txt('#admBody')),'ورودی اکسل پیشنمایش میدهد');
+  p.click('[data-uimpgo]');
+  ok(p.all('table.admtable tbody tr').length===18,'درج از پیشنمایش اضافه میکند');
+  const SU5=JSON.parse(p.store.getItem('nora-admin'));
+  ok(SU5.uimp.length===1&&SU5.uimp[0].n===1,'تاریخچهٔ ورود ثبت شد');
+  p.click('[data-uv="imp"]');
+  ok(/تاریخچهٔ ورودها/.test(p.txt('#admBody')),'تاریخچهٔ ورودها دیده میشود');
+  /* صندوق، مسدودها، لاگ */
+  p.click('[data-uback]'); p.click('[data-uv="inbox"]');
+  ok(/خوانده‌نشده/.test(p.txt('#admBody')),'صندوق با خواندهنشده است');
+  p.click('[data-uinboxall]');
+  ok(/۰ خوانده‌نشده/.test(p.txt('#admBody')),'همه را خوانده کنم میزند');
+  p.click('[data-uback]'); p.click('[data-uv="blocked"]');
+  ok(/رضا شریفی/.test(p.txt('#admBody')),'مسدودها با پرونده میآید');
+  p.click('[data-uunblock="u4"]');
+  ok(/مسدودی برداشته شد/.test(p.txt('#toast')),'رفع مسدودی از فهرست مسدودها هست');
+  p.click('[data-uback]'); p.click('[data-uv="log"]');
+  ok(p.all('#admBody .admlirow').length>=4,'لاگ عملیات پر میشود: تأیید، رد، VIP، ورود');
+}
+
 /* ── ۵) فرم‌ها ── */
 {
   console.log('\n── فرم‌ها ──');
@@ -680,7 +790,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:49, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:50, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -909,9 +1019,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=48')&&html.includes('admin.js?v=48'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=49')&&html.includes('admin.js?v=49'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v37'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v38'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
