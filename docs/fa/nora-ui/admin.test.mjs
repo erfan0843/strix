@@ -307,13 +307,13 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('.empty').length>0,'بی‌نتیجه، حالت خالی نشان می‌دهد');
   p.type('#admQ','');
   p.click('[data-user="u3"]');
-  ok(p.txt('#shAdm .head')==='نگار موسوی','پروندهٔ همان کاربر باز شد');
-  ok(/در صف تأیید/.test(p.txt('#shAdm')),'وضعیتش درست نشان داده می‌شود');
+  ok(/نگار موسوی/.test(p.txt('#admBody'))&&p.all('[data-utab]').length===5,'پروندهٔ کامل با پنج تب باز شد');
+  ok(/در صف تأیید/.test(p.txt('#admBody')),'وضعیتش درست نشان داده می‌شود');
   p.click('[data-uok="u3"]');
-  ok(/تأییدشده/.test(p.txt('#shAdm')),'تأیید پروفایل همان‌جا اثر می‌کند');
+  ok(/تأییدشده/.test(p.txt('#admBody')),'تأیید پروفایل همان‌جا اثر می‌کند');
   p.click('[data-ublock="u3"]');
-  ok(/مسدود/.test(p.txt('#shAdm')),'مسدود هم از همان ورقه انجام می‌شود');
-  p.click('#shAdm [data-close]');
+  ok(/مسدود/.test(p.txt('#admBody'))&&!!p.doc.querySelector('[data-uunblock]'),'مسدود هم از همان صفحه انجام می‌شود');
+  p.click('[data-uback]');
   p.click('[data-uF="pending"]');
   ok(p.all('table.admtable tbody tr').length===2,'بعد از تأیید، از صف کم شد ('+p.all('table.admtable tbody tr').length+')');
 }
@@ -324,7 +324,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const p=await load();
   p.click('#admNav [data-sec="users"]');
   ok(p.all('.admkpi .k').length===4,'آمار سریع سرِ فهرست است');
-  ok(p.all('[data-uv]').length===15&&p.all('.admlist [data-uv]').length===14,'چهارده زیربخش و دکمهٔ افزودن در سربرگ');
+  ok(p.all('.admlist [data-uv]').length===5,'پنج گروه روشن جای چهارده ردیف را گرفته');
   ok(p.all('[data-uF]').length===5,'صافی وضعیت با ویژه پنج تاست');
   ok(p.all('[data-uTag]').length>=3,'برچسبها فیلتر یکزبانه دارند');
   p.click('[data-uTag="عکاس"]');
@@ -356,42 +356,52 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-uoccadd]');
   ok(/روز خانه‌سازی/.test(p.txt('#admBody')),'مناسبت سفارشی ساخته شد');
   ok(!!p.doc.querySelector('[data-uoccdel]'),'مناسبت سفارشی برداشتن دارد');
-  /* امتیاز شرطی */
-  p.click('[data-uback]'); p.click('[data-uv="rules"]');
+  /* باشگاه: چهار زیرتب */
+  p.click('[data-uback]'); p.click('[data-uv="club"]');
+  ok(p.all('[data-uclub]').length===4,'باشگاه چهار زیرتب دارد');
+  ok(/قانون‌های امتیاز/.test(p.txt('#admBody')),'زب پیشفرض باشگاه امتیاز شرطی است');
   ok(/سقف‌های محافظ/.test(p.txt('#admBody'))&&/حداکثر ۳۰۰/.test(p.txt('#admBody')),'سقفهای محافظ امتیاز نشان داده میشود');
   p.click('[data-urulenew]'); p.type('#rulN','قهرمان فرم'); p.click('[data-uruleadd]');
   ok(/قهرمان فرم/.test(p.txt('#admBody')),'قانون امتیاز سفارشی ساخته شد');
   p.click('[data-urule="form3"]');
   const SU2=JSON.parse(p.store.getItem('nora-admin'));
   ok(SU2.urules.form3===0,'قانون آماده خاموش روشن دارد');
-  /* نشانها و رتبه */
-  p.click('[data-uback]'); p.click('[data-uv="ach"]');
+  p.click('[data-uclub="ach"]');
   ok(/۱۳ نشان در ۴ سطح/.test(p.txt('#admBody'))&&/افسانه‌ای/.test(p.txt('#admBody')),'سیزده نشان در چهار سطح است');
-  p.click('[data-uback]'); p.click('[data-uv="rank"]');
-  ok(/امتیاز کل/.test(p.txt('#admBody'))&&/بیشترین دعوت/.test(p.txt('#admBody')),'رتبه‌بندی چهار جدول دارد');
+  p.click('[data-uclub="shop"]');
+  ok(/VIP طلایی/.test(p.txt('#admBody'))&&/۵۰۰۰ امتیاز/.test(p.txt('#admBody')),'پاداشها با قیمتاند');
+  p.click('[data-uclub="rank"]');
+  ok(/چهار جدول برترین‌ها/.test(p.txt('#admBody'))&&/بیشترین دعوت/.test(p.txt('#admBody')),'رتبه‌بندی چهار جدول دارد');
   p.click('[data-urankhide]');
   ok(/\*\*\*/.test(p.txt('#admBody')),'نام مخفی برای حریم خصوصی هست');
-  /* فروشگاه */
-  p.click('[data-uback]'); p.click('[data-uv="shop"]');
-  ok(/کسر امتیاز اتمیک/.test(p.txt('#admBody')),'فروشگاه با قاعدهٔ بازگشت امتیاز است');
-  ok(/VIP طلایی/.test(p.txt('#admBody'))&&/۵۰۰۰ امتیاز/.test(p.txt('#admBody')),'پاداشها با قیمتاند');
-  /* پروندهٔ کاربر */
+  /* پروندهٔ کاربر: تبهای پنجگانه */
   p.click('[data-uback]'); p.click('[data-user="u7"]');
-  const sh=p.txt('#shAdm');
-  ok(/سطح باشگاه/.test(sh)&&/رتبه/.test(sh),'پرونده، سطح باشگاه و رتبه دارد');
-  ok(/تکمیل پروفایل/.test(sh)&&/کد معرف/.test(sh),'درصد تکمیل و دعوت دوستان در پرونده است');
-  ok(/نشان‌ها/.test(sh)&&/دستاورد بعدی/.test(sh),'نشانهای گرفته و بعدی نشان داده میشود');
+  const sh=p.txt('#admBody');
+  ok(/سطح باشگاه/.test(sh)&&/رتبه/.test(sh)&&/تکمیل پروفایل/.test(sh),'سرِ پرونده، سطح و رتبه و تکمیل دارد');
+  p.click('[data-utab="info"]');
+  ok(/برچسب‌ها/.test(p.txt('#admBody'))&&/یادداشت پرونده/.test(p.txt('#admBody')),'تب اطلاعات با برچسب و یادداشت است');
   p.type('#uNoteTxt','برای اردوی پاییز اولویت دارد'); p.click('[data-unotego="u7"]');
-  ok(/برای اردوی پاییز/.test(p.txt('#shAdm')),'یادداشت در پرونده می‌نشیند');
+  ok(/برای اردوی پاییز/.test(p.txt('#admBody')),'یادداشت در پرونده می‌نشیند');
+  p.click('[data-uexport1="u7"]');
+  ok(/پروندهٔ فاطمه کریمی رونوشت شد/.test(p.txt('#toast')),'خروجی فردی پرونده هست');
+  p.click('[data-utab="club"]');
+  ok(/کد معرف/.test(p.txt('#admBody'))&&/نشان‌ها \([۰-۹]+ از ۱۳\)/.test(p.txt('#admBody')),'تب باشگاه با معرف و نشانهاست');
+  p.click('[data-utab="ev"]');
+  ok(/رویدادها \([۰-۹]+\)/.test(p.txt('#admBody'))&&/غیبت‌های مجاز/.test(p.txt('#admBody')),'تب رویدادها با غیبت مجاز است');
+  p.click('[data-utab="msg"]');
+  ok(/پیام‌ها/.test(p.txt('#admBody')),'تب پیامهاست');
+  p.click('[data-utab="log"]');
+  ok(/عضویت در سامانه/.test(p.txt('#admBody'))&&/وضعیت کنونی/.test(p.txt('#admBody')),'تب تاریخچه با عضویت و وضعیت است');
   p.click('[data-uvip="u7"]');
-  ok(/برداشتن VIP/.test(p.txt('#shAdm')),'کلید VIP میچرخد');
-  p.click('#shAdm [data-close]');
+  ok(/برداشتن VIP/.test(p.txt('#admBody')),'کلید VIP میچرخد');
+  p.click('[data-uback]');
   p.click('[data-uF="vip"]');
   ok(p.all('table.admtable tbody tr').length===1,'فیلتر ویژه همان یک نفر را میآورد');
   p.click('[data-uF="all"]');
-  /* پارامترهای پروفایل */
-  p.click('[data-uv="par"]');
-  ok(/فعال.*فیلد/.test(p.txt('#admBody')),'پارامترهای پروفایل با شمار فعال است');
+  /* ابزارها: هفت زیرتب */
+  p.click('[data-uv="tools"]');
+  ok(p.all('[data-utool]').length===7,'ابزارها هفت زیرتب دارد');
+  ok(/فعال.*فیلد/.test(p.txt('#admBody')),'زب پیشفرض پارامترهای پروفایل است');
   p.click('[data-upar="bio"]');
   p.click('[data-uparreq="bio"]');
   const SU3=JSON.parse(p.store.getItem('nora-admin'));
@@ -399,13 +409,13 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-uparreset]');
   ok(!Object.keys(JSON.parse(p.store.getItem('nora-admin')).upar).length,'بازگشت به پیشفرض خالی میکند');
   /* افزودن دستی و ورودی اکسل */
-  p.click('[data-uback]'); p.click('[data-uv="add"]');
+  p.click('[data-utool="add"]');
   p.type('#uAddTxt','علی محمدی، ۰۰۲۳۴۵۶۷۸۷\nزهرا کریمی ۰۹۱۲۱۲۳۴۵۶۷');
   p.click('[data-uaddgo]');
   ok(p.all('table.admtable tbody tr').length===17,'افزودن دستی دوخطی دو نفر اضافه میکند');
   const SU4=JSON.parse(p.store.getItem('nora-admin'));
   ok(SU4.uextra.length===2&&SU4.uextra[1].ph==='09121234567'&&SU4.uextra[0].nid==='۰۰۲۳۴۵۶۷۸۷','موبایل و کد ملی از خط جدا میشود');
-  p.click('[data-uv="imp"]');
+  p.click('[data-uv="tools"]'); p.click('[data-utool="imp"]');
   p.type('#uImpTxt','نام و نام خانوادگی\tشماره\tشهر\nحسین رحیمی\t09120000001\tقم');
   p.click('[data-uimpparse]');
   ok(/پیش‌نمایش \(۱ ردیف\)/.test(p.txt('#admBody')),'ورودی اکسل پیشنمایش میدهد');
@@ -413,18 +423,20 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('table.admtable tbody tr').length===18,'درج از پیشنمایش اضافه میکند');
   const SU5=JSON.parse(p.store.getItem('nora-admin'));
   ok(SU5.uimp.length===1&&SU5.uimp[0].n===1,'تاریخچهٔ ورود ثبت شد');
-  p.click('[data-uv="imp"]');
+  p.click('[data-uv="tools"]'); p.click('[data-utool="imp"]');
   ok(/تاریخچهٔ ورودها/.test(p.txt('#admBody')),'تاریخچهٔ ورودها دیده میشود');
-  /* صندوق، مسدودها، لاگ */
-  p.click('[data-uback]'); p.click('[data-uv="inbox"]');
+  /* صندوق، مسدودها، لاگ؛ همه زیرتب ابزارها */
+  p.click('[data-utool="inbox"]');
   ok(/خوانده‌نشده/.test(p.txt('#admBody')),'صندوق با خواندهنشده است');
   p.click('[data-uinboxall]');
   ok(/۰ خوانده‌نشده/.test(p.txt('#admBody')),'همه را خوانده کنم میزند');
-  p.click('[data-uback]'); p.click('[data-uv="blocked"]');
+  p.click('[data-uinboxopen="u3"]');
+  ok(/نگار موسوی/.test(p.txt('#admBody')),'از صندوق، پروندهٔ فرستنده باز میشود');
+  p.click('[data-uback]'); p.click('[data-uv="tools"]'); p.click('[data-utool="blocked"]');
   ok(/رضا شریفی/.test(p.txt('#admBody')),'مسدودها با پرونده میآید');
   p.click('[data-uunblock="u4"]');
   ok(/مسدودی برداشته شد/.test(p.txt('#toast')),'رفع مسدودی از فهرست مسدودها هست');
-  p.click('[data-uback]'); p.click('[data-uv="log"]');
+  p.click('[data-utool="log"]');
   ok(p.all('#admBody .admlirow').length>=4,'لاگ عملیات پر میشود: تأیید، رد، VIP، ورود');
 }
 
@@ -1019,9 +1031,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=49')&&html.includes('admin.js?v=49'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=50')&&html.includes('admin.js?v=50'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v38'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v39'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
