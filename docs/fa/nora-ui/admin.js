@@ -47,12 +47,15 @@ const SVER=48;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
-    poster:'',theme:'glass',mode:'physical',date:'',time:'',to:'',end:'',
-    dur:90,sessions:1,place:'',link:'',privacy:'public',regFrom:'',regTo:'',
-    cap:45,pre:6,extra:4,waitMode:'auto',tickets:'one',paid:'free',price:0,code:'',off:0,install:0,
-    feat:{},att:'qr',rem:{d1:1,h1:1,after:1},ch:{notify:1,bale:1,email:1},points:10,
-    regF:{mode:'tpl',tpl:'light',fields:[]},svyF:{mode:'tpl',tpl:'auto',fields:[]},
-    exmF:{mode:'tpl',tpl:'none',fields:[]},exam:'none',stamp:0,edit:''},
+    poster:'',posterUp:'',theme:'glass',mode:'physical',date:'',time:'',to:'',end:'',
+    dur:90,sessions:1,sess:[],place:'',link:'',privacy:'public',regFrom:'',regTo:'',
+    held:0,who:0,rep:'',media:'',
+    cap:45,pre:6,extra:4,waitMode:'auto',tickets:'one',
+    feat:{},att:'qr',ch:{notify:1,bale:1,email:1},points:10,
+    fp:{reg:'',survey:'',exam:'',other:''},exam:'none',remEvery:1,
+    rem:[{w:'before',n:24,u:'h',ch:'bale',on:1},{w:'before',n:1,u:'h',ch:'sms',on:1},
+         {w:'after',n:1,u:'d',ch:'notify',on:1}],
+    stamp:0,edit:''},
   defs:[], evEdit:{},
   cert:{step:0,tpl:'t1',kind:'per',params:{},who:'ev',whoVal:'',pub:'notify'},
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:''};
@@ -142,10 +145,21 @@ const ufCount=k=>({all:MEM.length, pending:memList().filter(m=>m.st[1]==='warn')
 /* ── رویدادها ──────────────────────────────────────────────────────────── */
 const EV=A.events||{}, EVROWS=EV.rows||[];
 /* فرم‌های ساختهٔ ویزارد، به رویدادش چسبیده، می‌مانند تا در بخش فرم‌ها هم دیده شوند */
-function mergeForms(list,evId,forms){
-  const other=(list||[]).filter(f=>f.ev!==evId);
-  return other.concat((forms||[]).map(f=>({n:f.n, k:f.k==='reg'?'ثبت‌نام':f.k==='survey'?'نظرسنجی':'آزمون',
-    q:f.q, ev:evId, at:'امروز', on:true, link:'form.html?ev='+evId+'&kind='+f.k})));
+function linkForms(evId, w0){
+  const w=w0||S.wiz, fp=Object.assign({},w.fp||{}), u=(window.NORA_UI&&NORA_UI)||null, out=[];
+  ['reg','survey','exam','other'].forEach(need=>{
+    const id=fp[need]; if(!id) return;
+    const f=formOf(id); if(!f) return;
+    /* فرم‌ساز و رویداد یکی می‌مانند: ظرفیت و پنجرهٔ ثبت‌نام به فرم می‌رود */
+    try{
+      if(!f.demo&&u&&u.formPatch) u.formPatch(id,{ev:evId, need:need,
+        cap:+w.cap||f.cap||0, start:w.regFrom||w.date||f.start||'', ends:w.regTo||w.end||f.ends||'',
+        sync:{cap:1,dates:1,money:1}});
+    }catch(e){}
+    out.push({id:String(id), need:need, n:formName(f), q:formQs(f), money:formSum(f), ev:evId,
+      link:'form.html?ev='+evId+'&kind='+need});
+  });
+  return out;
 }
 /* ویرایش آزاد است و وضعیت را عوض نمی‌کند: هر رویداد می‌تواند روکش ویرایش داشته باشد */
 const evAll=()=>{const ov=S.evEdit||{};
@@ -156,8 +170,10 @@ const fN=n=>fa(Number(n).toLocaleString?Number(n).toLocaleString('en-US'):n);
    عددی درشت و بی‌توضیح نماند و در تنگی جا هم شکسته شود، نه سرریز */
 const bits=v=>{const t=String(v==null?'':v).trim(), i=t.search(/\s/);
   return i<0?`<b>${esc(t)}</b>`:`<b>${esc(t.slice(0,i))} <small class="ku">${esc(t.slice(i+1))}</small></b>`;};
-const evFilter=f=>f==='live'?e=>e.state==='live' : f==='soon'?e=>e.state==='soon'
-  : f==='past'?e=>e.state==='past' : ()=>true;
+const evFilter=f=>f==='live'?e=>evState(e)==='live' : f==='soon'?e=>evState(e)==='soon'
+  : f==='past'?e=>evState(e)==='past' : ()=>true;
+/* وضعیت هر ردیف: برگزاری تمام شده؟ خودش رفته در برگزار شده */
+const evStateOf=e=>evState(e);
 
 /* ── گزارش‌ها ─────────────────────────────────────────────────────────── */
 const RP=A.reports||{}, RPLIST=RP.list||[], RPD=RP.detail||{};
@@ -228,6 +244,8 @@ function renderBar(){
     <span class="nmark" aria-hidden="true">${ico(s.i)}</span>
     <div class="tt"><div class="head">${esc(s.n)}</div><div class="cap">${esc(s.s||A.lead||'')}</div></div>
     <span class="sp"></span>
+    <span class="navclock" title="${esc((NE().l||{}).tz||'')}" aria-label="${esc('تاریخ و ساعت')}">${ico('i-clock')}
+      <b data-clock>${esc(typeof clockFull==='function'?clockFull():'')}</b></span>
     ${NEEDQ.indexOf(S.sec)>-1?`<label class="searchbox">${ico('i-search')}
       <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
     <button class="chip" data-who-sheet>${ico('i-shield')}<span>${esc(me().n)}</span>
@@ -530,7 +548,9 @@ const JN=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارش
 const jLong=(jy,jm,jd)=>JN[jWeek(jy,jm,jd)]+' '+fa(jd)+' '+(((NE().j||{}).months||[])[jm-1]||'');
 /* ساعت: اول اینترنت، بعد دستگاه */
 const NET={state:'local', diff:0, at:''};
-function netNow(){return Date.now()+(NET.diff||0)}
+/* ساعت مشترک سامانه در ui.js است؛ پنل هم همان را می‌خواند تا همه‌جا یکی باشد */
+function netNow(){const u=(window.NORA_UI)||null; if(u&&u.clockNow) return u.clockNow();
+  return Date.now()+(NET.diff||0)}
 function clockParts(ms){
   const opt={timeZone:'Asia/Tehran', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false,
     year:'numeric', month:'2-digit', day:'2-digit'};
@@ -549,6 +569,13 @@ const clockStr=()=>{const n=jNow(); return fa(jPad(n.h))+':'+fa(jPad(n.mi))+':'+
 /* هم‌گام‌سازی: یک بار که پنل باز می‌شود */
 let netTried=false;
 async function netSync(){
+  /* اول از ساعت مشترک بپرس؛ اگر نبود، خودش از اینترنت می‌گیرد */
+  const u=(window.NORA_UI)||null;
+  if(u&&u.netSyncClock){
+    try{ const st=await u.netSyncClock();
+      NET.state=(st==='net')?'net':'local'; NET.diff=0;
+      NET.at=(u.clockAt&&u.clockAt())||clockStr(); tick(true); return; }catch(e){}
+  }
   if(netTried||typeof fetch!=='function') return;
   netTried=true;
   const tries=[['https://worldtimeapi.org/api/timezone/Asia/Tehran',j=>+(j.unixtime||0)*1000],
@@ -571,7 +598,7 @@ function tick(force){
   el.textContent=clockStr();
   const st=document.getElementById('wzClockSt');
   if(st) st.textContent=(NET.state==='net'?(NE().l||{}).synced:(NE().l||{}).local)||'';
-  if(!tickTimer) tickTimer=setInterval(()=>tick(false),1000);
+  if(!tickTimer&&!IS_TEST) tickTimer=setInterval(()=>tick(false),1000);
 }
 function jParse(str){
   const t=un(String(str||'')).replace(/[-.]/g,'/').trim(), m=t.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
@@ -606,11 +633,29 @@ const h24=(v,hard)=>{
   const h=Math.min(23,+(d.slice(0,2)||d.slice(0,1)||0)), mi=Math.min(59,+(d.length>2?d.slice(2):0));
   return jPad(h)+':'+jPad(mi);
 };
+/* قلم‌های ویزارد: تاریخ، پایان، پنجرهٔ ثبت‌نام و «جلسه‌ها» که sess3 یعنی جلسهٔ چهارم */
+function wGet(f){
+  const m=/^sess(\d+)$/.exec(String(f||''));
+  if(m){const s=(S.wiz.sess||[])[+m[1]]; return s?(s.d||''):''}
+  return S.wiz[f];
+}
+function wSet(f,v){
+  const m=/^sess(\d+)$/.exec(String(f||''));
+  if(m){
+    const ses=S.wiz.sess=S.wiz.sess||[], i=+m[1];
+    if(!ses[i]) return;
+    ses[i].d=v;
+    /* پایان رویداد همان آخرین جلسه است */
+    const last=ses[ses.length-1]; if(last&&last.d) S.wiz.end=last.d;
+    return;
+  }
+  S.wiz[f]=v;
+}
 function dpOpen(f,y,m){S.dp={f:f, y:y, m:m}; save(); renderBody();}
 function dpBox(){
   const dp=S.dp||{}, F=NE().l||{}, J=NE().j||{}, months=J.months||[], days=J.days||[];
   if(!dp.f) return '';
-  const t=jToday(), y=+dp.y||t.jy, m=+dp.m||t.jm, len=jLen(y,m), pad=jWeek(y,m,1), cur=jParse(S.wiz[dp.f]);
+  const t=jToday(), y=+dp.y||t.jy, m=+dp.m||t.jm, len=jLen(y,m), pad=jWeek(y,m,1), cur=jParse(wGet(dp.f));
   let cells='<span class="db"></span>'.repeat(pad);
   for(let d=1;d<=len;d++){
     const on=cur&&cur.jy===y&&cur.jm===m&&cur.jd===d, td=t.jy===y&&t.jm===m&&t.jd===d;
@@ -685,117 +730,262 @@ function defsFor(){
 }
 function canApprove(r){return !!r.wait&&(isOwner()||(isLead()&&r.f===myField().k))}
 
-/* ── سازندهٔ فرم: ثبت‌نام، نظرسنجی و آزمون ─────────────────────────────
-   هر فرم یک فهرست پرسش است: برچسب، نوع، اجباری؛ آزمون بارم و پاسخ درست هم
-   دارد. همین‌جا ساخته می‌شود و بعد در بخش فرم‌ها و مدیریت رویداد می‌ماند. */
-const FKEY={reg:'regF', survey:'svyF', exam:'exmF'};
-function fState(which){const k=FKEY[which]; S.wiz[k]=S.wiz[k]||{fields:[]}; return S.wiz[k];}
-function typeName(list,k){return ((NE())[list]||[]).find(x=>x.k===k)||{n:k}}
-function fieldRow(which,i,f){
-  const B=((NE().forms||{}).builder)||{}, isExam=which==='exam';
-  const types=(isExam?NE().xlist:which==='survey'?NE().slist:NE().ftypes)||[];
-  const opts=/^(pick|multi|pick4)$/.test(f.t);
-  return `<div class="frow" data-frow="${esc(which)}-${i}">
-    <div class="frowtop">
-      <span class="fnum">${esc(fa(i+1))}</span>
-      <input class="input" data-fcell="l" data-fw="${esc(which)}" data-fi="${i}" value="${esc(f.l||'')}" placeholder="${esc(B.ph||'متن پرسش')}"/>
-      <select class="input" data-fcell="t" data-fw="${esc(which)}" data-fi="${i}" aria-label="نوع پرسش">
-        ${types.map(t=>`<option value="${esc(t.k)}" ${f.t===t.k?'selected':''}>${esc(t.n)}</option>`).join('')}</select>
-      <button class="fbtn" data-freq="${esc(which)}-${i}" aria-pressed="${f.req?'true':'false'}"
-        title="${esc(B.req||'اجباری')}">${ico('i-check')}<span>${esc(B.req||'اجباری')}</span></button>
-      <button class="fbtn" data-fmv="${esc(which)}-${i}-up" aria-label="${esc(B.up||'بالا')}">${ico('i-chev-right')}</button>
-      <button class="fbtn" data-fmv="${esc(which)}-${i}-down" aria-label="${esc(B.down||'پایین')}">${ico('i-chev-left')}</button>
-      <button class="fbtn stop" data-fdel="${esc(which)}-${i}" aria-label="${esc(B.del||'برداشتن')}">${ico('i-trash')}</button>
-    </div>
-    ${opts?`<input class="input" data-fcell="o" data-fw="${esc(which)}" data-fi="${i}" dir="auto"
-      value="${esc((f.o||[]).join('، '))}" placeholder="${esc(B.opts||'')}"/>`:''}
-    ${isExam&&f.t==='pick4'?`<input class="input" data-fcell="a" data-fw="${esc(which)}" data-fi="${i}" dir="auto"
-      value="${esc(f.a||'')}" placeholder="${esc(B.ans||'پاسخ درست')}"/>`:''}
-    ${isExam?`<input class="input num" type="number" min="1" dir="ltr" data-fcell="s" data-fw="${esc(which)}" data-fi="${i}"
-      value="${esc(un(String(f.s||1)))}" placeholder="${esc(B.score||'بارم')}"/>`:''}
-  </div>`;
+/* ── فرم‌ها: انبار مشترک فرم‌ساز + نمونه‌های پنل ─────────────────────────
+   فرم در فرم‌ساز ساخته می‌شود؛ این‌جا فقط وصلیم. مبلغ و ظرفیت و پنجرهٔ
+   ثبت‌نام از همان فرم خوانده می‌شود تا رویداد و فرم یکی بمانند. */
+const FST=()=>(window.NORA_UI&&NORA_UI)||null;
+function madeForms(){try{const u=FST(); return u&&u.formsAll?u.formsAll():[]}catch(e){return []}}
+function demoForms(){const F=(A.forms||{}); return (F.rows||[]).map((r,i)=>({id:'demo'+(i+1), name:r.n, kind:r.k,
+  q:NR(un(String(r.got||'0'))), cap:0, fin:[], demo:1, need:''}))}
+function formOf(id){
+  if(!id) return null;
+  const made=madeForms().find(f=>String(f.id)===String(id));
+  if(made) return made;
+  return demoForms().find(f=>String(f.id)===String(id))||null;
 }
-function formBuilder(which){
-  const F=(NE().forms||{}), B=F.builder||{}, st=fState(which), rows=st.fields||[];
-  const names={reg:'فرم ثبت‌نام', survey:'فرم نظرسنجی', exam:'فرم آزمون'};
-  if(st.mode==='tpl'){
-    const tpl=[...((which==='reg'?F.reg:which==='survey'?F.survey:F.exam)||[])].filter(x=>x.k!=='build');
-    return `<div class="fld"><span class="lbl">${esc(names[which])}</span>
-      <div class="row tight">${tpl.map(x=>`<button class="chip ${st.tpl===x.k?'on':''}" data-ftpl="${esc(which)}-${esc(x.k)}">${esc(x.n)}</button>`).join('')}
-        <button class="chip ${st.mode==='tpl'&&st.tpl==='build'?'on':''}" data-fbuild="${esc(which)}">${esc('اختصاصی')}</button></div>
-      <span class="cap">${esc((tpl.find(x=>x.k===st.tpl)||{}).d||'')}</span></div>`;
-  }
-  return `<div class="fld"><span class="lbl">${esc(names[which])} · ${esc(fa(rows.length))} ${esc(B.count||'پرسش')}</span>
-    <div class="fbuilder">${rows.map((f,i)=>fieldRow(which,i,f)).join('')||`<span class="cap">${esc(B.empty||'')}</span>`}
-      <div class="row tight">
-        <button class="btn sm" data-fadd="${esc(which)}">${ico('i-plus')}${esc(B.add||'افزودن پرسش')}</button>
-        <button class="btn sm quiet" data-ftpl="${esc(which)}-${esc(which==='reg'?'light':'auto')}">${esc('برگرد به قالب')}</button>
-      </div></div>
-    <span class="cap">${esc(B.lead||'')}</span></div>`;
+const formName=f=>f?(f.name||'فرم بی‌نام'):'';
+const formQs=f=>f?(f.q?fa(f.q)+' پرسش':((f.fields||[]).length?fa((f.fields||[]).length)+' پرسش':'')):'';
+function formSum(f){  /* جمع مبالغ فرم با تخفیف‌ها */
+  const fin=(f&&f.fin)||[]; if(!fin.length) return 0;
+  return fin.reduce((n,o)=>n+(o.off?Math.round(+o.p*(100-+o.off)/100):(+o.p||0)),0);
 }
-function curForm(which){
-  const F=(NE().forms||{}), st=fState(which);
-  if(st.mode==='tpl'){
-    const src=which==='reg'?F.reg:which==='survey'?F.survey:F.exam;
-    const t=(src||[]).find(x=>x.k===st.tpl)||{}, list=(src||[]).filter(x=>x.k!=='build');
-    if(st.tpl==='build') return {n:names2(which), fields:(st.fields||[]), custom:true};
-    if(which==='survey'&&st.tpl==='auto') return {n:'نظرسنجی خودکار', fields:(F.survey||[])[0].d?[]:[], auto:true};
-    return {n:(t.n||'')+' · '+(names2(which)), fields:(t.fields||[]).map(l=>({l:l, t:'text', req:1}))};
-  }
-  return {n:names2(which), fields:(st.fields||[]), custom:true};
+function moneyRows(f){
+  const fin=(f&&f.fin)||[];
+  return fin.map(o=>`<div class="revrow"><span class="cap">${esc(o.l||'')}</span>
+    <span>${esc(fa(+o.p||0))} ${esc('ریال')}${o.off?` · ${esc('٪'+fa(o.off)+' تخفیف')}`:''}</span></div>`).join('');
 }
-const names2=w=>w==='reg'?'فرم ثبت‌نام':w==='survey'?'فرم نظرسنجی':'فرم آزمون';
+const NEEDN={reg:'فرم ثبت‌نام', survey:'فرم نظرسنجی', exam:'فرم آزمون', other:'فرم'};
+const fpOf=need=>((S.wiz.fp||{})[need]||'');
+function fpForm(need){return formOf(fpOf(need))}
+/* نشانی فرم‌ساز با همهٔ قلم‌های همین رویداد: ظرفیت، پنجرهٔ ثبت‌نام، نام، برگشت */
+function builderUrl(need){
+  const w=S.wiz, j=jParse(w.date), p2=new URLSearchParams();
+  p2.set('ev', evLinkId()); p2.set('need', need||'reg');
+  p2.set('name', w.name||''); p2.set('cap', String(w.cap||''));
+  p2.set('when', j?jLong(j.jy,j.jm,j.jd):'');
+  p2.set('place', w.mode==='online'?(w.link||''):(w.place||''));
+  if(w.date) p2.set('from', w.date+(w.time?' · '+w.time:''));
+  if(w.end) p2.set('end', w.end+(w.to?' · '+w.to:''));
+  p2.set('slug', 'events/'+evLinkId()+'/'+(need==='exam'?'exam':need==='survey'?'survey':'register'));
+  p2.set('back', 'admin.html#newev&edit='+encodeURIComponent(evLinkId()));
+  return 'create.html?'+p2.toString();
+}
+/* پوستر: یا از گالری یا تصویری که خودت آوردی */
+function posterSrc(v){v=String(v||''); return !v?'':(/^(data:|https?:|\/)/.test(v)?v:'posters/'+v)}
+const posterVal=()=>S.wiz.posterUp||S.wiz.poster||'';
 
-/* ── پیش‌نمایش: کارت رویداد و صفحهٔ رویداد ──────────────────────────── */
+/* ── یادآوری‌ها: هر ردیف یک زمان و یک راه ─────────────────────────────
+   زمان ارسال از تاریخ رویداد و جلسه‌ها حساب می‌شود، نه از حدس. */
+function remList(){S.wiz.rem=Array.isArray(S.wiz.rem)?S.wiz.rem:[]; return S.wiz.rem}
+function remAt(r){  /* زمان ارسال این یادآوری */
+  const w=S.wiz, j=jParse(w.date); if(!j) return '';
+  const t=minOfT(w.time)||0, mult={m:1,h:60,d:1440,w:10080}[r.u]||60, mins=(+r.n||0)*mult;
+  let day=j2d(j.jy,j.jm,j.jd), min=t+(r.w==='after'?mins:-mins);
+  while(min>=1440){min-=1440; day++}
+  while(min<0){min+=1440; day--}
+  const g=d2j(day);
+  return jLong(g.jy,g.jm,g.jd)+' · '+fa(pad2(Math.floor(min/60))+':'+pad2(min%60));
+}
+const pad2=n=>String(n).length<2?'0'+n:String(n);
+/* متن و زمان یادآوری همان ردیف، بی‌آنکه قلم از دست برود */
+function rcap(el,i){
+  const r=remList()[i];
+  const row=el.closest?el.closest('.frow'):null, cap=row&&row.querySelector('.cap');
+  if(r&&cap) cap.textContent=remText(r)+' · '+(remAt(r)||'');
+}
+const remText=r=>`${fa(r.n||0)} ${((NE().remUnits||[]).find(u=>u.k===r.u)||{}).n||''} ${r.w==='after'?'بعد':'قبل'}`;
+function remRows(){
+  const B=NE().remB||{}, units=NE().remUnits||[], chs=NE().remCh||[];
+  const rows=remList();
+  return `<div class="fbuilder rems">${rows.map((r,i)=>`<div class="frow" data-remrow="${i}">
+    <div class="frowtop rem">
+      <button class="fbtn ${r.on?'':'stop'}" data-remon="${i}" aria-pressed="${r.on?'true':'false'}" aria-label="${esc(B.off||'خاموش')}">${ico(r.on?'i-bell':'i-bell-off')}</button>
+      <span class="fnum">${esc(fa(i+1))}</span>
+      <button class="chip ${r.w!=='after'?'on':''}" data-remtow="${i}" data-w="before">${esc(B.before||'قبل')}</button>
+      <button class="chip ${r.w==='after'?'on':''}" data-remtow="${i}" data-w="after">${esc(B.after||'بعد')}</button>
+      <input class="input num" dir="ltr" inputmode="numeric" data-remn="${i}" value="${esc(un(String(r.n||0)))}" aria-label="${esc('عدد')}"/>
+      <select class="input" data-remu="${i}" aria-label="${esc(B.unit||'یکا')}">
+        ${units.map(u=>`<option value="${esc(u.k)}" ${r.u===u.k?'selected':''}>${esc(u.n)}</option>`).join('')}</select>
+      <select class="input" data-remch="${i}" aria-label="${esc(B.ch||'راه')}">
+        ${chs.map(c=>`<option value="${esc(c.k)}" ${r.ch===c.k?'selected':''}>${esc(c.n)}</option>`).join('')}</select>
+      <button class="fbtn stop" data-remdel="${i}" aria-label="${esc(B.del||'برداشتن')}">${ico('i-trash')}</button>
+    </div>
+    <span class="cap">${esc(remText(r))} · ${esc(remAt(r)||(B.at||'زمان ارسال'))}</span>
+  </div>`).join('')||`<span class="cap">${esc(B.empty||'')}</span>`}
+    <div class="row tight">
+      <button class="btn sm" data-remadd="before">${ico('i-plus')}${esc(B.add||'یادآوری تازه')}</button>
+      <label class="chip ${S.wiz.remEvery?'on':''}" data-remever="1">${ico('i-check')}${esc((NE().remB||{}).every||'هر جلسه هم یادآوری شود')}</label>
+    </div></div>`;
+}
+/* جلسه‌ها: هر جلسه تاریخ و ساعت خودش؛ تاریخ پایان از آخرین جلسه می‌آید */
+function sessRows(){
+  const B=NE().sess||{}, rows=S.wiz.sess||[];
+  return `<div class="fbuilder">${rows.map((s,i)=>`<div class="frow" data-sessrow="${i}">
+    <div class="frowtop sess">
+      <span class="fnum">${esc(fa(i+1))}</span>
+      <span class="cap">${esc(B.t||'جلسه')} ${esc(fa(i+1))}</span>
+      <span class="sp"></span>
+      <button class="fbtn stop" data-sessdel="${i}" aria-label="${esc(B.del||'برداشتن')}">${ico('i-trash')}</button>
+    </div>
+    <div class="wgrid">
+      <div class="fld"><span class="lbl">${esc('تاریخ')}</span>
+        <div class="row tight"><input class="input num" id="wsd-${i}" dir="ltr" inputmode="numeric" data-sessd="${i}"
+            value="${esc(s.d||'')}" placeholder="۱۴۰۴/۰۷/۲۱" autocomplete="off"/>
+          <button class="btn sm quiet" data-dp="sess${i}" aria-label="${esc('تقویم')}">${ico('i-calendar')}</button></div></div>
+      <div class="fld"><span class="lbl">${esc('از')}</span>
+        <input class="input num" id="wst-${i}" dir="ltr" inputmode="numeric" maxlength="5" data-sesst="${i}" data-wtime="sesst${i}" value="${esc(un(s.t||''))}"/></div>
+      <div class="fld"><span class="lbl">${esc('تا')}</span>
+        <input class="input num" id="wse-${i}" dir="ltr" inputmode="numeric" maxlength="5" data-sessto="${i}" value="${esc(un(s.to||''))}"/></div>
+    </div>
+    ${S.dp&&S.dp.f==='sess'+i?dpBox():''}
+  </div>`).join('')}
+    <div class="row tight"><button class="btn sm" data-sessadd="1">${ico('i-plus')}${esc(B.add||'جلسهٔ تازه')}</button>
+      <span class="cap">${esc(B.auto||'')}</span></div></div>`;
+}
+/* امروز زنده است، پس هر رویدادی که برگزاری‌اش تمام شده خودش به برگزار شده می‌رود */
+/* وضعیت رویداد از خود تاریخ‌ها درمی‌آید: بعد از پایان برگزاری، خودش
+   می‌رود در «برگزار شده»؛ ولی رویداد چندجلسه‌ای تا آخرین جلسه باز می‌ماند. */
+function evState(e){
+  if(e.held) return 'past';
+  if(e.state==='wait') return 'wait';
+  const start=jParse(e.on||'');
+  const ses=(e.sess||[]).filter(x=>x&&jParse(x.d));
+  if(!start&&!ses.length) return e.state||'soon';
+  const c=(typeof clockParts==='function')?clockParts():null;
+  if(!c) return e.state||'soon';
+  const lastSes=ses[ses.length-1];
+  const last=jParse(lastSes?lastSes.d:(e.end||''))||start;
+  const t=minOfT(lastSes?lastSes.to:e.to)||1440;
+  if(!last) return e.state||'soon';
+  const today=j2d(c.jy,c.jm,c.jd), lastDay=j2d(last.jy,last.jm,last.jd), nowMin=c.h*60+c.mi;
+  if(today>lastDay) return 'past';
+  if(today===lastDay&&nowMin>=t) return 'past';
+  /* امروز یکی از جلسه‌هاست؟ پس رویداد همین حالا در جریان است */
+  const onToday=ses.some(x=>{const j=jParse(x.d); return j&&j2d(j.jy,j.jm,j.jd)===today});
+  if(onToday) return 'live';
+  return (e.state==='past')?'soon':(e.state||'soon');
+}
+function afterEvent(e){  /* رویداد گذشته: فهرست «برگزار شده» و آرشیو */
+  return evState(e)==='past';
+}
+/* ── پیش‌نمایش: کارت رویداد، صفحهٔ رویداد و پیام‌ها ─────────────────── */
 const evLinkId=()=>{ if(S.wiz.edit) return S.wiz.edit;
   if(!S.wiz.stamp){S.wiz.stamp=Date.now(); try{save()}catch(e){}}
   return 'nx'+S.wiz.stamp; };
 const stampNow=()=>S.wiz.stamp||(S.wiz.stamp=Date.now());
 const evLink=()=>'event.html?id='+evLinkId();
-const fmtCap=n=>fa(Number(n).toLocaleString('en-US'));
+const fmtCap=n=>fa(Number(n||0).toLocaleString('en-US'));
+/* ── پوستر خودت: فایل خوانده می‌شود و اگر سنگین بود، خودش کوچک می‌شود ──
+   در مرورگر با canvas کوچک می‌شود؛ جایی که canvas نیست، همان تصویر می‌ماند. */
+/* در محیط آزمایش نه canvas هست نه تیک ثانیه‌شمار؛ وگرنه فرایند بسته نمی‌شود */
+const IS_TEST=(typeof navigator!=='undefined'&&/jsdom/i.test(String(navigator.userAgent||'')));
+const NO_CANVAS=IS_TEST;
+function shrinkPoster(file,cb){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const url=String(fr.result||'');
+    if(!url) return cb('');
+    if(NO_CANVAS||url.length<220000) return cb(url);
+    try{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const max=900, sc=Math.min(1, max/Math.max(img.width||max, img.height||max));
+          const cv=document.createElement('canvas');
+          cv.width=Math.max(1,Math.round((img.width||max)*sc));
+          cv.height=Math.max(1,Math.round((img.height||max)*sc));
+          const cx=cv.getContext?cv.getContext('2d'):null;
+          if(!cx) return cb(url);
+          cx.drawImage(img,0,0,cv.width,cv.height);
+          cb(cv.toDataURL('image/jpeg',0.82));
+        }catch(e){cb(url)}
+      };
+      img.onerror=()=>cb(url);
+      img.src=url;
+    }catch(e){cb(url)}
+  };
+  fr.onerror=()=>cb('');
+  fr.readAsDataURL(file);
+}
+
+/* ── برگهٔ انتخاب فرم: فرم‌های فرم‌ساز بالای فهرست می‌آیند، بعد نمونه‌های پنل */
+function formPick(need,label,hint){
+  const F=NE().forms||{}, cur=formOf(fpOf(need)), made=madeForms(), demo=demoForms();
+  const row=(f)=>`<div class="admlirow pickrow ${cur&&String(cur.id)===String(f.id)?'on':''}">
+      <span class="ic">${ico(f.fin&&f.fin.length?'i-wallet':'i-doc')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(f))}</b>
+        <small class="cap" style="display:block">${esc([f.kind||'', formQs(f), f.fin&&f.fin.length?fa(formSum(f))+' ریال':''].filter(Boolean).join(' · '))}${f.ev?` · ${esc('وصل به '+f.ev)}`:''}</small></span>
+      ${cur&&String(cur.id)===String(f.id)?`<span class="tag brand">${esc(F.linked||'وصل شده')}</span>`:
+        `<button class="btn sm" data-fpick="${esc(need)}" data-fid="${esc(f.id)}">${ico('i-check')}${esc(F.pick||'بردار')}</button>`}</div>`;
+  return `<div class="fld"><span class="lbl">${esc(label)}</span>
+    ${hint?`<span class="cap">${esc(hint)}</span>`:''}
+    ${cur?`<div class="admlirow on"><span class="ic">${ico('i-doc')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(cur))}</b>
+        <small class="cap" style="display:block">${esc([cur.kind||'', formQs(cur)].filter(Boolean).join(' · '))}</small></span>
+      <a class="btn sm quiet" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-sliders')}${esc(F.openBuilder||'ویرایش در فرم‌ساز')}</a>
+      <button class="btn sm quiet" data-fclear="${esc(need)}" aria-label="${esc(F.clear||'بردار')}">${ico('i-close')}</button></div>`
+    :`<div class="empty cap">${ico('i-doc')}<p style="margin-top:6px">${esc(F.none||'فرمی وصل نشده')}</p></div>`}
+    <div class="admlist picklist">${made.length?made.map(row).join(''):`<div class="cap">${esc(F.empty||'')}</div>`}</div>
+    ${demo.length?`<div class="cap" style="margin-top:6px">${esc(F.fromDemo||'')}</div>${demo.map(row).join('')}`:''}
+    <div class="row tight">
+      <a class="btn sm" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-plus')}${esc(F.build||'ساختن در فرم‌ساز')}</a>
+      <span class="cap">${esc(F.inBuilder||'')}</span></div></div>`;
+}
+/* تاریخ و ساعت رویداد: با جلسه‌ها، اولین و آخرین جلسه خوانده می‌شود */
+function evWhen(){
+  const w=S.wiz, j=jParse(w.date), ses=(w.sess||[]).filter(x=>x&&x.d);
+  const first=ses.length?jParse(ses[0].d):j, last=ses.length?jParse(ses[ses.length-1].d):(jParse(w.end)||j);
+  const line=s=>s?jLong(s.jy,s.jm,s.jd):'';
+  return {first:first, last:last, day:line(first),
+    range:(last&&first&&j2d(last.jy,last.jm,last.jd)!==j2d(first.jy,first.jm,first.jd))?line(last):'',
+    time:[(ses.length?(ses[0].t||w.time):w.time),(ses.length?(ses[0].to||w.to):w.to)].filter(Boolean).join(' تا '),
+    count:ses.length||(+w.sessions||1)};
+}
 function evCardPrev(){
-  const w=S.wiz, L=NE().l||{}, t=neKind(w.et), th=themeOf(w.theme);
-  const j=jParse(w.date);
+  const w=S.wiz, L=NE().l||{}, t=neKind(w.et), src=posterSrc(posterVal()), W2=evWhen();
   return `<div class="evcard th-${esc(w.theme||'glass')}">
-    <div class="evcard-cover">${w.poster?`<img src="posters/${esc(w.poster)}" alt="" loading="lazy"/>`
-      :`<span class="cap">${esc((NE().noPoster)||'')}</span>`}</div>
+    <div class="evcard-cover">${src?`<img src="${esc(src)}" alt="" loading="lazy"/>`:`<span class="cap">${esc((NE().noPoster)||'')}</span>`}</div>
     <div class="evcard-body">
-      <div class="evcard-top"><span class="tag brand">${esc(t.n||'تعریف')}</span>${w.label?`<span class="tag">${esc((NE().labels||[]).find(x=>x.k===w.label)?.n||'')}</span>`:''}</div>
+      <div class="evcard-top"><span class="tag brand">${esc(t.n||'تعریف')}</span>${w.label?`<span class="tag">${esc((NE().labels||[]).find(x=>x.k===w.label)?.n||'')}</span>`:''}${w.held?`<span class="tag">${esc('برگزار شده')}</span>`:''}</div>
       <b>${esc(w.name||'نام رویداد')}</b>
       <small>${esc(w.desc||'یک خط توضیح')}</small>
       <div class="evcard-meta">
-        <span>${ico('i-calendar')}${esc(j?jLong(j.jy,j.jm,j.jd):'تاریخ')}</span>
-        <span>${ico('i-clock')}${esc([w.time,w.to].filter(Boolean).join(' تا ')||'ساعت')}</span>
+        <span>${ico('i-calendar')}${esc(W2.day||'تاریخ')}${W2.range?` · ${esc(W2.range)}`:''}</span>
+        <span>${ico('i-clock')}${esc(W2.time||'ساعت')}${W2.count>1?` · ${esc(fa(W2.count)+' جلسه')}`:''}</span>
         <span>${ico('i-pin')}${esc(w.mode==='online'?(w.link||'آنلاین'):(w.place||'جا'))}</span>
       </div>
-      <div class="evcard-foot"><span class="cap">${esc(fa(w.cap||0))} ${esc('نفر')}${w.wait?' · لیست انتظار':''}</span>
-        <span class="tag brand">${esc(L.book||'ثبت‌نام')}</span></div>
+      <div class="evcard-foot"><span class="cap">${esc(fmtCap(w.cap||0))} ${esc('نفر')}${w.waitMode?` · ${esc((NE().waitModes||[]).find(x=>x.k===w.waitMode)?.n||'')}`:''}</span>
+        <span class="tag brand">${esc(w.held?(L.arch||'آرشیو'):(L.book||'ثبت‌نام'))}</span></div>
     </div></div>`;
 }
 function evPagePrev(){
-  const w=S.wiz, t=neKind(w.et), j=jParse(w.date), F=(NE().forms||{});
+  const w=S.wiz, t=neKind(w.et), src=posterSrc(posterVal()), W2=evWhen();
   const on=(NE().features||[]).filter(x=>featOn(x.k)).map(x=>x.n);
+  const reg=fpForm('reg'), svy=fpForm('survey'), exm=fpForm('exam');
   return `<div class="evpage th-${esc(w.theme||'glass')}">
-    <div class="evpage-cover">${w.poster?`<img src="posters/${esc(w.poster)}" alt="" loading="lazy"/>`:''}</div>
+    <div class="evpage-cover">${src?`<img src="${esc(src)}" alt="" loading="lazy"/>`:''}</div>
     <div class="evpage-body">
       <span class="tag brand">${esc(t.n||'تعریف')}</span>
       <h4>${esc(w.name||'نام رویداد')}</h4>
-      <p class="cap">${esc(w.desc||'')}</p>
+      <p class="cap">${esc(w.about||w.desc||'')}</p>
       <div class="evpage-chips">
-        <span class="chip2">${ico('i-calendar')}${esc(j?jLong(j.jy,j.jm,j.jd):'')}</span>
-        <span class="chip2">${ico('i-clock')}${esc([w.time,w.to].filter(Boolean).join(' تا '))}</span>
+        <span class="chip2">${ico('i-calendar')}${esc([W2.day,W2.range].filter(Boolean).join(' تا '))}</span>
+        <span class="chip2">${ico('i-clock')}${esc(W2.time||'')}${W2.count>1?` · ${esc(fa(W2.count)+' جلسه')}`:''}</span>
         <span class="chip2">${ico('i-pin')}${esc(w.mode==='online'?(w.link||'آنلاین'):(w.place||''))}</span>
-        <span class="chip2">${ico('i-users')}${esc(fa(w.cap||0))} ${esc('نفر')}</span>
+        <span class="chip2">${ico('i-users')}${esc(fmtCap(w.cap||0))} ${esc('نفر')}</span>
       </div>
+      ${(w.sess||[]).length>1?`<div class="evpage-secs">${(w.sess||[]).map((x,i)=>{const j=jParse(x.d);
+        return `<span>${ico('i-calendar')}${esc('جلسهٔ '+fa(i+1)+': '+(j?jLong(j.jy,j.jm,j.jd):'')+' '+(x.t?fa(x.t):''))}</span>`}).join('')}</div>`:''}
       <div class="evpage-secs">
-        <span>${ico('i-doc')}${esc('فرم ثبت‌نام')}</span>
-        ${featOn('survey')?`<span>${ico('i-star')}${esc('نظرسنجی: '+((F.survey||[]).find(x=>x.k===fState('survey').tpl)||{n:'خودکار'}).n)}</span>`:''}
-        ${featOn('exam')&&S.wiz.exam!=='none'?`<span>${ico('i-check')}${esc('آزمون')}</span>`:''}
+        <span>${ico('i-doc')}${esc(reg?formName(reg):'فرم ثبت‌نام وصل نشده')}</span>
+        ${featOn('survey')?`<span>${ico('i-star')}${esc(svy?'نظرسنجی: '+formName(svy):'نظرسنجی')}</span>`:''}
+        ${featOn('exam')&&w.exam!=='none'?`<span>${ico('i-check')}${esc(exm?'آزمون: '+formName(exm):'آزمون')}</span>`:''}
         ${featOn('cert')?`<span>${ico('i-medal')}${esc('گواهی حضور')}</span>`:''}
         ${featOn('att')?`<span>${ico('i-qr')}${esc('ورود با QR')}</span>`:''}
       </div>
+      ${w.held&&w.rep?`<p class="cap">${esc(w.rep)}</p>`:''}
       ${on.length?`<div class="admchips">${on.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
-      <div class="row tight"><span class="btn sm">${esc('ثبت‌نام')}</span>
+      <div class="row tight">${w.held?`<span class="btn sm">${esc('آرشیو رویداد')}</span>`:`<span class="btn sm">${esc('ثبت‌نام')}</span>`}
         <span class="btn sm quiet">${esc('افزودن به تقویم')}</span>
         <span class="btn sm quiet">${esc('اشتراک‌گذاری')}</span></div>
     </div></div>`;
@@ -804,8 +994,12 @@ function msgPrev(){
   const w=S.wiz, L=NE().l||{}, M=(NE().msgTpl)||{};
   const fill=s=>String(s||'').replace('{name}',w.name||'رویداد').replace('{when}',w.date||'')
     .replace('{time}',w.time||'');
-  return `<div class="msgs">${(NE().channels||[]).filter(c=>chOn(c.k)).map(c=>
-    `<div class="mrow"><span class="cap">${esc(c.n)}</span><span>${esc(fill(M[c.k]||''))}</span></div>`).join('')}</div>`;
+  const rows=(NE().channels||[]).filter(c=>chOn(c.k)).map(c=>
+    `<div class="mrow"><span class="cap">${esc(c.n)}</span><span>${esc(fill(M[c.k]||''))}</span></div>`);
+  const rem=remList().filter(r=>r.on!==0).map(r=>
+    `<div class="mrem"><span class="cap">${esc(remText(r))}</span><span>${esc(remAt(r)||'بی تاریخ')}
+      · ${esc(((NE().remCh||[]).find(c=>c.k===r.ch)||{}).n||'')}${S.wiz.remEvery&&(S.wiz.sess||[]).length>1?' · هر جلسه':''}</span></div>`);
+  return `<div class="msgs">${rows.join('')}${rem.join('')}</div>`;
 }
 function cardDefs(){
   const rows=defsFor().slice(0,5);
@@ -862,7 +1056,15 @@ function vNewev(){
       <div class="fld"><span class="lbl">${esc(L.poster||'پوستر')}</span>
         <div class="posters">${(Z.posters||[]).map(p=>`<button class="pthumb ${w.poster===p.k?'on':''}" data-wposter="${esc(p.k)}"
           aria-label="${esc(p.n)}" title="${esc(p.n)}"><img src="posters/${esc(p.k)}" alt="" loading="lazy"/></button>`).join('')}
-        </div></div>
+          <label class="pthumb up ${w.posterUp?'on':''}" title="${esc(((Z.posterUp||{}).add)||'پوستر خودم')}">
+            ${w.posterUp?`<img src="${esc(w.posterUp)}" alt=""/>`:ico('i-image')}
+            <input type="file" accept="image/*" data-wfile="1" hidden/>
+            <small>${esc(w.posterUp?(((Z.posterUp||{}).change)||'عوض کن'):(((Z.posterUp||{}).add)||'پوستر خودم'))}</small>
+          </label>
+        </div>
+        <span class="cap">${esc(((Z.posterUp||{}).hint)||'')}</span>
+        ${w.posterUp?`<button class="btn sm quiet" data-wposterclear="1">${ico('i-trash')}${esc(((Z.posterUp||{}).clear)||'بردار')}</button>`:''}
+      </div>
     </div>
     <div class="themeRow">
       <div class="fld"><span class="lbl">${esc(L.theme||'تم کارت')}</span>
@@ -886,13 +1088,19 @@ function vNewev(){
       <div class="wgrid">
         ${dpField('end',L.end)}${numField('dur',L.dur,15,15)}${numField('sessions',L.sessions,1,1)}
       </div>
+      <div class="fld"><span class="lbl">${esc((Z.held||{}).t||'این رویداد برگزار شده')}</span>
+        <div class="row tight">
+          <button class="chip ${w.held?'on':''}" data-wheld="1">${esc((Z.held||{}).t||'برگزار شده')}</button>
+          <span class="cap">${esc((Z.held||{}).d||'')}${w.held?' · '+esc((Z.held||{}).willArchive||''):''}</span></div></div>
       ${w.mode!=='online'?textField('place',L.place,'place',L.room):''}
       ${w.mode!=='physical'?textField('link',L.link,'link',L.linkPh):''}
-      <div class="wgrid">
+      ${(+w.sessions||1)>1?`<div class="fld"><span class="lbl">${esc((Z.sess||{}).t||'جلسه‌ها')}</span>
+        <span class="cap">${esc((Z.sess||{}).d||'')}</span>${sessRows()}</div>`:''}
+      ${w.held?'':`<div class="wgrid">
         ${dpField('regFrom',L.regFrom)}${dpField('regTo',L.regTo)}
         <div class="fld"><span class="lbl">${esc('سطح دسترسی')}</span>
           <div class="row tight">${seg('privacy',Z.privacy||[],w.privacy)}</div></div>
-      </div>
+      </div>`}
     </div>`;
   else if(sem===2){
     const caps=Z.capNote||{};
@@ -901,39 +1109,43 @@ function vNewev(){
       <div class="wgrid">
         ${numField('cap',L.cap,1,1,caps.cap)}${numField('pre',L.pre,0,1,caps.pre)}${numField('extra',L.extra,0,1,caps.extra)}
       </div>
-      <div class="fld"><span class="lbl">${esc('لیست انتظار')}</span>
+      ${w.held?`<div class="fld"><span class="lbl">${esc((Z.held||{}).archive||'آرشیو رویداد')}</span>
+        <div class="wgrid">
+          ${numField('who',(Z.held||{}).who||'چند نفر شرکت کردند',0,1)}
+          <label class="fld"><span class="lbl">${esc((Z.held||{}).rep||'گزارش کوتاه')}</span>
+            <input class="input" id="wz-rep" data-winput="rep" value="${esc(w.rep||'')}" placeholder="${esc('دو خط از رویداد')}"/></label>
+          <label class="fld"><span class="lbl">${esc((Z.held||{}).media||'لینک آلبوم یا فیلم')}</span>
+            <input class="input" id="wz-media" dir="ltr" data-winput="media" value="${esc(w.media||'')}" placeholder="https://"/></label>
+        </div>
+        <span class="cap">${esc((Z.held||{}).auto||'')}</span></div>`
+      :`<div class="fld"><span class="lbl">${esc('لیست انتظار')}</span>
         <div class="row tight">${seg('waitMode',Z.waitModes||[],w.waitMode)}</div>
         <span class="cap">${esc((Z.wait||{})[w.waitMode]||Z.seats||'')}</span></div>
       <div class="fld"><span class="lbl">${esc('بلیت')}</span>
         <div class="row tight">${seg('tickets',Z.tickets||[],w.tickets)}</div></div>
       <div class="fld"><span class="lbl">${esc('روش حضور و غیاب')}</span>
-        <div class="row tight">${seg('att',Z.att||[],w.att)}</div></div>
+        <div class="row tight">${seg('att',Z.att||[],w.att)}</div></div>`}
+      <div class="fld">${numField('points','امتیاز شرکت',0,5)}</div>
+      ${isMoney()?`<div class="fld"><span class="lbl">${esc('مبالغ و پرداخت')}</span>
+        ${fpForm('reg')?`${moneyRows(fpForm('reg'))}
+          <div class="revrow"><span class="cap">${esc((Z.forms||{}).sum||'جمع')}</span>
+            <span>${esc(fa(formSum(fpForm('reg'))))} ${esc('ریال')}</span></div>
+          <a class="btn sm quiet" href="${esc(builderUrl('reg'))}" target="_blank" rel="noopener">${ico('i-wallet')}${esc(((Z.forms||{}).openBuilder)||'ویرایش در فرم‌ساز')}</a>`
+        :`<span class="cap">${esc((Z.forms||{}).money||'')}</span>
+          <div class="row tight"><a class="btn sm quiet" href="${esc(builderUrl('reg'))}" target="_blank" rel="noopener">${ico('i-plus')}${esc((Z.forms||{}).build||'ساختن در فرم‌ساز')}</a></div>`}
+      </div>`:`<p class="cap">${esc(Z.money||'')}</p>`}
       <div class="head">${esc('قابلیت‌ها')}</div>
       <div class="admkinds feats">${toggles}</div>
-      ${isMoney()?`<div class="wgrid">
-        <div class="fld"><span class="lbl">${esc('پرداخت')}</span><div class="row tight">
-          ${Object.keys(Z.pay||{}).map(k=>`<button class="chip ${w.paid===k?'on':''}" data-wpick="paid" data-wval="${esc(k)}">${esc((Z.pay||{})[k])}</button>`).join('')}</div></div>
-        ${numField('price',L.price,0,50000)}
-        ${numField('points','امتیاز شرکت',0,5)}
-      </div>
-      <div class="wgrid">
-        ${textField('code',L.code,'code','مثلاً NOWRUZ')}
-        ${numField('off','درصد تخفیف',0,5)}
-        <div class="fld"><span class="lbl">${esc('پرداخت اقساطی')}</span><div class="row tight">
-          <button class="chip ${w.install?'on':''}" data-wpick="install" data-wval="1">${esc('دو قسط')}</button>
-          <button class="chip ${!w.install?'on':''}" data-wpick="install" data-wval="0">${esc('یک‌جا')}</button></div></div>
-      </div>`:`<p class="cap">${esc(Z.money||'')}</p>`}
     </div>`;
   }
   else if(sem===3){
     inner=`<p class="cap">${esc((Z.hints||{}).forms||'')}</p>
     <div class="wform">
       <div class="head">${esc((Z.forms||{}).lead||'فرم‌ها')}</div>
-      ${formBuilder('reg')}
-      ${formBuilder('survey')}
-      ${formBuilder('exam')}
-      <div class="fld"><span class="lbl">${esc('یادآوری به شرکت‌کنندگان')}</span>
-        <div class="row tight">${(Z.reminders||[]).map(x=>`<button class="chip ${remOn(x.k)?'on':''}" data-wrem="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
+      ${((Z.forms||{}).needs||[]).map(n=>formPick(n.k,n.n,n.d)).join('')}
+      <div class="fld"><span class="lbl">${esc((Z.forms||{}).other||'فرم دیگر')}</span>
+        ${formPick('other',(Z.forms||{}).other||'فرم دیگر','')}</div>
+      <div class="fld"><span class="lbl">${esc((Z.remB||{}).t||'یادآوری‌ها')}</span>${remRows()}</div>
       <div class="fld"><span class="lbl">${esc('کانال‌های اطلاع‌رسانی')}</span>
         <div class="row tight">${(Z.channels||[]).map(x=>`<button class="chip ${chOn(x.k)?'on':''}" data-wch="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
       <div class="fld"><span class="lbl">${esc('پیش‌نمایش پیام‌ها')}</span>${msgPrev()}</div>
@@ -942,23 +1154,29 @@ function vNewev(){
   else {
     const rK=defKind(w.kind), t=neKind(w.et);
     const on=(Z.features||[]).filter(x=>featOn(x.k)).map(x=>x.n);
-    const j1=jParse(w.date), j2=jParse(w.end);
+    const j1=jParse(w.date), j2=jParse(w.end), W2=evWhen();
     const dayOf=j=>j?jLong(j.jy,j.jm,j.jd):'';
-    const reg=curForm('reg'), svy=curForm('survey'), exm=(Z.forms||{}).exam||[];
-    const R=[['تعریف',rK.n+(t.n?' · '+t.n:'')],['نام',w.name||''],['توضیح',w.desc||''],
-      ['برگزارکننده',w.org||''],['پوستر',w.poster?((Z.posters||[]).find(p=>p.k===w.poster)||{}).n||w.poster:'برداشته نشده'],
-      isEv?['شروع',[dayOf(j1),w.time&&fa(w.time),w.mode==='online'?(w.link||''):(w.place||'')].filter(Boolean).join(' · ')]:null,
-      isEv?['پایان',[dayOf(j2)||dayOf(j1),w.to&&fa(w.to)].filter(Boolean).join(' · ')]:null,
-      isEv?['جلسات',fa(w.sessions||1)+' جلسه'+(w.dur?' · هر جلسه '+fa(w.dur)+' دقیقه':'')]:null,
+    const reg=fpForm('reg'), svy=fpForm('survey'), exm=fpForm('exam');
+    const heldN=(((A.events||{}).states||{}).held||[])[0]||'برگزار شده';
+    const R=[w.held?['وضعیت',[heldN,w.who?fa(w.who)+' نفر':'',w.rep].filter(Boolean).join(' · ')]:null,
+      ['تعریف',rK.n+(t.n?' · '+t.n:'')],['نام',w.name||''],['توضیح',w.desc||''],
+      ['برگزارکننده',w.org||''],['پوستر',w.posterUp?(((Z.posterUp||{}).add)||'پوستر خودم'):(w.poster?((Z.posters||[]).find(p=>p.k===w.poster)||{}).n||w.poster:'برداشته نشده')],
+      isEv?['شروع',[W2.day||dayOf(j1),W2.time&&fa(W2.time),w.mode==='online'?(w.link||''):(w.place||'')].filter(Boolean).join(' · ')]:null,
+      isEv?['پایان',[W2.range||dayOf(j2)||W2.day,dayOf(j1)&&(w.sess||[]).length?fa(((w.sess||[])[(w.sess||[]).length-1]||{}).to||w.to||''):(w.to&&fa(w.to)),].filter(Boolean).join(' · ')]:null,
+      isEv?['جلسات',fa(W2.count)+' جلسه'+(w.dur?' · هر جلسه '+fa(w.dur)+' دقیقه':'')]:null,
       isEv?['ظرفیت',fa(w.cap||0)+' نفر'+(w.pre?' · پیش‌ثبت‌نام '+fa(w.pre):'')+(w.extra?' · مازاد '+fa(w.extra):'')+' · لیست انتظار '+((Z.waitModes||[]).find(x=>x.k===w.waitMode)||{}).n]:null,
-      isEv?['ثبت‌نام',[w.regFrom?fa(w.regFrom):(L.now||'همین حالا'),w.regTo?fa(w.regTo):(L.tillStart||'تا شروع')].join(' · ')]:null,
+      isEv&&!w.held?['ثبت‌نام',[w.regFrom?fa(w.regFrom):(L.now||'همین حالا'),w.regTo?fa(w.regTo):(L.tillStart||'تا شروع')].join(' · ')]:null,
       isEv?['دسترسی',((Z.privacy||[]).find(x=>x.k===w.privacy)||{}).n||'']:null,
-      isEv?['فرم ثبت‌نام',reg.n+' ('+fa((reg.fields||[]).length)+' پرسش)']:null,
-      isEv?['نظرسنجی',featOn('survey')?svy.n:'خاموش']:null,
-      isEv?['آزمون',w.exam==='none'?'ندارد':(exm.find(x=>x.k===w.exam)||{}).n||'آزمون تازه']:null,
-      isEv?['حضور و غیاب',((Z.att||[]).find(x=>x.k===w.att)||{}).n||'']:null,
+      isEv?['فرم ثبت‌نام',reg?formName(reg):(Z.forms||{}).none||'']:null,
+      isEv&&featOn('survey')?['نظرسنجی',svy?formName(svy):((Z.forms||{}).none||'')]:null,
+      isEv&&featOn('exam')?['آزمون',w.exam==='none'?(Z.forms||{}).none||'':(exm?formName(exm):'')]:null,
+      (isMoney()&&reg)?['مبالغ',fa(formSum(reg))+' '+((NE().l||{}).rial||'ریال')]:null,
+      w.held?['شرکت‌کننده',w.who?fa(w.who)+' نفر':'']:null,
+      w.held?['گزارش',w.rep||'']:null,
+      w.held?['آرشیو',w.media||'']:null,
+      isEv&&!w.held?['حضور و غیاب',((Z.att||[]).find(x=>x.k===w.att)||{}).n||'']:null,
       isEv?['قابلیت‌ها',on.join(' · ')]:null,
-      isEv?['یادآوری',(Z.reminders||[]).filter(x=>remOn(x.k)).map(x=>x.n).join(' · ')]:null,
+      isEv?['یادآوری',remList().filter(r=>r.on!==0).map(r=>remText(r)+(S.wiz.remEvery&&(S.wiz.sess||[]).length>1?' («هر جلسه»)':'')).join(' · ')]:null,
       isEv?['اطلاع‌رسانی',(Z.channels||[]).filter(c=>chOn(c.k)).map(c=>c.n).join(' · ')]:null,
       isEv?[L.pageLink||'نشانی صفحه',evLink()]:null].filter(r=>r&&r[1]);
     inner=`<p class="cap">${esc((Z.hints||{}).look||'')}</p>
@@ -973,8 +1191,10 @@ function vNewev(){
           <b>${esc(w.name||'بی‌نام')}</b>${tag(canPublish()?(Z.route||{}).self:(Z.route||{}).ask,canPublish()?'ok':'warn')}</div>
         ${R.map(r=>`<div class="revrow"><span class="cap">${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join('')}
         <div class="admchips"><span class="tag brand">${esc(themeOf(w.theme).n||'')}</span>
-          <span class="tag">${esc('فرم ثبت‌نام: '+reg.n)}</span>
-          ${featOn('survey')?`<span class="tag">${esc('نظرسنجی: '+svy.n)}</span>`:''}</div></div>`;
+          ${reg?`<span class="tag">${esc('فرم ثبت‌نام: '+formName(reg))}</span>`:''}
+          ${featOn('survey')&&svy?`<span class="tag">${esc('نظرسنجی: '+formName(svy))}</span>`:''}
+          ${featOn('exam')&&exm?`<span class="tag">${esc('آزمون: '+formName(exm))}</span>`:''}
+          ${w.held?`<span class="tag">${esc('آرشیو')}</span>`:''}</div></div>`;
   }
   const j1=jParse(w.date);
   const ready=sem===0?(isEv?!!(w.et&&String(w.name||'').trim()):!!String(w.name||'').trim())
@@ -1005,12 +1225,13 @@ function vEvents(){
   const filt=f.map(x=>`<button class="tag ${cur===x.k?'on':''}" data-evF="${esc(x.k)}">${esc(x.n)}
       <b>${esc(fa(all.filter(evFilter(x.k)).length))}</b></button>`).join('');
   const rows=list.map(e=>{
-    const st=(EV.states||{})[e.state]||['',''];
+    const stE=evState(e), st=(EV.states||{})[stE]||['',''];
     const pct=Math.min(100,Math.round((+e.reg||0)/Math.max(1,+e.cap||1)*100));
-    return rowLink({attrs:`data-ev="${esc(e.id)}"`, i:'i-calendar', chev:1,
-      b:esc(e.n), s:`${esc(e.kind)} · ${esc(e.when)} · ${esc(e.time)} · ${esc(e.place)}`,
+    const ses=(e.sess||[]);
+    return rowLink({attrs:`data-ev="${esc(e.id)}"`, i:'i-calendar', chev:1, stt:stE,
+      b:esc(e.n), s:`${esc(e.kind)} · ${esc(whenLine(e))}${ses.length>1?` · ${esc(fa(ses.length)+' جلسه')}`:''} · ${esc(e.time)} · ${esc(e.place)}`,
       i:e.kind==='همایش'?'i-ticket':e.kind==='وبینار'?'i-globe':e.kind==='اردو'?'i-flag':e.kind==='مسابقه'?'i-medal':'i-calendar',
-      img:e.poster?('posters/'+e.poster):'',
+      img:e.posterUp?e.posterUp:(e.poster?('posters/'+e.poster):''),
       right:`<span class="mini"><span class="cap">${esc(fa(e.reg))}/${esc(fa(e.cap))}</span>
         <span class="admbar-line ${pct>=100?'full':''}"><i style="width:${pct}%"></i></span>${tag(st[0],st[1])}</span>`});
   }).join('');
@@ -1054,11 +1275,14 @@ function vUsers(){
 
 /* ── فرم‌ها ────────────────────────────────────────────────────────────── */
 function vForms(){
-  const F=A.forms||{}, mine=(S.forms||[]), rows=(mine.length?mine.map(f=>Object.assign({},f,{q:f.q,mine:1})):[]).concat(F.rows||[]);
+  const F=A.forms||{}, rows=madeForms().map(f=>Object.assign({},f,{q:0,made:1,kind:f.kind||'فرم'}))
+    .concat(F.rows||[]);
   const list=rows.map((r,i)=>rowLink({attrs:`data-formrow="${i}"`, i:'i-doc',
-      b:esc(r.n), s:r.mine?`${esc(r.k)} · ${esc(fa(r.q||0))} پرسش · ${esc('از رویداد')}${r.link?` · ${esc(r.link)}`:''}`
-        :`${esc(r.k)} · ${esc(fa(r.got))} پاسخ · ${esc(r.at)}`,
-      right:`<span class="mini">${r.on?tag('باز','ok'):tag('بسته','')}
+      b:esc(r.n||r.name||''), s:r.made
+        ? `${esc(r.kind)} · ${esc((r.fin||[]).length?fa(formSum(r))+' ریال':'بی مبلغ')}${r.ev?` · ${esc('وصل به رویداد '+r.ev+' · form.html?ev='+r.ev+(r.need?'&kind='+r.need:''))}`:''} · ${esc('فرم‌ساز')}`
+        : `${esc(r.k)} · ${esc(fa(r.got))} پاسخ · ${esc(r.at)}`,
+      right:`<span class="mini">${r.made?`<a class="btn sm quiet" href="create.html?fid=${esc(r.id)}&name=${encodeURIComponent(r.n||r.name||'')}&back=${encodeURIComponent('admin.html#forms')}" target="_blank" rel="noopener">${ico('i-sliders')}${esc('فرم‌ساز')}</a>`:''}
+        ${r.on?tag('باز','ok'):tag('بسته','')}
         <span class="switch ${r.on?'on':''}" data-formsw="${i}" role="switch" aria-checked="${r.on?'true':'false'}" aria-label="باز و بسته"></span></span>`}));
   const paths=(F.paths||[]).map(p=>`<a class="admrow2" href="${esc(p.href)}">
       <span class="ic">${ico(p.i)}</span><span class="tx"><b>${esc(p.n)}</b><small>${esc(p.s)}</small></span>
@@ -1249,7 +1473,10 @@ function vSettings(){
 /* ══ ورقه‌ها ═══════════════════════════════════════════════════════════ */
 function sheetEv(id){
   const e=evOf(id); if(!e) return;
-  const D=A.events||{}, st=(D.states||{})[e.state]||['',''];
+  const D=A.events||{}, stE=evState(e), st=(D.states||{})[stE]||['',''];
+  const src=posterSrc(e.posterUp||e.poster), ses=(e.sess||[]);
+  const madeForms=(function(){try{const u=(window.NORA_UI&&NORA_UI)||null;
+    return u&&u.formsFor?u.formsFor(e.id):[]}catch(err){return []}})();
   const tabs=(D.tabs||[]).filter(t=>!t.own||isMoney())
     .map(t=>`<button class="chip ${S.evTab===t.k?'on':''}" data-evtab="${esc(t.k)}">${esc(t.n)}</button>`).join('');
   let block='';
@@ -1268,11 +1495,15 @@ function sheetEv(id){
     block=`<div class="stack tight"><div class="head">${esc(D2.lead||'')}</div>${table(D2.rows||[],D2.cols)}</div>`;
   }
   sheetImpl('shAdm',`<div class="admsheet">
-    ${e.poster?`<div class="sheetcover"><img src="posters/${esc(e.poster)}" alt=""/>
+    ${src?`<div class="sheetcover"><img src="${esc(src)}" alt=""/>
       <span class="lbl">${esc('پوستر رویداد')}</span></div>`:''}
     <div class="row"><div class="tx" style="min-width:0"><div class="head">${esc(e.n)}</div>
-      <div class="cap">${esc(e.kind)} · ${esc(whenLine(e))} · ${esc(e.time)}</div></div>
+      <div class="cap">${esc(e.kind)} · ${esc(whenLine(e))} · ${esc(e.time)}${ses.length>1?` · ${esc(fa(ses.length)+' جلسه')}`:''}</div></div>
       <span class="sp"></span>${tag(st[0],st[1])}</div>
+    ${ses.length>1?`<div class="evpage-secs">${ses.map((x,i)=>{const j=jParse(x.d);
+      return `<span>${ico('i-calendar')}${esc('جلسهٔ '+fa(i+1)+': '+(j?jLong(j.jy,j.jm,j.jd):'')+(x.t?' '+fa(x.t):'')+(x.to?' تا '+fa(x.to):''))}</span>`}).join('')}</div>`:''}
+    ${e.held?`<div class="admempty"><span class="cap">${esc('برگزار شده')}${e.who?' · '+esc(fa(e.who)+' نفر'):''}${e.rep?' · '+esc(e.rep):''}</span>
+      ${e.media?`<a class="btn sm quiet" href="${esc(e.media)}" target="_blank" rel="noopener">${ico('i-link')}${esc('آرشیو')}</a>`:''}</div>`:''}
     <div class="admfilters">${tabs}</div>
     ${block}
     <div class="row tight">${btn(tabName('reg'),'data-evtab="reg"','i-users')}
@@ -1280,12 +1511,21 @@ function sheetEv(id){
       ${btn(tabName('cert'),'data-evtab="cert"','i-medal')}
       <button class="btn sm" data-evedit="${esc(e.id)}">${ico('i-pen')}${esc(W.edit||'ویرایش')}</button>
       <a class="btn sm" href="builder.html">${ico('i-doc')}${esc(D.formQueue||'کارتابل فرم')}</a></div>
-    ${(e.forms||[]).length?`<div class="stack tight"><div class="head">${esc('فرم‌های این رویداد')}</div>
-      ${(e.forms||[]).map(f=>`<div class="admlirow"><span class="ic">${ico(f.k==='exam'?'i-check':f.k==='survey'?'i-star':'i-doc')}</span>
-        <span class="sp"><b style="font-size:var(--fs-sub)">${esc(f.n)}</b>
-          <small class="cap" style="display:block">${esc(fa(f.q||0))} ${esc('پرسش')} · ${esc('form.html?ev='+e.id+'&kind='+f.k)}</small></span>
-        <button class="btn sm quiet" data-copyform="${esc('form.html?ev='+e.id+'&kind='+f.k)}" aria-label="${esc('رونوشت نشانی فرم')}">${ico('i-copy')}</button>
-        <a class="btn sm quiet" href="${esc('form.html?ev='+e.id+'&kind='+f.k)}">${ico('i-eye')}${esc('دیدن')}</a></div>`).join('')}</div>`:''}
+    ${((e.forms||[]).length||madeForms.length)?`<div class="stack tight"><div class="head">${esc('فرم‌های این رویداد')}</div>
+      ${(e.forms||[]).length?'':`<div class="admlirow"><span class="ic">${ico('i-doc')}</span>
+        <span class="sp cap">${esc('هنوز فرمی به این رویداد وصل نشده')}</span>
+        <a class="btn sm" href="create.html?ev=${esc(e.id)}&need=reg&name=${encodeURIComponent(e.n||'')}&cap=${esc(String(e.cap||''))}&back=${encodeURIComponent('admin.html#newev')}" target="_blank" rel="noopener">${ico('i-plus')}${esc('ساختن در فرم‌ساز')}</a></div>`}
+      ${(e.forms||[]).map(f=>{const link=(f.link||('form.html?ev='+e.id+'&kind='+(f.need||'reg')));
+        return `<div class="admlirow"><span class="ic">${ico(f.need==='exam'?'i-check':f.need==='survey'?'i-star':'i-doc')}</span>
+        <span class="sp"><b style="font-size:var(--fs-sub)">${esc(f.n||f.name||'')}</b>
+          <small class="cap" style="display:block">${esc([f.q||'', isMoney()&&f.money?fa(f.money)+' ریال':''].filter(Boolean).join(' · '))} · ${esc(link)}</small></span>
+        <button class="btn sm quiet" data-copyform="${esc(link)}" aria-label="${esc('رونوشت نشانی فرم')}">${ico('i-copy')}</button>
+        <a class="btn sm quiet" href="${esc(link)}">${ico('i-eye')}${esc('دیدن')}</a></div>`}).join('')}
+      ${madeForms.filter(f=>(e.forms||[]).every(x=>String(x.id)!==String(f.id))).map(f=>`<div class="admlirow">
+        <span class="ic">${ico(f.fin&&f.fin.length?'i-wallet':'i-doc')}</span>
+        <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(f))}</b>
+          <small class="cap" style="display:block">${esc([f.kind||'', isMoney()&&formSum(f)?fa(formSum(f))+' ریال':''].filter(Boolean).join(' · '))}</small></span>
+        <a class="btn sm quiet" href="create.html?ev=${esc(e.id)}&need=${esc(f.need||'reg')}&name=${encodeURIComponent(e.n||'')}&fid=${esc(f.id)}&back=${encodeURIComponent('admin.html#newev')}" target="_blank" rel="noopener">${ico('i-sliders')}${esc('ویرایش در فرم‌ساز')}</a></div>`).join('')}</div>`:''}
     ${e.page?`<div class="pagelink"><span class="ic">${ico('i-link')}</span><code dir="ltr">${esc(e.page)}</code>
       <button class="btn sm quiet" data-copyform="${esc(e.page)}">${ico('i-copy')}${esc('رونوشت')}</button>
       <a class="btn sm quiet" href="${esc(e.page)}" target="_blank" rel="noopener">${ico('i-eye')}${esc('صفحهٔ رویداد')}</a></div>`:''}
@@ -1522,27 +1762,35 @@ document.addEventListener('click',e=>{
     L2=>L2||'نشانی رونوشت شد'); return}
   const wcp=q('[data-copyev]'); if(wcp){copy(location.href.split('#')[0].replace(/[^/]*$/,'')+evLink(),null,
     (NE().copyLink||'نشانی رونوشت شد')); return}
-  /* سازندهٔ فرم: قالب آماده یا پرسش‌های خودت */
-  const fb=q('[data-fbuild]'); if(fb){const w2=fb.dataset.fbuild;
-    S.wiz[FKEY[w2]]={mode:'build',tpl:'build',fields:[{l:'',t:w2==='exam'?'pick4':w2==='survey'?'rate':'text',req:1}]};
-    if(w2==='exam') S.wiz.exam='build';
+  /* فرم‌ها: از انبار فرم‌ساز بردار یا بردار کنار */
+  const fpk=q('[data-fpick]'); if(fpk){const need=fpk.dataset.fpick, id=fpk.dataset.fid, f=formOf(id);
+    S.wiz.fp=S.wiz.fp||{reg:'',survey:'',exam:'',other:''};
+    S.wiz.fp[need]=String(id);
+    if(need==='survey') S.wiz.feat.survey=1;
+    if(need==='exam'){S.wiz.feat.exam=1; S.wiz.exam=f&&f.need?f.need:'exam';}
+    save(); renderBody(); toast(f?('وصل شد: '+formName(f)):'وصل شد'); return}
+  const fcl=q('[data-fclear]'); if(fcl){S.wiz.fp=S.wiz.fp||{}; S.wiz.fp[fcl.dataset.fclear]=''; save(); renderBody(); return}
+  /* جلسه‌ها */
+  const sad=q('[data-sessadd]'); if(sad){const ses=S.wiz.sess=S.wiz.sess||[];
+    const last=ses[ses.length-1]||{d:S.wiz.date||'',t:S.wiz.time||'',to:S.wiz.to||''};
+    ses.push({d:last.d||'',t:last.t||'',to:last.to||''});
+    S.wiz.sessions=Math.max(+S.wiz.sessions||1, ses.length);
+    if(ses[ses.length-1].d) S.wiz.end=ses[ses.length-1].d;
+    const de=document.getElementById('wz-sessions'); if(de) de.value=String(S.wiz.sessions);
     save(); renderBody(); return}
-  const ft=q('[data-ftpl]'); if(ft){const i2=ft.dataset.ftpl.indexOf('-'), w2=ft.dataset.ftpl.slice(0,i2), k=ft.dataset.ftpl.slice(i2+1);
-    S.wiz[FKEY[w2]]={mode:'tpl',tpl:k,fields:[]};
-    if(w2==='exam') S.wiz.exam=k;
-    if(w2==='survey'&&w2==='build') S.wiz[FKEY[w2]]={mode:'build',tpl:'build',fields:[{l:'',t:'rate',req:1}]};
+  const sdl=q('[data-sessdel]'); if(sdl){const ses=S.wiz.sess||[]; ses.splice(+sdl.dataset.sessdel,1);
+    S.wiz.sessions=Math.max(1,ses.length||(+S.wiz.sessions||1));
+    const de=document.getElementById('wz-sessions'); if(de) de.value=String(S.wiz.sessions);
     save(); renderBody(); return}
-  const fadd=q('[data-fadd]'); if(fadd){const w2=fadd.dataset.fadd, st2=fState(w2);
-    st2.mode='build'; st2.fields=(st2.fields||[]).concat([{l:'',t:w2==='exam'?'pick4':w2==='survey'?'rate':'text',req:1}]);
-    if(w2==='exam') S.wiz.exam='build';
-    save(); renderBody(); return}
-  const frq=q('[data-freq]'); if(frq){const i2=frq.dataset.freq.lastIndexOf('-'), w2=frq.dataset.freq.slice(0,i2), i=+frq.dataset.freq.slice(i2+1);
-    const f2=(fState(w2).fields||[])[i]; if(f2){f2.req=f2.req?0:1; save(); renderBody()} return}
-  const fdl=q('[data-fdel]'); if(fdl){const i2=fdl.dataset.fdel.lastIndexOf('-'), w2=fdl.dataset.fdel.slice(0,i2), i=+fdl.dataset.fdel.slice(i2+1);
-    const st2=fState(w2); st2.fields=(st2.fields||[]).filter((x,n)=>n!==i); save(); renderBody(); return}
-  const fmv=q('[data-fmv]'); if(fmv){const m=/^(\w+)-(\d+)-(up|down)$/.exec(fmv.dataset.fmv);
-    if(m){const w2=m[1], i=+m[2], dir=m[3]==='up'?-1:1, arr=fState(w2).fields, j2=i+dir;
-      if(j2>=0&&j2<arr.length){const t2=arr[i]; arr[i]=arr[j2]; arr[j2]=t2; save(); renderBody()}} return}
+  /* برگزار شده */
+  const whd=q('[data-wheld]'); if(whd){S.wiz.held=S.wiz.held?0:1; save(); renderBody(); return}
+  const wpc=q('[data-wposterclear]'); if(wpc){S.wiz.posterUp=''; save(); renderBody(); return}
+  /* یادآوری‌ها */
+  const rad=q('[data-remadd]'); if(rad){remList().push({w:'before',n:1,u:'d',ch:'bale',on:1}); save(); renderBody(); return}
+  const rdl=q('[data-remdel]'); if(rdl){remList().splice(+rdl.dataset.remdel,1); save(); renderBody(); return}
+  const ron=q('[data-remon]'); if(ron){const r=remList()[+ron.dataset.remon]; if(r){r.on=r.on?0:1; save(); renderBody()} return}
+  const rtw=q('[data-remtow]'); if(rtw){const r=remList()[+rtw.dataset.remtow]; if(r){r.w=rtw.dataset.w; save(); renderBody()} return}
+  const rev=q('[data-remever]'); if(rev){S.wiz.remEvery=S.wiz.remEvery?0:1; save(); renderBody(); return}
   const wet=q('[data-wet]'); if(wet){S.wiz.et=wet.dataset.wet; S.wiz.feat=defaultFeat(wet.dataset.wet);
     save(); renderBody(); return}
   const wp=q('[data-wpick]'); if(wp){const key=wp.dataset.wpick, val=wp.dataset.wval, num=['cap','pre','extra','dur','sessions','points'];
@@ -1551,20 +1799,20 @@ document.addEventListener('click',e=>{
     toast(neKind(S.wiz.et).n+' · '+(S.wiz.feat[k]?'روشن شد':'خاموش شد')); save(); renderBody(); return}
   const wr=q('[data-wrem]'); if(wr){const k=wr.dataset.wrem; S.wiz.rem[k]=remOn(k)?0:1; save(); renderBody(); return}
   /* تقویم: بازش کن، ماه بچرخان، روز بردار، امروز، ببند */
-  const dp=q('[data-dp]'); if(dp){const f=dp.dataset.dp, cur=jParse(S.wiz[f]), t=jToday();
+  const dp=q('[data-dp]'); if(dp){const f=dp.dataset.dp, cur=jParse(wGet(f)), t=jToday();
     S.dp=(S.dp||{}).f===f?null:{f:f, y:(cur||t).jy, m:(cur||t).jm}; save(); renderBody(); return}
   const dmv=q('[data-dpmv]'); if(dmv){const d=S.dp||{}, t=jToday();
     let y=+d.y||t.jy, m=(+d.m||t.jm)+(+dmv.dataset.dpmv);
     if(m<1){m=12; y--} if(m>12){m=1; y++}
     S.dp={f:d.f, y:y, m:m}; save(); renderBody(); return}
-  const dday=q('[data-dpday]'); if(dday){const d=S.dp||{}, t=jToday(), jd=+un(dday.dataset.dpday), was=S.wiz[d.f];
-    S.wiz[d.f]=jForm(+d.y||t.jy, +d.m||t.jm, jd);
+  const dday=q('[data-dpday]'); if(dday){const d=S.dp||{}, t=jToday(), jd=+un(dday.dataset.dpday), was=wGet(d.f);
+    wSet(d.f, jForm(+d.y||t.jy, +d.m||t.jm, jd));
     /* تاریخ پایان تا وقتی دستی عوض نشده، همراه شروع جلو می‌آید */
-    if(d.f==='date'&&(!String(S.wiz.end||'').trim()||S.wiz.end===was)) S.wiz.end=S.wiz[d.f];
+    if(d.f==='date'&&(!String(S.wiz.end||'').trim()||S.wiz.end===was)) S.wiz.end=wGet(d.f);
     S.dp=null; save(); renderBody(); return}
-  const dt0=q('[data-dptoday]'); if(dt0){const d=S.dp||{}, t=jToday(), was=S.wiz[d.f];
-    S.wiz[d.f]=jForm(t.jy,t.jm,t.jd);
-    if(d.f==='date'&&(!String(S.wiz.end||'').trim()||S.wiz.end===was)) S.wiz.end=S.wiz[d.f];
+  const dt0=q('[data-dptoday]'); if(dt0){const d=S.dp||{}, t=jToday(), was=wGet(d.f);
+    wSet(d.f, jForm(t.jy,t.jm,t.jd));
+    if(d.f==='date'&&(!String(S.wiz.end||'').trim()||S.wiz.end===was)) S.wiz.end=wGet(d.f);
     S.dp={f:d.f, y:t.jy, m:t.jm}; save(); renderBody(); return}
   const dc=q('[data-dpclose]'); if(dc){S.dp=null; save(); renderBody(); return}
   const ww=q('[data-wwait]'); if(ww){S.wiz.wait=S.wiz.wait?0:1; save(); renderBody(); return}
@@ -1578,43 +1826,64 @@ document.addEventListener('click',e=>{
     S.wiz.step=step; save(); renderBody(); return}
   const dOk=q('[data-defok]'); if(dOk){const id=dOk.dataset.defok, r=defsFor().find(x=>x.id===id)||{};
     S.defs=(S.defs||[]).map(x=>x.id===id?Object.assign({},x,{wait:0,st:'ok'}):x);
-    if(r.kind==='event'&&!evAll().some(e=>e.id==='d-'+id)) S.added=[{id:'d-'+id, n:r.n, kind:'رویداد', when:'تاریخ در تعریف', time:'', place:r.f==='club'?'کتابخانهٔ نورا':'', cap:0, reg:0, state:'soon', price:0}].concat(S.added||[]);
+    if(r.kind==='event'&&!evAll().some(e=>e.id==='d-'+id)){
+      const w=(r.extra||{}).wiz||r.wiz||{}, evId='d-'+id, ses=(w.sess||[]).filter(x=>x&&x.d);
+      const j1=jParse(w.date), W2={day:j1?jLong(j1.jy,j1.jm,j1.jd):(w.date||''),
+        time:[w.time,w.to].filter(Boolean).join(' تا '),
+        count:ses.length||(+w.sessions||1)};
+      S.added=[Object.assign({id:evId, n:r.n, kind:neKind(w.et).n||'رویداد',
+        when:W2.day||'تاریخ در تعریف', on:w.date||'', time:W2.time,
+        place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''),
+        cap:+w.cap||0, reg:0, state:(w.held?'past':'soon'), held:w.held?1:0, poster:w.posterUp?'':(w.poster||''),
+        posterUp:w.posterUp||'', theme:w.theme||'glass', sess:ses, sessions:W2.count,
+        who:+w.who||0, rep:w.rep||'', media:w.media||'', about:w.about||'', org:w.org||'',
+        label:w.label||'', privacy:w.privacy||'public', page:'event.html?id='+evId,
+        forms:linkForms(evId, w),
+        rem:(w.rem||[]).filter(x=>x&&x.on!==0).map(x=>({w:x.w,n:+x.n||0,u:x.u,ch:x.ch})),
+        ch:Object.keys(w.ch||{}).filter(k=>w.ch[k]), points:+w.points||0, att:w.att||'qr'},
+        (r.extra||{}).add||{})].concat(S.added||[]);
+    }
     save(); renderBody(); toast((DEFD().route||{}).self||'تأیید شد'); return}
   const dNo=q('[data-defno]'); if(dNo){const id=dNo.dataset.defno;
     S.defs=(S.defs||[]).map(x=>x.id===id?Object.assign({},x,{wait:0,st:'no'}):x);
     save(); renderBody(); toast((DEFD().states||{}).no?DEFD().states.no[0]:'برگشت برای اصلاح'); return}
   const wsend=q('[data-wsend]'); if(wsend){const w=S.wiz, et=neKind(w.et), kk=defKind(w.kind);
-    const kind=w.kind==='event'?(et.n||'رویداد'):kk.n, j1=jParse(w.date);
-    /* فرم‌های همین رویداد: ثبت‌نام، نظرسنجی و آزمون؛ در بخش فرم‌ها هم می‌مانند */
-    const reg=curForm('reg'), svy=curForm('survey');
-    const forms=[{k:'reg', n:reg.n, q:(reg.fields||[]).length}];
-    if(featOn('survey')) forms.push({k:'survey', n:svy.n, q:(svy.fields||[]).length});
-    if(w.exam&&w.exam!=='none') forms.push({k:'exam',
-      n:((NE().forms||{}).exam||[]).find(x=>x.k===w.exam)?.n||'فرم آزمون', q:(curForm('exam').fields||[]).length});
-    const withForms=(e)=>Object.assign(e,{forms:forms, poster:w.poster||'', theme:w.theme||'glass',
-      page:evLink(), about:w.about||'', label:w.label||'', org:w.org||'', privacy:w.privacy||'public',
-      on:w.date||'', cap:+w.cap||0, pre:+w.pre||0, extra:+w.extra||0, wait:w.waitMode||'auto',
-      tickets:w.tickets||'one', install:w.install?1:0, code:w.code||'', off:+w.off||0});
+    const kind=w.kind==='event'?(et.n||'رویداد'):kk.n, j1=jParse(w.date), W2=evWhen();
+    const ses=(w.sess||[]).filter(x=>x&&x.d);
+    if(j1&&w.edit&&!w.held&&evState({on:w.date,end:w.end,to:w.to,sess:ses,state:'soon'})==='past'&&!ses.length)
+      toast(((NE().held||{}).past)||'تاریخ این رویداد گذشته');
+    const forms=[];
+    const moneyOf=need=>{const f=fpForm(need); return f?formSum(f):0};
+    const withForms=(e,evId)=>Object.assign(e,{forms:linkForms(evId), poster:w.posterUp?'':(w.poster||''), posterUp:w.posterUp||'',
+      theme:w.theme||'glass', page:evLink(), about:w.about||'', label:w.label||'', org:w.org||'',
+      privacy:w.held?'public':(w.privacy||'public'), on:w.date||'',
+      sess:ses.map(x=>({d:x.d,t:x.t,to:x.to})), sessions:W2.count,
+      held:w.held?1:0, who:+w.who||0, rep:w.rep||'', media:w.media||'',
+      cap:+w.cap||0, pre:+w.pre||0, extra:+w.extra||0, wait:w.waitMode||'auto',
+      tickets:w.tickets||'one', points:+w.points||0, att:w.att||'qr',
+      rem:(w.rem||[]).filter(r=>r.on!==0).map(r=>({w:r.w,n:+r.n||0,u:r.u,ch:r.ch})), remEvery:w.remEvery?1:0,
+      ch:Object.keys(w.ch||{}).filter(k=>chOn(k)),
+      price:isMoney()?moneyOf('reg'):0, state:w.held?'past':undefined});
     if(w.edit){  /* ویرایش: همان‌جا می‌ماند، نه پیش‌نویس می‌شود نه از فهرست می‌رود */
       S.evEdit=Object.assign({},S.evEdit||{});
+      const st=evState({on:w.date,end:w.end,to:w.to,sess:ses,state:(evOf(w.edit)||{}).state||'soon'});
       S.evEdit[w.edit]=withForms({n:w.name||'', kind:kind,
-        when:j1?jLong(j1.jy,j1.jm,j1.jd):(w.date||''), on:w.date||'',
-        time:[w.time&&fa(w.time),w.to&&fa(w.to)].filter(Boolean).join(' تا '), end:w.end||'',
-        place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''), cap:+w.cap||0});
-      S.forms=mergeForms(S.forms||[],w.edit,forms);
+        when:W2.day||(j1?jLong(j1.jy,j1.jm,j1.jd):(w.date||'')), on:w.date||'',
+        time:W2.time, end:(ses.length?ses[ses.length-1].d:w.end||''),
+        place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''), cap:+w.cap||0,
+        state:(w.held?'past':(st==='past'?'past':'soon'))}, w.edit);
       S.wiz=Object.assign({},BASE.wiz); save();
       toast((NE().again||'ویرایش شد')); go('events'); return}
     const route={id:(w.stamp?'nxs'+w.stamp:'nx'+Date.now()), kind:w.kind, n:w.name||'بی‌نام',
       by:me().k, f:myField().k, at:'همین حالا'};
     if(canPublish()){
-      S.added=[withForms({id:route.id, n:route.n, kind:kind, when:j1?jLong(j1.jy,j1.jm,j1.jd):(w.date||''),
-        on:w.date||'', time:[w.time&&fa(w.time),w.to&&fa(w.to)].filter(Boolean).join(' تا '), end:w.end||'',
-        place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''), cap:+w.cap||0, reg:0, state:'soon', price:isMoney()?(+w.price||0):0
-      })].concat(S.added||[]);
-      S.forms=mergeForms(S.forms||[],route.id,forms);
+      S.added=[withForms({id:route.id, n:route.n, kind:kind, when:W2.day||(w.date||''),
+        on:w.date||'', time:W2.time, end:(ses.length?ses[ses.length-1].d:w.end||''),
+        place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''), cap:+w.cap||0,
+        reg:w.held?(+w.who||0):0, state:(w.held?'past':'soon')}, route.id)].concat(S.added||[]);
       S.wiz=Object.assign({},BASE.wiz); S.evF='all'; save();
       toast((NE().made||'منتشر شد')); go('events'); return}
-    S.defs=[Object.assign({},route,{wait:1})].concat(S.defs||[]);
+    S.defs=[Object.assign({},route,{wait:1,extra:{wiz:JSON.parse(JSON.stringify(w))}})].concat(S.defs||[]);
     S.wiz=Object.assign({},BASE.wiz); save(); renderBody();
     toast((NE().queued||'رفت برای تأیید')); go('dash'); return}
   const cpub=q('[data-certpub]'); if(cpub){
@@ -1629,19 +1898,30 @@ document.addEventListener('click',e=>{
   const ed=q('[data-evedit]'); if(ed){const e=evOf(ed.dataset.evedit); if(e){
     const t=(NE().kinds||[]).find(x=>x.n===e.kind)||{};
     const half=String(e.time||'').split('تا').map(x=>x.trim()).filter(Boolean);
-    const jw=jFromWhen(e.when), mine=(e.forms||[])[0]||null;
+    const jw=jFromWhen(e.when);
+    const ses=(e.sess||[]).map(x=>({d:x.d||'',t:un(String(x.t||'')),to:un(String(x.to||''))}));
+    const fp={reg:'',survey:'',exam:'',other:''};
+    (e.forms||[]).forEach(f=>{if(f&&f.need&&fp[f.need]!==undefined) fp[f.need]=String(f.id||'')});
     S.wiz=Object.assign({},BASE.wiz,{edit:e.id,kind:'event',et:t.k||'custom',name:e.n||'',
       desc:e.d||e.about||'',about:e.about||'',org:e.org||'',label:e.label||'',
-      poster:e.poster||'',theme:e.theme||'glass',
+      poster:((e.poster||'').indexOf('nora-')===0?'':(e.poster||'')),posterUp:e.posterUp||'',
+      theme:e.theme||'glass',
       date:e.on||(jw?jForm(jw.jy,jw.jm,jw.jd):''),
-      time:un(half[0]||''),to:un(half[1]||''),end:e.end||'',
+      time:un((ses[0]||{}).t||half[0]||''),to:un((ses[0]||{}).to||half[1]||''),end:e.end||'',
+      sess:ses,sessions:+e.sessions||(+e.sessions||1),
+      held:e.held?1:0,who:+e.who||0,rep:e.rep||'',media:e.media||'',
       place:(e.place||'')==='آنلاین'?'':(e.place||''),
       link:(e.place||'')==='آنلاین'?((NE().suggest||{}).link||[])[0]:'',cap:+e.cap||45,
-      waitMode:e.wait||'auto',tickets:e.tickets||'one',code:e.code||'',off:+e.off||0,install:+e.install||0,
-      privacy:e.privacy||'public',
+      waitMode:e.wait||'auto',tickets:e.tickets||'one',privacy:e.privacy||'public',
+      points:+e.points||10,att:e.att||'qr',
+      rem:(e.rem&&e.rem.length)?e.rem.map(r=>Object.assign({on:1},r)):BASE.wiz.rem,
+      remEvery:(e.remEvery==null?1:e.remEvery),
+      ch:(e.ch&&e.ch.length)?e.ch.reduce((o,k)=>(o[k]=1,o),{}):{notify:1,bale:1,email:1},
+      fp:fp,
       mode:(e.place||'')==='آنلاین'?'online':'physical'});
-    if(mine) S.wiz.regF={mode:'tpl',tpl:(NE().regTpl||'light'),fields:[]};
     S.wiz.stamp=(e.id||'').replace(/^nx/,'')||Date.now();
+    /* جلسه‌ها اگر جا مانده باشد، از شمار جلسه‌ها ساخته می‌شود */
+    if(!S.wiz.sess.length&&+S.wiz.sessions>1) S.wiz.sess=[{d:S.wiz.date,t:S.wiz.time,to:S.wiz.to}];
     closeSheets(); save(); toast(W.editEvent||'در حال ویرایش'); go('newev'); return}}
   const ub=q('[data-ublock]'); if(ub){const id=ub.dataset.ublock;
     S.uov[id]=Object.assign({},S.uov[id],{st:['مسدود','stop']}); save();
@@ -1662,15 +1942,23 @@ document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   if(el.dataset.cparam){S.cert.params[el.dataset.cparam]=String(el.value||'').trim(); save(); return}
   if(el.dataset.text){S.texts[el.dataset.text]=String(el.value||''); save(); return}
-  if(el.dataset.wcell){const key=el.dataset.fcell, st2=fState(el.dataset.fw), i=+el.dataset.fi,
-      fd=(st2.fields||[])[i];
-    if(!fd) return;
-    if(key==='l') fd.l=el.value;
-    else if(key==='t'){fd.t=el.value; if(el.value==='pick4'&&!(fd.o||[]).length) fd.o=['','','','']}
-    else if(key==='o') fd.o=el.value.split('،').map(x=>x.trim()).filter(Boolean);
-    else if(key==='a') fd.a=el.value;
-    else if(key==='s') fd.s=Math.max(1,+un(el.value)||1);
-    save(); renderBody(); return}
+  if(el.dataset.sessd!==undefined){const ses=S.wiz.sess||[], s2=ses[+el.dataset.sessd]; if(s2) s2.d=el.value; save(); return}
+  if(el.dataset.sesst!==undefined){const ses=S.wiz.sess||[], s2=ses[+el.dataset.sesst]; if(s2){const v=h24(el.value); s2.t=v; if(v!==el.value) el.value=v} save(); return}
+  if(el.dataset.sessto!==undefined){const ses=S.wiz.sess||[], s2=ses[+el.dataset.sessto]; if(s2){const v=h24(el.value); s2.to=v; if(v!==el.value) el.value=v} save(); return}
+  if(el.dataset.remn!==undefined){const i=+el.dataset.remn, r=remList()[i];
+    if(r){r.n=Math.max(0,+un(el.value)||0); rcap(el,i); save()}
+    return}
+  if(el.dataset.remu!==undefined){const i=+el.dataset.remu, r=remList()[i];
+    if(r){r.u=el.value; rcap(el,i); save()}
+    return}
+  if(el.dataset.remch!==undefined){const r=remList()[+el.dataset.remch]; if(r){r.ch=el.value; save(); renderBody()} return}
+  if(el.dataset.wfile){const f=(el.files||[])[0]; if(!f) return;
+    shrinkPoster(f,url=>{
+      if(!url){toast(((NE().posterUp||{}).fail)||'این تصویر خوانده نشد'); return}
+      S.wiz.posterUp=url; S.wiz.poster=''; save(); renderBody();
+      toast(((NE().posterUp||{}).add)||'پوستر خودم');
+    });
+    return}
   if(el.dataset.wtime){const f2=el.dataset.wtime, v=h24(el.value,true);
     S.wiz[f2]=v||String(el.value||''); el.value=v;
     const a2=minOfT(S.wiz.time), b2=minOfT(S.wiz.to);
@@ -1678,7 +1966,16 @@ document.addEventListener('change',e=>{
     save(); renderBody(); return}
   const f=el.dataset.winput;
   if(!f) return;
-  if(el.type==='number'){S.wiz[f]=Math.max(0,+un(el.value)||0); save(); return}
+  if(el.type==='number'){
+    S.wiz[f]=Math.max(0,+un(el.value)||0);
+    if(f==='sessions'){  /* با شمار جلسه‌ها، ردیف‌های جلسه باز و بسته می‌شود */
+      const n=Math.max(1,+S.wiz.sessions||1), ses=S.wiz.sess=S.wiz.sess||[];
+      while(ses.length<n){const last=ses[ses.length-1]||{d:S.wiz.date||'',t:S.wiz.time||'',to:S.wiz.to||''};
+        ses.push({d:last.d||'',t:last.t||'',to:last.to||''})}
+      if(ses.length>n) ses.length=n;
+      save(); renderBody(); return;
+    }
+    save(); return}
 
   if(['date','end','regFrom','regTo'].indexOf(f)>-1){
     const j=jParse(el.value), was=S.wiz[f];
@@ -1693,12 +1990,20 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   if(el.id==='admQ'){S.q=el.value; renderBody(); return}
+  if(el.dataset.remn!==undefined){const i=+el.dataset.remn, r=remList()[i];
+    if(r){r.n=Math.max(0,+un(el.value)||0); rcap(el,i); save()}
+    return}
   if(el.dataset.winput){const f=el.dataset.winput;
     if(['date','end','regFrom','regTo'].indexOf(f)>-1||el.type==='number'){
       /* قلم‌های تاریخ و عدد در «change» می‌نشینند تا وسط تایپ نپرد */
       if(el.type==='number') S.wiz[f]=Math.max(0,+un(el.value)||0);
       save(); return}
     S.wiz[f]=el.value; save(); return}
+  if(el.dataset.sesst!==undefined||el.dataset.sessto!==undefined){
+    const i=+((el.dataset.sesst!==undefined)?el.dataset.sesst:el.dataset.sessto);
+    const s2=(S.wiz.sess||[])[i], k=(el.dataset.sesst!==undefined)?'t':'to';
+    if(s2){const v=h24(el.value); if(v){s2[k]=v; if(v!==el.value) el.value=v}}
+    save(); return}
   /* ساعت ۲۴ساعته: همان‌جا که می‌نویسی دونقطه می‌خورد و ۲۳:۵۹ سقف است */
   if(el.dataset.wtime){const f=el.dataset.wtime, v=h24(el.value);
     if(v){S.wiz[f]=v; if(v!==el.value) el.value=v}

@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=41"/>
+<link rel="stylesheet" href="glass.css?v=42"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -73,6 +73,7 @@
 
 <symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
 
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
 
 <symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
@@ -171,6 +172,7 @@
       <div class="cap" id="stepCap">—</div>
     </div>
     <span class="sp"></span>
+    <span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span>
     <button class="icon-btn" data-sheet="shExit" aria-label="خروج"><svg class="i"><use href="#i-close"/></svg></button>
   </header>
 
@@ -481,8 +483,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="data.js?v=41"></script>
-<script src="ui.js?v=41"></script>
+<script src="data.js?v=42"></script>
+<script src="ui.js?v=42"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={

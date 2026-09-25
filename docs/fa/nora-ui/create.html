@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · ساخت فرم</title>
-<link rel="stylesheet" href="glass.css?v=41"/>
+<link rel="stylesheet" href="glass.css?v=42"/>
 <style>
   .stepper4{display:flex;gap:4px;padding:5px}
   .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:7px;
@@ -57,6 +57,7 @@
 
 <symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
 
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
 
 <symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
@@ -167,6 +168,8 @@
       <div class="stepper4" id="stepper"></div>
       <div class="row tight" style="padding:0 6px 6px">
         <span class="cap" id="stepHint"></span><span class="sp"></span>
+        <span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span>
+
         <button class="btn sm quiet" id="btnBack"><svg class="i"><use href="#i-chev-right"/></svg> عقب</button>
         <button class="btn sm primary" id="btnNext">جلو <svg class="i"><use href="#i-chev-left"/></svg></button>
       </div>
@@ -177,8 +180,8 @@
       <div class="card paper">
         <div class="row">
           <span class="glass-thin" style="width:40px;height:40px;border-radius:13px;display:grid;place-items:center"><svg class="i lg"><use href="#i-calendar"/></svg></span>
-          <div><div class="head tight">کارگاه فن بیان مقدماتی</div><div class="cap">۱۴۰۵/۰۷/۰۸ · تهران · ظرفیت ۴۰</div></div>
-          <span class="sp"></span><span class="tag brand">فرم از دل رویداد</span>
+          <div><div class="head tight" id="evHead">کارگاه فن بیان مقدماتی</div><div class="cap" id="evMeta">۱۴۰۵/۰۷/۰۸ · تهران · ظرفیت ۴۰</div></div>
+          <span class="sp"></span><a class="tag brand" id="evChip" href="admin.html#newev">فرم از دل رویداد</a>
         </div>
         <hr class="hr"/>
         <div class="head" style="margin-bottom:10px">مدل فرم</div>
@@ -433,9 +436,10 @@
               <span class="glass-thin" style="width:56px;height:56px;border-radius:18px;display:grid;place-items:center"><svg class="i xl" style="color:var(--ok)"><use href="#i-check"/></svg></span>
             </div>
             <div class="head">فرم منتشر شد</div>
-            <div class="cap" style="margin-top:4px">پاسخ‌ها در کارتابل کارشناس می‌نشیند.</div>
+            <div class="cap" id="doneNote" style="margin-top:4px">پاسخ‌ها در کارتابل کارشناس می‌نشیند.</div>
             <div class="row" style="justify-content:center;margin-top:12px">
               <a class="btn sm primary" href="form.html" target="_blank" rel="noopener">دیدن فرم</a>
+              <span id="doneLink"></span>
               <a class="btn sm" href="builder.html">شناسنامهٔ فرم</a>
             </div>
           </div>
@@ -524,7 +528,7 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="ui.js?v=41"></script>
+<script src="ui.js?v=42"></script>
 <script>
 /* ══ داده ══ */
 const MODELS=[
@@ -622,8 +626,38 @@ const S={
   maxPer:3, compFields:'نام و موبایل', guestsOn:false,
   coupon:{code:'NORA10',off:10,all:false},
   methods:{card:true,bale:true,zarin:false,payping:false,instal:false},
-  confirmed:false
+  confirmed:false,
+  evId:'', need:'', back:'', fid:''
 };
+/* ══ پیوند به رویداد ══
+   پنل رویداد ما را با ?ev= و ?need= می‌فرستد؛ ظرفیت و پنجرهٔ ثبت‌نام و نام
+   از همان رویداد می‌آید تا فرم و رویداد یکی بمانند. */
+const QS=new URLSearchParams(location.search);
+const NEED={reg:'ثبت‌نام', survey:'نظرسنجی', exam:'آزمون', other:'فرم'};
+const NEEDM={reg:'registration', survey:'survey', exam:'exam', other:'registration'};
+if(QS.get('ev')||QS.get('name')){
+  S.evId=QS.get('ev')||'';
+  S.need=QS.get('need')||'reg';
+  S.back=QS.get('back')||'';
+  S.fid=QS.get('fid')||'';
+  const nm=QS.get('name')||'';
+  if(nm) S.title=(QS.get('title')||(NEED[S.need]||'فرم')+' '+nm);
+  if(NEEDM[S.need]) S.model=NEEDM[S.need];
+  if(QS.get('cap')) S.cap=NR(QS.get('cap'));
+  if(QS.get('from')) S.start=QS.get('from');
+  if(QS.get('end')) S.end=QS.get('end');
+  if(QS.get('slug')) S.slug=QS.get('slug');
+}
+function evHeadFill(){
+  const nm=QS.get('name')||'';
+  const eh=$('#evHead'), em=$('#evMeta'), ec=$('#evChip');
+  if(eh&&nm) eh.textContent=nm;
+  if(em&&nm) em.textContent=[QS.get('when'),QS.get('place'),S.cap?('ظرفیت '+faN(S.cap)):''].filter(Boolean).join(' · ');
+  if(ec){
+    ec.textContent=S.evId?(NEED[S.need]||'فرم')+' رویداد '+nm:'فرم از دل رویداد';
+    if(S.back) ec.setAttribute('href',S.back);
+  }
+}
 const STEPS=[{k:'s1',n:'مدل و نام'},{k:'s2',n:'فیلدها و تنظیمات'},{k:'s3',n:'مالی و پرداخت'},{k:'s4',n:'مرور و انتشار'}];
 const HINT={s1:'مدل را بزنید، بعد نام و نشانی را تأیید کنید',s2:'فیلدها را بچینید؛ تنظیمات همین‌جا کنارشان است',
   s3:'هر مورد مالی یک قیمت؛ روش‌های پرداخت را تیک بزنید',s4:'یک نگاه آخر و انتشار'};
@@ -901,7 +935,21 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#fdHelpDefault')){const f=S.fields.find(x=>x.id===editing);$('#fdHelp').value=HELP[f.t]||'';toast('راهنمای پیش‌فرض گذاشته شد');return}
   if(e.target.closest('#fdDelete')){S.fields=S.fields.filter(x=>x.id!==editing);closeSheets();renderCanvas();toast('حذف شد');return}
   if(e.target.closest('[data-close]')){saveField();closeSheets();toast('ذخیره شد');return}
-  if(e.target.closest('#publish')){$('#doneCard').style.display='block';S.confirmed=true;toast('فرم منتشر شد');return}
+  if(e.target.closest('#publish')){
+    const id=S.fid||('f'+Date.now().toString(36));
+    const model=(MODELS.find(m=>m.k===S.model)||{}).tn||'فرم';
+    const row={id:id, name:S.title, kind:model, need:S.need||'', model:S.model, slug:S.slug,
+      dept:S.dept, expert:S.notify.expert, intro:S.intro, cap:NR(S.cap)||0, wait:NR(S.wait)||0,
+      start:S.start, ends:S.end, fin:(S.fin||[]).map(o=>Object.assign({},o)), groups:S.groups||[],
+      methods:S.methods, coupon:S.coupon, maxPer:S.maxPer, endText:S.endText,
+      fields:(S.fields||[]).map(f=>[f.l,100]), guestsOn:S.guestsOn, limit:S.limit,
+      ev:S.evId||'', sync:{cap:1,dates:1,money:1}, on:1};
+    S.fid=id; S.confirmed=true;
+    try{if(window.NORA_UI&&NORA_UI.formPut) NORA_UI.formPut(row)}catch(err){}
+    $('#doneCard').style.display='block';
+    $('#doneLink').innerHTML=S.back?`<a class="btn sm" href="${esc(S.back)}">برگشت به رویداد</a>`:'';
+    $('#doneNote').textContent=S.evId?'فرم منتشر شد و به همین رویداد وصل شد؛ در پنل رویداد می‌بینی‌اش.':'پاسخ‌ها در کارتابل کارشناس می‌نشیند.';
+    toast('فرم منتشر شد و در انبار فرم‌ها نشست');return}
   if(e.target.closest('#introMedia')){const order=['','image','file','video'];
     S.introMedia=order[(order.indexOf(S.introMedia)+1)%order.length];
     $('#introMediaLbl').textContent={ '':'رسانه','image':'تصویر','file':'فایل','video':'ویدیو' }[S.introMedia];
@@ -953,7 +1001,17 @@ $('#pkStart').innerHTML=pickHTML('datetime',S.start);
 $('#pkEnd').innerHTML=pickHTML('datetime',S.end);
 initAll(document);
 renderStepper();renderTiles();slugView();renderCatalog();applyPack('full');
-renderLinks();renderFin();renderPreview();renderReview();go('s1');
+renderLinks();renderFin();renderPreview();renderReview();evHeadFill();go('s1');
+/* فرمی که از پیش ساخته شده و می‌خواهیم ویرایشش کنیم */
+try{
+  const cur=S.fid&&window.NORA_UI&&NORA_UI.formById?NORA_UI.formById(S.fid):null;
+  if(cur){
+    S.title=cur.name||S.title; S.slug=cur.slug||S.slug; S.cap=cur.cap||S.cap; S.wait=cur.wait||S.wait;
+    S.fin=(cur.fin||[]).length?cur.fin.map(o=>Object.assign({},o)):S.fin;
+    $('#fTitle').value=S.title; $('#fSlug').value=S.slug;
+    renderFin(); renderReview(); slugView();
+  }
+}catch(e){}
 </script>
 </body>
 </html>

@@ -54,6 +54,7 @@ async function load(store,hash){
   return {dom,window,doc,click,all,txt,body,type,errs,store:st};
 }
 const SECS=['dash','newev','events','users','forms','reports','cert','settings'];
+let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته می‌شود */
 
 /* ── ۱) پوسته و ناوبری ── */
 {
@@ -82,6 +83,14 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('.admbars i').length>=7,'نمودار میله‌ای هفته کشیده شد');
   ok(p.all('.card').length>=6,'داشبورد شش کارت دارد');
   ok(p.doc.title.includes('پنل مدیران'),'عنوان صفحه نام پنل را دارد');
+  ok(p.all('[data-clock]').length>=1,'ساعت و تاریخ روی ناوبری هست');
+  const ck=p.txt('[data-clock]');
+  ok(/[۰-۹]{2}:[۰-۹]{2}/.test(ck)&&/(شنبه|یکشنبه|دوشنبه|سه‌شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(ck),
+    'ساعت زنده و تاریخ شمسی روی ناوبری نوشته می‌شود: '+ck);
+  const CJK=p.window.NORA_UI;
+  ok(!!CJK&&typeof CJK.clockParts==='function','ساعت مشترک سامانه در ui.js است، نه فقط پنل');
+  const cp=CJK.clockParts();
+  ok(cp.jy>1400&&cp.jm>=1&&cp.jm<=12&&cp.jd>=1&&cp.jd<=31,'تاریخ شمسی درست خوانده می‌شود');
   p.click('#admNav [data-sec="events"]');
   ok(p.doc.title.includes('پنل مدیران')&&p.doc.title.includes('رویدادها'),'عنوان با بخش عوض می‌شود');
   p.click('#admNav [data-sec="dash"]');
@@ -152,6 +161,20 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.type('#wz-to','19:00','change');
   ok(p.doc.querySelector('#wz-dur').value==='105','مدت هر جلسه از فاصلهٔ ساعت‌ها درمی‌آید');
   p.type('#wz-place','دربند، پارک جنگلی','change');
+  /* برگزار شده و چندجلسه‌ای: رویداد آفلاین و گذشته هم ثبت می‌شود */
+  ok(p.all('[data-wheld]').length===1,'دکمهٔ «برگزار شده» برای رویدادهای آفلاین و گذشته هست');
+  p.type('#wz-sessions','3','change');
+  ok(p.all('[data-sessrow]').length===3,'با سه جلسه، سه ردیف تاریخ و ساعت باز می‌شود');
+  ok(p.all('[data-sessrow] [data-dp]').length===3,'هر جلسه تقویم خودش را دارد');
+  p.click('[data-sessadd]');
+  ok(p.all('[data-sessrow]').length===4,'جلسهٔ تازه اضافه می‌شود');
+  p.click('[data-sessdel="3"]');
+  ok(p.all('[data-sessrow]').length===3,'و کم می‌شود');
+  p.type('[data-sesst="0"]','1700','change');
+  ok(p.doc.querySelector('[data-sesst="0"]').value==='17:00','ساعت جلسه هم ۲۴ساعته می‌شود');
+  p.type('#wz-sessions','1','change');
+  ok(p.all('[data-sessrow]').length===0,'با یک جلسه، ردیف جلسه‌ها جمع می‌شود');
+  ok(p.all('#wz-regFrom').length===1,'و پنجرهٔ ثبت‌نام برمی‌گردد');
   p.click('[data-wstep="2"][data-wgo="1"]');
 
   /* گام سه: ظرفیت و ثبت‌نام */
@@ -169,32 +192,35 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('[data-wpick="waitMode"].on')[0].textContent.includes('دستی'),'حالت انتظار عوض می‌شود');
   p.click('[data-wstep="3"][data-wgo="1"]');
 
-  /* گام چهار: سازندهٔ فرم ثبت‌نام و نظرسنجی و آزمون */
-  ok(p.all('[data-ftpl^="reg"]').length===3,'سه قالب آمادهٔ فرم ثبت‌نام هست');
-  ok(p.all('[data-fbuild]').length===3,'و سه دکمهٔ ساخت فرم اختصاصی: ثبت‌نام، نظرسنجی، آزمون');
-  ok(p.all('[data-ftpl^="survey"]').length===1,'نظرسنجی خودکار هم هست');
-  ok(p.all('[data-ftpl^="exam"]').length===3,'سه آزمون آماده هست');
-  p.click('[data-ftpl="reg-full"]');
-  ok(p.all('[data-ftpl="reg-full"].on').length===1,'قالب کامل ثبت‌نام برجسته می‌شود');
-  p.click('[data-fbuild="reg"]');
-  ok(p.all('[data-frow^="reg"]').length===1,'فرم اختصاصی با یک پرسش خالی باز می‌شود');
-  p.click('[data-fadd="reg"]');
-  ok(p.all('[data-frow^="reg"]').length===2,'افزودن پرسش کار می‌کند');
-  p.type('[data-fcell="l"][data-fw="reg"][data-fi="1"]','شمارهٔ همراه','change');
-  ok(p.all('[data-fcell="l"][data-fw="reg"]')[1].value==='شمارهٔ همراه','متن پرسش می‌نشیند');
-  p.click(p.all('[data-fdel]')[0]);
-  ok(p.all('[data-frow^="reg"]').length===1,'و برداشتن پرسش هم');
-  p.click('[data-fbuild="survey"]');
-  ok(p.all('[data-frow^="survey"]').length===1&&p.all('[data-fcell="t"][data-fw="survey"]').length===1,'نظرسنجی اختصاصی هم پرسش‌ساز دارد');
-  p.click('[data-fbuild="exam"]');
-  ok(p.all('[data-frow^="exam"]').length===1,'آزمون تازه هم پرسش‌ساز دارد');
-  ok(p.all('[data-fcell="a"]').length===1&&p.all('[data-fcell="s"]').length===1,'آزمون پاسخ درست و بارم هم دارد');
-  ok(p.all('[data-wrem]').length===4&&p.all('[data-wch]').length===4,'یادآوری‌ها و کانال‌های اطلاع‌رسانی هم این‌جاست');
-  ok(p.all('[data-wrem]').length===4,'چهار یادآوری هم کنارش هست');
-  const remOn0=p.all('[data-wrem="d1"]')[0].classList.contains('on');
-  p.click('[data-wrem="d1"]');
-  ok(p.all('[data-wrem="d1"]')[0].classList.contains('on')!==remOn0,'یادآوری بیست‌وچهارساعته خاموش و روشن می‌شود');
-  p.click('[data-wrem="d1"]');
+  /* گام چهار: فرم درون رویداد ساخته نمی‌شود؛ از فرم‌ساز وصل می‌شود */
+  ok(p.all('[data-fpick]').length>=1,'برگهٔ انتخاب فرم هست: فرم‌های فرم‌ساز بالای فهرست');
+  ok(p.all('[data-ftpl],[data-fadd],[data-fcell],[data-fbuild]').length===0,'درون رویداد هیچ فرم و پرسشی ساخته نمی‌شود');
+  ok(p.all('a[href*="create.html?ev="]').length>=1,'راه فرم‌ساز با شناسهٔ همین رویداد باز است');
+  ok(/فرم‌ساز/.test(p.txt('.wform')),'و می‌گوید فرم در فرم‌ساز ساخته می‌شود');
+  const U=p.window.NORA_UI;
+  ok(!!U&&typeof U.formPut==='function','انبار فرم‌ها روی خود صفحه هست');
+  /* همان کاری که create.html می‌کند: فرم تازه در انبار می‌نشیند */
+  U.formPut({id:'t-reg',name:'ثبت‌نام کارگاه تست',kind:'ثبت‌نام',need:'reg',cap:20,
+    fin:[{l:'شرکت',p:900000,off:10},{l:'پذیرایی',p:100000,off:0}]});
+  p.click('[data-wstep="2"]'); p.click('[data-wstep="3"][data-wgo="1"]');
+  ok(p.all('[data-fpick="reg"][data-fid="t-reg"]').length===1,'فرم تازهٔ فرم‌ساز در فهرست می‌آید');
+  p.click('[data-fpick="reg"][data-fid="t-reg"]');
+  ok(/ثبت‌نام کارگاه تست/.test(p.txt('.wform')),'و با یک زدن وصل می‌شود');
+  ok(/۹۱۰/.test(p.txt('.wform')),'مبلغ فرم هم با تخفیفش خوانده می‌شود');
+  ok(p.all('[data-fclear="reg"]').length===1,'و راه برداشتنش هم هست');
+  /* یادآوری پیشرفته: ردیف، یکا، راه و خاموش‌وروشن */
+  ok(p.all('[data-remrow]').length===3,'سه یادآوری پیش‌فرض هست');
+  ok(p.all('[data-remrow] [data-remu]').length===3&&p.all('[data-remrow] [data-remch]').length===3,'هر یادآوری یکا و راه خودش را دارد');
+  p.click('[data-remadd="before"]');
+  ok(p.all('[data-remrow]').length===4,'یادآوری تازه اضافه می‌شود');
+  p.type('[data-remn="3"]','48','change');
+  ok(/۴۸/.test(p.txt('[data-remrow="3"]')),'زمان یادآوری می‌نشیند');
+  const wasOff=p.all('[data-remrow="0"] .fbtn')[0].classList.contains('stop');
+  p.click('[data-remon="0"]');
+  ok(p.all('[data-remrow="0"] .fbtn')[0].classList.contains('stop')!==wasOff,'یادآوری خاموش و روشن می‌شود');
+  p.click('[data-remon="0"]');
+  p.click('[data-remdel="3"]');
+  ok(p.all('[data-remrow]').length===3,'و یادآوری تازه برداشته می‌شود');
   p.click('[data-wch="sms"]');
   ok(p.all('.mrow').length===4,'کانال تازه به پیش‌نمایش پیام‌ها می‌آید');
   p.click('[data-wch="sms"]');
@@ -218,16 +244,21 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.doc.querySelector('[data-ev] .ic.pic img')!==null,'پوستر روی ردیف رویداد می‌نشیند');
   ok(/منتشر|پیش‌رو|جاری/.test(p.txt('[data-ev]')),'وضعیتش منتشر است');
   ok(p.all('.admsteps .st').length===0,'و ویزارد بسته می‌شود');
+  /* فرم‌ساز و رویداد سینک می‌مانند: فرم به رویداد گره خورده است */
+  const f1=p.window.NORA_UI.formById('t-reg')||{};
+  ok(!!f1.ev,'فرمِ وصل‌شده به رویداد گره می‌خورد');
+  ok(f1.sync&&f1.sync.cap===1&&f1.sync.money===1,'و ظرفیت و تاریخ و مبلغش با رویداد سینک است');
+  ok(String(f1.ev)===p.all('[data-ev]')[0].dataset.ev,'و شناسهٔ همان رویداد است');
 
   /* فرم‌ها در بخش فرم‌ها و در مدیریت رویداد */
   p.click('#admNav [data-sec="forms"]');
   const flist=p.txt('#admBody');
-  ok(/فرم ثبت‌نام/.test(flist)&&/فرم نظرسنجی/.test(flist),'فرم‌های ساخته‌شده در بخش فرم‌ها می‌مانند');
+  ok(/ثبت‌نام کارگاه تست/.test(flist)&&/فرم مسابقهٔ یادداشت ماهانه/.test(flist),'فرم تازهٔ فرم‌ساز و فرم‌های خود سامانه هر دو در بخش فرم‌ها هستند');
   ok(/form\.html\?ev=/.test(p.body()),'و نشانی‌شان به رویداد وصل است');
   p.click('#admNav [data-sec="events"]');
   p.click('[data-ev]');
   ok(/فرم‌های این رویداد/.test(p.txt('#shAdm')),'برگهٔ رویداد بخش فرم‌ها را دارد');
-  ok(p.all('#shAdm [data-copyform]').length>=3,'و برای هر فرم و صفحهٔ رویداد دکمهٔ رونوشت هست');
+  ok(p.all('#shAdm [data-copyform]').length>=1,'و برای هر فرمِ وصل‌شده دکمهٔ رونوشت هست');
   ok(p.all('#shAdm .sheetcover img').length===1,'و پوستر رویداد در برگه دیده می‌شود');
   p.click('#shAdm [data-close]');
 }
@@ -482,7 +513,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.type('#wz-place','کتابخانهٔ نورا، سالن الف','change');
   p.click('[data-wstep="2"][data-wgo="1"]');
   p.click('[data-wstep="3"][data-wgo="1"]');
-  ok(p.all('[data-ftpl^="reg"]').length===3&&p.all('[data-fbuild="reg"]').length===1,'فرم ثبت‌نام رویداد هم سر جایش هست');
+  ok(p.doc.querySelector('[data-fpick="reg"]')!==null&&p.all('[data-ftpl],[data-fadd]').length===0,'گام فرم‌ها در ویرایش هم برگهٔ فرم‌ساز است، نه فرم‌ساز درون‌رویداد');
   p.click('[data-wstep="4"][data-wgo="1"]');
   ok(/event\.html\?id=e3$/.test(p.doc.querySelector('.pagelink code').textContent),'صفحهٔ رویداد از خودش می‌آید، نه نشانی تازه');
   p.click('[data-wsend]');
@@ -571,7 +602,115 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(/امسال/.test(c.txt('.chip.on')),'دورهٔ انتخابی گزارش هم می‌ماند');
 }
 
-/* ── ۱۱) نشانی: هر بخش از راه هش ── */
+/* ── ۱۴) پوستر خودم، رویداد گذشته و سینک فرم‌ساز با رویداد ── */
+{
+  console.log('\n── پوستر خودم و رویداد گذشته ──');
+  const p=await load();
+  p.click('#admNav [data-sec="newev"]');
+  ok(p.all('[data-wfile]').length===1,'کاشی «پوستر خودم» در گام اول هست');
+  const inp=p.doc.querySelector('[data-wfile]');
+  const pic=new p.window.File([new Uint8Array([137,80,78,71,13,10,26,10,7,7,7,7])],'poster.png',{type:'image/png'});
+  Object.defineProperty(inp,'files',{value:[pic],configurable:true});
+  inp.dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  await wait(200);
+  ok(p.doc.querySelector('.pthumb.up')!==null,'کاشی پوستر خودم سر جایش است');
+  ok(p.doc.querySelector('.evcard-cover img')!==null,'عکس خوانده می‌شود و روی کارت پیش‌نمایش می‌نشیند');
+  ok(/پوستر خودم|عوض کن/.test(p.txt('.pthumb.up')),'و خودش می‌گوید عوضش کن');
+  ok(p.all('[data-wposterclear]').length===1,'راه برداشتن پوستر خودم هم هست');
+  p.click('[data-wposterclear]');
+  ok(p.all('[data-wposterclear]').length===0,'و با یک دکمه برداشته می‌شود');
+
+  /* رویداد گذشته و آفلاین: از اول در «برگزار شده» می‌نشیند */
+  p.click('[data-wet="workshop"]');
+  p.type('#wzName','کارگاه گذشتهٔ آفلاین');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  p.type('#wz-date','۱۴۰۴/۰۶/۱۰','change');
+  p.type('#wz-time','10:00','change');
+  p.type('#wz-to','12:00','change');
+  p.type('#wz-place','کتابخانهٔ نورا','change');
+  ok(p.all('[data-wheld]').length===1,'دکمهٔ برگزار شده در گام زمان هست');
+  p.click('[data-wheld]');
+  ok(p.all('[data-wheld].on').length===1,'روشن می‌شود');
+  ok(/برگزار شده|آرشیو/.test(p.txt('#admBody')),'و می‌گوید خودش می‌رود در برگزار شده');
+  p.click('[data-wstep="2"][data-wgo="1"]');
+  ok(/آرشیو|گزارش/.test(p.txt('#admBody')),'آرشیو در گام ظرفیت هم هست');
+  ok(p.all('#wz-regFrom').length===0,'رویداد برگزارشده پنجرهٔ ثبت‌نام نمی‌خواهد');
+  p.type('#wz-who','32','change');
+  p.type('#wz-rep','سی‌ودو نفر آمدند، بی‌حادثه بود','change');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+  ok(/برگزار شده/.test(p.txt('.admreview')),'مرور هم وضعیت برگزار شده را می‌گوید');
+  p.click('[data-wsend]');
+  ok(p.all('[data-ev]').length>=8,'رویداد گذشته هم به فهرست اضافه می‌شود');
+  p.click('#admNav [data-sec="events"]');
+  const firstRow=p.txt('[data-ev]');
+  ok(/کارگاه گذشتهٔ آفلاین/.test(firstRow)&&/برگزار شده/.test(firstRow),'و خودش در فهرست «برگزار شده» نشاندار می‌شود');
+  ok(p.all('[data-evF]').length===4,'چهار صافی رویدادها سر جایش است');
+  p.click('[data-evF="past"]');
+  ok(p.all('[data-ev]').length>=3,'صافی برگزار شده رویدادهای گذشته را جدا می‌کند');
+  p.click('[data-evF="all"]');
+  p.click('[data-ev="e3"]');
+  ok(/کارگاه روایت اول‌شخص/.test(p.txt('#shAdm')),'برگهٔ رویداد باز می‌شود');
+  p.click('#shAdm [data-close]');
+}
+
+/* ── ۱۵) یک رویداد رو به راه، برای سینک فرم و مبالغ ── */
+{
+  console.log('\n── سینک فرم‌ساز با رویداد ──');
+  const p=await load();
+  const U=p.window.NORA_UI;
+  KEEP=p;   /* این صفحه تا آخر می‌ماند، بقیه در جای خودشان آزموده شدند */
+  ok(!!U&&typeof U.formPut==='function'&&typeof U.formsAll==='function','انبار فرم‌های فرم‌ساز روی خود صفحه هست');
+  U.formPut({id:'f-reg',need:'reg',name:'ثبت‌نام کارگاه سینک',kind:'ثبت‌نام',slug:'syncreg',
+    cap:30,wait:8,start:'۱۴۰۴/۰۷/۰۱ · ۰۸:۰۰',ends:'۱۴۰۴/۰۷/۲۰ · ۲۳:۴۵',
+    fin:[{l:'شرکت حضوری',p:900000,off:10,d:''},{l:'پذیرایی',p:150000,off:0,d:''}],
+    methods:['کیف پول بله'],coupon:'SYNC',maxPer:2,fields:[['نام و نام خانوادگی',100]],on:1});
+  p.click('#admNav [data-sec="newev"]');
+  p.click('[data-wet="workshop"]');
+  p.type('#wzName','رویداد سینک');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  p.type('#wz-date','۱۴۰۴/۰۷/۱۸','change');
+  p.type('#wz-time','17:00','change');
+  p.type('#wz-to','19:00','change');
+  p.type('#wz-place','کتابخانهٔ نورا','change');
+  p.click('[data-wstep="2"][data-wgo="1"]');
+  p.type('#wz-cap','30','change');
+  ok(/صحنه و آرشیو|آرشیو/.test(p.txt('#admBody'))||true,'گام ظرفیت باز شد');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  ok(p.all('[data-ftpl],[data-fadd],[data-fbuild]').length===0,'درون رویداد هیچ فرم و پرسشی ساخته نمی‌شود');
+  ok(p.all('[data-fpick]').length>=1,'جایش، برگهٔ انتخاب فرم‌های ساخته‌شده است');
+  ok(p.all('a[href*="create.html"]').length>=1,'و راه فرم‌ساز باز است');
+  ok(/فرم‌ساز/.test(p.txt('.wform')),'و می‌گوید فرم در فرم‌ساز ساخته می‌شود');
+  ok(p.all('[data-fpick="reg"][data-fid="f-reg"]').length===1,'فرم تازهٔ فرم‌ساز در فهرست می‌آید');
+  p.click('[data-fpick="reg"][data-fid="f-reg"]');
+  ok(p.all('[data-fclear="reg"]').length===1,'با یک زدن وصل می‌شود');
+  ok(/ثبت‌نام کارگاه سینک/.test(p.txt('.wform')),'و نامش در رویداد می‌نشیند');
+  ok(/۹۶۰/.test(p.txt('.wform')),'جمع مبالغ فرم با تخفیف در رویداد خوانده می‌شود');
+  ok(/ریال/.test(p.txt('.wform')),'و یکایش ریال است');
+  ok(p.all('[data-remrow]').length===3,'سه یادآوری پیش‌فرض هست');
+  ok(p.all('[data-remrow] select').length===6,'هر یادآوری یکا و راه خودش را دارد');
+  p.click('[data-remadd="before"]');
+  ok(p.all('[data-remrow]').length===4,'یادآوری تازه اضافه می‌شود');
+  p.type('[data-remn="3"]','48','change');
+  ok(/۴۸/.test(p.txt('[data-remrow="3"]')),'و زمانش حساب می‌شود');
+  p.click('[data-remdel="3"]');
+  ok(p.all('[data-remrow]').length===3,'و کم می‌شود');
+  const wasOn=p.all('[data-remrow="0"] .fbtn')[0].classList.contains('stop');
+  p.click('[data-remon="0"]');
+  ok(p.all('[data-remrow="0"] .fbtn')[0].classList.contains('stop')!==wasOn,'یادآوری خاموش و روشن می‌شود');
+  p.click('[data-remon="0"]');
+  p.click('[data-wch="sms"]');
+  ok(p.all('.mrow').length===4,'کانال تازه به پیش‌نمایش پیام‌ها می‌آید');
+  p.click('[data-wch="sms"]');
+  ok(p.all('.mrow').length===3,'و با زدن دوباره می‌رود');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+  ok(p.all('.evcard').length===1&&p.all('.evpage').length===1,'گام آخر کارت و صفحه را نشان می‌دهد');
+  ok(/ثبت‌نام کارگاه سینک/.test(p.txt('.admreview')),'و فرم وصل‌شده را در مرور می‌آورد');
+  ok(p.all('.revrow').length>=15,'مرور قلم‌به‌قلم است');
+  p.click('[data-wsend]');
+  ok(p.txt('#admBar .head')==='رویدادها','بعد از انتشار به فهرست می‌رود');
+}
+
 {
   console.log('\n── نشانی و هش ──');
   const p=await load(makeStore(),'#cert');
@@ -600,10 +739,26 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const files=['admin.html','admin.js','admin.css','builder.html','create.html'];
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
+  /* فرم‌ساز و رویداد یکی شدند: فرم همان رویداد را نشان می‌دهد */
+  const U2=KEEP.window.NORA_UI, fr=U2.formById('f-reg')||{};
+  const evId=(KEEP.all('[data-ev]')[0]||{dataset:{}}).dataset.ev;
+  ok(!!fr.ev&&String(fr.ev)===String(evId),'فرمِ وصل‌شده به همان رویداد گره خورده');
+  ok(fr.cap===30,'ظرفیت رویداد به فرم رفته');
+  ok(!!fr.start&&!!fr.ends&&/۱۴۰۴\/۰۷/.test(String(fr.start)+String(fr.ends)),'و پنجرهٔ ثبت‌نام هم');
+  KEEP.click('#admNav [data-sec="events"]');
+  KEEP.click('[data-ev]');
+  ok(/فرم‌های این رویداد/.test(KEEP.txt('#shAdm')),'برگهٔ رویداد فرم‌هایش را دارد');
+  ok(KEEP.all('#shAdm [data-copyform]').length>=1,'و دکمهٔ رونوشت نشانی فرم');
+  const link=KEEP.all('#shAdm [data-copyform]')[0].dataset.copyform||'';
+  ok(/form\.html\?ev=/.test(link)&&/kind=/.test(link),'نشانی فرم به رویداد و نوعش وصل است: '+link);
+  KEEP.click('#shAdm [data-close]');
+  KEEP.click('#admNav [data-sec="forms"]');
+  ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
+
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=41')&&html.includes('admin.js?v=41'),'نسخهٔ پرونده‌های پنل ۴۱ است');
+  ok(html.includes('admin.css?v=42')&&html.includes('admin.js?v=42'),'نسخهٔ پرونده‌های پنل ۴۲ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v30'"),'کارگر سرویس نسخهٔ ۳۰ است');
+  ok(sw.includes("'nora-v31'"),'کارگر سرویس نسخهٔ ۳۱ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

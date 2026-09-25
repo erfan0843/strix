@@ -1290,13 +1290,100 @@ try{uiHash()}catch(e){}
   try{sync()}catch(e){}
 })();
 
+/* ── ساعت و تاریخ زنده: یک بار این‌جا، همهٔ صفحه‌ها از همین می‌خوانند ─────────
+   هر عنصری که data-clock داشته باشد خودش پر می‌شود؛ «full» خط کامل با تاریخ
+   و بقیه فقط ساعت. مرجع ساعت تهران است و اگر اینترنت بود انحرافش را می‌گیریم. */
+const CLK={diff:0, state:'local', at:'', tried:false};
+const clockNow=()=>Date.now()+(CLK.diff||0);
+function clockParts(ms){
+  const t=(ms==null)?clockNow():ms;
+  let g=null,h=0,mi=0,s=0;
+  try{
+    const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tehran',hour12:false,
+      hour:'2-digit',minute:'2-digit',second:'2-digit',year:'numeric',month:'2-digit',day:'2-digit'})
+      .formatToParts(new Date(t)).reduce((o,x)=>(o[x.type]=x.value,o),{});
+    h=NR(p.hour)%24; mi=NR(p.minute); s=NR(p.second);
+    g={gy:NR(p.year), gm:NR(p.month), gd:NR(p.day)};
+  }catch(e){
+    const d=new Date(t);
+    h=d.getHours(); mi=d.getMinutes(); s=d.getSeconds();
+    g={gy:d.getFullYear(), gm:d.getMonth()+1, gd:d.getDate()};
+  }
+  const j=jalaliOf(g.gy,g.gm,g.gd);
+  return {h:h, mi:mi, s:s, jy:j.jy, jm:j.jm, jd:j.jd};
+}
+const clockHM=()=>{const c=clockParts(); return fmtClock(c.h,c.mi)};
+const clockFull=()=>{const c=clockParts(); return faJDate(c.jy,c.jm,c.jd)+' · '+fmtClock(c.h,c.mi)};
+const clockDay=()=>{const c=clockParts(); return faJDate(c.jy,c.jm,c.jd)};
+function paintClocks(){
+  const list=document.querySelectorAll('[data-clock]');
+  if(!list.length) return;
+  const full=clockFull(), hm=clockHM();
+  list.forEach(el=>{el.textContent=el.dataset.clock==='full'?full:hm});
+}
+async function netSyncClock(){
+  if(CLK.tried||typeof fetch!=='function') return CLK.state;
+  CLK.tried=true;
+  const tries=[['https://worldtimeapi.org/api/timezone/Asia/Tehran',j=>NR(j.unixtime||0)*1000],
+               ['https://timeapi.io/api/Time/current/zone?timeZone=Asia/Tehran',j=>NR(new Date(j.dateTime))]];
+  for(const [u,pick] of tries){
+    try{
+      const r=await fetch(u,{cache:'no-store'}); if(!r.ok) continue;
+      const j=await r.json(), t=pick(j);
+      if(!t||Math.abs(t-Date.now())>31536000000) continue;
+      CLK.diff=t-Date.now(); CLK.state='net'; CLK.at=clockHM(); paintClocks(); return CLK.state;
+    }catch(e){}
+  }
+  CLK.state='local'; return CLK.state;
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden) paintClocks()});
+/* در محیط آزمایش تیک خودکار روشن نمی‌شود تا فرایند بسته شود؛ خود صفحه هم
+   اگر عنصر ساعتی نداشت، تیک کنار می‌رود */
+const NO_TICK=(typeof navigator!=='undefined'&&/jsdom/i.test(String(navigator.userAgent||'')));
+let clkTimer=null;
+function clockBeat(){
+  if(!document.querySelector('[data-clock]')){ if(clkTimer){clearInterval(clkTimer); clkTimer=null} return }
+  paintClocks();
+}
+paintClocks();
+netSyncClock().then(paintClocks);
+if(!NO_TICK) clkTimer=setInterval(clockBeat,1000);
+
+/* ── انبار فرم‌ها: فرم‌ساز می‌نویسد، پنل رویداد و گزارش می‌خوانند ───────────
+   هر فرم یک ردیف است با شناسه، نام، جای پیوند به رویداد (ev) و کلیدهای سینک. */
+const FORMS_KEY='nora-forms';
+function formsAll(){
+  try{const a=JSON.parse(localStorage.getItem(FORMS_KEY)||'[]'); return Array.isArray(a)?a:[]}catch(e){return []}
+}
+function formsAnnounce(){try{dispatchEvent(new CustomEvent('nora-forms-changed'))}catch(e){}}
+function formsSave(list){try{localStorage.setItem(FORMS_KEY,JSON.stringify(list))}catch(e){}; formsAnnounce()}
+function formById(id){return formsAll().find(f=>String(f.id)===String(id))||null}
+function formPut(f){
+  const list=formsAll(), i=list.findIndex(x=>String(x.id)===String(f.id));
+  const row=Object.assign({}, i>=0?list[i]:{}, f, {at:Date.now()});
+  if(i>=0) list[i]=row; else list.unshift(row);
+  formsSave(list); return row;
+}
+function formPatch(id,patch){
+  const f=formById(id); if(!f) return null;
+  return formPut(Object.assign({},f,patch,{sync:Object.assign({},f.sync||{},(patch||{}).sync||{})}));
+}
+function formDrop(id){formsSave(formsAll().filter(f=>String(f.id)!==String(id)))}
+function formsFor(evId){return formsAll().filter(f=>f.ev&&String(f.ev)===String(evId))}
+addEventListener('storage',e=>{if(e.key===FORMS_KEY) formsAnnounce()});
+addEventListener('nora-forms-changed',()=>{});
+
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
   fillTrust:fillTrust,trustPick:trustPick,
-  levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY});
+  levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY,
+  clockNow:clockNow,clockParts:clockParts,clockHM:clockHM,clockFull:clockFull,clockDay:clockDay,
+  clockState:()=>CLK.state,clockAt:()=>CLK.at,netSyncClock:netSyncClock,
+  FORMS_KEY:FORMS_KEY,formsAll:formsAll,formById:formById,formPut:formPut,formPatch:formPatch,
+  formDrop:formDrop,formsFor:formsFor});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){
@@ -1313,7 +1400,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v30') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v31') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

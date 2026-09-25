@@ -23,9 +23,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=41"/>
-<link rel="stylesheet" href="nora.css?v=41"/>
-<link rel="stylesheet" href="login.css?v=41"/>
+<link rel="stylesheet" href="glass.css?v=42"/>
+<link rel="stylesheet" href="nora.css?v=42"/>
+<link rel="stylesheet" href="login.css?v=42"/>
 </head>
 <body class="hasbotbar loginpage">
 
@@ -44,6 +44,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></g></symbol>
 <symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
 <symbol id="i-mobile" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.4h8.4a1.6 1.6 0 0 1 1.6 1.6v12a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V6a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M10.8 17.6h2.4"/></g></symbol>
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
 <symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 4.6l3 3L9.2 17.8l-4 1.2 1.2-4z"/><path d="M14.6 6.6l3 3"/></g></symbol>
 <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></g></symbol>
@@ -84,6 +85,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
       <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span>
     </a>
     <span class="sp"></span>
+    <span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
     <a class="icon-btn help-btn" href="support.html" data-open-support aria-label="پشتیبانی و راهنما" title="پشتیبانی و راهنما"><svg class="i"><use href="#i-headphone"/></svg></a>
   </div>
@@ -130,8 +132,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=41"></script>
-<script src="ui.js?v=41"></script>
-<script src="login.js?v=41"></script>
+<script src="data.js?v=42"></script>
+<script src="ui.js?v=42"></script>
+<script src="login.js?v=42"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم‌ها و گزارش</title>
-<link rel="stylesheet" href="glass.css?v=41"/>
+<link rel="stylesheet" href="glass.css?v=42"/>
 <style>
   .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
   .fcard:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
@@ -64,6 +64,7 @@
 
 <symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
 
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
 
 <symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
@@ -162,6 +163,7 @@
       <span class="glass-thin" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center"><svg class="i lg"><use href="#i-doc"/></svg></span>
       <div><div class="head tight">نورا</div><div class="cap">مؤسسهٔ خط زندگی</div></div>
     </div>
+    <div style="padding:0 8px 10px"><span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span></div>
     <nav class="col tight">
       <button class="btn quiet block" data-go="fList"><svg class="i"><use href="#i-doc"/></svg> فرم‌ها</button>
       <button class="btn quiet block" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل رسیدها <span class="sp"></span><span class="tag warn" id="kBadge">—</span></button>
@@ -552,7 +554,7 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script src="cert-font.js"></script>
-<script src="ui.js?v=41"></script>
+<script src="ui.js?v=42"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
@@ -675,6 +677,25 @@ const PEOPLE=[
  city:'اهواز · اهواز',uni:'شهید چمران اهواز',job:'حسابدار و مالی',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۲/۰۱/۲۸',
  at:'۱۴۰۵/۰۷/۰۱ · ۱۳:۱۲',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:0,note:'رسید رد شد: مبلغ کم بود.',skip:[],receipt:'۱ مهر، ۱۳:۳۰'}
 ];
+
+/* ══ فرم‌هایی که در فرم‌ساز ساخته شده‌اند ══
+   فرم‌ساز در انبار مشترک می‌نویسد و این‌جا روی نمونه‌ها می‌آیند؛ فرمی که به
+   رویدادی وصل شده، پنل رویداد هم همان را می‌بیند. */
+function storeForms(){
+  let raw=[];
+  try{raw=(window.NORA_UI&&NORA_UI.formsAll)?NORA_UI.formsAll():[]}catch(e){raw=[]}
+  return raw.map(f=>({
+    id:f.id, name:f.name||'فرم بی‌نام', kind:f.kind||'فرم', tone:'ok', status:'تازه ساخته شده',
+    slug:f.slug||('lifeline1.ir/f/'+f.id), expert:f.expert||'خودم', dept:f.dept||'edu',
+    seen:0, started:0, resp:0, paid:0, money:(f.fin||[]).reduce((n,o)=>n+(o.off?Math.round(o.p*(100-o.off)/100):o.p),0),
+    start:f.start||'', ends:f.ends||'', cap:f.cap||0, wait:f.wait||0, per:f.maxPer||1, skin:'blue',
+    head:f.name||'', intro:f.intro||'', fin:f.fin||[], groups:f.groups||[], guestsOn:!!f.guestsOn, guestsMax:1, guests:[],
+    gw:['درگاه رسمی بله'], parts:[], coupon:(f.coupon&&f.coupon.code)||'—',
+    endText:f.endText||'', links:[], event:f.ev?{id:f.ev, nested:true, sync:f.sync||{cap:true,dates:true,limit:true}, restrict:'event'}:null,
+    flags:[], certOn:false, certHours:'', certIssued:{}, certReq:{},
+    fields:(f.fields||[]).map(x=>Array.isArray(x)?x:[x,100]), changes:[], answers:[], need:f.need||''}));
+}
+try{const made=storeForms(); if(made.length) FORMS.unshift.apply(FORMS,made)}catch(e){}
 
 const STATE_TAG={paid:['ok','پرداخت قطعی'],pending:['warn','در انتظار تأیید رسید'],void:['stop','باطل'],half:['','نیمه‌کاره']};
 let CUR=FORMS[0], CURP=null, FILTER='all';
