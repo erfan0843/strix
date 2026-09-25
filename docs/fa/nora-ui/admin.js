@@ -1,9 +1,9 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا، پنل مدیران
    ──────────────────────────────────────────────────────────────────────────
-   یک صفحه، هفت بخش، به‌علاوهٔ داشبورد:
-     داشبورد · رویداد جدید (ویزارد سه‌گامی) · رویدادها · کاربران · فرم‌ها ·
-     گزارش‌ها (نه گزارش) · گواهینامه (مرکز صدور) · تنظیمات
+   یک صفحه، شش بخش، به‌علاوهٔ داشبورد:
+     داشبورد · رویداد جدید (ویزارد سه‌گامی) · رویدادها · کاربران (گواهینامه و
+     مدیریت کارشناسان هم اینجاست) · فرم‌ها · گزارش‌ها · تنظیمات
    قاعده‌های پنل:
      هر عدد، هر فهرست و هر برچسب بخش از data.js می‌آید؛ واژه‌های کوتاه
      دکمه‌ها و پیام‌های لحظه‌ای هم یک‌جا، در بلوک همین پرونده.
@@ -32,6 +32,12 @@ const toast=UI.toast||(m=>{});
 const copy=UI.copyText||(()=>{});
 const tag=(b,k)=>b?`<span class="tag ${k||''}">${esc(b)}</span>`:'';
 const btn=(label,attrs,i)=>`<button class="btn sm" ${attrs||''}>${i?ico(i):''}${esc(label)}</button>`;
+/* قانون خروجی: هیچ فایلی مستقیم دانلود نمیشود؛ فقط پیش‌نمایش تار و فایل کامل
+   از ربات بلهٔ موسسه میآید (نشانی یکجا در data.js کنار ADMIN.bale). */
+const baleStart=c=>'https://ble.ir/'+(A.bale||'lifeline_bot')+'?start='+c;
+const baleA=(code,label)=>'<a class="btn sm brand" data-bale="'+esc(code)+'" target="_blank" rel="noopener" href="'+baleStart(code)+'">'+ico('i-send')+esc(label||'دریافت از ربات بله')+'</a>';
+const balebox=(pv,code,label)=>`<div class="balebox"><div class="pv">${pv}</div>
+  <div class="ov">${ico('i-lock')}<b>فقط پیش‌نمایش تار</b><small class="cap">${esc(label||'فایل کامل از ربات بلهٔ موسسه میآید')}</small>${baleA(code)}</div></div>`;
 
 /* ── واژه‌های کوتاه پنل: یک‌جا، تا عوض کردنشان یک نقطه داشته باشد ─────── */
 const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ها', keys:'کلیدها',
@@ -43,7 +49,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=50;
+const SVER=51;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -1362,9 +1368,10 @@ function vEvents(){
    و پروندهٔ هر کاربر خودش صفحهٔ کامل با تبهای جدا است. */
 /* چهار کاشی سرِ کاربران؛ خط جمعبندی هر کاشی در vUList با عدد زنده ساخته میشود */
 const UTILES=[['req','درخواست‌ها','i-check'],['club','باشگاه و امتیاز','i-star'],
-  ['occ','مناسبت‌ها و تولدها','i-calendar'],['tools','ابزارها و گزارش','i-sliders']];
-const UCLUBTABS=[['rules','امتیاز شرطی'],['ach','نشان‌ها'],['shop','فروشگاه پاداش'],['rank','رتبه‌بندی']];
-const UTOOLTABS=[['report','گزارش کاربران'],['par','پارامتر پروفایل'],['add','افزودن دستی'],
+  ['cert','گواهینامه‌ها','i-medal'],['tools','ابزارها و گزارش','i-sliders']];
+const UCLUBTABS=[['rules','امتیاز شرطی'],['ach','نشان‌ها'],['shop','فروشگاه پاداش'],['rank','رتبه‌بندی'],
+  ['occ','مناسبت‌ها و تولدها']];
+const UTOOLTABS=[['report','گزارش کاربران'],['staff','مدیران و کارشناسان'],['par','پارامتر پروفایل'],['add','افزودن دستی'],
   ['imp','ورودی اکسل'],['tags','برچسب‌ها'],['blocked','مسدودها'],['inbox','صندوق پیام‌ها'],['log','لاگ عملیات']];
 const UPTABS=[['info','اطلاعات'],['club','باشگاه'],['ev','رویدادها و فرم‌ها'],['msg','پیام‌ها'],['log','تاریخچه']];
 function vUsers(){
@@ -1372,6 +1379,7 @@ function vUsers(){
   if(v==='req') return vUReq(); if(v==='club') return vUClub();
   if(v==='occ') return vUOcc();
   if(v==='tools') return vUTools(); if(v==='user') return vUUser();
+  if(v==='cert') return vCert();
   return vUList();
 }
 const uBack=`<div class="row">${btn(W.back||'بازگشت به فهرست','data-uback','i-back')}<span class="sp"></span></div>`;
@@ -1391,13 +1399,13 @@ function vUList(){
   const lab=Object.keys(uLabels()).slice(0,6).map(t=>`<button class="chip ${curTag===t?'on':''}" data-uTag="${esc(t)}">${esc(t)}</button>`).join('');
   const prof=ufCount('pending'), absR=uAbs().filter(a=>a.st==='در انتظار').length,
     shopR=uShopReq().filter(r=>r.st==='در انتظار').length, reqs=prof+absR+shopR;
-  const unread=uInbox().filter(i=>!i.read).length, occL=occAll(),
-    occOnN=occL.filter(occOn).length, bdayN=memList().filter(m=>m.bd).length;
+  const unread=uInbox().filter(i=>!i.read).length, occL=occAll(), occOnN=occL.filter(occOn).length;
+  const cj=(CE.jobs||[]).concat(S.jobs||[]), cw=cj.filter(j=>j.st==='wait').length;
   const sum={
     req:{s:`پروفایل ${fa(prof)} · غیبت مجاز ${fa(absR)} · پاداش ${fa(shopR)}`,
       b:reqs?tag(fa(reqs)+' در انتظار','warn'):''},
-    club:{s:`${fa(ufCount('club'))} عضو باشگاه · ${fa(ufCount('vip'))} ویژه`,b:''},
-    occ:{s:`${fa(bdayN)} تولد · ${fa(occOnN)} از ${fa(occL.length)} مناسبت روشن`,b:''},
+    club:{s:`${fa(ufCount('club'))} عضو · ${fa(ufCount('vip'))} ویژه · ${fa(occOnN)} مناسبت روشن`,b:''},
+    cert:{s:`${fa(cw)} صدور در نوبت · ${fa(cj.length-cw)} منتشرشده · استعلام با کیوآرکد`,b:''},
     tools:{s:`${fa(unread)} پیام ناخوانده · ${fa(ufCount('blocked'))} مسدود · گزارش و اکسل`,
       b:unread?tag(fa(unread)+' پیام تازه','warn'):''}};
   const rows=UTILES.map(t=>{const d=sum[t[0]];
@@ -1410,8 +1418,7 @@ function vUList(){
   const cards=list.map(m=>rowLink({attrs:`data-user="${esc(m.id)}"`, i:'i-users', chev:1,
       b:esc(m.n), s:`${esc(m.code)} · ${esc(fa(m.ph))}`, right:tag(m.st[0],m.st[1])})).join('');
   return `<section class="card stack">
-    ${uHead(L.users,`<span class="cap">${esc(fa(list.length))} ${esc(W.people||'نفر')}</span>
-      ${btn(T.export||'خروجی اکسل','data-uexport','i-download')}`)}
+    ${uHead(L.users,`<span class="cap">${esc(fa(list.length))} ${esc(W.people||'نفر')}</span>`)}
     <div class="admtiles">${rows}</div>
     <hr class="hr"/>
     <div class="head">فهرست کاربران</div>
@@ -1421,6 +1428,9 @@ function vUList(){
       <thead><tr><th>نام</th><th>کد</th><th>موبایل</th><th>وضعیت</th><th>برچسب</th><th>رویداد</th><th>امتیاز</th></tr></thead>
       <tbody>${tbody}</tbody></table></div>
       <div class="admcard-user">${cards}</div>`:emptyBox(T.empty)}
+    <hr class="hr"/>
+    <div class="head">خروجی اکسل کاربران</div>
+    ${balebox(`<div class="pvsheet">${'<i></i>'.repeat(9)}</div>`,'users','فایل کامل با همهٔ ستونها از ربات بلهٔ موسسه میآید')}
     <p class="cap">${esc('با زدن هر نفر، پروندهٔ کاملش با تبهای اطلاعات و باشگاه و رویدادها باز میشود.')}</p>
   </section>`;
 }
@@ -1464,10 +1474,11 @@ function cUReport(){
     <div class="head">منبع عضویت</div>
     ${table([['با دعوت دوستان',fa(ref)+' نفر'],['ورود گروهی اکسل',fa(imp)+' نفر'],
       ['مستقیم',fa(Math.max(0,tot-ref-imp))+' نفر']])}
-    <div class="row tight">${btn(T.export||'خروجی اکسل','data-uexport','i-download')}</div>`;
+    <div class="head">خروجی اکسل گزارش</div>
+    ${balebox(`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`,'report','فایل کامل با هر دورهٔ زمانی که انتخاب کنی از ربات بله میآید')}`;
 }
 /* مناسبتها و تولدها */
-function vUOcc(){
+function cUOcc(){
   const occ=occAll(), mb=(N.ACCOUNT||{}).monthsFa||[];
   const now=new Date(), mIdx=(new Date(now.getFullYear(),now.getMonth(),1));
   const bdays=memList().filter(m=>m.bd).map(m=>{const pr=String(m.bd).split('/');
@@ -1479,8 +1490,8 @@ function vUOcc(){
         ${esc(o.g==='همه'?'همه':o.g)} · ${esc(fa(o.pts))} امتیاز${o.def?'':' · سفارشی'}</small></span>
       <span class="mini">${o.def?'':`<button class="btn sm quiet" data-uoccdel="${esc(o.k)}">${esc('برداشتن')}</button>`}
         <span class="switch ${on?'on':''}" data-uocc="${esc(o.k)}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(o.n)}"></span></span></div>`}).join('');
-  return `<section class="card stack">${uBack}
-    ${uHead('مناسبت‌ها و تولدها',btn('مناسبت تازه','data-uoccnew','i-plus'))}
+  return `<div class="row"><div class="head">مناسبت‌ها و تولدها</div><span class="sp"></span>
+    ${btn('مناسبت تازه','data-uoccnew','i-plus')}</div>
     <div class="head">تولدهای نزدیک</div>
     ${bdays.length?table(bdays.map(b=>[b.n,fa(b.d)+' '+(mb[+b.m-1]||''),'پیام تبریک + '+fa(15)+' امتیاز'])):emptyBox('تاریخ تولدی در پروندهها نیست')}
     <div class="head">مناسبت‌ها (${esc(fa(occ.filter(occOn).length))} روشن از ${esc(fa(occ.length))})</div>
@@ -1495,8 +1506,7 @@ function vUOcc(){
         <label class="fld"><span>روز</span><input id="occD" type="number" min="1" max="31" value="1"/></label>
         <label class="fld"><span>مخاطب</span><select id="occG"><option>همه</option><option>زن</option><option>مرد</option></select></label>
         <label class="fld"><span>امتیاز</span><input id="occP" type="number" min="0" max="100" value="10"/></label></div>
-      <div class="row tight">${btn('ساختن مناسبت','data-uoccadd','i-check')}${btn('بی‌خیال','data-uocccancel')}</div></div>`:''}
-  </section>`;
+      <div class="row tight">${btn('ساختن مناسبت','data-uoccadd','i-check')}${btn('بی‌خیال','data-uocccancel')}</div></div>`:''}`;
 }
 /* امتیاز شرطی: محتوای زیرتب باشگاه */
 function cURules(){
@@ -1589,7 +1599,7 @@ function cURank(){
 function vUClub(){
   const cur=S.uClub||'rules';
   const tabs=UCLUBTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-uclub="${t[0]}">${esc(t[1])}</button>`).join('');
-  const body=cur==='ach'?cUAch():cur==='shop'?cUShop():cur==='rank'?cURank():cURules();
+  const body=cur==='occ'?cUOcc():cur==='ach'?cUAch():cur==='shop'?cUShop():cur==='rank'?cURank():cURules();
   return `<section class="card stack">${uBack}
     ${uHead('باشگاه و امتیاز')}
     <div class="admfilters">${tabs}</div>
@@ -1700,7 +1710,7 @@ function cULog(){
 function vUTools(){
   const cur=S.uTool||'report';
   const tabs=UTOOLTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-utool="${t[0]}">${esc(t[1])}</button>`).join('');
-  const body=cur==='report'?cUReport():cur==='add'?cUAdd():cur==='imp'?cUImp():cur==='tags'?cUTags():cur==='blocked'?cUBlocked():cur==='inbox'?cUInbox():cur==='log'?cULog():cUPar();
+  const body=cur==='report'?cUReport():cur==='staff'?cUStaff():cur==='add'?cUAdd():cur==='imp'?cUImp():cur==='tags'?cUTags():cur==='blocked'?cUBlocked():cur==='inbox'?cUInbox():cur==='log'?cULog():cUPar();
   return `<section class="card stack">${uBack}
     ${uHead('ابزارها و گزارش')}
     <div class="admfilters">${tabs}</div>
@@ -1825,8 +1835,8 @@ function vCert(){
     const name=(memList()[0]||{n:'سارا محمدی'}).n;
     const svg=certSVG?certSVG({name:name, title:cparam('event')||L.sampleEvent,
       date:'مهر ۱۴۰۴', hours:cparam('hours')||'۱۲', serial:'NL-A1-2483'}):'';
-    inner=`<p class="cap">${esc('پیش‌نمایش زنده؛ هر چه بالا نوشتی، همین‌جا می‌نشیند.')}</p>
-      <div class="admsvgbox">${svg}</div>
+    inner=`<p class="cap">${esc('پیش‌نمایش زنده و تار؛ فایل کامل و تمیز از ربات بله به گیرنده میآید.')}</p>
+      ${balebox(`<div class="admsvgbox" style="margin:0">${svg}</div>`,'cert_NL-A1-2483','گواهی با همین سریال در ربات بله چاپ و ارسال میشود')}
       <div class="admchips"><span class="tag brand">سریال NL-A1-2483</span>
         <span class="tag">استعلام با کیوآرکد</span><span class="tag">اندازهٔ A4 افقی</span></div>`;
   } else {
@@ -1841,6 +1851,7 @@ function vCert(){
   }
   const jobs=(CE.jobs||[]).concat(S.jobs||[]);
   return `<section class="card stack admcert">
+    ${uBack}
     <div class="row"><div class="head">${esc(CE.lead||'')}</div><span class="sp"></span>
       ${btn(sheetName('استعلام'),'data-verify-help','i-qr')}</div>
     <div class="admcertsteps">${steps}</div>
@@ -1856,26 +1867,11 @@ function vCert(){
 }
 function sheetName(){return L.askCert}
 
-/* ── تنظیمات ───────────────────────────────────────────────────────────── */
-function vSettings(){
-  const ST=A.settings||{}, own=isOwner();
-  if(!own) S.setF=myField().k;
-  let g=S.setG||'texts';
-  if(!own&&g!=='access') g='access';
-  const list=(ST.groups||[]).filter(x=>own||x.k==='access');
-  const groups=list.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
-      ${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
-  const group=(ST.groups||[]).find(x=>x.k===g)||{n:'',s:''};
+/* مدیریت مدیران و کارشناسان: از تنظیمات به بخش کاربران منتقل شد؛ زیرتب ابزارها */
+function cUStaff(){
+  const fk=(S.setF&&fieldOf(S.setF).k===S.setF)?S.setF:'edu', f=fieldOf(fk);
+  const l=personOf(leadK(fk)), t=teamOf(fk);
   let inner='';
-  if(g==='texts'){
-    const TX=ST.texts||{};
-    inner=`<div class="head">${esc(TX.title||'')}</div><p class="cap">${esc(TX.note||'')}</p>`+
-      (TX.list||[]).map(t=>`<div class="admtext"><span class="lbl">${esc(t.n)}</span>
-        <input class="input" data-text="${esc(t.k)}" value="${esc(txtDef(t.k,t.v))}"/></div>`).join('')+
-      `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`;
-  } else if(g==='access'){
-    const fk=(S.setF&&fieldOf(S.setF).k===S.setF)?S.setF:'edu', f=fieldOf(fk);
-    const l=personOf(leadK(fk)), t=teamOf(fk);
     inner=`<div class="head">${esc(PERMS.title||'')}</div><p class="cap">${esc(PERMS.note||'')}</p>
       <div class="admfilters">${FIELDS.filter(x=>x.k!=='owner').map(x=>`<button class="tag ${fk===x.k?'on':''}"
         data-setF="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div>
@@ -1910,6 +1906,27 @@ function vSettings(){
       <p class="cap">${esc(PERMS.ownerNote||'')}</p>
       <div class="admlist">${(OWNER_PERMS||[]).map(x=>`<div class="admsw">
         <span class="sp">${esc(x[1])}</span>${tag(D.ownerOnly||'فقط مالک','accent')}</div>`).join('')}</div>`;
+  return uHead('مدیران و کارشناسان')+'\n    <p class="cap">'+esc('سرپرست هر حوزه از همین‌جا گذاشته میشود؛ دسترسی کارشناسها با همان تیکها.')+'</p>\n    '+inner;
+}
+
+/* ── تنظیمات ───────────────────────────────────────────────────────────── */
+function vSettings(){
+  const ST=A.settings||{}, own=isOwner();
+  if(!own) S.setF=myField().k;
+  let g=S.setG||'texts';
+  const list=(ST.groups||[]).filter(x=>own);
+  const groups=list.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
+      ${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
+  const group=(ST.groups||[]).find(x=>x.k===g)||{n:'',s:''};
+  let inner='';
+  if(!own){
+    inner=emptyBox('مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد؛ بقیهٔ تنظیمات با حساب مالک است');
+  } else if(g==='texts'){
+    const TX=ST.texts||{};
+    inner=`<div class="head">${esc(TX.title||'')}</div><p class="cap">${esc(TX.note||'')}</p>`+
+      (TX.list||[]).map(t=>`<div class="admtext"><span class="lbl">${esc(t.n)}</span>
+        <input class="input" data-text="${esc(t.k)}" value="${esc(txtDef(t.k,t.v))}"/></div>`).join('')+
+      `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`;
   } else {
     const rows=((ST.rows||{})[g])||[];
     inner=`<div class="head">${esc(group.n)}</div><p class="cap">${esc(group.s||'')}</p>
@@ -1922,7 +1939,7 @@ function vSettings(){
       inner+=`<hr class="hr"/><div class="head">${esc(K.title||L.keys)}</div><p class="cap">${esc(K.note||'')}</p>
         <div class="admlist">${(K.list||[]).map(k=>rowLink({i:'i-key', b:esc(k.n),
           s:`<span dir="ltr">${esc(k.v)}</span>`, right:tag(k.st==='ok'?'سالم':'بررسی',k.st==='ok'?'ok':'warn')})).join('')}</div>
-        <div class="row">${btn('پشتیبان بگیر','data-backup','i-download')}
+        <div class="row">${baleA('backup','پشتیبان در ربات بله')}
           ${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>`;
     }
   }
@@ -2032,7 +2049,7 @@ function vUUser(){
     <div class="head">یادداشت پرونده</div>
     <label class="fld"><textarea id="uNoteTxt" rows="2" placeholder="یادداشت برای همکارها">${esc(m.note||'')}</textarea></label>
     <div class="row tight">${btn('یادداشت را بنشین','data-unotego="'+esc(m.id)+'"','i-pen')}
-      ${btn('خروجی پرونده','data-uexport1="'+esc(m.id)+'"','i-download')}</div>
+      ${baleA('profile_'+esc(m.id),'پرونده در ربات بله')}</div>
     ${S.uRej===m.id?`<div class="head">رد با دلیل</div>
     <label class="fld"><textarea id="uRejTxt" rows="2" placeholder="مثلاً: کد ملی و تاریخ تولد را کامل کن"></textarea></label>
     <div class="row tight">${btn('با دلیل برگشت','data-urejgo="'+esc(m.id)+'"')}</div>`:''}`;
@@ -2161,7 +2178,7 @@ function sheetRep(k){
       ${bits(r.v||'')}</div>`).join('')}</div>
     <div class="row tight">
       <a class="btn sm" href="builder.html">${ico('i-chart')}${esc('نمودار کامل')}</a>
-      ${btn(T.export||'خروجی اکسل','data-rexport','i-download')}
+      ${baleA('reports','اکسل در ربات بله')}
       <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`);
 }
 function sheetWho(){
@@ -2484,7 +2501,8 @@ function sanitize(){
   if(UTOOLTABS.every(t=>t[0]!==S.uTool)) S.uTool='report';
   if(UPTABS.every(t=>t[0]!==S.uTab)) S.uTab='info';
   if(S.uV==='user'&&!memOf(S.uSel)) S.uV='';
-  if(S.uV&&['req','club','occ','tools','user'].indexOf(S.uV)<0) S.uV='';
+  if(S.uV==='occ'){S.uV='club'; S.uClub='occ';}
+  if(S.uV&&['req','club','cert','tools','user'].indexOf(S.uV)<0) S.uV='';
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
 }
@@ -2564,9 +2582,7 @@ document.addEventListener('click',e=>{
   const ucl=q('[data-uclub]'); if(ucl){S.uClub=ucl.dataset.uclub; save(); renderBody(); return}
   const utl=q('[data-utool]'); if(utl){S.uTool=utl.dataset.utool; save(); renderBody(); return}
   const uio=q('[data-uinboxopen]'); if(uio){S.uV='user'; S.uSel=uio.dataset.uinboxopen; S.uTab='msg'; S.uRej=''; save(); renderBody(); return}
-  const uex1=q('[data-uexport1]'); if(uex1){const mm=memOf(uex1.dataset.uexport1)||{};
-    const rows=PFLDS.map(f=>[f[1],mm[f[0]]||''].join(': ')).concat(['نام: '+mm.n,'کد: '+mm.code,'موبایل: '+fa(mm.ph||''),'امتیاز: '+fa(mm.pt||0),'سطح: '+(uLevel(mm).n||''),'برچسبها: '+(mm.tags||[]).join('، ')]);
-    copy(rows.join('\n'),null,'پروندهٔ '+mm.n+' رونوشت شد'); return}
+  const ble=q('[data-bale]'); if(ble){toast('درخواست فرستاده شد؛ فایل در ربات بلهٔ موسسه (@'+(A.bale||'lifeline_bot')+') برایتان میآید'); return}
   const gfr=q('[data-gofrms]'); if(gfr){go('forms'); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
@@ -2783,8 +2799,8 @@ document.addEventListener('click',e=>{
     S.jobs=[{n:'گواهی '+((A.cert||{}).templates||[]).filter(t=>t.k===S.cert.tpl).map(t=>t.n)[0]||'تازه',
       who:fa(6)+' نفر', way:((A.cert||{}).publish||[]).filter(p=>p.k===S.cert.pub).map(p=>p.n)[0]||'اعلان',
       at:'همین حالا', st:'wait'}].concat(S.jobs||[]);
-    save(); renderBody(); toast(W.published||'منتشر شد'); return}
-  const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; save(); renderBody(); return}
+    save(); renderBody(); toast('گواهی‌ها ساخته شد؛ از ربات بله به گیرندهها میآید'); return}
+  const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; if(S.uV==='club') S.uClub='rules'; save(); renderBody(); return}
   const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; save(); renderBody(); return}
   const utag=q('[data-uTag]'); if(utag){S.uTag=(S.uTag===utag.dataset.utag)?'':utag.dataset.utag; save(); renderBody(); return}
   const uok=q('[data-uok]'); if(uok){const id=uok.dataset.uok;
@@ -2957,17 +2973,8 @@ document.addEventListener('click',e=>{
   const uinr=q('[data-uinboxread]'); if(uinr){const id=uinr.dataset.uinboxread, m=uInbox().find(x=>x.id===id);
     if(m){m.read=1; save()} renderBody(); return}
   const uina=q('[data-uinboxall]'); if(uina){uInbox().forEach(x=>{x.read=1}); save(); toast('همه خوانده شد'); renderBody(); return}
-  const uexp=q('[data-uexport]'); if(uexp){const list=memList();
-    const csv=list.map(m=>[m.n,m.code,m.ph,m.st[0],(m.tags||[]).join('|'),m.ev,m.pt,(m.src||'')].join(',')).join('\n');
-    copy('نام,کد,موبایل,وضعیت,برچسبها,رویداد,امتیاز,منبع\n'+csv,null,
-      'خروجی '+fa(list.length)+' نفر رونوشت شد؛ در اکسل بچسبان');
-    uLogAdd('فهرست کاربران به اکسل رفت ('+fa(list.length)+' نفر)');
-    save(); return}
-  const fx2=q('[data-uexport2]'); if(fx2){toast('خروجی اکسل ساخته میشود؛ لینکش پیام میآید'); return}
   const fl=q('[data-flink]'); if(fl){copy(location.href.split('#')[0]+'#forms?form=1',null,L.linkCopied); return}
-  const rx=q('[data-rexport]'); if(rx){toast('خروجی اکسل با ۷ شیت ساخته می‌شود'); return}
   const vh=q('[data-verify-help]'); if(vh){toast('صفحهٔ استعلام: lifeline1.ir/c/<سریال>'); return}
-  const bk=q('[data-backup]'); if(bk){toast('پشتیبان شبانه هست؛ پشتیبان دستی هم گرفته شد'); return}
   const rr=q('[data-restore]'); if(rr){toast('بازگردانی فقط با تأیید سوپرادمین'); return}
   const rs2=q('[data-reset]'); if(rs2){try{localStorage.removeItem(SKEY)}catch(e){} S=JSON.parse(JSON.stringify(BASE));
     toast('پنل به حالت اول برگشت'); go('dash'); return}
@@ -3084,7 +3091,8 @@ window.addEventListener('keydown',e=>{
 /* ══ بوت ═══════════════════════════════════════════════════════════════ */
 (function boot(){
   const h=(location.hash||'').replace('#','');
-  if(h&&secOf(h)) S.sec=h;
+  if(h==='cert'){S.sec='users'; S.uV='cert';}
+  else if(h&&secOf(h)) S.sec=h;
   if(!secOf(S.sec)) S.sec='dash';
   const th=$('#admTheme'); if(th) th.onclick=()=>{if(typeof themeToggle==='function') themeToggle()};
   const tb=$('#admTabs');

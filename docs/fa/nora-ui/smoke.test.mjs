@@ -1446,28 +1446,28 @@ async function load(file,store,q){
   console.log('\n── پنل مدیران (admin.html) ──');
   const p=await load('admin.html',makeStore());
   ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
-  ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
+  ok(p.all('#admNav .btn').length===7,'هفت بخش در ریل پنل نشسته');
   ok(p.all('.kpi').length===4,'چهار عدد کلیدی سرِ داشبورد پنل');
   ok(p.all('.qrow').length===8,'کارتابل مالک پنل کوتاه است (۸ کار)');
   ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» روی کارتابل هست');
   ok(p.all('.frow2').length===6,'شش حوزه روی داشبورد پنل است');
   ok(p.all('.sline').length===5,'وضعیت سامانه پنج خط دارد');
   ok(p.doc.querySelector('#admBody').innerHTML.length>500,'داشبورد پر است');
-  p.click('#admNav [data-sec="settings"]');
-  p.click('[data-setg="access"]');
-  ok(p.all('[data-setF]').length===6,'شش حوزه در تنظیمات دسترسی پنل هست');
+  p.click('#admNav [data-sec="users"]');
+  p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
+  ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت کارشناسان پنل هست');
   ok(p.all('.admmatrix tbody tr').length>=4,'جدول دسترسی حوزه پر است');
   p.click('#admNav [data-sec="dash"]');
   p.click('[data-who-sheet]');
   ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');
   p.click('#shAdm [data-who="p10"]');
-  ok(p.all('#admNav [data-locked]').length===3,'کارشناس سه بخش بسته دارد');
+  ok(p.all('#admNav [data-locked]').length===2,'کارشناس دو بخش بسته دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس یک کار است');
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p2"]');
   ok(p.all('.trow').length===2,'سرپرست آموزش دو کارشناس دارد');
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===1,'سرپرست فقط گروه حوزهٔ خودش را می‌بیند');
+  ok(p.all('[data-setg]').length===0,'تنظیمات دیگر گروه سرپرست ندارد؛ مدیریت کارشناسان در کاربران است');
   p.click('#admNav [data-sec="dash"]');
   /* مالی فقط مالک: سرپرست پشتیبانی نه کارت مالی، نه ردیف مالی، نه تب مالی */
   ok(p.all('[data-rep="fi"]').length===0,'ردیف مالی گزارش‌ها برای سرپرست نیست');
@@ -1475,7 +1475,7 @@ async function load(file,store,q){
   ok(!/مالی|درآمد/.test(p.doc.querySelector('#admBody').textContent||''),'داشبورد سرپرست مالی ندارد');
   ok(p.doc.querySelector('.dashwrap > .admgrid')!==null,'داشبورد ستون‌بندی دارد');
   ok(new RegExp('\\.admgrid\\{display:grid').test(fs.readFileSync(DIR+'admin.css','utf8')),'شبکهٔ داشبورد در CSS است');
-  for(const k of ['dash','newev','events','forms','reports','cert','settings']){
+  for(const k of ['dash','newev','events','forms','reports','settings']){
     p.click('#admNav [data-sec="'+k+'"]');
     const t=p.doc.querySelector('#admBody').textContent||'';
     ok(!/undefined|NaN|\$\{|\[object/.test(t),'بخش «'+k+'» روی سرپرست تمیز رندر شد');
@@ -1518,7 +1518,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:50, added:[
+  store.setItem('nora-admin', JSON.stringify({v:51, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

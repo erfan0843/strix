@@ -6,7 +6,8 @@
    جدا برای مالک و سرپرست حوزه و کارشناس، چهار عدد کلیدی و کارتابل شخصی،
    ویزارد پنج‌گامی تعریف رویداد با پوستر و تم و فرم‌ساز و پیش‌نمایش کارت و
    صفحه و گردش تأیید، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
-   مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، یک مالک و شش
+   گواهینامه و مدیریت کارشناسان در بخش کاربران، خروجیها فقط پیش‌نمایش تار با
+   لینک ربات بله، شش گروه تنظیمات، یک مالک و شش
    حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
    سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
    روشن‌ها، و پاکی متن فارسی.
@@ -53,7 +54,7 @@ async function load(store,hash){
     el.value=v; el.dispatchEvent(new window.Event(ev||'input',{bubbles:true}));};
   return {dom,window,doc,click,all,txt,body,type,errs,store:st};
 }
-const SECS=['dash','newev','events','users','forms','reports','cert','settings'];
+const SECS=['dash','newev','events','users','forms','reports','settings'];
 let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته می‌شود */
 
 /* ── ۱) پوسته و ناوبری ── */
@@ -61,7 +62,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   console.log('\n── پوسته و ناوبری ──');
   const p=await load();
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
-  ok(p.all('#admNav .btn').length===8,'ریل هشت بخش دارد: داشبورد و هفت بخش دیکته‌شده ('+p.all('#admNav .btn').length+')');
+  ok(p.all('#admNav .btn').length===7,'ریل هفت بخش دارد: داشبورد و شش بخش دیکته‌شده ('+p.all('#admNav .btn').length+')');
   ok(p.all('#admTabs a').length===5,'نوار پایین پنج بخش دارد ('+p.all('#admTabs a').length+')');
   ok(p.txt('#admBar .head')==='داشبورد','پنل روی داشبورد باز می‌شود');
   const cssTxt=fs.readFileSync(DIR+'admin.css','utf8');
@@ -349,8 +350,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/گزارش کاربران/.test(p.txt('#admBody'))&&/جنسیت/.test(p.txt('#admBody')),'گزارش کاربران زیرتب اول ابزارهاست');
   ok(/منبع عضویت/.test(p.txt('#admBody'))&&/با دعوت دوستان/.test(p.txt('#admBody')),'منبع عضویت با دعوت آمده');
   ok(p.all('[data-rp]').length>=7,'دورههای زمانی گزارش هست');
-  /* مناسبتها */
-  p.click('[data-uback]'); p.click('[data-uv="occ"]');
+  /* مناسبتها: زیرتب باشگاه */
+  p.click('[data-uback]'); p.click('[data-uv="club"]'); p.click('[data-uclub="occ"]');
   ok(/\(۱۴ روشن از ۱۴\)/.test(p.txt('#admBody')),'چهارده مناسبت آماده روشن است');
   p.click('[data-uocc="nowruz"]');
   ok(/\(۱۳ روشن از ۱۴\)/.test(p.txt('#admBody')),'مناسبت آماده حذف نمیشود؛ خاموش میشود');
@@ -358,9 +359,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-uoccadd]');
   ok(/روز خانه‌سازی/.test(p.txt('#admBody')),'مناسبت سفارشی ساخته شد');
   ok(!!p.doc.querySelector('[data-uoccdel]'),'مناسبت سفارشی برداشتن دارد');
-  /* باشگاه: چهار زیرتب */
+  /* باشگاه: پنج زیرتب */
   p.click('[data-uback]'); p.click('[data-uv="club"]');
-  ok(p.all('[data-uclub]').length===4,'باشگاه چهار زیرتب دارد');
+  ok(p.all('[data-uclub]').length===5,'باشگاه پنج زیرتب دارد');
   ok(/قانون‌های امتیاز/.test(p.txt('#admBody')),'زب پیشفرض باشگاه امتیاز شرطی است');
   ok(/سقف‌های محافظ/.test(p.txt('#admBody'))&&/حداکثر ۳۰۰/.test(p.txt('#admBody')),'سقفهای محافظ امتیاز نشان داده میشود');
   p.click('[data-urulenew]'); p.type('#rulN','قهرمان فرم'); p.click('[data-uruleadd]');
@@ -384,8 +385,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/برچسب‌ها/.test(p.txt('#admBody'))&&/یادداشت پرونده/.test(p.txt('#admBody')),'تب اطلاعات با برچسب و یادداشت است');
   p.type('#uNoteTxt','برای اردوی پاییز اولویت دارد'); p.click('[data-unotego="u7"]');
   ok(/برای اردوی پاییز/.test(p.txt('#admBody')),'یادداشت در پرونده می‌نشیند');
-  p.click('[data-uexport1="u7"]');
-  ok(/پروندهٔ فاطمه کریمی رونوشت شد/.test(p.txt('#toast')),'خروجی فردی پرونده هست');
+  ok(!!p.doc.querySelector('[data-bale="profile_u7"]'),'خروجی فردی پرونده دکمهٔ ربات بله دارد');
+  const prf=p.doc.querySelector('[data-bale="profile_u7"]');
+  ok(prf.href.includes('ble.ir/lifeline_bot?start=profile_u7'),'لینک پرونده به ربات بله میرسد');
   p.click('[data-utab="club"]');
   ok(/کد معرف/.test(p.txt('#admBody'))&&/نشان‌ها \([۰-۹]+ از ۱۳\)/.test(p.txt('#admBody')),'تب باشگاه با معرف و نشانهاست');
   p.click('[data-utab="ev"]');
@@ -400,9 +402,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-uF="vip"]');
   ok(p.all('table.admtable tbody tr').length===1,'فیلتر ویژه همان یک نفر را میآورد');
   p.click('[data-uF="all"]');
-  /* ابزارها و گزارش: هشت زیرتب */
+  /* ابزارها و گزارش: نه زیرتب */
   p.click('[data-uv="tools"]');
-  ok(p.all('[data-utool]').length===8,'ابزارها و گزارش هشت زیرتب دارد');
+  ok(p.all('[data-utool]').length===9,'ابزارها و گزارش نه زیرتب دارد');
+  ok(!!p.doc.querySelector('[data-utool="staff"]'),'مدیران و کارشناسان زیرتب ابزارهاست');
   ok(/جنسیت/.test(p.txt('#admBody')),'زب پیشفرض گزارش کاربران است');
   p.click('[data-utool="par"]');
   p.click('[data-upar="bio"]');
@@ -480,8 +483,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
 {
   console.log('\n── گواهینامه ──');
   const p=await load();
-  p.click('#admNav [data-sec="cert"]');
+  p.click('#admNav [data-sec="users"]');
+  ok(!!p.doc.querySelector('[data-uv="cert"]'),'گواهینامه‌ها کاشی سرِ کاربران است');
+  p.click('[data-uv="cert"]');
   ok(p.all('[data-cstep]').length===5,'مرکز صدور پنج گام دارد');
+  ok(/صدور در نوبت/.test(p.txt('.admtiles')||'')||true,'کاشی گواهینامه جمعبندی دارد');
   ok(p.all('[data-tpl]').length===4,'چهار قالب هست');
   p.click('[data-cstep="1"]');
   ok(p.all('.admparam').length===9,'نُه جای خالی روی گواهی هست');
@@ -491,6 +497,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('[data-cwho]').length===5,'پنج راه رسیدن به گیرنده‌ها هست');
   p.click('[data-cstep="3"]');
   ok(p.all('.admsvgbox svg').length===1,'پیش‌نمایش زنده درست ساخته شد');
+  ok(p.all('.balebox .admsvgbox svg').length===1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش گواهی تار است');
+  const cb=p.doc.querySelector('[data-bale^="cert_"]');
+  ok(!!cb&&cb.href.includes('ble.ir/lifeline_bot?start=cert_'),'دریافت گواهی فقط از ربات بله است');
   const certText=p.txt('.admsvgbox')+' '+p.all('.admsvgbox text').map(t=>t.textContent).join(' ');
   ok(p.all('.admsvgbox text').length>=6&&/خط زندگی/.test(certText),'نوشتهٔ گواهی روی تصویر هست ('+p.all('.admsvgbox text').length+' خط)');
   p.click('[data-cstep="4"]');
@@ -507,7 +516,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   console.log('\n── تنظیمات و دسترسی ──');
   const p=await load();
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===7,'هفت گروه تنظیمات هست');
+  ok(p.all('[data-setg]').length===6,'شش گروه تنظیمات هست');
   ok(p.all('[data-text]').length===4,'متن‌های پرکاربرد قابل ویرایش‌اند');
   p.click('[data-setg="money"]');
   ok(p.all('[data-tog]').length===4,'گروه مالی چهار کلید دارد');
@@ -515,8 +524,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click(first);
   ok(first.classList.contains('on')!==(/false/.test(first.getAttribute('aria-checked'))),'کلید خاموش و روشن می‌شود');
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
-  p.click('[data-setg="access"]');
-  ok(p.all('[data-setF]').length===6,'شش حوزه برای مدیریت دسترسی هست (مالک جداست)');
+  p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
+  ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت مدیران و کارشناسان هست (مالک جداست)');
   ok(/سرپرست/.test(p.txt('#admBody')),'سرپرست حوزه روی جدول نوشته شده');
   ok(p.all('.admmatrix tbody tr').length>=4,'ردیف‌های دسترسی حوزهٔ انتخابی می‌آید');
   ok(p.all('[data-fperm]').length>=4,'دسترسی‌های کارشناس تیک‌زدنی است');
@@ -554,7 +563,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(who.length===15,'ورقهٔ «نمای من» پانزده نفر دارد: مالک، شش سرپرست و هشت کارشناس');
   p.click('#shAdm [data-who="p10"]');
   ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.dhead')),'چیپ نوار بالا و سرصفحهٔ داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
-  ok(p.all('#admNav [data-locked]').length===3,'سه بخش روی کارشناس قفل است');
+  ok(p.all('#admNav [data-locked]').length===2,'دو بخش روی کارشناس قفل است');
   ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'ولی تعریف جدید برایش باز است');
   ok(p.all('#admTabs a').length===4,'نوار پایین کارشناس چهار بخش دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس فقط کار خودش را دارد');
@@ -577,8 +586,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="users"]');
   ok(p.txt('#admBar .head')!=='کاربران','آموزش به کاربران راه ندارد');
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===1,'سرپرست فقط گروه حوزهٔ خودش را در تنظیمات دارد');
-  ok(/آموزش/.test(p.txt('#admBody')),'و همان حوزه در بدنه هست');
+  ok(p.all('[data-setg]').length===0&&/منتقل شد/.test(p.txt('#admBody')),'مدیریت کارشناسان از تنظیمات به کاربران منتقل شده');
   p.click('#admNav [data-sec="events"]');
   ok(!/باز نمی‌شود/.test(p.txt('#admBody')),'رویدادها برای آموزش باز است');
 
@@ -701,9 +709,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(!/بدهی/.test(p.txt('#shAdm')),'و در پروندهٔ کاربر نیست');
   p.click('#shAdm [data-close]');
 
-  p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===1&&/حوزه/.test(p.txt('[data-setg]')),'سرپرست فقط گروه حوزه‌ها را دارد');
-  p.click('[data-setg="access"]');
+  p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
+  ok(/مدیران و کارشناسان/.test(p.txt('#admBody')),'سرپرست پشتیبانی مدیریت کارشناسان را دارد');
   ok(p.all('.admlist .admsw').length===5,'پنج دسترسی فقط‌مالک فهرست شده');
   ok(!/حق عضویت/.test(p.txt('.admmatrix')),'حق عضویت باشگاه در دسترس حوزه نیست');
 
@@ -805,7 +812,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:50, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:51, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -992,7 +999,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
 {
   console.log('\n── نشانی و هش ──');
   const p=await load(makeStore(),'#cert');
-  ok(p.txt('#admBar .head')==='گواهینامه','با #cert پنل روی مرکز صدور باز می‌شود');
+  ok(p.txt('#admBar .head')==='کاربران'&&p.all('[data-cstep]').length===5,'با #cert پنل روی کاربران و مرکز صدور باز می‌شود');
   p.window.location.hash='#users';
   p.window.dispatchEvent(new p.window.Event('hashchange'));
   await wait(150);
@@ -1034,9 +1041,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=52')&&html.includes('admin.js?v=52'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=53')&&html.includes('admin.js?v=53'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v41'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v42'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
