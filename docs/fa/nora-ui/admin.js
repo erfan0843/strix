@@ -218,9 +218,11 @@ function renderBar(){
 /* ══ بخش‌ها ═════════════════════════════════════════════════════════════ */
 
 /* ── داشبورد ─────────────────────────────────────────────────────────────
-   یک داشبورد، سه نما. مالک نبض همهٔ حوزه‌ها را می‌بیند، سرپرست حوزه کار
-   حوزهٔ خودش را، کارشناس فقط کارتابل و کارنامهٔ خودش را. هیچ عددی سخت
-   نوشته نشده؛ همه از data می‌آید و با همین کارتابل و تیم جلو و عقب می‌رود. */
+   یک داشبورد، سه نما؛ همه‌جا ساده و پله‌پله: سرصفحه (کی هستم، چند کار باز
+   دارم)، چهار عدد کلیدی، بعد کارتابل و حوزه‌ها و در ستون کنار وضعیت و
+   برنامهٔ امروز و هشدارها. بی حلقه و بی شکل تزئینی؛ هیچ عددی سخت نوشته
+   نشده و همه از data می‌آید. مالک همهٔ حوزه‌ها را می‌بیند، سرپرست حوزهٔ
+   خودش، کارشناس کارتابل و کارنامهٔ خودش. */
 
 const priTone=p=>p==='بالا'?'stop':p==='میان'?'warn':'';
 /* نام تب را از داده می‌خواند تا دکمه‌های میان‌بر هم همان واژه را بگویند */
@@ -230,73 +232,49 @@ const isMoney=()=>isOwner();
 const moneyTag=t=>((A.moneyTags||[]).some(w=>t.indexOf(w)>-1));
 const priRank=p=>p==='بالا'?0:p==='میان'?1:2;
 
-/* حلقهٔ عدد: درصد را دور دایره می‌بندد و عدد را وسط می‌گذارد */
-function ring(pct,v,n,s){
-  const r=21,c=2*Math.PI*r,off=c*(1-Math.max(0,Math.min(100,pct))/100);
-  return `<div class="ring"><svg viewBox="0 0 52 52" aria-hidden="true">
-      <circle class="rb" cx="26" cy="26" r="${r}"/>
-      <circle class="rf" cx="26" cy="26" r="${r}" stroke-dasharray="${c.toFixed(1)}"
-        stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 26 26)"/></svg>
-    <div class="rtx"><b>${esc(v)}</b><small>${esc(n)}</small></div>
-    ${s?`<div class="rsub">${esc(s)}</div>`:''}</div>`;
-}
-/* نمودار روند: خط و سایه‌اش؛ اندازه‌ها نسبی است تا هر عرضی جا شود */
-function spark(v,label){
-  const w=280,h=56,mx=Math.max.apply(null,v.concat([1])),st=w/Math.max(1,v.length-1);
-  const pts=v.map((x,i)=>[i*st,h-(x/mx)*(h-10)-4]);
-  const line=pts.map((pt,i)=>(i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' ');
-  return `<div class="sparkbox"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
-      <defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="var(--brand)" stop-opacity=".30"/>
-        <stop offset="1" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>
-      <path class="sparea" d="${line} L${w} ${h} L0 ${h} Z"/><path class="spline" d="${line}"/></svg>
-    <span class="cap">${esc(label||'')}</span></div>`;
-}
-/* نوار «نمای من»: هر کس را بزنی، داشبورد او را می‌بینی */
-function viewStrip(){
-  const list=[{who:'p1', f:'owner', lv:'مالک'}];
-  FIELDS.filter(f=>f.k!=='owner').forEach(f=>{
-    list.push({who:leadK(f.k), f:f.k, lv:'سرپرست'});
-    const t=teamOf(f.k).find(p=>p.lv==='کارشناس');
-    if(t) list.push({who:t.k, f:f.k, lv:'کارشناس'});
-  });
-  return `<div class="viewstrip" aria-label="${esc(D.mine||'نمای من')}">
-    <span class="cap vslab">${esc(D.mine||'نمای من')}</span>
-    ${list.map(x=>{const p=personOf(x.who);
-      return `<button class="vchip ${S.who===p.k?'on':''}" data-who="${esc(p.k)}">
-        <span class="va">${esc(String(p.n||' ').slice(0,1))}</span>
-        <span class="vt"><b>${esc(p.n)}</b><small>${esc(x.lv)} · ${esc(fieldOf(x.f).n)}</small></span>
-        ${S.who===p.k?`<span class="vd">${esc(D.you||'')}</span>`:''}</button>`}).join('')}
-  </div>`;
-}
-function hero(){
-  const p=me(), f=myField(), own=isOwner(), lead=isLead();
-  const q=qOpen(), urgent=q.filter(it=>it.pri==='بالا').length;
-  const rings=(own||lead)?(f.rings||[]):[
-    [D.rOpen||'کار باز من', fa(p.open), Math.round(p.open/Math.max(1,p.open+p.done)*100), p.late?(fa(p.late)+' '+(D.late||'')):''],
-    [D.rDone||'انجام‌شده این هفته', fa(p.done), Math.min(100,Math.round(p.done/25*100)), ''],
-    [D.rAvg||'میانگین پاسخ', fa(p.avg)+' دقیقه', Math.max(20,100-Math.round(p.avg/60*100)), ''],
-    [D.rScore||'امتیاز هفته', fa(p.score), p.score, '']];
-  const note=own?(D.ownerNote||''):lead?(D.leadNote||''):(D.specNote||'');
-  const pulse=(PULSE||[]).map(x=>`<span class="ppill ${x.st}"><i></i>${esc(x.n)}
-      <small>${esc(x.d)}</small></span>`).join('');
-  return `<section class="hero ${own?'gold':''}">
-    <div class="hmain">
-      <div class="hwho">
-        <span class="hava">${esc(String(p.n||' ').slice(0,1))}</span>
-        <div class="ht"><b>${esc(p.n)}</b>
-          <div class="hsub">${esc(own?(D.ownerLine||'مالک سامانه'):f.n)} · ${esc(p.lv)}${own||lead?'':(leadOf(f.k).n?' · '+(D.lead||'سرپرست')+': '+leadOf(f.k).n:'')}</div></div>
-      </div>
-      <div class="hmeta">
-        <span class="cap">${esc((A.dash||{}).day||'')}</span>
-        <span class="hpill">${esc(fa(q.length))} ${esc(D.qOpen||'کار باز')}${urgent?` · ${esc(fa(urgent))} ${esc(D.urgent||'فوری')}`:''}</span>
-      </div>
+/* سرصفحهٔ داشبورد: چه روزی است، من کدام‌ام، چند کار روی میز است */
+function dashHead(){
+  const p=me(), f=myField(), own=isOwner(), lead=isLead(), ld=leadOf(f.k)||{};
+  /* مالک فقط عنوانش را می‌بیند؛ سرپرست «حوزه · سرپرست حوزه»؛ کارشناس نام سرپرستش را */
+  const sub=own?(D.ownerLine||'مالک سامانه')
+    :(f.n+' · '+p.lv+(!lead&&ld.n?' · '+(D.lead||'سرپرست')+': '+ld.n:''));
+  const open=qOpen(), urgent=open.filter(it=>it.pri==='بالا').length;
+  return `<section class="dhead">
+    <div class="dh">
+      <small class="cap">${esc((A.dash||{}).day||'')}</small>
+      <b>${esc(p.n)}</b>
+      <span class="cap">${esc(sub)}</span>
     </div>
-    <p class="hnote cap">${esc(note)}</p>
-    <div class="pulse"><span class="cap plab">${esc(D.pulse||'نبض سامانه')}</span>${pulse}</div>
-    <div class="rings">${rings.map(r=>ring(+r[2]||0,r[1],r[0],r[3])).join('')}</div>
+    <span class="sp"></span>
+    <div class="dhnow">
+      <b>${esc(fa(open.length))}</b>
+      <small class="cap">${esc(D.qOpen||'کار باز')}${urgent?' · '+esc(fa(urgent))+' '+esc(D.urgent||'فوری'):''}</small>
+    </div>
   </section>`;
 }
+
+/* چهار عدد کلیدی: برای مالک و سرپرست از حوزه، برای کارشناس از کارنامهٔ خودش */
+function kpiRow(){
+  const p=me(), f=myField(), own=isOwner(), lead=isLead();
+  const rows=(own||lead)?(f.rings||[]).map(r=>[r[0],r[1],r[3]||'']):[
+    [D.rOpen||'کار باز من', fa(p.open), p.late?fa(p.late)+' '+(D.late||''):''],
+    [D.rDone||'انجام‌شده این هفته', fa(p.done), ''],
+    [D.rAvg||'میانگین پاسخ', fa(p.avg)+' '+(D.minute||'دقیقه'), D.alertGoal||''],
+    [D.rScore||'امتیاز هفته', fa(p.score), (D.of||'از')+' ۱۰۰']];
+  return `<div class="kpis">${rows.map(r=>`<div class="kpi">
+    <small>${esc(r[0])}</small><b>${esc(r[1])}</b><span class="cap">${esc(r[2]||'')}</span></div>`).join('')}</div>`;
+}
+
+/* وضعیت سامانه: چند خط ساده با چراغ */
+function cardStatus(){
+  return `<section class="card stack">
+    <div class="head">${esc(D.pulse||'وضعیت سامانه')}</div>
+    <div class="slist">${(PULSE||[]).map(x=>`<div class="sline">
+      <span class="lst"><i class="ldot ${x.st||'ok'}" aria-hidden="true"></i></span><b>${esc(x.n)}</b>
+      <span class="sp"></span><span class="cap">${esc(x.d)}</span></div>`).join('')}</div>
+  </section>`;
+}
+
 /* کارتابل: هر کار یک دکمه دارد: انجام شد، واگذار، باز کن */
 function cardQueue(){
   const q=myQueue();
@@ -338,22 +316,21 @@ function cardFields(){
   const f=FIELDS.filter(x=>x.k!=='owner');
   return `<section class="card stack">
     <div class="row"><div class="head">${esc(D.fields||'حوزه‌ها')}</div><span class="sp"></span>
-      <span class="cap">${esc(fa(f.length))} ${esc('حوزه')}</span></div>
-    <div class="fgrid">${f.map(x=>{
-      const l=personOf(leadK(x.k)), q=qAll().filter(it=>it.f===x.k&&!qDone(it.id));
-      return `<article class="fcard ${x.health<80?'behind':''}">
-        <div class="ftop"><span class="fic">${ico(x.i)}</span>
-          <div class="ft"><b>${esc(x.n)}</b><small>${esc(D.lead||'سرپرست')}: ${esc(l?l.n:(D.noLead||''))}</small></div>
-          <span class="fh">${esc(fa(x.health))}٪</span></div>
+      <span class="cap">${esc(fa(f.length))} ${esc(D.fieldWord||'حوزه')}</span></div>
+    <div class="flist">${f.map(x=>{
+      const l=personOf(leadK(x.k)), t=teamOf(x.k), q=qOpen().filter(it=>it.f===x.k).length;
+      return `<div class="frow2">
+        <span class="fic">${ico(x.i)}</span>
+        <div class="ft"><b>${esc(x.n)}</b>
+          <small>${esc(D.lead||'سرپرست')}: ${esc(l?l.n:(D.noLead||''))} · ${esc(fa(t.length))} ${esc(D.specs||'کارشناس')} · ${esc(fa(q))} ${esc(D.qOpen||'کار باز')}</small></div>
+        <span class="fhealth ${x.health<80?'low':''}">${esc(fa(x.health))}٪</span>
         <div class="fbar"><i style="width:${x.health}%"></i></div>
-        <div class="frow"><span class="cap">${esc(fa(q.length))} ${esc(D.qOpen||'کار باز')} · ${esc(fa(x.today))} امروز</span>
-          <span class="sp"></span>
-          <button class="btn sm quiet" data-who="${esc(l?l.k:'')}" ${l?'':'disabled'}>${esc(D.openField||'سر بزن')}</button>
-          ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(x.k)}" aria-label="${esc(D.setLead||'')}">${ico('i-users')}</button>`:''}
-        </div></article>`}).join('')}</div>
+        <div class="fbtns">
+          ${l?`<button class="btn sm quiet" data-who="${esc(l.k)}">${esc(D.openField||'سر بزن')}</button>`:''}
+          <button class="btn sm quiet" data-setlead="${esc(x.k)}" aria-label="${esc(D.setLead||'تعیین سرپرست')}">${ico('i-shield')}</button>
+        </div></div>`}).join('')}</div>
   </section>`;
 }
-/* تیم: سرپرست حوزه کارشناس‌هایش را می‌بیند و کارشناس تازه می‌گذارد */
 function cardTeam(){
   const f=myField(), lead=isLead(), t=(lead||isOwner())?teamOf(f.k):[];
   const rows=t.map(p=>`<div class="trow">
@@ -390,7 +367,7 @@ function cardWeek(){
         <div class="k"><small>${esc(D.qDone||'انجام‌شده')}</small><b>${esc(fa(p.done))}</b></div>
         <div class="k"><small>${esc(D.qOpen||'کار باز')}</small><b>${esc(fa(p.open))}</b></div>
         <div class="k"><small>${esc(D.late||'دیرکرد')}</small><b>${esc(fa(p.late))}</b></div>
-        <div class="k"><small>${esc(D.rAvg||'')}</small><b>${esc(fa(p.avg))} دقیقه</b></div></div>
+        <div class="k"><small>${esc(D.rAvg||'میانگین پاسخ')}</small><b>${esc(fa(p.avg))} ${esc(D.minute||'دقیقه')}</b></div></div>
     </section>`;
   }
   return `<section class="card stack">
@@ -398,7 +375,8 @@ function cardWeek(){
       <span class="cap">${esc(f.n)}</span></div>
     ${bars(Wk.bars||[],true)}
     <div class="admbarsx">${(Wk.days||[]).map(d=>`<span>${esc(d)}</span>`).join('')}</div>
-    ${spark((f.spark||{}).v||[],(f.spark||{}).n||'')}
+    ${bars((f.spark||{}).v||[],true)}
+    <span class="cap">${esc((f.spark||{}).n||'')}</span>
   </section>`;
 }
 function cardFeed(){
@@ -448,39 +426,22 @@ function cardMoney(){
     <div class="row"><div class="head">${esc(D.money||'مالی امروز')}</div><span class="sp"></span>
       <button class="btn sm quiet" data-sec="reports">${ico('i-chart')}${esc(D.reportsToday||'گزارش')}</button></div>
     <div class="admkpi">${rows.map(r=>`<div class="k"><small>${esc(r[0])}</small><b>${esc(r[1])}</b></div>`).join('')}</div>
-    ${spark(sp.v||[],sp.n||'')}
+    ${bars(sp.v||[],true)}
+    <span class="cap">${esc(sp.n||'')}</span>
     <p class="cap">${esc(D.moneyNote||'')}</p>
   </section>`;
 }
-function dock(){
-  const own=isOwner(), lead=isLead();
-  const items=own?[
-      ['i-chart', D.reportsToday||'گزارش امروز', 'data-sec="reports"'],
-      ['i-plus',  secOf('newev').n, 'data-sec="newev"'],
-      ['i-users', D.setLead||'تعیین سرپرست', `data-setlead="${esc(FIELDS.filter(f=>f.k!=='owner').sort((a,b)=>a.health-b.health)[0].k)}"`],
-      ['i-download', D.backup||'پشتیبان دستی', 'data-backup']]
-    :lead?[
-      ['i-inbox', D.fieldQueue||'کارتابل حوزه', 'data-qgo="1"'],
-      ['i-plus', D.addSpec||'افزودن کارشناس', `data-addspec="${esc(myField().k)}"`],
-      ['i-chart', D.fieldReports||'گزارش حوزه', 'data-sec="reports"'],
-      ['i-send', D.broadcast||'اطلاع‌رسانی حوزه', 'data-broadcast="1"']]
-    :[
-      ['i-inbox', D.q||'کارتابل', 'data-qgo="1"'],
-      ['i-doc', secOf('forms').n, 'data-sec="forms"'],
-      ['i-pen', D.quickNote||'یادداشت سریع', 'data-note="1"'],
-      ['i-chart', 'کارنامهٔ من', 'data-week="1"']];
-  return `<div class="dock">${items.map(x=>`<button class="dbtn" ${x[2]}>${ico(x[0])}<span>${esc(x[1])}</span></button>`).join('')}</div>`;
-}
 function vDash(){
-  const mid=isOwner()?cardFields()+cardTeam()
-    :isLead()?cardTeam()+cardToday()
-    :cardToday()+cardWeek();
-  const side=isOwner()?cardMoney()+cardAlerts()+cardToday()
-    :isLead()?cardAlerts()+cardWeek()
-    :cardAlerts();
+  const own=isOwner(), lead=isLead();
+  const one=own?cardQueue()+cardFields()+cardTeam()
+    :lead?cardQueue()+cardTeam()
+    :cardQueue();
+  const two=own?cardStatus()+cardToday()+cardAlerts()+cardMoney()
+    :lead?cardStatus()+cardToday()+cardAlerts()+cardWeek()
+    :cardToday()+cardAlerts()+cardWeek();
   return `<div class="dashwrap">
-    ${viewStrip()}${hero()}${dock()}${cardQueue()}
-    <div class="admgrid">${mid}${side}</div>
+    ${dashHead()}${kpiRow()}
+    <div class="admgrid">${one}${two}</div>
     ${cardFeed()}
   </div>`;
 }
@@ -784,7 +745,7 @@ function sheetEv(id){
       <tr><td>${esc('زمان')}</td><td>${esc(e.when)} · ${esc(e.time)}</td></tr>
       <tr><td>${esc('جا')}</td><td>${esc(e.place)}</td></tr>
       <tr><td>${esc('ظرفیت')}</td><td class="num">${esc(fa(e.reg))} ${esc('از')} ${esc(fa(e.cap))}</td></tr>
-      <tr><td>${esc('هزینه')}</td><td class="num">${e.price?esc(fa(Number(e.price).toLocaleString('en-US'))+' ریال'):esc('آزاد')}</td></tr>
+      ${isMoney()?`<tr><td>${esc('هزینه')}</td><td class="num">${e.price?esc(fa(Number(e.price).toLocaleString('en-US'))+' ریال'):esc('آزاد')}</td></tr>`:''}
       <tr><td>${esc('وضعیت')}</td><td>${tag(st[0],st[1])}</td></tr></tbody></table></div>`;
   } else {
     let D2=D[{reg:'regd',att:'attd',money:'moneyd',cert:'certd',news:'newsd'}[S.evTab]]||{};

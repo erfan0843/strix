@@ -3,8 +3,8 @@
    ──────────────────────────────────────────────────────────────────────────
    اجرا:  npm i jsdom && node admin.test.mjs
    چه چیزی را می‌سنجد: بی‌خطا بار شدن پنل، هفت بخش به‌علاوهٔ داشبورد، داشبوردِ
-   جدا برای مالک و سرپرست حوزه و کارشناس، حلقه‌های عدد و نوار نبض و کارتابل
-   شخصی، ویزارد سه‌گامی رویداد، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
+   جدا برای مالک و سرپرست حوزه و کارشناس، چهار عدد کلیدی و کارتابل شخصی،
+   ویزارد سه‌گامی رویداد، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
    مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، یک مالک و شش
    حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
    سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
@@ -63,22 +63,22 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('#admTabs a').length===5,'نوار پایین پنج بخش دارد ('+p.all('#admTabs a').length+')');
   ok(p.txt('#admBar .head')==='داشبورد','پنل روی داشبورد باز می‌شود');
   const cssTxt=fs.readFileSync(DIR+'admin.css','utf8');
-  ok(/\.admgrid\{display:grid[^}]*1\.6fr/.test(cssTxt),'شبکهٔ دوستونی داشبورد در CSS هست');
+  ok(/\.admgrid\{display:grid[^}]*1\.5fr/.test(cssTxt),'شبکهٔ دوستونی داشبورد در CSS هست');
   ok(/#admTabs\{grid-auto-flow:column/.test(cssTxt),'نوار پایین هر تعداد بخش را هم‌عرض پخش می‌کند');
   ok(p.all('.dashwrap > .admgrid > *').length>=2,'داشبورد ستون‌بندی شده');
-  ok(p.all('.hero .ring').length===4,'چهار حلقهٔ عدد سرِ داشبورد است');
-  const stat=p.all('.hero .ring').map(x=>x.textContent).join(' ');
-  ok(/کاربر/.test(stat)&&/درآمد/.test(stat)&&/رضایت/.test(stat),'حلقه‌ها کاربر و درآمد و رضایت را نشان می‌دهند');
-  ok(p.all('.ppill').length===5,'نوار نبض سامانه پنج نشان دارد');
+  ok(p.all('.kpi').length===4,'چهار عدد کلیدی سرِ داشبورد است');
+  const stat=p.all('.kpi').map(x=>x.textContent).join(' ');
+  ok(/کاربر/.test(stat)&&/درآمد/.test(stat)&&/رضایت/.test(stat),'عددها کاربر و درآمد و رضایت را نشان می‌دهند');
+  ok(p.all('.sline').length===5,'وضعیت سامانه پنج خط دارد');
+  ok(p.all('.hero').length===0&&p.all('.ring').length===0,'خبری از سر رنگی و حلقه‌ها نیست');
   ok(p.all('.qrow').length===8,'کارتابل مالک کوتاه است (۸ کار)');
   ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» هست');
   p.click('[data-qmore]');
   ok(p.all('.qrow').length===20,'با دکمه‌اش هر بیست کار می‌آید');
   p.click('[data-qmore]');
   ok(p.all('.qrow').length===8,'و با همان دکمه کوتاه می‌شود');
-  ok(p.all('.fcard').length===6,'شش حوزه در قالب کارت آمده');
-  ok(p.all('.sparkbox svg').length===1,'نمودار روند درآمد کشیده شد');
-  ok(p.all('.hero').length===0||p.all('.hero.gold').length===1,'سرِ مالک نشان طلایی دارد');
+  ok(p.all('.frow2').length===6,'شش حوزه در فهرست آمده');
+  ok(p.all('.admbars i').length>=7,'نمودار میله‌ای هفته کشیده شد');
   ok(p.all('.card').length>=6,'داشبورد شش کارت دارد');
   ok(p.doc.title.includes('پنل مدیران'),'عنوان صفحه نام پنل را دارد');
   p.click('#admNav [data-sec="events"]');
@@ -86,7 +86,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.click('#admNav [data-sec="dash"]');
   ok(p.doc.querySelector('a[href="account.html"]')!==null,'راه بازگشت به نمای کاربر هست');
   ok(p.doc.querySelector('a[href="builder.html"]')!==null,'راه فرم‌ها و گزارش هست');
-  const nameless=p.all('#admRail button, #admTabs a, .topbar button, .vchip, .dbtn, .qrow button, .qfilters button, .admkpi button')
+  const nameless=p.all('#admRail button, #admTabs a, .topbar button, .kpi, .qrow button, .qfilters button, .frow2 button, .dhead button')
     .filter(b=>(b.textContent||'').replace(/\s+/g,'').trim()===''&&!b.getAttribute('aria-label'));
   ok(nameless.length===0,'هیچ دکمه‌ای بی‌نام نیست'+(nameless.length?': '+nameless.length:''));
   ok(!/\u2014/.test(p.txt('#admBody')),'متن پنل خط تیرهٔ بلند ندارد');
@@ -288,13 +288,13 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
 {
   console.log('\n── نمای هر کس ──');
   const p=await load();
-  ok(p.all('.vchip').length===13,'نوار «نمای من» سیزده چیپ دارد: مالک، شش سرپرست و یک کارشناس هر حوزه');
-  ok(p.all('.fcard [data-who]').length===6,'کارت حوزه‌ها به داشبورد شش سرپرست راه دارد');
+  ok(p.all('.dhead').length===1,'سرصفحهٔ داشبورد هست');
+  ok(p.all('.frow2 [data-who]').length===6,'فهرست حوزه‌ها به داشبورد شش سرپرست راه دارد');
   p.click('[data-who-sheet]');
   const who=p.all('#shAdm [data-who]');
   ok(who.length===15,'ورقهٔ «نمای من» پانزده نفر دارد: مالک، شش سرپرست و هشت کارشناس');
   p.click('#shAdm [data-who="p10"]');
-  ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.hero .hsub')),'چیپ نوار بالا و سر داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
+  ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.dhead')),'چیپ نوار بالا و سرصفحهٔ داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
   ok(p.all('#admNav [data-locked]').length===5,'پنج بخش روی کارشناس قفل است');
   ok(p.all('#admTabs a').length===3,'نوار پایین کارشناس سه بخش دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس فقط کار خودش را دارد');
@@ -303,12 +303,16 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.click('#admNav [data-sec="settings"]');
   ok(p.txt('#admBar .head')==='داشبورد','کارشناس به تنظیمات نمی‌رود؛ همان داشبورد می‌ماند');
   ok(/حوزهٔ تو باز نمی‌شود/.test(p.txt('#toast')),'و می‌گوید این بخش برای حوزهٔ تو نیست');
-  ok(p.all('.fcard').length===0,'کارشناس کارت حوزه‌ها را نمی‌بیند');
+  ok(p.all('.frow2').length===0,'کارشناس فهرست حوزه‌ها را نمی‌بیند');
+  ok(p.all('.hero,.ring,.dock,.dbtn,.vchip,.sparkbox,.ppill').length===0,'کارشناس هم حلقه و داک و سر رنگی نمی‌بیند');
+  ok(p.all('.kpi').length===4&&/کار باز من/.test(p.txt('.kpis')),'چهار عدد کارشناس از کارنامهٔ خودش است');
 
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p2"]');
   ok(p.txt('#admBar .chip').includes('سرپرست'),'سرپرست حوزه در چیپ نوار بالا می‌آید');
   ok(p.all('.trow').length===2,'سرپرست آموزش دو کارشناس زیر دستش دارد');
+  ok(p.all('.kpi').length===4&&/آموزش|ثبت‌نام|دوره/.test(p.txt('.kpis')),'عددهای سرپرست از حوزهٔ خودش است');
+  ok(p.all('.hero,.ring,.dock,.vchip,.sparkbox,.ppill').length===0,'و هیچ حلقه و سر رنگی نمانده');
   ok(p.all('.qrow').length>1&&p.all('.qrow').length<20,'کارتابل سرپرست نه یکی است نه بیست‌تا');
   p.click('#admNav [data-sec="users"]');
   ok(p.txt('#admBar .head')!=='کاربران','آموزش به کاربران راه ندارد');
@@ -419,7 +423,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   store.setItem('nora-admin',JSON.stringify({v:1,who:'p99',qf:'زز',evTab:'money',sec:'settings',role:'super',perms:{}}));
   const p=await load(store);
   ok(p.errs.length===0,'با حالت کهنهٔ دور پیش، پنل بی‌خطا بالا می‌آید');
-  ok(p.all('.ring').length===4,'و داشبورد سالم رندر می‌شود');
+  ok(p.all('.kpi').length===4,'و داشبورد سالم رندر می‌شود');
   ok(p.txt('#admBar .head')==='داشبورد','روی داشبورد می‌نشیند، نه بخش قفل‌شدهٔ کهنه');
 }
 
@@ -430,9 +434,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=35')&&html.includes('admin.js?v=35'),'نسخهٔ پرونده‌های پنل ۳۵ است');
+  ok(html.includes('admin.css?v=36')&&html.includes('admin.js?v=36'),'نسخهٔ پرونده‌های پنل ۳۶ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v24'"),'کارگر سرویس نسخهٔ ۲۴ است');
+  ok(sw.includes("'nora-v25'"),'کارگر سرویس نسخهٔ ۲۵ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
@@ -456,7 +460,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const bad=p2.all('#admNav .btn').map(b=>{const sp=b.querySelector('span');
       return sp?sp.textContent.trim():''}).filter(t=>t&&data.indexOf(t)===-1);
   ok(bad.length===0,'هر برچسب بخش، همان واژهٔ data.js است'+(bad.length?': '+bad.join('، '):''));
-  const nums=p2.all('.hero .ring b').map(b=>b.textContent.trim()).filter(t=>data.indexOf(t)===-1);
+  const nums=p2.all('.kpi b').map(b=>b.textContent.trim()).filter(t=>data.indexOf(t)===-1);
   ok(nums.length===0,'عددهای سرِ پنل هم از داده می‌آید'+(nums.length?': '+nums.join('، '):''));
 }
 

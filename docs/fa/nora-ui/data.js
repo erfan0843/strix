@@ -1826,6 +1826,7 @@ const ADMIN={
     moneyNote:'کاملش در گزارش‌ها و در مالی رویداد است', moneyOnly:'مالی فقط دست مالک است',
     todayEmpty:'برای امروز چیزی نمانده', alertEmpty:'هیچ هشداری نیست؛ همه‌چیز رو به راه است',
     of:'از', qMore:'همهٔ کارها', qLess:'کمتر', formQueue:'کارتابل فرم',
+    minute:'دقیقه', fieldWord:'حوزه',
     alertFieldLow:'زیر ٪۸۵', alertHealth:'سلامت حوزه', alertGoal:'هدف ۸۵٪ است', openWork:'کار باز',
     ownerLine:'مالک سامانه'}
 };

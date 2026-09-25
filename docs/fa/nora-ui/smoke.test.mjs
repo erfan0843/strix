@@ -1447,11 +1447,11 @@ async function load(file,store,q){
   const p=await load('admin.html',makeStore());
   ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
   ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
-  ok(p.all('.hero .ring').length===4,'چهار حلقهٔ عدد سرِ داشبورد پنل');
+  ok(p.all('.kpi').length===4,'چهار عدد کلیدی سرِ داشبورد پنل');
   ok(p.all('.qrow').length===8,'کارتابل مالک پنل کوتاه است (۸ کار)');
   ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» روی کارتابل هست');
-  ok(p.all('.fcard').length===6,'شش حوزه روی داشبورد پنل است');
-  ok(p.all('.ppill').length===5,'نوار نبض سامانه پنج نشان دارد');
+  ok(p.all('.frow2').length===6,'شش حوزه روی داشبورد پنل است');
+  ok(p.all('.sline').length===5,'وضعیت سامانه پنج خط دارد');
   ok(p.doc.querySelector('#admBody').innerHTML.length>500,'داشبورد پر است');
   p.click('#admNav [data-sec="settings"]');
   p.click('[data-setg="access"]');
