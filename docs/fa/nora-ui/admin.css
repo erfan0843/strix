@@ -66,6 +66,30 @@
 .admchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 
 /* ── تعریف تازه: چهار گام ─────────────────────────────────────────────── */
+.wform{display:grid;gap:var(--sp-3)}
+.fld{display:grid;gap:4px;min-width:0}
+.fld .input{min-height:42px}
+.withbtn{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.fld .cap{min-height:15px}
+input.input[type=number]{padding-inline:10px;text-align:center}
+input.input[type=time]{padding-inline:10px;text-align:center}
+/* تقویم شمسی */
+.dp{margin-top:6px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);
+  border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
+.dphead{display:flex;align-items:center;gap:4px;margin-bottom:8px}
+.dphead b{font-size:var(--fs-sub);font-weight:700;min-width:104px;text-align:center}
+.dpnav{width:32px;height:32px;border-radius:10px;border:.5px solid var(--hairline);background:var(--surface);
+  display:grid;place-items:center;cursor:pointer;color:var(--ink-2);flex:0 0 auto}
+.dpnav .i{width:16px;height:16px}
+.dpweek,.dpgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.dpweek span{font-size:10px;color:var(--ink-4);text-align:center;padding:4px 0}
+.dpgrid .db{visibility:hidden}
+.dd{aspect-ratio:1;min-height:34px;border-radius:10px;border:0;background:transparent;cursor:pointer;
+  font:inherit;font-size:var(--fs-sub);color:var(--ink);display:grid;place-items:center;
+  font-variant-numeric:tabular-nums}
+.dd:hover{background:var(--surface-sunk)}
+.dd.today{box-shadow:inset 0 0 0 1px var(--hairline);color:var(--brand-ink);font-weight:700}
+.dd.on{background:var(--brand);color:#fff;font-weight:700}
 .admkinds.types .admkind{padding:11px 6px}
 .admkinds.feats{grid-template-columns:repeat(2,minmax(0,1fr))}
 .admkind small{font-size:10.5px;color:var(--ink-3);line-height:1.8;text-align:center}

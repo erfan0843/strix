@@ -473,6 +473,123 @@ function vDash(){
   </div>`;
 }
 
+/* ── تقویم شمسی کوچک: تبدیل و روزهای ماه؛ بی کتابخانه ──────────────────
+   تاریخ‌ها به شکل ۱۴۰۴/۰۷/۱۶ نگه داشته می‌شوند؛ همین‌جا هم به تقویم
+   میلادی و هم از آن برمی‌گردیم تا «امروز» و شمار روزهای ماه درست بیاید. */
+const JDIV=(a,b)=>Math.trunc(a/b), JMOD=(a,b)=>a-Math.trunc(a/b)*b;
+function jCal(jy){
+  const breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+  let bl=breaks.length, gy=jy+621, leapJ=-14, jp=breaks[0], jump=0, n=0;
+  for(let i=1;i<bl;i++){const jm=breaks[i]; jump=jm-jp; if(jy<jm) break;
+    leapJ+=JDIV(jump,33)*8+JDIV(JMOD(jump,33),4); jp=jm;}
+  n=jy-jp; leapJ+=JDIV(n,33)*8+JDIV(JMOD(n,33)+3,4);
+  if(JMOD(jump,33)===4&&jump-n===4) leapJ++;
+  const leapG=JDIV(gy,4)-JDIV((JDIV(gy,100)+1)*3,4)-150, march=20+leapJ-leapG;
+  if(jump-n<6) n=n-jump+JDIV(jump+4,33)*33;
+  let leap=JMOD(JMOD(n+1,33)-1,4); if(leap===-1) leap=4;
+  return {leap:leap, gy:gy, march:march};
+}
+function g2d(gy,gm,gd){
+  let d=JDIV((gy+JDIV(gm-8,6)+100100)*1461,4)+JDIV(153*JMOD(gm+9,12)+2,5)+gd-34840408;
+  return d-JDIV(JDIV(gy+100100+JDIV(gm-8,6),100)*3,4)+752;
+}
+function d2g(jdn){
+  let j=4*jdn+139361631;
+  j=j+JDIV(JDIV(4*jdn+183187720,146097)*3,4)*4-3908;
+  const i=JDIV(JMOD(j,1461),4)*5+308, gd=JDIV(JMOD(i,153),5)+1, gm=JMOD(JDIV(i,153),12)+1;
+  return {gy:JDIV(j,1461)-100100+JDIV(8-gm,6), gm:gm, gd:gd};
+}
+const j2d=(jy,jm,jd)=>{const r=jCal(jy); return g2d(r.gy,3,r.march)+(jm-1)*31-JDIV(jm,7)*(jm-7)+jd-1;};
+function d2j(jdn){
+  let gy=d2g(jdn).gy, jy=gy-621; const r=jCal(jy), k0=jdn-g2d(gy,3,r.march); let k=k0;
+  if(k>=0){ if(k<=185) return {jy:jy, jm:1+JDIV(k,31), jd:JMOD(k,31)+1}; k-=186; }
+  else { jy-=1; k+=179; if(r.leap===1) k+=1; }
+  return {jy:jy, jm:7+JDIV(k,30), jd:JMOD(k,30)+1};
+}
+const jLen=(jy,jm)=>jm<=6?31:jm<=11?30:(jCal(jy).leap===1?30:29);
+/* یکشنبه=۰ تا شنبه=۶؛ تقویم ما از شنبه شروع می‌شود */
+const jWeek=(jy,jm,jd)=>(j2d(jy,jm,jd)+2)%7;
+const jPad=n=>String(n).padStart(2,'0');
+const jForm=(jy,jm,jd)=>fa(jy)+'/'+fa(jPad(jm))+'/'+fa(jPad(jd));
+const jNice=(jy,jm,jd)=>((NE().j||{}).days||[])[jWeek(jy,jm,jd)]+' '+fa(jd)+' '+(((NE().j||{}).months||[])[jm-1]||'');
+const JLONG=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
+const jLong=(jy,jm,jd)=>JLONG[jWeek(jy,jm,jd)]+' '+fa(jd)+' '+(((NE().j||{}).months||[])[jm-1]||'');
+/* رویدادهای قدیمی تاریخ را به متن نگه داشته‌اند («یکشنبه ۲۷ مهر»)؛ همین را می‌خوانیم */
+function jFromWhen(str){
+  const t=un(String(str||'')), months=(NE().j||{}).months||[];
+  const m=t.match(/(\d{1,2})\s+(\S+)/); if(!m) return null;
+  const jd=+m[1], jm=months.indexOf(m[2])+1; if(!jd||!jm) return null;
+  const y=t.match(/(\d{4})/); return {jy:y?+y[1]:jToday().jy, jm:jm, jd:jd};
+}
+/* تاریخ امروز از خود data می‌آید تا با دنیای نمونه یکی باشد: «شنبه ۵ مهر ۱۴۰۴» */
+function jToday(){
+  const txt=String(((A.dash||{}).day)||''), parts=txt.split(/\s+/);
+  if(parts.length>=3){
+    const d=+un(parts[1]), mo=((NE().j||{}).months||[]).indexOf(parts[2])+1, y=+un(parts[3]);
+    if(d&&mo&&y) return {jy:y, jm:mo, jd:d};
+  }
+  return d2j(g2d(2025,9,27));   /* همان ۵ مهر ۱۴۰۴ که دنیای نمونه رویش ایستاده */
+}
+function jParse(str){
+  const t=un(String(str||'')).replace(/[-.]/g,'/').trim(), m=t.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if(!m) return null;
+  const jy=+m[1], jm=+m[2], jd=+m[3];
+  if(jm<1||jm>12||jd<1||jd>jLen(jy,jm)) return null;
+  return {jy:jy, jm:jm, jd:jd};
+}
+/* تقویم: برچسب روزها و ماه؛ S.dp می‌گوید برای کدام قلم باز است */
+function dpOpen(f,y,m){S.dp={f:f, y:y, m:m}; save(); renderBody();}
+function dpBox(){
+  const dp=S.dp||{}, F=(NE().l||{}), J=(NE().j||{})||{}, months=J.months||[], days=J.days||[];
+  if(!dp.f) return '';
+  const t=jToday(), y=+dp.y||t.jy, m=+dp.m||t.jm, len=jLen(y,m), pad=jWeek(y,m,1), cur=jParse(S.wiz[dp.f]);
+  let cells='<span class="db"></span>'.repeat(pad);
+  for(let d=1;d<=len;d++){
+    const on=cur&&cur.jy===y&&cur.jm===m&&cur.jd===d, td=t.jy===y&&t.jm===m&&t.jd===d;
+    cells+=`<button class="dd ${on?'on':''} ${td?'today':''}" data-dpday="${fa(d)}">${esc(fa(d))}</button>`;
+  }
+  return `<div class="dp">
+    <div class="dphead">
+      <button class="dpnav" data-dpmv="-1" aria-label="${esc(J.prev||'ماه قبل')}">${ico('i-chev-right')}</button>
+      <b>${esc(months[m-1]||'')} ${esc(fa(y))}</b>
+      <button class="dpnav" data-dpmv="1" aria-label="${esc(J.next||'ماه بعد')}">${ico('i-chev-left')}</button>
+      <span class="sp"></span>
+      <button class="btn sm quiet" data-dptoday="1">${esc(F.today||'امروز')}</button>
+      <button class="btn sm quiet" data-dpclose="1">${esc(W.close||'بستن')}</button></div>
+    <div class="dpweek">${days.map(d=>`<span>${esc(d)}</span>`).join('')}</div>
+    <div class="dpgrid">${cells}</div></div>`;
+}
+/* یک قلم تاریخ: نوشتنی + دکمهٔ تقویم + زیرنویس روزِ آن تاریخ */
+function dpField(f,label,ph){
+  const F=NE().l||{}, v=String(S.wiz[f]||''), j=jParse(v), open=(S.dp||{}).f===f;
+  return `<div class="fld">
+    <span class="lbl">${esc(label)}</span>
+    <div class="withbtn">
+      <input class="input num" id="wz-${esc(f)}" data-winput="${esc(f)}" dir="ltr"
+        inputmode="numeric" placeholder="${esc(ph||'۱۴۰۴/۰۷/۱۶')}" value="${esc(v)}" autocomplete="off"/>
+      <button class="btn sm quiet" data-dp="${esc(f)}" aria-label="${esc((NE().l||{}).pick||'تقویم')}">${ico('i-calendar')}</button></div>
+    <span class="cap">${esc(j?jLong(j.jy,j.jm,j.jd):'')}</span>
+    ${open?dpBox():''}</div>`;
+}
+function numField(f,label,min,step,hint){
+  return `<div class="fld"><span class="lbl">${esc(label)}</span>
+    <input class="input num" id="wz-${esc(f)}" type="number" inputmode="numeric" dir="ltr"
+      min="${esc(min||0)}" step="${esc(step||1)}" data-winput="${esc(f)}" value="${esc(un(String(S.wiz[f]||0)))}"/>
+    ${hint?`<span class="cap">${esc(hint)}</span>`:''}</div>`;
+}
+function timeField(f,label){
+  return `<div class="fld"><span class="lbl">${esc(label)}</span>
+    <input class="input num" id="wz-${esc(f)}" type="time" dir="ltr" data-winput="${esc(f)}" value="${esc(un(String(S.wiz[f]||'')))}"/></div>`;
+}
+function textField(f,label,list,ph){
+  const L=(NE().suggest||{})[list]||[];
+  return `<div class="fld"><span class="lbl">${esc(label)}</span>
+    <input class="input" id="wz-${esc(f)}" data-winput="${esc(f)}" value="${esc(S.wiz[f]||'')}"
+      placeholder="${esc(ph||'')}" autocomplete="off" list="dl-${esc(list||f)}"/>
+    <datalist id="dl-${esc(list||f)}">${L.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist></div>`;
+}
+const minOfT=t=>{const m=/^(\d{1,2}):(\d{2})$/.exec(String(t||'')); return m?(+m[1])*60+(+m[2]):null;};
+
 /* ── تعریف تازه: هر کس، هر بخش؛ مالک یا سرپرست تأیید می‌کند ──────────────
    رویداد چهار گام دارد و بعدش یا منتشر می‌شود یا می‌رود در فهرست تأیید.
    هیچ تعریفی پیش‌نویس نمی‌ماند و ویرایش هم چیزی را از فهرست برنمی‌دارد. */
@@ -481,7 +598,6 @@ const NE=()=>A.newev||{};
 const defKind=k=>(DEFD().kinds||[]).find(x=>x.k===k)||{n:'تعریف',i:'i-plus'};
 const neKind=k=>(NE().kinds||[]).find(x=>x.k===k)||{n:'',i:'i-calendar'};
 const wizSteps=()=>S.wiz.kind==='event'?(NE().steps||[]):['چیستی','مرور و فرستادن'];
-/* هر قالب رویداد قابلیت‌هایش را با خودش می‌آورد و بقیه قلم‌ها آزاد می‌ماند */
 function defaultFeat(k){
   const t=neKind(k), f={};
   ['ticket','att','cert'].forEach(x=>{if(t[x])f[x]=1});
@@ -490,25 +606,20 @@ function defaultFeat(k){
 }
 const featOn=k=>!!(S.wiz.feat||{})[k];
 const remOn=k=>!!(S.wiz.rem||{})[k];
-/* چه کسی خودش منتشر می‌کند: مالک همه‌چیز، سرپرست حوزهٔ خودش */
 const canPublish=()=>isOwner()||isLead();
 function defsFor(){
   const rows=(S.defs||[]).concat((DEFD().pending||[]).map(x=>Object.assign({wait:1},x)));
   return isOwner()?rows:isLead()?rows.filter(x=>x.f===myField().k):rows.filter(x=>x.by===me().k);
 }
 function canApprove(r){return !!r.wait&&(isOwner()||(isLead()&&r.f===myField().k))}
-
-/* فهرست تعریف‌ها: تازه‌ها و آن‌چه منتظر تأیید است */
 function cardDefs(){
   const rows=defsFor().slice(0,5);
   if(!rows.length) return '';
-  const st=(DEFD().states||{}).wait||['در انتظار تأیید','warn'];
-  const waiting=rows.filter(r=>r.wait).length;
+  const st=(DEFD().states||{}).wait||['در انتظار تأیید','warn'], waiting=rows.filter(r=>r.wait).length;
   return `<section class="card stack">
     <div class="row"><div class="head">${esc(DEFD().lead||'تعریف‌های تازه')}</div><span class="sp"></span>
       <span class="cap">${esc(waiting?fa(waiting)+' '+esc(DEFD().note||''):(DEFD().empty||''))}</span></div>
-    <div class="admlist">${rows.map(r=>{const s=r.wait?st:((DEFD().states||{})[r.st||'ok']||st),
-        mine=r.by===me().k;
+    <div class="admlist">${rows.map(r=>{const s=r.wait?st:((DEFD().states||{})[r.st||'ok']||st), mine=r.by===me().k;
       return `<div class="admlirow">
         <span class="ic">${ico(defKind(r.kind).i)}</span>
         <span class="sp"><b style="font-size:var(--fs-sub)">${esc(r.n)}</b>
@@ -519,86 +630,83 @@ function cardDefs(){
   </section>`;
 }
 function vNewev(){
-  const Z=NE(), w=S.wiz, isEv=w.kind==='event', stepsAll=wizSteps(),
-    st=Math.max(0,Math.min(stepsAll.length-1,+w.step||0));
-  /* گام معنایی: تعریف غیررویدادی دو گام دارد و گام دومش همان مرور است */
+  const Z=NE(), w=S.wiz, isEv=w.kind==='event', L=Z.l||{},
+    stepsAll=wizSteps(), st=Math.max(0,Math.min(stepsAll.length-1,+w.step||0));
   const sem=isEv?st:(st===0?0:3);
   const steps=stepsAll.map((n,i)=>`<div class="st ${i<st?'done':i===st?'on':''}"><i></i>
       <small>${esc(fa(i+1))}. ${esc(n)}</small></div>`).join('');
-  const chips=(arr,attr,cur)=> (arr||[]).map(v=>`<button class="chip ${String(cur)===String(v)?'on':''}"
-      data-wpick="${attr}" data-wval="${esc(String(v))}">${esc(String(v))}</button>`).join('');
   const kinds=(DEFD().kinds||[]).map(k=>`<button class="admkind ${w.kind===k.k?'on':''}" data-wkind="${esc(k.k)}">
       ${ico(k.i)}<b>${esc(k.n)}</b><small>${esc(k.s||'')}</small></button>`).join('');
   const types=(Z.kinds||[]).map(k=>`<button class="admkind ${w.et===k.k?'on':''}" data-wet="${esc(k.k)}">
       ${ico(k.i)}<b>${esc(k.n)}</b></button>`).join('');
   const toggles=(Z.features||[]).map(x=>`<button class="admfeat ${featOn(x.k)?'on':''}" data-wfeat="${esc(x.k)}">
       <i>${featOn(x.k)?ico('i-check'):''}</i><b>${esc(x.n)}</b><small>${esc(x.d||'')}</small></button>`).join('');
+  const seg=(attr,arr,cur)=>arr.map(m=>`<button class="chip ${String(cur)===String(m.k)?'on':''}"
+      data-wpick="${attr}" data-wval="${esc(m.k)}">${esc(m.n)}</button>`).join('');
   let inner='';
   if(sem===0) inner=`<p class="cap">${esc((Z.hints||{}).kind||'')}</p>
     <div class="admkinds">${kinds}</div>
-    ${w.kind==='event'?`<span class="lbl" style="margin-top:var(--sp-3)">${esc('نوع رویداد')}</span>
+    ${isEv?`<span class="lbl" style="margin-top:var(--sp-3)">${esc('نوع رویداد')}</span>
       <div class="admkinds types">${types}</div>`:''}
     <div class="wgrid">
-      <label class="stack tight"><span class="lbl">${esc('نام')}</span>
+      <label class="fld"><span class="lbl">${esc('نام')}</span>
         <input class="input" id="wzName" data-winput="name" value="${esc(w.name||'')}" placeholder="مثلاً کارگاه نقالی و پرده‌خوانی"/></label>
-      <label class="stack tight"><span class="lbl">${esc('یک خط توضیح')}</span>
+      <label class="fld"><span class="lbl">${esc('یک خط توضیح')}</span>
         <input class="input" id="wzDesc" data-winput="desc" value="${esc(w.desc||'')}" placeholder="برای کارت و فهرست"/></label>
-      <label class="stack tight"><span class="lbl">${esc('برگزارکننده')}</span>
+      <label class="fld"><span class="lbl">${esc('برگزارکننده')}</span>
         <input class="input" id="wzOrg" data-winput="org" value="${esc(w.org||'')}" placeholder="حوزه یا مسئول اجرا"/></label>
     </div>`;
   else if(sem===1) inner=`<p class="cap">${esc((Z.hints||{}).when||'')}</p>
-    <div class="stack">
-      <div><span class="lbl">${esc('نحوهٔ برگزاری')}</span><div class="row tight">
-        ${(Z.modes||[]).map(m=>`<button class="chip ${w.mode===m.k?'on':''}" data-wpick="mode" data-wval="${esc(m.k)}">${esc(m.n)}</button>`).join('')}</div></div>
+    <div class="wform">
+      <div class="fld"><span class="lbl">${esc('نحوهٔ برگزاری')}</span>
+        <div class="row tight">${seg('mode',Z.modes||[],w.mode)}</div></div>
       <div class="wgrid">
-        <div><span class="lbl">${esc('تاریخ')}</span><div class="row tight">${chips(Z.whens,'date',w.date)}</div></div>
-        <div><span class="lbl">${esc('ساعت شروع')}</span><div class="row tight">${chips(Z.times,'time',w.time)}</div></div>
-        <div><span class="lbl">${esc('ساعت پایان')}</span><div class="row tight">${chips(Z.ends,'to',w.to)}</div></div>
+        ${dpField('date',L.date)}
+        ${timeField('time',L.time)}
+        ${timeField('to',L.to)}
       </div>
       <div class="wgrid">
-        <div><span class="lbl">${esc('مدت هر جلسه')}</span><div class="row tight">${chips((Z.durs||[]).map(x=>fa(x)+' دقیقه'),'dur',w.dur?fa(w.dur)+' دقیقه':'')}</div></div>
-        <div><span class="lbl">${esc('تعداد جلسه')}</span><div class="row tight">${chips((Z.sessions||[]).map(fa),'sessions',w.sessions?fa(w.sessions):'')}</div></div>
+        ${dpField('end',L.end)}
+        ${numField('dur',L.dur,15,15)}
+        ${numField('sessions',L.sessions,1,1)}
       </div>
-      ${w.mode!=='online'?`<div><span class="lbl">${esc('جا')}</span><div class="row tight">${chips(Z.places,'place',w.place)}</div></div>`:''}
-      ${w.mode!=='physical'?`<div><span class="lbl">${esc('سامانه یا لینک ورود')}</span><div class="row tight">${chips(Z.links,'link',w.link)}</div></div>`:''}
+      ${w.mode!=='online'?textField('place',L.place,'place',L.room):''}
+      ${w.mode!=='physical'?textField('link',L.link,'link',L.linkPh):''}
       <div class="wgrid">
-        <div><span class="lbl">${esc('ثبت‌نام از')}</span><div class="row tight">${chips(Z.regFrom,'regFrom',w.regFrom)}</div></div>
-        <div><span class="lbl">${esc('تا')}</span><div class="row tight">${chips(Z.regTo,'regTo',w.regTo)}</div></div>
+        ${dpField('regFrom',L.regFrom)}
+        ${dpField('regTo',L.regTo)}
+        <div class="fld"><span class="lbl">${esc('سطح دسترسی')}</span>
+          <div class="row tight">${seg('privacy',Z.privacy||[],w.privacy)}</div></div>
       </div>
-      <div><span class="lbl">${esc('سطح دسترسی')}</span><div class="row tight">
-        ${(Z.privacy||[]).map(x=>`<button class="chip ${w.privacy===x.k?'on':''}" data-wpick="privacy" data-wval="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
     </div>`;
   else if(sem===2){
     const F=Z.forms||{}, caps=Z.capNote||{};
     inner=`<p class="cap">${esc((Z.hints||{}).cap||'')}</p>
-    <div class="stack">
+    <div class="wform">
       <div class="wgrid">
-        <div><span class="lbl">${esc('ظرفیت رویداد')}</span><div class="row tight">${chips(Z.caps,'cap',w.cap)}</div>
-          <span class="cap">${esc(caps.cap||'')}</span></div>
-        <div><span class="lbl">${esc('ظرفیت پیش‌ثبت‌نام')}</span><div class="row tight">${chips(Z.preCaps,'pre',w.pre)}</div>
-          <span class="cap">${esc(caps.pre||'')}</span></div>
-        <div><span class="lbl">${esc('ظرفیت مازاد')}</span><div class="row tight">${chips(Z.extras,'extra',w.extra)}</div>
-          <span class="cap">${esc(caps.extra||'')}</span></div>
+        ${numField('cap',L.cap,1,1,caps.cap)}
+        ${numField('pre',L.pre,0,1,caps.pre)}
+        ${numField('extra',L.extra,0,1,caps.extra)}
       </div>
       <button class="admfeat wide ${w.wait?'on':''}" data-wwait="1"><i>${w.wait?ico('i-check'):''}</i>
         <b>${esc('لیست انتظار')}</b><small>${esc((Z.wait||{})[w.wait?'on':'off']||'')}</small></button>
       <div class="head">${esc(F.lead||'فرم‌ها')}</div>
-      <div><span class="lbl">${esc('فرم ثبت‌نام')}</span><div class="row tight">
-        ${(F.reg||[]).map(x=>`<button class="chip ${w.form===x.k?'on':''}" data-wpick="form" data-wval="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div>
+      <div class="fld"><span class="lbl">${esc('فرم ثبت‌نام')}</span>
+        <div class="row tight">${seg('form',F.reg||[],w.form)}</div>
         <span class="cap">${esc(((F.reg||[]).find(x=>x.k===w.form)||{}).d||'')}${w.form?esc(' · لینک مستقیم فرم ساخته می‌شود'):''}</span></div>
       ${featOn('survey')?`<p class="cap">${esc(F.survey||'')}</p>`:''}
-      <div><span class="lbl">${esc('آزمون رویداد')}</span><div class="row tight">
-        ${(F.exam||[]).map(x=>`<button class="chip ${w.exam===x.k?'on':''}" data-wpick="exam" data-wval="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
-      <div><span class="lbl">${esc('روش حضور و غیاب')}</span><div class="row tight">
-        ${(Z.att||[]).map(x=>`<button class="chip ${w.att===x.k?'on':''}" data-wpick="att" data-wval="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
-      <div><span class="lbl">${esc('یادآوری به شرکت‌کنندگان')}</span><div class="row tight">
-        ${(Z.reminders||[]).map(x=>`<button class="chip ${remOn(x.k)?'on':''}" data-wrem="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
+      <div class="fld"><span class="lbl">${esc('آزمون رویداد')}</span>
+        <div class="row tight">${seg('exam',F.exam||[],w.exam)}</div></div>
+      <div class="fld"><span class="lbl">${esc('روش حضور و غیاب')}</span>
+        <div class="row tight">${seg('att',Z.att||[],w.att)}</div></div>
+      <div class="fld"><span class="lbl">${esc('یادآوری به شرکت‌کنندگان')}</span>
+        <div class="row tight">${(Z.reminders||[]).map(x=>`<button class="chip ${remOn(x.k)?'on':''}" data-wrem="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div></div>
       <div class="head">${esc('قابلیت‌ها')}</div>
       <div class="admkinds feats">${toggles}</div>
       ${isMoney()?`<div class="wgrid">
-        <div><span class="lbl">${esc('پرداخت')}</span><div class="row tight">
+        <div class="fld"><span class="lbl">${esc('پرداخت')}</span><div class="row tight">
           ${Object.keys(Z.pay||{}).map(k=>`<button class="chip ${w.paid===k?'on':''}" data-wpick="paid" data-wval="${esc(k)}">${esc((Z.pay||{})[k])}</button>`).join('')}</div></div>
-        <div><span class="lbl">${esc('امتیاز شرکت')}</span><div class="row tight">${chips([0,5,10,20].map(fa),'points',w.points?fa(w.points):'')}</div></div>
+        ${numField('points','امتیاز شرکت',0,5)}
       </div>`:`<p class="cap">${esc(Z.money||'')}</p>`}
     </div>`;
   } else {
@@ -606,24 +714,30 @@ function vNewev(){
     const on=(Z.features||[]).filter(x=>featOn(x.k)).map(x=>x.n);
     const regName=((F.reg||[]).find(x=>x.k===w.form)||{}).n||'';
     const examName=((F.exam||[]).find(x=>x.k===w.exam)||{}).n||'';
+    const j1=jParse(w.date), j2=jParse(w.end);
+    const dayOf=(j)=>j?jNice(j.jy,j.jm,j.jd):'';
     const R=[['تعریف',rK.n+(t.n?' · '+t.n:'')],['نام',w.name||''],['توضیح',w.desc||''],['برگزارکننده',w.org||''],
-      w.kind==='event'?['کی و کجا',[w.date,w.time?'از '+w.time:'',w.to?'تا '+w.to:'',w.place,w.link].filter(Boolean).join(' · ')]:null,
-      w.kind==='event'?['ظرفیت',fa(w.cap||0)+' نفر'+(w.pre?' · پیش‌ثبت‌نام '+fa(w.pre):'')+(w.extra?' · مازاد '+fa(w.extra):'')+(w.wait?' · لیست انتظار':'')]:null,
-      w.kind==='event'?['جلسات',fa(w.sessions||1)+' جلسه'+(w.dur?' · هر جلسه '+fa(w.dur)+' دقیقه':'')]:null,
-      w.kind==='event'?['فرم‌ها',[regName,featOn('survey')?'نظرسنجی خودکار':'',examName&&w.exam!=='none'?examName:''].filter(Boolean).join(' · ')]:null,
-      w.kind==='event'?['حضور و غیاب',((Z.att||[]).find(x=>x.k===w.att)||{}).n||'']:null,
-      w.kind==='event'?['قابلیت‌ها',on.join(' · ')]:null,
-      w.kind==='event'?['یادآوری',(Z.reminders||[]).filter(x=>remOn(x.k)).map(x=>x.n).join(' · ')]:null].filter(r=>r&&r[1]);
+      isEv?['شروع',[dayOf(j1),w.time?fa(w.time):'',w.place].filter(Boolean).join(' · ')]:null,
+      isEv?['پایان',[dayOf(j2)||dayOf(j1),w.to?fa(w.to):''].filter(Boolean).join(' · ')]:null,
+      isEv&&w.mode!=='physical'?['لینک ورود',w.link||'']:null,
+      isEv?['جلسات',fa(w.sessions||1)+' جلسه'+(w.dur?' · هر جلسه '+fa(w.dur)+' دقیقه':'')]:null,
+      isEv?['ظرفیت',fa(w.cap||0)+' نفر'+(w.pre?' · پیش‌ثبت‌نام '+fa(w.pre):'')+(w.extra?' · مازاد '+fa(w.extra):'')+(w.wait?' · لیست انتظار':'')]:null,
+      isEv?['ثبت‌نام',[w.regFrom?fa(w.regFrom):(L.now||'همین حالا'),w.regTo?fa(w.regTo):(L.tillStart||'تا شروع')].join(' · ')]:null,
+      isEv?['فرم‌ها',[regName,featOn('survey')?'نظرسنجی خودکار':'',examName&&w.exam!=='none'?examName:''].filter(Boolean).join(' · ')]:null,
+      isEv?['حضور و غیاب',((Z.att||[]).find(x=>x.k===w.att)||{}).n||'']:null,
+      isEv?['قابلیت‌ها',on.join(' · ')]:null,
+      isEv?['یادآوری',(Z.reminders||[]).filter(x=>remOn(x.k)).map(x=>x.n).join(' · ')]:null].filter(r=>r&&r[1]);
     inner=`<p class="cap">${esc((Z.hints||{}).review||'')}</p>
       <div class="admreview"><div class="revhead">
           <b>${esc(w.name||'بی‌نام')}</b>${tag(canPublish()?(Z.route||{}).self:(Z.route||{}).ask,canPublish()?'ok':'warn')}</div>
         ${R.map(r=>`<div class="revrow"><span class="cap">${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join('')}
-        ${w.kind==='event'?`<div class="admchips"><span class="tag brand">${esc('کارت رویداد و لینک فرم')}</span>
+        ${isEv?`<div class="admchips"><span class="tag brand">${esc('کارت رویداد و لینک فرم')}</span>
           <span class="tag">${esc(w.wait?'لیست انتظار روشن':'لیست انتظار خاموش')}</span></div>`:''}</div>`;
   }
+  const j1=jParse(w.date), j2=jParse(w.end);
   const ready=sem===0?(isEv?!!(w.et&&String(w.name||'').trim()):!!String(w.name||'').trim())
-    :sem===1?(!!w.edit||!!(w.date&&w.time&&w.to&&(w.mode==='online'?w.link:w.place)))
-    :sem===2?!!(w.cap>0)
+    :sem===1?!!(j1&&w.time&&w.to&&(w.mode==='online'?String(w.link||'').trim():String(w.place||'').trim()))
+    :sem===2?!!(+w.cap>0)
     :true;
   const last=stepsAll.length-1, wEdit=!!w.edit;
   return `<section class="card stack admwiz">
@@ -1141,7 +1255,7 @@ document.addEventListener('click',e=>{
     toast((tg.dataset.toglabel||'')+(on?' روشن شد':' خاموش شد')); return}
   const fs=q('[data-formsw]'); if(fs){const i=+fs.dataset.formsw, r=((A.forms||{}).rows||[])[i];
     if(r){r.on=!r.on; toast(r.on?'فرم باز شد':'فرم بسته شد'); renderBody()} return}
-  const wk=q('[data-wkind]'); if(wk){S.wiz.kind=wk.dataset.wkind; S.wiz.step=0; save(); renderBody(); return}
+  const wk=q('[data-wkind]'); if(wk){S.wiz.kind=wk.dataset.wkind; S.wiz.step=0; S.dp=null; save(); renderBody(); return}
   const wet=q('[data-wet]'); if(wet){S.wiz.et=wet.dataset.wet; S.wiz.feat=defaultFeat(wet.dataset.wet);
     save(); renderBody(); return}
   const wp=q('[data-wpick]'); if(wp){const key=wp.dataset.wpick, val=wp.dataset.wval, num=['cap','pre','extra','dur','sessions','points'];
@@ -1149,10 +1263,27 @@ document.addEventListener('click',e=>{
   const wf=q('[data-wfeat]'); if(wf){const k=wf.dataset.wfeat; S.wiz.feat[k]=featOn(k)?0:1;
     toast(neKind(S.wiz.et).n+' · '+(S.wiz.feat[k]?'روشن شد':'خاموش شد')); save(); renderBody(); return}
   const wr=q('[data-wrem]'); if(wr){const k=wr.dataset.wrem; S.wiz.rem[k]=remOn(k)?0:1; save(); renderBody(); return}
+  /* تقویم: بازش کن، ماه بچرخان، روز بردار، امروز، ببند */
+  const dp=q('[data-dp]'); if(dp){const f=dp.dataset.dp, cur=jParse(S.wiz[f]), t=jToday();
+    S.dp=(S.dp||{}).f===f?null:{f:f, y:(cur||t).jy, m:(cur||t).jm}; save(); renderBody(); return}
+  const dmv=q('[data-dpmv]'); if(dmv){const d=S.dp||{}, t=jToday();
+    let y=+d.y||t.jy, m=(+d.m||t.jm)+(+dmv.dataset.dpmv);
+    if(m<1){m=12; y--} if(m>12){m=1; y++}
+    S.dp={f:d.f, y:y, m:m}; save(); renderBody(); return}
+  const dday=q('[data-dpday]'); if(dday){const d=S.dp||{}, t=jToday(), jd=+un(dday.dataset.dpday), was=S.wiz[d.f];
+    S.wiz[d.f]=jForm(+d.y||t.jy, +d.m||t.jm, jd);
+    /* تاریخ پایان تا وقتی دستی عوض نشده، همراه شروع جلو می‌آید */
+    if(d.f==='date'&&(!String(S.wiz.end||'').trim()||S.wiz.end===was)) S.wiz.end=S.wiz[d.f];
+    S.dp=null; save(); renderBody(); return}
+  const dt0=q('[data-dptoday]'); if(dt0){const d=S.dp||{}, t=jToday(), was=S.wiz[d.f];
+    S.wiz[d.f]=jForm(t.jy,t.jm,t.jd);
+    if(d.f==='date'&&(!String(S.wiz.end||'').trim()||S.wiz.end===was)) S.wiz.end=S.wiz[d.f];
+    S.dp={f:d.f, y:t.jy, m:t.jm}; save(); renderBody(); return}
+  const dc=q('[data-dpclose]'); if(dc){S.dp=null; save(); renderBody(); return}
   const ww=q('[data-wwait]'); if(ww){S.wiz.wait=S.wiz.wait?0:1; save(); renderBody(); return}
   const wc=q('[data-wcancel]'); if(wc){S.wiz=Object.assign({},BASE.wiz); save(); renderBody(); return}
   const ws=q('[data-wstep]'); if(ws){const step=+ws.dataset.wstep;
-    if(ws.dataset.wgo!=='1'){S.wiz.step=step; save(); renderBody(); return}
+    if(ws.dataset.wgo!=='1'){S.wiz.step=step; S.dp=null; save(); renderBody(); return}
     const w=S.wiz, i=step-1;
     if(i===0&&!(w.kind&&(w.kind!=='event'||w.et)&&String(w.name||'').trim())){toast(W.fieldsReq||'این قلم را پر کن'); return}
     if(i===1&&!w.edit&&!(w.date&&w.time&&w.to&&(w.mode==='online'?w.link:w.place))){toast(W.fieldsReq||'این قلم را پر کن'); return}
@@ -1165,16 +1296,18 @@ document.addEventListener('click',e=>{
     S.defs=(S.defs||[]).map(x=>x.id===id?Object.assign({},x,{wait:0,st:'no'}):x);
     save(); renderBody(); toast((DEFD().states||{}).no?DEFD().states.no[0]:'برگشت برای اصلاح'); return}
   const wsend=q('[data-wsend]'); if(wsend){const w=S.wiz, et=neKind(w.et), kk=defKind(w.kind);
-    const kind=w.kind==='event'?(et.n||'رویداد'):kk.n;
+    const kind=w.kind==='event'?(et.n||'رویداد'):kk.n, j1=jParse(w.date);
     if(w.edit){  /* ویرایش: همان‌جا می‌ماند، نه پیش‌نویس می‌شود نه از فهرست می‌رود */
       S.evEdit=Object.assign({},S.evEdit||{},{}); S.evEdit[w.edit]={n:w.name||'', kind:kind,
-        when:w.date||'', time:[w.time,w.to].filter(Boolean).join(' تا '), place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''),
-        cap:+w.cap||0};
+        when:j1?jLong(j1.jy,j1.jm,j1.jd):(w.date||''), on:w.date||'',
+        time:[w.time&&fa(w.time),w.to&&fa(w.to)].filter(Boolean).join(' تا '), end:w.end||'',
+        place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''), cap:+w.cap||0};
       S.wiz=Object.assign({},BASE.wiz); save();
       toast((NE().again||'ویرایش شد')); go('events'); renderBody(); return}
     const route={id:'nx'+Date.now(), kind:w.kind, n:w.name||'بی‌نام', by:me().k, f:myField().k, at:'همین حالا'};
     if(canPublish()){
-      S.added=[{id:route.id, n:route.n, kind:kind, when:w.date||'', time:[w.time,w.to].filter(Boolean).join(' تا '),
+      S.added=[{id:route.id, n:route.n, kind:kind, when:j1?jLong(j1.jy,j1.jm,j1.jd):(w.date||''), on:w.date||'',
+        time:[w.time&&fa(w.time),w.to&&fa(w.to)].filter(Boolean).join(' تا '), end:w.end||'',
         place:w.mode==='online'?(w.link||'آنلاین'):(w.place||''), cap:+w.cap||0, reg:0, state:'soon', price:0}].concat(S.added||[]);
       S.wiz=Object.assign({},BASE.wiz); S.evF='all'; save();
       toast((NE().made||'منتشر شد')); go('events'); return}
@@ -1194,9 +1327,10 @@ document.addEventListener('click',e=>{
     const t=(NE().kinds||[]).find(x=>x.n===e.kind)||{};
     const half=String(e.time||'').split('تا').map(x=>x.trim()).filter(Boolean);
     S.wiz=Object.assign({},BASE.wiz,{edit:e.id,kind:'event',et:t.k||'custom',name:e.n||'',
-      desc:e.d||'',date:e.when||'',time:half[0]||'',to:half[1]||'',place:(e.place||'')==='آنلاین'?'':(e.place||''),
-      link:(e.place||'')==='آنلاین'?(NE().links||[])[0]:'',cap:+e.cap||45,
-      mode:(e.place||'')==='آنلاین'?'online':'physical'});
+      desc:e.d||'',date:e.on||(jFromWhen(e.when)?jForm(jFromWhen(e.when).jy,jFromWhen(e.when).jm,jFromWhen(e.when).jd):''),
+      time:un(half[0]||''),to:un(half[1]||''),place:(e.place||'')==='آنلاین'?'':(e.place||''),
+      link:(e.place||'')==='آنلاین'?((NE().suggest||{}).link||[])[0]:'',cap:+e.cap||45,
+      end:e.end||'',mode:(e.place||'')==='آنلاین'?'online':'physical'});
     closeSheets(); save(); toast(W.editEvent||'در حال ویرایش'); go('newev'); return}}
   const ub=q('[data-ublock]'); if(ub){const id=ub.dataset.ublock;
     S.uov[id]=Object.assign({},S.uov[id],{st:['مسدود','stop']}); save();
@@ -1217,11 +1351,34 @@ document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   if(el.dataset.cparam){S.cert.params[el.dataset.cparam]=String(el.value||'').trim(); save(); return}
   if(el.dataset.text){S.texts[el.dataset.text]=String(el.value||''); save(); return}
+  const f=el.dataset.winput;
+  if(!f) return;
+  if(el.type==='number'){S.wiz[f]=Math.max(0,+un(el.value)||0); save(); return}
+  if(el.type==='time'){
+    S.wiz[f]=/\d/.test(el.value||'')?el.value:'';
+    /* مدت هر جلسه خودش از ساعت شروع و پایان درمی‌آید؛ دست خودت هم باز است */
+    const a2=minOfT(S.wiz.time), b2=minOfT(S.wiz.to);
+    if(a2!=null&&b2!=null&&b2>a2) S.wiz.dur=b2-a2;
+    save(); renderBody(); return}
+  if(['date','end','regFrom','regTo'].indexOf(f)>-1){
+    const j=jParse(el.value), was=S.wiz[f];
+    S.wiz[f]=j?jForm(j.jy,j.jm,j.jd):String(el.value||'').trim();
+    if(f==='date'&&j){
+      if(!String(S.wiz.end||'').trim()||S.wiz.end===was) S.wiz.end=S.wiz.date;
+      if(!S.wiz.regFrom||!jParse(S.wiz.regFrom)) S.wiz.regFrom=S.wiz.date;
+    }
+    save(); renderBody(); return}
+  S.wiz[f]=String(el.value||'').trim(); save(); return;
 });
 document.addEventListener('input',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   if(el.id==='admQ'){S.q=el.value; renderBody(); return}
-  if(el.dataset.winput){S.wiz[el.dataset.winput]=el.value; save(); return}
+  if(el.dataset.winput){const f=el.dataset.winput;
+    if(['date','end','regFrom','regTo'].indexOf(f)>-1||el.type==='number'||el.type==='time'){
+      /* قلم‌های تاریخ و عدد در «change» می‌نشینند تا وسط تایپ نپرد */
+      if(el.type==='number') S.wiz[f]=Math.max(0,+un(el.value)||0);
+      save(); return}
+    S.wiz[f]=el.value; save(); return}
 });
 addEventListener('hashchange',()=>{
   const k=(location.hash||'').replace('#','');
