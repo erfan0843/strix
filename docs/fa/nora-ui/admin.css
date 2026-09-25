@@ -56,6 +56,24 @@
   flex-wrap:wrap;row-gap:8px}
 .admlirow .sp{display:grid;gap:1px;min-width:0}
 .admlirow .sp b,.admlirow .sp small{overflow-wrap:anywhere}
+/* دکمههای دو سر «صدور»: هم عرض و همقد، متن تکخط */
+.stctas .btn{flex:1 1 210px;justify-content:center;white-space:nowrap}
+.mini .btn,.admsw .btn,.fileup .btn{white-space:nowrap}
+/* بارگذاری پرونده: نوار نقطهچین با آیکن و توضیح؛ قلم خاموش */
+.fileup{position:relative;display:flex;align-items:center;gap:11px;padding:13px 14px;cursor:pointer;
+  border:1.5px dashed var(--hairline-2);border-radius:var(--r-md);background:var(--surface);
+  transition:border-color .15s ease,background .15s ease}
+.fileup:hover{border-color:var(--brand);background:var(--brand-tint)}
+.fileup:focus-within{border-color:var(--brand)}
+.fileup input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.fileup .sp{flex:1;min-width:0;display:grid;gap:2px}
+.fileup .sp b{font-size:var(--fs-sub);font-weight:700}
+.fileup .sp small{font-size:var(--fs-cap);color:var(--ink-3)}
+/* مقدارهای دستی پارامترها: دوستون مرتب */
+.stpr.vals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stpr.vals .fld{margin:0}
+/* پارامتری که در قالب برگزیده هست، پررنگ میشود */
+.stpr .stp.has{background:var(--brand-tint);border-radius:8px}
 /* فیلدهای کنار هم در یک ردیف، همعرض و مرتب */
 .row.tight .fld{flex:1 1 110px;min-width:0}
 .admlirow:last-child{border-bottom:0}
@@ -262,7 +280,8 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 
 /* ── مرکز گواهینامه ───────────────────────────────────────────────────── */
 .admcert{display:grid;gap:var(--sp-3)}
-.admcertsteps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.admcertsteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.admcertsteps button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .admcertsteps button{padding:10px 6px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface);
   font:inherit;font-size:11.5px;color:var(--ink-2);cursor:pointer;display:grid;gap:4px;justify-items:center}
 .admcertsteps button .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;
@@ -512,6 +531,9 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 }
 @media (max-width:620px){
   .stguide{grid-template-columns:1fr}
+  .admcertsteps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stpr.vals{grid-template-columns:1fr}
+  .stctas .btn{flex:1 1 100%;justify-content:center}
   .stflow{grid-template-columns:1fr}
   .stprof{grid-template-columns:1fr}
   .kpis{grid-template-columns:1fr}

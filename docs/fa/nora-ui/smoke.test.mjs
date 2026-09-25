@@ -1467,7 +1467,7 @@ async function load(file,store,q){
   p.click('#shAdm [data-who="p2"]');
   ok(p.all('.trow').length===2,'سرپرست آموزش دو کارشناس دارد');
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===0,'تنظیمات دیگر گروه سرپرست ندارد؛ مدیریت کارشناسان در کاربران است');
+  ok(p.all('[data-setg]').length===1&&!!p.doc.querySelector('[data-setg="cert"]'),'تنظیمات برای سرپرست فقط گروه گواهینامه را دارد (قالب ورد)');
   p.click('#admNav [data-sec="dash"]');
   /* مالی فقط مالک: سرپرست پشتیبانی نه کارت مالی، نه ردیف مالی، نه تب مالی */
   ok(p.all('[data-rep="fi"]').length===0,'ردیف مالی گزارش‌ها برای سرپرست نیست');
@@ -1518,7 +1518,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:51, added:[
+  store.setItem('nora-admin', JSON.stringify({v:52, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

@@ -55,6 +55,62 @@ const baleRow=(code,title)=>`<div class="balerow">${ico('i-download')}
 /* موتور صدور گواهینامه: پنجرهٔ خلوت و صف شبانه */
 const certWin=()=>{const h=(new Date()).getHours(); return h<2?'امشب ۰۲:۰۰':'شب آینده ۰۲:۰۰'};
 const certXls=()=>Array.isArray((S.cert||{}).xlsRows)?S.cert.xlsRows:[];
+/* خواندن docx و xlsx: پروندهٔ فشرده بی سرور باز میشود؛ ذخیرهٔ بدون فشردهسازی
+   همان لحظه برمیگردد و فشرده با DecompressionStream باد میکند */
+const utf8=u8=>new TextDecoder().decode(u8);
+const xent=s=>String(s||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+const zipPull=async(buf,name)=>{
+  try{
+    const u8=new Uint8Array(buf), dv=new DataView(buf);
+    let i=u8.length-22;
+    for(;i>=0;i--){ if(dv.getUint32(i,true)===0x06054b50) break }
+    if(i<0) return null;
+    let off=dv.getUint32(i+16,true);
+    const cnt=dv.getUint16(i+10,true);
+    for(let e=0;e<cnt;e++){
+      if(dv.getUint32(off,true)!==0x02014b50) break;
+      const m=dv.getUint16(off+10,true), cs=dv.getUint32(off+20,true),
+        nl=dv.getUint16(off+28,true), el=dv.getUint16(off+30,true), cl=dv.getUint16(off+32,true);
+      const fn=utf8(u8.subarray(off+46,off+46+nl));
+      if(fn===name){
+        const lo=dv.getUint32(off+42,true), lnl=dv.getUint16(lo+26,true), lel=dv.getUint16(lo+28,true);
+        const st=lo+30+lnl+lel, comp=u8.subarray(st,st+cs);
+        if(m===0) return comp;
+        if(m===8&&typeof DecompressionStream==='function'){
+          try{ const out=await new Response(new Blob([comp]).stream()
+            .pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+            return new Uint8Array(out) }catch(e){ return null } }
+        return null;
+      }
+      off=off+46+nl+el+cl;
+    }
+  }catch(e){}
+  return null; };
+const xmlText=x=>xent(String(x).replace(/<\/w:p>/g,'\n').replace(/<[^>]+>/g,''));
+const certParamsOf=txt=>{ const out=[], re=/\{([^{}\n]{1,30})\}/g; let m;
+  while((m=re.exec(txt))){ const t=m[1].trim(); if(t&&out.indexOf(t)<0) out.push(t) } return out };
+const certDocxParams=async buf=>{ const d=await zipPull(buf,'word/document.xml');
+  return d?certParamsOf(xmlText(utf8(d))):null };
+const certXlsxRows=async buf=>{
+  const ss=await zipPull(buf,'xl/sharedStrings.xml');
+  const sh=ss?xmlText(utf8(ss)).split('\n').map(x=>x.trim()).filter(Boolean):[];
+  const s1=await zipPull(buf,'xl/worksheets/sheet1.xml');
+  if(!s1) return null;
+  const xml=String(utf8(s1)), rows=[];
+  xml.replace(/<row[^>]*>([\s\S]*?)<\/row>/g,(_,r)=>{
+    const cells=[];
+    String(r).replace(/<c[^>]*?(?:\st="(\w+)")?[^>]*>([\s\S]*?)<\/c>/g,(_,t,v)=>{
+      const mv=/<v>([^<]*)<\/v>/.exec(v||'');
+      cells.push(t==='s'&&mv?(sh[+mv[1]]||''):(mv?mv[1]:'')); return ''});
+    rows.push(cells.join(' ')); return ''});
+  return rows.filter(x=>x.trim()); };
+const certRowsOf=lines=>lines.map(line=>{
+  const nums=un(line).match(/\d+/g)||[];
+      const mob=nums.find(x=>/^0\d{10}$/.test(x)), nat=nums.find(x=>/^\d{10}$/.test(x));
+  const key=mob||nat||'';
+  const name=line.replace(/[0-9۰-۹٠-٩]+/g,'').replace(/[\s،,]+/g,' ').trim();
+  const mm=key?memList().find(m=>m.ph===key||(m.nid&&un(m.nid)===key)):null;
+  return {n:name, ok:!!mm}; });
 
 /* ── واژه‌های کوتاه پنل: یک‌جا، تا عوض کردنشان یک نقطه داشته باشد ─────── */
 const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ها', keys:'کلیدها',
@@ -66,7 +122,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=51;
+const SVER=52;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -80,7 +136,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
          {w:'after',n:1,u:'d',ch:'notify',on:1}],
     stamp:0,edit:''},
   defs:[], evEdit:{},
-  cert:{step:0,file:'',evs:[],tags:[],xlsRows:null,picked:[],letter:'',months:'',news:'',rand:''},
+  cert:{step:0,file:'',evs:[],tags:[],xlsRows:null,picked:[],vals:{},letter:'',months:'',news:'',rand:''},
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
@@ -1863,22 +1919,30 @@ function vCert(){
   const winNow=certWin();
   let inner='';
   if(st===0){
-    inner=`<p class="cap">${esc('فایل ورد را بارگذاری کن و همانطور که هست، با جاهای خالی، بگذار؛ همان فایل برای همه صادر میشود. هیچ پارامتری اجباری نیست.')}</p>
-      <div class="row tight"><input id="cFileN" class="input" placeholder="نام فایل، مثل: گواهینامهٔ داوری جشنواره"/>
-      ${btn('بارگذاری فایل ورد','data-cfilenew','i-upload')}</div>
+    const fp=curFile.params||[];
+    const AUTO=['نام','نام خانوادگی','نام‌خانوادگی','نام کامل','نام‌کامل','کد ملی','کدملی','موبایل','شمارهٔ موبایل','عکس'];
+    const auto=fp.filter(x=>AUTO.indexOf(x)>-1), man=fp.filter(x=>AUTO.indexOf(x)<0), vals=C.vals||{};
+    inner=`<p class="cap">${esc(CE.tplCap||'')}</p>
       <div class="admlist">${files.map(f=>`<div class="admrow2" style="cursor:default">
         <span class="ic">${ico('i-doc')}</span>
-        <button class="tx" data-cfile="${esc(f.k)}"><b>${esc(f.n)}</b><small>${esc(f.s||'')}</small></button>
+        <button class="tx" data-cfile="${esc(f.k)}"><b>${esc(f.n)}</b><small>${esc(f.s||'')}${(f.params||[]).length?' · '+esc(fa(f.params.length))+' پارامتر متغیر':''}</small></button>
         <span class="mini">${defK===f.k?tag('پیشفرض','brand'):''}
           ${curFile.k===f.k?tag('برداشته شد','ok'):''}
           ${defK!==f.k?btn('پیشفرض کن','data-cdef="'+esc(f.k)+'"','i-check'):''}</span></div>`).join('')}</div>
       ${curFile.k?balebox(`<div class="pvsheet">${'<i></i>'.repeat(8)}</div>`,'cert_file_'+curFile.k,
         'پیش‌نمایش «'+curFile.n+'» تار است؛ فایل ورد کامل از ربات بلهٔ موسسه می‌آید'):''}
-      <div class="head">${esc('راهنمای پارامترهای فایل ورد')}</div>
-      <p class="cap">${esc('هر جای خالی را با همین نوشتار در ورد بگذار؛ ردیفها را هرکدام لازم داشتی. هیچکدام اجباری نیست؛ خالی بماند، همانطور که در فایل است میماند.')}</p>
+      ${fp.length?`<div class="head">${esc((CE.paramsOf||'پارامترهای قالب')+' «'+(curFile.n||'')+'»')}</div>
+        ${auto.length?`<p class="cap">${esc(CE.autoCap||'')}</p>
+          <div class="admfilters">${auto.map(x=>`<span class="tag ok" dir="ltr">{${esc(x)}}</span>`).join('')}</div>`:''}
+        ${man.length?`<p class="cap">${esc(CE.manCap||'')}</p>
+          <div class="stpr vals">${man.map(x=>`<label class="fld"><span dir="ltr">{${esc(x)}}</span>
+            <input class="input" data-cparam="${esc(x)}" value="${esc(vals[x]||'')}" placeholder="${esc('مقدار '+x)}"/></label>`).join('')}</div>`:''}`
+       :`<p class="cap">${esc(CE.noParams||'')}</p>`}
+      <div class="head">${esc('راهنمای کامل پارامترها')}</div>
+      <p class="cap">${esc('هر جای خالی را با همین نوشتار در ورد بگذار؛ ردیف پررنگ در قالب برگزیدهٔ تو هست. هیچکدام اجباری نیست؛ خالی بماند، همانطور که در فایل است میماند.')}</p>
       <div class="stguide">${(CE.guide||[]).map(g=>`<div class="stg"><div class="stgh"><b>${esc(g.g)}</b><small class="cap">${esc(g.s)}</small></div>
-        <div class="stpr">${(g.rows||[]).map(x=>`<div class="stp">${ico('i-pen')}<span class="sp"><b dir="ltr">${esc(x[0])}</b><small>${esc(x[1]||'')}</small></span></div>`).join('')}</div></div>`).join('')}</div>`;
-  } else if(st===1){
+        <div class="stpr">${(g.rows||[]).map(x=>`<div class="stp ${fp.indexOf(String(x[0]).replace(/[{}]/g,''))>-1?'has':''}">${ico('i-pen')}<span class="sp"><b dir="ltr">${esc(x[0])}</b><small>${esc(x[1]||'')}</small></span></div>`).join('')}</div></div>`).join('')}</div>`;
+    } else if(st===1){
     inner=`<p class="cap">${esc('چند رویداد را هرچندتا که خواستی برگزین؛ حاضران همهٔ رویدادهای برگزیده گیرندهٔ گواهینامه می‌شوند.')}</p>
       <div class="admfilters">${EVROWS.filter(e=>+e.reg>0).map(e=>`<button class="chip ${evSel.indexOf(e.id)>-1?'on':''}" data-cev="${esc(e.id)}">
         ${esc((e.n||'').slice(0,26))} <b>${esc(fa(e.reg))}</b></button>`).join('')}</div>
@@ -1890,12 +1954,11 @@ function vCert(){
     inner=`<p class="cap">${esc('گیرندهها از هر راهی که راحت‌تری: دستهٔ آماده، اکسل، یا جست‌وجوی تک‌تک. تکراریها خودکار یکی میشوند؛ هر کس یک گواهینامه.')}</p>
       <div class="head">${esc('از دستهٔ آماده')}</div>
       <div class="admfilters">${Object.keys(uLabels()).slice(0,6).map(t=>`<button class="chip ${(C.tags||[]).indexOf(t)>-1?'on':''}" data-ctag="${esc(t)}">${esc(t)} <b>${esc(fa(uLabels()[t]))}</b></button>`).join('')}</div>
-      <div class="head">${esc('از اکسل')}</div>
-      <p class="cap">${esc('هر خط یک نفر: نام، و اگر داشتی موبایل یا کد ملی. شناخته‌شدهها به پروفایل وصل میشوند؛ ناشناسها هم با همان نام گواهینامه میگیرند.')}</p>
-      <label class="fld"><textarea id="cXls" rows="3" placeholder="حسین رحیمی ۰۹۱۲۰۰۰۰۰۰۱
-نرگس اکبری ۰۰۹۸۷۶۵۴۳۲"></textarea></label>
-      <div class="row tight">${btn('شناسایی جدول','data-cxls','i-check')}
-        ${xls.length?tag(fa(xlsOk)+' شناخته شد · '+fa(xls.length-xlsOk)+' ناشناس',xlsOk?'ok':'warn'):''}</div>
+      <div class="head">${esc('از فایل اکسل')}</div>
+      <p class="cap">${esc('فایل اکسل یا CSV را بارگذاری کن؛ هر ردیف یک نفر با ستون‌های نام و موبایل یا کد ملی. شناخته‌شدهها به پروفایل وصل میشوند؛ ناشناسها هم با همان نام گواهینامه میگیرند.')}</p>
+      <label class="fileup">${ico('i-upload')}<span class="sp"><b>${esc((CE.xlsUp||{}).n||'')}</b><small>${esc((CE.xlsUp||{}).s||'')}</small></span>
+        <input type="file" accept=".xlsx,.csv,.txt" data-cxlsup/></label>
+      <div class="row tight">${xls.length?tag(fa(xlsOk)+' شناخته شد · '+fa(xls.length-xlsOk)+' ناشناس',xlsOk?'ok':'warn'):''}</div>
       <div class="head">${esc('جست‌وجوی کاربر و افزودن تک‌تک')}</div>
       <div class="row tight"><input id="cFind" class="input" placeholder="نام، کد یا موبایل" value="${esc(S.certFind||'')}"/>
       ${btn('جست‌وجو','data-cfindgo','i-search')}</div>
@@ -1929,7 +1992,7 @@ function vCert(){
         ${baleA('cert_random','نمونهٔ کامل از ربات بله')}</div>
       ${C.rand?balebox(`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`,'cert_sample',
         'نمونه برای «'+C.rand+'» · '+letter+' · اعتبار '+fa(months)+' ماه'):''}
-      <div class="row">
+      <div class="row stctas">
         ${btn('ثبت در صف صدور ('+winNow+')','data-cqueue','i-send')}
         ${btn('صدور فوری، خارج از نوبت','data-cfast','i-bolt')}</div></div>
     <div class="stgroup">
@@ -2027,16 +2090,34 @@ function cUStaff(){
     </div>`;
 }
 function vSettings(){
-  const ST=A.settings||{}, own=isOwner();
+  const ST=A.settings||{}, own=isOwner(), lead=isLead();
+  const canTpl=own||lead;   /* قالب گواهینامه: فقط دست مالک و سرپرست */
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
-  const list=(ST.groups||[]).filter(x=>own);
+  if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
+  const list=(ST.groups||[]).filter(x=>own||x.k==='cert');
   const groups=list.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
       ${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
   const group=(ST.groups||[]).find(x=>x.k===g)||{n:'',s:''};
   let inner='';
-  if(!own){
-    inner=emptyBox('مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد؛ بقیهٔ تنظیمات با حساب مالک است');
+  if(!canTpl){
+    inner=emptyBox('مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد؛ تنظیمات پنل با حساب مالک و سرپرست است');
+  } else if(g==='cert'){
+    const TU=ST.tpl||{};
+    const tfiles=(CE.files||[]).concat(S.certFiles||[]);
+    const tdef=S.certDef||((tfiles.find(f=>f.def)||tfiles[0]||{}).k);
+    inner=`<div class="head">${esc(TU.title||'')}</div><p class="cap">${esc(TU.note||'')}</p>
+      <label class="fileup">${ico('i-upload')}<span class="sp"><b>${esc(TU.up||'')}</b><small>${esc(TU.ups||'')}</small></span>
+        <input type="file" accept=".docx" data-cfileup/></label>
+      <div class="admlist">${tfiles.map(f=>`<div class="admrow2" style="cursor:default">
+        <span class="ic">${ico('i-doc')}</span>
+        <span class="tx"><b>${esc(f.n)}</b><small>${esc(f.s||'')}${(f.params||[]).length?' · <span dir="ltr">'+esc((f.params||[]).slice(0,5).map(x=>'{'+x+'}').join(' '))+'</span>':''}</small></span>
+        <span class="mini">${tdef===f.k?tag('پیشفرض','brand'):btn('پیشفرض کن','data-cdef="'+esc(f.k)+'"','i-check')}
+          ${f.up?'<a class="btn sm" download="'+esc(f.n)+'.docx" href="'+f.up+'">'+ico('i-download')+esc(TU.dl||'دانلود')+'</a>':(f.big?tag(TU.heavy||'','warn'):'')}</span></div>`).join('')}</div><hr class="hr"/>`;
+    inner+=(((ST.rows||{})['cert'])||[]).map(r=>{const on=togDef('cert',r[0],r[1]);
+      return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
+        <span class="switch ${on?'on':''}" data-tog="cert" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
+          role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('');
   } else if(g==='texts'){
     const TX=ST.texts||{};
     inner=`<div class="head">${esc(TX.title||'')}</div><p class="cap">${esc(TX.note||'')}</p>`+
@@ -2645,6 +2726,8 @@ function sanitize(){
     if(!Array.isArray(S.cert.picked)) S.cert.picked=[];
     if(!Array.isArray(S.cert.tags)) S.cert.tags=[];
     if(S.cert.xlsRows&&!Array.isArray(S.cert.xlsRows)) S.cert.xlsRows=null;
+    if(!S.cert.vals||typeof S.cert.vals!=='object') S.cert.vals={};
+    (S.certFiles||[]).forEach(f=>{ if(!Array.isArray(f.params)) f.params=[] });
     if(S.certFind) S.certFind=String(S.certFind).slice(0,40); }
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
@@ -2748,25 +2831,10 @@ document.addEventListener('click',e=>{
     toast('فایل ورد برداشته شد: '+((CE.files||[]).concat(S.certFiles||[]).find(f=>f.k===cf2.dataset.cfile)||{}).n); return}
   const cdf=q('[data-cdef]'); if(cdf){S.certDef=cdf.dataset.cdef; S.cert.file=''; save(); renderBody();
     toast('فایل پیشفرض عوض شد؛ صدورهای بعدی با همین فایل میشود'); return}
-  const cfn=q('[data-cfilenew]'); if(cfn){const nm=$('#cFileN')?$('#cFileN').value.trim():'';
-    if(!nm){toast('نام فایل ورد را بنویسید'); return}
-    const k='x'+(Date.now()%100000);
-    S.certFiles=(S.certFiles||[]).concat([{k:k, n:nm, s:'بارگذاری‌شدهٔ شما · با جاهای خالی همانطور که هست'}]);
-    S.cert.file=k; save(); renderBody(); toast('«'+nm+'» بارگذاری شد و برداشته شد'); return}
   const ce2=q('[data-cev]'); if(ce2){const id=ce2.dataset.cev, l=S.cert.evs||[];
     S.cert.evs=l.indexOf(id)>-1?l.filter(x=>x!==id):l.concat([id]); save(); renderBody(); return}
   const ctg=q('[data-ctag]'); if(ctg){const t=ctg.dataset.ctag, l=S.cert.tags||[];
     S.cert.tags=l.indexOf(t)>-1?l.filter(x=>x!==t):l.concat([t]); save(); renderBody(); return}
-  const cxl=q('[data-cxls]'); if(cxl){const raw=$('#cXls')?$('#cXls').value:'';
-    const rows=raw.split(/[\n]+/).map(x=>x.trim()).filter(Boolean).map(line=>{
-      const nums=un(line).match(/\d+/g)||[];
-      const mob=nums.find(x=>/^0\d{10}$/.test(x)), nat=nums.find(x=>/^\d{10}$/.test(x));
-      const key=mob||nat||"";
-      const name=line.replace(/[0-9۰-۹٠-٩]+/g,'').replace(/[\s،,]+/g,' ').trim();
-      const mm=key?memList().find(m=>m.ph===key||(m.nid&&un(m.nid)===key)):null;
-      return {n:name, ok:!!mm};});
-    S.cert.xlsRows=rows; save(); renderBody();
-    toast(rows.length?fa(rows.filter(x=>x.ok).length)+' نفر از اکسل شناخته شد'+(rows.length-rows.filter(x=>x.ok).length?' · '+fa(rows.length-rows.filter(x=>x.ok).length)+' ناشناس با همان نام صادر میشود':''):'جدولی دیده نشد'); return}
   const cfg=q('[data-cfindgo]'); if(cfg){S.certFind=$('#cFind')?norm($('#cFind').value):''; save(); renderBody(); return}
   const cpk=q('[data-cpick]'); if(cpk){const id=cpk.dataset.cpick, l=S.cert.picked||[];
     if(l.indexOf(id)<0) S.cert.picked=l.concat([id]); save(); renderBody(); return}
@@ -3187,6 +3255,41 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
+  /* آپلود قالب ورد: خوانده و آنالیز میشود؛ پارامترهای متغیرش درمیآید */
+  if(el.dataset.cfileup!==undefined){const f=(el.files||[])[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=async()=>{ const u8=new Uint8Array(fr.result);
+      const ps=await certDocxParams(fr.result);
+      if(ps===null){toast('این پرونده خوانده نشد؛ فایل ورد (docx) باشد'); return}
+      const k='x'+(Date.now()%100000), small=u8.length<=800000;
+      let b64='';
+      if(small){let t=''; for(let i=0;i<u8.length;i+=8192) t+=String.fromCharCode.apply(null,u8.subarray(i,i+8192)); b64=btoa(t)}
+      S.certFiles=[{k:k, n:f.name.replace(/\.docx$/i,''),
+        s:fa(Math.max(1,Math.round(u8.length/1024)))+' کیلوبایت · '+fa(ps.length)+' پارامتر متغیر',
+        params:ps, big:!small,
+        up:small?'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,'+b64:''}];
+      S.cert.file=k; save(); renderBody();
+      toast(ps.length?'قالب نشست؛ '+fa(ps.length)+' پارامتر متغیر پیدا شد: '+ps.slice(0,4).map(x=>'{'+x+'}').join(' ')
+        :'قالب نشست؛ جای خالی {…} پیدا نشد و همان فایل برای همه میرود')};
+    fr.onerror=()=>toast('این پرونده خوانده نشد');
+    fr.readAsArrayBuffer(f); return}
+  /* آپلود اکسل: xlsx یا CSV؛ هر ردیف یک نفر */
+  if(el.dataset.cxlsup!==undefined){const f=(el.files||[])[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=async()=>{ let lines=null;
+      try{ const buf=fr.result, u8=new Uint8Array(buf);
+        if(u8.length>3&&u8[0]===0x50&&u8[1]===0x4b) lines=await certXlsxRows(buf);
+        else lines=utf8(u8).replace(/"/g,'').split(/\r?\n/).filter(Boolean);
+      }catch(e){}
+      if(!lines||!lines.length){toast((CE.xlsUp||{}).bad||'جدولی در فایل خوانده نشد'); return}
+      /* سرستون اکسل: خط نخست بی‌رقمِ دارای «نام»، ردیف حساب نمیشود */
+      if(lines.length>1&&!/\d/.test(lines[0])&&lines[0].indexOf('نام')>-1) lines=lines.slice(1);
+      const rows=certRowsOf(lines);
+      S.cert.xlsRows=rows; save(); renderBody();
+      const okn=rows.filter(x=>x.ok).length;
+      toast(fa(okn)+' نفر از «'+f.name+'» شناخته شد'+(rows.length-okn?' · '+fa(rows.length-okn)+' ناشناس با همان نام صادر میشود':''))};
+    fr.onerror=()=>toast('این پرونده خوانده نشد');
+    fr.readAsArrayBuffer(f); return}
   if(el.dataset.pev&&S.ped){S.ped.ev=el.value; save(); return}
   if(el.dataset.pfm&&S.ped){S.ped.fm=el.value; save(); return}
   if(el.dataset.pfile){const f=(el.files||[])[0]; if(!f||!S.ped) return;
@@ -3200,7 +3303,7 @@ document.addEventListener('change',e=>{
       const b=S.ped.blocks[i]; if(b){b.up=url; delete b.src; save(); renderBody(); toast(med==='vid'?'ویدیو نشست و همین‌جا پخش میشود':med==='aud'?'صدا نشست و همین‌جا پخش میشود':'عکس نشست')}};
     fr.onerror=()=>toast('این پرونده خوانده نشد');
     fr.readAsDataURL(f); return}
-  if(el.dataset.cparam){S.cert.params[el.dataset.cparam]=String(el.value||'').trim(); save(); return}
+  if(el.dataset.cparam){S.cert.vals=S.cert.vals||{}; S.cert.vals[el.dataset.cparam]=String(el.value||'').trim(); save(); return}
   if(el.dataset.text){S.texts[el.dataset.text]=String(el.value||''); save(); return}
   if(el.dataset.sessd!==undefined){const ses=S.wiz.sess||[], s2=ses[+el.dataset.sessd]; if(s2) s2.d=el.value; save(); return}
   if(el.dataset.sesst!==undefined){const ses=S.wiz.sess||[], s2=ses[+el.dataset.sesst]; if(s2){const v=h24(el.value); s2.t=v; if(v!==el.value) el.value=v} save(); return}

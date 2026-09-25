@@ -52,8 +52,34 @@ async function load(store,hash){
   const body=()=>doc.querySelector('#admBody').innerHTML;
   const type=(sel,v,ev)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel);
     el.value=v; el.dispatchEvent(new window.Event(ev||'input',{bubbles:true}));};
-  return {dom,window,doc,click,all,txt,body,type,errs,store:st};
+  const upload=async(sel,bytes,name)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel);
+    const f=new window.File([bytes],name);
+    Object.defineProperty(el,'files',{value:[f],configurable:true});
+    el.dispatchEvent(new window.Event('change',{bubbles:true}));};
+  return {dom,window,doc,click,all,txt,body,type,upload,errs,store:st};
 }
+/* سازندهٔ کوچک zip با ذخیرهٔ بیفشرده: docx واقعی برای آزمون آنالیز */
+function miniZip(entries){
+  const enc=new TextEncoder(), u16=v=>[v&255,(v>>8)&255], u32=v=>[v&255,(v>>8)&255,(v>>16)&255,(v>>24)&255];
+  const locals=[], centrals=[]; let off=0;
+  for(const [nm,txt] of entries){
+    const nd=enc.encode(nm), cd=enc.encode(txt);
+    const lh=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(cd.length),...u32(cd.length),...u16(nd.length),...u16(0)]);
+    locals.push(lh,nd,cd);
+    const ch=new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(cd.length),...u32(cd.length),...u16(nd.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]);
+    centrals.push(ch,nd); off+=lh.length+nd.length+cd.length;
+  }
+  const csize=centrals.reduce((a,x)=>a+x.length,0);
+  const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(entries.length),...u16(entries.length),...u32(csize),...u32(off),...u16(0)]);
+  const total=locals.reduce((a,x)=>a+x.length,0)+csize+end.length;
+  const out=new Uint8Array(total); let p2=0;
+  [...locals,...centrals,end].forEach(x=>{out.set(x,p2); p2+=x.length});
+  return out;
+}
+const docxBytes=params=>miniZip([['[Content_Types].xml','<?xml version="1.0"?><Types/>'],
+  ['word/document.xml','<?xml version="1.0"?><w:document><w:body><w:p><w:r><w:t>گواهینامهٔ '
+    +params.map(x=>'{' +x+'}').join(' مدرس ')+'</w:t></w:r></w:p></w:body></w:document>']]);
+const csvBytes=t=>new TextEncoder().encode(t);
 const SECS=['dash','newev','events','users','forms','reports','settings'];
 let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته می‌شود */
 
@@ -507,16 +533,20 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-uv="cert"]');
   ok(p.all('[data-cstep]').length===4,'مرکز صدور چهار گام دارد: فایل ورد، رویدادها، مخاطبان، صدور و صف');
   ok(/صدور در نوبت/.test(p.txt('.admtiles')||'')||true,'کاشی گواهینامه جمعبندی دارد');
-  /* گام ۱: فایل ورد؛ بارگذاری، راهنما، پیشفرض */
-  ok(p.all('[data-cfile]').length===3,'سه فایل نمونه هست');
-  ok(!!p.doc.querySelector('[data-cfilenew]'),'بارگذاری فایل ورد هست');
+  /* گام ۱: قالب؛ برگزیدن، پارامترهای خودکار و دستی، راهنما */
+  ok(p.all('[data-cfile]').length===3,'سه قالب نمونه هست');
+  ok(!p.doc.querySelector('[data-cfilenew]')&&!p.doc.querySelector('#cFileN'),'بارگذاری قالب از مرکز صدور برداشته شده');
+  ok(/تنظیمات/.test(p.txt('#admBody')),'راه قالبها به تنظیمات نشان داده میشود');
   ok(p.all('.stg').length===4&&p.all('.stpr .stp').length>=18,'راهنمای پارامتر چهار گروه و کامل است');
   ok(/\{نام\}/.test(p.txt('#admBody'))&&/\{کیوآر\}/.test(p.txt('#admBody'))&&/\{شماره‌نامه\}/.test(p.txt('#admBody')),'جای‌نامهای کلیدی راهنما هست');
-  ok(/پیشفرض/.test(p.txt('#admBody')),'فایل نمونهٔ پیشفرض نشان داده میشود');
-  ok(p.all('.balebox').length>=1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش فایل ورد تار است');
-  p.type('#cFileN','گواهینامهٔ داوری جشنواره');
-  p.click('[data-cfilenew]');
-  ok(/بارگذاری‌شدهٔ شما/.test(p.txt('#admBody'))&&p.all('[data-cfile]').length===4,'فایل ورد بارگذاری و برداشته میشود');
+  ok(/پیشفرض/.test(p.txt('#admBody')),'قالب نمونهٔ پیشفرض نشان داده میشود');
+  ok(p.all('.balebox').length>=1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش قالب تار است');
+  ok(/پارامترهای قالب/.test(p.txt('#admBody'))&&/خودکار از پروندهٔ هر گیرنده/.test(p.txt('#admBody')),'پارامترهای خودکار از دستی جدا میشوند');
+  ok(p.all('[data-cparam]').length>=3,'پارامترهای دستی ورودی دارند');
+  p.type('[data-cparam]','کارگاه عکاسی پایه','change');
+  const stv=JSON.parse(p.store.getItem('nora-admin'));
+  ok(stv.cert.vals&&Object.keys(stv.cert.vals).length===1,'مقدار پارامتر دستی میماند');
+  ok(p.all('.stp.has').length>=3,'در راهنما، پارامترهای همین قالب پررنگ است');
   p.click('[data-cdef]');
   ok(/فایل پیشفرض عوض شد/.test(p.txt('#toast')),'پیشفرضسازی پیام دارد');
   /* گام ۲: چند رویداد */
@@ -531,9 +561,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('[data-ctag]').length>=4,'دسته‌های آماده هست');
   p.click(p.all('[data-ctag]')[0]);
   ok(/از دسته‌ها/.test(p.txt('#admBody')),'دسته برگزیده در جمعبندی هست');
-  p.type('#cXls','سارا محمدی 09121234567\nنرگس ناشناس');
-  p.click('[data-cxls]');
-  ok(/۱ شناخته شد · ۱ ناشناس/.test(p.txt('#admBody')),'اکسل شناخته و ناشناس را جدا میکند');
+  ok(!!p.doc.querySelector('[data-cxlsup]'),'اکسل با بارگذاری فایل میآید');
+  await p.upload('[data-cxlsup]',csvBytes('نام,موبایل\nسارا محمدی,09121234567\nنرگس ناشناس,\n'),'list.csv');
+  await wait(80);
+  ok(/۱ شناخته شد · ۱ ناشناس/.test(p.txt('#admBody')),'اکسلِ بارگذاریشده شناخته و ناشناس را جدا میکند');
   ok(/ناشناسها هم با همان نام/.test(p.txt('#admBody')),'سرنوشت ناشناسها نوشته شده');
   p.type('#cFind','نگار');
   p.click('[data-cfindgo]');
@@ -578,6 +609,16 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="settings"]');
   ok(p.all('[data-setg]').length===6,'شش گروه تنظیمات هست');
   ok(p.all('[data-text]').length===4,'متن‌های پرکاربرد قابل ویرایش‌اند');
+  p.click('[data-setg="cert"]');
+  ok(/قالب فایل ورد گواهینامه/.test(p.txt('#admBody')),'گروه گواهینامه، مدیریت قالب را دارد');
+  ok(!!p.doc.querySelector('[data-cfileup]'),'بارگذاری فایل ورد در تنظیمات است');
+  ok(/فقط با دست سرپرست/.test(p.txt('#admBody')),'قید دست سرپرست نوشته میشود');
+  await p.upload('[data-cfileup]',docxBytes(['نام','مدرس']),'gava-davari.docx');
+  await wait(100);
+  ok(/پارامتر متغیر پیدا شد/.test(p.txt('#toast')),'فایل ورد آنالیز و پارامترهای متغیرش درمیآید');
+  ok(p.all('#admBody a[download]').length===1,'قالب بارگذاریشده دانلود دارد');
+  p.click('[data-cdef]');
+  ok(/پیشفرض عوض شد/.test(p.txt('#toast')),'پیشفرضسازی قالب در تنظیمات هم هست');
   p.click('[data-setg="money"]');
   ok(p.all('[data-tog]').length===4,'گروه مالی چهار کلید دارد');
   const first=p.all('[data-tog]')[0];
@@ -660,7 +701,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="users"]');
   ok(p.txt('#admBar .head')!=='کاربران','آموزش به کاربران راه ندارد');
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===0&&/منتقل شد/.test(p.txt('#admBody')),'مدیریت کارشناسان از تنظیمات به کاربران منتقل شده');
+  ok(p.all('[data-setg]').length===1&&!!p.doc.querySelector('[data-setg="cert"]'),'سرپرست فقط گروه گواهینامه را در تنظیمات دارد');
+  ok(!!p.doc.querySelector('[data-cfileup]')&&/قالب فایل ورد/.test(p.txt('#admBody')),'بارگذاری و دانلود قالب با دست سرپرست باز است');
   p.click('#admNav [data-sec="events"]');
   ok(!/باز نمی‌شود/.test(p.txt('#admBody')),'رویدادها برای آموزش باز است');
 
@@ -886,7 +928,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:51, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:52, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1115,9 +1157,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=58')&&html.includes('admin.js?v=58'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=59')&&html.includes('admin.js?v=59'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v47'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v48'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
