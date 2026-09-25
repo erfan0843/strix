@@ -545,6 +545,14 @@ a.btn{text-decoration:none}
   background:var(--brand-tint);color:var(--brand-ink);display:grid;place-items:center;
   font-size:11px;font-weight:800}
 /* گروههای نرم صفحه: هر بخش یک کارت پهن؛ ردیف دسترسی بدون جدول */
+/* ردیف گزارش اکسل هر بخش */
+.balerow{display:flex;align-items:center;gap:10px;padding:11px 2px;margin-top:4px;
+  border-top:.5px solid var(--hairline-2);flex-wrap:wrap;row-gap:6px}
+.balerow svg{width:18px;height:18px;color:var(--brand);flex:0 0 auto}
+.balerow .sp{display:grid;gap:1px;flex:1;min-width:0}
+.balerow .sp b{font-size:13px;font-weight:800}
+.balerow .sp small{overflow-wrap:anywhere}
+
 .stgroup{display:grid;gap:9px;padding:13px;border-radius:var(--r-lg);border:.5px solid var(--hairline);
   background:var(--surface-2)}
 .stgroup .fslead{border:0;background:none;padding:2px 0}

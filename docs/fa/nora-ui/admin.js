@@ -33,11 +33,25 @@ const copy=UI.copyText||(()=>{});
 const tag=(b,k)=>b?`<span class="tag ${k||''}">${esc(b)}</span>`:'';
 const btn=(label,attrs,i)=>`<button class="btn sm" ${attrs||''}>${i?ico(i):''}${esc(label)}</button>`;
 /* قانون خروجی: هیچ فایلی مستقیم دانلود نمیشود؛ فقط پیش‌نمایش تار و فایل کامل
-   از ربات بلهٔ موسسه میآید (نشانی یکجا در data.js کنار ADMIN.bale). */
+   از ربات بلهٔ موسسه می‌آید (نشانی یکجا در data.js کنار ADMIN.bale). */
 const baleStart=c=>'https://ble.ir/'+(A.bale||'lifeline_bot')+'?start='+c;
-const baleA=(code,label)=>'<a class="btn sm brand" data-bale="'+esc(code)+'" target="_blank" rel="noopener" href="'+baleStart(code)+'">'+ico('i-send')+esc(label||'دریافت از ربات بله')+'</a>';
+const baleA=(code,label)=>S.baleReg
+  ?'<button class="btn sm" data-balesend="'+esc(code)+'">'+ico('i-send')+esc(label||'فرستادن به ربات بله')+'</button>'
+  :'<button class="btn sm brand" data-bale="'+esc(code)+'">'+ico('i-send')+esc(label||'دریافت از ربات بله')+'</button>';
+/* نخستین دریافت: برگهٔ پیوند با ربات؛ لینک دقیق، پس از ثبت فقط ارسال */
+const baleIntro=code=>{sheetImpl('shAdm',`<div class="admsheet">
+    <div class="row"><div class="head">${esc('نخستین دریافت: پیوند با ربات')}</div><span class="sp"></span>
+      ${btn(W.close||'بستن','data-close')}</div>
+    <p class="cap">${esc('بار نخست در ربات بلهٔ موسسه ثبت‌نام می‌کنید؛ پس از آن هر گزارشی که بخواهید بی هیچ گام اضافه‌ای در همان ربات به دستتان می‌رسد.')}</p>
+    <a class="btn brand" data-balereg target="_blank" rel="noopener" href="${baleStart(code)}">${ico('i-send')}رفتن به ربات و ثبت‌نام</a>
+    <div class="row"><span class="sp"></span><button class="btn sm quiet" data-balereg>${esc('ثبت‌نام کرده‌ام؛ از این پس خودکار بفرست')}</button></div>
+    <p class="cap" dir="ltr" style="overflow-wrap:anywhere">${baleStart(code)}</p></div>`);};
 const balebox=(pv,code,label)=>`<div class="balebox"><div class="pv">${pv}</div>
-  <div class="ov">${ico('i-lock')}<b>فقط پیش‌نمایش تار</b><small class="cap">${esc(label||'فایل کامل از ربات بلهٔ موسسه میآید')}</small>${baleA(code)}</div></div>`;
+  <div class="ov">${ico('i-lock')}<b>فقط پیش‌نمایش تار</b><small class="cap">${esc(label||'فایل کامل از ربات بلهٔ موسسه می‌آید')}</small>${baleA(code)}</div></div>`;
+/* گزارش اکسلِ هر بخش: یک ردیف سبک */
+const baleRow=(code,title)=>`<div class="balerow">${ico('i-download')}
+  <span class="sp"><b>گزارش اکسل این بخش</b><small class="cap">${esc(title)} · فایل کامل از ربات بلهٔ موسسه می‌آید</small></span>
+  ${baleA(code,'اکسل')}</div>`;
 
 /* ── واژه‌های کوتاه پنل: یک‌جا، تا عوض کردنشان یک نقطه داشته باشد ─────── */
 const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ها', keys:'کلیدها',
@@ -64,7 +78,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
     stamp:0,edit:''},
   defs:[], evEdit:{},
   cert:{step:0,tpl:'t1',kind:'per',params:{},who:'ev',whoVal:'',pub:'notify'},
-  setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'',
+  setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
   psec:'list', pstep:1, ped:null};
@@ -231,8 +245,8 @@ const uShopReq=()=>(S.ushop&&S.ushop.length)?S.ushop:(S.ushop=[
   {id:'sr1',u:'u2',r:'d5',at:'امروز ۱۰:۲۰',st:'در انتظار'},
   {id:'sr2',u:'u8',r:'vip1',at:'دیروز',st:'در انتظار'}]);
 const uInbox=()=>(S.uinboxM&&S.uinboxM.length)?S.uinboxM:(S.uinboxM=[
-  {id:'im1',u:'u3',txt:'سلام، برای کارگاه عکاسی ثبت‌نام کردم؛ لینک جلسه کی میآید؟',at:'امروز ۹:۴۰',read:0,rep:0},
-  {id:'im2',u:'u7',txt:'ممنون از برنامهٔ آخر هفته؛ گواهی‌ام به ایمیل هم میآید؟',at:'دیروز ۱۸:۲۰',read:1,rep:1}]);
+  {id:'im1',u:'u3',txt:'سلام، برای کارگاه عکاسی ثبت‌نام کردم؛ لینک جلسه کی می‌آید؟',at:'امروز ۹:۴۰',read:0,rep:0},
+  {id:'im2',u:'u7',txt:'ممنون از برنامهٔ آخر هفته؛ گواهی‌ام به ایمیل هم می‌آید؟',at:'دیروز ۱۸:۲۰',read:1,rep:1}]);
 const uLog=()=>(S.ulog&&S.ulog.length)?S.ulog:(S.ulog=[
   {at:'امروز ۹:۱۴',who:'مالک',act:'پروفایل نگار موسوی تأیید شد'},
   {at:'دیروز ۱۶:۰۲',who:'مالک',act:'فهرست کاربران به اکسل رفت (۱۵ نفر)'}]);
@@ -1430,7 +1444,7 @@ function vUList(){
       <div class="admcard-user">${cards}</div>`:emptyBox(T.empty)}
     <hr class="hr"/>
     <div class="head">خروجی اکسل کاربران</div>
-    ${balebox(`<div class="pvsheet">${'<i></i>'.repeat(9)}</div>`,'users','فایل کامل با همهٔ ستونها از ربات بلهٔ موسسه میآید')}
+    ${balebox(`<div class="pvsheet">${'<i></i>'.repeat(9)}</div>`,'users','فایل کامل با همهٔ ستون‌ها از ربات بلهٔ موسسه می‌آید')}
     <p class="cap">${esc('با زدن هر نفر، پروندهٔ کاملش با تبهای اطلاعات و باشگاه و رویدادها باز میشود.')}</p>
   </section>`;
 }
@@ -1475,7 +1489,7 @@ function cUReport(){
     ${table([['با دعوت دوستان',fa(ref)+' نفر'],['ورود گروهی اکسل',fa(imp)+' نفر'],
       ['مستقیم',fa(Math.max(0,tot-ref-imp))+' نفر']])}
     <div class="head">خروجی اکسل گزارش</div>
-    ${balebox(`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`,'report','فایل کامل با هر دورهٔ زمانی که انتخاب کنی از ربات بله میآید')}`;
+    ${balebox(`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`,'report','فایل کامل با هر دورهٔ زمانی که برگزینید از ربات بلهٔ موسسه می‌آید')}`;
 }
 /* مناسبتها و تولدها */
 function cUOcc(){
@@ -1506,7 +1520,9 @@ function cUOcc(){
         <label class="fld"><span>روز</span><input id="occD" type="number" min="1" max="31" value="1"/></label>
         <label class="fld"><span>مخاطب</span><select id="occG"><option>همه</option><option>زن</option><option>مرد</option></select></label>
         <label class="fld"><span>امتیاز</span><input id="occP" type="number" min="0" max="100" value="10"/></label></div>
-      <div class="row tight">${btn('ساختن مناسبت','data-uoccadd','i-check')}${btn('بی‌خیال','data-uocccancel')}</div></div>`:''}`;
+      <div class="row tight">${btn('ساختن مناسبت','data-uoccadd','i-check')}${btn('بی‌خیال','data-uocccancel')}</div></div>`:''}
+    <hr class="hr"/>
+    ${baleRow("club_occ","مناسبت‌ها و تولدهای پیشِ رو")}`;
 }
 /* امتیاز شرطی: محتوای زیرتب باشگاه */
 function cURules(){
@@ -1532,7 +1548,9 @@ function cURules(){
         <label class="fld"><span>حدنصاب</span><input id="rulH" type="number" min="1" max="100" value="1"/></label>
         <label class="fld"><span>امتیاز</span><input id="rulP" type="number" min="1" max="100" value="20"/></label></div>
       <div class="row tight">${btn('ساختن قانون','data-uruleadd','i-check')}${btn('بی‌خیال','data-urulecancel')}</div></div>`:''}
-  </section>`;
+  </section>
+    <hr class="hr"/>
+    ${baleRow("club_rules","قانون‌های امتیاز و سقف‌های محافظ")}`;
 }
 /* نشانها: محتوای زیرتب باشگاه */
 function cUAch(){
@@ -1551,7 +1569,9 @@ function cUAch(){
     <div class="head">نشان‌دارترین‌ها</div>
     ${table(top.map(x=>[x.m.n,fa(x.got.length)+' نشان',x.got.slice(0,3).map(b=>b[1].replace(/^[^ا-ی]+ /,'')).join('، ')]))}
     <p class="cap">${esc('هیچ نشانی بیش از ۱۰۰ امتیاز نیست؛ سقف محافظ روی نشان سفارشی هم اعمال میشود.')}</p>
-  </section>`;
+  </section>
+    <hr class="hr"/>
+    ${baleRow("club_ach","نشان‌های باشگاه و دارندگانشان")}`;
 }
 /* فروشگاه پاداش: محتوای زیرتب باشگاه */
 function cUShop(){
@@ -1573,7 +1593,9 @@ function cUShop(){
         <span class="sp"><b>${esc(m.n||r.u)}</b><small class="cap">${esc(it[1])} · ${esc(fa(it[2]))} امتیاز · ${esc(r.at)} · ${esc(r.st)}</small></span>
         <span class="mini">${r.st==='در انتظار'?btn('تحویل','data-ushopok="'+esc(r.id)+'"','i-check')+btn('رد','data-ushopno="'+esc(r.id)+'"'):tag(r.st,r.st==='تحویل شد'?'ok':'stop')}</span></div>`}).join(''):emptyBox('درخواستی نیست')}
     <p class="cap">${esc('کسر امتیاز اتمیک است؛ اگر رد کنی، امتیاز سالم برمیگردد و در لاگ می‌ماند.')}</p>
-  </section>`;
+  </section>
+    <hr class="hr"/>
+    ${baleRow("club_shop","فروشگاه پاداش و درخواست‌های تحویل")}`;
 }
 /* رتبه‌بندی: محتوای زیرتب باشگاه */
 function cURank(){
@@ -1593,7 +1615,9 @@ function cURank(){
     <div class="head">🎖️ بیشترین نشان</div>
     ${table(top(m=>BADGES.filter(b=>badgeGot(m,b)).length).map((m,i)=>[medal(i)+' '+esc(hide(m)),
       fa(BADGES.filter(b=>badgeGot(m,b)).length)+' نشان','']))}
-    <p class="cap">${esc('اگر کسی در پنج نفر اول نباشد، رتبه‌اش جدا نشان داده میشود؛ کلید نام مخفی هم برای حریم خصوصی است.')}</p>`;
+    <p class="cap">${esc('اگر کسی در پنج نفر اول نباشد، رتبه‌اش جدا نشان داده میشود؛ کلید نام مخفی هم برای حریم خصوصی است.')}</p>
+    <hr class="hr"/>
+    ${baleRow("club_rank","رتبه‌بندی امتیاز و حضور و دعوت")}`;
 }
 /* پوستهٔ زیرتبهای باشگاه */
 function vUClub(){
@@ -1615,7 +1639,9 @@ function cUTags(){
     <p class="cap">${esc('برچسب روی پروندهٔ هر کاربر می‌نشیند؛ همین‌جا می‌شود برچسب تازه گذاشت و با زدن «فهرست» همان دسته را دید.')}</p>
     ${rows||emptyBox('هنوز برچسبی نیست')}
     <label class="fld"><span>برچسب تازه</span><input id="uTagNew" type="text" placeholder="مثل: داوطلب اردو"/></label>
-    <div class="row tight">${btn('گذاشتن برچسب','data-utagadd','i-plus')}<span class="sp"></span></div>`;
+    <div class="row tight">${btn('گذاشتن برچسب','data-utagadd','i-plus')}<span class="sp"></span></div>
+    <hr class="hr"/>
+    ${baleRow("users_tags","برچسب‌ها و کاربران هر دسته")}`;
 }
 /* پارامترهای پروفایل */
 function cUPar(){
@@ -1634,7 +1660,9 @@ function cUPar(){
     <div class="admlirow">${ico('i-mobile')}<span class="sp"><b>شمارهٔ همراه</b><small class="cap">با کد یک‌بارمصرف؛ همیشه اجباری</small></span></div>
     ${rows}
     <div class="row tight">${btn('بازگشت به پیش‌فرض','data-uparreset','i-back')}<span class="sp"></span></div>
-    <p class="cap">${esc('روشن و خاموش و اجباری و اختیاری؛ فرم پروفایل کاربر از همین پیروی میکند و درصد تکمیل با همین حساب میشود.')}</p>`;
+    <p class="cap">${esc('روشن و خاموش و اجباری و اختیاری؛ فرم پروفایل کاربر از همین پیروی میکند و درصد تکمیل با همین حساب میشود.')}</p>
+    <hr class="hr"/>
+    ${baleRow("users_par","پارامترهای پروفایل کاربران")}`;
 }
 /* افزودن دستی: هر خط یک نفر */
 function cUAdd(){
@@ -1644,7 +1672,9 @@ function cUAdd(){
 زهرا کریمی، ۰۹۱۲۱۲۳۴۵۶۷
 حسین رحیمی"></textarea></label>
     <div class="row tight">${btn('افزودن همه','data-uaddgo','i-check')}<span class="sp"></span></div>
-    ${uImpList()}`;
+    ${uImpList()}
+    <hr class="hr"/>
+    ${baleRow("users_add","افزوده‌شدگان دستی")}`;
 }
 /* ورودی اکسل: چسباندن جدول، شناخت ستونها، بهروزرسانی موجودها */
 function cUImp(){
@@ -1661,7 +1691,9 @@ function cUImp(){
       <span class="switch ${S.uimpUpd?'on':''}" data-uimpupd role="switch" aria-checked="${S.uimpUpd?'true':'false'}" aria-label="به‌روزرسانی موجودها"></span></div>
     <div class="row tight">${btn('درج '+esc(fa(pv.rows.length))+' نفر','data-uimpgo','i-check')}<span class="sp"></span></div>`
     :`<p class="cap">${esc('ستونهای شناخته‌شده: نام، نام خانوادگی، موبایل، کد ملی، شهر، جنسیت، ایمیل، مقطع، شغل، استان و تاریخ تولد.')}</p>`}
-    ${uImpList()}`;
+    ${uImpList()}
+    <hr class="hr"/>
+    ${baleRow("users_imp","تاریخچهٔ ورود از اکسل")}`;
 }
 function uImpList(){
   const h=S.uimp||[];
@@ -1677,7 +1709,9 @@ function cUBlocked(){
       <button class="btn sm quiet" data-user="${esc(m.id)}">${esc('پرونده')}</button></span></div>`).join('');
   return `
     ${rows||emptyBox('کاربر مسدودی نیست')}
-    <p class="cap">${esc('مسدود به هیچ بخشی راه ندارد و پیامش بسته است؛ سوپرادمین را نمیشود مسدود کرد.')}</p>`;
+    <p class="cap">${esc('مسدود به هیچ بخشی راه ندارد و پیامش بسته است؛ سوپرادمین را نمیشود مسدود کرد.')}</p>
+    <hr class="hr"/>
+    ${baleRow("users_blocked","کاربران مسدود")}`;
 }
 /* صندوق پیامها: محتوای زیرتب ابزارها */
 function cUInbox(){
@@ -1695,7 +1729,9 @@ function cUInbox(){
       ${tag(fa(un)+' خوانده‌نشده',un?'warn':'')}</div>
     ${rows||emptyBox('پیامی نیست')}
     <div class="row tight">${btn('همه را خوانده کنم','data-uinboxall','i-check')}<span class="sp"></span></div>
-    <p class="cap">${esc('پیام کاربر گم نمیشود؛ از همین‌جا پروندهاش را باز کن یا در پشتیبانی پاسخش را بده.')}</p>`;
+    <p class="cap">${esc('پیام کاربر گم نمیشود؛ از همین‌جا پروندهاش را باز کن یا در پشتیبانی پاسخش را بده.')}</p>
+    <hr class="hr"/>
+    ${baleRow("users_inbox","پیام‌های صندوق")}`;
 }
 /* لاگ عملیات: محتوای زیرتب ابزارها */
 function cULog(){
@@ -1704,7 +1740,9 @@ function cULog(){
     <span class="sp"><b>${esc(l.act)}</b><small class="cap">${esc(l.who)} · ${esc(l.at)}</small></span></div>`).join('');
   return `
     ${rows||emptyBox('هنوز کاری ثبت نشده')}
-    <p class="cap">${esc('تأیید و مسدودی و VIP و حذف و ورود اکسل؛ همه با نام کارشناس، تا چهل کارِ آخر.')}</p>`;
+    <p class="cap">${esc('تأیید و مسدودی و VIP و حذف و ورود اکسل؛ همه با نام کارشناس، تا چهل کارِ آخر.')}</p>
+    <hr class="hr"/>
+    ${baleRow("users_log","لاگ عملیات کاربران")}`;
 }
 /* پوستهٔ زیرتبهای ابزارها */
 function vUTools(){
@@ -1742,7 +1780,9 @@ function vUReq(){
     ${rowA||emptyBox('درخواست غیبت مجازی نیست')}
     <div class="head">تحویل پاداش (${esc(fa(reqs.length))})</div>
     ${rowR||emptyBox('درخواست پاداشی نیست')}
-    <p class="cap">${esc('رد پاداش، امتیاز را سالم به حساب صاحبش برمیگرداند؛ رد پروفایل با دلیل میآید تا کاربر بداند چه کم دارد.')}</p>
+    <p class="cap">${esc('رد پاداش، امتیاز را سالم به حساب صاحبش برمی‌گرداند؛ رد پروفایل با دلیل می‌آید تا کاربر بداند چه کم دارد.')}</p>
+    <hr class="hr"/>
+    ${baleRow("users_req","درخواست‌های پروفایل، غیبت مجاز و تحویل پاداش")}
   </section>`;
 }
 
@@ -1835,7 +1875,7 @@ function vCert(){
     const name=(memList()[0]||{n:'سارا محمدی'}).n;
     const svg=certSVG?certSVG({name:name, title:cparam('event')||L.sampleEvent,
       date:'مهر ۱۴۰۴', hours:cparam('hours')||'۱۲', serial:'NL-A1-2483'}):'';
-    inner=`<p class="cap">${esc('پیش‌نمایش زنده و تار؛ فایل کامل و تمیز از ربات بله به گیرنده میآید.')}</p>
+    inner=`<p class="cap">${esc('پیش‌نمایش زنده و تار؛ فایل کامل و تمیز از ربات بله به گیرنده می‌آید.')}</p>
       ${balebox(`<div class="admsvgbox" style="margin:0">${svg}</div>`,'cert_NL-A1-2483','گواهی با همین سریال در ربات بله چاپ و ارسال میشود')}
       <div class="admchips"><span class="tag brand">سریال NL-A1-2483</span>
         <span class="tag">استعلام با کیوآرکد</span><span class="tag">اندازهٔ A4 افقی</span></div>`;
@@ -1863,6 +1903,7 @@ function vCert(){
     <div class="head">${esc(W.jobs||'کارهای صدور')}</div>
     <div class="admlist">${jobs.map(j=>rowLink({i:'i-medal', b:esc(j.n),
       s:`${esc(j.who)} · ${esc(j.way)} · ${esc(j.at)}`, right:tag(j.st==='wait'?'در نوبت':'منتشر شد',j.st==='wait'?'warn':'ok')})).join('')}</div>
+    ${baleRow('cert_list','کارهای صدور گواهینامه')}
   </section>`;
 }
 function sheetName(){return L.askCert}
@@ -1882,12 +1923,12 @@ const SPROF=[['i-users','نام و نام خانوادگی','همان که رو�
 function cUStaff(){
   const fk=(S.setF&&fieldOf(S.setF).k===S.setF)?S.setF:'edu', f=fieldOf(fk);
   const l=personOf(leadK(fk)), t=teamOf(fk);
-  const flow=[['i-key','حساب می‌سازی','نام کاربری و رمز یکبارمصرف را می‌سازی و برایش می‌فرستی'],
-    ['i-mobile','ورود اول','با همان رمز وارد می‌شود و رمز تازه می‌گذارد'],
+  const flow=[['i-key','حساب می‌سازید','نام کاربری و رمز یکبارمصرف می‌سازید و برایش می‌فرستید'],
+    ['i-mobile','ورود اول','با همان رمز وارد می‌شود و رمز تازه‌ای می‌گذارد'],
     ['i-idcard','تکمیل پروفایل','پروفایل دست‌اندرکاران را پر می‌کند؛ سرپرست تأیید می‌کند']];
   const pend=t.filter(pp=>!accOf(pp).done).length;
   return uHead('مدیران و کارشناسان')+'\n'+
-  `    <p class="cap">${esc('برای هر کارشناس حساب میسازی؛ او در نخستین ورود رمز تازه میگذارد و پروفایل دست‌اندرکاران را کامل میکند.')}</p>
+  `    <p class="cap">${esc('برای هر کارشناس حساب می‌سازید؛ او در نخستین ورود رمز تازه‌ای می‌گذارد و پروفایل دست‌اندرکاران را کامل می‌کند.')}</p>
     <div class="stflow">${flow.map((x,i2)=>`<div class="stf"><span class="n">${fa(i2+1)}</span>${ico(x[0])}<b>${esc(x[1])}</b><small>${esc(x[2])}</small></div>`).join('')}</div>
     <div class="admfilters">${FIELDS.filter(x=>x.k!=='owner').map(x=>`<button class="tag ${fk===x.k?'on':''}"
         data-setF="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div>
@@ -1895,10 +1936,10 @@ function cUStaff(){
       <div class="fslead">
         <span class="ic">${ico('i-shield')}</span>
         <span class="sp"><b>${esc(D.lead||'سرپرست')}: ${esc(l.n)}</b>
-          <small>${esc(f.s)} · سرپرست همهٔ دسترسیهای حوزه را دارد</small></span>
+          <small>${esc(f.s)} · سرپرست همهٔ دسترسی‌های حوزه را دارد</small></span>
         ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(fk)}">${esc(D.changeLead||'تعیین سرپرست')}</button>`:''}
       </div>
-      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))} ${esc(D.specsWord||'نفر')}${pend?' · '+fa(pend)+' بی‌پروفایل':''})</div>
+      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))} ${esc(D.specsWord||'نفر')}${pend?' · '+fa(pend)+' در انتظار پروفایل':''})</div>
         <span class="sp"></span>
         ${isOwner()||isLead()?`<button class="btn sm tint" data-addspec="${esc(fk)}">${ico('i-plus')}${esc('حساب تازه')}</button>`:''}</div>
       <div class="tlist">${t.map(pp=>{const ac=accOf(pp); return `<div class="trow">
@@ -1913,12 +1954,12 @@ function cUStaff(){
     </div>
     <div class="stgroup">
       <div class="head">${esc('پروفایل دست‌اندرکاران (ورود اول)')}</div>
-      <p class="cap">${esc('این پنج چیز را در نخستین ورود ازش میپرسیم؛ با تأیید سرپرست، نام و سمتش روی صفحهٔ دست‌اندرکاران سایت مینشیند.')}</p>
+      <p class="cap">${esc('این پنج چیز را در نخستین ورود از او می‌پرسیم؛ با تأیید سرپرست، نام و سمتش بر صفحهٔ دست‌اندرکاران سایت می‌نشیند.')}</p>
       <div class="stprof">${SPROF.map(x=>`<div class="stp">${ico(x[0])}<span class="sp"><b>${esc(x[1])}</b><small>${esc(x[2])}</small></span></div>`).join('')}</div>
     </div>
     <div class="stgroup">
       <div class="head">${esc('دسترسی‌های '+f.n)}</div>
-      <p class="cap">${esc('تیکها مال کارشناسهاست؛ سرپرست همه را دارد و همین حالا عوض میشود.')}</p>
+      <p class="cap">${esc('هر تیک، دسترسی همان کارشناس است؛ سرپرست همهٔ دسترسی‌ها را دارد و همین‌جا عوض می‌شود.')}</p>
       <div class="permrows">${permRowsOf(fk).map(r=>{
         const on=specPermsOf(fk).indexOf(r[0])>-1;
         return `<div class="permrow"><span class="sp"><b>${esc(r[1])}</b></span>
@@ -2256,14 +2297,14 @@ function sheetAddSpec(fk){
   sheetImpl('shAdm',`<div class="admsheet">
     <div class="row"><div class="head">${esc('حساب تازه برای کارشناس')}</div><span class="sp"></span>
       ${btn(W.close||'بستن','data-close')}</div>
-    <p class="cap">${esc('حوزه: '+f.n+' · دسترسی‌های پیش‌فرض همین حوزه خودکار مینشیند.')}</p>
+    <p class="cap">${esc('حوزه: '+f.n+' · دسترسی‌های پیش‌فرض همین حوزه خودکار می‌نشیند.')}</p>
     <label class="fld"><span>نام و نام خانوادگی</span><input id="spN" class="input" placeholder="مثل: مینا رحیمی"/></label>
     <label class="fld"><span>نام کاربری</span><input id="spU" class="input" dir="ltr" placeholder="m.rahimi"/></label>
     <label class="fld"><span>رمز یکبارمصرف ورود اول</span>
       <div class="row tight"><input id="spP" class="input" dir="ltr" readonly value="${genPw()}"/>
       ${btn('رمز تازه','data-genpw','i-check')}</div></label>
     <div class="row"><span class="sp"></span>${btn('ساختن حساب','data-newspec2','i-check')}</div>
-    <p class="cap">${esc('نام کاربری و رمز را برایش میفرستی؛ در نخستین ورود رمز تازه میگذارد و پروفایل دست‌اندرکاران را پر میکند.')}</p></div>`);
+    <p class="cap">${esc('نام کاربری و رمز را برایش می‌فرستید؛ در نخستین ورود رمز تازه‌ای می‌گذارد و پروفایل دست‌اندرکاران را کامل می‌کند.')}</p></div>`);
 }
 /* پروندهٔ دست‌اندرکاران: از ردیف تیم باز میشود */
 function sheetSpecFile(k){
@@ -2275,9 +2316,9 @@ function sheetSpecFile(k){
     <div class="admchips">${ac.done?tag('پروفایل کامل','ok'):tag('در انتظار تکمیل پروفایل','warn')}
       ${tag(fa(p.done)+' کار انجامشده','')}${tag(fa(p.late)+' دیرکرد',p.late?'warn':'')}</div>
     <div class="head">${esc('پروفایل دست‌اندرکاران')}</div>
-    <div class="stprof">${SPROF.map(x=>`<div class="stp">${ico(x[0])}<span class="sp"><b>${esc(x[1])}</b><small>${esc(ac.done?'پر شده':'در ورود اول میپرسیم')}</small></span></div>`).join('')}</div>
+    <div class="stprof">${SPROF.map(x=>`<div class="stp">${ico(x[0])}<span class="sp"><b>${esc(x[1])}</b><small>${esc(ac.done?'کامل شده':'در ورود اول پرسیده می‌شود')}</small></span></div>`).join('')}</div>
     ${ac.done?'':`<div class="row"><span class="sp"></span>${btn('یادآوری تکمیل پروفایل','data-specnudge','i-send')}</div>
-    <p class="cap">${esc('یادآوری از ربات بلهٔ موسسه برایش میرود.')}</p>`}</div>`);
+    <p class="cap">${esc('یادآوری تکمیل پروفایل از ربات بلهٔ موسسه برایش می‌رود.')}</p>`}</div>`);
 }
 /* تعیین سرپرست حوزه: مالک یکی را می‌گذارد */
 function sheetSetLead(fk){
@@ -2541,6 +2582,7 @@ function sanitize(){
   if(S.uV==='user'&&!memOf(S.uSel)) S.uV='';
   if(S.uV==='occ'){S.uV='club'; S.uClub='occ';}
   if(S.uV&&['req','club','cert','tools','user'].indexOf(S.uV)<0) S.uV='';
+  S.baleReg=S.baleReg?1:0;
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
 }
@@ -2597,12 +2639,12 @@ document.addEventListener('click',e=>{
     const k='x'+(Date.now()%100000);
     S.extra=(S.extra||[]).concat([{k:k, n:nm, f:fk, lv:'کارشناس', open:0, done:0, late:0, avg:0, load:12, score:70, since:'مهر ۱۴۰۴'}]);
     S.specAcc=(S.specAcc||{}); S.specAcc[k]={u:un, pw:$('#spP')?$('#spP').value:'', done:0};
-    save(); closeSheets(); renderBody(); toast('حساب ساخته شد؛ نام کاربری و رمز را برای '+nm+' بفرست'); return}
+    save(); closeSheets(); renderBody(); toast('حساب ساخته شد؛ نام کاربری و رمز را برای '+nm+' بفرستید'); return}
   const rsp=q('[data-resetspec]'); if(rsp){const p2=personOf(rsp.dataset.resetspec), ac=accOf(p2), pw=genPw();
     S.specAcc=(S.specAcc||{}); S.specAcc[p2.k]={u:ac.u, pw:pw, done:ac.done};
-    save(); toast('رمز تازه برای '+p2.n+': '+pw+' (از ربات بله برایش میرود)'); return}
+    save(); toast('رمز تازه برای '+p2.n+': '+pw+' · از ربات بلهٔ موسسه می‌رود'); return}
   const srf=q('[data-specrow]'); if(srf){sheetSpecFile(srf.dataset.specrow); return}
-  const sng=q('[data-specnudge]'); if(sng){toast('یادآوری تکمیل پروفایل از ربات بله فرستاده شد'); return}
+  const sng=q('[data-specnudge]'); if(sng){toast('یادآوری تکمیل پروفایل از ربات بلهٔ موسسه فرستاده شد'); return}
   const sp2=q('[data-specperm]'); if(sp2){sheetSpecPerm(sp2.dataset.specperm); return}
   const ex=q('[data-extra]'); if(ex){const p2=ex.dataset.extrafor, k=ex.dataset.extra;
     const list=extraOf(p2), i=list.indexOf(k);
@@ -2630,7 +2672,10 @@ document.addEventListener('click',e=>{
   const ucl=q('[data-uclub]'); if(ucl){S.uClub=ucl.dataset.uclub; save(); renderBody(); return}
   const utl=q('[data-utool]'); if(utl){S.uTool=utl.dataset.utool; save(); renderBody(); return}
   const uio=q('[data-uinboxopen]'); if(uio){S.uV='user'; S.uSel=uio.dataset.uinboxopen; S.uTab='msg'; S.uRej=''; save(); renderBody(); return}
-  const ble=q('[data-bale]'); if(ble){toast('درخواست فرستاده شد؛ فایل در ربات بلهٔ موسسه (@'+(A.bale||'lifeline_bot')+') برایتان میآید'); return}
+  const ble=q('[data-bale]'); if(ble){baleIntro(ble.dataset.bale); return}
+  const breg=q('[data-balereg]'); if(breg){S.baleReg=1; save(); closeSheets(); renderBody();
+    toast('پیوند با ربات ثبت شد؛ از این پس گزارش‌ها خودکار می‌آیند'); return}
+  const bse=q('[data-balesend]'); if(bse){toast('فرستاده شد؛ گزارش در ربات بلهٔ موسسه (@'+(A.bale||'lifeline_bot')+') است'); return}
   const gfr=q('[data-gofrms]'); if(gfr){go('forms'); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
@@ -2847,7 +2892,7 @@ document.addEventListener('click',e=>{
     S.jobs=[{n:'گواهی '+((A.cert||{}).templates||[]).filter(t=>t.k===S.cert.tpl).map(t=>t.n)[0]||'تازه',
       who:fa(6)+' نفر', way:((A.cert||{}).publish||[]).filter(p=>p.k===S.cert.pub).map(p=>p.n)[0]||'اعلان',
       at:'همین حالا', st:'wait'}].concat(S.jobs||[]);
-    save(); renderBody(); toast('گواهی‌ها ساخته شد؛ از ربات بله به گیرندهها میآید'); return}
+    save(); renderBody(); toast('گواهی‌ها ساخته شد؛ از ربات بله به گیرنده‌ها می‌آید'); return}
   const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; if(S.uV==='club') S.uClub='rules'; save(); renderBody(); return}
   const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; save(); renderBody(); return}
   const utag=q('[data-uTag]'); if(utag){S.uTag=(S.uTag===utag.dataset.utag)?'':utag.dataset.utag; save(); renderBody(); return}

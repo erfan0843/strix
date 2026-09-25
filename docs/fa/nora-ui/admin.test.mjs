@@ -362,6 +362,18 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   /* باشگاه: پنج زیرتب */
   p.click('[data-uback]'); p.click('[data-uv="club"]');
   ok(p.all('[data-uclub]').length===5,'باشگاه پنج زیرتب دارد');
+  /* هر بخش کاربران گزارش اکسل بله دارد */
+  { const views=[['req',null],['club','rules'],['club','ach'],['club','shop'],['club','rank'],['club','occ'],
+      ['cert',null],['tools','report'],['tools','par'],['tools','add'],['tools','imp'],['tools','tags'],
+      ['tools','blocked'],['tools','inbox'],['tools','log']];
+    let n=0;
+    for(const [uv,sub] of views){
+      const bk=p.doc.querySelector('[data-uback]'); if(bk) p.click(bk);
+      p.click('[data-uv="'+uv+'"]');
+      if(sub) p.click(uv==='club'?'[data-uclub="'+sub+'"]':'[data-utool="'+sub+'"]');
+      if(p.doc.querySelector('.balerow, .balebox')) n++; }
+    ok(n===views.length,'هر بخش کاربران گزارش اکسل بله دارد ('+n+'/'+views.length+')'); }
+  p.click('[data-uback]'); p.click('[data-uv="club"]');
   ok(/قانون‌های امتیاز/.test(p.txt('#admBody')),'زب پیشفرض باشگاه امتیاز شرطی است');
   ok(/سقف‌های محافظ/.test(p.txt('#admBody'))&&/حداکثر ۳۰۰/.test(p.txt('#admBody')),'سقفهای محافظ امتیاز نشان داده میشود');
   p.click('[data-urulenew]'); p.type('#rulN','قهرمان فرم'); p.click('[data-uruleadd]');
@@ -386,8 +398,15 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.type('#uNoteTxt','برای اردوی پاییز اولویت دارد'); p.click('[data-unotego="u7"]');
   ok(/برای اردوی پاییز/.test(p.txt('#admBody')),'یادداشت در پرونده می‌نشیند');
   ok(!!p.doc.querySelector('[data-bale="profile_u7"]'),'خروجی فردی پرونده دکمهٔ ربات بله دارد');
-  const prf=p.doc.querySelector('[data-bale="profile_u7"]');
-  ok(prf.href.includes('ble.ir/lifeline_bot?start=profile_u7'),'لینک پرونده به ربات بله میرسد');
+  p.click('[data-bale="profile_u7"]');
+  ok(/نخستین دریافت/.test(p.txt('#shAdm')),'دفع اول، برگهٔ پیوند با ربات باز میشود');
+  const prf=p.doc.querySelector('#shAdm a[data-balereg]');
+  ok(!!prf&&prf.href.includes('ble.ir/lifeline_bot?start=profile_u7'),'لینک دقیق ربات در برگه هست');
+  p.click(p.doc.getElementById('shAdm').querySelectorAll('[data-balereg]')[1]);
+  ok(/پیوند با ربات ثبت شد/.test(p.txt('#toast')),'ثبت ربات خبر میدهد');
+  ok(!!p.doc.querySelector('[data-balesend="profile_u7"]')&&!p.doc.querySelector('[data-bale]'),'از این پس دکمه‌ها فقط میفرستند');
+  p.click('[data-balesend="profile_u7"]');
+  ok(/فرستاده شد؛ گزارش در ربات بله/.test(p.txt('#toast')),'ارسال دفعهای بعد بی برگه است');
   p.click('[data-utab="club"]');
   ok(/کد معرف/.test(p.txt('#admBody'))&&/نشان‌ها \([۰-۹]+ از ۱۳\)/.test(p.txt('#admBody')),'تب باشگاه با معرف و نشانهاست');
   p.click('[data-utab="ev"]');
@@ -499,7 +518,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('.admsvgbox svg').length===1,'پیش‌نمایش زنده درست ساخته شد');
   ok(p.all('.balebox .admsvgbox svg').length===1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش گواهی تار است');
   const cb=p.doc.querySelector('[data-bale^="cert_"]');
-  ok(!!cb&&cb.href.includes('ble.ir/lifeline_bot?start=cert_'),'دریافت گواهی فقط از ربات بله است');
+  ok(!!cb,'دریافت گواهی دکمهٔ ربات بله دارد');
+  cb.click();
+  const cl=p.doc.querySelector('#shAdm a[data-balereg]');
+  ok(!!cl&&cl.href.includes('ble.ir/lifeline_bot?start=cert_NL-A1-2483'),'لینک گواهی با سریالش به ربات میرسد');
+  p.click(p.doc.getElementById('shAdm').querySelectorAll('[data-balereg]')[1]);
   const certText=p.txt('.admsvgbox')+' '+p.all('.admsvgbox text').map(t=>t.textContent).join(' ');
   ok(p.all('.admsvgbox text').length>=6&&/خط زندگی/.test(certText),'نوشتهٔ گواهی روی تصویر هست ('+p.all('.admsvgbox text').length+' خط)');
   p.click('[data-cstep="4"]');
@@ -1055,9 +1078,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=55')&&html.includes('admin.js?v=55'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=56')&&html.includes('admin.js?v=56'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v44'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v45'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
