@@ -1461,7 +1461,7 @@ async function load(file,store,q){
   p.click('[data-who-sheet]');
   ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');
   p.click('#shAdm [data-who="p10"]');
-  ok(p.all('#admNav [data-locked]').length===5,'کارشناس پنج بخش بسته دارد');
+  ok(p.all('#admNav [data-locked]').length===4,'کارشناس چهار بخش بسته دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس یک کار است');
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p2"]');

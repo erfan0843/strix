@@ -4,7 +4,7 @@
    اجرا:  npm i jsdom && node admin.test.mjs
    چه چیزی را می‌سنجد: بی‌خطا بار شدن پنل، هفت بخش به‌علاوهٔ داشبورد، داشبوردِ
    جدا برای مالک و سرپرست حوزه و کارشناس، چهار عدد کلیدی و کارتابل شخصی،
-   ویزارد سه‌گامی رویداد، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
+   ویزارد چهارگامی تعریف رویداد با تأیید مالک یا سرپرست، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
    مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، یک مالک و شش
    حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
    سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
@@ -105,28 +105,45 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.click('#admNav [data-sec="events"]');
   const before=p.all('[data-ev]').length;
   p.click('#admNav [data-sec="newev"]');
-  ok(p.all('.admsteps .st').length===3,'ویزارد سه گام دارد، نه بیشتر');
-  ok(p.all('.admkind').length===6,'شش قالب رویداد هست');
+  ok(p.txt('#admBar .head')==='تعریف جدید','بخش تعریف تازه باز شد');
+  ok(p.all('.admsteps .st').length===4,'ویزارد چهار گام دارد: چیستی، کی و کجا، ظرفیت و ثبت‌نام، مرور');
+  ok(p.all('[data-wkind]').length===4,'چهار نوع تعریف هست: رویداد، مطلب، فرم، اطلاع‌رسانی');
+  ok(p.all('[data-wet]').length===9,'و نه قالب رویداد: کارگاه، وبینار، مسابقه، همایش، اردو و بقیه');
   ok(/گام/.test(p.txt('#admBody')),'شمارندهٔ گام نوشته شده');
   p.click('[data-wstep="1"][data-wgo="1"]');    /* بی نوع و بی نام: نباید جلو برود */
-  ok(p.txt('#admBar .head')==='رویداد جدید','گام ناتمام جلو نمی‌رود');
+  ok(p.all('.admsteps .st').filter(x=>x.classList.contains('on')).length===1,'گام ناتمام جلو نمی‌رود');
   ok(p.txt('#toast').length>0,'و می‌گوید چه قلمی کم است');
-  p.click('[data-wkind="workshop"]');
-  p.type('#wzName','کارگاه روایت اول‌شخص');
+  p.click('[data-wet="workshop"]');
+  ok(p.all('[data-wet].on').length===1&&p.all('[data-wet]').length===9,'قالب کارگاه برجسته شد');
+  p.type('#wzName','کارگاه نقالی و پرده‌خوانی');
   p.click('[data-wstep="1"][data-wgo="1"]');
-  ok(p.all('[data-wpick]').length>15,'گام دوم تاریخ و ساعت و جا و ظرفیت دارد');
-  p.click('[data-wstep="2"][data-wgo="1"]');
-  ok(p.all('.admkind').length===0,'گام دوم با قلم ناتمام جلو نمی‌رود');
+  ok(p.all('[data-wpick]').length>40,'گام دوم تاریخ و ساعت شروع و پایان و جا و لینک دارد');
+  ok(p.all('[data-wpick="mode"]').length===3,'آنلاین و حضوری و ترکیبی');
+  p.click('[data-wpick="mode"][data-wval="online"]');
+  ok(p.all('[data-wpick="place"]').length===0&&p.all('[data-wpick="link"]').length>0,'آنلاین که شد، جا نمی‌پرسد و لینک می‌پرسد');
   p.click('[data-wpick="date"][data-wval="۱۶ مهر"]');
-  p.click('[data-wpick="time"][data-wval="۱۷:۰۰"]');
-  p.click('[data-wpick="place"][data-wval="کتابخانهٔ نورا، ونک"]');
+  p.click('[data-wpick="time"][data-wval="۱۸:۳۰"]');
+  p.click('[data-wpick="to"][data-wval="۲۰:۰۰"]');
+  p.click('[data-wpick="link"][data-wval="اتاق پخش زندهٔ نورا"]');
   p.click('[data-wstep="2"][data-wgo="1"]');
-  ok(/کارگاه روایت/.test(p.txt('.admreview')),'گام سوم همه‌چیز را برای مرور نشان می‌دهد');
-  p.click('[data-wbuild]');
-  ok(p.txt('#admBar .head')==='رویدادها','بعد از ساخت، خودش به فهرست رویدادها می‌رود');
-  ok(p.all('[data-ev]').length===before+1,'رویداد تازه به فهرست اضافه شد ('+before+' → '+p.all('[data-ev]').length+')');
-  ok(p.txt('[data-ev] b')==='کارگاه روایت اول‌شخص','نام همان است که نوشتیم');
-  ok(/پیش‌نویس/.test(p.txt('[data-ev]')),'وضعیتش پیش‌نویس است، نه منتشرشده');
+  ok(p.all('[data-wpick="pre"]').length===5&&p.all('[data-wpick="extra"]').length===5,'ظرفیت پیش‌ثبت‌نام و ظرفیت مازاد جدا پرسیده می‌شود');
+  ok(p.all('[data-wwait]').length===1,'لیست انتظار کلید دارد');
+  ok(p.all('[data-wpick="form"]').length===3,'سه قالب فرم ثبت‌نام هست');
+  ok(p.all('[data-wfeat]').length===10,'و ده قابلیت که با قالب روشن و خاموش می‌شوند');
+  ok(p.all('[data-wpick="exam"]').length===4,'آزمون رویداد هم وصل می‌شود');
+  ok(p.all('[data-wrem]').length===4,'یادآوری‌ها چهار زمانه است');
+  ok(/قیمت‌گذاری دست مالک|پرداخت/.test(p.txt('#admBody')),'ردیف پرداخت فقط دست مالک است');
+  p.click('[data-wpick="cap"][data-wval="45"]');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  ok(p.all('.revrow').length>=8,'گام چهارم همه‌چیز را برای مرور نشان می‌دهد');
+  ok(/فرم‌ها|قابلیت‌ها/.test(p.txt('.admreview')),'فرم و قابلیت‌ها در مرور هست');
+  p.click('[data-wsend]');
+  ok(p.txt('#admBar .head')==='رویدادها','بعد از انتشار، خودش به فهرست رویدادها می‌رود');
+  ok(p.all('[data-ev]').length===before+1,'رویداد تازه به فهرست اضافه شد');
+  ok(p.txt('[data-ev] b')==='کارگاه نقالی و پرده‌خوانی','نام همان است که نوشتیم');
+  ok(!/پیش‌نویس/.test(p.txt('#admBody')),'دیگر هیچ رویدادی پیش‌نویس نمی‌شود');
+  ok(/منتشر|پیش‌رو|جاری/.test(p.txt('[data-ev]')),'وضعیتش منتشر است');
+  ok(p.all('.admsteps .st').length===0,'و ویزارد بسته می‌شود');
   ok(p.all('[data-ev]').length>7,'رویدادهای قدیمی هم سرِ جایشان ماندند');
 }
 
@@ -295,7 +312,8 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(who.length===15,'ورقهٔ «نمای من» پانزده نفر دارد: مالک، شش سرپرست و هشت کارشناس');
   p.click('#shAdm [data-who="p10"]');
   ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.dhead')),'چیپ نوار بالا و سرصفحهٔ داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
-  ok(p.all('#admNav [data-locked]').length===5,'پنج بخش روی کارشناس قفل است');
+  ok(p.all('#admNav [data-locked]').length===4,'چهار بخش روی کارشناس قفل است');
+  ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'ولی تعریف جدید برایش باز است');
   ok(p.all('#admTabs a').length===3,'نوار پایین کارشناس سه بخش دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس فقط کار خودش را دارد');
   ok(p.txt('.qcard .head')==='کارتابل من','سرِ کارتابل کارشناس «کارتابل من» است');
@@ -328,7 +346,61 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('#admTabs a').length===5,'و نوار پایین کامل است');
 }
 
-/* ── ۱۰) مالی فقط و فقط مالک ── */
+/* ── ۱۰) تعریف تازه: هر کس می‌سازد، مالک یا سرپرست تأیید می‌کند ── */
+{
+  console.log('\n── تعریف تازه و تأیید ──');
+  const p=await load();
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p10"]');
+  ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'تعریف تازه برای کارشناس هم باز است');
+  p.click('#admNav [data-sec="newev"]');
+  p.click('[data-wkind="post"]');
+  p.type('#wzName','یادداشت کارشناس');
+  ok(p.all('.admsteps .st').length===2,'تعریف غیررویدادی دو گام دارد');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  ok(p.all('.revrow').length>=2,'مرور نام و نوع را نشان می‌دهد');
+  p.click('[data-wsend]');
+  const mine=p.all('.admlirow').find(r=>/یادداشت کارشناس/.test(r.textContent));
+  ok(!!mine&&/در انتظار تأیید/.test(mine.textContent),'تعریف کارشناس در انتظار تأیید می‌نشیند');
+  ok(!/منتشر شد/.test((mine||{}).textContent||''),'و خودش منتشر نمی‌شود');
+  ok(p.all('.admsteps .st').length===0,'ویزارد بعد از فرستادن بسته می‌شود');
+
+  /* مالک تأیید می‌کند */
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p1"]');
+  ok(p.all('[data-defok]').length>=3,'مالک همهٔ تعریف‌های در انتظار را می‌بیند');
+  const row=p.all('.admlirow').find(r=>/یادداشت کارشناس/.test(r.textContent));
+  const btn=row&&row.querySelector('[data-defok]');
+  ok(!!btn,'و دکمهٔ تأیید روی همان ردیف است');
+  if(btn) p.click(btn);
+  const after=p.all('.admlirow').find(r=>/یادداشت کارشناس/.test(r.textContent));
+  ok(!!after&&/منتشر شد/.test(after.textContent),'با یک دکمه منتشر می‌شود');
+}
+
+/* ── ۱۱) ویرایش آزاد؛ نه پیش‌نویس، نه ردیف تازه ── */
+{
+  console.log('\n── ویرایش آزاد ──');
+  const p=await load();
+  p.click('#admNav [data-sec="events"]');
+  const n=p.all('[data-ev]').length;
+  ok(!/پیش‌نویس/.test(p.txt('#admBody')),'در فهرست رویدادها هیچ پیش‌نویسی نیست');
+  p.click('[data-ev="e3"]');
+  ok(p.all('[data-evedit]').length===1,'برگهٔ رویداد دکمهٔ ویرایش دارد');
+  p.click('[data-evedit]');
+  ok(p.txt('#admBar .head')==='تعریف جدید'&&/ویرایش/.test(p.txt('.admchips')),'ویرایش از خود رویداد شروع می‌شود');
+  ok(/وضعیت عوض نمی‌شود/.test(p.txt('.admchips')),'و می‌گوید وضعیت عوض نمی‌شود');
+  ok(p.all('[data-wstep="1"][data-wgo="1"]:not([disabled])').length===1,'گام‌های بعدی برای ویرایش باز است');
+  p.type('#wzName','کارگاه روایت اول‌شخص، دور دوم');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  p.click('[data-wstep="2"][data-wgo="1"]');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  p.click('[data-wsend]');
+  ok(p.all('[data-ev]').length===n,'ویرایش رویداد تازه نمی‌سازد');
+  ok(/دور دوم/.test(p.txt('#admBody')),'و نام تازه جایش می‌نشیند');
+  ok(!/پیش‌نویس/.test(p.txt('#admBody')),'و باز هم پیش‌نویس نمی‌شود');
+}
+
+/* ── ۱۲) مالی فقط و فقط مالک ── */
 {
   console.log('\n── مالی فقط مالک ──');
   const p=await load();
@@ -383,7 +455,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('[data-rep="fi"]').length===0,'گزارش مالی برای کارشناس نیست');
 }
 
-/* ── ۱۱) ماندگاری ── */
+/* ── ۱۳) ماندگاری ── */
 {
   console.log('\n── ماندگاری ──');
   const store=makeStore();
@@ -438,9 +510,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=38')&&html.includes('admin.js?v=38'),'نسخهٔ پرونده‌های پنل ۳۸ است');
+  ok(html.includes('admin.css?v=39')&&html.includes('admin.js?v=39'),'نسخهٔ پرونده‌های پنل ۳۹ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v27'"),'کارگر سرویس نسخهٔ ۲۷ است');
+  ok(sw.includes("'nora-v28'"),'کارگر سرویس نسخهٔ ۲۸ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
