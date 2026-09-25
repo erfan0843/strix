@@ -1447,8 +1447,32 @@ async function load(file,store,q){
   const p=await load('admin.html',makeStore());
   ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
   ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
-  ok(p.all('.admstat').length===3,'سه عدد وضعیت بالای پنل');
+  ok(p.all('.hero .ring').length===4,'چهار حلقهٔ عدد سرِ داشبورد پنل');
+  ok(p.all('.qrow').length===20,'کارتابل مالک پنل، بیست کار دارد');
+  ok(p.all('.fcard').length===6,'شش حوزه روی داشبورد پنل است');
+  ok(p.all('.ppill').length===5,'نوار نبض سامانه پنج نشان دارد');
   ok(p.doc.querySelector('#admBody').innerHTML.length>500,'داشبورد پر است');
+  p.click('#admNav [data-sec="settings"]');
+  p.click('[data-setg="access"]');
+  ok(p.all('[data-setF]').length===6,'شش حوزه در تنظیمات دسترسی پنل هست');
+  ok(p.all('.admmatrix tbody tr').length>=4,'جدول دسترسی حوزه پر است');
+  p.click('#admNav [data-sec="dash"]');
+  p.click('[data-who-sheet]');
+  ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');
+  p.click('#shAdm [data-who="p10"]');
+  ok(p.all('#admNav [data-locked]').length===5,'کارشناس پنج بخش بسته دارد');
+  ok(p.all('.qrow').length===1,'کارتابل کارشناس یک کار است');
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p2"]');
+  ok(p.all('.trow').length===2,'سرپرست آموزش دو کارشناس دارد');
+  p.click('#admNav [data-sec="settings"]');
+  ok(p.all('[data-setg]').length===1,'سرپرست فقط گروه حوزهٔ خودش را می‌بیند');
+  p.click('#admNav [data-sec="dash"]');
+  for(const k of ['dash','newev','events','forms','reports','cert','settings']){
+    p.click('#admNav [data-sec="'+k+'"]');
+    const t=p.doc.querySelector('#admBody').textContent||'';
+    ok(!/undefined|NaN|\$\{|\[object/.test(t),'بخش «'+k+'» روی سرپرست تمیز رندر شد');
+  }
   ok(p.doc.querySelector('a[href="account.html"]')!==null,'نمای کاربر از پنل باز می‌شود');
   ok(p.doc.querySelector('a[href="builder.html"]')!==null,'فرم‌ها و گزارش از پنل باز می‌شود');
   ok(p.doc.querySelector('a[href="index.html"]')!==null,'زبان طراحی از پنل باز می‌شود');

@@ -25,29 +25,6 @@
 .admbar .searchbox .i{width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
 .admbar .searchbox input{border:0;background:none;font:inherit;font-size:var(--fs-sub);color:var(--ink);outline:none;width:100%}
 .admbar .searchbox input::placeholder{color:var(--ink-4)}
-.admstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin:0 0 var(--sp-3)}
-.admstat{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-lg);
-  background:var(--surface);border:.5px solid var(--hairline);box-shadow:var(--sh-1);cursor:pointer;
-  text-align:start;font:inherit;color:inherit;transition:transform var(--t-fast) var(--ease)}
-.admstat:active{transform:scale(.985)}
-.admstat .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
-  background:var(--brand-tint);color:var(--brand-ink)}
-.admstat .ic .i{width:18px;height:18px}
-.admstat .tx{display:grid;gap:2px;min-width:0}
-.admstat .tx small{font-size:var(--fs-cap);color:var(--ink-3)}
-.admstat .tx b{font-size:16px;font-weight:800;line-height:1.5}
-
-/* ── کارت‌های داشبورد ─────────────────────────────────────────────────── */
-.admgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);align-items:start}
-.admtasks{display:grid;gap:var(--sp-2)}
-.admtask{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:var(--r-md);
-  border:.5px solid var(--hairline);background:var(--surface);font:inherit;color:inherit;cursor:pointer;text-align:start}
-.admtask:active{transform:scale(.99)}
-.admtask .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;
-  background:var(--warn-tint);color:var(--warn)}
-.admtask .ic .i{width:17px;height:17px}
-.admtask .tx{display:grid;gap:2px;flex:1;min-width:0}
-.admtask .tx small{font-size:var(--fs-cap);color:var(--ink-3)}
 .admkpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
 .admkpi .k{padding:12px;border-radius:var(--r-md);background:var(--surface-2);display:grid;gap:3px}
 .admkpi .k b{font-size:19px;font-weight:800;line-height:1.4}
@@ -201,7 +178,6 @@
 /* ── واکنش‌گرایی ──────────────────────────────────────────────────────── */
 @media (max-width:1180px){
   .admgrid{grid-template-columns:1fr}
-  .admstats{grid-template-columns:1fr}
 }
 @media (max-width:900px){
   .admcertsteps{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -218,4 +194,186 @@
 @media print{
   .rail,.tabbar,.scrim,.sheet,.toast,#admTabs{display:none !important}
   body{background:#fff}
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   داشبورد تازه
+   ──────────────────────────────────────────────────────────────────────────
+   سه نما روی یک قالب: مالک، سرپرست حوزه، کارشناس. رنگ و شیشه همان زبان
+   طراحی است؛ چیدمان تازه است: سرِ رنگی، حلقه‌های عدد، نوار نبض، کارتابلِ
+   دکمه‌دار و نمودار روند.
+   ══════════════════════════════════════════════════════════════════════════ */
+.dashwrap{display:grid;gap:var(--sp-3)}
+
+/* ── نوار «نمای من» ────────────────────────────────────────────────────── */
+.viewstrip{display:flex;align-items:center;gap:var(--sp-2);overflow-x:auto;padding:2px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.viewstrip::-webkit-scrollbar{display:none}
+.vslab{flex:0 0 auto;padding-inline-end:4px}
+.vchip{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:7px 12px 7px 8px;border-radius:var(--r-pill);
+  border:.5px solid var(--hairline);background:var(--surface);font:inherit;color:inherit;cursor:pointer;
+  transition:transform var(--t-fast) var(--ease)}
+.vchip:active{transform:scale(.97)}
+.vchip .va{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700;
+  background:var(--surface-sunk);color:var(--ink-2)}
+.vchip .vt{display:grid;text-align:start;line-height:1.5}
+.vchip .vt b{font-size:var(--fs-sub);font-weight:600}
+.vchip .vt small{font-size:10.5px;color:var(--ink-3)}
+.vchip .vd{font-size:10px;color:var(--brand-ink);background:var(--brand-tint);border-radius:99px;padding:1px 7px}
+.vchip.on{border-color:var(--brand);background:var(--brand-tint)}
+.vchip.on .va{background:var(--brand);color:#fff}
+
+/* ── سرِ رنگی داشبورد ──────────────────────────────────────────────────── */
+.hero{position:relative;border-radius:var(--r-xl);padding:var(--sp-5);display:grid;gap:var(--sp-4);
+  color:var(--ink);overflow:hidden;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(0,113,227,.20), rgba(0,113,227,0) 55%),
+    radial-gradient(90% 120% at 0% 100%, rgba(156,124,60,.16), rgba(156,124,60,0) 60%),
+    linear-gradient(160deg,var(--surface),var(--surface-2));
+  border:.5px solid var(--hairline);box-shadow:var(--sh-2),var(--sheen-top)}
+.hero.gold{background:
+    radial-gradient(120% 140% at 100% 0%, rgba(156,124,60,.28), rgba(156,124,60,0) 55%),
+    radial-gradient(90% 120% at 0% 100%, rgba(0,113,227,.18), rgba(0,113,227,0) 60%),
+    linear-gradient(160deg,var(--surface),var(--surface-2))}
+.hero::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 40%)}
+.hmain{display:flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap;position:relative;z-index:1}
+.hwho{display:flex;align-items:center;gap:var(--sp-3);min-width:0}
+.hava{width:52px;height:52px;border-radius:18px;display:grid;place-items:center;flex:0 0 auto;
+  font-size:21px;font-weight:800;color:#fff;
+  background:linear-gradient(160deg,#1E5FD8,#0B3D91);box-shadow:0 6px 18px rgba(11,61,145,.28)}
+.hero.gold .hava{background:linear-gradient(160deg,#C9A96A,#8A6A25);box-shadow:0 6px 18px rgba(138,106,37,.30)}
+.hwho .ht b{display:block;font-size:19px;font-weight:800;line-height:1.5}
+.hsub{font-size:var(--fs-sub);color:var(--ink-2)}
+.hmeta{margin-inline-start:auto;display:grid;gap:6px;justify-items:end;text-align:end}
+.hpill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;
+  background:var(--surface);border:.5px solid var(--hairline);font-size:var(--fs-sub);font-weight:700;box-shadow:var(--sh-1)}
+.hnote{margin:0;position:relative;z-index:1}
+.hero .rings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-3);position:relative;z-index:1}
+.ring{display:grid;justify-items:center;gap:4px;padding:10px 4px;border-radius:var(--r-lg);
+  background:var(--glass-2);border:.5px solid var(--glass-line);backdrop-filter:var(--blur-thin)}
+.ring svg{width:56px;height:56px}
+.ring .rb{fill:none;stroke:var(--surface-sunk);stroke-width:5}
+.ring .rf{fill:none;stroke:var(--brand);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset var(--t-slow) var(--ease)}
+.hero.gold .ring .rf{stroke:var(--accent)}
+.ring .rtx{margin-top:-40px;margin-bottom:8px;text-align:center;line-height:1.3}
+.ring .rtx b{display:block;font-size:15px;font-weight:800}
+.ring .rtx small{font-size:10px;color:var(--ink-3)}
+.ring .rsub{font-size:10.5px;color:var(--ink-3);text-align:center}
+.pulse{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+.plab{padding-inline-end:2px}
+.ppill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;font-size:11.5px;
+  background:var(--surface);border:.5px solid var(--hairline);color:var(--ink-2)}
+.ppill i{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:0 0 auto;
+  box-shadow:0 0 0 3px var(--ok-tint)}
+.ppill small{color:var(--ink-3)}
+.ppill.warn{border-color:transparent;background:var(--warn-tint)} .ppill.warn i{background:var(--warn);box-shadow:0 0 0 3px rgba(138,106,37,.14)}
+.ppill.stop{background:var(--stop-tint)} .ppill.stop i{background:var(--stop);box-shadow:0 0 0 3px rgba(180,69,60,.14)}
+
+/* ── داک کنش‌های سریع ──────────────────────────────────────────────────── */
+.dock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-2)}
+.dbtn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 10px;border-radius:var(--r-md);
+  border:.5px solid var(--hairline);background:var(--surface);font:inherit;font-size:var(--fs-sub);font-weight:600;
+  color:var(--ink);cursor:pointer;box-shadow:var(--sh-1)}
+.dbtn .i{width:18px;height:18px;color:var(--brand-ink)}
+.dbtn:active{transform:scale(.98)}
+
+/* ── کارتابل ───────────────────────────────────────────────────────────── */
+.qfilters{display:flex;gap:4px;flex-wrap:wrap}
+.qfilters .tag{cursor:pointer;font:inherit;height:28px;padding:0 11px;display:inline-flex;align-items:center;
+  border:.5px solid var(--hairline);background:var(--surface);border-radius:var(--r-pill)}
+.qfilters .tag.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.qlist{display:grid;gap:6px}
+.qrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);
+  background:var(--surface);border:.5px solid var(--hairline);position:relative;overflow:hidden}
+.qrow::before{content:'';position:absolute;inset-inline-start:0;top:0;bottom:0;width:3px;background:var(--ink-4);opacity:.5}
+.qrow.stop::before{background:var(--stop);opacity:1} .qrow.warn::before{background:var(--warn);opacity:1}
+.qcode{font-family:'Nora Latin',var(--f);font-size:10px;color:var(--ink-3);background:var(--surface-sunk);
+  padding:2px 7px;border-radius:99px;flex:0 0 auto}
+.qb{min-width:0;flex:1}
+.qb b{font-size:var(--fs-sub);font-weight:600}
+.qb small{display:block;font-size:10.5px;color:var(--ink-3);line-height:1.9}
+.qpri{font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--surface-sunk);color:var(--ink-3);flex:0 0 auto}
+.qpri.stop{background:var(--stop-tint);color:var(--stop)} .qpri.warn{background:var(--warn-tint);color:var(--warn)}
+.qa{display:flex;gap:2px;flex:0 0 auto}
+.qa .btn{padding:0 8px;min-height:32px}
+.qdone{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:6px;border-top:.5px dashed var(--hairline)}
+.qdonechip{font-size:10.5px;color:var(--ink-3);text-decoration:line-through}
+
+/* ── حوزه‌ها ───────────────────────────────────────────────────────────── */
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
+.fcard{display:grid;gap:8px;padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);
+  background:var(--surface)}
+.fcard.behind{border-color:rgba(180,69,60,.35);background:linear-gradient(180deg,var(--stop-tint),var(--surface) 60%)}
+.ftop{display:flex;align-items:center;gap:9px}
+.fic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand-tint);color:var(--brand-ink)}
+.fic .i{width:17px;height:17px}
+.ft{min-width:0;flex:1}
+.ft b{font-size:var(--fs-sub);font-weight:700;display:block;line-height:1.6}
+.ft small{font-size:10.5px;color:var(--ink-3)}
+.fh{font-size:13px;font-weight:800;color:var(--ink-2)}
+.fbar{height:6px;border-radius:99px;background:var(--surface-sunk);overflow:hidden}
+.fbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand-2),var(--brand))}
+.fcard.behind .fbar i{background:linear-gradient(90deg,var(--stop),var(--warn))}
+.frow{display:flex;align-items:center;gap:6px}
+.frow .btn{padding:0 10px;min-height:30px;font-size:11.5px}
+
+/* ── تیم ───────────────────────────────────────────────────────────────── */
+.tlist{display:grid;gap:6px}
+.trow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:.5px solid var(--hairline-2)}
+.trow:last-child{border-bottom:0}
+.trow .va{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--accent-tint);color:var(--accent-ink);font-weight:700;font-size:12.5px}
+.tt{min-width:0;flex:1}
+.tt b{font-size:var(--fs-sub);font-weight:600}
+.tt small{display:block;font-size:10.5px;color:var(--ink-3)}
+.tload{width:64px;height:6px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;flex:0 0 auto}
+.tload i{display:block;height:100%;background:var(--brand);border-radius:99px}
+
+/* ── خط زمانی ──────────────────────────────────────────────────────────── */
+.feed{display:grid;gap:2px}
+.fitem{display:flex;align-items:flex-start;gap:10px;padding:7px 0}
+.ftime{font-family:'Nora Latin',var(--f);font-size:10.5px;color:var(--ink-3);flex:0 0 auto;min-width:38px;padding-top:2px}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:0 0 auto;margin-top:7px;
+  box-shadow:0 0 0 3px var(--brand-tint);position:relative}
+.fitem:not(:last-child) .fdot::after{content:'';position:absolute;top:11px;inset-inline-start:3.5px;width:1px;height:26px;
+  background:var(--hairline)}
+.fb b{font-size:var(--fs-sub);font-weight:600;display:block;line-height:1.6}
+.fb small{font-size:10.5px;color:var(--ink-3)}
+
+/* ── نمودار روند ───────────────────────────────────────────────────────── */
+.qcard{scroll-margin-top:84px}
+.sparkbox{display:grid;gap:4px}
+.sparkbox svg{width:100%;height:64px;display:block}
+.sparkbox .sparea{fill:url(#spg)}
+.sparkbox .spline{fill:none;stroke:var(--brand);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── ورقهٔ «نمای من» و سرپرست حوزه ─────────────────────────────────────── */
+.whogroup{display:grid;gap:6px;padding-top:6px}
+.whogroup .head{display:flex;align-items:center;gap:6px;font-size:var(--fs-sub)}
+.whogroup .head .i{width:16px;height:16px;color:var(--ink-3)}
+.fslead{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--r-md);
+  background:var(--surface-2);border:.5px solid var(--hairline)}
+.fslead .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  background:var(--brand-tint);color:var(--brand-ink);flex:0 0 auto}
+.fslead .sp{min-width:0}
+.fslead b{font-size:var(--fs-sub)}
+.fslead small{display:block;font-size:10.5px;color:var(--ink-3)}
+
+/* ── واکنش‌گرایی ───────────────────────────────────────────────────────── */
+@media (max-width:1180px){
+  .fgrid{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  .hero .rings{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dock{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hmeta{margin-inline-start:0;justify-items:start;text-align:start}
+  .qcode{display:none}
+}
+@media (max-width:620px){
+  .hero{padding:var(--sp-4);border-radius:var(--r-lg)}
+  .hava{width:44px;height:44px;border-radius:15px;font-size:18px}
+  .qrow{flex-wrap:wrap}
+  .qa{width:100%;justify-content:flex-end}
 }

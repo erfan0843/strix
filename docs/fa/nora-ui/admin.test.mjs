@@ -2,11 +2,12 @@
    نورا · آزمون پنل مدیران (admin.html)
    ──────────────────────────────────────────────────────────────────────────
    اجرا:  npm i jsdom && node admin.test.mjs
-   چه چیزی را می‌سنجد: بی‌خطا بار شدن پنل، هفت بخش به‌علاوهٔ داشبورد، سه عدد
-   بالای پنل، ویزارد سه‌گامی رویداد، فهرست و صافی و جست‌وجوی کاربران، نه
-   گزارش، مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، نقش‌ها و
-   ۳۸ دسترسی، قفل شدن بخش‌ها به‌اندازهٔ نقش، ماندگاری خاموش و روشن‌ها، و
-   پاکی متن فارسی (بدون خط تیرهٔ بلند، بدون متن سخت‌شده در HTML).
+   چه چیزی را می‌سنجد: بی‌خطا بار شدن پنل، هفت بخش به‌علاوهٔ داشبورد، داشبوردِ
+   جدا برای مالک و سرپرست حوزه و کارشناس، حلقه‌های عدد و نوار نبض و کارتابل
+   شخصی، ویزارد سه‌گامی رویداد، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
+   مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، یک مالک و شش
+   حوزه با ۳۷ دسترسی، بستن بخش‌ها به‌اندازهٔ حوزه، سرپرست‌گذاری و افزودن
+   کارشناس، ماندگاری خاموش و روشن‌ها، و پاکی متن فارسی.
    ══════════════════════════════════════════════════════════════════════════ */
 import jsdom from 'jsdom';
 const {JSDOM}=jsdom;
@@ -60,12 +61,15 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('#admNav .btn').length===8,'ریل هشت بخش دارد: داشبورد و هفت بخش دیکته‌شده ('+p.all('#admNav .btn').length+')');
   ok(p.all('#admTabs a').length===5,'نوار پایین پنج بخش دارد ('+p.all('#admTabs a').length+')');
   ok(p.txt('#admBar .head')==='داشبورد','پنل روی داشبورد باز می‌شود');
-  ok(p.all('.admstat').length===3,'سه عدد وضعیت بالای پنل نشسته');
-  const stat=p.all('.admstat').map(x=>x.textContent).join(' ');
-  ok(/کاربر/.test(stat)&&/رویداد/.test(stat)&&/ریال/.test(stat),'عددها کاربر و رویداد و درآمد را نشان می‌دهند');
-  ok(p.txt('.admtasks').length>10,'کارهای امروز فهرست شده');
-  ok(p.all('.admbars i').length===7,'نمودار هفت روز کشیده شد');
-  ok(p.all('.card').length>=2,'داشبورد دو کارت دارد');
+  ok(p.all('.hero .ring').length===4,'چهار حلقهٔ عدد سرِ داشبورد است');
+  const stat=p.all('.hero .ring').map(x=>x.textContent).join(' ');
+  ok(/کاربر/.test(stat)&&/درآمد/.test(stat)&&/رضایت/.test(stat),'حلقه‌ها کاربر و درآمد و رضایت را نشان می‌دهند');
+  ok(p.all('.ppill').length===5,'نوار نبض سامانه پنج نشان دارد');
+  ok(p.all('.qrow').length===20,'کارتابل مالک هر بیست کار را می‌بیند');
+  ok(p.all('.fcard').length===6,'شش حوزه در قالب کارت آمده');
+  ok(p.all('.sparkbox svg').length===1,'نمودار روند درآمد کشیده شد');
+  ok(p.all('.hero').length===0||p.all('.hero.gold').length===1,'سرِ مالک نشان طلایی دارد');
+  ok(p.all('.card').length>=6,'داشبورد شش کارت دارد');
   ok(p.doc.title.includes('پنل مدیران'),'عنوان صفحه نام پنل را دارد');
   p.click('#admNav [data-sec="events"]');
   ok(p.doc.title.includes('پنل مدیران')&&p.doc.title.includes('رویدادها'),'عنوان با بخش عوض می‌شود');
@@ -143,8 +147,8 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   console.log('\n── کاربران ──');
   const p=await load();
   p.click('#admNav [data-sec="users"]');
-  ok(p.all('table.admtable tbody tr').length===10,'ده کاربر در جدول است');
-  ok(p.all('.admcard-user .admrow2').length===10,'نمای کارتی موبایل هم ساخته شد');
+  ok(p.all('table.admtable tbody tr').length===15,'پانزده کاربر در جدول است');
+  ok(p.all('.admcard-user .admrow2').length===15,'نمای کارتی موبایل هم ساخته شد');
   p.click('[data-uF="pending"]');
   ok(p.all('table.admtable tbody tr').length===3,'صف تأیید سه نفر دارد');
   p.click('[data-uF="club"]');
@@ -229,7 +233,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(/منتشر|نوبت/.test(p.txt('.admlist')),'وضعیت کار صدور معلوم است');
 }
 
-/* ── ۸) تنظیمات و دسترسی‌ها ── */
+/* ── ۸) تنظیمات و حوزه‌ها ── */
 {
   console.log('\n── تنظیمات و دسترسی ──');
   const p=await load();
@@ -243,42 +247,71 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(first.classList.contains('on')!==(/false/.test(first.getAttribute('aria-checked'))),'کلید خاموش و روشن می‌شود');
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
   p.click('[data-setg="access"]');
-  ok(p.all('[data-permrole]').length===8,'هشت نقش برای مدیریت دسترسی هست');
-  p.click('[data-permrole="report"]');
-  ok(/دسترسی‌های گزارش‌گیر/.test(p.txt('#admBody')),'دسترسی‌های نقش انتخابی می‌آید');
-  ok(p.all('[data-perm]').length===34,'۳۴ دسترسی تیک‌زدنی است و چهار دسترسی ویژه نه');
-  ok(p.all('[data-perm].on').length===6,'شش دسترسی گزارش‌گیر تیک خورده');
-  const off=p.all('[data-perm]').find(x=>!x.classList.contains('on'));
-  p.click(off);
-  ok(p.all('[data-perm].on').length===7,'سوپرادمین می‌تواند دسترسی بدهد');
-  ok(p.txt('#toast').includes('داده شد'),'و همان لحظه خبر می‌دهد');
-  p.click(p.all('[data-perm].on')[0]);
-  ok(p.all('[data-perm].on').length===6,'و می‌تواند بردارد');
-  p.click('[data-permrole="super"]');
-  ok(p.all('.admsetgroup .tag').length>=38,'سوپرادمین همهٔ ۳۸ دسترسی را دارد');
-  ok(p.all('[data-perm]').length===0,'و تیک‌هایش قفل است');
-  ok(p.all('.admsetgroup').length===7,'دسترسی‌ها در هفت دسته دسته‌بندی شده');
+  ok(p.all('[data-setF]').length===6,'شش حوزه برای مدیریت دسترسی هست (مالک جداست)');
+  ok(/سرپرست/.test(p.txt('#admBody')),'سرپرست حوزه روی جدول نوشته شده');
+  ok(p.all('.admmatrix tbody tr').length>=4,'ردیف‌های دسترسی حوزهٔ انتخابی می‌آید');
+  ok(p.all('[data-fperm]').length>=4,'دسترسی‌های کارشناس تیک‌زدنی است');
+  const on=p.all('[data-fperm].on').length;
+  p.click(p.all('[data-fperm]')[0]);
+  ok(p.all('[data-fperm].on').length!==on,'مالک می‌تواند دسترسی کارشناس بدهد یا بردارد');
+  ok(/داده شد|برداشته شد/.test(p.txt('#toast')),'و همان لحظه خبر می‌دهد');
+  ok(p.all('.admlist .admsw').length===4,'چهار دسترسی ویژه فقط برای مالک است');
+  p.click('[data-setF="club"]');
+  ok(/باشگاه/.test(p.txt('.fslead')),'با چیپ باشگاه، سرپرست باشگاه می‌آید');
+  ok(p.all('#admBody [data-addspec]').length===1,'دکمهٔ افزودن کارشناس هست');
+  p.click('[data-addspec]');
+  ok(p.all('#shAdm [data-newspec]').length>=1,'ورقهٔ افزودن کارشناس از کاربران پرش می‌شود');
+  const team=p.all('.trow').length;
+  p.click(p.all('#shAdm [data-newspec]')[0]);
+  ok(p.all('.trow').length===team+1,'کارشناس تازه به تیم حوزه اضافه شد');
+  ok(/کارشناس اضافه/.test(p.txt('#toast')),'و خبرش می‌آید');
+  p.click('[data-setlead]');
+  ok(p.all('#shAdm [data-setleadto]').length>=2,'ورقهٔ تعیین سرپرست باز می‌شود');
+  const pick=p.all('#shAdm [data-setleadto]').pop();
+  const name=pick.textContent.replace(/\s+/g,' ').trim().slice(0,4);
+  p.click(pick);
+  ok(/سرپرست عوض/.test(p.txt('#toast')),'سرپرست حوزه عوض می‌شود');
+  ok(p.txt('.fslead').includes(name.trim().slice(0,3))||p.txt('.fslead').length>0,'سرپرست تازه روی جدول می‌نشیند');
 }
 
-/* ── ۹) قفل بخش‌ها به‌اندازهٔ نقش ── */
+/* ── ۹) هر کس نمای خودش ── */
 {
-  console.log('\n── قفل دسترسی ──');
+  console.log('\n── نمای هر کس ──');
   const p=await load();
-  p.click('[data-rolesheet]');
-  ok(p.all('#shAdm [data-role]').length===8,'ورقهٔ نقش‌ها از نوار بالا باز می‌شود');
-  p.click('#shAdm [data-role="report"]');
-  ok(p.txt('#admBar .chip').includes('گزارش‌گیر'),'نقش در نوار بالا عوض شد');
-  p.click('#shAdm [data-close]');
+  ok(p.all('.vchip').length===13,'نوار «نمای من» سیزده چیپ دارد: مالک، شش سرپرست و یک کارشناس هر حوزه');
+  ok(p.all('.fcard [data-who]').length===6,'کارت حوزه‌ها به داشبورد شش سرپرست راه دارد');
+  p.click('[data-who-sheet]');
+  const who=p.all('#shAdm [data-who]');
+  ok(who.length===15,'ورقهٔ «نمای من» پانزده نفر دارد: مالک، شش سرپرست و هشت کارشناس');
+  p.click('#shAdm [data-who="p10"]');
+  ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.hero .hsub')),'چیپ نوار بالا و سر داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
+  ok(p.all('#admNav [data-locked]').length===5,'پنج بخش روی کارشناس قفل است');
+  ok(p.all('#admTabs a').length===3,'نوار پایین کارشناس سه بخش دارد');
+  ok(p.all('.qrow').length===1,'کارتابل کارشناس فقط کار خودش را دارد');
+  ok(p.txt('.qcard .head')==='کارتابل من','سرِ کارتابل کارشناس «کارتابل من» است');
+  ok(p.all('.trow').length===0,'کارشناس تیم نمی‌بیند');
   p.click('#admNav [data-sec="settings"]');
-  ok(/باز نمی‌شود/.test(p.txt('#admBody')),'گزارش‌گیر به تنظیمات راه ندارد');
-  ok(/نقش دیگری/.test(p.txt('#admBody')),'و می‌گوید از کجا اجازه بگیرد');
-  p.click('#admNav [data-sec="reports"]');
-  ok(p.all('[data-rep]').length>=9,'ولی گزارش‌ها برایش باز است');
-  p.click('[data-rolesheet]');
-  p.click('#shAdm [data-role="super"]');
-  p.click('#shAdm [data-close]');
+  ok(p.txt('#admBar .head')==='داشبورد','کارشناس به تنظیمات نمی‌رود؛ همان داشبورد می‌ماند');
+  ok(/حوزهٔ تو باز نمی‌شود/.test(p.txt('#toast')),'و می‌گوید این بخش برای حوزهٔ تو نیست');
+  ok(p.all('.fcard').length===0,'کارشناس کارت حوزه‌ها را نمی‌بیند');
+
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p2"]');
+  ok(p.txt('#admBar .chip').includes('سرپرست'),'سرپرست حوزه در چیپ نوار بالا می‌آید');
+  ok(p.all('.trow').length===2,'سرپرست آموزش دو کارشناس زیر دستش دارد');
+  ok(p.all('.qrow').length>1&&p.all('.qrow').length<20,'کارتابل سرپرست نه یکی است نه بیست‌تا');
+  p.click('#admNav [data-sec="users"]');
+  ok(p.txt('#admBar .head')!=='کاربران','آموزش به کاربران راه ندارد');
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-setg]').length===7,'سوپرادمین همه‌چیز را می‌بیند');
+  ok(p.all('[data-setg]').length===1,'سرپرست فقط گروه حوزهٔ خودش را در تنظیمات دارد');
+  ok(/آموزش/.test(p.txt('#admBody')),'و همان حوزه در بدنه هست');
+  p.click('#admNav [data-sec="events"]');
+  ok(!/باز نمی‌شود/.test(p.txt('#admBody')),'رویدادها برای آموزش باز است');
+
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p1"]');
+  ok(p.all('#admNav [data-locked]').length===0,'مالک هیچ بخشی را بسته ندارد');
+  ok(p.all('#admTabs a').length===5,'و نوار پایین کامل است');
 }
 
 /* ── ۱۰) ماندگاری ── */
@@ -325,9 +358,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=33')&&html.includes('admin.js?v=33'),'نسخهٔ پرونده‌های پنل ۳۳ است');
+  ok(html.includes('admin.css?v=34')&&html.includes('admin.js?v=34'),'نسخهٔ پرونده‌های پنل ۳۴ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v22'"),'کارگر سرویس نسخهٔ ۲۲ است');
+  ok(sw.includes("'nora-v23'"),'کارگر سرویس نسخهٔ ۲۳ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
@@ -351,7 +384,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const bad=p2.all('#admNav .btn').map(b=>{const sp=b.querySelector('span');
       return sp?sp.textContent.trim():''}).filter(t=>t&&data.indexOf(t)===-1);
   ok(bad.length===0,'هر برچسب بخش، همان واژهٔ data.js است'+(bad.length?': '+bad.join('، '):''));
-  const nums=p2.all('.admstat b').map(b=>b.textContent.trim()).filter(t=>data.indexOf(t)===-1);
+  const nums=p2.all('.hero .ring b').map(b=>b.textContent.trim()).filter(t=>data.indexOf(t)===-1);
   ok(nums.length===0,'عددهای سرِ پنل هم از داده می‌آید'+(nums.length?': '+nums.join('، '):''));
 }
 

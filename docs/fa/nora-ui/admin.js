@@ -16,7 +16,7 @@
 'use strict';
 
 const N=window.NORA||{}, A=N.ADMIN||{}, UI=window.NORA_UI||{};
-const W=A.w||{}, T=A.t||{};
+const W=A.w||{}, T=A.t||{}, D=A.d||{};
 const HOME=A.home||{k:'dash',n:'داشبورد',i:'i-grid',s:''};
 const ALLSECS=[HOME].concat(A.menu||[]);
 
@@ -44,9 +44,10 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
 const BASE={sec:'dash', q:'', evF:'all', evId:null, evTab:'info', uF:'all',
+  who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,kind:'',name:'',date:'',time:'',place:'',cap:45},
   cert:{step:0,tpl:'t1',kind:'per',params:{},who:'ev',whoVal:'',pub:'notify'},
-  setG:'texts', role:'super', permRole:'', perms:{}, toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:''};
+  setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:''};
 let S=JSON.parse(JSON.stringify(BASE));
 try{
   const v=JSON.parse(localStorage.getItem(SKEY)||'null');
@@ -54,9 +55,10 @@ try{
     S=Object.assign(S,v);
     S.wiz=Object.assign({},BASE.wiz,v.wiz||{});
     S.cert=Object.assign({},BASE.cert,v.cert||{});
-    ['jobs','added'].forEach(k=>{if(!Array.isArray(S[k])) S[k]=[]});
-    delete S.custom;
-    if(!S.perms||typeof S.perms!=='object') S.perms={};
+    ['jobs','added','qdone','qextra','extra'].forEach(k=>{if(!Array.isArray(S[k])) S[k]=[]});
+    ['qgive','leads','specPerms','specExtra'].forEach(k=>{if(!S[k]||typeof S[k]!=='object') S[k]={}});
+    /* حالت دور پیش پنل: نقش تخت جایش را به حوزه داده */
+    delete S.role; delete S.perms; delete S.permRole; delete S.custom;
     if(!S.uov||typeof S.uov!=='object') S.uov={};
     if(!S.toggles||typeof S.toggles!=='object') S.toggles={};
     if(!S.texts||typeof S.texts!=='object') S.texts={};
@@ -68,21 +70,41 @@ const save=()=>{try{localStorage.setItem(SKEY,JSON.stringify(Object.assign({},S,
 const togDef=(g,label,def)=>{const k=g+'|'+label; if(!(k in S.toggles)) S.toggles[k]=!!def; return S.toggles[k]};
 const txtDef=(k,v)=>{if(!(k in S.texts)) S.texts[k]=v; return S.texts[k]};
 
-/* ── نقش‌ها و دسترسی‌ها ────────────────────────────────────────────────── */
-const ROLES=A.roles||[], PERMS=A.perms||{}, PROWS=PERMS.rows||[], SUPER=PERMS.superOnly||[];
-const ALLP=PROWS.map(r=>r[0]);
-const roleOf=k=>ROLES.find(r=>r.k===k)||ROLES[ROLES.length-1]||{k:'super',n:'سوپرادمین',perms:['all']};
-function basePerms(k){
-  const r=roleOf(k);
-  if((r.perms||[]).indexOf('all')>-1) return ALLP.slice();
-  if((r.perms||[]).indexOf('allExceptSuper')>-1) return ALLP.filter(p=>SUPER.indexOf(p)<0);
-  return (r.perms||[]).slice();
+/* ── حوزه‌ها و آدم‌ها ──────────────────────────────────────────────────────
+   پنل روی «شخص» می‌چرخد، نه روی نقش تخت: مالک، سرپرست حوزه، کارشناس.
+   هر کس داشبورد و کارتابل خودش را دارد و بخش‌ها به‌اندازهٔ حوزه‌اش باز است. */
+const FIELDS=A.fields||[], PEOPLE=A.people||[], QUEUE=A.queue||[], PULSE=A.pulse||[], FEED=A.feed||[];
+const PERMS=A.perms||{}, PROWS=PERMS.rows||[], OWNER_PERMS=PERMS.owner||[];
+const fieldOf=k=>FIELDS.find(f=>f.k===k)||FIELDS[0];
+const allP=()=>PEOPLE.concat(S.extra||[]);
+const personOf=k=>allP().find(p=>p.k===k)||allP()[0]||{k:'',n:'',f:'owner',lv:'مالک',open:0,done:0,late:0,avg:0,load:0,score:0};
+const me=()=>personOf(S.who);
+const myField=()=>fieldOf(me().f);
+const isOwner=()=>me().f==='owner';
+const isLead=()=>me().lv==='سرپرست';
+const leadK=f=>S.leads[f]||fieldOf(f).lead;
+const leadOf=f=>personOf(leadK(f));
+const teamOf=f=>allP().filter(p=>p.f===f&&p.k!==leadK(f));
+const fieldSecs=()=>{const f=myField(); return isOwner()?f.sections:(isLead()?f.sections:(f.spec||['dash']))};
+const canSec=k=>fieldSecs().indexOf(k)>-1;
+const fieldOfSec=k=>FIELDS.find(f=>f.k!=='owner'&&(f.sections||[]).indexOf(k)>-1);
+/* کارتابل: مالک همه، سرپرست حوزه کار حوزهٔ خودش، کارشناس فقط کارهای خودش */
+const qDone=id=>(S.qdone||[]).indexOf(id)>-1;
+const qWho=it=>(S.qgive||{})[it.id]||it.who;
+const qAll=()=>QUEUE.concat(S.qextra||[]);
+const myQueue=()=>qAll().filter(it=>isOwner()?true:(isLead()?it.f===me().f:qWho(it)===me().k));
+const qOpen=()=>myQueue().filter(it=>!qDone(it.id));
+/* دسترسی: سرپرست حوزه همهٔ دسترسی‌های حوزه‌اش را دارد؛ کارشناس آن‌هایی که تیک خورده */
+const specPermsOf=f=>{const o=(S.specPerms||{})[f]; return o?o.slice():(fieldOf(f).specPerms||[])};
+const extraOf=k=>(S.specExtra||{})[k]||[];
+function canPerm(p){
+  const row=PROWS.find(r=>r[0]===p); if(!row) return false;
+  if(isOwner()) return true;
+  if(row[2]!=='any'&&row[2]!==myField().k) return false;
+  if(isLead()) return true;
+  return specPermsOf(myField().k).indexOf(p)>-1||extraOf(me().k).indexOf(p)>-1;
 }
-/* دسترسی هر نقش: تا وقتی سوپرادمین دستی عوضش نکرده، از فهرست خودِ نقش می‌آید */
-function permsOf(k){const o=(S.perms||{})[k]; return o?o.slice():basePerms(k)}
-const GATE={newev:'ev_create', events:'ev_view_all', users:'us_view', forms:'fm_create',
-  reports:'rp_view', cert:'certificate', settings:'sys_settings'};
-const can=p=>!p||permsOf(S.role).indexOf(p)>-1;
+const permRowsOf=f=>PROWS.filter(r=>r[2]===f||r[2]==='any');
 
 /* ── آدم‌ها: فهرست کاربران ─────────────────────────────────────────────── */
 const MEM=[
@@ -95,7 +117,12 @@ const MEM=[
   {id:'u7', n:'فاطمه کریمی', code:'NL-1030', ph:'09191112222', st:['تأییدشده','ok'],   tags:['داوطلب'], reg:'اسفند ۱۴۰۳', ev:3, pt:940, note:'داوطلب اردو'},
   {id:'u8', n:'علی نجفی',    code:'NL-1031', ph:'09022223333', st:['تأییدشده','ok'],   tags:['عضو باشگاه'], reg:'فروردین ۱۴۰۴', ev:4, pt:1470, note:''},
   {id:'u9', n:'زهرا سلطانی', code:'NL-1032', ph:'09335556677', st:['در صف تأیید','warn'], tags:['تازه','عکس‌دار'], reg:'مهر ۱۴۰۴', ev:1, pt:80, note:''},
-  {id:'u10',n:'مجید رستمی',  code:'NL-1033', ph:'09121230000', st:['تأییدشده','ok'],   tags:['مدرس'], reg:'اردیبهشت ۱۴۰۳', ev:7, pt:2010, note:'مدرس فن بیان'}];
+  {id:'u10',n:'مجید رستمی',  code:'NL-1033', ph:'09121230000', st:['تأییدشده','ok'],   tags:['مدرس'], reg:'اردیبهشت ۱۴۰۳', ev:7, pt:2010, note:'مدرس فن بیان'},
+  {id:'u11',n:'سمیرا احمدی', code:'NL-1034', ph:'09123334455', st:['تأییدشده','ok'],   tags:['داوطلب','عکس‌دار'], reg:'مرداد ۱۴۰۴', ev:2, pt:320, note:'داوطلب پشتیبانی'},
+  {id:'u12',n:'بابک مرادی',  code:'NL-1035', ph:'09352221100', st:['تأییدشده','ok'],   tags:['کارشناس محتوا'], reg:'شهریور ۱۴۰۴', ev:3, pt:410, note:''},
+  {id:'u13',n:'لیلا شفیعی',  code:'NL-1036', ph:'09192223344', st:['تأییدشده','ok'],   tags:['مترجم'], reg:'مرداد ۱۴۰۴', ev:1, pt:180, note:''},
+  {id:'u14',n:'کامران یوسفی',code:'NL-1037', ph:'09124445566', st:['تأییدشده','ok'],   tags:['عکاس','داوطلب'], reg:'تیر ۱۴۰۴', ev:4, pt:760, note:'عکاس رویدادها'},
+  {id:'u15',n:'مهسا تهرانی', code:'NL-1038', ph:'09367778899', st:['تأییدشده','ok'],   tags:['حسابداری'], reg:'مهر ۱۴۰۴', ev:0, pt:60, note:''}];
 const memOf=id=>{const m=MEM.find(x=>x.id===id); if(!m) return null;
   const o=(S.uov||{})[id]; return o?Object.assign({},m,o):m};
 const memList=()=>MEM.map(m=>memOf(m.id));
@@ -167,11 +194,12 @@ const secOf=k=>ALLSECS.find(s=>s.k===k)||HOME;
 const NEEDQ=['users','events','forms','reports'];
 
 function renderNav(){
+  const secs=fieldSecs();
   $('#admNav').innerHTML=ALLSECS.map(s=>{
-    const lock=!can(GATE[s.k]);
-    return `<button class="btn quiet block ${S.sec===s.k?'on':''}" data-sec="${s.k}">
-      ${ico(s.i)}<span>${esc(s.n)}</span>${s.badge?`<span class="tag warn bd">${esc(s.badge)}</span>`:(lock?`<span class="bd">${ico('i-lock')}</span>`:'')}</button>`;}).join('');
-  $('#admTabs').innerHTML=TABS.map(t=>{const s=secOf(t.k);
+    const open=secs.indexOf(s.k)>-1, lock=!open;
+    return `<button class="btn quiet block ${S.sec===s.k?'on':''}" data-sec="${s.k}" ${open?'':'data-locked="1"'}>
+      ${ico(s.i)}<span>${esc(s.n)}</span>${s.badge&&open?`<span class="tag warn bd">${esc(s.badge)}</span>`:(lock?`<span class="bd">${ico('i-lock')}</span>`:'')}</button>`;}).join('');
+  $('#admTabs').innerHTML=TABS.filter(t=>secs.indexOf(t.k)>-1||t.k==='dash').map(t=>{const s=secOf(t.k);
     return `<a href="#${t.k}" data-sec="${t.k}" class="${S.sec===t.k?'on':''}">${ico(s.i)}<span>${esc(t.n)}</span></a>`}).join('');
 }
 function renderBar(){
@@ -182,50 +210,268 @@ function renderBar(){
     <span class="sp"></span>
     ${NEEDQ.indexOf(S.sec)>-1?`<label class="searchbox">${ico('i-search')}
       <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
-    <button class="chip" data-rolesheet>${ico('i-shield')}<span>${esc(roleOf(S.role).n)}</span></button>`;
+    <button class="chip" data-who-sheet>${ico('i-shield')}<span>${esc(me().n)}</span>
+      <small class="cap">${esc(me().lv)}</small></button>`;
 }
 
 /* ══ بخش‌ها ═════════════════════════════════════════════════════════════ */
 
-/* ── داشبورد ───────────────────────────────────────────────────────────── */
+/* ── داشبورد ─────────────────────────────────────────────────────────────
+   یک داشبورد، سه نما. مالک نبض همهٔ حوزه‌ها را می‌بیند، سرپرست حوزه کار
+   حوزهٔ خودش را، کارشناس فقط کارتابل و کارنامهٔ خودش را. هیچ عددی سخت
+   نوشته نشده؛ همه از data می‌آید و با همین کارتابل و تیم جلو و عقب می‌رود. */
+
+const priTone=p=>p==='بالا'?'stop':p==='میان'?'warn':'';
+const priRank=p=>p==='بالا'?0:p==='میان'?1:2;
+
+/* حلقهٔ عدد: درصد را دور دایره می‌بندد و عدد را وسط می‌گذارد */
+function ring(pct,v,n,s){
+  const r=21,c=2*Math.PI*r,off=c*(1-Math.max(0,Math.min(100,pct))/100);
+  return `<div class="ring"><svg viewBox="0 0 52 52" aria-hidden="true">
+      <circle class="rb" cx="26" cy="26" r="${r}"/>
+      <circle class="rf" cx="26" cy="26" r="${r}" stroke-dasharray="${c.toFixed(1)}"
+        stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 26 26)"/></svg>
+    <div class="rtx"><b>${esc(v)}</b><small>${esc(n)}</small></div>
+    ${s?`<div class="rsub">${esc(s)}</div>`:''}</div>`;
+}
+/* نمودار روند: خط و سایه‌اش؛ اندازه‌ها نسبی است تا هر عرضی جا شود */
+function spark(v,label){
+  const w=280,h=56,mx=Math.max.apply(null,v.concat([1])),st=w/Math.max(1,v.length-1);
+  const pts=v.map((x,i)=>[i*st,h-(x/mx)*(h-10)-4]);
+  const line=pts.map((pt,i)=>(i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' ');
+  return `<div class="sparkbox"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--brand)" stop-opacity=".30"/>
+        <stop offset="1" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>
+      <path class="sparea" d="${line} L${w} ${h} L0 ${h} Z"/><path class="spline" d="${line}"/></svg>
+    <span class="cap">${esc(label||'')}</span></div>`;
+}
+/* نوار «نمای من»: هر کس را بزنی، داشبورد او را می‌بینی */
+function viewStrip(){
+  const list=[{who:'p1', f:'owner', lv:'مالک'}];
+  FIELDS.filter(f=>f.k!=='owner').forEach(f=>{
+    list.push({who:leadK(f.k), f:f.k, lv:'سرپرست'});
+    const t=teamOf(f.k).find(p=>p.lv==='کارشناس');
+    if(t) list.push({who:t.k, f:f.k, lv:'کارشناس'});
+  });
+  return `<div class="viewstrip" aria-label="${esc(D.mine||'نمای من')}">
+    <span class="cap vslab">${esc(D.mine||'نمای من')}</span>
+    ${list.map(x=>{const p=personOf(x.who);
+      return `<button class="vchip ${S.who===p.k?'on':''}" data-who="${esc(p.k)}">
+        <span class="va">${esc(String(p.n||' ').slice(0,1))}</span>
+        <span class="vt"><b>${esc(p.n)}</b><small>${esc(x.lv)} · ${esc(fieldOf(x.f).n)}</small></span>
+        ${S.who===p.k?`<span class="vd">${esc(D.you||'')}</span>`:''}</button>`}).join('')}
+  </div>`;
+}
+function hero(){
+  const p=me(), f=myField(), own=isOwner(), lead=isLead();
+  const q=qOpen(), urgent=q.filter(it=>it.pri==='بالا').length;
+  const rings=(own||lead)?(f.rings||[]):[
+    [D.rOpen||'کار باز من', fa(p.open), Math.round(p.open/Math.max(1,p.open+p.done)*100), p.late?(fa(p.late)+' '+(D.late||'')):''],
+    [D.rDone||'انجام‌شده این هفته', fa(p.done), Math.min(100,Math.round(p.done/25*100)), ''],
+    [D.rAvg||'میانگین پاسخ', fa(p.avg)+' دقیقه', Math.max(20,100-Math.round(p.avg/60*100)), ''],
+    [D.rScore||'امتیاز هفته', fa(p.score), p.score, '']];
+  const note=own?(D.ownerNote||''):lead?(D.leadNote||''):(D.specNote||'');
+  const pulse=(PULSE||[]).map(x=>`<span class="ppill ${x.st}"><i></i>${esc(x.n)}
+      <small>${esc(x.d)}</small></span>`).join('');
+  return `<section class="hero ${own?'gold':''}">
+    <div class="hmain">
+      <div class="hwho">
+        <span class="hava">${esc(String(p.n||' ').slice(0,1))}</span>
+        <div class="ht"><b>${esc(p.n)}</b>
+          <div class="hsub">${esc(own?(D.ownerLine||'مالک سامانه'):f.n)} · ${esc(p.lv)}${own||lead?'':(leadOf(f.k).n?' · '+(D.lead||'سرپرست')+': '+leadOf(f.k).n:'')}</div></div>
+      </div>
+      <div class="hmeta">
+        <span class="cap">${esc((A.dash||{}).day||'')}</span>
+        <span class="hpill">${esc(fa(q.length))} ${esc(D.qOpen||'کار باز')}${urgent?` · ${esc(fa(urgent))} ${esc(D.urgent||'فوری')}`:''}</span>
+      </div>
+    </div>
+    <p class="hnote cap">${esc(note)}</p>
+    <div class="pulse"><span class="cap plab">${esc(D.pulse||'نبض سامانه')}</span>${pulse}</div>
+    <div class="rings">${rings.map(r=>ring(+r[2]||0,r[1],r[0],r[3])).join('')}</div>
+  </section>`;
+}
+/* کارتابل: هر کار یک دکمه دارد: انجام شد، واگذار، باز کن */
+function cardQueue(){
+  const q=myQueue();
+  const qf=S.qf||'all';
+  const open=q.filter(it=>!qDone(it.id)&&(qf==='all'||it.pri===qf))
+    .sort((a,b)=>priRank(a.pri)-priRank(b.pri)||String(a.due).localeCompare(String(b.due)));
+  const done=q.filter(it=>qDone(it.id));
+  const row=it=>{
+    const p=personOf(qWho(it));
+    return `<article class="qrow ${priTone(it.pri)}">
+      <span class="qcode">${esc(it.code)}</span>
+      <div class="qb"><b>${esc(it.n)}</b>
+        <small>${isOwner()?esc(fieldOf(it.f).n)+' · ':''}${esc(p.n)} · ${esc(it.due)} · ${esc(it.at)}</small></div>
+      <span class="qpri ${priTone(it.pri)}">${esc(it.pri)}</span>
+      <div class="qa">
+        <button class="btn sm quiet" data-qdone="${esc(it.id)}" aria-label="${esc(D.qDoneBtn||'انجام شد')}">${ico('i-check')}</button>
+        <button class="btn sm quiet" data-qgive="${esc(it.id)}" aria-label="${esc(D.qGive||'واگذار')}">${ico('i-send')}</button>
+        <button class="btn sm quiet" data-sec="${esc(it.sec)}" aria-label="${esc(D.qOpenBtn||'باز کردن')}">${ico('i-chev-left')}</button>
+      </div></article>`;
+  };
+  return `<section class="card stack qcard">
+    <div class="row"><div class="head">${esc(isOwner()?(D.q||'کارتابل'):isLead()?(D.fieldQueue||'کارتابل حوزه'):(D.myQueue||'کارتابل من'))}</div>
+      <span class="sp"></span>
+      <span class="cap">${esc(fa(open.length))} ${esc(D.qOpen||'کار باز')}</span>
+      <span class="qfilters">${['all','بالا','میان','معمولی'].map(k=>`<button class="tag ${qf===k?'on':''}"
+        data-qf="${esc(k)}">${esc(k==='all'?(T.all||'همه'):k)}</button>`).join('')}</span>
+    </div>
+    <div class="qlist">${open.length?open.map(row).join(''):`<div class="empty">${ico('i-check')}<p class="cap" style="margin-top:8px">${esc(D.qEmpty||'')}</p></div>`}</div>
+    ${done.length?`<div class="qdone"><span class="cap">${esc(D.qDoneToday||'انجام‌شدهٔ امروز')} (${esc(fa(done.length))})</span>
+      ${done.map(it=>`<span class="qdonechip">${esc(it.code)} · ${esc(it.n)}</span>`).join('')}</div>`:''}
+  </section>`;
+}
+/* حوزه‌ها: کارت هر حوزه با سلامت و سرپرست؛ زدنش داشبورد آن حوزه را می‌آورد */
+function cardFields(){
+  const f=FIELDS.filter(x=>x.k!=='owner');
+  return `<section class="card stack">
+    <div class="row"><div class="head">${esc(D.fields||'حوزه‌ها')}</div><span class="sp"></span>
+      <span class="cap">${esc(fa(f.length))} ${esc('حوزه')}</span></div>
+    <div class="fgrid">${f.map(x=>{
+      const l=personOf(leadK(x.k)), q=qAll().filter(it=>it.f===x.k&&!qDone(it.id));
+      return `<article class="fcard ${x.health<80?'behind':''}">
+        <div class="ftop"><span class="fic">${ico(x.i)}</span>
+          <div class="ft"><b>${esc(x.n)}</b><small>${esc(D.lead||'سرپرست')}: ${esc(l?l.n:(D.noLead||''))}</small></div>
+          <span class="fh">${esc(fa(x.health))}٪</span></div>
+        <div class="fbar"><i style="width:${x.health}%"></i></div>
+        <div class="frow"><span class="cap">${esc(fa(q.length))} ${esc(D.qOpen||'کار باز')} · ${esc(fa(x.today))} امروز</span>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-who="${esc(l?l.k:'')}" ${l?'':'disabled'}>${esc(D.openField||'سر بزن')}</button>
+          ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(x.k)}" aria-label="${esc(D.setLead||'')}">${ico('i-users')}</button>`:''}
+        </div></article>`}).join('')}</div>
+  </section>`;
+}
+/* تیم: سرپرست حوزه کارشناس‌هایش را می‌بیند و کارشناس تازه می‌گذارد */
+function cardTeam(){
+  const f=myField(), lead=isLead(), t=(lead||isOwner())?teamOf(f.k):[];
+  const rows=t.map(p=>`<div class="trow">
+      <span class="va">${esc(String(p.n||' ').slice(0,1))}</span>
+      <div class="tt"><b>${esc(p.n)}</b><small>${esc(p.lv)} · ${esc(fa(p.open))} ${esc(D.qOpen||'')} · ${esc(D.qDone||'')} ${esc(fa(p.done))}</small></div>
+      <span class="tload"><i style="width:${p.load}%"></i></span>
+      <span class="cap">${esc(fa(p.load))}٪</span>
+      <button class="btn sm quiet" data-specperm="${esc(p.k)}">${esc(D.specPerms||'دسترسی‌ها')}</button>
+    </div>`).join('');
+  return `<section class="card stack">
+    <div class="row"><div class="head">${esc(lead?(D.team||'تیم من'):(D.leads||'سرپرست حوزه‌ها'))}</div><span class="sp"></span>
+      ${lead||isOwner()?`<button class="btn sm tint" data-addspec="${esc(f.k)}">${ico('i-plus')}${esc(D.addSpec||'افزودن کارشناس')}</button>`:''}</div>
+    ${lead?`<div class="tlist">${rows||emptyBox(D.qEmpty||'')}</div>
+      <p class="cap">${esc(D.specNotAll||'')}</p>`
+     :`<div class="tlist">${FIELDS.filter(x=>x.k!=='owner').map(x=>{
+        const l=personOf(leadK(x.k));
+        return `<div class="trow"><span class="va">${esc(String((l&&l.n)||' ').slice(0,1))}</span>
+          <div class="tt"><b>${esc(l?l.n:'')}</b><small>${esc(x.n)} · ${esc(fa(x.open))} ${esc(D.qOpen||'')}</small></div>
+          <span class="tload"><i style="width:${l?l.load:0}%"></i></span>
+          <button class="btn sm quiet" data-setlead="${esc(x.k)}">${esc(D.changeLead||'تعیین سرپرست')}</button></div>`}).join('')}</div>
+      <p class="cap">${esc(D.ownerNote||'')}</p>`}
+  </section>`;
+}
+function cardWeek(){
+  const Wk=(A.dash||{}).week||{bars:[],days:[]}, f=myField(), p=me();
+  if(!isLead()&&!isOwner()){
+    const wk=(A.dash||{}).week||{bars:[],days:[]};
+    return `<section class="card stack">
+      <div class="row"><div class="head">${esc(D.myWeek||'کارنامهٔ من')}</div><span class="sp"></span>
+        <span class="cap">${esc(p.lv)} · ${esc(f.n)}</span></div>
+      ${bars(wk.bars||[],true)}
+      <div class="admbarsx">${(wk.days||[]).map(d=>`<span>${esc(d)}</span>`).join('')}</div>
+      <div class="admkpi">
+        <div class="k"><small>${esc(D.qDone||'انجام‌شده')}</small><b>${esc(fa(p.done))}</b></div>
+        <div class="k"><small>${esc(D.qOpen||'کار باز')}</small><b>${esc(fa(p.open))}</b></div>
+        <div class="k"><small>${esc(D.late||'دیرکرد')}</small><b>${esc(fa(p.late))}</b></div>
+        <div class="k"><small>${esc(D.rAvg||'')}</small><b>${esc(fa(p.avg))} دقیقه</b></div></div>
+    </section>`;
+  }
+  return `<section class="card stack">
+    <div class="row"><div class="head">${esc(D.week||'کارهای هفته')}</div><span class="sp"></span>
+      <span class="cap">${esc(f.n)}</span></div>
+    ${bars(Wk.bars||[],true)}
+    <div class="admbarsx">${(Wk.days||[]).map(d=>`<span>${esc(d)}</span>`).join('')}</div>
+    ${spark((f.spark||{}).v||[],(f.spark||{}).n||'')}
+  </section>`;
+}
+function cardFeed(){
+  const f=myField(), list=(FEED||[]).filter(x=>isOwner()||x.f===f.k).slice(0,isOwner()?7:6);
+  return `<section class="card stack">
+    <div class="head">${esc(D.feed||'خط زمانی امروز')}</div>
+    <div class="feed">${list.map(x=>`<div class="fitem">
+      <span class="ftime">${esc(x.t)}</span><span class="fdot"></span>
+      <div class="fb"><b>${esc(x.n)}</b><small>${esc(x.d)}${isOwner()?' · '+esc(fieldOf(x.f).n):''}</small></div></div>`).join('')||emptyBox(D.qEmpty||'')}</div>
+  </section>`;
+}
+function cardToday(){
+  const f=myField(), list=((A.dash||{}).today||[]).filter(x=>isOwner()||x.f===f.k);
+  return `<section class="card stack">
+    <div class="head">${esc(D.today||'برنامهٔ امروز')}</div>
+    <div class="admlist">${list.map(x=>`<div class="admlirow">
+      <span class="ic">${ico('i-clock')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(x.t)}</b>
+        <small class="cap" style="display:block">${esc(x.d)}</small></span>
+      ${tag(x.b,'brand')}</div>`).join('')||emptyBox(D.todayEmpty||'برای امروز چیزی نمانده')}</div>
+  </section>`;
+}
+function cardAlerts(){
+  const f=myField(), D2=A.dash||{};
+  let rows=[];
+  if(isOwner()){
+    rows=(D2.ownerAlerts||[]).map(x=>({n:x.n,d:x.d,f:x.f}))
+      .concat(FIELDS.filter(x=>x.k!=='owner'&&x.health<85).map(x=>({n:'حوزهٔ '+x.n+' '+(D.alertFieldLow||''),
+        d:(D.alertHealth||'')+' '+fa(x.health)+'٪ · '+fa(x.open)+' '+(D.openWork||''),f:x.k})));
+  } else {
+    rows=qOpen().filter(it=>it.pri==='بالا').map(it=>({n:it.n,d:it.due+' · '+it.code,f:it.f}));
+    if(f.health<85) rows.push({n:(D.alertHealth||'سلامت حوزه')+' '+fa(f.health)+'٪',d:D.alertGoal||'هدف ۸۵٪ است',f:f.k});
+  }
+  return `<section class="card stack">
+    <div class="row"><div class="head">${esc(D.alert||'نیاز به توجه')}</div><span class="sp"></span>
+      <span class="tag warn">${esc(fa(rows.length))}</span></div>
+    <div class="admlist">${rows.map(x=>`<div class="admlirow">
+      <span class="ic">${ico('i-bell')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(x.n)}</b>
+        <small class="cap" style="display:block">${esc(x.d)}</small></span>
+      ${x.f&&isOwner()?`<button class="tag brand" data-who="${esc(leadK(x.f))}">${esc(fieldOf(x.f).n)}</button>`:''}</div>`).join('')||emptyBox(D.alertEmpty||'')}</div>
+  </section>`;
+}
+function cardMoney(){
+  const rows=((A.dash||{}).money||[]), sp=(A.dash||{}).moneySpark||{};
+  return `<section class="card stack">
+    <div class="row"><div class="head">${esc(D.money||'مالی امروز')}</div><span class="sp"></span>
+      <button class="btn sm quiet" data-sec="reports">${ico('i-chart')}${esc(D.reportsToday||'گزارش')}</button></div>
+    <div class="admkpi">${rows.map(r=>`<div class="k"><small>${esc(r[0])}</small><b>${esc(r[1])}</b></div>`).join('')}</div>
+    ${spark(sp.v||[],sp.n||'')}
+    <p class="cap">${esc(D.moneyNote||'')}</p>
+  </section>`;
+}
+function dock(){
+  const own=isOwner(), lead=isLead();
+  const items=own?[
+      ['i-chart', D.reportsToday||'گزارش امروز', 'data-sec="reports"'],
+      ['i-plus',  secOf('newev').n, 'data-sec="newev"'],
+      ['i-users', D.setLead||'تعیین سرپرست', `data-setlead="${esc(FIELDS.filter(f=>f.k!=='owner').sort((a,b)=>a.health-b.health)[0].k)}"`],
+      ['i-download', D.backup||'پشتیبان دستی', 'data-backup']]
+    :lead?[
+      ['i-inbox', D.fieldQueue||'کارتابل حوزه', 'data-qgo="1"'],
+      ['i-plus', D.addSpec||'افزودن کارشناس', `data-addspec="${esc(myField().k)}"`],
+      ['i-chart', D.fieldReports||'گزارش حوزه', 'data-sec="reports"'],
+      ['i-send', D.broadcast||'اطلاع‌رسانی حوزه', 'data-broadcast="1"']]
+    :[
+      ['i-inbox', D.q||'کارتابل', 'data-qgo="1"'],
+      ['i-doc', secOf('forms').n, 'data-sec="forms"'],
+      ['i-pen', D.quickNote||'یادداشت سریع', 'data-note="1"'],
+      ['i-chart', 'کارنامهٔ من', 'data-week="1"']];
+  return `<div class="dock">${items.map(x=>`<button class="dbtn" ${x[2]}>${ico(x[0])}<span>${esc(x[1])}</span></button>`).join('')}</div>`;
+}
 function vDash(){
-  const D=A.dash||{};
-  const stats=(A.status||[]).map(s=>`<button class="admstat" data-sec="${esc(s.k)}">
-      <span class="ic" aria-hidden="true">${ico(s.i)}</span>
-      <span class="tx"><small>${esc(s.n)}</small><b>${esc(s.v)}</b><small>${esc(s.d)}</small></span></button>`).join('');
-  const tasks=(D.tasks||[]).map(t=>`<button class="admtask" data-sec="${esc(t.k)}">
-      <span class="ic" aria-hidden="true">${ico(t.i)}</span>
-      <span class="tx"><b>${esc(t.s)}</b><small>${esc(t.d)}</small></span>
-      <span class="tag brand">${esc(t.b)}</span></button>`).join('');
-  const kpi=(D.kpi||[]).map(k=>`<div class="k"><small>${esc(k.n)}</small><b>${esc(k.v)}</b>
-      <small>${esc(k.d||'')}</small>${k.up?`<span class="up">▲ ${esc(W.trend||'روند')}</span>`:''}</div>`).join('');
-  const li=(arr,kind)=>(arr||[]).map(x=>`<div class="admlirow">
-      <span class="ic">${ico(kind)}</span><span class="sp"><b style="font-size:var(--fs-sub)">${esc(x.t)}</b>
-      <small class="cap" style="display:block">${esc(x.d)}</small></span>
-      ${x.k?`<button class="tag brand" data-sec="${esc(x.k)}">${esc(x.b)}</button>`:tag(x.b,'')}</div>`).join('');
-  const tr=D.trend||{bars:[],days:[]};
-  return `
-  <div class="admstats">${stats}</div>
-  <div class="admgrid">
-    <section class="card stack">
-      <div class="row"><div class="head">${esc(W.tasks||'کارهای نوبت تو')}</div><span class="sp"></span>
-        <button class="btn sm quiet" data-sec="events">${ico('i-calendar')}${esc(secOf('events').n)}</button></div>
-      <div class="admtasks">${tasks}</div>
-      <hr class="hr"/>
-      <div class="head">${esc(W.kpi||'عددهای امروز')}</div>
-      <div class="admkpi">${kpi}</div>
-    </section>
-    <section class="card stack">
-      <div class="head">${esc(tr.n||'')}</div>
-      ${bars(tr.bars||[],true)}
-      <div class="admbarsx">${(tr.days||[]).map(d=>`<span>${esc(d)}</span>`).join('')}</div>
-      <hr class="hr"/>
-      <div class="head">${esc(W.today||'برنامهٔ امروز')}</div>
-      <div class="admli">${li(D.today,'i-clock')}</div>
-      <hr class="hr"/>
-      <div class="head">${esc(W.alert||'نیاز به توجه')}</div>
-      <div class="admli">${li(D.alerts,'i-bell')}</div>
-    </section>
+  const mid=isOwner()?cardFields()+cardTeam()
+    :isLead()?cardTeam()+cardToday()
+    :cardToday()+cardWeek();
+  const side=isOwner()?cardMoney()+cardAlerts()+cardToday()
+    :isLead()?cardAlerts()+cardWeek()
+    :cardAlerts();
+  return `<div class="dashwrap">
+    ${viewStrip()}${hero()}${dock()}${cardQueue()}
+    <div class="admgrid">${mid}${side}</div>
+    ${cardFeed()}
   </div>`;
 }
 
@@ -440,8 +686,12 @@ function sheetName(){return L.askCert}
 
 /* ── تنظیمات ───────────────────────────────────────────────────────────── */
 function vSettings(){
-  const ST=A.settings||{}, g=S.setG||'texts';
-  const groups=(ST.groups||[]).map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
+  const ST=A.settings||{}, own=isOwner();
+  if(!own) S.setF=myField().k;
+  let g=S.setG||'texts';
+  if(!own&&g!=='access') g='access';
+  const list=(ST.groups||[]).filter(x=>own||x.k==='access');
+  const groups=list.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
       ${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
   const group=(ST.groups||[]).find(x=>x.k===g)||{n:'',s:''};
   let inner='';
@@ -452,17 +702,42 @@ function vSettings(){
         <input class="input" data-text="${esc(t.k)}" value="${esc(txtDef(t.k,t.v))}"/></div>`).join('')+
       `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`;
   } else if(g==='access'){
-    const pr=(S.permRole&&roleOf(S.permRole).k===S.permRole)?S.permRole:S.role;
+    const fk=(S.setF&&fieldOf(S.setF).k===S.setF)?S.setF:'edu', f=fieldOf(fk);
+    const l=personOf(leadK(fk)), t=teamOf(fk);
     inner=`<div class="head">${esc(PERMS.title||'')}</div><p class="cap">${esc(PERMS.note||'')}</p>
-      <div class="row tight"><span class="cap">${esc(W.role||'نقش من')}: ${esc(roleOf(S.role).n)}</span>
-        <button class="chip" data-rolesheet>${ico('i-shield')}${esc(L.roleSwitch)}</button></div>
-      <div class="admlist">${ROLES.map(r=>`<button class="admrole ${pr===r.k?'on':''}" data-permrole="${esc(r.k)}">
-        <span class="ic">${ico(r.i)}</span><span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
-        ${r.k===S.role?tag(W.role||'نقش من',''):''}
-        <span class="cap">${esc(fa(permsOf(r.k).length))}</span></button>`).join('')}</div>
+      <div class="admfilters">${FIELDS.filter(x=>x.k!=='owner').map(x=>`<button class="tag ${fk===x.k?'on':''}"
+        data-setF="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div>
+      <div class="fslead">
+        <span class="ic">${ico('i-shield')}</span>
+        <span class="sp"><b>${esc(D.lead||'سرپرست')}: ${esc(l.n)}</b>
+          <small>${esc(f.s)}</small></span>
+        ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(fk)}">${esc(D.changeLead||'تعیین سرپرست')}</button>`:''}
+      </div>
+      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))})</div>
+        <span class="sp"></span>
+        ${isOwner()||isLead()?`<button class="btn sm tint" data-addspec="${esc(fk)}">${ico('i-plus')}${esc(D.addSpec||'افزودن کارشناس')}</button>`:''}</div>
+      <div class="tlist">${t.map(pp=>`<div class="trow">
+          <span class="va">${esc(String(pp.n||' ').slice(0,1))}</span>
+          <div class="tt"><b>${esc(pp.n)}</b><small>${esc(fa(pp.open))} ${esc(D.qOpen||'')} · ${esc(fa(pp.done))} ${esc(D.qDone||'')}</small></div>
+          <span class="tload"><i style="width:${pp.load}%"></i></span>
+          <button class="btn sm quiet" data-specperm="${esc(pp.k)}">${esc(D.specPerms||'دسترسی‌ها')}</button></div>`).join('')||emptyBox(D.qEmpty||'')}</div>
       <hr class="hr"/>
-      <div class="head">${esc('دسترسی‌های '+roleOf(pr).n)}</div>
-      ${roleNote(pr)}`;
+      <div class="head">${esc('دسترسی‌های '+f.n)}</div>
+      <p class="cap">${esc(PERMS.note||'')}</p>
+      <div class="admmatrix"><table>
+        <thead><tr><th>${esc('دسترسی')}</th><th>${esc(D.permLeadCol||'سرپرست حوزه')}</th><th>${esc(D.permSpecCol||'کارشناس')}</th></tr></thead>
+        <tbody>${permRowsOf(fk).map(r=>{
+          const on=specPermsOf(fk).indexOf(r[0])>-1;
+          return `<tr><td>${esc(r[1])}</td>
+            <td class="yn yes">✓</td>
+            <td class="yn">${isOwner()||isLead()
+              ?`<span class="switch ${on?'on':''}" data-fperm="${esc(r[0])}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[1])}"></span>`
+              :tag(on?'دارد':'ندارد',on?'ok':'')}</td></tr>`}).join('')}</tbody></table></div>
+      <hr class="hr"/>
+      <div class="head">${esc(PERMS.ownerTitle||D.ownerPerms||'فقط مالک')}</div>
+      <p class="cap">${esc(PERMS.ownerNote||'')}</p>
+      <div class="admlist">${(OWNER_PERMS||[]).map(x=>`<div class="admsw">
+        <span class="sp">${esc(x[1])}</span>${tag(D.ownerOnly||'فقط مالک','accent')}</div>`).join('')}</div>`;
   } else {
     const rows=((ST.rows||{})[g])||[];
     inner=`<div class="head">${esc(group.n)}</div><p class="cap">${esc(group.s||'')}</p>
@@ -481,29 +756,11 @@ function vSettings(){
   }
   return `<section class="card stack">
     <div class="row"><div class="head">${esc(ST.lead||'')}</div><span class="sp"></span>
-      <span class="cap">${esc(fa((ST.groups||[]).length))} ${esc('گروه')}</span></div>
+      <span class="cap">${esc(own?fa((ST.groups||[]).length)+' گروه':(D.fieldSettings||'حوزهٔ من'))}</span></div>
     <div class="admfilters">${groups}</div>
     <div class="admset">${inner}</div>
   </section>`;
 }
-function roleNote(pr){
-  const mine=permsOf(pr), editable=can('sys_admins');
-  const cat=(PERMS.cats||[]).map(c=>{
-    const rows=PROWS.filter(p=>p[2]===c);
-    return `<div class="admsetgroup"><div class="gh"><span class="ic">${ico('i-shield')}</span>
-      <span class="tx"><b>${esc(c)}</b><small>${esc(fa(rows.length))} ${esc('دسترسی')}</small></span></div>
-      ${rows.map(p=>{const k=p[0], sup=SUPER.indexOf(k)>-1, on=mine.indexOf(k)>-1;
-        /* سوپرادمین همه‌چیز را دارد و بسته نمی‌شود؛ چهار دسترسی ویژه هم
-           به نقش دیگری داده نمی‌شود. بقیه تیک‌زدنی است. */
-        const locked=!editable||sup||pr==='super';
-        return `<div class="admsw"><span class="sp">${esc(p[1])}${sup?` <span class="tag accent">${esc(W.superOnly||'')}</span>`:''}
-          ${sup&&pr!=='super'?`<small>${esc('فقط سوپرادمین')}</small>`:''}</span>
-          ${locked?`<span class="tag ${on?'ok':''}">${esc(on?(W.yes||'دارد'):(W.no||'ندارد'))}</span>`
-                 :`<span class="switch ${on?'on':''}" data-perm="${esc(k)}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(p[1])}"></span>`}</div>`}).join('')}
-    </div>`}).join('');
-  return `${cat}<p class="cap">${esc(pr==='super'?L.roleAll:editable?L.roleEdit:L.roleView)}</p>`;
-}
-
 /* ══ ورقه‌ها ═══════════════════════════════════════════════════════════ */
 function sheetEv(id){
   const e=evOf(id); if(!e) return;
@@ -572,30 +829,94 @@ function sheetRep(k){
       ${btn(T.export||'خروجی اکسل','data-rexport','i-download')}
       <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`);
 }
-function sheetRole(){
-  const list=ROLES.map(r=>`<button class="admrole ${S.role===r.k?'on':''}" data-role="${esc(r.k)}">
-    <span class="ic">${ico(r.i)}</span><span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
-    <span class="cap">${esc(fa(permsOf(r.k).length))}</span></button>`).join('');
+function sheetWho(){
+  const groups=[{k:'owner',n:'مالک',i:'i-medal'}].concat(FIELDS.filter(f=>f.k!=='owner'));
+  const rows=groups.map(g=>{
+    const list=allP().filter(p=>p.f===g.k);
+    if(!list.length) return '';
+    return `<div class="whogroup"><div class="head">${ico(g.i)} ${esc(g.n)}</div>
+      ${list.map(p=>`<button class="admrole ${S.who===p.k?'on':''}" data-who="${esc(p.k)}">
+        <span class="va">${esc(String(p.n||' ').slice(0,1))}</span>
+        <span class="tx"><b>${esc(p.n)}</b><small>${esc(p.lv)} · ${esc(g.n)}</small></span>
+        ${S.who===p.k?tag(D.you||'','brand'):`<span class="cap">${esc(fa(p.open))} ${esc(D.qOpen||'')}</span>`}
+      </button>`).join('')}</div>`}).join('');
   sheetImpl('shAdm',`<div class="admsheet">
-    <div class="row"><div class="head">${esc(W.role1||'نقش‌ها')}</div><span class="sp"></span>
+    <div class="row"><div class="head">${esc(D.mine||'نمای من')}</div><span class="sp"></span>
       ${btn(W.close||'بستن','data-close')}</div>
-    <p class="cap">${esc('هر نقش، چند دسترسی دارد. بخشی که نقش تو اجازه ندارد، قفل باز می‌شود.')}</p>
-    <div class="admlist">${list}</div></div>`);
+    <p class="cap">${esc('هر کس داشبورد و کارتابل خودش را دارد؛ یکی را بردار و ببین.')}</p>
+    ${rows}</div>`);
+}
+function sheetGive(id){
+  const it=qAll().find(x=>x.id===id); if(!it) return;
+  const list=(it.f==='owner'?allP():teamOf(it.f)).filter(p=>p.k!==me().k);
+  sheetImpl('shAdm',`<div class="admsheet">
+    <div class="row"><div class="head">${esc(D.qGive||'واگذار')}</div><span class="sp"></span>
+      ${btn(W.close||'بستن','data-close')}</div>
+    <p class="cap">${esc(it.n)} · ${esc(fieldOf(it.f).n)}</p>
+    <div class="admlist">${list.map(p=>`<button class="admrow2" data-giveto="${esc(p.k)}" data-qid="${esc(it.id)}">
+      <span class="va">${esc(String(p.n||' ').slice(0,1))}</span>
+      <span class="tx"><b>${esc(p.n)}</b><small>${esc(p.lv)} · ${esc(fa(p.open))} ${esc(D.qOpen||'')}</small></span>
+      ${ico('i-chev-left','chev')}</button>`).join('')||emptyBox(D.qEmpty||'')}</div></div>`);
+}
+/* دسترسی‌های یک کارشناس: تیک‌های حوزهٔ خودش به‌علاوهٔ دسترسی‌های مشترک */
+function sheetSpecPerm(personKey){
+  const p=personOf(personKey); if(!p) return;
+  const base=specPermsOf(p.f).slice(), extra=extraOf(personKey).slice();
+  const extraRows=PROWS.filter(r=>(r[2]==='any'||r[2]===p.f)&&base.indexOf(r[0])<0);
+  sheetImpl('shAdm',`<div class="admsheet">
+    <div class="row"><div class="head">${esc(D.specPerms||'دسترسی‌ها')}</div><span class="sp"></span>
+      ${btn(W.close||'بستن','data-close')}</div>
+    <p class="cap">${esc(p.n)} · ${esc(fieldOf(p.f).n)} · ${esc(p.lv)}</p>
+    <div class="head">${esc('دسترسی‌های پایه')}</div>
+    <div class="admchips">${base.map(k=>{const r=PROWS.find(x=>x[0]===k)||['',k]; return tag(r[1],'ok')}).join('')||tag('هیچ','')}</div>
+    <div class="head">${esc('دسترسی ویژه')}</div>
+    <div class="admlist">${extraRows.map(r=>`<div class="admsw"><span class="sp">${esc(r[1])}</span>
+      <span class="switch ${extra.indexOf(r[0])>-1?'on':''}" data-extra="${esc(r[0])}" data-extraFor="${esc(personKey)}"
+        role="switch" aria-checked="${extra.indexOf(r[0])>-1?'true':'false'}" aria-label="${esc(r[1])}"></span></div>`).join('')||emptyBox(D.qEmpty||'')}</div>
+    <p class="cap">${esc('پایه‌ها را سرپرست حوزه برای همهٔ کارشناسان تیک می‌زند؛ این‌جا فقط ویژه‌های همین نفر است.')}</p></div>`);
+}
+/* افزودن کارشناس: از میان کاربران همان سامانه */
+function sheetAddSpec(fk){
+  const f=fieldOf(fk);
+  const used=allP().map(p=>p.n);
+  const list=memList().filter(m=>used.indexOf(m.n)<0);
+  sheetImpl('shAdm',`<div class="admsheet">
+    <div class="row"><div class="head">${esc(D.addSpec||'افزودن کارشناس')}</div><span class="sp"></span>
+      ${btn(W.close||'بستن','data-close')}</div>
+    <p class="cap">${esc('حوزه: '+f.n+' · دسترسی‌های پیش‌فرض کارشناس‌های همین حوزه می‌نشیند.')}</p>
+    <div class="admlist">${list.map(m=>`<button class="admrow2" data-newspec="${esc(m.id)}">
+      <span class="va">${esc(m.n.slice(0,1))}</span>
+      <span class="tx"><b>${esc(m.n)}</b><small>${esc(m.code)} · ${esc(m.tags.join('، '))}</small></span>
+      ${tag('کارشناس','brand')}</button>`).join('')||emptyBox(D.qEmpty||'')}</div></div>`);
+}
+/* تعیین سرپرست حوزه: مالک یکی را می‌گذارد */
+function sheetSetLead(fk){
+  const f=fieldOf(fk);
+  const list=allP().filter(p=>p.f!=='owner'&&p.k!==leadK(fk));
+  sheetImpl('shAdm',`<div class="admsheet">
+    <div class="row"><div class="head">${esc(D.setLead||'تعیین سرپرست')}</div><span class="sp"></span>
+      ${btn(W.close||'بستن','data-close')}</div>
+    <p class="cap">${esc('حوزه: '+f.n)}</p>
+    <div class="admlist">${list.map(p=>`<button class="admrow2" data-setleadTo="${esc(p.k)}" data-leadFor="${esc(fk)}">
+      <span class="va">${esc(String(p.n||' ').slice(0,1))}</span>
+      <span class="tx"><b>${esc(p.n)}</b><small>${esc(fieldOf(p.f).n)} · ${esc(p.lv)}</small></span>
+      ${ico('i-chev-left','chev')}</button>`).join('')||emptyBox(D.qEmpty||'')}</div></div>`);
 }
 
 /* ══ رندر ══════════════════════════════════════════════════════════════ */
 const VIEWS={dash:vDash, newev:vNewev, events:vEvents, users:vUsers, forms:vForms,
   reports:vReports, cert:vCert, settings:vSettings};
 function body(){
-  const need=GATE[S.sec];
-  if(!can(need)) return `<section class="card stack">${emptyBox(W.locked||'')}
+  if(!canSec(S.sec)) return `<section class="card stack">${emptyBox(W.locked||'')}
     <p class="cap" style="text-align:center">${esc(W.lockedLead||'')}</p>
-    <div class="row" style="justify-content:center">${btn('نقش‌ها','data-rolesheet','i-shield')}</div></section>`;
+    <div class="row" style="justify-content:center">
+      ${btn(W.view||'نمای کاربر','data-sec="dash"','i-grid')}
+      ${btn(D.mine||'نمای من','data-who-sheet','i-shield')}</div></section>`;
   const v=VIEWS[S.sec];
   return v?v():emptyBox(T.none);
 }
 function renderBody(){$('#admBody').innerHTML=body()}
-function render(){renderNav(); renderBar(); renderBody();
+function render(){ if(!canSec(S.sec)) S.sec='dash'; renderNav(); renderBar(); renderBody();
   const s=secOf(S.sec);
   document.title=(S.sec==='dash'?'نورا · پنل مدیران':'پنل مدیران · '+s.n)}
 function go(k){
@@ -615,8 +936,48 @@ document.addEventListener('click',e=>{
   const t=e.target; if(!t||!t.closest) return;
   const q=s=>t.closest(s);
 
-  const rs=q('[data-rolesheet]'); if(rs){sheetRole(); return}
-  const sec=q('[data-sec]'); if(sec){go(sec.dataset.sec); return}
+  /* ── شخص و کارتابل ── */
+  const ws2=q('[data-who-sheet]'); if(ws2){sheetWho(); return}
+  const wh=q('[data-who]'); if(wh&&wh.dataset.who){S.who=wh.dataset.who; S.sec='dash'; S.qf='all'; save();
+    render(); toast('داشبورد '+me().n+' · '+me().lv); return}
+  const qf2=q('[data-qf]'); if(qf2){S.qf=qf2.dataset.qf; save(); renderBody(); return}
+  const qd=q('[data-qdone]'); if(qd){const id=qd.dataset.qdone;
+    S.qdone=(S.qdone||[]).indexOf(id)>-1?(S.qdone||[]).filter(x=>x!==id):(S.qdone||[]).concat([id]);
+    save(); renderBody(); toast(qDone(id)?(D.doneMsg||'انجام شد'):(D.backToQueue||'به کارتابل برگشت')); return}
+  const qg=q('[data-qgive]'); if(qg){sheetGive(qg.dataset.qgive); return}
+  const gt=q('[data-giveto]'); if(gt){S.qgive[gt.dataset.qid]=gt.dataset.giveto; save();
+    sheetImpl('shAdm',''); closeSheets(); renderBody();
+    toast((D.givenTo||'واگذار شد به')+' '+personOf(gt.dataset.giveto).n); return}
+  const qgo=q('[data-qgo]'); if(qgo){const el=$('.qcard'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); return}
+  const nb=q('[data-note]'); if(nb){toast(D.quickNoteMsg||'یادداشت سریع باز می‌شود'); return}
+  const wk2=q('[data-week]'); if(wk2){renderBody(); toast(D.myWeek||'کارنامهٔ من'); return}
+  const bc=q('[data-broadcast]'); if(bc){toast(D.broadcastMsg||'اطلاع‌رسانی حوزه ساخته می‌شود'); return}
+  /* ── سرپرست و کارشناس ── */
+  const sl=q('[data-setlead]'); if(sl){sheetSetLead(sl.dataset.setlead); return}
+  const sl2=q('[data-setleadto]'); if(sl2){S.leads[sl2.dataset.leadfor]=sl2.dataset.setleadto; save();
+    closeSheets(); render(); toast((D.leadSet||'سرپرست عوض شد')+' · '+personOf(sl2.dataset.setleadto).n); return}
+  const asp=q('[data-addspec]'); if(asp){S.addF=asp.dataset.addspec; save(); sheetAddSpec(S.addF); return}
+  const nsp=q('[data-newspec]'); if(nsp){const id=nsp.dataset.newspec, m=memList().find(x=>x.id===id); if(!m) return;
+    const fk=isOwner()?((S.addF&&fieldOf(S.addF).k===S.addF)?S.addF:myField().k):myField().k;
+    S.extra=(S.extra||[]).concat([{k:'x'+m.id, n:m.n, f:fk, lv:'کارشناس', open:0, done:0, late:0, avg:0, load:12, score:70, since:'مهر ۱۴۰۴'}]);
+    save(); closeSheets(); renderBody(); toast((D.addedSpec||'کارشناس اضافه شد')+' · '+m.n); return}
+  const sp2=q('[data-specperm]'); if(sp2){sheetSpecPerm(sp2.dataset.specperm); return}
+  const ex=q('[data-extra]'); if(ex){const p2=ex.dataset.extrafor, k=ex.dataset.extra;
+    const list=extraOf(p2), i=list.indexOf(k);
+    if(i>-1) list.splice(i,1); else list.push(k);
+    S.specExtra[p2]=list.slice(); save(); sheetSpecPerm(p2); toast((i>-1?'برداشته شد':'داده شد')+': '+(PROWS.find(r=>r[0]===k)||['',''])[1]); return}
+  const spf=q('[data-fperm]'); if(spf){
+    if(!(isOwner()||isLead())){toast(W.locked||''); return}
+    const fk=(S.setF&&fieldOf(S.setF).k===S.setF)?S.setF:myField().k, k=spf.dataset.fperm;
+    const list=specPermsOf(fk), i=list.indexOf(k);
+    if(i>-1) list.splice(i,1); else list.push(k);
+    S.specPerms[fk]=list.slice(); save(); renderBody();
+    toast((PROWS.find(r=>r[0]===k)||['','دسترسی'])[1]+(i>-1?' برداشته شد':' داده شد')); return}
+  const sf=q('[data-setF]'); if(sf){S.setF=sf.dataset.setf; save(); renderBody(); return}
+  /* ── بخش‌ها ── */
+  const sec=q('[data-sec]'); if(sec){
+    if(sec.dataset.locked==='1'){toast(W.locked||''); return}
+    go(sec.dataset.sec); return}
   const evt=q('[data-evtab]'); if(evt){S.evTab=evt.dataset.evtab; save(); if(S.evId) sheetEv(S.evId); return}
   const ev=q('[data-ev]'); if(ev){S.evId=ev.dataset.ev; S.evTab=S.evTab||'info'; save(); sheetEv(S.evId); return}
   const ef=q('[data-evF]'); if(ef){S.evF=ef.dataset.evf; save(); renderBody(); return}
@@ -630,17 +991,6 @@ document.addEventListener('click',e=>{
   const cw=q('[data-cwho]'); if(cw){S.cert.who=cw.dataset.cwho; save(); renderBody(); return}
   const cp=q('[data-cpub]'); if(cp){S.cert.pub=cp.dataset.cpub; save(); renderBody(); return}
   const se=q('[data-setg]'); if(se){S.setG=se.dataset.setg; save(); renderBody(); return}
-  const pml=q('[data-permrole]'); if(pml){S.permRole=pml.dataset.permrole; save(); renderBody(); return}
-  const rl=q('[data-role]'); if(rl){S.role=rl.dataset.role; save(); render();
-    toast('نقش: '+roleOf(S.role).n); if($('#shAdm').classList.contains('on')) sheetRole(); return}
-  const pm=q('[data-perm]'); if(pm){
-    if(!can('sys_admins')){toast(W.locked||''); return}
-    const pr=(S.permRole&&roleOf(S.permRole).k===S.permRole)?S.permRole:S.role;
-    const mine=permsOf(pr), k=pm.dataset.perm, i=mine.indexOf(k);
-    const label=pm.getAttribute('aria-label')||'دسترسی';
-    if(i>-1) mine.splice(i,1); else mine.push(k);
-    S.perms[pr]=mine.slice(); save(); renderBody();
-    toast(label+(i>-1?' برداشته شد':' داده شد')); return}
   const tg=q('[data-tog]'); if(tg){const key=tg.dataset.tog+'|'+tg.dataset.toglabel;
     const cur=togDef(tg.dataset.tog, tg.dataset.toglabel, tg.dataset.togdef==='1');
     const on=!cur; S.toggles[key]=on; save();
