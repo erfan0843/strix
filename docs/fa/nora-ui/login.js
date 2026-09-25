@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   نورا — صفحهٔ ورود
+   نورا، صفحهٔ ورود
    ──────────────────────────────────────────────────────────────────────────
    یک کار: شماره و کد امنیتی می‌گیری، بعد کد چهاررقمی می‌آید و حساب باز می‌شود.
    ورود اصلی همین است: کد را سفیر بله می‌فرستد.
@@ -535,6 +535,9 @@ document.addEventListener('keydown',e=>{
 function boot(){
   const u=store.get(SESS_KEY);
   const pend=store.get(PEND_KEY);
+  /* پیوند دعوت دوست: کد خودش در همان کادر می‌نشیند، بی کپی‌کاری */
+  const inv=new URLSearchParams(location.search).get('inv');
+  if(inv&&!S.invite) S.invite=invNorm(inv);
   if(u&&u.name) S.step='already';
   else if(pend&&pend.step==='code'&&(pend.mobile&&isMob(pend.mobile))){ S.mobile=pend.mobile; S.step='code' }
   const eye=$('#lgEye'); if(eye) eye.textContent=L.eye||'گروه فرهنگی خط زندگی';

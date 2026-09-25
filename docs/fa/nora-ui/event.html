@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>نورا — رویدادها و برنامه‌ها</title>
+<title>نورا · رویدادها و برنامه‌ها</title>
 <meta name="description" content="همهٔ رویدادها و برگزارشده‌ها با صافی و خرید بازپخش"/>
 <meta property="og:type" content="website"/>
-<meta property="og:site_name" content="نورا — گروه فرهنگی خط زندگی"/>
+<meta property="og:site_name" content="نورا · گروه فرهنگی خط زندگی"/>
 <link rel="canonical" href="https://lifeline1.ir/event.html"/>
-<meta property="og:title" content="رویدادهای نورا — خط زندگی"/>
+<meta property="og:title" content="رویدادهای نورا · خط زندگی"/>
 <meta property="og:description" content="رویدادهای پیش‌رو و برگزارشده، با صافی و بازپخش."/>
 <meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
 <meta property="og:locale" content="fa_IR"/>
@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="manifest" href="manifest.webmanifest"/>
 
-<meta name="description" content="همهٔ رویدادها، کارگاه‌ها و برنامه‌های گروه فرهنگی خط زندگی — تقویم ماهانه، فهرست و دسته‌بندی"/>
+<meta name="description" content="همهٔ رویدادها، کارگاه‌ها و برنامه‌های گروه فرهنگی خط زندگی؛ تقویم ماهانه، فهرست و دسته‌بندی"/>
 <meta name="theme-color" content="#F5F3EE"/>
 <script>/* تم پیش از نخستین رنگ‌آمیزی می‌نشیند تا در حالت شب، سفیدیِ اولیه دیده نشود */
 (function(){try{var v=localStorage.getItem('nora-theme');
@@ -25,9 +25,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=30"/>
-<link rel="stylesheet" href="nora.css?v=30"/>
-<link rel="stylesheet" href="events.css?v=30"/>
+<link rel="stylesheet" href="glass.css?v=31"/>
+<link rel="stylesheet" href="nora.css?v=31"/>
+<link rel="stylesheet" href="events.css?v=31"/>
 <style>
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
@@ -100,7 +100,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
-<!-- ══ مجموعهٔ آیکون نورا — شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+<!-- ══ مجموعهٔ آیکون نورا · شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
 
 <symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
 
@@ -267,8 +267,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=30"></script>
-<script src="ui.js?v=30"></script>
+<script src="data.js?v=31"></script>
+<script src="ui.js?v=31"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ اختصاصی رویداد و بستهٔ رسانه
@@ -455,7 +455,7 @@ function render(){
     <div class="stack tight">
       <div class="srow"><svg class="i"><use href="#i-pen"/></svg><span class="sp">۱) فرم ثبت‌نام را پر کن</span><b>۳ دقیقه</b></div>
       <div class="srow"><svg class="i"><use href="#i-wallet"/></svg><span class="sp">۲) پرداخت با نورا پی</span><b>${e.price?rialTxt(e.price):'رایگان'}</b></div>
-      ${e.price?`<div class="cap" style="margin:2px 3px 0">مدل‌های این رویداد: ${payModelsTxt(e.id)} — انتخاب هر کدام، دست خودت است.</div>`:''}
+      ${e.price?`<div class="cap" style="margin:2px 3px 0">مدل‌های این رویداد: ${payModelsTxt(e.id)} · انتخاب هر کدام، دست خودت است.</div>`:''}
       <div class="srow"><svg class="i"><use href="#i-check"/></svg><span class="sp">۳) کارت ورود و لینک جلسه می‌آید</span><b>پیامک</b></div>
     </div>
     <div class="copyrow" style="margin-top:12px"><code>lifeline1.ir/reg/${esc(String(e.id).toLowerCase())}</code>
@@ -478,7 +478,7 @@ function render(){
   <div class="evrail" id="related"></div>
 
   <footer class="hfoot" style="margin-top:18px">
-    <div><b>گروه فرهنگی خط زندگی</b> — تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
+    <div><b>گروه فرهنگی خط زندگی</b> · تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
     <div>۰۲۱–۸۸۸۸۱۲۳۴ · <a href="mailto:info@lifeline1.ir">info@lifeline1.ir</a></div>
     <div><a href="events.html">همهٔ رویدادها</a> · <a href="home.html">بازگشت به خانه</a> · © ۱۴۰۵</div>
   </footer>`;
@@ -542,7 +542,7 @@ function renderCta(){
           ? `<button class="btn ${preOn?'quiet':'primary'}" data-uipre="${esc(e.id)}">
                <svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
           : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
-             :`<a class="btn primary" id="reg" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' — رایگان':''}</a>`))}
+             :`<a class="btn primary" id="reg" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' · رایگان':''}</a>`))}
     <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
 }
 

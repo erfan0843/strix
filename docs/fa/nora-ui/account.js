@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   نورا — حساب من
+   نورا، حساب من
    ──────────────────────────────────────────────────────────────────────────
    یک صفحه، سه چیز:
      ۱) سرِ پروفایل، شبیه صفحهٔ حساب اپلی‌ها: جلد رنگی، نام، نشان وضعیت، سطح،
@@ -40,13 +40,8 @@ function dtParts(v){
   return m?{y:+m[1], m:+m[2], d:+m[3]}:null;
 }
 const dtTxt=t=>t?(t.y+'/'+String(t.m).padStart(2,'0')+'/'+String(t.d).padStart(2,'0')):'';
-const dtFa=t=>t?(faN(t.y)+'/'+faN(String(t.m).padStart(2,'0'))+'/'+faN(String(t.d).padStart(2,'0'))):'—';
 const myUp=()=>EVENTS.filter(e=>MY_UP.indexOf(e.id)>-1);
 const myPast=()=>PAST.filter(e=>MY_PAST.indexOf(e.id)>-1);
-/* شمارش روز و ساعت و دقیقه تا شروع رویداد؛ از ساعت خودِ دستگاه */
-function untilTxt(e){
-  const d=+String(e.dn||'').replace(/\D/g,'')||0; return d?faN(d)+' روز':'به‌زودی';
-}
 function cdParts(e){
   /* روز و ساعت و دقیقهٔ مانده؛ در پیش‌نمایش از شمارهٔ روز خود داده می‌آید */
   const days=+String(e.dn||'').replace(/\D/g,'')||0;
@@ -338,7 +333,7 @@ function panelUp(){
   const mine=myUp().map(e=>({e,past:false}));
   if(!mine.length) return card('پیش‌روی من',MY.lead||'',empty2('هنوز ثبت‌نامی نداری',MY.empty||''))+
     note('فهرست همهٔ رویدادها صفحهٔ خودش را دارد؛ این‌جا فقط مالِ خودت است.','i-calendar');
-  return notesBar()+card('پیش‌روی من',faN(mine.length)+' رویداد ثبت‌نام‌شده — '+esc(MY.lead||''),'i-calendar',
+  return notesBar()+card('پیش‌روی من',faN(mine.length)+' رویداد ثبت‌نام‌شده، '+esc(MY.lead||''),'i-calendar',
     cardsBox(mine)+`<p class="cap" style="margin:10px 3px 0">${esc(MY.inEvent||'')}</p>`)+
     trustLine('secure');
 }
@@ -416,6 +411,7 @@ function myEventSheet(id){
       <button class="btn sm primary" data-my-ticket="${esc(id)}">${ico('i-qr')} کارت ورود</button>
       <button class="btn sm quiet" data-my-ticket-dl="${esc(id)}">${ico('i-download')} دانلود بلیت</button>
       ${t.ok?chip('معتبر','ok'):(past?chip('بلیت مصرف شد'):chip('هنوز صادر نشده','warn'))}
+      ${past?'':`<button class="btn sm quiet" data-cancel="${esc(id)}">${ico('i-close')} لغو ثبت‌نام</button>`}
     </div>`);
   const locked=certLocked();
   const cert=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.cert||'گواهینامه')}</div>
@@ -424,7 +420,10 @@ function myEventSheet(id){
         <small>${esc(locked?(PAYINFO.debt||{}).lock||'بدهی نورا پی داری؛ گواهینامه تا تسویه دانلود نمی‌شود.'
           :(c.id?('سریال '+c.id):'با تأیید سرپرست صادر می‌شود'))}</small></span>
       ${locked?`<button class="btn sm primary" data-debtpay>${ico('i-wallet')} پرداخت بدهی</button>`
-        :(c.st==='ready'?`<button class="btn sm quiet" data-my-cert="${esc(id)}">${ico('i-download')} دانلود</button>`:'')}</div>`;
+        :(c.st==='ready'?`<button class="btn sm quiet" data-my-cert="${esc(id)}">${ico('i-download')} دانلود</button>
+          <button class="btn sm quiet" data-verify="${esc(c.id||'')}">${ico('i-qr')} استعلام سریال</button>
+          <button class="btn sm quiet" data-certreq="print">${ico('i-doc')} گواهی چاپی</button>`
+          :`<button class="btn sm quiet" data-certreq="special">${ico('i-medal')} گواهی ویژه</button>`)}</div>`;
   const off=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.off||'فایل‌های آفلاین')}</div>
     ${(inf.off||[]).map(o=>offRow(o,id)).join('')}
     <div class="row tight" style="margin-top:8px">
@@ -463,15 +462,47 @@ VS.events=function(t){
   return viewHead(t,(VTABS.find(x=>x.k===S.vtab)||{}).n||'',VTABS)+(body?body():'');
 };
 
+const IMINE=(A.invite||{});
+const inviteCode=()=>String(IMINE.code||'NL-7K2D');
+const inviteLink=code=>'account.html#invite='+String(code||inviteCode());
+const inviteUrl=()=>{ try{ return new URL(inviteLink(),location.href).href }catch(e){ return inviteLink() } };
+const invitees=()=>(IMINE.mine||[]);
+/* تب کد دعوت: کد خودت، دوستانی که آوردی، پاداشش */
+function inviteTab(){
+  const code=inviteCode(), list=invitees(), ok=list.filter(x=>x.st==='ok').length;
+  const need=+IMINE.need||3, left=Math.max(0,need-ok), pct=need?Math.min(100,Math.round(ok/need*100)):0;
+  const reward=faNum(+IMINE.reward||150);
+  return card('کد دعوت تو',esc(IMINE.lead||'هر که با کد تو بیاید، هر دو امتیاز می‌گیرید'),'i-send',
+      `<div class="invcode">${ico('i-send')}
+        <span class="tx"><b class="num" dir="ltr">${esc(code)}</b><small>همین کد را به دوستت بده</small></span>
+        <button class="btn sm quiet" data-copy="${esc(code)}" data-copy-msg="کد دعوت رونوشت شد">${ico('i-link')} رونوشت</button></div>
+       <div class="invlink">${ico('i-link')}<b class="num">${esc(inviteLink())}</b>
+        <button class="btn sm quiet" data-copy="${esc(inviteLink())}" data-copy-msg="پیوند دعوت رونوشت شد">رونوشت</button></div>
+       <div class="row" style="margin-top:12px">
+        <button class="btn primary" data-invite>${ico('i-send')} فرستادن برای دوست</button>
+        <span class="cap" style="align-self:center">هر دوست ${reward} امتیاز؛ سقف ماهانه ${faN(+IMINE.cap||10)} نفر</span></div>`) +
+    card('دوستانی که آوردی',list.length?faN(ok)+' دوست آمده · '+faN(left)+' تا مانده به پاداش بعدی':'هنوز کسی نیامده','i-users',
+      (list.length?list.map(x=>`<div class="srow invrow">${ico(x.st==='ok'?'i-check':'i-clock')}
+        <span class="sp">${esc(x.n)}<small>${esc(x.at||'')} · ${esc((IMINE.states||{})[x.st]||'')}</small></span>
+        ${chip(x.st==='ok'?'امتیاز رسید':'منتظر تأیید',x.st==='ok'?'ok':'warn')}</div>`).join('')
+        :empty2('کسی با کدت نیامده','کد را برای یک دوست بفرست؛ همین‌جا می‌نشیند.','i-users')) +
+      `<span class="meter big"><i style="width:${pct}%"></i></span>
+       <p class="cap" style="margin:6px 2px 0">${faN(ok)} از ${faN(need)} دوستِ پاداش این دوره · ${esc(IMINE.foot||'')}</p>`) +
+    card('چطور کار می‌کند','سه گام، بی کار اضافه','i-check',
+      `<div class="steps">${(IMINE.steps||[]).map(([n,i2,d2],ix)=>`<div class="step done">
+        <span class="dot">${ico(i2||'i-check','width:13px;height:13px')}</span>
+        <span class="tx"><b>${faN(ix+1)}. ${esc(n)}</b><small>${esc(d2)}</small></span></div>`).join('')}</div>`);
+}
+/* کارت فشردهٔ دعوت، ته تب امتیاز؛ تب خودش را باز می‌کند */
 function invitePanel(){
-  const code='NORA-4567', need=+POL.inviteNeed||2, done=1;
+  const list=invitees(), ok=list.filter(x=>x.st==='ok').length;
   return card('دعوت دوستان','هر دوست که با کد تو بیاید، هر دو امتیاز می‌گیرید','i-users',
     `<div class="srow">${ico('i-send')}
-      <span class="sp">کد دعوت تو<b class="num" style="display:block;font-size:15px;margin-top:3px">${esc(code)}</b></span>
-      <button class="btn sm quiet" data-copy="${esc(code)}">کپی</button></div>
+      <span class="sp">کد دعوت تو<b class="num" style="display:block;font-size:15px;margin-top:3px" dir="ltr">${esc(inviteCode())}</b></span>
+      <button class="btn sm quiet" data-copy="${esc(inviteCode())}" data-copy-msg="کد دعوت رونوشت شد">رونوشت</button></div>
      <div class="srow">${ico('i-users')}
-      <span class="sp">تا حالا ${faN(done)} دوست آمده · ${faN(Math.max(0,need-done))} تا مانده به پاداش</span>
-      <button class="btn sm quiet" data-invite>دعوت با پیوند</button></div>`);
+      <span class="sp">تا حالا ${faN(ok)} دوست آمده · ${faN(Math.max(0,(+IMINE.need||3)-ok))} تا مانده به پاداش</span>
+      <button class="btn sm quiet" data-ptab-go="invite">تب کد دعوت</button></div>`);
 }
 function clubTab(){
   const pts=+A.points||0, {cur,next}=lvl(), cap=POL.pointsCap||{};
@@ -505,9 +536,9 @@ function bookState(){
   return Object.assign({member:false, cstep:'form', form:{}, plan:'m', feeAt:'', feeNext:'',
     att:{}, voice:null, likes:{}, posts:[], chals:{}, entered:{}, seats:{}, tag:'پیشنهاد',
     joined:false, seat:false, pages:0, note:'', vote:'',
-    /* ابزارهای سرپرست: پین، مطلب در پنل‌گذاشته، فرم، آزمون */
-    sup:false, supStep:'home', pins:[], sent:[], forms:[], formDraft:null, formOn:'',
-    qz:[], qzDraft:null, qzOn:'', pinKind:'خبر'}, v||{});
+    sessions:0, picks:{}, quizAns:{}, formFills:{}, formDel:[], qzDel:[],
+    /* ابزارهای سرپرست: پین، مطلب در پنل‌گذاشته، آزمون */
+    sup:false, supStep:'home', pins:[], sent:[], qz:[], qzDraft:null, qzOn:'', pinKind:'خبر'}, v||{});
 }
 function bookSet(patch){ const v=Object.assign(bookState(),patch); try{localStorage.setItem(BC_KEY,JSON.stringify(v))}catch(e){} return v }
 /* ── باشگاه از خودِ داده می‌آید ───────────────────────────────────────── */
@@ -523,14 +554,6 @@ function clubMe(){
   return (CCLUB.board||[]).find(x=>x.me)||{n:name,l:'تازه‌وارهٔ باشگاه',s:+bc.sessions||0};
 }
 const clubPanelView=()=>S.ctab||(CTABS[0]||{}).k||'home';
-/* پیش‌نویس‌ها: با هر بازسازی فهرست، آنچه تایپ شده از دست نرود */
-function formDraftSync(){
-  const d=bookState().formDraft; if(!d) return null;
-  const fields=(d.fields||[]).map(f=>Object.assign({},f,{
-    l:String(($('#fl_'+f.k)||{}).value||f.l||''),
-    req:!!(($('[data-field-req="'+f.k+'"]')||{}).checked)}));
-  return Object.assign({},d,{n:String(($('#cfName')||{}).value||d.n||''), fields:fields});
-}
 function qzDraftSync(){
   const d=bookState().qzDraft; if(!d) return null;
   const qs=(d.qs||[]).map(q=>Object.assign({},q,{
@@ -539,7 +562,6 @@ function qzDraftSync(){
   return Object.assign({},d,{n:String(($('#qzName')||{}).value||d.n||''),
     min:+unFa(String(($('#qzMin')||{}).value||d.min||10)).replace(/\D/g,'')||10, qs:qs});
 }
-function clubSet(patch,msg){ bookSet(patch); render(); if(msg) toast(msg) }
 
 /* ── گام‌های ورود به باشگاه ─────────────────────────────────────────── */
 function clubSteps(cur){
@@ -635,7 +657,7 @@ function clubSupervisor(locked){
       ${bookState().sup
         ? `<button class="btn sm primary block" style="margin-top:10px" data-sup-tool="home">${ico('i-pin')} کارهای سرپرست</button>`
         : `<details class="npmore2" style="margin-top:10px"><summary>${ico('i-shield')} ابزارهای سرپرست</summary>
-            <p class="cap">اگر سرپرست همین باشگاهی، از اینجا پنل اعضا را بچین: پین کن، مطلب بگذار، فرم بساز و آزمون بگذار.</p>
+            <p class="cap">اگر سرپرست همین باشگاهی، از اینجا پنل اعضا را بچین: پین کن، مطلب بگذار، لینک فرم‌ها را بده و آزمون بگذار.</p>
             <button class="btn sm primary block" style="margin-top:8px" data-sup-on>${ico('i-key')} روشن کردن ابزار سرپرست</button>
             <small class="cap" style="display:block;margin-top:6px">این نسخهٔ نمایشی است؛ سرپرست واقعی را مدیر سامانه تعیین می‌کند.</small></details>`}
       <details class="npmore2" style="margin-top:10px"><summary>${ico('i-doc')} قوانین باشگاه</summary>
@@ -722,14 +744,16 @@ function clubHome(){
     card('گروه و لینک اختصاصی',esc((CCLUB.group||{}).lead||''),'i-users',
       `<div class="srow">${ico('i-users')}<span class="sp">${esc((CCLUB.group||{}).n||'گروه اعضا')}
           <small class="num" dir="ltr">${esc((CCLUB.group||{}).code||'')}</small></span>
-        <button class="btn sm quiet" data-copy="${esc((CCLUB.group||{}).link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>`)+
+        <button class="btn sm quiet" data-copy="${esc((CCLUB.group||{}).link||'')}" data-copy-msg="لینک گروه رونوشت شد">${ico('i-link')} رونوشت</button></div>
+      <div class="row" style="margin-top:9px"><button class="btn sm quiet" data-ptab-go="invite">${ico('i-send')} دعوت دوستان</button>
+        <span class="cap" style="align-self:center">هر دوستی که با کدت بیاید، هر دو امتیاز می‌گیرید</span></div>`) +
     clubSupEntry()+
     trustLine('club');
 }
 /* درِ ابزارهای سرپرست: سرپرست از همین‌جا پنل اعضا را می‌چیند */
 function clubSupEntry(){
   if(bookState().sup)
-    return card('کارهای سرپرست باشگاه','پین، مطلب، فرم و آزمون؛ همه از یک جا','i-pin',
+    return card('کارهای سرپرست باشگاه','پین، مطلب، لینک فرم و آزمون؛ همه از یک جا','i-pin',
       `<div class="srow">${ico('i-pin')}<span class="sp">پنل اعضا دست توست
           <small>هر چیزی بسازی، همان لحظه در پنل عضوها می‌نشیند</small></span>
         <button class="btn sm primary" data-sup-tool="home">باز کن</button></div>`+
@@ -737,7 +761,7 @@ function clubSupEntry(){
           <small>پین‌ها، فرم‌ها، آزمون‌ها و مطلب‌های در پنل‌گذاشته</small></span>
         <button class="btn sm quiet" data-sup-tool="home">نگات کنم</button></div>`);
   return card('سرپرست همین باشگاهی؟','ابزارهای سرپرست را روشن کن','i-shield',
-    `<p class="cap">با روشن‌کردن، دو لنگر در پنل باشگاه می‌آید: «پنل اعضا» و «کارهای سرپرست». آنجا می‌توانی پین کنی، مطلبی از سامانه در پنل بگذاری، فرم بسازی و لینکش را بدهی، یا آزمون بگذاری و نتیجه ببینی.</p>
+    `<p class="cap">با روشن‌کردن، دو لنگر در پنل باشگاه می‌آید: «پنل اعضا» و «کارهای سرپرست». آنجا می‌توانی پین کنی، مطلبی از سامانه در پنل بگذاری، لینک فرم‌های سامانه را بدهی، یا آزمون بگذاری و نتیجه ببینی.</p>
      <button class="btn primary block" style="margin-top:10px" data-sup-on>${ico('i-key')} روشن کردن ابزار سرپرست</button>
      <small class="cap" style="display:block;margin-top:6px">این نسخهٔ نمایشی است؛ سرپرست واقعی را مدیر سامانه تعیین می‌کند.</small>`);
 }
@@ -901,7 +925,7 @@ function clubTalk(){
 }
 /* ══ ابزارهای سرپرست باشگاه ══════════════════════════════════════════
    سرپرست از همین‌جا پنل اعضا را می‌چیند: چیزی را پین می‌کند، مطلبی که در
-   سامانه منتشر شده در پنل می‌گذارد، فرم می‌سازد و لینکش را می‌دهد و آزمون
+   سامانه منتشر شده در پنل می‌گذارد، لینک فرم‌های سامانه را می‌دهد و آزمون
    می‌سازد و نتیجهٔ اعضا را می‌بیند. هر چه بسازد زیر همان شماره‌ها ذخیره
    می‌شود و همان لحظه در پنل اعضا می‌نشیند. */
 const CTOOLS=CCLUB.supTools||{}, CTQ=CTOOLS.quiz||{}, CTF=CTOOLS.forms||{}, CTP=CTOOLS.pin||{};
@@ -918,10 +942,8 @@ const artIn=id=>(N.ARTICLES||[]).find(a=>a.id===id)||{};
 const pinIcon=k=>({'خبر':'i-bell','جلسه':'i-calendar','کتاب':'i-book','مطلب':'i-article',
   'مسابقه':'i-medal','فرم':'i-list','گروه':'i-users'})[k]||'i-pin';
 const supUrl=u=>!!u && /^(https?:\/\/|[\w-]+\.html)/.test(String(u).trim());
-function supCopy(u){ return supUrl(u)?String(u).trim():'' }
 const supCopyBtn=(u,cls)=>supUrl(u)?`<button class="btn sm quiet ${cls||''}" data-copy="${esc(String(u).trim())}"
   data-copy-msg="لینک رونوشت شد">${ico('i-link')} رونوشت لینک</button>`:'';
-const supRel=u=>supUrl(u)||!!String(u||'').trim();
 
 /* ── پین ───────────────────────────────────────────────────────────── */
 function pinRow(p2){
@@ -998,48 +1020,28 @@ function clubSent(){
         <button class="btn sm quiet" data-go="support">پرسش</button></div>`}).join('')}</div>`);
 }
 /* ── فرم‌ها ───────────────────────────────────────────────────────── */
+/* پرسش‌های هر فرم: یا فهرست خودش، یا کلیدهایی که به پارامترهای سامانه اشاره می‌کنند */
+function formFields(f){
+  f=f||{};
+  if(f.fields&&f.fields.length) return f.fields;
+  const bank=CTF.fields||[];
+  return (f.keys||f.nOf&&[]||[]).map(k=>bank.find(x=>x.k===k)||{k:k}).filter(Boolean);
+}
 function formRow(f){
   const open=(f.state!=='closed');
   return `<div class="frow">
     <span class="fr-h"><b>${esc(f.n)}</b><small>${esc(f.d||'')}</small></span>
     <span class="fr-m">${chip(open?(CTF.status||{}).open||'باز':(CTF.status||{}).closed||'بسته',open?'ok':'')}
-      <span class="cap">${faN((f.fields||[]).length||f.nOf||0)} فیلد</span>
+      <span class="cap">${faN(formFields(f).length)} پرسش</span>
       ${f.ends?`<span class="cap">تا ${esc(f.ends)}</span>`:''}
       <span class="cap">${faN(f.got||0)} پاسخ</span></span>
     <span class="acts"><button class="btn sm quiet" data-club-form="${esc(f.k)}">${ico('i-inbox')} پاسخ‌ها</button>
-      ${supCopyBtn(f.link)}
-      <button class="btn sm quiet" data-form-del="${esc(f.k)}" aria-label="حذف فرم">${ico('i-trash')}</button></span></div>`;
+      ${supCopyBtn(f.link)}</span></div>`;
 }
 function formsBox(){
-  const list=allForms(), draft=bookState().formDraft;
+  const list=allForms();
   return `<div class="formsbox">
-    <div class="fb-head"><b>فرم‌های من</b>${list.length?`<span class="cap">${faN(list.length)} فرم</span>`:''}
-      ${draft?'':`<button class="btn sm primary" style="margin-inline-start:auto" data-form-new>${ico('i-plus')} فرم تازه</button>`}</div>
-    ${draft?formBuilder(draft):''}
-    ${list.length?list.map(formRow).join(''):(draft?'':empty2('فرمی نساختی','با «فرم تازه» شروع کن.','i-list'))}</div>`;
-}
-function formBuilder(d){
-  const kinds=CTF.fields||[];
-  const mine=(d.fields||[]).map(f=>Object.assign({},f,{l:($('#fl_'+f.k)||{}).value||f.l}));
-  return `<div class="fbuild">
-    <label class="hint" for="cfName">نام فرم</label>
-    <input class="input" id="cfName" value="${esc(d.n||'')}" placeholder="مثلاً فرم ثبت‌نام مسابقهٔ مهر"/>
-    <span class="hint" style="margin-top:8px">پرسش‌های فرم</span>
-    <div class="ffields">${(d.fields||[]).map(formFieldRow).join('')}</div>
-    ${(d.fields||[]).length>=8?'':`<div class="fadd">
-      <button class="btn sm quiet" data-field-add>${ico('i-plus')} پرسش تازه</button>
-      ${kinds.length?`<button class="btn sm quiet" data-field-ready="${esc(kinds[0].k)}">${ico('i-star')} از پرسش‌های آماده</button>`:''}</div>`}
-    <div class="row" style="margin-top:12px"><button class="btn primary" data-form-save>${ico('i-check')} ذخیرهٔ فرم</button>
-      <button class="btn quiet" data-form-cancel>بی‌خیال</button></div></div>`;
-}
-function formFieldRow(f){
-  const k=(CTF.fields||[]).find(x=>x.k===f.k);
-  const w=k?k.w:(f.w||'text');
-  return `<div class="ffrow">
-    <span class="ff-k">${ico(w==='pick'?'i-list':'i-pen')}<small>${w==='pick'?'انتخابی':'نوشتنی'}</small></span>
-    <input class="input" id="fl_${esc(f.k)}" value="${esc(f.l||'')}" placeholder="متن پرسش" style="margin:0"/>
-    <label class="ff-req"><input type="checkbox" data-field-req="${esc(f.k)}" ${f.req?'checked':''}/> اجباری</label>
-    <button class="btn sm quiet" data-field-del="${esc(f.k)}" aria-label="برداشتن پرسش">${ico('i-close')}</button></div>`;
+    ${list.length?list.map(formRow).join(''):empty2('فرمی نیست','مدیر سامانه فرم را می‌سازد و همین‌جا می‌آید.','i-list')}</div>`;
 }
 function formAnswers(id){
   const f=cfOf(id);
@@ -1133,7 +1135,7 @@ function quizBox(){
 function quizBuilder(d){
   return `<div class="qzbuild">
     <label class="hint" for="qzName">نام آزمون</label>
-    <input class="input" id="qzName" value="${esc(d.n||'')}" placeholder="مثلاً آزمون کتاب ماه — فصل ۵"/>
+    <input class="input" id="qzName" value="${esc(d.n||'')}" placeholder="مثلاً آزمون کتاب ماه، فصل ۵"/>
     <div class="row" style="margin-top:8px;align-items:center"><label class="hint" for="qzMin">مدت (دقیقه)</label>
       <input class="input" id="qzMin" style="width:84px" inputmode="numeric" value="${esc(d.min||10)}"/>
       <span class="cap">پس از این مدت زمان‌سنج صفر می‌شود؛ لینک بسته نمی‌شود.</span></div>
@@ -1181,8 +1183,8 @@ function supShare(){
         <small>خبر هر ترم در گروه می‌آید</small></span>${supCopyBtn('account.html#book')}</div>`);
 }
 function supHome(){
-  const T=CTOOLS, b=bookState(), pins=b.pins||[], forms=(b.forms||[]);
-  const openQ=(b.qz||[]).filter(x=>x.state==='open').length;
+  const T=CTOOLS, b=bookState(), pins=b.pins||[], forms=allForms();
+  const openQ=allQuiz().filter(x=>x.state==='open').length;
   const cover = `<div class="supcover anim">${ico('i-medal')}
       <span class="tx"><b>پنل سرپرست باشگاه</b><small>${esc(T.lead||'')}</small></span>
       <div class="row" style="margin-top:12px;width:100%">
@@ -1197,9 +1199,9 @@ function supHome(){
       `<div class="srow">${ico('i-play-f')}<span class="sp">${esc(b.voice.role||'')}
         <small>${esc(b.voice.slot||'')}</small></span>${chip('در نوبت','warn')}</div>`):'';
   return cover+
-    card('چهار کار سرپرست','هر کار یک بخش جدا دارد','i-list',
+    card('کارهای سرپرست','هر کار یک بخش جدا دارد','i-list',
       `<div class="toolsGrid">${[['pin','پین کردن','i-pin'],['send','فرستادن مطلب','i-article'],
-        ['form','ساختن فرم','i-list'],['quiz','آزمون‌ساز','i-medal']]
+        ['form','لینک فرم‌ها','i-list'],['quiz','آزمون‌ساز','i-medal']]
         .map(([k,n,ic])=>`<button class="tool" data-sup-tool="${k}"><span class="ic">${ico(ic)}</span><b>${esc(n)}</b></button>`).join('')}</div>`)+
     voice;
 }
@@ -1209,7 +1211,10 @@ function supBody(sv){
     card('پین تازه','چیزی که فقط سرپرست می‌داند','i-plus',pinPicker());
   if(sv==='send') return card('مطالبی که سامانه منتشر کرده',esc((CTOOLS.articles||{}).lead||''),'i-article',sentPicker())+
     card('در پنل اعضا گذاشته‌شده',faN((bookState().sent||[]).length)+' مطلب','i-check',sentBox())+supShare();
-  if(sv==='form') return card('فرم‌های باشگاه',esc(CTF.lead||''),'i-list',formsBox())+supShare();
+  if(sv==='form') return card('فرم‌های باشگاه',esc(CTF.lead||''),'i-list',formsBox())+
+    card('پاسخ‌ها','پاسخ هر عضو همین‌جا می‌نشیند؛ لینک را در گروه بگذار','i-inbox',
+      `<div class="row">${(allForms()[0]||{}).link?`<button class="btn sm quiet" data-club-form="${esc((allForms()[0]||{}).k)}">${ico('i-inbox')} دیدن پاسخ‌ها</button>`:''}
+        <span class="cap">فرم تازه را مدیر سامانه می‌سازد</span></div>`)+supShare();
   if(sv==='quiz'){ const on=bookState().qzOn;
     return (on?quizResults(on):'')+card('آزمون‌ساز',esc(CTQ.lead||''),'i-medal',quizBox()); }
   return '';
@@ -1220,7 +1225,7 @@ function supLane(cur){
     <button class="lane${cur!=='member'?' on':''}" data-sup-tool="${cur==='member'?'home':cur}" aria-selected="${cur!=='member'}">${ico('i-pin')} کارهای سرپرست</button></div>`;
 }
 function supNav(cur){
-  return `<div class="supnav anim">${[['pin','پین','i-pin'],['send','مطلب','i-article'],['form','فرم','i-list'],['quiz','آزمون','i-medal']]
+  return `<div class="supnav anim">${[['pin','پین','i-pin'],['send','مطلب','i-article'],['form','فرم‌ها','i-list'],['quiz','آزمون','i-medal']]
     .map(([k,n,ic])=>`<button class="ctab${cur===k?' on':''}" data-sup-tool="${k}"
       aria-selected="${cur===k}">${ico(ic)} ${n}</button>`).join('')}</div>`;
 }
@@ -1414,7 +1419,7 @@ function formsPanel(){
     F.map(f=>`<div class="tk">${ico(f.mine?'i-idcard':'i-doc','width:19px;height:19px;color:var(--ink-4)')}
       <span><b>${esc(f.t)}</b><small>${esc(f.k)} · ${esc(f.d)}${f.mine?' · ساختهٔ مدیر سامانه':''}</small>
         <span class="acts">${chip(M[f.s][0],M[f.s][1])}
-          <button class="btn sm quiet" data-form="${esc(f.t)}">${f.s==='draft'?'ادامهٔ تکمیل':'دیدن پاسخ‌ها'}</button></span></span></div>`).join('')+
+          <button class="btn sm quiet" data-form="${esc(f.t)}" data-formst="${esc(f.s)}">${f.s==='draft'?'ادامهٔ تکمیل':'دیدن پاسخ‌ها'}</button></span></span></div>`).join('')+
     `<div class="row" style="margin-top:12px">
       <a class="btn sm quiet" href="${esc(PF.from||'builder.html')}">${ico('i-chart')} فرم‌ها در ${esc(PF.fromN||'پنل فرم‌ها')}</a>
       <span class="sp" style="flex:1"></span><span class="cap">${faN((POL.formKinds||[]).length)} گونه فرم</span></div>`+
@@ -1493,7 +1498,7 @@ function saveNote(text,survey){
   toast(survey?'نظرسنجی ثبت شد؛ ممنون که وقت گذاشتی':'نظرت ثبت شد؛ همین‌جا می‌ماند');
   setTimeout(()=>openMyEvent(id),260);
 }
-/* عکس پروفایل: پارامتر تصویری فرم — بارگذاری یا عکس نمونه */
+/* عکس پروفایل: پارامتر تصویری فرم، بارگذاری یا عکس نمونه */
 function demoPhoto(){
   const p=prof(), cur=p.photo||PHOTO_SEED[0];
   const next=PHOTO_SEED[(PHOTO_SEED.indexOf(cur)+1)%PHOTO_SEED.length];
@@ -1559,6 +1564,7 @@ const PTABS=A.profileTabs||[{k:'info',n:'اطلاعات من'}];
 VS.profile=function(t){
   if(!login()) return viewHead(t,'',PTABS,'ptab')+gate(t);
   const body=S.ptab==='auth'?authPanel()
+    : S.ptab==='invite'?inviteTab()
     : S.ptab==='club'?clubTab()
     : S.ptab==='book'?bookPanel()
     : S.ptab==='forms'?formsPanel()
@@ -1606,9 +1612,6 @@ function invState(v){ const st=payState();
   return st.paid[v.id]?'paid':(st.refunds[v.id]?'refunded':(st.part[v.id]?'partial':v.state)) }
 function invTone(s){ return s==='paid'?'ok':(s==='refunded'||s==='failed'||s==='rejected')?'stop':s==='partial'?'gold':'brand' }
 function invStateTxt(s){ return (PAYINFO.states||{})[s]||s }
-function addTx(t){
-  const st=payState(); paySave({txs:[Object.assign({at:nowFa()},t)].concat(st.txs).slice(0,12)});
-}
 /* ── گرافیک کوچک: نمودار خرج و حلقهٔ درصد ──────────────────────────── */
 function payBars(){
   const w=PAYINFO.wallet||{}, t=w.trend||[], max=Math.max(1,...t), n=t.length;
@@ -2022,7 +2025,8 @@ function viewOf(k){ return k==='events'?VS.events : k==='profile'?VS.profile
 const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
   auth:['profile','ptab','auth'], login:['profile','ptab','auth'],
   forms:['profile','ptab','forms'], privacy:['profile','ptab','privacy'],
-  club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club']};
+  club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club'],
+  invite:['profile','ptab','invite'], invite2:['profile','ptab','invite']};
 function renderView(){
   const box=$('#viewBox'), t=SECT.find(s=>s.k===S.view), fn=viewOf(S.view);
   if(!box||!t||!fn) return;
@@ -2046,6 +2050,13 @@ function route(){
     else if(!clubIsMember()) toast('اول عضویت باشگاه را کامل کن؛ بعد فرم را پر کن');
     else { fillSheet('shClubFill',clubFill(id)); openSheet('shClubFill') }
     try{window.scrollTo({top:0})}catch(e){}; return }
+  if(raw.indexOf('invite=')===0){                 /* پیوند دعوتی که دوست فرستاده */
+    const code=raw.slice(7).trim().toUpperCase();
+    if(!login()){ location.href='login.html?inv='+encodeURIComponent(code)+
+      '&next='+encodeURIComponent('account.html#invite='+code); return }
+    S.view='profile'; S.ptab='invite'; render(); try{window.scrollTo({top:0})}catch(e){}
+    toast(code.toUpperCase()===inviteCode()?'این کد خودت است؛ برای دوستت بفرست':('کد '+code+' مال دوستت است'));
+    return }
   if(raw==='support'){ goSupport(); return }
   if(ALIAS[raw]){ const [v,f,val]=ALIAS[raw]; S.view=v; S[f]=val; S.edit=false; S.errs={}; render();
     try{window.scrollTo({top:0})}catch(e){}; return }
@@ -2178,7 +2189,6 @@ document.addEventListener('click',ev=>{
   const stl=t.closest('[data-sup-tool]');
   if(stl){ const k=stl.dataset.supTool;
     bookSet({supStep:k}); S.ctab='sup'; render(); try{window.scrollTo({top:0})}catch(e){} return }
-  if(t.closest('[data-cfhome]')){ bookSet({supStep:'home'}); S.ctab='home'; render(); return }
   const pk=t.closest('[data-pin-kind]');
   if(pk){ bookSet({pinKind:pk.dataset.pinKind}); renderView(); return }
   if(t.closest('[data-pin-add]')){
@@ -2216,39 +2226,6 @@ document.addEventListener('click',ev=>{
   const sdl=t.closest('[data-sent-del]');
   if(sdl){ bookSet({sent:(bookState().sent||[]).filter(x=>x!==sdl.dataset.sentDel)});
     render(); toast('برداشته شد'); return }
-  if(t.closest('[data-form-new]')){
-    bookSet({formDraft:{n:'', fields:[{k:'f_name', l:'نام و نام خانوادگی', w:'text', req:true}]}});
-    render(); toast('فرم تازه؛ پرسش‌ها را بچین'); return }
-  if(t.closest('[data-form-cancel]')){ bookSet({formDraft:null}); render(); return }
-  const fra=t.closest('[data-field-ready]');
-  if(fra){ const d=formDraftSync(); if(!d) return;
-    const k=fra.dataset.fieldReady, src=(CTF.fields||[]).find(x=>x.k===k)||{};
-    const has=(d.fields||[]).some(x=>x.k===k);
-    const fields=(d.fields||[]).concat(has?[]:[{k:src.k, l:src.l, w:src.w, req:!!src.req, opts:src.opts||[]}]);
-    bookSet({formDraft:Object.assign({},d,{fields:fields.slice(0,8)})}); render(); return }
-  if(t.closest('[data-field-add]')){ const d=formDraftSync(); if(!d) return;
-    const k='f_'+(Date.now()%10000);
-    bookSet({formDraft:Object.assign({},d,{fields:(d.fields||[]).concat([{k:k, l:'', w:'text', req:false}]).slice(0,8)})});
-    render(); const e=$('#fl_'+k); if(e&&e.focus) e.focus(); return }
-  const fdl=t.closest('[data-field-del]');
-  if(fdl){ const d=formDraftSync(); if(!d) return;
-    bookSet({formDraft:Object.assign({},d,{fields:(d.fields||[]).filter(x=>x.k!==fdl.dataset.fieldDel)})});
-    render(); return }
-  if(t.closest('[data-form-save]')){
-    const d=formDraftSync(); if(!d) return;
-    const name=String(($('#cfName')||{}).value||'').trim();
-    if(!name){ toast('برای فرم یک نام بگذار'); const e=$('#cfName'); if(e&&e.focus) e.focus(); return }
-    const fields=(d.fields||[]).map(f=>Object.assign({},f,{l:String(f.l||'').trim()}));
-    if(!fields.length||fields.some(f=>!f.l)){ toast('هر پرسش یک متن لازم دارد'); return }
-    const k='cf'+(Date.now()%100000);
-    const f={k:k, n:name, d:fields.length?fields.map(x=>x.l).join('، ').slice(0,60):'فرم باشگاه',
-      fields:fields, ends:'۳۰ آبان', state:'open', got:0, link:'account.html#fill='+k};
-    bookSet({forms:[f].concat(bookState().forms||[]), formDraft:null});
-    render(); toast('فرم ساخته شد؛ پیوندش '+f.link); return }
-  const fde=t.closest('[data-form-del]');
-  if(fde){ const k=fde.dataset.formDel;
-    bookSet({forms:(bookState().forms||[]).filter(x=>x.k!==k), formDel:(bookState().formDel||[]).concat([k])});
-    render(); toast('فرم برداشته شد'); return }
   const qde=t.closest('[data-qz-del]');
   if(qde){ const k=qde.dataset.qzDel;
     bookSet({qz:(bookState().qz||[]).filter(x=>x.k!==k), qzDel:(bookState().qzDel||[]).concat([k]), qzOn:''});
@@ -2362,10 +2339,11 @@ document.addEventListener('click',ev=>{
     toast(cc.id?('گواهینامه با سریال '+cc.id+' دانلود شد'):'گواهینامه پس از تأیید سرپرست دانلود می‌شود'); return }
   const moff=t.closest('[data-off]'); if(moff){ toast('فایل آفلاین دانلود شد؛ بی اینترنت هم باز می‌شود'); return }
   const moffa=t.closest('[data-off-all]'); if(moffa){ toast('همهٔ فایل‌های آفلاین همین رویداد دانلود شد'); return }
-  const dc=t.closest('[data-dl-cert]'); if(dc){ certDownload(dc.dataset.dlCert); return }
   const cr=t.closest('[data-certreq]'); if(cr){ certAsk(cr.dataset.certreq); return }
   if(t.closest('[data-cert-yes]')){ closeSheets(); toast('سفارش ثبت شد؛ بعد از تأیید سرپرست خبر می‌دهیم'); return }
-  const cv=t.closest('[data-verify]'); if(cv){ toast('برای استعلام سریال '+faN(cv.dataset.verify)+' صفحهٔ استعلام باز می‌شود'); return }
+  const cv=t.closest('[data-verify]');
+  if(cv){ const ser=cv.dataset.verify||'';
+    copyText(ser,()=>{ location.href='home.html#verify' },'سریال رونوشت شد؛ در صفحهٔ استعلام بچسبانش'); return }
   if(t.closest('[data-ticket]')){ toast('کارت ورود آماده است؛ در ورودی نشانش بده'); return }
   const cx=t.closest('[data-cancel]');
   if(cx){ const e=EVENTS.find(x=>x.id===cx.dataset.cancel)||{};
@@ -2376,15 +2354,14 @@ document.addEventListener('click',ev=>{
         <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>نه</button></div>`);
     openSheet('shConfirm'); return }
   if(t.closest('[data-cancel-yes]')){ closeSheets(); toast('ثبت‌نام لغو شد؛ مبلغ طبق شرایط هم رویداد برمی‌گردد'); return }
-  const op=t.closest('[data-open-past]');
-  if(op){ const h=PAST.find(x=>x.id===op.dataset.openPast)||{}; toast('ضبط «'+h.t+'» با جزوه در پخش‌کننده باز می‌شود'); return }
-  const cg=t.closest('[data-cert]'); if(cg){ certDownload('NL-T4K7M9X'); return }
-  if(t.closest('[data-form-new]')){ toast('کارشناس فرم را برایت می‌فرستد؛ بعد از آن همین‌جا باز می‌شود'); return }
-  const fm=t.closest('[data-form]'); if(fm){ toast('فرم «'+fm.dataset.form+'» در فاز بعد باز می‌شود'); return }
   const rw=t.closest('[data-reward]'); if(rw){ toast('«'+rw.dataset.reward+'» با امتیازت گرفته شد؛ در فروشگاه پاداش کامل می‌شود'); return }
   const cp=t.closest('[data-copy]');
   if(cp){ const msg=cp.dataset.copyMsg||''; copyText(cp.dataset.copy,msg?()=>toast(msg):null); return }
-  if(t.closest('[data-invite]')){ toast('پیوند دعوت ساخته شد؛ برای دوستت بفرست'); return }
+  if(t.closest('[data-invite]')){
+    const txt='با کد '+inviteCode()+' در نورا بیا؛ هر دو امتیاز می‌گیریم.';
+    if(typeof shareItem==='function') shareItem({url:inviteUrl(), title:'دعوت به نورا', text:txt});
+    else copyText(inviteLink(),null,'پیوند دعوت رونوشت شد');
+    return }
   const pg=t.closest('[data-ptab-go]');
   if(pg){ S.view='profile'; S.ptab=pg.dataset.ptabGo; location.hash='#profile'; render(); return }
   if(t.closest('[data-relogin]')){ goLogin('account'); return }
@@ -2407,12 +2384,16 @@ document.addEventListener('click',ev=>{
     try{ localStorage.setItem('nora-home-user',JSON.stringify({name:(A.seed||{}).fullName||'سارا محمدی',
       mobile:'09121234567',joined:'شهریور ۱۴۰۴',certs:2,wallet:1250000,msgs:1})) }catch(e){}
     render(); toast('حساب نمونه نشست؛ هر وقت خواستی از «ورود و امنیت» بیرون بیا'); return }
+  const fm=t.closest('[data-form]');
+  if(fm){ const n=fm.dataset.form||'', st2=fm.dataset.formst||'';
+    toast(st2==='draft'?('«'+n+'» نیمه‌کاره است؛ تکمیلش را همین‌جا خبر می‌دهیم')
+      :st2==='approved'?('«'+n+'» تأیید شد؛ نسخهٔ دانلودش برایت می‌آید')
+      :('«'+n+'» دست کارشناس است؛ نتیجه را خبر می‌دهیم')); return }
   if(t.closest('[data-login]')){ S.after=''; loginSheet(); return }
   if(t.closest('[data-close]')){ closeSheets(); return }
   if(t.closest('[data-open-support]')){ goSupport(); return }
   if(t.closest('#supBar')){ goSupport(); return }
   if(t.closest('[data-menu]')){ if(UI().uiOpen) UI().uiOpen('shMenu'); return }
-  const er=t.closest('[data-edit-review]'); if(er){ toast('ویرایش نظر «'+er.dataset.editReview+'» در فاز نظرها کامل می‌شود'); return }
   /* باشگاه کتاب‌خوانی */
   if(t.closest('[data-pages]')){ const add=+t.closest('[data-pages]').dataset.pages||0;
     const bc=bookState(); bookSet({pages:Math.max(0,Math.min(200,bc.pages+add))}); renderView(); return }

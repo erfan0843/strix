@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   نورا — موتور مشترک صفحه‌ها
+   نورا، موتور مشترک صفحه‌ها
    هر چیزی که در بیش از یک صفحه لازم است، همین‌جا نوشته می‌شود:
    اعداد و حروف، انتخاب‌گرها، داده‌های ایران، کیوآرکد، و ابزارهای رابط.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -20,10 +20,10 @@ function words(n){n=Math.round(n);if(n<=0)return 'صفر';const p=[];
   const b=Math.floor(n/1e9),m=Math.floor(n%1e9/1e6),k=Math.floor(n%1e6/1000),r=n%1000;
   if(b)p.push(w3(b)+' میلیارد');if(m)p.push(w3(m)+' میلیون');
   if(k)p.push((k===1?'':w3(k)+' ')+'هزار');if(r)p.push(w3(r));return p.join(' و ');}
-/* قاعده: عدد به ریال — تومان به حروف */
+/* قاعده: عدد به ریال، تومان به حروف */
 const rialTxt=n=>fa(n)+' ریال';
 const tomanTxt=n=>words(n/10)+' تومان';
-const money=n=>rialTxt(n)+' — '+tomanTxt(n);
+const money=n=>rialTxt(n)+' · '+tomanTxt(n);
 
 /* ── داده‌های ایران ───────────────────────────────────────────────────── */
 const PROVINCES={
@@ -74,7 +74,7 @@ const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرد�
 function sel(html){return html;}
 /* مقدارها همیشه لاتین‌اند تا محاسبه دقیق بماند؛ نمایش، فارسی */
 function opts(list,cur,label){return list.map(v=>`<option value="${unFa(v)}" ${String(unFa(v))===String(unFa(cur))?'selected':''}>${label?label(v):v}</option>`).join('');}
-/* faDigits: فارسي‌سازی بدون دست‌خوردن صفر پیشتاز — faN برای عدد خالص */
+/* faDigits: فارسي‌سازی بدون دست‌خوردن صفر پیشتاز، faN برای عدد خالص */
 const faDigits=s=>String(s).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 
 /* ساخت یک انتخاب‌گر تاریخ/ساعت/تاریخ‌وساعت */
@@ -115,7 +115,7 @@ function pickVal(el){
   const pad=n=>String(n).padStart(2,'0');
   const date=`${g('.pk1')}/${pad(g('.pk2'))}/${pad(g('.pk3'))}`;
   const time=`${pad(g('.pk4'))}:${pad(g('.pk5'))}`;
-  return {date,time,full:el.dataset.pick==='time'?time:(el.dataset.pick==='date'?date:date+' — '+time)};
+  return {date,time,full:el.dataset.pick==='time'?time:(el.dataset.pick==='date'?date:date+' ساعت '+time)};
 }
 function initPickers(root){
   /* فقط انتخاب‌گرهای تاریخ و ساعت؛ استان/شهر و فهرست‌ها ساز خودشان را دارند */
@@ -198,7 +198,7 @@ const isLeapJ=jy=>jalCal(jy).leap===0;
 const daysInJ=(jy,jm)=>jm===12?(isLeapJ(jy)?30:29):(jm<=6?31:30);
 /* تاریخ جلالی به شکل خواندنی: «جمعه ۸ مهر» */
 const faJDate=(jy,jm,jd)=>`${weekdayOf(jy,jm,jd)} ${faN(jd)} ${MONTHS[jm-1]}`;
-/* از رشتهٔ «۱۴۰۵/۰۷/۰۸ — ۱۶:۰۰» یا «1405/07/08 16:00» به اجزا */
+/* از رشتهٔ «۱۴۰۵/۰۷/۰۸، ۱۶:۰۰» یا «1405/07/08 16:00» به اجزا */
 function parseJ(s){
   const t=unFa(String(s||'')).replace(/[—–-]/g,' ');
   const d=(t.match(/(\d{4})\s*\/\s*(\d{1,2})\s*\/\s*(\d{1,2})/)||[]).slice(1).map(NR);
@@ -216,7 +216,7 @@ function ticketMeta(dateStr,venue){
   return bits.join(' · ');
 }
 const nowFa=()=>{const g=new Date(), j=jalaliOf(g.getFullYear(),g.getMonth()+1,g.getDate());
-  return faJDate(j.jy,j.jm,j.jd)+' — '+fmtClock(g.getHours(),g.getMinutes());};
+  return faJDate(j.jy,j.jm,j.jd)+'، ساعت '+fmtClock(g.getHours(),g.getMinutes());};
 /* پوشاندن بخشی از شمارهٔ موبایل در فهرست‌ها (حریم خصوصی) */
 const maskPhone=s=>{const d=unFa(String(s||'')); return d.length===11?d.replace(/^(\d{4})\d{3}(\d{4})$/,(m,a,b)=>faDigits(a)+'***'+faDigits(b)):d;};
 
@@ -354,10 +354,10 @@ const TK_FONTS="'Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif";
 const TK_FONTS_LAT="'Nora Latin','Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif";
 
 /* ══════════════════════════════════════════════════════════════════════════
-   برگ گواهینامه — یک SVG مستقل، شیشه‌ای و آمادهٔ چاپ
+   برگ گواهینامه، یک SVG مستقل، شیشه‌ای و آمادهٔ چاپ
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* پوسته‌ها: گرادیان کارت از چپ (ته‌برگ) به راست (متن) — نمونه‌برداری‌شده از مرجع */
+/* پوسته‌ها: گرادیان کارت از چپ (ته‌برگ) به راست (متن)، نمونه‌برداری‌شده از مرجع */
 
 /* اندازهٔ قلم را می‌رساند که متن از لبه بیرون نزند */
 function tkFit(text, size, maxW, minSize) {
@@ -542,7 +542,7 @@ function initUI(){
       } else ch.classList.toggle('on');
     }
   });
-  /* درخشش ملایم زیر انگشت/ماوس — با قاب‌بندی تا هر حرکت، چیدمان را نخواند */
+  /* درخشش ملایم زیر انگشت/ماوس، با قاب‌بندی تا هر حرکت، چیدمان را نخواند */
   let sheenQ=null, sheenRaf=0;
   document.addEventListener('pointermove',e=>{
     if(!(e.target instanceof Element)) return;
@@ -569,7 +569,7 @@ if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,init
   words,money,faN,fa,faDigits,tkQR,tkFit,ticketMeta};
 
 /* ══════════════════════════════════════════════════════════════════════════
-   تم روز و شب — یک منبع حقیقت برای همهٔ صفحه‌های نورا
+   تم روز و شب، یک منبع حقیقت برای همهٔ صفحه‌های نورا
    ──────────────────────────────────────────────────────────────────────────
    کلید حافظه: nora-theme · مقدارها: light | dark
    رنگ نوار وضعیت مرورگر (theme-color) هم با تم عوض می‌شود.
@@ -645,7 +645,7 @@ function saveProfile(v){
   try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
   return p;
 }
-/* ══ خط اطمینان — هر [data-trust] را با جملهٔ کوتاه خودش پر می‌کند ═══ */
+/* ══ خط اطمینان، هر [data-trust] را با جملهٔ کوتاه خودش پر می‌کند ═══ */
 function trustPick(kind){
   const T=(window.NORA&&window.NORA.TRUST)||{}, rows=T.row||[], short=T.short||{};
   if(short[kind]) return short[kind];
@@ -695,7 +695,7 @@ function levelOf(points){
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   کارت رویداد با پوستر — یک کارت، مشترک خانه و صفحهٔ رویدادها
+   کارت رویداد با پوستر، یک کارت، مشترک خانه و صفحهٔ رویدادها
    ──────────────────────────────────────────────────────────────────────────
    هر رویداد می‌تواند «پوستر» داشته باشد؛ اگر داشت همان نشان داده می‌شود وگرنه
    گرادیان و آیکون خودِ رویداد می‌آید. برگزارشده‌ها هم با همین کارت ساخته
@@ -801,7 +801,7 @@ function menuSheet(){
       <div><div class="head">منوی نورا</div><div class="cap">همهٔ بخش‌ها، یک‌جا</div></div>
       <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
     <div class="mhead">
-      <div class="mt">نورا — گروه فرهنگی خط زندگی</div>
+      <div class="mt">نورا · گروه فرهنگی خط زندگی</div>
       <div class="ms">${((window.NORA&&window.NORA.EVENTS)||[]).length?faN(window.NORA.EVENTS.length)+' رویداد پیش‌رو':''} · ${faN((window.NORA&&window.NORA.TOTAL_MEDIA)||0)} رسانه در فروشگاه</div>
     </div>
     ${M.map(g=>`<div class="mgroup">
@@ -922,7 +922,7 @@ function prereg(id,after){
     toast('پیش‌ثبت‌نامت برداشته شد');
   } else {
     a.push(id); jwrite(PRE_KEY,a);
-    toast('پیش‌ثبت‌نام شد — باز شدن ثبت‌نام را همان روز خبر می‌دهیم');
+    toast('پیش‌ثبت‌نام شد؛ باز شدن ثبت‌نام را همان روز خبر می‌دهیم');
   }
   document.dispatchEvent(new CustomEvent('nora:prereg',{detail:{id:id}}));
   if(typeof after==='function') after();
@@ -933,7 +933,7 @@ function preview(id){
   const free=(H.media||[]).find(m=>!m.p||(m.preview&&!hasLib(m.id)));
   if(!free){ toast('برای این بسته نمونهٔ رایگان نگذاشته‌اند؛ جزئیاتش را ببین'); eventSheet(id); return }
   player(id,free.id);
-  if(!hasLib(free.id) && free.p) toast('نمونهٔ رایگان — بستهٔ کامل در «جزئیات و تهیه»');
+  if(!hasLib(free.id) && free.p) toast('نمونهٔ رایگان؛ بستهٔ کامل در «جزئیات و تهیه»');
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1190,7 +1190,7 @@ function menuRoute(el){
   if(f){
     if(f==='shAccount'){ location.href='account.html'; return }    /* حساب من صفحهٔ جدا دارد، نه ورقه */
     if(f==='shSupport'||f==='shFaq'){ location.href='support.html'; return }  /* راهنما و پشتیبانی، صفحهٔ خودش */
-    if(f==='shInvite'){ location.href='account.html#club'; return }
+    if(f==='shInvite'){ location.href='account.html#invite'; return }
     if(f==='shClub'){ location.href='account.html#book'; return }      /* باشگاه کتاب زیر پروفایل من است */
     if(H&&H.openF){ H.openF(f); return }
     if(document.getElementById(f)){ uiOpen(f); return }
@@ -1313,7 +1313,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v19') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v20') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

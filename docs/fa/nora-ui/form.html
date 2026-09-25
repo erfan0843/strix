@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>نورا — فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=30"/>
+<title>نورا · فرم کاربر</title>
+<link rel="stylesheet" href="glass.css?v=31"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -39,7 +39,7 @@
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
-<!-- ══ مجموعهٔ آیکون نورا — شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+<!-- ══ مجموعهٔ آیکون نورا · شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
 
 <symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
 
@@ -270,7 +270,7 @@
     <div class="card paper guestcard" id="guestsCard" style="margin-top:12px">
       <div class="row" style="margin-bottom:2px">
         <div><div class="head">همراه می‌آوری؟</div>
-          <div class="cap">اختیاری — هر همراه سهم پرداخت خودش را دارد.</div></div>
+          <div class="cap">اختیاری؛ هر همراه سهم پرداخت خودش را دارد.</div></div>
         <span class="sp"></span><span class="cap" id="countTxt">۱ نفر</span>
       </div>
       <div class="gchips" id="guestChips" style="margin-top:10px"></div>
@@ -346,7 +346,7 @@
       <div class="drop" style="margin-top:14px" id="drop" role="button" tabindex="0">
         <svg class="i" style="width:28px;height:28px;color:var(--ink-3)"><use href="#i-image"/></svg>
         <div class="body" style="margin-top:6px">برای انتخاب تصویر بزنید</div>
-        <div class="cap">jpg یا png — تا ۵ مگابایت</div>
+        <div class="cap">jpg یا png، تا ۵ مگابایت</div>
       </div>
       <input type="file" id="file" accept="image/jpeg,image/png" class="sr"/>
       <div id="receiptDone" style="display:none;margin-top:12px">
@@ -393,7 +393,7 @@
       <div class="head" style="margin-bottom:10px">پیام کارشناس</div>
       <div class="card sunk row" style="padding:12px">
         <span class="personrow" style="gap:10px"><span class="n">ر</span>
-        <span class="sub">خانم رستگار — برای هماهنگی جلسهٔ اول، یک روز قبل پیام می‌دهیم.</span></span>
+        <span class="sub">خانم رستگار؛ برای هماهنگی جلسهٔ اول، یک روز قبل پیام می‌دهیم.</span></span>
       </div>
     </div>
 
@@ -481,8 +481,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="data.js?v=30"></script>
-<script src="ui.js?v=30"></script>
+<script src="data.js?v=31"></script>
+<script src="ui.js?v=31"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
@@ -491,7 +491,7 @@ const CFG={
   title:'کارگاه فن بیان مقدماتی',
   kind:'کارگاه آموزشی',
   venue:'تهران، خیابان ولی‌عصر، پلاک ۱۲',
-  date:'۱۴۰۵/۰۷/۰۹ — ۱۶:۰۰',
+  date:'۱۴۰۵/۰۷/۰۹، ۱۶:۰۰',
   maxPer:3,
   code:'TL1307BVUC1981',
   cap:150,taken:110,
@@ -537,10 +537,10 @@ function renderPayMethods(){
     (list.length?'':'<div class="cap">برای این رویداد مدل پرداختی روشن نشده؛ با پشتیبانی حرف بزن.</div>');
   const el=document.getElementById('payAllowed');
   if(el) el.textContent=list.length?('مدل‌های همین رویداد: '+list.map(k=>payOf(k).n).join(' · ')
-    +' — بقیه را مدیر و سازندهٔ رویداد روشن نکرده‌اند.'):'';
+    +'؛ بقیه را مدیر و سازندهٔ رویداد روشن نکرده‌اند.'):'';
 }
 const S={guests:[],discount:0,code:'',method:''};
-/* هر گزینه‌ای که کاربر خودش زده — پیش‌فرض ادمین کافی نیست، انتخاب باید صریح باشد */
+/* هر گزینه‌ای که کاربر خودش زده · پیش‌فرض ادمین کافی نیست، انتخاب باید صریح باشد */
 const PICKED=new Set();
 /* گیت ادمین: «افزودن همراه» پیش‌فرض بسته است؛ سازندهٔ فرم بازش می‌کند.
    برای دیدن هر دو حالت در همین دمو: ?guests=1 و ?guests=0 */
@@ -572,7 +572,7 @@ function calc(){
 function renderFin(){
   const box=document.getElementById('finOpts');
   const extra=(CFG.fin.some(o=>o.g)||CFG.fin.some(o=>o.req));
-  box.innerHTML=(extra?`<div class="cap" style="margin:2px 2px 8px">${(CFG.groups||[]).filter(g=>g.req).map(g=>`«${g.n}» را انتخاب کنید`).join(' — ')||'هر کدام را لازم دارید بردارید'}</div>`:'')+
+  box.innerHTML=(extra?`<div class="cap" style="margin:2px 2px 8px">${(CFG.groups||[]).filter(g=>g.req).map(g=>`«${g.n}» را انتخاب کنید`).join(' · ')||'هر کدام را لازم دارید بردارید'}</div>`:'')+
   CFG.fin.map((o,i)=>{
     const pend=o.req&&o.on&&!PICKED.has(i);   /* اجباری، ولی کاربر خودش برنداشته */
     return `
@@ -598,8 +598,8 @@ function guestChips(el,withX){
 /* صفحهٔ مالی و پرداخت: فقط نام‌ها */
 /* کارت همراه در اسلاید مالی + فرم همراه در شیت */
 function buddyTip(){
-  if(S.guests.length>=GUEST_MAX) return ' — جا پر شد';
-  if(S.guests.length) return ' — '+faN(GUEST_MAX-S.guests.length)+' جای دیگر مانده';
+  if(S.guests.length>=GUEST_MAX) return ' · جا پر شد';
+  if(S.guests.length) return ' · '+faN(GUEST_MAX-S.guests.length)+' جای دیگر مانده';
   return '';
 }
 function renderBuddy(){
@@ -644,7 +644,7 @@ function renderBill(){
   document.getElementById('payWords').textContent=tomanTxt(c.sum);
   document.getElementById('exactAmount').textContent=rialTxt(c.sum);
   document.getElementById('wordsAmount').textContent=tomanTxt(c.sum);
-  const pd=document.getElementById('payDone'); if(pd) pd.textContent=rialTxt(c.sum)+' — '+faN(c.count)+' نفر';
+  const pd=document.getElementById('payDone'); if(pd) pd.textContent=rialTxt(c.sum)+' · '+faN(c.count)+' نفر';
 }
 /* ── اعداد لندینگ از خودِ تنظیمات فرم ── */
 function renderFacts(){
@@ -773,7 +773,7 @@ document.getElementById('addFriend').onclick=()=>{
 document.addEventListener('change',e=>{if(e.target.closest('.screen')&&cur!=='u1') saveDraft()});
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g){show(g.dataset.go);return}
-  if(e.target.closest('[data-saveexit]')){saveDraft();closeSheets();toast('ذخیره شد — با همین لینک برگردید');return}
+  if(e.target.closest('[data-saveexit]')){saveDraft();closeSheets();toast('ذخیره شد؛ با همین لینک برگردید');return}
   const x=e.target.closest('[data-del]');
   if(x){S.guests.splice(NR(x.dataset.del),1);renderBuddy();renderBill();saveDraft();toast('برداشته شد');return}
   const f=e.target.closest('[data-fin]');
@@ -791,7 +791,7 @@ document.addEventListener('click',e=>{
   if(m){S.method=m.dataset.method;
     document.querySelectorAll('[data-method]').forEach(x=>{x.classList.toggle('on',x===m);x.setAttribute('aria-pressed',x===m?'true':'false')});
     const mm=payOf(S.method);
-    document.getElementById('pickHint').textContent=mm.n+' — '+(mm.rule||mm.s);
+    document.getElementById('pickHint').textContent=mm.n+' · '+(mm.rule||mm.s);
     CFG.confirmed=(S.method!=='card')&&(S.method!=='inperson');
     renderBill();
     show(S.method==='card'?'u10':'u12'); return}
@@ -800,7 +800,7 @@ document.addEventListener('click',e=>{
 });
 document.getElementById('applyCoupon').onclick=()=>{
   const v=(document.getElementById('coupon').value||'').trim().toUpperCase();
-  if(v===CFG.coupon.code){S.code=v;S.discount=CFG.coupon.off;document.getElementById('couponNote').textContent='کد اعمال شد — '+faN(S.discount)+' درصد.'}
+  if(v===CFG.coupon.code){S.code=v;S.discount=CFG.coupon.off;document.getElementById('couponNote').textContent='کد اعمال شد؛ '+faN(S.discount)+' درصد.'}
   else{S.code='';S.discount=0;document.getElementById('couponNote').textContent=v?'این کد معتبر نیست.':'کد تخفیف روی نفر اصلی حساب می‌شود.'}
   renderBill();
 };
@@ -834,7 +834,7 @@ initAll(document);
 document.getElementById('topTitle').textContent=CFG.title;
 document.getElementById('evTitle').textContent=CFG.title;
 document.getElementById('evMeta').textContent=ticketMeta(CFG.date,CFG.venue);
-document.title='نورا — '+CFG.title;
+document.title='نورا · '+CFG.title;
 renderFin();renderBuddy();renderBill();renderEnd();renderFacts();showResume();show('u1');
 </script>
 </body>

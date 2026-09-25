@@ -148,8 +148,8 @@ async function load(store,hash){
   console.log('\n── تب‌های درونی ──');
   const p=await load(makeStore(reg()));
   await p.nav('profile');
-  ok(p.all('#viewBox .vtab').length===5,'پروفایل پنج تب دارد');
-  ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، فرم‌ها، حریم');
+  ok(p.all('#viewBox .vtab').length===6,'پروفایل شش تب دارد');
+  ok(p.all('#viewBox .vtab').map(t=>t.dataset.ptab).join(',')==='info,auth,club,invite,forms,privacy','ترتیب تب‌ها: اطلاعات، ورود و امنیت، امتیاز، کد دعوت، فرم‌ها، حریم');
   ok(!p.doc.querySelector('#viewBox [data-ptab="book"]'),'باشگاه کتاب دیگر تب پروفایل نیست');
   await p.nav('profile');
   ok(p.view().includes('اطلاعات من') && p.view().includes('کم تایپ کن'),'تب اطلاعات، پروفایل ساده می‌آورد');
@@ -478,6 +478,7 @@ async function load(store,hash){
   p.click('[data-save-note]'); await wait(210);
   ok(p.txt('#toast').includes('ذخیره'),'یادداشت درست ذخیره می‌شود');
   ok(p.txt('#viewBox').includes('گروه اختصاصی')&&p.txt('#viewBox').includes('NVP-4F7K'),'گروه و لینک اختصاصی اعضا');
+  ok(p.doc.querySelector('#viewBox [data-ptab-go="invite"]')!==null,'راه دعوت دوستان از پنل باشگاه');
   ok(p.txt('#viewBox').includes('خبرهای سرپرست'),'خبرهای سرپرست');
 }
 
@@ -498,6 +499,7 @@ async function load(store,hash){
   /* پین */
   p.click('[data-sup-tool="home"]'); await wait(230);
   ok(p.doc.querySelectorAll('.toolsGrid .tool').length===4,'چهار کار سرپرست در یک نگاه');
+  ok(p.txt('#viewBox').includes('لینک فرم‌ها'),'کارت فرم، «لینک فرم‌ها» است');
   p.click('[data-sup-tool="pin"]'); await wait(240);
   ok(p.txt('#viewBox').includes('پین‌های باشگاه')&&p.doc.querySelectorAll('[data-pin-add-id]').length>=1,
     'بخش پین، از خود سامانه هم پیشنهاد می‌دهد');
@@ -523,22 +525,36 @@ async function load(store,hash){
   p.click('[data-club-form]'); await wait(240);
   ok(p.open().includes('shClubForm')&&p.all('#shClubForm .fanrow').length>=1,'پاسخ‌های فرم در ورقه می‌آید');
   p.click('#shClubForm [data-close]'); await wait(170);
-  p.click('[data-form-new]'); await wait(230);
-  ok(p.doc.querySelector('.fbuild')!==null,'سازندهٔ فرم باز می‌شود');
-  p.set('#cfName','فرم مسابقهٔ داستان کوتاه');
-  p.set('#fl_f_name','نام و نام خانوادگی');
-  p.click('[data-field-add]'); await wait(200);
-  const extra=p.all('.ffrow input.input').length;
-  ok(extra>=2,'فیلد تازه به فرم اضافه می‌شود');
-  const blank=p.all('.ffrow input.input').find(e=>!e.value);
-  if(blank){ blank.value='چه چیزی برایت مهم است؟'; blank.dispatchEvent(new p.window.Event('change',{bubbles:true})) }
-  p.click('[data-form-save]'); await wait(260);
-  const made=(JSON.parse(store.getItem('nora-home-bookclub')).forms||[])[0]||{};
-  ok(made.n==='فرم مسابقهٔ داستان کوتاه' && /^account\.html#fill=/.test(made.link||''),'فرم تازه با پیوند ساخته می‌شود');
-  ok(p.txt('#toast').includes('account.html#fill='),'پیوند فرم همان لحظه نشان داده می‌شود');
-  ok(p.doc.querySelector('[data-copy]')!==null,'دکمهٔ رونوشت لینک روی فرم هست');
-  p.click('[data-form-del]'); await wait(240);
-  ok((JSON.parse(store.getItem('nora-home-bookclub')).forms||[]).length===0,'فرم برداشته می‌شود');
+  /* فرم‌ساز برداشته شد؛ سرپرست فرم سامانه را لینک می‌کند */
+  ok(p.doc.querySelector('#viewBox [data-form-new]')===null,'سرپرست این‌جا فرم نمی‌سازد');
+  ok(p.view().includes('فرم‌های باشگاه'),'بخش فرم‌های باشگاه باز می‌شود');
+  const f0=p.all('.frow')[0];
+  ok(f0!==null && f0.querySelector('[data-copy]')!==null,'دکمهٔ رونوشت لینک روی فرم سامانه هست');
+  const link0=f0?f0.querySelector('[data-copy]').dataset.copy:'';
+  ok(/^account\.html#fill=/.test(link0),'پیوند فرم سامانه به نشانی فرم می‌رود');
+  const pChk=await load(store,'#'+String(link0).split('#')[1]);
+  ok(pChk.open().includes('shClubFill')||pChk.txt('#toast').includes('عضویت'),'پیوند همان فرم را برای عضو باز می‌کند');
+  /* کد دعوت: کد خودت، دوستانی که آوردی و پاداش */
+  await p.nav('invite'); await wait(220);
+  ok(p.onTab('ptab')==='invite' && p.view().includes('کد دعوت تو'),'تب کد دعوت باز می‌شود');
+  ok(p.view().includes('NL-7K2D') && p.view().includes('account.html#invite=NL-7K2D'),'کد و پیوند خودِ عضو');
+  ok(p.doc.querySelectorAll('#viewBox [data-copy]').length>=2,'رونوشت کد و رونوشت پیوند');
+  ok(p.all('#viewBox .invrow').length===3 && p.view().includes('نگار موسوی'),'دوستانی که آورده، فهرست می‌شوند');
+  ok(p.doc.querySelector('#viewBox .invcode, #viewBox .invlink')!==null,'کد و پیوند در بلوک خودشان');
+  ok(p.view().includes('۲ از ۳ دوست'),'شمار دوستانی که آمده‌اند');
+  ok(p.view().includes('۱۵۰ امتیاز') && p.all('#viewBox .steps .step').length===3,'پاداش و سه گام');
+  ok(p.doc.querySelector('#viewBox [data-invite]')!==null,'دکمهٔ فرستادن برای دوست');
+  p.click('[data-invite]'); await wait(220);
+  ok(p.txt('#toast').length>0||p.open().length>0,'فرستادن پیوند بی‌خطا انجام می‌شود');
+  const pInv=await load(store,'#invite=NL-4F7K');
+  ok(pInv.onTab('ptab')==='invite' && pInv.txt('#toast').includes('مال دوستت'),'نشانی پیوند دعوت دوست، همان تب را می‌آورد');
+  await p.nav('club'); await wait(200);
+  ok(p.doc.querySelector('#viewBox [data-ptab-go="invite"]')!==null,'تب امتیاز، راه به کد دعوت دارد');
+  /* برگشت به پنل سرپرست، سرِ آزمون‌ساز */
+  await p.nav('book'); await wait(230);
+  p.click('[data-sup-member]'); await wait(230);
+  p.click('[data-sup-tool="home"]'); await wait(230);
+  ok(p.doc.querySelectorAll('.toolsGrid .tool').length===4,'برگشت به کارهای سرپرست بی‌خطا');
   /* آزمون‌ساز */
   p.click('[data-sup-tool="quiz"]'); await wait(220);
   p.click('[data-qz-new]'); await wait(230);
@@ -638,6 +654,10 @@ async function load(store,hash){
     .filter(b=>!(b.textContent||'').replace(/\s+/g,'').trim() && !b.getAttribute('aria-label'));
   ok(nameless.length===0,'هیچ دکمه‌ای بی‌نام نیست'+(nameless.length?': '+nameless.length:''));
   ok(!/[\u2014]/.test(p.prof()),'خط تیرهٔ بلند در متن رابط نیست');
+  /* خط تیرهٔ بلند، نشانهٔ متن ماشینی است؛ در متن فارسی حساب من و خانه جایی ندارد */
+  const dFiles=['account.html','account.js','data.js','ui.js','login.js','support.js','home.html','events.html','event.html','form.html'];
+  const dBad=dFiles.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
+  ok(dBad.length===0,'خط تیرهٔ بلند در متن فارسی نمانده'+(dBad.length?': '+dBad.join('، '):''));
 }
 
 /* ── ۱۲) پاک‌سازی و درستی ── */
