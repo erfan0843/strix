@@ -165,7 +165,6 @@ function linkForms(evId, w0){
 const evAll=()=>{const ov=S.evEdit||{};
   return (S.added||[]).concat(EVROWS).map(e=>ov[e.id]?Object.assign({},e,ov[e.id]):e);};
 const evOf=id=>evAll().find(e=>e.id===id)||null;
-const fN=n=>fa(Number(n).toLocaleString?Number(n).toLocaleString('en-US'):n);
 /* عدد و یکا: رقم درشت می‌ماند و واژهٔ یکا ریز و کم‌رنگ کنارش می‌نشیند تا هیچ
    عددی درشت و بی‌توضیح نماند و در تنگی جا هم شکسته شود، نه سرریز */
 const bits=v=>{const t=String(v==null?'':v).trim(), i=t.search(/\s/);
@@ -875,7 +874,7 @@ const evLinkId=()=>{ if(S.wiz.edit) return S.wiz.edit;
   return 'nx'+S.wiz.stamp; };
 const stampNow=()=>S.wiz.stamp||(S.wiz.stamp=Date.now());
 const evLink=()=>'event.html?id='+evLinkId();
-const fmtCap=n=>fa(Number(n||0).toLocaleString('en-US'));
+const fmtCap=n=>fa(+n||0);
 /* ── پوستر خودت: فایل خوانده می‌شود و اگر سنگین بود، خودش کوچک می‌شود ──
    در مرورگر با canvas کوچک می‌شود؛ جایی که canvas نیست، همان تصویر می‌ماند. */
 /* در محیط آزمایش نه canvas هست نه تیک ثانیه‌شمار؛ وگرنه فرایند بسته نمی‌شود */
@@ -1478,6 +1477,11 @@ function sheetEv(id){
   const src=posterSrc(e.posterUp||e.poster), ses=(e.sess||[]);
   const madeForms=(function(){try{const u=(window.NORA_UI&&NORA_UI)||null;
     return u&&u.formsFor?u.formsFor(e.id):[]}catch(err){return []}})();
+  /* هزینهٔ رویداد از خود فرم ثبتنام زنده خوانده میشود؛ فرمساز که عوض کند، همینجا تازه میشود */
+  const livePrice=(function(){try{
+    const rf=madeForms.find(f=>(f.need||'reg')==='reg');
+    return rf?formSum(rf):null}catch(err){return null}})();
+  const evPrice=livePrice!=null?livePrice:(+e.price||0);
   const tabs=(D.tabs||[]).filter(t=>!t.own||isMoney())
     .map(t=>`<button class="chip ${S.evTab===t.k?'on':''}" data-evtab="${esc(t.k)}">${esc(t.n)}</button>`).join('');
   let block='';
@@ -1487,7 +1491,7 @@ function sheetEv(id){
       <tr><td>${esc('زمان')}</td><td>${esc(e.when)} · ${esc(e.time)}</td></tr>
       <tr><td>${esc('جا')}</td><td>${esc(e.place)}</td></tr>
       <tr><td>${esc('ظرفیت')}</td><td class="num">${esc(fa(e.reg))} ${esc('از')} ${esc(fa(e.cap))}</td></tr>
-      ${isMoney()?`<tr><td>${esc('هزینه')}</td><td class="num">${e.price?esc(fa(Number(e.price).toLocaleString('en-US'))+' ریال'):esc('آزاد')}</td></tr>`:''}
+      ${isMoney()?`<tr><td>${esc('هزینه')}</td><td class="num">${evPrice?esc(fa(evPrice)+' ریال'):esc('آزاد')}</td></tr>`:''}
       <tr><td>${esc('وضعیت')}</td><td>${tag(st[0],st[1])}</td></tr></tbody></table></div>`;
   } else {
     let D2=D[{reg:'regd',att:'attd',money:'moneyd',cert:'certd',news:'newsd'}[S.evTab]]||{};

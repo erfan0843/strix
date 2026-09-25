@@ -1383,6 +1383,9 @@ addEventListener('nora-forms-changed',()=>{});
    وضعیت از خود تاریخ‌ها درمی‌آید: از روز جلسهٔ اول تا پایانِ آخرین جلسه
    «در حال برگزاری»، بعدش در برگزارشده‌ها. */
 const PUB_GRAD='linear-gradient(135deg,#1E6FD0,#0A3A82)';
+/* جمع مبالغ فرم با تخفیف: همان حساب پنل، تا مبلغ رویداد زنده عوض شود */
+const formsMoney=f=>{const fin=(f&&f.fin)||[]; if(!fin.length) return 0;
+  return fin.reduce((n,o)=>n+(o.off?Math.round(+o.p*(100-+o.off)/100):(+o.p||0)),0)};
 const JM_KEY=['','','','','','','sh','mehr','aban','','','',''];
 const JM_NAME=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 function pubEvents(){
@@ -1407,10 +1410,15 @@ function pubEvents(){
     const nSes=Math.max(+ev.sessions||0,ses.length,1);
     const place=ev.place||'';
     const online=!place||place==='آنلاین'||/^https?:/i.test(place);
+    /* فرمهای وصلشده زنده خوانده میشوند: فرمی که بعد از انتشار در فرمساز
+       ساخته یا عوض شود، همین لحظه روی رویداد مینشیند؛ مبلغ هم از خود فرم */
+    const lf=formsFor(String(ev.id));
+    const regF=lf.find(x=>(x.need||'reg')==='reg');
+    const liveMoney=regF?formsMoney(regF):null;
     const base={id:String(ev.id), t:ev.n||'برنامه', kind:ev.kind||'برنامه',
       when:ev.when||(fj?faJDate(fj.jy,fj.jm,fj.jd):''), time:ev.time||'',
       place:online?'آنلاین':place, mode:online?'آنلاین':'حضوری',
-      price:+ev.price||0, cap:+ev.cap||0, taken:+ev.reg||0,
+      price:(liveMoney!=null&&liveMoney>0)?liveMoney:(+ev.price||0), cap:+ev.cap||0, taken:+ev.reg||0,
       spots:Math.max(0,(+ev.cap||0)-(+ev.reg||0)),
       poster:ev.posterUp||(ev.poster?('posters/'+ev.poster):''), g:PUB_GRAD,
       d:ev.about||ev.rep||'', tags:ev.held?[]:['جدید'], club:false,
@@ -1428,6 +1436,7 @@ function pubEvents(){
 }
 
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
+  rialTxt:rialTxt,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,

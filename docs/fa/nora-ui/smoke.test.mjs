@@ -1581,6 +1581,19 @@ async function load(file,store,q){
   ok(/فرم شما دریافت شد/.test(fm.doc.body.textContent),'متن پایان فرم هست');
   ok(fm.errs.length===0,'form.html با فرم واقعی بی‌خطا است'+(fm.errs.length?': '+fm.errs[0]:''));
 
+  /* تغییر مبلغ در فرمساز: مبلغ رویداد در پنل و صفحهٔ کاربر همان لحظه تازه می‌شود */
+  const fr=JSON.parse(store.getItem('nora-forms'));
+  fr[0].fin=[{l:'شهریهٔ کارگاه', p:500000, off:0},{l:'ناهار', p:240000, off:0}];
+  store.setItem('nora-forms', JSON.stringify(fr));
+  const pg2=await load('event.html',store,'?id=u9');
+  ok(/۷۴۰/.test(pg2.txt('#ctaIn')),'مبلغ تازهٔ فرمساز روی صفحهٔ رویداد کاربر می‌نشیند: '+pg2.txt('#ctaIn').slice(0,40));
+  const ad=await load('admin.html',store,'#events');
+  ad.click('[data-ev="u9"]');
+  ok(/۷۴۰/.test(ad.txt('#shAdm')),'برگهٔ رویداد پنل هم مبلغ تازه را می‌گوید');
+  const adx=await load('admin.html',store,'#events');
+  adx.click('[data-ev="u10"]');
+  ok(/برگزار شده/.test(adx.txt('#shAdm'))&&/آرشیو/.test(adx.txt('#shAdm')),'برگهٔ برگزارشده با جعبهٔ آرشیو در پنل هست');
+
   /* خانهٔ کاربر: جست‌وجو رویداد منتشرشده را پیدا می‌کند */
   const hm=await load('home.html',store);
   const qh=hm.doc.querySelector('#q');

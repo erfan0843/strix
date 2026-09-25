@@ -510,7 +510,10 @@ function render(){
   if(window.NORA_UI&&NORA_UI.fillTrust) NORA_UI.fillTrust();
 }
 
-function price2(n){return n?window.rialTxt?rialTxt(n):String(n)+' ریال':'رایگان'}
+function price2(n){ if(!n) return 'رایگان';
+  if(window.NORA_UI&&NORA_UI.rialTxt) return NORA_UI.rialTxt(n);
+  if(window.rialTxt) return rialTxt(n);
+  return String(n)+' ریال';}
 
 function renderMedia(){
   const box=$('#mlist'); if(!box) return;
