@@ -505,32 +505,53 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="users"]');
   ok(!!p.doc.querySelector('[data-uv="cert"]'),'گواهینامه‌ها کاشی سرِ کاربران است');
   p.click('[data-uv="cert"]');
-  ok(p.all('[data-cstep]').length===5,'مرکز صدور پنج گام دارد');
+  ok(p.all('[data-cstep]').length===4,'مرکز صدور چهار گام دارد: فایل ورد، رویدادها، گیرندگان، صدور');
   ok(/صدور در نوبت/.test(p.txt('.admtiles')||'')||true,'کاشی گواهینامه جمعبندی دارد');
-  ok(p.all('[data-tpl]').length===4,'چهار قالب هست');
+  /* گام ۱: فایل ورد؛ پارامترها خالی میماند و همان فایل برای همه میرود */
+  ok(p.all('[data-cfile]').length===3,'سه فایل ورد هست');
+  ok(/جاهای خالی اختیاری/.test(p.txt('#admBody')),'جاهای خالی اختیاری معرفی میشوند');
+  ok(/همان فایل برای همه صادر میشود/.test(p.txt('#admBody')),'قانون همان‌فایل-برای-همه نوشته شده');
+  ok(/\{نام\}/.test(p.txt('#admBody'))&&/\{کیوآر\}/.test(p.txt('#admBody')),'جای‌نامهای فایل با توضیحشان هست');
+  ok(p.all('.balebox').length>=1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش فایل ورد تار است');
+  const fl=p.doc.querySelector('.balebox [data-bale^="cert_file_"]');
+  ok(!!fl,'دریافت فایل ورد از ربات بله هست');
+  p.click('[data-cfile]');
+  ok(/برداشته شد/.test(p.txt('#admBody')),'فایل برگزیده نشان داده میشود');
+  p.type('#cFileN','گواهینامهٔ داوری جشنواره');
+  p.click('[data-cfilenew]');
+  ok(/گواهینامهٔ داوری جشنواره/.test(p.txt('#admBody'))&&p.all('[data-cfile]').length===4,'فایل تازه افزوده و برداشته میشود');
+  /* گام ۲: چند رویداد */
   p.click('[data-cstep="1"]');
-  ok(p.all('.admparam').length===9,'نُه جای خالی روی گواهی هست');
-  ok(p.all('[data-cparam]').length===4,'فقط قلم‌های ثابت دستی پر می‌شوند');
-  p.type('[data-cparam="event"]','کارگاه روایت اول‌شخص','change');
+  ok(p.all('[data-cev]').length>=3,'چیپ رویدادها هست');
+  ok(!/رویداد برگزیده شد/.test(p.txt('#admBody').match(/<p class="cap">[^<]*رویداد[^<]*/)?.[0]||''),'در آغاز هیچ رویدادی برگزیده نیست');
+  p.click(p.all('[data-cev]')[0]);
+  p.click(p.all('[data-cev]')[1]);
+  ok(p.all('[data-cev].on').length===2,'دو رویداد همزمان برگزیده میشود');
+  ok(/۲ رویداد برگزیده شد/.test(p.txt('#admBody')),'جمعبندی دو رویداد نوشته میشود');
+  ok(/گیرنده/.test(p.txt('#admBody')),'شمار گیرندهها نوشته میشود');
+  /* گام ۳: گیرندگان */
   p.click('[data-cstep="2"]');
-  ok(p.all('[data-cwho]').length===5,'پنج راه رسیدن به گیرنده‌ها هست');
+  ok(/گیرنده/.test(p.txt('#admBody'))&&p.all('.admkpi .k').length===4,'گیرنده‌ها با چهار عدد جمع میشوند');
+  ok(/عکس تأییدشدهٔ پروفایل/.test(p.txt('#admBody')),'قانون عکس پرسنلی هست');
+  /* گام ۴: صدور و مدیریت */
   p.click('[data-cstep="3"]');
-  ok(p.all('.admsvgbox svg').length===1,'پیش‌نمایش زنده درست ساخته شد');
-  ok(p.all('.balebox .admsvgbox svg').length===1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش گواهی تار است');
-  const cb=p.doc.querySelector('[data-bale^="cert_"]');
-  ok(!!cb,'دریافت گواهی دکمهٔ ربات بله دارد');
-  cb.click();
-  const cl=p.doc.querySelector('#shAdm a[data-balereg]');
-  ok(!!cl&&cl.href.includes('ble.ir/lifeline_bot?start=cert_NL-A1-2483'),'لینک گواهی با سریالش به ربات میرسد');
-  p.click(p.doc.getElementById('shAdm').querySelectorAll('[data-balereg]')[1]);
-  const certText=p.txt('.admsvgbox')+' '+p.all('.admsvgbox text').map(t=>t.textContent).join(' ');
-  ok(p.all('.admsvgbox text').length>=6&&/خط زندگی/.test(certText),'نوشتهٔ گواهی روی تصویر هست ('+p.all('.admsvgbox text').length+' خط)');
-  p.click('[data-cstep="4"]');
-  ok(p.all('[data-cpub]').length===4,'چهار روش انتشار هست');
+  ok(!!p.doc.querySelector('[data-cletter]')&&!!p.doc.querySelector('[data-cmonths]'),'شمارهٔ نامه و اعتبار ورودی دارند');
+  ok(!!p.doc.querySelector('[data-cnews]'),'متن خبر قابل ویرایش است');
   ok(p.all('[data-tog="cert"]').length===1,'کلید ساخت تنبل هست');
+  p.click('[data-crand]');
+  ok(/نمونه برای/.test(p.txt('.balebox')),'پیش‌نمایش تصادفی با نام یک نفر میآید');
+  p.click('[data-certpub]');
+  ok(/منتشرشده‌ها و مدیریتشان/.test(p.txt('#admBody')),'دستهٔ صدور در منتشرشده‌ها نشست');
+  ok(/یادآوری مانده/.test(p.txt('#admBody'))&&/ابطال/.test(p.txt('#admBody')),'مدیریت: یادآوری و ابطال هست');
+  p.click('[data-cbnudge]');
+  ok(/گیرندهٔ مانده/.test(p.txt('#toast')),'یادآوری مانده‌ها پیام میدهد');
+  p.click('[data-cbrev]');
+  ok(/باطل شد/.test(p.txt('#toast')),'ابطال دسته پیام میدهد');
+  ok(p.all('.permrow').length>=1,'فهرست منتشرشده‌ها ردیف دارد');
+  ok(!!p.doc.querySelector('[data-bale^="cert_"]'),'دریافت نمونه از ربات بله هست');
   const jobs=p.all('.admrow2').length;
   p.click('[data-certpub]');
-  ok(p.all('.admrow2').length===jobs+1,'انتشار، یک کار صدور به فهرست اضافه می‌کند');
+  ok(p.all('.admrow2').length===jobs+1,'صدور دوباره، یک کار به کارهای صدور اضافه میکند');
   ok(/منتشر|نوبت/.test(p.txt('.admlist')),'وضعیت کار صدور معلوم است');
 }
 
@@ -1036,7 +1057,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
 {
   console.log('\n── نشانی و هش ──');
   const p=await load(makeStore(),'#cert');
-  ok(p.txt('#admBar .head')==='کاربران'&&p.all('[data-cstep]').length===5,'با #cert پنل روی کاربران و مرکز صدور باز می‌شود');
+  ok(p.txt('#admBar .head')==='کاربران'&&p.all('[data-cstep]').length===4,'با #cert پنل روی کاربران و مرکز صدور باز می‌شود');
   p.window.location.hash='#users';
   p.window.dispatchEvent(new p.window.Event('hashchange'));
   await wait(150);
@@ -1078,9 +1099,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=56')&&html.includes('admin.js?v=56'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=57')&&html.includes('admin.js?v=57'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v45'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v46'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
