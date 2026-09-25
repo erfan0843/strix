@@ -259,6 +259,19 @@
 .frow2 .fbar i{display:block;height:100%;border-radius:99px;background:var(--brand)}
 .frow2 .fbtns{display:flex;gap:4px}
 
+/* رویدادهای نزدیک */
+.elist{display:grid;gap:2px}
+.erow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;
+  padding:10px 2px;border-bottom:.5px solid var(--hairline-2)}
+.erow:last-child{border-bottom:0}
+.erow .et{min-width:0}
+.erow .et b{display:block;font-size:var(--fs-sub);font-weight:600;line-height:1.7;overflow-wrap:anywhere}
+.erow .et small{display:block;font-size:11px;color:var(--ink-3);overflow-wrap:anywhere}
+.erow .ecap{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-width:0}
+.erow .ecap .cap{white-space:nowrap;font-size:10.5px}
+.erow .ebar{flex:1;height:6px;border-radius:99px;background:var(--surface-sunk);overflow:hidden;min-width:40px}
+.erow .ebar i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+
 /* تیم */
 .tlist{display:grid;gap:2px}
 .trow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:.5px solid var(--hairline-2)}

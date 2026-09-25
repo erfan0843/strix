@@ -1828,6 +1828,7 @@ const ADMIN={
     of:'از', qMore:'همهٔ کارها', qLess:'کمتر', formQueue:'کارتابل فرم',
     minute:'دقیقه', qWork:'کار', fieldWord:'حوزه', fieldLead:'سرپرست حوزه', specs:'کارشناس',
     openField:'سر بزن', noLead:'بدون سرپرست', urgent:'فوری', lead:'سرپرست',
+    soon:'رویدادهای نزدیک', specsWord:'نفر',
     alertFieldLow:'زیر ٪۸۵', alertHealth:'سلامت حوزه', alertGoal:'هدف ۸۵٪ است', openWork:'کار باز',
     ownerLine:'مالک سامانه'}
 };

@@ -333,12 +333,15 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   console.log('\n── مالی فقط مالک ──');
   const p=await load();
   ok(/مالی امروز/.test(p.txt('#admBody')),'مالک کارت مالی را می‌بیند');
+  ok(p.all('.erow').length===4&&/از/.test(p.txt('.elist')),'کارت رویدادهای نزدیک چهار ردیف ظرفیت دارد');
+  ok(!/ریال|درآمد|فروش/.test(p.txt('.elist')),'و هیچ عدد مالی در آن نیست');
   p.click('#admNav [data-sec="reports"]');
   ok(/مالی/.test(p.txt('#admBody')),'و گزارش مالی را');
   ok(p.all('[data-rep="fi"]').length>=1,'ردیف مالی در گزارش‌ها برایش هست');
   p.click('#admNav [data-sec="events"]');
   p.click('[data-ev="e1"]');
   ok(p.all('#shAdm .admfilters [data-evtab="money"]').length===1,'تب مالی رویداد برایش هست');
+  ok(/هزینه/.test(p.txt('#shAdm')),'و ردیف هزینهٔ رویداد');
   p.click('#shAdm [data-close]');
 
   /* سرپرست باشگاه: رویداد و تنظیمات دارد، ولی هیچ مالی‌ای نمی‌بیند */
@@ -351,6 +354,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.click('#admNav [data-sec="events"]');
   p.click('[data-ev="e1"]');
   ok(p.all('#shAdm .admfilters [data-evtab="money"]').length===0,'تب مالی رویداد قفل است');
+  ok(!/هزینه/.test(p.txt('#shAdm')),'و ردیف هزینهٔ رویداد نیست');
   ok(p.all('#shAdm .admfilters [data-evtab]').length===5,'پنج تب بی‌مالی مانده');
   p.click('#shAdm .admfilters [data-evtab="reg"]');
   ok(!/پرداخت‌شده/.test(p.txt('#shAdm')),'وضعیت پرداخت در تب ثبت‌نام‌ها ماسک شده');
@@ -434,9 +438,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=37')&&html.includes('admin.js?v=37'),'نسخهٔ پرونده‌های پنل ۳۷ است');
+  ok(html.includes('admin.css?v=38')&&html.includes('admin.js?v=38'),'نسخهٔ پرونده‌های پنل ۳۸ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v26'"),'کارگر سرویس نسخهٔ ۲۶ است');
+  ok(sw.includes("'nora-v27'"),'کارگر سرویس نسخهٔ ۲۷ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

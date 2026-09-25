@@ -437,11 +437,27 @@ function cardMoney(){
     <p class="cap">${esc(D.moneyNote||'')}</p>
   </section>`;
 }
+/* رویدادهای نزدیک: هر رویداد یک ردیف با ظرفیتش؛ هیچ عدد مالی این‌جا نیست */
+function cardSoon(){
+  const ev=(EVROWS||[]).filter(e=>e.state==='live'||e.state==='soon').slice(0,4);
+  const st=(A.events||{}).states||{};
+  return `<section class="card stack">
+    <div class="row"><div class="head">${esc(D.soon||'رویدادهای نزدیک')}</div><span class="sp"></span>
+      <button class="btn sm quiet" data-sec="events">${ico('i-calendar')}${esc(secOf('events').n)}</button></div>
+    <div class="elist">${ev.map(e=>{const p=Math.min(100,Math.round(((+e.reg||0)/Math.max(1,+e.cap||0))*100)),
+        tg=st[e.state]||[e.state,''];
+      return `<div class="erow">
+        <div class="et"><b>${esc(e.n)}</b><small>${esc(e.when)} · ${esc(e.time)} · ${esc(e.place)}</small></div>
+        ${tag(tg[0],tg[1])}
+        <div class="ecap"><span class="cap">${esc(fa(e.reg))} ${esc(D.of||'از')} ${esc(fa(e.cap))}</span>
+          <span class="ebar"><i style="width:${p}%"></i></span></div></div>`}).join('')||emptyBox(D.todayEmpty||'')}</div>
+  </section>`;
+}
 function vDash(){
   const own=isOwner(), lead=isLead();
-  const one=own?cardQueue()+cardFields()+cardTeam()
-    :lead?cardQueue()+cardTeam()
-    :cardQueue();
+  const one=own?cardQueue()+cardSoon()+cardFields()+cardTeam()
+    :lead?cardQueue()+cardSoon()+cardTeam()
+    :cardQueue()+cardSoon();
   const two=own?cardStatus()+cardToday()+cardAlerts()+cardMoney()
     :lead?cardStatus()+cardToday()+cardAlerts()+cardWeek()
     :cardToday()+cardAlerts()+cardWeek();
@@ -483,7 +499,7 @@ function vNewev(){
   const ready=(st===0&&w.kind&&String(w.name||'').trim())||(st===1&&w.date&&w.time&&w.place)||st===2;
   return `<section class="card stack admwiz">
     <div class="row"><div class="head">${esc((A.wizard||{}).lead||'')}</div><span class="sp"></span>
-      <span class="cap">${esc(W.steps||'گام')} ${esc(fa(st+1))} ${esc(W.of||'از')} ${esc(fa(3))}</span></div>
+      <span class="cap">${esc(W.steps||'گام')} ${esc(fa(st+1))} ${esc(W.of||'از')} ${esc(fa(((A.wizard||{}).steps||[]).length||3))}</span></div>
     <div class="admsteps">${steps}</div>
     ${inner}
     <div class="row"><span class="sp"></span>
@@ -690,7 +706,7 @@ function vSettings(){
           <small>${esc(f.s)}</small></span>
         ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(fk)}">${esc(D.changeLead||'تعیین سرپرست')}</button>`:''}
       </div>
-      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))})</div>
+      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))} ${esc(D.specsWord||'نفر')})</div>
         <span class="sp"></span>
         ${isOwner()||isLead()?`<button class="btn sm tint" data-addspec="${esc(fk)}">${ico('i-plus')}${esc(D.addSpec||'افزودن کارشناس')}</button>`:''}</div>
       <div class="tlist">${t.map(pp=>`<div class="trow">
