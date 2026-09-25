@@ -206,7 +206,7 @@ function parseJ(s){
   if(d.length!==3) return null;
   return {jy:d[0],jm:d[1],jd:d[2],hh:h[0]||0,mm:h[1]||0};
 }
-const fmtClock=(hh,mm)=>faN(hh)+':'+faDigits(String(mm).padStart(2,'0'));
+const fmtClock=(hh,mm)=>faDigits(String(hh).padStart(2,'0'))+':'+faDigits(String(mm).padStart(2,'0'));
 /* خط تاریخ و محل رویداد (روی برگ گواهینامه و جزئیات پنل) */
 function ticketMeta(dateStr,venue){
   const p=parseJ(dateStr); const bits=[];
@@ -1535,7 +1535,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v40') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v41') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

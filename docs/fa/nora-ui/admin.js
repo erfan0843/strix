@@ -1486,7 +1486,9 @@ function vUOcc(){
     <div class="head">مناسبت‌ها (${esc(fa(occ.filter(occOn).length))} روشن از ${esc(fa(occ.length))})</div>
     ${rows}
     <p class="cap">${esc('مناسبت آماده حذف نمیشود؛ فقط خاموش میشود. مناسبت سفارشی با روز و جنسیت و امتیاز خودت ساخته میشود و ارسال تکراری ندارد.')}</p>
-    ${S.uoccNew?`<div class="stack">
+    ${S.uoccNew?`<hr class="hr"/>
+    <div class="row"><div class="head">مناسبت تازه</div><span class="sp"></span></div>
+    <div class="stack">
       <label class="fld"><span>نام مناسبت</span><input id="occN" type="text" placeholder="مثل: روز خانه‌سازی"/></label>
       <div class="row tight">
         <label class="fld"><span>ماه</span><input id="occM" type="number" min="1" max="12" value="1"/></label>
@@ -1599,13 +1601,11 @@ function cUTags(){
   const rows=Object.keys(labs).map(t=>`<div class="admlirow">${ico('i-filter')}
     <span class="sp"><b>${esc(t)}</b><small class="cap">${esc(fa(labs[t]))} کاربر</small></span>
     <span class="mini">${btn('فهرست','data-uTag="'+esc(t)+'"')}</span></div>`).join('');
-  return `<section class="card stack">${uBack}
-    ${uHead('برچسب‌ها و دسته‌ها')}
+  return `${uHead('برچسب‌ها و دسته‌ها')}
     <p class="cap">${esc('برچسب روی پروندهٔ هر کاربر می‌نشیند؛ همین‌جا می‌شود برچسب تازه گذاشت و با زدن «فهرست» همان دسته را دید.')}</p>
     ${rows||emptyBox('هنوز برچسبی نیست')}
     <label class="fld"><span>برچسب تازه</span><input id="uTagNew" type="text" placeholder="مثل: داوطلب اردو"/></label>
-    <div class="row tight">${btn('گذاشتن برچسب','data-utagadd','i-plus')}<span class="sp"></span></div>
-  </section>`;
+    <div class="row tight">${btn('گذاشتن برچسب','data-utagadd','i-plus')}<span class="sp"></span></div>`;
 }
 /* پارامترهای پروفایل */
 function cUPar(){
@@ -1616,8 +1616,7 @@ function cUPar(){
       <span class="mini">${f[3]?'':`<span class="switch ${on(k)?'on':''}" data-upar="${esc(k)}" role="switch" aria-checked="${on(k)?'true':'false'}" aria-label="${esc(f[1])}"></span>`}
         ${f[3]?'':`<span class="mini">${req(k)?'⭐':'○'}<span class="switch ${req(k)?'on':''}" data-uparreq="${esc(k)}" role="switch" aria-checked="${req(k)?'true':'false'}" aria-label="اجباری"></span></span>`}</span></div>`}).join('');
   const nOn=PFLDS.filter(f=>f[3]||on(f[0])).length, nReq=PFLDS.filter(f=>f[3]||req(f[0])).length;
-  return `<section class="card stack">${uBack}
-    ${uHead('پارامترهای پروفایل')}
+  return `${uHead('پارامترهای پروفایل')}
     <div class="admkpi">
       <div class="k"><small>فعال</small>${bits(fa(nOn+2)+' فیلد')}</div>
       <div class="k"><small>اجباری</small>${bits(fa(nReq+2)+' فیلد')}</div></div>
@@ -1625,26 +1624,22 @@ function cUPar(){
     <div class="admlirow">${ico('i-mobile')}<span class="sp"><b>شمارهٔ همراه</b><small class="cap">با کد یک‌بارمصرف؛ همیشه اجباری</small></span></div>
     ${rows}
     <div class="row tight">${btn('بازگشت به پیش‌فرض','data-uparreset','i-back')}<span class="sp"></span></div>
-    <p class="cap">${esc('روشن و خاموش و اجباری و اختیاری؛ فرم پروفایل کاربر از همین پیروی میکند و درصد تکمیل با همین حساب میشود.')}</p>
-  </section>`;
+    <p class="cap">${esc('روشن و خاموش و اجباری و اختیاری؛ فرم پروفایل کاربر از همین پیروی میکند و درصد تکمیل با همین حساب میشود.')}</p>`;
 }
 /* افزودن دستی: هر خط یک نفر */
 function cUAdd(){
-  return `<section class="card stack">${uBack}
-    ${uHead('افزودن دستی')}
+  return `${uHead('افزودن دستی')}
     <p class="cap">${esc('هر خط یک نفر؛ نام را بنویس و اگر داشتی کد ملی یا موبایل را با ویرگول جدا کن. مثل: «علی محمدی، ۰۰۲۳۴۵۶۷۸۷»')}</p>
     <label class="fld"><textarea id="uAddTxt" rows="6" placeholder="علی محمدی، ۰۰۲۳۴۵۶۷۸۷
 زهرا کریمی، ۰۹۱۲۱۲۳۴۵۶۷
 حسین رحیمی"></textarea></label>
     <div class="row tight">${btn('افزودن همه','data-uaddgo','i-check')}<span class="sp"></span></div>
-    ${uImpList()}
-  </section>`;
+    ${uImpList()}`;
 }
 /* ورودی اکسل: چسباندن جدول، شناخت ستونها، بهروزرسانی موجودها */
 function cUImp(){
   const pv=S.uimpPv||null;
-  return `<section class="card stack">${uBack}
-    ${uHead('ورودی اکسل')}
+  return `${uHead('ورودی اکسل')}
     <p class="cap">${esc('جدول را از اکسل رونوشت کن و همین‌جا بچسبان؛ سرستونها با نامهای مختلف (نام و فامیل، شماره، همراه…) شناخته میشوند.')}</p>
     <label class="fld"><textarea id="uImpTxt" rows="6" placeholder="نام	موبایل	شهر
 زهرا کریمی	۰۹۱۲۱۲۳۴۵۶۷	تهران"></textarea></label>

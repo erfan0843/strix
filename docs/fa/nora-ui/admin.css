@@ -50,7 +50,14 @@
 .admbars i.hi{background:var(--brand)}
 .admbarsx{display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--ink-4)}
 .admli{display:grid;gap:var(--sp-2)}
-.admlirow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--hairline-2)}
+/* دکمهها و کلیدهای کنار هر ردیف همیشه یک ردیف مرتب؛ متنها دو خط تمیز */
+.mini{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.admlirow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:.5px solid var(--hairline-2);
+  flex-wrap:wrap;row-gap:8px}
+.admlirow .sp{display:grid;gap:1px;min-width:0}
+.admlirow .sp b,.admlirow .sp small{overflow-wrap:anywhere}
+/* فیلدهای کنار هم در یک ردیف، همعرض و مرتب */
+.row.tight .fld{flex:1 1 110px;min-width:0}
 .admlirow:last-child{border-bottom:0}
 
 /* ── ویزارد سه‌گامی ───────────────────────────────────────────────────── */
