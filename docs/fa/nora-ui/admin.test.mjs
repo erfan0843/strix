@@ -4,7 +4,8 @@
    اجرا:  npm i jsdom && node admin.test.mjs
    چه چیزی را می‌سنجد: بی‌خطا بار شدن پنل، هفت بخش به‌علاوهٔ داشبورد، داشبوردِ
    جدا برای مالک و سرپرست حوزه و کارشناس، چهار عدد کلیدی و کارتابل شخصی،
-   ویزارد چهارگامی تعریف رویداد با تأیید مالک یا سرپرست، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
+   ویزارد پنج‌گامی تعریف رویداد با پوستر و تم و فرم‌ساز و پیش‌نمایش کارت و
+   صفحه و گردش تأیید، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
    مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، یک مالک و شش
    حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
    سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
@@ -98,76 +99,137 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.txt('#admBar .head')==='تنظیمات','آخرین بخش، تنظیمات بود');
 }
 
-/* ── ۲) ویزارد رویداد تازه ── */
+/* ── ۲) ویزارد رویداد تازه: پنج گام، پوستر و تم، فرم‌ساز، کارت و صفحه ── */
 {
-  console.log('\n── رویداد جدید: سه گام ──');
+  console.log('\n── ویزارد رویداد تازه ──');
   const p=await load();
   p.click('#admNav [data-sec="events"]');
   const before=p.all('[data-ev]').length;
   p.click('#admNav [data-sec="newev"]');
   ok(p.txt('#admBar .head')==='تعریف جدید','بخش تعریف تازه باز شد');
-  ok(p.all('.admsteps .st').length===4,'ویزارد چهار گام دارد: چیستی، کی و کجا، ظرفیت و ثبت‌نام، مرور');
+  ok(p.all('.admsteps .st').length===5,'ویزارد پنج گام دارد: چیستی و پوستر، کی و کجا، ظرفیت و ثبت‌نام، فرم‌ها و اطلاع‌رسانی، کارت و صفحه');
   ok(p.all('[data-wkind]').length===4,'چهار نوع تعریف هست: رویداد، مطلب، فرم، اطلاع‌رسانی');
   ok(p.all('[data-wet]').length===9,'و نه قالب رویداد: کارگاه، وبینار، مسابقه، همایش، اردو و بقیه');
-  ok(/گام/.test(p.txt('#admBody')),'شمارندهٔ گام نوشته شده');
+  ok(p.all('[data-wposter]').length===10,'گالری پوستر ده طرح دارد');
+  ok(p.all('[data-wtheme]').length===4,'و چهار تم کارت: شیشه‌ای، شب، طلایی، سبز');
+  ok(p.all('.evcard').length===1,'گام اول پیش‌نمایش زندهٔ کارت دارد');
   p.click('[data-wstep="1"][data-wgo="1"]');    /* بی نوع و بی نام: نباید جلو برود */
   ok(p.all('.admsteps .st').filter(x=>x.classList.contains('on')).length===1,'گام ناتمام جلو نمی‌رود');
   ok(p.txt('#toast').length>0,'و می‌گوید چه قلمی کم است');
-  p.click('[data-wet="workshop"]');
-  ok(p.all('[data-wet].on').length===1&&p.all('[data-wet]').length===9,'قالب کارگاه برجسته شد');
-  p.type('#wzName','کارگاه نقالی و پرده‌خوانی');
+  p.click('[data-wet="camp"]');
+  p.type('#wzName','اردوی پاییزهٔ دربند');
+  p.type('#wzDesc','یک روز در طبیعت');
+  p.click('[data-wposter="poster-camp.svg"]');
+  ok(p.all('.pthumb.on').length===1,'پوستر برجسته شد');
+  ok(p.doc.querySelector('.evcard-cover img')!==null,'و روی کارت پیش‌نمایش نشست');
+  p.click('[data-wposter="poster-camp.svg"]');
+  ok(p.doc.querySelector('.evcard-cover img')===null,'با زدن دوباره برداشته می‌شود');
+  p.click('[data-wposter="poster-camp.svg"]');
+  p.click('[data-wtheme="leaf"]');
+  ok(/th-leaf/.test(p.doc.querySelector('.evcard').className),'تم سبز روی کارت می‌نشیند');
   p.click('[data-wstep="1"][data-wgo="1"]');
+
+  /* گام دو: تقویم، ساعت ۲۴ساعته و ساعت زنده */
   ok(p.all('#wz-date,#wz-time,#wz-to,#wz-end,#wz-dur,#wz-sessions').length===6,'تاریخ و ساعت شروع و پایان و مدت، قلم خودشان را دارند');
-  ok(p.all('input[type=time]').length===2,'ساعت‌ها قلم ساعت‌اند، نه دکمهٔ فهرستی');
-  ok(p.all('input[type=number]').length===2,'مدت و تعداد جلسه هم قلم عددی‌اند');
+  ok(p.all('[data-wtime]').length===2,'ساعت‌ها قلم ۲۴ساعته‌اند، نه دکمهٔ فهرستی');
+  ok(p.txt('#wzClock').length>=5&&p.all('#wzClock').length===1,'ساعت زندهٔ بالای گام نوشته شده');
+  ok(/ساعت دستگاه|اینترنت/.test(p.txt('#wzClockSt')),'و می‌گوید از کجا می‌آید');
   ok(p.all('[data-dp]').length===4,'چهار قلم تاریخ دکمهٔ تقویم دارد');
-  ok(p.doc.querySelector('#wz-date').getAttribute('inputmode')==='numeric','و با صفحه‌کلید عددی نوشته می‌شود');
-  ok(p.all('[data-wpick="mode"]').length===3,'فقط انتخاب برگزاری دکمه‌ای می‌ماند');
-  /* تقویم شمسی: باز شدن، چرخش ماه، برداشتن روز */
+  p.type('#wz-time','1815','change');
+  ok(p.doc.querySelector('#wz-time').value==='18:15','ساعت بی‌دونقطه خودش ۱۸:۱۵ می‌شود');
+  p.type('#wz-time','17','input');
+  ok(p.doc.querySelector('#wz-time').value==='17','وسط تایپ دست‌وپا نمی‌زند');
+  p.type('#wz-time','1799','change');
+  ok(p.doc.querySelector('#wz-time').value==='17:59','و ۲۳:۵۹ سقف ساعت است');
   p.click('[data-dp="date"]');
-  ok(p.all('.dp').length===1,'تقویم باز می‌شود');
-  ok(/مهر ۱۴۰۴/.test(p.txt('.dphead')),'روی ماه امروز باز می‌شود');
-  ok(p.all('.dd').length===30&&p.all('.dpweek span').length===7,'مهر سی روز و هفت سرستون دارد');
-  ok(p.all('.dd.today').length===1&&p.txt('.dd.today')==='۵','روز امروز نشان دارد');
-  p.click('[data-dpmv="-1"]');
-  ok(/شهریور/.test(p.txt('.dphead')),'ماه قبل می‌رود');
-  p.click('[data-dpmv="1"]');
-  p.click(p.all('.dd')[15]);
-  ok(/^۱۴۰۴\/۰۷\/۱۶$/.test(p.doc.querySelector('#wz-date').value),'روز برداشته در قلم می‌نشیند');
-  ok(p.all('.dp').length===0,'و تقویم بسته می‌شود');
-  ok(p.all('.fld .cap').length>0,'زیر قلم تاریخ، روزش نوشته می‌شود');
+  ok(p.all('.dp').length===1&&p.all('.dd').length>0,'تقویم باز می‌شود');
+  ok(p.all('.dd.today').length===1,'روز امروز نشان دارد');
+  p.click(p.all('.dd').find(x=>x.textContent.trim()==='۲۱'));   /* هر ماه شمسی ۲۱ روز دارد */
+  ok(/^[۰-۹]{4}\/[۰-۹]{2}\/۲۱$/.test(p.doc.querySelector('#wz-date').value),'روز برداشته در قلم می‌نشیند');
   ok(p.doc.querySelector('#wz-end').value!=='','تاریخ پایان هم با شروع پر می‌شود');
-  ok(p.all('#wz-place').length===1&&p.all('#dl-place option').length>0,'جا قلم نوشتنی است با پیشنهاد، نه دکمهٔ فهرستی');
-  ok(p.all('[data-wpick="place"],[data-wpick="link"],[data-wpick="date"],[data-wpick="time"]').length===0,'هیچ‌کدام از تاریخ و جا و لینک دکمه نیست');
-  p.type('#wz-time','18:30','change');
-  p.type('#wz-to','20:00','change');
-  ok(p.doc.querySelector('#wz-dur').value==='90','مدت هر جلسه خودش از شروع و پایان درمی‌آید');
-  p.type('#wz-dur','120','change');
-  ok(p.doc.querySelector('#wz-dur').value==='120','و دست خودت هم باز است');
-  p.click('[data-wpick="mode"][data-wval="online"]');
-  ok(p.doc.querySelector('#wz-place')===null&&p.doc.querySelector('#wz-link')!==null,'آنلاین که شد، جا نمی‌پرسد و لینک می‌پرسد');
-  ok(p.all('#dl-link option').length>0,'لینک هم پیشنهاد دارد ولی نوشتنی است');
-  p.type('#wz-link','اتاق پخش زندهٔ نورا','change');
+  ok(p.all('.fld .cap').length>0,'زیر تاریخ، روز هفته نوشته می‌شود');
+  p.type('#wz-time','17:15','change');
+  p.type('#wz-to','19:00','change');
+  ok(p.doc.querySelector('#wz-dur').value==='105','مدت هر جلسه از فاصلهٔ ساعت‌ها درمی‌آید');
+  p.type('#wz-place','دربند، پارک جنگلی','change');
   p.click('[data-wstep="2"][data-wgo="1"]');
+
+  /* گام سه: ظرفیت و ثبت‌نام */
   ok(p.all('#wz-cap,#wz-pre,#wz-extra').length===3,'ظرفیت رویداد و پیش‌ثبت‌نام و مازاد هر کدام قلم عددی دارند');
-  ok(p.all('[data-wpick="cap"],[data-wpick="pre"],[data-wpick="extra"]').length===0,'و دیگر فهرست دکمه‌ای ظرفیت نیست');
-  ok(p.all('[data-wwait]').length===1,'لیست انتظار کلید دارد');
-  ok(p.all('[data-wpick="form"]').length===3,'سه قالب فرم ثبت‌نام هست');
-  ok(p.all('[data-wpick="exam"]').length===4,'آزمون رویداد هم وصل می‌شود');
-  ok(p.all('[data-wrem]').length===4,'یادآوری‌ها چهار زمانه است');
-  ok(/قیمت‌گذاری دست مالک|پرداخت/.test(p.txt('#admBody')),'ردیف پرداخت فقط دست مالک است');
-  p.type('#wz-cap','45','change');
+  ok(p.all('[data-wpick="waitMode"]').length===3,'لیست انتظار سه حالت دارد: خودکار، دستی، خاموش');
+  ok(p.all('[data-wpick="tickets"]').length===3,'سه حالت بلیت هست');
+  ok(p.all('[data-wfeat]').length===10,'ده قابلیت هست که روشن و خاموش می‌شوند');
+  const wasOn=p.all('[data-wfeat="cert"]')[0].classList.contains('on');
+  p.click('[data-wfeat="cert"]');
+  ok(p.all('[data-wfeat="cert"]')[0].classList.contains('on')!==wasOn,'با یک زدن روشن و خاموش می‌شود');
+  p.click('[data-wfeat="cert"]');
+  p.type('#wz-cap','40','change');
+  p.type('#wz-pre','6','change');
+  p.click('[data-wpick="waitMode"][data-wval="manual"]');
+  ok(p.all('[data-wpick="waitMode"].on')[0].textContent.includes('دستی'),'حالت انتظار عوض می‌شود');
   p.click('[data-wstep="3"][data-wgo="1"]');
-  ok(p.all('.revrow').length>=8,'گام چهارم همه‌چیز را برای مرور نشان می‌دهد');
-  ok(/فرم‌ها|قابلیت‌ها/.test(p.txt('.admreview')),'فرم و قابلیت‌ها در مرور هست');
+
+  /* گام چهار: سازندهٔ فرم ثبت‌نام و نظرسنجی و آزمون */
+  ok(p.all('[data-ftpl^="reg"]').length===3,'سه قالب آمادهٔ فرم ثبت‌نام هست');
+  ok(p.all('[data-fbuild]').length===3,'و سه دکمهٔ ساخت فرم اختصاصی: ثبت‌نام، نظرسنجی، آزمون');
+  ok(p.all('[data-ftpl^="survey"]').length===1,'نظرسنجی خودکار هم هست');
+  ok(p.all('[data-ftpl^="exam"]').length===3,'سه آزمون آماده هست');
+  p.click('[data-ftpl="reg-full"]');
+  ok(p.all('[data-ftpl="reg-full"].on').length===1,'قالب کامل ثبت‌نام برجسته می‌شود');
+  p.click('[data-fbuild="reg"]');
+  ok(p.all('[data-frow^="reg"]').length===1,'فرم اختصاصی با یک پرسش خالی باز می‌شود');
+  p.click('[data-fadd="reg"]');
+  ok(p.all('[data-frow^="reg"]').length===2,'افزودن پرسش کار می‌کند');
+  p.type('[data-fcell="l"][data-fw="reg"][data-fi="1"]','شمارهٔ همراه','change');
+  ok(p.all('[data-fcell="l"][data-fw="reg"]')[1].value==='شمارهٔ همراه','متن پرسش می‌نشیند');
+  p.click(p.all('[data-fdel]')[0]);
+  ok(p.all('[data-frow^="reg"]').length===1,'و برداشتن پرسش هم');
+  p.click('[data-fbuild="survey"]');
+  ok(p.all('[data-frow^="survey"]').length===1&&p.all('[data-fcell="t"][data-fw="survey"]').length===1,'نظرسنجی اختصاصی هم پرسش‌ساز دارد');
+  p.click('[data-fbuild="exam"]');
+  ok(p.all('[data-frow^="exam"]').length===1,'آزمون تازه هم پرسش‌ساز دارد');
+  ok(p.all('[data-fcell="a"]').length===1&&p.all('[data-fcell="s"]').length===1,'آزمون پاسخ درست و بارم هم دارد');
+  ok(p.all('[data-wrem]').length===4&&p.all('[data-wch]').length===4,'یادآوری‌ها و کانال‌های اطلاع‌رسانی هم این‌جاست');
+  ok(p.all('[data-wrem]').length===4,'چهار یادآوری هم کنارش هست');
+  const remOn0=p.all('[data-wrem="d1"]')[0].classList.contains('on');
+  p.click('[data-wrem="d1"]');
+  ok(p.all('[data-wrem="d1"]')[0].classList.contains('on')!==remOn0,'یادآوری بیست‌وچهارساعته خاموش و روشن می‌شود');
+  p.click('[data-wrem="d1"]');
+  p.click('[data-wch="sms"]');
+  ok(p.all('.mrow').length===4,'کانال تازه به پیش‌نمایش پیام‌ها می‌آید');
+  p.click('[data-wch="sms"]');
+  ok(p.all('.mrow').length===3,'و با زدن دوباره می‌رود');
+  ok(p.all('.mrow').length>=1,'پیش‌نمایش پیام‌ها نوشته می‌شود');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+
+  /* گام پنج: کارت، صفحه و انتشار */
+  ok(p.all('.evcard').length===1&&p.all('.evpage').length===1,'گام آخر هم کارت را نشان می‌دهد هم صفحهٔ رویداد');
+  ok(/event\.html\?id=nx/.test(p.txt('.pagelink code')),'نشانی صفحهٔ رویداد ساخته می‌شود');
+  ok(p.all('[data-copyev]').length===1,'و دکمهٔ رونوشت دارد');
+  ok(p.all('.revrow').length>=15,'مرور همهٔ قلم‌ها را ردیف‌به‌ردیف می‌آورد');
+  p.click('[data-copyev]');
+  ok(/رونوشت|کپی/.test(p.txt('#toast')),'دکمهٔ رونوشت پیوند را برمی‌دارد');
+  ok(p.txt('.admreview').includes('فرم ثبت‌نام'),'و فرم‌ها را هم');
   p.click('[data-wsend]');
   ok(p.txt('#admBar .head')==='رویدادها','بعد از انتشار، خودش به فهرست رویدادها می‌رود');
   ok(p.all('[data-ev]').length===before+1,'رویداد تازه به فهرست اضافه شد');
-  ok(p.txt('[data-ev] b')==='کارگاه نقالی و پرده‌خوانی','نام همان است که نوشتیم');
+  ok(p.txt('[data-ev] b')==='اردوی پاییزهٔ دربند','نام همان است که نوشتیم');
   ok(!/پیش‌نویس/.test(p.txt('#admBody')),'دیگر هیچ رویدادی پیش‌نویس نمی‌شود');
+  ok(p.doc.querySelector('[data-ev] .ic.pic img')!==null,'پوستر روی ردیف رویداد می‌نشیند');
   ok(/منتشر|پیش‌رو|جاری/.test(p.txt('[data-ev]')),'وضعیتش منتشر است');
   ok(p.all('.admsteps .st').length===0,'و ویزارد بسته می‌شود');
-  ok(p.all('[data-ev]').length>7,'رویدادهای قدیمی هم سرِ جایشان ماندند');
+
+  /* فرم‌ها در بخش فرم‌ها و در مدیریت رویداد */
+  p.click('#admNav [data-sec="forms"]');
+  const flist=p.txt('#admBody');
+  ok(/فرم ثبت‌نام/.test(flist)&&/فرم نظرسنجی/.test(flist),'فرم‌های ساخته‌شده در بخش فرم‌ها می‌مانند');
+  ok(/form\.html\?ev=/.test(p.body()),'و نشانی‌شان به رویداد وصل است');
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-ev]');
+  ok(/فرم‌های این رویداد/.test(p.txt('#shAdm')),'برگهٔ رویداد بخش فرم‌ها را دارد');
+  ok(p.all('#shAdm [data-copyform]').length>=3,'و برای هر فرم و صفحهٔ رویداد دکمهٔ رونوشت هست');
+  ok(p.all('#shAdm .sheetcover img').length===1,'و پوستر رویداد در برگه دیده می‌شود');
+  p.click('#shAdm [data-close]');
 }
 
 /* ── ۳) رویدادها: فهرست، صافی و جزئیات ── */
@@ -420,6 +482,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.type('#wz-place','کتابخانهٔ نورا، سالن الف','change');
   p.click('[data-wstep="2"][data-wgo="1"]');
   p.click('[data-wstep="3"][data-wgo="1"]');
+  ok(p.all('[data-ftpl^="reg"]').length===3&&p.all('[data-fbuild="reg"]').length===1,'فرم ثبت‌نام رویداد هم سر جایش هست');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+  ok(/event\.html\?id=e3$/.test(p.doc.querySelector('.pagelink code').textContent),'صفحهٔ رویداد از خودش می‌آید، نه نشانی تازه');
   p.click('[data-wsend]');
   ok(p.all('[data-ev]').length===n,'ویرایش رویداد تازه نمی‌سازد');
   ok(/دور دوم/.test(p.txt('#admBody')),'و نام تازه جایش می‌نشیند');
@@ -536,9 +601,9 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=40')&&html.includes('admin.js?v=40'),'نسخهٔ پرونده‌های پنل ۴۰ است');
+  ok(html.includes('admin.css?v=41')&&html.includes('admin.js?v=41'),'نسخهٔ پرونده‌های پنل ۴۱ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v29'"),'کارگر سرویس نسخهٔ ۲۹ است');
+  ok(sw.includes("'nora-v30'"),'کارگر سرویس نسخهٔ ۳۰ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
