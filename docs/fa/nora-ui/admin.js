@@ -1233,6 +1233,7 @@ function vEventWizard(){
 
 /* ── رویدادها ─────────────────────────────────────────────────────────── */
 function vEvents(){
+  if(S.psec==='edit') return postEditor();
   const f=EV.filters||[], cur=S.evF||'all';
   const all=evAll(), list=all.filter(evFilter(cur));
   const filt=f.map(x=>`<button class="tag ${cur===x.k?'on':''}" data-evF="${esc(x.k)}">${esc(x.n)}
@@ -1249,10 +1250,17 @@ function vEvents(){
         <span class="admbar-line ${pct>=100?'full':''}"><i style="width:${pct}%"></i></span>${tag(st[0],st[1])}</span>`});
   }).join('');
   return `<section class="card stack">
-    <div class="row"><div class="head">${esc(EV.lead||'')}</div><span class="sp"></span>
+    <div class="row"><div class="head">${esc(EV.lead||'رویدادها و مطالب')}</div><span class="sp"></span>
+      ${btn('مطلب جدید','data-pnew','i-article')}
       ${btn('رویداد جدید','data-evnew','i-calendar')}</div>
     <div class="admfilters">${filt}</div>
     <div class="admlist">${rows||emptyBox(T.empty)}</div>
+    <hr class="hr"/>
+    <div class="head">مطلب‌ها</div>
+    <div class="admlist">${postRows()||emptyBox('هنوز مطلبی نساخته‌ای')}</div>
+    <div class="head" style="margin-top:10px">نمونه‌های ثابت</div>
+    <div class="admlist">${demoRows()}</div>
+    <p class="cap">مطلب منتشرشده در خانهٔ کاربران، بخش «مطالب» می‌نشیند و پیش‌نمایشش در post.html باز می‌شود.</p>
   </section>`;
 }
 
@@ -1670,9 +1678,11 @@ function sheetSetLead(fk){
 const PGRADS=['linear-gradient(135deg,#1E6FD0,#0A3A82)','linear-gradient(135deg,#3E5B84,#0B2447)',
   'linear-gradient(135deg,#0E7B61,#083D33)','linear-gradient(135deg,#8A5A2B,#3D2714)'];
 const PTY={p:{n:'پاراگراف',i:'i-pen'},h:{n:'تیتر',i:'i-align'},img:{n:'عکس',i:'i-image'},
-  vid:{n:'ویدیو',i:'i-play'},aud:{n:'صدا',i:'i-headphone'},q:{n:'نقل قول',i:'i-doc'},
-  ul:{n:'فهرست',i:'i-list'},ol:{n:'شمارشی',i:'i-list'},btn:{n:'دکمهٔ لینک',i:'i-link'},
-  box:{n:'جعبهٔ توجه',i:'i-bell'},tog:{n:'جمع‌شونده',i:'i-chev-down'},hr:{n:'جداکننده',i:'i-close'}};
+  gal:{n:'گالری',i:'i-grid'},vid:{n:'ویدیو',i:'i-play'},aud:{n:'صدا',i:'i-headphone'},
+  q:{n:'نقل قول',i:'i-doc'},ul:{n:'فهرست',i:'i-list'},ol:{n:'شمارشی',i:'i-list'},
+  btn:{n:'دکمهٔ لینک',i:'i-link'},bm:{n:'لینک خودکار',i:'i-globe'},file:{n:'فایل',i:'i-download'},
+  tbl:{n:'جدول',i:'i-align'},box:{n:'جعبهٔ توجه',i:'i-bell'},tog:{n:'جمع‌شونده',i:'i-chev-down'},
+  hr:{n:'جداکننده',i:'i-close'}};
 function U(){try{return (window.NORA_UI&&NORA_UI)||null}catch(e){return null}}
 function pedPosts(){const u=U(); return u&&u.postsAll?u.postsAll():[]}
 function pedFresh(){return {id:'np'+Date.now(), t:'', cat:'', tags:'', lead:'', author:(me().n||''), cover:{g:PGRADS[0]},
@@ -1702,6 +1712,11 @@ function blockEd(b,i){
     case 'vid': body=inp('src','لینک آپارات، یوتیوب یا فایل mp4',b.src)+inp('cap','زیرنویس ویدیو',b.cap)
       +`<small class="cap">لینک آپارات و یوتیوب خودش پخش‌شونده می‌شود.</small>`; break;
     case 'aud': body=inp('src','لینک مستقیم فایل صوتی (mp3)',b.src)+inp('cap','نام یا زیرنویس صدا',b.cap); break;
+    case 'gal': body=ta('x','هر سطر یک لینک عکس',Array.isArray(b.x)?b.x.join('\n'):'')+inp('cap','زیرنویس گالری',b.cap); break;
+    case 'file': body=inp('src','لینک فایل (pdf و هر فایلی)',b.src)+inp('t','نام فایل',b.t); break;
+    case 'bm': body=inp('href','نشانی لینک',b.href)+inp('t','عنوان لینک',b.t)
+      +ta('x','توضیح کوتاه',b.x)+inp('src','لینک تصویر (اختیاری)',b.src||''); break;
+    case 'tbl': body=ta('x','هر سطر یک ردیف؛ ستون‌ها با | جدا شوند. سطر اول سرستون می‌شود',Array.isArray(b.x)?b.x.join('\n'):''); break;
     case 'q': body=ta('x','متن نقل قول…',b.x)+inp('by','گوینده یا منبع',b.by); break;
     case 'ul': case 'ol': body=ta('x','هر سطر یک مورد',Array.isArray(b.x)?b.x.join('\n'):''); break;
     case 'btn': body=inp('x','نوشتهٔ دکمه',b.x)+inp('href','نشانی لینک',b.href)
@@ -1782,37 +1797,30 @@ function postEditor(){
     <p class="cap">پیش‌نمایش پیش از انتشار در post.html باز می‌شود؛ خواننده مطلب را با فهرست، رسانه و پیوند رویداد و فرم می‌بیند. مطلب منتشرشده در بخش «مطلب‌ها» فهرست می‌شود و خانهٔ کاربران هم همان‌جا می‌بیندش.</p>
   </section>`;
 }
-function vPosts(){
-  if(S.psec==='edit') return postEditor();
-  const u=U(), rows=pedPosts().filter(p=>p.pub||p.pend);
-  const list=rows.map(p=>rowLink({attrs:`data-pedit="${esc(p.id)}"`, i:'i-article',
+/* فهرست مطلبها؛ در همان بخش رویدادها و مطالب زیر رویدادها می‌نشیند */
+function postRows(){
+  const rows=pedPosts().filter(p=>p.pub||p.pend);
+  return rows.map(p=>rowLink({attrs:`data-pedit="${esc(p.id)}"`, i:'i-article',
     b:esc(p.t||'بی نام'),
     s:`${esc(p.cat||'مطلب')} · ${faN(pedMin(p))} دقیقه · ${faN(+p.views||0)} بازدید${p.ev?' · پیوند رویداد':''}${p.fm?' · پیوند فرم':''}`,
     right:`${p.pend?tag('در انتظار تأیید','warn'):(p.pub?tag('منتشر شده','ok'):tag('پیش‌نویس',''))}
       <a class="btn sm quiet" href="post.html?id=${encodeURIComponent(p.id)}${p.pub?'':'&d=1'}" target="_blank" rel="noopener" aria-label="دیدن">${ico('i-eye')}</a>
       <button class="btn sm quiet" data-ppin="${esc(p.id)}" aria-label="پین">${ico('i-pin')}</button>
       <button class="btn sm quiet" data-pdel="${esc(p.id)}" aria-label="حذف">${ico('i-trash')}</button>`})).join('');
-  const demo=((window.NORA&&NORA.ARTICLES)||[]).map(a=>rowLink({attrs:`data-pprevgo="${esc(a.id)}"`, i:'i-article',
+}
+function demoRows(){
+  return ((window.NORA&&NORA.ARTICLES)||[]).map(a=>rowLink({attrs:`data-pprevgo="${esc(a.id)}"`, i:'i-article',
     b:esc(a.t), s:`${esc(a.cat)} · ${faN(a.min)} دقیقه · نمونهٔ ثابت`, right:tag('نمونه','')})).join('');
-  return `<section class="card stack">
-    <div class="row"><div class="head">مطلب‌ها</div><span class="sp"></span>
-      ${btn('مطلب تازه','data-pnew','i-plus')}</div>
-    <div class="admlist">${list||emptyBox('هنوز مطلبی نساخته‌ای')}</div>
-    <hr class="hr"/>
-    <div class="head">نمونه‌های ثابت</div>
-    <div class="admlist">${demo}</div>
-    <p class="cap">مطلب منتشرشده در خانهٔ کاربران، بخش «مطالب» می‌نشیند و پیش‌نمایشش در post.html باز می‌شود.</p>
-  </section>`;
 }
 
-/* تعریف جدید: همین‌جا فقط مطلب ساخته می‌شود؛ رویداد از بخش رویدادها باز می‌شود */
+/* تعریف جدید: همین‌جا فقط مطلب ساخته می‌شود */
 function vNewev(){
   if(!S.ped||S.ped.pub||S.ped.pend){S.ped=pedFresh(); S.psec='list'}
   return postEditor();
 }
 
 /* ══ رندر ══════════════════════════════════════════════════════════════ */
-const VIEWS={dash:vDash, newev:vNewev, events:vEvents, users:vUsers, forms:vForms, posts:vPosts,
+const VIEWS={dash:vDash, newev:vNewev, events:vEvents, users:vUsers, forms:vForms,
   reports:vReports, cert:vCert, settings:vSettings};
 function body(){
   if(!canSec(S.sec)) return `<section class="card stack">${emptyBox(W.locked||'')}
@@ -1835,6 +1843,8 @@ function sanitize(){
   if(['info','reg','att','money','cert','news'].indexOf(S.evTab)<0) S.evTab='info';
   if(['list','edit'].indexOf(S.psec)<0) S.psec='list';
   if(S.ped&&(!Array.isArray(S.ped.blocks))) S.ped=null;
+  if(S.sec==='posts') S.sec='events';
+  if(['list','edit'].indexOf(S.psec)<0) S.psec='list';
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
 }
@@ -1964,7 +1974,7 @@ document.addEventListener('click',e=>{
     d2.min=pedMin(d2); d2.pub=1; d2.pend=0; d2.at=d2.at||Date.now(); pedSave(d2);
     S.ped=null; S.psec='list'; save();
     toast('«'+(d2.t||'بی نام')+'» منتشر شد؛ در خانهٔ کاربران هم نشست');
-    if(S.sec==='newev') go('posts'); else renderBody(); return}
+    if(S.sec==='newev') go('events'); else renderBody(); return}
   const psend=q('[data-psend]'); if(psend&&S.ped){
     const d2=JSON.parse(JSON.stringify(S.ped));
     if(!String(d2.t||'').trim()){toast('عنوان مطلب را بنویس'); return}
@@ -1972,7 +1982,7 @@ document.addEventListener('click',e=>{
     d2.min=pedMin(d2); d2.pub=0; d2.pend=1; d2.at=d2.at||Date.now(); pedSave(d2);
     S.ped=null; S.psec='list'; save();
     toast('مطلب رفت در صف تأیید؛ مالک یا سرپرست منتشر می‌کند');
-    if(S.sec==='newev') go('posts'); else renderBody(); return}
+    if(S.sec==='newev') go('events'); else renderBody(); return}
 
   const evnew=q('[data-evnew]'); if(evnew){S.wiz.kind='event'; S.wiz.step=0; S.wiz.open=1; S.dp=null; save(); renderBody(); return}
   const evback=q('[data-evback]'); if(evback){S.wiz.open=0; save(); renderBody(); return}
@@ -2226,7 +2236,7 @@ document.addEventListener('input',e=>{
   if(el.dataset.bf&&S.ped){
     const bi=el.closest('[data-bi]'), i=bi?+bi.dataset.bi:-1, b=i>-1?S.ped.blocks[i]:null;
     if(b){const f=el.dataset.bf;
-      if(b.ty==='ul'||b.ty==='ol') b.x=el.value.split('\n');
+      if(b.ty==='ul'||b.ty==='ol'||b.ty==='gal'||b.ty==='tbl') b.x=el.value.split('\n');
       else if(f==='lv') b.lv=+el.value||2;
       else b[f]=el.value;
       save()}

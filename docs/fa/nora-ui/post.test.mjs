@@ -163,13 +163,15 @@ console.log('\n── ۵) form.html?fr= فرم بیرویداد ──');
 console.log('\n── ۶) پنل: ساخت و انتشار مطلب ──');
 {
   const store=makeStore();
-  const p=await load('admin.html',store,'#posts');
-  ok(p.errs.length===0,'پنل بخش مطلبها بی‌خطا'+(p.errs.length?': '+p.errs[0]:''));
-  ok(/مطلب تازه/.test(p.txt('#admBody')),'فهرست مطلبها با دکمهٔ تازه');
+  const p=await load('admin.html',store,'#events');
+  ok(p.errs.length===0,'پنل بخش رویدادها و مطالب بی‌خطا'+(p.errs.length?': '+p.errs[0]:''));
+  ok(/مطلب جدید/.test(p.txt('#admBody')),'دکمهٔ مطلب جدید کنار رویداد جدید');
+  ok(!!p.doc.querySelector('[data-evnew]'),'و دکمهٔ رویداد جدید هم سرِ همین بخش است');
   ok(/هفت تمرین تنفس/.test(p.txt('#admBody')),'نمونههای ثابت زیر فهرستند');
+  ok(p.all('[data-ev]').length>=1,'فهرست رویدادها بالای مطلبهاست');
   p.click('[data-pnew]');
-  ok(!!p.doc.querySelector('[data-pf="t"]'),'ویرایشگر مطلب باز شد');
-  ok(p.all('[data-badd]').length>=11,'پالت بلوکها کامل است ('+p.all('[data-badd]').length+')');
+  ok(!!p.doc.querySelector('[data-pf="t"]'),'مطلب جدید، ویرایشگر را زیر همین بخش باز می‌کند');
+  ok(p.all('[data-badd]').length>=16,'پالت بلوکها با گالری و فایل و لینک و جدول کامل است ('+p.all('[data-badd]').length+')');
   p.type('[data-pf="t"]','خبر تازهٔ باشگاه');
   p.type('[data-pf="lead"]','سه خط دربارهٔ باشگاه.');
   p.type('[data-pf="cat"]','گزارش');
@@ -198,7 +200,7 @@ console.log('\n── ۶) پنل: ساخت و انتشار مطلب ──');
   ok(Array.isArray(S2[0].tags)&&S2[0].tags.length===2,'برچسبها جدا شدند');
   ok(S2[0].blocks.length===4&&S2[0].blocks[2].src.includes('aparat'),'بلوکها با متن و رسانه ذخیره شدند');
   ok(S2[0].ev===evSel&&!!evSel,'پیوند رویداد ذخیره شد');
-  ok(/خبر تازهٔ باشگاه/.test(p.txt('#admBody'))&&/منتشر شده/.test(p.txt('#admBody')),'فهرست، منتشرشده را میگوید');
+  ok(/خبر تازهٔ باشگاه/.test(p.txt('#admBody'))&&/منتشر شده/.test(p.txt('#admBody')),'فهرست، منتشرشده را میگوید و زیر رویدادهاست');
   p.click('[data-ppin]');
   const S3=JSON.parse(store.getItem('nora-posts'));
   ok(S3[0].pin===1,'پین از فهرست میچرخد');
@@ -239,7 +241,7 @@ console.log('\n── ۸) تعریف جدید: فقط مطلب ──');
   p.click('[data-ppub]');
   const P=JSON.parse(store.getItem('nora-posts'));
   ok(P.length===1&&P[0].pub===1,'از تعریف جدید منتشر شد');
-  ok(p.txt('#admBar .head')==='مطلب‌ها','بعد از انتشار، فهرست مطلبها باز میشود');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','بعد از انتشار، بخش رویدادها و مطالب باز میشود');
   ok(/مطلب تعریف جدید/.test(p.txt('#admBody'))&&/منتشر شده/.test(p.txt('#admBody')),'و مطلب تازه همان‌جا دیده میشود');
   p.click('#admNav [data-sec="newev"]');
   ok(p.doc.querySelector('[data-pf="t"]').value==='','و ویرایشگر برای تعریف بعدی تازه شد');
@@ -250,6 +252,32 @@ console.log('\n── ۸) تعریف جدید: فقط مطلب ──');
   ok(!!p.doc.querySelector('#wzName')&&p.all('.admsteps .st').length===5,'ویزارد پنج گامی رویداد زیر همین بخش باز می‌شود');
   p.click('[data-evback]');
   ok(p.all('[data-ev]').length>=1&&p.all('.admsteps .st').length===0,'با بازگشت، فهرست رویدادها میآید');
+}
+
+
+console.log('\n── ۹) گالری، فایل، لینک خودکار و جدول در خواننده ──');
+{
+  const store=makeStore();
+  const rich=JSON.parse(JSON.stringify(POST));
+  rich.id='npRich'; rich.t='مطلب رسانهای'; rich.blocks=[
+    {ty:'p',x:'متن آغازین.'},
+    {ty:'gal',x:['posters/poster-camera.svg','posters/poster-voice.svg','posters/poster-stage.svg'],cap:'سه قاب از کارگاه'},
+    {ty:'tbl',x:['قاب|نور|نتیجه','اول|کم|تاریک','دوم|بغل|خوانا']},
+    {ty:'file',src:'https://example.org/kit.pdf',t:'دفترچهٔ تمرین'},
+    {ty:'bm',href:'https://example.org/report',t:'گزارش کامل',x:'همهٔ عکسها و جزئیات',src:'posters/poster-media.svg'},
+    {ty:'p',x:'پایان.'}];
+  store.setItem('nora-posts',JSON.stringify([rich]));
+  const p=await load('post.html',store,'?id=npRich');
+  ok(p.errs.length===0,'مطلب رسانهای بی‌خطا'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.all('.pb-galwrap .pb-fig img').length===3,'گالری سه عکس را کنار هم نشاند');
+  ok(/سه قاب از کارگاه/.test(p.doc.querySelector('.pb-galwrap').nextElementSibling?p.doc.body.textContent:'')||/سه قاب از کارگاه/.test(p.doc.body.textContent),'زیرنویس گالری هست');
+  ok(p.all('.pb-tbl th').length===3&&p.all('.pb-tbl td').length===6,'جدول با سرستون و دو ردیف');
+  ok(/قاب/.test(p.txt('.pb-tbl th')),'سرستونها از سطر اول میآید');
+  ok(!!p.doc.querySelector('.pb-file')&&/دفترچهٔ تمرین/.test(p.txt('.pb-file')),'کارت فایل با نام');
+  ok(p.doc.querySelector('.pb-file').getAttribute('download')!==null,'و خودش دانلود میگیرد');
+  ok(!!p.doc.querySelector('.pb-bm')&&/گزارش کامل/.test(p.txt('.pb-bm')),'لینک خودکار با عنوان و توضیح');
+  ok(/example\.org/.test(p.txt('.pb-bmhost')),'و میزبان لینک را نشان میدهد');
+  ok(!!p.doc.querySelector('.pb-bmimg img'),'تصویر لینک خودکار هست');
 }
 
 console.log('\nخلاصه: '+(checks-fails)+' قبول، '+fails+' خطا');

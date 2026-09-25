@@ -21,9 +21,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=46"/>
-<link rel="stylesheet" href="nora.css?v=46"/>
-<link rel="stylesheet" href="events.css?v=46"/>
+<link rel="stylesheet" href="glass.css?v=47"/>
+<link rel="stylesheet" href="nora.css?v=47"/>
+<link rel="stylesheet" href="events.css?v=47"/>
 <style>
 /* ── صفحهٔ خواندن مطلب: ستون آرام، تیترها با نفس، رسانه بی‌لرزش ── */
 #rbar{position:fixed;top:0;right:0;height:3px;width:0;background:#0071E3;z-index:60;transition:width .1s linear;border-radius:0 0 2px 2px}
@@ -87,6 +87,27 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 .pb-toc ol{margin:0;padding-right:18px;display:grid;gap:6px;font-size:13.5px}
 .pb-toc a{color:var(--ink-2);text-decoration:none}
 .pb-toc a:active{color:#0071E3}
+/* گالری، جدول، فایل و لینک خودکار */
+.pb-galwrap{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pb-galwrap .pb-fig{margin:0}
+.pb-galwrap .pb-fig img{aspect-ratio:1/1;object-fit:cover}
+@media (max-width:360px){.pb-galwrap{grid-template-columns:1fr}}
+.pb-tblwrap{overflow:auto;border:.5px solid var(--hairline);border-radius:14px;background:var(--surface)}
+.pb-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.pb-tbl th{background:color-mix(in oklab,var(--surface) 80%,#0071E3 7%);font-weight:700;text-align:right}
+.pb-tbl th,.pb-tbl td{padding:9px 12px;border-bottom:.5px solid var(--hairline)}
+.pb-tbl tr:last-child td{border-bottom:0}
+.pb-file,.pb-bm{display:flex;gap:11px;align-items:center;padding:12px 14px;border-radius:15px;
+  border:.5px solid var(--hairline);background:var(--surface);color:inherit;text-decoration:none}
+.pb-file{border-style:dashed}
+.pb-file .i{width:22px;height:22px;color:#0071E3;flex:none}
+.pb-file b{display:block;font-size:14px}
+.pb-file small,.pb-bm small{color:var(--ink-3);font-size:12px}
+.pb-bmimg{width:64px;height:64px;border-radius:11px;flex:none;overflow:hidden;background:var(--g,linear-gradient(135deg,#1E6FD0,#0A3A82));display:grid;place-items:center;color:#fff}
+.pb-bmimg img{width:100%;height:100%;object-fit:cover}
+.pb-bm b{display:block;font-size:14px;line-height:1.7}
+.pb-bmhost{display:block;color:#0071E3;font-size:11.5px;margin-top:2px}
+
 /* پیوند رویداد و فرم */
 .pb-linkrow{display:grid;gap:10px;margin-top:16px}
 .pb-ev{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;border:.5px solid var(--hairline);background:var(--surface)}
@@ -288,8 +309,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=46"></script>
-<script src="ui.js?v=46"></script>
+<script src="data.js?v=47"></script>
+<script src="ui.js?v=47"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ خواندن مطلب
@@ -351,6 +372,7 @@ function videoBits(src){
 function blockHTML(b,i){
   if(!b||!b.ty) return '';
   const cap=b.cap?`<figcaption class="pb-cap">${esc(b.cap)}</figcaption>`:'';
+  const capD=b.cap?`<div class="pb-cap">${esc(b.cap)}</div>`:'';
   switch(b.ty){
     case 'p': return `<p class="pb-p">${esc(b.x)}</p>`;
     case 'h':{const tg=+b.lv===3?'h3':'h2', cls=+b.lv===3?'pb-h3':'pb-h2';
@@ -370,6 +392,25 @@ function blockHTML(b,i){
       return `<div class="pb-aud"><div class="pb-audrow">${ico('i-headphone')}<span>${esc(nm)}</span></div>
         <audio controls preload="metadata" src="${esc(b.src)}"></audio></div>`}
     case 'q': return `<blockquote class="pb-q"><p>${esc(b.x)}</p>${b.by?`<cite>${esc(b.by)}</cite>`:''}</blockquote>`;
+    case 'gal':{
+      const imgs=(Array.isArray(b.x)?b.x:[]).filter(Boolean);
+      if(!imgs.length) return '';
+      return `<div class="pb-galwrap">${imgs.map(u=>`<figure class="pb-fig"><img src="${esc(u)}" alt="${esc(b.cap||'')}" loading="lazy"/></figure>`).join('')}</div>${capD}`}
+    case 'file':{
+      if(!b.src) return '';
+      return `<a class="pb-file" href="${esc(b.src)}" target="_blank" rel="noopener" download>
+        ${ico('i-download')}<span class="sp"><b>${esc(b.t||b.cap||'فایل')}</b><small>دریافت فایل</small></span></a>`}
+    case 'bm':{
+      if(!b.href) return '';
+      const host=(function(){try{return new URL(b.href).hostname.replace(/^www\./,'')}catch(e){return ''}})();
+      return `<a class="pb-bm" href="${esc(b.href)}" target="_blank" rel="noopener">
+        <span class="pb-bmimg">${b.src?`<img src="${esc(b.src)}" alt="" loading="lazy"/>`:ico('i-link')}</span>
+        <span class="sp"><b>${esc(b.t||host||'لینک')}</b>${b.x?`<small>${esc(b.x)}</small>`:''}
+        ${host?`<span class="pb-bmhost">${esc(host)}</span>`:''}</span></a>`}
+    case 'tbl':{
+      const rows=(Array.isArray(b.x)?b.x:[]).filter(Boolean).map(r=>String(r).split('|').map(c=>c.trim()));
+      if(!rows.length) return '';
+      return `<div class="pb-tblwrap"><table class="pb-tbl">${rows.map((r,i)=>`<tr>${r.map(c=>i?`<td>${esc(c)}</td>`:`<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</table></div>${capD}`}
     case 'ul': case 'ol':{
       const items=(Array.isArray(b.x)?b.x:[]).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join('');
       return `<${b.ty} class="pb-list">${items}</${b.ty}>`}

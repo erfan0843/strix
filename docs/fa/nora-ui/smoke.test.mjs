@@ -1446,7 +1446,7 @@ async function load(file,store,q){
   console.log('\n── پنل مدیران (admin.html) ──');
   const p=await load('admin.html',makeStore());
   ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
-  ok(p.all('#admNav .btn').length===9,'نه بخش در ریل پنل نشسته');
+  ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
   ok(p.all('.kpi').length===4,'چهار عدد کلیدی سرِ داشبورد پنل');
   ok(p.all('.qrow').length===8,'کارتابل مالک پنل کوتاه است (۸ کار)');
   ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» روی کارتابل هست');
@@ -1461,7 +1461,7 @@ async function load(file,store,q){
   p.click('[data-who-sheet]');
   ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');
   p.click('#shAdm [data-who="p10"]');
-  ok(p.all('#admNav [data-locked]').length===4,'کارشناس چهار بخش بسته دارد');
+  ok(p.all('#admNav [data-locked]').length===3,'کارشناس سه بخش بسته دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس یک کار است');
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p2"]');

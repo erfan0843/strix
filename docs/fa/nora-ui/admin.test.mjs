@@ -53,7 +53,7 @@ async function load(store,hash){
     el.value=v; el.dispatchEvent(new window.Event(ev||'input',{bubbles:true}));};
   return {dom,window,doc,click,all,txt,body,type,errs,store:st};
 }
-const SECS=['dash','newev','events','users','forms','posts','reports','cert','settings'];
+const SECS=['dash','newev','events','users','forms','reports','cert','settings'];
 let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته می‌شود */
 
 /* ── ۱) پوسته و ناوبری ── */
@@ -61,7 +61,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   console.log('\n── پوسته و ناوبری ──');
   const p=await load();
   ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
-  ok(p.all('#admNav .btn').length===9,'ریل نه بخش دارد: داشبورد و هشت بخش دیکته‌شده ('+p.all('#admNav .btn').length+')');
+  ok(p.all('#admNav .btn').length===8,'ریل هشت بخش دارد: داشبورد و هفت بخش دیکته‌شده ('+p.all('#admNav .btn').length+')');
   ok(p.all('#admTabs a').length===5,'نوار پایین پنج بخش دارد ('+p.all('#admTabs a').length+')');
   ok(p.txt('#admBar .head')==='داشبورد','پنل روی داشبورد باز می‌شود');
   const cssTxt=fs.readFileSync(DIR+'admin.css','utf8');
@@ -115,7 +115,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="events"]');
   const before=p.all('[data-ev]').length;
   p.click('[data-evnew]');
-  ok(p.txt('#admBar .head')==='رویدادها','ویزارد رویداد در همین بخش رویدادها باز می‌شود');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','ویزارد رویداد در همین بخش رویدادها و مطالب باز می‌شود');
   ok(p.all('.admsteps .st').length===5,'ویزارد پنج گام دارد: چیستی و پوستر، کی و کجا، ظرفیت و ثبت‌نام، فرم‌ها و اطلاع‌رسانی، کارت و صفحه');
   ok(p.all('[data-wkind]').length===0,'اینجا جای تعریف مطلب نیست؛ تعریف جدید فقط مطلب دارد');
   ok(!!p.doc.querySelector('[data-evback]'),'و بازگشت به فهرست سرِ ویزارد هست');
@@ -238,7 +238,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/رونوشت|کپی/.test(p.txt('#toast')),'دکمهٔ رونوشت پیوند را برمی‌دارد');
   ok(p.txt('.admreview').includes('فرم ثبت‌نام'),'و فرم‌ها را هم');
   p.click('[data-wsend]');
-  ok(p.txt('#admBar .head')==='رویدادها','بعد از انتشار، خودش به فهرست رویدادها می‌رود');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','بعد از انتشار، خودش به بخش رویدادها و مطالب می‌رود');
   ok(p.all('[data-ev]').length===before+1,'رویداد تازه به فهرست اضافه شد');
   ok(p.txt('[data-ev] b')==='اردوی پاییزهٔ دربند','نام همان است که نوشتیم');
   ok(!/پیش‌نویس/.test(p.txt('#admBody')),'دیگر هیچ رویدادی پیش‌نویس نمی‌شود');
@@ -429,9 +429,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(who.length===15,'ورقهٔ «نمای من» پانزده نفر دارد: مالک، شش سرپرست و هشت کارشناس');
   p.click('#shAdm [data-who="p10"]');
   ok(p.txt('#admBar .chip').includes('کارشناس')&&/پشتیبانی/.test(p.txt('.dhead')),'چیپ نوار بالا و سرصفحهٔ داشبورد، کارشناس پشتیبانی را نشان می‌دهند');
-  ok(p.all('#admNav [data-locked]').length===4,'چهار بخش روی کارشناس قفل است');
+  ok(p.all('#admNav [data-locked]').length===3,'سه بخش روی کارشناس قفل است');
   ok(p.all('#admNav [data-sec="newev"]:not([data-locked])').length===1,'ولی تعریف جدید برایش باز است');
-  ok(p.all('#admTabs a').length===3,'نوار پایین کارشناس سه بخش دارد');
+  ok(p.all('#admTabs a').length===4,'نوار پایین کارشناس چهار بخش دارد');
   ok(p.all('.qrow').length===1,'کارتابل کارشناس فقط کار خودش را دارد');
   ok(p.txt('.qcard .head')==='کارتابل من','سرِ کارتابل کارشناس «کارتابل من» است');
   ok(p.all('.trow').length===0,'کارشناس تیم نمی‌بیند');
@@ -482,7 +482,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-psend]');
   const P10=JSON.parse(p.store.getItem('nora-posts')||'[]');
   ok(P10.length===1&&P10[0].pend===1&&P10[0].pub===0,'مطلب کارشناس در صف تأیید نشست');
-  ok(p.txt('#admBar .head')==='مطلب‌ها','و خودش به فهرست مطلبها برده میشود تا مطلبش را ببیند');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','و خودش به بخش رویدادها و مطالب برده میشود تا مطلبش را ببیند');
   ok(/یادداشت کارشناس/.test(p.txt('#admBody'))&&/در انتظار تأیید/.test(p.txt('#admBody')),'مطلب در صف، همان‌جا دیده میشود');
   p.click('#admNav [data-sec="newev"]');
   ok(p.doc.querySelector('[data-pf="t"]').value==='','تعریف جدید برای تعریف بعدی تازه است');
@@ -490,7 +490,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   /* مالک: از بخش مطلبها باز می‌کند و منتشر می‌کند */
   p.click('[data-who-sheet]');
   p.click('#shAdm [data-who="p1"]');
-  p.click('#admNav [data-sec="posts"]');
+  p.click('#admNav [data-sec="events"]');
   const row=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
   ok(!!row&&/در انتظار تأیید/.test(row.textContent),'مالک مطلب در صف تأیید را می‌بیند');
   if(row) p.click(row);
@@ -498,7 +498,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-ppub]');
   const P11=JSON.parse(p.store.getItem('nora-posts'));
   ok(P11[0].pub===1&&P11[0].pend===0,'با یک دکمه منتشر می‌شود');
-  ok(p.txt('#admBar .head')==='مطلب‌ها','بعد از انتشار، فهرست مطلبها جلوی چشم است');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','بعد از انتشار، فهرست مطلبها جلوی چشم است');
   const row2=p.all('[data-pedit]').find(r=>/یادداشت کارشناس/.test(r.textContent));
   ok(!!row2&&/منتشر شده/.test(row2.textContent),'و در فهرست، منتشر شده خوانده می‌شود');
 }
@@ -513,7 +513,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-ev="e3"]');
   ok(p.all('[data-evedit]').length===1,'برگهٔ رویداد دکمهٔ ویرایش دارد');
   p.click('[data-evedit]');
-  ok(p.txt('#admBar .head')==='رویدادها'&&/ویرایش/.test(p.txt('.admchips')),'ویرایش از خود رویداد شروع می‌شود و زیر همین بخش باز است');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب'&&/ویرایش/.test(p.txt('.admchips')),'ویرایش از خود رویداد شروع می‌شود و زیر همین بخش باز است');
   ok(/وضعیت عوض نمی‌شود/.test(p.txt('.admchips')),'و می‌گوید وضعیت عوض نمی‌شود');
   ok(p.all('[data-wstep="1"][data-wgo="1"]:not([disabled])').length===1,'گام‌های بعدی برای ویرایش باز است');
   p.type('#wzName','کارگاه روایت اول‌شخص، دور دوم');
@@ -749,15 +749,17 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
 
 /* ── ۱۴ق) مطلبها: ویرایشگر بلوکی، پیش‌نمایش، انتشار و پین ── */
 {
-  console.log('\n── مطلبها ──');
+  console.log('\n── رویدادها و مطالب ──');
   const p=await load();
-  p.click('#admNav [data-sec="posts"]');
-  ok(/مطلب تازه/.test(p.txt('#admBody')),'فهرست مطلبها با دکمهٔ تازه');
-  ok(/نمونه‌های ثابت/.test(p.txt('#admBody')),'نمونههای ثابت زیر فهرست میآیند');
+  p.click('#admNav [data-sec="events"]');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','بخش رویدادها و مطالب با فهرست دوتایی');
+  ok(!!p.doc.querySelector('[data-evnew]')&&!!p.doc.querySelector('[data-pnew]'),'هر دو دکمهٔ «رویداد جدید» و «مطلب جدید» سرِ همین بخش است');
+  ok(p.all('[data-ev]').length>=1,'فهرست رویدادها سر جایش است');
+  ok(/مطلب‌ها/.test(p.txt('#admBody'))&&/نمونه‌های ثابت/.test(p.txt('#admBody')),'فهرست مطلبها و نمونههای ثابت زیر رویدادهاست');
   ok(/هفت تمرین تنفس/.test(p.txt('#admBody')),'نمونهٔ ثابت با پیش‌نمایش هست');
   p.click('[data-pnew]');
-  ok(!!p.doc.querySelector('[data-pf="t"]'),'ویرایشگر مطلب باز شد');
-  ok(p.all('[data-badd]').length>=12,'پالت بلوکها کامل است');
+  ok(!!p.doc.querySelector('[data-pf="t"]'),'مطلب جدید، ویرایشگر را زیر همین بخش باز می‌کند');
+  ok(p.all('[data-badd]').length>=16,'پالت بلوکها با گالری و فایل و لینک و جدول کامل است');
   p.type('[data-pf="t"]','خبر تازهٔ باشگاه');
   p.type('[data-pf="lead"]','سه خط دربارهٔ باشگاه.');
   p.type('[data-pf="cat"]','گزارش');
@@ -850,7 +852,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(p.txt('.admreview')),'و فرم وصل‌شده را در مرور می‌آورد');
   ok(p.all('.revrow').length>=15,'مرور قلم‌به‌قلم است');
   p.click('[data-wsend]');
-  ok(p.txt('#admBar .head')==='رویدادها','بعد از انتشار به فهرست می‌رود');
+  ok(p.txt('#admBar .head')==='رویدادها و مطالب','بعد از انتشار به بخش رویدادها و مطالب می‌رود');
 }
 
 {
@@ -898,9 +900,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=46')&&html.includes('admin.js?v=46'),'نسخهٔ پرونده‌های پنل ۴۲ است');
+  ok(html.includes('admin.css?v=47')&&html.includes('admin.js?v=47'),'نسخهٔ پرونده‌های پنل ۴۲ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v35'"),'کارگر سرویس نسخهٔ ۳۱ است');
+  ok(sw.includes("'nora-v36'"),'کارگر سرویس نسخهٔ ۳۱ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
