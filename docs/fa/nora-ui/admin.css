@@ -511,6 +511,7 @@ input.input[type=time]{padding-inline:10px;text-align:center}
   .dhead .dhnow{justify-items:start;text-align:start}
 }
 @media (max-width:620px){
+  .stguide{grid-template-columns:1fr}
   .stflow{grid-template-columns:1fr}
   .stprof{grid-template-columns:1fr}
   .kpis{grid-template-columns:1fr}
@@ -552,6 +553,16 @@ a.btn{text-decoration:none}
 .balerow .sp{display:grid;gap:1px;flex:1;min-width:0}
 .balerow .sp b{font-size:13px;font-weight:800}
 .balerow .sp small{overflow-wrap:anywhere}
+
+/* راهنمای پارامترهای فایل ورد: چهار گروه دوستونی */
+.stguide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
+.stg{display:grid;gap:7px;padding:11px 12px;border-radius:var(--r-md);border:.5px solid var(--hairline);
+  background:var(--surface-2)}
+.stgh b{font-size:13px;font-weight:800}
+.stgh .cap{font-size:var(--fs-cap)}
+.stpr{display:grid;gap:6px}
+.stpr .stp{padding:7px 9px}
+.stpr .stp b[dir="ltr"]{font-family:ui-monospace,monospace;font-size:12px}
 
 .stgroup{display:grid;gap:9px;padding:13px;border-radius:var(--r-lg);border:.5px solid var(--hairline);
   background:var(--surface-2)}

@@ -505,53 +505,69 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="users"]');
   ok(!!p.doc.querySelector('[data-uv="cert"]'),'گواهینامه‌ها کاشی سرِ کاربران است');
   p.click('[data-uv="cert"]');
-  ok(p.all('[data-cstep]').length===4,'مرکز صدور چهار گام دارد: فایل ورد، رویدادها، گیرندگان، صدور');
+  ok(p.all('[data-cstep]').length===4,'مرکز صدور چهار گام دارد: فایل ورد، رویدادها، مخاطبان، صدور و صف');
   ok(/صدور در نوبت/.test(p.txt('.admtiles')||'')||true,'کاشی گواهینامه جمعبندی دارد');
-  /* گام ۱: فایل ورد؛ پارامترها خالی میماند و همان فایل برای همه میرود */
-  ok(p.all('[data-cfile]').length===3,'سه فایل ورد هست');
-  ok(/جاهای خالی اختیاری/.test(p.txt('#admBody')),'جاهای خالی اختیاری معرفی میشوند');
-  ok(/همان فایل برای همه صادر میشود/.test(p.txt('#admBody')),'قانون همان‌فایل-برای-همه نوشته شده');
-  ok(/\{نام\}/.test(p.txt('#admBody'))&&/\{کیوآر\}/.test(p.txt('#admBody')),'جای‌نامهای فایل با توضیحشان هست');
+  /* گام ۱: فایل ورد؛ بارگذاری، راهنما، پیشفرض */
+  ok(p.all('[data-cfile]').length===3,'سه فایل نمونه هست');
+  ok(!!p.doc.querySelector('[data-cfilenew]'),'بارگذاری فایل ورد هست');
+  ok(p.all('.stg').length===4&&p.all('.stpr .stp').length>=18,'راهنمای پارامتر چهار گروه و کامل است');
+  ok(/\{نام\}/.test(p.txt('#admBody'))&&/\{کیوآر\}/.test(p.txt('#admBody'))&&/\{شماره‌نامه\}/.test(p.txt('#admBody')),'جای‌نامهای کلیدی راهنما هست');
+  ok(/پیشفرض/.test(p.txt('#admBody')),'فایل نمونهٔ پیشفرض نشان داده میشود');
   ok(p.all('.balebox').length>=1&&/فقط پیش‌نمایش تار/.test(p.txt('.balebox')),'پیش‌نمایش فایل ورد تار است');
-  const fl=p.doc.querySelector('.balebox [data-bale^="cert_file_"]');
-  ok(!!fl,'دریافت فایل ورد از ربات بله هست');
-  p.click('[data-cfile]');
-  ok(/برداشته شد/.test(p.txt('#admBody')),'فایل برگزیده نشان داده میشود');
   p.type('#cFileN','گواهینامهٔ داوری جشنواره');
   p.click('[data-cfilenew]');
-  ok(/گواهینامهٔ داوری جشنواره/.test(p.txt('#admBody'))&&p.all('[data-cfile]').length===4,'فایل تازه افزوده و برداشته میشود');
+  ok(/بارگذاری‌شدهٔ شما/.test(p.txt('#admBody'))&&p.all('[data-cfile]').length===4,'فایل ورد بارگذاری و برداشته میشود');
+  p.click('[data-cdef]');
+  ok(/فایل پیشفرض عوض شد/.test(p.txt('#toast')),'پیشفرضسازی پیام دارد');
   /* گام ۲: چند رویداد */
   p.click('[data-cstep="1"]');
   ok(p.all('[data-cev]').length>=3,'چیپ رویدادها هست');
-  ok(!/رویداد برگزیده شد/.test(p.txt('#admBody').match(/<p class="cap">[^<]*رویداد[^<]*/)?.[0]||''),'در آغاز هیچ رویدادی برگزیده نیست');
   p.click(p.all('[data-cev]')[0]);
   p.click(p.all('[data-cev]')[1]);
   ok(p.all('[data-cev].on').length===2,'دو رویداد همزمان برگزیده میشود');
   ok(/۲ رویداد برگزیده شد/.test(p.txt('#admBody')),'جمعبندی دو رویداد نوشته میشود');
-  ok(/گیرنده/.test(p.txt('#admBody')),'شمار گیرندهها نوشته میشود');
-  /* گام ۳: گیرندگان */
+  /* گام ۳: مخاطبان از دسته و اکسل و جستوجو */
   p.click('[data-cstep="2"]');
-  ok(/گیرنده/.test(p.txt('#admBody'))&&p.all('.admkpi .k').length===4,'گیرنده‌ها با چهار عدد جمع میشوند');
-  ok(/عکس تأییدشدهٔ پروفایل/.test(p.txt('#admBody')),'قانون عکس پرسنلی هست');
-  /* گام ۴: صدور و مدیریت */
+  ok(p.all('[data-ctag]').length>=4,'دسته‌های آماده هست');
+  p.click(p.all('[data-ctag]')[0]);
+  ok(/از دسته‌ها/.test(p.txt('#admBody')),'دسته برگزیده در جمعبندی هست');
+  p.type('#cXls','سارا محمدی 09121234567\nنرگس ناشناس');
+  p.click('[data-cxls]');
+  ok(/۱ شناخته شد · ۱ ناشناس/.test(p.txt('#admBody')),'اکسل شناخته و ناشناس را جدا میکند');
+  ok(/ناشناسها هم با همان نام/.test(p.txt('#admBody')),'سرنوشت ناشناسها نوشته شده');
+  p.type('#cFind','نگار');
+  p.click('[data-cfindgo]');
+  ok(p.all('[data-cpick]').length>=1,'جست‌وجوی کاربر نتیجه میآورد');
+  p.click(p.all('[data-cpick]')[0]);
+  ok(p.all('[data-cunpick]').length===1,'افزودن تک‌تک با چیپ برداشتن هست');
+  ok(/جمع گیرنده‌ها/.test(p.txt('#admBody')),'جمع گیرنده‌ها با یکتاسازی نوشته میشود');
+  /* گام ۴: پنجرهٔ خلوت، صف، مدیریت */
   p.click('[data-cstep="3"]');
+  ok(/پنجرهٔ بعدی/.test(p.txt('#admBody'))&&/۰۲:۰۰/.test(p.txt('#admBody')),'پنجرهٔ ساعت خلوت نوشته میشود');
+  ok(/تا ۲۴ ساعت آینده/.test(p.txt('#admBody')),'قول «تا ۲۴ ساعت آینده» برای گیرنده هست');
+  ok(/درخواستهای رسیده از ربات/.test(p.txt('#admBody')),'درخواستهای ربات در صف دیده میشود');
   ok(!!p.doc.querySelector('[data-cletter]')&&!!p.doc.querySelector('[data-cmonths]'),'شمارهٔ نامه و اعتبار ورودی دارند');
-  ok(!!p.doc.querySelector('[data-cnews]'),'متن خبر قابل ویرایش است');
-  ok(p.all('[data-tog="cert"]').length===1,'کلید ساخت تنبل هست');
+  ok(!!p.doc.querySelector('[data-cnews]')&&/۲۴ ساعت/.test(p.doc.querySelector('[data-cnews]').placeholder),'متن خبر با قول ۲۴ساعته قابل ویرایش است');
   p.click('[data-crand]');
   ok(/نمونه برای/.test(p.txt('.balebox')),'پیش‌نمایش تصادفی با نام یک نفر میآید');
-  p.click('[data-certpub]');
-  ok(/منتشرشده‌ها و مدیریتشان/.test(p.txt('#admBody')),'دستهٔ صدور در منتشرشده‌ها نشست');
-  ok(/یادآوری مانده/.test(p.txt('#admBody'))&&/ابطال/.test(p.txt('#admBody')),'مدیریت: یادآوری و ابطال هست');
+  ok(!!p.doc.querySelector('[data-cqueue]')&&!!p.doc.querySelector('[data-cfast]'),'ثبت در صف و صدور فوری هر دو هست');
+  p.click('[data-cqueue]');
+  ok(/در صف نشست/.test(p.txt('#toast')),'ثبت در صف پیام پنجره میدهد');
+  ok(/اجرا:/.test(p.txt('#admBody')),'دسته در صف با زمان اجرا نشست');
+  p.click('[data-crun]');
+  ok(/همین حالا صادر شد/.test(p.txt('#toast')),'اجرا خارج از نوبت همان لحظه صادر میکند');
+  ok(/دریافتشده/.test(p.txt('#admBody')),'شمار دریافتشدهها نوشته میشود');
   p.click('[data-cbnudge]');
   ok(/گیرندهٔ مانده/.test(p.txt('#toast')),'یادآوری مانده‌ها پیام میدهد');
+  p.click('[data-cfast]');
+  ok(/همین حالا صادر شد/.test(p.txt('#toast')),'صدور فوری دستهٔ تازه میسازد');
+  p.click('[data-cqueue]');
   p.click('[data-cbrev]');
-  ok(/باطل شد/.test(p.txt('#toast')),'ابطال دسته پیام میدهد');
-  ok(p.all('.permrow').length>=1,'فهرست منتشرشده‌ها ردیف دارد');
+  ok(/باطل شد/.test(p.txt('#toast')),'برداشتن از صف با ابطال است');
   ok(!!p.doc.querySelector('[data-bale^="cert_"]'),'دریافت نمونه از ربات بله هست');
   const jobs=p.all('.admrow2').length;
-  p.click('[data-certpub]');
-  ok(p.all('.admrow2').length===jobs+1,'صدور دوباره، یک کار به کارهای صدور اضافه میکند');
+  p.click('[data-cqueue]');
+  ok(p.all('.admrow2').length===jobs+1,'ثبت در صف، یک کار به کارهای صدور اضافه میکند');
   ok(/منتشر|نوبت/.test(p.txt('.admlist')),'وضعیت کار صدور معلوم است');
 }
 
@@ -1099,9 +1115,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=57')&&html.includes('admin.js?v=57'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=58')&&html.includes('admin.js?v=58'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v46'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v47'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

@@ -52,6 +52,9 @@ const balebox=(pv,code,label)=>`<div class="balebox"><div class="pv">${pv}</div>
 const baleRow=(code,title)=>`<div class="balerow">${ico('i-download')}
   <span class="sp"><b>گزارش اکسل این بخش</b><small class="cap">${esc(title)} · فایل کامل از ربات بلهٔ موسسه می‌آید</small></span>
   ${baleA(code,'اکسل')}</div>`;
+/* موتور صدور گواهینامه: پنجرهٔ خلوت و صف شبانه */
+const certWin=()=>{const h=(new Date()).getHours(); return h<2?'امشب ۰۲:۰۰':'شب آینده ۰۲:۰۰'};
+const certXls=()=>Array.isArray((S.cert||{}).xlsRows)?S.cert.xlsRows:[];
 
 /* ── واژه‌های کوتاه پنل: یک‌جا، تا عوض کردنشان یک نقطه داشته باشد ─────── */
 const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ها', keys:'کلیدها',
@@ -77,7 +80,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
          {w:'after',n:1,u:'d',ch:'notify',on:1}],
     stamp:0,edit:''},
   defs:[], evEdit:{},
-  cert:{step:0,file:'',evs:[],letter:'',months:'',news:'',rand:''},
+  cert:{step:0,file:'',evs:[],tags:[],xlsRows:null,picked:[],letter:'',months:'',news:'',rand:''},
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
@@ -1847,64 +1850,96 @@ function vCert(){
   const steps=(CE.steps||[]).map((n,i)=>`<button class="${i===st?'on':i<st?'done':''}" data-cstep="${i}">
       <span class="n">${i<st?'✓':esc(fa(i+1))}</span><span>${esc(n)}</span></button>`).join('');
   const files=(CE.files||[]).concat(S.certFiles||[]);
-  const curFile=files.find(f=>f.k===(C.file||(files[0]||{}).k))||files[0]||{};
+  const defK=S.certDef||((files.find(f=>f.def)||files[0]||{}).k);
+  const curFile=files.find(f=>f.k===(C.file||defK))||files[0]||{};
   const evSel=(C.evs||[]).filter(id=>EVROWS.some(e=>e.id===id));
   const evCnt=evSel.reduce((a,id)=>a+(+(EVROWS.find(e=>e.id===id)||{}).reg||0),0);
+  const tagCnt=(C.tags||[]).reduce((a,t)=>a+memList().filter(m=>(m.tags||[]).indexOf(t)>-1).length,0);
+  const xls=(C.xlsRows||[]);
+  const xlsOk=xls.filter(x=>x.ok).length;
+  const picked=(C.picked||[]).map(id=>memOf(id)).filter(Boolean);
+  const recTot=evCnt+tagCnt+xls.length+picked.length;
   const letter=C.letter||CE.letter||'', months=C.months||CE.months||'', news=C.news||CE.news||'';
+  const winNow=certWin();
   let inner='';
   if(st===0){
-    inner=`<p class="cap">${esc('فقط فایل ورد: فایل را بردار و پارامترها را همان‌طور که هست خالی بگذار؛ همان فایل برای همه صادر میشود. جاهای خالی اختیاری‌اند.')}</p>
-      <div class="admlist">${files.map(f=>`<button class="admrow2" data-cfile="${esc(f.k)}">
+    inner=`<p class="cap">${esc('فایل ورد را بارگذاری کن و همانطور که هست، با جاهای خالی، بگذار؛ همان فایل برای همه صادر میشود. هیچ پارامتری اجباری نیست.')}</p>
+      <div class="row tight"><input id="cFileN" class="input" placeholder="نام فایل، مثل: گواهینامهٔ داوری جشنواره"/>
+      ${btn('بارگذاری فایل ورد','data-cfilenew','i-upload')}</div>
+      <div class="admlist">${files.map(f=>`<div class="admrow2" style="cursor:default">
         <span class="ic">${ico('i-doc')}</span>
-        <span class="tx"><b>${esc(f.n)}</b><small>${esc(f.s||'')}</small></span>
-        ${curFile.k===f.k?tag('برداشته شد','ok'):(f.def?tag('پیشفرض',''):'')}
-        </button>`).join('')}</div>
-      <div class="row tight"><input id="cFileN" class="input" placeholder="نام فایل ورد تازه، مثل: گواهینامهٔ داوری"/>
-      ${btn('افزودن فایل','data-cfilenew','i-plus')}</div>
+        <button class="tx" data-cfile="${esc(f.k)}"><b>${esc(f.n)}</b><small>${esc(f.s||'')}</small></button>
+        <span class="mini">${defK===f.k?tag('پیشفرض','brand'):''}
+          ${curFile.k===f.k?tag('برداشته شد','ok'):''}
+          ${defK!==f.k?btn('پیشفرض کن','data-cdef="'+esc(f.k)+'"','i-check'):''}</span></div>`).join('')}</div>
       ${curFile.k?balebox(`<div class="pvsheet">${'<i></i>'.repeat(8)}</div>`,'cert_file_'+curFile.k,
-        'پیش‌نمایش «'+curFile.n+'» تار است؛ فایل ورد از ربات بلهٔ موسسه می‌آید'):''}
-      <div class="head">${esc('جاهای خالی اختیاریِ فایل ورد')}</div>
-      <div class="stprof">${(CE.slots||[]).map(x=>`<div class="stp">${ico('i-pen')}<span class="sp"><b>${esc(x[0])}</b><small>${esc(x[1])}</small></span></div>`).join('')}</div>`;
+        'پیش‌نمایش «'+curFile.n+'» تار است؛ فایل ورد کامل از ربات بلهٔ موسسه می‌آید'):''}
+      <div class="head">${esc('راهنمای پارامترهای فایل ورد')}</div>
+      <p class="cap">${esc('هر جای خالی را با همین نوشتار در ورد بگذار؛ ردیفها را هرکدام لازم داشتی. هیچکدام اجباری نیست؛ خالی بماند، همانطور که در فایل است میماند.')}</p>
+      <div class="stguide">${(CE.guide||[]).map(g=>`<div class="stg"><div class="stgh"><b>${esc(g.g)}</b><small class="cap">${esc(g.s)}</small></div>
+        <div class="stpr">${(g.rows||[]).map(x=>`<div class="stp">${ico('i-pen')}<span class="sp"><b dir="ltr">${esc(x[0])}</b><small>${esc(x[1]||'')}</small></span></div>`).join('')}</div></div>`).join('')}</div>`;
   } else if(st===1){
     inner=`<p class="cap">${esc('چند رویداد را هرچندتا که خواستی برگزین؛ حاضران همهٔ رویدادهای برگزیده گیرندهٔ گواهینامه می‌شوند.')}</p>
       <div class="admfilters">${EVROWS.filter(e=>+e.reg>0).map(e=>`<button class="chip ${evSel.indexOf(e.id)>-1?'on':''}" data-cev="${esc(e.id)}">
         ${esc((e.n||'').slice(0,26))} <b>${esc(fa(e.reg))}</b></button>`).join('')}</div>
       <p class="cap">${evSel.length
         ?esc(fa(evSel.length)+' رویداد برگزیده شد · '+fa(evCnt)+' گیرنده')
-        :esc('هنوز رویدادی برگزینشده؛ از چیپهای بالا برگزین.')}</p>`;
+        :esc('هنوز رویدادی برگزینشده؛ اگر گیرنده از جای دیگری میآید، این گام را رد کن.')}</p>`;
   } else if(st===2){
-    const evNames=evSel.map(id=>(EVROWS.find(e=>e.id===id)||{}).t||'');
-    inner=`<p class="cap">${esc('گیرنده‌ها حاضران رویدادهای برگزیدهاند؛ شمارشان همین‌جا روشن است و فهرست کامل با گزارش اکسل می‌آید.')}</p>
-      ${evSel.length?`
+    const finds=(S.certFind?memList().filter(m=>norm(m.n+' '+m.code+' '+m.ph+' '+(m.nid||'')).indexOf(S.certFind)>-1).slice(0,6):[]);
+    inner=`<p class="cap">${esc('گیرندهها از هر راهی که راحت‌تری: دستهٔ آماده، اکسل، یا جست‌وجوی تک‌تک. تکراریها خودکار یکی میشوند؛ هر کس یک گواهینامه.')}</p>
+      <div class="head">${esc('از دستهٔ آماده')}</div>
+      <div class="admfilters">${Object.keys(uLabels()).slice(0,6).map(t=>`<button class="chip ${(C.tags||[]).indexOf(t)>-1?'on':''}" data-ctag="${esc(t)}">${esc(t)} <b>${esc(fa(uLabels()[t]))}</b></button>`).join('')}</div>
+      <div class="head">${esc('از اکسل')}</div>
+      <p class="cap">${esc('هر خط یک نفر: نام، و اگر داشتی موبایل یا کد ملی. شناخته‌شدهها به پروفایل وصل میشوند؛ ناشناسها هم با همان نام گواهینامه میگیرند.')}</p>
+      <label class="fld"><textarea id="cXls" rows="3" placeholder="حسین رحیمی ۰۹۱۲۰۰۰۰۰۰۱
+نرگس اکبری ۰۰۹۸۷۶۵۴۳۲"></textarea></label>
+      <div class="row tight">${btn('شناسایی جدول','data-cxls','i-check')}
+        ${xls.length?tag(fa(xlsOk)+' شناخته شد · '+fa(xls.length-xlsOk)+' ناشناس',xlsOk?'ok':'warn'):''}</div>
+      <div class="head">${esc('جست‌وجوی کاربر و افزودن تک‌تک')}</div>
+      <div class="row tight"><input id="cFind" class="input" placeholder="نام، کد یا موبایل" value="${esc(S.certFind||'')}"/>
+      ${btn('جست‌وجو','data-cfindgo','i-search')}</div>
+      ${finds.length?`<div class="admlist">${finds.map(m=>`<div class="admlirow">${ico('i-users')}
+        <span class="sp"><b>${esc(m.n)}</b><small class="cap">${esc(m.code)} · ${esc(fa(m.ph))}</small></span>
+        <span class="mini">${(C.picked||[]).indexOf(m.id)>-1?tag('افزوده شد','ok'):btn('افزودن','data-cpick="'+esc(m.id)+'"','i-plus')}</span></div>`).join('')}</div>`:''}
+      ${(C.picked||[]).length?`<div class="admfilters">${picked.map(m=>`<button class="chip on" data-cunpick="${esc(m.id)}">${esc(m.n)} ×</button>`).join('')}</div>`:''}
       <div class="admkpi">
-        <div class="k"><small>رویدادها</small>${bits(fa(evSel.length))}</div>
-        <div class="k"><small>گیرنده</small>${bits(fa(evCnt)+' نفر')}</div>
-        <div class="k"><small>فایل ورد</small>${bits(esc((curFile.n||'').slice(0,14)))}</div>
-        <div class="k"><small>جاهای خالی</small>${bits('خالی')}</div></div>
-      ${table(evNames.map(nm=>[nm,'حاضرانِ همین رویداد','']))}
-      <p class="cap">${esc('اگر فایل جاى {عکس} داشته باشد، عکس تأییدشدهٔ پروفایل هر کس مینشیند؛ بیعکسها آدمک ساده میگیرند.')}</p>`
-      :emptyBox('نخست از گام رویدادها چند رویداد برگزین')}`;
+        <div class="k"><small>از رویدادها</small>${bits(fa(evCnt))}</div>
+        <div class="k"><small>از دسته‌ها</small>${bits(fa(tagCnt))}</div>
+        <div class="k"><small>از اکسل</small>${bits(fa(xls.length))}</div>
+        <div class="k"><small>افزودهٔ دستی</small>${bits(fa((C.picked||[]).length))}</div></div>
+      <p class="cap">${esc('جمع گیرنده‌ها با یکتاسازی خودکار: '+fa(recTot)+' نفر.')}</p>`;
   } else {
-    const pubs=S.certPub||[];
+    const qn=(S.certQueue||[]).filter(b=>!b.rev), qd=(S.certQueue||[]).filter(b=>b.rev);
     inner=`<div class="stgroup">
+      <div class="head">${esc('پنجرهٔ صدور: ساعت خلوت سامانه')}</div>
+      <div class="fslead"><span class="ic">${ico('i-clock')}</span>
+        <span class="sp"><b>پنجرهٔ بعدی: ${esc(winNow)}</b>
+          <small>صدورها صف میشوند و در کم‌بارترین ساعت سامانه (۰۲:۰۰ بامداد) یک‌جا اجرا میشوند؛ به هر گیرنده در ربات بله گفته میشود «تا ۲۴ ساعت آینده صادر میشود».</small></span></div>
+      <div class="admsw" style="border:0;padding-inline:0">
+        <span class="sp"><b>${esc((CE.lazy||{}).n||'')}</b><small>${esc((CE.lazy||{}).s||'')}</small></span>
+        <span class="switch ${togDef('cert','lazy',true)?'on':''}" data-tog="cert" data-toglabel="${esc((CE.lazy||{}).n||'ساخت تنبل')}" data-togdef="1" role="switch" aria-checked="true" aria-label="${esc((CE.lazy||{}).n||'ساخت تنبل')}"></span></div>
+      <p class="cap">${esc('درخواستهای رسیده از ربات: '+fa(CE.botReq||0)+' نفر؛ همینها هم در همان پنجره صادر میشوند.')}</p></div>
+    <div class="stgroup">
       <div class="head">${esc('شماره‌ها و خبر')}</div>
       <label class="fld"><span>شمارهٔ نامهٔ مشترک</span><input class="input" data-cletter value="${esc(C.letter||'')}" placeholder="${esc(CE.letter||'')}"/></label>
       <label class="fld"><span>اعتبار (ماه)</span><input class="input" data-cmonths value="${esc(C.months||'')}" placeholder="${esc(CE.months||'')}"/></label>
       <label class="fld"><span>متن خبر گیرنده‌ها (قابل ویرایش)</span><textarea data-cnews rows="2" placeholder="${esc(CE.news||'')}">${esc(C.news||'')}</textarea></label>
-      <div class="admsw" style="border:0;padding-inline:0">
-        <span class="sp"><b>${esc((CE.lazy||{}).n||'')}</b><small>${esc((CE.lazy||{}).s||'')}</small></span>
-        <span class="switch ${togDef('cert','lazy',true)?'on':''}" data-tog="cert" data-toglabel="${esc((CE.lazy||{}).n||'ساخت تنبل')}" data-togdef="1" role="switch" aria-checked="true" aria-label="${esc((CE.lazy||{}).n||'ساخت تنبل')}"></span></div>
       <div class="row tight">${btn('پیش‌نمایش تصادفی','data-crand','i-eye')}
         ${baleA('cert_random','نمونهٔ کامل از ربات بله')}</div>
       ${C.rand?balebox(`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`,'cert_sample',
         'نمونه برای «'+C.rand+'» · '+letter+' · اعتبار '+fa(months)+' ماه'):''}
-      <div class="row"><span class="sp"></span>${btn('صدور برای همه با همین فایل','data-certpub','i-send')}</div></div>
+      <div class="row">
+        ${btn('ثبت در صف صدور ('+winNow+')','data-cqueue','i-send')}
+        ${btn('صدور فوری، خارج از نوبت','data-cfast','i-bolt')}</div></div>
     <div class="stgroup">
-      <div class="head">${esc('منتشرشده‌ها و مدیریتشان')}</div>
-      ${pubs.length?pubs.map((b,bi)=>`<div class="permrow"><span class="sp"><b>${esc(b.n)}</b>
-          <small class="cap">${esc(fa(b.cnt))} گیرنده · ${esc(b.letter||'بدون شمارهٔ نامه')} · ${esc(b.at)} · ${esc(fa(b.got))} دریافتشده</small></span>
-          <span class="mini">${btn('یادآوری مانده‌ها','data-cbnudge="'+bi+'"','i-send')}${btn('ابطال','data-cbrev="'+bi+'"','i-trash')}</span></div>`).join('')
-        :emptyBox('هنوز صدوری ثبت نشده؛ با «صدور برای همه» نخستین دسته را بساز')}</div>`;
+      <div class="head">${esc('صف و منتشرشده‌ها')}</div>
+      ${(S.certQueue||[]).length?S.certQueue.map((b,bi)=>`<div class="permrow"><span class="sp"><b>${esc(b.n)}</b>
+          <small class="cap">${b.rev?'باطل‌شده · ':''}${esc(fa(b.cnt))} گیرنده · ${esc(b.letter||'بدون شمارهٔ نامه')} · ${b.st==='ok'?esc(fa(b.got))+' دریافتشده':'اجرا: '+esc(b.plan)}</small></span>
+        <span class="mini">${b.rev?'':b.st==='wait'
+          ?btn('اجرا همین حالا','data-crun="'+bi+'"','i-bolt')+btn('برداشتن از صف','data-cbrev="'+bi+'"','i-trash')
+          :btn('یادآوری مانده‌ها','data-cbnudge="'+bi+'"','i-send')}</span></div>`).join('')
+        :emptyBox('صف خالی است؛ با «ثبت در صف صدور» نخستین دسته را بساز')}</div>`;
   }
   const jobs=(CE.jobs||[]).concat(S.jobs||[]);
   return `<section class="card stack admcert">
@@ -2605,7 +2640,12 @@ function sanitize(){
     if(S.cert.evs) S.cert.evs=S.cert.evs.filter(id=>EVROWS.some(e=>e.id===id));
     if(S.cert.pub) delete S.cert.pub;
     if(!Array.isArray(S.certFiles)) S.certFiles=[];
-    if(!Array.isArray(S.certPub)) S.certPub=S.certPub?[S.certPub]:[]; }
+    if(!Array.isArray(S.certQueue)){ S.certQueue=(S.certPub||[]).map(b=>({n:b.n||'دسته', cnt:b.cnt||0, got:b.got||0,
+      letter:b.letter||'', plan:b.plan||'همین حالا', st:b.rev?'wait':'ok', rev:b.rev?1:0})); S.certPub=null; }
+    if(!Array.isArray(S.cert.picked)) S.cert.picked=[];
+    if(!Array.isArray(S.cert.tags)) S.cert.tags=[];
+    if(S.cert.xlsRows&&!Array.isArray(S.cert.xlsRows)) S.cert.xlsRows=null;
+    if(S.certFind) S.certFind=String(S.certFind).slice(0,40); }
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
   S.qMore=S.qMore?1:0;
 }
@@ -2706,12 +2746,31 @@ document.addEventListener('click',e=>{
   if(cs){S.cert.step=+(cs.dataset.cstep!=null?cs.dataset.cstep:cs.dataset.cgo); save(); renderBody(); return}
   const cf2=q('[data-cfile]'); if(cf2){S.cert.file=cf2.dataset.cfile; save(); renderBody();
     toast('فایل ورد برداشته شد: '+((CE.files||[]).concat(S.certFiles||[]).find(f=>f.k===cf2.dataset.cfile)||{}).n); return}
+  const cdf=q('[data-cdef]'); if(cdf){S.certDef=cdf.dataset.cdef; S.cert.file=''; save(); renderBody();
+    toast('فایل پیشفرض عوض شد؛ صدورهای بعدی با همین فایل میشود'); return}
   const cfn=q('[data-cfilenew]'); if(cfn){const nm=$('#cFileN')?$('#cFileN').value.trim():'';
     if(!nm){toast('نام فایل ورد را بنویسید'); return}
-    S.certFiles=(S.certFiles||[]).concat([{k:'x'+(Date.now()%100000), n:nm, s:'فایل تازهٔ شما'}]);
-    S.cert.file='x'+(Date.now()%100000); save(); renderBody(); toast('فایل «'+nm+'» افزوده شد و برداشته شد'); return}
+    const k='x'+(Date.now()%100000);
+    S.certFiles=(S.certFiles||[]).concat([{k:k, n:nm, s:'بارگذاری‌شدهٔ شما · با جاهای خالی همانطور که هست'}]);
+    S.cert.file=k; save(); renderBody(); toast('«'+nm+'» بارگذاری شد و برداشته شد'); return}
   const ce2=q('[data-cev]'); if(ce2){const id=ce2.dataset.cev, l=S.cert.evs||[];
     S.cert.evs=l.indexOf(id)>-1?l.filter(x=>x!==id):l.concat([id]); save(); renderBody(); return}
+  const ctg=q('[data-ctag]'); if(ctg){const t=ctg.dataset.ctag, l=S.cert.tags||[];
+    S.cert.tags=l.indexOf(t)>-1?l.filter(x=>x!==t):l.concat([t]); save(); renderBody(); return}
+  const cxl=q('[data-cxls]'); if(cxl){const raw=$('#cXls')?$('#cXls').value:'';
+    const rows=raw.split(/[\n]+/).map(x=>x.trim()).filter(Boolean).map(line=>{
+      const nums=un(line).match(/\d+/g)||[];
+      const mob=nums.find(x=>/^0\d{10}$/.test(x)), nat=nums.find(x=>/^\d{10}$/.test(x));
+      const key=mob||nat||"";
+      const name=line.replace(/[0-9۰-۹٠-٩]+/g,'').replace(/[\s،,]+/g,' ').trim();
+      const mm=key?memList().find(m=>m.ph===key||(m.nid&&un(m.nid)===key)):null;
+      return {n:name, ok:!!mm};});
+    S.cert.xlsRows=rows; save(); renderBody();
+    toast(rows.length?fa(rows.filter(x=>x.ok).length)+' نفر از اکسل شناخته شد'+(rows.length-rows.filter(x=>x.ok).length?' · '+fa(rows.length-rows.filter(x=>x.ok).length)+' ناشناس با همان نام صادر میشود':''):'جدولی دیده نشد'); return}
+  const cfg=q('[data-cfindgo]'); if(cfg){S.certFind=$('#cFind')?norm($('#cFind').value):''; save(); renderBody(); return}
+  const cpk=q('[data-cpick]'); if(cpk){const id=cpk.dataset.cpick, l=S.cert.picked||[];
+    if(l.indexOf(id)<0) S.cert.picked=l.concat([id]); save(); renderBody(); return}
+  const cup=q('[data-cunpick]'); if(cup){S.cert.picked=(S.cert.picked||[]).filter(x=>x!==cup.dataset.cunpick); save(); renderBody(); return}
   const se=q('[data-setg]'); if(se){S.setG=se.dataset.setg; save(); renderBody(); return}
   const tg=q('[data-tog]'); if(tg){const key=tg.dataset.tog+'|'+tg.dataset.toglabel;
     const cur=togDef(tg.dataset.tog, tg.dataset.toglabel, tg.dataset.togdef==='1');
@@ -2916,30 +2975,36 @@ document.addEventListener('click',e=>{
     S.wiz=Object.assign({},BASE.wiz); save(); renderBody();
     toast((NE().queued||'رفت برای تأیید')); go('dash'); return}
   const cpar=q('[data-cparam]'); if(cpar){S.cert.params=S.cert.params||{}; S.cert.params[cpar.dataset.cparam]=cpar.value; save(); return}
+  const crun3=q('[data-crun]'); if(crun3){const b=(S.certQueue||[])[+crun3.dataset.crun];
+    if(b&&b.st!=='ok'){b.st='ok'; b.got=b.cnt; b.plan='همین حالا'; save(); renderBody();
+      toast('همین حالا صادر شد؛ خبر و فایل از ربات بله به '+fa(b.cnt)+' گیرنده رفت')} return}
   const cl2=q('[data-cletter]'); if(cl2){S.cert.letter=cl2.value; save(); return}
   const cm2=q('[data-cmonths]'); if(cm2){S.cert.months=cm2.value; save(); return}
   const cn2=q('[data-cnews]'); if(cn2){S.cert.news=cn2.value; save(); return}
   const cr2=q('[data-crand]'); if(cr2){const all=memList().filter(m=>m.st[1]!=='stop');
     const one=all[Math.floor(Math.random()*all.length)]||{};
     S.cert.rand=one.n||''; save(); renderBody(); toast('نمونهٔ تصادفی: '+(one.n||'')); return}
-  const cbn=q('[data-cbnudge]'); if(cbn){const b=(S.certPub||[])[+cbn.dataset.cbnudge];
-    if(b){b.nudged=1; save(); toast('یادآوری برای '+fa(Math.max(0,b.cnt-b.got))+' گیرندهٔ مانده از ربات بله رفت')} return}
-  const cbr=q('[data-cbrev]'); if(cbr){const b=(S.certPub||[])[+cbr.dataset.cbrev];
+  const cbn=q('[data-cbnudge]'); if(cbn){const b=(S.certQueue||[])[+cbn.dataset.cbnudge];
+    if(b){b.nudged=1; save(); toast('یادآوری برای '+fa(Math.max(0,b.cnt-(b.got||0)))+' گیرندهٔ مانده از ربات بله رفت')} return}
+  const cbr=q('[data-cbrev]'); if(cbr){const b=(S.certQueue||[])[+cbr.dataset.cbrev];
     if(b){b.rev=1; save(); renderBody(); toast('دستهٔ «'+b.n+'» باطل شد؛ استعلام همان گواهینامهها «باطل» میگوید')} return}
-  const cpub=q('[data-certpub]'); if(cpub){
-    const files=(CE.files||[]).concat(S.certFiles||[]);
-    const curFile=files.find(f=>f.k===S.cert.file)||files[0]||{n:'فایل ورد'};
+  const cqueue=fast=>{const files=(CE.files||[]).concat(S.certFiles||[]);
+    const curFile=files.find(f=>f.k===S.cert.file)||files.find(f=>f.k===(S.certDef||''))||files.find(f=>f.def)||files[0]||{n:'فایل ورد'};
     const evSel=(S.cert.evs||[]).filter(id=>EVROWS.some(e=>e.id===id));
-    const cnt=evSel.reduce((a,id)=>a+(+(EVROWS.find(e=>e.id===id)||{}).reg||0),0);
-    if(!cnt){toast('نخست چند رویداد برگزینید'); return}
-    const evNames=evSel.map(id=>(EVROWS.find(e=>e.id===id)||{}).t||'').join(' و ');
-    S.certPub=(S.certPub||[]);
-    S.certPub=[{n:curFile.n, cnt:cnt, got:Math.round(cnt/3), letter:S.cert.letter||(CE.letter||''),
-      months:S.cert.months||(CE.months||''), news:S.cert.news||(CE.news||''), evs:evNames,
-      at:'همین حالا', rev:0}].concat(S.certPub);
-    S.jobs=[{n:curFile.n, who:fa(cnt)+' نفر', way:'فایل ورد · '+fa(evSel.length)+' رویداد',
-      at:'همین حالا', st:'wait'}].concat(S.jobs||[]);
-    save(); renderBody(); toast('برای '+fa(cnt)+' نفر صادر شد؛ خبر «'+((S.cert.news)||(CE.news||'')).slice(0,24)+'…» رفت'); return}
+    const tagC=(S.cert.tags||[]).reduce((a,t)=>a+memList().filter(m=>(m.tags||[]).indexOf(t)>-1).length,0);
+    const xl=(S.cert.xlsRows||[]).length;
+    const cnt=evSel.reduce((a,id)=>a+(+(EVROWS.find(e=>e.id===id)||{}).reg||0),0)+tagC+xl+(S.cert.picked||[]).length;
+    if(!cnt){toast('نخست گیرنده بیاورید: رویداد، دسته، اکسل یا جست‌وجو'); return}
+    S.certQueue=(S.certQueue||[]);
+    S.certQueue=[{n:curFile.n, cnt:cnt, got:fast?cnt:0, letter:S.cert.letter||(CE.letter||''),
+      months:S.cert.months||(CE.months||''), news:S.cert.news||(CE.news||''),
+      plan:fast?'همین حالا':certWin(), st:fast?'ok':'wait', rev:0}].concat(S.certQueue);
+    S.jobs=[{n:curFile.n, who:fa(cnt)+' نفر', way:fast?'صدور فوری':'صف '+certWin(),
+      at:fast?'همین حالا':'در نوبت', st:fast?'ok':'wait'}].concat(S.jobs||[]);
+    save(); renderBody();
+    toast(fast?'همین حالا صادر شد؛ خبر و فایل از ربات بله رفت':'در صف نشست؛ '+certWin()+' صادر میشود و به گیرندهها گفته میشود تا ۲۴ ساعت آینده')};
+  const cqq=q('[data-cqueue]'); if(cqq){cqueue(false); return}
+  const cfs=q('[data-cfast]'); if(cfs){cqueue(true); return}
   const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; if(S.uV==='club') S.uClub='rules'; save(); renderBody(); return}
   const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; save(); renderBody(); return}
   const utag=q('[data-uTag]'); if(utag){S.uTag=(S.uTag===utag.dataset.utag)?'':utag.dataset.utag; save(); renderBody(); return}
