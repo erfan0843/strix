@@ -1456,7 +1456,7 @@ async function load(file,store,q){
   p.click('#admNav [data-sec="users"]');
   p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
   ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت کارشناسان پنل هست');
-  ok(p.all('.admmatrix tbody tr').length>=4,'جدول دسترسی حوزه پر است');
+  ok(p.all('.permrow').length>=4,'دسترسی‌های حوزه پر است');
   p.click('#admNav [data-sec="dash"]');
   p.click('[data-who-sheet]');
   ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');

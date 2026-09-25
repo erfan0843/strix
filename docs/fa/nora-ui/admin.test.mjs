@@ -530,7 +530,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/در انتظار تکمیل پروفایل/.test(p.txt('#admBody')),'کارشناس بی‌پروفایل با برچسب هشدار نشان داده میشود');
   ok(p.all('.stacc').length>=2,'نام کاربری هر کارشناس روی ردیفش هست');
   ok(/سرپرست/.test(p.txt('#admBody')),'سرپرست حوزه روی جدول نوشته شده');
-  ok(p.all('.admmatrix tbody tr').length>=4,'ردیف‌های دسترسی حوزهٔ انتخابی می‌آید');
+  ok(p.all('.permrow').length>=4,'دسترسی‌های حوزه با ردیف نرم میآید');
   ok(p.all('[data-fperm]').length>=4,'دسترسی‌های کارشناس تیک‌زدنی است');
   const on=p.all('[data-fperm].on').length;
   p.click(p.all('[data-fperm]')[0]);
@@ -726,7 +726,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
   ok(/مدیران و کارشناسان/.test(p.txt('#admBody')),'سرپرست پشتیبانی مدیریت کارشناسان را دارد');
   ok(p.all('.admlist .admsw').length===5,'پنج دسترسی فقط‌مالک فهرست شده');
-  ok(!/حق عضویت/.test(p.txt('.admmatrix')),'حق عضویت باشگاه در دسترس حوزه نیست');
+  ok(!/حق عضویت/.test(p.txt('.permrows'))&&/حق عضویت/.test(p.txt('#admBody')),'حق عضویت باشگاه فقط‌مالک است، در دسترس حوزه نیست');
 
   p.click('#admNav [data-sec="dash"]');
   p.click('[data-who-sheet]');
@@ -1055,9 +1055,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=54')&&html.includes('admin.js?v=54'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=55')&&html.includes('admin.js?v=55'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v43'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v44'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

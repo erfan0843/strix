@@ -1887,14 +1887,15 @@ function cUStaff(){
     ['i-idcard','تکمیل پروفایل','پروفایل دست‌اندرکاران را پر می‌کند؛ سرپرست تأیید می‌کند']];
   const pend=t.filter(pp=>!accOf(pp).done).length;
   return uHead('مدیران و کارشناسان')+'\n'+
-  `    <p class="cap">${esc('سرپرست هر حوزه از همین‌جا گذاشته میشود. برای هر کارشناس حساب میسازی؛ او در نخستین ورود رمز تازه میگذارد و پروفایل دست‌اندرکاران را کامل میکند.')}</p>
+  `    <p class="cap">${esc('برای هر کارشناس حساب میسازی؛ او در نخستین ورود رمز تازه میگذارد و پروفایل دست‌اندرکاران را کامل میکند.')}</p>
     <div class="stflow">${flow.map((x,i2)=>`<div class="stf"><span class="n">${fa(i2+1)}</span>${ico(x[0])}<b>${esc(x[1])}</b><small>${esc(x[2])}</small></div>`).join('')}</div>
     <div class="admfilters">${FIELDS.filter(x=>x.k!=='owner').map(x=>`<button class="tag ${fk===x.k?'on':''}"
         data-setF="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div>
-    <div class="fslead">
+    <div class="stgroup">
+      <div class="fslead">
         <span class="ic">${ico('i-shield')}</span>
         <span class="sp"><b>${esc(D.lead||'سرپرست')}: ${esc(l.n)}</b>
-          <small>${esc(f.s)}</small></span>
+          <small>${esc(f.s)} · سرپرست همهٔ دسترسیهای حوزه را دارد</small></span>
         ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(fk)}">${esc(D.changeLead||'تعیین سرپرست')}</button>`:''}
       </div>
       <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))} ${esc(D.specsWord||'نفر')}${pend?' · '+fa(pend)+' بی‌پروفایل':''})</div>
@@ -1909,27 +1910,28 @@ function cUStaff(){
           <span class="tload"><i style="width:${pp.load}%"></i></span>
           <span class="mini"><button class="btn sm quiet" data-resetspec="${esc(pp.k)}">${esc('تغییر رمز')}</button>
           <button class="btn sm quiet" data-specperm="${esc(pp.k)}">${esc(D.specPerms||'دسترسی‌ها')}</button></span></div>`}).join('')||emptyBox(D.qEmpty||'')}</div>
-      <hr class="hr"/>
-      <div class="row"><div class="head">${esc('پروفایل دست‌اندرکاران (ورود اول)')}</div><span class="sp"></span></div>
+    </div>
+    <div class="stgroup">
+      <div class="head">${esc('پروفایل دست‌اندرکاران (ورود اول)')}</div>
       <p class="cap">${esc('این پنج چیز را در نخستین ورود ازش میپرسیم؛ با تأیید سرپرست، نام و سمتش روی صفحهٔ دست‌اندرکاران سایت مینشیند.')}</p>
       <div class="stprof">${SPROF.map(x=>`<div class="stp">${ico(x[0])}<span class="sp"><b>${esc(x[1])}</b><small>${esc(x[2])}</small></span></div>`).join('')}</div>
-      <hr class="hr"/>
+    </div>
+    <div class="stgroup">
       <div class="head">${esc('دسترسی‌های '+f.n)}</div>
-      <p class="cap">${esc(PERMS.note||'')}</p>
-      <div class="admmatrix"><table>
-        <thead><tr><th>${esc('دسترسی')}</th><th>${esc(D.permLeadCol||'سرپرست حوزه')}</th><th>${esc(D.permSpecCol||'کارشناس')}</th></tr></thead>
-        <tbody>${permRowsOf(fk).map(r=>{
-          const on=specPermsOf(fk).indexOf(r[0])>-1;
-          return `<tr><td>${esc(r[1])}</td>
-            <td class="yn yes">✓</td>
-            <td class="yn">${isOwner()||isLead()
-              ?`<span class="switch ${on?'on':''}" data-fperm="${esc(r[0])}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[1])}"></span>`
-              :tag(on?'دارد':'ندارد',on?'ok':'')}</td></tr>`}).join('')}</tbody></table></div>
-      <hr class="hr"/>
+      <p class="cap">${esc('تیکها مال کارشناسهاست؛ سرپرست همه را دارد و همین حالا عوض میشود.')}</p>
+      <div class="permrows">${permRowsOf(fk).map(r=>{
+        const on=specPermsOf(fk).indexOf(r[0])>-1;
+        return `<div class="permrow"><span class="sp"><b>${esc(r[1])}</b></span>
+          ${isOwner()||isLead()
+            ?`<span class="switch ${on?'on':''}" data-fperm="${esc(r[0])}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[1])}"></span>`
+            :tag(on?'کارشناس دارد':'کارشناس ندارد',on?'ok':'')}</div>`}).join('')}</div>
+    </div>
+    <div class="stgroup">
       <div class="head">${esc(PERMS.ownerTitle||D.ownerPerms||'فقط مالک')}</div>
       <p class="cap">${esc(PERMS.ownerNote||'')}</p>
       <div class="admlist">${(OWNER_PERMS||[]).map(x=>`<div class="admsw">
-        <span class="sp">${esc(x[1])}</span>${tag(D.ownerOnly||'فقط مالک','accent')}</div>`).join('')}</div>`;
+        <span class="sp">${esc(x[1])}</span>${tag(D.ownerOnly||'فقط مالک','accent')}</div>`).join('')}</div>
+    </div>`;
 }
 function vSettings(){
   const ST=A.settings||{}, own=isOwner();
