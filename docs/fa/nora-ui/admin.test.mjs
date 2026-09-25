@@ -6,8 +6,9 @@
    جدا برای مالک و سرپرست حوزه و کارشناس، حلقه‌های عدد و نوار نبض و کارتابل
    شخصی، ویزارد سه‌گامی رویداد، فهرست و صافی و جست‌وجوی کاربران، نه گزارش،
    مرکز صدور گواهینامه با پیش‌نمایش زنده، هفت گروه تنظیمات، یک مالک و شش
-   حوزه با ۳۷ دسترسی، بستن بخش‌ها به‌اندازهٔ حوزه، سرپرست‌گذاری و افزودن
-   کارشناس، ماندگاری خاموش و روشن‌ها، و پاکی متن فارسی.
+   حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
+   سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
+   روشن‌ها، و پاکی متن فارسی.
    ══════════════════════════════════════════════════════════════════════════ */
 import jsdom from 'jsdom';
 const {JSDOM}=jsdom;
@@ -61,11 +62,20 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('#admNav .btn').length===8,'ریل هشت بخش دارد: داشبورد و هفت بخش دیکته‌شده ('+p.all('#admNav .btn').length+')');
   ok(p.all('#admTabs a').length===5,'نوار پایین پنج بخش دارد ('+p.all('#admTabs a').length+')');
   ok(p.txt('#admBar .head')==='داشبورد','پنل روی داشبورد باز می‌شود');
+  const cssTxt=fs.readFileSync(DIR+'admin.css','utf8');
+  ok(/\.admgrid\{display:grid[^}]*1\.6fr/.test(cssTxt),'شبکهٔ دوستونی داشبورد در CSS هست');
+  ok(/#admTabs\{grid-auto-flow:column/.test(cssTxt),'نوار پایین هر تعداد بخش را هم‌عرض پخش می‌کند');
+  ok(p.all('.dashwrap > .admgrid > *').length>=2,'داشبورد ستون‌بندی شده');
   ok(p.all('.hero .ring').length===4,'چهار حلقهٔ عدد سرِ داشبورد است');
   const stat=p.all('.hero .ring').map(x=>x.textContent).join(' ');
   ok(/کاربر/.test(stat)&&/درآمد/.test(stat)&&/رضایت/.test(stat),'حلقه‌ها کاربر و درآمد و رضایت را نشان می‌دهند');
   ok(p.all('.ppill').length===5,'نوار نبض سامانه پنج نشان دارد');
-  ok(p.all('.qrow').length===20,'کارتابل مالک هر بیست کار را می‌بیند');
+  ok(p.all('.qrow').length===8,'کارتابل مالک کوتاه است (۸ کار)');
+  ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» هست');
+  p.click('[data-qmore]');
+  ok(p.all('.qrow').length===20,'با دکمه‌اش هر بیست کار می‌آید');
+  p.click('[data-qmore]');
+  ok(p.all('.qrow').length===8,'و با همان دکمه کوتاه می‌شود');
   ok(p.all('.fcard').length===6,'شش حوزه در قالب کارت آمده');
   ok(p.all('.sparkbox svg').length===1,'نمودار روند درآمد کشیده شد');
   ok(p.all('.hero').length===0||p.all('.hero.gold').length===1,'سرِ مالک نشان طلایی دارد');
@@ -76,7 +86,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.click('#admNav [data-sec="dash"]');
   ok(p.doc.querySelector('a[href="account.html"]')!==null,'راه بازگشت به نمای کاربر هست');
   ok(p.doc.querySelector('a[href="builder.html"]')!==null,'راه فرم‌ها و گزارش هست');
-  const nameless=p.all('#admRail button, #admTabs a, .topbar button, .admstat, .admtask')
+  const nameless=p.all('#admRail button, #admTabs a, .topbar button, .vchip, .dbtn, .qrow button, .qfilters button, .admkpi button')
     .filter(b=>(b.textContent||'').replace(/\s+/g,'').trim()===''&&!b.getAttribute('aria-label'));
   ok(nameless.length===0,'هیچ دکمه‌ای بی‌نام نیست'+(nameless.length?': '+nameless.length:''));
   ok(!/\u2014/.test(p.txt('#admBody')),'متن پنل خط تیرهٔ بلند ندارد');
@@ -255,7 +265,7 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   p.click(p.all('[data-fperm]')[0]);
   ok(p.all('[data-fperm].on').length!==on,'مالک می‌تواند دسترسی کارشناس بدهد یا بردارد');
   ok(/داده شد|برداشته شد/.test(p.txt('#toast')),'و همان لحظه خبر می‌دهد');
-  ok(p.all('.admlist .admsw').length===4,'چهار دسترسی ویژه فقط برای مالک است');
+  ok(p.all('.admlist .admsw').length===5,'پنج دسترسی ویژه فقط برای مالک است');
   p.click('[data-setF="club"]');
   ok(/باشگاه/.test(p.txt('.fslead')),'با چیپ باشگاه، سرپرست باشگاه می‌آید');
   ok(p.all('#admBody [data-addspec]').length===1,'دکمهٔ افزودن کارشناس هست');
@@ -314,7 +324,58 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.all('#admTabs a').length===5,'و نوار پایین کامل است');
 }
 
-/* ── ۱۰) ماندگاری ── */
+/* ── ۱۰) مالی فقط و فقط مالک ── */
+{
+  console.log('\n── مالی فقط مالک ──');
+  const p=await load();
+  ok(/مالی امروز/.test(p.txt('#admBody')),'مالک کارت مالی را می‌بیند');
+  p.click('#admNav [data-sec="reports"]');
+  ok(/مالی/.test(p.txt('#admBody')),'و گزارش مالی را');
+  ok(p.all('[data-rep="fi"]').length>=1,'ردیف مالی در گزارش‌ها برایش هست');
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-ev="e1"]');
+  ok(p.all('#shAdm .admfilters [data-evtab="money"]').length===1,'تب مالی رویداد برایش هست');
+  p.click('#shAdm [data-close]');
+
+  /* سرپرست باشگاه: رویداد و تنظیمات دارد، ولی هیچ مالی‌ای نمی‌بیند */
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p7"]');
+  ok(!/مالی|درآمد/.test(p.txt('#admBody')),'سرپرست باشگاه هیچ مالی در داشبورد ندارد');
+  p.click('#admNav [data-sec="reports"]');
+  ok(p.all('[data-rep="fi"]').length===0,'ردیف مالی برایش نیست');
+  ok(!/پرداخت/.test(p.txt('.admlist')),'هشدار مالی هم برایش نیست');
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-ev="e1"]');
+  ok(p.all('#shAdm .admfilters [data-evtab="money"]').length===0,'تب مالی رویداد قفل است');
+  ok(p.all('#shAdm .admfilters [data-evtab]').length===5,'پنج تب بی‌مالی مانده');
+  p.click('#shAdm .admfilters [data-evtab="reg"]');
+  ok(!/پرداخت‌شده/.test(p.txt('#shAdm')),'وضعیت پرداخت در تب ثبت‌نام‌ها ماسک شده');
+  p.click('#shAdm [data-close]');
+
+  /* سرپرست پشتیبانی: کاربران بدون برچسب بدهی */
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p3"]');
+  p.click('#admNav [data-sec="users"]');
+  ok(!/بدهی/.test(p.txt('#admBody')),'برچسب بدهی در فهرست کاربران نیست');
+  p.click('#admBody [data-user="u4"]');
+  ok(!/بدهی/.test(p.txt('#shAdm')),'و در پروندهٔ کاربر نیست');
+  p.click('#shAdm [data-close]');
+
+  p.click('#admNav [data-sec="settings"]');
+  ok(p.all('[data-setg]').length===1&&/حوزه/.test(p.txt('[data-setg]')),'سرپرست فقط گروه حوزه‌ها را دارد');
+  p.click('[data-setg="access"]');
+  ok(p.all('.admlist .admsw').length===5,'پنج دسترسی فقط‌مالک فهرست شده');
+  ok(!/حق عضویت/.test(p.txt('.admmatrix')),'حق عضویت باشگاه در دسترس حوزه نیست');
+
+  p.click('#admNav [data-sec="dash"]');
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p10"]');
+  ok(!/مالی|درآمد|بدهی/.test(p.txt('#admBody')),'کارشناس هم هیچ مالی نمی‌بیند');
+  p.click('#admNav [data-sec="reports"]');
+  ok(p.all('[data-rep="fi"]').length===0,'گزارش مالی برای کارشناس نیست');
+}
+
+/* ── ۱۱) ماندگاری ── */
 {
   console.log('\n── ماندگاری ──');
   const store=makeStore();
@@ -351,16 +412,27 @@ const SECS=['dash','newev','events','users','forms','reports','cert','settings']
   ok(p.window.location.hash==='#users','هش با بخش هم‌خوان می‌ماند');
 }
 
-/* ── ۱۲) پرونده‌ها و متن‌ها ── */
+/* ── ۱۲) حالت کهنه ── */
+{
+  console.log('\n── حالت کهنه ──');
+  const store=makeStore();
+  store.setItem('nora-admin',JSON.stringify({v:1,who:'p99',qf:'زز',evTab:'money',sec:'settings',role:'super',perms:{}}));
+  const p=await load(store);
+  ok(p.errs.length===0,'با حالت کهنهٔ دور پیش، پنل بی‌خطا بالا می‌آید');
+  ok(p.all('.ring').length===4,'و داشبورد سالم رندر می‌شود');
+  ok(p.txt('#admBar .head')==='داشبورد','روی داشبورد می‌نشیند، نه بخش قفل‌شدهٔ کهنه');
+}
+
+/* ── ۱۳) پرونده‌ها و متن‌ها ── */
 {
   console.log('\n── پرونده‌ها و متن ──');
   const files=['admin.html','admin.js','admin.css','builder.html','create.html'];
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=34')&&html.includes('admin.js?v=34'),'نسخهٔ پرونده‌های پنل ۳۴ است');
+  ok(html.includes('admin.css?v=35')&&html.includes('admin.js?v=35'),'نسخهٔ پرونده‌های پنل ۳۵ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v23'"),'کارگر سرویس نسخهٔ ۲۳ است');
+  ok(sw.includes("'nora-v24'"),'کارگر سرویس نسخهٔ ۲۴ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

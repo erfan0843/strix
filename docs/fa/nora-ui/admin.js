@@ -43,7 +43,8 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const BASE={sec:'dash', q:'', evF:'all', evId:null, evTab:'info', uF:'all',
+const SVER=48;
+const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,kind:'',name:'',date:'',time:'',place:'',cap:45},
   cert:{step:0,tpl:'t1',kind:'per',params:{},who:'ev',whoVal:'',pub:'notify'},
@@ -222,6 +223,11 @@ function renderBar(){
    نوشته نشده؛ همه از data می‌آید و با همین کارتابل و تیم جلو و عقب می‌رود. */
 
 const priTone=p=>p==='بالا'?'stop':p==='میان'?'warn':'';
+/* نام تب را از داده می‌خواند تا دکمه‌های میان‌بر هم همان واژه را بگویند */
+const tabName=k=>(((A.events||{}).tabs||[]).find(t=>t.k===k)||{n:''}).n;
+/* مالی فقط دست مالک است؛ بقیه نه عدد می‌بینند نه تب مالی نه برچسب بدهی */
+const isMoney=()=>isOwner();
+const moneyTag=t=>((A.moneyTags||[]).some(w=>t.indexOf(w)>-1));
 const priRank=p=>p==='بالا'?0:p==='میان'?1:2;
 
 /* حلقهٔ عدد: درصد را دور دایره می‌بندد و عدد را وسط می‌گذارد */
@@ -294,9 +300,10 @@ function hero(){
 /* کارتابل: هر کار یک دکمه دارد: انجام شد، واگذار، باز کن */
 function cardQueue(){
   const q=myQueue();
-  const qf=S.qf||'all';
-  const open=q.filter(it=>!qDone(it.id)&&(qf==='all'||it.pri===qf))
+  const qf=S.qf||'all', cap=isOwner()?8:isLead()?6:99;
+  const all=q.filter(it=>!qDone(it.id)&&(qf==='all'||it.pri===qf))
     .sort((a,b)=>priRank(a.pri)-priRank(b.pri)||String(a.due).localeCompare(String(b.due)));
+  const open=S.qMore?all:all.slice(0,cap);
   const done=q.filter(it=>qDone(it.id));
   const row=it=>{
     const p=personOf(qWho(it));
@@ -314,11 +321,14 @@ function cardQueue(){
   return `<section class="card stack qcard">
     <div class="row"><div class="head">${esc(isOwner()?(D.q||'کارتابل'):isLead()?(D.fieldQueue||'کارتابل حوزه'):(D.myQueue||'کارتابل من'))}</div>
       <span class="sp"></span>
-      <span class="cap">${esc(fa(open.length))} ${esc(D.qOpen||'کار باز')}</span>
+      <span class="cap">${esc(fa(all.length))} ${esc(D.qOpen||'کار باز')}</span>
       <span class="qfilters">${['all','بالا','میان','معمولی'].map(k=>`<button class="tag ${qf===k?'on':''}"
         data-qf="${esc(k)}">${esc(k==='all'?(T.all||'همه'):k)}</button>`).join('')}</span>
     </div>
     <div class="qlist">${open.length?open.map(row).join(''):`<div class="empty">${ico('i-check')}<p class="cap" style="margin-top:8px">${esc(D.qEmpty||'')}</p></div>`}</div>
+    ${all.length>cap?`<div class="row"><span class="cap">${esc(fa(open.length))} ${esc(D.of||'از')} ${esc(fa(all.length))}</span>
+      <span class="sp"></span>
+      <button class="btn sm quiet" data-qmore>${esc(S.qMore?(D.qLess||'کمتر'):(D.qMore||'همهٔ کارها'))}${ico(S.qMore?'i-chev-down':'i-chev-left')}</button></div>`:''}
     ${done.length?`<div class="qdone"><span class="cap">${esc(D.qDoneToday||'انجام‌شدهٔ امروز')} (${esc(fa(done.length))})</span>
       ${done.map(it=>`<span class="qdonechip">${esc(it.code)} · ${esc(it.n)}</span>`).join('')}</div>`:''}
   </section>`;
@@ -551,7 +561,7 @@ function vUsers(){
       <b>${esc(fa(ufCount(x.k)))}</b></button>`).join('');
   const tbody=list.map(m=>`<tr data-user="${esc(m.id)}">
       <td><b>${esc(m.n)}</b></td><td class="num">${esc(m.code)}</td><td class="num">${esc(fa(m.ph))}</td>
-      <td>${tag(m.st[0],m.st[1])}</td><td>${esc(m.tags.join('، '))}</td>
+      <td>${tag(m.st[0],m.st[1])}</td><td>${esc(m.tags.filter(t=>isMoney()||!moneyTag(t)).join('، '))}</td>
       <td class="num">${esc(fa(m.ev))}</td><td class="num">${esc(fa(m.pt))}</td></tr>`).join('');
   const cards=list.map(m=>rowLink({attrs:`data-user="${esc(m.id)}"`, i:'i-users', chev:1,
       b:esc(m.n), s:`${esc(m.code)} · ${esc(fa(m.ph))}`, right:tag(m.st[0],m.st[1])})).join('');
@@ -593,8 +603,8 @@ function vForms(){
 function vReports(){
   const periods=RP.periods||[], curP=S.rp||periods[2]||'';
   const per=periods.map(p=>`<button class="chip ${curP===p?'on':''}" data-rp="${esc(p)}">${esc(p)}</button>`).join('');
-  const att=(RP.attention||[]).map(a=>rowLink({attrs:`data-rep="${esc(a.k)}"`, i:'i-bell', chev:1, b:esc(a.t), right:tag(W.alert||'توجه','warn')})).join('');
-  const list=RPLIST.map(r=>rowLink({attrs:`data-rep="${esc(r.k)}"`, i:r.i, chev:1,
+  const att=(RP.attention||[]).filter(a=>!a.own||isMoney()).map(a=>rowLink({attrs:`data-rep="${esc(a.k)}"`, i:'i-bell', chev:1, b:esc(a.t), right:tag(W.alert||'توجه','warn')})).join('');
+  const list=RPLIST.filter(r=>!r.own||isMoney()).map(r=>rowLink({attrs:`data-rep="${esc(r.k)}"`, i:r.i, chev:1,
       b:esc(r.n), s:`${esc(r.v)} · ${esc(r.d)}`,
       right:`${r.up!==undefined?`<span class="tag ${r.up?'ok':'warn'}">${r.up?'▲':'▼'}</span>`:''}`})).join('');
   return `<div class="admgrid">
@@ -607,14 +617,14 @@ function vReports(){
       <div class="head">${esc(W.alert||'نیاز به توجه')}</div>
       <div class="admlist">${att}</div>
       <hr class="hr"/>
-      <div class="head">خروجی</div>
+      <div class="head">${esc(RP.out||'خروجی')}</div>
       <div class="admlist">
         <a class="admrow2" href="builder.html"><span class="ic">${ico('i-chart')}</span>
-          <span class="tx"><b>دیدن نمودار و کارتابل</b><small>همان نه گزارش، با جزئیات پاسخ‌ها</small></span>${ico('i-chev-left','chev')}</a>
+          <span class="tx"><b>${esc(RP.outA||'')}</b><small>${esc(RP.outAS||'')}</small></span>${ico('i-chev-left','chev')}</a>
         <a class="admrow2" href="account.html"><span class="ic">${ico('i-mobile')}</span>
-          <span class="tx"><b>پنل کاربران</b><small>مطالبی که کاربر می‌بیند</small></span>${ico('i-chev-left','chev')}</a>
+          <span class="tx"><b>${esc(RP.outB||'')}</b><small>${esc(RP.outBS||'')}</small></span>${ico('i-chev-left','chev')}</a>
       </div>
-      <p class="cap">${esc('هر گزارش هفت دورهٔ زمانی دارد و با دورهٔ پیش مقایسه می‌شود.')}</p>
+      <p class="cap">${esc(RP.note||'')}</p>
     </section>
   </div>`;
 }
@@ -765,7 +775,8 @@ function vSettings(){
 function sheetEv(id){
   const e=evOf(id); if(!e) return;
   const D=A.events||{}, st=(D.states||{})[e.state]||['',''];
-  const tabs=(D.tabs||[]).map(t=>`<button class="chip ${S.evTab===t.k?'on':''}" data-evtab="${esc(t.k)}">${esc(t.n)}</button>`).join('');
+  const tabs=(D.tabs||[]).filter(t=>!t.own||isMoney())
+    .map(t=>`<button class="chip ${S.evTab===t.k?'on':''}" data-evtab="${esc(t.k)}">${esc(t.n)}</button>`).join('');
   let block='';
   if(S.evTab==='info'){
     block=`<div class="admmatrix"><table><tbody>
@@ -776,7 +787,9 @@ function sheetEv(id){
       <tr><td>${esc('هزینه')}</td><td class="num">${e.price?esc(fa(Number(e.price).toLocaleString('en-US'))+' ریال'):esc('آزاد')}</td></tr>
       <tr><td>${esc('وضعیت')}</td><td>${tag(st[0],st[1])}</td></tr></tbody></table></div>`;
   } else {
-    const D2=D[{reg:'regd',att:'attd',money:'moneyd',cert:'certd',news:'newsd'}[S.evTab]]||{};
+    let D2=D[{reg:'regd',att:'attd',money:'moneyd',cert:'certd',news:'newsd'}[S.evTab]]||{};
+  /* وضعیت پرداخت فقط دست مالک است؛ برای بقیه «ثبت‌شده» می‌شود */
+  if(!isMoney()&&D2.rows&&D2.mask) D2=Object.assign({},D2,{rows:D2.rows.map(r=>r.map((c,i)=>i===2?(D2.mask[c]||c):c))});
     block=`<div class="stack tight"><div class="head">${esc(D2.lead||'')}</div>${table(D2.rows||[],D2.cols)}</div>`;
   }
   sheetImpl('shAdm',`<div class="admsheet">
@@ -785,10 +798,10 @@ function sheetEv(id){
       <span class="sp"></span>${tag(st[0],st[1])}</div>
     <div class="admfilters">${tabs}</div>
     ${block}
-    <div class="row tight">${btn('ثبت‌نام‌ها','data-evtab="reg"','i-users')}
-      ${btn('اطلاع‌رسانی','data-evtab="news"','i-send')}
-      ${btn('گواهی‌ها','data-evtab="cert"','i-medal')}
-      <a class="btn sm" href="builder.html">${ico('i-doc')}${esc('کارتابل فرم')}</a></div>
+    <div class="row tight">${btn(tabName('reg'),'data-evtab="reg"','i-users')}
+      ${btn(tabName('news'),'data-evtab="news"','i-send')}
+      ${btn(tabName('cert'),'data-evtab="cert"','i-medal')}
+      <a class="btn sm" href="builder.html">${ico('i-doc')}${esc(D.formQueue||'کارتابل فرم')}</a></div>
     <div class="row"><span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`);
 }
 function sheetUser(id){
@@ -799,14 +812,14 @@ function sheetUser(id){
       <span class="sp"></span>${tag(m.st[0],m.st[1])}</div>
     <div class="admkpi"><div class="k"><small>رویداد</small><b>${esc(fa(m.ev))}</b></div>
       <div class="k"><small>امتیاز</small><b>${esc(fa(m.pt))}</b></div></div>
-    <div class="admchips">${m.tags.map(t=>tag(t,'brand')).join('')}${tag('عضویت '+m.reg,'')}</div>
+    <div class="admchips">${m.tags.filter(t=>isMoney()||!moneyTag(t)).map(t=>tag(t,'brand')).join('')}${tag('عضویت '+m.reg,'')}</div>
     ${m.note?`<div class="admtext"><span class="lbl">یادداشت پرونده</span><span>${esc(m.note)}</span></div>`:''}
     <div class="row tight">${btn(W.approve||'تأیید پروفایل','data-uok="'+esc(m.id)+'"','i-check')}
       ${btn(W.block||'مسدود','data-ublock="'+esc(m.id)+'"','i-lock')}
       ${btn(W.note||'یادداشت','data-unote="'+esc(m.id)+'"','i-pen')}
       ${btn(W.tags||'برچسب','data-utags="'+esc(m.id)+'"','i-filter')}</div>
     <div class="admmatrix">${table([['آخرین ورود','امروز ۹:۱۴'],['وضعیت باشگاه',m.tags.indexOf('عضو باشگاه')>-1?'عضو':'عضو نیست'],
-      ['فرم‌های پرکرده',fa(2)],['بدهی','۰']])}</div>
+      ['فرم‌های پرکرده',fa(2)]].concat(isMoney()?[['بدهی','۰']]:[]))}</div>
     <div class="row tight"><a class="btn sm quiet" href="account.html">${ico('i-mobile')}${esc(W.view||'نمای کاربر')}</a>
       <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`);
 }
@@ -916,6 +929,18 @@ function body(){
   return v?v():emptyBox(T.none);
 }
 function renderBody(){$('#admBody').innerHTML=body()}
+/* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */
+function sanitize(){
+  if(S.v!==SVER){ S=JSON.parse(JSON.stringify(BASE)); return; }
+  if(!personOf(S.who)) S.who=BASE.who;
+  if(fieldOf(S.setF).k!==S.setF) S.setF=BASE.setF;
+  if(S.addF&&(!personOf(S.addF)||fieldOf(S.addF).k!==S.addF)) delete S.addF;
+  if(['all','بالا','میان','معمولی'].indexOf(S.qf)<0) S.qf='all';
+  if(['info','reg','att','money','cert','news'].indexOf(S.evTab)<0) S.evTab='info';
+  if(!isMoney()&&S.evTab==='money') S.evTab='info';
+  S.qMore=S.qMore?1:0;
+}
+
 function render(){ if(!canSec(S.sec)) S.sec='dash'; renderNav(); renderBar(); renderBody();
   const s=secOf(S.sec);
   document.title=(S.sec==='dash'?'نورا · پنل مدیران':'پنل مدیران · '+s.n)}
@@ -941,6 +966,7 @@ document.addEventListener('click',e=>{
   const wh=q('[data-who]'); if(wh&&wh.dataset.who){S.who=wh.dataset.who; S.sec='dash'; S.qf='all'; save();
     render(); toast('داشبورد '+me().n+' · '+me().lv); return}
   const qf2=q('[data-qf]'); if(qf2){S.qf=qf2.dataset.qf; save(); renderBody(); return}
+  const qm=q('[data-qmore]'); if(qm){S.qMore=S.qMore?0:1; save(); renderBody(); return}
   const qd=q('[data-qdone]'); if(qd){const id=qd.dataset.qdone;
     S.qdone=(S.qdone||[]).indexOf(id)>-1?(S.qdone||[]).filter(x=>x!==id):(S.qdone||[]).concat([id]);
     save(); renderBody(); toast(qDone(id)?(D.doneMsg||'انجام شد'):(D.backToQueue||'به کارتابل برگشت')); return}
@@ -1071,6 +1097,6 @@ window.addEventListener('keydown',e=>{
     e.preventDefault(); go(a.dataset.sec)});
   if(typeof initUI==='function'){try{initUI()}catch(e){}}
   bind();
-  render();
+  sanitize(); render();
 })();
 })();

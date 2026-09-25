@@ -1448,7 +1448,8 @@ async function load(file,store,q){
   ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
   ok(p.all('#admNav .btn').length===8,'هشت بخش در ریل پنل نشسته');
   ok(p.all('.hero .ring').length===4,'چهار حلقهٔ عدد سرِ داشبورد پنل');
-  ok(p.all('.qrow').length===20,'کارتابل مالک پنل، بیست کار دارد');
+  ok(p.all('.qrow').length===8,'کارتابل مالک پنل کوتاه است (۸ کار)');
+  ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» روی کارتابل هست');
   ok(p.all('.fcard').length===6,'شش حوزه روی داشبورد پنل است');
   ok(p.all('.ppill').length===5,'نوار نبض سامانه پنج نشان دارد');
   ok(p.doc.querySelector('#admBody').innerHTML.length>500,'داشبورد پر است');
@@ -1468,6 +1469,12 @@ async function load(file,store,q){
   p.click('#admNav [data-sec="settings"]');
   ok(p.all('[data-setg]').length===1,'سرپرست فقط گروه حوزهٔ خودش را می‌بیند');
   p.click('#admNav [data-sec="dash"]');
+  /* مالی فقط مالک: سرپرست پشتیبانی نه کارت مالی، نه ردیف مالی، نه تب مالی */
+  ok(p.all('[data-rep="fi"]').length===0,'ردیف مالی گزارش‌ها برای سرپرست نیست');
+  p.click('#admNav [data-sec="dash"]');
+  ok(!/مالی|درآمد/.test(p.doc.querySelector('#admBody').textContent||''),'داشبورد سرپرست مالی ندارد');
+  ok(p.doc.querySelector('.dashwrap > .admgrid')!==null,'داشبورد ستون‌بندی دارد');
+  ok(new RegExp('\\.admgrid\\{display:grid').test(fs.readFileSync(DIR+'admin.css','utf8')),'شبکهٔ داشبورد در CSS است');
   for(const k of ['dash','newev','events','forms','reports','cert','settings']){
     p.click('#admNav [data-sec="'+k+'"]');
     const t=p.doc.querySelector('#admBody').textContent||'';

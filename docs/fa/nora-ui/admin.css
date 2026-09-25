@@ -162,7 +162,7 @@
 .admrole small{font-size:10.5px;color:var(--ink-3)}
 
 /* ── نوار پایین (موبایل): پنج بخش ─────────────────────────────────────── */
-#admTabs{grid-template-columns:repeat(5,1fr)}
+#admTabs{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none}
 #admTabs a{display:grid;place-items:center;gap:3px;padding:7px 2px;border-radius:14px;text-decoration:none;
   color:var(--ink-3);font-size:10.5px}
 #admTabs a .i{width:21px;height:21px}
@@ -204,6 +204,9 @@
    دکمه‌دار و نمودار روند.
    ══════════════════════════════════════════════════════════════════════════ */
 .dashwrap{display:grid;gap:var(--sp-3)}
+/* داشبورد: ستون کارتابل پهن‌تر، ستون کارت‌های کنار باریک‌تر */
+.admgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
+  gap:var(--sp-3);align-items:start}
 
 /* ── نوار «نمای من» ────────────────────────────────────────────────────── */
 .viewstrip{display:flex;align-items:center;gap:var(--sp-2);overflow-x:auto;padding:2px;
