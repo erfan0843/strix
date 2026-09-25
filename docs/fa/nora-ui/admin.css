@@ -511,8 +511,50 @@ input.input[type=time]{padding-inline:10px;text-align:center}
   .dhead .dhnow{justify-items:start;text-align:start}
 }
 @media (max-width:620px){
+  .stflow{grid-template-columns:1fr}
+  .stprof{grid-template-columns:1fr}
   .kpis{grid-template-columns:1fr}
   .qrow{flex-wrap:wrap}
   .qa{width:100%;justify-content:flex-end}
   .frow2 .fbar{display:none}
 }
+
+/* ── بستهٔ خروجی: پیش‌نمایش تار و فایل کامل فقط از ربات بله ── */
+.balebox{position:relative;border-radius:var(--r-md);overflow:hidden;border:.5px solid var(--hairline);
+  background:var(--surface-2)}
+.balebox .pv{filter:blur(7px) saturate(.85);transform:scale(1.03);pointer-events:none;user-select:none}
+.balebox .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;text-align:center;padding:14px;
+  background:color-mix(in oklab,var(--surface) 46%,transparent)}
+.balebox .ov b{font-size:14px;font-weight:800}
+.balebox .ov .cap{max-width:340px}
+.balebox .ov svg{width:20px;height:20px;color:var(--ink-2)}
+.pvsheet{display:grid;gap:8px;padding:16px}
+.pvsheet i{display:block;height:10px;border-radius:99px;background:var(--surface-sunk)}
+.pvsheet i:nth-child(3n){width:72%}.pvsheet i:nth-child(3n+1){width:88%}.pvsheet i:nth-child(3n+2){width:64%}
+a.btn{text-decoration:none}
+
+/* ── حساب کارشناس: جریان سهگامی، نام کاربری و پروفایل دست‌اندرکاران ── */
+.stflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2)}
+.stf{display:grid;gap:3px;padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);
+  background:var(--surface-2);position:relative}
+.stf svg{width:19px;height:19px;color:var(--brand)}
+.stf b{font-size:13px;font-weight:800}
+.stf small{font-size:var(--fs-cap);color:var(--ink-3);line-height:1.8}
+.stf .n{position:absolute;top:8px;inset-inline-end:10px;width:20px;height:20px;border-radius:50%;
+  background:var(--brand-tint);color:var(--brand-ink);display:grid;place-items:center;
+  font-size:11px;font-weight:800}
+.stacc{display:inline-flex;align-items:center;direction:ltr;font-size:11px;font-weight:700;
+  background:var(--surface-2);border:.5px solid var(--hairline);border-radius:99px;
+  padding:1px 8px;color:var(--ink-2)}
+.stprof{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
+.stp{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--r-md);
+  border:.5px solid var(--hairline);background:var(--surface-2)}
+.stp svg{width:17px;height:17px;color:var(--brand);flex:0 0 auto}
+.stp .sp{display:grid;gap:1px;min-width:0}
+.stp .sp b{font-size:12.5px;font-weight:800}
+.stp .sp small{font-size:var(--fs-cap);color:var(--ink-3);line-height:1.8}
+.trow{flex-wrap:wrap;row-gap:6px}
+.trow .tt{background:none;border:0;font:inherit;text-align:start;padding:0;cursor:pointer;
+  display:grid;gap:1px;flex:1;min-width:0}
+.trow .tt b,.trow .tt small{overflow-wrap:anywhere}

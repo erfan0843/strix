@@ -1867,28 +1867,52 @@ function vCert(){
 }
 function sheetName(){return L.askCert}
 
-/* مدیریت مدیران و کارشناسان: از تنظیمات به بخش کاربران منتقل شد؛ زیرتب ابزارها */
+/* مدیریت مدیران و کارشناسان: حساب با نام کاربری و رمز؛ ورود اول و پروفایل دست‌اندرکاران */
+const SPECU={p1:'sara.m',p2:'maryam.r',p3:'amir.k',p4:'majid.r',p5:'negar.m',p6:'hossein.a',
+  p7:'zahra.s',p8:'fatemeh.k',p9:'reza.sh',p10:'ali.n',p11:'elham.n',p12:'pouya.s',
+  p13:'shirin.gh',p14:'mina.t',p15:'saeed.r'};
+const genPw=()=>'Nora-'+Math.floor(1000+Math.random()*9000);
+const accOf=p=>{const o=(S.specAcc||{})[p.k]; if(o) return o;
+  return {u:SPECU[p.k]||('user'+p.k.replace(/^p/,'')), done:(p.k==='p9'||p.k==='p12')?0:1}};
+const SPROF=[['i-users','نام و نام خانوادگی','همان که روی گواهی و کارت می‌نشیند'],
+  ['i-pen','سمت','مثل: مسئول اجرا و پشتیبانی'],
+  ['i-shield','حوزه','همان حوزه‌ای که برایش ساختی'],
+  ['i-mobile','موبایل','برای یادآوریها و اطلاع‌رسانی حوزه'],
+  ['i-doc','بیو کوتاه','دو خط دربارهٔ خودش برای صفحهٔ دست‌اندرکاران']];
 function cUStaff(){
   const fk=(S.setF&&fieldOf(S.setF).k===S.setF)?S.setF:'edu', f=fieldOf(fk);
   const l=personOf(leadK(fk)), t=teamOf(fk);
-  let inner='';
-    inner=`<div class="head">${esc(PERMS.title||'')}</div><p class="cap">${esc(PERMS.note||'')}</p>
-      <div class="admfilters">${FIELDS.filter(x=>x.k!=='owner').map(x=>`<button class="tag ${fk===x.k?'on':''}"
+  const flow=[['i-key','حساب می‌سازی','نام کاربری و رمز یکبارمصرف را می‌سازی و برایش می‌فرستی'],
+    ['i-mobile','ورود اول','با همان رمز وارد می‌شود و رمز تازه می‌گذارد'],
+    ['i-idcard','تکمیل پروفایل','پروفایل دست‌اندرکاران را پر می‌کند؛ سرپرست تأیید می‌کند']];
+  const pend=t.filter(pp=>!accOf(pp).done).length;
+  return uHead('مدیران و کارشناسان')+'\n'+
+  `    <p class="cap">${esc('سرپرست هر حوزه از همین‌جا گذاشته میشود. برای هر کارشناس حساب میسازی؛ او در نخستین ورود رمز تازه میگذارد و پروفایل دست‌اندرکاران را کامل میکند.')}</p>
+    <div class="stflow">${flow.map((x,i2)=>`<div class="stf"><span class="n">${fa(i2+1)}</span>${ico(x[0])}<b>${esc(x[1])}</b><small>${esc(x[2])}</small></div>`).join('')}</div>
+    <div class="admfilters">${FIELDS.filter(x=>x.k!=='owner').map(x=>`<button class="tag ${fk===x.k?'on':''}"
         data-setF="${esc(x.k)}">${esc(x.n)}</button>`).join('')}</div>
-      <div class="fslead">
+    <div class="fslead">
         <span class="ic">${ico('i-shield')}</span>
         <span class="sp"><b>${esc(D.lead||'سرپرست')}: ${esc(l.n)}</b>
           <small>${esc(f.s)}</small></span>
         ${isOwner()?`<button class="btn sm quiet" data-setlead="${esc(fk)}">${esc(D.changeLead||'تعیین سرپرست')}</button>`:''}
       </div>
-      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))} ${esc(D.specsWord||'نفر')})</div>
+      <div class="row"><div class="head">${esc(D.specs||'کارشناسان')} (${esc(fa(t.length))} ${esc(D.specsWord||'نفر')}${pend?' · '+fa(pend)+' بی‌پروفایل':''})</div>
         <span class="sp"></span>
-        ${isOwner()||isLead()?`<button class="btn sm tint" data-addspec="${esc(fk)}">${ico('i-plus')}${esc(D.addSpec||'افزودن کارشناس')}</button>`:''}</div>
-      <div class="tlist">${t.map(pp=>`<div class="trow">
+        ${isOwner()||isLead()?`<button class="btn sm tint" data-addspec="${esc(fk)}">${ico('i-plus')}${esc('حساب تازه')}</button>`:''}</div>
+      <div class="tlist">${t.map(pp=>{const ac=accOf(pp); return `<div class="trow">
           <span class="va">${esc(String(pp.n||' ').slice(0,1))}</span>
-          <div class="tt"><b>${esc(pp.n)}</b><small>${esc(fa(pp.open))} ${esc(D.qOpen||'')} · ${esc(fa(pp.done))} ${esc(D.qDone||'')}</small></div>
+          <button class="tt" data-specrow="${esc(pp.k)}"><b>${esc(pp.n)}</b>
+            <small><span class="stacc" dir="ltr">@${esc(ac.u)}</span> · ${esc(fa(pp.open))} ${esc(D.qOpen||'کار باز')} · از ${esc(pp.since||'')}</small></button>
+          ${pp.lv==='سرپرست'?tag('سرپرست','brand'):''}
+          ${ac.done?tag('پروفایل کامل','ok'):tag('در انتظار تکمیل پروفایل','warn')}
           <span class="tload"><i style="width:${pp.load}%"></i></span>
-          <button class="btn sm quiet" data-specperm="${esc(pp.k)}">${esc(D.specPerms||'دسترسی‌ها')}</button></div>`).join('')||emptyBox(D.qEmpty||'')}</div>
+          <span class="mini"><button class="btn sm quiet" data-resetspec="${esc(pp.k)}">${esc('تغییر رمز')}</button>
+          <button class="btn sm quiet" data-specperm="${esc(pp.k)}">${esc(D.specPerms||'دسترسی‌ها')}</button></span></div>`}).join('')||emptyBox(D.qEmpty||'')}</div>
+      <hr class="hr"/>
+      <div class="row"><div class="head">${esc('پروفایل دست‌اندرکاران (ورود اول)')}</div><span class="sp"></span></div>
+      <p class="cap">${esc('این پنج چیز را در نخستین ورود ازش میپرسیم؛ با تأیید سرپرست، نام و سمتش روی صفحهٔ دست‌اندرکاران سایت مینشیند.')}</p>
+      <div class="stprof">${SPROF.map(x=>`<div class="stp">${ico(x[0])}<span class="sp"><b>${esc(x[1])}</b><small>${esc(x[2])}</small></span></div>`).join('')}</div>
       <hr class="hr"/>
       <div class="head">${esc('دسترسی‌های '+f.n)}</div>
       <p class="cap">${esc(PERMS.note||'')}</p>
@@ -1906,10 +1930,7 @@ function cUStaff(){
       <p class="cap">${esc(PERMS.ownerNote||'')}</p>
       <div class="admlist">${(OWNER_PERMS||[]).map(x=>`<div class="admsw">
         <span class="sp">${esc(x[1])}</span>${tag(D.ownerOnly||'فقط مالک','accent')}</div>`).join('')}</div>`;
-  return uHead('مدیران و کارشناسان')+'\n    <p class="cap">'+esc('سرپرست هر حوزه از همین‌جا گذاشته میشود؛ دسترسی کارشناسها با همان تیکها.')+'</p>\n    '+inner;
 }
-
-/* ── تنظیمات ───────────────────────────────────────────────────────────── */
 function vSettings(){
   const ST=A.settings||{}, own=isOwner();
   if(!own) S.setF=myField().k;
@@ -2227,19 +2248,34 @@ function sheetSpecPerm(personKey){
         role="switch" aria-checked="${extra.indexOf(r[0])>-1?'true':'false'}" aria-label="${esc(r[1])}"></span></div>`).join('')||emptyBox(D.qEmpty||'')}</div>
     <p class="cap">${esc('پایه‌ها را سرپرست حوزه برای همهٔ کارشناسان تیک می‌زند؛ این‌جا فقط ویژه‌های همین نفر است.')}</p></div>`);
 }
-/* افزودن کارشناس: از میان کاربران همان سامانه */
+/* ساخت حساب کارشناس: نام، نام کاربری و رمز یکبارمصرف */
 function sheetAddSpec(fk){
   const f=fieldOf(fk);
-  const used=allP().map(p=>p.n);
-  const list=memList().filter(m=>used.indexOf(m.n)<0);
   sheetImpl('shAdm',`<div class="admsheet">
-    <div class="row"><div class="head">${esc(D.addSpec||'افزودن کارشناس')}</div><span class="sp"></span>
+    <div class="row"><div class="head">${esc('حساب تازه برای کارشناس')}</div><span class="sp"></span>
       ${btn(W.close||'بستن','data-close')}</div>
-    <p class="cap">${esc('حوزه: '+f.n+' · دسترسی‌های پیش‌فرض کارشناس‌های همین حوزه می‌نشیند.')}</p>
-    <div class="admlist">${list.map(m=>`<button class="admrow2" data-newspec="${esc(m.id)}">
-      <span class="va">${esc(m.n.slice(0,1))}</span>
-      <span class="tx"><b>${esc(m.n)}</b><small>${esc(m.code)} · ${esc(m.tags.join('، '))}</small></span>
-      ${tag('کارشناس','brand')}</button>`).join('')||emptyBox(D.qEmpty||'')}</div></div>`);
+    <p class="cap">${esc('حوزه: '+f.n+' · دسترسی‌های پیش‌فرض همین حوزه خودکار مینشیند.')}</p>
+    <label class="fld"><span>نام و نام خانوادگی</span><input id="spN" class="input" placeholder="مثل: مینا رحیمی"/></label>
+    <label class="fld"><span>نام کاربری</span><input id="spU" class="input" dir="ltr" placeholder="m.rahimi"/></label>
+    <label class="fld"><span>رمز یکبارمصرف ورود اول</span>
+      <div class="row tight"><input id="spP" class="input" dir="ltr" readonly value="${genPw()}"/>
+      ${btn('رمز تازه','data-genpw','i-check')}</div></label>
+    <div class="row"><span class="sp"></span>${btn('ساختن حساب','data-newspec2','i-check')}</div>
+    <p class="cap">${esc('نام کاربری و رمز را برایش میفرستی؛ در نخستین ورود رمز تازه میگذارد و پروفایل دست‌اندرکاران را پر میکند.')}</p></div>`);
+}
+/* پروندهٔ دست‌اندرکاران: از ردیف تیم باز میشود */
+function sheetSpecFile(k){
+  const p=personOf(k), ac=accOf(p), f=fieldOf(p.f);
+  sheetImpl('shAdm',`<div class="admsheet">
+    <div class="row"><div class="head">${esc(p.n)}</div><span class="sp"></span>
+      ${btn(W.close||'بستن','data-close')}</div>
+    <p class="cap"><span class="stacc" dir="ltr">@${esc(ac.u)}</span> · ${esc(f.n)} · ${esc(p.lv)} · از ${esc(p.since||'')}</p>
+    <div class="admchips">${ac.done?tag('پروفایل کامل','ok'):tag('در انتظار تکمیل پروفایل','warn')}
+      ${tag(fa(p.done)+' کار انجامشده','')}${tag(fa(p.late)+' دیرکرد',p.late?'warn':'')}</div>
+    <div class="head">${esc('پروفایل دست‌اندرکاران')}</div>
+    <div class="stprof">${SPROF.map(x=>`<div class="stp">${ico(x[0])}<span class="sp"><b>${esc(x[1])}</b><small>${esc(ac.done?'پر شده':'در ورود اول میپرسیم')}</small></span></div>`).join('')}</div>
+    ${ac.done?'':`<div class="row"><span class="sp"></span>${btn('یادآوری تکمیل پروفایل','data-specnudge','i-send')}</div>
+    <p class="cap">${esc('یادآوری از ربات بلهٔ موسسه برایش میرود.')}</p>`}</div>`);
 }
 /* تعیین سرپرست حوزه: مالک یکی را می‌گذارد */
 function sheetSetLead(fk){
@@ -2551,10 +2587,20 @@ document.addEventListener('click',e=>{
   const sl2=q('[data-setleadto]'); if(sl2){S.leads[sl2.dataset.leadfor]=sl2.dataset.setleadto; save();
     closeSheets(); render(); toast((D.leadSet||'سرپرست عوض شد')+' · '+personOf(sl2.dataset.setleadto).n); return}
   const asp=q('[data-addspec]'); if(asp){S.addF=asp.dataset.addspec; save(); sheetAddSpec(S.addF); return}
-  const nsp=q('[data-newspec]'); if(nsp){const id=nsp.dataset.newspec, m=memList().find(x=>x.id===id); if(!m) return;
+  const gpw=q('[data-genpw]'); if(gpw){const el=$('#spP'); if(el) el.value=genPw(); return}
+  const nsp2=q('[data-newspec2]'); if(nsp2){
+    const nm=$('#spN')?$('#spN').value.trim():'', un=$('#spU')?$('#spU').value.trim():'';
+    if(!nm||!un){toast('نام و نام کاربری را بنویس'); return}
     const fk=isOwner()?((S.addF&&fieldOf(S.addF).k===S.addF)?S.addF:myField().k):myField().k;
-    S.extra=(S.extra||[]).concat([{k:'x'+m.id, n:m.n, f:fk, lv:'کارشناس', open:0, done:0, late:0, avg:0, load:12, score:70, since:'مهر ۱۴۰۴'}]);
-    save(); closeSheets(); renderBody(); toast((D.addedSpec||'کارشناس اضافه شد')+' · '+m.n); return}
+    const k='x'+(Date.now()%100000);
+    S.extra=(S.extra||[]).concat([{k:k, n:nm, f:fk, lv:'کارشناس', open:0, done:0, late:0, avg:0, load:12, score:70, since:'مهر ۱۴۰۴'}]);
+    S.specAcc=(S.specAcc||{}); S.specAcc[k]={u:un, pw:$('#spP')?$('#spP').value:'', done:0};
+    save(); closeSheets(); renderBody(); toast('حساب ساخته شد؛ نام کاربری و رمز را برای '+nm+' بفرست'); return}
+  const rsp=q('[data-resetspec]'); if(rsp){const p2=personOf(rsp.dataset.resetspec), ac=accOf(p2), pw=genPw();
+    S.specAcc=(S.specAcc||{}); S.specAcc[p2.k]={u:ac.u, pw:pw, done:ac.done};
+    save(); toast('رمز تازه برای '+p2.n+': '+pw+' (از ربات بله برایش میرود)'); return}
+  const srf=q('[data-specrow]'); if(srf){sheetSpecFile(srf.dataset.specrow); return}
+  const sng=q('[data-specnudge]'); if(sng){toast('یادآوری تکمیل پروفایل از ربات بله فرستاده شد'); return}
   const sp2=q('[data-specperm]'); if(sp2){sheetSpecPerm(sp2.dataset.specperm); return}
   const ex=q('[data-extra]'); if(ex){const p2=ex.dataset.extrafor, k=ex.dataset.extra;
     const list=extraOf(p2), i=list.indexOf(k);

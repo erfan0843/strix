@@ -526,6 +526,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
   p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
   ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت مدیران و کارشناسان هست (مالک جداست)');
+  ok(p.all('.stflow .stf').length===3,'جریان سهگامی حساب و ورود اول روی صفحه است');
+  ok(/در انتظار تکمیل پروفایل/.test(p.txt('#admBody')),'کارشناس بی‌پروفایل با برچسب هشدار نشان داده میشود');
+  ok(p.all('.stacc').length>=2,'نام کاربری هر کارشناس روی ردیفش هست');
   ok(/سرپرست/.test(p.txt('#admBody')),'سرپرست حوزه روی جدول نوشته شده');
   ok(p.all('.admmatrix tbody tr').length>=4,'ردیف‌های دسترسی حوزهٔ انتخابی می‌آید');
   ok(p.all('[data-fperm]').length>=4,'دسترسی‌های کارشناس تیک‌زدنی است');
@@ -536,13 +539,24 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('.admlist .admsw').length===5,'پنج دسترسی ویژه فقط برای مالک است');
   p.click('[data-setF="club"]');
   ok(/باشگاه/.test(p.txt('.fslead')),'با چیپ باشگاه، سرپرست باشگاه می‌آید');
-  ok(p.all('#admBody [data-addspec]').length===1,'دکمهٔ افزودن کارشناس هست');
+  ok(p.all('#admBody [data-addspec]').length===1,'دکمهٔ حساب تازه هست');
   p.click('[data-addspec]');
-  ok(p.all('#shAdm [data-newspec]').length>=1,'ورقهٔ افزودن کارشناس از کاربران پرش می‌شود');
+  ok(!!p.doc.querySelector('#spN')&&!!p.doc.querySelector('#spU')&&!!p.doc.querySelector('#spP'),'ورقهٔ ساخت حساب نام و نام کاربری و رمز دارد');
+  p.type('#spN','مینا رحیمی'); p.type('#spU','m.rahimi');
+  const pw1=p.doc.querySelector('#spP').value;
+  ok(/^Nora-\d{4}$/.test(pw1),'رمز یکبارمصرف پیشنهادی میآید');
+  p.click('[data-genpw]');
+  ok(p.doc.querySelector('#spP').value!==pw1,'رمز تازهسازی دارد');
   const team=p.all('.trow').length;
-  p.click(p.all('#shAdm [data-newspec]')[0]);
-  ok(p.all('.trow').length===team+1,'کارشناس تازه به تیم حوزه اضافه شد');
-  ok(/کارشناس اضافه/.test(p.txt('#toast')),'و خبرش می‌آید');
+  p.click('[data-newspec2]');
+  ok(p.all('.trow').length===team+1,'حساب تازه به تیم حوزه اضافه شد');
+  ok(/حساب ساخته شد/.test(p.txt('#toast')),'و خبرش میآید');
+  ok(/در انتظار تکمیل پروفایل/.test(p.txt('#admBody')),'حساب تازه بی‌پروفایل است');
+  p.click('[data-specrow]');
+  ok(/پروفایل دست‌اندرکاران/.test(p.txt('#shAdm')),'پروندهٔ دست‌اندرکاران از ردیف باز میشود');
+  p.click('#shAdm [data-close]');
+  p.click('[data-resetspec]');
+  ok(/رمز تازه برای/.test(p.txt('#toast')),'تغییر رمز همان‌جا هست');
   p.click('[data-setlead]');
   ok(p.all('#shAdm [data-setleadto]').length>=2,'ورقهٔ تعیین سرپرست باز می‌شود');
   const pick=p.all('#shAdm [data-setleadto]').pop();
@@ -1041,9 +1055,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=53')&&html.includes('admin.js?v=53'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=54')&&html.includes('admin.js?v=54'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v42'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v43'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
