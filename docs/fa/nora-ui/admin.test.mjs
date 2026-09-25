@@ -684,6 +684,58 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
     'و صافی جاری در جریان‌ها را نشان می‌دهد');
 }
 
+/* ── ۱۴پ) نظرسنجی آمادهٔ نورا: پیشفرض خودکار، اختصاصی هم دارد ── */
+{
+  console.log('\n── نظرسنجی آماده و خودکار ──');
+  const p=await load();
+  p.click('#admNav [data-sec="newev"]');
+  p.click('[data-wkind="event"]');
+  p.click('[data-wet="workshop"]');
+  p.type('#wzName','کارگاه با نظرسنجی آماده');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  p.type('#wz-date','۱۴۰۴/۰۸/۰۵','change');
+  p.type('#wz-time','17:00','change');
+  p.type('#wz-to','19:00','change');
+  p.type('#wz-place','کتابخانهٔ نورا','change');
+  p.click('[data-wstep="2"][data-wgo="1"]');
+  p.type('#wz-cap','20','change');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  ok(/نظرسنجی آمادهٔ نورا/.test(p.txt('#admBody')),'پیشفرض نظرسنجی، فرم آمادهٔ نوراست');
+  ok(/خودکار/.test(p.txt('#admBody')),'و برچسب خودکار دارد');
+  const own=[...p.all('a')].some(a=>/need=survey/.test(a.getAttribute('href')||''));
+  ok(own,'دکمهٔ نظرسنجی اختصاصی همان رویداد هست');
+  ok(p.all('[data-fpick="survey"]').length>=0,'بردار آماده هم هست');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+  const rev=p.txt('.admreview');
+  ok(/نظرسنجی آمادهٔ نورا/.test(rev),'مرور هم نظرسنجی آماده را میگوید');
+  p.click('[data-wsend]');
+  const S2=JSON.parse(p.store.getItem('nora-admin')||'{}');
+  const ev=(S2.added||[])[0]||{};
+  const svy=(ev.forms||[]).find(f=>f&&f.need==='survey');
+  ok(!!svy&&String(svy.id)==='auto','با انتشار، نظرسنجی آماده به رویداد می‌چسبد');
+  ok(ev.svyOff===0,'پرچم نظرسنجی روشن مانده');
+  /* برداشتن: رویداد بی نظرسنجی میشود و در ویرایش برنمیگردد */
+  const p2=await load();
+  p2.click('#admNav [data-sec="newev"]');
+  p2.click('[data-wkind="event"]'); p2.click('[data-wet="workshop"]');
+  p2.type('#wzName','بی نظرسنجی');
+  p2.click('[data-wstep="1"][data-wgo="1"]');
+  p2.type('#wz-date','۱۴۰۴/۰۸/۰۶','change');
+  p2.type('#wz-time','10:00','change');
+  p2.type('#wz-to','12:00','change');
+  p2.type('#wz-place','سالن ۲','change');
+  p2.click('[data-wstep="2"][data-wgo="1"]');
+  p2.type('#wz-cap','15','change');
+  p2.click('[data-wstep="3"][data-wgo="1"]');
+  p2.click('[data-fclear="survey"]');
+  ok(!/نظرسنجی آمادهٔ نورا/.test(p2.txt('#admBody')),'با بردار، آماده کنار می‌رود');
+  p2.click('[data-wstep="4"][data-wgo="1"]');
+  p2.click('[data-wsend]');
+  const S3=JSON.parse(p2.store.getItem('nora-admin')||'{}');
+  const ev3=(S3.added||[])[0]||{};
+  ok(!(ev3.forms||[]).some(f=>f&&f.need==='survey')&&ev3.svyOff===1,'رویداد عمداً بی نظرسنجی منتشر می‌شود');
+}
+
 /* ── ۱۵) یک رویداد رو به راه، برای سینک فرم و مبالغ ── */
 {
   console.log('\n── سینک فرم‌ساز با رویداد ──');
@@ -786,9 +838,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=43')&&html.includes('admin.js?v=43'),'نسخهٔ پرونده‌های پنل ۴۲ است');
+  ok(html.includes('admin.css?v=44')&&html.includes('admin.js?v=44'),'نسخهٔ پرونده‌های پنل ۴۲ است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v32'"),'کارگر سرویس نسخهٔ ۳۱ است');
+  ok(sw.includes("'nora-v33'"),'کارگر سرویس نسخهٔ ۳۱ است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

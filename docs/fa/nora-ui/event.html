@@ -25,9 +25,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=43"/>
-<link rel="stylesheet" href="nora.css?v=43"/>
-<link rel="stylesheet" href="events.css?v=43"/>
+<link rel="stylesheet" href="glass.css?v=44"/>
+<link rel="stylesheet" href="nora.css?v=44"/>
+<link rel="stylesheet" href="events.css?v=44"/>
 <style>
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
@@ -269,8 +269,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=43"></script>
-<script src="ui.js?v=43"></script>
+<script src="data.js?v=44"></script>
+<script src="ui.js?v=44"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ اختصاصی رویداد و بستهٔ رسانه
@@ -550,12 +550,14 @@ function renderRelated(){
 
 function renderCta(){
   const past=!!H||pubPast, free=!e.price, full=!!e.cap&&(e.cap-e.taken)<=0;
+  const svy=(e.forms||[]).find(f=>f&&f.need==='survey');
   if(pubPast){
     $('#ctabar').hidden=false;
     $('#ctaIn').innerHTML=`
       <span><b style="font-size:14px">برگزار شد</b>
         <div class="cap">${e.who?faN(e.who)+' نفر شرکت کردند':(e.sess>1?faN(e.sess)+' جلسه':'گزارش بالای صفحه')}</div></span>
       <span class="sp" style="flex:1"></span>
+      ${svy?`<a class="btn quiet" href="${esc(svy.link||('form.html?ev='+encodeURIComponent(e.id)+'&kind=survey'))}"><svg class="i"><use href="#i-star"/></svg> نظرسنجی</a>`:''}
       <button class="btn quiet" data-back><svg class="i"><use href="#i-chev-right"/></svg> بازگشت</button>
       <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
     return;
@@ -578,6 +580,7 @@ function renderCta(){
                <svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
           : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
              :`<a class="btn primary" id="reg" href="form.html?ev=${esc(e.id)}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' · رایگان':''}</a>`))}
+    ${svy?`<a class="btn quiet" href="${esc(svy.link||('form.html?ev='+encodeURIComponent(e.id)+'&kind=survey'))}" aria-label="نظرسنجی همین برنامه"><svg class="i"><use href="#i-star"/></svg> نظرسنجی</a>`:''}
     <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
 }
 

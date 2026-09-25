@@ -1374,6 +1374,11 @@ function formPatch(id,patch){
 }
 function formDrop(id){formsSave(formsAll().filter(f=>String(f.id)!==String(id)))}
 function formsFor(evId){return formsAll().filter(f=>f.ev&&String(f.ev)===String(evId))}
+/* نظرسنجی آمادهٔ نورا: پیشفرضِ هر رویداد؛ بی آنکه کسی چیزی بسازد،
+   بعد از برنامه همین پرسشها از شرکتکننده میآید. فرم اختصاصی هم دست خود سازنده. */
+const AUTO_SURVEY={id:'auto', name:'نظرسنجی آمادهٔ نورا', kind:'نظرسنجی',
+  questions:['برنامهٔ امروز چطور بود؟','کدام بخش بیشتر به دلت نشست؟','چه چیزی کم داشت؟','به دوستانت پیشنهادش می‌کنی؟'],
+  intro:'نظرت بی‌نام ثبت شد؛ برای بهتر شدن برنامهٔ بعدی خوانده می‌شود.'};
 addEventListener('storage',e=>{if(e.key===FORMS_KEY) formsAnnounce()});
 addEventListener('nora-forms-changed',()=>{});
 
@@ -1446,7 +1451,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   clockNow:clockNow,clockParts:clockParts,clockHM:clockHM,clockFull:clockFull,clockDay:clockDay,
   clockState:()=>CLK.state,clockAt:()=>CLK.at,netSyncClock:netSyncClock,
   FORMS_KEY:FORMS_KEY,formsAll:formsAll,formById:formById,formPut:formPut,formPatch:formPatch,
-  formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents});
+  formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents,autoSurvey:AUTO_SURVEY});
 
 /* ── کارگر سرویس: نصب‌شدنی و کار در بی‌اتصالی ── */
 if('serviceWorker' in navigator){
@@ -1463,7 +1468,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v32') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v33') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

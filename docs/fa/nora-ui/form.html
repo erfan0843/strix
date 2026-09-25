@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=43"/>
+<link rel="stylesheet" href="glass.css?v=44"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -487,8 +487,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="data.js?v=43"></script>
-<script src="ui.js?v=43"></script>
+<script src="data.js?v=44"></script>
+<script src="ui.js?v=44"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
@@ -546,7 +546,8 @@ function renderPayMethods(){
     +'؛ بقیه را مدیر و سازندهٔ رویداد روشن نکرده‌اند.'):'';
 }
 /* ── فرم واقعی: اگر با ?ev= آمده‌ای، همان فرمی باز می‌شود که سازنده در فرم‌ساز
-   چیده و با رویداد سینک کرده؛ سرویسی که فرم ندارد سرِ جای خودش می‌ماند ── */
+   چیده و با رویداد سینک کرده؛ سرویسی که فرم ندارد سرِ جای خودش می‌ماند ──
+   نظرسنجی: اگر فرم اختصاصی نبود، «نظرسنجی آمادهٔ نورا» خودش باز می‌شود ── */
 (function(){
   try{
     const q=new URLSearchParams(location.search);
@@ -555,8 +556,34 @@ function renderPayMethods(){
     const U=window.NORA_UI||{};
     if(!U.formsAll) return;
     const mine=(evId&&U.formsFor?U.formsFor(evId):[]).filter(x=>(x.need||'reg')===kind);
-    const f=(mine[0])||(fid?U.formById(fid):null)||(evId&&U.formsFor?U.formsFor(evId)[0]:null);
-    if(!f) return;                      /* فرم وصل نشده؛ فرم سرویس نمونه سر جایش است */
+    let f=mine[0]||(fid?U.formById(fid):null)||null;
+    if(!f&&kind!=='survey') f=(evId&&U.formsFor?U.formsFor(evId)[0]:null)||null;
+    if(!f&&kind!=='survey') return;     /* فرم وصل نشده؛ فرم سرویس نمونه سر جایش است */
+    const ev=(U.pubEvents?U.pubEvents():[]).find(x=>String(x.id)===String(evId))||null;
+    CFG.slug='ev:'+(evId||fid||'auto')+':'+kind;
+    CFG.links=[{t:'صفحهٔ رویداد',u:'event.html?id='+encodeURIComponent(evId||''),i:'i-globe'}].concat(CFG.links||[]);
+    if(ev){
+      CFG.venue=ev.place&&ev.place!=='آنلاین'?ev.place:'آنلاین';
+      CFG.date=(ev.when?ev.when+'، ':'')+(ev.time||'');
+      if(ev.kind) CFG.kind=ev.kind;
+    }
+    if(kind==='survey'){
+      /* نظرسنجی: آمادهٔ نورا یا خودِ فرم؛ بی پرداخت، بی همراه */
+      const A=U.autoSurvey||{};
+      let qs=(f&&Array.isArray(f.fields)&&f.fields.length?f.fields.map(x=>x&&x.l).filter(Boolean)
+        :(f&&Array.isArray(f.questions)?f.questions:null))||A.questions||[];
+      qs=qs.slice(0,6);
+      if(!qs.length) qs=A.questions||['برنامه چطور بود؟'];
+      CFG.title=f?(f.name||A.name||'نظرسنجی'):(A.name||'نظرسنجی آمادهٔ نورا');
+      CFG.questions=qs;
+      CFG.fin=[]; CFG.groups=[]; CFG.methods=[]; CFG.coupon={code:'',off:0,all:false};
+      CFG.companion={on:false,max:1,fields:''}; CFG.maxPer=1;
+      CFG.cap=0; CFG.taken=0; CFG.confirmed=false;
+      CFG.endText=(f&&f.intro)||A.intro||'نظرت ثبت شد؛ سپاس.';
+      window.__SURVEY={questions:qs, intro:CFG.endText};
+      return;
+    }
+    if(!f) return;
     const fin=(f.fin||[]).filter(o=>o&&o.l).map(o=>({l:o.l,p:+o.p||0,off:+o.off||0,on:false,req:false,g:o.g||'',d:o.d||''}));
     if(fin.length){
       (f.groups||[]).forEach(g=>{(g.of||[]).forEach(i=>{ if(fin[i]){fin[i].g=g.n||fin[i].g; fin[i].req=!!g.req||fin[i].req} })});
@@ -565,7 +592,7 @@ function renderPayMethods(){
         .map(g=>({n:g.n, of:(g.of||[]).filter(i=>fin[i]), req:!!g.req, one:g.one!==false}));
     }
     CFG.title=f.name||CFG.title;
-    if(f.slug) CFG.slug=f.slug; else CFG.slug='ev:'+(evId||fid)+':'+kind;
+    if(f.slug) CFG.slug=f.slug;
     CFG.cap=+f.cap||CFG.cap; CFG.taken=0;
     if(f.coupon&&f.coupon.code) CFG.coupon={code:f.coupon.code,off:+f.coupon.off||0,all:!!f.coupon.all};
     if(+f.maxPer>1) CFG.maxPer=+f.maxPer;
@@ -575,13 +602,6 @@ function renderPayMethods(){
     }
     if(f.intro) CFG.endText=f.intro;
     CFG.confirmed=false;
-    const ev=(U.pubEvents?U.pubEvents():[]).find(x=>String(x.id)===String(evId))||null;
-    if(ev){
-      CFG.venue=ev.place&&ev.place!=='آنلاین'?ev.place:'آنلاین';
-      CFG.date=(ev.when?ev.when+'، ':'')+(ev.time||'');
-      if(ev.kind) CFG.kind=ev.kind;
-    }
-    CFG.links=[{t:'صفحهٔ رویداد',u:'event.html?id='+encodeURIComponent(evId||''),i:'i-globe'}].concat(CFG.links||[]);
   }catch(err){}
 })();
 const S={guests:[],discount:0,code:'',method:''};
@@ -615,7 +635,7 @@ function calc(){
 
 /* ══ رندر ══ */
 function renderFin(){
-  const box=document.getElementById('finOpts');
+  const box=document.getElementById('finOpts'); if(!box) return;
   const extra=(CFG.fin.some(o=>o.g)||CFG.fin.some(o=>o.req));
   box.innerHTML=(extra?`<div class="cap" style="margin:2px 2px 8px">${(CFG.groups||[]).filter(g=>g.req).map(g=>`«${g.n}» را انتخاب کنید`).join(' · ')||'هر کدام را لازم دارید بردارید'}</div>`:'')+
   CFG.fin.map((o,i)=>{
@@ -675,8 +695,8 @@ function renderPayGuests(){
   guestChips(document.getElementById('payChips'),false);
 }
 function renderBill(){
-  const c=calc();
-  document.getElementById('bill').innerHTML=
+  const c=calc(); const billEl=document.getElementById('bill'); if(!billEl) return;
+  billEl.innerHTML=
     (CFG.fin.filter(o=>o.on).map(o=>`<div class="r"><span>${o.l}${o.d?`<span class="cap">${o.d}</span>`:''}</span>
         <span class="num">${o.off?`<span class="old">${fa(o.p)}</span> `:''}${fa(net(o))}</span></div>`).join('')
       ||'<div class="r"><span class="mute">موردی انتخاب نشده</span><span></span></div>')
@@ -693,14 +713,15 @@ function renderBill(){
 }
 /* ── اعداد لندینگ از خودِ تنظیمات فرم ── */
 function renderFacts(){
-  /* لندینگ از خودِ گزینه‌ها می‌گوید نه از انتخاب کاربر؛ «از» یعنی ارزان‌ترین راه شرکت */
+  /* لندینگ از خودِ گزینه‌ها می‌گوید نه از انتخاب کاربر؛ «از» یعنی ارزان‌ترین راه شرکت.
+     نظرسنجی که مبلغ ندارد، تگ «از» هم نمی‌گیرد */
   const reqIdx=new Set((CFG.groups||[]).filter(g=>g.req).flatMap(g=>g.of));
   const fin=reqIdx.size?[...reqIdx].map(i=>CFG.fin[i]).filter(Boolean):CFG.fin;
-  const from=Math.min(...fin.map(o=>Math.round(o.p*(100-o.off)/100)));
+  const from=fin.length?Math.min(...fin.map(o=>Math.round(o.p*(100-o.off)/100))):0;
   const left=CFG.cap?Math.max(0,CFG.cap-CFG.taken):0;
   document.getElementById('evFacts').innerHTML=[
     `<span class="tag brand"><svg class="i"><use href="#i-clock"/></svg> ${faN(QCOUNT)} پرسش، حدود ${faN(Math.max(2,Math.round(QCOUNT*0.4)))} دقیقه</span>`,
-    `<span class="tag accent"><svg class="i"><use href="#i-wallet"/></svg> از ${rialTxt(from)}</span>`,
+    fin.length?`<span class="tag accent"><svg class="i"><use href="#i-wallet"/></svg> از ${rialTxt(from)}</span>`:'',
     CFG.cap?`<span class="tag ok"><span class="dot"></span> ${faN(left)} جا مانده</span>`:''
   ].join('');
   const perks=[];
@@ -733,7 +754,7 @@ function restoreDraft(d){
   renderBuddy();renderBill();renderFin();renderFacts();
   document.querySelectorAll('[data-method]').forEach(x=>{
     const on2=x.dataset.method===S.method; x.classList.toggle('on',on2); x.setAttribute('aria-pressed',on2?'true':'false')});
-  show(d.cur&&DRAFT_SCREENS.includes(d.cur)?d.cur:'u2');
+  show(d.cur&&ORDER.includes(d.cur)?d.cur:'u2');
 }
 function showResume(){
   let d=null; try{d=JSON.parse(localStorage.getItem(DKEY)||'null')}catch(e){}
@@ -772,6 +793,48 @@ const PROG={u1:0,u2:14,u3:29,u4:43,u5:57,u6:71,u7:100,u8:100,u9:100,u10:100,u11:
 const BTN={u1:'شروع ثبت‌نام',u2:'بعدی',u3:'بعدی',u4:'بعدی',u5:'بعدی',u6:'بعدی',u7:'بعدی',u8:'ادامه و پرداخت',u9:'ادامه',u10:'تأیید و ادامه',u11:'ارسال رسید',
   u12:''};
 const NEXT={u1:'u2',u2:'u3',u3:'u4',u4:'u5',u5:'u6',u6:'u7',u7:'u8',u8:'u9'};
+/* ── حالت نظرسنجی: پرسشها خود فرم میآید؛ بی پرداخت، مستقیم تا ثبت ──
+   صفحههای پرسش تازه ساخته میشوند و صفحههای ثابت ثبتنام فقط پنهان می‌مانند
+   تا هیچ قلم و تقویمی از دمو از دست نرود */
+if(window.__SURVEY){
+  const qs=window.__SURVEY.questions||[];
+  const qIds=qs.map((_,i)=>'sqp'+i);
+  const escQ=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const host=document.getElementById('u8');
+  qIds.forEach((id,i)=>{
+    const sec=document.createElement('section');
+    sec.className='screen'; sec.id=id; sec.style.marginTop='12px';
+    sec.innerHTML=`<div class="card paper">
+      <div class="cap">پرسش ${faN(i+1)} از ${faN(qs.length)}</div>
+      <div class="title" style="margin:4px 0 14px">${escQ(qs[i])}</div>
+      <textarea class="input" id="ans${i}" rows="3" placeholder="همین‌جا بنویس"></textarea>
+      <p class="cap" style="margin-top:8px">پاسخت بی‌نام ثبت می‌شود.</p>
+    </div>`;
+    if(host&&host.parentNode) host.parentNode.insertBefore(sec,host); else document.body.appendChild(sec);
+    CAP[id]='پرسش '+(i+1)+' از '+qs.length;
+    PROG[id]=Math.round(12+((i+1)/qs.length)*86);
+    BTN[id]=(i===qs.length-1)?'ثبت نظر':'بعدی';
+    NEXT[id]=(i===qs.length-1)?'u12':qIds[i+1];
+  });
+  ['u2','u3','u4','u5','u6','u7','u8','u9','u10','u11'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+    delete CAP[id]; delete PROG[id]; delete BTN[id]; delete NEXT[id];});
+  ORDER.length=0; ['u1'].concat(qIds,['u12']).forEach(x=>ORDER.push(x));
+  NEXT.u1=qIds[0];
+  CAP.u1='نظرسنجی'; BTN.u1='شروع نظرسنجی';
+  document.title='نورا · '+CFG.title;
+  /* صفحهٔ آخر: سپاس، نه رسید پرداخت */
+  const u12=document.getElementById('u12');
+  if(u12){
+    const t=u12.querySelector('.title.tight'); if(t) t.textContent='نظرت ثبت شد';
+    const c=u12.querySelector('.card > .row .cap'); if(c) c.textContent=window.__SURVEY.intro||'';
+    const st2=u12.querySelector('.ticketline .tag'); if(st2){st2.textContent='بی‌نام'; st2.className='tag ok'}
+    const rows=u12.querySelectorAll('.ticketline'); if(rows[2]) rows[2].style.display='none';
+    const warn=u12.querySelector('.card.sunk'); if(warn) warn.style.display='none';
+    const cards=u12.querySelectorAll(':scope > .card.paper'); if(cards[1]) cards[1].style.display='none';
+    u12.querySelectorAll('[data-go]').forEach(x=>{const r=x.closest('.row'); (r||x).style.display='none'});
+  }
+}
 let cur='u1';
 function show(id){
   cur=id;

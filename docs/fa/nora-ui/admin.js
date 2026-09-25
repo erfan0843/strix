@@ -52,7 +52,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
     held:0,who:0,rep:'',media:'',
     cap:45,pre:6,extra:4,waitMode:'auto',tickets:'one',
     feat:{},att:'qr',ch:{notify:1,bale:1,email:1},points:10,
-    fp:{reg:'',survey:'',exam:'',other:''},exam:'none',remEvery:1,
+    fp:{reg:'',survey:'auto',exam:'',other:''},exam:'none',remEvery:1,
     rem:[{w:'before',n:24,u:'h',ch:'bale',on:1},{w:'before',n:1,u:'h',ch:'sms',on:1},
          {w:'after',n:1,u:'d',ch:'notify',on:1}],
     stamp:0,edit:''},
@@ -736,8 +736,13 @@ const FST=()=>(window.NORA_UI&&NORA_UI)||null;
 function madeForms(){try{const u=FST(); return u&&u.formsAll?u.formsAll():[]}catch(e){return []}}
 function demoForms(){const F=(A.forms||{}); return (F.rows||[]).map((r,i)=>({id:'demo'+(i+1), name:r.n, kind:r.k,
   q:NR(un(String(r.got||'0'))), cap:0, fin:[], demo:1, need:''}))}
+/* نظرسنجی آمادهٔ نورا: با شناسهٔ auto هرجا فرم خواست، همین میآید */
+const autoForm=()=>{const a=(window.NORA_UI&&NORA_UI.autoSurvey)||{};
+  return {id:'auto', name:a.name||'نظرسنجی آمادهٔ نورا', kind:a.kind||'نظرسنجی',
+    q:(a.questions||[]).length||4, fields:a.questions||[], demo:1, need:'survey'};};
 function formOf(id){
   if(!id) return null;
+  if(String(id)==='auto') return autoForm();
   const made=madeForms().find(f=>String(f.id)===String(id));
   if(made) return made;
   return demoForms().find(f=>String(f.id)===String(id))||null;
@@ -908,23 +913,32 @@ function shrinkPoster(file,cb){
   fr.readAsDataURL(file);
 }
 
-/* ── برگهٔ انتخاب فرم: فرم‌های فرم‌ساز بالای فهرست می‌آیند، بعد نمونه‌های پنل */
+/* ── برگهٔ انتخاب فرم: فرم‌های فرم‌ساز بالای فهرست می‌آیند، بعد نمونه‌های پنل ──
+   نظرسنجی: پیشفرض فرم آمادهٔ نوراست (خودکار)؛ اختصاصی همان رویداد هم دکمه دارد */
 function formPick(need,label,hint){
-  const F=NE().forms||{}, cur=formOf(fpOf(need)), made=madeForms(), demo=demoForms();
+  const F=NE().forms||{}, isAuto=String(fpOf(need))==='auto', cur=isAuto?autoForm():formOf(fpOf(need)),
+    made=madeForms(), demo=demoForms();
   const row=(f)=>`<div class="admlirow pickrow ${cur&&String(cur.id)===String(f.id)?'on':''}">
       <span class="ic">${ico(f.fin&&f.fin.length?'i-wallet':'i-doc')}</span>
       <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(f))}</b>
         <small class="cap" style="display:block">${esc([f.kind||'', formQs(f), f.fin&&f.fin.length?fa(formSum(f))+' ریال':''].filter(Boolean).join(' · '))}${f.ev?` · ${esc('وصل به '+f.ev)}`:''}</small></span>
       ${cur&&String(cur.id)===String(f.id)?`<span class="tag brand">${esc(F.linked||'وصل شده')}</span>`:
         `<button class="btn sm" data-fpick="${esc(need)}" data-fid="${esc(f.id)}">${ico('i-check')}${esc(F.pick||'بردار')}</button>`}</div>`;
+  const autoRow=isAuto?`<div class="admlirow on"><span class="ic">${ico('i-star')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(autoForm()))}</b>
+        <small class="cap" style="display:block">${esc((F.autoReady||'آماده و خودکار')+' · '+formQs(autoForm()))}</small></span>
+      <span class="tag ok">${esc(F.autoTag||'خودکار')}</span>
+      <a class="btn sm quiet" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-plus')}${esc(F.autoOwn||'اختصاصی همین رویداد')}</a>
+      <button class="btn sm quiet" data-fclear="${esc(need)}" aria-label="${esc(F.clear||'بردار')}">${ico('i-close')}</button></div>`:'';
   return `<div class="fld"><span class="lbl">${esc(label)}</span>
     ${hint?`<span class="cap">${esc(hint)}</span>`:''}
-    ${cur?`<div class="admlirow on"><span class="ic">${ico('i-doc')}</span>
+    ${autoRow}
+    ${!isAuto&&cur?`<div class="admlirow on"><span class="ic">${ico('i-doc')}</span>
       <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(cur))}</b>
         <small class="cap" style="display:block">${esc([cur.kind||'', formQs(cur)].filter(Boolean).join(' · '))}</small></span>
       <a class="btn sm quiet" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-sliders')}${esc(F.openBuilder||'ویرایش در فرم‌ساز')}</a>
       <button class="btn sm quiet" data-fclear="${esc(need)}" aria-label="${esc(F.clear||'بردار')}">${ico('i-close')}</button></div>`
-    :`<div class="empty cap">${ico('i-doc')}<p style="margin-top:6px">${esc(F.none||'فرمی وصل نشده')}</p></div>`}
+    :!isAuto?`<div class="empty cap">${ico('i-doc')}<p style="margin-top:6px">${esc(F.none||'فرمی وصل نشده')}</p></div>`:''}
     <div class="admlist picklist">${made.length?made.map(row).join(''):`<div class="cap">${esc(F.empty||'')}</div>`}</div>
     ${demo.length?`<div class="cap" style="margin-top:6px">${esc(F.fromDemo||'')}</div>${demo.map(row).join('')}`:''}
     <div class="row tight">
@@ -1868,7 +1882,8 @@ document.addEventListener('click',e=>{
       tickets:w.tickets||'one', points:+w.points||0, att:w.att||'qr',
       rem:(w.rem||[]).filter(r=>r.on!==0).map(r=>({w:r.w,n:+r.n||0,u:r.u,ch:r.ch})), remEvery:w.remEvery?1:0,
       ch:Object.keys(w.ch||{}).filter(k=>chOn(k)),
-      price:isMoney()?moneyOf('reg'):0, state:w.held?'past':undefined});
+      price:isMoney()?moneyOf('reg'):0, state:w.held?'past':undefined,
+      svyOff:fpOf('survey')?0:1});
     if(w.edit){  /* ویرایش: همان‌جا می‌ماند، نه پیش‌نویس می‌شود نه از فهرست می‌رود */
       S.evEdit=Object.assign({},S.evEdit||{});
       const st=evState({on:w.date,end:w.end,to:w.to,sess:ses,state:(evOf(w.edit)||{}).state||'soon'});
@@ -1907,6 +1922,8 @@ document.addEventListener('click',e=>{
     const ses=(e.sess||[]).map(x=>({d:x.d||'',t:un(String(x.t||'')),to:un(String(x.to||''))}));
     const fp={reg:'',survey:'',exam:'',other:''};
     (e.forms||[]).forEach(f=>{if(f&&f.need&&fp[f.need]!==undefined) fp[f.need]=String(f.id||'')});
+    /* نظرسنجی: اگر رویداد عمداً بی نظرسنجی ذخیره شده، برنگردد؛ وگرنه آماده میآید */
+    if(!fp.survey&&!e.svyOff) fp.survey='auto';
     S.wiz=Object.assign({},BASE.wiz,{edit:e.id,kind:'event',et:t.k||'custom',name:e.n||'',
       desc:e.d||e.about||'',about:e.about||'',org:e.org||'',label:e.label||'',
       poster:((e.poster||'').indexOf('nora-')===0?'':(e.poster||'')),posterUp:e.posterUp||'',

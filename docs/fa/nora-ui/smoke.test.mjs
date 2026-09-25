@@ -1604,6 +1604,18 @@ async function load(file,store,q){
     'خانهٔ کاربر در جست‌وجو رویداد منتشرشده را پیدا می‌کند');
   ok(hm.errs.length===0,'home.html با رویداد منتشرشده بی‌خطا است'+(hm.errs.length?': '+hm.errs[0]:''));
 
+  /* نظرسنجی آمادهٔ نورا: فرم اختصاصی نیست، آماده خودش باز می‌شود */
+  const sv=await load('form.html',store,'?ev=u9&kind=survey');
+  ok(sv.txt('#topTitle')==='نظرسنجی آمادهٔ نورا','form.html نظرسنجی، آمادهٔ نورا را باز می‌کند');
+  ok(/برنامهٔ امروز چطور بود/.test(sv.doc.body.textContent),'پرسشهای آماده در صفحه هست');
+  const visScr=[...sv.all('.screen')].filter(x=>x.classList.contains('on')||x.style.display!=='none').map(x=>x.textContent).join(' ');
+  ok(!/درگاه رسمی بله|شهریه/.test(visScr),'مسیر پرداخت در نظرسنجی نیست');
+  ok(['u8','u9','u10','u11'].every(id=>sv.doc.getElementById(id)&&sv.doc.getElementById(id).style.display==='none'),
+    'صفحههای پرداخت در حالت نظرسنجی پنهان‌اند');
+  ok(sv.doc.getElementById('u4')&&sv.doc.getElementById('u4').querySelector('#pkBirth'),
+    'صفحههای ثابت دمو دست نخورده مانده‌اند');
+  ok(sv.errs.length===0,'form.html حالت نظرسنجی بی‌خطا است'+(sv.errs.length?': '+sv.errs[0]:''));
+
   /* دمو بی‌انبار دست‌نخورده */
   const dm=await load('form.html',makeStore());
   ok(dm.txt('#topTitle')==='کارگاه فن بیان مقدماتی','بی ?ev= همان فرم نمونه است');
