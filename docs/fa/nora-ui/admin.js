@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=56;
+const SVER=57;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2399,7 +2399,7 @@ function cUStaff(){
 /* ══ تنظیمات سامانه: کاشیهای حوزهها + مدیریت ظاهر ══════════════════════ */
 const SKIN_TILES=[
  {k:'skin', n:'ظاهری سامانه', i:'i-sparkle', s:'منو، بنر، استوری، کارتها، پای صفحه'},
- {k:'forms', n:'فرمساز', i:'i-pen', s:'پیشفرضهای فرم تازه', soon:1},
+ {k:'forms', n:'فرمساز', i:'i-pen', s:'پیشفرضهای فرم تازه، برچسبها، پاکسازی'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترمها، نشانها، فروشگاه', soon:1},
  {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'نقشها، عضویتها، مسدودها', soon:1},
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
@@ -2557,10 +2557,76 @@ function skinView(){
     <div class="row"><span class="sp"></span>${btn('بازنشانی همین برگه','data-skrtab','i-layers')}</div>
   </section>`;
 }
+/* ══ کاشی فرمساز: گزارش کلی، پیشفرضهای فرم تازه، برچسبها، پاکسازی ══ */
+let fcleanArm=0;
+function formSetView(){
+  const U=uiSet(), F=U.forms||{};
+  const made=madeForms(), club=((A.forms||{}).list||[]);
+  const allF=made.concat(club.map(r=>({on:r.state!=='closed',q:NR(un(String(r.got||'0')))})));
+  const onN=allF.filter(f=>f.on).length, ans=allF.reduce((t,f)=>t+(+f.q||0),0);
+  const done=S.qdone.length, pend=qOpen().length;
+  const kinds=made.reduce((m,f)=>{const k=f.kind||f.model||'فرم'; m[k]=(m[k]||0)+1; return m},{});
+  const seg=(meta,path)=>meta.map(([k,n])=>`<button class="chip ${usGet(path)===k?'on':''}" data-useg="${esc(path)}:${esc(k)}">${esc(n)}</button>`).join('');
+  return `<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><a class="btn sm tint" href="create.html">${ico('i-pen')} فرمساز</a></div>
+    <div class="row"><div class="head">تنظیمات فرمساز</div><span class="sp"></span>
+      <span class="cap">پیشفرضها، همان اول در ویزارد فرم تازه مینشینند</span></div>
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(allF.length))}</div><div class="l">فرم</div></div>
+      <div class="metric brand"><div class="n">${esc(fa(onN))}</div><div class="l">روی هوا</div></div>
+      <div class="metric"><div class="n">${esc(fa(ans))}</div><div class="l">پاسخ گرفته</div></div>
+      <div class="metric ${pend?'acc':''}"><div class="n">${esc(fa(pend))}</div><div class="l">کار باز کارتابل</div></div>
+    </div>
+    <div class="head tight">پیشفرضهای فرم تازه</div>
+    <div><label class="lbl">مدل فرم</label>
+      <div class="row tight">${seg(UISET_META.formsModel,'forms.model')}</div></div>
+    <div><label class="lbl">نمایش پرسشها</label>
+      <div class="row tight">${seg(UISET_META.formsDisplay,'forms.display')}</div></div>
+    <div><label class="lbl">بعد از ثبت</label>
+      <div class="row tight">${seg(UISET_META.formsAfter,'forms.after')}</div></div>
+    <div><label class="lbl">محدودیت پر کردن</label>
+      <div class="row tight">${seg(UISET_META.formsLimit,'forms.limit')}</div></div>
+    <div><label class="lbl">بخش مقصد و کارشناس پیشفرض</label>
+      <div class="row tight">${seg(UISET_META.formsDept,'forms.dept')}</div></div>
+    <div><label class="lbl">پاسخها کجا بروند</label>
+      <div class="row tight">${seg(UISET_META.formsTo,'forms.to')}</div></div>
+    <div class="row"><div style="flex:1"><b class="sub">دعوت دوست باز باشد</b>
+      <div class="cap">همراهآوردن، همان اول در فرم تازه باز است</div></div>
+      <span class="switch ${F.guests?'on':''}" data-uk="forms.guests" data-uklabel="دعوت دوست" role="switch"
+        aria-checked="${F.guests?'true':'false'}" aria-label="دعوت دوست"></span></div>
+    <div class="row"><div style="flex:1"><b class="sub">لیست انتظار داشته باشد</b>
+      <div class="cap">پر شدن ظرفیت، نفر را به لیست انتظار میبرد</div></div>
+      <span class="switch ${F.wait?'on':''}" data-uk="forms.wait" data-uklabel="لیست انتظار" role="switch"
+        aria-checked="${F.wait?'true':'false'}" aria-label="لیست انتظار"></span></div>
+    <div class="admtext"><span class="lbl">متن پایانی پیشفرض</span>
+      <input class="input" id="skFEnd" value="${esc(F.endText||'')}"/>
+      <span class="mini">خالی یعنی فرمساز، متن خودش را میگذارد</span></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ متن پایانی','data-fsettext','i-check')}</div>
+    <hr class="hr"/>
+    <div class="head tight">برچسبهای عمومی پاسخها</div>
+    <p class="cap">اینها در پنل فرم، روی پاسخ میخورند؛ هر برچسب یک رنگ دارد.</p>
+    <div class="row tight">${(F.tags||[]).map((t,i)=>`<span class="chip on" style="pointer-events:none">${esc(t.n)} · ${(UISET_META.tagColors.find(c=>c[0]===t.c)||[''])[1]}</span>
+      <button class="chip" data-ftagdel="${i}" aria-label="برداشتن ${esc(t.n)}">${ico('i-close')}</button>`).join('')
+      ||'<span class="mini">هنوز برچسبی تعریف نشده</span>'}</div>
+    <div class="admtext"><span class="lbl">برچسب تازه</span><input class="input" id="skTagN" placeholder="مثل: پیگیری شد"/></div>
+    <label class="lbl">رنگ برچسب</label>
+    <div class="row tight">${UISET_META.tagColors.map(([k,n],i)=>`<button class="chip ${i===0?'on':''}" data-ftagc="${k}">${esc(n)}</button>`).join('')}</div>
+    <div class="row"><span class="sp"></span>${btn('افزودن برچسب','data-ftagadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head tight">گزارش تفکیک نوع</div>
+    <div class="row tight">${Object.keys(kinds).length?Object.entries(kinds).map(([k,n])=>`<span class="chip on" style="pointer-events:none">${esc(k)} · ${esc(fa(n))}</span>`).join(''):'<span class="mini">هنوز فرمی ساخته نشده</span>'}</div>
+    <div class="head tight" style="margin-top:6px">پاکسازی و نگهداری</div>
+    <div class="row"><div style="flex:1"><b class="sub">کارهای انجامشدهٔ کارتابل</b>
+      <div class="cap">همین حالا ${esc(fa(done))} کار انجامشده در کارتابل است؛ بایگانی، قصش میکند</div></div>
+      <span class="sp"></span>${btn('بایگانی','data-fclean','i-layers')}</div>
+  </section>`;
+}
 function vSettings(){
   const ST=A.settings||{}, own=isOwner(), lead=isLead();
   const canTpl=own||lead;   /* قالب گواهینامه: فقط دست مالک و سرپرست */
   if(own&&S.skin) return skinView();
+  if(own&&S.skinF) return formSetView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
@@ -3358,9 +3424,11 @@ document.addEventListener('click',e=>{
   const se=q('[data-setg]'); if(se){S.setG=se.dataset.setg; save(); renderBody(); return}
   /* ── تنظیمات سامانه: کاشیها و مدیریت ظاهر ── */
   const skt=q('[data-skit]'); if(skt){const k=skt.dataset.skit;
-    if(k!=='skin'){toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
-    S.skin=1; S.skinTab='home'; save(); renderBody(); return}
-  const skb=q('[data-skinback]'); if(skb){S.skin=0; save(); renderBody(); return}
+    if(k==='skin'){S.skin=1; S.skinTab='home';}
+    else if(k==='forms'){S.skinF=1;}
+    else {toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
+    save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; save(); renderBody(); return}
   const skw=q('[data-skintab]'); if(skw){S.skinTab=skw.dataset.skintab; save(); renderBody(); return}
   const uk=q('[data-uk]'); if(uk){const on=!usGet(uk.dataset.uk);
     usSet(uk.dataset.uk,on?1:0);
@@ -3423,6 +3491,23 @@ document.addEventListener('click',e=>{
   const rt=q('[data-skrtab]'); if(rt){
     const fn=SKIN_RESET[S.skinTab]; if(fn){const U=uiSet(); fn(U); uiSetSave(U); save(); renderBody();
       toast('برگهٔ «'+((SKIN_TABS.find(x=>x[0]===S.skinTab)||{})[1]||'')+'» به پیشفرض برگشت')} return}
+  const ftx=q('[data-fsettext]'); if(ftx){
+    usSet('forms.endText',((document.getElementById('skFEnd')||{}).value||'').trim());
+    toast('متن پایانی پیشفرض ذخیره شد'); return}
+  const fta=q('[data-ftagadd]'); if(fta){
+    const nm=((document.getElementById('skTagN')||{}).value||'').trim();
+    if(!nm){toast('نام برچسب را بنویسید'); return}
+    const c=(document.querySelector('#admBody .chip.on[data-ftagc]')||{dataset:{}}).dataset.ftagc||'brand';
+    const U=uiSet(); U.forms.tags.push({n:nm,c:c}); uiSetSave(U);
+    toast('برچسب «'+nm+'» به پاسخها اضافه شد'); renderBody(); return}
+  const ftd=q('[data-ftagdel]'); if(ftd){const U=uiSet(), t=U.forms.tags.splice(+ftd.dataset.ftagdel,1)[0]||{};
+    uiSetSave(U); toast('برچسب «'+t.n+'» برداشته شد'); renderBody(); return}
+  const fc=q('[data-fclean]'); if(fc){
+    if(!fcleanArm){fcleanArm=1; fc.textContent='مطمئنید؟ پاکسازی';
+      setTimeout(()=>{fcleanArm=0; if(document.contains(fc)) fc.textContent='پاکسازی'},4000); return}
+    fcleanArm=0;
+    const n=S.qdone.length; S.qdone=[];
+    save(); renderBody(); toast(n?(n+' کار انجامشده بایگانی شد'):('کار انجامشدهای نبود')); return}
   const uc=q('[data-ucards]'); if(uc){const U=uiSet(); U.cards=uc.dataset.ucards; uiSetSave(U);
     document.querySelectorAll('#admBody [data-ucards]').forEach(x=>x.classList.toggle('on',x===uc));
     try{document.documentElement.dataset.cards=U.cards}catch(e){}

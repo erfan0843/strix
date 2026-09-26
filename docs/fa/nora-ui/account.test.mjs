@@ -38,7 +38,7 @@ async function load(store,hash){
       w.addEventListener('error',e=>errs.push('error: '+(e.message||'')));
       const ce=w.console.error; w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
     }});
-  await wait(650);
+  await wait(950);
   const {window}=dom, doc=window.document;
   return {dom,window,doc,errs,
     click:sel=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel);

@@ -582,6 +582,32 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#hotRow').hidden===true,'جستوجوهای داغ و سابقه پنهان است');
 }
 
+/* ═══════════ فرمساز با پیشفرضهای پنل (create.html) ═══════════ */
+{
+  console.log('\n── فرمساز با پیشفرضهای کاشی فرمساز ──');
+  const store=makeStore();
+  store.setItem('nora-uiset',JSON.stringify({v:1,
+    forms:{model:'exam',display:'all',after:'view',guests:1,wait:0,limit:'invite',
+      dept:'media',to:'پیام\u200cرسان بله',endText:'پاسخت رسید؛ ممنون.',tags:[]}}));
+  const p=await load('create.html',store);
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'با پیشفرضهای پنل بیخطا بار شد');
+  ok(p.window.eval("S.model")==='exam','مدل فرم، آزمون شد (پیشفرض پنل)');
+  ok(p.window.eval("S.display")==='all'&&p.txt('#segDisplay').includes('همه در یک صفحه'),
+     'نمایش پرسشها روی «همه در یک صفحه» نشست');
+  ok(p.window.eval("S.after")==='view','بعد از ثبت: فقط مشاهده');
+  ok(p.window.eval("S.guestsOn")===true&&p.doc.querySelector('#guestsOn').classList.contains('on'),
+     'دعوت دوست از پیشفرض باز است');
+  ok(p.window.eval("S.limit")==='invite'&&p.doc.querySelector('#limitMode').value==='invite',
+     'محدودیت پر کردن: فهرست یا کد دعوت');
+  ok(p.window.eval("S.dept")==='media','بخش مقصد پیشفرض: رسانه');
+  ok(p.doc.querySelector('#notifyTo').value==='پیام\u200cرسان بله','پاسخها به بله میرود (پیشفرض پنل)');
+  ok(p.window.eval("S.endText")==='پاسخت رسید؛ ممنون.'&&p.doc.querySelector('#endText').value==='پاسخت رسید؛ ممنون.',
+     'متن پایانی پیشفرض در کادر نشست');
+  ok(p.doc.querySelector('#wcount').value!=='۲۰' || p.window.eval("S.wait")===0,'لیست انتظار خاموش شد');
+  ok(p.doc.querySelectorAll('#tiles .tile.on').length===1&&p.txt('#tiles .tile.on').includes('آزمون'),
+     'کاشی مدل آزمون، انتخابشده در ویزارد');
+}
+
 /* ═══════════ create.html (دود) ═══════════ */
 {
   console.log('\n── سازندهٔ فرم (create.html) ──');
@@ -1634,7 +1660,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:56, added:[
+  store.setItem('nora-admin', JSON.stringify({v:57, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

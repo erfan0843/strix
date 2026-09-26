@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · ساخت فرم</title>
-<link rel="stylesheet" href="glass.css?v=67"/>
+<link rel="stylesheet" href="glass.css?v=68"/>
 <style>
   .stepper4{display:flex;gap:4px;padding:5px}
   .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:7px;
@@ -528,7 +528,7 @@
 
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="ui.js?v=67"></script>
+<script src="ui.js?v=68"></script>
 <script>
 /* ══ داده ══ */
 const MODELS=[
@@ -648,6 +648,31 @@ if(QS.get('ev')||QS.get('name')){
   if(QS.get('end')) S.end=QS.get('end');
   if(QS.get('slug')) S.slug=QS.get('slug');
 }
+/* پیشفرضهای فرم تازه از کاشی «فرمساز» در تنظیمات پنل؛ رویداد قویتر از پیشفرض است */
+function applyFormDefaults(){
+  let F=null;
+  try{const U=(window.NORA_UI&&NORA_UI.uiSet)?NORA_UI.uiSet():null; F=U&&U.forms}catch(e){}
+  if(!F) return;
+  if(!QS.get('need')&&F.model) S.model=F.model;
+  if(F.display) S.display=F.display;
+  if(F.after) S.after=F.after;
+  if(F.guests!=null) S.guestsOn=!!F.guests;
+  if(F.wait!=null) S.wait=F.wait?20:0;
+  if(F.limit) S.limit=F.limit;
+  if(F.dept) S.dept=F.dept;
+  if(F.to) S.notify.to=F.to;
+  if(F.endText){S.endText=F.endText; const t=document.getElementById('endText'); if(t) t.value=F.endText}
+  /* همگام کردن کنترلها با همان پیشفرضها */
+  const mark=(id,i)=>{const box=document.getElementById(id); if(!box) return;
+    [...box.children].forEach((b,j)=>b.classList.toggle('on',j===i))};
+  mark('segDisplay',{one:0,all:1}[S.display]||0);
+  mark('segAfter',{edit:0,view:1,cancel:2}[S.after]||0);
+  const lm=document.getElementById('limitMode'); if(lm) lm.value=S.limit;
+  const nt=document.getElementById('notifyTo'); if(nt&&F.to) nt.value=F.to;
+  const gs=document.getElementById('guestsOn'); if(gs){gs.classList.toggle('on',S.guestsOn); gs.setAttribute('aria-checked',S.guestsOn?'true':'false')}
+  const wc=document.getElementById('wcount'); if(wc) wc.value=faN(S.wait);
+}
+applyFormDefaults();
 function evHeadFill(){
   const nm=QS.get('name')||'';
   const eh=$('#evHead'), em=$('#evMeta'), ec=$('#evChip');

@@ -660,6 +660,9 @@ const UISET_DEF={v:1,
   type:{size:'mid',radius:'mid',width:'mid',density:'mid',motion:1,accent:''},
   chrome:{bell:1,themebtn:1,helpbtn:1,tabLabels:1,hot:1},
   theme:{mode:'auto',allowToggle:1},
+  forms:{model:'registration',display:'one',after:'edit',guests:0,wait:1,limit:'event',
+    dept:'edu',to:'کارتابل کارشناس',endText:'',
+    tags:[{n:'بررسی شد',c:'ok'},{n:'پیگیری',c:'warn'},{n:'ویژه',c:'brand'}]},
   trust:{on:1,text:''},foot:{on:1,text:''}};
 function uiSet(){
   const base=JSON.parse(JSON.stringify(UISET_DEF));
@@ -686,7 +689,14 @@ const UISET_META={
   typeWidth:[['narrow','باریک'],['mid','معمولی'],['wide','گسترده']],
   typeDen:[['tight','دنج'],['mid','معمولی'],['airy','باز']],
   bnrSpeed:[['slow','آهسته'],['mid','معمولی'],['fast','تند']],
-  accents:[['','آبی نورا'],['teal','سبز'],['plum','بنفش'],['amber','کهربایی'],['night','شبانه']]};
+  accents:[['','آبی نورا'],['teal','سبز'],['plum','بنفش'],['amber','کهربایی'],['night','شبانه']],
+  formsModel:[['registration','ثبتنام'],['questionnaire','پرسشنامه'],['survey','نظرسنجی'],['contest','مسابقه'],['exam','آزمون'],['attendance','حضور و غیاب'],['datacollect','ثبت اطلاعات'],['order','سفارش'],['election','رأیگیری']],
+  formsDisplay:[['one','هر مرحله یک پرسش'],['all','همه در یک صفحه']],
+  formsAfter:[['edit','بعد از ثبت: ویرایش'],['view','فقط مشاهده'],['cancel','انصراف']],
+  formsLimit:[['none','آزاد برای همه'],['event','فقط ثبتنامکردههای رویداد'],['attended','حاضران جلسهٔ پیشین'],['invite','فهرست یا کد دعوت']],
+  formsDept:[['edu','آموزش'],['data','پژوهش و نظرسنجی'],['media','رسانه و تولید محتوا'],['sup','پشتیبانی']],
+  formsTo:[['کارتابل کارشناس','کارتابل کارشناس'],['کارتابل + پیام‌رسان بله','کارتابل + بله'],['کارتابل + ایمیل','کارتابل + ایمیل'],['پیام‌رسان بله','فقط بله']],
+  tagColors:[['ok','سبز'],['warn','کهربایی'],['stop','سرخ'],['brand','آبی']]};
 /* منوی کاربر با ردیفهای پنهانشده؛ گروهی که همه ردیفهایش پنهان است نمیآید */
 function menuAllowed(){
   const U=uiSet(), M=(window.NORA&&window.NORA.MENU)||[];
@@ -1585,7 +1595,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v56') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v57') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

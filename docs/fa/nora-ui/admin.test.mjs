@@ -41,7 +41,7 @@ async function load(store,hash){
       w.addEventListener('error',e=>errs.push('error: '+e.message));
       w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
     }});
-  await new Promise(r=>setTimeout(r,600));
+  await new Promise(r=>setTimeout(r,900));
   const {window}=dom, doc=window.document;
   const click=sel=>{const el=typeof sel==='string'?doc.querySelector(sel):sel;
     if(!el) throw new Error('نیست: '+sel);
@@ -699,7 +699,34 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('[data-skit]').length===6,'شش کاشی تنظیمات سامانه هست');
   ok(p.all('.sktgrid .sktile').length===6,'کاشیها در شبکهٔ چهارستونی نشستهاند');
   p.click('[data-skit="forms"]');
-  ok(/نوبت بعد/.test(p.txt('#toast')),'کاشیهای بی‌بخش هنوز، خودشان را «در نوبت بعد» می‌گویند');
+  ok(/تنظیمات فرمساز/.test(p.txt('#admBody')),'کاشی فرمساز، مدیریت فرمساز را باز کرد');
+  ok(p.all('#admBody .metric').length===4,'گزارش کلی: چهار عدد (فرم، روی هوا، پاسخ، کار باز)');
+  ok(!!p.doc.querySelector('#admBody [data-useg="forms.model:exam"]'),'نُه مدل فرم در پیشفرضها هست');
+  ok(/گزارش تفکیک نوع/.test(p.txt('#admBody')),'گزارش تفکیک نوع فرمها همینجا است');
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='forms.model:exam').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='forms.display:all').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='forms.after:view').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='forms.limit:invite').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='forms.dept:media').click();
+  p.click(p.all('#admBody [data-uk]')[0]);
+  p.click(p.all('#admBody [data-uk]')[1]);
+  p.doc.querySelector('#skFEnd').value='پاسخت رسید؛ ممنون.';
+  p.click('[data-fsettext]');
+  const fdef=JSON.parse(p.store.getItem('nora-uiset')).forms;
+  ok(fdef.model==='exam'&&fdef.display==='all'&&fdef.after==='view'&&fdef.limit==='invite'&&fdef.dept==='media',
+     'پیشفرضهای فرم تازه در انبار نشست');
+  ok(fdef.guests===1&&fdef.wait===0,'سوییچ دعوت دوست و لیست انتظار هم ذخیره شدند');
+  ok(fdef.endText==='پاسخت رسید؛ ممنون.','متن پایانی پیشفرض ذخیره شد');
+  ok(JSON.parse(p.store.getItem('nora-uiset')).forms.tags.length===3,'سه برچسب عمومی از پیشفرض هست');
+  p.doc.querySelector('#skTagN').value='پیگیری شد';
+  p.click('[data-ftagadd]');
+  ok(JSON.parse(p.store.getItem('nora-uiset')).forms.tags.length===4&&/برچسب «پیگیری شد»/.test(p.txt('#toast')),'برچسب تازه با رنگ اضافه شد');
+  p.click('[data-ftagdel]');
+  ok(JSON.parse(p.store.getItem('nora-uiset')).forms.tags.length===3,'برچسب برداشته میشود');
+  p.click('[data-fclean]'); p.click('[data-fclean]');
+  ok(/کار انجامشده/.test(p.txt('#toast')),'بایگانی کارهای کارتابل با دو پا گام روشن میشود');
+  p.click('[data-skinback]');
+  ok(p.all('[data-skit]').length===6,'برگشت به کاشیها');
   p.click('[data-skit="skin"]');
   ok(/تنظیمات ظاهری سامانه/.test(p.txt('#admBody')),'کاشی ظاهری، مدیریت ظاهر را باز کرد');
   ok(p.all('[data-skintab]').length===8,'هشت برگه: خانه، منو، بنرها، استوریها، کارتها، نوشتار، نوار، پای صفحه');
@@ -1078,7 +1105,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:56, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:57, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1307,9 +1334,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=67')&&html.includes('admin.js?v=67'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=68')&&html.includes('admin.js?v=68'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v56'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v57'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
