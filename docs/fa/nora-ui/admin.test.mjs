@@ -768,6 +768,49 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#admBody .utile[data-goset]').length===4,'چهار میانبر تنظیمهای مرتبط (متنها، اعلانها، داده، مالی)');
   p.click('[data-goset="notify"]');
   ok(!!p.doc.querySelector('[data-setg="notify"].on'),'میانبر اعلانها، گروه اعلانهای تنظیمات را باز کرد');
+  /* ── نامهخانهٔ اعلانها: مدل پیام بانکی ── */
+  console.log('\n── نامهخانهٔ اعلانها ──');
+  ok(p.all('[data-ntfon]').length===14,'چهارده اعلان در نامهخانه تعریف شده');
+  ok(p.all('.ntfcard').length===14,'هر اعلان روشن، پیشنمایش پیامش را دارد');
+  {const c=p.txt('.ntfcard');
+   ok(/عزیز،/.test(c)&&/«/.test(c),'مدل پیام: نام عزیز + جملهٔ روشن با نام رویداد');
+   ok(/لینک حضور/.test(c)&&/۱۷:۰۰/.test(c),'اعلان تأیید ثبتنام: بلیت با لینک حضور و ساعت حضور');
+   ok(/[۰-۹]{4}\.[۰-۹]{2}\.[۰-۹]{2} · [۰-۹]{2}:[۰-۹]{2}/.test(c),'مهر زمان و تاریخ فارسی زیر پیام است');}
+  ok(p.all('[data-ntfch$=":bale"]').length===14,'راه رسیدن همهٔ اعلانها بله است');
+  p.click('[data-ntfon="pay_no"]');
+  ok(p.all('.ntfcard').length===13&&(JSON.parse(p.store.getItem('nora-admin')).ntfOff||[]).indexOf('pay_no')>-1,
+     'اعلان خاموش میشود و پیشنمایشش میپیچد');
+  p.click('[data-ntfon="pay_no"]');
+  p.click('[data-ntfch="remind:sms"]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).ntfCh.remind.sms===0,'راه پیامک جدا کنترل میشود');
+  p.click('[data-ntfch="remind:sms"]');
+  p.click('[data-ntfg="money"]');
+  ok(p.all('[data-ntfon]').length===2,'صافی گروه: مالی فقط دو اعلان دارد');
+  p.click('[data-ntfg="all"]');
+  p.click('[data-ntfed="reg_ok"]');
+  ok(!!p.doc.querySelector('#ntfT')&&!!p.doc.querySelector('#ntfB'),'ویرایش متن اعلان، ورقهٔ سه-inputی باز میکند');
+  p.doc.querySelector('#ntfB').value='{نام} عزیز، بلیتت با ساعت {ساعت} آماده است.';
+  p.click('[data-ntfsave="reg_ok"]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).ntfT.reg_ok.b.includes('{ساعت}'),'متن ویرایششده در پنل نشست');
+  p.click('[data-ntfreset="reg_ok"]');
+  ok(!JSON.parse(p.store.getItem('nora-admin')).ntfT.reg_ok,'بازگشت متن به پیشفرض');
+  p.click('[data-ntfsend="reg_ok"]');
+  ok(/ربات بله/.test(p.txt('#toast'))&&(JSON.parse(p.store.getItem('nora-admin')).ntfLog||[]).length>=1,
+     'نمونهٔ اعلان به ربات بله میرود و در دفتر نامهها مینشیند');
+  ok(/نامههای فرستادهشده/.test(p.txt('#admBody')),'دفتر نامههای فرستادهشده زیر نامهخانه است');
+  /* سیمکشی واقعی: تأیید پروفایل همان لحظه اعلان خوشآمد میرود */
+  p.click('#admNav [data-sec="users"]');
+  p.click('[data-uv="req"]');
+  {const uok=p.doc.querySelector('[data-uok]');
+   p.click(uok);
+   ok(/اعلان خوشآمد/.test(p.txt('#toast'))&&(JSON.parse(p.store.getItem('nora-admin')).ntfLog||[])[0].k==='welcome',
+     'تأیید پروفایل، همان لحظه اعلان خوشآمد را به بله میفرستد');}
+  /* برگهٔ رویداد: اعلان بلیت در تب ثبتنامها */
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-ev]');
+  p.click('#shAdm [data-evtab="reg"]');
+  ok(!!p.doc.querySelector('#shAdm [data-ntfsend="reg_ok"]'),'برگهٔ رویداد دکمهٔ اعلان بلیت دارد');
+  ok(/همان لحظهٔ قطعی/.test(p.txt('#shAdm')),'زیر دکمه، قاعدهٔ لحظهٔ ارسال نوشته شده');
   {p.click('#admNav [data-sec="settings"]');
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
    p.click('[data-skit="ops"]');}
@@ -1170,7 +1213,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:59, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:60, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1399,9 +1442,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=70')&&html.includes('admin.js?v=70'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=71')&&html.includes('admin.js?v=71'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v59'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v60'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

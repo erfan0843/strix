@@ -1,8 +1,6 @@
 # Node / local-viewer SPA source (the built bundle in
 # strix/interface/viewer/static/ is committed and shipped; do not ignore it)
 node_modules/
-# Symlink to a local test-only install; not a directory, so it needs its own rule.
-docs/fa/nora-ui/node_modules
 strix/interface/viewer/frontend/node_modules/
 strix/interface/viewer/frontend/.vite/
 
@@ -100,10 +98,3 @@ schema.graphql
 /.benchmarks/
 /references/
 /strix_runs_main/
-
-# نورا — صفحه‌های میانی بلیت (از tickets/*.png با tools-make-plates.py ساخته می‌شوند؛
-# خودِ خروجی نهایی در tickets/plates.js امبد شده است)
-docs/fa/nora-ui/tickets/*-plate.png
-
-# فایل‌های ساختهٔ گواهینامهٔ نمونه (با cert-render.mjs از نو ساخته می‌شوند)
-docs/fa/nora-ui/certs/

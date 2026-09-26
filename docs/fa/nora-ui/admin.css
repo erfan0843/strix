@@ -643,3 +643,13 @@ a.btn{text-decoration:none}
 .sktile b{font-size:13px;font-weight:600}
 .sktile .cap{font-size:11.5px}
 .sktile .tag{position:absolute;top:10px;inset-inline-end:10px;font-size:10px}
+
+/* نامهخانه: کارت اعلان با مدل پیام بانکی: عنوان، جمله، خط وضعیت، مهر زمان */
+.ntfrow{padding:12px 0;border-top:.5px solid var(--hairline-2);display:grid;gap:8px}
+.ntfrow:first-of-type{border-top:0}
+.ntfrow .row{align-items:center}
+.ntfcard{background:#f5f8fc;border:1px solid var(--hairline-2);border-radius:14px;padding:11px 13px}
+.ntfcard .ntf-t{font-weight:800;font-size:13.5px}
+.ntfcard .ntf-b{margin-top:5px;font-size:12.5px;line-height:1.9}
+.ntfcard .ntf-s{margin-top:5px;font-size:11.5px;color:var(--brand)}
+.ntfcard .ntf-m{margin-top:7px;font-size:10.5px;color:var(--ink-3)}
