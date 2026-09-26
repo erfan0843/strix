@@ -727,20 +727,50 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/کار انجامشده/.test(p.txt('#toast')),'بایگانی کارهای کارتابل با دو پا گام روشن میشود');
   p.click('[data-skinback]');
   ok(p.all('[data-skit]').length===7,'برگشت به کاشیها (هفت کاشی با مدیریت پنل)');
-  /* ── کاشی کاربران و دسترسی + مدیریت پنل ── */
+  /* ── کاشی کاربران و دسترسی: شش عدد، سه صف درخواست، پارامتر پروفایل، برچسب، مسدود ── */
   p.click('[data-skit="users"]');
   ok(/کاربران و دسترسی/.test(p.txt('#admBody')),'کاشی کاربران، مدیریت کاربران را باز کرد');
-  ok(p.all('#admBody .metric').length===4,'گزارش کلی کاربران: چهار عدد (کاربر، صف، پرداختی، مسدود)');
+  ok(p.all('#admBody .metric').length===6,'گزارش کلی کاربران: شش عدد (کاربر، صف، پرداختی، مسدود، ویژه، بیخبر)');
   ok(!!p.doc.querySelector('#admBody [data-useg="users.regs:invite"]'),'چهار سیاست عضویت هست');
   [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='users.regs:invite').click();
   [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='users.prune:3m').click();
   p.click(p.all('#admBody [data-uk]')[0]);
   const usv=JSON.parse(p.store.getItem('nora-uiset')).users;
   ok(usv.regs==='invite'&&usv.prune==='3m'&&usv.dues===0,'سیاست عضویت و قفل بدهی و پاکسازی ذخیره شد');
-  ok(/مسدود/.test(p.txt('#admBody')),'مسدودهای فعلی با شمارشان نوشته شده');
-  p.click('[data-skinback]');
-  p.click('[data-skit="ops"]');
+  ok(p.all('#admBody .utile[data-govreq]').length===3,'سه صف درخواست (پروفایل، غیبت مجاز، پاداش) در کاشی هست');
+  p.click('[data-govreq]');
+  ok(/درخواست/.test(p.txt('#admBody')),'میانبر درخواستها، برگهٔ درخواستها را باز کرد');
+  p.click('#admNav [data-sec="settings"]'); p.click('[data-skit="users"]');
+  ok(p.all('#admBody [data-upar]').length===8,'هشت فیلد پروفایل، از کاشی روشن و خاموش میشود');
+  p.click(p.all('#admBody [data-upar]')[0]); p.click(p.all('#admBody [data-uparreq]')[0]);
+  ok(JSON.parse(p.store.getItem('nora-admin')).upar['nid|req']===true,'فیلد اجباری شد و در پنل نشست');
+  p.click('[data-uparreset]');
+  ok(Object.keys(JSON.parse(p.store.getItem('nora-admin')).upar||{}).length===0,'بازگشت پارامترهای پروفایل به پیشفرض');
+  p.doc.querySelector('#uTagNew').value='داوطلب اردو';
+  p.click('[data-utagadd]');
+  ok((JSON.parse(p.store.getItem('nora-admin')).ulabels||[]).indexOf('داوطلب اردو')>-1,'برچسب تازه از کاشی ساخته شد');
+  p.click('[data-govtags]');
+  ok(/برچسب‌ها و دسته‌ها/.test(p.txt('#admBody')),'میانبر برچسبها، برگهٔ برچسبها را باز کرد');
+  p.click('#admNav [data-sec="settings"]'); p.click('[data-skit="users"]');
+  p.click('[data-govuser]');
+  ok(/اطلاعات/.test(p.txt('#admBody')),'پروندهٔ مسدود از کاشی باز میشود');
+  p.click('#admNav [data-sec="settings"]'); p.click('[data-skit="users"]');
+  {const un=p.doc.querySelector('[data-uunblock]'); const uid=un.dataset.uunblock;
+   p.click(un);
+   ok(/مسدودی برداشته شد/.test(p.txt('#toast'))&&JSON.parse(p.store.getItem('nora-admin')).uov[uid].st[1]==='ok',
+     'رفع مسدودی از کاشی، واقعی است ('+uid+')');}
+  /* ── کاشی مدیریت پنل: سقف، لاگ، نگهداری، میانبرها، حافظه ── */
+  {p.click('#admNav [data-sec="settings"]');
+   if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
+   p.click('[data-skit="ops"]');}
   ok(/مدیریت پنل/.test(p.txt('#admBody')),'کاشی مدیریت پنل باز شد');
+  ok(p.all('#admBody .metric').length===4,'چهار عدد مدیریت پنل (کار باز، لاگ، سقف، حساب تازه)');
+  ok(p.all('#admBody .utile[data-goset]').length===4,'چهار میانبر تنظیمهای مرتبط (متنها، اعلانها، داده، مالی)');
+  p.click('[data-goset="notify"]');
+  ok(!!p.doc.querySelector('[data-setg="notify"].on'),'میانبر اعلانها، گروه اعلانهای تنظیمات را باز کرد');
+  {p.click('#admNav [data-sec="settings"]');
+   if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
+   p.click('[data-skit="ops"]');}
   ok(p.all('#admBody .admlirow').length>=1,'آخرین لاگها در مدیریت پنل دیده میشود');
   [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='ops.cap:5').click();
   {p.click('#admNav [data-sec="dash"]');
@@ -750,6 +780,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
    p.click('[data-skit="ops"]');}
   [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='ops.log:off').click();
+  p.click('[data-logclear]');
+  {const ul=JSON.parse(p.store.getItem('nora-admin')).ulog||[];
+   ok(ul.length===1&&/خالی شد/.test(ul[0].act||''),'خالی کردن لاگ از کاشی، لاگ را سر و سامان میکند');}
+  p.click('[data-cacheclr]');
+  ok(/حافظه/.test(p.txt('#toast')),'پاکسازی حافظهٔ نهان پیام روشن دارد');
   p.click(p.doc.querySelector('[data-uk="maint"]'));
   ok(/حالت نگهداری روشن شد/.test(p.txt('#toast'))&&JSON.parse(p.store.getItem('nora-uiset')).users.regs==='closed',
      'حالت نگهداری، عضویت را بست و با نامش خبر داد');
@@ -1135,7 +1170,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:58, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:59, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1364,9 +1399,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=69')&&html.includes('admin.js?v=69'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=70')&&html.includes('admin.js?v=70'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v58'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v59'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

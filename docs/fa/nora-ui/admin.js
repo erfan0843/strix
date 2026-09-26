@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=58;
+const SVER=59;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2404,8 +2404,8 @@ function cUStaff(){
 const SKIN_TILES=[
  {k:'skin', n:'ظاهری سامانه', i:'i-sparkle', s:'منو، بنر، استوری، کارتها، پای صفحه'},
  {k:'forms', n:'فرمساز', i:'i-pen', s:'پیشفرضهای فرم تازه، برچسبها، پاکسازی'},
- {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'عضویت، درخواستها، مسدودها، نگهداری'},
- {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، حالتنگهداری، خروجی'},
+ {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'عضویت، پروفایل، درخواستها، مسدودها'},
+ {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، نگهداری، پشتیبان'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترمها، نشانها، فروشگاه', soon:1},
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
@@ -2565,65 +2565,129 @@ function skinView(){
 /* ══ کاشی کاربران و دسترسی + مدیریت پنل ════════════════════════════════ */
 function usersView(){
   const U=uiSet(), US=U.users||{};
-  const m=memList(), pend=m.filter(x=>x.st[0]==='در صف تأیید').length, blocked=m.filter(x=>x.st[1]==='stop').length;
+  const m=memList(), pend=m.filter(x=>x.st[0]==='در صف تأیید'), blocked=m.filter(x=>x.st[1]==='stop');
   const moneyN=m.filter(x=>moneyTag(x.st[0])||x.pt>0).length;
+  const vip=m.filter(x=>x.vip).length, sleep=m.filter(x=>+x.act>30).length;
+  const absP=uAbs().filter(a=>a.st==='در انتظار'), shopP=uShopReq().filter(r=>r.st==='در انتظار');
+  const reqN=pend.length+absP.length+shopP.length;
+  const labs=uLabels(), labTop=Object.keys(labs).sort((a,b)=>labs[b]-labs[a]).slice(0,8);
+  const nOn=PFLDS.filter(f=>f[3]||S.upar[f[0]+'|on']!==0).length,
+        nReq=PFLDS.filter(f=>f[3]||S.upar[f[0]+'|req']).length;
   const seg=(meta,path)=>meta.map(([k,n])=>`<button class="chip ${usGet(path)===k?'on':''}" data-useg="${esc(path)}:${esc(k)}">${esc(n)}</button>`).join('');
+  const REGCAP={free:'هر کس با شمارهٔ همراه میتواند حساب بسازد و بیدرنگ داخل میآید.',
+    phone:'حساب با شمارهٔ همراه ساخته میشود و تا تأیید کارشناس «در صف تأیید» میماند.',
+    invite:'بدون کد دعوت، فرم حساب خالی رد میشود؛ عضویت با معرفی میماند.',
+    closed:'حساب تازه بسته است؛ خانهٔ کاربر نوار «در حال بروزرسانی» میگیرد.'};
+  const parRows=PFLDS.filter(f=>!f[3]).map(f=>{const k=f[0], on=S.upar[k+'|on']!==0, rq=!!S.upar[k+'|req'];
+    return `<div class="admlirow">${ico('i-idcard')}
+      <span class="sp"><b>${esc(f[1])}</b><small class="cap">${esc(f[2])}</small></span>
+      <span class="mini">${rq?'⭐':'○'}<span class="switch ${on?'on':''}" data-upar="${esc(k)}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(f[1])}"></span>
+        <span class="switch ${rq?'on':''}" data-uparreq="${esc(k)}" role="switch" aria-checked="${rq?'true':'false'}" aria-label="اجباری کردن ${esc(f[1])}"></span></span></div>`}).join('');
+  const utile=(attr,ic,nb,sm,warn)=>`<button class="utile" ${attr}><span class="tt">${ico(ic)}<b>${esc(nb)}</b>${warn?tag(warn,'warn'):''}</span><small>${esc(sm)}</small></button>`;
   return `<section class="card stack">
     <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
       <span class="sp"></span><a class="btn sm tint" href="#" data-govusers>${ico('i-users')} بخش کاربران</a></div>
     <div class="row"><div class="head">کاربران و دسترسی</div><span class="sp"></span>
-      <span class="cap">سیاست عضویت و نگهداری؛ گاردها همان لحظه میخوانند</span></div>
-    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <span class="cap">عضویت، پروفایل، درخواستها، برچسبها و مسدودها؛ همه از همین برگه</span></div>
+    <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))">
       <div class="metric"><div class="n">${esc(fa(m.length))}</div><div class="l">کاربر</div></div>
-      <div class="metric ${pend?'acc':''}"><div class="n">${esc(fa(pend))}</div><div class="l">در صف تأیید</div></div>
+      <div class="metric ${pend.length?'acc':''}"><div class="n">${esc(fa(pend.length))}</div><div class="l">در صف تأیید</div></div>
       <div class="metric"><div class="n">${esc(fa(moneyN))}</div><div class="l">پرداخت داشته</div></div>
-      <div class="metric"><div class="n">${esc(fa(blocked))}</div><div class="l">مسدود</div></div>
+      <div class="metric ${blocked.length?'warn':''}"><div class="n">${esc(fa(blocked.length))}</div><div class="l">مسدود</div></div>
+      <div class="metric"><div class="n">${esc(fa(vip))}</div><div class="l">ویژه</div></div>
+      <div class="metric"><div class="n">${esc(fa(sleep))}</div><div class="l">بیخبر از ۳۰ روز</div></div>
     </div>
+    <div class="row"><div class="head tight">درخواستهای باز</div><span class="sp"></span>
+      ${reqN?tag(fa(reqN)+' در انتظار','warn'):tag('صف روان است','ok')}</div>
+    <div class="admtiles">
+      ${utile('data-govreq','i-users','درخواست پروفایل',fa(pend.length)+' در صف تأیید',pend.length?fa(pend.length):'')}
+      ${utile('data-govreq','i-doc','غیبت مجاز',fa(absP.length)+' درخواست باز',absP.length?fa(absP.length):'')}
+      ${utile('data-govreq','i-wallet','تحویل پاداش',fa(shopP.length)+' درخواست باز',shopP.length?fa(shopP.length):'')}
+    </div>
+    <hr class="hr"/>
     <div class="head tight">سیاست عضویت</div>
     <div><label class="lbl">چه کسی بتواند حساب بسازد</label>
       <div class="admfilters">${seg(UISET_META.usersRegs,'users.regs')}</div>
-      <p class="cap">«فقط کد دعوت» یعنی بدون معرف، فرم حساب خالی رد میشود.</p></div>
+      <p class="cap">${esc(REGCAP[usGet('users.regs')]||'')}</p></div>
     <div class="row"><div style="flex:1"><b class="sub">بدهی، ثبتنام را ببندد</b>
       <div class="cap">کاربر با پرداخت ردشدهٔ باز، تا تسویه نتواند ثبتنام تازه کند</div></div>
       <span class="switch ${US.dues?'on':''}" data-uk="users.dues" data-uklabel="قفل بدهی" role="switch" aria-checked="${US.dues?'true':'false'}" aria-label="قفل بدهی"></span></div>
-    <div class="row"><div style="flex:1"><b class="sub">فقط پروفایل تأییدشده در گزارشها</b>
-      <div class="cap">در صفها و شمارشها، بیپروفایلها حساب نمیشوند</div></div>
+    <div class="row"><div style="flex:1"><b class="sub">فقط تأییدشدهها در فهرست و شمارشها</b>
+      <div class="cap">فهرست بخش کاربران و گزارشها، بیپروفایلها را نشان نمیدهند</div></div>
       <span class="switch ${US.okOnly?'on':''}" data-uk="users.okOnly" data-uklabel="فقط تأییدشدهها" role="switch" aria-checked="${US.okOnly?'true':'false'}" aria-label="فقط تأییدشدهها"></span></div>
     <div><label class="lbl">پاکسازی حسابهای خام</label>
       <div class="admfilters">${seg(UISET_META.usersPrune,'users.prune')}</div>
-      <p class="cap">حسابی که بعد از این مدت هنوز پروفایلش کامل نشده، از صفها بیرون میآید؛ پرونده حذف نمیشود.</p></div>
+      <p class="cap">حسابی که بعد از این مدت پروفایلش کامل نشده، از صفها بیرون میآید؛ پرونده حذف نمیشود.</p></div>
     <hr class="hr"/>
-    <div class="head tight">مسدودها</div>
-    <p class="cap">مسدودِ فعلی سامانه: ${esc(fa(blocked))} نفر؛ برداشتن مسدودی، در پروندهٔ همان کاربر است و از اینجا نمیشود.</p>
+    <div class="row"><div class="head tight">پارامترهای پروفایل</div><span class="sp"></span>
+      <a class="btn sm quiet" href="#" data-govpar>${ico('i-sliders')} در ابزارها</a></div>
+    <p class="cap">کلید نخست فیلد را روشن و خاموش میکند و کلید دوم اجباریاش میکند؛ فرم پروفایل کاربر و درصد تکمیل از همین پیروی میکنند. ${esc(fa(nOn))} فیلد فعال · ${esc(fa(nReq))} اجباری</p>
+    ${parRows}
+    <div class="row tight">${btn('بازگشت به پیشفرض','data-uparreset','i-back')}<span class="sp"></span></div>
+    <hr class="hr"/>
+    <div class="head tight">برچسبها</div>
+    ${labTop.length?`<div class="admfilters">${labTop.map(t=>`<button class="chip" data-govtags>${esc(t)} <b>${esc(fa(labs[t]))}</b></button>`).join('')}</div>`:emptyBox('هنوز برچسبی نیست')}
+    <label class="fld"><span>برچسب تازه</span><input id="uTagNew" type="text" placeholder="مثل: داوطلب اردو"/></label>
+    <div class="row tight">${btn('ساختن برچسب','data-utagadd','i-plus')}<span class="sp"></span>
+      <a class="btn sm quiet" href="#" data-govtags>${ico('i-list')} همهٔ برچسبها</a></div>
+    <hr class="hr"/>
+    <div class="row"><div class="head tight">مسدودها</div><span class="sp"></span>
+      <span class="cap">${blocked.length?esc(fa(blocked.length))+' نفر؛ رفع مسدودی از همینجا':'کسی مسدود نیست'}</span></div>
+    ${blocked.map(mm=>`<div class="admlirow">${ico('i-lock')}
+      <span class="sp"><b>${esc(mm.n)}</b><small class="cap">${esc(mm.code)} · ${esc(fa(mm.ph))}${mm.note?' · '+esc(mm.note):''}</small></span>
+      <span class="mini">${btn('رفع مسدودی','data-uunblock="'+esc(mm.id)+'"','i-check')}
+        <button class="btn sm quiet" data-govuser="${esc(mm.id)}">پرونده</button></span></div>`).join('')||emptyBox('کاربر مسدودی نیست')}
+    <p class="cap">مسدود به هیچ بخشی راه ندارد و پیامش بسته است؛ سوپرادمین را نمیشود مسدود کرد.</p>
   </section>`;
 }
 function opsView(){
   const U=uiSet(), OP=U.ops||{};
-  const caps={5:5,8:8,12:12};
-  const cap=caps[OP.cap]||99;
-  const lrows=uLog().slice(0,6);
+  const qo=qOpen().length, lg=uLog(), maint=usGet('users.regs')==='closed';
+  const cap={5:5,8:8,12:12}[OP.cap]||99;
+  const lrows=lg.slice(0,6);
+  const jump=(k,n,i)=>`<button class="utile" data-goset="${esc(k)}"><span class="tt">${ico(i)}<b>${esc(n)}</b></span></button>`;
   return `<section class="card stack">
     <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
-      <span class="sp"></span><span class="cap">این پنل، ابزار خود مدیران است</span></div>
+      <span class="sp"></span>${maint?tag('حساب تازه بسته است','warn'):''}</div>
     <div class="row"><div class="head">مدیریت پنل</div><span class="sp"></span>
-      <span class="cap">کارتابل، لاگ، حالتنگهداری و پشتیبان</span></div>
+      <span class="cap">کارتابل، لاگ، نگهداری، پشتیبان و حافظهٔ سامانه</span></div>
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(qo))}</div><div class="l">کار باز کارتابل</div></div>
+      <div class="metric"><div class="n">${esc(fa(lg.length))}</div><div class="l">کار در لاگ</div></div>
+      <div class="metric"><div class="n">${esc(cap===99?'همه':fa(cap))}</div><div class="l">سقف کارهای کوتاه</div></div>
+      <div class="metric ${maint?'warn':''}"><div class="n">${maint?'بسته':'باز'}</div><div class="l">حساب تازه</div></div>
+    </div>
     <div class="head tight">کارتابل</div>
     <div><label class="lbl">سقف کارهای کوتاه</label>
       <div class="admfilters">${UISET_META.opsCap.map(([k,n])=>`<button class="chip ${String(usGet('ops.cap'))===String(k)?'on':''}" data-useg="ops.cap:${k}">${esc(n)}</button>`).join('')}</div>
-      <p class="cap">کارتابل مالک با «همهٔ کارها» باز میشود؛ اینجا اندازهٔ پیشفرضش را میچینی.</p></div>
+      <p class="cap">کارتابل مالک با «همهٔ کارها» باز میشود و سرپرست همان شش کارِ حوزهٔ خودش را دارد.
+        <a href="#" data-gojump="dash">بازکردن کارتابل</a></p></div>
     <div><label class="lbl">لاگ عملیات</label>
       <div class="admfilters">${UISET_META.opsLog.map(([k,n])=>`<button class="chip ${usGet('ops.log')===k?'on':''}" data-useg="ops.log:${k}">${esc(n)}</button>`).join('')}</div>
-      <p class="cap">خاموش که شود، «تاریخچهٔ» کاربران و پنل نوشتن را میایستاند.</p></div>
-    <div class="head tight">آخرین لاگها</div>
+      <div class="row tight">${btn('خالی کردن لاگ','data-logclear','i-trash')}<span class="sp"></span>
+        <span class="cap">تا چهل کارِ آخر نگه داشته میشود؛ خاموشی یعنی تاریخچه نوشتن میایستد</span></div></div>
+    <div class="head tight">آخرین کارها</div>
     ${lrows.map(r=>`<div class="admlirow"><span class="ic">${ico('i-clock')}</span>
-      <span class="sp"><b>${esc(r.act)}</b><small class="cap">${esc(r.who)} · ${esc(r.at)}</small></span></div>`).join('')}
+      <span class="sp"><b>${esc(r.act)}</b><small class="cap">${esc(r.who)} · ${esc(r.at)}</small></span></div>`).join('')||emptyBox('لاگ خالی است')}
     <hr class="hr"/>
     <div class="row"><div style="flex:1"><b class="sub">حالت نگهداری</b>
-      <div class="cap">صفحههای کاربر با پیام کوتاه بسته میشوند؛ پنل باز میماند</div></div>
-      <span class="switch ${usGet('users.regs')==='closed'?'on':''}" data-uk="maint" data-uklabel="حالت نگهداری" role="switch"
-        aria-checked="${usGet('users.regs')==='closed'?'true':'false'}" aria-label="حالت نگهداری"></span></div>
+      <div class="cap">${maint?'الان روشن است؛ عضویت بسته و خانهٔ کاربر نوار هشدار دارد':'با روشنشدن، عضویت بسته میشود و خانهٔ کاربر نوار «در حال بروزرسانی» میگیرد'}</div></div>
+      <span class="switch ${maint?'on':''}" data-uk="maint" data-uklabel="حالت نگهداری" role="switch"
+        aria-checked="${maint?'true':'false'}" aria-label="حالت نگهداری"></span></div>
     <div class="row"><span class="sp"></span>
       ${baleA('backup','پشتیبان در ربات بله')}${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>
+    <hr class="hr"/>
+    <div class="head tight">تنظیمهای مرتبط</div>
+    <div class="admtiles">
+      ${jump('texts','متنها و پیامها','i-doc')}
+      ${jump('notify','اعلانها و یادآورها','i-bell')}
+      ${jump('data','داده و پشتیبان','i-layers')}
+      ${jump('money','مالی و کارمزد','i-wallet')}
+    </div>
+    <hr class="hr"/>
+    <div class="row"><div style="flex:1"><b class="sub">حافظهٔ نهان مرورگر</b>
+      <div class="cap">نسخهٔ پنل ${esc(fa(SVER))} (nora-v${esc(fa(SVER))})؛ اگر صفحه کهنه دیدی، پاکش کن و تازه کن</div></div>
+      ${btn('پاکسازی و تازهسازی','data-cacheclr','i-bolt')}</div>
   </section>`;
 }
 /* ══ کاشی فرمساز: گزارش کلی، پیشفرضهای فرم تازه، برچسبها، پاکسازی ══ */
@@ -3503,6 +3567,17 @@ document.addEventListener('click',e=>{
     save(); renderBody(); return}
   const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; save(); renderBody(); return}
   const gv=q('[data-govusers]'); if(gv){S.skinU=0; S.skin=0; S.sec='users'; S.uV=''; save(); renderBody(); toast('به بخش کاربران رفتید'); return}
+  const gv2=q('[data-govreq]'); if(gv2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='req'; S.uSel=''; save(); renderBody(); toast('درخواستهای کاربران'); return}
+  const gt2=q('[data-govtags]'); if(gt2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='tags'; save(); renderBody(); return}
+  const gp2=q('[data-govpar]'); if(gp2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='par'; save(); renderBody(); return}
+  const gu2=q('[data-govuser]'); if(gu2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='user'; S.uSel=gu2.dataset.govuser; S.uTab='info'; S.uRej=''; save(); renderBody(); return}
+  const gj2=q('[data-gojump]'); if(gj2){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; save(); go(gj2.dataset.gojump); return}
+  const gs2=q('[data-goset]'); if(gs2){S.setG=gs2.dataset.goset; S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; save(); go('settings'); return}
+  const lc2=q('[data-logclear]'); if(lc2){S.ulog=[{at:'همین حالا',who:me().n||'مالک',act:'لاگ خالی شد'}]; save(); toast('لاگ خالی شد'); renderBody(); return}
+  const cc2=q('[data-cacheclr]'); if(cc2){
+    if(window.caches&&caches.keys){caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(()=>{toast('حافظه پاک شد؛ صفحه تازه میشود'); setTimeout(()=>location.reload(),600)}).catch(()=>toast('پاکسازی اینجا ممکن نشد'))}
+    else toast('در این مرورگر حافظهٔ نهانی نیست');
+    return}
   const mt=q('[data-uk="maint"]'); if(mt){
     const now=uiSet().users.regs==='closed';
     usSet('users.regs',now?'invite':'closed');
