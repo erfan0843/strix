@@ -537,6 +537,23 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#shAdm .k').length>=4,'مقایسهٔ دوره‌ها در ورقه هست');
   ok(!!p.doc.querySelector('#shAdm [data-bale="report_fi"]'),'اکسل همین گزارش در ورقه هست');
   p.click('#shAdm [data-close]');
+
+  /* ممیزی کامل پنل: هر دکمه و بنرِ در دسترس، واقعاً کلیک میشود */
+  ok(/ممیزی کامل پنل/.test(p.txt('#admBody')),'بلوک ممیزی کامل در گزارشها هست');
+  ok(/نقشهٔ دسترسی نقشها/.test(p.txt('#admBody')),'نقشهٔ دسترسی همهٔ نقشها نوشته میشود');
+  p.click('[data-auditrun]');
+  ok(/پیمایش شروع شد/.test(p.txt('#toast'))||/در حال پیمایش/.test(p.txt('#admBody')),'پیمایش با پیام شروع میشود');
+  let au=null;
+  for(let i=0;i<170&&!au;i++){await wait(500);
+    try{au=JSON.parse(p.store.getItem('nora-admin')||'{}').auditLast||null}catch(e){}}
+  ok(!!au,'پیمایش تا پایان میرود و ثبت میشود');
+  ok(au&&au.secs===7&&au.tot>=500&&au.tot<=900,'پیمایش از ریز تا درشت عمق دارد: '+au.tot+' کنترل در '+au.secs+' بخش');
+  ok(au&&au.mute===0&&!au.errs.length,'هیچ کنترل بیپاسخ و هیچ خطا نیست');
+  ok(au&&au.skip>=10&&au.ext>=1,'کنترلهای حساس (بازنشانی و شخص) و پیوندهای بیرونی دور ماندهاند');
+  ok(au&&au.banTot>0,'بنرهای اطلاعی هم دیده شدهاند');
+  ok(/همه پاسخ دادند/.test(p.txt('#admBody')),'جمعبندی «همه پاسخ دادند» میآید');
+  ok(/بنر و جعبهٔ اطلاعی/.test(p.txt('#admBody')),'شمار بنرهای اطلاعی نوشته میشود');
+  ok(!!p.doc.querySelector('[data-auditrun]'),'دکمهٔ پیمایش دوباره سر جایش است');
 }
 
 /* ── ۷) مرکز صدور گواهینامه ── */
@@ -1173,9 +1190,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=61')&&html.includes('admin.js?v=61'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=62')&&html.includes('admin.js?v=62'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v50'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v51'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

@@ -28,7 +28,7 @@ const un =s=>String(s==null?'':s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.i
 /* جست‌وجوی فارسی: ی و ک عربی، اعداد، و فاصلهٔ مجازی یک‌دست می‌شوند */
 const norm=s=>un(String(s||'')).toLowerCase().replace(/[يى]/g,'ی').replace(/[كک]/g,'ک')
   .replace(/\u200c/g,' ').replace(/[‌\s]+/g,' ').trim();
-const toast=UI.toast||(m=>{});
+const toast=(m)=>{ if(AUD.on) AUD.tick++; return (UI.toast||(x=>{}))(m) };
 const copy=UI.copyText||(()=>{});
 const tag=(b,k)=>b?`<span class="tag ${k||''}">${esc(b)}</span>`:'';
 const btn=(label,attrs,i)=>`<button class="btn sm" ${attrs||''}>${i?ico(i):''}${esc(label)}</button>`;
@@ -143,7 +143,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
     stamp:0,edit:''},
   defs:[], evEdit:{},
   cert:{step:0,file:'',evs:[],tags:[],xlsRows:null,picked:[],vals:{},letter:'',months:'',news:'',rand:''},
-  rpCust:[], rpCustOn:0, rpSchedExtra:[],
+  rpCust:[], rpCustOn:0, rpSchedExtra:[], auditLast:null,
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
@@ -1878,6 +1878,116 @@ function vForms(){
 }
 
 /* ── گزارش‌ها: نه گزارش ────────────────────────────────────────────────── */
+/* ── ممیزی کامل پنل: هر دکمه، کلید، چیپ، کاشی و بنرِ در دسترس همین نقش،
+   واقعاً یک بار کلیک میشود و پاسخش سنجیده میشود؛ از ریز تا درشت ── */
+const AUD={on:0, i:0, cur:'', errs:[], tick:0};
+const audSig=el=>{const d=el.dataset||{}, ks=Object.keys(d).sort().slice(0,2);
+  return el.tagName+'|'+(el.getAttribute('class')||'').trim().split(/\s+/).slice(0,2).join('.')
+    +'|'+ks.map(k=>k+'='+d[k]).join(',')+'|'+(el.getAttribute('aria-label')||el.textContent||'')
+      .replace(/\s+/g,' ').trim().slice(0,26)};
+const audBlocked=el=>{
+  if(el.matches('[data-reset],[data-who],[data-who-sheet],[data-balereg]')) return 'skip';
+  if(el.matches('a')){const h=el.getAttribute('href')||'';
+    if(/^https?:/i.test(h)||/\.html/i.test(h)||el.hasAttribute('download')) return 'ext';}
+  return '';};
+const audKind=el=>el.getAttribute('role')==='switch'?'کلید':el.classList.contains('chip')?'چیپ'
+  :el.closest('.admtiles')?'کاشی':el.matches('a')?'پیوند':'دکمه';
+const audSubs=k=>{
+  if(k==='users') return [['درخواستها','req'],['باشگاه','club'],['گواهینامه','cert'],['ابزارها','tools']]
+    .concat(['rules','ach','shop','rank','occ'].map(t=>['باشگاه › '+({rules:'قوانین',ach:'نشانها',shop:'فروشگاه',rank:'رتبه',occ:'مناسبتها'}[t]||t),'club:'+t]))
+    .concat(['report','staff','par','add','imp','tags','blocked','inbox','log'].map(t=>['ابزارها › '+t,'tools:'+t]));
+  if(k==='events') return (isMoney()?['info','reg','att','money','cert','news']:['info','reg','att','cert','news'])
+    .map(t=>['رویدادها › '+t, t]);
+  if(k==='settings'){return ((A.settings||{}).groups||[]).filter(g=>isOwner()||g.k==='cert')
+    .map(g=>['تنظیمات › '+g.n, g.k]);}
+  if(k==='newev') return [0,1,2,3,4].map(i2=>['ویزارد › گام '+fa(i2+1), String(i2)]);
+  return [];};
+function audGoto(p){
+  S.sec=p.sec;
+  if(p.sec==='users'){const parts=String(p.sub||'').split(':'), a=parts[0];
+    S.uV=a||''; S.uSel=''; S.uRej='';
+    if(a==='club') S.uClub=parts[1]||'rules';
+    if(a==='tools') S.uTool=parts[1]||'report';}
+  else if(p.sec==='events') S.evTab=p.sub||'info';
+  else if(p.sec==='settings') S.setG=p.sub||'texts';
+  else if(p.sec==='newev') S.wiz.step=+p.sub||0;
+}
+const audSel='#admBody button:not([disabled]), #admBody a.btn, #admBody [role="switch"]';
+const BAN_SEL='#admBody .balebox .ov, #admBody .notebar, #admBody .empty, #admBody .balerow';
+const audTick=()=>new Promise(r=>setTimeout(r,0));
+async function auditRun(){
+  if(AUD.on) return;
+  AUD.on=1; AUD.i=0; AUD.cur='آماده'; AUD.errs=[];
+  const snap=JSON.parse(JSON.stringify(S));
+  const errHook=e=>{AUD.errs.push(String((e&&e.message)||e).slice(0,80))};
+  window.addEventListener('error',errHook);
+  const open0=window.open, uiToast0=(window.NORA_UI||{}).toast;
+  window.open=()=>{AUD.tick++; return null};
+  if(uiToast0&&window.NORA_UI) window.NORA_UI.toast=m=>{AUD.tick++; return uiToast0(m)};
+  toast('پیمایش شروع شد؛ هر دکمه و بنرِ در دسترس تو یک بار زده میشود');
+  renderBody();
+  await audTick();
+  const secs=ALLSECS.filter(x=>canSec(x.k));
+  const locked=ALLSECS.filter(x=>!canSec(x.k)).map(x=>x.n);
+  const per=[]; let T=0, OK=0, MUTE=0, EXT=0, SKIP=0; const issues=[];
+  for(const sv of secs){
+    const subs=[{lab:'',sub:''}].concat(audSubs(sv.k).map(x=>({lab:x[0],sub:x[1]})));
+    const pt={n:sv.n, tot:0, ok:0, mute:0, ext:0, skip:0, ban:0, mutes:[]};
+    for(const sb of subs){
+      const ctx={sec:sv.k, sub:sb.sub};
+      const ctxSnap=JSON.stringify(S);
+      const done=new Set();
+      AUD.cur=sv.n+(sb.lab?' › '+sb.lab:'');
+      for(let guard=0; guard<400; guard++){
+        S=JSON.parse(ctxSnap); audGoto(ctx); closeSheets(); renderBody();
+        await audTick();
+        if(guard===0) pt.ban+=[...document.querySelectorAll(BAN_SEL)]
+          .filter(b=>(b.textContent||'').trim().length>4).length;
+        const el=[...document.querySelectorAll(audSel)].find(x=>!done.has(audSig(x)));
+        if(!el) break;
+        const sig=audSig(el); done.add(sig);
+        const bl=audBlocked(el);
+        if(bl){ if(bl==='ext') pt.ext++; else pt.skip++; continue }
+        AUD.cur=(sb.lab?sv.n+' › '+sb.lab:sv.n)+' · '
+          +((el.textContent||'').replace(/\s+/g,' ').trim().slice(0,18)||audKind(el));
+        const toastEl=document.querySelector('#toast')
+          , t0=AUD.tick
+          , toast0=toastEl?toastEl.textContent:''
+          , sheet0=document.querySelectorAll('.sheet.on').length
+          , hash0=location.hash;
+        el.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+        await audTick();
+        const toastEl2=document.querySelector('#toast')
+        const responded=AUD.tick>t0
+          || (toastEl2?toastEl2.textContent:'')!==toast0
+          || document.querySelectorAll('.sheet.on').length!==sheet0
+          || location.hash!==hash0;
+        pt.tot++;
+        if(responded) pt.ok++;
+        else {pt.mute++; pt.mutes.push(audKind(el)+': '
+          +((el.getAttribute('aria-label')||el.textContent||'').replace(/\s+/g,' ').trim().slice(0,30)||'بی‌نام'))}
+        AUD.i++; T++;
+      }
+    }
+    OK+=pt.ok; MUTE+=pt.mute; EXT+=pt.ext; SKIP+=pt.skip;
+    pt.mutes.slice(0,6).forEach(m2=>issues.push(sv.n+' · '+m2));
+    per.push(pt);
+  }
+
+  window.removeEventListener('error',errHook);
+  window.open=open0;
+  if(uiToast0&&window.NORA_UI) window.NORA_UI.toast=uiToast0;
+  S=snap;
+  S.auditLast={at:'همین حالا', who:me().n||'', lv:me().lv||'',
+    secs:secs.length, locked:locked, tot:T, ok:OK, mute:MUTE, ext:EXT, skip:SKIP,
+    errs:AUD.errs.slice(0,4), issues:issues.slice(0,10), per:per,
+    banTot:per.reduce((a2,x)=>a2+(x.ban||0),0)};
+  AUD.on=0; save(); renderBody();
+  toast(MUTE||AUD.errs.length
+    ? 'پیمایش تمام شد؛ '+fa(MUTE)+' کنترل بیپاسخ و '+fa(AUD.errs.length)+' خطا'
+    : 'پیمایش تمام شد؛ '+fa(OK)+' کنترل پاسخ داد و هیچ دکمه و بنری بیجواب نماند');
+}
+
 function vReports(){
   const periods=RP.periods||[], curP=S.rp||periods[3]||'';
   const per=periods.map(p=>`<button class="chip ${curP===p?'on':''}" data-rp="${esc(p)}">${esc(p)}</button>`).join('');
@@ -1930,6 +2040,35 @@ function vReports(){
         <span class="mini"><span class="switch ${r.on?'on':''}" data-rsch="${i}" role="switch" aria-checked="${r.on?'true':'false'}" aria-label="${esc(r.n)}"></span></span></div>`).join('')}</div>
       <div class="row">${btn('زمان‌بندی تازه: جمعبندی فصلی','data-rschnew','i-plus')}</div>
       ${baleRow('reports_sched','همین حالا یک جمعبندی از ربات بله بگیر')}
+      <hr class="hr"/>
+      <div class="head">ممیزی کامل پنل · از ریز تا درشت</div>
+      <p class="cap">${esc('پنل خودش را میپیماید: هر بخش، هر نما، هر دکمه و کلید و چیپ و کاشی و بنرِ در دسترس نقش تو یک بار کلیک میشود و پاسخش سنجیده میشود؛ بیپاسخ یعنی کنترلِ بیعکسالعمل.')}</p>
+      ${AUD.on?`<div class="audprog"><i style="width:${Math.min(96,4+AUD.i*2)}%"></i></div>
+        <p class="cap">در حال پیمایش (${fa(AUD.i)} کنترل): ${esc(AUD.cur)}</p>`
+      :(()=>{const A2=S.auditLast;
+        if(!A2) return `<p class="cap">هنوز پیمایشی ثبت نشده؛ با دکمهٔ زیر پنل با دسترسی خودت سراسر پیموده میشود.</p>`;
+        return `<div class="admkpi">
+          <div class="k"><small>بخش پیمایششده</small>${bits(fa(A2.secs))}</div>
+          <div class="k"><small>کنترل زدهشده</small>${bits(fa(A2.tot))}</div>
+          <div class="k"><small>پاسخ دادند</small>${bits(fa(A2.ok))}</div>
+          <div class="k"><small>بیپاسخ</small>${bits(fa(A2.mute))}</div></div>
+        ${(A2.issues||[]).length?`<div class="admlist">${A2.issues.map(x=>`<div class="admlirow">${ico('i-bell')}<span class="sp">${esc(x)}</span><span class="mini">${tag('بیپاسخ','warn')}</span></div>`).join('')}</div>`
+          :`<div class="row">${tag('همه پاسخ دادند؛ هیچ دکمه و بنری بیجواب نماند','ok')}</div>`}
+        ${(A2.errs||[]).length?`<div class="admlist">${A2.errs.map(x=>`<div class="admlirow">${ico('i-bell')}<span class="sp">${esc('خطا: '+x)}</span><span class="mini">${tag('خطا','warn')}</span></div>`).join('')}</div>`
+          :`<p class="cap">هیچ خطای جاوااسکریپتی هم در پیمایش درنیامد.</p>`}
+        <p class="cap">${esc('پیوندهای بیرونی '+fa(A2.ext)+' (ربات بله و صفحههای دیگر) و '+fa(A2.skip)+' کنترل حساس (بازنشانی و عوض کردن شخص) از پیمایش دور ماندند تا حالت بههم نریزد.')}</p>
+        <div class="admlist">${(A2.per||[]).map(pt=>`<div class="admlirow">${ico('i-check')}<span class="sp"><b>${esc(pt.n)}</b>
+          <small class="cap">${fa(pt.tot)} کنترل · ${pt.mute?fa(pt.mute)+' بیپاسخ':'همه پاسخ دادند'}${pt.ext?' · '+fa(pt.ext)+' پیوند بیرونی':''}</small></span>
+          <span class="mini">${pt.mute?tag('مشکل','warn'):tag('سالم','ok')}</span></div>`).join('')}</div>
+        <p class="cap">${esc(fa((A2.per||[]).reduce((a,x)=>a+(x.ban||0),0))+' بنر و جعبهٔ اطلاعی هم دیده شد و همه متن داشتند.')}</p>
+        ${(A2.locked||[]).length||!isMoney()?`<p class="cap">${esc('بیرون از دسترسی نقش تو: '+(A2.locked||[]).join('، ')+(isMoney()?'':' · و همهٔ سنجههای مالی'))}</p>`:''}
+        <p class="cap">${esc('پیمایش با دست «'+(A2.who||'')+' ('+(A2.lv||')').slice(0,0)+(A2.lv||'')+')» · '+(A2.at||''))}</p>`})()}
+      <div class="row">${AUD.on?'':btn('پیمایش کامل با دسترسی من','data-auditrun','i-check')}</div>
+      <div class="head">نقشهٔ دسترسی نقشها</div>
+      <div class="admlist">${FIELDS.map(f=>{const open=(f.sections||[]).length;
+        const lk=ALLSECS.filter(x=>(f.sections||[]).indexOf(x.k)<0).map(x=>x.n).join('، ')||'هیچ';
+        return `<div class="admlirow">${ico('i-shield')}<span class="sp"><b>${esc(f.n)}</b>
+          <small class="cap">${fa(open)} بخش از ${fa(ALLSECS.length)} · قفل: ${esc(lk)}</small></span></div>`}).join('')}</div>
       <hr class="hr"/>
       <div class="head">${esc((RP.excel||{}).n||'خروجی کامل اکسل')}</div>
       <p class="cap">${esc((RP.excel||{}).s||'')}</p>
@@ -2066,7 +2205,7 @@ function vCert(){
       ${st<3?btn(W.next||'گام بعد','data-cgo="'+(st+1)+'"','i-chev-left'):''}</div>
     <hr class="hr"/>
     <div class="head">${esc(W.jobs||'کارهای صدور')}</div>
-    <div class="admlist">${jobs.map(j=>rowLink({i:'i-medal', b:esc(j.n),
+    <div class="admlist">${jobs.map((j,ji)=>rowLink({attrs:'data-cjob="'+ji+'"', i:'i-medal', b:esc(j.n),
       s:`${esc(j.who)} · ${esc(j.way)} · ${esc(j.at)}`, right:tag(j.st==='wait'?'در نوبت':'منتشر شد',j.st==='wait'?'warn':'ok')})).join('')}</div>
     ${baleRow('cert_list','کارهای صدور گواهینامه')}
   </section>`;
@@ -2184,7 +2323,7 @@ function vSettings(){
     if(g==='data'){
       const K=ST.keys||{};
       inner+=`<hr class="hr"/><div class="head">${esc(K.title||L.keys)}</div><p class="cap">${esc(K.note||'')}</p>
-        <div class="admlist">${(K.list||[]).map(k=>rowLink({i:'i-key', b:esc(k.n),
+        <div class="admlist">${(K.list||[]).map((k,ki)=>rowLink({attrs:'data-keycopy="'+ki+'"', i:'i-key', b:esc(k.n),
           s:`<span dir="ltr">${esc(k.v)}</span>`, right:tag(k.st==='ok'?'سالم':'بررسی',k.st==='ok'?'ok':'warn')})).join('')}</div>
         <div class="row">${baleA('backup','پشتیبان در ربات بله')}
           ${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>`;
@@ -2746,7 +2885,7 @@ function body(){
   const v=VIEWS[S.sec];
   return v?v():emptyBox(T.none);
 }
-function renderBody(){$('#admBody').innerHTML=body()}
+function renderBody(){ if(AUD.on) AUD.tick++; $('#admBody').innerHTML=body()}
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */
 function sanitize(){
   if(S.v!==SVER){ S=JSON.parse(JSON.stringify(BASE)); return; }
@@ -2777,6 +2916,7 @@ function sanitize(){
     if(!Array.isArray(S.cert.tags)) S.cert.tags=[];
     if(S.cert.xlsRows&&!Array.isArray(S.cert.xlsRows)) S.cert.xlsRows=null;
     if(!S.cert.vals||typeof S.cert.vals!=='object') S.cert.vals={};
+    if(S.auditLast&&typeof S.auditLast!=='object') S.auditLast=null;
     (S.certFiles||[]).forEach(f=>{ if(!Array.isArray(f.params)) f.params=[] });
     if(S.certFind) S.certFind=String(S.certFind).slice(0,40); }
   if(!isMoney()&&S.evTab==='money') S.evTab='info';
@@ -2885,6 +3025,19 @@ document.addEventListener('click',e=>{
       toast(L[i].n+(L[i].on?' روشن شد؛ جمعبندی بعدی: ':' خاموش شد · ')+L[i].at)}
     else{const r2=ex[i-base]; r2.on=r2.on?0:1; toast(r2.n+(r2.on?' روشن شد':' خاموش شد'))}
     save(); renderBody(); return}
+  const kc=q('[data-keycopy]'); if(kc){const k=(((A.settings||{}).keys||{}).list||[])[+kc.dataset.keycopy];
+    if(k){copy(k.v,null,'«'+k.n+'» رونوشت شد')} return}
+  const ar=q('[data-auditrun]'); if(ar){auditRun(); return}
+  const cj=q('[data-cjob]'); if(cj){const j=((CE.jobs||[]).concat(S.jobs||[]))[+cj.dataset.cjob];
+    if(j){sheetImpl('shAdm',`<div class="admsheet">
+      <div class="row"><span class="ic">${ico('i-medal')}</span>
+        <span class="tx" style="min-width:0"><div class="head">${esc(j.n||'')}</div>
+        <div class="cap">${esc(j.who||'')} · ${esc(j.way||'')}</div></span><span class="sp"></span>
+        ${tag(j.st==='wait'?'در نوبت':'منتشر شد',j.st==='wait'?'warn':'ok')}</div>
+      <div class="admkpi"><div class="k"><small>گیرندگان</small>${bits((j.who||'').split(' ')[0]||'ـ')}</div>
+        <div class="k"><small>زمان</small>${bits(j.at||'ـ')}</div></div>
+      <div class="row">${baleA('cert_list','گزارش این کار از ربات بله')}
+        <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`); renderBody()} return}
   const rn=q('[data-rschnew]'); if(rn){S.rpSchedExtra=(S.rpSchedExtra||[]).concat([{n:'جمعبندی فصلی',at:'نخست هر فصل ۰۹:۰۰',on:1}]);
     save(); renderBody(); toast('زمانبندی نشست؛ نخستین جمعبندی فصلی سرِ فصل بعد در ربات بله میرسد'); return}
   const cs=q('[data-cstep]')||q('[data-cgo]');
@@ -2907,6 +3060,19 @@ document.addEventListener('click',e=>{
     const on=!cur; S.toggles[key]=on; save();
     tg.classList.toggle('on',on); tg.setAttribute('aria-checked',on?'true':'false');
     toast((tg.dataset.toglabel||'')+(on?' روشن شد':' خاموش شد')); return}
+  const frow=q('[data-formrow]'); if(frow){const i=+frow.dataset.formrow,
+      rows=madeForms().map(f=>Object.assign({},f,{made:1})).concat((A.forms||{}).rows||[]), r=rows[i];
+    if(r){const made=!!r.made;
+      sheetImpl('shAdm',`<div class="admsheet">
+        <div class="row"><span class="ic">${ico('i-doc')}</span>
+          <span class="tx" style="min-width:0"><div class="head">${esc(r.name||r.n||'')}</div>
+          <div class="cap">${esc(r.kind||r.k||'فرم')}${r.got!=null?' · '+esc(fa(r.got))+' پاسخ':''}${made?' · ساختهٔ فرم‌ساز':' · نمونهٔ آمادهٔ نورا'}</div></span><span class="sp"></span>
+          ${r.on!==undefined?tag(r.on?'باز':'بسته',r.on?'ok':''):''}</div>
+        ${r.d||r.fin?`<p class="cap">${esc(r.d||'')} ${r.fin&&r.fin.length?' · '+esc(fa(r.fin.length))+' قلم مالی':''}</p>`:''}
+        <div class="row">
+          ${made?`<a class="btn sm" href="create.html?fid=${esc(r.id)}&name=${encodeURIComponent(r.n||r.name||'')}&back=${encodeURIComponent('admin.html#forms')}" target="_blank" rel="noopener">${ico('i-sliders')}فرم‌ساز</a>`:''}
+          ${r.link?`<a class="btn sm" target="_blank" rel="noopener" href="${esc(r.link)}">${ico('i-eye')}دیدن فرم</a>`:''}
+          <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`); renderBody()} return}
   const fs=q('[data-formsw]'); if(fs){const i=+fs.dataset.formsw, r=((A.forms||{}).rows||[])[i];
     if(r){r.on=!r.on; toast(r.on?'فرم باز شد':'فرم بسته شد'); renderBody()} return}
   /* ── مطلبها: فهرست و ویرایشگر بلوکی ── */
