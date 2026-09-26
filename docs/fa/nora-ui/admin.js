@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=61;
+const SVER=62;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2475,7 +2475,7 @@ const SKIN_TILES=[
  {k:'forms', n:'فرمساز', i:'i-pen', s:'پیشفرضهای فرم تازه، برچسبها، پاکسازی'},
  {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'عضویت، پروفایل، درخواستها، مسدودها'},
  {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، نگهداری، پشتیبان'},
- {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترمها، نشانها، فروشگاه', soon:1},
+ {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترم، کتاب ماه، جلسهها، حق عضویت، پادکست، مسابقه'},
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
@@ -2759,6 +2759,233 @@ function opsView(){
       ${btn('پاکسازی و تازهسازی','data-cacheclr','i-bolt')}</div>
   </section>`;
 }
+/* ══ کاشی باشگاه کتابخوانی: از تعریف تا برنامه، هرچه هست تنظیم ══ */
+const BKTABS=[['home','هویت و ترم'],['gate','در و فرم عضویت'],['fee','حق عضویت'],['meet','جلسهها'],
+  ['pod','پادکست نبض ورق'],['game','مسابقه و چالش'],['books','کتاب و خلاصه'],['wk','کارگاهها'],['trib','تریبون و گروه']];
+const bkC=()=>(window.NORA&&NORA.CLUB)||{};
+const bkSet=()=>{if(!S.bk) S.bk={}; return S.bk};
+const bkG=(k,d)=>{const b=bkSet(); return b[k]!=null?b[k]:d};
+const bkPrice=n=>fa(Number(n||0).toLocaleString('en-US'))+' ریال';
+function bookView(){
+  const C=bkC(), cur=S.bkTab||'home';
+  const tabs=`<div class="admfilters">${BKTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-bktab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
+  const head=`<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><a class="btn sm tint" href="#" data-govclub>${ico('i-star')} باشگاه و امتیاز</a></div>
+    <div class="row"><div class="head">باشگاه کتابخوانی</div><span class="sp"></span>
+      <span class="cap">${esc(C.term||'')} · سرپرست: ${esc((function(){const p=(N.PEOPLE||[]).find(x=>x.id===(C.sup||'')); return p?p.n:''})())}</span></div>`;
+  let inner='';
+  if(cur==='home'){
+    const P=(N.PEOPLE||[]).find(x=>x.id===(C.sup||''))||{};
+    inner=`<div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(bkG('members',C.members||0)))}</div><div class="l">عضو</div></div>
+      <div class="metric"><div class="n">${esc(fa(bkG('cap',C.cap||0)))}</div><div class="l">ظرفیت</div></div>
+      <div class="metric"><div class="n">${esc(fa(bkG('meetings',C.meetings||0)))}</div><div class="l">جلسهٔ برگزارشده</div></div>
+      <div class="metric"><div class="n">${esc(fa(bkG('progress',C.progress||0)))}٪</div><div class="l">پیشرفت ترم</div></div>
+    </div>
+    <div class="admtext"><span class="lbl">نام باشگاه</span><input class="input" id="bkN" value="${esc(bkG('name','باشگاه کتاب‌خوانی خط زندگی'))}"/></div>
+    <div class="admtext"><span class="lbl">ترم</span><input class="input" id="bkTerm" value="${esc(bkG('term',C.term||''))}"/></div>
+    <div class="admtext"><span class="lbl">کتاب ماه</span><input class="input" id="bkBook" value="${esc(bkG('book',C.book||''))}"/></div>
+    <div class="admtext"><span class="lbl">نویسندهٔ کتاب ماه</span><input class="input" id="bkBy" value="${esc(bkG('bookBy',C.bookBy||''))}"/></div>
+    <div class="admtext"><span class="lbl">زمان و جای جلسه</span><input class="input" id="bkSess" value="${esc(bkG('session',C.session||''))}"/></div>
+    <div class="admtext"><span class="lbl">خبر جلسهٔ بعد</span><input class="input" id="bkNext" value="${esc(bkG('next',C.next||''))}"/></div>
+    <label class="fld"><span>سرپرست باشگاه</span><select class="input" id="bkSup">${(N.PEOPLE||[]).filter(x=>x.kind==='teacher'||x.id===(C.sup||'')).map(x=>`<option value="${esc(x.id)}" ${x.id===(bkG('sup',C.sup))?'selected':''}>${esc(x.n)}${x.r?' · '+esc(x.r):''}</option>`).join('')}</select></label>
+    <div class="row tight">
+      <label class="fld"><span>عضو کنونی</span><input id="bkMem" type="number" min="0" value="${esc(bkG('members',C.members||0))}"/></label>
+      <label class="fld"><span>ظرفیت</span><input id="bkCap" type="number" min="0" value="${esc(bkG('cap',C.cap||0))}"/></label>
+      <label class="fld"><span>جلسهٔ برگزارشده</span><input id="bkMe" type="number" min="0" value="${esc(bkG('meetings',C.meetings||0))}"/></label>
+      <label class="fld"><span>پیشرفت ترم (٪)</span><input id="bkPr" type="number" min="0" max="100" value="${esc(bkG('progress',C.progress||0))}"/></label></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ هویت باشگاه','data-bksave','i-check')}</div>`;
+  } else if(cur==='gate'){
+    const G=C.gate||{};
+    const steps=bkG('gateSteps',null);
+    const srows=(steps||(G.steps||[])).map((s,i)=>`<div class="admlirow">${ico('i-number')}
+      <span class="sp"><b>${esc(s.n)}</b><small class="cap">${esc(s.s||'')}</small></span>
+      <span class="mini">${btn('بالا','data-bkstepup="'+i+'"')}<button class="btn sm quiet" data-bkstepdn="${i}">${esc('پایین')}</button>
+        ${steps?btn('برداشتن','data-bkstepdel="'+i+'"','i-trash'):''}</span></div>`).join('');
+    inner=`<div class="head">درِ باشگاه</div>
+    <p class="cap">عضو تازه، این سه گام را از اول تا آخر میگذرد: فرم، تأیید سرپرست، حق عضویت.</p>
+    ${srows||emptyBox('گامی تعریف نشده')}
+    <div class="row tight">${btn('بازگردانی سه گام اصلی','data-bkstepreset','i-back')}<span class="sp"></span></div>
+    <hr class="hr"/>
+    <div class="head">پرسشهای فرم عضویت</div>
+    <p class="cap">فرم عضویت، برگهٔ خودِ سرپرست است؛ هر پرسش را همینجا اضافه و اجباریاش کن. فرم کامل در پنل فرمهاست.</p>
+    ${(G.fields||[]).map((f,i)=>`<div class="admlirow">${ico('i-doc')}
+      <span class="sp"><b>${esc(f.l)}</b><small class="cap">${esc((f.opts||[]).join('، ')||f.ph||'متن آزاد')}${f.req?' · اجباری':''}</small></span>
+      <span class="mini"><button class="btn sm quiet" data-bkfup="${i}">${esc('اجباری/اختیاری')}</button>
+        <button class="btn sm quiet" data-bkfdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('پرسشی نیست')}
+    <label class="fld"><span>پرسش تازه</span><input id="bkFQ" type="text" placeholder="مثل: کتابی که امسال خواندی"/></label>
+    <div class="row tight">${btn('افزودن پرسش متن','data-bkfadd','i-plus')}
+      <label class="fld" style="flex:1"><span>گزینهها (با ویرگول)</span><input id="bkFO" type="text" placeholder="مثل: رمان، داستان کوتاه، شعر"/></label>
+      ${btn('افزودن پرسش چهارگزلهای','data-bkfaddpick','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">قاعدههای باشگاه</div>
+    ${(bkG('gateRules',null)||(G.rules||[])).map((r,i)=>`<div class="admlirow">${ico('i-list')}
+      <span class="sp"><b>${esc(r)}</b></span>
+      <span class="mini"><button class="btn sm quiet" data-bkrdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')}
+    <div class="row tight"><label class="fld" style="flex:1"><span>قاعدهٔ تازه</span><input id="bkRule" type="text" placeholder="مثل: هر جلسه با یادداشت خودت بیا"/></label>
+      ${btn('افزودن قاعده','data-bkradd','i-plus')}</div>`;
+  } else if(cur==='fee'){
+    const F0=C.fee||{}, p=bkG('feePlans',null)||(F0.plans||[]);
+    inner=`<div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(bkPrice(bkG('feeAmount',F0.amount||0)))}</div><div class="l">ماهانه</div></div>
+      <div class="metric"><div class="n">${esc(bkPrice(bkG('feeStudent',F0.student||0)))}</div><div class="l">دانشجو</div></div>
+      <div class="metric"><div class="n">${esc(bkG('feeDay',F0.day||5)+'ام')}</div><div class="l">سررسید هر ماه</div></div></div>
+    <div class="row tight">
+      <label class="fld"><span>حق عضویت ماهانه (ریال)</span><input id="bkFee" type="number" min="0" value="${esc(bkG('feeAmount',F0.amount||0))}"/></label>
+      <label class="fld"><span>نرخ دانشجو (ریال)</span><input id="bkStu" type="number" min="0" value="${esc(bkG('feeStudent',F0.student||0))}"/></label>
+      <label class="fld"><span>روز سررسید</span><select class="input" id="bkDay">${[1,5,10,15].map(d=>`<option value="${d}" ${String(bkG('feeDay',F0.day||5))===String(d)?'selected':''}>${fa(d)}ام هر ماه</option>`).join('')}</select></label></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ حق عضویت','data-bkfeesave','i-check')}</div>
+    <hr class="hr"/>
+    <div class="head">بستههای پرداخت</div>
+    ${p.map((x,i)=>`<div class="admlirow">${ico('i-wallet')}
+      <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(bkPrice(x.amount))} · ${esc(x.s||'')}</small></span>
+      <span class="mini"><button class="btn sm quiet" data-bkplan="${i}">${esc('ویرایش مبلغ')}</button></span></div>`).join('')}
+    <div class="row tight">
+      <label class="fld"><span>نام بستهٔ تازه</span><input id="bkPN" type="text" placeholder="مثل: دوماهه"/></label>
+      <label class="fld"><span>مبلغ (ریال)</span><input id="bkPA" type="number" min="0" value="300000"/></label>
+      <label class="fld"><span>توضیح کوتاه</span><input id="bkPS" type="text" placeholder="مثل: مناسب تعطیلات"/></label>
+      ${btn('افزودن بسته','data-bkplanadd','i-plus')}</div>
+    <p class="cap">راه پرداخت از گروه «مالی» تنظیمات میآید (کیف پول، بله، کارت)؛ حق عضویت صرف کتاب ماه و تجهیزات و کارگاهها میشود.</p>`;
+  } else if(cur==='meet'){
+    const meet=bkG('meets',null)||(C.meet||[]);
+    const att=bkG('att',null)||(C.att||[]);
+    inner=`<div class="head">جلسههای پیش رو</div>
+    ${meet.map((m,i)=>`<div class="admlirow">${ico('i-calendar')}
+      <span class="sp"><b>${esc(m.w)} · ${esc(m.c)}</b><small class="cap">${esc(m.mode)} · میزبان ${esc(m.host)} · ${esc(m.state==='open'?'باز':m.state==='soon'?'در راه':'گذشته')}${m.took?' · '+esc(fa(m.took))+' نفر':''}</small></span>
+      <span class="mini">${m.state!=='later'?btn('برگزار شد','data-bkmeetok="'+i+'"','i-check'):''}
+        <button class="btn sm quiet" data-bkmeetdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('جلسهای نریخته')}
+    <div class="row tight">
+      <label class="fld"><span>زمان</span><input id="bkMW" type="text" placeholder="پنجشنبه ۲۴ مهر"/></label>
+      <label class="fld" style="flex:1"><span>موضوع</span><input id="bkMC" type="text" placeholder="فصل ۶: مکان روایت"/></label></div>
+    <div class="row tight">
+      <label class="fld"><span>شکل جلسه</span><select class="input" id="bkMMode">${['حضوری','حضوری و آنلاین','حضوری، با ضبط','آنلاین'].map(x=>`<option>${x}</option>`).join('')}</select></label>
+      <label class="fld"><span>میزبان</span><input id="bkMH" type="text" value="${esc((function(){const p2=(N.PEOPLE||[]).find(x=>x.id===bkG('sup','')); return p2?p2.n:''})())}"/></label>
+      ${btn('ریختن جلسه','data-bkmeetadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">حضور اعضا (نمونه)</div>
+    ${att.map(x=>`<div class="admlirow">${ico('i-users')}
+      <span class="sp"><b>${esc(x.d)} · ${esc(x.c)}</b><small class="cap">${esc(x.st)}</small></span></div>`).join('')||emptyBox('حضوری ثبت نشده')}
+    <p class="cap">حضور واقعی از ثبتنام جلسهها میآید؛ «برگزار شد» جلسهٔ باز را بسته و شمارش را میگذارد و به همهٔ اعضا اعلان خلاصهٔ جلسه میرود.</p>`;
+  } else if(cur==='pod'){
+    const P0=C.podcast||{}, eps=bkG('eps',null)||(P0.eps||[]);
+    const call=bkG('podCall',null)||(P0.call||{});
+    inner=`<div class="admtext"><span class="lbl">نام پادکست</span><input class="input" id="bkPodN" value="${esc(bkG('podName',P0.n||''))}"/></div>
+    <div class="admtext"><span class="lbl">معرفی کوتاه</span><input class="input" id="bkPodL" value="${esc(bkG('podLead',P0.lead||''))}"/></div>
+    <div class="row tight">
+      <label class="fld"><span>میزبان</span><input id="bkPodH" type="text" value="${esc(bkG('podHost',P0.host||''))}"/></label>
+      <label class="fld" style="flex:1"><span>استودیو</span><input id="bkPodS" type="text" value="${esc(bkG('podStudio',P0.studio||''))}"/></label></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ شناسنامهٔ پادکست','data-bkpodsave','i-check')}</div>
+    <hr class="hr"/>
+    <div class="head">قسمتها</div>
+    ${eps.map((e2,i)=>`<div class="admlirow">${ico('i-play')}
+      <span class="sp"><b>${esc(e2.n)}</b><small class="cap">${esc(e2.at)} · ${esc(fa(e2.min))} دقیقه · ${esc(e2.st)}</small></span>
+      <span class="mini">${e2.st!=='منتشر شد'?btn('انتشار','data-bkepok="'+i+'"','i-send'):tag('منتشر شد','ok')}</span></div>`).join('')||emptyBox('قسمتی نریخته')}
+    <div class="row tight">
+      <label class="fld" style="flex:1"><span>عنوان قسمت تازه</span><input id="bkEpN" type="text" placeholder="قسمت ۱۳: ..."/></label>
+      <label class="fld"><span>طول (دقیقه)</span><input id="bkEpM" type="number" min="1" value="30"/></label>
+      ${btn('ریختن قسمت','data-bkepadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">دعوت به همکاری در پادکست</div>
+    <div class="row tight">
+      <label class="fld" style="flex:1"><span>عنوان دعوت</span><input id="bkCallN" type="text" value="${esc(call.n||'')}"/></label></div>
+    <div class="row tight">
+      <label class="fld" style="flex:1"><span>نقشها (با ویرگول)</span><input id="bkCallR" type="text" value="${esc((call.roles||[]).join('، '))}"/></label>
+      <label class="fld"><span>نوبتهای ضبط (با ویرگول)</span><input id="bkCallS" type="text" value="${esc((call.slots||[]).join('، '))}"/></label></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ دعوت','data-bkcallsave','i-check')}</div>`;
+  } else if(cur==='game'){
+    const con=bkG('contests',null)||(C.contests||[]);
+    const ch=bkG('challenges',null)||(C.challenges||[]);
+    inner=`<div class="head">مسابقههای ماهانه</div>
+    ${con.map((x,i)=>`<div class="admlirow">${ico('i-medal')}
+      <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(x.d)} · تا ${esc(x.until)} · ${esc(x.prize)} · ${esc(fa(x.entrants))+' شرکتکننده'}</small></span>
+      <span class="mini">${x.state!=='open'?btn('باز کن','data-bkconon="'+i+'"','i-play'):tag('باز','ok')}
+        <button class="btn sm quiet" data-bkcondel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('مسابقهای نیست')}
+    <div class="row tight">
+      <label class="fld"><span>عنوان</span><input id="bkCN" type="text" placeholder="مسابقهٔ ماهانهٔ یادداشت"/></label>
+      <label class="fld" style="flex:1"><span>موضوع</span><input id="bkCD" type="text" placeholder="یادداشت دربارهٔ فصل ۶"/></label></div>
+    <div class="row tight">
+      <label class="fld"><span>مهلت</span><input id="bkCU" type="text" placeholder="پایان آبان"/></label>
+      <label class="fld"><span>جایزه</span><input id="bkCP" type="text" placeholder="۵۰۰٬۰۰۰ تومان اعتبار باشگاه"/></label>
+      ${btn('ریختن مسابقه','data-bkconadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">چالشهای همیشگی</div>
+    ${ch.map((x,i)=>`<div class="admlirow">${ico('i-bolt')}
+      <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(x.d)} · هدف ${esc(fa(x.goal))+' '+esc(x.unit)} · جایزهٔ ${esc(fa(x.reward))} امتیاز</small></span>
+      <span class="mini"><button class="btn sm quiet" data-bkchdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('چالشی نیست')}
+    <div class="row tight">
+      <label class="fld"><span>عنوان</span><input id="bkChN" type="text" placeholder="چالش هفتگی نقد"/></label>
+      <label class="fld" style="flex:1"><span>توضیح</span><input id="bkChD" type="text" placeholder="هر هفته یک نقد کوتاه بنویس"/></label></div>
+    <div class="row tight">
+      <label class="fld"><span>هدف</span><input id="bkChG" type="number" min="1" value="7"/></label>
+      <label class="fld"><span>یکا</span><input id="bkChU" type="text" value="روز"/></label>
+      <label class="fld"><span>جایزه (امتیاز)</span><input id="bkChR" type="number" min="1" value="100"/></label>
+      ${btn('ریختن چالش','data-bkchadd','i-plus')}</div>`;
+  } else if(cur==='books'){
+    const books=bkG('booksL',null)||(C.books||[]);
+    const vote=bkG('vote',null)||(C.vote||[]);
+    inner=`<div class="head">کتابها و خلاصهها</div>
+    ${books.map((x,i)=>`<div class="admlirow">${ico('i-book')}
+      <span class="sp"><b>${esc(x.t)}</b><small class="cap">${esc(x.by)} · ${esc(x.kind)}${x.min?' · '+esc(fa(x.min))+' دقیقه':''} · ${esc(x.note||'')}</small></span>
+      <span class="mini"><button class="btn sm quiet" data-bkbk="${i}">${esc('کتاب ماه کن')}</button>
+        <button class="btn sm quiet" data-bkbkdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('کتابی نریخته')}
+    <div class="row tight">
+      <label class="fld"><span>نام کتاب</span><input id="bkBkT" type="text" placeholder="سووشون"/></label>
+      <label class="fld"><span>نویسنده</span><input id="bkBkA" type="text" placeholder="سیمین دانشور"/></label>
+      <label class="fld"><span>نوع</span><select class="input" id="bkBkK">${['کتاب ماه','معرفی','خلاصه'].map(x=>`<option>${x}</option>`).join('')}</select></label>
+      ${btn('افزودن کتاب','data-bkbkadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">رأیگیری کتاب ماه بعد</div>
+    ${vote.map((x,i)=>`<div class="admlirow">${ico('i-check')}
+      <span class="sp"><b>${esc(x.t)}</b><small class="cap">${esc(x.by)} · ${esc(fa(x.n))} رأی</small></span>
+      <span class="mini">${btn('بستن رأیگیری','data-bkvoteend="'+i+'"','i-check')}</span></div>`).join('')||emptyBox('رأیگیریای باز نیست')}
+    <div class="row tight">
+      <label class="fld"><span>کتاب</span><input id="bkVT" type="text" placeholder="همسایهها"/></label>
+      <label class="fld"><span>نویسنده</span><input id="bkVA" type="text" placeholder="احمد محمود"/></label>
+      ${btn('افزودن به رأیگیری','data-bkvoteadd','i-plus')}</div>
+    <p class="cap">«بستن رأیگیری» پررایگترین را کتاب ماه بعد میکند و خبرش به گروه باشگاه و ربات بله میرود.</p>`;
+  } else if(cur==='wk'){
+    const wk=bkG('wkL',null)||(C.workshops||[]);
+    inner=`<div class="head">کارگاههای باشگاه</div>
+    ${wk.map((x,i)=>`<div class="admlirow">${ico('i-pen')}
+      <span class="sp"><b>${esc(x.t)}</b><small class="cap">${esc(x.d)} · میزبان ${esc(x.host)} · ${esc(fa(x.left))} جای خالی از ${esc(fa(x.seats))} · ${x.price?esc(bkPrice(x.price)):esc('رایگان')}</small></span>
+      <span class="mini"><button class="btn sm quiet" data-bkwkdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('کارگاهی نریخته')}
+    <div class="row tight">
+      <label class="fld"><span>عنوان</span><input id="bkWkT" type="text" placeholder="کارگاه نقد بدون ترس"/></label>
+      <label class="fld"><span>زمان</span><input id="bkWkD" type="text" placeholder="پنجشنبه ۸ آبان، ۱۸:۰۰"/></label></div>
+    <div class="row tight">
+      <label class="fld"><span>میزبان</span><input id="bkWkH" type="text" value="${esc((function(){const p3=(N.PEOPLE||[]).find(x=>x.id===bkG('sup','')); return p3?p3.n:''})())}"/></label>
+      <label class="fld"><span>ظرفیت</span><input id="bkWkS" type="number" min="1" value="16"/></label>
+      <label class="fld"><span>هزینه (ریال، صفر=رایگان)</span><input id="bkWkP" type="number" min="0" value="0"/></label>
+      ${btn('ریختن کارگاه','data-bkwkadd','i-plus')}</div>
+    <p class="cap">کارگاه با هزینه، در ثبتنام رویدادها با درگاه میآید؛ کارگاه رایگان فقط با فرم.</p>`;
+  } else if(cur==='trib'){
+    const TR0=C.tribune||{}, posts=bkG('trib',null)||(TR0.posts||[]);
+    const G0=C.group||{};
+    inner=`<div class="head">تریبون آزاد</div>
+    <div class="row tight">
+      <label class="fld" style="flex:1"><span>معرفی تریبون</span><input id="bkTrL" type="text" value="${esc(bkG('tribLead',TR0.lead||''))}"/></label></div>
+    <div class="row tight">
+      <label class="fld"><span>برچسبها (با ویرگول)</span><input id="bkTrT" type="text" value="${esc((bkG('tribTags',null)||TR0.tags||[]).join('، '))}"/></label>
+      <label class="fld"><span>سقف نامه (نویسه)</span><input id="bkTrM" type="number" min="100" max="500" value="${esc(bkG('tribMax',TR0.max||280))}"/></label>
+      ${btn('ذخیرهٔ تریبون','data-bktribsave','i-check')}</div>
+    <hr class="hr"/>
+    <div class="head">نامههای اعضا</div>
+    ${posts.map((x,i)=>`<div class="admlirow">${ico('i-chat')}
+      <span class="sp"><b>${esc(x.t)}</b><small class="cap">${esc(x.n)} · ${esc(x.tag)} · ${esc(fa(x.likes))} رأی</small></span>
+      <span class="mini"><button class="btn sm quiet" data-bktrdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('نامه‌ای نیست')}
+    <hr class="hr"/>
+    <div class="head">گروه اختصاصی</div>
+    <div class="row tight">
+      <label class="fld"><span>نام گروه</span><input id="bkGrN" type="text" value="${esc(bkG('grName',G0.n||''))}"/></label>
+      <label class="fld" style="flex:1"><span>پیوند گروه</span><input id="bkGrL" type="text" value="${esc(bkG('grLink',G0.link||''))}" dir="ltr"/></label></div>
+    <div class="row tight">
+      <label class="fld"><span>کد دعوت</span><input id="bkGrC" type="text" value="${esc(bkG('grCode',G0.code||''))}"/></label>
+      <label class="fld" style="flex:1"><span>قاعدههای گروه (با ویرگول)</span><input id="bkGrR" type="text" value="${esc((bkG('grRules',null)||G0.rules||[]).join('؛ '))}"/></label></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ گروه','data-bkgrsave','i-check')}</div>`;
+  }
+  return head+tabs+`<div class="stack tight">${inner}</div></section>`;
+}
 /* ══ کاشی فرمساز: گزارش کلی، پیشفرضهای فرم تازه، برچسبها، پاکسازی ══ */
 let fcleanArm=0;
 function formSetView(){
@@ -2831,6 +3058,7 @@ function vSettings(){
   if(own&&S.skinF) return formSetView();
   if(own&&S.skinU) return usersView();
   if(own&&S.skinO) return opsView();
+  if(own&&S.skinB) return bookView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
@@ -3693,9 +3921,10 @@ document.addEventListener('click',e=>{
     else if(k==='forms'){S.skinF=1;}
     else if(k==='users'){S.skinU=1;}
     else if(k==='ops'){S.skinO=1;}
+    else if(k==='book'){S.skinB=1; if(!S.bkTab) S.bkTab='home';}
     else {toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
     save(); renderBody(); return}
-  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; save(); renderBody(); return}
   const gv=q('[data-govusers]'); if(gv){S.skinU=0; S.skin=0; S.sec='users'; S.uV=''; save(); renderBody(); toast('به بخش کاربران رفتید'); return}
   const ntfg=q('[data-ntfg]'); if(ntfg){S.ntfG=ntfg.dataset.ntfg; save(); renderBody(); return}
   const ntfon=q('[data-ntfon]'); if(ntfon){const k=ntfon.dataset.ntfon, off=S.ntfOff||[];
@@ -3720,6 +3949,151 @@ document.addEventListener('click',e=>{
     uLogAdd('نامهٔ فوری به همهٔ اعضا رفت'); save();
     toast('نامه به همهٔ اعضا در ربات بله (@'+(A.bale||'lifeline_bot')+') رفت'); renderBody(); return}
   const ntlc=q('[data-ntflogclr]'); if(ntlc){S.ntfLog=[]; save(); toast('دفتر نامهها خالی شد'); renderBody(); return}
+  const bkt=q('[data-bktab]'); if(bkt){S.bkTab=bkt.dataset.bktab; save(); renderBody(); return}
+  const bgc=q('[data-govclub]'); if(bgc){S.skinB=0; S.skin=0; S.sec='users'; S.uV='club'; S.uClub='rules'; save(); renderBody(); toast('باشگاه و امتیاز اعضا'); return}
+  const bks=q('[data-bksave]'); if(bks){const g=n=>{const el=$('#'+n); return el?el.value.trim():''};
+    const b=bkSet();
+    b.name=g('bkN')||'باشگاه کتاب‌خوانی خط زندگی'; b.term=g('bkTerm'); b.book=g('bkBook'); b.bookBy=g('bkBy');
+    b.session=g('bkSess'); b.next=g('bkNext'); b.sup=$('#bkSup')?$('#bkSup').value:b.sup;
+    b.members=+($('#bkMem')||{}).value||0; b.cap=+($('#bkCap')||{}).value||0;
+    b.meetings=+($('#bkMe')||{}).value||0; b.progress=Math.min(100,+($('#bkPr')||{}).value||0);
+    save(); uLogAdd('شناسنامهٔ باشگاه بهروز شد'); toast('هویت باشگاه ذخیره شد'); renderBody(); return}
+  const bkr=q('[data-bkradd]'); if(bkr){const v=(($('#bkRule')||{}).value||'').trim();
+    if(!v){toast('متن قاعده را بنویس'); return}
+    const C2=bkC(); bkSet().gateRules=bkG('gateRules',null)||(C2.gate||{}).rules||[];
+    bkSet().gateRules=bkSet().gateRules.concat([v]); save(); toast('قاعده نشست'); renderBody(); return}
+  const bkrd=q('[data-bkrdel]'); if(bkrd){const i=+bkrd.dataset.bkrdel, C2=bkC();
+    const l=(bkG('gateRules',null)||(C2.gate||{}).rules||[]).slice(); l.splice(i,1);
+    bkSet().gateRules=l; save(); renderBody(); return}
+  const bkfp=q('[data-bkfup]'); if(bkfp){const i=+bkfp.dataset.bkfup, C2=bkC(), G2=C2.gate||{};
+    G2.fields[i].req=!G2.fields[i].req; save(); toast(G2.fields[i].req?'پرسش اجباری شد':'پرسش اختیاری شد'); renderBody(); return}
+  const bkfd=q('[data-bkfdel]'); if(bkfd){const i=+bkfd.dataset.bkfdel, C2=bkC(), G2=C2.gate||{};
+    G2.fields.splice(i,1); save(); toast('پرسش برداشته شد'); renderBody(); return}
+  const bkfa=q('[data-bkfadd]'); if(bkfa){const v=(($('#bkFQ')||{}).value||'').trim();
+    if(!v){toast('متن پرسش را بنویس'); return}
+    const C2=bkC(); (C2.gate.fields).push({k:'q'+Date.now(),l:v,w:'text',req:false,ph:''}); save();
+    uLogAdd('پرسش تازه به فرم عضویت باشگاه نشست'); toast('پرسش نشست'); renderBody(); return}
+  const bkfp2=q('[data-bkfaddpick]'); if(bkfp2){const v=(($('#bkFQ')||{}).value||'').trim(),
+      o=($('#bkFO')||{}).value||'';
+    if(!v){toast('متن پرسش را بنویس'); return}
+    const opts=o.split(/[,،]/).map(x=>x.trim()).filter(Boolean);
+    if(opts.length<2){toast('دستکم دو گزینه بنویس'); return}
+    const C2=bkC(); (C2.gate.fields).push({k:'q'+Date.now(),l:v,w:'pick',req:true,opts:opts}); save();
+    toast('پرسش چهارگزلهای نشست'); renderBody(); return}
+  const bksr=q('[data-bkstepreset]'); if(bksr){bkSet().gateSteps=null; save(); toast('سه گام اصلی برگشت'); renderBody(); return}
+  const bkfs=q('[data-bkstepup]'); if(bkfs){const i=+bkfs.dataset.bkstepup; const C2=bkC();
+    const l=(bkSet().gateSteps=bkSet().gateSteps||(C2.gate||{}).steps||[]).slice();
+    if(i>0){const t=l[i-1]; l[i-1]=l[i]; l[i]=t; bkSet().gateSteps=l; save(); renderBody()} return}
+  const bkfdn=q('[data-bkstepdn]'); if(bkfdn){const i=+bkfdn.dataset.bkstepdn; const C2=bkC();
+    const l=(bkSet().gateSteps=bkSet().gateSteps||(C2.gate||{}).steps||[]).slice();
+    if(i<l.length-1){const t=l[i+1]; l[i+1]=l[i]; l[i]=t; bkSet().gateSteps=l; save(); renderBody()} return}
+  const bkfsd=q('[data-bkstepdel]'); if(bkfsd){const i=+bkfsd.dataset.bkstepdel; const C2=bkC();
+    const l=(bkSet().gateSteps=bkSet().gateSteps||(C2.gate||{}).steps||[]).slice(); l.splice(i,1);
+    bkSet().gateSteps=l; save(); renderBody(); return}
+  const bkfee=q('[data-bkfeesave]'); if(bkfee){const b=bkSet();
+    b.feeAmount=+($('#bkFee')||{}).value||0; b.feeStudent=+($('#bkStu')||{}).value||0;
+    b.feeDay=$('#bkDay')?+$('#bkDay').value:5;
+    save(); uLogAdd('حق عضویت باشگاه عوض شد: '+bkPrice(b.feeAmount)); toast('حق عضویت ذخیره شد'); renderBody(); return}
+  const bkpl=q('[data-bkplan]'); if(bkpl){const i=+bkpl.dataset.bkplan, C2=bkC();
+    const l=(bkSet().feePlans=bkSet().feePlans||(C2.fee||{}).plans||[]).slice();
+    const v=window.prompt('مبلغ جدید (ریال):',l[i].amount);
+    if(v!=null&&v!==''){l[i].amount=+v||l[i].amount; bkSet().feePlans=l; save(); toast('بسته بهروز شد'); renderBody()} return}
+  const bkpla=q('[data-bkplanadd]'); if(bkpla){const n=(($('#bkPN')||{}).value||'').trim();
+    if(!n){toast('نام بسته را بنویس'); return}
+    const C2=bkC(); bkSet().feePlans=(bkG('feePlans',null)||(C2.fee||{}).plans||[]).concat(
+      [{k:'p'+Date.now(),n:n,amount:+($('#bkPA')||{}).value||0,s:($('#bkPS')||{}).value||''}]);
+    save(); toast('بسته نشست'); renderBody(); return}
+  const bkmo=q('[data-bkmeetok]'); if(bkmo){const i=+bkmo.dataset.bkmeetok, C2=bkC();
+    const l=(bkSet().meets=bkSet().meets||(C2.meet||[]).slice());
+    if(l[i]){l[i].state='later'; l[i].took=Math.max(l[i].took,Math.floor((bkG('members',0)||0)*0.8)); save();
+      uLogAdd('جلسهٔ «'+l[i].c+'» برگزار شد'); toast('جلسه بسته شد؛ خلاصه به اعضا رفت'); renderBody()} return}
+  const bkma=q('[data-bkmeetadd]'); if(bkma){const w=(($('#bkMW')||{}).value||'').trim(), c=(($('#bkMC')||{}).value||'').trim();
+    if(!w||!c){toast('زمان و موضوع را بنویس'); return}
+    const C2=bkC(); bkSet().meets=(bkG('meets',null)||(C2.meet||[])).concat(
+      [{k:'m'+Date.now(),w:w,c:c,mode:$('#bkMMode')?$('#bkMMode').value:'حضوری',host:($('#bkMH')||{}).value||'',state:'soon',took:0}]);
+    save(); uLogAdd('جلسهٔ تازهٔ باشگاه: '+c); toast('جلسه ریخت'); renderBody(); return}
+  const bkmd=q('[data-bkmeetdel]'); if(bkmd){const i=+bkmd.dataset.bkmeetdel, C2=bkC();
+    const l=(bkSet().meets=bkSet().meets||(C2.meet||[])).slice(); l.splice(i,1);
+    bkSet().meets=l; save(); renderBody(); return}
+  const bkps=q('[data-bkpodsave]'); if(bkps){const b=bkSet();
+    b.podName=($('#bkPodN')||{}).value||''; b.podLead=($('#bkPodL')||{}).value||'';
+    b.podHost=($('#bkPodH')||{}).value||''; b.podStudio=($('#bkPodS')||{}).value||'';
+    save(); toast('شناسنامهٔ پادکست ذخیره شد'); renderBody(); return}
+  const bkea=q('[data-bkepadd]'); if(bkea){const n=(($('#bkEpN')||{}).value||'').trim();
+    if(!n){toast('عنوان قسمت را بنویس'); return}
+    const C2=bkC(); bkSet().eps=(bkG('eps',null)||(C2.podcast||{}).eps||[]).concat(
+      [{k:'ep'+Date.now(),n:n,min:+($('#bkEpM')||{}).value||30,at:'در راه است',st:'در راه'}]);
+    save(); toast('قسمت ریخت'); renderBody(); return}
+  const bkeo=q('[data-bkepok]'); if(bkeo){const i=+bkeo.dataset.bkepok, C2=bkC();
+    const l=(bkSet().eps=bkSet().eps||(C2.podcast||{}).eps||[]).slice();
+    if(l[i]){l[i].st='منتشر شد'; const js=jNow();
+      l[i].at=fa(js.jy)+'/'+fa(js.jm)+'/'+fa(js.jd);
+      save(); uLogAdd('قسمت تازهٔ پادکست منتشر شد'); toast('منتشر شد؛ به گروه باشگاه و بله رفت'); renderBody()} return}
+  const bkcs=q('[data-bkcallsave]'); if(bkcs){const b=bkSet(), sp=x=>String(x||'').split(/[,،]/).map(y=>y.trim()).filter(Boolean);
+    b.podCall={n:($('#bkCallN')||{}).value||'',roles:sp($('#bkCallR')?$('#bkCallR').value:''),slots:sp($('#bkCallS')?$('#bkCallS').value:'')};
+    save(); toast('دعوت همکاری ذخیره شد'); renderBody(); return}
+  const bkca=q('[data-bkconadd]'); if(bkca){const n=(($('#bkCN')||{}).value||'').trim(), d2=(($('#bkCD')||{}).value||'').trim();
+    if(!n||!d2){toast('عنوان و موضوع را بنویس'); return}
+    const C2=bkC(); bkSet().contests=(bkG('contests',null)||(C2.contests||[])).concat(
+      [{k:'c'+Date.now(),n:n,d:d2,until:($('#bkCU')||{}).value||'',prize:($('#bkCP')||{}).value||'',entrants:0,state:'open'}]);
+    save(); uLogAdd('مسابقهٔ تازهٔ باشگاه: '+n); toast('مسابقه باز شد'); renderBody(); return}
+  const bkco=q('[data-bkconon]'); if(bkco){const i=+bkco.dataset.bkconon, C2=bkC();
+    const l=(bkSet().contests=bkSet().contests||(C2.contests||[])).slice();
+    if(l[i]){l[i].state='open'; save(); toast('مسابقه باز شد'); renderBody()} return}
+  const bkcd=q('[data-bkcondel]'); if(bkcd){const i=+bkcd.dataset.bkcondel, C2=bkC();
+    const l=(bkSet().contests=bkSet().contests||(C2.contests||[])).slice(); l.splice(i,1);
+    bkSet().contests=l; save(); renderBody(); return}
+  const bkcha=q('[data-bkchadd]'); if(bkcha){const n=(($('#bkChN')||{}).value||'').trim();
+    if(!n){toast('عنوان چالش را بنویس'); return}
+    const C2=bkC(); bkSet().challenges=(bkG('challenges',null)||(C2.challenges||[])).concat(
+      [{k:'ch'+Date.now(),n:n,d:($('#bkChD')||{}).value||'',goal:+($('#bkChG')||{}).value||7,unit:($('#bkChU')||{}).value||'روز',reward:+($('#bkChR')||{}).value||100,mine:0}]);
+    save(); toast('چالش ریخت'); renderBody(); return}
+  const bkchd=q('[data-bkchdel]'); if(bkchd){const i=+bkchd.dataset.bkchdel, C2=bkC();
+    const l=(bkSet().challenges=bkSet().challenges||(C2.challenges||[])).slice(); l.splice(i,1);
+    bkSet().challenges=l; save(); renderBody(); return}
+  const bkbka=q('[data-bkbkadd]'); if(bkbka){const t=(($('#bkBkT')||{}).value||'').trim();
+    if(!t){toast('نام کتاب را بنویس'); return}
+    const C2=bkC(); bkSet().booksL=(bkG('booksL',null)||(C2.books||[])).concat(
+      [{k:'bk'+Date.now(),t:t,by:($('#bkBkA')||{}).value||'',kind:$('#bkBkK')?$('#bkBkK').value:'معرفی',note:''}]);
+    save(); toast('کتاب نشست'); renderBody(); return}
+  const bkbk=q('[data-bkbk]'); if(bkbk){const i=+bkbk.dataset.bkbk, C2=bkC();
+    const l=(bkSet().booksL=bkSet().booksL||(C2.books||[])).slice();
+    if(l[i]){bkSet().book=l[i].t; bkSet().bookBy=l[i].by;
+      save(); uLogAdd('کتاب ماه شد: «'+l[i].t+'»'); toast('کتاب ماه عوض شد؛ خبر به گروه و بله رفت'); renderBody()} return}
+  const bkbkd=q('[data-bkbkdel]'); if(bkbkd){const i=+bkbkd.dataset.bkbkdel, C2=bkC();
+    const l=(bkSet().booksL=bkSet().booksL||(C2.books||[])).slice(); l.splice(i,1);
+    bkSet().booksL=l; save(); renderBody(); return}
+  const bkva=q('[data-bkvoteadd]'); if(bkva){const t=(($('#bkVT')||{}).value||'').trim();
+    if(!t){toast('نام کتاب را بنویس'); return}
+    const C2=bkC(); bkSet().vote=(bkG('vote',null)||(C2.vote||[])).concat(
+      [{k:'v'+Date.now(),t:t,by:($('#bkVA')||{}).value||'',n:0}]);
+    save(); toast('به رأیگیری نشست'); renderBody(); return}
+  const bkve=q('[data-bkvoteend]'); if(bkve){const i=+bkve.dataset.bkvoteend, C2=bkC();
+    const l=(bkSet().vote=bkSet().vote||(C2.vote||[])).slice();
+    if(l[i]){const b2=bkSet(); b2.book=l[i].t; b2.bookBy=l[i].by; b2.vote=[];
+      save(); uLogAdd('رأیگیری بسته شد؛ کتاب ماه بعد: «'+l[i].t+'»'); toast('کتاب ماه بعد از رأی اعضا: '+l[i].t); renderBody()} return}
+  const bkwka=q('[data-bkwkadd]'); if(bkwka){const t=(($('#bkWkT')||{}).value||'').trim();
+    if(!t){toast('عنوان کارگاه را بنویس'); return}
+    const seats=+($('#bkWkS')||{}).value||16, price=+($('#bkWkP')||{}).value||0;
+    const C2=bkC(); bkSet().wkL=(bkG('wkL',null)||(C2.workshops||[])).concat(
+      [{k:'wk'+Date.now(),t:t,d:($('#bkWkD')||{}).value||'',host:($('#bkWkH')||{}).value||'',seats:seats,left:seats,price:price}]);
+    save(); uLogAdd('کارگاه تازهٔ باشگاه: '+t); toast('کارگاه ریخت'); renderBody(); return}
+  const bkwkd=q('[data-bkwkdel]'); if(bkwkd){const i=+bkwkd.dataset.bkwkdel, C2=bkC();
+    const l=(bkSet().wkL=bkSet().wkL||(C2.workshops||[])).slice(); l.splice(i,1);
+    bkSet().wkL=l; save(); renderBody(); return}
+  const bktrs=q('[data-bktribsave]'); if(bktrs){const b=bkSet(),
+      sp=x=>String(x||'').split(/[,،]/).map(y=>y.trim()).filter(Boolean);
+    b.tribLead=($('#bkTrL')||{}).value||''; b.tribTags=sp($('#bkTrT')?$('#bkTrT').value:'');
+    b.tribMax=+($('#bkTrM')||{}).value||280;
+    save(); toast('تریبون ذخیره شد'); renderBody(); return}
+  const bktrd=q('[data-bktrdel]'); if(bktrd){const i=+bktrd.dataset.bktrdel, C2=bkC();
+    const l=(bkSet().trib=bkSet().trib||(C2.tribune||{}).posts||[]).slice(); l.splice(i,1);
+    bkSet().trib=l; save(); renderBody(); return}
+  const bkgr=q('[data-bkgrsave]'); if(bkgr){const b=bkSet(),
+      sp=x=>String(x||'').split(/[/؛،]/).map(y=>y.trim()).filter(Boolean);
+    b.grName=($('#bkGrN')||{}).value||''; b.grLink=($('#bkGrL')||{}).value||'';
+    b.grCode=($('#bkGrC')||{}).value||''; b.grRules=sp($('#bkGrR')?$('#bkGrR').value:'');
+    save(); toast('گروه ذخیره شد'); renderBody(); return}
   const gv2=q('[data-govreq]'); if(gv2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='req'; S.uSel=''; save(); renderBody(); toast('درخواستهای کاربران'); return}
   const gt2=q('[data-govtags]'); if(gt2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='tags'; save(); renderBody(); return}
   const gp2=q('[data-govpar]'); if(gp2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='par'; save(); renderBody(); return}

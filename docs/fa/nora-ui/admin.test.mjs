@@ -827,6 +827,65 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#shAdm [data-evtab="reg"]');
   ok(!!p.doc.querySelector('#shAdm [data-ntfsend="reg_ok"]'),'برگهٔ رویداد دکمهٔ اعلان بلیت دارد');
   ok(/همان لحظهٔ قطعی/.test(p.txt('#shAdm')),'زیر دکمه، قاعدهٔ لحظهٔ ارسال نوشته شده');
+  /* ── کاشی باشگاه کتابخوانی: از تعریف تا برنامه ── */
+  console.log('\n── کاشی باشگاه کتابخوانی ──');
+  p.click('#admNav [data-sec="settings"]');
+  p.click('[data-skit="book"]');
+  ok(/باشگاه کتابخوانی/.test(p.txt('#admBody')),'کاشی باشگاه کتابخوانی باز شد');
+  ok(p.all('[data-bktab]').length===9,'نه برگه: هویت، در، حق عضویت، جلسهها، پادکست، مسابقه، کتاب، کارگاه، تریبون');
+  ok(p.all('#admBody .metric').length===4,'چهار عدد ترم: عضو، ظرفیت، جلسه، پیشرفت');
+  p.doc.querySelector('#bkBook').value='سووشون';
+  p.click('[data-bksave]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.book==='سووشون','هویت باشگاه (کتاب ماه و ترم و سرپرست) ذخیره میشود');
+  p.click('[data-bktab="gate"]');
+  ok(p.all('[data-bkstepup]').length===3,'درِ باشگاه سه گام دارد و جابهجا میشود');
+  ok(p.all('[data-bkfup]').length===5,'پنج پرسش فرم عضویت، از کاشی اجباری و برداشتن دارد');
+  p.doc.querySelector('#bkFQ').value='سبک مورد علاقه';
+  p.doc.querySelector('#bkFO').value='رمان، شعر، نقد';
+  p.click('[data-bkfaddpick]');
+  ok(p.all('[data-bkfup]').length===6,'پرسش چهارگزلهای تازه به فرم عضویت نشست');
+  p.doc.querySelector('#bkRule').value='هر ماه یک نقد کوتاه';
+  p.click('[data-bkradd]');
+  ok(p.all('[data-bkrdel]').length===4,'قاعدهٔ تازهٔ باشگاه نشست');
+  p.click('[data-bktab="fee"]');
+  p.doc.querySelector('#bkFee').value='200000';
+  p.click('[data-bkfeesave]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.feeAmount===200000,'حق عضویت ماهانه و نرخ دانشجو و سررسید ذخیره میشود');
+  ok(p.all('[data-bkplan]').length===3,'سه بستهٔ پرداخت با ویرایش مبلغ');
+  p.click('[data-bktab="meet"]');
+  p.click(p.doc.querySelector('[data-bkmeetok]'));
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.meets[0].state==='later','برگزار شد، جلسهٔ باز را میبندد');
+  p.doc.querySelector('#bkMW').value='پنجشنبه ۲۴ مهر';
+  p.doc.querySelector('#bkMC').value='فصل ۶: مکان روایت';
+  p.click('[data-bkmeetadd]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.meets.length===4,'جلسهٔ تازه با میزبان و شکل جلسه ریخته میشود');
+  p.click('[data-bktab="pod"]');
+  p.click(p.doc.querySelector('[data-bkepok]'));
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.eps[0].st==='منتشر شد','انتشار قسمت پادکست، با مهر تاریخ');
+  p.click('[data-bktab="game"]');
+  p.doc.querySelector('#bkCN').value='مسابقهٔ نقد';
+  p.doc.querySelector('#bkCD').value='نقد فصل ۶';
+  p.click('[data-bkconadd]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.contests.length===3,'مسابقهٔ تازه با مهلت و جایزه باز شد');
+  p.click('[data-bktab="books"]');
+  p.doc.querySelector('#bkVT').value='همسایهها';
+  p.click('[data-bkvoteadd]');
+  {const vs=p.all('[data-bkvoteend]'); p.click(vs[vs.length-1]);}
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.book==='همسایهها'&&JSON.parse(p.store.getItem('nora-admin')).bk.vote.length===0,
+     'بستن رأیگیری، پررایگترین را کتاب ماه بعد میکند');
+  p.click('[data-bktab="wk"]');
+  p.doc.querySelector('#bkWkT').value='کارگاه آزمایشی';
+  p.click('[data-bkwkadd]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.wkL.length===4,'کارگاه تازه با ظرفیت و هزینه ریخته میشود');
+  p.click('[data-bktab="trib"]');
+  p.doc.querySelector('#bkTrM').value='300';
+  p.click('[data-bktribsave]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.tribMax===300,'تریبون: برچسبها و سقف نامه ذخیره میشود');
+  p.doc.querySelector('#bkGrR').value='قاعدهٔ یک؛ قاعدهٔ دو';
+  p.click('[data-bkgrsave]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).bk.grRules.length===2,'گروه اختصاصی: پیوند و کد و قاعدهها ذخیره میشود');
+  p.click('[data-govclub]');
+  ok(/باشگاه و امتیاز/.test(p.txt('#admBody')),'میانبر «باشگاه و امتیاز»، برگهٔ اعضا را باز کرد');
   {p.click('#admNav [data-sec="settings"]');
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
    p.click('[data-skit="ops"]');}
@@ -1229,7 +1288,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:61, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:62, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1458,9 +1517,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=72')&&html.includes('admin.js?v=72'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=73')&&html.includes('admin.js?v=73'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v61'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v62'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
