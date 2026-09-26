@@ -10,9 +10,11 @@
    لینک ربات بله، شش گروه تنظیمات، یک مالک و شش
    حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
    سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
-   روشن‌ها، هفت کاشی تنظیمات با کاشی پشتیبانی و گفتگو (صندوق زندهٔ
-   تیکتها با پاسخ کارشناس، سرویس و ساعات با کلید مشترک به صفحهٔ کاربر،
-   گزارش هفتروزه)، و پاکی متن فارسی.
+   روشن‌ها، هفت کاشی تنظیمات با کاشی پنجبرگهٔ پشتیبانی و گفتگو (صندوق
+   زندهٔ تیکتها با جستوجو و فوریت و واگذاری، پاسخهای آمادهٔ متغیردار با
+   ساخت و ویرایش و برداشتن، سرویس و ساعات و تعطیلی و پاسخ بیرون از ساعت
+   با کلید مشترک به صفحهٔ کاربر، تیم پاسخگو با ساخت و انتشار به کاربر،
+   گزارش هفتروزه و اکسل)، و پاکی متن فارسی.
    ══════════════════════════════════════════════════════════════════════════ */
 import jsdom from 'jsdom';
 const {JSDOM}=jsdom;
@@ -977,7 +979,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-skit="skdev"]');
   p.click('[data-goev]');
   ok(/رویداد|مطلب/.test(p.txt('#admBody')),'میانبر بخش رویدادها، همان بخش را باز کرد');
-  /* ═══ کاشی «پشتیبانی و گفتگو»: صندوق زندهٔ تیکتها، سرویس و ساعات، گزارش ═══ */
+  /* ═══ کاشی «پشتیبانی و گفتگو»: صندوق، پاسخهای آماده، سرویس، تیم، گزارش ═══ */
   {const now=Date.now();
    const TKS=[{id:'t1',code:'11827',sec:'pay',cat:'پرداخت',anon:false,name:'رضا کریمی',contact:'۰۹۱۲۱۱۱۲۲۳۳',
       at:now-5*3600000,thread:[{who:'me',at:now-5*3600000,text:'پرداختم دوبار کم شد؛ لطفاً بررسی کنید.'}]},
@@ -989,39 +991,80 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    pc.click('#admNav [data-sec="settings"]');
    ok(pc.all('[data-skit]').length===7&&!/در نوبت بعد/.test(pc.txt('[data-skit="chat"]')),'کاشی پشتیبانی و گفتگو از نوبت خارج شد و هفت کاشی کامل است');
    pc.click('[data-skit="chat"]');
-   ok(/پشتیبانی و گفتگو/.test(pc.txt('#admBody .head'))&&/داخل ساعات|خارج از ساعت/.test(pc.txt('#admBody .tag')),'سربرگ کاشی با نشان زندهٔ ساعات پاسخگویی');
+   ok(pc.all('[data-chtab]').length===5,'پنج برگه: گفتگوها، پاسخهای آماده، سرویس، تیم، گزارش');
+   ok(/داخل ساعات|خارج از ساعت/.test(pc.txt('#admBody .tag')),'نشان زندهٔ ساعات پاسخگویی سرِ کاشی');
    ok(pc.all('#admBody .metric').length===4&&pc.all('[data-chopen]').length===2,'صندوق: چهار کمّار و دو گفتگوی واقعی از حافظهٔ صفحهٔ پشتیبانی');
    ok(/گذشت از مهلت/.test(pc.txt('#admBody')),'تیکت گذشته از مهلت، نشان «گذشت از مهلت» میگیرد');
    ok(/تیکت بیپاسخ مانده/.test(pc.txt('#admBody')),'یادآور تیکت بیپاسخ بالای صندوق می‌نشیند');
-   pc.click('[data-chf="closed"]');
-   ok(pc.all('[data-chopen]').length===1,'صافی وضعیت، صندوق را میبَرد');
-   pc.click('[data-chf="all"]'); pc.click('[data-chopen="t1"]');
-   ok(/رضا کریمی/.test(pc.txt('#admBody'))&&pc.all('.ch-msg').length===1,'گفتوگو: نام و تماس کاربر و پیامهای رشته');
-   ok((pc.doc.querySelector('#chMsg')||{value:''}).value.length>10,'کادر پاسخ برای تیکت بیپاسخ، با پاسخ نخست پیشنویس شده');
-   pc.click('[data-chuse="1"]');
-   ok(pc.doc.querySelector('#chMsg').value.includes('رهگیری'),'پاسخ آماده با یک زدن در کادر می‌نشیند');
+   /* جستوجو */
+   pc.type('#chQ','کریمی'); pc.click('[data-chqgo]');
+   ok(pc.all('[data-chopen]').length===1,'جستوجو در نام و کد و متن گفتگوها');
+   pc.click('[data-chqclr]');
+   ok(pc.all('[data-chopen]').length===2,'پاککردن جستوجو، همه را برگرداند');
+   /* فوریت و واگذاری */
+   pc.click('[data-chopen="t1"]');
+   pc.click('[data-chprio="t1"]');
+   ok(JSON.parse(pc.store.getItem('nora-support-tickets'))[0].prio===1&&/فوری/.test(pc.txt('#admBody')),'فوریت تیکت نشست و نشانش دیده میشود');
+   pc.click('[data-chassign="t1:سعید رضایی"]');
+   ok(JSON.parse(pc.store.getItem('nora-support-tickets'))[0].assign==='سعید رضایی','واگذاری تیکت به پاسخگوی دلخواه');
+   /* قالب آماده با متغیر */
+   pc.click('[data-chuse="2"]');
+   ok(pc.doc.querySelector('#chMsg').value.includes('رضا کریمی')&&pc.doc.querySelector('#chMsg').value.includes('۱۱۸۲۷'),'قالب آماده با متغیرهای {نام} و {کد} در گفتوگو پر میشود');
    pc.type('#chMsg','بررسی شد؛ مبلغ دومی تا هفتاد و دو ساعت برمیگردد.');
    pc.click('[data-chsend]');
    const t1=JSON.parse(pc.store.getItem('nora-support-tickets'))[0];
-   ok(t1.thread[t1.thread.length-1].who==='agent'&&t1.thread[t1.thread.length-1].by==='حسن مقدم','پاسخ به نام پاسخگوی کنونی در تیکت کاربر نشست');
+   ok(t1.thread[t1.thread.length-1].who==='agent'&&t1.thread[t1.thread.length-1].by==='سعید رضایی','پاسخ به نام پاسخگوی واگذارشده در تیکت کاربر نشست');
    ok(/پاسخ داده شد/.test(pc.txt('#admBody')),'وضعیت تیکت به «پاسخ داده شد» چرخید');
    pc.click('[data-chclose]');
    ok(JSON.parse(pc.store.getItem('nora-support-tickets'))[0].closed===1,'بستن تیکت در حافظهٔ مشترک مینویسد');
    pc.click('[data-chreopen]');
    ok(JSON.parse(pc.store.getItem('nora-support-tickets'))[0].closed===0,'گشودن تیکت، همان را برمیگرداند');
+   /* برگهٔ پاسخهای آماده: افزودن، ویرایش، برداشتن، متغیر */
+   pc.click('[data-chtab="canned"]');
+   ok(pc.all('[data-chvar]').length===3,'سه متغیر آماده: {نام}، {کد}، {بخش}');
+   pc.type('#chCann','صبر کن {کد} را بررسی کنم'); pc.click('[data-chcannadd]');
+   ok(pc.all('[data-chcdel]').length===4&&/متغیر دارد/.test(pc.txt('#admBody')),'افزودن پاسخ آمادهٔ تازه با تشخیص متغیر');
+   pc.click('[data-chcannedit="3"]'); pc.type('#chCannEd','ویرایش شد'); pc.click('[data-chcannsave]');
+   ok(/ویرایش شد/.test(pc.txt('#admBody')),'ویرایش درجای پاسخ آماده');
+   pc.click('[data-chvar="{نام}"]');
+   ok(pc.doc.querySelector('#chCann').value.includes('{نام}'),'کلیک متغیر، آن را در کادر میگذارد');
+   pc.click('[data-chcdel="3"]');
+   ok(pc.all('[data-chcdel]').length===3,'برداشتن پاسخ آماده');
+   /* برگهٔ سرویس: تعطیلی، پاسخ بیرون از ساعت، ساخت متن، ذخیرهٔ کلید مشترک */
    pc.click('[data-chtab="svc"]');
-   ok(pc.all('[data-chday]').length===7&&pc.all('[data-chagent]').length===5,'سرویس: هفت روز هفته و پنج پاسخگو (لید و کارشناسها)');
+   ok(pc.all('[data-chday]').length===7&&!!pc.doc.querySelector('#chFrom')&&!!pc.doc.querySelector('#chTo'),'سرویس: هفت روز هفته و ساعات از/تا');
+   pc.click('[data-chtog="closedNow"]');
+   ok(/تعطیل موقت/.test(pc.txt('#admBody')),'تعطیلی موقت، نشان سرِ کاشی را همان لحظه چرخاند');
+   pc.click('[data-chtog="awayOn"]');
+   pc.click('[data-chautotext]');
+   ok(pc.doc.querySelector('#chHrsT').value.length>4,'ساخت خودکار متن ساعات از اعداد و روزها');
    pc.click('[data-chday="6"]');
-   pc.type('#chFrom','۰'); pc.type('#chTo','۲۴'); pc.type('#chReply','تا دو ساعت کاری پاسخ میدهیم');
+   pc.type('#chReply','تا دو ساعت کاری پاسخ میدهیم');
    pc.click('[data-chsvsave]');
    const sk=JSON.parse(pc.store.getItem('nora-support-hours')||'null');
-   ok(!!sk&&sk.from===0&&sk.to===24&&/دو ساعت/.test(sk.reply),'ذخیرهٔ سرویس در کلید مشترک nora-support-hours مینشیند');
-   ok(/همین حالا داخل ساعات پاسخگویی/.test(pc.txt('#admBody')),'نشان زندهٔ ساعات با اعداد تازه چرخید');
-   pc.type('#chCann','لینک جلسه پیش از کلاس میآید'); pc.click('[data-chcannadd]');
-   ok(pc.all('[data-chcdel]').length===4,'افزودن پاسخ آمادهٔ تازه');
+   ok(!!sk&&sk.closedNow===1&&sk.awayOn===1&&/دو ساعت/.test(sk.reply)&&Array.isArray(sk.days)&&sk.days.includes(6),'ذخیرهٔ کامل سرویس در کلید مشترک nora-support-hours');
+   pc.click('[data-chtog="closedNow"]'); pc.click('[data-chsvsave]');
+   ok(JSON.parse(pc.store.getItem('nora-support-hours')).closedNow===0,'برداشتن تعطیلی، در کلید مشترک هم برمیگردد');
+   ok(/داخل ساعات|خارج از ساعت/.test(pc.txt('#admBody .tag')),'با برداشتن تعطیلی، نشان ساعات برگشت');
+   /* برگهٔ تیم: عضو تازه، ویرایش، آنلاین، انتشار به کاربر */
+   pc.click('[data-chtab="team"]');
+   ok(pc.all('[data-chteamdel]').length===5&&pc.all('[data-chagent]').length===5,'تیم پاسخگو: پنج عضو از دادهٔ سامانه (لید و کارشناسها)');
+   pc.type('#chTmN','هومن راد'); pc.type('#chTmR','کارشناس رویدادها'); pc.click('[data-chteamadd]');
+   ok(pc.all('[data-chteamdel]').length===6,'افزودن عضو تازه به تیم');
+   pc.click('[data-chteamedit="5"]'); pc.type('#chTmER','سرپرست رویدادها'); pc.click('[data-chteamsave]');
+   ok(/سرپرست رویدادها/.test(pc.txt('#admBody')),'ویرایش درجای عضو تیم');
+   pc.click('[data-chteamon="5"]');
+   ok(JSON.parse(pc.store.getItem('nora-admin')).ch.team[5].on===0,'کلید آنلاین/بعداً هر عضو');
+   pc.click('[data-chteampub]');
+   const tk=JSON.parse(pc.store.getItem('nora-support-team')||'null');
+   ok(!!tk&&tk.list.length===6&&tk.list[5].r==='سرپرست رویدادها','انتشار تیم در کلید مشترک nora-support-team برای صفحهٔ کاربر');
+   pc.click('[data-chteamdel="5"]');
+   ok(/منتشرنشده/.test(pc.txt('#admBody')),'پس از تغییر بی انتشار، حالت «منتشرنشده» دیده میشود');
+   /* برگهٔ گزارش */
    pc.click('[data-chtab="rep"]');
    ok(pc.all('.ch-bars b').length===7,'گزارش: نمودار هفتروزه با هفت ستون');
-   ok(/پرداخت/.test(pc.txt('#admBody'))&&/گواهی/.test(pc.txt('#admBody')),'گزارش تیکتها بر پایهٔ بخش');
+   ok(/بی‌نام/.test(pc.txt('#admBody'))&&/فوری/.test(pc.txt('#admBody')),'شمارش بی‌نام و فوری و واگذارشده در گزارش');
+   ok(/گزارش اکسل/.test(pc.txt('#admBody')),'خروجی اکسل صندوق از ربات بله');
    ok(pc.errs.length===0,'کاشی پشتیبانی و گفتگو بیخطا بود');}
   {p.click('#admNav [data-sec="settings"]');
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
@@ -1425,7 +1468,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:68, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:69, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1654,9 +1697,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=79')&&html.includes('admin.js?v=79'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=80')&&html.includes('admin.js?v=80'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v68'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v69'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

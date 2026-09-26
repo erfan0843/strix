@@ -403,7 +403,7 @@ async function load(store,hash){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=79')&&html.includes('support.js?v=79')&&html.includes('data.js?v=79'),'نسخهٔ دارایی‌ها تازه شده');
+  ok(html.includes('support.css?v=80')&&html.includes('support.js?v=80')&&html.includes('data.js?v=80'),'نسخهٔ دارایی‌ها تازه شده');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');
@@ -417,12 +417,22 @@ async function load(store,hash){
   ok(sw.includes("'support.html'")&&sw.includes("'support.css'")&&sw.includes("'support.js'"),'سرویس‌ورکر صفحهٔ پشتیبانی را پیش‌بار می‌کند');
   const man=fs.readFileSync(DIR+'manifest.webmanifest','utf8');
   ok(man.includes('support.html'),'میان‌بر پشتیبانی در manifest');
-  /* تنظیم پنل: کاشی «پشتیبانی و گفتگو» ساعات و وعده را از کلید مشترک میخواند */
+  /* تنظیم پنل: کاشی «پشتیبانی و گفتگو» ساعات، تعطیلی و تیم را از کلیدهای مشترک میخواند */
   {const st=makeStore({'nora-support-hours':JSON.stringify({hours:'همهروز، ۸ تا ۲۲',reply:'تا دو ساعت کاری پاسخ میدهیم'})});
    const po=await load(st);
    ok(po.txt('#supHours').includes('همهروز، ۸ تا ۲۲'),'ساعات سرصفحه از تنظیم کاشی پشتیبانی پنل میآید');
    const p2=await load(makeStore());
    ok(p2.txt('#supHours').includes('۹ تا ۱۸'),'بی کلید پنل، پیشفرض سامانه سر جایش است');}
+  {const st=makeStore({'nora-support-hours':JSON.stringify({closedNow:1,closedMsg:'صندوق تا شنبه تعطیل است'})});
+   const pc=await load(st);
+   ok(pc.txt('#supLive').includes('تعطیل موقت'),'تعطیلی موقت پنل، نشان سرصفحهٔ کاربر را عوض میکند');
+   pc.click('.hacts [data-ticket]');
+   ok(/تا شنبه تعطیل است/.test(pc.txt('#modal')),'پیام تعطیلی روی فرم تیکت کاربر می‌نشیند');}
+  {const st=makeStore({'nora-support-team':JSON.stringify({list:[{n:'هومن راد',r:'سرپرست رویدادها',on:1},{n:'مینا فراهانی',r:'کارشناس پرداخت',on:0}]})});
+   const pt=await load(st);
+   ok(pt.txt('#exList').includes('هومن راد')&&pt.txt('#exList').includes('مینا فراهانی'),'تیم منتشرشدهٔ پنل، فهرست کارشناسهای صفحهٔ کاربر میشود');
+   ok(pt.txt('#exCount').includes('۱ نفر آنلاین'),'شمارندهٔ آنلاینها از تیم پنل میآید');
+   ok(!pt.txt('#exList').includes('حسن مقدم'),'با انتشار تیم، فهرست پیشفرض جمع میشود');}
   const doc=fs.readFileSync(DIR+'support-arch.md','utf8');
   ok(doc.includes('گام')&&doc.includes('تیکت')&&doc.includes('کارشناس'),'سند معماری پشتیبانی به‌روز است');
 }

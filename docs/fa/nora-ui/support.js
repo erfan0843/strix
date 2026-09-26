@@ -44,6 +44,26 @@ function supOvr(k,d){
   }catch(e){ return d }
 }
 
+/* تنظیم کامل سرویس از کاشی «پشتیبانی و گفتگو»ی پنل؛ بی کلید یعنی پیشفرض سامانه */
+function supSvc(){
+  try{ const v=JSON.parse(localStorage.getItem('nora-support-hours')||'null'); return v||null }
+  catch(e){ return null }
+}
+/* داخل یا بیرون ساعات پاسخگویی، با اعداد خود پنل؛ بی کلید پنل، تصمیمی نمیدهد */
+function supOpenNow(){
+  const o=supSvc(); if(!o||!Array.isArray(o.days)) return null;
+  const n=new Date(), d=(n.getDay()+1)%7;
+  if(o.days.indexOf(d)<0) return false;
+  const h=n.getHours()+n.getMinutes()/60;
+  return h>=+o.from&&h<+o.to;
+}
+/* تیم پاسخگو: اگر پنل تیمی منتشر کرده باشد، همان فهرست نمایش داده میشود */
+function supTeam(){
+  try{ const v=JSON.parse(localStorage.getItem('nora-support-team')||'null');
+    return (v&&Array.isArray(v.list)&&v.list.length)?v.list:null;
+  }catch(e){ return null }
+}
+
 function stamp(t){
   try{ return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(t||Date.now())) }
   catch(e){ return 'امروز' }
@@ -304,7 +324,8 @@ function renderResults(){
 /* ── بقیهٔ صفحه ───────────────────────────────────────────────────────── */
 function renderHead(){
   const on=(SUP.experts||[]).filter(e=>e.on).length;
-  const lv=$('#supLive'); if(lv) lv.textContent=on?'آنلاین':'خارج از ساعت';
+  const lv=$('#supLive');
+  if(lv) lv.textContent=supSvc()&&supSvc().closedNow?'تعطیل موقت':(on?'آنلاین':'خارج از ساعت');
   const hr=$('#supHours'); if(hr) hr.textContent=supOvr('hours',SUP.hours||'');
   const oc=$('#tkOpenCap');
   if(oc) oc.textContent=openCount()?faN(openCount())+' تیکت باز از '+faN(MAXOPEN):'می‌توانی تیکت بزنی';
@@ -318,7 +339,9 @@ function renderHowto(){
 function renderTeam(){
   const box=$('#exList');
   if(box){
-    const L=SUP.lead||{}, rows=L.n?[L].concat(SUP.experts||[]):(SUP.experts||[]);
+    const L=SUP.lead||{};
+    let rows=supTeam();
+    if(!rows) rows=L.n?[L].concat(SUP.experts||[]):(SUP.experts||[]);
     box.innerHTML=rows.map(e=>{
       const ms=(e.m||[]).map(m=>'<a class="mchip" href="https://'+esc((MESS[m.k]||'')+m.h)+'" target="_blank" rel="noopener">'+ico('i-link')+esc(m.k)+'</a>').join('');
       return '<div class="ecard anim"><span class="eav">'+esc((e.n||'ن').trim().charAt(0))+'</span>'+
@@ -509,7 +532,9 @@ function sheetOpen(id){
 }
 function ticketForm(s,anon){
   const cat=(CATS.indexOf(s.cat)>-1?s.cat:(CATS[0]||'پشتیبانی'));
+  const sv=supSvc();
   return '<div class="tkt">'+
+    (sv&&sv.closedNow?'<p class="fine">'+ico('i-clock')+' '+esc(sv.closedMsg||'صندوق در تعطیلی موقت است؛ پیامت می‌ماند و به محض باز شدن پاسخ میدهیم.')+'</p>':'')+
     (anon?'<p class="fine">'+ico('i-eye')+' نام و شماره‌ات ثبت نمی‌شود؛ کد پیگیری فقط برای خودت است.</p>':
       '<label>نام و نشان<input id="fName" type="text" autocomplete="name" placeholder="مثلاً سارا محمدی"/></label>'+
       '<label>راه تماس (اختیاری)<input id="fContact" type="text" inputmode="tel" autocomplete="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹ یا رایانامه"/></label>')+
@@ -561,6 +586,14 @@ function submitTicket(k){
       body:'<p class="cap" style="text-align:start">خوانده می‌شود و روی تصمیم‌ها اثر می‌گذارد؛ ولی چون نشانی‌ای از تو ثبت نشده، پاسخی به همین پیام نمی‌آید. کد پیگیری برای خودت است.</p>'+
         '<button class="btn block" type="button" data-ticket="complain">'+ico('i-pen')+' اگر پاسخ می‌خواهی، تیکت حساب‌دار بزن</button>',
       foot:'<button class="btn primary block" type="button" data-mclose>باشه</button>'});
+    return;
+  }
+  const sv2=supSvc(), open=supOpenNow();
+  if(sv2&&sv2.awayOn&&open===false){
+    msgToThread(id,{who:'agent',by:'دستیار نورا',at:Date.now(),
+      text:(sv2.awayText||'صندوق بیرون از ساعات پاسخگویی است؛ پیامت ثبت شد و اول وقت پاسخ میدهیم.')});
+    renderAll(); openThread(id);
+    toast('بیرون از ساعات پاسخگویی‌ایم؛ اول وقت پاسخ میدهیم');
     return;
   }
   openThread(id);
