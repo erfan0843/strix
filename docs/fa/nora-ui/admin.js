@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=64;
+const SVER=65;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2759,13 +2759,17 @@ function opsView(){
       ${btn('پاکسازی و تازهسازی','data-cacheclr','i-bolt')}</div>
   </section>`;
 }
-/* ══ کاشی رویدادها و مطالب: برچسب، دسته، تقویم، قالب مطلب، میانبرها ══ */
-const SDTABS=[['tag','برچسبهای برنامه'],['cat','دستههای رویداد'],['cal','تقویم و تعطیلات'],
-  ['tpl','قالب مطلب'],['cta','دکمهها و میانبرها'],['mod','سیاست انتشار']];
-const QTAGS_L=()=>((window.NORA||{}).QTAGS||[]).slice(1).map(x=>x.k);
-const CATS_L=()=>((window.NORA||{}).CATS)||[];
+/* ══ کاشی رویدادها و مطالب: هر چه عضو از برنامه و مطلب میبیند، از اینجا قالب میگیرد ══ */
+const SDTABS=[['tag','برچسبها'],['cat','دستهها'],['cal','تقویم'],['tpl','قالب مطلب'],
+  ['cta','دکمهها'],['mod','سیاست انتشار']];
 const sdSet=()=>{if(!S.sd) S.sd={}; return S.sd};
 const sdG=(k,d)=>{const b=sdSet(); return b[k]!=null?b[k]:d};
+const QTAGS_L=()=>((window.NORA||{}).QTAGS||[]).slice(1).map(x=>x.k);
+const CATS_L=()=>((window.NORA||{}).CATS)||[];
+const SD_HOL=()=>sdG('holidays',[
+  {n:'ظهر جمعه', w:'جمعهها', d:'برنامهٔ ظهر جمعه پیشفرض نمیگیرد'},
+  {n:'شب یلدا', d:'۳۰ آذر؛ پیشنهاد برنامهٔ خاص'},
+  {n:'نوروز', d:'۱ تا ۱۳ فروردین؛ تعطیلی رسمی'}]);
 function skdevView(){
   const cur=S.sdTab||'tag';
   const tabs=`<div class="admfilters">${SDTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-sdtab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
@@ -2773,28 +2777,40 @@ function skdevView(){
     <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
       <span class="sp"></span><a class="btn sm tint" href="#" data-goev>${ico('i-calendar')} بخش رویدادها و مطالب</a></div>
     <div class="row"><div class="head">رویدادها و مطالب</div><span class="sp"></span>
-      <span class="cap">چیزی که عضو میبیند، از همینجا قالب میگیرد</span></div>`;
+      <span class="cap">چیزی که عضو میبیند، از همین برگهها قالب میگیرد</span></div>`;
   let inner='';
   if(cur==='tag'){
     const tags=sdG('qtags',null)||QTAGS_L();
-    inner=`<div class="head">برچسبهای برنامهها</div>
-    <p class="cap">برچسبها بالای خانه و روی کارت هر برنامه میآیند؛ چیپِ رأی همهاست. برچسبی که اینجا نباشد، از فهرست خانه حذف میشود.</p>
+    const nEv=evAll().length, nPost=pedPosts().length;
+    inner=`<div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(tags.length))}</div><div class="l">برچسب برنامه</div></div>
+      <div class="metric"><div class="n">${esc(fa(sdG('ptags',['پیشنهادی','تازه','محبوب']).length))}</div><div class="l">برچسب مطلب</div></div>
+      <div class="metric"><div class="n">${esc(fa(nEv))}</div><div class="l">رویداد</div></div>
+      <div class="metric"><div class="n">${esc(fa(nPost))}</div><div class="l">مطلب</div></div></div>
+    <div class="head">برچسبهای برنامهها</div>
+    <p class="cap">برچسبها بالای خانه و روی کارت هر برنامه میآیند؛ چیپ رأی، همان صافی خانه است. برچسبی که اینجا نباشد از فهرست خانه حذف میشود؛ برداشتن، خود برنامهها را نمیشکند.</p>
     <div class="admfilters">${tags.map((t,i)=>`<span class="chip on">${esc(t)}
-      <button class="chip" data-sdtagdel="${i}" aria-label="برداشتن ${esc(t)}">${ico('i-close')}</button></span>`).join('')}</div>
+      <button class="chip" data-sdtagdel="${i}" aria-label="برداشتن ${esc(t)}">${ico('i-close')}</button></span>`).join('')||emptyBox('برچسبی نیست')}</div>
     <div class="row tight"><label class="fld" style="flex:1"><span>برچسب تازه</span><input id="sdTag" type="text" placeholder="مثل: ویژهٔ نوروز"/></label>
       ${btn('افزودن برچسب','data-sdtagadd','i-plus')}</div>
     <hr class="hr"/>
     <div class="head">برچسبهای مطلبها</div>
-    ${['پیشنهادی','تازه','محبوب'].map(t=>`<div class="admsw"><span class="sp">${esc(t)}</span>
-      <span class="switch ${sdG('ptag_'+t,1)?'on':''}" data-sdptog="${esc(t)}" role="switch" aria-checked="${sdG('ptag_'+t,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}
-    <p class="cap">خاموشی یعنی این برچسب دیگر به مطلب تازه پیشفرض نمیخورد.</p>`;
+    <p class="cap">خاموشی یعنی این برچسب دیگر به مطلب تازه پیشفرض نمیخورد؛ مطلبهای قبلی دستنخورده میمانند.</p>
+    ${sdG('ptags',['پیشنهادی','تازه','محبوب']).map((t,i)=>`<div class="admlirow">${ico('i-pin')}
+      <span class="sp"><b>${esc(t)}</b></span>
+      <span class="mini"><span class="switch ${sdG('ptag_'+t,1)?'on':''}" data-sdptog="${esc(t)}" role="switch" aria-checked="${sdG('ptag_'+t,1)?'true':'false'}" aria-label="${esc(t)}"></span>
+        <button class="btn sm quiet" data-sdptagdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')}
+    <div class="row tight"><label class="fld" style="flex:1"><span>برچسب مطلب تازه</span><input id="sdPTag" type="text" placeholder="مثل: از مسترکلاس"/></label>
+      ${btn('افزودن برچسب مطلب','data-sdptagadd','i-plus')}</div>`;
   } else if(cur==='cat'){
     const cats=sdG('cats',null)||CATS_L();
+    const useN={}; evAll().forEach(e2=>{useN[e2.kind]=(useN[e2.kind]||0)+1});
     inner=`<div class="head">دستههای رویداد</div>
-    <p class="cap">هر دسته، آیکن و توضیح کوتاه دارد و در صافی خانه و ویزارد تعریف رویداد میآید.</p>
+    <p class="cap">هر دسته آیکن و توضیح کوتاه دارد؛ در صافی خانه، در کارت برنامه و در ویزارد تعریف رویداد میآید. شمار کنار هر دسته، برنامههای زندهٔ همان دسته است.</p>
     ${cats.map((c,i)=>`<div class="admlirow"><span class="ic">${ico(c.i||'i-calendar')}</span>
       <span class="sp"><b>${esc(c.n)}</b><small class="cap">${esc(c.d||'')}</small></span>
-      <span class="mini">${sdG('cats',null)?btn('برداشتن','data-sdcatdel="'+i+'"','i-trash'):tag('پیشفرض','')}</span></div>`).join('')}
+      <span class="mini">${useN[c.n]?tag(fa(useN[c.n])+' برنامه',''):''}
+        ${sdG('cats',null)?btn('برداشتن','data-sdcatdel="'+i+'"','i-trash'):tag('پیشفرض','')}</span></div>`).join('')||emptyBox('دستهای نیست')}
     <div class="row tight">
       <label class="fld"><span>نام دسته</span><input id="sdCatN" type="text" placeholder="مثل: مناظره"/></label>
       <label class="fld"><span>آیکن</span><select class="input" id="sdCatI">${['i-pen','i-video','i-users','i-pin','i-check','i-handshake','i-medal','i-globe','i-book','i-bolt'].map(x=>`<option value="${x}">${x.replace('i-','')}</option>`).join('')}</select></label>
@@ -2802,18 +2818,24 @@ function skdevView(){
       ${btn('افزودن دسته','data-sdcatadd','i-plus')}</div>
     <div class="row tight">${sdG('cats',null)?btn('بازگشت دستههای پیشفرض','data-sdcatreset','i-back'):''}<span class="sp"></span></div>`;
   } else if(cur==='cal'){
-    const hol=sdG('holidays',[
-      {n:'ظهر جمعه', w:'جمعهها', d:'برنامهٔ ظهر جمعه پیشفرض نمیگیرد'},
-      {n:'شب یلدا', d:'۳۰ آذر؛ پیشنهاد برنامهٔ خاص'},
-      {n:'نوروز', d:'۱ تا ۱۳ فروردین؛ تعطیلی رسمی'}]);
-    inner=`<div class="head">تقویم برنامهریزی</div>
-    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-      <div class="metric"><div class="n">${esc(fa(evAll().length))}</div><div class="l">رویداد در فهرست</div></div>
-      <div class="metric"><div class="n">${esc(fa(evAll().filter(x=>x.state==='soon').length))}</div><div class="l">در راه</div></div>
+    const hol=SD_HOL();
+    const evs=evAll().slice().sort((x,y)=>String(x.on||'').localeCompare(String(y.on||'')));
+    const soon=evs.filter(x=>x.state==='soon').length;
+    const upcoming=evs.filter(x=>x.state!=='done').slice(0,6);
+    inner=`<div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(evs.length))}</div><div class="l">رویداد در فهرست</div></div>
+      <div class="metric ${soon?'acc':''}"><div class="n">${esc(fa(soon))}</div><div class="l">در راه</div></div>
       <div class="metric"><div class="n">${esc(fa(pedPosts().length))}</div><div class="l">مطلب</div></div>
       <div class="metric"><div class="n">${esc(fa(hol.length))}</div><div class="l">تاریخ خاص</div></div></div>
+    <div class="head">تقویم پیش رو</div>
+    ${upcoming.map(e2=>{const stE=evState(e2), st=(EV.states||{})[stE]||['',''];
+      return `<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
+        <span class="sp"><b>${esc(e2.n)}</b><small class="cap">${esc(whenLine(e2))} · ${esc(e2.time||'')}</small></span>
+        <span class="mini">${tag(st[0]||'در راه',st[1]||'')}</span></div>`}).join('')||emptyBox('برنامهٔ پیشِ رو خالی است')}
+    <p class="cap">«در راه» از تاریخ جلسهها درمیآید؛ برای جابهجایی، از برگهٔ خود رویداد وقت بگیر.</p>
+    <hr class="hr"/>
     <div class="head">تاریخهای خاص و تعطیلات</div>
-    ${hol.map((x,i)=>`<div class="admlirow">${ico('i-calendar')}
+    ${hol.map((x,i)=>`<div class="admlirow">${ico('i-pin')}
       <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(x.w||x.d||'')}</small></span>
       <span class="mini"><button class="btn sm quiet" data-sdholdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('تاریخ خاصی نیست')}
     <div class="row tight">
@@ -2828,33 +2850,35 @@ function skdevView(){
     <p class="cap">ویزارد رویداد تازه، همین ساعتها را پیش چشم میگذارد؛ کارشناس میتواند عوض کند.</p>`;
   } else if(cur==='tpl'){
     inner=`<div class="head">قالب مطلب تازه</div>
-    <p class="cap">هر مطلب تازه، از همین قالب شروع میشود: معرفی، متن، نقلِ برجسته، فهرست تمرین و برچسب پایانی.</p>
+    <p class="cap">هر مطلب تازه از همین قالب شروع میشود؛ ویرایشگر مطلب (دو گام) اینها را پیش چشم میگذارد.</p>
     <div class="admtext"><span class="lbl">سرصفحهٔ پیشفرض</span><input class="input" data-sdtpl="lead" value="${esc(sdG('tplLead','از دلِ تجربهٔ کارگاهها؛ کوتاه و کاربردی بخوانید.'))}"/></div>
-    <div class="admtext"><span class="lbl">نقل برجستهٔ پیشفرض</span><input class="input" data-sdtpl="quote" value="${esc(sdG('tplQuote',''))}"/></div>
-    <div class="admtext"><span class="lbl">فهرست پایانی پیشفرض</span><input class="input" data-sdtpl="list" value="${esc(sdG('tplList',''))}"/></div>
+    <div class="admtext"><span class="lbl">نقل برجستهٔ پیشفرض (خالی: بی نقل)</span><input class="input" data-sdtpl="quote" value="${esc(sdG('tplQuote',''))}"/></div>
+    <div class="admtext"><span class="lbl">فهرست پایانی پیشفرض (خالی: بی فهرست)</span><input class="input" data-sdtpl="list" value="${esc(sdG('tplList',''))}"/></div>
     <div class="row tight">
-      <label class="fld"><span>دستهٔ پیشفرض مطلب</span><select class="input" data-sdtpl="cat">${['فن بیان','رسانه','مالی','باشگاه کتاب‌خوانی','اخبار مؤسسه'].map(x=>`<option ${sdG('tplCat','فن بیان')===x?'selected':''}>${x}</option>`).join('')}</select></label>
-      <label class="fld"><span>زمان مطالعهٔ پیشفرض</span><select class="input" data-sdtpl="min">${['۳','۶','۱۰'].map(x=>`<option ${String(sdG('tplMin','۶'))===x?'selected':''}>${x}</option>`).join('')}</select></label></div>
+      <label class="fld"><span>دستهٔ پیشفرض</span><select class="input" data-sdtpl="cat">${['فن بیان','رسانه','مالی','باشگاه کتاب‌خوانی','اخبار مؤسسه'].map(x=>`<option ${sdG('tplCat','فن بیان')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      <label class="fld"><span>زمان مطالعه (دقیقه)</span><select class="input" data-sdtpl="min">${['۳','۶','۱۰'].map(x=>`<option ${String(sdG('tplMin','۶'))===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      <label class="fld"><span>انتشار</span><select class="input" data-sdtpl="pub"><option value="1" ${String(sdG('tplPub',1))==='1'?'selected':''}>خودکار منتشر شود</option><option value="0">برای تأیید برود</option></select></label></div>
     <div class="row"><span class="sp"></span>${btn('ذخیرهٔ قالب','data-sdtplsave','i-check')}</div>
     <hr class="hr"/>
-    <div class="head">پیشنمایش کارت مطلب</div>
-    ${bkCard({kind:'مطلب',t:sdG('tplTitle','هفت تمرین تنفس'),by:sdG('tplLead',''),sub:'۶ دقیقه مطالعه · فن بیان',link:bkRoot()+'home.html#articles'})}`;
+    <div class="head">پیشنمایش کارت مطلب در خانه</div>
+    ${bkCard({kind:'مطلب',t:sdG('tplTitle','هفت تمرین تنفس پیش از صحبت'),by:sdG('tplLead','از دلِ تجربهٔ کارگاهها'),sub:sdG('tplMin','۶')+' دقیقه مطالعه · '+sdG('tplCat','فن بیان'),link:bkRoot()+'home.html#articles'})}`;
   } else if(cur==='cta'){
-    inner=`<div class="head">دکمهها و میانبرها</div>
-    <p class="cap">روی کارت رویداد و مطلب در خانه، دکمهٔ کنش میآید؛ متنش از همینجا عوض میشود.</p>
+    inner=`<div class="head">دکمههای خانه</div>
+    <p class="cap">روی کارت رویداد و مطلب و باشگاه، دکمهٔ کنش میآید؛ متنش از همینجا عوض میشود. خالی بگذاری، نورا خودش میچیند.</p>
     <div class="admtext"><span class="lbl">دکمهٔ ثبتنام رویداد</span><input class="input" data-sdcta="reg" value="${esc(sdG('ctaReg','ثبتنام'))}"/></div>
-    <div class="admtext"><span class="lbl">دکمهٔ مطلب (ادامه)</span><input class="input" data-sdcta="more" value="${esc(sdG('ctaMore','ادامهٔ مطلب'))}"/></div>
+    <div class="admtext"><span class="lbl">دکمهٔ مطلب</span><input class="input" data-sdcta="more" value="${esc(sdG('ctaMore','ادامهٔ مطلب'))}"/></div>
     <div class="admtext"><span class="lbl">دکمهٔ باشگاه در کارت</span><input class="input" data-sdcta="club" value="${esc(sdG('ctaClub','عضویت در باشگاه'))}"/></div>
     <div class="row"><span class="sp"></span>${btn('ذخیرهٔ دکمهها','data-sdctasave','i-check')}</div>
     <hr class="hr"/>
     <div class="head">میانبرهای سریع خانه</div>
+    <p class="cap">چیپهای «از کجا شروع کنیم؟» در خانهٔ کاربر؛ کلید خاموش، چیپ را از خانه برمیدارد.</p>
     ${['رویدادهای این هفته','مطلبهای تازه','باشگاه کتابخوانی','گواهی من'].map((t,i)=>`<div class="admsw"><span class="sp">${esc(t)}</span>
-      <span class="switch ${sdG('quick_'+i,1)?'on':''}" data-sdquick="${i}" role="switch" aria-checked="${sdG('quick_'+i,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}
-    <p class="cap">کلید میانبر، همان چیپها را در خانهٔ کاربر خاموش و روشن میکند.</p>`;
+      <span class="switch ${sdG('quick_'+i,1)?'on':''}" data-sdquick="${i}" role="switch" aria-checked="${sdG('quick_'+i,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}`;
   } else if(cur==='mod'){
     inner=`<div class="head">سیاست انتشار</div>
+    <p class="cap">چهار کلید، چهار رفتار پنل؛ هر عوضشدنی در لاگ میماند.</p>
     <div class="admsw"><span class="sp"><b>مطلب تازه، خودکار منتشر شود</b><small class="cap">خاموشی یعنی هر مطلب برای تأیید مالک برود</small></span>
-      <span class="switch ${sdG('autopub',1)?'on':''}" data-sdtog="autopub" role="switch" aria-checked="${sdG('autopub',1)?'true':'false'}" aria-label="انتشار خودکار"></span></div>
+      <span class="switch ${sdG('autopub',1)?'on':''}" data-sdtog="autopub" role="switch" aria-checked="${sdG('autopub',1)?'true':'false'}" aria-label="انتشار خودکار مطلب"></span></div>
     <div class="admsw"><span class="sp"><b>رویداد تازه، بی تأیید منتشر شود</b><small class="cap">سرپرست و کارشناس؛ مالک همیشه بیقید است</small></span>
       <span class="switch ${sdG('evfree',0)?'on':''}" data-sdtog="evfree" role="switch" aria-checked="${sdG('evfree',0)?'true':'false'}" aria-label="انتشار بی تأیید رویداد"></span></div>
     <div class="admsw"><span class="sp"><b>اعلان مطلب تازه به اعضا</b><small class="cap">همان مدل نامهخانه: بله و حساب من</small></span>
@@ -4332,6 +4356,13 @@ document.addEventListener('click',e=>{
     sdSet().qtags=l; save(); toast('برچسب برداشته شد'); renderBody(); return}
   const sdpt=q('[data-sdptog]'); if(sdpt){const k='ptag_'+sdpt.dataset.sdptog;
     sdSet()[k]=sdG(k,1)?0:1; save(); renderBody(); return}
+  const sdpa=q('[data-sdptagadd]'); if(sdpa){const v=(($('#sdPTag')||{}).value||'').trim();
+    if(!v){toast('نام برچسب را بنویس'); return}
+    sdSet().ptags=(sdG('ptags',['پیشنهادی','تازه','محبوب'])).concat([v]); save();
+    toast('برچسب مطلب نشست'); renderBody(); return}
+  const sdtdel=q('[data-sdptagdel]'); if(sdtdel){const i=+sdtdel.dataset.sdptagdel;
+    const l=sdG('ptags',['پیشنهادی','تازه','محبوب']).slice(); l.splice(i,1);
+    sdSet().ptags=l; save(); renderBody(); return}
   const sdca=q('[data-sdcatadd]'); if(sdca){const n=(($('#sdCatN')||{}).value||'').trim();
     if(!n){toast('نام دسته را بنویس'); return}
     sdSet().cats=(sdG('cats',null)||CATS_L()).concat(
@@ -4365,7 +4396,8 @@ document.addEventListener('click',e=>{
   const sdq=q('[data-sdquick]'); if(sdq){const k='quick_'+sdq.dataset.sdquick;
     sdSet()[k]=sdG(k,1)?0:1; save(); renderBody(); return}
   const sdtg=q('[data-sdtog]'); if(sdtg){const k=sdtg.dataset.sdtog;
-    sdSet()[k]=sdG(k,0)?0:1; save(); toast(sdSet()[k]?'سیاست روشن شد':'سیاست خاموش شد'); renderBody(); return}
+    sdSet()[k]=sdG(k,0)?0:1; save(); uLogAdd('سیاست انتشار «'+k+'» '+(sdSet()[k]?'روشن':'خاموش')+' شد');
+    toast(sdSet()[k]?'سیاست روشن شد':'سیاست خاموش شد'); renderBody(); return}
   const sgnw=q('[data-gonew]'); if(sgnw){S.skinD=0; S.skin=0;
     if(sgnw.dataset.gonew==='ev'){S.ped=null; S.psec='list'; S.pmgr=null; S.wiz=Object.assign({},BASE.wiz); S.wiz.open=1; S.wiz.step=0; S.sec='events';}
     else {S.pmgr=null; S.wiz.open=0; S.ped=pedFresh(); S.psec='edit'; S.pstep=1; S.sec='events';}
