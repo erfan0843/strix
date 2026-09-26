@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=60;
+const SVER=61;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -330,59 +330,63 @@ const uLabels=()=>{const c={}; memList().forEach(m=>(m.tags||[]).forEach(t=>{if(
    هر اعلان سه چیز دارد: عنوان کوتاه، یک جملهٔ روشن با نام و عدد دقیق،
    و یک خط وضعیت؛ بله همان لحظه میرود و حساب من و پیامک کنارش میآیند */
 const NTF=[
- {k:'reg_ok', g:'ev', i:'i-ticket', when:'همان لحظهٔ قطعی شدن ثبتنام', t:'بلیتت آماده شد',
-  b:'{نام} عزیز، ثبتنامت برای «{رویداد}» قطعی شد؛ {ساعت} در «{جا}» منتظرت هستیم.',
-  s:'لینک حضور: lifeline1.ir/c/{کد} · بلیت با کیوآرکد در حساب من', ch:{bale:1,acc:1,sms:0}},
- {k:'reg_no', g:'ev', i:'i-close', when:'همان لحظهٔ رد شدن', t:'ثبتنامت جا نشد',
-  b:'{نام} عزیز، ثبتنام «{رویداد}» در تأیید نماند ({دلیل})؛ رویدادهای باز در حساب من است.',
+ {k:'reg_ok', g:'ev', i:'i-ticket', when:'همان لحظهٔ قطعی شدن ثبتنام', t:'ثبتنام در رویداد',
+  b:'{نام} عزیز، ثبتنام شما در رویداد «{رویداد}» با موفقیت انجام شد.',
+  s:'لینک حضور: lifeline1.ir/c/{کد} · {تاریخ} ساعت {ساعت} · بلیت شما در حساب من', ch:{bale:1,acc:1,sms:0}},
+ {k:'reg_no', g:'ev', i:'i-close', when:'همان لحظهٔ رد شدن', t:'رد ثبتنام',
+  b:'{نام} عزیز، ثبتنام شما در رویداد «{رویداد}» تأیید نشد ({دلیل})؛ جای شما در رویدادهای بعدی هست.',
   s:'', ch:{bale:1,acc:1,sms:0}},
- {k:'welcome', g:'acc', i:'i-users', when:'همان لحظهٔ تأیید پروفایل', t:'خوش آمدی',
-  b:'{نام} عزیز، حساب نورایت فعال شد؛ رویدادها و گواهیها و امتیازت همینجاست.',
+ {k:'welcome', g:'acc', i:'i-users', when:'همان لحظهٔ تأیید پروفایل', t:'خوش آمدید',
+  b:'{نام} عزیز، به خانوادهٔ نورا خوش آمدید؛ حساب شما فعال شد و رویدادها و گواهیها و امتیازتان همینجاست.',
   s:'', ch:{bale:1,acc:1,sms:0}},
- {k:'remind', g:'ev', i:'i-bell', when:'شب قبل، ساعت ۲۰', t:'فردا با هم هستیم',
-  b:'{نام} عزیز، «{رویداد}» فردا {ساعت} در «{جا}» است؛ کارت ورودت در حساب من نشسته.',
+ {k:'remind', g:'ev', i:'i-bell', when:'شب قبل', t:'یادآور رویداد',
+  b:'{نام} عزیز، رویداد «{رویداد}» فردا ساعت {ساعت} در «{جا}» برگزار میشود؛ بلیت شما در حسابتان آماده است.',
   s:'', ch:{bale:1,acc:1,sms:1}},
- {k:'move', g:'ev', i:'i-calendar', when:'همان لحظهٔ جابهجایی', t:'قرارمان جابهجا شد',
-  b:'{نام} عزیز، «{رویداد}» به {تاریخ} ساعت {ساعت} رفت؛ بلیت تازه در حساب من است.',
+ {k:'move', g:'ev', i:'i-calendar', when:'همان لحظهٔ جابهجایی', t:'جابهجایی رویداد',
+  b:'{نام} عزیز، زمان رویداد «{رویداد}» به {تاریخ} ساعت {ساعت} تغییر کرد؛ بلیت تازه در حساب شماست.',
   s:'', ch:{bale:1,acc:1,sms:1}},
- {k:'cancel', g:'ev', i:'i-close', when:'همان لحظهٔ لغو', t:'رویداد لغو شد',
-  b:'{نام} عزیز، «{رویداد}» لغو شد؛ جای تو برای رویداد بعدی محفوظ است.',
+ {k:'cancel', g:'ev', i:'i-close', when:'همان لحظهٔ لغو', t:'لغو رویداد',
+  b:'{نام} عزیز، رویداد «{رویداد}» لغو شد؛ هرگاه آماده بودید، جای شما در رویدادهای بعدی محفوظ است.',
   s:'', ch:{bale:1,acc:1,sms:0}},
- {k:'cert', g:'acc', i:'i-medal', when:'همان لحظهٔ انتشار گواهی', t:'گواهیات صادر شد',
-  b:'{نام} عزیز، گواهی «{رویداد}» با سریال {کد} صادر شد.',
+ {k:'cert', g:'acc', i:'i-medal', when:'همان لحظهٔ انتشار گواهی', t:'صدور گواهینامه',
+  b:'{نام} عزیز، گواهینامهٔ شما برای «{رویداد}» با سریال {کد} صادر شد.',
   s:'استعلام: lifeline1.ir/c/{کد}', ch:{bale:1,acc:1,sms:0}},
- {k:'points', g:'club', i:'i-star', when:'همان لحظهٔ نشستن امتیاز', t:'امتیازت نشست',
-  b:'{نام} عزیز، {عدد} امتیاز بابت «{شرط}» به حسابات اضافه شد.',
-  s:'امتیاز کل: {امتیاز}', ch:{bale:1,acc:1,sms:0}},
+ {k:'points', g:'club', i:'i-star', when:'همان لحظهٔ نشستن امتیاز', t:'واریز امتیاز',
+  b:'{نام} عزیز، {عدد} امتیاز بابت «{شرط}» به حساب شما نشست.',
+  s:'موجودی امتیاز شما: {امتیاز}', ch:{bale:1,acc:1,sms:0}},
  {k:'badge', g:'club', i:'i-medal', when:'همان لحظهٔ گرفتن نشان', t:'نشان تازه',
-  b:'{نام} عزیز، نشان «{نشان}» مال تو شد؛ در باشگاه ببینش.',
+  b:'{نام} عزیز، نشان «{نشان}» از آنِ شما شد؛ در باشگاه ببینیدش.',
   s:'', ch:{bale:1,acc:1,sms:0}},
- {k:'bday', g:'club', i:'i-sparkle', when:'صبح تولد، ساعت ۹', t:'تولدت مبارک',
-  b:'{نام} عزیز، امروز روز توست؛ {عدد} امتیاز هدیهٔ نورا در حسابات نشست.',
-  s:'امتیاز کل: {امتیاز}', ch:{bale:1,acc:1,sms:0}},
- {k:'pay_ok', g:'money', i:'i-wallet', when:'همان لحظهٔ نشستن پرداخت', t:'پرداختت رسید',
-  b:'{نام} عزیز، {مبلغ} ریال بابت «{رویداد}» نشست؛ بلیتت صادر شد.',
-  s:'رسید و وضعیت در حساب من', ch:{bale:1,acc:1,sms:0}},
- {k:'pay_no', g:'money', i:'i-wallet', when:'همان لحظهٔ رد پرداخت', t:'پرداخت نماند',
-  b:'{نام} عزیز، پرداخت «{رویداد}» تأیید نشد؛ مبلغ تا ۷۲ ساعت به حسابت برمیگردد.',
+ {k:'bday', g:'club', i:'i-sparkle', when:'صبح تولد', t:'تولد شما',
+  b:'{نام} عزیز، تولدتان مبارک؛ {عدد} امتیاز هدیهٔ نورا به حساب شما نشست.',
+  s:'موجودی امتیاز شما: {امتیاز}', ch:{bale:1,acc:1,sms:0}},
+ {k:'pay_ok', g:'money', i:'i-wallet', when:'همان لحظهٔ نشستن پرداخت', t:'پرداخت موفق',
+  b:'{نام} عزیز، مبلغ {مبلغ} ریال بابت «{رویداد}» به حساب ما نشست؛ بلیت شما صادر شد.',
+  s:'رسید پرداخت در حساب شماست', ch:{bale:1,acc:1,sms:0}},
+ {k:'pay_no', g:'money', i:'i-wallet', when:'همان لحظهٔ رد پرداخت', t:'پرداخت ناموفق',
+  b:'{نام} عزیز، پرداخت شما برای «{رویداد}» تأیید نشد؛ مبلغ تا ۷۲ ساعت به حسابتان برمیگردد.',
   s:'', ch:{bale:1,acc:0,sms:0}},
- {k:'abs_ok', g:'acc', i:'i-check', when:'همان لحظهٔ تأیید درخواست', t:'غیبت مجازت تأیید شد',
-  b:'{نام} عزیز، درخواست غیبتت برای «{رویداد}» تأیید شد؛ امتیازت دست نخورد.',
+ {k:'abs_ok', g:'acc', i:'i-check', when:'همان لحظهٔ تأیید درخواست', t:'غیبت مجاز',
+  b:'{نام} عزیز، درخواست غیبت شما برای «{رویداد}» تأیید شد؛ امتیازتان دست نخورد.',
   s:'', ch:{bale:1,acc:1,sms:0}},
- {k:'invite', g:'club', i:'i-users', when:'همان لحظهٔ عضویت دوست', t:'دوستت آمد',
-  b:'{نام} عزیز، {دوست} با کد تو عضو نورا شد؛ {عدد} امتیاز نصیب هر دو نفری شد.',
-  s:'امتیاز کل: {امتیاز}', ch:{bale:1,acc:1,sms:0}}];
-const NTF_SAMP={'{نام}':'نگار','{رویداد}':'کارگاه روایت اول‌شخص','{ساعت}':'۱۷:۰۰','{جا}':'لانه',
+ {k:'invite', g:'club', i:'i-users', when:'همان لحظهٔ عضویت دوست', t:'دعوت دوستان',
+  b:'{نام} عزیز، {دوست} با کد دعوت شما به نورا آمد؛ {عدد} امتیاز نصیب هر دوی شما شد.',
+  s:'موجودی امتیاز شما: {امتیاز}', ch:{bale:1,acc:1,sms:0}}];
+const NTF_SAMP={'{نام}':'علی محمدی','{رویداد}':'کارگاه روایت اول‌شخص','{ساعت}':'۱۷:۰۰','{جا}':'لانه',
   '{کد}':'NR2094','{عدد}':'۳۰','{شرط}':'پنج حضور','{امتیاز}':'۲۴۰','{مبلغ}':'۹۸۰٬۰۰۰',
-  '{تاریخ}':'پنجشنبه ۱۰ مهر','{دوست}':'امیر','{دلیل}':'تکمیل ظرفیت','{نشان}':'پرحضور'};
+  '{تاریخ}':'دوشنبه ۱۲ مهر ۱۴۰۵','{دوست}':'سارا','{دلیل}':'تکمیل ظرفیت','{نشان}':'پرحضور'};
+const ntfFrom=()=>S.ntfFrom||'نورا';
 const ntfFill=s=>String(s||'').replace(/\{[^\}]+\}/g,m=>NTF_SAMP[m]||m);
 const ntfT=nt=>{const o=(S.ntfT||{})[nt.k]||{}; return {t:o.t!=null?o.t:nt.t, b:o.b!=null?o.b:nt.b, s:o.s!=null?o.s:nt.s}};
 const ntfCh=nt=>Object.assign({bale:1,acc:1,sms:0},((S.ntfCh||{})[nt.k])||{});
 const ntfOn=nt=>(S.ntfOff||[]).indexOf(nt.k)<0;
-function ntfNote(k){ /* ثبت اعلان در دفتر نامهها؛ کنار کنش واقعی، بدون صدا */
+const ntfClock=k=>((S.ntfClock||{})[k])||(k==='bday'?'۹:۰۰':'۲۰:۰۰');
+const ntfStamp=()=>{const j=jNow(); return {d:fa(j.jy)+'/'+fa(j.jm)+'/'+fa(j.jd), t:fa(j.h)+':'+fa(jPad(j.mi))}};
+const ntfWhen=nt=>nt.k==='remind'?('شب قبل، ساعت '+ntfClock('remind')):nt.k==='bday'?('صبح تولد، ساعت '+ntfClock('bday')):nt.when;
+function ntfNote(k){ /* ثبت اعلان در دفتر نامهها؛ کنار کنش واقعی، با مهر تاریخ و ساعت */
   const nt=NTF.find(x=>x.k===k); if(!nt) return;
-  const N=ntfT(nt);
-  S.ntfLog=[{at:'همین حالا',who:me().n||'مالک',t:N.t,k:k}].concat(S.ntfLog||[]).slice(0,40);
+  const N=ntfT(nt), st=ntfStamp();
+  S.ntfLog=[{at:st.d+' · '+st.t,who:me().n||'مالک',t:N.t,k:k}].concat(S.ntfLog||[]).slice(0,40);
   uLogAdd('اعلان «'+N.t+'» به '+((ntfCh(nt).bale)?'ربات بله':'حساب کاربر')+' رفت');
   save(); }
 function ntfFire(k){ /* دکمهٔ نمونه: همان مدل، با نام و پیام */
@@ -2869,25 +2873,34 @@ function vSettings(){
       `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`;
   } else if(g==='notify'){
     const rows=((ST.rows||{})[g])||[];
-    const N2=()=>jNow();
-    const stamp=()=>{const j=N2(); return fa(j.jy)+'.'+fa(jPad(j.jm))+'.'+fa(jPad(j.jd))+' · '+fa(jPad(j.h))+':'+fa(jPad(j.mi))};
     const cur=S.ntfG||'all';
     const NGRP=[['all','همه'],['ev','رویدادها'],['acc','حساب'],['club','باشگاه'],['money','مالی']];
     const nlist=NTF.filter(x=>cur==='all'||x.g===cur);
     const CHN={bale:'بله',acc:'حساب من',sms:'پیامک'};
+    const st0=ntfStamp();
     inner=`<div class="head">نامهخانهٔ اعلانها</div>
-      <p class="cap">مدل هر اعلان سه چیز دارد: عنوان کوتاه، یک جملهٔ روشن با نام و عدد دقیق، و یک خط وضعیت؛ بله همان لحظه میرود و حساب من و پیامک کنارش میآیند.</p>
+      <p class="cap">هر پیام با مدل بانکی میرود: نام فرستنده، عنوان، یک جملهٔ روشن با نام و عدد دقیق، و تاریخ و ساعت فارسی؛ بله همان لحظه، حساب من و پیامک کنارش.</p>
+      <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="metric"><div class="n">${esc(fa(NTF.length))}</div><div class="l">اعلان</div></div>
+        <div class="metric"><div class="n">${esc(fa(NTF.filter(ntfOn).length))}</div><div class="l">روشن</div></div>
+        <div class="metric"><div class="n">${esc(fa(NTF.filter(x=>ntfOn(x)&&ntfCh(x).bale).length))}</div><div class="l">راه بله</div></div>
+        <div class="metric"><div class="n">${esc(fa(NTF.filter(x=>ntfOn(x)&&ntfCh(x).sms).length))}</div><div class="l">راه پیامک</div></div>
+      </div>
+      <label class="fld"><span>نام فرستندهٔ پیامها</span><input id="ntfFrom" type="text" value="${esc(ntfFrom())}"/></label>
+      <div class="row tight">${btn('ثبت فرستنده','data-ntffrom','i-check')}<span class="sp"></span>
+        <span class="cap">بالای همهٔ پیامها میآید؛ پیشفرض: نورا</span></div>
       <div class="admfilters">${NGRP.map(g2=>`<button class="chip ${cur===g2[0]?'on':''}" data-ntfg="${g2[0]}">${esc(g2[1])}</button>`).join('')}</div>
       ${nlist.map(nt=>{const N=ntfT(nt), ch=ntfCh(nt), on=ntfOn(nt), ed=S.ntfEd===nt.k;
         return `<div class="ntfrow">
           <div class="row"><span class="ic">${ico(nt.i)}</span>
-            <span class="sp"><b>${esc(N.t)}</b><small class="cap">${esc(nt.when)}</small></span>
+            <span class="sp"><b>${esc(N.t)}</b><small class="cap">${esc(ntfWhen(nt))}</small></span>
             <span class="mini">${['bale','acc','sms'].map(c=>`<button class="chip ${ch[c]?'on':''}" data-ntfch="${nt.k}:${c}">${esc(CHN[c])}</button>`).join('')}
               <span class="switch ${on?'on':''}" data-ntfon="${nt.k}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(N.t)}"></span></span></div>
-          ${on?`<div class="ntfcard"><div class="ntf-t">${esc(ntfFill(N.t))}</div>
+          ${on?`<div class="ntfcard"><div class="ntf-from">${esc(ntfFrom())}</div>
+            <div class="ntf-t">${esc(ntfFill(N.t))}</div>
             <div class="ntf-b">${esc(ntfFill(N.b))}</div>
             ${N.s?`<div class="ntf-s">${esc(ntfFill(N.s))}</div>`:''}
-            <div class="ntf-m">${stamp()}</div></div>
+            <div class="ntf-meta"><span>${esc(st0.d)}</span><span>${esc(st0.t)}</span></div></div>
           <div class="row tight">${btn('ویرایش متن','data-ntfed="'+nt.k+'"','i-pen')}
             ${(S.ntfT||{})[nt.k]?btn('به پیشفرض برگرد','data-ntfreset="'+nt.k+'"','i-back'):''}
             <span class="sp"></span>${btn('نمونه در بله','data-ntfsend="'+nt.k+'"','i-send')}</div>`:''}
@@ -2895,7 +2908,7 @@ function vSettings(){
             <label class="fld"><span>متن پیام</span><input id="ntfB" type="text" value="${esc(N.b)}"/></label>
             <label class="fld"><span>خط وضعیت (اختیاری)</span><input id="ntfS" type="text" value="${esc(N.s)}"/></label>
             <div class="row tight">${btn('ذخیرهٔ متن','data-ntfsave="'+nt.k+'"','i-check')}<span class="sp"></span>
-              <span class="cap">جایخالیها: {نام} {رویداد} {ساعت} {جا} {کد} {عدد} {مبلغ}</span></div>`:''}
+              <span class="cap">جایخالیها: {نام} {رویداد} {ساعت} {جا} {کد} {عدد} {مبلغ} {تاریخ}</span></div>`:''}
           </div>`}).join('')}
       <hr class="hr"/>
       <div class="head">ساعتها و حالتهای کلی</div>
@@ -2903,9 +2916,20 @@ function vSettings(){
         return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
           <span class="switch ${on?'on':''}" data-tog="${esc(g)}" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
             role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')}
+      <div class="row tight">
+        <label class="fld"><span>ساعت یادآور شب قبل</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+        <label class="fld"><span>ساعت تبریک تولد</span><select class="input" data-ntfclock="bday">${['۸:۰۰','۹:۰۰','۱۰:۰۰'].map(x=>`<option ${ntfClock('bday')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      </div>
+      <hr class="hr"/>
+      <div class="head">نامهٔ فوری به همهٔ اعضا</div>
+      <label class="fld"><span>متن نامه</span><input id="ntfBc" type="text" placeholder="مثل: دوشنبه سامانه تا ۸ صبح در دسترس نیست"/></label>
+      <div class="row tight">${btn('فرستادن به همه','data-ntfbcast','i-send')}<span class="sp"></span>
+        <span class="cap">همان مدل: نام فرستنده و عنوان «نامهٔ فوری» و تاریخ و ساعت اضافه میشود</span></div>
+      <hr class="hr"/>
       <div class="head">نامههای فرستادهشده</div>
       ${(S.ntfLog||[]).slice(0,6).map(r=>`<div class="admlirow"><span class="ic">${ico('i-send')}</span>
-        <span class="sp"><b>${esc(r.t)}</b><small class="cap">${esc(r.who)} · ${esc(r.at)}</small></span></div>`).join('')||emptyBox('هنوز نامه‌ای از پنل نرفته است')}`;
+        <span class="sp"><b>${esc(r.t)}</b><small class="cap">${esc((NTF.find(x=>x.k===r.k)||{}).t||'نامهٔ فوری')} · ${esc(r.who)} · ${esc(r.at)}</small></span></div>`).join('')||emptyBox('هنوز نامه‌ای از پنل نرفته است')}
+      <div class="row tight">${(S.ntfLog||[]).length?btn('خالی کردن دفتر','data-ntflogclr','i-trash'):''}<span class="sp"></span></div>`;
   } else {
     const rows=((ST.rows||{})[g])||[];
     inner=`<div class="head">${esc(group.n)}</div><p class="cap">${esc(group.s||'')}</p>
@@ -3687,6 +3711,15 @@ document.addEventListener('click',e=>{
     S.ntfT=S.ntfT||{}; S.ntfT[k]={t:($('#ntfT')||{}).value||'', b:($('#ntfB')||{}).value||'', s:($('#ntfS')||{}).value||''};
     S.ntfEd=''; save(); ntfNote(k); toast('متن اعلان ذخیره شد'); renderBody(); return}
   const ntfsend=q('[data-ntfsend]'); if(ntfsend){ntfFire(ntfsend.dataset.ntfsend); return}
+  const ntffr=q('[data-ntffrom]'); if(ntffr){const v=(($('#ntfFrom')||{}).value||'').trim();
+    S.ntfFrom=v||'نورا'; save(); toast('از این پس پیامها با نام «'+S.ntfFrom+'» میرود'); renderBody(); return}
+  const ntbbc=q('[data-ntfbcast]'); if(ntbbc){const v=(($('#ntfBc')||{}).value||'').trim();
+    if(!v){toast('متن نامه را بنویس'); return}
+    const st=ntfStamp();
+    S.ntfLog=[{at:st.d+' · '+st.t,who:me().n||'مالک',t:'نامهٔ فوری',k:'_bc'}].concat(S.ntfLog||[]).slice(0,40);
+    uLogAdd('نامهٔ فوری به همهٔ اعضا رفت'); save();
+    toast('نامه به همهٔ اعضا در ربات بله (@'+(A.bale||'lifeline_bot')+') رفت'); renderBody(); return}
+  const ntlc=q('[data-ntflogclr]'); if(ntlc){S.ntfLog=[]; save(); toast('دفتر نامهها خالی شد'); renderBody(); return}
   const gv2=q('[data-govreq]'); if(gv2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='req'; S.uSel=''; save(); renderBody(); toast('درخواستهای کاربران'); return}
   const gt2=q('[data-govtags]'); if(gt2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='tags'; save(); renderBody(); return}
   const gp2=q('[data-govpar]'); if(gp2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='par'; save(); renderBody(); return}
@@ -4227,6 +4260,8 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
+  if(el.dataset.ntfclock){S.ntfClock=S.ntfClock||{}; S.ntfClock[el.dataset.ntfclock]=el.value;
+    save(); toast('ساعت ارسال بهروز شد'); renderBody(); return}
   /* آپلود قالب ورد: خوانده و آنالیز میشود؛ پارامترهای متغیرش درمیآید */
   if(el.dataset.cfileup!==undefined){const f=(el.files||[])[0]; if(!f) return;
     const fr=new FileReader();
