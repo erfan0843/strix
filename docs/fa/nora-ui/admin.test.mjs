@@ -537,6 +537,21 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#shAdm .k').length>=4,'مقایسهٔ دوره‌ها در ورقه هست');
   ok(!!p.doc.querySelector('#shAdm [data-bale="report_fi"]'),'اکسل همین گزارش در ورقه هست');
   p.click('#shAdm [data-close]');
+  ok(/جمعبندی مدیریتی، خودنویس/.test(p.txt('#admBody'))&&/عضو داریم/.test(p.txt('#admBody')),'جمعبندی مدیریتی خودنویس با عدد واقعی سر گزارش هست');
+  ok(/فروش همین دوره/.test(p.txt('#admBody')),'جمعبندی برای مالک مالی هم میگوید');
+  p.click('[data-rep="us"]');
+  ok(/۱۱ تأییدشده · ۳ در صف تأیید · ۱ مسدود/.test(p.txt('#shAdm')),'وضعیت کاربران از دادهٔ واقعی حساب میشود');
+  p.click('#shAdm [data-close]');
+  p.click('[data-rep="tp"]');
+  ok(/مریم رضایی/.test(p.txt('#shAdm'))&&/۳۱۲۰/.test(p.txt('#shAdm')),'برترین امتیاز واقعاً رتبهبندی میشود: مریم بالای سارا');
+  ok(/رتبهٔ ۱/.test(p.txt('#shAdm'))&&/رتبهٔ ۳/.test(p.txt('#shAdm')),'سه رتبهٔ اول مدال دارد');
+  p.click('#shAdm [data-close]');
+  p.click('[data-rep="ad"]');
+  ok(/امیر کاظمی/.test(p.txt('#shAdm'))&&/۲۶ کار انجامشده/.test(p.txt('#shAdm')),'حوزهها با کار واقعی کارشناسان حساب میشود');
+  p.click('#shAdm [data-close]');
+  p.click('[data-rep="ce"]');
+  ok(/قالب ورد آماده/.test(p.txt('#shAdm'))&&/درخواست رسیده از ربات/.test(p.txt('#shAdm')),'گزارش گواهی از قالبها و درخواستهای ربات میگوید');
+  p.click('#shAdm [data-close]');
 
   /* ممیزی کامل پنل: هر دکمه و بنرِ در دسترس، واقعاً کلیک میشود */
   ok(/ممیزی کامل پنل/.test(p.txt('#admBody')),'بلوک ممیزی کامل در گزارشها هست');
@@ -840,6 +855,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="reports"]');
   ok(p.all('[data-rep="fi"]').length===0,'ردیف مالی برایش نیست');
   ok(!/پرداخت/.test(p.txt('.admlist')),'هشدار مالی هم برایش نیست');
+  ok(!/ریال|فروش همین دوره/.test(p.txt('#admBody')),'جمعبندی مدیریتی هم مالی را نشان نمیدهد');
   p.click('#admNav [data-sec="events"]');
   p.click('[data-ev="e1"]');
   ok(p.all('#shAdm .admfilters [data-evtab="money"]').length===0,'تب مالی رویداد قفل است');
@@ -1190,9 +1206,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=62')&&html.includes('admin.js?v=62'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=63')&&html.includes('admin.js?v=63'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v51'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v52'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

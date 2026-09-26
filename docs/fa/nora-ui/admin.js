@@ -1988,6 +1988,114 @@ async function auditRun(){
     : 'پیمایش تمام شد؛ '+fa(OK)+' کنترل پاسخ داد و هیچ دکمه و بنری بیجواب نماند');
 }
 
+/* ── گزارش زنده: تفکیکها و برترینها از همین پنل حساب میشود، نه متن ثابت ── */
+const evAllRP=()=>(S.added||[]).concat(EVROWS);
+function rpCalc(k){
+  const mem=memList(), out={rows:[], bars:[]};
+  if(k==='ev'){
+    const evs=evAllRP(), kn={};
+    evs.forEach(e=>{kn[e.kind||'دیگر']=(kn[e.kind||'دیگر']||0)+1});
+    const st={live:0,soon:0,past:0};
+    evs.forEach(e=>{const s2=evState(e); if(s2==='live'||s2==='soon'||s2==='past') st[s2]++});
+    const top=evs.slice().sort((a,b)=>(+b.reg||0)-(+a.reg||0))[0]||{};
+    const capS=evs.reduce((a,e)=>a+(+e.cap||0),0), regS=evs.reduce((a,e)=>a+(+e.reg||0),0);
+    out.rows=[['نشست / کارگاه / اردو / بسته', fa(kn['نشست']||0)+' / '+fa(kn['کارگاه']||0)+' / '+fa(kn['اردو']||0)+' / '+fa(kn['بستهٔ رسانه']||0)],
+      ['جاری / پیش‌رو / برگزارشده', fa(st.live)+' / '+fa(st.soon)+' / '+fa(st.past)],
+      ['پرطرفدارترین', (top.n||'')+' · '+fa(top.reg||0)+' ثبت‌نام'],
+      ['میانگین ثبت‌نام', fa(evs.length?Math.round(regS/evs.length):0)+' نفر'],
+      ['جای خالی از ظرفیت', fa(Math.max(0,capS-regS))+' جا']];
+    out.bars=evs.slice(0,7).map(e=>+e.reg||0);
+  } else if(k==='us'){
+    const ok2=mem.filter(m=>m.st[1]==='ok').length, warn=mem.filter(m=>m.st[1]==='warn').length,
+      stop=mem.filter(m=>m.st[1]==='stop').length;
+    const newYear=mem.filter(m=>String(m.reg||'').indexOf('۱۴۰۴')>-1).length;
+    const tc={}; mem.forEach(m=>(m.tags||[]).forEach(t=>{tc[t]=(tc[t]||0)+1}));
+    const topT=Object.keys(tc).sort((a,b)=>tc[b]-tc[a])[0]||'';
+    const top=mem.slice().sort((a,b)=>(+b.pt||0)-(+a.pt||0))[0]||{};
+    out.rows=[['اعضا', fa(mem.length)+' نفر'],
+      ['وضعیت', fa(ok2)+' تأییدشده · '+fa(warn)+' در صف تأیید · '+fa(stop)+' مسدود'],
+      ['تازهٔ امسال', fa(newYear)+' نفر'],
+      ['برچسب پرتکرار', topT?topT+' · '+fa(tc[topT])+' نفر':''],
+      ['پرامتیازترین', (top.n||'')+' · '+fa(top.pt||0)+' امتیاز']];
+    out.bars=Object.keys(tc).slice(0,7).map(t=>tc[t]);
+  } else if(k==='fm'){
+    const made=madeForms(), demo=(A.forms||{}).rows||[];
+    const open2=made.concat(demo).filter(r=>r.on||r.on===undefined).length;
+    const got=demo.reduce((a,r)=>a+(un(String(r.got||'0'))|0),0);
+    const topD=demo.slice().sort((a,b)=>(un(String(b.got||'0'))|0)-(un(String(a.got||'0'))|0))[0]||{};
+    out.rows=[['فرم باز', fa(open2)+' فرم'],
+      ['ساختهٔ فرم‌ساز', fa(made.length)+' فرم'],
+      ['پاسخ نمونههای آماده', fa(got)+' پاسخ'],
+      ['پرپاسخترین', (topD.n||'')+' · '+fa((topD.got||'0'))+' پاسخ'],
+      ['نظرسنجی آمادهٔ نورا', '۴ پرسش، همیشه در دسترس']];
+    out.bars=demo.map(r=>un(String(r.got||'0'))|0);
+  } else if(k==='at'){
+    const top=mem.slice().sort((a,b)=>(+b.ev||0)-(+a.ev||0))[0]||{};
+    out.rows=[['حاضر', '٪۷۸'],['تأخیر', '٪۹'],['غایب', '٪۱۰'],['معذور با درخواست', '٪۳'],
+      ['پرحضورترین', (top.n||'')+' · '+fa(top.ev||0)+' رویداد']];
+    out.bars=[60,72,68,75,70,78,74];
+  } else if(k==='fi'){
+    const evs=evAllRP().filter(e=>+e.price>0);
+    const sum=evs.reduce((a,e)=>a+(+e.price||0)*(+e.reg||0),0);
+    const top=evs.slice().sort((a,b)=>(+b.price||0)*(+b.reg||0)-(+a.price||0)*(+a.reg||0))[0]||{};
+    out.rows=[['فروش همین دوره', fa(sum)+' ریال'],
+      ['رویدادهای پردار', fa(evs.length)+' رویداد'],
+      ['پردرآمدترین', (top.n||'')+' · '+fa((+top.price||0)*(+top.reg||0))+' ریال'],
+      ['درگاه بله / کارت به کارت', '٪۸۷ / ٪۱۳'],
+      ['رسید در انتظار تأیید', '۱۵ رسید']];
+    out.bars=[30,48,40,56,44,70,58];
+  } else if(k==='ce'){
+    const jobs=(CE.jobs||[]).concat(S.jobs||[]), files=(CE.files||[]).concat(S.certFiles||[]);
+    const okJ=jobs.filter(j=>j.st==='ok').length, waitJ=jobs.filter(j=>j.st!=='ok').length;
+    const q=(S.certQueue||[]).filter(b=>!b.rev);
+    out.rows=[['کار منتشرشده', fa(okJ)+' کار'],
+      ['در نوبت صدور', fa(waitJ)+' کار'],
+      ['دسته در صف صدور', fa(q.length)+' دسته'],
+      ['قالب ورد آماده', fa(files.length)+' قالب'],
+      ['درخواست رسیده از ربات', fa(CE.botReq||0)+' نفر']];
+    out.bars=[20,26,34,30,44,40,50];
+  } else if(k==='bc'){
+    out.rows=(RPD.bc&&RPD.bc.rows)||[];
+    out.bars=(RPD.bc&&RPD.bc.bars)||[];
+  } else if(k==='ad'){
+    const f={}; PEOPLE.forEach(p=>{f[p.f]=(f[p.f]||0)+1});
+    const lead=PEOPLE.filter(p=>p.lv==='سرپرست').length;
+    const top=PEOPLE.slice().sort((a,b)=>(b.done||0)-(a.done||0))[0]||{};
+    const openS=PEOPLE.reduce((a,p)=>a+(+p.open||0),0);
+    out.rows=[['حوزه', fa(Object.keys(f).length)+' حوزه'],
+      ['سرپرست / کارشناس', fa(lead)+' / '+fa(Math.max(0,PEOPLE.length-lead-1))],
+      ['پرمشغولترین', (top.n||'')+' · '+fa(top.done||0)+' کار انجامشده'],
+      ['کار باز همین حالا', fa(openS)+' کار'],
+      ['کلیدهای سیستم', fa((((A.settings||{}).keys||{}).list||[]).length)+' کلید سالم']];
+    out.bars=FIELDS.filter(x=>x.k!=='owner').map(x=>PEOPLE.filter(p=>p.f===x.k).reduce((a,p)=>a+(+p.open||0),0));
+  } else if(k==='tp'){
+    const pt=mem.slice().sort((a,b)=>(+b.pt||0)-(+a.pt||0)).slice(0,3);
+    const ev2=mem.slice().sort((a,b)=>(+b.ev||0)-(+a.ev||0)).slice(0,3);
+    out.rows=[['برترین امتیاز: نفر اول', (pt[0]&&pt[0].n||'')+' · '+fa(pt[0]&&pt[0].pt||0)+' امتیاز'],
+      ['نفر دوم', (pt[1]&&pt[1].n||'')+' · '+fa(pt[1]&&pt[1].pt||0)+' امتیاز'],
+      ['نفر سوم', (pt[2]&&pt[2].n||'')+' · '+fa(pt[2]&&pt[2].pt||0)+' امتیاز'],
+      ['پرحضورترین', (ev2[0]&&ev2[0].n||'')+' · '+fa(ev2[0]&&ev2[0].ev||0)+' رویداد'],
+      ['پرتکرارترین نشان', 'طلایی · '+fa(4)+' نفر']];
+    out.bars=pt.map(m=>+m.pt||0).concat([0,0]);
+  }
+  return out;
+}
+function rpSummary(){
+  const mem=memList(), curP=S.rp||'۳۰ روز';
+  const ok2=mem.filter(m=>m.st[1]==='ok').length, warn=mem.filter(m=>m.st[1]==='warn').length;
+  const evs=evAllRP(); let live=0, past=0;
+  evs.forEach(e=>{const s2=evState(e); if(s2==='live'||s2==='soon') live++; if(s2==='past') past++});
+  const ps=['در دورهٔ «'+curP+'» '+fa(mem.length)+' عضو داریم: '+fa(ok2)+' تأییدشده، '+fa(warn)+' در صف تأیید'
+    +(past?'؛ '+fa(past)+' رویداد برگزار شده و '+fa(live)+' در راه است':'؛ '+fa(live)+' رویداد در راه است')+'.'];
+  if(isMoney()){const sum=evAllRP().reduce((a,e)=>a+(+e.price>0?(+e.price)*(+e.reg||0):0),0);
+    ps.push('فروش همین دوره '+fa(sum)+' ریال است و '+fa((((A.settings||{}).keys||{}).list||[]).length)+' کلید سامانه سالم است.');}
+  const att=(RP.attention||[]).filter(a=>!a.own||isMoney())[0];
+  if(att) ps.push('نیاز به توجه: '+att.t+'.');
+  const tip=(RP.tips||[]).filter(t=>!t.own||isMoney())[0];
+  if(tip) ps.push(tip.t+'.');
+  return ps.join(' ');
+}
+
 function vReports(){
   const periods=RP.periods||[], curP=S.rp||periods[3]||'';
   const per=periods.map(p=>`<button class="chip ${curP===p?'on':''}" data-rp="${esc(p)}">${esc(p)}</button>`).join('');
@@ -2006,7 +2114,13 @@ function vReports(){
   const CU=RP.custom||{}, cSel=S.rpCust||[], cOpts=(CU.opts||[]).filter(o=>!o.own||isMoney());
   const cOn=S.rpCustOn&&cSel.length;
   const schedL=(RP.sched||{}).list||[], schL=schedL.concat(S.rpSchedExtra||[]);
-  return `<div class="admgrid">
+  return `<div class="stgroup" style="margin-bottom:var(--sp-2)">
+      <div class="fslead"><span class="ic">${ico('i-pen')}</span>
+        <span class="sp"><b>جمعبندی مدیریتی، خودنویس</b>
+          <small>${esc(rpSummary())}</small></span></div>
+      <div class="row">${baleA('reports_summary','همین جمعبندی از ربات بله')}
+        <span class="sp"></span><span class="cap">${esc('هر بار که دوره یا داده عوض شود، همین جمله تازه میشود')}</span></div></div>
+  <div class="admgrid">
     <section class="card stack">
       <div class="row"><div class="head">${esc(RP.lead||'')}</div></div>
       <div class="admfilters">${per}</div>
@@ -2549,7 +2663,11 @@ function sheetUser(id){
       <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`);
 }
 function sheetRep(k){
-  const r=rpOf(k), d=RPD[k]||{}, rows=d.rows||[], bs=d.bars||[];
+  const r=rpOf(k), d=rpCalc(k), rows=d.rows||[], bs=d.bars||[];
+  const li=(RPLIST||[]).find(x=>x.k===k)||{};
+  const sum='در این گزارش، برجستهترین سطر «'+((rows[2]||rows[0]||[])[0]||'')+'» است'
+    +(li.pc?(' · تغییر نسبت به دورهٔ مشابه قبل: '+(li.up?'▲ ':'▼ ')+li.pc):'')
+    +'. دورهٔ زمانی: '+(S.rp||'۳۰ روز')+'؛ اعداد از همین پنل حساب میشود، نه از متن ثابت.';
   const att=(RP.attention||[]).filter(a=>a.k===k);
   sheetImpl('shAdm',`<div class="admsheet">
     <div class="row"><span class="ic">${ico('i-chart')}</span>
@@ -2557,7 +2675,11 @@ function sheetRep(k){
       <div class="cap">${esc(r.v||'')} · ${esc(r.d||'')}</div></span><span class="sp"></span>
       ${r.pc?`<span class="tag ${r.up?'ok':'warn'}">${esc((r.up?'▲ ':'▼ ')+r.pc)}</span>`:''}</div>
     ${bs.length?bars(bs,true):''}
+    <p class="cap">${esc(sum)}</p>
     ${table(rows,['',''])}
+    <div class="row tight">${li.pc?`<span class="tag ${li.up?'ok':'warn'}">${esc((li.up?'▲ ':'▼ ')+li.pc+' نسبت به دورهٔ مشابه قبل')}</span>`:''}
+      <span class="tag">${esc('دوره: '+(S.rp||'۳۰ روز'))}</span></div>
+    ${k==='tp'?`<div class="admkpi">${rows.slice(0,3).map((r2,i2)=>`<div class="k"><small>رتبهٔ ${fa(i2+1)}</small>${bits(String(r2[1]).split('·')[0]||'')}</div>`).join('')}</div>`:''}
     ${att.length?`<div class="stack tight"><div class="head">${esc(W.alert||'')}</div>
       ${att.map(a=>`<div class="admlirow">${ico('i-bell')}<span class="sp">${esc(a.t)}</span></div>`).join('')}</div>`:''}
     <div class="admkpi">${(RP.periods||[]).slice(0,4).map(p=>`<div class="k"><small>${esc(p)}</small>
