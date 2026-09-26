@@ -673,3 +673,16 @@ a.btn{text-decoration:none}
 .sd-sect-t .sp{flex:1}
 .sd-sect-b{padding:10px 14px 14px;display:grid;gap:8px}
 .sdprev{display:flex;justify-content:center;padding:6px 0}
+
+/* گفتوگو و نمودار کاشی «پشتیبانی و گفتگو» */
+.ch-th{display:grid;gap:8px;padding:2px 0}
+.ch-msg{max-width:82%;padding:10px 13px;border-radius:15px;font-size:var(--fs-sub);box-shadow:var(--sh-1)}
+.ch-msg.me{justify-self:start;background:var(--surface-2,#f3f5f9);border:.5px solid var(--hairline);border-start-start-radius:5px}
+.ch-msg.ag{justify-self:end;background:linear-gradient(135deg,#EAF2FF,#F7FAFF);border:.5px solid #C9DEF7;border-start-end-radius:5px}
+.ch-msg .mh{display:flex;align-items:baseline;gap:8px;font-size:10.5px;color:var(--ink-3);margin-bottom:3px}
+.ch-msg .mh b{color:var(--ink-2);font-weight:600}
+.ch-msg .ma{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.ch-comp{display:grid;gap:8px}
+.ch-bars{display:flex;align-items:flex-end;gap:8px;height:96px;padding:10px;border:1px solid var(--hairline-2);border-radius:12px;background:var(--surface-2,#f8fafc)}
+.ch-bars b{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;text-align:center;font-size:10px;font-weight:400;color:var(--ink-3)}
+.ch-bars i{display:block;width:70%;max-width:34px;background:linear-gradient(180deg,#1E6FD0,#0A3A82);border-radius:7px 7px 3px 3px;min-height:4px}

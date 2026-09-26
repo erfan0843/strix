@@ -10,7 +10,9 @@
    لینک ربات بله، شش گروه تنظیمات، یک مالک و شش
    حوزه با ۳۶ دسترسی و پنج دسترسی مالک، بستن بخش‌ها به‌اندازهٔ حوزه،
    سرپرست‌گذاری و افزودن کارشناس، مالیِ فقط‌مالک، ماندگاری خاموش و
-   روشن‌ها، و پاکی متن فارسی.
+   روشن‌ها، هفت کاشی تنظیمات با کاشی پشتیبانی و گفتگو (صندوق زندهٔ
+   تیکتها با پاسخ کارشناس، سرویس و ساعات با کلید مشترک به صفحهٔ کاربر،
+   گزارش هفتروزه)، و پاکی متن فارسی.
    ══════════════════════════════════════════════════════════════════════════ */
 import jsdom from 'jsdom';
 const {JSDOM}=jsdom;
@@ -975,6 +977,52 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-skit="skdev"]');
   p.click('[data-goev]');
   ok(/رویداد|مطلب/.test(p.txt('#admBody')),'میانبر بخش رویدادها، همان بخش را باز کرد');
+  /* ═══ کاشی «پشتیبانی و گفتگو»: صندوق زندهٔ تیکتها، سرویس و ساعات، گزارش ═══ */
+  {const now=Date.now();
+   const TKS=[{id:'t1',code:'11827',sec:'pay',cat:'پرداخت',anon:false,name:'رضا کریمی',contact:'۰۹۱۲۱۱۱۲۲۳۳',
+      at:now-5*3600000,thread:[{who:'me',at:now-5*3600000,text:'پرداختم دوبار کم شد؛ لطفاً بررسی کنید.'}]},
+     {id:'t2',code:'23094',sec:'cert',cat:'گواهی',anon:false,name:'سارا محمدی',contact:'۰۹۱۲۹۹۸۸۷۷۶',
+      at:now-2*86400000,closed:1,thread:[{who:'me',at:now-2*86400000,text:'گواهی کارگاه را نمیتوانم ببینم.'},
+      {who:'agent',by:'حسن مقدم',at:now-2*86400000+3600000,text:'گواهی صادر شد؛ تب بلیت و گواهی را ببینید.'}]}];
+   const st2=makeStore(); st2.setItem('nora-support-tickets',JSON.stringify(TKS));
+   const pc=await load(st2);
+   pc.click('#admNav [data-sec="settings"]');
+   ok(pc.all('[data-skit]').length===7&&!/در نوبت بعد/.test(pc.txt('[data-skit="chat"]')),'کاشی پشتیبانی و گفتگو از نوبت خارج شد و هفت کاشی کامل است');
+   pc.click('[data-skit="chat"]');
+   ok(/پشتیبانی و گفتگو/.test(pc.txt('#admBody .head'))&&/داخل ساعات|خارج از ساعت/.test(pc.txt('#admBody .tag')),'سربرگ کاشی با نشان زندهٔ ساعات پاسخگویی');
+   ok(pc.all('#admBody .metric').length===4&&pc.all('[data-chopen]').length===2,'صندوق: چهار کمّار و دو گفتگوی واقعی از حافظهٔ صفحهٔ پشتیبانی');
+   ok(/گذشت از مهلت/.test(pc.txt('#admBody')),'تیکت گذشته از مهلت، نشان «گذشت از مهلت» میگیرد');
+   ok(/تیکت بیپاسخ مانده/.test(pc.txt('#admBody')),'یادآور تیکت بیپاسخ بالای صندوق می‌نشیند');
+   pc.click('[data-chf="closed"]');
+   ok(pc.all('[data-chopen]').length===1,'صافی وضعیت، صندوق را میبَرد');
+   pc.click('[data-chf="all"]'); pc.click('[data-chopen="t1"]');
+   ok(/رضا کریمی/.test(pc.txt('#admBody'))&&pc.all('.ch-msg').length===1,'گفتوگو: نام و تماس کاربر و پیامهای رشته');
+   ok((pc.doc.querySelector('#chMsg')||{value:''}).value.length>10,'کادر پاسخ برای تیکت بیپاسخ، با پاسخ نخست پیشنویس شده');
+   pc.click('[data-chuse="1"]');
+   ok(pc.doc.querySelector('#chMsg').value.includes('رهگیری'),'پاسخ آماده با یک زدن در کادر می‌نشیند');
+   pc.type('#chMsg','بررسی شد؛ مبلغ دومی تا هفتاد و دو ساعت برمیگردد.');
+   pc.click('[data-chsend]');
+   const t1=JSON.parse(pc.store.getItem('nora-support-tickets'))[0];
+   ok(t1.thread[t1.thread.length-1].who==='agent'&&t1.thread[t1.thread.length-1].by==='حسن مقدم','پاسخ به نام پاسخگوی کنونی در تیکت کاربر نشست');
+   ok(/پاسخ داده شد/.test(pc.txt('#admBody')),'وضعیت تیکت به «پاسخ داده شد» چرخید');
+   pc.click('[data-chclose]');
+   ok(JSON.parse(pc.store.getItem('nora-support-tickets'))[0].closed===1,'بستن تیکت در حافظهٔ مشترک مینویسد');
+   pc.click('[data-chreopen]');
+   ok(JSON.parse(pc.store.getItem('nora-support-tickets'))[0].closed===0,'گشودن تیکت، همان را برمیگرداند');
+   pc.click('[data-chtab="svc"]');
+   ok(pc.all('[data-chday]').length===7&&pc.all('[data-chagent]').length===5,'سرویس: هفت روز هفته و پنج پاسخگو (لید و کارشناسها)');
+   pc.click('[data-chday="6"]');
+   pc.type('#chFrom','۰'); pc.type('#chTo','۲۴'); pc.type('#chReply','تا دو ساعت کاری پاسخ میدهیم');
+   pc.click('[data-chsvsave]');
+   const sk=JSON.parse(pc.store.getItem('nora-support-hours')||'null');
+   ok(!!sk&&sk.from===0&&sk.to===24&&/دو ساعت/.test(sk.reply),'ذخیرهٔ سرویس در کلید مشترک nora-support-hours مینشیند');
+   ok(/همین حالا داخل ساعات پاسخگویی/.test(pc.txt('#admBody')),'نشان زندهٔ ساعات با اعداد تازه چرخید');
+   pc.type('#chCann','لینک جلسه پیش از کلاس میآید'); pc.click('[data-chcannadd]');
+   ok(pc.all('[data-chcdel]').length===4,'افزودن پاسخ آمادهٔ تازه');
+   pc.click('[data-chtab="rep"]');
+   ok(pc.all('.ch-bars b').length===7,'گزارش: نمودار هفتروزه با هفت ستون');
+   ok(/پرداخت/.test(pc.txt('#admBody'))&&/گواهی/.test(pc.txt('#admBody')),'گزارش تیکتها بر پایهٔ بخش');
+   ok(pc.errs.length===0,'کاشی پشتیبانی و گفتگو بیخطا بود');}
   {p.click('#admNav [data-sec="settings"]');
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
    p.click('[data-skit="ops"]');}
@@ -1377,7 +1425,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:67, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:68, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1606,9 +1654,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=78')&&html.includes('admin.js?v=78'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=79')&&html.includes('admin.js?v=79'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v67'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v68'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

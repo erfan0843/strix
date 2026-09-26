@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=67;
+const SVER=68;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2477,7 +2477,7 @@ const SKIN_TILES=[
  {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، نگهداری، پشتیبان'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترم، کتاب ماه، جلسهها، حق عضویت، پادکست، مسابقه'},
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم، قالب مطلب، میانبرها'},
- {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
+ {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'صندوق تیکت، پاسخهای آماده، ساعات و گزارش'}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
   ['story','استوریها'],['look','کارتها و اساتید'],['type','نوشتار و چیدمان'],
   ['chrome','نوار بالا و پایین'],['foot','پای صفحه']];
@@ -2924,6 +2924,183 @@ function skdevView(){
   }
   return head+tabs+`<div class="stack tight">${inner}</div></section>`;
 }
+
+/* ══ کاشی پشتیبانی و گفتگو: صندوق تیکتها، سرویس و ساعات، گزارش ══
+   صندوق، همان حافظهٔ صفحهٔ پشتیبانی کاربر است (nora-support-tickets)؛
+   پاسخی که اینجا نوشته میشود در همان گفتوگو می‌نشیند و صفحهٔ کاربر با رویداد
+   storage همان لحظه تازه میشود. ساعات و وعده هم با کلید nora-support-hours
+   به سرصفحهٔ پشتیبانی کاربر میرسد. */
+const CHTABS=[['inbox','صندوق گفتگوها'],['svc','سرویس و ساعات'],['rep','گزارش']];
+const chSet=()=>{if(!S.ch) S.ch={}; return S.ch};
+const chG=(k,d)=>{const b=chSet(); return b[k]!=null?b[k]:d};
+const SUP_D=()=>((window.NORA||{}).SUPPORT||{});
+function chTickets(){try{const v=JSON.parse(localStorage.getItem('nora-support-tickets')||'[]');
+  return Array.isArray(v)?v:[]}catch(e){return[]}}
+function chSaveT(v){try{localStorage.setItem('nora-support-tickets',JSON.stringify(v.slice(0,14)))}catch(e){}}
+const chSecOf=k=>(SUP_D().sections||[]).find(x=>x.k===k)||
+  (k==='anon'?{n:'صندوق بی‌نام',i:'i-eye'}:{n:'موضوع دیگر',i:'i-pen'});
+const chState=t=>t.closed?'closed':(((t.thread||[]).slice(-1)[0]||{}).who==='agent'?'answered':'open');
+const CH_ST={open:{n:'در انتظار',c:'warn'},answered:{n:'پاسخ داده شد',c:'ok'},closed:{n:'بستهشده',c:''}};
+const chAgents=()=>{const D=SUP_D();
+  return ((D.lead?[D.lead.n]:[]).concat((D.experts||[]).map(e=>e.n))).filter(Boolean)};
+const chAgentDef=()=>chAgents()[0]||'کارشناس پشتیبانی';
+const chCanned=()=>chG('canned',[
+  'سلام؛ پیامت رسید و بررسی میکنم، بهزود همین‌جا خبرش را میدهم.',
+  'برای پیگیری پرداخت، کد رهگیری پرداخت را همین‌جا برایم میفرستی؟',
+  'گواهی پس از تأیید سرپرست صادر میشود و در «حساب من» میآید.']);
+const chDays=()=>chG('days',[0,1,2,3,4,5]);
+const chIsOpen=()=>{const n=jNow(), d=(j2d(n.jy,n.jm,n.jd)+2)%7;
+  if(chDays().indexOf(d)<0) return false;
+  const h=n.h+n.mi/60; return h>=+chG('from',9)&&h<+chG('to',18)};
+const chSlaH=()=>Math.max(1,+chG('sla',4)||4);
+const chOver=t=>chState(t)==='open'&&(netNow()-(t.at||0))>chSlaH()*3600000;
+function chWhen(at){
+  if(!at) return '';
+  const n=jNow(), c=clockParts(at), j=d2j(g2d(c.gy,c.gm,c.gd)), hm=fa(jPad(c.h))+':'+fa(jPad(c.mi));
+  if(j.jd===n.jd&&j.jm===n.jm&&j.jy===n.jy) return 'امروز '+hm;
+  const y=clockParts(netNow()-86400000), yj=d2j(g2d(y.gy,y.gm,y.gd));
+  if(j.jd===yj.jd&&j.jm===yj.jm&&j.jy===yj.jy) return 'دیروز '+hm;
+  return fa(j.jd)+' '+(((NE().j||{}).months||[])[j.jm-1]||'');
+}
+function chConv(t){
+  const s=chState(t), sec=chSecOf(t.sec);
+  const pre=(!((t.thread||[]).some(m=>m.who==='agent'))&&s==='open')
+    ?chG('first','سلام؛ پیامت رسید و در آن دقت میکنم. نتیجه را همین‌جا مینویسم.'):'';
+  return `
+    <div class="row"><button class="btn sm quiet" data-chback>${ico('i-chev-right')} بازگشت به صندوق</button>
+      <span class="sp"></span>${tag(CH_ST[s].n,CH_ST[s].c)}${chOver(t)?tag('گذشت از مهلت','warn'):''}
+      ${t.closed?btn('گشودن تیکت','data-chreopen="'+esc(t.id)+'"','i-lock')
+                :btn('بستن تیکت','data-chclose="'+esc(t.id)+'"','i-check')}</div>
+    ${sdSect('گفتوگو · '+sec.n,'کد '+fa(t.code||'')+' · '+chWhen(t.at))}
+      ${t.anon?`<p class="cap">${ico('i-eye')} پیام بی‌نام است؛ نه نام دارد نه راه تماس و پاسخ به آن نمیرود.</p>`
+        :`<p class="cap">${esc(t.name||'بی‌نام')} · ${esc(t.contact||'بدون راه تماس')}${t.cat?' · دسته: '+esc(t.cat):''}</p>`}
+      <div class="ch-th">${(t.thread||[]).map(m=>`<div class="ch-msg ${m.who==='agent'?'ag':'me'}">
+        <div class="mh"><b>${m.who==='agent'?esc(m.by||'کارشناس'):'کاربر'}</b><span>${esc(chWhen(m.at))}</span></div>
+        ${m.text?`<div>${esc(m.text)}</div>`:''}
+        ${(m.atts||[]).length?`<div class="ma">${m.atts.map(a=>a.href
+          ?`<a class="chip on" href="${esc(a.href)}" target="_blank" rel="noopener">${ico('i-link')}${esc(a.t||'پیوند')}</a>`
+          :`<span class="chip on">${ico('i-file-up')}${esc(a.t||'پیوست')}</span>`).join('')}</div>`:''}</div>`).join('')
+          ||emptyBox('گفتوگو خالی است')}</div>
+      ${s==='closed'?'<p class="cap">این تیکت بسته است؛ با گشودنش دوباره میشود پاسخ داد.</p>':`
+      <div class="ch-comp">
+        <div class="admfilters">${chCanned().map((c,i)=>`<button class="chip" data-chuse="${i}" title="${esc(c)}">${esc(c.slice(0,26))}…</button>`).join('')}</div>
+        <label class="fld"><span>پاسخ کارشناس · به نام ${esc(chG('agent',chAgentDef()))}</span>
+          <textarea id="chMsg" class="input" rows="3">${esc(pre)}</textarea></label>
+        <div class="row tight">${btn('فرستادن پاسخ','data-chsend="'+esc(t.id)+'"','i-send')}
+          <span class="cap">پاسخ در گفتوگوی کاربر همان لحظه می‌نشیند</span></div>
+      </div>`}
+    ${sdEnd()}`;
+}
+function chInbox(){
+  const T=chTickets().slice().sort((a,b)=>(b.at||0)-(a.at||0));
+  if(S.chOpen){const t=chTickets().find(x=>x.id===S.chOpen);
+    if(t) return chConv(t); S.chOpen='';}
+  const st=k=>T.filter(t=>chState(t)===k).length;
+  const n=jNow(), today=T.filter(t=>{if(!t.at) return false; const c=clockParts(t.at), j=d2j(g2d(c.gy,c.gm,c.gd));
+    return j.jd===n.jd&&j.jm===n.jm&&j.jy===n.jy}).length;
+  const f=S.chF||'all', L=T.filter(t=>f==='all'||chState(t)===f);
+  return `
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(st('open')))}</div><div class="l">در انتظار پاسخ</div></div>
+      <div class="metric"><div class="n">${esc(fa(st('answered')))}</div><div class="l">پاسخ داده شد</div></div>
+      <div class="metric"><div class="n">${esc(fa(st('closed')))}</div><div class="l">بستهشده</div></div>
+      <div class="metric"><div class="n">${esc(fa(today))}</div><div class="l">تیکت امروز</div></div></div>
+    ${chG('notify',1)&&st('open')?`<p class="cap">${ico('i-bell')} ${esc(fa(st('open')))} تیکت بیپاسخ مانده؛ یادآورت روشن است.</p>`:''}
+    ${sdSect('گفتگوهای صندوق','همان تیکتهای صفحهٔ پشتیبانی، زنده')}
+    <div class="admfilters">${[['all','همه'],['open','در انتظار'],['answered','پاسخ داده شد'],['closed','بستهشده']]
+      .map(x=>`<button class="chip ${f===x[0]?'on':''}" data-chf="${x[0]}">${esc(x[1])}</button>`).join('')}</div>
+    ${L.length?L.map(t=>{const s=chState(t), sec=chSecOf(t.sec), last=(t.thread||[]).slice(-1)[0]||{};
+      return `<div class="admlirow" role="button" data-chopen="${esc(t.id)}" style="cursor:pointer">
+        ${ico(sec.i||'i-headphone')}
+        <span class="sp"><b>${t.anon?'پیام بی‌نام':esc(t.name||'بی‌نام')} · ${esc(sec.n)}</b>
+          <small class="cap">کد ${esc(fa(t.code||''))} · ${esc(String(last.text||'').slice(0,80))}</small></span>
+        <span class="mini">${tag(CH_ST[s].n,CH_ST[s].c)}${chOver(t)?tag('گذشت از مهلت','warn'):''}
+          <small class="cap">${esc(chWhen(t.at))}</small></span></div>`}).join('')
+      :emptyBox(f==='all'?'هنوز تیکتی نیامده؛ کاربر که از صفحهٔ پشتیبانی تیکت بزند، همین‌جا می‌نشیند':'گفتگویی با این وضعیت نیست')}
+    ${sdEnd()}`;
+}
+function chSvc(){
+  const D=SUP_D(), days=chDays();
+  return `
+    ${sdSect('ساعات پاسخگویی','سرصفحهٔ پشتیبانی کاربر همین را میبیند')}
+    <p class="cap">زمان باز بودن صندوق همینجا تعیین میشود؛ نشان «داخل ساعات» و «خارج از ساعت» بالای همین کاشی با همین اعداد زنده میشود و متن ساعات به صفحهٔ کاربر میرود.</p>
+    <div class="row tight">
+      <label class="fld" style="width:110px"><span>از ساعت</span><input id="chFrom" value="${esc(String(chG('from',9)))}" inputmode="numeric"/></label>
+      <label class="fld" style="width:110px"><span>تا ساعت</span><input id="chTo" value="${esc(String(chG('to',18)))}" inputmode="numeric"/></label>
+      <label class="fld" style="flex:1;min-width:200px"><span>متن ساعات برای صفحهٔ کاربر</span><input id="chHrsT" value="${esc(chG('hoursText',D.hours||'شنبه تا پنجشنبه، ۹ تا ۱۸'))}"/></label></div>
+    <div class="admfilters">${JN.map((d,i)=>`<button class="chip ${days.indexOf(i)>-1?'on':''}" data-chday="${i}">${esc(d)}</button>`).join('')}</div>
+    ${sdEnd()}
+    ${sdSect('وعده و مهلت پاسخ','وعده در گفتوگوی کاربر، مهلت در صندوق')}
+    <div class="row tight">
+      <label class="fld" style="flex:1;min-width:200px"><span>وعدهٔ پاسخ</span><input id="chReply" value="${esc(chG('reply',D.reply||'پاسخ کارشناس تا پایان روز کاری'))}"/></label>
+      <label class="fld" style="width:140px"><span>مهلت پاسخ (ساعت)</span><input id="chSla" value="${esc(String(chSlaH()))}" inputmode="numeric"/></label></div>
+    <p class="cap">تیکتی که از مهلت بگذرد، در صندوق نشان «گذشت از مهلت» میگیرد.</p>
+    <div class="row tight">${btn('ذخیرهٔ سرویس','data-chsvsave','i-check')}<span class="cap">ساعات، روزها، وعده و مهلت یکجا ذخیره میشود</span></div>
+    ${sdEnd()}
+    ${sdSect('پاسخهای آماده','با یک زدن در کادر پاسخ می‌نشینند')}
+    <div class="admfilters">${chCanned().map((c,i)=>`<span class="chip on">${esc(c.length>30?c.slice(0,30)+'…':c)}
+      <button class="chip" data-chcdel="${i}" aria-label="برداشتن پاسخ آماده">${ico('i-close')}</button></span>`).join('')||emptyBox('قالبی نیست')}</div>
+    <div class="row tight"><label class="fld" style="flex:1;min-width:200px"><span>پاسخ آمادهٔ تازه</span><input id="chCann" placeholder="مثل: لینک جلسه تا یک ساعت پیش از کلاس میآید"/></label>
+      ${btn('افزودن پاسخ','data-chcannadd','i-plus')}</div>
+    ${sdEnd()}
+    ${sdSect('پاسخ نخست و پاسخگو','پیشنویس پاسخ به تیکت تازه، به این نام میرود')}
+    <label class="fld"><span>پیشنویس پاسخ نخست</span><textarea id="chFirst" class="input" rows="2">${esc(chG('first','سلام؛ پیامت رسید و در آن دقت میکنم. نتیجه را همین‌جا مینویسم.'))}</textarea></label>
+    <div class="admfilters">${chAgents().map(n=>`<button class="chip ${chG('agent',chAgentDef())===n?'on':''}" data-chagent="${esc(n)}">${esc(n)}</button>`).join('')||'<span class="mini">کارشناسی در داده نیست</span>'}</div>
+    <div class="admsw"><span class="sp"><b>یادآور تیکت بیپاسخ</b><small>تا وقتی تیکتی بیپاسخ است، بالای صندوق یادآور بماند</small></span>
+      <span class="switch ${chG('notify',1)?'on':''}" data-chtog="notify" role="switch" aria-checked="${chG('notify',1)?'true':'false'}" aria-label="یادآور تیکت بیپاسخ"></span></div>
+    ${sdEnd()}`;
+}
+function chRep(){
+  const T=chTickets(), D=SUP_D();
+  const agMsgs=T.reduce((a,t)=>a+(t.thread||[]).filter(m=>m.who==='agent').length,0);
+  const meMsgs=T.reduce((a,t)=>a+(t.thread||[]).filter(m=>m.who!=='agent').length,0);
+  const fr=T.map(t=>{const m=(t.thread||[]).find(x=>x.who==='agent');
+    return (m&&m.at&&t.at)?Math.max(0,m.at-t.at):null}).filter(x=>x!=null);
+  const avgH=fr.length?Math.round(fr.reduce((a,b)=>a+b,0)/fr.length/360000)/10:0;
+  const bys={}; T.forEach(t=>{const k=chSecOf(t.sec).n; bys[k]=(bys[k]||0)+1});
+  const days=Array.from({length:7},(_,i)=>{const ms=netNow()-86400000*(6-i), c=clockParts(ms), j=d2j(g2d(c.gy,c.gm,c.gd));
+    const n=T.filter(t=>{if(!t.at) return false; const cc=clockParts(t.at), jj=d2j(g2d(cc.gy,cc.gm,cc.gd));
+      return jj.jd===j.jd&&jj.jm===j.jm&&jj.jy===j.jy}).length;
+    return {d:JN[(j2d(j.jy,j.jm,j.jd)+2)%7], n:n}});
+  const dmx=Math.max(1,...days.map(x=>x.n));
+  return `
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(T.length))}</div><div class="l">تیکت</div></div>
+      <div class="metric"><div class="n">${esc(fa(agMsgs))}</div><div class="l">پاسخ کارشناس</div></div>
+      <div class="metric"><div class="n">${esc(fa(avgH))}</div><div class="l">میانگین نخستین پاسخ (ساعت)</div></div>
+      <div class="metric"><div class="n">${esc(fa(meMsgs))}</div><div class="l">پیام کاربر</div></div></div>
+    ${sdSect('هفت روز اخیر','تیکتهای هر روز؛ از راست، کهنه به تازه')}
+    <div class="ch-bars">${days.map(x=>`<b><span>${esc(fa(x.n))}</span><i style="height:${Math.round(8+72*x.n/dmx)}%"></i><span>${esc(x.d)}</span></b>`).join('')}</div>
+    ${sdEnd()}
+    ${sdSect('تیکتها بر پایهٔ بخش','از کدام بخشهای راهنما آمدهاند')}
+    <div class="admfilters">${Object.entries(bys).sort((a,b)=>b[1]-a[1])
+      .map(([k,n])=>`<span class="chip on">${esc(k)} · ${esc(fa(n))}</span>`).join('')||emptyBox('تیکتی نیست')}</div>
+    ${sdEnd()}
+    ${sdSect('قولنامهٔ سرویس','آنچه کاربر در صفحهٔ پشتیبانی میبیند')}
+    ${(D.sla||[]).map(r=>`<div class="admlirow">${ico('i-clock')}
+      <span class="sp"><b>${esc(r[0])}</b><small class="cap">${esc(r[1])}</small></span></div>`).join('')}
+    <div class="admlirow">${ico('i-headphone')}
+      <span class="sp"><b>ساعات و وعدهٔ کنونی</b><small class="cap">${esc(chG('hoursText',D.hours||''))} · ${esc(chG('reply',D.reply||''))}</small></span></div>
+    <div class="admlirow">${ico('i-users')}
+      <span class="sp"><b>پاسخگوی کنونی</b><small class="cap">${esc(chG('agent',chAgentDef()))}</small></span></div>
+    ${sdEnd()}`;
+}
+function chatView(){
+  const cur=S.chTab||'inbox';
+  const tabs=`<div class="admfilters">${CHTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-chtab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
+  const open=chIsOpen();
+  const head=`<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><a class="btn sm tint" href="support.html" target="_blank">${ico('i-headphone')} صفحهٔ پشتیبانی کاربر</a></div>
+    <div class="row"><div class="head">پشتیبانی و گفتگو</div><span class="sp"></span>
+      <span class="tag ${open?'ok':'warn'}">${open?'همین حالا داخل ساعات پاسخگویی':'خارج از ساعت پاسخگویی'}</span></div>
+    <p class="cap">صندوق، همان صندوق صفحهٔ پشتیبانی کاربر است؛ پاسخی که اینجا مینویسی در همان گفتوگو می‌نشیند و صفحهٔ کاربر خودش تازه میشود.</p>`;
+  let inner='';
+  if(cur==='inbox') inner=chInbox();
+  else if(cur==='svc') inner=chSvc();
+  else inner=chRep();
+  return head+tabs+`<div class="stack tight">${inner}</div></section>`;
+}
 /* ══ کاشی باشگاه کتابخوانی: از تعریف تا برنامه، هرچه هست تنظیم ══ */
 const BKTABS=[['home','هویت و ترم'],['gate','در و فرم عضویت'],['fee','حق عضویت'],['meet','جلسهها'],
   ['pod','پادکست نبض ورق'],['lib','کتابخانه و صدا'],['game','مسابقه و چالش'],['books','کتاب و خلاصه'],['wk','کارگاهها'],['trib','تریبون و گروه']];
@@ -3305,6 +3482,7 @@ function vSettings(){
   if(own&&S.skinO) return opsView();
   if(own&&S.skinB) return bookView();
   if(own&&S.skinD) return skdevView();
+  if(own&&S.skinC) return chatView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
@@ -4169,9 +4347,10 @@ document.addEventListener('click',e=>{
     else if(k==='ops'){S.skinO=1;}
     else if(k==='book'){S.skinB=1; if(!S.bkTab) S.bkTab='home';}
     else if(k==='skdev'){S.skinD=1; if(!S.sdTab) S.sdTab='tag';}
+    else if(k==='chat'){S.skinC=1; if(!S.chTab) S.chTab='inbox';}
     else {toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
     save(); renderBody(); return}
-  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; S.skinD=0; save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; S.skinD=0; S.skinC=0; save(); renderBody(); return}
   const gv=q('[data-govusers]'); if(gv){S.skinU=0; S.skin=0; S.sec='users'; S.uV=''; save(); renderBody(); toast('به بخش کاربران رفتید'); return}
   const ntfg=q('[data-ntfg]'); if(ntfg){S.ntfG=ntfg.dataset.ntfg; save(); renderBody(); return}
   const ntfon=q('[data-ntfon]'); if(ntfon){const k=ntfon.dataset.ntfon, off=S.ntfOff||[];
@@ -4427,6 +4606,52 @@ document.addEventListener('click',e=>{
   const sdtg=q('[data-sdtog]'); if(sdtg){const k=sdtg.dataset.sdtog;
     sdSet()[k]=sdG(k,0)?0:1; save(); uLogAdd('سیاست انتشار «'+k+'» '+(sdSet()[k]?'روشن':'خاموش')+' شد');
     toast(sdSet()[k]?'سیاست روشن شد':'سیاست خاموش شد'); renderBody(); return}
+  /* ── کاشی پشتیبانی و گفتگو ── */
+  const cht=q('[data-chtab]'); if(cht){S.chTab=cht.dataset.chtab; save(); renderBody(); return}
+  const chf=q('[data-chf]'); if(chf){S.chF=chf.dataset.chf; save(); renderBody(); return}
+  const cho=q('[data-chopen]'); if(cho){S.chOpen=cho.dataset.chopen; save(); renderBody(); return}
+  const chb=q('[data-chback]'); if(chb){S.chOpen=''; save(); renderBody(); return}
+  const chc=q('[data-chclose]'); if(chc){const T=chTickets(), t=T.find(x=>x.id===chc.dataset.chclose);
+    if(t){t.closed=1; chSaveT(T); uLogAdd('تیکت '+fa(t.code||'')+' بسته شد');
+      toast('تیکت بسته شد؛ در حساب کاربر هم بسته میشود')} renderBody(); return}
+  const chr2=q('[data-chreopen]'); if(chr2){const T=chTickets(), t=T.find(x=>x.id===chr2.dataset.chreopen);
+    if(t){t.closed=0; chSaveT(T); toast('تیکت گشوده شد')} renderBody(); return}
+  const chs=q('[data-chsend]'); if(chs){const T=chTickets(), t=T.find(x=>x.id===chs.dataset.chsend);
+    const v=(($('#chMsg')||{}).value||'').trim();
+    if(!t){toast('تیکت پیدا نشد'); return}
+    if(!v){toast('پاسخی بنویس'); return}
+    (t.thread=t.thread||[]).push({who:'agent',by:chG('agent',chAgentDef()),at:Date.now(),text:v});
+    t.at=Date.now(); chSaveT(T);
+    uLogAdd('پاسخ به تیکت '+fa(t.code||'')+' نوشته شد');
+    toast('پاسخ نشست؛ صفحهٔ کاربر همان لحظه تازه میشود'); renderBody(); return}
+  const chu=q('[data-chuse]'); if(chu){const c=chCanned()[+chu.dataset.chuse]||'', ta=$('#chMsg');
+    if(ta){ta.value=(ta.value?ta.value.replace(/\s+$/,'')+'\n':'')+c; ta.focus()} return}
+  const chsv=q('[data-chsvsave]'); if(chsv){const b=chSet();
+    const num=(sel,d)=>{const el=$(sel); if(!el) return d;
+      const v=parseInt(String(el.value).replace(/[۰-۹]/g,x=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(x))));
+      return isNaN(v)?d:v};
+    b.from=num('#chFrom',9); b.to=num('#chTo',18);
+    if(b.from>=b.to){toast('ساعت شروع باید پیش از ساعت پایان باشد'); return}
+    b.sla=Math.max(1,num('#chSla',4));
+    b.hoursText=(($('#chHrsT')||{}).value||'').trim()||((SUP_D()).hours||'');
+    b.reply=(($('#chReply')||{}).value||'').trim()||((SUP_D()).reply||'');
+    b.first=(($('#chFirst')||{}).value||'').trim()||b.first;
+    try{localStorage.setItem('nora-support-hours',JSON.stringify({from:b.from,to:b.to,days:chDays(),
+      hours:b.hoursText,reply:b.reply,at:Date.now(),by:me().n||'مالک'}))}catch(e){}
+    save(); uLogAdd('سرویس پشتیبانی ذخیره شد: '+b.hoursText);
+    toast('سرویس ذخیره شد؛ صفحهٔ کاربر ساعات تازه را میبیند'); renderBody(); return}
+  const chca=q('[data-chcannadd]'); if(chca){const v=(($('#chCann')||{}).value||'').trim();
+    if(!v){toast('متن پاسخ آماده را بنویس'); return}
+    chSet().canned=chCanned().concat([v]); save(); toast('پاسخ آماده نشست'); renderBody(); return}
+  const chcd=q('[data-chcdel]'); if(chcd){const i=+chcd.dataset.chcdel, l=chCanned().slice(); l.splice(i,1);
+    chSet().canned=l; save(); renderBody(); return}
+  const chag=q('[data-chagent]'); if(chag){chSet().agent=chag.dataset.chagent; save(); renderBody(); return}
+  const chdg=q('[data-chday]'); if(chdg){const i=+chdg.dataset.chday, l=chDays().slice(), ix=l.indexOf(i);
+    if(ix>-1){l.splice(ix,1); if(!l.length){toast('دستکم یک روز کاری لازم است'); return}} else l.push(i);
+    chSet().days=l.sort((x,y)=>x-y); save(); renderBody(); return}
+  const chtg=q('[data-chtog]'); if(chtg){const k=chtg.dataset.chtog;
+    chSet()[k]=chG(k,1)?0:1; save();
+    toast(chSet()[k]?'یادآور روشن شد':'یادآور خاموش شد'); renderBody(); return}
   const sgnw=q('[data-gonew]'); if(sgnw){S.skinD=0; S.skin=0;
     if(sgnw.dataset.gonew==='ev'){S.ped=null; S.psec='list'; S.pmgr=null; S.wiz=Object.assign({},BASE.wiz); S.wiz.open=1; S.wiz.step=0; S.sec='events';}
     else {S.pmgr=null; S.wiz.open=0; S.ped=pedFresh(); S.psec='edit'; S.pstep=1; S.sec='events';}

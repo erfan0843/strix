@@ -36,6 +36,14 @@ const KIND={image:{i:'i-image',n:'تصویر'},video:{i:'i-video',n:'ویدیو'
 const MESS={bale:'ble.ir/',tel:'t.me/',soroush:'splus.ir/',gap:'gap.im/'};
 const TK_KEY='nora-support-tickets', SEED_KEY='nora-support-seeded';
 
+/* تنظیم مدیر پنل: کاشی «پشتیبانی و گفتگو» اگر ساعات یا وعده را عوض کرده باشد،
+   با کلید nora-support-hours همین‌جا می‌نشیند؛ نبودش یعنی پیش‌فرض سامانه */
+function supOvr(k,d){
+  try{ const v=JSON.parse(localStorage.getItem('nora-support-hours')||'null');
+    return (v&&v[k]!=null&&String(v[k]).trim())?String(v[k]):d;
+  }catch(e){ return d }
+}
+
 function stamp(t){
   try{ return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(t||Date.now())) }
   catch(e){ return 'امروز' }
@@ -297,7 +305,7 @@ function renderResults(){
 function renderHead(){
   const on=(SUP.experts||[]).filter(e=>e.on).length;
   const lv=$('#supLive'); if(lv) lv.textContent=on?'آنلاین':'خارج از ساعت';
-  const hr=$('#supHours'); if(hr) hr.textContent=SUP.hours||'';
+  const hr=$('#supHours'); if(hr) hr.textContent=supOvr('hours',SUP.hours||'');
   const oc=$('#tkOpenCap');
   if(oc) oc.textContent=openCount()?faN(openCount())+' تیکت باز از '+faN(MAXOPEN):'می‌توانی تیکت بزنی';
 }
@@ -589,7 +597,7 @@ function openThread(id){
       '<div class="cinput"><button class="abtn" type="button" data-catt aria-label="پیوست">'+ico('i-clip')+'</button>'+
       '<input id="supReply" type="text" placeholder="پاسخ یا فایل تازه…" aria-label="متن پیام"/>'+
       '<button class="btn primary" type="button" data-csend>'+ico('i-send')+'</button></div>'+
-      '<p class="fine">'+ico('i-clock')+' '+esc(SUP.reply||'پاسخ کارشناس تا پایان روز کاری')+'</p>');
+      '<p class="fine">'+ico('i-clock')+' '+esc(supOvr('reply',SUP.reply||'پاسخ کارشناس تا پایان روز کاری'))+'</p>');
   modal({ico:s.i, tone:toneOf(s), title:'گفت‌وگوی تیکت', sub:s.n+' · کد '+faN(t.code), body:body,
     foot:'<div class="btn-row"><button class="btn quiet" type="button" data-mclose>بستن</button>'+
       (st==='closed'?'':'<button class="btn block" type="button" data-closetk="'+t.id+'">'+ico('i-check')+' پایان تیکت</button>')+'</div>'});

@@ -403,7 +403,7 @@ async function load(store,hash){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=78')&&html.includes('support.js?v=78')&&html.includes('data.js?v=78'),'نسخهٔ دارایی‌ها تازه شده');
+  ok(html.includes('support.css?v=79')&&html.includes('support.js?v=79')&&html.includes('data.js?v=79'),'نسخهٔ دارایی‌ها تازه شده');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');
@@ -417,6 +417,12 @@ async function load(store,hash){
   ok(sw.includes("'support.html'")&&sw.includes("'support.css'")&&sw.includes("'support.js'"),'سرویس‌ورکر صفحهٔ پشتیبانی را پیش‌بار می‌کند');
   const man=fs.readFileSync(DIR+'manifest.webmanifest','utf8');
   ok(man.includes('support.html'),'میان‌بر پشتیبانی در manifest');
+  /* تنظیم پنل: کاشی «پشتیبانی و گفتگو» ساعات و وعده را از کلید مشترک میخواند */
+  {const st=makeStore({'nora-support-hours':JSON.stringify({hours:'همهروز، ۸ تا ۲۲',reply:'تا دو ساعت کاری پاسخ میدهیم'})});
+   const po=await load(st);
+   ok(po.txt('#supHours').includes('همهروز، ۸ تا ۲۲'),'ساعات سرصفحه از تنظیم کاشی پشتیبانی پنل میآید');
+   const p2=await load(makeStore());
+   ok(p2.txt('#supHours').includes('۹ تا ۱۸'),'بی کلید پنل، پیشفرض سامانه سر جایش است');}
   const doc=fs.readFileSync(DIR+'support-arch.md','utf8');
   ok(doc.includes('گام')&&doc.includes('تیکت')&&doc.includes('کارشناس'),'سند معماری پشتیبانی به‌روز است');
 }

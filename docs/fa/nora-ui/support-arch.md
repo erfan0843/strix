@@ -129,6 +129,9 @@ support.html
 
 ## ۹) داده
 
+- ساعات سرصفحه و وعدهٔ پاسخ، اگر مدیر در کاشی «پشتیبانی و گفتگو»ی پنل
+  عوضشان کرده باشد، از کلید مشترک `nora-support-hours` میآید؛ نبودِ این
+  کلید یعنی پیشفرضِ `NORA.SUPPORT` (`hours` و `reply`).
 - `NORA.SUPPORT.sections`: بیست‌ویک بخش؛ هر بخش `{k, grp, n, s, i, cat, cover,
   time, need[], rel[], steps[۳×{t, icon, d}], faq[۶×{q, a}], tips[۲], media[],
   form?}`. `need` چیزهای پیش از شروع است، `time` مهلت کار، `rel` کلید
