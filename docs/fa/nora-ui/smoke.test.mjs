@@ -3,7 +3,7 @@
    اجرا:  npm i jsdom && node smoke.test.mjs
    چه چیزی را می‌سنجد: بی‌خطا بار شدن هر صفحه، انتخاب‌گرها (هیچ‌جا تایپ نه)،
    صورت‌حساب و ضریب همراهان، گواهینامه و کیوآرکد، پیوندهای پایانی، پنل فرم
-   (آمار/اطلاعات/تغییرات)، جزئیات پاسخ‌دهنده، کارتابل، مالی و کارشناسان.
+   (آمار/اطلاعات/تغییرات)، وبهوک و گردش کار، جزئیات پاسخ‌دهنده، کارتابل، مالی و کارشناسان.
    ══════════════════════════════════════════════════════════════════════════ */
 import jsdom from 'jsdom';
 const {JSDOM,ResourceLoader}=jsdom;
@@ -460,6 +460,73 @@ async function load(file,store,q){
   ok(p.all('#teamBox .card').length===4,'چهار کارشناس');
   ok(/بخش آموزش/.test(p.txt('#teamBox'))&&/بخش رسانه/.test(p.txt('#teamBox')),'کارشناسان زیر بخش خودشان گروه شده‌اند');
   ok(/کارشناس مسئول: خانم رستگار/.test(p.txt('#teamBox')),'کارشناس مسئول هر بخش نوشته شده');
+  /* ── تنظیمهای پیشرفته: وبهوک و رخدادها + گردش کار چندمرحله‌ای ── */
+  p.click('[data-go="fList"]');
+  ok(p.txt('#formCards').includes('منتظر تأیید'),'نشان قرمز صف تأیید روی کارت فرم در فهرست نشسته');
+  p.window.eval("PEOPLE.find(p=>p.id==='p1').state='pending'");   /* رسید تازه‌ای به صف تأیید آمد */
+  p.window.eval("CUR.event={id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'}"); /* فرم باز به رویدادش وصل شد */
+  p.click('[data-form="f1"]');
+  p.click('#openSettings');
+  ok(p.doc.getElementById('shSettings').classList.contains('on'),'ورقهٔ تنظیمات فرم باز شد');
+  ok(p.txt('#shSettings').includes('تنظیمهای پیشرفته'),'بخش «تنظیمهای پیشرفته» در ورقهٔ تنظیمات');
+  ok(p.txt('#shSettings').includes('وبهوک و رخدادها')&&p.txt('#shSettings').includes('گردش کار چندمرحله‌ای'),
+     'دو تنظیم ماندهٔ طرح، هر دو در تنظیمات');
+  const qN=p.window.eval("PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending').length");
+  ok(qN===2&&p.txt('#setApSub')==='۲ پاسخ منتظر تأیید','شمار منتظران کنار گردش کار نوشته شده ('+p.txt('#setApSub')+')');
+  /* وبهوک: نشانی ناامن رد می‌شود و ورقه همان‌جا می‌ماند */
+  p.click('#shSettings [data-change="webhook"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ وبهوک باز شد');
+  ok(p.all('#chBody .chip[data-wev]').length===4,'چهار رخداد: پاسخ کامل، پرداخت، تأیید، رد');
+  p.doc.querySelector('#chWhUrl').value='http://x.com/hook';
+  p.click('#chApply');
+  ok(/https/.test(p.txt('#toast')),'نشانی ناامن با پیام روشن رد شد');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقه همان‌جا ماند تا نشانی درست شود');
+  /* ذخیرهٔ درست و برگشت به همان ورقهٔ تنظیمات */
+  p.click('#chWhOn');
+  p.doc.querySelector('#chWhUrl').value='https://example.com/hook';
+  p.click('#chBody .chip[data-wev="paid"]');
+  p.click('#chApply');
+  ok(p.window.eval("CUR.webhook.on")===true&&p.window.eval("CUR.webhook.url")==='https://example.com/hook','وبهوک با نشانی امن ذخیره شد');
+  ok(p.window.eval("CUR.webhook.events.length")===3&&!p.window.eval("CUR.webhook.events").includes('paid'),'چیپ رخداد، خبر «پرداخت» را خاموش کرد');
+  ok(p.doc.getElementById('shSettings').classList.contains('on'),'پس از ذخیره، برگشت به همان ورقهٔ تنظیمات');
+  ok(p.txt('#setWhSub').includes('example.com'),'زیرنویس وبهوک در تنظیمات به‌روز شد');
+  /* گردش کار: صف تأیید با مشاهده و تأیید و رد */
+  p.click('#shSettings [data-change="appr"]');
+  ok(p.txt('#chBody').includes('صف تأیید'),'ورقهٔ گردش کار: صف تأیید');
+  ok(p.txt('#chBody').includes('ثبت‌نام خودکار'),'یادآوری ثبت‌نام خودکار، چون فرم به رویداد وصل است');
+  ok(p.all('#chBody [data-apok]').length===qN,'هر منتظر یک ردیف با مشاهده و تأیید و رد دارد');
+  const apId=p.doc.querySelector('#chBody [data-apok]').dataset.apok;
+  p.click('#chBody [data-apok="'+apId+'"]');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='"+apId+"').state")==='paid','تأیید، پاسخ را قطعی کرد');
+  ok(p.window.eval("CUR.changes[0][0]").includes('ثبت‌نام خودکار'),'تأیید فرم رویدادی، ثبت‌نام خودکار شد');
+  ok(/تأیید شد/.test(p.txt('#toast')),'پیام تأیید آمد');
+  ok(p.window.eval("CUR.webhook.last").includes('تأیید به https://example.com'),'وبهوکِ فرم رخداد تأیید را فرستاد ('+p.window.eval("CUR.webhook.last")+')');
+  ok(!p.doc.querySelector('#chBody [data-apok="'+apId+'"]'),'تأییدشده از صف بیرون آمد');
+  /* دوباره بررسی نمی‌شود */
+  p.doc.getElementById('chBody').insertAdjacentHTML('beforeend','<button data-apok="'+apId+'">تأیید</button>');
+  p.click('#chBody [data-apok="'+apId+'"]');
+  ok(/قبلاً/.test(p.txt('#toast')),'بررسی دوباره با پیام «قبلاً بررسی شده» جلوگیری شد');
+  /* رد نفر بعدی؛ «مشاهده» هم جزئیاتش را باز می‌کند */
+  const noId=p.doc.querySelector('#chBody [data-apno]').dataset.apno;
+  p.click('#chBody [data-apview="'+noId+'"]');
+  ok(p.vis('.screen').join()==='fUser','«مشاهده» جزئیات همان پاسخ‌دهنده را باز کرد');
+  p.window.eval("go('fPanel')");
+  p.click('#openSettings');
+  p.click('#shSettings [data-change="appr"]');
+  p.click('#chBody [data-apno="'+noId+'"]');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='"+noId+"').state")==='void','رد، پاسخ را باطل کرد');
+  ok(p.window.eval("CUR.webhook.last").includes('رد به https://example.com'),'وبهوک رخداد رد را هم فرستاد');
+  ok(p.all('#chBody [data-apok]').length===qN-2,'صف به اندازهٔ بررسی‌ها خالی شد');
+  ok(!p.txt('#formCards').includes('منتظر تأیید'),'نشان قرمز با خالی شدن صف از فهرست برداشته شد');
+  p.click('#chApply');
+  ok(p.doc.getElementById('shSettings').classList.contains('on'),'«باشه»ٔ گردش کار هم به تنظیمات برگشت');
+  /* ورقه از تب تغییرات هم هست؛ آنجا «باشه» همان‌جا می‌بندد */
+  p.click('[data-close]');
+  p.click('#pSeg [data-tab="changes"]');
+  ok(p.txt('#changesBox').includes('وبهوک و رخدادها')&&p.txt('#changesBox').includes('گردش کار چندمرحله‌ای'),'هر دو تنظیم در تب تغییرات هم هست');
+  p.click('[data-change="appr"]');
+  p.click('#chApply');
+  ok(!p.doc.getElementById('shChange').classList.contains('on')&&!p.doc.getElementById('shSettings').classList.contains('on'),'از تب تغییرات، همان‌جا بسته شد');
   p.click('[data-go="fList"]');
   p.doc.querySelector('#q').value='آزمون'; p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
   ok(p.all('#formCards .fcard').length===1,'جست‌وجو کار می‌کند');
@@ -1518,7 +1585,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:53, added:[
+  store.setItem('nora-admin', JSON.stringify({v:54, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

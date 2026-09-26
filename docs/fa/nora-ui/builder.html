@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم‌ها و گزارش</title>
-<link rel="stylesheet" href="glass.css?v=64"/>
+<link rel="stylesheet" href="glass.css?v=65"/>
 <style>
   .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
   .fcard:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
@@ -477,6 +477,11 @@
       <span class="switch on" id="setWait" role="switch" aria-checked="true"></span></div>
     <div><label class="lbl">پیوند فرم</label>
       <div class="row"><input class="input" id="setSlug" style="flex:1;direction:ltr" value=""/><button class="btn sm tint" data-copy="#setSlug">کپی</button></div></div>
+    <div class="cap" style="margin-top:6px">تنظیمهای پیشرفته</div>
+    <button class="chrow" data-change="webhook"><span class="ic"><svg class="i"><use href="#i-link"/></svg></span>
+      <span class="tx"><b>وبهوک و رخدادها</b><span id="setWhSub">خاموش</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>
+    <button class="chrow" data-change="appr"><span class="ic"><svg class="i"><use href="#i-shield"/></svg></span>
+      <span class="tx"><b>گردش کار چندمرحله‌ای</b><span id="setApSub">خاموش</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>
   </div>
   <div class="row" style="margin-top:16px">
     <button class="btn primary" id="setSave">ذخیره</button>
@@ -554,7 +559,7 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script src="cert-font.js"></script>
-<script src="ui.js?v=64"></script>
+<script src="ui.js?v=65"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
@@ -574,6 +579,7 @@ const FORMS=[
  endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
  links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
  event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:true},
  flags:['receipts','cert','excel'],
  certOn:true,certHours:'۲۴ ساعت',certIssued:{},certReq:{},
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
@@ -589,6 +595,7 @@ const FORMS=[
  endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
  links:['صفحهٔ دوره'],
  event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
  flags:['excel','raffle'],
  fields:[['رضایت کلی',100],['نقطهٔ قوت دوره',94],['پیشنهاد بهبود',61],['از من تماس بگیرید',22]],
  changes:[['۱۲ مهر · پرسش «پیشنهاد بهبود» اضافه شد','آقای نادری']],
@@ -607,6 +614,7 @@ const FORMS=[
  endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
  links:['گزارش هزینهکرد'],
  event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
  flags:['receipts','excel','cert'],
  certOn:true,certHours:'۱۲ ساعت',certIssued:{},certReq:{},
  fields:[['نام و نام خانوادگی',0],['شماره موبایل',0],['مبلغ ماهانه',0]],
@@ -624,6 +632,7 @@ const FORMS=[
  coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
  links:['سرفصل کتاب‌ها'],
  event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
  flags:['excel','exam','results','cert','anti-cheat'],
  certOn:true,certHours:'',certIssued:{},certReq:{},
  fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['کد ملی',100],['انتخاب حوزه',100]],
@@ -738,6 +747,7 @@ function renderList(){
         </div>
         <span class="sp"></span>
         ${pendings().filter(p=>p.form===f.id).length?`<span class="tag warn">${faN(pendings().filter(p=>p.form===f.id).length)} رسید در انتظار</span>`:''}
+        ${f.appr&&f.appr.on&&PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length?`<span class="tag stop">${faN(PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length)} منتظر تأیید</span>`:''}
         <span class="tag ${f.tone}"><span class="dot"></span> ${f.status}</span>
       </div>
       <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px">
@@ -945,11 +955,12 @@ function renderChanges(){
     per:['i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],fin:['i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
     coupon:['i-star','کد تخفیف','درصد یا مبلغ'],gw:['i-wallet','مدل‌های پرداخت','فقط در بخش مالی'],
     endtext:['i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه'],
+    webhook:['i-link','وبهوک و رخدادها','خبر رخدادها به سیستم دیگر'],appr:['i-shield','گردش کار چندمرحله‌ای','صف تأیید و ثبت‌نام خودکار'],
     msg:['i-send','پیام گروهی','بی‌اسکای و پیامک'],excel:['i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
     kartabl:['i-inbox','کارتابل رسیدها','تأیید و رد رسیدهای کارت‌به‌کارت'],expert:['i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری'],
     ...Object.fromEntries(special.map(s=>[s[0],[s[1],s[2],s[3]]]))
   };
-  const allowed=['addfield','text','dates','cap','per','msg','excel','kartabl','expert','endtext',
+  const allowed=['addfield','text','dates','cap','per','msg','excel','kartabl','expert','endtext','webhook','appr',
     ...(f.fin.length?['fin','coupon','gw']:[]), ...special.map(s=>s[0])];
   const row=k=>{const [ic,t,c]=R[k]; if(!ic) return '';
     return `<button class="chrow" data-change="${k}"><span class="ic"><svg class="i"><use href="#${ic}"/></svg></span>
@@ -1486,6 +1497,55 @@ const CHANGES={
    CUR.certHours=document.getElementById('chCertHours').value.trim();
    closeSheets(); renderInfo(); renderPanel();
    toast('تنظیم گواهینامه ذخیره شد')}},
+ webhook:{t:'وبهوک و رخدادها',body:()=>{
+   const w=CUR.webhook||{on:false,url:'',events:[],last:''};
+   const EV=[['completed','پاسخ کامل شد'],['paid','پرداخت قطعی شد'],['approved','تأیید شد'],['rejected','رد شد']];
+   return `
+   <p class="cap">هر بار که یکی از رخدادهای فرم افتد، نورا خبرش را به نشانی شما POST می‌کند؛ ارسال در نخ جداگانه می‌رود تا صفحه بایستد.</p>
+   <div class="row"><div style="flex:1"><b class="sub">وبهوک روشن</b><div class="cap">بی‌نشانی، هیچ رخدادی به جایی نمی‌رود</div></div>
+     <span class="switch ${w.on?'on':''}" id="chWhOn" role="switch"></span></div>
+   <div><label class="lbl">نشانی گیرنده (HTTPS)</label>
+     <input class="input" id="chWhUrl" style="direction:ltr" value="${w.url||''}" placeholder="https://example.com/hook"/></div>
+   <div><label class="lbl">کدام رخدادها خبر بروند</label>
+     <div class="row tight">${EV.map(([k,t])=>`<button class="chip ${w.events.includes(k)?'on':''}" data-chip data-wev="${k}">${t}</button>`).join('')}</div></div>
+   ${w.last?`<div class="mini">آخرین ارسال: ${w.last}</div>`:''}
+   <p class="mini">نشانی باید با https شروع شود؛ نشانی ناامن ذخیره نمی‌شود.</p>`;
+  },
+  go:()=>{
+   const on=document.getElementById('chWhOn').classList.contains('on');
+   const url=(document.getElementById('chWhUrl').value||'').trim();
+   const evs=[...document.querySelectorAll('#chBody .chip.on[data-wev]')].map(c=>c.dataset.wev);
+   if(url&&!/^https:\/\//.test(url)){toast('نشانی امن نیست؛ باید با https:// شروع شود');return}
+   if(on&&!url){toast('برای روشن کردن، نشانی گیرنده را بنویسید');return}
+   CUR.webhook={on,url,events:evs,last:CUR.webhook?CUR.webhook.last:''};
+   log(on?('وبهوک روشن شد · '+faN(evs.length)+' رخداد به '+url):'وبهوک خاموش شد');
+   const b=chBack; chBack=null;
+   if(b){fillSettings(); openSheet('shSettings')} else closeSheets();
+   toast(on?'وبهوک ذخیره شد':'وبهوک خاموش شد')}},
+ appr:{t:'گردش کار چندمرحله‌ای',body:()=>{
+   const q=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending');
+   const ev=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+   return `
+   <div class="row"><div style="flex:1"><b class="sub">تأیید ادمین لازم است</b>
+     <div class="cap">پاسخ‌ها بی‌درنگ قطعی نمی‌شوند؛ اول به صف تأیید می‌روند</div></div>
+     <span class="switch ${CUR.appr.on?'on':''}" id="chApOn" role="switch"></span></div>
+   ${ev?`<div class="srow"><svg class="i"><use href="#i-calendar"/></svg>
+     <span class="sp">فرم زیر رویداد «${ev.n}» است؛ با هر تأیید، ثبت‌نام خودکار همان‌جا انجام می‌شود.</span></div>`
+     :`<p class="cap">فرم به رویدادی وصل نیست؛ تأیید فقط پاسخ را قطعی می‌کند.</p>`}
+   <div class="row" style="margin-top:6px"><b class="sub">صف تأیید</b><span class="sp"></span>
+     <span class="tag ${q.length?'warn':''}">${faN(q.length)} منتظر</span></div>
+   ${q.length?q.map(p=>`<div class="card sunk" style="padding:10px">
+      <div class="row" style="margin-bottom:8px"><div style="flex:1;min-width:0"><b>${p.name}</b>
+        <div class="cap num">${maskPhone(p.mobile)} · کد ${p.code}</div></div>
+        <span class="tag warn">منتظر</span></div>
+      <div class="row tight">
+        <button class="btn sm quiet" data-apview="${p.id}"><svg class="i"><use href="#i-eye"/></svg> مشاهده</button>
+        <button class="btn sm primary" data-apok="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید</button>
+        <button class="btn sm stop" data-apno="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد</button></div></div>`).join('')
+     :'<div class="empty" style="padding:12px"><div class="body">صف خالی است؛ پاسخ تازه‌ای منتظر نیست</div></div>'}
+   <p class="cap">با رد، پاسخ باطل می‌شود و خبرش به پاسخ‌دهنده می‌رود.</p>`;
+  },
+  go:null},
  _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
 };
 function log(w){CUR.changes.unshift([w,nowFa()]); renderChanges();}
@@ -1519,7 +1579,10 @@ function openChange(key){
   document.getElementById('chBody').innerHTML=c.body();
   const btn=document.getElementById('chApply');
   btn.textContent=c.go?'اعمال کن':'باشه';
-  btn.onclick=e=>{ if(c.go) c.go(e.target); else closeSheets(); };
+  btn.onclick=e=>{ if(c.go) c.go(e.target); else {const b=chBack; chBack=null;
+    if(b){if(b==='shSettings')fillSettings(); document.getElementById(b).classList.add('on');
+      document.getElementById('scrim').classList.add('on');}
+    else closeSheets(); } };
   openSheet('shChange');
   if(c.open)c.open();
   initAll(document.getElementById('chBody'));
@@ -1538,7 +1601,7 @@ document.addEventListener('click',e=>{
   const evd=e.target.closest('[data-evdetach]');
   if(evd){CUR.event=null; CUR.changes.unshift(['امروز · فرم از رویداد جدا شد','خودم']);
     renderInfo(); renderPanel(); toast('از رویداد جدا شد'); return}
-  const ch=e.target.closest('[data-change]'); if(ch){openChange(ch.dataset.change);return}
+  const ch=e.target.closest('[data-change]'); if(ch){chBack=ch.closest('#shSettings')?'shSettings':null; openChange(ch.dataset.change);return}
   const am=e.target.closest('[data-attmode]');
   if(am){ATTMODE=am.dataset.attmode; renderAttend();
     if(ATTMODE==='auto') toast('با لینک جلسه، ورود خودش ثبت می‌شود'); return}
@@ -1590,6 +1653,10 @@ function fillSettings(){
   document.getElementById('setPer').value=faN(CUR.per);
   document.getElementById('setSlug').value=CUR.slug;
   document.getElementById('setWait').classList.toggle('on',!!CUR.wait);
+  const w=CUR.webhook||{on:false,url:'',events:[]};
+  document.getElementById('setWhSub').textContent=w.on?(w.url.replace(/^https:\/\//,'').slice(0,30)+' · '+faN(w.events.length)+' رخداد'):'خاموش';
+  const aq=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending').length;
+  document.getElementById('setApSub').textContent=(CUR.appr&&CUR.appr.on)?(faN(aq)+' پاسخ منتظر تأیید'):'خاموش';
   document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR.start);
   document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR.ends);
   initAll(document.getElementById('shSettings'));
@@ -1663,6 +1730,36 @@ document.addEventListener('click',e=>{
     closeSheets(); renderInfo(); renderPanel(); renderAnswers();
     toast(l.length===1?('درخواست گواهینامهٔ '+l[0].name+' ثبت شد'):(faN(l.length)+' درخواست ثبت شد · در انتظار تأیید سرپرست')); return}
 });
+/* ── گردش کار: صف تأیید پاسخ‌ها + خبردهی وبهوک ── */
+function whFire(ev){
+  const w=CUR.webhook; if(!w||!w.on||!w.url) return;
+  if(!(w.events||[]).includes(ev)) return;
+  const N={completed:'پاسخ کامل',paid:'پرداخت قطعی',approved:'تأیید',rejected:'رد'};
+  w.last='همین حالا · '+N[ev]+' به '+w.url;
+}
+document.addEventListener('click',e=>{
+  const vw=e.target.closest('[data-apview]');
+  if(vw){openUser(vw.dataset.apview); return}
+  const okb=e.target.closest('[data-apok]');
+  if(okb){const p=PEOPLE.find(x=>x.id===okb.dataset.apok); if(!p) return;
+    if(p.state!=='pending'){toast('این پاسخ قبلاً بررسی شده'); return}
+    p.state='paid'; whFire('approved');
+    const ev=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+    log('«'+p.name+'» تأیید شد'+(ev?(' · ثبت‌نام خودکار در «'+ev.n+'»'):''));
+    renderAnswers(); renderList();
+    openChange('appr');
+    toast(p.name+' تأیید شد'+(ev?' و در رویداد ثبت‌نام شد':''));
+    return}
+  const no=e.target.closest('[data-apno]');
+  if(no){const p=PEOPLE.find(x=>x.id===no.dataset.apno); if(!p) return;
+    if(p.state!=='pending'){toast('این پاسخ قبلاً بررسی شده'); return}
+    p.state='void'; whFire('rejected');
+    log('«'+p.name+'» رد شد · پاسخ باطل شد');
+    renderAnswers(); renderList(); renderKartabl();
+    openChange('appr');
+    toast('رد شد و خبرش به پاسخ‌دهنده رفت'); return}
+});
+
 document.getElementById('passGo').onclick=()=>{
   const p=PEOPLE.find(x=>x.id===passId); if(!p) return;
   if(!passTo){toast('کارشناس را انتخاب کنید'); return}
