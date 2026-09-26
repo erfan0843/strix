@@ -514,13 +514,28 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('#admNav [data-sec="reports"]');
   const items=p.all('[data-rep]');
   ok(items.length>=9,'نه گزارش نشسته ('+items.length+')');
-  ok(p.all('[data-rp]').length===7,'هفت دورهٔ زمانی هست');
-  p.click('[data-rp="این هفته"]');
-  ok(/این هفته/.test(p.txt('.chip.on')),'دورهٔ انتخابی جابه‌جا می‌شود');
+  ok(p.all('[data-rp]').length===7,'هفت دورهٔ طرح هست: امروز، دیروز، ۷ روز، ۳۰ روز، فصل، سال، از ابتدا');
+  p.click('[data-rp="۳۰ روز"]');
+  ok(/۳۰ روز/.test(p.txt('.chip.on')),'دورهٔ انتخابی جابه‌جا و برای خود کاربر میماند');
+  ok(p.all('.admkpi .k').length===4,'چهار کارت آماری سر داشبورد هست');
+  ok(/کاربران/.test(p.txt('.admkpi .k'))&&/▲ ٪۱۲٫۵/.test(p.txt('.admkpi')),'کارت آماری درصد تغییر دارد');
+  ok(!!p.doc.querySelector('.admbars'),'نمودار روند سی‌روزه روی داشبورد هست');
+  ok(/فعال در ۱۵ دقیقه اخیر/.test(p.txt('#admBody')),'فعالیت لحظهای سه ردیفه هست');
+  ok(/توصیههای خودکار/.test(p.txt('#admBody')),'توصیههای خودکار آمده');
+  p.click('[data-rcust="reg"]'); p.click('[data-rcust="cer"]'); p.click('[data-rcustgo]');
+  ok(/گزارش سفارشی با ۲ سنجه/.test(p.txt('#toast')),'گزارش سفارشی با سنجههای برگزیده ساخته میشود');
+  ok(/گزارش سفارشی تو/.test(p.txt('#admBody'))&&!!p.doc.querySelector('[data-bale="report_custom"]'),'نتیجهٔ سفارشی با اکسل خودش میآید');
+  p.click('[data-rsch="0"]');
+  ok(/جمعبندی هفتگی خاموش شد/.test(p.txt('#toast')),'زمانبندی خاموش و روشن میشود');
+  p.click('[data-rsch="0"]'); p.click('[data-rschnew]');
+  ok(/جمعبندی فصلی/.test(p.txt('#admBody'))&&/زمانبندی نشست/.test(p.txt('#toast')),'زمانبندی فصلی تازه میسازد');
+  ok(!!p.doc.querySelector('[data-bale="reports_full"]'),'اکسل کامل هفتشیتی در ربات بله هست');
   p.click('[data-rep="fi"]');
   ok(/مالی/.test(p.txt('#shAdm .head')),'گزارش مالی باز شد');
+  ok(/▲|▼/.test(p.txt('#shAdm')),'درصد تغییر دورهٔ مشابه قبل در ورقه هست');
   ok(p.all('#shAdm .admbars i').length===7,'نمودار سی‌روزه در ورقه هست');
-  ok(/نیاز به توجه/.test(p.txt('#shAdm'))||p.all('#shAdm .k').length>=4,'خلاصه و مقایسهٔ دوره‌ها هم آمده');
+  ok(p.all('#shAdm .k').length>=4,'مقایسهٔ دوره‌ها در ورقه هست');
+  ok(!!p.doc.querySelector('#shAdm [data-bale="report_fi"]'),'اکسل همین گزارش در ورقه هست');
   p.click('#shAdm [data-close]');
 }
 
@@ -929,7 +944,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:52, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:53, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1158,9 +1173,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=60')&&html.includes('admin.js?v=60'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=61')&&html.includes('admin.js?v=61'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v49'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v50'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

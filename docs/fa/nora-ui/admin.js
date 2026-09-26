@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=52;
+const SVER=53;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -143,6 +143,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
     stamp:0,edit:''},
   defs:[], evEdit:{},
   cert:{step:0,file:'',evs:[],tags:[],xlsRows:null,picked:[],vals:{},letter:'',months:'',news:'',rand:''},
+  rpCust:[], rpCustOn:0, rpSchedExtra:[],
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
@@ -155,7 +156,7 @@ try{
     S.wiz=Object.assign({},BASE.wiz,v.wiz||{});
     S.cert=Object.assign({},BASE.cert,v.cert||{});
     if(v.ped){ if(!Array.isArray(v.ped.blocks)) delete v.ped; }
-    ['jobs','added','qdone','qextra','extra','defs','uoccC','urulesC','uabs','ushop','ulog','uextra','uimp','ulabels','ushopDone','uhide'].forEach(k=>{if(!Array.isArray(S[k])) S[k]=[]});
+    ['jobs','added','qdone','qextra','extra','defs','uoccC','urulesC','uabs','ushop','ulog','uextra','uimp','ulabels','ushopDone','uhide','rpCust','rpSchedExtra'].forEach(k=>{if(!Array.isArray(S[k])) S[k]=[]});
     ['qgive','leads','specPerms','specExtra','upar','uocc','urules','uinbox'].forEach(k=>{if(!S[k]||typeof S[k]!=='object') S[k]={}});
     if(S.uimpPv&&typeof S.uimpPv!=='object') S.uimpPv=null;
     /* حالت دور پیش پنل: نقش تخت جایش را به حوزه داده */
@@ -1878,21 +1879,61 @@ function vForms(){
 
 /* ── گزارش‌ها: نه گزارش ────────────────────────────────────────────────── */
 function vReports(){
-  const periods=RP.periods||[], curP=S.rp||periods[2]||'';
+  const periods=RP.periods||[], curP=S.rp||periods[3]||'';
   const per=periods.map(p=>`<button class="chip ${curP===p?'on':''}" data-rp="${esc(p)}">${esc(p)}</button>`).join('');
+  const kpis=(RP.kpis||[]).filter(k=>!k.own||isMoney()).map(k=>`<div class="k"><small>${esc(k.n)}</small>
+      ${bits(k.v+(k.u?' '+k.u:''))}
+      ${k.pc?`<span class="tag ${k.up?'ok':'warn'}">${esc(k.pc)}</span>`:''}
+      <small>${esc(k.s||'')}</small></div>`).join('');
+  const trend=RP.trend||{};
+  const live=((RP.live||{}).rows||[]).filter(r=>!r[2]||isMoney());
+  const tips=(RP.tips||[]).filter(t=>!t.own||isMoney()).map(t=>`<div class="admlirow">${ico('i-eye')}
+      <span class="sp">${esc(t.t)}</span><span class="mini">${tag('توصیه','brand')}</span></div>`).join('');
   const att=(RP.attention||[]).filter(a=>!a.own||isMoney()).map(a=>rowLink({attrs:`data-rep="${esc(a.k)}"`, i:'i-bell', chev:1, b:esc(a.t), right:tag(W.alert||'توجه','warn')})).join('');
   const list=RPLIST.filter(r=>!r.own||isMoney()).map(r=>rowLink({attrs:`data-rep="${esc(r.k)}"`, i:r.i, chev:1,
       b:esc(r.n), s:`${esc(r.v)} · ${esc(r.d)}`,
-      right:`${r.up!==undefined?`<span class="tag ${r.up?'ok':'warn'}">${r.up?'▲':'▼'}</span>`:''}`})).join('');
+      right:r.pc?`<span class="tag ${r.up?'ok':'warn'}">${esc((r.up?'▲ ':'▼ ')+r.pc)}</span>`:''})).join('');
+  const CU=RP.custom||{}, cSel=S.rpCust||[], cOpts=(CU.opts||[]).filter(o=>!o.own||isMoney());
+  const cOn=S.rpCustOn&&cSel.length;
+  const schedL=(RP.sched||{}).list||[], schL=schedL.concat(S.rpSchedExtra||[]);
   return `<div class="admgrid">
     <section class="card stack">
       <div class="row"><div class="head">${esc(RP.lead||'')}</div></div>
       <div class="admfilters">${per}</div>
+      <p class="cap">${esc(RP.perCap||'')}</p>
+      <div class="admkpi">${kpis}</div>
+      ${trend.v&&trend.v.length?`<div class="head">${esc(trend.n||'')}</div><div class="admbars">${trend.v.map(x=>`<i class="${x>=Math.max.apply(null,trend.v)*.9?'hi':''}"></i>`).join('')}</div>`:''}
+      ${live.length?`<div class="head">${esc((RP.live||{}).n||'فعالیت لحظهای')}</div>
+        <div class="admlist">${live.map(r=>`<div class="admlirow"><span class="ic">${ico('i-bolt')}</span>
+          <span class="sp"><b>${esc(r[0])}</b></span><span class="mini">${bits(r[1])}</span></div>`).join('')}</div>`:''}
       <div class="admlist">${list}</div>
     </section>
     <section class="card stack">
       <div class="head">${esc(W.alert||'نیاز به توجه')}</div>
       <div class="admlist">${att}</div>
+      ${tips.length?`<div class="head">توصیههای خودکار</div><div class="admlist">${tips}</div>`:''}
+      <hr class="hr"/>
+      <div class="head">${esc((RP.custom||{}).n||'گزارش سفارشی')}</div>
+      <p class="cap">${esc((RP.custom||{}).s||'')}</p>
+      <div class="admfilters">${cOpts.map(o=>`<button class="chip ${cSel.indexOf(o.k)>-1?'on':''}" data-rcust="${esc(o.k)}">${esc(o.n)}</button>`).join('')}</div>
+      <div class="row">${btn('ساختن گزارش','data-rcustgo','i-chart')}</div>
+      ${cOn?`<div class="stgroup"><div class="head">گزارش سفارشی تو · ${esc(curP)}</div>
+        <div class="admlist">${cOpts.filter(o=>cSel.indexOf(o.k)>-1).map(o=>`<div class="admlirow">${ico('i-chart')}
+          <span class="sp"><b>${esc(o.n)}</b></span><span class="mini">${bits(o.v)}</span></div>`).join('')}</div>
+        <div class="admbars">${((CU.bars||[])).map(x=>`<i></i>`).join('')}</div>
+        ${baleRow('report_custom','گزارش سفارشی ('+fa(cSel.length)+' سنجه)')}</div>`:''}
+      <hr class="hr"/>
+      <div class="head">${esc((RP.sched||{}).n||'گزارش زمان‌بندی‌شده')}</div>
+      <p class="cap">${esc((RP.sched||{}).s||'')}</p>
+      <div class="admlist">${schL.map((r,i)=>`<div class="admlirow">${ico('i-clock')}
+        <span class="sp"><b>${esc(r.n)}</b><small class="cap">${esc(r.at)}</small></span>
+        <span class="mini"><span class="switch ${r.on?'on':''}" data-rsch="${i}" role="switch" aria-checked="${r.on?'true':'false'}" aria-label="${esc(r.n)}"></span></span></div>`).join('')}</div>
+      <div class="row">${btn('زمان‌بندی تازه: جمعبندی فصلی','data-rschnew','i-plus')}</div>
+      ${baleRow('reports_sched','همین حالا یک جمعبندی از ربات بله بگیر')}
+      <hr class="hr"/>
+      <div class="head">${esc((RP.excel||{}).n||'خروجی کامل اکسل')}</div>
+      <p class="cap">${esc((RP.excel||{}).s||'')}</p>
+      <div class="row">${baleA('reports_full','اکسل کامل (هفت شیت)')}</div>
       <hr class="hr"/>
       <div class="head">${esc(RP.out||'خروجی')}</div>
       <div class="admlist">
@@ -2375,7 +2416,7 @@ function sheetRep(k){
     <div class="row"><span class="ic">${ico('i-chart')}</span>
       <span class="tx" style="min-width:0"><div class="head">${esc(r.n||'')}</div>
       <div class="cap">${esc(r.v||'')} · ${esc(r.d||'')}</div></span><span class="sp"></span>
-      ${r.up!==undefined?`<span class="tag ${r.up?'ok':'warn'}">${r.up?'▲':'▼'}</span>`:''}</div>
+      ${r.pc?`<span class="tag ${r.up?'ok':'warn'}">${esc((r.up?'▲ ':'▼ ')+r.pc)}</span>`:''}</div>
     ${bs.length?bars(bs,true):''}
     ${table(rows,['',''])}
     ${att.length?`<div class="stack tight"><div class="head">${esc(W.alert||'')}</div>
@@ -2384,7 +2425,7 @@ function sheetRep(k){
       ${bits(r.v||'')}</div>`).join('')}</div>
     <div class="row tight">
       <a class="btn sm" href="builder.html">${ico('i-chart')}${esc('نمودار کامل')}</a>
-      ${baleA('reports','اکسل در ربات بله')}
+      ${baleA('report_'+esc(k),'اکسل همین گزارش')}
       <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`);
 }
 function sheetWho(){
@@ -2834,6 +2875,18 @@ document.addEventListener('click',e=>{
   const gfr=q('[data-gofrms]'); if(gfr){go('forms'); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
+  const rc=q('[data-rcust]'); if(rc){const k2=rc.dataset.rcust, l=S.rpCust||[];
+    S.rpCust=l.indexOf(k2)>-1?l.filter(x=>x!==k2):l.concat([k2]); S.rpCustOn=0; save(); renderBody(); return}
+  const rg=q('[data-rcustgo]'); if(rg){if(!(S.rpCust||[]).length){toast('نخست سنجهها را برگزین'); return}
+    S.rpCustOn=1; save(); renderBody();
+    toast('گزارش سفارشی با '+fa(S.rpCust.length)+' سنجه ساخته شد · دوره: '+(S.rp||'۳۰ روز')); return}
+  const rs=q('[data-rsch]'); if(rs){const i=+rs.dataset.rsch, base=((RP.sched||{}).list||[]).length, ex=S.rpSchedExtra||[];
+    if(i<base){const L=(RP.sched.list||[]); L[i].on=L[i].on?0:1;
+      toast(L[i].n+(L[i].on?' روشن شد؛ جمعبندی بعدی: ':' خاموش شد · ')+L[i].at)}
+    else{const r2=ex[i-base]; r2.on=r2.on?0:1; toast(r2.n+(r2.on?' روشن شد':' خاموش شد'))}
+    save(); renderBody(); return}
+  const rn=q('[data-rschnew]'); if(rn){S.rpSchedExtra=(S.rpSchedExtra||[]).concat([{n:'جمعبندی فصلی',at:'نخست هر فصل ۰۹:۰۰',on:1}]);
+    save(); renderBody(); toast('زمانبندی نشست؛ نخستین جمعبندی فصلی سرِ فصل بعد در ربات بله میرسد'); return}
   const cs=q('[data-cstep]')||q('[data-cgo]');
   if(cs){S.cert.step=+(cs.dataset.cstep!=null?cs.dataset.cstep:cs.dataset.cgo); save(); renderBody(); return}
   const cf2=q('[data-cfile]'); if(cf2){S.cert.file=cf2.dataset.cfile; save(); renderBody();
