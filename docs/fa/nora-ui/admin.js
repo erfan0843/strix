@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=63;
+const SVER=64;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2476,7 +2476,7 @@ const SKIN_TILES=[
  {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'عضویت، پروفایل، درخواستها، مسدودها'},
  {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، نگهداری، پشتیبان'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترم، کتاب ماه، جلسهها، حق عضویت، پادکست، مسابقه'},
- {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
+ {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم، قالب مطلب، میانبرها'},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
   ['story','استوریها'],['look','کارتها و اساتید'],['type','نوشتار و چیدمان'],
@@ -2758,6 +2758,118 @@ function opsView(){
       <div class="cap">نسخهٔ پنل ${esc(fa(SVER))} (nora-v${esc(fa(SVER))})؛ اگر صفحه کهنه دیدی، پاکش کن و تازه کن</div></div>
       ${btn('پاکسازی و تازهسازی','data-cacheclr','i-bolt')}</div>
   </section>`;
+}
+/* ══ کاشی رویدادها و مطالب: برچسب، دسته، تقویم، قالب مطلب، میانبرها ══ */
+const SDTABS=[['tag','برچسبهای برنامه'],['cat','دستههای رویداد'],['cal','تقویم و تعطیلات'],
+  ['tpl','قالب مطلب'],['cta','دکمهها و میانبرها'],['mod','سیاست انتشار']];
+const QTAGS_L=()=>((window.NORA||{}).QTAGS||[]).slice(1).map(x=>x.k);
+const CATS_L=()=>((window.NORA||{}).CATS)||[];
+const sdSet=()=>{if(!S.sd) S.sd={}; return S.sd};
+const sdG=(k,d)=>{const b=sdSet(); return b[k]!=null?b[k]:d};
+function skdevView(){
+  const cur=S.sdTab||'tag';
+  const tabs=`<div class="admfilters">${SDTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-sdtab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
+  const head=`<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><a class="btn sm tint" href="#" data-goev>${ico('i-calendar')} بخش رویدادها و مطالب</a></div>
+    <div class="row"><div class="head">رویدادها و مطالب</div><span class="sp"></span>
+      <span class="cap">چیزی که عضو میبیند، از همینجا قالب میگیرد</span></div>`;
+  let inner='';
+  if(cur==='tag'){
+    const tags=sdG('qtags',null)||QTAGS_L();
+    inner=`<div class="head">برچسبهای برنامهها</div>
+    <p class="cap">برچسبها بالای خانه و روی کارت هر برنامه میآیند؛ چیپِ رأی همهاست. برچسبی که اینجا نباشد، از فهرست خانه حذف میشود.</p>
+    <div class="admfilters">${tags.map((t,i)=>`<span class="chip on">${esc(t)}
+      <button class="chip" data-sdtagdel="${i}" aria-label="برداشتن ${esc(t)}">${ico('i-close')}</button></span>`).join('')}</div>
+    <div class="row tight"><label class="fld" style="flex:1"><span>برچسب تازه</span><input id="sdTag" type="text" placeholder="مثل: ویژهٔ نوروز"/></label>
+      ${btn('افزودن برچسب','data-sdtagadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">برچسبهای مطلبها</div>
+    ${['پیشنهادی','تازه','محبوب'].map(t=>`<div class="admsw"><span class="sp">${esc(t)}</span>
+      <span class="switch ${sdG('ptag_'+t,1)?'on':''}" data-sdptog="${esc(t)}" role="switch" aria-checked="${sdG('ptag_'+t,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}
+    <p class="cap">خاموشی یعنی این برچسب دیگر به مطلب تازه پیشفرض نمیخورد.</p>`;
+  } else if(cur==='cat'){
+    const cats=sdG('cats',null)||CATS_L();
+    inner=`<div class="head">دستههای رویداد</div>
+    <p class="cap">هر دسته، آیکن و توضیح کوتاه دارد و در صافی خانه و ویزارد تعریف رویداد میآید.</p>
+    ${cats.map((c,i)=>`<div class="admlirow"><span class="ic">${ico(c.i||'i-calendar')}</span>
+      <span class="sp"><b>${esc(c.n)}</b><small class="cap">${esc(c.d||'')}</small></span>
+      <span class="mini">${sdG('cats',null)?btn('برداشتن','data-sdcatdel="'+i+'"','i-trash'):tag('پیشفرض','')}</span></div>`).join('')}
+    <div class="row tight">
+      <label class="fld"><span>نام دسته</span><input id="sdCatN" type="text" placeholder="مثل: مناظره"/></label>
+      <label class="fld"><span>آیکن</span><select class="input" id="sdCatI">${['i-pen','i-video','i-users','i-pin','i-check','i-handshake','i-medal','i-globe','i-book','i-bolt'].map(x=>`<option value="${x}">${x.replace('i-','')}</option>`).join('')}</select></label>
+      <label class="fld" style="flex:1"><span>توضیح کوتاه</span><input id="sdCatD" type="text" placeholder="مثل: دو نفر، یک موضوع"/></label>
+      ${btn('افزودن دسته','data-sdcatadd','i-plus')}</div>
+    <div class="row tight">${sdG('cats',null)?btn('بازگشت دستههای پیشفرض','data-sdcatreset','i-back'):''}<span class="sp"></span></div>`;
+  } else if(cur==='cal'){
+    const hol=sdG('holidays',[
+      {n:'ظهر جمعه', w:'جمعهها', d:'برنامهٔ ظهر جمعه پیشفرض نمیگیرد'},
+      {n:'شب یلدا', d:'۳۰ آذر؛ پیشنهاد برنامهٔ خاص'},
+      {n:'نوروز', d:'۱ تا ۱۳ فروردین؛ تعطیلی رسمی'}]);
+    inner=`<div class="head">تقویم برنامهریزی</div>
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(evAll().length))}</div><div class="l">رویداد در فهرست</div></div>
+      <div class="metric"><div class="n">${esc(fa(evAll().filter(x=>x.state==='soon').length))}</div><div class="l">در راه</div></div>
+      <div class="metric"><div class="n">${esc(fa(pedPosts().length))}</div><div class="l">مطلب</div></div>
+      <div class="metric"><div class="n">${esc(fa(hol.length))}</div><div class="l">تاریخ خاص</div></div></div>
+    <div class="head">تاریخهای خاص و تعطیلات</div>
+    ${hol.map((x,i)=>`<div class="admlirow">${ico('i-calendar')}
+      <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(x.w||x.d||'')}</small></span>
+      <span class="mini"><button class="btn sm quiet" data-sdholdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('تاریخ خاصی نیست')}
+    <div class="row tight">
+      <label class="fld"><span>نام تاریخ</span><input id="sdHolN" type="text" placeholder="مثل: روز کتاب"/></label>
+      <label class="fld" style="flex:1"><span>توضیح یا بازه</span><input id="sdHolD" type="text" placeholder="۸ آبان؛ تعطیل"/></label>
+      ${btn('افزودن تاریخ','data-sdholadd','i-plus')}</div>
+    <hr class="hr"/>
+    <div class="head">ساعت پیشفرض برنامهها</div>
+    <div class="row tight">
+      <label class="fld"><span>ساعت شروع</span><select class="input" data-sdclock="start">${['۱۰:۰۰','۱۶:۰۰','۱۷:۰۰','۱۸:۰۰'].map(x=>`<option ${sdG('clockStart','۱۸:۰۰')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      <label class="fld"><span>طول پیشفرض</span><select class="input" data-sdclock="dur">${['۹۰ دقیقه','۲ ساعت','۲/۵ ساعت','۳ ساعت'].map(x=>`<option ${sdG('clockDur','۲ ساعت')===x?'selected':''}>${x}</option>`).join('')}</select></label></div>
+    <p class="cap">ویزارد رویداد تازه، همین ساعتها را پیش چشم میگذارد؛ کارشناس میتواند عوض کند.</p>`;
+  } else if(cur==='tpl'){
+    inner=`<div class="head">قالب مطلب تازه</div>
+    <p class="cap">هر مطلب تازه، از همین قالب شروع میشود: معرفی، متن، نقلِ برجسته، فهرست تمرین و برچسب پایانی.</p>
+    <div class="admtext"><span class="lbl">سرصفحهٔ پیشفرض</span><input class="input" data-sdtpl="lead" value="${esc(sdG('tplLead','از دلِ تجربهٔ کارگاهها؛ کوتاه و کاربردی بخوانید.'))}"/></div>
+    <div class="admtext"><span class="lbl">نقل برجستهٔ پیشفرض</span><input class="input" data-sdtpl="quote" value="${esc(sdG('tplQuote',''))}"/></div>
+    <div class="admtext"><span class="lbl">فهرست پایانی پیشفرض</span><input class="input" data-sdtpl="list" value="${esc(sdG('tplList',''))}"/></div>
+    <div class="row tight">
+      <label class="fld"><span>دستهٔ پیشفرض مطلب</span><select class="input" data-sdtpl="cat">${['فن بیان','رسانه','مالی','باشگاه کتاب‌خوانی','اخبار مؤسسه'].map(x=>`<option ${sdG('tplCat','فن بیان')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      <label class="fld"><span>زمان مطالعهٔ پیشفرض</span><select class="input" data-sdtpl="min">${['۳','۶','۱۰'].map(x=>`<option ${String(sdG('tplMin','۶'))===x?'selected':''}>${x}</option>`).join('')}</select></label></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ قالب','data-sdtplsave','i-check')}</div>
+    <hr class="hr"/>
+    <div class="head">پیشنمایش کارت مطلب</div>
+    ${bkCard({kind:'مطلب',t:sdG('tplTitle','هفت تمرین تنفس'),by:sdG('tplLead',''),sub:'۶ دقیقه مطالعه · فن بیان',link:bkRoot()+'home.html#articles'})}`;
+  } else if(cur==='cta'){
+    inner=`<div class="head">دکمهها و میانبرها</div>
+    <p class="cap">روی کارت رویداد و مطلب در خانه، دکمهٔ کنش میآید؛ متنش از همینجا عوض میشود.</p>
+    <div class="admtext"><span class="lbl">دکمهٔ ثبتنام رویداد</span><input class="input" data-sdcta="reg" value="${esc(sdG('ctaReg','ثبتنام'))}"/></div>
+    <div class="admtext"><span class="lbl">دکمهٔ مطلب (ادامه)</span><input class="input" data-sdcta="more" value="${esc(sdG('ctaMore','ادامهٔ مطلب'))}"/></div>
+    <div class="admtext"><span class="lbl">دکمهٔ باشگاه در کارت</span><input class="input" data-sdcta="club" value="${esc(sdG('ctaClub','عضویت در باشگاه'))}"/></div>
+    <div class="row"><span class="sp"></span>${btn('ذخیرهٔ دکمهها','data-sdctasave','i-check')}</div>
+    <hr class="hr"/>
+    <div class="head">میانبرهای سریع خانه</div>
+    ${['رویدادهای این هفته','مطلبهای تازه','باشگاه کتابخوانی','گواهی من'].map((t,i)=>`<div class="admsw"><span class="sp">${esc(t)}</span>
+      <span class="switch ${sdG('quick_'+i,1)?'on':''}" data-sdquick="${i}" role="switch" aria-checked="${sdG('quick_'+i,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}
+    <p class="cap">کلید میانبر، همان چیپها را در خانهٔ کاربر خاموش و روشن میکند.</p>`;
+  } else if(cur==='mod'){
+    inner=`<div class="head">سیاست انتشار</div>
+    <div class="admsw"><span class="sp"><b>مطلب تازه، خودکار منتشر شود</b><small class="cap">خاموشی یعنی هر مطلب برای تأیید مالک برود</small></span>
+      <span class="switch ${sdG('autopub',1)?'on':''}" data-sdtog="autopub" role="switch" aria-checked="${sdG('autopub',1)?'true':'false'}" aria-label="انتشار خودکار"></span></div>
+    <div class="admsw"><span class="sp"><b>رویداد تازه، بی تأیید منتشر شود</b><small class="cap">سرپرست و کارشناس؛ مالک همیشه بیقید است</small></span>
+      <span class="switch ${sdG('evfree',0)?'on':''}" data-sdtog="evfree" role="switch" aria-checked="${sdG('evfree',0)?'true':'false'}" aria-label="انتشار بی تأیید رویداد"></span></div>
+    <div class="admsw"><span class="sp"><b>اعلان مطلب تازه به اعضا</b><small class="cap">همان مدل نامهخانه: بله و حساب من</small></span>
+      <span class="switch ${sdG('postntf',1)?'on':''}" data-sdtog="postntf" role="switch" aria-checked="${sdG('postntf',1)?'true':'false'}" aria-label="اعلان مطلب تازه"></span></div>
+    <div class="admsw"><span class="sp"><b>آرشیو خودکار رویداد گذشته</b><small class="cap">دو روز پس از پایان، رویداد به آرشیو برود</small></span>
+      <span class="switch ${sdG('arch2',1)?'on':''}" data-sdtog="arch2" role="switch" aria-checked="${sdG('arch2',1)?'true':'false'}" aria-label="آرشیو خودکار"></span></div>
+    <hr class="hr"/>
+    <div class="head">میانبرهای دم دست</div>
+    <div class="admtiles">
+      <button class="utile" data-gonew="ev"><span class="tt">${ico('i-calendar')}<b>رویداد تازه</b></span></button>
+      <button class="utile" data-gonew="post"><span class="tt">${ico('i-article')}<b>مطلب تازه</b></span></button>
+      <button class="utile" data-gojump2="events"><span class="tt">${ico('i-list')}<b>فهرست رویدادها</b></span></button>
+    </div>`;
+  }
+  return head+tabs+`<div class="stack tight">${inner}</div></section>`;
 }
 /* ══ کاشی باشگاه کتابخوانی: از تعریف تا برنامه، هرچه هست تنظیم ══ */
 const BKTABS=[['home','هویت و ترم'],['gate','در و فرم عضویت'],['fee','حق عضویت'],['meet','جلسهها'],
@@ -3139,6 +3251,7 @@ function vSettings(){
   if(own&&S.skinU) return usersView();
   if(own&&S.skinO) return opsView();
   if(own&&S.skinB) return bookView();
+  if(own&&S.skinD) return skdevView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
@@ -4002,9 +4115,10 @@ document.addEventListener('click',e=>{
     else if(k==='users'){S.skinU=1;}
     else if(k==='ops'){S.skinO=1;}
     else if(k==='book'){S.skinB=1; if(!S.bkTab) S.bkTab='home';}
+    else if(k==='skdev'){S.skinD=1; if(!S.sdTab) S.sdTab='tag';}
     else {toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
     save(); renderBody(); return}
-  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; S.skinD=0; save(); renderBody(); return}
   const gv=q('[data-govusers]'); if(gv){S.skinU=0; S.skin=0; S.sec='users'; S.uV=''; save(); renderBody(); toast('به بخش کاربران رفتید'); return}
   const ntfg=q('[data-ntfg]'); if(ntfg){S.ntfG=ntfg.dataset.ntfg; save(); renderBody(); return}
   const ntfon=q('[data-ntfon]'); if(ntfon){const k=ntfon.dataset.ntfon, off=S.ntfOff||[];
@@ -4208,6 +4322,56 @@ document.addEventListener('click',e=>{
     b.grName=($('#bkGrN')||{}).value||''; b.grLink=($('#bkGrL')||{}).value||'';
     b.grCode=($('#bkGrC')||{}).value||''; b.grRules=sp($('#bkGrR')?$('#bkGrR').value:'');
     save(); toast('گروه ذخیره شد'); renderBody(); return}
+  const sdt=q('[data-sdtab]'); if(sdt){S.sdTab=sdt.dataset.sdtab; save(); renderBody(); return}
+  const sdta=q('[data-sdtagadd]'); if(sdta){const v=(($('#sdTag')||{}).value||'').trim();
+    if(!v){toast('نام برچسب را بنویس'); return}
+    sdSet().qtags=(sdG('qtags',null)||QTAGS_L()).concat([v]); save();
+    toast('برچسب نشست؛ از این پس در خانهٔ کاربر هم هست'); renderBody(); return}
+  const sdtd=q('[data-sdtagdel]'); if(sdtd){const i=+sdtd.dataset.sdtagdel;
+    const l=(sdSet().qtags=sdG('qtags',null)||QTAGS_L()).slice(); l.splice(i,1);
+    sdSet().qtags=l; save(); toast('برچسب برداشته شد'); renderBody(); return}
+  const sdpt=q('[data-sdptog]'); if(sdpt){const k='ptag_'+sdpt.dataset.sdptog;
+    sdSet()[k]=sdG(k,1)?0:1; save(); renderBody(); return}
+  const sdca=q('[data-sdcatadd]'); if(sdca){const n=(($('#sdCatN')||{}).value||'').trim();
+    if(!n){toast('نام دسته را بنویس'); return}
+    sdSet().cats=(sdG('cats',null)||CATS_L()).concat(
+      [{k:'c'+Date.now(),n:n,i:$('#sdCatI')?$('#sdCatI').value:'i-calendar',d:($('#sdCatD')||{}).value||''}]);
+    save(); uLogAdd('دستهٔ تازهٔ رویداد: '+n); toast('دسته نشست'); renderBody(); return}
+  const sdcd=q('[data-sdcatdel]'); if(sdcd){const i=+sdcd.dataset.sdcatdel;
+    const l=(sdSet().cats=sdG('cats',null)||CATS_L()).slice(); l.splice(i,1);
+    sdSet().cats=l; save(); renderBody(); return}
+  const sdcr=q('[data-sdcatreset]'); if(sdcr){sdSet().cats=null; save(); toast('دستههای پیشفرض برگشت'); renderBody(); return}
+  const sdha=q('[data-sdholadd]'); if(sdha){const n=(($('#sdHolN')||{}).value||'').trim();
+    if(!n){toast('نام تاریخ را بنویس'); return}
+    sdSet().holidays=sdG('holidays',[
+      {n:'ظهر جمعه', w:'جمعهها', d:'برنامهٔ ظهر جمعه پیشفرض نمیگیرد'},
+      {n:'شب یلدا', d:'۳۰ آذر؛ پیشنهاد برنامهٔ خاص'},
+      {n:'نوروز', d:'۱ تا ۱۳ فروردین؛ تعطیلی رسمی'}]).concat([{n:n,d:($('#sdHolD')||{}).value||''}]);
+    save(); toast('تاریخ خاص نشست'); renderBody(); return}
+  const sdhd=q('[data-sdholdel]'); if(sdhd){const i=+sdhd.dataset.sdholdel;
+    const l=sdG('holidays',[
+      {n:'ظهر جمعه', w:'جمعهها', d:'برنامهٔ ظهر جمعه پیشفرض نمیگیرد'},
+      {n:'شب یلدا', d:'۳۰ آذر؛ پیشنهاد برنامهٔ خاص'},
+      {n:'نوروز', d:'۱ تا ۱۳ فروردین؛ تعطیلی رسمی'}]).slice(); l.splice(i,1);
+    sdSet().holidays=l; save(); renderBody(); return}
+  const sdts=q('[data-sdtplsave]'); if(sdts){const b=sdSet(), g2=k=>{const el=$('[data-sdtpl="'+k+'"]'); return el?el.value.trim():''};
+    b.tplLead=g2('lead'); b.tplQuote=g2('quote'); b.tplList=g2('list');
+    b.tplCat=$('[data-sdtpl="cat"]')?$('[data-sdtpl="cat"]').value:b.tplCat;
+    b.tplMin=$('[data-sdtpl="min"]')?$('[data-sdtpl="min"]').value:b.tplMin;
+    save(); toast('قالب مطلب ذخیره شد'); renderBody(); return}
+  const sdcs=q('[data-sdctasave]'); if(sdcs){const b=sdSet(), g2=k=>{const el=$('[data-sdcta="'+k+'"]'); return el?el.value.trim():''};
+    b.ctaReg=g2('reg'); b.ctaMore=g2('more'); b.ctaClub=g2('club');
+    save(); toast('دکمهها ذخیره شد'); renderBody(); return}
+  const sdq=q('[data-sdquick]'); if(sdq){const k='quick_'+sdq.dataset.sdquick;
+    sdSet()[k]=sdG(k,1)?0:1; save(); renderBody(); return}
+  const sdtg=q('[data-sdtog]'); if(sdtg){const k=sdtg.dataset.sdtog;
+    sdSet()[k]=sdG(k,0)?0:1; save(); toast(sdSet()[k]?'سیاست روشن شد':'سیاست خاموش شد'); renderBody(); return}
+  const sgnw=q('[data-gonew]'); if(sgnw){S.skinD=0; S.skin=0;
+    if(sgnw.dataset.gonew==='ev'){S.ped=null; S.psec='list'; S.pmgr=null; S.wiz=Object.assign({},BASE.wiz); S.wiz.open=1; S.wiz.step=0; S.sec='events';}
+    else {S.pmgr=null; S.wiz.open=0; S.ped=pedFresh(); S.psec='edit'; S.pstep=1; S.sec='events';}
+    save(); renderBody(); return}
+  const sgj2=q('[data-gojump2]'); if(sgj2){S.skinD=0; S.skin=0; save(); go(sgj2.dataset.gojump2); return}
+  const gev=q('[data-goev]'); if(gev){S.skinD=0; S.skin=0; save(); go('events'); return}
   const gv2=q('[data-govreq]'); if(gv2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='req'; S.uSel=''; save(); renderBody(); toast('درخواستهای کاربران'); return}
   const gt2=q('[data-govtags]'); if(gt2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='tags'; save(); renderBody(); return}
   const gp2=q('[data-govpar]'); if(gp2){S.skinU=0; S.skin=0; S.sec='users'; S.uV='tools'; S.uTool='par'; save(); renderBody(); return}
@@ -4750,6 +4914,8 @@ document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   if(el.dataset.ntfclock){S.ntfClock=S.ntfClock||{}; S.ntfClock[el.dataset.ntfclock]=el.value;
     save(); toast('ساعت ارسال بهروز شد'); renderBody(); return}
+  if(el.dataset.sdclock){sdSet()[el.dataset.sdclock==='start'?'clockStart':'clockDur']=el.value;
+    save(); toast('ساعت پیشفرض عوض شد'); renderBody(); return}
   if(el.dataset.bkaudio!==undefined){const f=(el.files||[])[0]; if(!f) return;
     if(f.size>400*1024){S._bkMedia={kind:'صدا',file:'',fname:f.name,heavy:1};
       toast('فایل صوتی سنگین است؛ نامش ماند و فایل به گروه باشگاه میرود'); save(); renderBody(); return}

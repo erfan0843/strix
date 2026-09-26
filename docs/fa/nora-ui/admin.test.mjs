@@ -922,6 +922,50 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(!!p.doc.querySelector('.bkcard a[download]'),'فایل کتاب، با دکمهٔ خواندن و دانلود روی کارت');
   p.click('[data-govclub]');
   ok(/باشگاه و امتیاز/.test(p.txt('#admBody')),'میانبر «باشگاه و امتیاز»، برگهٔ اعضا را باز کرد');
+  /* ── کاشی رویدادها و مطالب: برچسب، دسته، تقویم، قالب، دکمهها، سیاست ── */
+  console.log('\n── کاشی رویدادها و مطالب ──');
+  p.click('#admNav [data-sec="settings"]');
+  if(!p.doc.querySelector('[data-skit="skdev"]')) p.click('[data-skinback]');
+  p.click('[data-skit="skdev"]');
+  ok(/رویدادها و مطالب/.test(p.txt('#admBody')),'کاشی رویدادها و مطالب باز شد');
+  ok(p.all('[data-sdtab]').length===6,'شش برگه: برچسب، دسته، تقویم، قالب، دکمهها، سیاست');
+  p.doc.querySelector('#sdTag').value='ویژهٔ نوروز';
+  p.click('[data-sdtagadd]');
+  ok((JSON.parse(p.store.getItem('nora-admin')).sd||{}).qtags.indexOf('ویژهٔ نوروز')>-1,'برچسب برنامه نشست و در خانه هم میآید');
+  p.click('[data-sdtab="cat"]');
+  p.doc.querySelector('#sdCatN').value='مناظره';
+  p.click('[data-sdcatadd]');
+  ok((JSON.parse(p.store.getItem('nora-admin')).sd||{}).cats.length===7,'دستهٔ تازه با آیکن و توضیح نشست');
+  p.click('[data-sdtab="cal"]');
+  ok(p.all('#admBody .metric').length===4,'تقویم: چهار عدد (رویداد، در راه، مطلب، تاریخ خاص)');
+  p.doc.querySelector('#sdHolN').value='روز کتاب';
+  p.click('[data-sdholadd]');
+  ok((JSON.parse(p.store.getItem('nora-admin')).sd||{}).holidays.length===4,'تاریخ خاص و تعطیلی نشست');
+  p.type('[data-sdclock="start"]','۱۶:۰۰','change');
+  ok(JSON.parse(p.store.getItem('nora-admin')).sd.clockStart==='۱۶:۰۰','ساعت پیشفرض برنامهها عوض میشود');
+  p.click('[data-sdtab="tpl"]');
+  ok(!!p.doc.querySelector('[data-sdtpl="lead"]')&&!!p.doc.querySelector('.bkcard'),'قالب مطلب با پیشنمایش کارت');
+  p.click('[data-sdtab="cta"]');
+  p.doc.querySelector('[data-sdcta="reg"]').value='ثبتنام کن';
+  p.click('[data-sdctasave]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).sd.ctaReg==='ثبتنام کن','متن دکمههای خانه ذخیره میشود');
+  p.click('[data-sdtab="mod"]');
+  p.click(p.doc.querySelector('[data-sdtog="autopub"]'));
+  ok('سیاست انتشار'!==''&&!!p.doc.querySelector('[data-sdtog="evfree"]'),'سیاست انتشار: خودکار، بی تأیید، اعلان، آرشیو');
+  p.click('[data-gonew="ev"]');
+  ok(/گام|تعریف/.test(p.txt('#admBody')),'میانبر رویداد تازه، ویزارد را باز کرد');
+  p.click('[data-evback]');
+  p.click('#admNav [data-sec="settings"]');
+  if(!p.doc.querySelector('[data-skit="skdev"]')) p.click('[data-skinback]');
+  p.click('[data-skit="skdev"]');
+  p.click('[data-gonew="post"]');
+  ok(!!p.doc.querySelector('[data-pback]'),'میانبر مطلب تازه، ویرایشگر مطلب را باز کرد');
+  p.click('[data-pback]');
+  p.click('#admNav [data-sec="settings"]');
+  if(!p.doc.querySelector('[data-skit="skdev"]')) p.click('[data-skinback]');
+  p.click('[data-skit="skdev"]');
+  p.click('[data-goev]');
+  ok(/رویداد|مطلب/.test(p.txt('#admBody')),'میانبر بخش رویدادها، همان بخش را باز کرد');
   {p.click('#admNav [data-sec="settings"]');
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
    p.click('[data-skit="ops"]');}
@@ -1324,7 +1368,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:63, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:64, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1553,9 +1597,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=74')&&html.includes('admin.js?v=74'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=75')&&html.includes('admin.js?v=75'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v63'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v64'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
