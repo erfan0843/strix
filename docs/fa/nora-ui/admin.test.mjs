@@ -702,7 +702,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/نوبت بعد/.test(p.txt('#toast')),'کاشیهای بی‌بخش هنوز، خودشان را «در نوبت بعد» می‌گویند');
   p.click('[data-skit="skin"]');
   ok(/تنظیمات ظاهری سامانه/.test(p.txt('#admBody')),'کاشی ظاهری، مدیریت ظاهر را باز کرد');
-  ok(p.all('[data-skintab]').length===6,'شش برگه: خانه، منو، بنرها، استوریها، کارتها، پای صفحه');
+  ok(p.all('[data-skintab]').length===8,'هشت برگه: خانه، منو، بنرها، استوریها، کارتها، نوشتار، نوار، پای صفحه');
   ok(p.all('[data-uk]').length===16,'شانزده بخش خانه، هرکدام یک کلید');
   p.click(p.all('[data-uk]')[0]);
   ok(/خاموش شد/.test(p.txt('#toast')) && JSON.parse(p.store.getItem('nora-uiset')).home.bnr===0,
@@ -742,6 +742,36 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/پیشفرض برگشت/.test(p.txt('#toast')),'بازنشانی با دو پا گام روشن میشود');
   ok(JSON.parse(p.store.getItem('nora-uiset')).menu.length===0&&JSON.parse(p.store.getItem('nora-uiset')).cards==='mid',
      'بازنشانی، همهٔ ظاهر را به پیشفرض برگرداند');
+  /* قالبهای آماده، جمعبندی، دو برگهٔ تازه و بازنشانی برگهبهبرگه (هنوز در مدیریت ظاهریم) */
+  ok(p.all('[data-sknpreset]').length===4,'چهار قالب آماده بالای مدیریت ظاهر');
+  ok(/از .*بخش خانه روشن/.test(p.txt('#admBody')),'خط جمعبندی، شمار بخشهای روشن را میگوید');
+  const useg=sel=>p.all(sel)[0];
+  p.click('[data-skintab="type"]');
+  ok(p.all('[data-useg]').length===17,'برگهٔ نوشتار و چیدمان: هفده انتخاب (اندازه، گوشه، عرض، فاصله، رنگ)');
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='type.size:big').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='type.width:wide').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='type.accent:teal').click();
+  const ty=JSON.parse(p.store.getItem('nora-uiset')).type;
+  ok(ty.size==='big'&&ty.width==='wide'&&ty.accent==='teal','اندازه، عرض و رنگ کنش در انبار نشست');
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='type.accent:teal').click();
+  p.click(p.all('#admBody [data-uk]')[0]);
+  ok(JSON.parse(p.store.getItem('nora-uiset')).type.motion===0,'کلید «حرکت و انیمیشن» خاموش میشود');
+  p.click('[data-skintab="chrome"]');
+  ok(p.all('[data-uk]').length===5,'برگهٔ نوار بالا و پایین: پنج کلید');
+  p.click(p.all('#admBody [data-uk]')[0]);
+  ok(JSON.parse(p.store.getItem('nora-uiset')).chrome.bell===0,'زنگ اعلانها از نوار کاربر برداشته شد');
+  p.click('[data-skintab="bnr"]');
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='bnr.speed:fast').click();
+  ok(JSON.parse(p.store.getItem('nora-uiset')).bnr.speed==='fast','سرعت چرخش بنر ذخیره شد');
+  p.click('[data-sknpreset="lean"]');
+  const ln=JSON.parse(p.store.getItem('nora-uiset'));
+  ok(ln.home.stories===0&&ln.home.articles===0&&ln.home.events===1,'قالب «کمریخت» بخشها را یکجا چید');
+  ok(ln.quick.length===4&&ln.type.width==='narrow','قالب، کاشیها و عرض را هم با خودش آورد');
+  ok(/قالب «کمریخت» اعمال شد/.test(p.txt('#toast')),'و با نامش خبر داد');
+  p.click('[data-skintab="home"]');
+  p.click('[data-skrtab]');
+  ok(JSON.parse(p.store.getItem('nora-uiset')).home.stories===1,'بازنشانی برگه، همان برگه را به پیشفرض برگرداند');
+  ok(/برگهٔ «بخشهای خانه»/.test(p.txt('#toast')),'بازنشانی برگه با نام برگه خبر میدهد');
   p.click('[data-skinback]');
   ok(p.all('[data-skit]').length===6,'بازگشت به کاشیها');
   p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
@@ -1048,7 +1078,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:55, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:56, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1277,9 +1307,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=66')&&html.includes('admin.js?v=66'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=67')&&html.includes('admin.js?v=67'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v55'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v56'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

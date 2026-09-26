@@ -598,8 +598,12 @@ function themeToggle(){return themeApply(themeNow()==='dark'?'light':'dark')}
 function themeInit(){
   let v=null;
   try{v=localStorage.getItem(THEME_KEY)}catch(e){}
-  if(v!=='dark'&&v!=='light')
-    v=(typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+  if(v!=='dark'&&v!=='light'){
+    /* اگر کاربر انتخاب نکرده، پیشفرض پنل میآید؛ «خودکار» یعنی دستگاه */
+    const dm=(uiSet().theme||{}).mode;
+    if(dm==='dark'||dm==='light') v=dm;
+    else v=(typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+  }
   return themeApply(v,false);
 }
 /* نشانه‌گذاری کلید کشویی: خورشید در یک سر، ماه در سر دیگر، گرهٔ لغزان بین‌شان */
@@ -650,9 +654,12 @@ const UISET_KEY='nora-uiset';
 const UISET_DEF={v:1,
   home:{bnr:1,stories:1,search:1,quick:1,pins:1,mine:1,events:1,past:1,club:1,teachers:1,staff:1,articles:1,partners:1,voices:1,about:1,act:1},
   menu:[],quick:[],
-  bnr:{on:1,auto:1,hide:[]},bnrAdd:[],
+  bnr:{on:1,auto:1,hide:[],speed:'mid'},bnrAdd:[],
   storyHide:[],storyAdd:[],
   cards:'mid',people:'card',
+  type:{size:'mid',radius:'mid',width:'mid',density:'mid',motion:1,accent:''},
+  chrome:{bell:1,themebtn:1,helpbtn:1,tabLabels:1,hot:1},
+  theme:{mode:'auto',allowToggle:1},
   trust:{on:1,text:''},foot:{on:1,text:''}};
 function uiSet(){
   const base=JSON.parse(JSON.stringify(UISET_DEF));
@@ -673,7 +680,13 @@ const UISET_META={
   cards:[['small','فشرده'],['mid','معمولی'],['big','بزرگ']],
   storyIco:[['i-image','تصویر'],['i-book','کتاب'],['i-user','کاربر'],['i-medal','مدال'],['i-handshake','همکاری'],['i-sparkle','درخشش'],['i-calendar','تقویم'],['i-star','ستاره']],
   storyGo:[['me','حساب من'],['club','باشگاه کتاب'],['partners','نهادهای همکار'],['pastSec','برگزارشدهها']],
-  grads:[['linear-gradient(135deg,#0A56B8,#0B2447)','آبی نورا'],['linear-gradient(135deg,#2E6B7A,#0B2447)','سبزآبی'],['linear-gradient(135deg,#7A5A2A,#0A3A82)','کهربایی'],['linear-gradient(135deg,#3E5B84,#0B2447)','شبانه']]};
+  grads:[['linear-gradient(135deg,#0A56B8,#0B2447)','آبی نورا'],['linear-gradient(135deg,#2E6B7A,#0B2447)','سبزآبی'],['linear-gradient(135deg,#7A5A2A,#0A3A82)','کهربایی'],['linear-gradient(135deg,#3E5B84,#0B2447)','شبانه']],
+  typeSize:[['small','کوچک'],['mid','معمولی'],['big','بزرگ']],
+  typeRad:[['flat','تخت'],['mid','معمولی'],['round','گرد']],
+  typeWidth:[['narrow','باریک'],['mid','معمولی'],['wide','گسترده']],
+  typeDen:[['tight','دنج'],['mid','معمولی'],['airy','باز']],
+  bnrSpeed:[['slow','آهسته'],['mid','معمولی'],['fast','تند']],
+  accents:[['','آبی نورا'],['teal','سبز'],['plum','بنفش'],['amber','کهربایی'],['night','شبانه']]};
 /* منوی کاربر با ردیفهای پنهانشده؛ گروهی که همه ردیفهایش پنهان است نمیآید */
 function menuAllowed(){
   const U=uiSet(), M=(window.NORA&&window.NORA.MENU)||[];
@@ -1572,7 +1585,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v55') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v56') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{
@@ -1629,5 +1642,17 @@ if('serviceWorker' in navigator){
     dy=0;
   },{passive:true});
 })();
-/* اندازهٔ کارتها روی <html> مینشیند؛ ui.js در همهٔ صفحهها هست */
-try{document.documentElement.dataset.cards=uiSet().cards}catch(e){}
+/* پوستهٔ کاربر: اندازه و چیدمان و رنگ، همه از تنظیمهای پنل؛ ui.js در
+   همهٔ صفحهها هست و پیش از رندر نشانهها را روی <html> میگذارد. پنل
+   مدیران مستثناست تا ابزار خودش همیشه یکدست بماند. */
+(function(){try{
+  if(document.getElementById('admNav')) return;
+  const U=uiSet()||{}, de=document.documentElement, T=U.type||{};
+  de.dataset.cards=U.cards||'mid';
+  if(T.size&&T.size!=='mid') de.dataset.textsize=T.size;
+  if(T.radius&&T.radius!=='mid') de.dataset.radius=T.radius;
+  if(T.width&&T.width!=='mid') de.dataset.width=T.width;
+  if(T.density&&T.density!=='mid') de.dataset.density=T.density;
+  if(T.accent) de.dataset.accent=T.accent;
+  if(T.motion===0) de.dataset.motion='off';
+}catch(e){}})();

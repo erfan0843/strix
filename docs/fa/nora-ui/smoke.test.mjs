@@ -544,6 +544,9 @@ async function load(file,store,q){
     bnrAdd:[{t:'بنر آزمایشی نورا',tag:'تازه',m:'امشب · تهران',n:'متن آزمایشی',g:'linear-gradient(135deg,#0A56B8,#0B2447)',a:'ببین'}],
     storyAdd:[{id:'c1',t:'استوری تازهٔ پنل',s:'از پنل',g:'linear-gradient(135deg,#1E6FD0,#0A3A82)',i:'i-sparkle',to:'me'}],
     cards:'big',people:'row',
+    type:{size:'big',radius:'round',width:'wide',density:'airy',motion:0,accent:'teal'},
+    chrome:{bell:0,themebtn:0,helpbtn:0,tabLabels:0,hot:0},
+    bnr:{on:1,auto:1,hide:['جشنوارهٔ هفتهٔ فرهنگی پاییز'],speed:'fast'},
     trust:{on:1,text:'جملهٔ اطمینانِ از پنل'},
     foot:{on:1,text:'پای صفحهٔ از پنل'}}));
   const p=await load('home.html',store);
@@ -567,6 +570,16 @@ async function load(file,store,q){
   p.click('[data-menu]');
   ok(!p.txt('#menuBody').includes('رویدادهای پیش‌رو'),'ردیف پنهانشدهٔ منو نمیآید');
   ok(p.txt('#menuBody').includes('آرشیو برگزارشده‌ها'),'بقیهٔ ردیفهای همان گروه سر جایشان هستند');
+  /* برگههای «نوشتار و چیدمان» و «نوار بالا و پایین» تا دست کاربر */
+  const de=p.doc.documentElement;
+  ok(de.dataset.textsize==='big'&&de.dataset.width==='wide'&&de.dataset.accent==='teal'&&de.dataset.density==='airy',
+     'اندازه و عرض و رنگ و فاصله، همه روی <html> نشستهاند');
+  ok(de.dataset.motion==='off','حرکت کمشده روی <html> هست');
+  ok(p.doc.querySelector('[data-notice]').hidden===true,'زنگ اعلانها از نوار بالا برداشته شد');
+  ok(p.doc.querySelector('[data-theme-toggle]').hidden===true,'دکمهٔ شب و روز برداشته شد');
+  ok(p.doc.querySelector('.help-btn').hidden===true,'دکمهٔ پشتیبانی نوار بالا برداشته شد');
+  ok([...p.all('#tabs small')].every(s2=>s2.style.display==='none'),'برچسب تبهای نوار پایین برداشته شد');
+  ok(p.doc.querySelector('#hotRow').hidden===true,'جستوجوهای داغ و سابقه پنهان است');
 }
 
 /* ═══════════ create.html (دود) ═══════════ */
@@ -1621,7 +1634,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:55, added:[
+  store.setItem('nora-admin', JSON.stringify({v:56, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

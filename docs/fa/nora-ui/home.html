@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=66"/>
-<link rel="stylesheet" href="nora.css?v=66"/>
+<link rel="stylesheet" href="glass.css?v=67"/>
+<link rel="stylesheet" href="nora.css?v=67"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -658,8 +658,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=66"></script>
-<script src="ui.js?v=66"></script>
+<script src="data.js?v=67"></script>
+<script src="ui.js?v=67"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -846,7 +846,9 @@ function slide(i){
   $('#bsdeck').style.transform='translateX('+(S.slide*100)+'%)';
   $$('#bdots i').forEach((d,k)=>{d.classList.toggle('on',k===S.slide); d.setAttribute('aria-selected',k===S.slide)});
 }
-function autoBanner(){clearInterval(S.timer); if(!uiOpt().bnr.auto) return; S.timer=setInterval(()=>{if(!document.hidden) slide(S.slide+1)},6500)}
+function autoBanner(){clearInterval(S.timer); if(!uiOpt().bnr.auto) return;
+  const SP={slow:9000,mid:6500,fast:4200};
+  S.timer=setInterval(()=>{if(!document.hidden) slide(S.slide+1)},SP[uiOpt().bnr.speed]||SP.mid)}
 
 /* ═════════ منوی سریع و سنجاق‌ها ═════════ */
 function renderQuick(){
@@ -1018,7 +1020,7 @@ function renderMine(){
 const HOTTAGS=['پیشنهادی','رایگان','آنلاین','گواهی‌دار'];
 function renderHot(){
   const box=$('#hotRow'); if(!box) return;
-  if(S.q.trim()){box.hidden=true; box.innerHTML=''; return}
+  if(S.q.trim()||!uiOpt().chrome.hot){box.hidden=true; box.innerHTML=''; return}
   box.hidden=false;
   const chip=(ic,label,attr)=>`<button class="chip" ${attr}><svg class="i"><use href="#${ic}"/></svg> ${esc(label)}</button>`;
   box.innerHTML=
@@ -1654,8 +1656,14 @@ function renderAll(){
     if(k!=='pins') el.hidden=false});
   const foot=document.querySelector('.hfoot'); if(foot) foot.hidden=!U.foot.on;
   const fc=document.getElementById('footCopy'); if(fc&&U.foot.text) fc.textContent=U.foot.text;
+  /* دکمههای ثابت: پنل میتواند هر کدام را بردارد؛ هر رندر دوباره اعمال میشود */
+  const CU=uiOpt().chrome, q0=s=>document.querySelector(s);
+  const bellBtn=q0('[data-notice]'); if(bellBtn) bellBtn.hidden=!CU.bell;
+  const thBtn=q0('[data-theme-toggle]'); if(thBtn) thBtn.hidden=!CU.themebtn;
+  const hpBtn=q0('.help-btn'); if(hpBtn) hpBtn.hidden=!CU.helpbtn;
+  document.querySelectorAll('#tabs small').forEach(s=>s.style.display=CU.tabLabels?'':'none');
   const n=NOTICES.filter(x=>x.unread).length;
-  const b=$('#bellBadge'); b.hidden=!n; b.textContent=faN(n);
+  const b=$('#bellBadge'); b.hidden=!n||!CU.bell; b.textContent=faN(n);
   /* نام کاربر در تب «حساب من» و ورقهٔ حساب دیده می‌شود؛ نوار بالا تمیز می‌ماند */
   const mt=$('#tabs [data-tab="me"] small'); if(mt) mt.textContent=S.user?S.user.name.split(' ')[0]:'حساب من';
   const dt=$('#tabs [data-tab="me"]'); if(dt) dt.setAttribute('aria-label',S.user?'حساب من، '+S.user.name:'حساب من');

@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=55;
+const SVER=56;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2405,7 +2405,34 @@ const SKIN_TILES=[
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
-  ['story','استوریها'],['look','کارتها و اساتید'],['foot','پای صفحه']];
+  ['story','استوریها'],['look','کارتها و اساتید'],['type','نوشتار و چیدمان'],
+  ['chrome','نوار بالا و پایین'],['foot','پای صفحه']];
+/* قالبهای آماده: یک کلیک، یک سلیقهٔ کامل؛ پنجرهها و سندها این الگو را دارند */
+const SKIN_PRESETS=[
+ {k:'nora', n:'نورا', s:'همهچیز روشن، اندازهها معمولی'},
+ {k:'lean', n:'کمریخت', s:'خانهٔ سریع: بنر، برنامهها، جستوجو'},
+ {k:'event', n:'رویدادمحور', s:'تمرکز روی برنامهها و اساتید'},
+ {k:'edu', n:'آموزشی', s:'باشگاه، مقالات و نظرها جلو'}];
+const SKIN_PRESET_DATA={
+ lean:{home:{bnr:1,stories:0,search:1,quick:1,pins:0,mine:1,events:1,past:0,club:0,teachers:0,staff:0,articles:0,partners:0,voices:0,about:0,act:0},
+   quick:['people','articles','partners','verify'],
+   type:{size:'mid',radius:'mid',width:'narrow',density:'tight',motion:1,accent:''}},
+ event:{home:{bnr:1,stories:1,search:1,quick:1,pins:0,mine:1,events:1,past:1,club:0,teachers:1,staff:0,articles:0,partners:0,voices:0,about:1,act:0},
+   quick:['events','past','people','verify'],
+   storyHide:['st2','st4'],
+   type:{size:'mid',radius:'mid',width:'wide',density:'mid',motion:1,accent:''}},
+ edu:{home:{bnr:1,stories:1,search:1,quick:1,pins:1,mine:1,events:1,past:0,club:1,teachers:1,staff:0,articles:1,partners:0,voices:1,about:1,act:0},
+   quick:['club','articles','people','verify'],
+   type:{size:'mid',radius:'round',width:'mid',density:'airy',motion:1,accent:'teal'}}};
+/* بازنشانی برگهبهبرگه: هر کلید به پیشفرض خودش برمیگردد */
+const SKIN_RESET={home:U=>{U.home=JSON.parse(JSON.stringify((window.NORA_UI||{}).uiSetDef.home))},
+  menu:U=>{U.menu=[]; U.quick=[]},
+  bnr:U=>{U.bnr={on:1,auto:1,hide:[],speed:'mid'}; U.bnrAdd=[]},
+  story:U=>{U.storyHide=[]; U.storyAdd=[]},
+  look:U=>{U.cards='mid'; U.people='card'},
+  type:U=>{U.type=JSON.parse(JSON.stringify((window.NORA_UI||{}).uiSetDef.type))},
+  chrome:U=>{U.chrome=JSON.parse(JSON.stringify((window.NORA_UI||{}).uiSetDef.chrome))},
+  foot:U=>{U.trust={on:1,text:''}; U.foot={on:1,text:''}}};
 let skinArm=0;
 function usGet(path){return path.split('.').reduce((o,k)=>(o||{})[k],uiSet())}
 function usSet(path,val){const U=uiSet(), ks=path.split('.'); let o=U;
@@ -2436,6 +2463,8 @@ function skinView(){
   } else if(S.skinTab==='bnr'){
     inner=`<p class="cap">بنرهای بالای خانه؛ هر بنر را میتوانی پنهان کنی یا بنر تازه تعریف کنی.</p>`
       +skinSwitch('نمایش بنرها','bnr.on')+skinSwitch('چرخش خودکار','bnr.auto')
+      +`<label class="lbl">سرعت چرخش خودکار</label>
+      <div class="row tight">${UISET_META.bnrSpeed.map(([k,n])=>`<button class="chip ${usGet('bnr.speed')===k?'on':''}" data-useg="bnr.speed:${k}">${esc(n)}</button>`).join('')}</div>`
       +(window.NORA.BANNERS||[]).map(b=>{const on=!U.bnr.hide.includes(b.t);
         return `<div class="admsw"><span class="sp">${esc(b.t)}</span>
           <span class="switch ${on?'on':''}" data-bhide="${esc(b.t)}" data-uklabel="بنر ${esc(b.t)}"
@@ -2480,6 +2509,33 @@ function skinView(){
     <div><label class="lbl">مدل نمایش اساتید و دستاندرکاران</label>
       <div class="admfilters">${UISET_META.people.map(([k,n])=>`<button class="chip ${U.people===k?'on':''}" data-upeople="${k}">${esc(n)}</button>`).join('')}</div>
       <p class="cap">کارت کامل با امتیاز و تگها؛ ردیف فشرده برای فهرستهای شلوغ؛ فقط نامها برای چیدمان سبک.</p></div>`;
+  } else if(S.skinTab==='type'){
+    const seg=(meta,path)=>meta.map(([k,n])=>`<button class="chip ${usGet(path)===k?'on':''}" data-useg="${esc(path)}:${esc(k)}">${esc(n)}</button>`).join('');
+    inner=`<p class="cap">اندازه و انسجام صفحههای کاربر؛ همان دستهٔ «ظاهر» که اپهای بزرگ به کاربر میدهند، اینجا دست مدیر سامانه است.</p>
+    <div><label class="lbl">اندازهٔ نوشته و صفحه</label>
+      <div class="admfilters">${seg(UISET_META.typeSize,'type.size')}</div>
+      <p class="cap">بزرگ برای خوانایی بیشتر؛ همهٔ صفحهها با هم بزرگ میشوند.</p></div>
+    <div><label class="lbl">گوشهها</label>
+      <div class="admfilters">${seg(UISET_META.typeRad,'type.radius')}</div></div>
+    <div><label class="lbl">عرض صفحه</label>
+      <div class="admfilters">${seg(UISET_META.typeWidth,'type.width')}</div>
+      <p class="cap">گسترده برای میز کار بزرگ؛ باریک برای تمرکز روی موبایل.</p></div>
+    <div><label class="lbl">فاصلهٔ بخشها</label>
+      <div class="admfilters">${seg(UISET_META.typeDen,'type.density')}</div></div>
+    <div class="row"><div style="flex:1"><b class="sub">حرکت و انیمیشن</b>
+      <div class="cap">خاموش، جابهجاییها فقط با محو شدن میشوند؛ برای چشم راحتتر</div></div>
+      <span class="switch ${usGet('type.motion')?'on':''}" data-uk="type.motion" data-uklabel="حرکت و انیمیشن"
+        role="switch" aria-checked="${usGet('type.motion')?'true':'false'}" aria-label="حرکت و انیمیشن"></span></div>
+    <div><label class="lbl">رنگ کنشها و دکمهها</label>
+      <div class="admfilters">${UISET_META.accents.map(([k,n])=>`<button class="chip ${usGet('type.accent')===k?'on':''}" data-useg="type.accent:${esc(k)}">${esc(n)}</button>`).join('')}</div>
+      <p class="cap">آبی نورا همان هویت اصلی است؛ بقیه اگر برند دیگری دارید.</p></div>`;
+  } else if(S.skinTab==='chrome'){
+    inner=`<p class="cap">دکمههای ثابت نوار بالای کاربر و نوار پایین خانه.</p>`
+      +skinSwitch('زنگ اعلانها','chrome.bell')
+      +skinSwitch('دکمهٔ شب و روز','chrome.themebtn')
+      +skinSwitch('دکمهٔ پشتیبانی در نوار بالا','chrome.helpbtn')
+      +skinSwitch('برچسب زیر تبهای نوار پایین','chrome.tabLabels')
+      +skinSwitch('جستوجوهای داغ و سابقهٔ جستوجو','chrome.hot');
   } else {
     inner=`<p class="cap">جملهٔ اطمینان پای هر صفحه و پای صفحهٔ خانه؛ خالی بگذاری تا همان جملهٔ خود نورا بنشیند.</p>`
       +skinSwitch('نمایش خط اطمینان','trust.on')+skinSwitch('نمایش پای صفحهٔ خانه','foot.on')
@@ -2487,13 +2543,18 @@ function skinView(){
       <div class="admtext"><span class="lbl">متن پای صفحهٔ خانه</span><input class="input" id="skFoot" value="${esc(U.foot.text||'')}"/></div>
       <div class="row">${btn('ذخیرهٔ متنها','data-skinfoot','i-check')}</div>`;
   }
+  const onHome=UISET_META.home.filter(([k])=>U.home[k]).length;
   return `<section class="card stack">
     <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
       <span class="sp"></span>${btn('بازنشانی پیشفرضها','data-skinreset','i-trash')}</div>
     <div class="row"><div class="head">تنظیمات ظاهری سامانه</div><span class="sp"></span>
-      <span class="cap">هر کلید، همان لحظه روی صفحههای کاربر مینشیند</span></div>
+      <span class="cap">${esc(fa(onHome))} از ${esc(fa(UISET_META.home.length))} بخش خانه روشن</span></div>
+    <div><label class="lbl">قالبهای آماده</label>
+      <div class="row tight">${SKIN_PRESETS.map(x=>`<button class="chip ${x.k==='nora'?'':''}" data-sknpreset="${x.k}" title="${esc(x.s)}">${esc(x.n)}</button>`).join('')}</div>
+      <p class="cap">هر قالب یک سلیقهٔ کامل است؛ بعدش میتوانی ریز تنظیم کنی.</p></div>
     <div class="admfilters">${SKIN_TABS.map(([k,n])=>`<button class="chip ${S.skinTab===k?'on':''}" data-skintab="${esc(k)}">${esc(n)}</button>`).join('')}</div>
     <div class="admset">${inner}</div>
+    <div class="row"><span class="sp"></span>${btn('بازنشانی همین برگه','data-skrtab','i-layers')}</div>
   </section>`;
 }
 function vSettings(){
@@ -3347,6 +3408,21 @@ document.addEventListener('click',e=>{
     uiSetSave(U); toast('استوری «'+t+'» به خانه اضافه شد'); renderBody(); return}
   const sd=q('[data-sksdel]'); if(sd){const U=uiSet(), s=U.storyAdd.splice(+sd.dataset.sksdel,1)[0]||{};
     uiSetSave(U); toast('استوری «'+s.t+'» برداشته شد'); renderBody(); return}
+  const useg=q('[data-useg]'); if(useg){
+    const i2=useg.dataset.useg.indexOf(':'), path=useg.dataset.useg.slice(0,i2), val=useg.dataset.useg.slice(i2+1);
+    usSet(path,val);
+    document.querySelectorAll('#admBody [data-useg]').forEach(x=>x.classList.toggle('on',x===useg));
+    toast('انجام شد'); return}
+  const sp=q('[data-sknpreset]'); if(sp){const k=sp.dataset.sknpreset, P=SKIN_PRESET_DATA[k]||{};
+    const U=uiSet();
+    Object.keys(P).forEach(pk=>{const v=P[pk];
+      if(v&&typeof v==='object'&&!Array.isArray(v)&&U[pk]&&typeof U[pk]==='object'&&!Array.isArray(U[pk])) Object.assign(U[pk],v);
+      else U[pk]=Array.isArray(v)?v.slice():v});
+    uiSetSave(U); save(); renderBody();
+    toast('قالب «'+((SKIN_PRESETS.find(x=>x.k===k)||{}).n||'')+'» اعمال شد'); return}
+  const rt=q('[data-skrtab]'); if(rt){
+    const fn=SKIN_RESET[S.skinTab]; if(fn){const U=uiSet(); fn(U); uiSetSave(U); save(); renderBody();
+      toast('برگهٔ «'+((SKIN_TABS.find(x=>x[0]===S.skinTab)||{})[1]||'')+'» به پیشفرض برگشت')} return}
   const uc=q('[data-ucards]'); if(uc){const U=uiSet(); U.cards=uc.dataset.ucards; uiSetSave(U);
     document.querySelectorAll('#admBody [data-ucards]').forEach(x=>x.classList.toggle('on',x===uc));
     try{document.documentElement.dataset.cards=U.cards}catch(e){}
