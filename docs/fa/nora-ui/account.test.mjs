@@ -287,7 +287,19 @@ async function load(store,hash){
   p3.click('[data-myev="h1"]'); await wait(240);
   ok(p3.all('#shMyEvent [data-my-cert="h1"]').length===1,'با تسویه، دکمهٔ دانلود گواهی برمی‌گردد');
   p3.click('#shMyEvent [data-my-cert="h1"]'); await wait(160);
-  ok(p3.txt('#toast').includes('NL-T4K7M9X'),'دانلود گواهی با سریال خودش پیام می‌دهد');
+  ok(p3.txt('#toast').includes('NL-T4K7M9X'),'دانلود گواهی با سریال خودش پیام میدهد');
+
+  /* درخواست گواهینامه: هدایت به ربات بله و قول ۲۴ساعته */
+  const p4=await load(store,'#events');
+  p4.click('[data-vtab="past"]'); await wait(220);
+  p4.click('[data-myev="h9"]'); await wait(260);
+  ok(!!p4.doc.querySelector('#shMyEvent [data-certreq="ask"]'),'روی گواهی نامصدوق، دکمهٔ درخواست گواهینامه هست');
+  p4.click('#shMyEvent [data-certreq="ask"]'); await wait(160);
+  ok(p4.open().includes('shConfirm')&&/ble\.ir\/lifeline_bot\?start=cert_req_/.test(p4.txt('#shConfirm')),'ورقهٔ درخواست، لینک دقیق ربات بله را میدهد');
+  ok(/تا ۲۴ ساعت آینده/.test(p4.txt('#shConfirm'))&&/۰۲:۰۰/.test(p4.txt('#shConfirm')),'قول ۲۴ساعته و پنجرهٔ ساعت خلوت در ورقه هست');
+  p4.click('#shConfirm [data-cert-askid]'); await wait(180);
+  ok(/۲۴ ساعت/.test(p4.txt('#toast')),'ثبت درخواست با قول ۲۴ساعته پیام میدهد');
+  ok(/درخواست شد · تا ۲۴ ساعت/.test(p4.txt('#shMyEvent')),'ورقهٔ رویداد، وضعیت درخواستشده را نشان میدهد');
 }
 
 /* ── ۷) پشتیبانی ── */

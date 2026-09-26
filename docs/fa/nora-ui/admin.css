@@ -552,6 +552,11 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 .balebox .ov b{font-size:14px;font-weight:800}
 .balebox .ov .cap{max-width:340px}
 .balebox .ov svg{width:20px;height:20px;color:var(--ink-2)}
+/* پیشنمایش زنده: SVG تیز زیر، نوار توضیح و دکمهٔ ربات رو */
+.balebox.live .pv{filter:none;transform:none;pointer-events:auto}
+.balebox.live .pv svg{width:100%;height:auto;display:block}
+.balebox.live .ov{position:static;background:none;flex-direction:row;flex-wrap:wrap;
+  justify-content:flex-start;align-items:center;gap:10px;padding:10px 14px 14px;text-align:start}
 .pvsheet{display:grid;gap:8px;padding:16px}
 .pvsheet i{display:block;height:10px;border-radius:99px;background:var(--surface-sunk)}
 .pvsheet i:nth-child(3n){width:72%}.pvsheet i:nth-child(3n+1){width:88%}.pvsheet i:nth-child(3n+2){width:64%}

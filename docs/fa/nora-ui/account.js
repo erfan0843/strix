@@ -296,7 +296,7 @@ function chipsOf(id,past){
   const inf=myInfo(id), st=noteState(id), chips=[];
   if(inf.ticket&&inf.ticket.ok) chips.push(chip('بلیت فعال','ok'));
   if(inf.cert&&inf.cert.st==='ready') chips.push(chip(certLocked()?'گواهی · قفل بدهی':'گواهی آماده',certLocked()?'stop':'gold'));
-  if(inf.cert&&inf.cert.st==='pending') chips.push(chip('گواهی در انتظار تأیید','warn'));
+  if(inf.cert&&inf.cert.st==='pending') chips.push(chip(certReqOf(id)?'گواهی · درخواست شد':'گواهی در انتظار تأیید',certReqOf(id)?'brand':'warn'));
   if((inf.off||[]).length) chips.push(chip(faN(inf.off.length)+' فایل آفلاین'));
   if(past&&(inf.att||[]).length) chips.push(chip('کارنامهٔ حضور'));
   if(st.hasC) chips.push(chip(MY.noteDone||'نظر دادم','ok'));
@@ -442,12 +442,16 @@ function myEventSheet(id){
     <div class="srow">${ico(locked?'i-lock':'i-medal')}
       <span class="sp">${esc(locked?'قفل تا تسویهٔ نورا پی':cTxt)}
         <small>${esc(locked?(PAYINFO.debt||{}).lock||'بدهی نورا پی داری؛ گواهینامه تا تسویه دانلود نمی‌شود.'
-          :(c.id?('سریال '+c.id):'با تأیید سرپرست صادر می‌شود'))}</small></span>
+          :(certReqOf(id)?('پنجرهٔ صدور: '+certWinUser()+'، ساعت خلوت سامانه؛ خبرش در ربات بله میرسد')
+            :(c.id?('سریال '+c.id):'با تأیید سرپرست صادر می‌شود')))}</small></span>
       ${locked?`<button class="btn sm primary" data-debtpay>${ico('i-wallet')} پرداخت بدهی</button>`
         :(c.st==='ready'?`<button class="btn sm quiet" data-my-cert="${esc(id)}">${ico('i-download')} دانلود</button>
           <button class="btn sm quiet" data-verify="${esc(c.id||'')}">${ico('i-qr')} استعلام سریال</button>
           <button class="btn sm quiet" data-certreq="print">${ico('i-doc')} گواهی چاپی</button>`
-          :`<button class="btn sm quiet" data-certreq="special">${ico('i-medal')} گواهی ویژه</button>`)}</div>`;
+          :`${certReqOf(id)?`<span class="tag ok">درخواست شد · تا ۲۴ ساعت آینده صادر میشود</span>
+          <a class="btn sm quiet" target="_blank" rel="noopener" href="${esc(certReqLink(id,c))}">${ico('i-send')} پیگیری در ربات</a>`
+          :`<button class="btn sm quiet" data-certreq="ask" data-cid="${esc(id)}">${ico('i-send')} درخواست گواهینامه</button>`}
+          <button class="btn sm quiet" data-certreq="special">${ico('i-medal')} گواهی ویژه</button>`)}</div>`;
   const off=`<div class="gt cap" style="margin:12px 3px 6px">${esc(GRP.off||'فایل‌های آفلاین')}</div>
     ${(inf.off||[]).map(o=>offRow(o,id)).join('')}
     <div class="row tight" style="margin-top:8px">
@@ -2033,7 +2037,26 @@ function certDownload(ser){
      'تاریخ: '+(c.d||''), 'مدت: '+(c.h||''), 'سریال: '+ser, '', 'استعلام: lifeline1.ir/nora-ui/verify'].join('\n'));
   toast('گواهی دانلود شد؛ سریال '+faN(ser));
 }
-function certAsk(kind){
+/* درخواست گواهینامه: کاربر به ربات بله هدایت میشود؛ ثبتش همینجا میماند */
+const CREQ_KEY='nora-cert-req';
+const BALE_BOT=(window.NORA&&NORA.ADMIN&&NORA.ADMIN.bale)||'lifeline_bot';
+const certReqLink=(id,c)=>'https://ble.ir/'+BALE_BOT+'?start=cert_req_'+encodeURIComponent((c&&c.id)?c.id:id);
+const certReqOf=id=>{try{const v=JSON.parse(localStorage.getItem(CREQ_KEY)||'{}');return !!(v&&v[id])}catch(e){return false}};
+const certReqSet=id=>{let v={};try{v=JSON.parse(localStorage.getItem(CREQ_KEY)||'{}')||{}}catch(e){}
+  v[id]=1;try{localStorage.setItem(CREQ_KEY,JSON.stringify(v))}catch(e){} return v};
+/* پنجرهٔ صدور، همان ساعت خلوت سامانه که پنل میگوید */
+const certWinUser=()=>{const h=new Date().getHours();return (h<2?'امشب':'شب آینده')+' ۰۲:۰۰'};
+function certAsk(kind,id){
+  if(kind==='ask'){
+    const link=certReqLink(id,null);
+    fillSheet('shConfirm',`<div class="grabber"></div><div class="head">درخواست گواهینامه</div>
+      <p class="sub" style="margin-top:8px">درخواستت را در ربات بلهٔ موسسه ثبت کن؛ همان‌جا «تا ۲۴ ساعت آینده صادر میشود» و زمان تقریبی‌اش را می‌بینی. صدورها در ساعت خلوت سامانه انجام میشود؛ پنجرهٔ بعدی: ${certWinUser()}.</p>
+      <div class="row" style="margin-top:14px"><a class="btn primary" target="_blank" rel="noopener" href="${link}">${ico('i-send')} رفتن به ربات و ثبت درخواست</a>
+        <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>نه</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn sm quiet" data-cert-askid="${esc(id)}">درخواست را در ربات دادم؛ همین‌جا ثبت کن</button></div>
+      <p class="cap" dir="ltr" style="overflow-wrap:anywhere;margin-top:6px">${link}</p>`);
+    openSheet('shConfirm'); return;
+  }
   const K=(POL.certKinds||[]).find(k=>k.k===kind)||{};
   fillSheet('shConfirm',`<div class="grabber"></div><div class="head">${esc(K.n||'گواهی')}</div>
     <p class="sub" style="margin-top:8px">${esc(K.s||'')} · صدور گواهی نیاز به تأیید سرپرست دارد؛ بعد از تأیید خبر می‌دهیم.</p>
@@ -2365,7 +2388,10 @@ document.addEventListener('click',ev=>{
     toast(cc.id?('گواهینامه با سریال '+cc.id+' دانلود شد'):'گواهینامه پس از تأیید سرپرست دانلود می‌شود'); return }
   const moff=t.closest('[data-off]'); if(moff){ toast('فایل آفلاین دانلود شد؛ بی اینترنت هم باز می‌شود'); return }
   const moffa=t.closest('[data-off-all]'); if(moffa){ toast('همهٔ فایل‌های آفلاین همین رویداد دانلود شد'); return }
-  const cr=t.closest('[data-certreq]'); if(cr){ certAsk(cr.dataset.certreq); return }
+  const cr=t.closest('[data-certreq]'); if(cr){ certAsk(cr.dataset.certreq, cr.dataset.cid); return }
+  const cak=t.closest('[data-cert-askid]'); if(cak){certReqSet(cak.dataset.certAskid);
+    toast('ثبت شد؛ تا ۲۴ ساعت آینده صادر میشود · پنجرهٔ صدور: '+certWinUser());
+    openMyEvent(cak.dataset.certAskid); return}
   if(t.closest('[data-cert-yes]')){ closeSheets(); toast('سفارش ثبت شد؛ بعد از تأیید سرپرست خبر می‌دهیم'); return }
   const cv=t.closest('[data-verify]');
   if(cv){ const ser=cv.dataset.verify||'';

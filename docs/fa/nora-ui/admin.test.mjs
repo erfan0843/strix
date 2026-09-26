@@ -581,6 +581,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(!!p.doc.querySelector('[data-cnews]')&&/۲۴ ساعت/.test(p.doc.querySelector('[data-cnews]').placeholder),'متن خبر با قول ۲۴ساعته قابل ویرایش است');
   p.click('[data-crand]');
   ok(/نمونه برای/.test(p.txt('.balebox')),'پیش‌نمایش تصادفی با نام یک نفر میآید');
+  ok(!!p.doc.querySelector('.balebox.live svg'),'پیش‌نمایش تصادفی، گواهینامهٔ واقعی زنده است');
   ok(!!p.doc.querySelector('[data-cqueue]')&&!!p.doc.querySelector('[data-cfast]'),'ثبت در صف و صدور فوری هر دو هست');
   p.click('[data-cqueue]');
   ok(/در صف نشست/.test(p.txt('#toast')),'ثبت در صف پیام پنجره میدهد');
@@ -1157,9 +1158,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=59')&&html.includes('admin.js?v=59'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=60')&&html.includes('admin.js?v=60'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v48'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v49'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

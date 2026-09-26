@@ -48,6 +48,12 @@ const baleIntro=code=>{sheetImpl('shAdm',`<div class="admsheet">
     <p class="cap" dir="ltr" style="overflow-wrap:anywhere">${baleStart(code)}</p></div>`);};
 const balebox=(pv,code,label)=>`<div class="balebox"><div class="pv">${pv}</div>
   <div class="ov">${ico('i-lock')}<b>فقط پیش‌نمایش تار</b><small class="cap">${esc(label||'فایل کامل از ربات بلهٔ موسسه می‌آید')}</small>${baleA(code)}</div></div>`;
+/* پیشنمایش زندهٔ گواهینامه: همان موتور SVG صفحهٔ کاربر، پرشده با دادهٔ نمونه */
+const certLive=(o,label)=>{let pv='';
+  try{ pv=(window.certificateSVG||function(){return ''})(o||{})||'' }catch(e){}
+  if(!pv) pv=`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`;
+  return `<div class="balebox live"><div class="pv">${pv}</div>
+    <div class="ov">${ico('i-medal')}<b>پیش‌نمایش زنده</b><small class="cap">${esc(label||'فایل ورد کامل از ربات بلهٔ موسسه می‌آید')}</small>${baleA('cert_sample','نمونهٔ کامل از ربات بله')}</div></div>`};
 /* گزارش اکسلِ هر بخش: یک ردیف سبک */
 const baleRow=(code,title)=>`<div class="balerow">${ico('i-download')}
   <span class="sp"><b>گزارش اکسل این بخش</b><small class="cap">${esc(title)} · فایل کامل از ربات بلهٔ موسسه می‌آید</small></span>
@@ -1990,7 +1996,10 @@ function vCert(){
       <label class="fld"><span>متن خبر گیرنده‌ها (قابل ویرایش)</span><textarea data-cnews rows="2" placeholder="${esc(CE.news||'')}">${esc(C.news||'')}</textarea></label>
       <div class="row tight">${btn('پیش‌نمایش تصادفی','data-crand','i-eye')}
         ${baleA('cert_random','نمونهٔ کامل از ربات بله')}</div>
-      ${C.rand?balebox(`<div class="pvsheet">${'<i></i>'.repeat(7)}</div>`,'cert_sample',
+      ${C.rand?certLive({name:C.rand,kind:'گواهینامهٔ پایان دوره',
+        title:((EVROWS.find(e=>evSel.indexOf(e.id)>-1)||EVROWS[0]||{}).n||'برنامهٔ آموزشی موسسه'),
+        serial:'NL-'+String(100000+((S.certQueue||[]).length+1)*7919%899999),
+        date:letter?letter:''},
         'نمونه برای «'+C.rand+'» · '+letter+' · اعتبار '+fa(months)+' ماه'):''}
       <div class="row stctas">
         ${btn('ثبت در صف صدور ('+winNow+')','data-cqueue','i-send')}
