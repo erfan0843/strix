@@ -663,6 +663,8 @@ const UISET_DEF={v:1,
   forms:{model:'registration',display:'one',after:'edit',guests:0,wait:1,limit:'event',
     dept:'edu',to:'کارتابل کارشناس',endText:'',
     tags:[{n:'بررسی شد',c:'ok'},{n:'پیگیری',c:'warn'},{n:'ویژه',c:'brand'}]},
+  users:{regs:'free',dues:1,prune:'off',okOnly:0},
+  ops:{cap:8,log:'on',auditTone:'brand'},
   trust:{on:1,text:''},foot:{on:1,text:''}};
 function uiSet(){
   const base=JSON.parse(JSON.stringify(UISET_DEF));
@@ -696,7 +698,12 @@ const UISET_META={
   formsLimit:[['none','آزاد برای همه'],['event','فقط ثبتنامکردههای رویداد'],['attended','حاضران جلسهٔ پیشین'],['invite','فهرست یا کد دعوت']],
   formsDept:[['edu','آموزش'],['data','پژوهش و نظرسنجی'],['media','رسانه و تولید محتوا'],['sup','پشتیبانی']],
   formsTo:[['کارتابل کارشناس','کارتابل کارشناس'],['کارتابل + پیام‌رسان بله','کارتابل + بله'],['کارتابل + ایمیل','کارتابل + ایمیل'],['پیام‌رسان بله','فقط بله']],
-  tagColors:[['ok','سبز'],['warn','کهربایی'],['stop','سرخ'],['brand','آبی']]};
+  tagColors:[['ok','سبز'],['warn','کهربایی'],['stop','سرخ'],['brand','آبی']],
+  usersRegs:[['free','خوداظهاری'],['phone','تأیید موبایل'],['invite','فقط کد دعوت'],['closed','ثبتنام بسته']],
+  usersPrune:[['off','خاموش'],['1m','پس از یک ماه'],['3m','پس از سه ماه'],['6m','پس از ششماه']],
+  opsCap:[['5','۵ کار'],['8','۸ کار'],['12','۱۲ کار'],['20','همه']],
+  opsLog:[['on','روشن'],['off','خاموش']],
+  opsTone:[['brand','آبی'],['ok','سبز'],['warn','کهربایی'],['stop','سرخ']]};
 /* منوی کاربر با ردیفهای پنهانشده؛ گروهی که همه ردیفهایش پنهان است نمیآید */
 function menuAllowed(){
   const U=uiSet(), M=(window.NORA&&window.NORA.MENU)||[];
@@ -1595,7 +1602,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v57') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v58') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

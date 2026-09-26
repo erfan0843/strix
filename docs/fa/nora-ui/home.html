@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=68"/>
-<link rel="stylesheet" href="nora.css?v=68"/>
+<link rel="stylesheet" href="glass.css?v=69"/>
+<link rel="stylesheet" href="nora.css?v=69"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -497,6 +497,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     </div>
     <div class="bdots" id="bdots" role="tablist" aria-label="انتخاب بنر"></div>
   </section>
+  <div class="notebar" id="maintBar" hidden style="margin-bottom:10px"></div>
 
   <!-- ── استوری‌های کوتاه ── -->
   <section class="sec" id="stories" aria-label="استوری‌های نورا"></section>
@@ -658,8 +659,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=68"></script>
-<script src="ui.js?v=68"></script>
+<script src="data.js?v=69"></script>
+<script src="ui.js?v=69"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -1645,6 +1646,11 @@ function loadPins(){
 function savePins(){try{localStorage.setItem('nora-home-pins',JSON.stringify([...S.pins]))}catch(e){}}
 function renderAll(){
   renderContinue(); renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub(); renderHot();
+  /* حالت نگهداری پنل: نوار هشدار بالای خانه؛ حساب تازه بسته است */
+  {let U2=null; try{U2=(window.NORA_UI&&NORA_UI.uiSet)?NORA_UI.uiSet():null}catch(e){}
+   const mt=document.getElementById('maintBar');
+   if(mt){const on=U2&&U2.users&&U2.users.regs==='closed'; mt.hidden=!on;
+     if(on) mt.innerHTML='<svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>سامانه در حال بروزرسانی است؛ حساب تازه موقتاً بسته است. اگر ثبتنام کردهای، همهچیز سر جایش است.</span>'}}
   renderTeachers(); renderStaff(); renderArticles(); renderPartners();
   /* هر بخش خانه، کلید خودش را در تنظیمهای ظاهری دارد؛ خاموش یعنی همین */
   const U=uiOpt(), HOME_IDS={bnr:'bnr',stories:'stories',search:'searchSec',quick:'quick',pins:'pins',mine:'mine',

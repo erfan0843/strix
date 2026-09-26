@@ -696,8 +696,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
   /* ── تنظیمات سامانه: کاشیها و مدیریت ظاهر ── */
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-skit]').length===6,'شش کاشی تنظیمات سامانه هست');
-  ok(p.all('.sktgrid .sktile').length===6,'کاشیها در شبکهٔ چهارستونی نشستهاند');
+  ok(p.all('[data-skit]').length===7,'هفت کاشی تنظیمات سامانه هست');
+  ok(p.all('.sktgrid .sktile').length===7,'کاشیها در شبکهٔ تنظیمات نشستهاند');
   p.click('[data-skit="forms"]');
   ok(/تنظیمات فرمساز/.test(p.txt('#admBody')),'کاشی فرمساز، مدیریت فرمساز را باز کرد');
   ok(p.all('#admBody .metric').length===4,'گزارش کلی: چهار عدد (فرم، روی هوا، پاسخ، کار باز)');
@@ -726,7 +726,37 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-fclean]'); p.click('[data-fclean]');
   ok(/کار انجامشده/.test(p.txt('#toast')),'بایگانی کارهای کارتابل با دو پا گام روشن میشود');
   p.click('[data-skinback]');
-  ok(p.all('[data-skit]').length===6,'برگشت به کاشیها');
+  ok(p.all('[data-skit]').length===7,'برگشت به کاشیها (هفت کاشی با مدیریت پنل)');
+  /* ── کاشی کاربران و دسترسی + مدیریت پنل ── */
+  p.click('[data-skit="users"]');
+  ok(/کاربران و دسترسی/.test(p.txt('#admBody')),'کاشی کاربران، مدیریت کاربران را باز کرد');
+  ok(p.all('#admBody .metric').length===4,'گزارش کلی کاربران: چهار عدد (کاربر، صف، پرداختی، مسدود)');
+  ok(!!p.doc.querySelector('#admBody [data-useg="users.regs:invite"]'),'چهار سیاست عضویت هست');
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='users.regs:invite').click();
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='users.prune:3m').click();
+  p.click(p.all('#admBody [data-uk]')[0]);
+  const usv=JSON.parse(p.store.getItem('nora-uiset')).users;
+  ok(usv.regs==='invite'&&usv.prune==='3m'&&usv.dues===0,'سیاست عضویت و قفل بدهی و پاکسازی ذخیره شد');
+  ok(/مسدود/.test(p.txt('#admBody')),'مسدودهای فعلی با شمارشان نوشته شده');
+  p.click('[data-skinback]');
+  p.click('[data-skit="ops"]');
+  ok(/مدیریت پنل/.test(p.txt('#admBody')),'کاشی مدیریت پنل باز شد');
+  ok(p.all('#admBody .admlirow').length>=1,'آخرین لاگها در مدیریت پنل دیده میشود');
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='ops.cap:5').click();
+  {p.click('#admNav [data-sec="dash"]');
+   const qCap=p.all('.qrow').length;
+   ok(qCap<=5,'سقف کوتاه کارتابل از مدیریت پنل میآید ('+qCap+')');}
+  {p.click('#admNav [data-sec="settings"]');
+   if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
+   p.click('[data-skit="ops"]');}
+  [...p.all('#admBody [data-useg]')].find(x=>x.dataset.useg==='ops.log:off').click();
+  p.click(p.doc.querySelector('[data-uk="maint"]'));
+  ok(/حالت نگهداری روشن شد/.test(p.txt('#toast'))&&JSON.parse(p.store.getItem('nora-uiset')).users.regs==='closed',
+     'حالت نگهداری، عضویت را بست و با نامش خبر داد');
+  p.click(p.doc.querySelector('[data-uk="maint"]'));
+  ok(/برداشته شد/.test(p.txt('#toast'))&&JSON.parse(p.store.getItem('nora-uiset')).users.regs==='invite',
+     'حالت نگهداری برداشته شد و عضویت به کد دعوت برگشت');
+  p.click('[data-skinback]');
   p.click('[data-skit="skin"]');
   ok(/تنظیمات ظاهری سامانه/.test(p.txt('#admBody')),'کاشی ظاهری، مدیریت ظاهر را باز کرد');
   ok(p.all('[data-skintab]').length===8,'هشت برگه: خانه، منو، بنرها، استوریها، کارتها، نوشتار، نوار، پای صفحه');
@@ -800,7 +830,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(JSON.parse(p.store.getItem('nora-uiset')).home.stories===1,'بازنشانی برگه، همان برگه را به پیشفرض برگرداند');
   ok(/برگهٔ «بخشهای خانه»/.test(p.txt('#toast')),'بازنشانی برگه با نام برگه خبر میدهد');
   p.click('[data-skinback]');
-  ok(p.all('[data-skit]').length===6,'بازگشت به کاشیها');
+  ok(p.all('[data-skit]').length===7,'بازگشت به کاشیها');
   p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
   ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت مدیران و کارشناسان هست (مالک جداست)');
   ok(p.all('.stflow .stf').length===3,'جریان سهگامی حساب و ورود اول روی صفحه است');
@@ -1105,7 +1135,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:57, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:58, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1334,9 +1364,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=68')&&html.includes('admin.js?v=68'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=69')&&html.includes('admin.js?v=69'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v57'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v58'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

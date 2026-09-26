@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=57;
+const SVER=58;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -229,7 +229,9 @@ const MEM=[
 const memOf=id=>{const m=MEM.find(x=>x.id===id); if(!m) return null;
   const o=(S.uov||{})[id], x=MEMX[id]||{}; return Object.assign({},x,m,o||{})};
 const memList=()=>MEM.concat(S.uextra||[]).filter(m=>(S.uhide||[]).indexOf(m.id)<0)
-  .map(m=>{const mm=memOf(m.id); return mm||Object.assign({},MEMX[m.id]||{},m)});
+  .map(m=>{const mm=memOf(m.id); return mm||Object.assign({},MEMX[m.id]||{},m)})
+  .filter(m=>{const U=(window.NORA_UI&&NORA_UI.uiSet)?NORA_UI.uiSet().users:{};
+    return !U.okOnly||m.st[0]!=='در صف تأیید';});
 const UF=[{k:'all',n:'همه'},{k:'pending',n:'در صف تأیید'},{k:'vip',n:'ویژه'},{k:'club',n:'عضو باشگاه'},{k:'blocked',n:'مسدود'}];
 const ufCount=k=>({all:memList().length, pending:memList().filter(m=>m.st[1]==='warn').length,
   vip:memList().filter(m=>m.vip).length,
@@ -317,7 +319,8 @@ const uInbox=()=>(S.uinboxM&&S.uinboxM.length)?S.uinboxM:(S.uinboxM=[
 const uLog=()=>(S.ulog&&S.ulog.length)?S.ulog:(S.ulog=[
   {at:'امروز ۹:۱۴',who:'مالک',act:'پروفایل نگار موسوی تأیید شد'},
   {at:'دیروز ۱۶:۰۲',who:'مالک',act:'فهرست کاربران به اکسل رفت (۱۵ نفر)'}]);
-const uLogAdd=act=>{S.ulog=[{at:'همین حالا',who:me().n||'مالک',act:act}].concat(S.ulog||[]).slice(0,40)};
+const uLogAdd=act=>{if(usGet('ops.log')==='off') return;
+  S.ulog=[{at:'همین حالا',who:me().n||'مالک',act:act}].concat(S.ulog||[]).slice(0,40)};
 /* برچسبها: از خود کاربران درمیآید + برچسب دلخواه پنل */
 const uLabels=()=>{const c={}; memList().forEach(m=>(m.tags||[]).forEach(t=>{if(!isMoney()&&moneyTag(t))return; c[t]=(c[t]||0)+1}));
   (S.ulabels||[]).forEach(t=>{if(!(t in c)) c[t]=0}); return c};
@@ -502,7 +505,8 @@ function cardStatus(){
 /* کارتابل: هر کار یک دکمه دارد: انجام شد، واگذار، باز کن */
 function cardQueue(){
   const q=myQueue();
-  const qf=S.qf||'all', cap=isOwner()?8:isLead()?6:99;
+  const OC={5:5,8:8,12:12};
+  const qf=S.qf||'all', cap=isOwner()?(OC[usGet('ops.cap')]||99):isLead()?6:99;
   const all=q.filter(it=>!qDone(it.id)&&(qf==='all'||it.pri===qf))
     .sort((a,b)=>priRank(a.pri)-priRank(b.pri)||String(a.due).localeCompare(String(b.due)));
   const open=S.qMore?all:all.slice(0,cap);
@@ -2400,8 +2404,9 @@ function cUStaff(){
 const SKIN_TILES=[
  {k:'skin', n:'ظاهری سامانه', i:'i-sparkle', s:'منو، بنر، استوری، کارتها، پای صفحه'},
  {k:'forms', n:'فرمساز', i:'i-pen', s:'پیشفرضهای فرم تازه، برچسبها، پاکسازی'},
+ {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'عضویت، درخواستها، مسدودها، نگهداری'},
+ {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، حالتنگهداری، خروجی'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترمها، نشانها، فروشگاه', soon:1},
- {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'نقشها، عضویتها، مسدودها', soon:1},
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
@@ -2557,6 +2562,70 @@ function skinView(){
     <div class="row"><span class="sp"></span>${btn('بازنشانی همین برگه','data-skrtab','i-layers')}</div>
   </section>`;
 }
+/* ══ کاشی کاربران و دسترسی + مدیریت پنل ════════════════════════════════ */
+function usersView(){
+  const U=uiSet(), US=U.users||{};
+  const m=memList(), pend=m.filter(x=>x.st[0]==='در صف تأیید').length, blocked=m.filter(x=>x.st[1]==='stop').length;
+  const moneyN=m.filter(x=>moneyTag(x.st[0])||x.pt>0).length;
+  const seg=(meta,path)=>meta.map(([k,n])=>`<button class="chip ${usGet(path)===k?'on':''}" data-useg="${esc(path)}:${esc(k)}">${esc(n)}</button>`).join('');
+  return `<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><a class="btn sm tint" href="#" data-govusers>${ico('i-users')} بخش کاربران</a></div>
+    <div class="row"><div class="head">کاربران و دسترسی</div><span class="sp"></span>
+      <span class="cap">سیاست عضویت و نگهداری؛ گاردها همان لحظه میخوانند</span></div>
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="n">${esc(fa(m.length))}</div><div class="l">کاربر</div></div>
+      <div class="metric ${pend?'acc':''}"><div class="n">${esc(fa(pend))}</div><div class="l">در صف تأیید</div></div>
+      <div class="metric"><div class="n">${esc(fa(moneyN))}</div><div class="l">پرداخت داشته</div></div>
+      <div class="metric"><div class="n">${esc(fa(blocked))}</div><div class="l">مسدود</div></div>
+    </div>
+    <div class="head tight">سیاست عضویت</div>
+    <div><label class="lbl">چه کسی بتواند حساب بسازد</label>
+      <div class="admfilters">${seg(UISET_META.usersRegs,'users.regs')}</div>
+      <p class="cap">«فقط کد دعوت» یعنی بدون معرف، فرم حساب خالی رد میشود.</p></div>
+    <div class="row"><div style="flex:1"><b class="sub">بدهی، ثبتنام را ببندد</b>
+      <div class="cap">کاربر با پرداخت ردشدهٔ باز، تا تسویه نتواند ثبتنام تازه کند</div></div>
+      <span class="switch ${US.dues?'on':''}" data-uk="users.dues" data-uklabel="قفل بدهی" role="switch" aria-checked="${US.dues?'true':'false'}" aria-label="قفل بدهی"></span></div>
+    <div class="row"><div style="flex:1"><b class="sub">فقط پروفایل تأییدشده در گزارشها</b>
+      <div class="cap">در صفها و شمارشها، بیپروفایلها حساب نمیشوند</div></div>
+      <span class="switch ${US.okOnly?'on':''}" data-uk="users.okOnly" data-uklabel="فقط تأییدشدهها" role="switch" aria-checked="${US.okOnly?'true':'false'}" aria-label="فقط تأییدشدهها"></span></div>
+    <div><label class="lbl">پاکسازی حسابهای خام</label>
+      <div class="admfilters">${seg(UISET_META.usersPrune,'users.prune')}</div>
+      <p class="cap">حسابی که بعد از این مدت هنوز پروفایلش کامل نشده، از صفها بیرون میآید؛ پرونده حذف نمیشود.</p></div>
+    <hr class="hr"/>
+    <div class="head tight">مسدودها</div>
+    <p class="cap">مسدودِ فعلی سامانه: ${esc(fa(blocked))} نفر؛ برداشتن مسدودی، در پروندهٔ همان کاربر است و از اینجا نمیشود.</p>
+  </section>`;
+}
+function opsView(){
+  const U=uiSet(), OP=U.ops||{};
+  const caps={5:5,8:8,12:12};
+  const cap=caps[OP.cap]||99;
+  const lrows=uLog().slice(0,6);
+  return `<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><span class="cap">این پنل، ابزار خود مدیران است</span></div>
+    <div class="row"><div class="head">مدیریت پنل</div><span class="sp"></span>
+      <span class="cap">کارتابل، لاگ، حالتنگهداری و پشتیبان</span></div>
+    <div class="head tight">کارتابل</div>
+    <div><label class="lbl">سقف کارهای کوتاه</label>
+      <div class="admfilters">${UISET_META.opsCap.map(([k,n])=>`<button class="chip ${String(usGet('ops.cap'))===String(k)?'on':''}" data-useg="ops.cap:${k}">${esc(n)}</button>`).join('')}</div>
+      <p class="cap">کارتابل مالک با «همهٔ کارها» باز میشود؛ اینجا اندازهٔ پیشفرضش را میچینی.</p></div>
+    <div><label class="lbl">لاگ عملیات</label>
+      <div class="admfilters">${UISET_META.opsLog.map(([k,n])=>`<button class="chip ${usGet('ops.log')===k?'on':''}" data-useg="ops.log:${k}">${esc(n)}</button>`).join('')}</div>
+      <p class="cap">خاموش که شود، «تاریخچهٔ» کاربران و پنل نوشتن را میایستاند.</p></div>
+    <div class="head tight">آخرین لاگها</div>
+    ${lrows.map(r=>`<div class="admlirow"><span class="ic">${ico('i-clock')}</span>
+      <span class="sp"><b>${esc(r.act)}</b><small class="cap">${esc(r.who)} · ${esc(r.at)}</small></span></div>`).join('')}
+    <hr class="hr"/>
+    <div class="row"><div style="flex:1"><b class="sub">حالت نگهداری</b>
+      <div class="cap">صفحههای کاربر با پیام کوتاه بسته میشوند؛ پنل باز میماند</div></div>
+      <span class="switch ${usGet('users.regs')==='closed'?'on':''}" data-uk="maint" data-uklabel="حالت نگهداری" role="switch"
+        aria-checked="${usGet('users.regs')==='closed'?'true':'false'}" aria-label="حالت نگهداری"></span></div>
+    <div class="row"><span class="sp"></span>
+      ${baleA('backup','پشتیبان در ربات بله')}${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>
+  </section>`;
+}
 /* ══ کاشی فرمساز: گزارش کلی، پیشفرضهای فرم تازه، برچسبها، پاکسازی ══ */
 let fcleanArm=0;
 function formSetView(){
@@ -2627,6 +2696,8 @@ function vSettings(){
   const canTpl=own||lead;   /* قالب گواهینامه: فقط دست مالک و سرپرست */
   if(own&&S.skin) return skinView();
   if(own&&S.skinF) return formSetView();
+  if(own&&S.skinU) return usersView();
+  if(own&&S.skinO) return opsView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
@@ -3423,33 +3494,41 @@ document.addEventListener('click',e=>{
   const cup=q('[data-cunpick]'); if(cup){S.cert.picked=(S.cert.picked||[]).filter(x=>x!==cup.dataset.cunpick); save(); renderBody(); return}
   const se=q('[data-setg]'); if(se){S.setG=se.dataset.setg; save(); renderBody(); return}
   /* ── تنظیمات سامانه: کاشیها و مدیریت ظاهر ── */
-  const skt=q('[data-skit]'); if(skt){const k=skt.dataset.skit;
+  const skt=t.closest('[data-skit]'); if(skt){const k=skt.dataset.skit;
     if(k==='skin'){S.skin=1; S.skinTab='home';}
     else if(k==='forms'){S.skinF=1;}
+    else if(k==='users'){S.skinU=1;}
+    else if(k==='ops'){S.skinO=1;}
     else {toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
     save(); renderBody(); return}
-  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; save(); renderBody(); return}
+  const gv=q('[data-govusers]'); if(gv){S.skinU=0; S.skin=0; S.sec='users'; S.uV=''; save(); renderBody(); toast('به بخش کاربران رفتید'); return}
+  const mt=q('[data-uk="maint"]'); if(mt){
+    const now=uiSet().users.regs==='closed';
+    usSet('users.regs',now?'invite':'closed');
+    mt.classList.toggle('on',!now); mt.setAttribute('aria-checked',!now?'true':'false');
+    toast('حالت نگهداری '+(now?'برداشته شد؛ عضویت با کد دعوت باز است':'روشن شد؛ حساب تازه بسته است')); return}
   const skw=q('[data-skintab]'); if(skw){S.skinTab=skw.dataset.skintab; save(); renderBody(); return}
-  const uk=q('[data-uk]'); if(uk){const on=!usGet(uk.dataset.uk);
+  const uk=t.closest('[data-uk]'); if(uk&&uk.dataset.uk!=='maint'){const on=!usGet(uk.dataset.uk);
     usSet(uk.dataset.uk,on?1:0);
     uk.classList.toggle('on',on); uk.setAttribute('aria-checked',on?'true':'false');
     toast((uk.dataset.uklabel||'بخش')+(on?' روشن شد':' خاموش شد')); return}
-  const um=q('[data-umenu]'); if(um){const U=uiSet(), nm=um.dataset.umenu, had=U.menu.indexOf(nm)>-1;
+  const um=t.closest('[data-umenu]'); if(um){const U=uiSet(), nm=um.dataset.umenu, had=U.menu.indexOf(nm)>-1;
     if(had) U.menu.splice(U.menu.indexOf(nm),1); else U.menu.push(nm);
     uiSetSave(U);
     um.classList.toggle('on',had); um.setAttribute('aria-checked',had?'true':'false');
     toast('«'+nm+'» '+(had?'به منو برگشت':'از منو پنهان شد')); return}
-  const ukq=q('[data-uquick]'); if(ukq){const U=uiSet(), k=ukq.dataset.uquick, had=U.quick.indexOf(k)>-1;
+  const ukq=t.closest('[data-uquick]'); if(ukq){const U=uiSet(), k=ukq.dataset.uquick, had=U.quick.indexOf(k)>-1;
     if(had) U.quick.splice(U.quick.indexOf(k),1); else U.quick.push(k);
     uiSetSave(U);
     ukq.classList.toggle('on',had); ukq.setAttribute('aria-checked',had?'true':'false');
     toast('کاشی '+(had?'برگشت':'پنهان شد')); return}
-  const bh=q('[data-bhide]'); if(bh){const U=uiSet(), nm=bh.dataset.bhide, had=U.bnr.hide.indexOf(nm)>-1;
+  const bh=t.closest('[data-bhide]'); if(bh){const U=uiSet(), nm=bh.dataset.bhide, had=U.bnr.hide.indexOf(nm)>-1;
     if(had) U.bnr.hide.splice(U.bnr.hide.indexOf(nm),1); else U.bnr.hide.push(nm);
     uiSetSave(U);
     bh.classList.toggle('on',had); bh.setAttribute('aria-checked',had?'true':'false');
     toast('بنر «'+nm+'» '+(had?'برگشت':'پنهان شد')); return}
-  const sh=q('[data-shide]'); if(sh){const U=uiSet(), id=sh.dataset.shide, had=U.storyHide.indexOf(id)>-1;
+  const sh=t.closest('[data-shide]'); if(sh){const U=uiSet(), id=sh.dataset.shide, had=U.storyHide.indexOf(id)>-1;
     if(had) U.storyHide.splice(U.storyHide.indexOf(id),1); else U.storyHide.push(id);
     uiSetSave(U);
     sh.classList.toggle('on',had); sh.setAttribute('aria-checked',had?'true':'false');
@@ -3476,7 +3555,7 @@ document.addEventListener('click',e=>{
     uiSetSave(U); toast('استوری «'+t+'» به خانه اضافه شد'); renderBody(); return}
   const sd=q('[data-sksdel]'); if(sd){const U=uiSet(), s=U.storyAdd.splice(+sd.dataset.sksdel,1)[0]||{};
     uiSetSave(U); toast('استوری «'+s.t+'» برداشته شد'); renderBody(); return}
-  const useg=q('[data-useg]'); if(useg){
+  const useg=t.closest('[data-useg]'); if(useg){
     const i2=useg.dataset.useg.indexOf(':'), path=useg.dataset.useg.slice(0,i2), val=useg.dataset.useg.slice(i2+1);
     usSet(path,val);
     document.querySelectorAll('#admBody [data-useg]').forEach(x=>x.classList.toggle('on',x===useg));
