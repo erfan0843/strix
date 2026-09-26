@@ -536,8 +536,29 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#shAdm .admbars i').length===7,'نمودار سی‌روزه در ورقه هست');
   ok(p.all('#shAdm .k').length>=4,'مقایسهٔ دوره‌ها در ورقه هست');
   ok(!!p.doc.querySelector('#shAdm [data-bale="report_fi"]'),'اکسل همین گزارش در ورقه هست');
+  ok(/مقایسه: (رشد|افت)/.test(p.txt('#shAdm')),'برچسب مقایسهٔ دورهٔ مشابه قبل در ورقه هست');
+  ok(/دورهٔ ۳۰ روز/.test(p.txt('#shAdm')),'برچسب دورهٔ جاری در ورقه هست');
   p.click('#shAdm [data-close]');
+  /* هر ۹ ورقه پشت هم: همه جدول و میله و برچسب دارند */
+  let allSheets=true;
+  for(const kk of ['ev','us','fm','at','fi','ce','bc','ad','tp']){
+    p.click('[data-rep="'+kk+'"]');
+    if(!p.doc.querySelector('#shAdm table')||!p.doc.querySelector('#shAdm .admbars i[style]')) allSheets=false;
+    if(!/دورهٔ/.test(p.txt('#shAdm'))) allSheets=false;
+    p.click('#shAdm [data-close]');
+  }
+  ok(allSheets,'هر نه ورقه: جدول، میلهٔ استایل‌دار و برچسب دوره دارد');
   ok(/جمعبندی مدیریتی، خودنویس/.test(p.txt('#admBody'))&&/عضو داریم/.test(p.txt('#admBody')),'جمعبندی مدیریتی خودنویس با عدد واقعی سر گزارش هست');
+  p.click('[data-rp="امسال"]');
+  ok(/در دورهٔ «امسال»/.test(p.txt('#admBody')),'با عوض کردن دوره، جمعبندی تازه میشود');
+  p.click('[data-rp="۳۰ روز"]');
+  ok(/روند هفت محور اخیر/.test(p.txt('#admBody'))||/روند/.test(p.txt('#admBody')),'زیرنویس روند با دورهٔ جاری میآید');
+  ok(p.all('.admbars i[style]').length>=10,'میلههای روند ارتفاع واقعی دارند');
+  p.click('[data-rcust="reg"]'); p.click('[data-rcust="frm"]'); p.click('[data-rcustgo]');
+  ok(/گزارش سفارشی تو/.test(p.txt('#admBody'))&&p.all('.stgroup .admkpi .k').length>=2,'گزارش سفارشی کارتهای سه‌دورهای دارد');
+  ok(p.all('.stgroup .admbars i[style]').length>=5,'میلههای گزارش سفارشی هم ارتفاع دارند');
+  p.click('[data-rschnew]'); p.click('[data-rschnew]');
+  ok(/از قبل نشسته/.test(p.txt('#toast')),'زمانبندی فصلی دوبار نمیسازد');
   ok(/فروش همین دوره/.test(p.txt('#admBody')),'جمعبندی برای مالک مالی هم میگوید');
   p.click('[data-rep="us"]');
   ok(/۱۱ تأییدشده · ۳ در صف تأیید · ۱ مسدود/.test(p.txt('#shAdm')),'وضعیت کاربران از دادهٔ واقعی حساب میشود');
@@ -1206,9 +1227,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=63')&&html.includes('admin.js?v=63'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=64')&&html.includes('admin.js?v=64'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v52'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v53'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

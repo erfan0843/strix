@@ -1988,6 +1988,8 @@ async function auditRun(){
     : 'پیمایش تمام شد؛ '+fa(OK)+' کنترل پاسخ داد و هیچ دکمه و بنری بیجواب نماند');
 }
 
+/* برچسب دوره: اعداد فارسی و بی‌فاصلهٔ اضافه */
+const faTag=t=>fa(String(t||'')).trim();
 /* ── گزارش زنده: تفکیکها و برترینها از همین پنل حساب میشود، نه متن ثابت ── */
 const evAllRP=()=>(S.added||[]).concat(EVROWS);
 function rpCalc(k){
@@ -2109,7 +2111,7 @@ function vReports(){
       <span class="sp">${esc(t.t)}</span><span class="mini">${tag('توصیه','brand')}</span></div>`).join('');
   const att=(RP.attention||[]).filter(a=>!a.own||isMoney()).map(a=>rowLink({attrs:`data-rep="${esc(a.k)}"`, i:'i-bell', chev:1, b:esc(a.t), right:tag(W.alert||'توجه','warn')})).join('');
   const list=RPLIST.filter(r=>!r.own||isMoney()).map(r=>rowLink({attrs:`data-rep="${esc(r.k)}"`, i:r.i, chev:1,
-      b:esc(r.n), s:`${esc(r.v)} · ${esc(r.d)}`,
+      b:esc(r.n), s:r.k==='fi'?esc(r.d):`${esc(r.v)} · ${esc(r.d)}`,
       right:r.pc?`<span class="tag ${r.up?'ok':'warn'}">${esc((r.up?'▲ ':'▼ ')+r.pc)}</span>`:''})).join('');
   const CU=RP.custom||{}, cSel=S.rpCust||[], cOpts=(CU.opts||[]).filter(o=>!o.own||isMoney());
   const cOn=S.rpCustOn&&cSel.length;
@@ -2126,7 +2128,7 @@ function vReports(){
       <div class="admfilters">${per}</div>
       <p class="cap">${esc(RP.perCap||'')}</p>
       <div class="admkpi">${kpis}</div>
-      ${trend.v&&trend.v.length?`<div class="head">${esc(trend.n||'')}</div><div class="admbars">${trend.v.map(x=>`<i class="${x>=Math.max.apply(null,trend.v)*.9?'hi':''}"></i>`).join('')}</div>`:''}
+      ${trend.v&&trend.v.length?`<div class="head">${esc(trend.n||'')}</div><div class="admbars">${bars(trend.v,true)}</div>`:''}
       ${live.length?`<div class="head">${esc((RP.live||{}).n||'فعالیت لحظهای')}</div>
         <div class="admlist">${live.map(r=>`<div class="admlirow"><span class="ic">${ico('i-bolt')}</span>
           <span class="sp"><b>${esc(r[0])}</b></span><span class="mini">${bits(r[1])}</span></div>`).join('')}</div>`:''}
@@ -2144,7 +2146,8 @@ function vReports(){
       ${cOn?`<div class="stgroup"><div class="head">گزارش سفارشی تو · ${esc(curP)}</div>
         <div class="admlist">${cOpts.filter(o=>cSel.indexOf(o.k)>-1).map(o=>`<div class="admlirow">${ico('i-chart')}
           <span class="sp"><b>${esc(o.n)}</b></span><span class="mini">${bits(o.v)}</span></div>`).join('')}</div>
-        <div class="admbars">${((CU.bars||[])).map(x=>`<i></i>`).join('')}</div>
+        <div class="admbars">${bars(CU.bars||[],true)}</div>
+        <div class="admkpi">${cOpts.filter(o=>cSel.indexOf(o.k)>-1).slice(0,3).map((o,i2)=>`<div class="k"><small>${esc(['این دوره','دورهٔ مشابه قبل','تغییر'][i2])}</small>${bits(o.v)}</div>`).join('')}</div>
         ${baleRow('report_custom','گزارش سفارشی ('+fa(cSel.length)+' سنجه)')}</div>`:''}
       <hr class="hr"/>
       <div class="head">${esc((RP.sched||{}).n||'گزارش زمان‌بندی‌شده')}</div>
@@ -2665,20 +2668,23 @@ function sheetUser(id){
 function sheetRep(k){
   const r=rpOf(k), d=rpCalc(k), rows=d.rows||[], bs=d.bars||[];
   const li=(RPLIST||[]).find(x=>x.k===k)||{};
-  const sum='در این گزارش، برجستهترین سطر «'+((rows[2]||rows[0]||[])[0]||'')+'» است'
-    +(li.pc?(' · تغییر نسبت به دورهٔ مشابه قبل: '+(li.up?'▲ ':'▼ ')+li.pc):'')
-    +'. دورهٔ زمانی: '+(S.rp||'۳۰ روز')+'؛ اعداد از همین پنل حساب میشود، نه از متن ثابت.';
+  const hl=rows[2]||rows[0]||[];
+  const sum='در این گزارش «'+(hl[0]||'')+'» '+((hl[1]||'').toString().trim()||'ثبت نشده')+' میشود'
+    +(li.pc?('؛ از دورهٔ مشابه قبل '+(li.up?'رشد ':'افت ')+String(li.pc).replace(/[+−]/g,'')+' داشته'):'')
+    +'. اعداد از همین پنل حساب میشود.';
   const att=(RP.attention||[]).filter(a=>a.k===k);
   sheetImpl('shAdm',`<div class="admsheet">
     <div class="row"><span class="ic">${ico('i-chart')}</span>
       <span class="tx" style="min-width:0"><div class="head">${esc(r.n||'')}</div>
       <div class="cap">${esc(r.v||'')} · ${esc(r.d||'')}</div></span><span class="sp"></span>
-      ${r.pc?`<span class="tag ${r.up?'ok':'warn'}">${esc((r.up?'▲ ':'▼ ')+r.pc)}</span>`:''}</div>
+      ${r.pc?`<span class="tag ${r.up?'ok':'warn'}">${esc((r.up?'▲ ':'▼ ')+String(r.pc).replace(/[+−]/g,''))}</span>`:''}</div>
     ${bs.length?bars(bs,true):''}
+    <div class="row tight"><span class="mini cap">${esc('روند هفت محور اخیر، بر پایهٔ دورهٔ '+(S.rp||'۳۰ روز'))}</span></div>
     <p class="cap">${esc(sum)}</p>
     ${table(rows,['',''])}
-    <div class="row tight">${li.pc?`<span class="tag ${li.up?'ok':'warn'}">${esc((li.up?'▲ ':'▼ ')+li.pc+' نسبت به دورهٔ مشابه قبل')}</span>`:''}
-      <span class="tag">${esc('دوره: '+(S.rp||'۳۰ روز'))}</span></div>
+    <div class="row tight">
+      ${li.pc?`<span class="tag ${li.up?'ok':'warn'}">${esc('مقایسه: '+(li.up?'رشد ':'افت ')+String(li.pc).replace(/[+−]/g,''))}</span>`:''}
+      <span class="tag">${esc('دورهٔ '+faTag(S.rp||'۳۰ روز'))}</span></div>
     ${k==='tp'?`<div class="admkpi">${rows.slice(0,3).map((r2,i2)=>`<div class="k"><small>رتبهٔ ${fa(i2+1)}</small>${bits(String(r2[1]).split('·')[0]||'')}</div>`).join('')}</div>`:''}
     ${att.length?`<div class="stack tight"><div class="head">${esc(W.alert||'')}</div>
       ${att.map(a=>`<div class="admlirow">${ico('i-bell')}<span class="sp">${esc(a.t)}</span></div>`).join('')}</div>`:''}
@@ -3138,7 +3144,7 @@ document.addEventListener('click',e=>{
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
   const rc=q('[data-rcust]'); if(rc){const k2=rc.dataset.rcust, l=S.rpCust||[];
-    S.rpCust=l.indexOf(k2)>-1?l.filter(x=>x!==k2):l.concat([k2]); S.rpCustOn=0; save(); renderBody(); return}
+    S.rpCust=l.indexOf(k2)>-1?l.filter(x=>x!==k2):l.concat([k2]); save(); renderBody(); return}
   const rg=q('[data-rcustgo]'); if(rg){if(!(S.rpCust||[]).length){toast('نخست سنجهها را برگزین'); return}
     S.rpCustOn=1; save(); renderBody();
     toast('گزارش سفارشی با '+fa(S.rpCust.length)+' سنجه ساخته شد · دوره: '+(S.rp||'۳۰ روز')); return}
@@ -3160,7 +3166,9 @@ document.addEventListener('click',e=>{
         <div class="k"><small>زمان</small>${bits(j.at||'ـ')}</div></div>
       <div class="row">${baleA('cert_list','گزارش این کار از ربات بله')}
         <span class="sp"></span>${btn(W.close||'بستن','data-close')}</div></div>`); renderBody()} return}
-  const rn=q('[data-rschnew]'); if(rn){S.rpSchedExtra=(S.rpSchedExtra||[]).concat([{n:'جمعبندی فصلی',at:'نخست هر فصل ۰۹:۰۰',on:1}]);
+  const rn=q('[data-rschnew]'); if(rn){
+    if((S.rpSchedExtra||[]).some(x=>x.n==='جمعبندی فصلی')){toast('زمانبندی فصلی از قبل نشسته؛ همین پایین خاموش و روشنش میکنی'); return}
+    S.rpSchedExtra=(S.rpSchedExtra||[]).concat([{n:'جمعبندی فصلی',at:'نخست هر فصل ۰۹:۰۰',on:1}]);
     save(); renderBody(); toast('زمانبندی نشست؛ نخستین جمعبندی فصلی سرِ فصل بعد در ربات بله میرسد'); return}
   const cs=q('[data-cstep]')||q('[data-cgo]');
   if(cs){S.cert.step=+(cs.dataset.cstep!=null?cs.dataset.cstep:cs.dataset.cgo); save(); renderBody(); return}
