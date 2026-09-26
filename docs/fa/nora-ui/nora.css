@@ -484,3 +484,11 @@ a.tile:active{transform:scale(.97)}
 .rtile b{font-size:13px;font-weight:600;line-height:1.6}
 .evrail .rtile{flex:0 0 168px}
 main.wrap{overflow:visible}
+
+/* ── اندازهٔ کارت‌ها از تنظیمهای ظاهری؛ روی <html> می‌نشیند ── */
+[data-cards="big"] .evc-cov{aspect-ratio:4/3}
+[data-cards="small"] .evc-cov{aspect-ratio:2/1}
+[data-cards="big"] .evrail>*{flex-basis:330px}
+[data-cards="small"] .evrail>*{flex-basis:244px}
+[data-cards="big"] .tcard{flex-basis:276px}
+[data-cards="small"] .tcard{flex-basis:212px}

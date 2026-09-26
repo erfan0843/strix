@@ -1980,7 +1980,14 @@ const TRUST={head:'اطلاعاتت ایمن است', k:'secure',
          pay:'پرداخت از درگاه امن می‌رود و شمارهٔ کارت جایی نمی‌ماند.',
          privacy:'اطلاعات پروفایل رمزنگاری‌شده است و فقط کارشناس خودش می‌بیند.',
          support:'گفت‌وگوی پشتیبانی محرمانه می‌ماند.'}};
-window.NORA={ADMIN,BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS,SUPPORT,TRUST,
+const STORIES=[
+ {id:'st1', t:'پشت صحنهٔ کارگاه عکاسی', s:'سه پرده از جلسهٔ دوم', g:'linear-gradient(135deg,#1E6FD0,#0A3A82)', i:'i-image', to:'ev:e3'},
+ {id:'st2', t:'کتاب ماه مهر', s:'چراغ‌ها را من خاموش می‌کنم', g:'linear-gradient(135deg,#2E6B7A,#0B2447)', i:'i-book', to:'club'},
+ {id:'st3', t:'یک دقیقه با الهه رضایی', s:'تمرین تنفس پیش از صحنه', g:'linear-gradient(135deg,#7A5A2A,#123A7A)', i:'i-user', to:'pe:p1'},
+ {id:'st4', t:'گواهینامه؛ با تأیید سرپرست', s:'روند صدور و استعلام', g:'linear-gradient(135deg,#7A5A2A,#123A7A)', i:'i-medal', to:'me'},
+ {id:'st5', t:'نهادهای همکار مهر', s:'هشت همراه تازه', g:'linear-gradient(135deg,#3E5B84,#0B2447)', i:'i-handshake', to:'partners'}
+];
+window.NORA={ADMIN,BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS,SUPPORT,TRUST,STORIES,
   MENU,MEDIA_KINDS,BUNDLES,TOTAL_MEDIA,ONLINE_COUNT,MPOS,MNUM,ACCOUNT,
   ARCHIVE:{past:PAST.length, media:TOTAL_MEDIA, upcoming:EVENTS.length, online:ONLINE_COUNT,
            hours:PAST.reduce((a,h)=>a+h.hours,0)}};

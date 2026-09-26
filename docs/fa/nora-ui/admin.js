@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=54;
+const SVER=55;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -144,6 +144,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
   defs:[], evEdit:{},
   cert:{step:0,file:'',evs:[],tags:[],xlsRows:null,picked:[],vals:{},letter:'',months:'',news:'',rand:''},
   rpCust:[], rpCustOn:0, rpSchedExtra:[], auditLast:null,
+  skin:0, skinTab:'home',
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
@@ -2395,15 +2396,124 @@ function cUStaff(){
         <span class="sp">${esc(x[1])}</span>${tag(D.ownerOnly||'فقط مالک','accent')}</div>`).join('')}</div>
     </div>`;
 }
+/* ══ تنظیمات سامانه: کاشیهای حوزهها + مدیریت ظاهر ══════════════════════ */
+const SKIN_TILES=[
+ {k:'skin', n:'ظاهری سامانه', i:'i-sparkle', s:'منو، بنر، استوری، کارتها، پای صفحه'},
+ {k:'forms', n:'فرمساز', i:'i-pen', s:'پیشفرضهای فرم تازه', soon:1},
+ {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترمها، نشانها، فروشگاه', soon:1},
+ {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'نقشها، عضویتها، مسدودها', soon:1},
+ {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم', soon:1},
+ {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'سرویس، قالب پاسخ، ساعات', soon:1}];
+const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
+  ['story','استوریها'],['look','کارتها و اساتید'],['foot','پای صفحه']];
+let skinArm=0;
+function usGet(path){return path.split('.').reduce((o,k)=>(o||{})[k],uiSet())}
+function usSet(path,val){const U=uiSet(), ks=path.split('.'); let o=U;
+  for(let i=0;i<ks.length-1;i++) o=o[ks[i]];
+  o[ks[ks.length-1]]=val; uiSetSave(U); return U}
+function skinSwitch(label,path){const on=usGet(path)?1:0;
+  return `<div class="admsw"><span class="sp">${esc(label)}</span>
+    <span class="switch ${on?'on':''}" data-uk="${esc(path)}" data-uklabel="${esc(label)}"
+      role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}"></span></div>`}
+function skinView(){
+  const U=uiSet(), M=(window.NORA&&window.NORA.MENU)||[], ST=(window.NORA&&window.NORA.STORIES)||[];
+  let inner='';
+  if(S.skinTab==='home'){
+    inner=`<p class="cap">هر بخشی از خانهٔ کاربر که لازم نداری، همین‌جا خاموش می‌شود؛ چیدمان صفحه نمی‌ریزد.</p>`
+      +UISET_META.home.map(([k,n])=>skinSwitch(n,'home.'+k)).join('');
+  } else if(S.skinTab==='menu'){
+    inner=`<p class="cap">ردیفهای ورقهٔ «منوی نورا»؛ گروهی که همهٔ ردیفهایش پنهان شود، خودش هم نمیآید.</p>`
+      +M.map(g=>`<div class="head tight" style="margin-top:10px">${ico(g.i)}${esc(g.g)}</div>`
+        +g.rows.map(r=>{const on=!U.menu.includes(r.t);
+          return `<div class="admsw"><span class="sp">${esc(r.t)}</span>
+            <span class="switch ${on?'on':''}" data-umenu="${esc(r.t)}" data-uklabel="${esc(r.t)}"
+              role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r.t)}"></span></div>`}).join('')).join('')
+      +`<div class="head tight" style="margin-top:10px">${ico('i-grid')}کاشیهای «از کجا شروع کنیم؟»</div>`
+      +UISET_META.quick.map(([k,n])=>{const on=!U.quick.includes(k);
+        return `<div class="admsw"><span class="sp">${esc(n)}</span>
+          <span class="switch ${on?'on':''}" data-uquick="${k}" data-uklabel="${esc(n)}"
+            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(n)}"></span></div>`}).join('');
+  } else if(S.skinTab==='bnr'){
+    inner=`<p class="cap">بنرهای بالای خانه؛ هر بنر را میتوانی پنهان کنی یا بنر تازه تعریف کنی.</p>`
+      +skinSwitch('نمایش بنرها','bnr.on')+skinSwitch('چرخش خودکار','bnr.auto')
+      +(window.NORA.BANNERS||[]).map(b=>{const on=!U.bnr.hide.includes(b.t);
+        return `<div class="admsw"><span class="sp">${esc(b.t)}</span>
+          <span class="switch ${on?'on':''}" data-bhide="${esc(b.t)}" data-uklabel="بنر ${esc(b.t)}"
+            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(b.t)}"></span></div>`}).join('')
+      +`<hr class="hr"/><div class="head tight">تعریف بنر تازه</div>
+      <div class="admtext"><span class="lbl">عنوان</span><input class="input" id="skBnT" placeholder="مثل: جشنوارهٔ فیلم کوتاه"/></div>
+      <div class="g2"><div><label class="lbl">برچسب</label><input class="input" id="skBnTag" placeholder="ویژه"/></div>
+        <div><label class="lbl">زمان و مکان</label><input class="input" id="skBnM" placeholder="آبان · تهران"/></div></div>
+      <div class="admtext"><span class="lbl">توضیح یکخطی</span><input class="input" id="skBnN"/></div>
+      <div class="admtext"><span class="lbl">نام دکمهٔ بنر</span><input class="input" id="skBnA" placeholder="دیدن جزئیات"/></div>
+      <label class="lbl">رنگ بنر</label>
+      <div class="row tight">${UISET_META.grads.map(([g,n],i)=>`<button class="chip ${i===0?'on':''}" data-bg="${esc(g)}">${esc(n)}</button>`).join('')}</div>
+      <div class="row">${btn('افزودن بنر','data-skbadd','i-plus')}</div>`
+      +((U.bnrAdd||[]).length?`<div class="admlist">${U.bnrAdd.map((b,i)=>`
+        <div class="admrow2"><span class="ic">${ico('i-image')}</span>
+          <span class="tx"><b>${esc(b.t)}</b><small>${esc(b.m||'')}</small></span>
+          ${btn('برداشتن','data-skbdel="'+i+'"','i-trash')}</div>`).join('')}</div>`:'');
+  } else if(S.skinTab==='story'){
+    inner=`<p class="cap">استوریهای کوتاه خانه؛ هرکدام را پنهان کن یا استوری تازه بساز.</p>`
+      +ST.map(x=>{const on=!U.storyHide.includes(x.id);
+        return `<div class="admsw"><span class="sp">${esc(x.t)}</span>
+          <span class="switch ${on?'on':''}" data-shide="${esc(x.id)}" data-uklabel="استوری ${esc(x.t)}"
+            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(x.t)}"></span></div>`}).join('')
+      +`<hr class="hr"/><div class="head tight">تعریف استوری تازه</div>
+      <div class="admtext"><span class="lbl">عنوان</span><input class="input" id="skST" placeholder="مثل: پشت صحنهٔ تمرین"/></div>
+      <div class="admtext"><span class="lbl">زیرعنوان</span><input class="input" id="skSS"/></div>
+      <label class="lbl">آیکن</label>
+      <div class="row tight">${UISET_META.storyIco.map(([k,n],i)=>`<button class="chip ${i===0?'on':''}" data-sico="${k}">${esc(n)}</button>`).join('')}</div>
+      <label class="lbl">رنگ</label>
+      <div class="row tight">${UISET_META.grads.map(([g,n],i)=>`<button class="chip ${i===0?'on':''}" data-sgrad="${esc(g)}">${esc(n)}</button>`).join('')}</div>
+      <label class="lbl">مقصد دکمهٔ استوری</label>
+      <div class="row tight">${UISET_META.storyGo.map(([k,n],i)=>`<button class="chip ${i===0?'on':''}" data-sdest="${k}">${esc(n)}</button>`).join('')}</div>
+      <div class="row">${btn('افزودن استوری','data-sksadd','i-plus')}</div>`
+      +((U.storyAdd||[]).length?`<div class="admlist">${U.storyAdd.map((s,i)=>`
+        <div class="admrow2"><span class="ic">${ico(s.i||'i-sparkle')}</span>
+          <span class="tx"><b>${esc(s.t)}</b><small>${esc(s.s||'')}</small></span>
+          ${btn('برداشتن','data-sksdel="'+i+'"','i-trash')}</div>`).join('')}</div>`:'');
+  } else if(S.skinTab==='look'){
+    inner=`<div><label class="lbl">اندازهٔ کارت رویداد</label>
+      <div class="admfilters">${UISET_META.cards.map(([k,n])=>`<button class="chip ${U.cards===k?'on':''}" data-ucards="${k}">${esc(n)}</button>`).join('')}</div>
+      <p class="cap">خانه، رویدادها و برگزارشدهها همه از همین میخوانند.</p></div>
+    <div><label class="lbl">مدل نمایش اساتید و دستاندرکاران</label>
+      <div class="admfilters">${UISET_META.people.map(([k,n])=>`<button class="chip ${U.people===k?'on':''}" data-upeople="${k}">${esc(n)}</button>`).join('')}</div>
+      <p class="cap">کارت کامل با امتیاز و تگها؛ ردیف فشرده برای فهرستهای شلوغ؛ فقط نامها برای چیدمان سبک.</p></div>`;
+  } else {
+    inner=`<p class="cap">جملهٔ اطمینان پای هر صفحه و پای صفحهٔ خانه؛ خالی بگذاری تا همان جملهٔ خود نورا بنشیند.</p>`
+      +skinSwitch('نمایش خط اطمینان','trust.on')+skinSwitch('نمایش پای صفحهٔ خانه','foot.on')
+      +`<div class="admtext"><span class="lbl">متن خط اطمینان</span><input class="input" id="skTrust" value="${esc(U.trust.text||'')}"/></div>
+      <div class="admtext"><span class="lbl">متن پای صفحهٔ خانه</span><input class="input" id="skFoot" value="${esc(U.foot.text||'')}"/></div>
+      <div class="row">${btn('ذخیرهٔ متنها','data-skinfoot','i-check')}</div>`;
+  }
+  return `<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span>${btn('بازنشانی پیشفرضها','data-skinreset','i-trash')}</div>
+    <div class="row"><div class="head">تنظیمات ظاهری سامانه</div><span class="sp"></span>
+      <span class="cap">هر کلید، همان لحظه روی صفحههای کاربر مینشیند</span></div>
+    <div class="admfilters">${SKIN_TABS.map(([k,n])=>`<button class="chip ${S.skinTab===k?'on':''}" data-skintab="${esc(k)}">${esc(n)}</button>`).join('')}</div>
+    <div class="admset">${inner}</div>
+  </section>`;
+}
 function vSettings(){
   const ST=A.settings||{}, own=isOwner(), lead=isLead();
   const canTpl=own||lead;   /* قالب گواهینامه: فقط دست مالک و سرپرست */
+  if(own&&S.skin) return skinView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
   const list=(ST.groups||[]).filter(x=>own||x.k==='cert');
   const groups=list.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
       ${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
+  /* کاشیهای تنظیمات: هر حوزه یک کاشی؛ شش کاشی، ردیف تا چهار تا */
+  const tiles=own?`<section class="card stack">
+    <div class="row"><div class="head">تنظیمات سامانه</div><span class="sp"></span>
+      <span class="cap">${esc(fa(SKIN_TILES.length))} کاشی · هر کاشی یک حوزه</span></div>
+    <div class="sktgrid">${SKIN_TILES.map(x=>`
+      <button class="sktile" data-skit="${x.k}"><span class="si">${ico(x.i)}</span>
+        <b>${esc(x.n)}</b><span class="cap">${esc(x.s)}</span>${x.soon?tag('در نوبت بعد',''):''}</button>`).join('')}</div>
+  </section>`:'';
   const group=(ST.groups||[]).find(x=>x.k===g)||{n:'',s:''};
   let inner='';
   if(!canTpl){
@@ -2446,7 +2556,7 @@ function vSettings(){
           ${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>`;
     }
   }
-  return `<section class="card stack">
+  return tiles+`<section class="card stack">
     <div class="row"><div class="head">${esc(ST.lead||'')}</div><span class="sp"></span>
       <span class="cap">${esc(own?fa((ST.groups||[]).length)+' گروه':(D.fieldSettings||'حوزهٔ من'))}</span></div>
     <div class="admfilters">${groups}</div>
@@ -3185,6 +3295,74 @@ document.addEventListener('click',e=>{
     if(l.indexOf(id)<0) S.cert.picked=l.concat([id]); save(); renderBody(); return}
   const cup=q('[data-cunpick]'); if(cup){S.cert.picked=(S.cert.picked||[]).filter(x=>x!==cup.dataset.cunpick); save(); renderBody(); return}
   const se=q('[data-setg]'); if(se){S.setG=se.dataset.setg; save(); renderBody(); return}
+  /* ── تنظیمات سامانه: کاشیها و مدیریت ظاهر ── */
+  const skt=q('[data-skit]'); if(skt){const k=skt.dataset.skit;
+    if(k!=='skin'){toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
+    S.skin=1; S.skinTab='home'; save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; save(); renderBody(); return}
+  const skw=q('[data-skintab]'); if(skw){S.skinTab=skw.dataset.skintab; save(); renderBody(); return}
+  const uk=q('[data-uk]'); if(uk){const on=!usGet(uk.dataset.uk);
+    usSet(uk.dataset.uk,on?1:0);
+    uk.classList.toggle('on',on); uk.setAttribute('aria-checked',on?'true':'false');
+    toast((uk.dataset.uklabel||'بخش')+(on?' روشن شد':' خاموش شد')); return}
+  const um=q('[data-umenu]'); if(um){const U=uiSet(), nm=um.dataset.umenu, had=U.menu.indexOf(nm)>-1;
+    if(had) U.menu.splice(U.menu.indexOf(nm),1); else U.menu.push(nm);
+    uiSetSave(U);
+    um.classList.toggle('on',had); um.setAttribute('aria-checked',had?'true':'false');
+    toast('«'+nm+'» '+(had?'به منو برگشت':'از منو پنهان شد')); return}
+  const ukq=q('[data-uquick]'); if(ukq){const U=uiSet(), k=ukq.dataset.uquick, had=U.quick.indexOf(k)>-1;
+    if(had) U.quick.splice(U.quick.indexOf(k),1); else U.quick.push(k);
+    uiSetSave(U);
+    ukq.classList.toggle('on',had); ukq.setAttribute('aria-checked',had?'true':'false');
+    toast('کاشی '+(had?'برگشت':'پنهان شد')); return}
+  const bh=q('[data-bhide]'); if(bh){const U=uiSet(), nm=bh.dataset.bhide, had=U.bnr.hide.indexOf(nm)>-1;
+    if(had) U.bnr.hide.splice(U.bnr.hide.indexOf(nm),1); else U.bnr.hide.push(nm);
+    uiSetSave(U);
+    bh.classList.toggle('on',had); bh.setAttribute('aria-checked',had?'true':'false');
+    toast('بنر «'+nm+'» '+(had?'برگشت':'پنهان شد')); return}
+  const sh=q('[data-shide]'); if(sh){const U=uiSet(), id=sh.dataset.shide, had=U.storyHide.indexOf(id)>-1;
+    if(had) U.storyHide.splice(U.storyHide.indexOf(id),1); else U.storyHide.push(id);
+    uiSetSave(U);
+    sh.classList.toggle('on',had); sh.setAttribute('aria-checked',had?'true':'false');
+    toast('استوری '+(had?'برگشت':'پنهان شد')); return}
+  const pk=q('[data-bg],[data-sico],[data-sdest],[data-sgrad]'); if(pk){
+    [...pk.parentElement.children].forEach(x=>x.classList.remove('on')); pk.classList.add('on'); return}
+  const ba=q('[data-skbadd]'); if(ba){
+    const t=((document.getElementById('skBnT')||{}).value||'').trim();
+    if(!t){toast('عنوان بنر را بنویسید'); return}
+    const v=id=>((document.getElementById(id)||{}).value||'').trim();
+    const gr=(document.querySelector('#admBody .chip.on[data-bg]')||{dataset:{}}).dataset.bg||'';
+    const U=uiSet(); U.bnrAdd.push({t:t,tag:v('skBnTag'),m:v('skBnM'),n:v('skBnN'),a:v('skBnA'),g:gr});
+    uiSetSave(U); toast('بنر «'+t+'» به خانه اضافه شد'); renderBody(); return}
+  const bd=q('[data-skbdel]'); if(bd){const U=uiSet(), b=U.bnrAdd.splice(+bd.dataset.skbdel,1)[0]||{};
+    uiSetSave(U); toast('بنر «'+b.t+'» برداشته شد'); renderBody(); return}
+  const sa=q('[data-sksadd]'); if(sa){
+    const t=((document.getElementById('skST')||{}).value||'').trim();
+    if(!t){toast('عنوان استوری را بنویسید'); return}
+    const v=id=>((document.getElementById(id)||{}).value||'').trim();
+    const pick=s=>(document.querySelector('#admBody .chip.on['+s+']')||{dataset:{}}).dataset;
+    const U=uiSet();
+    U.storyAdd.push({id:'c'+Date.now(),t:t,s:v('skSS'),i:pick('data-sico').sico||'i-sparkle',
+      g:pick('data-sgrad').sgrad||'',to:pick('data-sdest').sdest||'me'});
+    uiSetSave(U); toast('استوری «'+t+'» به خانه اضافه شد'); renderBody(); return}
+  const sd=q('[data-sksdel]'); if(sd){const U=uiSet(), s=U.storyAdd.splice(+sd.dataset.sksdel,1)[0]||{};
+    uiSetSave(U); toast('استوری «'+s.t+'» برداشته شد'); renderBody(); return}
+  const uc=q('[data-ucards]'); if(uc){const U=uiSet(); U.cards=uc.dataset.ucards; uiSetSave(U);
+    document.querySelectorAll('#admBody [data-ucards]').forEach(x=>x.classList.toggle('on',x===uc));
+    try{document.documentElement.dataset.cards=U.cards}catch(e){}
+    toast('اندازهٔ کارتها: '+uc.textContent.trim()); return}
+  const up=q('[data-upeople]'); if(up){const U=uiSet(); U.people=up.dataset.upeople; uiSetSave(U);
+    document.querySelectorAll('#admBody [data-upeople]').forEach(x=>x.classList.toggle('on',x===up));
+    toast('نمایش اساتید: '+up.textContent.trim()); return}
+  const skf=q('[data-skinfoot]'); if(skf){
+    usSet('trust.text',((document.getElementById('skTrust')||{}).value||'').trim());
+    usSet('foot.text',((document.getElementById('skFoot')||{}).value||'').trim());
+    toast('متنهای پای صفحه ذخیره شد'); return}
+  const sr=q('[data-skinreset]'); if(sr){
+    if(!skinArm){skinArm=1; sr.textContent='مطمئنید؟ همه پیشفرض';
+      setTimeout(()=>{skinArm=0; if(document.contains(sr)) sr.textContent='بازنشانی پیشفرضها'},4000); return}
+    skinArm=0; uiSetSave(JSON.parse(JSON.stringify((window.NORA_UI||{}).uiSetDef||{})));
+    S.skinTab='home'; save(); renderBody(); toast('ظاهر سامانه به پیشفرض برگشت'); return}
   const tg=q('[data-tog]'); if(tg){const key=tg.dataset.tog+'|'+tg.dataset.toglabel;
     const cur=togDef(tg.dataset.tog, tg.dataset.toglabel, tg.dataset.togdef==='1');
     const on=!cur; S.toggles[key]=on; save();

@@ -645,6 +645,41 @@ function saveProfile(v){
   try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
   return p;
 }
+/* ══ تنظیمهای ظاهری سامانه: یک انبار مشترک، همهٔ صفحه‌ها از آن می‌خوانند ══ */
+const UISET_KEY='nora-uiset';
+const UISET_DEF={v:1,
+  home:{bnr:1,stories:1,search:1,quick:1,pins:1,mine:1,events:1,past:1,club:1,teachers:1,staff:1,articles:1,partners:1,voices:1,about:1,act:1},
+  menu:[],quick:[],
+  bnr:{on:1,auto:1,hide:[]},bnrAdd:[],
+  storyHide:[],storyAdd:[],
+  cards:'mid',people:'card',
+  trust:{on:1,text:''},foot:{on:1,text:''}};
+function uiSet(){
+  const base=JSON.parse(JSON.stringify(UISET_DEF));
+  try{const v=JSON.parse(localStorage.getItem(UISET_KEY)||'null'); if(!v||v.v!==1) return base;
+    Object.keys(v).forEach(k=>{
+      const b=base[k];
+      if(b&&typeof b==='object'&&!Array.isArray(b)&&v[k]&&typeof v[k]==='object'&&!Array.isArray(v[k])) Object.assign(b,v[k]);
+      else base[k]=v[k];});
+    return base;
+  }catch(e){return base}
+}
+function uiSetSave(s){try{localStorage.setItem(UISET_KEY,JSON.stringify(s))}catch(e){}}
+/* برچسبها و انتخابهای پنل: یک جا تا خانه و پنل یکی بمانند */
+const UISET_META={
+  home:[['bnr','بنرها'],['stories','استوریها'],['search','جستوجو'],['quick','منوی سریع'],['pins','سنجاقشدهها'],['mine','برای تو'],['events','برنامههای نزدیک'],['past','کارگاههای برگزارشده'],['club','باشگاه کتاب'],['teachers','اساتید'],['staff','دستاندرکاران'],['articles','مقالات'],['partners','نهادهای همکار'],['voices','نظر شرکتکنندهها'],['about','نورا در یک نگاه'],['act','نمای فعالیت ماهانه']],
+  quick:[['events','رویدادها'],['past','برگزارشدهها'],['club','باشگاه کتاب'],['people','اساتید'],['articles','مطالب'],['partners','نهادهای همکار'],['verify','استعلام گواهی'],['support','پشتیبانی']],
+  people:[['card','کارت کامل'],['row','ردیف فشرده'],['chip','فقط نامها']],
+  cards:[['small','فشرده'],['mid','معمولی'],['big','بزرگ']],
+  storyIco:[['i-image','تصویر'],['i-book','کتاب'],['i-user','کاربر'],['i-medal','مدال'],['i-handshake','همکاری'],['i-sparkle','درخشش'],['i-calendar','تقویم'],['i-star','ستاره']],
+  storyGo:[['me','حساب من'],['club','باشگاه کتاب'],['partners','نهادهای همکار'],['pastSec','برگزارشدهها']],
+  grads:[['linear-gradient(135deg,#0A56B8,#0B2447)','آبی نورا'],['linear-gradient(135deg,#2E6B7A,#0B2447)','سبزآبی'],['linear-gradient(135deg,#7A5A2A,#0A3A82)','کهربایی'],['linear-gradient(135deg,#3E5B84,#0B2447)','شبانه']]};
+/* منوی کاربر با ردیفهای پنهانشده؛ گروهی که همه ردیفهایش پنهان است نمیآید */
+function menuAllowed(){
+  const U=uiSet(), M=(window.NORA&&window.NORA.MENU)||[];
+  return M.map(g=>({g:g.g,i:g.i,rows:(g.rows||[]).filter(r=>!U.menu.includes(r.t))}))
+         .filter(g=>g.rows.length);
+}
 /* ══ خط اطمینان، هر [data-trust] را با جملهٔ کوتاه خودش پر می‌کند ═══ */
 function trustPick(kind){
   const T=(window.NORA&&window.NORA.TRUST)||{}, rows=T.row||[], short=T.short||{};
@@ -653,12 +688,13 @@ function trustPick(kind){
   return (hit&&hit[1])||(rows[0]&&rows[0][1])||'اطلاعاتت رمزنگاری‌شده است.';
 }
 function fillTrust(root){
-  const scope=root||document;
+  const scope=root||document, U=uiSet();
   [...scope.querySelectorAll('[data-trust]')].forEach(el=>{
+    if(!U.trust.on){el.hidden=true; return}
     if(el.getAttribute('data-filled')) return;
     const kind=el.getAttribute('data-trust')||'secure';
     el.innerHTML='<svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>'+
-      esc(trustPick(kind))+'</span>';
+      esc(U.trust.text||trustPick(kind))+'</span>';
     el.setAttribute('data-filled','1');
   });
 }
@@ -795,7 +831,7 @@ function noticesSheet(){
 
 /* ── منو: همان پنج گروه و ۲۱ ردیف، در هر صفحه ── */
 function menuSheet(){
-  const M=(window.NORA&&window.NORA.MENU)||[], P=(window.NORA&&window.NORA.PARTNERS)||[];
+  const M=menuAllowed(), P=(window.NORA&&window.NORA.PARTNERS)||[];
   return `<div class="grabber"></div>
     <div class="row" style="align-items:center;margin-bottom:8px">
       <div><div class="head">منوی نورا</div><div class="cap">همهٔ بخش‌ها، یک‌جا</div></div>
@@ -1512,6 +1548,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
   fillTrust:fillTrust,trustPick:trustPick,
+  uiSet:uiSet,uiSetSave:uiSetSave,UISET_META:UISET_META,menuAllowed:menuAllowed,uiSetDef:UISET_DEF,
   levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY,
   clockNow:clockNow,clockParts:clockParts,clockHM:clockHM,clockFull:clockFull,clockDay:clockDay,
   clockState:()=>CLK.state,clockAt:()=>CLK.at,netSyncClock:netSyncClock,
@@ -1535,7 +1572,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v54') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v55') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{
@@ -1592,3 +1629,5 @@ if('serviceWorker' in navigator){
     dy=0;
   },{passive:true});
 })();
+/* اندازهٔ کارتها روی <html> مینشیند؛ ui.js در همهٔ صفحهها هست */
+try{document.documentElement.dataset.cards=uiSet().cards}catch(e){}

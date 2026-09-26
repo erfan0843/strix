@@ -629,3 +629,17 @@ a.btn{text-decoration:none}
 .trow .tt{background:none;border:0;font:inherit;text-align:start;padding:0;cursor:pointer;
   display:grid;gap:1px;flex:1;min-width:0}
 .trow .tt b,.trow .tt small{overflow-wrap:anywhere}
+
+/* ── کاشیهای تنظیمات سامانه: هر حوزه یک کاشی، ردیف تا چهار تا ── */
+.sktgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+@media (max-width:760px){.sktgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sktile{position:relative;display:grid;gap:3px;justify-items:start;text-align:right;padding:12px;
+  border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface);
+  font:inherit;color:inherit;cursor:pointer;
+  transition:transform var(--t-fast) var(--spring),border-color var(--t) var(--ease)}
+.sktile:hover{transform:translateY(-2px);border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
+.sktile .si{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  background:var(--brand-tint);color:var(--brand-ink);margin-bottom:3px}
+.sktile b{font-size:13px;font-weight:600}
+.sktile .cap{font-size:11.5px}
+.sktile .tag{position:absolute;top:10px;inset-inline-end:10px;font-size:10px}

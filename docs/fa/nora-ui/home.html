@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=65"/>
-<link rel="stylesheet" href="nora.css?v=65"/>
+<link rel="stylesheet" href="glass.css?v=66"/>
+<link rel="stylesheet" href="nora.css?v=66"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -502,7 +502,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <section class="sec" id="stories" aria-label="استوری‌های نورا"></section>
 
   <!-- ── جست‌وجو و صافی سریع ── -->
-  <section class="card paper" style="margin-top:12px" aria-label="جست‌وجو">
+  <section class="card paper" style="margin-top:12px" id="searchSec" aria-label="جست‌وجو">
     <div class="sfield">
       <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
       <input id="q" type="search" placeholder="رویداد، کارگاه، استاد، مطلب…" aria-label="جست‌وجو در خانه"
@@ -559,6 +559,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     </div>
     <div class="card sunk" style="margin-top:12px" id="actBox" aria-label="نمای فعالیت‌های نورا"></div>
   </section>
+
 
   <!-- ── باشگاه کتاب‌خوانی ── -->
   <section class="sec" id="club" aria-label="باشگاه کتاب‌خوانی"></section>
@@ -630,7 +631,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="fl"><b>گروه فرهنگی خط زندگی</b><span>·</span><span>تهران، خیابان ولی‌عصر، پلاک ۱۲</span></div>
     <div class="fl"><span>۰۲۱–۸۸۸۸۱۲۳۴</span><span>·</span><span>info@lifeline1.ir</span><span>·</span><a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
     <div class="lrow" id="footLogos"></div>
-    <div>© ۱۴۰۵ · همهٔ حقوق برای گروه فرهنگی خط زندگی محفوظ است.</div>
+    <div id="footCopy">© ۱۴۰۵ · همهٔ حقوق برای گروه فرهنگی خط زندگی محفوظ است.</div>
   </footer>
 </main>
 
@@ -657,8 +658,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=65"></script>
-<script src="ui.js?v=65"></script>
+<script src="data.js?v=66"></script>
+<script src="ui.js?v=66"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -674,7 +675,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 'use strict';
 
 /* ── بنرها: تیتر، تگ و ترتیب دست کارشناس روابط عمومی است ── */
-const {BANNERS,PEOPLE,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS}=window.NORA;
+const {BANNERS,PEOPLE,STORIES,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VOICES,NOTICES,FAQ,CERTS,CATS,DAYS,QTAGS}=window.NORA;
 /* مطلبهای منتشرشدهٔ پنل بالای نمونههای ثابت می‌نشینند؛ مطلب بلوکی در post.html خوانده می‌شود */
 const ARALL=()=>((window.NORA_UI&&NORA_UI.postsFeed)?NORA_UI.postsFeed():[]).concat(ARTICLES);
 const isPanelPost=id=>String(id).slice(0,2)==='np';
@@ -713,14 +714,7 @@ const partner=id=>PARTNERS.find(o=>o.id===id)||{};
 /* ── نمای فعالیت‌ها: ویترین عددی نورا ── */
 ;
 
-/* ── استوری‌های کوتاه خانه ── */
-const STORIES=[
- {id:'st1', t:'پشت صحنهٔ کارگاه عکاسی', s:'سه پرده از جلسهٔ دوم', g:'linear-gradient(135deg,#1E6FD0,#0A3A82)', i:'i-image', to:'ev:e3'},
- {id:'st2', t:'کتاب ماه مهر', s:'چراغ‌ها را من خاموش می‌کنم', g:'linear-gradient(135deg,#2E6B7A,#0B2447)', i:'i-book', to:'club'},
- {id:'st3', t:'یک دقیقه با الهه رضایی', s:'تمرین تنفس پیش از صحنه', g:'linear-gradient(135deg,#7A5A2A,#123A7A)', i:'i-user', to:'pe:p1'},
- {id:'st4', t:'گواهینامه؛ با تأیید سرپرست', s:'روند صدور و استعلام', g:'linear-gradient(135deg,#7A5A2A,#123A7A)', i:'i-medal', to:'me'},
- {id:'st5', t:'نهادهای همکار مهر', s:'هشت همراه تازه', g:'linear-gradient(135deg,#3E5B84,#0B2447)', i:'i-handshake', to:'partners'}
-];
+
 
 /* ── نشان‌های عضو ── */
 const BADGES=[
@@ -797,6 +791,9 @@ const S={q:'', day:'all', cat:'all', tag:'all', ptab:'teacher', slide:0, timer:n
   evview:'list', story:'st1', vote:null, remind:false, acctFlow:false, pins:new Set(),
   sug:-1, searches:[], recent:[], authPend:null, hideRec:0};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+/* تنظیمهای ظاهری از پنل مدیران؛ هر رندر تازه می‌خواند تا تغییر پنل، در دید بعدی بنشیند */
+const uiOpt=()=>(window.NORA_UI&&NORA_UI.uiSet)?NORA_UI.uiSet():
+  {home:{},menu:[],quick:[],bnr:{on:1,auto:1,hide:[]},bnrAdd:[],storyHide:[],storyAdd:[],cards:'mid',people:'card',trust:{on:1,text:''},foot:{on:1,text:''}};
 const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const left=e=>e.cap?Math.max(0,e.cap-e.taken):Infinity;
 const dayName=k=>({tonight:'امشب',tomorrow:'فردا',week:'این هفته',next:'هفتهٔ بعد'}[k]||'');
@@ -814,9 +811,19 @@ const av=(p,cls)=>{const q=person(p);
   return `<span class="${cls||'ava'}" style="--g:${q.g}">${q.photo?`<img src="${esc(q.photo)}" alt="${esc(q.n)}" loading="lazy" decoding="async"/>`:esc(q.ini||'؟')}</span>`};
 
 /* ═════════ بنر ═════════ */
+/* فهرست زندهٔ بنر: پیشفرضها منهای پنهانشدهها + بنرهای تعریفشده از پنل */
+let BNRLIST=[];
 function renderBanner(){
-  $('#bsdeck').innerHTML=BANNERS.map((b,i)=>`
-    <article class="bs" style="--g:${b.g}" role="tabpanel" aria-roledescription="بنر" aria-label="بنر ${faN(i+1)} از ${faN(BANNERS.length)}">
+  const U=uiOpt(), sec=$('#bnr');
+  if(!U.home.bnr||!U.bnr.on){sec.hidden=true; BNRLIST=[]; $('#bsdeck').innerHTML=''; $('#bdots').innerHTML=''; return}
+  sec.hidden=false;
+  BNRLIST=BANNERS.filter(b=>!U.bnr.hide.includes(b.t))
+    .concat((U.bnrAdd||[]).map(b=>({tag:b.tag||'تازه',t:b.t,m:b.m||'',n:b.n||'',
+      g:b.g||'linear-gradient(135deg,#0A56B8,#0B2447)',
+      a:{l:b.a||'دیدن',f:'shMenu'},b:{l:'منوی نورا',f:'shMenu'}})));
+  if(!BNRLIST.length){sec.hidden=true; $('#bsdeck').innerHTML=''; $('#bdots').innerHTML=''; return}
+  $('#bsdeck').innerHTML=BNRLIST.map((b,i)=>`
+    <article class="bs" style="--g:${b.g}" role="tabpanel" aria-roledescription="بنر" aria-label="بنر ${faN(i+1)} از ${faN(BNRLIST.length)}">
       <div class="btop">
         <span class="btag">${esc(b.tag)}</span>
         ${b.tag2?`<span class="btag"><svg class="i" style="width:13px;height:13px"><use href="#i-sparkle"/></svg>${esc(b.tag2)}</span>`:''}
@@ -829,22 +836,23 @@ function renderBanner(){
         <button class="bbtn ghost" data-bb="${i}">${esc(b.b.l)}</button>
       </div>
     </article>`).join('');
-  $('#bdots').innerHTML=BANNERS.map((b,i)=>
+  $('#bdots').innerHTML=BNRLIST.map((b,i)=>
     `<i role="tab" tabindex="0" data-bs="${i}" class="${i===S.slide?'on':''}" aria-label="بنر ${faN(i+1)}" aria-selected="${i===S.slide}"></i>`).join('');
   slide(S.slide,true);
 }
 function slide(i){
-  S.slide=(i+BANNERS.length)%BANNERS.length;
+  if(!BNRLIST.length) return;
+  S.slide=(i+BNRLIST.length)%BNRLIST.length;
   $('#bsdeck').style.transform='translateX('+(S.slide*100)+'%)';
   $$('#bdots i').forEach((d,k)=>{d.classList.toggle('on',k===S.slide); d.setAttribute('aria-selected',k===S.slide)});
 }
-function autoBanner(){clearInterval(S.timer); S.timer=setInterval(()=>{if(!document.hidden) slide(S.slide+1)},6500)}
+function autoBanner(){clearInterval(S.timer); if(!uiOpt().bnr.auto) return; S.timer=setInterval(()=>{if(!document.hidden) slide(S.slide+1)},6500)}
 
 /* ═════════ منوی سریع و سنجاق‌ها ═════════ */
 function renderQuick(){
   $('#quick').innerHTML=`<div class="sec-hd"><span class="fw">از کجا شروع کنیم؟</span><span class="sp"></span>
     <span class="cap">منوی کامل: دکمهٔ «منو» بالای صفحه</span></div>
-    <div class="quick">${QUICK.map(q=>{
+    <div class="quick">${QUICK.filter(q=>!uiOpt().quick.includes(q.k)).map(q=>{
       /* کاشی‌ای که مقصد صفحه دارد پیوند است، نه دکمهٔ بی‌کار */
       const inner=`${q.tag?`<span class="tn"><span class="tagg brand" style="height:19px;font-size:10px;padding:0 7px">${esc(q.tag)}</span></span>`:''}
         <span class="ci"><svg class="i"><use href="#${q.i}"/></svg></span>
@@ -1072,14 +1080,15 @@ function evTagsHTML(e,max){
 /* ═════════ استوری‌های کوتاه ═════════ */
 function renderStories(){
   $('#stories').innerHTML=`<div class="sec-hd"><span class="fw">استوری‌های کوتاه</span><span class="sp"></span><span class="cap">۳۰ ثانیه‌های نورا</span></div>
-    <div class="storyrail">${STORIES.map(x=>`
+    <div class="storyrail">${uiOpt().storyAdd.concat(STORIES.filter(x=>!uiOpt().storyHide.includes(x.id))).map(x=>`
       <button class="story" data-story="${x.id}">
         <span class="sg" style="--g:${x.g}"><svg class="i"><use href="#${x.i}"/></svg></span>
         <b>${esc(x.t)}</b><small>${esc(x.s)}</small>
       </button>`).join('')}</div>`;
 }
 function renderStory(){
-  const x=STORIES.find(v=>v.id===S.story)||STORIES[0];
+  const all=uiOpt().storyAdd.concat(STORIES.filter(x=>!uiOpt().storyHide.includes(x.id)));
+  const x=all.find(v=>v.id===S.story)||all[0]||STORIES[0];
   $('#storyBody').innerHTML=sheetHead('استوری','یک تکهٔ واقعی از کار نورا')+`
     <div class="storybig" style="--g:${x.g}">
       <svg class="i xl"><use href="#${x.i}"/></svg>
@@ -1213,6 +1222,21 @@ function renderTeachers(){
   const list=TEACHERS
     .sort((a,b)=>(isPinned('pe',b.id)?1:0)-(isPinned('pe',a.id)?1:0));
   $('#teacherCount').textContent=faN(list.length)+' مدرس · پروفایل‌ها برای همه باز است';
+  /* مدل نمایش از تنظیمهای ظاهری: کارت کامل، ردیف فشرده، فقط نامها */
+  const mode=uiOpt().people;
+  if(mode==='chip'){
+    $('#peopleRail').innerHTML=`<div class="row tight">${list.map(p=>`
+      <button class="chip on" data-person="${p.id}"><svg class="i"><use href="#i-graduation"/></svg> ${esc(p.n)}</button>`).join('')}</div>`;
+    return}
+  if(mode==='row'){
+    $('#peopleRail').innerHTML=list.map(p=>`
+      <button class="scard" data-person="${p.id}" aria-label="پروفایل ${esc(p.n)}">
+        <span class="sav" style="--g:${p.g}">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(p.ini)}</span>
+        <span class="sbody"><b>${esc(p.n)}</b><span class="rl">${esc(p.r)}</span>
+          <span class="cap">${stars(p.rate).replace('class="stars"','class="stars" style="display:inline-flex"')} ${p.rate} از ۵ · ${faN(p.courses)} دوره · ${esc(p.yrs)} تجربه</span></span>
+        <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+      </button>`).join('');
+    return}
   $('#peopleRail').innerHTML=list.map(p=>{
     const nx=nextCourse(p);
     return `<div class="tcard ${isPinned('pe',p.id)?'pinned':''}">
@@ -1236,6 +1260,11 @@ function renderTeachers(){
     </div>`}).join('');
 }
 function renderStaff(){
+  const mode=uiOpt().people;
+  if(mode==='chip'){
+    $('#staffList').innerHTML=`<div class="row tight">${STAFF.map(p=>`
+      <button class="chip on" data-person="${p.id}"><svg class="i"><use href="#i-idcard"/></svg> ${esc(p.n)}</button>`).join('')}</div>`;
+    return}
   $('#staffList').innerHTML=STAFF.map(p=>`
     <button class="scard" data-person="${p.id}" aria-label="پروفایل ${esc(p.n)}">
       <span class="sav" style="--g:${p.g}">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(p.ini)}</span>
@@ -1615,6 +1644,16 @@ function savePins(){try{localStorage.setItem('nora-home-pins',JSON.stringify([..
 function renderAll(){
   renderContinue(); renderQuick(); renderPins(); renderMine(); renderStories(); renderEvents(); renderPast(); renderActivity(); renderClub(); renderHot();
   renderTeachers(); renderStaff(); renderArticles(); renderPartners();
+  /* هر بخش خانه، کلید خودش را در تنظیمهای ظاهری دارد؛ خاموش یعنی همین */
+  const U=uiOpt(), HOME_IDS={bnr:'bnr',stories:'stories',search:'searchSec',quick:'quick',pins:'pins',mine:'mine',
+    events:'evSec',past:'pastSec',club:'club',teachers:'teachers',staff:'staff',articles:'articles',
+    partners:'partners',voices:'voices',about:'about',act:'actBox'};
+  Object.keys(HOME_IDS).forEach(k=>{const el=document.getElementById(HOME_IDS[k]); if(!el) return;
+    if(!U.home[k]){el.hidden=true; return}
+    /* سنجاقها خودشان خالی بودن را مدیریت میکنند؛ پنل فقط خاموشی مطلق را میدهد */
+    if(k!=='pins') el.hidden=false});
+  const foot=document.querySelector('.hfoot'); if(foot) foot.hidden=!U.foot.on;
+  const fc=document.getElementById('footCopy'); if(fc&&U.foot.text) fc.textContent=U.foot.text;
   const n=NOTICES.filter(x=>x.unread).length;
   const b=$('#bellBadge'); b.hidden=!n; b.textContent=faN(n);
   /* نام کاربر در تب «حساب من» و ورقهٔ حساب دیده می‌شود؛ نوار بالا تمیز می‌ماند */
@@ -1817,7 +1856,7 @@ window.NORA_REFRESH=()=>{renderBanner(); renderAll(); renderVoices()};
 },{passive:true});
 
 function bannerAct(i,which){
-  const b=BANNERS[i][which];
+  const b=BNRLIST[i]?BNRLIST[i][which]:null; if(!b) return;
   if(b.ev){eventSheet(b.ev); return}
   if(b.p){personSheet(b.p); return}
   if(b.f){openF(b.f); return}
@@ -1840,6 +1879,7 @@ function openHash(){
   if(h.startsWith('ev=')){location.href='events.html?ev='+encodeURIComponent(h.slice(3)); return}
 }
 initKeys(document);
+if(window.NORA_UI&&NORA_UI.fillTrust) NORA_UI.fillTrust();
 themeInit();
 openHash();
 window.addEventListener('hashchange',openHash);

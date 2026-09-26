@@ -533,6 +533,42 @@ async function load(file,store,q){
   ok(p.errs.length===0, p.errs.length?('خطای پایان: '+p.errs.slice(0,3).join(' | ')):'تا آخر بی‌خطا');
 }
 
+/* ═══════════ خانه با تنظیمهای ظاهری پنل (home.html) ═══════════ */
+{
+  console.log('\n── خانه با تنظیمهای ظاهری ──');
+  const store=makeStore();
+  store.setItem('nora-uiset',JSON.stringify({v:1,
+    home:{bnr:1,stories:1,search:0,quick:1,pins:1,mine:1,events:1,past:0,club:0,teachers:1,staff:0,articles:1,partners:1,voices:0,about:0,act:0},
+    menu:['رویدادهای پیش‌رو'],quick:['verify'],
+    bnr:{on:1,auto:0,hide:['جشنوارهٔ هفتهٔ فرهنگی پاییز']},
+    bnrAdd:[{t:'بنر آزمایشی نورا',tag:'تازه',m:'امشب · تهران',n:'متن آزمایشی',g:'linear-gradient(135deg,#0A56B8,#0B2447)',a:'ببین'}],
+    storyAdd:[{id:'c1',t:'استوری تازهٔ پنل',s:'از پنل',g:'linear-gradient(135deg,#1E6FD0,#0A3A82)',i:'i-sparkle',to:'me'}],
+    cards:'big',people:'row',
+    trust:{on:1,text:'جملهٔ اطمینانِ از پنل'},
+    foot:{on:1,text:'پای صفحهٔ از پنل'}}));
+  const p=await load('home.html',store);
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'با تنظیمهای سفارشی بی‌خطا بار شد');
+  ok(p.doc.getElementById('searchSec').hidden===true,'بخش جستوجو که در پنل خاموش شده، پنهان است');
+  ok(p.doc.getElementById('pastSec').hidden===true&&p.doc.getElementById('club').hidden===true&&p.doc.getElementById('staff').hidden===true,
+     'برگزارشدهها و باشگاه و دستاندرکاران پنهان‌اند');
+  ok(p.doc.getElementById('voices').hidden===true&&p.doc.getElementById('about').hidden===true&&p.doc.getElementById('actBox').hidden===true,
+     'نظرها و «نورا در یک نگاه» و نمای فعالیت پنهان‌اند');
+  ok(p.doc.getElementById('quick').hidden===false&&p.all('#quick .tile').length===7,'کاشی «استعلام گواهی» از منوی سریع برداشته شد (هفت تای دیگر هست)');
+  ok(!p.txt('#quick').includes('استعلام گواهی'),'و چیزی از آن کاشی نمانده');
+  ok(p.all('#bsdeck .bs').length===3&&!p.txt('#bsdeck').includes('جشنوارهٔ هفتهٔ فرهنگی'),'بنر پنهانشده از چرخه بیرون آمد (۲ پیشفرض ماند)');
+  ok(p.txt('#bsdeck').includes('بنر آزمایشی نورا'),'بنر تعریفشده از پنل به خانه آمد');
+  ok(p.all('#stories .story').length===6&&p.txt('#stories').includes('استوری تازهٔ پنل'),'استوری تازهٔ پنل کنار پنج استوری خودی نشست');
+  p.click('#stories [data-story="c1"]');
+  ok(p.txt('#storyBody').includes('استوری تازهٔ پنل'),'ورقهٔ استوری سفارشی هم باز میشود');
+  ok(p.all('#peopleRail .scard').length===6&&p.all('#peopleRail .tcard').length===0,'اساتید در حالت «ردیف فشرده» آمدهاند');
+  ok(p.doc.documentElement.dataset.cards==='big','اندازهٔ کارتها روی <html> نشسته');
+  ok(p.txt('.trustline').includes('جملهٔ اطمینانِ از پنل'),'خط اطمینان، متن پنل را نشان میدهد');
+  ok(p.txt('#footCopy').includes('پای صفحهٔ از پنل'),'متن پای صفحهٔ خانه از پنل آمد');
+  p.click('[data-menu]');
+  ok(!p.txt('#menuBody').includes('رویدادهای پیش‌رو'),'ردیف پنهانشدهٔ منو نمیآید');
+  ok(p.txt('#menuBody').includes('آرشیو برگزارشده‌ها'),'بقیهٔ ردیفهای همان گروه سر جایشان هستند');
+}
+
 /* ═══════════ create.html (دود) ═══════════ */
 {
   console.log('\n── سازندهٔ فرم (create.html) ──');
@@ -1585,7 +1621,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:54, added:[
+  store.setItem('nora-admin', JSON.stringify({v:55, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,
