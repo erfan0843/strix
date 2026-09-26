@@ -1,0 +1,183 @@
+mobile app dashboard, glassmorphism aesthetic with frosted glass panels and soft shadows, a serene blue color palette with subtle gradients, layered card layouts for information display, smooth lighting effects creating depth, a clean and modern composition, conveying a professional and user-friendly mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, overly bright colors, pixelation, watermarks, heavy textures, sharp edges
+
+Parameters: --ar 16:9 --style raw --stylize 250
+
+mobile app audio player card, liquid glass effect, frosted and glossy surfaces, soft ambient lighting, cool color palette with blues and whites, layered depth with a sense of transparency, modern and sleek mood, high-quality rendering technique  
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, outdated design elements, excessive text, bright neon colors, watermarks  
+Parameters: --ar 9:16 --style raw --stylize 250
+rounded app icon, liquid glass aesthetic, glossy finish with subtle highlights, soft gradients in a vibrant blue color palette, minimalistic composition with depth through layering, serene and modern mood, high-quality rendering technique
+
+Negative: low contrast, harsh edges, cluttered design, dark colors, heavy shadows, text overload, pixelation, watermark
+
+Parameters: --ar 1:1 --style raw --stylize 250
+mobile app UI, liquid glass aesthetic, frosted glass panels, soft lighting, serene colour palette with blues and whites, smooth gradients, rounded edges, minimalistic layout, calming mood, high detail rendering
+
+Negative: low contrast, harsh shadows, cluttered design, pixelation, overly bright colours, heavy textures, sharp edges, watermarks
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, liquid glass aesthetic, frosted and glossy surfaces, soft ambient lighting, muted pastel color palette, layered card layout, transparent navigation elements, modern and sleek composition, inviting and futuristic mood, high-quality rendering technique  
+Negative: low contrast, harsh shadows, cluttered layout, outdated design elements, pixelation, watermarks, excessive text, bright neon colors  
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass panels, soft lighting and gradients, pastel color palette featuring pinks and blues, layered card layout with depth, uplifting and serene mood, smooth rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, dark color schemes, jagged edges, overly bright highlights, watermark, jpeg artifacts
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass elements, soft ambient lighting, warm earthy color palette with deep contrasts, layered composition creating depth, serene and focused mood, rendering with smooth gradients and subtle shadows  
+Negative: low contrast, harsh edges, cluttered layout, overly bright colors, sharp shadows, watermark, pixelation, distracting elements  
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app screen, glassmorphism aesthetic with frosted glass elements, soft glowing lighting, deep blue and teal color palette, centered composition with depth perception, calm and inviting mood, high-quality rendering technique  
+Negative: low contrast, harsh shadows, cluttered layout, bright colors, sharp edges, watermarks, jpeg artifacts, overly complex elements  
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, liquid glass aesthetic, frosted and glossy surfaces, soft lighting with blue tones, smooth gradients, dynamic composition with depth, modern and sleek mood, digital rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, watermark, overly saturated colors, flat design, jagged edges
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, liquid glass aesthetic, frosted glass elements, vibrant color palette with bold contrasts, playful geometric shapes, soft lighting effects, layered depth with a sense of dimension, modern and energetic mood, glossy accents for interactivity
+
+Negative: low contrast, muted colors, harsh shadows, cluttered layout, flat design elements, excessive text, watermark, jpeg artifacts
+
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass and soft gradients, bright and airy lighting, a color palette of pastel blues and yellows, smooth composition with layered depth, inviting and playful mood, high-quality rendering technique
+
+Negative: low contrast, harsh edges, cluttered layout, dark color schemes, overly complex elements, pixelation, flat textures, watermark
+
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted and glossy surfaces, soft lighting effects, a vibrant color palette transitioning from warm pinks to cool blues, smooth curves and layered depth, modern and inviting mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, flat design elements, cluttered layout, pixelation, overly bright colors, text readability issues, watermark
+
+Parameters: --ar 1:1 --style raw --stylize 250
+mobile app dashboard, glassmorphism aesthetic with frosted glass panels and soft shadows, a serene blue color palette with subtle gradients, layered card layouts for information display, smooth lighting effects creating depth, a clean and modern composition, conveying a professional and user-friendly mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, overly bright colors, pixelation, watermarks, heavy textures, sharp edges
+
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with soft frosted glass elements, smooth gradients, gentle lighting, pastel color palette with blues and creams, rounded button shapes, layered depth with a sense of motion, modern and inviting mood, high-quality rendering technique  
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, sharp edges, dark color tones, watermark, excessive detail  
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, liquid glass aesthetic with frosted transparency, soft lighting, cool color palette with blues and grays, rounded card layout, layered depth with background scenery, calm and informative mood, smooth rendering technique for a modern look  
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, bright neon colors, overly saturated elements, sharp edges, watermark  
+Parameters: --ar 9:16 --style raw --stylize 250
+soft mobile app UI, glassmorphism aesthetic with frosted glass panels, warm glowing lighting, warm orange and beige color palette, rounded card shape with subtle depth, minimalist composition, modern and inviting mood, high-quality rendering technique  
+
+Negative: low contrast, harsh shadows, cluttered layout, text overload, bright neon colors, sharp edges, watermark, jpeg artifacts  
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism and neumorphism blend, frosted glass panels with soft shadows, vibrant pastel color palette, subtle gradients, layered composition for depth, serene and immersive mood, high-quality rendering with smooth transitions  
+Negative: low contrast, harsh edges, cluttered layout, dark colors, flat design elements, watermark, pixelation, overly bright highlights  
+Parameters: --ar 9:16 --style raw --stylize 250
+soft mobile app UI, liquid glass aesthetic with frosted glass elements, smooth glossy surfaces, soft lighting, cool blue color palette, minimalistic composition with depth, serene and user-friendly mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, bright neon colors, pixelation, jagged edges, excessive text, dark themes
+
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass panels, soft lighting, pastel color palette featuring blues and purples, layered composition with depth, modern and creative mood, smooth rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, dark themes, pixelation, excessive detail, watermark, outdated design elements
+
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with liquid motion, glossy and frosted glass textures, vibrant blue color palette, smooth gradients, dynamic lighting effects, minimalistic composition with depth, energetic and modern mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, dull colors, static elements, overly complex designs, watermark
+
+Parameters: --ar 1:1 --style raw --stylize 300
+mobile app UI, liquid glass aesthetic with frosted and glossy elements, soft ambient lighting, cool color palette with blues and greens, layered card layout with depth, modern and sleek mood, high-quality rendering technique 
+
+Negative: low contrast, harsh shadows, cluttered design, pixelation, dull colors, inconsistent iconography, watermarks, excessive detail 
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass panels, warm and soft lighting, a harmonious color palette featuring earthy tones and subtle gradients, balanced composition with layered elements creating depth, inviting and serene mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, excessive text, bright neon colors, watermarks, low resolution, unpolished graphics
+
+Parameters: --ar 9:16 --style raw --stylize 250
+sleek navigation bar, liquid glass aesthetic, frosted glass effect, soft lighting, muted color palette with subtle gradients, minimalistic composition, modern and elegant mood, high clarity rendering technique  
+Negative: low contrast, harsh shadows, cluttered layout, bright neon colors, excessive detail, pixelation, watermark, outdated design elements  
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass elements, soft lighting, monochromatic color palette with subtle gradients, minimalistic composition, airy and sophisticated mood, high-quality rendering technique
+
+Negative: low contrast, cluttered layout, harsh shadows, overly bright colors, busy backgrounds, pixelation, watermarks, excessive text
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass elements, soft lighting, monochromatic color palette with subtle gradients, minimalistic composition, airy and sophisticated mood, high-quality rendering technique
+
+Negative: low contrast, cluttered layout, harsh shadows, overly bright colors, busy backgrounds, pixelation, watermarks, excessive text
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass buttons and sliders, soft lighting and subtle gradients, vibrant color palette featuring a spectrum gradient, clean and minimal composition with a focus on usability, modern and inviting mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, outdated design elements, watermark, pixelation, excessive detail, overly bright colors
+
+Parameters: --ar 16:9 --style raw --stylize 250
+clean mobile app UI, minimalistic design with a frosted glass effect, soft lighting, monochromatic color palette with subtle contrasts, rounded button shapes, balanced composition, modern aesthetic, inviting and user-friendly mood, high-resolution rendering technique  
+Negative: low contrast, overly complex elements, harsh shadows, cluttered layout, bright colors, jagged edges, watermarks, pixelation  
+Parameters: --ar 16:9 --style raw --stylize 250
+rounded app icon, vibrant color palette featuring gradients, soft shadows, minimalist design with frosted glass effects, layered card elements, warm background, playful and modern mood, emphasis on clarity and usability, smooth rendering technique
+
+Negative: low contrast, harsh edges, cluttered layout, dull colors, excessive detail, dark themes, watermarks, pixelation
+
+Parameters: --ar 1:1 --style 4b --stylize 300
+mobile app UI, frosted glass panels, glossy accents, soft lighting, dark color palette with neon green highlights, layered composition with depth, modern and sleek mood, digital rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, outdated design elements, flat colors, excessive text, watermark
+
+Parameters: --ar 16:9 --style raw --stylize 300
+mobile app UI, glassmorphism aesthetic with frosted glass and glossy accents, soft ambient lighting, vibrant color palette with warm tones, layered composition creating depth, modern and inviting mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, pixelation, dark colors, sharp edges, watermark, overly complex elements
+
+Parameters: --ar 9:16 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass panels, soft lighting, pastel color palette with shades of blue and purple, card layout for data presentation, minimalistic composition with depth, modern and clean mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, dark color schemes, excessive detail, pixelation, watermark, outdated design elements
+
+Parameters: --ar 16:9 --style raw --stylize 250
+sleek mobile app toggle switch, liquid glass aesthetic with frosted and glossy materials, soft ambient lighting, dark monochromatic color palette with subtle highlights, minimalistic composition emphasizing depth, modern and sophisticated mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered design, bright colors, jagged edges, text readability issues, watermark, excessive detail
+
+Parameters: --ar 1:1 --style raw --stylize 250
+mobile app modal window, liquid glass aesthetic with frosted and glossy finishes, soft ambient lighting, dark background with contrasting vibrant accents, layered depth with subtle shadows, modern and sleek mood, high-resolution rendering technique  
+Negative: low contrast, harsh shadows, cluttered layout, bright colors, flat design, pixelation, watermark, outdated typography  
+Parameters: --ar 16:9 --style raw --stylize 250
+mobile app UI, glassmorphism aesthetic with frosted glass elements, soft lighting creating a subtle glow, monochromatic color palette with dark and light contrasts, smooth rounded shapes for buttons, minimalist composition emphasizing depth, sleek and modern mood, high-quality rendering technique
+
+Negative: low contrast, harsh shadows, cluttered layout, bright colors, sharp edges, watermarks, pixelation, overly complex elements
+
+Parameters: --ar 16:9 --style raw --stylize 250
+sidebar UI, glassmorphism aesthetic with frosted glass panels, soft lighting creating depth, a calming green and earthy color palette, serene composition emphasizing transparency, modern and minimalist mood, smooth rendering technique for a polished finish  
+Negative: low contrast, harsh shadows, cluttered layout, overly bright colors, sharp edges, watermark, pixelation, distracting elements  
+Parameters: --ar 16:9 --style raw --stylize 250
+rounded button, glassmorphism aesthetic, frosted glass effect, soft lighting, subtle gradient color palette with light blue and white, minimalistic composition, smooth hover transition, modern and inviting mood, clean rendering technique  
+Negative: low contrast, harsh shadows, cluttered background, jagged edges, overly bright colors, watermark, jpeg artifacts, excessive detail  
+Parameters: --ar 1:1 --style raw --stylize 250
+3D render, digital art, glossy finish with high reflections, dramatic lighting creating a stark contrast against a black background, vibrant iridescent color palette featuring shades of blue, purple, and pink, centered composition emphasizing the subject, playful yet modern mood, smooth textures with a polished appearance.  
+Negative: low resolution, dull colors, flat lighting, cluttered background, harsh shadows, pixelation, excessive detail, lack of focus.  
+Parameters: --ar 1:1 --style raw --stylize 250
+glossy digital painting, smooth gradients and flowing forms, soft and even lighting, pastel color palette with hints of vibrancy, dynamic and fluid composition, serene and calming mood, sleek and polished finish  
+Negative: low contrast, harsh shadows, cluttered elements, flat colors, sharp edges, heavy textures, muted tones, distracting backgrounds  
+Parameters: --ar 16:9 --style raw --stylize 500
+transparent 3D render, sleek and minimalist design, soft ambient lighting, monochromatic color palette with subtle reflections, centered composition, serene and modern mood, smooth glass-like texture with high clarity  
+Negative: low detail, cluttered background, harsh lighting, excessive colors, reflections obscuring form, distortion, organic shapes, watermark  
+Parameters: --ar 1:1 --style raw --stylize 250
+digital art, 3D rendering, smooth and polished surfaces, vibrant iridescent colors, dramatic contrast with deep blacks, symmetrical composition, ethereal and whimsical mood, sleek and reflective finish  
+Negative: low saturation, rough textures, cluttered backgrounds, harsh lighting, flat colors, distorted shapes, excessive detail, watermark  
+Parameters: --ar 1:1 --style raw --stylize 500
+futuristic 3D render, vibrant and glossy surfaces, dynamic lighting with neon accents, bold and saturated color palette featuring blues and purples, intricate composition with layered elements and a central focus, playful and whimsical mood, smooth textures with a high level of detail  
+Negative: low resolution, muted colors, flat lighting, excessive shadows, cluttered composition, dull textures, harsh contrasts, minimal detail  
+Parameters: --ar 16:9 --style raw --stylize 300
+minimalist logo design, sleek and modern aesthetic, smooth gradients, circular shape, monochromatic color palette with soft contrasts, abstract background with fluid lines, polished finish, elegant and professional vibe, suitable for tech or creative industries
+
+Negative: cluttered elements, harsh colors, drop shadows, complex textures, low resolution, busy backgrounds, overly bright highlights, outdated design trends
+
+Parameters: --ar 1:1 --style 4b --stylize 500
+digital rendering, hyper-realistic style, smooth surfaces with glossy reflections, soft natural lighting creating subtle highlights, a cool color palette dominated by blues and iridescent hues, minimalistic composition emphasizing fluid shapes, serene and contemplative mood, high gloss finish with a focus on transparency and light interaction  
+Negative: low detail, harsh shadows, cluttered composition, muted colors, flat textures, distortion of shapes, excessive saturation, lack of depth  
+Parameters: --ar 16:9 --style raw --stylize 250
+translucent digital rendering, smooth and glossy finish, soft and even lighting, pastel color palette with iridescent highlights, minimalistic composition focused on form, serene and ethereal mood, high-gloss texture with gentle curves  
+Negative: low contrast, harsh shadows, cluttered background, dark colors, sharp edges, overly complex designs, watermarks, pixelation  
+Parameters: --ar 1:1 --style raw --stylize 250
