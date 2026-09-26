@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=62;
+const SVER=63;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2761,11 +2761,52 @@ function opsView(){
 }
 /* ══ کاشی باشگاه کتابخوانی: از تعریف تا برنامه، هرچه هست تنظیم ══ */
 const BKTABS=[['home','هویت و ترم'],['gate','در و فرم عضویت'],['fee','حق عضویت'],['meet','جلسهها'],
-  ['pod','پادکست نبض ورق'],['game','مسابقه و چالش'],['books','کتاب و خلاصه'],['wk','کارگاهها'],['trib','تریبون و گروه']];
+  ['pod','پادکست نبض ورق'],['lib','کتابخانه و صدا'],['game','مسابقه و چالش'],['books','کتاب و خلاصه'],['wk','کارگاهها'],['trib','تریبون و گروه']];
 const bkC=()=>(window.NORA&&NORA.CLUB)||{};
 const bkSet=()=>{if(!S.bk) S.bk={}; return S.bk};
 const bkG=(k,d)=>{const b=bkSet(); return b[k]!=null?b[k]:d};
 const bkPrice=n=>fa(Number(n||0).toLocaleString('en-US'))+' ریال';
+/* پیوند هر مطلب: از ریشهٔ سامانه به خانهٔ کاربر و بخش باشگاه */
+const bkRoot=()=>{try{return location.href.split('#')[0].replace(/[^/]*$/,'')}catch(e){return ''}};
+const bkLink=(type,it)=>bkRoot()+'home.html#club?'+type+'='+encodeURIComponent(it.k||'');
+/* انبار مشترک باشگاه: هر مطلبِ منتشرشده، کارتی در خانهٔ کاربر میشود */
+const bkLibSync=()=>{const C=bkC(), b=S.bk||{};
+  const lib=(b.lib||[]).filter(x=>x.pub!==0).map(x=>Object.assign({},x,{kind:x.kind||'صدا'}));
+  const eps=(bkG('eps',null)||(C.podcast||{}).eps||[]).filter(x=>x.pub!==0&&x.file).map(x=>
+    Object.assign({},x,{kind:'صدا',by:(C.podcast||{}).n||'',sub:fa(x.min)+' دقیقه'+(x.at?' · '+x.at:'')}));
+  const con=(bkG('contests',null)||(C.contests||[])).filter(x=>x.state==='open'&&x.pub!==0).map(x=>
+    Object.assign({},x,{kind:'مسابقه',sub:(x.until?'تا '+x.until:'')+(x.prize?' · '+x.prize:'')}));
+  const wk=(bkG('wkL',null)||(C.workshops||[])).filter(x=>x.pub!==0).map(x=>
+    Object.assign({},x,{kind:'کارگاه',sub:x.d+(x.price?' · '+bkPrice(x.price):' · رایگان')}));
+  const all=lib.concat(eps,con,wk).map(x=>Object.assign({},x,{link:x.link||bkLink('lib',x)}));
+  try{localStorage.setItem('nora-clublib',JSON.stringify(all))}catch(e){}
+  return all.length;};
+/* کارت پیشنمایش مطلب: همان که در خانهٔ کاربر می نشیند */
+function bkCard(x){
+  const ic=x.kind==='کتاب'?'i-book':x.kind==='مسابقه'?'i-medal':x.kind==='کارگاه'?'i-pen':'i-play';
+  const can=x.file&&!x.heavy;
+  return `<div class="bkcard">
+    <div class="bkcard-h"><span class="bkic">${ico(ic)}</span>
+      <span class="sp"><b>${esc(x.t)}</b><small>${esc(x.by||'')}${x.sub?' · '+esc(x.sub):''}</small></span>
+      ${x.heavy?tag('سنگین؛ در گروه باشگاه','warn'):tag(x.kind||'','')}</div>
+    ${can&&x.kind==='صدا'?`<audio controls preload="none" src="${esc(x.file)}" style="width:100%;height:36px"></audio>`:''}
+    ${can&&x.kind==='کتاب'?`<a class="btn sm tint" href="${esc(x.file)}" download="${esc(x.fname||'book')}" style="margin-top:6px">${ico('i-download')} خواندن فایل کتاب</a>`:''}
+    <div class="row tight" style="margin-top:7px">
+      <button class="btn sm quiet" data-copy="${esc(x.link||'')}" data-copy-msg="لینک رونوشت شد">${ico('i-link')} لینک</button>
+      ${x.btnN&&x.btnUrl?`<a class="btn sm" href="${esc(x.btnUrl)}" target="_blank" rel="noopener">${esc(x.btnN)}</a>`:''}
+    </div></div>`;
+}
+function bkEdForm(type,i,x){
+  const def=bkLink(type,x);
+  return `<div class="bkform">
+    <label class="fld"><span>پیوند مطلب</span><input id="bkEdL" type="text" value="${esc(x.link||def)}" dir="ltr"/></label>
+    <div class="row tight">
+      <label class="fld"><span>نام دکمه</span><input id="bkEdBN" type="text" value="${esc(x.btnN||'')}" placeholder="مثل: ثبتنام مسابقه"/></label>
+      <label class="fld" style="flex:1"><span>نشانی دکمه</span><input id="bkEdBU" type="text" value="${esc(x.btnUrl||'')}" dir="ltr" placeholder="https://..."/></label></div>
+    <div class="row tight">${btn('ذخیره','data-bkedsave="'+type+':'+i+'"','i-check')}
+      <button class="btn sm quiet" data-bkedcancel>${esc('بیخیال')}</button><span class="sp"></span>
+      <button class="btn sm quiet" data-copy="${esc(def)}" data-copy-msg="پیوند سامانه رونوشت شد">${ico('i-copy')} کپی پیوند پیشفرض</button></div></div>`;
+}
 function bookView(){
   const C=bkC(), cur=S.bkTab||'home';
   const tabs=`<div class="admfilters">${BKTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-bktab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
@@ -2854,6 +2895,7 @@ function bookView(){
     ${meet.map((m,i)=>`<div class="admlirow">${ico('i-calendar')}
       <span class="sp"><b>${esc(m.w)} · ${esc(m.c)}</b><small class="cap">${esc(m.mode)} · میزبان ${esc(m.host)} · ${esc(m.state==='open'?'باز':m.state==='soon'?'در راه':'گذشته')}${m.took?' · '+esc(fa(m.took))+' نفر':''}</small></span>
       <span class="mini">${m.state!=='later'?btn('برگزار شد','data-bkmeetok="'+i+'"','i-check'):''}
+        <button class="btn sm quiet" data-bkcopy="meet:${i}" aria-label="کپی لینک">${ico('i-copy')}</button>
         <button class="btn sm quiet" data-bkmeetdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('جلسهای نریخته')}
     <div class="row tight">
       <label class="fld"><span>زمان</span><input id="bkMW" type="text" placeholder="پنجشنبه ۲۴ مهر"/></label>
@@ -2880,7 +2922,8 @@ function bookView(){
     <div class="head">قسمتها</div>
     ${eps.map((e2,i)=>`<div class="admlirow">${ico('i-play')}
       <span class="sp"><b>${esc(e2.n)}</b><small class="cap">${esc(e2.at)} · ${esc(fa(e2.min))} دقیقه · ${esc(e2.st)}</small></span>
-      <span class="mini">${e2.st!=='منتشر شد'?btn('انتشار','data-bkepok="'+i+'"','i-send'):tag('منتشر شد','ok')}</span></div>`).join('')||emptyBox('قسمتی نریخته')}
+      <span class="mini">${e2.st!=='منتشر شد'?btn('انتشار','data-bkepok="'+i+'"','i-send'):tag('منتشر شد','ok')}
+        <button class="btn sm quiet" data-bkcopy="ep:${i}" aria-label="کپی لینک">${ico('i-copy')}</button></span></div>`).join('')||emptyBox('قسمتی نریخته')}
     <div class="row tight">
       <label class="fld" style="flex:1"><span>عنوان قسمت تازه</span><input id="bkEpN" type="text" placeholder="قسمت ۱۳: ..."/></label>
       <label class="fld"><span>طول (دقیقه)</span><input id="bkEpM" type="number" min="1" value="30"/></label>
@@ -2893,6 +2936,36 @@ function bookView(){
       <label class="fld" style="flex:1"><span>نقشها (با ویرگول)</span><input id="bkCallR" type="text" value="${esc((call.roles||[]).join('، '))}"/></label>
       <label class="fld"><span>نوبتهای ضبط (با ویرگول)</span><input id="bkCallS" type="text" value="${esc((call.slots||[]).join('، '))}"/></label></div>
     <div class="row"><span class="sp"></span>${btn('ذخیرهٔ دعوت','data-bkcallsave','i-check')}</div>`;
+  } else if(cur==='lib'){
+    const lib=bkG('lib',[])||[];
+    const M=S._bkMedia||{};
+    const pend=M.file?{k:'_pend',kind:M.kind,t:($('#bkLibT')||{}).value||M.fname||'',by:($('#bkLibBy')||{}).value||'',sub:M.fname,file:M.file,fname:M.fname,link:''}:null;
+    inner=`<div class="head">کتابخانه و صدای باشگاه</div>
+    <p class="cap">فایل صوتی قسمت پادکست یا فایل کتاب را بریز؛ با انتشار، کارتش در خانهٔ کاربر (بخش باشگاه) می نشیند و پیوندش از همینجا دست مدیران است.</p>
+    <div class="bkform">
+      <div class="row tight">
+        <label class="fld" style="flex:1"><span>عنوان مطلب</span><input id="bkLibT" type="text" placeholder="قسمت ۱۳: راوی چرا پنهان می‌کند؟"/></label>
+        <label class="fld" style="flex:1"><span>توضیح کوتاه / نویسنده</span><input id="bkLibBy" type="text" placeholder="نبض ورق · ۳۴ دقیقه"/></label></div>
+      <div class="row tight">
+        <label class="fileup">${ico('i-play')}<span class="sp"><b>ریختن فایل صوتی</b><small>MP3 و M4A؛ تا ۴۰۰ کیلوبایت همینجا پخش میشود</small></span>
+          <input type="file" accept="audio/*" data-bkaudio/></label>
+        <label class="fileup">${ico('i-book')}<span class="sp"><b>ریختن فایل کتاب</b><small>PDF و EPUB و DOCX</small></span>
+          <input type="file" accept=".pdf,.epub,.docx" data-bkfile/></label></div>
+      ${pend?bkCard(Object.assign({link:bkLink('lib',pend)},pend)):emptyBox('فایلی بریده نشده؛ صدا یا کتاب بریز تا کارتش همینجا پیش چشم بیاید')}
+      <div class="row"><span class="sp"></span>${btn('انتشار در خانهٔ کاربر','data-bklibadd','i-send')}</div>
+    </div>
+    <hr class="hr"/>
+    <div class="head">مطلبهای کتابخانه (${esc(fa(lib.length))})</div>
+    ${lib.map((x,i)=>`<div class="stack tight" style="margin-bottom:10px">
+      ${bkCard(Object.assign({},x,{link:x.link||bkLink('lib',x)}))}
+      <div class="row tight">
+        <button class="btn sm quiet" data-bked="lib:${i}">${ico('i-pen')} دکمه و پیوند</button>
+        <button class="btn sm quiet" data-bkcopy="lib:${i}">${ico('i-copy')} کپی پیوند</button>
+        <span class="sp"></span>
+        <span class="mini"><span class="switch ${x.pub!==0?'on':''}" data-bklibpub="${i}" role="switch" aria-checked="${x.pub!==0?'true':'false'}" aria-label="نمایش در خانه"></span>
+          <button class="btn sm quiet" data-bklibdel="${i}">${esc('برداشتن')}</button></span></div>
+      ${S.bkEd==='lib:'+i?bkEdForm('lib',i,x):''}
+      </div>`).join('')||emptyBox('کتابخانه خالی است')}`;
   } else if(cur==='game'){
     const con=bkG('contests',null)||(C.contests||[]);
     const ch=bkG('challenges',null)||(C.challenges||[]);
@@ -2900,7 +2973,10 @@ function bookView(){
     ${con.map((x,i)=>`<div class="admlirow">${ico('i-medal')}
       <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(x.d)} · تا ${esc(x.until)} · ${esc(x.prize)} · ${esc(fa(x.entrants))+' شرکتکننده'}</small></span>
       <span class="mini">${x.state!=='open'?btn('باز کن','data-bkconon="'+i+'"','i-play'):tag('باز','ok')}
-        <button class="btn sm quiet" data-bkcondel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('مسابقهای نیست')}
+        <button class="btn sm quiet" data-bked="contest:${i}">${esc('دکمه و پیوند')}</button>
+        <button class="btn sm quiet" data-bkcopy="contest:${i}" aria-label="کپی لینک">${ico('i-copy')}</button>
+        <button class="btn sm quiet" data-bkcondel="${i}">${esc('برداشتن')}</button></span></div>
+      ${S.bkEd==='contest:'+i?bkEdForm('contest',i,x):''}</div>`).join('')||emptyBox('مسابقهای نیست')}
     <div class="row tight">
       <label class="fld"><span>عنوان</span><input id="bkCN" type="text" placeholder="مسابقهٔ ماهانهٔ یادداشت"/></label>
       <label class="fld" style="flex:1"><span>موضوع</span><input id="bkCD" type="text" placeholder="یادداشت دربارهٔ فصل ۶"/></label></div>
@@ -2928,6 +3004,7 @@ function bookView(){
     ${books.map((x,i)=>`<div class="admlirow">${ico('i-book')}
       <span class="sp"><b>${esc(x.t)}</b><small class="cap">${esc(x.by)} · ${esc(x.kind)}${x.min?' · '+esc(fa(x.min))+' دقیقه':''} · ${esc(x.note||'')}</small></span>
       <span class="mini"><button class="btn sm quiet" data-bkbk="${i}">${esc('کتاب ماه کن')}</button>
+        <button class="btn sm quiet" data-bkcopy="book:${i}" aria-label="کپی لینک">${ico('i-copy')}</button>
         <button class="btn sm quiet" data-bkbkdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('کتابی نریخته')}
     <div class="row tight">
       <label class="fld"><span>نام کتاب</span><input id="bkBkT" type="text" placeholder="سووشون"/></label>
@@ -2949,7 +3026,10 @@ function bookView(){
     inner=`<div class="head">کارگاههای باشگاه</div>
     ${wk.map((x,i)=>`<div class="admlirow">${ico('i-pen')}
       <span class="sp"><b>${esc(x.t)}</b><small class="cap">${esc(x.d)} · میزبان ${esc(x.host)} · ${esc(fa(x.left))} جای خالی از ${esc(fa(x.seats))} · ${x.price?esc(bkPrice(x.price)):esc('رایگان')}</small></span>
-      <span class="mini"><button class="btn sm quiet" data-bkwkdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('کارگاهی نریخته')}
+      <span class="mini"><button class="btn sm quiet" data-bked="wk:${i}">${esc('دکمه و پیوند')}</button>
+        <button class="btn sm quiet" data-bkcopy="wk:${i}" aria-label="کپی لینک">${ico('i-copy')}</button>
+        <button class="btn sm quiet" data-bkwkdel="${i}">${esc('برداشتن')}</button></span></div>
+      ${S.bkEd==='wk:'+i?bkEdForm('wk',i,x):''}</div>`).join('')||emptyBox('کارگاهی نریخته')}
     <div class="row tight">
       <label class="fld"><span>عنوان</span><input id="bkWkT" type="text" placeholder="کارگاه نقد بدون ترس"/></label>
       <label class="fld"><span>زمان</span><input id="bkWkD" type="text" placeholder="پنجشنبه ۸ آبان، ۱۸:۰۰"/></label></div>
@@ -3743,7 +3823,7 @@ function body(){
   const v=VIEWS[S.sec];
   return v?v():emptyBox(T.none);
 }
-function renderBody(){ if(AUD.on) AUD.tick++; $('#admBody').innerHTML=body()}
+function renderBody(){ bkLibSync(); if(AUD.on) AUD.tick++; $('#admBody').innerHTML=body()}
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */
 function sanitize(){
   if(S.v!==SVER){ S=JSON.parse(JSON.stringify(BASE)); return; }
@@ -3950,6 +4030,40 @@ document.addEventListener('click',e=>{
     toast('نامه به همهٔ اعضا در ربات بله (@'+(A.bale||'lifeline_bot')+') رفت'); renderBody(); return}
   const ntlc=q('[data-ntflogclr]'); if(ntlc){S.ntfLog=[]; save(); toast('دفتر نامهها خالی شد'); renderBody(); return}
   const bkt=q('[data-bktab]'); if(bkt){S.bkTab=bkt.dataset.bktab; save(); renderBody(); return}
+  const bkcp=q('[data-bkcopy]'); if(bkcp){const pr=bkcp.dataset.bkcopy.split(':'), type=pr[0], i=+pr[1], C2=bkC();
+    let it=null;
+    if(type==='contest') it=(bkG('contests',null)||(C2.contests||[]))[i];
+    else if(type==='wk') it=(bkG('wkL',null)||(C2.workshops||[]))[i];
+    else if(type==='book') it=(bkG('booksL',null)||(C2.books||[]))[i];
+    else if(type==='ep') it=(bkG('eps',null)||(C2.podcast||{}).eps||[])[i];
+    else if(type==='meet') it=(bkG('meets',null)||(C2.meet||[]))[i];
+    else if(type==='lib') it=(bkG('lib',[])||[])[i];
+    if(it){copy(bkLink(type,it),null,'پیوند «'+(it.t||it.n||'مطلب')+'» رونوشت شد')} return}
+  const bked=q('[data-bked]'); if(bked){S.bkEd=(S.bkEd===bked.dataset.bked)?'':bked.dataset.bked; save(); renderBody(); return}
+  const bkec=q('[data-bkedcancel]'); if(bkec){S.bkEd=''; save(); renderBody(); return}
+  const bkes=q('[data-bkedsave]'); if(bkes){const pr=bkes.dataset.bkedsave.split(':'), type=pr[0], i=+pr[1], C2=bkC();
+    let arr=null, key='';
+    if(type==='contest'){key='contests'; arr=(bkSet()[key]=bkSet()[key]||(C2.contests||[]).slice());}
+    else if(type==='wk'){key='wkL'; arr=(bkSet()[key]=bkSet()[key]||(C2.workshops||[]).slice());}
+    else if(type==='lib'){key='lib'; arr=(bkSet()[key]=bkSet()[key]||[]);}
+    if(arr&&arr[i]){arr[i].link=($('#bkEdL')||{}).value||''; arr[i].btnN=($('#bkEdBN')||{}).value||'';
+      arr[i].btnUrl=($('#bkEdBU')||{}).value||''; S.bkEd=''; save();
+      toast('دکمه و پیوند ذخیره شد'); renderBody()} return}
+  const bklp=q('[data-bklibpub]'); if(bklp){const i=+bklp.dataset.bklibpub;
+    const arr=(bkSet().lib=bkSet().lib||[]); if(arr[i]){arr[i].pub=arr[i].pub===0?1:0; save();
+      toast(arr[i].pub===0?'از خانهٔ کاربر برداشته شد':'کارت در خانهٔ کاربر نشست'); renderBody()} return}
+  const bkld=q('[data-bklibdel]'); if(bkld){const i=+bkld.dataset.bklibdel;
+    const arr=(bkSet().lib=bkSet().lib||[]).slice(); arr.splice(i,1); bkSet().lib=arr;
+    save(); toast('مطلب برداشته شد'); renderBody(); return}
+  const bkla=q('[data-bklibadd]'); if(bkla){const t=(($('#bkLibT')||{}).value||'').trim();
+    if(!t){toast('عنوان مطلب را بنویس'); return}
+    const M=S._bkMedia||{};
+    if(!M.file){toast('اول فایل صدا یا کتاب را بریز'); return}
+    const arr=(bkSet().lib=bkSet().lib||[]);
+    arr.push({k:'lb'+Date.now(),kind:M.kind,t:t,by:($('#bkLibBy')||{}).value||'',sub:M.fname,
+      file:M.file,fname:M.fname,heavy:M.heavy,pub:1,at:(function(){const j=jNow(); return fa(j.jy)+'/'+fa(j.jm)+'/'+fa(j.jd)})()});
+    S._bkMedia=null; save(); uLogAdd('مطلب تازه در کتابخانهٔ باشگاه: '+t);
+    toast('انتشار شد؛ کارت در خانهٔ کاربر نشست'); renderBody(); return}
   const bgc=q('[data-govclub]'); if(bgc){S.skinB=0; S.skin=0; S.sec='users'; S.uV='club'; S.uClub='rules'; save(); renderBody(); toast('باشگاه و امتیاز اعضا'); return}
   const bks=q('[data-bksave]'); if(bks){const g=n=>{const el=$('#'+n); return el?el.value.trim():''};
     const b=bkSet();
@@ -4636,6 +4750,20 @@ document.addEventListener('change',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   if(el.dataset.ntfclock){S.ntfClock=S.ntfClock||{}; S.ntfClock[el.dataset.ntfclock]=el.value;
     save(); toast('ساعت ارسال بهروز شد'); renderBody(); return}
+  if(el.dataset.bkaudio!==undefined){const f=(el.files||[])[0]; if(!f) return;
+    if(f.size>400*1024){S._bkMedia={kind:'صدا',file:'',fname:f.name,heavy:1};
+      toast('فایل صوتی سنگین است؛ نامش ماند و فایل به گروه باشگاه میرود'); save(); renderBody(); return}
+    const fr=new FileReader();
+    fr.onload=()=>{S._bkMedia={kind:'صدا',file:fr.result,fname:f.name,heavy:0}; save();
+      toast('صدای «'+f.name+'» برید؛ عنوانش را بنویسید و منتشر کنید'); renderBody()};
+    fr.readAsDataURL(f); return}
+  if(el.dataset.bkfile!==undefined){const f=(el.files||[])[0]; if(!f) return;
+    if(f.size>400*1024){S._bkMedia={kind:'کتاب',file:'',fname:f.name,heavy:1};
+      toast('کتاب سنگین است؛ نامش ماند و فایل در گروه باشگاه میآید'); save(); renderBody(); return}
+    const fr2=new FileReader();
+    fr2.onload=()=>{S._bkMedia={kind:'کتاب',file:fr2.result,fname:f.name,heavy:0}; save();
+      toast('کتاب «'+f.name+'» برید؛ عنوانش را بنویسید و منتشر کنید'); renderBody()};
+    fr2.readAsDataURL(f); return}
   /* آپلود قالب ورد: خوانده و آنالیز میشود؛ پارامترهای متغیرش درمیآید */
   if(el.dataset.cfileup!==undefined){const f=(el.files||[])[0]; if(!f) return;
     const fr=new FileReader();

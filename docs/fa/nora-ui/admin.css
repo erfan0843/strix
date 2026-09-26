@@ -656,3 +656,11 @@ a.btn{text-decoration:none}
 .ntfcard .ntf-from{font-weight:800;font-size:13px}
 .ntfcard .ntf-meta{margin-top:8px;padding-top:7px;border-top:.5px dashed var(--hairline-2);
   display:flex;flex-direction:column;gap:1px;font-size:11px;color:var(--ink-3)}
+
+/* کتابخانهٔ باشگاه: فرم ریختن مطلب و کارت پیشنمایش */
+.bkform{border:1px solid var(--hairline-2);border-radius:14px;padding:12px 14px;display:grid;gap:9px;background:var(--card-2,#fbfcfe)}
+.bkcard{border:1px solid var(--hairline-2);border-radius:14px;padding:11px 13px;display:grid;gap:6px;background:#f5f8fc}
+.bkcard-h{display:flex;align-items:center;gap:9px}
+.bkcard-h .sp{flex:1;min-width:0}
+.bkcard-h .sp small{display:block;font-size:10.5px;color:var(--ink-3)}
+.bkic{width:34px;height:34px;border-radius:10px;background:var(--brand-tint);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}

@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=73"/>
-<link rel="stylesheet" href="nora.css?v=73"/>
+<link rel="stylesheet" href="glass.css?v=74"/>
+<link rel="stylesheet" href="nora.css?v=74"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -659,8 +659,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=73"></script>
-<script src="ui.js?v=73"></script>
+<script src="data.js?v=74"></script>
+<script src="ui.js?v=74"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -1208,6 +1208,7 @@ function renderClub(){
         <div class="memberline"><svg class="i"><use href="#i-video"/></svg><span style="flex:1">ضبط جلسه‌ها و پادکست نبض ورق برای اعضا</span></div>
         <div class="memberline"><svg class="i"><use href="#i-users"/></svg><span style="flex:1">گروه و لینک اختصاصی اعضا</span></div>
       </div>
+      ${clubLib()}
       <div class="row">
         <button class="btn primary" data-clubjoin><svg class="i"><use href="#i-plus"/></svg> عضویت در باشگاه و پنل اعضا</button>
         <button class="btn quiet" data-uihref="account.html#book">قواعد و جلسه‌ها</button>
@@ -1216,6 +1217,26 @@ function renderClub(){
   </div>`;
 }
 
+/* کتابخانهٔ باشگاه: صدا و کتاب و مسابقههایی که مدیر پنل منتشر کرده */
+function clubLib(){
+  let lib=[];
+  try{lib=JSON.parse(localStorage.getItem('nora-clublib')||'[]')}catch(e){}
+  if(!lib.length) return '';
+  const ic=k=>k==='کتاب'?'i-book':k==='مسابقه'?'i-medal':k==='کارگاه'?'i-pen':'i-play';
+  return `<div class="cl-lib"><div class="head">تازههای باشگاه</div>
+    ${lib.slice(0,8).map(x=>`<div class="cl-libcard">
+      <div class="bkcard-h"><span class="bkic"><svg class="i"><use href="#${ic(x.kind)}"/></svg></span>
+        <span style="flex:1;min-width:0"><b class="sub">${esc(x.t)}</b>
+          <div class="hrow">${esc(x.by||'')}${x.sub?' · '+esc(x.sub):''}</div></span>
+        <span class="tagg tag-g">${esc(x.kind||'')}</span></div>
+      ${x.file&&!x.heavy&&x.kind==='صدا'?`<audio controls preload="none" src="${esc(x.file)}" style="width:100%;height:38px;margin-top:7px"></audio>`:''}
+      ${x.file&&!x.heavy&&x.kind==='کتاب'?`<a class="btn sm tint" href="${esc(x.file)}" download="${esc(x.fname||'book')}" style="margin-top:7px"><svg class="i"><use href="#i-download"/></svg> خواندن فایل کتاب</a>`:''}
+      ${x.heavy?`<div class="hrow" style="margin-top:5px">فایل سنگین است؛ از گروه باشگاه بردارید.</div>`:''}
+      <div class="row tight" style="margin-top:7px">
+        ${x.btnN&&x.btnUrl?`<a class="btn sm" href="${esc(x.btnUrl)}" target="_blank" rel="noopener">${esc(x.btnN)}</a>`:''}
+        <button class="btn sm quiet" data-copy="${esc(x.link||'')}" data-copy-msg="لینک رونوشت شد"><svg class="i"><use href="#i-link"/></svg> لینک</button>
+      </div></div>`).join('')}</div>`;
+}
 /* ═════════ اساتید و دست‌اندرکاران ═════════ */
 function nextCourse(p){
   const order=['tonight','tomorrow','week','next'];
@@ -1794,7 +1815,7 @@ document.addEventListener('click',e=>{
     else toast('این پیوند در نسخهٔ نمایشی فعال نیست');
     return}
   if(t.closest('[data-close]')){closeSheets(); return}
-  const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy); return}
+  const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy,null,cp.dataset.copyMsg); return}
   const sh=t.closest('[data-share]'); if(sh){
     const id=sh.dataset.share, ev=EVENTS.find(x=>x.id===id);
     shareItem({title:(ev?ev.t:'رویداد نورا'),text:(ev?ev.when+' · '+ev.time+' · '+ev.place:'رویداد گروه فرهنگی خط زندگی'),

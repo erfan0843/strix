@@ -507,3 +507,10 @@ html[data-accent="teal"]{--brand:#0E7C66; --brand-2:#0A5F4E; --brand-tint:rgba(1
 html[data-accent="plum"]{--brand:#6E45C2; --brand-2:#57339B; --brand-tint:rgba(110,69,194,.11); --brand-ink:#57339B}
 html[data-accent="amber"]{--brand:#B25E00; --brand-2:#8F4B00; --brand-tint:rgba(178,94,0,.11); --brand-ink:#8F4B00}
 html[data-accent="night"]{--brand:#3E5B84; --brand-2:#2E4666; --brand-tint:rgba(62,91,132,.12); --brand-ink:#2E4666}
+
+/* کتابخانهٔ باشگاه: کارت صدا و کتاب و مسابقه، از پنل مدیران */
+.cl-lib{display:grid;gap:9px;margin:10px 0}
+.cl-lib .head{font-size:13px;font-weight:800}
+.cl-libcard{border:1px solid var(--hairline);border-radius:16px;padding:12px 13px;background:var(--card);display:grid;gap:4px}
+.bkcard-h{display:flex;align-items:center;gap:9px}
+.bkic{width:34px;height:34px;border-radius:10px;background:var(--brand-tint);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}

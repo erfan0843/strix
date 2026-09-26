@@ -24,6 +24,25 @@ function makeStore(){const m=new Map(); return {
   removeItem:k=>m.delete(k), clear:()=>m.clear(), key:i=>[...m.keys()][i],
   get length(){return m.size}, _dump:()=>[...m.keys()]};}
 
+
+/* ── تازههای باشگاه: کتابخانه و صدای پنل، در خانهٔ کاربر ── */
+{
+  const store2=makeStore();
+  store2.setItem('nora-clublib',JSON.stringify([
+    {k:'lb1',kind:'صدا',t:'قسمت ۱۳: راوی چرا پنهان می‌کند؟',by:'نبض ورق',sub:'nabz-ep13.mp3',
+     file:'data:audio/mp3;base64,AAA',link:'home.html#club?lib=lb1',btnN:'شنیدن در گروه',btnUrl:'https://ble.ir/join/nabzvaragh'},
+    {k:'lb2',kind:'کتاب',t:'سووشون؛ فصل اول',by:'سیمین دانشور',file:'data:application/pdf;base64,AAA',fname:'soooshoon.pdf',link:'home.html#club?lib=lb2'},
+    {k:'c9',kind:'مسابقه',t:'مسابقهٔ نقد فصل ششم',sub:'تا پایان آبان',link:'home.html#club?contest=c9',btnN:'ثبتنام مسابقه',btnUrl:'https://ble.ir/nora'}]));
+  const p=await load('home.html',store2);
+  ok(!!p.doc.querySelector('#club .cl-lib'),'نوار «تازههای باشگاه» در خانهٔ کاربر میآید');
+  ok(p.all('#club .cl-libcard').length===3,'هر مطلبِ منتشرشده، یک کارت');
+  ok(p.all('#club .cl-libcard audio').length===1,'فایل صوتی، با پخشگر همانجا');
+  ok(!!p.doc.querySelector('#club .cl-libcard a[download]'),'فایل کتاب، با دکمهٔ خواندن');
+  ok(/شنیدن در گروه/.test(p.txt('#club'))&&/ثبتنام مسابقه/.test(p.txt('#club')),'دکمههای سفارشی مدیر روی کارتهاست');
+  ok(p.all('#club .cl-libcard [data-copy]').length===3,'لینک هر کارت از دست کاربر هم کپی میشود');
+  ok(!p.doc.querySelector('#club .cl-lib')||p.txt('#club .cl-lib .head').includes('تازههای باشگاه'),'عنوان نوار: تازههای باشگاه');
+}
+
 /* نشانی واقعی برای ?guests= — فایل‌ها از همین پوشه خوانده می‌شوند (بی‌شبکه) */
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function load(file,store,q){
@@ -1660,7 +1679,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:62, added:[
+  store.setItem('nora-admin', JSON.stringify({v:63, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,
