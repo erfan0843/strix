@@ -681,11 +681,14 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const p=await load();
   p.click('#admNav [data-sec="settings"]');
   ok(p.all('[data-setg]').length===6,'شش گروه تنظیمات هست');
+  ok(p.all('[data-setg] .cap').length===6&&p.all('#admBody .sd-sect').length>=1,'چیپ هر گروه کمّار دارد و زیر کاشیها بخشبند کارتی است');
+  ok(/۶ گروه · متن/.test(p.txt('#admBody')),'سربرگ کارت تنظیمات، گروه کنونی را نشان میدهد');
   ok(p.all('[data-text]').length===4,'متن‌های پرکاربرد قابل ویرایش‌اند');
   p.click('[data-setg="cert"]');
   ok(/قالب فایل ورد گواهینامه/.test(p.txt('#admBody')),'گروه گواهینامه، مدیریت قالب را دارد');
   ok(!!p.doc.querySelector('[data-cfileup]'),'بارگذاری فایل ورد در تنظیمات است');
   ok(/فقط با دست سرپرست/.test(p.txt('#admBody')),'قید دست سرپرست نوشته میشود');
+  ok(p.all('#admBody .sd-sect').length===2&&/سیاست صدور گواهینامه/.test(p.txt('#admBody')),'گواهینامه: قالب و سیاست صدور در دو بخشبند جداست');
   await p.upload('[data-cfileup]',docxBytes(['نام','مدرس']),'gava-davari.docx');
   await wait(100);
   ok(/پارامتر متغیر پیدا شد/.test(p.txt('#toast')),'فایل ورد آنالیز و پارامترهای متغیرش درمیآید');
@@ -697,6 +700,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const first=p.all('[data-tog]')[0];
   p.click(first);
   ok(first.classList.contains('on')!==(/false/.test(first.getAttribute('aria-checked'))),'کلید خاموش و روشن می‌شود');
+  p.click('[data-setg="data"]');
+  ok(p.all('#admBody .sd-sect').length===2&&p.all('[data-keycopy]').length===4,'داده: سیاست و کلیدها در دو بخشبند با چهار کلید');
+  p.click('[data-setg="notify"]');
+  ok(p.all('#admBody .sd-sect').length>=5,'نامهخانه: پنج بخشبند از اعلانها تا دفتر نامهها');
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
   /* ── تنظیمات سامانه: کاشیها و مدیریت ظاهر ── */
   p.click('#admNav [data-sec="settings"]');
@@ -1468,7 +1475,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:69, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:70, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1697,9 +1704,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=80')&&html.includes('admin.js?v=80'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=81')&&html.includes('admin.js?v=81'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v69'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v70'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

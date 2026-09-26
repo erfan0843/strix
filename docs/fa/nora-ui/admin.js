@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=69;
+const SVER=70;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -3579,8 +3579,9 @@ function vSettings(){
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
   const list=(ST.groups||[]).filter(x=>own||x.k==='cert');
-  const groups=list.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
-      ${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
+  const groups=list.map(x=>{const n=((ST.rows||{})[x.k]||[]).length;
+    return `<button class="chip ${g===x.k?'on':''}" data-setg="${esc(x.k)}">
+      ${ico(x.i)}<span>${esc(x.n)}</span>${n?`<span class="cap">${esc(fa(n))}</span>`:''}</button>`}).join('');
   /* کاشیهای تنظیمات: هر حوزه یک کاشی؛ شش کاشی، ردیف تا چهار تا */
   const tiles=own?`<section class="card stack">
     <div class="row"><div class="head">تنظیمات سامانه</div><span class="sp"></span>
@@ -3597,7 +3598,7 @@ function vSettings(){
     const TU=ST.tpl||{};
     const tfiles=(CE.files||[]).concat(S.certFiles||[]);
     const tdef=S.certDef||((tfiles.find(f=>f.def)||tfiles[0]||{}).k);
-    inner=`<div class="head">${esc(TU.title||'')}</div><p class="cap">${esc(TU.note||'')}</p>
+    inner=sdSect(TU.title||'قالب گواهینامه','فقط دست مالک و سرپرست')+`<p class="cap">${esc(TU.note||'')}</p>
       <label class="fileup">${ico('i-upload')}<span class="sp"><b>${esc(TU.up||'')}</b><small>${esc(TU.ups||'')}</small></span>
         <input type="file" accept=".docx" data-cfileup/></label>
       <div class="admlist">${tfiles.map(f=>`<div class="admrow2" style="cursor:default">
@@ -3605,16 +3606,16 @@ function vSettings(){
         <span class="tx"><b>${esc(f.n)}</b><small>${esc(f.s||'')}${(f.params||[]).length?' · <span dir="ltr">'+esc((f.params||[]).slice(0,5).map(x=>'{'+x+'}').join(' '))+'</span>':''}</small></span>
         <span class="mini">${tdef===f.k?tag('پیشفرض','brand'):btn('پیشفرض کن','data-cdef="'+esc(f.k)+'"','i-check')}
           ${f.up?'<a class="btn sm" download="'+esc(f.n)+'.docx" href="'+f.up+'">'+ico('i-download')+esc(TU.dl||'دانلود')+'</a>':(f.big?tag(TU.heavy||'','warn'):'')}</span></div>`).join('')}</div><hr class="hr"/>`;
-    inner+=(((ST.rows||{})['cert'])||[]).map(r=>{const on=togDef('cert',r[0],r[1]);
+    inner+=sdEnd()+sdSect('سیاست صدور گواهینامه',esc(fa((((ST.rows||{})['cert'])||[]).length))+' کلید')+(((ST.rows||{})['cert'])||[]).map(r=>{const on=togDef('cert',r[0],r[1]);
       return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
         <span class="switch ${on?'on':''}" data-tog="cert" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
-          role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('');
+          role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')+sdEnd();
   } else if(g==='texts'){
     const TX=ST.texts||{};
-    inner=`<div class="head">${esc(TX.title||'')}</div><p class="cap">${esc(TX.note||'')}</p>`+
+    inner=sdSect(TX.title||'نوشتههای سامانه',esc(fa((TX.list||[]).length))+' نوشته')+`<p class="cap">${esc(TX.note||'')}</p>`+
       (TX.list||[]).map(t=>`<div class="admtext"><span class="lbl">${esc(t.n)}</span>
         <input class="input" data-text="${esc(t.k)}" value="${esc(txtDef(t.k,t.v))}"/></div>`).join('')+
-      `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`;
+      `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`+sdEnd();
   } else if(g==='notify'){
     const rows=((ST.rows||{})[g])||[];
     const cur=S.ntfG||'all';
@@ -3622,7 +3623,7 @@ function vSettings(){
     const nlist=NTF.filter(x=>cur==='all'||x.g===cur);
     const CHN={bale:'بله',acc:'حساب من',sms:'پیامک'};
     const st0=ntfStamp();
-    inner=`<div class="head">نامهخانهٔ اعلانها</div>
+    inner=sdSect('نامهخانهٔ اعلانها','مدل بانکی پیام')+`
       <p class="cap">هر پیام با مدل بانکی میرود: نام فرستنده، عنوان، یک جملهٔ روشن با نام و عدد دقیق، و تاریخ و ساعت فارسی؛ بله همان لحظه، حساب من و پیامک کنارش.</p>
       <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
         <div class="metric"><div class="n">${esc(fa(NTF.length))}</div><div class="l">اعلان</div></div>
@@ -3633,6 +3634,7 @@ function vSettings(){
       <label class="fld"><span>نام فرستندهٔ پیامها</span><input id="ntfFrom" type="text" value="${esc(ntfFrom())}"/></label>
       <div class="row tight">${btn('ثبت فرستنده','data-ntffrom','i-check')}<span class="sp"></span>
         <span class="cap">بالای همهٔ پیامها میآید؛ پیشفرض: نورا</span></div>
+      ${sdEnd()}${sdSect('اعلانها',esc(fa(nlist.length))+' اعلان'+(cur==='all'?' · همه':''))}
       <div class="admfilters">${NGRP.map(g2=>`<button class="chip ${cur===g2[0]?'on':''}" data-ntfg="${g2[0]}">${esc(g2[1])}</button>`).join('')}</div>
       ${nlist.map(nt=>{const N=ntfT(nt), ch=ntfCh(nt), on=ntfOn(nt), ed=S.ntfEd===nt.k;
         return `<div class="ntfrow">
@@ -3654,8 +3656,7 @@ function vSettings(){
             <div class="row tight">${btn('ذخیرهٔ متن','data-ntfsave="'+nt.k+'"','i-check')}<span class="sp"></span>
               <span class="cap">جایخالیها: {نام} {رویداد} {ساعت} {جا} {کد} {عدد} {مبلغ} {تاریخ}</span></div>`:''}
           </div>`}).join('')}
-      <hr class="hr"/>
-      <div class="head">ساعتها و حالتهای کلی</div>
+      ${sdEnd()}${sdSect('ساعتها و حالتهای کلی',esc(fa(rows.length))+' کلید')}
       ${rows.map(r=>{const on=togDef(g,r[0],r[1]);
         return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
           <span class="switch ${on?'on':''}" data-tog="${esc(g)}" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
@@ -3664,35 +3665,33 @@ function vSettings(){
         <label class="fld"><span>ساعت یادآور شب قبل</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
         <label class="fld"><span>ساعت تبریک تولد</span><select class="input" data-ntfclock="bday">${['۸:۰۰','۹:۰۰','۱۰:۰۰'].map(x=>`<option ${ntfClock('bday')===x?'selected':''}>${x}</option>`).join('')}</select></label>
       </div>
-      <hr class="hr"/>
-      <div class="head">نامهٔ فوری به همهٔ اعضا</div>
+      ${sdEnd()}${sdSect('نامهٔ فوری به همهٔ اعضا','یک پیام، همهٔ اعضا')}
       <label class="fld"><span>متن نامه</span><input id="ntfBc" type="text" placeholder="مثل: دوشنبه سامانه تا ۸ صبح در دسترس نیست"/></label>
       <div class="row tight">${btn('فرستادن به همه','data-ntfbcast','i-send')}<span class="sp"></span>
         <span class="cap">همان مدل: نام فرستنده و عنوان «نامهٔ فوری» و تاریخ و ساعت اضافه میشود</span></div>
-      <hr class="hr"/>
-      <div class="head">نامههای فرستادهشده</div>
+      ${sdEnd()}${sdSect('نامههای فرستادهشده',esc(fa((S.ntfLog||[]).length))+' نامه')}
       ${(S.ntfLog||[]).slice(0,6).map(r=>`<div class="admlirow"><span class="ic">${ico('i-send')}</span>
         <span class="sp"><b>${esc(r.t)}</b><small class="cap">${esc((NTF.find(x=>x.k===r.k)||{}).t||'نامهٔ فوری')} · ${esc(r.who)} · ${esc(r.at)}</small></span></div>`).join('')||emptyBox('هنوز نامه‌ای از پنل نرفته است')}
-      <div class="row tight">${(S.ntfLog||[]).length?btn('خالی کردن دفتر','data-ntflogclr','i-trash'):''}<span class="sp"></span></div>`;
+      <div class="row tight">${(S.ntfLog||[]).length?btn('خالی کردن دفتر','data-ntflogclr','i-trash'):''}<span class="sp"></span></div>${sdEnd()}`;
   } else {
     const rows=((ST.rows||{})[g])||[];
-    inner=`<div class="head">${esc(group.n)}</div><p class="cap">${esc(group.s||'')}</p>
+    inner=sdSect(group.n,esc(fa(rows.length))+' کلید')+`<p class="cap">${esc(group.s||'')}</p>
       ${rows.map(r=>{const on=togDef(g,r[0],r[1]);
         return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
           <span class="switch ${on?'on':''}" data-tog="${esc(g)}" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
-            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')}`;
+            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')+(g==='data'?'':sdEnd())}`;
     if(g==='data'){
       const K=ST.keys||{};
-      inner+=`<hr class="hr"/><div class="head">${esc(K.title||L.keys)}</div><p class="cap">${esc(K.note||'')}</p>
+      inner+=sdEnd()+sdSect(K.title||L.keys,esc(fa((K.list||[]).length))+' کلید')+`<p class="cap">${esc(K.note||'')}</p>
         <div class="admlist">${(K.list||[]).map((k,ki)=>rowLink({attrs:'data-keycopy="'+ki+'"', i:'i-key', b:esc(k.n),
           s:`<span dir="ltr">${esc(k.v)}</span>`, right:tag(k.st==='ok'?'سالم':'بررسی',k.st==='ok'?'ok':'warn')})).join('')}</div>
         <div class="row">${baleA('backup','پشتیبان در ربات بله')}
-          ${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>`;
+          ${btn('بازگردانی','data-restore','i-layers')}${btn('بازنشانی پنل','data-reset','i-trash')}</div>${sdEnd()}`;
     }
   }
   return tiles+`<section class="card stack">
     <div class="row"><div class="head">${esc(ST.lead||'')}</div><span class="sp"></span>
-      <span class="cap">${esc(own?fa((ST.groups||[]).length)+' گروه':(D.fieldSettings||'حوزهٔ من'))}</span></div>
+      <span class="cap">${esc(own?fa((ST.groups||[]).length)+' گروه · '+(group.n||''):(D.fieldSettings||'حوزهٔ من'))}</span></div>
     <div class="admfilters">${groups}</div>
     <div class="admset">${inner}</div>
   </section>`;

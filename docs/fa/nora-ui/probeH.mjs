@@ -1,0 +1,27 @@
+import jsdom from 'jsdom';
+const {JSDOM}=jsdom;
+const errs=[];
+const mk=()=>{const m=new Map(); return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size}}};
+const dom=await JSDOM.fromFile('admin.html',{runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,url:'file:///home/user/strix/docs/fa/nora-ui/admin.html',
+  beforeParse(w){w.scrollTo=()=>{}; if(w.Element&&!w.Element.prototype.scrollIntoView)w.Element.prototype.scrollIntoView=()=>{};
+    if(!w.matchMedia)w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+    Object.defineProperty(w,'localStorage',{configurable:true,value:mk()});
+    w.addEventListener('error',e=>errs.push(e.message)); w.console.error=(...a)=>errs.push(a.join(' '));}});
+await new Promise(r=>setTimeout(r,1100));
+const {window}=dom,d=window.document;
+const cl=el=>el.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+const q1=s=>d.querySelector(s), qa=s=>[...d.querySelectorAll(s)];
+const click=sel=>{const el=q1(sel); if(!el) throw new Error('نیست: '+sel); cl(el)};
+click('#admNav [data-sec="settings"]');
+console.log('chips with count:',qa('[data-setg] .cap').length,'/',qa('[data-setg]').length);
+console.log('card cap:',qa('.card .row .cap').map(x=>x.textContent.trim()).slice(0,2).join(' | '));
+console.log('texts sections:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'));
+click('[data-setg="cert"]');
+console.log('cert sections:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'),'| count:',qa('#admBody .sd-sect').length);
+click('[data-setg="notify"]');
+console.log('notify sections:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'));
+click('[data-setg="data"]');
+console.log('data sections:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'),'| keys:',qa('[data-keycopy]').length);
+click('[data-setg="money"]');
+console.log('money sections:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'),'| toggles:',qa('[data-tog]').length);
+console.log('errs:',errs.slice(0,3));
