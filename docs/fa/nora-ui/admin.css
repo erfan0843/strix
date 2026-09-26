@@ -664,3 +664,12 @@ a.btn{text-decoration:none}
 .bkcard-h .sp{flex:1;min-width:0}
 .bkcard-h .sp small{display:block;font-size:10.5px;color:var(--ink-3)}
 .bkic{width:34px;height:34px;border-radius:10px;background:var(--brand-tint);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}
+
+/* بخشبند کاشیهای تنظیم: سربرگ کمّار + بدنهٔ جداشده */
+.sd-sect{border:1px solid var(--hairline-2);border-radius:16px;overflow:hidden;margin:8px 0}
+.sd-sect-t{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface-2,#f6f8fb);
+  border-bottom:.5px solid var(--hairline-2);font-size:13px}
+.sd-sect-t svg{width:15px;height:15px;color:var(--brand)}
+.sd-sect-t .sp{flex:1}
+.sd-sect-b{padding:10px 14px 14px;display:grid;gap:8px}
+.sdprev{display:flex;justify-content:center;padding:6px 0}

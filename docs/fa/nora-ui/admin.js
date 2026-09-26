@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=65;
+const SVER=66;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2770,6 +2770,24 @@ const SD_HOL=()=>sdG('holidays',[
   {n:'ظهر جمعه', w:'جمعهها', d:'برنامهٔ ظهر جمعه پیشفرض نمیگیرد'},
   {n:'شب یلدا', d:'۳۰ آذر؛ پیشنهاد برنامهٔ خاص'},
   {n:'نوروز', d:'۱ تا ۱۳ فروردین؛ تعطیلی رسمی'}]);
+/* سربرگ الگوی «کارتی»: کمّار زیر عنوان، شرح رفتار زیر آن */
+const sdSect=(t,d2)=>`<div class="sd-sect"><div class="sd-sect-t">${ico('i-grid')}<b>${esc(t)}</b><span class="sp"></span><span class="cap">${esc(d2||'')}</span></div><div class="sd-sect-b">`;
+const sdEnd=()=>`</div></div>`;
+/* کارت پیشنمایش، همان ریخت کارت مطلب خانه (pcard): جلد، برچسب، عنوان، نویسنده، دکمه */
+function sdCard(){
+  const t=sdG('tplTitle','هفت تمرین تنفس پیش از صحبت'),
+        lead=sdG('tplLead','از دلِ تجربهٔ کارگاهها؛ کوتاه و کاربردی بخوانید.'),
+        cat=sdG('tplCat','فن بیان'), mn=sdG('tplMin','۶');
+  return `<div class="pcard" style="max-width:290px">
+    <div class="pc-cov" style="--g:linear-gradient(135deg,#1E6FD0,#0A3A82)">
+      <div class="pc-tags"><span class="tagg tag-g">${esc(cat)}</span></div>
+      <svg class="i" aria-hidden="true"><use href="#i-article"/></svg></div>
+    <div class="pc-body"><span class="pc-ttl">${esc(t)}</span>
+      <div class="pc-meta">${esc(lead)}</div>
+      <div class="pc-meta" style="color:var(--ink-2)">${esc(fa(mn))} دقیقه مطالعه</div></div>
+    <div class="pc-foot"><span class="btn sm primary">${esc(sdG('ctaMore','ادامهٔ مطلب'))}</span></div>
+  </div>`;
+}
 function skdevView(){
   const cur=S.sdTab||'tag';
   const tabs=`<div class="admfilters">${SDTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-sdtab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
@@ -2782,31 +2800,32 @@ function skdevView(){
   if(cur==='tag'){
     const tags=sdG('qtags',null)||QTAGS_L();
     const nEv=evAll().length, nPost=pedPosts().length;
-    inner=`<div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    inner=`
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
       <div class="metric"><div class="n">${esc(fa(tags.length))}</div><div class="l">برچسب برنامه</div></div>
       <div class="metric"><div class="n">${esc(fa(sdG('ptags',['پیشنهادی','تازه','محبوب']).length))}</div><div class="l">برچسب مطلب</div></div>
       <div class="metric"><div class="n">${esc(fa(nEv))}</div><div class="l">رویداد</div></div>
       <div class="metric"><div class="n">${esc(fa(nPost))}</div><div class="l">مطلب</div></div></div>
-    <div class="head">برچسبهای برنامهها</div>
-    <p class="cap">برچسبها بالای خانه و روی کارت هر برنامه میآیند؛ چیپ رأی، همان صافی خانه است. برچسبی که اینجا نباشد از فهرست خانه حذف میشود؛ برداشتن، خود برنامهها را نمیشکند.</p>
+    ${sdSect('برچسبهای برنامهها','بالای خانه و روی کارت هر برنامه')}
+    <p class="cap">چیپ رأی، همان صافی خانه است؛ برداشتن برچسب، خود برنامهها را نمیشکند.</p>
     <div class="admfilters">${tags.map((t,i)=>`<span class="chip on">${esc(t)}
       <button class="chip" data-sdtagdel="${i}" aria-label="برداشتن ${esc(t)}">${ico('i-close')}</button></span>`).join('')||emptyBox('برچسبی نیست')}</div>
     <div class="row tight"><label class="fld" style="flex:1"><span>برچسب تازه</span><input id="sdTag" type="text" placeholder="مثل: ویژهٔ نوروز"/></label>
       ${btn('افزودن برچسب','data-sdtagadd','i-plus')}</div>
-    <hr class="hr"/>
-    <div class="head">برچسبهای مطلبها</div>
-    <p class="cap">خاموشی یعنی این برچسب دیگر به مطلب تازه پیشفرض نمیخورد؛ مطلبهای قبلی دستنخورده میمانند.</p>
+    ${sdEnd()}
+    ${sdSect('برچسبهای مطلبها','روی کارت مطلب در خانه')}
     ${sdG('ptags',['پیشنهادی','تازه','محبوب']).map((t,i)=>`<div class="admlirow">${ico('i-pin')}
-      <span class="sp"><b>${esc(t)}</b></span>
+      <span class="sp"><b>${esc(t)}</b><small class="cap">${sdG('ptag_'+t,1)?'به مطلب تازه پیشفرض میخورد':'فقط برچسبهای قدیمی میگیرند'}</small></span>
       <span class="mini"><span class="switch ${sdG('ptag_'+t,1)?'on':''}" data-sdptog="${esc(t)}" role="switch" aria-checked="${sdG('ptag_'+t,1)?'true':'false'}" aria-label="${esc(t)}"></span>
         <button class="btn sm quiet" data-sdptagdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')}
     <div class="row tight"><label class="fld" style="flex:1"><span>برچسب مطلب تازه</span><input id="sdPTag" type="text" placeholder="مثل: از مسترکلاس"/></label>
-      ${btn('افزودن برچسب مطلب','data-sdptagadd','i-plus')}</div>`;
+      ${btn('افزودن برچسب مطلب','data-sdptagadd','i-plus')}</div>
+    ${sdEnd()}`;
   } else if(cur==='cat'){
     const cats=sdG('cats',null)||CATS_L();
     const useN={}; evAll().forEach(e2=>{useN[e2.kind]=(useN[e2.kind]||0)+1});
-    inner=`<div class="head">دستههای رویداد</div>
-    <p class="cap">هر دسته آیکن و توضیح کوتاه دارد؛ در صافی خانه، در کارت برنامه و در ویزارد تعریف رویداد میآید. شمار کنار هر دسته، برنامههای زندهٔ همان دسته است.</p>
+    inner=`${sdSect('دستههای رویداد','در صافی خانه، کارت برنامه و ویزارد')}
+    <p class="cap">شمار کنار هر دسته، برنامههای زندهٔ همان دسته است؛ برداشتن دسته، برنامهها را نمیکشد.</p>
     ${cats.map((c,i)=>`<div class="admlirow"><span class="ic">${ico(c.i||'i-calendar')}</span>
       <span class="sp"><b>${esc(c.n)}</b><small class="cap">${esc(c.d||'')}</small></span>
       <span class="mini">${useN[c.n]?tag(fa(useN[c.n])+' برنامه',''):''}
@@ -2816,25 +2835,26 @@ function skdevView(){
       <label class="fld"><span>آیکن</span><select class="input" id="sdCatI">${['i-pen','i-video','i-users','i-pin','i-check','i-handshake','i-medal','i-globe','i-book','i-bolt'].map(x=>`<option value="${x}">${x.replace('i-','')}</option>`).join('')}</select></label>
       <label class="fld" style="flex:1"><span>توضیح کوتاه</span><input id="sdCatD" type="text" placeholder="مثل: دو نفر، یک موضوع"/></label>
       ${btn('افزودن دسته','data-sdcatadd','i-plus')}</div>
-    <div class="row tight">${sdG('cats',null)?btn('بازگشت دستههای پیشفرض','data-sdcatreset','i-back'):''}<span class="sp"></span></div>`;
+    <div class="row tight">${sdG('cats',null)?btn('بازگشت دستههای پیشفرض','data-sdcatreset','i-back'):''}<span class="sp"></span></div>
+    ${sdEnd()}`;
   } else if(cur==='cal'){
     const hol=SD_HOL();
-    const evs=evAll().slice().sort((x,y)=>String(x.on||'').localeCompare(String(y.on||'')));
+    const evs=evAll();
     const soon=evs.filter(x=>x.state==='soon').length;
     const upcoming=evs.filter(x=>x.state!=='done').slice(0,6);
-    inner=`<div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    inner=`
+    <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
       <div class="metric"><div class="n">${esc(fa(evs.length))}</div><div class="l">رویداد در فهرست</div></div>
       <div class="metric ${soon?'acc':''}"><div class="n">${esc(fa(soon))}</div><div class="l">در راه</div></div>
       <div class="metric"><div class="n">${esc(fa(pedPosts().length))}</div><div class="l">مطلب</div></div>
       <div class="metric"><div class="n">${esc(fa(hol.length))}</div><div class="l">تاریخ خاص</div></div></div>
-    <div class="head">تقویم پیش رو</div>
+    ${sdSect('تقویم پیش رو','شش برنامهٔ بعدی، با وضعیت واقعی')}
     ${upcoming.map(e2=>{const stE=evState(e2), st=(EV.states||{})[stE]||['',''];
       return `<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
         <span class="sp"><b>${esc(e2.n)}</b><small class="cap">${esc(whenLine(e2))} · ${esc(e2.time||'')}</small></span>
         <span class="mini">${tag(st[0]||'در راه',st[1]||'')}</span></div>`}).join('')||emptyBox('برنامهٔ پیشِ رو خالی است')}
-    <p class="cap">«در راه» از تاریخ جلسهها درمیآید؛ برای جابهجایی، از برگهٔ خود رویداد وقت بگیر.</p>
-    <hr class="hr"/>
-    <div class="head">تاریخهای خاص و تعطیلات</div>
+    ${sdEnd()}
+    ${sdSect('تاریخهای خاص و تعطیلات','جاهایی که برنامهٔ عادی نمیچینیم')}
     ${hol.map((x,i)=>`<div class="admlirow">${ico('i-pin')}
       <span class="sp"><b>${esc(x.n)}</b><small class="cap">${esc(x.w||x.d||'')}</small></span>
       <span class="mini"><button class="btn sm quiet" data-sdholdel="${i}">${esc('برداشتن')}</button></span></div>`).join('')||emptyBox('تاریخ خاصی نیست')}
@@ -2842,15 +2862,14 @@ function skdevView(){
       <label class="fld"><span>نام تاریخ</span><input id="sdHolN" type="text" placeholder="مثل: روز کتاب"/></label>
       <label class="fld" style="flex:1"><span>توضیح یا بازه</span><input id="sdHolD" type="text" placeholder="۸ آبان؛ تعطیل"/></label>
       ${btn('افزودن تاریخ','data-sdholadd','i-plus')}</div>
-    <hr class="hr"/>
-    <div class="head">ساعت پیشفرض برنامهها</div>
+    ${sdEnd()}
+    ${sdSect('ساعت پیشفرض برنامهها','ویزارد همین را پیش چشم میگذارد')}
     <div class="row tight">
       <label class="fld"><span>ساعت شروع</span><select class="input" data-sdclock="start">${['۱۰:۰۰','۱۶:۰۰','۱۷:۰۰','۱۸:۰۰'].map(x=>`<option ${sdG('clockStart','۱۸:۰۰')===x?'selected':''}>${x}</option>`).join('')}</select></label>
       <label class="fld"><span>طول پیشفرض</span><select class="input" data-sdclock="dur">${['۹۰ دقیقه','۲ ساعت','۲/۵ ساعت','۳ ساعت'].map(x=>`<option ${sdG('clockDur','۲ ساعت')===x?'selected':''}>${x}</option>`).join('')}</select></label></div>
-    <p class="cap">ویزارد رویداد تازه، همین ساعتها را پیش چشم میگذارد؛ کارشناس میتواند عوض کند.</p>`;
+    ${sdEnd()}`;
   } else if(cur==='tpl'){
-    inner=`<div class="head">قالب مطلب تازه</div>
-    <p class="cap">هر مطلب تازه از همین قالب شروع میشود؛ ویرایشگر مطلب (دو گام) اینها را پیش چشم میگذارد.</p>
+    inner=`${sdSect('قالب مطلب تازه','هر مطلب تازه از همین شروع میشود')}
     <div class="admtext"><span class="lbl">سرصفحهٔ پیشفرض</span><input class="input" data-sdtpl="lead" value="${esc(sdG('tplLead','از دلِ تجربهٔ کارگاهها؛ کوتاه و کاربردی بخوانید.'))}"/></div>
     <div class="admtext"><span class="lbl">نقل برجستهٔ پیشفرض (خالی: بی نقل)</span><input class="input" data-sdtpl="quote" value="${esc(sdG('tplQuote',''))}"/></div>
     <div class="admtext"><span class="lbl">فهرست پایانی پیشفرض (خالی: بی فهرست)</span><input class="input" data-sdtpl="list" value="${esc(sdG('tplList',''))}"/></div>
@@ -2859,24 +2878,24 @@ function skdevView(){
       <label class="fld"><span>زمان مطالعه (دقیقه)</span><select class="input" data-sdtpl="min">${['۳','۶','۱۰'].map(x=>`<option ${String(sdG('tplMin','۶'))===x?'selected':''}>${x}</option>`).join('')}</select></label>
       <label class="fld"><span>انتشار</span><select class="input" data-sdtpl="pub"><option value="1" ${String(sdG('tplPub',1))==='1'?'selected':''}>خودکار منتشر شود</option><option value="0">برای تأیید برود</option></select></label></div>
     <div class="row"><span class="sp"></span>${btn('ذخیرهٔ قالب','data-sdtplsave','i-check')}</div>
-    <hr class="hr"/>
-    <div class="head">پیشنمایش کارت مطلب در خانه</div>
-    ${bkCard({kind:'مطلب',t:sdG('tplTitle','هفت تمرین تنفس پیش از صحبت'),by:sdG('tplLead','از دلِ تجربهٔ کارگاهها'),sub:sdG('tplMin','۶')+' دقیقه مطالعه · '+sdG('tplCat','فن بیان'),link:bkRoot()+'home.html#articles'})}`;
+    ${sdEnd()}
+    ${sdSect('پیشنمایش کارت مطلب','همان که در خانهٔ کاربر می نشیند')}
+    <div class="sdprev">${sdCard()}</div>
+    ${sdEnd()}`;
   } else if(cur==='cta'){
-    inner=`<div class="head">دکمههای خانه</div>
-    <p class="cap">روی کارت رویداد و مطلب و باشگاه، دکمهٔ کنش میآید؛ متنش از همینجا عوض میشود. خالی بگذاری، نورا خودش میچیند.</p>
+    inner=`${sdSect('دکمههای خانه','روی کارت رویداد و مطلب و باشگاه')}
+    <p class="cap">خالی بگذاری، نورا خودش میچیند.</p>
     <div class="admtext"><span class="lbl">دکمهٔ ثبتنام رویداد</span><input class="input" data-sdcta="reg" value="${esc(sdG('ctaReg','ثبتنام'))}"/></div>
     <div class="admtext"><span class="lbl">دکمهٔ مطلب</span><input class="input" data-sdcta="more" value="${esc(sdG('ctaMore','ادامهٔ مطلب'))}"/></div>
     <div class="admtext"><span class="lbl">دکمهٔ باشگاه در کارت</span><input class="input" data-sdcta="club" value="${esc(sdG('ctaClub','عضویت در باشگاه'))}"/></div>
     <div class="row"><span class="sp"></span>${btn('ذخیرهٔ دکمهها','data-sdctasave','i-check')}</div>
-    <hr class="hr"/>
-    <div class="head">میانبرهای سریع خانه</div>
-    <p class="cap">چیپهای «از کجا شروع کنیم؟» در خانهٔ کاربر؛ کلید خاموش، چیپ را از خانه برمیدارد.</p>
+    ${sdEnd()}
+    ${sdSect('میانبرهای سریع خانه','چیپهای «از کجا شروع کنیم؟»')}
     ${['رویدادهای این هفته','مطلبهای تازه','باشگاه کتابخوانی','گواهی من'].map((t,i)=>`<div class="admsw"><span class="sp">${esc(t)}</span>
-      <span class="switch ${sdG('quick_'+i,1)?'on':''}" data-sdquick="${i}" role="switch" aria-checked="${sdG('quick_'+i,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}`;
+      <span class="switch ${sdG('quick_'+i,1)?'on':''}" data-sdquick="${i}" role="switch" aria-checked="${sdG('quick_'+i,1)?'true':'false'}" aria-label="${esc(t)}"></span></div>`).join('')}
+    ${sdEnd()}`;
   } else if(cur==='mod'){
-    inner=`<div class="head">سیاست انتشار</div>
-    <p class="cap">چهار کلید، چهار رفتار پنل؛ هر عوضشدنی در لاگ میماند.</p>
+    inner=`${sdSect('سیاست انتشار','چهار کلید، چهار رفتار پنل')}
     <div class="admsw"><span class="sp"><b>مطلب تازه، خودکار منتشر شود</b><small class="cap">خاموشی یعنی هر مطلب برای تأیید مالک برود</small></span>
       <span class="switch ${sdG('autopub',1)?'on':''}" data-sdtog="autopub" role="switch" aria-checked="${sdG('autopub',1)?'true':'false'}" aria-label="انتشار خودکار مطلب"></span></div>
     <div class="admsw"><span class="sp"><b>رویداد تازه، بی تأیید منتشر شود</b><small class="cap">سرپرست و کارشناس؛ مالک همیشه بیقید است</small></span>
@@ -2885,13 +2904,14 @@ function skdevView(){
       <span class="switch ${sdG('postntf',1)?'on':''}" data-sdtog="postntf" role="switch" aria-checked="${sdG('postntf',1)?'true':'false'}" aria-label="اعلان مطلب تازه"></span></div>
     <div class="admsw"><span class="sp"><b>آرشیو خودکار رویداد گذشته</b><small class="cap">دو روز پس از پایان، رویداد به آرشیو برود</small></span>
       <span class="switch ${sdG('arch2',1)?'on':''}" data-sdtog="arch2" role="switch" aria-checked="${sdG('arch2',1)?'true':'false'}" aria-label="آرشیو خودکار"></span></div>
-    <hr class="hr"/>
-    <div class="head">میانبرهای دم دست</div>
+    ${sdEnd()}
+    ${sdSect('میانبرهای دم دست','همان مسیرهای همیشگی')}
     <div class="admtiles">
       <button class="utile" data-gonew="ev"><span class="tt">${ico('i-calendar')}<b>رویداد تازه</b></span></button>
       <button class="utile" data-gonew="post"><span class="tt">${ico('i-article')}<b>مطلب تازه</b></span></button>
       <button class="utile" data-gojump2="events"><span class="tt">${ico('i-list')}<b>فهرست رویدادها</b></span></button>
-    </div>`;
+    </div>
+    ${sdEnd()}`;
   }
   return head+tabs+`<div class="stack tight">${inner}</div></section>`;
 }
