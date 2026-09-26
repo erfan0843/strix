@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=66;
+const SVER=67;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2774,18 +2774,26 @@ const SD_HOL=()=>sdG('holidays',[
 const sdSect=(t,d2)=>`<div class="sd-sect"><div class="sd-sect-t">${ico('i-grid')}<b>${esc(t)}</b><span class="sp"></span><span class="cap">${esc(d2||'')}</span></div><div class="sd-sect-b">`;
 const sdEnd=()=>`</div></div>`;
 /* کارت پیشنمایش، همان ریخت کارت مطلب خانه (pcard): جلد، برچسب، عنوان، نویسنده، دکمه */
+function sdPostSample(){
+  const feed=(window.NORA_UI&&NORA_UI.postsFeed)?NORA_UI.postsFeed():[];
+  if(feed.length) return feed[0];
+  const arts=((window.NORA||{}).ARTICLES)||[];
+  return arts[0]||null;
+}
 function sdCard(){
-  const t=sdG('tplTitle','هفت تمرین تنفس پیش از صحبت'),
-        lead=sdG('tplLead','از دلِ تجربهٔ کارگاهها؛ کوتاه و کاربردی بخوانید.'),
-        cat=sdG('tplCat','فن بیان'), mn=sdG('tplMin','۶');
+  const a=sdPostSample();
+  const more=sdG('ctaMore','ادامهٔ مطلب');
+  if(!a) return emptyBox('هنوز مطلبی نیست؛ قالب را ذخیره کن و مطلب تازه بساز');
   return `<div class="pcard" style="max-width:290px">
-    <div class="pc-cov" style="--g:linear-gradient(135deg,#1E6FD0,#0A3A82)">
-      <div class="pc-tags"><span class="tagg tag-g">${esc(cat)}</span></div>
+    <div class="pc-cov" style="--g:${esc(a.g||'linear-gradient(135deg,#1E6FD0,#0A3A82)')}">
+      ${a.cov?`<img src="${esc(a.cov)}" alt="" style="width:100%;height:100%;object-fit:cover"/>`:''}
+      <div class="pc-tags">${(a.tags||[]).slice(0,2).map(t=>`<span class="tagg tag-g">${esc(t)}</span>`).join('')}</div>
       <svg class="i" aria-hidden="true"><use href="#i-article"/></svg></div>
-    <div class="pc-body"><span class="pc-ttl">${esc(t)}</span>
-      <div class="pc-meta">${esc(lead)}</div>
-      <div class="pc-meta" style="color:var(--ink-2)">${esc(fa(mn))} دقیقه مطالعه</div></div>
-    <div class="pc-foot"><span class="btn sm primary">${esc(sdG('ctaMore','ادامهٔ مطلب'))}</span></div>
+    <div class="pc-body"><span class="pc-ttl">${esc(a.t)}</span>
+      ${a.lead?`<div class="pc-meta">${esc(a.lead)}</div>`:''}
+      <div class="pc-meta" style="color:var(--ink-2)">${esc(a.who||'')} · ${esc(fa(a.min||6))} دقیقه مطالعه</div></div>
+    <div class="pc-foot"><span class="btn sm primary">${esc(more)}</span>
+      ${a.mine?tag('همین مطلب، در پنل ساخته شده',''):tag('نمونهٔ ثابت سامانه','')}</div>
   </div>`;
 }
 function skdevView(){
@@ -2879,7 +2887,8 @@ function skdevView(){
       <label class="fld"><span>انتشار</span><select class="input" data-sdtpl="pub"><option value="1" ${String(sdG('tplPub',1))==='1'?'selected':''}>خودکار منتشر شود</option><option value="0">برای تأیید برود</option></select></label></div>
     <div class="row"><span class="sp"></span>${btn('ذخیرهٔ قالب','data-sdtplsave','i-check')}</div>
     ${sdEnd()}
-    ${sdSect('پیشنمایش کارت مطلب','همان که در خانهٔ کاربر می نشیند')}
+    ${sdSect('پیشنمایش کارت مطلب','یک مطلبِ فعالِ همین پنل، همان که خانهٔ کاربر میبیند')}
+    <p class="cap">این کارت از خود مطلبهای منتشرشدهٔ پنل میآید؛ مطلب تازه که با همین قالب ساخته و منتشر شود، اول همینجا می نشیند. متن دکمه از برگهٔ «دکمهها» میآید.</p>
     <div class="sdprev">${sdCard()}</div>
     ${sdEnd()}`;
   } else if(cur==='cta'){

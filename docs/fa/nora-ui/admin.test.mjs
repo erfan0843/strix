@@ -950,7 +950,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.type('[data-sdclock="start"]','۱۶:۰۰','change');
   ok(JSON.parse(p.store.getItem('nora-admin')).sd.clockStart==='۱۶:۰۰','ساعت پیشفرض برنامهها عوض میشود');
   p.click('[data-sdtab="tpl"]');
-  ok(!!p.doc.querySelector('[data-sdtpl="lead"]')&&!!p.doc.querySelector('.pcard .pc-ttl'),'قالب مطلب با پیشنمایش کارت واقعی خانه (جلد و برچسب و دکمه)');
+  ok(!!p.doc.querySelector('[data-sdtpl="lead"]')&&!!p.doc.querySelector('.pcard .pc-ttl'),'پیشنمایش قالب: کارت واقعی خانه (جلد و برچسب و دکمه)');
+  ok(/دقیقه مطالعه/.test(p.txt('.sdprev'))&&/ادامهٔ مطلب/.test(p.txt('.sdprev .pc-foot')),'کارت پیشنمایش: زمان مطالعه و دکمهٔ کنش از برگهٔ دکمهها');
+  ok(/پنل ساخته شده|نمونهٔ ثابت/.test(p.txt('.sdprev .pc-foot')),'پیشنمایش از مطلب فعال پنل میآید و نشانهاش را دارد');
   p.click('[data-sdtab="cta"]');
   p.doc.querySelector('[data-sdcta="reg"]').value='ثبتنام کن';
   p.click('[data-sdctasave]');
@@ -1375,7 +1377,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:66, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:67, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1604,9 +1606,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=77')&&html.includes('admin.js?v=77'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=78')&&html.includes('admin.js?v=78'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v66'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v67'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
