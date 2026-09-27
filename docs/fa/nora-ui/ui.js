@@ -1621,7 +1621,10 @@ function pubEvents(){
     const lf=formsFor(String(ev.id));
     const regF=lf.find(x=>(x.need||'reg')==='reg');
     const liveMoney=regF?formsMoney(regF):null;
-    const regN=regsOf(String(ev.id)).length;
+    /* شمار ثبت‌نام فقط پاسخِ فرمِ ثبت‌نام است؛ نظرسنجی و آزمون جا نمیشوند ولی
+       ثبت‌نام حساب نمیشوند، پس ظرفیت با پاسخِ نظرسنجی پر نمیشود */
+    const regN=regsOf(String(ev.id)).filter(r=>{const f=r.form&&formById?formById(r.form):null;
+      return !f||(f.need||'reg')==='reg'}).length;
     const base={id:String(ev.id), t:ev.n||'برنامه', kind:ev.kind||'برنامج',
       when:ev.when||(fj?faJDate(fj.jy,fj.jm,fj.jd):''), time:ev.time||'',
       place:online?'آنلاین':place, mode:online?'آنلاین':'حضوری',
@@ -1679,7 +1682,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v77') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v78') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

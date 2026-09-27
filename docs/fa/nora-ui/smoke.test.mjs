@@ -292,7 +292,7 @@ async function load(file,store,q){
   console.log('\n── رویداد با کد ──');
   const store=makeStore();
   const dOn='1405-11-20';
-  store.setItem('nora-admin',JSON.stringify({v:77,added:[
+  store.setItem('nora-admin',JSON.stringify({v:78,added:[
     {id:'cde1',n:'جلسهٔ خصوصی',kind:'نشست',when:'',on:dOn,time:'۱۸:۰۰',end:dOn,to:'۲۰:۰۰',
      place:'سالن نورا',cap:10,reg:0,state:'soon',code:'123456',privacy:'code',sess:[],sessions:1}]}));
   const p=await load('event.html',store,'?id=cde1');
@@ -304,7 +304,35 @@ async function load(file,store,q){
   p.doc.querySelector('#evcodein').value='123456'; p.click('[data-codeok]');
   ok(!!p.doc.querySelector('#reg'),'با کد درست، راه ثبت‌نام باز شد');
   ok(store.getItem('nora-evcode:cde1')==='1','و برای همین دستگاه دیگر نمیپرسد');
+  /* پاسخ نظرسنجی نباید ثبت‌نام حساب شود و ظرفیت را پر کند */
+  store.setItem('nora-forms',JSON.stringify([
+    {id:'cdf-reg',name:'فرم ثبت‌نام',kind:'ثبت‌نام',need:'reg',ev:'cde1',fields:[{id:1,t:'fullname',l:'نام',req:true}]},
+    {id:'cdf-svy',name:'نظرسنجی',kind:'نظرسنجی',need:'survey',ev:'cde1',fields:[{id:1,t:'choice',l:'امتیاز',opts:[{l:'عالی'}]}]}]));
+  store.setItem('nora-regs',JSON.stringify([
+    {id:'r1',ev:'cde1',form:'cdf-reg',at:1,atFa:'',code:'CD1',count:1,sum:0,method:'رایگان',ans:[{l:'نام',v:'الف'}]},
+    {id:'r2',ev:'cde1',form:'cdf-svy',at:2,atFa:'',code:'CD2',count:1,sum:0,method:'رایگان',ans:[{l:'امتیاز',v:'عالی'}]}]));
+  const PE1=(p.window.NORA_UI.pubEvents()||[]).find(x=>x.id==='cde1');
+  ok(PE1&&PE1.regs===1,'پاسخِ نظرسنجی ثبت‌نام حساب نمیشود');
   ok(p.errs.length===0,'بیخطا');
+}
+
+/* ── رویداد با کد: خودِ فرم هم بی کد باز نمیشود ── */
+{
+  console.log('\n── قفل کد روی فرم ──');
+  const store=makeStore();
+  store.setItem('nora-admin',JSON.stringify({v:78,added:[
+    {id:'cde2',n:'جلسهٔ خصوصی دو',kind:'نشست',when:'',on:'1405-11-22',time:'۱۸:۰۰',end:'1405-11-22',
+     place:'سالن نورا',cap:10,reg:0,state:'soon',code:'654321',privacy:'code',sess:[],sessions:1}]}));
+  store.setItem('nora-forms',JSON.stringify([
+    {id:'cd2-reg',name:'فرم ثبت‌نام جلسه',kind:'ثبت‌نام',need:'reg',ev:'cde2',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true}]}]));
+  const f=await load('form.html',store,'?ev=cde2&kind=reg');
+  ok(!!f.doc.querySelector('#evlock'),'فرمِ رویدادِ کدداری بی کد قفل است');
+  f.doc.querySelector('#evlockin').value='111111'; f.click('[data-evlock-ok]');
+  ok(/درست نیست/.test(f.txt('#evlockmsg')),'کد اشتباه روی فرم هم رد میشود');
+  f.doc.querySelector('#evlockin').value='654321'; f.click('[data-evlock-ok]');
+  ok(store.getItem('nora-evcode:cde2')==='1','با کد درست، همان دستگاه به فرم میرسد');
+  ok(f.errs.length===0,'بیخطا');
 }
 
 /* ═══════════ گیت ادمین: دعوت دوست بسته ═══════════ */
@@ -1863,7 +1891,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:77, added:[
+  store.setItem('nora-admin', JSON.stringify({v:78, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

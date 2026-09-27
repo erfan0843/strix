@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=88"/>
+<link rel="stylesheet" href="glass.css?v=89"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -492,8 +492,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="data.js?v=88"></script>
-<script src="ui.js?v=88"></script>
+<script src="data.js?v=89"></script>
+<script src="ui.js?v=89"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
@@ -590,6 +590,27 @@ function renderPayMethods(){
       CFG.date=(ev.when?ev.when+'، ':'')+(ev.time||'');
       if(ev.kind) CFG.kind=ev.kind;
     }
+    /* رویداد با کد: بی کد دعوت، خودِ فرم هم باز نمیشود؛ همان کلیدی که در صفحهٔ
+       رویداد نشست، این‌جا هم خوانده میشود */
+    if(kind==='reg'&&ev&&ev.code){
+      let un=false; try{un=localStorage.getItem('nora-evcode:'+evId)==='1'}catch(e){}
+      if(!un){
+        const E2x=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        CFG.title=ev.t||CFG.title;
+        const ov=document.createElement('div'); ov.id='evlock';
+        ov.setAttribute('style','position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(8,12,24,.94)');
+        ov.innerHTML='<div class="card" style="max-width:430px;width:100%;text-align:center">'
+          +'<div style="font-size:18px;font-weight:800;margin-bottom:6px">'+E2x(ev.t||'رویداد با کد')+'</div>'
+          +'<p class="cap" style="margin-bottom:14px">این رویداد خصوصی است؛ فقط با کد دعوت شش‌رقمی باز می‌شود</p>'
+          +'<input id="evlockin" class="input" dir="ltr" inputmode="numeric" placeholder="______" style="text-align:center;margin-bottom:10px" aria-label="کد دعوت"/>'
+          +'<button class="btn primary" data-evlock-ok style="width:100%">بررسی کد</button>'
+          +'<p class="cap" id="evlockmsg" style="margin-top:10px"></p></div>';
+        if(document.body) document.body.appendChild(ov);
+        else document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(ov));
+        window.__EVLOCK=String(ev.code); window.__EVLOCKEV=String(evId);
+        return;
+      }
+    }
     /* هر قلم فرمساز به پرسش: با نوع، گزینه‌ها و اجبار */
     const qOf=x=>Array.isArray(x)?{l:String(x[0]||''),t:'text',req:true}
       :(x&&typeof x==='object')?{l:String(x.l||x.n||''),t:String(x.t||'text'),req:!!x.req,
@@ -659,6 +680,21 @@ function renderPayMethods(){
     CFG.confirmed=false;
   }catch(err){}
 })();
+/* رویداد با کد: بررسی کد روی خودِ فرم؛ درست بود صفحه تازه میشود و فرم باز */
+document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest?e.target.closest('[data-evlock-ok]'):null;
+  if(!b||!window.__EVLOCK) return;
+  const inp=document.getElementById('evlockin');
+  const v=String((inp&&inp.value)||'').trim();
+  if(v===window.__EVLOCK){
+    try{localStorage.setItem('nora-evcode:'+(window.__EVLOCKEV||''),'1')}catch(e2){}
+    location.reload();
+  } else {
+    const m=document.getElementById('evlockmsg');
+    if(m) m.textContent='کد دعوت درست نیست؛ دوباره نگاه کن';
+    if(inp){inp.value=''; try{inp.focus()}catch(e3){}}
+  }
+});
 const S={guests:[],discount:0,code:'',method:''};
 /* هر گزینه‌ای که کاربر خودش زده · پیش‌فرض ادمین کافی نیست، انتخاب باید صریح باشد */
 const PICKED=new Set();
