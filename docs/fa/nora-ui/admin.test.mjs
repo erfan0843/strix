@@ -695,13 +695,20 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#admBody a[download]').length===1,'قالب بارگذاریشده دانلود دارد');
   p.click('[data-cdef]');
   ok(/پیشفرض عوض شد/.test(p.txt('#toast')),'پیشفرضسازی قالب در تنظیمات هم هست');
+  p.click('[data-setg="ticket"]');
+  ok(p.all('#admBody .sd-sect').length===2&&p.all('#admBody .admsw').length===p.all('#admBody .admsw small').length,'بلیت: دو بخشبند و شرح رفتار زیر هر کلید');
   p.click('[data-setg="money"]');
   ok(p.all('[data-tog]').length===4,'گروه مالی چهار کلید دارد');
+  ok(p.all('#admBody .sd-sect').length===2&&/رسید همان لحظه/.test(p.txt('#admBody')),'مالی: درگاه و رسید از اقساط و کارمزد جداست و زیر هر کلید شرح هست');
   const first=p.all('[data-tog]')[0];
   p.click(first);
   ok(first.classList.contains('on')!==(/false/.test(first.getAttribute('aria-checked'))),'کلید خاموش و روشن می‌شود');
   p.click('[data-setg="data"]');
   ok(p.all('#admBody .sd-sect').length===2&&p.all('[data-keycopy]').length===4,'داده: سیاست و کلیدها در دو بخشبند با چهار کلید');
+  ok(p.all('#admBody .admsw').length===p.all('#admBody .admsw small').length,'داده: شرح رفتار زیر هر کلید');
+  p.click('#admNav [data-sec="settings"]');
+  p.click('[data-setg="texts"]');
+  ok(p.all('[data-setg]').length===6&&/بعد از تأیید عضویت/.test(p.txt('#admBody')),'برگشت به گروه متنها با راهنمای کاری زیر هر نوشته');
   p.click('[data-setg="notify"]');
   ok(p.all('#admBody .sd-sect').length>=5,'نامهخانه: پنج بخشبند از اعلانها تا دفتر نامهها');
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
@@ -1475,7 +1482,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:70, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:71, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1704,9 +1711,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=81')&&html.includes('admin.js?v=81'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=82')&&html.includes('admin.js?v=82'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v70'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v71'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

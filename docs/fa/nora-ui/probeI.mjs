@@ -1,0 +1,34 @@
+import jsdom from 'jsdom';
+const {JSDOM}=jsdom;
+const errs=[];
+const mk=()=>{const m=new Map(); return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size}}};
+const dom=await JSDOM.fromFile('admin.html',{runScripts:'dangerously',resources:'usable',pretendToBeVisual:true,url:'file:///home/user/strix/docs/fa/nora-ui/admin.html',
+  beforeParse(w){w.scrollTo=()=>{}; if(w.Element&&!w.Element.prototype.scrollIntoView)w.Element.prototype.scrollIntoView=()=>{};
+    if(!w.matchMedia)w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+    Object.defineProperty(w,'localStorage',{configurable:true,value:mk()});
+    w.addEventListener('error',e=>errs.push(e.message)); w.console.error=(...a)=>errs.push(a.join(' '));}});
+await new Promise(r=>setTimeout(r,1100));
+const {window}=dom,d=window.document;
+const cl=el=>el.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));
+const q1=s=>d.querySelector(s), qa=s=>[...d.querySelectorAll(s)];
+const click=sel=>{const el=q1(sel); if(!el) throw new Error('نیست: '+sel); cl(el)};
+const txt=()=>d.querySelector('#admBody').textContent.replace(/\s+/g,' ');
+click('#admNav [data-sec="settings"]');
+console.log('grp header:',/متن‌های پرکاربرد/.test(txt()),'| texts hint:',/بعد از تأیید عضویت/.test(txt()));
+click('[data-setg="money"]');
+console.log('money secs:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'));
+console.log('money captions:',qa('#admBody .admsw small').length,'| sample:',/رسید همان لحظه/.test(txt()));
+click('[data-setg="ticket"]');
+console.log('ticket secs:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'),'| all captioned:',qa('#admBody .admsw').length===qa('#admBody .admsw small').length);
+click('[data-setg="cert"]');
+console.log('cert captioned:',qa('#admBody .admsw').length===qa('#admBody .admsw small').length,'| toggle works:',!!q1('[data-tog="cert"]'));
+click(pickTog(),{}); function pickTog(){return '[data-tog="cert"]'}
+click('[data-tog="cert"]');
+console.log('cert toggle clicked ok');
+click('[data-setg="notify"]');
+console.log('notify secs:',qa('#admBody .sd-sect').length,'| hour captions:',/هیچ پیامی نمیرود/.test(txt()));
+click('[data-setg="data"]');
+console.log('data secs:',qa('#admBody .sd-sect-t b').map(x=>x.textContent.trim()).join('،'),'| data captions:',qa('#admBody .admsw small').length,'| keys:',qa('[data-keycopy]').length);
+console.log('toggle still works:',!!q1('[data-tog]'));
+click('[data-tog]');
+console.log('errs:',errs.slice(0,3));

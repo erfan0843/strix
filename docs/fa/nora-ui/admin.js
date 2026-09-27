@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=70;
+const SVER=71;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -3565,6 +3565,49 @@ function formSetView(){
       <span class="sp"></span>${btn('بایگانی','data-fclean','i-layers')}</div>
   </section>`;
 }
+/* شرح و بخشبندی تنظیمات: زیر هر کلید رفتارش نوشته میشود و هر گروه
+   به بخشبندهای معنادار میشکند؛ همه از یک جا (کاشیها هم از همین زبان) */
+const STNOTE={
+  'درگاه رسمی بله':'پرداخت درونرباتی با امنیت بله؛ رسید همان لحظه در حساب من می‌نشیند',
+  'کارت‌به‌کارت با تأیید رسید':'فقط با رسیدی که کارشناس تأیید کند ثبت میشود',
+  'پرداخت اقساطی':'هزینهٔ رویداد در دو قسط؛ قسط دوم پیش از برگزاری',
+  'کارمزد روی کاربر':'کارمزد درگاه به قیمت اضافه میشود؛ خاموش باشد از سهم موسسه کم میشود',
+  'صدور با تأیید سرپرست':'گواهی پیش از صدور روی میز سرپرست حوزه می‌نشیند',
+  'ساخت تنبل گواهی':'فایل گواهی هنگام اولین دیدن ساخته میشود، نه هنگام صدور',
+  'گواهی چاپی':'علاوه بر نسخهٔ تار، نسخهٔ چاپی با نشانی هم رد میشود',
+  'استعلام با کیوآرکد':'هر گواهی کیوآرکد استعلام دارد؛ اسکنش سراغ سامانه میآید',
+  'بلیت تصویری':'بلیت با هنر رویداد و مشخصات عضو، تصویری ساخته میشود',
+  'کارت ورود با کیوآرکد':'کارت ورود روز رویداد با کیوآرکد حضور در حساب من میآید',
+  'لوگو در بلیت':'نشان موسسه گوشهٔ هر بلیت چاپ میشود',
+  'بلیت مهمان':'عضو میتواند برای یک همراه هم بلیت بگیرد',
+  'یادآور شب قبل':'شب پیش از رویداد، با ساعت یادآور، پیام میرود',
+  'تبریک تولد':'صبح تولد هر عضو، تبریک با نام خودش میرود',
+  'خبر رویداد تازه':'رویداد تازه که تعریف شود، به همه خبر میرود',
+  'ساعت سکوت ۲۳ تا ۸':'میان این ساعات هیچ پیامی نمیرود؛ صبح میرسند',
+  'پشتیبان شبانه':'هر شب نسخهٔ کامل دادهها در ربات بله می‌نشیند',
+  'نگه‌داری لاگ ۹۰ روز':'دفتر عملیات پنل نود روز میماند و بعد بایگانی میشود',
+  'ورود گروهی از اکسل':'فهرست اعضا با اکسل یکجا وارد میشود',
+  'حالت نگهداری':'سامانه برای عضوها بسته میماند و فقط پنل باز است'};
+const STSECT={
+  money:[['درگاه و رسید',['درگاه رسمی بله','کارت‌به‌کارت با تأیید رسید']],
+    ['اقساط و کارمزد',['پرداخت اقساطی','کارمزد روی کاربر']]],
+  ticket:[['نمای بلیت',['بلیت تصویری','لوگو در بلیت']],
+    ['ورود و مهمان',['کارت ورود با کیوآرکد','بلیت مهمان']]]};
+const STHINT={
+  welcome:'بعد از تأیید عضویت به کاربر تازه میرود',
+  remind:'شب پیش از هر رویداد، با ساعت یادآور میرود',
+  cert:'همراه خبر صدور گواهی میرود',
+  invite:'در برگهٔ دعوت دوست حساب من می‌نشیند'};
+const sdRowSw=(g,r)=>{const on=togDef(g,r[0],r[1]);
+  return `<div class="admsw"><span class="sp"><b>${esc(r[0])}</b>${STNOTE[r[0]]?`<small>${esc(STNOTE[r[0]])}</small>`:''}</span>
+    <span class="switch ${on?'on':''}" data-tog="${esc(g)}" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
+      role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`};
+const sdRows=(g,rows,grp)=>{
+  const plan=STSECT[g];
+  if(plan) return plan.map(x=>sdSect(x[0],fa(x[1].length)+' کلید')
+    +rows.filter(r=>x[1].indexOf(r[0])>-1).map(r=>sdRowSw(g,r)).join('')+sdEnd()).join('');
+  return sdSect(grp.n,fa(rows.length)+' کلید')+`<p class="cap">${esc(grp.s||'')}</p>`
+    +rows.map(r=>sdRowSw(g,r)).join('')+sdEnd()};
 function vSettings(){
   const ST=A.settings||{}, own=isOwner(), lead=isLead();
   const canTpl=own||lead;   /* قالب گواهینامه: فقط دست مالک و سرپرست */
@@ -3606,15 +3649,14 @@ function vSettings(){
         <span class="tx"><b>${esc(f.n)}</b><small>${esc(f.s||'')}${(f.params||[]).length?' · <span dir="ltr">'+esc((f.params||[]).slice(0,5).map(x=>'{'+x+'}').join(' '))+'</span>':''}</small></span>
         <span class="mini">${tdef===f.k?tag('پیشفرض','brand'):btn('پیشفرض کن','data-cdef="'+esc(f.k)+'"','i-check')}
           ${f.up?'<a class="btn sm" download="'+esc(f.n)+'.docx" href="'+f.up+'">'+ico('i-download')+esc(TU.dl||'دانلود')+'</a>':(f.big?tag(TU.heavy||'','warn'):'')}</span></div>`).join('')}</div><hr class="hr"/>`;
-    inner+=sdEnd()+sdSect('سیاست صدور گواهینامه',esc(fa((((ST.rows||{})['cert'])||[]).length))+' کلید')+(((ST.rows||{})['cert'])||[]).map(r=>{const on=togDef('cert',r[0],r[1]);
-      return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
-        <span class="switch ${on?'on':''}" data-tog="cert" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
-          role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')+sdEnd();
+    inner+=sdEnd()+sdSect('سیاست صدور گواهینامه',esc(fa((((ST.rows||{})['cert'])||[]).length))+' کلید')
+      +(((ST.rows||{})['cert'])||[]).map(r=>sdRowSw('cert',r)).join('')+sdEnd();
   } else if(g==='texts'){
     const TX=ST.texts||{};
     inner=sdSect(TX.title||'نوشتههای سامانه',esc(fa((TX.list||[]).length))+' نوشته')+`<p class="cap">${esc(TX.note||'')}</p>`+
       (TX.list||[]).map(t=>`<div class="admtext"><span class="lbl">${esc(t.n)}</span>
-        <input class="input" data-text="${esc(t.k)}" value="${esc(txtDef(t.k,t.v))}"/></div>`).join('')+
+        <input class="input" data-text="${esc(t.k)}" value="${esc(txtDef(t.k,t.v))}"/>
+        ${STHINT[t.k]?`<small class="cap" style="display:block;margin-top:4px">${esc(STHINT[t.k])}</small>`:''}</div>`).join('')+
       `<div class="row"><span class="sp"></span>${btn(T.save||W.save||'ذخیره شد','data-savetexts','i-check')}</div>`+sdEnd();
   } else if(g==='notify'){
     const rows=((ST.rows||{})[g])||[];
@@ -3657,10 +3699,7 @@ function vSettings(){
               <span class="cap">جایخالیها: {نام} {رویداد} {ساعت} {جا} {کد} {عدد} {مبلغ} {تاریخ}</span></div>`:''}
           </div>`}).join('')}
       ${sdEnd()}${sdSect('ساعتها و حالتهای کلی',esc(fa(rows.length))+' کلید')}
-      ${rows.map(r=>{const on=togDef(g,r[0],r[1]);
-        return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
-          <span class="switch ${on?'on':''}" data-tog="${esc(g)}" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
-            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')}
+      ${rows.map(r=>sdRowSw(g,r)).join('')}
       <div class="row tight">
         <label class="fld"><span>ساعت یادآور شب قبل</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
         <label class="fld"><span>ساعت تبریک تولد</span><select class="input" data-ntfclock="bday">${['۸:۰۰','۹:۰۰','۱۰:۰۰'].map(x=>`<option ${ntfClock('bday')===x?'selected':''}>${x}</option>`).join('')}</select></label>
@@ -3675,11 +3714,7 @@ function vSettings(){
       <div class="row tight">${(S.ntfLog||[]).length?btn('خالی کردن دفتر','data-ntflogclr','i-trash'):''}<span class="sp"></span></div>${sdEnd()}`;
   } else {
     const rows=((ST.rows||{})[g])||[];
-    inner=sdSect(group.n,esc(fa(rows.length))+' کلید')+`<p class="cap">${esc(group.s||'')}</p>
-      ${rows.map(r=>{const on=togDef(g,r[0],r[1]);
-        return `<div class="admsw"><span class="sp">${esc(r[0])}</span>
-          <span class="switch ${on?'on':''}" data-tog="${esc(g)}" data-toglabel="${esc(r[0])}" data-togdef="${r[1]?1:0}"
-            role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(r[0])}"></span></div>`}).join('')+(g==='data'?'':sdEnd())}`;
+    inner=sdRows(g,rows,group);
     if(g==='data'){
       const K=ST.keys||{};
       inner+=sdEnd()+sdSect(K.title||L.keys,esc(fa((K.list||[]).length))+' کلید')+`<p class="cap">${esc(K.note||'')}</p>
@@ -3693,6 +3728,8 @@ function vSettings(){
     <div class="row"><div class="head">${esc(ST.lead||'')}</div><span class="sp"></span>
       <span class="cap">${esc(own?fa((ST.groups||[]).length)+' گروه · '+(group.n||''):(D.fieldSettings||'حوزهٔ من'))}</span></div>
     <div class="admfilters">${groups}</div>
+    ${group.n?`<div class="admlirow" style="border:0;padding-bottom:0"><span class="ic">${ico(group.i)}</span>
+      <span class="sp"><b>${esc(group.n)}</b><small class="cap">${esc(group.s||'')}</small></span></div>`:''}
     <div class="admset">${inner}</div>
   </section>`;
 }
