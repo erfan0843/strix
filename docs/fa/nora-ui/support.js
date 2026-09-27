@@ -358,10 +358,13 @@ function renderTeam(){
     const c=$('#exCount'); if(c) c.textContent=faN(rows.filter(e=>e.on).length)+' نفر آنلاین';
   }
   const mg=$('#mgList');
-  if(mg) mg.innerHTML=(supMgr()||SUP.managers||[]).map(m=>'<a class="drow" href="'+esc(m.href)+'">'+
-    '<span class="dic gold">'+ico('i-users')+'</span>'+
-    '<span class="dtx"><b>'+esc(m.n)+'</b><small>'+esc(m.r)+' · '+esc(m.why)+'</small></span>'+
-    icochev()+'</a>').join('');
+  /* ردیفِ مدیر: اگر راه تماسی از پنل نرسیده، پیوند ساخته نمیشود (کلیکِ بیجا نمیخورَد) */
+  if(mg) mg.innerHTML=(supMgr()||SUP.managers||[]).map(m=>{
+    const inn='<span class="dic gold">'+ico('i-users')+'</span>'+
+      '<span class="dtx"><b>'+esc(m.n)+'</b><small>'+esc(m.r)+(m.why?' · '+esc(m.why):'')+'</small></span>';
+    return m.href?('<a class="drow" href="'+esc(m.href)+'">'+inn+icochev()+'</a>')
+                 :('<div class="drow">'+inn+'</div>');
+  }).join('');
   const fm=$('#fmList');
   if(fm){
     const rows=SECT.filter(s=>s.form).map(s=>({t:s.form.t,href:s.form.href,who:s.n}));

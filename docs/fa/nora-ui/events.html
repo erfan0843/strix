@@ -23,9 +23,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=84"/>
-<link rel="stylesheet" href="nora.css?v=84"/>
-<link rel="stylesheet" href="events.css?v=84"/>
+<link rel="stylesheet" href="glass.css?v=85"/>
+<link rel="stylesheet" href="nora.css?v=85"/>
+<link rel="stylesheet" href="events.css?v=85"/>
 <style>
   /* نوار بالا و نوار جست‌وجو، وقت اسکرول شیشه می‌شوند */
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
@@ -473,8 +473,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=84"></script>
-<script src="ui.js?v=84"></script>
+<script src="data.js?v=85"></script>
+<script src="ui.js?v=85"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    آرشیو رویدادها؛ هر برنامه‌ای که برگزار شده یا در پیش است
@@ -584,7 +584,7 @@ function slide(e){
     <div class="meta">
       <svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${esc(e.when)} · ${esc(e.time)}</span>
       <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${esc(e.place||'آنلاین')}</span>
-      <svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span></div>
+      ${(e.tchr&&p.n&&p.n!=='—')?`<svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span>`:''}</div>
     <div class="acts">${act}
       <a class="btn quiet" href="event.html?id=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-chev-left"/></svg> جزئیات</a>
       <button class="btn quiet" data-uishare="${esc(e.id)}" aria-label="اشتراک‌گذاری"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg></button></div>
@@ -751,7 +751,7 @@ function tileUp(e){
     </button>
     <div class="ebody">
       <b class="ettl">${esc(e.t)}</b>
-      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>${esc(p.n)}</span></span>
+      ${(e.tchr&&p.n&&p.n!=='—')?`<span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>${esc(p.n)}</span></span>`:''}
       <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span>${esc(e.when)} · ${esc(e.time)}</span></span>
       <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${esc(e.place||'آنلاین')}</span></span>
       ${badges.length?`<span class="ebadges">${badges.map(b=>tag(b, b==='گواهی‌دار'?'gold':(b==='ظرفیت محدود'?'stop':'ok'))).join('')}</span>`:''}
@@ -781,7 +781,7 @@ function tilePast(h){
     </button>
     <div class="ebody">
       <b class="ettl">${esc(h.t)}</b>
-      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>${esc(p.n)}</span></span>
+      ${(h.tchr&&p.n&&p.n!=='—')?`<span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>${esc(p.n)}</span></span>`:''}
       <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${esc(h.d)}</span></span>
       <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-layers"/></svg><span>${esc(h.rec)}</span></span>
       <span class="erating"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg><b>${esc(h.rate2||'')}</b>

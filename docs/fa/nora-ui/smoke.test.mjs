@@ -635,6 +635,25 @@ async function load(file,store,q){
   ok(/رضایی‌فر/.test(ev.txt('#page')),'مدرسی که پنل برای رویداد برگزید، روی صفحهٔ رویداد است');
   const el=await load('events.html',store);
   ok(/رضایی‌فر/.test(el.txt('#listView')),'و روی کارتِ فهرست رویدادها');
+  /* رویدادِ بی‌مدرس: ردیفِ تهی نمیآید */
+  const st2=makeStore();
+  st2.setItem('nora-admin',JSON.stringify({added:[{id:'nx1',n:'نشست بی‌مدرس',kind:'نشست',
+    when:'جمعه ۲۵ مهر',on:'1405/07/25',time:'18:00',end:'1405/07/25',place:'آنلاین',cap:20,state:'soon'}]}));
+  const e2=await load('event.html',st2,'?id=nx1');
+  ok(/نشست بی‌مدرس/.test(e2.txt('#page')),'رویدادِ منتشرشدهٔ بی‌مدرس در صفحهٔ خودش هست');
+  ok(e2.all('[data-uiperson]').length===0,'و دیگر ردیفِ تهیِ «—» برای مدرس ندارد');
+  const l2=await load('events.html',st2);
+  const card=l2.all('#listView .etile').filter(x=>/نشست بی‌مدرس/.test(x.textContent))[0];
+  ok(!!card&&!/#i-user"/.test(card.innerHTML),'کارتِ رویدادِ بی‌مدرس، نشانیِ مدرس ندارد');
+  /* مطلبِ پنل: نویسندهاش به پروفایل پیوند میخورد */
+  const st3=makeStore();
+  st3.setItem('nora-posts',JSON.stringify([{id:'np1',t:'یادداشت تازه',cat:'یادداشت',lead:'سرآغاز',
+    author:'مهندس کیوان مرادی',tchr:'p2',pub:1,pend:0,min:3,blocks:[],at:Date.now()}]));
+  const h3=await load('home.html',st3);
+  const who=h3.all('#articles [data-person]').filter(x=>/دربارهٔ نویسنده/.test(x.textContent));
+  ok(who.length>0&&who[0].dataset.person==='p2','مطلبِ پنل، «دربارهٔ نویسنده» را به همان پروفایل وصل میکند');
+  const p3=await load('post.html',st3,'?id=np1');
+  ok(/کیوان مرادی/.test(p3.txt('#page')),'و صفحهٔ مطلب نامِ نویسنده را از پروفایل میگیرد');
 }
 
 /* ═══════════ فرمساز با پیشفرضهای پنل (create.html) ═══════════ */
@@ -1715,7 +1734,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:73, added:[
+  store.setItem('nora-admin', JSON.stringify({v:74, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

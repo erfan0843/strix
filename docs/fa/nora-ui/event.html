@@ -25,9 +25,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=84"/>
-<link rel="stylesheet" href="nora.css?v=84"/>
-<link rel="stylesheet" href="events.css?v=84"/>
+<link rel="stylesheet" href="glass.css?v=85"/>
+<link rel="stylesheet" href="nora.css?v=85"/>
+<link rel="stylesheet" href="events.css?v=85"/>
 <style>
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
@@ -269,8 +269,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=84"></script>
-<script src="ui.js?v=84"></script>
+<script src="data.js?v=85"></script>
+<script src="ui.js?v=85"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ اختصاصی رویداد و بستهٔ رسانه
@@ -428,10 +428,10 @@ function render(){
       <span class="tag">پلتفرم فارسی، بدون فیلترشکن</span></div>`}
   </div>`:''}
 
-  <button class="suprow" data-uiperson="${esc(p.id)}" style="margin-bottom:12px">
+  ${(e.tchr&&p.n&&p.n!=='—')?`<button class="suprow" data-uiperson="${esc(p.id)}" style="margin-bottom:12px">
     <span class="ava" style="--g:${esc(p.g||'')}">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.n)}"/>`:esc(p.ini||'')}</span>
     <span style="flex:1;min-width:0"><b class="sub">${esc(p.n)}</b><div class="cap">${esc(p.r||'')}</div></span>
-    <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+    <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`:''}
 
   <div class="sec-hd"><span class="fw">کلیات</span><span class="sp"></span><span class="cap">کد ${esc(String(e.id).toUpperCase())}</span></div>
   <div class="stack tight">

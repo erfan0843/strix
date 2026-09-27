@@ -1481,7 +1481,7 @@ function postMin(p){
 }
 /* شکل کارت مطلب برای خانهٔ کاربر؛ همان‌قدر خودی که نمونه‌های ثابت‌اند */
 function postsFeed(){return postsPub().map(p=>({id:p.id, t:p.t||'بی نام', cat:p.cat||'مطلب',
-  min:p.min||postMin(p), lead:p.lead||'', who:p.author||'', cov:(p.cover&&p.cover.up)||'',
+  min:p.min||postMin(p), lead:p.lead||'', who:p.author||'', tchr:p.tchr||'', cov:(p.cover&&p.cover.up)||'',
   g:(p.cover&&p.cover.g)||'linear-gradient(135deg,#1E6FD0,#0A3A82)',
   tags:(p.tags||[]).slice(0,2), pin:!!p.pin, club:!!p.club, views:faN(+p.views||0), mine:1}))}
 /* تاریخ مطلب: «جمعه ۴ مهر» از زمان انتشار */
@@ -1602,7 +1602,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v73') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v74') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=73;
+const SVER=74;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',tchr:'',tchrNew:0,
@@ -3373,6 +3373,17 @@ function ppPrev(p){
 }
 /* ── فرم ویرایش: هر قلم در پیشنویس مینشیند تا پیشنمایش همراهش تازه شود ── */
 const ppD=()=>{if(!S.ppD) return null; return S.ppD};
+/* انتشار: اگر حافظهٔ مرورگر جا نداشت، خاموش نمیگذرد و راهش را میگوید */
+function ppPub(key,list){
+  try{localStorage.setItem(key,JSON.stringify({list:list,at:Date.now(),by:me().n||'مالک'})); return true}
+  catch(e){toast('حافظهٔ مرورگر پر شد؛ عکسهای بارگذاریشده را کوچکتر کن یا یکی را بردار، بعد دوباره منتشر کن'); return false}}
+const ppPubList=key=>{try{const v=JSON.parse(localStorage.getItem(key)||'null');
+  return v&&Array.isArray(v.list)?v.list:null}catch(e){return null}};
+/* تفاوتِ هر ردیف با همان ردیفِ منتشرشده: «منتشرنشده» یعنی کاربر هنوز این را ندیده */
+function ppDiff(p,i,kind){
+  const L=ppPubList(kind==='mgr'?'nora-managers':'nora-people'); if(!L) return true;
+  const q=kind==='mgr'?L[i]:L.filter(x=>String(x.id)===String(p.id))[0];
+  return !(q&&JSON.stringify(q)===JSON.stringify(p))};
 /* عکسِ آواتار از پوستر کوچکتر گرفته میشود: ۳۶۰ پیکسل و کیفیت ۰٫۸،
    تا چند عکسِ بارگذاری‌شده کلید مشترک را سنگین نکند. گونهٔ پرونده هم
    اگر مرورگر نداد، از نشانی داده درست میشود. */
@@ -3510,7 +3521,10 @@ function ppForm(D,kind){
   ].filter(Boolean).join('');
 }
 function ppList(kind){
-  const L=ppMerged(kind), b=ppSet(), hide=b.hide||[], ed=S.ppEd;
+  const all=ppMerged(kind), q=String(S.ppQ||'').trim();
+  const hit=p=>!q||(String(p.n||'')+' '+String(p.r||'')+' '+String(p.why||'')+' '+(p.exp||[]).join(' ')).indexOf(q)>-1;
+  const L=q?all.filter(hit):all;
+  const b=ppSet(), hide=b.hide||[], ed=S.ppEd;
   if(ed){
     const D=ppD();
     return `${sdSect(ed==='new'?(kind==='mgr'?'مدیر تازه':'عضو تازه'):'ویرایش پروفایل',
@@ -3520,7 +3534,10 @@ function ppList(kind){
         <div>${D?ppForm(D,kind):''}</div></div>
       <div class="row tight">${btn(ed==='new'?(kind==='mgr'?'افزودن مدیر':'افزودن عضو'):'ذخیرهٔ پروفایل','data-ppsave','i-check')}
         ${btn('انصراف','data-ppx','i-close')}
+        ${ed!=='new'?btn('رونوشت از این پروفایل','data-ppdup','i-copy'):''}
         ${ed!=='new'&&kind!=='mgr'?btn('پنهان از کاربر','data-pphideone','i-eye-off'):''}</div>
+      ${ed!=='new'?`<div class="row tight">${btn('بازگشت به پیش‌فرضِ سامانه','data-ppreset','i-trash')}
+        <span class="cap">تغییرهای این پروفایل پاک می‌شود و همانِ دادهٔ سامانه برمیگردد${kind==='mgr'?'':'؛ عضوِ تازه یکسره برداشته می‌شود'}.</span></div>`:''}
       ${sdEnd()}`;
   }
   const base=PP_BASE().filter(p=>kind==='staff'?p.kind==='staff':p.kind!=='staff');
@@ -3534,6 +3551,7 @@ function ppList(kind){
         <span class="sp"><b>${esc(p.n||'بی‌نام')}${p.star?' '+ico('i-star'):''}</b>
           <small class="cap">${esc([p.r,p.why||p.role2].filter(Boolean).join(' · '))}${row?' · '+esc(row.v):''}</small></span>
         <span class="mini">${p.tag?tag(p.tag,'brand'):''}${isNew?tag('تازه',''):''}
+          ${ppDiff(p,i,kind)?tag('منتشرنشده','warn'):''}
           ${i>0?btn('بالا','data-ppup="'+i+'"','i-chev-up'):''}
           ${i<L.length-1?btn('پایین','data-ppdown="'+i+'"','i-chev-down'):''}
           ${btn('ویرایش','data-pped="'+esc(key)+'"','i-pen')}
@@ -3544,7 +3562,7 @@ function ppList(kind){
     ${sdEnd()}
     ${kind!=='mgr'?`
     ${sdSect('پنهانشدهها','از صفحهٔ کاربر برمیدارند؛ برگشتشان باز است')}
-    ${base.filter(p=>hide.indexOf(p.id)>-1).map(p=>`<div class="admlirow">${ico('i-eye-off')}
+    ${base.filter(p=>hide.indexOf(p.id)>-1).filter(hit).map(p=>`<div class="admlirow">${ico('i-eye-off')}
       <span class="sp"><b>${esc(p.n)}</b><small class="cap">${esc(p.r||'')}</small></span>
       <span class="mini">${btn('نمایش دوباره','data-ppshow="'+esc(p.id)+'"','i-eye')}</span></div>`).join('')
       ||'<p class="cap">چیزی پنهان نشده است</p>'}
@@ -3567,7 +3585,9 @@ function peopleView(){
     <div class="row"><div class="head">مدیران و اساتید</div><span class="sp"></span>
       <span class="cap">${esc(fa(ppl.length))+' نفر تیم · '+esc(fa(mg.length))+' مدیر'}</span></div>
     <p class="cap">پروفایلها همینجا ساخته و عوض میشوند: نام و سمت، عکس، رنگ، راه‌های ارتباط و فرمی از فرم‌ساز. پیش‌نمایش هر کارت و هر ورقه، همان است که کاربر می‌بیند. با انتشار، همهٔ صفحهها همین فهرست را می‌خوانند.</p>`;
-  return head+tabs+`
+  const find=`<label class="fld" style="max-width:300px"><span class="lbl">جست‌وجو در این برگه</span>
+    <input class="input" data-ppq="1" value="${esc(S.ppQ||'')}" placeholder="نام، سمت یا تخصص؛ خالی یعنی همه"/></label>`;
+  return head+tabs+find+`
     <div class="stack tight">${ppList(cur)}</div>
     <hr class="hr"/>
     <div class="row tight">${btn(pdirty?'انتشار به همهٔ صفحهها':'منتشر شد؛ بازانتشار','data-pppub','i-send')}
@@ -4466,7 +4486,11 @@ const PTY={p:{n:'پاراگراف',i:'i-pen'},h:{n:'تیتر',i:'i-align'},img:{
   hr:{n:'جداکننده',i:'i-close'}};
 function U(){try{return (window.NORA_UI&&NORA_UI)||null}catch(e){return null}}
 function pedPosts(){const u=U(); return u&&u.postsAll?u.postsAll():[]}
-function pedFresh(){return {id:'np'+Date.now(), t:'', cat:'', tags:'', lead:'', author:(me().n||''), cover:{g:PGRADS[0]},
+/* نویسندهٔ پیشفرض: همان کسی که در پنل نشسته، اگر در فهرست آدمهای نورا باشد */
+function pedAuthor(){const n=String((me()||{}).n||'').trim(); if(!n) return '';
+  const P=((window.NORA||{}).PEOPLE||[]);
+  const f=P.filter(x=>String(x.n||'').trim()===n)[0]; return f?(f.id||''):''}
+function pedFresh(){return {id:'np'+Date.now(), t:'', cat:'', tags:'', lead:'', author:(me().n||''), tchr:pedAuthor(), cover:{g:PGRADS[0]},
   pin:0, club:0, blocks:[], ev:'', fm:'', pub:0, pend:0, views:0, at:0}}
 function pedSave(p){const u=U(); if(u&&u.postPut) u.postPut(p)}
 function pedMin(p){const u=U(); return u&&u.postMin?u.postMin(p):1}
@@ -4555,8 +4579,14 @@ function postEditor(){
         <input class="input" data-pf="tags" value="${esc(d.tags||'')}" placeholder="گزارش، عکاسی"/></div>
     </div>
     <div class="row tight">
-      <div class="fld" style="flex:1"><span class="lbl">نویسنده</span>
-        <input class="input" data-pf="author" value="${esc(d.author||'')}" placeholder="نام نویسنده"/></div>
+      <div class="fld" style="flex:1.1"><span class="lbl">نویسنده (پروفایل)</span>
+        <select class="input" data-ptchr="1">
+          <option value="">بی‌پروفایل؛ زیرِ نام «تحریریهٔ نورا»</option>
+          ${wizTchrList().map(p=>`<option value="${esc(p.id)}"${String(d.tchr||'')===String(p.id)?' selected':''}>${esc(p.n||'')}${p.r?' · '+esc(p.r):''}</option>`).join('')}
+        </select>
+        <span class="cap">با پیوند به پروفایل، «دربارهٔ نویسنده» روی کارتِ مطلب می‌نشیند و مطلب به نامش وصل می‌شود.</span></div>
+      <div class="fld" style="flex:1"><span class="lbl">نامِ زیرِ خط (اگر جزو تیم نیست)</span>
+        <input class="input" data-pf="author" value="${esc(d.author||'')}" placeholder="مثل: تحریریهٔ نورا یا نام میهمان"/></div>
       <div class="fld"><span class="lbl">نماد</span>
         <div class="row tight">
           <button class="chip ${d.pin?'on':''}" data-ptog="pin">${ico('i-pin')} پین</button>
@@ -5235,7 +5265,7 @@ document.addEventListener('click',e=>{
       ppOpen(String(id),S.ppTab); save(); renderBody();
       toast('پروفایل ایشان در کاشی مدیران و اساتید باز شد');} return}
   const wtp=q('[data-wtchrpub]'); if(wtp){const L=ppMerged('tch').concat(ppMerged('staff'));
-    try{localStorage.setItem('nora-people',JSON.stringify({list:L,at:Date.now(),by:me().n||'مالک'}))}catch(e){}
+    if(!ppPub('nora-people',L)) return;
     uLogAdd('فهرست اساتید و دستاندرکاران منتشر شد ('+fa(L.length)+' نفر)');
     toast('منتشر شد؛ مدرس به صفحهٔ کاربر رسید'); renderBody(); return}
   /* ── کاشی مدیران و اساتید: هر قلم در پیش‌نویس مینشیند و پیش‌نمایش زنده است ── */
@@ -5292,6 +5322,26 @@ document.addEventListener('click',e=>{
   const pph1=q('[data-pphideone]'); if(pph1){const b=ppSet(), id=S.ppEd;
     if(id&&id!=='new'){b.hide=(b.hide||[]).concat([id]); S.ppEd=''; S.ppD=null; save();
       toast('از صفحهٔ کاربر پنهان شد'); renderBody()} return}
+  const ppq2=q('[data-ppq]'); if(ppq2){S.ppQ=ppq2.value; renderBody(); return}
+  const pprs=q('[data-ppreset]'); if(pprs){const b=ppSet(), kind=S.ppTab||'tch', key=S.ppEd;
+    if(!key||key==='new'){toast('این پروفایل تازه است'); return}
+    if(kind==='mgr'){const i=+key, MGRBASE=(SUP_D().managers||[]);
+      if(i<MGRBASE.length){if(b.mgrO) delete b.mgrO[i]}
+      else b.mgrAdd=(b.mgrAdd||[]).filter((x,j)=>j!==i-MGRBASE.length);}
+    else if((b.add||[]).some(x=>String(x.id)===String(key))){
+      b.add=(b.add||[]).filter(x=>String(x.id)!==String(key));
+      b.ord=(b.ord||[]).filter(x=>x!==key);}
+    else if(b.o) delete b.o[key];
+    S.ppEd=''; S.ppD=null; save();
+    uLogAdd('پروفایل به پیش‌فرضِ سامانه برگشت');
+    toast('به پیش‌فرضِ سامانه برگشت'); renderBody(); return}
+  const ppdp=q('[data-ppdup]'); if(ppdp){const b=ppSet(), kind=S.ppTab||'tch', key=S.ppEd, D=ppD();
+    if(!D||!key||key==='new'){toast('اول ذخیره کن، بعد رونوشت بگیر'); return}
+    const cp=JSON.parse(JSON.stringify(D)); delete cp.id;
+    cp.id='p'+Date.now(); cp.kind=kind==='staff'?'staff':'tch'; cp.star=0;
+    cp.n=String(cp.n||'بی‌نام')+' (رونوشت)';
+    b.add=(b.add||[]).concat([cp]); S.ppEd=''; S.ppD=null; save();
+    toast('رونوشت ساخته شد؛ نام و عکسش را عوض کن'); renderBody(); return}
   const ppdel=q('[data-ppdel]'); if(ppdel){const b=ppSet(), kind=S.ppTab||'tch', key=ppdel.dataset.ppdel;
     if(kind==='mgr'){const i=+key, MGRBASE=(SUP_D().managers||[]);
       b.mgrAdd=(b.mgrAdd||[]).filter((x,j)=>j!==i-MGRBASE.length)}
@@ -5309,12 +5359,12 @@ document.addEventListener('click',e=>{
   const ppdn=q('[data-ppdown]'); if(ppdn){ppMove(S.ppTab||'tch',+ppdn.dataset.ppdown,1); renderBody(); return}
   const pppub=q('[data-pppub]'); if(pppub){const L=ppMerged('tch').concat(ppMerged('staff'));
     if(!L.length){toast('کسی برای انتشار نیست'); return}
-    try{localStorage.setItem('nora-people',JSON.stringify({list:L,at:Date.now(),by:me().n||'مالک'}))}catch(e){}
+    if(!ppPub('nora-people',L)) return;
     uLogAdd('فهرست اساتید و دستاندرکاران منتشر شد ('+fa(L.length)+' نفر)');
     toast('منتشر شد؛ خانه، رویداد، مطلب و حساب همین فهرست را می‌خوانند'); renderBody(); return}
   const pppm=q('[data-pppubmgr]'); if(pppm){const L=ppMerged('mgr');
     if(!L.length){toast('مدیری برای انتشار نیست'); return}
-    try{localStorage.setItem('nora-managers',JSON.stringify({list:L,at:Date.now(),by:me().n||'مالک'}))}catch(e){}
+    if(!ppPub('nora-managers',L)) return;
     uLogAdd('فهرست مدیریت به صفحهٔ پشتیبانی منتشر شد');
     toast('مدیران منتشر شد؛ صفحهٔ پشتیبانی همین فهرست را میبیند'); renderBody(); return}
   const sgnw=q('[data-gonew]'); if(sgnw){S.skinD=0; S.skin=0;
@@ -5918,6 +5968,15 @@ document.addEventListener('change',e=>{
       toast(fa(okn)+' نفر از «'+f.name+'» شناخته شد'+(rows.length-okn?' · '+fa(rows.length-okn)+' ناشناس با همان نام صادر میشود':''))};
     fr.onerror=()=>toast('این پرونده خوانده نشد');
     fr.readAsArrayBuffer(f); return}
+  if(el.dataset.ptchr&&S.ped){const id=el.value, P=(wizTchrList());
+    const prev=P.filter(x=>String(x.id)===String(S.ped.tchr))[0], np=P.filter(x=>String(x.id)===String(id))[0];
+    S.ped.tchr=id||'';
+    /* نامِ زیرِ خط اگر دستنخورده (تهی، یا همانِ پیشفرض/پروفایلِ پیشین) باشد، همراهِ پروفایل میآید */
+    const isAuto=!String(S.ped.author||'').trim()
+      ||String(S.ped.author)===String((me()||{}).n||'')
+      ||(prev&&String(S.ped.author)===String(prev.n));
+    if(np&&isAuto) S.ped.author=np.n||'';
+    save(); renderBody(); return}
   if(el.dataset.pev&&S.ped){S.ped.ev=el.value; save(); return}
   if(el.dataset.pfm&&S.ped){S.ped.fm=el.value; save(); return}
   if(el.dataset.pfile){const f=(el.files||[])[0]; if(!f||!S.ped) return;
@@ -5948,6 +6007,7 @@ document.addEventListener('change',e=>{
     ppShrink(f,url=>{ if(!url){toast('این تصویر خوانده نشد'); return}
       D.photo=url; save(); renderBody(); toast('عکس ایشان نشست'); });
     return}
+  if(el.dataset.ppq){S.ppQ=el.value; save(); renderBody(); return}
   if(el.dataset.ppf){ppField(el.dataset.ppf,el.value); ppPatch(); return}
   if(el.dataset.pplk!==undefined){ppLinkSet(+el.dataset.pplk,el.value); ppPatch(); return}
   if(el.dataset.wfile){const f=(el.files||[])[0]; if(!f) return;
@@ -5988,6 +6048,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{
   const el=e.target; if(!el||!el.dataset) return;
   /* پروفایل: قلم در پیش‌نویس مینشیند و پیش‌نمایشِ کنار دستش همان لحظه تازه میشود */
+  if(el.dataset.ppq){S.ppQ=el.value; save(); return}
   if(el.dataset.ppf){ppField(el.dataset.ppf,el.value); ppPatch(); return}
   if(el.dataset.pplk!==undefined){ppLinkSet(+el.dataset.pplk,el.value); ppPatch(); return}
   if(el.dataset.pf&&S.ped){S.ped[el.dataset.pf]=el.value; save(); return}

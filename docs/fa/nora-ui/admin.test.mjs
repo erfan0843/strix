@@ -325,6 +325,24 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(q.errs.length===0,'ویرایشِ مدرس بیخطا بود');
 }
 
+/* ── نویسندهٔ مطلب به پروفایل وصل میشود ── */
+{const q=await load();
+  q.click('#admNav [data-sec="events"]');
+  q.click('[data-pnew]');
+  ok(!!q.doc.querySelector('[data-ptchr]')&&q.all('[data-ptchr] option').length>=9,'ویرایشگر مطلب: نویسنده از فهرست آدمها برگزیده میشود');
+  q.type('[data-pf="t"]','گزارش کارگاه نقالی');
+  q.type('[data-pf="lead"]','گزارش کوتاه','change');
+  const sel=q.doc.querySelector('[data-ptchr]'); sel.value='p2';
+  sel.dispatchEvent(new q.window.Event('change',{bubbles:true}));
+  ok(JSON.parse(q.store.getItem('nora-admin')).ped.tchr==='p2','نویسنده به پروفایلش پیوند خورد');
+  ok(JSON.parse(q.store.getItem('nora-admin')).ped.author==='مهندس کیوان مرادی','و نامِ زیرِ خط همراهش آمد');
+  if(q.doc.querySelector('[data-pgo="2"]')) q.click('[data-pgo="2"]');
+  q.click('[data-ppub]');
+  const po=(JSON.parse(q.store.getItem('nora-posts')||'[]'))[0]||{};
+  ok(po.tchr==='p2','مطلب با نویسنده منتشر شد');
+  ok(q.errs.length===0,'ویرایشِ نویسنده بیخطا بود');
+}
+
 /* ── ۳) رویدادها: فهرست، صافی و جزئیات ── */
 {
   console.log('\n── رویدادها ──');
@@ -1178,6 +1196,23 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    pp.click('[data-pphide="p2"]');
    ok((JSON.parse(pp.store.getItem('nora-admin')).pp.hide||[]).includes('p2')&&/۱ پنهان/.test(pp.txt('#admBody')),'پنهانکردن استاد از صفحهٔ کاربر');
    pp.click('[data-ppshow="p2"]');
+   /* بازگشت به پیش‌فرض، رونوشت و جستوجو */
+   pp.click('[data-pped="p1"]');
+   pp.click('[data-ppreset]');
+   ok(!((JSON.parse(pp.store.getItem('nora-admin')).pp.o||{})['p1']),'«بازگشت به پیش‌فرضِ سامانه» لایهٔ تغییر را برمیدارد');
+   ok(/الهه رضایی/.test(pp.txt('#admBody')),'و همانِ دادهٔ سامانه سر جایش برمیگردد');
+   pp.click('[data-pped="p1"]');
+   pp.click('[data-ppdup]');
+   const dup=(JSON.parse(pp.store.getItem('nora-admin')).pp.add||[]).slice(-1)[0]||{};
+   ok(/رونوشت/.test(dup.n||''),'رونوشت گرفتن از یک پروفایل');
+   pp.type('[data-ppq]','رونوشت','change');
+   ok(pp.all('[data-pped]').length===1,'جست‌وجو در برگه، فهرست را تنگ میکند');
+   ok(/همگام|منتشرنشده/.test(pp.txt('#admBody')),'و نشانِ انتشارِ هر ردیف سر جایش است');
+   pp.type('[data-ppq]','','change');
+   const dupDel=pp.all('[data-ppdel]').filter(b=>/رونوشت/.test((b.closest('.admlirow')||{}).textContent||''))[0];
+   pp.click(dupDel);
+   ok(!(JSON.parse(pp.store.getItem('nora-admin')).pp.add||[]).some(x=>/رونوشت/.test(x.n||'')),'رونوشتِ آزمایشی برداشته شد');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.add||[]).some(x=>x.n==='هومن راد'),'و عضوِ پیشین سر جایش است');
    /* مدیران */
    pp.click('[data-pptab="mgr"]');
    ok(pp.all('[data-pped]').length===2&&/شریفی/.test(pp.txt('#admBody')),'برگهٔ مدیران با دو مدیر سامانه');
@@ -1597,7 +1632,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:73, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:74, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1826,9 +1861,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=84')&&html.includes('admin.js?v=84'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=85')&&html.includes('admin.js?v=85'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v73'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v74'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

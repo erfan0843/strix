@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=84"/>
-<link rel="stylesheet" href="nora.css?v=84"/>
+<link rel="stylesheet" href="glass.css?v=85"/>
+<link rel="stylesheet" href="nora.css?v=85"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -659,8 +659,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=84"></script>
-<script src="ui.js?v=84"></script>
+<script src="data.js?v=85"></script>
+<script src="ui.js?v=85"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -1332,7 +1332,7 @@ function artCard(a){
       <div class="authrow">${a.who?`<span class="av" style="--g:${esc(a.g)};display:grid;place-items:center">${esc(String(a.who).trim().slice(0,1))}</span>`:av(a.tchr)}<span>${esc(a.who||p.n)} · ${faN(a.min)} دقیقه مطالعه</span></div>
     </div>
     <div class="pc-foot"><button class="btn sm primary" data-article="${a.id}">خواندن</button>
-      <button class="btn sm quiet" data-person="${a.tchr}">دربارهٔ نویسنده</button></div>
+      ${(a.tchr&&person(a.tchr).n&&person(a.tchr).n!=='—')?`<button class="btn sm quiet" data-person="${esc(a.tchr)}">دربارهٔ نویسنده</button>`:''}</div>
   </div>`;
 }
 function renderArticles(){
@@ -1462,9 +1462,9 @@ function renderArticleSheet(){
     <div class="prof-cov" style="--g:${a.g};height:118px"><svg class="i" style="width:34px;height:34px"><use href="#i-article"/></svg></div>
     <h3 style="margin:12px 0 6px;font-size:17px;line-height:1.6">${esc(a.t)}</h3>
     <p class="sub" style="margin-bottom:10px">${esc(a.lead)}</p>
-    <button class="suprow" data-person="${p.id}" style="margin-bottom:12px">
+    ${(a.tchr&&p.n&&p.n!=='—')?`<button class="suprow" data-person="${esc(p.id)}" style="margin-bottom:12px">
       ${av(a.tchr,'ava')}<span style="flex:1;min-width:0"><b class="sub">${esc(p.n)}</b><div class="hrow">${esc(p.r)}</div></span>
-      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>
+      <svg class="i" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg></button>`:''}
     <div class="artbody">
       ${a.body.map(b=>`<p style="margin:0">${esc(b)}</p>`).join('')}
       ${a.quote?`<blockquote>${esc(a.quote)}</blockquote>`:''}
