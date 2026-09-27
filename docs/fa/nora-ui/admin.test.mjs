@@ -587,7 +587,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   for(let i=0;i<170&&!au;i++){await wait(500);
     try{au=JSON.parse(p.store.getItem('nora-admin')||'{}').auditLast||null}catch(e){}}
   ok(!!au,'پیمایش تا پایان میرود و ثبت میشود');
-  ok(au&&au.secs===7&&au.tot>=500&&au.tot<=900,'پیمایش از ریز تا درشت عمق دارد: '+au.tot+' کنترل در '+au.secs+' بخش');
+  ok(au&&au.secs===7&&au.tot>=500&&au.tot<=960,'پیمایش از ریز تا درشت عمق دارد: '+au.tot+' کنترل در '+au.secs+' بخش');
   ok(au&&au.mute===0&&!au.errs.length,'هیچ کنترل بیپاسخ و هیچ خطا نیست');
   ok(au&&au.skip>=10&&au.ext>=1,'کنترلهای حساس (بازنشانی و شخص) و پیوندهای بیرونی دور ماندهاند');
   ok(au&&au.banTot>0,'بنرهای اطلاعی هم دیده شدهاند');
@@ -714,8 +714,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.store.getItem('nora-admin')!==null,'حالت پنل ذخیره می‌شود');
   /* ── تنظیمات سامانه: کاشیها و مدیریت ظاهر ── */
   p.click('#admNav [data-sec="settings"]');
-  ok(p.all('[data-skit]').length===7,'هفت کاشی تنظیمات سامانه هست');
-  ok(p.all('.sktgrid .sktile').length===7,'کاشیها در شبکهٔ تنظیمات نشستهاند');
+  ok(p.all('[data-skit]').length===8,'هشت کاشی تنظیمات سامانه هست');
+  ok(p.all('.sktgrid .sktile').length===8,'کاشیها در شبکهٔ تنظیمات نشستهاند');
   p.click('[data-skit="forms"]');
   ok(/تنظیمات فرمساز/.test(p.txt('#admBody')),'کاشی فرمساز، مدیریت فرمساز را باز کرد');
   ok(p.all('#admBody .metric').length===4,'گزارش کلی: چهار عدد (فرم، روی هوا، پاسخ، کار باز)');
@@ -744,7 +744,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-fclean]'); p.click('[data-fclean]');
   ok(/کار انجامشده/.test(p.txt('#toast')),'بایگانی کارهای کارتابل با دو پا گام روشن میشود');
   p.click('[data-skinback]');
-  ok(p.all('[data-skit]').length===7,'برگشت به کاشیها (هفت کاشی با مدیریت پنل)');
+  ok(p.all('[data-skit]').length===8,'برگشت به کاشیها (هشت کاشی با مدیریت پنل)');
   /* ── کاشی کاربران و دسترسی: شش عدد، سه صف درخواست، پارامتر پروفایل، برچسب، مسدود ── */
   p.click('[data-skit="users"]');
   ok(/کاربران و دسترسی/.test(p.txt('#admBody')),'کاشی کاربران، مدیریت کاربران را باز کرد');
@@ -1003,7 +1003,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    const st2=makeStore(); st2.setItem('nora-support-tickets',JSON.stringify(TKS));
    const pc=await load(st2);
    pc.click('#admNav [data-sec="settings"]');
-   ok(pc.all('[data-skit]').length===7&&!/در نوبت بعد/.test(pc.txt('[data-skit="chat"]')),'کاشی پشتیبانی و گفتگو از نوبت خارج شد و هفت کاشی کامل است');
+   ok(pc.all('[data-skit]').length===8&&!/در نوبت بعد/.test(pc.txt('[data-skit="chat"]')),'کاشی پشتیبانی و گفتگو از نوبت خارج شد و هشت کاشی کامل است');
    pc.click('[data-skit="chat"]');
    ok(pc.all('[data-chtab]').length===5,'پنج برگه: گفتگوها، پاسخهای آماده، سرویس، تیم، گزارش');
    ok(/داخل ساعات|خارج از ساعت/.test(pc.txt('#admBody .tag')),'نشان زندهٔ ساعات پاسخگویی سرِ کاشی');
@@ -1080,6 +1080,45 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    ok(/بی‌نام/.test(pc.txt('#admBody'))&&/فوری/.test(pc.txt('#admBody')),'شمارش بی‌نام و فوری و واگذارشده در گزارش');
    ok(/گزارش اکسل/.test(pc.txt('#admBody')),'خروجی اکسل صندوق از ربات بله');
    ok(pc.errs.length===0,'کاشی پشتیبانی و گفتگو بیخطا بود');}
+  /* ═══ کاشی «مدیران و اساتید»: پروفایل، پیشنمایش کارت، انتشار به همهٔ صفحهها ═══ */
+  {const pp=await load();
+   pp.click('#admNav [data-sec="settings"]');
+   ok(/مدیران و اساتید/.test(pp.txt('[data-skit="people"]')),'کاشی مدیران و اساتید سر جای خودش است');
+   pp.click('[data-skit="people"]');
+   ok(pp.all('[data-pptab]').length===3,'سه برگه: اساتید، دستاندرکاران، مدیران');
+   ok(pp.all('[data-pped]').length===6&&/منتشرنشده/.test(pp.txt('#admBody')),'شش استاد از دادهٔ سامانه با حالت منتشرنشده');
+   pp.click('[data-pped="p1"]');
+   ok(!!pp.doc.querySelector('#ppN')&&!!pp.doc.querySelector('.tcard .nm'),'ویرایش پروفایل با پیشنمایش زندهٔ کارت استاد');
+   pp.click('[data-ppg="2"]'); pp.click('[data-ppphoto="people/p2.svg"]');
+   pp.type('#ppN','خانم الهه رضایی‌فر');
+   pp.click('[data-ppsave="p1"]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.o||{}).p1.n==='خانم الهه رضایی‌فر','ویرایش نام و رنگ و عکس در لایهٔ تنظیمات نشست');
+   pp.click('[data-pppub]');
+   const pv=JSON.parse(pp.store.getItem('nora-people')||'null');
+   ok(!!pv&&pv.list.length===8&&pv.list.find(x=>x.id==='p1').photo==='people/p2.svg','انتشار، هشت نفر را با تغییرات در کلید مشترک nora-people نشاند');
+   ok(/همگام/.test(pp.txt('#admBody')),'پس از انتشار، حالت همگامی دیده میشود');
+   pp.click('[data-ppnew]');
+   pp.type('#ppN','هومن راد'); pp.type('#ppR','مدرس خط شکسته'); pp.type('#ppExp','خط شکسته، خوشنویسی');
+   pp.click('[data-ppsave="new"]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.add||[]).length===1,'افزودن عضو تازه به اساتید');
+   pp.click('[data-pppub]');
+   ok(JSON.parse(pp.store.getItem('nora-people')).list.length===9,'عضو تازه هم با انتشار به کاربر میرسد');
+   pp.click('[data-pphide="p2"]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.hide||[]).includes('p2')&&/۱ پنهان/.test(pp.txt('#admBody')),'پنهانکردن استاد از صفحهٔ کاربر');
+   pp.click('[data-ppshow="p2"]');
+   pp.click('[data-pptab="mgr"]');
+   ok(pp.all('[data-pped]').length===2&&/شریفی/.test(pp.txt('#admBody')),'برگهٔ مدیران با دو مدیر سامانه');
+   pp.click('[data-pped="0"]');
+   pp.type('#ppWhy','تصمیمهای مدیریتی و همکاری نهادی');
+   pp.click('[data-ppsave="0"]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.mgrO||[])[0].why==='تصمیمهای مدیریتی و همکاری نهادی','ویرایش نقش و پاسخگویی مدیر');
+   pp.click('[data-ppnew]');
+   pp.type('#ppN','الهام نوری'); pp.type('#ppR','مدیر روابط عمومی');
+   pp.click('[data-ppsave="new"]');
+   pp.click('[data-pppubmgr]');
+   const mg=JSON.parse(pp.store.getItem('nora-managers')||'null');
+   ok(!!mg&&mg.list.length===3&&mg.list.some(x=>x.n==='الهام نوری'),'انتشار مدیران در کلید مشترک nora-managers');
+   ok(pp.errs.length===0,'کاشی مدیران و اساتید بیخطا بود');}
   {p.click('#admNav [data-sec="settings"]');
    if(!p.doc.querySelector('[data-skit="ops"]')) p.click('[data-skinback]');
    p.click('[data-skit="ops"]');}
@@ -1177,7 +1216,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(JSON.parse(p.store.getItem('nora-uiset')).home.stories===1,'بازنشانی برگه، همان برگه را به پیشفرض برگرداند');
   ok(/برگهٔ «بخشهای خانه»/.test(p.txt('#toast')),'بازنشانی برگه با نام برگه خبر میدهد');
   p.click('[data-skinback]');
-  ok(p.all('[data-skit]').length===7,'بازگشت به کاشیها');
+  ok(p.all('[data-skit]').length===8,'بازگشت به کاشیها');
   p.click('#admNav [data-sec="users"]'); p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
   ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت مدیران و کارشناسان هست (مالک جداست)');
   ok(p.all('.stflow .stf').length===3,'جریان سهگامی حساب و ورود اول روی صفحه است');
@@ -1482,7 +1521,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:71, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:72, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1711,9 +1750,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=82')&&html.includes('admin.js?v=82'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=83')&&html.includes('admin.js?v=83'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v71'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v72'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

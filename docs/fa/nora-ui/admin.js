@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=71;
+const SVER=72;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',
@@ -2477,6 +2477,7 @@ const SKIN_TILES=[
  {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، نگهداری، پشتیبان'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترم، کتاب ماه، جلسهها، حق عضویت، پادکست، مسابقه'},
  {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم، قالب مطلب، میانبرها'},
+ {k:'people', n:'مدیران و اساتید', i:'i-users', s:'پروفایل، نقش، عکس و کارت معرفی'},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'صندوق تیکت، پاسخهای آماده، ساعات و گزارش'}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
   ['story','استوریها'],['look','کارتها و اساتید'],['type','نوشتار و چیدمان'],
@@ -3193,6 +3194,163 @@ function chatView(){
   else inner=chRep();
   return head+tabs+`<div class="stack tight">${inner}</div></section>`;
 }
+/* ══ کاشی مدیران و اساتید: پروفایل، عکس، نقش و کارت معرفی ══
+   پیشنمایش، همان کارت «اساتید و مدرسان» خانهٔ کاربر است (tcard). پس از
+   انتشار، کلید مشترک nora-people همهٔ صفحهها (خانه، رویداد، مطلب و حساب)
+   را برمیدارد و nora-managers فهرست مدیریت صفحهٔ پشتیبانی را. */
+const PPTABS=[['tch','اساتید'],['staff','دست‌اندرکاران'],['mgr','مدیران']];
+const ppSet=()=>{if(!S.pp) S.pp={}; return S.pp};
+const ppG=(k,d)=>{const b=ppSet(); return b[k]!=null?b[k]:d};
+const PP_BASE=()=>((window.NORA||{}).PEOPLE||[]);
+const PP_GS=[
+  {n:'آبی نورا',v:'linear-gradient(135deg,#1E6FD0,#0A3A82)'},
+  {n:'سبزآبی',v:'linear-gradient(135deg,#2E6B7A,#0B2447)'},
+  {n:'شبانه',v:'linear-gradient(135deg,#3E5B84,#0B2447)'},
+  {n:'جنگل',v:'linear-gradient(135deg,#2F6B4F,#123528)'}];
+const PP_PHOTOS=()=>{const seen={};
+  PP_BASE().forEach(p=>{if(p.photo) seen[p.photo]=1});
+  return Object.keys(seen)};
+const ppIni=p=>p.ini||String(p.n||'ن').trim().charAt(0);
+const ppMerged=kind=>{
+  const b=ppSet();
+  if(kind==='mgr'){
+    const base=SUP_D().managers||[];
+    return base.map((m,i)=>Object.assign({},m,(b.mgrO||[])[i]||{})).concat(b.mgrAdd||[]);
+  }
+  const o=b.o||{}, hide=b.hide||[];
+  const base=PP_BASE().filter(p=>kind==='staff'?p.kind==='staff':p.kind!=='staff');
+  const L=base.filter(p=>hide.indexOf(p.id)<0).map(p=>Object.assign({},p,o[p.id]||{}));
+  return L.concat(((b.add||[]).filter(p=>p.kind===kind)));
+};
+function ppNextCourse(id){
+  const E=((window.NORA||{}).EVENTS||[]), order=['tonight','tomorrow','week','next'];
+  return E.filter(e=>e.tchr===id).sort((a,b)=>order.indexOf(a.day)-order.indexOf(b.day))[0]||null;
+}
+function ppStars(r){
+  const R=Math.round(+r||0);
+  let h=''; for(let i=1;i<=5;i++) h+='<svg class="i" style="'+(i<=R?'':'opacity:.35')+'"><use href="#i-star"/></svg>';
+  return '<span class="stars">'+h+'</span>';
+}
+function ppCard(p){
+  const nx=ppNextCourse(p.id);
+  return `<div class="tcard" style="max-width:244px">
+    <div class="tcov" style="--g:${esc(p.g||PP_GS[0].v)}">
+      <span class="tci">${ico(p.kind==='staff'?'i-idcard':'i-graduation')}</span>
+      <span class="av">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.n)}"/>`:esc(ppIni(p))}</span></div>
+    <div class="tbody"><b class="nm">${esc(p.n)}</b>
+      <span class="rl">${esc(p.r||'')}</span>
+      ${p.kind!=='staff'?`<div class="tstars">${ppStars(p.rate)}<span class="cap">${esc(String(p.rate||'۴٫۵'))} از ۵</span></div>`:''}
+      <div class="tmeta"><span><b>${esc(fa(p.courses||0))}</b> دوره</span><span><b>${esc(p.yrs||'')}</b> تجربه</span></div>
+      <div class="taggline">${(p.exp||[]).slice(0,3).map(x=>`<span class="tagg">${esc(x)}</span>`).join('')}</div>
+      ${nx?`<div class="tnext">${ico('i-calendar')}<span>${esc(nx.t)} · ${esc(nx.when||'')}</span></div>`:''}</div>
+    <div class="tfoot">${btn('پروفایل','data-pped="'+esc(p.id)+'"','i-user')}
+      <a class="btn sm quiet" href="events.html?q=${encodeURIComponent(String(p.n||'').split(' ').slice(-1)[0])}" target="_blank">دوره‌های ایشان</a></div>
+  </div>`;
+}
+function ppRow(p){
+  return `<div class="scard" style="cursor:default">
+    <span class="sav" style="--g:${esc(p.g||PP_GS[0].v)}">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(ppIni(p))}</span>
+    <span class="sbody"><b>${esc(p.n)}</b><span class="rl">${esc(p.r||'')}</span>
+      <span class="mini-chips">${(p.exp||[]).map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</span>
+      <span class="cap">${esc(String(p.bio||'').split('؛')[0])}</span></span></div>`;
+}
+function ppMgrCard(m){
+  return `<div class="scard" style="cursor:default">
+    <span class="sav" style="--g:${esc(PP_GS[2].v)}">${ico('i-users')}</span>
+    <span class="sbody"><b>${esc(m.n)}</b><span class="rl">${esc(m.r||'')}</span>
+      <span class="cap">${esc(m.why||'')}</span></span></div>`;
+}
+function ppForm(p,kind,key){
+  const curPh=S.ppPhoto!=null?S.ppPhoto:(p.photo||'');
+  const gid=PP_GS.findIndex(x=>x.v===(S.ppG||p.g||PP_GS[0].v)), gi=gid>-1?gid:0;
+  return `
+    <div class="row tight">
+      <label class="fld" style="flex:1;min-width:180px"><span>نام</span><input id="ppN" value="${esc(p.n||'')}"/></label>
+      <label class="fld" style="flex:1;min-width:180px"><span>نقش و سمت</span><input id="ppR" value="${esc(p.r||'')}"/></label></div>
+    ${kind==='mgr'?`
+      <label class="fld"><span>در چه کاری پاسخگوست</span><input id="ppWhy" value="${esc(p.why||'')}"/></label>
+      <label class="fld"><span>نشانی تماس (رایانامه)</span><input id="ppHref" value="${esc(p.href||'mailto:info@lifeline1.ir')}"/></label>`
+    :`
+      <label class="fld"><span>دربارهٔ ایشان</span><textarea id="ppBio" class="input" rows="2">${esc(p.bio||'')}</textarea></label>
+      <div class="row tight">
+        <label class="fld" style="flex:1"><span>جملهٔ ایشان</span><input id="ppQuote" value="${esc(p.quote||'')}"/></label>
+        <label class="fld" style="flex:1"><span>محل کارگاه</span><input id="ppWhere" value="${esc(p.where||'')}"/></label></div>
+      <div class="row tight">
+        <label class="fld" style="flex:2;min-width:180px"><span>تخصصها (با ویرگول)</span><input id="ppExp" value="${esc((p.exp||[]).join('، '))}"/></label>
+        <label class="fld" style="width:90px"><span>امتیاز</span><input id="ppRate" value="${esc(String(p.rate||'۴٫۸'))}"/></label>
+        <label class="fld" style="width:90px"><span>دوره</span><input id="ppCourses" value="${esc(String(p.courses||0))}"/></label>
+        <label class="fld" style="width:110px"><span>تجربه</span><input id="ppYrs" value="${esc(String(p.yrs||''))}"/></label></div>`}
+    <label class="lbl">رنگ کارت</label>
+    <div class="admfilters">${PP_GS.map((x,i)=>`<button class="chip ${gi===i?'on':''}" data-ppg="${i}">${esc(x.n)}</button>`).join('')}</div>
+    <label class="lbl">عکس</label>
+    <div class="admfilters">${PP_PHOTOS().map(ph=>`<button class="chip ${curPh===ph?'on':''}" data-ppphoto="${esc(ph)}">${esc(ph.replace('people/',''))}</button>`).join('')}
+      <button class="chip ${curPh&&PP_PHOTOS().indexOf(curPh)<0?'on':''}" data-ppphoto="__none">بی‌عکس (حرف نام)</button></div>
+    <label class="fld"><span>یا نشانی عکس تازه</span><input id="ppNewPhoto" placeholder="مثل: people/p9.svg" value="${esc(curPh&&PP_PHOTOS().indexOf(curPh)<0?curPh:'')}"/></label>
+    <div class="row tight">${btn('ذخیرهٔ پروفایل','data-ppsave="'+esc(key||p.id||'new')+'"','i-check')}
+      ${btn('انصراف','data-ppx','i-close')}</div>`;
+}
+function ppList(kind){
+  const L=ppMerged(kind), b=ppSet(), hide=b.hide||[];
+  const ed=S.ppEd, base=PP_BASE().filter(p=>kind==='staff'?p.kind==='staff':p.kind!=='staff');
+  if(ed){let p;
+    if(ed==='new') p={kind:kind==='mgr'?'mgr':kind,n:'',r:'',g:S.ppG||PP_GS[0].v,exp:[],bio:'',photo:S.ppPhoto||''};
+    else if(kind==='mgr'){const base=SUP_D().managers||[], adds=b.mgrAdd||[];
+      p=(+ed<base.length)?base[+ed]||{}:adds[+ed-base.length]||{};}
+    else p=(PP_BASE().find(x=>x.id===ed)||{});
+    return `
+      ${sdSect(ed==='new'?(kind==='mgr'?'مدیر تازه':'عضو تازه'):'ویرایش پروفایل','پیشنمایش کارت، همان که کاربر میبیند')}
+      <div class="pp-grid">
+        <div>${kind==='mgr'?ppMgrCard(Object.assign({},p,{n:($('#ppN')||{}).value||p.n||'نام'})):ppCard(Object.assign({},p,{n:($('#ppN')||{}).value||p.n||'نام',photo:S.ppPhoto!=null?S.ppPhoto:p.photo,g:S.ppG||p.g}))}</div>
+        <div>${ppForm(p,kind,ed)}</div>
+      </div>
+      ${sdEnd()}`;
+  }
+  return `
+    ${sdSect(kind==='mgr'?'مدیران':'فهرست',esc(fa(L.length))+' نفر'+(hide.length&&kind!=='mgr'?' · '+esc(fa(hide.length))+' پنهان':''))}
+    ${L.map((p,i)=>{const isNew=kind==='mgr'?(b.mgrAdd||[]).includes(p):(b.add||[]).some(x=>x.id===p.id);
+      const key=kind==='mgr'?String(i):String(p.id||'');
+      return `<div class="admlirow">${ico(kind==='mgr'?'i-users':'i-graduation')}
+        <span class="sp"><b>${esc(p.n||'بی‌نام')}</b><small class="cap">${esc(p.r||'')}</small></span>
+        <span class="mini">${isNew?tag('تازه',''):''}
+          ${kind!=='mgr'?btn('پنهان','data-pphide="'+esc(p.id)+'"','i-eye-off'):''}
+          ${btn('ویرایش','data-pped="'+esc(key)+'"','i-pen')}</span></div>`}).join('')
+      ||emptyBox('کسی نیست')}
+    <div class="row tight">${btn(kind==='mgr'?'افزودن مدیر':'افزودن عضو','data-ppnew','i-plus')}</div>
+    ${sdEnd()}
+    ${kind!=='mgr'?`
+    ${sdSect('پنهانشدهها','از صفحهٔ کاربر برمیدارند؛ برگشتشان باز است')}
+    ${base.filter(p=>hide.indexOf(p.id)>-1).map(p=>`<div class="admlirow">${ico('i-eye-off')}
+      <span class="sp"><b>${esc(p.n)}</b><small class="cap">${esc(p.r||'')}</small></span>
+      <span class="mini">${btn('نمایش دوباره','data-ppshow="'+esc(p.id)+'"','i-eye')}</span></div>`).join('')
+      ||'<p class="cap">چیزی پنهان نشده است</p>'}
+    ${sdEnd()}`:''}`;
+}
+function peopleView(){
+  const cur=S.ppTab||'tch';
+  const tabs=`<div class="admfilters">${PPTABS.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-pptab="${t[0]}">${esc(t[1])}</button>`).join('')}</div>`;
+  const ppl=ppMerged('tch').concat(ppMerged('staff'));
+  const mg=ppMerged('mgr');
+  const ppub=(()=>{try{const v=JSON.parse(localStorage.getItem('nora-people')||'null');
+    return v&&Array.isArray(v.list)?v.list:null}catch(e){return null}})();
+  const pdirty=!ppub||JSON.stringify(ppub)!==JSON.stringify(ppl);
+  const mgpub=(()=>{try{const v=JSON.parse(localStorage.getItem('nora-managers')||'null');
+    return v&&Array.isArray(v.list)?v.list:null}catch(e){return null}})();
+  const mdirty=!mgpub||JSON.stringify(mgpub)!==JSON.stringify(mg);
+  const head=`<section class="card stack">
+    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشیها</button>
+      <span class="sp"></span><a class="btn sm tint" href="home.html#teachers" target="_blank">${ico('i-graduation')} خانهٔ کاربر</a></div>
+    <div class="row"><div class="head">مدیران و اساتید</div><span class="sp"></span>
+      <span class="cap">${esc(fa(ppl.length))+' نفر تیم · '+esc(fa(mg.length))+' مدیر'}</span></div>
+    <p class="cap">پروفایلها همینجا ساخته و عوض میشوند؛ پیشنمایش هر کارت همان است که در خانهٔ کاربر مینشیند. با «انتشار»، همهٔ صفحهها همین فهرست را میخوانند.</p>`;
+  let inner=ppList(cur);
+  return head+tabs+`
+    <div class="row tight">${btn(pdirty?'انتشار به همهٔ صفحهها':'منتشر شد؛ بازانتشار','data-pppub','i-send')}
+      <span class="cap">${pdirty?'تغییرات پروفایلها منتشرنشده مانده':'اساتید و دستاندرکاران همگام با صفحههای کاربر است'}</span></div>
+    <div class="row tight">${btn(mdirty?'انتشار مدیران':'مدیران منتشر شد؛ بازانتشار','data-pppubmgr','i-send')}
+      <span class="cap">${mdirty?'فهرست مدیریت صفحهٔ پشتیبانی منتشرنشده مانده':'مدیران همگام با صفحهٔ پشتیبانی است'}</span></div>
+    <div class="stack tight">${inner}</div></section>`;
+}
+
 /* ══ کاشی باشگاه کتابخوانی: از تعریف تا برنامه، هرچه هست تنظیم ══ */
 const BKTABS=[['home','هویت و ترم'],['gate','در و فرم عضویت'],['fee','حق عضویت'],['meet','جلسهها'],
   ['pod','پادکست نبض ورق'],['lib','کتابخانه و صدا'],['game','مسابقه و چالش'],['books','کتاب و خلاصه'],['wk','کارگاهها'],['trib','تریبون و گروه']];
@@ -3618,6 +3776,7 @@ function vSettings(){
   if(own&&S.skinB) return bookView();
   if(own&&S.skinD) return skdevView();
   if(own&&S.skinC) return chatView();
+  if(own&&S.skinP) return peopleView();
   if(!own) S.setF=myField().k;
   let g=S.setG||'texts';
   if(!canTpl) g=''; else if(!own&&g!=='cert') g='cert';
@@ -4476,9 +4635,10 @@ document.addEventListener('click',e=>{
     else if(k==='book'){S.skinB=1; if(!S.bkTab) S.bkTab='home';}
     else if(k==='skdev'){S.skinD=1; if(!S.sdTab) S.sdTab='tag';}
     else if(k==='chat'){S.skinC=1; if(!S.chTab) S.chTab='inbox';}
+    else if(k==='people'){S.skinP=1; if(!S.ppTab) S.ppTab='tch';}
     else {toast('تنظیم «'+((SKIN_TILES.find(x=>x.k===k)||{}).n||'')+'» در نوبت بعد باز میشود'); return}
     save(); renderBody(); return}
-  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; S.skinD=0; S.skinC=0; save(); renderBody(); return}
+  const skb=q('[data-skinback]'); if(skb){S.skin=0; S.skinF=0; S.skinU=0; S.skinO=0; S.skinB=0; S.skinD=0; S.skinC=0; S.skinP=0; save(); renderBody(); return}
   const gv=q('[data-govusers]'); if(gv){S.skinU=0; S.skin=0; S.sec='users'; S.uV=''; save(); renderBody(); toast('به بخش کاربران رفتید'); return}
   const ntfg=q('[data-ntfg]'); if(ntfg){S.ntfG=ntfg.dataset.ntfg; save(); renderBody(); return}
   const ntfon=q('[data-ntfon]'); if(ntfon){const k=ntfon.dataset.ntfon, off=S.ntfOff||[];
@@ -4832,6 +4992,52 @@ document.addEventListener('click',e=>{
   const chtg=q('[data-chtog]'); if(chtg){const k=chtg.dataset.chtog, def=(k==='notify')?1:0;
     chSet()[k]=chG(k,def)?0:1; save();
     toast(chSet()[k]?'روشن شد':'خاموش شد'); renderBody(); return}
+  /* ── کاشی مدیران و اساتید ── */
+  const ppt=q('[data-pptab]'); if(ppt){S.ppTab=ppt.dataset.pptab; S.ppEd=''; S.ppPhoto=null; S.ppG=null; save(); renderBody(); return}
+  const ppe=q('[data-pped]'); if(ppe){S.ppEd=ppe.dataset.pped; S.ppPhoto=null; S.ppG=null; save(); renderBody(); return}
+  const ppn=q('[data-ppnew]'); if(ppn){S.ppEd='new'; S.ppPhoto=null; S.ppG=null; save(); renderBody(); return}
+  const ppx2=q('[data-ppx]'); if(ppx2){S.ppEd=''; S.ppPhoto=null; S.ppG=null; save(); renderBody(); return}
+  const ppg=q('[data-ppg]'); if(ppg){S.ppG=(PP_GS[+ppg.dataset.ppg]||PP_GS[0]).v; renderBody(); return}
+  const ppph=q('[data-ppphoto]'); if(ppph){S.ppPhoto=ppph.dataset.ppphoto==='__none'?'':ppph.dataset.ppphoto; renderBody(); return}
+  const ppsv=q('[data-ppsave]'); if(ppsv){const b=ppSet(), key=ppsv.dataset.ppsave, kind=S.ppTab||'tch';
+    const N=(($('#ppN')||{}).value||'').trim(), R=(($('#ppR')||{}).value||'').trim();
+    if(!N){toast('نام را بنویس'); return}
+    const newPh=String((($('#ppNewPhoto')||{}).value||'')).trim()||S.ppPhoto;
+    const common={n:N, r:R||'', g:S.ppG||PP_GS[0].v, photo:newPh||''};
+    if(kind==='mgr'){
+      const row=Object.assign(common,{why:(($('#ppWhy')||{}).value||'').trim(),href:(($('#ppHref')||{}).value||'').trim()});
+      if(key==='new'){ b.mgrAdd=(b.mgrAdd||[]).concat([row]); }
+      else { const i=+key, MGRBASE=((SUP_D()).managers||[]);
+        if(i<MGRBASE.length){ b.mgrO=b.mgrO||{}; b.mgrO[i]=Object.assign({},MGRBASE[i],b.mgrO[i]||{},row); }
+        else { b.mgrAdd=b.mgrAdd||[]; b.mgrAdd[i-MGRBASE.length]=Object.assign({},b.mgrAdd[i-MGRBASE.length]||{},row); } }
+    } else {
+      const dig=s=>String(s||'').replace(/[۰-۹]/g,x=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(x)));
+      const row=Object.assign(common,{bio:(($('#ppBio')||{}).value||'').trim(),quote:(($('#ppQuote')||{}).value||'').trim(),
+        where:(($('#ppWhere')||{}).value||'').trim(),
+        exp:String((($('#ppExp')||{}).value||'')).split(/[،,]/).map(x=>x.trim()).filter(Boolean),
+        rate:($('#ppRate')||{}).value||'۴٫۸', courses:dig(($('#ppCourses')||{}).value)||'0',
+        yrs:($('#ppYrs')||{}).value||''});
+      if(key==='new'){ row.id='p'+Date.now(); row.kind=kind; b.add=(b.add||[]).concat([row]); }
+      else { b.o=b.o||{}; b.o[key]=Object.assign({},b.o[key]||{},row); }
+    }
+    S.ppEd=''; S.ppPhoto=null; S.ppG=null;
+    save(); uLogAdd('پروفایل «'+N+'» بهروز شد'); toast('پروفایل ذخیره شد؛ با انتشار به کاربر میرسد'); renderBody(); return}
+  const pphd=q('[data-pphide]'); if(pphd){const b=ppSet();
+    b.hide=(b.hide||[]).concat([pphd.dataset.pphide]); save();
+    toast('از صفحهٔ کاربر پنهان شد'); renderBody(); return}
+  const ppsw=q('[data-ppshow]'); if(ppsw){const b=ppSet();
+    b.hide=(b.hide||[]).filter(x=>x!==ppsw.dataset.ppshow); save();
+    toast('نمایش دوباره آغاز شد'); renderBody(); return}
+  const pppub=q('[data-pppub]'); if(pppub){const L=ppMerged('tch').concat(ppMerged('staff'));
+    if(!L.length){toast('کسی برای انتشار نیست'); return}
+    try{localStorage.setItem('nora-people',JSON.stringify({list:L,at:Date.now(),by:me().n||'مالک'}))}catch(e){}
+    uLogAdd('فهرست اساتید و دستاندرکاران منتشر شد ('+fa(L.length)+' نفر)');
+    toast('منتشر شد؛ خانه، رویداد، مطلب و حساب همین فهرست را میخوانند'); renderBody(); return}
+  const pppm=q('[data-pppubmgr]'); if(pppm){const L=ppMerged('mgr');
+    if(!L.length){toast('مدیری برای انتشار نیست'); return}
+    try{localStorage.setItem('nora-managers',JSON.stringify({list:L,at:Date.now(),by:me().n||'مالک'}))}catch(e){}
+    uLogAdd('فهرست مدیریت به صفحهٔ پشتیبانی منتشر شد');
+    toast('مدیران منتشر شد؛ صفحهٔ پشتیبانی همین فهرست را میبیند'); renderBody(); return}
   const sgnw=q('[data-gonew]'); if(sgnw){S.skinD=0; S.skin=0;
     if(sgnw.dataset.gonew==='ev'){S.ped=null; S.psec='list'; S.pmgr=null; S.wiz=Object.assign({},BASE.wiz); S.wiz.open=1; S.wiz.step=0; S.sec='events';}
     else {S.pmgr=null; S.wiz.open=0; S.ped=pedFresh(); S.psec='edit'; S.pstep=1; S.sec='events';}

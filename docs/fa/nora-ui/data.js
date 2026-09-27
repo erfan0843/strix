@@ -1991,4 +1991,8 @@ window.NORA={ADMIN,BANNERS,PEOPLE,EVENTS,PAST,ARTICLES,PARTNERS,CLUB,LIVE,ACT,VO
   MENU,MEDIA_KINDS,BUNDLES,TOTAL_MEDIA,ONLINE_COUNT,MPOS,MNUM,ACCOUNT,
   ARCHIVE:{past:PAST.length, media:TOTAL_MEDIA, upcoming:EVENTS.length, online:ONLINE_COUNT,
            hours:PAST.reduce((a,h)=>a+h.hours,0)}};
+/* فهرست اساتید و دستاندرکاران، اگر مدیر در کاشی «مدیران و اساتید» منتشر کرده
+   باشد، با کلید nora-people جایگزین میشود؛ همهٔ صفحهها از همین میخوانند */
+try{const pv=JSON.parse(localStorage.getItem('nora-people')||'null');
+  if(pv&&Array.isArray(pv.list)&&pv.list.length) window.NORA.PEOPLE=pv.list;}catch(e){}
 })();

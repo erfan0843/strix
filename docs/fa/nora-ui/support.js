@@ -57,6 +57,12 @@ function supOpenNow(){
   const h=n.getHours()+n.getMinutes()/60;
   return h>=+o.from&&h<+o.to;
 }
+/* فهرست مدیریت ته صفحه: اگر پنل منتشر کرده باشد، همان میشود */
+function supMgr(){
+  try{ const v=JSON.parse(localStorage.getItem('nora-managers')||'null');
+    return (v&&Array.isArray(v.list)&&v.list.length)?v.list:null;
+  }catch(e){ return null }
+}
 /* تیم پاسخگو: اگر پنل تیمی منتشر کرده باشد، همان فهرست نمایش داده میشود */
 function supTeam(){
   try{ const v=JSON.parse(localStorage.getItem('nora-support-team')||'null');
@@ -352,7 +358,7 @@ function renderTeam(){
     const c=$('#exCount'); if(c) c.textContent=faN(rows.filter(e=>e.on).length)+' نفر آنلاین';
   }
   const mg=$('#mgList');
-  if(mg) mg.innerHTML=(SUP.managers||[]).map(m=>'<a class="drow" href="'+esc(m.href)+'">'+
+  if(mg) mg.innerHTML=(supMgr()||SUP.managers||[]).map(m=>'<a class="drow" href="'+esc(m.href)+'">'+
     '<span class="dic gold">'+ico('i-users')+'</span>'+
     '<span class="dtx"><b>'+esc(m.n)+'</b><small>'+esc(m.r)+' · '+esc(m.why)+'</small></span>'+
     icochev()+'</a>').join('');

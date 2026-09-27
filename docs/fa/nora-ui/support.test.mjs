@@ -403,7 +403,7 @@ async function load(store,hash){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=82')&&html.includes('support.js?v=82')&&html.includes('data.js?v=82'),'نسخهٔ دارایی‌ها تازه شده');
+  ok(html.includes('support.css?v=83')&&html.includes('support.js?v=83')&&html.includes('data.js?v=83'),'نسخهٔ دارایی‌ها تازه شده');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');
   const css=fs.readFileSync(DIR+'support.css','utf8');
@@ -428,6 +428,9 @@ async function load(store,hash){
    ok(pc.txt('#supLive').includes('تعطیل موقت'),'تعطیلی موقت پنل، نشان سرصفحهٔ کاربر را عوض میکند');
    pc.click('.hacts [data-ticket]');
    ok(/تا شنبه تعطیل است/.test(pc.txt('#modal')),'پیام تعطیلی روی فرم تیکت کاربر می‌نشیند');}
+  {const st=makeStore({'nora-managers':JSON.stringify({list:[{n:'الهام نوری',r:'مدیر روابط عمومی',why:'گزارش رسانهای',href:'mailto:info@lifeline1.ir'}]})});
+   const pm=await load(st);
+   ok(pm.txt('#mgList').includes('الهام نوری')&&!pm.txt('#mgList').includes('شریفی'),'مدیران منتشرشدهٔ کاشی، فهرست مدیریت صفحهٔ پشتیبانی میشود');}
   {const st=makeStore({'nora-support-team':JSON.stringify({list:[{n:'هومن راد',r:'سرپرست رویدادها',on:1},{n:'مینا فراهانی',r:'کارشناس پرداخت',on:0}]})});
    const pt=await load(st);
    ok(pt.txt('#exList').includes('هومن راد')&&pt.txt('#exList').includes('مینا فراهانی'),'تیم منتشرشدهٔ پنل، فهرست کارشناسهای صفحهٔ کاربر میشود');
