@@ -1560,7 +1560,7 @@ function pubEvents(){
       d:ev.about||ev.rep||'', tags:ev.held?[]:['جدید'], club:false,
       sess:nSes, dm:JM_KEY[jm]||'mehr', dn:dn, mname:JM_NAME[jm-1]||'',
       ord:0, live:live, pub:true, pubPast:past, forms:ev.forms||[],
-      tchr:'', icon:'i-calendar', day:'', pre:false, pin:false, cert:ev.held?false:undefined};
+      tchr:ev.tchr||'', icon:'i-calendar', day:'', pre:false, pin:false, cert:ev.held?false:undefined};
     if(past){
       base.past=true; base.mediaCount=0; base.media=[]; base.who=+ev.who||0;
       base.album=ev.media||'';
@@ -1602,7 +1602,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v72') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v73') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

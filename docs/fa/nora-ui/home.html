@@ -24,8 +24,8 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=83"/>
-<link rel="stylesheet" href="nora.css?v=83"/>
+<link rel="stylesheet" href="glass.css?v=84"/>
+<link rel="stylesheet" href="nora.css?v=84"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -659,8 +659,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=83"></script>
-<script src="ui.js?v=83"></script>
+<script src="data.js?v=84"></script>
+<script src="ui.js?v=84"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -1238,13 +1238,28 @@ function clubLib(){
       </div></div>`).join('')}</div>`;
 }
 /* ═════════ اساتید و دست‌اندرکاران ═════════ */
+/* راه‌های ارتباط از خودشان نشانی میسازند: @nora به تلگرام، شماره به tel:،
+   رایانامه به mailto:؛ نشانی کامل را هم دستنخورده میگذاریم */
+const PPLK=[['tel','موبایل','i-mobile'],['tg','تلگرام','i-send'],['ig','اینستاگرام','i-image'],
+  ['web','وب','i-globe'],['mail','رایانامه','i-mail'],['other','دیگر','i-link']];
+const plkOf=k=>PPLK.filter(x=>x[0]===k)[0]||PPLK[PPLK.length-1];
+const plkHref=(k,v)=>{const s=String(v||'').trim(); if(!s) return '';
+  if(k==='mail') return /^mailto:/i.test(s)?s:'mailto:'+s;
+  if(k==='tel') return /^tel:/i.test(s)?s:'tel:'+s.replace(/[^0-9+]/g,'');
+  if(k==='tg') return /^https?:/i.test(s)?s:'https://t.me/'+s.replace(/^@/,'');
+  if(k==='ig') return /^https?:/i.test(s)?s:'https://instagram.com/'+s.replace(/^@/,'');
+  if(k==='web') return /^https?:/i.test(s)?s:'https://'+s.replace(/^https?:\/\//i,'');
+  return /^(https?:|mailto:|tel:)/i.test(s)?s:'https://'+s};
+const pLinks=p=>(p.links||[]).filter(l=>l&&String(l.v||'').trim())
+  .map(l=>({k:l.k||'other',v:String(l.v||'').trim(),href:plkHref(l.k,l.v)}));
+const pFormOf=p=>{try{const U=window.NORA_UI||{}; return (p.form&&U.formById)?U.formById(p.form):null}catch(e){return null}};
 function nextCourse(p){
   const order=['tonight','tomorrow','week','next'];
   return EVENTS.filter(e=>e.tchr===p.id).sort((a,b)=>order.indexOf(a.day)-order.indexOf(b.day))[0];
 }
 function renderTeachers(){
-  const list=TEACHERS
-    .sort((a,b)=>(isPinned('pe',b.id)?1:0)-(isPinned('pe',a.id)?1:0));
+  const list=TEACHERS.slice()
+    .sort((a,b)=>((b.star?1:0)-(a.star?1:0))||((isPinned('pe',b.id)?1:0)-(isPinned('pe',a.id)?1:0)));
   $('#teacherCount').textContent=faN(list.length)+' مدرس · پروفایل‌ها برای همه باز است';
   /* مدل نمایش از تنظیمهای ظاهری: کارت کامل، ردیف فشرده، فقط نامها */
   const mode=uiOpt().people;
@@ -1265,7 +1280,7 @@ function renderTeachers(){
     const nx=nextCourse(p);
     return `<div class="tcard ${isPinned('pe',p.id)?'pinned':''}">
       <div class="tcov" style="--g:${p.g}">
-        <span class="tci"><svg class="i"><use href="#${p.id==='p5'?'i-book':'i-graduation'}"/></svg></span>
+        <span class="tci"><svg class="i"><use href="#${p.ic||(p.id==='p5'?'i-book':'i-graduation')}"/></svg></span>
         <button class="pinb pc-pin ${isPinned('pe',p.id)?'on':''}" data-pin="pe:${p.id}" aria-label="سنجاق کردن ${esc(p.n)}" title="سنجاق"><svg class="i"><use href="#i-pin"/></svg></button>
         <span class="av">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.n)}"/>`:esc(p.ini)}</span>
       </div>
@@ -1273,8 +1288,8 @@ function renderTeachers(){
         <b class="nm">${esc(p.n)}</b>
         <span class="rl">${esc(p.r)}</span>
         <div class="tstars">${stars(p.rate)}<span class="cap">${p.rate} از ۵</span></div>
-        <div class="tmeta"><span><b>${faN(p.courses)}</b> دوره</span><span><b>${esc(p.yrs)}</b> تجربه</span>${p.id==='p5'?'<span class="hl">سرپرست باشگاه کتاب</span>':''}</div>
-        <div class="taggline">${p.exp.slice(0,3).map(x=>`<span class="tagg">${esc(x)}</span>`).join('')}</div>
+        <div class="tmeta"><span><b>${faN(p.courses)}</b> دوره</span><span><b>${esc(p.yrs)}</b> تجربه</span>${p.role2?`<span class="hl">${esc(p.role2)}</span>`:(p.id==='p5'?'<span class="hl">سرپرست باشگاه کتاب</span>':'')}</div>
+        <div class="taggline">${p.tag?`<span class="tagg brand">${esc(p.tag)}</span>`:''}${p.exp.slice(0,3).map(x=>`<span class="tagg">${esc(x)}</span>`).join('')}</div>
         ${nx?`<div class="tnext"><svg class="i"><use href="#i-calendar"/></svg><span>${esc(nx.t)} · ${esc(nx.when)}</span></div>`:''}
       </div>
       <div class="tfoot">
@@ -1284,12 +1299,12 @@ function renderTeachers(){
     </div>`}).join('');
 }
 function renderStaff(){
-  const mode=uiOpt().people;
+  const mode=uiOpt().people, SL=STAFF.slice().sort((a,b)=>(b.star?1:0)-(a.star?1:0));
   if(mode==='chip'){
-    $('#staffList').innerHTML=`<div class="row tight">${STAFF.map(p=>`
+    $('#staffList').innerHTML=`<div class="row tight">${SL.map(p=>`
       <button class="chip on" data-person="${p.id}"><svg class="i"><use href="#i-idcard"/></svg> ${esc(p.n)}</button>`).join('')}</div>`;
     return}
-  $('#staffList').innerHTML=STAFF.map(p=>`
+  $('#staffList').innerHTML=SL.map(p=>`
     <button class="scard" data-person="${p.id}" aria-label="پروفایل ${esc(p.n)}">
       <span class="sav" style="--g:${p.g}">${p.photo?`<img src="${esc(p.photo)}" alt=""/>`:esc(p.ini)}</span>
       <span class="sbody">
@@ -1421,6 +1436,12 @@ function renderPersonSheet(){
     </div>
     <p class="sub" style="margin-top:12px">${esc(p.bio)}</p>
     ${p.quote?`<blockquote style="margin:12px 0;padding:11px 13px;border-inline-start:3px solid var(--brand);background:var(--brand-tint);border-radius:0 var(--r-md) var(--r-md) 0;font-size:var(--fs-sub);color:var(--ink-2)">${esc(p.quote)}</blockquote>`:''}
+    ${(()=>{const lk=pLinks(p); return lk.length?`<div class="fw" style="margin:12px 0 2px">راه‌های ارتباط</div>
+      <div class="stack tight" style="margin-bottom:12px">${lk.map(l=>`<a class="srow" href="${esc(l.href)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+        <svg class="i"><use href="#${plkOf(l.k)[2]}"/></svg><span class="sp">${esc(plkOf(l.k)[1])}</span>
+        <b dir="ltr" style="font-size:12px;font-weight:600">${esc(l.v)}</b></a>`).join('')}</div>`:''})()}
+    ${(()=>{const fm=pFormOf(p); return fm?`<a class="btn primary" href="form.html?fr=${encodeURIComponent(p.form)}" style="margin:2px 0 12px;width:100%;justify-content:center">
+      <svg class="i"><use href="#i-doc"/></svg>${esc(p.formTxt||('فرم '+String(fm.name||''))) }</a>`:''})()}
     ${courses.length?`<div class="fw" style="margin-bottom:6px">دوره‌ها و برنامه‌های ایشان</div>
       <div class="stack tight" style="margin-bottom:12px">${courses.map(c=>`
         <button class="srow" data-ev="${c.id}" style="background:none;border:0;border-bottom:.5px solid var(--hairline-2);cursor:pointer;font:inherit;color:inherit;text-align:start;width:100%">

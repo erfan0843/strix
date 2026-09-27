@@ -601,6 +601,42 @@ async function load(file,store,q){
   ok(p.doc.querySelector('#hotRow').hidden===true,'جستوجوهای داغ و سابقه پنهان است');
 }
 
+/* ═══════════ خانه با پروفایلهای منتشرشدهٔ کاشی «مدیران و اساتید» ═══════════ */
+{
+  console.log('\n── خانه با پروفایلهای منتشرشده ──');
+  const store=makeStore();
+  store.setItem('nora-people',JSON.stringify({list:[
+    {id:'p1',kind:'teacher',n:'خانم الهه رضایی‌فر',r:'مدرس فن بیان',ini:'ه',g:'linear-gradient(135deg,#1E6FD0,#0A3A82)',
+     exp:['فن بیان','لحن'],rate:'۴٫۸',courses:14,yrs:'۹ سال',tag:'پرطرفدار',pin:false,ic:'i-book',star:1,
+     bio:'دربارهٔ تازه از پنل',quote:'جملهٔ تازه',where:'سالن ۲',photo:'people/p2.svg',
+     links:[{k:'tg',v:'@nora_elocution'}],form:'f-ask',formTxt:'بپرس از ایشان'},
+    {id:'p2',kind:'teacher',n:'مهندس کیوان مرادی',r:'مدرس عکاسی',ini:'ک',g:'linear-gradient(135deg,#2E6B7A,#0B2447)',
+     exp:['عکاسی'],rate:'۴٫۹',courses:11,yrs:'۱۶ سال',pin:false,ic:'i-image',
+     links:[],bio:'',quote:'',where:'',photo:'people/p2.svg'}]}));
+  store.setItem('nora-forms',JSON.stringify([{id:'f-ask',name:'پرسش از ایشان',kind:'پرسش',fields:[{l:'پرسش شما'}]}]));
+  store.setItem('nora-admin',JSON.stringify({added:[{id:'nx9',n:'کارگاه نقالی پاییزه',kind:'کارگاه',
+    when:'سه‌شنبه ۲۱ مهر',on:'1405/07/21',time:'17:00',end:'1405/07/21',place:'سالن ۲',cap:30,tchr:'p1',state:'soon'}]}));
+  const p=await load('home.html',store);
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'با پروفایلهای منتشرشده بیخطا بار شد');
+  ok(/رضایی‌فر/.test(p.txt('#peopleRail')),'نامِ تازهای که پنل منتشر کرد، در ریل اساتید آمد');
+  ok(/پرطرفدار/.test(p.txt('#peopleRail')),'برچسبِ کارت از پنل روی کارتِ کاربر نشست');
+  ok(/i-book/.test(p.doc.querySelector('#peopleRail').innerHTML),'آیکونِ برگزیدهٔ پنل روی کارت آمد');
+  ok(p.all('#peopleRail .tcard')[0].textContent.includes('رضایی‌فر'),'معرفی‌شدهٔ پنل نخستِ فهرست است');
+  ok(/کارگاه نقالی پاییزه/.test(p.txt('#peopleRail')),'برنامهٔ بعدیِ استاد از رویدادِ منتشرشدهٔ پنل آمد');
+  const h2=await load('home.html',store,'#p=p1');
+  ok(/رضایی‌فر/.test(h2.txt('#personBody')),'نشانیِ home.html#p= ورقهٔ همان شخص را باز میکند');
+  ok(/تلگرام/.test(h2.txt('#personBody'))&&/nora_elocution/.test(h2.txt('#personBody')),'راه ارتباطِ پنل در ورقهٔ کاربر نشست');
+  const fr=h2.doc.querySelector('#personBody a[href*="form.html?fr="]');
+  ok(!!fr&&/بپرس از ایشان/.test(fr.textContent)&&/f-ask/.test(fr.getAttribute('href')),
+     'فرمِ پیوستِ پنل، دکمه‌ای به همان فرم روی ورقه شد');
+  ok(/دربارهٔ تازه از پنل/.test(h2.txt('#personBody'))&&/جملهٔ تازه/.test(h2.txt('#personBody')),'درباره و جملهٔ ایشان از پنل آمد');
+  /* رویدادِ منتشرشده، مدرسش را به صفحهٔ خود میبرد */
+  const ev=await load('event.html',store,'?id=nx9');
+  ok(/رضایی‌فر/.test(ev.txt('#page')),'مدرسی که پنل برای رویداد برگزید، روی صفحهٔ رویداد است');
+  const el=await load('events.html',store);
+  ok(/رضایی‌فر/.test(el.txt('#listView')),'و روی کارتِ فهرست رویدادها');
+}
+
 /* ═══════════ فرمساز با پیشفرضهای پنل (create.html) ═══════════ */
 {
   console.log('\n── فرمساز با پیشفرضهای کاشی فرمساز ──');
@@ -1679,7 +1715,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:72, added:[
+  store.setItem('nora-admin', JSON.stringify({v:73, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

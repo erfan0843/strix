@@ -152,7 +152,18 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(!!p.doc.querySelector('[data-evback]'),'و بازگشت به فهرست سرِ ویزارد هست');
   ok(p.all('[data-wet]').length===9,'و نه قالب رویداد: کارگاه، وبینار، مسابقه، همایش، اردو و بقیه');
   ok(p.all('[data-wposter]').length===10,'گالری پوستر ده طرح دارد');
-  ok(p.all('[data-wtheme]').length===4,'و چهار تم کارت: شیشه‌ای، شب، طلایی، سبز');
+  ok(p.all('[data-wtheme]').length===4,'و چهار تم کارت: شیشهای، شب، طلایی، سبز');
+  ok(p.all('[data-wtchr]').length>=8,'مدرس یا برگزارکننده از همانجا برگزیده میشود: همهٔ تیم پیشِ روست');
+  p.click('[data-wtchr="p2"]');
+  ok(JSON.parse(p.store.getItem('nora-admin')).wiz.tchr==='p2','برگزیدنِ مدرسِ رویداد');
+  ok(/کیوان مرادی/.test(p.txt('.evcard')),'و نامش روی پیشنمایش کارتِ رویداد مینشیند');
+  p.click('[data-wtchrnew]');
+  p.type('#wzTchrN','استاد نرگس بهار','change'); p.type('#wzTchrR','مدرس نقالی','change');
+  p.click('[data-wtchrmake]');
+  const wt=(JSON.parse(p.store.getItem('nora-admin')).pp.add||[]);
+  ok(wt.length===1&&wt[0].n==='استاد نرگس بهار','مدرس تازه همانجا ساخته میشود');
+  ok(String(JSON.parse(p.store.getItem('nora-admin')).wiz.tchr)===String(wt[0].id),'و همان لحظه به رویداد وصل میشود');
+  ok(/هنوز به کاربر نرسیده/.test(p.txt('#admBody')),'و میگوید تا انتشارِ کاشی اساتید به کاربر نمیرسد');
   ok(p.all('.evcard').length===1,'گام اول پیش‌نمایش زندهٔ کارت دارد');
   p.click('[data-wstep="1"][data-wgo="1"]');    /* بی نوع و بی نام: نباید جلو برود */
   ok(p.all('.admsteps .st').filter(x=>x.classList.contains('on')).length===1,'گام ناتمام جلو نمی‌رود');
@@ -268,6 +279,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-copyev]');
   ok(/رونوشت|کپی/.test(p.txt('#toast')),'دکمهٔ رونوشت پیوند را برمی‌دارد');
   ok(p.txt('.admreview').includes('فرم ثبت‌نام'),'و فرم‌ها را هم');
+  ok(/استاد نرگس بهار/.test(p.txt('.admreview')),'مرورِ آخر نام مدرس را هم میآورد');
   p.click('[data-wsend]');
   ok(p.txt('#admBar .head')==='رویدادها و مطالب','بعد از انتشار، خودش به بخش رویدادها و مطالب می‌رود');
   ok(p.all('[data-ev]').length===before+1,'رویداد تازه به فهرست اضافه شد');
@@ -276,6 +288,8 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.doc.querySelector('[data-ev] .ic.pic img')!==null,'پوستر روی ردیف رویداد می‌نشیند');
   ok(/منتشر|پیش‌رو|جاری/.test(p.txt('[data-ev]')),'وضعیتش منتشر است');
   ok(p.all('.admsteps .st').length===0,'و ویزارد بسته می‌شود');
+  const wEv=(JSON.parse(p.store.getItem('nora-admin')).added||[])[0]||{};
+  ok(String(wEv.tchr)===String(wt[0].id),'رویداد با مدرسش منتشر شد');
   /* فرم‌ساز و رویداد سینک می‌مانند: فرم به رویداد گره خورده است */
   const f1=p.window.NORA_UI.formById('t-reg')||{};
   ok(!!f1.ev,'فرمِ وصل‌شده به رویداد گره می‌خورد');
@@ -293,6 +307,22 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#shAdm [data-copyform]').length>=1,'و برای هر فرمِ وصل‌شده دکمهٔ رونوشت هست');
   ok(p.all('#shAdm .sheetcover img').length===1,'و پوستر رویداد در برگه دیده می‌شود');
   p.click('#shAdm [data-close]');
+}
+
+/* ── مدرسِ رویداد: در ویرایش برمیگردد و از همانجا به پروفایل راه دارد ── */
+{const s2=makeStore();
+  s2.setItem('nora-admin',JSON.stringify({added:[{id:'nx9',n:'اردوی پاییزهٔ دربند',kind:'اردو',
+    when:'جمعه ۲۵ مهر',on:'1405/07/25',time:'09:00',end:'1405/07/25',place:'دربند',cap:30,tchr:'p2',state:'soon'}]}));
+  const q=await load(s2);
+  q.click('#admNav [data-sec="events"]');
+  q.click('[data-ev="nx9"]');
+  q.click('[data-evedit]');
+  ok(String(JSON.parse(q.store.getItem('nora-admin')).wiz.tchr)==='p2','ویرایش رویداد، مدرس را همراه میآورد');
+  ok(/کیوان مرادی/.test(q.txt('#admBody')),'و نامش در ویزارد برجسته است');
+  q.click('[data-wtchredit]');
+  ok(!!q.doc.querySelector('[data-ppf="n"]'),'«ویرایش پروفایل» از دل ویزارد، کاشی مدیران و اساتید را باز میکند');
+  ok(/کیوان مرادی/.test(q.txt('#ppPrev')),'و پیش‌نمایشِ همان مدرس را نشست');
+  ok(q.errs.length===0,'ویرایشِ مدرس بیخطا بود');
 }
 
 /* ── ۳) رویدادها: فهرست، صافی و جزئیات ── */
@@ -1080,7 +1110,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    ok(/بی‌نام/.test(pc.txt('#admBody'))&&/فوری/.test(pc.txt('#admBody')),'شمارش بی‌نام و فوری و واگذارشده در گزارش');
    ok(/گزارش اکسل/.test(pc.txt('#admBody')),'خروجی اکسل صندوق از ربات بله');
    ok(pc.errs.length===0,'کاشی پشتیبانی و گفتگو بیخطا بود');}
-  /* ═══ کاشی «مدیران و اساتید»: پروفایل، پیشنمایش کارت، انتشار به همهٔ صفحهها ═══ */
+  /* ═══ کاشی «مدیران و اساتید»: پروفایل کامل، لینک و فرم، پیشنمایش زنده ═══ */
   {const pp=await load();
    pp.click('#admNav [data-sec="settings"]');
    ok(/مدیران و اساتید/.test(pp.txt('[data-skit="people"]')),'کاشی مدیران و اساتید سر جای خودش است');
@@ -1088,33 +1118,79 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
    ok(pp.all('[data-pptab]').length===3,'سه برگه: اساتید، دستاندرکاران، مدیران');
    ok(pp.all('[data-pped]').length===6&&/منتشرنشده/.test(pp.txt('#admBody')),'شش استاد از دادهٔ سامانه با حالت منتشرنشده');
    pp.click('[data-pped="p1"]');
-   ok(!!pp.doc.querySelector('#ppN')&&!!pp.doc.querySelector('.tcard .nm'),'ویرایش پروفایل با پیشنمایش زندهٔ کارت استاد');
-   pp.click('[data-ppg="2"]'); pp.click('[data-ppphoto="people/p2.svg"]');
-   pp.type('#ppN','خانم الهه رضایی‌فر');
-   pp.click('[data-ppsave="p1"]');
-   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.o||{}).p1.n==='خانم الهه رضایی‌فر','ویرایش نام و رنگ و عکس در لایهٔ تنظیمات نشست');
+   const F=s=>!!pp.doc.querySelector(s);
+   ok(F('[data-ppf="n"]')&&F('[data-ppf="r"]')&&F('[data-ppf="role2"]')&&F('[data-ppf="ini"]'),'ویرایش: نام و سمت و سمتِ دوم و حرفِ آواتار');
+   ok(F('[data-ppf="bio"]')&&F('[data-ppf="quote"]')&&F('[data-ppf="where"]')&&F('[data-ppf="exp"]'),'درباره، جملهٔ ایشان، محل کارگاه و تخصصها');
+   ok(F('[data-ppf="rate"]')&&F('[data-ppf="courses"]')&&F('[data-ppf="yrs"]'),'آمارِ ورقه: امتیاز، شمار دوره، سال تجربه');
+   ok(pp.all('[data-ppg]').length===4&&pp.all('[data-ppic]').length===10,'چهار رنگ و ده آیکون برای کارت');
+   ok(pp.all('[data-pptag]').length===7,'هفت برچسبِ کارت (و برچسبِ دلخواه)');
+   ok(!!pp.doc.querySelector('.tcard .nm')&&!!pp.doc.querySelector('.ppsheet'),'پیشنمایشِ کارت و ورقهٔ پروفایل، همان که کاربر میبیند');
+   pp.type('[data-ppf="n"]','خانم الهه رضایی‌فر');
+   ok(/رضایی‌فر/.test(pp.txt('.tcard .nm'))&&/رضایی‌فر/.test(pp.txt('.ppsheet')),'پیشنمایش با هر تایپ زنده میشود');
+   /* راه‌های ارتباط: از شماره و نام کاربری، نشانی ساخته میشود */
+   pp.click('[data-pplkadd]');
+   pp.type('[data-pplk="0"]','09123456789');
+   ok(/tel:/.test(pp.txt('#ppPrev')),'نشانیِ موبایل از شماره ساخته شد');
+   pp.click('[data-pplkk="0"][data-pplkv="tg"]');
+   pp.type('[data-pplk="0"]','@nora_elocution');
+   ok(/t\.me\/nora_elocution/.test(pp.txt('#ppPrev')),'نشانی تلگرام از نام کاربری ساخته شد');
+   /* فرمِ پیوست از فرم‌ساز */
+   pp.window.NORA_UI.formPut({id:'t-ask',name:'پرسش از ایشان',kind:'پرسش',fields:[{l:'پرسش شما'}]});
+   pp.click('[data-ppg="1"]');
+   ok(pp.all('[data-ppform]').length>=1,'فرمهای فرم‌ساز برای پیوستن به پروفایل');
+   pp.click('[data-ppform="t-ask"]');
+   pp.type('[data-ppf="formTxt"]','بپرس از ایشان');
+   ok(/بپرس از ایشان/.test(pp.txt('.ppsheet')),'فرمِ پیوست در ورقهٔ پروفایل نشست');
+   /* عکسِ خودشان */
+   await pp.upload('[data-ppfile]',Buffer.from('89504e470d0a1a0a','hex'),'a.png');
+   await wait(150);
+   ok(/^data:image/.test((JSON.parse(pp.store.getItem('nora-admin')).ppD||{}).photo||''),'بارگذاری عکسِ خودشان در پیش‌نمایش نشست');
+   pp.click('[data-ppphoto="__none"]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).ppD||{}).photo==='','و با «برداشتن عکس» به حرفِ نام برمیگردد');
+   pp.click('[data-ppphoto="people/p2.svg"]');
+   pp.click('[data-pptag="پرطرفدار"]'); pp.click('[data-ppic="i-book"]');
+   pp.click('[data-ppsave]');
+   const o1=(JSON.parse(pp.store.getItem('nora-admin')).pp.o||{}).p1||{};
+   ok(o1.n==='خانم الهه رضایی‌فر'&&o1.ic==='i-book'&&o1.tag==='پرطرفدار','ذخیره با نام و آیکون و برچسب');
+   ok(o1.links.length===1&&o1.links[0].k==='tg'&&o1.links[0].v==='@nora_elocution','راه ارتباط ذخیره شد');
+   ok(o1.form==='t-ask'&&o1.formTxt==='بپرس از ایشان','فرمِ پیوست ذخیره شد');
+   /* ترتیب و نقش در سامانه */
+   pp.click('[data-ppdown="0"]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.ord||[])[0]==='p2','بالا و پایینِ فهرست در تنظیمات نشست');
+   pp.click('[data-pped="p3"]');
+   pp.click('[data-ppkind="staff"]');
+   pp.click('[data-ppsave]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.o||{}).p3.kind==='staff','جابجاییِ مدرس به دستاندرکاران');
+   pp.click('[data-pptab="staff"]');
+   ok(/شیرین رستگار/.test(pp.txt('#admBody')),'و در برگهٔ دستاندرکاران آمد');
+   pp.click('[data-pptab="tch"]');
+   /* عضو تازه، پنهان، انتشار */
+   pp.click('[data-ppnew]');
+   pp.type('[data-ppf="n"]','هومن راد'); pp.type('[data-ppf="r"]','مدرس خط شکسته'); pp.type('[data-ppf="exp"]','خط شکسته، خوشنویسی');
+   pp.click('[data-ppsave]');
+   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.add||[]).length===1,'افزودن عضو تازه');
    pp.click('[data-pppub]');
    const pv=JSON.parse(pp.store.getItem('nora-people')||'null');
-   ok(!!pv&&pv.list.length===8&&pv.list.find(x=>x.id==='p1').photo==='people/p2.svg','انتشار، هشت نفر را با تغییرات در کلید مشترک nora-people نشاند');
+   ok(!!pv&&pv.list.length===9,'انتشارِ نه نفر (شش مدرس، دو دستاندرکارِ کهنه، یک تازه)');
+   ok(pv.list.some(x=>x.n==='هومن راد')&&pv.list.filter(x=>x.kind==='staff').length===3,'تازها و جابجاشده در کلید مشترک درست نشستند');
+   ok(pv.list.find(x=>x.id==='p1').photo==='people/p2.svg'&&pv.list.find(x=>x.id==='p1').form==='t-ask','عکس و فرم هم به کلید مشترک رفتند');
    ok(/همگام/.test(pp.txt('#admBody')),'پس از انتشار، حالت همگامی دیده میشود');
-   pp.click('[data-ppnew]');
-   pp.type('#ppN','هومن راد'); pp.type('#ppR','مدرس خط شکسته'); pp.type('#ppExp','خط شکسته، خوشنویسی');
-   pp.click('[data-ppsave="new"]');
-   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.add||[]).length===1,'افزودن عضو تازه به اساتید');
-   pp.click('[data-pppub]');
-   ok(JSON.parse(pp.store.getItem('nora-people')).list.length===9,'عضو تازه هم با انتشار به کاربر میرسد');
    pp.click('[data-pphide="p2"]');
    ok((JSON.parse(pp.store.getItem('nora-admin')).pp.hide||[]).includes('p2')&&/۱ پنهان/.test(pp.txt('#admBody')),'پنهانکردن استاد از صفحهٔ کاربر');
    pp.click('[data-ppshow="p2"]');
+   /* مدیران */
    pp.click('[data-pptab="mgr"]');
    ok(pp.all('[data-pped]').length===2&&/شریفی/.test(pp.txt('#admBody')),'برگهٔ مدیران با دو مدیر سامانه');
    pp.click('[data-pped="0"]');
-   pp.type('#ppWhy','تصمیمهای مدیریتی و همکاری نهادی');
-   pp.click('[data-ppsave="0"]');
-   ok((JSON.parse(pp.store.getItem('nora-admin')).pp.mgrO||[])[0].why==='تصمیمهای مدیریتی و همکاری نهادی','ویرایش نقش و پاسخگویی مدیر');
+   ok(!pp.doc.querySelector('[data-ppf="bio"]')&&!pp.doc.querySelector('[data-ppic]'),'مدیر نه عکس دارد نه آیکون؛ همان که صفحهٔ پشتیبانی میخواهد');
+   pp.type('[data-ppf="why"]','تصمیمهای مدیریتی و همکاری نهادی');
+   pp.click('[data-ppsave]');
+   const m0=(JSON.parse(pp.store.getItem('nora-admin')).pp.mgrO||{})['0']||{};
+   ok(m0.why==='تصمیمهای مدیریتی و همکاری نهادی','ویرایش سمت و پاسخگویی مدیر');
+   ok(/^mailto:/.test(m0.href||''),'نشانیِ مدیر برای صفحهٔ پشتیبانی ساخته شد');
    pp.click('[data-ppnew]');
-   pp.type('#ppN','الهام نوری'); pp.type('#ppR','مدیر روابط عمومی');
-   pp.click('[data-ppsave="new"]');
+   pp.type('[data-ppf="n"]','الهام نوری'); pp.type('[data-ppf="r"]','مدیر روابط عمومی');
+   pp.click('[data-ppsave]');
    pp.click('[data-pppubmgr]');
    const mg=JSON.parse(pp.store.getItem('nora-managers')||'null');
    ok(!!mg&&mg.list.length===3&&mg.list.some(x=>x.n==='الهام نوری'),'انتشار مدیران در کلید مشترک nora-managers');
@@ -1521,7 +1597,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:72, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:73, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1750,9 +1826,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=83')&&html.includes('admin.js?v=83'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=84')&&html.includes('admin.js?v=84'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v72'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v73'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
