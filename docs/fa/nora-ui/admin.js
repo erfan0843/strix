@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=74;
+const SVER=76;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',tchr:'',tchrNew:0,
@@ -1007,6 +1007,21 @@ function formSum(f){  /* جمع مبالغ فرم با تخفیف‌ها */
   const fin=(f&&f.fin)||[]; if(!fin.length) return 0;
   return fin.reduce((n,o)=>n+(o.off?Math.round(+o.p*(100-+o.off)/100):(+o.p||0)),0);
 }
+/* قلمهای فرم وصلشده: چند پرسش، چند اجباری، چه نوعها، چه مبلغها */
+function formFieldsInfo(f){
+  const fl=Array.isArray(f&&f.fields)?f.fields:[];
+  if(!fl.length) return '';
+  const req=fl.filter(x=>x&&x.req).length;
+  const kinds=fl.map(x=>{const t=(x&&x.t)||'text';
+    return ({text:'متن',area:'متن بلند',number:'عدد',amount:'مبلغ',choice:'تک‌انتخاب',multi:'چندانتخاب',
+      dropdown:'کشویی',yesno:'بله/خیر',imgchoice:'تصویری',fullname:'نام',mobile:'موبایل',nid:'کد ملی',
+      date:'تاریخ',time:'ساعت',datetime:'تاریخ و ساعت',slot:'نوبت',gender:'جنسیت',marital:'تأهل',
+      uni:'دانشگاه',edu:'مقطع',job:'شغل',email:'ایمیل',address:'نشانی',province:'استان',image:'تصویر',
+      file:'فایل',voice:'صدا',sign:'امضا',rating:'ستاره',scale:'بازه',terms:'پذیرش',location:'موقعیت'})[t]||'متن'});
+  const uniq=[]; kinds.forEach(k=>{if(uniq.indexOf(k)<0) uniq.push(k)});
+  return fa(fl.length)+' پرسش'+(req?' · '+fa(req)+' اجباری':'')+' · '+uniq.slice(0,6).join('، ')
+    +(uniq.length>6?' و '+(uniq.length-6)+' نوع دیگر':'');
+}
 function moneyRows(f){
   const fin=(f&&f.fin)||[];
   return fin.map(o=>`<div class="revrow"><span class="cap">${esc(o.l||'')}</span>
@@ -1016,6 +1031,11 @@ const NEEDN={reg:'فرم ثبت‌نام', survey:'فرم نظرسنجی', exam:
 const fpOf=need=>((S.wiz.fp||{})[need]||'');
 function fpForm(need){return formOf(fpOf(need))}
 /* نشانی فرم‌ساز با همهٔ قلم‌های همین رویداد: ظرفیت، پنجرهٔ ثبت‌نام، نام، برگشت */
+/* پیش‌نمایش همانِ کاربر: صفحهٔ فرمِ ثبت‌نام این رویداد، با قلمهای واقعی */
+function regPreviewUrl(){
+  const id=fpOf('reg');
+  return 'form.html?ev='+encodeURIComponent(evLinkId())+(id?'&fid='+encodeURIComponent(id):'')+'&kind=reg';
+}
 function builderUrl(need){
   const w=S.wiz, j=jParse(w.date), p2=new URLSearchParams();
   p2.set('ev', evLinkId()); p2.set('need', need||'reg');
@@ -1170,15 +1190,30 @@ function shrinkPoster(file,cb){
 /* ── برگهٔ انتخاب فرم: فرم‌های فرم‌ساز بالای فهرست می‌آیند، بعد نمونه‌های پنل ──
    نظرسنجی: پیشفرض فرم آمادهٔ نوراست (خودکار)؛ اختصاصی همان رویداد هم دکمه دارد */
 function formPick(need,label,hint){
-  const F=NE().forms||{}, isAuto=String(fpOf(need))==='auto', cur=isAuto?autoForm():formOf(fpOf(need)),
+  const F=NE().forms||{}, isReg=need==='reg',
+    isAuto=String(fpOf(need))==='auto', cur=isAuto?autoForm():formOf(fpOf(need)),
     made=madeForms(), demo=demoForms();
+  /* ثبتنامِ رویداد فرمِ درونی ندارد: بی وصلشدن به فرمساز، ثبتنامی نیست */
+  const need2=isReg?`<div class="fld"><span class="lbl">${esc(F.must||'ثبت‌نام رویداد از دلِ فرم‌ساز می‌آید')}</span>
+    <span class="cap">${esc(F.mustHint||'پرسش‌ها و گزینه‌ها و مبالغ و ظرفیت را در فرم‌ساز می‌چینی؛ همین‌جا وصلش می‌کنی. فرمِ درونیِ رویداد نداریم تا هر جا عوض شد، یکی باشد.')}</span>
+    <div class="row tight" style="margin-top:8px">
+      <a class="btn sm primary" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-plus')}${esc(F.buildReg||'ساختنِ فرمِ ثبت‌نامِ همین رویداد در فرم‌ساز')}</a>
+      ${cur?`<a class="btn sm quiet" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-sliders')}${esc(F.openBuilder||'ویرایش در فرم‌ساز')}</a>`:''}
+      <a class="btn sm quiet" href="${esc(regPreviewUrl())}" target="_blank" rel="noopener">${ico('i-eye')}${esc(F.previewReg||'پیش‌نمایش همانِ کاربر')}</a>
+    </div>
+    ${cur?`<div class="admlirow on" style="margin-top:8px"><span class="ic">${ico('i-doc')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(cur))}</b>
+        <small class="cap" style="display:block">${esc(formFieldsInfo(cur)||formQs(cur))}${cur.fin&&cur.fin.length?' · '+fa(formSum(cur))+' ریال':''}</small></span>
+      <button class="btn sm quiet" data-fclear="${esc(need)}" aria-label="${esc(F.clear||'بردار')}">${ico('i-close')}</button></div>`:''
+    }</div>
+    <hr class="hr"/>`:'';
   const row=(f)=>`<div class="admlirow pickrow ${cur&&String(cur.id)===String(f.id)?'on':''}">
       <span class="ic">${ico(f.fin&&f.fin.length?'i-wallet':'i-doc')}</span>
       <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(f))}</b>
         <small class="cap" style="display:block">${esc([f.kind||'', formQs(f), f.fin&&f.fin.length?fa(formSum(f))+' ریال':''].filter(Boolean).join(' · '))}${f.ev?` · ${esc('وصل به '+f.ev)}`:''}</small></span>
       ${cur&&String(cur.id)===String(f.id)?`<span class="tag brand">${esc(F.linked||'وصل شده')}</span>`:
         `<button class="btn sm" data-fpick="${esc(need)}" data-fid="${esc(f.id)}">${ico('i-check')}${esc(F.pick||'بردار')}</button>`}</div>`;
-  const autoRow=isAuto?`<div class="admlirow on"><span class="ic">${ico('i-star')}</span>
+  const autoRow=(isAuto&&!isReg)?`<div class="admlirow on"><span class="ic">${ico('i-star')}</span>
       <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(autoForm()))}</b>
         <small class="cap" style="display:block">${esc((F.autoReady||'آماده و خودکار')+' · '+formQs(autoForm()))}</small></span>
       <span class="tag ok">${esc(F.autoTag||'خودکار')}</span>
@@ -1186,8 +1221,9 @@ function formPick(need,label,hint){
       <button class="btn sm quiet" data-fclear="${esc(need)}" aria-label="${esc(F.clear||'بردار')}">${ico('i-close')}</button></div>`:'';
   return `<div class="fld"><span class="lbl">${esc(label)}</span>
     ${hint?`<span class="cap">${esc(hint)}</span>`:''}
+    ${need2}
     ${autoRow}
-    ${!isAuto&&cur?`<div class="admlirow on"><span class="ic">${ico('i-doc')}</span>
+    ${!isAuto&&cur&&!isReg?`<div class="admlirow on"><span class="ic">${ico('i-doc')}</span>
       <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(cur))}</b>
         <small class="cap" style="display:block">${esc([cur.kind||'', formQs(cur)].filter(Boolean).join(' · '))}</small></span>
       <a class="btn sm quiet" href="${esc(builderUrl(need))}" target="_blank" rel="noopener">${ico('i-sliders')}${esc(F.openBuilder||'ویرایش در فرم‌ساز')}</a>
@@ -1461,7 +1497,7 @@ function vEventWizard(){
       isEv?['ظرفیت',fa(w.cap||0)+' نفر'+(w.pre?' · پیش‌ثبت‌نام '+fa(w.pre):'')+(w.extra?' · مازاد '+fa(w.extra):'')+' · لیست انتظار '+((Z.waitModes||[]).find(x=>x.k===w.waitMode)||{}).n]:null,
       isEv&&!w.held?['ثبت‌نام',[w.regFrom?fa(w.regFrom):(L.now||'همین حالا'),w.regTo?fa(w.regTo):(L.tillStart||'تا شروع')].join(' · ')]:null,
       isEv?['دسترسی',((Z.privacy||[]).find(x=>x.k===w.privacy)||{}).n||'']:null,
-      isEv?['فرم ثبت‌نام',reg?formName(reg):(Z.forms||{}).none||'']:null,
+      isEv?['فرم ثبت‌نام',reg?(formName(reg)+(formFieldsInfo(reg)?' · '+formFieldsInfo(reg):'')):((Z.forms||{}).none||'')]:null,
       isEv&&featOn('survey')?['نظرسنجی',svy?formName(svy):((Z.forms||{}).none||'')]:null,
       isEv&&featOn('exam')?['آزمون',w.exam==='none'?(Z.forms||{}).none||'':(exm?formName(exm):'')]:null,
       (isMoney()&&reg)?['مبالغ',fa(formSum(reg))+' '+((NE().l||{}).rial||'ریال')]:null,
@@ -1485,7 +1521,8 @@ function vEventWizard(){
           <b>${esc(w.name||'بی‌نام')}</b>${tag(canPublish()?(Z.route||{}).self:(Z.route||{}).ask,canPublish()?'ok':'warn')}</div>
         ${R.map(r=>`<div class="revrow"><span class="cap">${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join('')}
         <div class="admchips"><span class="tag brand">${esc(themeOf(w.theme).n||'')}</span>
-          ${reg?`<span class="tag">${esc('فرم ثبت‌نام: '+formName(reg))}</span>`:''}
+          ${reg?`<span class="tag">${esc('فرم ثبت‌نام: '+formName(reg)+((formFieldsInfo(reg))?' · '+formFieldsInfo(reg):''))}</span>`
+            :`<span class="tag warn">${esc((Z.forms||{}).none||'فرمی وصل نشده')}</span>`}
           ${featOn('survey')&&svy?`<span class="tag">${esc('نظرسنجی: '+formName(svy))}</span>`:''}
           ${featOn('exam')&&exm?`<span class="tag">${esc('آزمون: '+formName(exm))}</span>`:''}
           ${w.held?`<span class="tag">${esc('آرشیو')}</span>`:''}</div></div>`;
@@ -1494,7 +1531,7 @@ function vEventWizard(){
   const ready=sem===0?(isEv?!!(w.et&&String(w.name||'').trim()):!!String(w.name||'').trim())
     :sem===1?!!(j1&&w.time&&w.to&&(w.mode==='online'?String(w.link||'').trim():String(w.place||'').trim()))
     :sem===2?!!(+w.cap>0)
-    :sem===3?true
+    :sem===3?(isEv&&!w.held?!!fpOf('reg'):true)
     :true;
   const last=stepsAll.length-1, wEdit=!!w.edit;
   return `<section class="card stack admwiz">
@@ -5660,6 +5697,8 @@ document.addEventListener('click',e=>{
     S.defs=(S.defs||[]).map(x=>x.id===id?Object.assign({},x,{wait:0,st:'no'}):x);
     save(); renderBody(); toast((DEFD().states||{}).no?DEFD().states.no[0]:'برگشت برای اصلاح'); return}
   const wsend=q('[data-wsend]'); if(wsend){const w=S.wiz, et=neKind(w.et), kk=defKind(w.kind);
+    /* رویدادِ آتی بی فرمِ ثبتنام منتشر نمیشود؛ رویدادِ برگزارشده فرم نمیخواهد */
+    if(w.kind==='event'&&!w.held&&!w.edit&&!fpOf('reg')){toast('ثبت‌نام این رویداد از دلِ فرم‌ساز می‌آید؛ اول فرمش را در فرم‌ساز بساز و وصلش کن'); return}
     const kind=w.kind==='event'?(et.n||'رویداد'):kk.n, j1=jParse(w.date), W2=evWhen();
     const ses=(w.sess||[]).filter(x=>x&&x.d);
     if(j1&&w.edit&&!w.held&&evState({on:w.date,end:w.end,to:w.to,sess:ses,state:'soon'})==='past'&&!ses.length)

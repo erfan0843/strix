@@ -1520,6 +1520,10 @@ function postReads(id){
    «در حال برگزاری»، بعدش در برگزارشده‌ها. */
 const PUB_GRAD='linear-gradient(135deg,#1E6FD0,#0A3A82)';
 /* جمع مبالغ فرم با تخفیف: همان حساب پنل، تا مبلغ رویداد زنده عوض شود */
+/* ثبت‌نام‌ها: فرمِ وصلشده به رویداد، همین‌جا می‌نویسد؛ پنل و صفحهٔ رویداد می‌خوانند */
+const REGS_KEY='nora-regs';
+function regsAll(){try{const a=JSON.parse(localStorage.getItem(REGS_KEY)||'[]'); return Array.isArray(a)?a:[]}catch(e){return []}}
+function regsOf(evId){return regsAll().filter(r=>String(r.ev)===String(evId))}
 const formsMoney=f=>{const fin=(f&&f.fin)||[]; if(!fin.length) return 0;
   return fin.reduce((n,o)=>n+(o.off?Math.round(+o.p*(100-+o.off)/100):(+o.p||0)),0)};
 const JM_KEY=['','','','','','','sh','mehr','aban','','','',''];
@@ -1551,10 +1555,12 @@ function pubEvents(){
     const lf=formsFor(String(ev.id));
     const regF=lf.find(x=>(x.need||'reg')==='reg');
     const liveMoney=regF?formsMoney(regF):null;
-    const base={id:String(ev.id), t:ev.n||'برنامه', kind:ev.kind||'برنامه',
+    const regN=regsOf(String(ev.id)).length;
+    const base={id:String(ev.id), t:ev.n||'برنامه', kind:ev.kind||'برنامج',
       when:ev.when||(fj?faJDate(fj.jy,fj.jm,fj.jd):''), time:ev.time||'',
       place:online?'آنلاین':place, mode:online?'آنلاین':'حضوری',
-      price:(liveMoney!=null&&liveMoney>0)?liveMoney:(+ev.price||0), cap:+ev.cap||0, taken:+ev.reg||0,
+      price:(liveMoney!=null&&liveMoney>0)?liveMoney:(+ev.price||0), cap:+ev.cap||0,
+      taken:(regN>+ev.reg)?regN:(+ev.reg||0), regs:regN, regForm:regF?String(regF.id):'', regName:regF?(regF.name||''):'',
       spots:Math.max(0,(+ev.cap||0)-(+ev.reg||0)),
       poster:ev.posterUp||(ev.poster?('posters/'+ev.poster):''), g:PUB_GRAD,
       d:ev.about||ev.rep||'', tags:ev.held?[]:['جدید'], club:false,
@@ -1602,7 +1608,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v74') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v76') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

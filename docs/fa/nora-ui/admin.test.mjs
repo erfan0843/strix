@@ -1487,6 +1487,55 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(!/پیش‌نویس/.test(p.txt('#admBody')),'و باز هم پیش‌نویس نمی‌شود');
 }
 
+/* ── رویدادِ تازه بی فرمِ ثبتنام منتشر نمیشود؛ فرمِ وصلشده با رویداد میآید ── */
+{
+  console.log('\n── ثبت‌نام رویداد وابسته به فرم‌ساز ──');
+  const st=makeStore();
+  const a=await load(st);
+  a.click('#admNav [data-sec="events"]'); a.click('[data-evnew]');
+  a.type('#wzName','کارگاه بیفرم','change'); a.type('#wzDesc','توضیح','change');
+  a.click('[data-wet="webinar"]');
+  a.click('[data-wstep="1"][data-wgo="1"]');
+  a.type('#wz-date','۱۴۰۵/۰۸/۱۰','change'); a.type('#wz-time','17:00','change');
+  a.type('#wz-to','19:00','change'); a.type('#wz-place','سالن نورا','change');
+  a.click('[data-wstep="2"][data-wgo="1"]'); a.type('#wz-cap','30','change');
+  a.click('[data-wstep="3"][data-wgo="1"]');
+  ok(a.all('[data-wstep="4"][data-wgo="1"]:not([disabled])').length===0,'رویدادِ بیفرمِ ثبتنام از گام فرمها جلو نمیرود');
+  ok(/فرم‌ساز/.test(a.txt('#admBody')),'و راهِ ساختنِ فرم را نشان میدهد');
+  ok(/ساختنِ فرمِ ثبت‌نامِ همین رویداد در فرم‌ساز/.test(a.txt('#admBody')),'دکمهٔ ساختنِ فرمِ همان رویداد هست');
+  const bld=[...a.all('a')].map(x=>x.getAttribute('href')||'').filter(h=>/create\.html\?ev=/.test(h)&&/need=reg/.test(h))[0];
+  ok(!!bld,'پیوندِ فرمساز با شناسهٔ همین رویداد باز میشود');
+  /* فرم را در انبار فرمساز میگذاریم و به رویداد وصل میکنیم */
+  const f1={id:'ff1',name:'فرم ثبتنام کارگاه',kind:'ثبت‌نام',need:'reg',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'موبایل',req:true},
+            {id:3,t:'choice',l:'سطح',req:true,opts:[{l:'تازه'},{l:'قدیمی'}]},{id:4,t:'terms',l:'قوانین',req:true}],
+    fin:[{l:'حضوری',p:120000,off:0}],groups:[{n:'نوع',of:[0],req:true,one:true}],maxPer:2,guestsOn:false,
+    methods:['bale','wallet']};
+  st.setItem('nora-forms',JSON.stringify([f1]));
+  st.removeItem('nora-admin');
+  const b=await load(st);
+  b.click('#admNav [data-sec="events"]'); b.click('[data-evnew]');
+  b.type('#wzName','کارگاه پیوندخورده','change'); b.click('[data-wet="webinar"]');
+  b.click('[data-wstep="1"][data-wgo="1"]');
+  b.type('#wz-date','۱۴۰۵/۰۸/۱۰','change'); b.type('#wz-time','17:00','change');
+  b.type('#wz-to','19:00','change'); b.type('#wz-place','سالن نورا','change');
+  b.click('[data-wstep="2"][data-wgo="1"]'); b.type('#wz-cap','30','change');
+  b.click('[data-wstep="3"][data-wgo="1"]');
+  ok(b.all('[data-fpick="reg"][data-fid="ff1"]').length===1,'فرم فرمساز در برگهٔ گام فرمها هست');
+  b.click('[data-fpick="reg"][data-fid="ff1"]');
+  ok(JSON.parse(st.getItem('nora-admin')).wiz.fp.reg==='ff1','فرم به رویداد وصل شد');
+  ok(/۴ پرسش · ۴ اجباری/.test(b.txt('#admBody')),'قلمها و اجباریهای فرم در پنل شمرده شد');
+  ok(/۱۲۰۰۰۰ ریال/.test(b.txt('#admBody')),'و مبلغش از دلِ فرم آمد');
+  ok(b.all('[data-wstep="4"][data-wgo="1"]:not([disabled])').length===1,'با وصلشدنِ فرم، راه مرور باز میشود');
+  b.click('[data-wstep="4"][data-wgo="1"]');
+  ok(/فرم ثبتنام کارگاه/.test(b.txt('#admBody')),'در مرور، نامِ فرم دیده میشود');
+  b.click('[data-wsend]');
+  const added=JSON.parse(st.getItem('nora-admin')).added||[];
+  ok(added.length===1,'رویدادِ پیوندخورده منتشر شد');
+  ok((added[0].forms||[]).some(f=>String(f.id)==='ff1'),'و فرمش با رویداد پیوست');
+  ok(a.errs.length===0&&b.errs.length===0,'هیچ خطایی نماند');
+}
+
 /* ── ۱۲) مالی فقط و فقط مالک ── */
 {
   console.log('\n── مالی فقط مالک ──');
@@ -1632,7 +1681,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:74, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:76, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1666,6 +1715,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-wstep="2"][data-wgo="1"]');
   p.type('#wz-cap','20','change');
   p.click('[data-wstep="3"][data-wgo="1"]');
+  const U0=p.window.NORA_UI;
+  U0.formPut({id:'sv-reg',name:'ثبت‌نام کارگاه نظرسنجی',kind:'ثبت‌نام',need:'reg',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'موبایل',req:true}]});
+  p.click('[data-wstep="2"]'); p.click('[data-wstep="3"][data-wgo="1"]');
+  p.click('[data-fpick="reg"][data-fid="sv-reg"]');
   ok(/نظرسنجی آمادهٔ نورا/.test(p.txt('#admBody')),'پیشفرض نظرسنجی، فرم آمادهٔ نوراست');
   ok(/خودکار/.test(p.txt('#admBody')),'و برچسب خودکار دارد');
   const own=[...p.all('a')].some(a=>/need=survey/.test(a.getAttribute('href')||''));
@@ -1693,6 +1747,11 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p2.click('[data-wstep="2"][data-wgo="1"]');
   p2.type('#wz-cap','15','change');
   p2.click('[data-wstep="3"][data-wgo="1"]');
+  const U1=p2.window.NORA_UI;
+  U1.formPut({id:'ns-reg',name:'ثبت‌نام بی نظرسنجی',kind:'ثبت‌نام',need:'reg',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true}]});
+  p2.click('[data-wstep="2"]'); p2.click('[data-wstep="3"][data-wgo="1"]');
+  p2.click('[data-fpick="reg"][data-fid="ns-reg"]');
   p2.click('[data-fclear="survey"]');
   ok(!/نظرسنجی آمادهٔ نورا/.test(p2.txt('#admBody')),'با بردار، آماده کنار می‌رود');
   p2.click('[data-wstep="4"][data-wgo="1"]');
@@ -1861,9 +1920,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=85')&&html.includes('admin.js?v=85'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=87')&&html.includes('admin.js?v=87'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v74'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v76'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

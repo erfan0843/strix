@@ -187,6 +187,73 @@ async function load(file,store,q){
   ok(p.errs.length===0, p.errs.length?('خطای پایان: '+p.errs.slice(0,3).join(' | ')):'تا آخر بی‌خطا');
 }
 
+/* ── فرمِ ثبت‌نامِ رویداد: پرسشها از دلِ فرمساز میآیند، بی مبلغ مستقیم به ثبت ── */
+{
+  console.log('\n── فرمِ ثبت‌نام از دلِ فرم‌ساز ──');
+  const st=makeStore();
+  st.setItem('nora-forms',JSON.stringify([
+    {id:'f1',name:'فرم ثبت‌نام کارگاه نقالی',kind:'ثبت‌نام',need:'reg',ev:'ev1',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true,help:'همان که در شناسنامه هست'},
+             {id:2,t:'mobile',l:'شماره موبایل',req:true},
+             {id:3,t:'choice',l:'سطح تجربه',req:true,opts:[{l:'تازه‌کار'},{l:'متوسط'},{l:'حرفه‌ای'}]},
+             {id:4,t:'multi',l:'کدام بخش‌ها؟',opts:[{l:'نقالی'},{l:'پرده‌خوانی'}]},
+             {id:5,t:'area',l:'چرا این کارگاه؟'},
+             {id:6,t:'terms',l:'قوانین را می‌پذیرم',req:true}],
+     intro:'سه جلسهٔ عملی نقالی و پرده‌خوانی',fin:[],maxPer:3,guestsOn:false,methods:[]}]));
+  const q=await load('form.html',st,'?ev=ev1&kind=reg');
+  ok(q.errs.length===0,'صفحهٔ فرمِ رویداد بیخطا بالا آمد');
+  ok(!!q.doc.querySelector('#qp0')&&/نام و نام خانوادگی/.test(q.txt('#qp0')),'قلمِ «نام و نام خانوادگی» از دلِ فرمساز آمد');
+  ok(!!q.doc.querySelector('#qp2')&&[...q.all('#qp2 .opt b')].map(b=>b.textContent).join('|')==='تازه‌کار|متوسط|حرفه‌ای','گزینههای تکانتخاب، گزینههای سازنده است');
+  ok(q.all('#qp3 .opt').length===2,'چندانتخاب با دو گزینه');
+  ok(!!q.doc.querySelector('#qp4 textarea'),'متن بلند، جعبهٔ متن شد');
+  ok(!!q.doc.querySelector('#qp5')&&/می‌پذیرم/.test(q.txt('#qp5')),'قلمِ پذیرش قوانین');
+  ok(q.vis('#u1').length===1,'صفحهٔ نخست باز است');
+  ok(q.doc.querySelector('#u2').style.display==='none','صفحههای ثابتِ دمو دیگر فهرست پرسشها نیستند');
+  ok(/۶ پرسش/.test(q.txt('#stepCap')),'شمار پرسشها از خودِ فرم خوانده شد');
+  q.click('#next');
+  ok(q.vis('#qp0').length===1,'به نخستین پرسش رفت');
+  q.click('#next');
+  ok(q.vis('#qp0').length===1,'پرسشِ اجباریِ خالی جلوی رفتن را میگیرد');
+  q.doc.querySelector('#qa0').value='مریم احمدی'; q.click('#next');
+  ok(q.vis('#qp1').length===1,'پس از پر کردنِ نام، به موبایل رفت');
+  q.doc.querySelector('#qa1').value='09121234567'; q.click('#next');
+  ok(q.vis('#qp2').length===1,'موبایل پذیرفته شد');
+  q.click('#qp2 .opt:nth-child(2)');
+  ok(q.doc.querySelector('[data-qsel="2"]').dataset.val==='متوسط','با زدنِ گزینه، مقدارش نشست');
+
+  q.click('#next');
+  ok(q.vis('#qp3').length===1,'به چندانتخاب رفت');
+  q.click('#qp3 .opt:nth-child(1)'); q.click('#qp3 .opt:nth-child(2)');
+  ok(q.doc.querySelector('#qa3').value==='نقالی، پرده‌خوانی','چندانتخاب، دو مقدار را با ویرگول میگذارد');
+  q.click('#next'); ok(q.vis('#qp4').length===1,'به متن بلند رفت');
+  q.click('#next'); ok(q.vis('#qp5').length===1,'به پذیرش قوانین رفت');
+  q.click('#next');
+  ok(q.vis('#qp5').length===1,'بی پذیرش قوانین، ثبت نمیشود');
+  q.click('#qp5 .opt'); q.click('#next');
+  ok(q.vis('#u12').length===1,'فرمِ بیمبلغ، صفحههای پرداختی را رد کرد و به ثبت رسید');
+  const sum=q.txt('#regSum');
+  ok(/مریم احمدی/.test(sum),'خلاصهٔ پاسخها روی صفحهٔ ثبت هست');
+  ok(/متوسط/.test(sum)&&/نقالی/.test(sum),'پاسخهای انتخابی هم در خلاصه است');
+  const regs=JSON.parse(st.getItem('nora-regs')||'[]');
+  ok(regs.length>=1&&regs[0].ev==='ev1'&&regs[0].form==='f1','ثبتِ نام با شناسهٔ رویداد و فرم در انبار نوشته شد');
+  ok((regs[0].ans||[]).length>=4,'پاسخها با خودِ ثبت ماندهاند');
+  ok(/NL/.test(q.txt('#u12 .ticketline .num')),'کد پیگیری از خودِ ثبت درآمد');
+  ok(q.errs.length===0,'و هیچ خطایی در کنار نماند');
+  /* فرمِ پولی: صفحههای پرداخت سر جایش مانند و مبالغ از دلِ فرم میآید */
+  const st2=makeStore();
+  st2.setItem('nora-forms',JSON.stringify([{id:'f2',name:'فرم پولی',need:'reg',ev:'ev2',kind:'ثبت‌نام',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true}],
+    fin:[{l:'حضوری',p:100000,off:0},{l:'آنلاین',p:50000,off:0}],
+    groups:[{n:'نوع',of:[0,1],req:true,one:true}],maxPer:1,guestsOn:false,methods:['wallet']}]));
+  const q2=await load('form.html',st2,'?ev=ev2&kind=reg');
+  q2.click('#next');
+  ok(q2.vis('#qp0').length===1,'فرمِ پولی هم قلم خودش را آورد');
+  q2.doc.querySelector('#qa0').value='سارا محمدی'; q2.click('#next');
+  ok(q2.vis('#u8').length===1,'و چون پولی است، به صفحهٔ انتخاب رفت');
+  ok(q2.all('#finOpts .opt').length===2,'مبالغ از دلِ فرمساز آمد');
+  ok(q2.errs.length===0,'فرمِ پولی هم بیخطا بود');
+}
+
 /* ═══════════ گیت ادمین: دعوت دوست بسته ═══════════ */
 {
   console.log('\n── دعوت دوست بسته (form.html?guests=0) ──');
@@ -1502,7 +1569,16 @@ async function load(file,store,q){
   ok(fe.txt('#page').includes('کیوان مرادی'),'مدرس با نام و نشان می‌آید');
   ok(fe.txt('#page').includes('یکشنبه ۲۹ شهریور'),'تاریخ برگزاری در جزئیات');
   ok(fe.txt('#page').includes('فرهنگسرای نیاوران'),'نشانی برگزاری در جزئیات');
-  ok(fe.doc.querySelector('#reg')!==null && fe.doc.querySelector('#reg').getAttribute('href')==='form.html?ev=e3','لینک ثبت‌نام به فرم کاربر می‌رود');
+  ok(fe.doc.querySelector('#reg')!==null && fe.doc.querySelector('#reg').getAttribute('href')==='form.html?ev=e3&kind=reg','لینک ثبت‌نام به فرم کاربر می‌رود');
+  ok(/فرم ثبت‌نام این رویداد هنوز وصل نشده/.test(fe.txt('#page')),'و بی فرمِ وصل‌شده، صادقانه می‌گوید وصل نشده');
+  /* با فرمِ وصل‌شده، لینک دقیقاً به همان فرم می‌رود */
+  const stF=makeStore();
+  stF.setItem('nora-forms',JSON.stringify([{id:'ev3reg',name:'ثبت‌نام کارگاه عکاسی',kind:'ثبت‌نام',need:'reg',ev:'e3',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'موبایل',req:true},
+            {id:3,t:'choice',l:'سطح',req:true,opts:[{l:'تازه‌کار'},{l:'حرفه‌ای'}]}]}]));
+  const fe2=await load('event.html',stF,'?id=e3');
+  ok(fe2.doc.querySelector('#reg').getAttribute('href')==='form.html?ev=e3&fid=ev3reg&kind=reg','با فرمِ وصل‌شده، لینک به همان فرم می‌رود');
+  ok(/۳ پرسش/.test(fe2.txt('#page')),'و شمارِ پرسشهای همان فرم روی صفحه می‌آید');
   ok(fe.all('.evrail .rtile').length>0,'ردیف «برنامه‌های مشابه» پر است');
   ok(fe.all('.evrail .rtile').every(x=>x.dataset.goto!=='e3'),'رویداد خودش در ردیف مشابه‌ها نیست');
   ok(fe.doc.querySelector('#ctabar').hidden===false||fe.doc.querySelector('#ctabar')!==null,'نوار کار پایین صفحه هست');
@@ -1734,7 +1810,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:74, added:[
+  store.setItem('nora-admin', JSON.stringify({v:76, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

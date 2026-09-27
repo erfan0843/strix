@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=85"/>
+<link rel="stylesheet" href="glass.css?v=87"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -403,6 +403,11 @@
       </div>
     </div>
 
+    <div class="card paper" style="margin-top:12px" id="regSumCard">
+      <div class="head" style="margin-bottom:10px">پاسخ‌های شما</div>
+      <div class="stack tight" id="regSum"></div>
+    </div>
+
     <div class="card paper" style="margin-top:12px">
       <div class="head" style="margin-bottom:10px">در همین باره</div>
       <div class="stack tight" id="endLinks"></div>
@@ -487,8 +492,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="data.js?v=85"></script>
-<script src="ui.js?v=85"></script>
+<script src="data.js?v=87"></script>
+<script src="ui.js?v=87"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
@@ -608,16 +613,33 @@ function renderPayMethods(){
       CFG.fin=fin;
       CFG.groups=(f.groups||[]).filter(g=>g&&g.n&&(g.of||[]).some(i=>fin[i]))
         .map(g=>({n:g.n, of:(g.of||[]).filter(i=>fin[i]), req:!!g.req, one:g.one!==false}));
+    } else {
+      /* فرمِ رایگان، هیچ مگیری از پیشفرضِ دمو نبرد: مبالغ تنها از دلِ فرم میآید */
+      CFG.fin=[]; CFG.groups=[]; CFG.methods=[];
+      CFG.coupon={code:'',off:0,all:false};
+      CFG.companion={on:false,max:1,fields:''}; CFG.maxPer=1;
     }
     CFG.title=f.name||CFG.title;
     if(f.slug) CFG.slug=f.slug;
+    /* پرسشها از دلِ فرمساز: هر قلم با نوع و گزینههایش، همان‌طور که سازنده چیده */
+    const qOf=x=>Array.isArray(x)?{l:String(x[0]||''),t:'text',req:true}
+      :(x&&typeof x==='object')?{l:String(x.l||x.n||''),t:String(x.t||'text'),req:!!x.req,
+        help:String(x.help||''),opts:(x.opts||[]).map(o=>typeof o==='string'?o:String((o&&o.l)||'')).filter(Boolean)}
+      :{l:String(x||''),t:'text',req:true};
+    const QF=(Array.isArray(f.fields)&&f.fields.length)?f.fields.map(qOf).filter(q=>q.l)
+      :(Array.isArray(f.questions)?f.questions.map(qOf).filter(q=>q.l):[]);
+    if(QF.length) window.__REG={q:QF, formId:String(f.id||''), evId:String(evId||''),
+      need:kind, money:CFG.fin.length>0, title:f.name||CFG.title,
+      intro:f.intro||'', endText:f.intro||CFG.endText,
+      maxPer:+f.maxPer||1, guestsOn:!!f.guestsOn,
+      links:(f.links||[]).map(l=>({t:l.t||'',u:l.u||'',i:l.i||'i-link'}))};
     CFG.cap=+f.cap||CFG.cap; CFG.taken=0;
     if(f.coupon&&f.coupon.code) CFG.coupon={code:f.coupon.code,off:+f.coupon.off||0,all:!!f.coupon.all};
     if(+f.maxPer>1) CFG.maxPer=+f.maxPer;
     CFG.companion={on:!!f.guestsOn, max:(+f.maxPer||1), fields:'نام و موبایل'};
     if(Array.isArray(f.methods)&&f.methods.length){
       const ok=f.methods.filter(k=>PAY_DEF[k]); if(ok.length) CFG.methods=ok;
-    }
+    } else if(!CFG.fin.length){ CFG.methods=[] }
     if(f.intro) CFG.endText=f.intro;
     CFG.confirmed=false;
   }catch(err){}
@@ -853,6 +875,230 @@ if(window.__SURVEY){
     u12.querySelectorAll('[data-go]').forEach(x=>{const r=x.closest('.row'); (r||x).style.display='none'});
   }
 }
+/* ══ فرمِ وصلشده به رویداد: پرسشها از دلِ فرمساز میآیند ──────────────────
+   سازنده در فرمساز هر قلم را با نوع و گزینه و اجباریب چیده؛ همین صفحه همان
+   قلمها را یکییکی نشان میدهد. فرمِ بیمبلغ مستقیم به ثبت میرود و صفحههای
+   پرداختی باز نمیشوند. */
+const REG=window.__REG||null;
+let REGGATE=null;          /* دروازهٔ پرسشهای اجباری، برای دکمهٔ بعدی */
+if(REG){
+  const E2=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const N=REG.q.length, money=!!REG.money;
+  const FIX={gender:['زن','مرد'],marital:['مجرد','متأهل'],yesno:['بله','خیر']};
+  const optList=q=>(q.opts&&q.opts.length)?q.opts:(FIX[q.t]||[]);
+  const qId=i=>'qa'+i;
+  /* بدنهٔ هر قلم بر پایهٔ نوعش */
+  function qBody(q,i){
+    const t=q.t, help=q.help?`<p class="cap" style="margin-top:8px">${E2(q.help)}</p>`:'';
+    if(['text','fullname','mobile','nid','email','address','location','number','amount'].indexOf(t)>-1){
+      const num=t==='number'||t==='amount'||t==='mobile'||t==='nid';
+      const ph=t==='mobile'?'۰۹__________':(t==='nid'?'ده رقم':(t==='email'?'name@mail.com':''));
+      const mx=t==='mobile'||t==='nid'?' maxlength="11"':'';
+      return `<div class="fld"><span class="reqbar"></span>
+        <input class="input${num?' num':''}" id="${qId(i)}" ${num?'style="direction:ltr;text-align:start"':''}
+          inputmode="${num?'numeric':'text'}" ${mx} placeholder="${E2(ph)}"/></div>${help}`}
+    if(t==='area') return `<div class="fld"><span class="reqbar"></span>
+        <textarea class="input" id="${qId(i)}" rows="4" placeholder="همین‌جا بنویس"></textarea></div>${help}`;
+    if(['choice','imgchoice','dropdown','gender','marital','yesno'].indexOf(t)>-1){
+      const o=optList(q);
+      if(!o.length) return `<div class="fld"><span class="reqbar"></span>
+        <input class="input" id="${qId(i)}" placeholder="همین‌جا بنویس"/></div>${help}`;
+      return `<div class="stack tight" data-qsel="${i}" data-val="">
+        ${o.map(x=>`<label class="opt sq" data-qopt="1"><span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
+          <span style="flex:1;text-align:start"><b>${E2(x)}</b></span></label>`).join('')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`}
+    if(t==='multi'){
+      const o=optList(q);
+      return `<div class="stack tight" data-qmul="${i}">
+        ${o.map(x=>`<label class="opt sq" data-qopt="1"><span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
+          <span style="flex:1;text-align:start"><b>${E2(x)}</b></span></label>`).join('')}
+        <input type="hidden" id="${qId(i)}"/></div>
+        <p class="cap" style="margin-top:8px">هر کدام را لازم داری بردار.</p>${help}`}
+    if(t==='date') return `<div data-qpick="date" data-i="${i}">${pickHTML('date','','')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(t==='datetime') return `<div data-qpick="datetime" data-i="${i}">${pickHTML('datetime','','')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(t==='time'||t==='slot') return `<div data-qpick="time" data-i="${i}">${pickHTML('time','','')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(t==='province') return `<div data-qgeo="1" data-i="${i}">${geoHTML('','')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(['uni','job','edu'].indexOf(t)>-1) return `<div data-qlist="${t}" data-i="${i}">${listHTML(t,'')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(t==='rating') return `<div class="row tight" data-qrate="${i}" data-val="">
+        ${[1,2,3,4,5].map(v=>`<button type="button" class="opt sq star" data-qopt="1" data-qv="${v}" aria-label="${faN(v)} ستاره">
+          <svg class="i"><use href="#i-star"/></svg></button>`).join('')}</div>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(t==='scale') return `<div class="fld"><span class="reqbar"></span>
+        <input class="input num" type="range" min="0" max="10" value="5" id="${qId(i)}" style="direction:ltr"/></div>
+        <p class="cap" style="margin-top:6px"><b id="${qId(i)}v">۵</b> از ۱۰</p>${help}`;
+    if(t==='terms') return `<label class="opt sq" data-qopt="1" data-qterm="${i}" data-val="">
+        <span class="mk"><svg class="i" style="width:15px"><use href="#i-check"/></svg></span>
+        <span style="flex:1;text-align:start"><b>${E2(q.l)}</b>
+          <div class="cap" style="margin-top:2px">برای ادامه باید بپذیرید.</div></span></label>
+        <input type="hidden" id="${qId(i)}"/>${help}`;
+    if(['image','file','voice','sign'].indexOf(t)>-1){
+      const k={image:'تصویر',file:'فایل یا سند',voice:'فایل صدا',sign:'تصویر امضا'}[t];
+      return `<div class="fld"><span class="lbl">${k}</span>
+        <input class="input" type="file" id="${qId(i)}" accept="${t==='image'||t==='sign'?'image/*':'*/*'}"/></div>
+        <p class="cap" style="margin-top:8px">${E2(q.help||'از دستگاه خودت بردار.')}</p>`}
+    return `<div class="fld"><span class="reqbar"></span>
+      <input class="input" id="${qId(i)}" placeholder="همین‌جا بنویس"/></div>${help}`;
+  }
+  /* مقدارِ هر قلم؛ برای اجباریب و برای خلاصهٔ آخر */
+  function qVal(i){
+    const q=REG.q[i], t=q.t, el=document.getElementById(qId(i));
+    if(['choice','imgchoice','dropdown','gender','marital','yesno'].indexOf(t)>-1){
+      const box=document.querySelector('[data-qsel="'+i+'"]');
+      return (box&&box.dataset.val)||''}
+    if(t==='multi'){const box=document.querySelector('[data-qmul="'+i+'"]');
+      return box?[...box.querySelectorAll('.opt.on b')].map(b=>b.textContent).join('، '):''}
+    if(t==='date'||t==='datetime'||t==='time'||t==='slot'){
+      const box=document.querySelector('[data-qpick][data-i="'+i+'"]'); if(!box) return '';
+      const v=pickVal(box); return t==='time'||t==='slot'?v.time:(t==='date'?v.date:v.full)}
+    if(t==='province'){const box=document.querySelector('[data-qgeo][data-i="'+i+'"]'); if(!box) return '';
+      return box.querySelector('.gp').value+' · '+box.querySelector('.gc').value}
+    if(['uni','job','edu'].indexOf(t)>-1){const box=document.querySelector('[data-qlist][data-i="'+i+'"]'); if(!box) return '';
+      const v=box.querySelector('.lp').value; return v==='سایر'?box.querySelector('.other').value:v}
+    if(t==='rating'){const box=document.querySelector('[data-qrate="'+i+'"]');
+      return box&&box.dataset.val?(faN(+box.dataset.val)+' ستاره'):''}
+    if(t==='terms'){const box=document.querySelector('[data-qterm="'+i+'"]');
+      return box&&box.dataset.val==='1'?'پذیرفتم':''}
+    if(['image','file','voice','sign'].indexOf(t)>-1){const f=el&&el.files&&el.files[0];
+      return f?f.name:''}
+    return el?String(el.value||'').trim():'';
+  }
+  const qMissing=()=>{for(let i=0;i<N;i++){if(REG.q[i].req&&!qVal(i)) return REG.q[i].l} return null};
+  /* دروازهٔ هر صفحه: تنها پرسشِ همان صفحه سنجیده میشود، نه پرسشهای بعدی */
+  const missCur=()=>{const i=+String(cur).slice(2);
+    return (i>=0&&i<N&&REG.q[i].req&&!qVal(i))?REG.q[i].l:null};
+  REGGATE={miss:qMissing, missCur:missCur};
+  /* صفحههای پرسش، یکی برای هر قلم، پیش از صفحهٔ مالی */
+  const host=document.getElementById('u8');
+  const ids=REG.q.map((_,i)=>'qp'+i);
+  ids.forEach((id,i)=>{
+    const sec=document.createElement('section');
+    sec.className='screen'; sec.id=id; sec.style.marginTop='12px';
+    sec.innerHTML=`<div class="card paper">
+      <div class="cap">پرسش ${faN(i+1)} از ${faN(N)}</div>
+      <div class="title" style="margin:4px 0 14px">${E2(REG.q[i].l)}${REG.q[i].req?'<span class="required-dot"></span>':''}</div>
+      ${qBody(REG.q[i],i)}
+    </div>`;
+    if(host&&host.parentNode) host.parentNode.insertBefore(sec,host); else document.body.appendChild(sec);
+    CAP[id]='پرسش '+faN(i+1)+' از '+faN(N);
+    PROG[id]=Math.round(12+(money?80:100)*(i+1)/N);
+    const last2=i===N-1;
+    BTN[id]=last2?(money?'ادامه و پرداخت':'ثبت‌نام'):'بعدی';
+    NEXT[id]=last2?(money?'u8':'u12'):ids[i+1];
+  });
+  ['u2','u3','u4','u5','u6','u7'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+    delete CAP[id]; delete PROG[id]; delete BTN[id]; delete NEXT[id];});
+  if(!money) ['u8','u9','u10','u11'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+    delete CAP[id]; delete PROG[id]; delete BTN[id]; delete NEXT[id];});
+  ORDER.length=0;
+  ['u1'].concat(ids, money?['u8','u9','u10','u11']:[], ['u12','u14']).forEach(x=>ORDER.push(x));
+  NEXT.u1=ids[0]||(money?'u8':'u12');
+  CAP.u1=faN(N)+' پرسش'; BTN.u1=money?'شروع ثبت‌نام':'شروع';
+  PROG.u1=0;
+  document.title='نورا · '+(REG.title||CFG.title);
+  const ttl=document.getElementById('evTitle'); if(ttl) ttl.textContent=REG.title||CFG.title;
+  const sub=document.querySelector('#u1 .sub'); if(sub&&REG.intro) sub.textContent=REG.intro;
+  /* پویهٔ قلمها: تکانتخاب، چندانتخاب، ستاره، پذيرش، بازه */
+  document.addEventListener('click',e=>{
+    const s1=e.target.closest('[data-qsel] .opt');
+    if(s1){const box=s1.closest('[data-qsel]'); const i=box.dataset.qsel;
+      box.querySelectorAll('.opt').forEach(o=>o.classList.remove('on'));
+      s1.classList.add('on'); box.dataset.val=s1.querySelector('b').textContent;
+      const h=document.getElementById(qId(i)); if(h) h.value=box.dataset.val; saveDraft(); return}
+    const m1=e.target.closest('[data-qmul] .opt');
+    if(m1){m1.classList.toggle('on');
+      const box=m1.closest('[data-qmul]'), i=box.dataset.qmul;
+      const h=document.getElementById(qId(i));
+      if(h) h.value=[...box.querySelectorAll('.opt.on b')].map(b=>b.textContent).join('، ');
+      saveDraft(); return}
+    const r1=e.target.closest('[data-qrate] .opt');
+    if(r1){const box=r1.closest('[data-qrate]'); box.dataset.val=r1.dataset.qv;
+      box.querySelectorAll('.opt').forEach((o,k)=>o.classList.toggle('on',k<+r1.dataset.qv));
+      const h=document.getElementById(qId(box.dataset.qrate)); if(h) h.value=faN(+box.dataset.val);
+      saveDraft(); return}
+    const t1=e.target.closest('[data-qterm]');
+    if(t1){const on2=t1.classList.toggle('on'); t1.dataset.val=on2?'1':'';
+      const h=document.getElementById(qId(t1.dataset.qterm)); if(h) h.value=on2?'پذیرفتم':'';
+      saveDraft(); return}
+  });
+  document.addEventListener('change',e=>{
+    if(e.target.id==='admQ') return;
+    const box=e.target.closest('[data-qpick],[data-qgeo],[data-qlist]');
+    if(box){const i=box.dataset.i, h=document.getElementById(qId(i));
+      if(h) h.value=qVal(i); saveDraft(); return}
+    if(e.target.classList&&e.target.classList.contains('other')){saveDraft(); return}
+    const rg=e.target.closest('[data-qrate]'); if(rg) return;
+  });
+  document.addEventListener('input',e=>{
+    const i=e.target.id&&e.target.id.indexOf('qa')===0?+e.target.id.slice(2):-1;
+    if(i<0||i>=N) return;
+    if(REG.q[i].t==='scale'){const v=document.getElementById(qId(i)+'v'); if(v) v.textContent=faN(e.target.value)}
+  });
+  /* بازگردانیِ نیمهکاره */
+  /* مقدارِ ذخیرهشده را در انتخابگرهای تاریخ و ساعت میگذارد */
+  function qSetPick(box,v){
+    const g=c=>box.querySelector(c);
+    const [dp='',tp='']=String(v||'').split(' '), D=dp.split('/'), T=tp.split(':');
+    const set=(el,val)=>{if(el&&val!==undefined&&val!==''&&[...el.options].some(o=>o.value===String(val))) el.value=String(val)};
+    set(g('.pk1'),unFa(D[0])); set(g('.pk2'),unFa(D[1])); set(g('.pk3'),unFa(D[2]));
+    set(g('.pk4'),unFa(T[0])); set(g('.pk5'),unFa(T[1]||'0'));
+  }
+  const oldRestore=window.restoreDraft;
+  restoreDraft=function(d0){
+    const d=Object.assign({},d0,{cur:(d0&&d0.cur&&ORDER.includes(d0.cur))?d0.cur:'u1'});
+    if(typeof oldRestore==='function'){try{oldRestore(d)}catch(e){}}
+    const vals=d.inputs||{};
+    ids.forEach((id,i)=>{const h=document.getElementById(qId(i)); if(h&&vals[h.id]!==undefined) h.value=vals[h.id]});
+    Object.entries(d.picks||{}).forEach(([id,v])=>{const el=document.getElementById(id); if(el) el.dataset.val=v});
+    document.querySelectorAll('[data-qsel]').forEach(box=>{
+      const v=box.dataset.val; box.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',o.querySelector('b')&&o.querySelector('b').textContent===v))});
+    document.querySelectorAll('[data-qmul]').forEach(box=>{
+      const v=(box.querySelector('input')||{}).value||'';
+      v.split('، ').filter(Boolean).forEach(x=>box.querySelectorAll('.opt').forEach(o=>{
+        if(o.querySelector('b')&&o.querySelector('b').textContent===x) o.classList.add('on')}))});
+    document.querySelectorAll('[data-qrate]').forEach(box=>{
+      const v=+box.dataset.val||0; box.querySelectorAll('.opt').forEach((o,k)=>o.classList.toggle('on',k<v))});
+    document.querySelectorAll('[data-qterm]').forEach(box=>{
+      const on2=box.dataset.val==='1'; box.classList.toggle('on',on2)});
+    ids.forEach((id,i)=>{
+      const box=document.querySelector('[data-qpick][data-i="'+i+'"]');
+      if(box) qSetPick(box,vals[qId(i)]||'');
+      const g2=document.querySelector('[data-qgeo][data-i="'+i+'"]');
+      if(g2){const v=String(vals[qId(i)]||'').split(' · ');
+        if(v[0]&&[...g2.querySelector('.gp').options].some(o=>o.value===v[0])) g2.querySelector('.gp').value=v[0];
+        g2.dispatchEvent(new Event('change',{bubbles:true}));}
+    });
+    initAll(document);
+  };
+  /* ثبتِ نهایی: پاسخها با خودِ رویداد و فرم میمانند */
+  const oldEnd=window.renderEnd;
+  renderEnd=function(){
+    if(typeof oldEnd==='function'){try{oldEnd()}catch(e){}}
+    const card=document.getElementById('regSumCard'), box=document.getElementById('regSum');
+    if(card&&box){
+      const rows=REG.q.map((q,i)=>({l:q.l,v:qVal(i)})).filter(r=>r.v);
+      card.style.display=rows.length?'':'none';
+      box.innerHTML=rows.map(r=>`<div class="ticketline"><span class="mute">${E2(r.l)}</span><span>${E2(r.v)}</span></div>`).join('');
+    }
+    try{
+      const code='NL'+String(Date.now()).slice(-8);
+      const row={id:'r'+Date.now(), ev:REG.evId||CFG.slug||'', form:REG.formId||'',
+        at:Date.now(), atFa:nowFa(), code:code, count:S.guests.length+1,
+        sum:calc().sum, method:S.method||(money?'':'رایگان'),
+        ans:REG.q.map((q,i)=>({l:q.l,v:qVal(i)})).filter(r=>r.v)};
+      const K='nora-regs'; const list=JSON.parse(localStorage.getItem(K)||'[]');
+      if(!list.some(x=>x.code===code)){list.unshift(row); localStorage.setItem(K,JSON.stringify(list.slice(0,500)))}
+      const cd=document.querySelector('#u12 .ticketline .num'); if(cd) cd.textContent=code;
+    }catch(e){}
+  };
+}
+
 let cur='u1';
 function show(id){
   cur=id;
@@ -870,6 +1116,9 @@ function show(id){
   window.scrollTo({top:0,behavior:'instant'});
 }
 document.getElementById('next').onclick=()=>{
+  /* پرسشهای اجباریِ فرمساز: بی پاسخ، جلو نمیرود */
+  if(REG&&REGGATE&&cur.indexOf('qp')===0){const miss=REGGATE.missCur();
+    if(miss){toast('«'+miss+'» را پر کن؛ این پرسش اجباری است'); return}}
   if(cur==='u8'){const bad=finGate(); if(bad){toast(bad);return}}
   if(cur==='u9'){
     if(!S.method){toast('روش پرداخت را انتخاب کنید');return}
@@ -921,7 +1170,7 @@ document.addEventListener('click',e=>{
     CFG.confirmed=(S.method!=='card')&&(S.method!=='inperson');
     renderBill();
     show(S.method==='card'?'u10':'u12'); return}
-  const o=e.target.closest('.opt:not([data-fin]):not([data-method])');
+  const o=e.target.closest('.opt:not([data-fin]):not([data-method]):not([data-qopt])');
   if(o){o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');return}
 });
 document.getElementById('applyCoupon').onclick=()=>{
