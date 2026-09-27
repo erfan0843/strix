@@ -128,7 +128,7 @@ const L={users:'فهرست کاربران', formTasks:'کارهای فرم‌ه�
 
 /* ── وضعیت پنل ─────────────────────────────────────────────────────────── */
 const SKEY='nora-admin';
-const SVER=76;
+const SVER=77;
 const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info', uF:'all',
   who:'p1', qf:'all', qdone:[], qextra:[], qgive:{}, leads:{}, specPerms:{}, specExtra:{}, extra:[], setF:'edu',
   wiz:{step:0,open:0,kind:'event',et:'',name:'',desc:'',about:'',org:'',label:'',tchr:'',tchrNew:0,
@@ -1287,6 +1287,7 @@ function evPagePrev(){
         ${featOn('exam')&&w.exam!=='none'?`<span>${ico('i-check')}${esc(exm?'آزمون: '+formName(exm):'آزمون')}</span>`:''}
         ${featOn('cert')?`<span>${ico('i-medal')}${esc('گواهی حضور')}</span>`:''}
         ${featOn('att')?`<span>${ico('i-qr')}${esc('ورود با QR')}</span>`:''}
+        ${featOn('invite')?`<span>${ico('i-key')}${esc('رویداد با کد دعوت')}</span>`:''}
       </div>
       ${w.held&&w.rep?`<p class="cap">${esc(w.rep)}</p>`:''}
       ${on.length?`<div class="admchips">${on.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
@@ -2037,7 +2038,7 @@ const audSubs=k=>{
   if(k==='users') return [['درخواستها','req'],['باشگاه','club'],['گواهینامه','cert'],['ابزارها','tools']]
     .concat(['rules','ach','shop','rank','occ'].map(t=>['باشگاه › '+({rules:'قوانین',ach:'نشانها',shop:'فروشگاه',rank:'رتبه',occ:'مناسبتها'}[t]||t),'club:'+t]))
     .concat(['report','staff','par','add','imp','tags','blocked','inbox','log'].map(t=>['ابزارها › '+t,'tools:'+t]));
-  if(k==='events') return (isMoney()?['info','reg','att','money','cert','news']:['info','reg','att','cert','news'])
+  if(k==='events') return (isMoney()?['info','reg','att','survey','money','cert','news']:['info','reg','att','survey','cert','news'])
     .map(t=>['رویدادها › '+t, t]);
   if(k==='settings'){return ((A.settings||{}).groups||[]).filter(g=>isOwner()||g.k==='cert')
     .map(g=>['تنظیمات › '+g.n, g.k]);}
@@ -4174,6 +4175,121 @@ function vSettings(){
     <div class="admset">${inner}</div>
   </section>`;
 }
+/* ── کارت رویداد، زنده از دلِ فرم‌ساز: ثبت‌نام‌ها، پرونده‌ها، اطلاع‌رسانی و نظرسنجی ──
+   هیچ صفحهٔ جدا ندارد؛ هر چه هست همین‌جا در ورقهٔ خود رویداد است. */
+const NUI=()=>(window.NORA_UI)||{};
+/* ثبت‌نام‌های واقعیِ رویداد: پاسخِ فرمِ ثبت‌نام؛ نظرسنجی و آزمون جای خودشان را دارند */
+const uiRegs=e=>{try{const u=NUI(); const all=u.regsOf?u.regsOf(e.id):[];
+  const skip={}; (u.formsFor?u.formsFor(e.id):[]).forEach(f=>{if((f.need||'reg')!=='reg') skip[String(f.id)]=1});
+  return all.filter(r=>!skip[String(r.form)])}catch(err){return []}}
+const uiForms=e=>{try{const u=NUI(); return u.formsFor?u.formsFor(e.id):[]}catch(err){return []}}
+const regName=r=>{const a=(r.ans||[]).find(x=>/^نام/.test(x.l)); return a&&a.v?String(a.v):'بی‌نام'};
+const regMob=r=>{const a=(r.ans||[]).find(x=>/موبایل|تلفن/.test(x.l)); return a?String(a.v||''):''};
+const personOfReg=r=>{try{const u=NUI();
+  if(u.personById&&r.pid){const p=u.personById(r.pid); if(p) return p}
+  const mob=regMob(r).replace(/[^\d]/g,'').slice(-10);
+  if(mob&&u.peopleAll) return u.peopleAll().find(p=>p.mobile===mob)||null;
+  return null}catch(err){return null}};
+function evRegRows(e){
+  const regs=uiRegs(e), qy=String(S.evRegQ||'').trim().toLowerCase();
+  const rows=qy?regs.filter(r=>((regName(r)+' '+regMob(r)+' '+(r.code||'')).toLowerCase().indexOf(qy)>-1)):regs;
+  if(!rows.length) return emptyBox(regs.length?'چیزی مطابق جست‌وجو نیست':'هنوز ثبت‌نامی از فرم‌ساز نرسیده است');
+  return `<div class="admlist">${rows.map(r=>{const p=personOfReg(r);
+    return `<div class="admlirow"><span class="ic">${ico(r.att?'i-check':'i-users')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(regName(r))}</b>
+        <small class="cap" style="display:block">${esc([regMob(r),r.code,(r.atFa||'')].filter(Boolean).join(' · '))}</small></span>
+      ${isMoney()&&+r.sum?tag(fa(r.sum)+' ریال','ok'):tag(r.method||'رایگان','')}
+      ${p?`<button class="btn sm quiet" data-regpp="${esc(p.id)}" aria-label="${esc('پروندهٔ شخص')}">${ico('i-users')}${esc('پرونده')}</button>`:''}
+      <button class="btn sm quiet" data-regdel="${esc(r.code)}" aria-label="${esc('حذف ثبت‌نام')}">${ico('i-trash')}</button></div>`}).join('')}</div>`;
+}
+function evRegTab(e){
+  const regs=uiRegs(e), sum=regs.reduce((n,r)=>n+(+r.sum||0),0);
+  const pp=S.evPP?((NUI().personById||function(){return null})(S.evPP)):null;
+  let block=`<div class="stack tight"><div class="row tight"><div class="head">${esc('ثبت‌نام‌ها')}</div><span class="sp"></span>
+      <span class="cap">${esc(fa(regs.length)+' نفر'+(sum&&isMoney()?' · '+fa(sum)+' ریال':''))}</span></div>
+    <div class="row tight"><input class="input" id="evregq" data-regq placeholder="${esc('جست‌وجو: نام، موبایل یا کد')}" value="${esc(S.evRegQ||'')}"/>
+      ${btn('خروجی اکسل','data-regcsv','i-doc')}</div>`;
+  if(pp){block+=`<div class="admset"><div class="admlirow"><span class="ic">${ico('i-users')}</span>
+      <span class="sp"><b>پروندهٔ ${esc(pp.name||'بی‌نام')}</b>
+        <small class="cap" style="display:block">${esc([pp.mobile?'موبایل '+fa(pp.mobile):'',pp.email||'',pp.city||''].filter(Boolean).join(' · ')||'بدون راه تماس')}</small></span>
+      ${tag('تکمیل '+fa((NUI().personPct||function(){return 0})(pp))+'٪', (NUI().personPct||function(){return 0})(pp)>=75?'ok':'warn')}
+      <button class="btn sm quiet" data-regpp="" aria-label="بستن پرونده">${ico('i-close')}</button></div>
+    <div class="admlist">${Object.keys(pp.extra||{}).slice(0,10).map(k=>`<div class="admlirow"><span class="ic">${ico('i-doc')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(k)}</b><small class="cap" style="display:block">${esc(pp.extra[k])}</small></span></div>`).join('')||''}</div>
+    <div class="head" style="margin-top:8px">${esc('تاریخچهٔ فرم‌ها')}</div>
+    <div class="admlist">${(pp.subs||[]).slice(0,8).map(s2=>`<div class="admlirow"><span class="ic">${ico(s2.need==='survey'?'i-star':'i-check')}</span>
+      <span class="sp cap">${esc((s2.need==='survey'?'نظرسنجی':s2.need==='exam'?'آزمون':'ثبت‌نام')+(s2.ev?' رویداد '+fa(s2.ev):''))} · ${esc(s2.atFa||'')}</span>
+      ${s2.sum?`<span class="cap num">${esc(fa(s2.sum))} ریال</span>`:''}</div>`).join('')||emptyBox('هنوز فرمی پر نشده')}</div></div>`}
+  block+=`<div id="evreglist">${evRegRows(e)}</div>
+    <div class="row tight">${btn('اعلان بلیت به تأییدشدهها','data-ntfsend="reg_ok"','i-send')}
+    <span class="sp"></span><span class="cap">${esc('همان لحظهٔ قطعی شدن: بلیت، لینک حضور و ساعت به بله میرود')}</span></div></div>`;
+  return block;
+}
+function evAttTab(e){
+  const regs=uiRegs(e), att=regs.filter(r=>r.att).length;
+  return `<div class="stack tight"><div class="row tight"><div class="head">${esc('حضور و غیاب')}</div><span class="sp"></span>
+      <span class="cap">${esc(fa(att)+' حاضر از '+fa(regs.length))}</span></div>
+    ${regs.length?`<div class="admlist">${regs.map(r=>`<div class="admlirow"><span class="ic">${ico(r.att?'i-check':'i-users')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(regName(r))}</b>
+        <small class="cap" style="display:block">${esc((r.code||'')+(r.atFa?' · '+r.atFa:''))}</small></span>
+      ${r.att?tag('حاضر','ok'):tag('ندارد','')}
+      <button class="btn sm ${r.att?'quiet':''}" data-regatt="${esc(r.code)}">${ico(r.att?'i-close':'i-check')}${esc(r.att?'برگشت':'حاضر')}</button></div>`).join('')}</div>`
+      :emptyBox('هنوز ثبت‌نامی نیست')}</div>`;
+}
+function evMoneyTab(e){
+  const regs=uiRegs(e), sum=regs.reduce((n,r)=>n+(+r.sum||0),0);
+  const by={}; regs.forEach(r=>{const m=r.method||'رایگان'; by[m]=(by[m]||0)+(+r.sum||0)});
+  const rows=Object.keys(by).map(m=>[m,fa(by[m])+' ریال',fa(regs.filter(r=>(r.method||'رایگان')===m).length)+' نفر']);
+  return `<div class="stack tight"><div class="row tight"><div class="head">${esc('مالی رویداد، زنده از فرم‌ساز')}</div><span class="sp"></span>
+      <span class="cap">${esc('جمع '+fa(sum)+' ریال · '+fa(regs.length)+' ثبت‌نام')}</span></div>
+    ${table(rows.length?rows:[['ندارد','هنوز پرداختی ثبت نشده','']],['روش','مبلغ','شمار'])}
+    <p class="cap">${esc('مبلغ و روشها از فرم ثبت‌نام میآیند؛ تغییر در فرم‌ساز همین‌جا تازه میشود')}</p></div>`;
+}
+function evSurveyTab(e){
+  const forms=uiForms(e), sv=forms.find(f=>(f.need||'')==='survey');
+  const regs=(NUI().regsOf?NUI().regsOf(e.id):[]).filter(r=>sv&&String(r.form)===String(sv.id));
+  let block=`<div class="stack tight"><div class="row tight"><div class="head">${esc('نظرسنجی پایانی')}</div><span class="sp"></span>
+      <span class="cap">${esc(sv?fa(regs.length)+' پاسخ':'هنوز فرمی وصل نیست')}</span></div>`;
+  if(!sv){block+=emptyBox('فرم نظرسنجی همین رویداد را در فرم‌ساز بساز')
+    +`<div class="row tight"><a class="btn sm" href="create.html?ev=${esc(e.id)}&need=survey&name=${encodeURIComponent(e.n||'')}&back=${encodeURIComponent('admin.html#newev')}" target="_blank" rel="noopener">${ico('i-plus')}${esc('ساختن در فرم‌ساز')}</a></div></div>`;
+    return block}
+  const flds=(sv.fields||[]).filter(f=>f.t==='choice'||f.t==='multi');
+  block+=`<div class="admlist"><div class="admlirow"><span class="ic">${ico('i-star')}</span>
+    <span class="sp"><b style="font-size:var(--fs-sub)">${esc(formName(sv))}</b>
+      <small class="cap" style="display:block">${esc(formQs(sv))}</small></span>
+    <a class="btn sm quiet" href="create.html?ev=${esc(e.id)}&need=survey&fid=${esc(sv.id)}&back=${encodeURIComponent('admin.html#newev')}" target="_blank" rel="noopener">${ico('i-sliders')}${esc('ویرایش')}</a>
+    <a class="btn sm quiet" href="form.html?ev=${esc(e.id)}&fid=${esc(sv.id)}&kind=survey" target="_blank" rel="noopener">${ico('i-eye')}${esc('دیدن')}</a></div></div>`;
+  flds.forEach(f=>{const cnt={}; regs.forEach(r=>{const a=(r.ans||[]).find(x=>x.l===f.l); if(!a) return;
+    String(a.v).split('، ').forEach(v=>{if(v) cnt[v]=(cnt[v]||0)+1})});
+    const tot=Math.max(1,Object.keys(cnt).reduce((n,k)=>n+cnt[k],0));
+    block+=`<div class="admset"><div class="head">${esc(f.l)}</div>
+      ${(f.opts||[]).map(o=>{const c=cnt[o.l]||0, w=Math.round(c*100/tot);
+        return `<div class="admlirow"><span class="sp cap">${esc(o.l)}</span>
+          <span class="cap num">${esc(fa(c)+' · '+fa(w)+'٪')}</span></div>`}).join('')}</div>`});
+  return block+`</div>`;
+}
+function evNewsTab(e){
+  const regs=uiRegs(e), brs=(NUI().brOf?NUI().brOf(e.id):[]);
+  const people=(NUI().peopleAll?NUI().peopleAll():[]);
+  const inc=people.filter(p=>((p.subs||[]).some(s2=>String(s2.ev)===String(e.id)))&&(NUI().personPct||function(){return 0})(p)<100).length;
+  const tgt=S.brTo||'all';
+  const T2=[{k:'all',n:'همهٔ ثبت‌نام‌ها ('+fa(regs.length)+')'},{k:'paid',n:'مبلغ‌دارها ('+fa(regs.filter(r=>+r.sum>0).length)+')'},
+    {k:'inc',n:'پرونده‌های ناقص ('+fa(inc)+')'}];
+  return `<div class="stack tight"><div class="head">${esc('اطلاع‌رسانی و پویش')}</div>
+    <label class="fld"><span class="lbl">${esc('متن خبر')}</span>
+      <textarea class="input" id="evbrtxt" data-brtxt rows="2" placeholder="${esc('مثلاً: یادآوری جلسهٔ فردا ساعت ۱۸، لینک ورود در پیام شماست')}">${esc(S.brTxt||'')}</textarea></label>
+    <div class="row tight" style="flex-wrap:wrap">${T2.map(t=>`<button class="chip ${tgt===t.k?'on':''}" data-brto="${t.k}">${esc(t.n)}</button>`).join('')}</div>
+    <div class="row tight">${btn('ارسال از بله','data-brsend','i-send')}
+      ${btn('پویش یادآوری شب قبل','data-brpoke="remind"','i-bell')}
+      ${btn('پویش تکمیل پرونده','data-brpoke="fill"','i-users')}
+      <span class="sp"></span><span class="cap">${esc('گیرنده‌ها از ثبت‌نام‌های زندهٔ فرم‌ساز شمرده میشوند')}</span></div>
+    <div class="head" style="margin-top:8px">${esc('فرستاده‌ها')}</div>
+    ${brs.length?`<div class="admlist">${brs.slice(0,8).map(b=>`<div class="admlirow"><span class="ic">${ico(b.poke?'i-star':'i-send')}</span>
+      <span class="sp"><b style="font-size:var(--fs-sub)">${esc(b.txt)}</b>
+        <small class="cap" style="display:block">${esc(fa(b.n)+' گیرنده · '+(b.atFa||''))}</small></span>
+      ${b.poke?tag('پویش','brand'):tag('خبر','')}</div>`).join('')}</div>`
+      :emptyBox('هنوز خبری از این رویداد نرفته است')}</div>`;
+}
 /* ══ ورقه‌ها ═══════════════════════════════════════════════════════════ */
 function sheetEv(id){
   const e=evOf(id); if(!e) return;
@@ -4189,22 +4305,26 @@ function sheetEv(id){
   const tabs=(D.tabs||[]).filter(t=>!t.own||isMoney())
     .map(t=>`<button class="chip ${S.evTab===t.k?'on':''}" data-evtab="${esc(t.k)}">${esc(t.n)}</button>`).join('');
   let block='';
+  const liveRegs=uiRegs(e);
   if(S.evTab==='info'){
     block=`<div class="admmatrix"><table><tbody>
       <tr><td>${esc('نوع')}</td><td>${esc(e.kind)}</td></tr>
       <tr><td>${esc('زمان')}</td><td>${esc(e.when)} · ${esc(e.time)}</td></tr>
       <tr><td>${esc('جا')}</td><td>${esc(e.place)}</td></tr>
       <tr><td>${esc('ظرفیت')}</td><td class="num">${esc(fa(e.reg))} ${esc('از')} ${esc(fa(e.cap))}</td></tr>
+      <tr><td>${esc('ثبت‌نام زنده')}</td><td class="num">${esc(fa(liveRegs.length)+' نفر از فرم‌ساز')}</td></tr>
       ${isMoney()?`<tr><td>${esc('هزینه')}</td><td class="num">${evPrice?esc(fa(evPrice)+' ریال'):esc('آزاد')}</td></tr>`:''}
+      ${e.code?`<tr><td>${esc('کد دعوت')}</td><td><span dir="ltr" class="num">${esc(fa(e.code))}</span>
+        <button class="btn sm quiet" data-copyform="${esc(e.code)}" style="margin-inline-start:6px">${ico('i-copy')}${esc('رونوشت')}</button></td></tr>`:''}
       <tr><td>${esc('وضعیت')}</td><td>${tag(st[0],st[1])}</td></tr></tbody></table></div>`;
-  } else {
-    let D2=D[{reg:'regd',att:'attd',money:'moneyd',cert:'certd',news:'newsd'}[S.evTab]]||{};
-  /* وضعیت پرداخت فقط دست مالک است؛ برای بقیه «ثبت‌شده» می‌شود */
-  if(!isMoney()&&D2.rows&&D2.mask) D2=Object.assign({},D2,{rows:D2.rows.map(r=>r.map((c,i)=>i===2?(D2.mask[c]||c):c))});
+  } else if(S.evTab==='cert'){
+    const D2=D.certd||{};
     block=`<div class="stack tight"><div class="head">${esc(D2.lead||'')}</div>${table(D2.rows||[],D2.cols)}</div>`;
-    if(S.evTab==='reg') block+=`<div class="row tight">${btn('اعلان بلیت به تأییدشدهها','data-ntfsend="reg_ok"','i-send')}
-      <span class="sp"></span><span class="cap">همان لحظهٔ قطعی شدن: بلیت، لینک حضور و ساعت به بله میرود</span></div>`;
-  }
+  } else if(S.evTab==='reg') block=evRegTab(e);
+  else if(S.evTab==='att') block=evAttTab(e);
+  else if(S.evTab==='survey') block=evSurveyTab(e);
+  else if(S.evTab==='news') block=evNewsTab(e);
+  else block=evMoneyTab(e);  /* money، فقط مالک این برگه را میبیند */
   sheetImpl('shAdm',`<div class="admsheet">
     ${src?`<div class="sheetcover"><img src="${esc(src)}" alt=""/>
       <span class="lbl">${esc('پوستر رویداد')}</span></div>`:''}
@@ -4754,7 +4874,7 @@ function sanitize(){
   if(fieldOf(S.setF).k!==S.setF) S.setF=BASE.setF;
   if(S.addF&&(!personOf(S.addF)||fieldOf(S.addF).k!==S.addF)) delete S.addF;
   if(['all','بالا','میان','معمولی'].indexOf(S.qf)<0) S.qf='all';
-  if(['info','reg','att','money','cert','news'].indexOf(S.evTab)<0) S.evTab='info';
+  if(['info','reg','att','survey','money','cert','news'].indexOf(S.evTab)<0) S.evTab='info';
   if(['list','edit'].indexOf(S.psec)<0) S.psec='list';
   if(S.pstep!=='2'&&+S.pstep!==2) S.pstep=1;
   if(S.ped&&(!Array.isArray(S.ped.blocks))) S.ped=null;
@@ -4860,7 +4980,42 @@ document.addEventListener('click',e=>{
     if(sec.dataset.locked==='1'){toast(W.locked||''); return}
     if(sec.dataset.sec==='users'){S.uV=''; S.uSel=''; S.uTab='info'; save()}
     go(sec.dataset.sec); return}
-  const evt=q('[data-evtab]'); if(evt){S.evTab=evt.dataset.evtab; save(); if(S.evId) sheetEv(S.evId); return}
+  const evt=q('[data-evtab]'); if(evt){S.evTab=evt.dataset.evtab; S.evPP=''; save(); if(S.evId) sheetEv(S.evId); return}
+  /* ── کارت رویداد، زنده از فرم‌ساز: ثبت‌نام‌ها، پرونده، حضور، اطلاع‌رسانی و پویش ── */
+  const rpp=q('[data-regpp]'); if(rpp){S.evPP=S.evPP===rpp.dataset.regpp?'':rpp.dataset.regpp; save(); if(S.evId) sheetEv(S.evId); return}
+  const rdel=q('[data-regdel]'); if(rdel){if(NUI().regsDrop) NUI().regsDrop(rdel.dataset.regdel);
+    toast('ثبت‌نام برداشته شد؛ پروندهٔ شخص در سی‌آر‌ام میماند'); if(S.evId) sheetEv(S.evId); return}
+  const ratt=q('[data-regatt]'); if(ratt){const all=(NUI().regsAll||function(){return []})();
+    const r=all.find(x=>x.code===ratt.dataset.regatt);
+    if(r&&NUI().regsPatch) NUI().regsPatch(r.code,{att:!r.att}); if(S.evId) sheetEv(S.evId); return}
+  const rcsv=q('[data-regcsv]'); if(rcsv){const e2=evOf(S.evId); const regs=e2?uiRegs(e2):[];
+    const csv=NUI().regsCsv?NUI().regsCsv(regs):''; let dl=false;
+    try{const b=new Blob([csv],{type:'text/csv;charset=utf-8'}); const u=URL.createObjectURL(b);
+      const a2=document.createElement('a'); a2.href=u; a2.download='nora-'+(e2?e2.id:'regs')+'.csv';
+      document.body.appendChild(a2); a2.click(); a2.remove(); dl=true}catch(err){}
+    S.evLastCsv=csv; save();
+    toast(dl?('خروجی اکسل دانلود شد · '+fa(regs.length)+' ردیف'):('خروجی آماده شد · '+fa(regs.length)+' ردیف')); return}
+  const bto=q('[data-brto]'); if(bto){S.brTo=bto.dataset.brto; save(); if(S.evId) sheetEv(S.evId); return}
+  const bsend=q('[data-brsend]'); if(bsend){const txt=String(S.brTxt||'').trim();
+    if(!txt){toast('متن خبر را بنویس'); return}
+    const e2=evOf(S.evId); if(!e2) return; const regs=uiRegs(e2), tg=S.brTo||'all';
+    let n=regs.length;
+    if(tg==='paid') n=regs.filter(r=>+r.sum>0).length;
+    else if(tg==='inc'){const ppl=(NUI().peopleAll||function(){return []})();
+      n=ppl.filter(p=>(p.subs||[]).some(s2=>String(s2.ev)===String(e2.id))&&(NUI().personPct||function(){return 0})(p)<100).length}
+    if(NUI().brSave) NUI().brSave({id:'b'+Date.now(),ev:e2.id,txt:txt,to:tg,n:n,
+      atFa:NUI().clockFull?NUI().clockFull():''});
+    S.brTxt=''; save(); toast('از بله برای '+fa(n)+' نفر رفت'); if(S.evId) sheetEv(S.evId); return}
+  const bpoke=q('[data-brpoke]'); if(bpoke){const e2=evOf(S.evId); if(!e2) return;
+    const k=bpoke.dataset.brpoke, regs=uiRegs(e2);
+    const txt=k==='remind'?('یادآوری: «'+(e2.n||'رویداد')+'»'+(e2.when?' '+e2.when:'')+(e2.time?' ساعت '+fa(e2.time):'')+'؛ منتظرت هستیم')
+      :'پرونده‌ات را کامل کن؛ نام و موبایل و ایمیل برای ورود، گواهی و برنامه‌های بعدی لازم است';
+    let n=regs.length;
+    if(k==='fill'){const ppl=(NUI().peopleAll||function(){return []})();
+      n=ppl.filter(p=>(p.subs||[]).some(s2=>String(s2.ev)===String(e2.id))&&(NUI().personPct||function(){return 0})(p)<100).length}
+    if(NUI().brSave) NUI().brSave({id:'b'+Date.now(),ev:e2.id,txt:txt,to:k==='fill'?'inc':'all',n:n,poke:1,
+      atFa:NUI().clockFull?NUI().clockFull():''});
+    save(); toast('پویش انجام شد · '+fa(n)+' گیرنده'); if(S.evId) sheetEv(S.evId); return}
   const ev=q('[data-ev]'); if(ev){S.evId=ev.dataset.ev; S.evTab=S.evTab||'info'; save(); sheetEv(S.evId); return}
   const ef=q('[data-evF]'); if(ef){S.evF=ef.dataset.evf; save(); renderBody(); return}
   const uf=q('[data-uF]'); if(uf){S.uF=uf.dataset.uf; save(); renderBody(); return}
@@ -5708,7 +5863,10 @@ document.addEventListener('click',e=>{
     const withForms=(e,evId)=>Object.assign(e,{forms:linkForms(evId), poster:w.posterUp?'':(w.poster||''), posterUp:w.posterUp||'',
       theme:w.theme||'glass', page:evLink(), about:w.about||'', label:w.label||'', org:w.org||'',
       tchr:w.tchr||'',
-      privacy:w.held?'public':(w.privacy||'public'), on:w.date||'',
+      privacy:w.held?'public':(featOn('invite')?'code':(w.privacy||'public')),
+      /* رویداد با کد: کدِ شش‌رقمی خودکار؛ در ویرایش همان کدِ قبلی میماند */
+      code:featOn('invite')&&!(w.held)?((evOf(w.edit)||{}).code||String(Math.floor(100000+Math.random()*900000))):((evOf(w.edit)||{}).code||''),
+      feat:Object.assign({},w.feat||{}), on:w.date||'',
       sess:ses.map(x=>({d:x.d,t:x.t,to:x.to})), sessions:W2.count,
       held:w.held?1:0, who:+w.who||0, rep:w.rep||'', media:w.media||'',
       cap:+w.cap||0, pre:+w.pre||0, extra:+w.extra||0, wait:w.waitMode||'auto',
@@ -6086,6 +6244,10 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{
   const el=e.target; if(!el||!el.dataset) return;
+  /* کارت رویداد: جست‌وجوی زندهٔ ثبت‌نام‌ها و متنِ اطلاع‌رسانی */
+  if(el.dataset.regq!==undefined){S.evRegQ=el.value; const box=$('#evreglist');
+    if(box&&S.evId){const e=evOf(S.evId); if(e) box.innerHTML=evRegRows(e)} return}
+  if(el.dataset.brtxt!==undefined){S.brTxt=el.value; save(); return}
   /* پروفایل: قلم در پیش‌نویس مینشیند و پیش‌نمایشِ کنار دستش همان لحظه تازه میشود */
   if(el.dataset.ppq){S.ppQ=el.value; save(); return}
   if(el.dataset.ppf){ppField(el.dataset.ppf,el.value); ppPatch(); return}

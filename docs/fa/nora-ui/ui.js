@@ -1524,6 +1524,72 @@ const PUB_GRAD='linear-gradient(135deg,#1E6FD0,#0A3A82)';
 const REGS_KEY='nora-regs';
 function regsAll(){try{const a=JSON.parse(localStorage.getItem(REGS_KEY)||'[]'); return Array.isArray(a)?a:[]}catch(e){return []}}
 function regsOf(evId){return regsAll().filter(r=>String(r.ev)===String(evId))}
+function regsPatch(code,patch){const list=regsAll(); const r=list.find(x=>x.code===code); if(!r) return null;
+  Object.assign(r,patch); try{localStorage.setItem(REGS_KEY,JSON.stringify(list.slice(0,500)))}catch(e){}
+  try{dispatchEvent(new CustomEvent('nora-regs-changed'))}catch(e){} return r}
+function regsDrop(code){const list=regsAll().filter(x=>x.code!==code);
+  try{localStorage.setItem(REGS_KEY,JSON.stringify(list.slice(0,500)))}catch(e){}
+  try{dispatchEvent(new CustomEvent('nora-regs-changed'))}catch(e){}}
+/* خروجی اکسلِ ثبت‌نام‌ها: سرتیترِ ثابت + یک ستون برای هر پاسخِ فرم */
+function regsCsv(list){
+  const rows=list||regsAll(), labs=[], seen={};
+  rows.forEach(r=>(r.ans||[]).forEach(a=>{if(a&&a.l&&!seen[a.l]){seen[a.l]=1; labs.push(a.l)}}));
+  const head=['نام','موبایل','کد','مبلغ ریال','روش','تاریخ','حاضر'].concat(labs);
+  const q=s=>'"'+String(s==null?'':s).replace(/"/g,'""')+'"';
+  const pick=(r,re)=>{const a=(r.ans||[]).find(x=>re.test(x.l)); return a?String(a.v||''):''};
+  const line=r=>[pick(r,/^نام/),pick(r,/موبایل|تلفن/),r.code||'',+r.sum||0,r.method||'',r.atFa||'',
+    r.att?'بله':'خیر'].concat(labs.map(l=>{const a=(r.ans||[]).find(x=>x.l===l); return a?String(a.v||''):''}));
+  return '\ufeff'+[head].concat(rows.map(line)).map(r=>r.map(q).join(',')).join('\n')}
+/* ── پروندهٔ اشخاص (سی‌آر‌ام): هر پاسخِ فرم، یک پرونده را میسازد یا کامل میکند ──
+   انبار واحد `nora-people`؛ کلیدِ یکتا موبایل است و بی موبایل، نام+فرم.
+   هر بار پر شدنِ هر فرمی، همان پرونده را کامل‌تر میکند؛ پس رویداد و نظرسنجی و
+   آزمون همه یک آدمِ واحد میبینند، نه سه غریبه. */
+const PEOPLE_KEY='nora-people';
+function peopleAll(){try{const a=JSON.parse(localStorage.getItem(PEOPLE_KEY)||'[]'); return Array.isArray(a)?a:[]}catch(e){return []}}
+function peopleSave(list){try{localStorage.setItem(PEOPLE_KEY,JSON.stringify(list.slice(0,800)))}catch(e){}
+  try{dispatchEvent(new CustomEvent('nora-people-changed'))}catch(e){}}
+function personById(id){return peopleAll().find(p=>p.id===id)||null}
+const normMob=s=>String(s||'').replace(/[^\d]/g,'');
+function personKey(reg,form){
+  const ans=(reg&&reg.ans)||[];
+  const flds=(form&&form.fields)||[];
+  const pick=t=>{const f=flds.find(x=>x.t===t); if(f){const a=ans.find(x=>x.l===f.l); if(a&&a.v) return a.v}
+    const g=ans.find(x=>/موبایل|تلفن|شماره/.test(x.l)&&t==='mobile')||ans.find(x=>/ایمیل|رایانامه/.test(x.l)&&t==='email')
+      ||ans.find(x=>/نام/.test(x.l)&&!/خانوادگی/.test(x.l)&&t==='first'); return g?g.v:''};
+  const g2=ans.find(x=>/موبایل|تلفن/.test(x.l));
+  const mob=normMob(pick('mobile')||(g2?g2.v:''));
+  const name=ans.find(x=>/نام/.test(x.l))||{};
+  return mob?('m:'+mob):('n:'+String(name.v||reg.code||'?').trim());
+}
+/* یک ثبت/پاسخ را به پروندهٔ شخص وصل میکند؛ پرونده نبود میسازد، بود کامل میکند */
+function personFromReg(reg,form){
+  const list=peopleAll(); const key=personKey(reg,form);
+  let p=list.find(x=>x.key===key);
+  const now=new Date(); const atFa=(typeof clockFull==='function')?clockFull():'';
+  if(!p){p={id:'p'+String(reg.at||Date.now())+String(Math.floor(Math.random()*900+100)),key:key,
+    name:'',mobile:'',email:'',city:'',at:reg.at||Date.now(),atFa:atFa,extra:{},subs:[]}; list.unshift(p)}
+  const ans=(reg.ans||[]);
+  const take=re=>{const a=ans.find(x=>re.test(x.l)); return a?String(a.v||'').trim():''};
+  const nm=take(/^نام/); if(nm) p.name=nm;
+  const mob=normMob(take(/موبایل|تلفن/)); if(mob){p.mobile=mob; if(key.indexOf('n:')===0&&!p.key2) p.key2='m:'+mob;}
+  const em=take(/ایمیل|رایانامه/); if(em) p.email=em;
+  const ct=take(/شهر|محل سکونت/); if(ct) p.city=ct;
+  ans.forEach(a=>{if(a&&a.l&&a.v!=null&&a.v!=='') p.extra[a.l]=String(a.v)});
+  p.subs.unshift({ev:reg.ev||'',form:reg.form||'',need:(form&&form.need)||'reg',code:reg.code||'',
+    at:reg.at||Date.now(),atFa:reg.atFa||atFa,sum:+reg.sum||0,method:reg.method||'',count:+reg.count||1});
+  p.subs=p.subs.slice(0,50); p.atLast=reg.at||Date.now();
+  peopleSave(list); return p.id;
+}
+/* چند پرسشِ کلیدیِ پرونده پر است؟ برای پویشِ تکمیل پرونده */
+function personPct(p){const keys=[['name','نام'],['mobile','موبایل'],['email','ایمیل'],['city','شهر']];
+  const got=keys.filter(k=>String(p[k[0]]||'').trim()).length; return Math.round(got*100/keys.length)}
+/* اطلاع‌رسانی و پویش رویدادها: دفتر واحد فرستاده‌ها */
+const BR_KEY='nora-broadcasts';
+function brAll(){try{const a=JSON.parse(localStorage.getItem(BR_KEY)||'[]'); return Array.isArray(a)?a:[]}catch(e){return []}}
+function brOf(evId){return brAll().filter(b=>String(b.ev)===String(evId))}
+function brSave(row){const list=brAll(); list.unshift(row);
+  try{localStorage.setItem(BR_KEY,JSON.stringify(list.slice(0,300)))}catch(e){}
+  try{dispatchEvent(new CustomEvent('nora-broadcast-changed'))}catch(e){} return row}
 const formsMoney=f=>{const fin=(f&&f.fin)||[]; if(!fin.length) return 0;
   return fin.reduce((n,o)=>n+(o.off?Math.round(+o.p*(100-+o.off)/100):(+o.p||0)),0)};
 const JM_KEY=['','','','','','','sh','mehr','aban','','','',''];
@@ -1564,6 +1630,7 @@ function pubEvents(){
       spots:Math.max(0,(+ev.cap||0)-(+ev.reg||0)),
       poster:ev.posterUp||(ev.poster?('posters/'+ev.poster):''), g:PUB_GRAD,
       d:ev.about||ev.rep||'', tags:ev.held?[]:['جدید'], club:false,
+      code:ev.code||'', privacy:ev.privacy||'public',
       sess:nSes, dm:JM_KEY[jm]||'mehr', dn:dn, mname:JM_NAME[jm-1]||'',
       ord:0, live:live, pub:true, pubPast:past, forms:ev.forms||[],
       tchr:ev.tchr||'', icon:'i-calendar', day:'', pre:false, pin:false, cert:ev.held?false:undefined};
@@ -1590,6 +1657,10 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   clockState:()=>CLK.state,clockAt:()=>CLK.at,netSyncClock:netSyncClock,
   FORMS_KEY:FORMS_KEY,formsAll:formsAll,formById:formById,formPut:formPut,formPatch:formPatch,
   formDrop:formDrop,formsFor:formsFor,pubEvents:pubEvents,autoSurvey:AUTO_SURVEY,
+  REGS_KEY:REGS_KEY,regsAll:regsAll,regsOf:regsOf,regsPatch:regsPatch,regsDrop:regsDrop,regsCsv:regsCsv,
+  PEOPLE_KEY:PEOPLE_KEY,peopleAll:peopleAll,peopleSave:peopleSave,personById:personById,
+  personFromReg:personFromReg,personPct:personPct,
+  BR_KEY:BR_KEY,brAll:brAll,brOf:brOf,brSave:brSave,
   POSTS_KEY:POSTS_KEY,postsAll:postsAll,postsPub:postsPub,postById:postById,postPut:postPut,
   postPatch:postPatch,postDrop:postDrop,postsFeed:postsFeed,postMin:postMin,postDate:postDate,postView:postView,postReads:postReads});
 
@@ -1608,7 +1679,7 @@ if('serviceWorker' in navigator){
         });
       });
       /* کش کهنه: هر کلیدی که با نسخهٔ کنونی نمی‌خواند، می‌رود */
-      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v76') caches.delete(k) })).catch(()=>{});
+      if(window.caches&&caches.keys) caches.keys().then(ks=>ks.forEach(k=>{ if(k!=='nora-v77') caches.delete(k) })).catch(()=>{});
     }).catch(()=>{});
   });
   const offlineBar=(on)=>{

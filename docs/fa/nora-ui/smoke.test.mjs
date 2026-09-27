@@ -238,6 +238,11 @@ async function load(file,store,q){
   ok(regs.length>=1&&regs[0].ev==='ev1'&&regs[0].form==='f1','ثبتِ نام با شناسهٔ رویداد و فرم در انبار نوشته شد');
   ok((regs[0].ans||[]).length>=4,'پاسخها با خودِ ثبت ماندهاند');
   ok(/NL/.test(q.txt('#u12 .ticketline .num')),'کد پیگیری از خودِ ثبت درآمد');
+  /* سی‌آر‌ام: همان ثبت، پروندهٔ شخص را ساخت */
+  const ppl=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl.length===1&&ppl[0].name==='مریم احمدی','سی‌آر‌ام با همان ثبت، پرونده ساخت');
+  ok(ppl[0].mobile==='09121234567','موبایل در پرونده نشست');
+  ok(regs[0].pid===ppl[0].id,'ثبت به پرونده گره خورد');
   ok(q.errs.length===0,'و هیچ خطایی در کنار نماند');
   /* فرمِ پولی: صفحههای پرداخت سر جایش مانند و مبالغ از دلِ فرم میآید */
   const st2=makeStore();
@@ -252,6 +257,54 @@ async function load(file,store,q){
   ok(q2.vis('#u8').length===1,'و چون پولی است، به صفحهٔ انتخاب رفت');
   ok(q2.all('#finOpts .opt').length===2,'مبالغ از دلِ فرمساز آمد');
   ok(q2.errs.length===0,'فرمِ پولی هم بیخطا بود');
+}
+
+/* ── سی‌آر‌ام: هر بار پر شدنِ یک فرم، همان پرونده را کامل میکند ── */
+{
+  console.log('\n── پروندهٔ سی‌آر‌ام با هر فرم کامل میشود ──');
+  const st=makeStore();
+  st.setItem('nora-forms',JSON.stringify([
+    {id:'c1',name:'فرم ثبت‌نام نشست',kind:'ثبت‌نام',need:'reg',ev:'cev1',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'شماره موبایل',req:true}]},
+    {id:'c2',name:'نظرسنجی نشست',kind:'نظرسنجی',need:'survey',ev:'cev1',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'شماره موبایل',req:true},
+             {id:3,t:'choice',l:'امتیاز شما',req:true,opts:[{l:'عالی'},{l:'خوب'}]}]}]));
+  const a=await load('form.html',st,'?ev=cev1&kind=reg&fid=c1');
+  a.click('#next'); a.doc.querySelector('#qa0').value='گلناز سحر'; a.click('#next');
+  a.doc.querySelector('#qa1').value='09129998877'; a.click('#next');
+  ok(a.vis('#u12').length===1,'ثبت‌نام به پایان رسید');
+  let ppl1=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl1.length===1&&(ppl1[0].subs||[]).length===1,'پروندهٔ گلناز با ثبت‌نام ساخته شد');
+  const b=await load('form.html',st,'?ev=cev1&kind=survey&fid=c2');
+  b.click('#next'); b.doc.querySelector('#qa0').value='گلناز سحر'; b.click('#next');
+  b.doc.querySelector('#qa1').value='09129998877'; b.click('#next');
+  b.click('#qp2 .opt:nth-child(1)'); b.click('#next');
+  ok(b.vis('#u12').length===1,'نظرسنجی هم با همان موتور فرم‌ساز ثبت میشود');
+  const ppl2=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl2.length===1,'با فرمِ دوم، پروندهٔ تکراری ساخته نشد');
+  ok((ppl2[0].subs||[]).length===2,'دو تکمیل در همان پرونده نشست');
+  ok((ppl2[0].subs||[]).some(s=>s.need==='survey'),'نظرسنجی هم به همان پرونده پیوست');
+  ok(a.errs.length===0&&b.errs.length===0,'بیخطا');
+}
+
+/* ── رویداد با کد: بی کد دعوت، ثبت‌نام باز نمیشود ── */
+{
+  console.log('\n── رویداد با کد ──');
+  const store=makeStore();
+  const dOn='1405-11-20';
+  store.setItem('nora-admin',JSON.stringify({v:77,added:[
+    {id:'cde1',n:'جلسهٔ خصوصی',kind:'نشست',when:'',on:dOn,time:'۱۸:۰۰',end:dOn,to:'۲۰:۰۰',
+     place:'سالن نورا',cap:10,reg:0,state:'soon',code:'123456',privacy:'code',sess:[],sessions:1}]}));
+  const p=await load('event.html',store,'?id=cde1');
+  ok(p.errs.length===0,'صفحهٔ رویدادِ کدداری بیخطا آمد');
+  ok(/ورود با کد دعوت/.test(p.txt('#ctaIn')),'رویدادِ کدداری بی کد، ثبت‌نام نمیدهد');
+  p.click('[data-codegate]');
+  p.doc.querySelector('#evcodein').value='111111'; p.click('[data-codeok]');
+  ok(/درست نیست/.test(p.txt('#toast')),'کد اشتباه رد میشود');
+  p.doc.querySelector('#evcodein').value='123456'; p.click('[data-codeok]');
+  ok(!!p.doc.querySelector('#reg'),'با کد درست، راه ثبت‌نام باز شد');
+  ok(store.getItem('nora-evcode:cde1')==='1','و برای همین دستگاه دیگر نمیپرسد');
+  ok(p.errs.length===0,'بیخطا');
 }
 
 /* ═══════════ گیت ادمین: دعوت دوست بسته ═══════════ */
@@ -1810,7 +1863,7 @@ async function load(file,store,q){
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const d1=shift(2), d2=shift(9), dPast=shift(-9);
   const store=makeStore();
-  store.setItem('nora-admin', JSON.stringify({v:76, added:[
+  store.setItem('nora-admin', JSON.stringify({v:77, added:[
     {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
      end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
      sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,

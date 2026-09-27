@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>نورا · فرم کاربر</title>
-<link rel="stylesheet" href="glass.css?v=87"/>
+<link rel="stylesheet" href="glass.css?v=88"/>
 <style>
   .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(104px + var(--safe-b))}
   .opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);
@@ -492,8 +492,8 @@
 </aside>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
-<script src="data.js?v=87"></script>
-<script src="ui.js?v=87"></script>
+<script src="data.js?v=88"></script>
+<script src="ui.js?v=88"></script>
 <script>
 /* ══ تنظیمات فرم: همان چیزهایی که سازنده چیده ══ */
 const CFG={
@@ -590,20 +590,39 @@ function renderPayMethods(){
       CFG.date=(ev.when?ev.when+'، ':'')+(ev.time||'');
       if(ev.kind) CFG.kind=ev.kind;
     }
+    /* هر قلم فرمساز به پرسش: با نوع، گزینه‌ها و اجبار */
+    const qOf=x=>Array.isArray(x)?{l:String(x[0]||''),t:'text',req:true}
+      :(x&&typeof x==='object')?{l:String(x.l||x.n||''),t:String(x.t||'text'),req:!!x.req,
+        help:String(x.help||''),opts:(x.opts||[]).map(o=>typeof o==='string'?o:String((o&&o.l)||'')).filter(Boolean)}
+      :{l:String(x||''),t:'text',req:true};
     if(kind==='survey'){
-      /* نظرسنجی: آمادهٔ نورا یا خودِ فرم؛ بی پرداخت، بی همراه */
-      const A=U.autoSurvey||{};
-      let qs=(f&&Array.isArray(f.fields)&&f.fields.length?f.fields.map(x=>x&&x.l).filter(Boolean)
-        :(f&&Array.isArray(f.questions)?f.questions:null))||A.questions||[];
-      qs=qs.slice(0,6);
-      if(!qs.length) qs=A.questions||['برنامه چطور بود؟'];
-      CFG.title=f?(f.name||A.name||'نظرسنجی'):(A.name||'نظرسنجی آمادهٔ نورا');
-      CFG.questions=qs;
+      const hasQ=f&&((Array.isArray(f.fields)&&f.fields.length)||(Array.isArray(f.questions)&&f.questions.length));
+      if(!hasQ){
+        /* نظرسنجی آمادهٔ نورا: بی فرم اختصاصی، چند پرسش ساده */
+        const A=U.autoSurvey||{};
+        let qs=(A.questions||['برنامه چطور بود؟']).slice(0,6);
+        CFG.title=A.name||'نظرسنجی آمادهٔ نورا';
+        CFG.questions=qs;
+        CFG.fin=[]; CFG.groups=[]; CFG.methods=[]; CFG.coupon={code:'',off:0,all:false};
+        CFG.companion={on:false,max:1,fields:''}; CFG.maxPer=1;
+        CFG.cap=0; CFG.taken=0; CFG.confirmed=false;
+        CFG.endText=A.intro||'نظرت ثبت شد؛ سپاس.';
+        window.__SURVEY={questions:qs, intro:CFG.endText};
+        return;
+      }
+      /* نظرسنجی اختصاصی از فرم‌ساز: با همان موتور ثبت، بی پرداخت و بی همراه؛
+         پاسخها همان‌جایی مینشینند که ثبت‌نام‌ها، پس کارت رویداد نتیجه را زنده میبیند */
+      CFG.title=f.name||'نظرسنجی';
       CFG.fin=[]; CFG.groups=[]; CFG.methods=[]; CFG.coupon={code:'',off:0,all:false};
       CFG.companion={on:false,max:1,fields:''}; CFG.maxPer=1;
       CFG.cap=0; CFG.taken=0; CFG.confirmed=false;
-      CFG.endText=(f&&f.intro)||A.intro||'نظرت ثبت شد؛ سپاس.';
-      window.__SURVEY={questions:qs, intro:CFG.endText};
+      CFG.endText=(f&&f.intro)||'نظرت ثبت شد؛ سپاس.';
+      if(f.slug) CFG.slug=f.slug;
+      const QF=(Array.isArray(f.fields)&&f.fields.length)?f.fields.map(qOf).filter(q2=>q2.l)
+        :f.questions.map(qOf).filter(q2=>q2.l);
+      window.__REG={q:QF, formId:String(f.id||''), evId:String(evId||''),
+        need:'survey', money:false, title:f.name||'نظرسنجی',
+        intro:f.intro||'', endText:CFG.endText, maxPer:1, guestsOn:false, links:[]};
       return;
     }
     if(!f) return;
@@ -622,10 +641,6 @@ function renderPayMethods(){
     CFG.title=f.name||CFG.title;
     if(f.slug) CFG.slug=f.slug;
     /* پرسشها از دلِ فرمساز: هر قلم با نوع و گزینههایش، همان‌طور که سازنده چیده */
-    const qOf=x=>Array.isArray(x)?{l:String(x[0]||''),t:'text',req:true}
-      :(x&&typeof x==='object')?{l:String(x.l||x.n||''),t:String(x.t||'text'),req:!!x.req,
-        help:String(x.help||''),opts:(x.opts||[]).map(o=>typeof o==='string'?o:String((o&&o.l)||'')).filter(Boolean)}
-      :{l:String(x||''),t:'text',req:true};
     const QF=(Array.isArray(f.fields)&&f.fields.length)?f.fields.map(qOf).filter(q=>q.l)
       :(Array.isArray(f.questions)?f.questions.map(qOf).filter(q=>q.l):[]);
     if(QF.length) window.__REG={q:QF, formId:String(f.id||''), evId:String(evId||''),
@@ -1087,11 +1102,17 @@ if(REG){
       box.innerHTML=rows.map(r=>`<div class="ticketline"><span class="mute">${E2(r.l)}</span><span>${E2(r.v)}</span></div>`).join('');
     }
     try{
+      const answers=REG.q.map((q,i)=>({l:q.l,v:qVal(i)})).filter(r=>r.v);
+      /* رندر اولیهٔ صفحه هیچ پاسخی ندارد؛ چیزی نوشته نمیشود تا ثبتِ خیالی نسازد */
+      if(!answers.length) return;
       const code='NL'+String(Date.now()).slice(-8);
       const row={id:'r'+Date.now(), ev:REG.evId||CFG.slug||'', form:REG.formId||'',
         at:Date.now(), atFa:nowFa(), code:code, count:S.guests.length+1,
-        sum:calc().sum, method:S.method||(money?'':'رایگان'),
-        ans:REG.q.map((q,i)=>({l:q.l,v:qVal(i)})).filter(r=>r.v)};
+        sum:calc().sum, method:S.method||(money?'':'رایگان'), ans:answers};
+      /* سی‌آر‌ام: هر پاسخ، پروندهٔ همان شخص را میسازد یا کامل میکند */
+      try{if(window.NORA_UI&&NORA_UI.personFromReg){
+        const fr=NORA_UI.formById?NORA_UI.formById(row.form):null;
+        row.pid=NORA_UI.personFromReg(row,fr)||''}}catch(e){}
       const K='nora-regs'; const list=JSON.parse(localStorage.getItem(K)||'[]');
       if(!list.some(x=>x.code===code)){list.unshift(row); localStorage.setItem(K,JSON.stringify(list.slice(0,500)))}
       const cd=document.querySelector('#u12 .ticketline .num'); if(cd) cd.textContent=code;

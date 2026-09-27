@@ -224,7 +224,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('#wz-cap,#wz-pre,#wz-extra').length===3,'ظرفیت رویداد و پیش‌ثبت‌نام و مازاد هر کدام قلم عددی دارند');
   ok(p.all('[data-wpick="waitMode"]').length===3,'لیست انتظار سه حالت دارد: خودکار، دستی، خاموش');
   ok(p.all('[data-wpick="tickets"]').length===3,'سه حالت بلیت هست');
-  ok(p.all('[data-wfeat]').length===10,'ده قابلیت هست که روشن و خاموش می‌شوند');
+  ok(p.all('[data-wfeat]').length===11,'یازده قابلیت هست که روشن و خاموش می‌شوند');
   const wasOn=p.all('[data-wfeat="cert"]')[0].classList.contains('on');
   p.click('[data-wfeat="cert"]');
   ok(p.all('[data-wfeat="cert"]')[0].classList.contains('on')!==wasOn,'با یک زدن روشن و خاموش می‌شود');
@@ -358,7 +358,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.txt('#shAdm .head').includes('کارگاه'),'همان رویداد درست باز شد');
   ok(p.all('#shAdm [data-evtab]').length>=6,'تب‌های کارهای رویداد نشسته');
   p.click('#shAdm [data-evtab="money"]');
-  ok(/کارمزد/.test(p.txt('#shAdm')),'تب مالی کارمزد را نشان می‌دهد');
+  ok(/زنده از فرم‌ساز/.test(p.txt('#shAdm')),'تب مالی زنده از فرم‌ساز است');
   p.click('#shAdm [data-evtab="att"]');
   ok(/حضور/.test(p.txt('#shAdm')),'تب حضور می‌آید');
   p.click('#shAdm [data-close]');
@@ -1536,6 +1536,105 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(a.errs.length===0&&b.errs.length===0,'هیچ خطایی نماند');
 }
 
+
+/* ── ۱۱ب) کارت رویداد، جامع و زنده: سی‌آر‌ام، حضور، اطلاع‌رسانی، نظرسنجی و خروجی ── */
+{
+  console.log('\n── کارت رویداد: سی‌آر‌ام زنده از فرم‌ساز ──');
+  const f1={id:'crm-reg',name:'فرم ثبتنام کارگاه سی‌آر‌ام',kind:'ثبت‌نام',need:'reg',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'موبایل',req:true}],
+    fin:[{l:'عادی',p:100000,off:0}],groups:[],maxPer:1,guestsOn:false,methods:['wallet']};
+  const f2={id:'crm-svy',name:'نظرسنجی کارگاه سی‌آر‌ام',kind:'نظرسنجی',need:'survey',
+    fields:[{id:1,t:'choice',l:'کیفیت جلسه',req:true,opts:[{l:'عالی'},{l:'خوب'},{l:'ضعیف'}]}]};
+  const st=makeStore();
+  st.setItem('nora-forms',JSON.stringify([f1,f2]));
+  const p=await load(st);
+  p.click('#admNav [data-sec="events"]'); p.click('[data-evnew]');
+  p.type('#wzName','کارگاه سی‌آر‌ام','change'); p.click('[data-wet="webinar"]');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  p.type('#wz-date','۱۴۰۵/۰۹/۰۲','change'); p.type('#wz-time','17:00','change');
+  p.type('#wz-to','19:00','change'); p.type('#wz-place','سالن نورا','change');
+  p.click('[data-wstep="2"][data-wgo="1"]'); p.type('#wz-cap','25','change');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  p.click('[data-fpick="reg"][data-fid="crm-reg"]');
+  p.click('[data-fpick="survey"][data-fid="crm-svy"]');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+  p.click('[data-wsend]');
+  const added=JSON.parse(st.getItem('nora-admin')).added||[];
+  ok(added.length===1,'رویداد منتشر شد');
+  const evId=added[0].id, U=p.window.NORA_UI;
+  /* یک نفر دو بار فرم پر میکند؛ پرونده‌اش یکی میماند و کامل میشود */
+  const mk=(code,name,mob,sum,at)=>({id:'r'+code,ev:evId,form:'crm-reg',at:at,atFa:'۱۴۰۵/۰۸/۲۰',
+    code:code,count:1,sum:sum,method:sum?'wallet':'رایگان',
+    ans:[{l:'نام و نام خانوادگی',v:name},{l:'موبایل',v:mob}]});
+  const r1=mk('CR1001','نیلوفر آبی','09121112233',100000,1000);
+  const r2=mk('CR1002','نیلوفر آبی','09121112233',0,2000);
+  const r3=mk('CR1003','راد مهر','09354445566',100000,3000);
+  [r1,r2,r3].forEach(r=>{r.pid=U.personFromReg(r,U.formById('crm-reg'))});
+  const s1={id:'rs1',ev:evId,form:'crm-svy',at:4000,atFa:'۱۴۰۵/۰۸/۲۱',code:'CR2001',count:1,sum:0,
+    method:'رایگان',ans:[{l:'کیفیت جلسه',v:'عالی'}]};
+  st.setItem('nora-regs',JSON.stringify([s1,r3,r2,r1]));
+  const ppl=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl.length===2,'دو نفر دو پرونده دارند، نه سه');
+  const nil=ppl.find(x=>x.name==='نیلوفر آبی');
+  ok(nil&&(nil.subs||[]).length===2,'پروندهٔ نیلوفر دو تکمیل دارد');
+  /* کارت رویداد: تب ثبت‌نام‌ها زنده از فرم‌ساز */
+  p.click('#admNav [data-sec="events"]');
+  p.click('[data-ev="'+evId+'"]');
+  p.click('#shAdm [data-evtab="reg"]');
+  ok(/نیلوفر آبی/.test(p.txt('#shAdm')),'ثبت‌نام زنده در کارت نشست');
+  ok(/۳ نفر/.test(p.txt('#shAdm')),'و شمار از دلِ انبار شمرده شد');
+  /* پروندهٔ شخص: تاریخچهٔ هر دو فرم */
+  p.click('#shAdm [data-regpp]');
+  ok(/پروندهٔ/.test(p.txt('#shAdm')),'پروندهٔ شخص باز شد');
+  ok(/تاریخچهٔ فرم‌ها/.test(p.txt('#shAdm')),'و تاریخچهٔ فرمهایش هست');
+  /* جست‌وجوی زنده */
+  p.type('#evregq','راد');
+  ok(/راد مهر/.test(p.txt('#evreglist'))&&!/نیلوفر/.test(p.txt('#evreglist')),'جست‌وجو زنده پالایش میکند');
+  p.type('#evregq','');
+  /* خروجی اکسل */
+  p.click('#shAdm [data-regcsv]');
+  const csv=JSON.parse(st.getItem('nora-admin')).evLastCsv||'';
+  ok(/نام/.test(csv)&&/نیلوفر آبی/.test(csv)&&/موبایل/.test(csv),'خروجی اکسل از دادهٔ زنده ساخته شد');
+  /* حضور */
+  p.click('#shAdm [data-evtab="att"]');
+  p.click('#shAdm [data-regatt]');
+  ok(/۱ حاضر/.test(p.txt('#shAdm')),'حضور با یک کلیک نشست');
+  /* مالی زنده از فرم‌ساز */
+  p.click('#shAdm [data-evtab="money"]');
+  ok(/زنده از فرم‌ساز/.test(p.txt('#shAdm')),'تب مالی زنده است');
+  ok(/۲۰۰/.test(p.txt('#shAdm')),'و جمع از ثبت‌نام‌ها حساب میشود');
+  /* اطلاع‌رسانی و پویش */
+  p.click('#shAdm [data-evtab="news"]');
+  p.type('#evbrtxt','یادآوری: فردا میبینمتان');
+  p.click('#shAdm [data-brsend]');
+  const brs=JSON.parse(st.getItem('nora-broadcasts')||'[]');
+  ok(brs.length===1&&brs[0].n===3,'خبر برای هر سه ثبت‌نام رفت');
+  p.click('#shAdm [data-brpoke="remind"]');
+  ok(JSON.parse(st.getItem('nora-broadcasts')).some(b=>b.poke),'پویش یادآوری هم ثبت شد');
+  /* نظرسنجی پایانی */
+  p.click('#shAdm [data-evtab="survey"]');
+  ok(/نظرسنجی کارگاه سی‌آر‌ام/.test(p.txt('#shAdm')),'نظرسنجی وصلشده در کارت است');
+  ok(/کیفیت جلسه/.test(p.txt('#shAdm')),'و پرسشهایش با پاسخ شمرده میشوند');
+  /* رویداد با کد دعوت */
+  p.click('#shAdm [data-close]');
+  p.click('#admNav [data-sec="events"]'); p.click('[data-evnew]');
+  p.type('#wzName','جلسهٔ خصوصی','change'); p.click('[data-wet="webinar"]');
+  p.click('[data-wstep="1"][data-wgo="1"]');
+  p.type('#wz-date','۱۴۰۵/۰۹/۰۵','change'); p.type('#wz-time','18:00','change');
+  p.type('#wz-to','20:00','change'); p.type('#wz-place','سالن نورا','change');
+  p.click('[data-wstep="2"][data-wgo="1"]'); p.type('#wz-cap','10','change');
+  p.click('[data-wfeat="invite"]');
+  p.click('[data-wstep="3"][data-wgo="1"]');
+  p.click('[data-fpick="reg"][data-fid="crm-reg"]');
+  p.click('[data-wstep="4"][data-wgo="1"]');
+  p.click('[data-wsend]');
+  const added2=JSON.parse(st.getItem('nora-admin')).added||[];
+  ok(added2.length===2&&/^\d{6}$/.test(added2[0].code||''),'رویداد با کد دعوت شش‌رقمی ساخته شد');
+  p.click('[data-ev="'+added2[0].id+'"]');
+  p.click('#shAdm [data-evtab="info"]');
+  ok(/کد دعوت/.test(p.txt('#shAdm')),'و کد در کارت رویداد دیده میشود');
+  ok(p.errs.length===0,'هیچ خطایی نماند');
+}
 /* ── ۱۲) مالی فقط و فقط مالک ── */
 {
   console.log('\n── مالی فقط مالک ──');
@@ -1564,7 +1663,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   p.click('[data-ev="e1"]');
   ok(p.all('#shAdm .admfilters [data-evtab="money"]').length===0,'تب مالی رویداد قفل است');
   ok(!/هزینه/.test(p.txt('#shAdm')),'و ردیف هزینهٔ رویداد نیست');
-  ok(p.all('#shAdm .admfilters [data-evtab]').length===5,'پنج تب بی‌مالی مانده');
+  ok(p.all('#shAdm .admfilters [data-evtab]').length===6,'شش تب بی‌مالی مانده');
   p.click('#shAdm .admfilters [data-evtab="reg"]');
   ok(!/پرداخت‌شده/.test(p.txt('#shAdm')),'وضعیت پرداخت در تب ثبت‌نام‌ها ماسک شده');
   p.click('#shAdm [data-close]');
@@ -1681,7 +1780,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
       else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
     return jy+'/'+pad(jm)+'/'+pad(jd)};
   const seed=makeStore();
-  seed.setItem('nora-admin', JSON.stringify({v:76, evF:'all', added:[
+  seed.setItem('nora-admin', JSON.stringify({v:77, evF:'all', added:[
     {id:'z-done', n:'نشست دیروز', kind:'نشست', when:'', on:g(-1), time:'۲۰:۰۰', end:g(-1),
      place:'آنلاین', cap:40, reg:40, state:'soon', sess:[], sessions:1},
     {id:'z-mid', n:'کارگاه سه‌جلسه‌ای', kind:'کارگاه', when:'', on:g(-2), time:'۱۷:۰۰', end:g(3),
@@ -1920,9 +2019,9 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در بخش فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=87')&&html.includes('admin.js?v=87'),'نسخهٔ پرونده‌های پنل تازه است');
+  ok(html.includes('admin.css?v=88')&&html.includes('admin.js?v=88'),'نسخهٔ پرونده‌های پنل تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v76'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v77'"),'کارگر سرویس نسخهٔ تازه است');
   ok(sw.includes("'admin.html'")&&sw.includes("'admin.css'")&&sw.includes("'admin.js'"),'پنل در پوستهٔ کش هست');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

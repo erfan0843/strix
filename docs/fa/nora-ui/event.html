@@ -25,9 +25,9 @@ if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-sch
 var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
 var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
-<link rel="stylesheet" href="glass.css?v=87"/>
-<link rel="stylesheet" href="nora.css?v=87"/>
-<link rel="stylesheet" href="events.css?v=87"/>
+<link rel="stylesheet" href="glass.css?v=88"/>
+<link rel="stylesheet" href="nora.css?v=88"/>
+<link rel="stylesheet" href="events.css?v=88"/>
 <style>
   html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
     backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
@@ -269,8 +269,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="data.js?v=87"></script>
-<script src="ui.js?v=87"></script>
+<script src="data.js?v=88"></script>
+<script src="ui.js?v=88"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ اختصاصی رویداد و بستهٔ رسانه
@@ -305,6 +305,11 @@ function regFormOf(){
 function regLink(){
   const f=regFormOf();
   return 'form.html?ev='+encodeURIComponent(e.id)+(f?'&fid='+encodeURIComponent(f.id):'')+'&kind=reg';
+}
+/* رویداد با کد: بی کدِ دعوت، راه ثبت‌نام باز نمیشود؛ کد که نشست، همان دستگاه دیگر نمیپرسد */
+function codeUnlocked(){
+  if(!e||!e.code) return true;
+  try{return localStorage.getItem('nora-evcode:'+e.id)==='1'}catch(err){return true}
 }
 function regQNote(){
   const f=regFormOf();
@@ -599,8 +604,10 @@ function renderCta(){
       : (preNeed
           ? `<button class="btn ${preOn?'quiet':'primary'}" data-uipre="${esc(e.id)}">
                <svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
-          : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
-             :`<a class="btn primary" id="reg" href="${esc(regLink())}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' · رایگان':''}</a>`))}
+          : (!codeUnlocked()
+              ? `<button class="btn primary" data-codegate><svg class="i"><use href="#i-key"/></svg> ورود با کد دعوت</button>`
+              : (full?`<button class="btn primary" data-waitlist><svg class="i"><use href="#i-clock"/></svg> لیست انتظار</button>`
+                 :`<a class="btn primary" id="reg" href="${esc(regLink())}"><svg class="i"><use href="#i-pen"/></svg> ثبت‌نام${free?' · رایگان':''}</a>`)))}
     ${svy?`<a class="btn quiet" href="${esc(svy.link||('form.html?ev='+encodeURIComponent(e.id)+'&kind=survey'))}" aria-label="نظرسنجی همین برنامه"><svg class="i"><use href="#i-star"/></svg> نظرسنجی</a>`:''}
     <button class="btn quiet" data-share-this aria-label="اشتراک"><svg class="i"><use href="#i-share"/></svg></button>`;
 }
@@ -626,6 +633,17 @@ document.addEventListener('click',ev=>{
   const rm=t.closest('[data-remind-here]'); if(rm){setRemind(!remindOn()); render(); toast(remindOn()?'یادآوری روشن شد؛ یک روز قبل و ۱۵ دقیقه قبل خبر می‌دهیم':'یادآوری خاموش شد'); return}
   const tl=t.closest('[data-testlink]'); if(tl){toast('اتصال تست شد؛ تصویر و صدا روان است'); return}
   const wl=t.closest('[data-waitlist]'); if(wl){toast('در لیست انتظار ثبت شدی؛ اگر جا خالی شد خبر می‌دهیم'); return}
+  const cg=t.closest('[data-codegate]'); if(cg){const box=$('#ctaIn'); if(!box) return;
+    box.innerHTML=`<span><b style="font-size:14px">رویداد با کد</b>
+      <div class="cap">کد دعوت شش‌رقمی را وارد کن</div></span>
+      <span class="sp" style="flex:1"></span>
+      <input id="evcodein" class="input" dir="ltr" inputmode="numeric" placeholder="______" style="width:110px" aria-label="کد دعوت"/>
+      <button class="btn primary" data-codeok><svg class="i"><use href="#i-check"/></svg> بررسی کد</button>`;
+    const inp=$('#evcodein'); if(inp) inp.focus(); return}
+  const co=t.closest('[data-codeok]'); if(co){const v=String(($('#evcodein')||{}).value||'').trim();
+    if(v&&v===String(e.code||'')){try{localStorage.setItem('nora-evcode:'+e.id,'1')}catch(err){}
+      toast('کد درست است؛ خوش آمدی'); renderCta();}
+    else toast('کد دعوت درست نیست؛ دوباره نگاه کن'); return}
   const gt=t.closest('[data-goto]'); if(gt){location.href='event.html?id='+gt.dataset.goto; return}
 });
 
