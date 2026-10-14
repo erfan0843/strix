@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>ورود به نورا</title>
+<meta name="description" content="ورود امن به حساب نورا؛ نشست و مجوزها در سمت سرور بررسی می‌شوند."/>
+<meta name="theme-color" content="#F5F3EE"/>
+<meta name="robots" content="noindex,nofollow,noarchive"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<script>/* تم پیش از نخستین رنگ‌آمیزی */
+(function(){try{var v=localStorage.getItem('nora-theme');
+if(v!=='dark'&&v!=='light')v=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+var r=document.documentElement;r.dataset.theme=v;r.style.colorScheme=v;
+var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
+<link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="glass.css?v=98"/>
+<link rel="stylesheet" href="nora.css?v=100"/>
+<link rel="stylesheet" href="login.css?v=114"/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+</head>
+<body class="loginpage">
+
+<svg xmlns="http://www.w3.org/2000/svg" class="login-icons" aria-hidden="true" focusable="false">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.4 4.3L19 7.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="m9.4 12.2 1.9 1.9 3.4-3.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v2.1M12 19.4v2.1M2.5 12h2.1M19.4 12h2.1M5.3 5.3l1.5 1.5m10.4 10.4 1.5 1.5m0-13.4-1.5 1.5M6.8 17.2l-1.5 1.5"/></g></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11Z" fill="currentColor"/></symbol>
+</svg>
+
+<div class="login-shell">
+  <header class="login-topbar">
+    <a class="brand" href="home.html" aria-label="خانهٔ نورا">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="tx"><b>نورا</b></span>
+    </a>
+    <span class="sp"></span>
+    <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز">
+      <span class="tsw-trk" aria-hidden="true">
+        <span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span>
+        <span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span>
+        <span class="tsw-knob"></span>
+      </span>
+    </button>
+  </header>
+
+  <main class="lwrap">
+    <section class="lgcard" id="lgCard" aria-labelledby="lgTitle">
+      <div class="lghead">
+        <span class="lgmark" aria-hidden="true"><img src="nora-mark.svg" alt=""/></span>
+        <h1 id="lgTitle">ورود به نورا</h1>
+        <p class="lglead" id="lgLead"></p>
+      </div>
+
+      <div class="lgbody" id="lgBody"></div>
+
+      <div class="lgadmin-entry" id="lgAdminEntry">
+        <span class="lg-divider" aria-hidden="true"></span>
+        <div class="lg-admin-links">
+          <a class="lg-admin-link" href="login.html?mode=staff&amp;next=admin.html%23dash">
+            <svg aria-hidden="true"><use href="#i-shield"/></svg>
+            <span>ورود مدیران</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="lgstatus" id="lgStatus" role="status" aria-live="polite" hidden></div>
+      <p class="lg-organization" id="lgOrganization">موسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی</p>
+    </section>
+  </main>
+</div>
+
+<script src="ui.js?v=118"></script>
+<script src="login.js?v=117"></script>
+</body>
+</html>

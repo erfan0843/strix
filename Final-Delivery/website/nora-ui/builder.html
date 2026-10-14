@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>نورا · مرکز فرم‌ها</title>
+<meta name="robots" content="noindex,nofollow,noarchive"/>
+<link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="glass.css?v=98"/>
+<style>
+  .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
+  .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
+  .fcard:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
+  .fcard:active{transform:none}
+  .ptab{display:none}
+  .ptab.on{display:block;animation:fade var(--t) var(--ease)}
+  .chrow{display:flex;align-items:center;gap:12px;width:100%;text-align:start;background:none;border:0;border-bottom:.5px solid var(--hairline-2);
+    padding:12px 2px;cursor:pointer;color:var(--ink);font:inherit;border-radius:var(--r-sm)}
+  .chrow:last-child{border-bottom:0}
+  .chrow:hover{background:var(--surface-2)}
+  .chrow .ic{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2);flex:0 0 auto}
+  .chrow .tx{flex:1;min-width:0}
+  .chrow .tx b{display:block;font-size:var(--fs-sub);font-weight:600}
+  .chrow .tx span{font-size:var(--fs-cap);color:var(--ink-3)}
+  .chrow>.i{color:var(--ink-4)}
+  .grow{display:grid;grid-template-columns:104px 1fr 52px;gap:10px;align-items:center;font-size:var(--fs-sub)}
+  .grow b{text-align:end;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .searchbox{display:flex;align-items:center;gap:8px;padding:0 12px;height:44px;border-radius:var(--r-pill);flex:1;min-width:200px}
+  .searchbox input{border:0;background:none;outline:none;font:inherit;color:var(--ink);width:100%;font-size:var(--fs-sub)}
+  .fw{font-weight:600}
+  @media (max-width:980px){.split{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<meta name="description" content="مرکز مدیریت فرم‌ها در نورا؛ دسترسی و انتشار از سمت سرور کنترل می‌شود."/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+</head>
+<body>
+<h1 class="sr">مرکز مدیریت فرم‌های نورا</h1>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
+<!-- ══ مجموعهٔ آیکون نورا · شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
+
+<symbol id="i-plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.2v13.6M5.2 12h13.6"/></g></symbol>
+
+<symbol id="i-drag" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9.2" cy="7" r="1.35"/><circle cx="14.8" cy="7" r="1.35"/><circle cx="9.2" cy="12" r="1.35"/><circle cx="14.8" cy="12" r="1.35"/><circle cx="9.2" cy="17" r="1.35"/><circle cx="14.8" cy="17" r="1.35"/></g></symbol>
+
+<symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
+
+<symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
+
+<symbol id="i-trend" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 18.4l4.6-5.2 3.3 2.9 5.9-7.6"/><path d="M13.6 8.2h4.4v4.4"/></g></symbol>
+
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
+
+<symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.6A2.6 2.6 0 0 1 6.2 6h11.6a2.6 2.6 0 0 1 2.6 2.6v6.8a2.6 2.6 0 0 1-2.6 2.6H6.2a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M3.6 11.6h16.8"/><circle cx="16.6" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-ticket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 9.4V7.8a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v1.6a2.8 2.8 0 0 0 0 5.2v1.6a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6v-1.6a2.8 2.8 0 0 0 0-5.2z"/><path d="M14.2 6.2v11.6" stroke-dasharray="2.2 2.6"/></g></symbol>
+
+<symbol id="i-medal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.4" r="4.6"/><path d="M9.1 13.4 7.4 20.6l4.6-2.4 4.6 2.4-1.7-7.2"/></g></symbol>
+
+<symbol id="i-idcard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><circle cx="8.9" cy="10.6" r="2.1"/><path d="M5.4 16c.5-1.9 1.9-2.9 3.5-2.9s3 1 3.5 2.9"/><path d="M14.6 10.2h3.4M14.6 13.4h2.2"/></g></symbol>
+
+<symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 10.6h16M8.6 3.6v3.4M15.4 3.6v3.4"/></g></symbol>
+
+<symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.1 2"/></g></symbol>
+
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20.2 20.2"/></g></symbol>
+
+<symbol id="i-filter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.2 6.4h15.6M7.2 12h9.6M10.2 17.6h3.6"/></g></symbol>
+
+<symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
+
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
+
+<symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
+<symbol id="i-chev-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 6.4 8.8 12l5.6 5.6"/></g></symbol>
+
+<symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"/></g></symbol>
+
+<symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.6h8.4M17.4 8.6h2.6M4 15.4h3.4M12.4 15.4h7.6"/><circle cx="15.4" cy="8.6" r="2.1"/><circle cx="10.4" cy="15.4" r="2.1"/></g></symbol>
+
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 14.4 14.4 9.6"/><path d="M11.4 7.2 12.9 5.7a4 4 0 0 1 5.6 5.6l-1.5 1.5"/><path d="M12.6 16.8 11.1 18.3a4 4 0 0 1-5.6-5.6l1.5-1.5"/></g></symbol>
+
+<symbol id="i-qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4.2 8V5.8A1.6 1.6 0 0 1 5.8 4.2H8M16 4.2h2.2A1.6 1.6 0 0 1 19.8 5.8V8M19.8 16v2.2a1.6 1.6 0 0 1-1.6 1.6H16M8 19.8H5.8a1.6 1.6 0 0 1-1.6-1.6V16"/><rect x="7.4" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="13" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="7.4" y="13" width="3.6" height="3.6" rx="1"/><path d="M13 13h1.8v1.8H13zM16.6 16.6H18.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8A2.4 2.4 0 0 1 6 5.6h12A2.4 2.4 0 0 1 20.4 8v8a2.4 2.4 0 0 1-2.4 2.4H6A2.4 2.4 0 0 1 3.6 16z"/><path d="M4.4 7.6 12 13.2l7.6-5.6"/></g></symbol>
+
+<symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
+
+<symbol id="i-star" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.4l2.5 5 5.5.8-4 3.9.95 5.5L12 17.1l-4.95 2.5.95-5.5-4-3.9 5.5-.8z"/></g></symbol>
+
+<symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.8s-7.2-4.4-7.2-9.4A4.4 4.4 0 0 1 12 7.1a4.4 4.4 0 0 1 7.2 3.3c0 5-7.2 9.4-7.2 9.4z"/></g></symbol>
+
+<symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 7.4h14.4"/><path d="M9.2 7.4V5.6h5.6v1.8"/><path d="M6.6 7.4 7.6 20h8.8l1-12.6"/><path d="M10.4 11v5.4M13.6 11v5.4"/></g></symbol>
+
+<symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9.6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2z"/><path d="M6.4 15.8a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2"/></g></symbol>
+
+<symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="6.2" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17.8" r="1.5"/></g></symbol>
+
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6 5 12l6 6"/></g></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></g></symbol>
+
+<symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2v10.4"/><path d="M7.8 10.6 12 14.8l4.2-4.2"/><path d="M5 19.4h14"/></g></symbol>
+
+<symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.4V9"/><path d="M7.8 13.2 12 9l4.2 4.2"/><path d="M5 4.6h14"/></g></symbol>
+
+<symbol id="i-branch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 4.6v6.6a3.6 3.6 0 0 0 3.6 3.6h6"/><path d="M14.4 11.6 17.6 14.8l-3.2 3.2"/><path d="M7.2 15.4v4.2"/></g></symbol>
+
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 11.6a1.6 1.6 0 0 1 1.6-1.6h10a1.6 1.6 0 0 1 1.6 1.6v6.8a1.6 1.6 0 0 1-1.6 1.6H7a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M8.6 10V8.2a3.4 3.4 0 0 1 6.8 0V10"/></g></symbol>
+
+<symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4"/><path d="M12 3.8c2.5 2.6 2.5 13.8 0 16.4-2.5-2.6-2.5-13.8 0-16.4z"/></g></symbol>
+
+<symbol id="i-mobile" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.4h8.4a1.6 1.6 0 0 1 1.6 1.6v12a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V6a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M10.8 17.6h2.4"/></g></symbol>
+
+<symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 18.4 10 6.2l4.4 12.2"/><path d="M7.2 14.2h5.6"/></g></symbol>
+
+<symbol id="i-number" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8.4 4.4 7 19.6M16 4.4 14.6 19.6M4.6 9.2h15M4 14.8h15"/></g></symbol>
+
+<symbol id="i-radio" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7.8"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-checkbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="4.4"/><path d="M8.4 12.2l2.6 2.6 4.6-5"/></g></symbol>
+
+<symbol id="i-lines" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.2" y="4.6" width="15.6" height="14.8" rx="3.4"/><path d="M7.6 9.4h8.8M7.6 12.6h8.8M7.6 15.8h5.2"/></g></symbol>
+
+<symbol id="i-file-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.6h6.6l4.2 4.2v12.6H6.6z"/><path d="M13.2 3.6v4.2h4.2"/><path d="M12 16.4v-4.6M10 13.8l2-2 2 2"/></g></symbol>
+
+<symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+
+<symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 4.6l3 3L9.2 17.8l-4 1.2 1.2-4z"/><path d="M14.6 6.6l3 3"/></g></symbol>
+
+<symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></g></symbol>
+
+<symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 5.6 17.8 12l-9.4 6.4z"/></g></symbol>
+
+<symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 3.8 3.8 10.4l6.4 3 3 6.4z"/><path d="M10.2 13.4 13.6 10"/></g></symbol>
+
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4.4" y="4.4" width="6" height="6" rx="2"/><rect x="13.6" y="4.4" width="6" height="6" rx="2"/><rect x="4.4" y="13.6" width="6" height="6" rx="2"/><rect x="13.6" y="13.6" width="6" height="6" rx="2"/></g></symbol>
+
+<symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="17" r="1.3" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-bag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 8.4h12.8l1.2 11.6H4.4z"/><path d="M9.2 8.4V6.6a2.8 2.8 0 0 1 5.6 0v1.8"/></g></symbol>
+
+<symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.8v16.8"/><path d="M6.4 5.2h11.2l-2.2 3.6 2.2 3.6H6.4z"/></g></symbol>
+
+<symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 3.8 8.2 12 12.8l8.2-4.6z"/><path d="M4.6 12.4 12 16.6l7.4-4.2"/><path d="M4.6 16.4 12 20.6l7.4-4.2"/></g></symbol>
+
+<symbol id="i-bolt" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 3.4 6.2 13.2h4.6l-.8 7.4 7.2-9.8h-4.6z"/></g></symbol>
+
+<symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.2" cy="8.2" r="4"/><path d="M11.1 11.1 19 19"/><path d="M16.4 16.4 18.8 14M14.2 14.2 16.6 11.8"/></g></symbol>
+
+<symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
+
+<symbol id="i-inbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 12.6 6.6 5.4h10.8l2.4 7.2v5.2a1.6 1.6 0 0 1-1.6 1.6H5.8a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M4.2 12.6h4.2l.8 2.2h5.6l.8-2.2h4.2"/></g></symbol>
+
+<symbol id="i-align" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.4 6.6h15.2M4.4 12h9.4M4.4 17.4h12"/></g></symbol>
+
+<symbol id="i-type" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 6.2h12.8M12 6.2v11.6"/></g></symbol>
+
+<symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></g></symbol>
+
+</svg>
+<div class="shell">
+  <!-- ── ریل ── -->
+  <aside class="rail">
+    <div class="row" style="padding:6px 8px 12px">
+      <span class="glass-thin" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center"><svg class="i lg"><use href="#i-doc"/></svg></span>
+      <div><div class="head tight">نورا</div><div class="cap">فرم‌ساز و گزارش‌های سروری</div></div>
+    </div>
+    <div style="padding:0 8px 10px"><span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span></div>
+    <nav class="col tight">
+      <button class="btn quiet block" data-go="fList"><svg class="i"><use href="#i-doc"/></svg> فرم‌ها</button>
+      <button class="btn quiet block" data-go="fReports"><svg class="i"><use href="#i-chart"/></svg> گزارش‌ها</button>
+      <button class="btn quiet block" data-go="fSettings"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات</button>
+      <button class="btn quiet block" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل رسیدها <span class="sp"></span><span class="tag warn" id="kBadge">—</span></button>
+      <button class="btn quiet block" data-go="fMine"><svg class="i"><use href="#i-star"/></svg> کارتابل من <span class="sp"></span><span class="tag brand" id="myBadge">—</span></button>
+      <button class="btn quiet block" id="financeNav" data-go="fMoney" hidden><svg class="i"><use href="#i-wallet"/></svg> مالی و کارمزد</button>
+      <button class="btn quiet block" data-go="fTeam"><svg class="i"><use href="#i-users"/></svg> کارشناسان</button>
+    </nav>
+    <hr class="hr"/>
+    <div class="cap" style="margin:0 8px 6px">پیوندها</div>
+    <nav class="col tight">
+      <a class="btn quiet block" href="admin.html"><svg class="i"><use href="#i-shield"/></svg> پنل مدیران</a>
+      <a class="btn quiet block" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
+      <a class="btn quiet block" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> نمای کاربر</a>
+      <a class="btn quiet block" href="index.html"><svg class="i"><use href="#i-layers"/></svg> زبان طراحی</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="card demo-note" data-demo-notice role="note" style="margin:0 0 12px;padding:10px 12px">
+      <b>منبع دادهٔ فرم‌ها روشن است</b>
+      <div class="cap" style="margin-top:4px">فقط فرم‌ها و شمار پاسخ‌های دریافت‌شده از API همین سامانه نمایش داده می‌شوند. داده‌های محلی یا نمونه به فهرست و آمار راه نمی‌یابند. پاسخ‌ها با مجوز سروری خوانده می‌شوند؛ اطلاعات به سرویس بیرونی فرستاده نمی‌شود. آمار قیف، تحلیل هر پرسش، خروجی واقعی و گردش پرداخت در این پنل هنوز فعال نیست.</div>
+    </div>
+
+    <!-- ══════════ فهرست فرم‌ها ══════════ -->
+    <section id="fList" class="screen on">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">فرم‌ها</div>
+          <div class="cap">روی هر فرم بزنید: اطلاعات، آمار، پاسخ‌دهنده‌ها و تغییرها.</div>
+        </div>
+        <span class="sp"></span>
+        <button class="btn quiet" id="syncServerForms" type="button">گرفتن فرم‌های سرور</button>
+        <a class="btn primary" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
+      </header>
+      <div class="card sunk" id="serverFormsMessage" role="status" aria-live="polite" style="margin-top:10px;padding:9px 12px">
+        <span id="serverFormsMessageText">هنوز فهرست سروری دریافت نشده است؛ برای دریافت فرم‌ها و شمار پاسخ‌های واقعی، «گرفتن فرم‌های سرور» را بزنید.</span>
+        <a id="serverFormsLogin" href="create.html?auth=1&amp;back=builder.html" style="display:none;margin-inline-start:8px">ورود مالک</a>
+      </div>
+
+      <div class="row" style="margin:12px 0 10px">
+        <label class="searchbox glass-thin"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+          <input id="q" placeholder="نام فرم یا پیوند را بنویسید"/></label>
+        <button class="btn quiet" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل</button>
+        <button class="btn quiet" data-go="fAttend"><svg class="i"><use href="#i-check"/></svg> حضور</button>
+      </div>
+
+      <div class="row tight" id="listChips">
+        <button class="chip on" data-chip="all">همه</button>
+        <button class="chip" data-chip="ok">در حال ثبت‌نام</button>
+        <button class="chip" data-chip="warn">پیش‌نویس</button>
+        <button class="chip" data-chip="exam">آزمون</button>
+        <button class="chip" id="moneyFilter" data-chip="money" hidden>مالی‌دار</button>
+      </div>
+
+      <div class="stack" id="formCards" style="margin-top:12px"></div>
+
+      <div class="card sunk" style="margin-top:16px">
+        <div class="row"><svg class="i"><use href="#i-shield"/></svg>
+          <span class="sub">هر فرم یک شناسنامه دارد: نوع، پیوند، بازه، ظرفیت، قطعه‌های مالی و پیوندهای پایانی. تنظیمات فرم همیشه آخر همان صفحه است.</span></div>
+      </div>
+    </section>
+
+    <!-- ══════════ گزارش همهٔ فرم‌ها ══════════ -->
+    <section id="fReports" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0"><div class="head tight">گزارش فرم‌ها</div>
+          <div class="cap">وضعیت و پاسخ‌های فرم‌ها در یک نگاه.</div></div>
+        <span class="sp"></span><button class="btn quiet" id="syncReportForms" type="button"><svg class="i"><use href="#i-refresh"/></svg> به‌روزرسانی API</button>
+        <button class="btn quiet" data-go="fList"><svg class="i"><use href="#i-doc"/></svg> فرم‌ها</button>
+      </header>
+      <div class="reviewbar" style="margin-top:12px" role="note">
+        <svg class="i"><use href="#i-shield"/></svg>
+        <span class="sub">فقط فرم‌های API و شمارش پاسخ‌های بازگشتی از FastAPI اینجا جمع می‌شوند؛ نمونه‌های محلی جدا هستند. تحلیل قیف و پاسخ هر پرسش هنوز ارائه نمی‌شود.</span>
+      </div>
+      <div class="metrics" id="formReportSummary" style="margin-top:12px"></div>
+      <div class="card paper" style="margin-top:12px">
+        <div class="row"><div class="fw">فهرست فرم‌ها</div><span class="sp"></span><span class="cap" id="formReportCount">—</span></div>
+        <div class="stack" id="formReportList" style="margin-top:10px"></div>
+      </div>
+    </section>
+
+    <!-- ══════════ تنظیمات پایه ══════════ -->
+    <section id="fSettings" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0"><div class="head tight">تنظیمات</div>
+          <div class="cap">وضعیت، مهلت و ظرفیت هر فرم را همین‌جا باز کنید.</div></div>
+        <span class="sp"></span><button class="btn quiet" data-go="fList"><svg class="i"><use href="#i-doc"/></svg> فرم‌ها</button>
+      </header>
+      <div class="split" style="margin-top:12px">
+        <div class="card paper">
+          <div class="row"><div class="fw">تنظیمات فرم‌ها</div><span class="sp"></span><span class="cap" id="formSettingsCount">—</span></div>
+          <div class="stack" id="formSettingsList" style="margin-top:10px"></div>
+        </div>
+        <div class="stack">
+          <div class="card paper">
+            <div class="fw">ساختار فرم</div>
+            <p class="cap">برای ساخت فرم یا ویرایش پرسش‌ها و متن‌ها، فرم‌ساز را باز کنید.</p>
+            <a class="btn primary" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت یا ویرایش فرم</a>
+          </div>
+          <div class="card paper">
+            <div class="fw">تنظیمات سامانه</div>
+            <p class="cap">تنظیمات سراسری و نقش‌ها در پنل مدیران و بر پایهٔ دسترسی حساب باز می‌شوند.</p>
+            <a class="btn quiet" href="admin.html#settings"><svg class="i"><use href="#i-sliders"/></svg> رفتن به تنظیمات سامانه</a>
+            <a class="btn quiet" id="coreFinanceLink" href="admin.html#money" hidden style="margin-inline-start:6px"><svg class="i"><use href="#i-wallet"/></svg> مالی و کارمزد</a>
+          </div>
+          <div class="card sunk">
+            <div class="row"><svg class="i"><use href="#i-shield"/></svg><span class="sub">تغییرهای این صفحه در مرورگر می‌مانند؛ اتصال یا انتشار واقعی را فعال نمی‌کنند.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ پنل فرم ══════════ -->
+    <section id="fPanel" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:8px 12px">
+        <button class="icon-btn" data-go="fList" aria-label="بازگشت"><svg class="i"><use href="#i-chev-right"/></svg></button>
+        <div style="min-width:0">
+          <div class="head tight" id="pName">—</div>
+          <div class="cap" id="pSub">—</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag" id="pStatus">—</span>
+        <button class="icon-btn" data-copy="#pLink" aria-label="کپی پیوند"><svg class="i"><use href="#i-link"/></svg></button>
+      </header>
+
+      <div class="row" style="margin:12px 0 12px">
+        <div class="seg" id="pSeg">
+          <button class="on" data-tab="stats">آمار</button>
+          <button data-tab="info">اطلاعات</button>
+          <button data-tab="changes">تغییرات</button>
+          <button data-tab="answers">پاسخ‌ها</button>
+        </div>
+        <span class="sp"></span>
+        <span class="cap num" id="pLink" style="direction:ltr">—</span>
+      </div>
+
+      <section class="ptab on" id="tabStats"><div id="statsBox"></div></section>
+      <section class="ptab" id="tabInfo"><div id="infoBox"></div></section>
+      <section class="ptab" id="tabChanges"><div id="changesBox"></div></section>
+      <section class="ptab" id="tabAnswers"><div id="answersBox"></div></section>
+
+      <!-- دکمهٔ آخر صفحه: تنظیمات فرم -->
+      <div class="settingbtn">
+        <button class="btn primary block" id="openSettings"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم</button>
+        <div class="row">
+          <a class="btn quiet" id="editFormLink" href="create.html"><svg class="i"><use href="#i-pen"/></svg> ویرایش ساختار</a>
+          <a class="btn quiet" id="previewFormLink" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> پیش‌نمایش محلی</a>
+          <button class="btn quiet" data-copy="#pLink"><svg class="i"><use href="#i-link"/></svg> کپی پیوند</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ جزئیات پاسخ‌دهنده ══════════ -->
+    <section id="fUser" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:8px 12px">
+        <button class="icon-btn" data-go="fPanel" aria-label="بازگشت"><svg class="i"><use href="#i-chev-right"/></svg></button>
+        <div style="min-width:0"><div class="head tight" id="usName">—</div><div class="cap" id="usSub">—</div></div>
+        <span class="sp"></span><span class="tag" id="usPay">—</span>
+      </header>
+      <div id="usBody" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ══════════ کارتابل رسیدها ══════════ -->
+    <!-- ══════════ کارتابل من (کارشناس) ══════════ -->
+    <section id="fMine" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">کارتابل من</div>
+          <div class="cap">رسیدهایی که پیگیری‌شان با من است · قدیمی‌ترین اول، تا از دست نرود.</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag warn" id="mTop">—</span>
+      </header>
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:10px"><span class="fw">من کی هستم</span><span class="sp"></span>
+          <span class="cap" id="mDept">—</span></div>
+        <div class="row tight" id="meChips"></div>
+        <p class="mnote" style="margin-top:10px">هر کارشناس فقط رسیدهای فرم‌های بخش خودش را می‌بیند؛ نفر اصلی را روشن بگذارید تا همان کارتابل بیاید.</p>
+      </div>
+      <div class="stack" id="mineBox" style="margin-top:12px"></div>
+    </section>
+
+    <section id="fKartabl" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">کارتابل رسیدها</div>
+          <div class="cap">رسیدهای کارت‌به‌کارت تا تأیید کارشناس، ثبت‌نام موقت است.</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag warn" id="kTop">—</span>
+      </header>
+      <div class="row tight" style="margin-top:12px" id="kFilters">
+        <button class="chip on" data-kd="">همهٔ بخش‌ها</button>
+        <span class="row tight" id="kDeptChips" style="gap:8px"></span>
+        <span class="sp"></span>
+        <span class="cap" id="kWho">—</span>
+      </div>
+      <div class="stack" id="kartabl" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ══════════ خلاصهٔ مالیِ مالک ══════════ -->
+    <section id="fMoney" class="screen" hidden>
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">مالی و کارمزد</div>
+          <div class="cap">این صفحه فقط خلاصهٔ تنظیمات مرکزی را می‌خواند؛ تغییر و نگه‌داری مالی در یک جای سامانه انجام می‌شود.</div>
+        </div>
+        <span class="sp"></span><span class="tag brand">فقط مالک</span>
+      </header>
+      <div class="reviewbar" style="margin-top:12px" role="note">
+        <svg class="i"><use href="#i-shield"/></svg>
+        <span class="sub">این صفحه در مرورگر کار می‌کند؛ درگاه، حسابداری سروری یا تأیید بانکی وصل نیست و ارقام درآمد واقعی نیستند.</span>
+      </div>
+      <div class="split" style="margin-top:12px">
+        <div class="stack">
+          <div class="card paper">
+            <div class="row"><div class="fw">وضعیت تنظیمات مرکزی</div><span class="sp"></span><span class="cap">از استخر مشترک نورا</span></div>
+            <div class="stack tight" id="financeSummary" style="margin-top:10px" aria-live="polite"></div>
+            <a class="btn primary" id="openCentralFinance" href="admin.html#money" style="margin-top:12px">
+              <svg class="i"><use href="#i-sliders"/></svg> رفتن به تنظیمات مالی و کارمزد
+            </a>
+          </div>
+          <div class="card paper">
+            <div class="fw">قیمت‌های فرم‌های انبار مشترک</div>
+            <p class="cap" style="margin:4px 0 10px">قیمت و تخفیف متعلق به خودِ فرم است؛ ویرایشش از فرم‌ساز انجام می‌شود، نه از این گزارش.</p>
+            <div id="moneyPieces"></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card paper">
+            <div class="fw" style="margin-bottom:8px">حسابداری و وصول اقساط</div>
+            <div class="sumbox" id="settle"></div>
+            <p class="mnote" style="margin-top:8px">دفتر، کارمزد، اقساط و فیش‌ها در پنل مرکزی «مالی و کارمزد» نگه‌داری می‌شوند؛ دادهٔ این صفحه دفتر واقعی نیست.</p>
+            <a class="btn sm quiet" href="admin.html#money">بازکردن دفتر مرکزی</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ کارشناسان ══════════ -->
+    <!-- ══════════ بورد حضور و غیاب ══════════ -->
+    <section id="fAttend" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">بورد حضور</div>
+          <div class="cap" id="attSub">—</div>
+        </div>
+        <span class="sp"></span>
+        <button class="btn quiet" data-go="fPanel"><svg class="i"><use href="#i-chev-right"/></svg> پنل فرم</button>
+      </header>
+
+      <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:12px">
+        <div class="metric"><div class="n" id="attAll">—</div><div class="l">ثبت‌نام قطعی</div></div>
+        <div class="metric brand"><div class="n" id="attIn">—</div><div class="l">حاضر</div></div>
+        <div class="metric"><div class="n" id="attOut">—</div><div class="l">غایب</div></div>
+        <div class="metric"><div class="n" id="attPct">—</div><div class="l">درصد حضور</div></div>
+      </div>
+
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:8px"><span class="fw">ثبت ورود</span><span class="sp"></span>
+          <span class="cap">کد پیگیری را از روی کیوآر بخوانید یا موبایل را بنویسید.</span></div>
+        <div class="row tight">
+          <input class="input" id="attCode" style="flex:1;direction:ltr" placeholder="T4K7M9X یا ۰۹۱۲…"/>
+          <button class="btn primary" id="attGo"><svg class="i"><use href="#i-check"/></svg> ثبت ورود</button>
+        </div>
+        <div class="row tight" style="margin-top:10px">
+          <button class="chip on" data-attmode="code">کد پیگیری</button>
+          <button class="chip" data-attmode="manual">دستی از فهرست</button>
+          <button class="chip" data-attmode="auto">خودکار (لینک جلسه)</button>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-abexport><svg class="i"><use href="#i-download"/></svg> خروجی حضور</button>
+          <button class="btn sm quiet" data-absentmsg><svg class="i"><use href="#i-send"/></svg> پیام به غایب‌ها</button>
+        </div>
+      </div>
+
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:10px">
+          <label class="searchbox glass-thin" style="flex:1"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+            <input id="attQ" placeholder="نام یا موبایل را بنویسید"/></label>
+          <span class="cap" id="attCount">—</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t">
+            <thead><tr><th>#</th><th>شرکت‌کننده</th><th>صندلی</th><th>ورود</th><th>وضعیت</th></tr></thead>
+            <tbody id="attBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="fTeam" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0"><div class="head tight">کارشناسان</div>
+        <div class="cap">دسترسی هر کارشناس به فرم‌ها و کارتابل رسیدها.</div></div>
+        <span class="sp"></span>
+        <button class="btn primary" id="invite"><svg class="i"><use href="#i-plus"/></svg> افزودن کارشناس</button>
+      </header>
+      <div class="stack" id="teamBox" style="margin-top:12px"></div>
+    </section>
+
+    <p class="trustline center" data-trust="secure"></p>
+  </main>
+</div>
+
+<!-- ══════════ ورقه‌ها ══════════ -->
+<div class="scrim" id="scrim"></div>
+
+<aside class="sheet" id="shSettings" role="dialog" aria-label="تنظیمات فرم">
+  <div class="grabber"></div>
+  <div class="head">تنظیمات فرم</div>
+  <p class="cap" style="margin-top:4px" id="setForm">—</p>
+  <div class="stack" style="margin-top:12px">
+    <div><label class="lbl">وضعیت</label>
+      <div class="seg" id="setStatus"><button class="on" data-v="باز">باز</button><button data-v="بسته">بسته</button><button data-v="پیش‌نویس">پیش‌نویس</button></div></div>
+    <div><label class="lbl">شروع ثبت‌نام</label><div id="setStart"></div></div>
+    <div><label class="lbl">پایان ثبت‌نام</label><div id="setEnd"></div></div>
+    <div class="g2">
+      <div><label class="lbl" for="setCap">ظرفیت</label><input class="input num" id="setCap" value="80"/></div>
+      <div><label class="lbl" for="setPer">هر نفر چند نفر</label><input class="input num" id="setPer" value="3"/></div>
+    </div>
+    <div class="row"><div style="flex:1"><b class="sub">لیست انتظار</b><div class="cap">پر شدن ظرفیت، ثبت‌نام را به لیست انتظار می‌برد</div></div>
+      <span class="switch on" id="setWait" role="switch" aria-label="لیست انتظار" aria-checked="true" tabindex="0"></span></div>
+    <div><label class="lbl" for="setSlug">پیوند فرم</label>
+      <div class="row"><input class="input" id="setSlug" style="flex:1;direction:ltr" value=""/><button class="btn sm tint" data-copy="#setSlug">کپی</button></div></div>
+    <div class="cap" style="margin-top:6px">تنظیمهای پیشرفته</div>
+    <button class="chrow" data-change="webhook"><span class="ic"><svg class="i"><use href="#i-link"/></svg></span>
+      <span class="tx"><b>وبهوک و رخدادها</b><span id="setWhSub">خاموش</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>
+    <button class="chrow" data-change="appr"><span class="ic"><svg class="i"><use href="#i-shield"/></svg></span>
+      <span class="tx"><b>گردش کار چندمرحله‌ای</b><span id="setApSub">خاموش</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <button class="btn primary" id="setSave">ذخیره</button>
+    <span class="sp"></span>
+    <button class="btn stop" id="setArchive"><svg class="i"><use href="#i-close"/></svg> بایگانی فرم</button>
+  </div>
+</aside>
+
+<aside class="sheet" id="shExcel" role="dialog" aria-label="خروجی اکسل">
+  <div class="grabber"></div>
+  <div class="head">خروجی اکسل</div>
+  <p class="cap" style="margin-top:4px">ستون‌هایی که لازم دارید را بردارید؛ خروجی همان لحظه ساخته می‌شود.</p>
+  <div class="row tight" style="margin-top:12px" id="cols"></div>
+  <div class="row" style="margin-top:14px"><button class="btn primary" id="excelGo"><svg class="i"><use href="#i-download"/></svg> تولید فایل</button>
+    <button class="btn quiet" data-close>بستن</button></div>
+</aside>
+
+<aside class="sheet" id="shChange" role="dialog" aria-label="تغییر">
+  <div class="grabber"></div>
+  <div class="head" id="chTitle">تغییر</div>
+  <div class="pbody" id="chBody" style="padding:12px 0;display:grid;gap:10px"></div>
+  <div class="row"><button class="btn primary" id="chApply">اعمال کن</button><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
+</aside>
+
+<aside class="sheet" id="shReject" role="dialog" aria-label="رد رسید">
+  <div class="grabber"></div>
+  <div class="head">رد رسید</div>
+  <div class="card sunk" style="margin-top:10px">
+    <div class="row"><svg class="i" style="color:var(--stop)"><use href="#i-close"/></svg>
+      <span class="sub">با رد رسید، ثبت‌نام موقت باطل می‌شود و اطلاعات پاسخ‌دهنده می‌ماند؛ فقط پرداخت را از ابتدا انجام می‌دهد.</span></div>
+  </div>
+  <div style="margin-top:12px"><label class="lbl">دلیل</label>
+    <div class="row tight" id="reasons">
+      <button class="chip" data-chip>مبلغ یکی نیست</button><button class="chip" data-chip>رسید ناخوانا است</button>
+      <button class="chip" data-chip>واریز پیدا نشد</button><button class="chip" data-chip>فرستندهٔ دیگری است</button></div></div>
+  <label class="lbl" style="margin-top:10px">توضیح برای پاسخ‌دهنده</label>
+  <textarea class="input" id="rejNote" placeholder="کوتاه و روشن بنویسید"></textarea>
+  <div class="row" style="margin-top:12px"><button class="btn stop" id="rejGo">رد و باطل‌کردن ثبت‌نام</button></div>
+</aside>
+
+<aside class="sheet" id="shMsg" role="dialog" aria-label="پیام به پاسخ‌دهنده‌ها">
+  <div class="grabber"></div>
+  <div class="head" id="msgHead">پیام به پاسخ‌دهنده‌ها</div>
+  <p class="cap" style="margin-top:6px" id="msgSub">—</p>
+  <div id="msgAudBox">
+    <label class="lbl" style="margin-top:10px">به</label>
+    <div class="row tight" id="msgAud"></div>
+  </div>
+  <label class="lbl" style="margin-top:10px">متن پیام</label>
+  <textarea class="input" id="msgText" placeholder="مثلاً: جای جلسهٔ اول از سالن ۲ به سالن ۳ تغییر کرد."></textarea>
+  <div class="row" style="margin-top:6px">
+    <span class="cap">پیام پیش از نمایش در حساب کاربر باید به تأیید مالک برسد؛ بله و پیامک وصل نیستند.</span>
+    <span class="sp"></span><span class="cap" id="msgCount">—</span></div>
+  <div class="row tight" style="margin-top:10px">
+    <button class="btn sm quiet" data-quick="جای جلسه عوض شد؛ نشانی تازه را در همین پیام ببینید.">جای جلسه</button>
+    <button class="btn sm quiet" data-quick="یادتان باشد کارت شناسایی همراه داشته باشید.">کارت شناسایی</button>
+    <button class="btn sm quiet" data-quick="رسید شما تأیید شد؛ وضعیت ثبت‌نام در حساب کاربری به‌روز شده است.">تأیید رسید</button>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn primary" id="msgGo"><svg class="i"><use href="#i-send"/></svg> ثبت درخواست برای مالک</button><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
+</aside>
+
+<aside class="sheet" id="shPass" role="dialog" aria-label="سپردن به کارشناس دیگر">
+  <div class="grabber"></div>
+  <div class="head">سپردن به کارشناس دیگر</div>
+  <p class="cap" style="margin-top:6px">رسید از کارتابل من می‌رود و روی میز او می‌نشیند؛ در سابقهٔ پاسخ‌دهنده هم می‌ماند.</p>
+  <div class="row tight" id="passWho" style="margin-top:12px"></div>
+  <label class="lbl" style="margin-top:12px">یادداشت برای او (اختیاری)</label>
+  <input class="input" id="passNote" placeholder="مثلاً: مبلغ کم است، خودم پیگیری کردم."/>
+  <div class="row" style="margin-top:12px">
+    <button class="btn primary" id="passGo"><svg class="i"><use href="#i-send"/></svg> بسپار</button>
+    <span class="sp"></span><button class="btn quiet" data-close>بستن</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
+
+<script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
+<script src="ui.js?v=118"></script>
+<script src="owner-api.js?v=106"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
+   ══════════════════════════════════════════════════════════════════ */
+const TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
+const ADMIN_PERSON=TEST_FIXTURE_MODE&&window.NORA_UI&&NORA_UI.adminActor?NORA_UI.adminActor():null;
+const FINANCE_OWNER=TEST_FIXTURE_MODE&&!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
+const RECEIPT_REVIEWER=TEST_FIXTURE_MODE&&!!(ADMIN_PERSON&&(FINANCE_OWNER||ADMIN_PERSON.lv==='سرپرست'));
+let SERVER_FORMS=[];
+let SERVER_FORMS_LOADED=false;
+function ownerNoticeAdd(input){
+  const U=window.NORA_UI||{}; if(!U.ownerApprovalAdd) return null;
+  const item=Object.assign({type:'notification',status:'pending',source:'builder',
+    requestedBy:(ADMIN_PERSON&&ADMIN_PERSON.n)||'مدیر فرم',requestedById:(ADMIN_PERSON&&ADMIN_PERSON.k)||'',
+    requestedRole:(ADMIN_PERSON&&ADMIN_PERSON.lv)||'',requestedAt:Date.now()},input||{});
+  if(!item.notification) item.notification={title:item.title||'اطلاع‌رسانی',body:String(item.body||'')};
+  return U.ownerApprovalAdd(item);
+}
+const FORMS=TEST_FIXTURE_MODE?[
+{id:'f1',name:'ثبت‌نام کارگاه فن بیان',kind:'رویداد',tone:'ok',status:'فعال · نمونه',
+ slug:'/events/fanbayan/register · نمونه',expert:'خانم رستگار',dept:'edu',
+ seen:2140,started:412,resp:128,paid:109,money:103375000,
+ start:'۱۴۰۵/۰۷/۰۱ · ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ · ۲۳:۴۵',cap:150,wait:true,per:3,skin:'blue',
+ head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
+ fin:[{l:'شرکت حضوری در سالن',p:850000,off:15,req:false,g:'نوع شرکت',d:'روی صندلی، همراه با جزوهٔ کارگاه'},
+       {l:'شرکت آنلاین و زنده',p:600000,off:0,req:false,g:'نوع شرکت',d:'پخش زندهٔ همان کلاس'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''}],
+ groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
+ guestsOn:true,guestsMax:3,guests:['علی رضایی'],
+ gw:['درگاه بله · وصل‌نیست','کارت‌به‌کارت · غیرفعال'], parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 · ٪۱۰',
+ endText:'پاسخ نمونه فقط در همین مرورگر می‌ماند؛ بررسی رسید یا پیام واقعی وجود ندارد.',
+ links:['صفحهٔ رویداد نمونه','گروه نمونه · غیرفعال'],
+ event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:true},
+ flags:['receipts','cert','excel'],
+ certOn:true,certHours:'۲۴ ساعت',certIssued:{},certReq:{},
+ fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
+ changes:[['۱۰ مهر · ظرفیت از ۱۲۰ به ۱۵۰ رسید','خانم رستگار'],['۸ مهر · کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر · پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
+ answers:['برای جلسهٔ دوم نمی‌توانم بیایم؛ فایل صوتی دارید؟','دنبال کارگاه پیشرفته هستم.']},
+
+{id:'f2',name:'نظرسنجی رضایت دورهٔ بهار',kind:'نظرسنجی',tone:'ok',status:'فعال · نمونه',
+ slug:'/f/bahar-satisfaction · نمونه',expert:'آقای نادری',dept:'data',
+ seen:1610,started:520,resp:342,paid:0,money:0,
+ start:'۱۴۰۵/۰۶/۰۱ · ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ · ۲۳:۰۰',cap:0,wait:false,per:1,
+ head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
+ fin:[],groups:[],guestsOn:false,guestsMax:1,guests:[],gw:[],coupon:'—',
+ endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
+ links:['صفحهٔ دورهٔ نمونه'],
+ event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
+ flags:['excel','raffle'],
+ fields:[['رضایت کلی',100],['نقطهٔ قوت دوره',94],['پیشنهاد بهبود',61],['از من تماس بگیرید',22]],
+ changes:[['۱۲ مهر · پرسش «پیشنهاد بهبود» اضافه شد','آقای نادری']],
+ answers:['مربی‌ها عالی بودند؛ صدا در سالن ضعیف بود.']},
+
+{id:'f3',name:'فرم عضویت نمونه',kind:'عضویت',tone:'ok',status:'فعال · نمونه',
+ slug:'/f/kheyreen · نمونه',expert:'خودم',dept:'edu',
+ seen:0,started:0,resp:0,paid:0,money:0,
+ start:'۱۴۰۵/۰۸/۰۱ · ۰۸:۰۰',ends:'۱۴۰۶/۰۱/۰۱ · ۲۳:۰۰',cap:0,wait:false,per:1,
+ head:'عضویت در باشگاه نمونه',intro:'ماهانه یا سالانه، هر مبلغی که در توان دارید.',
+ fin:[{l:'حق عضویت سالانه',p:2000000,off:0,req:false,g:'دورهٔ عضویت',d:'یک سال کامل'},
+       {l:'حق عضویت ماهانه',p:200000,off:0,req:false,g:'دورهٔ عضویت',d:'هر ماه، تا وقتی خودتان بخواهید'}],
+ groups:[{n:'دورهٔ عضویت',of:[0,1],req:true,one:true}],
+ guestsOn:false,guestsMax:1,guests:[],gw:['درگاه بله · وصل‌نیست','کیف پول نورا پی · وصل‌نیست'],
+ coupon:'—',
+ endText:'در این پیش‌نمایش، عضویت یا کارت واقعی ثبت و صادر نمی‌شود.',
+ links:['گزارش نمونه'],
+ event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
+ flags:['receipts','excel','cert'],
+ certOn:true,certHours:'۱۲ ساعت',certIssued:{},certReq:{},
+ fields:[['نام و نام خانوادگی',0],['شماره موبایل',0],['مبلغ ماهانه',0]],
+ changes:[],
+ answers:[]},
+
+{id:'f4',name:'آزمون کتابخوانی پاییز',kind:'آزمون',tone:'ok',status:'فعال · نمونه',
+ slug:'/f/ketabkhani-paeez · نمونه',expert:'خانم صادقی',dept:'media',
+ seen:820,started:300,resp:96,paid:96,money:28800000,
+ start:'۱۴۰۵/۰۷/۱۰ · ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ · ۲۳:۰۰',cap:150,wait:false,per:1,
+ head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
+ fin:[{l:'ورودی آزمون',p:300000,off:0,req:true,d:'یک بار؛ بازگشت به آزمون ممکن نیست'}],
+ groups:[],gw:['درگاه بله · وصل‌نیست'],
+ parts:['title','date','venue','name','code','qr'],
+ coupon:'—',endText:'نتیجهٔ نمونه فقط در مرورگر می‌ماند؛ کارنامه یا پیوند واقعی فرستاده نمی‌شود.',
+ links:['سرفصل کتاب‌ها'],
+ event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
+ flags:['excel','exam','results','cert','anti-cheat'],
+ certOn:true,certHours:'',certIssued:{},certReq:{},
+ fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['کد ملی',100],['انتخاب حوزه',100]],
+ changes:[['۹ مهر · تصویربرداری هنگام آزمون روشن شد','خانم صادقی']],
+ answers:[]}
+]:[];
+
+const PEOPLE=TEST_FIXTURE_MODE?[
+{id:'p1',form:'f1',name:'سارا محمدی',mobile:'۰۹۱۲۳۴۵۶۸۷۶',code:'TL1307BVUC1981',state:'pending',
+ city:'تهران · تهران',uni:'دانشگاه تهران',job:'برنامه‌نویس و فناوری اطلاعات',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۰/۰۵/۱۲',
+ at:'۱۴۰۵/۰۷/۰۴ · ۰۹:۱۴',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:10,note:'واریز از حساب همسرم انجام شد.',
+ guests:[{name:'الهام موسوی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',same:true}],
+ skip:['دانشگاه'],receipt:'۸ مهر، ۰۹:۲۰',wait:30,owner:''},
+{id:'p2',form:'f1',name:'علی رضایی',mobile:'۰۹۱۲۰۰۰۰۰۰۱',code:'TL1307BVUC1982',state:'paid',
+ city:'اصفهان · اصفهان',uni:'صنعتی اصفهان',job:'مهندس',edu:'کارشناسی ارشد',exp:'تازه‌کار',birth:'۱۳۷۵/۰۲/۰۳',
+ at:'۱۴۰۵/۰۷/۰۳ · ۱۸:۴۰',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
+{id:'p3',form:'f1',name:'مریم احمدی',mobile:'۰۹۱۲۲۲۳۳۴۴۵',code:'TL1307BVUC1983',state:'paid',
+ city:'مشهد · مشهد',uni:'فردوسی مشهد',job:'معلم و استاد',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۸/۱۱/۲۲',
+ at:'۱۴۰۵/۰۷/۰۳ · ۱۲:۰۵',gw:'درگاه رسمی بله',piece:0,count:3,coupon:10,note:'',skip:[],receipt:'',
+ guests:[{name:'رضا شریفی',mobile:'۰۹۱۲۳۳۳۴۴۵۵',same:true},{name:'نگار توکلی',mobile:'۰۹۱۹۸۸۷۷۶۶۵',same:false}]},
+{id:'p4',form:'f1',name:'حسن کریمی',mobile:'۰۹۹۱۲۳۴۵۶۷۸',code:'TL1307BVUC1984',state:'pending',
+ city:'شیراز · شیراز',uni:'شیراز',job:'کارمند شرکت خصوصی',edu:'دیپلم',exp:'تازه‌کار',birth:'۱۳۸۰/۰۷/۳۰',
+ at:'۱۴۰۵/۰۷/۰۴ · ۱۰:۵۰',gw:'کارت‌به‌کارت',piece:1,count:1,coupon:0,note:'',skip:[],receipt:'۸ مهر، ۱۱:۰۲',wait:6,owner:''},
+{id:'p5',form:'f1',name:'زهرا نیک‌پور',mobile:'۰۹۱۳۴۵۶۷۸۹۰',code:'TL1307BVUC1985',state:'paid',
+ city:'تبریز · تبریز',uni:'تبریز',job:'دانشجو',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۸۲/۰۳/۱۵',
+ at:'۱۴۰۵/۰۷/۰۲ · ۲۱:۳۰',gw:'درگاه رسمی بله',piece:1,count:2,coupon:0,note:'',skip:[],receipt:'',
+ guests:[{name:'سینا رحیمی',mobile:'۰۹۳۳۴۴۵۵۶۶۷',same:true}]},
+{id:'p6',form:'f1',name:'رضا شریفی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'TL1307BVUC1986',state:'half',
+ city:'کرج · کرج',uni:'شهید بهشتی',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۵/۰۹/۰۹',
+ at:'۱۴۰۵/۰۷/۰۴ · ۰۸:۰۵',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
+{id:'p8',form:'f2',name:'بی‌نام',mobile:'۰۹۱۲۰۰۰۰۰۰۰',code:'—',state:'paid',
+ city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ · ۱۰:۱۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'رضایت کلی':'۴ از ۵','نقطهٔ قوت دوره':'مربی‌ها','پیشنهاد بهبود':'صدا در سالن ضعیف بود','از من تماس بگیرید':'نه'}},
+{id:'p9',form:'f2',name:'بی‌نام',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'—',state:'paid',
+ city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ · ۱۴:۴۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:['پیشنهاد بهبود'],receipt:'',
+ ans:{'رضایت کلی':'۵ از ۵','نقطهٔ قوت دوره':'برنامه‌ریزی و نظم','از من تماس بگیرید':'بله'}},
+{id:'p10',form:'f4',name:'مینا کاظمی',mobile:'۰۹۱۲۹۹۸۸۷۷۶',code:'TL1307EXAM2041',state:'paid',
+ city:'قم · قم',uni:'قم',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۵/۰۴/۰۲',at:'۱۴۰۵/۰۷/۱۲ · ۱۱:۲۰',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'کد ملی':'۰۰۱۲۳۴۵۶۷۸','انتخاب حوزه':'داستان فارسی'}},
+{id:'p11',form:'f4',name:'سعید رحیمی',mobile:'۰۹۳۰۵۵۵۴۴۳۳',code:'TL1307EXAM2042',state:'paid',
+ city:'یزد · یزد',uni:'یزد',job:'معلم و استاد',edu:'کارشناسی ارشد',exp:'متوسط',birth:'۱۳۶۲/۱۲/۱۰',at:'۱۴۰۵/۰۷/۱۳ · ۰۹:۰۵',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'کد ملی':'۰۰۶۹۸۷۶۵۴۳','انتخاب حوزه':'شعر معاصر'}},
+{id:'p12',form:'f4',name:'الهام داوودی',mobile:'۰۹۱۲۷۷۶۶۵۵۴',code:'TL1307EXAM2043',state:'pending',
+ city:'کرمان · کرمان',uni:'شهید باهنر',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۶/۱۰/۰۳',at:'۱۴۰۵/۰۷/۱۱ · ۱۶:۴۰',gw:'کارت‌به‌کارت',piece:0,count:1,coupon:0,
+ note:'واریز از حساب برادرم انجام شد؛ رسید پیوست است.',skip:[],receipt:'۱۱ مهر، ۱۶:۵۲',wait:52,owner:'',
+ ans:{'کد ملی':'۰۰۲۳۴۵۶۷۸۹','انتخاب حوزه':'ادبیات کهن'}},
+{id:'p13',form:'f3',name:'محسن یاری',mobile:'۰۹۱۲۵۵۴۴۳۳۲',code:'TL1307KHYR3001',state:'pending',
+ city:'تهران · تهران',uni:'—',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۵۸/۰۷/۱۹',at:'۱۴۰۵/۰۷/۰۵ · ۰۷:۲۰',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:0,
+ note:'',skip:[],receipt:'۵ مهر، ۰۷:۳۵',wait:3,owner:'',guests:[{name:'همسرش',mobile:'۰۹۱۲۵۵۴۴۳۳۱',same:true}]},
+{id:'p7',form:'f1',name:'نگار سلطانی',mobile:'۰۹۰۲۹۹۸۸۷۷۶',code:'TL1307BVUC1987',state:'void',
+ city:'اهواز · اهواز',uni:'شهید چمران اهواز',job:'حسابدار و مالی',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۲/۰۱/۲۸',
+ at:'۱۴۰۵/۰۷/۰۱ · ۱۳:۱۲',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:0,note:'رسید رد شد: مبلغ کم بود.',skip:[],receipt:'۱ مهر، ۱۳:۳۰'}
+]:[];
+
+/* ══ فرم‌هایی که در فرم‌ساز ساخته شده‌اند ══
+   فرم‌ساز در انبار مشترک می‌نویسد و این‌جا روی نمونه‌ها می‌آیند؛ فرمی که به
+   رویدادی وصل شده، پنل رویداد هم همان را می‌بیند. */
+function storeForms(){
+  if(!TEST_FIXTURE_MODE) return [];
+  let raw=[];const U=window.NORA_UI||{};
+  try{raw=U.formsAll?U.formsAll():[]}catch(e){raw=[]}
+  let regs=[];try{regs=U.regsAll?U.regsAll():[]}catch(e){regs=[]}
+  return raw.map(f=>{
+    const serverManaged=f.serverManaged===true;
+    const answers=serverManaged?[]:regs.filter(r=>String(r.form||'')===String(f.id));
+    const sourceFields=serverManaged&&Array.isArray(f.rawFields)?f.rawFields:Array.isArray(f.fields)?f.fields:[];
+    const fieldDefs=sourceFields.map((x,i)=>typeof x==='string'?{id:i,l:x,t:'text'}:Object.assign({},x||{}));
+    const fieldRows=fieldDefs.map(q=>{
+      const label=q.l||q.n||'پرسش';
+      const got=answers.filter(r=>(r.ans||[]).some(a=>String(a.k)===String(q.id)||String(a.l)===String(label))&&
+        String(((r.ans||[]).find(a=>String(a.k)===String(q.id)||String(a.l)===String(label))||{}).v||'').trim()).length;
+      return [label,answers.length?Math.round(got*100/answers.length):0];
+    });
+    const limit=['event','attended','invite'].includes(f.limit)?f.limit:'free';
+    const draft=f.status==='draft'||f.serverDraft===true;
+    const serverStatus=String(f.status||'draft');
+    const status=serverManaged?serverStatus:draft?(f.serverDraft===true?'پیش‌نویس سرور · منتشرنشده':'پیش‌نویس محلی · منتشرنشده'):'تازه ساخته شده';
+    const responseCount=serverManaged?Math.max(0,Number(f.response_count??f.resp)||0):answers.length;
+    return {
+      id:f.id,name:f.name||'فرم بی‌نام',model:f.model||'',version:Number(f.version)||1,kind:f.kind||'فرم',tone:serverManaged?(serverStatus==='published'?'ok':serverStatus==='paused'?'warn':'quiet'):draft?'warn':'ok',status,
+      slug:f.slug||('/f/'+f.id+' · نمونه'),expert:f.expert||'خودم',dept:f.dept||'edu',
+      made:true,isDraft:draft,serverDraft:f.serverDraft===true,serverManaged,seen:0,started:0,resp:responseCount,response_count:serverManaged?responseCount:null,paid:0,money:0,
+      start:f.start||'',ends:f.ends||'',cap:f.cap||0,wait:f.wait||0,per:f.maxPer||1,skin:'blue',
+      head:f.name||'',intro:f.intro||'',introMedia:f.introMedia||'',introMediaNote:f.introMediaNote||'',
+      fin:f.fin||[],groups:f.groups||[],guestsOn:!!f.guestsOn,guestsMax:f.maxPer||1,compFields:f.compFields||'name-mobile',guests:[],
+      gw:[],parts:[],coupon:(f.coupon&&f.coupon.code)||'—',endText:f.endText||'',links:(f.links||[]).map(x=>x&&x.t||'').filter(Boolean),
+      event:!draft&&f.ev?{id:f.ev,nested:true,sync:Object.assign({cap:true,dates:true,limit:true},f.sync||{}),restrict:limit}:null,
+      eventVisible:!draft&&f.eventVisible!==false,display:f.need==='reg'?'one':f.display==='all'?'all':'one',dir:f.dir==='ltr'?'ltr':'rtl',
+      after:['edit','view','cancel'].includes(f.after)?f.after:'edit',limit:limit,inviteCodeCount:String(f.inviteCodes||'').split(/[\n,;|]/).filter(x=>x.trim()).length,
+      onePerPerson:f.onePerPerson!=null?!!f.onePerPerson:!(f.sync&&f.sync.once===false),
+      sync:Object.assign({cap:true,dates:true,limit:true},f.sync||{}),notify:{on:false,to:(f.notify&&f.notify.to)||'کارتابل کارشناس'},
+      rawFields:fieldDefs,fields:fieldRows,changes:[],answers:[],responses:answers,need:f.need||'',flags:[],certOn:false,certHours:'',certIssued:{},certReq:{}
+    };
+  });
+}
+function syncLocalResponses(){
+  if(!TEST_FIXTURE_MODE) return;
+  const U=window.NORA_UI||{};let regs=[];try{regs=U.regsAll?U.regsAll():[]}catch(e){}
+  for(let i=PEOPLE.length-1;i>=0;i--)if(PEOPLE[i]&&PEOPLE[i]._localPreview)PEOPLE.splice(i,1);
+  regs.filter(r=>r&&r.form&&r.code&&r.demo===true).forEach(r=>{
+    const ans=Array.isArray(r.ans)?r.ans:[], object={};
+    ans.forEach(a=>{if(a&&a.l&&a.v!=null)object[a.l]=String(a.v)});
+    const get=re=>{const a=ans.find(x=>re.test(String(x.l||'')));return a?String(a.v||''):''};
+    PEOPLE.push({id:'local:'+String(r.code),form:String(r.form),name:get(/^نام/)||'پاسخ‌دهندهٔ نمونه',mobile:get(/موبایل|تلفن/),
+      code:String(r.code),state:'sample',at:r.atFa||'',sum:0,piece:0,count:+r.count||1,coupon:0,gw:'محلی · پرداخت وصل نیست',
+      city:get(/شهر|استان/),uni:'—',job:'—',edu:'—',exp:'—',birth:'—',note:'',skip:[],receipt:'',guests:Array.isArray(r.guests)?r.guests:[],
+      ans:object,answerRows:ans,source:'local-preview',_localPreview:true,notificationStatus:'not-sent',paymentStatus:'not-connected'});
+  });
+}
+
+try{syncLocalResponses();const made=storeForms();if(made.length)FORMS.unshift.apply(FORMS,made)}catch(e){}
+
+const STATE_TAG={paid:['warn','نمونه · بانکی تأیید نشده'],pending:['warn','صف محلی · بررسی‌نشده'],void:['','لغو نمونه'],half:['','ناتمام · نمونه'],sample:['warn','پاسخ محلی · بررسی‌نشده'], 'server-accepted':['ok','ثبت‌شده در سرور'],'server-waitlisted':['warn','در انتظار ظرفیت']};
+let CUR=FORMS[0]||null, CURP=null, FILTER='all';
+const isDraftForm=form=>!!(form&&(form.serverDraft===true||form.isDraft===true||form.status==='draft'));
+
+/* ── حساب و کتاب ─────────────────────────────────────────────── */
+const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
+function pay(p){const f=FORMS.find(x=>x.id===p.form); const o=(f.fin&&f.fin[p.piece])||{l:'—',p:0,off:0};
+  const per=net(o), sub=per*p.count, dis=p.coupon?Math.round(sub*p.coupon/100):0;
+  return {per,sub,dis,sum:sub-dis};}
+const pendings=()=>PEOPLE.filter(p=>p.state==='pending');
+
+/* ── رویدادها: فرم زیر صفحهٔ رویداد می‌نشیند؛ ظرفیت/تاریخ/محدودیت با آن همگام می‌شود ── */
+const EVENTS=TEST_FIXTURE_MODE?[
+ {id:'ev1',n:'کارگاه فن بیان مقدماتی',at:'۱۴۰۵/۰۷/۰۸',v:'سالن حضوری نمونه',slug:'نمونه · /events/fanbayan'},
+ {id:'ev2',n:'گردهمایی ماهانهٔ نمونه',at:'۱۴۰۵/۰۷/۲۰',v:'سالن نمونه',slug:'نمونه · /events/kheyreen'},
+ {id:'ev3',n:'اردوی پاییزهٔ نوجوانان',at:'۱۴۰۵/۰۸/۱۲',v:'لواسان',slug:'نمونه · /events/ordoo'}]:[];
+const RESTRICT={free:'آزاد برای همه',event:'فقط ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'};
+
+/* ── گشت ─────────────────────────────────────────────────────── */
+function go(id){
+  if(id==='fPanel'&&!CUR) renderPanel();
+  if(id==='fMoney'&&!FINANCE_OWNER){toast('جزئیات و تنظیمات مالی فقط برای مالک است');return}
+  if(TEST_FIXTURE_MODE&&(id==='fMine'||id==='fKartabl')&&!RECEIPT_REVIEWER){toast('برای بازبینی فیش به دسترسی سرپرست یا مالک نیاز دارید');return}
+  if(id==='fMoney') renderMoney();
+  if(id==='fMine') renderMine();
+  if(id==='fKartabl') renderKartabl();
+  if(id==='fAttend') renderAttend();
+  if(id==='fReports') renderFormReports();
+  if(id==='fSettings') renderFormSettings();
+  if(id==='fTeam') renderTeam();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+  document.querySelectorAll('.rail [data-go]').forEach(b=>b.classList.toggle('tint',b.dataset.go===id));
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function renderList(){
+  const q=(document.getElementById('q').value||'').trim();
+  const list=FORMS.filter(f=>(FILTER==='all'||f.tone===FILTER||(FILTER==='exam'&&f.kind==='آزمون')||(FINANCE_OWNER&&FILTER==='money'&&f.fin.length))
+      &&(!q||f.name.includes(q)||f.slug.includes(q)));
+  const emptyList=TEST_FIXTURE_MODE?'فرمی با این نشانه پیدا نشد':SERVER_FORMS_LOADED?'هنوز فرمی در فهرست سرور نیست.':'هنوز فهرست سروری دریافت نشده؛ «گرفتن فرم‌های سرور» را بزنید.';
+  document.getElementById('formCards').innerHTML=list.map(f=>{
+    const server=!!f.serverManaged,count=server?formResponseCount(f):null;
+    return `<div class="card paper fcard sheen" data-form="${esc(f.id)}">
+      <div class="row">
+        <span class="glass-thin" style="width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto">
+          <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':'users'}"/></svg></span>
+        <div style="min-width:0">
+          <div class="head tight">${f.name}</div>
+          <div class="cap">${esc(f.kind)} · <b>بخش ${esc(DEPT_OF(f).n)}</b> · کارشناس ${esc(f.expert)} · ${server?esc(serverStatusLabel(f.status)):'نمونهٔ مرورگر · بدون انتشار سروری'}</div>
+        </div>
+        <span class="tag ${server?'brand':'warn'}">${server?'API سرور':'نمونهٔ محلی'}</span>
+        <span class="sp"></span>
+        ${RECEIPT_REVIEWER&&pendings().filter(p=>p.form===f.id).length?`<span class="tag warn">${faN(pendings().filter(p=>p.form===f.id).length)} رسید در انتظار</span>`:''}
+        ${RECEIPT_REVIEWER&&f.appr&&f.appr.on&&PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length?`<span class="tag stop">${faN(PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length)} منتظر تأیید</span>`:''}
+        <span class="tag ${server?f.tone:'warn'}"><span class="dot"></span> ${server?esc(serverStatusLabel(f.status)):'نمونهٔ محلی'}</span>
+      </div>
+      <div class="metrics" style="grid-template-columns:repeat(${FINANCE_OWNER?3:2},minmax(0,1fr));margin-top:12px">
+        <div class="metric"><div class="n">${server?faN(count||0):'—'}</div><div class="l">${server?'پاسخ سروری · API':'پاسخ نمونه · جدا از گزارش'}</div></div>
+        ${FINANCE_OWNER?'<div class="metric"><div class="n">—</div><div class="l">درآمد واقعی وصل نیست</div><div class="mini">مرجع: تنظیمات مالی مرکزی</div></div>':''}
+        <div class="metric"><div class="n">—</div><div class="l">${server?'بازدید و قیف در API موجود نیست':'تحلیل نمونه نمایش داده نمی‌شود'}</div></div>
+      </div>
+    </div>`}).join('')||`<div class="empty"><svg class="i xl"><use href="#i-search"/></svg><div class="body">${emptyList}</div></div>`;
+}
+const displayStatus=value=>String(value||'').replace(/\s*[·•]\s*نمونه\s*$/,'').trim();
+const serverStatusLabel=value=>({draft:'پیش‌نویس سرور · منتشر نشده',published:'منتشرشده در سرور',paused:'متوقف در سرور',archived:'بایگانی‌شده در سرور'})[String(value||'')]||'وضعیت سرور نامشخص';
+const displaySlug=value=>String(value||'').replace(/^نمونه\s*[·•]\s*/,'').replace(/\s*[·•]\s*نمونه\s*$/,'').trim();
+const publicFormHref=form=>'form.html?fid='+encodeURIComponent(String(form&&form.id||''))+'&kind='+encodeURIComponent(String(form&&form.need||'reg'));
+const formResponseCount=form=>{
+  if(!form||form.serverManaged!==true)return null;
+  const cached=SERVER_RESPONSE_CACHE.get(String(form.id));
+  if(cached&&cached.state==='loaded')return Math.max(0,Number(cached.total)||0);
+  const value=form.response_count??form.resp;
+  return Number.isFinite(Number(value))?Math.max(0,Number(value)):null;
+};
+function renderFormReports(){
+  const serverForms=FORMS.filter(form=>form&&form.serverManaged===true);
+  const samples=FORMS.filter(form=>!form||form.serverManaged!==true);
+  const open=serverForms.filter(form=>form.status==='published').length;
+  const knownCounts=serverForms.map(formResponseCount).filter(value=>value!==null);
+  const answers=knownCounts.reduce((sum,value)=>sum+value,0);
+  document.getElementById('formReportSummary').innerHTML=`
+    <div class="metric"><div class="n">${faN(serverForms.length)}</div><div class="l">فرم از API</div></div>
+    <div class="metric brand"><div class="n">${faN(open)}</div><div class="l">منتشرشده در سرور</div></div>
+    <div class="metric"><div class="n">${knownCounts.length===serverForms.length?faN(answers):'—'}</div><div class="l">پاسخ سروری · شمارش API</div></div>`;
+  document.getElementById('formReportCount').textContent=faN(serverForms.length)+' سرور · '+faN(samples.length)+' نمونهٔ محلی';
+  const row=(form,isServer)=>`<div class="admlirow">
+      <span class="ic"><svg class="i"><use href="#i-${form.kind==='آزمون'?'chart':'doc'}"/></svg></span>
+      <span class="sp"><b>${esc(form.name)}</b><small class="cap">${esc(form.kind||'فرم')} · ${isServer?esc(serverStatusLabel(form.status))+' · '+faN(formResponseCount(form)??0)+' پاسخ از API':'نمونهٔ مرورگر · در آمار واقعی محاسبه نمی‌شود'}</small></span>
+      <button class="btn sm quiet" data-form="${esc(form.id)}">${isServer?'پاسخ‌های سرور':'جزئیات نمونه'}</button>
+    </div>`;
+  document.getElementById('formReportList').innerHTML=`
+    <div class="cap" style="padding:8px 2px">فهرست سروری · فقط شمار پاسخ برگشتی از API</div>
+    ${serverForms.map(form=>row(form,true)).join('')||'<div class="empty"><div class="body">هنوز داده‌ای از API دریافت نشده؛ از صفحهٔ فرم‌ها «گرفتن فرم‌های سرور» را بزنید.</div></div>'}
+    ${samples.length?`<div class="cap" style="padding:12px 2px 8px">نمونه‌های محلی · جدا از آمار سرور</div>${samples.map(form=>row(form,false)).join('')}`:''}`;
+}
+function renderFormSettings(){
+  document.getElementById('formSettingsCount').textContent=faN(FORMS.length)+' فرم';
+  document.getElementById('formSettingsList').innerHTML=FORMS.map(f=>`
+    <div class="admlirow">
+      <span class="ic"><svg class="i"><use href="#i-sliders"/></svg></span>
+      <span class="sp"><b>${esc(f.name)}</b><small class="cap">${esc(f.kind||'فرم')} · ${esc(displayStatus(f.status)||'در دسترس')}</small></span>
+      <button class="btn sm quiet" data-form-settings="${esc(f.id)}">تنظیمات</button>
+    </div>`).join('')||'<div class="empty"><div class="body">هنوز فرمی نیست</div></div>';
+  const financeLink=document.getElementById('coreFinanceLink');
+  if(financeLink) financeLink.hidden=!FINANCE_OWNER;
+}
+function openFormSettings(id){
+  const form=FORMS.find(f=>String(f.id)===String(id)); if(!form) return;
+  if(form.serverManaged===true){location.href='create.html?fid='+encodeURIComponent(form.id);return}
+  CUR=form; renderPanel(); go('fPanel'); fillSettings(); openSheet('shSettings');
+}
+function openForm(id){CUR=FORMS.find(f=>f.id===id)||FORMS[0]||null; if(!CUR){go('fList');return} renderPanel(); go('fPanel');}
+function tab(name){
+  document.querySelectorAll('#pSeg button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  document.querySelectorAll('.ptab').forEach(s=>s.classList.toggle('on',s.id==='tab'+name[0].toUpperCase()+name.slice(1)));
+}
+function renderPanel(){
+  if(!CUR){
+    document.getElementById('pName').textContent='جزئیات فرم';
+    document.getElementById('pSub').textContent='برای دسترسی به جزئیات، فهرست سرور را دریافت کنید.';
+    document.getElementById('pStatus').textContent='داده‌ای دریافت نشده';
+    document.getElementById('pLink').textContent='—';
+    ['statsBox','infoBox','changesBox','answersBox'].forEach(id=>{
+      const box=document.getElementById(id);if(box)box.innerHTML='<div class="empty"><div class="body">هیچ دادهٔ نمونه‌ای نمایش داده نمی‌شود.</div></div>';
+    });
+    return;
+  }
+  tab('stats');
+  const draft=isDraftForm(CUR), serverDraft=CUR.serverDraft===true;
+  document.getElementById('pName').textContent=CUR.name;
+  document.getElementById('pSub').textContent=CUR.kind+' · '+CUR.expert+' · تا '+CUR.ends;
+  const st=document.getElementById('pStatus'); st.className='tag '+CUR.tone;
+  st.innerHTML='<span class="dot"></span> '+esc(CUR.serverManaged===true?serverStatusLabel(CUR.status):displayStatus(CUR.status));
+  const link=document.getElementById('pLink'),publicAvailable=CUR.serverManaged===true&&CUR.status==='published';
+  link.textContent=publicAvailable?publicFormHref(CUR):CUR.serverManaged===true
+    ?'پیوند عمومی غیرفعال · '+serverStatusLabel(CUR.status)
+    :'نمونهٔ محلی · پیوند عمومی ندارد';
+  link.title=publicAvailable?'پیوند فرم منتشرشده از API همین سامانه':'نمونه یا پیش‌نویس؛ نشانی عمومی فعال نیست';
+  document.querySelectorAll('[data-copy="#pLink"]').forEach(button=>{
+    button.disabled=!publicAvailable; button.setAttribute('aria-disabled',publicAvailable?'false':'true');
+    button.title=publicAvailable?'کپی پیوند عمومی فرم سرور':'پیوند عمومی فعال نیست';
+  });
+  const id=encodeURIComponent(CUR.id||''), need=encodeURIComponent(CUR.need||'reg');
+  const editLink=document.getElementById('editFormLink'), previewLink=document.getElementById('previewFormLink');
+  if(editLink) editLink.href=CUR.made?'create.html?fid='+id:'create.html';
+  if(previewLink){previewLink.href=CUR.made?'form.html?fid='+id+'&kind='+need+'&preview=1':'form.html';
+    previewLink.textContent='پیش‌نمایش محلی';}
+  const settingsButton=document.getElementById('openSettings');
+  if(settingsButton&&serverDraft) settingsButton.innerHTML='<svg class="i"><use href="#i-pen"/></svg> ویرایش و ذخیرهٔ پیش‌نویس';
+  else if(settingsButton) settingsButton.innerHTML='<svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم';
+  renderStats(); renderInfo(); renderChanges(); renderAnswers();
+}
+/* ── آمار ─────────────────────────────────────────────────────── */
+function renderStats(){
+  const form=CUR,box=document.getElementById('statsBox');if(!form||!box)return;
+  if(form.serverManaged===true){
+    const count=formResponseCount(form);
+    box.innerHTML=`<div class="metrics">
+      <div class="metric brand"><div class="n">${count===null?'—':faN(count)}</div><div class="l">پاسخ ثبت‌شده در API</div></div>
+      <div class="metric"><div class="n">—</div><div class="l">بازدید و قیف در API موجود نیست</div></div>
+      ${FINANCE_OWNER?'<div class="metric"><div class="n">—</div><div class="l">درآمد واقعی از این endpoint ارائه نمی‌شود</div></div>':''}
+    </div>
+    <div class="card paper" style="margin-top:12px">
+      <div class="row"><b>منبع آمار</b><span class="sp"></span><span class="tag brand">FastAPI همین سامانه</span></div>
+      <p class="sub" style="margin-top:8px">شمار پاسخ از فهرست سروری یا endpoint صفحه‌بندی‌شده می‌آید. بازدید، شروع/ریزش و تحلیل هر پرسش در API موجود نیست؛ بنابراین عدد نمونه یا نمودار ساختگی جای آن نشان داده نمی‌شود.</p>
+      <button class="btn sm primary" type="button" data-open-tab="answers">پاسخ‌های ثبت‌شده</button>
+    </div>
+    <div class="card sunk" style="margin-top:12px"><span class="cap">خروجی فایل و تحلیل تخصصی هنوز پشتیبانی نمی‌شوند.</span></div>`;
+    return;
+  }
+  box.innerHTML=`<div class="card sunk" role="note">
+    <div class="row"><span class="tag warn">نمونهٔ محلی · خارج از گزارش واقعی</span><span class="sp"></span><span class="cap">بدون منبع API</span></div>
+    <p class="sub" style="margin-top:8px">این فرم یا داده‌هایش در مرورگر نگه‌داری می‌شوند و انتشار سروری ندارد. برای جلوگیری از آمیختن آمار ساختگی با دادهٔ پاسخ‌دهندگان، شمار نمونه، قیف، تحلیل هر پرسش و فایل خروجی در گزارش نمایش داده نمی‌شود.</p>
+    <button class="btn sm quiet" type="button" data-go="fList">بازگشت به فهرست فرم‌ها</button>
+  </div>`;
+}
+/* ── اطلاعات ──────────────────────────────────────────────────── */
+const eventSyncOf=value=>Object.assign({cap:true,dates:true,limit:true},value&&value.sync||{});
+function renderInfo(){
+  const f=CUR, draft=isDraftForm(CUR), certCounts=builderCertCounts(f);
+  const formSync=Object.assign({cap:true,dates:true,limit:true},f.sync||{});
+  const eventSync=eventSyncOf(f.event);
+  if(f.serverManaged===true){
+    const status={draft:'پیش‌نویس سرور',published:'منتشرشده',paused:'متوقف',archived:'بایگانی‌شده'}[f.status]||String(f.status||'نامشخص');
+    const fields=Array.isArray(f.rawFields)?f.rawFields:[];
+    const links=Array.isArray(f.links)?f.links:[];
+    const schedule=String(f.start||'').trim()||String(f.ends||'').trim()
+      ?'تنظیم شده · تا پشتیبانی زمان‌بندی، انتشار مسدود است':'تنظیم نشده';
+    document.getElementById('infoBox').innerHTML=`<div class="split">
+      <div class="stack">
+        <div class="card paper"><div class="row"><b>شناسنامهٔ سروری</b><span class="sp"></span><span class="tag brand">API همین سامانه</span></div>
+          <div class="answer"><span class="k">نام و مدل</span><span class="v">${esc(f.name)} · ${esc(f.kind)}</span></div>
+          <div class="answer"><span class="k">وضعیت</span><span class="v">${esc(status)} · نسخهٔ ${faN(f.version||1)}</span></div>
+          <div class="answer"><span class="k">پیوند عمومی</span><span class="v num">${f.status==='published'?esc(publicFormHref(f)):'غیرفعال تا انتشار مالک'}</span></div>
+          <div class="answer"><span class="k">پاسخ‌های سرور</span><span class="v">${faN(formResponseCount(f)??0)} · شمارش endpoint</span></div>
+          <div class="answer"><span class="k">ظرفیت اصلی / صف</span><span class="v">${faN(f.cap||0)} / ${faN(f.wait||0)}</span></div>
+          <div class="answer"><span class="k">بازهٔ زمانی</span><span class="v">${esc(schedule)}</span></div>
+          <div class="answer"><span class="k">محدودیت هویتی</span><span class="v">${f.limit&&f.limit!=='none'?'نیازمند اصلاح؛ احراز سروری موجود نیست':'بدون محدودیت هویتی'}</span></div>
+          <p class="mnote">پیش‌نمایش فرم بی‌اثر است. انتشار/توقف فقط با مجوز مالک انجام می‌شود؛ تنظیم یا تغییر این نسخه از create.html و اعتبارسنجی سرور می‌گذرد.</p>
+          <a class="btn sm quiet" href="create.html?fid=${encodeURIComponent(f.id)}">بازکردن فرم‌ساز سروری</a>
+        </div>
+        <div class="card paper"><div class="row"><b>پرسش‌های ذخیره‌شده</b><span class="sp"></span><span class="tag">${faN(fields.length)} پرسش</span></div>
+          ${fields.map(field=>`<div class="answer"><span class="k">${esc(field&&field.l||'پرسش')}</span><span class="v">${esc(field&&field.t||'text')}${field&&field.req?' · اجباری':''}${field&&field.verify?' · تأیید هویت پشتیبانی نمی‌شود':''}${Array.isArray(field&&field.conditions)&&field.conditions.length?' · '+faN(field.conditions.length)+' شرط سروری':''}${field&&field.media&&field.media!=='none'?' · رسانهٔ غیرقابل‌انتشار':''}</span></div>`).join('')||'<p class="cap">پرسشی ثبت نشده.</p>'}
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card paper"><div class="row"><b>تنظیمات قابل‌مشاهده</b><span class="sp"></span><span class="tag warn">اعتبارسنجی نهایی با backend</span></div>
+          <div class="answer"><span class="k">نمایش و جهت</span><span class="v">${f.display==='all'?'همه در یک صفحه':'هر مرحله یک پرسش'} · ${f.dir==='ltr'?'چپ‌به‌راست':'راست‌به‌چپ'}</span></div>
+          <div class="answer"><span class="k">همراهان</span><span class="v">${f.guestsOn?'روشن · سقف '+faN(f.guestsMax||f.maxPer||1)+' · '+esc(f.compFields||''):'خاموش'}</span></div>
+          <div class="answer"><span class="k">کد تخفیف/پرداخت</span><span class="v">${f.enabledPaymentMethods&&f.enabledPaymentMethods.length?esc(f.enabledPaymentMethods.join('، ')):'روش پرداختی در این فرم فعال نشده'}</span></div>
+          ${FINANCE_OWNER?`<div class="answer"><span class="k">مورد مالی</span><span class="v">${faN(Array.isArray(f.fin)?f.fin.length:0)} مورد · جزییات فقط در فرم‌ساز مالک</span></div>`:''}
+          <div class="answer"><span class="k">اعلان بیرونی / فایل</span><span class="v">غیرفعال</span></div>
+          <div class="answer"><span class="k">متن پایانی</span><span class="v">${esc(f.endText||'—')}</span></div>
+          ${links.map(link=>`<div class="answer"><span class="k">پیوند پایانی</span><span class="v">${esc(typeof link==='string'?link:link&&link.t||'')}</span></div>`).join('')}
+        </div>
+        <div class="card sunk"><span class="cap">آمار بازدید، تحلیل هر پرسش و خروجی فایل در API این پنل وجود ندارد؛ نمونه‌ها در گزارش واقعی وارد نمی‌شوند.</span></div>
+      </div>
+    </div>`;
+    return;
+  }
+  document.getElementById('infoBox').innerHTML=`
+  <div class="split">
+    <div class="stack">
+      ${f.event?`<div class="card paper">
+        <div class="row" style="margin-bottom:10px"><span class="fw">رویداد</span><span class="sp"></span>
+          ${f.event.nested?'<span class="tag brand">فرم زیر صفحهٔ رویداد</span>':''}
+          <button class="btn sm quiet" data-copy="${(EVENTS.find(e=>e.id===f.event.id)||{}).slug||''}">
+            <svg class="i"><use href="#i-link"/></svg> صفحهٔ رویداد</button>
+          <button class="btn sm quiet" data-evdetach="1"><svg class="i"><use href="#i-close"/></svg> جدا کردن</button>
+        </div>
+        <div class="answer"><span class="k">رویداد</span><span class="v">${(EVENTS.find(e=>e.id===f.event.id)||{}).n||'—'}</span></div>
+        <div class="answer"><span class="k">تاریخ و جا</span><span class="v num">${(EVENTS.find(e=>e.id===f.event.id)||{}).at||'—'} · ${(EVENTS.find(e=>e.id===f.event.id)||{}).v||'—'}</span></div>
+        <div class="answer"><span class="k">پیوند</span><span class="v num" style="direction:ltr">${(EVENTS.find(e=>e.id===f.event.id)||{}).slug||'—'}</span></div>
+        <div class="answer"><span class="k">چه کسی می‌تواند پر کند</span><span class="v">${RESTRICT[f.event.restrict]||RESTRICT.free}</span></div>
+        <div class="row tight" style="margin-top:10px">
+          <span class="tag ${eventSync.cap?'ok':'quiet'}">${eventSync.cap?'ظرفیت همگام':'ظرفیت دستی'}</span>
+          <span class="tag ${eventSync.dates?'ok':'quiet'}">${eventSync.dates?'تاریخ‌ها همگام':'تاریخ‌ها دستی'}</span>
+          <span class="tag ${eventSync.limit?'ok':'quiet'}">${eventSync.limit?'محدودیت همگام':'محدودیت دستی'}</span>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-change="event"><svg class="i"><use href="#i-pen"/></svg> تنظیم اتصال</button>
+        </div>
+        <p class="mnote" style="margin-top:8px">فرم زیر همین رویداد منتشر می‌شود؛ ظرفیت و بازهٔ ثبت‌نام از رویداد خوانده می‌شود و هر تغییر اینجا در سابقهٔ فرم می‌ماند.</p>
+      </div>`:`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">رویداد</span><span class="sp"></span>
+          <span class="tag quiet">وصل نیست</span></div>
+        <p class="sub">${draft?'این فرم هنوز پیش‌نویس است؛ پیوند عمومی یا ثبت‌نام در کارت رویداد ندارد.':'این فرم رویداد ندارد؛ خودش تنها منتشر می‌شود. اگر زیر یک رویداد برود، ظرفیت و تاریخ‌ها از آن خوانده می‌شود.'}</p>
+        <button class="btn sm" style="margin-top:10px" data-change="event">
+          <svg class="i"><use href="#i-link"/></svg> اتصال به رویداد</button>
+      </div>`}
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:6px">شناسنامهٔ فرم</div>
+        <div class="answer"><span class="k">نوع فرم</span><span class="v">${f.kind}</span></div>
+        <div class="answer"><span class="k">بخش</span><span class="v">${DEPT_OF(f).n}</span></div>
+        <div class="answer"><span class="k">کارشناس بخش</span><span class="v">${DEPT_OF(f).expert}</span></div>
+        <div class="answer"><span class="k">پیوند</span><span class="v num" style="direction:ltr">${f.slug}</span></div>
+        <div class="answer"><span class="k">کارشناس مسئول</span><span class="v">${f.expert}</span></div>
+        <div class="answer"><span class="k">سربرگ</span><span class="v">${f.head}</span></div>
+        <div class="answer"><span class="k">توضیحات ابتدا</span><span class="v">${f.intro}</span></div>
+        <div class="answer"><span class="k">بازهٔ ثبت‌نام</span><span class="v num">${f.start} تا ${f.ends}</span></div>
+        <div class="answer"><span class="k">ظرفیت</span><span class="v">${f.cap?fa(f.cap)+' نفر'+(f.wait?' + لیست انتظار':''):'بی‌کران'}</span></div>
+        <div class="answer"><span class="k">هر نفر</span><span class="v">تا ${faN(f.per)} نفر</span></div>
+        ${FINANCE_OWNER?`<div class="answer"><span class="k">کد تخفیف</span><span class="v">${f.coupon}${f.made?' · از انبار فرم':' · نمونهٔ محلی'}</span></div>`:''}
+        <div class="answer"><span class="k">وضعیت</span><span class="v">${displayStatus(f.status)}</span></div>
+        ${f.flags.includes('cert')?`<div class="answer"><span class="k">گواهینامه</span><span class="v">
+          پیش‌نمایش و تأیید نهایی فقط با مالک
+          <span class="cap">${faN(certCounts.issued)} در رجیستری محلی · ${faN(certCounts.pending)} منتظر مالک · ارسال واقعی وصل نیست</span></span></div>`:''}
+      </div>
+      <div class="card paper">
+        <div class="row" style="margin-bottom:6px"><span class="fw">تنظیمات پاسخ‌دهنده و پرسش‌ها</span><span class="sp"></span><span class="tag warn">${f.serverDraft?'تعریف ذخیره‌شده · پاسخ‌گیری سروری وصل نیست':'محلی · پاسخ‌گیری سروری وصل نیست'}</span></div>
+        <div class="answer"><span class="k">چیدمان و جهت</span><span class="v">${f.display==='all'?'همهٔ پرسش‌ها در یک صفحه':'یک پرسش در هر مرحله'} · ${f.dir==='ltr'?'چپ‌به‌راست':'راست‌به‌چپ'}</span></div>
+        <div class="answer"><span class="k">پس از ثبت نمونه</span><span class="v">${({edit:'امکان ویرایش محلی',view:'فقط مشاهدهٔ محلی',cancel:'پایان پیش‌نمایش'})[f.after]||'امکان ویرایش محلی'}</span></div>
+        <div class="answer"><span class="k">نمایش در کارت رویداد</span><span class="v">${f.eventVisible?'روشن':'خاموش · فرم عمومی از کارت پنهان است'}</span></div>
+        <div class="answer"><span class="k">محدودیت</span><span class="v">${({free:'بدون محدودیت',event:'شرکت‌کنندهٔ رویداد',attended:'حضور در جلسه',invite:'فهرست/کد دعوت'})[f.limit]||'بدون محدودیت'} · احراز رویداد یا حضور وصل نیست${f.limit==='invite'?' · '+faN(f.inviteCodeCount)+' کد نمونه، فقط محلی':''}</span></div>
+        <div class="answer"><span class="k">یک پاسخ برای هر نفر</span><span class="v">${f.onePerPerson?'روشن · تکرار محلی، در صورت وجود شناسه بررسی می‌شود':'خاموش'} · کنترل امن سروری وجود ندارد</span></div>
+        <div class="answer"><span class="k">تنظیم همگام‌سازی</span><span class="v">ظرفیت ${formSync.cap?'روشن':'خاموش'} · تاریخ ${formSync.dates?'روشن':'خاموش'} · محدودیت ${formSync.limit?'روشن':'خاموش'} · فقط تنظیم ذخیره/پیش‌نمایش است؛ اجرای همگام‌سازی رویداد فعال نیست</span></div>
+        <div class="answer"><span class="k">همراهان</span><span class="v">${f.guestsOn?'روشن · سقف '+faN(f.guestsMax)+' نفر · '+esc(f.compFields):'خاموش'}</span></div>
+        <div class="answer"><span class="k">اعلان پاسخ</span><span class="v">خاموش · مسیر انتخابی ${esc((f.notify&&f.notify.to)||'کارتابل کارشناس')}؛ هیچ پیامی ارسال نمی‌شود</span></div>
+        ${f.introMedia?`<div class="answer"><span class="k">رسانهٔ آغازین</span><span class="v">${esc(f.introMedia)}${f.introMediaNote?' · '+esc(f.introMediaNote):''} · فایل بارگذاری نشده</span></div>`:''}
+        ${(f.rawFields||[]).map(q=>`<div class="answer"><span class="k">${esc(q.l||q.n||'پرسش')}</span><span class="v">${esc(q.t||'text')}${q.req?' · اجباری':''}${q.prof?' · نمایهٔ محلی':''}${q.verify?' · اعتبارسنجی واقعی وصل نیست':''}${(Array.isArray(q.conditions)&&q.conditions.length)||q.condField?' · شرطی'+(Array.isArray(q.conditions)&&q.conditions.length>1?' · '+faN(q.conditions.length)+' قاعده':''):''}${q.col===false?' · خارج از خروجی اکسل':''}${q.scoreOn?' · امتیازدهی':''}${q.media&&q.media!=='none'?' · رسانهٔ نمایشی':''}</span></div>`).join('')}
+        <p class="mnote" style="margin-top:8px">${f.serverDraft?'تعریف پیش‌نویس روی سرور ذخیره است؛ پاسخ، ظرفیت مصرف‌شده، حضور و همگام‌سازی رویداد سروری پیاده نشده‌اند.':'ظرفیت، تاریخ، حضور، کد دعوت و اعلان‌های این گزارش دادهٔ مرورگرند.'} پرداخت یا ارسال واقعی ساخته نمی‌شود.</p>
+      </div>
+      <div class="card paper">
+        <div class="row" style="margin-bottom:6px"><span class="fw">متن پایانی و پیوندها</span><span class="sp"></span>
+          <button class="btn sm quiet" data-change="endtext"><svg class="i"><use href="#i-pen"/></svg> ویرایش</button></div>
+        <p class="sub">${f.endText}</p>
+        <div class="stack tight" style="margin-top:10px">
+          ${f.links.map(l=>`<div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">${l}
+            <span class="sp"></span><span class="tag brand">دکمه در فرم</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="stack">
+      ${FINANCE_OWNER?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">قیمت و روش پرداخت</span><span class="sp"></span>
+          <span class="tag brand">فقط مالک</span></div>
+        ${f.fin.length?f.fin.map(o=>`<div class="moneyline"><span><b>${esc(o.l)}</b>${o.d?`<div class="mini">${esc(o.d)}</div>`:''}</span><span class="num">
+            ${o.off?`<span class="price"><span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)}</span><span class="now num">${fa(net(o))}</span><span class="cap">ریال</span></span>`:fa(o.p)+' ریال'}</span></div>`).join('')
+          +`<div class="moneyline t"><span>هر نفر</span><span>${rialTxt(f.fin.reduce((a,o)=>a+net(o),0))}</span></div>`
+          :'<div class="empty" style="padding:14px"><div class="body">برای این فرم قیمت ثبت نشده</div></div>'}
+        <div class="row tight" style="margin-top:10px">${(f.gw||[]).length?f.gw.map(g=>`<span class="chip on">${esc(g)}</span>`).join(''):'<span class="cap">روش پرداختی برای این فرم ثبت نشده</span>'}</div>
+        <p class="mnote" style="margin-top:8px">${f.made?'این قیمت‌ها از انبار مشترک فرم‌ها خوانده شده‌اند؛ اتصال بانکی و دریافت وجه در این نسخه فعال نیست.':'این فرم نمایشی است؛ قیمت‌ها و پاسخ‌هایش دادهٔ محلی‌اند، نه درآمد واقعی.'}</p>
+        <div class="row tight" style="margin-top:10px">
+          <a class="btn sm quiet" href="admin.html#money">تنظیمات مرکزی مالی</a>
+          ${f.made?`<a class="btn sm" href="create.html?fid=${encodeURIComponent(f.id)}">ویرایش مالی همین فرم در فرم‌ساز</a>`:''}
+        </div>
+      </div>`:`<div class="card sunk"><div class="row"><svg class="i"><use href="#i-lock"/></svg><span class="sub">قیمت‌ها، تخفیف و روش پرداخت فقط برای مالک نمایش داده می‌شوند.</span></div></div>`}
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:8px">حلقهٔ کار</div>
+        <div class="timeline">
+          <div class="t past"><span class="dot2"></span><span>${draft?'پیش‌نویس ذخیره شد':'ساخته شد'} · ${f.kind}، کارشناس ${f.expert}</span></div>
+          ${draft?`<div class="t"><span class="dot2"></span><span>منتشر نشده · پیوند عمومی و ثبت‌نام فعال نیست</span></div>
+          <div class="t future"><span class="dot2"></span><span>ابزار انتشار و دریافت پاسخ سروری در این نسخه پیاده نشده است</span></div>`:`<div class="t past"><span class="dot2"></span><span>منتشر شد · پیوند روی صفحهٔ ${f.kind==='رویداد'?'رویداد':'فرم'} نمایش داده شد</span></div>
+          <div class="t"><span class="dot2"></span><span>در حال ثبت‌نام · ${fa(f.resp)} پاسخ از ${fa(f.seen)} بازدید</span></div>
+          <div class="t future"><span class="dot2"></span><span>پایان ${f.ends} · بستن خودکار و قطعی‌شدن ثبت‌نام</span></div>`}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+/* ── تغییرات ──────────────────────────────────────────────────── */
+const GROUPS=[
+ {t:'چیدمان و پرسش‌ها',rows:[
+   ['addfield','i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],
+   ['text','i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید']]},
+ {t:'مهلت و ظرفیت',rows:[
+   ['dates','i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],
+   ['cap','i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
+   ['per','i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],
+   ['per','i-users','همراه‌آوردن','باز یا بسته · پیش‌فرض بسته']]},
+ {t:'مالی و کارمزد',rows:[]},
+ {t:'گواهینامه و پایان',rows:[
+   ['endtext','i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه']]},
+ {t:'برخورد با پاسخ‌دهنده‌ها',rows:[
+   ['msg','i-send','پیام گروهی','بی‌اسکای و پیامک'],
+   ['excel','i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
+   'kartabl',
+   ['expert','i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری']]},
+ {t:'کارهای ویژهٔ همین فرم',rows:[]}
+];
+function renderChanges(){
+  const f=CUR;
+  if(f&&f.serverManaged===true){
+    document.getElementById('changesBox').innerHTML=`<div class="card sunk" role="note">
+      <div class="row"><span class="tag brand">نسخهٔ سرور</span><span class="sp"></span><span class="cap">ویرایش از این پنل محلی انجام نمی‌شود</span></div>
+      <p class="sub" style="margin-top:8px">برای جلوگیری از تغییر محلیِ تنظیمات سرور، پرسش‌ها را در فرم‌ساز باز کنید. فرم منتشرشده ابتدا باید پس از ورود مالک متوقف شود؛ سپس backend نسخه و مجوز را دوباره بررسی می‌کند.</p>
+      <a class="btn sm primary" href="create.html?fid=${encodeURIComponent(f.id)}">رفتن به فرم‌ساز سروری</a>
+    </div>`;
+    return;
+  }
+  const special=[];
+  if(f.flags.includes('results'))special.push(['resultlink','i-link','پیوند نتیجه','با کد پیگیری و کد ملی']);
+  if(f.flags.includes('exam'))special.push(['scorecard','i-chart','کارنامه و تصحیح','درست و غلط و بی‌پاسخ']);
+  if(f.flags.includes('exam'))special.push(['anticheat','i-shield','ضد‌تقلب آزمون','تصویر کاربر، تشخیص ورود چندگانه']);
+  if(f.flags.includes('raffle'))special.push(['raffle','i-medal','قرعه‌کشی','انتخاب برنده میان پاسخ‌دهنده‌ها']);
+  if(f.flags.includes('cert'))special.push(['cert','i-medal','گواهینامه','صف محلی بازبینی مالک']);
+  if(FINANCE_OWNER){
+    special.push(['_money','i-wallet','تنظیمات مرکزی مالی','مرور خلاصه و رفتن به «مالی و کارمزد»']);
+    if(f.made) special.push(['formfinance','i-pen','قیمت‌های همین فرم','ویرایش در فرم‌ساز مشترک']);
+  }
+  const R={
+    addfield:['i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],text:['i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید'],
+    dates:['i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],cap:['i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
+    per:['i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],
+    endtext:['i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه'],
+    webhook:['i-link','وبهوک و رخدادها','خبر رخدادها به سیستم دیگر'],appr:['i-shield','گردش کار چندمرحله‌ای','صف تأیید و ثبت‌نام خودکار'],
+    msg:['i-send','پیام گروهی','بی‌اسکای و پیامک'],excel:['i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
+    kartabl:['i-inbox','کارتابل رسیدها','تأیید و رد رسیدهای کارت‌به‌کارت'],expert:['i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری'],
+    ...Object.fromEntries(special.map(s=>[s[0],[s[1],s[2],s[3]]]))
+  };
+  const allowed=['addfield','text','dates','cap','per','msg','excel',...(RECEIPT_REVIEWER?['kartabl']:[]),'expert','endtext','webhook','appr',
+    ...special.map(s=>s[0])];
+  const row=k=>{const [ic,t,c]=R[k]; if(!ic) return '';
+    return `<button class="chrow" data-change="${k}"><span class="ic"><svg class="i"><use href="#${ic}"/></svg></span>
+      <span class="tx"><b>${t}</b><span>${c}</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>`};
+  document.getElementById('changesBox').innerHTML=`
+  <div class="card paper">
+    <div class="row"><div><div class="fw">تغییراتی که می‌خواهم بدهم</div>
+      <div class="cap">هر چه بزنید، همان لحظه روی فرم می‌نشیند و در سابقه می‌ماند.</div></div>
+      <span class="sp"></span><a class="btn sm quiet" href="${f.made?'create.html?fid='+encodeURIComponent(f.id):'create.html'}"><svg class="i"><use href="#i-pen"/></svg> سازنده</a></div>
+    <div class="stack" style="margin-top:10px">
+      ${allowed.map(row).join('')}
+    </div>
+  </div>
+  <div class="card paper" style="margin-top:12px">
+    <div class="fw" style="margin-bottom:6px">سابقهٔ تغییرات</div>
+    ${f.changes.length?`<div class="timeline">${f.changes.map(([w,who])=>`<div class="t past"><span class="dot2"></span><span>${w} · <span class="cap">${who}</span></span></div>`).join('')}</div>`
+      :'<div class="empty" style="padding:14px"><div class="body">هنوز تغییری ثبت نشده</div></div>'}
+  </div>`;
+}
+/* ── پاسخ‌ها ──────────────────────────────────────────────────── */
+let PFILTER='all';
+const SERVER_RESPONSE_PAGE_SIZE=50;
+const SERVER_RESPONSE_CACHE=new Map();
+function answerDisplay(value){return Array.isArray(value)?value.map(x=>String(x==null?'':x)).join('، '):String(value==null?'':value)}
+function serverResponseTime(value){
+  const date=new Date(value);if(!Number.isFinite(date.getTime()))return String(value||'');
+  try{return new Intl.DateTimeFormat('fa-IR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(date)}catch(_){return date.toLocaleString()}
+}
+function serverResponsePerson(record,form){
+  const values=record&&record.answers&&typeof record.answers==='object'?record.answers:{},fields=Array.isArray(form.rawFields)?form.rawFields:[],ans={},rows=[];
+  for(const [index,field] of fields.entries()){
+    const key=String(field.id==null?index:field.id);if(!Object.prototype.hasOwnProperty.call(values,key))continue;
+    const value=values[key],label=String(field.l||field.label||'پرسش');ans[label]=answerDisplay(value);
+    rows.push({k:key,l:label,v:value,col:field.col!==false});
+  }
+  const fieldValue=type=>{
+    const field=fields.find(item=>item&&item.t===type&&Object.prototype.hasOwnProperty.call(values,String(item.id)));
+    return field?answerDisplay(values[String(field.id)]):'';
+  };
+  const primaryName=fieldValue('fullname')||fields.map((field,index)=>({field,index})).find(({field})=>field&&/^نام(?:\s|$)|نام و نام خانوادگی|نام کامل|نام پاسخ|نام شما/.test(String(field.l||''))&&Object.prototype.hasOwnProperty.call(values,String(field.id==null?index:field.id)))?.field;
+  const answerName=typeof primaryName==='string'?primaryName:primaryName?answerDisplay(values[String(primaryName.id)]):'پاسخ‌دهنده';
+  const name=String(record&&record.registrant_name||answerName||'پاسخ‌دهنده');
+  const companions=Array.isArray(record&&record.companions)?record.companions.map(guest=>({
+    name:String(guest&&guest.name||'همراه'),mobile:String(guest&&guest.mobile||''),answers:guest&&guest.answers&&typeof guest.answers==='object'?guest.answers:{},
+  })):[];
+  const id=String(record&&record.id||''),mobile=String(record&&record.registrant_mobile||fieldValue('mobile')||''),
+    addedByName=String(record&&record.added_by_name||'');
+  return {id:'server:'+id,serverId:id,form:String(form.id),name,mobile,addedByName,
+    addedByResponseId:String(record&&record.added_by_response_id||''),code:id? id.slice(0,8).toUpperCase():'—',
+    state:record&&record.status==='waitlisted'?'server-waitlisted':'server-accepted',serverStatus:String(record&&record.status||'accepted'),
+    at:serverResponseTime(record&&record.created_at),sum:0,piece:0,count:companions.length+1,coupon:0,gw:'—',city:fieldValue('province'),
+    uni:fieldValue('uni'),job:fieldValue('job'),edu:fieldValue('edu'),exp:'—',birth:'—',note:'',skip:[],receipt:'',guests:companions,
+    ans:ans,answerRows:rows,source:'server',_serverResponse:true,paymentStatus:'not-connected',notificationStatus:'not-sent'};
+}
+function serverResponseMessage(error){
+  if(error&&error.status===401)return 'برای دسترسی به پاسخ‌ها، با حساب دارای مجوز مدیر وارد شوید.';
+  if(error&&error.status===403)return 'این حساب مجوز fm_responses برای خواندن پاسخ‌های فرم را ندارد.';
+  if(error&&error.status===404)return 'API پاسخ‌ها روی این میزبان در دسترس نیست.';
+  if(error&&error.status===503)return 'پایگاه‌دادهٔ پاسخ‌ها روی سرور آماده نیست.';
+  return 'دریافت پاسخ‌های سرور انجام نشد؛ دوباره تلاش کنید.';
+}
+async function refreshServerResponses(formId,requestedOffset=0){
+  const key=String(formId||'');if(!key)return;
+  const offset=Math.max(0,Math.min(1000000,Number(requestedOffset)||0));
+  const entry={state:'loading',people:[],total:0,offset,limit:SERVER_RESPONSE_PAGE_SIZE};
+  SERVER_RESPONSE_CACHE.set(key,entry);if(CUR&&String(CUR.id)===key)renderAnswers();
+  try{
+    const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+    if(!api)throw new Error('api_unavailable');
+    await formResponseReaderSession(api);
+    const result=await api.listResponses(key,SERVER_RESPONSE_PAGE_SIZE,offset),items=Array.isArray(result&&result.items)?result.items:[];
+    const form=FORMS.find(item=>String(item.id)===key)||CUR;
+    entry.state='loaded';entry.total=Math.max(0,Number(result&&result.total)||0);
+    entry.offset=Math.max(0,Number(result&&result.offset)||0);entry.limit=Math.max(1,Math.min(100,Number(result&&result.limit)||SERVER_RESPONSE_PAGE_SIZE));
+    entry.people=items.map(item=>serverResponsePerson(item,form));entry.message='';
+  }catch(error){entry.state='error';entry.message=serverResponseMessage(error);entry.error=error}
+  SERVER_RESPONSE_CACHE.set(key,entry);
+  const form=FORMS.find(item=>String(item.id)===key);
+  if(form&&entry.state==='loaded'){form.response_count=entry.total;form.resp=entry.total}
+  if(CUR&&String(CUR.id)===key){renderAnswers();renderList();renderFormReports()}
+}
+function renderAnswerList(form,list,isServer,total){
+  const box=document.getElementById('answersBox');if(!box)return;
+  if(!isServer){
+    box.innerHTML='<div class="card sunk"><b>نمونهٔ محلی</b><p class="cap">داده‌های این مرورگر پاسخ سرور نیستند و در فهرست پاسخ‌ها یا گزارش‌های واقعی نمایش داده نمی‌شوند.</p></div>';
+    return;
+  }
+  const cache=SERVER_RESPONSE_CACHE.get(String(form.id))||{},offset=Math.max(0,Number(cache.offset)||0),
+    limit=Math.max(1,Number(cache.limit)||SERVER_RESPONSE_PAGE_SIZE),page=Math.floor(offset/limit)+1,
+    pages=Math.max(1,Math.ceil(Math.max(0,Number(total)||0)/limit));
+  const previous=offset>0,next=offset+list.length<total;
+  const stateLabel=person=>person.serverStatus==='waitlisted'?'در انتظار ظرفیت':'ثبت‌شده در سرور';
+  box.innerHTML=`
+  <div class="row tight" style="margin-bottom:10px">
+    <span class="tag brand">پاسخ‌های واقعی · API سرور</span>
+    <span class="sp"></span>
+    <button class="btn sm quiet" data-refresh-server-responses="${esc(form.id)}" ${cache.state==='loading'?'disabled':''}><svg class="i"><use href="#i-refresh"/></svg> تازه‌سازی</button>
+    <span class="tag warn">خروجی سروری هنوز در دسترس نیست</span>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <thead><tr><th>پاسخ‌دهنده</th><th>زمان</th><th>وضعیت سرور</th><th></th></tr></thead>
+      <tbody>${list.map(person=>`<tr data-person="${esc(person.id)}" style="cursor:pointer">
+        <td><b>${esc(person.name)}</b>${person.addedByName?`<div class="cap">افزوده‌شده توسط ${esc(person.addedByName)}</div>`:''}${(person.guests||[]).length?`<span class="tag brand" style="margin-inline-start:6px">+${faN(person.guests.length)} همراه</span>`:''}
+          <div class="cap num">${esc(maskPhone(person.mobile)||'—')}</div></td>
+        <td class="num">${esc(person.at)}</td>
+        <td><span class="tag ${person.serverStatus==='waitlisted'?'warn':'ok'}">${stateLabel(person)}</span></td>
+        <td><svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg></td></tr>`).join('')||`<tr><td colspan="4" class="cap">${total>0?'در این صفحه پاسخی نیست.':'برای این فرم هنوز پاسخی در سرور ثبت نشده.'}</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+  <div class="row tight" style="margin-top:10px">
+    <span class="cap">${faN(list.length)} ردیف از ${faN(total)} پاسخ · صفحهٔ ${faN(page)} از ${faN(pages)} · برای بازکردن جزئیات، ردیف را انتخاب کنید.</span>
+    <span class="sp"></span>
+    <button class="btn sm quiet" data-response-page="${Math.max(0,offset-limit)}" ${previous?'':'disabled'} aria-label="صفحهٔ پاسخ‌های قبلی">قبلی</button>
+    <button class="btn sm quiet" data-response-page="${offset+limit}" ${next?'':'disabled'} aria-label="صفحهٔ پاسخ‌های بعدی">بعدی</button>
+  </div>`;
+}
+function renderAnswers(){
+  const form=CUR;if(!form)return;
+  if(form.serverManaged){
+    const cached=SERVER_RESPONSE_CACHE.get(String(form.id));
+    if(!cached){
+      SERVER_RESPONSE_CACHE.set(String(form.id),{state:'loading',people:[],total:0});
+      const box=document.getElementById('answersBox');if(box)box.innerHTML='<div class="empty"><div class="body">در حال دریافت پاسخ‌های سرور…</div></div>';
+      void refreshServerResponses(form.id);return;
+    }
+    if(cached.state==='loading'){
+      const box=document.getElementById('answersBox');if(box)box.innerHTML='<div class="empty"><div class="body">در حال دریافت پاسخ‌های سرور…</div></div>';return;
+    }
+    if(cached.state==='error'){
+      const box=document.getElementById('answersBox');if(box)box.innerHTML=`<div class="card sunk"><p class="sub">${esc(cached.message||'دریافت پاسخ‌ها ناموفق بود.')}</p><button class="btn sm quiet" data-refresh-server-responses="${esc(form.id)}">تلاش دوباره</button></div>`;return;
+    }
+    return renderAnswerList(form,cached.people||[],true,cached.total||0);
+  }
+  const box=document.getElementById('answersBox');if(!box)return;
+  box.innerHTML=`<div class="card sunk" role="note">
+    <div class="row"><span class="tag warn">نمونهٔ محلی · نه پاسخ سرور</span><span class="sp"></span><a class="btn sm quiet" href="create.html${form.made?'?fid='+encodeURIComponent(form.id):''}">بازکردن فرم‌ساز</a></div>
+    <p class="sub" style="margin-top:8px">این رکورد فقط در مرورگر یا دادهٔ نمایشی است. برای جلوگیری از آمیختن نمونه و دادهٔ واقعی، پاسخ‌های محلی در این تب و گزارش‌ها نمایش داده نمی‌شوند. برای پاسخ واقعی، فرم را از API همین سامانه دریافت کنید.</p>
+  </div>`;
+}
+/* ── جزئیات پاسخ‌دهنده ───────────────────────────────────────── */
+const isSensitiveAnswerLabel=label=>/(مبلغ|قیمت|هزینه|شهریه|پرداخت|تخفیف|کارمزد|قسط|درآمد|موجودی|واریز|ریال|تومان|تعرفه|حقوق|دستمزد|سود|سپرده|سرمایه|فاکتور|رسید|روش پرداخت|تراکنش|شماره پیگیری|حق عضویت|شمارهٔ? کارت|کارت به کارت|شماره شبا|شبا|حساب بانکی|\b(?:amount|price|payment|fee|income|revenue|discount|installment|balance|wallet|iban|salary|wage|cost|tuition|transfer)\b)/i.test(String(label||''));
+function renderServerResponseDetail(person){
+  const form=FORMS.find(item=>String(item.id)===String(person.form))||CUR;
+  const rows=(person.answerRows||[]).filter(row=>FINANCE_OWNER||!isSensitiveAnswerLabel(row.l));
+  const status=person.serverStatus==='waitlisted'?'در صف انتظار':'ثبت‌شده';
+  const valueText=value=>value&&typeof value==='object'&&!Array.isArray(value)?JSON.stringify(value):answerDisplay(value);
+  document.getElementById('usName').textContent=person.name||'پاسخ‌دهنده';
+  document.getElementById('usSub').textContent='شناسهٔ پاسخ سروری '+String(person.serverId||'—')+' · '+String(person.at||'');
+  const tag=document.getElementById('usPay');tag.className='tag '+(person.serverStatus==='waitlisted'?'warn':'ok');
+  tag.textContent=status;
+  document.getElementById('usBody').innerHTML=`
+    <div class="reviewbar" role="note"><svg class="i"><use href="#i-shield"/></svg><span class="sub">این پاسخ از سرور خوانده شده است، نه پیش‌نمایش. پیام، پرداخت، حضور، تأیید هویت و خروجی از این صفحه انجام نمی‌شود.</span></div>
+    <div class="split" style="margin-top:12px"><div class="card paper">
+      <div class="row"><b>پاسخ‌ها</b><span class="sp"></span><span class="tag brand">${faN(rows.length)} پرسش</span></div>
+      ${rows.map(row=>`<div class="answer"><span class="k">${esc(row.l)}</span><span class="v">${esc(valueText(row.v))}</span></div>`).join('')||'<p class="cap">پاسخ قابل‌نمایشی در این نسخه نیست.</p>'}
+    </div><div class="stack">
+      <div class="card paper"><div class="fw" style="margin-bottom:6px">فرادادهٔ سرور</div>
+        <div class="answer"><span class="k">فرم</span><span class="v">${esc(form.name||'—')}</span></div>
+        <div class="answer"><span class="k">وضعیت</span><span class="v">${status}</span></div>
+        <div class="answer"><span class="k">زمان ثبت</span><span class="v num">${esc(person.at||'—')}</span></div>
+        <div class="answer"><span class="k">شمارهٔ همراه</span><span class="v num">${esc(FINANCE_OWNER?person.mobile||'—':maskPhone(person.mobile)||'—')}</span></div>
+        <div class="answer"><span class="k">افزوده‌شده توسط</span><span class="v">${person.addedByName?' '+esc(person.addedByName):'—'}</span></div>
+        <div class="answer"><span class="k">همراهان</span><span class="v">${faN((person.guests||[]).length)}</span></div>
+      </div>
+      <button class="btn quiet" data-go="fPanel">بازگشت به فرم</button>
+    </div></div>`;
+  go('fUser');
+}
+function openUser(id){
+  CURP=PEOPLE.find(p=>p.id===id)||[...SERVER_RESPONSE_CACHE.values()].flatMap(entry=>entry&&Array.isArray(entry.people)?entry.people:[]).find(p=>p.id===id); if(!CURP) return;
+  if(CURP._serverResponse){renderServerResponseDetail(CURP);return}
+  const f=FORMS.find(x=>x.id===CURP.form)||CUR, t=STATE_TAG[CURP.state]||['quiet','ثبت شده'], m=pay(CURP),
+    certIssued=builderCertRecord(CURP,f), certPending=builderCertPending(CURP,f);
+  const canSeeUserFinance=FINANCE_OWNER||(RECEIPT_REVIEWER&&CURP.state==='pending');
+  const visibleState=CURP._serverResponse?t[1]:CURP._localPreview?'پاسخ محلی · بررسی‌نشده':(FINANCE_OWNER?t[1]:({paid:'ثبت‌نام قطعی',pending:'در دست بررسی',void:'لغوشده',half:'نیمه‌کاره'}[CURP.state]||'ثبت شده'));
+  const visibleFields=f.fields.filter(([n])=>canSeeUserFinance||!/(مبلغ|قیمت|هزینه|شهریه|پرداخت|تخفیف|کارمزد|قسط|درآمد|موجودی|واریز|ریال|تومان|تعرفه|حقوق|دستمزد|سود|سپرده|سرمایه|فاکتور|رسید|روش پرداخت|تراکنش|شماره پیگیری|حق عضویت|شمارهٔ? کارت|کارت به کارت|شماره شبا|شبا|حساب بانکی|\b(?:amount|price|payment|fee|income|revenue|discount|installment|balance|wallet|iban|salary|wage|cost|tuition|transfer)\b)/i.test(String(n)));
+  document.getElementById('usName').textContent=CURP.name;
+  document.getElementById('usSub').textContent=(CURP._serverResponse?'شناسهٔ پاسخ سروری ':CURP._localPreview?'شناسهٔ محلی ':'کد پیگیری ')+CURP.code+' · '+CURP.at;
+  const tag=document.getElementById('usPay'); tag.className='tag '+t[0]; tag.innerHTML='<span class="dot"></span> '+visibleState;
+  const answers=visibleFields.map(([n])=>{
+    const v=(CURP.ans&&CURP.ans[n])||{['نام و نام خانوادگی']:CURP.name,['شماره موبایل']:CURP.mobile,['تاریخ تولد']:CURP.birth,
+      ['استان و شهر']:CURP.city,['دانشگاه']:CURP.uni,['شغل']:CURP.job,['سطح تجربه']:CURP.exp,['تحصیلات']:CURP.edu}[n];
+    const shown=answerDisplay(v),skipped=CURP.skip.includes(n)||!shown;
+    return `<div class="answer"><span class="k">${esc(n)}</span><span class="v ${skipped?'mute':''}">${skipped?'پاسخ نداده':esc(shown)}</span></div>`}).join('');
+  const companionDetails=(CURP.guests||[]).map((guest,guestIndex)=>{
+    const map=guest&&guest.answers&&typeof guest.answers==='object'&&!Array.isArray(guest.answers)?guest.answers:{},rows=[];
+    for(const [label] of visibleFields){
+      const field=(f.rawFields||[]).find((item,index)=>String(item&&item.l||'')===String(label));
+      const key=field?String(field.id==null?(f.rawFields.indexOf(field)):field.id):'';
+      let value=key&&Object.prototype.hasOwnProperty.call(map,key)?map[key]:undefined;
+      if(value===undefined&&Array.isArray(guest.answers)){
+        const answer=guest.answers.find(item=>item&&(String(item.l||'')===String(label)||key&&String(item.k)===key));
+        if(answer)value=answer.v;
+      }
+      const shown=answerDisplay(value);rows.push(`<div class="answer"><span class="k">${esc(label)}</span><span class="v ${shown?'':'mute'}">${shown?esc(shown):'پاسخ نداده'}</span></div>`);
+    }
+    return `<div class="companion-response"><div class="row" style="margin-bottom:5px"><b>همراه ${faN(guestIndex+1)} · ${esc(guest.name||'همراه')}</b><span class="sp"></span><span class="cap num">${esc(guest.mobile||'')}</span></div>${rows.join('')||'<p class="cap">پاسخ جداگانه‌ای ثبت نشده.</p>'}</div>`;
+  }).join('');
+  document.getElementById('usBody').innerHTML=`
+  ${CURP.state==='pending'&&RECEIPT_REVIEWER?`<div class="reviewbar" style="margin-bottom:12px">
+      <svg class="i" style="color:var(--warn)"><use href="#i-bell"/></svg>
+      <span class="sub">رسید ${CURP.receipt} رسیده و در انتظار تأیید است.</span>
+      <span class="sp"></span>
+      <button class="btn sm primary" data-approve="${CURP.id}"><svg class="i"><use href="#i-check"/></svg> تأیید رسید</button>
+      <button class="btn sm stop" data-sheet="shReject">رد رسید</button>
+    </div>`:''}
+  <div class="split">
+    <div class="stack">
+      <div class="card paper">
+        <div class="row" style="margin-bottom:6px"><span class="fw">تکمیل فرم</span><span class="sp"></span>
+          <span class="cap">${visibleFields.filter(x=>!CURP.skip.includes(x[0])).length} از ${faN(visibleFields.length)} پرسش</span></div>
+        ${answers}
+        ${CURP.addedByName?`<div class="card sunk" style="margin-top:10px"><span class="sub">افزوده‌شده توسط ${esc(CURP.addedByName)}</span></div>`:''}
+        ${CURP.note&&(FINANCE_OWNER||canSeeUserFinance)?`<div class="card sunk" style="margin-top:10px"><span class="sub">یادداشت خودش: ${esc(CURP.note)}</span></div>`:''}
+      </div>
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:6px">اطلاعات</div>
+        <div class="answer"><span class="k">موبایل</span><span class="v num">${esc(CURP.mobile)}</span></div>
+        <div class="answer"><span class="k">شناسه</span><span class="v num">${esc(CURP.code)}</span></div>
+        <div class="answer"><span class="k">استان و شهر</span><span class="v">${esc(CURP.city)}</span></div>
+        <div class="answer"><span class="k">تحصیلات</span><span class="v">${esc(CURP.edu)}</span></div>
+        <div class="answer"><span class="k">وضعیت هویت</span><span class="v">${CURP._serverResponse?'از این فرم هویت تأیید نمی‌شود.':CURP._localPreview?'پروفایل یا هویت تأیید نشده · پاسخ محلی':'از پروفایل خوانده شد'}</span></div>
+      </div>
+      ${(CURP.guests||[]).length?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">همراهان</span><span class="sp"></span>
+          <span class="cap">${faN(CURP.guests.length)} نفر${canSeeUserFinance?' · هر کدام سهم پرداخت جدا':''}</span></div>
+        ${companionDetails||'<p class="cap">برای همراه‌ها پاسخ جداگانه ثبت نشده.</p>'}
+      </div>`:''}
+      ${f.flags.includes('cert')?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">گواهینامه</span><span class="sp"></span>
+          <span class="tag ${certIssued?'ok':certPending?'warn':(CURP.state==='paid'?'quiet':'stop')}">${certIssued?'تأیید مالک · '+certIssued.serial:(certPending?'در انتظار تأیید مالک':(CURP.state==='paid'?'واجد شرایط؛ درخواست نشده':'پس از پرداخت قطعی'))}</span>
+          ${CURP.state==='paid'&&!certIssued&&!certPending?`<button class="btn sm quiet" data-certreq="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> درخواست برای مالک</button>`:''}
+        </div>
+        ${certIssued&&FINANCE_OWNER?`<div class="cap">پیش‌نمایش فقط برای مالک · رجیستری محلی</div>
+          <div style="overflow:hidden;border-radius:14px">${certificateSVG({name:certIssued.name,title:certIssued.eventTitle||certIssued.title||f.head,
+            kind:certIssued.kind||'گواهینامهٔ پایان دوره',date:certIssued.date||'',hours:certIssued.hours||'',code:certIssued.code||'',
+            serial:certIssued.serial,approver:certIssued.approvedBy||'مالک سامانه'})}</div>`
+          :`<p class="sub">${certPending?'تا تصمیم مالک هیچ برگی به کاربر تحویل نمی‌شود.':CURP.state==='paid'?'درخواست پس از تأیید نهایی مالک به رجیستری محلی می‌رود.':'گواهی پیش از تأیید مالک نمایش داده نمی‌شود.'}</p>`}
+      </div>`:''}
+      <div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">پیام‌ها</span><span class="sp"></span><span class="cap">کارشناس ${f.expert}</span></div>
+        <div class="timeline">
+          <div class="t past"><span class="dot2"></span><span>${CURP._serverResponse?'پاسخ سروری ثبت شد':CURP._localPreview?'پاسخ نمونه فقط در همین مرورگر ذخیره شد':'ثبت‌نام انجام شد'} · ${esc(CURP.at)}</span></div>
+          ${CURP.receipt&&canSeeUserFinance?`<div class="t past"><span class="dot2"></span><span>فیش پیوست شد · ${CURP.receipt}</span></div>`:''}
+          ${(CURP.msgs||[]).map(g=>`<div class="t past"><span class="dot2"></span><span>پیام ${g.who} · ${g.at}: <span class="cap">${g.t}</span></span></div>`).join('')}
+          ${CURP.state==='pending'?`<div class="t"><span class="dot2"></span><span>${canSeeUserFinance?'در انتظار بررسی فیش':'ثبت‌نام در دست بررسی'}</span></div>`:''}
+          ${CURP.state==='paid'?`<div class="t past"><span class="dot2"></span><span>${FINANCE_OWNER?'پرداخت قطعی · ':''}ثبت‌نام قطعی شد</span></div>`:''}
+          ${CURP.state==='void'?`<div class="t"><span class="dot2" style="background:var(--stop)"></span><span>${FINANCE_OWNER?'فیش رد شد · ':''}ثبت‌نام لغو شد${FINANCE_OWNER?'، پرداخت از ابتدا':''}</span></div>`:''}
+        </div>
+        ${CURP._localPreview?'<div class="paywarn" role="note">پیام و اعلان برای این پاسخ ارسال نشده‌اند؛ ارسال بیرونی در این نسخه خاموش است.</div>':CURP._serverResponse?'<div class="paywarn" role="note">این پاسخ از سرور خوانده شده؛ پیام‌رسانی از این پنل هنوز وصل نیست.</div>':`<div class="row" style="margin-top:10px"><textarea class="input" style="flex:1" placeholder="پیام به همین نفر"></textarea></div>
+        <div class="row" style="margin-top:8px"><button class="btn sm primary" data-sheet="shMsg"><svg class="i"><use href="#i-send"/></svg> ارسال پیام</button>
+          <button class="btn sm quiet" data-copy="${esc(CURP.mobile)}"><svg class="i"><use href="#i-copy"/></svg> کپی موبایل</button></div>`}
+      </div>
+    </div>
+    <div class="stack">
+      ${canSeeUserFinance?(CURP._localPreview?`<div class="card paper"><div class="row" style="margin-bottom:8px"><span class="fw">وضعیت مالی</span><span class="sp"></span><span class="tag warn">پرداخت وصل نیست</span></div>
+        <p class="sub">این پاسخ فقط در مرورگر ذخیره شده است. مبلغ قابل پرداخت، رسید یا تأیید بانکی برای آن وجود ندارد.</p></div>`:`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">مبالغ${f.made?'':' · نمونهٔ محلی'}</span><span class="sp"></span>
+          <span class="tag ${CURP.state==='paid'?'ok':CURP.state==='void'?'stop':'warn'}">${t[1]}</span></div>
+        ${f.fin.length?`
+          <div class="moneyline"><span>${f.fin[CURP.piece].l}</span><span class="num">${rialTxt(m.per)}</span></div>
+          ${CURP.count>1?`<div class="moneyline"><span>برای ${faN(CURP.count)} نفر (× ${faN(CURP.count)})</span><span class="num">${rialTxt(m.sub)}</span></div>`:''}
+          ${m.dis?`<div class="moneyline"><span>کد تخفیف ٪${faN(CURP.coupon)}</span><span class="num" style="color:var(--ok)">−${rialTxt(m.dis)}</span></div>`:''}
+          <div class="moneyline t"><span>پرداخت‌شده</span><span class="num">${rialTxt(m.sum)}</span></div>
+          <div class="mini" style="margin-top:6px">${tomanTxt(m.sum)}</div>
+          <div class="answer" style="margin-top:6px"><span class="k">درگاه</span><span class="v">${CURP.gw}</span></div>
+          <div class="answer"><span class="k">نفرات</span><span class="v">${faN(CURP.count)} نفر</span></div>`
+        :'<div class="empty" style="padding:14px"><div class="body">این فرم مالی ندارد</div></div>'}
+      </div>`):''}
+      ${RECEIPT_REVIEWER&&CURP.gw==='کارت‌به‌کارت'?`<div class="card paper">
+        <div class="row" style="margin-bottom:10px"><span class="fw">رسید کاربر</span><span class="sp"></span>
+          <span class="tag ${CURP.state==='pending'?'warn':CURP.state==='void'?'stop':'ok'}">${CURP.state==='pending'?'در انتظار تأیید':CURP.state==='void'?'رد شده':'تأییدشده'}</span></div>
+        <div class="receipt"><svg class="i lg"><use href="#i-image"/></svg></div>
+        <div class="row" style="margin-top:10px">
+          ${CURP.state==='pending'?`<button class="btn sm primary" data-approve="${CURP.id}"><svg class="i"><use href="#i-check"/></svg> تأیید</button>
+          <button class="btn sm stop" data-sheet="shReject"><svg class="i"><use href="#i-close"/></svg> رد</button>`:''}
+          <button class="btn sm quiet" data-copy="${CURP.code}"><svg class="i"><use href="#i-copy"/></svg> کد پیگیری</button>
+          <button class="btn sm quiet" data-msg="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> پیام</button>
+        </div>
+        <p class="mnote" style="margin-top:8px">رد شدن یعنی ثبت‌نام باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
+      </div>`:''}
+      <div class="card sunk">
+        <div class="row"><svg class="i"><use href="#i-shield"/></svg><span class="sub">هر تغییری روی همین پاسخ‌دهنده ثبت می‌شود و در سابقهٔ فرم می‌ماند.</span></div>
+      </div>
+    </div>
+  </div>`;
+  go('fUser');
+}
+/* ── کارتابل ─────────────────────────────────────────────────── */
+let KDEPT='';
+/* ── بورد حضور و غیاب: کیوآر کد پیگیری، دستی، و پیام به غایب‌ها ── */
+let ATTMODE='code';
+const attList=()=>PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
+const attIn=()=>attList().filter(p=>p.att).length;
+function renderAttend(q){
+  if(!TEST_FIXTURE_MODE){
+    document.getElementById('attSub').textContent='ثبت حضور از API این صفحه پشتیبانی نمی‌شود.';
+    ['attAll','attIn','attOut'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('attPct').textContent='—';
+    document.getElementById('attCount').textContent='۰ ردیف';
+    document.getElementById('attBody').innerHTML='<tr><td colspan="5"><div class="empty" style="padding:14px"><div class="body">تا اتصال API حضور، هیچ داده یا صندلی نمونه‌ای نمایش داده نمی‌شود.</div></div></td></tr>';
+    return;
+  }
+  q=(q===undefined?((document.getElementById('attQ')||{}).value||''):q).trim();
+  const list=attList();
+  const inn=attIn();
+  document.getElementById('attSub').textContent='فرم «'+CUR.name+'» · '+CUR.start+' · کد ورود: '+shortCode(CUR.id+CUR.slug);
+  document.getElementById('attAll').textContent=faN(list.length);
+  document.getElementById('attIn').textContent=faN(inn);
+  document.getElementById('attOut').textContent=faN(list.length-inn);
+  document.getElementById('attPct').textContent=faN(list.length?Math.round(inn/list.length*100):0)+'٪';
+  document.querySelectorAll('#fAttend .chip[data-attmode]').forEach(c=>c.classList.toggle('on',c.dataset.attmode===ATTMODE));
+  document.getElementById('attCode').style.display=ATTMODE==='code'?'':'none';
+  document.getElementById('attGo').style.display=ATTMODE==='code'?'':'none';
+  const rows=list.filter(p=>!q||p.name.includes(q)||unFa(p.mobile).includes(unFa(q)));
+  document.getElementById('attCount').textContent=faN(rows.length)+' از '+faN(list.length);
+  document.getElementById('attBody').innerHTML=rows.map((p,i)=>`<tr data-att="${p.id}" style="cursor:pointer">
+      <td class="num">${faN(i+1)}</td>
+      <td><b>${p.name}</b><div class="cap num">${maskPhone(p.mobile)}</div></td>
+      <td class="num">${'ردیف '+faN(i+1)+' · صندلی '+faN(17+i*3)}</td>
+      <td class="num">${p.attAt||'—'}</td>
+      <td><span class="tag ${p.att?'ok':'quiet'}"><span class="dot"></span> ${p.att?'حاضر':'غایب'}</span></td>
+    </tr>`).join('')||`<tr><td colspan="5"><div class="empty" style="padding:14px"><div class="body">کسی با این نشانه پیدا نشد</div></div></td></tr>`;
+}
+function attToggle(id,code){
+  const p=PEOPLE.find(x=>x.id===id)||(code?PEOPLE.find(x=>x.code===code||shortCode(x.code||'')===code):null);
+  if(!p){toast('کسی با این کد پیگیری پیدا نشد'); return}
+  if(p.att){toast(p.name+' قبلاً ثبت شده ('+p.attAt+')'); renderAttend(); return}
+  p.att=true; p.attAt=new Date().toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+  log(p.name+' حاضر شد · '+p.attAt);
+  renderAttend(); toast(p.name+' حاضر شد');
+}
+/* ── کارتابل من: هر کارشناس، رسیدهای فرم خودش، قدیمی‌ترین اول ── */
+let ME='خانم رستگار';
+const meExpert=()=>TEAM.find(t=>t.n===ME)||TEAM[0];
+const meDept=()=>({dept:meExpert().d});
+const waitTxt=h=>h>=24?faN(Math.round(h/24))+' روز':faN(h)+' ساعت';
+/* اولویت: هر چه بیشتر منتظر مانده، بالاتر. مال خودم (برداشته‌شده) اولِ همه. */
+function minePending(){
+  const d=meDept();
+  return pendings().filter(p=>{const f=FORMS.find(x=>x.id===p.form)||CUR; return f.dept===d.dept;})
+    .sort((a,b)=>((b.owner===ME)-(a.owner===ME))||((b.wait||0)-(a.wait||0)));
+}
+function renderMine(){
+  if(!RECEIPT_REVIEWER){
+    const message=TEST_FIXTURE_MODE?'این کارتابل برای بررسی فیش‌هاست و دسترسی لازم دارید.':'کارتابل رسید در این صفحه به API متصل نیست؛ دادهٔ نمونه نمایش داده نمی‌شود.';
+    const badge=document.getElementById('myBadge'); if(badge) badge.textContent='—';
+    const top=document.getElementById('mTop'); if(top) top.textContent=message;
+    const box=document.getElementById('mineBox'); if(box) box.innerHTML='<div class="card sunk"><span class="sub">'+message+'</span></div>';
+    return;
+  }
+  const d=meDept(), list=minePending();
+  const badge=document.getElementById('myBadge');
+  if(badge){badge.textContent=faN(list.length);}
+  document.getElementById('mTop').textContent=list.length?faN(list.length)+' در انتظار · قدیمی‌ترین '+waitTxt(list[0].wait||0):'کارتابل خالی';
+  document.getElementById('mDept').textContent='بخش '+d.dept?'':'';
+  const dep=DEPT_OF(d);
+  document.getElementById('mDept').textContent='بخش '+dep.n+' · کارشناس مسئول: '+dep.expert;
+  const mc=document.getElementById('meChips');
+  if(mc&&!mc.dataset.done){mc.dataset.done='1';
+    mc.innerHTML=DEPTS.map(x=>TEAM.filter(t=>t.d===x.id).map(t=>
+      `<button class="chip ${t.n===ME?'on':''}" data-me="${t.n}">${t.n} · ${x.n}</button>`).join('')).join('');}
+  const box=document.getElementById('mineBox');
+  if(!list.length){
+    box.innerHTML=`<div class="card paper"><div class="empty" style="padding:24px">
+      <svg class="i xl" style="color:var(--ok)"><use href="#i-check"/></svg>
+      <div class="body">کارتابلت خالی است</div>
+      <div class="cap">همهٔ رسیدهای بخش ${dep.n} بررسی شده‌اند</div></div></div>`;
+    return;
+  }
+  box.innerHTML=list.map(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR, m=pay(p), mine=p.owner===ME;
+    const old=(p.wait||0)>=24;
+    return `<div class="card paper">
+      <div class="row">
+        <span class="personrow" style="gap:10px"><span class="n">${p.name.slice(0,1)}</span>
+          <span><b class="sub">${p.name}</b><div class="cap num">${maskPhone(p.mobile)} · ${p.at}</div></span></span>
+        <span class="sp"></span>
+        ${mine?'<span class="tag brand">برداشته‌ام</span>':''}
+        <span class="tag ${old?'stop':'warn'}">${waitTxt(p.wait||0)} در انتظار</span>
+      </div>
+      <div class="row" style="margin-top:12px;align-items:flex-start;gap:14px">
+        <div class="receipt" style="max-width:132px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="moneyline"><span>مبلغ صورت‌حساب${f.made?"":" · نمونهٔ محلی"}</span><span class="num">${rialTxt(m.sum)}</span></div>
+          <div class="mini">${tomanTxt(m.sum)}</div>
+          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر${p.guests&&p.guests.length?' · همراه: '+p.guests.map(g=>g.name).join('، '):''}</div>`:''}
+          ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
+          <div class="row" style="margin-top:10px">
+            ${mine?'':'<button class="btn sm" data-take="'+p.id+'"><svg class="i"><use href="#i-eye"/></svg> این را برمی‌دارم</button>'}
+            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و قطعی‌کردن ثبت‌نام</button>
+            <button class="btn sm stop" data-reject="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد رسید</button>
+            <button class="btn sm quiet" data-pass="${p.id}"><svg class="i"><use href="#i-users"/></svg> سپردن به کارشناس دیگر</button>
+            <button class="btn sm quiet" data-msgone="${p.id}"><svg class="i"><use href="#i-send"/></svg> پیام به خودش</button>
+            <button class="btn sm quiet" data-person="${p.id}"><svg class="i"><use href="#i-search"/></svg> جزئیات</button>
+          </div>
+        </div>
+      </div>
+    </div>`}).join('');
+}
+function renderKartabl(){
+  if(!RECEIPT_REVIEWER){
+    const message=TEST_FIXTURE_MODE?'دسترسی به بازبینی فیش ندارید.':'کارتابل رسید در این صفحه به API متصل نیست؛ دادهٔ نمونه نمایش داده نمی‌شود.';
+    const box=document.getElementById('kartabl');
+    if(box) box.innerHTML='<div class="card sunk"><span class="sub">'+message+'</span></div>';
+    const top=document.getElementById('kTop'); if(top) top.textContent='—';
+    const badge=document.getElementById('kBadge'); if(badge) badge.textContent='—';
+    return;
+  }
+  renderMine();
+  const list=pendings().filter(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR; return !KDEPT||f.dept===KDEPT;});
+  const dc=document.getElementById('kDeptChips');
+  if(dc&&!dc.dataset.done){dc.dataset.done='1';
+    dc.innerHTML=DEPTS.map(d=>`<button class="chip" data-kd="${d.id}">${d.n}</button>`).join('');}
+  document.querySelectorAll('#kFilters .chip').forEach(c=>c.classList.toggle('on',(c.dataset.kd||'')===KDEPT));
+  const w=document.getElementById('kWho');
+  if(w) w.textContent=KDEPT?(DEPT_OF({dept:KDEPT}).expert+' · کارشناس '+DEPT_OF({dept:KDEPT}).n):'همهٔ بخش‌ها';
+  const all=pendings().length;
+  document.getElementById('kTop').textContent=faN(list.length)+' در انتظار'+(KDEPT&&list.length!==all?' از '+faN(all):'');
+  document.getElementById('kBadge').textContent=faN(list.length);
+  document.getElementById('kartabl').innerHTML=list.map(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR, m=pay(p);
+    return `<div class="card paper">
+      <div class="row">
+        <span class="personrow" style="gap:10px"><span class="n">${p.name.slice(0,1)}</span>
+          <span><b class="sub">${p.name}</b><div class="cap num">${maskPhone(p.mobile)} · ${p.at}</div></span></span>
+        <span class="sp"></span><span class="tag brand">بخش ${DEPT_OF(f).n}</span>
+        <span class="tag quiet">${f.name}</span>
+      </div>
+      <div class="row" style="margin-top:12px;align-items:flex-start;gap:14px">
+        <div class="receipt" style="max-width:132px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="moneyline"><span>مبلغ صورت‌حساب${f.made?"":" · نمونهٔ محلی"}</span><span class="num">${rialTxt(m.sum)}</span></div>
+          <div class="mini">${tomanTxt(m.sum)}</div>
+          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر · هر نفر سهم پرداخت خودش${(p.guests||[]).length?' ('+p.guests.map(g=>g.name).join('، ')+')':''}</div>`:''}
+          ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
+          <div class="row" style="margin-top:10px">
+            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و قطعی‌کردن ثبت‌نام</button>
+            <button class="btn sm stop" data-reject="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد رسید</button>
+            <button class="btn sm quiet" data-person="${p.id}"><svg class="i"><use href="#i-search"/></svg> جزئیات</button>
+          </div>
+        </div>
+      </div>
+    </div>`}).join('')||`<div class="card paper"><div class="empty" style="padding:24px">
+      <svg class="i xl" style="color:var(--ok)"><use href="#i-check"/></svg><div class="body">کارتابل خالی است</div>
+      <div class="cap">همهٔ رسیدها بررسی شده‌اند</div></div></div>`;
+}
+/* ── مالی: فقط خواندن خلاصهٔ تنظیمات مرکزی، بدون جمع‌زدن پاسخ‌های نمونه ── */
+function renderMoney(){
+  if(!FINANCE_OWNER) return;
+  const U=window.NORA_UI||{}, pub=U.finPublic?U.finPublic():{}, gates=Array.isArray(pub.gates)?pub.gates:[];
+  const cards=Array.isArray(pub.cards)?pub.cards:[];
+  const validCards=cards.filter(c=>c&&c.on!==false&&c.active!==false&&(!U.finCardValid||U.finCardValid(c)));
+  const enabled=gates.filter(g=>g&&g.on), rot=pub.rot==='time'
+    ?'نوبت زمانی · هر '+faN(Math.max(1,+pub.rotHours||24))+' ساعت'
+    :'کم‌مصرف‌ترین کارت در پیش‌نمایش';
+  const gateText=enabled.length?enabled.map(g=>{
+    const fee=(+g.pct||+g.fixed)?' · کارمزد نمایشی '+faN(+g.pct||0)+'٪'+((+g.fixed||0)?' + '+faN(+g.fixed)+' ریال':''):'';
+    return `<span class="tag quiet">${esc(g.n||g.k)}${fee}</span>`;
+  }).join(' '):'<span class="tag warn">هیچ روش پرداختی روشن نیست</span>';
+  document.getElementById('financeSummary').innerHTML=`
+    <div class="answer"><span class="k">روش‌های روشن</span><span class="v">${gateText}</span></div>
+    <div class="answer"><span class="k">چرخش کارت</span><span class="v">${rot}</span></div>
+    <div class="answer"><span class="k">کارت مقصد</span><span class="v">${validCards.length?faN(validCards.length)+' کارت ثبت‌شده و معتبر · ظرفیت یا نوبت هنگام درخواست بررسی می‌شود':(cards.length?'کارت فعالی با شمارهٔ معتبر پیدا نشد':'کارتی ثبت نشده؛ کارت پیش‌فرضی وجود ندارد')}</span></div>
+    <div class="answer"><span class="k">منبع تنظیمات</span><span class="v">ذخیرهٔ مرورگر · پیش‌نمایش محلی، نه سامانهٔ بانکی</span></div>`;
+  const forms=FORMS.filter(f=>f.made&&Array.isArray(f.fin)&&f.fin.length);
+  document.getElementById('moneyPieces').innerHTML=forms.length?forms.map(f=>`
+    <div style="margin-bottom:12px">
+      <div class="row"><b class="sub">${esc(f.name)}</b><span class="sp"></span><span class="cap">قیمت فرم · نه درآمد</span></div>
+      ${f.fin.map(o=>`<div class="moneyline"><span><b>${esc(o.l)}</b>${o.d?`<div class="mini">${esc(o.d)}</div>`:''}</span>
+        <span class="num">${o.off?`<span class="price"><span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)}</span><span class="now num">${fa(net(o))}</span><span class="cap">ریال</span></span>`:fa(o.p)+' ریال'}</span></div>`).join('')}
+      <div class="mini">قیمت هر نفر: ${tomanTxt(f.fin.reduce((a,o)=>a+net(o),0))}</div>
+      <a class="btn sm quiet" href="create.html?fid=${encodeURIComponent(f.id)}">ویرایش در فرم‌ساز</a>
+    </div>`).join(''):'<div class="empty" style="padding:14px"><div class="body">در انبار مشترک، هنوز فرمی با مورد مالی نیست.</div></div>';
+  document.getElementById('settle').innerHTML=`
+    <div class="row"><span>دفتر، وصول و اقساط</span><span class="sp"></span><span class="tag warn">اتصال عملیاتی نیست</span></div>
+    <div class="answer"><span class="k">تسویه</span><span class="v">از این صفحه محاسبه یا ثبت نمی‌شود</span></div>
+    <div class="answer"><span class="k">اقساط و فیش‌ها</span><span class="v">دفتر مرکزی فقط پیش‌نمایش محلی است</span></div>
+    <p class="mnote" style="margin-top:8px">برای جلوگیری از نمایش عدد ساختگی، درآمد، مانده و کارمزد از پاسخ‌دهندگان نمونه محاسبه نمی‌شود. اتصال بانکی، حسابداری سروری و تأیید پرداخت در این نسخه فعال نیست.</p>`;
+}
+/* ── کارشناسان ───────────────────────────────────────────────── */
+/* ── بخش‌های سازمان: هر فرم از یک بخش می‌آید و کارشناس همان بخش پیگیرش است ── */
+const DEPTS=TEST_FIXTURE_MODE?[
+ {id:'edu',n:'آموزش',expert:'خانم رستگار',i:'i-medal'},
+ {id:'sup',n:'پشتیبانی',expert:'آقای موسوی',i:'i-inbox'},
+ {id:'data',n:'پژوهش و نظرسنجی',expert:'آقای نادری',i:'i-chart'},
+ {id:'media',n:'رسانه و تولید محتوا',expert:'خانم صادقی',i:'i-image'}]:[];
+const DEPT_OF=f=>DEPTS.find(d=>d.id===f.dept)||{id:'',n:'بدون بخش سروری',expert:'—'};
+const TEAM=TEST_FIXTURE_MODE?[
+ {n:'خانم رستگار',r:'کارشناس آموزش',d:'edu',f:'کارگاه فن بیان، عضویت خیرین',k:true,m:true},
+ {n:'آقای نادری',r:'کارشناس پژوهش و نظرسنجی',d:'data',f:'نظرسنجی بهار',k:false,m:false},
+ {n:'خانم صادقی',r:'کارشناس رسانه',d:'media',f:'آزمون کتابخوانی',k:true,m:false},
+ {n:'آقای موسوی',r:'پاسخگوی پشتیبانی',d:'sup',f:'همهٔ فرم‌ها · فقط خواندن',k:false,m:false}
+]:[];
+function renderTeam(){
+  if(!TEST_FIXTURE_MODE){
+    document.getElementById('teamBox').innerHTML='<div class="card sunk"><span class="sub">فهرست کارشناسان و واگذاری کار از API این صفحه پشتیبانی نمی‌شود؛ هیچ حساب یا نقش نمونه‌ای نمایش داده نمی‌شود.</span></div>';
+    return;
+  }
+  const card=t=>`
+    <div class="card paper">
+      <div class="row">
+        <span class="personrow" style="gap:10px"><span class="n">${t.n.split(' ').pop().slice(0,1)}</span>
+          <span><b class="sub">${t.n}</b><div class="cap">${t.r} · ${t.f}</div></span></span>
+        <span class="sp"></span><span class="tag brand">دسترسی به ${faN(FORMS.length)} فرم</span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <span class="cap">مجوز بازبینی فیش و امور مالی از این صفحه تغییر نمی‌کند.</span><span class="sp"></span>
+        ${FINANCE_OWNER?'<span class="tag brand">مالی فقط برای مالک</span>':''}
+      </div>
+    </div>`;
+  document.getElementById('teamBox').innerHTML=DEPTS.map(d=>{
+    const members=TEAM.filter(t=>t.d===d.id);
+    if(!members.length) return '';
+    return `<div class="row" style="margin:6px 4px 0"><span class="fw">بخش ${d.n}</span><span class="sp"></span>
+      <span class="cap">کارشناس مسئول: ${d.expert}</span>
+      <button class="btn sm quiet" data-change="dept"><svg class="i"><use href="#i-sliders"/></svg> جابه‌جایی بخش‌ها</button></div>
+      ${members.map(card).join('')}`;
+  }).join('')+TEAM.filter(t=>!DEPTS.some(d=>d.id===t.d)).map(card).join('');
+}
+
+/* ── ورقهٔ تغییر: هر تغییر یک ورقه، فرم مخصوص خودش ───────────── */
+const CHANGES={
+ addfield:{t:'افزودن پرسش',body:()=>`<p class="cap">پرسش را از کاتالوگ بردارید؛ مشخصاتش را در سازنده کامل می‌کنید.</p>
+   <div class="row tight">${['متن کوتاه','متن بلند','چهارگزینه‌ای','چندگزینه‌ای','تاریخ','ساعت','استان و شهر','دانشگاه','شغل','تحصیلات','فایل','امضا','کد ملی','شماره موبایل','مقیاس ۱ تا ۵']
+     .map((x,i)=>`<button class="chip ${i===0?'on':''}" data-chip>${x}</button>`).join('')}</div>`,
+  go:btn=>{const x=btn.closest('#shChange').querySelector('#chBody .chip.on');
+   log('پرسش «'+x.textContent+'» به فرم اضافه شد'); closeSheets(); toast('به بوم سازنده اضافه شد'); }},
+ text:{t:'سربرگ و توضیحات ابتدا',body:()=>`
+   <div><label class="lbl">سربرگ</label><input class="input" id="chHead" value="${CUR.head}"/></div>
+   <div><label class="lbl">توضیحات ابتدا</label><textarea class="input" id="chIntro">${CUR.intro}</textarea></div>`,
+  go:()=>{CUR.head=document.getElementById('chHead').value; CUR.intro=document.getElementById('chIntro').value;
+   log('سربرگ و توضیحات ابتدا ویرایش شد'); closeSheets(); renderPanel(); toast('ذخیره شد')}},
+ dates:{t:'بازهٔ ثبت‌نام',body:()=>`<p class="cap">تاریخ و ساعت را از فهرست بردارید؛ دستی نوشتن لازم نیست.</p>
+   <div><label class="lbl">شروع</label><div id="chStart"></div></div>
+   <div><label class="lbl">پایان</label><div id="chEnd"></div></div>`,
+  open:()=>{document.getElementById('chStart').innerHTML=pickHTML('datetime',CUR.start);
+   document.getElementById('chEnd').innerHTML=pickHTML('datetime',CUR.ends); initAll(document.getElementById('chBody'))},
+  go:()=>{CUR.start=pickVal(document.getElementById('chStart')).full; CUR.ends=pickVal(document.getElementById('chEnd')).full;
+   log('بازهٔ ثبت‌نام به '+CUR.ends+' تغییر کرد'); closeSheets(); renderPanel(); toast('بازه عوض شد')}},
+ cap:{t:'ظرفیت و لیست انتظار',body:()=>`
+   <div><label class="lbl">ظرفیت</label><input class="input num" id="chCap" value="${CUR.cap||''}" placeholder="۰ یعنی بی‌کران"/></div>
+   <div class="row"><div style="flex:1"><b class="sub">لیست انتظار</b><div class="cap">پر شدن ظرفیت، نفر را به لیست انتظار می‌برد</div></div>
+     <span class="switch ${CUR.wait?'on':''}" id="chWait" role="switch" aria-checked="${CUR.wait}"></span></div>`,
+  go:()=>{CUR.cap=NR(unFa(document.getElementById('chCap').value))||0;
+   CUR.wait=document.getElementById('chWait').classList.contains('on');
+   log('ظرفیت به '+faN(CUR.cap)+' نفر'+(CUR.wait?' با لیست انتظار':' بدون لیست انتظار')+' رسید'); closeSheets(); renderPanel(); toast('ظرفیت ذخیره شد')}},
+ per:{t:'تعداد نفرات همراه',body:()=>`
+   <div><label class="lbl">بیشترین تعداد</label>
+     <div class="row tight">${[1,2,3,5].map(n=>`<button class="chip ${CUR.per===n?'on':''}" data-chip data-n="${n}">${faN(n)} نفر</button>`).join('')}</div></div>
+   <p class="cap">با افزودن همراه، مبلغ در تعداد ضرب می‌شود و هر نفر سهم پرداخت خودش را دارد.</p>
+   <hr class="hr"/>
+   <div class="row"><span><b class="sub">«دوستاتم با خودت بیار»</b>
+     <div class="cap">باز باشد، فرم یک کارت خوش‌گرافیک نشان می‌دهد و دوست همان‌جا پر می‌شود؛ بسته باشد هیچ‌جا دیده نمی‌شود.</div></span>
+     <span class="sp"></span>
+     <span class="switch ${CUR.guestsOn?'on':''}" id="chGuests" role="switch" aria-checked="${CUR.guestsOn?'true':'false'}"></span></div>
+   <div class="mini" style="margin-top:6px">حالت پیش‌فرض: بسته</div>`,
+  go:()=>{const g=document.getElementById('chGuests');
+   CUR.guestsOn=g.classList.contains('on');
+   log(CUR.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد'); closeSheets(); renderPanel();
+   toast(CUR.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد')}},
+ dept:{t:'بخش فرم',body:()=>`
+   <p class="cap">هر فرم از یک بخش سازمان می‌آید؛ رسیدها و پیام‌ها پیش‌فرض به کارشناس همان بخش می‌رود.</p>
+   <div class="row tight">${DEPTS.map(d=>`<button class="chip ${CUR.dept===d.id?'on':''}" data-chip data-dp="${d.id}">
+     <svg class="i" style="width:15px"><use href="#${d.i}"/></svg> ${d.n}</button>`).join('')}</div>
+   <div class="mini" style="margin-top:8px">با انتخاب بخش، کارشناس مسئول هم به کارشناس همان بخش تغییر می‌کند.</div>`,
+  go:()=>{const c=document.querySelector('#chBody .chip.on[data-dp]'); if(!c){toast('یک بخش را انتخاب کنید');return}
+   const d=DEPTS.find(x=>x.id===c.dataset.dp);
+   CUR.dept=d.id; CUR.expert=d.expert;
+   CUR.changes.unshift(['امروز · فرم به بخش «'+d.n+'» رفت','خودم']);
+   log('فرم به بخش «'+d.n+'» و کارشناس «'+d.expert+'» سپرده شد');
+   closeSheets(); renderInfo(); renderPanel(); renderList(); toast('به بخش '+d.n+' رفت')}},
+ event:{t:'اتصال به رویداد',body:()=>`
+   <p class="cap">فرم می‌تواند زیر یک رویداد برود؛ آن‌وقت ظرفیت و تاریخ‌ها از رویداد خوانده می‌شود.</p>
+   <div><label class="lbl">رویداد</label>
+     <div class="row tight">${EVENTS.map(e=>`<button class="chip ${CUR.event&&CUR.event.id===e.id?'on':''}" data-chip data-ev="${e.id}">${e.n}</button>`).join('')}
+       <button class="chip ${CUR.event?'':'on'}" data-chip data-ev="">بدون رویداد</button></div></div>
+   <div class="row" style="margin-top:12px"><span class="sub" style="flex:1">نمایش در صفحهٔ رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.nested?'on':''}" id="chEvNested" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک ظرفیت با رویداد</span>
+     <span class="switch ${!CUR.event||eventSyncOf(CUR.event).cap?'on':''}" id="chEvCap" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک تاریخ‌ها با رویداد</span>
+     <span class="switch ${!CUR.event||eventSyncOf(CUR.event).dates?'on':''}" id="chEvDates" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک محدودیت‌ها با رویداد</span>
+     <span class="switch ${!CUR.event||eventSyncOf(CUR.event).limit?'on':''}" id="chEvLimit" role="switch"></span></div>
+   <div><label class="lbl">چه کسی می‌تواند پر کند</label>
+     <select class="input" id="chEvWho">${Object.entries(RESTRICT).map(([k,v])=>`<option value="${k}" ${CUR.event&&CUR.event.restrict===k?'selected':''}>${v}</option>`).join('')}</select></div>`,
+  go:()=>{const chip=document.querySelector('#chBody .chip.on[data-ev]'); const id=chip?chip.dataset.ev:'';
+   const on=b=>document.getElementById(b).classList.contains('on');
+   if(!id){CUR.event=null; log('فرم از رویداد جدا شد');}
+   else{CUR.event={id,nested:on('chEvNested'),sync:{cap:on('chEvCap'),dates:on('chEvDates'),limit:on('chEvLimit')},
+     restrict:document.getElementById('chEvWho').value};
+     log('فرم زیر رویداد «'+((EVENTS.find(e=>e.id===id)||{}).n||'')+'» رفت');}
+   CUR.changes.unshift(['امروز · '+(id?'اتصال فرم به رویداد تغییر کرد':'فرم از رویداد جدا شد'),'خودم']);
+   closeSheets(); renderInfo(); renderPanel(); toast(id?'به رویداد وصل شد':'از رویداد جدا شد')}},
+ endtext:{t:'متن پایانی و پیوندها',body:()=>`
+   <div><label class="lbl">متن پایانی</label><textarea class="input" id="chEnd2">${CUR.endText}</textarea></div>
+   <div><label class="lbl">پیوند یکم</label><div class="row"><input class="input" id="chL1" style="flex:1" value="${CUR.links[0]||''}"/></div></div>
+   <div><label class="lbl">پیوند دوم</label><div class="row"><input class="input" id="chL2" style="flex:1" value="${CUR.links[1]||''}"/></div></div>
+   <p class="cap">هر پیوند در فرم یک دکمه می‌شود که کاربر مستقیم روی آن می‌زند.</p>`,
+  go:()=>{CUR.endText=document.getElementById('chEnd2').value;
+   CUR.links=[document.getElementById('chL1').value,document.getElementById('chL2').value].filter(Boolean);
+   log('متن پایانی و پیوندها ویرایش شد'); closeSheets(); renderPanel(); toast('ذخیره شد')}},
+ msg:{t:'پیام گروهی',open:()=>{msgWho=null; openMsg();},go:null},
+ excel:{t:'خروجی اکسل',open:()=>openSheet('shExcel'),go:null,sheet:'shExcel'},
+ kartabl:{t:'کارتابل رسیدها',open:()=>go('fKartabl'),go:null},
+ expert:{t:'انتقال به کارشناس دیگر',body:()=>`<label class="lbl">کارشناس مسئول</label>
+   <div class="row tight">${TEAM.map((t,i)=>`<button class="chip ${t.n===CUR.expert?'on':''}" data-chip data-x="${t.n}">${t.n}</button>`).join('')}</div>`,
+  go:btn=>{const c=btn.closest('#shChange').querySelector('.chip.on[data-x]'); CUR.expert=c.dataset.x;
+   log('کارشناس مسئول به '+CUR.expert+' تغییر کرد'); closeSheets(); renderPanel(); toast('منتقل شد')}},
+ resultlink:{t:'پیوند نتیجه',body:()=>`<p class="sub">پاسخ‌دهنده با کد پیگیری و کد ملی، نتیجه را می‌بیند: تعداد درست، غلط و بی‌پاسخ.</p>
+   <div class="row"><span class="tag brand">فقط بعد از بسته شدن آزمون</span></div>`,
+  go:()=>{log('پیوند نتیجه ساخته شد'); closeSheets(); toast('پیوند ساخته شد')}},
+ scorecard:{t:'کارنامه و تصحیح',body:()=>`<div class="row"><div style="flex:1"><b class="sub">تصحیح خودکار</b><div class="cap">چهارگزینه‌ای‌ها بی‌درنگ تصحیح می‌شوند</div></div>
+     <span class="switch on" role="switch" aria-checked="true"></span></div>
+   <div class="row"><div style="flex:1"><b class="sub">نمایش نمره به کاربر</b><div class="cap">بعد از پایان مهلت</div></div>
+     <span class="switch on" role="switch" aria-checked="true"></span></div>`,
+  go:()=>{log('کارنامه روشن شد'); closeSheets(); toast('کارنامه روشن شد')}},
+ anticheat:{t:'ضد‌تقلب آزمون',body:()=>`<p class="cap">هر کدام را لازم دارید روشن کنید.</p>
+   ${['تصویر کاربر هنگام آزمون','فیلم کوتاه در میانهٔ آزمون','تشخیص ورود از دو دستگاه','بستن برنامه‌های دیگر','ورود با کد ملی و پیامک']
+     .map((x,i)=>`<div class="row"><span class="sub" style="flex:1">${x}</span><span class="switch ${i<2?'on':''}" role="switch"></span></div>`).join('')}`,
+  go:()=>{log('تنظیمات ضد‌تقلب ذخیره شد'); closeSheets(); toast('ذخیره شد')}},
+ raffle:{t:'قرعه‌کشی',body:()=>`<p class="sub">میان ${fa(CUR.resp)} پاسخ‌دهنده قرعه می‌اندازیم و برنده‌ها را پیام می‌دهیم.</p>
+   <div class="row tight">${['۱ برنده','۳ برنده','۵ برنده'].map((x,i)=>`<button class="chip ${i===0?'on':''}" data-chip>${x}</button>`).join('')}</div>`,
+  go:()=>{log('قرعه‌کشی انجام شد'); closeSheets(); toast('قرعه‌کشی انجام شد')}},
+  cert:{t:'گواهینامه',body:()=>{
+   const U=window.NORA_UI||{}, event=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+   const issued=U.issuedCertificates?U.issuedCertificates():[], approvals=U.ownerApprovals?U.ownerApprovals():[];
+   const now=issued.filter(c=>event?String(c.eventId)===String(event.id):c.eventTitle===(CUR.head||CUR.name)).length;
+   const req=approvals.filter(x=>x&&['cert-request','cert-batch'].includes(x.type)&&x.status==='pending'&&
+     (event?String(x.eventId||x.recipient&&x.recipient.eventId)===String(event.id):x.eventTitle===(CUR.head||CUR.name))).length;
+   return `
+   <p class="sub">${FINANCE_OWNER?`برای ${faN(CUR.paid)} نفرِ واجد شرایط می‌توان درخواست ثبت کرد؛ `:'فقط درخواست صدور ثبت می‌شود؛ '}
+     هیچ گواهی پیش از <b>تأیید نهایی مالک</b> صادر، نمایش یا تحویل نمی‌شود. سرپرست فقط می‌تواند درخواست بسازد.</p>
+   <div class="card sunk" style="margin-top:10px;padding:10px">
+     <div class="row" style="margin-bottom:8px"><span class="fw">پیش‌نمایش موتور · نمونهٔ بدون صدور</span><span class="sp"></span>
+       <span class="cap">${FINANCE_OWNER?'فقط برای مالک':'فقط مالک می‌تواند ببیند'}</span></div>
+     ${FINANCE_OWNER?'<div id="chCertPrev" style="overflow:hidden;border-radius:14px"></div>':
+       '<div class="cap">پیش‌نمایش این موتور برای نقش سرپرست پنهان است؛ آزمایش از صدور واقعی جداست.</div>'}
+   </div>
+   <div class="srow" style="margin-top:12px"><svg class="i"><use href="#i-shield"/></svg>
+     <span class="sp">درخواست‌ها به صف محلی مالک می‌روند؛ فقط مالک پیش‌نمایش، صدور نهایی و تأیید اعلان را در اختیار دارد.</span></div>
+   <div class="row tight" style="margin-top:8px">
+     <span class="tag ok">${faN(now)} ثبت‌شده در رجیستری محلی</span>
+     <span class="tag warn">${faN(req)} منتظر مالک</span>
+   </div>
+   <div><label class="lbl" style="margin-top:10px">مدت دورهٔ پیشنهادی روی گواهینامه</label>
+     <input class="input" id="chCertHours" value="${CUR.certHours||''}" placeholder="مثلاً ۲۴ ساعت"/></div>
+   <div class="row tight" style="margin-top:12px">
+     <button class="btn primary" id="chCertGo"><svg class="i"><use href="#i-send"/></svg> درخواست برای ${faN(CUR.paid)} نفر · بدون صدور</button>
+   </div>`},
+  after:()=>prevCert(),
+  go:()=>{
+   CUR.certHours=document.getElementById('chCertHours').value.trim();
+   closeSheets(); renderInfo(); renderPanel();
+   toast('تنظیم گواهینامه ذخیره شد')}},
+ webhook:{t:'وبهوک و رخدادها',body:()=>{
+   const w=CUR.webhook||{on:false,url:'',events:[],last:''};
+   const EV=[['completed','پاسخ کامل شد'],['paid','پرداخت قطعی شد'],['approved','تأیید شد'],['rejected','رد شد']];
+   return `
+   <p class="cap">وبهوک در این نسخه درخواست نمونه است؛ هیچ POST انجام نمی‌شود. رخدادهای انتخابی فقط به صف محلی بازبینی مالک می‌روند و اتصال سروری خاموش است.</p>
+   <div class="row"><div style="flex:1"><b class="sub">وبهوک روشن</b><div class="cap">بی‌نشانی، هیچ رخدادی به جایی نمی‌رود</div></div>
+     <span class="switch ${w.on?'on':''}" id="chWhOn" role="switch"></span></div>
+   <div><label class="lbl">نشانی گیرنده (HTTPS)</label>
+     <input class="input" id="chWhUrl" style="direction:ltr" value="${w.url||''}" placeholder="https://example.com/hook"/></div>
+   <div><label class="lbl">کدام رخدادها خبر بروند</label>
+     <div class="row tight">${EV.map(([k,t])=>`<button class="chip ${w.events.includes(k)?'on':''}" data-chip data-wev="${k}">${t}</button>`).join('')}</div></div>
+   ${w.last?`<div class="mini">آخرین ارسال: ${w.last}</div>`:''}
+   <p class="mini">نشانی باید با https شروع شود؛ نشانی ناامن ذخیره نمی‌شود.</p>`;
+  },
+  go:()=>{
+   const on=document.getElementById('chWhOn').classList.contains('on');
+   const url=(document.getElementById('chWhUrl').value||'').trim();
+   const evs=[...document.querySelectorAll('#chBody .chip.on[data-wev]')].map(c=>c.dataset.wev);
+   if(url&&!/^https:\/\//.test(url)){toast('نشانی امن نیست؛ باید با https:// شروع شود');return}
+   if(on&&!url){toast('برای روشن کردن، نشانی گیرنده را بنویسید');return}
+   CUR.webhook={on,url,events:evs,last:CUR.webhook?CUR.webhook.last:''};
+   log(on?('وبهوک روشن شد · '+faN(evs.length)+' رخداد به '+url):'وبهوک خاموش شد');
+   const b=chBack; chBack=null;
+   if(b){fillSettings(); openSheet('shSettings')} else closeSheets();
+   toast(on?'وبهوک ذخیره شد':'وبهوک خاموش شد')}},
+ appr:{t:'گردش کار چندمرحله‌ای',body:()=>{
+   const q=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending');
+   const ev=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+   return `
+   <div class="row"><div style="flex:1"><b class="sub">تأیید ادمین لازم است</b>
+     <div class="cap">پاسخ‌ها بی‌درنگ قطعی نمی‌شوند؛ اول به صف تأیید می‌روند</div></div>
+     <span class="switch ${CUR.appr.on?'on':''}" id="chApOn" role="switch"></span></div>
+   ${ev?`<div class="srow"><svg class="i"><use href="#i-calendar"/></svg>
+     <span class="sp">فرم زیر رویداد «${ev.n}» است؛ با هر تأیید، ثبت‌نام خودکار همان‌جا انجام می‌شود.</span></div>`
+     :`<p class="cap">فرم به رویدادی وصل نیست؛ تأیید فقط پاسخ را قطعی می‌کند.</p>`}
+   <div class="row" style="margin-top:6px"><b class="sub">صف تأیید</b><span class="sp"></span>
+     <span class="tag ${q.length?'warn':''}">${faN(q.length)} منتظر</span></div>
+   ${q.length?q.map(p=>`<div class="card sunk" style="padding:10px">
+      <div class="row" style="margin-bottom:8px"><div style="flex:1;min-width:0"><b>${p.name}</b>
+        <div class="cap num">${maskPhone(p.mobile)} · کد ${p.code}</div></div>
+        <span class="tag warn">منتظر</span></div>
+      <div class="row tight">
+        <button class="btn sm quiet" data-apview="${p.id}"><svg class="i"><use href="#i-eye"/></svg> مشاهده</button>
+        <button class="btn sm primary" data-apok="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید</button>
+        <button class="btn sm stop" data-apno="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد</button></div></div>`).join('')
+     :'<div class="empty" style="padding:12px"><div class="body">صف خالی است؛ پاسخ تازه‌ای منتظر نیست</div></div>'}
+   <p class="cap">با رد، پاسخ محلی باطل می‌شود؛ اعلان کاربر فقط پس از تأیید مالک در حساب محلی ظاهر می‌شود.</p>`;
+  },
+  go:null},
+ _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
+};
+function log(w){CUR.changes.unshift([w,nowFa()]); renderChanges();}
+/* پیش‌نمایش برگ و ثبت درخواست گواهینامه · برگ از همان موتور ui.js ساخته می‌شود */
+function certFields(f,p){
+  return {name:p.name==='بی‌نام'?'شرکت‌کننده':p.name,title:f.head,kind:'نمونهٔ آزمایشی · بدون صدور',
+    date:ticketMeta(f.start),hours:f.certHours||'',code:'SAMPLE',serial:'TEST-'+shortCode('builder-preview:'+f.id),
+    approver:'مالک · نمونه',qr:false};
+}
+function prevCert(){
+  const el=document.getElementById('chCertPrev'); if(!FINANCE_OWNER||!el||typeof certificateSVG!=='function') return;
+  const p=PEOPLE.filter(x=>x.form===CUR.id&&x.state==='paid')[0]||{name:'نمونهٔ آزمایشی',code:''};
+  el.innerHTML=certificateSVG(certFields(CUR,p));
+}
+function builderCertRecord(p,f){
+  const U=window.NORA_UI||{}, ev=f&&f.event||{}, mobile=String(p&&p.mobile||'').replace(/\D/g,'').slice(-10);
+  const title=f&&f.head||f&&f.name||'';
+  return (U.issuedCertificates?U.issuedCertificates():[]).find(c=>c&&c.state==='issued'&&
+    (ev.id?String(c.eventId||'')===String(ev.id):String(c.eventTitle||c.title||'')===String(title))&&
+    ((c.userId&&String(c.userId)===String(p.id))||(mobile&&String(c.mobile||'').replace(/\D/g,'').slice(-10)===mobile)||
+      (p.name&&String(c.name||'').trim()===String(p.name).trim())))||null;
+}
+function builderCertPending(p,f){
+  if(builderCertRecord(p,f)) return null;
+  const U=window.NORA_UI||{}, ev=f&&f.event||{}, mobile=String(p&&p.mobile||'').replace(/\D/g,'').slice(-10);
+  const title=f&&f.head||f&&f.name||'';
+  return (U.ownerApprovals?U.ownerApprovals():[]).find(x=>x&&['cert-request','cert-batch'].includes(x.type)&&x.status==='pending'&&
+    (Array.isArray(x.recipients)?x.recipients:(x.recipient?[x.recipient]:[])).some(r=>{
+      const sameEvent=ev.id?String(r.eventId||x.eventId||'')===String(ev.id):String(r.eventTitle||x.eventTitle||'')===String(title);
+      return sameEvent&&((r.userId&&String(r.userId)===String(p.id))||
+        (mobile&&String(r.mobile||'').replace(/\D/g,'').slice(-10)===mobile)||String(r.name||'').trim()===String(p.name||'').trim());
+    }))||null;
+}
+function builderCertCounts(f){
+  const U=window.NORA_UI||{}, ev=f&&f.event||{}, title=f&&f.head||f&&f.name||'';
+  const matches=(row,job)=>ev.id?String(row.eventId||job&&job.eventId||'')===String(ev.id):
+    String(row.eventTitle||job&&job.eventTitle||job&&job.title||'')===String(title);
+  const issued=(U.issuedCertificates?U.issuedCertificates():[]).filter(c=>c&&c.state==='issued'&&matches(c,null)).length;
+  let pending=0;
+  (U.ownerApprovals?U.ownerApprovals():[]).forEach(x=>{
+    if(!x||!['cert-request','cert-batch'].includes(x.type)||x.status!=='pending') return;
+    const recs=Array.isArray(x.recipients)?x.recipients:(x.recipient?[x.recipient]:[]);
+    const count=recs.filter(r=>matches(r,x)).length;
+    if(count) pending+=count;
+  });
+  return {issued,pending};
+}
+function requestCerts(one){
+  const U=window.NORA_UI||{}, event=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+  const list=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid'&&(one==null||p.id===one)), created=[];
+  CUR.certReq=CUR.certReq||{};
+  list.forEach(p=>{
+    const recipient={userId:p.id,name:p.name==='بی‌نام'?'شرکت‌کننده':p.name,mobile:p.mobile||'',code:p.code||'',
+      eventId:event?event.id:'',eventTitle:event?event.n:(CUR.head||CUR.name),hours:CUR.certHours||''};
+    const dedupeKey='builder-cert:'+CUR.id+':'+p.id;
+    const issued=(U.issuedCertificates?U.issuedCertificates():[]).some(c=>
+      (c.userId&&String(c.userId)===String(p.id))||
+      (c.mobile&&String(c.mobile).replace(/\D/g,'').slice(-10)===String(p.mobile||'').replace(/\D/g,'').slice(-10)));
+    if(issued||p.certIssued&&p.certIssued[p.id]){p.cert=true; return}
+    const existing=(U.ownerApprovals?U.ownerApprovals():[]).find(x=>x&&x.dedupeKey===dedupeKey&&x.status==='pending');
+    if(existing){CUR.certReq[p.id]={at:'منتظر تأیید مالک',ownerQueueId:existing.id}; p.certReq=true; return}
+    if(!U.ownerApprovalAdd) return;
+    const req=U.ownerApprovalAdd({type:'cert-request',status:'pending',source:'builder',dedupeKey,
+      title:'گواهینامه · '+(event?event.n:(CUR.head||CUR.name)),eventId:event?event.id:'',
+      eventTitle:event?event.n:(CUR.head||CUR.name),kind:'گواهینامهٔ پایان دوره',hours:CUR.certHours||'',
+      requestedBy:(ADMIN_PERSON&&ADMIN_PERSON.n)||'مدیر فرم',requestedById:(ADMIN_PERSON&&ADMIN_PERSON.k)||'',
+      requestedRole:(ADMIN_PERSON&&ADMIN_PERSON.lv)||'',requestedAt:Date.now(),recipient,
+      notification:{title:'گواهینامهٔ آمادهٔ دریافت',body:'{نام} عزیز، پس از تأیید نهایی مالک، گواهینامهٔ «{رویداد}» در حساب محلی تو آماده می‌شود.'}});
+    if(req){CUR.certReq[p.id]={at:'منتظر تأیید مالک',ownerQueueId:req.id}; p.certReq=true; created.push(p)}
+  });
+  if(created.length) log(created.length===1?('درخواست گواهینامهٔ «'+created[0].name+'» برای تأیید مالک ثبت شد')
+    :('درخواست گواهینامه برای '+faN(created.length)+' نفر برای تأیید مالک ثبت شد'));
+  return created;
+}
+function openChange(key){
+  if(['fin','coupon','gw','_money','formfinance','centralfinance'].includes(key)){
+    if(!FINANCE_OWNER){toast('تنظیمات و جزئیات مالی فقط برای مالک است');return}
+    if(key==='formfinance'){
+      if(!CUR.made){toast('این فرم نمونه است و در انبار مشترک ویرایش‌پذیر نیست');return}
+      location.href='create.html?fid='+encodeURIComponent(CUR.id); return;
+    }
+    go('fMoney'); return;
+  }
+  const c=CHANGES[key]; if(!c) return;
+  if(c.sheet){openSheet(c.sheet);return}
+  if(!c.body){if(c.open)c.open();return}
+  document.getElementById('chTitle').textContent=c.t;
+  document.getElementById('chBody').innerHTML=c.body();
+  const btn=document.getElementById('chApply');
+  btn.textContent=c.go?'اعمال کن':'باشه';
+  btn.onclick=e=>{ if(c.go) c.go(e.target); else {const b=chBack; chBack=null;
+    if(b){if(b==='shSettings')fillSettings(); document.getElementById(b).classList.add('on');
+      document.getElementById('scrim').classList.add('on');}
+    else closeSheets(); } };
+  openSheet('shChange');
+  if(c.open)c.open();
+  initAll(document.getElementById('chBody'));
+  if(c.after)c.after();
+}
+
+/* ── رویدادها ────────────────────────────────────────────────── */
+document.addEventListener('click',e=>{
+  const fs=e.target.closest('[data-form-settings]'); if(fs){openFormSettings(fs.dataset.formSettings);return}
+  const g=e.target.closest('[data-go]'); if(g){go(g.dataset.go);return}
+  const card=e.target.closest('[data-form]');
+  if(card&&!e.target.closest('[data-copy]')){openForm(card.dataset.form);return}
+  const responseRefresh=e.target.closest('[data-refresh-server-responses]');
+  if(responseRefresh){void refreshServerResponses(responseRefresh.dataset.refreshServerResponses);return}
+  const responsePage=e.target.closest('[data-response-page]');
+  if(responsePage){if(!responsePage.disabled&&CUR&&CUR.serverManaged)void refreshServerResponses(CUR.id,responsePage.dataset.responsePage);return}
+  const pr=e.target.closest('[data-person]'); if(pr){openUser(pr.dataset.person);return}
+  const op=e.target.closest('[data-open]'); if(op){go(op.dataset.open);return}
+  const tb=e.target.closest('#pSeg button'); if(tb){tab(tb.dataset.tab);return}
+  const openTab=e.target.closest('[data-open-tab]');if(openTab){tab(openTab.dataset.openTab);return}
+  const pf=e.target.closest('[data-pf]'); if(pf){PFILTER=pf.dataset.pf;renderAnswers();return}
+  const evd=e.target.closest('[data-evdetach]');
+  if(evd){CUR.event=null; CUR.changes.unshift(['امروز · فرم از رویداد جدا شد','خودم']);
+    renderInfo(); renderPanel(); toast('از رویداد جدا شد'); return}
+  const ch=e.target.closest('[data-change]'); if(ch){
+    if(CUR&&CUR.serverDraft){location.href='create.html?fid='+encodeURIComponent(CUR.id);return}
+    chBack=ch.closest('#shSettings')?'shSettings':null; openChange(ch.dataset.change);return}
+  const am=e.target.closest('[data-attmode]');
+  if(am){ATTMODE=am.dataset.attmode; renderAttend();
+    if(ATTMODE==='auto') toast('با لینک جلسه، ورود خودش ثبت می‌شود'); return}
+  const tr=e.target.closest('[data-att]');
+  if(tr){attToggle(tr.dataset.att); return}
+  const abe=e.target.closest('[data-abexport]');
+  if(abe){log('خروجی حضور فرم «'+CUR.name+'» ساخته شد · '+faN(attIn())+' حاضر از '+faN(attList().length));
+    toast('فایل حضور آماده شد'); return}
+  const abm=e.target.closest('[data-absentmsg]');
+  if(abm){msgWho=null; msgAud='absent'; renderMsg(); openSheet('shMsg'); return}
+  const me=e.target.closest('[data-me]');
+  if(me){ME=me.dataset.me; renderMine(); toast('کارتابل '+ME+' آمد'); return}
+  const tk=e.target.closest('[data-take]');
+  if(tk){if(!RECEIPT_REVIEWER){toast('برای بازبینی فیش دسترسی سرپرست یا مالک لازم است');return}
+    const p=PEOPLE.find(x=>x.id===tk.dataset.take); if(!p)return; p.owner=ME;
+    log('«'+p.name+'» را '+ME+' برداشت'); renderMine(); toast('این رسید مال خودت شد'); return}
+  const ps=e.target.closest('[data-pass]');
+  if(ps){if(!RECEIPT_REVIEWER){toast('برای واگذاری فیش دسترسی لازم است');return}
+    passId=ps.dataset.pass||''; passTo=null; openSheet('shPass');
+    document.getElementById('passWho').innerHTML=TEAM.filter(t=>t.n!==ME).map(t=>
+      `<button class="chip" data-passto="${t.n}">${t.n} · ${(DEPTS.find(d=>d.id===t.d)||{}).n}</button>`).join('');
+    return}
+  const po=e.target.closest('[data-passto]');
+  if(po){passTo=po.dataset.passto;
+    document.querySelectorAll('#passWho .chip').forEach(c=>c.classList.toggle('on',c===po)); return}
+  const co=e.target.closest('[data-certreq]');
+  if(co){const p=PEOPLE.find(x=>x.id===co.dataset.certreq);
+    if(p){const r=requestCerts(p.id); renderInfo(); renderPanel(); openUser(p.id);
+      toast(r.length?'درخواست گواهینامه ثبت شد؛ فقط مالک می‌تواند پیش‌نمایش و صدور نهایی را تأیید کند':'درخواست تازه‌ای ساخته نشد؛ احتمالاً از پیش در صف مالک است یا گواهی دارد')}; return}
+  const mu=e.target.closest('[data-msg]');
+  if(mu){msgWho=mu.dataset.msg; openMsg(); return}
+  const mo=e.target.closest('[data-msgone]');
+  if(mo){msgWho=mo.dataset.msgone; openMsg(); return}
+  const ap=e.target.closest('[data-approve]');
+  if(ap){if(!RECEIPT_REVIEWER){toast('تأیید فیش فقط برای مالک یا سرپرست است');return}
+    const p=PEOPLE.find(x=>x.id===ap.dataset.approve); if(!p||p.state!=='pending'){toast('این فیش در انتظار بررسی نیست');return} p.state='paid';
+    const notice=ownerNoticeAdd({source:'builder-receipt-approved',title:'تأیید رسید · '+p.name,
+      notification:{title:'رسید پرداخت تأیید شد',body:'{نام} عزیز، رسید پرداخت تو تأیید شد و ثبت‌نامت قطعی شد.'},
+      recipients:[{userId:p.id,name:p.name,mobile:p.mobile,eventId:(CUR.event&&CUR.event.id)||'',eventTitle:CUR.head||CUR.name}]});
+    log('رسید '+p.name+' تأیید شد · ثبت‌نام قطعی؛ اعلان منتظر مالک است'); renderKartabl(); renderMine(); renderAnswers(); renderMoney();
+    if(CURP&&CURP.id===p.id) openUser(p.id); toast('رسید تأیید شد'+(notice?'؛ اعلان در صف مالک':'؛ اعلان ثبت نشد و ارسال واقعی وصل نیست')); return}
+  const rj=e.target.closest('[data-reject]');
+  if(rj){if(!RECEIPT_REVIEWER){toast('رد فیش فقط برای مالک یا سرپرست است');return}
+    rejectId=rj.dataset.reject; openSheet('shReject'); return}
+  const kd=e.target.closest('[data-kd]');
+  if(kd){KDEPT=kd.dataset.kd||''; renderKartabl(); return}
+  const lc=e.target.closest('#listChips .chip');
+  if(lc){if(lc.dataset.chip==='money'&&!FINANCE_OWNER){toast('فیلتر مالی فقط برای مالک است');return}
+    document.querySelectorAll('#listChips .chip').forEach(x=>x.classList.remove('on'));lc.classList.add('on');
+    FILTER=lc.dataset.chip; renderList(); return}
+});
+let rejectId=null;
+/* ورقهٔ تنظیمات باید مقادیر همین فرم را نشان دهد، نه فرم نخست */
+function fillSettings(){
+  document.getElementById('setForm').textContent=CUR.name+' · '+displaySlug(CUR.slug);
+  document.querySelectorAll('#setStatus button').forEach(b=>b.classList.toggle('on',b.dataset.v===CUR.status));
+  document.getElementById('setCap').value=faN(CUR.cap||0);
+  document.getElementById('setPer').value=faN(CUR.per);
+  document.getElementById('setSlug').value=CUR.slug;
+  document.getElementById('setWait').classList.toggle('on',!!CUR.wait);
+  document.getElementById('setWait').setAttribute('aria-checked',String(!!CUR.wait));
+  const w=CUR.webhook||{on:false,url:'',events:[]};
+  document.getElementById('setWhSub').textContent=w.on?(w.url.replace(/^https:\/\//,'').slice(0,30)+' · '+faN(w.events.length)+' رخداد'):'خاموش';
+  const aq=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending').length;
+  document.getElementById('setApSub').textContent=(CUR.appr&&CUR.appr.on)?(faN(aq)+' پاسخ منتظر تأیید'):'خاموش';
+  document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR.start);
+  document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR.ends);
+  initAll(document.getElementById('shSettings'));
+}
+document.getElementById('openSettings').onclick=()=>{
+  if(CUR&&CUR.serverManaged===true){location.href='create.html?fid='+encodeURIComponent(CUR.id);return}
+  fillSettings();openSheet('shSettings');
+};
+document.addEventListener('click',e=>{
+  const one=e.target.closest('.chip[data-n],.chip[data-x],.chip[data-st],#reasons .chip');
+  if(!one) return;
+  one.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  one.classList.add('on');
+});
+document.getElementById('q').addEventListener('input',renderList);
+document.getElementById('attQ').addEventListener('input',()=>renderAttend());
+document.getElementById('attGo').onclick=()=>{
+  const c=unFa((document.getElementById('attCode').value||'').trim()).toUpperCase();
+  if(!c){toast('کد پیگیری را بخوانید'); return}
+  attToggle(null,c);
+  document.getElementById('attCode').value='';
+};
+/* ── پیام به پاسخ‌دهنده: تک‌نفر یا گروهی، با تاریخچه ── */
+let msgWho=null, msgAud='all';
+const AUD={
+  all:{t:'همهٔ پاسخ‌دهنده‌ها',f:list=>list},
+  paid:{t:'فقط پرداخت‌شده‌ها',f:list=>list.filter(p=>p.state==='paid')},
+  pending:{t:'فقط در انتظار تأیید',f:list=>list.filter(p=>p.state==='pending')},
+  absent:{t:'غایب‌های این جلسه',f:list=>list.filter(p=>p.state==='paid'&&!p.att)},
+  half:{t:'نیمه‌کاره‌ها (یادآوری)',f:list=>list.filter(p=>p.state==='half')}};
+function msgTargets(){
+  if(msgWho){const p=PEOPLE.find(x=>x.id===msgWho); return p?[p]:[]}   /* تک‌نفر: فرقی نمی‌کند فرم باز کدام است */
+  return AUD[msgAud].f(PEOPLE.filter(p=>p.form===CUR.id));
+}
+function renderMsg(){
+  const one=msgWho?PEOPLE.find(p=>p.id===msgWho):null;
+  document.getElementById('msgHead').textContent=one?'پیام به '+one.name:'پیام به پاسخ‌دهنده‌ها';
+  const fname=one?((FORMS.find(x=>x.id===one.form)||CUR).name):CUR.name;
+  document.getElementById('msgSub').textContent=one?('فرم «'+fname+'» · کد پیگیری '+one.code):('فرم «'+fname+'»');
+  document.getElementById('msgAudBox').style.display=one?'none':'';
+  const ab=document.getElementById('msgAud');
+  if(!one&&!ab.dataset.done){ab.dataset.done='1';
+    ab.innerHTML=Object.entries(AUD).map(([k,v])=>`<button class="chip ${k===msgAud?'on':''}" data-aud="${k}">${v.t}</button>`).join('');}
+  const n=msgTargets().length;
+  document.getElementById('msgCount').textContent=n?faN(n)+' گیرنده':'گیرنده‌ای نیست';
+}
+function openMsg(){renderMsg(); openSheet('shMsg');}
+document.addEventListener('click',e=>{
+  const au=e.target.closest('[data-aud]');
+  if(au){msgAud=au.dataset.aud; document.querySelectorAll('#msgAud .chip').forEach(c=>c.classList.toggle('on',c===au)); renderMsg(); return}
+  const qk=e.target.closest('[data-quick]');
+  if(qk){document.getElementById('msgText').value=qk.dataset.quick; document.getElementById('msgText').focus(); return}
+});
+document.getElementById('msgGo').onclick=()=>{
+  const txt=(document.getElementById('msgText').value||'').trim();
+  if(!txt){toast('متن پیام خالی است'); return}
+  const list=msgTargets();
+  if(!list.length){toast('گیرنده‌ای انتخاب نشده'); return}
+  const recipients=list.map(p=>({userId:p.id||'',name:p.name||'',mobile:p.mobile||'',
+    eventId:(CUR.event&&CUR.event.id)||'',eventTitle:CUR.head||CUR.name}));
+  const title=msgWho?'پیام به '+list[0].name:'پیام گروهی · '+CUR.name;
+  const req=ownerNoticeAdd({source:'builder-message',title,notification:{title:'پیام از پنل نورا',body:txt},
+    recipients,eventId:(CUR.event&&CUR.event.id)||'',eventTitle:CUR.head||CUR.name});
+  if(!req){toast('صف تأیید مالک در دسترس نیست؛ پیام ذخیره یا ارسال نشد'); return}
+  log('درخواست پیام به '+faN(list.length)+' نفر از فرم «'+CUR.name+'» برای تأیید مالک ثبت شد');
+  closeSheets(); document.getElementById('msgText').value='';
+  toast(faN(list.length)+' پیام برای بازبینی مالک ثبت شد؛ هنوز به کاربر نرسیده است');
+};
+let passId='', passTo=null;
+document.addEventListener('click',e=>{
+  if(e.target.closest('#chCertGo')){
+    const h=document.getElementById('chCertHours'); if(h) CUR.certHours=h.value.trim();
+    const eligible=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
+    if(!eligible.length){toast('هنوز کسی پرداخت‌شده نیست'); return}
+    const l=requestCerts(null);
+    if(!l.length){toast('درخواست تازه‌ای ساخته نشد؛ این افراد از پیش در صف مالک‌اند یا گواهی دارند'); return}
+    closeSheets(); renderInfo(); renderPanel(); renderAnswers();
+    toast((l.length===1?'درخواست گواهینامهٔ '+l[0].name+' برای مالک ثبت شد':'درخواست '+faN(l.length)+' گواهینامه برای مالک ثبت شد')+' · هنوز صدور یا اطلاع‌رسانی انجام نشده'); return}
+});
+/* ── گردش کار: صف تأیید پاسخ‌ها + خبردهی وبهوک ── */
+function whFire(ev,p){
+  const w=CUR.webhook; if(!w||!w.on||!w.url||!(w.events||[]).includes(ev)) return null;
+  const N={completed:'پاسخ کامل',paid:'پرداخت قطعی',approved:'تأیید',rejected:'رد'};
+  const row=ownerNoticeAdd({source:'builder-webhook',testOnly:true,title:'پیش‌نمایش وبهوک · '+(N[ev]||ev),
+    notification:{title:'درخواست وبهوک',body:'رخداد «'+(N[ev]||ev)+'» در فرم «'+CUR.name+'» برای بازبینی مالک ثبت شد.'},
+    recipients:[],webhookPreview:{url:w.url,event:ev,personId:p&&p.id||''}});
+  w.last=row?'در انتظار تأیید مالک · ارسال واقعی غیرفعال':'ارسال غیرفعال · اتصال سروری وجود ندارد';
+  return row||null;
+}
+document.addEventListener('click',e=>{
+  const vw=e.target.closest('[data-apview]');
+  if(vw){openUser(vw.dataset.apview); return}
+  const okb=e.target.closest('[data-apok]');
+  if(okb){const p=PEOPLE.find(x=>x.id===okb.dataset.apok); if(!p) return;
+    if(p.state!=='pending'){toast('این پاسخ قبلاً بررسی شده'); return}
+    p.state='paid'; const webhook=whFire('approved',p);
+    const ev=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+    const notice=ownerNoticeAdd({source:'builder-response-approved',title:'تأیید پاسخ · '+CUR.name,
+      notification:{title:'پاسخ شما تأیید شد',body:'{نام} عزیز، پاسخ فرم «'+CUR.name+'» تأیید شد.'},
+      recipients:[{userId:p.id,name:p.name,mobile:p.mobile,eventId:ev&&ev.id||'',eventTitle:ev&&ev.n||CUR.name}]});
+    log('«'+p.name+'» تأیید شد'+(ev?(' · ثبت‌نام خودکار در «'+ev.n+'»'):'' )+'؛ اعلان منتظر مالک است');
+    renderAnswers(); renderList();
+    openChange('appr');
+    toast(p.name+' تأیید شد'+(ev?' و در رویداد ثبت‌نام شد':'')+(notice?' · اعلان در صف مالک است':' · اعلان ثبت نشد؛ ارسال واقعی وصل نیست')+(webhook?' · وبهوک هم منتظر مالک است':''));
+    return}
+  const no=e.target.closest('[data-apno]');
+  if(no){const p=PEOPLE.find(x=>x.id===no.dataset.apno); if(!p) return;
+    if(p.state!=='pending'){toast('این پاسخ قبلاً بررسی شده'); return}
+    p.state='void'; const webhook=whFire('rejected',p);
+    const notice=ownerNoticeAdd({source:'builder-response-rejected',title:'رد پاسخ · '+CUR.name,
+      notification:{title:'پاسخ نیازمند اصلاح است',body:'{نام} عزیز، پاسخ فرم «'+CUR.name+'» رد شد. برای پیگیری با پشتیبانی تماس بگیر.'},
+      recipients:[{userId:p.id,name:p.name,mobile:p.mobile,eventId:(CUR.event&&CUR.event.id)||'',eventTitle:CUR.head||CUR.name}]});
+    log('«'+p.name+'» رد شد · پاسخ باطل شد؛ اعلان منتظر مالک است');
+    renderAnswers(); renderList(); renderKartabl();
+    openChange('appr');
+    toast('پاسخ رد شد؛ اعلان '+(notice?'در صف تأیید مالک':'ثبت نشد')+' و هنوز فرستاده نشده'+(webhook?'؛ وبهوک نیز در صف مالک است':'')); return}
+});
+
+document.getElementById('passGo').onclick=()=>{
+  if(!RECEIPT_REVIEWER){toast('برای واگذاری فیش دسترسی لازم است');return}
+  const p=PEOPLE.find(x=>x.id===passId); if(!p) return;
+  if(!passTo){toast('کارشناس را انتخاب کنید'); return}
+  p.owner=passTo;
+  log('«'+p.name+'» به '+passTo+' سپرده شد');
+  closeSheets(); renderMine(); renderKartabl(); renderAnswers();
+  toast('به '+passTo+' سپرده شد');
+};
+document.getElementById('rejGo').onclick=()=>{
+  if(!RECEIPT_REVIEWER){toast('رد فیش فقط برای مالک یا سرپرست است');return}
+  const p=PEOPLE.find(x=>x.id===(rejectId||(CURP&&CURP.id)))||CURP;
+  if(!p||p.state!=='pending'){toast('این فیش در انتظار بررسی نیست');return}
+  const note=document.getElementById('rejNote').value||'رسید تأیید نشد'; let notice=null;
+  if(p){p.state='void'; p.note=note;
+    notice=ownerNoticeAdd({source:'builder-receipt-rejected',title:'رد رسید · '+p.name,
+      notification:{title:'رسید نیازمند پیگیری است',body:'{نام} عزیز، رسید پرداخت تأیید نشد: '+note},
+      recipients:[{userId:p.id,name:p.name,mobile:p.mobile,eventId:(CUR.event&&CUR.event.id)||'',eventTitle:CUR.head||CUR.name}]});
+    log('رسید '+p.name+' رد شد · ثبت‌نام باطل؛ اعلان منتظر مالک است');
+    if(CURP&&CURP.id===p.id) openUser(p.id);}
+  closeSheets(); renderKartabl(); renderAnswers(); renderMoney(); toast('رسید رد شد؛ اعلان '+(notice?'در صف تأیید مالک':'ثبت نشد')+' و ارسال نشده است');
+};
+document.getElementById('excelGo').onclick=()=>{const cols=[...document.querySelectorAll('#cols .chip.on')].length;
+  closeSheets(); log('خروجی اکسل با '+faN(cols)+' ستون ساخته شد'); toast('فایل اکسل آماده شد')};
+document.getElementById('setSave').onclick=()=>{
+  CUR.cap=NR(unFa(document.getElementById('setCap').value))||CUR.cap;
+  CUR.per=NR(unFa(document.getElementById('setPer').value))||CUR.per;
+  CUR.wait=document.getElementById('setWait').classList.contains('on');
+  CUR.slug=document.getElementById('setSlug').value||CUR.slug;
+  const sv=document.querySelector('#setStatus .on'); if(sv){CUR.status=sv.dataset.v;
+    CUR.tone=CUR.status==='باز'?'ok':CUR.status==='بسته'?'':'warn'}
+  CUR.start=pickVal(document.getElementById('setStart')).full;
+  CUR.ends=pickVal(document.getElementById('setEnd')).full;
+  log('تنظیمات فرم ذخیره شد · '+CUR.status+'، ظرفیت '+faN(CUR.cap)); closeSheets(); renderPanel(); renderList(); toast('تنظیمات ذخیره شد')};
+let archArm=false;
+document.getElementById('setArchive').onclick=e=>{
+  if(!archArm){archArm=true; e.target.textContent='مطمئنید؟ بایگانی کن'; e.target.classList.add('stop');
+    setTimeout(()=>{if(archArm){archArm=false; e.target.textContent='بایگانی فرم';}},5000); return}
+  archArm=false; e.target.textContent='بایگانی فرم';
+  CUR.status='بسته'; CUR.tone='';
+  log('فرم بایگانی شد'); closeSheets(); renderPanel(); renderList(); toast('بایگانی شد')};
+document.getElementById('invite').onclick=()=>toast('دعوت‌نامهٔ کارشناس فرستاده شد');
+
+/* فرم‌ساز و گزارش از یک انبار می‌خوانند؛ بعد از انتشار/بازگشت، فهرست تازه می‌شود. */
+function refreshSharedForms(){
+  syncLocalResponses();
+  const selected=CUR&&CUR.made?String(CUR.id):null, fresh=TEST_FIXTURE_MODE?storeForms():SERVER_FORMS.slice();
+  for(let i=FORMS.length-1;i>=0;i--) if(FORMS[i].made) FORMS.splice(i,1);
+  FORMS.unshift(...fresh);
+  if(selected) CUR=FORMS.find(f=>String(f.id)===selected)||FORMS[0]||null;
+  else if(!CUR) CUR=FORMS[0]||null;
+  renderList();
+  const active=document.querySelector('.screen.on');
+  if(active&&active.id==='fPanel') renderPanel();
+  if(active&&active.id==='fMoney') renderMoney();
+  if(active&&active.id==='fReports') renderFormReports();
+  if(active&&active.id==='fSettings') renderFormSettings();
+  if(RECEIPT_REVIEWER&&(active&&['fKartabl','fMine'].includes(active.id))) renderKartabl();
+}
+async function formReaderSession(api){
+  try{
+    const owner=await api.me();
+    if(owner&&owner.authenticated===true&&owner.role==='owner') return owner;
+  }catch(error){if(!error||error.status!==401)throw error}
+  if(typeof api.accountMe!=='function') throw new api.Error(401,'authentication_required',null);
+  const account=await api.accountMe();
+  if(!account||account.authenticated!==true||!Array.isArray(account.permissions)
+      ||(!account.permissions.includes('fm_create')&&!account.permissions.includes('fm_responses')))
+    throw new api.Error(403,'permission_denied',account);
+  return account;
+}
+async function formResponseReaderSession(api){
+  const identity=await formReaderSession(api);
+  if(identity.role==='owner'||Array.isArray(identity.permissions)&&identity.permissions.includes('fm_responses'))return identity;
+  throw new api.Error(403,'permission_denied',identity);
+}
+function localServerForm(record){
+  const settings=record&&record.settings&&typeof record.settings==='object'?record.settings:{};
+  const rawFields=Array.isArray(record&&record.fields)?record.fields:[];
+  const labels={registration:'ثبت‌نام',questionnaire:'پرسشنامه',survey:'نظرسنجی',contest:'مسابقه',exam:'آزمون',attendance:'حضور و غیاب',datacollect:'ثبت اطلاعات',order:'سفارش',election:'رأی‌گیری'};
+  const responseCount=Math.max(0,Number(record&&record.response_count)||0);
+  return Object.assign({
+    kind:labels[record&&record.model]||'فرم',dept:'',expert:'',fin:[],gw:[],fields:[],rawFields:[],answers:[],responses:[],
+    changes:[],flags:[],start:'',ends:'',cap:0,wait:0,resp:responseCount,seen:0,started:0,
+    guestsOn:false,onePerPerson:false,sync:{cap:false,dates:false,limit:false},links:[],intro:'',endText:''
+  },settings,{
+    id:record.id,name:record.name,kind:labels[record.model]||'فرم',model:record.model,need:record.need,slug:record.slug?'/'+record.slug:'',
+    ev:record.ev||'',rawFields,fields:rawFields.map(field=>[String(field&&field.l||field&&field.label||'پرسش'),100]),status:record.status||'draft',
+    response_count:responseCount,resp:responseCount,
+    version:record.version||1,serverManaged:true,serverDraft:record.status!=='published',on:record.status==='published'?1:0,
+    display:record.need==='reg'?'one':settings.display==='all'?'all':'one',
+    at:Date.parse(record.updated_at||'')||Date.now()
+  });
+}
+const syncServerFormsButton=document.getElementById('syncServerForms');
+const syncReportFormsButton=document.getElementById('syncReportForms');
+if(syncReportFormsButton)syncReportFormsButton.addEventListener('click',()=>syncServerFormsButton&&syncServerFormsButton.click());
+if(syncServerFormsButton) syncServerFormsButton.addEventListener('click',async()=>{
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  const note=document.getElementById('serverFormsMessageText'), loginLink=document.getElementById('serverFormsLogin');
+  if(!api){if(note)note.textContent='API سروری در این صفحه بارگذاری نشده است؛ دادهٔ محلی جایگزین فهرست نمی‌شود.';return}
+  syncServerFormsButton.disabled=true; syncServerFormsButton.setAttribute('aria-busy','true');
+  if(note)note.textContent='در حال بررسی دسترسی مالک…';
+  if(loginLink)loginLink.style.display='none';
+  try{
+    const health=await api.health();
+    if(!health||health.ok!==true||health.formsEnabled!==true) throw new api.Error(503,'database_not_ready',health);
+    const formSession=await formReaderSession(api);
+    const result=await api.listForms(), items=Array.isArray(result&&result.items)?result.items:[];
+    const U=window.NORA_UI||{};
+    SERVER_FORMS=items.map(localServerForm);
+    SERVER_FORMS_LOADED=true;
+    let saved=0;
+    for(const row of SERVER_FORMS){if(U.formPut&&U.formPut(row))saved++}
+    refreshSharedForms();
+    const published=items.filter(item=>item&&item.status==='published').length;
+    const paused=items.filter(item=>item&&item.status==='paused').length;
+    const drafts=items.length-published-paused;
+    const sessionRole=formSession.role==='owner'?'مالک':formSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
+    if(note)note.textContent='دسترسی سروریِ '+sessionRole+' تأیید شد. '+faN(items.length)+' فرم از API دریافت شد؛ '
+      +faN(published)+' منتشرشده، '+faN(paused)+' متوقف و '+faN(drafts)+' پیش‌نویس. '
+      +faN(saved)+' نسخهٔ محلی فقط برای سازگاری پنل آماده شد.';
+  }catch(err){
+    if(err&&err.status===401){if(note)note.textContent='برای دسترسی به فرم‌ها با حساب بله یا ورود مالک اقدام کنید؛ هیچ فهرست محلی جایگزین نمی‌شود.';
+      if(loginLink)loginLink.style.display='inline'}
+    else if(err&&err.status===403&&err.code==='permission_denied'){if(note)note.textContent='این نقش به فهرست فرم‌ها دسترسی ندارد؛ با مالک سامانه هماهنگ کنید.'}
+    else if(err&&err.status===503){if(note)note.textContent='پایگاه‌داده یا migration آماده نیست؛ هیچ داده‌ای از سرور دریافت نشد.'}
+    else if(err&&err.status===404){if(note)note.textContent='API فرم‌ساز روی این میزبان در دسترس نیست؛ هیچ فرم نمونه‌ای نشان داده نمی‌شود.'}
+    else if(note)note.textContent='همگام‌سازی سروری انجام نشد؛ فهرست محلی تغییری نکرد ('+(err&&err.code||'خطا')+').';
+  }finally{syncServerFormsButton.disabled=false;syncServerFormsButton.removeAttribute('aria-busy')}
+});
+addEventListener('nora-forms-changed',refreshSharedForms);
+addEventListener('nora-regs-changed',refreshSharedForms);
+addEventListener('pageshow',refreshSharedForms);
+addEventListener('storage',e=>{if(e.key==='nora-finance'||e.key==='nora-forms'||e.key==='nora-regs') refreshSharedForms()});
+
+/* ── آغاز ────────────────────────────────────────────────────── */
+initUI();
+document.getElementById('financeNav').hidden=!FINANCE_OWNER;
+document.getElementById('coreFinanceLink').hidden=!FINANCE_OWNER;
+document.getElementById('moneyFilter').hidden=!FINANCE_OWNER;
+document.getElementById('fMoney').hidden=!FINANCE_OWNER;
+document.querySelectorAll('[data-go="fKartabl"],[data-go="fMine"]').forEach(el=>{el.hidden=TEST_FIXTURE_MODE&&!RECEIPT_REVIEWER});
+const exportColumns=[
+  ['نام و نام خانوادگی',true],['شماره موبایل',true],['تاریخ تولد',true],['استان و شهر',true],['دانشگاه',true],['شغل',true],['سطح تجربه',true],
+  ['مبلغ',false],['کد پیگیری',true],['وضعیت پرداخت',false],['درگاه',false],['تاریخ ثبت',true],['یادداشت',true]
+];
+document.getElementById('cols').innerHTML=exportColumns.filter(([name])=>FINANCE_OWNER||!['مبلغ','وضعیت پرداخت','درگاه'].includes(name)).map(([name,selected])=>
+  `<button class="chip ${selected?'on':''}" data-chip>${name}</button>`).join('');
+document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR&&CUR.start||'');
+document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR&&CUR.ends||'');
+renderList(); renderPanel(); renderKartabl(); renderMoney(); renderTeam(); renderFormReports(); renderFormSettings();
+</script>
+</body>
+</html>

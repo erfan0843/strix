@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>صفحه پیدا نشد | نورا</title>
+  <meta name="description" content="صفحه‌ای از دفتر نورا جا مانده؛ به خانه برگردید یا رویدادهای نورا را ببینید."/>
+  <meta name="robots" content="noindex,nofollow,noarchive"/>
+  <meta name="theme-color" content="#f5f3ee"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <style>
+    @font-face {
+      font-family: "Vazirmatn Nora";
+      src: url("/fonts/Vazirmatn-UI-FD-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: "Estedad Nora";
+      src: url("/fonts/Estedad-Variable.woff2") format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+    :root {
+      color-scheme: light;
+      --canvas: #f5f3ee;
+      --ink: #1e2b27;
+      --muted: #5f655f;
+      --brand: #0071e3;
+      --button: #0071e3;
+      --button-hover: #0a56b8;
+      --button-ink: #fff;
+      --focus: #0a5abc;
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--canvas); }
+    body {
+      min-height: 100vh;
+      min-height: 100svh;
+      margin: 0;
+      padding: 18px clamp(16px, 4vw, 44px) 28px;
+      display: grid;
+      place-items: center;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 15px/1.8 "Vazirmatn Nora", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+    }
+    a { color: inherit; }
+    .skip-link {
+      position: fixed;
+      inset-block-start: 12px;
+      inset-inline-start: 12px;
+      z-index: 5;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff9e9;
+      text-decoration: none;
+      transform: translateY(-160%);
+    }
+    .skip-link:focus { transform: translateY(0); outline: 3px solid var(--focus); }
+    .page { width: min(100%, 940px); margin: auto; text-align: center; }
+    .brand {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 auto 5px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .brand img { display: block; width: 31px; height: 31px; }
+    .brand-copy { display: grid; line-height: 1.35; text-align: right; }
+    .brand-copy strong { font-size: 13px; font-weight: 750; }
+    .brand-copy small { color: var(--muted); font-size: 9px; }
+    .art { position: relative; width: 100%; margin: 0 auto; line-height: 0; }
+    .art-image { display: block; width: 100%; height: auto; }
+    .digits {
+      position: absolute;
+      inset-inline: 0;
+      top: 8.5%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: clamp(24px, 9vw, 116px);
+      direction: ltr;
+      color: var(--ink);
+      font-family: "Estedad Nora", "Vazirmatn Nora", system-ui, sans-serif;
+      font-size: clamp(56px, 12vw, 116px);
+      font-weight: 780;
+      letter-spacing: -.08em;
+      line-height: .95;
+      pointer-events: none;
+      text-shadow: 0 3px 0 rgba(50, 30, 0, .12);
+    }
+    .art-title {
+      position: absolute;
+      inset-inline: 16%;
+      top: 50.5%;
+      margin: 0;
+      transform: translateY(-50%);
+      color: var(--ink);
+      font-family: "Estedad Nora", "Vazirmatn Nora", system-ui, sans-serif;
+      font-size: clamp(17px, 2.8vw, 27px);
+      font-weight: 750;
+      line-height: 1.5;
+      text-align: center;
+    }
+    .description {
+      margin: 1px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .home-link {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 15px;
+      padding: 8px 20px;
+      border: 2px solid var(--button);
+      border-radius: 9px;
+      background: var(--button);
+      box-shadow: 0 5px 0 rgba(0, 88, 181, .16);
+      color: var(--button-ink);
+      font-size: 12px;
+      font-weight: 750;
+      text-decoration: none;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .home-link:hover { background: var(--button-hover); border-color: var(--button-hover); transform: translateY(2px); box-shadow: 0 3px 0 rgba(0, 88, 181, .16); }
+    .home-link svg { width: 16px; height: 16px; }
+    .links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 11px;
+      color: var(--ink);
+      font-size: 11px;
+    }
+    .links a {
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding-inline: 8px;
+      color: var(--button-hover);
+      text-underline-offset: 3px;
+    }
+    .brand:focus-visible, .home-link:focus-visible, .links a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 4px;
+    }
+    @media (max-width: 560px) {
+      body { padding: 16px 12px 22px; }
+      .brand img { width: 28px; height: 28px; }
+      .art { margin-top: 4px; }
+      .digits { top: 8.5%; font-size: clamp(55px, 13vw, 78px); gap: clamp(22px, 9vw, 38px); }
+      .art-title { inset-inline: 13%; top: 50.5%; font-size: clamp(15px, 4.2vw, 21px); }
+      .description { max-width: 310px; margin-inline: auto; font-size: 12px; }
+      .home-link { margin-top: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">رفتن به پیام خطا</a>
+  <div class="page">
+    <header>
+      <a class="brand" href="/" aria-label="نورا، رفتن به خانه">
+        <img src="/nora-mark-mini.svg" width="31" height="31" alt=""/>
+        <span class="brand-copy"><strong>نورا</strong><small>گروه فرهنگی خط زندگی</small></span>
+      </a>
+    </header>
+    <main id="main" aria-labelledby="page-title">
+      <div class="art">
+        <img class="art-image" src="/404-art.png" width="1312" height="816" alt="" fetchpriority="high" decoding="async"/>
+        <div class="digits" aria-hidden="true"><span>4</span><span>4</span></div>
+        <h1 id="page-title" class="art-title">صفحه پیدا نشد</h1>
+      </div>
+      <p class="description">به نظر می‌رسد یک برگ از دفتر نورا جا مانده.</p>
+      <a class="home-link" href="/">
+        بازگشت به خانه
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <nav class="links" aria-label="پیوندهای مفید">
+        <a href="/login.html?mode=server&amp;next=account.html">ورود/ثبت‌نام</a>
+        <span aria-hidden="true">·</span>
+        <a href="/events.html">رویدادهای نورا</a>
+        <span aria-hidden="true">·</span>
+        <a href="/support.html">راهنما</a>
+      </nav>
+    </main>
+  </div>
+</body>
+</html>

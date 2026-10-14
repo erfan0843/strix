@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="پوستر رویداد">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E6FD0"/><stop offset="1" stop-color="#0A3A82"/></linearGradient>
+    <radialGradient id="glow" cx="0.86" cy="0.08" r="0.75"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.5" fill="#fff" fill-opacity=".13"/></pattern>
+  </defs>
+  <rect width="900" height="560" fill="url(#bg)"/>
+  <rect width="900" height="560" fill="url(#dots)"/>
+  <rect width="900" height="560" fill="url(#glow)"/>
+  <g transform="translate(450 262)">
+    <rect x="-190" y="-152" width="380" height="292" rx="26" fill="#fff" fill-opacity=".92"/>
+    <g stroke="#0A56B8" stroke-opacity=".26" stroke-width="9" stroke-linecap="round">
+      <path d="M-138 -96h176M-138 -44h176M-138 8h116"/>
+    </g>
+    <g transform="rotate(-32 154 96)">
+      <rect x="100" y="-6" width="42" height="204" rx="14" fill="#fff" fill-opacity=".97"/>
+      <rect x="100" y="-6" width="42" height="48" rx="14" fill="#7FA8D8"/>
+      <path d="M100 190h42l-21 48z" fill="#fff" fill-opacity=".97"/>
+      <path d="M108 238h26l-13 26z" fill="#0B2447" fill-opacity=".8"/>
+      <rect x="100" y="50" width="42" height="7" fill="#0B2447" fill-opacity=".28"/>
+    </g>
+    <g fill="#0B2447" fill-opacity=".18">
+      <circle cx="-158" cy="90" r="15"/><circle cx="-114" cy="90" r="15"/><circle cx="-70" cy="90" r="15"/>
+    </g>
+  </g>
+
+  <rect width="900" height="560" fill="url(#shade)"/>
+  <g transform="translate(44 446)">
+    <rect width="52" height="52" rx="16" fill="#fff" fill-opacity=".16"/>
+    <path d="M16 37V15h7l11 14V15h6v22h-7L22 23v14z" fill="#fff" fill-opacity=".92"/>
+  </g>
+</svg>

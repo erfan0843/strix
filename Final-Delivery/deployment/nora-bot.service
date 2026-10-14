@@ -1,0 +1,18 @@
+# قالب systemd برای ربات بله نورا (ویرایش کنید؛ قبل از فعال‌سازی تست شود)
+# ربات باید تنها یک نمونه در حال اجرا داشته باشد.
+[Unit]
+Description=Nora Bale bot
+After=network-online.target nora-web.service
+Wants=network-online.target
+
+[Service]
+User=nora
+Group=nora
+WorkingDirectory=/opt/nora/bale-bot
+EnvironmentFile=/etc/nora/bale-bot.env
+ExecStart=/opt/nora/venv/bin/python -m nora_bot.main
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

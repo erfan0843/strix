@@ -1,0 +1,53 @@
+{
+  "name": "نورا — پیش‌نمایش محلی",
+  "short_name": "نورا",
+  "description": "پیش‌نمایش محلی نورا؛ داده‌ها، حساب‌ها و رویدادها نمونه‌اند و سرویس واقعی وصل نیست.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "home.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F3EE",
+  "theme_color": "#1B211E",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "پشتیبانی و راهنما",
+      "short_name": "پشتیبانی",
+      "url": "support.html",
+      "description": "راهنمای نمونه؛ تیکت در مرورگر می‌ماند و ارسال نمی‌شود."
+    },
+    {
+      "name": "حساب من",
+      "short_name": "حساب من",
+      "url": "account.html",
+      "description": "وضعیت‌ها و امتیازهای نمونه؛ احراز هویت سروری وجود ندارد."
+    },
+    {
+      "name": "رویدادها",
+      "short_name": "رویدادها",
+      "url": "events.html",
+      "description": "رویدادهای نمونه؛ ثبت‌نام واقعی انجام نمی‌شود."
+    }
+  ]
+}

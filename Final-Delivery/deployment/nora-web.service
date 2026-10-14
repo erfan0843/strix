@@ -1,0 +1,18 @@
+# قالب systemd برای وب‌سایت و API نورا (ویرایش کنید؛ قبل از فعال‌سازی تست شود)
+# نصب: sudo cp nora-web.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now nora-web
+[Unit]
+Description=Nora web and API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=nora
+Group=nora
+WorkingDirectory=/opt/nora/website/nora-ui
+EnvironmentFile=/etc/nora/nora-web.env
+ExecStart=/opt/nora/venv/bin/uvicorn --app-dir /opt/nora/website/nora-ui backend.app:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

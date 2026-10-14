@@ -1,0 +1,734 @@
+/* ورود نورا: OTP واقعی از API سرور؛ کد محلی ساخته نمی‌شود. */
+(function () {
+  'use strict';
+
+  const $ = (selector) => document.querySelector(selector);
+  const state = {
+    authenticated: false,
+    provider: '',
+    busy: false,
+    mode: 'phone',
+    entryMode: 'phone',
+    phone: '',
+    otpChallengeId: '',
+    otpExpiresAt: 0,
+    otpResendAt: 0,
+    otpTimerId: 0,
+    role: null,
+    permissions: [],
+  };
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeDigits(value) {
+    return String(value == null ? '' : value)
+      .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+  }
+
+  function persianDigits(value) {
+    return String(value == null ? '' : value)
+      .replace(/[0-9]/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
+  }
+
+  function otpSlotsMarkup() {
+    return `<div class="lg-otp-slots" aria-hidden="true">${Array.from({ length: 6 }, (_, index) => `<span class="lg-otp-slot" data-otp-slot="${index}"></span>`).join('')}</div>`;
+  }
+
+  function syncOtpSlots(input) {
+    if (!input) return;
+    const original = String(input.value || '');
+    const clean = original.replace(/[^0-9۰-۹٠-٩]/g, '').slice(0, 6);
+    if (clean !== original) {
+      const oldCaret = Number.isInteger(input.selectionStart) ? input.selectionStart : clean.length;
+      input.value = clean;
+      try { input.setSelectionRange(Math.min(oldCaret, clean.length), Math.min(oldCaret, clean.length)); } catch (_) {}
+    }
+    const digits = normalizeDigits(clean);
+    const slots = input.closest('.lg-otp-control')?.querySelectorAll('[data-otp-slot]');
+    if (!slots) return;
+    const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : digits.length;
+    slots.forEach((slot, index) => {
+      const digit = digits.charAt(index);
+      slot.textContent = digit ? persianDigits(digit) : '';
+      slot.classList.toggle('is-filled', Boolean(digit));
+      slot.classList.toggle('is-current', !input.disabled && input === document.activeElement
+        && digits.length < 6 && index === Math.min(caret, 5));
+    });
+  }
+
+  function setLead(message) {
+    const element = $('#lgLead');
+    if (element) element.textContent = message || '';
+  }
+
+  function setTitle(message) {
+    const element = $('#lgTitle');
+    if (element) element.textContent = message || 'ورود به نورا';
+  }
+
+  function setStatus(message, kind) {
+    const element = $('#lgStatus');
+    if (!element) return;
+    element.hidden = !message;
+    element.textContent = message || '';
+    element.dataset.kind = kind || 'info';
+  }
+
+  function setAdminEntryVisible(visible) {
+    const element = $('#lgAdminEntry');
+    if (element) element.hidden = !visible;
+  }
+
+  function requestedNext() {
+    return new URLSearchParams(location.search).get('next') || '';
+  }
+
+  function safeAccountNext() {
+    const requested = new URLSearchParams(location.search).get('next') || '';
+    return /^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/.test(requested)
+      ? requested
+      : '';
+  }
+
+  function safeOwnerNext() {
+    const requested = requestedNext();
+    return /^(?:admin|create|builder)\.html(?:#[A-Za-z0-9_-]+)?$/.test(requested)
+      ? requested
+      : '';
+  }
+
+  function safeManagerNext() {
+    const requested = requestedNext();
+    return /^admin\.html(?:#[A-Za-z0-9_-]+)?$/.test(requested)
+      ? requested
+      : '';
+  }
+
+  function continueAfterLogin(provider) {
+    if (provider === 'owner') return;
+    const managerEntry = ['staff', 'manager', 'owner'].includes(state.entryMode);
+    const managerTarget = managerEntry ? safeManagerNext() : '';
+    if (provider === 'manager-password' && managerTarget
+        && ['manager', 'club-supervisor'].includes(state.role)) {
+      location.replace(managerTarget);
+      return;
+    }
+    const accountTarget = safeAccountNext();
+    if (accountTarget) location.replace(accountTarget);
+  }
+
+  function renderLoading() {
+    setAdminEntryVisible(false);
+    setTitle(state.mode === 'staff' ? 'ورود مدیران' : 'ورود به نورا');
+    setLead('');
+    const body = $('#lgBody');
+    if (body) body.innerHTML = '<div class="lgstep lg-loading" role="status" aria-label="در حال بررسی ورود"><span class="lg-spinner" aria-hidden="true"></span></div>';
+    setStatus('');
+  }
+
+  function clearOtpTimer() {
+    if (state.otpTimerId) window.clearInterval(state.otpTimerId);
+    state.otpTimerId = 0;
+  }
+
+  function renderPhoneLogin() {
+    clearOtpTimer();
+    setAdminEntryVisible(true);
+    setTitle('ورود به نورا');
+    setLead('');
+    const body = $('#lgBody');
+    if (!body) return;
+
+    if (!state.otpChallengeId) {
+      body.innerHTML = `<div class="lgstep" id="lgPhoneMethod">
+        <form class="lgform" id="lgPhoneForm" autocomplete="on">
+          <label class="lgfield" for="lgPhone">
+            <span class="lglbl">شمارهٔ همراه</span>
+            <input class="lgtext" id="lgPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national"
+              required maxlength="32" dir="ltr" value="${escapeHtml(state.phone)}" placeholder="۰۹۱۲۳۴۵۶۷۸۹" aria-label="شمارهٔ همراه"/>
+          </label>
+          <button class="lgbtn" type="submit" id="lgPhoneSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال ارسال…' : 'دریافت کد'}</button>
+        </form>
+      </div>`;
+      return;
+    }
+
+    const wait = Math.max(0, Math.ceil((state.otpResendAt - Date.now()) / 1000));
+    const expiresIn = Math.max(0, Math.ceil((state.otpExpiresAt - Date.now()) / 1000));
+    const resendLabel = wait
+      ? `ارسال دوباره · ${persianDigits(wait)} ثانیه`
+      : 'ارسال دوبارهٔ کد';
+    body.innerHTML = `<div class="lgstep" id="lgPhoneCodeMethod">
+      <p class="lg-otp-sent" role="status">کد یک‌بارمصرف با پیامک ارسال شد.</p>
+      <form class="lgform" id="lgPhoneCodeForm" autocomplete="on">
+        <label class="lgfield lg-otp-field" for="lgOtpCode">
+          <span class="lglbl">کد شش‌رقمی</span>
+          <div class="lg-otp-control">
+            ${otpSlotsMarkup()}
+            <input class="lgtext lgcode" id="lgOtpCode" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+              required minlength="6" maxlength="6" pattern="[0-9۰-۹٠-٩]{6}" dir="ltr" aria-label="کد یک‌بارمصرف شش‌رقمی"/>
+          </div>
+        </label>
+        <button class="lgbtn" type="submit" id="lgOtpVerify"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال تأیید…' : 'تأیید و ورود'}</button>
+      </form>
+      <p class="lg-otp-meta" id="lgOtpMeta">${expiresIn ? `اعتبار کد · ${persianDigits(expiresIn)} ثانیه` : 'مهلت کد تمام شده است'}</p>
+      <div class="lg-phone-actions">
+        <button class="lgbtn quiet" type="button" id="lgOtpResend"${state.busy || wait ? ' disabled' : ''}>${resendLabel}</button>
+        <button class="lgbtn quiet" type="button" id="lgPhoneChange"${state.busy ? ' disabled' : ''}>تغییر شماره</button>
+      </div>
+    </div>`;
+
+    syncOtpSlots($('#lgOtpCode'));
+    state.otpTimerId = window.setInterval(() => {
+      if (state.mode !== 'phone' || !state.otpChallengeId) {
+        clearOtpTimer();
+        return;
+      }
+      const secondsToResend = Math.max(0, Math.ceil((state.otpResendAt - Date.now()) / 1000));
+      const secondsToExpiry = Math.max(0, Math.ceil((state.otpExpiresAt - Date.now()) / 1000));
+      const resendButton = $('#lgOtpResend');
+      const meta = $('#lgOtpMeta');
+      if (resendButton) {
+        resendButton.disabled = state.busy || secondsToResend > 0;
+        resendButton.textContent = secondsToResend
+          ? `ارسال دوباره · ${persianDigits(secondsToResend)} ثانیه`
+          : 'ارسال دوبارهٔ کد';
+      }
+      if (meta) meta.textContent = secondsToExpiry
+        ? `اعتبار کد · ${persianDigits(secondsToExpiry)} ثانیه`
+        : 'مهلت کد تمام شده است';
+      if (!secondsToResend && !secondsToExpiry) clearOtpTimer();
+    }, 1000);
+  }
+
+  function renderStaffLogin() {
+    clearOtpTimer();
+    setAdminEntryVisible(false);
+    setTitle('ورود مدیران');
+    setLead('');
+    const body = $('#lgBody');
+    if (!body) return;
+    body.innerHTML = `<div class="lgstep" id="lgStaffMethod">
+      <form class="lgform" id="lgStaffForm" autocomplete="on">
+        <label class="lgfield" for="lgStaffUsername">
+          <span class="lglbl">نام کاربری</span>
+          <input class="lgtext" id="lgStaffUsername" name="username" type="text" autocomplete="username"
+            required maxlength="160" dir="ltr"/>
+        </label>
+        <label class="lgfield" for="lgStaffPassword">
+          <span class="lglbl">گذرواژه</span>
+          <input class="lgtext" id="lgStaffPassword" name="password" type="password" autocomplete="current-password"
+            required maxlength="1024" dir="ltr"/>
+        </label>
+        <button class="lgbtn" type="submit" id="lgStaffSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال بررسی…' : 'ورود'}</button>
+      </form>
+      <button class="lgbtn quiet" type="button" id="lgBack">بازگشت</button>
+    </div>`;
+  }
+
+  function renderAuthenticated() {
+    clearOtpTimer();
+    setLead('');
+    const body = $('#lgBody');
+    if (!body) return;
+    setAdminEntryVisible(false);
+
+    const isOwner = state.provider === 'owner';
+    const hasAdminRole = ['manager', 'club-supervisor'].includes(state.role);
+    const requestedManagerEntry = !isOwner && ['staff', 'manager', 'owner'].includes(state.entryMode);
+    const canContinueToManager = requestedManagerEntry && state.provider === 'manager-password' && hasAdminRole;
+    const managerDenied = requestedManagerEntry && !canContinueToManager;
+    const target = isOwner
+      ? (safeOwnerNext() || 'admin.html#money')
+      : canContinueToManager
+        ? (safeManagerNext() || 'admin.html#dash')
+        : (safeAccountNext() || 'account.html');
+    const destination = isOwner
+      ? 'رفتن به پنل مدیریت'
+      : canContinueToManager
+        ? 'رفتن به پنل مدیریت'
+        : 'رفتن به حساب من';
+    const heading = isOwner ? 'ورود مالک تأیید شد'
+      : state.provider === 'manager-password' ? 'ورود مدیر تأیید شد'
+        : state.provider === 'phone' ? 'ورود با شمارهٔ همراه تأیید شد'
+          : state.provider === 'bale' ? 'ورود با بله تأیید شد' : 'ورود تأیید شد';
+    const description = managerDenied
+      ? hasAdminRole
+        ? 'برای ورود مدیریت، نام کاربری و گذرواژه لازم است.'
+        : 'دسترسی مدیریت برای این حساب فعال نیست.'
+      : '';
+
+    body.innerHTML = `<div class="lgstep lg-authenticated" id="lgAuthenticated">
+      <span class="lgcheck ok" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
+      <h2 class="lgdtitle">${heading}</h2>
+      ${description ? `<p class="lgdle">${description}</p>` : ''}
+      <a class="lgbtn" id="lgContinue" href="${escapeHtml(target)}">${destination}</a>
+      <button class="lgbtn quiet" type="button" id="lgLogout"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال خروج…' : 'خروج از حساب'}</button>
+    </div>`;
+    setStatus('');
+  }
+
+  function render() {
+    if (state.authenticated) return renderAuthenticated();
+    if (state.mode === 'staff') return renderStaffLogin();
+    return renderPhoneLogin();
+  }
+
+  async function responseError(response) {
+    if (response && response.status === 404) {
+      return { code: 'api_not_found', message: 'API ورود وب در این پیش‌نمایش فعال نیست؛ backend وب باید متصل باشد.' };
+    }
+    let payload = {};
+    try { payload = await response.json(); } catch (_) {}
+    const detail = payload && payload.detail;
+    const code = typeof detail === 'string' ? detail : (detail && detail.code) || payload.error || '';
+    const messages = {
+      owner_login_not_configured: 'ورود مالک هنوز روی سرور فعال نیست.',
+      manager_login_not_configured: 'ورود مدیران هنوز روی سرور فعال نیست.',
+      staff_login_not_configured: 'ورود مدیریت هنوز روی سرور فعال نیست.',
+      invalid_credentials: 'نام کاربری یا گذرواژه درست نیست.',
+      database_unavailable: 'ورود موقتاً در دسترس نیست.',
+      phone_otp_not_configured: 'سرویس ارسال کد روی سرور تنظیم نشده است.',
+      phone_otp_delivery_unavailable: 'کد ارسال نشد؛ کمی بعد دوباره تلاش کن.',
+      phone_otp_unavailable: 'ارسال کد موقتاً در دسترس نیست.',
+      account_session_unavailable: 'ورود حساب تأیید نشد؛ دوباره تلاش کن.',
+      invalid_phone_number: 'شمارهٔ همراه را بررسی کن.',
+      invalid_or_expired_otp: 'کد نادرست است یا مهلتش گذشته است.',
+      otp_resend_too_soon: 'برای ارسال دوباره کمی صبر کن.',
+      login_temporarily_blocked: 'تلاش‌های زیادی انجام شده؛ کمی بعد دوباره امتحان کن.',
+      same_origin_required: 'صفحه را تازه کن و دوباره تلاش کن.',
+    };
+    return { code, message: messages[code] || 'ورود انجام نشد؛ دوباره تلاش کن.' };
+  }
+
+  async function staffLogin(form) {
+    if (state.busy || state.authenticated || !form) return;
+    const username = String(form.elements.username && form.elements.username.value || '').trim();
+    const password = String(form.elements.password && form.elements.password.value || '');
+    if (!username || !password) {
+      setStatus('نام کاربری و گذرواژه را وارد کن.', 'error');
+      return;
+    }
+
+    state.busy = true;
+    state.mode = 'staff';
+    renderStaffLogin();
+    setStatus('در حال بررسی…');
+    let serverAccepted = false;
+    try {
+      const response = await fetch('/api/auth/staff-login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!response.ok) {
+        const error = await responseError(response);
+        state.busy = false;
+        renderStaffLogin();
+        setStatus(error.message, 'error');
+        return;
+      }
+      const payload = await response.json();
+      if (!payload || payload.authenticated !== true
+          || !['owner', 'manager-password'].includes(payload.provider)) {
+        throw new Error('unexpected_staff_auth_response');
+      }
+      serverAccepted = true;
+      const isOwner = payload.provider === 'owner';
+      const sessionResponse = await fetch(isOwner ? '/api/auth/me' : '/api/account/me', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!sessionResponse.ok) throw new Error('staff_session_not_confirmed');
+      const session = await sessionResponse.json();
+      if (isOwner) {
+        if (!session || session.authenticated !== true || session.role !== 'owner'
+            || session.owner_id !== payload.owner_id) {
+          throw new Error('unexpected_staff_owner_session');
+        }
+        state.provider = 'owner';
+        state.role = 'owner';
+      } else {
+        if (!session || session.authenticated !== true || session.provider !== 'manager-password'
+            || typeof payload.account_id !== 'string' || session.account_id !== payload.account_id
+            || !['manager', 'club-supervisor'].includes(session.role)) {
+          throw new Error('unexpected_staff_manager_session');
+        }
+        state.provider = 'manager-password';
+        state.role = session.role;
+      }
+      state.permissions = Array.isArray(session.permissions) ? session.permissions.slice() : [];
+      state.authenticated = true;
+      state.busy = false;
+      state.mode = 'authenticated';
+      renderAuthenticated();
+      continueAfterLogin(state.provider);
+    } catch (_) {
+      state.busy = false;
+      state.authenticated = false;
+      state.provider = '';
+      state.role = null;
+      state.permissions = [];
+      state.mode = 'staff';
+      renderStaffLogin();
+      setStatus(serverAccepted
+        ? 'ورود پذیرفته شد، اما دسترسی سرور تأیید نشد؛ دوباره تلاش کن.'
+        : 'ورود انجام نشد؛ نام کاربری و گذرواژه را بررسی کن.', 'error');
+    }
+  }
+
+  async function requestPhoneOtp(form) {
+    if (state.busy || state.authenticated) return;
+    const phone = String(form && form.elements.phone && form.elements.phone.value || state.phone || '').trim();
+    if (!phone) {
+      setStatus('شمارهٔ همراه را وارد کن.', 'error');
+      return;
+    }
+
+    state.phone = phone;
+    state.busy = true;
+    state.mode = 'phone';
+    renderPhoneLogin();
+    setStatus('در حال ارسال کد…');
+    try {
+      const response = await fetch('/api/auth/phone-otp/request', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      if (!response.ok) {
+        const error = await responseError(response);
+        state.busy = false;
+        renderPhoneLogin();
+        setStatus(error.message, 'error');
+        return;
+      }
+      const payload = await response.json();
+      if (!payload || payload.accepted !== true || typeof payload.challenge_id !== 'string'
+          || !Number.isFinite(Number(payload.expires_in)) || !Number.isFinite(Number(payload.resend_in))) {
+        throw new Error('invalid_phone_otp_response');
+      }
+      state.otpChallengeId = payload.challenge_id;
+      state.otpExpiresAt = Date.now() + Math.max(1, Number(payload.expires_in)) * 1000;
+      state.otpResendAt = Date.now() + Math.max(0, Number(payload.resend_in)) * 1000;
+      state.busy = false;
+      renderPhoneLogin();
+      setStatus('');
+    } catch (_) {
+      state.busy = false;
+      renderPhoneLogin();
+      setStatus('ارتباط با سرویس ورود برقرار نشد؛ دوباره تلاش کن.', 'error');
+    }
+  }
+
+  async function verifyPhoneOtp(form) {
+    if (state.busy || state.authenticated || !form || !state.otpChallengeId) return;
+    const code = normalizeDigits(form.elements.code && form.elements.code.value || '').trim();
+    if (!/^[0-9]{6}$/.test(code)) {
+      setStatus('کد شش‌رقمی را کامل وارد کن.', 'error');
+      return;
+    }
+
+    state.busy = true;
+    state.mode = 'phone';
+    renderPhoneLogin();
+    setStatus('در حال تأیید کد…');
+    let serverAccepted = false;
+    try {
+      const response = await fetch('/api/auth/phone-otp/verify', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge_id: state.otpChallengeId, phone: state.phone, code }),
+      });
+      if (!response.ok) {
+        const error = await responseError(response);
+        state.busy = false;
+        renderPhoneLogin();
+        setStatus(error.message, 'error');
+        return;
+      }
+      const payload = await response.json();
+      if (!payload || payload.authenticated !== true || payload.provider !== 'phone') {
+        throw new Error('unexpected_phone_auth_response');
+      }
+      serverAccepted = true;
+      const sessionResponse = await fetch('/api/account/me', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!sessionResponse.ok) throw new Error('phone_session_not_confirmed');
+      const session = await sessionResponse.json();
+      if (!session || session.authenticated !== true || session.provider !== 'phone'
+          || session.account_id !== payload.account_id) {
+        throw new Error('unexpected_phone_session');
+      }
+      state.provider = 'phone';
+      state.role = typeof session.role === 'string' ? session.role : null;
+      state.permissions = Array.isArray(session.permissions) ? session.permissions.slice() : [];
+      state.authenticated = true;
+      state.busy = false;
+      state.phone = '';
+      state.otpChallengeId = '';
+      state.otpExpiresAt = 0;
+      state.otpResendAt = 0;
+      state.mode = 'authenticated';
+      renderAuthenticated();
+      continueAfterLogin('phone');
+    } catch (_) {
+      state.busy = false;
+      if (serverAccepted) {
+        state.phone = '';
+        state.otpChallengeId = '';
+        state.otpExpiresAt = 0;
+        state.otpResendAt = 0;
+        state.mode = 'phone';
+        renderPhoneLogin();
+        setStatus('کد پذیرفته شد، اما ورود به حساب تأیید نشد؛ دوباره وارد شو.', 'error');
+        return;
+      }
+      renderPhoneLogin();
+      setStatus('ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.', 'error');
+    }
+  }
+
+  function cookieValue(name) {
+    const prefix = name + '=';
+    for (const item of document.cookie.split(';')) {
+      const part = item.trim();
+      if (part.startsWith(prefix)) {
+        try { return decodeURIComponent(part.slice(prefix.length)); }
+        catch (_) { return part.slice(prefix.length); }
+      }
+    }
+    return '';
+  }
+
+  async function logout() {
+    if (state.busy || !state.authenticated) return;
+    const owner = state.provider === 'owner';
+    const csrf = cookieValue(owner ? 'nora_csrf' : 'nora_account_csrf');
+    if (!csrf) {
+      setStatus('ورود امن پیدا نشد؛ صفحه را تازه کن.', 'error');
+      return;
+    }
+
+    state.busy = true;
+    renderAuthenticated();
+    try {
+      const response = await fetch(owner ? '/api/auth/logout' : '/api/auth/account/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf,
+        },
+        body: '{}',
+      });
+      if (!response.ok && response.status !== 401) {
+        const error = await responseError(response);
+        state.busy = false;
+        renderAuthenticated();
+        setStatus(error.message, 'error');
+        return;
+      }
+      if (response.status !== 401) {
+        const payload = await response.json();
+        if (!payload || payload.authenticated !== false) throw new Error('unexpected_logout_response');
+      }
+      state.authenticated = false;
+      state.busy = false;
+      state.provider = '';
+      state.role = null;
+      state.permissions = [];
+      state.phone = '';
+      state.otpChallengeId = '';
+      state.otpExpiresAt = 0;
+      state.otpResendAt = 0;
+      state.mode = state.entryMode;
+      render();
+      setStatus('از حساب خارج شدی.', 'info');
+    } catch (_) {
+      state.busy = false;
+      renderAuthenticated();
+      setStatus('خروج انجام نشد؛ دوباره تلاش کن.', 'error');
+    }
+  }
+
+  async function checkSession() {
+    if (state.mode === 'staff') renderLoading();
+    else renderPhoneLogin();
+    let unavailable = false;
+    let authApiMissing = false;
+
+    try {
+      const response = await fetch('/api/auth/me', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload && payload.authenticated === true && payload.role === 'owner') {
+          state.provider = 'owner';
+          state.role = 'owner';
+          state.permissions = Array.isArray(payload.permissions) ? payload.permissions.slice() : [];
+          state.authenticated = true;
+          state.mode = 'authenticated';
+          renderAuthenticated();
+          continueAfterLogin('owner');
+          return;
+        }
+        throw new Error('unexpected_owner_session');
+      }
+      if (response.status !== 401) unavailable = true;
+      if (response.status === 404) authApiMissing = true;
+    } catch (_) {
+      unavailable = true;
+    }
+
+    try {
+      const response = await fetch('/api/account/me', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload && payload.authenticated === true && ['bale', 'phone', 'manager-password'].includes(payload.provider)) {
+          state.provider = payload.provider;
+          state.role = typeof payload.role === 'string' ? payload.role : null;
+          state.permissions = Array.isArray(payload.permissions) ? payload.permissions.slice() : [];
+          state.authenticated = true;
+          state.phone = '';
+          state.mode = 'authenticated';
+          renderAuthenticated();
+          continueAfterLogin(payload.provider);
+          return;
+        }
+        throw new Error('unexpected_account_session');
+      }
+      if (response.status !== 401) unavailable = true;
+      if (response.status === 404) authApiMissing = true;
+    } catch (_) {
+      unavailable = true;
+    }
+
+    state.authenticated = false;
+    state.provider = '';
+    state.role = null;
+    state.permissions = [];
+    state.mode = state.entryMode;
+    render();
+    if (unavailable) setStatus(authApiMissing
+      ? 'این پیش‌نمایش API ورود وب ندارد؛ backend وب باید متصل باشد.'
+      : 'ارتباط با سرور برقرار نشد.', 'error');
+  }
+
+  function boot() {
+    const requestedMode = new URLSearchParams(location.search).get('mode') || '';
+    const requestedStaff = ['staff', 'manager', 'owner'].includes(requestedMode)
+      || ((requestedMode === 'server' || !requestedMode) && Boolean(safeOwnerNext()));
+    state.entryMode = requestedStaff ? 'staff' : 'phone';
+    state.mode = state.entryMode;
+    checkSession();
+  }
+
+  document.addEventListener('input', (event) => {
+    if (event.target && event.target.id === 'lgOtpCode') syncOtpSlots(event.target);
+  });
+
+  document.addEventListener('focusin', (event) => {
+    if (event.target && event.target.id === 'lgOtpCode') syncOtpSlots(event.target);
+  });
+
+  document.addEventListener('focusout', (event) => {
+    if (event.target && event.target.id === 'lgOtpCode') syncOtpSlots(event.target);
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!target || typeof target.closest !== 'function') return;
+    const otpControl = target.closest('.lg-otp-control');
+    if (otpControl) {
+      event.preventDefault();
+      const slot = target.closest('[data-otp-slot]');
+      const input = otpControl.querySelector('.lgcode');
+      if (!slot || !input || input.disabled) return;
+      const slotIndex = Number(slot.dataset.otpSlot);
+      const caret = Math.min(Number.isInteger(slotIndex) ? slotIndex : 0, input.value.length);
+      input.focus();
+      try { input.setSelectionRange(caret, caret); } catch (_) {}
+      syncOtpSlots(input);
+      return;
+    }
+    if (target.closest('#lgBack')) {
+      event.preventDefault();
+      state.entryMode = 'phone';
+      state.mode = 'phone';
+      state.phone = '';
+      state.otpChallengeId = '';
+      state.otpExpiresAt = 0;
+      state.otpResendAt = 0;
+      try { history.replaceState(null, '', location.pathname); } catch (_) {}
+      renderPhoneLogin();
+      setStatus('');
+      return;
+    }
+    if (target.closest('#lgPhoneChange')) {
+      event.preventDefault();
+      state.otpChallengeId = '';
+      state.otpExpiresAt = 0;
+      state.otpResendAt = 0;
+      renderPhoneLogin();
+      setStatus('');
+      $('#lgPhone')?.focus();
+      return;
+    }
+    if (target.closest('#lgOtpResend')) {
+      event.preventDefault();
+      if (!target.closest('#lgOtpResend').disabled) requestPhoneOtp(null);
+      return;
+    }
+    if (target.closest('#lgLogout')) {
+      event.preventDefault();
+      logout();
+    }
+  });
+
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!form || !form.id) return;
+    event.preventDefault();
+    if (form.id === 'lgPhoneForm') requestPhoneOtp(form);
+    else if (form.id === 'lgPhoneCodeForm') verifyPhoneOtp(form);
+    else if (form.id === 'lgStaffForm') staffLogin(form);
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+}());

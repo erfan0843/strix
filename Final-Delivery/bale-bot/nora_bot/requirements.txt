@@ -1,0 +1,33 @@
+# ربات نورا - فاز ۶
+# نصب:  py -m pip install -r requirements.txt
+
+requests>=2.31.0          # ارتباط با API بله (اجباری)
+openpyxl>=3.1.2           # ورود/خروجی اکسل
+Pillow>=10.1.0            # عکس پروفایل، پوستر، تصویر گواهی و بلیت
+python-dotenv>=1.0.0      # خواندن .env (اختیاری)
+arabic-reshaper>=3.0.0    # شکل‌دهی فارسی در موتورهای Pillow بدون RAQM
+python-bidi>=0.4.2        # جهت‌دهی راست‌به‌چپ در موتورهای Pillow بدون RAQM
+qrcode>=7.4.2             # QR بلیت تصویری فرم‌های سروری
+
+# ═══ فاز ۱۹ — گواهینامه از فایل ورد ═══
+python-docx>=1.1.0        # خواندن و پر کردن قالب ورد (اجباری)
+
+# ═══════════════════════════════════════════════════
+# 🖨️ تبدیل ورد به PDF و PNG — همه اختیاری‌اند
+# ═══════════════════════════════════════════════════
+# ✅ بدون هیچ‌کدام هم ربات PNG و PDF می‌سازد (موتور داخلی)
+#    فقط طرح گرافیکی ورد ساده‌تر می‌شود.
+#
+# 🪟 ویندوز — اگر Microsoft Word دارید:
+#      py -m pip install pywin32
+#    یا LibreOffice را از libreoffice.org نصب کنید
+#    ⚠️ «apt install» در ویندوز کار نمی‌کند!
+#
+# 🐧 لینوکس / VPS:
+#      sudo apt install libreoffice-writer poppler-utils
+#
+# 🖼️ اگر خطای «MuPDF error: No common ancestor in structure tree»
+#    دیدید، این را نصب کنید (روی ویندوز بدون دردسر نصب می‌شود):
+#      py -m pip install pypdfium2
+#
+# 📖 راهنمای کامل: فایل «نصب-ویندوز.md»

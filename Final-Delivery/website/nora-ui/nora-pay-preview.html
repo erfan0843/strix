@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive"/>
+  <title>پیش‌نمایش رابط پرداخت | نورا</title>
+  <style>
+    :root{color-scheme:light;font-family:system-ui,sans-serif;background:#f4f6fa;color:#172033}
+    body{min-height:100vh;display:grid;place-items:center;margin:0;padding:24px}
+    main{max-width:440px;padding:20px 22px;border:1px solid #dce3ed;border-radius:18px;background:#fff;box-shadow:0 14px 40px #14243b12}
+    p{margin:0;line-height:1.9}
+  </style>
+<meta name="description" content="پیش‌نمایش رابط پرداخت نورا؛ این صفحه پرداخت واقعی انجام نمی‌دهد."/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+</head>
+<body>
+<h1 class="sr">پیش‌نمایش رابط پرداخت نورا</h1>
+  <main><p id="previewStatus" role="status" aria-live="polite">در حال آماده‌سازی پیش‌نمایش محلی طرح پرداخت…</p></main>
+  <script>
+  (()=>{
+    const status=document.getElementById('previewStatus');
+    const previewId='arena-nora-pay-preview';
+    const previewForm={
+      id:previewId,name:'فرم نمونهٔ طرح پرداخت و همراهان',kind:'ثبت‌نام',model:'registration',need:'reg',
+      status:'draft',slug:'sample/nora-pay-preview',
+      intro:'پیش‌نمایش محلی؛ ثبت‌نام و پرداخت واقعی ندارد.',
+      fields:[
+        {id:'preview-name',t:'fullname',l:'نام و نام خانوادگی',req:true},
+        {id:'preview-mobile',t:'mobile',l:'شمارهٔ همراه',req:true},
+        {id:'preview-answer',t:'text',l:'پاسخ نمونه',req:true}
+      ],
+      fin:[{l:'ورودی نمونه',p:85000,off:0,req:true,d:''}],
+      groups:[],coupon:{code:'',off:0,all:false},guestsOn:true,maxPer:3,compFields:'name-mobile-answers',
+      endText:'پاسخ فقط در پیش‌نمایش محلی می‌ماند؛ هیچ پرداخت یا کسر موجودی انجام نشده است.'
+    };
+    const read=(key,fallback)=>{
+      try{const value=JSON.parse(localStorage.getItem(key)||'null');return value==null?fallback:value}
+      catch(_){return fallback}
+    };
+    try{
+      const forms=read('nora-forms',[]);
+      const safeForms=Array.isArray(forms)?forms.filter(item=>item&&item.id!==previewId):[];
+      localStorage.setItem('nora-forms',JSON.stringify([previewForm,...safeForms]));
+
+      const finance=read('nora-finance',{});
+      const safeFinance=finance&&typeof finance==='object'&&!Array.isArray(finance)?finance:{};
+      const gates=Array.isArray(safeFinance.gates)?safeFinance.gates.filter(Boolean):[];
+      const wallet=gates.find(item=>item.k==='wallet');
+      if(wallet)wallet.on=0;
+      else gates.push({k:'wallet',n:'کیف پول نورا پی',s:'غیرفعال در این پیش‌نمایش',i:'i-wallet',on:0});
+      safeFinance.gates=gates;
+      if(!Array.isArray(safeFinance.cards))safeFinance.cards=[];
+      localStorage.setItem('nora-finance',JSON.stringify(safeFinance));
+      window.location.replace('./form.html?fid='+encodeURIComponent(previewId)+'&kind=reg&preview=1');
+    }catch(_){
+      status.textContent='ذخیره‌سازی محلی در این مرورگر در دسترس نیست؛ پیش‌نمایش باز نشد.';
+    }
+  })();
+  </script>
+</body>
+</html>

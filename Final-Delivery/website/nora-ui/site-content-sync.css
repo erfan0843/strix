@@ -1,0 +1,28 @@
+.site-content-sync{margin:12px 16px;padding:15px;border-radius:var(--r-lg)}
+.sync-heading{align-items:center;gap:12px}
+.sync-heading h2{font-size:15px;margin:0 0 4px}
+.sync-heading p{margin:0;color:var(--ink-3);font-size:12px;line-height:1.7}
+.sync-heading .btn{flex:0 0 auto}
+.sync-categories{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0 8px}
+.sync-categories label{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--hairline);border-radius:999px;font-size:12px;cursor:pointer}
+.sync-categories input{accent-color:var(--brand);margin:0}
+.sync-categories b{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cooperation-form-setting{display:grid;grid-template-columns:auto minmax(180px,1fr) auto;align-items:center;gap:8px 10px;
+  padding:10px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-2)}
+.cooperation-form-setting label{font-size:12px;font-weight:650;color:var(--ink-2)}
+.cooperation-form-setting select{min-width:0;min-height:38px;border:1px solid var(--hairline);border-radius:var(--r-sm);padding:6px 9px;
+  background:var(--surface);color:var(--ink);font:inherit}
+.cooperation-form-setting select:disabled{opacity:.65}
+.cooperation-form-setting .btn{white-space:nowrap}
+.cooperation-form-setting .cap{grid-column:1/-1;margin:0;font-size:11.5px}
+.sync-state{margin:8px 0;color:var(--ink-2);font-size:12px;line-height:1.8}
+.sync-state[data-state="success"]{color:var(--ok-ink,var(--ok))}
+.sync-state[data-state="error"]{color:var(--stop-ink,var(--stop))}
+#siteContentOwnerLogin{border-top:1px solid var(--hairline);padding-top:8px;margin-top:9px}
+#siteContentOwnerLogin summary{font-size:12px;color:var(--brand-ink);cursor:pointer;font-weight:650}
+.sync-login{display:flex;align-items:end;gap:10px;flex-wrap:wrap;padding-top:10px}
+.sync-login label{display:grid;gap:4px;min-width:min(240px,100%);font-size:11px;color:var(--ink-2)}
+.sync-login input{min-height:38px;border:1px solid var(--hairline);border-radius:var(--r-sm);padding:7px 9px;background:var(--surface);color:var(--ink);font:inherit}
+.sync-login button{min-height:38px}
+@media(max-width:700px){.site-content-sync{margin:10px 8px}.sync-heading{align-items:flex-start;flex-direction:column}.sync-heading .sp{display:none}.sync-heading .btn{width:100%;justify-content:center}.sync-login{align-items:stretch;flex-direction:column}.sync-login label{width:100%}.sync-login button{width:100%;justify-content:center}
+  .cooperation-form-setting{grid-template-columns:1fr}.cooperation-form-setting .cap{grid-column:auto}.cooperation-form-setting .btn{width:100%;justify-content:center}}

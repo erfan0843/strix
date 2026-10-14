@@ -1,0 +1,4440 @@
+{
+  "date": "2026-10-14",
+  "branch": "arena/01a0cd72-strix",
+  "head": "e158eab3f869a0911f0697e3311f8c47a7625bea",
+  "runtime": {
+    "python": "3.11.2",
+    "node": "22.22.3",
+    "npm": "10.9.8",
+    "uv": "0.13.1",
+    "chromium": "153.0.8010.0"
+  },
+  "installation": {
+    "venv": "PASS",
+    "clean_backend_bot_pip_install": "PASS",
+    "pip_check": "PASS",
+    "root_npm_ci": "PASS",
+    "root_npm_advisories": 0,
+    "local_empty_sqlite_migration": "0022_web_account_registration_history",
+    "init_overwrite_guard": "exit 2; unchanged env/DB",
+    "providers": "disabled; no SMS/OTP/message/payment sent"
+  },
+  "tests": {
+    "ui_suites": {
+      "passed": 19,
+      "failed": 0
+    },
+    "backend_without_pg": {
+      "passed": 126,
+      "skipped": 4,
+      "warnings": 1
+    },
+    "backend_with_disposable_pg": {
+      "passed": 130,
+      "skipped": 0,
+      "warnings": 1
+    },
+    "bot": {
+      "passed": 123
+    },
+    "mypy": {
+      "source_files": 40,
+      "errors": 0
+    },
+    "storage_guard": "PASS; no legacy SQLite created",
+    "browser": {
+      "cases": 84,
+      "issues": 0,
+      "positive_member_cases": 4
+    },
+    "relocated_checkout_with_spaces": {
+      "post": 99,
+      "qr": 33,
+      "audit": 16
+    }
+  },
+  "build": {
+    "nora": "standalone HTML/JS/CSS; no bundler stage",
+    "strix_viewer_types": "PASS",
+    "strix_viewer_vite": "PASS; new QA outDir only; original static unchanged",
+    "warning": "unchanged oversized JS chunk 975kB / gzip299.68kB"
+  },
+  "blocked": {
+    "standard_playwright_browser_download": "FAIL; cdn.playwright.dev unreachable",
+    "python312_install": "FAIL; TLS handshake EOF after retries",
+    "root_strix_runtime_pytest_mypy_pyright": "NOT RUN; Python3.12 unavailable",
+    "go_tui_wheel": "NOT RUN; Go1.24 unavailable",
+    "docker_scan": "NOT RUN; Docker/provider keys unavailable, no live scan requested",
+    "native_windows_macos_webkit_firefox": "NOT RUN"
+  },
+  "initial_failures_fixed": {
+    "admin": "day21 calendar fixture became past; deterministic future test schedule, not product clock/state change",
+    "paths": "sandbox-specific /home/user/strix and file URL handling removed; relocated checkout tested",
+    "npm": "source-map-js transitive high -> compatible lock patch -> 0 advisors",
+    "sandbox_browser": "missing native libs and package.json export -> unpack bundled libs and resolve exported entry"
+  },
+  "file_integrity": {
+    "changed_existing": [
+      "docs/fa/nora-ui/account.test.mjs",
+      "docs/fa/nora-ui/admin.test.mjs",
+      "docs/fa/nora-ui/delivery.test.mjs",
+      "docs/fa/nora-ui/post.test.mjs",
+      "docs/fa/nora-ui/qr.test.mjs",
+      "docs/fa/nora-ui/smoke.test.mjs",
+      "docs/fa/nora-ui/support.test.mjs",
+      "docs/fa/nora-ui/backend/README.fa.md",
+      "docs/fa/nora-ui/tools/browser-audit.cjs",
+      "docs/fa/nora-ui/tools/browser-fixture-server.py",
+      ".gitignore",
+      "package.json",
+      "package-lock.json"
+    ],
+    "deleted_baseline": [],
+    "source_db_fonts_api_models_unchanged": true
+  },
+  "browser_cases": [
+    {
+      "page": "home.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "events.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "رویدادها و برنامه‌های نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "رویدادها و برنامه‌های گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/events-page.js",
+          "encoded": 2775,
+          "decoded": 7837,
+          "transfer": 3075
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "account.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 24
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "login.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "ورود به نورا",
+      "h1": [
+        "ورود به نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/login.js",
+          "encoded": 6591,
+          "decoded": 29539,
+          "transfer": 6891
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "support.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پشتیبانی و راهنما",
+      "h1": [
+        "پشتیبانی و راهنما"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/support.js",
+          "encoded": 14955,
+          "decoded": 50766,
+          "transfer": 15255
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "admin.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پنل مدیریت",
+      "h1": [
+        "پنل مدیریت نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/site-content-sync.js",
+          "encoded": 4477,
+          "decoded": 14791,
+          "transfer": 4777
+        },
+        {
+          "file": "/owner-banner-manager.js",
+          "encoded": 8223,
+          "decoded": 29780,
+          "transfer": 8523
+        },
+        {
+          "file": "/cooperation-inbox.js",
+          "encoded": 2541,
+          "decoded": 6692,
+          "transfer": 2841
+        },
+        {
+          "file": "/admin.js",
+          "encoded": 196986,
+          "decoded": 724267,
+          "transfer": 197286
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "builder.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مرکز فرم‌ها",
+      "h1": [
+        "مرکز مدیریت فرم‌های نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 4
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "create.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · ساخت فرم",
+      "h1": [
+        "ساخت فرم در نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 6
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/forms/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/health",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "form.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · فرم پیدا نشد",
+      "h1": [],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "bypass",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "event.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "رویداد پیدا نشد · نورا",
+      "h1": [
+        "این رویداد در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/event-page.js",
+          "encoded": 4344,
+          "decoded": 13186,
+          "transfer": 4644
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "person.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "پروفایل پیدا نشد · نورا",
+      "h1": [
+        "پروفایل در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/person-page.js",
+          "encoded": 3111,
+          "decoded": 9003,
+          "transfer": 3411
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "post.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مطلب پیدا نشد",
+      "h1": [
+        "این مطلب پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "404.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "offline.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · بی‌اتصال",
+      "h1": [
+        "اینترنت وصل نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "loading-preview.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "پیش‌نمایش بارگذاری | نورا",
+      "h1": [
+        "پیش‌نمایش بارگذاری نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "final-page-review.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "وضعیت در دسترس نیست",
+      "h1": [
+        "وضعیت در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "nora-pay-preview.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · فرم نمونهٔ طرح پرداخت و همراهان",
+      "h1": [
+        "فرم نمونهٔ طرح پرداخت و همراهان"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "missing-audit-page.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "home.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "events.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "رویدادها و برنامه‌های نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "رویدادها و برنامه‌های گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/events-page.js",
+          "encoded": 2775,
+          "decoded": 7837,
+          "transfer": 3075
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "account.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 24
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "login.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "ورود به نورا",
+      "h1": [
+        "ورود به نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/login.js",
+          "encoded": 6591,
+          "decoded": 29539,
+          "transfer": 6891
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "support.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پشتیبانی و راهنما",
+      "h1": [
+        "پشتیبانی و راهنما"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/support.js",
+          "encoded": 14955,
+          "decoded": 50766,
+          "transfer": 15255
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "admin.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پنل مدیریت",
+      "h1": [
+        "پنل مدیریت نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/site-content-sync.js",
+          "encoded": 4477,
+          "decoded": 14791,
+          "transfer": 4777
+        },
+        {
+          "file": "/owner-banner-manager.js",
+          "encoded": 8223,
+          "decoded": 29780,
+          "transfer": 8523
+        },
+        {
+          "file": "/cooperation-inbox.js",
+          "encoded": 2541,
+          "decoded": 6692,
+          "transfer": 2841
+        },
+        {
+          "file": "/admin.js",
+          "encoded": 196986,
+          "decoded": 724267,
+          "transfer": 197286
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "builder.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مرکز فرم‌ها",
+      "h1": [
+        "مرکز مدیریت فرم‌های نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 4
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "create.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · ساخت فرم",
+      "h1": [
+        "ساخت فرم در نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 6
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/forms/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/health",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "form.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · فرم پیدا نشد",
+      "h1": [],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "bypass",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "event.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "رویداد پیدا نشد · نورا",
+      "h1": [
+        "این رویداد در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/event-page.js",
+          "encoded": 4344,
+          "decoded": 13186,
+          "transfer": 4644
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "person.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "پروفایل پیدا نشد · نورا",
+      "h1": [
+        "پروفایل در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/person-page.js",
+          "encoded": 3111,
+          "decoded": 9003,
+          "transfer": 3411
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "post.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مطلب پیدا نشد",
+      "h1": [
+        "این مطلب پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "404.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "offline.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · بی‌اتصال",
+      "h1": [
+        "اینترنت وصل نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "loading-preview.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "پیش‌نمایش بارگذاری | نورا",
+      "h1": [
+        "پیش‌نمایش بارگذاری نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "final-page-review.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "وضعیت در دسترس نیست",
+      "h1": [
+        "وضعیت در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "nora-pay-preview.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · فرم نمونهٔ طرح پرداخت و همراهان",
+      "h1": [
+        "فرم نمونهٔ طرح پرداخت و همراهان"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "missing-audit-page.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "home.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "events.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "رویدادها و برنامه‌های نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "رویدادها و برنامه‌های گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/events-page.js",
+          "encoded": 2775,
+          "decoded": 7837,
+          "transfer": 3075
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "account.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 22
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "login.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "ورود به نورا",
+      "h1": [
+        "ورود به نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/login.js",
+          "encoded": 6591,
+          "decoded": 29539,
+          "transfer": 6891
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "support.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پشتیبانی و راهنما",
+      "h1": [
+        "پشتیبانی و راهنما"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/support.js",
+          "encoded": 14955,
+          "decoded": 50766,
+          "transfer": 15255
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "admin.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پنل مدیریت",
+      "h1": [
+        "پنل مدیریت نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/site-content-sync.js",
+          "encoded": 4477,
+          "decoded": 14791,
+          "transfer": 4777
+        },
+        {
+          "file": "/owner-banner-manager.js",
+          "encoded": 8223,
+          "decoded": 29780,
+          "transfer": 8523
+        },
+        {
+          "file": "/cooperation-inbox.js",
+          "encoded": 2541,
+          "decoded": 6692,
+          "transfer": 2841
+        },
+        {
+          "file": "/admin.js",
+          "encoded": 196986,
+          "decoded": 724267,
+          "transfer": 197286
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "builder.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مرکز فرم‌ها",
+      "h1": [
+        "مرکز مدیریت فرم‌های نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 4
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "create.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · ساخت فرم",
+      "h1": [
+        "ساخت فرم در نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 9
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/forms/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/health",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "form.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · فرم پیدا نشد",
+      "h1": [],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "bypass",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "event.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "رویداد پیدا نشد · نورا",
+      "h1": [
+        "این رویداد در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/event-page.js",
+          "encoded": 4344,
+          "decoded": 13186,
+          "transfer": 4644
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "person.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "پروفایل پیدا نشد · نورا",
+      "h1": [
+        "پروفایل در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/person-page.js",
+          "encoded": 3111,
+          "decoded": 9003,
+          "transfer": 3411
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "post.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مطلب پیدا نشد",
+      "h1": [
+        "این مطلب پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "404.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "offline.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · بی‌اتصال",
+      "h1": [
+        "اینترنت وصل نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "loading-preview.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "پیش‌نمایش بارگذاری | نورا",
+      "h1": [
+        "پیش‌نمایش بارگذاری نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "final-page-review.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "وضعیت در دسترس نیست",
+      "h1": [
+        "وضعیت در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "nora-pay-preview.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · فرم نمونهٔ طرح پرداخت و همراهان",
+      "h1": [
+        "فرم نمونهٔ طرح پرداخت و همراهان"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "missing-audit-page.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "home.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "events.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "رویدادها و برنامه‌های نورا | گروه فرهنگی خط زندگی",
+      "h1": [
+        "رویدادها و برنامه‌های گروه فرهنگی خط زندگی"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/events-page.js",
+          "encoded": 2775,
+          "decoded": 7837,
+          "transfer": 3075
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "account.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 24
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "login.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "ورود به نورا",
+      "h1": [
+        "ورود به نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/login.js",
+          "encoded": 6591,
+          "decoded": 29539,
+          "transfer": 6891
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "support.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · پشتیبانی و راهنما",
+      "h1": [
+        "پشتیبانی و راهنما"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/support.js",
+          "encoded": 14955,
+          "decoded": 50766,
+          "transfer": 15255
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 4
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "admin.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · پنل مدیریت",
+      "h1": [
+        "پنل مدیریت نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/site-content-sync.js",
+          "encoded": 4477,
+          "decoded": 14791,
+          "transfer": 4777
+        },
+        {
+          "file": "/owner-banner-manager.js",
+          "encoded": 8223,
+          "decoded": 29780,
+          "transfer": 8523
+        },
+        {
+          "file": "/cooperation-inbox.js",
+          "encoded": 2541,
+          "decoded": 6692,
+          "transfer": 2841
+        },
+        {
+          "file": "/admin.js",
+          "encoded": 196986,
+          "decoded": 724267,
+          "transfer": 197286
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 401
+        },
+        {
+          "path": "/api/account/me",
+          "status": 401
+        }
+      ]
+    },
+    {
+      "page": "builder.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · مرکز فرم‌ها",
+      "h1": [
+        "مرکز مدیریت فرم‌های نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 4
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "create.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · ساخت فرم",
+      "h1": [
+        "ساخت فرم در نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 6
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/forms/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/health",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "form.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · فرم پیدا نشد",
+      "h1": [],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "bypass",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "event.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "رویداد پیدا نشد · نورا",
+      "h1": [
+        "این رویداد در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/event-page.js",
+          "encoded": 4344,
+          "decoded": 13186,
+          "transfer": 4644
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "person.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "پروفایل پیدا نشد · نورا",
+      "h1": [
+        "پروفایل در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        },
+        {
+          "file": "/person-page.js",
+          "encoded": 3111,
+          "decoded": 9003,
+          "transfer": 3411
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "post.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · مطلب پیدا نشد",
+      "h1": [
+        "این مطلب پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/public-data.js",
+          "encoded": 7398,
+          "decoded": 25411,
+          "transfer": 7698
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "404.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "offline.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · بی‌اتصال",
+      "h1": [
+        "اینترنت وصل نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "loading-preview.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "پیش‌نمایش بارگذاری | نورا",
+      "h1": [
+        "پیش‌نمایش بارگذاری نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/site-content",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "page": "final-page-review.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "وضعیت در دسترس نیست",
+      "h1": [
+        "وضعیت در دسترس نیست"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "nora-pay-preview.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · فرم نمونهٔ طرح پرداخت و همراهان",
+      "h1": [
+        "فرم نمونهٔ طرح پرداخت و همراهان"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/form-quality.js",
+          "encoded": 4729,
+          "decoded": 14901,
+          "transfer": 5029
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "missing-audit-page.html",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "guest",
+      "status": 404,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "صفحه پیدا نشد | نورا",
+      "h1": [
+        "صفحه پیدا نشد"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "account.html",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "account.html#events",
+      "width": 320,
+      "requestedTheme": "light",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · رویدادهای من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": true,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        },
+        {
+          "path": "/api/account/registrations",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "account.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "account.html#events",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · رویدادهای من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": true,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        },
+        {
+          "path": "/api/account/registrations",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "account.html",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · حساب من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "account.html#events",
+      "width": 1280,
+      "requestedTheme": "light",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · رویدادهای من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": true,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        },
+        {
+          "path": "/api/account/registrations",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "account.html#events",
+      "width": 390,
+      "requestedTheme": "dark",
+      "actor": "member",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "dark",
+      "overflow": false,
+      "title": "نورا · رویدادهای من",
+      "h1": [
+        "حساب من"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/account.js",
+          "encoded": 64665,
+          "decoded": 238929,
+          "transfer": 64965
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": true,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 2
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/account/me",
+          "status": 200
+        },
+        {
+          "path": "/api/account/notifications",
+          "status": 200
+        },
+        {
+          "path": "/api/account/files",
+          "status": 200
+        },
+        {
+          "path": "/api/account/registrations",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "admin.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "owner",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · پنل مدیران",
+      "h1": [
+        "پنل مدیریت نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/site-content-sync.js",
+          "encoded": 4477,
+          "decoded": 14791,
+          "transfer": 4777
+        },
+        {
+          "file": "/owner-banner-manager.js",
+          "encoded": 8223,
+          "decoded": 29780,
+          "transfer": 8523
+        },
+        {
+          "file": "/cooperation-inbox.js",
+          "encoded": 2541,
+          "decoded": 6692,
+          "transfer": 2841
+        },
+        {
+          "file": "/admin.js",
+          "encoded": 196986,
+          "decoded": 724267,
+          "transfer": 197286
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        },
+        {
+          "id": "color-contrast",
+          "count": 8
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/forms",
+          "status": 200
+        },
+        {
+          "path": "/api/owner/site-content",
+          "status": 200
+        },
+        {
+          "path": "/api/health",
+          "status": 200
+        },
+        {
+          "path": "/api/owner/site-content",
+          "status": 200
+        },
+        {
+          "path": "/api/cooperation-requests",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "create.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "owner",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · ساخت فرم",
+      "h1": [
+        "ساخت فرم در نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 6
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/health",
+          "status": 200
+        },
+        {
+          "path": "/api/public/forms/capabilities",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "page": "builder.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "owner",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مرکز فرم‌ها",
+      "h1": [
+        "مرکز مدیریت فرم‌های نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 4
+        }
+      ],
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "builder.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "owner",
+      "modal": "#setWait",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · مرکز فرم‌ها",
+      "h1": [
+        "مرکز مدیریت فرم‌های نورا"
+      ],
+      "dataFixtureDownloaded": false,
+      "scripts": [
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 12
+        }
+      ],
+      "keyboard": {
+        "opened": "shSettings",
+        "before": "true",
+        "after": "false",
+        "toggled": true
+      },
+      "errors": [],
+      "blockedWrites": [],
+      "api": []
+    },
+    {
+      "page": "create.html",
+      "width": 390,
+      "requestedTheme": "light",
+      "actor": "owner",
+      "modal": "#fdReq",
+      "status": 200,
+      "lang": "fa",
+      "dir": "rtl",
+      "theme": "light",
+      "overflow": false,
+      "title": "نورا · ساخت فرم",
+      "h1": [
+        "ساخت فرم در نورا"
+      ],
+      "dataFixtureDownloaded": true,
+      "scripts": [
+        {
+          "file": "/data.js",
+          "encoded": 58121,
+          "decoded": 222920,
+          "transfer": 58421
+        },
+        {
+          "file": "/owner-api.js",
+          "encoded": 3683,
+          "decoded": 14428,
+          "transfer": 3983
+        },
+        {
+          "file": "/ui.js",
+          "encoded": 66322,
+          "decoded": 211057,
+          "transfer": 66622
+        }
+      ],
+      "closedSheetsFocusable": 0,
+      "memberTestRecordVisible": false,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 18
+        }
+      ],
+      "keyboard": {
+        "opened": "shField",
+        "before": "false",
+        "after": "true",
+        "toggled": true
+      },
+      "errors": [],
+      "blockedWrites": [],
+      "api": [
+        {
+          "path": "/api/public/forms/capabilities",
+          "status": 200
+        },
+        {
+          "path": "/api/health",
+          "status": 200
+        }
+      ]
+    }
+  ],
+  "log_hashes": {
+    "nora-local-venv-initial.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "nora-local-initial-npm.log": "a053093477026ddeb1fa367c0f09e6fad0e36f8ce390cf123f55d79fe41879e0",
+    "nora-local-pip-install.log": "9c8c1b4f823f4d59628390bc14bac651284aabb5045e055b616a1a3c3867d01f",
+    "nora-local-pip-check.log": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+    "nora-local-npm-lock-update.log": "b125771fda8addd462adfe7f7b03299feb35e28badbb2d16ae8589e371216f8f",
+    "nora-local-npm-frozen.log": "8a56701daf61cd7600067661b4ef987409e3e0715c0a26e8e3283c68eb7f84cd",
+    "nora-local-init.log": "c1fe1becb664ce95dbc63eac6d11cd095e8da93e24a0cdf06ed936d538baaca9",
+    "nora-local-init-refused.log": "1b5e94180214ff2963e4f8ccd61355baa105fb6480fe2e819a17efb1dd885bc0",
+    "nora-local-python-tests-initial.log": "43fd7d39305f782e5982a2c018a7e8b8fae19b37b8fe0a0d7961641ca4052239",
+    "nora-local-playwright-install.log": "f90b5f322f68406daa9400e6a32cefac58d08551111c5e6b44b25fa01c0e53f3",
+    "nora-local-fallback-install.log": "c36acff2af818be9bec372fcf5b9c263fe50e6a8405fc5e798acc3738665277c",
+    "nora-local-backend-with-launcher-tests.log": "65a937300edbea291e20ae226a6e3b91a346e810cdedbfb8164cf8219523b934",
+    "nora-local-unit-initial.log": "70a1d67de62ec3d286ecf09a7ab8415a77674ee6bd6abaa570e8a33cb7e1df95",
+    "nora-local-lock-engines.log": "e6480afd29df1e49c8b790495701763a1e5d3a858863a7be978f7d81c00d446c",
+    "nora-local-admin-fixed.log": "c37d311689f500ea6f602de0a5abcdcc416155272a6abe18a3a069c4ff46f456",
+    "nora-local-browser-initial.log": "47e90d5b293f3ccaba4bbe0385667aa0fde844e7c215a5140ef108a5ed396250",
+    "nora-local-npm-audit-fix.log": "ff370411d8407094be849fd0055d51bc9f676fc214e97fa8595b7732c143ee1c",
+    "nora-local-npm-refrozen.log": "8a56701daf61cd7600067661b4ef987409e3e0715c0a26e8e3283c68eb7f84cd",
+    "nora-local-browser-retest.log": "8e04e062b9da7983fb971e19fbd60f05339925ae73a3765f9b32c2a7dbe0ad76",
+    "nora-local-postgres-install.log": "8cc88cc0f7fef16cfc82702692b00faab799ef38e95b29c93fa4475738b9a277",
+    "nora-local-browser-fixed.log": "0460104b8d7b608bc164cdbbff4500c8121d6e91758d95fe7aa5dd0abe768095",
+    "nora-local-native-postgres.log": "422e5992771b1600b7870d6891486177391ebef84e43a4f27bc3811d05091865",
+    "nora-local-final-npm-ci.log": "8a56701daf61cd7600067661b4ef987409e3e0715c0a26e8e3283c68eb7f84cd",
+    "nora-local-relocated-post.log": "cbf1f1bfcbf5121510e571547aca7f8f3524aa7c4cea98123dd2e28580d74e00",
+    "nora-local-unit-fixed.log": "a68522e9e7e48eac4d6b7499e6816b696b40436fe0dfbfc088ffb4e7683d7ac5",
+    "nora-local-relocated-qr.log": "bab7ce2ac941ffc5dd72d314a003fd9ae85eaa485bbab31878813bd2731106f9",
+    "nora-local-relocated-audit.log": "c97c5fedffcf34d58a1d829838cf273014b25993b072ec1546f87ae96680450d",
+    "nora-local-guide-viewer-build.log": "8188e9bee982dd9e7f88c7bdfab74840eb1e636afd4b5b087b1e9e1195caad33"
+  },
+  "privacy": "No env values, real credentials, cookie values, request body/PII or generated fixture authentication file are persisted here."
+}

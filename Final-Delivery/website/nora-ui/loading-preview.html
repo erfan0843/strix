@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="theme-color" content="#F5F3EE"/>
+  <meta name="robots" content="noindex,nofollow,noarchive"/>
+  <title>پیش‌نمایش بارگذاری | نورا</title>
+  <script>
+    (function(){
+      try{
+        var theme=localStorage.getItem('nora-theme');
+        if(theme!=='light'&&theme!=='dark')theme=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+        document.documentElement.dataset.theme=theme;
+        var meta=document.querySelector('meta[name="theme-color"]');
+        if(meta)meta.content=theme==='dark'?'#1B211E':'#F5F3EE';
+      }catch(_){document.documentElement.dataset.theme='light'}
+    })();
+  </script>
+  <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="glass.css?v=98"/>
+  <link rel="stylesheet" href="nora.css?v=100"/>
+  <style>
+    html,body{width:100%;height:100%;min-width:280px;overflow:hidden}
+    body{position:relative;min-height:100dvh;touch-action:none}
+    .app-preview{position:fixed;inset:0;width:100%;height:100%;border:0;background:var(--paper);z-index:0}
+    .loading-scrim{position:fixed;inset:0;z-index:55;background:rgba(10,16,22,.68);pointer-events:auto}
+    .loader-center{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;pointer-events:none}
+    .loader-card{
+      width:min(276px,calc(100vw - 32px));display:grid;justify-items:center;gap:10px;padding:15px 16px;
+      color:var(--ink);background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-lg);
+      box-shadow:var(--sh-2),var(--sheen-top);pointer-events:auto;animation:loader-in .26s var(--ease) both
+    }
+    .loader-head{width:100%;display:flex;align-items:center;justify-content:center;gap:10px}
+    .loader-copy{display:grid;gap:2px;min-width:0;text-align:start}
+    .loader-brand{font-size:var(--fs-cap);font-weight:500;line-height:1.45;color:var(--ink-3);white-space:nowrap}
+    .loader-status{display:flex;align-items:center;gap:9px;min-height:29px}
+    .loader-mark{position:relative;flex:0 0 25px;width:25px;height:25px;display:grid;place-items:center}
+    .loader-mark::before{content:"";position:absolute;inset:-3px;border:1.5px solid color-mix(in srgb,var(--brand) 20%,transparent);
+      border-top-color:var(--brand);border-inline-end-color:transparent;border-radius:50%;animation:loader-spin .9s linear infinite}
+    .loader-mark img{display:block;width:19px;height:19px;object-fit:contain}
+    .loader-message{font-size:var(--fs-sub);font-weight:600;line-height:1.45;white-space:nowrap}
+    .loader-timer{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;min-height:23px;
+      padding-top:7px;border-top:.5px solid var(--hairline-2);color:var(--ink-3)}
+    .loader-timer svg{width:14px;height:14px}
+    .loader-time{min-width:38px;direction:ltr;text-align:start;font-size:var(--fs-cap);font-weight:600;
+      font-family:'Nora Latin',var(--f);font-variant-numeric:tabular-nums}
+    .loader-warning{width:100%;display:flex;align-items:center;justify-content:space-between;gap:7px;margin:0;padding:6px 7px;
+      border-radius:var(--r-sm);background:var(--warn-tint);color:var(--warn);font-size:var(--fs-cap);font-weight:500;line-height:1.65}
+    .loader-warning[hidden]{display:none!important}
+    .loader-warning:not([hidden]){animation:warning-in .2s var(--ease) both}
+    .warning-copy{flex:1 1 120px;min-width:0;display:grid;gap:1px;text-align:start}
+    .warning-title{font-weight:600}
+    .warning-sub{font-weight:500;opacity:.9}
+    .retry-button{-webkit-appearance:none;appearance:none;flex:0 0 auto;min-height:31px;padding:0 9px;border:0;
+      border-radius:var(--r-sm);background:var(--brand-tint);color:var(--brand-ink);font:inherit;font-size:11px;font-weight:600;
+      white-space:nowrap;cursor:pointer;transition:transform var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+    .retry-button:hover{background:color-mix(in srgb,var(--brand) 16%,var(--surface))}
+    .retry-button:active{transform:scale(.96)}
+    .retry-button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+    @keyframes loader-spin{to{transform:rotate(360deg)}}
+    @keyframes loader-in{from{opacity:0;transform:translateY(5px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes warning-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+    @media(prefers-reduced-motion:reduce){
+      .loader-card{animation:none}.loader-mark::before{animation:none;border-color:var(--brand);opacity:.7}
+    }
+    @media(prefers-reduced-transparency:reduce){.loading-scrim{background:rgba(10,16,22,.76)}}
+    @media(forced-colors:active){
+      .loading-scrim{background:Canvas;opacity:.92}
+      .loader-card{border:1px solid CanvasText;box-shadow:none;background:Canvas;color:CanvasText}
+      .loader-mark::before{border-color:Highlight}
+    }
+  </style>
+<meta name="description" content="پیش‌نمایش حالت بارگذاری در رابط نورا."/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
+</head>
+<body aria-busy="true">
+<h1 class="sr">پیش‌نمایش بارگذاری نورا</h1>
+  <iframe class="app-preview" src="home.html" title="صفحهٔ در حال بارگذاری نورا" aria-hidden="true" tabindex="-1" inert></iframe>
+  <div class="loading-scrim" aria-hidden="true"></div>
+  <main class="loader-center">
+    <section class="loader-card" aria-label="وضعیت بارگذاری سامانه مدیریت آموزش نورا">
+      <div class="loader-head">
+        <span class="loader-mark" aria-hidden="true"><img src="nora-mark-mini.svg" alt=""/></span>
+        <span class="loader-copy" role="status" aria-live="polite">
+          <span class="loader-message" id="loaderMessage">در حال بارگذاری…</span>
+          <span class="loader-brand">سامانه مدیریت آموزش نورا</span>
+        </span>
+      </div>
+      <div class="loader-timer" role="timer" aria-label="زمان‌سنج" aria-live="off">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="13" r="8.2"/><path d="M12 8.5v4.8l3 1.8M9 2.8h6M12 2.8v2"/>
+        </svg>
+        <span class="loader-time" id="loaderTime" aria-hidden="true">۰۰:۰۰</span>
+      </div>
+      <div class="loader-warning" id="networkWarning" hidden>
+        <span class="warning-copy" role="status" aria-live="polite">
+          <span class="warning-title">۱۰ ثانیه و هنوز اینجایید</span>
+          <span class="warning-sub">وضعیت اینترنت را بررسی کنید.</span>
+        </span>
+        <button class="retry-button" id="retryButton" type="button">تلاش دوباره</button>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function(){
+      const started=performance.now();
+      const timer=document.getElementById('loaderTime');
+      const warning=document.getElementById('networkWarning');
+      const message=document.getElementById('loaderMessage');
+      const retry=document.getElementById('retryButton');
+      const faDigits=value=>String(value).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+      let warned=false;
+      function tick(){
+        const seconds=Math.floor((performance.now()-started)/1000);
+        const minutes=String(Math.floor(seconds/60)).padStart(2,'0');
+        const remainder=String(seconds%60).padStart(2,'0');
+        timer.textContent=faDigits(minutes+':'+remainder);
+        if(seconds>=10&&!warned){
+          warned=true;
+          message.textContent='هنوز در حال بارگذاری…';
+          warning.hidden=false;
+        }
+      }
+      tick();setInterval(tick,1000);
+      retry.addEventListener('click',()=>location.reload());
+    })();
+  </script>
+</body>
+</html>

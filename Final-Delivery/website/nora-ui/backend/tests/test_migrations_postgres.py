@@ -1,0 +1,99 @@
+"""PostgreSQL-specific migration regressions, never against application tables.
+
+Set NORA_TEST_POSTGRES_URL to a disposable PostgreSQL instance. Every online
+case creates its own random schema inside a transaction and rolls it back;
+no existing tables, accounts, identities, or revisions are modified.
+"""
+from __future__ import annotations
+
+import io
+import os
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+from pathlib import Path
+
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect, text
+
+from backend.models import AccountRecord, FormRecord, FormResponseDraftRecord
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+
+
+HEAD = "0022_web_account_registration_history"
+PRE_COMPANIONS = "0017_form_companions"
+
+
+def test_offline_postgres_script_preserves_revision_ids_and_only_widens_metadata(monkeypatch):
+    monkeypatch.setenv("NORA_DATABASE_URL", "postgresql+psycopg://qa@localhost/nora_qa")
+    output = io.StringIO()
+    config = Config(str(BACKEND_ROOT / "alembic.ini"), output_buffer=output)
+    command.upgrade(config, "head", sql=True)
+    sql = output.getvalue()
+    assert "0018_separate_companion_responses" in sql
+    assert HEAD in sql
+    assert sql.count("DO $nora_version_width$") == 2
+    assert "atttypmod > 0" in sql and "atttypmod < 68" in sql
+    assert "attrelid = 'alembic_version'::regclass" in sql
+    assert "ALTER COLUMN version_num TYPE VARCHAR(64)" in sql
+
+
+@pytest.mark.parametrize("initial_type", ["VARCHAR(32)", "VARCHAR(33)", "VARCHAR(128)", "TEXT"])
+def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monkeypatch, initial_type):
+    url = os.environ.get("NORA_TEST_POSTGRES_URL", "")
+    if not url:
+        pytest.skip("requires an explicitly configured disposable NORA_TEST_POSTGRES_URL")
+    assert url.startswith(("postgresql://", "postgresql+psycopg://"))
+    monkeypatch.setenv("NORA_DATABASE_URL", url)
+    engine = create_engine(url)
+    schema = "nora_migration_qa_" + uuid4().hex
+    try:
+        with engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                connection.exec_driver_sql(f'CREATE SCHEMA "{schema}"')
+                connection.exec_driver_sql(f'SET LOCAL search_path TO "{schema}", pg_catalog')
+                config = Config(str(BACKEND_ROOT / "alembic.ini"))
+                config.attributes["connection"] = connection
+                command.upgrade(config, "0021_form_payment_transactions" if initial_type == "VARCHAR(33)" else PRE_COMPANIONS)
+                # Only hard-coded, parameterized types enter this SQL.
+                # VARCHAR(33) at 0021 simulates an earlier manual capacity fix.
+                connection.exec_driver_sql(
+                    f"ALTER TABLE alembic_version ALTER COLUMN version_num TYPE {initial_type}"
+                )
+                account_id, form_id, draft_id = (str(uuid4()) for _ in range(3))
+                connection.execute(AccountRecord.__table__.insert().values(id=account_id))
+                connection.execute(FormRecord.__table__.insert().values(
+                    id=form_id, owner_id="migration-qa", title="فرم آزمون مهاجرت",
+                    model="registration", need="registration", settings={},
+                ))
+                connection.execute(FormResponseDraftRecord.__table__.insert().values(
+                    id=draft_id, form_id=form_id, form_version=1,
+                    token_hash="a" * 64, bot_bale_user_id="70001", answers={}, companions=[],
+                    expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                ))
+                command.upgrade(config, "head")
+                assert connection.scalar(text("SELECT version_num FROM alembic_version")) == HEAD
+                version_type = inspect(connection).get_columns("alembic_version", schema=schema)[0]["type"]
+                expected_length = {"VARCHAR(32)": 64, "VARCHAR(33)": 64, "VARCHAR(128)": 128, "TEXT": None}[initial_type]
+                assert getattr(version_type, "length", None) == expected_length
+                assert connection.scalar(text("SELECT id FROM accounts")) == account_id
+                # Historical Bale associations must NOT become guessed web-account links.
+                old_draft = connection.execute(text(
+                    "SELECT id, account_id, bot_bale_user_id FROM form_response_drafts"
+                )).one()
+                assert tuple(old_draft) == (draft_id, None, "70001")
+                command.downgrade(config, PRE_COMPANIONS)
+                assert connection.scalar(text("SELECT version_num FROM alembic_version")) == PRE_COMPANIONS
+                assert connection.scalar(text("SELECT id FROM accounts")) == account_id
+                assert connection.scalar(text("SELECT id FROM form_response_drafts")) == draft_id
+            finally:
+                transaction.rollback()
+        with engine.connect() as connection:
+            assert not connection.scalar(text(
+                "SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = :schema"
+            ), {"schema": schema})
+    finally:
+        engine.dispose()

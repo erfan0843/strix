@@ -1,0 +1,11 @@
+# قالب Caddy برای HTTPS خودکار و reverse proxy به نورا روی 127.0.0.1:8000
+# دامنه‌ی زیر فقط نمونه است؛ قبل از استفاده، رکورد DNS را به IP سرور اشاره دهید.
+lifeline1.ir, www.lifeline1.ir {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8000
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

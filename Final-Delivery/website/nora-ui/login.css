@@ -1,0 +1,98 @@
+/* صفحهٔ ورود نورا — خلوت، روشن و سازگار با تم شب */
+@keyframes login-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes login-spin{to{transform:rotate(360deg)}}
+
+.loginpage{min-height:100vh;min-height:100svh;background:var(--paper);color:var(--ink);overflow-x:hidden}
+.login-icons{display:none}
+.loginpage::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 38%,color-mix(in oklab,var(--brand-tint) 78%,transparent),transparent 48%),
+    radial-gradient(ellipse at 88% 8%,color-mix(in oklab,var(--accent-tint) 55%,transparent),transparent 30%)}
+.login-shell{position:relative;z-index:1;min-height:100vh;min-height:100svh;display:grid;grid-template-rows:auto 1fr;padding-inline:clamp(18px,5vw,64px)}
+.login-topbar{width:100%;max-width:1120px;min-height:70px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.login-topbar .brand{gap:10px;text-decoration:none;color:var(--ink)}
+.login-topbar .brand .mark{width:34px;height:34px}
+.login-topbar .brand .tx b{font-family:'Estedad',var(--f);font-size:17px;font-weight:700}
+.login-topbar .sp{flex:1}
+.login-topbar .themesw{flex:0 0 auto}
+
+.lwrap{width:100%;max-width:none;min-height:0;margin:0;padding:clamp(18px,5vh,54px) 0 clamp(30px,8vh,84px);display:grid;place-items:center}
+.lgcard{width:min(100%,416px);margin:0;padding:clamp(26px,6vw,38px);border:1px solid var(--hairline);
+  border-radius:30px;background:color-mix(in oklab,var(--surface) 92%,transparent);
+  box-shadow:0 24px 70px color-mix(in oklab,var(--ink) 9%,transparent),inset 0 1px 0 color-mix(in oklab,#fff 66%,transparent);
+  animation:login-rise .45s var(--ease) both}
+.lghead{display:grid;justify-items:center;gap:9px;margin-bottom:28px;text-align:center}
+.lgmark{width:60px;height:60px;margin-bottom:4px;border-radius:20px;display:grid;place-items:center;
+  background:var(--surface);box-shadow:var(--sh-1),0 0 0 1px var(--hairline)}
+.lgmark img{display:block;width:38px;height:38px}
+.lgcard h1{margin:0;color:var(--ink);font-family:'Estedad',var(--f);font-size:26px;font-weight:700;letter-spacing:-.35px;line-height:1.35}
+.lglead{margin:0;color:var(--ink-3);font-size:13px;line-height:1.7}
+.lglead:empty{display:none}
+.lgbody{min-width:0}
+.lgstep{display:grid;gap:14px;animation:login-rise .28s var(--ease) both}
+.lgform{display:grid;gap:14px}
+.lgfield{display:grid;gap:7px;min-width:0}
+.lglbl{margin-inline:2px;color:var(--ink-2);font-size:13px;font-weight:650}
+.lgtext{width:100%;height:56px;padding:0 15px;border:1px solid var(--hairline);border-radius:16px;outline:0;
+  background:var(--surface-sunk);color:var(--ink);font:inherit;font-size:16px;transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+.lgtext[dir="ltr"]{text-align:left;letter-spacing:.02em;font-family:'Nora Latin',var(--f)}
+.lgtext::placeholder{color:var(--ink-4);letter-spacing:.04em}
+.lgtext:focus{border-color:color-mix(in oklab,var(--brand) 55%,var(--hairline));box-shadow:0 0 0 4px var(--brand-tint)}
+.lgcode{font-size:20px!important;letter-spacing:.4em!important;text-align:center!important;font-variant-numeric:tabular-nums}
+.lg-otp-field{gap:9px}
+.lg-otp-control{position:relative;width:100%;height:66px;direction:ltr;touch-action:manipulation}
+.lg-otp-slots{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;pointer-events:auto}
+.lg-otp-slot{min-width:0;border:1px solid var(--hairline);border-radius:14px;display:grid;place-items:center;background:linear-gradient(180deg,color-mix(in oklab,var(--surface) 94%,#fff),var(--surface-sunk));box-shadow:inset 0 1px 0 color-mix(in oklab,#fff 65%,transparent);color:var(--ink);font-family:'Nora Latin',var(--f);font-size:23px;font-weight:750;font-variant-numeric:tabular-nums;cursor:text;transition:border-color var(--t) var(--ease),background var(--t) var(--ease),box-shadow var(--t) var(--ease),transform var(--t-fast) var(--ease)}
+.lg-otp-slot.is-filled{border-color:color-mix(in oklab,var(--brand) 36%,var(--hairline));background:color-mix(in oklab,var(--brand-tint) 42%,var(--surface));}
+.lg-otp-slot.is-current{border-color:color-mix(in oklab,var(--brand) 68%,var(--hairline));box-shadow:0 0 0 3px var(--brand-tint),inset 0 1px 0 color-mix(in oklab,#fff 75%,transparent);transform:translateY(-1px)}
+.lg-otp-control .lgcode{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:18px;background:transparent;color:transparent;caret-color:transparent;-webkit-text-fill-color:transparent;font-size:24px!important;letter-spacing:0!important;text-align:left!important;pointer-events:none;z-index:1}
+.lg-otp-control .lgcode:focus{border:0;box-shadow:none;background:transparent}
+.lg-otp-control .lgcode::selection{background:transparent;color:transparent}
+.lgbtn{width:100%;min-height:54px;padding:0 18px;border:0;border-radius:16px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#238cf0,var(--brand) 54%,var(--brand-2));color:#fff;box-shadow:0 9px 22px color-mix(in oklab,var(--brand) 24%,transparent);
+  font:inherit;font-size:15px;font-weight:750;text-align:center;text-decoration:none;cursor:pointer;
+  transition:transform var(--t-fast) var(--ease),filter var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
+.lgbtn:hover{filter:brightness(1.04);box-shadow:0 12px 26px color-mix(in oklab,var(--brand) 29%,transparent)}
+.lgbtn:active{transform:scale(.988)}
+.lgbtn:disabled{opacity:.58;cursor:wait;filter:none;box-shadow:none}
+.lgbtn.quiet{width:auto;min-height:40px;padding:4px 8px;border-radius:10px;background:transparent;color:var(--ink-3);box-shadow:none;
+  font-size:12.5px;font-weight:650}
+.lgbtn.quiet:hover{color:var(--brand-ink);background:var(--brand-tint);box-shadow:none}
+.lgbtn.quiet:disabled{opacity:.52;cursor:wait}
+.lg-otp-sent{width:max-content;max-width:100%;min-height:42px;margin:0 auto;padding:8px 14px;border:1px solid var(--hairline);border-radius:999px;display:flex;align-items:center;justify-content:center;background:color-mix(in oklab,var(--surface) 84%,var(--brand-tint));box-shadow:inset 0 1px 0 color-mix(in oklab,#fff 72%,transparent);color:var(--ink-2);font-size:12px;line-height:1.5}
+.lg-admin-link:focus-visible,.lgbtn:focus-visible{outline:3px solid color-mix(in oklab,var(--brand) 50%,transparent);outline-offset:3px}
+.lg-otp-meta{margin:-4px 0 0;text-align:center;color:var(--ink-4);font-size:11.5px;line-height:1.6}
+.lg-phone-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-5px}
+.lgstatus{margin-top:16px;padding:10px 12px;border:1px solid var(--hairline);border-radius:13px;background:var(--surface-sunk);
+  color:var(--ink-2);font-size:12px;line-height:1.7;text-align:center}
+.lgstatus[hidden]{display:none}
+.lgstatus[data-kind="error"]{border-color:color-mix(in oklab,var(--stop) 35%,var(--hairline));background:color-mix(in oklab,var(--stop-tint) 65%,var(--surface));color:var(--stop)}
+.lgstatus[data-kind="info"]{border-color:color-mix(in oklab,var(--ok) 28%,var(--hairline));background:color-mix(in oklab,var(--ok-tint) 62%,var(--surface));color:var(--ink-2)}
+.lgadmin-entry{margin-top:22px}
+.lgadmin-entry[hidden]{display:none}
+.lg-divider{height:1px;display:block;margin-bottom:12px;background:var(--hairline-2)}
+.lg-admin-links{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.lg-admin-link{width:max-content;max-width:100%;min-height:36px;margin:0;display:flex;align-items:center;justify-content:center;gap:7px;
+  color:var(--ink-3);font-size:12px;font-weight:600;text-decoration:none;transition:color var(--t-fast) var(--ease)}
+.lg-admin-link:hover{color:var(--brand-ink)}
+.lg-admin-link svg{width:16px;height:16px;flex:0 0 auto}
+.lg-loading{min-height:72px;place-items:center}
+.lg-spinner{width:24px;height:24px;border:2px solid var(--hairline);border-top-color:var(--brand);border-radius:50%;animation:login-spin .8s linear infinite}
+.lg-authenticated{justify-items:center;text-align:center;gap:13px}
+.lgcheck{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--ok-tint);color:var(--ok)}
+.lgcheck svg{width:24px;height:24px}
+.lgdtitle{margin:0;color:var(--ink);font-family:'Estedad',var(--f);font-size:19px;font-weight:700}
+.lgdle{margin:0;color:var(--ink-3);font-size:12.5px;line-height:1.75}
+.lg-authenticated .lgbtn{margin-top:5px}
+.lg-organization{margin:20px 0 0;padding-top:13px;border-top:1px solid var(--hairline-2);color:var(--ink-3);font-size:11px;line-height:1.7;text-align:center}
+
+@media(max-width:520px){
+  .login-shell{padding-inline:16px}
+  .login-topbar{min-height:60px}
+  .lwrap{padding-top:16px;padding-bottom:36px}
+  .lgcard{padding:25px 20px 22px;border-radius:25px}
+  .lghead{margin-bottom:24px}
+}
+@media(prefers-reduced-motion:reduce){
+  .lgcard,.lgstep{animation:none}
+  .lg-spinner{animation-duration:1.5s}
+}
