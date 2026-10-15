@@ -1799,4 +1799,11 @@ if(window.__NORA_TEST_FIXTURE_MODE__===true){
   try{const pv=JSON.parse(localStorage.getItem('nora-people')||'null');
     if(pv&&Array.isArray(pv.list)&&pv.list.length) window.NORA.PEOPLE=pv.list;}catch(e){}
 }
+/* در تولید داده‌ی نمونه نباید به پنل‌ها برسد: فقط در آزمون صریح، کلیدهای نمونه نگه داشته می‌شوند. */
+if(window.__NORA_TEST_FIXTURE_MODE__!==true&&window.NORA){
+  const N=window.NORA, E=['BANNERS','PEOPLE','EVENTS','PAST','ARTICLES','PARTNERS','ACT','VOICES','NOTICES','FAQ','CERTS','CATS','DAYS','QTAGS','LIVE','STORIES','MENU','TRUST'];
+  E.forEach(k=>{ if(Array.isArray(N[k])) N[k]=[]; else if(N[k]&&typeof N[k]==='object') N[k]={}; });
+  N.CLUB={};
+  if(N.ADMIN){ const A=N.ADMIN; ['people','queue','pulse','feed'].forEach(k=>{A[k]=[]}); ['dash','cert','settings','finance','events','forms','reports','newev'].forEach(k=>{A[k]={}}); }
+}
 })();
