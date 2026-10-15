@@ -374,6 +374,30 @@ function serverAccountGuestLanding(){
     </section>
   </div>`;
 }
+/* ══ همهٔ بخش‌های حساب (طبق طراحی تأییدشدهٔ prototype-34-user) ══
+   بخش فقط وقتی «فعال» است که endpoint واقعی حساب وب داشته باشد؛ بقیه بدون داده‌ی نمونه
+   با وضعیت «در دست ساخت» نشان داده می‌شوند. */
+const ACCOUNT_SCREENS=[
+  {n:'اطلاعات حساب',h:''},{n:'رویدادهای من',h:'account.html#events'},{n:'اعلان‌ها',h:'account.html#notifications'},
+  {n:'تقویم رویدادها'},{n:'ثبت حضور رویداد'},{n:'کارنامهٔ حضور'},{n:'جزئیات گواهی'},{n:'استعلام گواهی'},{n:'آیدی‌کارت'},
+  {n:'امتیاز و رتبه'},{n:'باشگاه من'},{n:'دعوت دوستان'},{n:'قرعه‌کشی'},{n:'هدایا و پاداش'},{n:'نظرسنجی'},
+  {n:'برگزارشده‌ها و آفلاین'},{n:'خرید آفلاین'},{n:'فرم‌های من'},{n:'کانال‌ها'},{n:'کیف پول'},{n:'اقساط من'},
+  {n:'اعتبار من'},{n:'سررسید و صورت‌حساب'},{n:'انتقال به دوست'},{n:'کارت هدیه'},{n:'افزایش و برداشت'},
+  {n:'امنیت و سقف‌ها'},{n:'لینک پرداخت'},{n:'لغو / انتقال'},{n:'پیگیری پستی'},{n:'سفارش چاپی / VIP'},
+  {n:'همراه آوردن'},{n:'پیام ربات'},{n:'پیام به کارشناس'},{n:'تیکت'},{n:'نظر و پیشنهاد'},{n:'تأیید'}
+];
+function accountScreensCard(){
+  const rows=ACCOUNT_SCREENS.map(x=>{
+    const action=x.h?`<a class="btn sm quiet" href="${esc(x.h)}">باز کردن</a>`
+      :`<span class="tag warn">در دست ساخت</span>`;
+    return `<div class="srow"><span class="sp"><b>${esc(x.n)}</b></span>${action}</div>`;
+  }).join('');
+  return `<section class="card acct account-screens-index" aria-label="همهٔ بخش‌های حساب">
+    <div class="head">همهٔ بخش‌های حساب</div>
+    <p class="cap">بخش‌هایی که endpoint واقعی ندارند، داده‌ی نمونه نمی‌گیرند و تا اتصال سرویس «در دست ساخت» می‌مانند.</p>
+    <div class="stack" style="margin-top:8px">${rows}</div>
+  </section>`;
+}
 function serverAccountModulesCard(){
   const rows=SERVER_ACCOUNT_STATE.account?[
     ['پروفایل و امتیاز','اطلاعات تکمیلی و امتیاز سروری متصل نشده.'],
@@ -386,7 +410,7 @@ function serverAccountModulesCard(){
       <small class="cap">فهرست ثبت‌نام‌های متصل به همین حساب وب</small></span>
       <a class="btn sm quiet" href="account.html#events">دیدن فهرست</a></div>
     ${rows.length?`<div class="stack" style="margin-top:8px">${rows.map(([title,description])=>`<div class="srow"><span class="sp"><b>${esc(title)}</b><small class="cap">${esc(description)}</small></span><span class="tag warn">هنوز وصل نیست</span></div>`).join('')}</div>`:''}
-  </section>`;
+  </section>`+accountScreensCard();
 }
 function serverAccountFeatureView(t,title,description){
   if(SERVER_ACCOUNT_STATE.checking) return viewHead(t,'',null)+serverAccountAccessCard();
