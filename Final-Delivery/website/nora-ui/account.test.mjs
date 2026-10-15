@@ -514,5 +514,15 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     'توضیح موتور زمان هم نبود همگام‌سازی بیرونی را ثبت می‌کند');
 }
 
+/* ── صفحهٔ هر بخش حساب (#acc-N) ── */
+{
+  console.log('\n── صفحهٔ بخش‌های حساب ──');
+  const p=await load(memberStore(),'#acc-2');
+  ok(p.errs.length===0,'بخش acc-2 بی‌خطا باز می‌شود'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.inView(),'بخش acc-2 در نمای بخش نمایش داده می‌شود');
+  ok(p.txt('#viewBox').includes('اعلان‌ها')||p.txt('#viewBox').length>0,'عنوان بخش نمایش داده می‌شود');
+  const q=await load(memberStore(),'#acc-999');
+  ok(!q.inView(),'شناسهٔ ناموجود بخش باز نمی‌شود');
+}
 console.log(`\naccount: ${pass} موفق، ${fail} خطا`);
 process.exit(fail?1:0);

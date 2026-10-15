@@ -387,9 +387,9 @@ const ACCOUNT_SCREENS=[
   {n:'همراه آوردن'},{n:'پیام ربات'},{n:'پیام به کارشناس'},{n:'تیکت'},{n:'نظر و پیشنهاد'},{n:'تأیید'}
 ];
 function accountScreensCard(){
-  const rows=ACCOUNT_SCREENS.map(x=>{
+  const rows=ACCOUNT_SCREENS.map((x,i)=>{ x.i=i;
     const action=x.h?`<a class="btn sm quiet" href="${esc(x.h)}">باز کردن</a>`
-      :`<span class="tag warn">در دست ساخت</span>`;
+      :`<a class="btn sm quiet" href="account.html#acc-${x.i}">باز کردن</a> <span class="tag warn">در دست ساخت</span>`;
     return `<div class="srow"><span class="sp"><b>${esc(x.n)}</b></span>${action}</div>`;
   }).join('');
   return `<section class="card acct account-screens-index" aria-label="همهٔ بخش‌های حساب">
@@ -2662,7 +2662,12 @@ const certReqOf=id=>{
 };
 
 /* ══ رندر ════════════════════════════════════════════════════════════ */
-function viewOf(k){ return k==='events'?VS.events : k==='profile'?VS.profile
+function accScreen(k){ const i=Number(String(k).slice(4)); return ACCOUNT_SCREENS[i]||null }
+function accScreenView(t){
+  return serverAccountFeatureView(t,t.n,'این بخش به سرویس واقعی حساب وصل نشده است؛ داده‌ی نمونه نمایش داده نمی‌شود.');
+}
+function viewOf(k){ if(String(k||'').indexOf('acc-')===0) return accScreen(k)?accScreenView:null;
+  return k==='events'?VS.events : k==='profile'?VS.profile
   : k==='pay'?VS.pay : k==='book'?VS.book : k==='server-data'?serverAccountDataView : null }
 /* نشانی‌های کوتاه، همان تب پروفایل را باز می‌کنند */
 const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
@@ -2671,11 +2676,12 @@ const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
   club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club'],
   invite:['profile','ptab','invite'], invite2:['profile','ptab','invite']};
 function renderView(){
-  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:SECT.find(s=>s.k===S.view), fn=viewOf(S.view);
+  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view), fn=viewOf(S.view);
   if(!box||!t||!fn) return;
   box.innerHTML=`<section class="sec" aria-label="${esc(t.n)}">${fn(t)}</section>`;
   document.title='نورا · '+t.n;
 }
+function accScreenTitle(k){ const x=accScreen(k); return x?{k,n:x.n,s:''}:null }
 function render(){
   renderProfile();
   const prof=$('#profBox'), box=$('#viewBox'), ok=!!viewOf(S.view), sb=$('#supBar');
@@ -2686,6 +2692,7 @@ function render(){
 }
 function route(){
   const raw=(location.hash||'').replace('#','');
+  if(raw.indexOf('acc-')===0 && accScreen(raw)){ S.view=raw; render(); return; }
   if(raw.indexOf('fill=')===0){                       /* نشانی فرمی که سرپرست فرستاده */
     const id=raw.slice(5); S.view='book'; S.ctab='home'; render();
     const f=cfOf(id);
