@@ -32,7 +32,7 @@ from backend.otp import generate_otp_code, normalize_iran_phone, otp_digest, pho
 
 
 SAFIR_KEY = "server-only-safir-key-for-otp-tests"
-BOT_ID = "317041514"
+BOT_ID = "100000001"
 PHONE = "09123456789"
 CODE = "042815"
 ORIGIN = {"Origin": "http://testserver"}

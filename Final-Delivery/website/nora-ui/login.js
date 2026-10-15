@@ -167,7 +167,7 @@
       ? `ارسال دوباره · ${persianDigits(wait)} ثانیه`
       : 'ارسال دوبارهٔ کد';
     body.innerHTML = `<div class="lgstep" id="lgPhoneCodeMethod">
-      <p class="lg-otp-sent" role="status">کد یک‌بارمصرف با پیامک ارسال شد.</p>
+      <p class="lg-otp-sent" role="status">کد یک‌بارمصرف در ربات بله برای شما ارسال شد.</p>
       <form class="lgform" id="lgPhoneCodeForm" autocomplete="on">
         <label class="lgfield lg-otp-field" for="lgOtpCode">
           <span class="lglbl">کد شش‌رقمی</span>

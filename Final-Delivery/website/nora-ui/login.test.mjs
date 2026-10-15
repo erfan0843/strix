@@ -141,11 +141,11 @@ console.log('\n— درخواست و تأیید OTP پیامکی Safir —');
   check(JSON.stringify(JSON.parse(request?.options.body || '{}')) === JSON.stringify({ phone: '۰۹۱۲۳۴۵۶۷۸۹' }), 'درخواست فقط شماره را به backend می‌فرستد');
   check(!!p.doc.querySelector('#lgPhoneCodeForm'), 'پس از پاسخ موفق سرور، گام کد باز می‌شود');
   const smsNotice = p.doc.querySelector('#lgPhoneCodeMethod .lg-otp-sent');
-  check(smsNotice?.textContent.includes('پیامک') && smsNotice.textContent.includes('ارسال شد')
-      && !smsNotice.textContent.includes('بله'), 'گام کد پیام ارسال‌شده از Safir را به‌صورت پیامک معرفی می‌کند');
+  check(smsNotice?.textContent.includes('ربات بله') && smsNotice.textContent.includes('ارسال شد')
+      && !smsNotice.textContent.includes('پیامک'), 'گام کد، ارسال از ربات بله را معرفی می‌کند');
   check(smsNotice?.getAttribute('role') === 'status'
       && p.doc.querySelectorAll('#lgPhoneCodeMethod a[href]').length === 0,
-    'اعلان پیامک دسترس‌پذیر است و هیچ پیوند ورود بله‌ای نمایش داده نمی‌شود');
+    'اعلان وضعیت در دسترس است و هیچ پیوند ورود جداگانه‌ای نمایش داده نمی‌شود');
   check(p.doc.querySelector('#lgOtpCode')?.getAttribute('autocomplete') === 'one-time-code'
       && p.doc.querySelector('#lgOtpCode')?.maxLength === 6
       && p.doc.querySelectorAll('#lgPhoneCodeMethod [data-otp-slot]').length === 6,
