@@ -4468,6 +4468,72 @@ function bkEdForm(type,i,x){
       <button class="btn sm quiet" data-bkedcancel>${esc('بیخیال')}</button><span class="sp"></span>
       <button class="btn sm quiet" data-copy="${esc(def)}" data-copy-msg="پیوند سامانه رونوشت شد">${ico('i-copy')} کپی پیوند پیشفرض</button></div></div>`;
 }
+
+/* ── کلید کیف پول بله (تنظیمات مالی مالک) ──
+   کلید فقط از این فرم وارد می‌شود، رمزنگاری‌شده در سرور ذخیره می‌شود،
+   و هرگز کامل برگردانده یا در این صفحه نگه‌داری نمی‌شود. */
+const WALLET_KEY_API='/api/owner/payment-settings';
+let WALLET_KEY_STATE=null, WALLET_KEY_BUSY=false, WALLET_KEY_MSG='';
+function walletCsrf(){const m=document.cookie.match(/(?:^|;\s*)nora_csrf=([^;]+)/);return m?decodeURIComponent(m[1]):''}
+async function walletKeyLoad(){
+  try{
+    const r=await fetch(WALLET_KEY_API,{credentials:'same-origin',headers:{Accept:'application/json'}});
+    if(!r.ok) throw new Error('http_'+r.status);
+    const j=await r.json(); WALLET_KEY_STATE=j.bale_wallet||{configured:false};
+  }catch(err){WALLET_KEY_STATE={error:true}}
+  WALLET_KEY_MSG=''; if(typeof renderBody==='function') renderBody();
+}
+async function walletKeySave(){
+  const input=document.getElementById('walletKeyInput'); const value=(input&&input.value||'').trim();
+  if(!value){WALLET_KEY_MSG='کلید را وارد کنید.'; renderBody(); return}
+  WALLET_KEY_BUSY=true; WALLET_KEY_MSG='';
+  try{
+    const r=await fetch(WALLET_KEY_API+'/bale-wallet',{method:'PUT',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':walletCsrf(),Origin:location.origin},
+      body:JSON.stringify({api_key:value})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok){WALLET_KEY_STATE=j.bale_wallet; WALLET_KEY_MSG='کلید ذخیره شد و فقط بخش پایانی آن نمایش داده می‌شود.'}
+    else{const code=(j.detail&&(j.detail.code||j.detail))||'save_failed';
+      WALLET_KEY_MSG=code==='invalid_bale_wallet_key_format'?'قالب کلید درست نیست.':code==='settings_encryption_not_configured'?'کلید رمزنگاری سرور تنظیم نشده؛ ذخیره انجام نشد.':'ذخیره انجام نشد.'}
+  }catch(err){WALLET_KEY_MSG='ارتباط با سرور برقرار نشد.'}
+  finally{WALLET_KEY_BUSY=false; if(input) input.value=''; renderBody()}
+}
+async function walletKeyClear(){
+  WALLET_KEY_BUSY=true;
+  try{
+    const r=await fetch(WALLET_KEY_API+'/bale-wallet',{method:'DELETE',credentials:'same-origin',
+      headers:{'X-CSRF-Token':walletCsrf(),Origin:location.origin}});
+    if(r.ok){const j=await r.json(); WALLET_KEY_STATE=j.bale_wallet; WALLET_KEY_MSG='کلید ذخیره‌شده حذف شد.'}
+    else WALLET_KEY_MSG='حذف انجام نشد.';
+  }catch(err){WALLET_KEY_MSG='ارتباط با سرور برقرار نشد.'}
+  finally{WALLET_KEY_BUSY=false; renderBody()}
+}
+function walletKeyCard(){
+  if(WALLET_KEY_STATE===null){WALLET_KEY_STATE={pending:true}; walletKeyLoad()}
+  const st=WALLET_KEY_STATE||{};
+  const status=st.pending?'در حال بارگذاری…':st.error?'وضعیت در دسترس نیست':st.configured
+    ?('ذخیره شده · پایان کلید: '+(st.hint||'…')+(st.source==='environment'?' (از تنظیمات سرور)':''))
+    :'هنوز کلیدی ذخیره نشده';
+  const ready=st.encryption_ready!==false;
+  return `<div class="admset" style="margin-bottom:10px" data-wallet-card>
+    <div class="admlirow"><span class="ic">${ico('i-wallet')}</span>
+      <span class="sp"><b>کیف پول بله · کلید API</b><small class="cap" style="display:block">${esc(status)}</small></span></div>
+    <div style="padding:8px 4px;display:flex;flex-direction:column;gap:8px">
+      <label class="cap" for="walletKeyInput">کلید کیف پول را وارد کنید (پس از ذخیره دیده نمی‌شود)</label>
+      <input id="walletKeyInput" type="password" autocomplete="off" spellcheck="false" dir="ltr"
+        ${ready&&!WALLET_KEY_BUSY?'':'disabled'} placeholder="کلید را وارد کنید" style="font:inherit;padding:8px;border-radius:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn sm" data-wallet-save ${ready&&!WALLET_KEY_BUSY?'':'disabled'}>${ico('i-check')} ذخیره کلید</button>
+        <button class="btn sm quiet" data-wallet-clear ${st.configured&&!WALLET_KEY_BUSY?'':'disabled'}>${ico('i-close')} حذف کلید ذخیره‌شده</button>
+      </div>
+      ${ready?'':'<p class="cap">کلید رمزنگاری سرور (NORA_SETTINGS_ENCRYPTION_KEY) تنظیم نشده؛ ذخیره غیرفعال است.</p>'}
+      ${WALLET_KEY_MSG?`<p class="cap" role="status">${esc(WALLET_KEY_MSG)}</p>`:''}
+    </div></div>`;
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest&&e.target.closest('[data-wallet-save]')){e.preventDefault(); walletKeySave(); return}
+  if(e.target.closest&&e.target.closest('[data-wallet-clear]')){e.preventDefault(); walletKeyClear(); return}
+});
 function finView(){
   const FN=finC(), own=isOwner(), lead=isLead();
   const cur=S.finTab||(own?'gates':'receipts');
@@ -4492,7 +4558,7 @@ function finView(){
     `<button class="chip ${cur===t[0]?'on':''}" data-fintab="${t[0]}">${ico(t[2])}${esc(t[1])}</button>`).join('');
   let inner='';
   if(cur==='gates'){
-    inner=sdSect('درگاه‌های پرداخت نورا پی','تنظیمات نمایشی؛ اتصال واقعی نیازمند سرور است')+
+    inner=(own?walletKeyCard():'')+sdSect('درگاه‌های پرداخت نورا پی','تنظیمات نمایشی؛ اتصال واقعی نیازمند سرور است')+
     `<p class="cap">${esc('تنظیم‌ها نمایشی‌اند؛ روشن‌کردن gate اتصال یا دریافت وجه ایجاد نمی‌کند. این صفحه کلید درگاه یا secret نمی‌پذیرد و به سرور واقعی وصل نیست.')}</p>`+
     finGates().map(g=>`<div class="admset" style="margin-bottom:10px"><div class="admlirow">
       <span class="ic">${ico(g.i||'i-wallet')}</span>
