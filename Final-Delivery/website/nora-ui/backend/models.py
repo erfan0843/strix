@@ -265,6 +265,19 @@ class SiteContentRecord(Base):
     )
 
 
+class PaymentSecretRecord(Base):
+    """Owner-entered provider secret, stored encrypted (see secret_box.py)."""
+
+    __tablename__ = "payment_secrets"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    ciphertext: Mapped[str] = mapped_column(Text, nullable=False)
+    hint: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
 class CooperationRequestRecord(Base):
     """Private, durable inbox entry submitted through the public cooperation form."""
 

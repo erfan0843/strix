@@ -21,7 +21,7 @@ import sys
 import tempfile
 import uuid
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace as dataclass_replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Generator, Literal, Mapping, Sequence, TypedDict, cast
@@ -38,6 +38,7 @@ from starlette.middleware.gzip import GZipMiddleware
 
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
+from .secret_box import SecretBoxError, decrypt_secret, encrypt_secret, encryption_configured, secret_hint
 from .config import UI_ROOT, Settings
 from .financials import (
     PaymentConfigurationError,
@@ -67,6 +68,7 @@ from .models import (
     PhoneOTPChallengeRecord,
     PrivateFileRecord,
     PublicWriteThrottleRecord,
+    PaymentSecretRecord,
     SiteContentRecord,
     UserNotificationRecord,
 )
@@ -204,6 +206,34 @@ class AccountIdentity:
     role: str | None = None
     owner_id: str = ""
     provider: str = "bale"
+
+
+_BALE_WALLET_KEY = re.compile(r"[0-9]{5,20}:[A-Za-z0-9_-]{20,128}\Z")
+
+
+def _payment_settings_response(db: Session, cfg: Settings | None = None) -> dict[str, Any]:
+    record = db.get(PaymentSecretRecord, "bale_wallet")
+    env_configured = bool(cfg and cfg.form_payment_bot_token)
+    return {
+        "bale_wallet": {
+            "configured": record is not None or env_configured,
+            "hint": record.hint if record is not None else "",
+            "encryption_ready": encryption_configured(),
+            "source": "database" if record is not None else ("environment" if env_configured else "none"),
+        }
+    }
+
+
+def _payment_cfg(db: Session, cfg: Settings) -> Settings:
+    """Return settings whose Bale payment token comes from the owner's saved key when present."""
+    record = db.get(PaymentSecretRecord, "bale_wallet")
+    if record is None:
+        return cfg
+    try:
+        token = decrypt_secret(record.ciphertext)
+    except SecretBoxError:
+        return cfg
+    return dataclass_replace(cfg, form_payment_bot_token=token)
 
 
 def _utc_now() -> datetime:
@@ -1825,6 +1855,53 @@ def create_app(
         db.commit()
         db.refresh(record)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+
+    @app.get("/api/owner/payment-settings")
+    def get_owner_payment_settings(
+        request: Request,
+        _identity: OwnerIdentity = Depends(require_owner),
+        db: Session = Depends(get_db),
+    ):
+        return _payment_settings_response(db, request.app.state.settings)
+
+    @app.put("/api/owner/payment-settings/bale-wallet")
+    async def set_owner_bale_wallet_key(
+        request: Request,
+        _identity: OwnerIdentity = Depends(require_owner_write),
+        db: Session = Depends(get_db),
+    ):
+        payload = await _read_json_object(request, 4 * 1024)
+        if set(payload) != {"api_key"} or not isinstance(payload.get("api_key"), str):
+            raise HTTPException(400, "invalid_payment_settings_request")
+        value = payload["api_key"].strip()
+        if not _BALE_WALLET_KEY.fullmatch(value):
+            raise HTTPException(422, "invalid_bale_wallet_key_format")
+        if not encryption_configured():
+            raise HTTPException(503, "settings_encryption_not_configured")
+        try:
+            ciphertext = encrypt_secret(value)
+        except SecretBoxError as error:
+            raise HTTPException(503, error.code) from None
+        record = db.get(PaymentSecretRecord, "bale_wallet")
+        if record is None:
+            db.add(PaymentSecretRecord(id="bale_wallet", ciphertext=ciphertext, hint=secret_hint(value)))
+        else:
+            record.ciphertext = ciphertext
+            record.hint = secret_hint(value)
+        db.commit()
+        return _payment_settings_response(db, request.app.state.settings)
+
+    @app.delete("/api/owner/payment-settings/bale-wallet")
+    def clear_owner_bale_wallet_key(
+        request: Request,
+        _identity: OwnerIdentity = Depends(require_owner_write),
+        db: Session = Depends(get_db),
+    ):
+        record = db.get(PaymentSecretRecord, "bale_wallet")
+        if record is not None:
+            db.delete(record)
+            db.commit()
+        return _payment_settings_response(db, request.app.state.settings)
 
     @app.post("/api/public/cooperation-requests", status_code=201)
     async def submit_cooperation_request(request: Request, db: Session = Depends(get_db)):
@@ -4412,7 +4489,7 @@ def create_app(
             raise HTTPException(410, detail={"code": "form_full"})
 
         try:
-            webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
+            webhook_info = await asyncio.to_thread(call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {})
             webhook_result = webhook_info.get("result")
             configured_webhook = (
                 webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
@@ -4425,12 +4502,12 @@ def create_app(
                     raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
                 await asyncio.to_thread(
                     call_bale_payment_api,
-                    cfg,
+                    _payment_cfg(db, cfg),
                     "setWebhook",
                     {"url": registered_webhook_url},
                 )
                 verified_webhook_info = await asyncio.to_thread(
-                    call_bale_payment_api, cfg, "getWebhookInfo", {}
+                    call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {}
                 )
                 verified_result = verified_webhook_info.get("result")
                 verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
@@ -4442,7 +4519,7 @@ def create_app(
             description = f"پرداخت ثبت‌نام: {str(form.title or 'فرم')[:200]}"[:255]
             invoice_response = await asyncio.to_thread(
                 call_bale_payment_api,
-                cfg,
+                _payment_cfg(db, cfg),
                 "createInvoiceLink",
                 {
                     "title": title,
@@ -4635,7 +4712,7 @@ def create_app(
                 answer["error_message"] = "این صورت‌حساب منقضی یا نامعتبر است؛ دوباره از فرم شروع کنید."
             try:
                 await asyncio.to_thread(
-                    call_bale_payment_api, cfg, "answerPreCheckoutQuery", answer
+                    call_bale_payment_api, _payment_cfg(db, cfg), "answerPreCheckoutQuery", answer
                 )
             except BalePaymentAPIError as error:
                 raise HTTPException(503, detail={"code": error.code}) from None
@@ -4696,7 +4773,7 @@ def create_app(
         try:
             inquiry = await asyncio.to_thread(
                 call_bale_payment_api,
-                cfg,
+                _payment_cfg(db, cfg),
                 "inquireTransaction",
                 {"transaction_id": transaction_id},
             )

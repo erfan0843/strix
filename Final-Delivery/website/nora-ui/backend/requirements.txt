@@ -5,3 +5,4 @@ alembic>=1.13,<2
 psycopg[binary]>=3.2,<4
 Pillow>=10.1.0
 qrcode>=7.4.2,<9
+cryptography>=43,<50

@@ -22,7 +22,7 @@ from backend.models import AccountRecord, FormRecord, FormResponseDraftRecord
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
-HEAD = "0022_web_account_registration_history"
+HEAD = "0023_payment_secrets"
 PRE_COMPANIONS = "0017_form_companions"
 
 
