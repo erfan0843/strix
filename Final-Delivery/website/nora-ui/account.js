@@ -2681,7 +2681,24 @@ const certReqOf=id=>{
 /* ══ رندر ════════════════════════════════════════════════════════════ */
 function accScreen(k){ const i=Number(String(k).slice(4)); return ACCOUNT_SCREENS[i]||null }
 function accScreenView(t){
+  if(t.k==='acc-0') return serverAccountInfoView(t);
   return serverAccountFeatureView(t,t.n,'این بخش به سرویس واقعی حساب وصل نشده است؛ داده‌ی نمونه نمایش داده نمی‌شود.');
+}
+/* اطلاعات حساب: فقط آنچه /api/account/me می‌دهد (نوع ورود، نقش، بات تحویل). نام و موبایل در API نیست و نمایش داده نمی‌شود. */
+function serverAccountInfoView(t){
+  const state=SERVER_ACCOUNT_STATE;
+  if(state.checking) return viewHead(t,'',null)+serverAccountAccessCard();
+  if(!state.account) return viewHead(t,'',null)+serverAccountAccessCard('notifications');
+  const a=state.account;
+  const providerLabel=a.provider==='manager-password'?'ورود مدیر با نام کاربری':a.provider==='phone'?'ورود با شمارهٔ موبایل':'حساب بله';
+  const bot=a.delivery_bot_url&&/^https:\/\//.test(a.delivery_bot_url)?`<a class="btn quiet" href="${esc(a.delivery_bot_url)}" target="_blank" rel="noopener">باز کردن بات تحویل</a>`:'';
+  return viewHead(t,'',null)+card('اطلاعات حساب','نوع ورود و دسترسی‌های این حساب از سرور خوانده شده است.','i-idcard',
+    `<div class="stack">
+       <div class="srow"><span class="sp"><b>نوع ورود</b><small class="cap">${esc(providerLabel)}</small></span></div>
+       <div class="srow"><span class="sp"><b>دسترسی‌ها</b><small class="cap">${esc(faN((a.permissions||[]).length))} مورد</small></span></div>
+     </div>
+     <p class="cap">نام، شمارهٔ موبایل و ویرایش اطلاعات در API حساب وب موجود نیست.</p>
+     <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
 }
 function viewOf(k){ if(String(k||'').indexOf('acc-')===0) return accScreen(k)?accScreenView:null;
   return k==='events'?VS.events : k==='profile'?VS.profile

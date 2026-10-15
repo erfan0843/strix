@@ -524,5 +524,14 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   const q=await load(memberStore(),'#acc-999');
   ok(!q.inView(),'شناسهٔ ناموجود بخش باز نمی‌شود');
 }
+/* ── اطلاعات حساب از /api/account/me ── */
+{
+  console.log('\n── اطلاعات حساب (سرور) ──');
+  const p=await load(makeStore(),'#acc-0',{account:{authenticated:true,account_id:'a1',provider:'phone',role:'member',permissions:['a','b'],delivery_bot_url:'https://ble.ir/x'},notifications:[],files:[]},false,false);
+  ok(p.errs.length===0,'اطلاعات حساب بی‌خطا باز می‌شود'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.txt('#viewBox').includes('ورود با شمارهٔ موبایل'),'نوع ورود از سرور نمایش داده می‌شود');
+  ok(p.txt('#viewBox').includes('۲ مورد'),'تعداد دسترسی‌ها از سرور نمایش داده می‌شود');
+  ok(!p.txt('#viewBox').includes('در دست ساخت'),'صفحهٔ اطلاعات حساب «در دست ساخت» نیست');
+}
 console.log(`\naccount: ${pass} موفق، ${fail} خطا`);
 process.exit(fail?1:0);
