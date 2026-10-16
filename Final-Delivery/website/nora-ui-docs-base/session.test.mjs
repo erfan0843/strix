@@ -21,5 +21,14 @@ console.log('── نشست سرور در حساب من ──');
   await wait(800); ok(JSON.parse(store.get('nora-home-user')).msgs===2,'پیام نخوانده از سرور شمرده می‌شود (۲)'); dom.window.close(); }
 { const {dom,store}=await mk({name:'ساختگی',mobile:'09121234567',wallet:1250000},()=>({ok:false,status:401,json:async()=>({})}));
   await wait(800); ok(store.get('nora-home-user')==null,'نشست ساختگی بدون علامت سرور پاک می‌شود'); dom.window.close(); }
+console.log('── نام کاربر پس از ورود و تکمیل پروفایل ──');
+{ const {dom,store}=await mk({name:'۰۹۱۲۱۲۳۴۵۶۷',mobile:'09121234567',provider:'phone',server:true,msgs:0},()=>({ok:true,status:200,json:async()=>({authenticated:true})}));
+  await wait(800); const txt=dom.window.document.body.textContent;
+  ok(!txt.includes('سارا محمدی'),'کاربر واقعی بدون پروفایل، نام نمونه (سارا محمدی) را نمی‌بیند'); dom.window.close(); }
+{ const {dom,store}=await mk({name:'۰۹۱۲۱۲۳۴۵۶۷',mobile:'09121234567',provider:'phone',server:true,msgs:0},()=>({ok:true,status:200,json:async()=>({authenticated:true})}));
+  store.set('nora-home-profile',JSON.stringify({fullName:'علی رضایی'}));
+  await wait(200); dom.window.location.hash=''; await wait(400);
+  const txt=dom.window.document.body.textContent;
+  ok(txt.includes('علی رضایی'),'نام تکمیل‌شده در پروفایل نمایش داده می‌شود'); dom.window.close(); }
 if(fail) { console.log(`session-test: ${fail} خطا`); process.exit(1) }
 console.log('session-test: همه قبول');

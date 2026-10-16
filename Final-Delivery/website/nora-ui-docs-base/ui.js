@@ -639,14 +639,21 @@ function profile(){
   let v=null; try{v=JSON.parse(localStorage.getItem(PROF_KEY)||'null')}catch(e){v=null}
   const A=(window.NORA&&window.NORA.ACCOUNT)||{};
   if(!v){
-    /* کاربر واردشده و پروفایل دست‌نخورده: نمونهٔ خودِ داده می‌نشیند */
-    return cleanProfile(uid()&&A.seed?Object.assign({},A.seed):null);
+    /* کاربر واردشدهٔ واقعی (نشست سرور): پروفایل خالی است تا خودش تکمیل کند؛ نمونه فقط برای نمای نمایشی */
+    const su=walletUser();
+    const demo=uid()&&A.seed&&!(su&&su.server===true);
+    return cleanProfile(demo?Object.assign({},A.seed):null);
   }
   return cleanProfile(v);
 }
 function saveProfile(v){
   const p=cleanProfile(v);
   try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
+  /* نام کامل تکمیل‌شده، نام نشست هم می‌شود تا همه‌جا یکی باشد */
+  try{
+    const su=sessUser();
+    if(su && su.server===true && p.fullName){ su.name=p.fullName; localStorage.setItem(SESS_KEY,JSON.stringify(su)) }
+  }catch(e){}
   return p;
 }
 /* ══ تنظیمهای ظاهری سامانه: یک انبار مشترک، همهٔ صفحه‌ها از آن می‌خوانند ══ */
