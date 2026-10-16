@@ -146,7 +146,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             constraint["name"] for constraint in inspector.get_unique_constraints("form_payment_transactions")
         }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0023_payment_secrets"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0024_account_profiles"
     finally:
         engine.dispose()
 

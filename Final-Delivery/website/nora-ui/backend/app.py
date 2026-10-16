@@ -47,6 +47,7 @@ from .financials import (
 )
 from .form_capabilities import public_form_capabilities
 from .models import (
+    AccountProfileRecord,
     AccountRecord,
     AccountRoleRecord,
     AccountSessionRecord,
@@ -2572,6 +2573,56 @@ def create_app(
             "permissions": sorted(permissions_for_role(identity.role)),
             "delivery_bot_url": delivery_bot_url,
         }
+
+    PROFILE_FIELD_KEYS = ("fullName", "nationalId", "birthDate", "gender", "province", "city", "address", "email")
+
+    def _clean_profile_fields(raw: Any) -> dict[str, str]:
+        if not isinstance(raw, dict):
+            raise HTTPException(422, "profile_invalid")
+        out: dict[str, str] = {}
+        for key in PROFILE_FIELD_KEYS:
+            value = raw.get(key, "")
+            if value is None:
+                value = ""
+            if not isinstance(value, str):
+                raise HTTPException(422, "profile_invalid")
+            cleaned = re.sub(r"[\u0000-\u001f<>]", "", value).strip()
+            if len(cleaned) > 120:
+                raise HTTPException(422, "profile_field_too_long")
+            out[key] = cleaned
+        return out
+
+    @app.get("/api/account/profile")
+    def account_profile_get(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        record = db.get(AccountProfileRecord, identity.account_id)
+        fields = {key: "" for key in PROFILE_FIELD_KEYS}
+        if record is not None and isinstance(record.fields, dict):
+            for key in PROFILE_FIELD_KEYS:
+                value = record.fields.get(key, "")
+                fields[key] = value if isinstance(value, str) else ""
+        return {"fields": fields, "saved": record is not None}
+
+    @app.put("/api/account/profile")
+    def account_profile_put(
+        payload: dict[str, Any],
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        fields = _clean_profile_fields(payload)
+        record = db.get(AccountProfileRecord, identity.account_id)
+        if record is None:
+            record = AccountProfileRecord(account_id=identity.account_id, fields=fields, updated_at=_utc_now())
+            db.add(record)
+        else:
+            record.fields = fields
+            record.updated_at = _utc_now()
+        db.commit()
+        return {"fields": fields, "saved": True}
 
     @app.get("/api/account/registrations")
     def account_registrations(

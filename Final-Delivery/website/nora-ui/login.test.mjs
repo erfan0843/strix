@@ -367,7 +367,7 @@ console.log('\n— تفکیک هویت Bale از ورود شماره‌ای —'
 }
 
 console.log('\n— نگه‌داشتن کد modal مستقل —');
-check(dataScript.includes("codeDemo:'54321',codeLen:5"), 'کد modal داخل برنامه بدون تغییر می‌ماند');
+check(dataScript.includes("codeLen:6") && !dataScript.includes("codeDemo:'54321'"), 'کد ۶ رقمی سرور در داده‌ی ورود؛ کد نمایشی ۵ رقمی حذف شده');
 check(!script.includes('54321') && !script.includes('5432') && !script.includes('localStorage'), 'ورود صفحه نه کد نمونه دارد و نه از storage محلی استفاده می‌کند');
 
 console.log(`\nآزمون ورود OTP پیامکی: ${passed} قبول، ${failed} خطا`);

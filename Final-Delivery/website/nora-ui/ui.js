@@ -1086,9 +1086,12 @@ function normalizePrimaryNavigation(){
   updateAccountNavigation();
 }
 function profile(){
-  if(!NORA_TEST_FIXTURE_MODE) return cleanProfile(null);
+  const server=window.NORA_ACCOUNT_SOURCE==='server';
+  if(!NORA_TEST_FIXTURE_MODE && !server) return cleanProfile(null);
   let v=null; try{v=JSON.parse(localStorage.getItem(PROF_KEY)||'null')}catch(e){v=null}
   const A=(window.NORA&&window.NORA.ACCOUNT)||{};
+  /* حساب واقعی: پروفایل از سرور می‌آید و نسخهٔ محلی فقط کش همان است؛ نمونه‌ی ساختگی نمی‌نشیند */
+  if(!v && server) return cleanProfile(null);
   if(!v){
     /* Browser profiles are seeded only inside explicitly marked test fixtures. */
     return cleanProfile(uid()&&A.seed?Object.assign({},A.seed):null);
@@ -1096,9 +1099,24 @@ function profile(){
   return cleanProfile(v);
 }
 function saveProfile(v){
-  const p=cleanProfile(v);
-  if(NORA_TEST_FIXTURE_MODE) try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
+  const p=cleanProfile(v), server=window.NORA_ACCOUNT_SOURCE==='server';
+  if(NORA_TEST_FIXTURE_MODE||server) try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
+  if(server&&window.NORA_SERVER_API&&typeof window.NORA_SERVER_API.saveAccountProfile==='function'){
+    const fields={}; ['fullName','nationalId','birthDate','gender','province','city','address','email'].forEach(k=>{ fields[k]=p[k]||'' });
+    window.NORA_SERVER_API.saveAccountProfile(fields).catch(()=>{ try{ toast('ذخیرهٔ پروفایل روی سرور انجام نشد؛ دوباره تلاش کن') }catch(e){} });
+  }
   return p;
+}
+/* پروفایل حساب واقعی را از سرور می‌خواند و کش محلی را به‌روز می‌کند */
+function syncServerProfile(){
+  const api=window.NORA_SERVER_API;
+  if(window.NORA_ACCOUNT_SOURCE!=='server'||!api||typeof api.accountProfile!=='function') return Promise.resolve(null);
+  return api.accountProfile().then(d=>{
+    if(!d||!d.fields||typeof d.fields!=='object') return null;
+    const p=cleanProfile(d.fields);
+    try{ localStorage.setItem(PROF_KEY,JSON.stringify(p)) }catch(e){}
+    return p;
+  }).catch(()=>null);
 }
 /* ══ تنظیمهای ظاهری سامانه: یک انبار مشترک، همهٔ صفحه‌ها از آن می‌خوانند ══ */
 const UISET_KEY='nora-uiset';
@@ -2883,6 +2901,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
+  syncServerProfile:syncServerProfile,
   fillTrust:fillTrust,trustPick:trustPick,
   uiSet:uiSet,uiSetSave:uiSetSave,UISET_META:UISET_META,menuAllowed:menuAllowed,uiSetDef:UISET_DEF,
   levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY,

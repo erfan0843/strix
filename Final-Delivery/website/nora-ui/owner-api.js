@@ -147,6 +147,10 @@
     health: () => request('/api/health'),
     me: () => request('/api/auth/me'),
     accountMe: () => request('/api/account/me'),
+    accountProfile: () => request('/api/account/profile'),
+    saveAccountProfile: payload => request('/api/account/profile', {
+      method: 'PUT', body: payload, csrfWrite: true, csrfCookie: 'nora_account_csrf'
+    }),
     listAccountRoles: (limit, offset) => request('/api/owner/accounts?limit='
       + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))),
     setAccountRole: (accountId, role) => request('/api/owner/accounts/'

@@ -701,6 +701,7 @@ async function checkServerAccount(){
     state.account=identity; state.checked=true; state.checking=false; state.error='';
     window.NORA_UI?.updateAccountNavigation?.();
     resetServerAccountData(); updateAccountBanner(); render(); loadServerAccountData(false);
+    if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
     if(S.view==='events') loadAccountRegistrations();
   }catch(error){
     delete window.NORA_ACCOUNT_SOURCE;
