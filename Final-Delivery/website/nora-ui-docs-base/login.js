@@ -13,8 +13,8 @@
 
 /* ── داده ─────────────────────────────────────────────────────────── */
 const N=window.NORA||{}, A=N.ACCOUNT||{}, L=A.login||{};
-const CODE_DEMO=String(L.codeDemo||'5432'), CODE_LEN=+(L.codeLen||4);
-const TTL=+(L.ttl||90);                       /* ثانیه، مثل خودِ پیام‌گیر */
+const CODE_LEN=6;                             /* کد واقعی سرور: ۶ رقم */
+const TTL=+(L.ttl||90);                       /* ثانیه؛ بعداً از expires_in سرور پر می‌شود */
 const SESS_KEY='nora-home-user', PEND_KEY='nora-home-auth';
 
 /* ── کمکی‌ها ─────────────────────────────────────────────────────── */
@@ -316,8 +316,9 @@ function tick(){
 
 /* ── ورود ─────────────────────────────────────────────────────────── */
 function signIn(mobile){
-  store.set(SESS_KEY,{name:(A.seed||{}).fullName||'سارا محمدی',mobile:mobile||'',joined:'شهریور ۱۴۰۴',
-    certs:2,wallet:1250000,msgs:1});
+  /* فقط شمارهٔ واقعی؛ نام و موجودی ساختگی نوشته نمی‌شود. server:true یعنی نشست از سرور آمده است. */
+  store.set(SESS_KEY,{name:phonePretty(mobile||''),mobile:mobile||'',provider:'phone',server:true,
+    certs:0,wallet:0,msgs:0});
   store.del(PEND_KEY);
   try{ document.dispatchEvent(new CustomEvent('nora:login',{detail:{mobile:mobile}})) }catch(e){}
 }
@@ -333,10 +334,30 @@ function phoneVal(){
   return v;
 }
 /* رفتن به پلهٔ کد: کد را سفیر بله به همین شماره می‌فرستد */
-function gotoCode(){
-  store.set(PEND_KEY,{step:'code',mobile:S.mobile});
+async function gotoCode(){
+  err('');
+  let res, body={};
+  try{
+    res=await fetch('/api/auth/phone-otp/request',{method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:S.mobile})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){ err('اتصال به سرور برقرار نشد. دوباره تلاش کن.'); return false }
+  if(!res.ok){
+    err(otpRequestMsg(res.status,body));
+    return false;
+  }
+  S.challenge=String(body.challenge_id||'');
+  S.wait=+body.expires_in||TTL;
   S.step='code'; S.tries=0; paint();
-  status('کد چهاررقمی به شماره‌ات فرستاده شد؛ تا '+faN(TTL)+' ثانیه معتبر است.');
+  status('کد ۶ رقمی به شماره‌ات فرستاده شد.');
+  return true;
+}
+function otpRequestMsg(st,body){
+  const c=(body&&body.detail)||'';
+  if(st===429) return 'تلاش‌ها زیاد شد؛ کمی بعد دوباره امتحان کن.';
+  if(st===503) return 'ارسال کد پیامکی روی این سرور فعال نیست.';
+  if(st===422) return 'شماره معتبر نیست.';
+  return c?('خطا: '+c):'کد فرستاده نشد؛ دوباره تلاش کن.';
 }
 /* پلهٔ ۱: شماره و کد امنیتی تصویر */
 function capVal(){ const f=$('#lgCap'); return unFa(f?f.value:'').replace(/\D/g,'') }
@@ -378,13 +399,26 @@ function tryPhone(){
 }
 function otpVal(){ return $$('.otpbox').map(b=>unFa(b.value).replace(/\D/g,'')).join('') }
 function shake(sel){ const el=$(sel); if(!el) return; el.classList.add('bad'); setTimeout(()=>el.classList.remove('bad'),460) }
-function tryCode(){
+async function tryCode(){
   const v=otpVal(), e2=$('#lgErr2');
-  if(v.length<CODE_LEN){ if(e2){e2.hidden=false; e2.textContent='کد '+faN(CODE_LEN)+' رقمی را کامل بنویس.'} shake('#lgOtp'); return }
-  if(S.wait<=0){ if(e2){e2.hidden=false; e2.textContent=(L.otpOver||'زمان کد سر آمد')+' '+(L.resend||'دوباره بفرست')} return }
-  if(v!==CODE_DEMO){ S.tries++;
-    if(e2){ e2.hidden=false; e2.textContent='این کد درست نیست؛ کد نمونهٔ این پیش‌نمایش '+faN(CODE_DEMO)+' است.' }
-    shake('#lgOtp'); return }
+  const say=t=>{ if(e2){ e2.hidden=false; e2.textContent=t } };
+  if(v.length<CODE_LEN){ say('کد '+faN(CODE_LEN)+' رقمی را کامل بنویس.'); shake('#lgOtp'); return }
+  if(S.wait<=0){ say((L.otpOver||'زمان کد سر آمد')+' '+(L.resend||'دوباره بفرست')); return }
+  if(!S.challenge){ say('کد منقضی شد؛ شماره را دوباره بفرست.'); return }
+  let res, body={};
+  try{
+    res=await fetch('/api/auth/phone-otp/verify',{method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({challenge_id:S.challenge,phone:S.mobile,code:v})});
+    body=await res.json().catch(()=>({}));
+  }catch(e){ say('اتصال به سرور برقرار نشد. دوباره تلاش کن.'); return }
+  if(!res.ok){
+    S.tries++;
+    if(res.status===429){ say('تلاش‌ها زیاد شد؛ کمی بعد دوباره امتحان کن.') }
+    else if(res.status===401){ say('این کد درست نیست یا منقضی شده است.'); S.challenge=''; }
+    else say('ورود انجام نشد؛ دوباره تلاش کن.');
+    shake('#lgOtp'); return;
+  }
   clearInterval(clock.t);
   signIn(S.mobile||'');
   S.step='done'; paint();
@@ -544,8 +578,11 @@ function boot(){
   /* پیوند دعوت دوست: کد خودش در همان کادر می‌نشیند، بی کپی‌کاری */
   const inv=new URLSearchParams(location.search).get('inv');
   if(inv&&!S.invite) S.invite=invNorm(inv);
-  if(u&&u.name) S.step='already';
-  else if(pend&&pend.step==='code'&&(pend.mobile&&isMob(pend.mobile))){ S.mobile=pend.mobile; S.step='code' }
+  /* نشست‌های ساختگی قبلی (بدون server:true) پاک می‌شوند */
+  if(u&&!u.server){ store.del(SESS_KEY); }
+  const u2=store.get(SESS_KEY);
+  if(u2&&u2.server&&u2.name) S.step='already';
+  if(pend){ store.del(PEND_KEY) }
   const eye=$('#lgEye'); if(eye) eye.textContent=L.eye||'گروه فرهنگی خط زندگی';
   paint();
   if(S.step==='phone'){ const f=$('#lgPhone'); if(f&&matchMedia('(min-width:520px)').matches){ try{f.focus()}catch(e){} } }
