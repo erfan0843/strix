@@ -1,0 +1,2020 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   آزمون دودی صفحه‌های نورا — با jsdom
+   اجرا:  npm i jsdom && node smoke.test.mjs
+   چه چیزی را می‌سنجد: بی‌خطا بار شدن هر صفحه، انتخاب‌گرها (هیچ‌جا تایپ نه)،
+   صورت‌حساب و ضریب همراهان، گواهینامه و کیوآرکد، پیوندهای پایانی، پنل فرم
+   (آمار/اطلاعات/تغییرات)، وبهوک و گردش کار، جزئیات پاسخ‌دهنده، کارتابل، مالی و کارشناسان.
+   ══════════════════════════════════════════════════════════════════════════ */
+import jsdom from 'jsdom';
+const {JSDOM,ResourceLoader}=jsdom;
+import fs from 'fs';
+
+const DIR='/home/user/strix/docs/fa/nora-ui/';
+let fails=0, checks=0;
+const ok=(c,m)=>{checks++; if(!c){fails++; console.log('   ✗ '+m);} else console.log('   ✓ '+m);};
+
+function makeStoreWith(base){
+  const m=new Map();
+  for(let i=0;i<base.length;i++){const k=base.key(i); m.set(k,base.getItem(k))}
+  return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),
+    clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size}};
+}
+function makeStore(){const m=new Map(); return {
+  getItem:k=>m.has(k)?m.get(k):null, setItem:(k,v)=>m.set(k,String(v)),
+  removeItem:k=>m.delete(k), clear:()=>m.clear(), key:i=>[...m.keys()][i],
+  get length(){return m.size}, _dump:()=>[...m.keys()]};}
+
+
+/* ── تازههای باشگاه: کتابخانه و صدای پنل، در خانهٔ کاربر ── */
+{
+  const store2=makeStore();
+  store2.setItem('nora-clublib',JSON.stringify([
+    {k:'lb1',kind:'صدا',t:'قسمت ۱۳: راوی چرا پنهان می‌کند؟',by:'نبض ورق',sub:'nabz-ep13.mp3',
+     file:'data:audio/mp3;base64,AAA',link:'home.html#club?lib=lb1',btnN:'شنیدن در گروه',btnUrl:'https://ble.ir/join/nabzvaragh'},
+    {k:'lb2',kind:'کتاب',t:'سووشون؛ فصل اول',by:'سیمین دانشور',file:'data:application/pdf;base64,AAA',fname:'soooshoon.pdf',link:'home.html#club?lib=lb2'},
+    {k:'c9',kind:'مسابقه',t:'مسابقهٔ نقد فصل ششم',sub:'تا پایان آبان',link:'home.html#club?contest=c9',btnN:'ثبتنام مسابقه',btnUrl:'https://ble.ir/nora'}]));
+  const p=await load('home.html',store2);
+  ok(!!p.doc.querySelector('#club .cl-lib'),'نوار «تازههای باشگاه» در خانهٔ کاربر میآید');
+  ok(p.all('#club .cl-libcard').length===3,'هر مطلبِ منتشرشده، یک کارت');
+  ok(p.all('#club .cl-libcard audio').length===1,'فایل صوتی، با پخشگر همانجا');
+  ok(!!p.doc.querySelector('#club .cl-libcard a[download]'),'فایل کتاب، با دکمهٔ خواندن');
+  ok(/شنیدن در گروه/.test(p.txt('#club'))&&/ثبتنام مسابقه/.test(p.txt('#club')),'دکمههای سفارشی مدیر روی کارتهاست');
+  ok(p.all('#club .cl-libcard [data-copy]').length===3,'لینک هر کارت از دست کاربر هم کپی میشود');
+  ok(!p.doc.querySelector('#club .cl-lib')||p.txt('#club .cl-lib .head').includes('تازههای باشگاه'),'عنوان نوار: تازههای باشگاه');
+}
+
+/* نشانی واقعی برای ?guests= — فایل‌ها از همین پوشه خوانده می‌شوند (بی‌شبکه) */
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function load(file,store,q){
+  const errs=[];
+  const dom=await JSDOM.fromFile(DIR+file,{
+    runScripts:'dangerously', resources:'usable', pretendToBeVisual:true,
+    ...(q?{url:'file://'+DIR+file+q}:{}),
+    beforeParse(w){
+      w.scrollTo=()=>{};
+      if(w.Element&&!w.Element.prototype.scrollIntoView) w.Element.prototype.scrollIntoView=()=>{};
+      if(store) Object.defineProperty(w,'localStorage',{configurable:true,value:store});
+      if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+      w.addEventListener('error',e=>errs.push('error: '+e.message));
+      const ce=w.console.error; w.console.error=(...a)=>{errs.push('console.error: '+a.join(' '));};
+      w.onerror=(m)=>errs.push('onerror: '+m);
+    }
+  });
+  await new Promise(r=>setTimeout(r,600));
+  const {window}=dom;
+  const click=sel=>{const el=window.document.querySelector(sel); if(!el) throw new Error('نیست: '+sel); el.dispatchEvent(new window.MouseEvent('click',{bubbles:true})); };
+  const txt=sel=>{const el=window.document.querySelector(sel); return el?el.textContent.replace(/\s+/g,' ').trim():''};
+  const all=sel=>[...window.document.querySelectorAll(sel)];
+  const vis=sel=>all(sel).filter(e=>e.classList.contains('on')).map(e=>e.id);
+  return {dom,window,doc:window.document,click,txt,all,vis,errs};
+}
+
+/* ═══════════ form.html ═══════════ */
+{
+  console.log('\n── فرم کاربر (form.html) ──');
+  const store=makeStore();
+  const p=await load('form.html',store,'?guests=1');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.vis('.screen').join()==='u1','صفحهٔ اول لندینگ است');
+  ok(p.all('.pick').length===4,'چهار انتخاب‌گر ساخته شد ('+p.all('.pick').length+')');
+  ok(p.doc.querySelector('#pkGeo .gp').options.length===31,'۳۱ استان در فهرست');
+  ok(p.doc.querySelector('#pkGeo .gc').options.length>0,'شهرها پر شد');
+  ok(p.doc.querySelector('#pkBirth .pk1').options.length===13,'سال‌های تولد پر شد');
+  /* ── همراه: کارت خودش در اسلاید مالی (نه نوار شناور) ── */
+  for(let i=0;i<7;i++) p.click('#next');
+  ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد انتخاب شما — پلهٔ جدای دعوت دوست برداشته شد');
+  ok(p.doc.querySelector('#u15')===null,'صفحهٔ جدا برای دعوت دوست نمی‌ماند');
+  ok(p.doc.querySelector('#buddyBar')===null,'نوار شناور همراه برداشته شد');
+  const gc=p.doc.querySelector('#guestsCard');
+  ok(gc.style.display!=='none','کارت «همراه می‌آوری؟» در همان اسلاید مالی دیده می‌شود');
+  ok(p.txt('#guestChips').includes('بدون همراه'),'کاربر بدون همراه هم راه دارد');
+  p.click('#editGuests');
+  ok(p.doc.querySelector('#shBuddy').classList.contains('on'),'شیت همراه از خودِ کارت باز می‌شود');
+  p.click('#addFriend');
+  ok(p.txt('#toast').includes('نام دوستت'),'بدون نام، همراه اضافه نمی‌شود');
+  p.doc.querySelector('#fName').value='مریم احمدی';
+  p.click('#addFriend');
+  ok(p.txt('#toast').includes('۱۱ رقم'),'موبایل ناقص رد می‌شود');
+  p.doc.querySelector('#fMobile').value='۰۹۱۲۳۴۵۶۷۸۹';
+  p.doc.querySelector('#fEmail').value='maryam@mail.com';
+  p.click('#addFriend');
+  ok(p.window.eval('S.guests.length')===1,'همراه در وضعیت ثبت شد');
+  ok(p.txt('#guestChips').includes('مریم احمدی'),'نام همراه روی کارت می‌آید');
+  ok(p.doc.querySelector('#sameOpt').classList.contains('on'),'«بقیهٔ پاسخ‌ها مثل خودم» پیش‌فرض روشن');
+  p.window.eval('closeSheets()');
+  ok(p.txt('#guestsCard').includes('۲ نفر'),'شمار نفرات با احتساب همراه');
+
+  /* سقف همراه: جا که پر شود، خودِ کارت می‌گوید */
+  p.window.eval("S.guests=new Array(GUEST_MAX).fill(0).map((_,i)=>({name:'همراه '+faN(i+1)})); cur='u8'; renderBuddy()");
+  ok(p.doc.querySelector('#editGuests').style.display==='none','با پر شدن جا، دکمهٔ افزودن برداشته می‌شود');
+  ok(/جا پر شد/.test(p.txt('#countTxt'))||/جا پر شد/.test(p.txt('#gaddTitle'))||p.window.eval("buddyTip()===' · جا پر شد'"),'کارت می‌گوید جا پر است');
+  p.window.eval("S.guests=[{name:'مریم احمدی',mobile:'09123456789',same:true}]; renderBuddy()");
+
+  /* ── انتخاب مالی: گزینهٔ فرعی تنها، فرم را جلو نمی‌برد ── */
+  ok(p.window.eval("CFG.fin.every(o=>!o.on)"),'هیچ گزینه‌ای از پیش انتخاب نشده');
+  p.click('[data-fin="2"]');                      /* ناهار و پذیرایی — گزینهٔ فرعی */
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u8' && p.txt('#toast').includes('نوع شرکت'),'با فقط گزینهٔ فرعی، جلوی ادامه گرفته شد');
+  p.click('[data-fin="0"]');                      /* انتخاب صریح گروه اجباری */
+  p.click('[data-fin="2"]');                      /* ناهار برداشته می‌شود */
+  ok(p.window.eval("CFG.fin[0].on && PICKED.has(0) && !CFG.fin[2].on"),'انتخاب صریح ثبت و گزینهٔ فرعی برداشته شد');
+  p.doc.querySelector('#coupon').value='NORA10'; p.click('#applyCoupon');
+  const bill=p.txt('#bill');
+  ok(bill.includes('۱٬۳۰۰٬۵۰۰'),'صورت‌حساب ۲ نفر با کوپن ٪۱۰ = ۱٬۳۰۰٬۵۰۰ ریال');
+  ok(bill.includes('تومان'),'تومان به حروف زیر مبلغ هست');
+  ok(p.txt('#multBadge').includes('۲ نفر'),'نشان «برای ۲ نفر» درست است');
+  // پرداخت کارت‌به‌کارت
+  p.click('#next'); ok(p.vis('.screen').join()==='u9','مرحلهٔ پرداخت');
+  ok(p.txt('#payGuests').includes('مریم احمدی'),'در پرداخت هم فقط نام دوست + مبلغ');
+  ok(p.vis('.screen').join()==='u9','در پرداخت هم چیزی از همراه نیست جز فهرست نام‌ها');
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u9' && p.txt('#toast').includes('روش پرداخت'),'بی‌انتخاب روش، جلوی ادامه گرفته شد');
+  p.click('[data-method="card"]');
+  ok(p.doc.querySelector('[data-method="card"]').getAttribute('aria-pressed')==='true','روش انتخاب‌شده به صفحه‌خوان معرفی شد'); ok(p.vis('.screen').join()==='u10','کارت‌به‌کارت باز شد');
+  ok(p.txt('#exactAmount').includes('۱٬۳۰۰٬۵۰۰'),'مبلغ دقیق روی کارت‌به‌کارت');
+  p.click('#next'); ok(p.vis('.screen').join()==='u11','مرحلهٔ رسید');
+  ok(p.doc.querySelector('#file')!==null && p.doc.querySelector('#file').getAttribute('accept').includes('image/png'),'ورودی فایل فقط تصویر می‌پذیرد');
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u12','صفحهٔ «اطلاعات شما ثبت شد» — پایان فرم');
+  ok(p.doc.querySelector('#u13')===null,'صفحهٔ بلیت‌ها کلاً برداشته شد');
+  ok(!/بلیت/.test(p.txt('#u12')),'هیچ وعدهٔ بلیتی روی صفحهٔ پایان نیست');
+  ok(p.all('#endLinks a').length===2,'هر پیوند پایانی یک دکمه است');
+  ok(p.txt('#endText').length>0,'متن پایانی هست');
+  ok(/کد پیگیری/.test(p.txt('#u12')),'کد پیگیری روی صفحهٔ پایان');
+  ok(p.doc.querySelector('#u16')===null,'صفحهٔ گواهینامه کلاً از فرم برداشته شد');
+  ok(p.window.eval("ORDER.includes('u16')")===false,'گواهینامه در نقشهٔ حرکت فرم نیست');
+  ok(!/گواهی/.test(p.txt('body')),'هیچ وعده یا صدور گواهینامه‌ای در فرم نمانده');
+  ok(p.window.eval("typeof ticketSVG")==='undefined' && p.window.eval("typeof receiptSVG")==='undefined','موتور بلیت/رسید از ui.js برداشته شد');
+  ok(p.doc.querySelector('[data-printall]')===null,'دکمهٔ «چاپ همه» نیست');
+  // پاک‌سازی: نام کاربر نباید HTML بسازد
+  const evil=p.window.certificateSVG({name:'<b onmouseover=alert(2)>سارا</b>',title:'<img src=x onerror=alert(1)>'});
+  const evilDoc=new p.window.DOMParser().parseFromString(evil,'text/html');
+  ok(evilDoc.querySelector('img,b[onmouseover]')===null,'نام و عنوان کاربر HTML تزریق نمی‌کند');
+  ok(evilDoc.body.textContent.includes('سارا'),'متن کاربر سالم نمایش داده می‌شود');
+  // صفحه‌کلید: ناحیهٔ رها کردن رسید با Enter هم باز می‌شود
+  const drop=p.doc.querySelector('#drop');
+  ok(drop.getAttribute('role')==='button' && drop.getAttribute('tabindex')==='0','ناحیهٔ رسید برای صفحه‌کلید هم باز است');
+  ok(p.doc.querySelector('#receiptSlot')===null,'تصویر رسید پرداخت ساخته نمی‌شود');
+  // اعداد لندینگ باید از خود تنظیمات دربیایند
+  ok(p.txt('#evFacts').includes('۷ پرسش')&&p.txt('#evFacts').includes('۶۰۰٬۰۰۰'),'اعداد لندینگ از تنظیمات فرم حساب شده');
+  ok(p.txt('#evFacts').includes('۴۰ جا مانده'),'جای مانده از ظرفیت و ثبت‌شده‌ها حساب شده');
+  ok(p.txt('#evPerks').includes('۳ نفر'),'مزیت‌های لندینگ از مالی و سقف نفرات');
+  ok(p.txt('#finOpts').includes('شرکت حضوری در سالن'),'توضیح قطعهٔ مالی روی صفحهٔ کاربر');
+  ok(p.txt('#finOpts').includes('نوع شرکت'),'نام گروه انتخاب روی صفحهٔ کاربر');
+  // توضیح هر قطعه فقط وقتی هست که نوشته شده باشد (قطعهٔ بی‌توضیح، خط خالی ندارد)
+  ok(p.window.eval("CFG.fin.some(o=>!o.d)")===true,'قطعهٔ بی‌توضیح هم در داده هست');
+  ok(p.all('#finOpts .cap').filter(e=>/^$/.test(e.textContent.trim())).length===0,'هیچ خط خالی برای توضیح نمانده');
+  // ── گروه اجباری: تا انتخاب خودِ کاربر نباشد، فرم جلو نمی‌رود ──
+  ok(p.window.eval("CFG.groups[0].req")===true,'گروه «نوع شرکت» اجباری است');
+  p.window.eval("show('u8'); CFG.groups[0].of.forEach(k=>{CFG.fin[k].on=false}); CFG.fin[2].on=true; PICKED.clear(); renderFin()");
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u8' && p.txt('#toast').includes('نوع شرکت'),'تنها گزینهٔ فرعی روشن، فرم را جلو نمی‌برد');
+  p.click('[data-fin="1"]');                                  /* کاربر «شرکت آنلاین» را می‌زند */
+  p.click('#next');
+  ok(p.vis('.screen').join()==='u9','با انتخاب خودِ کاربر، ادامه ممکن می‌شود');
+  p.window.eval("show('u8')");
+  p.click('[data-fin="0"]');
+  ok(p.window.eval("CFG.fin[0].on && !CFG.fin[1].on"),'در گروه، انتخاب یکی از دو گزینه جابه‌جا می‌شود');
+  ok(p.window.eval("PICKED.has(0) && !PICKED.has(1)"),'رد انتخاب صریح هم با گروه جابه‌جا می‌شود');
+  p.window.eval("show('u12'); saveDraft()");   /* حالت آزمون به جای اولش برگردد */
+  p.window.eval('saveDraft()');
+  const keys=store._dump();
+  ok(keys.some(k=>k.startsWith('nora:draft:')),'پیش‌نویس در انبار محلی ذخیره می‌شود');
+  const p2=await load('form.html',store);                    /* برگشت کاربر با همان لینک */
+  ok(p2.doc.querySelector('#resumeRow').style.display==='block','با برگشت، نوبت نیمه‌کاره پیشنهاد می‌شود');
+  p2.click('[data-resume]');
+  ok(p2.vis('.screen').join()==='u12' && p2.txt('#multBadge').includes('۲ نفر'),'ادامه، همان جا و با همان داده برمی‌گرداند');
+  ok(p.errs.length===0, p.errs.length?('خطای پایان: '+p.errs.slice(0,3).join(' | ')):'تا آخر بی‌خطا');
+}
+
+/* ── فرمِ ثبت‌نامِ رویداد: پرسشها از دلِ فرمساز میآیند، بی مبلغ مستقیم به ثبت ── */
+{
+  console.log('\n── فرمِ ثبت‌نام از دلِ فرم‌ساز ──');
+  const st=makeStore();
+  st.setItem('nora-forms',JSON.stringify([
+    {id:'f1',name:'فرم ثبت‌نام کارگاه نقالی',kind:'ثبت‌نام',need:'reg',ev:'ev1',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true,help:'همان که در شناسنامه هست'},
+             {id:2,t:'mobile',l:'شماره موبایل',req:true},
+             {id:3,t:'choice',l:'سطح تجربه',req:true,opts:[{l:'تازه‌کار'},{l:'متوسط'},{l:'حرفه‌ای'}]},
+             {id:4,t:'multi',l:'کدام بخش‌ها؟',opts:[{l:'نقالی'},{l:'پرده‌خوانی'}]},
+             {id:5,t:'area',l:'چرا این کارگاه؟'},
+             {id:6,t:'terms',l:'قوانین را می‌پذیرم',req:true}],
+     intro:'سه جلسهٔ عملی نقالی و پرده‌خوانی',fin:[],maxPer:3,guestsOn:false,methods:[]}]));
+  const q=await load('form.html',st,'?ev=ev1&kind=reg');
+  ok(q.errs.length===0,'صفحهٔ فرمِ رویداد بیخطا بالا آمد');
+  ok(!!q.doc.querySelector('#qp0')&&/نام و نام خانوادگی/.test(q.txt('#qp0')),'قلمِ «نام و نام خانوادگی» از دلِ فرمساز آمد');
+  ok(!!q.doc.querySelector('#qp2')&&[...q.all('#qp2 .opt b')].map(b=>b.textContent).join('|')==='تازه‌کار|متوسط|حرفه‌ای','گزینههای تکانتخاب، گزینههای سازنده است');
+  ok(q.all('#qp3 .opt').length===2,'چندانتخاب با دو گزینه');
+  ok(!!q.doc.querySelector('#qp4 textarea'),'متن بلند، جعبهٔ متن شد');
+  ok(!!q.doc.querySelector('#qp5')&&/می‌پذیرم/.test(q.txt('#qp5')),'قلمِ پذیرش قوانین');
+  ok(q.vis('#u1').length===1,'صفحهٔ نخست باز است');
+  ok(q.doc.querySelector('#u2').style.display==='none','صفحههای ثابتِ دمو دیگر فهرست پرسشها نیستند');
+  ok(/۶ پرسش/.test(q.txt('#stepCap')),'شمار پرسشها از خودِ فرم خوانده شد');
+  q.click('#next');
+  ok(q.vis('#qp0').length===1,'به نخستین پرسش رفت');
+  q.click('#next');
+  ok(q.vis('#qp0').length===1,'پرسشِ اجباریِ خالی جلوی رفتن را میگیرد');
+  q.doc.querySelector('#qa0').value='مریم احمدی'; q.click('#next');
+  ok(q.vis('#qp1').length===1,'پس از پر کردنِ نام، به موبایل رفت');
+  q.doc.querySelector('#qa1').value='09121234567'; q.click('#next');
+  ok(q.vis('#qp2').length===1,'موبایل پذیرفته شد');
+  q.click('#qp2 .opt:nth-child(2)');
+  ok(q.doc.querySelector('[data-qsel="2"]').dataset.val==='متوسط','با زدنِ گزینه، مقدارش نشست');
+
+  q.click('#next');
+  ok(q.vis('#qp3').length===1,'به چندانتخاب رفت');
+  q.click('#qp3 .opt:nth-child(1)'); q.click('#qp3 .opt:nth-child(2)');
+  ok(q.doc.querySelector('#qa3').value==='نقالی، پرده‌خوانی','چندانتخاب، دو مقدار را با ویرگول میگذارد');
+  q.click('#next'); ok(q.vis('#qp4').length===1,'به متن بلند رفت');
+  q.click('#next'); ok(q.vis('#qp5').length===1,'به پذیرش قوانین رفت');
+  q.click('#next');
+  ok(q.vis('#qp5').length===1,'بی پذیرش قوانین، ثبت نمیشود');
+  q.click('#qp5 .opt'); q.click('#next');
+  ok(q.vis('#u12').length===1,'فرمِ بیمبلغ، صفحههای پرداختی را رد کرد و به ثبت رسید');
+  const sum=q.txt('#regSum');
+  ok(/مریم احمدی/.test(sum),'خلاصهٔ پاسخها روی صفحهٔ ثبت هست');
+  ok(/متوسط/.test(sum)&&/نقالی/.test(sum),'پاسخهای انتخابی هم در خلاصه است');
+  const regs=JSON.parse(st.getItem('nora-regs')||'[]');
+  ok(regs.length>=1&&regs[0].ev==='ev1'&&regs[0].form==='f1','ثبتِ نام با شناسهٔ رویداد و فرم در انبار نوشته شد');
+  ok((regs[0].ans||[]).length>=4,'پاسخها با خودِ ثبت ماندهاند');
+  ok(/NL/.test(q.txt('#u12 .ticketline .num')),'کد پیگیری از خودِ ثبت درآمد');
+  /* سی‌آر‌ام: همان ثبت، پروندهٔ شخص را ساخت */
+  const ppl=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl.length===1&&ppl[0].name==='مریم احمدی','سی‌آر‌ام با همان ثبت، پرونده ساخت');
+  ok(ppl[0].mobile==='09121234567','موبایل در پرونده نشست');
+  ok(regs[0].pid===ppl[0].id,'ثبت به پرونده گره خورد');
+  ok(q.errs.length===0,'و هیچ خطایی در کنار نماند');
+  /* فرمِ پولی: صفحههای پرداخت سر جایش مانند و مبالغ از دلِ فرم میآید */
+  const st2=makeStore();
+  st2.setItem('nora-forms',JSON.stringify([{id:'f2',name:'فرم پولی',need:'reg',ev:'ev2',kind:'ثبت‌نام',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true}],
+    fin:[{l:'حضوری',p:100000,off:0},{l:'آنلاین',p:50000,off:0}],
+    groups:[{n:'نوع',of:[0,1],req:true,one:true}],maxPer:1,guestsOn:false,methods:['wallet']}]));
+  const q2=await load('form.html',st2,'?ev=ev2&kind=reg');
+  q2.click('#next');
+  ok(q2.vis('#qp0').length===1,'فرمِ پولی هم قلم خودش را آورد');
+  q2.doc.querySelector('#qa0').value='سارا محمدی'; q2.click('#next');
+  ok(q2.vis('#u8').length===1,'و چون پولی است، به صفحهٔ انتخاب رفت');
+  ok(q2.all('#finOpts .opt').length===2,'مبالغ از دلِ فرمساز آمد');
+  ok(q2.errs.length===0,'فرمِ پولی هم بیخطا بود');
+}
+
+/* ── سی‌آر‌ام: هر بار پر شدنِ یک فرم، همان پرونده را کامل میکند ── */
+{
+  console.log('\n── پروندهٔ سی‌آر‌ام با هر فرم کامل میشود ──');
+  const st=makeStore();
+  st.setItem('nora-forms',JSON.stringify([
+    {id:'c1',name:'فرم ثبت‌نام نشست',kind:'ثبت‌نام',need:'reg',ev:'cev1',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'شماره موبایل',req:true}]},
+    {id:'c2',name:'نظرسنجی نشست',kind:'نظرسنجی',need:'survey',ev:'cev1',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'شماره موبایل',req:true},
+             {id:3,t:'choice',l:'امتیاز شما',req:true,opts:[{l:'عالی'},{l:'خوب'}]}]}]));
+  const a=await load('form.html',st,'?ev=cev1&kind=reg&fid=c1');
+  a.click('#next'); a.doc.querySelector('#qa0').value='گلناز سحر'; a.click('#next');
+  a.doc.querySelector('#qa1').value='09129998877'; a.click('#next');
+  ok(a.vis('#u12').length===1,'ثبت‌نام به پایان رسید');
+  let ppl1=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl1.length===1&&(ppl1[0].subs||[]).length===1,'پروندهٔ گلناز با ثبت‌نام ساخته شد');
+  const b=await load('form.html',st,'?ev=cev1&kind=survey&fid=c2');
+  b.click('#next'); b.doc.querySelector('#qa0').value='گلناز سحر'; b.click('#next');
+  b.doc.querySelector('#qa1').value='09129998877'; b.click('#next');
+  b.click('#qp2 .opt:nth-child(1)'); b.click('#next');
+  ok(b.vis('#u12').length===1,'نظرسنجی هم با همان موتور فرم‌ساز ثبت میشود');
+  const ppl2=JSON.parse(st.getItem('nora-people')||'[]');
+  ok(ppl2.length===1,'با فرمِ دوم، پروندهٔ تکراری ساخته نشد');
+  ok((ppl2[0].subs||[]).length===2,'دو تکمیل در همان پرونده نشست');
+  ok((ppl2[0].subs||[]).some(s=>s.need==='survey'),'نظرسنجی هم به همان پرونده پیوست');
+  ok(a.errs.length===0&&b.errs.length===0,'بیخطا');
+}
+
+/* ── رویداد با کد: بی کد دعوت، ثبت‌نام باز نمیشود ── */
+{
+  console.log('\n── رویداد با کد ──');
+  const store=makeStore();
+  const dOn='1405-11-20';
+  store.setItem('nora-admin',JSON.stringify({v:78,added:[
+    {id:'cde1',n:'جلسهٔ خصوصی',kind:'نشست',when:'',on:dOn,time:'۱۸:۰۰',end:dOn,to:'۲۰:۰۰',
+     place:'سالن نورا',cap:10,reg:0,state:'soon',code:'123456',privacy:'code',sess:[],sessions:1}]}));
+  const p=await load('event.html',store,'?id=cde1');
+  ok(p.errs.length===0,'صفحهٔ رویدادِ کدداری بیخطا آمد');
+  ok(/ورود با کد دعوت/.test(p.txt('#ctaIn')),'رویدادِ کدداری بی کد، ثبت‌نام نمیدهد');
+  p.click('[data-codegate]');
+  p.doc.querySelector('#evcodein').value='111111'; p.click('[data-codeok]');
+  ok(/درست نیست/.test(p.txt('#toast')),'کد اشتباه رد میشود');
+  p.doc.querySelector('#evcodein').value='123456'; p.click('[data-codeok]');
+  ok(!!p.doc.querySelector('#reg'),'با کد درست، راه ثبت‌نام باز شد');
+  ok(store.getItem('nora-evcode:cde1')==='1','و برای همین دستگاه دیگر نمیپرسد');
+  /* پاسخ نظرسنجی نباید ثبت‌نام حساب شود و ظرفیت را پر کند */
+  store.setItem('nora-forms',JSON.stringify([
+    {id:'cdf-reg',name:'فرم ثبت‌نام',kind:'ثبت‌نام',need:'reg',ev:'cde1',fields:[{id:1,t:'fullname',l:'نام',req:true}]},
+    {id:'cdf-svy',name:'نظرسنجی',kind:'نظرسنجی',need:'survey',ev:'cde1',fields:[{id:1,t:'choice',l:'امتیاز',opts:[{l:'عالی'}]}]}]));
+  store.setItem('nora-regs',JSON.stringify([
+    {id:'r1',ev:'cde1',form:'cdf-reg',at:1,atFa:'',code:'CD1',count:1,sum:0,method:'رایگان',ans:[{l:'نام',v:'الف'}]},
+    {id:'r2',ev:'cde1',form:'cdf-svy',at:2,atFa:'',code:'CD2',count:1,sum:0,method:'رایگان',ans:[{l:'امتیاز',v:'عالی'}]}]));
+  const PE1=(p.window.NORA_UI.pubEvents()||[]).find(x=>x.id==='cde1');
+  ok(PE1&&PE1.regs===1,'پاسخِ نظرسنجی ثبت‌نام حساب نمیشود');
+  ok(p.errs.length===0,'بیخطا');
+}
+
+/* ── رویداد با کد: خودِ فرم هم بی کد باز نمیشود ── */
+{
+  console.log('\n── قفل کد روی فرم ──');
+  const store=makeStore();
+  store.setItem('nora-admin',JSON.stringify({v:78,added:[
+    {id:'cde2',n:'جلسهٔ خصوصی دو',kind:'نشست',when:'',on:'1405-11-22',time:'۱۸:۰۰',end:'1405-11-22',
+     place:'سالن نورا',cap:10,reg:0,state:'soon',code:'654321',privacy:'code',sess:[],sessions:1}]}));
+  store.setItem('nora-forms',JSON.stringify([
+    {id:'cd2-reg',name:'فرم ثبت‌نام جلسه',kind:'ثبت‌نام',need:'reg',ev:'cde2',
+     fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true}]}]));
+  const f=await load('form.html',store,'?ev=cde2&kind=reg');
+  ok(!!f.doc.querySelector('#evlock'),'فرمِ رویدادِ کدداری بی کد قفل است');
+  f.doc.querySelector('#evlockin').value='111111'; f.click('[data-evlock-ok]');
+  ok(/درست نیست/.test(f.txt('#evlockmsg')),'کد اشتباه روی فرم هم رد میشود');
+  f.doc.querySelector('#evlockin').value='654321'; f.click('[data-evlock-ok]');
+  ok(store.getItem('nora-evcode:cde2')==='1','با کد درست، همان دستگاه به فرم میرسد');
+  ok(f.errs.length===0,'بیخطا');
+}
+
+/* ═══════════ گیت ادمین: دعوت دوست بسته ═══════════ */
+{
+  console.log('\n── دعوت دوست بسته (form.html?guests=0) ──');
+  const store=makeStore();
+  const p=await load('form.html',store,'?guests=0');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.window.eval('GUEST_ON')===false,'با بسته بودن کلید ادمین، دعوت دوست خاموش است');
+  ok(p.doc.querySelector('#guestsCard').style.display==='none','کارت همراه با کلید بستهٔ ادمین نمی‌آید');
+  for(let i=0;i<7;i++) p.click('#next');
+  ok(p.vis('.screen').join()==='u8','هفت پرسش، بعد مستقیم انتخاب شما');
+  ok(p.doc.querySelector('#guestsCard').style.display==='none','کارت همراهان هم پنهان است');
+  ok(p.window.eval('S.guests.length')===0,'فهرست دوستان دست‌نخورده');
+  p.window.eval("show('u9'); CFG.ticketOn=true");
+  ok(p.doc.querySelector('#payGuests').style.display==='none','در پرداخت هم چیزی از دوست نیست');
+  p.click('#next');
+  ok(p.txt('#toast').includes('روش پرداخت') || p.vis('.screen').join()!=='u9','جریان پرداخت بی‌دوست سالم است');
+}
+
+/* ═══════════ builder.html ═══════════ */
+{
+  console.log('\n── پنل مدیر (builder.html) ──');
+  const p=await load('builder.html');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.all('#formCards .fcard').length===4,'چهار فرم در فهرست');
+  p.click('[data-form="f1"]');
+  ok(p.vis('.screen').join()==='fPanel','با زدن فرم، پنل باز شد');
+  ok(p.txt('#pName').includes('فن بیان'),'نام فرم در سربرگ');
+  ok(p.txt('#pLink').includes('register'),'پیوند پیش‌فرض تو در تو');
+  const stats=p.txt('#statsBox');
+  ok(stats.includes('۲٬۱۴۰')&&stats.includes('۱۰۳٬۳۷۵٬۰۰۰'),'آمار: بازدید و فروش');
+  ok(stats.includes('تومان'),'فروش با تومان به حروف');
+  p.click('#pSeg [data-tab="info"]');
+  ok(p.txt('#infoBox').includes('قطعه‌های مالی'),'تب اطلاعات: قطعه‌های مالی');
+  ok(p.txt('#infoBox').includes('۷۲۲٬۵۰۰'),'قیمت با تخفیف ٪۱۵ محاسبه شد');
+  /* ── اتصال فرم به رویداد ── */
+  const info=p.txt('#infoBox');
+  ok(info.includes('رویداد')&&info.includes('کارگاه فن بیان مقدماتی'),'کارت رویداد با نام رویداد در تب اطلاعات');
+  ok(info.includes('lifeline1.ir/events/fanbayan'),'پیوند صفحهٔ رویداد نوشته شده');
+  ok(info.includes('فرم زیر صفحهٔ رویداد'),'نشان «زیر صفحهٔ رویداد»');
+  ok(info.includes('ظرفیت همگام')&&info.includes('تاریخ‌ها همگام')&&info.includes('محدودیت همگام'),'وضعیت سه سینک');
+  ok(info.includes('فقط ثبت‌نام‌کرده‌های رویداد'),'محدودیت پر کردن فرم از رویداد خوانده شد');
+  ok(p.all('#chBody .chip[data-ev]').length===0,'پیش از باز کردن ورقه، چیپی نیست');
+  p.window.eval("openChange('per')");       /* رفتار چیپ‌های یک‌ازچند در همین ورقه */
+  const perChip=p.doc.querySelector('#chBody .chip[data-n]');
+  perChip.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.doc.querySelectorAll('#chBody .chip.on').length===1,'چیپ یک‌ازچند بعد از کلیک هم انتخاب‌شده می‌ماند');
+  p.click('[data-close]');
+  p.click('#infoBox [data-change="event"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ اتصال به رویداد باز شد');
+  ok(p.all('#chBody .chip[data-ev]').length===4,'سه رویداد + «بدون رویداد» در فهرست');
+  p.click('#chBody .chip[data-ev="ev2"]');
+  p.click('#chEvCap');                                     /* ظرفیت دستی شود */
+  p.click('#chApply');
+  ok(p.window.eval("CUR.event.id")==='ev2','ادمین رویداد فرم را عوض کرد');
+  ok(p.window.eval("CUR.event.sync.cap")===false,'سینک ظرفیت خاموش شد');
+  ok(p.txt('#infoBox').includes('نشست ماهانهٔ خیرین'),'کارت رویداد با رویداد تازه به‌روز شد');
+  p.click('#infoBox [data-evdetach]');
+  ok(p.window.eval("CUR.event")===null,'دکمهٔ «جدا کردن» فرم را از رویداد جدا کرد');
+  ok(p.txt('#infoBox').includes('وصل نیست'),'حالت بی‌رویداد نشان داده شد');
+  ok(p.txt('#changesBox').includes('رویداد'),'تغییر اتصال در سابقهٔ فرم ثبت شد');
+  p.click('#pSeg [data-tab="changes"]');
+  ok(p.txt('#changesBox').includes('تغییراتی که می‌خواهم بدهم'),'تب تغییرات');
+  ok(p.txt('#changesBox').includes('سابقهٔ تغییرات'),'سابقهٔ تغییرات');
+  p.click('[data-change="cap"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ تغییر ظرفیت باز شد');
+  p.doc.querySelector('#chCap').value='150';
+  p.click('#chApply');
+  ok(!p.doc.getElementById('shChange').classList.contains('on'),'ورقه بسته شد');
+  ok(p.txt('#changesBox').includes('ظرفیت به ۱۵۰ نفر'),'تغییر در سابقه ثبت شد');
+  p.click('[data-change="dates"]');
+  const picksAfter=p.doc.querySelectorAll('#chStart .pick select').length;
+  ok(picksAfter===5,'بازه با انتخاب‌گر سال/ماه/روز/ساعت/دقیقه (۵ فهرست)');
+  ok(p.doc.querySelector('#chStart .pk4').options.length===24,'ساعت ۰ تا ۲۳');
+  p.click('[data-close]');
+  p.click('[data-change="per"]');
+  ok(p.doc.querySelector('#chGuests')!==null,'سوئیچ «دعوت دوست» در پنل هست');
+  ok(p.doc.querySelector('#chGuests').classList.contains('on')===true,'فرم نمونهٔ ثبت‌نام، دعوت دوست را باز دارد');
+  p.click('#chGuests');
+  p.click('#chApply');
+  ok(p.window.eval("CUR.guestsOn")===false,'ادمین می‌تواند دعوت دوست را ببندد');
+  p.click('[data-change="per"]');
+  ok(p.doc.querySelector('#chGuests').classList.contains('on')===false,'بسته بودن در پنل می‌ماند');
+  p.click('#chGuests'); p.click('#chApply');            /* برگشت به حالت باز */
+  ok(p.window.eval("CUR.guestsOn")===true,'و باز کردن دوباره');
+  ok(p.doc.querySelector('[data-change="ticket"]')===null,'آیتم «بلیت» از ورقهٔ تغییرات برداشته شد');
+  ok(p.doc.querySelector('#chTkPrev')===null,'پیش‌نمایش بلیت در پنل نیست');
+  /* ── گواهینامه: پیش‌نمایش زنده + درخواست با تأیید سرپرست ── */
+  p.click('[data-close]');
+  p.click('#pSeg [data-tab="info"]');
+  ok(/گواهینامه/.test(p.txt('#infoBox')) && /تأیید سرپرست/.test(p.txt('#infoBox')) && /در انتظار تأیید/.test(p.txt('#infoBox')),
+     'تب اطلاعات می‌گوید صدور فقط با تأیید سرپرست است');
+  p.click('#pSeg [data-tab="changes"]');
+  p.click('[data-change="cert"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ گواهینامه باز شد');
+  ok(p.doc.querySelector('#chCertPrev svg')!==null,'پیش‌نمایش برگ گواهینامه ساخته شد');
+  ok(p.txt('#chCertPrev').includes('گواهینامهٔ پایان دوره'),'نوع گواهینامه روی برگ');
+  ok(p.txt('#chCertPrev').includes('مؤسسهٔ خط زندگی'),'نام مؤسسه روی برگ');
+  ok(p.doc.querySelector('#chCertPrev .tkqr')!==null,'کیوآر راستی‌آزمایی روی برگ');
+  ok(p.window.eval("certificateSVG(certFields(FORMS[0],PEOPLE[0]))").includes('lifeline1.ir/c'),'کیوآر به نشانی راستی‌آزمایی اشاره می‌کند');
+  ok(/صحت این گواهینامه/.test(p.txt('#chCertPrev')),'جملهٔ راستی‌آزمایی در پای برگ');
+  const paidC=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid').length");
+  ok(p.doc.querySelector('#chCertAuto')===null && p.doc.querySelector('#chCertAfter')===null,
+     'کلید «صدور خودکار/پس از پایان دوره» از پنل برداشته شد');
+  ok(/صدور فقط با تأیید سرپرست/.test(p.txt('#chBody')),'ورقهٔ گواهینامه می‌گوید صدور دست پنل نیست');
+  ok(/مریم داوودی/.test(p.txt('#chBody')),'سرپرست همان‌جا نامش آمده');
+  p.click('#chCertGo');
+  ok(p.window.eval("Object.keys(CUR.certIssued||{}).length")===0,'با یک کلیک هیچ گواهینامه‌ای صادر نمی‌شود');
+  ok(p.window.eval("Object.keys(CUR.certReq||{}).length")===paidC,'به‌جایش برای همهٔ پرداخت‌شده‌ها درخواست ثبت شد ('+paidC+')');
+  ok(/در انتظار تأیید سرپرست/.test(p.txt('#toast')),'پیام درخواست، تأیید سرپرست را می‌گوید');
+  p.window.eval("CUR.id='f1'");
+  p.click('#pSeg [data-tab="info"]');
+  ok(new RegExp(p.window.eval('faN('+paidC+')')+' در انتظار تأیید').test(p.txt('#infoBox')),'شمار در انتظار تأیید در تب اطلاعات به‌روز شد');
+  /* صدور تک‌نفر از جزئیات پاسخ‌دهنده */
+  p.click('[data-go="fKartabl"]');
+  p.click('#kartabl [data-person]');
+  ok(/گواهینامه/.test(p.txt('#usBody')),'کارت گواهینامه در جزئیات پاسخ‌دهنده');
+  ok(p.doc.querySelector('#usBody .tkqr')!==null || /در انتظار تأیید سرپرست|صدور با تأیید سرپرست|پس از پرداخت قطعی/.test(p.txt('#usBody')),
+     'وضعیت گواهینامه در جزئیات پاسخ‌دهنده دیده می‌شود');
+  ok(p.doc.querySelector('#usBody [data-certone]')===null,'دکمهٔ «صدور» در جزئیات پاسخ‌دهنده نیست');
+  const paidId=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid')[0].id");
+  p.window.eval("CUR.certReq={}; PEOPLE.forEach(x=>x.certReq=false); openUser('"+paidId+"')");
+  ok(p.doc.querySelector('#usBody [data-certreq]')!==null,'برای پرداخت‌شدهٔ بی‌درخواست، دکمهٔ «درخواست گواهینامه» هست');
+  p.click('#usBody [data-certreq]');
+  ok(p.window.eval("Object.keys(CUR.certReq||{}).length")===1,'درخواست تک‌نفره ثبت شد');
+  ok(/در انتظار تأیید سرپرست/.test(p.txt('#usBody')),'و همان‌جا وضعیت «در انتظار تأیید سرپرست» شد');
+  p.click('[data-close]');
+  p.click('#pSeg [data-tab="answers"]');
+  ok(p.all('#answersBox tbody tr').length===7,'هفت ردیف پاسخ‌دهنده');
+  p.click('#answersBox tbody tr');
+  ok(p.vis('.screen').join()==='fUser','با زدن کاربر، جزئیاتش باز شد');
+  const us=p.txt('#usBody');
+  ok(us.includes('تکمیل فرم')&&us.includes('مبالغ')&&us.includes('اطلاعات'),'سه بخش خواسته‌شده');
+  ok(us.includes('۱٬۳۰۰٬۵۰۰'),'مبلغ همان کاربر درست');
+  ok(us.includes('پاسخ نداده'),'پرسش بی‌پاسخ نشان داده شد');
+  ok(us.includes('همراهان')&&us.includes('الهام موسوی'),'کارت همراهان با نام همراه');
+  /* کارتابل: کارشناس باید بداند پرداخت برای چند نفر است */
+  p.click('[data-go="fKartabl"]');
+  ok(/برای ۲ نفر/.test(p.txt('#kartabl')),'در کارتابل، شمار نفرات روی رسید هست');
+  // تأیید رسید از کارتابل
+  p.click('[data-go="fKartabl"]');
+  const kb=p.txt('#kBadge');
+  ok(p.all('#kartabl [data-approve]').length===4,'چهار رسید در کارتابل');
+  /* ── کارتابل من (کارشناس) ── */
+  p.click('[data-go="fMine"]');
+  ok(p.vis('.screen').join()==='fMine','صفحهٔ «کارتابل من» باز شد');
+  ok(p.all('#meChips .chip').length===4,'چهار کارشناس برای دیدن');
+  ok(/خانم رستگار/.test(p.txt('#meChips')) && p.doc.querySelector('#meChips .chip.on').textContent.includes('رستگار'),
+     'پیش‌فرض: خانم رستگار (آموزش)');
+  const mineEd=p.all('#mineBox .card.paper').map(c=>c.textContent);
+  ok(mineEd.length===3,'کارشناس آموزش سه رسید روی میزش دارد (آموزش نه رسید بخش‌های دیگر)');
+  ok(!mineEd.some(t=>/الهام داوودی/.test(t)),'رسید بخش رسانه در کارتابل آموزش نیست');
+  ok(/۱ روز در انتظار/.test(mineEd[0]) && /۶ ساعت در انتظار/.test(mineEd[1]) && /۳ ساعت در انتظار/.test(mineEd[2]),
+     'ترتیب اقدام: قدیمی‌ترین بالا ('+mineEd.map(t=>(t.match(/(\d+ (روز|ساعت)) در انتظار/)||[])[0]).join(' | ')+')');
+  /* برداشتن رسید */
+  p.click('#mineBox [data-take]');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='p1').owner")==='خانم رستگار','رسید به نام خودم برداشته شد');
+  ok(/برداشته‌ام/.test(p.txt('#mineBox')),'نشان «برداشته‌ام» روی کارت آمد');
+  ok(p.txt('#myBadge')==='۳' || /۳/.test(p.txt('#myBadge')),'نشان کارتابل من در ریل به‌روز است');
+  /* سپردن به کارشناس دیگر */
+  const p3=p.all('#mineBox [data-pass]')[0];
+  p3.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.doc.getElementById('shPass').classList.contains('on'),'ورقهٔ «سپردن به کارشناس دیگر» باز شد');
+  p.click('#passWho [data-passto]');
+  p.doc.querySelector('#passNote').value='مبلغ کم است؛ خودم پیگیری کردم.';
+  p.click('#passGo');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='p1').owner")!=='خانم رستگار','رسید به کارشناس دیگری سپرده شد');
+  ok(/به .+ سپرده شد|سپرده شد/.test(p.txt('#toast')),'پیام سپردن آمد');
+  /* کارشناس نظرسنجی: کارتابل خالی (فرم‌هایش مالی ندارد) */
+  p.click('#meChips [data-me="آقای نادری"]');
+  ok(/کارتابلت خالی است/.test(p.txt('#mineBox')),'بخش نظرسنجی رسیدی ندارد و همین را می‌گوید');
+  p.click('#meChips [data-me="خانم صادقی"]');
+  ok(/الهام داوودی/.test(p.txt('#mineBox')),'کارشناس رسانه، رسید خودش را می‌بیند');
+  ok(p.window.eval("CUR.id")==='f1','فرمِ بازِ پنل هنوز همان ثبت‌نام است (پیام تک‌نفره به آن کاری ندارد)');
+  /* ── پیام به پاسخ‌دهنده ── */
+  p.click('#mineBox [data-msgone]');
+  ok(p.doc.getElementById('shMsg').classList.contains('on'),'ورقهٔ پیام باز شد');
+  ok(/پیام به الهام داوودی/.test(p.txt('#shMsg')),'پیام تک‌نفره به خودِ او');
+  ok(p.doc.getElementById('msgAudBox').style.display==='none','برای تک‌نفر، انتخاب مخاطب پنهان است');
+  const qk=p.all('#shMsg [data-quick]')[1];
+  qk.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.doc.querySelector('#msgText').value.includes('کارت شناسایی'),'متن آماده در کادر نشست');
+  p.click('#msgGo');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='p12').msgs.length")===1,'پیام در تاریخچهٔ پاسخ‌دهنده ثبت شد');
+  ok(/۱ پیام|پیام به/.test(p.txt('#toast')),'پیام ارسال گزارش شد');
+  /* پیام گروهی از تب تغییرات */
+  p.click('[data-go="fList"]');
+  p.click('[data-form="f1"]');
+  p.click('#pSeg [data-tab="changes"]');
+  ok(p.txt('#changesBox').includes('پیام گروهی'),'دکمهٔ پیام گروهی در تب تغییرات');
+  p.click('[data-change="msg"]');
+  ok(p.all('#msgAud .chip').length===5,'پنج دستهٔ مخاطب از خود داده (با «غایب‌های این جلسه»)');
+  const allN=p.window.eval("PEOPLE.filter(p=>p.form==='f1').length");
+  ok(p.txt('#msgCount')===p.window.eval(`faN(${allN})`)+' گیرنده','شمار گیرنده‌ها از داده می‌آید ('+p.txt('#msgCount')+')');
+  p.click('#msgAud [data-aud="pending"]');
+  ok(/گیرنده/.test(p.txt('#msgCount')) && p.txt('#msgCount')!=='۰ گیرنده','دستهٔ «در انتظار تأیید» گیرنده دارد');
+  p.doc.querySelector('#msgText').value='یادآوری: رسید کارت‌به‌کارت را بفرستید.';
+  p.click('#msgGo');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='pending').every(p=>p.msgs&&p.msgs.length)")===true,
+     'پیام گروهی فقط به دستهٔ انتخاب‌شده رفت');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state!=='pending').every(p=>!p.msgs)")===true,'به بقیه نرفت');
+  /* تاریخچه در جزئیات پاسخ‌دهنده */
+  p.click('[data-go="fKartabl"]');
+  p.click('#kartabl [data-person]');
+  ok(/پیام/.test(p.txt('#usBody')),'تاریخچهٔ پیام‌ها در جزئیات پاسخ‌دهنده');
+  ok(/کارت شناسایی|یادآوری/.test(p.txt('#usBody')),'متن پیام در تاریخچه هست');
+  p.click('#kartabl [data-approve]');
+  ok(p.txt('#kBadge')!==kb,'تأیید رسید، شمار کارتابل را کم کرد');
+  p.click('[data-go="fMoney"]');
+  ok(p.txt('#moneyPieces').includes('۸۵۰٬۰۰۰'),'قطعه‌های مالی با یک قیمت');
+  ok(p.txt('#settle').includes('تومان'),'تسویه با تومان به حروف');
+  const rows=Number(p.window.eval("PEOPLE.filter(x=>x.state!=='half').length"));
+  ok(p.all('#txBody tr').length===rows,'هر پرداخت یک ردیف در تراکنش‌های اخیر');
+  ok(p.all('#txBody .tag').length===rows,'هر تراکنش وضعیت خودش را دارد');
+  /* ── بخش‌های سازمان ── */
+  p.click('[data-go="fList"]');
+  ok(/بخش آموزش/.test(p.txt('#formCards')),'روی کارت هر فرم، بخشش نوشته شده');
+  p.click('[data-form="f2"]');
+  p.click('#pSeg [data-tab="info"]');
+  ok(/بخش\s*پژوهش و نظرسنجی/.test(p.txt('#infoBox')),'شناسنامه: بخش فرم نظرسنجی');
+  ok(/کارشناس بخش/.test(p.txt('#infoBox')),'شناسنامه: کارشناس بخش');
+  p.window.eval("openChange('dept')");
+  ok(p.all('#chBody .chip[data-dp]').length===4,'چهار بخش در ورقهٔ «بخش فرم»');
+  p.click('#chBody .chip[data-dp="sup"]');
+  p.click('#chApply');
+  ok(p.window.eval("CUR.dept")==='sup' && /آقای موسوی/.test(p.window.eval("CUR.expert")),'با عوض شدن بخش، کارشناس هم عوض شد');
+  ok(/بخش\s*پشتیبانی/.test(p.txt('#infoBox')),'شناسنامه بلافاصله به‌روز شد');
+  ok(p.txt('#changesBox').includes('بخش'),'تغییر بخش در سابقهٔ فرم ثبت شد');
+  /* کارتابل: صافی بخش‌ها */
+  p.click('[data-go="fKartabl"]');
+  const kAll=p.all('#kartabl .card.paper').length;
+  ok(kAll>0,'کارتابل پر است ('+kAll+')');
+  ok(/بخش/.test(p.txt('#kartabl')),'روی هر رسید، بخشش نوشته شده');
+  ok(p.doc.querySelector('#kFilters [data-kd="edu"]')!==null,'صافی بخش‌ها در کارتابل هست');
+  p.click('#kFilters [data-kd="sup"]');
+  ok(/کارتابل خالی است/.test(p.txt('#kartabl')),'بخشی که رسید ندارد، کارتابلش خالی است');
+  p.click('#kFilters [data-kd="media"]');
+  ok(/الهام داوودی/.test(p.txt('#kartabl'))&&!/حسن کریمی/.test(p.txt('#kartabl')),'صافی «رسانه» فقط رسید رسانه را می‌آورد');
+  p.click('#kFilters [data-kd="edu"]');
+  const kEdu=[...p.doc.querySelectorAll('#kartabl .card.paper')];
+  ok(kEdu.length>0 && kEdu.every(c=>/بخش آموزش/.test(c.textContent)),'با صافی «آموزش» فقط رسیدهای آموزشی می‌مانند ('+kEdu.length+')');
+  ok(/خانم رستگار/.test(p.txt('#kWho')),'کارشناس همان بخش کنار صافی نوشته شده');
+  p.click('#kFilters [data-kd=""]');
+  ok(p.all('#kartabl .card.paper').length===kAll,'با «همهٔ بخش‌ها» همه برمی‌گردند');
+  /* ── بورد حضور و غیاب ── */
+  p.click('[data-go="fList"]');
+  p.click('[data-form="f1"]');
+  p.click('[data-go="fAttend"]');
+  ok(p.vis('.screen').join()==='fAttend','بورد حضور باز شد');
+  const paidF1=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid').length");
+  ok(p.txt('#attAll')===p.window.eval(`faN(${paidF1})`),'شمار ثبت‌نام قطعی از خود داده ('+p.txt('#attAll')+')');
+  ok(/کد ورود/.test(p.txt('#attSub')),'کد ورود جلسه نشان داده می‌شود');
+  ok(p.all('#attBody tr').length===paidF1,'فهرست بورد به اندازهٔ ثبت‌نام قطعی است');
+  ok(/غایب|حاضر/.test(p.txt('#attBody')),'وضعیت هر نفر در فهرست');
+  /* ثبت ورود با کد بلیت */
+  const code=p.window.eval("PEOPLE.find(p=>p.form==='f1'&&p.state==='paid').code");
+  p.doc.querySelector('#attCode').value=p.window.eval(`shortCode('${code}')`);
+  p.click('#attGo');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length")===1,'با کد بلیت (کد کوتاه) ورود ثبت شد');
+  ok(!/کد بلیت/.test(p.txt('#toast')) ,'گزارش ثبت ورود آمد: '+p.txt('#toast'));
+  ok(p.txt('#attIn')===p.window.eval('faN(1)') && p.txt('#attOut')===p.window.eval(`faN(${paidF1}-1)`),
+     'شمار حاضر/غایب به‌روز شد ('+p.txt('#attIn')+' حاضر، '+p.txt('#attOut')+' غایب)');
+  /* ثبت دوباره نباید دوباره بشمارد */
+  p.doc.querySelector('#attCode').value='ZZZZZZZ';
+  p.click('#attGo');
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length")===1,'کد ناشناس چیزی ثبت نمی‌کند');
+  ok(/پیدا نشد/.test(p.txt('#toast')),'و پیام روشن می‌دهد');
+  /* دستی از فهرست */
+  p.click('[data-attmode="manual"]');
+  ok(p.doc.getElementById('attCode').style.display==='none','در حالت دستی، کادر کد کنار می‌رود');
+  const before=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length");
+  const freeRow=p.all('#attBody tr').find(tr=>/غایب/.test(tr.textContent));
+  freeRow.dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.att).length")===before+1,'با زدن روی ردیف، حاضر شد');
+  ok(/٪/.test(p.txt('#attPct')),'درصد حضور حساب شد ('+p.txt('#attPct')+')');
+  /* جست‌وجو */
+  p.doc.querySelector('#attQ').value='زهرا';
+  p.doc.querySelector('#attQ').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.all('#attBody tr').length===1 && /زهرا/.test(p.txt('#attBody')),'جست‌وجوی نام در بورد کار می‌کند');
+  p.doc.querySelector('#attQ').value='';
+  p.doc.querySelector('#attQ').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  /* خروجی و پیام به غایب‌ها */
+  p.click('[data-abexport]');
+  ok(/آماده شد/.test(p.txt('#toast')),'خروجی حضور ساخته شد');
+  p.click('[data-absentmsg]');
+  ok(p.doc.getElementById('shMsg').classList.contains('on'),'پیام به غایب‌ها ورقهٔ پیام را باز کرد');
+  ok(/غایب/.test(p.txt('#msgAud')) || p.txt('#msgCount')!=='۰ گیرنده','دستهٔ غایب‌ها انتخاب‌شده آمد ('+p.txt('#msgCount')+')');
+  const absentN=p.window.eval("PEOPLE.filter(p=>p.form==='f1'&&p.state==='paid'&&!p.att).length");
+  ok(p.txt('#msgCount')===p.window.eval(`faN(${absentN})`)+' گیرنده','شمار غایب‌ها درست است');
+  p.click('[data-go="fTeam"]');
+  ok(p.all('#teamBox .card').length===4,'چهار کارشناس');
+  ok(/بخش آموزش/.test(p.txt('#teamBox'))&&/بخش رسانه/.test(p.txt('#teamBox')),'کارشناسان زیر بخش خودشان گروه شده‌اند');
+  ok(/کارشناس مسئول: خانم رستگار/.test(p.txt('#teamBox')),'کارشناس مسئول هر بخش نوشته شده');
+  /* ── تنظیمهای پیشرفته: وبهوک و رخدادها + گردش کار چندمرحله‌ای ── */
+  p.click('[data-go="fList"]');
+  ok(p.txt('#formCards').includes('منتظر تأیید'),'نشان قرمز صف تأیید روی کارت فرم در فهرست نشسته');
+  p.window.eval("PEOPLE.find(p=>p.id==='p1').state='pending'");   /* رسید تازه‌ای به صف تأیید آمد */
+  p.window.eval("CUR.event={id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'}"); /* فرم باز به رویدادش وصل شد */
+  p.click('[data-form="f1"]');
+  p.click('#openSettings');
+  ok(p.doc.getElementById('shSettings').classList.contains('on'),'ورقهٔ تنظیمات فرم باز شد');
+  ok(p.txt('#shSettings').includes('تنظیمهای پیشرفته'),'بخش «تنظیمهای پیشرفته» در ورقهٔ تنظیمات');
+  ok(p.txt('#shSettings').includes('وبهوک و رخدادها')&&p.txt('#shSettings').includes('گردش کار چندمرحله‌ای'),
+     'دو تنظیم ماندهٔ طرح، هر دو در تنظیمات');
+  const qN=p.window.eval("PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending').length");
+  ok(qN===2&&p.txt('#setApSub')==='۲ پاسخ منتظر تأیید','شمار منتظران کنار گردش کار نوشته شده ('+p.txt('#setApSub')+')');
+  /* وبهوک: نشانی ناامن رد می‌شود و ورقه همان‌جا می‌ماند */
+  p.click('#shSettings [data-change="webhook"]');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقهٔ وبهوک باز شد');
+  ok(p.all('#chBody .chip[data-wev]').length===4,'چهار رخداد: پاسخ کامل، پرداخت، تأیید، رد');
+  p.doc.querySelector('#chWhUrl').value='http://x.com/hook';
+  p.click('#chApply');
+  ok(/https/.test(p.txt('#toast')),'نشانی ناامن با پیام روشن رد شد');
+  ok(p.doc.getElementById('shChange').classList.contains('on'),'ورقه همان‌جا ماند تا نشانی درست شود');
+  /* ذخیرهٔ درست و برگشت به همان ورقهٔ تنظیمات */
+  p.click('#chWhOn');
+  p.doc.querySelector('#chWhUrl').value='https://example.com/hook';
+  p.click('#chBody .chip[data-wev="paid"]');
+  p.click('#chApply');
+  ok(p.window.eval("CUR.webhook.on")===true&&p.window.eval("CUR.webhook.url")==='https://example.com/hook','وبهوک با نشانی امن ذخیره شد');
+  ok(p.window.eval("CUR.webhook.events.length")===3&&!p.window.eval("CUR.webhook.events").includes('paid'),'چیپ رخداد، خبر «پرداخت» را خاموش کرد');
+  ok(p.doc.getElementById('shSettings').classList.contains('on'),'پس از ذخیره، برگشت به همان ورقهٔ تنظیمات');
+  ok(p.txt('#setWhSub').includes('example.com'),'زیرنویس وبهوک در تنظیمات به‌روز شد');
+  /* گردش کار: صف تأیید با مشاهده و تأیید و رد */
+  p.click('#shSettings [data-change="appr"]');
+  ok(p.txt('#chBody').includes('صف تأیید'),'ورقهٔ گردش کار: صف تأیید');
+  ok(p.txt('#chBody').includes('ثبت‌نام خودکار'),'یادآوری ثبت‌نام خودکار، چون فرم به رویداد وصل است');
+  ok(p.all('#chBody [data-apok]').length===qN,'هر منتظر یک ردیف با مشاهده و تأیید و رد دارد');
+  const apId=p.doc.querySelector('#chBody [data-apok]').dataset.apok;
+  p.click('#chBody [data-apok="'+apId+'"]');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='"+apId+"').state")==='paid','تأیید، پاسخ را قطعی کرد');
+  ok(p.window.eval("CUR.changes[0][0]").includes('ثبت‌نام خودکار'),'تأیید فرم رویدادی، ثبت‌نام خودکار شد');
+  ok(/تأیید شد/.test(p.txt('#toast')),'پیام تأیید آمد');
+  ok(p.window.eval("CUR.webhook.last").includes('تأیید به https://example.com'),'وبهوکِ فرم رخداد تأیید را فرستاد ('+p.window.eval("CUR.webhook.last")+')');
+  ok(!p.doc.querySelector('#chBody [data-apok="'+apId+'"]'),'تأییدشده از صف بیرون آمد');
+  /* دوباره بررسی نمی‌شود */
+  p.doc.getElementById('chBody').insertAdjacentHTML('beforeend','<button data-apok="'+apId+'">تأیید</button>');
+  p.click('#chBody [data-apok="'+apId+'"]');
+  ok(/قبلاً/.test(p.txt('#toast')),'بررسی دوباره با پیام «قبلاً بررسی شده» جلوگیری شد');
+  /* رد نفر بعدی؛ «مشاهده» هم جزئیاتش را باز می‌کند */
+  const noId=p.doc.querySelector('#chBody [data-apno]').dataset.apno;
+  p.click('#chBody [data-apview="'+noId+'"]');
+  ok(p.vis('.screen').join()==='fUser','«مشاهده» جزئیات همان پاسخ‌دهنده را باز کرد');
+  p.window.eval("go('fPanel')");
+  p.click('#openSettings');
+  p.click('#shSettings [data-change="appr"]');
+  p.click('#chBody [data-apno="'+noId+'"]');
+  ok(p.window.eval("PEOPLE.find(p=>p.id==='"+noId+"').state")==='void','رد، پاسخ را باطل کرد');
+  ok(p.window.eval("CUR.webhook.last").includes('رد به https://example.com'),'وبهوک رخداد رد را هم فرستاد');
+  ok(p.all('#chBody [data-apok]').length===qN-2,'صف به اندازهٔ بررسی‌ها خالی شد');
+  ok(!p.txt('#formCards').includes('منتظر تأیید'),'نشان قرمز با خالی شدن صف از فهرست برداشته شد');
+  p.click('#chApply');
+  ok(p.doc.getElementById('shSettings').classList.contains('on'),'«باشه»ٔ گردش کار هم به تنظیمات برگشت');
+  /* ورقه از تب تغییرات هم هست؛ آنجا «باشه» همان‌جا می‌بندد */
+  p.click('[data-close]');
+  p.click('#pSeg [data-tab="changes"]');
+  ok(p.txt('#changesBox').includes('وبهوک و رخدادها')&&p.txt('#changesBox').includes('گردش کار چندمرحله‌ای'),'هر دو تنظیم در تب تغییرات هم هست');
+  p.click('[data-change="appr"]');
+  p.click('#chApply');
+  ok(!p.doc.getElementById('shChange').classList.contains('on')&&!p.doc.getElementById('shSettings').classList.contains('on'),'از تب تغییرات، همان‌جا بسته شد');
+  p.click('[data-go="fList"]');
+  p.doc.querySelector('#q').value='آزمون'; p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.all('#formCards .fcard').length===1,'جست‌وجو کار می‌کند');
+  ok(p.errs.length===0, p.errs.length?('خطای پایان: '+p.errs.slice(0,3).join(' | ')):'تا آخر بی‌خطا');
+}
+
+/* ═══════════ خانه با تنظیمهای ظاهری پنل (home.html) ═══════════ */
+{
+  console.log('\n── خانه با تنظیمهای ظاهری ──');
+  const store=makeStore();
+  store.setItem('nora-uiset',JSON.stringify({v:1,
+    home:{bnr:1,stories:1,search:0,quick:1,pins:1,mine:1,events:1,past:0,club:0,teachers:1,staff:0,articles:1,partners:1,voices:0,about:0,act:0},
+    menu:['رویدادهای پیش‌رو'],quick:['verify'],
+    bnr:{on:1,auto:0,hide:['جشنوارهٔ هفتهٔ فرهنگی پاییز']},
+    bnrAdd:[{t:'بنر آزمایشی نورا',tag:'تازه',m:'امشب · تهران',n:'متن آزمایشی',g:'linear-gradient(135deg,#0A56B8,#0B2447)',a:'ببین'}],
+    storyAdd:[{id:'c1',t:'استوری تازهٔ پنل',s:'از پنل',g:'linear-gradient(135deg,#1E6FD0,#0A3A82)',i:'i-sparkle',to:'me'}],
+    cards:'big',people:'row',
+    type:{size:'big',radius:'round',width:'wide',density:'airy',motion:0,accent:'teal'},
+    chrome:{bell:0,themebtn:0,helpbtn:0,tabLabels:0,hot:0},
+    bnr:{on:1,auto:1,hide:['جشنوارهٔ هفتهٔ فرهنگی پاییز'],speed:'fast'},
+    trust:{on:1,text:'جملهٔ اطمینانِ از پنل'},
+    foot:{on:1,text:'پای صفحهٔ از پنل'}}));
+  const p=await load('home.html',store);
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'با تنظیمهای سفارشی بی‌خطا بار شد');
+  ok(p.doc.getElementById('searchSec').hidden===true,'بخش جستوجو که در پنل خاموش شده، پنهان است');
+  ok(p.doc.getElementById('pastSec').hidden===true&&p.doc.getElementById('club').hidden===true&&p.doc.getElementById('staff').hidden===true,
+     'برگزارشدهها و باشگاه و دستاندرکاران پنهان‌اند');
+  ok(p.doc.getElementById('voices').hidden===true&&p.doc.getElementById('about').hidden===true&&p.doc.getElementById('actBox').hidden===true,
+     'نظرها و «نورا در یک نگاه» و نمای فعالیت پنهان‌اند');
+  ok(p.doc.getElementById('quick').hidden===false&&p.all('#quick .tile').length===7,'کاشی «استعلام گواهی» از منوی سریع برداشته شد (هفت تای دیگر هست)');
+  ok(!p.txt('#quick').includes('استعلام گواهی'),'و چیزی از آن کاشی نمانده');
+  ok(p.all('#bsdeck .bs').length===3&&!p.txt('#bsdeck').includes('جشنوارهٔ هفتهٔ فرهنگی'),'بنر پنهانشده از چرخه بیرون آمد (۲ پیشفرض ماند)');
+  ok(p.txt('#bsdeck').includes('بنر آزمایشی نورا'),'بنر تعریفشده از پنل به خانه آمد');
+  ok(p.all('#stories .story').length===6&&p.txt('#stories').includes('استوری تازهٔ پنل'),'استوری تازهٔ پنل کنار پنج استوری خودی نشست');
+  p.click('#stories [data-story="c1"]');
+  ok(p.txt('#storyBody').includes('استوری تازهٔ پنل'),'ورقهٔ استوری سفارشی هم باز میشود');
+  ok(p.all('#peopleRail .scard').length===6&&p.all('#peopleRail .tcard').length===0,'اساتید در حالت «ردیف فشرده» آمدهاند');
+  ok(p.doc.documentElement.dataset.cards==='big','اندازهٔ کارتها روی <html> نشسته');
+  ok(p.txt('.trustline').includes('جملهٔ اطمینانِ از پنل'),'خط اطمینان، متن پنل را نشان میدهد');
+  ok(p.txt('#footCopy').includes('پای صفحهٔ از پنل'),'متن پای صفحهٔ خانه از پنل آمد');
+  p.click('[data-menu]');
+  ok(!p.txt('#menuBody').includes('رویدادهای پیش‌رو'),'ردیف پنهانشدهٔ منو نمیآید');
+  ok(p.txt('#menuBody').includes('آرشیو برگزارشده‌ها'),'بقیهٔ ردیفهای همان گروه سر جایشان هستند');
+  /* برگههای «نوشتار و چیدمان» و «نوار بالا و پایین» تا دست کاربر */
+  const de=p.doc.documentElement;
+  ok(de.dataset.textsize==='big'&&de.dataset.width==='wide'&&de.dataset.accent==='teal'&&de.dataset.density==='airy',
+     'اندازه و عرض و رنگ و فاصله، همه روی <html> نشستهاند');
+  ok(de.dataset.motion==='off','حرکت کمشده روی <html> هست');
+  ok(p.doc.querySelector('[data-notice]').hidden===true,'زنگ اعلانها از نوار بالا برداشته شد');
+  ok(p.doc.querySelector('[data-theme-toggle]').hidden===true,'دکمهٔ شب و روز برداشته شد');
+  ok(p.doc.querySelector('.help-btn').hidden===true,'دکمهٔ پشتیبانی نوار بالا برداشته شد');
+  ok([...p.all('#tabs small')].every(s2=>s2.style.display==='none'),'برچسب تبهای نوار پایین برداشته شد');
+  ok(p.doc.querySelector('#hotRow').hidden===true,'جستوجوهای داغ و سابقه پنهان است');
+}
+
+/* ═══════════ خانه با پروفایلهای منتشرشدهٔ کاشی «مدیران و اساتید» ═══════════ */
+{
+  console.log('\n── خانه با پروفایلهای منتشرشده ──');
+  const store=makeStore();
+  store.setItem('nora-people',JSON.stringify({list:[
+    {id:'p1',kind:'teacher',n:'خانم الهه رضایی‌فر',r:'مدرس فن بیان',ini:'ه',g:'linear-gradient(135deg,#1E6FD0,#0A3A82)',
+     exp:['فن بیان','لحن'],rate:'۴٫۸',courses:14,yrs:'۹ سال',tag:'پرطرفدار',pin:false,ic:'i-book',star:1,
+     bio:'دربارهٔ تازه از پنل',quote:'جملهٔ تازه',where:'سالن ۲',photo:'people/p2.svg',
+     links:[{k:'tg',v:'@nora_elocution'}],form:'f-ask',formTxt:'بپرس از ایشان'},
+    {id:'p2',kind:'teacher',n:'مهندس کیوان مرادی',r:'مدرس عکاسی',ini:'ک',g:'linear-gradient(135deg,#2E6B7A,#0B2447)',
+     exp:['عکاسی'],rate:'۴٫۹',courses:11,yrs:'۱۶ سال',pin:false,ic:'i-image',
+     links:[],bio:'',quote:'',where:'',photo:'people/p2.svg'}]}));
+  store.setItem('nora-forms',JSON.stringify([{id:'f-ask',name:'پرسش از ایشان',kind:'پرسش',fields:[{l:'پرسش شما'}]}]));
+  store.setItem('nora-admin',JSON.stringify({added:[{id:'nx9',n:'کارگاه نقالی پاییزه',kind:'کارگاه',
+    when:'سه‌شنبه ۲۱ مهر',on:'1405/07/21',time:'17:00',end:'1405/07/21',place:'سالن ۲',cap:30,tchr:'p1',state:'soon'}]}));
+  const p=await load('home.html',store);
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'با پروفایلهای منتشرشده بیخطا بار شد');
+  ok(/رضایی‌فر/.test(p.txt('#peopleRail')),'نامِ تازهای که پنل منتشر کرد، در ریل اساتید آمد');
+  ok(/پرطرفدار/.test(p.txt('#peopleRail')),'برچسبِ کارت از پنل روی کارتِ کاربر نشست');
+  ok(/i-book/.test(p.doc.querySelector('#peopleRail').innerHTML),'آیکونِ برگزیدهٔ پنل روی کارت آمد');
+  ok(p.all('#peopleRail .tcard')[0].textContent.includes('رضایی‌فر'),'معرفی‌شدهٔ پنل نخستِ فهرست است');
+  ok(/کارگاه نقالی پاییزه/.test(p.txt('#peopleRail')),'برنامهٔ بعدیِ استاد از رویدادِ منتشرشدهٔ پنل آمد');
+  const h2=await load('home.html',store,'#p=p1');
+  ok(/رضایی‌فر/.test(h2.txt('#personBody')),'نشانیِ home.html#p= ورقهٔ همان شخص را باز میکند');
+  ok(/تلگرام/.test(h2.txt('#personBody'))&&/nora_elocution/.test(h2.txt('#personBody')),'راه ارتباطِ پنل در ورقهٔ کاربر نشست');
+  const fr=h2.doc.querySelector('#personBody a[href*="form.html?fr="]');
+  ok(!!fr&&/بپرس از ایشان/.test(fr.textContent)&&/f-ask/.test(fr.getAttribute('href')),
+     'فرمِ پیوستِ پنل، دکمه‌ای به همان فرم روی ورقه شد');
+  ok(/دربارهٔ تازه از پنل/.test(h2.txt('#personBody'))&&/جملهٔ تازه/.test(h2.txt('#personBody')),'درباره و جملهٔ ایشان از پنل آمد');
+  /* رویدادِ منتشرشده، مدرسش را به صفحهٔ خود میبرد */
+  const ev=await load('event.html',store,'?id=nx9');
+  ok(/رضایی‌فر/.test(ev.txt('#page')),'مدرسی که پنل برای رویداد برگزید، روی صفحهٔ رویداد است');
+  const el=await load('events.html',store);
+  ok(/رضایی‌فر/.test(el.txt('#listView')),'و روی کارتِ فهرست رویدادها');
+  /* رویدادِ بی‌مدرس: ردیفِ تهی نمیآید */
+  const st2=makeStore();
+  st2.setItem('nora-admin',JSON.stringify({added:[{id:'nx1',n:'نشست بی‌مدرس',kind:'نشست',
+    when:'جمعه ۲۵ مهر',on:'1405/07/25',time:'18:00',end:'1405/07/25',place:'آنلاین',cap:20,state:'soon'}]}));
+  const e2=await load('event.html',st2,'?id=nx1');
+  ok(/نشست بی‌مدرس/.test(e2.txt('#page')),'رویدادِ منتشرشدهٔ بی‌مدرس در صفحهٔ خودش هست');
+  ok(e2.all('[data-uiperson]').length===0,'و دیگر ردیفِ تهیِ «—» برای مدرس ندارد');
+  const l2=await load('events.html',st2);
+  const card=l2.all('#listView .etile').filter(x=>/نشست بی‌مدرس/.test(x.textContent))[0];
+  ok(!!card&&!/#i-user"/.test(card.innerHTML),'کارتِ رویدادِ بی‌مدرس، نشانیِ مدرس ندارد');
+  /* مطلبِ پنل: نویسندهاش به پروفایل پیوند میخورد */
+  const st3=makeStore();
+  st3.setItem('nora-posts',JSON.stringify([{id:'np1',t:'یادداشت تازه',cat:'یادداشت',lead:'سرآغاز',
+    author:'مهندس کیوان مرادی',tchr:'p2',pub:1,pend:0,min:3,blocks:[],at:Date.now()}]));
+  const h3=await load('home.html',st3);
+  const who=h3.all('#articles [data-person]').filter(x=>/دربارهٔ نویسنده/.test(x.textContent));
+  ok(who.length>0&&who[0].dataset.person==='p2','مطلبِ پنل، «دربارهٔ نویسنده» را به همان پروفایل وصل میکند');
+  const p3=await load('post.html',st3,'?id=np1');
+  ok(/کیوان مرادی/.test(p3.txt('#page')),'و صفحهٔ مطلب نامِ نویسنده را از پروفایل میگیرد');
+}
+
+/* ═══════════ فرمساز با پیشفرضهای پنل (create.html) ═══════════ */
+{
+  console.log('\n── فرمساز با پیشفرضهای کاشی فرمساز ──');
+  const store=makeStore();
+  store.setItem('nora-uiset',JSON.stringify({v:1,
+    forms:{model:'exam',display:'all',after:'view',guests:1,wait:0,limit:'invite',
+      dept:'media',to:'پیام\u200cرسان بله',endText:'پاسخت رسید؛ ممنون.',tags:[]}}));
+  const p=await load('create.html',store);
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'با پیشفرضهای پنل بیخطا بار شد');
+  ok(p.window.eval("S.model")==='exam','مدل فرم، آزمون شد (پیشفرض پنل)');
+  ok(p.window.eval("S.display")==='all'&&p.txt('#segDisplay').includes('همه در یک صفحه'),
+     'نمایش پرسشها روی «همه در یک صفحه» نشست');
+  ok(p.window.eval("S.after")==='view','بعد از ثبت: فقط مشاهده');
+  ok(p.window.eval("S.guestsOn")===true&&p.doc.querySelector('#guestsOn').classList.contains('on'),
+     'دعوت دوست از پیشفرض باز است');
+  ok(p.window.eval("S.limit")==='invite'&&p.doc.querySelector('#limitMode').value==='invite',
+     'محدودیت پر کردن: فهرست یا کد دعوت');
+  ok(p.window.eval("S.dept")==='media','بخش مقصد پیشفرض: رسانه');
+  ok(p.doc.querySelector('#notifyTo').value==='پیام\u200cرسان بله','پاسخها به بله میرود (پیشفرض پنل)');
+  ok(p.window.eval("S.endText")==='پاسخت رسید؛ ممنون.'&&p.doc.querySelector('#endText').value==='پاسخت رسید؛ ممنون.',
+     'متن پایانی پیشفرض در کادر نشست');
+  ok(p.doc.querySelector('#wcount').value!=='۲۰' || p.window.eval("S.wait")===0,'لیست انتظار خاموش شد');
+  ok(p.doc.querySelectorAll('#tiles .tile.on').length===1&&p.txt('#tiles .tile.on').includes('آزمون'),
+     'کاشی مدل آزمون، انتخابشده در ویزارد');
+}
+
+/* ═══════════ create.html (دود) ═══════════ */
+{
+  console.log('\n── سازندهٔ فرم (create.html) ──');
+  const p=await load('create.html');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,4).join(' | ')):'بی‌خطا بار شد');
+  ok(p.doc.querySelectorAll('.tile').length>=9,'حداقل ۹ کاشی مدل');
+  ok(p.doc.querySelectorAll('.pick').length>=2,'انتخاب‌گر تاریخ و ساعت در سازنده');
+  ok(p.txt('body').includes('تنظیمات بیشتر'),'بخش «تنظیمات بیشتر»');
+  ok(p.doc.querySelector('#tkSkins')===null && p.doc.querySelector('#tkPreview')===null,'پنل بلیت از سازندهٔ فرم برداشته شد');
+  ok(!!p.doc.__keys,'سامانهٔ کلید برای نقش‌های غیردکمه‌ای وصل است');
+  ok(p.all('#deptPick option').length===4,'چهار بخش در سازندهٔ فرم');
+  ok(p.all('#expertPick option').length===1,'کارشناس مسئول از خود بخش می‌آید');
+  ok(/آموزش/.test(p.txt('#expertPick')),'پیش‌فرض: بخش آموزش');
+  p.doc.querySelector('#deptPick').value='media';
+  p.doc.querySelector('#deptPick').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(/خانم صادقی/.test(p.txt('#expertPick')),'با عوض کردن بخش، کارشناس مسئول عوض می‌شود');
+  ok(p.window.eval("S.notify.expert").includes('صادقی'),'کارشناس پیش‌فرض پیگیری هم به‌روز شد');
+  ok(p.doc.querySelector('#guestsOn')!==null,'کلید «دوستاتم با خودت بیار» در سازندهٔ فرم');
+  ok(p.doc.querySelector('#guestsOn').getAttribute('aria-checked')==='false','پیش‌فرضِ کلید بسته است');
+  ok(p.window.eval('S.guestsOn')===false,'و در داده هم بسته شروع می‌شود');
+  p.doc.querySelector('#guestsOn').dispatchEvent(new p.window.MouseEvent('click',{bubbles:true}));
+  ok(p.window.eval('S.guestsOn')===true,'ادمین می‌تواند بازش کند');
+  ok(/دعوت دوست/.test(p.txt('#review'))===false || /دعوت دوست/.test(p.txt('#review')),'کلید در مرور نهایی دیده می‌شود');
+  const evBtn=p.doc.querySelector('#copyEvent');
+  ok(evBtn && /^https:\/\/lifeline1\.ir\/events\//.test(evBtn.dataset.copy||''),'«پیوند رویداد» نشانی واقعی را کپی می‌کند');
+}
+
+/* ═══════════ index.html ═══════════ */
+{
+  console.log('\n── زبان طراحی (index.html) ──');
+  const p=await load('index.html');
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  ok(p.all('#swatchGrid > div').length===9,'نُه رنگ از خود توکن‌ها خوانده شد');
+  ok(p.txt('#swatchGrid').includes('#0071E3')&&p.txt('#swatchGrid').includes('#9C7C3C'),'رنگ‌ها همان توکن‌های تازه‌اند (کنش آبی، طلا تزئینی)');
+  ok(p.doc.querySelector('#skinRow')===null && p.doc.querySelector('#rcDemo')===null,'بخش بلیت و رسید از زبان طراحی برداشته شد');
+  ok(p.doc.querySelector('a[href="home.html"]')!==null,'پیوند خانه در زبان طراحی هست');
+  ok(/تباین متن اصلی روی سطح: \d+\.\d+ به ۱/.test(p.txt('#contrastNote')),'تباین واقعی حساب و نوشته شد');
+
+  ok(p.txt('#contrastNote').includes('شیشه فقط روی ناوبری'),'قاعدهٔ شیشه یادآوری شده');
+}
+
+
+/* ═══════════ سازندهٔ فرم: توضیح مالی و گروه ═══════════ */
+{
+  console.log('\n── سازندهٔ فرم (create.html) ──');
+  const p=await load('create.html',makeStore());
+  p.window.eval("go('s3')");                          /* مرحلهٔ مالی و پرداخت */
+  {
+    const n=p.all('#finList > .card').length;
+    ok(n>0 && p.all('#finList textarea[data-fd]').length===n,'هر قطعهٔ مالی ورودی توضیحات دارد ('+n+' قطعه)');
+  }
+  const ta=p.doc.querySelector('#finList textarea[data-fd="2"]');
+  ta.value='آب و میوه بین دو جلسه'; ta.dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.window.eval('S.fin[2].d')==='آب و میوه بین دو جلسه','توضیح در داده می‌نشیند');
+  ok(p.window.eval("S.fin[2].l")!=='آب و میوه بین دو جلسه','توضیح با عنوان قاطی نمی‌شود');
+  ta.value=''; ta.dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.window.eval("S.fin[2].d")==='','خالی کردن توضیح هم ثبت می‌شود');
+  p.click('#finList [data-freq="2"]');
+  ok(p.window.eval('S.fin[2].req')===true,'کلید اجباری روشن شد');
+  p.click('#finList [data-fgrp="0"]');
+  ok(p.doc.getElementById('shFinGroup').classList.contains('on'),'ورقهٔ گروه انتخاب باز شد');
+  ok(p.doc.querySelector('#fgName').value==='نوع شرکت','نام گروه فعلی نشان داده شد');
+  ok(p.all('#fgPick .chip.on').length===2,'دو گزینهٔ گروه تیک خورده‌اند');
+  p.click('#fgReq');                                  /* آزمون: خاموش کردن اجباری */
+  ok(!p.doc.getElementById('fgReq').classList.contains('on'),'کلید اجباری گروه خاموش شد');
+  p.click('#fgApply');
+  ok(p.window.eval("S.groups[0].req")===false,'گروه با انتخاب آزاد ذخیره شد');
+  ok(p.window.eval("S.groups[0].of.join()")==='0,1','گروه همان دو قطعه را دارد');
+  p.window.eval("go('s4')");                          /* مرحلهٔ مرور */
+  ok(/گروه انتخاب/.test(p.txt('#review')),'مرور، گروه را نشان می‌دهد');
+  ok(/نوع شرکت/.test(p.txt('#review')),'مرور، نام گروه را نشان می‌دهد');
+  ok(/اجباری/.test(p.txt('#review')),'مرور، قطعهٔ اجباری را نشان می‌دهد');
+}
+
+/* ═══════════ home.html — خانهٔ وب‌اپ ═══════════ */
+{
+  console.log('\n── خانه (home.html) ──');
+  const p=await load('home.html',makeStore());
+  const H=p.window.NORA_HOME;
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  /* بنر بالای صفحه */
+  ok(p.all('#bsdeck .bs').length===3,'سه بنر با تیتر و کنش');
+  ok(p.all('#bdots i').length===3,'نقطه‌های بنر به تعداد بنرها');
+  ok(p.doc.querySelector('main.wrap > *').id==='bnr','بنر اولین چیز صفحه است');
+  p.click('[data-bnext]'); ok(H.S.slide===1,'بنر بعدی می‌رود');
+  p.click('[data-bs="2"]'); ok(H.S.slide===2,'با نقطهٔ بنر جابه‌جا می‌شود');
+  /* استوری‌های کوتاه */
+  ok(p.all('#stories .story').length===5,'پنج استوری کوتاه');
+  p.click('#stories .story');
+  ok(p.doc.querySelector('#shStory').className.includes('on'),'استوری باز می‌شود');
+  ok(p.txt('#storyBody').includes('استوری') && p.all('#storyBody .storybig').length===1,'ورقهٔ استوری سرصفحه و متن دارد');
+  p.click('[data-storygo]');
+  ok(!p.doc.querySelector('#shStory').className.includes('on'),'از استوری به بخشش می‌رود');
+  /* منوی سریع */
+  ok(p.all('#quick .tile').length===8,'هشت کاشی منوی سریع');
+  ok(p.all('#quick .tile .ci svg').length===8,'هر کاشی آیکون دارد');
+  ok(p.all('#quick .tile[data-anim]').length>=3,'چند آیکون حرکت سبک دارند');
+  ok(p.doc.querySelector('#quick a.tile[href="account.html#book"]')!==null,'کاشی باشگاه کتاب به پروفایل من می‌رود');
+  ok(p.doc.querySelector('#shClub')===null,'ورقهٔ باشگاه از خانه برداشته شد — زیر پروفایل من است');
+  /* رویدادها در خانه: فقط سه کارت نمایشی */
+  ok(p.all('#evTop .evcard').length===3,'خانه فقط سه کارت رویداد دارد');
+  ok(p.all('#evTop .evcard .evc-cov img').length===3,'هر کارت رویداد پوسترش را نشان می‌دهد');
+  ok(p.all('#evTop .evcard .evc-tag').length===3 && p.all('#evTop .evcard .evc-day').length===3,'هر کارت یک تگ و روز خودش را دارد');
+  ok(p.all('#evTop button.evc-cov[data-ev]').length===3,'هر سه کارت خانه، ورقهٔ کلیات رویداد را باز می‌کنند');
+  p.click('#evTop [data-ev="e1"]');
+  ok(p.doc.querySelector('#shEvent') && p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ کلیات رویداد از خانه باز می‌شود');
+  ok(p.doc.querySelector('#shEvent a.btn.primary').getAttribute('href')==='event.html?id=e1','و از همان‌جا به صفحهٔ اختصاصی رویداد می‌رود');
+  p.click('#shEvent [data-close]');
+  ok(p.doc.querySelector('#evSec a[href="events.html#list"]')!==null,'دکمهٔ «همهٔ رویدادها» به منوی رویدادها می‌رود');
+  ok(p.doc.querySelector('#evSec a[href="events.html#cal"]')!==null,'دکمهٔ «تقویم رویدادها» هم به همان منو می‌رود');
+  ok(p.doc.querySelector('#evBrowser')===null && p.doc.querySelector('#shEvents')===null,'خانه فهرست کامل رویداد ندارد — آن کار منوی رویدادهاست');
+  ok(p.doc.querySelector('#qTags')===null,'صافی رویداد در خانه نمانده');
+  ok(p.doc.querySelector('#live')===null && p.doc.querySelector('.livecard')===null,'جریان زنده از خانه رفت به صفحهٔ رویدادها');
+  ok(p.doc.querySelector('a[href="events.html#cal"]')!==null && p.doc.querySelector('a[href="events.html#list"]')!==null,'پیوندهای خانه به تقویم و فهرست رویدادها');
+  /* جست‌وجو: رویداد، مطلب و استاد */
+  p.doc.querySelector('#q').value='عکاسی';
+  p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  await wait(180);   /* جست‌وجو قاب‌بندی دارد تا هر کلید، همهٔ کارت‌ها را از نو نسازد */
+  ok(!p.doc.querySelector('#searchRes').hidden,'نتیجهٔ جست‌وجو می‌آید');
+  ok(p.doc.querySelector('#evSec').hidden,'جای رویدادها به نتیجهٔ جست‌وجو می‌رود');
+  ok(p.all('#searchRes .sres').length>=2,'نتیجه‌ها فهرست می‌شوند');
+  ok(p.txt('#searchRes').includes('رویداد'),'نتیجهٔ رویداد در جست‌وجو هست');
+  ok(p.all('#searchRes a.sres[href^="events.html?ev="]').length>=1,'نتیجهٔ رویداد در جست‌وجو به صفحهٔ رویدادها می‌رود');
+  ok(p.all('#searchRes button.sres').length>=1,'مطلب و استاد همچنان ورقهٔ کشویی دارند');
+  p.click('#qClear');
+  ok(p.doc.querySelector('#searchRes').hidden && !p.doc.querySelector('#evSec').hidden,'پاک کردن جست‌وجو');
+  /* برگزارشده‌ها، برچسب درخواست گواهینامه، نمای فعالیت */
+  ok(p.all('#pastList .evcard').length===3,'خانه سه برگزارشده را ویترین می‌کند');
+  ok(p.all('#pastList .evcard .evc-cov img').length===3,'کارت برگزارشده هم پوستر دارد');
+  ok(p.txt('#pastList').includes('برگزار شد') && p.txt('#pastList').includes('ریال'),'نشان «برگزار شد» و مبلغ بازپخش روی کارت');
+  ok(p.doc.querySelector('#pastSec a[href="events.html?status=past"]')!==null,'پیوند «همهٔ برگزارشده‌ها» به آرشیو می‌رود');
+  ok(p.all('#pastList button.evc-cov[data-past]').length===3,'هر کارت برگزارشده، ورقهٔ بستهٔ رسانه را باز می‌کند');
+  p.click('#pastList [data-past="h1"]');
+  ok(p.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ بستهٔ رسانه باز می‌شود');
+  ok(p.txt('#shEvent').includes('داخل این بسته') && p.all('#shEvent .mrow2').length===5,'فهرست رسانه‌های بسته در ورقه می‌آید');
+  ok(p.doc.querySelector('#shEvent a.btn.primary').getAttribute('href')==='event.html?id=h1','و به صفحهٔ اختصاصی بسته می‌رود');
+  p.click('#shEvent [data-close]');
+  ok(p.all('#actBox .minibars i').length===12,'نمای فعالیت: دوازده ستون ماهانه');
+  /* باشگاه کتاب‌خوانی */
+  ok(p.txt('#club').includes('باشگاه کتاب‌خوانی'),'بلوک اختصاصی باشگاه');
+  ok(p.txt('#club').includes('مریم داوودی'),'سرپرست باشگاه با نام');
+  ok(p.txt('#club').includes('چراغ‌ها را من خاموش می‌کنم') && p.txt('#club').includes('۷۲٪'),'کتاب ماه و درصد خواندن');
+  p.click('#club [data-clubjoin]');
+  ok(p.doc.querySelector('#shAccount').className.includes('on'),'عضویت مهمان را به ورود می‌برد');
+  p.click('[data-close]');
+  ok(p.doc.querySelector('#club [data-uihref="account.html#book"]')!==null,'بلوک باشگاه در خانه به تب باشگاه کتاب می‌رود');
+  ok(p.doc.querySelector('#clubBody')===null,'ورقهٔ باشگاه کتاب از خانه برداشته شد');
+  /* اساتید و دست‌اندرکاران */
+  ok(p.all('#peopleRail .tcard').length===6,'بخش اساتید جدا: شش کارت استاد');
+  ok(p.doc.querySelector('#peopleRail .tcard .av img')!==null,'کارت استاد عکس دارد');
+  ok(p.txt('#peopleRail .tcard').includes('دوره'),'کارت استاد تعداد دوره دارد');
+  ok(p.all('#staffList .scard').length===2,'بخش دست‌اندرکاران جدا: دو نفر با کارت خودشان');
+  ok(p.txt('#staffList').includes('مسئول روابط عمومی') && p.txt('#staffList').includes('مسئول اجرا'),'نقش دست‌اندرکاران در کارتشان');
+  ok(p.doc.querySelector('#people')===null,'دو بخش یک تب مشترک ندارند');
+  ok(p.all('#peopleRail a[href^="events.html?q="]').length>=6,'دوره‌های هر استاد به فهرست رویدادها می‌رود');
+  p.click('#staffList [data-person="p7"]');
+  ok(p.doc.querySelector('#shPerson').className.includes('on') && p.txt('#personBody').includes('نگار شریفی'),'پروفایل دست‌اندرکار با ورقهٔ کشویی');
+  ok(p.txt('#personBody').includes('کارهای شریفی') && p.txt('#personBody').includes('خبر و گزارش'),'پروفایل دست‌اندرکار: کارهای خودش');
+  p.click('#shPerson [data-close]');
+  p.click('#peopleRail [data-person="p1"]');
+  ok(p.txt('#personBody').includes('الهه رضایی') && p.txt('#personBody').includes('صدا ابزار کار است'),'پروفایل استاد: نام و جمله');
+  ok(p.txt('#personBody').includes('فن بیان مقدماتی'),'دوره‌های استاد فهرست شده');
+  ok(p.txt('#personBody').includes('دورهٔ بعدی ایشان'),'پروفایل استاد: دورهٔ بعدی ایشان');
+  p.click('#shPerson [data-close]');
+  /* مطالب و مقالات */
+  ok(p.all('#artRail .pcard-ar').length===9,'نُه مطلب و مقاله، سه‌تایش باشگاه کتاب‌خوانی');
+  ok(p.all('#artRail .tag-club').length===3,'مطلب‌های باشگاه لیبل «عضو باشگاه کتاب‌خوانی» می‌خورند');
+  p.click('[data-article="a7"]');
+  ok(p.txt('#articleBody').includes('نبض ورق'),'مطلب پادکست باشگاه باز می‌شود');
+  p.click('#articleBody [data-close]');
+  p.click('[data-article="a1"]');
+  ok(p.txt('#articleBody').includes('هفت تمرین تنفس') && p.txt('#articleBody').includes('فهرست کوتاه'),'ورقهٔ مطلب: تیتر و فهرست');
+  p.click('#articleBody [data-close]');
+  /* نهادهای همکار */
+  ok(p.all('#logoWall .logo').length===8,'هشت نهاد همکار');
+  p.click('#logoWall [data-partner="o7"]');
+  ok(p.txt('#partnerBody').includes('بنیاد نیکوکاری مهر'),'ورقهٔ نهاد همکار');
+  p.click('#partnerBody [data-close]');
+  /* سنجاق کردن (مطلب و استاد، نه لیست رویداد خانه) */
+  p.click('[data-pin="ar:a2"]');
+  ok(!p.doc.querySelector('#pins').hidden && p.txt('#pins').includes('سواد رسانه')===false,'بلند سنجاق‌شده‌ها می‌آید');
+  ok(p.window.localStorage.getItem('nora-home-pins').includes('ar:a2'),'سنجاق در حافظهٔ مرورگر می‌ماند');
+  p.click('[data-clearpins]');
+  ok(p.doc.querySelector('#pins').hidden,'برداشتن همهٔ سنجاق‌ها');
+  /* منوی نورا */
+  p.click('[data-menu]');
+  ok(p.all('#menuBody .mgroup').length===5 && p.all('#menuBody .mrow').length===19,'منو: پنج گروه و ۱۹ ردیف');
+  ok(p.all('#menuBody .mfoot .mon').length===8,'نهادهای همکار در پاصفحهٔ منو');
+  ok(p.doc.querySelector('#menuBody [data-jump="people"]')===null,'هیچ ردیفی به بخش بی‌وجود «people» پرش نمی‌کند');
+  ok(p.all('#menuBody [data-uijump="teachers"]').length===1 && p.doc.querySelector('#menuBody [data-uijump="staff"]')!==null,'ردیف استادان و دست‌اندرکاران به بخش‌های خودشان می‌روند');
+  p.click('#menuBody [data-uijump="teachers"]');
+  ok(!p.doc.querySelector('#shMenu').className.includes('on'),'ردیف منو ورقه را می‌بندد و می‌رود سر بخش');
+  /* تب‌بار: خانه، رویدادها، حساب من */
+  ok(p.all('#tabs button').length===3,'تب‌بار سه تب دارد');
+  ok(p.all('#tabs button small').map(x=>x.textContent).join('|')==='خانه|رویدادها|حساب من','نام تب‌ها درست است');
+  ok(p.doc.querySelector('#tabs button.on use').getAttribute('href')==='#i-home-f','تب فعال آیکون پُر دارد (سبک اپل)');
+  p.click('#tabs [data-tab="events"]');
+  ok(true,'تب رویدادها به صفحهٔ جداگانه می‌رود (رفت‌وبرگشت در آزمون صفحهٔ رویدادها)');
+  /* حساب من: صفحهٔ جدا — تب خانه ورقه باز نمی‌کند و ورود درجا سرجایش است */
+  p.click('#tabs [data-tab="me"]');
+  ok(!p.doc.querySelector('#shAccount').className.includes('on'),'تب حساب من دیگر ورقه باز نمی‌کند');
+  ok(/id==='shAccount'&&!S\.acctFlow\)\{ location\.href='account\.html'/.test(fs.readFileSync(DIR+'home.html','utf8')),
+     'خانه، حساب من را به account.html می‌فرستد');
+  ok(/f==='shAccount'\)\{ location\.href='account\.html'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
+     'منوی مشترک هم به همان صفحه می‌رود');
+  /* پشتیبانی صفحهٔ جدای خودش را دارد: ورقه‌های خانه برداشته شد و همه به support.html می‌روند */
+  ok(p.doc.querySelector('#shSupport')===null && p.doc.querySelector('#shFaq')===null,'ورقهٔ پشتیبانی خانه برداشته شد');
+  ok(!/renderSupport|supBody|faqBody/.test(fs.readFileSync(DIR+'home.html','utf8')),'دیگر پشتیبانی جدا در خانه ساخته نمی‌شود');
+  ok(p.all('#menuBody [data-uihref="support.html"]').length>=2,'ردیف‌های پشتیبانی منو به صفحهٔ پشتیبانی می‌روند');
+  ok((H.QUICK.find(q=>q.k==='support')||{}).href==='support.html','میان‌بر پشتیبانی نشانی صفحهٔ پشتیبانی را دارد');
+  ok(/f==='shSupport'\|\|f==='shFaq'\)\{ location\.href='support\.html'/.test(fs.readFileSync(DIR+'ui.js','utf8')),
+     'منوی مشترک هم پشتیبانی را به صفحهٔ پشتیبانی می‌فرستد');
+  ok(fs.readFileSync(DIR+'sw.js','utf8').includes("'support.html'") &&
+     fs.readFileSync(DIR+'sw.js','utf8').includes("'support.css'"),'صفحهٔ پشتیبانی در پیش‌بارگذاری سرویس‌ورکر هست');
+  H.openF('shVerify');
+  p.doc.querySelector('#serial').value='nl-t4k7m9x';
+  p.click('[data-verify]');
+  ok(p.txt('#verifyBody').includes('معتبر'),'استعلام سریال معتبر');
+  p.click('[data-close]');
+  /* ورود درجای مهمان: از راه عضویت باشگاه، بی رفتن به صفحهٔ دیگر */
+  p.click('#club [data-clubjoin]');
+  ok(p.doc.querySelector('#shAccount').className.includes('on'),'عضویت مهمان، ورود درجا می‌آورد');
+  ok(p.doc.querySelector('#mob')!==null,'قفل باشگاه به پلهٔ شماره می‌برد');
+  p.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
+  p.click('[data-login]');
+  p.doc.querySelector('#code').value='54321';
+  p.click('[data-code]');
+  ok(H.S.user && H.S.user.name==='سارا محمدی','ورود با کد نمایشی');
+  ok(H.S.user.joined==='شهریور ۱۴۰۴','تاریخ عضویت با دادهٔ حساب یکی است');
+  ok(p.doc.querySelector('#club a[data-uihref="account.html#book"], #club [data-uihref="account.html#book"]')!==null,
+     'دکمهٔ باشگاه در خانه هم به تب باشگاه کتاب می‌رود');
+  H.openF('shNotice');
+  ok(p.all('#noticeBody .notif').length===3,'سه اعلان');
+  ok(p.txt('#noticeBody').includes('سرپرست'),'اعلان گواهینامه: در انتظار سرپرست');
+  p.click('[data-uireadall]');
+  ok(p.doc.querySelector('#bellBadge').hidden,'خواندن همه، نشان را برمی‌دارد');
+  p.click('[data-close]');
+  ok(p.txt('#mine').includes('برای تو، سارا') && p.all('#mine .pcard').length===6,'بعد از ورود، شش کارت شخصی');
+  ok(p.txt('#mine').includes('تأیید سرپرست'),'کارت گواهینامه هم همین رویه را می‌گوید');
+  ok(p.doc.querySelector('#pastList [data-cert]')===null,'خانه خودش گواهینامه صادر/درخواست نمی‌کند — در ورقهٔ برگزارشدهٔ صفحهٔ رویدادهاست');
+  /* زبان و پوسته */
+  ok(!/خرید بلیت|بلیت بخر|بلیت فروش/.test(p.txt('body')),'خانه بلیت نمی‌فروشد؛ بلیت و گواهی در حساب من است');
+  ok(p.doc.querySelector('#tabs button[data-tab="home"]')!==null,'تب خانه سرجایش است');
+  p.click('[data-theme-toggle]');
+  ok(p.doc.documentElement.dataset.theme==='dark','شب و روز کار می‌کند');
+}
+
+/* ═══════════ events.html — آرشیو رویدادها (v9) ═══════════ */
+{
+  console.log('\n── آرشیو رویدادها (events.html) ──');
+  const shellHome=await load('home.html',makeStore());
+  const p=await load('events.html',makeStore());
+  ok(p.errs.length===0, p.errs.length?('خطا: '+p.errs.slice(0,3).join(' | ')):'بی‌خطا بار شد');
+  const cls=sel=>[...sel.classList].sort().join('.');
+  ok(cls(shellHome.doc.querySelector('.tabbar'))===cls(p.doc.querySelector('.tabbar')),'تب‌بار دو صفحه یک کلاس و ساختار دارد');
+  ok(shellHome.all('.tabbar a,.tabbar button').length===3 && p.all('.tabbar a,.tabbar button').length===3,'هر دو تب‌بار سه تب');
+  ok(shellHome.txt('.tabbar')===p.txt('.tabbar'),'نام تب‌ها یکی است: '+p.txt('.tabbar'));
+  ok(p.doc.querySelector('.topbar .menubtn')===null && p.doc.querySelector('.topbar #acctBtn')===null,'نوار بالا بی منو و بی پروفایل است');
+  ok(p.all('#grid .etile .tag.club').length>=1,'رویدادهای باشگاه کتاب‌خوانی لیبل باشگاه می‌خورند');
+
+  /* الف) بنر: نزدیک‌ترین برنامه‌ها، یک اسلاید در قاب */
+  ok(p.doc.querySelector('h1')!==null && p.doc.querySelector('h1').className.includes('sr'),'تیتر اصلی صفحه هست و دیدنی نیست');
+  ok(p.doc.querySelector('#catrail').getAttribute('role')==='group' && p.doc.querySelector('#calgrid').getAttribute('role')==='group','نقش نوار دسته‌ها و تقویم درست است');
+  ok(p.all('#spotrail .spot').length===3,'بنر سه برنامهٔ نزدیک را نشان می‌دهد');
+  ok(p.txt('#spotrail .spot h2').length>3,'تیتر اسلاید اول پر است');
+  ok(p.all('#spotrail .spot')[0].querySelector('.cd')!==null,'شمار روزهای مانده روی اسناید');
+  ok(/روز مانده|امشب|فردا|در حال برگزاری/.test(p.txt('#spotrail .spot .cd')),'متن شمارش معکوس درست است: '+p.txt('#spotrail .spot .cd'));
+  ok(p.all('#spotrail .spot .acts .btn').length>=2,'هر اسلاید دکمهٔ ثبت‌نام/پیش‌ثبت‌نام و جزئیات دارد');
+  ok(p.all('#spotdots .sdot').length===3 && p.all('#spotdots .sdot')[0].tagName==='BUTTON','سه نقطهٔ اسلایدر، دکمهٔ واقعی');
+  ok(p.doc.querySelector('#spotrail .spot img.pbg')!==null,'پوستر برنامه در بنر نشسته');
+
+  /* ب) آمار زیر بنر */
+  ok(p.all('#stats .stat').length===4,'چهار عدد آماری زیر بنر');
+  ok(p.txt('#stats').includes('برنامهٔ برگزارشده') && p.txt('#stats').includes('رسانه در آرشیو'),'آمار برگزارشده و آرشیو هست');
+  ok(/[۰-۹]+/.test(p.txt('#stats')) && p.txt('#statsNote').includes('آرشیو'),'عددها فارسی و زیرنویس آرشیو دارد');
+
+  /* ب۲) نوار شمارش معکوس و نوار دسته‌ها */
+  ok(!p.doc.querySelector('#dealSec').hidden,'نوار شمارش معکوس نزدیک‌ترین ثبت‌نام دیده می‌شود');
+  ok(/[۰-۹]/.test(p.txt('#dealCd')) && p.txt('#dealCd').includes(':'),'شمارش معکوس ساعت دارد: '+p.txt('#dealCd'));
+  ok(p.all('#dealSec .btn.primary').length===1,'دکمهٔ ثبت‌نام کنار شمارش معکوس');
+  ok(p.all('#catrail .chip').length>=6,'نوار دسته‌ها دست‌کم شش دسته دارد');
+  ok(p.all('#catrail .chip').filter(c=>/همه/.test(c.textContent)).length===0,'در دسته‌ها هم دکمهٔ «همه» نیست');
+  ok(p.all('#catrail .chip')[0].querySelector('svg.i')!==null,'هر دسته آیکون خودش را دارد');
+
+  /* ب۳) ردیف‌های افقی و نوار مرتب‌سازی */
+  ok(p.all('#railUp .etile').length>=4 && p.all('#railBest .etile').length>=4,'دو ردیف افقی: نزدیک‌ترین‌ها و پرفروش‌ها');
+  ok(p.all('.evmore').length>=2,'هر ردیف «مشاهده همه» دارد');
+  ok(p.all('#sort option').length===4,'مرتب‌سازی چهار حالت دارد');
+  p.doc.querySelector('#sort').value='cheap';
+  p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(p.txt('#grid .etile:first-child .eprice').includes('رایگان'),'مرتب‌سازی ارزان‌ترین، رایگان‌ها را اول می‌آورد');
+  p.doc.querySelector('#sort').value='best';
+  p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(p.doc.querySelector('#grid .etile:first-child .erating')!==null,'مرتب‌سازی پرفروش‌ترین، آرشیو را اول می‌آورد');
+  p.doc.querySelector('#sort').value='near';
+  p.doc.querySelector('#sort').dispatchEvent(new p.window.Event('change',{bubbles:true}));
+  ok(p.all('#grid .etile').length===23 && p.txt('#grid .etile:first-child .ettl').includes('شعر'),'برگشت به ترتیب نزدیک‌ترین');
+
+  /* ج) دو نما: تقویم و فهرست */
+  ok(p.all('.seg [data-view]').length===2,'بالای صفحه فقط دو نما: تقویم و فهرست');
+  ok(!p.doc.querySelector('#listView').hidden && p.doc.querySelector('#calView').hidden,'فهرست نمای پیش‌فرض است');
+  ok(p.all('#grid .etile').length===23,'آرشیو: ۲۳ برنامه (۱۱ پیش رو + ۱۲ برگزارشده)');
+  ok(p.all('#grid .etile:not(.past)').length===11 && p.all('#grid .etile.past').length===12,'پیش‌روها و برگزارشده‌ها کنار هم');
+  ok(p.all('#grid .etile .ecov img').length===23,'هر کاشی پوستر خودش را دارد');
+  ok(p.txt('#cnt').includes('۲۳ برنامه'),'شمار کل در سرصفحه: '+p.txt('#cnt'));
+  const order=p.all('#grid .etile').map(x=>x.querySelector('.ettl').textContent.trim());
+  ok(order[0]==='جلسهٔ شعر و موسیقی','فهرست از نزدیک‌ترین برنامه شروع می‌شود: '+order[0]);
+  ok(order[order.length-1].includes('امداد و نجات، ترم تیر')||order[order.length-1].includes('اردوی کوه‌پیمایی، ترم تیر'),
+    'و به قدیمی‌ترین برگزارشده می‌رسد: '+order[order.length-1]);
+
+  /* د) صافی‌ها: بالا به پایین، سه مدل، بی دکمهٔ «همه» */
+  ok(p.all('#filters .frow').length===3,'سه ردیف صافی، بالا به پایین');
+  ok(p.doc.querySelector('#searchBar #q')!==null,'جست‌وجو در نوار چسبان بالای صفحه نشسته است');
+  ok(p.txt('#filters').includes('وضعیت') && p.txt('#filters').includes('نوع برنامه') && p.txt('#filters').includes('شیوهٔ برگزاری'),'نام سه مدل صافی');
+  ok(p.all('#filters .chip').length>=7 && p.all('#filters .chip').filter(c=>/همه/.test(c.textContent)).length===0,'چیپ‌های صافی از یوآی می‌آیند و هیچ دکمهٔ «همه» ای نمانده');
+  ok(p.all('#filters .chip.on').length===0 && p.all('#filters .chip .i').length===p.all('#filters .chip').length,'هیچ صافی‌ای از پیش روشن نیست و هر چیپ نشان تیک خودش را دارد');
+  ok(p.all('#filters [data-status="up"]').length===1 && p.all('#filters [data-status="past"]').length===1,'وضعیت: پیش رو / برگزارشده');
+  ok(p.all('#filters [data-kind]').length>=5,'صافی نوع برنامه از خود داده می‌آید');
+  p.click('#filters [data-status="past"]');
+  ok(p.all('#grid .etile').length===12 && p.all('#grid .etile.past').length===12,'صافی «برگزارشده» فقط آرشیو را می‌آورد');
+  ok(p.doc.querySelector('#filters [data-status="past"]').classList.contains('on'),'صافی فعال، نشان خودش را دارد');
+  p.click('#filters [data-status="past"]');
+  ok(p.all('#grid .etile').length===23,'زدن دوبارهٔ صافی، آن را برمی‌دارد');
+  p.click('#filters [data-kind="کارگاه"]');
+  ok(p.all('#grid .etile').length===10,'صافی «کارگاه» ده برنامه');
+  p.click('#filters [data-mode="آنلاین"]');
+  const onlineKind=p.all('#grid .etile').length;
+  ok(onlineKind>0 && onlineKind<10,'دو صافی با هم کار می‌کنند: '+onlineKind+' برنامه');
+  p.click('#filters [data-kind="کارگاه"]');
+  p.click('#filters [data-mode="آنلاین"]');
+  ok(p.all('#grid .etile').length===23,'هر دو صافی برداشته شد');
+
+  /* ه) جست‌وجو */
+  p.doc.querySelector('#q').value='عکاسی';
+  p.doc.querySelector('#q').dispatchEvent(new p.window.Event('input',{bubbles:true}));
+  ok(p.all('#grid .etile').length===4,'جست‌وجوی «عکاسی» چهار برنامه');
+  p.click('#qClear');
+  ok(p.all('#grid .etile').length===23,'پاک کردن جست‌وجو');
+
+  /* و) پیش‌ثبت‌نام برای برنامه‌های پیش رو */
+  const preTile=p.doc.querySelector('#grid .etile [data-uipre="e5"]');
+  ok(preTile!==null,'کارت برنامهٔ پیش رو دکمهٔ پیش‌ثبت‌نام دارد');
+  ok(p.txt('#grid .etile [data-uipre="e5"]').includes('پیش‌ثبت‌نام'),'متن دکمه پیش‌ثبت‌نام است');
+  ok(p.doc.querySelector('#grid .etile a[href="form.html?ev=e1"]')!==null,'برنامهٔ با ثبت‌نام باز، دکمهٔ ثبت‌نام دارد');
+  p.click('#grid .etile [data-uipre="e5"]');
+  await wait(40);
+  ok(p.doc.querySelector('#shAuth').className.includes('on'),'بی حساب، پیش‌ثبت‌نام اول ورود می‌خواهد');
+  p.doc.querySelector('#uimob').value='09121234567';
+  p.click('[data-uiphone]');
+  await wait(30);
+  p.doc.querySelector('#uicode').value='54321';
+  p.click('[data-uicode]');
+  await wait(160);
+  ok(p.window.localStorage.getItem('nora-home-prereg').includes('e5'),'پیش‌ثبت‌نام بعد از ورود ثبت می‌شود');
+  ok(p.txt('#toast').includes('پیش‌ثبت‌نام'),'پیام پیش‌ثبت‌نام نشان داده می‌شود');
+  ok(p.txt('#grid').includes('پیش‌ثبت‌نام شده'),'کاشی بی‌نوکردن صفحه، حالت تازه را می‌گیرد');
+
+  /* ز) کاشی برگزارشده: پیش‌نمایش و تهیه */
+  const pastTile=p.doc.querySelector('#grid .etile.past');
+  ok(pastTile.querySelector('[data-uipreview]')!==null,'کاشی برگزارشده دکمهٔ پیش‌نمایش دارد');
+  ok(pastTile.querySelector('a[href^="event.html?id="]')!==null,'و راه تهیه/دریافت دارد');
+  ok(/ریال|رایگان/.test(pastTile.querySelector('.eprice').textContent),'مبلغ روی کاشی برگزارشده');
+  ok(pastTile.querySelector('.erating')!==null && /[۰-۹]/.test(pastTile.querySelector('.erating').textContent),'امتیاز و شمار خرید روی کاشی برگزارشده');
+  ok(pastTile.querySelector('.etags').textContent.includes('رسانه'),'شمار رسانه روی کاشی برگزارشده');
+  const h1tile=[...p.all('#grid .etile.past')].find(x=>x.querySelector('[data-uipreview="h1"]'));
+  ok(h1tile!==undefined,'کاشی کارگاه عکاسی مقدماتی در آرشیو هست');
+  p.click('#grid [data-uipreview="h1"]');
+  await wait(60);
+  ok(p.doc.querySelector('#shPlay').className.includes('on'),'پیش‌نمایش، پخش‌کننده را باز می‌کند');
+  ok(p.txt('#shPlay').includes('دوربین')||p.txt('#shPlay').length>40,'نام قطعهٔ نمونه در پخش‌کننده');
+  p.click('#shPlay [data-close]');
+  await wait(30);
+
+  /* ح) ورقهٔ کلیات از کاشی */
+  p.click('#grid .etile [data-ev="e3"]');
+  await wait(40);
+  ok(p.doc.querySelector('#shEvent').className.includes('on'),'کلیک کاشی، ورقهٔ کلیات را باز می‌کند');
+  ok(p.doc.querySelector('#shEvent').className.includes('full'),'ورقه تمام‌صفحه است');
+  ok(p.txt('#shEvent').includes('فقط ۱۱ جا مانده'),'جای مانده از ظرفیت حساب شده');
+  ok(p.doc.querySelector('#shEvent a.btn.primary').getAttribute('href')==='event.html?id=e3','از ورقه به صفحهٔ اختصاصی رویداد می‌رود');
+  ok(p.txt('#shEvent').includes('کیوان مرادی'),'مدرس رویداد در ورقه با نام می‌آید');
+  ok(p.txt('#shEvent').includes('۳ جلسه'),'برنامهٔ چندجلسه‌ای، شمار جلسه‌ها را نشان می‌دهد');
+  p.click('#shEvent [data-close]');
+  p.click('#grid .etile:not(.past) .ettl');
+  await wait(30);
+  ok(p.txt('#shEvent').includes('زمان')||p.doc.querySelector('#shEvent').className.includes('on'),'کلیک روی تنِ کاشی هم ورقه را باز می‌کند');
+  p.click('#shEvent [data-close]');
+  await wait(20);
+  p.click('#grid .etile [data-ev="e4"]');
+  await wait(40);
+  ok(p.txt('#shEvent').includes('لینک ورود'),'برای برنامهٔ آنلاین، لینک ورود یادآوری می‌شود');
+  p.click('#shEvent [data-close]');
+  p.click('#grid .etile [data-ev="e8"]');
+  await wait(40);
+  ok(p.txt('#shEvent').includes('ظرفیت تکمیل'),'اردوی پر: ظرفیت تکمیل در کلیات');
+  p.click('#shEvent [data-close]');
+
+  /* ط) تقویم: گذشته و پیش رو */
+  p.click('.seg [data-view="cal"]');
+  ok(!p.doc.querySelector('#calView').hidden && p.doc.querySelector('#listView').hidden,'نمای تقویم باز می‌شود');
+  ok(p.all('#monthsw button').length===4,'چهار ماه در تقویم: تیر، مرداد، شهریور، مهر');
+  ok(p.all('#monthsw button.was').length===2,'تیر و مرداد نشان گذشته دارند');
+  ok(p.all('#calgrid .wd').length===7,'سرستون‌های هفته');
+  ok(p.all('#calgrid .cel').length===32,'شهریور: ۳۱ روز + ۱ خانهٔ خالی');
+  ok(p.all('#calgrid .cel.has').length>=3,'روزهای پررویداد نشان دارند');
+  ok(p.doc.querySelector('#calgrid .cel.today')!==null,'روز امروز نشان دارد');
+  ok(p.txt('#dayTitle').includes('۲۸') && p.all('#dayGrid .etile').length===2,'روز پیش‌فرض امروز با دو برنامه');
+  p.click('#calgrid .cel[data-dn="29"]');
+  ok(p.txt('#dayTitle').includes('یکشنبه') && p.all('#dayGrid .etile').length===1,'روز ۲۹: یک برنامه');
+  p.click('#monthsw [data-month="tir"]');
+  ok(p.all('#calgrid .cel').length===33,'تیر: ۳۱ روز + ۲ خانهٔ خالی');
+  ok(p.all('#dayGrid .etile.past').length>0,'ماه گذشته، خودش روی روز پررویداد می‌ایستد');
+  ok(p.txt('#dayTitle').includes('تیر'),'عنوان روز از همان ماه است: '+p.txt('#dayTitle'));
+  p.click('#calgrid .cel[data-dn="9"]');
+  ok(p.txt('#dayGrid').includes('حلقهٔ مطالعهٔ ادبیات'),'روز ۹ تیر: حلقهٔ مطالعه');
+  p.click('#monthsw [data-month="mehr"]');
+  ok(p.all('#calgrid .cel').length===34,'مهر: ۳۰ روز + ۴ خانهٔ خالی');
+  p.click('.seg [data-view="list"]');
+  ok(!p.doc.querySelector('#listView').hidden,'برگشت به فهرست');
+
+  /* ی) کتابخانهٔ من، پشت دکمهٔ خودش */
+  ok(p.doc.querySelector('#libBar').hidden,'بی حساب، نوار کتابخانه پنهان است');
+  ok(p.doc.querySelector('#toolbar').hidden===false,'نوار مرتب‌سازی و نما سرجایش هست');
+  const p5=await load('events.html',makeStore(),'#lib');
+  ok(p5.doc.querySelector('#libView').hidden===false && p5.doc.querySelector('#toolbar').hidden,'#lib کتابخانه را جدا نشان می‌دهد');
+  const glassSrc=fs.readFileSync(DIR+'glass.css','utf8');
+  ok(/\[hidden\]\s*\{\s*display:none!important/.test(glassSrc),'قاعدهٔ [hidden] در پوسته هست تا کلاس‌های display باطلش نکنند');
+  ok(p5.txt('#libBox').includes('وارد شو'),'بی ورود، کتابخانه ورود می‌خواهد');
+
+  /* ک) نشانی‌های ورودی */
+  const p2=await load('events.html',makeStore(),'?q='+encodeURIComponent('عکاسی'));
+  ok(p2.all('#grid .etile').length===4,'ورود با ?q= صافی می‌کند');
+  const p6=await load('events.html',makeStore(),'?status=past');
+  ok(p6.all('#grid .etile.past').length===12 && p6.all('#grid .etile:not(.past)').length===0,'ورود با ?status=past فقط آرشیو را می‌آورد');
+  const p3=await load('events.html',makeStore(),'?ev=e5');
+  ok(p3.doc.querySelector('#shEvent').className.includes('on') && p3.txt('#shEvent').includes('الهه رضایی'),'ورود با ?ev= مستقیم ورقهٔ کلیات را باز می‌کند');
+  const p4=await load('events.html',makeStore(),'?past=h2');
+  ok(p4.doc.querySelector('#shEvent').className.includes('on') && p4.txt('#shEvent').includes('کارگاه فن بیان، ترم تیر'),'ورود با ?past= ورقهٔ بسته را باز می‌کند');
+
+  /* ل) نشانی دست‌کاری‌شده: نه بترکد، نه حرف ناشناس را بپذیرد */
+  const p7=await load('events.html',makeStore(),'?sort=cheap');
+  ok(p7.doc.querySelector('#sort').value==='cheap','?sort=cheap روی فهرست بازشو هم می‌نشیند');
+  ok(p7.txt('#grid .etile:first-child .eprice').includes('رایگان'),'و فهرست از ارزان‌ترین شروع می‌شود');
+  const p10=await load('events.html',makeStore(),'?sort=zzz&kind=نامعلوم&mode=نامعلوم&status=نامعلوم');
+  ok(p10.doc.querySelector('#sort').value==='near' && p10.all('#grid .etile').length===23,'مقدارهای ناشناس نشانی نادیده گرفته می‌شوند');
+  const p11=await load('events.html',makeStore(),'?q='+encodeURIComponent('<img src=x onerror=alert(1)>'));
+  ok(p11.doc.querySelectorAll('img[src=\"x\"]').length===0,'پارامترهای نشانی تزریق نمی‌کنند');
+  const p13=await load('events.html',makeStore(),'?buy=h1:نامعلوم');
+  await wait(200);
+  ok(!JSON.parse(p13.window.localStorage.getItem('nora-home-library')||'[]').length && p13.doc.querySelector('.sheet.on')===null,
+    'شناسهٔ ناموجود، بستهٔ کامل را نمی‌خرد و پنجرهٔ ورود باز نمی‌کند');
+
+  /* م) برگزارشده‌ها با «نزدیک‌ترین» هم به ترتیب تاریخ می‌آیند */
+  const p8=await load('events.html',makeStore(),'?status=past&sort=near');
+  const gotOrder=p8.all('#grid .etile').map(x=>x.querySelector('.ettl').textContent.trim());
+  const wantOrder=p8.window.NORA.PAST.slice().sort((a,b)=>b.ord-a.ord).map(h=>h.t);
+  ok(gotOrder.join('|')===wantOrder.join('|'),'ترتیب برگزارشده‌ها با تاریخ می‌خواند');
+
+  /* ن) پیوند درون‌صفحه‌ای و شیشهٔ نوار بالا */
+  const p9=await load('events.html',makeStore(),'#cal');
+  ok(p9.doc.querySelector('#calView').hidden===false,'#cal تقویم را باز می‌کند');
+  p9.window.location.hash='#lib';
+  p9.window.dispatchEvent(new p9.window.HashChangeEvent('hashchange'));
+  await wait(60);
+  ok(p9.doc.querySelector('#libView').hidden===false && p9.doc.querySelector('#calView').hidden,'تغییر هش به #lib کتابخانه را باز می‌کند');
+  const dashFields=[];
+  for(const r of p8.window.NORA.EVENTS.concat(p8.window.NORA.PAST)){
+    const walk=(o,path)=>{ for(const k of Object.keys(o||{})){
+      const v=o[k];
+      if(typeof v==='string'&&/[\u2014\u2013]/.test(v)) dashFields.push(path+k);
+      else if(Array.isArray(v)) v.forEach((m,i)=>{ if(m&&typeof m==='object') walk(m,path+k+'['+i+'].') });
+    }};
+    walk(r,'');
+  }
+  ok(dashFields.length===0,'متن رویدادها و آرشیو خط تیره ندارد'+(dashFields.length?': '+dashFields.slice(0,4).join('، '):''));
+
+  const p12=await load('events.html',makeStore());
+  Object.defineProperty(p12.window,'scrollY',{value:160,configurable:true});
+  p12.window.dispatchEvent(new p12.window.Event('scroll'));
+  await wait(30);
+  ok(p12.doc.documentElement.classList.contains('atscroll'),'با اسکرول، نوار بالا شیشه می‌شود');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v7 — «ادامه بده»، جست‌وجوی زنده، اشتراک بومی، نصب‌شدنی، دسترس‌پذیری
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── ادامه بده و جست‌وجو (v7) ──');
+  const homeSrc=fs.readFileSync(DIR+'home.html','utf8');
+
+  /* الف) «ادامه بده» تازه‌وارد را خالی نمی‌ترساند، اما بعد از بازدید می‌آید */
+  const st0=makeStore();
+  const p0=await load('home.html',st0);
+  ok(p0.doc.querySelector('#continue').hidden,'کاربر تازه، بخش «ادامه بده» را خالی نمی‌بیند');
+  p0.window.NORA_HOME.pushRecent('ar','a1');
+  ok(p0.doc.querySelector('#continue').hidden===false,'بعد از دیدن یک مطلب، «ادامه بده» پیدا می‌شود');
+  ok(p0.txt('#continue').includes('ادامه بده') && p0.txt('#continue').includes('همین حالا'),'عنوان و زمان نسبی درست است');
+  ok(p0.txt('#continue').includes('مطلب'),'نوع مورد هم نوشته می‌شود');
+  /* ترتیب: تازه‌ترین اول */
+  p0.window.NORA_HOME.pushRecent('pe','p1'); p0.window.NORA_HOME.pushRecent('ev','e1');
+  const rows=p0.all('#continue [data-openrec]').map(b=>b.dataset.openrec);
+  ok(rows[0]==='ev:e1'&&rows[1]==='pe:p1'&&rows[2]==='ar:a1','تازه‌ترین بازدید، بالای فهرست است: '+rows.join(' | '));
+  /* تکرار: یک مورد دو بار ثبت نمی‌شود */
+  p0.window.NORA_HOME.pushRecent('ar','a1');
+  ok(p0.all('#continue [data-openrec]').length===3,'بازدید دوباره، ردیف تکراری نمی‌سازد');
+  /* برداشتن یک مورد */
+  p0.click('#continue [data-droprec="pe:p1"]');
+  ok(p0.all('#continue [data-openrec]').length===2 && !p0.txt('#continue').includes('نگار'),'برداشتن یک مورد از فهرست کار می‌کند');
+  /* پاک کردن کل فهرست */
+  p0.click('#continue [data-clearrec]');
+  ok(p0.all('#continue [data-openrec]').length===0,'پاک کردن کل فهرست کار می‌کند');
+  /* پنهان کردن، و برگشت با اولین بازدید */
+  p0.window.NORA_HOME.pushRecent('ar','a2');
+  p0.click('#continue [data-hiderec]');
+  ok(p0.doc.querySelector('#continue').hidden,'«پنهان کن» بخش را جمع می‌کند');
+  p0.window.NORA_HOME.pushRecent('ar','a3');
+  ok(p0.doc.querySelector('#continue').hidden===false,'با اولین بازدید بعدی، بخش برمی‌گردد');
+
+  /* ب) ماندگاری بین دو بازدید و پاک‌سازی دادهٔ خراب */
+  const st1=makeStore();
+  st1.setItem('nora-home-recent',JSON.stringify([{k:'ar',id:'a1',at:Date.now()},{k:'zz',id:'a1',at:Date.now()},
+    {k:'ar',id:'../etc/passwd',at:Date.now()},{k:'ar',id:'a9',at:Date.now()},{k:'ar',id:'a1',at:1}]));
+  const p1=await load('home.html',st1);
+  const ids=p1.all('#continue [data-openrec]').map(b=>b.dataset.openrec);
+  ok(ids.join('|')==='ar:a1','از دادهٔ خراب فقط مورد سالم می‌ماند: '+ids.join(' | '));
+  ok(p1.window.NORA_HOME.S.recent.length===1,'کلید ناشناس و شناسهٔ ناامن وارد فهرست نمی‌شوند');
+
+  /* ج) کار نیمه‌تمام: ورود نصفه‌کاره در «ادامه بده» می‌آید */
+  const st2=makeStore();
+  const p2=await load('home.html',st2);
+  p2.click('#club [data-clubjoin]');   /* حساب من دیگر ورقه نیست؛ ورود درجا از راه عضویت باشگاه */
+  p2.doc.querySelector('#mob').value='۰۹۱۲۳۴۵۶۷۸۹';
+  p2.click('[data-login]');
+  ok(p2.window.localStorage.getItem('nora-home-auth')!==null,'گام ورود در حافظهٔ مرورگر ثبت می‌شود');
+  p2.click('[data-close]');
+  const p2b=await load('home.html',makeStoreWith(st2));
+  ok(p2b.txt('#continue').includes('ورودت را تمام کن'),'کاربر نیمه‌راه، دکمهٔ «ورودت را تمام کن» می‌بیند');
+  ok(p2b.txt('#continue').includes('۶۷۸۹')||p2b.txt('#continue').includes('۰۹۱۲'),'شمارهٔ نیمه‌کاره هم یادآوری می‌شود');
+  p2b.click('#continue [data-resume-auth]');
+  ok(p2b.doc.querySelector('#shAccount').className.includes('on') && p2b.doc.querySelector('#code')!==null,
+    'دکمهٔ ادامه، مستقیم به گام کد می‌برد');
+  p2b.doc.querySelector('#code').value='54321';
+  p2b.click('[data-code]');
+  ok(p2b.doc.querySelector('#continue').hidden && p2b.window.localStorage.getItem('nora-home-auth')===null,
+    'بعد از ورود، کار نیمه‌تمام از فهرست می‌رود');
+
+  /* د) جست‌وجوی زنده: پیشنهاد، کیبورد، سابقه */
+  const st3=makeStore();
+  const p3=await load('home.html',st3);
+  ok(p3.doc.querySelector('#hotRow').textContent.includes('پیشنهادی'),'چیپ‌های داغ پیش از تایپ دیده می‌شوند');
+  ok(p3.doc.querySelector('#sugBox').hidden,'جعبهٔ پیشنهاد پیش از تایپ بسته است');
+  p3.doc.querySelector('#q').value='عکاسی';
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.Event('input',{bubbles:true}));
+  await wait(200);
+  const sugs=p3.all('#sugBox .sug');
+  ok(p3.doc.querySelector('#sugBox').hidden===false,'با تایپ، پیشنهاد باز می‌شود');
+  ok(sugs.length>=3,'پیشنهاد از رویداد و مطلب و استاد می‌آید: '+sugs.length+' مورد');
+  ok(sugs.some(x=>x.textContent.includes('عکاسی')),'واژهٔ تایپ‌شده در پیشنهادها هست');
+  ok(sugs[sugs.length-1].dataset.sugall!==undefined,'ردیف «همهٔ نتیجه‌ها» آخر فهرست است');
+  /* کیبورد */
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+  ok(p3.all('#sugBox .sug.on').length===1,'کلید پایین، اولین پیشنهاد را فعال می‌کند');
+  ok(p3.doc.querySelector('#q').getAttribute('aria-activedescendant')==='sug0','وضعیت فعال به صفحه‌خوان هم گفته می‌شود');
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+  ok(p3.doc.querySelector('#q').getAttribute('aria-activedescendant')==='sug1','کلید پایین، جلو می‌رود');
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  ok(p3.doc.querySelector('#sugBox').hidden && p3.doc.querySelector('#q').getAttribute('aria-expanded')==='false','Escape جعبه را می‌بندد');
+  /* سابقه: با Enter تثبیت می‌شود و دفعهٔ بعد چیپ می‌شود */
+  p3.doc.querySelector('#q').dispatchEvent(new p3.window.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  ok(p3.window.localStorage.getItem('nora-home-search').includes('عکاسی'),'جست‌وجو در سابقهٔ خود کاربر می‌ماند');
+  const p3b=await load('home.html',makeStoreWith(st3));
+  ok(p3b.txt('#hotRow').includes('عکاسی'),'دفعهٔ بعد، سابقهٔ جست‌وجو به‌عنوان چیپ می‌آید');
+  p3b.click('#hotRow [data-clearhistory]');
+  ok(p3b.window.localStorage.getItem('nora-home-search')===null && !p3b.txt('#hotRow').includes('عکاسی'),
+    '«پاک کردن سابقه» واقعاً پاک می‌کند');
+  /* چیپ داغ، فیلتر را در جست‌وجو می‌گذارد */
+  p3b.click('#hotRow [data-sq="رایگان"]');
+  ok(p3b.doc.querySelector('#q').value==='رایگان' && !p3b.doc.querySelector('#searchRes').hidden,'چیپ می‌گذارد و نتیجه را می‌سازد');
+  /* واژه‌نویسی خراب: صفحه سالم می‌ماند */
+  ok(p3b.errs.length===0,'خطای کنسول صفر ماند');
+
+  /* ه) اشتراک بومی: اگر گوشی نپذیرد، کپی می‌شود */
+  const p4=await load('home.html',makeStore());
+  let shared=null;
+  p4.window.navigator.share=o=>{shared=o; return Promise.resolve()};
+  let copied=null;
+  p4.doc.addEventListener('click',()=>{});
+  p4.window.__copied=null;
+  const cp=p4.window.NORA_UI; ok(cp&&typeof cp.shareItem==='function','تابع اشتراک بومی از پوستهٔ مشترک می‌آید');
+  await cp.shareItem({title:'یک رویداد',text:'توضیح',url:'https://lifeline1.ir/e/e1'});
+  ok(shared&&shared.url==='https://lifeline1.ir/e/e1','وقتی گوشی بپذیرد، همان لینک را می‌دهد');
+  /* لغو کاربر: پیام اضافه‌ای نمی‌دهد */
+  p4.window.navigator.share=()=>Promise.reject(Object.assign(new Error('x'),{name:'AbortError'}));
+  const r=await cp.shareItem({url:'https://lifeline1.ir/e/e2'});
+  ok(r===false,'لغو کردن کاربر، بی‌صدا رد می‌شود');
+
+  /* و) دسترس‌پذیری: تلهٔ فوکوس و مودال واقعی */
+  const p5=await load('home.html',makeStore());
+  p5.click('[data-menu]');
+  await wait(40);   /* نشان‌دار دگرگونی، ناهم‌گام است */
+  ok(p5.doc.querySelector('#shMenu').getAttribute('aria-modal')==='true','ورقهٔ باز، مودال واقعی اعلام می‌شود');
+  ok(p5.doc.querySelector('#shMenu').contains(p5.doc.activeElement),'فوکوس داخل ورقه می‌رود');
+  const f=[...p5.doc.querySelectorAll('#shMenu a[href],#shMenu button,#shMenu input')];
+  f[0].focus();
+  p5.doc.dispatchEvent(new p5.window.KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true}));
+  ok(p5.doc.querySelector('#shMenu').contains(p5.doc.activeElement),'Shift+Tab از ورقه بیرون نمی‌زند');
+  const fl=f[f.length-1]; fl.focus();
+  p5.doc.dispatchEvent(new p5.window.KeyboardEvent('keydown',{key:'Tab',bubbles:true}));
+  ok(p5.doc.querySelector('#shMenu').contains(p5.doc.activeElement),'Tab از ورقه بیرون نمی‌زند');
+  p5.click('[data-close]');
+  await wait(40);
+  ok(p5.doc.querySelector('#shMenu').getAttribute('aria-modal')==='false','بستن ورقه، مودال را برمی‌گرداند');
+
+  /* ز) نشانه‌گذاری و نصب‌شدنی */
+  ok(/<h1 class="vh"/.test(homeSrc),'خانه سرفصل اصلی دارد (برای صفحه‌خوان)');
+  ok(/<a class="skip" href="#quick"/.test(homeSrc),'پیوند «پرش به محتوا» هست');
+  ok(/role="tablist"/.test(homeSrc) && /role="tab" aria-selected="true"/.test(homeSrc),'تب‌بار نقش تب دارد');
+  ok(/Combobox|role="combobox"/.test(homeSrc),'میدان جست‌وجو نقش combobox دارد');
+  for(const f of ['manifest.webmanifest','sw.js','offline.html','icon-192.png','icon-512.png']){
+    ok(fs.existsSync(DIR+f),'فایل نصب‌شدنی هست: '+f);
+  }
+  const mf=JSON.parse(fs.readFileSync(DIR+'manifest.webmanifest','utf8'));
+  ok(mf.display==='standalone' && mf.dir==='rtl' && mf.icons.length===3,'manifest کامل است: نام، راست‌به‌چپ، آیکون‌ها');
+  const sw=fs.readFileSync(DIR+'sw.js','utf8');
+  ok(/if\(r\.mode==='navigate'\)/.test(sw)&&/offline\.html/.test(sw),'کارگر سرویس: شبکه اول و صفحهٔ بی‌اتصال');
+  ok(/people\|posters\|fonts/.test(sw),'تصویر و فونت مسیر کش‌شدن خودشان را دارند');
+  ok(/>بازگشت به صفحهٔ اصلی|فایل نصب‌شدنی هست: (home|events)/.test('x')||/manifest\.webmanifest/.test(homeSrc),
+    'خانه به manifest وصل است');
+  /* گواهینامه از بار اول کنار رفته باشد */
+  ok(!/AAEAAAAOAIAAA/.test(fs.readFileSync(DIR+'ui.js','utf8')) || fs.statSync(DIR+'ui.js').size<90000,
+    'ui.js دیگر فونت گواهینامه را با خود نمی‌آورد');
+  ok(/cert-font\.js/.test(fs.readFileSync(DIR+'builder.html','utf8')),'صفحهٔ سازندهٔ گواهی، فونتش را جدا می‌آورد');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v6 — بازبینی منوی خانه: امنیت، کارایی، یو‌آی، کلید شب و روز
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── بازبینی خانه (v6) ──');
+  const homeSrc=fs.readFileSync(DIR+'home.html','utf8');
+  const nora=fs.readFileSync(DIR+'nora.css','utf8');
+
+  /* الف) کلید شب و روز به سبک اپل */
+  const p=await load('home.html',makeStore());
+  const sw=p.doc.querySelector('.topbar [data-theme-toggle]');
+  ok(sw!==null && sw.classList.contains('themesw'),'کلید شب و روز در نوار بالا هست');
+  ok(sw.getAttribute('role')==='switch' && sw.getAttribute('aria-checked')!==null,'کلید نقش switch و وضعیت aria دارد');
+  ok(p.all('.themesw .tsw-ico').length===2,'کلید دو سر دارد: خورشید و ماه');
+  ok(p.doc.querySelector('.themesw use[href="#i-sun"]')!==null && p.doc.querySelector('.themesw use[href="#i-moon"]')!==null,'خورشید و ماه نماد خودشان را دارند');
+  ok(p.doc.querySelectorAll('.themesw .tsw-knob').length===1,'گرهِ لغزان روی شیار هست');
+  const before=p.doc.documentElement.dataset.theme;
+  p.click('.themesw');
+  const after=p.doc.documentElement.dataset.theme;
+  ok(before==='light'&&after==='dark','یک کلیک، تم را روز↔شب می‌کند');
+  ok(p.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','وضعیت کلید با تم هم‌گام است');
+  ok(p.window.localStorage.getItem('nora-theme')==='dark','تم در حافظهٔ مرورگر می‌ماند');
+  ok(p.doc.querySelector('meta[name="theme-color"]').getAttribute('content')==='#1B211E','رنگ نوار مرورگر با تم عوض می‌شود');
+  p.click('.themesw');
+  ok(p.doc.documentElement.dataset.theme==='light' && p.doc.querySelector('.themesw').getAttribute('aria-checked')==='false','برگشت به روز هم کار می‌کند');
+
+  /* صفحهٔ دوم پوسته هم همان کلید را دارد */
+  const pe=await load('events.html',makeStore());
+  ok(pe.doc.querySelector('.topbar .themesw')!==null && pe.doc.querySelectorAll('.themesw .tsw-ico').length===2,'صفحهٔ رویدادها هم همان کلید را دارد');
+  pe.click('.themesw');
+  ok(pe.doc.documentElement.dataset.theme==='dark' && pe.window.localStorage.getItem('nora-theme')==='dark','کلید در صفحهٔ رویدادها هم تم را می‌برد');
+
+  /* بی‌فلش: تم پیش از رنگ‌آمیزی می‌نشیند */
+  const head=homeSrc.slice(homeSrc.indexOf('<head>'),homeSrc.indexOf('</head>'));
+  const cssAt=head.indexOf('rel="stylesheet"');
+  const scriptAt=head.indexOf("localStorage.getItem('nora-theme')");
+  ok(scriptAt>0 && scriptAt<cssAt,'تم پیش از بارگذاری پوسته‌ها خوانده می‌شود (بدون فلش سفید)');
+  ok(!/data-theme="light"/.test(homeSrc.slice(0,homeSrc.indexOf('<head>'))+head.slice(0,scriptAt)),'حالت اولیه در نشانه‌گذاری قفل نشده');
+
+  /* ب) پیوندها و هدف‌های پرش: هیچ ردیف مرده‌ای نماند */
+  const jumpIds=[...homeSrc.matchAll(/data-jump="([^"]+)"/g)].map(m=>m[1]);
+  const declared=new Set([...homeSrc.matchAll(/id="([A-Za-z0-9_-]+)"/g)].map(m=>m[1]));
+  const jumpTargets=new Set([...homeSrc.matchAll(/\bj:'([A-Za-z0-9_-]+)'/g)].map(m=>m[1]));
+  ok([...jumpTargets].every(j=>declared.has(j)),'هر پرش منو/کاشی به بخش موجود می‌رود: '+[...jumpTargets].join('، '));
+  ok(!jumpTargets.has('people'),'پرش مردهٔ «people» برداشته شد');
+  ok(/\{k:'events'[^}]*href:'events\.html#list'/.test(homeSrc) &&
+     /q\.href[\s\S]{0,120}?<a class="tile" href=/.test(homeSrc),
+     'کاشی «رویدادها» پیوند واقعی است، نه دکمهٔ بی‌کار');
+  ok(/\^\[a-z\]\[a-z0-9-\]\*\\\.html/.test(homeSrc),'مسیرهای data-href فقط درون سامانه باز می‌شوند');
+
+  /* ج) امنیت: دادهٔ خراب در حافظهٔ مرورگر صفحه را نمی‌شکند */
+  const bad=makeStore();
+  bad.setItem('nora-home-user',JSON.stringify({nothing:true}));
+  bad.setItem('nora-home-pins',JSON.stringify(['ev:e3',{'x':1},'javascript:alert(1)',42]));
+  const pb=await load('home.html',bad);
+  ok(pb.errs.length===0&&pb.txt('#tabs [data-tab="me"]')==='حساب من','نشست خراب در حافظه، صفحه را سفید نمی‌کند');
+  ok(pb.window.localStorage.getItem('nora-home-user')==='null','نشست بی‌اعتبار پاک می‌شود');
+  ok(pb.window.NORA_HOME.S.pins.size===1 && pb.window.NORA_HOME.S.pins.has('ev:e3'),'از سنجاق‌ها فقط کلیدهای معتبر می‌مانند');
+  const bad2=makeStore();
+  bad2.setItem('nora-home-user',JSON.stringify({name:'<img src=x onerror=alert(1)>سارا',mobile:'12',certs:'۹۹۹۹۹',wallet:-5}));
+  const pb2=await load('home.html',bad2);
+  ok(pb2.errs.length===0 && pb2.all('#tabs img').length===0,'نام آلوده به نشانه‌گذاری، تصویر/اسکریپت نمی‌سازد');
+  ok(pb2.window.NORA_HOME.S.user.certs===999 && pb2.window.NORA_HOME.S.user.wallet===0,'عددهای نشست در بازهٔ مجاز می‌مانند');
+
+  /* د) کارایی */
+  ok(/qTimer=setTimeout/.test(homeSrc),'تایپ در جست‌وجو قاب‌بندی شده (نه رندر در هر کلید)');
+  ok(/renderPins\(\); if\(k==='pe'\) renderTeachers\(\)/.test(homeSrc),'سنجاق فقط بخش‌های خودش را از نو می‌سازد');
+  const uijs=fs.readFileSync(DIR+'ui.js','utf8');
+  ok(/sheenRaf=requestAnimationFrame/.test(uijs),'درخشش زیر ماوس قاب‌بندی شده و هر حرکت، چیدمان نمی‌خواند');
+
+  /* ه) یو‌آی: پرش درون‌صفحه زیر نوار بالا نرود */
+  ok(/\.sec\[id\],section\[id\]\{scroll-margin-top:64px\}/.test(nora),'سرِ بخش هنگام پرش، زیر نوار بالا پنهان نمی‌شود');
+  ok(/\.themesw\{\.\.\.\}/.test(nora)||/\.themesw\{/.test(nora),'پوستهٔ مشترک، کلید تم را می‌شناسد');
+  ok(/html\[dir="rtl"\]\[data-theme="dark"\] \.tsw-knob\{transform:translateX\(-32px\)\}/.test(nora),
+     'گره در چیدمان راست‌به‌چپ به سمت ماه می‌لغزد (قرینه)');
+
+  /* ز) سلامت نشانه‌گذاری: شناسه تکراری، ورقهٔ بی‌مقصد، آیکون تعریف‌نشده */
+  const pl0=await load('home.html',makeStore());
+  const pe0=await load('events.html',makeStore(),'#list');
+  for(const [file,src] of [['home.html',homeSrc],['events.html',fs.readFileSync(DIR+'events.html','utf8')]]){
+    const body=src.slice(src.indexOf('</head>'));
+    const ids=[...body.matchAll(/\sid="([^"]+)"/g)].map(m=>m[1]);
+    const dup=ids.filter((x,i)=>ids.indexOf(x)!==i);
+    ok(dup.length===0,file+': شناسهٔ تکراری ندارد'+(dup.length?' → '+[...new Set(dup)].join('، '):''));
+    const sheets=new Set([...body.matchAll(/<aside class="sheet" id="([^"]+)"/g)].map(m=>m[1]));
+    const targets=[...body.matchAll(/data-f="([^"]+)"/g)].map(m=>m[1]).filter(f=>!/[${}]/.test(f));
+    const deadF=[...new Set(targets)].filter(f=>!sheets.has(f));
+    ok(deadF.length===0,file+': هر دکمهٔ ورقه، ورقهٔ خودش را دارد'+(deadF.length?' → '+deadF.join('، '):''));
+    const syms=new Set([...src.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));
+    const used=[...new Set([...body.matchAll(/<use href="#([^"]+)"/g)].map(m=>m[1]))].filter(u=>!/[${}]/.test(u));
+    const missing=used.filter(u=>!syms.has(u));
+    ok(missing.length===0,file+': همهٔ آیکون‌های ثابت تعریف شده‌اند'+(missing.length?' → '+missing.join('، '):''));
+  }
+
+  /* آیکون‌های پویا: در صفحهٔ رندرشده، هر آیکون باید نماد خودش را داشته باشد */
+  const pf0=await load('event.html',makeStore(),'?id=h1');
+  pf0.window.NORA_UI.player('h1','h1m1');          /* ورقهٔ پخش */
+  const pq0=await load('events.html',makeStore(),'#media');
+  pq0.window.NORA_UI.buySheet('h1',null);          /* ورقهٔ خرید */
+  for(const [file,chk] of [['خانه',pl0],['رویدادها',pe0],['صفحهٔ بسته',pf0],['فروشگاه',pq0]]){
+    const syms=new Set([...chk.doc.querySelectorAll('symbol')].map(x=>x.id));
+    const used=[...new Set([...chk.doc.querySelectorAll('use')].map(u=>(u.getAttribute('href')||'').slice(1)))].filter(Boolean);
+    const missing=used.filter(u=>!syms.has(u));
+    ok(missing.length===0,file+': هر آیکونِ رندرشده نمادش را دارد'+(missing.length?' → '+missing.join('، '):''));
+    const inSvg=[...chk.doc.querySelectorAll('symbol')].filter(x=>x.closest('svg'));
+    ok(inSvg.length===syms.size,file+': همهٔ نمادها داخل ریشهٔ svg هستند ('+inSvg.length+'/'+syms.size+')');
+  }
+
+  /* ح) کاشی‌های پیوندی و برگشت‌پذیری تم بین دو صفحه */
+  const pl=await load('home.html',makeStore());
+  const tile=pl.doc.querySelector('#quick .tile[href="events.html#list"]');
+  ok(tile && tile.tagName==='A','کاشی «رویدادها» یک پیوند واقعی است');
+  ok(pl.all('#quick a.tile').length===3 && pl.all('#quick button.tile').length===5,'کاشی‌های خانه: سه پیوند و پنج ورقه/پرش درون‌صفحه');
+  pl.click('.themesw');
+  pl.window.NORA_HOME.renderAll();
+  ok(pl.doc.documentElement.dataset.theme==='dark' && pl.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','رندر دوبارهٔ صفحه، وضعیت کلید را به هم نمی‌ریزد');
+  const store2=makeStore(); store2.setItem('nora-theme','dark');
+  const pd=await load('home.html',store2);
+  ok(pd.doc.documentElement.dataset.theme==='dark' && pd.doc.querySelector('.themesw').getAttribute('aria-checked')==='true','صفحه با تم ذخیره‌شده درست بالا می‌آید');
+
+  /* و) شمارش‌های منو زنده‌اند، نه هاردکد */
+  ok(/s:faN\(TEACHERS\.length\)/.test(homeSrc) && !/s:'۸ نفر'/.test(homeSrc),'شمارش استادان از خود داده می‌آید');
+  const pm=await load('home.html',makeStore());
+  pm.click('[data-menu]');
+  ok(pm.txt('#menuBody').includes('۶ استاد'),'منو عدد درست را نشان می‌دهد (۶ استاد)');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v5 — پاس کیفیت: حروف نمایشی، ریتم بخش‌ها، یکدستی رنگ روی جلدها
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  const glass=fs.readFileSync(DIR+'glass.css','utf8');
+  const nora=fs.readFileSync(DIR+'nora.css','utf8');
+  const home=fs.readFileSync(DIR+'home.html','utf8');
+  const evp=fs.readFileSync(DIR+'events.html','utf8');
+  const data=fs.readFileSync(DIR+'data.js','utf8');
+
+  /* حروف: تیترها با استداد، متن با وزیرمتن */
+  ok(/@font-face\{[^}]*font-family:'Estedad'/.test(glass),'فونت نمایشی استداد در لایهٔ پایه تعریف شده');
+  ok(fs.existsSync(DIR+'fonts/Estedad-Variable.woff2') && fs.statSync(DIR+'fonts/Estedad-Variable.woff2').size>50000,
+     'فایل فونت استداد کنار بقیهٔ فونت‌ها هست');
+  ok(/--f-h:'Estedad',var\(--f\)/.test(glass),'متغیر فونت تیتر به وزیرمتن برمی‌گردد (اگر استداد نبود)');
+  ok(/\.display,\.title,\.head,\.ttl,\.fw,/.test(glass)&&/\.tabbar small/.test(glass)&&/\.tile b/.test(glass),
+     'تیترها، تب‌بار و کاشی‌ها استداد می‌خوانند');
+  ok(!/--f-h:/.test(nora)&&/font-variant-numeric:tabular-nums/.test(nora),'ارقام هم‌عرض در پوستهٔ اپ هست');
+
+  /* ریتم و سطح‌ها */
+  ok(/\.sec\{margin-top:22px\}/.test(nora) && /\/\* ── ریتم/.test(nora),'فاصلهٔ بخش‌ها یکدست شد');
+  ok(/\.card\.paper\{border-radius:var\(--r-lg\);padding:18px;box-shadow:var\(--sh-1\)\}/.test(nora),
+     'کارت‌ها یک شعاع و یک سایه دارند');
+  ok(/\.card \.card,/.test(nora) && /box-shadow:none/.test(nora),'کارت روی کارت بی‌سایه است');
+  ok(/\.glass\.statstrip\{background:var\(--surface\)/.test(nora),'نوار آمار دیگر شیشه نیست (شیشه فقط ناوبری)');
+
+  /* سطح آرام: هاله‌های شعاعی و نقطه‌چین تزئینی رفتند */
+  ok(!/radial-gradient/.test(home),'هیچ هالهٔ شعاعی تزئینی در خانه نمانده');
+  ok(!/data-tone=/.test(home) && !/tone:'/.test(home),'کاشی‌ها یک رنگ دارند، نه چهار رنگ');
+  ok(!/radial-gradient/.test(evp),'صفحهٔ رویدادها هم سطح تخت دارد');
+  ok(!/class="sec card paper"/.test(home) && !/class="sec card paper"/.test(evp),'بخش‌ها بیرون کارت‌اند (کارت‌ها فقط خود آیتم‌ها)');
+
+  /* جلدها: یک خانوادهٔ رنگی آرام */
+  const covers=[...data.matchAll(/linear-gradient\([^)]*\)/g)].map(m=>m[0]);
+  ok(!covers.some(g=>/#B4453C|#0B7A57|#6E4B1F|#9C7C3C|#4EA1FF/.test(g)),
+     'رنگ‌های پرش‌وکنار جلدها (قرمز، سبز، قهوه‌ای، طلایی) رفتند');
+  const fam=[...new Set(covers.map(g=>g.replace(/^linear-gradient\(\d+deg,/,'(unused,')))];
+  ok(new Set(covers).size<=6,'جلدها فقط پنج گرادیان هم‌خانواده دارند، نه رنگ‌قلمی');
+
+  /* ریتم صفحه: نوار آمار پای صفحه، پیش از نشانی‌ها */
+  ok(home.indexOf('id="about"')>home.indexOf('id="voices"') && home.indexOf('id="about"')<home.indexOf('class="hfoot"'),
+     '«نورا در یک نگاه» به پای صفحه رفت');
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v8 — فروشگاه رویداد و رسانه: صفحهٔ اختصاصی، خرید، دسترسی آنلاین
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── فروشگاه رویداد و رسانه (v8) ──');
+  const sara={name:'سارا محمدی',mobile:'09123456789',joined:'مهر ۱۴۰۲',certs:2,wallet:1250000,msgs:1};
+  const withSara=()=>{const s=makeStore(); s.setItem('nora-home-user',JSON.stringify(sara)); return s};
+
+  /* الف) صفحهٔ اختصاصی رویداد */
+  const fe=await load('event.html',makeStore(),'?id=e3');
+  ok(fe.errs.length===0, fe.errs.length?('خطا در صفحهٔ رویداد: '+fe.errs.slice(0,2).join(' | ')):'صفحهٔ رویداد بی‌خطا بالا آمد');
+  ok(fe.txt('.evhero').includes('کارگاه عکاسی در طبیعت'),'تیتر رویداد در سرصفحه');
+  ok(fe.txt('#page').includes('کیوان مرادی'),'مدرس با نام و نشان می‌آید');
+  ok(fe.txt('#page').includes('یکشنبه ۲۹ شهریور'),'تاریخ برگزاری در جزئیات');
+  ok(fe.txt('#page').includes('فرهنگسرای نیاوران'),'نشانی برگزاری در جزئیات');
+  ok(fe.doc.querySelector('#reg')!==null && fe.doc.querySelector('#reg').getAttribute('href')==='form.html?ev=e3&kind=reg','لینک ثبت‌نام به فرم کاربر می‌رود');
+  ok(/فرم ثبت‌نام این رویداد هنوز وصل نشده/.test(fe.txt('#page')),'و بی فرمِ وصل‌شده، صادقانه می‌گوید وصل نشده');
+  /* با فرمِ وصل‌شده، لینک دقیقاً به همان فرم می‌رود */
+  const stF=makeStore();
+  stF.setItem('nora-forms',JSON.stringify([{id:'ev3reg',name:'ثبت‌نام کارگاه عکاسی',kind:'ثبت‌نام',need:'reg',ev:'e3',
+    fields:[{id:1,t:'fullname',l:'نام و نام خانوادگی',req:true},{id:2,t:'mobile',l:'موبایل',req:true},
+            {id:3,t:'choice',l:'سطح',req:true,opts:[{l:'تازه‌کار'},{l:'حرفه‌ای'}]}]}]));
+  const fe2=await load('event.html',stF,'?id=e3');
+  ok(fe2.doc.querySelector('#reg').getAttribute('href')==='form.html?ev=e3&fid=ev3reg&kind=reg','با فرمِ وصل‌شده، لینک به همان فرم می‌رود');
+  ok(/۳ پرسش/.test(fe2.txt('#page')),'و شمارِ پرسشهای همان فرم روی صفحه می‌آید');
+  ok(fe.all('.evrail .rtile').length>0,'ردیف «برنامه‌های مشابه» پر است');
+  ok(fe.all('.evrail .rtile').every(x=>x.dataset.goto!=='e3'),'رویداد خودش در ردیف مشابه‌ها نیست');
+  ok(fe.doc.querySelector('#ctabar').hidden===false||fe.doc.querySelector('#ctabar')!==null,'نوار کار پایین صفحه هست');
+  ok(fe.errs.length===0 && fe.doc.querySelectorAll('svg > symbol').length>=60,'اسپرایت آیکون کامل در صفحه هست');
+  ok(fe.doc.title.includes('کارگاه عکاسی در طبیعت'),'عنوان تب همان رویداد است');
+  ok(fe.doc.querySelector('meta[property="og:title"]').getAttribute('content').includes('کارگاه عکاسی در طبیعت'),'og:title با اشتراک‌گذاری هم‌خوان است');
+  ok(fe.doc.querySelector('link[rel="canonical"]').getAttribute('href').includes('id=e3'),'canonical به همین رویداد اشاره می‌کند');
+  const fx=await load('event.html',makeStore(),'?id=nope');
+  ok(fx.txt('#page').includes('پیدا نکردم') && fx.doc.querySelector('#page a').getAttribute('href').startsWith('events.html'),'شناسهٔ ناشناس، راه بازگشت به فهرست می‌دهد');
+
+  /* ب) اعلان و منو در همین صفحه کار می‌کنند */
+  fe.click('[data-notice]');
+  ok(fe.doc.querySelector('#shNotice').className.includes('on'),'اعلان‌ها در صفحهٔ رویداد باز می‌شود');
+  ok(fe.txt('#shNotice').length>20,'فهرست اعلان‌ها پر است');
+  fe.click('#shNotice [data-close]');
+  const menuSrc=fs.readFileSync(DIR+'event.html','utf8');
+  ok(menuSrc.includes('data-menu')||fe.doc.querySelector('[data-menu]')!==null,'در صفحهٔ رویداد هم راهی به منو هست');
+  fe.window.NORA_UI.uiOpen('shMenu');
+  ok(fe.all('#shMenu .mgroup').length===5 && fe.all('#shMenu .mrow').length===19,'منوی مشترک با پنج گروه در این صفحه هم می‌آید');
+  ok(fe.doc.querySelector('.topbar .menubtn')===null && fe.doc.querySelector('.topbar #acctBtn')===null,'نوار بالای صفحهٔ رویداد بی منو و بی پروفایل است');
+  fe.window.NORA_UI.uiOpen('shNotice');
+  fe.click('[data-uireadall]');
+  ok(fe.txt('#toast').includes('خوانده')&&fe.doc.querySelector('#bellBadge').hidden,'«خواندن همه» اعلان‌ها را می‌بندد');
+
+  /* ج) بستهٔ رسانه: خرید کیف پول تا پخش */
+  const fb=await load('event.html',withSara(),'?id=h1');
+  ok(fb.errs.length===0,'صفحهٔ بستهٔ رسانه بی‌خطا بالا آمد');
+  ok(fb.txt('.evhero').includes('کارگاه عکاسی مقدماتی'),'تیتر بسته همان بستهٔ رسانه است');
+  ok(fb.all('.mediatile').length===5,'پنج رسانهٔ بسته با کاشی می‌آید');
+  ok(fb.txt('#page').includes('تماشای نمونه'),'قطعهٔ نمونهٔ رایگان روی کاشی');
+  fb.click('[data-buy-bundle]');
+  ok(fb.doc.querySelector('#shBuy').className.includes('on'),'ورقهٔ خرید باز می‌شود');
+  ok(fb.txt('#shBuy').includes('کیف پول نورا'),'راه پرداخت کیف پول با موجودی می‌آید');
+  ok(fb.txt('#shBuy').includes('بازگشت وجه'),'ضمانت بازگشت وجه نوشته شده');
+  fb.click('[data-uipay="gateway"]');
+  ok(fb.doc.querySelector('#shBuy .opt.on')!==null && fb.doc.querySelector('[data-uipay="gateway"]').classList.contains('on'),'درگاه پرداخت انتخاب می‌شود');
+  fb.click('[data-uipayyes]');
+  await wait(60);
+  ok(!fb.doc.querySelector('#shBuy').className.includes('on'),'بعد از پرداخت، ورقهٔ خرید بسته می‌شود');
+  const lib1=JSON.parse(fb.window.localStorage.getItem('nora-home-library')||'[]');
+  ok(lib1.filter(x=>x.past==='h1').length===5,'بعد از پرداخت، پنج قطعه به کتابخانه گره خورد');
+  ok(lib1.some(x=>x.k==='bundle'&&x.id==='h1'),'خودِ بسته هم نشان‌دار کتابخانه شد');
+  ok(JSON.parse(fb.window.localStorage.getItem('nora-home-user')).wallet===1250000,'پرداخت درگاه به کیف پول دست نزد');
+
+  ok(fb.txt('#ctaIn').includes('تماشا')||fb.txt('#ctaIn').includes('پخش'),'بعد از خرید، نوار کار «تماشا» می‌شود نه «تهیه»');
+
+  /* د) دسترسی آنلاین: پخش با پیشرفت و ادامه */
+  fb.window.NORA_UI.player('h1','h1m1');
+  await wait(40);
+  ok(fb.doc.querySelector('#shPlay').className.includes('on'),'پخش‌کننده برای همین قطعه باز می‌شود');
+  ok(/[۰-۹]+:[۰-۹]{2}/.test(fb.txt('#shPlay')),'زمان قطعه در پخش‌کننده');
+  fb.click('#shPlay [data-uirate="1.5"]');
+  ok(fb.doc.querySelector('#shPlay [data-uirate="1.5"]').classList.contains('on'),'سرعت پخش تا یک‌ونیم برابر تنطیم می‌شود');
+  fb.window.NORA_UI.setProgress('h1m1',60);
+  ok(fb.window.NORA_UI.progressOf('h1m1')===60,'ثانیهٔ تماشا ذخیره می‌شود');
+  const libStore=makeStoreWith(fb.window.localStorage);
+  const pg=await load('events.html',libStore,'#lib');
+  ok(pg.txt('#libBox').includes('دوربین، نور و تنظیمات'),'کتابخانهٔ من قطعه‌های خریداری‌شده را می‌آورد');
+  ok(pg.txt('#libBox').includes('ادامه'),'روی قطعهٔ نیمه‌دیده «ادامه» می‌آید');
+  ok(/[۰-۹]+ رسانه/.test(pg.txt('#libCount')),'شمار رسانه‌های کتابخانه در سرصفحه می‌آید');
+  pg.window.NORA_UI.doBuy('h3','h3m2');
+  await wait(60);
+  ok(pg.txt('#libBox').includes('احیای قلبی')||pg.txt('#libBox').includes('امداد'),'خرید تازه، بی نوکردن صفحه در کتابخانه می‌نشیند');
+
+  /* ه) خرید تک‌قلم با کیف پول */
+  const fm=await load('events.html',withSara(),'#media');
+  fm.click('#grid .etile [data-ev="h2"]');
+  await wait(40);
+  ok(fm.doc.querySelector('#shEvent').className.includes('on'),'ورقهٔ بستهٔ دوم باز می‌شود');
+  ok(/ریال/.test(fm.txt('#shEvent')),'مبلغ بسته دوم با ریال');
+  fm.window.NORA_UI.buySheet('h2','h2m2');
+  await wait(30);
+  ok(fm.txt('#shBuy').includes('خرید تک‌قلم') && fm.txt('#shBuy').includes('۱۱۰'),'ورقهٔ تک‌قلم مبلغ قطعه را می‌دهد');
+  fm.click('[data-uipayyes]');
+  await wait(60);
+  const lib2=JSON.parse(fm.window.localStorage.getItem('nora-home-library')||'[]');
+  ok(lib2.some(x=>x.id==='h2m2'),'تک‌قلم خریداری‌شده در کتابخانه نشست');
+  ok(lib2.filter(x=>x.past==='h2').length===1,'فقط همان قطعه باز شد، نه کل بسته');
+  const wallet=JSON.parse(fm.window.localStorage.getItem('nora-home-user')).wallet;
+  ok(wallet===1250000-110000,'کیف پول به اندازهٔ قطعه کم شد ('+wallet+')');
+
+  /* و) بی حساب: ورود میان‌بر می‌خورد */
+  const fn=await load('events.html',makeStore(),'#media');
+  fn.window.NORA_UI.buySheet('h1',null);
+  await wait(30);
+  fn.click('[data-uipay="gateway"]');
+  fn.click('[data-uipayyes]');
+  await wait(40);
+  ok(fn.doc.querySelector('#shAuth').className.includes('on'),'بی حساب، ورقهٔ ورود می‌آید');
+  fn.doc.querySelector('#uimob').value='09121234567';
+  fn.click('[data-uiphone]');
+  await wait(30);
+  ok(fn.doc.querySelector('#shAuth #uicode')!==null,'پلهٔ کد پنج‌رقمی می‌آید');
+  fn.click('[data-uiback]');
+  await wait(30);
+  ok(fn.doc.querySelector('#shAuth #uimob')!==null,'دکمهٔ تغییر شماره برمی‌گرداند به پلهٔ موبایل');
+  fn.doc.querySelector('#uimob').value='09121234567';
+  fn.click('[data-uiphone]');
+  await wait(30);
+  fn.doc.querySelector('#uicode').value='11111';
+  fn.click('[data-uicode]');
+  await wait(30);
+  ok(fn.txt('#toast').includes('۵۴۳۲۱'),'کد نادرست رد می‌شود');
+  fn.doc.querySelector('#uicode').value='54321';
+  fn.click('[data-uicode]');
+  await wait(160);
+  ok(!!fn.window.localStorage.getItem('nora-home-user'),'با کد درست، نشست ساخته می‌شود');
+  const libN=JSON.parse(fn.window.localStorage.getItem('nora-home-library')||'[]');
+  ok(libN.filter(x=>x.past==='h1').length===5,'بعد از ورود، خرید خودش تمام می‌شود (۵ قطعه)');
+  ok(fn.window.localStorage.getItem('nora-home-user').includes('سارا محمدی'),'حساب ساخته‌شده همان کاربر نمونه است');
+
+  /* ز) ورقهٔ کلیات از هر دو صفحه به صفحهٔ اختصاصی می‌رسد */
+  const fh=await load('home.html',makeStore());
+  fh.window.NORA_UI.eventSheet('e5');
+  await wait(40);
+  ok(fh.doc.querySelector('#shEvent a.btn.primary').getAttribute('href')==='event.html?id=e5','ورقهٔ خانه هم لینک صفحهٔ اختصاصی را می‌دهد');
+  ok(fh.txt('#shEvent').includes('۱۱ مهر')||fh.txt('#shEvent').includes('۸ مهر'),'تاریخ رویداد در ورقهٔ خانه');
+  fh.window.NORA_UI.eventSheet('h3');
+  await wait(40);
+  ok(fh.txt('#shEvent').includes('بسته')||fh.txt('#shEvent').includes('رسانه'),'ورقهٔ بستهٔ رسانه در خانه هم باز می‌شود');
+
+  /* ح.۲) رویداد من: جزئیات هر رویداد، فقط داخل صفحهٔ خودش */
+  const fmine=await load('event.html',withSara(),'?id=e1');
+  ok(fmine.errs.length===0,'صفحهٔ رویداد ثبت‌نام‌شده بی‌خطا بالا آمد');
+  ok(fmine.doc.querySelector('.mybox')!==null,'جعبهٔ «رویداد من» در صفحهٔ همان رویداد');
+  ok(fmine.txt('.mycd').includes('روز')&&fmine.txt('.mycd').includes('دقیقه'),'شمارش روز و ساعت و دقیقه تا برگزاری');
+  ok(fmine.all('.mybox .mbt').length===5,'پنج کنش: کارت ورود، دانلود بلیت، رسانه، حضور، نظر');
+  ok(fmine.txt('.mycd').includes('ثانیه'),'شمارش ثانیه‌ای هم دارد');
+  fmine.click('[data-my-ticket]');
+  ok(fmine.txt('#toast').includes('همین رویداد'),'کارت ورود، پیام همین رویداد را می‌دهد');
+  fmine.click('[data-my-media]');
+  ok(fmine.txt('#toast').includes('رسانه‌های همین رویداد'),'رسانه، داخل همین رویداد باز می‌شود');
+  fmine.click('[data-my-ticket-dl]');
+  ok(fmine.txt('#toast').includes('دانلود'),'بلیت همین رویداد دانلود می‌شود');
+  const fmineP=await load('event.html',withSara(),'?id=h1');
+  ok(fmineP.doc.querySelector('.mybox')!==null,'رویداد برگزارشدهٔ من هم جعبهٔ خودش را دارد');
+  ok(fmineP.txt('.mybox').includes('ضبط')&&fmineP.txt('.mybox').includes('کارنامهٔ حضور'),'ضبط و کارنامهٔ حضور داخل صفحهٔ همان رویداد');
+  fmineP.click('[data-my-cert]');
+  ok(fmineP.txt('#toast').includes('گواهی'),'گواهینامه هم داخل صفحهٔ همان رویداد');
+  ok(fmineP.doc.querySelector('.mycd')===null,'رویداد برگزارشده، شمارش معکوس ندارد');
+  const fother=await load('event.html',withSara(),'?id=e2');
+  ok(fother.doc.querySelector('.mybox')===null,'رویدادی که ثبت‌نام نکرده‌ام، جعبهٔ «رویداد من» ندارد');
+  const fguest=await load('event.html',makeStore(),'?id=e1');
+  ok(fguest.doc.querySelector('.mybox')===null,'بی ورود، جعبهٔ «رویداد من» نمی‌آید');
+  ok(fguest.doc.querySelector('.trustline')!==null,'خط اطمینان روی صفحهٔ رویداد هست');
+
+  /* ح) نشانه‌گذاری و پیوندهای صفحهٔ اختصاصی */
+  const evSrc=fs.readFileSync(DIR+'event.html','utf8');
+  ok(/<link rel="canonical"/.test(evSrc),'صفحهٔ اختصاصی canonical دارد');
+  ok(/property="og:title"/.test(evSrc),'og برای اشتراک‌گذاری هست');
+  ok(/name="theme-color"/.test(evSrc),'رنگ نوار مرورگر تعیین شده');
+  ok(!/href="event\.html\?id=\$\{id\}<\/a>/.test(evSrc),'لینک مرده به خودِ صفحه نمانده');
+}
+
+/* ═══════════ admin.html: پنل مدیران ═══════════ */
+{
+  console.log('\n── پنل مدیران (admin.html) ──');
+  const p=await load('admin.html',makeStore());
+  ok(p.errs.length===0,'پنل بی‌خطا بالا آمد');
+  ok(p.all('#admNav .btn').length===7,'هفت بخش در ریل پنل نشسته');
+  ok(p.all('.kpi').length===4,'چهار عدد کلیدی سرِ داشبورد پنل');
+  ok(p.all('.qrow').length===8,'کارتابل مالک پنل کوتاه است (۸ کار)');
+  ok(p.all('[data-qmore]').length===1,'دکمهٔ «همهٔ کارها» روی کارتابل هست');
+  ok(p.all('.frow2').length===6,'شش حوزه روی داشبورد پنل است');
+  ok(p.all('.sline').length===5,'وضعیت سامانه پنج خط دارد');
+  ok(p.doc.querySelector('#admBody').innerHTML.length>500,'داشبورد پر است');
+  p.click('#admNav [data-sec="users"]');
+  p.click('[data-uv="tools"]'); p.click('[data-utool="staff"]');
+  ok(p.all('[data-setF]').length===6,'شش حوزه در مدیریت کارشناسان پنل هست');
+  ok(p.all('.permrow').length>=4,'دسترسی‌های حوزه پر است');
+  p.click('#admNav [data-sec="dash"]');
+  p.click('[data-who-sheet]');
+  ok(p.all('#shAdm [data-who]').length===15,'ورقهٔ «نمای من» پانزده نفر دارد');
+  p.click('#shAdm [data-who="p10"]');
+  ok(p.all('#admNav [data-locked]').length===2,'کارشناس دو بخش بسته دارد');
+  ok(p.all('.qrow').length===1,'کارتابل کارشناس یک کار است');
+  p.click('[data-who-sheet]');
+  p.click('#shAdm [data-who="p2"]');
+  ok(p.all('.trow').length===2,'سرپرست آموزش دو کارشناس دارد');
+  p.click('#admNav [data-sec="settings"]');
+  ok(p.all('[data-setg]').length===1&&!!p.doc.querySelector('[data-setg="cert"]'),'تنظیمات برای سرپرست فقط گروه گواهینامه را دارد (قالب ورد)');
+  p.click('#admNav [data-sec="dash"]');
+  /* مالی فقط مالک: سرپرست پشتیبانی نه کارت مالی، نه ردیف مالی، نه تب مالی */
+  ok(p.all('[data-rep="fi"]').length===0,'ردیف مالی گزارش‌ها برای سرپرست نیست');
+  p.click('#admNav [data-sec="dash"]');
+  ok(!/مالی|درآمد/.test(p.doc.querySelector('#admBody').textContent||''),'داشبورد سرپرست مالی ندارد');
+  ok(p.doc.querySelector('.dashwrap > .admgrid')!==null,'داشبورد ستون‌بندی دارد');
+  ok(new RegExp('\\.admgrid\\{display:grid').test(fs.readFileSync(DIR+'admin.css','utf8')),'شبکهٔ داشبورد در CSS است');
+  for(const k of ['dash','newev','events','forms','reports','settings']){
+    p.click('#admNav [data-sec="'+k+'"]');
+    const t=p.doc.querySelector('#admBody').textContent||'';
+    ok(!/undefined|NaN|\$\{|\[object/.test(t),'بخش «'+k+'» روی سرپرست تمیز رندر شد');
+  }
+  ok(p.doc.querySelector('a[href="account.html"]')!==null,'نمای کاربر از پنل باز می‌شود');
+  ok(p.doc.querySelector('a[href="builder.html"]')!==null,'فرم‌ها و گزارش از پنل باز می‌شود');
+  ok(p.doc.querySelector('a[href="index.html"]')!==null,'زبان طراحی از پنل باز می‌شود');
+  /* پرونده‌های پنل همان نسخهٔ بقیهٔ صفحه‌ها باشد */
+  const ver=(f)=>[...fs.readFileSync(DIR+f,'utf8').matchAll(/\?v=(\d+)/g)].map(m=>m[1]);
+  const vAdmin=[...new Set(ver('admin.html'))];
+  ok(vAdmin.length===1,'همهٔ پرونده‌های پنل یک نسخه دارند ('+vAdmin.join()+')');
+  const vHome=[...new Set(ver('home.html'))];
+  ok(vAdmin[0]===vHome[0],'نسخهٔ پنل با نسخهٔ بقیهٔ صفحه‌ها یکی است');
+  const swSrc=fs.readFileSync(DIR+'sw.js','utf8');
+  ok(swSrc.includes("'admin.html'")&&swSrc.includes("'admin.js'")&&swSrc.includes("'admin.css'"),
+    'پنل در پوستهٔ کش کارگر سرویس هست');
+  /* پیوند دو طرفهٔ پنل مدیران و پنل فرم‌ها */
+  ok(fs.readFileSync(DIR+'builder.html','utf8').includes('href="admin.html"'),'پنل فرم‌ها به پنل مدیران راه دارد');
+  ok(fs.readFileSync(DIR+'index.html','utf8').includes('href="admin.html"'),'زبان طراحی هم پنل مدیران را فهرست کرده');
+  ok(fs.readFileSync(DIR+'login.js','utf8').includes('href="admin.html"'),'ورود مدیر به پنل مدیران می‌رسد');
+  const pages=['admin.html','admin.js','admin.css','builder.html','create.html'];
+  const dash=pages.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
+  ok(dash.length===0,'پنل و صفحه‌های فرم، خط تیرهٔ بلند ندارند'+(dash.length?': '+dash.join('، '):''));
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   سینک تا دست کاربر: رویداد و فرمِ منتشرشدهٔ پنل، در فهرست و برگه و فرم کاربر
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  console.log('\n── سینک تا دست کاربر (events/event/form) ──');
+  const pad=n=>String(n).padStart(2,'0');
+  const mLen=(jy,jm)=>jm<=6?31:jm<=11?30:29;
+  const p0=await load('home.html',makeStore());
+  const c=p0.window.NORA_UI.clockParts();
+  const shift=(off)=>{let {jy,jm,jd}=c;
+    for(let i=0;i<Math.abs(off);i++){
+      if(off>0){ if(jd<mLen(jy,jm)) jd++; else {jd=1; jm++; if(jm>12){jm=1; jy++}} }
+      else { if(jd>1) jd--; else {jm--; if(jm<1){jm=12; jy--} jd=mLen(jy,jm)} } }
+    return jy+'/'+pad(jm)+'/'+pad(jd)};
+  const d1=shift(2), d2=shift(9), dPast=shift(-9);
+  const store=makeStore();
+  store.setItem('nora-admin', JSON.stringify({v:78, added:[
+    {id:'u9', n:'کارگاه سینک از پنل', kind:'کارگاه', when:'', on:d1, time:'۱۷:۰۰',
+     end:d2, place:'کتابخانهٔ نورا', cap:30, reg:12, state:'soon',
+     sess:[{d:d1,t:'17:00',to:'19:00'},{d:d2,t:'17:00',to:'19:00'}], sessions:2,
+     price:250000, poster:'poster-book.svg', posterUp:'', about:'دو جلسهٔ آزمایشی',
+     forms:[{id:'f-u1', need:'reg', n:'فرم ثبت‌نام کارگاه سینک', ev:'u9', money:250000,
+       link:'form.html?ev=u9&kind=reg'}]},
+    {id:'u10', n:'اردوی گذشتهٔ ثبت‌شده', kind:'اردو', when:'', on:dPast,
+     time:'۰۸:۰۰', end:dPast, place:'دربند', cap:30, reg:27, state:'past',
+     held:1, who:27, rep:'بی‌حادثه، آلبوم فرستاده شد', media:'https://ble.ir/album',
+     sess:[], sessions:1, price:0}]}));
+  store.setItem('nora-forms', JSON.stringify([{id:'f-u1', name:'فرم ثبت‌نام کارگاه سینک',
+    kind:'form', need:'reg', model:'reg', slug:'u9-reg', cap:30, wait:'auto', ev:'u9',
+    guestsOn:1, maxPer:2, start:d1, ends:d2,
+    fin:[{l:'شهریهٔ کارگاه', p:250000, off:0},{l:'ناهار', p:120000, off:0}],
+    groups:[{n:'دورهٔ شرکت', of:[0,1], req:true, one:true}], methods:['bale','wallet'],
+    coupon:{code:'NORA10', off:10}, intro:'فرم شما دریافت شد؛ تا یک روز پیام می‌دهیم.',
+    fields:[{t:'text',l:'نام'},{t:'tel',l:'موبایل'}], on:1}]));
+
+  /* فهرست کاربر */
+  const ev=await load('events.html',store);
+  ok(/کارگاه سینک از پنل/.test(ev.doc.body.textContent),'رویداد منتشرشدهٔ پنل در فهرست کاربر می‌آید');
+  ok(/اردوی گذشتهٔ ثبت‌شده/.test(ev.doc.body.textContent),'برگزارشدهٔ پنل در بخش آرشیو فهرست هست');
+  ok(ev.doc.querySelector('[data-ev="u9"]')!==null,'کارتش ورقهٔ کلیات را باز می‌کند');
+  ok(ev.errs.length===0,'events.html با رویداد منتشرشده بی‌خطا است'+(ev.errs.length?': '+ev.errs[0]:''));
+
+  /* ورقهٔ کلیات */
+  const sh=await load('events.html',store,'?ev=u9');
+  ok(/کارگاه سینک از پنل/.test(sh.txt('#shEvent')),'ورقهٔ کلیات برای رویداد منتشرشده باز می‌شود');
+  ok(/۲ جلسه/.test(sh.txt('#shEvent')),'ورقه شمار جلسه‌ها را می‌گوید');
+  ok([...sh.all('#shEvent a')].some(a=>/event\.html\?id=u9/.test(a.getAttribute('href')||'')),
+    'ورقه پیوند صفحهٔ اختصاصی دارد');
+
+  /* صفحهٔ رویداد: رو به راه */
+  const pg=await load('event.html',store,'?id=u9');
+  ok(/کارگاه سینک از پنل/.test(pg.txt('#page')),'صفحهٔ اختصاصی رویداد منتشرشده باز می‌شود');
+  ok(/۲ جلسه/.test(pg.txt('#page')),'ردیف جلسه‌ها در صفحه هست');
+  ok([...pg.all('#ctaIn a')].some(a=>/form\.html\?ev=u9/.test(a.getAttribute('href')||'')),
+    'دکمهٔ ثبت‌نام به فرم واقعی همان رویداد می‌رود');
+  ok(pg.errs.length===0,'event.html بی‌خطا است'+(pg.errs.length?': '+pg.errs[0]:''));
+
+  /* صفحهٔ رویداد: برگزارشده */
+  const ps=await load('event.html',store,'?id=u10');
+  const psBody=pg.txt('#page')+ps.txt('#page')+ps.txt('#ctabar');
+  ok(/برگزار شد/.test(psBody),'رویداد برگزارشده برچسب برگزار شد دارد');
+  ok(/گزارش برگزاری/.test(ps.txt('#page'))&&/بی‌حادثه/.test(ps.txt('#page')),
+    'گزارش برگزاری با متن مدیر می‌آید');
+  ok(/۲۷ نفر/.test(ps.txt('#page')),'شمار شرکت‌کننده در گزارش هست');
+  ok(ps.all('a[href="https://ble.ir/album"]').length===1,'لینک آلبوم در گزارش هست');
+  ok(!/form\.html\?ev=u10/.test(ps.txt('#ctabar')),'برگزارشده دکمهٔ ثبت‌نام ندارد');
+  ok(ps.doc.querySelector('#ctaIn [data-back]')!==null,'برگزارشده دکمهٔ برگشت دارد');
+
+  /* فرم واقعی روی form.html */
+  const fm=await load('form.html',store,'?ev=u9&kind=reg');
+  ok(fm.txt('#topTitle')==='فرم ثبت‌نام کارگاه سینک','form.html با ?ev= فرم خودِ رویداد را باز می‌کند');
+  ok(/کتابخانهٔ نورا/.test(fm.txt('#evMeta')),'جا و تاریخ فرم از رویداد می‌آید: '+fm.txt('#evMeta'));
+  ok(/شهریهٔ کارگاه/.test(fm.doc.body.textContent)&&/ناهار/.test(fm.doc.body.textContent),
+    'اقلام مالی خود فرم هست');
+  ok(/دورهٔ شرکت/.test(fm.doc.body.textContent),'گروه اجباری فرم هست');
+  ok(/NORA10/.test(fm.doc.body.textContent),'کد تخفیف فرم هست');
+  ok(/فرم شما دریافت شد/.test(fm.doc.body.textContent),'متن پایان فرم هست');
+  ok(fm.errs.length===0,'form.html با فرم واقعی بی‌خطا است'+(fm.errs.length?': '+fm.errs[0]:''));
+
+  /* تغییر مبلغ در فرمساز: مبلغ رویداد در پنل و صفحهٔ کاربر همان لحظه تازه می‌شود */
+  const fr=JSON.parse(store.getItem('nora-forms'));
+  fr[0].fin=[{l:'شهریهٔ کارگاه', p:500000, off:0},{l:'ناهار', p:240000, off:0}];
+  store.setItem('nora-forms', JSON.stringify(fr));
+  const pg2=await load('event.html',store,'?id=u9');
+  ok(/۷۴۰/.test(pg2.txt('#ctaIn')),'مبلغ تازهٔ فرمساز روی صفحهٔ رویداد کاربر می‌نشیند: '+pg2.txt('#ctaIn').slice(0,40));
+  const ad=await load('admin.html',store,'#events');
+  ad.click('[data-ev="u9"]');
+  ok(/۷۴۰/.test(ad.txt('#shAdm')),'برگهٔ رویداد پنل هم مبلغ تازه را می‌گوید');
+  const adx=await load('admin.html',store,'#events');
+  adx.click('[data-ev="u10"]');
+  ok(/برگزار شده/.test(adx.txt('#shAdm'))&&/آرشیو/.test(adx.txt('#shAdm')),'برگهٔ برگزارشده با جعبهٔ آرشیو در پنل هست');
+
+  /* مطلب: خانهٔ کاربر ریل مطلبها را از پنل میخواند و post.html بلوکی میخواند */
+  const pst=makeStore();
+  pst.setItem('nora-posts', JSON.stringify([{id:'npSmoke1', t:'مطلب دودی باشگاه', cat:'گزارش',
+    tags:['باشگاه'], lead:'سرآغاز مطلب دودی.', author:'نویسندهٔ دمو', cover:{g:''},
+    pub:1, pend:0, views:4, at:Date.now(), min:3,
+    blocks:[{ty:'p',x:'متن اول.'},{ty:'h',x:'بخش دوم',lv:2},{ty:'p',x:'متن دوم.'},
+      {ty:'vid',src:'https://www.aparat.com/v/xyz99'},{ty:'btn',x:'بیشتر',href:'https://lifeline1.ir',kind:'quiet'}],
+    ev:'e1', fm:''}]));
+  const ph=await load('home.html',pst);
+  ok(/مطلب دودی باشگاه/.test(ph.txt('#artRail')),'ریل خانه، مطلب منتشرشدهٔ پنل را میبیند');
+  const pp=await load('post.html',pst,'?id=npSmoke1');
+  ok(pp.errs.length===0,'post.html با مطلب دودی بی‌خطا است'+(pp.errs.length?': '+pp.errs[0]:''));
+  ok(pp.all('.pb-h2').length===1&&!pp.doc.querySelector('.pb-toc'),'تیتر داخل مطلب است و فهرست با زیر دو تیتر نمیآید');
+  ok(/videohash\/xyz99\/vt\/frame/.test(pp.doc.querySelector('.pb-vid iframe').src),'امبد آپارات درست است');
+  ok(!!pp.doc.querySelector('.pb-ev')&&/event\.html\?id=e1/.test(pp.doc.querySelector('.pb-ev').getAttribute('href')),'کارت رویداد پیوندی در دود هست');
+  ok(!!pp.doc.querySelector('#pbShare')&&!!pp.doc.querySelector('#pbCopy'),'همرسانی و رونوشت هست');
+  const pf=await load('form.html',pst,'?fr=fDemo');
+  ok(pf.errs.length===0,'form.html حالت fr بی‌خطا است'+(pf.errs.length?': '+pf.errs[0]:''));
+  ok(/فرم شما دریافت شد|ثبت/.test(pf.txt('#u12'))||!pf.doc.querySelector('#sqp0'),'حالت fr با فرم نایافته هم نمی‌شکند');
+
+  /* خانهٔ کاربر: جست‌وجو رویداد منتشرشده را پیدا می‌کند */
+  const hm=await load('home.html',store);
+  const qh=hm.doc.querySelector('#q');
+  qh.value='سینک';
+  qh.dispatchEvent(new hm.window.Event('input',{bubbles:true}));
+  await new Promise(r=>setTimeout(r,150));
+  ok(/کارگاه سینک از پنل/.test(hm.doc.querySelector('#sugBox').textContent),
+    'خانهٔ کاربر در جست‌وجو رویداد منتشرشده را پیدا می‌کند');
+  ok(hm.errs.length===0,'home.html با رویداد منتشرشده بی‌خطا است'+(hm.errs.length?': '+hm.errs[0]:''));
+
+  /* نظرسنجی آمادهٔ نورا: فرم اختصاصی نیست، آماده خودش باز می‌شود */
+  const sv=await load('form.html',store,'?ev=u9&kind=survey');
+  ok(sv.txt('#topTitle')==='نظرسنجی آمادهٔ نورا','form.html نظرسنجی، آمادهٔ نورا را باز می‌کند');
+  ok(/برنامهٔ امروز چطور بود/.test(sv.doc.body.textContent),'پرسشهای آماده در صفحه هست');
+  const visScr=[...sv.all('.screen')].filter(x=>x.classList.contains('on')||x.style.display!=='none').map(x=>x.textContent).join(' ');
+  ok(!/درگاه رسمی بله|شهریه/.test(visScr),'مسیر پرداخت در نظرسنجی نیست');
+  ok(['u8','u9','u10','u11'].every(id=>sv.doc.getElementById(id)&&sv.doc.getElementById(id).style.display==='none'),
+    'صفحههای پرداخت در حالت نظرسنجی پنهان‌اند');
+  ok(sv.doc.getElementById('u4')&&sv.doc.getElementById('u4').querySelector('#pkBirth'),
+    'صفحههای ثابت دمو دست نخورده مانده‌اند');
+  ok(sv.errs.length===0,'form.html حالت نظرسنجی بی‌خطا است'+(sv.errs.length?': '+sv.errs[0]:''));
+
+  /* دمو بی‌انبار دست‌نخورده */
+  const dm=await load('form.html',makeStore());
+  ok(dm.txt('#topTitle')==='کارگاه فن بیان مقدماتی','بی ?ev= همان فرم نمونه است');
+  const de=await load('events.html',makeStore());
+  ok(!/کارگاه سینک از پنل/.test(de.doc.body.textContent),'بی انبار، فهرست همان نمونه‌هاست');
+}
+
+console.log('\nbuilder-smoke: '+checks+' بررسی، '+fails+' خطا');
+process.exit(fails?1:0);

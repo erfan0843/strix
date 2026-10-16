@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>نورا · فرم‌ها و گزارش</title>
+<link rel="stylesheet" href="glass.css?v=89"/>
+<style>
+  .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
+  .fcard:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
+  .fcard:active{transform:none}
+  .ptab{display:none}
+  .ptab.on{display:block;animation:fade var(--t) var(--ease)}
+  .chrow{display:flex;align-items:center;gap:12px;width:100%;text-align:start;background:none;border:0;border-bottom:.5px solid var(--hairline-2);
+    padding:12px 2px;cursor:pointer;color:var(--ink);font:inherit;border-radius:var(--r-sm)}
+  .chrow:last-child{border-bottom:0}
+  .chrow:hover{background:var(--surface-2)}
+  .chrow .ic{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2);flex:0 0 auto}
+  .chrow .tx{flex:1;min-width:0}
+  .chrow .tx b{display:block;font-size:var(--fs-sub);font-weight:600}
+  .chrow .tx span{font-size:var(--fs-cap);color:var(--ink-3)}
+  .chrow>.i{color:var(--ink-4)}
+  .grow{display:grid;grid-template-columns:104px 1fr 52px;gap:10px;align-items:center;font-size:var(--fs-sub)}
+  .grow b{text-align:end;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .searchbox{display:flex;align-items:center;gap:8px;padding:0 12px;height:44px;border-radius:var(--r-pill);flex:1;min-width:200px}
+  .searchbox input{border:0;background:none;outline:none;font:inherit;color:var(--ink);width:100%;font-size:var(--fs-sub)}
+  .fw{font-weight:600}
+  @media (max-width:980px){.split{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><defs><g id="d24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></defs>
+<!-- ══ مجموعهٔ آیکون نورا · شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد ══ -->
+
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
+
+<symbol id="i-plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.2v13.6M5.2 12h13.6"/></g></symbol>
+
+<symbol id="i-drag" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9.2" cy="7" r="1.35"/><circle cx="14.8" cy="7" r="1.35"/><circle cx="9.2" cy="12" r="1.35"/><circle cx="14.8" cy="12" r="1.35"/><circle cx="9.2" cy="17" r="1.35"/><circle cx="14.8" cy="17" r="1.35"/></g></symbol>
+
+<symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
+
+<symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
+
+<symbol id="i-trend" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 18.4l4.6-5.2 3.3 2.9 5.9-7.6"/><path d="M13.6 8.2h4.4v4.4"/></g></symbol>
+
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
+
+<symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.6A2.6 2.6 0 0 1 6.2 6h11.6a2.6 2.6 0 0 1 2.6 2.6v6.8a2.6 2.6 0 0 1-2.6 2.6H6.2a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M3.6 11.6h16.8"/><circle cx="16.6" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-ticket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 9.4V7.8a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v1.6a2.8 2.8 0 0 0 0 5.2v1.6a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6v-1.6a2.8 2.8 0 0 0 0-5.2z"/><path d="M14.2 6.2v11.6" stroke-dasharray="2.2 2.6"/></g></symbol>
+
+<symbol id="i-medal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.4" r="4.6"/><path d="M9.1 13.4 7.4 20.6l4.6-2.4 4.6 2.4-1.7-7.2"/></g></symbol>
+
+<symbol id="i-idcard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><circle cx="8.9" cy="10.6" r="2.1"/><path d="M5.4 16c.5-1.9 1.9-2.9 3.5-2.9s3 1 3.5 2.9"/><path d="M14.6 10.2h3.4M14.6 13.4h2.2"/></g></symbol>
+
+<symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 10.6h16M8.6 3.6v3.4M15.4 3.6v3.4"/></g></symbol>
+
+<symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.1 2"/></g></symbol>
+
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20.2 20.2"/></g></symbol>
+
+<symbol id="i-filter" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.2 6.4h15.6M7.2 12h9.6M10.2 17.6h3.6"/></g></symbol>
+
+<symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
+
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
+
+<symbol id="i-chev-down" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 9.6 12 15.2l5.6-5.6"/></g></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
+<symbol id="i-chev-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 6.4 8.8 12l5.6 5.6"/></g></symbol>
+
+<symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"/></g></symbol>
+
+<symbol id="i-sliders" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.6h8.4M17.4 8.6h2.6M4 15.4h3.4M12.4 15.4h7.6"/><circle cx="15.4" cy="8.6" r="2.1"/><circle cx="10.4" cy="15.4" r="2.1"/></g></symbol>
+
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 14.4 14.4 9.6"/><path d="M11.4 7.2 12.9 5.7a4 4 0 0 1 5.6 5.6l-1.5 1.5"/><path d="M12.6 16.8 11.1 18.3a4 4 0 0 1-5.6-5.6l1.5-1.5"/></g></symbol>
+
+<symbol id="i-qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4.2 8V5.8A1.6 1.6 0 0 1 5.8 4.2H8M16 4.2h2.2A1.6 1.6 0 0 1 19.8 5.8V8M19.8 16v2.2a1.6 1.6 0 0 1-1.6 1.6H16M8 19.8H5.8a1.6 1.6 0 0 1-1.6-1.6V16"/><rect x="7.4" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="13" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="7.4" y="13" width="3.6" height="3.6" rx="1"/><path d="M13 13h1.8v1.8H13zM16.6 16.6H18.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8A2.4 2.4 0 0 1 6 5.6h12A2.4 2.4 0 0 1 20.4 8v8a2.4 2.4 0 0 1-2.4 2.4H6A2.4 2.4 0 0 1 3.6 16z"/><path d="M4.4 7.6 12 13.2l7.6-5.6"/></g></symbol>
+
+<symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
+
+<symbol id="i-star" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.4l2.5 5 5.5.8-4 3.9.95 5.5L12 17.1l-4.95 2.5.95-5.5-4-3.9 5.5-.8z"/></g></symbol>
+
+<symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.8s-7.2-4.4-7.2-9.4A4.4 4.4 0 0 1 12 7.1a4.4 4.4 0 0 1 7.2 3.3c0 5-7.2 9.4-7.2 9.4z"/></g></symbol>
+
+<symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 7.4h14.4"/><path d="M9.2 7.4V5.6h5.6v1.8"/><path d="M6.6 7.4 7.6 20h8.8l1-12.6"/><path d="M10.4 11v5.4M13.6 11v5.4"/></g></symbol>
+
+<symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9.6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2z"/><path d="M6.4 15.8a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2"/></g></symbol>
+
+<symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="6.2" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17.8" r="1.5"/></g></symbol>
+
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6 5 12l6 6"/></g></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></g></symbol>
+
+<symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2v10.4"/><path d="M7.8 10.6 12 14.8l4.2-4.2"/><path d="M5 19.4h14"/></g></symbol>
+
+<symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.4V9"/><path d="M7.8 13.2 12 9l4.2 4.2"/><path d="M5 4.6h14"/></g></symbol>
+
+<symbol id="i-branch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 4.6v6.6a3.6 3.6 0 0 0 3.6 3.6h6"/><path d="M14.4 11.6 17.6 14.8l-3.2 3.2"/><path d="M7.2 15.4v4.2"/></g></symbol>
+
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 11.6a1.6 1.6 0 0 1 1.6-1.6h10a1.6 1.6 0 0 1 1.6 1.6v6.8a1.6 1.6 0 0 1-1.6 1.6H7a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M8.6 10V8.2a3.4 3.4 0 0 1 6.8 0V10"/></g></symbol>
+
+<symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M3.8 12h16.4"/><path d="M12 3.8c2.5 2.6 2.5 13.8 0 16.4-2.5-2.6-2.5-13.8 0-16.4z"/></g></symbol>
+
+<symbol id="i-mobile" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.4h8.4a1.6 1.6 0 0 1 1.6 1.6v12a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V6a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M10.8 17.6h2.4"/></g></symbol>
+
+<symbol id="i-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 18.4 10 6.2l4.4 12.2"/><path d="M7.2 14.2h5.6"/></g></symbol>
+
+<symbol id="i-number" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M8.4 4.4 7 19.6M16 4.4 14.6 19.6M4.6 9.2h15M4 14.8h15"/></g></symbol>
+
+<symbol id="i-radio" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="7.8"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-checkbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="4.4"/><path d="M8.4 12.2l2.6 2.6 4.6-5"/></g></symbol>
+
+<symbol id="i-lines" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.2" y="4.6" width="15.6" height="14.8" rx="3.4"/><path d="M7.6 9.4h8.8M7.6 12.6h8.8M7.6 15.8h5.2"/></g></symbol>
+
+<symbol id="i-file-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.6h6.6l4.2 4.2v12.6H6.6z"/><path d="M13.2 3.6v4.2h4.2"/><path d="M12 16.4v-4.6M10 13.8l2-2 2 2"/></g></symbol>
+
+<symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+
+<symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 4.6l3 3L9.2 17.8l-4 1.2 1.2-4z"/><path d="M14.6 6.6l3 3"/></g></symbol>
+
+<symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></g></symbol>
+
+<symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 5.6 17.8 12l-9.4 6.4z"/></g></symbol>
+
+<symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 3.8 3.8 10.4l6.4 3 3 6.4z"/><path d="M10.2 13.4 13.6 10"/></g></symbol>
+
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4.4" y="4.4" width="6" height="6" rx="2"/><rect x="13.6" y="4.4" width="6" height="6" rx="2"/><rect x="4.4" y="13.6" width="6" height="6" rx="2"/><rect x="13.6" y="13.6" width="6" height="6" rx="2"/></g></symbol>
+
+<symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.8" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="4.8" cy="17" r="1.3" fill="currentColor" stroke="none"/></g></symbol>
+
+<symbol id="i-bag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 8.4h12.8l1.2 11.6H4.4z"/><path d="M9.2 8.4V6.6a2.8 2.8 0 0 1 5.6 0v1.8"/></g></symbol>
+
+<symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.8v16.8"/><path d="M6.4 5.2h11.2l-2.2 3.6 2.2 3.6H6.4z"/></g></symbol>
+
+<symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 3.8 8.2 12 12.8l8.2-4.6z"/><path d="M4.6 12.4 12 16.6l7.4-4.2"/><path d="M4.6 16.4 12 20.6l7.4-4.2"/></g></symbol>
+
+<symbol id="i-bolt" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 3.4 6.2 13.2h4.6l-.8 7.4 7.2-9.8h-4.6z"/></g></symbol>
+
+<symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.2" cy="8.2" r="4"/><path d="M11.1 11.1 19 19"/><path d="M16.4 16.4 18.8 14M14.2 14.2 16.6 11.8"/></g></symbol>
+
+<symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
+
+<symbol id="i-inbox" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 12.6 6.6 5.4h10.8l2.4 7.2v5.2a1.6 1.6 0 0 1-1.6 1.6H5.8a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M4.2 12.6h4.2l.8 2.2h5.6l.8-2.2h4.2"/></g></symbol>
+
+<symbol id="i-align" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4.4 6.6h15.2M4.4 12h9.4M4.4 17.4h12"/></g></symbol>
+
+<symbol id="i-type" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.6 6.2h12.8M12 6.2v11.6"/></g></symbol>
+
+<symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></g></symbol>
+
+</svg>
+<div class="shell">
+  <!-- ── ریل ── -->
+  <aside class="rail">
+    <div class="row" style="padding:6px 8px 12px">
+      <span class="glass-thin" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center"><svg class="i lg"><use href="#i-doc"/></svg></span>
+      <div><div class="head tight">نورا</div><div class="cap">مؤسسهٔ خط زندگی</div></div>
+    </div>
+    <div style="padding:0 8px 10px"><span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span></div>
+    <nav class="col tight">
+      <button class="btn quiet block" data-go="fList"><svg class="i"><use href="#i-doc"/></svg> فرم‌ها</button>
+      <button class="btn quiet block" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل رسیدها <span class="sp"></span><span class="tag warn" id="kBadge">—</span></button>
+      <button class="btn quiet block" data-go="fMine"><svg class="i"><use href="#i-star"/></svg> کارتابل من <span class="sp"></span><span class="tag brand" id="myBadge">—</span></button>
+      <button class="btn quiet block" data-go="fMoney"><svg class="i"><use href="#i-wallet"/></svg> مالی</button>
+      <button class="btn quiet block" data-go="fTeam"><svg class="i"><use href="#i-users"/></svg> کارشناسان</button>
+    </nav>
+    <hr class="hr"/>
+    <div class="cap" style="margin:0 8px 6px">پیوندها</div>
+    <nav class="col tight">
+      <a class="btn quiet block" href="admin.html"><svg class="i"><use href="#i-shield"/></svg> پنل مدیران</a>
+      <a class="btn quiet block" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
+      <a class="btn quiet block" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> نمای کاربر</a>
+      <a class="btn quiet block" href="index.html"><svg class="i"><use href="#i-layers"/></svg> زبان طراحی</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- ══════════ فهرست فرم‌ها ══════════ -->
+    <section id="fList" class="screen on">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">فرم‌ها</div>
+          <div class="cap">روی هر فرم بزنید: اطلاعات، آمار، پاسخ‌دهنده‌ها و تغییرها.</div>
+        </div>
+        <span class="sp"></span>
+        <a class="btn primary" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
+      </header>
+
+      <div class="row" style="margin:12px 0 10px">
+        <label class="searchbox glass-thin"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+          <input id="q" placeholder="نام فرم یا پیوند را بنویسید"/></label>
+        <button class="btn quiet" data-go="fKartabl"><svg class="i"><use href="#i-inbox"/></svg> کارتابل</button>
+        <button class="btn quiet" data-go="fAttend"><svg class="i"><use href="#i-check"/></svg> حضور</button>
+      </div>
+
+      <div class="row tight" id="listChips">
+        <button class="chip on" data-chip="all">همه</button>
+        <button class="chip" data-chip="ok">در حال ثبت‌نام</button>
+        <button class="chip" data-chip="warn">پیش‌نویس</button>
+        <button class="chip" data-chip="exam">آزمون</button>
+        <button class="chip" data-chip="money">مالی‌دار</button>
+      </div>
+
+      <div class="stack" id="formCards" style="margin-top:12px"></div>
+
+      <div class="card sunk" style="margin-top:16px">
+        <div class="row"><svg class="i"><use href="#i-shield"/></svg>
+          <span class="sub">هر فرم یک شناسنامه دارد: نوع، پیوند، بازه، ظرفیت، قطعه‌های مالی و پیوندهای پایانی. تنظیمات فرم همیشه آخر همان صفحه است.</span></div>
+      </div>
+    </section>
+
+    <!-- ══════════ پنل فرم ══════════ -->
+    <section id="fPanel" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:8px 12px">
+        <button class="icon-btn" data-go="fList" aria-label="بازگشت"><svg class="i"><use href="#i-chev-right"/></svg></button>
+        <div style="min-width:0">
+          <div class="head tight" id="pName">—</div>
+          <div class="cap" id="pSub">—</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag" id="pStatus">—</span>
+        <button class="icon-btn" data-copy="#pLink" aria-label="کپی پیوند"><svg class="i"><use href="#i-link"/></svg></button>
+      </header>
+
+      <div class="row" style="margin:12px 0 12px">
+        <div class="seg" id="pSeg">
+          <button class="on" data-tab="stats">آمار</button>
+          <button data-tab="info">اطلاعات</button>
+          <button data-tab="changes">تغییرات</button>
+          <button data-tab="answers">پاسخ‌ها</button>
+        </div>
+        <span class="sp"></span>
+        <span class="cap num" id="pLink" style="direction:ltr">—</span>
+      </div>
+
+      <section class="ptab on" id="tabStats"><div id="statsBox"></div></section>
+      <section class="ptab" id="tabInfo"><div id="infoBox"></div></section>
+      <section class="ptab" id="tabChanges"><div id="changesBox"></div></section>
+      <section class="ptab" id="tabAnswers"><div id="answersBox"></div></section>
+
+      <!-- دکمهٔ آخر صفحه: تنظیمات فرم -->
+      <div class="settingbtn">
+        <button class="btn primary block" id="openSettings"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم</button>
+        <div class="row">
+          <a class="btn quiet" href="create.html"><svg class="i"><use href="#i-pen"/></svg> ویرایش ساختار</a>
+          <a class="btn quiet" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> دیدن فرم</a>
+          <button class="btn quiet" data-copy="#pLink"><svg class="i"><use href="#i-link"/></svg> کپی پیوند</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ جزئیات پاسخ‌دهنده ══════════ -->
+    <section id="fUser" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:8px 12px">
+        <button class="icon-btn" data-go="fPanel" aria-label="بازگشت"><svg class="i"><use href="#i-chev-right"/></svg></button>
+        <div style="min-width:0"><div class="head tight" id="usName">—</div><div class="cap" id="usSub">—</div></div>
+        <span class="sp"></span><span class="tag" id="usPay">—</span>
+      </header>
+      <div id="usBody" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ══════════ کارتابل رسیدها ══════════ -->
+    <!-- ══════════ کارتابل من (کارشناس) ══════════ -->
+    <section id="fMine" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">کارتابل من</div>
+          <div class="cap">رسیدهایی که پیگیری‌شان با من است · قدیمی‌ترین اول، تا از دست نرود.</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag warn" id="mTop">—</span>
+      </header>
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:10px"><span class="fw">من کی هستم</span><span class="sp"></span>
+          <span class="cap" id="mDept">—</span></div>
+        <div class="row tight" id="meChips"></div>
+        <p class="mnote" style="margin-top:10px">هر کارشناس فقط رسیدهای فرم‌های بخش خودش را می‌بیند؛ نفر اصلی را روشن بگذارید تا همان کارتابل بیاید.</p>
+      </div>
+      <div class="stack" id="mineBox" style="margin-top:12px"></div>
+    </section>
+
+    <section id="fKartabl" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">کارتابل رسیدها</div>
+          <div class="cap">رسیدهای کارت‌به‌کارت تا تأیید کارشناس، ثبت‌نام موقت است.</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag warn" id="kTop">—</span>
+      </header>
+      <div class="row tight" style="margin-top:12px" id="kFilters">
+        <button class="chip on" data-kd="">همهٔ بخش‌ها</button>
+        <span class="row tight" id="kDeptChips" style="gap:8px"></span>
+        <span class="sp"></span>
+        <span class="cap" id="kWho">—</span>
+      </div>
+      <div class="stack" id="kartabl" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ══════════ مالی سامانه ══════════ -->
+    <section id="fMoney" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">مالی</div>
+          <div class="cap">شماره کارت و مدل‌های پرداخت را مدیر سامانه تعیین می‌کند؛ سازندهٔ رویداد از همین فهرست انتخاب می‌کند.</div>
+        </div>
+        <span class="sp"></span>
+        <span class="tag brand">مدیر سامانه</span>
+      </header>
+      <div class="split" style="margin-top:12px">
+        <div class="stack">
+          <div class="card paper sheen">
+            <div class="row" style="margin-bottom:12px"><svg class="i"><use href="#i-wallet"/></svg><span class="fw">کارت مقصد کارت‌به‌کارت</span><span class="sp"></span><span class="tag ok">فعال</span></div>
+            <label class="lbl">شماره کارت</label>
+            <input class="input num" id="mCard" style="direction:ltr" value="6104-3378-1234-5674"/>
+            <div class="g2" style="margin-top:10px">
+              <div><label class="lbl">بانک</label><input class="input" id="mBank" value="بانک ملت"/></div>
+              <div><label class="lbl">به نام</label><input class="input" id="mOwner" value="مؤسسهٔ خط زندگی"/></div>
+            </div>
+            <p class="mnote" style="margin-top:8px">همین شماره در همهٔ فرم‌ها نشان داده می‌شود؛ سازندهٔ فرم آن را تعیین نمی‌کند.</p>
+            <button class="btn primary" style="margin-top:12px" data-save="card">ذخیرهٔ کارت مقصد</button>
+          </div>
+
+          <div class="card paper">
+            <div class="row" style="margin-bottom:6px"><div class="fw">مدل‌های پرداخت نورا پی</div><span class="sp"></span>
+              <span class="cap" id="gwState"></span></div>
+            <p class="cap" style="margin:0 0 8px">کاربر فقط مدل‌هایی را می‌بیند که این‌جا روشن باشد؛
+              هر رویداد می‌تواند ترکیب خودش را داشته باشد.</p>
+            <div class="stack tight" id="gwBox">
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">کیف پول نورا پی</b><div class="cap">همان لحظه، بی درگاه؛ اگر کم بیاید بقیه از روش دیگر</div>
+                  </div>
+                <span class="switch on" data-gw="کیف پول نورا پی" role="switch" aria-checked="true"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">درگاه رسمی بله</b><div class="cap">قطعی و رسمی؛ فاکتور بله و برگشت وجه از همان درگاه</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="درگاه رسمی بله" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch on" data-gw="درگاه رسمی بله" role="switch" aria-checked="true"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">کارت‌به‌کارت</b><div class="cap">با تأیید دستی کارشناس؛ تا تأیید، جا ۳۰ دقیقه نگه داشته می‌شود</div>
+                  <label class="row tight" style="margin-top:5px;gap:6px;cursor:pointer">
+                    <span class="switch" data-rcauto="کارت‌به‌کارت" role="switch" aria-checked="false"></span>
+                    <span class="cap">ارسال خودکار رسید پس از پرداخت</span></label></div>
+                <span class="switch on" data-gw="کارت‌به‌کارت" role="switch" aria-checked="true"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">حضوری و در محل</b><div class="cap">پرداخت در ورودی یا دفتر؛ با کد رزرو تا ۴۸ ساعت</div>
+                  </div>
+                <span class="switch on" data-gw="حضوری و در محل" role="switch" aria-checked="true"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">پرداخت با امتیاز</b><div class="cap">۱۰۰ امتیاز = ۱۰٬۰۰۰ تومان؛ تا ٪۳۰ هر خرید</div>
+                  </div>
+                <span class="switch" data-gw="پرداخت با امتیاز" role="switch" aria-checked="false"></span></div>
+              <div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">
+                <div style="flex:1"><b class="sub">نصف الان، نصف اول ماه</b><div class="cap">نیمهٔ دوم تا پنجم ماه آینده؛ تا تسویه گواهی قفل است</div>
+                  </div>
+                <span class="switch" data-gw="نصف الان، نصف اول ماه" role="switch" aria-checked="false"></span></div>
+            </div>
+          </div>
+
+          <div class="card paper">
+            <div class="fw">قطعه‌های مالی فرم‌ها</div>
+            <p class="cap" style="margin:4px 0 10px">هر قطعه یک قیمت دارد. اگر دو قیمت لازم است، دو قطعه بسازید.</p>
+            <div id="moneyPieces"></div>
+            <button class="btn" style="margin-top:10px" data-change="fin"><svg class="i"><use href="#i-plus"/></svg> افزودن قطعه به فرم باز</button>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card paper">
+            <div class="fw" style="margin-bottom:8px">تسویه</div>
+            <div class="sumbox" id="settle"></div>
+          </div>
+          <div class="card paper">
+            <div class="fw" style="margin-bottom:8px">تراکنش‌های اخیر</div>
+            <div class="table-wrap">
+              <table class="t">
+                <thead><tr><th>پاسخ‌دهنده</th><th>مبلغ</th><th>مدل پرداخت</th><th>وضعیت</th></tr></thead>
+                <tbody id="txBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ کارشناسان ══════════ -->
+    <!-- ══════════ بورد حضور و غیاب ══════════ -->
+    <section id="fAttend" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0">
+          <div class="head tight">بورد حضور</div>
+          <div class="cap" id="attSub">—</div>
+        </div>
+        <span class="sp"></span>
+        <button class="btn quiet" data-go="fPanel"><svg class="i"><use href="#i-chev-right"/></svg> پنل فرم</button>
+      </header>
+
+      <div class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:12px">
+        <div class="metric"><div class="n" id="attAll">—</div><div class="l">ثبت‌نام قطعی</div></div>
+        <div class="metric brand"><div class="n" id="attIn">—</div><div class="l">حاضر</div></div>
+        <div class="metric"><div class="n" id="attOut">—</div><div class="l">غایب</div></div>
+        <div class="metric"><div class="n" id="attPct">—</div><div class="l">درصد حضور</div></div>
+      </div>
+
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:8px"><span class="fw">ثبت ورود</span><span class="sp"></span>
+          <span class="cap">کد پیگیری را از روی کیوآر بخوانید یا موبایل را بنویسید.</span></div>
+        <div class="row tight">
+          <input class="input" id="attCode" style="flex:1;direction:ltr" placeholder="T4K7M9X یا ۰۹۱۲…"/>
+          <button class="btn primary" id="attGo"><svg class="i"><use href="#i-check"/></svg> ثبت ورود</button>
+        </div>
+        <div class="row tight" style="margin-top:10px">
+          <button class="chip on" data-attmode="code">کد پیگیری</button>
+          <button class="chip" data-attmode="manual">دستی از فهرست</button>
+          <button class="chip" data-attmode="auto">خودکار (لینک جلسه)</button>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-abexport><svg class="i"><use href="#i-download"/></svg> خروجی حضور</button>
+          <button class="btn sm quiet" data-absentmsg><svg class="i"><use href="#i-send"/></svg> پیام به غایب‌ها</button>
+        </div>
+      </div>
+
+      <div class="card paper" style="margin-top:12px">
+        <div class="row" style="margin-bottom:10px">
+          <label class="searchbox glass-thin" style="flex:1"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
+            <input id="attQ" placeholder="نام یا موبایل را بنویسید"/></label>
+          <span class="cap" id="attCount">—</span>
+        </div>
+        <div class="table-wrap">
+          <table class="t">
+            <thead><tr><th>#</th><th>شرکت‌کننده</th><th>صندلی</th><th>ورود</th><th>وضعیت</th></tr></thead>
+            <tbody id="attBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="fTeam" class="screen">
+      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div style="min-width:0"><div class="head tight">کارشناسان</div>
+        <div class="cap">دسترسی هر کارشناس به فرم‌ها و کارتابل رسیدها.</div></div>
+        <span class="sp"></span>
+        <button class="btn primary" id="invite"><svg class="i"><use href="#i-plus"/></svg> افزودن کارشناس</button>
+      </header>
+      <div class="stack" id="teamBox" style="margin-top:12px"></div>
+    </section>
+
+    <p class="trustline center" data-trust="secure"></p>
+  </main>
+</div>
+
+<!-- ══════════ ورقه‌ها ══════════ -->
+<div class="scrim" id="scrim"></div>
+
+<aside class="sheet" id="shSettings" role="dialog" aria-label="تنظیمات فرم">
+  <div class="grabber"></div>
+  <div class="head">تنظیمات فرم</div>
+  <p class="cap" style="margin-top:4px" id="setForm">—</p>
+  <div class="stack" style="margin-top:12px">
+    <div><label class="lbl">وضعیت</label>
+      <div class="seg" id="setStatus"><button class="on" data-v="باز">باز</button><button data-v="بسته">بسته</button><button data-v="پیش‌نویس">پیش‌نویس</button></div></div>
+    <div><label class="lbl">شروع ثبت‌نام</label><div id="setStart"></div></div>
+    <div><label class="lbl">پایان ثبت‌نام</label><div id="setEnd"></div></div>
+    <div class="g2">
+      <div><label class="lbl">ظرفیت</label><input class="input num" id="setCap" value="80"/></div>
+      <div><label class="lbl">هر نفر چند نفر</label><input class="input num" id="setPer" value="3"/></div>
+    </div>
+    <div class="row"><div style="flex:1"><b class="sub">لیست انتظار</b><div class="cap">پر شدن ظرفیت، ثبت‌نام را به لیست انتظار می‌برد</div></div>
+      <span class="switch on" id="setWait" role="switch" aria-checked="true"></span></div>
+    <div><label class="lbl">پیوند فرم</label>
+      <div class="row"><input class="input" id="setSlug" style="flex:1;direction:ltr" value=""/><button class="btn sm tint" data-copy="#setSlug">کپی</button></div></div>
+    <div class="cap" style="margin-top:6px">تنظیمهای پیشرفته</div>
+    <button class="chrow" data-change="webhook"><span class="ic"><svg class="i"><use href="#i-link"/></svg></span>
+      <span class="tx"><b>وبهوک و رخدادها</b><span id="setWhSub">خاموش</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>
+    <button class="chrow" data-change="appr"><span class="ic"><svg class="i"><use href="#i-shield"/></svg></span>
+      <span class="tx"><b>گردش کار چندمرحله‌ای</b><span id="setApSub">خاموش</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <button class="btn primary" id="setSave">ذخیره</button>
+    <span class="sp"></span>
+    <button class="btn stop" id="setArchive"><svg class="i"><use href="#i-close"/></svg> بایگانی فرم</button>
+  </div>
+</aside>
+
+<aside class="sheet" id="shExcel" role="dialog" aria-label="خروجی اکسل">
+  <div class="grabber"></div>
+  <div class="head">خروجی اکسل</div>
+  <p class="cap" style="margin-top:4px">ستون‌هایی که لازم دارید را بردارید؛ خروجی همان لحظه ساخته می‌شود.</p>
+  <div class="row tight" style="margin-top:12px" id="cols"></div>
+  <div class="row" style="margin-top:14px"><button class="btn primary" id="excelGo"><svg class="i"><use href="#i-download"/></svg> تولید فایل</button>
+    <button class="btn quiet" data-close>بستن</button></div>
+</aside>
+
+<aside class="sheet" id="shChange" role="dialog" aria-label="تغییر">
+  <div class="grabber"></div>
+  <div class="head" id="chTitle">تغییر</div>
+  <div class="pbody" id="chBody" style="padding:12px 0;display:grid;gap:10px"></div>
+  <div class="row"><button class="btn primary" id="chApply">اعمال کن</button><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
+</aside>
+
+<aside class="sheet" id="shReject" role="dialog" aria-label="رد رسید">
+  <div class="grabber"></div>
+  <div class="head">رد رسید</div>
+  <div class="card sunk" style="margin-top:10px">
+    <div class="row"><svg class="i" style="color:var(--stop)"><use href="#i-close"/></svg>
+      <span class="sub">با رد رسید، ثبت‌نام موقت باطل می‌شود و اطلاعات پاسخ‌دهنده می‌ماند؛ فقط پرداخت را از ابتدا انجام می‌دهد.</span></div>
+  </div>
+  <div style="margin-top:12px"><label class="lbl">دلیل</label>
+    <div class="row tight" id="reasons">
+      <button class="chip" data-chip>مبلغ یکی نیست</button><button class="chip" data-chip>رسید ناخوانا است</button>
+      <button class="chip" data-chip>واریز پیدا نشد</button><button class="chip" data-chip>فرستندهٔ دیگری است</button></div></div>
+  <label class="lbl" style="margin-top:10px">توضیح برای پاسخ‌دهنده</label>
+  <textarea class="input" id="rejNote" placeholder="کوتاه و روشن بنویسید"></textarea>
+  <div class="row" style="margin-top:12px"><button class="btn stop" id="rejGo">رد و باطل‌کردن ثبت‌نام</button></div>
+</aside>
+
+<aside class="sheet" id="shMsg" role="dialog" aria-label="پیام به پاسخ‌دهنده‌ها">
+  <div class="grabber"></div>
+  <div class="head" id="msgHead">پیام به پاسخ‌دهنده‌ها</div>
+  <p class="cap" style="margin-top:6px" id="msgSub">—</p>
+  <div id="msgAudBox">
+    <label class="lbl" style="margin-top:10px">به</label>
+    <div class="row tight" id="msgAud"></div>
+  </div>
+  <label class="lbl" style="margin-top:10px">متن پیام</label>
+  <textarea class="input" id="msgText" placeholder="مثلاً: جای جلسهٔ اول از سالن ۲ به سالن ۳ تغییر کرد."></textarea>
+  <div class="row" style="margin-top:6px">
+    <span class="cap">هم در بله و هم پیامک می‌رود؛ متن در تاریخچهٔ خودِ پاسخ‌دهنده می‌ماند.</span>
+    <span class="sp"></span><span class="cap" id="msgCount">—</span></div>
+  <div class="row tight" style="margin-top:10px">
+    <button class="btn sm quiet" data-quick="جای جلسه عوض شد؛ نشانی تازه را در همین پیام ببینید.">جای جلسه</button>
+    <button class="btn sm quiet" data-quick="یادتان باشد کارت شناسایی همراه داشته باشید.">کارت شناسایی</button>
+    <button class="btn sm quiet" data-quick="رسیدتان تأیید شد؛ ثبت‌نام قطعی شد و نتیجه را در بله پیام می‌دهیم.">تأیید رسید</button>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn primary" id="msgGo"><svg class="i"><use href="#i-send"/></svg> ارسال</button><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
+</aside>
+
+<aside class="sheet" id="shPass" role="dialog" aria-label="سپردن به کارشناس دیگر">
+  <div class="grabber"></div>
+  <div class="head">سپردن به کارشناس دیگر</div>
+  <p class="cap" style="margin-top:6px">رسید از کارتابل من می‌رود و روی میز او می‌نشیند؛ در سابقهٔ پاسخ‌دهنده هم می‌ماند.</p>
+  <div class="row tight" id="passWho" style="margin-top:12px"></div>
+  <label class="lbl" style="margin-top:12px">یادداشت برای او (اختیاری)</label>
+  <input class="input" id="passNote" placeholder="مثلاً: مبلغ کم است، خودم پیگیری کردم."/>
+  <div class="row" style="margin-top:12px">
+    <button class="btn primary" id="passGo"><svg class="i"><use href="#i-send"/></svg> بسپار</button>
+    <span class="sp"></span><button class="btn quiet" data-close>بستن</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
+
+<script src="cert-font.js"></script>
+<script src="ui.js?v=89"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
+   ══════════════════════════════════════════════════════════════════ */
+const FORMS=[
+{id:'f1',name:'ثبت‌نام کارگاه فن بیان',kind:'رویداد',tone:'ok',status:'در حال ثبت‌نام',
+ slug:'lifeline1.ir/events/fanbayan/register',expert:'خانم رستگار',dept:'edu',
+ seen:2140,started:412,resp:128,paid:109,money:103375000,
+ start:'۱۴۰۵/۰۷/۰۱ · ۰۸:۰۰',ends:'۱۴۰۵/۰۷/۳۰ · ۲۳:۴۵',cap:150,wait:true,per:3,skin:'blue',
+ head:'کارگاه فن بیان مقدماتی',intro:'سه جلسهٔ عملی، پنجشنبه‌ها ۱۶ تا ۱۸.',
+ fin:[{l:'شرکت حضوری در سالن',p:850000,off:15,req:false,g:'نوع شرکت',d:'روی صندلی، همراه با جزوهٔ کارگاه'},
+       {l:'شرکت آنلاین و زنده',p:600000,off:0,req:false,g:'نوع شرکت',d:'پخش زندهٔ همان کلاس'},
+       {l:'ناهار و پذیرایی',p:150000,off:0,req:false,d:''}],
+ groups:[{n:'نوع شرکت',of:[0,1],req:true,one:true}],
+ guestsOn:true,guestsMax:3,guests:['علی رضایی'],
+ gw:['درگاه رسمی بله','کارت‌به‌کارت'], parts:['kind','title','date','venue','name','seat','no','code','qr','logo','note'],coupon:'NORA10 · ٪۱۰',
+ endText:'ثبت‌نام شما دریافت شد. نتیجهٔ بررسی رسید را پیام می‌دهیم.',
+ links:['صفحهٔ رویداد','گروه اطلاع‌رسانی'],
+ event:{id:'ev1',nested:true,sync:{cap:true,dates:true,limit:true},restrict:'event'},
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:true},
+ flags:['receipts','cert','excel'],
+ certOn:true,certHours:'۲۴ ساعت',certIssued:{},certReq:{},
+ fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['تاریخ تولد',96],['استان و شهر',100],['دانشگاه',62],['شغل',88],['سطح تجربه',100]],
+ changes:[['۱۰ مهر · ظرفیت از ۱۲۰ به ۱۵۰ رسید','خانم رستگار'],['۸ مهر · کد تخفیف NORA10 ساخته شد','مدیر سامانه'],['۲ مهر · پیوند گروه اطلاع‌رسانی اضافه شد','خانم رستگار']],
+ answers:['برای جلسهٔ دوم نمی‌توانم بیایم؛ فایل صوتی دارید؟','دنبال کارگاه پیشرفته هستم.']},
+
+{id:'f2',name:'نظرسنجی رضایت دورهٔ بهار',kind:'نظرسنجی',tone:'ok',status:'در حال ثبت‌نام',
+ slug:'lifeline1.ir/f/bahar-satisfaction',expert:'آقای نادری',dept:'data',
+ seen:1610,started:520,resp:342,paid:0,money:0,
+ start:'۱۴۰۵/۰۶/۰۱ · ۰۹:۰۰',ends:'۱۴۰۵/۰۹/۱۵ · ۲۳:۰۰',cap:0,wait:false,per:1,
+ head:'نظرسنجی رضایت دورهٔ بهار',intro:'هشت پرسش کوتاه؛ بی‌نام می‌ماند.',
+ fin:[],groups:[],guestsOn:false,guestsMax:1,guests:[],gw:[],coupon:'—',
+ endText:'ممنون از وقتی که گذاشتید. خلاصهٔ نتیجه در پایان دوره منتشر می‌شود.',
+ links:['صفحهٔ دوره'],
+ event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
+ flags:['excel','raffle'],
+ fields:[['رضایت کلی',100],['نقطهٔ قوت دوره',94],['پیشنهاد بهبود',61],['از من تماس بگیرید',22]],
+ changes:[['۱۲ مهر · پرسش «پیشنهاد بهبود» اضافه شد','آقای نادری']],
+ answers:['مربی‌ها عالی بودند؛ صدا در سالن ضعیف بود.']},
+
+{id:'f3',name:'فرم عضویت خیرین',kind:'عضویت',tone:'ok',status:'در حال ثبت‌نام',
+ slug:'lifeline1.ir/f/kheyreen',expert:'خودم',dept:'edu',
+ seen:0,started:0,resp:0,paid:0,money:0,
+ start:'۱۴۰۵/۰۸/۰۱ · ۰۸:۰۰',ends:'۱۴۰۶/۰۱/۰۱ · ۲۳:۰۰',cap:0,wait:false,per:1,
+ head:'عضویت در باشگاه خیرین',intro:'ماهانه یا سالانه، هر مبلغی که در توان دارید.',
+ fin:[{l:'حق عضویت سالانه',p:2000000,off:0,req:false,g:'دورهٔ عضویت',d:'یک سال کامل'},
+       {l:'حق عضویت ماهانه',p:200000,off:0,req:false,g:'دورهٔ عضویت',d:'هر ماه، تا وقتی خودتان بخواهید'}],
+ groups:[{n:'دورهٔ عضویت',of:[0,1],req:true,one:true}],
+ guestsOn:false,guestsMax:1,guests:[],gw:['درگاه رسمی بله','کیف پول نورا پی'],
+ coupon:'—',
+ endText:'عضویت شما ثبت شد؛ کارت عضویت تا سه روز کاری صادر می‌شود.',
+ links:['گزارش هزینهکرد'],
+ event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
+ flags:['receipts','excel','cert'],
+ certOn:true,certHours:'۱۲ ساعت',certIssued:{},certReq:{},
+ fields:[['نام و نام خانوادگی',0],['شماره موبایل',0],['مبلغ ماهانه',0]],
+ changes:[],
+ answers:[]},
+
+{id:'f4',name:'آزمون کتابخوانی پاییز',kind:'آزمون',tone:'ok',status:'در حال ثبت‌نام',
+ slug:'lifeline1.ir/f/ketabkhani-paeez',expert:'خانم صادقی',dept:'media',
+ seen:820,started:300,resp:96,paid:96,money:28800000,
+ start:'۱۴۰۵/۰۷/۱۰ · ۰۸:۰۰',ends:'۱۴۰۵/۰۸/۱۰ · ۲۳:۰۰',cap:150,wait:false,per:1,
+ head:'آزمون کتابخوانی پاییز',intro:'سی پرسش چهارگزینه‌ای، بیست دقیقه، یک بار.',
+ fin:[{l:'ورودی آزمون',p:300000,off:0,req:true,d:'یک بار؛ بازگشت به آزمون ممکن نیست'}],
+ groups:[],gw:['درگاه رسمی بله'],
+ parts:['title','date','venue','name','code','qr'],
+ coupon:'—',endText:'کارنامهٔ شما پس از پایان مهلت، با پیوند یکتا فرستاده می‌شود.',
+ links:['سرفصل کتاب‌ها'],
+ event:null,
+ webhook:{on:false,url:'',events:['completed','paid','approved','rejected'],last:''},appr:{on:false},
+ flags:['excel','exam','results','cert','anti-cheat'],
+ certOn:true,certHours:'',certIssued:{},certReq:{},
+ fields:[['نام و نام خانوادگی',100],['شماره موبایل',100],['کد ملی',100],['انتخاب حوزه',100]],
+ changes:[['۹ مهر · تصویربرداری هنگام آزمون روشن شد','خانم صادقی']],
+ answers:[]}
+];
+
+const PEOPLE=[
+{id:'p1',form:'f1',name:'سارا محمدی',mobile:'۰۹۱۲۳۴۵۶۸۷۶',code:'TL1307BVUC1981',state:'pending',
+ city:'تهران · تهران',uni:'دانشگاه تهران',job:'برنامه‌نویس و فناوری اطلاعات',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۰/۰۵/۱۲',
+ at:'۱۴۰۵/۰۷/۰۴ · ۰۹:۱۴',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:10,note:'واریز از حساب همسرم انجام شد.',
+ guests:[{name:'الهام موسوی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',same:true}],
+ skip:['دانشگاه'],receipt:'۸ مهر، ۰۹:۲۰',wait:30,owner:''},
+{id:'p2',form:'f1',name:'علی رضایی',mobile:'۰۹۱۲۰۰۰۰۰۰۱',code:'TL1307BVUC1982',state:'paid',
+ city:'اصفهان · اصفهان',uni:'صنعتی اصفهان',job:'مهندس',edu:'کارشناسی ارشد',exp:'تازه‌کار',birth:'۱۳۷۵/۰۲/۰۳',
+ at:'۱۴۰۵/۰۷/۰۳ · ۱۸:۴۰',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
+{id:'p3',form:'f1',name:'مریم احمدی',mobile:'۰۹۱۲۲۲۳۳۴۴۵',code:'TL1307BVUC1983',state:'paid',
+ city:'مشهد · مشهد',uni:'فردوسی مشهد',job:'معلم و استاد',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۸/۱۱/۲۲',
+ at:'۱۴۰۵/۰۷/۰۳ · ۱۲:۰۵',gw:'درگاه رسمی بله',piece:0,count:3,coupon:10,note:'',skip:[],receipt:'',
+ guests:[{name:'رضا شریفی',mobile:'۰۹۱۲۳۳۳۴۴۵۵',same:true},{name:'نگار توکلی',mobile:'۰۹۱۹۸۸۷۷۶۶۵',same:false}]},
+{id:'p4',form:'f1',name:'حسن کریمی',mobile:'۰۹۹۱۲۳۴۵۶۷۸',code:'TL1307BVUC1984',state:'pending',
+ city:'شیراز · شیراز',uni:'شیراز',job:'کارمند شرکت خصوصی',edu:'دیپلم',exp:'تازه‌کار',birth:'۱۳۸۰/۰۷/۳۰',
+ at:'۱۴۰۵/۰۷/۰۴ · ۱۰:۵۰',gw:'کارت‌به‌کارت',piece:1,count:1,coupon:0,note:'',skip:[],receipt:'۸ مهر، ۱۱:۰۲',wait:6,owner:''},
+{id:'p5',form:'f1',name:'زهرا نیک‌پور',mobile:'۰۹۱۳۴۵۶۷۸۹۰',code:'TL1307BVUC1985',state:'paid',
+ city:'تبریز · تبریز',uni:'تبریز',job:'دانشجو',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۸۲/۰۳/۱۵',
+ at:'۱۴۰۵/۰۷/۰۲ · ۲۱:۳۰',gw:'درگاه رسمی بله',piece:1,count:2,coupon:0,note:'',skip:[],receipt:'',
+ guests:[{name:'سینا رحیمی',mobile:'۰۹۳۳۴۴۵۵۶۶۷',same:true}]},
+{id:'p6',form:'f1',name:'رضا شریفی',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'TL1307BVUC1986',state:'half',
+ city:'کرج · کرج',uni:'شهید بهشتی',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'حرفه‌ای',birth:'۱۳۶۵/۰۹/۰۹',
+ at:'۱۴۰۵/۰۷/۰۴ · ۰۸:۰۵',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:''},
+{id:'p8',form:'f2',name:'بی‌نام',mobile:'۰۹۱۲۰۰۰۰۰۰۰',code:'—',state:'paid',
+ city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ · ۱۰:۱۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'رضایت کلی':'۴ از ۵','نقطهٔ قوت دوره':'مربی‌ها','پیشنهاد بهبود':'صدا در سالن ضعیف بود','از من تماس بگیرید':'نه'}},
+{id:'p9',form:'f2',name:'بی‌نام',mobile:'۰۹۳۵۱۱۱۲۲۳۳',code:'—',state:'paid',
+ city:'—',uni:'—',job:'—',edu:'—',exp:'—',birth:'—',at:'۱۴۰۵/۰۷/۰۲ · ۱۴:۴۰',gw:'—',piece:0,count:1,coupon:0,note:'',skip:['پیشنهاد بهبود'],receipt:'',
+ ans:{'رضایت کلی':'۵ از ۵','نقطهٔ قوت دوره':'برنامه‌ریزی و نظم','از من تماس بگیرید':'بله'}},
+{id:'p10',form:'f4',name:'مینا کاظمی',mobile:'۰۹۱۲۹۹۸۸۷۷۶',code:'TL1307EXAM2041',state:'paid',
+ city:'قم · قم',uni:'قم',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۵/۰۴/۰۲',at:'۱۴۰۵/۰۷/۱۲ · ۱۱:۲۰',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'کد ملی':'۰۰۱۲۳۴۵۶۷۸','انتخاب حوزه':'داستان فارسی'}},
+{id:'p11',form:'f4',name:'سعید رحیمی',mobile:'۰۹۳۰۵۵۵۴۴۳۳',code:'TL1307EXAM2042',state:'paid',
+ city:'یزد · یزد',uni:'یزد',job:'معلم و استاد',edu:'کارشناسی ارشد',exp:'متوسط',birth:'۱۳۶۲/۱۲/۱۰',at:'۱۴۰۵/۰۷/۱۳ · ۰۹:۰۵',gw:'درگاه رسمی بله',piece:0,count:1,coupon:0,note:'',skip:[],receipt:'',
+ ans:{'کد ملی':'۰۰۶۹۸۷۶۵۴۳','انتخاب حوزه':'شعر معاصر'}},
+{id:'p12',form:'f4',name:'الهام داوودی',mobile:'۰۹۱۲۷۷۶۶۵۵۴',code:'TL1307EXAM2043',state:'pending',
+ city:'کرمان · کرمان',uni:'شهید باهنر',job:'دانشجو',edu:'کارشناسی',exp:'تازه‌کار',birth:'۱۳۸۶/۱۰/۰۳',at:'۱۴۰۵/۰۷/۱۱ · ۱۶:۴۰',gw:'کارت‌به‌کارت',piece:0,count:1,coupon:0,
+ note:'واریز از حساب برادرم انجام شد؛ رسید پیوست است.',skip:[],receipt:'۱۱ مهر، ۱۶:۵۲',wait:52,owner:'',
+ ans:{'کد ملی':'۰۰۲۳۴۵۶۷۸۹','انتخاب حوزه':'ادبیات کهن'}},
+{id:'p13',form:'f3',name:'محسن یاری',mobile:'۰۹۱۲۵۵۴۴۳۳۲',code:'TL1307KHYR3001',state:'pending',
+ city:'تهران · تهران',uni:'—',job:'آزاد و صاحب کسب‌وکار',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۵۸/۰۷/۱۹',at:'۱۴۰۵/۰۷/۰۵ · ۰۷:۲۰',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:0,
+ note:'',skip:[],receipt:'۵ مهر، ۰۷:۳۵',wait:3,owner:'',guests:[{name:'همسرش',mobile:'۰۹۱۲۵۵۴۴۳۳۱',same:true}]},
+{id:'p7',form:'f1',name:'نگار سلطانی',mobile:'۰۹۰۲۹۹۸۸۷۷۶',code:'TL1307BVUC1987',state:'void',
+ city:'اهواز · اهواز',uni:'شهید چمران اهواز',job:'حسابدار و مالی',edu:'کارشناسی',exp:'متوسط',birth:'۱۳۷۲/۰۱/۲۸',
+ at:'۱۴۰۵/۰۷/۰۱ · ۱۳:۱۲',gw:'کارت‌به‌کارت',piece:0,count:2,coupon:0,note:'رسید رد شد: مبلغ کم بود.',skip:[],receipt:'۱ مهر، ۱۳:۳۰'}
+];
+
+/* ══ فرم‌هایی که در فرم‌ساز ساخته شده‌اند ══
+   فرم‌ساز در انبار مشترک می‌نویسد و این‌جا روی نمونه‌ها می‌آیند؛ فرمی که به
+   رویدادی وصل شده، پنل رویداد هم همان را می‌بیند. */
+function storeForms(){
+  let raw=[];
+  try{raw=(window.NORA_UI&&NORA_UI.formsAll)?NORA_UI.formsAll():[]}catch(e){raw=[]}
+  return raw.map(f=>({
+    id:f.id, name:f.name||'فرم بی‌نام', kind:f.kind||'فرم', tone:'ok', status:'تازه ساخته شده',
+    slug:f.slug||('lifeline1.ir/f/'+f.id), expert:f.expert||'خودم', dept:f.dept||'edu',
+    seen:0, started:0, resp:0, paid:0, money:(f.fin||[]).reduce((n,o)=>n+(o.off?Math.round(o.p*(100-o.off)/100):o.p),0),
+    start:f.start||'', ends:f.ends||'', cap:f.cap||0, wait:f.wait||0, per:f.maxPer||1, skin:'blue',
+    head:f.name||'', intro:f.intro||'', fin:f.fin||[], groups:f.groups||[], guestsOn:!!f.guestsOn, guestsMax:1, guests:[],
+    gw:['درگاه رسمی بله'], parts:[], coupon:(f.coupon&&f.coupon.code)||'—',
+    endText:f.endText||'', links:[], event:f.ev?{id:f.ev, nested:true, sync:f.sync||{cap:true,dates:true,limit:true}, restrict:'event'}:null,
+    flags:[], certOn:false, certHours:'', certIssued:{}, certReq:{},
+    fields:(f.fields||[]).map(x=>Array.isArray(x)?x:[x,100]), changes:[], answers:[], need:f.need||''}));
+}
+try{const made=storeForms(); if(made.length) FORMS.unshift.apply(FORMS,made)}catch(e){}
+
+const STATE_TAG={paid:['ok','پرداخت قطعی'],pending:['warn','در انتظار تأیید رسید'],void:['stop','باطل'],half:['','نیمه‌کاره']};
+let CUR=FORMS[0], CURP=null, FILTER='all';
+
+/* ── حساب و کتاب ─────────────────────────────────────────────── */
+const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
+function pay(p){const f=FORMS.find(x=>x.id===p.form); const o=(f.fin&&f.fin[p.piece])||{l:'—',p:0,off:0};
+  const per=net(o), sub=per*p.count, dis=p.coupon?Math.round(sub*p.coupon/100):0;
+  return {per,sub,dis,sum:sub-dis};}
+const pendings=()=>PEOPLE.filter(p=>p.state==='pending');
+
+/* ── رویدادها: فرم زیر صفحهٔ رویداد می‌نشیند؛ ظرفیت/تاریخ/محدودیت با آن همگام می‌شود ── */
+const EVENTS=[
+ {id:'ev1',n:'کارگاه فن بیان مقدماتی',at:'۱۴۰۵/۰۷/۰۸',v:'فرهنگسرای نیاوران',slug:'https://lifeline1.ir/events/fanbayan'},
+ {id:'ev2',n:'نشست ماهانهٔ خیرین',at:'۱۴۰۵/۰۷/۲۰',v:'سالن مؤسسه',slug:'https://lifeline1.ir/events/kheyreen'},
+ {id:'ev3',n:'اردوی پاییزهٔ نوجوانان',at:'۱۴۰۵/۰۸/۱۲',v:'لواسان',slug:'https://lifeline1.ir/events/ordoo'}];
+const RESTRICT={free:'آزاد برای همه',event:'فقط ثبت‌نام‌کرده‌های رویداد',attended:'حاضران جلسهٔ پیشین',invite:'فهرست یا کد دعوت'};
+
+/* ── گشت ─────────────────────────────────────────────────────── */
+function go(id){
+  if(id==='fMine') renderMine();
+  if(id==='fAttend') renderAttend();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+  document.querySelectorAll('.rail [data-go]').forEach(b=>b.classList.toggle('tint',b.dataset.go===id));
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function renderList(){
+  const q=(document.getElementById('q').value||'').trim();
+  const list=FORMS.filter(f=>(FILTER==='all'||f.tone===FILTER||(FILTER==='exam'&&f.kind==='آزمون')||(FILTER==='money'&&f.fin.length))
+      &&(!q||f.name.includes(q)||f.slug.includes(q)));
+  document.getElementById('formCards').innerHTML=list.map(f=>{
+    const rate=f.started?Math.round(f.resp/f.started*100):0;
+    return `<div class="card paper fcard sheen" data-form="${f.id}">
+      <div class="row">
+        <span class="glass-thin" style="width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto">
+          <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':'users'}"/></svg></span>
+        <div style="min-width:0">
+          <div class="head tight">${f.name}</div>
+          <div class="cap">${f.kind} · <b>بخش ${DEPT_OF(f).n}</b> · کارشناس ${f.expert} · تا ${f.ends}</div>
+        </div>
+        <span class="sp"></span>
+        ${pendings().filter(p=>p.form===f.id).length?`<span class="tag warn">${faN(pendings().filter(p=>p.form===f.id).length)} رسید در انتظار</span>`:''}
+        ${f.appr&&f.appr.on&&PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length?`<span class="tag stop">${faN(PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length)} منتظر تأیید</span>`:''}
+        <span class="tag ${f.tone}"><span class="dot"></span> ${f.status}</span>
+      </div>
+      <div class="metrics" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px">
+        <div class="metric"><div class="n">${fa(f.resp)}</div><div class="l">پاسخ</div></div>
+        <div class="metric ${f.money?'brand':''}"><div class="n">${f.money?fa(f.money):'—'}</div><div class="l">${f.money?'ریال فروش':'بدون مالی'}</div></div>
+        <div class="metric"><div class="n">${faN(rate)}٪</div><div class="l">تکمیل از شروع</div></div>
+      </div>
+    </div>`}).join('')||`<div class="empty"><svg class="i xl"><use href="#i-search"/></svg><div class="body">فرمی با این نشانه پیدا نشد</div></div>`;
+}
+function openForm(id){CUR=FORMS.find(f=>f.id===id)||FORMS[0]; renderPanel(); go('fPanel');}
+function tab(name){
+  document.querySelectorAll('#pSeg button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
+  document.querySelectorAll('.ptab').forEach(s=>s.classList.toggle('on',s.id==='tab'+name[0].toUpperCase()+name.slice(1)));
+}
+function renderPanel(){
+  syncGw();
+  tab('stats');
+  document.getElementById('pName').textContent=CUR.name;
+  document.getElementById('pSub').textContent=CUR.kind+' · '+CUR.expert+' · تا '+CUR.ends;
+  const st=document.getElementById('pStatus'); st.className='tag '+CUR.tone;
+  st.innerHTML='<span class="dot"></span> '+CUR.status;
+  document.getElementById('pLink').textContent=CUR.slug;
+  renderStats(); renderInfo(); renderChanges(); renderAnswers();
+}
+/* ── آمار ─────────────────────────────────────────────────────── */
+function renderStats(){
+  const f=CUR, rate=s=>f.seen?Math.round(s/f.seen*100):0;
+  const box=document.getElementById('statsBox');
+  box.innerHTML=`
+  <div class="metrics">
+    <div class="metric"><div class="n">${fa(f.seen)}</div><div class="l">بازدید پیوند</div></div>
+    <div class="metric brand"><div class="n">${fa(f.resp)}</div><div class="l">پاسخ کامل</div></div>
+    <div class="metric ${f.money?'acc':''}"><div class="n">${f.money?fa(f.money):fa(0)}</div><div class="l">${f.money?'ریال فروش':'ریال فروش'}</div>
+      ${f.money?`<div class="mini">${tomanTxt(f.money)}</div>`:''}</div>
+    <div class="metric"><div class="n">${f.paid?fa(Math.round(f.money/f.paid)):'—'}</div><div class="l">${f.paid?'ریال میانگین هر پرداخت':'پرداختی نداشته'}</div></div>
+  </div>
+  <div class="split" style="margin-top:12px">
+    <div class="stack">
+      <div class="card paper">
+        <div class="row" style="margin-bottom:10px"><span class="fw">قیف</span><span class="sp"></span><span class="cap">سه گام تا ثبت‌نام</span></div>
+        <div class="funnel2">
+          <div class="f"><span>بازدید</span><span class="bar"><i style="width:100%"></i></span><b>${fa(f.seen)}</b></div>
+          <div class="f"><span>شروع پر کردن</span><span class="bar"><i style="width:${Math.max(rate(f.started),3)}%"></i></span><b>${fa(f.started)}</b></div>
+          <div class="f"><span>پاسخ کامل</span><span class="bar"><i style="width:${Math.max(rate(f.resp),2)}%"></i></span><b>${fa(f.resp)}</b></div>
+          <div class="f"><span>پرداخت‌شده</span><span class="bar"><i style="width:${Math.max(rate(f.paid),2)}%"></i></span><b>${fa(f.paid)}</b></div>
+        </div>
+        <p class="mnote" style="margin-top:10px">بیشترین ریزش در گام دوم است: ${faN(f.started-f.resp)} نفر پر کردن را نیمه‌کاره رها کردند.</p>
+      </div>
+      <div class="card paper">
+        <div class="row" style="margin-bottom:4px"><span class="fw">پاسخ هر پرسش</span><span class="sp"></span><span class="cap">درصد پاسخ‌دهی</span></div>
+        ${f.fields.map(([n,p])=>`<div class="grow" style="padding:7px 0"><span>${n}</span><span class="bar"><i style="width:${p}%"></i></span><b>${faN(p)}٪</b></div>`).join('')}
+      </div>
+      ${f.answers.length?`<div class="card paper">
+        <div class="fw" style="margin-bottom:6px">پاسخ‌های متنی</div>
+        ${f.answers.map(a=>`<div class="answer"><span class="v">${a}</span></div>`).join('')}
+        <button class="btn quiet sm" style="margin-top:8px" data-sheet="shExcel"><svg class="i"><use href="#i-download"/></svg> همه در اکسل</button>
+      </div>`:''}
+    </div>
+    <div class="stack">
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:8px">خروجی</div>
+        <div class="stack tight">
+          <button class="chrow" data-sheet="shExcel"><span class="ic"><svg class="i"><use href="#i-download"/></svg></span>
+            <span class="tx"><b>اکسل با ستون دلخواه</b><span>${fa(f.resp)} ردیف · همهٔ پرسش‌ها</span></span>
+            <svg class="i"><use href="#i-chev-left"/></svg></button>
+          <button class="chrow" data-open="fKartabl"><span class="ic"><svg class="i"><use href="#i-inbox"/></svg></span>
+            <span class="tx"><b>کارتابل رسیدها</b><span>${faN(pendings().filter(p=>p.form===f.id).length)} رسید در انتظار</span></span>
+            <svg class="i"><use href="#i-chev-left"/></svg></button>
+          ${f.flags.includes('results')?`<button class="chrow" data-change="resultlink"><span class="ic"><svg class="i"><use href="#i-link"/></svg></span>
+            <span class="tx"><b>پیوند نتیجهٔ آزمون</b><span>با کد پیگیری و کد ملی</span></span>
+            <svg class="i"><use href="#i-chev-left"/></svg></button>`:''}
+          ${f.flags.includes('cert')?`<button class="chrow" data-change="cert"><span class="ic"><svg class="i"><use href="#i-medal"/></svg></span>
+            <span class="tx"><b>گواهینامه</b><span>درخواست برای ${fa(f.paid)} پرداخت‌شده · با تأیید سرپرست</span></span>
+            <svg class="i"><use href="#i-chev-left"/></svg></button>`:''}
+        </div>
+      </div>
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:8px">روزهای پرکار</div>
+        <div class="minibars">${[18,26,41,55,72,64,49,83,96,71,58,44].map(v=>`<i style="height:${v}%" title="${faN(v)}٪"></i>`).join('')}</div>
+        <div class="row"><span class="cap">دوازده روز گذشته · بیشترین ثبت‌نام، نهم مهر</span></div>
+      </div>
+      <div class="card sunk">
+        <div class="row"><svg class="i"><use href="#i-trend"/></svg><span class="sub">نرخ تکمیل نسبت به دورهٔ قبل ${faN(6)}٪ بهتر شده؛ کارشناس ${f.expert} مسئول همین فرم است.</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+/* ── اطلاعات ──────────────────────────────────────────────────── */
+function renderInfo(){
+  const f=CUR;
+  document.getElementById('infoBox').innerHTML=`
+  <div class="split">
+    <div class="stack">
+      ${f.event?`<div class="card paper">
+        <div class="row" style="margin-bottom:10px"><span class="fw">رویداد</span><span class="sp"></span>
+          ${f.event.nested?'<span class="tag brand">فرم زیر صفحهٔ رویداد</span>':''}
+          <button class="btn sm quiet" data-copy="${(EVENTS.find(e=>e.id===f.event.id)||{}).slug||''}">
+            <svg class="i"><use href="#i-link"/></svg> صفحهٔ رویداد</button>
+          <button class="btn sm quiet" data-evdetach="1"><svg class="i"><use href="#i-close"/></svg> جدا کردن</button>
+        </div>
+        <div class="answer"><span class="k">رویداد</span><span class="v">${(EVENTS.find(e=>e.id===f.event.id)||{}).n||'—'}</span></div>
+        <div class="answer"><span class="k">تاریخ و جا</span><span class="v num">${(EVENTS.find(e=>e.id===f.event.id)||{}).at||'—'} · ${(EVENTS.find(e=>e.id===f.event.id)||{}).v||'—'}</span></div>
+        <div class="answer"><span class="k">پیوند</span><span class="v num" style="direction:ltr">${(EVENTS.find(e=>e.id===f.event.id)||{}).slug||'—'}</span></div>
+        <div class="answer"><span class="k">چه کسی می‌تواند پر کند</span><span class="v">${RESTRICT[f.event.restrict]||RESTRICT.free}</span></div>
+        <div class="row tight" style="margin-top:10px">
+          <span class="tag ${f.event.sync.cap?'ok':'quiet'}">${f.event.sync.cap?'ظرفیت همگام':'ظرفیت دستی'}</span>
+          <span class="tag ${f.event.sync.dates?'ok':'quiet'}">${f.event.sync.dates?'تاریخ‌ها همگام':'تاریخ‌ها دستی'}</span>
+          <span class="tag ${f.event.sync.limit?'ok':'quiet'}">${f.event.sync.limit?'محدودیت همگام':'محدودیت دستی'}</span>
+          <span class="sp"></span>
+          <button class="btn sm quiet" data-change="event"><svg class="i"><use href="#i-pen"/></svg> تنظیم اتصال</button>
+        </div>
+        <p class="mnote" style="margin-top:8px">فرم زیر همین رویداد منتشر می‌شود؛ ظرفیت و بازهٔ ثبت‌نام از رویداد خوانده می‌شود و هر تغییر اینجا در سابقهٔ فرم می‌ماند.</p>
+      </div>`:`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">رویداد</span><span class="sp"></span>
+          <span class="tag quiet">وصل نیست</span></div>
+        <p class="sub">این فرم رویداد ندارد؛ خودش تنها منتشر می‌شود. اگر زیر یک رویداد برود، ظرفیت و تاریخ‌ها از آن خوانده می‌شود.</p>
+        <button class="btn sm" style="margin-top:10px" data-change="event">
+          <svg class="i"><use href="#i-link"/></svg> اتصال به رویداد</button>
+      </div>`}
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:6px">شناسنامهٔ فرم</div>
+        <div class="answer"><span class="k">نوع فرم</span><span class="v">${f.kind}</span></div>
+        <div class="answer"><span class="k">بخش</span><span class="v">${DEPT_OF(f).n}</span></div>
+        <div class="answer"><span class="k">کارشناس بخش</span><span class="v">${DEPT_OF(f).expert}</span></div>
+        <div class="answer"><span class="k">پیوند</span><span class="v num" style="direction:ltr">${f.slug}</span></div>
+        <div class="answer"><span class="k">کارشناس مسئول</span><span class="v">${f.expert}</span></div>
+        <div class="answer"><span class="k">سربرگ</span><span class="v">${f.head}</span></div>
+        <div class="answer"><span class="k">توضیحات ابتدا</span><span class="v">${f.intro}</span></div>
+        <div class="answer"><span class="k">بازهٔ ثبت‌نام</span><span class="v num">${f.start} تا ${f.ends}</span></div>
+        <div class="answer"><span class="k">ظرفیت</span><span class="v">${f.cap?fa(f.cap)+' نفر'+(f.wait?' + لیست انتظار':''):'بی‌کران'}</span></div>
+        <div class="answer"><span class="k">هر نفر</span><span class="v">تا ${faN(f.per)} نفر</span></div>
+        <div class="answer"><span class="k">کد تخفیف</span><span class="v">${f.coupon}</span></div>
+        <div class="answer"><span class="k">وضعیت</span><span class="v">${f.status}</span></div>
+        ${f.flags.includes('cert')?`<div class="answer"><span class="k">گواهینامه</span><span class="v">
+          صدور فقط با تأیید سرپرست
+          <span class="cap">${faN(Object.keys(f.certIssued||{}).length)} صادرشده · ${faN(Object.keys(f.certReq||{}).length)} در انتظار تأیید، از ${faN(f.paid)} پرداخت‌شده</span></span></div>`:''}
+      </div>
+      <div class="card paper">
+        <div class="row" style="margin-bottom:6px"><span class="fw">متن پایانی و پیوندها</span><span class="sp"></span>
+          <button class="btn sm quiet" data-change="endtext"><svg class="i"><use href="#i-pen"/></svg> ویرایش</button></div>
+        <p class="sub">${f.endText}</p>
+        <div class="stack tight" style="margin-top:10px">
+          ${f.links.map(l=>`<div class="row" style="padding:10px 0;border-bottom:.5px solid var(--hairline-2)">${l}
+            <span class="sp"></span><span class="tag brand">دکمه در فرم</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">قطعه‌های مالی</span><span class="sp"></span><span class="cap">هر قطعه یک قیمت</span></div>
+        ${f.fin.length?f.fin.map(o=>`<div class="moneyline"><span>${o.l}</span><span class="num">
+            ${o.off?`<span class="price"><span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)}</span><span class="now num">${fa(net(o))}</span><span class="cap">ریال</span></span>`:fa(o.p)+' ریال'}</span></div>`).join('')
+          +`<div class="moneyline t"><span>هر نفر</span><span>${rialTxt(f.fin.reduce((a,o)=>a+net(o),0))}</span></div>
+            <div class="mini">${tomanTxt(f.fin.reduce((a,o)=>a+net(o),0))}</div>`
+          :'<div class="empty" style="padding:14px"><div class="body">این فرم مالی ندارد</div></div>'}
+        <div class="row tight" style="margin-top:10px">${f.gw.length?f.gw.map(g=>`<span class="chip on">${g}</span>`).join(''):'<span class="cap">درگاهی فعال نیست</span>'}</div>
+        <p class="mnote" style="margin-top:8px">قطعه‌ها و مدل‌های پرداخت از بخش «مالی» سامانه مدیریت می‌شوند؛ این‌جا فقط نشان داده می‌شود.</p>
+      </div>
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:8px">حلقهٔ کار</div>
+        <div class="timeline">
+          <div class="t past"><span class="dot2"></span><span>ساخته شد · ${f.kind}، کارشناس ${f.expert}</span></div>
+          <div class="t past"><span class="dot2"></span><span>منتشر شد · پیوند روی صفحهٔ ${f.kind==='رویداد'?'رویداد':'فرم'} نشست</span></div>
+          <div class="t"><span class="dot2"></span><span>در حال ثبت‌نام · ${fa(f.resp)} پاسخ از ${fa(f.seen)} بازدید</span></div>
+          <div class="t future"><span class="dot2"></span><span>پایان ${f.ends} · بستن خودکار و قطعی‌شدن ثبت‌نام</span></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+/* ── تغییرات ──────────────────────────────────────────────────── */
+const GROUPS=[
+ {t:'چیدمان و پرسش‌ها',rows:[
+   ['addfield','i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],
+   ['text','i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید']]},
+ {t:'مهلت و ظرفیت',rows:[
+   ['dates','i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],
+   ['cap','i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
+   ['per','i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],
+   ['per','i-users','همراه‌آوردن','باز یا بسته · پیش‌فرض بسته']]},
+ {t:'مالی',rows:[
+   ['fin','i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
+   ['coupon','i-star','کد تخفیف','درصد یا مبلغ'],'gw']},
+ {t:'گواهینامه و پایان',rows:[
+   ['endtext','i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه']]},
+ {t:'برخورد با پاسخ‌دهنده‌ها',rows:[
+   ['msg','i-send','پیام گروهی','بی‌اسکای و پیامک'],
+   ['excel','i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
+   'kartabl',
+   ['expert','i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری']]},
+ {t:'کارهای ویژهٔ همین فرم',rows:[]}
+];
+function renderChanges(){
+  const f=CUR;
+  const special=[];
+  if(f.flags.includes('results'))special.push(['resultlink','i-link','پیوند نتیجه','با کد پیگیری و کد ملی']);
+  if(f.flags.includes('exam'))special.push(['scorecard','i-chart','کارنامه و تصحیح','درست و غلط و بی‌پاسخ']);
+  if(f.flags.includes('exam'))special.push(['anticheat','i-shield','ضد‌تقلب آزمون','تصویر کاربر، تشخیص ورود چندگانه']);
+  if(f.flags.includes('raffle'))special.push(['raffle','i-medal','قرعه‌کشی','انتخاب برنده میان پاسخ‌دهنده‌ها']);
+  if(f.flags.includes('cert'))special.push(['cert','i-medal','گواهینامه','درخواست با تأیید سرپرست']);
+  if(f.money)special.push(['_money','i-wallet','رفتن به بخش مالی','تسویه و تراکنش‌ها']);
+  const R={
+    addfield:['i-plus','افزودن پرسش','انتخاب از کاتالوگ پرسش‌ها'],text:['i-type','سربرگ و توضیحات ابتدا','متن بالای فرم را عوض کنید'],
+    dates:['i-calendar','بازهٔ ثبت‌نام','شروع و پایان را از فهرست بردارید'],cap:['i-users','ظرفیت و لیست انتظار','پر شدن ظرفیت چه کند'],
+    per:['i-users','تعداد نفرات همراه','همراه داشتن یا نداشتن'],fin:['i-wallet','افزودن قطعهٔ مالی','هر قطعه یک قیمت'],
+    coupon:['i-star','کد تخفیف','درصد یا مبلغ'],gw:['i-wallet','مدل‌های پرداخت','فقط در بخش مالی'],
+    endtext:['i-pen','متن پایانی و پیوندها','هر پیوند یک دکمه'],
+    webhook:['i-link','وبهوک و رخدادها','خبر رخدادها به سیستم دیگر'],appr:['i-shield','گردش کار چندمرحله‌ای','صف تأیید و ثبت‌نام خودکار'],
+    msg:['i-send','پیام گروهی','بی‌اسکای و پیامک'],excel:['i-download','خروجی اکسل','ستون‌ها را خودتان بردارید'],
+    kartabl:['i-inbox','کارتابل رسیدها','تأیید و رد رسیدهای کارت‌به‌کارت'],expert:['i-user','انتقال به کارشناس دیگر','مسئولیت پیگیری'],
+    ...Object.fromEntries(special.map(s=>[s[0],[s[1],s[2],s[3]]]))
+  };
+  const allowed=['addfield','text','dates','cap','per','msg','excel','kartabl','expert','endtext','webhook','appr',
+    ...(f.fin.length?['fin','coupon','gw']:[]), ...special.map(s=>s[0])];
+  const row=k=>{const [ic,t,c]=R[k]; if(!ic) return '';
+    return `<button class="chrow" data-change="${k}"><span class="ic"><svg class="i"><use href="#${ic}"/></svg></span>
+      <span class="tx"><b>${t}</b><span>${c}</span></span><svg class="i"><use href="#i-chev-left"/></svg></button>`};
+  document.getElementById('changesBox').innerHTML=`
+  <div class="card paper">
+    <div class="row"><div><div class="fw">تغییراتی که می‌خواهم بدهم</div>
+      <div class="cap">هر چه بزنید، همان لحظه روی فرم می‌نشیند و در سابقه می‌ماند.</div></div>
+      <span class="sp"></span><a class="btn sm quiet" href="create.html"><svg class="i"><use href="#i-pen"/></svg> سازنده</a></div>
+    <div class="stack" style="margin-top:10px">
+      ${allowed.map(row).join('')}
+    </div>
+  </div>
+  <div class="card paper" style="margin-top:12px">
+    <div class="fw" style="margin-bottom:6px">سابقهٔ تغییرات</div>
+    ${f.changes.length?`<div class="timeline">${f.changes.map(([w,who])=>`<div class="t past"><span class="dot2"></span><span>${w} · <span class="cap">${who}</span></span></div>`).join('')}</div>`
+      :'<div class="empty" style="padding:14px"><div class="body">هنوز تغییری ثبت نشده</div></div>'}
+  </div>`;
+}
+/* ── پاسخ‌ها ──────────────────────────────────────────────────── */
+let PFILTER='all';
+function renderAnswers(){
+  const f=CUR;
+  const list=PEOPLE.filter(p=>p.form===f.id&&(PFILTER==='all'||p.state===PFILTER));
+  const st=p=>STATE_TAG[p.state];
+  document.getElementById('answersBox').innerHTML=`
+  <div class="row tight" style="margin-bottom:10px">
+    <button class="chip ${PFILTER==='all'?'on':''}" data-pf="all">همه</button>
+    <button class="chip ${PFILTER==='paid'?'on':''}" data-pf="paid">پرداخت‌شده</button>
+    <button class="chip ${PFILTER==='pending'?'on':''}" data-pf="pending">در انتظار تأیید</button>
+    <button class="chip ${PFILTER==='half'?'on':''}" data-pf="half">نیمه‌کاره</button>
+    <button class="chip ${PFILTER==='void'?'on':''}" data-pf="void">باطل</button>
+    <span class="sp"></span><button class="btn sm quiet" data-sheet="shExcel"><svg class="i"><use href="#i-download"/></svg> اکسل</button>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <thead><tr><th>پاسخ‌دهنده</th><th>زمان</th><th>مبلغ</th><th>مدل پرداخت</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody>${list.map(p=>{const m=pay(p),t=st(p);return `<tr data-person="${p.id}" style="cursor:pointer">
+        <td><b>${p.name}</b>${(p.guests||[]).length?`<span class="tag brand" style="margin-inline-start:6px">+${faN(p.guests.length)} همراه</span>`:''}
+          <div class="cap num">${f.id==='f2'?'نظرسنجی ناشناس':maskPhone(p.mobile)}</div></td>
+        <td class="num">${p.at}</td>
+        <td class="num">${f.fin.length?fa(m.sum):'—'}${p.count>1?`<div class="cap">${faN(p.count)} نفر</div>`:''}</td>
+        <td>${p.gw}</td>
+        <td><span class="tag ${t[0]}">${t[1]}</span></td>
+        <td><svg class="i" style="color:var(--ink-4)"><use href="#i-chev-left"/></svg></td></tr>`}).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="row" style="margin-top:10px"><span class="cap">${faN(list.length)} ردیف از ${fa(f.resp)} پاسخ · روی هر ردیف بزنید تا جزئیات کامل بیاید.</span></div>`;
+}
+/* ── جزئیات پاسخ‌دهنده ───────────────────────────────────────── */
+function openUser(id){
+  CURP=PEOPLE.find(p=>p.id===id); if(!CURP) return;
+  const f=FORMS.find(x=>x.id===CURP.form)||CUR, t=STATE_TAG[CURP.state], m=pay(CURP);
+  document.getElementById('usName').textContent=CURP.name;
+  document.getElementById('usSub').textContent='کد پیگیری '+CURP.code+' · '+CURP.at;
+  const tag=document.getElementById('usPay'); tag.className='tag '+t[0]; tag.innerHTML='<span class="dot"></span> '+t[1];
+  const answers=f.fields.map(([n])=>{
+    const v=(CURP.ans&&CURP.ans[n])||{['نام و نام خانوادگی']:CURP.name,['شماره موبایل']:CURP.mobile,['تاریخ تولد']:CURP.birth,
+      ['استان و شهر']:CURP.city,['دانشگاه']:CURP.uni,['شغل']:CURP.job,['سطح تجربه']:CURP.exp,['تحصیلات']:CURP.edu}[n];
+    const skipped=CURP.skip.includes(n)||!v;
+    return `<div class="answer"><span class="k">${n}</span><span class="v ${skipped?'mute':''}">${skipped?'پاسخ نداده':v}</span></div>`}).join('');
+  document.getElementById('usBody').innerHTML=`
+  ${CURP.state==='pending'?`<div class="reviewbar" style="margin-bottom:12px">
+      <svg class="i" style="color:var(--warn)"><use href="#i-bell"/></svg>
+      <span class="sub">رسید ${CURP.receipt} رسیده و در انتظار تأیید است.</span>
+      <span class="sp"></span>
+      <button class="btn sm primary" data-approve="${CURP.id}"><svg class="i"><use href="#i-check"/></svg> تأیید رسید</button>
+      <button class="btn sm stop" data-sheet="shReject">رد رسید</button>
+    </div>`:''}
+  <div class="split">
+    <div class="stack">
+      <div class="card paper">
+        <div class="row" style="margin-bottom:6px"><span class="fw">تکمیل فرم</span><span class="sp"></span>
+          <span class="cap">${f.fields.filter(x=>!CURP.skip.includes(x[0])).length} از ${faN(f.fields.length)} پرسش</span></div>
+        ${answers}
+        ${CURP.note?`<div class="card sunk" style="margin-top:10px"><span class="sub">یادداشت خودش: ${CURP.note}</span></div>`:''}
+      </div>
+      <div class="card paper">
+        <div class="fw" style="margin-bottom:6px">اطلاعات</div>
+        <div class="answer"><span class="k">موبایل</span><span class="v num">${CURP.mobile}</span></div>
+        <div class="answer"><span class="k">کد پیگیری</span><span class="v num">${CURP.code}</span></div>
+        <div class="answer"><span class="k">استان و شهر</span><span class="v">${CURP.city}</span></div>
+        <div class="answer"><span class="k">تحصیلات</span><span class="v">${CURP.edu}</span></div>
+        <div class="answer"><span class="k">عضویت پروفایل</span><span class="v">از پروفایل خوانده شد</span></div>
+      </div>
+      ${(CURP.guests||[]).length?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">همراهان</span><span class="sp"></span>
+          <span class="cap">${faN(CURP.guests.length)} نفر · هر کدام سهم پرداخت جدا</span></div>
+        ${CURP.guests.map((g,i)=>`<div class="answer"><span class="k">همراه ${faN(i+1)}</span>
+          <span class="v">${g.name} <span class="cap num">${g.mobile}</span></span></div>`).join('')}
+        <p class="mnote" style="margin-top:8px">اطلاعات همراهان همان‌جا در فرم پر شده بود؛ در صفحهٔ بعد فقط نامشان آمده.</p>
+      </div>`:''}
+      ${f.flags.includes('cert')?`<div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">گواهینامه</span><span class="sp"></span>
+          <span class="tag ${CURP.cert?'ok':(CURP.certReq?'warn':(CURP.state==='paid'?'quiet':'stop'))}">${CURP.cert?('صادر شد · '+CURP.cert):(CURP.certReq?'در انتظار تأیید سرپرست':(CURP.state==='paid'?'صدور با تأیید سرپرست':'پس از پرداخت قطعی'))}</span>
+          ${CURP.state==='paid'&&!CURP.cert&&!CURP.certReq?`<button class="btn sm quiet" data-certreq="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> درخواست گواهینامه</button>`:''}
+        </div>
+        ${CURP.cert?`<div style="overflow:hidden;border-radius:14px">${certificateSVG(certFields(f,CURP))}</div>`
+          :`<p class="sub">${CURP.certReq?'درخواست ثبت شد؛ برگ پس از تأیید سرپرست ساخته می‌شود و با کیوآر راستی‌آزمایی در بله می‌رود.':(CURP.state==='paid'?'صدور دست ما نیست: درخواست می‌فرستیم و سرپرست تأیید می‌کند.':'تا رسید تأیید و پرداخت قطعی نشود، درخواست گواهینامه فرستاده نمی‌شود.')}</p>`}
+      </div>`:''}
+      <div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">پیام‌ها</span><span class="sp"></span><span class="cap">کارشناس ${f.expert}</span></div>
+        <div class="timeline">
+          <div class="t past"><span class="dot2"></span><span>ثبت‌نام انجام شد · ${CURP.at}</span></div>
+          ${CURP.receipt?`<div class="t past"><span class="dot2"></span><span>رسید پیوست شد · ${CURP.receipt}</span></div>`:''}
+          ${(CURP.msgs||[]).map(g=>`<div class="t past"><span class="dot2"></span><span>پیام ${g.who} · ${g.at}: <span class="cap">${g.t}</span></span></div>`).join('')}
+          ${CURP.state==='pending'?`<div class="t"><span class="dot2"></span><span>در انتظار بررسی کارشناس</span></div>`:''}
+          ${CURP.state==='paid'?`<div class="t past"><span class="dot2"></span><span>پرداخت قطعی · ثبت‌نام قطعی شد</span></div>`:''}
+          ${CURP.state==='void'?`<div class="t"><span class="dot2" style="background:var(--stop)"></span><span>رسید رد شد · ثبت‌نام باطل، پرداخت از ابتدا</span></div>`:''}
+        </div>
+        <div class="row" style="margin-top:10px"><textarea class="input" style="flex:1" placeholder="پیام به همین نفر"></textarea></div>
+        <div class="row" style="margin-top:8px"><button class="btn sm primary" data-sheet="shMsg"><svg class="i"><use href="#i-send"/></svg> ارسال پیام</button>
+          <button class="btn sm quiet" data-copy="${CURP.mobile}"><svg class="i"><use href="#i-copy"/></svg> کپی موبایل</button></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card paper">
+        <div class="row" style="margin-bottom:8px"><span class="fw">مبالغ</span><span class="sp"></span>
+          <span class="tag ${CURP.state==='paid'?'ok':CURP.state==='void'?'stop':'warn'}">${t[1]}</span></div>
+        ${f.fin.length?`
+          <div class="moneyline"><span>${f.fin[CURP.piece].l}</span><span class="num">${rialTxt(m.per)}</span></div>
+          ${CURP.count>1?`<div class="moneyline"><span>برای ${faN(CURP.count)} نفر (× ${faN(CURP.count)})</span><span class="num">${rialTxt(m.sub)}</span></div>`:''}
+          ${m.dis?`<div class="moneyline"><span>کد تخفیف ٪${faN(CURP.coupon)}</span><span class="num" style="color:var(--ok)">−${rialTxt(m.dis)}</span></div>`:''}
+          <div class="moneyline t"><span>پرداخت‌شده</span><span class="num">${rialTxt(m.sum)}</span></div>
+          <div class="mini" style="margin-top:6px">${tomanTxt(m.sum)}</div>
+          <div class="answer" style="margin-top:6px"><span class="k">درگاه</span><span class="v">${CURP.gw}</span></div>
+          <div class="answer"><span class="k">نفرات</span><span class="v">${faN(CURP.count)} نفر</span></div>`
+        :'<div class="empty" style="padding:14px"><div class="body">این فرم مالی ندارد</div></div>'}
+      </div>
+      ${CURP.gw==='کارت‌به‌کارت'?`<div class="card paper">
+        <div class="row" style="margin-bottom:10px"><span class="fw">رسید کاربر</span><span class="sp"></span>
+          <span class="tag ${CURP.state==='pending'?'warn':CURP.state==='void'?'stop':'ok'}">${CURP.state==='pending'?'در انتظار تأیید':CURP.state==='void'?'رد شده':'تأییدشده'}</span></div>
+        <div class="receipt"><svg class="i lg"><use href="#i-image"/></svg></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm primary" data-approve="${CURP.id}"><svg class="i"><use href="#i-check"/></svg> تأیید</button>
+          <button class="btn sm stop" data-sheet="shReject"><svg class="i"><use href="#i-close"/></svg> رد</button>
+          <button class="btn sm quiet" data-copy="${CURP.code}"><svg class="i"><use href="#i-copy"/></svg> کد پیگیری</button>
+          <button class="btn sm quiet" data-msg="${CURP.id}"><svg class="i"><use href="#i-send"/></svg> پیام</button>
+        </div>
+        <p class="mnote" style="margin-top:8px">رد شدن یعنی ثبت‌نام باطل و پرداخت از ابتدا؛ اطلاعات پاسخ‌دهنده دست‌نخورده می‌ماند.</p>
+      </div>`:''}
+      <div class="card sunk">
+        <div class="row"><svg class="i"><use href="#i-shield"/></svg><span class="sub">هر تغییری روی همین پاسخ‌دهنده ثبت می‌شود و در سابقهٔ فرم می‌ماند.</span></div>
+      </div>
+    </div>
+  </div>`;
+  go('fUser');
+}
+/* ── کارتابل ─────────────────────────────────────────────────── */
+let KDEPT='';
+/* ── بورد حضور و غیاب: کیوآر کد پیگیری، دستی، و پیام به غایب‌ها ── */
+let ATTMODE='code';
+const attList=()=>PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
+const attIn=()=>attList().filter(p=>p.att).length;
+function renderAttend(q){
+  q=(q===undefined?((document.getElementById('attQ')||{}).value||''):q).trim();
+  const list=attList();
+  const inn=attIn();
+  document.getElementById('attSub').textContent='فرم «'+CUR.name+'» · '+CUR.start+' · کد ورود: '+shortCode(CUR.id+CUR.slug);
+  document.getElementById('attAll').textContent=faN(list.length);
+  document.getElementById('attIn').textContent=faN(inn);
+  document.getElementById('attOut').textContent=faN(list.length-inn);
+  document.getElementById('attPct').textContent=faN(list.length?Math.round(inn/list.length*100):0)+'٪';
+  document.querySelectorAll('#fAttend .chip[data-attmode]').forEach(c=>c.classList.toggle('on',c.dataset.attmode===ATTMODE));
+  document.getElementById('attCode').style.display=ATTMODE==='code'?'':'none';
+  document.getElementById('attGo').style.display=ATTMODE==='code'?'':'none';
+  const rows=list.filter(p=>!q||p.name.includes(q)||unFa(p.mobile).includes(unFa(q)));
+  document.getElementById('attCount').textContent=faN(rows.length)+' از '+faN(list.length);
+  document.getElementById('attBody').innerHTML=rows.map((p,i)=>`<tr data-att="${p.id}" style="cursor:pointer">
+      <td class="num">${faN(i+1)}</td>
+      <td><b>${p.name}</b><div class="cap num">${maskPhone(p.mobile)}</div></td>
+      <td class="num">${'ردیف '+faN(i+1)+' · صندلی '+faN(17+i*3)}</td>
+      <td class="num">${p.attAt||'—'}</td>
+      <td><span class="tag ${p.att?'ok':'quiet'}"><span class="dot"></span> ${p.att?'حاضر':'غایب'}</span></td>
+    </tr>`).join('')||`<tr><td colspan="5"><div class="empty" style="padding:14px"><div class="body">کسی با این نشانه پیدا نشد</div></div></td></tr>`;
+}
+function attToggle(id,code){
+  const p=PEOPLE.find(x=>x.id===id)||(code?PEOPLE.find(x=>x.code===code||shortCode(x.code||'')===code):null);
+  if(!p){toast('کسی با این کد پیگیری پیدا نشد'); return}
+  if(p.att){toast(p.name+' قبلاً ثبت شده ('+p.attAt+')'); renderAttend(); return}
+  p.att=true; p.attAt=new Date().toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+  log(p.name+' حاضر شد · '+p.attAt);
+  renderAttend(); toast(p.name+' حاضر شد');
+}
+/* ── کارتابل من: هر کارشناس، رسیدهای فرم خودش، قدیمی‌ترین اول ── */
+let ME='خانم رستگار';
+const meExpert=()=>TEAM.find(t=>t.n===ME)||TEAM[0];
+const meDept=()=>({dept:meExpert().d});
+const waitTxt=h=>h>=24?faN(Math.round(h/24))+' روز':faN(h)+' ساعت';
+/* اولویت: هر چه بیشتر منتظر مانده، بالاتر. مال خودم (برداشته‌شده) اولِ همه. */
+function minePending(){
+  const d=meDept();
+  return pendings().filter(p=>{const f=FORMS.find(x=>x.id===p.form)||CUR; return f.dept===d.dept;})
+    .sort((a,b)=>((b.owner===ME)-(a.owner===ME))||((b.wait||0)-(a.wait||0)));
+}
+function renderMine(){
+  const d=meDept(), list=minePending();
+  const badge=document.getElementById('myBadge');
+  if(badge){badge.textContent=faN(list.length);}
+  document.getElementById('mTop').textContent=list.length?faN(list.length)+' در انتظار · قدیمی‌ترین '+waitTxt(list[0].wait||0):'کارتابل خالی';
+  document.getElementById('mDept').textContent='بخش '+d.dept?'':'';
+  const dep=DEPT_OF(d);
+  document.getElementById('mDept').textContent='بخش '+dep.n+' · کارشناس مسئول: '+dep.expert;
+  const mc=document.getElementById('meChips');
+  if(mc&&!mc.dataset.done){mc.dataset.done='1';
+    mc.innerHTML=DEPTS.map(x=>TEAM.filter(t=>t.d===x.id).map(t=>
+      `<button class="chip ${t.n===ME?'on':''}" data-me="${t.n}">${t.n} · ${x.n}</button>`).join('')).join('');}
+  const box=document.getElementById('mineBox');
+  if(!list.length){
+    box.innerHTML=`<div class="card paper"><div class="empty" style="padding:24px">
+      <svg class="i xl" style="color:var(--ok)"><use href="#i-check"/></svg>
+      <div class="body">کارتابلت خالی است</div>
+      <div class="cap">همهٔ رسیدهای بخش ${dep.n} بررسی شده‌اند</div></div></div>`;
+    return;
+  }
+  box.innerHTML=list.map(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR, m=pay(p), mine=p.owner===ME;
+    const old=(p.wait||0)>=24;
+    return `<div class="card paper">
+      <div class="row">
+        <span class="personrow" style="gap:10px"><span class="n">${p.name.slice(0,1)}</span>
+          <span><b class="sub">${p.name}</b><div class="cap num">${maskPhone(p.mobile)} · ${p.at}</div></span></span>
+        <span class="sp"></span>
+        ${mine?'<span class="tag brand">برداشته‌ام</span>':''}
+        <span class="tag ${old?'stop':'warn'}">${waitTxt(p.wait||0)} در انتظار</span>
+      </div>
+      <div class="row" style="margin-top:12px;align-items:flex-start;gap:14px">
+        <div class="receipt" style="max-width:132px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="moneyline"><span>مبلغ صورت‌حساب</span><span class="num">${rialTxt(m.sum)}</span></div>
+          <div class="mini">${tomanTxt(m.sum)}</div>
+          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر${p.guests&&p.guests.length?' · همراه: '+p.guests.map(g=>g.name).join('، '):''}</div>`:''}
+          ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
+          <div class="row" style="margin-top:10px">
+            ${mine?'':'<button class="btn sm" data-take="'+p.id+'"><svg class="i"><use href="#i-eye"/></svg> این را برمی‌دارم</button>'}
+            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و قطعی‌کردن ثبت‌نام</button>
+            <button class="btn sm stop" data-reject="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد رسید</button>
+            <button class="btn sm quiet" data-pass="${p.id}"><svg class="i"><use href="#i-users"/></svg> سپردن به کارشناس دیگر</button>
+            <button class="btn sm quiet" data-msgone="${p.id}"><svg class="i"><use href="#i-send"/></svg> پیام به خودش</button>
+            <button class="btn sm quiet" data-person="${p.id}"><svg class="i"><use href="#i-search"/></svg> جزئیات</button>
+          </div>
+        </div>
+      </div>
+    </div>`}).join('');
+}
+function renderKartabl(){
+  renderMine();
+  const list=pendings().filter(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR; return !KDEPT||f.dept===KDEPT;});
+  const dc=document.getElementById('kDeptChips');
+  if(dc&&!dc.dataset.done){dc.dataset.done='1';
+    dc.innerHTML=DEPTS.map(d=>`<button class="chip" data-kd="${d.id}">${d.n}</button>`).join('');}
+  document.querySelectorAll('#kFilters .chip').forEach(c=>c.classList.toggle('on',(c.dataset.kd||'')===KDEPT));
+  const w=document.getElementById('kWho');
+  if(w) w.textContent=KDEPT?(DEPT_OF({dept:KDEPT}).expert+' · کارشناس '+DEPT_OF({dept:KDEPT}).n):'همهٔ بخش‌ها';
+  const all=pendings().length;
+  document.getElementById('kTop').textContent=faN(list.length)+' در انتظار'+(KDEPT&&list.length!==all?' از '+faN(all):'');
+  document.getElementById('kBadge').textContent=faN(list.length);
+  document.getElementById('kartabl').innerHTML=list.map(p=>{
+    const f=FORMS.find(x=>x.id===p.form)||CUR, m=pay(p);
+    return `<div class="card paper">
+      <div class="row">
+        <span class="personrow" style="gap:10px"><span class="n">${p.name.slice(0,1)}</span>
+          <span><b class="sub">${p.name}</b><div class="cap num">${maskPhone(p.mobile)} · ${p.at}</div></span></span>
+        <span class="sp"></span><span class="tag brand">بخش ${DEPT_OF(f).n}</span>
+        <span class="tag quiet">${f.name}</span>
+      </div>
+      <div class="row" style="margin-top:12px;align-items:flex-start;gap:14px">
+        <div class="receipt" style="max-width:132px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="moneyline"><span>مبلغ صورت‌حساب</span><span class="num">${rialTxt(m.sum)}</span></div>
+          <div class="mini">${tomanTxt(m.sum)}</div>
+          ${p.count>1?`<div class="mini" style="margin-top:4px">برای ${faN(p.count)} نفر · هر نفر سهم پرداخت خودش${(p.guests||[]).length?' ('+p.guests.map(g=>g.name).join('، ')+')':''}</div>`:''}
+          ${p.note?`<p class="mnote" style="margin-top:6px">یادداشت: ${p.note}</p>`:''}
+          <div class="row" style="margin-top:10px">
+            <button class="btn sm primary" data-approve="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید و قطعی‌کردن ثبت‌نام</button>
+            <button class="btn sm stop" data-reject="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد رسید</button>
+            <button class="btn sm quiet" data-person="${p.id}"><svg class="i"><use href="#i-search"/></svg> جزئیات</button>
+          </div>
+        </div>
+      </div>
+    </div>`}).join('')||`<div class="card paper"><div class="empty" style="padding:24px">
+      <svg class="i xl" style="color:var(--ok)"><use href="#i-check"/></svg><div class="body">کارتابل خالی است</div>
+      <div class="cap">همهٔ رسیدها بررسی شده‌اند</div></div></div>`;
+}
+/* ── مالی ────────────────────────────────────────────────────── */
+function renderMoney(){
+  document.getElementById('moneyPieces').innerHTML=FORMS.filter(f=>f.fin.length).map(f=>`
+    <div style="margin-bottom:12px">
+      <div class="row"><b class="sub">${f.name}</b><span class="sp"></span><span class="cap">${fa(f.resp)} پاسخ</span></div>
+      ${f.fin.map((o,i)=>`<div class="moneyline">
+        <span><b>${esc(o.l)}</b>${o.d?`<div class="mini">${esc(o.d)}</div>`:''}
+          <div class="row tight" style="margin-top:5px">
+            ${o.req?'<span class="tag brand">اجباری</span>':''}
+            ${(f.groups||[]).filter(g=>g.of.includes(i)).map(g=>`<span class="tag accent">${esc(g.n)}${g.req?' · انتخاب یکی':''}</span>`).join('')}
+          </div></span>
+        <span class="num">
+        ${o.off?`<span class="price"><span class="old num">${fa(o.p)}</span><span class="off">٪${faN(o.off)}</span><span class="now num">${fa(net(o))}</span><span class="cap">ریال</span></span>`:fa(o.p)+' ریال'}</span></div>`).join('')}
+      <div class="mini">${tomanTxt(f.fin.reduce((a,o)=>a+net(o),0))} · هر نفر</div>
+    </div>`).join('');
+  const paid=PEOPLE.filter(p=>p.state==='paid'), pend=pendings();
+  const sum=paid.reduce((a,p)=>a+pay(p).sum,0), psum=pend.reduce((a,p)=>a+pay(p).sum,0);
+  document.getElementById('settle').innerHTML=`
+    <div class="r"><span>تسویه‌شده</span><span class="num">${rialTxt(sum)}</span></div>
+    <div class="r"><span>در انتظار تأیید</span><span class="num">${rialTxt(psum)}</span></div>
+    <div class="r"><span>کارمزد درگاه رسمی</span><span class="num">${rialTxt(Math.round(sum*PAY_FEE_PCT/100))}</span></div>
+    <div class="r t"><span>خالص</span><span class="num">${rialTxt(sum-Math.round(sum*PAY_FEE_PCT/100))}</span></div>
+    <div class="mini" style="margin-top:6px">${tomanTxt(sum-Math.round(sum*PAY_FEE_PCT/100))} · کارمزد درگاه رسمی بله روی کاربر نیست</div>`;
+  document.getElementById('txBody').innerHTML=PEOPLE.filter(p=>p.state!=='half').map(p=>{const t=STATE_TAG[p.state];
+    return `<tr data-person="${p.id}" style="cursor:pointer"><td>${p.name}</td><td class="num">${fa(pay(p).sum)}</td>
+      <td>${p.gw}</td><td><span class="tag ${t[0]}">${t[1]}</span></td></tr>`}).join('');
+}
+/* ── کارشناسان ───────────────────────────────────────────────── */
+let CARD_DEST={no:'6104-3378-1234-5674',bank:'بانک ملت',owner:'مؤسسهٔ خط زندگی'};
+/* کارمزد درگاه رسمی: ٪۰ روی کاربر؛ مدیر می‌تواند عوضش کند */
+const PAY_FEE_PCT=0;
+/* ── بخش‌های سازمان: هر فرم از یک بخش می‌آید و کارشناس همان بخش پیگیرش است ── */
+const DEPTS=[
+ {id:'edu',n:'آموزش',expert:'خانم رستگار',i:'i-medal'},
+ {id:'sup',n:'پشتیبانی',expert:'آقای موسوی',i:'i-inbox'},
+ {id:'data',n:'پژوهش و نظرسنجی',expert:'آقای نادری',i:'i-chart'},
+ {id:'media',n:'رسانه و تولید محتوا',expert:'خانم صادقی',i:'i-image'}];
+const DEPT_OF=f=>(DEPTS.find(d=>d.id===f.dept)||DEPTS[0]);
+const TEAM=[
+ {n:'خانم رستگار',r:'کارشناس آموزش',d:'edu',f:'کارگاه فن بیان، عضویت خیرین',k:true,m:true},
+ {n:'آقای نادری',r:'کارشناس پژوهش و نظرسنجی',d:'data',f:'نظرسنجی بهار',k:false,m:false},
+ {n:'خانم صادقی',r:'کارشناس رسانه',d:'media',f:'آزمون کتابخوانی',k:true,m:false},
+ {n:'آقای موسوی',r:'پاسخگوی پشتیبانی',d:'sup',f:'همهٔ فرم‌ها · فقط دیدن',k:false,m:false}
+];
+function renderTeam(){
+  const card=t=>`
+    <div class="card paper">
+      <div class="row">
+        <span class="personrow" style="gap:10px"><span class="n">${t.n.split(' ').pop().slice(0,1)}</span>
+          <span><b class="sub">${t.n}</b><div class="cap">${t.r} · ${t.f}</div></span></span>
+        <span class="sp"></span><span class="tag brand">دسترسی به ${faN(FORMS.length)} فرم</span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <span class="sub" style="flex:1">کارتابل رسیدها</span><span class="switch ${t.k?'on':''}" role="switch" aria-checked="${t.k}"></span>
+        <span class="sub" style="flex:1">دیدن بخش مالی</span><span class="switch ${t.m?'on':''}" role="switch" aria-checked="${t.m}"></span>
+      </div>
+    </div>`;
+  document.getElementById('teamBox').innerHTML=DEPTS.map(d=>{
+    const members=TEAM.filter(t=>t.d===d.id);
+    if(!members.length) return '';
+    return `<div class="row" style="margin:6px 4px 0"><span class="fw">بخش ${d.n}</span><span class="sp"></span>
+      <span class="cap">کارشناس مسئول: ${d.expert}</span>
+      <button class="btn sm quiet" data-change="dept"><svg class="i"><use href="#i-sliders"/></svg> جابه‌جایی بخش‌ها</button></div>
+      ${members.map(card).join('')}`;
+  }).join('')+TEAM.filter(t=>!DEPTS.some(d=>d.id===t.d)).map(card).join('');
+}
+
+/* ── ورقهٔ تغییر: هر تغییر یک ورقه، فرم مخصوص خودش ───────────── */
+const CHANGES={
+ addfield:{t:'افزودن پرسش',body:()=>`<p class="cap">پرسش را از کاتالوگ بردارید؛ مشخصاتش را در سازنده کامل می‌کنید.</p>
+   <div class="row tight">${['متن کوتاه','متن بلند','چهارگزینه‌ای','چندگزینه‌ای','تاریخ','ساعت','استان و شهر','دانشگاه','شغل','تحصیلات','فایل','امضا','کد ملی','شماره موبایل','مقیاس ۱ تا ۵']
+     .map((x,i)=>`<button class="chip ${i===0?'on':''}" data-chip>${x}</button>`).join('')}</div>`,
+  go:btn=>{const x=btn.closest('#shChange').querySelector('#chBody .chip.on');
+   log('پرسش «'+x.textContent+'» به فرم اضافه شد'); closeSheets(); toast('به بوم سازنده اضافه شد'); }},
+ text:{t:'سربرگ و توضیحات ابتدا',body:()=>`
+   <div><label class="lbl">سربرگ</label><input class="input" id="chHead" value="${CUR.head}"/></div>
+   <div><label class="lbl">توضیحات ابتدا</label><textarea class="input" id="chIntro">${CUR.intro}</textarea></div>`,
+  go:()=>{CUR.head=document.getElementById('chHead').value; CUR.intro=document.getElementById('chIntro').value;
+   log('سربرگ و توضیحات ابتدا ویرایش شد'); closeSheets(); renderPanel(); toast('ذخیره شد')}},
+ dates:{t:'بازهٔ ثبت‌نام',body:()=>`<p class="cap">تاریخ و ساعت را از فهرست بردارید؛ دستی نوشتن لازم نیست.</p>
+   <div><label class="lbl">شروع</label><div id="chStart"></div></div>
+   <div><label class="lbl">پایان</label><div id="chEnd"></div></div>`,
+  open:()=>{document.getElementById('chStart').innerHTML=pickHTML('datetime',CUR.start);
+   document.getElementById('chEnd').innerHTML=pickHTML('datetime',CUR.ends); initAll(document.getElementById('chBody'))},
+  go:()=>{CUR.start=pickVal(document.getElementById('chStart')).full; CUR.ends=pickVal(document.getElementById('chEnd')).full;
+   log('بازهٔ ثبت‌نام به '+CUR.ends+' تغییر کرد'); closeSheets(); renderPanel(); toast('بازه عوض شد')}},
+ cap:{t:'ظرفیت و لیست انتظار',body:()=>`
+   <div><label class="lbl">ظرفیت</label><input class="input num" id="chCap" value="${CUR.cap||''}" placeholder="۰ یعنی بی‌کران"/></div>
+   <div class="row"><div style="flex:1"><b class="sub">لیست انتظار</b><div class="cap">پر شدن ظرفیت، نفر را به لیست انتظار می‌برد</div></div>
+     <span class="switch ${CUR.wait?'on':''}" id="chWait" role="switch" aria-checked="${CUR.wait}"></span></div>`,
+  go:()=>{CUR.cap=NR(unFa(document.getElementById('chCap').value))||0;
+   CUR.wait=document.getElementById('chWait').classList.contains('on');
+   log('ظرفیت به '+faN(CUR.cap)+' نفر'+(CUR.wait?' با لیست انتظار':' بدون لیست انتظار')+' رسید'); closeSheets(); renderPanel(); toast('ظرفیت ذخیره شد')}},
+ per:{t:'تعداد نفرات همراه',body:()=>`
+   <div><label class="lbl">بیشترین تعداد</label>
+     <div class="row tight">${[1,2,3,5].map(n=>`<button class="chip ${CUR.per===n?'on':''}" data-chip data-n="${n}">${faN(n)} نفر</button>`).join('')}</div></div>
+   <p class="cap">با افزودن همراه، مبلغ در تعداد ضرب می‌شود و هر نفر سهم پرداخت خودش را دارد.</p>
+   <hr class="hr"/>
+   <div class="row"><span><b class="sub">«دوستاتم با خودت بیار»</b>
+     <div class="cap">باز باشد، فرم یک کارت خوش‌گرافیک نشان می‌دهد و دوست همان‌جا پر می‌شود؛ بسته باشد هیچ‌جا دیده نمی‌شود.</div></span>
+     <span class="sp"></span>
+     <span class="switch ${CUR.guestsOn?'on':''}" id="chGuests" role="switch" aria-checked="${CUR.guestsOn?'true':'false'}"></span></div>
+   <div class="mini" style="margin-top:6px">حالت پیش‌فرض: بسته</div>`,
+  go:()=>{const g=document.getElementById('chGuests');
+   CUR.guestsOn=g.classList.contains('on');
+   log(CUR.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد'); closeSheets(); renderPanel();
+   toast(CUR.guestsOn?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد')}},
+ fin:{t:'افزودن قطعهٔ مالی',body:()=>`<p class="cap">هر قطعه یک قیمت دارد؛ اگر دو قیمت دارید دو قطعه بسازید.</p>
+   <div><label class="lbl">عنوان</label><input class="input" id="chFinL" placeholder="مثلاً: کارگاه با گواهینامه"/></div>
+   <div class="g2"><div><label class="lbl">مبلغ (ریال)</label><input class="input num" id="chFinP" placeholder="۸۵۰۰۰۰"/></div>
+     <div><label class="lbl">٪ تخفیف</label><input class="input num" id="chFinO" placeholder="۰"/></div></div>
+   <div><label class="lbl">توضیحات (دلخواه)</label>
+     <textarea class="input" id="chFinD" placeholder="زیر عنوان همین قطعه نشان داده می‌شود"></textarea>
+     <div class="mini">خالی بماند، چیزی نشان داده نمی‌شود.</div></div>
+   <div class="row"><span class="sub" style="flex:1">این قطعه اجباری باشد</span>
+     <span class="switch" id="chFinReq" role="switch" aria-checked="false" tabindex="0"></span></div>
+   <div><label class="lbl">در گروه انتخاب (دلخواه)</label>
+     <select class="input" id="chFinG"><option value="">بدون گروه</option>
+       ${(CUR.groups||[]).map(g=>`<option>${esc(g.n)}</option>`).join('')}</select></div>
+   <div class="mini" id="chFinW"></div>`,
+  go:()=>{const p=NR(unFa(document.getElementById('chFinP').value))||0,o=NR(unFa(document.getElementById('chFinO').value))||0;
+   if(!p){toast('مبلغ را بنویسید');return}
+   const l=document.getElementById('chFinL').value||'قطعهٔ تازه';
+   const d=document.getElementById('chFinD').value.trim();
+   const req=document.getElementById('chFinReq').classList.contains('on');
+   const g=document.getElementById('chFinG').value||null;
+   CUR.fin.push({l,p,off:o,d,req,g});
+   if(g){const grp=(CUR.groups||[]).find(x=>x.n===g); if(grp) grp.of.push(CUR.fin.length-1);}
+   if(!CUR.flags.includes('excel'))CUR.flags.push('excel');
+   log('قطعهٔ مالی «'+l+'» با قیمت '+fa(p)+' ریال اضافه شد'+(req?' · اجباری':''));
+   closeSheets(); renderPanel(); renderMoney(); toast('قطعه اضافه شد')}},
+ fingroup:{t:'گروه انتخاب',body:()=>`
+   <p class="cap">گروه یعنی چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد · مثل «با گواهینامه» و «بدون گواهینامه».</p>
+   <div><label class="lbl">نام گروه</label><input class="input" id="chGrpN" placeholder="مثلاً: نوع شرکت"/></div>
+   <div><label class="lbl">کدام قطعه‌ها در این گروه باشند</label>
+     <div class="row tight">${CUR.fin.map((o,i)=>`<button class="chip" data-chip data-gp="${i}">${esc(o.l)}</button>`).join('')}</div></div>
+   <div class="row"><span class="sub" style="flex:1">انتخاب یکی از این‌ها اجباری باشد</span>
+     <span class="switch on" id="chGrpReq" role="switch" aria-checked="true" tabindex="0"></span></div>
+   <div class="mini">خاموش باشد، کاربر می‌تواند هیچ‌کدام را هم برندارد.</div>`,
+  go:btn=>{const sheet=btn.closest('#shChange');
+   const n=sheet.querySelector('#chGrpN').value.trim();
+   const of=[...sheet.querySelectorAll('.chip.on[data-gp]')].map(x=>NR(x.dataset.gp));
+   const req=sheet.querySelector('#chGrpReq').classList.contains('on');
+   if(!n||of.length<2){toast('نام گروه و حداقل دو قطعه لازم است');return}
+   CUR.groups=(CUR.groups||[]).filter(g=>g.n!==n);
+   CUR.groups.push({n,of,req,one:true});
+   of.forEach(i=>{if(CUR.fin[i])CUR.fin[i].g=n});
+   log('گروه انتخاب «'+n+'» با '+faN(of.length)+' گزینه ساخته شد'+(req?' · انتخاب یکی اجباری':''));
+   closeSheets(); renderPanel(); renderMoney(); toast('گروه ساخته شد')}},
+ coupon:{t:'کد تخفیف',body:()=>`<div class="g2">
+   <div><label class="lbl">کد</label><input class="input" id="chCode" style="direction:ltr" placeholder="NORA10"/></div>
+   <div><label class="lbl">درصد</label><input class="input num" id="chPct" placeholder="۱۰"/></div></div>
+   <p class="cap">کد روی نفر اصلی حساب می‌شود و در صورت‌حساب جدا نشان داده می‌شود.</p>`,
+  go:()=>{const c=document.getElementById('chCode').value,p=NR(unFa(document.getElementById('chPct').value))||0;
+   if(!c||!p){toast('کد و درصد لازم است');return}
+   CUR.coupon=c+' · ٪'+faN(p); log('کد تخفیف '+c+' با ٪'+faN(p)+' ساخته شد'); closeSheets(); renderPanel(); toast('کد ساخته شد')}},
+ gw:{t:'مدل‌های پرداخت',body:()=>`<p class="sub">مدل‌های پرداخت در بخش «مالی» سامانه روشن و خاموش می‌شوند؛ سازندهٔ رویداد فقط از میان آن‌ها انتخاب می‌کند.</p>
+   <div class="row tight">${FORMS[0].gw.map(g=>`<span class="chip on">${g}</span>`).join('')}</div>`,
+  go:()=>{closeSheets(); go('fMoney')}},
+ dept:{t:'بخش فرم',body:()=>`
+   <p class="cap">هر فرم از یک بخش سازمان می‌آید؛ رسیدها و پیام‌ها پیش‌فرض به کارشناس همان بخش می‌رود.</p>
+   <div class="row tight">${DEPTS.map(d=>`<button class="chip ${CUR.dept===d.id?'on':''}" data-chip data-dp="${d.id}">
+     <svg class="i" style="width:15px"><use href="#${d.i}"/></svg> ${d.n}</button>`).join('')}</div>
+   <div class="mini" style="margin-top:8px">با انتخاب بخش، کارشناس مسئول هم به کارشناس همان بخش تغییر می‌کند.</div>`,
+  go:()=>{const c=document.querySelector('#chBody .chip.on[data-dp]'); if(!c){toast('یک بخش را انتخاب کنید');return}
+   const d=DEPTS.find(x=>x.id===c.dataset.dp);
+   CUR.dept=d.id; CUR.expert=d.expert;
+   CUR.changes.unshift(['امروز · فرم به بخش «'+d.n+'» رفت','خودم']);
+   log('فرم به بخش «'+d.n+'» و کارشناس «'+d.expert+'» سپرده شد');
+   closeSheets(); renderInfo(); renderPanel(); renderList(); toast('به بخش '+d.n+' رفت')}},
+ event:{t:'اتصال به رویداد',body:()=>`
+   <p class="cap">فرم می‌تواند زیر یک رویداد برود؛ آن‌وقت ظرفیت و تاریخ‌ها از رویداد خوانده می‌شود.</p>
+   <div><label class="lbl">رویداد</label>
+     <div class="row tight">${EVENTS.map(e=>`<button class="chip ${CUR.event&&CUR.event.id===e.id?'on':''}" data-chip data-ev="${e.id}">${e.n}</button>`).join('')}
+       <button class="chip ${CUR.event?'':'on'}" data-chip data-ev="">بدون رویداد</button></div></div>
+   <div class="row" style="margin-top:12px"><span class="sub" style="flex:1">نمایش در صفحهٔ رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.nested?'on':''}" id="chEvNested" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک ظرفیت با رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.sync.cap?'on':''}" id="chEvCap" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک تاریخ‌ها با رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.sync.dates?'on':''}" id="chEvDates" role="switch"></span></div>
+   <div class="row"><span class="sub" style="flex:1">سینک محدودیت‌ها با رویداد</span>
+     <span class="switch ${!CUR.event||CUR.event.sync.limit?'on':''}" id="chEvLimit" role="switch"></span></div>
+   <div><label class="lbl">چه کسی می‌تواند پر کند</label>
+     <select class="input" id="chEvWho">${Object.entries(RESTRICT).map(([k,v])=>`<option value="${k}" ${CUR.event&&CUR.event.restrict===k?'selected':''}>${v}</option>`).join('')}</select></div>`,
+  go:()=>{const chip=document.querySelector('#chBody .chip.on[data-ev]'); const id=chip?chip.dataset.ev:'';
+   const on=b=>document.getElementById(b).classList.contains('on');
+   if(!id){CUR.event=null; log('فرم از رویداد جدا شد');}
+   else{CUR.event={id,nested:on('chEvNested'),sync:{cap:on('chEvCap'),dates:on('chEvDates'),limit:on('chEvLimit')},
+     restrict:document.getElementById('chEvWho').value};
+     log('فرم زیر رویداد «'+((EVENTS.find(e=>e.id===id)||{}).n||'')+'» رفت');}
+   CUR.changes.unshift(['امروز · '+(id?'اتصال فرم به رویداد تغییر کرد':'فرم از رویداد جدا شد'),'خودم']);
+   closeSheets(); renderInfo(); renderPanel(); toast(id?'به رویداد وصل شد':'از رویداد جدا شد')}},
+ endtext:{t:'متن پایانی و پیوندها',body:()=>`
+   <div><label class="lbl">متن پایانی</label><textarea class="input" id="chEnd2">${CUR.endText}</textarea></div>
+   <div><label class="lbl">پیوند یکم</label><div class="row"><input class="input" id="chL1" style="flex:1" value="${CUR.links[0]||''}"/></div></div>
+   <div><label class="lbl">پیوند دوم</label><div class="row"><input class="input" id="chL2" style="flex:1" value="${CUR.links[1]||''}"/></div></div>
+   <p class="cap">هر پیوند در فرم یک دکمه می‌شود که کاربر مستقیم روی آن می‌زند.</p>`,
+  go:()=>{CUR.endText=document.getElementById('chEnd2').value;
+   CUR.links=[document.getElementById('chL1').value,document.getElementById('chL2').value].filter(Boolean);
+   log('متن پایانی و پیوندها ویرایش شد'); closeSheets(); renderPanel(); toast('ذخیره شد')}},
+ msg:{t:'پیام گروهی',open:()=>{msgWho=null; openMsg();},go:null},
+ excel:{t:'خروجی اکسل',open:()=>openSheet('shExcel'),go:null,sheet:'shExcel'},
+ kartabl:{t:'کارتابل رسیدها',open:()=>go('fKartabl'),go:null},
+ expert:{t:'انتقال به کارشناس دیگر',body:()=>`<label class="lbl">کارشناس مسئول</label>
+   <div class="row tight">${TEAM.map((t,i)=>`<button class="chip ${t.n===CUR.expert?'on':''}" data-chip data-x="${t.n}">${t.n}</button>`).join('')}</div>`,
+  go:btn=>{const c=btn.closest('#shChange').querySelector('.chip.on[data-x]'); CUR.expert=c.dataset.x;
+   log('کارشناس مسئول به '+CUR.expert+' تغییر کرد'); closeSheets(); renderPanel(); toast('منتقل شد')}},
+ resultlink:{t:'پیوند نتیجه',body:()=>`<p class="sub">پاسخ‌دهنده با کد پیگیری و کد ملی، نتیجه را می‌بیند: تعداد درست، غلط و بی‌پاسخ.</p>
+   <div class="row"><span class="tag brand">فقط بعد از بسته شدن آزمون</span></div>`,
+  go:()=>{log('پیوند نتیجه ساخته شد'); closeSheets(); toast('پیوند ساخته شد')}},
+ scorecard:{t:'کارنامه و تصحیح',body:()=>`<div class="row"><div style="flex:1"><b class="sub">تصحیح خودکار</b><div class="cap">چهارگزینه‌ای‌ها بی‌درنگ تصحیح می‌شوند</div></div>
+     <span class="switch on" role="switch" aria-checked="true"></span></div>
+   <div class="row"><div style="flex:1"><b class="sub">نمایش نمره به کاربر</b><div class="cap">بعد از پایان مهلت</div></div>
+     <span class="switch on" role="switch" aria-checked="true"></span></div>`,
+  go:()=>{log('کارنامه روشن شد'); closeSheets(); toast('کارنامه روشن شد')}},
+ anticheat:{t:'ضد‌تقلب آزمون',body:()=>`<p class="cap">هر کدام را لازم دارید روشن کنید.</p>
+   ${['تصویر کاربر هنگام آزمون','فیلم کوتاه در میانهٔ آزمون','تشخیص ورود از دو دستگاه','بستن برنامه‌های دیگر','ورود با کد ملی و پیامک']
+     .map((x,i)=>`<div class="row"><span class="sub" style="flex:1">${x}</span><span class="switch ${i<2?'on':''}" role="switch"></span></div>`).join('')}`,
+  go:()=>{log('تنظیمات ضد‌تقلب ذخیره شد'); closeSheets(); toast('ذخیره شد')}},
+ raffle:{t:'قرعه‌کشی',body:()=>`<p class="sub">میان ${fa(CUR.resp)} پاسخ‌دهنده قرعه می‌اندازیم و برنده‌ها را پیام می‌دهیم.</p>
+   <div class="row tight">${['۱ برنده','۳ برنده','۵ برنده'].map((x,i)=>`<button class="chip ${i===0?'on':''}" data-chip>${x}</button>`).join('')}</div>`,
+  go:()=>{log('قرعه‌کشی انجام شد'); closeSheets(); toast('قرعه‌کشی انجام شد')}},
+ cert:{t:'گواهینامه',body:()=>{
+   const now=Object.keys(CUR.certIssued||{}).length, req=Object.keys(CUR.certReq||{}).length;
+   return `
+   <p class="sub">گواهینامه برای ${faN(CUR.paid)} نفر پرداخت‌شده با کد یکتا و کیوآر راستی‌آزمایی صادر می‌شود؛ صدور فقط با <b>تأیید سرپرست</b> است و اینجا درخواست ثبت می‌شود.</p>
+   <div class="card sunk" style="margin-top:10px;padding:10px">
+     <div class="row" style="margin-bottom:8px"><span class="fw">پیش‌نمایش</span><span class="sp"></span>
+       <span class="cap">همان برگی که در بله می‌رود</span></div>
+     <div id="chCertPrev" style="overflow:hidden;border-radius:14px"></div>
+   </div>
+   <div class="srow" style="margin-top:12px"><svg class="i"><use href="#i-shield"/></svg>
+     <span class="sp">سرپرست این رویداد: مریم داوودی · درخواست‌ها آنجا تأیید می‌شود</span></div>
+   <div class="row tight" style="margin-top:8px">
+     <span class="tag ok">${faN(now)} صادرشده</span>
+     <span class="tag warn">${faN(req)} در انتظار تأیید</span>
+     <span class="tag">${faN(Math.max(CUR.paid-now-req,0))} بی‌درخواست</span>
+   </div>
+   <div><label class="lbl" style="margin-top:10px">مدت دوره روی گواهینامه (دلخواه)</label>
+     <input class="input" id="chCertHours" value="${CUR.certHours||''}" placeholder="مثلاً ۲۴ ساعت"/></div>
+   <div class="row tight" style="margin-top:12px">
+     <button class="btn primary" id="chCertGo"><svg class="i"><use href="#i-send"/></svg> درخواست برای ${faN(CUR.paid)} نفر</button>
+     <button class="btn quiet" id="chCertOne"><svg class="i"><use href="#i-eye"/></svg> دیدن یکی از آن‌ها</button>
+   </div>`},
+  after:()=>prevCert(),
+  go:()=>{
+   CUR.certHours=document.getElementById('chCertHours').value.trim();
+   closeSheets(); renderInfo(); renderPanel();
+   toast('تنظیم گواهینامه ذخیره شد')}},
+ webhook:{t:'وبهوک و رخدادها',body:()=>{
+   const w=CUR.webhook||{on:false,url:'',events:[],last:''};
+   const EV=[['completed','پاسخ کامل شد'],['paid','پرداخت قطعی شد'],['approved','تأیید شد'],['rejected','رد شد']];
+   return `
+   <p class="cap">هر بار که یکی از رخدادهای فرم افتد، نورا خبرش را به نشانی شما POST می‌کند؛ ارسال در نخ جداگانه می‌رود تا صفحه بایستد.</p>
+   <div class="row"><div style="flex:1"><b class="sub">وبهوک روشن</b><div class="cap">بی‌نشانی، هیچ رخدادی به جایی نمی‌رود</div></div>
+     <span class="switch ${w.on?'on':''}" id="chWhOn" role="switch"></span></div>
+   <div><label class="lbl">نشانی گیرنده (HTTPS)</label>
+     <input class="input" id="chWhUrl" style="direction:ltr" value="${w.url||''}" placeholder="https://example.com/hook"/></div>
+   <div><label class="lbl">کدام رخدادها خبر بروند</label>
+     <div class="row tight">${EV.map(([k,t])=>`<button class="chip ${w.events.includes(k)?'on':''}" data-chip data-wev="${k}">${t}</button>`).join('')}</div></div>
+   ${w.last?`<div class="mini">آخرین ارسال: ${w.last}</div>`:''}
+   <p class="mini">نشانی باید با https شروع شود؛ نشانی ناامن ذخیره نمی‌شود.</p>`;
+  },
+  go:()=>{
+   const on=document.getElementById('chWhOn').classList.contains('on');
+   const url=(document.getElementById('chWhUrl').value||'').trim();
+   const evs=[...document.querySelectorAll('#chBody .chip.on[data-wev]')].map(c=>c.dataset.wev);
+   if(url&&!/^https:\/\//.test(url)){toast('نشانی امن نیست؛ باید با https:// شروع شود');return}
+   if(on&&!url){toast('برای روشن کردن، نشانی گیرنده را بنویسید');return}
+   CUR.webhook={on,url,events:evs,last:CUR.webhook?CUR.webhook.last:''};
+   log(on?('وبهوک روشن شد · '+faN(evs.length)+' رخداد به '+url):'وبهوک خاموش شد');
+   const b=chBack; chBack=null;
+   if(b){fillSettings(); openSheet('shSettings')} else closeSheets();
+   toast(on?'وبهوک ذخیره شد':'وبهوک خاموش شد')}},
+ appr:{t:'گردش کار چندمرحله‌ای',body:()=>{
+   const q=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending');
+   const ev=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+   return `
+   <div class="row"><div style="flex:1"><b class="sub">تأیید ادمین لازم است</b>
+     <div class="cap">پاسخ‌ها بی‌درنگ قطعی نمی‌شوند؛ اول به صف تأیید می‌روند</div></div>
+     <span class="switch ${CUR.appr.on?'on':''}" id="chApOn" role="switch"></span></div>
+   ${ev?`<div class="srow"><svg class="i"><use href="#i-calendar"/></svg>
+     <span class="sp">فرم زیر رویداد «${ev.n}» است؛ با هر تأیید، ثبت‌نام خودکار همان‌جا انجام می‌شود.</span></div>`
+     :`<p class="cap">فرم به رویدادی وصل نیست؛ تأیید فقط پاسخ را قطعی می‌کند.</p>`}
+   <div class="row" style="margin-top:6px"><b class="sub">صف تأیید</b><span class="sp"></span>
+     <span class="tag ${q.length?'warn':''}">${faN(q.length)} منتظر</span></div>
+   ${q.length?q.map(p=>`<div class="card sunk" style="padding:10px">
+      <div class="row" style="margin-bottom:8px"><div style="flex:1;min-width:0"><b>${p.name}</b>
+        <div class="cap num">${maskPhone(p.mobile)} · کد ${p.code}</div></div>
+        <span class="tag warn">منتظر</span></div>
+      <div class="row tight">
+        <button class="btn sm quiet" data-apview="${p.id}"><svg class="i"><use href="#i-eye"/></svg> مشاهده</button>
+        <button class="btn sm primary" data-apok="${p.id}"><svg class="i"><use href="#i-check"/></svg> تأیید</button>
+        <button class="btn sm stop" data-apno="${p.id}"><svg class="i"><use href="#i-close"/></svg> رد</button></div></div>`).join('')
+     :'<div class="empty" style="padding:12px"><div class="body">صف خالی است؛ پاسخ تازه‌ای منتظر نیست</div></div>'}
+   <p class="cap">با رد، پاسخ باطل می‌شود و خبرش به پاسخ‌دهنده می‌رود.</p>`;
+  },
+  go:null},
+ _money:{t:'بخش مالی',open:()=>go('fMoney'),go:null}
+};
+function log(w){CUR.changes.unshift([w,nowFa()]); renderChanges();}
+/* پیش‌نمایش برگ و ثبت درخواست گواهینامه · برگ از همان موتور ui.js ساخته می‌شود */
+function certFields(f,p){
+  return {name:p.name==='بی‌نام'?'شرکت‌کننده':p.name,title:f.head,kind:'گواهینامهٔ پایان دوره',
+    date:ticketMeta(f.start),hours:f.certHours||'',code:p.code||'',
+    serial:'NL-'+shortCode(p.code&&p.code!=='—'?p.code:p.name)};
+}
+function prevCert(){
+  const el=document.getElementById('chCertPrev'); if(!el||typeof certificateSVG!=='function') return;
+  const p=PEOPLE.filter(x=>x.form===CUR.id&&x.state==='paid')[0]||{name:'شرکت‌کننده',code:''};
+  el.innerHTML=certificateSVG(certFields(CUR,p));
+}
+function requestCerts(one){
+  const list=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid'&&(one==null||p.id===one));
+  CUR.certReq=CUR.certReq||{};
+  list.forEach(p=>{ if(CUR.certIssued&&CUR.certIssued[p.id]) return;
+    if(!CUR.certReq[p.id]) CUR.certReq[p.id]={at:'امروز'};
+    p.certReq=true;});
+  const fresh=list.filter(p=>CUR.certReq[p.id]&&!p.cert).length;
+  log(list.length===1?('درخواست گواهینامهٔ «'+(list[0]?list[0].name:'')+'» ثبت شد · در انتظار تأیید سرپرست')
+                     :('درخواست گواهینامه برای '+faN(fresh)+' نفر ثبت شد · در انتظار تأیید سرپرست'));
+  return list;
+}
+function openChange(key){
+  const c=CHANGES[key]; if(!c) return;
+  if(c.sheet){openSheet(c.sheet);return}
+  if(!c.body){if(c.open)c.open();return}
+  document.getElementById('chTitle').textContent=c.t;
+  document.getElementById('chBody').innerHTML=c.body();
+  const btn=document.getElementById('chApply');
+  btn.textContent=c.go?'اعمال کن':'باشه';
+  btn.onclick=e=>{ if(c.go) c.go(e.target); else {const b=chBack; chBack=null;
+    if(b){if(b==='shSettings')fillSettings(); document.getElementById(b).classList.add('on');
+      document.getElementById('scrim').classList.add('on');}
+    else closeSheets(); } };
+  openSheet('shChange');
+  if(c.open)c.open();
+  initAll(document.getElementById('chBody'));
+  if(c.after)c.after();
+}
+
+/* ── رویدادها ────────────────────────────────────────────────── */
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]'); if(g){go(g.dataset.go);return}
+  const card=e.target.closest('[data-form]');
+  if(card&&!e.target.closest('[data-copy]')){openForm(card.dataset.form);return}
+  const pr=e.target.closest('[data-person]'); if(pr){openUser(pr.dataset.person);return}
+  const op=e.target.closest('[data-open]'); if(op){go(op.dataset.open);return}
+  const tb=e.target.closest('#pSeg button'); if(tb){tab(tb.dataset.tab);return}
+  const pf=e.target.closest('[data-pf]'); if(pf){PFILTER=pf.dataset.pf;renderAnswers();return}
+  const evd=e.target.closest('[data-evdetach]');
+  if(evd){CUR.event=null; CUR.changes.unshift(['امروز · فرم از رویداد جدا شد','خودم']);
+    renderInfo(); renderPanel(); toast('از رویداد جدا شد'); return}
+  const ch=e.target.closest('[data-change]'); if(ch){chBack=ch.closest('#shSettings')?'shSettings':null; openChange(ch.dataset.change);return}
+  const am=e.target.closest('[data-attmode]');
+  if(am){ATTMODE=am.dataset.attmode; renderAttend();
+    if(ATTMODE==='auto') toast('با لینک جلسه، ورود خودش ثبت می‌شود'); return}
+  const tr=e.target.closest('[data-att]');
+  if(tr){attToggle(tr.dataset.att); return}
+  const abe=e.target.closest('[data-abexport]');
+  if(abe){log('خروجی حضور فرم «'+CUR.name+'» ساخته شد · '+faN(attIn())+' حاضر از '+faN(attList().length));
+    toast('فایل حضور آماده شد'); return}
+  const abm=e.target.closest('[data-absentmsg]');
+  if(abm){msgWho=null; msgAud='absent'; renderMsg(); openSheet('shMsg'); return}
+  const me=e.target.closest('[data-me]');
+  if(me){ME=me.dataset.me; renderMine(); toast('کارتابل '+ME+' آمد'); return}
+  const tk=e.target.closest('[data-take]');
+  if(tk){const p=PEOPLE.find(x=>x.id===tk.dataset.take); p.owner=ME;
+    log('«'+p.name+'» را '+ME+' برداشت'); renderMine(); toast('این رسید مال خودت شد'); return}
+  const ps=e.target.closest('[data-pass]');
+  if(ps){passId=ps.dataset.pass||''; passTo=null; openSheet('shPass');
+    document.getElementById('passWho').innerHTML=TEAM.filter(t=>t.n!==ME).map(t=>
+      `<button class="chip" data-passto="${t.n}">${t.n} · ${(DEPTS.find(d=>d.id===t.d)||{}).n}</button>`).join('');
+    return}
+  const po=e.target.closest('[data-passto]');
+  if(po){passTo=po.dataset.passto;
+    document.querySelectorAll('#passWho .chip').forEach(c=>c.classList.toggle('on',c===po)); return}
+  const co=e.target.closest('[data-certreq]');
+  if(co){const p=PEOPLE.find(x=>x.id===co.dataset.certreq);
+    if(p){requestCerts(p.id); renderInfo(); renderPanel(); openUser(p.id); toast('درخواست گواهینامهٔ '+p.name+' ثبت شد · در انتظار تأیید سرپرست');} return}
+  const mu=e.target.closest('[data-msg]');
+  if(mu){msgWho=mu.dataset.msg; openMsg(); return}
+  const mo=e.target.closest('[data-msgone]');
+  if(mo){msgWho=mo.dataset.msgone; openMsg(); return}
+  const ap=e.target.closest('[data-approve]');
+  if(ap){const p=PEOPLE.find(x=>x.id===ap.dataset.approve); p.state='paid';
+    log('رسید '+p.name+' تأیید شد · ثبت‌نام قطعی'); renderKartabl(); renderMine(); renderAnswers(); renderMoney();
+    if(CURP&&CURP.id===p.id) openUser(p.id); toast('رسید تأیید شد'); return}
+  const rj=e.target.closest('[data-reject]');
+  if(rj){rejectId=rj.dataset.reject; openSheet('shReject'); return}
+  const kd=e.target.closest('[data-kd]');
+  if(kd){KDEPT=kd.dataset.kd||''; renderKartabl(); return}
+  const lc=e.target.closest('#listChips .chip');
+  if(lc){document.querySelectorAll('#listChips .chip').forEach(x=>x.classList.remove('on'));lc.classList.add('on');
+    FILTER=lc.dataset.chip; renderList(); return}
+});
+let rejectId=null;
+/* ورقهٔ تنظیمات باید مقادیر همین فرم را نشان دهد، نه فرم نخست */
+function fillSettings(){
+  document.getElementById('setForm').textContent=CUR.name+' · '+CUR.slug;
+  document.querySelectorAll('#setStatus button').forEach(b=>b.classList.toggle('on',b.dataset.v===CUR.status));
+  document.getElementById('setCap').value=faN(CUR.cap||0);
+  document.getElementById('setPer').value=faN(CUR.per);
+  document.getElementById('setSlug').value=CUR.slug;
+  document.getElementById('setWait').classList.toggle('on',!!CUR.wait);
+  const w=CUR.webhook||{on:false,url:'',events:[]};
+  document.getElementById('setWhSub').textContent=w.on?(w.url.replace(/^https:\/\//,'').slice(0,30)+' · '+faN(w.events.length)+' رخداد'):'خاموش';
+  const aq=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='pending').length;
+  document.getElementById('setApSub').textContent=(CUR.appr&&CUR.appr.on)?(faN(aq)+' پاسخ منتظر تأیید'):'خاموش';
+  document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR.start);
+  document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR.ends);
+  initAll(document.getElementById('shSettings'));
+}
+document.getElementById('openSettings').onclick=()=>{fillSettings();openSheet('shSettings')};
+document.addEventListener('click',e=>{
+  const one=e.target.closest('.chip[data-n],.chip[data-x],.chip[data-st],#reasons .chip');
+  if(!one) return;
+  one.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  one.classList.add('on');
+});
+document.getElementById('q').addEventListener('input',renderList);
+document.getElementById('attQ').addEventListener('input',()=>renderAttend());
+document.getElementById('attGo').onclick=()=>{
+  const c=unFa((document.getElementById('attCode').value||'').trim()).toUpperCase();
+  if(!c){toast('کد پیگیری را بخوانید'); return}
+  attToggle(null,c);
+  document.getElementById('attCode').value='';
+};
+/* ── پیام به پاسخ‌دهنده: تک‌نفر یا گروهی، با تاریخچه ── */
+let msgWho=null, msgAud='all';
+const AUD={
+  all:{t:'همهٔ پاسخ‌دهنده‌ها',f:list=>list},
+  paid:{t:'فقط پرداخت‌شده‌ها',f:list=>list.filter(p=>p.state==='paid')},
+  pending:{t:'فقط در انتظار تأیید',f:list=>list.filter(p=>p.state==='pending')},
+  absent:{t:'غایب‌های این جلسه',f:list=>list.filter(p=>p.state==='paid'&&!p.att)},
+  half:{t:'نیمه‌کاره‌ها (یادآوری)',f:list=>list.filter(p=>p.state==='half')}};
+function msgTargets(){
+  if(msgWho){const p=PEOPLE.find(x=>x.id===msgWho); return p?[p]:[]}   /* تک‌نفر: فرقی نمی‌کند فرم باز کدام است */
+  return AUD[msgAud].f(PEOPLE.filter(p=>p.form===CUR.id));
+}
+function renderMsg(){
+  const one=msgWho?PEOPLE.find(p=>p.id===msgWho):null;
+  document.getElementById('msgHead').textContent=one?'پیام به '+one.name:'پیام به پاسخ‌دهنده‌ها';
+  const fname=one?((FORMS.find(x=>x.id===one.form)||CUR).name):CUR.name;
+  document.getElementById('msgSub').textContent=one?('فرم «'+fname+'» · کد پیگیری '+one.code):('فرم «'+fname+'»');
+  document.getElementById('msgAudBox').style.display=one?'none':'';
+  const ab=document.getElementById('msgAud');
+  if(!one&&!ab.dataset.done){ab.dataset.done='1';
+    ab.innerHTML=Object.entries(AUD).map(([k,v])=>`<button class="chip ${k===msgAud?'on':''}" data-aud="${k}">${v.t}</button>`).join('');}
+  const n=msgTargets().length;
+  document.getElementById('msgCount').textContent=n?faN(n)+' گیرنده':'گیرنده‌ای نیست';
+}
+function openMsg(){renderMsg(); openSheet('shMsg');}
+document.addEventListener('click',e=>{
+  const au=e.target.closest('[data-aud]');
+  if(au){msgAud=au.dataset.aud; document.querySelectorAll('#msgAud .chip').forEach(c=>c.classList.toggle('on',c===au)); renderMsg(); return}
+  const qk=e.target.closest('[data-quick]');
+  if(qk){document.getElementById('msgText').value=qk.dataset.quick; document.getElementById('msgText').focus(); return}
+});
+document.getElementById('msgGo').onclick=()=>{
+  const txt=(document.getElementById('msgText').value||'').trim();
+  if(!txt){toast('متن پیام خالی است'); return}
+  const list=msgTargets();
+  if(!list.length){toast('گیرنده‌ای انتخاب نشده'); return}
+  list.forEach(p=>{p.msgs=p.msgs||[]; p.msgs.unshift({at:'همین حالا',who:ME,t:txt});});
+  log('پیام به '+faN(list.length)+' نفر از فرم «'+CUR.name+'» فرستاده شد');
+  closeSheets();
+  document.getElementById('msgText').value='';
+  toast(list.length===1?('پیام به '+list[0].name+' رفت'):(faN(list.length)+' پیام در بله و پیامک رفت'));
+  if(CURP&&list.some(p=>p.id===CURP.id)) openUser(CURP.id);
+};
+let passId='', passTo=null;
+document.addEventListener('click',e=>{
+  if(e.target.closest('#chCertOne')){const l=PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
+    if(!l.length){toast('هنوز کسی پرداخت‌شده نیست'); return}
+    openUser(l[0].id); toast('گواهینامهٔ '+l[0].name+' · وضعیتش را ببین'); return}
+  if(e.target.closest('#chCertGo')){
+    const l=requestCerts(null);
+    if(!l.length){toast('هنوز کسی پرداخت‌شده نیست'); return}
+    closeSheets(); renderInfo(); renderPanel(); renderAnswers();
+    toast(l.length===1?('درخواست گواهینامهٔ '+l[0].name+' ثبت شد'):(faN(l.length)+' درخواست ثبت شد · در انتظار تأیید سرپرست')); return}
+});
+/* ── گردش کار: صف تأیید پاسخ‌ها + خبردهی وبهوک ── */
+function whFire(ev){
+  const w=CUR.webhook; if(!w||!w.on||!w.url) return;
+  if(!(w.events||[]).includes(ev)) return;
+  const N={completed:'پاسخ کامل',paid:'پرداخت قطعی',approved:'تأیید',rejected:'رد'};
+  w.last='همین حالا · '+N[ev]+' به '+w.url;
+}
+document.addEventListener('click',e=>{
+  const vw=e.target.closest('[data-apview]');
+  if(vw){openUser(vw.dataset.apview); return}
+  const okb=e.target.closest('[data-apok]');
+  if(okb){const p=PEOPLE.find(x=>x.id===okb.dataset.apok); if(!p) return;
+    if(p.state!=='pending'){toast('این پاسخ قبلاً بررسی شده'); return}
+    p.state='paid'; whFire('approved');
+    const ev=CUR.event?(EVENTS.find(x=>x.id===CUR.event.id)||null):null;
+    log('«'+p.name+'» تأیید شد'+(ev?(' · ثبت‌نام خودکار در «'+ev.n+'»'):''));
+    renderAnswers(); renderList();
+    openChange('appr');
+    toast(p.name+' تأیید شد'+(ev?' و در رویداد ثبت‌نام شد':''));
+    return}
+  const no=e.target.closest('[data-apno]');
+  if(no){const p=PEOPLE.find(x=>x.id===no.dataset.apno); if(!p) return;
+    if(p.state!=='pending'){toast('این پاسخ قبلاً بررسی شده'); return}
+    p.state='void'; whFire('rejected');
+    log('«'+p.name+'» رد شد · پاسخ باطل شد');
+    renderAnswers(); renderList(); renderKartabl();
+    openChange('appr');
+    toast('رد شد و خبرش به پاسخ‌دهنده رفت'); return}
+});
+
+document.getElementById('passGo').onclick=()=>{
+  const p=PEOPLE.find(x=>x.id===passId); if(!p) return;
+  if(!passTo){toast('کارشناس را انتخاب کنید'); return}
+  p.owner=passTo;
+  log('«'+p.name+'» به '+passTo+' سپرده شد');
+  closeSheets(); renderMine(); renderKartabl(); renderAnswers();
+  toast('به '+passTo+' سپرده شد');
+};
+document.getElementById('rejGo').onclick=()=>{
+  const p=PEOPLE.find(x=>x.id===(rejectId||(CURP&&CURP.id)))||CURP;
+  const note=document.getElementById('rejNote').value||'رسید تأیید نشد';
+  if(p){p.state='void'; p.note=note; log('رسید '+p.name+' رد شد · ثبت‌نام باطل و پرداخت از ابتدا');
+    if(CURP&&CURP.id===p.id) openUser(p.id);}
+  closeSheets(); renderKartabl(); renderAnswers(); renderMoney(); toast('رد شد و ثبت‌نام باطل شد');
+};
+document.getElementById('excelGo').onclick=()=>{const cols=[...document.querySelectorAll('#cols .chip.on')].length;
+  closeSheets(); log('خروجی اکسل با '+faN(cols)+' ستون ساخته شد'); toast('فایل اکسل آماده شد')};
+document.getElementById('setSave').onclick=()=>{
+  CUR.cap=NR(unFa(document.getElementById('setCap').value))||CUR.cap;
+  CUR.per=NR(unFa(document.getElementById('setPer').value))||CUR.per;
+  CUR.wait=document.getElementById('setWait').classList.contains('on');
+  CUR.slug=document.getElementById('setSlug').value||CUR.slug;
+  const sv=document.querySelector('#setStatus .on'); if(sv){CUR.status=sv.dataset.v;
+    CUR.tone=CUR.status==='باز'?'ok':CUR.status==='بسته'?'':'warn'}
+  CUR.start=pickVal(document.getElementById('setStart')).full;
+  CUR.ends=pickVal(document.getElementById('setEnd')).full;
+  log('تنظیمات فرم ذخیره شد · '+CUR.status+'، ظرفیت '+faN(CUR.cap)); closeSheets(); renderPanel(); renderList(); toast('تنظیمات ذخیره شد')};
+let archArm=false;
+document.getElementById('setArchive').onclick=e=>{
+  if(!archArm){archArm=true; e.target.textContent='مطمئنید؟ بایگانی کن'; e.target.classList.add('stop');
+    setTimeout(()=>{if(archArm){archArm=false; e.target.textContent='بایگانی فرم';}},5000); return}
+  archArm=false; e.target.textContent='بایگانی فرم';
+  CUR.status='بسته'; CUR.tone='';
+  log('فرم بایگانی شد'); closeSheets(); renderPanel(); renderList(); toast('بایگانی شد')};
+document.getElementById('invite').onclick=()=>toast('دعوت‌نامهٔ کارشناس فرستاده شد');
+
+/* ── آغاز ────────────────────────────────────────────────────── */
+initUI();
+document.getElementById('mCard').addEventListener('change',e=>toast('شمارهٔ کارت ذخیره شد'));
+/* ── مالی: کارت مقصد و مدل‌های پرداخت نورا پی ── */
+function cardDigits(){return (document.getElementById('mCard').value||'').replace(/\D/g,'')}
+function fmtCard(d){return d.replace(/(\d{4})(?=\d)/g,'$1-')}
+function luhn(d){let sum=0; for(let i=0;i<d.length;i++){let n=+d[d.length-1-i]; if(i%2){n*=2; if(n>9) n-=9} sum+=n} return sum%10===0}
+document.getElementById('mCard').addEventListener('blur',()=>{
+  const d=cardDigits(); if(d.length===16) document.getElementById('mCard').value=fmtCard(d);
+});
+document.querySelector('[data-save="card"]').onclick=()=>{
+  const d=cardDigits();
+  if(d.length!==16){toast('شمارهٔ کارت باید ۱۶ رقم باشد');return}
+  if(!luhn(d)){toast('شمارهٔ کارت درست نیست · یک بار دیگر بررسی کنید');return}
+  document.getElementById('mCard').value=fmtCard(d);
+  CARD_DEST={no:fmtCard(d),bank:document.getElementById('mBank').value,owner:document.getElementById('mOwner').value};
+  log('کارت مقصد به '+CARD_DEST.bank+' · …'+d.slice(-4)+' تغییر کرد');
+  toast('کارت مقصد ذخیره شد');
+};
+/* کلیدهای مدل پرداخت با رویدادِ باز‌شده هم‌گام می‌شوند */
+function syncGw(){
+  document.querySelectorAll('#gwBox [data-gw]').forEach(sw=>{
+    const on=CUR.gw.includes(sw.dataset.gw);
+    sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on?'true':'false');
+  });
+  const c=document.getElementById('mCard'); if(c&&CARD_DEST) c.value=CARD_DEST.no;
+  renderGw();
+}
+/* وضعیت مدل‌ها از خودِ کلیدها خوانده می‌شود، نه از عدد ثابت */
+function renderGw(){
+  const on=[...document.querySelectorAll('#gwBox [data-gw].on')].map(x=>x.dataset.gw);
+  const el=document.getElementById('gwState');
+  el.textContent=on.length?faN(on.length)+' مدل روشن':'هیچ مدلی روشن نیست';
+  el.style.color=on.length?'':'var(--stop)';
+}
+document.getElementById('gwBox').addEventListener('click',e=>{
+  const sw=e.target.closest('[data-gw]');
+  if(sw){
+    const g=sw.dataset.gw, on=!sw.classList.contains('on');
+    sw.classList.toggle('on',on); sw.setAttribute('aria-checked',on?'true':'false');
+    CUR.gw=on?[...new Set([...CUR.gw,g])]:CUR.gw.filter(x=>x!==g);
+    renderGw(); renderPanel();
+    log('مدل پرداخت '+g+(on?' روشن شد':' خاموش شد'));
+    if(!CUR.gw.length) toast('بی مدل پرداخت، کاربر راهی برای پرداخت ندارد');
+    return;
+  }
+  const rc=e.target.closest('[data-rcauto]');
+  if(rc){
+    const on=!rc.classList.contains('on');
+    rc.classList.toggle('on',on); rc.setAttribute('aria-checked',on?'true':'false');
+    log('ارسال خودکار رسید '+rc.dataset.rcauto+(on?' روشن شد':' خاموش شد'));
+    if(rc.dataset.rcauto==='کارت‌به‌کارت'&&on) toast('رسید کارت‌به‌کارت پس از تأیید خودکار فرستاده می‌شود');
+  }
+});
+renderGw();
+document.getElementById('cols').innerHTML=['نام و نام خانوادگی','شماره موبایل','تاریخ تولد','استان و شهر','دانشگاه','شغل','سطح تجربه',
+  'مبلغ','کد پیگیری','وضعیت پرداخت','درگاه','تاریخ ثبت','یادداشت'].map((c,i)=>
+  `<button class="chip ${i<9?'on':''}" data-chip>${c}</button>`).join('');
+document.getElementById('setStart').innerHTML=pickHTML('datetime',FORMS[0].start);
+document.getElementById('setEnd').innerHTML=pickHTML('datetime',FORMS[0].ends);
+renderList(); renderPanel(); renderKartabl(); renderMoney(); renderTeam();
+</script>
+</body>
+</html>

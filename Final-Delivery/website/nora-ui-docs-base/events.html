@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>نورا · رویدادها و برنامه‌ها</title>
+<meta name="description" content="همهٔ رویدادها و برنامه‌های گروه فرهنگی خط زندگی؛ تقویم ماهانه، فهرست کامل و ضبط برگزارشده‌ها"/>
+<meta name="theme-color" content="#F5F3EE"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="نورا · گروه فرهنگی خط زندگی"/>
+<meta property="og:title" content="رویدادهای نورا · خط زندگی"/>
+<meta property="og:description" content="رویدادهای پیش‌رو و برگزارشده، با تقویم، صافی و بازپخش."/>
+<meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
+<meta property="og:locale" content="fa_IR"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="canonical" href="https://lifeline1.ir/nora-ui/events.html"/>
+<link rel="icon" href="icon-192.png"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<script>/* تم پیش از نخستین رنگ‌آمیزی می‌نشیند تا در حالت شب، سفیدیِ اولیه دیده نشود */
+(function(){try{var v=localStorage.getItem('nora-theme');
+if(v!=='dark'&&v!=='light') v=(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';
+var r=document.documentElement; r.dataset.theme=v; r.style.colorScheme=v;
+var m=document.querySelector('meta[name="theme-color"]');
+if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
+<link rel="stylesheet" href="glass.css?v=89"/>
+<link rel="stylesheet" href="nora.css?v=89"/>
+<link rel="stylesheet" href="events.css?v=89"/>
+<style>
+  /* نوار بالا و نوار جست‌وجو، وقت اسکرول شیشه می‌شوند */
+  html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transparent);
+    backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 1px 0 var(--hairline),0 8px 26px rgba(10,30,60,.07)}
+
+  /* تقویم ماهانه */
+  .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .calgrid .wd{text-align:center;font-size:10.5px;color:var(--ink-4);padding-bottom:2px}
+  .cel{position:relative;-webkit-appearance:none;appearance:none;font:inherit;cursor:pointer;aspect-ratio:1/1;border-radius:13px;
+    border:.5px solid var(--hairline);background:var(--surface);color:var(--ink);display:grid;place-items:center;
+    font-size:13px;font-variant-numeric:tabular-nums;transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
+  .cel.blank{border:0;background:none;cursor:default}
+  .cel:hover:not(.blank){border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
+  .cel:active:not(.blank){transform:scale(.94)}
+  .cel.has{background:var(--brand-tint);border-color:transparent;color:var(--brand-ink);font-weight:700}
+  .cel.today{border-color:var(--brand);border-width:1.5px}
+  .cel.sel{background:var(--brand);color:#fff;border-color:transparent}
+  .cel.was{color:var(--ink-3)}
+  .cel.sel.was{color:var(--ink)}
+  .cel .dots{position:absolute;bottom:5px;display:flex;gap:2.5px;justify-content:center}
+  .cel .dots i{width:4.5px;height:4.5px;border-radius:50%;background:currentColor;opacity:.75}
+  .cel .dots i.p{background:var(--ink-4)}
+  .cel.sel .dots i{background:#fff}
+  .dayhd{display:flex;align-items:center;gap:8px;margin:16px 0 8px}
+  .dayhd b{font-size:14px}
+  .dayhd .sp{flex:1}
+
+  /* ورقهٔ کلیات روی نمایشگر بزرگ، پنجرهٔ میانی */
+  @media (min-width:720px){.sheet{inset-inline:auto;inset-inline-start:50%;width:520px;transform:translate(-50%,105%);
+    border-end-start-radius:26px;border-end-end-radius:26px}
+    .sheet.on{transform:translate(-50%,0)}}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   این صفحه: آرشیو رویدادها؛ بنر، شمارش معکوس، دسته‌ها، ردیف‌ها،
+   نوار ابزار، صافی‌ها و کاشی‌ها. همهٔ این‌ها فقط مال همین صفحه است تا با
+   صفحه‌های دیگر قاطی نشود و اگر مرورگر نسخهٔ کهنهٔ nora.css را داشت،
+   این‌جا هیچ‌چیز به‌هم نریزد.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── بنر: ردیف برنامه‌های نزدیک، یک اسلاید در قاب ── */
+.spotrail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 4px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.spotrail::-webkit-scrollbar{display:none}
+.spot{flex:0 0 100%;scroll-snap-align:center;position:relative;overflow:hidden;isolation:isolate;
+  border-radius:var(--r-xl);min-height:236px;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:15px;color:#fff;background-image:var(--g);
+  box-shadow:0 10px 26px -18px rgba(6,18,38,.65),inset 0 1px 0 rgba(255,255,255,.22)}
+.spot .pbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.spot .veil{position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(0deg,rgba(5,14,30,.88),rgba(5,14,30,.34) 58%,rgba(5,14,30,.52))}
+.spot .stop{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.spot .tag{backdrop-filter:blur(6px)}
+.spot h2{font-family:var(--font-disp);font-size:21px;line-height:1.5;margin:0 0 6px;font-weight:700}
+.spot .meta{font-size:12.5px;opacity:.86;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.spot .meta .i{width:14px;height:14px;opacity:.9}
+.spot .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.spot .acts .btn{text-decoration:none}
+.spot .acts .btn.quiet{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff}
+.spot .cd{margin-inline-start:auto;font-size:12px;background:rgba(255,255,255,.14);
+  border:.5px solid rgba(255,255,255,.24);padding:4px 9px;border-radius:99px;backdrop-filter:blur(8px)}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:9px}
+.dots .sdot{-webkit-appearance:none;appearance:none;padding:0;border:0;cursor:pointer;
+  width:6px;height:6px;border-radius:99px;background:var(--ink-4);opacity:.45;
+  transition:all var(--t) var(--ease)}
+.dots .sdot.on{width:18px;background:var(--brand);opacity:1}
+.dots .sdot:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+
+/* ── آمار: چهار قاب شیشه‌ای روی دیوارپشت ── */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stat{position:relative;background:var(--glass-2);-webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-md);box-shadow:var(--sh-1),var(--sheen-top);
+  padding:11px 9px;text-align:center;display:grid;gap:3px}
+.stat b{font-family:var(--font-disp);font-size:19px;font-weight:700}
+.stat span{font-size:10.5px;color:var(--ink-3);line-height:1.5}
+@media(max-width:400px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ── نوار کتابخانهٔ من ── */
+.libbar{display:flex;align-items:center;gap:10px;background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-md);box-shadow:var(--sh-1),var(--sheen-top);
+  padding:11px 13px;text-decoration:none;color:inherit}
+.libbar .li{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(135deg,var(--brand),#0A3A82)}
+.libbar .li .i{width:17px;height:17px}
+.libbar .lt{display:grid;gap:1px;flex:1;min-width:0}
+.libbar .lt b{font-size:13.5px}
+.libbar .lt small{font-size:11px;color:var(--ink-3)}
+
+/* ── صافی‌ها: بالا به پایین، بی دکمهٔ «همه» ── */
+.filters{display:grid;gap:11px;background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-lg);box-shadow:var(--sh-1),var(--sheen-top);
+  padding:12px 13px}
+.frow{display:grid;gap:7px}
+.frow>.flbl{font-size:11.5px;color:var(--ink-3)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips .chip .i{width:13px;height:13px;opacity:0;transition:opacity var(--t)}
+.chip.on{background:color-mix(in oklab,var(--brand) 14%,transparent);border-color:color-mix(in oklab,var(--brand) 38%,transparent);
+  color:var(--brand-ink);font-weight:600}
+.chips .chip.on .i{opacity:1}
+.chip.was{opacity:.82}
+.fchips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{-webkit-appearance:none;appearance:none;font:inherit;font-size:12.5px;cursor:pointer;
+  padding:6px 12px;border-radius:99px;border:.5px solid var(--hairline);
+  background:color-mix(in oklab,var(--surface-2) 78%,transparent);
+  color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;
+  transition:transform var(--t-fast) var(--spring),background var(--t),color var(--t),border-color var(--t)}
+.fchip:active{transform:scale(.95)}
+.fchip .i{width:13px;height:13px;opacity:0;transition:opacity var(--t)}
+.fchip.on{background:color-mix(in oklab,var(--brand) 14%,transparent);border-color:color-mix(in oklab,var(--brand) 38%,transparent);
+  color:var(--brand-ink);font-weight:600}
+.fchip.on .i{opacity:1}
+
+/* ── کاشی‌های رویداد ── */
+.tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+@media(min-width:720px){.tgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1060px){.tgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.etile{display:flex;flex-direction:column;background:color-mix(in oklab,var(--surface) 88%,transparent);
+  border:.5px solid var(--hairline);box-shadow:var(--sheen-top);
+  border-radius:var(--r-lg);overflow:hidden;transition:transform var(--t-fast) var(--spring),border-color var(--t)}
+.etile:active{transform:scale(.985)}
+.etile .ecov{position:relative;display:block;width:100%;border:0;padding:0;cursor:pointer;
+  aspect-ratio:4/3;background-image:var(--g);overflow:hidden}
+.etile .ecov img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  transition:transform .5s var(--ease)}
+.etile:hover .ecov img{transform:scale(1.04)}
+.etile .eveil{position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,14,30,.62),rgba(5,14,30,0) 62%)}
+.etile .edate{position:absolute;inset-inline-start:8px;top:8px;background:rgba(255,255,255,.94);color:#0B2447;
+  border-radius:13px;padding:4px 9px;text-align:center;line-height:1.15;box-shadow:0 4px 12px -6px rgba(6,18,38,.5)}
+.etile .edate b{display:block;font-size:15px;font-family:var(--font-disp)}
+.etile .edate span{font-size:9.5px;color:#3E5B84}
+.etile .etags{position:absolute;inset-inline-end:8px;top:8px;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.etile .etags .tag{font-size:10px;padding:3px 7px;background:rgba(255,255,255,.9);color:#0B2447}
+.etile .elive{position:absolute;inset-inline-start:8px;bottom:8px;display:inline-flex;align-items:center;gap:5px;
+  font-size:10.5px;color:#fff;background:rgba(214,45,45,.9);padding:3px 8px;border-radius:99px}
+.etile .ebody{padding:10px 11px 2px;display:grid;gap:5px;flex:1}
+.etile .ettl{font-size:13.5px;font-weight:600;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.etile .emeta{font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:5px;min-width:0}
+.etile .emeta .i{width:13px;height:13px;flex:0 0 auto}
+.etile .emeta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* نوار پیشرفت ظرفیت، روی خود پوستر */
+.etile .ecov .ebar{position:absolute;inset-inline:0;bottom:0;height:3.5px;background:rgba(255,255,255,.3)}
+.etile .ecov .ebar i{display:block;height:100%;background:#fff}
+/* امتیاز و خریدها */
+.etile .erating{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-3);min-width:0}
+.etile .erating .i{width:12px;height:12px;color:#C08A1E;flex:0 0 auto}
+.etile .erating b{color:var(--ink-2);font-weight:600}
+.etile .erating small{white-space:nowrap}
+.etile .eslots{font-size:11px;color:var(--ink-3)}
+.etile .eslots.full{color:var(--stop);font-weight:600}
+.etile .ebadges{display:flex;gap:4px;flex-wrap:wrap}
+.etile .ebadges .tag{height:20px;font-size:10px;padding:0 7px}
+/* پای کاشی: قیمت یک طرف، دکمه‌های خود یوآی طرف دیگر */
+.etile .efoot{display:grid;gap:8px;padding:9px 11px 11px;margin-top:auto}
+.etile .eprice{display:flex;align-items:baseline;gap:6px;min-width:0;line-height:1.35}
+.etile .eprice b{font-size:13.5px;font-weight:700}
+.etile .eprice b.free{color:var(--ok)}
+.etile .eprice small{font-size:10.5px;font-weight:500;color:var(--ink-3)}
+.etile .eprice .epfrom{margin-inline-start:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.etile .eacts{display:flex;align-items:center;gap:6px}
+.etile .eacts .btn.sm{flex:1 1 auto;min-width:0;min-height:34px;padding:0 10px;font-size:12.5px;gap:5px;text-decoration:none}
+.etile .eacts .icon-btn{width:34px;height:34px;border-radius:11px;flex:0 0 auto}
+.etile .eacts .icon-btn .i{width:17px;height:17px}
+.etile.dim{opacity:.92}
+.etile.past .ecov{filter:saturate(.72)}
+.etile .ebody{cursor:pointer}
+
+/* ── ردیف جست‌وجو، داخل همان نوار چسبان بالا ── */
+.topbar .searchrow{display:flex;align-items:center;gap:8px;padding-block:0 10px}
+.topbar .searchrow .sfield{flex:1;min-width:0;background:color-mix(in oklab,var(--surface) 56%,transparent);
+  border-color:color-mix(in oklab,var(--glass-line) 80%,transparent);box-shadow:var(--sheen-top)}
+.topbar .searchrow .sfield:focus-within{background:color-mix(in oklab,var(--surface) 82%,transparent)}
+
+/* ── نوار شمارش معکوس نزدیک‌ترین ثبت‌نام ── */
+.deal{position:relative;display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,var(--brand),#0A3A82);color:#fff;
+  border:.5px solid rgba(255,255,255,.22);border-radius:var(--r-lg);padding:11px 13px;
+  box-shadow:0 10px 24px -16px rgba(10,58,130,.85),inset 0 1px 0 rgba(255,255,255,.34)}
+.deal .dl{display:grid;gap:2px;min-width:0;flex:1}
+.deal .dlt{display:inline-flex;align-items:center;gap:5px;font-size:11px;opacity:.92}
+.deal .dlt .i{width:13px;height:13px}
+.deal b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deal .cd{font-variant-numeric:tabular-nums;font-weight:700;font-size:13.5px;background:rgba(255,255,255,.18);
+  border-radius:11px;padding:6px 9px;white-space:nowrap;letter-spacing:.4px}
+.deal .btn.sm{background:#fff;color:var(--brand-ink);border-color:transparent;box-shadow:none;min-height:32px;text-decoration:none}
+
+/* ── نوار دسته‌ها ── */
+.catrail{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity}
+.catrail::-webkit-scrollbar{display:none}
+.catrail .chip.cat{flex:0 0 auto;flex-direction:column;height:auto;padding:9px 13px;gap:4px;border-radius:var(--r-lg);
+  scroll-snap-align:start;background:color-mix(in oklab,var(--surface) 82%,transparent);
+  border-color:var(--glass-line);box-shadow:var(--sheen-top)}
+.catrail .cat .i{width:21px;height:21px;opacity:1;color:var(--brand-ink)}
+.catrail .cat .cn{font-size:12px;font-weight:600}
+.catrail .cat .cc{font-size:10px;color:var(--ink-3)}
+.catrail .cat.on{background:color-mix(in oklab,var(--brand) 12%,transparent);
+  border-color:color-mix(in oklab,var(--brand) 34%,transparent)}
+.catrail .cat.on .cc{color:var(--brand-ink)}
+
+/* ── ردیف‌های افقی ── */
+.railsec .sec-hd{margin-bottom:9px}
+.evmore{display:inline-flex;align-items:center;gap:2px;border:0;background:none;font:inherit;font-size:12px;
+  color:var(--brand-ink);font-weight:600;cursor:pointer;padding:4px 2px;border-radius:8px;white-space:nowrap}
+.evmore .i{width:14px;height:14px}
+.evmore:active{transform:scale(.97)}
+.evrail{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity}
+.evrail::-webkit-scrollbar{display:none}
+.evrail .etile{flex:0 0 174px;scroll-snap-align:start}
+@media(min-width:560px){.evrail .etile{flex:0 0 196px}}
+
+/* ── نوار ابزار: مرتب‌سازی، نما و شمار ── */
+.toolbar .seg{background:color-mix(in oklab,var(--surface-sunk) 62%,transparent)}
+.toolbar .selw select{background:color-mix(in oklab,var(--surface) 62%,transparent)}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:2px 0 12px;
+  background:var(--glass-2);-webkit-backdrop-filter:var(--blur-thin);backdrop-filter:var(--blur-thin);
+  border:.5px solid var(--glass-line);border-radius:var(--r-lg);box-shadow:var(--sh-1),var(--sheen-top)}
+.sels{display:flex;align-items:center;gap:7px}
+.sels .flbl{font-size:11.5px;color:var(--ink-3)}
+.selw{position:relative;display:inline-flex;align-items:center}
+.selw select{-webkit-appearance:none;appearance:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+  background:var(--surface-2);border:.5px solid var(--hairline);border-radius:var(--r-pill);padding:7px 12px 7px 30px;cursor:pointer}
+.selw .i{position:absolute;inset-inline-end:10px;width:13px;height:13px;color:var(--ink-4);pointer-events:none;transform:rotate(90deg)}
+
+/* اگر کاربر شفافیت کمتر خواسته باشد، همهٔ این قاب‌ها مات می‌شوند */
+@media (prefers-reduced-transparency:reduce){
+  .stat,.libbar,.filters,.toolbar,.etile,.catrail .chip.cat,.topbar .searchrow .sfield{
+    background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+
+/* نشان طلایی: گواهی‌دار */
+.tag.gold{background:color-mix(in oklab,#C08A1E 15%,transparent);color:#8A6420}
+:root[data-theme="dark"] .tag.gold{color:#E6C179}
+</style>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6v10.2"/><path d="M8.4 7.2 12 3.6l3.6 3.6"/><path d="M7.4 11.4H6.2a1.8 1.8 0 0 0-1.8 1.8v5a1.8 1.8 0 0 0 1.8 1.8h11.6a1.8 1.8 0 0 0 1.8-1.8v-5a1.8 1.8 0 0 0-1.8-1.8h-1.2"/></g></symbol>
+<symbol id="i-home-f" viewBox="0 0 24 24"><path fill="currentColor" d="M11.3 3.3a1 1 0 0 1 1.4 0l7.6 7c.2.2.3.4.3.7v8.5c0 .8-.7 1.5-1.5 1.5h-4.3v-5.3a2 2 0 0 0-2-2h-1.6a2 2 0 0 0-2 2V21H4.9a1.5 1.5 0 0 1-1.5-1.5V11c0-.3.1-.5.3-.7z"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 10.6h16M8.6 3.6v3.4M15.4 3.6v3.4"/></g></symbol>
+<symbol id="i-calendar-f" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5.4h14a2 2 0 0 1 2 2v11.2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.4a2 2 0 0 1 2-2z"/><path d="M3 9.9h18" stroke="var(--surface)" stroke-width="1.7"/><path d="M7.8 3.4v3.4M16.2 3.4v3.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-idcard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6a1.6 1.6 0 0 1 1.6-1.6h13.6a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1-1.6 1.6H5.2a1.6 1.6 0 0 1-1.6-1.6z"/><circle cx="8.9" cy="10.6" r="2.1"/><path d="M5.4 16c.5-1.9 1.9-2.9 3.5-2.9s3 1 3.5 2.9"/><path d="M14.6 10.2h3.4M14.6 13.4h2.2"/></g></symbol>
+<symbol id="i-idcard-f" viewBox="0 0 24 24"><path fill="currentColor" d="M4.6 4.6h14.8a2.6 2.6 0 0 1 2.6 2.6v9.6a2.6 2.6 0 0 1-2.6 2.6H4.6A2.6 2.6 0 0 1 2 16.8V7.2a2.6 2.6 0 0 1 2.6-2.6z"/><circle cx="8.6" cy="10.6" r="2.1" fill="var(--surface)"/><path d="M5.2 16.4c.5-1.7 1.9-2.7 3.4-2.7s2.9 1 3.4 2.7" stroke="var(--surface)" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M14.6 10h5M14.6 13.6h5" stroke="var(--surface)" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.2"/><path d="M15.6 15.6 20.2 20.2"/></g></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"/></g></symbol>
+<symbol id="i-chev-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 6.4 8.8 12l5.6 5.6"/></g></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4.4" y="4.4" width="6" height="6" rx="2"/><rect x="13.6" y="4.4" width="6" height="6" rx="2"/><rect x="4.4" y="13.6" width="6" height="6" rx="2"/><rect x="13.6" y="13.6" width="6" height="6" rx="2"/></g></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 8.6h15.6v9.8a1.4 1.4 0 0 1-1.4 1.4H5.6a1.4 1.4 0 0 1-1.4-1.4z"/><path d="M3.2 5.4h17.6v3.2H3.2z"/><path d="M9.8 12.2h4.4"/></g></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.1 2"/></g></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.4" cy="8.2" r="3.1"/><path d="M3.6 19.4c0-3.2 2.6-5.2 5.8-5.2s5.8 2 5.8 5.2"/><path d="M16.2 5.6a3.1 3.1 0 0 1 .3 5.4"/><path d="M17.6 13.9c2.1.6 3.5 2.4 3.5 4.6"/></g></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20c.6-3.8 3.6-6 7.2-6s6.6 2.2 7.2 6"/></g></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.8s6.4-6.1 6.4-10.7a6.4 6.4 0 1 0-12.8 0C5.6 14.7 12 20.8 12 20.8z"/><circle cx="12" cy="10" r="2.4"/></g></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.4l2.5 5 5.5.8-4 3.9.95 5.5L12 17.1l-4.95 2.5.95-5.5-4-3.9 5.5-.8z"/></g></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.6A2.6 2.6 0 0 1 6.2 6h11.6a2.6 2.6 0 0 1 2.6 2.6v6.8a2.6 2.6 0 0 1-2.6 2.6H6.2a2.6 2.6 0 0 1-2.6-2.6z"/><path d="M3.6 11.6h16.8"/><circle cx="16.6" cy="15" r="1.15" fill="currentColor" stroke="none"/></g></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/></g></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11z" fill="currentColor"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 12S6.3 6.2 12 6.2 21.4 12 21.4 12 17.7 17.8 12 17.8 2.6 12 2.6 12z"/><circle cx="12" cy="12" r="2.7"/></g></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 5.6 17.8 12l-9.4 6.4z"/></g></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8A2.4 2.4 0 0 1 6 5.6h12A2.4 2.4 0 0 1 20.4 8v8a2.4 2.4 0 0 1-2.4 2.4H6A2.4 2.4 0 0 1 3.6 16z"/><path d="M4.4 7.6 12 13.2l7.6-5.6"/></g></symbol>
+<symbol id="i-headphone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 15.4v-2.6a7.4 7.4 0 0 1 14.8 0v2.6"/><path d="M4.6 14.2h1.9c.6 0 1.1.5 1.1 1.1v2.3c0 .6-.5 1.1-1.1 1.1H5.7a1.1 1.1 0 0 1-1.1-1.1z"/><path d="M19.4 14.2h-1.9c-.6 0-1.1.5-1.1 1.1v2.3c0 .6.5 1.1 1.1 1.1h.8a1.1 1.1 0 0 0 1.1-1.1z"/></g></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 14.4 14.4 9.6"/><path d="M11.4 7.2 12.9 5.7a4 4 0 0 1 5.6 5.6l-1.5 1.5"/><path d="M12.6 16.8 11.1 18.3a4 4 0 0 1-5.6-5.6l1.5-1.5"/></g></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.6c0-.6.5-1.1 1.1-1.1h4.2c.9 0 1.7.5 2.2 1.2.5-.7 1.3-1.2 2.2-1.2h4.2c.6 0 1.1.5 1.1 1.1v10.2c0 .6-.5 1.1-1.1 1.1h-3.9c-.9 0-1.7.4-2.2 1.1-.5-.7-1.3-1.1-2.2-1.1H5.1c-.6 0-1.1-.5-1.1-1.1z"/><path d="M12 6.8v11.4"/></g></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 6.6A2 2 0 0 1 5.6 4.6h12.8a2 2 0 0 1 2 2v10.8a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><circle cx="8.6" cy="9.6" r="1.7"/><path d="M4.2 17.2 9.4 12l3.4 3.4 2.6-2.6 4.4 4.4"/></g></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5.2v13.6M5.2 12h13.6"/></g></symbol>
+<symbol id="i-bell-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.4a5.4 5.4 0 0 1 10.8 0c0 3.9 1.6 5 1.6 5H5s1.6-1.1 1.6-5z"/><path d="M10.1 18.6a2.1 2.1 0 0 0 3.8 0"/><path d="M4.4 4.4 19.6 19.6"/></g></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6 9.6 17.2 19 7.4"/></g></symbol>
+<symbol id="i-qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4.2 8V5.8A1.6 1.6 0 0 1 5.8 4.2H8M16 4.2h2.2A1.6 1.6 0 0 1 19.8 5.8V8M19.8 16v2.2a1.6 1.6 0 0 1-1.6 1.6H16M8 19.8H5.8a1.6 1.6 0 0 1-1.6-1.6V16"/><rect x="7.4" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="13" y="7.4" width="3.6" height="3.6" rx="1"/><rect x="7.4" y="13" width="3.6" height="3.6" rx="1"/><path d="M13 13h1.8v1.8H13zM16.6 16.6H18.4" fill="currentColor" stroke="none"/></g></symbol>
+<symbol id="i-article" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.8c0-.6.5-1.1 1.1-1.1h10.2c.6 0 1.1.5 1.1 1.1v10.4c0 .6.5 1.1 1.1 1.1H6.6A2.6 2.6 0 0 1 4 15.7z"/><path d="M16.4 9.4h3.5v6.3a2.6 2.6 0 0 1-2.6 2.6"/><path d="M6.8 9.4h6.4M6.8 12.6h6.4M6.8 15.8h3.6"/></g></symbol>
+<symbol id="i-graduation" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.8 3.4 8.8 12 12.8l8.6-4z"/><path d="M6.8 10.9v4.4c0 1.3 2.3 2.4 5.2 2.4s5.2-1.1 5.2-2.4v-4.4"/><path d="M20.6 8.8v4.6"/></g></symbol>
+<symbol id="i-handshake" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 11.4 6.6 8a2 2 0 0 1 2.8 0l2.6 2.6"/><path d="M20.8 11.4 17.4 8a2 2 0 0 0-2.8 0l-2.6 2.6"/><path d="m8.4 12.6 3 3 3-3"/><path d="m10.2 15.2 1.8 1.8 1.8-1.8"/></g></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h6.8l4.2 4.2v12.8H6.5z"/><path d="M13.2 3.5v4.3h4.3"/><path d="M9.3 12h5.4M9.3 15.4h3.6"/></g></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.4 4.6l3 3L9.2 17.8l-4 1.2 1.2-4z"/><path d="M14.6 6.6l3 3"/></g></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 3.8 3.8 10.4l6.4 3 3 6.4z"/><path d="M10.2 13.4 13.6 10"/></g></symbol>
+<symbol id="i-mobile" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 4.4h8.4a1.6 1.6 0 0 1 1.6 1.6v12a1.6 1.6 0 0 1-1.6 1.6H7.8a1.6 1.6 0 0 1-1.6-1.6V6a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M10.8 17.6h2.4"/></g></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.6l1.6 4.6 4.6 1.6-4.6 1.6L12 17l-1.6-4.6L5.8 10.8l4.6-1.6z"/><path d="M18.6 15.8l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/></g></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 3.8 8.2 12 12.8l8.2-4.6z"/><path d="M4.6 12.4 12 16.6l7.4-4.2"/><path d="M4.6 16.4 12 20.6l7.4-4.2"/></g></symbol>
+<symbol id="i-medal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9.4" r="4.6"/><path d="M9.1 13.4 7.4 20.6l4.6-2.4 4.6 2.4-1.7-7.2"/></g></symbol>
+<symbol id="i-video" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="6.4" width="12.6" height="11.2" rx="2.2"/><path d="M16 10.6l4.6-2.4v7.6L16 13.4z"/><path d="M6.6 9.4v1.4M9.4 9.4v1.4M6.6 13.4v1.4M9.4 13.4v1.4"/></g></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 5.4 6.4v5c0 4.6 2.8 7.6 6.6 9 3.8-1.4 6.6-4.4 6.6-9v-5z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></g></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.8v16.8"/><path d="M6.4 5.2h11.2l-2.2 3.6 2.2 3.6H6.4z"/></g></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.8s-7.2-4.4-7.2-9.4A4.4 4.4 0 0 1 12 7.1a4.4 4.4 0 0 1 7.2 3.3c0 5-7.2 9.4-7.2 9.4z"/></g></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.2v10.4"/><path d="M7.8 10.6 12 14.8l4.2-4.2"/><path d="M5 19.4h14"/></g></symbol>
+
+<symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 11.6a1.6 1.6 0 0 1 1.6-1.6h10a1.6 1.6 0 0 1 1.6 1.6v6.8a1.6 1.6 0 0 1-1.6 1.6H7a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M8.6 10V8.2a3.4 3.4 0 0 1 6.8 0V10"/></g></symbol>
+<symbol id="i-play-f" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 5.9c0-.83-.9-1.35-1.62-.94L5.6 10.06c-.72.41-.72 1.47 0 1.88l8.28 5.1c.72.41 1.62-.11 1.62-.94z"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.6 8.4h12.8l1.2 11.6H4.4z"/><path d="M9.2 8.4V6.6a2.8 2.8 0 0 1 5.6 0v1.8"/></g></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><g fill="currentColor"><rect x="7.3" y="5.4" width="3.4" height="13.2" rx="1.5"/><rect x="13.3" y="5.4" width="3.4" height="13.2" rx="1.5"/></g></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.6 5.8 8.4 12l6.2 6.2"/><path d="M8.6 12h9.4" opacity=".4"/></g></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="home.html" aria-label="خانهٔ نورا">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span>
+    </a>
+    <span class="sp"></span>
+    <span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span>
+    <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
+    <button class="icon-btn" data-notice aria-label="اعلان‌ها"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden></span></button>
+    <a class="icon-btn help-btn" href="support.html" aria-label="پشتیبانی و راهنما" title="پشتیبانی و راهنما"><svg class="i"><use href="#i-headphone"/></svg></a>
+  </div>
+  <div class="wrap searchrow" id="searchBar">
+    <div class="sfield">
+      <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="دنبال کدوم رویدادی؟" aria-label="جست‌وجو در آرشیو رویدادها" autocomplete="off"/>
+      <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <button class="icon-btn" data-jump="filters" aria-label="صافی‌ها و مرتب‌سازی"><svg class="i"><use href="#i-layers"/></svg></button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1 class="sr">رویدادها و برنامه‌های نورا</h1>
+
+  <!-- بنر: نزدیک‌ترین برنامه‌ها -->
+  <section class="sec" id="spotSec" aria-label="برنامه‌های نزدیک">
+    <div class="spotrail" id="spotrail"></div>
+    <div class="dots" id="spotdots" hidden></div>
+  </section>
+
+  <!-- ثبت‌نام نزدیک‌ترین برنامه، با شمارش معکوس -->
+  <section class="sec" id="dealSec" hidden aria-label="نزدیک‌ترین ثبت‌نام">
+    <div class="deal">
+      <div class="dl">
+        <span class="dlt"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> ثبت‌نام تا شروع</span>
+        <b id="dealTx"></b>
+      </div>
+      <span class="cd" id="dealCd" aria-live="off"></span>
+      <a class="btn sm primary" id="dealCta" href="events.html#list">ثبت‌نام</a>
+    </div>
+  </section>
+
+  <!-- دسته‌ها: نوار افقی مثل دسته‌بندی فروشگاه‌ها -->
+  <section class="sec" id="catSec" aria-label="دسته‌بندی برنامه‌ها">
+    <div class="sec-hd"><span class="fw">دسته‌ها</span><span class="sp"></span><span class="cap" id="catNote"></span></div>
+    <div class="catrail" id="catrail" role="group" aria-label="دسته‌بندی"></div>
+  </section>
+
+  <!-- آمار آرشیو -->
+  <section class="sec" aria-label="آمار آرشیو">
+    <div class="stats" id="stats"></div>
+    <p class="cap" id="statsNote" style="margin:9px 3px 0"></p>
+  </section>
+
+  <!-- کتابخانهٔ من -->
+  <section class="sec" id="libBar" hidden>
+    <a class="libbar" href="events.html#lib">
+      <span class="li"><svg class="i" aria-hidden="true"><use href="#i-play-f"/></svg></span>
+      <span class="lt"><b>کتابخانهٔ من</b><small id="libBarTx"></small></span>
+      <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+    </a>
+  </section>
+
+  <!-- همین حالا -->
+  <section class="sec" id="live" hidden aria-label="همین حالا">
+    <div class="sec-hd"><span class="fw">همین حالا</span><span class="sp"></span><span class="cap" id="liveCount"></span></div>
+    <div id="liveList"></div>
+  </section>
+
+  <!-- ردیف‌های افقی: نزدیک‌ترین‌ها و پرفروش‌های آرشیو -->
+  <section class="sec railsec" id="railUpSec" aria-label="نزدیک‌ترین برنامه‌ها">
+    <div class="sec-hd"><span class="fw">نزدیک‌ترین برنامه‌ها</span><span class="sp"></span>
+      <button class="evmore" data-more="up">مشاهده همه <svg class="i" aria-hidden="true"><use href="#i-chev-left"/></svg></button></div>
+    <div class="evrail" id="railUp"></div>
+  </section>
+
+  <section class="sec railsec" id="railBestSec" aria-label="پرفروش‌های آرشیو">
+    <div class="sec-hd"><span class="fw">پرفروش‌های آرشیو</span><span class="sp"></span>
+      <button class="evmore" data-more="best">مشاهده همه <svg class="i" aria-hidden="true"><use href="#i-chev-left"/></svg></button></div>
+    <div class="evrail" id="railBest"></div>
+  </section>
+
+  <!-- نوار ابزار آرشیو: مرتب‌سازی، نما و شمار -->
+  <div class="toolbar" id="toolbar">
+    <label class="sels" for="sort">
+      <span class="flbl">مرتب‌سازی</span>
+      <span class="selw"><select id="sort" aria-label="مرتب‌سازی فهرست">
+        <option value="near">نزدیک‌ترین</option>
+        <option value="best">پرفروش‌ترین</option>
+        <option value="cheap">ارزان‌ترین</option>
+        <option value="dear">گران‌ترین</option>
+      </select><svg class="i" aria-hidden="true"><use href="#i-chev-left"/></svg></span>
+    </label>
+    <span class="sp"></span>
+    <div class="seg" role="tablist" aria-label="نمای آرشیو">
+      <button data-view="list" role="tab" aria-selected="true"><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg> فهرست</button>
+      <button data-view="cal" role="tab" aria-selected="false"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> تقویم</button>
+    </div>
+    <span class="cap" id="cnt"></span>
+  </div>
+
+  <!-- صافی‌ها: سه مدل، بالا به پایین، بی دکمهٔ «همه» -->
+  <section class="sec" id="filterSec" aria-label="صافی‌های آرشیو">
+    <div class="filters" id="filters">
+      <div id="frows"></div>
+    </div>
+    <p class="cap" style="margin:8px 3px 0">هر صافی را با زدن دوباره‌اش برمی‌داری؛ فهرست همیشه به ترتیب تاریخ است.</p>
+  </section>
+
+  <!-- فهرست آرشیو -->
+  <section class="sec" id="listView" aria-label="فهرست آرشیو">
+    <div class="sec-hd"><span class="fw">همهٔ برنامه‌ها</span><span class="sp"></span><span class="cap" id="listNote"></span></div>
+    <div class="tgrid" id="grid"></div>
+  </section>
+
+  <!-- تقویم ماهانه -->
+  <section class="sec" id="calView" hidden aria-label="تقویم ماهانه">
+    <div class="chips" id="monthsw" role="tablist" aria-label="ماه‌ها" style="margin-bottom:12px"></div>
+    <div class="calgrid" id="calgrid" role="group" aria-label="روزهای ماه"></div>
+    <div class="dayhd"><b id="dayTitle"></b><span class="sp"></span><span class="cap" id="dayCount"></span></div>
+    <div class="tgrid" id="dayGrid"></div>
+  </section>
+
+  <!-- کتابخانهٔ من -->
+  <section class="sec" id="libView" hidden aria-label="کتابخانهٔ من">
+    <div class="sec-hd"><span class="fw">کتابخانهٔ من</span><span class="sp"></span>
+      <span class="cap" id="libCount"></span></div>
+    <div id="libBox"></div>
+  </section>
+
+  <footer class="hfoot">
+    <div><b>گروه فرهنگی خط زندگی</b>، تهران، خیابان ولی‌عصر، پلاک ۱۲</div>
+    <div>۰۲۱-۸۸۸۸۱۲۳۴ · <a href="mailto:info@lifeline1.ir">info@lifeline1.ir</a> · <a href="https://lifeline1.ir" target="_blank" rel="noopener">lifeline1.ir</a></div>
+    <div class="row" style="justify-content:center;margin:4px 0 8px">
+      <button class="btn sm quiet" data-menu><svg class="i"><use href="#i-grid"/></svg> منوی کامل نورا</button>
+    </div>
+    <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html#lib">کتابخانهٔ من</a> · <a href="events.html#cal">تقویم</a> · © ۱۴۰۵</div>
+  </footer>
+</main>
+
+<p class="trustline center" data-trust="secure"></p>
+
+<nav class="tabbar" aria-label="ناوبری اصلی">
+  <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
+  <a href="events.html" class="on" aria-current="page"><svg class="i"><use href="#i-calendar-f"/></svg><small>رویدادها</small></a>
+  <a href="home.html#me"><svg class="i"><use href="#i-idcard"/></svg><small>حساب من</small></a>
+</nav>
+
+<aside class="sheet full" id="shEvent" role="dialog" aria-modal="false" aria-label="کلیات رویداد"></aside>
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js?v=89"></script>
+<script src="ui.js?v=89"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   آرشیو رویدادها؛ هر برنامه‌ای که برگزار شده یا در پیش است
+   ──────────────────────────────────────────────────────────────────────
+   ساختار، از فروشگاه‌های حرفه‌ای وام گرفته شده: جست‌وجوی چسبان بالا،
+   نوار دسته‌ها، نوار شمارش معکوس نزدیک‌ترین ثبت‌نام، ردیف‌های افقی
+   «نزدیک‌ترین‌ها» و «پرفروش‌های آرشیو»، نوار مرتب‌سازی و شمار کالا،
+   بعد صافی‌های دقیق و در آخر فهرست کامل و تقویم.
+
+   همهٔ دکمه‌ها از خود یوآی نورا می‌آیند: btn / btn.primary / btn.quiet /
+   btn.sm / chip / seg / icon-btn. هیچ دکمهٔ دست‌ساز جداگانه‌ای این‌جا نیست.
+   ══════════════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+const {PEOPLE=[],LIVE=[],TOTAL_MEDIA=0,ARCHIVE={}}=window.NORA||{};
+/* رویدادهای منتشرشدهٔ پنل: مدیر که در ویزارد انتشار داد، همین‌جا در فهرست می‌آید؛
+   برگزارشده‌ها هم در بخش آرشیو. بی‌انبارِ منتشرشده، همه‌چیز مثل قبل است. */
+const PUB=(window.NORA_UI&&NORA_UI.pubEvents)?NORA_UI.pubEvents():[];
+let EVENTS=(window.NORA&&window.NORA.EVENTS)||[];
+let PAST=(window.NORA&&window.NORA.PAST)||[];
+if(PUB.length){EVENTS=EVENTS.concat(PUB.filter(x=>!x.past)); PAST=PAST.concat(PUB.filter(x=>x.past));}
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const person=id=>PEOPLE.find(p=>p.id===id)||{n:'—',ini:'؟',r:'',g:'linear-gradient(135deg,#3E5B84,#0B2447)'};
+const UI=()=>window.NORA_UI||{};
+const tag=(t,cls)=>`<span class="tag ${cls||''}">${esc(t)}</span>`;
+const pad2=n=>(n<10?'۰':'')+faN(n);
+
+/* ماه‌های تقویم: تیر و مرداد گذشته‌اند، شهریور جاری و مهر پیش رو */
+const MONTHS={
+  tir:{n:'تیر ۱۴۰۵', days:31, start:2, past:true},
+  mordad:{n:'مرداد ۱۴۰۵', days:31, start:5, past:true},
+  sh:{n:'شهریور ۱۴۰۵', days:31, start:1, today:28},
+  mehr:{n:'مهر ۱۴۰۵', days:30, start:4}
+};
+const WD=['ش','ی','د','س','چ','پ','ج'];
+const WDNAME={'ش':'شنبه','ی':'یکشنبه','د':'دوشنبه','س':'سه‌شنبه','چ':'چهارشنبه','پ':'پنجشنبه','ج':'جمعه'};
+const ICONS={'کارگاه':'i-pen','جلسه':'i-users','نشست':'i-article','اردو':'i-pin','پویش':'i-heart',
+  'وبینار':'i-video','آزمون':'i-check','جشنواره':'i-sparkle','آنلاین':'i-mobile','حضوری':'i-pin'};
+
+const SORTS=['near','best','cheap','dear'];
+const S={view:'list', status:'', kind:'', mode:'', q:'', sort:'near', month:'sh', day:28, spot:0};
+
+/* ── صافی‌ها: سه مدل، بی ردیف «همه» ── */
+const KINDS=[...new Set(EVENTS.map(e=>e.kind).concat(PAST.map(h=>h.kind)))];
+function kindCount(k){return EVENTS.filter(e=>e.kind===k).length+PAST.filter(h=>h.kind===k).length}
+function modeCount(m){return EVENTS.filter(e=>e.mode.indexOf(m)>-1).length+PAST.filter(h=>h.mode.indexOf(m)>-1).length}
+function chipRow(label,list,cur,attr){
+  return `<div class="frow"><span class="flbl">${label}</span><div class="chips">`+
+    list.map(x=>`<button class="chip ${cur===x.k?'on':''}" data-${attr}="${esc(x.k)}" aria-pressed="${cur===x.k?'true':'false'}">
+      <svg class="i" aria-hidden="true"><use href="#i-check"/></svg>${esc(x.n)}${x.c?' '+faN(x.c):''}</button>`).join('')+
+    `</div></div>`;
+}
+function renderFilters(){
+  const kinds=KINDS.map(k=>({k:k,n:k,c:kindCount(k)})).sort((a,b)=>b.c-a.c);
+  const modes=['حضوری','آنلاین'].map(m=>({k:m,n:m,c:modeCount(m)}));
+  $('#frows').innerHTML=
+    chipRow('وضعیت',[{k:'up',n:'پیش رو',c:EVENTS.length},{k:'past',n:'برگزارشده',c:PAST.length}],S.status,'status')+
+    chipRow('نوع برنامه',kinds,S.kind,'kind')+
+    chipRow('شیوهٔ برگزاری',modes,S.mode,'mode');
+}
+
+/* ── نوار دسته‌ها: میان‌بر بالای صفحه ── */
+function renderCats(){
+  const kinds=KINDS.map(k=>({t:'kind',k:k,n:k,c:kindCount(k)})).sort((a,b)=>b.c-a.c);
+  const modes=['آنلاین','حضوری'].map(m=>({t:'mode',k:m,n:m,c:modeCount(m)}));
+  const all=kinds.concat(modes);
+  $('#catrail').innerHTML=all.map(x=>{
+    const on=x.t==='kind'?S.kind===x.k:S.mode===x.k;
+    return `<button class="chip cat ${on?'on':''}" data-${x.t}="${esc(x.k)}" aria-pressed="${on?'true':'false'}">
+      <svg class="i" aria-hidden="true"><use href="#${ICONS[x.k]||'i-layers'}"/></svg>
+      <span class="cn">${esc(x.n)}</span><span class="cc">${faN(x.c)}</span></button>`}).join('');
+  $('#catNote').textContent=faN(all.length)+' دسته';
+}
+
+/* ── بنر ── */
+function daysTo(e){
+  if(e.dm==='sh') return Math.max(0,e.dn-28);
+  if(e.dm==='mehr') return 3+e.dn;
+  if(e.dm==='aban') return 33+e.dn;
+  return 0;
+}
+function cdTxt(e){
+  if(e.live) return 'همین حالا در حال برگزاری';
+  const d=daysTo(e);
+  if(d===0) return 'امشب';
+  if(d===1) return 'فردا';
+  return faN(d)+' روز مانده';
+}
+function spotList(){
+  const up=EVENTS.slice().sort((a,b)=>a.ord-b.ord);
+  return up.filter(e=>e.live).concat(up.filter(e=>!e.live)).slice(0,3);
+}
+function slide(e){
+  const p=person(e.tchr), pre=!!(UI().isPre&&UI().isPre(e.id));
+  let act;
+  if(e.live) act=`<a class="btn primary" href="event.html?id=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-video"/></svg> ورود به جلسه</a>`;
+  else if(e.pre||pre) act=`<button class="btn ${pre?'quiet':'primary'}" data-uipre="${esc(e.id)}">
+      <svg class="i" aria-hidden="true"><use href="#${pre?'i-check':'i-bell'}"/></svg> ${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
+  else act=`<a class="btn primary" href="form.html?ev=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-pen"/></svg> ${e.price?'ثبت‌نام':'ثبت‌نام رایگان'}</a>`;
+  return `<article class="spot" style="--g:${esc(e.g||'')}">
+    ${e.poster?`<img class="pbg" src="${esc(e.poster)}" alt="" loading="lazy"/>`:''}
+    <span class="veil"></span>
+    <div class="stop">${tag(e.kind,'brand')}${e.sess>1?tag(faN(e.sess)+' جلسه'):tag(e.mode)}
+      <span class="cd">${cdTxt(e)}</span></div>
+    <h2>${esc(e.t)}</h2>
+    <div class="meta">
+      <svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${esc(e.when)} · ${esc(e.time)}</span>
+      <svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${esc(e.place||'آنلاین')}</span>
+      ${(e.tchr&&p.n&&p.n!=='—')?`<svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>${esc(p.n)}</span>`:''}</div>
+    <div class="acts">${act}
+      <a class="btn quiet" href="event.html?id=${esc(e.id)}"><svg class="i" aria-hidden="true"><use href="#i-chev-left"/></svg> جزئیات</a>
+      <button class="btn quiet" data-uishare="${esc(e.id)}" aria-label="اشتراک‌گذاری"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg></button></div>
+  </article>`;
+}
+function renderSpot(){
+  const list=spotList();
+  $('#spotSec').hidden=!list.length;
+  if(!list.length) return;
+  if(S.spot>list.length-1) S.spot=0;
+  $('#spotrail').innerHTML=list.map(slide).join('');
+  const box=$('#spotdots');
+  box.hidden=list.length<2;
+  box.innerHTML=list.map((e,i)=>`<button type="button" class="sdot ${i===S.spot?'on':''}" data-spot="${i}"
+    aria-label="اسلاید ${faN(i+1)}: ${esc(e.t)}"${i===S.spot?' aria-current="true"':''}></button>`).join('');
+}
+function spotSet(i){
+  S.spot=i;
+  $$('#spotdots .sdot').forEach((d,j)=>{
+    d.classList.toggle('on',j===i);
+    if(j===i) d.setAttribute('aria-current','true'); else d.removeAttribute('aria-current');
+  });
+}
+function spotTo(i){
+  const el=$$('#spotrail .spot')[i];
+  if(el) el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  spotSet(i);
+}
+function bindSpot(){
+  $('#spotdots').addEventListener('click',ev=>{const d=ev.target.closest('[data-spot]'); if(d) spotTo(+d.dataset.spot)});
+  $('#spotrail').addEventListener('scroll',()=>{
+    const r=$('#spotrail'), w=r.clientWidth||1;
+    const n=$$('#spotrail .spot').length;
+    const i=Math.max(0,Math.min(n?n-1:0,Math.round(Math.abs(r.scrollLeft)/w)));
+    if(i!==S.spot) spotSet(i);
+  },{passive:true});
+}
+
+/* ── شمارش معکوس نزدیک‌ترین ثبت‌نام ── */
+const NOW={h:12,m:0};                     /* «الان» نمایشی: ۱۲:۰۰ */
+let dealLeft=0, dealTimer=null;
+const fa2en=x=>String(x||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));
+function timeSec(t){const p=fa2en(t).split(':'); return (+p[0]||0)*3600+(+p[1]||0)*60}
+function secsTo(e){return daysTo(e)*86400+timeSec(e.time)-(NOW.h*3600+NOW.m*60)}
+function cdClock(s){
+  const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60), x=s%60;
+  return (d?faN(d)+' روز و ':'')+pad2(h)+':'+pad2(m)+':'+pad2(x);
+}
+function renderDeal(){
+  const up=EVENTS.filter(e=>!e.live).slice().sort((a,b)=>secsTo(a)-secsTo(b));
+  const e=up[0];
+  if(!e){$('#dealSec').hidden=true; return}
+  $('#dealSec').hidden=false;
+  $('#dealTx').textContent=e.t;
+  const full=e.cap&&e.spots<=0;
+  $('#dealCta').setAttribute('href', e.pre?('event.html?id='+e.id):('form.html?ev='+e.id));
+  $('#dealCta').textContent = full?'لیست انتظار':(e.pre?'پیش‌ثبت‌نام':'ثبت‌نام');
+  dealLeft=Math.max(0,secsTo(e));
+  $('#dealCd').textContent=cdClock(dealLeft);
+  if(dealTimer) clearInterval(dealTimer);
+  dealTimer=setInterval(()=>{dealLeft=Math.max(0,dealLeft-1); $('#dealCd').textContent=cdClock(dealLeft)},1000);
+}
+
+/* ── آمار ── */
+function renderStats(){
+  const items=[
+    [faN(PAST.length),'برنامهٔ برگزارشده'],
+    [faN(EVENTS.length),'برنامهٔ پیش رو'],
+    [faN(TOTAL_MEDIA),'رسانه در آرشیو'],
+    [faN(Math.round(ARCHIVE.hours||0)),'ساعت ویدیو و صدا']
+  ];
+  $('#stats').innerHTML=items.map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
+  $('#statsNote').textContent='آرشیو از تیر ۱۴۰۵ تا امروز؛ ضبط، صدا و جزوهٔ هر برنامه همین‌جا می‌ماند.';
+}
+
+/* ── کتابخانهٔ من: نوار میان‌بر ── */
+function renderLibBar(){
+  const ui=UI(), n=ui.library?ui.library().length:0, id=ui.uid?ui.uid():'';
+  if(!id||!n){$('#libBar').hidden=true; return}
+  const bundles=PAST.filter(h=>ui.hasLib&&ui.hasLib(h.id)).length;
+  $('#libBar').hidden=false;
+  $('#libBarTx').textContent=`${faN(n)} رسانه و ${faN(bundles)} بستهٔ کامل، همین‌جا ادامه بده`;
+}
+
+/* ── همین حالا ── */
+function renderLive(){
+  const box=$('#liveList');
+  const list=LIVE.filter(x=>x.past>0||x.soon<=30);
+  $('#live').hidden=!list.length;
+  if(!list.length) return;
+  box.innerHTML=list.map(x=>{
+    const e0=EVENTS.find(e=>e.id===x.ev)||{}, pct=x.past?Math.round(x.past/x.total*100):0;
+    return `<div class="livecard">
+      <div class="ll">${x.past?'<span class="dotpulse"></span>در حال برگزاری':'<svg class="i" aria-hidden="true" style="width:14px;height:14px"><use href="#i-clock"/></svg> شروع تا '+faN(x.soon)+' دقیقهٔ دیگر'}</div>
+      <h3>${esc(x.t)}</h3>
+      <div class="cap">${esc(x.at)} · ${esc(x.where)}${e0.tchr?' · '+esc(person(e0.tchr).n):''}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="row"><span class="cap">${x.past?faN(x.past)+' دقیقه از '+faN(x.total)+' دقیقه گذشته':'هنوز شروع نشده'}</span>
+        <span class="sp"></span>
+        <button class="btn sm ${x.past?'primary':'quiet'}" data-ev="${esc(x.ev)}">${x.past?'ورود به جلسه':'جزئیات'}</button></div>
+    </div>`}).join('');
+  $('#liveCount').textContent=list.some(x=>x.past)?'یکی در حال برگزاری':'شروع نزدیک';
+}
+
+/* ── فهرست و مرتب‌سازی ── */
+function hit(txt,q){return txt.indexOf(q)>-1}
+function passUp(e){
+  if(S.status==='past') return false;
+  if(S.kind&&e.kind!==S.kind) return false;
+  if(S.mode&&e.mode.indexOf(S.mode)<0) return false;
+  const q=S.q.trim();
+  if(q&&!hit(e.t+' '+person(e.tchr).n+' '+(e.place||'')+' '+e.kind+' '+e.mode+' '+(e.tags||[]).join(' '),q)) return false;
+  return true;
+}
+function passPast(h){
+  if(S.status==='up') return false;
+  if(S.kind&&h.kind!==S.kind) return false;
+  if(S.mode&&h.mode.indexOf(S.mode)<0) return false;
+  const q=S.q.trim();
+  if(q&&!hit(h.t+' '+person(h.tchr).n+' '+(h.place||'')+' '+h.kind+' '+(h.tags||[]).join(' ')+' '+(h.note||''),q)) return false;
+  return true;
+}
+const byDate=(list,dir)=>list.slice().sort((a,b)=>dir*(a.x.ord-b.x.ord));
+function rows(){
+  const up=EVENTS.filter(passUp).map(x=>({t:'up',x:x,pop:x.taken||0,price:x.price||0}));
+  const ps=PAST.filter(passPast).map(x=>({t:'past',x:x,pop:x.sold||0,price:x.price||0}));
+  if(S.status==='up') return S.sort==='near'?byDate(up,1):sortBy(up);
+  if(S.status==='past') return S.sort==='near'?byDate(ps,-1):sortBy(ps);
+  if(S.sort==='near') return byDate(up,1).concat(byDate(ps,-1));
+  return sortBy(up.concat(ps));
+}
+function sortBy(list){
+  const l=list.slice();
+  if(S.sort==='best') l.sort((a,b)=>b.pop-a.pop);
+  else if(S.sort==='cheap') l.sort((a,b)=>a.price-b.price);
+  else if(S.sort==='dear') l.sort((a,b)=>b.price-a.price);
+  return l;
+}
+
+/* ── کاشی: پیش رو ── */
+function priceCell(price){
+  return price?`<b>${faN(Math.round(price/1000)*1000).replace(/,/g,'٬')}</b> <small>ریال</small>`
+             :`<b class="free">رایگان</b>`;
+}
+function tileUp(e){
+  const p=person(e.tchr), full=e.cap&&e.spots<=0, pct=e.cap?Math.round(e.taken/e.cap*100):0;
+  const pre=!!(UI().isPre&&UI().isPre(e.id)), open=e.pre||pre;
+  const cta=open
+    ? `<button class="btn sm ${pre?'quiet':'primary'}" data-uipre="${esc(e.id)}" aria-label="پیش‌ثبت‌نام ${esc(e.t)}">
+        <svg class="i" aria-hidden="true"><use href="#${pre?'i-check':'i-bell'}"/></svg>${pre?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`
+    : `<a class="btn sm primary" href="form.html?ev=${esc(e.id)}">
+        <svg class="i" aria-hidden="true"><use href="#${full?'i-clock':'i-pen'}"/></svg>${full?'لیست انتظار':'ثبت‌نام'}</a>`;
+  const badges=(e.tags||[]).filter(t=>t!=='پیشنهادی'&&t!=='رایگان'&&t!=='آنلاین'&&t!=='جدید')
+    .concat(e.cert===false?[]:((e.tags||[]).includes('گواهی‌دار')?['گواهی‌دار']:[]))
+    .concat(!e.price?['رایگان']:[]);
+  return `<article class="etile" style="--g:${esc(e.g||'')}">
+    <button class="ecov" data-ev="${esc(e.id)}" aria-label="جزئیات ${esc(e.t)}">
+      ${e.poster?`<img src="${esc(e.poster)}" alt="پوستر ${esc(e.t)}" loading="lazy" decoding="async"/>`:''}
+      <span class="eveil"></span>
+      <span class="edate"><b>${faN(e.dn)}</b><span>${esc(e.mname||'')}</span></span>
+      <span class="etags">${e.club?tag('باشگاه کتاب‌خوانی','club'):''}${tag(e.kind,'brand')}<span class="tag">${esc(e.mode)}</span>${full?tag('ظرفیت تکمیل','stop'):''}</span>
+      ${e.live?'<span class="elive"><span class="dotpulse"></span>در حال برگزاری</span>':''}
+      ${e.cap?`<span class="ebar"><i style="width:${pct}%"></i></span>`:''}
+    </button>
+    <div class="ebody">
+      <b class="ettl">${esc(e.t)}</b>
+      ${(e.tchr&&p.n&&p.n!=='—')?`<span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>${esc(p.n)}</span></span>`:''}
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><span>${esc(e.when)} · ${esc(e.time)}</span></span>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><span>${esc(e.place||'آنلاین')}</span></span>
+      ${badges.length?`<span class="ebadges">${badges.map(b=>tag(b, b==='گواهی‌دار'?'gold':(b==='ظرفیت محدود'?'stop':'ok'))).join('')}</span>`:''}
+      ${e.cap?`<span class="eslots ${full?'full':''}">${full?'ظرفیت تکمیل':faN(e.spots)+' جا مانده از '+faN(e.cap)+' نفر'}</span>`:''}
+    </div>
+    <div class="efoot">
+      <span class="eprice">${priceCell(e.price)}${e.pre?`<small class="epfrom">پیش‌ثبت‌نام باز است</small>`:''}</span>
+      <span class="eacts">${cta}</span>
+    </div>
+  </article>`;
+}
+/* ── کاشی: برگزارشده ── */
+function tilePast(h){
+  const p=person(h.tchr), own=!!(UI().hasLib&&UI().hasLib(h.id));
+  const hasFree=(h.media||[]).some(m=>!m.p||m.preview);
+  const prices=(h.media||[]).map(m=>m.p||0).filter(x=>x>0);
+  const least=prices.length?Math.min.apply(null,prices):0;
+  const cta=own
+    ? `<button class="btn sm primary" data-uimedia="${esc(h.id)}:${esc((h.media[0]||{}).id||'')}"><svg class="i" aria-hidden="true"><use href="#i-play-f"/></svg>تماشا</button>`
+    : `<a class="btn sm primary" href="event.html?id=${esc(h.id)}"><svg class="i" aria-hidden="true"><use href="#i-bag"/></svg>${h.price?'تهیه':'دریافت'}</a>`;
+  return `<article class="etile past" style="--g:${esc(h.g||'')}">
+    <button class="ecov" data-ev="${esc(h.id)}" aria-label="جزئیات ${esc(h.t)}">
+      ${h.poster?`<img src="${esc(h.poster)}" alt="پوستر ${esc(h.t)}" loading="lazy" decoding="async"/>`:''}
+      <span class="eveil"></span>
+      <span class="edate"><b>${faN(h.dn)}</b><span>${esc(h.mname||'')}</span></span>
+      <span class="etags">${h.club?tag('باشگاه کتاب‌خوانی','club'):''}${tag(h.kind)}${tag(faN(h.mediaCount)+' رسانه','ok')}${h.cert?tag('گواهی‌دار','gold'):''}</span>
+    </button>
+    <div class="ebody">
+      <b class="ettl">${esc(h.t)}</b>
+      ${(h.tchr&&p.n&&p.n!=='—')?`<span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>${esc(p.n)}</span></span>`:''}
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${esc(h.d)}</span></span>
+      <span class="emeta"><svg class="i" aria-hidden="true"><use href="#i-layers"/></svg><span>${esc(h.rec)}</span></span>
+      <span class="erating"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg><b>${esc(h.rate2||'')}</b>
+        <small>(${faN(h.reviews||0)} نظر)</small><span class="sp"></span><small>${faN(h.sold||0)} خرید</small></span>
+    </div>
+    <div class="efoot">
+      <span class="eprice">${priceCell(h.price)}${least&&h.price?`<small class="epfrom">از ${faN(least)}</small>`:''}</span>
+      <span class="eacts">
+        ${hasFree?`<button class="icon-btn" data-uipreview="${esc(h.id)}" aria-label="پیش‌نمایش رایگان" title="پیش‌نمایش رایگان"><svg class="i"><use href="#i-eye"/></svg></button>`:''}
+        ${cta}</span>
+    </div>
+  </article>`;
+}
+function renderList(){
+  const list=rows();
+  $('#grid').innerHTML=list.map(r=>r.t==='up'?tileUp(r.x):tilePast(r.x)).join('') ||
+    `<div class="empty" style="grid-column:1/-1"><svg class="i"><use href="#i-search"/></svg>
+      <p>با این صافی چیزی پیدا نشد؛ واژه را کوتاه‌تر کن یا صافی را بردار.</p></div>`;
+  const up=list.filter(r=>r.t==='up').length, ps=list.length-up;
+  $('#cnt').textContent=list.length?(faN(list.length)+' برنامه · '+faN(up)+' پیش رو و '+faN(ps)+' برگزارشده'):'چیزی پیدا نشد';
+  $('#listNote').textContent=list.length?faN(list.length)+' برنامه':'خالی';
+  renderCats();
+  return list.length;
+}
+
+/* ── ردیف‌های افقی ── */
+function renderRails(){
+  const up=EVENTS.slice().sort((a,b)=>a.ord-b.ord).slice(0,6);
+  const best=PAST.slice().sort((a,b)=>(b.sold||0)-(a.sold||0)).slice(0,6);
+  $('#railUp').innerHTML=up.map(tileUp).join('');
+  $('#railBest').innerHTML=best.map(tilePast).join('');
+}
+
+/* ── تقویم ── */
+/* وقتی ماه عوض می‌شود، اول روی روزی می‌ایستیم که برنامه دارد */
+function firstBusy(m){
+  const M=MONTHS[m];
+  if(M.today) return M.today;
+  for(let d=1;d<=M.days;d++)
+    if(EVENTS.some(e=>e.dm===m&&e.dn===d)||PAST.some(h=>h.dm===m&&h.dn===d)) return d;
+  return 1;
+}
+function renderMonths(){
+  $('#monthsw').innerHTML=Object.entries(MONTHS).map(([k,m])=>
+    `<button class="chip ${S.month===k?'on':''} ${m.past?'was':''}" data-month="${k}" role="tab" aria-selected="${S.month===k?'true':'false'}">
+      <svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>${m.n}</button>`).join('');
+}
+function renderCal(){
+  const m=MONTHS[S.month], cells=[];
+  for(let i=0;i<m.start;i++) cells.push('<span class="cel blank"></span>');
+  for(let d=1;d<=m.days;d++){
+    const up=EVENTS.filter(e=>e.dm===S.month&&e.dn===d).length;
+    const ps=PAST.filter(h=>h.dm===S.month&&h.dn===d).length;
+    const today=S.month==='sh'&&d===m.today;
+    cells.push(`<button class="cel ${up||ps?'has':''} ${(!up&&ps)?'was':''} ${today?'today':''} ${S.day===d?'sel':''}" data-dn="${d}"
+      aria-label="${faN(d)} ${m.n}${up?'، '+faN(up)+' برنامهٔ پیش رو':''}${ps?'، '+faN(ps)+' برگزارشده':''}">
+      ${faN(d)}<span class="dots">${up?'<i></i>':''}${ps?'<i class="p"></i>':''}</span></button>`);
+  }
+  $('#calgrid').innerHTML=WD.map(w=>`<span class="wd">${w}</span>`).join('')+cells.join('');
+  renderDay();
+}
+function renderDay(){
+  const m=MONTHS[S.month];
+  const up=EVENTS.filter(e=>e.dm===S.month&&e.dn===S.day).sort((a,b)=>a.ord-b.ord);
+  const ps=PAST.filter(h=>h.dm===S.month&&h.dn===S.day).sort((a,b)=>b.ord-a.ord);
+  const wname=WDNAME[WD[(m.start+S.day-1)%7]];
+  $('#dayTitle').textContent=`${wname} ${faN(S.day)} ${m.n}`;
+  $('#dayCount').textContent=(up.length+ps.length)?`${faN(up.length)} پیش رو · ${faN(ps.length)} برگزارشده`:'برنامه‌ای نیست';
+  $('#dayGrid').innerHTML=(up.map(tileUp).join('')+ps.map(tilePast).join('')) ||
+    `<div class="empty" style="grid-column:1/-1"><svg class="i"><use href="#i-calendar"/></svg>
+      <p>این روز خالی است؛ روز پرنقطه را بزن یا از فهرست، همهٔ آرشیو را ببین.</p></div>`;
+}
+
+/* ── کتابخانهٔ من ── */
+function renderLib(){
+  const ui=UI(), login=!!(ui.uid&&ui.uid());
+  const bundles=PAST.filter(h=>ui.hasLib&&ui.hasLib(h.id));
+  const items=PAST.map(h=>(h.media||[]).map(m=>({h:h,m:m}))).flat().filter(x=>ui.hasLib&&ui.hasLib(x.m.id));
+  $('#libCount').textContent=login?(faN(items.length)+' رسانه · '+faN(bundles.length)+' بستهٔ کامل'):'برای دیدن، وارد شو';
+  if(!login){
+    $('#libBox').innerHTML=`<div class="card paper" style="text-align:center;padding:22px">
+      <svg class="i" aria-hidden="true" style="width:30px;height:30px;color:var(--ink-3)"><use href="#i-lock"/></svg>
+      <p class="sub" style="margin:10px 0 0">کتابخانه مالِ حساب خودت است. با شمارهٔ موبایل وارد شو تا هرچه تهیه کرده‌ای همین‌جا بیاید.</p>
+      <div class="row" style="justify-content:center;margin-top:12px">
+        <button class="btn primary" data-uilogin><svg class="i" aria-hidden="true"><use href="#i-mobile"/></svg> ورود با شمارهٔ موبایل</button>
+        <a class="btn quiet" href="events.html#list" style="text-decoration:none">دیدن آرشیو رویدادها</a></div></div>`;
+    return;
+  }
+  if(!items.length&&!bundles.length){
+    $('#libBox').innerHTML=`<div class="empty"><svg class="i"><use href="#i-play"/></svg>
+      <p>هنوز چیزی تهیه نکرده‌ای؛ از آرشیو، ضبط کارگاه‌ها را ببین و هرکدام را خواستی بردار.</p>
+      <a class="btn sm primary" href="events.html#list" style="text-decoration:none;margin-top:10px">رفتن به آرشیو</a></div>`;
+    return;
+  }
+  const rowsH=PAST.filter(h=>(ui.hasLib(h.id))||(h.media||[]).some(m=>ui.hasLib(m.id)));
+  $('#libBox').innerHTML=`<div class="stack" style="gap:14px">${rowsH.map(h=>{
+    const own=ui.hasLib(h.id);
+    const list=(h.media||[]).filter(m=>own||ui.hasLib(m.id));
+    const done=list.filter(m=>ui.progressOf(m.id)>0);
+    return `<div class="card paper">
+      <div class="row" style="align-items:center;gap:10px">
+        <span class="mthumb video" style="width:40px;height:40px"><svg class="i" aria-hidden="true" style="width:18px;height:18px"><use href="#i-archive"/></svg></span>
+        <span style="flex:1;min-width:0"><b style="font-size:14px">${esc(h.t)}</b>
+          <div class="cap">${esc(h.d)} · ${faN(list.length)} رسانه${own?' · بستهٔ کامل':''}</div></span>
+        <span class="tag ${done.length?'ok':'brand'}">${done.length?faN(done.length)+' نیمه‌کاره':'تازه'}</span>
+      </div>
+      <div class="stack tight" style="margin-top:10px">${list.slice(0,4).map(m=>{
+        const kd=(window.NORA.MEDIA_KINDS||{})[m.k]||{n:'رسانه',i:'i-play',v:'تماشا'};
+        const pct=Math.min(100,Math.round((ui.progressOf(m.id)||0)/90/60*100));
+        return `<div class="mrow2">
+          <button class="mthumb ${m.k}" data-uimedia="${esc(h.id)}:${esc(m.id)}" aria-label="${esc(m.t)}">
+            <svg class="i" aria-hidden="true" style="width:19px;height:19px"><use href="#${kd.i}"/></svg>
+            ${pct?`<span class="mprog"><i style="width:${pct}%"></i></span>`:''}</button>
+          <span class="mtx"><b>${esc(m.t)}</b><small>${kd.n} · ${esc(m.d)}${pct?' · '+faN(pct)+'٪ دیده‌ای':''}</small></span>
+          <span class="sp" style="flex:1"></span>
+          <button class="btn sm ${pct?'quiet':'primary'}" data-uimedia="${esc(h.id)}:${esc(m.id)}">
+            <svg class="i" aria-hidden="true"><use href="#${kd.i}"/></svg> ${pct?'ادامه':'پخش'}</button></div>`}).join('')}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm quiet" data-ev="${esc(h.id)}"><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg> جزئیات بسته</button>
+        <span class="sp" style="flex:1"></span><span class="cap">${esc(h.access||'دسترسی همیشگی')}</span>
+      </div></div>`}).join('')}</div>`;
+}
+
+/* ── رندر کل ── */
+function render(){
+  const view=S.view;
+  $$('.seg [data-view]').forEach(b=>{const on=b.dataset.view===view; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false')});
+  $('#listView').hidden=view!=='list';
+  $('#calView').hidden=view!=='cal';
+  $('#libView').hidden=view!=='lib';
+  $('#toolbar').hidden=view==='lib';
+  $('#filterSec').hidden=view!=='list';
+  $('#spotSec').hidden=view==='lib';
+  $('#catSec').hidden=view==='lib';
+  $('#railUpSec').hidden=view==='lib';
+  $('#railBestSec').hidden=view==='lib';
+  if(view==='list'&&!$('#frows').innerHTML) renderFilters();
+  if(view==='list') renderList();
+  if(view==='cal'){renderMonths(); renderCal()}
+  if(view==='lib'){renderLib(); $('#cnt').textContent=(UI().library?faN(UI().library().length):'۰')+' قلم در کتابخانهٔ تو'}
+  $('#catrail').hidden=view==='lib';
+}
+function openEvent(id){ if(UI().eventSheet) UI().eventSheet(id); }
+/* پیوندهای درون‌صفحه‌ای مثل events.html#cal وقتی همین صفحه باز است، مرورگر
+   فقط هش را عوض می‌کند و صفحه دوباره خوانده نمی‌شود؛ پس خودمان می‌خوانیمش. */
+function viewFromHash(){
+  const h=location.hash.replace('#','');
+  const v=(h==='cal')?'cal':(h==='lib'||h==='library')?'lib':(h==='list'||h==='live'||h==='')?'list':'';
+  if(!v||v===S.view) return;
+  S.view=v; render();
+}
+addEventListener('hashchange',viewFromHash);
+function toList(){ if(S.view!=='list'){S.view='list'; render()} $('#listView').scrollIntoView({behavior:'smooth',block:'start'}) }
+
+/* ── کنش‌ها ── */
+document.addEventListener('click',ev=>{
+  const t=ev.target;
+  const v=t.closest('.seg [data-view]'); if(v){S.view=v.dataset.view; render();
+    try{history.replaceState(null,'','#'+(S.view==='lib'?'lib':S.view))}catch(err){} window.scrollTo({top:0,behavior:'smooth'}); return}
+  const more=t.closest('[data-more]'); if(more){
+    if(more.dataset.more==='up'){S.status='up'; S.sort='near'}
+    else if(more.dataset.more==='best'){S.status='past'; S.sort='best'}
+    $('#sort').value=S.sort; renderFilters(); toList(); return}
+  const jp=t.closest('[data-jump]'); if(jp){$('#filterSec').scrollIntoView({behavior:'smooth',block:'start'});
+    window.setTimeout(()=>{try{$('#q').focus()}catch(e){}},260); return}
+  const st=t.closest('[data-status]'); if(st){S.status=S.status===st.dataset.status?'':st.dataset.status; renderFilters(); renderList();
+    if(S.view!=='list'){S.view='list'; render()}; return}
+  const kd=t.closest('[data-kind]'); if(kd){S.kind=S.kind===kd.dataset.kind?'':kd.dataset.kind; renderFilters(); renderList(); if(S.view!=='list'){S.view='list'; render()}; return}
+  const md=t.closest('[data-mode]'); if(md){S.mode=S.mode===md.dataset.mode?'':md.dataset.mode; renderFilters(); renderList(); if(S.view!=='list'){S.view='list'; render()}; return}
+  const mo=t.closest('[data-month]'); if(mo){S.month=mo.dataset.month; S.day=firstBusy(S.month); renderMonths(); renderCal();
+    log('تقویم: '+MONTHS[S.month].n); return}
+  const cel=t.closest('[data-dn]'); if(cel){S.day=+cel.dataset.dn; renderCal(); return}
+  const row=t.closest('[data-ev]'); if(row){openEvent(row.dataset.ev); return}
+  /* روی تنِ کاشی (نه دکمه‌هایش) هم کلیک کار می‌کند */
+  const tile=t.closest('.etile');
+  if(tile&&!t.closest('.efoot')&&!t.closest('a')&&!t.closest('button.icon-btn')){const c=tile.querySelector('[data-ev]'); if(c) openEvent(c.dataset.ev); return}
+  const lg=t.closest('[data-uilogin]'); if(lg){UI().authSheet(()=>{renderLib(); renderLibBar()}); return}
+  if(t.closest('#qClear')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderList(); $('#q').focus(); return}
+  if(t.closest('[data-close]')){if(UI().closeSheets) UI().closeSheets(); return}
+  if(t.closest('[data-theme-toggle]')){themeToggle(); return}
+});
+$('#scrim').addEventListener('click',()=>{if(UI().closeSheets) UI().closeSheets()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI().closeSheets) UI().closeSheets()});
+$('#q').addEventListener('input',e=>{S.q=e.target.value; $('#qClear').hidden=!S.q;
+  if(S.view!=='list'){S.view='list'; render()} else renderList()});
+$('#sort').addEventListener('change',e=>{S.sort=e.target.value; renderList()});
+function log(w){try{const k='nora-home-log', a=JSON.parse(localStorage.getItem(k)||'[]');
+  a.push({w:new Date().toISOString(),m:w}); localStorage.setItem(k,JSON.stringify(a.slice(-80)))}catch(e){}}
+
+/* ── ورودی‌ها: #cal/#list/#lib و ?status= ?kind= ?mode= ?q= ?ev= ?buy= ── */
+const P=new URLSearchParams(location.search);
+const hash=location.hash.replace('#','');
+if(hash==='cal'||hash==='list') S.view=hash;
+if(hash==='lib'||hash==='library') S.view='lib';
+if(hash==='live') S.view='list';
+if(P.get('status')==='past'||P.get('status')==='up') S.status=P.get('status');
+if(KINDS.includes(P.get('kind'))) S.kind=P.get('kind');
+if(P.get('mode')==='حضوری'||P.get('mode')==='آنلاین') S.mode=P.get('mode');
+if(P.get('q')) S.q=P.get('q');
+if(SORTS.includes(P.get('sort'))) S.sort=P.get('sort');
+if(!MONTHS[S.month]){S.month='sh'; S.day=MONTHS.sh.today||1}
+if(P.get('ev')) S.view='list';
+if(P.get('lib')) S.view='lib';
+if(P.get('buy')) S.view='list';
+
+if(UI().syncBell) UI().syncBell();
+$('#sort').value=SORTS.includes(S.sort)?S.sort:'near';
+$('#qClear').hidden=!S.q;
+renderSpot(); renderDeal(); renderCats(); renderStats(); renderLive(); renderFilters(); renderLibBar(); renderRails(); render(); bindSpot();
+if(S.q){$('#q').value=S.q; $('#qClear').hidden=false}
+
+/* خرید یا پیش‌ثبت‌نام که تمام شد، همین‌جا تازه می‌شود */
+document.addEventListener('nora:library',()=>{renderLibBar(); render(); renderRails(); if(S.view!=='lib') renderList()});
+document.addEventListener('nora:prereg',()=>{renderSpot(); renderDeal(); renderList(); renderRails(); if(S.view==='cal') renderDay()});
+if(P.get('ev')) openEvent(P.get('ev'));
+if(P.get('past')) openEvent(P.get('past'));
+if(P.get('buy')) setTimeout(()=>{
+  const [h,m]=P.get('buy').split(':');
+  const H=PAST.find(x=>x.id===h);
+  if(H&&(!m||(H.media||[]).some(x=>x.id===m))) UI().doBuy(h,m||null);
+},90);
+initKeys(document);
+themeInit();
+})();
+</script>
+</body>
+</html>
