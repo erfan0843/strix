@@ -2495,7 +2495,15 @@ try{
         try{ localStorage.removeItem('nora-home-user') }catch(e){}
         try{ document.dispatchEvent(new CustomEvent('nora:logout')) }catch(e){}
         render();
+        return;
       }
+      /* شمارش واقعی پیام‌های نخوانده از سرور؛ موجودی و گواهی‌ها تا وجود منبع واقعی صفر می‌مانند */
+      return fetch('/api/account/notifications?limit=100',{credentials:'same-origin'}).then(n=>n.ok?n.json():null).then(d=>{
+        if(!d||!Array.isArray(d.items)) return;
+        const unread=d.items.filter(x=>!x.read).length;
+        const cur=JSON.parse(localStorage.getItem('nora-home-user')||'null');
+        if(cur && cur.server===true){ cur.msgs=unread; localStorage.setItem('nora-home-user',JSON.stringify(cur)); render(); }
+      });
     }).catch(()=>{});
   }
 }catch(e){}
