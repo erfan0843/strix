@@ -48,12 +48,12 @@ async function load({ routes = {}, cookie = '', url = 'https://nora.test/login.h
   window.fetch = async (urlValue, options = {}) => {
     const path = String(urlValue);
     calls.push({ url: path, options });
-    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"></svg>', expires_in: 180 });
     if (queues.has(path)) {
       const queue = queues.get(path);
       if (!queue.length) throw new Error(`No mocked response left for ${path}`);
       return queue.shift();
     }
+    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"></svg>', expires_in: 180 });
     if (path === '/api/auth/me' || path === '/api/account/me') return unauthorized();
     throw new Error(`No mocked response for ${path}`);
   };
@@ -368,6 +368,16 @@ console.log('\n— تفکیک هویت Bale از ورود شماره‌ای —'
     '/api/account/me': [reply(200, { authenticated: true, account_id: 'bale-id', provider: 'bale', role: null, permissions: [] })],
   } });
   check(!!p.doc.querySelector('#lgAuthenticated') && p.text('#lgAuthenticated').includes('ورود با بله تأیید شد'), 'فقط نشست server-side با provider=bale با هویت بله معرفی می‌شود');
+  p.dom.window.close();
+}
+
+console.log('\n— شکست بارگذاری کپچا بدون اسپینر ماندگار —');
+{
+  const p = await load({ routes: { '/api/auth/captcha': [reply(503, { detail: 'captcha_not_configured' })] } });
+  await delay(6);
+  const slot = p.doc.querySelector('#lgCapImg');
+  check(!!slot && !slot.querySelector('.lg-spinner'), 'پس از شکست کپچا اسپینر باقی نمی‌ماند');
+  check(!!slot && slot.textContent.includes('کد امنیتی بارگذاری نشد'), 'پس از شکست کپچا پیام ثابت و قابل فهم نمایش داده می‌شود');
   p.dom.window.close();
 }
 

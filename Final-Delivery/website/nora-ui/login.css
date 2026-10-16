@@ -318,4 +318,5 @@
 .lg-captcha{display:flex;align-items:center;gap:10px;margin:4px 0 10px}
 .lg-cap-img{flex:0 0 auto;border-radius:12px;overflow:hidden;line-height:0;min-width:180px;min-height:60px;display:flex;align-items:center;justify-content:center}
 .lg-cap-img svg{width:180px;height:60px;display:block}
+.lg-cap-fail{padding:0 12px;font-size:12.5px;line-height:1.7;color:var(--ink-3);text-align:center}
 .lg-captcha .lgbtn{width:auto;padding-inline:14px}

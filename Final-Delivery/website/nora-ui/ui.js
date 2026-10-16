@@ -2315,7 +2315,7 @@ function serverAuthSheet(after){
            <button class="btn quiet" data-srv-back>تغییر شماره</button></div>`
       : `<label class="lbl" for="srvmob">شمارهٔ موبایل</label>
          <input class="input num" id="srvmob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(SRV_AUTH.phone)}"/>
-         <div class="row" style="margin-top:10px;align-items:center;gap:10px"><span style="line-height:0;border-radius:10px;overflow:hidden">${SRV_AUTH.captchaImage||'<span class="cap">در حال بارگذاری کد امنیتی…</span>'}</span>
+         <div class="row" style="margin-top:10px;align-items:center;gap:10px"><span style="line-height:0;border-radius:10px;overflow:hidden">${SRV_AUTH.captchaImage||(SRV_AUTH.captchaFailed?'<span class="cap">کد امنیتی بارگذاری نشد</span>':'<span class="cap">در حال بارگذاری کد امنیتی…</span>')}</span>
            <button class="btn quiet" type="button" data-srv-captcha-new ${SRV_AUTH.busy||SRV_AUTH.captchaBusy?'disabled':''}>کد جدید</button></div>
          <label class="lbl" for="srvcap" style="margin-top:8px">کد نمایش‌داده‌شده</label>
          <input class="input num" id="srvcap" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="۴ رقم"/>

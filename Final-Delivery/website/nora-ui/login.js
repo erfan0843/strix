@@ -160,7 +160,7 @@
               required maxlength="32" dir="ltr" value="${escapeHtml(state.phone)}" placeholder="۰۹۱۲۳۴۵۶۷۸۹" aria-label="شمارهٔ همراه"/>
           </label>
           <div class="lg-captcha">
-            <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage || '<span class="lg-spinner"></span>'}</div>
+            <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage || (state.captchaFailed ? '<span class="lg-cap-fail">کد امنیتی بارگذاری نشد</span>' : '<span class="lg-spinner"></span>')}</div>
             <button class="lgbtn quiet" type="button" id="lgCapNew"${state.busy || state.captchaBusy ? ' disabled' : ''}>کد جدید</button>
           </div>
           <label class="lgfield" for="lgCapAnswer">
