@@ -99,3 +99,6 @@ schema.graphql
 /.benchmarks/
 /references/
 /strix_runs_main/
+
+# دیتابیس محلی ربات: هرگز در Git یا بسته‌ی تحویلی
+Final-Delivery/bale-bot/nora_bot/nora.db
