@@ -24,7 +24,7 @@ console.log('── نشست سرور در حساب من ──');
 console.log('── نام کاربر پس از ورود و تکمیل پروفایل ──');
 { const {dom,store}=await mk({name:'۰۹۱۲۱۲۳۴۵۶۷',mobile:'09121234567',provider:'phone',server:true,msgs:0},()=>({ok:true,status:200,json:async()=>({authenticated:true})}));
   await wait(800); const txt=dom.window.document.body.textContent;
-  ok(!txt.includes('سارا محمدی'),'کاربر واقعی بدون پروفایل، نام نمونه (سارا محمدی) را نمی‌بیند'); dom.window.close(); }
+  ok(txt.includes('سارا محمدی'),'بدون پروفایل تکمیل‌شده، نمای طراحی‌شده با داده‌ی نمونه نشان داده می‌شود'); dom.window.close(); }
 { const {dom,store}=await mk({name:'۰۹۱۲۱۲۳۴۵۶۷',mobile:'09121234567',provider:'phone',server:true,msgs:0},()=>({ok:true,status:200,json:async()=>({authenticated:true})}));
   store.set('nora-home-profile',JSON.stringify({fullName:'علی رضایی'}));
   await wait(200); dom.window.location.hash=''; await wait(400);

@@ -639,10 +639,8 @@ function profile(){
   let v=null; try{v=JSON.parse(localStorage.getItem(PROF_KEY)||'null')}catch(e){v=null}
   const A=(window.NORA&&window.NORA.ACCOUNT)||{};
   if(!v){
-    /* کاربر واردشدهٔ واقعی (نشست سرور): پروفایل خالی است تا خودش تکمیل کند؛ نمونه فقط برای نمای نمایشی */
-    const su=walletUser();
-    const demo=uid()&&A.seed&&!(su&&su.server===true);
-    return cleanProfile(demo?Object.assign({},A.seed):null);
+    /* کاربر واردشده و پروفایل دست‌نخورده: نمای طراحی‌شده با داده‌ی نمونه می‌نشیند؛ با تکمیل پروفایل، داده‌ی خودش جایش را می‌گیرد */
+    return cleanProfile(uid()&&A.seed?Object.assign({},A.seed):null);
   }
   return cleanProfile(v);
 }
