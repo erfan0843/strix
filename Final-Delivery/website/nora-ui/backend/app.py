@@ -345,7 +345,20 @@ async def _read_json_object(request: Request, max_bytes: int) -> dict[str, Any]:
 def _same_origin(request: Request) -> None:
     origin = request.headers.get("origin")
     host = request.headers.get("host")
-    if not origin or not host:
+    if not origin:
+        # برخی مرورگرها روی پاسخ‌های با Referrer-Policy سخت‌گیرانه Origin را نمی‌فرستند؛
+        # در آن حالت Referer باید دقیقاً همین میزبان باشد. نبود هر دو همچنان رد می‌شود.
+        referer = request.headers.get("referer")
+        if not referer:
+            raise HTTPException(403, "same_origin_required")
+        try:
+            ref = urlsplit(referer)
+        except ValueError:
+            raise HTTPException(403, "same_origin_required") from None
+        if ref.scheme not in {"http", "https"} or not ref.netloc:
+            raise HTTPException(403, "same_origin_required")
+        origin = f"{ref.scheme}://{ref.netloc}"
+    if not host:
         raise HTTPException(403, "same_origin_required")
     try:
         parsed = urlsplit(origin)
@@ -1163,7 +1176,7 @@ def create_app(
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Referrer-Policy"] = "same-origin"
         if frame_ancestors:
             # فقط برای پیش‌نمایش توسعه: NORA_FRAME_ANCESTORS تعیین می‌کند چه میزبانی قاب بزند.
             response.headers["Content-Security-Policy"] = f"frame-ancestors {frame_ancestors}"
