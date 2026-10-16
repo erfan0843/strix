@@ -3005,6 +3005,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'جریان ساخت همان چهار قدم را دارد و نوع پرسشِ بارگذاریِ پشتیبانی‌نشده غیرفعال است');
   p.window.eval(`S.fields=[freshField('text','reorder-a'),freshField('text','reorder-b'),freshField('text','reorder-c')];
     S.fields.forEach((field,index)=>field.l='پرسش '+(index+1));renderCanvas()`);
+  p.window.eval("go('s2')");
   const firstHandle=p.doc.querySelector('[data-drag-handle="reorder-a"]'),firstBlock=p.doc.querySelector('[data-block="reorder-a"]');
   ok(p.doc.querySelector('#fieldList').getAttribute('role')==='list'
       &&p.doc.querySelector('#fieldList').getAttribute('aria-label')==='پرسش‌های فرم'
