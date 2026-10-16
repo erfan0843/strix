@@ -31,6 +31,8 @@ from backend.app import create_app  # noqa: E402
 from backend.config import Settings  # noqa: E402
 from backend.models import (  # noqa: E402
     AccountProfileRecord,
+    PrivateFileRecord,
+    UserNotificationRecord,
     AccountRecord,
     AccountRoleRecord,
     AccountSessionRecord,
@@ -72,7 +74,7 @@ def signed_init_data(
     return urlencode(list(fields.items()))
 
 
-def make_client(engine) -> TestClient:
+def make_client(engine, *, bot_service_token: str = "") -> TestClient:
     settings = Settings(
         database_url=None,
         owner_id="owner-1",
@@ -81,6 +83,7 @@ def make_client(engine) -> TestClient:
         cookie_secure=False,
         bale_bot_token=BOT_TOKEN,
         bale_init_data_max_age_seconds=600,
+        bot_service_token=bot_service_token,
     )
     return TestClient(create_app(settings, engine=engine))
 
@@ -90,6 +93,9 @@ def seed_phone_account(
     *,
     account_id: str = "acct-phone",
     profile: dict | None = None,
+    subject: str = PHONE_SUBJECT,
+    session_token: str = SESSION_TOKEN,
+    csrf_token: str = CSRF_TOKEN,
 ) -> str:
     """یک حساب تأییدشده با شماره و یک نشست فعال می‌سازد (همان کاری که OTP می‌کند)."""
     with Session(engine) as db:
@@ -99,7 +105,7 @@ def seed_phone_account(
                 id=str(uuid.uuid4()),
                 account_id=account_id,
                 provider=PHONE_PROVIDER,
-                provider_user_id=PHONE_SUBJECT,
+                provider_user_id=subject,
             )
         )
         db.add(
@@ -107,8 +113,8 @@ def seed_phone_account(
                 id=str(uuid.uuid4()),
                 account_id=account_id,
                 auth_provider=PHONE_PROVIDER,
-                token_hash=token_digest(SESSION_TOKEN),
-                csrf_hash=token_digest(CSRF_TOKEN),
+                token_hash=token_digest(session_token),
+                csrf_hash=token_digest(csrf_token),
                 expires_at=datetime.now(timezone.utc) + timedelta(hours=2),
             )
         )
@@ -436,3 +442,227 @@ def test_linking_is_closed_without_the_server_only_bot_token():
         assert response.status_code == 503
         assert response.json()["detail"] == "bale_auth_not_configured"
     engine.dispose()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# مسیر پیوند حساب در برابر ورود خودکار مینی‌اپ
+#
+# ورود خودکار (`POST /api/auth/bale-mini-app`) امضای بله را مصرف می‌کند و اگر
+# حسابی برای آن کاربر بله نباشد، یک حساب تازه می‌سازد. پس اگر صفحهٔ پیوند هم
+# همان ورود خودکار را اجرا کند، هم امضای یک‌بارمصرف خرج می‌شود و هم هویت بله به
+# حساب خودکار می‌چسبد. آزمون‌های زیر همین دو اثر را روی سرورِ واقعی نشان می‌دهند؛
+# سمت کلاینت با نشانهٔ صریح `?link=bale` جلوی این مصرف را می‌گیرد.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def mini_app_login(client: TestClient, init_data: str):
+    return client.post(
+        "/api/auth/bale-mini-app",
+        json={"init_data": init_data},
+        headers={"Origin": "http://testserver"},
+    )
+
+
+def test_phone_login_then_link_completes_the_whole_journey(link_env):
+    """ورود با شماره، سپس پیوند با امضای تازه، سپس مصرف‌شدن همان امضا."""
+    client, engine = link_env
+    account_id = seed_phone_account(engine, profile={"fullName": "صاحب حساب"})
+
+    before = client.get("/api/account/identities")
+    assert before.status_code == 200
+    assert before.json()["bale_link_available"] is True
+    assert [row["provider"] for row in before.json()["identities"]] == [PHONE_PROVIDER]
+
+    signature = signed_init_data(query_id="journey-001")
+    linked = link(client, signature)
+    assert linked.status_code == 200, linked.text
+    assert linked.json()["already_linked"] is False
+
+    after = client.get("/api/account/identities")
+    assert {row["provider"] for row in after.json()["identities"]} == {PHONE_PROVIDER, "bale"}
+    # همان حساب، همان پروفایل؛ حساب دومی ساخته نشده است.
+    assert client.get("/api/account/profile").json()["fields"]["fullName"] == "صاحب حساب"
+    with Session(engine) as db:
+        assert db.scalar(select(func.count()).select_from(AccountRecord)) == 1
+    assert identities_of(engine, account_id) == {PHONE_PROVIDER, "bale"}
+
+    # همان امضا برای همان هویتِ همین حساب: پاسخ idempotent است (سازی برای
+    # دوبار کلیک یا پاسخ گم‌شده) و هیچ چیز دوباره نوشته نمی‌شود.
+    same = link(client, signature)
+    assert same.status_code == 200, same.text
+    assert same.json() == {"linked": True, "provider": "bale", "already_linked": True}
+    with Session(engine) as db:
+        assert db.scalar(select(func.count()).select_from(PlatformIdentityRecord)) == 2
+    # هویت بله حالا مالِ حساب اول است: برای حساب دیگری پیوند نمی‌خورد و آن
+    # حساب هم دست‌نخورده می‌ماند (هیچ جابه‌جایی داده‌ای رخ نمی‌دهد).
+    seed_phone_account(engine, account_id="acct-phone-2", subject="b" * 64,
+                       session_token="s2" * 32, csrf_token="c2" * 32)
+    other = make_client(engine)
+    other.cookies.set("nora_account_session", "s2" * 32)
+    other.cookies.set("nora_account_csrf", "c2" * 32)
+    assert other.get("/api/account/me").json()["account_id"] == "acct-phone-2"
+    # توکن CSRF هر نشست جداست؛ همان چیزی که در کوکی همین حساب نشسته است.
+    refused = link(other, signature, headers={"X-CSRF-Token": "c2" * 32})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["detail"]["code"] == "bale_identity_already_linked"
+    assert identities_of(engine, "acct-phone-2") == {PHONE_PROVIDER}
+
+
+def test_auto_login_claims_the_identity_that_linking_needed(link_env):
+    """چرا مسیر پیوند نباید ورود خودکار بزند — شاهد سرور، نه حدس کلاینت.
+
+    ورود خودکار مینی‌اپ (سرد، بدون نشست) دو اثر دارد که هر دو پیوند را می‌بندند:
+    هویت بله به حساب تازهٔ خودکار می‌چسبد و امضا یک‌بارمصرف خرج می‌شود. سمت
+    کلاینت با نشانهٔ `?link=bale` این ورود خودکار را در مسیر پیوند انجام نمی‌دهد.
+    """
+    client, engine = link_env
+    phone_account = seed_phone_account(engine)
+
+    # باز شدن سرد داخل بله روی کلاینت بی‌نشست اجرا می‌شود؛ همان کلاینتی که در
+    # صفحهٔ حساب نشست شماره‌ای دارد، دست‌نخورده می‌ماند.
+    signature = signed_init_data(query_id="cold-open-001")
+    auto_client = make_client(engine)
+    auto = mini_app_login(auto_client, signature)
+    assert auto.status_code == 200, auto.text
+    assert auto.json()["authenticated"] is True
+    assert auto.json()["provider"] == "bale"
+
+    # ۱) امضا یک‌بارمصرف است: همان امضا برای ورود دوم پذیرفته نمی‌شود.
+    assert mini_app_login(make_client(engine), signature).status_code == 409
+
+    # ۲) هویت بله حالا به حساب خودکارِ تازه تعلق دارد؛ پیوند از حساب شماره‌ای
+    #    با همان امضا و با امضای تازهٔ همان کاربر، هر دو رد می‌شوند (نخستین
+    #    بررسی سرور، تعلق هویت است).
+    assert client.get("/api/account/me").json()["account_id"] == phone_account
+    for candidate in (signature, signed_init_data(query_id="cold-open-002")):
+        refused = link(client, candidate)
+        assert refused.status_code == 409, refused.text
+        assert refused.json()["detail"]["code"] == "bale_identity_already_linked"
+
+    # هیچ داده‌ای جابه‌جا نشد: دو حساب مستقل، هر کدام با هویت خودش.
+    with Session(engine) as db:
+        assert db.scalar(select(func.count()).select_from(AccountRecord)) == 2
+        by_provider = {
+            row.provider: row.account_id
+            for row in db.scalars(select(PlatformIdentityRecord)).all()
+        }
+    assert by_provider[PHONE_PROVIDER] == phone_account
+    assert by_provider["bale"] != phone_account
+    # حساب شماره‌ای دست‌نخورده است و هویت بله به آن نچسبیده.
+    assert identities_of(engine, phone_account) == {PHONE_PROVIDER}
+
+
+def test_avoiding_auto_login_keeps_the_link_path_usable(link_env):
+    """همان سناریو، ولی بدون ورود خودکار: امضا دست‌نخورده می‌ماند و پیوند می‌شود.
+
+    این همان کاری است که نشانهٔ `?link=bale` در کلاینت انجام می‌دهد: امضا هیچ
+    جای دیگری خرج نمی‌شود تا کاربر اول با شماره وارد شود.
+    """
+    client, engine = link_env
+    account_id = seed_phone_account(engine)
+
+    signature = signed_init_data(query_id="link-path-001")
+    assert link(client, signature).status_code == 200
+    assert identities_of(engine, account_id) == {PHONE_PROVIDER, "bale"}
+    with Session(engine) as db:
+        # نه حساب تازه‌ای ساخته شد، نه هویتی جز پیوند نوشته شد.
+        assert db.scalar(select(func.count()).select_from(AccountRecord)) == 1
+        assert db.scalar(select(func.count()).select_from(PlatformIdentityRecord)) == 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# آیا پیوند به جریان‌های واقعی ربات می‌رسد؟
+#
+# ربات فایل‌ها و اعلان‌های حساب را از پایگاه مشترک می‌خواند و شناسهٔ کاربر بله را
+# همان‌جا به حساب تبدیل می‌کند. پس اگر پیوند فقط یک رکورد در بک‌اند باشد و این
+# مسیرها به هویت وصل نباشند، این آزمون قرمز می‌شود.
+# ─────────────────────────────────────────────────────────────────────────────
+
+SERVICE_TOKEN = "service-token-for-tests-0123456789"
+
+
+def _seed_account_assets(engine, account_id: str, bale_user_id: str, marker: str) -> None:
+    """یک فایل خصوصی و یک اعلان در انتظار، برای همین حساب."""
+    with Session(engine) as db:
+        db.add(
+            PrivateFileRecord(
+                id=str(uuid.uuid4()),
+                account_id=account_id,
+                bale_user_id=bale_user_id,
+                idempotency_key=f"seed-{marker}-{account_id}",
+                content_hash=hashlib.sha256(marker.encode()).hexdigest(),
+                file_name=f"{marker}.pdf",
+                content_type="application/pdf",
+                content_size=1,
+                content=b"x",
+            )
+        )
+        db.add(
+            UserNotificationRecord(
+                id=str(uuid.uuid4()),
+                account_id=account_id,
+                bale_user_id=bale_user_id,
+                kind="account",
+                title=f"اعلان {marker}",
+                body="",
+                file_refs=[],
+                delivery_status="pending",
+            )
+        )
+        db.commit()
+
+
+def _bot_headers() -> dict:
+    return {"Authorization": f"Bearer {SERVICE_TOKEN}"}
+
+
+def test_bot_files_and_notifications_follow_the_linked_identity(link_env):
+    """پس از پیوند، ربات فایل و اعلانِ همان حساب شماره‌ای را می‌بیند، نه حساب دیگر."""
+    _client, engine = link_env
+    phone_account = seed_phone_account(engine)
+    other_account = seed_phone_account(
+        engine, account_id="acct-other", subject="b" * 64,
+        session_token="s3" * 32, csrf_token="c3" * 32,
+    )
+    _seed_account_assets(engine, phone_account, str(BALE_USER_ID), "phone")
+    _seed_account_assets(engine, other_account, "999", "other")
+
+    bot = make_client(engine, bot_service_token=SERVICE_TOKEN)
+
+    # پیش از پیوند: این شناسهٔ بله هیچ حسابی ندارد، پس ربات چیزی نمی‌بیند.
+    before_files = bot.get("/api/bot/files", params={"bale_user_id": str(BALE_USER_ID)},
+                           headers=_bot_headers())
+    assert before_files.status_code == 200, before_files.text
+    assert before_files.json()["items"] == []
+    assert bot.post("/api/bot/identity", json={"bale_user_id": str(BALE_USER_ID)},
+                    headers=_bot_headers()).json()["account_id"] is None
+
+    # پیوند از سمت حساب شماره‌ای (همان جریانی که رابط کاربری طی می‌کند).
+    account_client = make_client(engine)
+    account_client.cookies.set("nora_account_session", SESSION_TOKEN)
+    account_client.cookies.set("nora_account_csrf", CSRF_TOKEN)
+    linked = link(account_client, signed_init_data(query_id="bot-flow-001"))
+    assert linked.status_code == 200, linked.text
+
+    # حالا همان شناسهٔ بله به حساب شماره‌ای می‌رسد.
+    identity = bot.post("/api/bot/identity", json={"bale_user_id": str(BALE_USER_ID)},
+                        headers=_bot_headers())
+    assert identity.status_code == 200, identity.text
+    assert identity.json()["account_id"] == phone_account
+
+    files = bot.get("/api/bot/files", params={"bale_user_id": str(BALE_USER_ID)},
+                    headers=_bot_headers()).json()["items"]
+    assert [item["file_name"] for item in files] == ["phone.pdf"]
+
+    notifications = bot.get("/api/bot/notifications",
+                            params={"bale_user_id": str(BALE_USER_ID)},
+                            headers=_bot_headers()).json()["items"]
+    assert [item["title"] for item in notifications] == ["اعلان phone"]
+
+    # جدا ماندن حساب‌ها برجا است: داده‌های حساب دیگر جابه‌جا یا دیده نشده‌اند.
+    # (این endpoint با «هویت» حل می‌شود، نه با ستون متنی bale_user_id هر رکورد.)
+    assert "other.pdf" not in [item["file_name"] for item in files]
+    with Session(engine) as db:
+        still_there = db.scalar(
+            select(PrivateFileRecord).where(PrivateFileRecord.account_id == other_account)
+        )
+        assert still_there is not None and still_there.file_name == "other.pdf"
+        assert db.scalar(select(func.count()).select_from(AccountRecord)) == 2

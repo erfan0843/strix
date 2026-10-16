@@ -95,9 +95,13 @@
     return new URLSearchParams(location.search).get('next') || '';
   }
 
+  /* فهرست سفید مسیر بازگشت. تنها یک پارامتر پرس‌وجو مجاز است: نشانهٔ صریح
+     «مسیر پیوند حساب» (`?link=bale`). این نشانه باید از ورود با شماره جان سالم
+     ببرد، وگرنه کاربر پس از ورود به صفحهٔ بی‌نشانه برمی‌گردد. هیچ پرس‌وجوی
+     دیگری پذیرفته نمی‌شود تا محافظت بازکردن نشانی دلخواه باز هم برجا بماند. */
   function safeAccountNext() {
     const requested = new URLSearchParams(location.search).get('next') || '';
-    return /^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/.test(requested)
+    return /^account\.html(?:\?link=bale)?(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/.test(requested)
       ? requested
       : '';
   }

@@ -15,15 +15,22 @@ from bale_api import send
 from config import NORA_WEBAPP_URL
 
 ACCOUNT_PAGE = "account.html"
+# نشانهٔ صریح «مسیر پیوند حساب». صفحه با دیدن همین پارامتر ورود خودکار مینی‌اپ
+# را کنار می‌گذارد تا امضای یک‌بارمصرف بله برای اثبات مالکیت در پیوند بماند.
+LINK_MARKER = "link=bale"
 
 
 def account_webapp_url(base=None):
-    """نشانی صفحهٔ حساب در وب‌اپ بله؛ رشتهٔ خالی یعنی وب‌اپ تنظیم نشده است."""
+    """نشانی صفحهٔ حساب در وب‌اپ بله؛ رشتهٔ خالی یعنی وب‌اپ تنظیم نشده است.
+
+    پارامتر `link=bale` مسیر پیوند را برای صفحه صریح می‌کند؛ خودِ امضای بله
+    هرگز در نشانی نمی‌آید و همان‌جا داخل مینی‌اپ ساخته می‌شود.
+    """
     root = (NORA_WEBAPP_URL if base is None else base) or ""
     root = root.rstrip("/")
     if not root:
         return ""
-    return f"{root}/{ACCOUNT_PAGE}"
+    return f"{root}/{ACCOUNT_PAGE}?{LINK_MARKER}"
 
 
 def start(cid, uid=None, user=None):

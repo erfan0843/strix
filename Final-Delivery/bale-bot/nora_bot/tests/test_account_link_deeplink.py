@@ -33,28 +33,38 @@ class AccountLinkDeepLinkTests(unittest.TestCase):
             account_link.start(cid, uid)
         return calls[0]
 
-    def test_configured_webapp_opens_the_account_page(self):
+    def test_configured_webapp_opens_the_account_page_in_link_mode(self):
+        """نشانهٔ صریح مسیر پیوند باید در نشانی باشد؛ وگرنه صفحه ورود خودکار می‌زند
+        و امضای یک‌بارمصرفِ لازم برای اثبات مالکیت همان‌جا خرج می‌شود."""
         sent = self._sent("https://nora.example.ir")
         self.assertEqual(account_link.account_webapp_url("https://nora.example.ir"),
-                         "https://nora.example.ir/account.html")
+                         "https://nora.example.ir/account.html?link=bale")
         buttons = _buttons(sent["kb"])
         self.assertEqual(len(buttons), 1)
-        self.assertEqual(buttons[0]["web_app"]["url"], "https://nora.example.ir/account.html")
+        self.assertEqual(buttons[0]["web_app"]["url"],
+                         "https://nora.example.ir/account.html?link=bale")
         self.assertNotIn("callback_data", buttons[0])
         self.assertTrue("بله" in sent["text"])
 
     def test_trailing_slash_does_not_duplicate(self):
         sent = self._sent("https://nora.example.ir/")
         self.assertEqual(_buttons(sent["kb"])[0]["web_app"]["url"],
-                         "https://nora.example.ir/account.html")
+                         "https://nora.example.ir/account.html?link=bale")
 
-    def test_no_user_identifier_leaks_into_the_link(self):
-        """پیوند هیچ شناسه‌ای از کاربر را حمل نمی‌کند؛ اثبات مالکیت جای دیگری است."""
+    def test_link_url_carries_no_signature_or_identifier(self):
+        """امضای بله و هیچ شناسهٔ کاربری در نشانی نمی‌آید؛ امضا داخل مینی‌اپ ساخته می‌شود."""
         sent = self._sent("https://nora.example.ir", uid=987654321)
         url = _buttons(sent["kb"])[0]["web_app"]["url"]
         self.assertNotIn("987654321", url)
-        self.assertNotIn("?", url)
+        self.assertNotIn("hash=", url)
+        self.assertNotIn("auth_date", url)
+        self.assertTrue(url.endswith("?link=bale"))
+
+    def test_message_carries_no_signature_material(self):
+        """متن پیام هم هیچ دادهٔ امضاشده‌ای ندارد؛ فقط راهنمای ورود به وب‌اپ است."""
+        sent = self._sent("https://nora.example.ir", uid=987654321)
         self.assertNotIn("init_data", sent["text"])
+        self.assertNotIn("hash=", sent["text"])
 
     def test_without_webapp_url_the_user_is_told_instead_of_a_dead_button(self):
         sent = self._sent("")

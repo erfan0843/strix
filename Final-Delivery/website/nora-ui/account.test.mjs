@@ -114,7 +114,15 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   ok(!!guest.doc.querySelector('a[href="login.html?mode=server&next=account.html%23notifications"]'),
     'برای اعلان‌ها و فایل‌های سروری، روش‌های ورود امن پیوند روشن دارند');
   const accountJs=fs.readFileSync(DIR+'account.js','utf8'), loginJs=fs.readFileSync(DIR+'login.js','utf8');
-  ok(accountJs.includes("login.html?mode=server&next=")&&accountJs.includes("'account.html'+(after?'#'+after:'')"),
+  /* رفتار می‌سنجیم نه رشتهٔ درون کد: هر پیوند ورود صفحهٔ حساب باید مسیر بازگشت
+     مجاز را به login.js بدهد (و در مسیر پیوند، نشانهٔ ?link=bale را هم همراه
+     ببرد؛ آن حالت در account-linking.test.mjs سنجیده می‌شود). */
+  const loginLinks=[...guest.doc.querySelectorAll('a[href^="login.html"]')]
+    .map(a=>a.getAttribute('href'));
+  ok(loginLinks.length>0
+      && loginLinks.every(href=>href.startsWith('login.html?mode=server&next=')
+        && decodeURIComponent(href).includes('account.html'))
+      && accountJs.includes('function serverLoginHref'),
     'حساب مسیر بازگشت را به login.js می‌دهد');
   ok(/function safeAccountNext\(\)[\s\S]*?URLSearchParams\(location\.search\)[\s\S]*?test\(requested\)[\s\S]*?\?\s*requested\s*:\s*''/.test(loginJs),
     'login.js مقصد بازگشت حساب را به صفحهٔ محلی محدود می‌کند');

@@ -41,7 +41,11 @@ const LIST_LINKED={identities:[
  *  linkResult  : {status, body} پاسخ POST پیوند.
  *  unlinkResult: {status, body} پاسخ DELETE.
  */
-async function openPage({initData=INIT_DATA, identities=LIST_PHONE, linkResult={status:200,body:{linked:true,provider:'bale',already_linked:false}}, unlinkResult={status:200,body:{linked:false,provider:'bale'}} , extra={}}={}){
+async function openPage({initData=INIT_DATA, identities=LIST_PHONE, linkResult={status:200,body:{linked:true,provider:'bale',already_linked:false}}, unlinkResult={status:200,body:{linked:false,provider:'bale'}} , linkMode=false, server=null, extra={}}={}){
+  /* `server` وضعیت مشترک بین بازکردن‌های مختلف صفحه است؛ مثل خودِ سرور،
+     امضای یک‌بارمصرف بله را «خرج‌شده» به یاد می‌آورد. اگر روزی ورود خودکار
+     دوباره در مسیر پیوند اجرا شود، همین دفترِ ساده آزمون را قرمز می‌کند. */
+  const state=server||{spentByLogin:false};
   const errs=[], network=[];
   let listCalls=0;
   const listQueue=Array.isArray(identities)?identities.slice():null;
@@ -59,7 +63,7 @@ async function openPage({initData=INIT_DATA, identities=LIST_PHONE, linkResult={
       }
       return /^https?:/i.test(request.url)?new Response('',{status:200,headers:{'content-type':'text/html;charset=utf-8'}}):undefined;
     })]},
-    pretendToBeVisual:true,url:'http://nora.test/account.html',
+    pretendToBeVisual:true,url:'http://nora.test/account.html'+(linkMode?'?link=bale':''),
     beforeParse(w){
       w.__NORA_TEST_FIXTURE_MODE__=false;
       w.scrollTo=()=>{}; if(w.Element&&!w.Element.prototype.scrollIntoView) w.Element.prototype.scrollIntoView=()=>{};
@@ -79,7 +83,17 @@ async function openPage({initData=INIT_DATA, identities=LIST_PHONE, linkResult={
           if(listQueue) return Promise.resolve(reply(200,listQueue.shift()||LIST_PHONE));
           return Promise.resolve(reply(200,identities));
         }
-        if(p==='/api/account/identities/bale'&&method==='POST') return Promise.resolve(reply(linkResult.status,linkResult.body));
+        if(p==='/api/auth/bale-mini-app'&&method==='POST'){
+          /* ورود خودکار مینی‌اپ: امضا را خرج می‌کند (همان کاری که سرور می‌کند). */
+          state.spentByLogin=true;
+          return Promise.resolve(reply(200,{authenticated:true,account_id:'auto-bale-account',provider:'bale'}));
+        }
+        if(p==='/api/account/identities/bale'&&method==='POST'){
+          const body=(()=>{try{return JSON.parse(options.body||'{}')}catch(_){return{}}})();
+          if(linkResult.status===200&&state.spentByLogin&&body.init_data===INIT_DATA)
+            return Promise.resolve(reply(409,{detail:{code:'bale_identity_already_linked'}}));
+          return Promise.resolve(reply(linkResult.status,linkResult.body));
+        }
         if(p==='/api/account/identities/bale'&&method==='DELETE') return Promise.resolve(reply(unlinkResult.status,unlinkResult.body));
         if(p==='/api/account/notifications?limit=50&offset=0') return Promise.resolve(reply(200,{items:[],has_more:false}));
         if(p==='/api/account/files?limit=50&offset=0') return Promise.resolve(reply(200,{items:[],has_more:false}));
@@ -98,7 +112,7 @@ async function openPage({initData=INIT_DATA, identities=LIST_PHONE, linkResult={
   await wait(160);
   const doc=window.document;
   const callsTo=(p,m)=>network.filter(n=>n.path===p&&(!m||n.method===m));
-  return {dom,window,doc,errs,network,callsTo,listCalls:()=>listCalls,
+  return {state,dom,window,doc,errs,network,callsTo,listCalls:()=>listCalls,
     click:sel=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel);
       el.dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true}))},
     has:sel=>!!doc.querySelector(sel),
@@ -285,6 +299,76 @@ async function openPage({initData=INIT_DATA, identities=LIST_PHONE, linkResult={
   ok(broken.callsTo('/api/account/identities','GET').length===before+1,
     'دکمهٔ تلاش دوباره واقعاً وضعیت را از سرور دوباره می‌خواند');
   broken.dom.window.close();
+}
+
+/* ── ۸) مسیر پیوند در برابر ورود خودکار: باز شدن سرد ─────────────────────
+   امضای بله یک‌بارمصرف است. اگر مسیر پیوند هم ورود خودکار بزند، امضا خرجِ
+   ساختن یک حساب تازه می‌شود و برای اثبات مالکیت چیزی نمی‌ماند؛ هویت بله هم به
+   همان حساب می‌چسبد و پیوند به حساب شماره‌ای رد می‌شود. آزمون زیر همان توالی
+   واقعی را با یک سرورِ ساختگیِ «حالت‌دار» بازتولید می‌کند. */
+{
+  console.log('\n── مسیر پیوند و باز شدن سرد ──');
+  const server={spentByLogin:false};
+  const guestSession={fetch:(p,m)=>
+    (p==='/api/auth/me'||p==='/api/account/me')
+      ? Promise.resolve(reply(401,{detail:'authentication_required'})) : null};
+
+  /* باز شدن سرد *بدون* نشانهٔ پیوند: رفتار پیشین صفحه دست‌نخورده می‌ماند و
+     ورود خودکار انجام می‌شود. */
+  const normal=await openPage({server,extra:guestSession});
+  ok(normal.callsTo('/api/auth/bale-mini-app','POST').length===1,
+    'ورود عادی مینی‌اپ (بی‌نشانه) همچنان یک‌بار ورود خودکار می‌زند');
+  ok(normal.state.spentByLogin===true,'در آن مسیر، سرور امضا را خرج می‌کند');
+  normal.dom.window.close();
+
+  /* باز شدن سرد مسیر پیوند: امضا باید دست‌نخورده بماند. */
+  const spentBefore=server.spentByLogin;
+  const cold=await openPage({linkMode:true,server,extra:guestSession});
+  ok(cold.callsTo('/api/auth/bale-mini-app','POST').length===0,
+    'در مسیر پیوند، ورود خودکار اجرا نمی‌شود؛ امضای یک‌بارمصرف خرج نمی‌شود');
+  ok(cold.state.spentByLogin===spentBefore,'وضعیت امضا در سرور دست‌نخورده می‌ماند');
+  ok(cold.prof().includes('مسیر پیوند حساب')&&cold.prof().includes('با شماره'),
+    'به کاربر گفته می‌شود اول با شمارهٔ موبایل وارد شود');
+  ok(!cold.has('[data-identity-link]'),
+    'بدون نشست، دکمهٔ پیوند نشان داده نمی‌شود');
+  const loginLink=Array.from(cold.doc.querySelectorAll('a')).map(a=>a.getAttribute('href')||'')
+    .find(h=>h.startsWith('login.html'));
+  ok(!!loginLink&&loginLink.includes(encodeURIComponent('account.html?link=bale')),
+    'راه ورود با شماره نشانهٔ مسیر پیوند را با خود می‌برد');
+  cold.dom.window.close();
+
+  /* همان کاربر، این‌بار بعد از ورود با شماره: پیوند باید با همان امضای
+     دست‌نخورده کامل شود. این دو بازکردن مثل دو گام همان کاربر در بله‌اند و
+     همان رشتهٔ امضا را به کار می‌برند؛ چیزی که این مسیر را ممکن می‌کند همان
+     نشانهٔ `?link=bale` است که ورود خودکار را کنار می‌گذارد. */
+  const linkServer={spentByLogin:false};
+  const linked=await openPage({linkMode:true,server:linkServer});
+  ok(linked.callsTo('/api/auth/bale-mini-app','POST').length===0,
+    'بعد از ورود با شماره هم ورود خودکار اجرا نمی‌شود');
+  ok(linked.has('[data-identity-link]'),'حالا دکمهٔ پیوند در دسترس است');
+  linked.click('[data-identity-link]'); await wait(140);
+  const posts=linked.callsTo('/api/account/identities/bale','POST');
+  ok(posts.length===1,'پیوند پس از ورود با شماره یک‌بار فرستاده می‌شود');
+  ok(posts.length===1&&JSON.parse(posts[0].options.body).init_data===INIT_DATA,
+    'همان امضای دست‌نخورده برای اثبات مالکیت فرستاده می‌شود');
+  ok(linked.prof().includes('حساب بله به حسابت وصل شد'),
+    'جریان پیوند پس از ورود با شماره تا موفقیت کامل می‌شود');
+  ok(!linked.prof().includes('مسیر پیوند حساب')||!linked.has('[data-identity-link]'),
+    'پس از موفقیت، دیگر پیشنهاد پیوند تکرار نمی‌شود');
+  linked.dom.window.close();
+
+  /* نشستی که خودش حساب بله است (زادهٔ ورود خودکار): پیوند به حساب شماره‌ای
+     از این‌جا ممکن نیست؛ صفحه باید راه درست را بگوید، نه دکمهٔ بی‌سرانجام. */
+  const baleSession=await openPage({linkMode:true,server,
+    identities:{identities:[{provider:'bale',linked_at:'2026-04-02T11:30:00+00:00'}],
+      available_providers:['phone','bale'],bale_link_available:true},
+    extra:{fetch:(p,m)=>p==='/api/account/me'
+      ? Promise.resolve(reply(200,{...SIGNED_IN,provider:'bale'})) : null}});
+  ok(!baleSession.has('[data-identity-link]'),
+    'به نشست حساب بله، دکمهٔ پیوند نشان داده نمی‌شود');
+  ok(baleSession.prof().includes('حساب بله')&&baleSession.prof().includes('ورود با شماره'),
+    'راه درست به کاربر گفته می‌شود');
+  baleSession.dom.window.close();
 }
 
 console.log(`\naccount-linking: ${pass} موفق، ${fail} خطا`);

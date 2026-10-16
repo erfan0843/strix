@@ -2334,6 +2334,18 @@ async function serverAuthPost(path,body){
   if(!r.ok) throw new Error((data&&(data.detail||data.message))||('HTTP '+r.status));
   return data;
 }
+/* ── «مسیر پیوند حساب» صریح است، نه حدسی ─────────────────────────────
+   پارامتر `?link=bale` تنها نشانهٔ این مسیر است و ربات آن را در نشانی دکمهٔ
+   مینی‌اپ می‌گذارد. چرا لازم است: امضای `initData` بله یک‌بارمصرف است. اگر
+   همین صفحه در مسیر پیوند هم ورود خودکار بزند، امضا خرجِ ساختن یک حساب
+   تازه می‌شود و برای اثبات مالکیت در پیوند چیزی نمی‌ماند؛ بدتر آنکه هویت بله
+   به همان حساب خودکار می‌چسبد و پیوند به حساب شماره‌ای با ۴۰۹ رد می‌شود.
+   پس در این مسیر ورود خودکار انجام نمی‌شود و کاربر اول با شماره وارد می‌شود. */
+function baleLinkMode(){
+  try{
+    return new URLSearchParams(location.search).get('link')==='bale';
+  }catch(_){return false}
+}
 /* ── ورود مینی‌اپ بله ──────────────────────────────────────────────────
    وقتی همین صفحه داخل شیشهٔ بله باز می‌شود، `Bale.WebApp.initData` یک دادهٔ
    امضاشده و یک‌بارمصرف است. دو نکته مهم:
@@ -2364,6 +2376,8 @@ async function hasServerSession(){
 }
 async function baleMiniAppBoot(){
   if(NORA_TEST_FIXTURE_MODE) return false;
+  /* مسیر پیوند حساب: امضای یک‌بارمصرف باید برای اثبات مالکیت بماند. */
+  if(baleLinkMode()) return false;
   if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return false;
   const initData=baleMiniAppInitData();
   if(!initData) return false;
@@ -3041,7 +3055,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   /* ورود خودکار مینی‌اپ و گامِ پیوند حساب هر دو باید یک قاعده برای شکل
      `initData` داشته باشند؛ این تابع تنها مرجع آن قاعده است. */
-  baleMiniAppInitData:baleMiniAppInitData,hasServerSession:hasServerSession,
+  baleMiniAppInitData:baleMiniAppInitData,hasServerSession:hasServerSession,baleLinkMode:baleLinkMode,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
   syncServerProfile:syncServerProfile,

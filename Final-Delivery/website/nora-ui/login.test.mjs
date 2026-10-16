@@ -177,6 +177,56 @@ console.log('\n— درخواست و تأیید OTP پیامکی Safir —');
   p.dom.window.close();
 }
 
+console.log('\n— مسیر پیوند حساب: بازگشت پس از ورود با شماره —');
+{
+  /* کاربری که از مسیر پیوند حساب (`account.html?link=bale`) به ورود آمده باید
+     پس از تأیید شماره به همان مسیر برگردد؛ وگرنه نشانهٔ مسیر گم می‌شود و صفحه
+     ورود خودکار مینی‌اپ را دوباره فعال می‌کند. */
+  const phoneRoutes = () => ({
+    '/api/auth/phone-otp/request': [reply(200, { accepted: true, challenge_id: 'link-challenge', expires_in: 180, resend_in: 90 })],
+    '/api/auth/phone-otp/verify': [reply(200, { authenticated: true, account_id: 'phone-link', provider: 'phone' })],
+    '/api/account/me': [unauthorized(), reply(200, {
+      authenticated: true, account_id: 'phone-link', provider: 'phone', role: null, permissions: [],
+    })],
+  });
+  const drive = async (p) => {
+    p.fill('#lgPhone', '۰۹۱۲۳۴۵۶۷۸۹');
+    p.fill('#lgCapAnswer', '4321');
+    p.submit('#lgPhoneForm');
+    await delay(8);
+    p.fill('#lgOtpCode', '004271');
+    p.submit('#lgPhoneCodeForm');
+    await delay(10);
+    return p.doc.querySelector('#lgContinue')?.getAttribute('href') || '';
+  };
+
+  const marker = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%3Flink%3Dbale',
+    routes: phoneRoutes(),
+  });
+  check(await drive(marker) === 'account.html?link=bale',
+    'نشانهٔ مسیر پیوند از ورود با شماره جان سالم می‌برد و کاربر به همان مسیر برمی‌گردد');
+  check(marker.storageOps.length === 0, 'در مسیر پیوند هم هیچ داده‌ای در localStorage نمی‌نشیند');
+  marker.dom.window.close();
+
+  /* هر پرس‌وجوی دیگری هنوز رد می‌شود؛ محافظت مسیر بازگشت شل نشده است. */
+  const foreign = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%3Fbad%3D1',
+    routes: phoneRoutes(),
+  });
+  check(await drive(foreign) === 'account.html',
+    'پرس‌وجوی ناشناس در نشانی بازگشت پذیرفته نمی‌شود و مسیر پیش‌فرض می‌ماند');
+  foreign.dom.window.close();
+
+  const otherHash = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%23notifications',
+    routes: phoneRoutes(),
+  });
+  check(await drive(otherHash) === 'account.html#notifications',
+    'بازگشت به بخش‌های حساب همچنان کار می‌کند');
+  otherHash.dom.window.close();
+}
+
 console.log('\n— خطاهای API بدون fallback محلی —');
 {
   const p = await load({ routes: {

@@ -143,7 +143,7 @@ function go(k){
   location.hash='#'+k;
 }
 /* ورود نمونهٔ حساب در همان ورقهٔ محلی است؛ ورود امن سروری جداگانه در login.html می‌ماند. */
-function goLogin(after){ location.href='login.html?mode=server&next='+encodeURIComponent('account.html'+(after?'#'+after:'')) }
+function goLogin(after){ location.href=serverLoginHref(after) }
 function loginSheet(){
   const next=S.after; S.after='';
   const openDemoLogin=UI().authSheet;
@@ -290,7 +290,7 @@ function serverAccountAccessCard(next='notifications'){
   if(state.checking) return card('حساب امن','در حال بررسی وضعیت ورود…','i-shield',
     `<p class="cap">اطلاعات شخصی فقط پس از تأیید سرور نمایش داده می‌شود.</p>`);
   const destination=['events','notifications','my-files'].includes(next)?next:'notifications';
-  const loginHref='login.html?mode=server&next='+encodeURIComponent('account.html#'+destination);
+  const loginHref=serverLoginHref(destination);
   const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
   const retry=state.error?`<button class="btn quiet" data-server-account-retry>${ico('i-refresh')} تلاش دوباره</button>`:'';
   return card('نیاز به ورود',description,'i-mobile',
@@ -321,7 +321,12 @@ function serverAccountHead(){
   </section>`;
 }
 function serverAccountGuestLanding(){
-  const loginHref='login.html?mode=server&next=account.html';
+  const loginHref=serverLoginHref();
+  /* مهمانِ مسیر پیوند باید بداند کجاست و چه باید بکند؛ کارت هویت‌ها برای
+     کاربر بی‌نشست اصلاً ساخته نمی‌شود، پس توضیح همان‌جا می‌آید که چشمش است. */
+  const linkNotice=linkModeRequested()?`<p class="cap ident-hint">${ico('i-lock')} این صفحه از
+    <b>مسیر پیوند حساب</b> باز شده است. برای وصل‌کردن حساب بله، اول با شمارهٔ موبایلی که
+    حسابت را با آن ساخته‌ای وارد شو؛ مالکیت حساب بله بعد از ورود و با امضای خودِ بله اثبات می‌شود.</p>`:'';
   const retry=SERVER_ACCOUNT_STATE.error?`<button class="btn account-promo-retry" data-server-account-retry aria-label="بررسی دوبارهٔ وضعیت ورود">${ico('i-refresh')} بررسی دوباره</button>`:'';
   return `<div class="account-promo">
     <section class="account-promo-hero" aria-labelledby="accountPromoTitle">
@@ -329,6 +334,7 @@ function serverAccountGuestLanding(){
         <span class="account-promo-eyebrow">${ico('i-sparkle')} حساب کاربری نورا</span>
         <h2 id="accountPromoTitle"><span>رویدادهایت،</span> <strong>همه یک‌جا.</strong></h2>
         <p>با حساب نورا ثبت‌نام‌ها، اعلان‌ها و فایل‌های مربوط به خودت را یک‌جا پیگیری کن.</p>
+        ${linkNotice}
         <div class="account-promo-actions">
           <a class="btn primary" href="${esc(loginHref)}">${ico('i-mobile')} ورود یا ساخت حساب</a>
           <a class="account-promo-public" href="events.html">دیدن رویدادها ${ico('i-chev-left')}</a>
@@ -430,6 +436,20 @@ function accountScreensCard(){
    • می‌گوییم سرور چه گفته: `bale_link_available=false` یعنی این قابلیت روی
      این سرور پیکربندی نشده و همان را صادقانه نشان می‌دهیم. */
 function identityProviders(){ return (IDENTITY_STATE.list&&IDENTITY_STATE.list.providers)||[] }
+/* مسیر پیوند حساب را خودِ نشانی صفحه می‌گوید (`?link=bale`)، همان نشانه‌ای که
+   ربات در دکمهٔ مینی‌اپ می‌گذارد و ui.js هم به‌خاطر آن ورود خودکار را کنار
+   می‌گذارد. این‌جا فقط رابط با آن هم‌سو می‌شود؛ هیچ تشخیص حدسی‌ای نیست. */
+function linkModeRequested(){
+  const ui=UI();
+  return !!(ui&&typeof ui.baleLinkMode==='function'&&ui.baleLinkMode());
+}
+function accountHasPhoneIdentity(){ return identityProviders().indexOf('phone')>-1 }
+/* نشانی ورود با شماره، با حفظ نشانهٔ مسیر پیوند تا کاربر پس از ورود به همین
+   مسیر برگردد و امضای بله همچنان دست‌نخورده بماند. */
+function serverLoginHref(after){
+  const next='account.html'+(linkModeRequested()?'?link=bale':'')+(after?'#'+after:'');
+  return 'login.html?mode=server&next='+encodeURIComponent(next);
+}
 function isBaleLinked(){ return identityProviders().indexOf('bale')>-1 }
 function identityLinkedAt(provider){
   const rows=(IDENTITY_STATE.list&&IDENTITY_STATE.list.rows)||[];
@@ -453,6 +473,10 @@ function identityActionButton(){
   const state=IDENTITY_STATE, busy=state.busy==='link';
   if(isBaleLinked()) return '';
   if(!state.list||state.list.baleAvailable!==true) return '';
+  /* در مسیر پیوند، نشستی که هویت شماره ندارد نمی‌تواند پیوند بزند: هویت بله
+     از قبل به همان حساب خودکار تعلق دارد و سرور ۴۰۹ می‌دهد. به‌جای دکمهٔ
+     بی‌سرانجام، راه درست (ورود با شماره) در یادآور همین کارت گفته می‌شود. */
+  if(linkModeRequested()&&!accountHasPhoneIdentity()) return '';
   if(!baleInitDataReady()) return '';
   return `<button class="btn primary" data-identity-link ${busy||state.busy?'disabled':''}>
     ${busy?ico('i-refresh')+' در حال پیوند…':ico('i-link')+' پیوند حساب بله'}</button>`;
@@ -487,6 +511,25 @@ function identityRowsBody(){
         baleLinked?(identityLinkedAt('bale')?`پیوندشده در ${esc(identityLinkedAt('bale'))}`:'به همین حساب وصل است.')
           :'با پیوند بله، اعلان‌ها و فایل‌هایت در ربات هم به همین حساب می‌رسد.')}
     </div>`;
+}
+/* هدایت صریح مسیر پیوند: تا کاربر بداند اول باید با کدام حساب وارد شود. */
+function identityLinkModeNotice(){
+  const state=IDENTITY_STATE;
+  if(!linkModeRequested()||state.error) return '';
+  if(!SERVER_ACCOUNT_STATE.account)
+    return `<p class="cap ident-hint">${ico('i-lock')} این صفحه از <b>مسیر پیوند حساب</b> باز شده است.
+      برای وصل‌کردن، اول با شمارهٔ موبایلی که حسابت را با آن ساخته‌ای وارد شو؛ بعد مالکیت حساب بله با امضای خودِ بله اثبات می‌شود.</p>`;
+  /* تا وضعیت هویت‌ها از سرور نیامده، هیچ ادعایی دربارهٔ نوع حساب نمی‌کنیم. */
+  if(!state.list) return '';
+  /* حسابی که هویت شماره دارد، مسیر عادی پیوند را می‌رود؛ این یادآور برای
+     حسابی است که فقط بله دارد (زادهٔ ورود خودکار) و باید مالکش با شماره
+     وارد شود. توجه: حساب «فقط بله» می‌تواند پیوندشده هم باشد؛ ولی همان حساب
+     برای کاربرِ شماره‌ای او حساب دیگری است و هویت بله جابه‌جا نمی‌شود. */
+  if(accountHasPhoneIdentity()) return '';
+  const login=serverLoginHref();
+  return `<p class="cap ident-hint">${ico('i-lock')} این نشست یک <b>حساب بله</b> است، نه حساب شماره‌ای‌ات.
+    برای وصل‌کردن، اول با شمارهٔ موبایل وارد شو تا حساب شماره‌ای همان‌جا باز شود.
+    <a class="btn sm primary" href="${esc(login)}">${ico('i-mobile')} ورود با شماره</a></p>`;
 }
 function identityHintLine(){
   /* دلیل نبودِ دکمه را می‌گوییم تا کاربر پشت دکمهٔ نبوده نماند. */
@@ -530,6 +573,7 @@ function serverAccountIdentitiesCard(){
       <small class="cap">پیوند فقط با اثبات مالکیت انجام می‌شود؛ سرور مرجع نهایی است.</small></span>
       ${settled?chip(isBaleLinked()?'بله وصل است':'فقط شماره',isBaleLinked()?'ok':''):''}</div>
     ${body}
+    ${identityLinkModeNotice()}
     ${identityHintLine()}
     ${notice}
     <div class="row" style="margin-top:10px;flex-wrap:wrap">${identityActionButton()}${identityUnlinkButton()}</div>
