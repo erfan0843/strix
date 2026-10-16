@@ -19,12 +19,35 @@ EXTERNAL_KEYS = (
     "NORA_BALE_BOT_TOKEN", "NORA_BALE_BOT_USERNAME", "NORA_BOT_SERVICE_TOKEN",
     "NORA_OWNER_BALE_USER_ID", "NORA_FORM_PAYMENT_BOT_TOKEN",
     "NORA_FORM_PAYMENT_PROVIDER_TOKEN", "NORA_FORM_PAYMENT_WEBHOOK_SECRET",
-    "NORA_FORM_PAYMENT_WEBHOOK_URL", "SAFIR_API_KEY", "SAFIR_BOT_ID", "NORA_OTP_PEPPER",
+    "NORA_FORM_PAYMENT_WEBHOOK_URL", "SAFIR_API_KEY", "SAFIR_BOT_ID",
 )
+# Local-only random secret for captcha/OTP HMAC. It is generated here, never copied from a provider.
+LOCAL_SECRET_KEYS = ("NORA_OTP_PEPPER",)
 
 
 class LocalSetupError(ValueError):
     """Static, safe-to-display setup guidance without an environment value."""
+
+
+def _ensure_local_secrets(values: dict) -> None:
+    """Fill empty local-only secrets with a random value stored in the private .env.local."""
+    import re
+    import secrets
+
+    missing = [name for name in LOCAL_SECRET_KEYS if not values.get(name)]
+    if not missing:
+        return
+    text = ENV_FILE.read_text(encoding="utf-8")
+    for name in missing:
+        value = secrets.token_urlsafe(32)
+        values[name] = value
+        pattern = rf"^{name}=.*$"
+        line = f'{name}="{value}"'
+        if re.search(pattern, text, flags=re.M):
+            text = re.sub(pattern, line, text, count=1, flags=re.M)
+        else:
+            text = text.rstrip("\n") + "\n" + line + "\n"
+    ENV_FILE.write_text(text, encoding="utf-8")
 
 
 def prepare_environment() -> Path:
@@ -34,6 +57,7 @@ def prepare_environment() -> Path:
     if not ENV_FILE.is_file():
         raise LocalSetupError("تنظیم محلی وجود ندارد؛ ابتدا فرمان init را اجرا کنید.")
     values = dotenv_values(ENV_FILE)
+    _ensure_local_secrets(values)
     if any(values.get(name) for name in EXTERNAL_KEYS):
         raise LocalSetupError("این launcher فقط برای لوکال است؛ کلید سرویس خارجی را از .env.local بردارید.")
     url = make_url(values.get("NORA_DATABASE_URL") or "")
@@ -67,6 +91,12 @@ def migrate() -> None:
     print(f"مهاجرت محلی کامل شد: {database.name}؛ هیچ دیتابیس خارجی استفاده نشد.")
 
 
+def secrets_token() -> str:
+    import secrets
+
+    return secrets.token_urlsafe(32)
+
+
 def initialize(with_owner: bool) -> None:
     if ENV_FILE.exists():
         raise LocalSetupError(".env.local از قبل وجود دارد؛ overwrite نمی‌شود. برای ادامه migrate یا serve را اجرا کنید.")
@@ -94,6 +124,7 @@ def initialize(with_owner: bool) -> None:
         "NORA_COOKIE_SECURE": "false",
         "NORA_PUBLIC_BASE_URL": "",
         **{name: "" for name in EXTERNAL_KEYS},
+        **{name: secrets_token() for name in LOCAL_SECRET_KEYS},
     }
     content = "# Private local development only; do not commit or publish.\n"
     content += "\n".join(f'{name}="{value}"' for name, value in settings.items()) + "\n"

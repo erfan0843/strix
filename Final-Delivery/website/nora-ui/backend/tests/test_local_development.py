@@ -111,3 +111,19 @@ def test_missing_local_config_does_not_create_files(local_dev):
         local_dev.prepare_environment()
     assert not local_dev.ENV_FILE.exists()
     assert not local_dev.STATE_ROOT.exists()
+
+
+def test_local_otp_pepper_is_generated_privately_and_is_not_an_external_key(local_dev, tmp_path, monkeypatch):
+    # کلید HMAC کپچا/OTP محلی است: نباید جزو کلیدهای خارجی باشد و باید خودکار و خصوصی ساخته شود.
+    assert "NORA_OTP_PEPPER" not in local_dev.EXTERNAL_KEYS
+    env_file = tmp_path / ".env.local"
+    env_file.write_text('NORA_OTP_PEPPER=""\nNORA_OWNER_ID="local-owner"\n', encoding="utf-8")
+    monkeypatch.setattr(local_dev, "ENV_FILE", env_file)
+    values = dotenv_values(env_file)
+    local_dev._ensure_local_secrets(values)
+    filled = dotenv_values(env_file)["NORA_OTP_PEPPER"]
+    assert filled and len(filled) >= 32
+    assert values["NORA_OTP_PEPPER"] == filled
+    # اجرای دوباره مقدار موجود را تغییر نمی‌دهد.
+    local_dev._ensure_local_secrets(dotenv_values(env_file))
+    assert dotenv_values(env_file)["NORA_OTP_PEPPER"] == filled
