@@ -76,6 +76,38 @@ SHARED_API_TOKEN = (os.getenv("NORA_BOT_SERVICE_TOKEN") or "").strip()
 SHARED_API_TIMEOUT_SECONDS = _int_env("NORA_SHARED_API_TIMEOUT_SECONDS", 8)
 
 
+def shared_api_url_error(value):
+    """کد خطای کوتاه اگر نشانی پایه‌ی API مشترک قابل‌استفاده نباشد، وگرنه رشته‌ی خالی.
+
+    نشانی پایه فقط باید «مبدأ» باشد (طرح + میزبان، و در صورت نیاز درگاه).
+    کلاینت‌ها خودشان مسیر ``/api/...`` را اضافه می‌کنند؛ پس نشانی‌ای که از قبل
+    مسیر، query یا fragment دارد رد می‌شود تا درخواستِ نادرست ساخته نشود.
+    مجوز به http فقط برای میزبان محلی داده می‌شود تا توسعه‌ی محلی ممکن بماند.
+    """
+    value = (value or "").strip()
+    if not value:
+        return "shared_api_url_missing"
+    try:
+        parsed = urlsplit(value)
+        _ = parsed.port
+    except ValueError:
+        return "shared_api_url_invalid"
+    local_hosts = {"localhost", "127.0.0.1", "::1"}
+    secure_scheme = parsed.scheme.lower() == "https"
+    local_http = parsed.scheme.lower() == "http" and (parsed.hostname or "").lower() in local_hosts
+    if (
+        not (secure_scheme or local_http)
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.path.rstrip("/") != ""
+        or parsed.query
+        or parsed.fragment
+    ):
+        return "shared_api_url_invalid"
+    return ""
+
+
 def is_valid_webapp_url(value):
     """The Mini App uses the existing public site on a verified HTTPS origin."""
     if not isinstance(value, str) or not value or any(char.isspace() or ord(char) < 32 for char in value):
@@ -460,6 +492,11 @@ def check_config():
         errors.append("SUPER_ADMIN_ID تنظیم نشده (آیدی عددی شما در بله)")
     if not SHARED_API_URL:
         errors.append("NORA_SHARED_API_URL تنظیم نشده؛ اتصال پایگاه مشترک لازم است")
+    elif shared_api_url_error(SHARED_API_URL) == "shared_api_url_invalid":
+        errors.append(
+            "NORA_SHARED_API_URL فقط باید مبدأ باشد (مثل https://example.com) "
+            "بدون /api؛ مسیر /api را خودِ ربات اضافه می‌کند"
+        )
     if len(SHARED_API_TOKEN) < 32:
         errors.append("NORA_BOT_SERVICE_TOKEN تنظیم نشده یا کوتاه است")
     if NORA_WEBAPP_URL_INVALID:

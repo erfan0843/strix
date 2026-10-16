@@ -99,6 +99,7 @@ from .roles import (
 )
 from .schemas import PayloadError, normalize_form_payload
 from .security import (
+    BaleMiniAppIdentity,
     constant_time_equal,
     hash_password,
     new_token,
@@ -2609,6 +2610,158 @@ def create_app(
             "permissions": sorted(permissions_for_role(identity.role)),
             "delivery_bot_url": delivery_bot_url,
         }
+
+    ACCOUNT_IDENTITY_PROVIDERS = ("phone", "bale")
+
+    def _account_identities(db: Session, account_id: str) -> list[PlatformIdentityRecord]:
+        return list(
+            db.scalars(
+                select(PlatformIdentityRecord)
+                .where(PlatformIdentityRecord.account_id == account_id)
+                .order_by(PlatformIdentityRecord.created_at, PlatformIdentityRecord.provider)
+            ).all()
+        )
+
+    @app.get("/api/account/identities")
+    def account_identities_list(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """هویت‌های تأییدشدهٔ همین حساب.
+
+        شناسهٔ خام هیچ‌وقت برنمی‌گردد؛ فقط نام سکو و زمان پیوند. همین شکل پاسخ
+        برای ربات و وب یکی است تا هر دو یک تصویر از حساب ببینند.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        rows = _account_identities(db, identity.account_id)
+        return {
+            "account_id": identity.account_id,
+            "identities": [
+                {
+                    "provider": row.provider,
+                    "linked_at": _as_utc(row.created_at).isoformat() if row.created_at else None,
+                }
+                for row in rows
+            ],
+            "available_providers": list(ACCOUNT_IDENTITY_PROVIDERS),
+            "bale_link_available": bool(app.state.settings.bale_bot_token),
+        }
+
+    def _consume_mini_app_replay(
+        db: Session, verified: BaleMiniAppIdentity, max_age_seconds: int
+    ) -> None:
+        """اثر انگشت یک‌بارمصرف را ثبت می‌کند؛ استفادهٔ دوباره رد می‌شود."""
+        now = _utc_now()
+        db.execute(delete(MiniAppAuthReplayRecord).where(MiniAppAuthReplayRecord.expires_at <= now))
+        if db.get(MiniAppAuthReplayRecord, verified.replay_key) is not None:
+            raise HTTPException(409, "bale_init_data_replayed")
+        db.add(
+            MiniAppAuthReplayRecord(
+                replay_key=verified.replay_key,
+                expires_at=now + timedelta(seconds=max_age_seconds + 60),
+            )
+        )
+
+    @app.post("/api/account/identities/bale")
+    async def account_link_bale_identity(
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """پیوند یک هویت بلهِ اثبات‌شده به همین حساب.
+
+        اثبات مالکیت فقط از راه امضای `initData` انجام می‌شود؛ شناسه‌ای که
+        مرورگر بفرستد به‌تنهایی پذیرفته نمی‌شود و نقش از سمت کلاینت خوانده
+        نمی‌شود. اگر آن هویت بله از قبل به حساب دیگری وصل باشد، هیچ ادغام
+        خودکاری رخ نمی‌دهد و درخواست با ۴۰۹ رد می‌شود تا داده‌ای گم نشود.
+        """
+        cfg: Settings = request.app.state.settings
+        if not cfg.bale_bot_token:
+            raise HTTPException(503, "bale_auth_not_configured")
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))
+        if set(payload) != {"init_data"} or not isinstance(payload.get("init_data"), str):
+            raise HTTPException(400, "invalid_bale_auth_payload")
+
+        try:
+            verified = verify_bale_mini_app_init_data(
+                payload["init_data"],
+                cfg.bale_bot_token,
+                now=int(_utc_now().timestamp()),
+                max_age_seconds=cfg.bale_init_data_max_age_seconds,
+            )
+        except ValueError:
+            raise HTTPException(401, "invalid_bale_init_data") from None
+
+        subject = str(verified.user_id)
+        claimed = db.scalar(
+            select(PlatformIdentityRecord).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == subject,
+            )
+        )
+        if claimed is not None:
+            if claimed.account_id == identity.account_id:
+                return {"linked": True, "provider": "bale", "already_linked": True}
+            raise HTTPException(409, detail={"code": "bale_identity_already_linked"})
+        if any(row.provider == "bale" for row in _account_identities(db, identity.account_id)):
+            raise HTTPException(409, detail={"code": "account_already_has_bale_identity"})
+
+        _consume_mini_app_replay(db, verified, cfg.bale_init_data_max_age_seconds)
+        db.add(
+            PlatformIdentityRecord(
+                id=str(uuid.uuid4()),
+                account_id=identity.account_id,
+                provider="bale",
+                provider_user_id=subject,
+            )
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            # مسابقهٔ هم‌زمان با ورود/پیوند دیگر؛ همان هویت به حساب دیگری رسید.
+            db.rollback()
+            raise HTTPException(409, detail={"code": "bale_identity_already_linked"}) from None
+        return {"linked": True, "provider": "bale", "already_linked": False}
+
+    @app.delete("/api/account/identities/bale")
+    def account_unlink_bale_identity(
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """برداشتن پیوند بله؛ برگشت‌پذیر و بدون حذف هیچ سابقه‌ای.
+
+        اگر بله تنها هویت حساب باشد رد می‌شود، وگرنه حساب بی‌صاحب می‌ماند.
+        نشست‌های دیگری که با provider بله ساخته شده‌اند باطل می‌شوند تا نشست
+        کهنه از پیوندِ برداشته‌شده زنده نماند؛ نشست جاری دست‌نخورده می‌ماند.
+        """
+        record = db.scalar(
+            select(PlatformIdentityRecord).where(
+                PlatformIdentityRecord.account_id == identity.account_id,
+                PlatformIdentityRecord.provider == "bale",
+            )
+        )
+        if record is None:
+            raise HTTPException(404, detail={"code": "bale_identity_not_linked"})
+        remaining = [
+            row for row in _account_identities(db, identity.account_id) if row.id != record.id
+        ]
+        if not remaining:
+            raise HTTPException(409, detail={"code": "last_identity_cannot_be_removed"})
+        db.delete(record)
+        db.execute(
+            update(AccountSessionRecord)
+            .where(
+                AccountSessionRecord.account_id == identity.account_id,
+                AccountSessionRecord.auth_provider == "bale",
+                AccountSessionRecord.id != identity.session_id,
+                AccountSessionRecord.revoked_at.is_(None),
+            )
+            .values(revoked_at=_utc_now())
+        )
+        db.commit()
+        return {"linked": False, "provider": "bale"}
 
     PROFILE_FIELD_KEYS = ("fullName", "nationalId", "birthDate", "gender", "province", "city", "address", "email")
 

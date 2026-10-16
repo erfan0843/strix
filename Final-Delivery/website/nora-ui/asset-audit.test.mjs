@@ -29,10 +29,23 @@ test('university snapshot is fetched only when a university picker needs it', ()
     'the service-worker shell must not prefetch local sample fixtures');
   assert.match(ui, /script\.dataset\.noraUniversities='1'/,
     'the shared UI should mark its on-demand script request');
-  for (const page of ['home.html', 'events.html', 'event.html', 'person.html', 'post.html', 'form.html']) {
-    assert.match(read(page), /<script src="ui\.js\?v=118"><\/script>/,
-      `${page} should request the updated shared UI bundle`);
+  /* نسخهٔ بستهٔ مشترک باید در همهٔ صفحه‌ها یکی و رو به جلو باشد.
+     پیش‌تر عدد ثابتی (v=118) اینجا سنجیده می‌شد؛ با هر به‌روزرسانیِ بسته،
+     سه فایل آزمون بی‌دلیل می‌شکست و در عوض اگر صفحه‌ای عقب می‌ماند ولی
+     همان عدد ثابت را داشت، چیزی گرفته نمی‌شد. یکنواختی + سقفِ پایین همان
+     قصد را برآورده می‌کند و عقب‌ماندن یک صفحه را واقعاً می‌گیرد. */
+  const bundleVersions = new Map();
+  for (const name of fs.readdirSync(root).filter(entry => entry.endsWith('.html'))) {
+    const found = read(name).match(/<script src="ui\.js\?v=(\d+)"><\/script>/);
+    if (found) bundleVersions.set(name, Number(found[1]));
   }
+  assert.ok(bundleVersions.size >= 6,
+    'the six public pages and every other page loading the shared bundle must be found');
+  assert.equal(new Set(bundleVersions.values()).size, 1,
+    `every page must request the same shared UI bundle version, got ${
+      [...bundleVersions].map(([page, version]) => `${page}=v${version}`).join(', ')}`);
+  assert.ok([...bundleVersions.values()][0] >= 122,
+    'the shared UI bundle version must never go backwards');
   assert.match(ui, /loadUniversities\(\)\.then\(\(\)=>\{delete el\.dataset\.universitiesFailed;render\(\)\}\)/,
     'the picker must redraw after the asynchronous snapshot arrives');
   assert.doesNotMatch(serviceWorker, /'universities-data\.js'/,

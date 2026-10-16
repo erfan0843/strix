@@ -2334,6 +2334,55 @@ async function serverAuthPost(path,body){
   if(!r.ok) throw new Error((data&&(data.detail||data.message))||('HTTP '+r.status));
   return data;
 }
+/* ── ورود مینی‌اپ بله ──────────────────────────────────────────────────
+   وقتی همین صفحه داخل شیشهٔ بله باز می‌شود، `Bale.WebApp.initData` یک دادهٔ
+   امضاشده و یک‌بارمصرف است. دو نکته مهم:
+   ۱) پیش از فرستادن امضا، وضعیت نشست پرسیده می‌شود (مالک، بعد حساب)؛ وگرنه
+      روی هر جابه‌جاییِ صفحه همان امضا دوباره فرستاده می‌شود و سرور آن را
+      ۴۰۹ «تکرار» می‌کند و کاربر بی‌دلیل از ورود باز می‌ماند.
+   ۲) هر خطایی بی‌سروصدا رد می‌شود؛ مسیر ورود معمولی (شماره/گذرواژه) دست‌نخورده
+      می‌ماند و کاربر پشت خطای فنی نمی‌ماند. */
+function baleMiniAppInitData(){
+  try{
+    const app=window.Bale&&window.Bale.WebApp;
+    const raw=app&&typeof app.initData==='string'?app.initData:'';
+    /* فقط رشتهٔ کاملی که امضا و زمان دارد؛ هم‌شکل با اعتبارسنجی سرور. */
+    return /(?:^|&)hash=/.test(raw)&&/(?:^|&)auth_date=/.test(raw)?raw:'';
+  }catch(_){return ''}
+}
+async function hasServerSession(){
+  for(const path of ['/api/auth/me','/api/account/me']){
+    try{
+      const r=await fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+      if(r.ok){
+        const d=await r.json().catch(()=>null);
+        if(d&&d.authenticated===true) return true;
+      }
+    }catch(_){/* شبکه/سرور نیست؛ مسیر معمولی ورود را نمی‌بندیم */}
+  }
+  return false;
+}
+async function baleMiniAppBoot(){
+  if(NORA_TEST_FIXTURE_MODE) return false;
+  if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return false;
+  const initData=baleMiniAppInitData();
+  if(!initData) return false;
+  if(await hasServerSession()){ if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server'; return true; }
+  try{
+    const d=await serverAuthPost('/api/auth/bale-mini-app',{init_data:initData});
+    if(!d||d.authenticated!==true) return false;
+    if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server';
+    try{syncBell()}catch(_){}
+    try{authDone()}catch(_){}
+    return true;
+  }catch(err){
+    /* کد خطای سرور ممکن است این‌ها باشد: invalid_bale_init_data (۴۰۱)،
+       bale_init_data_replayed (۴۰۹)، bale_auth_not_configured (۵۰۳). در همه
+       حالت‌ها کاربر با ورود معمولی ادامه می‌دهد. خودِ امضا لاگ نمی‌شود. */
+    if(typeof console!=='undefined'&&console.warn) console.warn('mini app login skipped:',String(err&&err.message||err).slice(0,80));
+    return false;
+  }
+}
 document.addEventListener('click',async e=>{
   const t=e.target; if(!t||!t.closest) return;
   const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]'), nc=t.closest('[data-srv-captcha-new]');
@@ -2558,6 +2607,8 @@ addEventListener('hashchange',uiHash);
 sheetA11y();
 syncBell();
 try{uiHash()}catch(e){}
+/* اگر صفحه داخل مینی‌اپ بله باز شده باشد، هویت امضاشده همین‌جا نشست می‌سازد. */
+try{baleMiniAppBoot()}catch(e){}
 /* ── نوار بالا: وقت اسکرول، شیشهٔ پررنگ‌تر می‌شود (همان حس نوار آی‌اواس) ──
    پیش‌تر فقط صفحهٔ خانه این کلاس را می‌گذاشت و نوار رویدادها همیشه مات
    می‌ماند؛ حالا هر صفحه‌ای که ui.js را دارد همین رفتار را دارد. */
