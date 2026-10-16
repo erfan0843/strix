@@ -23,6 +23,13 @@ async function load(store,search){
       if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
       if(store) Object.defineProperty(w,'localStorage',{configurable:true,value:store});
       w.open=url=>{ (w.open.calls=w.open.calls||[]).push(String(url)); return null };
+      /* سرور آزمایشی: کد درست ۱۲۳۴۵۶ است */
+      const reply=(status,obj)=>({ok:status<300,status,json:async()=>obj});
+      w.fetch=async(url,opts={})=>{ const u=String(url); const b=JSON.parse((opts&&opts.body)||'{}');
+        if(u.endsWith('/api/auth/phone-otp/request')) return reply(200,{accepted:true,challenge_id:'11111111-1111-4111-8111-111111111111',expires_in:90,resend_in:60});
+        if(u.endsWith('/api/auth/phone-otp/verify')) return b.code==='123456'?reply(200,{authenticated:true,provider:'phone'}):reply(401,{detail:'invalid_or_expired_otp'});
+        if(u.endsWith('/api/auth/manager-login')) return (b.username==='admin'&&b.password==='test-pass')?reply(200,{authenticated:true,role:'owner'}):reply(401,{detail:'invalid_credentials'});
+        return reply(404,{detail:'not_found'}); };
       w.addEventListener('error',e=>errs.push('error: '+(e.message||'')));
       const ce=w.console.error; w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
     }});
@@ -88,7 +95,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('#lgOtp').length===1,'با شمارهٔ درست، به پلهٔ کد می‌رود');
   ok(p.txt('.lgotext').includes('رمز یک‌بارمصرف'),'متن پلهٔ کد: ربات رمز یک‌بارمصرف');
   ok(p.window.NORA_LOGIN.state.mobile==='09123456789','شماره در حالت صفحه می‌ماند');
-  ok(p.store.getItem('nora-home-auth')&&JSON.parse(p.store.getItem('nora-home-auth')).mobile==='09123456789','پلهٔ کد در حافظه می‌ماند');
+  ok(p.store.getItem('nora-home-auth')===null,'پلهٔ کد در حافظه نمی‌ماند (کد سرور فقط در همین صفحه است)');
 }
 
 /* ۲.۵) کد امنیتی تصویری زیر تلفن */
@@ -126,7 +133,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   const p=await load(makeStore());
   p.phone('9123456789');            /* بی صفر و ۰۹ هم قبول است */
   await wait(140);
-  ok(p.all('#lgOtp .otpbox').length===4,'چهار خانهٔ کد، نه پنج');
+  ok(p.all('#lgOtp .otpbox').length===6,'شش خانهٔ کد (کد ۶ رقمی سرور)');
   ok(p.all('.lgbot').length===1,'نگارهٔ ربات بالای پلهٔ کد');
   ok(p.all('.lgbot svg').length===1,'نگاره SVG است');
   ok(p.txt('.lgpline').includes('۹۱۲')&&p.txt('.lgpline').includes('+۹۸'),'شماره با کد کشور روی صفحه');
@@ -156,10 +163,11 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.doc.querySelector('#lgOtp').classList.contains('bad'),'خانه‌ها نشان خطا می‌گیرند');
   ok(p.store.getItem('nora-home-user')===null,'با کد ناقص کسی وارد نمی‌شود');
   /* کد درست */
-  boxes.forEach((b,idx)=>{ b.value=['۵','۴','۳','۲'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
+  boxes.forEach((b,idx)=>{ b.value=['۱','۲','۳','۴','۵','۶'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
   p.submit('#lgForm2'); await wait(160);
   const u=p.store.getItem('nora-home-user');
-  ok(u&&JSON.parse(u).mobile==='09123456789','با کد درست، نشست نوشته می‌شود');
+  ok(u&&JSON.parse(u).mobile==='09123456789'&&JSON.parse(u).server===true,'با کد درست، نشست واقعی سرور نوشته می‌شود');
+  ok(u&&JSON.parse(u).wallet===0&&!/سارا/.test(u),'هیچ نام یا موجودی ساختگی نوشته نمی‌شود');
   ok(p.all('.lgcheck').length===1&&p.txt('.lgdtitle').includes('خوش آمدی'),'پلهٔ پایان با نشان تیک');
   ok(p.all('#lgNext').length===1&&p.doc.querySelector('#lgNext').getAttribute('href')==='account.html','دکمهٔ رفتن به حساب من');
   ok(p.store.getItem('nora-home-auth')===null,'پلهٔ نیمه‌کارهٔ ورود پاک می‌شود');
@@ -185,9 +193,9 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   console.log('\n── کد نادرست ──');
   const p=await load(makeStore());
   p.phone('09121234567'); await wait(140);
-  p.all('.otpbox').forEach((b,idx)=>{ b.value=['۱','۱','۱','۱'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
+  p.all('.otpbox').forEach((b,idx)=>{ b.value=['۹','۹','۹','۹','۹','۹'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
   p.submit('#lgForm2'); await wait(120);
-  ok(!p.doc.querySelector('#lgErr2').hidden&&p.txt('#lgErr2').includes('۵۴۳۲'),'کد نادرست، کد نمونه را می‌گوید');
+  ok(!p.doc.querySelector('#lgErr2').hidden&&p.txt('#lgErr2').includes('درست نیست')&&!p.txt('#lgErr2').includes('نمونه'),'کد نادرست رد می‌شود و کد نمونه نشان داده نمی‌شود');
   ok(p.store.getItem('nora-home-user')===null,'و کسی وارد نمی‌شود');
   ok(p.doc.querySelector('#lgOtp').classList.contains('bad'),'خانه‌های کد نشان خطا می‌گیرند');
   p.window.NORA_LOGIN.state.wait=0; await wait(60);
@@ -227,17 +235,17 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   ok(p.all('#lgUser').length===1&&p.all('#lgPass').length===1,'پلهٔ مدیران: نام کاربری و گذرواژه');
   ok(p.doc.querySelector('#lgPass').type==='password','گذرواژه پوشیده است');
   ok(p.all('.lgbot').length===0&&p.all('#lgOtp').length===0,'رمز پویا و کد در این راه نیست');
-  ok(p.txt('#lgAdminForm .lghint').includes('admin / nora'),'نمونهٔ پیش‌نمایش نوشته شده');
+  ok(!p.txt('#lgAdminForm .lghint').includes('admin / nora'),'رمز نمونه روی صفحه نیست');
   p.submit('#lgAdminForm'); await wait(120);
   ok(!p.doc.querySelector('#lgErr3').hidden&&p.txt('#lgErr3').includes('بنویس'),'خالی، خطا می‌دهد');
   p.type('#lgUser','admin'); p.type('#lgPass','123'); p.submit('#lgAdminForm'); await wait(140);
   ok(p.txt('#lgErr3').includes('درست نیست'),'گذرواژهٔ نادرست رد می‌شود');
   ok(p.store.getItem('nora-admin')===null,'و نشست مدیر ساخته نمی‌شود');
-  p.type('#lgPass','nora'); p.click('#lgPassEye'); await wait(80);
+  p.type('#lgPass','test-pass'); p.click('#lgPassEye'); await wait(80);
   ok(p.doc.querySelector('#lgPass').type==='text','چشم، گذرواژه را نشان می‌دهد');
   p.submit('#lgAdminForm'); await wait(180);
   ok(p.txt('.lgdtitle').includes('مدیر سامانه'),'با درست‌ها، به پلهٔ مدیر می‌رسد');
-  ok(p.store.getItem('nora-admin')!==null,'نشست مدیر نوشته می‌شود');
+  ok(p.store.getItem('nora-admin')===null,'نشست مدیر فقط در سرور است؛ چیزی ساختگی در مرورگر نمی‌ماند');
   ok(p.doc.querySelector('#lgAdminPanel').getAttribute('href')==='admin.html','و راه پنل مدیران است');
   p.click('#lgAdminBack')||true;
   const q=await load(makeStore());
@@ -249,14 +257,16 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
 /* ۵) کسی که وارد شده و کسی که نیمه‌کاره مانده */
 {
   console.log('\n── حال‌های آغازین ──');
-  const p=await load(makeStore({'nora-home-user':JSON.stringify({name:'سارا محمدی',mobile:'09121234567'})}));
+  const p=await load(makeStore({'nora-home-user':JSON.stringify({name:'۰۹۱۲۱۲۳۴۵۶۷',mobile:'09121234567',provider:'phone',server:true})}));
   ok(p.txt('.lgdtitle').includes('همین حالا وارد شده‌ای'),'کاربر واردشده کارت تازه می‌بیند');
   ok(p.all('#lgOutMost').length===1,'و می‌تواند بیرون بیاید');
   p.click('#lgOutMost'); await wait(120);
   ok(p.store.getItem('nora-home-user')===null,'خروج، نشست را پاک می‌کند');
   ok(p.all('#lgPhone').length===1,'و به پلهٔ شماره برمی‌گردد');
   const q=await load(makeStore({'nora-home-auth':JSON.stringify({step:'code',mobile:'09121112233'})}));
-  ok(q.all('#lgOtp').length===1&&q.txt('.lgpline').includes('۲۲۳۳'),'ورود نیمه‌کاره، از پلهٔ کد ادامه می‌دهد');
+  ok(q.all('#lgOtp').length===0&&q.all('#lgTel').length===1,'ورود نیمه‌کاره به پلهٔ شماره برمی‌گردد (کد سرور ذخیره نمی‌شود)');
+  const f=await load(makeStore({'nora-home-user':JSON.stringify({name:'سارا محمدی',mobile:'09121234567',wallet:1250000})}));
+  ok(f.all('#lgOutMost').length===0&&f.store.getItem('nora-home-user')===null,'نشست ساختگی قدیمی پاک می‌شود');
 }
 
 /* ۶) بازگشت به صفحهٔ خواسته‌شده */
@@ -264,7 +274,7 @@ const ok=(c,m)=>{ if(c){pass++;console.log('   ✓ '+m)} else {fail++;console.lo
   console.log('\n── نشانی بازگشت ──');
   const p=await load(makeStore(),'?next=account.html%23club');
   p.phone('09121234567'); await wait(140);
-  p.all('.otpbox').forEach((b,idx)=>{ b.value=['۵','۴','۳','۲'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
+  p.all('.otpbox').forEach((b,idx)=>{ b.value=['۱','۲','۳','۴','۵','۶'][idx]; b.dispatchEvent(new p.window.Event('input',{bubbles:true})) });
   p.submit('#lgForm2'); await wait(160);
   ok(p.doc.querySelector('#lgNext').getAttribute('href')==='account.html#club','پس از ورود به نشانی خواسته‌شده برمی‌گردد');
   const bad=await load(makeStore(),'?next=https%3A%2F%2Fbad.example');
