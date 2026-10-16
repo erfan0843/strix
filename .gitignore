@@ -49,6 +49,7 @@ pip-delete-this-directory.txt
 
 # FastAPI
 .env.local
+Final-Delivery/website/nora-ui/.local/
 .env.development.local
 .env.test.local
 .env.production.local
