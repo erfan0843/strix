@@ -1447,6 +1447,8 @@ function hidePageLoader(){
 }
 function initPageLoader(){
   const root=ensurePageLoader();
+  /* صفحهٔ ورود سبک است و نباید پشت رویداد load گیر کند؛ صفحه پیش از این بسته می‌شود */
+  if(window.NORA_PAGE_LOADER_OFF){hidePageLoader();return}
   if(PAGE_LOADER_CONTROLLER)PAGE_LOADER_CONTROLLER.dispose();
   hidePageLoader();
   if(!root)return;
