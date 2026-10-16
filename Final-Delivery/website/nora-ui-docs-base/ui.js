@@ -1652,12 +1652,85 @@ function pubEvents(){
   }).filter(Boolean);
 }
 
+/* استخر کارت و درگاه: کارت پیش‌فرض نداریم. اگر پنل چیزی منتشر کرده همان را
+   می‌خوانیم، وگرنه استخرِ پیش‌فرضِ داده. چرخش یا با سقف تراکنش است یا با روز. */
+const FIN_KEY='nora-finance', RC_KEY='nora-receipts';
+/* نمایش نقش فقط برای پیش‌نمایش است؛ این بررسی مرورگری جای مجوز سمت سرور را نمی‌گیرد. */
+const ADM_SESSION_KEY='nora-admin-session', ADM_SESSION_TTL=8*60*60*1000;
+function adminActor(){
+  let s=null; try{s=JSON.parse(localStorage.getItem(ADM_SESSION_KEY)||'null')}catch(e){}
+  if(!s||s.role!=='admin'||!String(s.u||'').trim()||!String(s.personKey||'').trim()||!+s.at) return null;
+  const age=Date.now()-(+s.at), people=(((window.NORA||{}).ADMIN||{}).people)||[];
+  if(age<0||age>ADM_SESSION_TTL) return null;
+  return people.find(p=>p&&p.k===s.personKey)||null;
+}
+const financeOwner=()=>{const p=adminActor(); return !!(p&&p.k==='p1'&&p.f==='owner')};
+function finPublic(){
+  const cleanGates=list=>(Array.isArray(list)?list:[]).filter(g=>g&&['bale','card','custom','wallet'].includes(g.k)).map(g=>{
+    const v=Object.assign({},g); ['key','token','secret','apiKey'].forEach(k=>delete v[k]); return v;
+  });
+  try{
+    const v=JSON.parse(localStorage.getItem(FIN_KEY)||'null');
+    if(v&&typeof v==='object'&&(Array.isArray(v.cards)||Array.isArray(v.gates))){
+      const F=((((window.NORA||{}).ADMIN||{}).settings)||{}).finance||{};
+      const clean=Object.assign({},v,{gates:cleanGates(v.gates),cards:Array.isArray(v.cards)?v.cards:(F.cards||[])});
+      try{localStorage.setItem(FIN_KEY,JSON.stringify(clean))}catch(e){}
+      return clean;
+    }
+  }catch(e){}
+  const F=((((window.NORA||{}).ADMIN||{}).settings)||{}).finance||{};
+  return {gates:cleanGates(F.gates),cards:F.cards||[],wallet:F.wallet||{},
+    rot:(F.rot&&F.rot.mode)||'cap',rotHours:+((F.rot||{}).hours)||24};
+}
+const finDayKey=()=>{const c=clockParts(); return c.jy+'/'+String(c.jm).padStart(2,'0')+'/'+String(c.jd).padStart(2,'0')};
+function finUsage(c,today){
+  return c&&c.usedAt===today?{count:+c.used||0,amount:+c.usedAmount||0}:{count:0,amount:0};
+}
+function finCardValid(card){
+  const d=String(typeof card==='string'?card:((card&&card.no)||'')).replace(/\D/g,'');
+  if(d.length!==16) return false;
+  let sum=0;
+  for(let i=0;i<d.length;i++){
+    let n=+d[d.length-1-i];
+    if(i%2){n*=2;if(n>9)n-=9}
+    sum+=n;
+  }
+  return sum%10===0;
+}
+function finCanTake(c,today,amount){
+  if(!c||c.on===false||c.active===false||!finCardValid(c)) return false;
+  const u=finUsage(c,today), countCap=Math.max(1,+c.cap||1), amountCap=Math.max(0,+c.dailyMax||0), take=Math.max(0,+amount||0);
+  return u.count<countCap&&(!amountCap||(take>0?u.amount+take<=amountCap:u.amount<amountCap));
+}
+function finActive(pub,amount){
+  pub=pub||finPublic();
+  const cards=pub.cards||[]; if(!cards.length) return null;
+  const today=finDayKey(), open=cards.filter(c=>finCanTake(c,today,amount));
+  if(!open.length) return null;
+  const mode=pub.rot||'cap';
+  if(mode==='time'){const h=Math.max(1,+pub.rotHours||24), slot=Math.floor(Date.now()/(h*3600000));
+    return open[((slot%open.length)+open.length)%open.length]}
+  return open.slice().sort((a,b)=>{
+    const ua=finUsage(a,today), ub=finUsage(b,today);
+    return ua.count-ub.count||ua.amount-ub.amount;
+  })[0];
+}
+function finGateOn(k){
+  const g=(finPublic().gates||[]).find(x=>x.k===k);
+  return !!(g&&g.on);
+}
+/* هیچ تراکنش یا رسیدی در این پیش‌نمایش ثبت نمی‌شود، حتی اگر کلیدهای محلی تغییر کنند. */
+function finBump(){return null}
+function finAddReceipt(){return false}
+
 window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:copyText,toast:toast,sheetA11y:sheetA11y,
   rialTxt:rialTxt,
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
+  finPublic:finPublic,finActive:finActive,finCardValid:finCardValid,finGateOn:finGateOn,finBump:finBump,finAddReceipt:finAddReceipt,
+  adminActor:adminActor,financeOwner:financeOwner,
   fillTrust:fillTrust,trustPick:trustPick,
   uiSet:uiSet,uiSetSave:uiSetSave,UISET_META:UISET_META,menuAllowed:menuAllowed,uiSetDef:UISET_DEF,
   levelOf:levelOf,sessUser:sessUser,phoneOf:phoneOf,PROF_KEY:PROF_KEY,
