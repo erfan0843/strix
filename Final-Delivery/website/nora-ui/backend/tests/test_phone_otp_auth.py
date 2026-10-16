@@ -71,8 +71,32 @@ def make_client(*, configured: bool = True, send_ok: bool = True, monkeypatch):
     return client, engine, calls
 
 
+def solve_captcha(client: TestClient):
+    """Fetch a captcha and recover its code through the public verifier (test-only oracle).
+
+    When captcha is not configured the endpoint fails closed; return empty fields so the
+    phone endpoint's own fail-closed response is what the caller observes.
+    """
+    from backend.captcha import verify_captcha
+
+    issued = client.get("/api/auth/captcha")
+    if issued.status_code != 200:
+        return "", ""
+    body = issued.json()
+    for number in range(10000):
+        answer = f"{number:04d}"
+        if verify_captcha(SAFIR_KEY, body["token"], answer):
+            return body["token"], answer
+    raise AssertionError("captcha code not recovered")
+
+
 def request_code(client: TestClient, phone: str = PHONE):
-    return client.post("/api/auth/phone-otp/request", json={"phone": phone}, headers=ORIGIN)
+    token, answer = solve_captcha(client)
+    return client.post(
+        "/api/auth/phone-otp/request",
+        json={"phone": phone, "captcha_token": token, "captcha_answer": answer},
+        headers=ORIGIN,
+    )
 
 
 def verify_code(client: TestClient, challenge_id: str, code: str = CODE, phone: str = PHONE):
@@ -129,7 +153,12 @@ def test_safir_sender_uses_only_approved_https_endpoint_and_existing_payload(mon
 def test_request_and_verify_issue_one_phone_account_session_without_assigning_a_role(monkeypatch):
     client, engine, sends = make_client(monkeypatch=monkeypatch)
     try:
-        assert client.post("/api/auth/phone-otp/request", json={"phone": PHONE}).status_code == 403
+        token, answer = solve_captcha(client)
+        no_origin = client.post(
+            "/api/auth/phone-otp/request",
+            json={"phone": PHONE, "captcha_token": token, "captcha_answer": answer},
+        )
+        assert no_origin.status_code == 403
         response = request_code(client, "۰۹۱۲۳۴۵۶۷۸۹")
         assert response.status_code == 200, response.text
         body = response.json()

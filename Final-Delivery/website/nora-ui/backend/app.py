@@ -37,6 +37,7 @@ from sqlalchemy.orm import Session, selectinload, sessionmaker
 from starlette.middleware.gzip import GZipMiddleware
 
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
+from .captcha import CaptchaError, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
 from .secret_box import SecretBoxError, decrypt_secret, encrypt_secret, encryption_configured, secret_hint
 from .config import UI_ROOT, Settings
@@ -2340,6 +2341,15 @@ def create_app(
         response.set_cookie(cfg.account_csrf_cookie_name, raw_csrf, httponly=False, **cookie_options)
         return {"authenticated": True, "account_id": account.id, "provider": "bale"}
 
+    @app.get("/api/auth/captcha")
+    async def get_login_captcha(request: Request):
+        cfg: Settings = request.app.state.settings
+        try:
+            issued = issue_captcha(cfg.otp_pepper)
+        except CaptchaError:
+            raise HTTPException(503, "captcha_not_configured")
+        return JSONResponse(issued, headers={"Cache-Control": "no-store"})
+
     @app.post("/api/auth/phone-otp/request")
     async def request_phone_otp(request: Request, db: Session = Depends(get_db)):
         _same_origin(request)
@@ -2347,7 +2357,7 @@ def create_app(
         if not cfg.safir_api_key or not cfg.safir_bot_id or not cfg.otp_pepper:
             raise HTTPException(503, "phone_otp_not_configured")
         payload = await _read_json_object(request, 2048)
-        if set(payload) != {"phone"} or not isinstance(payload.get("phone"), str):
+        if set(payload) != {"phone", "captcha_token", "captcha_answer"} or not isinstance(payload.get("phone"), str):
             raise HTTPException(400, "invalid_phone_otp_payload")
         phone = normalize_iran_phone(payload["phone"])
         if phone is None:
@@ -2371,6 +2381,11 @@ def create_app(
         if retry:
             db.commit()
             raise HTTPException(429, "login_temporarily_blocked", headers={"Retry-After": str(retry)})
+
+        # کپچا بعد از محدودیت نرخ بررسی می‌شود: هر حدس تصویر هم در سقف IP/شماره می‌نشیند.
+        if not verify_captcha(cfg.otp_pepper, payload.get("captcha_token"), payload.get("captcha_answer"), now=now.timestamp()):
+            db.commit()
+            raise HTTPException(422, "invalid_captcha")
 
         recent = db.scalar(
             select(PhoneOTPChallengeRecord)
