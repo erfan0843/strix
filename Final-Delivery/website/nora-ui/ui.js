@@ -2284,14 +2284,78 @@ function doBuy(pastId,mediaId){
 }
 
 /* ── ورود: یک نسخهٔ کوچک برای خرید و کارهای نیازمند حساب ── */
+/* ورود واقعی: شماره → کد ۶ رقمی سرور (phone-otp). کد نمایشی و نشست ساختگی ندارد. */
+const SRV_AUTH={phone:'',challenge:'',busy:false,err:''};
+function serverAuthSheet(after){
+  const step=SRV_AUTH.challenge?'code':'phone';
+  fillSheet('shAuth',`
+    <div class="grabber"></div>
+    <div class="row" style="align-items:center;margin-bottom:10px">
+      <div><div class="head">${step==='code'?'کد تأیید':'ورود / ثبت‌نام با شمارهٔ موبایل'}</div>
+        <div class="cap">${step==='code'?'کد ۶ رقمی را به '+escH(SRV_AUTH.phone)+' فرستادیم':'برای تهیه و کتابخانه لازم است؛ رمزی ندارد'}</div></div>
+      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+    ${step==='code'
+      ? `<label class="lbl" for="srvcode">کد ۶ رقمی</label>
+         <input class="input num" id="srvcode" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code"/>
+         <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-code ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-check"/></svg> ورود</button>
+           <button class="btn quiet" data-srv-back>تغییر شماره</button></div>`
+      : `<label class="lbl" for="srvmob">شمارهٔ موبایل</label>
+         <input class="input num" id="srvmob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(SRV_AUTH.phone)}"/>
+         <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-phone ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
+           <button class="btn quiet" data-close>بعداً</button></div>`}
+    ${SRV_AUTH.err?`<p class="cap" role="alert" style="margin-top:8px;color:#b3261e">${escH(SRV_AUTH.err)}</p>`:''}
+    <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>`);
+  if(typeof after==='function') authSheet.after=after;
+  else if(authSheet.after===undefined) authSheet.after=null;
+}
+async function serverAuthPost(path,body){
+  const r=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(body)});
+  let data=null; try{data=await r.json()}catch(_){}
+  if(!r.ok) throw new Error((data&&(data.detail||data.message))||('HTTP '+r.status));
+  return data;
+}
+document.addEventListener('click',async e=>{
+  const t=e.target; if(!t||!t.closest) return;
+  const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]');
+  if(!ph&&!cd&&!bk) return;
+  e.preventDefault();
+  if(SRV_AUTH.busy) return;
+  if(bk){SRV_AUTH.challenge='';SRV_AUTH.err='';serverAuthSheet();return}
+  SRV_AUTH.busy=true; SRV_AUTH.err=''; serverAuthSheet();
+  try{
+    if(ph){
+      const v=unFa((document.getElementById('srvmob')||{}).value||'').replace(/\D/g,'');
+      if(!/^09\d{9}$/.test(v)) throw new Error('شماره را کامل بنویس؛ ۱۱ رقم، با ۰۹');
+      const d=await serverAuthPost('/api/auth/phone-otp/request',{phone:v});
+      if(!d||d.accepted!==true||typeof d.challenge_id!=='string') throw new Error('پاسخ سرویس ورود نامعتبر است');
+      SRV_AUTH.phone=v; SRV_AUTH.challenge=d.challenge_id;
+    } else {
+      const v=unFa((document.getElementById('srvcode')||{}).value||'').replace(/\D/g,'');
+      if(!/^\d{6}$/.test(v)) throw new Error('کد ۶ رقمی را کامل وارد کن');
+      const d=await serverAuthPost('/api/auth/phone-otp/verify',{challenge_id:SRV_AUTH.challenge,phone:SRV_AUTH.phone,code:v});
+      if(!d||d.authenticated!==true) throw new Error('ورود انجام نشد؛ دوباره تلاش کن');
+      SRV_AUTH.challenge=''; SRV_AUTH.busy=false;
+      if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server';
+      syncBell&&syncBell(); authDone();
+      setTimeout(()=>{location.href='account.html'},80);
+      return;
+    }
+  }catch(err){SRV_AUTH.err=String(err&&err.message||'خطا در ورود')}
+  SRV_AUTH.busy=false; serverAuthSheet();
+},false);
+/* تب «ورود/ثبت‌نام» برای مهمان همان برگه‌ی ورود را باز می‌کند، نه صفحه‌ی جدا */
+document.addEventListener('click',e=>{
+  const a=e.target&&e.target.closest&&e.target.closest('.tabbar [data-account-nav]');
+  if(!a||NORA_TEST_FIXTURE_MODE) return;
+  if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return;
+  e.preventDefault(); authSheet(); openSheet&&openSheet('shAuth');
+},false);
 function authSheet(after){
   if(!NORA_TEST_FIXTURE_MODE){
-    authSheet.after=null;
-    fillSheet('shAuth',`<div class="grabber"></div>
-      <div class="head">ورود به حساب نورا</div>
-      <p class="cap" style="margin-top:8px">ورود وب از مسیر امن انجام می‌شود؛ این صفحه کد آزمایشی یا ورود محلی ارائه نمی‌کند.</p>
-      <div class="row" style="margin-top:12px"><a class="btn primary" href="login.html?mode=server&amp;next=account.html">ادامه به ورود امن</a>
-        <span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>`);
+    authSheet.after=authSheet.after===undefined?null:authSheet.after;
+    if(typeof after==='function') authSheet.after=after;
+    serverAuthSheet(after);
     return;
   }
   const pend=jread('nora-home-auth',null)||null;
