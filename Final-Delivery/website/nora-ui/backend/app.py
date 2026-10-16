@@ -1155,12 +1155,20 @@ def create_app(
             status_code = 404 if status_code is None else status_code
         return HTMLResponse(html_text, status_code=status_code or 200)
 
+    frame_ancestors = os.getenv("NORA_FRAME_ANCESTORS", "").strip()
+    if any(ch in frame_ancestors for ch in ";\r\n"):
+        frame_ancestors = ""
+
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        if frame_ancestors:
+            # فقط برای پیش‌نمایش توسعه: NORA_FRAME_ANCESTORS تعیین می‌کند چه میزبانی قاب بزند.
+            response.headers["Content-Security-Policy"] = f"frame-ancestors {frame_ancestors}"
+        else:
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         path = request.url.path.lower()
         if path.startswith("/api/"):
