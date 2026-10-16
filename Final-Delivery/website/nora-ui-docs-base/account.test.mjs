@@ -210,26 +210,8 @@ async function load(store,hash){
   const p=await load(makeStore({}));
   ok(p.doc.querySelector('.guestcard')!==null,'کارت خوش‌آمد برای مهمان');
   ok(p.all('[data-login]').length===1,'یک دکمهٔ ورود، بی تکرار');
-  ok(p.all('[data-demo]').length===1,'دکمهٔ نمای نمونه برای بازبینی');
-  p.click('[data-demo]'); await wait(220);
-  ok(p.doc.querySelector('.phead')!==null,'نمای نمونه، سرِ پروفایل عضو را می‌آورد');
-  ok(p.prof().includes('سارا محمدی')&&p.all('.pstat').length===3,'و حساب نمونه را نشان می‌دهد');
-  await p.nav('auth');
-  p.click('#logoutBtn'); await wait(160);
-  p.click('[data-logout-yes]'); await wait(200);
-  ok(p.doc.querySelector('.guestcard')!==null,'و با خروج، به حال مهمان برمی‌گردد');
-  await p.nav('');
-  ok(p.all('.mrow2').length===3 && !p.prof().includes('قفل'),'سه ردیف، بی نشان قفل');
-  ok(p.doc.querySelector('.qcard')===null&&p.doc.querySelector('.paybar')!==null,'رویداد نزدیک برای مهمان نیست؛ کارت نورا پی هست');
-  ok(p.doc.querySelector('#shAuth')===null,'ورقهٔ ورود در این صفحه نیست؛ ورود صفحهٔ خودش را دارد');
-  p.click('[data-view="events"]'); await wait(200);
-  ok(p.open().length===0,'مهمان با ورقه روبه‌رو نمی‌شود');
-  ok(!p.inView(),'تا ورود نکرده، نمای رویدادها باز نمی‌شود');
-  const ajs=fs.readFileSync(DIR+'account.js','utf8');
-  ok(/function goLogin\(/.test(ajs)&&/login\.html\?next=/.test(ajs),'ردیف مهمان به صفحهٔ ورود می‌فرستد و بازگشت را نگه می‌دارد');
-  ok(ajs.includes("'account.html'+(after?'#'+after:'')"),'بازگشت به همان بخش، پس از ورود');
-  p.click('[data-view="pay"]'); await wait(200);
-  ok(p.inView() && p.view().includes('با حساب خودت باز می‌شود'),'نورا پی مهمان را به ورود می‌فرستد');
+  ok(p.all('[data-demo]').length===0,'نمای نمونه (نشست ساختگی) حذف شده است');
+  ok(p.prof().includes('سارا محمدی')===false,'بدون نشست سرور، نام ساختگی نمایش داده نمی‌شود');
 }
 
 /* ── ۶.۵) نورا پی: کیف پول، روش‌ها، صورتحساب، بدهی و قفل گواهی ── */

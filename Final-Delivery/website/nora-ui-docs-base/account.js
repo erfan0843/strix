@@ -129,7 +129,6 @@ function headGuest(){
         <div class="row">${ico('i-check')}<span>امتیاز، باشگاه کتاب و فرم‌ها</span></div>
       </div>
       <button class="btn primary" data-login>${ico('i-mobile')} ورود با شمارهٔ موبایل</button>
-      <button class="btn quiet sm demo" type="button" data-demo>${ico('i-eye')} نمای نمونهٔ حساب را ببین</button>
       <p class="cap" style="margin:11px 2px 0">شماره را که بنویسی، کد چهاررقمی به بله می‌آید و همان‌جا
         می‌گیری. رمز و گذرواژه‌ای در کار نیست.</p>
       <p class="cap" style="margin:6px 2px 0">${esc(SUP.n||'پشتیبانی')} و راهنما هم صفحهٔ خودش را دارد و بدون ورود باز
@@ -2429,16 +2428,12 @@ document.addEventListener('click',ev=>{
         <span class="sp" style="flex:1"></span><button class="btn quiet" data-close>نه</button></div>`);
     openSheet('shConfirm'); return }
   if(t.closest('[data-logout-yes]')){
+    try{ if(typeof fetch==='function') fetch('/api/auth/account/logout',{method:'POST',credentials:'same-origin'}).catch(()=>{}) }catch(e){}
     try{ localStorage.removeItem('nora-home-user') }catch(e){}
     try{ document.dispatchEvent(new CustomEvent('nora:logout')) }catch(e){}
     closeSheets(); S.view=''; S.ptab='info';
     try{history.replaceState(null,'',location.pathname)}catch(e){}
     render(); toast('از حساب بیرون آمدی؛ هر وقت خواستی دوباره وارد شو'); return }
-  if(t.closest('[data-demo]')){
-    /* برای بازبینی: حساب نمونه را همان‌جا می‌نشانیم؛ خروجش هم در «ورود و امنیت» است */
-    try{ localStorage.setItem('nora-home-user',JSON.stringify({name:(A.seed||{}).fullName||'سارا محمدی',
-      mobile:'09121234567',joined:'شهریور ۱۴۰۴',certs:2,wallet:1250000,msgs:1})) }catch(e){}
-    render(); toast('حساب نمونه نشست؛ هر وقت خواستی از «ورود و امنیت» بیرون بیا'); return }
   const fm=t.closest('[data-form]');
   if(fm){ const n=fm.dataset.form||'', st2=fm.dataset.formst||'';
     toast(st2==='draft'?('«'+n+'» نیمه‌کاره است؛ تکمیلش را همین‌جا خبر می‌دهیم')
@@ -2491,4 +2486,17 @@ window.addEventListener('hashchange',route);
 if(typeof initUI==='function') initUI();
 mergeNotes();
 route();
+/* نشست مرورگر فقط وقتی معتبر است که سرور تأیید کند؛ نشست ساختگی یا منقضی پاک می‌شود */
+try{
+  let lu=null; try{ lu=JSON.parse(localStorage.getItem('nora-home-user')||'null') }catch(e){}
+  if(lu && typeof fetch==='function'){
+    fetch('/api/account/me',{credentials:'same-origin'}).then(r=>{
+      if(r.status===401||r.status===403||lu.server!==true){
+        try{ localStorage.removeItem('nora-home-user') }catch(e){}
+        try{ document.dispatchEvent(new CustomEvent('nora:logout')) }catch(e){}
+        render();
+      }
+    }).catch(()=>{});
+  }
+}catch(e){}
 })();
