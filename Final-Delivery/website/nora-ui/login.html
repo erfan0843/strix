@@ -28,7 +28,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=99"/>
 <link rel="stylesheet" href="nora.css?v=121"/>
-<link rel="stylesheet" href="login.css?v=122"/>
+<link rel="stylesheet" href="login.css?v=123"/>
 </head>
 <body class="hasbotbar loginpage">
 
@@ -143,6 +143,11 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<nav class="tabbar" aria-label="ناوبری اصلی">
+  <a href="home.html"><svg class="i"><use href="#i-home"/></svg><small>خانه</small></a>
+  <a href="events.html"><svg class="i"><use href="#i-calendar"/></svg><small>رویدادها</small></a>
+  <a href="account.html" class="on" aria-current="page"><svg class="i"><use href="#i-idcard-f"/></svg><small>ورود/ثبت‌نام</small></a>
+</nav>
 <script>window.NORA_PAGE_LOADER_OFF=true;</script>
 <script src="ui.js?v=122"></script>
 <script src="login.js?v=122"></script>

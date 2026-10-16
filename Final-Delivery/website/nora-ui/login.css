@@ -320,3 +320,6 @@
 .lg-cap-img svg{width:180px;height:60px;display:block}
 .lg-cap-fail{padding:0 12px;font-size:12.5px;line-height:1.7;color:var(--ink-3);text-align:center}
 .lg-captcha .lgbtn{width:auto;padding-inline:14px}
+
+/* نوار ناوبری پایین همان طراحی خانه/حساب؛ فوتر صفحه زیر آن نمی‌رود. */
+body.loginpage .lwrap{padding-bottom:96px}
