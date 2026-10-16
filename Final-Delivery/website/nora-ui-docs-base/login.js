@@ -1,10 +1,10 @@
 /* ══════════════════════════════════════════════════════════════════════════
    نورا، صفحهٔ ورود
    ──────────────────────────────────────────────────────────────────────────
-   یک کار: شماره و کد امنیتی می‌گیری، بعد کد چهاررقمی می‌آید و حساب باز می‌شود.
+   یک کار: شماره و کد امنیتی می‌گیری، بعد کد ششرقمی می‌آید و حساب باز می‌شود.
    ورود اصلی همین است: کد را سفیر بله می‌فرستد.
 
-   پله‌ها:  شماره → کد چهاررقمی ربات → پایان · و برای مدیران: پلهٔ خودش
+   پله‌ها:  شماره → کد ششرقمی ربات → پایان · و برای مدیران: پلهٔ خودش
    هیچ دکمه یا نشان پیام‌گیری این‌جا نیست؛ تنها یک پیوند متنی به ربات رمز
    یک‌بارمصرف هست تا اگر کد نیامد، خودِ کاربر سراغش برود.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -169,14 +169,14 @@ function stepPhone(){
   <button class="lgbtn quiet admin" type="button" id="lgAdminBtn"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg> ${esc(L.adminBtn||'ورود مدیران')}</button>`;
 }
 
-/* ── پلهٔ ۲: کد چهاررقمی ربات ─────────────────────────────────────── */
+/* ── پلهٔ ۲: کد ششرقمی ربات ─────────────────────────────────────── */
 function stepCode(){
   const len=CODE_LEN;
   const boxes=Array.from({length:len},(_,i)=>
     `<input class="otpbox num" type="text" inputmode="numeric" autocomplete="${i===0?'one-time-code':'off'}"
       maxlength="1" aria-label="رقم ${faN(i+1)} از ${faN(len)}" data-otp="${i}"/>`).join('');
   const bot=`<a class="lgblink" id="lgBotLink" href="${esc(OTP_HREF)}" target="_blank" rel="noopener">${esc(OTP_NAME)}</a>`;
-  const lead=esc(L.otpLead||'کد چهاررقمی را «{bot}» می‌فرستد.').replace('{bot}',bot);
+  const lead=esc(L.otpLead||'کد ششرقمی را «{bot}» می‌فرستد.').replace('{bot}',bot);
   const line=S.mobile
     ? `<b class="num" dir="ltr">${phonePretty(S.mobile)}</b>
        <button class="lgedit" type="button" id="lgEditPhone" aria-label="${esc(L.otpEdit||'عوض کردن شماره')}">
@@ -189,7 +189,7 @@ function stepCode(){
     <div class="lgpline">${line}</div>
     ${S.inviteOk?`<p class="lginvok">${esc(INV.ok||'کد دعوت ثبت شد.')}</p>`:''}
     <p class="lgotext" id="lgLead2">${lead}</p>
-    <div class="lgotp" id="lgOtp" dir="ltr" role="group" aria-label="${esc(L.codeCap||'کد چهاررقمی ربات')}">${boxes}</div>
+    <div class="lgotp" id="lgOtp" dir="ltr" role="group" aria-label="${esc(L.codeCap||'کد ششرقمی ربات')}">${boxes}</div>
     <p class="lgcount" id="lgCountWrap">${esc(L.otpWait||'زمان باقی‌مانده:')} <b id="lgCount">${faN(TTL)}</b> ${esc(L.otpSec||'ثانیه')}</p>
     <p class="lgerr" id="lgErr2" hidden></p>
     <div class="lgbar">
