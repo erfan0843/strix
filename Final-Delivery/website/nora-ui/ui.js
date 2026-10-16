@@ -3039,6 +3039,9 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   videoEmbedInfo:videoEmbedInfo,safeHttpsMediaUrl:safeHttpsMediaUrl,baleStartHref:baleStartHref,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
+  /* ورود خودکار مینی‌اپ و گامِ پیوند حساب هر دو باید یک قاعده برای شکل
+     `initData` داشته باشند؛ این تابع تنها مرجع آن قاعده است. */
+  baleMiniAppInitData:baleMiniAppInitData,hasServerSession:hasServerSession,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
   syncServerProfile:syncServerProfile,

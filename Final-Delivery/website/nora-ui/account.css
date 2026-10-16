@@ -1376,6 +1376,21 @@ body.hasbotbar main.wrap{padding-bottom:14px}
 .server-notice-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
 .server-notice-files>a{display:block;max-width:100%}
 .server-notice-files img,.account-private-image img{display:block;max-width:100%;max-height:240px;object-fit:contain;border-radius:13px;border:.5px solid var(--hairline);background:var(--surface-sunk)}
+/* کارت پیوند هویت: همان تن پوستهٔ حساب؛ نه شلوغ، نه رنگی‌تر از بقیه. */
+.server-account-identities{margin-top:9px}
+.server-account-identities .ident-row{align-items:flex-start}
+.server-account-identities .ident-row .tag{margin-top:2px;flex:0 0 auto}
+.ident-hint,.ident-notice,.ident-error{display:flex;gap:7px;align-items:flex-start;margin-top:10px;
+  padding:9px 10px;border-radius:12px;background:var(--surface-sunk);line-height:1.8}
+.ident-hint .i,.ident-notice .i,.ident-error .i{width:15px;height:15px;flex:0 0 auto;margin-top:3px;color:var(--ink-3)}
+.ident-hint .btn{flex:0 0 auto}
+.ident-notice{background:color-mix(in oklab,var(--ok) 12%,transparent);color:var(--ink-2)}
+.ident-notice .i{color:var(--ok)}
+.ident-error{background:var(--stop-tint);color:var(--ink-2)}
+.ident-error .i{color:var(--stop)}
+@media (max-width:420px){
+  .ident-hint{flex-wrap:wrap}
+}
 .account-private-image{display:block;margin:10px auto;max-width:100%;width:max-content}
 .server-account-file .row+.account-private-image{margin-top:11px}
 .server-account-file .row:last-child{margin-top:8px}

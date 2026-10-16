@@ -131,6 +131,10 @@ const SERVER_ACCOUNT_STATE={account:null,checking:true,checked:false,error:'',
   files:[],filesLoaded:false,filesLoading:false,filesError:'',filesMore:false};
 const SERVER_ACCOUNT_PAGE=50;
 const SERVER_DATA_VIEW={k:'server-data',n:'اعلان‌ها و فایل‌های من',s:'داده‌های حساب تو از سرور خوانده می‌شود.'};
+/* وضعیت پیوند هویت‌ها. جدا نگه داشته می‌شود چون هم بار خودش را دارد و هم
+   باید در خروج/انقضای نشست یک‌جا پاک شود. `busy` جلوی ارسال مکرر و مصرف
+   دوبارهٔ امضای یک‌بارمصرف را می‌گیرد. */
+const IDENTITY_STATE={list:null,loaded:false,loading:false,error:'',busy:'',confirmUnlink:false,outcome:null};
 
 /* ── رفتن به یک بخش: مهمان، ورقهٔ ورود؛ عضو، همان بخش ─────────────── */
 function go(k){
@@ -415,6 +419,171 @@ function accountScreensCard(){
     <div class="stack" style="margin-top:8px">${rows}</div>
   </section>`;
 }
+/* ══ پیوند هویت: بله، شماره، آیندهٔ سکوهای دیگر ═════════════════════════
+   قاعده‌ها:
+   • مدرک اثبات مالکیت، فقط امضای `initData` خودِ بله است. در مرورگرِ بیرونِ
+     بله چنین امضایی وجود ندارد، پس دکمهٔ بی‌اثر نشان نمی‌دهیم؛ راه درست را
+     می‌گوییم.
+   • تا وقتی سرور ۲۰۰ نداده، هیچ موفقیتی اعلام نمی‌شود و وضعیت «وصل شد» از
+     پاسخ سرور خوانده می‌شود، نه از حدس.
+   • دکمه در حال کار قفل می‌شود تا امضای یک‌بارمصرف دوباره فرستاده نشود.
+   • می‌گوییم سرور چه گفته: `bale_link_available=false` یعنی این قابلیت روی
+     این سرور پیکربندی نشده و همان را صادقانه نشان می‌دهیم. */
+function identityProviders(){ return (IDENTITY_STATE.list&&IDENTITY_STATE.list.providers)||[] }
+function isBaleLinked(){ return identityProviders().indexOf('bale')>-1 }
+function identityLinkedAt(provider){
+  const rows=(IDENTITY_STATE.list&&IDENTITY_STATE.list.rows)||[];
+  const row=rows.find(x=>x.provider===provider);
+  return row&&row.linked_at?accountServerDate(row.linked_at):'';
+}
+/* امضای آمادهٔ بله، از همان قاعدهٔ ui.js (یک مرجع، دو مصرف‌کننده). */
+function baleInitDataReady(){
+  const ui=UI();
+  return !!(ui&&typeof ui.baleMiniAppInitData==='function'&&ui.baleMiniAppInitData());
+}
+/* نشان هر سطر، خودِ سکوست و وضعیت را «نشان» می‌گوید؛ پس وضعیت هم با رنگ و
+   هم با متن بیان می‌شود، نه فقط با یک آیکون. */
+function identityRow(icon,label,connected,detail){
+  return `<div class="srow ident-row">
+    ${ico(icon)}
+    <span class="sp"><b>${esc(label)}</b><small class="cap">${esc(detail)}</small></span>
+    ${chip(connected?'وصل است':'وصل نیست',connected?'ok':'warn')}</div>`;
+}
+function identityActionButton(){
+  const state=IDENTITY_STATE, busy=state.busy==='link';
+  if(isBaleLinked()) return '';
+  if(!state.list||state.list.baleAvailable!==true) return '';
+  if(!baleInitDataReady()) return '';
+  return `<button class="btn primary" data-identity-link ${busy||state.busy?'disabled':''}>
+    ${busy?ico('i-refresh')+' در حال پیوند…':ico('i-link')+' پیوند حساب بله'}</button>`;
+}
+function identityOutsideBaleNote(){
+  const ui=UI();
+  const href=ui&&typeof ui.baleStartHref==='function'?ui.baleStartHref('link_account'):'';
+  const action=href?`<a class="btn sm primary" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${ico('i-send')} بازکردن بله</a>`:'';
+  return `<p class="cap ident-hint">${ico('i-lock')} برای اثبات مالکیت، این صفحه باید از داخل خودِ بله باز شود؛
+    آن‌جا امضای یک‌بارمصرف حسابت در دسترس است. پیوند با شماره یا نام انجام نمی‌شود.
+    ${action}</p>`;
+}
+function identityUnlinkButton(){
+  const state=IDENTITY_STATE;
+  if(!isBaleLinked()) return '';
+  if(state.busy==='unlink') return `<button class="btn quiet" disabled>${ico('i-refresh')} در حال برداشتن…</button>`;
+  /* اگر بله تنها هویت حساب باشد، سرور برداشتنش را رد می‌کند؛ از پیش توضیح می‌دهیم. */
+  if(identityProviders().length<2)
+    return `<span class="tag warn">تنها راه ورود حساب است؛ برداشتنش ممکن نیست.</span>`;
+  if(state.confirmUnlink) return `<div class="row" style="flex-wrap:wrap">
+      <button class="btn quiet" data-identity-unlink-confirm>${ico('i-check')} بله، پیوند برداشته شود</button>
+      <button class="btn sm quiet" data-identity-unlink-cancel>انصراف</button></div>`;
+  return `<button class="btn sm quiet" data-identity-unlink>${ico('i-close')} برداشتن پیوند بله</button>`;
+}
+function identityRowsBody(){
+  const phoneLinked=identityProviders().indexOf('phone')>-1;
+  const baleLinked=isBaleLinked();
+  return `<div class="stack" style="margin-top:8px">
+      ${identityRow('i-mobile','شمارهٔ موبایل',phoneLinked,
+        phoneLinked?'ورود با پیامک یک‌بارمصرف انجام می‌شود.':'این حساب با شماره ساخته نشده است.')}
+      ${identityRow('i-send','حساب بله',baleLinked,
+        baleLinked?(identityLinkedAt('bale')?`پیوندشده در ${esc(identityLinkedAt('bale'))}`:'به همین حساب وصل است.')
+          :'با پیوند بله، اعلان‌ها و فایل‌هایت در ربات هم به همین حساب می‌رسد.')}
+    </div>`;
+}
+function identityHintLine(){
+  /* دلیل نبودِ دکمه را می‌گوییم تا کاربر پشت دکمهٔ نبوده نماند. */
+  const state=IDENTITY_STATE;
+  if(isBaleLinked()||state.error) return '';
+  if(state.list&&state.list.baleAvailable!==true)
+    return `<p class="cap ident-hint">${ico('i-lock')} پیوند بله روی این سرور پیکربندی نشده است؛ اکنون فقط ورود با شماره فعال است.</p>`;
+  if(!baleInitDataReady()) return identityOutsideBaleNote();
+  return '';
+}
+function identityOutcomeLine(){
+  const outcome=IDENTITY_STATE.outcome;
+  if(!outcome||!outcome.text) return '';
+  const good=outcome.kind==='ok';
+  return `<p class="cap ${good?'ident-notice':'ident-error'}" role="${good?'status':'alert'}">
+    ${ico(good?'i-check':'i-flag')} ${esc(outcome.text)}</p>`;
+}
+function identityOutcome(kind,text){ IDENTITY_STATE.outcome={kind,text} }
+/* پیام خطای سرور از قبل فارسی و قابل‌اقدام است؛ اگر متن، «کد» خام بود
+   (خطای داخلی کلاینت)، به‌جای کد، جملهٔ روشن نشان می‌دهیم. */
+function identityErrorText(error,fallback){
+  const message=error&&typeof error.message==='string'?error.message:'';
+  return message&&!/^[a-z0-9_]+$/.test(message)?message:fallback;
+}
+function serverAccountIdentitiesCard(){
+  const state=IDENTITY_STATE;
+  if(!SERVER_ACCOUNT_STATE.account) return '';
+  const body=state.loading&&!state.loaded
+    ? `<div class="empty2"><b>در حال خواندن وضعیت پیوند…</b></div>`
+    : state.error
+      ? `<div class="empty2"><b>${esc(state.error)}</b><button class="btn quiet" data-identity-retry>${ico('i-refresh')} تلاش دوباره</button></div>`
+      : identityRowsBody();
+  /* نتیجهٔ عملیات جدا از خطای خواندن نشان داده می‌شود؛ موفقیتی که سرور تأیید
+     کرده با شکستِ بازخوانیِ فهرست باطل نمی‌شود. نتیجهٔ ناموفق هم پایدار می‌ماند:
+     تعارض حساب یا امضای نامعتبر چیزی است که کاربر باید بخواند و برایش تصمیم
+     بگیرد، نه پیامی که با محو شدن اعلان از یاد برود. */
+  const notice=identityOutcomeLine();
+  const settled=state.loaded&&!state.error;
+  return `<section class="card acct server-account-identities anim">
+    <div class="row">${ico('i-shield')}<span class="sp"><b>راه‌های ورود و پیوند حساب</b>
+      <small class="cap">پیوند فقط با اثبات مالکیت انجام می‌شود؛ سرور مرجع نهایی است.</small></span>
+      ${settled?chip(isBaleLinked()?'بله وصل است':'فقط شماره',isBaleLinked()?'ok':''):''}</div>
+    ${body}
+    ${identityHintLine()}
+    ${notice}
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">${identityActionButton()}${identityUnlinkButton()}</div>
+  </section>`;
+}
+/* پیوند: مدرک از بله خوانده می‌شود، نه از ورودی کاربر. */
+async function linkBaleIdentity(){
+  const state=IDENTITY_STATE, api=window.NORA_SERVER_API;
+  if(state.busy) return;
+  if(!api||typeof api.linkBaleIdentity!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  const ui=UI();
+  const initData=ui&&typeof ui.baleMiniAppInitData==='function'?ui.baleMiniAppInitData():'';
+  if(!initData){toast('امضای بله در دسترس نیست؛ این صفحه را از داخل بله باز کن.');return}
+  state.busy='link'; state.outcome=null; renderProfile();
+  try{
+    const result=await api.linkBaleIdentity(initData);
+    if(!result||result.linked!==true) throw new Error('invalid_identity_link_response');
+    state.busy='';
+    const done=result.already_linked===true?'این حساب بله از قبل به همین حساب وصل بود.':'حساب بله به حسابت وصل شد.';
+    identityOutcome('ok',done); toast(done);
+    /* وضعیت را از سرور بازمی‌خوانیم تا «وصل شد» ادعای کلاینت نباشد. اگر این
+       خواندن شکست خورد، موفقیتِ واقعیِ پاسخ سرور را انکار نمی‌کنیم و در کنارش
+       خطای خواندن و دکمهٔ تلاش دوباره می‌ماند؛ فهرست جعلی نمی‌سازیم. */
+    await loadAccountIdentities(true);
+  }catch(error){
+    state.busy='';
+    if(error&&error.status===401&&error.code==='authentication_required'){serverAccountExpired();return}
+    identityOutcome('error',identityErrorText(error,'پیوند انجام نشد؛ دوباره تلاش کن.'));
+    renderProfile();
+    return;
+  }
+  renderProfile();
+}
+async function unlinkBaleIdentity(){
+  const state=IDENTITY_STATE, api=window.NORA_SERVER_API;
+  if(state.busy) return;
+  if(!api||typeof api.unlinkBaleIdentity!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  state.busy='unlink'; state.confirmUnlink=false; state.outcome=null; renderProfile();
+  try{
+    const result=await api.unlinkBaleIdentity();
+    if(!result||result.linked!==false) throw new Error('invalid_identity_unlink_response');
+    state.busy='';
+    const done='پیوند بله برداشته شد؛ هیچ سابقه‌ای پاک نشد.';
+    identityOutcome('ok',done); toast(done);
+    await loadAccountIdentities(true);
+  }catch(error){
+    state.busy='';
+    if(error&&error.status===401&&error.code==='authentication_required'){serverAccountExpired();return}
+    identityOutcome('error',identityErrorText(error,'برداشتن پیوند انجام نشد؛ دوباره تلاش کن.'));
+    renderProfile();
+    return;
+  }
+  renderProfile();
+}
 function serverAccountModulesCard(){
   const rows=SERVER_ACCOUNT_STATE.account?[
     ['پروفایل و امتیاز','اطلاعات تکمیلی و امتیاز سروری متصل نشده.'],
@@ -439,7 +608,7 @@ function serverAccountFeatureView(t,title,description){
 function profileHTML(){
   const state=SERVER_ACCOUNT_STATE;
   if(!TEST_FIXTURE_MODE) return state.account
-    ?serverAccountHead()+serverAccountModulesCard():serverAccountGuestLanding();
+    ?serverAccountHead()+serverAccountIdentitiesCard()+serverAccountModulesCard():serverAccountGuestLanding();
   if(state.checking) return serverAccountAccessCard();
   const connected=!!state.account;
   const localHeader=connected?'':(login()?headMember():headGuest());
@@ -594,6 +763,10 @@ function resetServerAccountData(){
   state.notifications=[]; state.notificationsLoaded=false; state.notificationsLoading=false;
   state.notificationsError=''; state.notificationsMore=false;
   state.files=[]; state.filesLoaded=false; state.filesLoading=false; state.filesError=''; state.filesMore=false;
+  /* وضعیت پیوند هم به همین حساب گره خورده است؛ در خروج/انقضا پاک می‌شود تا
+     اطلاعات حساب قبلی روی صفحه نماند. */
+  IDENTITY_STATE.list=null; IDENTITY_STATE.loaded=false; IDENTITY_STATE.loading=false;
+  IDENTITY_STATE.error=''; IDENTITY_STATE.busy=''; IDENTITY_STATE.confirmUnlink=false; IDENTITY_STATE.outcome=null;
 }
 function serverAccountExpired(){
   const state=SERVER_ACCOUNT_STATE;
@@ -683,9 +856,36 @@ async function loadAccountFiles(append=false,force=false){
     renderProfile();
   }
 }
+/* هویت‌های همین حساب را از سرور می‌خواند. سرور مرجع است؛ هیچ‌جا از روی
+   ورود فعلی «حدس» نمی‌زنیم که کاربر بله وصل است یا نه. */
+async function loadAccountIdentities(force=false){
+  const state=IDENTITY_STATE, api=window.NORA_SERVER_API;
+  if(!SERVER_ACCOUNT_STATE.account) return;
+  if(state.loading||(!force&&state.loaded)) return;
+  state.loading=true; state.error=''; renderProfile();
+  try{
+    if(!api||typeof api.getAccountIdentities!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountIdentities();
+    if(!SERVER_ACCOUNT_STATE.account) return;
+    const rows=Array.isArray(result&&result.identities)?result.identities:[];
+    if(rows.some(row=>!row||!['phone','bale'].includes(row.provider)
+      ||(row.linked_at!=null&&typeof row.linked_at!=='string'))) throw new Error('invalid_account_identities');
+    state.list={providers:rows.map(row=>row.provider),rows,
+      available:Array.isArray(result.available_providers)?result.available_providers:[],
+      baleAvailable:result.bale_link_available===true};
+    state.loaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.error=accountLoadError(error,'وضعیت پیوند حساب خوانده نشد؛ دوباره تلاش کن.');
+    state.loaded=true;
+  }finally{
+    state.loading=false;
+    renderProfile();
+  }
+}
 function loadServerAccountData(force=false){
   if(!SERVER_ACCOUNT_STATE.account) return;
-  loadAccountNotifications(false,force); loadAccountFiles(false,force);
+  loadAccountNotifications(false,force); loadAccountFiles(false,force); loadAccountIdentities(force);
 }
 async function checkServerAccount(){
   const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
@@ -2780,6 +2980,11 @@ document.addEventListener('click',ev=>{
     if(S.serverdata==='notifications'&&!SERVER_ACCOUNT_STATE.notificationsLoaded) loadAccountNotifications();
     return }
   if(t.closest('[data-server-account-retry]')){checkServerAccount();return}
+  if(t.closest('[data-identity-link]')){linkBaleIdentity();return}
+  if(t.closest('[data-identity-retry]')){loadAccountIdentities(true);return}
+  if(t.closest('[data-identity-unlink]')){IDENTITY_STATE.confirmUnlink=true;renderProfile();return}
+  if(t.closest('[data-identity-unlink-cancel]')){IDENTITY_STATE.confirmUnlink=false;renderProfile();return}
+  if(t.closest('[data-identity-unlink-confirm]')){unlinkBaleIdentity();return}
   const refreshData=t.closest('[data-account-data-refresh]'); if(refreshData){loadServerAccountData(true);return}
   if(t.closest('[data-account-registrations-refresh]')){loadAccountRegistrations(false,true);return}
   if(t.closest('[data-account-registrations-more]')){loadAccountRegistrations(true,true);return}
