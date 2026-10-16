@@ -2285,7 +2285,19 @@ function doBuy(pastId,mediaId){
 
 /* ── ورود: یک نسخهٔ کوچک برای خرید و کارهای نیازمند حساب ── */
 /* ورود واقعی: شماره → کد ۶ رقمی سرور (phone-otp). کد نمایشی و نشست ساختگی ندارد. */
-const SRV_AUTH={phone:'',challenge:'',busy:false,err:''};
+const SRV_AUTH={phone:'',challenge:'',busy:false,err:'',captchaToken:'',captchaImage:'',captchaFailed:false};
+async function loadServerCaptcha(){
+  if(SRV_AUTH.captchaBusy) return; SRV_AUTH.captchaBusy=true; SRV_AUTH.captchaFailed=false; SRV_AUTH.captchaToken='';
+  try{
+    const r=await fetch('/api/auth/captcha',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+    if(!r.ok) throw new Error('captcha');
+    const d=await r.json();
+    if(!d||typeof d.token!=='string'||typeof d.image!=='string') throw new Error('captcha');
+    SRV_AUTH.captchaToken=d.token; SRV_AUTH.captchaImage=d.image;
+  }catch(_){ SRV_AUTH.captchaImage=''; SRV_AUTH.captchaFailed=true; SRV_AUTH.err='کد امنیتی بارگذاری نشد؛ دوباره تلاش کن.' }
+  SRV_AUTH.captchaBusy=false;
+  if(document.getElementById('shAuth')&&document.getElementById('srvmob')) serverAuthSheet();
+}
 function serverAuthSheet(after){
   const step=SRV_AUTH.challenge?'code':'phone';
   fillSheet('shAuth',`
@@ -2301,12 +2313,17 @@ function serverAuthSheet(after){
            <button class="btn quiet" data-srv-back>تغییر شماره</button></div>`
       : `<label class="lbl" for="srvmob">شمارهٔ موبایل</label>
          <input class="input num" id="srvmob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(SRV_AUTH.phone)}"/>
+         <div class="row" style="margin-top:10px;align-items:center;gap:10px"><span style="line-height:0;border-radius:10px;overflow:hidden">${SRV_AUTH.captchaImage||'<span class="cap">در حال بارگذاری کد امنیتی…</span>'}</span>
+           <button class="btn quiet" type="button" data-srv-captcha-new ${SRV_AUTH.busy||SRV_AUTH.captchaBusy?'disabled':''}>کد جدید</button></div>
+         <label class="lbl" for="srvcap" style="margin-top:8px">کد نمایش‌داده‌شده</label>
+         <input class="input num" id="srvcap" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="۴ رقم"/>
          <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-phone ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
            <button class="btn quiet" data-close>بعداً</button></div>`}
     ${SRV_AUTH.err?`<p class="cap" role="alert" style="margin-top:8px;color:#b3261e">${escH(SRV_AUTH.err)}</p>`:''}
     <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>`);
   if(typeof after==='function') authSheet.after=after;
   else if(authSheet.after===undefined) authSheet.after=null;
+  if(step==='phone'&&!SRV_AUTH.captchaToken&&!SRV_AUTH.captchaBusy&&!SRV_AUTH.captchaFailed) loadServerCaptcha();
 }
 async function serverAuthPost(path,body){
   const r=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
@@ -2317,17 +2334,22 @@ async function serverAuthPost(path,body){
 }
 document.addEventListener('click',async e=>{
   const t=e.target; if(!t||!t.closest) return;
-  const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]');
-  if(!ph&&!cd&&!bk) return;
+  const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]'), nc=t.closest('[data-srv-captcha-new]');
+  if(!ph&&!cd&&!bk&&!nc) return;
   e.preventDefault();
   if(SRV_AUTH.busy) return;
+  if(nc){SRV_AUTH.err='';loadServerCaptcha();return}
   if(bk){SRV_AUTH.challenge='';SRV_AUTH.err='';serverAuthSheet();return}
   SRV_AUTH.busy=true; SRV_AUTH.err=''; serverAuthSheet();
   try{
     if(ph){
       const v=unFa((document.getElementById('srvmob')||{}).value||'').replace(/\D/g,'');
       if(!/^09\d{9}$/.test(v)) throw new Error('شماره را کامل بنویس؛ ۱۱ رقم، با ۰۹');
-      const d=await serverAuthPost('/api/auth/phone-otp/request',{phone:v});
+      const ca=unFa((document.getElementById('srvcap')||{}).value||'').replace(/\D/g,'');
+      if(!/^\d{4}$/.test(ca)) throw new Error('کد امنیتی چهار رقمی را وارد کن');
+      if(!SRV_AUTH.captchaToken) throw new Error('کد امنیتی هنوز آماده نیست؛ چند لحظه صبر کن');
+      const d=await serverAuthPost('/api/auth/phone-otp/request',{phone:v,captcha_token:SRV_AUTH.captchaToken,captcha_answer:ca});
+      SRV_AUTH.captchaToken='';
       if(!d||d.accepted!==true||typeof d.challenge_id!=='string') throw new Error('پاسخ سرویس ورود نامعتبر است');
       SRV_AUTH.phone=v; SRV_AUTH.challenge=d.challenge_id;
     } else {
@@ -2343,6 +2365,7 @@ document.addEventListener('click',async e=>{
     }
   }catch(err){SRV_AUTH.err=String(err&&err.message||'خطا در ورود')}
   SRV_AUTH.busy=false; serverAuthSheet();
+  if(ph&&!SRV_AUTH.challenge) loadServerCaptcha();
 },false);
 /* تب «ورود/ثبت‌نام» برای مهمان همان برگه‌ی ورود را باز می‌کند، نه صفحه‌ی جدا */
 document.addEventListener('click',e=>{

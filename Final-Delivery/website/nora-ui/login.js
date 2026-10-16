@@ -4,6 +4,10 @@
 
   const $ = (selector) => document.querySelector(selector);
   const state = {
+    captchaToken: '',
+    captchaImage: '',
+    captchaBusy: false,
+    captchaFailed: false,
     authenticated: false,
     provider: '',
     busy: false,
@@ -155,9 +159,19 @@
             <input class="lgtext" id="lgPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national"
               required maxlength="32" dir="ltr" value="${escapeHtml(state.phone)}" placeholder="۰۹۱۲۳۴۵۶۷۸۹" aria-label="شمارهٔ همراه"/>
           </label>
+          <div class="lg-captcha">
+            <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage || '<span class="lg-spinner"></span>'}</div>
+            <button class="lgbtn quiet" type="button" id="lgCapNew"${state.busy || state.captchaBusy ? ' disabled' : ''}>کد جدید</button>
+          </div>
+          <label class="lgfield" for="lgCapAnswer">
+            <span class="lglbl">کد نمایش‌داده‌شده</span>
+            <input class="lgtext" id="lgCapAnswer" name="captcha" type="text" inputmode="numeric" autocomplete="off"
+              required minlength="4" maxlength="4" pattern="[0-9۰-۹٠-٩]{4}" dir="ltr" aria-label="کد امنیتی چهار رقمی" placeholder="۴ رقم"/>
+          </label>
           <button class="lgbtn" type="submit" id="lgPhoneSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال ارسال…' : 'دریافت کد'}</button>
         </form>
       </div>`;
+      if (!state.captchaToken && !state.captchaBusy && !state.captchaFailed) loadCaptcha();
       return;
     }
 
@@ -297,6 +311,8 @@
       invalid_credentials: 'نام کاربری یا گذرواژه درست نیست.',
       database_unavailable: 'ورود موقتاً در دسترس نیست.',
       phone_otp_not_configured: 'سرویس ارسال کد روی سرور تنظیم نشده است.',
+      invalid_captcha: 'کد امنیتی درست نیست؛ کد جدید را وارد کن.',
+      captcha_not_configured: 'کد امنیتی روی سرور تنظیم نشده است.',
       phone_otp_delivery_unavailable: 'کد ارسال نشد؛ کمی بعد دوباره تلاش کن.',
       phone_otp_unavailable: 'ارسال کد موقتاً در دسترس نیست.',
       account_session_unavailable: 'ورود حساب تأیید نشد؛ دوباره تلاش کن.',
@@ -389,8 +405,41 @@
     }
   }
 
+  async function loadCaptcha() {
+    if (state.captchaBusy) return;
+    state.captchaBusy = true;
+    state.captchaFailed = false;
+    state.captchaToken = '';
+    try {
+      const response = await fetch('/api/auth/captcha', {
+        method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) throw new Error('captcha');
+      const payload = await response.json();
+      if (!payload || typeof payload.token !== 'string' || typeof payload.image !== 'string') throw new Error('captcha');
+      state.captchaToken = payload.token;
+      state.captchaImage = payload.image;
+    } catch (_) {
+      state.captchaImage = '';
+      state.captchaFailed = true;
+      setStatus('کد امنیتی بارگذاری نشد؛ دوباره تلاش کن.', 'error');
+    }
+    state.captchaBusy = false;
+    if (state.mode === 'phone' && !state.otpChallengeId) renderPhoneLogin();
+  }
+
   async function requestPhoneOtp(form) {
     if (state.busy || state.authenticated) return;
+    const captchaAnswer = normalizeDigits(form && form.elements.captcha && form.elements.captcha.value || '').trim();
+    if (!/^[0-9]{4}$/.test(captchaAnswer)) {
+      setStatus('کد امنیتی چهار رقمی را وارد کن.', 'error');
+      return;
+    }
+    if (!state.captchaToken) {
+      setStatus('کد امنیتی هنوز آماده نیست؛ چند لحظه صبر کن.', 'error');
+      loadCaptcha();
+      return;
+    }
     const phone = String(form && form.elements.phone && form.elements.phone.value || state.phone || '').trim();
     if (!phone) {
       setStatus('شمارهٔ همراه را وارد کن.', 'error');
@@ -408,15 +457,18 @@
         credentials: 'same-origin',
         cache: 'no-store',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, captcha_token: state.captchaToken, captcha_answer: captchaAnswer }),
       });
       if (!response.ok) {
         const error = await responseError(response);
         state.busy = false;
+        state.captchaToken = '';
         renderPhoneLogin();
         setStatus(error.message, 'error');
+        loadCaptcha();
         return;
       }
+      state.captchaToken = '';
       const payload = await response.json();
       if (!payload || payload.accepted !== true || typeof payload.challenge_id !== 'string'
           || !Number.isFinite(Number(payload.expires_in)) || !Number.isFinite(Number(payload.resend_in))) {
@@ -715,6 +767,13 @@
       event.preventDefault();
       logout();
     }
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target && event.target.closest ? event.target.closest('#lgCapNew') : null;
+    if (target) loadCaptcha();
+    const rules = event.target && event.target.closest ? event.target.closest('#rulesBtn') : null;
+    if (rules && typeof window.openSheet === 'function') { event.preventDefault(); window.openSheet('shRules'); }
   });
 
   document.addEventListener('submit', (event) => {

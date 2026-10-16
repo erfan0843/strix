@@ -48,6 +48,7 @@ async function load({ routes = {}, cookie = '', url = 'https://nora.test/login.h
   window.fetch = async (urlValue, options = {}) => {
     const path = String(urlValue);
     calls.push({ url: path, options });
+    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"></svg>', expires_in: 180 });
     if (queues.has(path)) {
       const queue = queues.get(path);
       if (!queue.length) throw new Error(`No mocked response left for ${path}`);
@@ -93,7 +94,7 @@ console.log('\n— ورود عضو با OTP پیامکی Safir —');
   check(!html.includes('tapi.bale.ai/miniapp.js') && !html.includes('پیش‌نمایش محلی'), 'SDK مینی‌اپ و متن پیش‌نمایش در صفحه نیست');
   check(p.doc.querySelectorAll('#lgPhoneCodeMethod a[href*="verification_code_bot"]').length === 0, 'فرم ورود وب از ابتدا لینک ربات OTP بله ندارد');
   check(!p.doc.body.textContent.includes('نشست'), 'متن قابل‌مشاهدهٔ صفحهٔ ورود اصطلاح «نشست» را نمایش نمی‌دهد');
-  check(p.calls.map((call) => call.url).join(',') === '/api/auth/me,/api/account/me', 'نشست موجود فقط از endpointهای سرور خوانده می‌شود');
+  check(p.calls.map((call) => call.url).filter((url) => url !== '/api/auth/captcha').join(',') === '/api/auth/me,/api/account/me', 'نشست موجود فقط از endpointهای سرور خوانده می‌شود');
   check(p.calls.every((call) => call.options.credentials === 'same-origin' && call.options.cache === 'no-store'), 'خواندن نشست هم‌مبدأ و بدون cache است');
   const managementLinks = [...p.doc.querySelectorAll('#lgAdminEntry a')];
   check(managementLinks.length === 1 && managementLinks[0].textContent.trim() === 'ورود مدیران', 'برچسب ورود مدیریت فقط «مدیران» را نشان می‌دهد');
@@ -134,11 +135,12 @@ console.log('\n— درخواست و تأیید OTP پیامکی Safir —');
     })],
   } });
   p.fill('#lgPhone', '۰۹۱۲۳۴۵۶۷۸۹');
+  p.fill('#lgCapAnswer', '4321');
   p.submit('#lgPhoneForm');
   await delay(8);
   const request = p.calls.find((call) => call.url === '/api/auth/phone-otp/request');
   check(request?.options.method === 'POST' && request.options.credentials === 'same-origin' && request.options.cache === 'no-store', 'درخواست شماره به endpoint واقعی OTP می‌رود');
-  check(JSON.stringify(JSON.parse(request?.options.body || '{}')) === JSON.stringify({ phone: '۰۹۱۲۳۴۵۶۷۸۹' }), 'درخواست فقط شماره را به backend می‌فرستد');
+  check(JSON.stringify(JSON.parse(request?.options.body || '{}')) === JSON.stringify({ phone: '۰۹۱۲۳۴۵۶۷۸۹', captcha_token: 'captcha-token-test', captcha_answer: '4321' }), 'درخواست شماره با کپچای تأییدشده به backend می‌رود');
   check(!!p.doc.querySelector('#lgPhoneCodeForm'), 'پس از پاسخ موفق سرور، گام کد باز می‌شود');
   const smsNotice = p.doc.querySelector('#lgPhoneCodeMethod .lg-otp-sent');
   check(smsNotice?.textContent.includes('ربات بله') && smsNotice.textContent.includes('ارسال شد')
@@ -181,6 +183,7 @@ console.log('\n— خطاهای API بدون fallback محلی —');
     '/api/auth/phone-otp/request': [reply(503, { detail: 'phone_otp_not_configured' })],
   } });
   p.fill('#lgPhone', '09123456789');
+  p.fill('#lgCapAnswer', '4321');
   p.submit('#lgPhoneForm');
   await delay(6);
   check(p.text('#lgStatus').includes('سرویس ارسال کد روی سرور تنظیم نشده است'), 'خاموش بودن تنظیم Safir به‌عنوان موفقیت پنهان نمی‌شود');
@@ -194,6 +197,7 @@ console.log('\n— خطاهای API بدون fallback محلی —');
     '/api/auth/phone-otp/verify': [reply(401, { detail: 'invalid_or_expired_otp' })],
   } });
   p.fill('#lgPhone', '09123456789');
+  p.fill('#lgCapAnswer', '4321');
   p.submit('#lgPhoneForm');
   await delay(5);
   p.fill('#lgOtpCode', '12345');
@@ -210,6 +214,7 @@ console.log('\n— خطاهای API بدون fallback محلی —');
 {
   const p = await load();
   p.fill('#lgPhone', '09123456789');
+  p.fill('#lgCapAnswer', '4321');
   p.submit('#lgPhoneForm');
   await delay(6);
   check(p.text('#lgStatus').includes('ارتباط با سرویس ورود برقرار نشد'), 'قطع شبکه ادعای ارسال کد نمی‌کند');
