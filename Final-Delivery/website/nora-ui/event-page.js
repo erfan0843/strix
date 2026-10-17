@@ -66,6 +66,27 @@
     return id ? { id: String(id), name: (eligible && eligible.name) || event.regName || '' } : null;
   }
 
+  /* برنامه‌های دیگر از همان عکس عمومی سرور: هم‌وضعیت (پیش‌رو/برگزارشده)، اول هم‌نوع، تا ۴ مورد */
+  function relatedEvents(event) {
+    const publicEvents = root.NORA_PUBLIC && Array.isArray(root.NORA_PUBLIC.events)
+      ? root.NORA_PUBLIC.events : [];
+    const others = publicEvents.filter(item => item && String(item.id) !== String(event.id) && !!item.past === !!event.past);
+    const sameKind = others.filter(item => item.kind && item.kind === event.kind);
+    const rest = others.filter(item => !sameKind.includes(item));
+    return sameKind.concat(rest).slice(0, 4);
+  }
+
+  function relatedSection(event) {
+    const list = relatedEvents(event);
+    if (!list.length) return '';
+    return `<section class="event-section event-related" aria-labelledby="event-related-title">
+      <h2 id="event-related-title">${event.past ? 'برنامه‌های برگزارشدهٔ دیگر' : 'برنامه‌های دیگر'}</h2>
+      <ul class="related-list">${list.map(item => `<li><a href="event.html?id=${encodeURIComponent(item.id)}" data-related-event="${esc(item.id)}">
+        <b>${esc(item.t)}</b><small>${esc([item.kind, item.when].filter(Boolean).join(' · '))}</small></a></li>`).join('')}</ul>
+      <a class="back-link" href="events.html${event.past ? '?status=past' : '?status=upcoming'}">همهٔ ${event.past ? 'برگزارشده‌ها' : 'برنامه‌های پیش‌رو'}</a>
+    </section>`;
+  }
+
   function infoRow(label, value) {
     if (!value) return '';
     return `<div class="detail-item"><span>${esc(label)}</span><b>${esc(value)}</b></div>`;
@@ -177,6 +198,7 @@
             ${event.certNote ? `<p>${textWithBreaks(event.certNote)}</p>` : ''}
             <p class="cap">${serverSnapshot?'این شرط از اطلاعات منتشرشدهٔ سرور است. این صفحه گواهی صادر یا استعلام نمی‌کند؛ روند صدور و تأیید را از برگزارکننده پیگیری کنید.':'این شرط صرفاً نمایشی است؛ بررسی درخواست و تأیید گواهی فقط پس از تأیید مالک انجام می‌شود. این صفحه گواهی رسمی صادر یا استعلام نمی‌کند.'}</p>
           </section>` : ''}
+          ${relatedSection(event)}
         </article>
         <aside class="event-register card paper" aria-labelledby="event-register-title">
           <h2 id="event-register-title">${isPast ? 'اطلاعات آرشیو' : 'ثبت‌نام'}</h2>

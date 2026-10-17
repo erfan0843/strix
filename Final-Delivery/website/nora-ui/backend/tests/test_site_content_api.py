@@ -74,7 +74,7 @@ def test_owner_publishes_allowlisted_content_with_version_and_public_projection(
         "events": [
             {
                 "id": "event-public-1", "t": "کارگاه منتشرشده", "privacy": "public",
-                "d": "شرح برنامهٔ منتشرشده", "when": "۱۴۰۵/۰۷/۱۰", "time": "۱۶:۰۰",
+                "d": "شرح برنامهٔ منتشرشده", "when": "جمعه ۱۰ مهر", "on": "۱۴۰۵/۰۷/۱۰", "time": "۱۶:۰۰",
                 "place": "پاریس", "parts": [{"title": "جلسهٔ نخست", "date": "۱۴۰۵/۰۷/۱۰"}],
                 "code": "invite-secret", "regs": 19, "taken": 17, "spots": 2,
                 "attendees": [{"name": "شخص خصوصی", "phone": "۰۹۱۲"}],
@@ -110,6 +110,8 @@ def test_owner_publishes_allowlisted_content_with_version_and_public_projection(
     assert [event["id"] for event in snapshot["events"]] == ["event-public-1"]
     event = snapshot["events"][0]
     assert event["d"] == "شرح برنامهٔ منتشرشده"
+    assert event["when"] == "جمعه ۱۰ مهر"
+    assert event["on"] == "۱۴۰۵/۰۷/۱۰", "the sortable Jalali date is part of the public projection"
     assert not {"code", "regs", "taken", "spots", "attendees"} & set(event)
     assert "person-private" not in str(snapshot)
     person = snapshot["people"][0]

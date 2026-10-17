@@ -124,6 +124,11 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .event-register{position:sticky;top:calc(76px + var(--safe-t));display:grid;gap:10px}
   .event-price{font-size:19px;font-weight:700;margin:0;color:var(--brand-ink)}
   .event-register-action{display:grid;gap:7px}
+  .related-list{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .related-list a{display:grid;gap:3px;padding:10px 12px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-sunk);color:var(--ink);text-decoration:none;min-width:0}
+  .related-list b{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+  .related-list small{color:var(--ink-3);font-size:11px}
+  @media(max-width:680px){.related-list{grid-template-columns:1fr}}
   .event-register-action .btn{width:100%;justify-content:center}
   .registration-notice{font-size:12px;line-height:1.8;color:var(--ink-3);margin:0;padding:10px;border:1px dashed var(--hairline);border-radius:var(--r-md)}
   .back-link{font-size:12px;text-decoration:none;color:var(--brand-ink);padding-top:8px}
@@ -312,6 +317,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=124"></script>
 <script src="public-data.js?v=109"></script>
-<script src="event-page.js?v=100"></script>
+<script src="event-page.js?v=101"></script>
 </body>
 </html>
