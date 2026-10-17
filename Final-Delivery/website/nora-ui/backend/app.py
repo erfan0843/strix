@@ -38,7 +38,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from starlette.middleware.gzip import GZipMiddleware
 
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
-from .captcha import CaptchaError, issue_captcha, verify_captcha
+from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
 from . import data_staging as data_staging_mod
 from . import service_settings as service_settings_mod
@@ -2720,6 +2720,14 @@ def create_app(
 
         # کپچا بعد از محدودیت نرخ بررسی می‌شود: هر حدس تصویر هم در سقف IP/شماره می‌نشیند.
         if not verify_captcha(cfg.otp_pepper, payload.get("captcha_token"), payload.get("captcha_answer"), now=now.timestamp()):
+            db.commit()
+            raise HTTPException(422, "invalid_captcha")
+        # هر کپچای حل‌شده فقط یک بار پذیرفته می‌شود؛ nonce آن تا پایان عمر توکن در همان جدول محدودیت ورود علامت می‌خورد.
+        nonce = captcha_nonce(payload.get("captcha_token"))
+        captcha_key = throttle_digest(cfg.otp_pepper, "phone-otp-captcha-nonce\0" + (nonce or ""))
+        if nonce is None or _touch_login_rate_limit(
+            db, captcha_key, now, limit=1, window=timedelta(seconds=CAPTCHA_TTL_SECONDS)
+        ):
             db.commit()
             raise HTTPException(422, "invalid_captcha")
 
