@@ -173,8 +173,8 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&!production.view().includes('کارگاه')&&!production.view().includes('سارا محمدی'),
     'فهرست ثبت‌نام مهمان فقط پس از ورود امن نمایش داده می‌شود و دادهٔ نمونه ندارد');
   await production.nav('pay');
-  ok(production.view().includes('پرداخت')&&production.view().includes('API حساب وب')
-    &&!production.view().includes('۱۲۵۰۰۰۰'),'پرداخت بدون endpoint هیچ مانده یا فاکتور نمونه‌ای نشان نمی‌دهد');
+  ok(production.view().includes('پرداخت')&&production.view().includes('نیاز به ورود')&&production.view().includes('وضعیت پرداخت‌هایت')
+    &&!production.view().includes('۱۲۵۰۰۰۰')&&!production.view().includes('کیف پول'),'پرداخت‌های مهمان فقط دعوت به ورود است و هیچ مانده یا فاکتور نمونه‌ای ندارد');
   await production.nav('book');
   ok(production.view().includes('API حساب وب')&&!production.view().includes('باشگاه نمونه'),
     'باشگاه بدون endpoint در وضعیت روشن و خالی می‌ماند');
@@ -531,6 +531,52 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   ok(p.txt('#viewBox').includes('اعلان‌ها')||p.txt('#viewBox').length>0,'عنوان بخش نمایش داده می‌شود');
   const q=await load(memberStore(),'#acc-999');
   ok(!q.inView(),'شناسهٔ ناموجود بخش باز نمی‌شود');
+}
+/* ── فرم‌های من / پرداخت‌ها از همان API ثبت‌نام‌ها؛ بخش‌های ربات و خارج از نسخهٔ اول بدون دادهٔ نمونه ── */
+{
+  console.log('\n── فرم‌ها، پرداخت‌ها و وضعیت بخش‌ها (نسخهٔ اول) ──');
+  const paid={id:'00000000-0000-4000-8000-000000000501',form_name:'ثبت‌نام کارگاه',event_title:'کارگاه بهار',event_date:'۱۴۰۵/۰۲/۱۱',event_time:'۱۶:۰۰',
+    status:'accepted',payment_status:'receipt_submitted',receipt_uploaded:true,ticket_checked_in:false,ticket_type:{id:'standard',name:'ورودی عادی'},created_at:'2026-04-30T10:00:00+00:00'};
+  const free={id:'00000000-0000-4000-8000-000000000502',form_name:'نظرسنجی پاییز',event_title:'',event_date:'',event_time:'',
+    status:'waitlisted',payment_status:null,receipt_uploaded:false,ticket_checked_in:false,ticket_type:null,created_at:'2026-05-01T10:00:00+00:00'};
+  const server={account:{authenticated:true,account_id:'reg-2',provider:'phone',role:null,permissions:[],delivery_bot_url:'https://ble.ir/nora_test_bot'},
+    registrations:[paid,free],notifications:[],files:[]};
+  const REG='/api/account/registrations?limit=50&offset=0';
+  const f=await load(makeStore(),'#forms',server,false,false); await wait(120);
+  ok(f.errs.length===0&&f.inView(),'نمای #forms بی‌خطا باز می‌شود'+(f.errs.length?': '+f.errs[0]:''));
+  ok(f.network.some(c=>c.path===REG)&&f.view().includes('نظرسنجی پاییز')&&f.view().includes('ثبت‌نام کارگاه')&&f.view().includes('۲ پاسخ فرم'),
+    'فرم‌های من همهٔ پاسخ‌های همین حساب را از API ثبت‌نام‌ها می‌خواند');
+  f.dom.window.close();
+  const pay=await load(makeStore(),'#payments',server,false,false); await wait(120);
+  ok(pay.errs.length===0&&pay.inView()&&pay.network.some(c=>c.path===REG),'نمای #payments از API ثبت‌نام‌ها می‌خواند');
+  ok(pay.view().includes('ثبت‌نام کارگاه')&&pay.view().includes('رسید ثبت شد')&&!pay.view().includes('نظرسنجی پاییز')&&pay.view().includes('۱ ثبت‌نام دارای وضعیت پرداخت'),
+    'پرداخت‌ها فقط ثبت‌نام‌های دارای وضعیت پرداخت را نشان می‌دهد');
+  ok(!pay.view().includes('کیف پول')&&!pay.view().includes('اقساط')&&!/۱٬۲۵۰٬۰۰۰|1250000/.test(pay.view()),'پرداخت‌ها مانده، کیف پول یا قسط نمونه ندارد');
+  pay.dom.window.close();
+  const legacy=await load(makeStore(),'#pay',server,false,false); await wait(120);
+  ok(legacy.inView()&&legacy.network.some(c=>c.path===REG)&&legacy.view().includes('ثبت‌نام کارگاه'),'#pay در نسخهٔ سروری همان نمای پرداخت‌های واقعی است');
+  legacy.dom.window.close();
+  const guest=await load(makeStore(),'#payments',{account:null,registrations:[]},false,false); await wait(60);
+  ok(guest.inView()&&!guest.network.some(c=>c.path===REG)&&guest.view().includes('ورود'),'مهمان در #payments فقط دعوت به ورود می‌بیند و API ثبت‌نام‌ها صدا زده نمی‌شود');
+  guest.dom.window.close();
+  const bot=await load(makeStore(),'#acc-4',server,true,false); await wait(60);
+  ok(bot.inView()&&bot.view().includes('ثبت حضور رویداد')&&bot.view().includes('ربات بله')&&!!bot.doc.querySelector('#viewBox a[href="https://ble.ir/nora_test_bot"]'),
+    'بخش رباتی وضعیت «در ربات بله» و پیوند ربات حساب را نشان می‌دهد');
+  ok(!bot.view().includes('در دست ساخت')&&!/\d{2}:\d{2}/.test(bot.view().replace(/[۰-۹]/g,'0')),'بخش رباتی دادهٔ نمونه یا «در دست ساخت» ندارد');
+  bot.dom.window.close();
+  const later=await load(makeStore(),'#acc-19',server,false,false); await wait(60);
+  ok(later.inView()&&later.view().includes('کیف پول')&&later.view().includes('خارج از نسخهٔ اول')&&!/ریال|تومان/.test(later.view()),
+    'بخش مالی خارج از نسخهٔ اول هیچ موجودی یا تراکنشی نشان نمی‌دهد');
+  later.dom.window.close();
+  const home=await load(makeStore(),'',server,false,false); await wait(120);
+  const idx=home.doc.querySelector('.account-screens-index');
+  ok(!!idx&&idx.querySelectorAll('a[href="account.html#forms"]').length===1&&idx.querySelectorAll('a[href="account.html#payments"]').length===2,
+    'فهرست بخش‌ها به فرم‌های من و پرداخت‌ها/رسید پیوند واقعی دارد');
+  ok(idx&&[...idx.querySelectorAll('.tag')].filter(t=>t.textContent.trim()==='فعلاً در ربات بله').length===17
+    &&[...idx.querySelectorAll('.tag')].filter(t=>t.textContent.trim()==='خارج از نسخهٔ اول').length===11,
+    'برچسب‌های «فعلاً در ربات بله» و «خارج از نسخهٔ اول» در فهرست دیده می‌شوند');
+  ok(idx&&!idx.textContent.includes('در دست ساخت'),'فهرست بخش‌ها دیگر برچسب مبهم «در دست ساخت» ندارد');
+  home.dom.window.close();
 }
 /* ── اطلاعات حساب از /api/account/me ── */
 {

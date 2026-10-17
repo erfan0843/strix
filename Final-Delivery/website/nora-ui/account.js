@@ -21,7 +21,7 @@ const N=window.NORA||{}, A=N.ACCOUNT||{}, POL=A.policy||{}, SUP=A.support||{};
 // Production routing needs labels, not the unrelated prototype fixture dataset.
 const SERVER_SECTIONS=[
   {k:'events',n:'رویدادهای من',s:'',i:'i-calendar'},
-  {k:'pay',n:'پرداخت‌ها',s:'وضعیت اتصال اطلاعات پرداخت به حساب وب.',i:'i-wallet'},
+  {k:'pay',n:'پرداخت‌ها',s:'وضعیت پرداخت ثبت‌نام‌های پولی این حساب از سرور.',i:'i-wallet'},
   {k:'book',n:'باشگاه',s:'وضعیت اتصال اطلاعات باشگاه به حساب وب.',i:'i-users'}
 ];
 const SECT=TEST_FIXTURE_MODE?(A.sections||[]):SERVER_SECTIONS, PAY=SECT.find(s=>s.card)||null;
@@ -289,9 +289,10 @@ function serverAccountAccessCard(next='notifications'){
   if(state.account) return '';
   if(state.checking) return card('حساب امن','در حال بررسی وضعیت ورود…','i-shield',
     `<p class="cap">اطلاعات شخصی فقط پس از تأیید سرور نمایش داده می‌شود.</p>`);
-  const destination=['events','notifications','my-files'].includes(next)?next:'notifications';
+  const destination=['events','notifications','my-files','forms','payments'].includes(next)?next:'notifications';
   const loginHref=serverLoginHref(destination);
-  const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
+  const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':destination==='forms'?'برای دیدن فرم‌های خودت وارد حساب شو.'
+    :destination==='payments'?'برای دیدن وضعیت پرداخت‌هایت وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
   const retry=state.error?`<button class="btn quiet" data-server-account-retry>${ico('i-refresh')} تلاش دوباره</button>`:'';
   return card('نیاز به ورود',description,'i-mobile',
     `<div class="row" style="flex-wrap:wrap">
@@ -385,43 +386,55 @@ function serverAccountGuestLanding(){
   </div>`;
 }
 /* ══ همهٔ بخش‌های حساب (طبق طراحی تأییدشدهٔ prototype-34-user) ══
-   بخش فقط وقتی «فعال» است که endpoint واقعی حساب وب داشته باشد؛ بقیه بدون داده‌ی نمونه
-   با وضعیت «در دست ساخت» نشان داده می‌شوند. */
+   دامنهٔ نسخهٔ اول (تصمیم ۲۶ مهر ۱۴۰۵):
+   • h: مقصد واقعی موجود در وب (صفحه یا نمای حساب با endpoint)؛
+   • st:'flow' مرحله‌ای از روند ثبت‌نام است که از صفحهٔ رویداد آغاز می‌شود؛
+   • st:'bot' فعلاً فقط در ربات بله کار می‌کند؛ در وب وضعیتش گفته می‌شود و دادهٔ نمونه ندارد؛
+   • st:'later' قابلیت مالی/محصولی خارج از نسخهٔ اول؛ هیچ رابط تراکنشی ساخته نمی‌شود. */
 const ACCOUNT_SCREENS=[
   {n:'اطلاعات حساب',h:''},{n:'رویدادهای من',h:'account.html#events'},{n:'اعلان‌ها',h:'account.html#notifications'},
-  {n:'تقویم رویدادها'},{n:'ثبت حضور رویداد'},{n:'کارنامهٔ حضور'},{n:'جزئیات گواهی'},{n:'استعلام گواهی'},{n:'آیدی‌کارت'},
-  {n:'امتیاز و رتبه'},{n:'باشگاه من'},{n:'دعوت دوستان'},{n:'قرعه‌کشی'},{n:'هدایا و پاداش'},{n:'نظرسنجی'},
-  {n:'برگزارشده‌ها و آفلاین'},{n:'خرید آفلاین'},{n:'فرم‌های من'},{n:'کانال‌ها'},{n:'کیف پول'},{n:'اقساط من'},
-  {n:'اعتبار من'},{n:'سررسید و صورت‌حساب'},{n:'انتقال به دوست'},{n:'کارت هدیه'},{n:'افزایش و برداشت'},
-  {n:'امنیت و سقف‌ها'},{n:'لینک پرداخت'},{n:'لغو / انتقال'},{n:'پیگیری پستی'},{n:'سفارش چاپی / VIP'},
-  {n:'همراه آوردن'},{n:'پیام ربات'},{n:'پیام به کارشناس'},{n:'تیکت'},{n:'نظر و پیشنهاد'},{n:'تأیید'},
-  {n:'خانه'},
-  {n:'رویدادها'},
-  {n:'قواعد و شرایط'},
-  {n:'فرم'},
-  {n:'پرداخت'},
-  {n:'کارت‌به‌کارت'},
-  {n:'رسید'},
-  {n:'درگاه بله'},
-  {n:'پایان'},
+  {n:'تقویم رویدادها',h:'events.html#cal'},{n:'ثبت حضور رویداد',st:'bot'},{n:'کارنامهٔ حضور',st:'bot'},{n:'جزئیات گواهی',st:'bot'},{n:'استعلام گواهی',st:'bot'},{n:'آیدی‌کارت',st:'bot'},
+  {n:'امتیاز و رتبه',st:'bot'},{n:'باشگاه من',st:'bot'},{n:'دعوت دوستان',st:'bot'},{n:'قرعه‌کشی',st:'bot'},{n:'هدایا و پاداش',st:'bot'},{n:'نظرسنجی',st:'bot'},
+  {n:'برگزارشده‌ها و آفلاین',h:'events.html?status=past'},{n:'خرید آفلاین',st:'later'},{n:'فرم‌های من',h:'account.html#forms'},{n:'کانال‌ها',st:'bot'},{n:'کیف پول',st:'later'},{n:'اقساط من',st:'later'},
+  {n:'اعتبار من',st:'later'},{n:'سررسید و صورت‌حساب',st:'later'},{n:'انتقال به دوست',st:'later'},{n:'کارت هدیه',st:'later'},{n:'افزایش و برداشت',st:'later'},
+  {n:'امنیت و سقف‌ها',st:'later'},{n:'لینک پرداخت',st:'later'},{n:'لغو / انتقال',st:'bot'},{n:'پیگیری پستی',st:'bot'},{n:'سفارش چاپی / VIP',st:'bot'},
+  {n:'همراه آوردن',st:'flow'},{n:'پیام ربات',h:'account.html#notifications'},{n:'پیام به کارشناس',h:'support.html'},{n:'تیکت',st:'bot'},{n:'نظر و پیشنهاد',st:'bot'},{n:'تأیید',st:'flow'},
+  {n:'خانه',h:'home.html'},
+  {n:'رویدادها',h:'events.html'},
+  {n:'قواعد و شرایط',h:'support.html'},
+  {n:'فرم',st:'flow'},
+  {n:'پرداخت',h:'account.html#payments'},
+  {n:'کارت‌به‌کارت',st:'flow'},
+  {n:'رسید',h:'account.html#payments'},
+  {n:'درگاه بله',st:'flow'},
+  {n:'پایان',st:'flow'},
   {n:'حساب من',h:'account.html'},
-  {n:'ورود'},
-  {n:'یک قدم مانده'},
-  {n:'جزئیات رویداد'},
-  {n:'خانهٔ نورا پی'},
-  {n:'پشتیبانی'},
-  {n:'سؤالات'},
-  {n:'درباره ما'}
+  {n:'ورود',h:'login.html'},
+  {n:'یک قدم مانده',st:'flow'},
+  {n:'جزئیات رویداد',h:'events.html'},
+  {n:'خانهٔ نورا پی',st:'later'},
+  {n:'پشتیبانی',h:'support.html'},
+  {n:'سؤالات',h:'support.html'},
+  {n:'درباره ما',h:'support.html'}
 ];
+const ACCOUNT_SCREEN_STATUS={
+  bot:{tag:'فعلاً در ربات بله',cls:'tag',note:'این قابلیت در ربات بلهٔ نورا فعال است و هنوز در وب ارائه نمی‌شود.'},
+  later:{tag:'خارج از نسخهٔ اول',cls:'tag warn',note:'این قابلیت مالی/محصولی در نسخهٔ اول وب ارائه نمی‌شود و رابط تراکنشی ندارد.'},
+  flow:{tag:'از صفحهٔ رویداد',cls:'tag',note:'این مرحله بخشی از روند ثبت‌نام است و از صفحهٔ رویداد و فرم همان رویداد آغاز می‌شود.'}
+};
+function accountScreenAction(x,i){
+  if(x.h!==undefined) return `<a class="btn sm quiet" href="${esc(x.h||'account.html#acc-0')}">باز کردن</a>`;
+  const st=ACCOUNT_SCREEN_STATUS[x.st];
+  if(x.st==='flow') return `<a class="btn sm quiet" href="events.html?status=upcoming">رویدادها</a> <span class="${st.cls}">${esc(st.tag)}</span>`;
+  return `<a class="btn sm quiet" href="account.html#acc-${i}">وضعیت</a> <span class="${st?st.cls:'tag warn'}">${esc(st?st.tag:'در دست ساخت')}</span>`;
+}
 function accountScreensCard(){
   const rows=ACCOUNT_SCREENS.map((x,i)=>{ x.i=i;
-    const action=x.h?`<a class="btn sm quiet" href="${esc(x.h)}">باز کردن</a>`
-      :`<a class="btn sm quiet" href="account.html#acc-${x.i}">باز کردن</a> <span class="tag warn">در دست ساخت</span>`;
-    return `<div class="srow"><span class="sp"><b>${esc(x.n)}</b></span>${action}</div>`;
+    return `<div class="srow"><span class="sp"><b>${esc(x.n)}</b></span>${accountScreenAction(x,i)}</div>`;
   }).join('');
   return `<section class="card acct account-screens-index" aria-label="همهٔ بخش‌های حساب">
     <div class="head">همهٔ بخش‌های حساب</div>
-    <p class="cap">بخش‌هایی که endpoint واقعی ندارند، داده‌ی نمونه نمی‌گیرند و تا اتصال سرویس «در دست ساخت» می‌مانند.</p>
+    <p class="cap">بخش‌های بدون endpoint وب داده‌ی نمونه نمی‌گیرند؛ آنچه فعلاً در ربات بله است با همان برچسب و آنچه خارج از نسخهٔ اول است جدا نشان داده می‌شود.</p>
     <div class="stack" style="margin-top:8px">${rows}</div>
   </section>`;
 }
@@ -631,7 +644,7 @@ async function unlinkBaleIdentity(){
 function serverAccountModulesCard(){
   const rows=SERVER_ACCOUNT_STATE.account?[
     ['پروفایل و امتیاز','اطلاعات تکمیلی و امتیاز سروری متصل نشده.'],
-    ['پرداخت‌ها','سوابق پرداخت از API حساب خوانده نمی‌شوند.'],
+    ['پرداخت‌ها','وضعیت پرداخت هر ثبت‌نام از API ثبت‌نام‌های حساب خوانده می‌شود؛ مانده یا کیف پول ندارد.'],
     ['باشگاه','عضویت و امتیاز باشگاه به حساب سروری متصل نیست.']
   ]:[];
   return `<section class="card acct server-account-modules">
@@ -747,9 +760,10 @@ function accountRegistrationPayment(item){
     rejected:'پرداخت رد شد',cancelled:'صورتحساب لغو شد',expired:'صورتحساب منقضی شد'};
   return labels[item.payment_status]||'';
 }
-function accountRegistrationsContent(){
+function accountRegistrationsContent(mode){
   const state=SERVER_ACCOUNT_STATE;
-  const items=state.registrations.map(item=>{
+  const source=mode==='payments'?state.registrations.filter(item=>!!item.payment_status):state.registrations;
+  const items=source.map(item=>{
     const status=item.status==='waitlisted'?chip('فهرست انتظار','warn'):chip('ثبت شد','ok');
     const schedule=[item.event_date,item.event_time].filter(Boolean).join(' · ');
     const payment=accountRegistrationPayment(item);
@@ -768,19 +782,27 @@ function accountRegistrationsContent(){
   const loading=state.registrationsLoading&&!state.registrationsLoaded||!state.registrationsLoaded&&!state.registrationsError;
   const body=loading?`<div class="empty2"><b>در حال خواندن ثبت‌نام‌ها…</b></div>`
     :state.registrationsError?`<div class="empty2"><b>${esc(state.registrationsError)}</b><button class="btn quiet" data-account-registrations-refresh>تلاش دوباره</button></div>`
-    :items||empty2('ثبت‌نامی به حسابت وصل نیست','ثبت‌نام بعدی‌ات اینجا می‌آید.','i-calendar');
-  return `<div class="row" style="margin:0 0 8px"><span class="cap">${faN(state.registrationsTotal)} ثبت‌نام در این حساب</span><span class="sp"></span>
+    :items||(mode==='payments'?empty2('پرداختی به حسابت وصل نیست','وضعیت پرداخت هر ثبت‌نام پولی همین‌جا می‌آید؛ رسید از صفحهٔ همان فرم دریافت می‌شود.','i-wallet')
+      :mode==='forms'?empty2('پاسخ فرمی به حسابت وصل نیست','فرم بعدی که با این حساب پر کنی اینجا می‌آید.','i-doc')
+      :empty2('ثبت‌نامی به حسابت وصل نیست','ثبت‌نام بعدی‌ات اینجا می‌آید.','i-calendar'));
+  const counter=mode==='payments'?`${faN(source.length)} ثبت‌نام دارای وضعیت پرداخت از ${faN(state.registrationsTotal)}`
+    :mode==='forms'?`${faN(state.registrationsTotal)} پاسخ فرم در این حساب`:`${faN(state.registrationsTotal)} ثبت‌نام در این حساب`;
+  return `<div class="row" style="margin:0 0 8px"><span class="cap">${counter}</span><span class="sp"></span>
     <button class="btn sm quiet" data-account-registrations-refresh aria-label="بازخوانی ثبت‌نام‌ها">${ico('i-refresh')} بازخوانی</button></div>
     <div class="stack">${body}</div>
     ${state.registrationsMore?`<div class="row"><span class="sp"></span><button class="btn quiet" data-account-registrations-more>ثبت‌نام‌های بیشتر</button></div>`:''}`;
 }
-function serverAccountRegistrationsView(t){
+const ACCOUNT_REGISTRATION_VIEWS={
+  forms:{k:'forms',n:'فرم‌های من',s:'پاسخ‌های فرم و ثبت‌نام‌های همین حساب از سرور',i:'i-doc'},
+  payments:{k:'payments',n:'پرداخت‌ها و رسیدها',s:'وضعیت پرداخت ثبت‌نام‌های پولی همین حساب از سرور',i:'i-wallet'}
+};
+function serverAccountRegistrationsView(t,mode){
   const state=SERVER_ACCOUNT_STATE;
   let content;
   if(state.checking) content=empty2('در حال بررسی حساب','وضعیت ورود از سرور بررسی می‌شود.','i-shield');
-  else if(!state.account) content=serverAccountAccessCard('events');
-  else content=accountRegistrationsContent();
-  return viewHead(t,state.account?'ثبت‌نام‌های تو':'نیاز به ورود',null)+
+  else if(!state.account) content=serverAccountAccessCard(mode||'events');
+  else content=accountRegistrationsContent(mode);
+  return viewHead(t,state.account?(mode==='payments'?'پرداخت‌های تو':mode==='forms'?'فرم‌های تو':'ثبت‌نام‌های تو'):'نیاز به ورود',null)+
     (state.account?serverAccountHead():'')+`<div class="panel stack">${content}</div>`;
 }
 function serverAccountDataView(t){
@@ -829,7 +851,7 @@ async function loadAccountRegistrations(append=false,force=false){
   if(!state.account||state.registrationsLoading||(!force&&!append&&state.registrationsLoaded)) return;
   state.registrationsLoading=true; state.registrationsError='';
   if(!append){state.registrations=[];state.registrationsTotal=0;state.registrationsMore=false;}
-  if(S.view==='events') renderView();
+  if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) renderView();
   try{
     if(!api||typeof api.getAccountRegistrations!=='function') throw new Error('account_api_unavailable');
     const result=await api.getAccountRegistrations(SERVER_ACCOUNT_PAGE,append?state.registrations.length:0);
@@ -847,7 +869,7 @@ async function loadAccountRegistrations(append=false,force=false){
     state.registrationsLoaded=true;
   }finally{
     state.registrationsLoading=false;
-    if(S.view==='events') renderView();
+    if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) renderView();
   }
 }
 async function loadAccountNotifications(append=false,force=false){
@@ -946,7 +968,7 @@ async function checkServerAccount(){
     window.NORA_UI?.updateAccountNavigation?.();
     resetServerAccountData(); updateAccountBanner(); render(); loadServerAccountData(false);
     if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
-    if(S.view==='events') loadAccountRegistrations();
+    if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) loadAccountRegistrations();
   }catch(error){
     delete window.NORA_ACCOUNT_SOURCE;
     window.NORA_UI?.updateAccountNavigation?.();
@@ -2779,7 +2801,7 @@ function linkGo(){
 /* ── داشبورد نورا پی ───────────────────────────────────────────────── */
 /* نما: مهمان درگاه ورود را می‌بیند، عضو داشبورد کامل را */
 VS.pay=function(t){
-  if(!TEST_FIXTURE_MODE) return serverAccountFeatureView(t,'پرداخت‌ها','فهرست پرداخت و ماندهٔ این حساب در API حساب وب ارائه نمی‌شود.');
+  if(!TEST_FIXTURE_MODE) return serverAccountRegistrationsView(t,'payments');
   if(!login()) return viewHead(t,'',null)+gate(t);
   return viewHead(t)+payPanel();
 };
@@ -2927,6 +2949,17 @@ const certReqOf=id=>{
 function accScreen(k){ const i=Number(String(k).slice(4)); return ACCOUNT_SCREENS[i]||null }
 function accScreenView(t){
   if(t.k==='acc-0') return serverAccountInfoView(t);
+  const x=accScreen(t.k)||{}, st=ACCOUNT_SCREEN_STATUS[x.st];
+  if(x.st==='bot'){
+    const a=SERVER_ACCOUNT_STATE.account||{};
+    const bot=a.delivery_bot_url&&/^https:\/\//.test(a.delivery_bot_url)?`<a class="btn primary" href="${esc(a.delivery_bot_url)}" target="_blank" rel="noopener">${ico('i-send')} باز کردن ربات بله</a>`:'';
+    return viewHead(t,'',null)+(SERVER_ACCOUNT_STATE.account?serverAccountHead():'')+card(x.n,st.note,'i-send',
+      `<p><span class="${st.cls}">${esc(st.tag)}</span></p><p class="cap">در وب هیچ دادهٔ محلی یا نمونه‌ای برای این بخش نمایش داده نمی‌شود؛ وقتی سرویس مشترک آن در وب فراهم شود، همین‌جا فعال خواهد شد.</p>
+       <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
+  }
+  if(x.st==='later') return viewHead(t,'',null)+card(x.n,st.note,'i-info',
+    `<p><span class="${st.cls}">${esc(st.tag)}</span></p><p class="cap">تصمیم محصول دربارهٔ این بخش هنوز گرفته نشده است؛ هیچ موجودی، اعتبار یا تراکنشی در وب نمایش داده یا ساخته نمی‌شود.</p>
+     <a class="btn quiet" href="account.html">بازگشت به حساب من</a>`);
   return serverAccountFeatureView(t,t.n,'این بخش به سرویس واقعی حساب وصل نشده است؛ داده‌ی نمونه نمایش داده نمی‌شود.');
 }
 /* اطلاعات حساب: فقط آنچه /api/account/me می‌دهد (نوع ورود، نقش، بات تحویل). نام و موبایل در API نیست و نمایش داده نمی‌شود. */
@@ -2946,6 +2979,7 @@ function serverAccountInfoView(t){
      <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
 }
 function viewOf(k){ if(String(k||'').indexOf('acc-')===0) return accScreen(k)?accScreenView:null;
+  if(ACCOUNT_REGISTRATION_VIEWS[k]) return t=>serverAccountRegistrationsView(t,k);
   return k==='events'?VS.events : k==='profile'?VS.profile
   : k==='pay'?VS.pay : k==='book'?VS.book : k==='server-data'?serverAccountDataView : null }
 /* نشانی‌های کوتاه، همان تب پروفایل را باز می‌کنند */
@@ -2955,7 +2989,7 @@ const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
   club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club'],
   invite:['profile','ptab','invite'], invite2:['profile','ptab','invite']};
 function renderView(){
-  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view), fn=viewOf(S.view);
+  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:ACCOUNT_REGISTRATION_VIEWS[S.view]||(String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view)), fn=viewOf(S.view);
   if(!box||!t||!fn) return;
   box.innerHTML=`<section class="sec" aria-label="${esc(t.n)}">${fn(t)}</section>`;
   document.title='نورا · '+t.n;
@@ -2970,7 +3004,8 @@ function render(){
   else { if(prof) prof.hidden=true; box.hidden=false; renderView() }
 }
 function route(){
-  const raw=(location.hash||'').replace('#','');
+  let raw=(location.hash||'').replace('#','');
+  if(raw==='pay'&&!TEST_FIXTURE_MODE) raw='payments';      /* #pay قدیمی در نسخهٔ سروری همان پرداخت‌های واقعی است */
   if(raw.indexOf('acc-')===0 && accScreen(raw)){ S.view=raw; render(); return; }
   if(raw.indexOf('fill=')===0){                       /* نشانی فرمی که سرپرست فرستاده */
     const id=raw.slice(5); S.view='book'; S.ctab='home'; render();
@@ -2983,8 +3018,8 @@ function route(){
     S.view='profile'; S.ptab='invite'; render(); try{window.scrollTo({top:0})}catch(e){}
     toast('این پیوند فقط نمونه است؛ ثبت‌نام، دعوت، امتیاز یا ارسال بیرونی انجام نمی‌شود');
     return }
-  if(raw==='events'){
-    S.view='events'; S.edit=false; S.errs={}; render();
+  if(raw==='events'||ACCOUNT_REGISTRATION_VIEWS[raw]){
+    S.view=raw; S.edit=false; S.errs={}; render();
     if(SERVER_ACCOUNT_STATE.account) loadAccountRegistrations();
     try{window.scrollTo({top:0})}catch(e){}; return;
   }
