@@ -303,39 +303,93 @@ def test_linking_never_reveals_another_accounts_records(scope_env):
     assert ids_of(web_b) == {other_account, other_bale, contradictory}
     assert own not in ids_of(web_b)
 
-    # رباتِ پیوندشدهٔ acct-a هم فقط رکوردهای همان حساب را می‌بیند.
+    # رباتِ پیوندشدهٔ acct-a فقط رکوردهای همان حساب را می‌بیند. رکورد متناقض
+    # (`account_id=acct-b` + کلید بلهٔ ۹۰۰۰۰۱) مالک صریح دارد، پس از مسیر بلهٔ A نمی‌آید.
     bot_a = bot_history(client, "900001")
-    assert ids_of(bot_a) == {own, contradictory}
-    # رکورد متناقض با کلید بلهٔ 900001 به همان کاربر بله تعلق دارد، پس از مسیر بله
-    # دیده می‌شود؛ اما هیچ رکوردی از حساب دیگر (other_account/other_bale) نمی‌آید.
+    assert ids_of(bot_a) == {own}
+    assert bot_a["total"] == 1
     assert other_account not in ids_of(bot_a)
     assert other_bale not in ids_of(bot_a)
-
-
-def test_contradictory_row_is_the_only_way_a_bale_reader_sees_a_foreign_account_row(scope_env):
-    """مرز دقیق: ردیفی که هم `account_id` دیگر و هم شناسهٔ بلهٔ این کاربر را دارد،
-    صرفاً به این دلیل که کلید بله‌اش به این کاربر اشاره دارد از مسیر بله خوانده می‌شود؛
-    این رفتار موجود سیستم است و تغییر نکرده است. ردیف‌های بدون این کلید هرگز نمی‌آیند."""
-    client, engine = scope_env
-    seed_account(engine, "acct-a", bale_user_id="900001")
-    seed_account(engine, "acct-b")
-    seed_form(engine, "form-reg")
-    foreign_without_bale_key = seed_response(
-        engine, form_id="form-reg", account_id="acct-b"
-    )
-    foreign_with_bale_key = seed_response(
-        engine, form_id="form-reg", account_id="acct-b", bale_user_id="900001"
-    )
-
-    bot = bot_history(client, "900001")
-    assert ids_of(bot) == {foreign_with_bale_key}
-    assert foreign_without_bale_key not in ids_of(bot)
+    assert contradictory not in ids_of(bot_a), "مالکیت صریح حساب دیگر نادیده گرفته شد"
     detail = client.get(
-        f"/api/bot/forms/responses/{foreign_without_bale_key}",
+        f"/api/bot/forms/responses/{contradictory}",
         params={"bale_user_id": "900001"},
         headers=bot_headers(),
     )
     assert detail.status_code == 404
+
+
+def test_explicit_account_owner_wins_over_a_stale_bale_tag(scope_env):
+    """`account_id` مالکیت صریح است: برچسب بلهٔ جامانده دسترسی نمی‌سازد.
+
+    این همان حالتی است که در ممیزی «متناقض» نامیده شد: ردیفی که صریحاً مال حساب B
+    است اما کلید بلهٔ کاربر A را هم یدک می‌کشد. قرارداد داده می‌گوید `account_id`
+    حرف آخر را می‌زند؛ پس A آن را نه در فهرست، نه در شمارش و نه در جزئیات نمی‌بیند.
+    در مقابل، ردیف legacy که هیچ `account_id` ندارد تنها با همان کلید بله دیده می‌شود.
+    """
+    client, engine = scope_env
+    seed_account(engine, "acct-a", bale_user_id="900001")
+    seed_account(engine, "acct-b")
+    seed_form(engine, "form-reg")
+
+    owned_by_b = seed_response(engine, form_id="form-reg", account_id="acct-b")
+    stale_tag_on_b = seed_response(
+        engine, form_id="form-reg", account_id="acct-b", bale_user_id="900001"
+    )
+    legacy_untagged = seed_response(engine, form_id="form-reg", bale_user_id="900001")
+
+    bot = bot_history(client, "900001")
+    assert ids_of(bot) == {legacy_untagged}
+    assert bot["total"] == 1
+    assert owned_by_b not in ids_of(bot)
+    assert stale_tag_on_b not in ids_of(bot)
+
+    for hidden in (owned_by_b, stale_tag_on_b):
+        detail = client.get(
+            f"/api/bot/forms/responses/{hidden}",
+            params={"bale_user_id": "900001"},
+            headers=bot_headers(),
+        )
+        assert detail.status_code == 404
+
+    # صاحب صریح هر دو ردیف، همچنان در وب می‌بیندشان.
+    web_b = web_history(web_client(client, "acct-b"))
+    assert ids_of(web_b) == {owned_by_b, stale_tag_on_b}
+
+
+def test_list_count_and_detail_share_one_boundary_for_contradictory_rows(scope_env):
+    """فهرست، شمارش کل و جزئیات باید یک مرز داشته باشند، نه سه مرز جدا."""
+    client, engine = scope_env
+    seed_account(engine, "acct-a", bale_user_id="900001")
+    seed_account(engine, "acct-b", bale_user_id="900002")
+    seed_form(engine, "form-reg")
+    visible = seed_response(engine, form_id="form-reg", bale_user_id="900001")
+    hidden = seed_response(
+        engine, form_id="form-reg", account_id="acct-b", bale_user_id="900001"
+    )
+
+    bot = bot_history(client, "900001")
+    assert bot["total"] == len(bot["items"]) == 1
+    assert ids_of(bot) == {visible}
+    listed_id = bot["items"][0]["id"]
+    ok_detail = client.get(
+        f"/api/bot/forms/responses/{listed_id}",
+        params={"bale_user_id": "900001"},
+        headers=bot_headers(),
+    )
+    assert ok_detail.status_code == 200
+    hidden_detail = client.get(
+        f"/api/bot/forms/responses/{hidden}",
+        params={"bale_user_id": "900001"},
+        headers=bot_headers(),
+    )
+    assert hidden_detail.status_code == 404
+
+    # همان ردیف پنهان برای حساب صاحبش، در وب دیده می‌شود؛ ردیف کاربر A نه.
+    web_b = web_history(web_client(client, "acct-b"))
+    assert web_b["total"] == 1
+    assert ids_of(web_b) == {hidden}
+    assert visible not in ids_of(web_b)
 
 
 # ---------------------------------------------------------------------------

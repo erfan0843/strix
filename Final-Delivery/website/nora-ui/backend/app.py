@@ -1426,11 +1426,19 @@ def create_app(
     def bot_form_record_scope(db: Session, bale_user_id: str) -> ColumnElement[bool]:
         """Form-response drafts the bot may read on behalf of one Bale user.
 
-        Its own drafts, plus drafts of the account that this Bale identity is linked to
-        when the draft was created from the web and carries no Bale tag. An unlinked
-        Bale user keeps the previous scope exactly: only drafts tagged with that ID.
+        A non-empty `account_id` is the record's explicit owner and wins over any
+        Bale tag left on the row: a draft that names another account is never
+        returned for this Bale identity, even when it still carries this Bale ID.
+        So the scope is the account's own drafts (all of them) plus untagged
+        drafts that carry this Bale ID (created from the bot, never claimed).
+        An unlinked Bale user keeps the previous scope exactly: only drafts tagged
+        with that ID, because there is no verified account link to widen it.
         """
-        own_drafts = FormResponseDraftRecord.bot_bale_user_id == bale_user_id
+        own_tagged = FormResponseDraftRecord.bot_bale_user_id == bale_user_id
+        own_untagged = and_(
+            own_tagged,
+            FormResponseDraftRecord.account_id.is_(None),
+        )
         linked_account_id = db.scalar(
             select(PlatformIdentityRecord.account_id).where(
                 PlatformIdentityRecord.provider == "bale",
@@ -1438,14 +1446,8 @@ def create_app(
             )
         )
         if linked_account_id is None:
-            return own_drafts
-        return or_(
-            own_drafts,
-            and_(
-                FormResponseDraftRecord.account_id == linked_account_id,
-                FormResponseDraftRecord.bot_bale_user_id.is_(None),
-            ),
-        )
+            return own_tagged
+        return or_(own_untagged, FormResponseDraftRecord.account_id == linked_account_id)
 
     def admin_task_view(task: AdminTaskRecord | None) -> dict[str, Any]:
         if task is None:
