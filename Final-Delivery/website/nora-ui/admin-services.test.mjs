@@ -38,14 +38,18 @@ function statusPayload(){
     public_base_url:'https://nora.example',
     services:[
       {key:'bale',title:'بله و مینی‌اپ',icon:'i-send',summary:'توکن ربات و امضای مینی‌اپ',state:'configured',
+       runtime:{ready:true,missing:[],scope:'web'},
        fields:[field('bale_bot','NORA_BALE_BOT_TOKEN',{service:'bale',label:'توکن ربات اصلی',
-         acknowledge_restart:true,probe:true,configured:true,source:'database',hint:'…abcd'})],
+         acknowledge_restart:true,probe:true,configured:true,source:'database',hint:'…abcd',
+         consumers:['web','bot'],bot_env_name:'BOT_TOKEN'})],
        readonly:[{env_name:'NORA_PUBLIC_BASE_URL',label:'نشانی عمومی سامانه',note:'دامنه',value:'https://nora.example',configured:true}]},
       {key:'sms',title:'پیامک و رمز یک‌بارمصرف',icon:'i-send',summary:'کلید سفیر',state:'unconfigured',
        fields:[field('safir_api_key','SAFIR_API_KEY',{service:'sms',label:'کلید سرویس سفیر'})],readonly:[]},
-      {key:'payment',title:'پرداخت و کیف پول',icon:'i-wallet',summary:'توکن کیف پول',state:'configured',
-       fields:[field('bale_wallet','NORA_FORM_PAYMENT_BOT_TOKEN',{service:'payment',label:'توکن کیف پول بله',
-         probe:true,configured:true,source:'database',hint:'…wxyz'})],readonly:[]}
+      {key:'payment',title:'پرداخت و کیف پول',icon:'i-wallet',summary:'توکن ربات پرداخت و Provider Token',state:'configured',
+       runtime:{ready:false,missing:['NORA_FORM_PAYMENT_PROVIDER_TOKEN','NORA_FORM_PAYMENT_WEBHOOK_SECRET'],scope:'web'},
+       fields:[field('bale_wallet','NORA_FORM_PAYMENT_BOT_TOKEN',{service:'payment',label:'توکن ربات پرداخت',
+         probe:true,configured:true,source:'database',hint:'…wxyz',consumers:['web']}),
+         field('payment_provider','NORA_FORM_PAYMENT_PROVIDER_TOKEN',{service:'payment',label:'توکن پرداخت کیف پول بله / Provider Token',consumers:['web']})],readonly:[]}
     ]
   };
 }
@@ -167,6 +171,20 @@ ok(deletes().length===0,'کلیک حذف به‌تنهایی چیزی حذف ن�
 ok(doc.body.textContent.includes('بازگشت‌پذیر نیست'),'هشدار حذف نمایش داده شد');
 click('[data-svc-clear-yes="bale_bot"]');
 ok(await waitFor(()=>deletes().length===1),'حذف فقط پس از تأیید صریح انجام شد');
+
+console.log('\n── وضعیت عملیاتی و دامنهٔ اثر ──');
+ok(doc.querySelector('[data-svc-runtime="bale"][data-ready="1"]')!==null,'وضعیت عملیاتی وب برای بله از سرور نمایش داده شد');
+ok(doc.body.textContent.includes('به معنی آزمایش موفق با سرویس بیرونی نیست'),'«فعال در وب» با «آزمایش‌شده» یکی گرفته نمی‌شود');
+ok(doc.querySelector('[data-svc-scope="web+bot"]')!==null&&doc.body.textContent.includes('BOT_TOKEN')
+  &&doc.body.textContent.includes('ربات باید جداگانه به‌روز و راه‌اندازی شود'),'دامنهٔ اثر توکن ربات (وب + ربات legacy) و نام متغیر ربات نمایش داده شد');
+click('[data-svc-tab="payment"]');
+ok(await waitFor(()=>doc.querySelector('[data-svc-runtime="payment"][data-ready="0"]')),'پرداخت با تنظیمات ناقص «غیرفعال در وب» گزارش شد');
+ok(doc.body.textContent.includes('NORA_FORM_PAYMENT_PROVIDER_TOKEN')&&doc.body.textContent.includes('غیرفعال در وب'),'مقادیر ناقص پرداخت از سرور فهرست شدند');
+ok(doc.body.textContent.includes('توکن ربات پرداخت')&&doc.body.textContent.includes('Provider Token'),'دو توکن پرداخت با نام‌های جدا نمایش داده می‌شوند');
+ok(doc.querySelector('[data-svc-scope="web"]')!==null&&doc.body.textContent.includes('ربات legacy این مقدار را مصرف نمی‌کند'),'دامنهٔ اثر فقط-وب برای توکن پرداخت روشن است');
+ok(!doc.body.textContent.includes('کلید کیف پول'),'برچسب قدیمی و مبهم «کلید کیف پول» دیگر نمایش داده نمی‌شود');
+click('[data-svc-tab="bale"]');
+ok(await waitFor(()=>doc.querySelector('#svcInput_bale_bot')),'بازگشت به تب بله');
 
 console.log('\n── دامنه، امنیت و داده‌ها ──');
 click('[data-setg="deploy"]');

@@ -6234,8 +6234,9 @@ function svcCodeText(code){
     otp_pepper_required:'کلید پیامک فقط وقتی ذخیره می‌شود که NORA_OTP_PEPPER روی سرور تنظیم شده باشد؛ هش هویت باید مستقل از کلید باشد.',
     settings_encryption_not_configured:'کلید رمزنگاری تنظیمات (NORA_SETTINGS_ENCRYPTION_KEY) روی سرور تنظیم نشده؛ ذخیره انجام نشد.',
     invalid_bale_bot_token:'قالب توکن ربات درست نیست؛ مقدار ذخیره نشد.',
-    invalid_bale_wallet_key_format:'قالب کلید کیف پول درست نیست؛ مقدار ذخیره نشد.',
-    invalid_form_payment_provider_token:'توکن ارائه‌دهنده قالب درستی ندارد؛ ذخیره نشد.',
+    invalid_payment_bot_token:'توکن ربات پرداخت باید توکن Bot API به شکل «شناسه:رمز» باشد؛ توکن کیف پول در این فیلد پذیرفته نمی‌شود و چیزی ذخیره نشد.',
+    invalid_form_payment_provider_token:'توکن پرداخت کیف پول بله (Provider Token) قالب درستی ندارد؛ ذخیره نشد.',
+    provider_token_must_not_be_bot_token:'این مقدار شکل توکن Bot API دارد و در فیلد Provider Token پذیرفته نمی‌شود؛ توکن ربات پرداخت را در فیلد خودش وارد کنید. چیزی ذخیره نشد.',
     invalid_form_payment_webhook_secret:'راز وب‌هوک باید ۳۲ تا ۲۵۶ نویسهٔ چاپی باشد.',
     empty_secret_value:'مقدار خالی ذخیره نمی‌شود؛ برای حذف از دکمهٔ «حذف مقدار ذخیره‌شده» استفاده کنید.',
     invalid_service_secret_payload:'درخواست معتبر نبود؛ چیزی تغییر نکرد.',
@@ -6265,6 +6266,19 @@ function svcService(key){return ((SERVICE_DATA&&SERVICE_DATA.services)||[]).find
 function svcReadonly(env){
   const bale=svcService('bale');
   return bale?((bale.readonly||[]).find(item=>item.env_name===env)||null):null;
+}
+function svcRuntimeBlock(service){
+  const runtime=service&&service.runtime;
+  if(!runtime||typeof runtime.ready!=='boolean') return '';
+  const titles={bale:'ورود مینی‌اپ و پیوند حساب در وب',sms:'ارسال رمز یک‌بارمصرف در وب',payment:'پرداخت کیف پول بله در فرم‌های وب'};
+  const missing=Array.isArray(runtime.missing)?runtime.missing:[];
+  const text=runtime.ready
+    ?'با مقادیر مؤثر فعلی (پایگاه یا محیط) این مسیر در بک‌اند وب فعال است. این به معنی آزمایش موفق با سرویس بیرونی نیست.'
+    :'این مسیر در بک‌اند وب غیرفعال است و درخواست‌های مربوط رد می‌شوند'+(missing.length?'؛ مقادیر ناقص: ':'.');
+  return `<div class="admlirow" data-svc-runtime="${esc(service.key)}" data-ready="${runtime.ready?'1':'0'}"><span class="ic">${ico(runtime.ready?'i-check':'i-info')}</span>
+    <span class="sp"><b>${esc(titles[service.key]||'وضعیت عملیاتی در وب')}</b>
+      <small class="cap" style="display:block">${esc(text)}${missing.length&&!runtime.ready?`<span dir="ltr">${esc(missing.join(' · '))}</span>`:''}</small></span>
+    ${runtime.ready?tag('فعال در وب','ok'):tag('غیرفعال در وب','warn')}</div>`;
 }
 function svcStateTag(state){
   const map={unconfigured:['تنظیم‌نشده','warn'],configured:['تنظیم‌شده · آزمایش‌نشده',''],verified:['آزمایش‌شده','ok'],failed:['آزمایش ناموفق','stop']};
@@ -6368,6 +6382,10 @@ function serviceField(field){
     field.source==='environment'?'فقط از متغیر محیطی سرور':'تنظیم‌نشده';
   const blocked=Array.isArray(field.blocked_by)?field.blocked_by:[];
   const checkText=!check.checked?'آزمایش نشده':(check.ok?'آزمایش موفق':'آزمایش ناموفق')+(check.checked_at?' · '+svcWhen(check.checked_at):'');
+  const consumers=Array.isArray(field.consumers)?field.consumers:['web'];
+  const scopeText=consumers.includes('bot')
+    ?'دامنهٔ اثر: فقط بک‌اند وب. ربات legacy همین مقدار را از '+(field.bot_env_name||'فایل محیطی خودش')+' می‌خواند؛ ذخیره در این‌جا آن را تغییر نمی‌دهد و ربات باید جداگانه به‌روز و راه‌اندازی شود.'
+    :'دامنهٔ اثر: فقط بک‌اند وب؛ ربات legacy این مقدار را مصرف نمی‌کند.';
   const confirm=SERVICE_CONFIRM===field.key?`<div class="admset" style="border-inline-start:3px solid var(--stop);padding:8px">
       <p class="cap" style="margin:0 0 8px">با حذف این مقدار، نسخهٔ رمزنگاری‌شده پاک می‌شود و اگر متغیر محیطی مقدار داشته باشد همان اعمال می‌شود. این کار بازگشت‌پذیر نیست.</p>
       <div class="row tight">${btn('بله، حذف کن','data-svc-clear-yes="'+esc(field.key)+'"','i-close')}
@@ -6387,6 +6405,7 @@ function serviceField(field){
       ${field.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>
     <p class="cap" style="margin:6px 4px">منبع: ${esc(sourceText)}${field.hint?' · مقدار ذخیره‌شده: '+esc(field.hint):''}${field.updated_at?' · آخرین تغییر: '+svcWhen(field.updated_at):''}
       · ${esc(checkText)}</p>
+    <p class="cap" style="margin:6px 4px" data-svc-scope="${esc(consumers.join('+'))}">${esc(scopeText)}</p>
     ${blocked.length?`<p class="cap" style="margin:6px 4px;color:var(--warn)">برای ذخیره، این متغیرهای مستقل باید روی سرور تنظیم شوند: <span dir="ltr">${esc(blocked.join(' · '))}</span></p>`:''}
     <div style="padding:4px;display:flex;flex-direction:column;gap:8px">
       <label class="cap" for="svcInput_${esc(field.key)}">${field.configured?'جایگزینی مقدار (مقدار فعلی نمایش داده نمی‌شود)':'مقدار جدید (پس از ذخیره هرگز برنمی‌گردد)'}</label>
@@ -6439,6 +6458,7 @@ function servicesSettingsView(){
     <div class="admfilters" role="tablist" aria-label="سرویس‌ها">${serviceTabs()}</div>
     <div class="head">${esc(service.title)}</div>
     <p class="cap">${esc(service.summary||'')}</p>
+    ${svcRuntimeBlock(service)}
     ${(service.fields||[]).map(serviceField).join('')}
     ${readonly?`<details><summary class="cap">مقادیر فقط‌خواندنی این سرویس (از متغیرهای محیطی سرور)</summary>${readonly}</details>`:''}
   </section>`;
