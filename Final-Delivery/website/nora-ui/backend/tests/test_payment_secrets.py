@@ -85,8 +85,9 @@ def wallet_field(payload: dict) -> dict:
 
 
 def test_settings_read_requires_owner(client):
-    response = client.get(SETTINGS_URL)
-    assert response.status_code in {401, 403}
+    for url in (SETTINGS_URL, "/api/owner/data/status", "/api/owner/data/uploads"):
+        response = client.get(url)
+        assert response.status_code in {401, 403}, url
 
 
 def test_saving_key_requires_owner_session(client):

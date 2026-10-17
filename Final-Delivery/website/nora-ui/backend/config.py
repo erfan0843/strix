@@ -134,6 +134,12 @@ class Settings:
     otp_ttl_seconds: int = 180
     otp_max_attempts: int = 5
     otp_resend_seconds: int = 90
+    # Data-management staging lives outside UI_ROOT so the static mount can never
+    # serve an uploaded backup. Empty means "<nora-ui>/../var/nora-data-staging".
+    data_staging_dir: str = ""
+    data_upload_max_bytes: int = 256 * 1024 * 1024
+    data_staging_retention_hours: int = 72
+    legacy_audit_script: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "public_base_url", normalize_public_base_url(self.public_base_url))
@@ -156,6 +162,12 @@ class Settings:
             ("seo_business_description", "description"),
         ):
             object.__setattr__(self, field_name, business.get(key, "") if business else "")
+        if not self.data_staging_dir:
+            object.__setattr__(
+                self,
+                "data_staging_dir",
+                str(UI_ROOT.parent / "var" / "nora-data-staging"),
+            )
 
     @property
     def seo_local_business(self) -> dict[str, str] | None:
@@ -301,4 +313,12 @@ class Settings:
             otp_ttl_seconds=otp_ttl_minutes * 60,
             otp_max_attempts=otp_max_attempts,
             otp_resend_seconds=otp_resend_seconds,
+            data_staging_dir=os.getenv("NORA_DATA_STAGING_DIR", "").strip(),
+            data_upload_max_bytes=_bounded_int_env(
+                "NORA_DATA_UPLOAD_MAX_BYTES", 256 * 1024 * 1024, 1024 * 1024, 4 * 1024 * 1024 * 1024
+            ),
+            data_staging_retention_hours=_bounded_int_env(
+                "NORA_DATA_STAGING_RETENTION_HOURS", 72, 1, 24 * 90
+            ),
+            legacy_audit_script=os.getenv("NORA_LEGACY_AUDIT_SCRIPT", "").strip(),
         )

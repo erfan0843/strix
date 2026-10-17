@@ -40,6 +40,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
 from .captcha import CaptchaError, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
+from . import data_staging as data_staging_mod
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
@@ -1917,6 +1918,215 @@ def create_app(
         db.commit()
         db.refresh(record)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+
+    # ── داده‌ها و مهاجرت: بارگذاری نسخهٔ پشتیبان برای ممیزی (بدون تغییر داده) ──
+    # فایل فقط در staging خصوصی (بیرون UI_ROOT) ذخیره می‌شود، فقط‌خواندنی
+    # بررسی می‌شود و هیچ عملیات نوشتنی روی آن یا روی پایگاه عملیاتی اجرا نمی‌شود.
+
+    data_logger = logging.getLogger("nora.data_staging")
+
+    def _data_store(cfg: Settings) -> data_staging_mod.StagingStore:
+        return data_staging_mod.StagingStore(
+            cfg.data_staging_dir,
+            data_staging_mod.UploadLimits(
+                max_bytes=cfg.data_upload_max_bytes,
+                retention_hours=cfg.data_staging_retention_hours,
+            ),
+        )
+
+    def _audit_script(cfg: Settings) -> Path:
+        configured = cfg.legacy_audit_script.strip()
+        return Path(configured) if configured else data_staging_mod.default_audit_script()
+
+    def _owner_upload_actor(identity: OwnerIdentity | AccountIdentity) -> str:
+        return str(getattr(identity, "owner_id", "") or getattr(identity, "account_id", "") or "unknown")
+
+    def _enforce_owner_upload_limit(
+        request: Request, db: Session, cfg: Settings, identity: OwnerIdentity | AccountIdentity,
+        limit: int = 10,
+    ) -> None:
+        """At most ``limit`` uploads per hour per actor; stored, not in-memory only."""
+        key_hash = throttle_digest(
+            cfg.owner_password_hash or cfg.owner_id or "nora", "data-upload\0" + _owner_upload_actor(identity)
+        )
+        now = _utc_now()
+        db.execute(
+            delete(PublicWriteThrottleRecord).where(
+                PublicWriteThrottleRecord.window_started_at < now - timedelta(days=1)
+            )
+        )
+        record = db.scalar(
+            select(PublicWriteThrottleRecord).where(PublicWriteThrottleRecord.key_hash == key_hash)
+        )
+        if record is None or _as_utc(record.window_started_at) < now - timedelta(hours=1):
+            if record is None:
+                db.add(PublicWriteThrottleRecord(key_hash=key_hash, attempts=1, window_started_at=now))
+            else:
+                record.attempts = 1
+                record.window_started_at = now
+            db.commit()
+            return
+        if record.attempts >= limit:
+            db.commit()
+            retry = max(1, int(3600 - (now - _as_utc(record.window_started_at)).total_seconds()))
+            raise HTTPException(429, "upload_rate_limited", headers={"Retry-After": str(retry)})
+        record.attempts += 1
+        db.commit()
+
+    @app.get("/api/owner/data/status")
+    def get_owner_data_status(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        """وضعیت فقط-خواندنی پایگاه عملیاتی و staging؛ هیچ مسیر یا رمزی برنمی‌گردد."""
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        bind = db.get_bind()
+        dialect = getattr(getattr(bind, "dialect", None), "name", "") or "unknown"
+        try:
+            schema_version = str(db.scalar(text("SELECT version_num FROM alembic_version")) or "")
+        except SQLAlchemyError:
+            schema_version = ""
+        response = JSONResponse({
+            "database": {"engine": dialect, "schema_version": schema_version},
+            "staging": {
+                "retention_hours": cfg.data_staging_retention_hours,
+                "max_bytes": cfg.data_upload_max_bytes,
+                "used_bytes": store.usage_bytes(),
+                "outside_webroot": True,
+            },
+            "audit_tool_available": _audit_script(cfg).is_file(),
+            "operational_writes": 0,
+        })
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.get("/api/owner/data/uploads")
+    def list_owner_data_uploads(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        response = JSONResponse({
+            "uploads": store.list_uploads(),
+            "limits": {
+                "max_bytes": cfg.data_upload_max_bytes,
+                "retention_hours": cfg.data_staging_retention_hours,
+            },
+            "audit_tool_available": _audit_script(cfg).is_file(),
+        })
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.post("/api/owner/data/uploads", status_code=201)
+    async def create_owner_data_upload(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity)
+        declared = request.headers.get("x-file-name", "backup.db")
+        content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if content_type not in (
+            "", "application/octet-stream", "application/x-sqlite3", "application/vnd.sqlite3",
+            "application/x-sqlite", "binary/octet-stream",
+        ):
+            raise HTTPException(415, "unsupported_backup_content_type")
+
+        store = _data_store(cfg)
+        store.ensure_root()
+        spool_dir = store.root / "tmp"
+        spool_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        spool = spool_dir / f"{uuid.uuid4().hex}.upload"
+        size = 0
+        try:
+            with spool.open("wb") as handle:
+                async for chunk in request.stream():
+                    if not chunk:
+                        continue
+                    size += len(chunk)
+                    if size > cfg.data_upload_max_bytes:
+                        raise HTTPException(413, "backup_too_large")
+                    handle.write(chunk)
+            if size == 0:
+                raise HTTPException(422, "empty_backup_file")
+
+            def _chunks():
+                with spool.open("rb") as reader:
+                    for part in iter(lambda: reader.read(1024 * 1024), b""):
+                        yield part
+
+            meta = store.create_upload(_chunks(), declared)
+        except data_staging_mod.StagingError as error:
+            data_logger.info("backup upload rejected actor=%s code=%s", _owner_upload_actor(identity), error.code)
+            status = 413 if error.code in {"backup_too_large", "staging_quota_exceeded"} else 422
+            raise HTTPException(status, error.code) from None
+        finally:
+            spool.unlink(missing_ok=True)
+        data_logger.info(
+            "backup uploaded id=%s actor=%s sha256=%s size=%s tables=%s",
+            meta["id"], _owner_upload_actor(identity), meta["sha256"][:16],
+            meta["size_bytes"], meta["structure"].get("table_count"),
+        )
+        return {"upload": store.get_upload(meta["id"])}
+
+    @app.get("/api/owner/data/uploads/{upload_id}")
+    def get_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        try:
+            return {"upload": store.get_upload(upload_id), "audit_tool_available": _audit_script(cfg).is_file()}
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+
+    @app.post("/api/owner/data/uploads/{upload_id}/audit")
+    def audit_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        script = _audit_script(cfg)
+        if not script.is_file():
+            raise HTTPException(503, "audit_tool_not_available")
+        try:
+            meta = store.run_audit(upload_id, script)
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+        data_logger.info(
+            "backup audit id=%s actor=%s state=%s unchanged=%s",
+            upload_id, _owner_upload_actor(identity), meta.get("state"),
+            (meta.get("audit") or {}).get("unchanged"),
+        )
+        return {
+            "upload": store.get_upload(upload_id),
+            "unchanged": (meta.get("audit") or {}).get("unchanged"),
+        }
+
+    @app.delete("/api/owner/data/uploads/{upload_id}")
+    def delete_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        try:
+            removed = store.delete_upload(upload_id)
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+        data_logger.info("backup deleted id=%s actor=%s removed=%s", upload_id, _owner_upload_actor(identity), removed)
+        if not removed:
+            raise HTTPException(404, "upload_not_found")
+        return {"deleted": True}
 
     # ── اتصال سرویس‌ها: تنظیمات متمرکز اعتبارنامه‌ها ────────────────────────
     # فقط مالک/مدیر دارای مجوز sys_settings. مقدار محرمانه هرگز برنمی‌گردد؛

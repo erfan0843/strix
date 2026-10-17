@@ -6200,10 +6200,13 @@ function serverUsersView(){
    و مقدار خالی هرگز ذخیره یا حذف نمی‌کند. اعمال مجوز سمت سرور است؛ پنهان‌کردن
    دکمه در این صفحه فقط برای خوانایی است و به‌تنهایی مرز دسترسی نیست. */
 const SERVICE_API='/api/owner/service-settings';
+const DATA_API='/api/owner/data';
 let SERVICE_DATA=null,SERVICE_LOADING=false,SERVICE_ERROR='',SERVICE_BUSY='',SERVICE_MSG=null;
 let SERVICE_TAB='bale',SERVICE_CONFIRM='';
 /* پیش‌نویس همان ورودی، فقط در حافظهٔ همین صفحه؛ هرگز در localStorage یا DOM ذخیره نمی‌شود */
 const SERVICE_DRAFT={};
+let DATA_STATUS=null,DATA_UPLOADS=null,DATA_LOADING=false,DATA_ERROR='',DATA_BUSY='',DATA_MSG=null;
+let DATA_TAB='uploads',DATA_CONFIRM='';
 
 function ownerCsrf(){const m=document.cookie.match(/(?:^|;\s*)nora_csrf=([^;]+)/);return m?decodeURIComponent(m[1]):''}
 function svcWhen(iso){
@@ -6241,6 +6244,7 @@ function svcCodeText(code){
     connection_test_not_supported:'برای این مقدار آزمایش اتصال امن تعریف نشده است؛ «تنظیم‌شده» یعنی فقط مقدار ثبت شده و تأیید نشده.',
     upload_not_found:'این نسخهٔ پشتیبان پیدا نشد؛ شاید منقضی یا حذف شده باشد.',
     backup_not_sqlite:'فایل SQLite معتبر نیست؛ چیزی ذخیره نشد.',
+    backup_not_legacy_database:'این فایل SQLite جدول کاربران نورا را ندارد؛ نسخهٔ پشتیبان مرتبط نیست و پذیرفته نشد.',
     backup_integrity_check_failed:'بررسی ساختاری SQLite ناموفق بود (quick_check)؛ فایل پذیرفته نشد.',
     backup_too_large:'حجم فایل از سقف مجاز بیشتر است؛ ذخیره نشد.',
     staging_quota_exceeded:'فضای staging پر است؛ ابتدا نسخه‌های قدیمی را حذف کنید.',
@@ -6501,7 +6505,175 @@ function securitySettingsView(){
       ${canSec('users')?btn('حساب‌ها و نقش‌های سرور','data-server-role-module','i-user'):''}
       ${canSec('users')?btn('پرونده‌ها و دسترسی کاربران','data-user-hub="users"','i-idcard'):''}</div>
   </section>`;
-}document.addEventListener('click',e=>{
+}
+async function dataLoad(){
+  if(DATA_LOADING) return;
+  DATA_LOADING=true; DATA_ERROR='';
+  try{
+    const [statusResponse,listResponse]=await Promise.all([
+      fetch(DATA_API+'/status',{credentials:'same-origin',headers:{Accept:'application/json'}}),
+      fetch(DATA_API+'/uploads',{credentials:'same-origin',headers:{Accept:'application/json'}})
+    ]);
+    if([401,403].includes(statusResponse.status)||[401,403].includes(listResponse.status)){
+      DATA_ERROR='این بخش فقط با نشست مالک و مجوز «پشتیبان‌گیری سامانه» در دسترس است.';
+    }else if(!statusResponse.ok||!listResponse.ok){
+      DATA_ERROR='دریافت وضعیت داده‌ها از سرور انجام نشد.';
+    }else{
+      DATA_STATUS=await statusResponse.json();
+      DATA_UPLOADS=(await listResponse.json()).uploads||[];
+    }
+  }catch(e){DATA_ERROR='ارتباط با سرور برقرار نشد.'}
+  finally{DATA_LOADING=false; if(S.sec==='settings') renderBody()}
+}
+async function dataUpload(){
+  const input=document.getElementById('dataFile');
+  const file=input&&input.files&&input.files[0];
+  if(!file){DATA_MSG={kind:'warn',text:'یک فایل SQLite انتخاب کنید.'}; renderBody(); return;}
+  const limit=DATA_STATUS&&DATA_STATUS.staging?Number(DATA_STATUS.staging.max_bytes)||0:0;
+  if(limit&&file.size>limit){
+    DATA_MSG={kind:'stop',text:'حجم فایل از سقف مجاز ('+svcBytes(limit)+') بیشتر است؛ ارسال نشد.'};
+    renderBody(); return;
+  }
+  DATA_BUSY='upload'; DATA_MSG=null; renderBody();
+  try{
+    const response=await fetch(DATA_API+'/uploads?name='+encodeURIComponent(file.name),{
+      method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/octet-stream','X-CSRF-Token':ownerCsrf()},
+      body:file});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      DATA_MSG={kind:'ok',text:'فایل در staging خصوصی ذخیره و فقط‌خواندنی بررسی شد؛ هیچ تغییری در پایگاه عملیاتی انجام نشد.'};
+    }else{
+      DATA_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){DATA_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی ذخیره نشد.'}}
+  finally{DATA_BUSY=''; await dataLoad(); renderBody()}
+}
+async function dataAudit(id){
+  DATA_BUSY='audit:'+id; DATA_MSG=null; renderBody();
+  try{
+    const response=await fetch(DATA_API+'/uploads/'+encodeURIComponent(id)+'/audit',{
+      method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      DATA_MSG=data.unchanged===true
+        ?{kind:'ok',text:'ممیزی فقط‌خواندنی تمام شد و checksum فایل قبل و بعد یکسان است؛ هیچ داده‌ای نوشته نشد.'}
+        :{kind:'stop',text:'نتیجهٔ ممیزی معتبر نیست: checksum فایل تغییر کرد. فایل را حذف کنید و نسخهٔ تازه بارگذاری کنید.'};
+    }else{
+      DATA_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){DATA_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ ممیزی اجرا نشد.'}}
+  finally{DATA_BUSY=''; await dataLoad(); renderBody()}
+}
+async function dataDelete(id){
+  DATA_CONFIRM=''; DATA_BUSY='delete:'+id; DATA_MSG=null; renderBody();
+  try{
+    const response=await fetch(DATA_API+'/uploads/'+encodeURIComponent(id),{
+      method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    DATA_MSG=response.ok?{kind:'ok',text:'نسخهٔ پشتیبان از staging حذف شد.'}:{kind:'stop',text:svcCodeText(svcErrCode(data))};
+  }catch(e){DATA_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی حذف نشد.'}}
+  finally{DATA_BUSY=''; await dataLoad(); renderBody()}
+}
+function dataStateTag(state){
+  const map={inspected:['بررسی‌شده','ok'],received:['دریافت‌شده',''],audited:['ممیزی‌شده','ok'],audit_failed:['خطا در ممیزی','stop'],invalid:['نامعتبر','stop']};
+  const item=map[state]||['نامشخص',''];
+  return tag(item[0],item[1]);
+}
+function dataReport(item){
+  const audit=item.audit||{};
+  const report=audit.report;
+  if(!report) return '';
+  const legacy=report.legacy||{}, users=legacy.users||{}, counts=legacy.counts||{}, orphans=legacy.orphans_by_bale_user_id||{};
+  const blockers=Array.isArray(report.blockers)?report.blockers:[];
+  const domainLines=Object.keys(counts).map(domain=>{
+    const tables=counts[domain]||{};
+    const total=Object.keys(tables).reduce((sum,key)=>sum+(Number(tables[key])||0),0);
+    return total?`<li>${esc(domain)}: ${fa(total)}</li>`:'';
+  }).join('');
+  const orphanLines=Object.keys(orphans).filter(key=>Number(orphans[key])>0)
+    .map(key=>`<li>${esc(key)}: ${fa(orphans[key])}</li>`).join('');
+  return `<details style="margin-top:8px"><summary class="cap">گزارش ممیزی (dry-run · فقط شمارش)</summary>
+    <div style="padding:6px 4px" class="cap">
+      <div>checksum قبل و بعد: ${audit.unchanged?'یکسان':'متفاوت'}</div>
+      <div>ابزار: ${esc((report.tool||'legacy_data_audit'))} · نسخه ${esc(String(report.version||''))} · حالت ${esc(report.mode||'')}</div>
+      <div>موانع ساختاری: ${blockers.length?fa(blockers.length)+' مورد':'هیچ'}</div>
+      <ul style="margin:6px 0;padding-inline-start:18px">
+        <li>کاربران legacy: ${fa(users.total||0)}</li>
+        <li>بدون موبایل: ${fa(users.without_mobile||0)}</li>
+        <li>موبایل غیرقابل‌نرمال‌سازی: ${fa(users.mobile_not_normalizable||0)}</li>
+        <li>موبایل تکراری: ${fa(users.duplicate_mobiles||0)}</li>
+        <li>شناسهٔ بله تکراری: ${fa(users.duplicate_bale_ids||0)}</li>
+        ${domainLines}${orphanLines}
+      </ul>
+      <p>این گزارش فقط شمارش، ساختار و checksum دارد؛ شمارهٔ تماس، نام و مقدار ردیف‌ها در آن نیست. ممیزی هیچ ردیفی را جابه‌جا، ادغام یا بازنویسی نکرد.</p>
+    </div></details>`;
+}
+function dataUploadRow(item){
+  const busy=DATA_BUSY.endsWith(item.id)||DATA_BUSY==='upload';
+  const confirm=DATA_CONFIRM===item.id?`<div class="admset" style="border-inline-start:3px solid var(--stop);padding:8px">
+      <p class="cap" style="margin:0 0 8px">این نسخهٔ پشتیبان از staging حذف می‌شود (نه از پایگاه عملیاتی). عملیات بازگشت‌پذیر نیست.</p>
+      <div class="row tight">${btn('بله، حذف کن','data-data-delete-yes="'+esc(item.id)+'"','i-close')}
+        ${btn('انصراف','data-data-delete-no','i-chev-right')}</div></div>`:'';
+  return `<div class="admset" style="margin-bottom:10px">
+    <div class="admlirow"><span class="ic">${ico('i-layers')}</span>
+      <span class="sp"><b>${esc(item.display_name||'backup.db')}</b>
+        <small class="cap" style="display:block">${svcBytes(item.size_bytes)} · دریافت ${svcWhen(item.created_at)} · انقضا ${svcWhen(item.expires_at)}</small>
+        <small class="cap" dir="ltr" style="display:block">SHA-256 ${esc(String(item.sha256||'').slice(0,16))}…</small></span>
+      ${dataStateTag(item.state)}</div>
+    <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+      <button class="btn sm quiet" data-data-audit="${esc(item.id)}" ${busy?'disabled':''}>${ico('i-search')} اجرای ممیزی</button>
+      <button class="btn sm quiet" data-data-delete="${esc(item.id)}" ${busy?'disabled':''}>${ico('i-close')} حذف از staging</button>
+    </div>
+    ${item.audit_error?`<p class="cap" style="color:var(--stop)">${esc(svcCodeText(item.audit_error))}</p>`:''}
+    ${dataReport(item)}${confirm}</div>`;
+}
+function dataSettingsView(){
+  if(!DATA_STATUS&&!DATA_LOADING&&!DATA_ERROR) dataLoad();
+  const tab=(key,label,icon)=>`<button class="chip ${DATA_TAB===key?'on':''}" data-data-tab="${key}">${ico(icon)}<span>${esc(label)}</span></button>`;
+  const tabs=`<div class="admfilters" role="tablist" aria-label="داده‌ها و مهاجرت">
+    ${tab('uploads','بارگذاری نسخهٔ پشتیبان','i-download')}${tab('database','پایگاه‌های داده','i-layers')}${tab('reports','گزارش‌های ممیزی','i-doc')}</div>`;
+  const message=DATA_MSG?`<p class="cap" role="status" style="border-inline-start:3px solid var(--${DATA_MSG.kind==='ok'?'ok':DATA_MSG.kind==='stop'?'stop':'warn'});padding-inline-start:8px">${esc(DATA_MSG.text)}</p>`:'';
+  if(DATA_ERROR){
+    return `<section class="card stack" data-data-panel><div class="head">داده‌ها و مهاجرت</div>
+      <p class="cap">${esc(DATA_ERROR)}</p>${tabs}${message}
+      <div class="row"><span class="sp"></span>${btn('تلاش دوباره','data-data-reload','i-refresh')}</div></section>`;
+  }
+  if(!DATA_STATUS){
+    return `<section class="card stack" data-data-panel><div class="head">داده‌ها و مهاجرت</div>
+      <p class="cap">در حال دریافت وضعیت از سرور…</p>${tabs}</section>`;
+  }
+  const staging=DATA_STATUS.staging||{}, database=DATA_STATUS.database||{};
+  let inner='';
+  if(DATA_TAB==='uploads'){
+    inner=`<p class="cap">فایل فقط در پوشهٔ خصوصی staging (بیرون ریشهٔ وب) نگه‌داری می‌شود، با <span dir="ltr">mode=ro</span> و <span dir="ltr">PRAGMA query_only=ON</span> خوانده می‌شود و به پایگاه عملیاتی، ربات یا وب منتقل نمی‌شود. سقف هر فایل ${svcBytes(staging.max_bytes)} · نگه‌داری ${fa(staging.retention_hours||0)} ساعت · مصرف فعلی ${svcBytes(staging.used_bytes)}.</p>
+      <label class="fileup">${ico('i-download')}<span class="sp"><b>انتخاب فایل SQLite</b>
+        <small>پسوند و نوع اعلامی ملاک نیست؛ سرصفحه، quick_check و ساختار بررسی می‌شود.</small></span>
+        <input id="dataFile" type="file" accept=".db,.sqlite,.sqlite3,.db3,.bak,application/octet-stream" ${DATA_BUSY?'disabled':''}></label>
+      <div class="row tight"><span class="sp"></span>
+        <button class="btn sm primary" data-data-upload ${DATA_BUSY?'disabled':''}>${ico('i-check')}${DATA_BUSY==='upload'?'در حال بارگذاری…':'بارگذاری و بررسی'}</button></div>`;
+    if(DATA_BUSY==='upload') inner+=`<p class="cap">در حال ارسال و بررسی فایل؛ صفحه را نبندید.</p>`;
+  }else if(DATA_TAB==='database'){
+    inner=`<div class="admlist">
+        <div class="admlirow"><span class="sp"><b>موتور پایگاه عملیاتی</b><small class="cap">فقط خوانده می‌شود؛ از این صفحه هیچ تغییری اعمال نمی‌شود.</small></span><code dir="ltr">${esc(database.engine||'نامشخص')}</code></div>
+        <div class="admlirow"><span class="sp"><b>نسخهٔ شِمای فعلی</b><small class="cap">آخرین مهاجرت اعمال‌شده</small></span><code dir="ltr">${esc(database.schema_version||'نامشخص')}</code></div>
+        <div class="admlirow"><span class="sp"><b>پوشهٔ staging</b><small class="cap">بیرون ریشهٔ وب و بدون دسترسی عمومی</small></span>${staging.outside_webroot?tag('خارج از وب‌روت','ok'):tag('نامشخص','warn')}</div>
+        <div class="admlirow"><span class="sp"><b>ابزار ممیزی legacy</b><small class="cap">همان ابزار ربات؛ نسخهٔ موازی ساخته نشده است.</small></span>${DATA_STATUS.audit_tool_available?tag('در دسترس','ok'):tag('در دسترس نیست','warn')}</div>
+        <div class="admlirow"><span class="sp"><b>نوشتن روی پایگاه عملیاتی</b><small class="cap">در همهٔ مسیرهای این بخش</small></span>${tag('صفر','ok')}</div>
+      </div>
+      <p class="cap">این بخش فقط «مشاهده» است: جایگزینی پایگاه، ALTER/DROP/DELETE/UPDATE/INSERT، مهاجرت خودکار و انتقال داده انجام نمی‌شود. مهاجرت واقعی فقط با نسخهٔ پشتیبانِ تأییدشده و خارج از این پنل برنامه‌ریزی می‌شود.</p>`;
+  }else{
+    const audited=(DATA_UPLOADS||[]).filter(item=>item.audit&&item.audit.report);
+    inner=audited.length?audited.map(dataUploadRow).join(''):
+      emptyBox('هنوز گزارشی ثبت نشده؛ ابتدا یک نسخهٔ پشتیبان بارگذاری و ممیزی کنید.');
+    inner+=`<p class="cap">گزارش‌ها فقط شمارش و ساختار دارند؛ هیچ شماره، نام یا مقدار ردیفی در آن‌ها نیست. راهنمای کامل در مخزن: <span dir="ltr">docs/04-ممیزی-داده-legacy-و-نقشه-مهاجرت.fa.md</span></p>`;
+  }
+  return `<section class="card stack" data-data-panel>
+    <div class="row"><div class="head">داده‌ها و مهاجرت</div><span class="sp"></span>
+      <button class="btn sm quiet" data-data-reload>${ico('i-refresh')} بازخوانی</button></div>
+    ${tabs}${message}${inner}</section>`;
+}
+document.addEventListener('click',e=>{
   const hit=sel=>e.target.closest&&e.target.closest(sel);
   if(hit('[data-svc-reload]')){e.preventDefault(); SERVICE_DATA=null; SERVICE_ERROR=''; SERVICE_MSG=null; serviceLoad(); return}
   if(hit('[data-svc-tab]')){e.preventDefault(); SERVICE_TAB=hit('[data-svc-tab]').dataset.svcTab; SERVICE_MSG=null; SERVICE_CONFIRM='';
@@ -6511,12 +6683,21 @@ function securitySettingsView(){
   if(hit('[data-svc-clear-yes]')){e.preventDefault(); serviceClear(hit('[data-svc-clear-yes]').dataset.svcClearYes); return}
   if(hit('[data-svc-clear-no]')){e.preventDefault(); SERVICE_CONFIRM=''; renderBody(); return}
   if(hit('[data-svc-clear]')){e.preventDefault(); SERVICE_CONFIRM=hit('[data-svc-clear]').dataset.svcClear; SERVICE_MSG=null; renderBody(); return}
+  if(hit('[data-data-reload]')){e.preventDefault(); DATA_STATUS=null; DATA_ERROR=''; DATA_MSG=null; dataLoad(); return}
+  if(hit('[data-data-tab]')){e.preventDefault(); DATA_TAB=hit('[data-data-tab]').dataset.dataTab; DATA_MSG=null; DATA_CONFIRM=''; renderBody(); return}
+  if(hit('[data-data-upload]')){e.preventDefault(); dataUpload(); return}
+  if(hit('[data-data-audit]')){e.preventDefault(); dataAudit(hit('[data-data-audit]').dataset.dataAudit); return}
+  if(hit('[data-data-delete-yes]')){e.preventDefault(); dataDelete(hit('[data-data-delete-yes]').dataset.dataDeleteYes); return}
+  if(hit('[data-data-delete-no]')){e.preventDefault(); DATA_CONFIRM=''; renderBody(); return}
+  if(hit('[data-data-delete]')){e.preventDefault(); DATA_CONFIRM=hit('[data-data-delete]').dataset.dataDelete; DATA_MSG=null; renderBody(); return}
   if(hit('[data-goto-service-payment]')){e.preventDefault(); S.sec='settings'; S.setG='services'; SERVICE_TAB='payment'; SERVICE_MSG=null; render(); return}
 });
+
 function serverSettingsView(){
   const defs=[
     ['services','اتصال سرویس‌ها','i-send'],
     ['deploy','دامنه و راه‌اندازی','i-globe'],
+    ['data','داده‌ها و مهاجرت','i-layers'],
     ['security','امنیت و دسترسی‌ها','i-shield'],
     ['publishing','محتوای عمومی و همکاری','i-doc'],
     ['bots','وضعیت پیام‌رسان','i-bell'],
@@ -6527,11 +6708,14 @@ function serverSettingsView(){
   const tabs=defs.map(([key,title,icon])=>`<button class="chip ${selected===key?'on':''}" data-setg="${key}">
     ${ico(icon)}<span>${esc(title)}</span></button>`).join('');
   const canSettings=isOwner()||canPerm('sys_settings');
+  const canBackup=isOwner()||canPerm('sys_backup');
   let content='';
   if(selected==='services') content=canSettings?servicesSettingsView()
     :serverUnavailableModule('اتصال سرویس‌ها','این بخش به مجوز «تنظیمات سامانه» نیاز دارد؛ بررسی مجوز و اعتبارسنجی مقدار سمت سرور انجام می‌شود.');
   else if(selected==='deploy') content=canSettings?deploymentSettingsView()
     :serverUnavailableModule('دامنه و راه‌اندازی','این بخش به مجوز «تنظیمات سامانه» نیاز دارد.');
+  else if(selected==='data') content=canBackup?dataSettingsView()
+    :serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.');
   else if(selected==='security') content=securitySettingsView();
   else if(selected==='publishing') content=`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
@@ -6649,6 +6833,7 @@ function renderBody(){
     target.replaceWith(publishing); publishing.hidden=false;
   }
   if(host.querySelector('[data-service-settings]')&&!SERVICE_LOADING&&!SERVICE_DATA&&!SERVICE_ERROR) serviceLoad();
+  if(host.querySelector('[data-data-panel]')&&!DATA_LOADING&&!DATA_STATUS&&!DATA_ERROR) dataLoad();
   if(host.querySelector('[data-bot-status]')) loadBotStatus();
 }
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */

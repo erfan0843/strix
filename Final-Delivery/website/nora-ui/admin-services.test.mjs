@@ -83,6 +83,10 @@ async function fakeFetch(url,init){
     field.configured=false; field.source='none'; field.hint='';
     return json(PAYLOAD);
   }
+  if(path==='/api/owner/data/status') return json({database:{engine:'postgresql',schema_version:'0025_service_checks'},
+    staging:{retention_hours:72,max_bytes:268435456,used_bytes:0,outside_webroot:true},
+    audit_tool_available:true,operational_writes:0});
+  if(path==='/api/owner/data/uploads'&&method==='GET') return json({uploads:[],limits:{max_bytes:268435456,retention_hours:72},audit_tool_available:true});
   return json({detail:'not_found'},404);
 }
 
@@ -163,6 +167,36 @@ ok(deletes().length===0,'کلیک حذف به‌تنهایی چیزی حذف ن�
 ok(doc.body.textContent.includes('بازگشت‌پذیر نیست'),'هشدار حذف نمایش داده شد');
 click('[data-svc-clear-yes="bale_bot"]');
 ok(await waitFor(()=>deletes().length===1),'حذف فقط پس از تأیید صریح انجام شد');
+
+console.log('\n── دامنه، امنیت و داده‌ها ──');
+click('[data-setg="deploy"]');
+ok(await waitFor(()=>doc.body.textContent.includes('دامنه و راه‌اندازی')),'ماژول دامنه رندر شد');
+ok(doc.body.textContent.includes('NORA_PUBLIC_BASE_URL')&&doc.body.textContent.includes('https://nora.example'),
+  'نشانی عمومی نمایش داده می‌شود');
+ok(doc.body.textContent.includes('از پنل تغییر نمی‌کنند'),'ماهیت فقط‌خواندنی توضیح داده شده است');
+
+click('[data-setg="security"]');
+ok(await waitFor(()=>doc.body.textContent.includes('امنیت و دسترسی‌ها')),'ماژول امنیت رندر شد');
+ok(doc.body.textContent.includes('sys_settings')&&doc.body.textContent.includes('sys_backup'),
+  'مجوزهای مؤثر از سرور نمایش داده می‌شوند');
+
+click('[data-setg="data"]');
+ok(await waitFor(()=>doc.querySelector('[data-data-panel]')),'ماژول داده و مهاجرت رندر شد');
+ok(await waitFor(()=>doc.body.textContent.includes('سقف هر فایل')),'سقف حجم از سرور نمایش داده شد');
+ok(await waitFor(()=>doc.body.textContent.includes('بیرون ریشهٔ وب')),'محل staging توضیح داده شد');
+ok(!CALLS.some(call=>call.method==='POST'&&call.path==='/api/owner/data/uploads'),'بدون انتخاب فایل درخواستی ارسال نشد');
+click('[data-data-upload]');
+await wait(60);
+ok(!CALLS.some(call=>call.method==='POST'&&call.path==='/api/owner/data/uploads'),'بارگذاری بدون فایل انجام نمی‌شود');
+ok(doc.body.textContent.includes('فایل SQLite انتخاب کنید'),'پیام انتخاب فایل نمایش داده شد');
+
+click('[data-data-tab="database"]');
+ok(await waitFor(()=>doc.body.textContent.includes('نسخهٔ شِمای فعلی')),'تب پایگاه‌های داده رندر شد');
+ok(doc.body.textContent.includes('0025_service_checks'),'نسخهٔ شِما از سرور نمایش داده شد');
+ok(doc.body.textContent.includes('صفر'),'نوشتن روی پایگاه عملیاتی صفر گزارش می‌شود');
+click('[data-data-tab="reports"]');
+ok(await waitFor(()=>doc.body.textContent.includes('گزارش‌های ممیزی')||doc.body.textContent.includes('هنوز گزارشی ثبت نشده')),
+  'تب گزارش‌های ممیزی رندر شد');
 
 console.log('\n── پاکی و یکتایی ──');
 ok(!SOURCE.includes('WALLET_KEY_API')&&!SOURCE.includes('payment-settings'),
