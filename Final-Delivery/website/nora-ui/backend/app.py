@@ -30,10 +30,11 @@ from urllib.parse import quote, unquote, urlsplit
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, delete, func, select, text, update
+from sqlalchemy import and_, create_engine, delete, func, or_, select, text, update
 from sqlalchemy.engine import CursorResult, Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload, sessionmaker
+from sqlalchemy.sql.elements import ColumnElement
 from starlette.middleware.gzip import GZipMiddleware
 
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
@@ -1392,6 +1393,59 @@ def create_app(
         assigned = db.get(AccountRoleRecord, account_id)
         role = assigned.role if assigned is not None else None
         return account_id, role if role in ROLE_KEYS else None
+
+    def verified_bale_ids_for_account(db: Session, account_id: str) -> list[str]:
+        """Bale IDs the server itself linked to this account (never client-supplied)."""
+        return list(db.scalars(
+            select(PlatformIdentityRecord.provider_user_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.account_id == account_id,
+            )
+        ))
+
+    def account_form_record_scope(db: Session, account_id: str) -> ColumnElement[bool]:
+        """Form-response drafts a signed-in account may read.
+
+        Its own drafts, plus drafts created from the Bale side by a Bale identity that
+        the server has verified for this same account. A draft that already names
+        another account is never included, even when it carries this account's Bale ID,
+        so linking can widen the view to one's own records but never to someone else's.
+        """
+        own_drafts = FormResponseDraftRecord.account_id == account_id
+        bale_ids = verified_bale_ids_for_account(db, account_id)
+        if not bale_ids:
+            return own_drafts
+        return or_(
+            own_drafts,
+            and_(
+                FormResponseDraftRecord.bot_bale_user_id.in_(bale_ids),
+                FormResponseDraftRecord.account_id.is_(None),
+            ),
+        )
+
+    def bot_form_record_scope(db: Session, bale_user_id: str) -> ColumnElement[bool]:
+        """Form-response drafts the bot may read on behalf of one Bale user.
+
+        Its own drafts, plus drafts of the account that this Bale identity is linked to
+        when the draft was created from the web and carries no Bale tag. An unlinked
+        Bale user keeps the previous scope exactly: only drafts tagged with that ID.
+        """
+        own_drafts = FormResponseDraftRecord.bot_bale_user_id == bale_user_id
+        linked_account_id = db.scalar(
+            select(PlatformIdentityRecord.account_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == bale_user_id,
+            )
+        )
+        if linked_account_id is None:
+            return own_drafts
+        return or_(
+            own_drafts,
+            and_(
+                FormResponseDraftRecord.account_id == linked_account_id,
+                FormResponseDraftRecord.bot_bale_user_id.is_(None),
+            ),
+        )
 
     def admin_task_view(task: AdminTaskRecord | None) -> dict[str, Any]:
         if task is None:
@@ -2824,7 +2878,7 @@ def create_app(
         response.headers["Cache-Control"] = "private, no-store"
         response.headers["Vary"] = "Cookie"
         filters = (
-            FormResponseDraftRecord.account_id == identity.account_id,
+            account_form_record_scope(db, identity.account_id),
             FormResponseRecord.added_by_response_id.is_(None),
             FormRecord.model == "registration",
         )
@@ -5251,7 +5305,7 @@ def create_app(
         http_response.headers["Cache-Control"] = "no-store"
         user_id = validate_bot_form_user_id(bale_user_id)
         history_filter = (
-            FormResponseDraftRecord.bot_bale_user_id == user_id,
+            bot_form_record_scope(db, user_id),
             FormResponseRecord.status.in_(("accepted", "waitlisted")),
         )
         joined = select(FormResponseRecord).join(
@@ -5312,7 +5366,7 @@ def create_app(
             .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
             .where(
                 FormResponseRecord.id == response_id,
-                FormResponseDraftRecord.bot_bale_user_id == user_id,
+                bot_form_record_scope(db, user_id),
             )
         )
         if record is None:
