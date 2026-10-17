@@ -40,7 +40,8 @@ from starlette.middleware.gzip import GZipMiddleware
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
 from .captcha import CaptchaError, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
-from .secret_box import SecretBoxError, decrypt_secret, encrypt_secret, encryption_configured, secret_hint
+from . import service_settings as service_settings_mod
+from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
 from .financials import (
     PaymentConfigurationError,
@@ -71,7 +72,6 @@ from .models import (
     PhoneOTPChallengeRecord,
     PrivateFileRecord,
     PublicWriteThrottleRecord,
-    PaymentSecretRecord,
     SiteContentRecord,
     UserNotificationRecord,
 )
@@ -212,32 +212,14 @@ class AccountIdentity:
     provider: str = "bale"
 
 
-_BALE_WALLET_KEY = re.compile(r"[0-9]{5,20}:[A-Za-z0-9_-]{20,128}\Z")
-
-
-def _payment_settings_response(db: Session, cfg: Settings | None = None) -> dict[str, Any]:
-    record = db.get(PaymentSecretRecord, "bale_wallet")
-    env_configured = bool(cfg and cfg.form_payment_bot_token)
-    return {
-        "bale_wallet": {
-            "configured": record is not None or env_configured,
-            "hint": record.hint if record is not None else "",
-            "encryption_ready": encryption_configured(),
-            "source": "database" if record is not None else ("environment" if env_configured else "none"),
-        }
-    }
-
-
 def _payment_cfg(db: Session, cfg: Settings) -> Settings:
-    """Return settings whose Bale payment token comes from the owner's saved key when present."""
-    record = db.get(PaymentSecretRecord, "bale_wallet")
-    if record is None:
-        return cfg
-    try:
-        token = decrypt_secret(record.ciphertext)
-    except SecretBoxError:
-        return cfg
-    return dataclass_replace(cfg, form_payment_bot_token=token)
+    """Return settings with every owner-saved credential overlaid (one source of truth)."""
+    return service_settings_mod.effective_settings(db, cfg)
+
+
+def _runtime_settings(db: Session, cfg: Settings) -> Settings:
+    """Settings as the web process should actually use them right now."""
+    return service_settings_mod.effective_settings(db, cfg)
 
 
 def _utc_now() -> datetime:
@@ -1936,52 +1918,106 @@ def create_app(
         db.refresh(record)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
 
-    @app.get("/api/owner/payment-settings")
-    def get_owner_payment_settings(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner),
-        db: Session = Depends(get_db),
-    ):
-        return _payment_settings_response(db, request.app.state.settings)
+    # ── اتصال سرویس‌ها: تنظیمات متمرکز اعتبارنامه‌ها ────────────────────────
+    # فقط مالک/مدیر دارای مجوز sys_settings. مقدار محرمانه هرگز برنمی‌گردد؛
+    # فقط «سایه» (hint)، منبع (پایگاه/محیط) و زمان آخرین تغییر.
 
-    @app.put("/api/owner/payment-settings/bale-wallet")
-    async def set_owner_bale_wallet_key(
+    settings_logger = logging.getLogger("nora.service_settings")
+
+    def _settings_secret_or_404(storage_id: str):
+        spec = service_settings_mod.SECRETS_BY_ID.get(storage_id)
+        if spec is None:
+            raise HTTPException(404, "unknown_service_secret")
+        return spec
+
+    @app.get("/api/owner/service-settings")
+    def get_owner_service_settings(
         request: Request,
-        _identity: OwnerIdentity = Depends(require_owner_write),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_settings")),
         db: Session = Depends(get_db),
     ):
+        response = JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.put("/api/owner/service-settings/{storage_id}")
+    async def put_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if not spec.editable:
+            raise HTTPException(403, "secret_is_read_only")
         payload = await _read_json_object(request, 4 * 1024)
-        if set(payload) != {"api_key"} or not isinstance(payload.get("api_key"), str):
-            raise HTTPException(400, "invalid_payment_settings_request")
-        value = payload["api_key"].strip()
-        if not _BALE_WALLET_KEY.fullmatch(value):
-            raise HTTPException(422, "invalid_bale_wallet_key_format")
-        if not encryption_configured():
-            raise HTTPException(503, "settings_encryption_not_configured")
+        if set(payload) - {"value", "acknowledge_restart"} or not isinstance(payload.get("value"), str):
+            raise HTTPException(400, "invalid_service_secret_payload")
+        if spec.acknowledge_restart and payload.get("acknowledge_restart") is not True:
+            raise HTTPException(409, "restart_acknowledgement_required")
         try:
-            ciphertext = encrypt_secret(value)
-        except SecretBoxError as error:
-            raise HTTPException(503, error.code) from None
-        record = db.get(PaymentSecretRecord, "bale_wallet")
-        if record is None:
-            db.add(PaymentSecretRecord(id="bale_wallet", ciphertext=ciphertext, hint=secret_hint(value)))
-        else:
-            record.ciphertext = ciphertext
-            record.hint = secret_hint(value)
-        db.commit()
-        return _payment_settings_response(db, request.app.state.settings)
+            service_settings_mod.set_secret(
+                db, spec, payload["value"], request.app.state.settings
+            )
+        except ValueError as error:
+            code = str(error) or "invalid_service_secret"
+            status = 503 if code == "settings_encryption_not_configured" else (
+                409 if code in {"otp_pepper_required"} else 422
+            )
+            settings_logger.info(
+                "service secret rejected service=%s actor=%s code=%s",
+                spec.storage_id,
+                getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+                code,
+            )
+            raise HTTPException(status, code) from None
+        settings_logger.info(
+            "service secret stored service=%s actor=%s", spec.storage_id,
+            getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+        )
+        return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
 
-    @app.delete("/api/owner/payment-settings/bale-wallet")
-    def clear_owner_bale_wallet_key(
+    @app.delete("/api/owner/service-settings/{storage_id}")
+    def delete_owner_service_secret(
+        storage_id: str,
         request: Request,
-        _identity: OwnerIdentity = Depends(require_owner_write),
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
         db: Session = Depends(get_db),
     ):
-        record = db.get(PaymentSecretRecord, "bale_wallet")
-        if record is not None:
-            db.delete(record)
-            db.commit()
-        return _payment_settings_response(db, request.app.state.settings)
+        spec = _settings_secret_or_404(storage_id)
+        if not spec.editable:
+            raise HTTPException(403, "secret_is_read_only")
+        removed = service_settings_mod.clear_secret(db, spec)
+        settings_logger.info(
+            "service secret cleared service=%s actor=%s removed=%s",
+            spec.storage_id,
+            getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+            removed,
+        )
+        return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+
+    @app.post("/api/owner/service-settings/{storage_id}/test")
+    def test_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if spec.probe != "bale_get_me":
+            raise HTTPException(409, "connection_test_not_supported")
+        cfg = service_settings_mod.effective_settings(db, request.app.state.settings)
+        token = str(getattr(cfg, spec.attribute, ""))
+        ok, code = probe_bale_bot(token)
+        check = service_settings_mod.record_check(db, spec.storage_id, ok, code)
+        settings_logger.info("service probe service=%s ok=%s code=%s", spec.storage_id, ok, code)
+        return {"ok": ok, "code": code, "check": check}
 
     @app.post("/api/public/cooperation-requests", status_code=201)
     async def submit_cooperation_request(request: Request, db: Session = Depends(get_db)):
@@ -2335,7 +2371,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.bale_bot_token:
             raise HTTPException(503, "bale_auth_not_configured")
         payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))
@@ -2431,7 +2467,7 @@ def create_app(
     @app.post("/api/auth/phone-otp/request")
     async def request_phone_otp(request: Request, db: Session = Depends(get_db)):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.safir_api_key or not cfg.safir_bot_id or not cfg.otp_pepper:
             raise HTTPException(503, "phone_otp_not_configured")
         payload = await _read_json_object(request, 2048)
@@ -2701,7 +2737,7 @@ def create_app(
                 for row in rows
             ],
             "available_providers": list(ACCOUNT_IDENTITY_PROVIDERS),
-            "bale_link_available": bool(app.state.settings.bale_bot_token),
+            "bale_link_available": bool(_runtime_settings(db, app.state.settings).bale_bot_token),
         }
 
     def _consume_mini_app_replay(
@@ -2732,7 +2768,7 @@ def create_app(
         نمی‌شود. اگر آن هویت بله از قبل به حساب دیگری وصل باشد، هیچ ادغام
         خودکاری رخ نمی‌دهد و درخواست با ۴۰۹ رد می‌شود تا داده‌ای گم نشود.
         """
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.bale_bot_token:
             raise HTTPException(503, "bale_auth_not_configured")
         payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))

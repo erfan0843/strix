@@ -4469,71 +4469,14 @@ function bkEdForm(type,i,x){
       <button class="btn sm quiet" data-copy="${esc(def)}" data-copy-msg="پیوند سامانه رونوشت شد">${ico('i-copy')} کپی پیوند پیشفرض</button></div></div>`;
 }
 
-/* ── کلید کیف پول بله (تنظیمات مالی مالک) ──
-   کلید فقط از این فرم وارد می‌شود، رمزنگاری‌شده در سرور ذخیره می‌شود،
-   و هرگز کامل برگردانده یا در این صفحه نگه‌داری نمی‌شود. */
-const WALLET_KEY_API='/api/owner/payment-settings';
-let WALLET_KEY_STATE=null, WALLET_KEY_BUSY=false, WALLET_KEY_MSG='';
-function walletCsrf(){const m=document.cookie.match(/(?:^|;\s*)nora_csrf=([^;]+)/);return m?decodeURIComponent(m[1]):''}
-async function walletKeyLoad(){
-  try{
-    const r=await fetch(WALLET_KEY_API,{credentials:'same-origin',headers:{Accept:'application/json'}});
-    if(!r.ok) throw new Error('http_'+r.status);
-    const j=await r.json(); WALLET_KEY_STATE=j.bale_wallet||{configured:false};
-  }catch(err){WALLET_KEY_STATE={error:true}}
-  WALLET_KEY_MSG=''; if(typeof renderBody==='function') renderBody();
+/* کلید کیف پول یک جای واحد دارد: «تنظیمات ← اتصال سرویس‌ها ← پرداخت».
+   فرم دوم اینجا ساخته نمی‌شود تا یک اعتبارنامه دو رابط نداشته باشد. */
+function walletSettingsLink(){
+  return `<div class="admset" style="margin-bottom:10px"><div class="admlirow">
+    <span class="ic">${ico('i-wallet')}</span>
+    <span class="sp"><b>کیف پول بله · کلید API</b><small class="cap" style="display:block">ثبت، تعویض، آزمایش اتصال و حذف کلید فقط در «تنظیمات ← اتصال سرویس‌ها ← پرداخت و کیف پول» انجام می‌شود؛ همان‌جا وضعیت واقعی و منبع مقدار نمایش داده می‌شود.</small></span>
+    <button class="btn sm" data-goto-service-payment>${ico('i-wallet')} رفتن به تنظیمات سرویس</button></div></div>`;
 }
-async function walletKeySave(){
-  const input=document.getElementById('walletKeyInput'); const value=(input&&input.value||'').trim();
-  if(!value){WALLET_KEY_MSG='کلید را وارد کنید.'; renderBody(); return}
-  WALLET_KEY_BUSY=true; WALLET_KEY_MSG='';
-  try{
-    const r=await fetch(WALLET_KEY_API+'/bale-wallet',{method:'PUT',credentials:'same-origin',
-      headers:{'Content-Type':'application/json','X-CSRF-Token':walletCsrf(),Origin:location.origin},
-      body:JSON.stringify({api_key:value})});
-    const j=await r.json().catch(()=>({}));
-    if(r.ok){WALLET_KEY_STATE=j.bale_wallet; WALLET_KEY_MSG='کلید ذخیره شد و فقط بخش پایانی آن نمایش داده می‌شود.'}
-    else{const code=(j.detail&&(j.detail.code||j.detail))||'save_failed';
-      WALLET_KEY_MSG=code==='invalid_bale_wallet_key_format'?'قالب کلید درست نیست.':code==='settings_encryption_not_configured'?'کلید رمزنگاری سرور تنظیم نشده؛ ذخیره انجام نشد.':'ذخیره انجام نشد.'}
-  }catch(err){WALLET_KEY_MSG='ارتباط با سرور برقرار نشد.'}
-  finally{WALLET_KEY_BUSY=false; if(input) input.value=''; renderBody()}
-}
-async function walletKeyClear(){
-  WALLET_KEY_BUSY=true;
-  try{
-    const r=await fetch(WALLET_KEY_API+'/bale-wallet',{method:'DELETE',credentials:'same-origin',
-      headers:{'X-CSRF-Token':walletCsrf(),Origin:location.origin}});
-    if(r.ok){const j=await r.json(); WALLET_KEY_STATE=j.bale_wallet; WALLET_KEY_MSG='کلید ذخیره‌شده حذف شد.'}
-    else WALLET_KEY_MSG='حذف انجام نشد.';
-  }catch(err){WALLET_KEY_MSG='ارتباط با سرور برقرار نشد.'}
-  finally{WALLET_KEY_BUSY=false; renderBody()}
-}
-function walletKeyCard(){
-  if(WALLET_KEY_STATE===null){WALLET_KEY_STATE={pending:true}; walletKeyLoad()}
-  const st=WALLET_KEY_STATE||{};
-  const status=st.pending?'در حال بارگذاری…':st.error?'وضعیت در دسترس نیست':st.configured
-    ?('ذخیره شده · پایان کلید: '+(st.hint||'…')+(st.source==='environment'?' (از تنظیمات سرور)':''))
-    :'هنوز کلیدی ذخیره نشده';
-  const ready=st.encryption_ready!==false;
-  return `<div class="admset" style="margin-bottom:10px" data-wallet-card>
-    <div class="admlirow"><span class="ic">${ico('i-wallet')}</span>
-      <span class="sp"><b>کیف پول بله · کلید API</b><small class="cap" style="display:block">${esc(status)}</small></span></div>
-    <div style="padding:8px 4px;display:flex;flex-direction:column;gap:8px">
-      <label class="cap" for="walletKeyInput">کلید کیف پول را وارد کنید (پس از ذخیره دیده نمی‌شود)</label>
-      <input id="walletKeyInput" type="password" autocomplete="off" spellcheck="false" dir="ltr"
-        ${ready&&!WALLET_KEY_BUSY?'':'disabled'} placeholder="کلید را وارد کنید" style="font:inherit;padding:8px;border-radius:8px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn sm" data-wallet-save ${ready&&!WALLET_KEY_BUSY?'':'disabled'}>${ico('i-check')} ذخیره کلید</button>
-        <button class="btn sm quiet" data-wallet-clear ${st.configured&&!WALLET_KEY_BUSY?'':'disabled'}>${ico('i-close')} حذف کلید ذخیره‌شده</button>
-      </div>
-      ${ready?'':'<p class="cap">کلید رمزنگاری سرور (NORA_SETTINGS_ENCRYPTION_KEY) تنظیم نشده؛ ذخیره غیرفعال است.</p>'}
-      ${WALLET_KEY_MSG?`<p class="cap" role="status">${esc(WALLET_KEY_MSG)}</p>`:''}
-    </div></div>`;
-}
-document.addEventListener('click',e=>{
-  if(e.target.closest&&e.target.closest('[data-wallet-save]')){e.preventDefault(); walletKeySave(); return}
-  if(e.target.closest&&e.target.closest('[data-wallet-clear]')){e.preventDefault(); walletKeyClear(); return}
-});
 function finView(){
   const FN=finC(), own=isOwner(), lead=isLead();
   const cur=S.finTab||(own?'gates':'receipts');
@@ -4558,7 +4501,7 @@ function finView(){
     `<button class="chip ${cur===t[0]?'on':''}" data-fintab="${t[0]}">${ico(t[2])}${esc(t[1])}</button>`).join('');
   let inner='';
   if(cur==='gates'){
-    inner=(own?walletKeyCard():'')+sdSect('درگاه‌های پرداخت نورا پی','تنظیمات نمایشی؛ اتصال واقعی نیازمند سرور است')+
+    inner=(own?walletSettingsLink():'')+sdSect('درگاه‌های پرداخت نورا پی','تنظیمات نمایشی؛ اتصال واقعی نیازمند سرور است')+
     `<p class="cap">${esc('تنظیم‌ها نمایشی‌اند؛ روشن‌کردن gate اتصال یا دریافت وجه ایجاد نمی‌کند. این صفحه کلید درگاه یا secret نمی‌پذیرد و به سرور واقعی وصل نیست.')}</p>`+
     finGates().map(g=>`<div class="admset" style="margin-bottom:10px"><div class="admlirow">
       <span class="ic">${ico(g.i||'i-wallet')}</span>
@@ -6251,35 +6194,360 @@ function serverUsersView(){
   return `<div class="stack">${userHubTabs()}${serverUnavailableModule(titles[view]||'کاربران',
     'API این زیربخش هنوز فعال نیست؛ اطلاعات محلی به‌عنوان رکورد واقعی نمایش داده نمی‌شود.',actions)}</div>`;
 }
+/* ══ اتصال سرویس‌ها · داده‌ها و مهاجرت ═══════════════════════════════════════
+   همهٔ مقادیر از API هم‌مبدأ خوانده می‌شوند. مقدار محرمانه هرگز به مرورگر
+   برنمی‌گردد: فرم فقط «جایگزینی» می‌نویسد، حذف عملیات جداگانه با تأیید است،
+   و مقدار خالی هرگز ذخیره یا حذف نمی‌کند. اعمال مجوز سمت سرور است؛ پنهان‌کردن
+   دکمه در این صفحه فقط برای خوانایی است و به‌تنهایی مرز دسترسی نیست. */
+const SERVICE_API='/api/owner/service-settings';
+let SERVICE_DATA=null,SERVICE_LOADING=false,SERVICE_ERROR='',SERVICE_BUSY='',SERVICE_MSG=null;
+let SERVICE_TAB='bale',SERVICE_CONFIRM='';
+/* پیش‌نویس همان ورودی، فقط در حافظهٔ همین صفحه؛ هرگز در localStorage یا DOM ذخیره نمی‌شود */
+const SERVICE_DRAFT={};
+
+function ownerCsrf(){const m=document.cookie.match(/(?:^|;\s*)nora_csrf=([^;]+)/);return m?decodeURIComponent(m[1]):''}
+function svcWhen(iso){
+  if(!iso) return '';
+  try{const d=new Date(iso); if(isNaN(d.getTime())) return '';
+    return d.toLocaleString('fa-IR',{dateStyle:'short',timeStyle:'short'})}catch(e){return ''}
+}
+function svcBytes(n){
+  n=Number(n)||0;
+  if(n>=1073741824) return fa((n/1073741824).toFixed(1))+' گیگابایت';
+  if(n>=1048576) return fa((n/1048576).toFixed(1))+' مگابایت';
+  if(n>=1024) return fa(Math.round(n/1024))+' کیلوبایت';
+  return fa(n)+' بایت';
+}
+function svcErrCode(payload){
+  const detail=payload&&payload.detail;
+  if(!detail) return '';
+  return typeof detail==='string'?detail:(detail.code||'');
+}
+function svcCodeText(code){
+  const map={
+    permission_denied:'فقط مالک یا مدیری که مجوز «تنظیمات سامانه» دارد می‌تواند این کار را انجام دهد.',
+    csrf_check_failed:'نشست معتبر نیست؛ صفحه را تازه کنید و دوباره وارد شوید.',
+    restart_acknowledgement_required:'پیش از تعویض توکن، کادر تأیید راه‌اندازی دوبارهٔ ربات را علامت بزنید.',
+    otp_pepper_required:'کلید پیامک فقط وقتی ذخیره می‌شود که NORA_OTP_PEPPER روی سرور تنظیم شده باشد؛ هش هویت باید مستقل از کلید باشد.',
+    settings_encryption_not_configured:'کلید رمزنگاری تنظیمات (NORA_SETTINGS_ENCRYPTION_KEY) روی سرور تنظیم نشده؛ ذخیره انجام نشد.',
+    invalid_bale_bot_token:'قالب توکن ربات درست نیست؛ مقدار ذخیره نشد.',
+    invalid_bale_wallet_key_format:'قالب کلید کیف پول درست نیست؛ مقدار ذخیره نشد.',
+    invalid_form_payment_provider_token:'توکن ارائه‌دهنده قالب درستی ندارد؛ ذخیره نشد.',
+    invalid_form_payment_webhook_secret:'راز وب‌هوک باید ۳۲ تا ۲۵۶ نویسهٔ چاپی باشد.',
+    empty_secret_value:'مقدار خالی ذخیره نمی‌شود؛ برای حذف از دکمهٔ «حذف مقدار ذخیره‌شده» استفاده کنید.',
+    invalid_service_secret_payload:'درخواست معتبر نبود؛ چیزی تغییر نکرد.',
+    secret_is_read_only:'این مقدار فقط نمایشی است و از پنل تغییر نمی‌کند.',
+    unknown_service_secret:'این کلید در فهرست سرویس‌ها وجود ندارد.',
+    connection_test_not_supported:'برای این مقدار آزمایش اتصال امن تعریف نشده است؛ «تنظیم‌شده» یعنی فقط مقدار ثبت شده و تأیید نشده.',
+    upload_not_found:'این نسخهٔ پشتیبان پیدا نشد؛ شاید منقضی یا حذف شده باشد.',
+    backup_not_sqlite:'فایل SQLite معتبر نیست؛ چیزی ذخیره نشد.',
+    backup_integrity_check_failed:'بررسی ساختاری SQLite ناموفق بود (quick_check)؛ فایل پذیرفته نشد.',
+    backup_too_large:'حجم فایل از سقف مجاز بیشتر است؛ ذخیره نشد.',
+    staging_quota_exceeded:'فضای staging پر است؛ ابتدا نسخه‌های قدیمی را حذف کنید.',
+    empty_backup_file:'فایل خالی است؛ ذخیره نشد.',
+    unsupported_backup_content_type:'نوع محتوای ارسالی پذیرفته نمی‌شود؛ فایل به‌صورت باینری بفرستید.',
+    upload_rate_limited:'تعداد بارگذاری در یک ساعت بیش از حد مجاز است؛ بعداً تلاش کنید.',
+    audit_tool_not_available:'ابزار ممیزی legacy روی سرور در دسترس نیست؛ ممیزی اجرا نشد.',
+    audit_run_failed:'اجرای ممیزی ناموفق بود؛ فایل دست‌نخورده باقی ماند.',
+    audit_tool_error:'ابزار ممیزی خطا داد؛ فایل دست‌نخورده باقی ماند.',
+    audit_report_unreadable:'گزارش ممیزی قابل خواندن نبود؛ فایل دست‌نخورده باقی ماند.',
+    audit_changed_the_file:'ممیزی checksum فایل را تغییر داد؛ نتیجه نامعتبر است و فایل باید حذف شود.',
+    upload_metadata_unreadable:'فرادادهٔ این نسخه خوانا نیست.',
+    invalid_backup_file:'فایل ارسالی معتبر نیست.'
+  };
+  return map[code]||'عملیات انجام نشد؛ چیزی تغییر نکرد.';
+}
+function svcService(key){return ((SERVICE_DATA&&SERVICE_DATA.services)||[]).find(item=>item.key===key)||null}
+function svcReadonly(env){
+  const bale=svcService('bale');
+  return bale?((bale.readonly||[]).find(item=>item.env_name===env)||null):null;
+}
+function svcStateTag(state){
+  const map={unconfigured:['تنظیم‌نشده','warn'],configured:['تنظیم‌شده · آزمایش‌نشده',''],verified:['آزمایش‌شده','ok'],failed:['آزمایش ناموفق','stop']};
+  const item=map[state]||['نامشخص',''];
+  return tag(item[0],item[1]);
+}
+async function serviceLoad(){
+  if(SERVICE_LOADING) return;
+  SERVICE_LOADING=true; SERVICE_ERROR='';
+  try{
+    const response=await fetch(SERVICE_API,{credentials:'same-origin',headers:{Accept:'application/json'}});
+    if(response.status===401||response.status===403){
+      SERVICE_ERROR='این بخش فقط با نشست مالک و مجوز «تنظیمات سامانه» در دسترس است.';
+    }else if(!response.ok){
+      SERVICE_ERROR='دریافت تنظیمات از سرور انجام نشد.';
+    }else{
+      SERVICE_DATA=await response.json();
+      if(!['bale','sms','payment'].includes(SERVICE_TAB)) SERVICE_TAB='bale';
+    }
+  }catch(e){SERVICE_ERROR='ارتباط با سرور برقرار نشد.'}
+  finally{SERVICE_LOADING=false; if(S.sec==='settings') renderBody()}
+}
+async function serviceSave(key){
+  const input=document.getElementById('svcInput_'+key);
+  const value=(input&&input.value||'').trim();
+  if(value) SERVICE_DRAFT[key]=value;
+  if(!value){
+    SERVICE_MSG={kind:'warn',text:'مقدار خالی ذخیره نمی‌شود. برای حذف مقدار ذخیره‌شده از دکمهٔ حذف استفاده کنید.'};
+    renderBody(); return;
+  }
+  const ack=document.getElementById('svcAck_'+key);
+  const payload={value};
+  if(ack){
+    if(!ack.checked){
+      SERVICE_MSG={kind:'warn',text:svcCodeText('restart_acknowledgement_required')};
+      renderBody(); return;
+    }
+    payload.acknowledge_restart=true;
+  }
+  SERVICE_BUSY=key; SERVICE_MSG=null; renderBody();
+  try{
+    const response=await fetch(SERVICE_API+'/'+encodeURIComponent(key),{
+      method:'PUT',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':ownerCsrf()},
+      body:JSON.stringify(payload)});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      SERVICE_DATA=data; delete SERVICE_DRAFT[key];
+      SERVICE_MSG={kind:'ok',text:'مقدار ذخیره شد و فقط بخش پایانی آن نمایش داده می‌شود. نتیجهٔ آزمایش قبلی باطل شد.'};
+    }else{
+      SERVICE_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){SERVICE_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی تغییر نکرد.'}}
+  finally{SERVICE_BUSY=''; if(input) input.value=''; renderBody()}
+}
+async function serviceTest(key){
+  SERVICE_BUSY=key; SERVICE_MSG=null; renderBody();
+  try{
+    const response=await fetch(SERVICE_API+'/'+encodeURIComponent(key)+'/test',{
+      method:'POST',credentials:'same-origin',
+      headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      if(data.check){
+        (SERVICE_DATA.services||[]).forEach(service=>{
+          (service.fields||[]).forEach(field=>{ if(field.key===key) field.check=data.check; });
+          service.state=(service.fields||[]).some(field=>field.check&&field.check.checked&&field.check.ok===false)?'failed':
+            ((service.fields||[]).length&&(service.fields||[]).filter(field=>field.configured).length&&
+             (service.fields||[]).filter(field=>field.configured).every(field=>field.check&&field.check.checked&&field.check.ok))?'verified':'configured';
+        });
+      }
+      SERVICE_MSG=data.ok
+        ?{kind:'ok',text:'آزمایش اتصال موفق بود: پاسخ فقط‌خواندنی getMe از بله دریافت شد؛ پیامی ارسال و پرداختی ایجاد نشد.'}
+        :{kind:'stop',text:'آزمایش اتصال ناموفق بود ('+(data.code||'unknown')+')؛ «تنظیم‌شده» به معنی «متصل» نیست.'};
+    }else{
+      SERVICE_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){SERVICE_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ نتیجه‌ای ثبت نشد.'}}
+  finally{SERVICE_BUSY=''; renderBody()}
+}
+async function serviceClear(key){
+  SERVICE_CONFIRM=''; SERVICE_BUSY=key; SERVICE_MSG=null; renderBody();
+  try{
+    const response=await fetch(SERVICE_API+'/'+encodeURIComponent(key),{
+      method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      SERVICE_DATA=data; delete SERVICE_DRAFT[key];
+      SERVICE_MSG={kind:'ok',text:'مقدار ذخیره‌شده حذف شد؛ اگر متغیر محیطی مقدار داشته باشد، دوباره اعمال می‌شود.'};
+    }else{
+      SERVICE_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){SERVICE_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی تغییر نکرد.'}}
+  finally{SERVICE_BUSY=''; renderBody()}
+}
+function serviceField(field){
+  const busy=SERVICE_BUSY===field.key;
+  const encryptionReady=!!(SERVICE_DATA&&SERVICE_DATA.encryption_ready);
+  const check=field.check||{checked:false,ok:null,code:'',checked_at:null};
+  const sourceText=field.source==='database'?'ذخیره‌شده در پایگاه، رمزنگاری‌شده':
+    field.source==='environment'?'فقط از متغیر محیطی سرور':'تنظیم‌نشده';
+  const blocked=Array.isArray(field.blocked_by)?field.blocked_by:[];
+  const checkText=!check.checked?'آزمایش نشده':(check.ok?'آزمایش موفق':'آزمایش ناموفق')+(check.checked_at?' · '+svcWhen(check.checked_at):'');
+  const confirm=SERVICE_CONFIRM===field.key?`<div class="admset" style="border-inline-start:3px solid var(--stop);padding:8px">
+      <p class="cap" style="margin:0 0 8px">با حذف این مقدار، نسخهٔ رمزنگاری‌شده پاک می‌شود و اگر متغیر محیطی مقدار داشته باشد همان اعمال می‌شود. این کار بازگشت‌پذیر نیست.</p>
+      <div class="row tight">${btn('بله، حذف کن','data-svc-clear-yes="'+esc(field.key)+'"','i-close')}
+        ${btn('انصراف','data-svc-clear-no','i-chev-right')}</div></div>`:'';
+  if(!field.editable){
+    return `<div class="admlirow"><span class="ic">${ico('i-lock')}</span>
+      <span class="sp"><b>${esc(field.label)}</b>
+        <small class="cap" style="display:block">${esc(field.help)}</small>
+        <small class="cap" dir="ltr" style="display:block">${esc(field.env_name)}</small></span>
+      ${field.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>`;
+  }
+  return `<div class="admset" data-svc-field="${esc(field.key)}" style="margin-bottom:10px">
+    <div class="admlirow"><span class="ic">${ico(field.probe?'i-check':'i-lock')}</span>
+      <span class="sp"><b>${esc(field.label)}</b>
+        <small class="cap" style="display:block">${esc(field.help)}</small>
+        <small class="cap" dir="ltr" style="display:block">${esc(field.env_name)}</small></span>
+      ${field.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>
+    <p class="cap" style="margin:6px 4px">منبع: ${esc(sourceText)}${field.hint?' · مقدار ذخیره‌شده: '+esc(field.hint):''}${field.updated_at?' · آخرین تغییر: '+svcWhen(field.updated_at):''}
+      · ${esc(checkText)}</p>
+    ${blocked.length?`<p class="cap" style="margin:6px 4px;color:var(--warn)">برای ذخیره، این متغیرهای مستقل باید روی سرور تنظیم شوند: <span dir="ltr">${esc(blocked.join(' · '))}</span></p>`:''}
+    <div style="padding:4px;display:flex;flex-direction:column;gap:8px">
+      <label class="cap" for="svcInput_${esc(field.key)}">${field.configured?'جایگزینی مقدار (مقدار فعلی نمایش داده نمی‌شود)':'مقدار جدید (پس از ذخیره هرگز برنمی‌گردد)'}</label>
+      <input id="svcInput_${esc(field.key)}" type="password" autocomplete="off" spellcheck="false" dir="ltr"
+        ${encryptionReady&&!busy?'':'disabled'} placeholder="مقدار جدید" style="font:inherit;padding:8px;border-radius:8px">
+      ${field.acknowledge_restart?`<label class="cap" style="display:flex;gap:6px;align-items:center">
+        <input id="svcAck_${esc(field.key)}" type="checkbox" ${busy?'disabled':''}>
+        تأیید می‌کنم ربات/سرویس با مقدار جدید راه‌اندازی دوباره می‌شود.</label>`:''}
+      <div class="row tight" style="flex-wrap:wrap">
+        <button class="btn sm" data-svc-save="${esc(field.key)}" ${encryptionReady&&!busy?'':'disabled'}>${ico('i-check')} ذخیره / جایگزینی</button>
+        ${field.probe?`<button class="btn sm quiet" data-svc-test="${esc(field.key)}" ${field.configured&&!busy?'':'disabled'}>${ico('i-refresh')} آزمایش اتصال</button>`:''}
+        ${field.source==='database'?`<button class="btn sm quiet" data-svc-clear="${esc(field.key)}" ${busy?'disabled':''}>${ico('i-close')} حذف مقدار ذخیره‌شده</button>`:''}
+      </div>
+      ${encryptionReady?'':'<p class="cap">کلید رمزنگاری (NORA_SETTINGS_ENCRYPTION_KEY) تنظیم نشده؛ ذخیره غیرفعال است و هیچ مقدار ساده‌ای ذخیره نمی‌شود.</p>'}
+      ${confirm}
+    </div></div>`;
+}
+function serviceTabs(){
+  const labels={bale:'بله و مینی‌اپ',sms:'پیامک و رمز یک‌بارمصرف',payment:'پرداخت و کیف پول'};
+  return ((SERVICE_DATA&&SERVICE_DATA.services)||[]).map(service=>
+    `<button class="chip ${SERVICE_TAB===service.key?'on':''}" data-svc-tab="${esc(service.key)}">
+      ${ico(service.icon||'i-send')}<span>${esc(service.title||labels[service.key]||service.key)}</span>
+      ${service.state==='verified'?'✓':''}</button>`).join('');
+}
+function servicesSettingsView(){
+  if(!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
+  if(!SERVICE_DATA&&!SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">اتصال سرویس‌ها</div>
+      <p class="cap">در حال دریافت وضعیت از سرور…</p></section>`;
+  }
+  if(SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">اتصال سرویس‌ها</div>
+      <p class="cap">${esc(SERVICE_ERROR)}</p>
+      <div class="row"><span class="sp"></span>${btn('تلاش دوباره','data-svc-reload','i-refresh')}</div></section>`;
+  }
+  const service=svcService(SERVICE_TAB)||(SERVICE_DATA.services||[])[0]||null;
+  if(!service) return `<section class="card stack" data-service-settings><div class="head">اتصال سرویس‌ها</div>
+    <p class="cap">سرویسی برای نمایش ثبت نشده است.</p></section>`;
+  const readonly=(service.readonly||[]).map(item=>`<div class="admlirow">
+      <span class="sp"><b>${esc(item.label)}</b>
+        <small class="cap" style="display:block">${esc(item.note||'')}</small>
+        <small class="cap" dir="ltr" style="display:block">${esc(item.env_name)}</small></span>
+      ${item.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}
+      <code dir="ltr" style="font-size:var(--fs-cap)">${esc(item.configured?(item.value||'-'):'-')}</code></div>`).join('');
+  return `<section class="card stack" data-service-settings>
+    <div class="row"><div class="head">اتصال سرویس‌ها</div><span class="sp"></span>
+      ${svcStateTag(service.state)}<button class="btn sm quiet" data-svc-reload>${ico('i-refresh')} بازخوانی</button></div>
+    <p class="cap">اعتبارنامه‌ها رمزنگاری‌شده در پایگاه ذخیره می‌شوند و هرگز از API برنمی‌گردند. مقدار خالی چیزی را حذف نمی‌کند؛ حذف فقط با تأیید و عملیات جداگانه انجام می‌شود. اعمال مجوز روی سرور است، نه در این صفحه.</p>
+    ${SERVICE_MSG?`<p class="cap" role="status" style="border-inline-start:3px solid var(--${SERVICE_MSG.kind==='ok'?'ok':SERVICE_MSG.kind==='stop'?'stop':'warn'});padding-inline-start:8px">${esc(SERVICE_MSG.text)}</p>`:''}
+    <div class="admfilters" role="tablist" aria-label="سرویس‌ها">${serviceTabs()}</div>
+    <div class="head">${esc(service.title)}</div>
+    <p class="cap">${esc(service.summary||'')}</p>
+    ${(service.fields||[]).map(serviceField).join('')}
+    ${readonly?`<details><summary class="cap">مقادیر فقط‌خواندنی این سرویس (از متغیرهای محیطی سرور)</summary>${readonly}</details>`:''}
+  </section>`;
+}
+function deploymentSettingsView(){
+  if(!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
+  if(!SERVICE_DATA&&!SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">دامنه و راه‌اندازی</div>
+      <p class="cap">در حال دریافت وضعیت از سرور…</p></section>`;
+  }
+  if(SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">دامنه و راه‌اندازی</div>
+      <p class="cap">${esc(SERVICE_ERROR)}</p>
+      <div class="row"><span class="sp"></span>${btn('تلاش دوباره','data-svc-reload','i-refresh')}</div></section>`;
+  }
+  const base=String(SERVICE_DATA.public_base_url||'').trim();
+  const https=/^https:\/\//i.test(base);
+  const baseState=!base?tag('تنظیم‌نشده','warn'):(https?tag('HTTPS','ok'):tag('بدون HTTPS','stop'));
+  const botToken=(svcService('bale')||{}).fields?(((svcService('bale')||{}).fields||[]).find(field=>field.key==='bale_bot')||{}):{};
+  const rows=[
+    ['نام کاربری عمومی ربات',svcReadonly('NORA_BALE_BOT_USERNAME')],
+    ['شناسه بله مالک',svcReadonly('NORA_OWNER_BALE_USER_ID')],
+    ['حداکثر عمر امضای مینی‌اپ',svcReadonly('NORA_BALE_INIT_DATA_MAX_AGE_SECONDS')],
+    ['توکن سرویس ربات ↔ سرور',svcReadonly('NORA_BOT_SERVICE_TOKEN')],
+    ['نشانی وب‌هوک پرداخت',svcReadonly('NORA_FORM_PAYMENT_WEBHOOK_URL')]
+  ].filter(item=>item[1]);
+  return `<section class="card stack" data-service-settings>
+    <div class="row"><div class="head">دامنه و راه‌اندازی</div><span class="sp"></span>${baseState}</div>
+    <div class="admlirow"><span class="ic">${ico('i-globe')}</span>
+      <span class="sp"><b>نشانی عمومی سامانه</b>
+        <small class="cap" dir="ltr" style="display:block">NORA_PUBLIC_BASE_URL</small></span>
+      <code dir="ltr">${esc(base||'-')}</code></div>
+    <p class="cap">${base?esc(https?'دامنه با HTTPS ثبت شده است؛ مینی‌اپ و بازگشت پرداخت به همین دامنه اشاره می‌کنند.':'نشانی ثبت‌شده HTTPS نیست؛ ورود مینی‌اپ و بازگشت پرداخت روی دامنهٔ ناامن رد می‌شود.'):'نشانی عمومی تنظیم نشده؛ لینک مینی‌اپ و بازگشت پرداخت ساخته نمی‌شود.'}</p>
+    <div class="head">وضعیت راه‌اندازی</div>
+    <div class="admlist">
+      <div class="admlirow"><span class="sp"><b>توکن ربات بله</b><small class="cap">برای اعتبارسنجی امضای مینی‌اپ</small></span>
+        ${botToken.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>
+      <div class="admlirow"><span class="sp"><b>کلید رمزنگاری تنظیمات</b><small class="cap" dir="ltr">NORA_SETTINGS_ENCRYPTION_KEY</small></span>
+        ${SERVICE_DATA.encryption_ready?tag('آماده','ok'):tag('تنظیم‌نشده','stop')}</div>
+      ${rows.map(item=>`<div class="admlirow"><span class="sp"><b>${esc(item[0])}</b>
+        <small class="cap" dir="ltr" style="display:block">${esc(item[1].env_name)}</small></span>
+        ${item[1].configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>`).join('')}
+    </div>
+    <p class="cap">این مقادیر از متغیرهای محیطی سرور خوانده می‌شوند و از پنل تغییر نمی‌کنند؛ چون ربات و فرایندهای دیگر هم آن‌ها را می‌خوانند، تغییرشان فقط با ویرایش امن .env و راه‌اندازی دوباره انجام می‌شود. مقدار محرمانه هرگز نمایش داده نمی‌شود.</p>
+  </section>`;
+}
+function securitySettingsView(){
+  const auth=SERVER_AUTH||{};
+  const role=auth.role||'';
+  const roleName=typeof roleDef==='function'?(roleDef(role).n||role):(role||'نامشخص');
+  const permissions=Array.isArray(auth.permissions)?auth.permissions.slice(0,40):[];
+  const permText=typeof rolePermissionsCopy==='function'?rolePermissionsCopy(role):'';
+  return `<section class="card stack">
+    <div class="head">امنیت و دسترسی‌ها</div>
+    <div class="admlirow"><span class="ic">${ico('i-shield')}</span>
+      <span class="sp"><b>${esc(roleName)}</b>
+        <small class="cap">${esc(permText||'فهرست مجوزها از سرور خوانده می‌شود')}</small></span>
+      ${tag(fa(permissions.length)+' مجوز','')}</div>
+    ${permissions.length?`<div class="row tight" style="flex-wrap:wrap">${permissions.map(code=>
+      `<span class="tag" dir="ltr">${esc(code)}</span>`).join('')}</div>`:''}
+    <p class="cap">مجوزها و نقش از پاسخ سرور خوانده می‌شوند و هر درخواست دوباره روی سرور بررسی می‌شود؛ پنهان‌شدن یک دکمه در این صفحه مجوز نمی‌سازد.</p>
+    <p class="cap">ذخیره، جایگزینی و حذف اعتبارنامه‌ها فقط برای مالک یا مدیر دارای مجوز <span dir="ltr">sys_settings</span> مجاز است و در گزارش سرور تنها با شناسهٔ سرویس، نوع عملیات، زمان، نتیجه و شناسهٔ مدیر ثبت می‌شود؛ مقدار محرمانه در گزارش نوشته نمی‌شود.</p>
+    <div class="row tight" style="flex-wrap:wrap">
+      ${canSec('users')?btn('حساب‌ها و نقش‌های سرور','data-server-role-module','i-user'):''}
+      ${canSec('users')?btn('پرونده‌ها و دسترسی کاربران','data-user-hub="users"','i-idcard'):''}</div>
+  </section>`;
+}document.addEventListener('click',e=>{
+  const hit=sel=>e.target.closest&&e.target.closest(sel);
+  if(hit('[data-svc-reload]')){e.preventDefault(); SERVICE_DATA=null; SERVICE_ERROR=''; SERVICE_MSG=null; serviceLoad(); return}
+  if(hit('[data-svc-tab]')){e.preventDefault(); SERVICE_TAB=hit('[data-svc-tab]').dataset.svcTab; SERVICE_MSG=null; SERVICE_CONFIRM='';
+    Object.keys(SERVICE_DRAFT).forEach(key=>delete SERVICE_DRAFT[key]); renderBody(); return}
+  if(hit('[data-svc-save]')){e.preventDefault(); serviceSave(hit('[data-svc-save]').dataset.svcSave); return}
+  if(hit('[data-svc-test]')){e.preventDefault(); serviceTest(hit('[data-svc-test]').dataset.svcTest); return}
+  if(hit('[data-svc-clear-yes]')){e.preventDefault(); serviceClear(hit('[data-svc-clear-yes]').dataset.svcClearYes); return}
+  if(hit('[data-svc-clear-no]')){e.preventDefault(); SERVICE_CONFIRM=''; renderBody(); return}
+  if(hit('[data-svc-clear]')){e.preventDefault(); SERVICE_CONFIRM=hit('[data-svc-clear]').dataset.svcClear; SERVICE_MSG=null; renderBody(); return}
+  if(hit('[data-goto-service-payment]')){e.preventDefault(); S.sec='settings'; S.setG='services'; SERVICE_TAB='payment'; SERVICE_MSG=null; render(); return}
+});
 function serverSettingsView(){
   const defs=[
-    ['publishing','محتوای عمومی و همکاری','i-globe',true],['bots','وضعیت بله و ایتا','i-send',true],
-    ['money','مالی و پرداخت','i-wallet',false],['cert','گواهینامه','i-medal',false],
-    ['ticket','بلیت','i-ticket',false],['notify','اعلان‌ها','i-bell',false],
-    ['texts','متن‌ها','i-doc',false],['data','داده و پشتیبان','i-layers',false],
-    ['performance','سلامت و سرعت','i-trend',false]
+    ['services','اتصال سرویس‌ها','i-send'],
+    ['deploy','دامنه و راه‌اندازی','i-globe'],
+    ['security','امنیت و دسترسی‌ها','i-shield'],
+    ['publishing','محتوای عمومی و همکاری','i-doc'],
+    ['bots','وضعیت پیام‌رسان','i-bell'],
+    ['performance','سلامت و سرعت','i-trend']
   ];
-  const selected=S.setG==='texts'?'publishing':defs.some(x=>x[0]===S.setG)?S.setG:'publishing';
+  const selected=S.setG==='texts'?'publishing':defs.some(x=>x[0]===S.setG)?S.setG:'services';
   if(S.setG!==selected){S.setG=selected;save()}
-  const tabs=defs.map(([key,title,icon,connected])=>`<button class="chip ${selected===key?'on':''}" data-setg="${key}">
-    ${ico(icon)}<span>${esc(title)}</span>${tag(connected?'API':'بدون API',connected?'ok':'warn')}</button>`).join('');
+  const tabs=defs.map(([key,title,icon])=>`<button class="chip ${selected===key?'on':''}" data-setg="${key}">
+    ${ico(icon)}<span>${esc(title)}</span></button>`).join('');
+  const canSettings=isOwner()||canPerm('sys_settings');
   let content='';
-  if(selected==='publishing') content=`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
+  if(selected==='services') content=canSettings?servicesSettingsView()
+    :serverUnavailableModule('اتصال سرویس‌ها','این بخش به مجوز «تنظیمات سامانه» نیاز دارد؛ بررسی مجوز و اعتبارسنجی مقدار سمت سرور انجام می‌شود.');
+  else if(selected==='deploy') content=canSettings?deploymentSettingsView()
+    :serverUnavailableModule('دامنه و راه‌اندازی','این بخش به مجوز «تنظیمات سامانه» نیاز دارد.');
+  else if(selected==='security') content=securitySettingsView();
+  else if(selected==='publishing') content=`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
   else if(selected==='bots') content=`<section class="card stack"><div class="row"><div class="head">وضعیت پیام‌رسان</div><span class="sp"></span>${tag('فقط وضعیت عمومی','warn')}</div>
     <p class="cap">وضعیت بله و ایتا از API هم‌مبدأ خوانده می‌شود. این صفحه secret نمی‌پذیرد؛ مشاهدهٔ اتصال به‌تنهایی ارسال را فعال نمی‌کند.</p>
     <div data-bot-status class="bot-status" role="status" aria-live="polite">وضعیت اتصال از سرور دریافت نشده است.</div>
     <div class="row"><span class="sp"></span>${btn('بازخوانی وضعیت','data-bot-refresh','i-refresh')}</div></section>`;
-  else content=serverUnavailableModule(defs.find(x=>x[0]===selected)?.[1]||'تنظیمات',
-    'API و مجوز سروری این ماژول هنوز به پنل متصل نشده‌اند؛ کلید، عدد و دادهٔ نمونه در این صفحه نمایش داده یا ذخیره نمی‌شود.');
+  else content=performanceSettingsView();
   const routes=`<section class="card stack"><div class="head">میان‌برهای سروری</div><div class="row" style="flex-wrap:wrap">
     <a class="btn sm" href="builder.html">فرم‌ساز و پاسخ‌های سروری</a>
     ${canSec('users')?`<button class="btn sm quiet" data-server-role-module>حساب‌ها و نقش‌های سرور</button>`:''}
     ${canPerm('rp_view')?`<button class="btn sm quiet" data-user-hub="reports">گزارش سرور</button>`:''}
   </div></section>`;
   return `<div class="stack"><section class="card stack"><div class="head">تنظیمات مالک</div>
-    <p class="cap">ماژول‌ها از هم جدا هستند؛ وضعیت هرکدام بر اساس endpoint سرور نشان داده می‌شود. APIِ متصل‌نشده با دادهٔ نمایشی پر نمی‌شود.</p>
+    <p class="cap">هر ماژول وضعیت خود را از API سرور می‌خواند؛ APIِ متصل‌نشده با دادهٔ نمایشی پر نمی‌شود. اعتبارنامه‌ها فقط در «اتصال سرویس‌ها» مدیریت می‌شوند.</p>
     <div class="admfilters" role="tablist" aria-label="ماژول‌های تنظیمات">${tabs}</div></section>
     ${content}${routes}</div>`;
 }
@@ -6366,6 +6634,7 @@ function renderBody(){
   if(publishing&&parking){publishing.hidden=true; if(publishing.parentElement!==parking) parking.appendChild(publishing)}
   bkLibSync(); if(AUD.on) AUD.tick++;
   const host=$('#admBody'); host.innerHTML=(IS_TEST?demoNote():'')+body();
+  Object.keys(SERVICE_DRAFT).forEach(key=>{const input=host.querySelector('#svcInput_'+key); if(input&&!input.value) input.value=SERVICE_DRAFT[key]});
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')
     &&!SERVER_REPORT_LOADING&&!SERVER_REPORT_ERROR
@@ -6379,6 +6648,7 @@ function renderBody(){
   if(publishing&&target&&isOwner()&&S.sec==='settings'&&S.setG==='publishing'){
     target.replaceWith(publishing); publishing.hidden=false;
   }
+  if(host.querySelector('[data-service-settings]')&&!SERVICE_LOADING&&!SERVICE_DATA&&!SERVICE_ERROR) serviceLoad();
   if(host.querySelector('[data-bot-status]')) loadBotStatus();
 }
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */

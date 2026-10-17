@@ -278,6 +278,19 @@ class PaymentSecretRecord(Base):
     )
 
 
+class ServiceCheckRecord(Base):
+    """Last real connection test for one service credential (no secret material)."""
+
+    __tablename__ = "service_checks"
+
+    storage_id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    ok: Mapped[bool] = mapped_column(nullable=False)
+    code: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    checked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class CooperationRequestRecord(Base):
     """Private, durable inbox entry submitted through the public cooperation form."""
 

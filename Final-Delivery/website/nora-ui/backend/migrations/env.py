@@ -17,7 +17,9 @@ from backend.models import Base  # noqa: E402
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # disable_existing_loggers=False: when migrations run inside the app process
+    # (local bootstrap), Alembic must not silence the application's own loggers.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 settings = Settings.from_env()
 if not settings.database_url:
