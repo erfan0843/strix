@@ -33,7 +33,7 @@ const content = {
   people: [], articles: [], partners: [], banners: [], library: [], cooperation: []
 };
 
-async function load(query = '', { events = content.events, fixtureMode = false, file = 'events.html' } = {}) {
+async function load(query = '', { events = content.events, fixtureMode = false, file = 'events.html', siteContentStatus = 200 } = {}) {
   const errors = [], network = [];
   const url = pathToFileURL(DIR + file).href + query;
   const dom = await JSDOM.fromFile(DIR + file, {
@@ -45,7 +45,7 @@ async function load(query = '', { events = content.events, fixtureMode = false, 
       w.__NORA_TEST_FIXTURE_MODE__ = fixtureMode;
       w.fetch = async path => {
         network.push(String(path));
-        if (String(path) === '/api/public/site-content') return { ok: true, json: async () => ({ content: { ...content, events } }) };
+        if (String(path) === '/api/public/site-content') return { ok: siteContentStatus === 200, status: siteContentStatus, json: async () => ({ content: { ...content, events } }) };
         throw new Error('network disabled: ' + path);
       };
       w.addEventListener('error', e => errors.push('error: ' + (e.message || '')));
@@ -223,10 +223,19 @@ function ok(condition, label) {
 /* ۹) نسخهٔ فایل‌ها در صفحه */
 {
   const html = fs.readFileSync(DIR + 'events.html', 'utf8');
-  ok(html.includes('events-page.js?v=101') && html.includes('events-page.css?v=101'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
+  ok(html.includes('events-page.js?v=102') && html.includes('events-page.css?v=101'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
   ok(/__NORA_TEST_FIXTURE_MODE__===true\)document\.write/.test(html), 'data.js فقط در حالت آزمون صریح');
   const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
   ok(detail.includes('event-page.js?v=101'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته است');
+}
+
+/* ۱۱) خطای API (مثلاً ۵۰۳): صفحهٔ رویدادها «منتشر نشده» نمی‌گوید؛ نبودِ دسترسی به سرور را روشن می‌گوید */
+{
+  const p = await load('', { events: [] , siteContentStatus: 503 });
+  ok(p.window.NORA_PUBLIC_SOURCE === 'unavailable', 'منبع محتوای عمومی در خطای سرور unavailable است');
+  ok(/دسترسی نیست/.test(p.txt('#eventsEmptyMessage')) && !/منتشر نشده/.test(p.txt('#eventsEmptyMessage')), 'پیام خالی‌بودن فهرست، خطای سرور را با «رویدادی منتشر نشده» اشتباه نمی‌گیرد');
+  ok(p.errors.length === 0, 'بدون خطای JavaScript');
+  p.window.close();
 }
 
 /* ۱۰) کلید شب/روز در صفحه‌هایی که initUI را صدا نمی‌زنند هم واقعاً کار می‌کند (ui.js آن را یک‌جا وصل می‌کند) */

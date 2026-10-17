@@ -318,7 +318,9 @@
     count.textContent = visible.length
       ? `${fa(visible.length)} رویداد${statusLabel}${facetLabel}`
       : 'نتیجه‌ای پیدا نشد';
-    if (!records.length) $('#eventsEmptyMessage').textContent = 'در حال حاضر رویدادی در فهرست عمومی منتشر نشده است.';
+    if (!records.length) $('#eventsEmptyMessage').textContent = root.NORA_PUBLIC_SOURCE === 'unavailable'
+      ? 'به پایگاه عمومی سرور دسترسی نیست؛ فهرست رویدادها فعلاً قابل نمایش نیست. کمی بعد دوباره تلاش کن.'
+      : 'در حال حاضر رویدادی در فهرست عمومی منتشر نشده است.';
     else $('#eventsEmptyMessage').textContent = state.query || state.kind || state.mode ? 'واژهٔ جست‌وجو یا صافی‌ها را تغییر دهید.' : 'برای این وضعیت رویدادی در دسترس نیست.';
     root.document.querySelectorAll('[data-event-filter]').forEach(button => {
       const active = button.dataset.eventFilter === state.status;
