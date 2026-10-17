@@ -213,14 +213,17 @@ class AccountIdentity:
     provider: str = "bale"
 
 
-def _payment_cfg(db: Session, cfg: Settings) -> Settings:
-    """Return settings with every owner-saved credential overlaid (one source of truth)."""
-    return service_settings_mod.effective_settings(db, cfg)
-
-
 def _runtime_settings(db: Session, cfg: Settings) -> Settings:
-    """Settings as the web process should actually use them right now."""
+    """Settings as the web process must use them right now.
+
+    ``app.state.settings`` is the raw environment snapshot. Every path that
+    depends on a credential or on a readiness flag derived from one (mini-app
+    auth, OTP, payment readiness, invoice creation, webhook path and secret)
+    reads through this overlay so a value saved in the encrypted store is the
+    operative value, not merely a stored one.
+    """
     return service_settings_mod.effective_settings(db, cfg)
+
 
 
 def _utc_now() -> datetime:
@@ -1767,6 +1770,7 @@ def create_app(
                 db.execute(text("SELECT 1 FROM admin_tasks LIMIT 1"))
                 db.execute(text("SELECT 1 FROM user_notifications LIMIT 1"))
                 db.execute(text("SELECT 1 FROM private_files LIMIT 1"))
+                payments_ready = _runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         except SQLAlchemyError:
             return JSONResponse(
                 {
@@ -1791,16 +1795,24 @@ def create_app(
             "workflowEnabled": True,
             "notificationQueueEnabled": True,
             "privateFileStorageEnabled": True,
-            "formBalePaymentsReady": request.app.state.settings.form_bale_payments_ready,
+            "formBalePaymentsReady": payments_ready,
         }
 
     @app.get("/api/public/forms/capabilities")
     def form_capabilities(request: Request):
         """Read-only, secret-free feature contract for the web form builder."""
         cfg: Settings = request.app.state.settings
+        factory = request.app.state.session_factory
+        bale_wallet_ready = False
+        if factory is not None:
+            try:
+                with factory() as db:
+                    bale_wallet_ready = _runtime_settings(db, cfg).form_bale_payments_ready
+            except SQLAlchemyError:
+                bale_wallet_ready = False
         return public_form_capabilities(
-            api_configured=request.app.state.session_factory is not None,
-            bale_wallet_ready=cfg.form_bale_payments_ready,
+            api_configured=factory is not None,
+            bale_wallet_ready=bale_wallet_ready,
         )
 
     def _site_content_response(
@@ -1814,7 +1826,7 @@ def create_app(
                 ).get("banners", [])
             except SiteContentError:
                 public["banners"] = []
-        cfg: Settings = app.state.settings
+        cfg: Settings = _runtime_settings(db, app.state.settings)
         published_forms: Sequence[FormRecord] = db.scalars(
             select(FormRecord)
             .options(selectinload(FormRecord.fields))
@@ -4380,7 +4392,7 @@ def create_app(
         """Explain publish blockers without changing the form or its status."""
         record = get_owned_form(db, identity.owner_id, form_id)
         issues = publication_issues(
-            record, bale_ready=request.app.state.settings.form_bale_payments_ready
+            record, bale_ready=_runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         )
         publishable_status = record.status in {"draft", "paused"}
         return {
@@ -4840,7 +4852,7 @@ def create_app(
         identity: OwnerIdentity = Depends(require_owner_write),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         record = get_owned_form(db, identity.owner_id, form_id)
         validate_expected_version(payload, record)
@@ -4910,7 +4922,7 @@ def create_app(
         request: Request,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
         accepted, waitlisted = _response_counts(db, form_id)
         if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form_id), waitlisted):
@@ -4929,7 +4941,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if (
             not isinstance(payload, dict)
@@ -5031,7 +5043,7 @@ def create_app(
             raise HTTPException(410, detail={"code": "form_full"})
 
         try:
-            webhook_info = await asyncio.to_thread(call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {})
+            webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
             webhook_result = webhook_info.get("result")
             configured_webhook = (
                 webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
@@ -5044,12 +5056,12 @@ def create_app(
                     raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
                 await asyncio.to_thread(
                     call_bale_payment_api,
-                    _payment_cfg(db, cfg),
+                    cfg,
                     "setWebhook",
                     {"url": registered_webhook_url},
                 )
                 verified_webhook_info = await asyncio.to_thread(
-                    call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {}
+                    call_bale_payment_api, cfg, "getWebhookInfo", {}
                 )
                 verified_result = verified_webhook_info.get("result")
                 verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
@@ -5061,7 +5073,7 @@ def create_app(
             description = f"پرداخت ثبت‌نام: {str(form.title or 'فرم')[:200]}"[:255]
             invoice_response = await asyncio.to_thread(
                 call_bale_payment_api,
-                _payment_cfg(db, cfg),
+                cfg,
                 "createInvoiceLink",
                 {
                     "title": title,
@@ -5204,7 +5216,7 @@ def create_app(
         request: Request,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.form_bale_payments_ready:
             raise HTTPException(503, detail={"code": "bale_payment_not_configured"})
         if not constant_time_equal(webhook_token, _form_payment_webhook_token(cfg)):
@@ -5254,7 +5266,7 @@ def create_app(
                 answer["error_message"] = "این صورت‌حساب منقضی یا نامعتبر است؛ دوباره از فرم شروع کنید."
             try:
                 await asyncio.to_thread(
-                    call_bale_payment_api, _payment_cfg(db, cfg), "answerPreCheckoutQuery", answer
+                    call_bale_payment_api, cfg, "answerPreCheckoutQuery", answer
                 )
             except BalePaymentAPIError as error:
                 raise HTTPException(503, detail={"code": error.code}) from None
@@ -5315,7 +5327,7 @@ def create_app(
         try:
             inquiry = await asyncio.to_thread(
                 call_bale_payment_api,
-                _payment_cfg(db, cfg),
+                cfg,
                 "inquireTransaction",
                 {"transaction_id": transaction_id},
             )
@@ -5518,7 +5530,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         """List only currently open, publishable, free forms for the Bale bot."""
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         records = db.scalars(
             select(FormRecord)
             .options(selectinload(FormRecord.fields))
@@ -5779,7 +5791,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_draft_payload")
@@ -5840,7 +5852,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_draft_payload")
@@ -5880,7 +5892,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         identity_keys = {"bale_user_id", "session_key", "field_id"}
         set_answer = set(payload) == identity_keys | {"value"}
@@ -5965,7 +5977,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_response_payload")
@@ -6252,7 +6264,7 @@ def create_app(
         response: Response,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
         enforce_public_write_limit(request, db, form_id, cfg, cfg.response_draft_write_limit_per_minute)
         _cleanup_expired_public_drafts(db)
@@ -6315,7 +6327,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) not in ({"answers"}, {"answers", "companions"}):
             raise HTTPException(400, "invalid_draft_payload")
@@ -6368,7 +6380,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         allowed_response_keys = {"answers"}
         if not isinstance(payload, dict) or "answers" not in payload:
@@ -6974,6 +6986,7 @@ def create_app(
         else:
             try:
                 with factory() as db:
+                    cfg = _runtime_settings(db, cfg)
                     form = db.scalar(
                         select(FormRecord)
                         .options(selectinload(FormRecord.fields))

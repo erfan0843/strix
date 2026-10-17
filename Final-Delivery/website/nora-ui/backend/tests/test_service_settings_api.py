@@ -237,7 +237,7 @@ def test_empty_or_invalid_values_are_refused_without_touching_storage(settings_e
     headers = owner_headers(client)
     for payload, expected in (
         ({"value": "   "}, "empty_secret_value"),
-        ({"value": "not-a-token"}, "invalid_bale_wallet_key_format"),
+        ({"value": "not-a-token"}, "invalid_payment_bot_token"),
         ({"value": WALLET_TOKEN, "extra": 1}, "invalid_service_secret_payload"),
     ):
         response = client.put(

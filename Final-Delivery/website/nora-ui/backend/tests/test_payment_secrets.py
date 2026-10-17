@@ -127,7 +127,7 @@ def test_invalid_format_is_rejected(client):
     login(client)
     response = client.put(WALLET_URL, json={"value": "not-a-key"}, headers=write_headers(client))
     assert response.status_code == 422
-    assert response.json()["detail"] == "invalid_bale_wallet_key_format"
+    assert response.json()["detail"] == "invalid_payment_bot_token"
 
 
 def test_save_refused_without_encryption_key(client, monkeypatch):
@@ -178,7 +178,7 @@ def test_legacy_payment_settings_endpoints_are_gone(client):
 def test_payment_config_prefers_saved_key(client, engine):
     from sqlalchemy.orm import Session
 
-    from backend.app import _payment_cfg
+    from backend.app import _runtime_settings as _payment_cfg
     from backend.config import Settings as _S
     from backend.secret_box import encrypt_secret
 

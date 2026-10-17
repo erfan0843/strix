@@ -27,6 +27,27 @@ Security contract
 * Rotating the Safir key is refused unless ``NORA_OTP_PEPPER`` is set
   independently: otherwise the pepper was derived from the old key at start-up
   and the next restart would silently invalidate every phone identity.
+
+Scope of a stored value
+-----------------------
+A value saved here changes **the web backend only** (``effective_settings`` is
+what every web consumer reads). The legacy bot is a separate process with its
+own ``bale-bot.env`` (``BOT_TOKEN``, ``SAFIR_*``); nothing here rewrites that
+file or restarts that process. Every editable field therefore carries a
+``consumers`` list and the panel shows it, so "rotated from the panel" is never
+mistaken for "rotated everywhere".
+
+Payment token contract
+----------------------
+Two different credentials are involved and are never copied into one another:
+
+* ``NORA_FORM_PAYMENT_BOT_TOKEN`` - Bot API token of the dedicated payment bot
+  (``<digits>:<secret>``). Used as ``/bot<token>/`` in every payment API call
+  and as HMAC material for the webhook path.
+* ``NORA_FORM_PAYMENT_PROVIDER_TOKEN`` - Bale wallet *provider token* passed as
+  ``provider_token`` in ``createInvoiceLink``. Any printable value except one
+  shaped like a Bot API token, which is refused so a bot token cannot be pasted
+  into the wrong field.
 """
 
 from __future__ import annotations
@@ -38,7 +59,9 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
-from .config import Settings
+from sqlalchemy import select
+
+from .config import Settings, _valid_form_payment_webhook_url
 from .models import PaymentSecretRecord, ServiceCheckRecord
 from .secret_box import (
     SecretBoxError,
@@ -77,6 +100,11 @@ class SecretSpec:
     requires_env: tuple[str, ...] = ()
     acknowledge_restart: bool = False
     probe: str = "none"
+    # Processes that read this credential. "web" is always served from the
+    # encrypted store; "bot" means the legacy bot reads its *own* env file and
+    # is NOT updated by saving here.
+    consumers: tuple[str, ...] = ("web",)
+    bot_env_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -113,13 +141,16 @@ SERVICES: Final = (
                 env_name="NORA_BALE_BOT_TOKEN",
                 label="توکن ربات اصلی",
                 help_text=(
-                    "همین توکن، امضای initData مینی‌اپ را اعتبارسنجی می‌کند. "
-                    "پس از تعویض، ربات هم باید با همان مقدار راه‌اندازی شود."
+                    "همین توکن، امضای initData مینی‌اپ را در وب اعتبارسنجی می‌کند. "
+                    "ربات legacy همین توکن را از BOT_TOKEN در فایل محیطی خودش می‌خواند؛ "
+                    "ذخیره در این‌جا آن فایل را تغییر نمی‌دهد و ربات باید جداگانه به‌روز و راه‌اندازی شود."
                 ),
                 pattern=BOT_TOKEN_RE,
                 invalid_code="invalid_bale_bot_token",
                 acknowledge_restart=True,
                 probe="bale_get_me",
+                consumers=("web", "bot"),
+                bot_env_name="BOT_TOKEN",
             ),
         ),
         readonly=(
@@ -149,6 +180,8 @@ SERVICES: Final = (
                 pattern=SAFIR_KEY_RE,
                 invalid_code="invalid_safir_api_key",
                 requires_env=("NORA_OTP_PEPPER",),
+                consumers=("web", "bot"),
+                bot_env_name="SAFIR_API_KEY",
             ),
         ),
         readonly=(
@@ -164,24 +197,32 @@ SERVICES: Final = (
         key="payment",
         title="پرداخت و کیف پول",
         icon="i-wallet",
-        summary="توکن کیف پول بله، توکن ارائه‌دهنده و راز وب‌هوک",
+        summary="توکن ربات پرداخت، توکن پرداخت کیف پول بله (Provider Token) و راز وب‌هوک",
         secrets=(
             SecretSpec(
                 storage_id="bale_wallet",
                 attribute="form_payment_bot_token",
                 env_name="NORA_FORM_PAYMENT_BOT_TOKEN",
-                label="توکن کیف پول بله",
-                help_text="همان شناسه‌ای که پرداخت‌های فرم با آن ساخته می‌شود.",
+                label="توکن ربات پرداخت",
+                help_text=(
+                    "توکن Bot API رباتِ مستقل پرداخت به شکل «شناسه:رمز». با همین توکن "
+                    "createInvoiceLink و وب‌هوک پرداخت فراخوانی می‌شود. این توکن کیف پول نیست و "
+                    "با توکن ربات اصلی هم یکی نیست."
+                ),
                 pattern=BOT_TOKEN_RE,
-                invalid_code="invalid_bale_wallet_key_format",
+                invalid_code="invalid_payment_bot_token",
                 probe="bale_get_me",
             ),
             SecretSpec(
                 storage_id="payment_provider",
                 attribute="form_payment_provider_token",
                 env_name="NORA_FORM_PAYMENT_PROVIDER_TOKEN",
-                label="توکن ارائه‌دهندهٔ پرداخت",
-                help_text="فقط اگر ارائه‌دهنده توکن جدا بدهد؛ خالی‌بودن یعنی از توکن کیف پول استفاده شود.",
+                label="توکن پرداخت کیف پول بله / Provider Token",
+                help_text=(
+                    "توکنی که کیف پول بله به ارائه‌دهنده می‌دهد و در فیلد provider_token "
+                    "هر صورت‌حساب می‌نشیند. برای پرداخت الزامی است؛ هیچ مقداری از توکن ربات "
+                    "به این‌جا کپی نمی‌شود و توکنی با شکل Bot API پذیرفته نمی‌شود."
+                ),
                 pattern=PRINTABLE_RE,
                 invalid_code="invalid_form_payment_provider_token",
             ),
@@ -254,16 +295,61 @@ def effective_settings(db: Session, cfg: Settings) -> Settings:
     ignored (the environment value is used) instead of failing the request, so a
     rotated encryption key never takes the whole site down.
     """
+    editable_ids = [storage_id for storage_id, secret in SECRETS_BY_ID.items() if secret.editable]
+    records = db.scalars(
+        select(PaymentSecretRecord).where(PaymentSecretRecord.id.in_(editable_ids))
+    ).all()
     updates: dict[str, Any] = {}
-    for storage_id, secret in SECRETS_BY_ID.items():
-        if not secret.editable:
+    for record in records:
+        secret = SECRETS_BY_ID.get(record.id)
+        if secret is None:
             continue
-        value = _stored_value(db, storage_id)
+        try:
+            value = decrypt_secret(record.ciphertext)
+        except SecretBoxError:
+            continue
         if value:
             updates[secret.attribute] = value
     if not updates:
         return cfg
     return replace(cfg, **updates)
+
+
+def runtime_readiness(service_key: str, effective: Settings) -> dict[str, object]:
+    """What the web process can really do with the *effective* values.
+
+    Derived from the same Settings the endpoints consume, never from "a field
+    has a value". ``missing`` lists env names (or storage keys) still required.
+    """
+    if service_key == "bale":
+        missing: list[str] = [] if effective.bale_bot_token else ["NORA_BALE_BOT_TOKEN"]
+        return {"ready": not missing, "missing": missing, "scope": "web"}
+    if service_key == "sms":
+        missing = [
+            name
+            for name, attribute in (
+                ("SAFIR_API_KEY", "safir_api_key"),
+                ("SAFIR_BOT_ID", "safir_bot_id"),
+                ("NORA_OTP_PEPPER", "otp_pepper"),
+            )
+            if not _cfg_has(effective, attribute)
+        ]
+        return {"ready": not missing, "missing": missing, "scope": "web"}
+    if service_key == "payment":
+        gaps: list[str] = []
+        if not BOT_TOKEN_RE.fullmatch(effective.form_payment_bot_token or ""):
+            gaps.append("NORA_FORM_PAYMENT_BOT_TOKEN")
+        if not PRINTABLE_RE.fullmatch(effective.form_payment_provider_token or ""):
+            gaps.append("NORA_FORM_PAYMENT_PROVIDER_TOKEN")
+        if not WEBHOOK_SECRET_RE.fullmatch(effective.form_payment_webhook_secret or ""):
+            gaps.append("NORA_FORM_PAYMENT_WEBHOOK_SECRET")
+        if not _valid_form_payment_webhook_url(effective.form_payment_webhook_url):
+            gaps.append("NORA_FORM_PAYMENT_WEBHOOK_URL")
+        ready = effective.form_bale_payments_ready
+        if not ready and not gaps:
+            gaps.append("NORA_FORM_PAYMENT_TIMEOUT_SECONDS")
+        return {"ready": ready, "missing": gaps, "scope": "web"}
+    return {"ready": False, "missing": [], "scope": "web"}
 
 
 def _check_state(db: Session, storage_id: str) -> ServiceCheckRecord | None:
@@ -303,6 +389,8 @@ def _field_status(db: Session, secret: SecretSpec, cfg: Settings) -> dict[str, o
         "editable": secret.editable,
         "acknowledge_restart": secret.acknowledge_restart,
         "probe": secret.probe,
+        "consumers": list(secret.consumers),
+        "bot_env_name": secret.bot_env_name,
         "configured": record is not None or env_set,
         "source": "database" if record is not None else ("environment" if env_set else "none"),
         "hint": record.hint if record is not None else "",
@@ -333,6 +421,7 @@ def _service_state(fields: list[dict[str, object]]) -> str:
 def status_payload(db: Session, cfg: Settings) -> dict[str, object]:
     """Describe every service without ever returning a secret value."""
     services = []
+    effective = effective_settings(db, cfg)
     for service in SERVICES:
         fields = [_field_status(db, secret, cfg) for secret in service.secrets]
         readonly = []
@@ -361,6 +450,7 @@ def status_payload(db: Session, cfg: Settings) -> dict[str, object]:
                 "icon": service.icon,
                 "summary": service.summary,
                 "state": _service_state(fields),
+                "runtime": runtime_readiness(service.key, effective),
                 "fields": fields,
                 "readonly": readonly,
             }
@@ -381,6 +471,8 @@ def validate_secret(db: Session, secret: SecretSpec, value: str, cfg: Settings |
         raise ValueError("secret_is_read_only")
     if not secret.pattern.fullmatch(cleaned):
         raise ValueError(secret.invalid_code)
+    if secret.storage_id == "payment_provider" and BOT_TOKEN_RE.fullmatch(cleaned):
+        raise ValueError("provider_token_must_not_be_bot_token")
     if cfg is not None:
         missing = [name for name, attribute in _required_attributes(secret) if not _cfg_has(cfg, attribute)]
         if missing:
