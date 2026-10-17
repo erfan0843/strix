@@ -14,6 +14,8 @@ function check(condition, label) {
   else { failed++; console.error(`✗ ${label}`); }
 }
 
+/* یک PNG یک‌پیکسلی معتبر؛ فقط برای این‌که قرارداد data URI سرور شبیه‌سازی شود. */
+const CAPTCHA_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 function reply(status, body = {}) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
@@ -53,7 +55,7 @@ async function load({ routes = {}, cookie = '', url = 'https://nora.test/login.h
       if (!queue.length) throw new Error(`No mocked response left for ${path}`);
       return queue.shift();
     }
-    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"></svg>', expires_in: 180 });
+    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: CAPTCHA_PNG, expires_in: 180 });
     if (path === '/api/auth/me' || path === '/api/account/me') return unauthorized();
     throw new Error(`No mocked response for ${path}`);
   };
@@ -175,6 +177,73 @@ console.log('\n— درخواست و تأیید OTP پیامکی Safir —');
   check(p.doc.querySelector('#lgContinue')?.getAttribute('href') === 'account.html', 'عضو به حساب خود می‌رود، نه پنل مدیریت');
   check(p.storageOps.length === 0, 'شماره، کد یا نشست در localStorage ذخیره نمی‌شود');
   p.dom.window.close();
+}
+
+console.log('\n— مسیر پیوند حساب: بازگشت پس از ورود با شماره —');
+{
+  /* کاربری که از مسیر پیوند حساب (`account.html?link=bale`) به ورود آمده باید
+     پس از تأیید شماره به همان مسیر برگردد؛ وگرنه نشانهٔ مسیر گم می‌شود و صفحه
+     ورود خودکار مینی‌اپ را دوباره فعال می‌کند. */
+  const phoneRoutes = () => ({
+    '/api/auth/phone-otp/request': [reply(200, { accepted: true, challenge_id: 'link-challenge', expires_in: 180, resend_in: 90 })],
+    '/api/auth/phone-otp/verify': [reply(200, { authenticated: true, account_id: 'phone-link', provider: 'phone' })],
+    '/api/account/me': [unauthorized(), reply(200, {
+      authenticated: true, account_id: 'phone-link', provider: 'phone', role: null, permissions: [],
+    })],
+  });
+  const drive = async (p) => {
+    p.fill('#lgPhone', '۰۹۱۲۳۴۵۶۷۸۹');
+    p.fill('#lgCapAnswer', '4321');
+    p.submit('#lgPhoneForm');
+    await delay(8);
+    p.fill('#lgOtpCode', '004271');
+    p.submit('#lgPhoneCodeForm');
+    await delay(10);
+    return p.doc.querySelector('#lgContinue')?.getAttribute('href') || '';
+  };
+
+  const marker = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%3Flink%3Dbale',
+    routes: phoneRoutes(),
+  });
+  check(await drive(marker) === 'account.html?link=bale',
+    'نشانهٔ مسیر پیوند از ورود با شماره جان سالم می‌برد و کاربر به همان مسیر برمی‌گردد');
+  check(marker.storageOps.length === 0, 'در مسیر پیوند هم هیچ داده‌ای در localStorage نمی‌نشیند');
+  marker.dom.window.close();
+
+  /* هر پرس‌وجوی دیگری هنوز رد می‌شود؛ محافظت مسیر بازگشت شل نشده است. */
+  const foreign = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%3Fbad%3D1',
+    routes: phoneRoutes(),
+  });
+  check(await drive(foreign) === 'account.html',
+    'پرس‌وجوی ناشناس در نشانی بازگشت پذیرفته نمی‌شود و مسیر پیش‌فرض می‌ماند');
+  foreign.dom.window.close();
+
+  const otherHash = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%23notifications',
+    routes: phoneRoutes(),
+  });
+  check(await drive(otherHash) === 'account.html#notifications',
+    'بازگشت به بخش‌های حساب همچنان کار می‌کند');
+  otherHash.dom.window.close();
+
+  /* مقصد «پرداخت‌ها» (نورا پی) هم باید بعد از ورود حفظ شود؛ مقصد ناشناخته همچنان به حساب برمی‌گردد. */
+  const payments = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%23payments',
+    routes: phoneRoutes(),
+  });
+  check(await drive(payments) === 'account.html#payments',
+    'ورود از مسیر نورا پی کاربر را به همان بخش پرداخت‌ها برمی‌گرداند');
+  payments.dom.window.close();
+
+  const unknownHash = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%23wallet-topup',
+    routes: phoneRoutes(),
+  });
+  check(await drive(unknownHash) === 'account.html',
+    'بخش ناشناخته در نشانی بازگشت پذیرفته نمی‌شود و به صفحهٔ حساب می‌افتد');
+  unknownHash.dom.window.close();
 }
 
 console.log('\n— خطاهای API بدون fallback محلی —');
@@ -369,6 +438,29 @@ console.log('\n— تفکیک هویت Bale از ورود شماره‌ای —'
   } });
   check(!!p.doc.querySelector('#lgAuthenticated') && p.text('#lgAuthenticated').includes('ورود با بله تأیید شد'), 'فقط نشست server-side با provider=bale با هویت بله معرفی می‌شود');
   p.dom.window.close();
+}
+
+console.log('\n— تصویر کپچا فقط PNG رستری است و پاسخ در DOM نیست —');
+{
+  const p = await load({});
+  await delay(6);
+  const pic = p.doc.querySelector('#lgCapImg img.lg-cap-pic');
+  check(!!pic && pic.getAttribute('src') === CAPTCHA_PNG && pic.getAttribute('alt') === '',
+    'کپچای سرور به‌صورت <img> با data URI نمایش داده می‌شود');
+  check(!p.doc.querySelector('#lgCapImg svg, #lgCapImg text') && p.text('#lgCapImg').trim() === ''
+      && !/[0-9]/.test(p.doc.querySelector('#lgCapImg').innerHTML.replace(/src="[^"]*"/, '').replace(/width="180" height="60"/, '')),
+    'هیچ رقم یا متنی از پاسخ کپچا در DOM قابل خواندن نیست');
+  check(!script.includes('captcha_answer:') || !/captcha_answer:\s*['"][0-9]{4}['"]/.test(script),
+    'پاسخ کپچا در کد کلاینت ثابت نشده است');
+  p.dom.window.close();
+
+  const markup = await load({ routes: {
+    '/api/auth/captcha': [reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"><text>1234</text></svg>', expires_in: 180 })],
+  } });
+  await delay(6);
+  check(!markup.doc.querySelector('#lgCapImg svg') && markup.text('#lgCapImg').includes('کد امنیتی بارگذاری نشد'),
+    'پاسخ غیر PNG (markup) تزریق نمی‌شود و به‌عنوان خطای بارگذاری برخورد می‌شود');
+  markup.dom.window.close();
 }
 
 console.log('\n— شکست بارگذاری کپچا بدون اسپینر ماندگار —');

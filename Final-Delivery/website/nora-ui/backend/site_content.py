@@ -308,6 +308,9 @@ def _event(record: Any) -> dict[str, Any] | None:
         "kind": _text(record.get("kind") or "رویداد", 80),
         "d": _text(record.get("d") or record.get("about") or record.get("description") or record.get("rep"), 10_000),
         "when": _text(record.get("when") or record.get("on") or record.get("d"), 120),
+        # Machine-readable Jalali date the owner panel already stores (``on``);
+        # the public list sorts by it and builds the month view from it.
+        "on": _text(record.get("on"), 40),
         "time": _text(record.get("time"), 120),
         "place": _text(record.get("place"), 240),
         "mode": _text(record.get("mode"), 80),

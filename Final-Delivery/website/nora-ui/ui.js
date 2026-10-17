@@ -1023,7 +1023,7 @@ function accountFirstName(user){
   const name=String(user&&user.name||'').trim();
   return name?name.split(/\s+/u)[0]:'';
 }
-const ACCOUNT_NEXT_RE=/^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/;
+const ACCOUNT_NEXT_RE=/^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|payments|privacy|club|points|invite))?$/;
 function accountEntryHref(next='account.html'){
   next=String(next||'account.html');
   if(!ACCOUNT_NEXT_RE.test(next)) next='account.html';
@@ -2334,6 +2334,69 @@ async function serverAuthPost(path,body){
   if(!r.ok) throw new Error((data&&(data.detail||data.message))||('HTTP '+r.status));
   return data;
 }
+/* ── «مسیر پیوند حساب» صریح است، نه حدسی ─────────────────────────────
+   پارامتر `?link=bale` تنها نشانهٔ این مسیر است و ربات آن را در نشانی دکمهٔ
+   مینی‌اپ می‌گذارد. چرا لازم است: امضای `initData` بله یک‌بارمصرف است. اگر
+   همین صفحه در مسیر پیوند هم ورود خودکار بزند، امضا خرجِ ساختن یک حساب
+   تازه می‌شود و برای اثبات مالکیت در پیوند چیزی نمی‌ماند؛ بدتر آنکه هویت بله
+   به همان حساب خودکار می‌چسبد و پیوند به حساب شماره‌ای با ۴۰۹ رد می‌شود.
+   پس در این مسیر ورود خودکار انجام نمی‌شود و کاربر اول با شماره وارد می‌شود. */
+function baleLinkMode(){
+  try{
+    return new URLSearchParams(location.search).get('link')==='bale';
+  }catch(_){return false}
+}
+/* ── ورود مینی‌اپ بله ──────────────────────────────────────────────────
+   وقتی همین صفحه داخل شیشهٔ بله باز می‌شود، `Bale.WebApp.initData` یک دادهٔ
+   امضاشده و یک‌بارمصرف است. دو نکته مهم:
+   ۱) پیش از فرستادن امضا، وضعیت نشست پرسیده می‌شود (مالک، بعد حساب)؛ وگرنه
+      روی هر جابه‌جاییِ صفحه همان امضا دوباره فرستاده می‌شود و سرور آن را
+      ۴۰۹ «تکرار» می‌کند و کاربر بی‌دلیل از ورود باز می‌ماند.
+   ۲) هر خطایی بی‌سروصدا رد می‌شود؛ مسیر ورود معمولی (شماره/گذرواژه) دست‌نخورده
+      می‌ماند و کاربر پشت خطای فنی نمی‌ماند. */
+function baleMiniAppInitData(){
+  try{
+    const app=window.Bale&&window.Bale.WebApp;
+    const raw=app&&typeof app.initData==='string'?app.initData:'';
+    /* فقط رشتهٔ کاملی که امضا و زمان دارد؛ هم‌شکل با اعتبارسنجی سرور. */
+    return /(?:^|&)hash=/.test(raw)&&/(?:^|&)auth_date=/.test(raw)?raw:'';
+  }catch(_){return ''}
+}
+async function hasServerSession(){
+  for(const path of ['/api/auth/me','/api/account/me']){
+    try{
+      const r=await fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+      if(r.ok){
+        const d=await r.json().catch(()=>null);
+        if(d&&d.authenticated===true) return true;
+      }
+    }catch(_){/* شبکه/سرور نیست؛ مسیر معمولی ورود را نمی‌بندیم */}
+  }
+  return false;
+}
+async function baleMiniAppBoot(){
+  if(NORA_TEST_FIXTURE_MODE) return false;
+  /* مسیر پیوند حساب: امضای یک‌بارمصرف باید برای اثبات مالکیت بماند. */
+  if(baleLinkMode()) return false;
+  if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return false;
+  const initData=baleMiniAppInitData();
+  if(!initData) return false;
+  if(await hasServerSession()){ if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server'; return true; }
+  try{
+    const d=await serverAuthPost('/api/auth/bale-mini-app',{init_data:initData});
+    if(!d||d.authenticated!==true) return false;
+    if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server';
+    try{syncBell()}catch(_){}
+    try{authDone()}catch(_){}
+    return true;
+  }catch(err){
+    /* کد خطای سرور ممکن است این‌ها باشد: invalid_bale_init_data (۴۰۱)،
+       bale_init_data_replayed (۴۰۹)، bale_auth_not_configured (۵۰۳). در همه
+       حالت‌ها کاربر با ورود معمولی ادامه می‌دهد. خودِ امضا لاگ نمی‌شود. */
+    if(typeof console!=='undefined'&&console.warn) console.warn('mini app login skipped:',String(err&&err.message||err).slice(0,80));
+    return false;
+  }
+}
 document.addEventListener('click',async e=>{
   const t=e.target; if(!t||!t.closest) return;
   const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]'), nc=t.closest('[data-srv-captcha-new]');
@@ -2558,6 +2621,8 @@ addEventListener('hashchange',uiHash);
 sheetA11y();
 syncBell();
 try{uiHash()}catch(e){}
+/* اگر صفحه داخل مینی‌اپ بله باز شده باشد، هویت امضاشده همین‌جا نشست می‌سازد. */
+try{baleMiniAppBoot()}catch(e){}
 /* ── نوار بالا: وقت اسکرول، شیشهٔ پررنگ‌تر می‌شود (همان حس نوار آی‌اواس) ──
    پیش‌تر فقط صفحهٔ خانه این کلاس را می‌گذاشت و نوار رویدادها همیشه مات
    می‌ماند؛ حالا هر صفحه‌ای که ui.js را دارد همین رفتار را دارد. */
@@ -2988,6 +3053,9 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   videoEmbedInfo:videoEmbedInfo,safeHttpsMediaUrl:safeHttpsMediaUrl,baleStartHref:baleStartHref,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
+  /* ورود خودکار مینی‌اپ و گامِ پیوند حساب هر دو باید یک قاعده برای شکل
+     `initData` داشته باشند؛ این تابع تنها مرجع آن قاعده است. */
+  baleMiniAppInitData:baleMiniAppInitData,hasServerSession:hasServerSession,baleLinkMode:baleLinkMode,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
   profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
   syncServerProfile:syncServerProfile,

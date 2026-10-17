@@ -536,6 +536,9 @@ def check_new_features():
         "تأخیر اعلان": ("certcenter.py", "_t.sleep"),
         "ساخت فوری اختیاری": ("certcenter.py", "cc_lazy_build"),
         "لایهٔ دوم فرم": ("forms.py", "def show_advanced2"),
+        # ---- پیوند حساب مینی‌اپ (سایت ↔ بله) ----
+        "ورود به پیوند حساب": ("account_link.py", "def account_webapp_url"),
+        "مسیر start پیوند": ("main.py", 'param == "link_account"'),
     }
     result = {}
     for name, (fname, marker) in markers.items():

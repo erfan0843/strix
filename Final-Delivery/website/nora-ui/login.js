@@ -95,9 +95,13 @@
     return new URLSearchParams(location.search).get('next') || '';
   }
 
+  /* فهرست سفید مسیر بازگشت. تنها یک پارامتر پرس‌وجو مجاز است: نشانهٔ صریح
+     «مسیر پیوند حساب» (`?link=bale`). این نشانه باید از ورود با شماره جان سالم
+     ببرد، وگرنه کاربر پس از ورود به صفحهٔ بی‌نشانه برمی‌گردد. هیچ پرس‌وجوی
+     دیگری پذیرفته نمی‌شود تا محافظت بازکردن نشانی دلخواه باز هم برجا بماند. */
   function safeAccountNext() {
     const requested = new URLSearchParams(location.search).get('next') || '';
-    return /^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/.test(requested)
+    return /^account\.html(?:\?link=bale)?(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|payments|privacy|club|points|invite))?$/.test(requested)
       ? requested
       : '';
   }
@@ -160,7 +164,7 @@
               required maxlength="32" dir="ltr" value="${escapeHtml(state.phone)}" placeholder="۰۹۱۲۳۴۵۶۷۸۹" aria-label="شمارهٔ همراه"/>
           </label>
           <div class="lg-captcha">
-            <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage || (state.captchaFailed ? '<span class="lg-cap-fail">کد امنیتی بارگذاری نشد</span>' : '<span class="lg-spinner"></span>')}</div>
+            <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage ? `<img class="lg-cap-pic" src="${escapeHtml(state.captchaImage)}" alt="" width="180" height="60" draggable="false"/>` : (state.captchaFailed ? '<span class="lg-cap-fail">کد امنیتی بارگذاری نشد</span>' : '<span class="lg-spinner"></span>')}</div>
             <button class="lgbtn quiet" type="button" id="lgCapNew"${state.busy || state.captchaBusy ? ' disabled' : ''}>کد جدید</button>
           </div>
           <label class="lgfield" for="lgCapAnswer">
@@ -405,6 +409,12 @@
     }
   }
 
+  /* تصویر کپچا فقط PNG رستری سرور است؛ هیچ markup سروری در DOM تزریق نمی‌شود و رقمی به‌صورت متن وجود ندارد. */
+  const CAPTCHA_IMAGE_RE = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/;
+  function isCaptchaImage(value) {
+    return typeof value === 'string' && value.length < 200000 && CAPTCHA_IMAGE_RE.test(value);
+  }
+
   async function loadCaptcha() {
     if (state.captchaBusy) return;
     state.captchaBusy = true;
@@ -416,7 +426,7 @@
       });
       if (!response.ok) throw new Error('captcha');
       const payload = await response.json();
-      if (!payload || typeof payload.token !== 'string' || typeof payload.image !== 'string') throw new Error('captcha');
+      if (!payload || typeof payload.token !== 'string' || !isCaptchaImage(payload.image)) throw new Error('captcha');
       state.captchaToken = payload.token;
       state.captchaImage = payload.image;
     } catch (_) {

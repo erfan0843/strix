@@ -145,8 +145,9 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
         assert {"uq_form_payment_transactions_transaction", "uq_form_payment_transactions_provider_charge"} <= {
             constraint["name"] for constraint in inspector.get_unique_constraints("form_payment_transactions")
         }
+        assert "service_checks" in set(inspect(engine).get_table_names())
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0024_account_profiles"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0025_service_checks"
     finally:
         engine.dispose()
 
@@ -160,7 +161,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             "cooperation_requests", "site_content", "accounts", "platform_identities",
             "account_sessions", "miniapp_auth_replays", "phone_otp_challenges", "account_roles", "manager_credentials", "admin_tasks",
             "user_notifications", "private_files", "form_receipt_uploads",
-            "form_payments", "form_payment_transactions",
+            "form_payments", "form_payment_transactions", "service_checks",
         } & tables
     finally:
         engine.dispose()

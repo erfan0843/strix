@@ -11,7 +11,17 @@
     credentials_not_accepted:'اطلاعات محرمانه را در این درخواست نفرست.',
     invalid_payload:'اطلاعات درخواست کامل یا معتبر نیست.',
     response_not_found:'این پاسخ پیدا نشد.',
-    form_not_found:'این فرم پیدا نشد.'
+    form_not_found:'این فرم پیدا نشد.',
+    /* پیوند حساب بله: هر کد، یک پیام روشن و قابل‌اقدام. */
+    invalid_bale_auth_payload:'درخواست پیوند کامل نبود؛ صفحه را تازه کن و از داخل بله دوباره تلاش کن.',
+    invalid_bale_init_data:'امضای بله معتبر یا تازه نیست؛ این صفحه را از داخل خودِ بله باز کن.',
+    bale_init_data_replayed:'این درخواست پیوند قبلاً استفاده شده؛ صفحه را تازه کن و دوباره تلاش کن.',
+    bale_identity_already_linked:'این حساب بله از قبل به حساب دیگری وصل است؛ برای ادغام از پشتیبانی بخواه.',
+    account_already_has_bale_identity:'حساب تو از قبل یک هویت بله دارد؛ اول آن پیوند را بردار.',
+    bale_identity_not_linked:'هیچ پیوند بله‌ای برای برداشتن نیست.',
+    last_identity_cannot_be_removed:'این تنها راه ورود حساب است و برداشتنش حساب را بی‌صاحب می‌کند.',
+    bale_auth_not_configured:'پیوند بله روی این سرور فعال نشده است.',
+    authentication_required:'نشست حساب معتبر نیست؛ دوباره وارد شو.'
   });
   function apiErrorMessage(status,code){
     if(typeof code==='string'&&Object.prototype.hasOwnProperty.call(API_ERROR_TEXT,code))return API_ERROR_TEXT[code];
@@ -150,6 +160,17 @@
     accountProfile: () => request('/api/account/profile'),
     saveAccountProfile: payload => request('/api/account/profile', {
       method: 'PUT', body: payload, csrfWrite: true, csrfCookie: 'nora_account_csrf'
+    }),
+    /* هویت‌های تأییدشدهٔ حساب. پیوند بله فقط با «مدرک اثبات مالکیت» انجام
+       می‌شود و آن مدرک، امضای یک‌بارمصرفِ `initData` خودِ بله است؛ نه شماره
+       و نه هیچ شناسه‌ای که این ماژول بفرستد. سرور مرجع نهایی است. */
+    getAccountIdentities: () => request('/api/account/identities'),
+    linkBaleIdentity: initData => request('/api/account/identities/bale', {
+      method: 'POST', body: { init_data: String(initData || '') },
+      csrfWrite: true, csrfCookie: 'nora_account_csrf'
+    }),
+    unlinkBaleIdentity: () => request('/api/account/identities/bale', {
+      method: 'DELETE', body: {}, csrfWrite: true, csrfCookie: 'nora_account_csrf'
     }),
     listAccountRoles: (limit, offset) => request('/api/owner/accounts?limit='
       + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))),

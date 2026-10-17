@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=99"/>
 <link rel="stylesheet" href="nora.css?v=100"/>
-<link rel="stylesheet" href="events-page.css?v=100"/>
+<link rel="stylesheet" href="events-page.css?v=101"/>
 <style>.seo-breadcrumb{margin:8px 0;color:var(--ink-3);font-size:12px}.seo-breadcrumb a{color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px}</style>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
@@ -69,9 +69,32 @@
       <button type="button" class="chip" data-event-filter="upcoming">پیش‌رو</button>
       <button type="button" class="chip" data-event-filter="past">برگزارشده</button>
     </div>
+    <div id="eventFacets" class="event-facets" hidden></div>
+    <button type="button" class="btn sm quiet event-facet-reset" id="eventFacetReset" hidden>برداشتن صافی‌ها</button>
   </section>
+  <div class="events-toolbar" id="eventToolbar" hidden>
+    <label class="events-sort" for="eventSort"><span>مرتب‌سازی</span>
+      <select id="eventSort" aria-label="مرتب‌سازی فهرست رویدادها">
+        <option value="near">نزدیک‌ترین تاریخ</option>
+        <option value="cheap">ارزان‌ترین</option>
+        <option value="dear">گران‌ترین</option>
+        <option value="title">نام برنامه</option>
+      </select></label>
+    <span class="sp"></span>
+    <div class="events-view-switch" role="tablist" aria-label="نمای رویدادها">
+      <button type="button" class="chip on" data-event-view="list" role="tab" aria-selected="true"><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg> فهرست</button>
+      <button type="button" class="chip" data-event-view="cal" role="tab" aria-selected="false"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> تقویم</button>
+    </div>
+  </div>
   <div class="events-result-line"><p id="eventsCount" aria-live="polite"></p><a href="home.html#teachers">فهرست استادان و دست‌اندرکاران</a></div>
   <section id="eventsList" class="events-grid" aria-label="فهرست رویدادها"></section>
+  <section id="eventCalendar" class="event-calendar card paper" hidden aria-label="تقویم ماهانهٔ رویدادها">
+    <div class="event-months" id="eventMonths" role="tablist" aria-label="ماه‌ها"></div>
+    <div class="event-cal-grid" id="eventCalendarGrid" role="group" aria-label="روزهای ماه"></div>
+    <div class="event-day-head"><b id="eventDayTitle"></b><span class="sp"></span><span class="cap" id="eventDayCount"></span></div>
+    <div class="events-grid" id="eventDayList" aria-live="polite"></div>
+    <p class="cap event-calendar-note" id="eventCalendarNote"></p>
+  </section>
   <section id="eventsEmpty" class="events-empty card paper" hidden role="status">
     <h2>رویدادی برای نمایش پیدا نشد</h2><p id="eventsEmptyMessage">وقتی رویدادی منتشر شود، اطلاعات آن در این فهرست دیده می‌شود.</p>
     <a class="btn quiet" href="home.html#teachers">فهرست استادان و دست‌اندرکاران</a>
@@ -85,8 +108,8 @@
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=122"></script>
+<script src="ui.js?v=125"></script>
 <script src="public-data.js?v=109"></script>
-<script src="events-page.js?v=99"></script>
+<script src="events-page.js?v=101"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote
 
 import config
 import requests
@@ -56,13 +56,11 @@ def _api_base() -> str:
     if len(token) < 32:
         raise SharedAPIError(503, "shared_api_token_too_short")
 
-    parsed = urlsplit(base)
-    local_hosts = {"localhost", "127.0.0.1", "::1"}
-    secure_scheme = parsed.scheme == "https"
-    local_http = parsed.scheme == "http" and (parsed.hostname or "").lower() in local_hosts
-    if (not (secure_scheme or local_http) or not parsed.hostname or parsed.username or parsed.password
-            or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
-        raise SharedAPIError(503, "shared_api_url_invalid")
+    # The base must be an origin only; the same rule is used by check_config so
+    # startup validation and request-time validation cannot drift apart.
+    error = config.shared_api_url_error(base)
+    if error:
+        raise SharedAPIError(503, error)
     return base.rstrip("/")
 
 

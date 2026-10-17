@@ -11,6 +11,37 @@
 .event-status-filter{display:flex;gap:7px;flex-wrap:wrap}
 .event-status-filter .chip{cursor:pointer}
 .event-status-filter .chip[aria-pressed="true"]{background:var(--brand-tint);color:var(--brand-ink);border-color:color-mix(in oklab,var(--brand) 38%,transparent)}
+.event-facets{display:grid;gap:8px}
+.event-facet-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.event-facet-label{flex:0 0 auto;min-width:92px;padding-top:7px;color:var(--ink-3);font-size:11.5px}
+.event-facet-chips{display:flex;gap:7px;flex-wrap:wrap;flex:1;min-width:0}
+.event-facet-chips .chip,.events-view-switch .chip,.event-months .chip{cursor:pointer}
+.event-facet-chips .chip small{color:var(--ink-3);font-size:10.5px;margin-inline-start:3px}
+.event-facet-chips .chip.on small{color:inherit}
+.event-facet-chips .chip[aria-pressed="true"],.event-months .chip[aria-selected="true"],.events-view-switch .chip[aria-selected="true"]{background:var(--brand-tint);color:var(--brand-ink);border-color:color-mix(in oklab,var(--brand) 38%,transparent)}
+.event-facet-reset{width:fit-content}
+.events-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 2px 0}
+.events-sort{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
+.events-sort select{min-height:36px;padding:0 10px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-sunk);color:var(--ink);font:inherit;font-size:12.5px}
+.events-view-switch{display:flex;gap:6px}
+.event-calendar{display:grid;gap:12px;padding:14px;border-radius:var(--r-lg)}
+.event-months{display:flex;gap:7px;flex-wrap:wrap}
+.event-months .chip.was{opacity:.72}
+.event-months .chip small{margin-inline-start:3px;font-size:10.5px}
+.event-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.event-cal-wd{text-align:center;font-size:11px;color:var(--ink-3);padding:2px 0}
+.event-cal-cell{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.event-cal-cell.blank{border-color:transparent;background:transparent;pointer-events:none}
+.event-cal-cell:disabled{cursor:default;color:var(--ink-4);background:transparent}
+.event-cal-cell.has{font-weight:700}
+.event-cal-cell.today{border-color:var(--brand)}
+.event-cal-cell.sel{background:var(--brand-tint);color:var(--brand-ink);border-color:color-mix(in oklab,var(--brand) 45%,transparent)}
+.event-cal-dots{display:flex;gap:3px;height:5px;margin-top:3px}
+.event-cal-dots i{width:5px;height:5px;border-radius:99px;background:var(--brand)}
+.event-cal-dots i.p{background:var(--ink-4)}
+.event-day-head{display:flex;align-items:center;gap:8px;font-size:13px;padding-top:4px;border-top:1px solid var(--hairline)}
+.event-calendar-note{margin:0}
+.event-list-cover .cover-state{position:absolute;inset-inline-end:12px;top:12px;z-index:1;padding:5px 10px;border-radius:99px;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);font-size:11px}
 .events-result-line{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 2px;color:var(--ink-3);font-size:12px}
 .events-result-line p{margin:0}
 .events-result-line a{color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px;font-weight:600}
@@ -41,7 +72,7 @@
 .events-footer a{color:var(--brand-ink);text-decoration:none}
 .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @media(min-width:900px){.event-list-cover{height:220px}}
-@media(max-width:680px){.events-grid{grid-template-columns:1fr}.event-list-cover{height:200px}.events-hero{align-items:flex-start;flex-direction:column}.events-hero .btn{width:100%;justify-content:center}.events-result-line{align-items:flex-start;flex-direction:column}}
+@media(max-width:680px){.events-grid{grid-template-columns:1fr}.event-list-cover{height:200px}.events-hero{align-items:flex-start;flex-direction:column}.event-facet-label{min-width:0;flex-basis:100%;padding-top:0}.events-toolbar{align-items:stretch;flex-direction:column}.events-sort{justify-content:space-between}.events-hero .btn{width:100%;justify-content:center}.events-result-line{align-items:flex-start;flex-direction:column}}
 
 /* Inline breadcrumb links remain distinguishable without relying on color. */
 .seo-breadcrumb a{text-decoration:underline;text-underline-offset:3px}

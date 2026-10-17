@@ -30,16 +30,19 @@ from urllib.parse import quote, unquote, urlsplit
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, delete, func, select, text, update
+from sqlalchemy import and_, create_engine, delete, func, or_, select, text, update
 from sqlalchemy.engine import CursorResult, Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload, sessionmaker
+from sqlalchemy.sql.elements import ColumnElement
 from starlette.middleware.gzip import GZipMiddleware
 
 from .accounts import get_or_create_bale_account, get_or_create_phone_account
-from .captcha import CaptchaError, issue_captcha, verify_captcha
+from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
-from .secret_box import SecretBoxError, decrypt_secret, encrypt_secret, encryption_configured, secret_hint
+from . import data_staging as data_staging_mod
+from . import service_settings as service_settings_mod
+from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
 from .financials import (
     PaymentConfigurationError,
@@ -70,7 +73,6 @@ from .models import (
     PhoneOTPChallengeRecord,
     PrivateFileRecord,
     PublicWriteThrottleRecord,
-    PaymentSecretRecord,
     SiteContentRecord,
     UserNotificationRecord,
 )
@@ -99,6 +101,7 @@ from .roles import (
 )
 from .schemas import PayloadError, normalize_form_payload
 from .security import (
+    BaleMiniAppIdentity,
     constant_time_equal,
     hash_password,
     new_token,
@@ -210,32 +213,17 @@ class AccountIdentity:
     provider: str = "bale"
 
 
-_BALE_WALLET_KEY = re.compile(r"[0-9]{5,20}:[A-Za-z0-9_-]{20,128}\Z")
+def _runtime_settings(db: Session, cfg: Settings) -> Settings:
+    """Settings as the web process must use them right now.
 
+    ``app.state.settings`` is the raw environment snapshot. Every path that
+    depends on a credential or on a readiness flag derived from one (mini-app
+    auth, OTP, payment readiness, invoice creation, webhook path and secret)
+    reads through this overlay so a value saved in the encrypted store is the
+    operative value, not merely a stored one.
+    """
+    return service_settings_mod.effective_settings(db, cfg)
 
-def _payment_settings_response(db: Session, cfg: Settings | None = None) -> dict[str, Any]:
-    record = db.get(PaymentSecretRecord, "bale_wallet")
-    env_configured = bool(cfg and cfg.form_payment_bot_token)
-    return {
-        "bale_wallet": {
-            "configured": record is not None or env_configured,
-            "hint": record.hint if record is not None else "",
-            "encryption_ready": encryption_configured(),
-            "source": "database" if record is not None else ("environment" if env_configured else "none"),
-        }
-    }
-
-
-def _payment_cfg(db: Session, cfg: Settings) -> Settings:
-    """Return settings whose Bale payment token comes from the owner's saved key when present."""
-    record = db.get(PaymentSecretRecord, "bale_wallet")
-    if record is None:
-        return cfg
-    try:
-        token = decrypt_secret(record.ciphertext)
-    except SecretBoxError:
-        return cfg
-    return dataclass_replace(cfg, form_payment_bot_token=token)
 
 
 def _utc_now() -> datetime:
@@ -1392,6 +1380,61 @@ def create_app(
         role = assigned.role if assigned is not None else None
         return account_id, role if role in ROLE_KEYS else None
 
+    def verified_bale_ids_for_account(db: Session, account_id: str) -> list[str]:
+        """Bale IDs the server itself linked to this account (never client-supplied)."""
+        return list(db.scalars(
+            select(PlatformIdentityRecord.provider_user_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.account_id == account_id,
+            )
+        ))
+
+    def account_form_record_scope(db: Session, account_id: str) -> ColumnElement[bool]:
+        """Form-response drafts a signed-in account may read.
+
+        Its own drafts, plus drafts created from the Bale side by a Bale identity that
+        the server has verified for this same account. A draft that already names
+        another account is never included, even when it carries this account's Bale ID,
+        so linking can widen the view to one's own records but never to someone else's.
+        """
+        own_drafts = FormResponseDraftRecord.account_id == account_id
+        bale_ids = verified_bale_ids_for_account(db, account_id)
+        if not bale_ids:
+            return own_drafts
+        return or_(
+            own_drafts,
+            and_(
+                FormResponseDraftRecord.bot_bale_user_id.in_(bale_ids),
+                FormResponseDraftRecord.account_id.is_(None),
+            ),
+        )
+
+    def bot_form_record_scope(db: Session, bale_user_id: str) -> ColumnElement[bool]:
+        """Form-response drafts the bot may read on behalf of one Bale user.
+
+        A non-empty `account_id` is the record's explicit owner and wins over any
+        Bale tag left on the row: a draft that names another account is never
+        returned for this Bale identity, even when it still carries this Bale ID.
+        The Bale path therefore only ever reaches *legacy* drafts (no owner yet)
+        that carry this Bale ID; a verified link additionally opens the linked
+        account's own drafts. An unlinked Bale user gets the legacy drafts only:
+        there is no verified account behind the ID, so no owned row may be read
+        through it, whichever account the owner happens to be.
+        """
+        own_untagged = and_(
+            FormResponseDraftRecord.bot_bale_user_id == bale_user_id,
+            FormResponseDraftRecord.account_id.is_(None),
+        )
+        linked_account_id = db.scalar(
+            select(PlatformIdentityRecord.account_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == bale_user_id,
+            )
+        )
+        if linked_account_id is None:
+            return own_untagged
+        return or_(own_untagged, FormResponseDraftRecord.account_id == linked_account_id)
+
     def admin_task_view(task: AdminTaskRecord | None) -> dict[str, Any]:
         if task is None:
             raise HTTPException(404, "admin_task_not_found")
@@ -1727,6 +1770,7 @@ def create_app(
                 db.execute(text("SELECT 1 FROM admin_tasks LIMIT 1"))
                 db.execute(text("SELECT 1 FROM user_notifications LIMIT 1"))
                 db.execute(text("SELECT 1 FROM private_files LIMIT 1"))
+                payments_ready = _runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         except SQLAlchemyError:
             return JSONResponse(
                 {
@@ -1751,16 +1795,24 @@ def create_app(
             "workflowEnabled": True,
             "notificationQueueEnabled": True,
             "privateFileStorageEnabled": True,
-            "formBalePaymentsReady": request.app.state.settings.form_bale_payments_ready,
+            "formBalePaymentsReady": payments_ready,
         }
 
     @app.get("/api/public/forms/capabilities")
     def form_capabilities(request: Request):
         """Read-only, secret-free feature contract for the web form builder."""
         cfg: Settings = request.app.state.settings
+        factory = request.app.state.session_factory
+        bale_wallet_ready = False
+        if factory is not None:
+            try:
+                with factory() as db:
+                    bale_wallet_ready = _runtime_settings(db, cfg).form_bale_payments_ready
+            except SQLAlchemyError:
+                bale_wallet_ready = False
         return public_form_capabilities(
-            api_configured=request.app.state.session_factory is not None,
-            bale_wallet_ready=cfg.form_bale_payments_ready,
+            api_configured=factory is not None,
+            bale_wallet_ready=bale_wallet_ready,
         )
 
     def _site_content_response(
@@ -1774,7 +1826,7 @@ def create_app(
                 ).get("banners", [])
             except SiteContentError:
                 public["banners"] = []
-        cfg: Settings = app.state.settings
+        cfg: Settings = _runtime_settings(db, app.state.settings)
         published_forms: Sequence[FormRecord] = db.scalars(
             select(FormRecord)
             .options(selectinload(FormRecord.fields))
@@ -1879,52 +1931,315 @@ def create_app(
         db.refresh(record)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
 
-    @app.get("/api/owner/payment-settings")
-    def get_owner_payment_settings(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner),
-        db: Session = Depends(get_db),
-    ):
-        return _payment_settings_response(db, request.app.state.settings)
+    # ── داده‌ها و مهاجرت: بارگذاری نسخهٔ پشتیبان برای ممیزی (بدون تغییر داده) ──
+    # فایل فقط در staging خصوصی (بیرون UI_ROOT) ذخیره می‌شود، فقط‌خواندنی
+    # بررسی می‌شود و هیچ عملیات نوشتنی روی آن یا روی پایگاه عملیاتی اجرا نمی‌شود.
 
-    @app.put("/api/owner/payment-settings/bale-wallet")
-    async def set_owner_bale_wallet_key(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner_write),
-        db: Session = Depends(get_db),
-    ):
-        payload = await _read_json_object(request, 4 * 1024)
-        if set(payload) != {"api_key"} or not isinstance(payload.get("api_key"), str):
-            raise HTTPException(400, "invalid_payment_settings_request")
-        value = payload["api_key"].strip()
-        if not _BALE_WALLET_KEY.fullmatch(value):
-            raise HTTPException(422, "invalid_bale_wallet_key_format")
-        if not encryption_configured():
-            raise HTTPException(503, "settings_encryption_not_configured")
-        try:
-            ciphertext = encrypt_secret(value)
-        except SecretBoxError as error:
-            raise HTTPException(503, error.code) from None
-        record = db.get(PaymentSecretRecord, "bale_wallet")
-        if record is None:
-            db.add(PaymentSecretRecord(id="bale_wallet", ciphertext=ciphertext, hint=secret_hint(value)))
-        else:
-            record.ciphertext = ciphertext
-            record.hint = secret_hint(value)
-        db.commit()
-        return _payment_settings_response(db, request.app.state.settings)
+    data_logger = logging.getLogger("nora.data_staging")
 
-    @app.delete("/api/owner/payment-settings/bale-wallet")
-    def clear_owner_bale_wallet_key(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner_write),
-        db: Session = Depends(get_db),
-    ):
-        record = db.get(PaymentSecretRecord, "bale_wallet")
-        if record is not None:
-            db.delete(record)
+    def _data_store(cfg: Settings) -> data_staging_mod.StagingStore:
+        return data_staging_mod.StagingStore(
+            cfg.data_staging_dir,
+            data_staging_mod.UploadLimits(
+                max_bytes=cfg.data_upload_max_bytes,
+                retention_hours=cfg.data_staging_retention_hours,
+            ),
+        )
+
+    def _audit_script(cfg: Settings) -> Path:
+        configured = cfg.legacy_audit_script.strip()
+        return Path(configured) if configured else data_staging_mod.default_audit_script()
+
+    def _owner_upload_actor(identity: OwnerIdentity | AccountIdentity) -> str:
+        return str(getattr(identity, "owner_id", "") or getattr(identity, "account_id", "") or "unknown")
+
+    def _enforce_owner_upload_limit(
+        request: Request, db: Session, cfg: Settings, identity: OwnerIdentity | AccountIdentity,
+        limit: int = 10,
+    ) -> None:
+        """At most ``limit`` uploads per hour per actor; stored, not in-memory only."""
+        key_hash = throttle_digest(
+            cfg.owner_password_hash or cfg.owner_id or "nora", "data-upload\0" + _owner_upload_actor(identity)
+        )
+        now = _utc_now()
+        db.execute(
+            delete(PublicWriteThrottleRecord).where(
+                PublicWriteThrottleRecord.window_started_at < now - timedelta(days=1)
+            )
+        )
+        record = db.scalar(
+            select(PublicWriteThrottleRecord).where(PublicWriteThrottleRecord.key_hash == key_hash)
+        )
+        if record is None or _as_utc(record.window_started_at) < now - timedelta(hours=1):
+            if record is None:
+                db.add(PublicWriteThrottleRecord(key_hash=key_hash, attempts=1, window_started_at=now))
+            else:
+                record.attempts = 1
+                record.window_started_at = now
             db.commit()
-        return _payment_settings_response(db, request.app.state.settings)
+            return
+        if record.attempts >= limit:
+            db.commit()
+            retry = max(1, int(3600 - (now - _as_utc(record.window_started_at)).total_seconds()))
+            raise HTTPException(429, "upload_rate_limited", headers={"Retry-After": str(retry)})
+        record.attempts += 1
+        db.commit()
+
+    @app.get("/api/owner/data/status")
+    def get_owner_data_status(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        """وضعیت فقط-خواندنی پایگاه عملیاتی و staging؛ هیچ مسیر یا رمزی برنمی‌گردد."""
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        bind = db.get_bind()
+        dialect = getattr(getattr(bind, "dialect", None), "name", "") or "unknown"
+        try:
+            schema_version = str(db.scalar(text("SELECT version_num FROM alembic_version")) or "")
+        except SQLAlchemyError:
+            schema_version = ""
+        response = JSONResponse({
+            "database": {"engine": dialect, "schema_version": schema_version},
+            "staging": {
+                "retention_hours": cfg.data_staging_retention_hours,
+                "max_bytes": cfg.data_upload_max_bytes,
+                "used_bytes": store.usage_bytes(),
+                "outside_webroot": True,
+            },
+            "audit_tool_available": _audit_script(cfg).is_file(),
+            "operational_writes": 0,
+        })
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.get("/api/owner/data/uploads")
+    def list_owner_data_uploads(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        response = JSONResponse({
+            "uploads": store.list_uploads(),
+            "limits": {
+                "max_bytes": cfg.data_upload_max_bytes,
+                "retention_hours": cfg.data_staging_retention_hours,
+            },
+            "audit_tool_available": _audit_script(cfg).is_file(),
+        })
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.post("/api/owner/data/uploads", status_code=201)
+    async def create_owner_data_upload(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity)
+        declared = request.headers.get("x-file-name", "backup.db")
+        content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if content_type not in (
+            "", "application/octet-stream", "application/x-sqlite3", "application/vnd.sqlite3",
+            "application/x-sqlite", "binary/octet-stream",
+        ):
+            raise HTTPException(415, "unsupported_backup_content_type")
+
+        store = _data_store(cfg)
+        store.ensure_root()
+        spool_dir = store.root / "tmp"
+        spool_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        spool = spool_dir / f"{uuid.uuid4().hex}.upload"
+        size = 0
+        try:
+            with spool.open("wb") as handle:
+                async for chunk in request.stream():
+                    if not chunk:
+                        continue
+                    size += len(chunk)
+                    if size > cfg.data_upload_max_bytes:
+                        raise HTTPException(413, "backup_too_large")
+                    handle.write(chunk)
+            if size == 0:
+                raise HTTPException(422, "empty_backup_file")
+
+            def _chunks():
+                with spool.open("rb") as reader:
+                    for part in iter(lambda: reader.read(1024 * 1024), b""):
+                        yield part
+
+            meta = store.create_upload(_chunks(), declared)
+        except data_staging_mod.StagingError as error:
+            data_logger.info("backup upload rejected actor=%s code=%s", _owner_upload_actor(identity), error.code)
+            status = 413 if error.code in {"backup_too_large", "staging_quota_exceeded"} else 422
+            raise HTTPException(status, error.code) from None
+        finally:
+            spool.unlink(missing_ok=True)
+        data_logger.info(
+            "backup uploaded id=%s actor=%s sha256=%s size=%s tables=%s",
+            meta["id"], _owner_upload_actor(identity), meta["sha256"][:16],
+            meta["size_bytes"], meta["structure"].get("table_count"),
+        )
+        return {"upload": store.get_upload(meta["id"])}
+
+    @app.get("/api/owner/data/uploads/{upload_id}")
+    def get_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        try:
+            return {"upload": store.get_upload(upload_id), "audit_tool_available": _audit_script(cfg).is_file()}
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+
+    @app.post("/api/owner/data/uploads/{upload_id}/audit")
+    def audit_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        script = _audit_script(cfg)
+        if not script.is_file():
+            raise HTTPException(503, "audit_tool_not_available")
+        try:
+            meta = store.run_audit(upload_id, script)
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+        data_logger.info(
+            "backup audit id=%s actor=%s state=%s unchanged=%s",
+            upload_id, _owner_upload_actor(identity), meta.get("state"),
+            (meta.get("audit") or {}).get("unchanged"),
+        )
+        return {
+            "upload": store.get_upload(upload_id),
+            "unchanged": (meta.get("audit") or {}).get("unchanged"),
+        }
+
+    @app.delete("/api/owner/data/uploads/{upload_id}")
+    def delete_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        try:
+            removed = store.delete_upload(upload_id)
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+        data_logger.info("backup deleted id=%s actor=%s removed=%s", upload_id, _owner_upload_actor(identity), removed)
+        if not removed:
+            raise HTTPException(404, "upload_not_found")
+        return {"deleted": True}
+
+    # ── اتصال سرویس‌ها: تنظیمات متمرکز اعتبارنامه‌ها ────────────────────────
+    # فقط مالک/مدیر دارای مجوز sys_settings. مقدار محرمانه هرگز برنمی‌گردد؛
+    # فقط «سایه» (hint)، منبع (پایگاه/محیط) و زمان آخرین تغییر.
+
+    settings_logger = logging.getLogger("nora.service_settings")
+
+    def _settings_secret_or_404(storage_id: str):
+        spec = service_settings_mod.SECRETS_BY_ID.get(storage_id)
+        if spec is None:
+            raise HTTPException(404, "unknown_service_secret")
+        return spec
+
+    @app.get("/api/owner/service-settings")
+    def get_owner_service_settings(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_settings")),
+        db: Session = Depends(get_db),
+    ):
+        response = JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.put("/api/owner/service-settings/{storage_id}")
+    async def put_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if not spec.editable:
+            raise HTTPException(403, "secret_is_read_only")
+        payload = await _read_json_object(request, 4 * 1024)
+        if set(payload) - {"value", "acknowledge_restart"} or not isinstance(payload.get("value"), str):
+            raise HTTPException(400, "invalid_service_secret_payload")
+        if spec.acknowledge_restart and payload.get("acknowledge_restart") is not True:
+            raise HTTPException(409, "restart_acknowledgement_required")
+        try:
+            service_settings_mod.set_secret(
+                db, spec, payload["value"], request.app.state.settings
+            )
+        except ValueError as error:
+            code = str(error) or "invalid_service_secret"
+            status = 503 if code == "settings_encryption_not_configured" else (
+                409 if code in {"otp_pepper_required"} else 422
+            )
+            settings_logger.info(
+                "service secret rejected service=%s actor=%s code=%s",
+                spec.storage_id,
+                getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+                code,
+            )
+            raise HTTPException(status, code) from None
+        settings_logger.info(
+            "service secret stored service=%s actor=%s", spec.storage_id,
+            getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+        )
+        return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+
+    @app.delete("/api/owner/service-settings/{storage_id}")
+    def delete_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if not spec.editable:
+            raise HTTPException(403, "secret_is_read_only")
+        removed = service_settings_mod.clear_secret(db, spec)
+        settings_logger.info(
+            "service secret cleared service=%s actor=%s removed=%s",
+            spec.storage_id,
+            getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+            removed,
+        )
+        return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+
+    @app.post("/api/owner/service-settings/{storage_id}/test")
+    def test_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if spec.probe != "bale_get_me":
+            raise HTTPException(409, "connection_test_not_supported")
+        cfg = service_settings_mod.effective_settings(db, request.app.state.settings)
+        token = str(getattr(cfg, spec.attribute, ""))
+        ok, code = probe_bale_bot(token)
+        check = service_settings_mod.record_check(db, spec.storage_id, ok, code)
+        settings_logger.info("service probe service=%s ok=%s code=%s", spec.storage_id, ok, code)
+        return {"ok": ok, "code": code, "check": check}
 
     @app.post("/api/public/cooperation-requests", status_code=201)
     async def submit_cooperation_request(request: Request, db: Session = Depends(get_db)):
@@ -2278,7 +2593,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.bale_bot_token:
             raise HTTPException(503, "bale_auth_not_configured")
         payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))
@@ -2374,7 +2689,7 @@ def create_app(
     @app.post("/api/auth/phone-otp/request")
     async def request_phone_otp(request: Request, db: Session = Depends(get_db)):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.safir_api_key or not cfg.safir_bot_id or not cfg.otp_pepper:
             raise HTTPException(503, "phone_otp_not_configured")
         payload = await _read_json_object(request, 2048)
@@ -2405,6 +2720,14 @@ def create_app(
 
         # کپچا بعد از محدودیت نرخ بررسی می‌شود: هر حدس تصویر هم در سقف IP/شماره می‌نشیند.
         if not verify_captcha(cfg.otp_pepper, payload.get("captcha_token"), payload.get("captcha_answer"), now=now.timestamp()):
+            db.commit()
+            raise HTTPException(422, "invalid_captcha")
+        # هر کپچای حل‌شده فقط یک بار پذیرفته می‌شود؛ nonce آن تا پایان عمر توکن در همان جدول محدودیت ورود علامت می‌خورد.
+        nonce = captcha_nonce(payload.get("captcha_token"))
+        captcha_key = throttle_digest(cfg.otp_pepper, "phone-otp-captcha-nonce\0" + (nonce or ""))
+        if nonce is None or _touch_login_rate_limit(
+            db, captcha_key, now, limit=1, window=timedelta(seconds=CAPTCHA_TTL_SECONDS)
+        ):
             db.commit()
             raise HTTPException(422, "invalid_captcha")
 
@@ -2610,6 +2933,158 @@ def create_app(
             "delivery_bot_url": delivery_bot_url,
         }
 
+    ACCOUNT_IDENTITY_PROVIDERS = ("phone", "bale")
+
+    def _account_identities(db: Session, account_id: str) -> list[PlatformIdentityRecord]:
+        return list(
+            db.scalars(
+                select(PlatformIdentityRecord)
+                .where(PlatformIdentityRecord.account_id == account_id)
+                .order_by(PlatformIdentityRecord.created_at, PlatformIdentityRecord.provider)
+            ).all()
+        )
+
+    @app.get("/api/account/identities")
+    def account_identities_list(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """هویت‌های تأییدشدهٔ همین حساب.
+
+        شناسهٔ خام هیچ‌وقت برنمی‌گردد؛ فقط نام سکو و زمان پیوند. همین شکل پاسخ
+        برای ربات و وب یکی است تا هر دو یک تصویر از حساب ببینند.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        rows = _account_identities(db, identity.account_id)
+        return {
+            "account_id": identity.account_id,
+            "identities": [
+                {
+                    "provider": row.provider,
+                    "linked_at": _as_utc(row.created_at).isoformat() if row.created_at else None,
+                }
+                for row in rows
+            ],
+            "available_providers": list(ACCOUNT_IDENTITY_PROVIDERS),
+            "bale_link_available": bool(_runtime_settings(db, app.state.settings).bale_bot_token),
+        }
+
+    def _consume_mini_app_replay(
+        db: Session, verified: BaleMiniAppIdentity, max_age_seconds: int
+    ) -> None:
+        """اثر انگشت یک‌بارمصرف را ثبت می‌کند؛ استفادهٔ دوباره رد می‌شود."""
+        now = _utc_now()
+        db.execute(delete(MiniAppAuthReplayRecord).where(MiniAppAuthReplayRecord.expires_at <= now))
+        if db.get(MiniAppAuthReplayRecord, verified.replay_key) is not None:
+            raise HTTPException(409, "bale_init_data_replayed")
+        db.add(
+            MiniAppAuthReplayRecord(
+                replay_key=verified.replay_key,
+                expires_at=now + timedelta(seconds=max_age_seconds + 60),
+            )
+        )
+
+    @app.post("/api/account/identities/bale")
+    async def account_link_bale_identity(
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """پیوند یک هویت بلهِ اثبات‌شده به همین حساب.
+
+        اثبات مالکیت فقط از راه امضای `initData` انجام می‌شود؛ شناسه‌ای که
+        مرورگر بفرستد به‌تنهایی پذیرفته نمی‌شود و نقش از سمت کلاینت خوانده
+        نمی‌شود. اگر آن هویت بله از قبل به حساب دیگری وصل باشد، هیچ ادغام
+        خودکاری رخ نمی‌دهد و درخواست با ۴۰۹ رد می‌شود تا داده‌ای گم نشود.
+        """
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
+        if not cfg.bale_bot_token:
+            raise HTTPException(503, "bale_auth_not_configured")
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))
+        if set(payload) != {"init_data"} or not isinstance(payload.get("init_data"), str):
+            raise HTTPException(400, "invalid_bale_auth_payload")
+
+        try:
+            verified = verify_bale_mini_app_init_data(
+                payload["init_data"],
+                cfg.bale_bot_token,
+                now=int(_utc_now().timestamp()),
+                max_age_seconds=cfg.bale_init_data_max_age_seconds,
+            )
+        except ValueError:
+            raise HTTPException(401, "invalid_bale_init_data") from None
+
+        subject = str(verified.user_id)
+        claimed = db.scalar(
+            select(PlatformIdentityRecord).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == subject,
+            )
+        )
+        if claimed is not None:
+            if claimed.account_id == identity.account_id:
+                return {"linked": True, "provider": "bale", "already_linked": True}
+            raise HTTPException(409, detail={"code": "bale_identity_already_linked"})
+        if any(row.provider == "bale" for row in _account_identities(db, identity.account_id)):
+            raise HTTPException(409, detail={"code": "account_already_has_bale_identity"})
+
+        _consume_mini_app_replay(db, verified, cfg.bale_init_data_max_age_seconds)
+        db.add(
+            PlatformIdentityRecord(
+                id=str(uuid.uuid4()),
+                account_id=identity.account_id,
+                provider="bale",
+                provider_user_id=subject,
+            )
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            # مسابقهٔ هم‌زمان با ورود/پیوند دیگر؛ همان هویت به حساب دیگری رسید.
+            db.rollback()
+            raise HTTPException(409, detail={"code": "bale_identity_already_linked"}) from None
+        return {"linked": True, "provider": "bale", "already_linked": False}
+
+    @app.delete("/api/account/identities/bale")
+    def account_unlink_bale_identity(
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """برداشتن پیوند بله؛ برگشت‌پذیر و بدون حذف هیچ سابقه‌ای.
+
+        اگر بله تنها هویت حساب باشد رد می‌شود، وگرنه حساب بی‌صاحب می‌ماند.
+        نشست‌های دیگری که با provider بله ساخته شده‌اند باطل می‌شوند تا نشست
+        کهنه از پیوندِ برداشته‌شده زنده نماند؛ نشست جاری دست‌نخورده می‌ماند.
+        """
+        record = db.scalar(
+            select(PlatformIdentityRecord).where(
+                PlatformIdentityRecord.account_id == identity.account_id,
+                PlatformIdentityRecord.provider == "bale",
+            )
+        )
+        if record is None:
+            raise HTTPException(404, detail={"code": "bale_identity_not_linked"})
+        remaining = [
+            row for row in _account_identities(db, identity.account_id) if row.id != record.id
+        ]
+        if not remaining:
+            raise HTTPException(409, detail={"code": "last_identity_cannot_be_removed"})
+        db.delete(record)
+        db.execute(
+            update(AccountSessionRecord)
+            .where(
+                AccountSessionRecord.account_id == identity.account_id,
+                AccountSessionRecord.auth_provider == "bale",
+                AccountSessionRecord.id != identity.session_id,
+                AccountSessionRecord.revoked_at.is_(None),
+            )
+            .values(revoked_at=_utc_now())
+        )
+        db.commit()
+        return {"linked": False, "provider": "bale"}
+
     PROFILE_FIELD_KEYS = ("fullName", "nationalId", "birthDate", "gender", "province", "city", "address", "email")
 
     def _clean_profile_fields(raw: Any) -> dict[str, str]:
@@ -2671,7 +3146,7 @@ def create_app(
         response.headers["Cache-Control"] = "private, no-store"
         response.headers["Vary"] = "Cookie"
         filters = (
-            FormResponseDraftRecord.account_id == identity.account_id,
+            account_form_record_scope(db, identity.account_id),
             FormResponseRecord.added_by_response_id.is_(None),
             FormRecord.model == "registration",
         )
@@ -3925,7 +4400,7 @@ def create_app(
         """Explain publish blockers without changing the form or its status."""
         record = get_owned_form(db, identity.owner_id, form_id)
         issues = publication_issues(
-            record, bale_ready=request.app.state.settings.form_bale_payments_ready
+            record, bale_ready=_runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         )
         publishable_status = record.status in {"draft", "paused"}
         return {
@@ -4385,7 +4860,7 @@ def create_app(
         identity: OwnerIdentity = Depends(require_owner_write),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         record = get_owned_form(db, identity.owner_id, form_id)
         validate_expected_version(payload, record)
@@ -4455,7 +4930,7 @@ def create_app(
         request: Request,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
         accepted, waitlisted = _response_counts(db, form_id)
         if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form_id), waitlisted):
@@ -4474,7 +4949,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if (
             not isinstance(payload, dict)
@@ -4576,7 +5051,7 @@ def create_app(
             raise HTTPException(410, detail={"code": "form_full"})
 
         try:
-            webhook_info = await asyncio.to_thread(call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {})
+            webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
             webhook_result = webhook_info.get("result")
             configured_webhook = (
                 webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
@@ -4589,12 +5064,12 @@ def create_app(
                     raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
                 await asyncio.to_thread(
                     call_bale_payment_api,
-                    _payment_cfg(db, cfg),
+                    cfg,
                     "setWebhook",
                     {"url": registered_webhook_url},
                 )
                 verified_webhook_info = await asyncio.to_thread(
-                    call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {}
+                    call_bale_payment_api, cfg, "getWebhookInfo", {}
                 )
                 verified_result = verified_webhook_info.get("result")
                 verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
@@ -4606,7 +5081,7 @@ def create_app(
             description = f"پرداخت ثبت‌نام: {str(form.title or 'فرم')[:200]}"[:255]
             invoice_response = await asyncio.to_thread(
                 call_bale_payment_api,
-                _payment_cfg(db, cfg),
+                cfg,
                 "createInvoiceLink",
                 {
                     "title": title,
@@ -4749,7 +5224,7 @@ def create_app(
         request: Request,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.form_bale_payments_ready:
             raise HTTPException(503, detail={"code": "bale_payment_not_configured"})
         if not constant_time_equal(webhook_token, _form_payment_webhook_token(cfg)):
@@ -4799,7 +5274,7 @@ def create_app(
                 answer["error_message"] = "این صورت‌حساب منقضی یا نامعتبر است؛ دوباره از فرم شروع کنید."
             try:
                 await asyncio.to_thread(
-                    call_bale_payment_api, _payment_cfg(db, cfg), "answerPreCheckoutQuery", answer
+                    call_bale_payment_api, cfg, "answerPreCheckoutQuery", answer
                 )
             except BalePaymentAPIError as error:
                 raise HTTPException(503, detail={"code": error.code}) from None
@@ -4860,7 +5335,7 @@ def create_app(
         try:
             inquiry = await asyncio.to_thread(
                 call_bale_payment_api,
-                _payment_cfg(db, cfg),
+                cfg,
                 "inquireTransaction",
                 {"transaction_id": transaction_id},
             )
@@ -5063,7 +5538,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         """List only currently open, publishable, free forms for the Bale bot."""
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         records = db.scalars(
             select(FormRecord)
             .options(selectinload(FormRecord.fields))
@@ -5098,7 +5573,7 @@ def create_app(
         http_response.headers["Cache-Control"] = "no-store"
         user_id = validate_bot_form_user_id(bale_user_id)
         history_filter = (
-            FormResponseDraftRecord.bot_bale_user_id == user_id,
+            bot_form_record_scope(db, user_id),
             FormResponseRecord.status.in_(("accepted", "waitlisted")),
         )
         joined = select(FormResponseRecord).join(
@@ -5159,7 +5634,7 @@ def create_app(
             .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
             .where(
                 FormResponseRecord.id == response_id,
-                FormResponseDraftRecord.bot_bale_user_id == user_id,
+                bot_form_record_scope(db, user_id),
             )
         )
         if record is None:
@@ -5324,7 +5799,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_draft_payload")
@@ -5385,7 +5860,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_draft_payload")
@@ -5425,7 +5900,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         identity_keys = {"bale_user_id", "session_key", "field_id"}
         set_answer = set(payload) == identity_keys | {"value"}
@@ -5510,7 +5985,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_response_payload")
@@ -5797,7 +6272,7 @@ def create_app(
         response: Response,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
         enforce_public_write_limit(request, db, form_id, cfg, cfg.response_draft_write_limit_per_minute)
         _cleanup_expired_public_drafts(db)
@@ -5860,7 +6335,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) not in ({"answers"}, {"answers", "companions"}):
             raise HTTPException(400, "invalid_draft_payload")
@@ -5913,7 +6388,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         allowed_response_keys = {"answers"}
         if not isinstance(payload, dict) or "answers" not in payload:
@@ -6519,6 +6994,7 @@ def create_app(
         else:
             try:
                 with factory() as db:
+                    cfg = _runtime_settings(db, cfg)
                     form = db.scalar(
                         select(FormRecord)
                         .options(selectinload(FormRecord.fields))

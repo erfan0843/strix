@@ -168,6 +168,7 @@
       kind: text(record.kind || 'رویداد', 80),
       d: text(record.d || record.about || record.description || record.rep, 10000),
       when: text(record.when || record.d, 120),
+      on: text(record.on, 40),
       time: text(record.time, 120),
       place: text(record.place, 240),
       mode: text(record.mode, 80),

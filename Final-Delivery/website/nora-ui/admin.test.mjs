@@ -2418,8 +2418,12 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در صفحهٔ قدیمی فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=101')&&html.includes('admin.js?v=117')
-      &&html.includes('owner-api.js?v=106')&&html.includes('data.js?v=100')&&html.includes('ui.js?v=118')
+  /* نسخهٔ بستهٔ مشترک (ui.js) عمداً اینجا سنجیده نمی‌شود؛ یکنواختی و
+     رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
+     admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
+     بی‌دلیل نشکند. */
+  ok(html.includes('admin.css?v=101')&&html.includes('admin.js?v=119')
+      &&html.includes('owner-api.js?v=107')&&html.includes('data.js?v=100')
       &&html.includes('site-content-sync.js?v=101')&&html.includes('owner-banner-manager.css?v=2')
       &&html.includes('owner-banner-manager.js?v=2')&&html.includes('nora.css?v=100'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');

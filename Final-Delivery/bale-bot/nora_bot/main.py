@@ -57,6 +57,7 @@ from auth import (
 import profile as profile_mod
 import admin as admin_mod
 import shared_workflows as shared_workflows_mod
+import account_link as account_link_mod
 import import_excel as imp_mod
 import events as ev_mod
 import settings_admin as set_mod
@@ -406,6 +407,11 @@ def handle_deep_link(cid, uid, param, user):
     param = (param or "").strip()
     if not param:
         return show_main_menu(cid, user)
+
+    # 🔗 پیوند حساب:  ?start=link_account  → بازکردن صفحهٔ حساب داخل بله
+    # (خودِ پیوند فقط داخل مینی‌اپ و با امضای بله انجام می‌شود؛ این‌جا هیچ هویتی وصل نمی‌شود)
+    if param == "link_account":
+        return account_link_mod.start(cid, uid, user)
 
     if param in {"mycerts", "myfiles"} and str(cid) != str(uid):
         return send(cid, "این دریافت برای حفظ حریم خصوصی فقط در گفتگوی خصوصی ربات انجام می‌شود.")

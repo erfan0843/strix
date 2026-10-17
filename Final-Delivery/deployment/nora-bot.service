@@ -13,6 +13,10 @@ EnvironmentFile=/etc/nora/bale-bot.env
 ExecStart=/opt/nora/venv/bin/python -m nora_bot.main
 Restart=on-failure
 RestartSec=10
+# کد خروج ۲ توقفِ عمدیِ گارد است، نه خطا: ربات وقتی NORA_BOT_ALLOW_LEGACY_SQLITE=1
+# تنظیم نشده باشد پیش از ساخت SQLite عمداً با کد ۲ بیرون می‌آید تا داده در پایگاه
+# جداگانه ثبت نشود. بدون این خط، systemd هر ۱۰ ثانیه بی‌پایان ری‌استارت می‌کند.
+RestartPreventExitStatus=2
 
 [Install]
 WantedBy=multi-user.target
