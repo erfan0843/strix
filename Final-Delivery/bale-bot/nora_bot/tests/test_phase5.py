@@ -239,7 +239,7 @@ print(f"    payload: {json.dumps(body, ensure_ascii=False)}")
 check("🐛 bot_id درست ارسال شد", body.get("bot_id") == 317041514, str(body.get("bot_id")))
 check("🐛 phone_number فرمت درست", body.get("phone_number") == "989120000000")
 check("otp در جای درست", body.get("message_data", {}).get("otp_message", {}).get("otp") == "123456")
-check("هدر api-access-key", hdr.get("api-access-key") == "3tViTIlQy9WTutRL")
+check("هدر api-access-key", hdr.get("api-access-key") == "FAKE-SAFIR-KEY-FOR-TESTS-ONLY")
 check("URL سفیر درست", "safir.bale.ai/api/v3/send_message" in SAFIR_CALLS[0]["url"])
 
 # تست fallback بدون request_id
