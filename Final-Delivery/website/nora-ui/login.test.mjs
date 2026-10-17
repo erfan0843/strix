@@ -14,6 +14,8 @@ function check(condition, label) {
   else { failed++; console.error(`✗ ${label}`); }
 }
 
+/* یک PNG یک‌پیکسلی معتبر؛ فقط برای این‌که قرارداد data URI سرور شبیه‌سازی شود. */
+const CAPTCHA_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 function reply(status, body = {}) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
@@ -53,7 +55,7 @@ async function load({ routes = {}, cookie = '', url = 'https://nora.test/login.h
       if (!queue.length) throw new Error(`No mocked response left for ${path}`);
       return queue.shift();
     }
-    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"></svg>', expires_in: 180 });
+    if (path === '/api/auth/captcha') return reply(200, { token: 'captcha-token-test', image: CAPTCHA_PNG, expires_in: 180 });
     if (path === '/api/auth/me' || path === '/api/account/me') return unauthorized();
     throw new Error(`No mocked response for ${path}`);
   };
@@ -436,6 +438,29 @@ console.log('\n— تفکیک هویت Bale از ورود شماره‌ای —'
   } });
   check(!!p.doc.querySelector('#lgAuthenticated') && p.text('#lgAuthenticated').includes('ورود با بله تأیید شد'), 'فقط نشست server-side با provider=bale با هویت بله معرفی می‌شود');
   p.dom.window.close();
+}
+
+console.log('\n— تصویر کپچا فقط PNG رستری است و پاسخ در DOM نیست —');
+{
+  const p = await load({});
+  await delay(6);
+  const pic = p.doc.querySelector('#lgCapImg img.lg-cap-pic');
+  check(!!pic && pic.getAttribute('src') === CAPTCHA_PNG && pic.getAttribute('alt') === '',
+    'کپچای سرور به‌صورت <img> با data URI نمایش داده می‌شود');
+  check(!p.doc.querySelector('#lgCapImg svg, #lgCapImg text') && p.text('#lgCapImg').trim() === ''
+      && !/[0-9]/.test(p.doc.querySelector('#lgCapImg').innerHTML.replace(/src="[^"]*"/, '').replace(/width="180" height="60"/, '')),
+    'هیچ رقم یا متنی از پاسخ کپچا در DOM قابل خواندن نیست');
+  check(!script.includes('captcha_answer:') || !/captcha_answer:\s*['"][0-9]{4}['"]/.test(script),
+    'پاسخ کپچا در کد کلاینت ثابت نشده است');
+  p.dom.window.close();
+
+  const markup = await load({ routes: {
+    '/api/auth/captcha': [reply(200, { token: 'captcha-token-test', image: '<svg xmlns="http://www.w3.org/2000/svg"><text>1234</text></svg>', expires_in: 180 })],
+  } });
+  await delay(6);
+  check(!markup.doc.querySelector('#lgCapImg svg') && markup.text('#lgCapImg').includes('کد امنیتی بارگذاری نشد'),
+    'پاسخ غیر PNG (markup) تزریق نمی‌شود و به‌عنوان خطای بارگذاری برخورد می‌شود');
+  markup.dom.window.close();
 }
 
 console.log('\n— شکست بارگذاری کپچا بدون اسپینر ماندگار —');
