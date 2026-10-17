@@ -1450,3 +1450,29 @@ body.hasbotbar main.wrap{padding-bottom:14px}
   .installment-step{grid-template-columns:27px minmax(0,1fr);}
   .installment-step>strong{grid-column:2;justify-self:start}
 }
+
+/* ── حساب تولیدی با چیدمان تأییدشده: ردیف‌ها و دکمه‌های نورا پی به‌صورت پیوند، کارت باشگاه ── */
+a.mrow2,a.pbtn{text-decoration:none;color:inherit}
+a.mrow2:focus-visible,a.pbtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.server-club{border-radius:var(--r-xl);overflow:hidden;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
+.server-club .cl-hero{position:relative;padding:16px;display:grid;gap:9px;color:#fff;background-image:var(--g);isolation:isolate}
+.server-club .cl-hero .bk{display:flex;gap:11px;align-items:center}
+.server-club .cl-hero .bk .cv{width:58px;height:76px;border-radius:9px;flex:0 0 auto;
+  background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,.1));
+  border:.5px solid rgba(255,255,255,.45);display:grid;place-items:center;box-shadow:0 8px 18px rgba(0,0,0,.18)}
+.server-club .cl-hero .bk .cv .i{width:24px;height:24px}
+.server-club .cl-hero h3{margin:0;font-size:16.5px;font-weight:700;letter-spacing:-.2px}
+.server-club .cl-hero .hrow{font-size:var(--fs-sub)}
+.server-club .cl-body{padding:14px;display:grid;gap:10px}
+.server-club .memberline{display:flex;align-items:center;gap:8px;font-size:var(--fs-sub);padding:7px 0;border-bottom:.5px solid var(--hairline-2)}
+.server-club .memberline:last-child{border-bottom:0}
+.server-club .memberline .i{width:16px;height:16px;color:var(--ink-4);flex:0 0 auto}
+.server-club .tagg{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11px;background:rgba(255,255,255,.18);color:#fff;border:.5px solid rgba(255,255,255,.35)}
+.account-promo .server-paybar,.account-promo .server-rows{margin-top:12px}
+
+/* نوار فشردهٔ هویت در زیرصفحه‌های حساب تولیدی */
+.server-account-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px}
+.server-account-strip .av.sm{width:38px;height:38px;font-size:16px;flex:0 0 auto}
+.server-account-strip .who{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 140px}
+.server-account-strip .who b{font-size:14px}
+.server-account-strip .who small{color:var(--muted);font-size:12px}

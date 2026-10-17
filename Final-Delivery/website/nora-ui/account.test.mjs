@@ -176,14 +176,29 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   ok(production.view().includes('پرداخت')&&production.view().includes('نیاز به ورود')&&production.view().includes('وضعیت پرداخت‌هایت')
     &&!production.view().includes('۱۲۵۰۰۰۰')&&!production.view().includes('کیف پول'),'پرداخت‌های مهمان فقط دعوت به ورود است و هیچ مانده یا فاکتور نمونه‌ای ندارد');
   await production.nav('book');
-  ok(production.view().includes('API حساب وب')&&!production.view().includes('باشگاه نمونه'),
-    'باشگاه بدون endpoint در وضعیت روشن و خالی می‌ماند');
+  ok(!!production.doc.querySelector('#viewBox .server-club .cl-hero')&&production.view().includes('کتاب ماه هنوز منتشر نشده')
+    &&production.view().includes('فعلاً در ربات بله')&&!production.view().includes('باشگاه نمونه')
+    &&!/عضوِ? نمونه|۱۲ عضو|چراغ‌ها را من خاموش می‌کنم/.test(production.view()),
+    'باشگاه کتاب‌خوانی با کارت طراحی‌شده و حالت خالی روشن می‌ماند؛ کتاب ماه، اعضا یا امتیاز نمونه ندارد');
+  ok(!!production.doc.querySelector('#profBox .server-paybar')&&!!production.doc.querySelector('#profBox .server-rows')
+    &&production.all('#profBox .server-rows a.mrow2').length===4
+    &&production.txt('#profBox .server-rows').includes('باشگاه کتاب‌خوانی خط زندگی')
+    &&production.txt('#profBox .server-paybar').includes('نورا پی')
+    &&production.doc.querySelector('#profBox .server-paybar a[href="account.html#payments"]')
+    &&production.doc.querySelector('#profBox .server-rows a[href="account.html#forms"]')
+    &&!/۱٬۲۵۰٬۰۰۰|بدهکار|تومان/.test(production.txt('#profBox')),
+    'مهمان همان چیدمان تأییدشده (نورا پی و بخش‌های من) را می‌بیند، بدون موجودی یا بدهی نمونه');
   production.dom.window.close();
 
   const live=await load(memberStore(),'',{
     account:{authenticated:true,account_id:'live-account-1',provider:'phone',role:null,permissions:[],delivery_bot_url:''},
     notifications:[],files:[]
   },false,false);
+  ok(live.doc.querySelector('.server-account-head')?.classList.contains('phead')
+    &&!!live.doc.querySelector('.server-account-head .pstats [data-server-data-open="registrations"]')
+    &&!!live.doc.querySelector('#profBox .server-paybar')&&live.all('#profBox .server-rows a.mrow2').length===4
+    &&live.network.some(call=>call.path==='/api/account/registrations?limit=50&offset=0'),
+    'حساب واردشده سر صفحهٔ طراحی‌شده (phead)، نورا پی و بخش‌های من را با شمارنده‌های سروری می‌بیند');
   ok(!!live.doc.querySelector('.server-account-head')&&live.txt('#profBox').includes('رویدادهای من')
     &&!live.txt('#profBox').includes('در دسترس نیست')
     &&live.doc.querySelector('.tabbar [data-account-nav]')?.getAttribute('href')==='account.html'

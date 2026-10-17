@@ -289,7 +289,7 @@ function serverAccountAccessCard(next='notifications'){
   if(state.account) return '';
   if(state.checking) return card('حساب امن','در حال بررسی وضعیت ورود…','i-shield',
     `<p class="cap">اطلاعات شخصی فقط پس از تأیید سرور نمایش داده می‌شود.</p>`);
-  const destination=['events','notifications','my-files','forms','payments'].includes(next)?next:'notifications';
+  const destination=['events','notifications','my-files','forms','payments','profile'].includes(next)?next:'notifications';
   const loginHref=serverLoginHref(destination);
   const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':destination==='forms'?'برای دیدن فرم‌های خودت وارد حساب شو.'
     :destination==='payments'?'برای دیدن وضعیت پرداخت‌هایت وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
@@ -299,27 +299,104 @@ function serverAccountAccessCard(next='notifications'){
        <a class="btn primary" href="${esc(loginHref)}">ورود/ثبت‌نام</a>${retry}
      </div>`);
 }
+function serverAccountProviderLabel(a){
+  return a&&a.provider==='manager-password'?'ورود مدیر با نام کاربری':a&&a.provider==='phone'?'ورود با شمارهٔ موبایل':'حساب بله';
+}
+function serverAccountDisplayName(){
+  const p=prof()||{}; const name=String(p.fullName||'').trim();
+  return name;
+}
+/* سر صفحهٔ حساب با همان چیدمان تأییدشده (phead)؛ همهٔ اعداد از سرور می‌آیند و تا خوانده نشده‌اند «—» هستند. */
 function serverAccountHead(){
   const state=SERVER_ACCOUNT_STATE;
   if(!state.account) return '';
-  const providerLabel=state.account.provider==='manager-password'?'ورود مدیر با نام کاربری':state.account.provider==='phone'?'ورود با شمارهٔ موبایل':'حساب بله';
+  const providerLabel=serverAccountProviderLabel(state.account);
   const unread=state.notifications.filter(item=>item&&!item.read).length;
   const noticeCount=state.notificationsLoaded?faN(state.notifications.length):'—';
   const fileCount=state.filesLoaded?faN(state.files.length):'—';
-  return `<section class="card acct anim server-account-head">
-    <div class="row">${ico('i-shield')}<span class="sp"><b>${esc(providerLabel)} وصل است</b>
-      <small class="cap">ورود و دسترسی از سرور تأیید شده‌اند.</small></span>${chip('حساب امن','ok')}</div>
-    <div class="acct-server-stats">
-      <span><b>${noticeCount}</b><small>اعلان${unread?` · ${faN(unread)} تازه`:''}</small></span>
-      <span><b>${fileCount}</b><small>فایل حساب</small></span>
-    </div>
-    <div class="row" style="margin-top:10px;flex-wrap:wrap">
-      <button class="btn primary" data-server-data-open="registrations">${ico('i-calendar')} ثبت‌نام‌های من</button>
-      <button class="btn quiet" data-server-data-open="notifications">${ico('i-bell')} اعلان‌ها</button>
-      <button class="btn quiet" data-server-data-open="files">${ico('i-archive')} فایل‌ها</button>
-      <span class="sp"></span><button class="btn sm quiet" data-server-account-logout>خروج</button>
+  const regCount=state.registrationsLoaded&&!state.registrationsError?faN(state.registrationsTotal):'—';
+  const name=serverAccountDisplayName(), initial=(name||'ن').slice(0,1);
+  const role=state.account.role==='owner'?'مالک سامانه':state.account.role==='manager'?'مدیر':state.account.role==='club-supervisor'?'سرپرست باشگاه':'';
+  return `<section class="phead anim server-account-head" aria-label="حساب من">
+    <div class="cover"><span class="blob b1" aria-hidden="true"></span>
+      <span class="ctags">${chip(providerLabel+' وصل است','ok')}${chip('حساب امن')}${role?chip(role,'brand'):''}</span></div>
+    <div class="pbody">
+      <div class="ptop">
+        <span class="av">${esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
+        <span class="who"><b>${esc(name||'حساب نورا')}</b>
+          <small>ورود و دسترسی از سرور تأیید شده‌اند.</small>
+          <span class="pmeta">${chip(name?'نام از پروفایل حساب':'نام هنوز در پروفایل ثبت نشده')}</span></span>
+        <button class="icon-btn edit" data-server-data-open="notifications" aria-label="اعلان‌های حساب">${ico('i-bell')}</button>
+      </div>
+      <div class="pstats acct-server-stats">
+        <button class="pstat" data-server-data-open="registrations"><b>${regCount}</b><small>ثبت‌نام</small></button>
+        <button class="pstat" data-server-data-open="notifications"><b>${noticeCount}</b><small>اعلان${unread?` · ${faN(unread)} تازه`:''}</small></button>
+        <button class="pstat" data-server-data-open="files"><b>${fileCount}</b><small>فایل حساب</small></button>
+      </div>
+      <div class="pacts">
+        <button class="btn sm primary" data-server-data-open="registrations">${ico('i-calendar')} ثبت‌نام‌های من</button>
+        <a class="btn sm quiet" href="account.html#forms">${ico('i-doc')} فرم‌های من</a>
+        <button class="btn sm quiet" data-server-data-open="files">${ico('i-archive')} فایل‌ها</button>
+        <span class="sp"></span><button class="btn sm quiet" data-server-account-logout>خروج</button>
+      </div>
     </div>
   </section>`;
+}
+/* نوار فشردهٔ هویت برای زیرصفحه‌ها (فرم‌ها، پرداخت‌ها، بخش‌ها): سر صفحهٔ کامل فقط در «حساب من» تکرار می‌شود. */
+function serverAccountStrip(){
+  const state=SERVER_ACCOUNT_STATE;
+  if(!state.account) return '';
+  const name=serverAccountDisplayName(), initial=(name||'ن').slice(0,1);
+  return `<div class="card acct server-account-strip server-account-head-mini">
+    <span class="av sm">${esc(initial)}</span>
+    <span class="who"><b>${esc(name||'حساب نورا')}</b><small>${esc(serverAccountProviderLabel(state.account))} وصل است · حساب امن</small></span>
+    <a class="btn sm quiet" href="account.html">${ico('i-user')} حساب من</a>
+    <button class="btn sm quiet" data-server-account-logout>خروج</button>
+  </div>`;
+}
+/* نورا پی در حساب تولیدی: همان کارت تأییدشده، فقط با چیزی که سرور واقعاً دارد (وضعیت پرداخت ثبت‌نام‌ها). */
+function serverPayBar(){
+  const state=SERVER_ACCOUNT_STATE, guest=!state.account;
+  const paid=state.registrations.filter(item=>item&&item.payment_status).length;
+  const meta=guest?chip('وارد شو و وضعیت پرداخت‌هایت را ببین')
+    :state.registrationsLoaded&&!state.registrationsError?chip(paid?faN(paid)+' ثبت‌نام دارای وضعیت پرداخت':'هنوز پرداختی ثبت نشده')
+    :chip('وضعیت از سرور خوانده می‌شود');
+  return `<div class="paybar anim server-paybar" style="--i:1">
+    <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام">
+      <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
+      <span class="ptx"><small>نورا پی</small>
+        <b>پرداخت‌ها و رسیدهای ثبت‌نام</b>
+        <span class="pmeta">${meta}${chip('نسخهٔ اول · بدون موجودی','')}</span></span>
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+    </button>
+    <div class="pbrow">
+      <a class="pbtn" href="account.html#payments">${ico('i-wallet')}پرداخت‌ها</a>
+      <a class="pbtn" href="account.html#payments">${ico('i-doc')}رسیدها</a>
+      <a class="pbtn" href="account.html#acc-20" title="خارج از نسخهٔ اول">${ico('i-split')}اقساط</a>
+    </div>
+    <p class="trustline" data-trust="pay"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
+      <span>پرداخت هر ثبت‌نام از صفحهٔ همان فرم انجام می‌شود و وضعیت آن از سرور خوانده می‌شود؛ شمارهٔ کارت جایی ذخیره نمی‌شود.</span></p>
+  </div>`;
+}
+/* «بخش‌های من» با همان ردیف‌های طراحی: رویدادهای من، فرم‌های من، پروفایل من، باشگاه کتاب‌خوانی. */
+const SERVER_ROWS=[
+  {k:'events',h:'account.html#events',n:'رویدادهای من',s:'ثبت‌نام‌ها، وضعیت و بلیت هر رویداد',i:'i-calendar'},
+  {k:'forms',h:'account.html#forms',n:'فرم‌های من',s:'پاسخ‌های فرم و وضعیت بررسی',i:'i-doc'},
+  {k:'profile',h:'account.html#profile',n:'پروفایل من',s:'نوع ورود، دسترسی‌ها و پیوند حساب بله',i:'i-idcard'},
+  {k:'book',h:'account.html#book',n:'باشگاه کتاب‌خوانی خط زندگی',s:'کتاب ماه، جلسه‌ها و تازه‌های باشگاه',i:'i-book'}
+];
+function serverRowsBox(){
+  const state=SERVER_ACCOUNT_STATE, loaded=state.account&&state.registrationsLoaded&&!state.registrationsError;
+  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ':k==='book'?'تازه‌ها در خانه':'';
+  return `<div class="mrows anim server-rows" style="--i:3">
+    <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
+      <span class="cap">${faN(SERVER_ROWS.length)} بخش</span></div>
+    ${SERVER_ROWS.map(r=>`<a class="mrow2" href="${esc(r.h)}">
+      <span class="ic">${ico(r.i)}</span>
+      <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
+      ${mini(r.k)?`<span class="mini">${ico(r.k==='book'?'i-book':'i-check')}${esc(mini(r.k))}</span>`:''}
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+    </a>`).join('')}</div>`;
 }
 function serverAccountGuestLanding(){
   const loginHref=serverLoginHref();
@@ -361,6 +438,8 @@ function serverAccountGuestLanding(){
         </div>
       </div>
     </section>
+    ${serverPayBar()}
+    ${serverRowsBox()}
     <section class="account-promo-benefits" aria-labelledby="accountPromoBenefitsTitle">
       <div class="account-promo-section-head"><span>با ورود به نورا</span><h3 id="accountPromoBenefitsTitle">چه چیزهایی دم دستت است؟</h3></div>
       <div class="account-promo-features">
@@ -642,22 +721,11 @@ async function unlinkBaleIdentity(){
   renderProfile();
 }
 function serverAccountModulesCard(){
-  const rows=SERVER_ACCOUNT_STATE.account?[
-    ['پروفایل و امتیاز','اطلاعات تکمیلی و امتیاز سروری متصل نشده.'],
-    ['پرداخت‌ها','وضعیت پرداخت هر ثبت‌نام از API ثبت‌نام‌های حساب خوانده می‌شود؛ مانده یا کیف پول ندارد.'],
-    ['باشگاه','عضویت و امتیاز باشگاه به حساب سروری متصل نیست.']
-  ]:[];
-  return `<section class="card acct server-account-modules">
-    <div class="head">رویدادهای من</div>
-    <div class="srow" style="margin-top:8px"><span class="sp"><b>ثبت‌نام‌ها</b>
-      <small class="cap">فهرست ثبت‌نام‌های متصل به همین حساب وب</small></span>
-      <a class="btn sm quiet" href="account.html#events">دیدن فهرست</a></div>
-    ${rows.length?`<div class="stack" style="margin-top:8px">${rows.map(([title,description])=>`<div class="srow"><span class="sp"><b>${esc(title)}</b><small class="cap">${esc(description)}</small></span><span class="tag warn">هنوز وصل نیست</span></div>`).join('')}</div>`:''}
-  </section>`+accountScreensCard();
+  return accountScreensCard();
 }
 function serverAccountFeatureView(t,title,description){
   if(SERVER_ACCOUNT_STATE.checking) return viewHead(t,'',null)+serverAccountAccessCard();
-  return viewHead(t,'',null)+serverAccountHead()+serverAccountAccessCard()+card(title,description,'i-info',
+  return viewHead(t,'',null)+serverAccountStrip()+serverAccountAccessCard()+card(title,description,'i-info',
     `<p class="cap">این بخش در API حساب وب موجود نیست؛ هیچ دادهٔ محلی یا نمونه‌ای نمایش داده نمی‌شود.</p>
      <a class="btn quiet" href="account.html">بازگشت به حساب من</a>`);
 }
@@ -665,7 +733,8 @@ function serverAccountFeatureView(t,title,description){
 function profileHTML(){
   const state=SERVER_ACCOUNT_STATE;
   if(!TEST_FIXTURE_MODE) return state.account
-    ?serverAccountHead()+serverAccountIdentitiesCard()+serverAccountModulesCard():serverAccountGuestLanding();
+    ?serverAccountHead()+serverPayBar()+serverRowsBox()+serverAccountIdentitiesCard()+serverAccountModulesCard()
+    :serverAccountGuestLanding();
   if(state.checking) return serverAccountAccessCard();
   const connected=!!state.account;
   const localHeader=connected?'':(login()?headMember():headGuest());
@@ -803,7 +872,7 @@ function serverAccountRegistrationsView(t,mode){
   else if(!state.account) content=serverAccountAccessCard(mode||'events');
   else content=accountRegistrationsContent(mode);
   return viewHead(t,state.account?(mode==='payments'?'پرداخت‌های تو':mode==='forms'?'فرم‌های تو':'ثبت‌نام‌های تو'):'نیاز به ورود',null)+
-    (state.account?serverAccountHead():'')+`<div class="panel stack">${content}</div>`;
+    (state.account?serverAccountStrip():'')+`<div class="panel stack">${content}</div>`;
 }
 function serverAccountDataView(t){
   t=t||SERVER_DATA_VIEW;
@@ -870,6 +939,7 @@ async function loadAccountRegistrations(append=false,force=false){
   }finally{
     state.registrationsLoading=false;
     if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) renderView();
+    if(!TEST_FIXTURE_MODE) renderProfile();
   }
 }
 async function loadAccountNotifications(append=false,force=false){
@@ -952,6 +1022,7 @@ async function loadAccountIdentities(force=false){
 function loadServerAccountData(force=false){
   if(!SERVER_ACCOUNT_STATE.account) return;
   loadAccountNotifications(false,force); loadAccountFiles(false,force); loadAccountIdentities(force);
+  loadAccountRegistrations(false,force);
 }
 async function checkServerAccount(){
   const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
@@ -2441,7 +2512,7 @@ function authPanel(){
 /* پروفایل من: شش تب، هر چیزی که به خودِ عضو برمی‌گردد، یک‌جا */
 const PTABS=A.profileTabs||[{k:'info',n:'اطلاعات من'}];
 VS.profile=function(t){
-  if(!TEST_FIXTURE_MODE) return serverAccountFeatureView(t,'پروفایل حساب','ویرایش امن پروفایل و تاریخچهٔ حساب هنوز به API حساب وب متصل نیست.');
+  if(!TEST_FIXTURE_MODE) return serverAccountProfileView(t);
   if(!login()) return viewHead(t,'',PTABS,'ptab')+gate(t);
   const body=S.ptab==='auth'?authPanel()
     : S.ptab==='invite'?inviteTab()
@@ -2457,7 +2528,7 @@ VS.profile=function(t){
    تا عضو نشوی، پنل بسته است: اول فرمی که سرپرست گذاشته، بعد حق عضویت،
    بعد امکانات باشگاه. هر چیزی که سرپرست می‌فرستد همین‌جا می‌نشیند. */
 VS.book=function(t){
-  if(!TEST_FIXTURE_MODE) return serverAccountFeatureView(t,'باشگاه','وضعیت عضویت، امتیاز و فعالیت‌های باشگاه از API حساب وب ارائه نمی‌شود.');
+  if(!TEST_FIXTURE_MODE) return serverBookClubView(t);
   if(!login()) return viewHead(t,'',null)+gate(t);
   if(!clubIsMember()) return clubJoin(t);
   return clubPanel(t);
@@ -2953,7 +3024,7 @@ function accScreenView(t){
   if(x.st==='bot'){
     const a=SERVER_ACCOUNT_STATE.account||{};
     const bot=a.delivery_bot_url&&/^https:\/\//.test(a.delivery_bot_url)?`<a class="btn primary" href="${esc(a.delivery_bot_url)}" target="_blank" rel="noopener">${ico('i-send')} باز کردن ربات بله</a>`:'';
-    return viewHead(t,'',null)+(SERVER_ACCOUNT_STATE.account?serverAccountHead():'')+card(x.n,st.note,'i-send',
+    return viewHead(t,'',null)+(SERVER_ACCOUNT_STATE.account?serverAccountStrip():'')+card(x.n,st.note,'i-send',
       `<p><span class="${st.cls}">${esc(st.tag)}</span></p><p class="cap">در وب هیچ دادهٔ محلی یا نمونه‌ای برای این بخش نمایش داده نمی‌شود؛ وقتی سرویس مشترک آن در وب فراهم شود، همین‌جا فعال خواهد شد.</p>
        <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
   }
@@ -2977,6 +3048,43 @@ function serverAccountInfoView(t){
      </div>
      <p class="cap">نام، شمارهٔ موبایل و ویرایش اطلاعات در API حساب وب موجود نیست.</p>
      <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
+}
+function serverAccountProfileView(t){
+  const state=SERVER_ACCOUNT_STATE;
+  if(state.checking) return viewHead(t,'',null)+serverAccountAccessCard();
+  if(!state.account) return viewHead(t,'',null)+serverAccountAccessCard('profile');
+  const a=state.account, name=serverAccountDisplayName();
+  return viewHead(t,'اطلاعات حساب وب و پیوند هویت از سرور',null)+card('اطلاعات من','آنچه سرور دربارهٔ این حساب تأیید کرده است.','i-idcard',
+    `<div class="stack">
+       <div class="srow"><span class="sp"><b>نام</b><small class="cap">${esc(name||'هنوز در پروفایل حساب ثبت نشده است')}</small></span></div>
+       <div class="srow"><span class="sp"><b>نوع ورود</b><small class="cap">${esc(serverAccountProviderLabel(a))}</small></span></div>
+       <div class="srow"><span class="sp"><b>دسترسی‌ها</b><small class="cap">${esc(faN((a.permissions||[]).length))} مورد</small></span></div>
+     </div>
+     <p class="cap">شمارهٔ موبایل و کد یک‌بارمصرف هیچ‌وقت در مرورگر ذخیره نمی‌شوند؛ ویرایش اطلاعات تکمیلی پروفایل در نسخهٔ اول وب فعال نیست.</p>`)
+    +serverAccountIdentitiesCard();
+}
+function serverBookClubView(t){
+  const state=SERVER_ACCOUNT_STATE, a=state.account||{};
+  const bot=a.delivery_bot_url&&/^https:\/\//.test(a.delivery_bot_url)?`<a class="btn sm tint" href="${esc(a.delivery_bot_url)}" target="_blank" rel="noopener">${ico('i-send')} باشگاه من در ربات بله</a>`:'';
+  return viewHead(t,'کتاب ماه، جلسه‌ها و تازه‌های باشگاه',null)+`<div class="club server-club">
+    <div class="cl-hero" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)">
+      <div class="btop" style="position:static;display:flex;gap:6px"><span class="tagg tag-g">باشگاه کتاب‌خوانی خط زندگی</span></div>
+      <div class="bk"><span class="cv">${ico('i-book')}</span>
+        <span style="min-width:0"><h3>کتاب ماه هنوز منتشر نشده است</h3>
+          <div class="hrow" style="color:rgba(255,255,255,.9)">کتاب ماه، زمان جلسه و سرپرست باشگاه از پنل مدیریت منتشر می‌شوند و همین‌جا نمایش داده خواهند شد.</div></span></div>
+    </div>
+    <div class="cl-body">
+      <div class="stack tight">
+        <div class="memberline">${ico('i-clock')}<span class="sp" style="flex:1">زمان جلسهٔ بعدی پس از انتشار از پنل اعلام می‌شود.</span></div>
+        <div class="memberline">${ico('i-book')}<span style="flex:1">تازه‌های منتشرشدهٔ باشگاه (کتاب، صدا، مسابقه) در صفحهٔ خانه، بخش باشگاه، در دسترس است.</span></div>
+        <div class="memberline">${ico('i-users')}<span style="flex:1">عضویت، امتیاز و «باشگاه من» فعلاً در ربات بله انجام می‌شود؛ در وب موجودی یا امتیاز نمونه نشان داده نمی‌شود.</span></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap">
+        <a class="btn primary" href="home.html#club">${ico('i-book')} تازه‌های باشگاه</a>${bot}
+        <span class="tag">فعلاً در ربات بله</span>
+      </div>
+    </div>
+  </div>`;
 }
 function viewOf(k){ if(String(k||'').indexOf('acc-')===0) return accScreen(k)?accScreenView:null;
   if(ACCOUNT_REGISTRATION_VIEWS[k]) return t=>serverAccountRegistrationsView(t,k);
@@ -3087,7 +3195,7 @@ document.addEventListener('click',ev=>{
   const g=t.closest('[data-go]'); if(g){ go(g.dataset.go); return }
   const vw=t.closest('[data-view]');
   if(vw){ const k=vw.dataset.view;
-    if(k==='pay'||login()){ location.hash='#'+k; return }
+    if(k==='pay'||login()||!TEST_FIXTURE_MODE){ location.hash='#'+k; return }
     S.after=k; loginSheet(); return }
   const pb=t.closest('[data-pay]'); if(pb){ location.hash='#pay'; return }
   const qt=t.closest('[data-qt]');
