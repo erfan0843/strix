@@ -8765,6 +8765,8 @@ async function authenticateServerSession(){
   }
 }
 (function boot(){
+  /* کلید شب/روز ستون کناری پیش از احراز هویت هم باید کار کند (در دروازهٔ ورود دیده می‌شود) */
+  const th=$('#admTheme'); if(th) th.onclick=()=>{if(typeof themeToggle==='function') themeToggle()};
   if(IS_TEST){
     const auth=readAdminSession();
     if(!validAdminSession(auth)){
