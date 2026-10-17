@@ -328,7 +328,7 @@ function serverAccountHead(){
           <span class="pmeta">${chip(name?'نام از پروفایل حساب':'نام هنوز در پروفایل ثبت نشده')}</span></span>
         <button class="icon-btn edit" data-server-data-open="notifications" aria-label="اعلان‌های حساب">${ico('i-bell')}</button>
       </div>
-      <div class="pstats acct-server-stats">
+      <div class="pstats">
         <button class="pstat" data-server-data-open="registrations"><b>${regCount}</b><small>ثبت‌نام</small></button>
         <button class="pstat" data-server-data-open="notifications"><b>${noticeCount}</b><small>اعلان${unread?` · ${faN(unread)} تازه`:''}</small></button>
         <button class="pstat" data-server-data-open="files"><b>${fileCount}</b><small>فایل حساب</small></button>
