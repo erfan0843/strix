@@ -1023,7 +1023,7 @@ function accountFirstName(user){
   const name=String(user&&user.name||'').trim();
   return name?name.split(/\s+/u)[0]:'';
 }
-const ACCOUNT_NEXT_RE=/^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/;
+const ACCOUNT_NEXT_RE=/^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|payments|privacy|club|points|invite))?$/;
 function accountEntryHref(next='account.html'){
   next=String(next||'account.html');
   if(!ACCOUNT_NEXT_RE.test(next)) next='account.html';

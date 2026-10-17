@@ -225,6 +225,23 @@ console.log('\n— مسیر پیوند حساب: بازگشت پس از ورود
   check(await drive(otherHash) === 'account.html#notifications',
     'بازگشت به بخش‌های حساب همچنان کار می‌کند');
   otherHash.dom.window.close();
+
+  /* مقصد «پرداخت‌ها» (نورا پی) هم باید بعد از ورود حفظ شود؛ مقصد ناشناخته همچنان به حساب برمی‌گردد. */
+  const payments = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%23payments',
+    routes: phoneRoutes(),
+  });
+  check(await drive(payments) === 'account.html#payments',
+    'ورود از مسیر نورا پی کاربر را به همان بخش پرداخت‌ها برمی‌گرداند');
+  payments.dom.window.close();
+
+  const unknownHash = await load({
+    url: 'https://nora.test/login.html?mode=server&next=account.html%23wallet-topup',
+    routes: phoneRoutes(),
+  });
+  check(await drive(unknownHash) === 'account.html',
+    'بخش ناشناخته در نشانی بازگشت پذیرفته نمی‌شود و به صفحهٔ حساب می‌افتد');
+  unknownHash.dom.window.close();
 }
 
 console.log('\n— خطاهای API بدون fallback محلی —');
