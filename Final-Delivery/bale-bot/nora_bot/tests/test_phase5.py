@@ -18,7 +18,7 @@ TMP = tempfile.mkdtemp(prefix="nora5_")
 os.environ.update({
     "BOT_TOKEN": "1095412158:TEST_TOKEN_FOR_UNITTEST",
     "SUPER_ADMIN_ID": "100000001",
-    "SAFIR_API_KEY": "3tViTIlQy9WTutRL",
+    "SAFIR_API_KEY": "FAKE-SAFIR-KEY-FOR-TESTS-ONLY",
     "SAFIR_BOT_ID": "317041514",
     "PAYMENT_PROVIDER_TOKEN": "WALLET-TEST-1111111111111111",
     "DB_PATH": str(Path(TMP) / "t.db"),
