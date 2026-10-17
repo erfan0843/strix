@@ -1924,6 +1924,7 @@ function isPre(id){return preList().indexOf(id)>-1}
 function prereg(id,after){
   const N=window.NORA||{}, e=(N.EVENTS||[]).find(x=>x.id===id);
   if(!e) return;
+  if(!NORA_TEST_FIXTURE_MODE){ location.href='event.html?id='+encodeURIComponent(id); return }   /* پیش‌ثبت‌نام محلی فقط در fixture آزمون */
   if(!walletUser()){ authSheet(()=>prereg(id,after)); return }
   const a=preList();
   if(a.indexOf(id)>-1){
@@ -1966,7 +1967,7 @@ function eventSheet(id){
   const hasFree=(e.media||[]).some(m=>!m.p||m.preview);
   const previewBtn=(past&&hasFree)?`<button class="btn quiet" data-uipreview="${escH(e.id)}"><svg class="i"><use href="#i-play-f"/></svg> پیش‌نمایش</button>`:'';
   const preOn=!past&&isPre(e.id);
-  const preBtn=past?'':`<button class="btn ${preOn?'primary':'quiet'}" data-uipre="${escH(e.id)}"><svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
+  const preBtn=(past||!NORA_TEST_FIXTURE_MODE)?'':`<button class="btn ${preOn?'primary':'quiet'}" data-uipre="${escH(e.id)}"><svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
   const mediaHtml=past?`
     <div class="sec-hd" style="margin-top:14px"><span class="fw">رسانه‌های این رویداد</span><span class="sp"></span>
       <span class="cap">${faN(e.mediaCount||((e.media||[]).length))} فایل</span></div>
@@ -2285,48 +2286,7 @@ function doBuy(pastId,mediaId){
   toast('خرید و پرداخت واقعی به درگاه و سرور وصل نیست؛ هیچ مبلغی کسر یا محتوایی آزاد نشد');
 }
 
-/* ── ورود: یک نسخهٔ کوچک برای خرید و کارهای نیازمند حساب ── */
-/* ورود واقعی: شماره → کد ۶ رقمی سرور (phone-otp). کد نمایشی و نشست ساختگی ندارد. */
-const SRV_AUTH={phone:'',challenge:'',busy:false,err:'',captchaToken:'',captchaImage:'',captchaFailed:false};
-async function loadServerCaptcha(){
-  if(SRV_AUTH.captchaBusy) return; SRV_AUTH.captchaBusy=true; SRV_AUTH.captchaFailed=false; SRV_AUTH.captchaToken='';
-  try{
-    const r=await fetch('/api/auth/captcha',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-    if(!r.ok) throw new Error('captcha');
-    const d=await r.json();
-    if(!d||typeof d.token!=='string'||typeof d.image!=='string') throw new Error('captcha');
-    SRV_AUTH.captchaToken=d.token; SRV_AUTH.captchaImage=d.image;
-  }catch(_){ SRV_AUTH.captchaImage=''; SRV_AUTH.captchaFailed=true; SRV_AUTH.err='کد امنیتی بارگذاری نشد؛ دوباره تلاش کن.' }
-  SRV_AUTH.captchaBusy=false;
-  if(document.getElementById('shAuth')&&document.getElementById('srvmob')) serverAuthSheet();
-}
-function serverAuthSheet(after){
-  const step=SRV_AUTH.challenge?'code':'phone';
-  fillSheet('shAuth',`
-    <div class="grabber"></div>
-    <div class="row" style="align-items:center;margin-bottom:10px">
-      <div><div class="head">${step==='code'?'کد تأیید':'ورود / ثبت‌نام با شمارهٔ موبایل'}</div>
-        <div class="cap">${step==='code'?'کد ۶ رقمی را به '+escH(SRV_AUTH.phone)+' فرستادیم':'برای تهیه و کتابخانه لازم است؛ رمزی ندارد'}</div></div>
-      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-    ${step==='code'
-      ? `<label class="lbl" for="srvcode">کد ۶ رقمی</label>
-         <input class="input num" id="srvcode" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code"/>
-         <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-code ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-check"/></svg> ورود</button>
-           <button class="btn quiet" data-srv-back>تغییر شماره</button></div>`
-      : `<label class="lbl" for="srvmob">شمارهٔ موبایل</label>
-         <input class="input num" id="srvmob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(SRV_AUTH.phone)}"/>
-         <div class="row" style="margin-top:10px;align-items:center;gap:10px"><span style="line-height:0;border-radius:10px;overflow:hidden">${SRV_AUTH.captchaImage||(SRV_AUTH.captchaFailed?'<span class="cap">کد امنیتی بارگذاری نشد</span>':'<span class="cap">در حال بارگذاری کد امنیتی…</span>')}</span>
-           <button class="btn quiet" type="button" data-srv-captcha-new ${SRV_AUTH.busy||SRV_AUTH.captchaBusy?'disabled':''}>کد جدید</button></div>
-         <label class="lbl" for="srvcap" style="margin-top:8px">کد نمایش‌داده‌شده</label>
-         <input class="input num" id="srvcap" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="۴ رقم"/>
-         <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-phone ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
-           <button class="btn quiet" data-close>بعداً</button></div>`}
-    ${SRV_AUTH.err?`<p class="cap" role="alert" style="margin-top:8px;color:#b3261e">${escH(SRV_AUTH.err)}</p>`:''}
-    <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>`);
-  if(typeof after==='function') authSheet.after=after;
-  else if(authSheet.after===undefined) authSheet.after=null;
-  if(step==='phone'&&!SRV_AUTH.captchaToken&&!SRV_AUTH.captchaBusy&&!SRV_AUTH.captchaFailed) loadServerCaptcha();
-}
+/* ── ورود عضو فقط در صفحهٔ مستقل login.html انجام می‌شود؛ ورقهٔ درون‌صفحه‌ای OTP حذف شد ── */
 async function serverAuthPost(path,body){
   const r=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -2397,53 +2357,12 @@ async function baleMiniAppBoot(){
     return false;
   }
 }
-document.addEventListener('click',async e=>{
-  const t=e.target; if(!t||!t.closest) return;
-  const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]'), nc=t.closest('[data-srv-captcha-new]');
-  if(!ph&&!cd&&!bk&&!nc) return;
-  e.preventDefault();
-  if(SRV_AUTH.busy) return;
-  if(nc){SRV_AUTH.err='';loadServerCaptcha();return}
-  if(bk){SRV_AUTH.challenge='';SRV_AUTH.err='';serverAuthSheet();return}
-  SRV_AUTH.busy=true; SRV_AUTH.err=''; serverAuthSheet();
-  try{
-    if(ph){
-      const v=unFa((document.getElementById('srvmob')||{}).value||'').replace(/\D/g,'');
-      if(!/^09\d{9}$/.test(v)) throw new Error('شماره را کامل بنویس؛ ۱۱ رقم، با ۰۹');
-      const ca=unFa((document.getElementById('srvcap')||{}).value||'').replace(/\D/g,'');
-      if(!/^\d{4}$/.test(ca)) throw new Error('کد امنیتی چهار رقمی را وارد کن');
-      if(!SRV_AUTH.captchaToken) throw new Error('کد امنیتی هنوز آماده نیست؛ چند لحظه صبر کن');
-      const d=await serverAuthPost('/api/auth/phone-otp/request',{phone:v,captcha_token:SRV_AUTH.captchaToken,captcha_answer:ca});
-      SRV_AUTH.captchaToken='';
-      if(!d||d.accepted!==true||typeof d.challenge_id!=='string') throw new Error('پاسخ سرویس ورود نامعتبر است');
-      SRV_AUTH.phone=v; SRV_AUTH.challenge=d.challenge_id;
-    } else {
-      const v=unFa((document.getElementById('srvcode')||{}).value||'').replace(/\D/g,'');
-      if(!/^\d{6}$/.test(v)) throw new Error('کد ۶ رقمی را کامل وارد کن');
-      const d=await serverAuthPost('/api/auth/phone-otp/verify',{challenge_id:SRV_AUTH.challenge,phone:SRV_AUTH.phone,code:v});
-      if(!d||d.authenticated!==true) throw new Error('ورود انجام نشد؛ دوباره تلاش کن');
-      SRV_AUTH.challenge=''; SRV_AUTH.busy=false;
-      if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server';
-      syncBell&&syncBell(); authDone();
-      setTimeout(()=>{location.href='account.html'},80);
-      return;
-    }
-  }catch(err){SRV_AUTH.err=String(err&&err.message||'خطا در ورود')}
-  SRV_AUTH.busy=false; serverAuthSheet();
-  if(ph&&!SRV_AUTH.challenge) loadServerCaptcha();
-},false);
-/* تب «ورود/ثبت‌نام» برای مهمان همان برگه‌ی ورود را باز می‌کند، نه صفحه‌ی جدا */
-document.addEventListener('click',e=>{
-  const a=e.target&&e.target.closest&&e.target.closest('.tabbar [data-account-nav]');
-  if(!a||NORA_TEST_FIXTURE_MODE) return;
-  if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return;
-  e.preventDefault(); authSheet(); openSheet&&openSheet('shAuth');
-},false);
 function authSheet(after){
   if(!NORA_TEST_FIXTURE_MODE){
-    authSheet.after=authSheet.after===undefined?null:authSheet.after;
-    if(typeof after==='function') authSheet.after=after;
-    serverAuthSheet(after);
+    /* در نسخهٔ تولیدی هیچ ورقهٔ ورود درون‌صفحه‌ای وجود ندارد: ورود امن فقط در login.html
+       (کپچای سرور، OTP، نشست سروری) انجام می‌شود و کاربر به صفحهٔ حساب برمی‌گردد. */
+    authSheet.after=null;
+    location.href='login.html?mode=server&next='+encodeURIComponent(accountEntryHref('account.html'));
     return;
   }
   const pend=jread('nora-home-auth',null)||null;
