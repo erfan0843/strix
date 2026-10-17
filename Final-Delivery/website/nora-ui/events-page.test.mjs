@@ -229,5 +229,19 @@ function ok(condition, label) {
   ok(detail.includes('event-page.js?v=101'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته است');
 }
 
+/* ۱۰) کلید شب/روز در صفحه‌هایی که initUI را صدا نمی‌زنند هم واقعاً کار می‌کند (ui.js آن را یک‌جا وصل می‌کند) */
+for (const file of ['events.html', 'event.html']) {
+  const p = await load(file === 'event.html' ? '?id=ev-1' : '', { file });
+  const root = p.doc.documentElement;
+  const now = () => (root.dataset.theme === 'dark' ? 'dark' : 'light');
+  const t0 = now();
+  p.click('[data-theme-toggle]');
+  const t1 = now();
+  p.click('[data-theme-toggle]');
+  ok(t1 !== t0 && now() === t0, file + ': هر کلیک روی کلید شب/روز دقیقاً یک بار تم را عوض می‌کند');
+  ok(p.doc.querySelector('[data-theme-toggle]').getAttribute('aria-checked') === (t0 === 'dark' ? 'true' : 'false'), file + ': وضعیت aria-checked کلید با تم هم‌گام است');
+  p.window.close();
+}
+
 console.log(`\nevents-page: ${passed} قبول، ${failed} خطا`);
 process.exit(failed ? 1 : 0);

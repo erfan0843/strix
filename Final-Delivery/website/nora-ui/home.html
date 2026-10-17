@@ -2022,7 +2022,7 @@ document.addEventListener('click',e=>{
       url:new URL('event.html?id='+encodeURIComponent(id),location.href).href}); return}
   const wt=t.closest('[data-wait]'); if(wt){log('درخواست نمایشی لیست انتظار'); closeSheets(); toast('این نمونه فهرست انتظار یا خبررسانی خودکار ندارد؛ چیزی ارسال نشد'); return}
   if(t.closest('[data-wallet]')){toast('کیف پول و درگاه واقعی وصل نیست؛ موجودی نمایش‌داده‌شده فقط دادهٔ نمونه است'); return}
-  if(t.closest('[data-theme-toggle]')){themeToggle(); return}
+  if(t.closest('[data-theme-toggle]')){if(!e.noraThemeHandled){e.noraThemeHandled=true; themeToggle()} return}
   if(t.closest('[data-readall]')){NOTICES.forEach(n=>n.unread=false);
     if(window.NORA_UI) NOTICES.forEach(n=>NORA_UI.markRead(n.t));
     renderNotices(); renderAll(); toast('همهٔ اعلان‌ها خوانده شد'); return}

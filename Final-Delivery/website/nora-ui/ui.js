@@ -976,6 +976,16 @@ function themeApply(v,save){
   return v;
 }
 function themeToggle(){return themeApply(themeNow()==='dark'?'light':'dark')}
+/* کلید شب/روز در سرِ همهٔ صفحه‌ها (رویدادها، رویداد، شخص، مطلب، ورود، حساب…)
+   یک‌جا همین‌جا وصل می‌شود، مستقل از این‌که صفحه initUI را صدا بزند یا نه؛
+   صفحه‌ای که خودش آن را دست می‌گیرد، همین پرچم را روی رویداد می‌گذارد تا دوبار عوض نشود */
+if(typeof document!=='undefined'&&document.addEventListener){
+  document.addEventListener('click',e=>{
+    const b=e.target&&e.target.closest&&e.target.closest('[data-theme-toggle]');
+    if(!b||e.noraThemeHandled) return;
+    e.noraThemeHandled=true; e.preventDefault(); themeToggle();
+  });
+}
 function themeInit(){
   let v=null;
   try{v=localStorage.getItem(THEME_KEY)}catch(e){}
