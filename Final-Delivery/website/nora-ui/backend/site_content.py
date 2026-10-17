@@ -450,6 +450,9 @@ def _article(record: Any) -> dict[str, Any] | None:
         "g": _text((record.get("cover") or {}).get("g") if isinstance(record.get("cover"), dict) else record.get("g"), 240),
         "at": _text(record.get("at"), 80),
         "pin": bool(record.get("pin")),
+        # پرچم انتشار باید در خروجی بماند؛ محتوای ذخیره‌شده دوباره پاک‌سازی می‌شود
+        # (snapshot سئو، نقشهٔ سایت) و بدون آن مطلبِ منتشرشده حذف و post.html?id= به ۴۰۴ می‌افتاد.
+        "pub": True,
     }
 
 

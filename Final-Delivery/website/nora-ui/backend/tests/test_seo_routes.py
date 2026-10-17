@@ -230,3 +230,17 @@ def test_missing_routes_return_index_safe_custom_404(bare_client: TestClient):
     static_missing = bare_client.get("/missing.js")
     assert static_missing.status_code == 404
     assert '<h1 id="page-title" class="art-title">صفحه پیدا نشد</h1>' in static_missing.text
+
+
+def test_article_page_survives_resanitised_stored_content(tmp_path, monkeypatch):
+    """Content saved through the owner PATCH is stored already-sanitised; the SEO
+    snapshot sanitises it again, so a published article must keep its ``pub`` flag
+    or ``post.html?id=`` turns into 404 for every article."""
+    from backend.site_content import public_site_content, sanitize_site_content
+
+    raw = {key: [] for key in ("events", "people", "articles", "partners", "banners", "cooperation", "library")}
+    raw["articles"] = [{"id": "article-stored-1", "t": "مطلب ذخیره‌شده", "pub": True, "lead": "لید"}]
+    stored = sanitize_site_content(raw)
+    assert stored["articles"] and stored["articles"][0]["pub"] is True
+    again = public_site_content(sanitize_site_content(stored))
+    assert [item["id"] for item in again["articles"]] == ["article-stored-1"]
