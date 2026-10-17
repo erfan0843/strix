@@ -1153,10 +1153,11 @@ const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',mo
     CFG.cap=safeCount(f.cap,100000); CFG.taken=0;
     if(f.coupon&&String(f.coupon.code||'').trim()) CFG.coupon={code:String(f.coupon.code).trim().slice(0,64),off:safeCount(f.coupon.off,100),all:safeBoolean(f.coupon.all,false)};
     CFG.companion={on:safeBoolean(f.guestsOn,false),max:CFG.maxPer,fields:CFG.compFields};
-    CFG.endText=String(f.endText||'پاسخ نمونه فقط در همین مرورگر می‌ماند؛ برای سازنده یا کارشناس ارسال نمی‌شود.').slice(0,1500);
+    /* فرم سروری: پاسخ واقعاً به سرور می‌رود؛ متن «پاسخ نمونه فقط در همین مرورگر می‌ماند» فقط برای فرم محلی درست است */
+    CFG.endText=String(f.endText||(FORM_ROUTE.serverBacked?'پاسخت روی سرور ثبت شد.':'پاسخ نمونه فقط در همین مرورگر می‌ماند؛ برای سازنده یا کارشناس ارسال نمی‌شود.')).slice(0,1500);
     const rows=(Array.isArray(f.fields)&&f.fields.length?f.fields:(f.questions||[])).map(qOf).filter(x=>x.l).slice(0,30);
     CFG.questions=rows.map(x=>x.l);
-    if(rows.length) window.__REG=makeReg(f,rows,kind,f.id,f.intro||CFG.endText);
+    if(rows.length) window.__REG=makeReg(f,rows,kind,f.id,f.intro||(FORM_ROUTE.serverBacked?'':CFG.endText));
     else fail('empty-form');
   }catch(err){FORM_ROUTE.error=FORM_ROUTE.requested?'invalid-form':'';try{console.error(err)}catch(e){}}
 })();
