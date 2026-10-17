@@ -1412,14 +1412,14 @@ def create_app(
         A non-empty `account_id` is the record's explicit owner and wins over any
         Bale tag left on the row: a draft that names another account is never
         returned for this Bale identity, even when it still carries this Bale ID.
-        So the scope is the account's own drafts (all of them) plus untagged
-        drafts that carry this Bale ID (created from the bot, never claimed).
-        An unlinked Bale user keeps the previous scope exactly: only drafts tagged
-        with that ID, because there is no verified account link to widen it.
+        The Bale path therefore only ever reaches *legacy* drafts (no owner yet)
+        that carry this Bale ID; a verified link additionally opens the linked
+        account's own drafts. An unlinked Bale user gets the legacy drafts only:
+        there is no verified account behind the ID, so no owned row may be read
+        through it, whichever account the owner happens to be.
         """
-        own_tagged = FormResponseDraftRecord.bot_bale_user_id == bale_user_id
         own_untagged = and_(
-            own_tagged,
+            FormResponseDraftRecord.bot_bale_user_id == bale_user_id,
             FormResponseDraftRecord.account_id.is_(None),
         )
         linked_account_id = db.scalar(
@@ -1429,7 +1429,7 @@ def create_app(
             )
         )
         if linked_account_id is None:
-            return own_tagged
+            return own_untagged
         return or_(own_untagged, FormResponseDraftRecord.account_id == linked_account_id)
 
     def admin_task_view(task: AdminTaskRecord | None) -> dict[str, Any]:

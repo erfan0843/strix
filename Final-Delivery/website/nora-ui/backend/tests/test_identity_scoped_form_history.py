@@ -7,7 +7,8 @@
   دو بار شمرده نمی‌شود.
 - پیوند، هیچ رکوردی از حساب دیگر را باز نمی‌کند؛ حتی رکورد متناقضی که شناسهٔ بلهٔ این
   حساب را یده اما صریحاً مال حساب دیگری است.
-- هویت بلهٔ پیوندنخورده دسترسی تازه‌ای نمی‌گیرد و رفتار فعلی حفظ می‌شود.
+- هویت بلهٔ پیوندنخورده فقط ردیف‌های legacy (بدون `account_id`) خودش را می‌بیند؛
+  هیچ ردیف مالک‌داری - مال هر حسابی - از مسیر بله بدون پیوند تأییدشده خوانده نمی‌شود.
 - ترتیب، صفحه‌بندی، شمارش کل، قرارداد پاسخ و مدیریت خطا تغییر نمی‌کند.
 - این مسیرها فقط می‌خوانند: هیچ ردیفی ایجاد، حذف، جابه‌جا یا بازنویسی نمی‌شود.
 """
@@ -418,6 +419,53 @@ def test_unlinked_bale_identity_cannot_read_phone_account_records(scope_env):
     # و وب همان حساب، همچنان فقط سابقهٔ خودش را می‌بیند.
     web = web_history(web_client(client, "acct-a"))
     assert ids_of(web) == {account_record}
+
+
+def test_unlinked_bale_identity_never_reaches_a_row_owned_by_any_account(scope_env):
+    """هویت بلهٔ پیوندنخورده فقط ردیف‌های legacy (بدون مالک) خودش را می‌بیند.
+
+    ردیفی که صریحاً `account_id=B` دارد ولی برچسب بلهٔ U را هم یدک می‌کشد، از
+    مسیر ربات برای U دیده نمی‌شود؛ U هیچ حسابی را اثبات نکرده است، پس هیچ ردیف
+    مالک‌داری - مال هر حسابی که باشد - از این مسیر خوانده نمی‌شود. فهرست، شمارش و
+    جزئیات یک مرز دارند و ردیف برای مالک واقعی‌اش (B) در وب دست‌نخورده می‌ماند.
+    """
+    client, engine = scope_env
+    seed_account(engine, "acct-b")
+    seed_form(engine, "form-reg")
+    legacy_only = seed_response(engine, form_id="form-reg", bale_user_id="900010")
+    owned_by_b_with_u_tag = seed_response(
+        engine, form_id="form-reg", account_id="acct-b", bale_user_id="900010"
+    )
+
+    bot = bot_history(client, "900010")
+    assert ids_of(bot) == {legacy_only}
+    assert bot["total"] == len(bot["items"]) == 1
+
+    hidden = client.get(
+        f"/api/bot/forms/responses/{owned_by_b_with_u_tag}",
+        params={"bale_user_id": "900010"},
+        headers=bot_headers(),
+    )
+    assert hidden.status_code == 404
+    shown = client.get(
+        f"/api/bot/forms/responses/{legacy_only}",
+        params={"bale_user_id": "900010"},
+        headers=bot_headers(),
+    )
+    assert shown.status_code == 200
+
+    web_b = web_history(web_client(client, "acct-b"))
+    assert ids_of(web_b) == {owned_by_b_with_u_tag}
+    assert web_b["total"] == 1
+
+    # هیچ ردیفی برای «حل تناقض» جابه‌جا یا بازنویسی نشده است.
+    with Session(engine) as db:
+        row = db.get(FormResponseDraftRecord, db.scalar(
+            select(FormResponseRecord.draft_id).where(FormResponseRecord.id == owned_by_b_with_u_tag)
+        ))
+        assert row is not None
+        assert row.account_id == "acct-b"
+        assert row.bot_bale_user_id == "900010"
 
 
 # ---------------------------------------------------------------------------
