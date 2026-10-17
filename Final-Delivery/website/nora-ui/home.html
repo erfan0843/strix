@@ -1213,7 +1213,31 @@ function renderActivity(){
 
 /* ═════════ باشگاه کتاب‌خوانی ═════════ */
 function renderClub(){
-  if(!CLUB){$('#club').innerHTML='<div class="empty" role="status"><b>اطلاعات باشگاه در دسترس نیست</b><p class="cap">اطلاعات باشگاه از پایگاه مشترک منتشر نشده است؛ جزئیات نمونه نمایش داده نمی‌شود.</p></div>'; return}
+  if(!CLUB){
+    /* طرح تأییدشدهٔ باشگاه حفظ می‌شود؛ تا کتاب ماه از پنل منتشر نشده، حالت خالی روشن است و هیچ عدد نمونه‌ای ندارد. */
+    const lib=clubLib();
+    $('#club').innerHTML=`<div class="club" role="status">
+    <div class="cl-hero" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)">
+      <div class="btop" style="position:static;display:flex;gap:6px"><span class="tagg tag-g">باشگاه کتاب‌خوانی خط زندگی</span></div>
+      <div class="bk">
+        <span class="cv"><svg class="i"><use href="#i-book"/></svg></span>
+        <span style="min-width:0">
+          <h3>کتاب ماه هنوز منتشر نشده است</h3>
+          <div class="hrow" style="color:rgba(255,255,255,.9)">کتاب ماه، سرپرست و زمان جلسه‌ها از پنل مدیریت منتشر می‌شوند و همین‌جا نمایش داده خواهند شد.</div>
+        </span>
+      </div>
+    </div>
+    <div class="cl-body">
+      <div class="stack tight">
+        <div class="memberline"><svg class="i"><use href="#i-clock"/></svg><span class="sp" style="flex:1">زمان جلسهٔ بعدی پس از انتشار اعلام می‌شود.</span></div>
+        <div class="memberline"><svg class="i"><use href="#i-users"/></svg><span style="flex:1">عضویت و «باشگاه من» فعلاً در ربات بله انجام می‌شود؛ تعداد اعضا و امتیاز نمونه نمایش داده نمی‌شود.</span></div>
+      </div>
+      ${lib||'<p class="cap">هنوز کتاب، صدا یا مسابقه‌ای برای باشگاه منتشر نشده است.</p>'}
+      <div class="row">
+        <button class="btn quiet" data-uihref="account.html#book">باشگاه در حساب من</button>
+      </div>
+    </div>
+  </div>`; return }
   const sup=person(CLUB.sup), l=CLUB.cap-CLUB.members;
   $('#club').innerHTML=`<div class="club">
     <div class="cl-hero" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)">
