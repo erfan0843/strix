@@ -194,6 +194,19 @@ console.log('\n── ۴-الف) تجربهٔ تولیدی فقط از محتو�
       &&!publicMeta.includes('نمونه')&&!publicMeta.includes('پیش‌نمایش')
       &&!publicDescription.includes('نمونه')&&!publicDescription.includes('پیش‌نمایش'),
     'مطلب سروری بدون نوار نمونه/پیش‌نمایش و با شمار بازدید و توضیح بی‌گمراهی دیده می‌شود');
+  {
+    const copied=[];
+    Object.defineProperty(detail.window.navigator,'clipboard',{configurable:true,value:{writeText:async t=>{copied.push(t)}}});
+    const cpBtn=detail.doc.querySelector('#pbCopy'), shBtn=detail.doc.querySelector('#pbShare');
+    ok(!!cpBtn&&!cpBtn.disabled&&cpBtn.getAttribute('aria-disabled')!=='true'&&!/غیرفعال/.test(shBtn?.textContent||''),
+      'مطلب منتشرشدهٔ سرور دکمهٔ همرسانی و رونوشت نشانی فعال دارد');
+    detail.click('#pbCopy'); await wait(30);
+    ok(copied.length===1&&/post\.html\?id=server-article-9001$/.test(copied[0]),
+      'رونوشت نشانی، نشانی عمومی همین مطلب را در کلیپ‌بورد می‌گذارد');
+    detail.click('#pbShare'); await wait(30);
+    ok(copied.length===2,'بدون Web Share، همرسانی به رونوشت نشانی برمی‌گردد');
+    ok(/رونوشت شد/.test(detail.txt('#toast')),'بازخورد رونوشت به کاربر گفته می‌شود');
+  }
   const blockedMedia=detail.doc.querySelector('.pb-disabled');
   ok(blockedMedia?.textContent.includes('پشتیبانی نمی‌شود')
       &&!blockedMedia.textContent.includes('پیش‌نمایش محلی'),

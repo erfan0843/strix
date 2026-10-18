@@ -22,7 +22,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=99"/>
-<link rel="stylesheet" href="nora.css?v=100"/>
+<link rel="stylesheet" href="nora.css?v=101"/>
 <link rel="stylesheet" href="events.css?v=97"/>
 <style>
 .seo-breadcrumb a{color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px}
@@ -507,6 +507,7 @@ function render(){
     return;
   }
   const p=r.p, isPend=r.pend, localData=r.source!=='server';
+  const shareable=!localData&&!isPend&&!preview;
   const ribbon=$('#pvRibbon');
   const showLocalNotice=localData&&(TEST_FIXTURE_MODE||preview||isPend);
   ribbon.hidden=!showLocalNotice;
@@ -574,8 +575,10 @@ function render(){
     </div>`:''}
 
     <div class="pb-act">
-      <button class="btn quiet" type="button" id="pbShare">${ico('i-share')} همرسانی · غیرفعال</button>
-      <button class="btn quiet" type="button" id="pbCopy" disabled aria-disabled="true" title="رونوشت نشانی این برگه در این صفحه فعال نیست">${ico('i-link')} رونوشت نشانی · غیرفعال</button>
+      ${shareable?`<button class="btn quiet" type="button" id="pbShare">${ico('i-share')} همرسانی</button>
+      <button class="btn quiet" type="button" id="pbCopy" title="رونوشت نشانی عمومی این مطلب">${ico('i-link')} رونوشت نشانی</button>`
+      :`<button class="btn quiet" type="button" id="pbShare">${ico('i-share')} همرسانی · غیرفعال</button>
+      <button class="btn quiet" type="button" id="pbCopy" disabled aria-disabled="true" title="رونوشت نشانی این برگه در این صفحه فعال نیست">${ico('i-link')} رونوشت نشانی · غیرفعال</button>`}
     </div>
 
     ${rel.length?`<div class="pb-rel"><div class="pb-relh">${ico('i-article')}پیشنهاد برای خواندن</div>
@@ -587,10 +590,31 @@ function render(){
   </article>`;
   document.title='نورا · '+p.t;
 
-  /* اشتراک بیرونی و رونوشت خودکار نشانی هنوز در این صفحه پیاده‌سازی نشده‌اند. */
-  const sh=$('#pbShare');
-  if(sh) sh.onclick=()=>{ if(U.shareItem) U.shareItem(); };
-  const cp=$('#pbCopy'); if(cp){cp.disabled=true;cp.setAttribute('aria-disabled','true')}
+  /* همرسانی فقط برای مطلب منتشرشدهٔ سرور: نشانی عمومی همین صفحه (بدون سرویس بیرونی).
+     در پیش‌نمایش محلی همان رفتار غیرفعال قبلی می‌ماند. */
+  const sh=$('#pbShare'), cp=$('#pbCopy');
+  if(!shareable){
+    if(sh) sh.onclick=()=>{ if(U.shareItem) U.shareItem(); };
+    if(cp){cp.disabled=true;cp.setAttribute('aria-disabled','true')}
+    return;
+  }
+  const publicUrl=new URL('post.html?id='+encodeURIComponent(p.id),location.href).href;
+  const say=m=>{ if(U.toast) U.toast(m); };
+  const copyUrl=()=>{
+    const done=()=>say('نشانی مطلب رونوشت شد');
+    const fb=()=>{const t=document.createElement('textarea');t.value=publicUrl;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';
+      document.body.appendChild(t);t.select();let okc=false;try{okc=document.execCommand('copy')}catch(e){}t.remove();
+      okc?done():say('رونوشت خودکار ممکن نشد؛ نشانی را از نوار مرورگر بردار')};
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(publicUrl).then(done).catch(fb); else fb(); }catch(e){fb()}
+  };
+  if(cp) cp.onclick=copyUrl;
+  if(sh) sh.onclick=async()=>{
+    if(navigator.share){
+      try{ await navigator.share({title:p.t,url:publicUrl}); return; }
+      catch(e){ if(e&&e.name==='AbortError') return; }
+    }
+    copyUrl();
+  };
 }
 
 /* نوار پیشرفت خواندن */
