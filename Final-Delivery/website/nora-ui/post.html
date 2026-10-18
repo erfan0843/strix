@@ -314,7 +314,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=127"></script>
+<script src="ui.js?v=128"></script>
 <script src="public-data.js?v=111"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
@@ -599,12 +599,12 @@ function render(){
     return;
   }
   const publicUrl=new URL('post.html?id='+encodeURIComponent(p.id),location.href).href;
-  const say=m=>{ if(U.toast) U.toast(m); };
+  const say=(m,kind)=>{ if(U.toast) U.toast(m,kind); };
   const copyUrl=()=>{
     const done=()=>say('نشانی مطلب رونوشت شد');
     const fb=()=>{const t=document.createElement('textarea');t.value=publicUrl;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';
       document.body.appendChild(t);t.select();let okc=false;try{okc=document.execCommand('copy')}catch(e){}t.remove();
-      okc?done():say('رونوشت خودکار ممکن نشد؛ نشانی را از نوار مرورگر بردار')};
+      okc?done():say('رونوشت خودکار ممکن نشد؛ نشانی را از نوار مرورگر بردار','error')};
     try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(publicUrl).then(done).catch(fb); else fb(); }catch(e){fb()}
   };
   if(cp) cp.onclick=copyUrl;

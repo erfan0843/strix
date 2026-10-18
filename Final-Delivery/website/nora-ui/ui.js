@@ -778,8 +778,11 @@ function initKeys(root){
   });
 }
 /* ── ابزارهای رابط ─────────────────────────────────────────────────────── */
-function toast(msg){
+function toast(msg,kind){
   const t=document.getElementById('toast'); if(!t) return;
+  /* برخی صفحه‌ها آیکون ✓ ثابت در توست دارند؛ برای پیام خطا/هشدار نباید نشانهٔ موفقیت دیده شود. */
+  const ic=t.querySelector('svg.i'); if(ic) ic.style.display=(kind==='error'||kind==='warn')?'none':'';
+  t.classList.toggle('is-error',kind==='error'||kind==='warn');
   const last=t.lastChild; if(last&&last.nodeType===3) last.textContent=' '+msg; else t.appendChild(document.createTextNode(' '+msg));
   t.classList.add('on'); clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.classList.remove('on'),1700);
 }

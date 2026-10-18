@@ -544,6 +544,14 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     cards:[{id:'smoke-card',bank:'بانک نمونه',no:'4111111111111111',name:'دارندهٔ نمونه',cap:5,dailyMax:500000,used:0,usedAmount:0}]};
   const store=makeStore({'nora-finance':JSON.stringify(finance)}), p=await load('form.html',store,'?guests=0');
   ok(p.errors.length===0,'فرم بی‌خطا بار شد');
+  {
+    const t=p.doc.getElementById('toast'), icon=t&&t.querySelector('svg.i');
+    p.window.toast('ذخیره انجام نشد؛ دوباره تلاش کن.','error');
+    const errorHidesCheck=!!icon&&icon.style.display==='none'&&t.classList.contains('is-error')&&t.textContent.includes('ذخیره انجام نشد');
+    p.window.toast('پاسخت بازیابی شد');
+    const successRestoresCheck=icon.style.display===''&&!t.classList.contains('is-error');
+    ok(errorHidesCheck&&successRestoresCheck,'توست خطا نشانهٔ ✓ موفقیت را نشان نمی‌دهد و توست بعدی آن را برمی‌گرداند');
+  }
   const visibleLandingText=[p.txt('#topTitle'),p.txt('#evTitle'),p.txt('#next'),
     ...['formLead','evMeta','landingCount','footerLocalNotice','formMeta'].map(id=>{const el=p.doc.getElementById(id);return el&&(el.hidden||el.style.display==='none')?'':el?.textContent||''})].join(' ');
   ok(p.doc.querySelector('#prev').hidden&&p.doc.querySelector('#botbar').classList.contains('start-mode')

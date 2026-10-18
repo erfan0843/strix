@@ -210,7 +210,11 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .logo span{font-size:10.5px;color:var(--ink-3)}
   a.logo{text-decoration:none}
   a.logo:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-  .hfoot .flogo{width:28px;height:28px;border-radius:9px;font-size:10px;display:grid;place-items:center;color:#fff;text-decoration:none;background-image:var(--g)}
+  .hfoot .flogo{width:28px;height:28px;border-radius:9px;font-size:10px;display:grid;place-items:center;color:#fff;text-decoration:none;background-image:var(--g);position:relative}
+  /* ناحیهٔ لمس ۳۶px بدون تغییر اندازهٔ دیداری نشان‌ها؛ فاصلهٔ ۸px مانع هم‌پوشانی ناحیه‌هاست */
+  .hfoot .flogo::after{content:'';position:absolute;inset:-4px}
+  .hfoot .lrow{gap:8px}
+  .hfoot .fl a{display:inline-block;padding:6px 2px;margin:-6px -2px}
   .flogo:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
   /* ── جریان زنده ── */
@@ -673,7 +677,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=127"></script>
+<script src="ui.js?v=128"></script>
 <script src="owner-api.js?v=107"></script>
 <script src="public-data.js?v=111"></script>
 <script>

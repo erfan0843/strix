@@ -891,7 +891,7 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=127"></script>
+<script src="ui.js?v=128"></script>
 <script src="form-quality.js?v=2"></script>
 <script src="owner-api.js?v=108"></script>
 <script type="application/json" id="nora-public-form-data"><!--nora-public-form--></script>
@@ -1171,6 +1171,9 @@ const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',mo
 /* پیوند بی‌شناسه در سایت واقعی نباید فرم نمایشیِ پیش‌فرض را افشا کند؛
    فرم محلی فقط با پرچم آزمایش صریح در harness قابل‌دسترسی است. */
 if(!FORM_TEST_FIXTURE_MODE&&!FORM_ROUTE.requested){FORM_ROUTE.requested=true;FORM_ROUTE.error='not-found'}
+/* در حالت خطای مسیر (نایافته/بسته/پیش‌نویس…) هیچ صفحهٔ پایانی نمایش داده نمی‌شود؛
+   پیوندهای نمونهٔ محلی هم نباید در DOM پنهان رندر شوند. */
+if(FORM_ROUTE.error)CFG.links=[];
 /* رویداد با کد: بررسی کد روی خودِ فرم؛ درست بود صفحه تازه میشود و فرم باز */
 document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest?e.target.closest('[data-evlock-ok]'):null;
@@ -1633,7 +1636,7 @@ function setDraftStatus(message){
 let draftFailureToastShown=false;
 function notifyDraftSaveFailure(){
   if(draftFailureToastShown)return;
-  draftFailureToastShown=true;toast('ذخیره انجام نشد؛ دوباره تلاش کن.');
+  draftFailureToastShown=true;toast('ذخیره انجام نشد؛ دوباره تلاش کن.','error');
 }
 function clearDraftSaveFailure(){draftFailureToastShown=false}
 function saveDraft(){
@@ -1913,7 +1916,7 @@ function schedulePublicPaymentPoll(delay=5000){
 async function refreshPublicPaymentStatus({manual=false}={}){
   const intent=S.paymentIntent||{},api=window.NORA_SERVER_API;
   if(!FORM_ROUTE.serverBacked||!intent.payment_id||!api||typeof api.getPublicPaymentIntent!=='function'){
-    if(manual){setPublicPaymentMessage('وضعیت پرداخت سروری در دسترس نیست؛ این صفحه موفقیت را شبیه‌سازی نمی‌کند.');toast('شناسهٔ پرداخت برای بررسی وضعیت در دسترس نیست.')}
+    if(manual){setPublicPaymentMessage('وضعیت پرداخت سروری در دسترس نیست؛ این صفحه موفقیت را شبیه‌سازی نمی‌کند.');toast('شناسهٔ پرداخت برای بررسی وضعیت در دسترس نیست.','error')}
     return false;
   }
   if(S.paymentStatusBusy)return false;
@@ -1971,7 +1974,7 @@ async function cancelPendingPublicBaleIntent({quiet=false}={}){
   const intent=S.paymentIntent||{},api=window.NORA_SERVER_API;
   if(!FORM_ROUTE.serverBacked||intent.method!=='bale_wallet'||intent.status!=='pending'||!intent.payment_id)return true;
   if(!api||typeof api.cancelPublicPaymentIntent!=='function'){
-    if(!quiet){const message='لغو صورتحساب در دسترس نیست؛ روش پرداخت را تغییر نده تا وضعیت بررسی شود.';setPublicPaymentMessage(message);toast(message)}
+    if(!quiet){const message='لغو صورتحساب در دسترس نیست؛ روش پرداخت را تغییر نده تا وضعیت بررسی شود.';setPublicPaymentMessage(message);toast(message,'error')}
     return false;
   }
   try{
@@ -1985,7 +1988,7 @@ async function cancelPendingPublicBaleIntent({quiet=false}={}){
     if(!quiet)toast('صورتحساب در وضعیت پرداخت است؛ ابتدا وضعیت آن را بررسی کن.');
     return false;
   }catch(error){
-    const message=publicPaymentErrorText(error);setPublicPaymentMessage(message);if(!quiet)toast(message);return false;
+    const message=publicPaymentErrorText(error);setPublicPaymentMessage(message);if(!quiet)toast(message,'error');return false;
   }
 }
 function cancelStalePublicBaleIntent(){
@@ -2379,7 +2382,7 @@ if(REG&&Array.isArray(REG.q)){
   function addCompanionForQuestion(i){
     if(!Number.isInteger(i)||i<0||i>=N)return;
     if(companionNameIndex<0||companionMobileIndex<0){toast('برای افزودن همراه، فرم باید سؤال نام و شمارهٔ همراه داشته باشد');return}
-    if(S.guests.length+1>=GUEST_MAX){toast('ظرفیت همراه پر است');return}
+    if(S.guests.length+1>=GUEST_MAX){toast('ظرفیت همراه پر است','error');return}
     S.guests.push({name:'',mobile:'',nid:'',answers:{},same:false});
     if(!(S.companionFields instanceof Set))S.companionFields=new Set();
     S.companionFields.add(i);
@@ -3371,7 +3374,7 @@ if(REG&&Array.isArray(REG.q)){
   };
   async function createPublicBalePayment(){
     if(!FORM_ROUTE.serverBacked||!serverBaleWalletReady()){
-      setPublicPaymentMessage('پرداخت بله برای این فرم فعال نیست؛ صورتحسابی ساخته نشد.');toast('پرداخت بله فعال نیست.');return false;
+      setPublicPaymentMessage('پرداخت بله برای این فرم فعال نیست؛ صورتحسابی ساخته نشد.');toast('پرداخت بله فعال نیست.','error');return false;
     }
     if(S.submitted)return false;
     const issue=REGGATE&&REGGATE.firstProblem();
@@ -3379,7 +3382,7 @@ if(REG&&Array.isArray(REG.q)){
     const feeIssue=finGate();if(feeIssue){toast(feeIssue);return false}
     const amount=calc().sum;
     if(!Number.isSafeInteger(amount)||amount<=0){
-      setPublicPaymentMessage('مبلغ پرداخت هنوز مشخص یا بیشتر از صفر نیست؛ مبلغ را کامل کن.');toast('مبلغ پرداخت معتبر نیست.');return false;
+      setPublicPaymentMessage('مبلغ پرداخت هنوز مشخص یا بیشتر از صفر نیست؛ مبلغ را کامل کن.');toast('مبلغ پرداخت معتبر نیست.','error');return false;
     }
     const selection=publicPaymentSelection(),selectionIdentity=publicPaymentSelectionIdentity(selection,calc().count),
       current=S.paymentIntent||{};
@@ -3431,7 +3434,7 @@ if(REG&&Array.isArray(REG.q)){
     if(!publicDraftReady){setDraftStatus('پیش‌نویس امن هنوز بازیابی نشده است؛ پاسخ ثبت نشد. صفحه را تازه کنید.');return false}
     const api=window.NORA_SERVER_API;
     if(!api||typeof window.__NORA_PUBLIC_FORM_COLLECT!=='function'){
-      setDraftStatus('API پاسخ‌گیری در دسترس نیست؛ پاسخ ثبت نشد.');toast('اتصال سروری در دسترس نیست؛ پاسخی ثبت نشد.');return false;
+      setDraftStatus('API پاسخ‌گیری در دسترس نیست؛ پاسخ ثبت نشد.');toast('اتصال سروری در دسترس نیست؛ پاسخی ثبت نشد.','error');return false;
     }
     S.submitBusy=true;
     const next=document.getElementById('next');if(next){next.disabled=true;next.setAttribute('aria-busy','true')}
@@ -3496,7 +3499,7 @@ if(REG&&Array.isArray(REG.q)){
       if(cur!=='u8')show('u8');toast('روش پرداخت را انتخاب کن.');return false;
     }
     if(FORM_ROUTE.serverBacked)return submitPublicResponse();
-    if(alreadyAnswered()){toast('در همین مرورگر برای این فرم پاسخ محلی دارید؛ یک‌پاسخیِ امن فقط با سرویس واقعی ممکن است.');return false}
+    if(alreadyAnswered()){toast('در همین مرورگر برای این فرم پاسخ محلی دارید؛ یک‌پاسخیِ امن فقط با سرویس واقعی ممکن است.','error');return false}
     S.submitted=true;renderEnd();return true;
   }
   REGFinish=finishSubmission;
@@ -3601,7 +3604,7 @@ function show(id){
   if(id==='u11'&&!(FORM_ROUTE.serverBacked?publicReceiptPending():hasReceiptStepInFlow()))
     id=FORM_ROUTE.serverBacked?'u12':(ORDER.includes('u9')?'u9':'u8');
   if(id==='u10'){
-    toast('این مرحله فعال نیست');
+    toast('این مرحله فعال نیست','error');
     id=ORDER.includes('u8')?'u8':'u12';
   }
   cur=id;
@@ -3659,7 +3662,7 @@ document.getElementById('next').onclick=()=>{
   if(cur==='u9'&&FORM_ROUTE.serverBacked&&selectedPaymentMethod==='bale_wallet'){
     const createPayment=window.__NORA_PUBLIC_BALE_PAYMENT;
     if(typeof createPayment==='function')void createPayment();
-    else{setPublicPaymentMessage('ساخت صورتحساب در این فرم در دسترس نیست؛ پرداختی انجام نشد.');toast('پرداخت آغاز نشد.')}
+    else{setPublicPaymentMessage('ساخت صورتحساب در این فرم در دسترس نیست؛ پرداختی انجام نشد.');toast('پرداخت آغاز نشد.','error')}
     return;
   }
   if(REG&&cur==='u1'){
@@ -3707,8 +3710,8 @@ document.getElementById('addFriend').onclick=()=>{
   const nameQuality=qualityProblem({id:'friend-name',t:'fullname',l:'نام همراه'},-1,n);
   if(nameQuality){toast(nameQuality);document.getElementById('fName').focus();return}
   if(!m){toast('شمارهٔ همراه ایران را با ۰۹، +۹۸ یا ۰۰۹۸ کامل وارد کن');document.getElementById('fMobile').focus();return}
-  if(mode==='name-mobile-nid'&&!/^\d{10}$/.test(nid)){toast('کد ملی نمونه باید دقیقاً ۱۰ رقم باشد؛ رقم کنترل و هویت بررسی نمی‌شود');document.getElementById('fNid').focus();return}
-  if(S.guests.length+1>=GUEST_MAX){toast('ظرفیت همراه پر است');return}
+  if(mode==='name-mobile-nid'&&!/^\d{10}$/.test(nid)){toast('کد ملی نمونه باید دقیقاً ۱۰ رقم باشد؛ رقم کنترل و هویت بررسی نمی‌شود','error');document.getElementById('fNid').focus();return}
+  if(S.guests.length+1>=GUEST_MAX){toast('ظرفیت همراه پر است','error');return}
   if(S.guests.some(g=>g.mobile===m)){toast('این موبایل قبلاً اضافه شده');return}
   S.guests.push({name:n,mobile:m,nid:mode==='name-mobile-nid'?nid:'',answers:{},
     same:mode==='same-as-primary'&&document.getElementById('sameOpt').classList.contains('on')});
@@ -3822,7 +3825,7 @@ document.addEventListener('click',e=>{
           const message=error&&error.code==='payment_intent_pending'
             ?'صورتحساب هنوز لغو نشده یا پرداختش تعیین‌تکلیف نشده است؛ پاسخ پاک نشد.'
             :publicDraftErrorText(error);
-          setDraftStatus(message);toast('پاک‌کردن سروری انجام نشد؛ دوباره تلاش کنید')})
+          setDraftStatus(message);toast('پاک‌کردن سروری انجام نشد؛ دوباره تلاش کنید','error')})
         .finally(()=>{clear.disabled=false});
       return;
     }
