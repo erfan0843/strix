@@ -1,4 +1,4 @@
-/* آزمون ورود نورا: OTP پیامکی Safir، نشست سروری و فرم مستقل مالک */
+/* آزمون ورود نورا: OTP بله (Safir)، نشست سروری و فرم مستقل مالک */
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
@@ -87,7 +87,7 @@ async function load({ routes = {}, cookie = '', url = 'https://nora.test/login.h
   return { dom, window, doc: window.document, calls, storageOps, click, fill, submit, text };
 }
 
-console.log('\n— ورود عضو با OTP پیامکی Safir —');
+console.log('\n— ورود عضو با OTP بله (Safir) —');
 {
   const p = await load();
   check(p.doc.title === 'ورود به نورا' && p.doc.documentElement.lang === 'fa' && p.doc.documentElement.dir === 'rtl', 'عنوان و زبان فارسی صفحه درست است');
@@ -126,7 +126,7 @@ console.log('\n— نبود API ورود وب در پیش‌نمایش محلی 
   p.dom.window.close();
 }
 
-console.log('\n— درخواست و تأیید OTP پیامکی Safir —');
+console.log('\n— درخواست و تأیید OTP بله (Safir) —');
 {
   const challengeId = '4fcb1516-b3c9-41ec-a840-01dc18598322';
   const p = await load({ routes: {
@@ -477,5 +477,5 @@ console.log('\n— نگه‌داشتن کد modal مستقل —');
 check(dataScript.includes("codeLen:6") && !dataScript.includes("codeDemo:'54321'"), 'کد ۶ رقمی سرور در داده‌ی ورود؛ کد نمایشی ۵ رقمی حذف شده');
 check(!script.includes('54321') && !script.includes('5432') && !script.includes('localStorage'), 'ورود صفحه نه کد نمونه دارد و نه از storage محلی استفاده می‌کند');
 
-console.log(`\nآزمون ورود OTP پیامکی: ${passed} قبول، ${failed} خطا`);
+console.log(`\nآزمون ورود OTP بله: ${passed} قبول، ${failed} خطا`);
 if (failed) process.exitCode = 1;

@@ -5,7 +5,7 @@
 //   → (اختیاری) موفقیت OTP با endpoint شبیه‌سازی‌شده در مرورگر → حفظ مقصد بازگشت
 //   → (اختیاری) حساب عضو با کوکی نشست آزمایشی: #forms / #payments / #pay / دکمهٔ بازگشت
 //
-// Never sends a real SMS: the only successful OTP path is route-mocked inside the
+// Never sends a real Bale OTP message: the only successful OTP path is route-mocked inside the
 // browser (NORA_QA_MOCK_OTP=0 disables it). Run against a loopback test server only.
 //
 //   NORA_QA_PUBLIC_URL=http://127.0.0.1:8000  NORA_QA_BROWSER=sparticuz \
@@ -121,9 +121,9 @@ async function guestFlow(browser, vp) {
   check(status.trim().length > 0 && !(await page.locator('#lgPhoneCodeForm').count()), tag + 'پیام خطا نمایش داده شد و گام کد باز نشد', status);
   check((await storageKeys(page)).length === 0, tag + 'هیچ شماره/کد/نشستی در storage مرورگر ذخیره نشد');
   await shot(page, `03-login-error-${vp}`);
-  results.push({ ok: true, label: tag + 'وضعیت سرویس پیامک در این سرور', detail: 'HTTP ' + code + ' · ' + status.trim().slice(0, 120) });
+  results.push({ ok: true, label: tag + 'وضعیت سرویس ارسال کد بله (Safir) در این سرور', detail: 'HTTP ' + code + ' · ' + status.trim().slice(0, 120) });
 
-  // 6) موفقیت OTP فقط با endpoint شبیه‌سازی‌شده (پیامک واقعی ارسال نمی‌شود) → حفظ مقصد
+  // 6) موفقیت OTP فقط با endpoint شبیه‌سازی‌شده (پیام واقعی بله ارسال نمی‌شود) → حفظ مقصد
   if (mockOtp) {
     const challenge = '11111111-2222-4333-8444-555555555555';
     await page.route('**/api/auth/phone-otp/request', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ accepted: true, challenge_id: challenge, expires_in: 180, resend_in: 90 }) }));

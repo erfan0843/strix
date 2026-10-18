@@ -42,6 +42,20 @@
       .replace(/[0-9]/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
   }
 
+  function displayPhone(value) {
+    const digits = normalizeDigits(value).replace(/[^0-9]/g, '');
+    const local = digits.startsWith('98') && digits.length === 12 ? '0' + digits.slice(2) : digits;
+    const grouped = local.length === 11 ? `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}` : local;
+    return persianDigits(grouped);
+  }
+
+  function clockLabel(seconds) {
+    const total = Math.max(0, Number(seconds) || 0);
+    const minutes = Math.floor(total / 60);
+    const rest = String(total % 60).padStart(2, '0');
+    return persianDigits(`${minutes}:${rest}`);
+  }
+
   function otpSlotsMarkup() {
     return `<div class="lg-otp-slots" aria-hidden="true">${Array.from({ length: 6 }, (_, index) => `<span class="lg-otp-slot" data-otp-slot="${index}"></span>`).join('')}</div>`;
   }
@@ -156,52 +170,56 @@
     if (!body) return;
 
     if (!state.otpChallengeId) {
+      setLead('شمارهٔ همراهت را بنویس تا کد ورود را در بله برایت بفرستیم.');
       body.innerHTML = `<div class="lgstep" id="lgPhoneMethod">
         <form class="lgform" id="lgPhoneForm" autocomplete="on">
           <label class="lgfield" for="lgPhone">
             <span class="lglbl">شمارهٔ همراه</span>
             <input class="lgtext" id="lgPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national"
-              required maxlength="32" dir="ltr" value="${escapeHtml(state.phone)}" placeholder="۰۹۱۲۳۴۵۶۷۸۹" aria-label="شمارهٔ همراه"/>
+              required maxlength="32" dir="ltr" value="${escapeHtml(state.phone)}" placeholder="۰۹۱۲۳۴۵۶۷۸۹" aria-label="شمارهٔ همراه"${state.busy ? ' disabled' : ''}/>
           </label>
-          <div class="lg-captcha">
-            <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage ? `<img class="lg-cap-pic" src="${escapeHtml(state.captchaImage)}" alt="" width="180" height="60" draggable="false"/>` : (state.captchaFailed ? '<span class="lg-cap-fail">کد امنیتی بارگذاری نشد</span>' : '<span class="lg-spinner"></span>')}</div>
-            <button class="lgbtn quiet" type="button" id="lgCapNew"${state.busy || state.captchaBusy ? ' disabled' : ''}>کد جدید</button>
+          <div class="lgfield">
+            <label class="lglbl" for="lgCapAnswer">کد امنیتی داخل تصویر</label>
+            <div class="lg-captcha">
+              <div class="lg-cap-img" id="lgCapImg" aria-hidden="true">${state.captchaImage ? `<img class="lg-cap-pic" src="${escapeHtml(state.captchaImage)}" alt="" width="180" height="60" draggable="false"/>` : (state.captchaFailed ? '<span class="lg-cap-fail">کد امنیتی بارگذاری نشد</span>' : '<span class="lg-spinner"></span>')}</div>
+              <input class="lgtext" id="lgCapAnswer" name="captcha" type="text" inputmode="numeric" autocomplete="off"
+                required minlength="4" maxlength="4" pattern="[0-9۰-۹٠-٩]{4}" dir="ltr" aria-label="کد امنیتی چهار رقمی" placeholder="۴ رقم"${state.busy ? ' disabled' : ''}/>
+              <button class="lgbtn quiet" type="button" id="lgCapNew" aria-label="کد امنیتی تازه" title="کد امنیتی تازه"${state.busy || state.captchaBusy ? ' disabled' : ''}><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+            </div>
           </div>
-          <label class="lgfield" for="lgCapAnswer">
-            <span class="lglbl">کد نمایش‌داده‌شده</span>
-            <input class="lgtext" id="lgCapAnswer" name="captcha" type="text" inputmode="numeric" autocomplete="off"
-              required minlength="4" maxlength="4" pattern="[0-9۰-۹٠-٩]{4}" dir="ltr" aria-label="کد امنیتی چهار رقمی" placeholder="۴ رقم"/>
-          </label>
-          <button class="lgbtn" type="submit" id="lgPhoneSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال ارسال…' : 'دریافت کد'}</button>
+          <button class="lgbtn" type="submit" id="lgPhoneSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال ارسال کد…' : 'دریافت کد'}</button>
         </form>
       </div>`;
       if (!state.captchaToken && !state.captchaBusy && !state.captchaFailed) loadCaptcha();
       return;
     }
 
+    setTitle('کد ورود');
+    setLead('');
     const wait = Math.max(0, Math.ceil((state.otpResendAt - Date.now()) / 1000));
     const expiresIn = Math.max(0, Math.ceil((state.otpExpiresAt - Date.now()) / 1000));
     const resendLabel = wait
-      ? `ارسال دوباره · ${persianDigits(wait)} ثانیه`
+      ? `ارسال دوباره تا ${persianDigits(wait)} ثانیه دیگر`
       : 'ارسال دوبارهٔ کد';
     body.innerHTML = `<div class="lgstep" id="lgPhoneCodeMethod">
-      <p class="lg-otp-sent" role="status">کد یک‌بارمصرف در ربات بله برای شما ارسال شد.</p>
+      <p class="lg-otp-sent" role="status">کد شش‌رقمی از ربات بله به <b>${escapeHtml(displayPhone(state.phone))}</b> ارسال شد.</p>
       <form class="lgform" id="lgPhoneCodeForm" autocomplete="on">
         <label class="lgfield lg-otp-field" for="lgOtpCode">
-          <span class="lglbl">کد شش‌رقمی</span>
+          <span class="lglbl">کد را این‌جا وارد کن</span>
           <div class="lg-otp-control">
             ${otpSlotsMarkup()}
             <input class="lgtext lgcode" id="lgOtpCode" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
-              required minlength="6" maxlength="6" pattern="[0-9۰-۹٠-٩]{6}" dir="ltr" aria-label="کد یک‌بارمصرف شش‌رقمی"/>
+              required minlength="6" maxlength="6" pattern="[0-9۰-۹٠-٩]{6}" dir="ltr" aria-label="کد یک‌بارمصرف شش‌رقمی"${state.busy ? ' disabled' : ''}/>
           </div>
         </label>
-        <button class="lgbtn" type="submit" id="lgOtpVerify"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال تأیید…' : 'تأیید و ورود'}</button>
+        <p class="lg-otp-meta${expiresIn ? '' : ' is-over'}" id="lgOtpMeta">${expiresIn ? `اعتبار کد: ${clockLabel(expiresIn)}` : 'مهلت کد تمام شد؛ کد تازه بگیر.'}</p>
+        <button class="lgbtn" type="submit" id="lgOtpVerify"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال بررسی کد…' : 'تأیید و ورود'}</button>
       </form>
-      <p class="lg-otp-meta" id="lgOtpMeta">${expiresIn ? `اعتبار کد · ${persianDigits(expiresIn)} ثانیه` : 'مهلت کد تمام شده است'}</p>
       <div class="lg-phone-actions">
         <button class="lgbtn quiet" type="button" id="lgOtpResend"${state.busy || wait ? ' disabled' : ''}>${resendLabel}</button>
         <button class="lgbtn quiet" type="button" id="lgPhoneChange"${state.busy ? ' disabled' : ''}>تغییر شماره</button>
       </div>
+      <p class="lg-otp-help">کد در گفت‌وگوی ربات بله می‌آید. اگر چیزی نرسید، مطمئن شو بله با همین شماره روی گوشی‌ات فعال است.</p>
     </div>`;
 
     syncOtpSlots($('#lgOtpCode'));
@@ -217,12 +235,15 @@
       if (resendButton) {
         resendButton.disabled = state.busy || secondsToResend > 0;
         resendButton.textContent = secondsToResend
-          ? `ارسال دوباره · ${persianDigits(secondsToResend)} ثانیه`
+          ? `ارسال دوباره تا ${persianDigits(secondsToResend)} ثانیه دیگر`
           : 'ارسال دوبارهٔ کد';
       }
-      if (meta) meta.textContent = secondsToExpiry
-        ? `اعتبار کد · ${persianDigits(secondsToExpiry)} ثانیه`
-        : 'مهلت کد تمام شده است';
+      if (meta) {
+        meta.textContent = secondsToExpiry
+          ? `اعتبار کد: ${clockLabel(secondsToExpiry)}`
+          : 'مهلت کد تمام شد؛ کد تازه بگیر.';
+        meta.classList.toggle('is-over', !secondsToExpiry);
+      }
       if (!secondsToResend && !secondsToExpiry) clearOtpTimer();
     }, 1000);
   }
@@ -231,7 +252,7 @@
     clearOtpTimer();
     setAdminEntryVisible(false);
     setTitle('ورود مدیران');
-    setLead('');
+    setLead('با نام کاربری و گذرواژه‌ای که برایت ساخته شده وارد شو.');
     const body = $('#lgBody');
     if (!body) return;
     body.innerHTML = `<div class="lgstep" id="lgStaffMethod">
@@ -248,12 +269,13 @@
         </label>
         <button class="lgbtn" type="submit" id="lgStaffSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال بررسی…' : 'ورود'}</button>
       </form>
-      <button class="lgbtn quiet" type="button" id="lgBack">بازگشت</button>
+      <button class="lgbtn quiet" type="button" id="lgBack"${state.busy ? ' disabled' : ''}>ورود اعضا با شمارهٔ همراه</button>
     </div>`;
   }
 
   function renderAuthenticated() {
     clearOtpTimer();
+    setTitle(state.provider === 'owner' || state.provider === 'manager-password' ? 'ورود مدیران' : 'ورود به نورا');
     setLead('');
     const body = $('#lgBody');
     if (!body) return;
@@ -317,10 +339,10 @@
       phone_otp_not_configured: 'سرویس ارسال کد روی سرور تنظیم نشده است.',
       invalid_captcha: 'کد امنیتی درست نیست؛ کد جدید را وارد کن.',
       captcha_not_configured: 'کد امنیتی روی سرور تنظیم نشده است.',
-      phone_otp_delivery_unavailable: 'کد ارسال نشد؛ کمی بعد دوباره تلاش کن.',
+      phone_otp_delivery_unavailable: 'ارسال کد به بله انجام نشد. مطمئن شو این شماره در بله فعال است و کمی بعد دوباره تلاش کن.',
       phone_otp_unavailable: 'ارسال کد موقتاً در دسترس نیست.',
       account_session_unavailable: 'ورود حساب تأیید نشد؛ دوباره تلاش کن.',
-      invalid_phone_number: 'شمارهٔ همراه را بررسی کن.',
+      invalid_phone_number: 'شمارهٔ همراه درست نیست؛ یک شمارهٔ ایرانی مثل ۰۹۱۲۳۴۵۶۷۸۹ بنویس.',
       invalid_or_expired_otp: 'کد نادرست است یا مهلتش گذشته است.',
       otp_resend_too_soon: 'برای ارسال دوباره کمی صبر کن.',
       login_temporarily_blocked: 'تلاش‌های زیادی انجام شده؛ کمی بعد دوباره امتحان کن.',
@@ -435,7 +457,20 @@
       setStatus('کد امنیتی بارگذاری نشد؛ دوباره تلاش کن.', 'error');
     }
     state.captchaBusy = false;
-    if (state.mode === 'phone' && !state.otpChallengeId) renderPhoneLogin();
+    if (state.mode !== 'phone' || state.otpChallengeId) return;
+    const slot = $('#lgCapImg');
+    const refresh = $('#lgCapNew');
+    if (slot && refresh && $('#lgPhoneForm')) {
+      /* فقط تصویر را تازه می‌کنیم تا شماره و کد تایپ‌شدهٔ کاربر از بین نرود */
+      slot.innerHTML = state.captchaImage
+        ? `<img class="lg-cap-pic" src="${escapeHtml(state.captchaImage)}" alt="" width="180" height="60" draggable="false"/>`
+        : '<span class="lg-cap-fail">کد امنیتی بارگذاری نشد</span>';
+      refresh.disabled = state.busy;
+      const answer = $('#lgCapAnswer');
+      if (answer) answer.value = '';
+      return;
+    }
+    renderPhoneLogin();
   }
 
   async function requestPhoneOtp(form) {
@@ -770,7 +805,16 @@
     }
     if (target.closest('#lgOtpResend')) {
       event.preventDefault();
-      if (!target.closest('#lgOtpResend').disabled) requestPhoneOtp(null);
+      if (target.closest('#lgOtpResend').disabled || state.busy) return;
+      state.otpChallengeId = '';
+      state.otpExpiresAt = 0;
+      state.otpResendAt = 0;
+      state.captchaToken = '';
+      state.captchaImage = '';
+      state.captchaFailed = false;
+      renderPhoneLogin();
+      setStatus('برای ارسال دوبارهٔ کد، کد امنیتی تازه را وارد کن و «دریافت کد» را بزن.', 'note');
+      $('#lgCapAnswer')?.focus();
       return;
     }
     if (target.closest('#lgLogout')) {
