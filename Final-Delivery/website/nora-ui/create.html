@@ -45,6 +45,16 @@
   #formPaymentMethodList>.empty{padding:12px;border:1px dashed var(--hairline);border-radius:var(--r-lg)}
   #addFormPaymentMethod:disabled{opacity:.5;cursor:not-allowed}
   @media(max-width:560px){.form-payment-method-config .g2{grid-template-columns:1fr;gap:8px}}
+  /* نوار پایین موبایل (.quicknav): جایگزین ریل کناری که زیر ۱۰۴۰px پنهان می‌شود؛ عمداً .tabbar نیست تا ناوبری اصلی سایت آن را بازنویسی نکند */
+  .quicknav{position:fixed;inset-inline:var(--sp-3);bottom:calc(var(--sp-3) + var(--safe-b));z-index:50;display:none;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;
+    background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:.5px solid var(--glass-line);border-radius:var(--r-xl);box-shadow:var(--sh-2),var(--sheen-top)}
+  .quicknav a,.quicknav button{-webkit-appearance:none;appearance:none;border:0;background:none;font:inherit;cursor:pointer;
+    display:grid;justify-items:center;gap:3px;min-height:48px;padding:6px 2px;border-radius:var(--r-md);text-decoration:none;
+    color:var(--ink-3);font-size:11px;font-weight:600;line-height:1.3}
+  .quicknav .i{width:22px;height:22px}
+  .quicknav .tint{color:var(--brand-ink);background:var(--brand-tint)}
+  @media (max-width:1040px){.quicknav{display:grid}}
+  @media print{.quicknav{display:none!important}}
 </style>
 <meta name="description" content="ساخت و ویرایش فرم در پنل مجاز نورا؛ تنظیمات نهایی در سرور بررسی می‌شوند."/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
@@ -183,7 +193,7 @@
   <aside class="rail">
     <div class="row" style="padding:6px 8px 12px">
       <span class="glass-thin" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center"><svg class="i lg"><use href="#i-doc"/></svg></span>
-      <div><div class="head tight">فرم تازه</div><div class="cap">رویداد: کارگاه فن بیان</div></div>
+      <div><div class="head tight" id="railHead">فرم تازه</div><div class="cap" id="railMeta">فرم‌ساز سروری</div></div>
     </div>
     <nav class="col tight">
       <a class="btn quiet block" href="index.html"><svg class="i"><use href="#i-layers"/></svg> زبان طراحی</a>
@@ -564,6 +574,12 @@
   </main>
 </div>
 
+<nav class="quicknav" aria-label="پیوندهای فرم‌ساز" style="grid-template-columns:repeat(4,1fr)">
+  <a href="builder.html"><svg class="i"><use href="#i-align"/></svg><small>فرم‌های من</small></a>
+  <a href="form.html"><svg class="i"><use href="#i-mobile"/></svg><small>نمای کاربر</small></a>
+  <a href="index.html"><svg class="i"><use href="#i-layers"/></svg><small>زبان طراحی</small></a>
+  <button type="button" data-theme-toggle><svg class="i"><use href="#i-eye"/></svg><small>شب / روز</small></button>
+</nav>
 <div class="scrim" id="scrim"></div>
 
 <aside class="sheet" id="shAdd" role="dialog" aria-label="افزودن فیلد">
@@ -936,7 +952,8 @@ function applyFormDefaults(){
   if(F.after) S.after=F.after;
   if(F.guests!=null) S.guestsOn=!!F.guests;
   if(S.guestsOn) S.maxPer=Math.max(2,S.maxPer);
-  if(F.wait!=null) S.wait=F.wait?20:0;
+  /* صف انتظار بدون ظرفیت اصلی در سرور قابل انتشار نیست؛ پیش‌فرض فقط وقتی ظرفیت مشخص است فعال می‌شود */
+  if(F.wait!=null) S.wait=(F.wait&&NR(S.cap)>0)?20:0;
   /* External event/attendance/invite limits are not server-enforced in this builder. */
   S.limit='none';
   if(F.dept) S.dept=F.dept;
@@ -962,6 +979,9 @@ function evHeadFill(){
   const nm=TEST_FIXTURE_MODE?(QS.get('name')||''):'';
   const eh=$('#evHead'), em=$('#evMeta'), ec=$('#evChip');
   if(eh) eh.textContent=nm||S.title||'فرم تازه';
+  const rh=$('#railHead'), rm=$('#railMeta');
+  if(rh) rh.textContent=nm||S.title||'فرم تازه';
+  if(rm) rm.textContent=nm?('رویداد: '+nm):ACTIVE_SERVER_FORM?('نسخهٔ سروری '+faN(ACTIVE_SERVER_FORM.version||1)+' · '+(ACTIVE_SERVER_FORM.status||'draft')):'فرم‌ساز سروری';
   if(em){
     if(nm) em.textContent=[QS.get('when'),QS.get('place'),S.cap?('ظرفیت '+faN(S.cap)):''].filter(Boolean).join(' · ');
     else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'اطلاعات رویداد از API این صفحه دریافت نمی‌شود.':'رویدادی به این فرم متصل نیست.';
@@ -2225,6 +2245,8 @@ async function saveServerDraft(row){
     setOwnerApiState(err&&err.status===401?'ورود مالک لازم است':'ذخیره نشد',message);
     if(err&&err.status===401){OWNER_AUTHENTICATED=false;PENDING_DRAFT_ROW=row;ownerLoginPanel(true,message)}
     else {PENDING_DRAFT_ROW=null;toast(message)}
+    /* کارت وضعیت سروری (توقف/انتشار/پیوند عمومی) نباید پس از ذخیرهٔ ناموفق پنهان بماند */
+    if(ACTIVE_SERVER_FORM&&$('#doneCard').style.display==='none'){$('#doneCard').style.display='block';updateDoneCard(ACTIVE_SERVER_FORM,true,false)}
   }finally{
     OWNER_API_BUSY=false;
     if(button){button.disabled=false;button.removeAttribute('aria-busy')}
@@ -2264,6 +2286,7 @@ async function publishSavedForm(){
     toast('فرم منتشر شد؛ پیوند عمومی آماده است');
   }catch(error){
     const message=ownerApiErrorText(error);setOwnerApiState(error&&error.status===401?'ورود مالک لازم است':'انتشار انجام نشد',message);toast(message);
+    const doneNote=$('#doneNote');if(doneNote&&!(error&&error.status===401))doneNote.textContent='انتشار انجام نشد: '+message;
   }finally{OWNER_API_BUSY=false;if(button){button.disabled=false;button.removeAttribute('aria-busy')}}
 }
 async function pauseSavedForm(){
