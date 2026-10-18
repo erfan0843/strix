@@ -17,7 +17,7 @@ test('university snapshot is fetched only when a university picker needs it', ()
 
   assert.doesNotMatch(form, /<script\b[^>]*\bsrc=["']universities-data\.js/i,
     'the large snapshot must not block every form page load');
-  for (const page of ['home.html', 'events.html', 'event.html', 'person.html', 'post.html']) {
+  for (const page of ['home.html', 'events.html', 'event.html', 'person.html', 'partner.html', 'post.html']) {
     const html = read(page);
     const staticMarkup = html.replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script\s*>/gi, '');
     assert.doesNotMatch(staticMarkup, /<script\b[^>]*\bsrc=["']data\.js/i,

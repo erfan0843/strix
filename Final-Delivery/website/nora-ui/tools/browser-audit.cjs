@@ -46,7 +46,7 @@ function localOrigin(value) {
 }
 const publicOrigin = localOrigin(process.env.NORA_QA_PUBLIC_URL || 'http://127.0.0.1:8000');
 const fixtureOrigin = localOrigin(process.env.NORA_QA_FIXTURE_URL || 'http://127.0.0.1:8001');
-const pages=['home.html','events.html','account.html','login.html','support.html','admin.html','builder.html','create.html','form.html','event.html','person.html','post.html','404.html','offline.html','loading-preview.html','final-page-review.html','nora-pay-preview.html','missing-audit-page.html'];
+const pages=['home.html','events.html','account.html','login.html','support.html','admin.html','builder.html','create.html','form.html','event.html','person.html','partner.html','post.html','404.html','offline.html','loading-preview.html','final-page-review.html','nora-pay-preview.html','missing-audit-page.html'];
 const fixture=JSON.parse(fs.readFileSync(fixturePath, 'utf8'));let browser;const results=[];
 async function run(name,width,theme,actor='guest',modal){
  const origin=actor==='guest'?publicOrigin:fixtureOrigin,base=new URL(origin);

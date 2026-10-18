@@ -1,0 +1,372 @@
+[
+  {
+    "ok": true,
+    "name": "home mobile: 4 partner cards are real links, no sheet",
+    "detail": "[\"partner.html?id=qa-partner-1\",\"partner.html?id=qa%20partner%2F2%20%C3%BC\",\"partner.html?id=qa-partner-broken-logo\",\"partner.html?id=qa-partner-xss\"]"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: id with space/slash/unicode is URL-encoded",
+    "detail": "partner.html?id=qa%20partner%2F2%20%C3%BC"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: footer badges link to partner pages with aria-label and ≥24px targets",
+    "detail": "[[\"partner.html?id=qa-partner-1\",\"نهاد همکار آزمایشی (دادهٔ تست)\",28],[\"partner.html?id=qa%20partner%2F2%20%C3%BC\",\"نهاد همکار با نام بسیار طولانی برای آزمون شکست خط و چیدمان در موبایل و دسکتاپ (دادهٔ تست)\",28],[\"partner.html?id=qa-partner-broken-logo\",\"نهاد با لوگوی شکسته (دادهٔ تست)\",28],[\"partner.html?id=qa-partner-xss\",\"<img src=x onerror=alert(1)> نهاد (دادهٔ تست)\",28]]"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: event card partner chip links to partner page",
+    "detail": "partner.html?id=qa-partner-1"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: no horizontal scroll, no JS errors",
+    "detail": "{\"scrollW\":390,\"errors\":[\"Failed to load resource: the server responded with a status of 404 (Not Found)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: broken partner logo falls back to the monogram",
+    "detail": "{\"img\":false,\"mon\":\"ن\"}"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: clicking the card opens the same partner's page",
+    "detail": "{\"url\":\"/partner.html?id=qa-partner-1\",\"h1\":\"نهاد همکار آزمایشی (دادهٔ تست)\"}"
+  },
+  {
+    "ok": true,
+    "name": "home mobile: browser Back returns to home with partners section",
+    "detail": "{\"url\":\"/home.html\",\"partnersVisible\":true}"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: 4 partner cards are real links, no sheet",
+    "detail": "[\"partner.html?id=qa-partner-1\",\"partner.html?id=qa%20partner%2F2%20%C3%BC\",\"partner.html?id=qa-partner-broken-logo\",\"partner.html?id=qa-partner-xss\"]"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: id with space/slash/unicode is URL-encoded",
+    "detail": "partner.html?id=qa%20partner%2F2%20%C3%BC"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: footer badges link to partner pages with aria-label and ≥24px targets",
+    "detail": "[[\"partner.html?id=qa-partner-1\",\"نهاد همکار آزمایشی (دادهٔ تست)\",28],[\"partner.html?id=qa%20partner%2F2%20%C3%BC\",\"نهاد همکار با نام بسیار طولانی برای آزمون شکست خط و چیدمان در موبایل و دسکتاپ (دادهٔ تست)\",28],[\"partner.html?id=qa-partner-broken-logo\",\"نهاد با لوگوی شکسته (دادهٔ تست)\",28],[\"partner.html?id=qa-partner-xss\",\"<img src=x onerror=alert(1)> نهاد (دادهٔ تست)\",28]]"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: event card partner chip links to partner page",
+    "detail": "partner.html?id=qa-partner-1"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: no horizontal scroll, no JS errors",
+    "detail": "{\"scrollW\":1280,\"errors\":[\"Failed to load resource: the server responded with a status of 404 (Not Found)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: broken partner logo falls back to the monogram",
+    "detail": "{\"img\":false,\"mon\":\"ن\"}"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: clicking the card opens the same partner's page",
+    "detail": "{\"url\":\"/partner.html?id=qa-partner-1\",\"h1\":\"نهاد همکار آزمایشی (دادهٔ تست)\"}"
+  },
+  {
+    "ok": true,
+    "name": "home desktop: browser Back returns to home with partners section",
+    "detail": "{\"url\":\"/home.html\",\"partnersVisible\":true}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: HTTP 200, server source, single h1",
+    "detail": "{\"status\":200,\"h1s\":[\"نهاد همکار آزمایشی (دادهٔ تست)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: type, lead, facts, focus tags, description rendered",
+    "detail": "{\"type\":\"نهاد فرهنگی · آزمایشی\",\"facts\":[\"برگزاری کارگاه (تست)\",\"مهر ۱۴۰۵\"],\"tags\":[\"آموزش\",\"کارگاه\",\"کتاب‌خوانی\"]}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: official website button is a real noopener link",
+    "detail": "{\"href\":\"https://example.org/partner-test\",\"rel\":\"noopener noreferrer\",\"target\":\"_blank\",\"text\":\"وبگاه رسمی example.org\"}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: contacts allowlisted; javascript:/other dropped",
+    "detail": "[[\"mail\",\"mailto:hello@example.org\",null],[\"tel\",\"tel:+33123456789\",null],[\"tg\",\"https://t.me/nora_test_channel\",\"noopener noreferrer\"]]"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: related events come only from event.partnerId (1 upcoming + 1 past)",
+    "detail": "[\"event.html?id=qa-ev-1\",\"event.html?id=qa-ev-past\"]"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: logo image loaded in the square frame",
+    "detail": "{\"src\":\"/icon-192.png\",\"loaded\":true}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: title/canonical/robots from server + client",
+    "detail": "{\"title\":\"نهاد همکار آزمایشی (دادهٔ تست) · نهادهای همکار نورا\",\"canonical\":\"/partner.html?id=qa-partner-1\",\"robots\":\"index,follow\"}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: no horizontal scroll, no JS errors, one API call",
+    "detail": "{\"scrollW\":390,\"errors\":[],\"api\":[\"/api/public/site-content\"]}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: theme preserved",
+    "detail": "light"
+  },
+  {
+    "ok": true,
+    "name": "mobile-light: back links to home#partners (topbar, breadcrumb, footer nav)",
+    "detail": "4"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: HTTP 200, server source, single h1",
+    "detail": "{\"status\":200,\"h1s\":[\"نهاد همکار آزمایشی (دادهٔ تست)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: type, lead, facts, focus tags, description rendered",
+    "detail": "{\"type\":\"نهاد فرهنگی · آزمایشی\",\"facts\":[\"برگزاری کارگاه (تست)\",\"مهر ۱۴۰۵\"],\"tags\":[\"آموزش\",\"کارگاه\",\"کتاب‌خوانی\"]}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: official website button is a real noopener link",
+    "detail": "{\"href\":\"https://example.org/partner-test\",\"rel\":\"noopener noreferrer\",\"target\":\"_blank\",\"text\":\"وبگاه رسمی example.org\"}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: contacts allowlisted; javascript:/other dropped",
+    "detail": "[[\"mail\",\"mailto:hello@example.org\",null],[\"tel\",\"tel:+33123456789\",null],[\"tg\",\"https://t.me/nora_test_channel\",\"noopener noreferrer\"]]"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: related events come only from event.partnerId (1 upcoming + 1 past)",
+    "detail": "[\"event.html?id=qa-ev-1\",\"event.html?id=qa-ev-past\"]"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: logo image loaded in the square frame",
+    "detail": "{\"src\":\"/icon-192.png\",\"loaded\":true}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: title/canonical/robots from server + client",
+    "detail": "{\"title\":\"نهاد همکار آزمایشی (دادهٔ تست) · نهادهای همکار نورا\",\"canonical\":\"/partner.html?id=qa-partner-1\",\"robots\":\"index,follow\"}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: no horizontal scroll, no JS errors, one API call",
+    "detail": "{\"scrollW\":1280,\"errors\":[],\"api\":[\"/api/public/site-content\"]}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: theme preserved",
+    "detail": "light"
+  },
+  {
+    "ok": true,
+    "name": "desktop-light: back links to home#partners (topbar, breadcrumb, footer nav)",
+    "detail": "4"
+  },
+  {
+    "ok": true,
+    "name": "desktop: Tab reaches the website link with a visible focus ring",
+    "detail": "{\"site\":true,\"outline\":\"solid\",\"width\":\"2px\",\"inView\":true}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: HTTP 200, server source, single h1",
+    "detail": "{\"status\":200,\"h1s\":[\"نهاد همکار آزمایشی (دادهٔ تست)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: type, lead, facts, focus tags, description rendered",
+    "detail": "{\"type\":\"نهاد فرهنگی · آزمایشی\",\"facts\":[\"برگزاری کارگاه (تست)\",\"مهر ۱۴۰۵\"],\"tags\":[\"آموزش\",\"کارگاه\",\"کتاب‌خوانی\"]}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: official website button is a real noopener link",
+    "detail": "{\"href\":\"https://example.org/partner-test\",\"rel\":\"noopener noreferrer\",\"target\":\"_blank\",\"text\":\"وبگاه رسمی example.org\"}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: contacts allowlisted; javascript:/other dropped",
+    "detail": "[[\"mail\",\"mailto:hello@example.org\",null],[\"tel\",\"tel:+33123456789\",null],[\"tg\",\"https://t.me/nora_test_channel\",\"noopener noreferrer\"]]"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: related events come only from event.partnerId (1 upcoming + 1 past)",
+    "detail": "[\"event.html?id=qa-ev-1\",\"event.html?id=qa-ev-past\"]"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: logo image loaded in the square frame",
+    "detail": "{\"src\":\"/icon-192.png\",\"loaded\":true}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: title/canonical/robots from server + client",
+    "detail": "{\"title\":\"نهاد همکار آزمایشی (دادهٔ تست) · نهادهای همکار نورا\",\"canonical\":\"/partner.html?id=qa-partner-1\",\"robots\":\"index,follow\"}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: no horizontal scroll, no JS errors, one API call",
+    "detail": "{\"scrollW\":390,\"errors\":[],\"api\":[\"/api/public/site-content\"]}"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: theme preserved",
+    "detail": "dark"
+  },
+  {
+    "ok": true,
+    "name": "mobile-dark: back links to home#partners (topbar, breadcrumb, footer nav)",
+    "detail": "4"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: HTTP 200, server source, single h1",
+    "detail": "{\"status\":200,\"h1s\":[\"نهاد همکار آزمایشی (دادهٔ تست)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: type, lead, facts, focus tags, description rendered",
+    "detail": "{\"type\":\"نهاد فرهنگی · آزمایشی\",\"facts\":[\"برگزاری کارگاه (تست)\",\"مهر ۱۴۰۵\"],\"tags\":[\"آموزش\",\"کارگاه\",\"کتاب‌خوانی\"]}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: official website button is a real noopener link",
+    "detail": "{\"href\":\"https://example.org/partner-test\",\"rel\":\"noopener noreferrer\",\"target\":\"_blank\",\"text\":\"وبگاه رسمی example.org\"}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: contacts allowlisted; javascript:/other dropped",
+    "detail": "[[\"mail\",\"mailto:hello@example.org\",null],[\"tel\",\"tel:+33123456789\",null],[\"tg\",\"https://t.me/nora_test_channel\",\"noopener noreferrer\"]]"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: related events come only from event.partnerId (1 upcoming + 1 past)",
+    "detail": "[\"event.html?id=qa-ev-1\",\"event.html?id=qa-ev-past\"]"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: logo image loaded in the square frame",
+    "detail": "{\"src\":\"/icon-192.png\",\"loaded\":true}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: title/canonical/robots from server + client",
+    "detail": "{\"title\":\"نهاد همکار آزمایشی (دادهٔ تست) · نهادهای همکار نورا\",\"canonical\":\"/partner.html?id=qa-partner-1\",\"robots\":\"index,follow\"}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: no horizontal scroll, no JS errors, one API call",
+    "detail": "{\"scrollW\":1280,\"errors\":[],\"api\":[\"/api/public/site-content\"]}"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: theme preserved",
+    "detail": "dark"
+  },
+  {
+    "ok": true,
+    "name": "desktop-dark: back links to home#partners (topbar, breadcrumb, footer nav)",
+    "detail": "4"
+  },
+  {
+    "ok": true,
+    "name": "long name + long URL + encoded id: renders without overflow",
+    "detail": "{\"status\":200,\"siteTextW\":62,\"scrollW\":390}"
+  },
+  {
+    "ok": true,
+    "name": "no logo → monogram; no related events → no empty section",
+    "detail": "{\"monogram\":\"طو\",\"heads\":[\"معرفی\"]}"
+  },
+  {
+    "ok": true,
+    "name": "broken logo → monogram fallback, no JS error",
+    "detail": "{\"monogram\":\"نه\",\"errors\":[\"Failed to load resource: the server responded with a status of 404 (Not Found)\"]}"
+  },
+  {
+    "ok": true,
+    "name": "malicious name/logo/href/links rendered as inert text; no dialog, image, script or link",
+    "detail": "{\"h1\":\"<img src=x onerror=alert(1)> نهاد (دادهٔ تست)\",\"dialogs\":[],\"site\":null}"
+  },
+  {
+    "ok": true,
+    "name": "SSR fallback escapes the malicious name",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "unknown id: real HTTP 404 + noindex + no canonical + human message",
+    "detail": "{\"status\":404,\"robots\":\"noindex,nofollow,noarchive\"}"
+  },
+  {
+    "ok": true,
+    "name": "non-public partner qa-partner-unpublished: 404 and name not in SSR",
+    "detail": "404"
+  },
+  {
+    "ok": true,
+    "name": "non-public partner qa-partner-private: 404 and name not in SSR",
+    "detail": "404"
+  },
+  {
+    "ok": true,
+    "name": "non-public partner qa-partner-paused: 404 and name not in SSR",
+    "detail": "404"
+  },
+  {
+    "ok": true,
+    "name": "non-public partner qa-partner-pending: 404 and name not in SSR",
+    "detail": "404"
+  },
+  {
+    "ok": true,
+    "name": "public API exposes only the 4 public partners",
+    "detail": "[\"qa-partner-1\",\"qa partner/2 ü\",\"qa-partner-broken-logo\",\"qa-partner-xss\"]"
+  },
+  {
+    "ok": true,
+    "name": "public API keeps event.partnerId and drops stale partnerName",
+    "detail": "qa-partner-1"
+  },
+  {
+    "ok": true,
+    "name": "sitemap in test env without NORA_PUBLIC_BASE_URL answers 503 (absolute origin required; covered by pytest)",
+    "detail": "503"
+  },
+  {
+    "ok": true,
+    "name": "API unavailable: distinct human message, no JS error",
+    "detail": "{\"source\":\"unavailable\",\"errors\":[\"Failed to load resource: net::ERR_FAILED\"]}"
+  },
+  {
+    "ok": true,
+    "name": "legacy home.html#partner=… redirects to the partner page",
+    "detail": "/partner.html?id=qa-partner-1"
+  },
+  {
+    "ok": true,
+    "name": "direct URL survives reload",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "event page links its partner to the partner page",
+    "detail": "partner.html?id=qa-partner-1"
+  }
+]
