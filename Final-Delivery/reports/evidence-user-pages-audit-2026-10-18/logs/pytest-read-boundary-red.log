@@ -1,0 +1,126 @@
+..FFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves[events-row0] _
+
+env = (<starlette.testclient.TestClient object at 0x7faf803d2250>, Engine(sqlite+pysqlite:///%3Amemory%3A))
+category = 'events'
+row = {'id': 'ev-np', 'on': '1405/08/09', 'privacy': 'private', 't': 'رویداد خصوصی (دادهٔ تست)'}
+
+    @pytest.mark.parametrize("category,row", [
+        ("events", {"id": "ev-np", "t": "رویداد خصوصی (دادهٔ تست)", "privacy": "private", "on": "1405/08/09"}),
+        ("people", {"id": "pp-np", "n": "فرد پنهان (دادهٔ تست)", "kind": "tch", "hidden": True}),
+        ("articles", {"id": "ar-np", "t": "مطلب پیش‌نویس (دادهٔ تست)", "status": "draft"}),
+    ])
+    def test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves(env, category, row):
+        client, engine = env
+        headers = login(client)
+        first = client.patch(
+            "/api/owner/site-content",
+            json={"content": {**OTHER_CONTENT, "partners": []}, "expected_version": 0},
+            headers=headers,
+        )
+        assert first.status_code == 200, first.text
+        with Session(engine) as db:
+            record = db.get(SiteContentRecord, "public")
+            content = dict(record.content or {})
+            content[category] = list(content.get(category) or []) + [dict(row)]
+            record.content = content
+            db.commit()
+    
+        def public_ids():
+            response = client.get("/api/public/site-content")
+            assert response.status_code == 200
+            return [item.get("id") for item in response.json()["content"][category]]
+    
+>       assert row["id"] not in public_ids(), f"{category}: stored non-public row leaked publicly"
+E       AssertionError: events: stored non-public row leaked publicly
+E       assert 'ev-np' not in ['ev-1', 'ev-np']
+E        +  where ['ev-1', 'ev-np'] = <function test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves.<locals>.public_ids at 0x7faf805996c0>()
+
+tests/test_partner_retention.py:229: AssertionError
+_ test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves[people-row1] _
+
+env = (<starlette.testclient.TestClient object at 0x7faf8010cc50>, Engine(sqlite+pysqlite:///%3Amemory%3A))
+category = 'people'
+row = {'hidden': True, 'id': 'pp-np', 'kind': 'tch', 'n': 'فرد پنهان (دادهٔ تست)'}
+
+    @pytest.mark.parametrize("category,row", [
+        ("events", {"id": "ev-np", "t": "رویداد خصوصی (دادهٔ تست)", "privacy": "private", "on": "1405/08/09"}),
+        ("people", {"id": "pp-np", "n": "فرد پنهان (دادهٔ تست)", "kind": "tch", "hidden": True}),
+        ("articles", {"id": "ar-np", "t": "مطلب پیش‌نویس (دادهٔ تست)", "status": "draft"}),
+    ])
+    def test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves(env, category, row):
+        client, engine = env
+        headers = login(client)
+        first = client.patch(
+            "/api/owner/site-content",
+            json={"content": {**OTHER_CONTENT, "partners": []}, "expected_version": 0},
+            headers=headers,
+        )
+        assert first.status_code == 200, first.text
+        with Session(engine) as db:
+            record = db.get(SiteContentRecord, "public")
+            content = dict(record.content or {})
+            content[category] = list(content.get(category) or []) + [dict(row)]
+            record.content = content
+            db.commit()
+    
+        def public_ids():
+            response = client.get("/api/public/site-content")
+            assert response.status_code == 200
+            return [item.get("id") for item in response.json()["content"][category]]
+    
+>       assert row["id"] not in public_ids(), f"{category}: stored non-public row leaked publicly"
+E       AssertionError: people: stored non-public row leaked publicly
+E       assert 'pp-np' not in ['pp-1', 'pp-np']
+E        +  where ['pp-1', 'pp-np'] = <function test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves.<locals>.public_ids at 0x7faf80343ba0>()
+
+tests/test_partner_retention.py:229: AssertionError
+_ test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves[articles-row2] _
+
+env = (<starlette.testclient.TestClient object at 0x7faf7bf41010>, Engine(sqlite+pysqlite:///%3Amemory%3A))
+category = 'articles'
+row = {'id': 'ar-np', 'status': 'draft', 't': 'مطلب پیش\u200cنویس (دادهٔ تست)'}
+
+    @pytest.mark.parametrize("category,row", [
+        ("events", {"id": "ev-np", "t": "رویداد خصوصی (دادهٔ تست)", "privacy": "private", "on": "1405/08/09"}),
+        ("people", {"id": "pp-np", "n": "فرد پنهان (دادهٔ تست)", "kind": "tch", "hidden": True}),
+        ("articles", {"id": "ar-np", "t": "مطلب پیش‌نویس (دادهٔ تست)", "status": "draft"}),
+    ])
+    def test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves(env, category, row):
+        client, engine = env
+        headers = login(client)
+        first = client.patch(
+            "/api/owner/site-content",
+            json={"content": {**OTHER_CONTENT, "partners": []}, "expected_version": 0},
+            headers=headers,
+        )
+        assert first.status_code == 200, first.text
+        with Session(engine) as db:
+            record = db.get(SiteContentRecord, "public")
+            content = dict(record.content or {})
+            content[category] = list(content.get(category) or []) + [dict(row)]
+            record.content = content
+            db.commit()
+    
+        def public_ids():
+            response = client.get("/api/public/site-content")
+            assert response.status_code == 200
+            return [item.get("id") for item in response.json()["content"][category]]
+    
+>       assert row["id"] not in public_ids(), f"{category}: stored non-public row leaked publicly"
+E       AssertionError: articles: stored non-public row leaked publicly
+E       assert 'ar-np' not in ['ar-1', 'ar-np']
+E        +  where ['ar-1', 'ar-np'] = <function test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves.<locals>.public_ids at 0x7faf819dad40>()
+
+tests/test_partner_retention.py:229: AssertionError
+=============================== warnings summary ===============================
+../../../../../venvs/nora/lib/python3.11/site-packages/fastapi/testclient.py:1
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_partner_retention.py::test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves[events-row0]
+FAILED tests/test_partner_retention.py::test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves[people-row1]
+FAILED tests/test_partner_retention.py::test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves[articles-row2]
+3 failed, 2 passed, 1 warning in 1.44s
