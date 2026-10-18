@@ -30,6 +30,16 @@
   .searchbox input{border:0;background:none;outline:none;font:inherit;color:var(--ink);width:100%;font-size:var(--fs-sub)}
   .fw{font-weight:600}
   @media (max-width:980px){.split{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  /* نوار پایین موبایل (.quicknav): جایگزین ریل کناری که زیر ۱۰۴۰px پنهان می‌شود؛ عمداً .tabbar نیست تا ناوبری اصلی سایت آن را بازنویسی نکند */
+  .quicknav{position:fixed;inset-inline:var(--sp-3);bottom:calc(var(--sp-3) + var(--safe-b));z-index:50;display:none;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;
+    background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:.5px solid var(--glass-line);border-radius:var(--r-xl);box-shadow:var(--sh-2),var(--sheen-top)}
+  .quicknav a,.quicknav button{-webkit-appearance:none;appearance:none;border:0;background:none;font:inherit;cursor:pointer;
+    display:grid;justify-items:center;gap:3px;min-height:48px;padding:6px 2px;border-radius:var(--r-md);text-decoration:none;
+    color:var(--ink-3);font-size:11px;font-weight:600;line-height:1.3}
+  .quicknav .i{width:22px;height:22px}
+  .quicknav .tint{color:var(--brand-ink);background:var(--brand-tint)}
+  @media (max-width:1040px){.quicknav{display:grid}}
+  @media print{.quicknav{display:none!important}}
 </style>
 <meta name="description" content="مرکز مدیریت فرم‌ها در نورا؛ دسترسی و انتشار از سمت سرور کنترل می‌شود."/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
@@ -480,6 +490,13 @@
 </div>
 
 <!-- ══════════ ورقه‌ها ══════════ -->
+<nav class="quicknav" aria-label="بخش‌های فرم‌ساز">
+  <button type="button" data-go="fList"><svg class="i"><use href="#i-doc"/></svg><small>فرم‌ها</small></button>
+  <button type="button" data-go="fReports"><svg class="i"><use href="#i-chart"/></svg><small>گزارش‌ها</small></button>
+  <button type="button" data-go="fSettings"><svg class="i"><use href="#i-sliders"/></svg><small>تنظیمات</small></button>
+  <a href="create.html"><svg class="i"><use href="#i-plus"/></svg><small>ساخت فرم</small></a>
+  <a href="admin.html"><svg class="i"><use href="#i-shield"/></svg><small>پنل مدیران</small></a>
+</nav>
 <div class="scrim" id="scrim"></div>
 
 <aside class="sheet" id="shSettings" role="dialog" aria-label="تنظیمات فرم">
@@ -582,7 +599,7 @@
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=126"></script>
-<script src="owner-api.js?v=107"></script>
+<script src="owner-api.js?v=108"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
@@ -813,7 +830,7 @@ function go(id){
   if(id==='fSettings') renderFormSettings();
   if(id==='fTeam') renderTeam();
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
-  document.querySelectorAll('.rail [data-go]').forEach(b=>b.classList.toggle('tint',b.dataset.go===id));
+  document.querySelectorAll('.rail [data-go],.quicknav [data-go]').forEach(b=>b.classList.toggle('tint',b.dataset.go===id));
   window.scrollTo({top:0,behavior:'instant'});
 }
 function renderList(){
@@ -829,7 +846,7 @@ function renderList(){
           <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':'users'}"/></svg></span>
         <div style="min-width:0">
           <div class="head tight">${f.name}</div>
-          <div class="cap">${esc(f.kind)} · <b>بخش ${esc(DEPT_OF(f).n)}</b> · کارشناس ${esc(f.expert)} · ${server?esc(serverStatusLabel(f.status)):'نمونهٔ مرورگر · بدون انتشار سروری'}</div>
+          <div class="cap">${esc(f.kind)}${DEPT_OF(f).id?' · <b>بخش '+esc(DEPT_OF(f).n)+'</b>':''}${f.expert?' · کارشناس '+esc(f.expert):''} · ${server?esc(serverStatusLabel(f.status)):'نمونهٔ مرورگر · بدون انتشار سروری'}</div>
         </div>
         <span class="tag ${server?'brand':'warn'}">${server?'API سرور':'نمونهٔ محلی'}</span>
         <span class="sp"></span>
@@ -1450,6 +1467,8 @@ const attIn=()=>attList().filter(p=>p.att).length;
 function renderAttend(q){
   if(!TEST_FIXTURE_MODE){
     document.getElementById('attSub').textContent='ثبت حضور از API این صفحه پشتیبانی نمی‌شود.';
+    /* کنترل‌های ثبت حضور فقط روی دادهٔ نمونه کار می‌کنند؛ بدون API باید غیرفعال باشند تا پیام موفقیت ساختگی ندهند */
+    document.querySelectorAll('#fAttend #attCode,#fAttend #attGo,#fAttend [data-attmode],#fAttend [data-abexport],#fAttend [data-absentmsg],#fAttend #attQ').forEach(el=>{el.disabled=true;el.setAttribute('aria-disabled','true');});
     ['attAll','attIn','attOut'].forEach(id=>document.getElementById(id).textContent='—');
     document.getElementById('attPct').textContent='—';
     document.getElementById('attCount').textContent='۰ ردیف';
@@ -1650,6 +1669,8 @@ const TEAM=TEST_FIXTURE_MODE?[
 ]:[];
 function renderTeam(){
   if(!TEST_FIXTURE_MODE){
+    /* بدون API کارشناسان، دکمهٔ «افزودن کارشناس» نباید پیام موفقیت ساختگی بدهد */
+    const inviteButton=document.getElementById('invite'); if(inviteButton){inviteButton.hidden=true;inviteButton.disabled=true;}
     document.getElementById('teamBox').innerHTML='<div class="card sunk"><span class="sub">فهرست کارشناسان و واگذاری کار از API این صفحه پشتیبانی نمی‌شود؛ هیچ حساب یا نقش نمونه‌ای نمایش داده نمی‌شود.</span></div>';
     return;
   }
@@ -2204,7 +2225,7 @@ document.getElementById('setArchive').onclick=e=>{
   archArm=false; e.target.textContent='بایگانی فرم';
   CUR.status='بسته'; CUR.tone='';
   log('فرم بایگانی شد'); closeSheets(); renderPanel(); renderList(); toast('بایگانی شد')};
-document.getElementById('invite').onclick=()=>toast('دعوت‌نامهٔ کارشناس فرستاده شد');
+document.getElementById('invite').onclick=()=>{if(!TEST_FIXTURE_MODE){toast('افزودن کارشناس هنوز به API سرور وصل نیست');return} toast('دعوت‌نامهٔ کارشناس فرستاده شد')};
 
 /* فرم‌ساز و گزارش از یک انبار می‌خوانند؛ بعد از انتشار/بازگشت، فهرست تازه می‌شود. */
 function refreshSharedForms(){
@@ -2253,6 +2274,8 @@ function localServerForm(record){
     ev:record.ev||'',rawFields,fields:rawFields.map(field=>[String(field&&field.l||field&&field.label||'پرسش'),100]),status:record.status||'draft',
     response_count:responseCount,resp:responseCount,
     version:record.version||1,serverManaged:true,serverDraft:record.status!=='published',on:record.status==='published'?1:0,
+    /* made:true تا refreshSharedForms نسخهٔ قبلی همین ردیف را جایگزین کند (نه تکرار)؛ tone برای برچسب وضعیت کارت */
+    made:true,tone:record.status==='published'?'ok':record.status==='paused'?'warn':'quiet',
     display:record.need==='reg'?'one':settings.display==='all'?'all':'one',
     at:Date.parse(record.updated_at||'')||Date.now()
   });
