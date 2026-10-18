@@ -148,10 +148,10 @@ def test_owner_banner_manager_keeps_drafts_private_and_applies_versioned_setting
                 "secondaryHref": "https://events.example.org/info", "secondaryLabel": "راهنمای کامل",
                 "theme": "teal", "layout": "split", "align": "center", "overlay": 62,
                 "focusX": 34, "focusY": 68, "startsAt": "2026-01-01T00:00:00Z",
-                "endsAt": "2027-01-01T00:00:00Z",
+                "endsAt": "2027-01-01T00:00:00Z", "kind": "sponsored",
             },
             {"id": "banner-draft", "status": "draft", "t": "پیش‌نویس خصوصی", "href": "javascript:alert(1)",
-             "primaryLabel": "پیوند ناامن"},
+             "primaryLabel": "پیوند ناامن", "kind": "javascript:x"},
             {"id": "banner-paused", "status": "paused", "active": True, "t": "بنر متوقف"},
             {"id": "banner-statusless", "t": "بدون وضعیت انتشار"},
             {"id": "banner-inactive", "status": "published", "active": False, "t": "بنر خاموش"},
@@ -170,6 +170,9 @@ def test_owner_banner_manager_keeps_drafts_private_and_applies_versioned_setting
         "banner-live", "banner-draft", "banner-paused", "banner-statusless", "banner-inactive",
     ]
     assert owner_view["banners"][1]["href"] == ""
+    assert owner_view["banners"][0]["kind"] == "sponsored"
+    assert owner_view["banners"][1]["kind"] == "notice", "unknown banner kinds fall back to a plain notice"
+    assert owner_view["banners"][2]["kind"] == "notice", "missing kind defaults to notice"
     assert next(row for row in owner_view["banners"] if row["id"] == "banner-statusless")["status"] == "draft"
     assert owner_view["banner_settings"] == {
         "enabled": False, "auto_rotate": True, "interval_seconds": 20, "show_controls": False,
@@ -183,6 +186,7 @@ def test_owner_banner_manager_keeps_drafts_private_and_applies_versioned_setting
     assert live["layout"] == "split" and live["align"] == "center"
     assert live["img"] == "https://nora.test/banner.webp"
     assert live["href"] == "events.html#week"
+    assert live["kind"] == "sponsored"
     assert public_content["banner_settings"]["enabled"] is False
     assert "banner-draft" not in str(public_content)
 

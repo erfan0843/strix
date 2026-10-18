@@ -48,6 +48,7 @@
 .owner-banner-manager .obm-preview-card.layout-split .obm-preview-image{position:relative;inset:auto;grid-column:1;grid-row:1;min-height:135px;border-radius:12px}
 .owner-banner-manager .obm-preview-card.layout-split .obm-preview-content{grid-column:2;grid-row:1;align-self:end}
 .owner-banner-manager .obm-preview-label{position:absolute;top:12px;inset-inline-start:13px;padding:3px 10px;border:1px solid rgba(255,255,255,.4);border-radius:99px;background:rgba(255,255,255,.2);font-size:11px}
+.owner-banner-manager .obm-preview-kind{inset-inline-start:auto;inset-inline-end:13px;background:rgba(255,214,120,.28);border-color:rgba(255,214,120,.7)}
 .owner-banner-manager .obm-preview-content{position:relative;z-index:1;display:grid;gap:7px;min-width:0}
 .owner-banner-manager .obm-preview-content h4{margin:0;font:700 clamp(18px,3.5vw,23px)/1.5 var(--f-h);text-wrap:balance}
 .owner-banner-manager .obm-preview-subtitle,.owner-banner-manager .obm-preview-body{font-size:12.5px;line-height:1.8}

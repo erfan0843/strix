@@ -12,6 +12,8 @@
   };
   const DEFAULT_SETTINGS = { enabled: true, auto_rotate: false, interval_seconds: 7, show_controls: true };
   const STATUS_LABELS = { draft: 'پیش‌نویس', published: 'منتشرشده', paused: 'متوقف' };
+  const KINDS = ['notice', 'sponsored', 'partner'];
+  const KIND_LABELS = { sponsored: 'تبلیغ', partner: 'حامی' };
   const state = { rows: [], settings: Object.assign({}, DEFAULT_SETTINGS), version: 0, selectedId: '',
     loaded: false, busy: false, dirty: false, serial: 0 };
   const clamp = (value, low, high) => Math.max(low, Math.min(high, Number.isFinite(+value) ? +value : low));
@@ -68,7 +70,7 @@
   function blankBanner(placeholder) {
     return { id: newId(), status: 'draft', active: true, order: state.rows.length,
       t: '', eyebrow: '', subtitle: '', s: '', img: '', imgAlt: '', href: '', primaryLabel: '',
-      secondaryHref: '', secondaryLabel: '', theme: 'ocean', layout: 'cover', align: 'right',
+      secondaryHref: '', secondaryLabel: '', theme: 'ocean', layout: 'cover', align: 'right', kind: 'notice',
       overlay: 48, focusX: 50, focusY: 50, startsAt: '', endsAt: '', _placeholder: !!placeholder };
   }
   function setStatus(message, kind) {
@@ -141,6 +143,7 @@
       secondaryHref: row.secondaryHref || row.secondary_href,
       layout: ['cover', 'split', 'text'].includes(row.layout) ? row.layout : 'cover',
       theme: Object.prototype.hasOwnProperty.call(THEMES, row.theme) ? row.theme : 'ocean',
+      kind: KINDS.includes(row.kind) ? row.kind : 'notice',
       align: row.align === 'center' ? 'center' : 'right', status: STATUS_LABELS[row.status] ? row.status : 'draft',
       active: row.active !== false, order: clamp(row.order, 0, 1000),
       startsAt: localDate(row.startsAt || row.starts_at), endsAt: localDate(row.endsAt || row.ends_at),
@@ -188,6 +191,7 @@
       img.loading = 'lazy'; img.decoding = 'async'; imageHost.appendChild(img);
     }
     card.appendChild(imageHost);
+    if (KIND_LABELS[row.kind]) { const kindTag = root.document.createElement('span'); kindTag.className = 'obm-preview-label obm-preview-kind'; kindTag.textContent = KIND_LABELS[row.kind]; card.appendChild(kindTag); }
     if (row.eyebrow) { const tag = root.document.createElement('span'); tag.className = 'obm-preview-label'; tag.textContent = row.eyebrow; card.appendChild(tag); }
     const content = root.document.createElement('div'); content.className = 'obm-preview-content';
     const title = root.document.createElement('h4'); title.textContent = row.t || 'عنوان بنر'; content.appendChild(title);
@@ -216,6 +220,7 @@
       secondaryHref: text(value('secondaryHref'), 2048),
       layout: ['cover', 'split', 'text'].includes(value('layout')) ? value('layout') : 'cover',
       theme: Object.prototype.hasOwnProperty.call(THEMES, value('theme')) ? value('theme') : 'ocean',
+      kind: KINDS.includes(value('kind')) ? value('kind') : 'notice',
       align: value('align') === 'center' ? 'center' : 'right',
       status: ['draft', 'published', 'paused'].includes(value('status')) ? value('status') : 'draft',
       active: checked('active'), order: clamp(value('order'), 0, 1000),
@@ -258,7 +263,8 @@
       subtitle: text(row.subtitle, 180), s: text(row.s, 800), img: text(row.img, 1_500_000),
       imgAlt: text(row.imgAlt, 240), href: text(row.href, 2048), primaryLabel: text(row.primaryLabel, 60),
       secondaryHref: text(row.secondaryHref, 2048), secondaryLabel: text(row.secondaryLabel, 60),
-      theme: row.theme, layout: row.layout, align: row.align, overlay: Math.round(clamp(row.overlay, 0, 90)),
+      theme: row.theme, layout: row.layout, align: row.align, kind: KINDS.includes(row.kind) ? row.kind : 'notice',
+      overlay: Math.round(clamp(row.overlay, 0, 90)),
       focusX: Math.round(clamp(row.focusX, 0, 100)), focusY: Math.round(clamp(row.focusY, 0, 100)),
       startsAt: row.startsAt || '', endsAt: row.endsAt || ''
     }));
@@ -309,7 +315,7 @@
         active: !row || row.active !== false, order: clamp(row && row.order != null ? row.order : index, 0, 1000),
         theme: Object.prototype.hasOwnProperty.call(THEMES, row && row.theme) ? row.theme : 'ocean',
         layout: ['cover', 'split', 'text'].includes(row && row.layout) ? row.layout : 'cover',
-        align: row && row.align === 'center' ? 'center' : 'right',
+        align: row && row.align === 'center' ? 'center' : 'right', kind: KINDS.includes(row && row.kind) ? row.kind : 'notice',
         overlay: clamp(row && row.overlay, 0, 90), focusX: clamp(row && row.focusX, 0, 100),
         focusY: clamp(row && row.focusY, 0, 100), _placeholder: false
       })) : [];
@@ -387,7 +393,7 @@
       syncAndRender();
     });
     form.addEventListener('change', event => {
-      if (event.target && event.target.name && ['layout', 'theme', 'align', 'status', 'active', 'bannerEnabled', 'autoRotate', 'rotateInterval', 'showControls'].includes(event.target.name)) syncAndRender();
+      if (event.target && event.target.name && ['layout', 'theme', 'align', 'kind', 'status', 'active', 'bannerEnabled', 'autoRotate', 'rotateInterval', 'showControls'].includes(event.target.name)) syncAndRender();
     });
     form.addEventListener('submit', save);
     $('#ownerBannerReload').addEventListener('click', () => reload());

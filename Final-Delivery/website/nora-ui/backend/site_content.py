@@ -527,6 +527,8 @@ def _banner(record: Any) -> dict[str, Any] | None:
     layout = _text(record.get("layout"), 16, allow_number=False).lower()
     align = _text(record.get("align"), 16, allow_number=False).lower()
     theme = _text(record.get("theme"), 16, allow_number=False).lower()
+    # نوع بنر برای برچسب‌گذاری شفاف محتوای تبلیغاتی/حامی در آینده؛ پیش‌فرض اعلان عادی است.
+    kind = _text(record.get("kind"), 16, allow_number=False).lower()
     return {
         "id": banner_id,
         "status": status,
@@ -543,6 +545,7 @@ def _banner(record: Any) -> dict[str, Any] | None:
         "secondaryHref": _public_link(record.get("secondaryHref") or record.get("secondary_href")),
         "secondaryLabel": _text(record.get("secondaryLabel") or record.get("secondary_label"), 60),
         "theme": theme if theme in {"ocean", "teal", "amber", "plum", "night"} else "ocean",
+        "kind": kind if kind in {"sponsored", "partner"} else "notice",
         "layout": layout if layout in {"cover", "split", "text"} else "cover",
         "align": align if align in {"right", "center"} else "right",
         "overlay": _number(record.get("overlay"), maximum=90),

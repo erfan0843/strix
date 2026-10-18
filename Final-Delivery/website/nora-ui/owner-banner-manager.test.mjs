@@ -68,6 +68,10 @@ assert.match(dom.window.document.querySelector('#ownerBannerState').textContent,
 
 form.elements.namedItem('primaryHref').value = '/events.html#upcoming';
 form.elements.namedItem('primaryHref').dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+form.elements.namedItem('kind').value = 'sponsored';
+form.elements.namedItem('kind').dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+assert.equal(dom.window.document.querySelector('#ownerBannerPreview .obm-preview-kind')?.textContent, 'تبلیغ',
+  'the preview shows the public «تبلیغ» label so the owner sees what visitors will see');
 form.elements.namedItem('autoRotate').checked = true;
 form.elements.namedItem('autoRotate').dispatchEvent(new dom.window.Event('change', { bubbles: true }));
 form.elements.namedItem('rotateInterval').value = '12';
@@ -77,6 +81,8 @@ assert.equal(updates.length, 1);
 assert.equal(updates[0].expectedVersion, 3);
 assert.equal(updates[0].content.banners[0].status, 'published');
 assert.equal(updates[0].content.banners[0].href, '/events.html#upcoming');
+assert.equal(updates[0].content.banners[0].kind, 'sponsored', 'banner kind round-trips to the owner API');
+assert.equal(updates[0].content.banners[1].kind, 'notice', 'existing banners without a kind stay plain notices');
 assert.equal(updates[0].content.banner_settings.auto_rotate, true);
 assert.equal(updates[0].content.banner_settings.interval_seconds, 12);
 assert.equal(manager.state.version, 4);
