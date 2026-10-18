@@ -1021,6 +1021,13 @@ def create_app(
                 + f'<span aria-current="page">{html.escape(str(item.get("t") or ""))}</span></nav>'
                 + f'<h1>{safe_title}</h1><p>{safe_description}</p></article>'
             )
+        if page_name == "partner":
+            return (
+                '<article class="seo-server-fallback">'
+                + _seo_breadcrumb("نهادهای همکار", "/#partners")
+                + f'<span aria-current="page">{html.escape(str(item.get("n") or ""))}</span></nav>'
+                + f'<h1>{safe_title}</h1><p>{safe_description}</p></article>'
+            )
         return (
             '<article class="seo-server-fallback">'
             + _seo_breadcrumb("پروفایل‌ها", "/#teachers")
@@ -1033,6 +1040,7 @@ def create_app(
             "event": ("این رویداد در دسترس نیست", "/events.html", "بازگشت به رویدادها"),
             "post": ("این مطلب در دسترس نیست", "/#articles", "بازگشت به مطالب"),
             "person": ("این پروفایل در دسترس نیست", "/#teachers", "بازگشت به پروفایل‌ها"),
+            "partner": ("این نهاد همکار در دسترس نیست", "/#partners", "بازگشت به نهادهای همکار"),
         }
         heading, href, label = config[page_name]
         return (
@@ -1079,10 +1087,10 @@ def create_app(
         body_fragment: str | None = None
         data: dict[str, Any] | None = None
 
-        if page_name in {"event", "post", "person"}:
+        if page_name in {"event", "post", "person", "partner"}:
             item_id = (request.query_params.get("id") or "").strip()
             preview = page_name == "post" and request.query_params.get("d") == "1"
-            key = {"event": "events", "post": "articles", "person": "people"}[page_name]
+            key = {"event": "events", "post": "articles", "person": "people", "partner": "partners"}[page_name]
             if item_id and not preview:
                 rows = _seo_public_snapshot().get(key, [])
                 if isinstance(rows, list):
@@ -1095,6 +1103,7 @@ def create_app(
                     "event": data.get("posterUp") or data.get("poster"),
                     "post": data.get("cov"),
                     "person": data.get("photo"),
+                    "partner": data.get("logo"),
                 }[page_name]
                 image = absolute_asset_url(base_url, image_value)
                 if (
@@ -1118,6 +1127,7 @@ def create_app(
                     "event": "رویداد پیدا نشد | نورا",
                     "post": "مطلب پیدا نشد | نورا",
                     "person": "پروفایل پیدا نشد | نورا",
+                    "partner": "نهاد همکار پیدا نشد | نورا",
                 }[page_name]
                 description = default_page_description(page_name)
                 robots = "noindex,nofollow,noarchive"
@@ -1143,6 +1153,7 @@ def create_app(
                 page_type=schema_type,
                 item=data,
                 local_business=cfg.seo_local_business,
+                profile_entity="Organization" if page_name == "partner" else "Person",
             )
         html_text = apply_page_metadata(
             html_text,

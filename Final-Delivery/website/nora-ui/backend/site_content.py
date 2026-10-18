@@ -105,7 +105,7 @@ def _public_record(record: Any, *, require_published: bool = False) -> bool:
             if visibility and visibility not in {"public", "published"}:
                 return False
     status = _text(record.get("status"), 24, allow_number=False).lower()
-    if status in {"draft", "private", "hidden", "pending", "unpublished", "rejected"}:
+    if status in {"draft", "private", "hidden", "pending", "paused", "unpublished", "rejected"}:
         return False
     return not require_published or _published_flag(record.get("pub"))
 
@@ -317,6 +317,8 @@ def _event(record: Any) -> dict[str, Any] | None:
         "poster": _public_url(record.get("poster"), image_data=True),
         "posterUp": _public_url(record.get("posterUp"), image_data=True),
         "tchr": _text(record.get("tchr"), 100, allow_number=False),
+        # Stable partner reference only; the public name is read from the published partner record.
+        "partnerId": _text(record.get("partnerId"), 100, allow_number=False),
         "tags": _text_list(record.get("tags"), 20, 80),
         "parts": _parts(record.get("parts") or record.get("agenda") or record.get("sess")),
         "forms": forms,
@@ -332,6 +334,29 @@ def _event(record: Any) -> dict[str, Any] | None:
     }
 
 
+def _contact_links(value: Any) -> list[dict[str, str]]:
+    """Allowlisted public contact rows shared by people and partner profiles."""
+    links: list[dict[str, str]] = []
+    for link in _list(value, 12):
+        if not isinstance(link, dict):
+            continue
+        kind = _text(link.get("k"), 24, allow_number=False).lower()
+        raw = _text(link.get("v"), 300, allow_number=False)
+        if kind not in {"tel", "mail", "tg", "ig", "web"} or not raw:
+            continue
+        if kind == "mail":
+            raw = _public_url("mailto:" + raw.removeprefix("mailto:"))
+        elif kind == "tel":
+            raw = _public_url("tel:" + raw.removeprefix("tel:"))
+        elif kind in {"tg", "ig"} and not raw.startswith("http"):
+            raw = raw.lstrip("@")
+        else:
+            raw = _public_url(raw if ":" in raw else "https://" + raw)
+        if raw:
+            links.append({"k": kind, "v": raw})
+    return links
+
+
 def _person(record: Any) -> dict[str, Any] | None:
     if not _public_record(record):
         return None
@@ -339,24 +364,7 @@ def _person(record: Any) -> dict[str, Any] | None:
     name = _text(record.get("n") or record.get("name"), 160)
     if not person_id or not name:
         return None
-    links: list[dict[str, str]] = []
-    for link in _list(record.get("links"), 12):
-        if not isinstance(link, dict):
-            continue
-        kind = _text(link.get("k"), 24, allow_number=False).lower()
-        value = _text(link.get("v"), 300, allow_number=False)
-        if kind not in {"tel", "mail", "tg", "ig", "web"} or not value:
-            continue
-        if kind == "mail":
-            value = _public_url("mailto:" + value.removeprefix("mailto:"))
-        elif kind == "tel":
-            value = _public_url("tel:" + value.removeprefix("tel:"))
-        elif kind in {"tg", "ig"} and not value.startswith("http"):
-            value = value.lstrip("@")
-        else:
-            value = _public_url(value if ":" in value else "https://" + value)
-        if value:
-            links.append({"k": kind, "v": value})
+    links = _contact_links(record.get("links"))
     form_id = _text(record.get("form"), 120, allow_number=False)
     return {
         "id": person_id,
@@ -494,19 +502,29 @@ def _library(record: Any) -> dict[str, Any] | None:
 
 
 def _partner(record: Any) -> dict[str, Any] | None:
-    if not isinstance(record, dict) or record.get("hidden") is True or record.get("status") == "draft":
+    # Same server-side trust boundary as people/articles: pub/privacy/pend/status
+    # are enforced here because the public projection drops those flags.
+    if not _public_record(record):
         return None
     partner_id = _text(record.get("id"), 100, allow_number=False)
     name = _text(record.get("n") or record.get("name"), 180)
     if not partner_id or not name:
         return None
+    website = _text(record.get("href") or record.get("url"), 1_500, allow_number=False)
+    if website and ":" not in website and "//" not in website:
+        website = "https://" + website
     return {
         "id": partner_id,
         "n": name,
         "type": _text(record.get("type"), 160),
+        "s": _text(record.get("s") or record.get("summary"), 600),
+        "collab": _text(record.get("collab"), 160),
+        "since": _text(record.get("since"), 80),
+        "focus": _text_list(record.get("focus"), 12, 60),
         "d": _text(record.get("d") or record.get("description"), 4_000),
         "logo": _public_url(record.get("logo"), image_data=True),
-        "href": _public_url(record.get("href") or record.get("url")),
+        "href": _public_url(website),
+        "links": _contact_links(record.get("links")),
         "g": _text(record.get("g"), 240),
         "mon": _text(record.get("mon"), 8),
     }

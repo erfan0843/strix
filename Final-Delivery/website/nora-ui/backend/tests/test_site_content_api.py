@@ -378,3 +378,85 @@ def test_published_files_are_bot_delivered_without_breaking_admin_review(client:
     )
     assert invalid.status_code in {404, 422}
 
+
+
+def test_partner_privacy_is_enforced_at_the_server_boundary_and_profile_fields_survive(client: TestClient):
+    """Partners must obey the same publish/visibility flags as people and articles.
+
+    Reproduction for the partner-page audit: before the fix ``_partner()`` only
+    rejected ``hidden`` and ``status == draft``; ``pub=False``, ``privacy=private``,
+    ``pend=True`` and ``paused``/``pending`` statuses leaked into the public API
+    while the sanitiser dropped the very flags the browser relied on to hide them.
+    """
+    login(client)
+    content = {
+        "partners": [
+            {
+                "id": "partner public 1", "n": "نهاد <b>عمومی</b>", "type": "نهاد فرهنگی",
+                "s": "همراه برنامه‌های آموزشی", "collab": "برگزاری کارگاه", "since": "مهر ۱۴۰۵",
+                "focus": ["آموزش", "کارگاه", "", None, {"x": 1}], "d": "شرح کامل همکاری",
+                "logo": "/uploads/logo.webp", "href": "partner.example.org/about",
+                "links": [
+                    {"k": "mail", "v": "hello@partner.example.org"},
+                    {"k": "tel", "v": "+33 1 23 45 67 89"},
+                    {"k": "tg", "v": "@partner_channel"},
+                    {"k": "web", "v": "javascript:alert(1)"},
+                    {"k": "other", "v": "//evil.example/x"},
+                    {"k": "ig", "v": "https://user:pw@instagram.com/x"},
+                ],
+                "mon": "عم", "g": "linear-gradient(135deg,#2E6B7A,#0B2447)",
+                "internalNote": "یادداشت خصوصی مالک",
+            },
+            {"id": "partner-unpublished", "n": "نهاد منتشرنشده", "pub": False},
+            {"id": "partner-private", "n": "نهاد خصوصی", "privacy": "private"},
+            {"id": "partner-pending", "n": "نهاد منتظر", "pend": True},
+            {"id": "partner-paused", "n": "نهاد متوقف", "status": "paused"},
+            {"id": "partner-pending-status", "n": "نهاد در انتظار", "status": "pending"},
+            {"id": "partner-draft", "n": "نهاد پیش‌نویس", "status": "draft"},
+            {"id": "partner-hidden", "n": "نهاد پنهان", "hidden": True},
+            {"id": "partner-xss", "n": "<img src=x onerror=alert(1)>", "logo": "javascript:alert(1)",
+             "href": "https://user:secret@partner.example.org/", "d": "<script>alert(1)</script>"},
+        ],
+        "events": [
+            {"id": "event-with-partner", "t": "رویداد با نهاد", "privacy": "public",
+             "partnerId": "partner public 1", "partnerName": "نام قدیمی"},
+        ],
+    }
+    saved = client.patch(
+        "/api/owner/site-content", json={"content": content, "expected_version": 0}, headers=csrf(client)
+    )
+    assert saved.status_code == 200, saved.text
+
+    public = client.get("/api/public/site-content")
+    assert public.status_code == 200
+    snapshot = public.json()["content"]
+    partner_ids = [row["id"] for row in snapshot["partners"]]
+    assert "partner public 1" in partner_ids
+    for private_id in ("partner-unpublished", "partner-private", "partner-pending", "partner-paused",
+                       "partner-pending-status", "partner-draft", "partner-hidden"):
+        assert private_id not in str(snapshot), f"{private_id} must not reach the public projection"
+
+    live = next(row for row in snapshot["partners"] if row["id"] == "partner public 1")
+    assert live["n"] == "نهاد <b>عمومی</b>", "names stay text; escaping is the renderer's job"
+    assert live["type"] == "نهاد فرهنگی"
+    assert live["s"] == "همراه برنامه‌های آموزشی"
+    assert live["collab"] == "برگزاری کارگاه"
+    assert live["since"] == "مهر ۱۴۰۵"
+    assert live["focus"] == ["آموزش", "کارگاه"]
+    assert live["d"] == "شرح کامل همکاری"
+    assert live["logo"] == "/uploads/logo.webp"
+    assert live["href"] == "https://partner.example.org/about"
+    assert live["links"] == [
+        {"k": "mail", "v": "mailto:hello@partner.example.org"},
+        {"k": "tel", "v": "tel:+33 1 23 45 67 89"},
+        {"k": "tg", "v": "partner_channel"},
+    ], "only allowlisted contact kinds with safe values are published"
+    assert "internalNote" not in live
+
+    xss = next(row for row in snapshot["partners"] if row["id"] == "partner-xss")
+    assert xss["logo"] == "" and xss["href"] == "", "javascript: logos and credentialed URLs are dropped"
+
+    event = snapshot["events"][0]
+    assert event["partnerId"] == "partner public 1", "the event→partner relation survives sanitisation"
+    assert "partnerName" not in event or event["partnerName"] == "", \
+        "the display name comes from the published partner record, never from a stale event field"
