@@ -130,6 +130,7 @@ from .site_content import (
     SiteContentError,
     public_site_content,
     resolve_public_delivery_file,
+    retain_non_public_partners,
     sanitize_site_content,
 )
 
@@ -1933,6 +1934,8 @@ def create_app(
         current["banner_settings"] = public_site_content(record.content or {}).get("banner_settings") if record else {
             "enabled": True, "auto_rotate": False, "interval_seconds": 7, "show_controls": True
         }
+        if "partners" in incoming:
+            incoming["partners"] = retain_non_public_partners(current.get("partners"), incoming["partners"])
         current.update(incoming)
         if record is None:
             record = SiteContentRecord(id="public", content=current, version=1)

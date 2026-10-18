@@ -637,10 +637,32 @@ def sanitize_site_content(value: Any, *, partial: bool = False) -> dict[str, Any
     return output
 
 
+def retain_non_public_partners(stored: Any, incoming: Any) -> list[dict[str, Any]]:
+    """Keep stored non-public partner rows that an owner-panel save could never see.
+
+    The owner panel and the public API both receive the published projection only, so a
+    category replace must not silently destroy private/hidden/paused/pending rows. Rows are
+    replaced only when the incoming payload names the same ``id`` explicitly.
+    """
+    rows: list[dict[str, Any]] = [row for row in (incoming or []) if isinstance(row, dict)]
+    present = {str(row.get("id") or "") for row in rows}
+    for row in (stored if isinstance(stored, list) else []):
+        if not isinstance(row, dict) or _public_record(row):
+            continue
+        row_id = str(row.get("id") or "")
+        if not row_id or row_id in present:
+            continue
+        present.add(row_id)
+        rows.append(dict(row))
+    return rows
+
+
 def public_site_content(content: Any) -> dict[str, Any]:
     """Project public content without drafts or downloadable private file bytes."""
     source = content if isinstance(content, dict) else {}
     public: dict[str, Any] = {key: list(source.get(key) or []) for key in CONTENT_KEYS}
+    # Read-time boundary for stored rows that never passed the sanitiser (legacy or direct DB writes).
+    public["partners"] = [row for row in public["partners"] if _public_record(row)]
     public["banners"] = [
         banner for banner in (_banner(item) for item in public["banners"])
         if banner and banner["status"] == "published" and banner["active"] is True
