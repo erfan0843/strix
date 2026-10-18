@@ -1796,6 +1796,8 @@ def test_public_registration_ticket_handoff_is_opaque_claimed_in_bale_and_checke
     assert rendered_images[0]["name"] == "لیلا رضایی ویرایش‌شده"
     assert rendered_images[0]["serial"] == submitted.json()["tracking_code"]
     assert rendered_images[0]["qr_data"] == f"https://ble.ir/nora_test_bot?start=ftv_{response_id}"
+    # The web service names the organization itself instead of reading the Bale bot settings DB.
+    assert rendered_images[0]["organization"] == backend_app.ORGANIZATION_NAME
     assert rendered_images[0] == rendered_images[1]
     assert random_choices == [payload["settings"]["ticketing"]["types"]]
 

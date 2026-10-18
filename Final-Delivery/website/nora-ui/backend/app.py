@@ -114,6 +114,7 @@ from .security import (
     verify_password,
 )
 from .seo import (
+    ORGANIZATION_NAME,
     SITE_NAME,
     absolute_asset_url,
     apply_page_metadata,
@@ -6860,6 +6861,9 @@ def create_app(
             "qr_data": qr_data,
             "event_date": ticket["event_date"],
             "event_time": ticket["event_time"],
+            # نام سازمان از همین سرویس وب می‌آید تا رندر بلیت مجبور نشود
+            # تنظیمات/پایگاه ربات بله را از داخل فرایند وب بخواند.
+            "organization": ORGANIZATION_NAME,
         }
         ticket_type = ticket.get("ticket_type")
         if isinstance(ticket_type, dict) and isinstance(ticket_type.get("name"), str):

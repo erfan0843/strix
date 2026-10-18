@@ -462,7 +462,8 @@ def build_shared_form_ticket_image(data: dict[str, Any], out_path: str | Path | 
         date_parts = event_date_parts(data.get("event_date"))
         times = event_times(data.get("event_time"))
         month_year = date_parts["month_year"] if date_parts else ""
-        organization = _font_paths_for_org()
+        # An explicit organization name (e.g. from the web service) wins; the bot keeps reading its own settings.
+        organization = _safe_text(data.get("organization"), 80) or _font_paths_for_org()
 
         image = _carpet_background()
         draw = ImageDraw.Draw(image, "RGBA")
