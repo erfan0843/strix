@@ -1,0 +1,17 @@
+PASS form not-found: no fixture anchor in DOM (e5=0, endLinks empty=true)
+PASS form not-found title is H1
+PASS error toast hides ✓ icon on live form page {"d":"none","cls":"toast is-error on","on":true}
+PASS success toast restores icon {"d":"","cls":"toast on"}
+PASS skip link on /person.html?id=qa-p1 → {"cls":"skip","href":"#personPage","top":10,"visible":true,"target":true}
+PASS skip link on /partner.html?id=qa-partner-1 → {"cls":"skip","href":"#partnerPage","top":10,"visible":true,"target":true}
+PASS skip link on /login.html → {"cls":"skip","href":"#loginMain","top":10,"visible":true,"target":true}
+PASS skip link on /account.html → {"cls":"skip","href":"#accountMain","top":10,"visible":true,"target":true}
+PASS skip link on /support.html → {"cls":"skip","href":"#supportMain","top":10,"visible":true,"target":true}
+PASS footer monogram 28px visual but ::after extends hit area {"w":28,"h":28,"afterInset":"-4px","outsideHitIsLogo":true,"footLinkH":32.125,"aboveHitIsLink":false}
+PASS footer text link tap height >= 32px (was 20): 32.125
+PASS rules sheet is honest: متن رسمی قوانین و شرایط استفاده هنوز منتشر نشده است؛ تا انتش
+PASS og:image on /person.html?id=qa-p1: icon-512.png
+PASS og:image on /partner.html?id=qa-partner-1: /icon-192.png
+PASS og:image on /partner.html?id=qa partner/2 ü: icon-512.png
+PASS 404 page loads webp only: 404-art.webp:200
+16 passed, 0 failed

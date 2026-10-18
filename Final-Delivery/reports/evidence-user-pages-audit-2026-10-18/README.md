@@ -10,6 +10,7 @@
 - `logs/pages-audit-run1.log`, `logs/pages-audit-after.log` — خزش ۲۷ مسیر × ۵ ویوپورت (قبل) و ۱۰ صفحهٔ تغییریافته (بعد).
 - `pages-audit-before.json`, `pages-audit-after.json`, `flows-results-run2.json` — دادهٔ خام.
 - `shots/before/`, `shots/after/` — تصویر ۳۹۰×۸۴۴ (و `-dark`) صفحه‌ها؛ `shots/flows/` — حالت‌های جریانی؛ `shots/sheets/` — شیت‌های مقایسه (موبایل، دسکتاپ، تیره، PNG↔WebP صفحهٔ ۴۰۴).
-- `tools/pages-audit.mjs`, `tools/flows-audit.mjs` — اسکریپت‌های ممیزی (مسیرهای مطلق محیط sandbox را دارند؛ برای اجرا `browser-launch.cjs` همین مخزن را مسیردهی کنید).
+- `logs/*final*`, `logs/flows-audit-run3|4.log`, `logs/verify-remaining-fixes-2026-10-18.log`, `logs/ticket-sideeffect-{before,after}.log`, `shots/final-verify/` — فاز تثبیت نهایی (بخش ۱۳ گزارش).
+- `tools/pages-audit.mjs`, `tools/flows-audit.mjs`, `tools/verify-remaining-fixes.mjs`, `tools/seed-test-data.py` — اسکریپت‌های ممیزی و seed دادهٔ تست (مسیرهای مطلق محیط sandbox را دارند؛ برای اجرا `browser-launch.cjs` همین مخزن را مسیردهی کنید).
 
 محیط: سرور تست ایزوله روی SQLite موقت با دادهٔ «(دادهٔ تست)»؛ هیچ دامنهٔ زنده، دادهٔ واقعی، راز، کوکی یا توکنی در این پوشه نیست. شمارهٔ `09120000000` در اسکریپت جریان‌ها ساختگی است.

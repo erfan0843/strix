@@ -134,7 +134,9 @@
 
 ---
 
-## ۸. نیازمند تصمیم / پیشنهاد (انجام نشده، با دلیل)
+## ۸. نیازمند تصمیم / پیشنهاد (وضعیت در پایان فاز ممیزی؛ تعیین تکلیف نهایی در بخش ۱۳)
+
+> این جدول وضعیت پایان فاز ممیزی (کامیت `0872ded`) است. در فاز «رفع موارد باقی‌مانده و تثبیت» (بخش ۱۳) بیشتر این موارد اصلاح یا با شاهد تعیین تکلیف شدند؛ **بخش ۱۳ مرجع نهایی است.**
 
 | موضوع | چرا انجام نشد | گزینه‌ها / اثر |
 |---|---|---|
@@ -181,8 +183,82 @@
 - تست‌ها: `post.test.mjs` (+۴)، `admin.test.mjs`, `support.test.mjs`, `events-page.test.mjs`, `service-worker-privacy.test.mjs` (پین‌ها).
 - گزارش/شواهد: همین فایل + پوشهٔ شواهد.
 
-## ۱۲. وضعیت نهایی Git
+## ۱۲. وضعیت Git در پایان فاز ممیزی
 
-- شاخه `arena/840de336-strix`؛ کامیت‌ها: `e977786`, `4da368b`, `31e6b52`, `b8d1542` + `de18a23` (گزارش/شواهد).
+- شاخه `arena/840de336-strix`؛ کامیت‌های فاز ممیزی: `e977786`, `4da368b`, `31e6b52`, `b8d1542`, `de18a23`, `0872ded`.
 - همه فقط به همین شاخه push شده‌اند؛ PR #1 **باز** مانده؛ هیچ merge/release/deploy انجام نشده.
 - محدودیت‌ها: همهٔ آزمون‌ها روی سرور تست محلی با دادهٔ تست؛ هیچ آزمونی روی دامنهٔ زنده، پیامک واقعی، بله یا پرداخت واقعی انجام نشده است.
+
+---
+
+## ۱۳. فاز «رفع موارد باقی‌مانده و تثبیت نهایی» — 2026-10-18 (پس از `0872ded`)
+
+نکتهٔ محیطی: پیش از این فاز، sandbox بازنشانی شده بود (HEAD محلی به `4da3a61` برگشته بود و worktree زیرمجموعهٔ دقیق نوک شاخه بود؛ `git diff origin/arena/840de336-strix` فقط حذف نشان می‌داد و صفر افزوده). با `git reset --hard origin/arena/840de336-strix` بدون از دست رفتن چیزی بازیابی شد؛ venv، وابستگی‌های Node، مرورگر و سرور تست از نو ساخته و **دادهٔ تست از طریق API مالک** (نه نوشتن مستقیم در DB) دوباره seed شد (`tools/seed-test-data.py`).
+
+### ۱۳-الف. ریشه‌یابی‌های خواسته‌شده
+
+**۱) لینک/fixture پنهان در DOM فرم** — منشأ: `form.html` ثابتِ `CFG.links` نمونهٔ محلی (`event.html?id=e5` = شناسهٔ fixture ناموجود، و `support.html`) را دارد و `renderEnd()` در بوت صفحه (L3931) بدون شرط آن را در `#endLinks` داخل صفحهٔ پنهان `u12` رندر می‌کرد. برای فرم سروری `CFG.links=[]` و بعد لینک‌های تعریف‌شدهٔ همان فرم جایگزین می‌شود؛ فقط در حالت‌های خطای مسیر (`not-found/closed/draft/…`) محتوای نمونه در DOM می‌ماند. محتوا: دو href نسبیِ همان مبدأ، بدون شناسهٔ حساس، بدون مسیر داخلی، بدون دادهٔ کاربر؛ هرگز نمایش داده یا قابل‌دسترسی نمی‌شد (`u12` در حالت خطا هیچ‌وقت `on` نمی‌شود). **اصلاح کم‌ریسک انجام شد:** `if(FORM_ROUTE.error)CFG.links=[];` → در حالت خطا `#endLinks` خالی است (تأیید روی سرور واقعی: `verify-remaining-fixes` → `e5=0, endLinks empty=true`).
+
+**۲) خط `❌ خطای پایگاه داده: OperationalError`** — ردیابی روی کد: `GET /api/public/forms/{id}/ticket-image` → `app._render_public_form_ticket_image` → `sys.path.insert(bot_root)` + `from form_ticket_image import build_shared_form_ticket_image` → `_font_paths_for_org()` → `from config import org_name` (ماژول **ربات بله**) → `config._identity` → `from database import get_setting` → `database.get_db()` → `sqlite3.connect(DB_PATH)` با `PRAGMA journal_mode=WAL` → `SELECT value FROM settings` → `OperationalError: no such table: settings` → `database.log()` آن را چاپ و در `LOG_DIR/bot_YYYYMMDD.log` می‌نویسد → `None` → نام سازمان از `ORG_NAME_ENV` برمی‌گردد. همهٔ این‌ها **داخل فرایند وب** رخ می‌دهد.
+بازتولید در فرایند تمیز (بدون `DB_PATH`): `logs/ticket-sideeffect-before.log` — یک رندر بلیت، فایل‌های `nora.db`, `nora.db-shm`, `nora.db-wal` را در پوشهٔ بستهٔ ربات **ساخت**، فایل لاگ ربات را نوشت و ماژول‌های `config` و `database` ربات بارگذاری شدند.
+**آیا در تولید رخ می‌دهد؟ بله، روی چیدمان مستند استقرار:** `deployment/nora-web.service` با `EnvironmentFile=/etc/nora/nora-web.env` اجرا می‌شود که `DB_PATH`/`LOG_DIR` ندارد؛ `DB_PATH=/opt/nora/data/nora-bot.sqlite3` فقط در `/etc/nora/bale-bot.env` (واحد ربات) است و `config._load_env()` ربات فقط `nora_bot/.env` را می‌خواند که در این چیدمان وجود ندارد. بنابراین فرایند وب (کاربر `nora`) در اولین رندر بلیت، یک `nora.db` خالیِ جداگانه در `/opt/nora/bale-bot/nora_bot/` می‌سازد، همان خطا را در `logs/` ربات می‌نویسد، و نام سازمانِ ویرایش‌شده در پنل ربات روی بلیت وب اعمال نمی‌شود (نام پیش‌فرض env). بلیت ساخته می‌شود (بدون crash). شاهد دوم: فایل `nora_bot/logs/bot_20261014.log` که در کامیت پایهٔ کاربر ردیابی شده بود، شش بار همین خط را داشت.
+**اصلاح حداقلی بدون تغییر معماری** (`4eefd25`): `build_shared_form_ticket_image()` اگر `data["organization"]` داده شود همان را به کار می‌برد و فقط در نبودش به تنظیمات ربات برمی‌گردد (رفتار خود ربات تغییری نکرد)؛ `app.py` نام سازمان را از ثابت موجود وب (`seo.ORGANIZATION_NAME` = «گروه فرهنگی خط زندگی») می‌فرستد. پس از اصلاح (`logs/ticket-sideeffect-after.log`): هیچ فایل DB/لاگی ساخته نشد و ماژول `database` ربات بارگذاری نشد. تست ربات (`test_explicit_organization_is_used_without_reading_bot_settings`) و تست بک‌اند (`image_data["organization"]`) افزوده شد.
+**باقی‌ماندهٔ وابستگی (مستند، تغییر نداده‌ایم):** `_font()`/`_output_path()` در همان ماژول هنوز `from config import FILES_DIR` می‌کنند (فقط env، بدون DB)؛ یعنی import ماژول `config` ربات در فرایند وب هنوز رخ می‌دهد و اگر در استقراری `nora_bot/.env` وجود داشته باشد، `load_dotenv` متغیرهای ربات (از جمله توکن) را در env فرایند وب می‌نشاند. حذف کامل این coupling = تغییر معماری رندر بلیت مشترک → **نیازمند تصمیم** (گزینه: نسخهٔ مستقل رندر در وب یا تزریق مسیر فونت از وب).
+
+### ۱۳-ب. Fixed (اصلاح شد — با آزمون هدفمند)
+
+| # | مورد | تغییر | آزمون هدفمند (نتیجهٔ واقعی) |
+|---|---|---|---|
+| F1 | fixture پنهان فرم | `form.html`: `CFG.links=[]` در خطای مسیر | Playwright روی سرور تست: `e5=0`, `#endLinks` خالی (`logs/verify-remaining-fixes-2026-10-18.log`) |
+| F2 | OperationalError رندر بلیت | `form_ticket_image.py` + `app.py` (بالا) | `pytest tests/test_form_ticket_image.py` → **4 passed**؛ `pytest -k ticket test_forms_api.py` → 8 passed؛ before/after side-effect logs |
+| F3 | آیکون ✓ روی توست خطا | `ui.js toast(msg,kind)`: `error/warn` آیکون ثابت را پنهان و `.is-error` می‌زند؛ هر فراخوانی بازنشانی می‌کند؛ `form.html` ۱۴ توست شکست/عدم‌دسترسی و `post.html` توست شکست رونوشت با `'error'`؛ `ui.js?v=128` در ۱۳ صفحه | `smoke.test.mjs` سنجهٔ جدید (۷۹۲ قبول)؛ روی سرور واقعی: `display:none` + `is-error`، توست موفق بعدی بازمی‌گرداند (`shots/final-verify/form-error-toast-390.png`) |
+| F4 | هدف‌های لمسی پاورقی خانه | `.hfoot .flogo::after{inset:-4px}` (۳۶px، ظاهر ۲۸px ثابت)، `gap 7→8px`، لینک‌های متنی پاورقی با padding/margin منفی به ارتفاع لمس ۳۲px بدون تغییر چیدمان | Playwright: `elementFromPoint` خارج از جعبهٔ ۲۸px همان لینک را برمی‌گرداند؛ ارتفاع لینک متنی `32.1px` (قبلاً ۲۰) |
+| F5 | «قوانین» در ورود | متن شیت ادعا می‌کرد «متن کامل قوانین در صفحهٔ پشتیبانی است» که وجود ندارد → اکنون صادقانه: «متن رسمی … هنوز منتشر نشده است؛ … با پشتیبانی در تماس باش»؛ دکمه «تماس با پشتیبانی». هیچ متن حقوقی ساخته نشد | `login.test.mjs` ۹۱ قبول؛ Playwright: متن جدید در شیت (`shots/final-verify/login-rules-390.png`) |
+| F6 | og:image person/partner | پیش‌فرض ایستای `icon-512.png` مثل event/post؛ سرور همچنان عکس/لوگوی واقعی را جایگزین می‌کند | `pytest test_seo_routes.py` سبز (تست موجود همین پیش‌فرض را انتظار داشت)؛ Playwright: person → `icon-512.png`، partner با لوگو → لوگو، partner بی‌لوگو → `icon-512.png` |
+| F7 | skip-link | person/partner/login/account/support با هدف‌های `#personPage/#partnerPage/#loginMain/#accountMain/#supportMain` | Playwright: اولین Tab روی هر ۵ صفحه → `a.skip` قابل‌دیدن (`top:10px`) و هدف موجود |
+| F8 | فایل لاگ تولیدشدهٔ ربات در Git | `nora_bot/logs/bot_20261014.log` (۸ خط، بدون راز/دادهٔ کاربر؛ `logs/` در `.gitignore` ربات) از index حذف شد (`ba33069`) | `git ls-files` → ردیابی نمی‌شود |
+
+### ۱۳-ج. Verified (آزمون‌های نهایی واقعاً اجراشده — خروجی و کد خروج)
+
+| فرمان | نتیجه | کد خروج | لاگ |
+|---|---|---|---|
+| `python -m pytest -q tests -p no:cacheprovider` (cwd `nora-ui/backend`) | **225 passed, 4 skipped**, 1 warning | 0 | `logs/pytest-final-2026-10-18.log` |
+| `python -m pytest -q tests/test_form_ticket_image.py` (cwd `bale-bot/nora_bot`) | **4 passed** | 0 | `logs/pytest-bot-ticket-2026-10-18.log` |
+| `python -m mypy --config-file backend/mypy.ini backend` | Success: no issues found in 48 source files | 0 | `logs/mypy-final-2026-10-18.log` |
+| `node tools/run-unit-tests.cjs` (۲۵ مجموعه؛ smoke 792، post 103، login 91، support 179، account 127، …) | **25/25 passed; 0 failed** | 0 | `logs/unit-tests-final-2026-10-18.log` |
+| Playwright جریان‌ها روی سرور تست، اجرای ۳ (seed با شکل اشتباه فیلد تاریخ) | 49 passed, **4 failed** (1c/1d/1e/1f رویدادها) — علت: دادهٔ seed من `d/tm/venue` به‌جای قرارداد `on/time/place/past` فرستاده بود؛ **نقص محصول نبود** | 1 | `logs/flows-audit-run3.log` |
+| Playwright جریان‌ها، اجرای ۴ (seed درست) | **53 passed, 0 failed** | 0 | `logs/flows-audit-run4.log` |
+| Playwright تأیید اصلاح‌های این فاز (`tools/verify-remaining-fixes.mjs`) | **16 passed, 0 failed** | — | `logs/verify-remaining-fixes-2026-10-18.log`, `shots/final-verify/` |
+| بازتولید side-effect بلیت قبل/بعد | قبل: DB+WAL+SHM+لاگ ساخته شد؛ بعد: هیچ | — | `logs/ticket-sideeffect-{before,after}.log` |
+
+هیچ خطای جدیدی باقی نماند. (تست سوم خودِ ربات در `test_form_ticket_image.py` که بدون `organization` اجرا می‌شود، طبق طراحی ربات به تنظیمات خودش مراجعه می‌کند و در محیط تست `nora_bot/nora.db` خالی می‌سازد — فایل gitignore است؛ رفتار ربات عمداً دست‌نخورده ماند.)
+
+### ۱۳-د. Not verified (قابل ادعا نیست)
+
+- ورود واقعی عضو با پیامک (Safir)، مینی‌اپ بله، پرداخت کیف پول/کارت‌به‌کارت واقعی، آپلود رسید واقعی، حساب کاربری واقعی: هیچ سرویس/اعتبار واقعی در دسترس نبود و **انجام‌شده جلوه داده نمی‌شود**.
+- رفتار دقیق در تولید برای بلیت: تحلیل بر پایهٔ قالب‌های `deployment/` و بازتولید محلی است؛ خودِ سرور تولید بررسی نشده (دسترسی نداریم). اگر در استقرار واقعی `DB_PATH` در env واحد وب هم تنظیم شده باشد، اثر قبلی «DB خالی جداگانه» رخ نمی‌داده ولی باز هم فرایند وب روی DB ربات می‌نوشت/می‌خواند — که اکنون قطع شده است.
+- بازبینی چشمی کامل تبلت ۷۶۸ و دسکتاپ ۱۴۴۰ (فقط سنجه‌های خودکار سرریز/خطا).
+- `sitemap.xml` در محیط تست عمداً 503 (بدون `NORA_PUBLIC_BASE_URL`).
+
+### ۱۳-ه. Needs product decision (انجام نشده، با دلیل و گزینه)
+
+| موضوع | چرا انجام نشد | تصمیم لازم / گزینه‌ها |
+|---|---|---|
+| نام سازمان روی بلیت وب | بلیت وب اکنون ثابت وب «گروه فرهنگی خط زندگی» را نشان می‌دهد (قبلاً پیش‌فرض env ربات «گروه فرهنگی و اجتماعی خط زندگی»). در رابط، سه نگارش نام وجود دارد (پاورقی ورود: «مؤسسهٔ فرهنگی، اجتماعی و آموزشی خط‌زندگی»). یک منبع واحد نام نیاز به تصمیم سازمان دارد | انتخاب نام رسمی واحد و تنظیم یک‌جا (ثابت `seo.ORGANIZATION_NAME` یا تنظیم مالک) |
+| قطع کامل import ماژول `config` ربات در رندر بلیت وب | تغییر ساختار رندر مشترک بلیت | رندر مستقل در وب یا تزریق مسیر فونت؛ یا پذیرش import فقط-env فعلی |
+| متن قوانین و شرایط استفاده / حریم خصوصی | متن حقوقی باید توسط سازمان نوشته شود | نوشتن و انتشار صفحهٔ قوانین؛ سپس لینک «قوانین» به آن |
+| تم تیره برای `404`/`offline`/`final-page-review` | صفحه‌های مستقل سبک بدون `glass.css` کامل | افزودن متغیرهای تیرهٔ کوچک یا پذیرش |
+| چیپ‌های ۳۲px (`glass.css .chip`) در create/builder دسکتاپ و لینک‌های متنی ۱۸–۲۱px داخل کارت‌ها/breadcrumb | مؤلفهٔ مشترک طراحی؛ حداقل WCAG 2.5.8 (۲۴px) رعایت است؛ لینک‌های درون‌متنی معافند | بزرگ‌کردن سراسری چیپ‌ها = تغییر طراحی |
+| `main` landmark در `form.html` | selectorهای `.wrap > header` و چیدمان چندمرحله‌ای | `role="main"` روی `.wrap` در مرحلهٔ جدا با تست بصری |
+| قابلیت‌های نقشهٔ راه (امتیازدهی، دعوت دوستان، کیف پول واقعی، حذف حساب) | نیازمند API/سیاست | پیشنهادهای جداگانه |
+
+### ۱۳-و. بازبینی نهایی diff کل PR نسبت به پایه (`4da3a61`)
+
+- `git merge-base --is-ancestor 4da3a61 HEAD` ✓؛ کل PR: ۳۵۷ فایل، +۴۸٬۲۷۸ / −۲۷۲٬۶۲۲ خط. دو حذف بزرگ (`طرح.txt` ۱۳۹k خط و `New Text Document.txt` ۱۳۲k خط) از کامیت خودِ کاربر `f5fa899` («پاک‌سازی اعتبارنامه‌ها») هستند، نه این فاز. حذف‌های این فاز: فقط `nora_bot/logs/bot_20261014.log`.
+- بزرگ‌ترین فایل‌های افزوده: تصاویر شواهد (حداکثر ۶۶۲ KB)؛ مجموع blobهای افزودهٔ PR ≈ ۳۵٫۹ MB (پوشه‌های evidence). هیچ فایل تولیدشدهٔ runtime (db/wal/node_modules) ردیابی نمی‌شود.
+- اسکن راز روی **همهٔ خطوط افزودهٔ PR** (الگوهای توکن بله، کلید Fernet، pepper، hash رمز، `Set-Cookie`، نشست، کلید خصوصی، AWS): فقط دو برخورد، هر دو مقدار ساختگی تست در فایل‌های تست (`admin-services.test.mjs` توکن نمایشی `123456789:…`، `test_partner_retention.py` رمز fixture مشترک تست‌های پایه). لاگ‌های شواهد این فاز با مقادیر واقعی سرور تست (رمز مالک، pepper، کلید رمزنگاری، hash) مقایسه شد: **صفر برخورد**.
+- گزارش، تصاویر قبل/بعد، JSON و ۱۷ لاگ کامل در `evidence-user-pages-audit-2026-10-18/` **داخل شاخه** هستند (`*.log` با `git add -f`).
+
+### ۱۳-ز. کامیت‌های این فاز
+
+`4eefd25` (بلیت: نام سازمان از وب، بدون خواندن DB ربات) → `86cd060` (رابط کاربر: بستن موارد باقی‌مانده) → `ba33069` (حذف لاگ تولیدشده از index) → کامیت گزارش/شواهد (هش در پاسخ نهایی). همه فقط روی `arena/840de336-strix`؛ PR #1 باز؛ بدون merge/release/deploy.
