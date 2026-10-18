@@ -47,7 +47,7 @@
 
 ## ۴. آزمون‌ها — جدا به تفکیک «سرور واقعی» و «mock»
 
-### ۴-الف. سرور واقعی (Playwright + Chromium، سرور تست محلی، ورود از طریق خودِ `login.html?mode=staff`) — `evidence-partner-management-2026-10-18/tools/partner-manage-verify.mjs` → **۲۵ قبول، ۰ خطا** (`browser-results.json`)
+### ۴-الف. سرور واقعی (Playwright + Chromium، سرور تست محلی، ورود از طریق خودِ `login.html?mode=staff`) — `evidence-partner-management-2026-10-18/tools/partner-manage-verify.mjs` → **۲۵ قبول، ۰ خطا** (`browser-results.json` و اسکرین‌شات‌ها = خروجی **اجرای مجدد پس از اصلاح بخش ۱۰** در ۱۸:۴۷ UTC با ردیف‌های غیرعمومی در DB؛ نتیجهٔ اجرای اول پیش از اصلاح نیز همین ۲۵/۰ بود ولی فایل آن جایگزین شد)
 
 | # الزام | نتیجهٔ واقعی |
 |---|---|
@@ -75,8 +75,8 @@
 | `admin.test.mjs` (حالت fixture) | ۸۱۷ بررسی، ۰ خطا (رفتار محلی قبلی حفظ شد) |
 | `admin-rbac.test.mjs` | قبول |
 | `asset-audit.test.mjs` | 3/0 |
-| `node tools/run-unit-tests.cjs` (همهٔ مجموعه‌ها) | **Nora suites: 25/25 passed; 0 failed** (شامل مجموعهٔ جدید؛ smoke ۷۹۱، admin ۸۱۷، support ۱۷۹، events-page ۶۸، …) — `unit-tests-summary.log` |
-| `pytest -q tests` بک‌اند (بدون تغییر بک‌اند در این مرحله) | **220 passed, 4 skipped** (skipهای پیشینی Postgres) — `pytest-summary.log` |
+| `node tools/run-unit-tests.cjs` (همهٔ مجموعه‌ها) | **Nora suites: 25/25 passed; 0 failed** (شامل مجموعهٔ جدید؛ smoke ۷۹۱، admin ۸۱۷، support ۱۷۹، events-page ۶۸، …) — `unit-tests-summary.log` (در مخزن از کامیت بخش ۱۱) |
+| `pytest -q tests` بک‌اند (در `3faae21` بدون تغییر بک‌اند) | **220 passed, 4 skipped** (skipهای پیشینی Postgres) — `pytest-summary.log` (در مخزن از کامیت بخش ۱۱) |
 
 ## ۵. اسکرین‌شات‌ها (`Final-Delivery/reports/evidence-partner-management-2026-10-18/`)
 `admin-partners-desktop-light.png`, `admin-partners-desktop-dark.png`, `admin-partners-mobile-dark.png`, `admin-partner-editor-desktop-light.png`, `admin-partner-editor-mobile-dark.png`, `admin-partner-conflict-desktop.png` (پیام ۴۰۹ با پیش‌نویس باز)، `partner-managed-after-edit-desktop.png` (صفحهٔ عمومی نهادِ ساخته‌شده از پنل).
@@ -93,9 +93,10 @@
 
 ## ۸. فایل‌های تغییرکرده
 - کامیت `3faae21`: `Final-Delivery/website/nora-ui/admin.js`, `admin.html`, `site-content-sync.js`, `admin.test.mjs` (پین‌ها).
-- کامیت تست/گزارش: `admin-partners-server.test.mjs` (جدید)، این گزارش، `evidence-partner-management-2026-10-18/` (اسکرین‌شات‌ها، `browser-results.json`, `unit-tests-summary.log`, `pytest-summary.log`, `tools/`).
+- کامیت `d1e7da3`: `admin-partners-server.test.mjs` (جدید)، این گزارش، `evidence-partner-management-2026-10-18/` (اسکرین‌شات‌ها، `browser-results.json`, `tools/`). **توجه:** فایل‌های `.log` در آن کامیت به‌خاطر الگوی `*.log` در `.gitignore` وارد مخزن نشده بودند؛ در کامیت بخش ۱۱ با `git add -f` (فقط همین فایل‌های مشخص، بدون تغییر `.gitignore`) اضافه شدند.
 - کامیت `9b248a3` (بخش ۱۰): `backend/site_content.py`, `backend/app.py`, `backend/tests/test_partner_retention.py` (جدید).
-- کامیت گزارش بخش ۱۰: این گزارش + `evidence-…/pytest-nonpublic-*.log`, `real-server-nonpublic-*.log`, `unit-tests-nonpublic-2026-10-18.log`, `tools/nonpublic_check.py`.
+- کامیت `d938cd9` (گزارش بخش ۱۰): این گزارش + `tools/nonpublic_check.py` (لاگ‌ها به همان دلیل بالا وارد نشده بودند).
+- کامیت بخش ۱۱: ۸ فایل لاگ (فهرست در ۱۱-۳)، `browser-results.json` و ۷ اسکرین‌شات به‌روزشده از اجرای مجدد، این گزارش.
 
 ## ۹. وضعیت گیت
 - `3faae21` — قابلیت (admin.js/admin.html/site-content-sync.js + پین).
@@ -130,7 +131,7 @@
 | کل بک‌اند `pytest -q tests` | pytest | **222 passed, 4 skipped** (۲۲۰ قبلی + ۲ جدید؛ skipهای پیشینی Postgres) | `pytest-nonpublic-2026-10-18.log` |
 | `mypy --config-file backend/mypy.ini backend` | — | Success: no issues found in 48 source files | (خروجی ترمینال) |
 | سرور واقعی تست، پس از restart با کد اصلاح‌شده: تزریق ۴ ردیف غیرعمومی در SQLite → API عمومی و نمای مالک فقط ۴ نهاد منتشرشده؛ `partner.html` هر ۴ شناسه ۴۰۴؛ ذخیرهٔ پنل‌مانند (PATCH با `expected_version`) → هر ۴ ردیف حفظ، دسته‌های دیگر بدون تغییر، بدون نشت بعد از ذخیره | سرور تست + `tools/nonpublic_check.py` | **RESULT: PASS** (۹/۹ بررسی) | `real-server-nonpublic-after-fix.log` |
-| جریان کامل پنل در مرورگر با وجود ردیف‌های غیرعمومی در DB (همان اسکریپت Playwright بخش ۴-الف: ورود از `login.html?mode=staff`، افزودن، ویرایش، ۴۰۹ و تلاش مجدد، خطای شبکه، حذف با تأیید) و سپس خواندن مستقیم DB | سرور تست + Chromium | **25 passed, 0 failed**؛ نسخهٔ محتوا ۲۳→۳۰؛ هر ۴ ردیف غیرعمومی با پرچم‌های اصلی (`privacy:private`, `hidden:true`, `status:paused`, `pend:true`) در DB باقی ماندند | `real-server-nonpublic-panel-flow.log` |
+| جریان کامل پنل در مرورگر با وجود ردیف‌های غیرعمومی در DB (همان اسکریپت Playwright بخش ۴-الف: ورود از `login.html?mode=staff`، افزودن، ویرایش، ۴۰۹ و تلاش مجدد، خطای شبکه، حذف با تأیید) و سپس خواندن مستقیم DB | سرور تست + Chromium | **25 passed, 0 failed**؛ در اجرای مجدد ثبت‌شده (بخش ۱۱) نسخهٔ محتوا ۳۰→۳۸؛ خواندن مستقیم SQLite پس از جریان: هر ۴ ردیف غیرعمومی با پرچم اصلی (`privacy:private`, `hidden:true`, `status:paused`, `pend:true`) حاضر → `SQLite retention check: PASS (4/4)` | `real-server-nonpublic-panel-flow.log`, `browser-results.json` (۲۵ ورودی، همه `ok:true`) |
 | `node tools/run-unit-tests.cjs` (بدون تغییر فرانت‌اند؛ برای اطمینان دوباره اجرا شد) | jsdom/node | **Nora suites: 25/25 passed; 0 failed** | `unit-tests-nonpublic-2026-10-18.log` |
 
 ### ۱۰-۴. آنچه تغییر نکرد / محدودیت
@@ -138,3 +139,35 @@
 - گزینهٔ «توقف با خطا هنگام وجود ردیف غیرعمومی» رد شد: در حضور چنین ردیف‌هایی پنل را به‌کلی قفل می‌کرد؛ حفظ شفاف ردیف‌ها کم‌ریسک‌تر است.
 - حد `MAX_RECORDS["partners"] = 500` روی فهرست ورودی اعمال می‌شود؛ ردیف‌های حفظ‌شده به آن افزوده می‌شوند (در عمل فقط با دادهٔ خارج از API ممکن است).
 - آزمون روی سرور تست محلی و DB تست انجام شد، نه دامنهٔ زنده؛ هیچ دادهٔ واقعی تغییر نکرد.
+
+---
+
+## ۱۱. اعتبارسنجی شواهد (۲۶ مهر ۱۴۰۵، پس از `d938cd9`)
+
+### ۱۱-۱. یافته
+بررسی `git ls-files` نشان داد **هیچ‌یک از فایل‌های `.log`** که در بخش‌های ۴-ج و ۱۰ به‌عنوان شاهد نام برده شده بودند در مخزن نبودند: الگوی `*.log` در `.gitignore` (خط ۸۳) آن‌ها را کنار گذاشته بود و `git add <dir>` بی‌صدا رد شده بود. فایل‌ها در محیط کاری موجود بودند (همان خروجی‌های واقعی، با زمان ساخت ۱۸:۲۴ تا ۱۸:۴۰). همچنین `browser-results.json`/اسکرین‌شات‌های کامیت‌شده مربوط به اجرای پیش از اصلاح بخش ۱۰ بودند.
+
+### ۱۱-۲. اقدام
+- پاک‌سازی: هر ۸ لاگ، `browser-results.json` و ابزارها با مقادیر واقعی رمز مالک تست، pepper، توکن CSRF و کوکی نشست محیط تست (خوانده‌شده از فایل‌های خارج از مخزن) و الگوهای عمومی (`authorization`, `set-cookie`, `token=`, …) جست‌وجو شدند → **۰ برخورد** در همهٔ فایل‌ها. محتوای لاگ‌ها فقط نام آزمون‌ها، شناسه‌های دادهٔ تست و شمارش‌هاست.
+- افزودن با `git add -f` فقط برای ۸ فایل مشخص؛ `.gitignore` تغییر نکرد.
+- اجرای مجدد Playwright **پس از اصلاح و با ۴ ردیف غیرعمومی ذخیره‌شده در SQLite** (تزریق مستقیم، بدون API)، با ثبت وضعیت SQLite قبل و بعد از جریان در همان لاگ؛ `browser-results.json` و ۷ اسکرین‌شات با خروجی همین اجرا جایگزین شدند.
+
+### ۱۱-۳. فایل‌های شاهد موجود در مخزن (`Final-Delivery/reports/evidence-partner-management-2026-10-18/`)
+| فایل | محتوا | نتیجهٔ ثبت‌شده |
+|---|---|---|
+| `pytest-summary.log` | خلاصهٔ pytest در مرحلهٔ `3faae21` | `220 passed, 4 skipped` |
+| `unit-tests-summary.log` | خلاصهٔ `run-unit-tests.cjs` در مرحلهٔ `3faae21` | `Nora suites: 25/25 passed; 0 failed` |
+| `pytest-nonpublic-red-before-fix-2026-10-18.log` | `test_partner_retention.py` روی کد پیش از `9b248a3` | `1 failed, 1 passed` (نشت ردیف‌های غیرعمومی در API عمومی) |
+| `pytest-nonpublic-2026-10-18.log` | کل `pytest -q tests` پس از `9b248a3` | `222 passed, 4 skipped` |
+| `real-server-nonpublic-before-fix.log` | سرور تست با کد قبلی + تزریق مستقیم ۴ ردیف | نشت در API عمومی و نمای مالک: FAIL؛ `partner.html` ۴۰۴: PASS؛ پس از ذخیرهٔ پنل‌مانند هر ۴ ردیف از دست رفت: FAIL → `RESULT: FAIL` |
+| `real-server-nonpublic-after-fix.log` | همان سناریو پس از restart با `9b248a3` | ۹/۹ PASS → `RESULT: PASS` |
+| `real-server-nonpublic-panel-flow.log` | تزریق → SQLite قبل (نسخه ۳۰) → جریان کامل پنل در Chromium → SQLite بعد (نسخه ۳۸) | `25 passed, 0 failed`؛ `SQLite retention check: PASS (4/4 rows with original flags kept)` |
+| `unit-tests-nonpublic-2026-10-18.log` | کل `run-unit-tests.cjs` پس از `9b248a3` (لاگ کامل ۳۱۹۸ خط) | `Nora suites: 25/25 passed; 0 failed`, `exit=0` |
+| `browser-results.json` | ۲۵ ورودی اجرای مجدد (۱۸:۴۷ UTC) | ۲۵ `ok:true`، ۰ خطا |
+| ۷ فایل `.png` | اسکرین‌شات‌های همان اجرای مجدد (دسکتاپ روشن/تاریک، موبایل تاریک، ویرایشگر، ۴۰۹، صفحهٔ عمومی) | — |
+| `tools/partner-manage-verify.mjs`, `tools/nonpublic_check.py`, `tools/seed_partners.py`, `tools/owner_api.py` | اسکریپت‌های تولید شواهد (محیط تست؛ رمز از فایل خارج از مخزن) | — |
+
+### ۱۱-۴. آنچه تغییر نکرد
+- بک‌اند `9b248a3` دوباره تغییر نکرد؛ بررسی شواهد ایرادی در آن نشان نداد (اجرای مجدد با DB حاوی ردیف‌های غیرعمومی همان نتیجه را داد).
+- `.gitignore` دست‌نخورده؛ هیچ دادهٔ دامنهٔ زنده‌ای لمس نشد؛ همهٔ تزریق‌ها فقط روی `/tmp/nora-preview/nora-preview.db` (DB تست) بود.
+- PR #1 باز و ادغام‌نشده؛ بدون deploy/release.

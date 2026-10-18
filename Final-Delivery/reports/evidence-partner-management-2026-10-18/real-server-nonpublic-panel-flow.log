@@ -1,0 +1,50 @@
+== Playwright panel flow WITH stored non-public partner rows (post-fix server, test DB /tmp/nora-preview/nora-preview.db) ==
+start 2026-10-18T18:46:55Z
+server process:
+  32301 Sun Oct 18 18:46:54 2026 ps -o pid,lstart,cmd -p 25606 32295 32297 32301
+backend HEAD: d938cd9 docs(report): non-public partner retention — audit, fix, real test logs (section 10)
+-- step 1: inject 4 non-public rows directly into SQLite (no API)
+injected non-public rows; stored ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']
+-- step 2: SQLite BEFORE panel flow
+version 30 partner ids ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']
+   qa-np-private {'privacy': 'private'}
+   qa-np-hidden {'hidden': True}
+   qa-np-paused {'status': 'paused'}
+   qa-np-pending {'pend': True}
+-- step 3: Playwright flow through the real admin UI (seed PATCH, login, add, edit, 409+retry, network abort, delete, no-session, mobile/desktop)
+events with partnerId: [('qa-ev-1', 'qa-partner-1', None), ('qa-ev-2', '', None), ('qa-ev-past', 'qa-partner-1', None)] | qa-partner-1 links: [{'k': 'mail', 'v': 'mailto:hello@example.org'}, {'k': 'tel', 'v': 'tel:+33 1 23 45 67 89'}, {'k': 'tg', 'v': 'nora_test_channel'}]
+PASS baseline: 4 public test partners seeded — ["qa-partner-1","qa partner/2 ü","qa-partner-broken-logo","qa-partner-xss"]
+PASS 1. owner session: list of 4 server partners with server version — ۴ نهاد منتشرشده از سرور بارگذاری شد (نسخهٔ ۳۱).
+PASS fixture data.js partners are not shown; server names are
+PASS no local publish/hide controls; delete + public page link per row; no horizontal scroll — {"pub":false,"hide":false,"del":4,"pageLinks":["partner.html?id=qa-partner-1","partner.html?id=qa%20partner%2F2%20%C3%BC","partner.html?id=qa-partner-broken-logo","partner.html?id=qa-partner-xss"],"scrollW":1280,"innerW":1280}
+PASS 2a. javascript: contact is rejected client-side before any request —  یکی از راه‌های تماس معتبر نیست؛ مقدارش را بررسی کن
+PASS 2b. PATCH carries only partners + expected_version — {"keys":["partners"],"id":"org1792349226264"}
+PASS 2c. public API publishes the new partner with all fields — {"id":"org1792349226264","n":"نهاد مدیریت‌شده از پنل (دادهٔ تست)","type":"خدماتی · آزمایشی","s":"این نهاد از پنل مالک روی سرور تست ثبت شد.","collab":"میزبانی (تست)","since":"آبان ۱۴۰۵","focus":["آموزش","رسانه"],"d":"شرح کامل نهاد مدیریت‌شده.\nخط دوم.","logo":"","href":"https://example.org/managed","links":[{"k":"mail","v":"mailto:managed@example.org"}],"g":"linear-gradient(135deg,#1E6FD0,#0A3A82)","mon":"نه"}
+PASS 8. events/people/articles/banners/library/cooperation unchanged after add
+PASS 2d. dedicated page is live (200, index, canonical, title) — 200
+PASS 9a. protocol-relative logo rejected client-side —  نشانی لوگو معتبر نیست؛ فایل تصویر یا مسیر امن وارد کن
+PASS 3/10. edit persists after reload; public page keeps valid SEO/canonical/og:image — {"rowText":"\n        \n        نهاد مدیریت‌شده (ویرایش‌شده · دادهٔ تست)خد"}
+PASS 9b. credentialed website URL rejected client-side —  وبگاه را با نشانی معتبر http یا https وارد کن
+PASS 9c. malicious text stored as inert text; panel renders it escaped; no alert/JS error — {"dialogs":[],"errors":[]}
+PASS 9d. public page renders the malicious name as text (only the real logo img) — {"h1":"<img src=x onerror=alert(1)> نهاد مدیریت‌شده (دادهٔ تست)","imgs":1,"scripts":0}
+PASS 7a. 409: other person's change kept, my change not applied, my draft still open — {"from":35,"to":36}
+PASS 7b. retry on fresh version keeps both changes
+PASS 12. network failure: error message, editor stays open, nothing published — به API همین سرور دسترسی نیست؛ هیچ تغییری ذخیره نشد.
+PASS 2e. home partners section lists the managed partner — org1792349226264
+PASS 4a. delete asks for explicit confirmation — {"type":"confirm","message":"نهاد «نهاد مدیریت‌شده (دادهٔ تست)» از فهرست عمومی سرور حذف می‌شود و صفحهٔ اختصاصی‌اش دیگر در دسترس نخواهد بود. رویدادها و دیگر محتواها تغییر نمی‌کنند. حذف شود؟"}
+PASS 4b/8. after reload: gone from public API, home and page (404); events & other categories untouched — {"status":404}
+PASS no JS errors during the owner flow — []
+PASS 5. owner view and public API expose only published partners (non-public rows never reach the panel) — {"owner":["qa-partner-1","qa partner/2 ü","qa-partner-broken-logo","qa-partner-xss"],"public":["qa-partner-1","qa partner/2 ü","qa-partner-broken-logo","qa-partner-xss"]}
+PASS 6. without a session: login gate only; GET/PATCH owner API → 401; nothing changed — {"gate":{"manager":false,"login":true,"text":"\n    ورود مدیران و مالک سامانه\n    با نام کاربری و گذرواژهٔ مالک یا مدیرِ دارای "},"get":401,"patch":401}
+PASS 11. mobile 390×844 dark: list + editor without horizontal scroll, no JS errors — {"m":{"scrollW":390,"innerW":390,"theme":"dark","btn":34},"m2":{"scrollW":390,"innerW":390},"errors":[]}
+PASS final: test DB back to 4 seeded partners; other categories byte-identical
+25 passed, 0 failed
+-- step 4: SQLite AFTER panel flow (direct read, no API)
+version 38 partner ids ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']
+   qa-np-private: present=True privacy=private -> PASS
+   qa-np-hidden: present=True hidden=True -> PASS
+   qa-np-paused: present=True status=paused -> PASS
+   qa-np-pending: present=True pend=True -> PASS
+SQLite retention check: PASS (4/4 rows with original flags kept)
+sqlite-check exit=0
+end 2026-10-18T18:48:03Z

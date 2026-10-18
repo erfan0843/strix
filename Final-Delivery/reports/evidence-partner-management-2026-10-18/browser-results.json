@@ -7,7 +7,7 @@
   {
     "ok": true,
     "name": "1. owner session: list of 4 server partners with server version",
-    "detail": "۴ نهاد منتشرشده از سرور بارگذاری شد (نسخهٔ ۱۳)."
+    "detail": "۴ نهاد منتشرشده از سرور بارگذاری شد (نسخهٔ ۳۱)."
   },
   {
     "ok": true,
@@ -27,12 +27,12 @@
   {
     "ok": true,
     "name": "2b. PATCH carries only partners + expected_version",
-    "detail": "{\"keys\":[\"partners\"],\"id\":\"org1792347513940\"}"
+    "detail": "{\"keys\":[\"partners\"],\"id\":\"org1792349226264\"}"
   },
   {
     "ok": true,
     "name": "2c. public API publishes the new partner with all fields",
-    "detail": "{\"id\":\"org1792347513940\",\"n\":\"نهاد مدیریت‌شده از پنل (دادهٔ تست)\",\"type\":\"خدماتی · آزمایشی\",\"s\":\"این نهاد از پنل مالک روی سرور تست ثبت شد.\",\"collab\":\"میزبانی (تست)\",\"since\":\"آبان ۱۴۰۵\",\"focus\":[\"آموزش\",\"رسانه\"],\"d\":\"شرح کامل نهاد مدیریت‌شده.\\nخط دوم.\",\"logo\":\"\",\"href\":\"https://example.org/managed\",\"links\":[{\"k\":\"mail\",\"v\":\"mailto:managed@example.org\"}],\"g\":\"linear-gradient(135deg,#1E6FD0,#0A3A82)\",\"mon\":\"نه\"}"
+    "detail": "{\"id\":\"org1792349226264\",\"n\":\"نهاد مدیریت‌شده از پنل (دادهٔ تست)\",\"type\":\"خدماتی · آزمایشی\",\"s\":\"این نهاد از پنل مالک روی سرور تست ثبت شد.\",\"collab\":\"میزبانی (تست)\",\"since\":\"آبان ۱۴۰۵\",\"focus\":[\"آموزش\",\"رسانه\"],\"d\":\"شرح کامل نهاد مدیریت‌شده.\\nخط دوم.\",\"logo\":\"\",\"href\":\"https://example.org/managed\",\"links\":[{\"k\":\"mail\",\"v\":\"mailto:managed@example.org\"}],\"g\":\"linear-gradient(135deg,#1E6FD0,#0A3A82)\",\"mon\":\"نه\"}"
   },
   {
     "ok": true,
@@ -72,7 +72,7 @@
   {
     "ok": true,
     "name": "7a. 409: other person's change kept, my change not applied, my draft still open",
-    "detail": "{\"from\":17,\"to\":18}"
+    "detail": "{\"from\":35,\"to\":36}"
   },
   {
     "ok": true,
@@ -87,7 +87,7 @@
   {
     "ok": true,
     "name": "2e. home partners section lists the managed partner",
-    "detail": "org1792347513940"
+    "detail": "org1792349226264"
   },
   {
     "ok": true,

@@ -1,0 +1,72 @@
+PASS account-linking.test.mjs
+PASS account-screens.test.mjs
+PASS account.test.mjs
+PASS وضعیت: فهرست از سرور با نسخهٔ واقعی بارگذاری شد
+PASS در تولید دکمهٔ انتشار محلی/پنهان‌سازی نمایش داده نمی‌شود
+PASS دادهٔ نمونهٔ data.js جای فهرست سرور را نمی‌گیرد
+PASS پیوند صفحهٔ عمومی هر نهاد
+PASS PATCH فقط دستهٔ partners را با expected_version فعلی می‌فرستد
+PASS ردیف تازه با فیلدهای پاک‌شده و pub=true ارسال شد
+PASS رویدادها، بنرها و پروفایل‌ها دست‌نخورده ماندند
+PASS پیام موفقیت فقط پس از پاسخ سرور و بستن ویرایشگر
+PASS ویرایش با نسخهٔ تازه و حفظ سایر نهادها
+PASS جابه‌جایی ترتیب روی سرور ذخیره می‌شود
+PASS ۴۰۹: پیام تعارض، بدون موفقیت کاذب
+PASS تغییر شخص دیگر بی‌صدا حذف نشد
+PASS پیش‌نویس مالک پس از تعارض باز می‌ماند
+PASS ذخیرهٔ مجدد روی نسخهٔ تازه، هر دو تغییر حفظ شد
+PASS حذف تأیید صریح می‌گیرد
+PASS نهاد از سرور حذف شد؛ رویداد مرتبط دست نخورد
+PASS patch-401: چیزی ذخیره نشد و ویرایشگر باز ماند
+PASS patch-500: چیزی ذخیره نشد و ویرایشگر باز ماند
+PASS network: چیزی ذخیره نشد و ویرایشگر باز ماند
+PASS مدیر با #partners به مدیریت نهادها نمی‌رسد
+PASS هیچ PATCH از نشست مدیر ارسال نشد
+PASS بدون نشست معتبر: فهرست خالی، پیام روشن، دکمهٔ تازه‌سازی
+PASS تازه‌سازی از سرور فهرست را بازمی‌گرداند
+admin-partners-server: 23 قبول، 0 خطا
+PASS admin-partners-server.test.mjs
+آزمون نقش زندهٔ پنل: قبول
+PASS admin-rbac.test.mjs
+PASS admin-services.test.mjs
+PASS admin.test.mjs
+# pass 3
+# fail 0
+PASS asset-audit.test.mjs
+# pass 16
+# fail 0
+PASS audit-regression.test.mjs
+PASS delivery.test.mjs
+events-page: 68 قبول، 0 خطا
+PASS events-page.test.mjs
+# pass 2
+# fail 0
+PASS font-loading.test.mjs
+# pass 5
+# fail 0
+PASS image-performance.test.mjs
+# pass 5
+# fail 0
+PASS integrations-ui.test.mjs
+آزمون ورود OTP بله: 91 قبول، 0 خطا
+PASS login.test.mjs
+# pass 4
+# fail 0
+PASS mini-app-login.test.mjs
+PASS owner-banner-manager.test.mjs
+خلاصه: 99 قبول، 0 خطا
+PASS post.test.mjs
+PASS public-data-banner.test.mjs
+PASS qr.test.mjs
+# pass 8
+# fail 0
+PASS server.test.mjs
+# pass 20
+# fail 0
+PASS service-worker-privacy.test.mjs
+PASS site-content-sync.test.mjs
+smoke: 791 قبول، 0 خطا
+PASS smoke.test.mjs
+✓ همه سبز: 179 قبول
+PASS support.test.mjs
+Nora suites: 25/25 passed; 0 failed.

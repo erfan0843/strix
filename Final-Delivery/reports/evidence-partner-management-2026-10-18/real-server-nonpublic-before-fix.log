@@ -1,0 +1,15 @@
+== BEFORE FIX (server process started 17:42, pre-patch code) ==
+injected non-public rows; stored ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']
+[before-fix] public API partner ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']
+[before-fix] public API leaks non-public ids: ['qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']  -> FAIL
+[before-fix] owner view partner ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending'] (version 20) non-public shown: ['qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending'] -> FAIL
+[before-fix] GET /partner.html?id=qa-np-private -> 404 PASS
+[before-fix] GET /partner.html?id=qa-np-hidden -> 404 PASS
+[before-fix] GET /partner.html?id=qa-np-paused -> 404 PASS
+[before-fix] GET /partner.html?id=qa-np-pending -> 404 PASS
+[before-fix] panel-style PATCH partners -> 200
+[before-fix] stored non-public rows after save: kept=[] lost=['qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending'] -> FAIL
+[before-fix] other categories unchanged -> PASS
+[before-fix] public API after save: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss'] leaks: [] -> PASS
+[before-fix] RESULT: FAIL
+exit=1

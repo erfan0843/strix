@@ -1,0 +1,15 @@
+== AFTER FIX (server restarted with patched backend) ==
+injected non-public rows; stored ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss', 'qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending']
+[after-fix] public API partner ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss']
+[after-fix] public API leaks non-public ids: []  -> PASS
+[after-fix] owner view partner ids: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss'] (version 21) non-public shown: [] -> PASS
+[after-fix] GET /partner.html?id=qa-np-private -> 404 PASS
+[after-fix] GET /partner.html?id=qa-np-hidden -> 404 PASS
+[after-fix] GET /partner.html?id=qa-np-paused -> 404 PASS
+[after-fix] GET /partner.html?id=qa-np-pending -> 404 PASS
+[after-fix] panel-style PATCH partners -> 200
+[after-fix] stored non-public rows after save: kept=['qa-np-private', 'qa-np-hidden', 'qa-np-paused', 'qa-np-pending'] lost=[] -> PASS
+[after-fix] other categories unchanged -> PASS
+[after-fix] public API after save: ['qa-partner-1', 'qa partner/2 ü', 'qa-partner-broken-logo', 'qa-partner-xss'] leaks: [] -> PASS
+[after-fix] RESULT: PASS
+exit=0
