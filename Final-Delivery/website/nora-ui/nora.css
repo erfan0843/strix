@@ -103,7 +103,7 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .moneyline .num{font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
 .sfield{display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:var(--r-pill);
   background:var(--surface-2);border:.5px solid var(--hairline);transition:border-color var(--t-fast) var(--ease)}
-.sfield:focus-within{border-color:color-mix(in oklab,var(--brand) 55%,transparent);background:var(--surface)}
+.sfield:focus-within{border-color:color-mix(in oklab,var(--brand) 55%,transparent);background:var(--surface);box-shadow:0 0 0 3px var(--brand-tint)}
 .sfield .i{width:18px;height:18px;color:var(--ink-4);flex:0 0 auto}
 .sfield input{flex:1;min-width:0;border:0;background:none;outline:0;font:inherit;font-size:var(--fs-sub);
   color:var(--ink);padding:10px 0}

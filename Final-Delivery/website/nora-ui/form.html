@@ -313,6 +313,7 @@
   .server-ticket-message{margin:0;padding:10px 12px;border:1px solid color-mix(in oklab,var(--warn) 20%,var(--hairline));border-radius:13px;background:color-mix(in oklab,var(--warn) 8%,var(--surface));color:var(--ink-2);font-size:var(--fs-cap);line-height:1.8}
   .server-ticket-message[hidden]{display:none!important}
   .final-actions{margin-top:0}
+  .final-nav{margin:12px 0 4px;flex-wrap:wrap;gap:8px}.final-nav .btn{flex:1 1 140px;justify-content:center;min-height:44px}
   .end-extra-card{padding:0 13px}
   .end-extra-card>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;cursor:pointer;color:var(--ink-2);font-size:var(--fs-cap);font-weight:700;list-style:none}
   .end-extra-card>summary::-webkit-details-marker{display:none}
@@ -769,6 +770,10 @@
       </div>
       <div class="final-preview-note" id="endLocalNotice" role="note">
         <svg class="i"><use href="#i-info"/></svg><span>پیش‌نمایش محلی؛ پرداخت، رسید و بلیت واقعی صادر نشده.</span>
+      </div>
+      <div class="row final-nav" id="serverEndNav" hidden>
+        <a class="btn" href="home.html"><svg class="i"><use href="#i-home"/></svg> خانهٔ نورا</a>
+        <a class="btn quiet" href="events.html"><svg class="i"><use href="#i-calendar"/></svg> رویدادهای دیگر</a>
       </div>
       <div class="row final-actions">
         <button class="btn quiet" data-go="u8" data-after-mode="edit"><svg class="i"><use href="#i-pen"/></svg> ویرایش پاسخ</button>
@@ -3333,6 +3338,7 @@ if(REG&&Array.isArray(REG.q)){
       if(localFooter)localFooter.hidden=true;
       section&&section.querySelectorAll('[data-after-mode]').forEach(element=>{element.hidden=true});
       const endText=document.getElementById('endText');if(endText)endText.textContent='';
+      const endNav=document.getElementById('serverEndNav');if(endNav)endNav.hidden=false;
       renderServerTicketPreview();
       return;
     }

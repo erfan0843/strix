@@ -26,7 +26,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=99"/>
-<link rel="stylesheet" href="nora.css?v=100"/>
+<link rel="stylesheet" href="nora.css?v=101"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -147,6 +147,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     border:.5px solid var(--hairline);background:var(--surface-2);color:var(--ink-3);display:grid;place-items:center;
     transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
   .pinb .i{width:15px;height:15px}
+  .pinb{position:relative}.pinb::after{content:'';position:absolute;inset:-7px;border-radius:50%}
   .pinb.on{background:var(--brand);color:#fff;border-color:transparent}
   .pinb:active{transform:scale(.9)}
   .pinb.on .i{animation:iPop .5s var(--spring)}

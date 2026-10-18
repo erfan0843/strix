@@ -2425,10 +2425,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(html.includes('admin.css?v=101')&&html.includes('admin.js?v=121')
       &&html.includes('owner-api.js?v=108')&&html.includes('data.js?v=100')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=3')
-      &&html.includes('owner-banner-manager.js?v=3')&&html.includes('nora.css?v=100'),
+      &&html.includes('owner-banner-manager.js?v=3')&&html.includes('nora.css?v=101'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v96'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v97'"),'کارگر سرویس نسخهٔ تازه است');
   ok(!sw.includes("'admin.html'")&&!sw.includes("'admin.js'"),'صفحهٔ خصوصی و اسکریپت بلااستفادهٔ پنل در پیش‌کش عمومی نیستند');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

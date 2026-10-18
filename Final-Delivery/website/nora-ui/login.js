@@ -473,8 +473,28 @@
     renderPhoneLogin();
   }
 
+  /* آینهٔ همان قاعدهٔ سرور (backend/otp.py normalize_iran_phone) فقط برای پیام زودهنگام؛
+     داوری نهایی با سرور است. شمارهٔ نامعتبر، کد امنیتی را هدر نمی‌دهد. */
+  function normalizeIranPhone(value) {
+    const raw = normalizeDigits(String(value || '')).trim();
+    if (!raw || raw.length > 32) return null;
+    let compact = raw.replace(/[\s().-]/g, '');
+    if (compact.startsWith('+98')) compact = '0' + compact.slice(3);
+    else if (compact.startsWith('0098')) compact = '0' + compact.slice(4);
+    else if (compact.startsWith('98')) compact = '0' + compact.slice(2);
+    else if (compact.length === 10 && compact.startsWith('9')) compact = '0' + compact;
+    return /^09[0-9]{9}$/.test(compact) ? compact : null;
+  }
+
   async function requestPhoneOtp(form) {
     if (state.busy || state.authenticated) return;
+    const typedPhone = String(form && form.elements.phone && form.elements.phone.value || '').trim();
+    if (typedPhone && !normalizeIranPhone(typedPhone)) {
+      setStatus('شمارهٔ همراه درست نیست؛ یک شمارهٔ ایرانی مثل ۰۹۱۲۳۴۵۶۷۸۹ بنویس.', 'error');
+      const phoneField = form && form.elements.phone;
+      if (phoneField && phoneField.focus) phoneField.focus();
+      return;
+    }
     const captchaAnswer = normalizeDigits(form && form.elements.captcha && form.elements.captcha.value || '').trim();
     if (!/^[0-9]{4}$/.test(captchaAnswer)) {
       setStatus('کد امنیتی چهار رقمی را وارد کن.', 'error');
