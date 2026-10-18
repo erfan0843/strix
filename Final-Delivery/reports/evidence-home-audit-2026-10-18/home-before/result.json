@@ -1,0 +1,166 @@
+[
+  {
+    "name": "mobile",
+    "w": 390,
+    "h": 844,
+    "info": {
+      "source": "server",
+      "banners": 0,
+      "bannerHidden": true,
+      "bannerRect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "scrollW": 390,
+      "innerW": 390,
+      "pageH": 3354,
+      "theme": "light",
+      "sections": [
+        {
+          "id": "searchSec",
+          "top": 92,
+          "h": 250
+        },
+        {
+          "id": "quick",
+          "top": 364,
+          "h": 325
+        },
+        {
+          "id": "row",
+          "top": 711,
+          "h": 44
+        },
+        {
+          "id": "evSec",
+          "top": 777,
+          "h": 447
+        },
+        {
+          "id": "pastSec",
+          "top": 1246,
+          "h": 519
+        },
+        {
+          "id": "club",
+          "top": 1787,
+          "h": 362
+        },
+        {
+          "id": "teachers",
+          "top": 2171,
+          "h": 275
+        },
+        {
+          "id": "staff",
+          "top": 2468,
+          "h": 103
+        },
+        {
+          "id": "articles",
+          "top": 2593,
+          "h": 288
+        },
+        {
+          "id": "partners",
+          "top": 2903,
+          "h": 172
+        },
+        {
+          "id": "hfoot",
+          "top": 3097,
+          "h": 145
+        }
+      ],
+      "h1": "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+    },
+    "errors": [],
+    "requests": [
+      "/api/public/site-content"
+    ]
+  },
+  {
+    "name": "desktop",
+    "w": 1280,
+    "h": 800,
+    "info": {
+      "source": "server",
+      "banners": 0,
+      "bannerHidden": true,
+      "bannerRect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "scrollW": 1280,
+      "innerW": 1280,
+      "pageH": 3255,
+      "theme": "light",
+      "sections": [
+        {
+          "id": "searchSec",
+          "top": 92,
+          "h": 174
+        },
+        {
+          "id": "quick",
+          "top": 288,
+          "h": 325
+        },
+        {
+          "id": "row",
+          "top": 635,
+          "h": 44
+        },
+        {
+          "id": "evSec",
+          "top": 701,
+          "h": 467
+        },
+        {
+          "id": "pastSec",
+          "top": 1190,
+          "h": 499
+        },
+        {
+          "id": "club",
+          "top": 1711,
+          "h": 339
+        },
+        {
+          "id": "teachers",
+          "top": 2072,
+          "h": 275
+        },
+        {
+          "id": "staff",
+          "top": 2369,
+          "h": 103
+        },
+        {
+          "id": "articles",
+          "top": 2493,
+          "h": 288
+        },
+        {
+          "id": "partners",
+          "top": 2804,
+          "h": 172
+        },
+        {
+          "id": "hfoot",
+          "top": 2997,
+          "h": 145
+        }
+      ],
+      "h1": "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+    },
+    "errors": [],
+    "requests": [
+      "/api/public/site-content"
+    ]
+  }
+]
