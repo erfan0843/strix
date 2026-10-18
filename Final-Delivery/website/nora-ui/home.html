@@ -25,8 +25,8 @@ var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=99"/>
-<link rel="stylesheet" href="nora.css?v=101"/>
+<link rel="stylesheet" href="glass.css?v=100"/>
+<link rel="stylesheet" href="nora.css?v=102"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -54,6 +54,11 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     border:1px solid rgba(255,255,255,.65);cursor:pointer;background:rgba(255,255,255,.96);color:#10306B;
     font:inherit;font-size:var(--fs-sub);font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
   .bs .bbtn.ghost{background:rgba(255,255,255,.16);color:#fff;backdrop-filter:blur(10px)}
+  /* همان زبان بازخورد دکمه‌های مشترک: بالا آمدن ۱px با نشانگر واقعی، فشردن ۰٫۹۷، حلقهٔ فوکوس روشن روی عکس */
+  .bs .bbtn{transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
+  .bs .bbtn:active{transform:scale(.97)}
+  .bs .bbtn:focus-visible{outline:2.5px solid #fff;outline-offset:3px}
+  @media(hover:hover) and (pointer:fine){.bs .bbtn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.22)}.bs .bbtn.ghost:hover{background:rgba(255,255,255,.26)}.bs .bbtn:active{transform:scale(.97)}}
   .bs.align-center .bcontent{text-align:center;justify-items:center}
   .bs.align-center .bnote{margin-inline:auto}
   .bs.layout-text .bs-media{display:none}
@@ -677,7 +682,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=128"></script>
+<script src="ui.js?v=129"></script>
 <script src="owner-api.js?v=107"></script>
 <script src="public-data.js?v=111"></script>
 <script>

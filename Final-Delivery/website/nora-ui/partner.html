@@ -17,14 +17,18 @@
 <script>(function(){try{var v=localStorage.getItem('nora-theme');if(v!=='dark'&&v!=='light')v=(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=v;document.documentElement.style.colorScheme=v}catch(e){}})();</script>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=99"/>
-<link rel="stylesheet" href="nora.css?v=101"/>
+<link rel="stylesheet" href="glass.css?v=100"/>
+<link rel="stylesheet" href="nora.css?v=102"/>
 <link rel="stylesheet" href="partner-page.css?v=1"/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
   <link rel="apple-touch-icon" href="/icon-192.png"/>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+<symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11z" fill="currentColor"/></symbol>
+</svg>
 <a class="skip" href="#partnerPage">پرش به محتوای نهاد همکار</a>
 <header class="topbar">
   <div class="wrap">
@@ -32,7 +36,7 @@
       <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span></a>
     <span class="sp"></span>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز">
-      <span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun">☼</span><span class="tsw-ico tsw-moon">☾</span><span class="tsw-knob"></span></span>
+      <span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span>
     </button>
     <a class="btn sm quiet" href="home.html#partners">بازگشت</a>
   </div>
@@ -47,7 +51,7 @@
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=128"></script>
+<script src="ui.js?v=129"></script>
 <script src="public-data.js?v=111"></script>
 <script src="partner-page.js?v=1"></script>
 </body>

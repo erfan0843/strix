@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=99"/>
+<link rel="stylesheet" href="glass.css?v=100"/>
 <style>
   .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
   .stepper4{display:flex;gap:4px;padding:5px}
@@ -188,6 +188,9 @@
 
 <symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
 
+
+<symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11z" fill="currentColor"/></symbol>
 </svg>
 <div class="shell">
   <aside class="rail">
@@ -201,7 +204,7 @@
       <a class="btn quiet block" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> نمای کاربر</a>
     </nav>
     <hr class="hr"/>
-    <button class="btn quiet block" id="theme"><svg class="i"><use href="#i-eye"/></svg> شب / روز</button>
+    <button class="btn quiet block" id="theme" type="button"><svg class="i theme-ico-moon"><use href="#i-moon"/></svg><svg class="i theme-ico-sun"><use href="#i-sun"/></svg> شب / روز</button>
   </aside>
 
   <main class="main">
@@ -578,7 +581,7 @@
   <a href="builder.html"><svg class="i"><use href="#i-align"/></svg><small>فرم‌های من</small></a>
   <a href="form.html"><svg class="i"><use href="#i-mobile"/></svg><small>نمای کاربر</small></a>
   <a href="index.html"><svg class="i"><use href="#i-layers"/></svg><small>زبان طراحی</small></a>
-  <button type="button" data-theme-toggle><svg class="i"><use href="#i-eye"/></svg><small>شب / روز</small></button>
+  <button type="button" data-theme-toggle><svg class="i theme-ico-moon"><use href="#i-moon"/></svg><svg class="i theme-ico-sun"><use href="#i-sun"/></svg><small>شب / روز</small></button>
 </nav>
 <div class="scrim" id="scrim"></div>
 
@@ -699,7 +702,7 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=128"></script>
+<script src="ui.js?v=129"></script>
 <script src="owner-api.js?v=108"></script>
 <script>
 /* ══ داده ══ */
