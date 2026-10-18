@@ -511,7 +511,9 @@ function linkForms(evId, w0){
 const evAll=()=>{const ov=S.evEdit||{};
   return (S.added||[]).concat(EVROWS).map(e=>ov[e.id]?Object.assign({},e,ov[e.id]):e);};
 const evOf=id=>evAll().find(e=>e.id===id)||null;
-const eventPartnerRows=()=>{try{return typeof ppPartnerMerged==='function'?ppPartnerMerged():((window.NORA||{}).PARTNERS||[])}catch(e){return []}};
+const eventPartnerRows=()=>{try{
+  if(typeof ppPartnerServerMode==='function'&&ppPartnerServerMode()&&!PP_SRV.loaded&&!PP_SRV.requested) ppPartnerServerLoad();
+  return typeof ppPartnerMerged==='function'?ppPartnerMerged():((window.NORA||{}).PARTNERS||[])}catch(e){return []}};
 const eventPartnerOf=id=>{if(!id)return null; try{return (typeof ppPartnerAll==='function'?ppPartnerAll():((window.NORA||{}).PARTNERS||[]))
   .find(row=>String(row.id)===String(id))||null}catch(e){return null}};
 const eventPartnerName=event=>{
@@ -3781,7 +3783,74 @@ const ppLinks=p=>(p.links||[]).map(l=>({k:l.k||'other',v:String(l.v||'').trim()}
   .filter(l=>l.v).map(l=>Object.assign(l,{href:ppHref(l.k,l.v)}));
 /* نهادها از همان الگوی دادهٔ منتشرشده استفاده می‌کنند؛ نشانیِ واردشده پیش از
    ذخیره و پیش‌نمایش محدود می‌شود تا متن، CSS و پیوند خام به خروجی نرود. */
-const PP_PARTNER_BASE=()=>((window.NORA||{}).PARTNERS||[]);
+/* در تولید، تنها منبع معتبر نهادها همان دستهٔ partners در /api/owner/site-content است؛
+   پیش‌نویس مرورگر و دادهٔ نمونهٔ data.js فقط در حالت آزمایشی (fixture) به کار می‌رود. */
+const PP_SRV={loaded:false,busy:false,requested:false,rows:[],version:0,msg:'',state:''};
+const ppPartnerServerMode=()=>typeof IS_TEST!=='undefined'&&!IS_TEST;
+const PP_PARTNER_BASE=()=>ppPartnerServerMode()?PP_SRV.rows:((window.NORA||{}).PARTNERS||[]);
+function ppPartnerSrvSet(msg,state){PP_SRV.msg=msg||''; PP_SRV.state=state||'';
+  const el=$('#ppPartnerSrvState'); if(el){el.textContent=PP_SRV.msg; if(PP_SRV.state) el.dataset.state=PP_SRV.state; else delete el.dataset.state}}
+const ppPartnerSrvVisible=()=>!!$('#ppPartnerList');
+function ppPartnerSrvApply(result){
+  const content=result&&result.content&&typeof result.content==='object'?result.content:{};
+  PP_SRV.version=Number.isInteger(+(result&&result.version))&&+result.version>=0?+result.version:0;
+  PP_SRV.rows=Array.isArray(content.partners)?content.partners.filter(row=>row&&typeof row==='object'&&row.id!=null).map(row=>Object.assign({},row)):[];
+}
+function ppPartnerSrvError(error){
+  if(!error||error.status===0||error.code==='server_unreachable') return 'به API همین سرور دسترسی نیست؛ هیچ تغییری ذخیره نشد.';
+  if(error.status===401) return 'نشست مالک معتبر نیست؛ دوباره وارد شوید. هیچ تغییری ذخیره نشد.';
+  if(error.status===403) return 'دسترسی مالک یا بررسی مبدأ/CSRF ناموفق بود؛ صفحه را از نشانی اصلی سایت باز کنید. هیچ تغییری ذخیره نشد.';
+  if(error.status===404) return 'API محتوای سرور در این میزبان در دسترس نیست؛ نهادها فقط با اتصال backend قابل مدیریت‌اند.';
+  if(error.status===409) return 'نسخهٔ سرور هم‌زمان توسط شخص دیگری تغییر کرده است؛ تغییر شما ذخیره نشد و فهرست تازه بارگذاری شد. پیش‌نویس را بازبینی و دوباره ذخیره کنید.';
+  if(error.status===413) return 'حجم لوگو یا محتوای نهادها از سقف سرور بیشتر است؛ لوگوی کوچک‌تری انتخاب کنید.';
+  if(error.status===422) return 'ساختار یکی از نهادها پذیرفته نشد؛ نام، نشانی‌ها و راه‌های تماس را بررسی کنید.';
+  if(error.status===503) return 'پایگاه‌دادهٔ سرور آماده نیست؛ تغییری ذخیره نشد.';
+  if(error.status>=500) return 'سرور فعلاً پاسخ‌گو نیست؛ تغییری ذخیره نشد. کمی بعد دوباره تلاش کنید.';
+  return 'ذخیره انجام نشد ('+(error.code||'خطای سرور')+').';
+}
+function ppPartnerSrvWizardRefresh(){
+  const select=$('#wzPartner'); if(!select) return;
+  const current=select.value, rows=PP_SRV.rows;
+  const keep=current&&!rows.some(p=>String(p.id)===current)?`<option value="${esc(current)}" selected>${esc(((S.wiz||{}).partnerName)||'نهاد دیگر در فهرست نیست')}</option>`:'';
+  select.innerHTML=`<option value="">بدون نهاد همکار</option>${keep}`+rows.map(p=>`<option value="${esc(p.id)}"${current===String(p.id)?' selected':''}>${esc(p.n||'نهاد بی‌نام')}</option>`).join('');
+}
+async function ppPartnerServerLoad(opts){
+  const o=opts||{}, api=window.NORA_SERVER_API;
+  PP_SRV.requested=true;
+  if(!api||typeof api.getOwnerSiteContent!=='function'){PP_SRV.loaded=false; ppPartnerSrvSet('API مالک در این صفحه بارگذاری نشده است؛ فهرست نهادها از سرور خوانده نشد.','error'); return false}
+  if(PP_SRV.busy) return false;
+  PP_SRV.busy=true; if(!o.keepMessage) ppPartnerSrvSet('در حال دریافت فهرست نهادهای همکار از سرور…','');
+  try{
+    const result=await api.getOwnerSiteContent(); ppPartnerSrvApply(result); PP_SRV.loaded=true;
+    if(!o.keepMessage) ppPartnerSrvSet(PP_SRV.rows.length
+      ?fa(PP_SRV.rows.length)+' نهاد منتشرشده از سرور بارگذاری شد (نسخهٔ '+fa(PP_SRV.version)+').'
+      :'هنوز نهادی روی سرور ثبت نشده است؛ نهاد تازه پس از ذخیره در سایت دیده می‌شود.','success');
+    return true;
+  }catch(error){PP_SRV.loaded=false; PP_SRV.rows=[]; ppPartnerSrvSet(ppPartnerSrvError(error),'error'); return false}
+  finally{PP_SRV.busy=false; if(ppPartnerSrvVisible()) renderBody(); else ppPartnerSrvWizardRefresh()}
+}
+/* هر تغییر (افزودن/ویرایش/حذف/ترتیب) کل دستهٔ partners را با expected_version می‌فرستد؛
+   دسته‌های دیگر دست نمی‌خورند و پیام موفقیت فقط پس از پاسخ موفق سرور نمایش داده می‌شود. */
+async function ppPartnerCommit(list,what,onDone){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.updateSiteContent!=='function'){ppPartnerSrvSet('API مالک در این صفحه بارگذاری نشده است؛ هیچ تغییری ذخیره نشد.','error'); toast('ذخیره نشد'); return false}
+  if(!PP_SRV.loaded){ppPartnerSrvSet('فهرست سرور هنوز بارگذاری نشده است؛ اول «تازه‌سازی از سرور» را بزنید.','error'); toast('ذخیره نشد'); return false}
+  if(PP_SRV.busy){toast('درخواست قبلی هنوز در جریان است'); return false}
+  PP_SRV.busy=true; ppPartnerSrvSet('در حال ذخیرهٔ '+what+' روی سرور…',''); renderBody();
+  let ok=false;
+  try{
+    const result=await api.updateSiteContent({partners:list},PP_SRV.version);
+    ppPartnerSrvApply(result); ok=true;
+    ppPartnerSrvSet(what+' در نسخهٔ '+fa(PP_SRV.version)+' سرور ذخیره شد؛ همین حالا در سایت دیده می‌شود.','success');
+    uLogAdd('نهادهای همکار روی سرور به‌روز شد: '+what+' ('+fa(PP_SRV.rows.length)+' نهاد)');
+    toast('روی سرور ذخیره شد');
+  }catch(error){
+    ppPartnerSrvSet(ppPartnerSrvError(error),'error'); toast('ذخیره نشد');
+    if(error&&error.status===409){PP_SRV.busy=false; await ppPartnerServerLoad({keepMessage:true})}
+  }finally{PP_SRV.busy=false}
+  if(onDone) onDone(ok);
+  renderBody(); return ok;
+}
 const ppPartnerGradient=value=>{
   const raw=String(value||'').trim();
   return /^linear-gradient\(135deg,#[0-9a-f]{6},#[0-9a-f]{6}\)$/i.test(raw)?raw:PP_GS[0].v;
@@ -3793,7 +3862,7 @@ function ppPartnerWebsite(value){
   catch(e){return ''}
 }
 function ppPartnerLogo(value){
-  const raw=String(value||'').trim(); if(!raw) return '';
+  const raw=String(value||'').trim(); if(!raw||raw.startsWith('//')) return '';
   if(/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(raw)) return raw;
   if(/^https?:\/\//i.test(raw)) return ppPartnerWebsite(raw);
   if(/^[./A-Za-z0-9_~%-][A-Za-z0-9_./~%-]*$/.test(raw)&&!/(?:^|\/)\.\.(?:\/|$)/.test(raw)) return raw;
@@ -3823,15 +3892,16 @@ const ppPartnerLinks=rows=>(Array.isArray(rows)?rows:[]).map(item=>{
   return {k:PP_LK.some(x=>x[0]===link.k)?link.k:'other',v:String(link.v||'').trim()};
 }).filter(link=>link.v).map(link=>Object.assign(link,{href:ppPartnerLinkHref(link.k,link.v)}));
 const ppPartnerAll=()=>{
+  if(ppPartnerServerMode()) return PP_SRV.rows.map(row=>Object.assign({},row));
   const b=ppSet(), edits=b.partnerO||{};
   return PP_PARTNER_BASE().map(row=>Object.assign({},row,edits[String(row.id)]||{}))
     .concat((b.partnerAdd||[]).map(row=>Object.assign({},row)));
 };
-const ppPartnerHidden=()=>ppSet().partnerHide||[];
+const ppPartnerHidden=()=>ppPartnerServerMode()?[]:(ppSet().partnerHide||[]);
 function ppPartnerVisibleRaw(){const hidden=ppPartnerHidden();
   return ppPartnerAll().filter(row=>hidden.indexOf(String(row.id))<0)}
 function ppPartnerMerged(){
-  const rows=ppPartnerVisibleRaw(), order=ppSet().partnerOrd||[];
+  const rows=ppPartnerVisibleRaw(), order=ppPartnerServerMode()?[]:(ppSet().partnerOrd||[]);
   if(!order.length) return rows;
   return rows.map((row,index)=>({row,index,key:String(row.id)})).sort((a,b)=>{
     const ai=order.indexOf(a.key),bi=order.indexOf(b.key);
@@ -3840,6 +3910,10 @@ function ppPartnerMerged(){
 }
 function ppPartnerMove(index,dir){
   const rows=ppPartnerMerged(), next=index+dir; if(index<0||next<0||next>=rows.length) return;
+  if(ppPartnerServerMode()){
+    const list=rows.map(row=>ppPartnerClean(row,true)), moved=list[index];
+    list.splice(index,1); list.splice(next,0,moved); ppPartnerCommit(list,'ترتیب نهادها'); return;
+  }
   const order=rows.map(row=>String(row.id)), moved=order[index];
   order.splice(index,1); order.splice(next,0,moved); ppSet().partnerOrd=order; save();
 }
@@ -4192,60 +4266,67 @@ function ppPartnerForm(draft){
   ].join('');
 }
 function ppPartnerDiff(row){
+  if(ppPartnerServerMode()) return false;
   const published=ppPubList('nora-partners'); if(!published) return true;
   const current=ppPartnerClean(row,true), old=published.find(item=>String(item.id)===String(row.id));
   return !old||JSON.stringify(old)!==JSON.stringify(current);
 }
 function ppPartnerDirty(){
+  if(ppPartnerServerMode()) return false;
   const published=ppPubList('nora-partners');
   return !published||JSON.stringify(published)!==JSON.stringify(ppPartnerPublishList());
 }
 function ppPartnerList(){
   const all=ppPartnerMerged(), query=String(S.ppPartnerQ||'').trim(), hidden=ppPartnerHidden();
   const hit=row=>!query||(String(row.n||'')+' '+String(row.type||'')+' '+String(row.collab||'')+' '+String(row.s||'')+' '+String(row.d||'')+' '+(row.focus||[]).join(' ')).includes(query);
-  const rows=query?all.filter(hit):all, editing=S.ppPartnerEd;
+  const rows=query?all.filter(hit):all, editing=S.ppPartnerEd, srv=ppPartnerServerMode();
   if(editing){
-    const draft=ppPartnerD();
-    return `${sdSect(editing==='new'?'نهاد تازه':'ویرایش نهاد',editing==='new'?'جزئیات را وارد کن؛ پیش‌نمایش زنده است':'همان چیزی که در صفحهٔ عمومی منتشر می‌شود')}
+    const draft=ppPartnerD(), busy=srv&&PP_SRV.busy;
+    return `${sdSect(editing==='new'?'نهاد تازه':'ویرایش نهاد',editing==='new'?(srv?'جزئیات را وارد کن؛ با «افزودن» روی سرور ذخیره و منتشر می‌شود':'جزئیات را وارد کن؛ پیش‌نمایش زنده است'):(srv?'پیش‌نویس در این مرورگر است؛ تا ذخیرهٔ موفق روی سرور، صفحهٔ عمومی تغییر نمی‌کند':'همان چیزی که در صفحهٔ عمومی منتشر می‌شود'))}
       <div class="pp-grid"><div id="ppPartnerPreview">${draft?ppPartnerPreview(draft):''}</div><div>${draft?ppPartnerForm(draft):''}</div></div>
-      <div class="row tight">${btn(editing==='new'?'افزودن نهاد':'ذخیرهٔ نهاد','data-ppartner-save','i-check')}
+      <div class="row tight">${btn(editing==='new'?(srv?'افزودن و انتشار روی سرور':'افزودن نهاد'):(srv?'ذخیره روی سرور':'ذخیرهٔ نهاد'),'data-ppartner-save'+(busy?' disabled aria-busy="true"':''),'i-check')}
         ${btn('انصراف','data-ppartner-cancel','i-close')}
         ${editing!=='new'?btn('رونوشت از این نهاد','data-ppartner-dup','i-copy'):''}</div>
-      ${editing!=='new'?`<div class="row tight">${btn('بازگشت به دادهٔ سامانه','data-ppartner-reset','i-trash')}<span class="cap">تغییرهای این نهاد پاک و دادهٔ پایه بازگردانده می‌شود.</span></div>`:''}
+      ${editing!=='new'&&!srv?`<div class="row tight">${btn('بازگشت به دادهٔ سامانه','data-ppartner-reset','i-trash')}<span class="cap">تغییرهای این نهاد پاک و دادهٔ پایه بازگردانده می‌شود.</span></div>`:''}
       ${sdEnd()}`;
   }
-  return `${sdSect('فهرست نهادهای همکار',esc(fa(all.length))+' نهاد · '+(hidden.length?esc(fa(hidden.length))+' پنهان':'همهٔ نهادهای فعال'))}
+  if(srv&&!PP_SRV.loaded) return `${sdSect('فهرست نهادهای همکار','از سرور')}${emptyBox(PP_SRV.busy?'در حال دریافت فهرست از سرور…':'فهرست نهادها از سرور خوانده نشد؛ پس از رفع مشکل، «تازه‌سازی از سرور» را بزنید.')}
+    <div class="row tight">${btn('تازه‌سازی از سرور','data-ppartner-reload'+(PP_SRV.busy?' disabled aria-busy="true"':''),'i-refresh')}</div>${sdEnd()}`;
+  return `${sdSect('فهرست نهادهای همکار',srv?esc(fa(all.length))+' نهاد منتشرشده روی سرور · نسخهٔ '+esc(fa(PP_SRV.version)):esc(fa(all.length))+' نهاد · '+(hidden.length?esc(fa(hidden.length))+' پنهان':'همهٔ نهادهای فعال'))}
     ${rows.map(row=>{const index=all.indexOf(row), isNew=(ppSet().partnerAdd||[]).some(item=>String(item.id)===String(row.id));
       const logo=ppPartnerLogo(row.logo), mon=String(row.mon||row.n||'ن').trim().slice(0,2)||'ن';
       return `<div class="admlirow" data-ppartner-row="${esc(row.id)}">
         <span class="pp-mini" style="--g:${esc(ppPartnerGradient(row.g))}">${logo?`<img src="${esc(logo)}" alt=""/>`:esc(mon)}</span>
         <span class="sp"><b>${esc(row.n||'بی‌نام')}</b><small class="cap">${esc([row.type,row.collab].filter(Boolean).join(' · '))}</small></span>
-        <span class="mini">${ppPartnerDiff(row)?tag('منتشرنشده','warn'):tag('همگام','ok')}
+        <span class="mini">${srv?`<a class="btn sm quiet" href="partner.html?id=${encodeURIComponent(String(row.id))}" target="_blank" rel="noopener">صفحهٔ عمومی</a>`:(ppPartnerDiff(row)?tag('منتشرنشده','warn'):tag('همگام','ok'))}
           ${index>0?btn('بالا','data-ppartner-up="'+index+'"','i-chev-up'):''}
           ${index<all.length-1?btn('پایین','data-ppartner-down="'+index+'"','i-chev-down'):''}
           ${btn('ویرایش','data-ppartner-edit="'+esc(row.id)+'"','i-pen')}
-          ${btn('پنهان','data-ppartner-hide="'+esc(row.id)+'"','i-eye-off')}
-          ${isNew?btn('حذف','data-ppartner-del="'+esc(row.id)+'"','i-trash'):''}</span></div>`}).join('')||emptyBox(query?'نهادی با این جست‌وجو پیدا نشد':'هنوز نهادی برای نمایش نیست')}
-    <div class="row tight">${btn('افزودن نهاد همکار','data-ppartner-new','i-plus')}</div>${sdEnd()}
-    ${sdSect('نهادهای پنهان','از فهرست عمومی کنار گذاشته‌اند؛ هر زمان می‌شود برگرداند')}
+          ${srv?'':btn('پنهان','data-ppartner-hide="'+esc(row.id)+'"','i-eye-off')}
+          ${(srv||isNew)?btn('حذف','data-ppartner-del="'+esc(row.id)+'"','i-trash'):''}</span></div>`}).join('')||emptyBox(query?'نهادی با این جست‌وجو پیدا نشد':(srv?'هنوز نهادی روی سرور ثبت نشده است':'هنوز نهادی برای نمایش نیست'))}
+    <div class="row tight">${btn('افزودن نهاد همکار','data-ppartner-new','i-plus')}${srv?btn('تازه‌سازی از سرور','data-ppartner-reload'+(PP_SRV.busy?' disabled aria-busy="true"':''),'i-refresh'):''}</div>${sdEnd()}
+    ${srv?'':`${sdSect('نهادهای پنهان','از فهرست عمومی کنار گذاشته‌اند؛ هر زمان می‌شود برگرداند')}
     ${ppPartnerAll().filter(row=>hidden.indexOf(String(row.id))>-1&&hit(row)).map(row=>`<div class="admlirow" data-ppartner-hidden="${esc(row.id)}">${ico('i-eye-off')}
       <span class="sp"><b>${esc(row.n||'بی‌نام')}</b><small class="cap">${esc(row.type||'')}</small></span>
-      <span class="mini">${btn('نمایش دوباره','data-ppartner-show="'+esc(row.id)+'"','i-eye')}</span></div>`).join('')||'<p class="cap">نهادی پنهان نشده است</p>'}${sdEnd()}`;
+      <span class="mini">${btn('نمایش دوباره','data-ppartner-show="'+esc(row.id)+'"','i-eye')}</span></div>`).join('')||'<p class="cap">نهادی پنهان نشده است</p>'}${sdEnd()}`}`;
 }
 function ppPartnerView(){
+  const srv=ppPartnerServerMode(); if(srv&&!PP_SRV.loaded&&!PP_SRV.requested) ppPartnerServerLoad();
   const dirty=ppPartnerDirty(), list=ppPartnerMerged();
-  const tabs=`<div class="admfilters">${PPTABS.map(tab=>`<button class="chip ${tab[0]==='partners'?'on':''}" data-pptab="${tab[0]}">${esc(tab[1])}</button>`).join('')}</div>`;
-  return `<section class="card stack">
-    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشی‌ها</button>
+  const tabs=srv?'':`<div class="admfilters">${PPTABS.map(tab=>`<button class="chip ${tab[0]==='partners'?'on':''}" data-pptab="${tab[0]}">${esc(tab[1])}</button>`).join('')}</div>`;
+  return `<section class="card stack" id="ppPartnerManager">
+    <div class="row">${srv?'':`<button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشی‌ها</button>`}
       <span class="sp"></span><a class="btn sm tint" href="home.html#partners" target="_blank" rel="noopener">${ico('i-handshake')} پیش‌نمایش خانهٔ کاربر</a></div>
-    <div class="row"><div class="head">مدیران و اساتید</div><span class="sp"></span><span class="cap">${esc(fa(list.length))} نهاد همکار</span></div>
-    <p class="cap">تنظیم کامل هویت، لوگو، دسته و نوع همکاری، معرفی، وبگاه و راه‌های تماس. پیش‌نمایش کارت و ورقه زنده است؛ انتشار اینجا در همین مرورگر انجام می‌شود. برای انتشار عمومی روی سرور، بعد از آن دستهٔ «نهادهای همکار» را در همگام‌سازی محتوای عمومی بفرست.</p>
+    <div class="row"><div class="head">${srv?'نهادهای همکار (محتوای عمومی سرور)':'مدیران و اساتید'}</div><span class="sp"></span><span class="cap">${srv&&!PP_SRV.loaded?'':esc(fa(list.length))+' نهاد همکار'}</span></div>
+    ${srv?`<p class="cap">این فهرست همان دستهٔ «نهادهای همکار» محتوای عمومی سرور است: هر افزودن، ویرایش، حذف یا جابه‌جایی با نشست مالک و نسخهٔ محتوا روی سرور ذخیره می‌شود و بلافاصله در خانه و صفحهٔ اختصاصی نهاد دیده می‌شود. فقط فهرست منتشرشده مدیریت می‌شود؛ پیش‌نویس یا توقف نهاد روی سرور پشتیبانی نمی‌شود.</p>
+    <p class="sync-state" id="ppPartnerSrvState" role="status" aria-live="polite"${PP_SRV.state?` data-state="${esc(PP_SRV.state)}"`:''}>${esc(PP_SRV.msg||'در حال دریافت فهرست نهادهای همکار از سرور…')}</p>`
+    :`<p class="cap">تنظیم کامل هویت، لوگو، دسته و نوع همکاری، معرفی، وبگاه و راه‌های تماس. پیش‌نمایش کارت و ورقه زنده است؛ انتشار اینجا در همین مرورگر انجام می‌شود. برای انتشار عمومی روی سرور، بعد از آن دستهٔ «نهادهای همکار» را در همگام‌سازی محتوای عمومی بفرست.</p>`}
     ${tabs}<label class="fld" style="max-width:340px"><span class="lbl">جست‌وجو در نهادها</span>
       <input class="input" data-ppartner-q="1" value="${esc(S.ppPartnerQ||'')}" placeholder="نام، دسته یا نوع همکاری"/></label>
     <div class="stack tight" id="ppPartnerList">${ppPartnerList()}</div>
-    <hr class="hr"/><div class="row tight">${btn(dirty?'انتشار نهادهای همکار':'منتشر شد؛ بازانتشار','data-ppartner-pub','i-send')}
+    ${srv?'':`<hr class="hr"/><div class="row tight">${btn(dirty?'انتشار نهادهای همکار':'منتشر شد؛ بازانتشار','data-ppartner-pub','i-send')}
       <span class="cap">${dirty?'پیش‌نویس‌های نهادها هنوز در مرورگر منتشر نشده‌اند':'با صفحهٔ کاربر همین مرورگر همگام است'}</span></div>
-    <p class="cap">انتشار محلی به‌تنهایی نسخهٔ بین‌دستگاهی را عوض نمی‌کند؛ برای آن، از «همگام‌سازی محتوای عمومی» و حساب امن مالک استفاده کن.</p>
+    <p class="cap">انتشار محلی به‌تنهایی نسخهٔ بین‌دستگاهی را عوض نمی‌کند؛ برای آن، از «همگام‌سازی محتوای عمومی» و حساب امن مالک استفاده کن.</p>`}
   </section>`;
 }
 function ppList(kind){
@@ -6737,7 +6818,7 @@ function serverSettingsView(){
   else if(selected==='data') content=canBackup?dataSettingsView()
     :serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.');
   else if(selected==='security') content=securitySettingsView();
-  else if(selected==='publishing') content=`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
+  else if(selected==='publishing') content=(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
   else if(selected==='bots') content=`<section class="card stack"><div class="row"><div class="head">وضعیت پیام‌رسان</div><span class="sp"></span>${tag('فقط وضعیت عمومی','warn')}</div>
@@ -7699,6 +7780,12 @@ document.addEventListener('click',e=>{
     const row={id,n:name,mon,type:String(D.type||'').trim(),collab:String(D.collab||'').trim(),
       g:ppPartnerGradient(D.g),logo,since:String(D.since||'').trim(),s:String(D.s||'').trim(),
       d:String(D.d||'').trim(),focus:Array.isArray(D.focus)?D.focus.slice():[],href:website,links:links};
+    if(ppPartnerServerMode()){
+      const list=ppPartnerAll().map(item=>ppPartnerClean(item,true)), at=list.findIndex(item=>String(item.id)===id), clean=ppPartnerClean(row,true);
+      if(key!=='new'&&at<0){toast('این نهاد دیگر روی سرور نیست؛ فهرست تازه‌سازی شد'); ppPartnerServerLoad(); return}
+      if(at<0) list.push(clean); else list[at]=clean;
+      ppPartnerCommit(list,key==='new'?'افزودن نهاد «'+name+'»':'ویرایش نهاد «'+name+'»',ok=>{if(ok){S.ppPartnerEd=''; S.ppPartnerD=null; save()}});
+      return}
     const base=PP_PARTNER_BASE().some(item=>String(item.id)===id), add=(b.partnerAdd||[]).slice();
     if(key==='new') add.push(row);
     else if(base){b.partnerO=b.partnerO||{}; b.partnerO[id]=row}
@@ -7711,6 +7798,8 @@ document.addEventListener('click',e=>{
     if(!isOwner()){toast('مدیریت نهادهای همکار فقط برای مالک است'); return}
     const D=ppPartnerD(); if(!D||!S.ppPartnerEd||S.ppPartnerEd==='new'){toast('اول نهادِ موجود را باز کن'); return}
     const copy=ppPartnerClean(D,false), b=ppSet(); copy.id='org'+Date.now(); copy.n=(copy.n||'نهاد')+' (رونوشت)';
+    if(ppPartnerServerMode()){delete copy.id; S.ppPartnerEd='new'; S.ppPartnerD=ppPartnerDraftOf(copy); save();
+      toast('رونوشت به‌صورت نهاد تازه باز شد؛ پس از بازبینی، روی سرور ذخیره کن'); renderBody(); return}
     b.partnerAdd=(b.partnerAdd||[]).concat([copy]); S.ppPartnerEd=''; S.ppPartnerD=null; save();
     toast('رونوشت نهاد ساخته شد؛ نام و اطلاعاتش را بازبینی کن'); renderBody(); return}
   const ppartnerReset=q('[data-ppartner-reset]'); if(ppartnerReset){
@@ -7725,8 +7814,15 @@ document.addEventListener('click',e=>{
   const ppartnerShow=q('[data-ppartner-show]'); if(ppartnerShow){
     if(!isOwner()) return; const b=ppSet(), id=String(ppartnerShow.dataset.ppartnerShow);
     b.partnerHide=(b.partnerHide||[]).filter(item=>String(item)!==id); save(); renderBody(); return}
+  const ppartnerReload=q('[data-ppartner-reload]'); if(ppartnerReload){ppPartnerServerLoad(); renderBody(); return}
   const ppartnerDelete=q('[data-ppartner-del]'); if(ppartnerDelete){
     if(!isOwner()) return; const b=ppSet(), id=String(ppartnerDelete.dataset.ppartnerDel);
+    if(ppPartnerServerMode()){
+      const row=ppPartnerAll().find(item=>String(item.id)===id); if(!row) return;
+      const name=row.n||'بی‌نام';
+      if(typeof window.confirm==='function'&&!window.confirm('نهاد «'+name+'» از فهرست عمومی سرور حذف می‌شود و صفحهٔ اختصاصی‌اش دیگر در دسترس نخواهد بود. رویدادها و دیگر محتواها تغییر نمی‌کنند. حذف شود؟')) return;
+      ppPartnerCommit(ppPartnerAll().filter(item=>String(item.id)!==id).map(item=>ppPartnerClean(item,true)),'حذف نهاد «'+name+'»');
+      return}
     b.partnerAdd=(b.partnerAdd||[]).filter(item=>String(item.id)!==id);
     b.partnerHide=(b.partnerHide||[]).filter(item=>String(item)!==id); b.partnerOrd=(b.partnerOrd||[]).filter(item=>String(item)!==id);
     save(); toast('نهاد تازه از فهرست برداشته شد'); renderBody(); return}
@@ -7734,6 +7830,7 @@ document.addEventListener('click',e=>{
   const ppartnerDown=q('[data-ppartner-down]'); if(ppartnerDown){ppPartnerMove(+ppartnerDown.dataset.ppartnerDown,1); renderBody(); return}
   const ppartnerPublish=q('[data-ppartner-pub]'); if(ppartnerPublish){
     if(!isOwner()){toast('انتشار نهادهای همکار فقط با مالک است'); return}
+    if(ppPartnerServerMode()){toast('در تولید، هر تغییر مستقیماً روی سرور ذخیره می‌شود'); return}
     const list=ppPartnerPublishList();
     if(!ppPub('nora-partners',list)) return;
     uLogAdd('فهرست نهادهای همکار در مرورگر منتشر شد ('+fa(list.length)+' نهاد)');
@@ -8681,6 +8778,9 @@ addEventListener('hashchange',()=>{
     S.sec='settings'; S.setG='money'; S.finTab='gates'; S.q=''; save(); render();
   }else if(k==='reports') go('reports');
   else if(k==='newev'&&k!==S.sec){S.sec='newev'; S.q=''; save(); render();}
+  else if(k==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null; S.q='';
+    if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';
+    save(); render();}
   else if(ALLSECS.some(section=>section.k===k)&&k!==S.sec){
     if(k==='users'){S.uHub='users';S.uV='';S.uSel=''}
     S.sec=k; S.q=''; save(); render();
@@ -8700,6 +8800,8 @@ function startAdminApplication(){
   else if(h==='money'||h==='finance'){S.sec='settings';S.setG='money';S.finTab='gates'}
   else if(h==='reports'){S.sec='users';S.uHub='reports'}
   else if(h==='newev') S.sec='newev';
+  else if(h==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null;
+    if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';}
   else if(ALLSECS.some(section=>section.k===h)) S.sec=h;
   if(S.sec!=='newev'&&!ALLSECS.some(section=>section.k===S.sec)) S.sec='dash';
   const th=$('#admTheme'); if(th) th.onclick=()=>{if(typeof themeToggle==='function') themeToggle()};
