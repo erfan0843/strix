@@ -17,8 +17,10 @@ import json
 import logging
 import os
 import re
+import secrets
 import sys
 import tempfile
+import unicodedata
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, replace as dataclass_replace
@@ -47,6 +49,7 @@ from .config import UI_ROOT, Settings
 from .financials import (
     PaymentConfigurationError,
     calculate_payment_amount,
+    normalize_financial_config,
     normalize_payment_methods,
 )
 from .form_capabilities import public_form_capabilities
@@ -4941,6 +4944,39 @@ def create_app(
             waitlisted_count=waitlisted,
             bale_ready=cfg.form_bale_payments_ready,
         )
+
+    @app.post("/api/public/forms/{form_id}/coupon-check")
+    def check_public_coupon(
+        form_id: str,
+        payload: dict[str, Any],
+        request: Request,
+        http_response: Response,
+        db: Session = Depends(get_db),
+    ):
+        """Validate a typed discount code without ever exposing the configured code."""
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
+        http_response.headers["Cache-Control"] = "no-store"
+        if not isinstance(payload, dict) or set(payload) != {"code"} or not isinstance(payload.get("code"), str):
+            raise HTTPException(400, detail={"code": "invalid_coupon_payload"})
+        typed = payload["code"]
+        if len(typed) > 64:
+            raise HTTPException(422, detail={"code": "invalid_coupon_code"})
+        form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
+        enforce_public_write_limit(request, db, form_id, cfg, cfg.response_draft_write_limit_per_minute)
+        settings = form.settings if isinstance(form.settings, dict) else {}
+        try:
+            financial = normalize_financial_config(settings)
+        except PaymentConfigurationError:
+            return {"valid": False, "off": 0, "all": False}
+        coupon = financial["coupon"]
+        configured = unicodedata.normalize("NFKC", coupon["code"]).strip().casefold()
+        normalized = unicodedata.normalize("NFKC", typed).strip().casefold()
+        valid = bool(configured) and coupon["off"] > 0 and bool(financial["fin"]) and secrets.compare_digest(
+            configured.encode("utf-8"), normalized.encode("utf-8")
+        )
+        if not valid:
+            return {"valid": False, "off": 0, "all": False}
+        return {"valid": True, "off": coupon["off"], "all": coupon["all"]}
 
     @app.post("/api/public/forms/{form_id}/payment-intents", status_code=201)
     async def create_public_payment_intent(

@@ -2509,3 +2509,84 @@ def test_api_is_explicitly_unavailable_without_database():
         health = client.get("/api/health")
         assert health.status_code == 503
         assert health.json()["formsEnabled"] is False
+
+
+def test_public_form_never_exposes_coupon_code_and_validates_it_server_side(configured_client):
+    owner, _settings = configured_client
+    login(owner)
+    payload = valid_form()
+    payload["settings"].update({
+        "enabledPaymentMethods": ["card_transfer"],
+        "receiptReviewRequired": True,
+        "fin": [{"l": "ورودی نمونه", "p": 1000000, "off": 0, "req": True, "d": ""}],
+        "coupon": {"code": "Secret-Code-20", "off": 20, "all": False},
+        "paymentCard": {"number": "4111111111111111", "bank": "بانک نمونه", "holder": "حساب سازمان"},
+    })
+    created = owner.post("/api/forms", json=payload, headers=create_headers(owner))
+    assert created.status_code == 201, created.text
+    form_id = created.json()["id"]
+    origin = {"Origin": "http://testserver"}
+    visitor = TestClient(owner.app)
+
+    # Unpublished forms do not leak anything, not even whether a coupon exists.
+    assert visitor.post(
+        f"/api/public/forms/{form_id}/coupon-check", json={"code": "Secret-Code-20"}, headers=origin
+    ).status_code == 404
+
+    published = owner.post(
+        f"/api/forms/{form_id}/publish", json={"expected_version": 1}, headers=csrf_headers(owner)
+    )
+    assert published.status_code == 200, published.text
+
+    public_form = visitor.get(f"/api/public/forms/{form_id}")
+    assert public_form.status_code == 200, public_form.text
+    assert "Secret-Code-20" not in public_form.text
+    assert public_form.json()["coupon"] == {"code": "", "off": 20, "all": False, "enabled": True}
+    assert public_form.json()["settings"]["coupon"]["code"] == ""
+
+    check = visitor.post(f"/api/public/forms/{form_id}/coupon-check", json={"code": "secret-code-20"}, headers=origin)
+    assert check.status_code == 200, check.text
+    assert check.json() == {"valid": True, "off": 20, "all": False}
+    assert check.headers["cache-control"] == "no-store"
+    wrong = visitor.post(f"/api/public/forms/{form_id}/coupon-check", json={"code": "secret-code-21"}, headers=origin)
+    assert wrong.status_code == 200
+    assert wrong.json() == {"valid": False, "off": 0, "all": False}
+    assert visitor.post(
+        f"/api/public/forms/{form_id}/coupon-check", json={"code": ""}, headers=origin
+    ).json()["valid"] is False
+    assert visitor.post(
+        f"/api/public/forms/{form_id}/coupon-check", json={"codes": "x"}, headers=origin
+    ).status_code == 400
+    assert visitor.post(
+        f"/api/public/forms/{form_id}/coupon-check", json={"code": "x" * 65}, headers=origin
+    ).status_code == 422
+
+    # The recorded amount is recalculated on the server: a forged code gives no discount,
+    # the real code is honoured even though the browser never learned it from the API.
+    assert visitor.get(f"/api/public/forms/{form_id}/draft").status_code == 200
+    forged = visitor.post(
+        f"/api/public/forms/{form_id}/responses",
+        json={"answers": {"full-name": "نمونه"}, "payment": {
+            "method": "card_transfer", "selection": {"items": [0], "coupon_code": "HACK99"}
+        }},
+        headers=origin,
+    )
+    assert forged.status_code == 200, forged.text
+    responses = owner.get(f"/api/forms/{form_id}/responses")
+    assert responses.status_code == 200
+    payment = responses.json()["items"][0]["form_snapshot"]["payment"]
+    assert payment["amount"] == 1000000 and payment["coupon_applied"] is False
+
+    honest = TestClient(owner.app)
+    assert honest.get(f"/api/public/forms/{form_id}/draft").status_code == 200
+    accepted = honest.post(
+        f"/api/public/forms/{form_id}/responses",
+        json={"answers": {"full-name": "نمونهٔ دوم"}, "payment": {
+            "method": "card_transfer", "selection": {"items": [0], "coupon_code": "SECRET-CODE-20"}
+        }},
+        headers=origin,
+    )
+    assert accepted.status_code == 200, accepted.text
+    items = owner.get(f"/api/forms/{form_id}/responses").json()["items"]
+    amounts = sorted(item["form_snapshot"]["payment"]["amount"] for item in items)
+    assert amounts == [800000, 1000000]

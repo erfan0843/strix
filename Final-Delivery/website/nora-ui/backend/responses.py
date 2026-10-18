@@ -814,7 +814,14 @@ def public_form_data(
         "methods": public_payment_methods(settings),
         "fin": payment_config["fin"],
         "groups": payment_config["groups"],
-        "coupon": payment_config["coupon"],
+        # The discount code itself is a shared secret between organizer and participants;
+        # the public page only learns whether a coupon exists and validates typed codes server-side.
+        "coupon": {
+            "code": "",
+            "off": payment_config["coupon"]["off"],
+            "all": payment_config["coupon"]["all"],
+            "enabled": bool(payment_config["coupon"]["code"]) and payment_config["coupon"]["off"] > 0,
+        },
         "enabledPaymentMethods": payment_config["enabledPaymentMethods"],
         "receiptUploadRequired": payment_config["receiptUploadRequired"],
     }

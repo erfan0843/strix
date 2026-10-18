@@ -888,7 +888,7 @@
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=126"></script>
 <script src="form-quality.js?v=2"></script>
-<script src="owner-api.js?v=107"></script>
+<script src="owner-api.js?v=108"></script>
 <script type="application/json" id="nora-public-form-data"><!--nora-public-form--></script>
 <script type="application/json" id="nora-public-draft-data"><!--nora-public-draft--></script>
 <script type="application/json" id="nora-public-error-data"><!--nora-public-error--></script>
@@ -1152,6 +1152,8 @@ const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',mo
     CFG.coupon={code:'',off:0,all:false}; CFG.maxPer=Math.max(1,safeCount(f.maxPer,10)||1);
     CFG.cap=safeCount(f.cap,100000); CFG.taken=0;
     if(f.coupon&&String(f.coupon.code||'').trim()) CFG.coupon={code:String(f.coupon.code).trim().slice(0,64),off:safeCount(f.coupon.off,100),all:safeBoolean(f.coupon.all,false)};
+    /* فرم سروری: کد تخفیف هرگز به مرورگر داده نمی‌شود؛ فقط «فعال‌بودن» می‌آید و کد تایپ‌شده در سرور بررسی می‌شود */
+    else if(f.coupon&&f.coupon.enabled===true) CFG.coupon={code:'',off:safeCount(f.coupon.off,100),all:safeBoolean(f.coupon.all,false),server:true};
     CFG.companion={on:safeBoolean(f.guestsOn,false),max:CFG.maxPer,fields:CFG.compFields};
     /* فرم سروری: پاسخ واقعاً به سرور می‌رود؛ متن «پاسخ نمونه فقط در همین مرورگر می‌ماند» فقط برای فرم محلی درست است */
     CFG.endText=String(f.endText||(FORM_ROUTE.serverBacked?'پاسخت روی سرور ثبت شد.':'پاسخ نمونه فقط در همین مرورگر می‌ماند؛ برای سازنده یا کارشناس ارسال نمی‌شود.')).slice(0,1500);
@@ -1179,7 +1181,7 @@ document.addEventListener('click',e=>{
     if(inp){inp.value=''; try{inp.focus()}catch(e3){}}
   }
 });
-const S={guests:[],companionFields:new Set(),pendingCompanionQuestion:null,discount:0,code:'',regCode:'',submitted:false,serverResponse:null,paymentIntent:null,paymentReviewTimer:0,paymentPollAttempts:0,paymentStatusBusy:false,paymentIntentMessage:''};
+const S={guests:[],companionFields:new Set(),pendingCompanionQuestion:null,discount:0,code:'',couponValid:false,couponAll:false,regCode:'',submitted:false,serverResponse:null,paymentIntent:null,paymentReviewTimer:0,paymentPollAttempts:0,paymentStatusBusy:false,paymentIntentMessage:''};
 /* هر گزینه‌ای که کاربر خودش زده · پیش‌فرض ادمین کافی نیست، انتخاب باید صریح باشد */
 const PICKED=new Set();
 /* تنظیم سازنده تعیین می‌کند همراه فعال باشد؛ ?guests=0 فقط نمای دمو را موقتاً پنهان می‌کند. */
@@ -1216,11 +1218,16 @@ function normalizeIranMobile(value){
 }
 function escapeHtml(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function normalizeCoupon(value){return asciiDigits(value).normalize('NFKC').trim().toLocaleUpperCase()}
-function couponMatches(){return !!(CFG.coupon&&CFG.coupon.code&&S.code&&normalizeCoupon(S.code)===normalizeCoupon(CFG.coupon.code))}
+function couponServerSide(){return !!(CFG.coupon&&CFG.coupon.server===true)}
+function couponConfigured(){return !!(CFG.coupon&&(CFG.coupon.code||CFG.coupon.server===true)&&Number(CFG.coupon.off)>0)}
+function couponMatches(){
+  if(couponServerSide()) return S.couponValid===true&&!!S.code;
+  return !!(CFG.coupon&&CFG.coupon.code&&S.code&&normalizeCoupon(S.code)===normalizeCoupon(CFG.coupon.code))
+}
 function calc(){
   const per=perPerson(),count=Math.max(1,Math.min(GUEST_ON?GUEST_MAX:1,S.guests.length+1)),sub=per*count;
-  const discount=couponMatches()?Math.min(100,Number(CFG.coupon.off)||0):0;
-  const eligible=CFG.coupon&&CFG.coupon.all?sub:per;
+  const discount=couponMatches()?Math.min(100,Number(couponServerSide()?S.discount:CFG.coupon.off)||0):0;
+  const eligible=(couponServerSide()?S.couponAll:CFG.coupon&&CFG.coupon.all)?sub:per;
   const dis=discount?Math.min(sub,Math.round(eligible*discount/100)):0;
   return {per,count,sub,dis,sum:sub-dis,discount,couponApplied:discount>0};
 }
@@ -1237,7 +1244,7 @@ function safeBaleInvoiceURL(value){
 function publicPaymentSelection(){
   return {
     items:CFG.fin.map((item,index)=>item&&item.on?index:null).filter(Number.isInteger),
-    coupon_code:couponMatches()?String(CFG.coupon.code||''):''
+    coupon_code:couponMatches()?String(couponServerSide()?S.code:CFG.coupon.code||''):''
   };
 }
 function publicPaymentSelectionIdentity(selection=publicPaymentSelection(),partyCount=calc().count){
@@ -1532,10 +1539,10 @@ function renderBill(){
         <span class="num">${o.off?`<span class="old">${fa(o.p)}</span> `:''}${fa(net(o))}</span></div>`).join('')
       ||'<div class="r"><span class="mute">هنوز موردی انتخاب نشده</span><span></span></div>')
     +(c.count>1?`<div class="r"><span>مبلغ هر نفر × ${faN(c.count)} نفر</span><span class="num">${fa(c.per*c.count)}</span></div>`:'')
-    +(c.dis?`<div class="r"><span>کد تخفیف ${escapeHtml(S.code)} (٪${faN(c.discount)} · ${CFG.coupon.all?'برای همهٔ نفرها':'برای نفر اصلی'})</span><span class="num" style="color:var(--ok)">−${fa(c.dis)}</span></div>`:'')
+    +(c.dis?`<div class="r"><span>کد تخفیف ${escapeHtml(S.code)} (٪${faN(c.discount)} · ${(couponServerSide()?S.couponAll:CFG.coupon.all)?'برای همهٔ نفرها':'برای نفر اصلی'})</span><span class="num" style="color:var(--ok)">−${fa(c.dis)}</span></div>`:'')
     +`<div class="r t"><span>جمع کل</span><span class="num">${rialTxt(c.sum)}</span></div>
        <div class="mini" style="margin-top:6px">${tomanTxt(c.sum)}</div>`;
-  const couponEnabled=!!(CFG.coupon&&CFG.coupon.code&&Number(CFG.coupon.off)>0);
+  const couponEnabled=couponConfigured();
   const couponRow=document.getElementById('couponRow');if(couponRow)couponRow.style.display=couponEnabled?'':'none';
   const couponNote=document.getElementById('couponNote');
   if(couponNote){
@@ -1667,6 +1674,7 @@ function restoreDraft(d){
   const couponCode=CFG.coupon&&CFG.coupon.code||'';
   S.code=couponCode&&normalizeCoupon(d.code||'')===normalizeCoupon(couponCode)?couponCode:'';
   S.discount=S.code?Math.min(100,Number(CFG.coupon.off)||0):0;
+  if(couponServerSide()){S.code='';S.discount=0;S.couponValid=false;const typed=String(d.code||'').slice(0,64);if(typed)void revalidateServerCoupon(typed);}
   S.regCode=String(d.regCode||'').startsWith('DEMO-NOT-A-TICKET-')?String(d.regCode).slice(0,80):'';
   PICKED.clear();
   if(Array.isArray(d.fin))d.fin.slice(0,CFG.fin.length).forEach((on,i)=>{if(CFG.fin[i])CFG.fin[i].on=on===true});
@@ -3228,7 +3236,11 @@ if(REG&&Array.isArray(REG.q)){
         const selected=new Set(savedSelection.items);
         CFG.fin.forEach((item,index)=>{item.on=selected.has(index)});
         PICKED.clear();selected.forEach(index=>{if(CFG.fin[index])PICKED.add(index)});
-        if(savedSelection.coupon_code&&CFG.coupon&&normalizeCoupon(savedSelection.coupon_code)===normalizeCoupon(CFG.coupon.code)){
+        if(savedSelection.coupon_code&&couponServerSide()){
+          /* سرور این کد را هنگام ساخت صورتحساب پذیرفته است */
+          S.code=String(savedSelection.coupon_code).slice(0,64);S.couponValid=true;S.discount=Math.min(100,Number(CFG.coupon.off)||0);S.couponAll=!!CFG.coupon.all;
+          const couponInput=document.getElementById('coupon');if(couponInput)couponInput.value=S.code;
+        }else if(savedSelection.coupon_code&&CFG.coupon&&normalizeCoupon(savedSelection.coupon_code)===normalizeCoupon(CFG.coupon.code)){
           S.code=CFG.coupon.code;S.discount=Math.min(100,Number(CFG.coupon.off)||0);
           const couponInput=document.getElementById('coupon');if(couponInput)couponInput.value=CFG.coupon.code;
         }
@@ -3827,10 +3839,43 @@ document.addEventListener('click',e=>{
   const o=e.target.closest('.opt:not([data-fin]):not([data-qopt])');
   if(o){o.parentElement.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');return}
 });
-document.getElementById('applyCoupon').onclick=()=>{
-  const input=document.getElementById('coupon'),note=document.getElementById('couponNote');
-  const configured=!!(CFG.coupon&&CFG.coupon.code&&Number(CFG.coupon.off)>0),value=normalizeCoupon(input&&input.value||'');
-  if(!configured){S.code='';S.discount=0;renderBill();return}
+async function revalidateServerCoupon(typed){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.checkPublicCoupon!=='function'||!FORM_ROUTE.serverBacked)return false;
+  try{
+    const result=await api.checkPublicCoupon(FORM_ROUTE.formId,typed);
+    const valid=!!(result&&result.valid===true&&Number(result.off)>0);
+    S.couponValid=valid;S.code=valid?String(typed).slice(0,64):'';S.discount=valid?Math.min(100,Number(result.off)||0):0;S.couponAll=valid?result.all===true:false;
+    const input=document.getElementById('coupon');if(valid&&input&&!input.value)input.value=S.code;
+    renderBill();return valid;
+  }catch(error){S.couponValid=false;S.code='';S.discount=0;renderBill();return false}
+}
+let couponCheckBusy=false;
+document.getElementById('applyCoupon').onclick=async()=>{
+  const input=document.getElementById('coupon'),note=document.getElementById('couponNote'),button=document.getElementById('applyCoupon');
+  const configured=couponConfigured(),value=normalizeCoupon(input&&input.value||'');
+  if(!configured){S.code='';S.discount=0;S.couponValid=false;renderBill();return}
+  if(couponServerSide()){
+    if(couponCheckBusy)return;
+    if(!value){S.code='';S.discount=0;S.couponValid=false;cancelStalePublicBaleIntent();renderBill();if(note)note.textContent='کدی وارد نکردی؛ مبلغ بدون تخفیف می‌مونه.';saveDraft();return}
+    couponCheckBusy=true;if(button){button.disabled=true;button.setAttribute('aria-busy','true')}
+    if(note)note.textContent='در حال بررسی کد…';
+    const api=window.NORA_SERVER_API;let valid=false,failure='';
+    try{
+      if(!api||typeof api.checkPublicCoupon!=='function')throw new Error('coupon_api_unavailable');
+      const result=await api.checkPublicCoupon(FORM_ROUTE.formId,value);
+      valid=!!(result&&result.valid===true&&Number(result.off)>0);
+      if(valid){S.code=value.slice(0,64);S.discount=Math.min(100,Number(result.off)||0);S.couponAll=result.all===true;S.couponValid=true}
+      else{S.code='';S.discount=0;S.couponValid=false}
+    }catch(error){
+      S.code='';S.discount=0;S.couponValid=false;
+      failure=error&&error.status===429?'تعداد تلاش زیاد بود؛ کمی بعد دوباره امتحان کن.':'بررسی کد تخفیف با سرور انجام نشد؛ مبلغ بدون تخفیف می‌مونه.';
+    }finally{couponCheckBusy=false;if(button){button.disabled=false;button.removeAttribute('aria-busy')}}
+    cancelStalePublicBaleIntent();renderBill();
+    if(note)note.textContent=valid?'کد تخفیف اعمال شد.':failure||'این کد معتبر نیست.';
+    saveDraft();toast(valid?'کد تخفیف اعمال شد':failure?'بررسی کد انجام نشد':'کد تخفیف معتبر نیست');
+    return;
+  }
   const valid=!!value&&value===normalizeCoupon(CFG.coupon.code);
   S.code=valid?CFG.coupon.code:'';S.discount=valid?Math.min(100,Number(CFG.coupon.off)||0):0;
   cancelStalePublicBaleIntent();renderBill();

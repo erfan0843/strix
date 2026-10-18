@@ -268,6 +268,9 @@
       method: 'POST', body: payload&&typeof payload==='object'&&!Array.isArray(payload)&&Object.prototype.hasOwnProperty.call(payload,'answers')
         ?payload:{answers:payload}
     }),
+    checkPublicCoupon: (id, code) => request('/api/public/forms/' + encodeURIComponent(String(id)) + '/coupon-check', {
+      method: 'POST', body: { code: String(code == null ? '' : code).slice(0, 64) }
+    }),
     createPublicPaymentIntent: (id, payload) => request('/api/public/forms/' + encodeURIComponent(String(id)) + '/payment-intents', {
       method: 'POST', body: payload
     }),
