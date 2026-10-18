@@ -1,0 +1,297 @@
+{
+  "origin": "http://127.0.0.1:8000",
+  "mockOtp": true,
+  "member": true,
+  "results": [
+    {
+      "ok": true,
+      "label": "[mobile] تب «ورود/ثبت‌نام» در نوار پایین خانه برای مهمان دیده می‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] کلیک «ورود/ثبت‌نام» به account.html می‌رود و ورقهٔ ورود قدیمی باز نمی‌شود",
+      "detail": "http://127.0.0.1:8000/account.html sheet=false"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] بدون نشست، API ثبت‌نام‌های حساب ۴۰۱ می‌دهد",
+      "detail": "HTTP 401"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] نمای مهمان حساب، «نورا پی» و «باشگاه کتاب‌خوانی» را نشان می‌دهد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] هیچ کد نمونه یا حساب آزمایشی در نمای مهمان نیست",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] دکمهٔ ورود مهمان به login.html?mode=server اشاره می‌کند",
+      "detail": "login.html?mode=server&next=account.html"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] #pay قدیمی در نسخهٔ سروری همان نمای پرداخت‌های واقعی را باز می‌کند",
+      "detail": "پرداخت‌ها و رسیدها\n\nنیاز به ورود\n\nنیاز به ورود\nبرای دیدن وضعیت پرداخت‌هایت وارد "
+    },
+    {
+      "ok": true,
+      "label": "[mobile] دکمهٔ ورود در پرداخت‌ها مقصد #payments را نگه می‌دارد",
+      "detail": "login.html?mode=server&next=account.html%23payments"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] به صفحهٔ ورود مستقل با next رسیدیم",
+      "detail": "http://127.0.0.1:8000/login.html?mode=server&next=account.html%23payments"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] فرم شماره، کد امنیتی و دکمهٔ «دریافت کد» دیده می‌شوند",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] کپچا تصویر PNG سرور است و رقمی در DOM خوانده نمی‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] «کد جدید» تصویر کپچای تازه می‌گیرد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] درخواست کد واقعاً به سرور رفت و با خطای سرور پاسخ گرفت",
+      "detail": "HTTP 503"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] پیام خطا نمایش داده شد و گام کد باز نشد",
+      "detail": "سرویس ارسال کد روی سرور تنظیم نشده است."
+    },
+    {
+      "ok": true,
+      "label": "[mobile] هیچ شماره/کد/نشستی در storage مرورگر ذخیره نشد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] وضعیت سرویس پیامک در این سرور",
+      "detail": "HTTP 503 · سرویس ارسال کد روی سرور تنظیم نشده است."
+    },
+    {
+      "ok": true,
+      "label": "[mobile] [mock] پس از پاسخ موفق سرور، گام کد ۶ رقمی باز می‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] [mock] پس از تأیید سرور، مرورگر خودکار به همان مقصد account.html#payments برمی‌گردد",
+      "detail": "http://127.0.0.1:8000/account.html#payments"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] [mock] پس از ورود هم چیزی در storage مرورگر نیست",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] ورود مدیران فرم نام کاربری/گذرواژه دارد و با ورود عضو یکی نیست",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] در کل مسیر مهمان هیچ خطای JavaScript رخ نداد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] عضو واردشده سر صفحه، نورا پی و بخش‌های من را می‌بیند",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] برچسب تب حساب برای عضو دیگر «ورود/ثبت‌نام» نیست",
+      "detail": "حساب من"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] #forms فهرست را از API حساب می‌خواند و دادهٔ نمونه ندارد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] #pay قدیمی برای عضو هم نمای پرداخت‌های واقعی ثبت‌نام‌ها را باز می‌کند",
+      "detail": "پرداخت‌ها و رسیدها\n\nپرداخت‌های تو\n\nن\nحساب نورا\nورود با شمارهٔ موبایل وصل است · ح"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] در پرداخت‌ها هیچ موجودی یا مبلغ نمونه‌ای نشان داده نمی‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] دکمهٔ بازگشت مرورگر بین بخش‌های حساب کار می‌کند",
+      "detail": "http://127.0.0.1:8000/account.html#forms"
+    },
+    {
+      "ok": true,
+      "label": "[mobile] باشگاه کتاب‌خوانی با حالت خالی روشن و بدون کتاب نمونه",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[mobile] در مسیر عضو هیچ خطای JavaScript رخ نداد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] تب «ورود/ثبت‌نام» در نوار پایین خانه برای مهمان دیده می‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] کلیک «ورود/ثبت‌نام» به account.html می‌رود و ورقهٔ ورود قدیمی باز نمی‌شود",
+      "detail": "http://127.0.0.1:8000/account.html sheet=false"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] بدون نشست، API ثبت‌نام‌های حساب ۴۰۱ می‌دهد",
+      "detail": "HTTP 401"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] نمای مهمان حساب، «نورا پی» و «باشگاه کتاب‌خوانی» را نشان می‌دهد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] هیچ کد نمونه یا حساب آزمایشی در نمای مهمان نیست",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] دکمهٔ ورود مهمان به login.html?mode=server اشاره می‌کند",
+      "detail": "login.html?mode=server&next=account.html"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] #pay قدیمی در نسخهٔ سروری همان نمای پرداخت‌های واقعی را باز می‌کند",
+      "detail": "پرداخت‌ها و رسیدها\n\nنیاز به ورود\n\nنیاز به ورود\nبرای دیدن وضعیت پرداخت‌هایت وارد "
+    },
+    {
+      "ok": true,
+      "label": "[desktop] دکمهٔ ورود در پرداخت‌ها مقصد #payments را نگه می‌دارد",
+      "detail": "login.html?mode=server&next=account.html%23payments"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] به صفحهٔ ورود مستقل با next رسیدیم",
+      "detail": "http://127.0.0.1:8000/login.html?mode=server&next=account.html%23payments"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] فرم شماره، کد امنیتی و دکمهٔ «دریافت کد» دیده می‌شوند",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] کپچا تصویر PNG سرور است و رقمی در DOM خوانده نمی‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] «کد جدید» تصویر کپچای تازه می‌گیرد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] درخواست کد واقعاً به سرور رفت و با خطای سرور پاسخ گرفت",
+      "detail": "HTTP 503"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] پیام خطا نمایش داده شد و گام کد باز نشد",
+      "detail": "سرویس ارسال کد روی سرور تنظیم نشده است."
+    },
+    {
+      "ok": true,
+      "label": "[desktop] هیچ شماره/کد/نشستی در storage مرورگر ذخیره نشد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] وضعیت سرویس پیامک در این سرور",
+      "detail": "HTTP 503 · سرویس ارسال کد روی سرور تنظیم نشده است."
+    },
+    {
+      "ok": true,
+      "label": "[desktop] [mock] پس از پاسخ موفق سرور، گام کد ۶ رقمی باز می‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] [mock] پس از تأیید سرور، مرورگر خودکار به همان مقصد account.html#payments برمی‌گردد",
+      "detail": "http://127.0.0.1:8000/account.html#payments"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] [mock] پس از ورود هم چیزی در storage مرورگر نیست",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] ورود مدیران فرم نام کاربری/گذرواژه دارد و با ورود عضو یکی نیست",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] در کل مسیر مهمان هیچ خطای JavaScript رخ نداد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] عضو واردشده سر صفحه، نورا پی و بخش‌های من را می‌بیند",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] برچسب تب حساب برای عضو دیگر «ورود/ثبت‌نام» نیست",
+      "detail": "حساب من"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] #forms فهرست را از API حساب می‌خواند و دادهٔ نمونه ندارد",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] #pay قدیمی برای عضو هم نمای پرداخت‌های واقعی ثبت‌نام‌ها را باز می‌کند",
+      "detail": "پرداخت‌ها و رسیدها\n\nپرداخت‌های تو\n\nن\nحساب نورا\nورود با شمارهٔ موبایل وصل است · ح"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] در پرداخت‌ها هیچ موجودی یا مبلغ نمونه‌ای نشان داده نمی‌شود",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] دکمهٔ بازگشت مرورگر بین بخش‌های حساب کار می‌کند",
+      "detail": "http://127.0.0.1:8000/account.html#forms"
+    },
+    {
+      "ok": true,
+      "label": "[desktop] باشگاه کتاب‌خوانی با حالت خالی روشن و بدون کتاب نمونه",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "[desktop] در مسیر عضو هیچ خطای JavaScript رخ نداد",
+      "detail": ""
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "fid": "9a4487cf-fe2a-429a-abef-4fb37444cdf0",
+  "results": [
+    {
+      "name": "create: load",
+      "ok": true,
+      "detail": "ownerApi=هنوز بررسی نشده | title= | rail=فرم‌ساز سروری | hscroll=false"
+    },
+    {
+      "name": "create: step2 fields",
+      "ok": true,
+      "detail": "fields=7"
+    },
+    {
+      "name": "create: step3 payment ui",
+      "ok": true,
+      "detail": "فیلدهای مالی هر مورد مالی یک قیمت دارد؛ اگر چند مورد می‌خواهید، چند فیلد اضافه کنید افزودن مورد مالی جزئیات مالی فقط برای حساب مالک نمایش داده می‌شود. تعداد نفرات «دوستاتم با خودت بیار» افزودن همراه را برای شرکت‌کننده باز می‌کند. بسته باشد، در فرم چیزی نشان داده نمی‌شود. حداکثر تعداد افراد هر پاسخ ا"
+    },
+    {
+      "name": "create: save with network failure shows no success",
+      "ok": true,
+      "detail": "state=ذخیره نشد | note=به سرور همین سامانه دسترسی نیست؛ اتصال شبکه و نشانی همین صفحه را بررسی کنید. | net=GET /api/health → 200; GET /api/auth/me → 200"
+    },
+    {
+      "name": "create: save draft",
+      "ok": true,
+      "detail": "fid=9a4487cf-fe2a-429a-abef-4fb37444cdf0 | net=POST /api/forms → 201 | state=آمادهٔ ذخیره"
+    },
+    {
+      "name": "create: DB record after save",
+      "ok": true,
+      "detail": "status=200 name=فرم آزمایشی ممیزی 06:23:46 version=1 formStatus=draft fields=7"
+    },
+    {
+      "name": "create: reload ?fid loads saved title",
+      "ok": true,
+      "detail": "title=فرم آزمایشی ممیزی 06:23:46 | state=فرم سروری | note=آخرین وضعیت همگام‌شده: draft. دسترسی سروریِ مالک تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است."
+    },
+    {
+      "name": "create: edit existing + save",
+      "ok": true,
+      "detail": "name=فرم آزمایشی ممیزی 06:23:46 (ویرایش) version=2 | net=GET /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0 → 200; PUT /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0 → 200"
+    },
+    {
+      "name": "create: publish",
+      "ok": true,
+      "detail": "status=published publicUrl=http://127.0.0.1:8000/form.html?fid=9a4487cf-fe2a-429a-abef-4fb37444cdf0&kind=reg | net=GET /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0 → 200; GET /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0/readiness → 200; POST /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0/publish → 200"
+    },
+    {
+      "name": "create: published form is read-only",
+      "ok": true,
+      "detail": "button={\"disabled\":false,\"text\":\"ذخیرهٔ پیش‌نویس در سرور\",\"hidden\":false} | state=ذخیره نشد | note=فرم منتشرشده است؛ ابتدا دریافت پاسخ را متوقف کنید و سپس ویرایش کنید. | net=GET /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0 → 200"
+    },
+    {
+      "name": "create: pause",
+      "ok": true,
+      "detail": "status=paused | net=GET /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0 → 200; POST /api/forms/9a4487cf-fe2a-429a-abef-4fb37444cdf0/pause → 200"
+    },
+    {
+      "name": "builder: server forms listed once each",
+      "ok": true,
+      "detail": "[{\"t\":\"فرم آزمایشی ممیزی 06:23:46 (ویرایش) ثبت‌نام · بخش بدون بخش سروری · کارشناس · متوقف در سرور\",\"tags\":\"tag brand,tag warn\"},{\"t\":\"فرم آزمایشی ممیزی 06:19:59 (ویرایش) ثبت‌نام · بخش بدون بخش سروری · کارشناس · منتشرشده در س\",\"tags\":\"tag brand,tag ok\"},{\"t\":\"فرم آزمایشی ممیزی 06:15:32 (ویرایش) X ثبت‌نام · بخش بدون بخش سروری · کارشناس · پیش‌نویس سر\",\"tags\":\"tag brand,tag quiet\"},{\"t\":\"ثبت‌نام کارگاه آزمایشی ثبت‌نام · بخش بدون بخش سروری · کارشناس · منتشرشده در سرور API سرور \",\"tags\":\"tag brand,tag ok\"}]"
+    },
+    {
+      "name": "create: unknown fid message",
+      "ok": true,
+      "detail": "state=فرم دریافت نشده | note=برای ویرایش، فهرست سروری را در فرم‌ساز تازه کنید؛ دادهٔ محلی جایگزین نمی‌شود."
+    },
+    {
+      "name": "no JS errors",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "jsErrors": []
+}
