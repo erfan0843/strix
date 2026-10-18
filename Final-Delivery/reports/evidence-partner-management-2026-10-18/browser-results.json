@@ -1,0 +1,127 @@
+[
+  {
+    "ok": true,
+    "name": "baseline: 4 public test partners seeded",
+    "detail": "[\"qa-partner-1\",\"qa partner/2 ü\",\"qa-partner-broken-logo\",\"qa-partner-xss\"]"
+  },
+  {
+    "ok": true,
+    "name": "1. owner session: list of 4 server partners with server version",
+    "detail": "۴ نهاد منتشرشده از سرور بارگذاری شد (نسخهٔ ۱۳)."
+  },
+  {
+    "ok": true,
+    "name": "fixture data.js partners are not shown; server names are",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no local publish/hide controls; delete + public page link per row; no horizontal scroll",
+    "detail": "{\"pub\":false,\"hide\":false,\"del\":4,\"pageLinks\":[\"partner.html?id=qa-partner-1\",\"partner.html?id=qa%20partner%2F2%20%C3%BC\",\"partner.html?id=qa-partner-broken-logo\",\"partner.html?id=qa-partner-xss\"],\"scrollW\":1280,\"innerW\":1280}"
+  },
+  {
+    "ok": true,
+    "name": "2a. javascript: contact is rejected client-side before any request",
+    "detail": " یکی از راه‌های تماس معتبر نیست؛ مقدارش را بررسی کن"
+  },
+  {
+    "ok": true,
+    "name": "2b. PATCH carries only partners + expected_version",
+    "detail": "{\"keys\":[\"partners\"],\"id\":\"org1792347513940\"}"
+  },
+  {
+    "ok": true,
+    "name": "2c. public API publishes the new partner with all fields",
+    "detail": "{\"id\":\"org1792347513940\",\"n\":\"نهاد مدیریت‌شده از پنل (دادهٔ تست)\",\"type\":\"خدماتی · آزمایشی\",\"s\":\"این نهاد از پنل مالک روی سرور تست ثبت شد.\",\"collab\":\"میزبانی (تست)\",\"since\":\"آبان ۱۴۰۵\",\"focus\":[\"آموزش\",\"رسانه\"],\"d\":\"شرح کامل نهاد مدیریت‌شده.\\nخط دوم.\",\"logo\":\"\",\"href\":\"https://example.org/managed\",\"links\":[{\"k\":\"mail\",\"v\":\"mailto:managed@example.org\"}],\"g\":\"linear-gradient(135deg,#1E6FD0,#0A3A82)\",\"mon\":\"نه\"}"
+  },
+  {
+    "ok": true,
+    "name": "8. events/people/articles/banners/library/cooperation unchanged after add",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "2d. dedicated page is live (200, index, canonical, title)",
+    "detail": "200"
+  },
+  {
+    "ok": true,
+    "name": "9a. protocol-relative logo rejected client-side",
+    "detail": " نشانی لوگو معتبر نیست؛ فایل تصویر یا مسیر امن وارد کن"
+  },
+  {
+    "ok": true,
+    "name": "3/10. edit persists after reload; public page keeps valid SEO/canonical/og:image",
+    "detail": "{\"rowText\":\"\\n        \\n        نهاد مدیریت‌شده (ویرایش‌شده · دادهٔ تست)خد\"}"
+  },
+  {
+    "ok": true,
+    "name": "9b. credentialed website URL rejected client-side",
+    "detail": " وبگاه را با نشانی معتبر http یا https وارد کن"
+  },
+  {
+    "ok": true,
+    "name": "9c. malicious text stored as inert text; panel renders it escaped; no alert/JS error",
+    "detail": "{\"dialogs\":[],\"errors\":[]}"
+  },
+  {
+    "ok": true,
+    "name": "9d. public page renders the malicious name as text (only the real logo img)",
+    "detail": "{\"h1\":\"<img src=x onerror=alert(1)> نهاد مدیریت‌شده (دادهٔ تست)\",\"imgs\":1,\"scripts\":0}"
+  },
+  {
+    "ok": true,
+    "name": "7a. 409: other person's change kept, my change not applied, my draft still open",
+    "detail": "{\"from\":17,\"to\":18}"
+  },
+  {
+    "ok": true,
+    "name": "7b. retry on fresh version keeps both changes",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "12. network failure: error message, editor stays open, nothing published",
+    "detail": "به API همین سرور دسترسی نیست؛ هیچ تغییری ذخیره نشد."
+  },
+  {
+    "ok": true,
+    "name": "2e. home partners section lists the managed partner",
+    "detail": "org1792347513940"
+  },
+  {
+    "ok": true,
+    "name": "4a. delete asks for explicit confirmation",
+    "detail": "{\"type\":\"confirm\",\"message\":\"نهاد «نهاد مدیریت‌شده (دادهٔ تست)» از فهرست عمومی سرور حذف می‌شود و صفحهٔ اختصاصی‌اش دیگر در دسترس نخواهد بود. رویدادها و دیگر محتواها تغییر نمی‌کنند. حذف شود؟\"}"
+  },
+  {
+    "ok": true,
+    "name": "4b/8. after reload: gone from public API, home and page (404); events & other categories untouched",
+    "detail": "{\"status\":404}"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors during the owner flow",
+    "detail": "[]"
+  },
+  {
+    "ok": true,
+    "name": "5. owner view and public API expose only published partners (non-public rows never reach the panel)",
+    "detail": "{\"owner\":[\"qa-partner-1\",\"qa partner/2 ü\",\"qa-partner-broken-logo\",\"qa-partner-xss\"],\"public\":[\"qa-partner-1\",\"qa partner/2 ü\",\"qa-partner-broken-logo\",\"qa-partner-xss\"]}"
+  },
+  {
+    "ok": true,
+    "name": "6. without a session: login gate only; GET/PATCH owner API → 401; nothing changed",
+    "detail": "{\"gate\":{\"manager\":false,\"login\":true,\"text\":\"\\n    ورود مدیران و مالک سامانه\\n    با نام کاربری و گذرواژهٔ مالک یا مدیرِ دارای \"},\"get\":401,\"patch\":401}"
+  },
+  {
+    "ok": true,
+    "name": "11. mobile 390×844 dark: list + editor without horizontal scroll, no JS errors",
+    "detail": "{\"m\":{\"scrollW\":390,\"innerW\":390,\"theme\":\"dark\",\"btn\":34},\"m2\":{\"scrollW\":390,\"innerW\":390},\"errors\":[]}"
+  },
+  {
+    "ok": true,
+    "name": "final: test DB back to 4 seeded partners; other categories byte-identical",
+    "detail": ""
+  }
+]
