@@ -198,3 +198,51 @@ def test_non_public_partner_rows_cannot_be_created_through_the_owner_api(env):
     assert response.status_code == 200, response.text
     assert public_partner_ids(client) == ["p-1"]
     assert [row["id"] for row in response.json()["content"]["partners"]] == ["p-1"]
+
+
+@pytest.mark.parametrize("category,row", [
+    ("events", {"id": "ev-np", "t": "رویداد خصوصی (دادهٔ تست)", "privacy": "private", "on": "1405/08/09"}),
+    ("people", {"id": "pp-np", "n": "فرد پنهان (دادهٔ تست)", "kind": "tch", "hidden": True}),
+    ("articles", {"id": "ar-np", "t": "مطلب پیش‌نویس (دادهٔ تست)", "status": "draft"}),
+])
+def test_stored_non_public_rows_in_other_categories_stay_private_and_survive_saves(env, category, row):
+    client, engine = env
+    headers = login(client)
+    first = client.patch(
+        "/api/owner/site-content",
+        json={"content": {**OTHER_CONTENT, "partners": []}, "expected_version": 0},
+        headers=headers,
+    )
+    assert first.status_code == 200, first.text
+    with Session(engine) as db:
+        record = db.get(SiteContentRecord, "public")
+        content = dict(record.content or {})
+        content[category] = list(content.get(category) or []) + [dict(row)]
+        record.content = content
+        db.commit()
+
+    def public_ids():
+        response = client.get("/api/public/site-content")
+        assert response.status_code == 200
+        return [item.get("id") for item in response.json()["content"][category]]
+
+    assert row["id"] not in public_ids(), f"{category}: stored non-public row leaked publicly"
+    owner = client.get("/api/owner/site-content").json()
+    assert row["id"] not in [item.get("id") for item in owner["content"][category]]
+    page = {"events": "/event.html?id=", "people": "/person.html?id=", "articles": "/post.html?id="}[category] + row["id"]
+    assert client.get(page).status_code == 404
+
+    # owner-panel style save of the same category (published rows only) keeps the stored row
+    published = [item for item in owner["content"][category]]
+    response = client.patch(
+        "/api/owner/site-content",
+        json={"content": {category: published}, "expected_version": owner["version"]},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    with Session(engine) as db:
+        stored_rows = {item["id"]: item for item in (db.get(SiteContentRecord, "public").content or {})[category]}
+    assert row["id"] in stored_rows, f"{category}: non-public row deleted by a panel save"
+    for key, value in row.items():
+        assert stored_rows[row["id"]][key] == value
+    assert row["id"] not in public_ids()
