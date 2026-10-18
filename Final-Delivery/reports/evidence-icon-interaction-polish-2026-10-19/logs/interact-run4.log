@@ -1,0 +1,36 @@
+PASS home: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS events: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS event: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS post: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS person: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS partner: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS login: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS account: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS form: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS support: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS offline: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS create: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS builder: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS person theme switch: svg icons=2, light→dark, aria-checked=true
+PASS create rail #theme toggles theme (light→dark); icons light:{"moon":"block","sun":"none","shown":"flex"} dark:{"moon":"none","sun":"block"}
+PASS theme icon shows target state (moon in light, sun in dark)
+PASS primary hover lifts 1px (matrix(1, 0, 0, 1, 0, -1.00058)), no layout shift (w 123.03125→123.03125)
+PASS shine runs once on hover (before:none, hover:btnShine, after 700ms opacity:0)
+PASS primary :active scales to ~.97 (matrix(0.96958, 0, 0, 0.96958, 0, 0.0140073))
+PASS aria-busy: spinner, icon hidden, no clicks, no shine {"pe":"none","spin":"btnSpin","icon":"none","shine":"none"}
+PASS disabled primary: opacity 0.45, pointer-events none
+FAIL keyboard Tab reaches primary with focus ring: null
+PASS touch viewport: no hover lift/shine {"tf":"none","anim":"none"}
+PASS prefers-reduced-motion (home): shine=none tabPop=none
+PASS prefers-reduced-motion (create): segPop=none
+PASS html[data-motion=off] on glass-only page kills transitions/animations {"tr":"0s","shine":"none"}
+PASS toast lifecycle {"on":true,"err":true,"before":"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='
+PASS copy honesty {"failText":"رونوشت انجام نشد؛ متن را دستی کپی کن","failErr":true,"afterCalled":false,"okText":"کپی شد","okErr":false,"afterCalled2":true}
+PASS seg toggle switches and pops {"nowOn":true,"anim":"segPop"}
+PASS icon-btn press scale .93 (matrix(0.929026, 0, 0, 0.929026, 0, 0)) and has accessible name "پشتیبانی و راهنما"
+PASS coarse pointer: 38px icon-btn hit area extends 3px ({"w":38,"hitOutside":true})
+PASS keyboard reaches theme switch on events: skip > brand > themesw > icon-btn > A > btn
+PASS dark theme: moon lit {"theme":"dark","moonOpacity":"1","moonColor":"rgb(220, 227, 242)"}
+PASS login submit busy spinner {"spin":"login-spin","w":"16px","txt":"دریافت کد"}
+PASS form #next aria-busy styling {"spin":"btnSpin","pe":"none"}
+34 passed, 1 failed

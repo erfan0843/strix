@@ -1,0 +1,29 @@
+PASS home: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS events: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS event: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS post: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS person: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS partner: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS login: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS account: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS form: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS support: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS offline: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS create: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS builder: no broken <use> refs, no glyph theme icons {"b":[],"glyph":0}
+PASS person theme switch: svg icons=2, light→dark, aria-checked=true
+FAIL create rail #theme toggles theme (light→light); icons light:{"moon":"block","sun":"none","shown":"flex"} dark:{"moon":"block","sun":"none"}
+PASS theme icon shows target state (moon in light, sun in dark)
+FAIL primary hover lifts 1px (matrix(1, 0, 0, 1, 0, -1.00059)), no layout shift (w 123.03125→123.03125)
+PASS shine runs once on hover (before:none, hover:btnShine, after 700ms opacity:0)
+FAIL primary :active scales to .97 (matrix(0.969578, 0, 0, 0.969578, 0, 0.0140781))
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Execution context was destroyed, most likely because of a navigation
+  log: [],
+  name: 'Error'
+}
+
+Node.js v22.22.3
