@@ -205,8 +205,12 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .logo:active{transform:scale(.97)}
   .logo .mon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px;
     background-image:var(--g);box-shadow:0 6px 14px rgba(16,42,80,.16)}
-  .logo b{font-size:11.5px;font-weight:600;line-height:1.5}
+  .logo b{font-size:11.5px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
   .logo span{font-size:10.5px;color:var(--ink-3)}
+  a.logo{text-decoration:none}
+  a.logo:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .hfoot .flogo{width:28px;height:28px;border-radius:9px;font-size:10px;display:grid;place-items:center;color:#fff;text-decoration:none;background-image:var(--g)}
+  .flogo:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
   /* ── جریان زنده ── */
   .livecard{border-radius:var(--r-lg);border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);
@@ -659,7 +663,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <aside class="sheet" id="shMenu" role="dialog" aria-modal="false" aria-label="منوی نورا"><div id="menuBody"></div></aside>
 <aside class="sheet" id="shPerson" role="dialog" aria-modal="false" aria-label="پروفایل"><div id="personBody"></div></aside>
 <aside class="sheet" id="shArticle" role="dialog" aria-modal="false" aria-label="مطلب"><div id="articleBody"></div></aside>
-<aside class="sheet" id="shPartner" role="dialog" aria-modal="false" aria-label="نهاد همکار"><div id="partnerBody"></div></aside>
 <aside class="sheet" id="shNotice" role="dialog" aria-modal="false" aria-label="اعلان‌ها"><div id="noticeBody"></div></aside>
 <aside class="sheet" id="shAccount" role="dialog" aria-modal="false" aria-label="حساب من"><div id="acctBody"></div></aside>
 <aside class="sheet" id="shInvite" role="dialog" aria-modal="false" aria-label="دعوت دوستان"><div id="inviteBody"></div></aside>
@@ -669,9 +672,9 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=126"></script>
+<script src="ui.js?v=127"></script>
 <script src="owner-api.js?v=107"></script>
-<script src="public-data.js?v=110"></script>
+<script src="public-data.js?v=111"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -924,7 +927,7 @@ const KINDS={
   ev:{i:'i-calendar',n:'رویداد',go:id=>{location.href='event.html?id='+encodeURIComponent(id)}},
   ar:{i:'i-article',n:'مطلب',go:id=>openArticle(id)},
   pe:{i:'i-graduation',n:'استاد',go:id=>personSheet(id)},
-  pa:{i:'i-handshake',n:'نهاد',go:id=>partnerSheet(id)}
+  pa:{i:'i-handshake',n:'نهاد',go:id=>openPartner(id)}
 };
 function titleOf(k,id){
   if(k==='ev'){const e=EVENTS.find(x=>x.id===id); return e?e.t:''}
@@ -1448,51 +1451,31 @@ function renderArticles(){
 }
 
 /* ═════════ نهادهای همکار ═════════ */
-const partnerIcon=name=>`<svg class="i"><use href="#${esc(name)}"/></svg>`;
 function partnerGradient(value){
   const raw=String(value||'').trim();
   return /^linear-gradient\(135deg,#[0-9a-f]{6},#[0-9a-f]{6}\)$/i.test(raw)
     ?raw:'linear-gradient(135deg,#2E6B7A,#0B2447)';
 }
-function partnerWebsiteHref(value){
-  const raw=String(value||'').trim(); if(!raw||/^(?:javascript|vbscript|data):/i.test(raw)) return '';
-  try{const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw,location.href);
-    return (url.protocol==='https:'||url.protocol==='http:')&&url.hostname&&!url.username&&!url.password?url.href:''}
-  catch(e){return ''}
-}
-function partnerContactHref(link){
-  const row=link&&typeof link==='object'?link:{}, kind=String(row.k||'other'), value=String(row.v||'').trim();
-  if(kind==='mail'){
-    const mail=value.replace(/^mailto:/i,'');
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)?'mailto:'+mail:'';
-  }
-  if(kind==='tel'){
-    const phone=value.replace(/^tel:/i,'').replace(/[^0-9+]/g,'');
-    return /^\+?\d{6,18}$/.test(phone)?'tel:'+phone:'';
-  }
-  if(kind==='tg'||kind==='ig'){
-    if(/^https?:\/\//i.test(value)) return partnerWebsiteHref(value);
-    const user=value.replace(/^@/,'');
-    if(kind==='tg'&&!/^[A-Za-z0-9_]{5,32}$/.test(user)) return '';
-    if(kind==='ig'&&!/^[A-Za-z0-9._]{1,30}$/.test(user)) return '';
-    return (kind==='tg'?'https://t.me/':'https://instagram.com/')+user;
-  }
-  return partnerWebsiteHref(row.href||value);
-}
-const partnerContactName=k=>({tel:'تلفن',tg:'تلگرام',ig:'اینستاگرام',web:'وبگاه',mail:'رایانامه',other:'راه تماس'}[k]||'راه تماس');
+const partnerHref=id=>'partner.html?id='+encodeURIComponent(String(id||''));
 function renderPartners(){
   $('#partnerCount').textContent=faN(PARTNERS.length)+' نهاد منتشرشده';
   if(!PARTNERS.length){
     $('#logoWall').innerHTML='<div class="empty" role="status">نهاد همکارِ عمومی منتشر نشده است.</div>';
     $('#footLogos').innerHTML=''; return;
   }
+  /* هر کارت یک پیوند واقعی به صفحهٔ اختصاصی نهاد است (کیبورد، ابزار کمکی و «باز کردن در تب جدید» کار می‌کنند) */
   $('#logoWall').innerHTML=PARTNERS.map(o=>`
-    <button class="logo" data-partner="${esc(o.id)}" aria-label="${esc(o.n)}">
+    <a class="logo" href="${partnerHref(o.id)}" data-partner="${esc(o.id)}" aria-label="${esc(o.n)}${o.type?' · '+esc(o.type):''}">
       <span class="mon" style="--g:${partnerGradient(o.g)}">${o.logo?`<img src="${esc(o.logo)}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:13px"/>`:esc(o.mon||o.n.slice(0,1))}</span>
       <b>${esc(o.n)}</b><span>${esc(o.type||'')}</span>
-    </button>`).join('');
+    </a>`).join('');
+  /* لوگوی شکسته → نشان حرفی (رویداد error حباب نمی‌کند؛ روی خود تصویرها می‌نشیند) */
+  $('#logoWall').querySelectorAll('.mon img').forEach(img=>img.addEventListener('error',()=>{
+    const card=img.closest('a.logo'), name=card?card.getAttribute('aria-label')||'':'';
+    img.parentNode.textContent=(PARTNERS.find(x=>x.id===(card&&card.dataset.partner))||{}).mon||name.slice(0,1);
+  },{once:true}));
   $('#footLogos').innerHTML=PARTNERS.slice(0,6).map(o=>
-    `<span class="mon" style="--g:${partnerGradient(o.g)};width:22px;height:22px;border-radius:7px;font-size:9px;display:grid;place-items:center;color:#fff" title="${esc(o.n)}">${esc(o.mon||o.n.slice(0,1))}</span>`).join('');
+    `<a class="mon flogo" href="${partnerHref(o.id)}" style="--g:${partnerGradient(o.g)}" aria-label="${esc(o.n)}" title="${esc(o.n)}">${esc(o.mon||o.n.slice(0,1))}</a>`).join('');
 }
 
 /* ═════════ زنده، نظرها، پشتیبانی ═════════ */
@@ -1617,32 +1600,6 @@ function renderArticleSheet(){
     </div>`;
 }
 
-
-function renderPartnerSheet(){
-  const o=partner(S.partner); if(!o.id) return;
-  const focus=Array.isArray(o.focus)?o.focus.filter(Boolean):[];
-  const facts=[o.collab?`<div class="srow">${partnerIcon('i-handshake')}<span class="sp">نوع همکاری</span><b>${esc(o.collab)}</b></div>`:'',
-    o.since?`<div class="srow">${partnerIcon('i-calendar')}<span class="sp">همکاری از</span><b>${esc(o.since)}</b></div>`:''].filter(Boolean).join('');
-  const website=partnerWebsiteHref(o.href);
-  const contacts=(Array.isArray(o.links)?o.links:[]).map(link=>{
-    const href=partnerContactHref(link); if(!href) return '';
-    return `<a class="srow" data-partner-contact="${esc(link.k||'other')}" href="${esc(href)}" target="_blank" rel="noopener noreferrer">
-      ${partnerIcon(link.k==='tel'?'i-mobile':link.k==='mail'?'i-mail':link.k==='web'?'i-globe':link.k==='ig'?'i-image':'i-link')}
-      <span class="sp">${esc(partnerContactName(link.k))}</span><b dir="ltr">${esc(link.v||'')}</b></a>`;
-  }).filter(Boolean).join('');
-  $('#partnerBody').innerHTML=sheetHead('نهاد همکار',esc(o.type||''))+`
-    <div class="row" style="align-items:center;gap:12px;margin-bottom:10px">
-      <span class="mon" style="--g:${partnerGradient(o.g)};width:58px;height:58px;border-radius:18px;font-size:20px">${o.logo?`<img src="${esc(o.logo)}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:18px"/>`:esc(o.mon||o.n.slice(0,1))}</span>
-      <span><b style="font-size:15px">${esc(o.n)}</b><div class="cap">${esc(o.type||'')}</div></span>
-    </div>
-    ${o.s?`<p class="sub">${esc(o.s)}</p>`:''}
-    ${facts?`<div class="stack tight">${facts}</div>`:''}
-    ${focus.length?`<div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${focus.map(item=>`<span class="tagg">${esc(item)}</span>`).join('')}</div>`:''}
-    ${o.d?`<p class="sub">${esc(o.d)}</p>`:''}
-    ${website?`<div class="row" style="margin-top:10px"><a class="btn sm quiet" data-partner-site href="${esc(website)}" target="_blank" rel="noopener noreferrer">${partnerIcon('i-globe')}وبگاه رسمی</a></div>`:''}
-    ${contacts?`<div style="margin-top:12px"><b class="cap">راه‌های تماس</b><div class="stack tight">${contacts}</div></div>`:''}
-    <div class="row" style="margin-top:14px"><span class="sp" style="flex:1"></span><button class="btn quiet" data-close>بستن</button></div>`;
-}
 
 function renderAccount(){
   if(!TEST_FIXTURE_MODE){
@@ -1925,7 +1882,7 @@ function openArticle(id){
   }
   articleSheet(id);
 }
-function partnerSheet(id){pushRecent('pa',id); S.partner=id; renderPartnerSheet(); openSheet('shPartner')}
+function openPartner(id){pushRecent('pa',id); location.href=partnerHref(id)}
 function pastSheet(id){pushRecent('ev',id); location.href='event.html?id='+encodeURIComponent(id)}
 function eventSheet(id){
   pushRecent('ev',id);
@@ -2013,7 +1970,7 @@ document.addEventListener('click',e=>{
     toast(cfg.n); return}
   const pn=t.closest('[data-person]'); if(pn){personSheet(pn.dataset.person); return}
   const ar=t.closest('[data-article]'); if(ar){openArticle(ar.dataset.article); return}
-  const pt=t.closest('[data-partner]'); if(pt){partnerSheet(pt.dataset.partner); return}
+  const pt=t.closest('a[data-partner]'); if(pt){pushRecent('pa',pt.dataset.partner); return} /* پیوند واقعی؛ مرورگر خودش می‌رود */
   const evb=t.closest('[data-ev]'); if(evb){eventSheet(evb.dataset.ev); return}
   const tp=t.closest('[data-teach]'); if(tp){location.href='person.html?id='+encodeURIComponent(tp.dataset.teach); return}
   if(t.closest('#artMore')){S.q=''; $('#q').value=''; $('#qClear').hidden=true; renderArticles(); goto('articles');
@@ -2142,7 +2099,8 @@ function openHash(){
   }
   if(h==='faq'||h==='support'){location.href='support.html'; return}
   if(h.startsWith('p=')){location.href='person.html?id='+encodeURIComponent(h.slice(2)); return}
-  if(h.startsWith('partner=')){const id=decodeURIComponent(h.slice(8)); if(partner(id).id){goto('partners'); partnerSheet(id)} return}
+  if(h.startsWith('partner=')){let id=''; try{id=decodeURIComponent(h.slice(8))}catch(e){id=''}
+    if(id&&partner(id).id) location.replace(partnerHref(id)); else goto('partners'); return} /* نشانی قدیمی ورقهٔ نهاد → صفحهٔ اختصاصی */
   if(h.startsWith('ev=')){location.href='event.html?id='+encodeURIComponent(h.slice(3)); return}
 }
 initKeys(document);
@@ -2156,7 +2114,7 @@ autoBanner();
 
 window.NORA_HOME={S:S,EVENTS:EVENTS,PEOPLE:PEOPLE,ARTICLES:ARTICLES,PARTNERS:PARTNERS,CLUB:CLUB,PAST:PAST,
   BANNERS:BANNERS,QUICK:QUICK,MENU:MENU,CATS:CATS,QTAGS:QTAGS,CLUB_POINTS:CLUB_POINTS,
-  openF:openF,personSheet:personSheet,articleSheet:articleSheet,partnerSheet:partnerSheet,
+  openF:openF,personSheet:personSheet,articleSheet:articleSheet,openPartner:openPartner,
   togglePin:togglePin,renderAll:renderAll,themeApply:themeApply,themeToggle:themeToggle,themeNow:themeNow,clubLib:clubLib,
   titleOf:titleOf,agoFa:agoFa,pushRecent:pushRecent,renderContinue:renderContinue,renderSug:renderSug,pickSug:pickSug,
   saveSearchTerm:saveSearchTerm,cleanUser:cleanUser,SESSION_KEY:'nora-home-user',REC_KEY:REC_KEY,SEARCH_KEY:SEARCH_KEY,AUTH_KEY:AUTH_KEY};

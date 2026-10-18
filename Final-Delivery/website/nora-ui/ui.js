@@ -1055,7 +1055,8 @@ const TAB_ICON_PATHS=Object.freeze({
   events:'<rect x="3.8" y="5.5" width="16.4" height="14.8" rx="3"/><path d="M8 3.7v3.5M16 3.7v3.5M3.8 10.2h16.4"/>',
   account:'<circle cx="12" cy="8.2" r="3.6"/><path d="M4.8 20c.6-3.6 3.4-5.6 7.2-5.6s6.6 2 7.2 5.6"/>',
   article:'<path d="M6 3.8h8l4 4V20H6z"/><path d="M14 3.8v4h4M9 12h6M9 15.5h6"/>',
-  book:'<path d="M4.4 5.2h5.2A2.4 2.4 0 0 1 12 7.6v11a2.1 2.1 0 0 0-2-1.6H4.4z"/><path d="M19.6 5.2h-5.2A2.4 2.4 0 0 0 12 7.6v11a2.1 2.1 0 0 1 2-1.6h5.6z"/>'
+  book:'<path d="M4.4 5.2h5.2A2.4 2.4 0 0 1 12 7.6v11a2.1 2.1 0 0 0-2-1.6H4.4z"/><path d="M19.6 5.2h-5.2A2.4 2.4 0 0 0 12 7.6v11a2.1 2.1 0 0 1 2-1.6h5.6z"/>',
+  partners:'<path d="M3.2 11.4 6.6 8a2 2 0 0 1 2.8 0l2.6 2.6"/><path d="M20.8 11.4 17.4 8a2 2 0 0 0-2.8 0l-2.6 2.6"/><path d="m8.4 12.6 3 3 3-3"/><path d="m10.2 15.2 1.8 1.8 1.8-1.8"/>'
 });
 function normalizePrimaryNavigation(){
   document.querySelectorAll('.tabbar:not(#admTabs)').forEach(bar=>{
@@ -1070,6 +1071,7 @@ function normalizePrimaryNavigation(){
         /کتابخانه/.test(label)||/#lib(?:$|[?&])/.test(href)?'book':
         /مطالب/.test(label)||/#articles(?:$|[?&])/.test(href)?'article':
         /رویداد/.test(label)||/^(?:\.\/)?events?\.html/.test(href)?'events':
+        /نهادهای همکار/.test(label)||/#partners(?:$|[?&])/.test(href)?'partners':
         /خانه/.test(label)||/^(?:\.\/)?home\.html(?:$|[?#])/.test(href)?'home':
         (index===0?'home':index===1?'events':'account');
       if(accountLink){
@@ -1633,7 +1635,7 @@ function evPosterCard(e,o){
   const p=o.person||null;
   const tags=(o.tags||[]).filter(Boolean).map(t=>`<span class="evc-tag${o.past&&t==='برگزار شد'?' dark':''}">${escH(t)}</span>`).join('');
   const metas=(o.meta||[]).filter(Boolean).map(m=>`<span class="mi"><svg class="i"><use href="#${m[0]}"/></svg>${escH(m[1])}</span>`).join('');
-  const partnerMeta=o.partner&&o.partner.id?`<button class="mi mi-partner" type="button" data-partner="${escH(o.partner.id)}" aria-label="نهاد همکار: ${escH(o.partner.n||'')}"><svg class="i"><use href="#i-handshake"/></svg>${escH(o.partner.n||'')}</button>`:'';
+  const partnerMeta=o.partner&&o.partner.id?`<a class="mi mi-partner" href="partner.html?id=${encodeURIComponent(o.partner.id)}" data-partner="${escH(o.partner.id)}" aria-label="نهاد همکار: ${escH(o.partner.n||'')}"><svg class="i"><use href="#i-handshake"/></svg>${escH(o.partner.n||'')}</a>`:'';
   const cover=e.poster
     ? `<img src="${escH(e.poster)}" alt="پوستر ${escH(e.t)}" loading="lazy" decoding="async"/>`
     : `<span class="evc-grad" style="--g:${escH(e.g||'')}"><svg class="i"><use href="#${escH(e.icon||'i-calendar')}"/></svg></span>`;
@@ -2008,7 +2010,7 @@ function eventSheet(id){
       ${past?`<div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">حجم بسته</span><b>${escH(e.rec)}</b></div>`
            :`<div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${escH(e.place)}</span><b>${room}</b></div>`}
       ${!past&&e.sess>1?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${faN(e.sess)} جلسه</b></div>`:''}
-      ${partner?`<a class="srow" href="home.html#partner=${encodeURIComponent(partner.id)}"><svg class="i"><use href="#i-handshake"/></svg><span class="sp">نهاد همکار</span><b>${escH(partner.n)}</b><svg class="i"><use href="#i-chev-left"/></svg></a>`:''}
+      ${partner?`<a class="srow" href="partner.html?id=${encodeURIComponent(partner.id)}"><svg class="i"><use href="#i-handshake"/></svg><span class="sp">نهاد همکار</span><b>${escH(partner.n)}</b><svg class="i"><use href="#i-chev-left"/></svg></a>`:''}
       ${past&&e.rec?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${escH(e.rec)}</b></div>`:''}
       ${past?`<div class="srow"><svg class="i"><use href="#i-play"/></svg><span class="sp">رسانه‌ها</span><b>${faN(e.mediaCount)} قلم · ${faN(e.sold)} خرید</b></div>`
            :`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span><b>${price(price1)}</b></div>`}

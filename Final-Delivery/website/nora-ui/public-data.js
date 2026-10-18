@@ -257,9 +257,18 @@
     return Object.assign({}, record, {
       id, n: name,
       type: text(record.type, 160),
+      s: text(record.s || record.summary, 600),
+      collab: text(record.collab, 160),
+      since: text(record.since, 80),
+      focus: listField(record.focus).slice(0, 12),
       d: text(record.d || record.description, 4000),
       logo: publicPath(record.logo),
-      href: publicPath(record.href || record.url)
+      href: publicPath(record.href || record.url),
+      links: asList(record.links).slice(0, 12).map(link => ({
+        k: text(link && link.k, 24), v: text(link && link.v, 300)
+      })).filter(link => link.v),
+      mon: text(record.mon, 8),
+      g: text(record.g, 240)
     });
   }
 

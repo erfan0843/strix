@@ -157,7 +157,7 @@
               ${infoRow('ساعت', event.time)}
               ${infoRow('شیوهٔ برگزاری', event.mode)}
               ${infoRow('مکان', event.place)}
-              ${partner ? `<a class="detail-item event-partner-link" href="home.html#partner=${encodeURIComponent(partner.id)}"><span>نهاد همکار</span><b>${esc(partner.n)}</b></a>` : ''}
+              ${partner ? `<a class="detail-item event-partner-link" href="partner.html?id=${encodeURIComponent(partner.id)}"><span>نهاد همکار</span><b>${esc(partner.n)}</b></a>` : ''}
               ${infoRow('هزینهٔ ثبت‌نام', isPast ? '' : money(event.price))}
               ${infoRow('ظرفیت', event.cap ? `${digits(event.cap)} نفر` : '')}
               ${infoRow('تعداد جلسه', event.sess > 1 ? `${digits(event.sess)} جلسه` : '')}
