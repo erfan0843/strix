@@ -73,10 +73,17 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .bnav button{width:32px;height:32px;border-radius:50%;border:.5px solid rgba(255,255,255,.45);
     background:rgba(255,255,255,.18);color:#fff;backdrop-filter:blur(10px);cursor:pointer;display:grid;place-items:center}
   .bnav .i{width:16px;height:16px}
+  /* برچسب نوع بنر (تبلیغ/حامی): همیشه جدا از متن تبلیغاتی و قابل‌تشخیص */
+  .bs .btag-kind{background:rgba(255,214,120,.26);border-color:rgba(255,214,120,.7);color:#FFF3D6}
+  /* بنر معرفی پیش‌فرض: کمی بلندتر و با فاصلهٔ متن آرام‌تر؛ بدون کنترل اسلاید */
+  .bs.bs-intro{min-height:232px;padding-top:54px}
+  .bs.bs-intro h2{font-size:clamp(20px,4.4vw,25px)}
+  .bs.bs-intro .bnote{max-width:46ch;font-size:13.5px}
+  @media (min-width:620px){.bs.bs-intro{min-height:256px;padding-inline:26px 24px}}
 
   /* ── منوی سریع ── */
-  .quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
-  @media (max-width:400px){.quick{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  /* کاشی‌ها به‌تعداد خودشان چیده می‌شوند (۵ کاشی در دسکتاپ یک ردیف، در موبایل ۳+۲) تا کاشی تک‌افتاده نماند */
+  .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px}
   .tile{-webkit-appearance:none;appearance:none;position:relative;display:grid;justify-items:center;gap:7px;text-decoration:none;
     padding:13px 7px 11px;border-radius:var(--r-lg);cursor:pointer;font:inherit;color:inherit;text-align:center;
     border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);overflow:hidden;
@@ -664,7 +671,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=126"></script>
 <script src="owner-api.js?v=107"></script>
-<script src="public-data.js?v=109"></script>
+<script src="public-data.js?v=110"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -783,12 +790,23 @@ const BANNER_GRADIENTS={
   night:'linear-gradient(135deg,#3E5B84,#0B2447)'
 };
 const productionBannerMode=()=>window.NORA_PUBLIC_SOURCE==='server';
+const DEFAULT_BANNER_SETTINGS={enabled:true,auto_rotate:false,interval_seconds:7,show_controls:true};
 function bannerSettings(){
-  if(productionBannerMode()) return (window.NORA_PUBLIC&&window.NORA_PUBLIC.bannerSettings)||
-    {enabled:true,auto_rotate:false,interval_seconds:7,show_controls:true};
+  if(productionBannerMode()) return (window.NORA_PUBLIC&&window.NORA_PUBLIC.bannerSettings)||DEFAULT_BANNER_SETTINGS;
+  /* در تولید، تنظیم ذخیره‌شده در مرورگر بنر عمومی را خاموش/روشن نمی‌کند؛ فقط تنظیم سروری مالک معتبر است. */
+  if(!TEST_FIXTURE_MODE) return DEFAULT_BANNER_SETTINGS;
   const U=uiOpt(),speed={slow:9,mid:6.5,fast:4.2}[U.bnr.speed]||6.5;
   return {enabled:!!(U.home&&U.home.bnr&&U.bnr.on),auto_rotate:U.bnr.auto===1,interval_seconds:speed,show_controls:true};
 }
+/* بنر پیش‌فرض معرفی نورا: فقط وقتی سرور پاسخ داده (محتوای منتشرشده یا «هنوز چیزی منتشر نشده») و هیچ بنر
+   منتشرشده‌ای وجود ندارد نمایش داده می‌شود. متن ثابت است؛ هیچ رویداد، تاریخ، آمار یا تبلیغ ساختگی ندارد و
+   دکمه‌ها فقط به صفحه‌های واقعی سایت می‌روند. اگر مالک «نمایش بنر» را خاموش کند، این بنر هم پنهان می‌ماند. */
+const INTRO_BANNER=Object.freeze({id:'nora-intro',intro:true,tag:'نورا',t:'رویدادها و مطالب گروه فرهنگی خط زندگی',
+  n:'برنامه‌های پیش‌رو را ببین، در رویدادها ثبت‌نام کن و مطالب منتشرشده را بخوان.',
+  img:'home-banner.webp',imgAlt:'',overlay:34,focusX:62,focusY:50,layout:'cover',align:'right',theme:'night',
+  href:'events.html',primaryLabel:'دیدن رویدادها',secondaryHref:'home.html#articles',secondaryLabel:'مطالب'});
+const introBannerAllowed=()=>!TEST_FIXTURE_MODE&&(window.NORA_PUBLIC_SOURCE==='server'||window.NORA_PUBLIC_SOURCE==='empty');
+const BANNER_KIND_LABEL={sponsored:'تبلیغ',partner:'حامی'};
 function safeBannerHref(value){
   const raw=String(value||'').trim(); if(!raw||raw.startsWith('//')||raw.includes('\\')||/^(?:javascript|vbscript|data):/i.test(raw)) return '';
   try{
@@ -815,15 +833,18 @@ function bannerActionMarkup(b,which,index){
 }
 let BNRLIST=[];
 function renderBanner(){
-  const U=uiOpt(),settings=bannerSettings(),sec=$('#bnr'),server=productionBannerMode();
-  if((!server&&!TEST_FIXTURE_MODE)||!settings.enabled||(!server&&(!U.home.bnr||!U.bnr.on))){
+  const U=uiOpt(),settings=bannerSettings(),sec=$('#bnr'),server=productionBannerMode(),intro=introBannerAllowed();
+  if((!server&&!intro&&!TEST_FIXTURE_MODE)||!settings.enabled||(!server&&!intro&&(!U.home.bnr||!U.bnr.on))){
     sec.hidden=true;BNRLIST=[];$('#bsdeck').innerHTML='';$('#bdots').innerHTML='';return}
 
-  BNRLIST=server?BANNERS.slice():BANNERS.filter(b=>!U.bnr.hide.includes(b.t))
+  BNRLIST=server?BANNERS.slice():intro?[]:BANNERS.filter(b=>!U.bnr.hide.includes(b.t))
     .concat((U.bnrAdd||[]).filter(b=>String(b.t||'').trim()).map(b=>({tag:b.tag||'',t:b.t,m:b.m||'',n:b.n||'',
       g:b.g||BANNER_GRADIENTS.ocean,a:b.a?{l:b.a,f:'shMenu'}:null,b:null})));
+  if(!BNRLIST.length&&intro) BNRLIST=[INTRO_BANNER];
+  if(S.slide>=BNRLIST.length) S.slide=0;
   if(!BNRLIST.length){sec.hidden=true;$('#bsdeck').innerHTML='';$('#bdots').innerHTML='';return}
   sec.hidden=false;
+  sec.classList.toggle('is-intro',BNRLIST.length===1&&BNRLIST[0].intro===true);
   const safeGradient=value=>/^linear-gradient\(135deg,#[0-9a-f]{6},#[0-9a-f]{6}\)$/i.test(String(value||''))?value:BANNER_GRADIENTS[value]||BANNER_GRADIENTS.ocean;
   $('#bsdeck').innerHTML=BNRLIST.map((b,i)=>{
     const image=safeBannerImage(b.img||b.image),overlay=Number.isFinite(+b.overlay)?Math.max(0,Math.min(90,+b.overlay)):48,
@@ -832,10 +853,11 @@ function renderBanner(){
       layout=['cover','split','text'].includes(b.layout)?b.layout:'cover',align=b.align==='center'?'center':'right',
       first=i===0,tag=String(b.tag||b.eyebrow||'').trim(),tag2=String(b.tag2||'').trim(),
       meta=String(b.m||b.subtitle||'').trim(),note=String(b.n||b.s||b.body||'').trim(),
+      kindLabel=BANNER_KIND_LABEL[b.kind]||'',
       actionA=bannerActionMarkup(b,'a',i),actionB=bannerActionMarkup(b,'b',i);
-    return `<article class="bs layout-${layout} align-${align}" style="--g:${safeGradient(b.g||b.theme)};--bnr-overlay:${overlay/100};--focus-x:${fx}%;--focus-y:${fy}%"
-      role="tabpanel" aria-roledescription="بنر" aria-label="${esc(b.t)} · ${faN(i+1)} از ${faN(BNRLIST.length)}">
-      <div class="btop">${tag?`<span class="btag">${esc(tag)}</span>`:''}${tag2?`<span class="btag">${esc(tag2)}</span>`:''}</div>
+    return `<article class="bs layout-${layout} align-${align}${b.intro?' bs-intro':''}${kindLabel?' bs-'+esc(b.kind):''}" style="--g:${safeGradient(b.g||b.theme)};--bnr-overlay:${overlay/100};--focus-x:${fx}%;--focus-y:${fy}%"
+      role="tabpanel" aria-roledescription="${b.intro?'معرفی':'بنر'}" aria-label="${esc(b.t)} · ${faN(i+1)} از ${faN(BNRLIST.length)}">
+      <div class="btop">${kindLabel?`<span class="btag btag-kind">${esc(kindLabel)}</span>`:''}${tag?`<span class="btag">${esc(tag)}</span>`:''}${tag2?`<span class="btag">${esc(tag2)}</span>`:''}</div>
       <div class="bs-media"${image?`><img src="${esc(image)}" alt="${esc(b.imgAlt||'')}" loading="${first?'eager':'lazy'}" decoding="async"${first?' fetchpriority="high"':''}/></div>`:' hidden></div>'}
       <div class="bcontent"><h2>${esc(b.t)}</h2>${meta?`<div class="bmeta">${esc(meta)}</div>`:''}
         ${note?`<div class="bnote">${esc(note)}</div>`:''}${actionA||actionB?`<div class="bacts">${actionA}${actionB}</div>`:''}</div>
@@ -1840,7 +1862,7 @@ function renderAll(){
     voices:VOICES.length>0,act:true,
     search:true,pins:true};
   Object.keys(HOME_IDS).forEach(k=>{const el=document.getElementById(HOME_IDS[k]); if(!el) return;
-    const enabled=k==='bnr'&&productionBannerMode()?bannerSettings().enabled:U.home[k];
+    const enabled=k==='bnr'?bannerSettings().enabled:U.home[k];
     if(!enabled||HOME_AVAILABLE[k]===false){el.hidden=true; return}
     if(k!=='pins') el.hidden=false});
   const publicSnapshot=window.NORA_PUBLIC||{}, publicSource=window.NORA_PUBLIC_SOURCE||'unavailable';

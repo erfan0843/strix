@@ -284,6 +284,8 @@
     const theme = ['ocean', 'teal', 'amber', 'plum', 'night'].includes(record.theme) ? record.theme : 'ocean';
     const layout = ['cover', 'split', 'text'].includes(record.layout) ? record.layout : 'cover';
     const align = ['right', 'center'].includes(record.align) ? record.align : 'right';
+    // نوع بنر: «sponsored» و «partner» در خانه برچسب روشن «تبلیغ»/«حامی» می‌گیرند؛ هر مقدار دیگر اعلان عادی است.
+    const kind = ['sponsored', 'partner'].includes(record.kind) ? record.kind : 'notice';
     const overlay = Number.isFinite(+record.overlay) ? Math.max(0, Math.min(90, Math.round(+record.overlay))) : 48;
     return {
       id: text(record.id, 100), status: 'published', active: true,
@@ -296,7 +298,7 @@
       imgAlt: text(record.imgAlt || record.alt, 240),
       href, primaryLabel: href && primaryLabel ? primaryLabel : '',
       secondaryHref, secondaryLabel: secondaryHref && secondaryLabel ? secondaryLabel : '',
-      theme, layout, align, overlay,
+      theme, layout, align, overlay, kind,
       focusX: Number.isFinite(+record.focusX) ? Math.max(0, Math.min(100, Math.round(+record.focusX))) : 50,
       focusY: Number.isFinite(+record.focusY) ? Math.max(0, Math.min(100, Math.round(+record.focusY))) : 50,
       startsAt, endsAt
@@ -435,6 +437,12 @@
           remote = payload.content;
           deliveryBotUrl = publicBotUrl(payload.delivery_bot_url);
         }
+      } else if (response.status === 404) {
+        // سرور سالم است ولی مالک هنوز چیزی منتشر نکرده؛ این «خالی» است، نه «در دسترس نبودن».
+        try {
+          const payload = await response.json();
+          if (payload && payload.detail === 'site_content_not_published') requestSucceeded = true;
+        } catch (_) { /* 404 غیرمنتظره همچنان «در دسترس نیست» می‌ماند */ }
       }
     } catch (_) { /* Production stays empty when the server cannot provide public content. */ }
     finally { clearTimeout(timeout); }

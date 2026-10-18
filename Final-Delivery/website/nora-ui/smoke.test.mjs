@@ -466,6 +466,42 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   }), 'در نبود محتوای منتشرشده، منو پیوندی به بخش پنهان نمی‌سازد');
   ok(!emptyHome.txt('#shMenu').includes('· نمونه')&&!emptyHome.txt('#shMenu').includes('پیش‌نمایش'),
     'منوی عمومی عنوان یا دادهٔ نمونه نشان نمی‌دهد');
+  const noBannerContent={...serverContent,banners:[]};
+  const introHome=await load('home.html',makeStore({
+    'nora-uiset':JSON.stringify({v:1,home:{bnr:0},bnr:{on:0},bnrAdd:[{t:'بنر محلی ساختگی'}]})
+  }),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:noBannerContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  const introSlide=introHome.doc.querySelector('#bsdeck .bs');
+  ok(introHome.errors.length===0&&introHome.window.NORA_PUBLIC_SOURCE==='server'&&introHome.doc.querySelector('#bnr').hidden===false
+      &&introHome.doc.querySelector('#bnr').classList.contains('is-intro')&&introSlide?.classList.contains('bs-intro')
+      &&introHome.all('#bsdeck .bs').length===1&&introHome.doc.querySelector('#bdots').hidden&&introHome.doc.querySelector('#bnr .bnav').hidden,
+    'وقتی سرور بنر منتشرشده ندارد، بنر معرفی نورا (تک‌اسلاید، بدون کنترل چرخش) دیده می‌شود');
+  ok(!introHome.txt('#bsdeck').includes('بنر محلی')&&!/\d/.test(introHome.txt('#bsdeck').replace(/[۰-۹]/g,'0').replace(/0/g,''))
+      &&JSON.stringify(introHome.all('#bsdeck .bacts a').map(a=>a.getAttribute('href')))===JSON.stringify(['events.html','home.html#articles'])
+      &&introSlide.querySelector('.bs-media img')?.getAttribute('src')==='home-banner.webp',
+    'بنر معرفی فقط به مسیرهای واقعی نورا پیوند می‌دهد و از تنظیم محلی مرورگر یا دادهٔ ساختگی تأثیر نمی‌گیرد');
+  const disabledContent={...noBannerContent,banner_settings:{...serverContent.banner_settings,enabled:false}};
+  const disabledHome=await load('home.html',makeStore({}),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:disabledContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(disabledHome.errors.length===0&&disabledHome.doc.querySelector('#bnr').hidden&&disabledHome.all('#bsdeck .bs').length===0,
+    'خاموش‌کردن بنر از تنظیمات مالک، بنر معرفی را هم پنهان می‌کند');
+  const kindContent={...serverContent,banners:[
+    {id:'banner-ad',status:'published',active:true,order:0,t:'بنر حامی‌شده',kind:'sponsored',theme:'amber'},
+    {id:'banner-partner',status:'published',active:true,order:1,t:'بنر نهاد همکار',kind:'partner'},
+    {id:'banner-plain',status:'published',active:true,order:2,t:'اطلاعیهٔ ساده',kind:'javascript:x'}]};
+  const kindHome=await load('home.html',makeStore({}),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:kindContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(kindHome.errors.length===0&&!kindHome.doc.querySelector('#bnr').classList.contains('is-intro')
+      &&JSON.stringify(kindHome.all('#bsdeck .bs').map(slide=>[slide.classList.contains('bs-sponsored')||slide.classList.contains('bs-partner'),
+        slide.querySelector('.btag-kind')?.textContent||'']))===JSON.stringify([[true,'تبلیغ'],[true,'حامی'],[false,'']])
+      &&!kindHome.doc.querySelector('#bdots').hidden,
+    'نوع بنر (تبلیغ/حامی) با برچسب شفاف نمایش داده می‌شود و نوع نامعتبر برچسبی نمی‌سازد');
+  const unpublishedHome=await load('home.html',makeStore({}),'',async()=>({ok:false,status:404,json:async()=>({detail:'site_content_not_published'})}),{fixtureMode:false});
+  ok(unpublishedHome.errors.length===0&&unpublishedHome.window.NORA_PUBLIC_SOURCE==='empty'
+      &&unpublishedHome.doc.querySelector('#bnr').hidden===false&&unpublishedHome.doc.querySelector('#bnr').classList.contains('is-intro')
+      &&unpublishedHome.doc.querySelector('#publicContentStatus').hidden===false
+      &&unpublishedHome.txt('#publicContentStatus').includes('هنوز محتوای عمومی منتشر نشده'),
+    'سرور سالم ولی بدون محتوای منتشرشده: وضعیت «خالی» با بنر معرفی و کارت توضیح نمایش داده می‌شود');
   const preserved=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,home:{about:0,events:0}})}));
   ok(preserved.window.NORA_UI.uiSet().home.about===0&&preserved.window.NORA_UI.uiSet().home.events===0
       &&!preserved.doc.getElementById('about')&&preserved.doc.querySelector('#evSec').hidden,
