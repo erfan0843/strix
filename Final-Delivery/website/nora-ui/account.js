@@ -570,7 +570,7 @@ function identityActionButton(){
      بی‌سرانجام، راه درست (ورود با شماره) در یادآور همین کارت گفته می‌شود. */
   if(linkModeRequested()&&!accountHasPhoneIdentity()) return '';
   if(!baleInitDataReady()) return '';
-  return `<button class="btn primary" data-identity-link ${busy||state.busy?'disabled':''}>
+  return `<button class="btn primary" data-identity-link ${busy||state.busy?'disabled':''}${busy?' aria-busy="true"':''}>
     ${busy?ico('i-refresh')+' در حال پیوند…':ico('i-link')+' پیوند حساب بله'}</button>`;
 }
 function identityOutsideBaleNote(){
@@ -584,7 +584,7 @@ function identityOutsideBaleNote(){
 function identityUnlinkButton(){
   const state=IDENTITY_STATE;
   if(!isBaleLinked()) return '';
-  if(state.busy==='unlink') return `<button class="btn quiet" disabled>${ico('i-refresh')} در حال برداشتن…</button>`;
+  if(state.busy==='unlink') return `<button class="btn quiet" disabled aria-busy="true">${ico('i-refresh')} در حال برداشتن…</button>`;
   /* اگر بله تنها هویت حساب باشد، سرور برداشتنش را رد می‌کند؛ از پیش توضیح می‌دهیم. */
   if(identityProviders().length<2)
     return `<span class="tag warn">تنها راه ورود حساب است؛ برداشتنش ممکن نیست.</span>`;

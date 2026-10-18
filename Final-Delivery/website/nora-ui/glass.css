@@ -205,36 +205,55 @@ button,input,select,textarea{font:inherit;color:inherit}
   border-radius:var(--r-md); border:.5px solid var(--hairline);
   background:var(--surface); color:var(--ink);
   font-size:var(--fs-body); font-weight:600; cursor:pointer;
-  box-shadow:var(--sh-1); transition:transform var(--t-fast) var(--spring), background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  box-shadow:var(--sh-1); transition:transform var(--t-fast) var(--spring), background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
   -webkit-tap-highlight-color:transparent;
 }
 .btn:hover{background:var(--surface-2)}
-.btn:active{transform:scale(.975)}
-.btn .i{width:19px;height:19px}
+.btn:active{transform:scale(.97)}
+.btn .i{width:19px;height:19px;transition:transform var(--t-fast) var(--spring)}
 .btn.primary{
+  position:relative; isolation:isolate; overflow:hidden;
   color:#fff; border-color:transparent;   /* کنش اصلی: آبی اپل، لبهٔ نوری بالا، سایهٔ نرم */
   background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 86%,#fff) 0%,var(--brand) 58%,var(--brand-2) 100%);
   box-shadow:0 1px 0 rgba(255,255,255,.30) inset, 0 4px 14px rgba(0,86,182,.26);
 }
 .btn.primary:hover{filter:brightness(1.04)}
 .btn.primary:active{transform:scale(.97); box-shadow:0 1px 0 rgba(255,255,255,.22) inset, 0 2px 6px rgba(0,86,182,.22)}
+/* درخششِ یک‌باره روی کنش اصلی: فقط با نشانگر واقعی، فقط وقتی حرکت مجاز است؛ متن زیرش نمی‌رود */
+.btn.primary::after{content:'';position:absolute;top:-20%;bottom:-20%;inset-inline-start:0;width:38%;z-index:-1;pointer-events:none;opacity:0;
+  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.30) 50%,transparent 100%);
+  transform:translateX(calc(var(--shine-dir,1)*-180%)) skewX(-16deg)}
+html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
+@keyframes btnShine{0%{transform:translateX(calc(var(--shine-dir,1)*-180%)) skewX(-16deg);opacity:0}18%{opacity:1}
+  100%{transform:translateX(calc(var(--shine-dir,1)*340%)) skewX(-16deg);opacity:0}}
 .btn.tint{background:var(--brand-tint); color:var(--brand-ink); border-color:transparent; box-shadow:none}
 .btn.quiet{background:transparent; border-color:transparent; box-shadow:none; color:var(--ink-2)}
 .btn.quiet:hover{background:var(--surface-sunk)}
+/* کنش برگشت‌ناپذیر: همیشه با رنگ توقف، و با hover پررنگ‌تر می‌شود تا با کنش عادی اشتباه نشود */
 .btn.stop{background:var(--stop-tint); color:var(--stop); border-color:transparent; box-shadow:none}
+.btn.stop:hover{background:color-mix(in oklab,var(--stop) 20%,transparent)}
 .btn.sm{min-height:34px; padding:0 var(--sp-3); font-size:var(--fs-sub); border-radius:var(--r-sm); gap:6px}
 .btn.sm .i{width:16px;height:16px}
 .btn.icon{min-width:var(--tap); padding:0 var(--sp-3)}
 .btn.block{width:100%}
-.btn[disabled]{opacity:.45; pointer-events:none}
+.btn[disabled],.btn:disabled,.btn[aria-disabled="true"]{opacity:.45; pointer-events:none; transform:none; filter:none}
 .btn-row{display:flex; gap:var(--sp-2); flex-wrap:wrap}
+/* در حال انجام: چرخانه به‌جای آیکون، متن می‌ماند، کلیک دوباره ممکن نیست */
+@keyframes btnSpin{to{transform:rotate(360deg)}}
+.btn[aria-busy="true"]{pointer-events:none; cursor:progress; opacity:.82; transform:none; filter:none}
+.btn[aria-busy="true"]>.i{display:none}
+.btn[aria-busy="true"]::before{content:'';flex:0 0 auto;width:15px;height:15px;border-radius:50%;
+  border:2px solid currentColor;border-inline-end-color:transparent;opacity:.9;animation:btnSpin .8s linear infinite}
+.btn.sm[aria-busy="true"]::before{width:12px;height:12px;border-width:1.8px}
+.btn.primary[aria-busy="true"]::after{animation:none}
+.i.is-spinning{animation:btnSpin .9s linear infinite;transform-origin:50% 50%}
 
 /* ── چیپ و برچسب ────────────────────────────────────────────────────────── */
 .chip{
   display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 var(--sp-3);
   border-radius:var(--r-pill); border:.5px solid var(--hairline);
   background:var(--surface); font-size:var(--fs-sub); font-weight:500; color:var(--ink-2);
-  cursor:pointer; transition:transform var(--t-fast) var(--spring), background var(--t-fast) var(--ease);
+  cursor:pointer;
 }
 .chip .i{width:16px;height:16px}
 .chip:hover{background:var(--surface-2)}
@@ -255,7 +274,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .seg button{
   border:0; background:none; cursor:pointer; padding:0 var(--sp-4); height:32px;
   border-radius:var(--r-pill); font-size:var(--fs-sub); color:var(--ink-2); font-weight:500;
-  transition:background var(--t) var(--ease), color var(--t) var(--ease);
 }
 .seg button.on{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:var(--sh-1)}
 .switch{width:50px;height:30px;border-radius:var(--r-pill);background:var(--surface-sunk);border:.5px solid var(--hairline);
@@ -382,8 +400,18 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .i.lg{width:24px;height:24px}
 .i.xl{width:30px;height:30px}
 .icon-btn{width:var(--tap);height:var(--tap);border-radius:var(--r-md);border:.5px solid transparent;background:none;
-  display:grid;place-items:center;cursor:pointer;color:var(--ink-2)}
+  display:grid;place-items:center;cursor:pointer;color:var(--ink-2);
+  transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),color var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
 .icon-btn:hover{background:var(--surface-sunk)}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn .i{transition:transform var(--t-fast) var(--spring)}
+.icon-btn.stop{color:var(--stop)}
+.icon-btn.stop:hover{background:var(--stop-tint)}
+.icon-btn[disabled],.icon-btn[aria-disabled="true"]{opacity:.45;pointer-events:none;transform:none}
+/* آیکون کلید شب/روز در دکمه‌های متنی: نشانهٔ حالتِ مقصد (در روز ماه، در شب خورشید) */
+.theme-ico-sun{display:none}
+:root[data-theme="dark"] .theme-ico-moon{display:none}
+:root[data-theme="dark"] .theme-ico-sun{display:inline-block}
 
 /* ── حالت‌ها ───────────────────────────────────────────────────────────── */
 .empty{text-align:center;padding:var(--sp-8) var(--sp-4);color:var(--ink-3)}
@@ -398,7 +426,39 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   border:.5px solid var(--glass-line); border-radius:var(--r-pill); box-shadow:var(--sh-2); font-size:var(--fs-sub); font-weight:600
 }
 .toast.on{display:flex;animation:up var(--t) var(--ease)}
+.toast.on.is-out{animation:toastOut var(--t-fast) var(--ease) forwards}
 @keyframes up{from{transform:translateY(12px);opacity:0}}
+@keyframes toastOut{to{transform:translateY(8px);opacity:0}}
+/* توست خطا/هشدار: فقط رنگ نیست؛ نشانهٔ ⓧ هم دارد (آیکون ✓ ثابت صفحه در این حالت پنهان می‌شود) */
+.toast.is-error{color:var(--stop);border-color:color-mix(in oklab,var(--stop) 38%,transparent)}
+.toast.is-error::before{content:'';flex:0 0 auto;width:17px;height:17px;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.4'/%3E%3Cpath d='M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.4'/%3E%3Cpath d='M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* ── لایهٔ hover: فقط با نشانگر واقعی (نه لمس)، و فقط وقتی حرکت مجاز است ── */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary:hover{box-shadow:0 1px 0 rgba(255,255,255,.32) inset, 0 6px 18px rgba(0,86,182,.30)}
+  .btn:hover>.i{transform:translateY(-.5px) scale(1.06)}
+  .btn:active{transform:scale(.97)}
+  .btn:active>.i{transform:none}
+  .icon-btn:hover{color:var(--brand-ink)}
+  .icon-btn:hover>.i{transform:scale(1.07)}
+  .icon-btn.stop:hover{color:var(--stop)}
+  .chip:hover{border-color:color-mix(in oklab,var(--brand) 30%,var(--hairline))}
+  .seg button:not(.on):hover{color:var(--ink);background:color-mix(in oklab,var(--surface) 55%,transparent)}
+}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  .btn.primary:not([disabled]):not([aria-busy="true"]):hover::after{animation:btnShine .56s var(--ease) 1 both}
+}
+/* ── کنترل‌های وضعیت‌دار: گذار نرم و pop ظریف هنگام فعال‌شدن ── */
+.chip,.seg button{transition:transform var(--t-fast) var(--spring),background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+@keyframes segPop{0%{transform:scale(.96)}55%{transform:scale(1.03)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:no-preference){.seg button.on{animation:segPop .36s var(--spring) 1}}
+/* حلقهٔ فوکوس روی زمینهٔ آبی کنش اصلی: یک حاشیهٔ روشن هم می‌گیرد تا با hover اشتباه نشود */
+.btn.primary:focus-visible{outline-offset:3px;box-shadow:0 0 0 2px var(--surface),0 4px 14px rgba(0,86,182,.26)}
+/* تنظیم «حرکت: خاموش» کاربر نورا (html[data-motion]) در همهٔ صفحه‌ها، نه فقط صفحه‌های nora.css */
+html[data-motion="off"] *{animation:none!important;transition:none!important}
 
 /* ── چیدمان کلی ────────────────────────────────────────────────────────── */
 .shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); gap:var(--sp-3); max-width:1320px; margin:0 auto; padding:var(--sp-3)}

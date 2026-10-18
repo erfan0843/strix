@@ -784,7 +784,9 @@ function toast(msg,kind){
   const ic=t.querySelector('svg.i'); if(ic) ic.style.display=(kind==='error'||kind==='warn')?'none':'';
   t.classList.toggle('is-error',kind==='error'||kind==='warn');
   const last=t.lastChild; if(last&&last.nodeType===3) last.textContent=' '+msg; else t.appendChild(document.createTextNode(' '+msg));
-  t.classList.add('on'); clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.classList.remove('on'),1700);
+  /* ورود با انیمیشن up؛ خروج نرم با is-out و بعد حذف on. توست تازه هر دو زمان‌سنج را صفر می‌کند تا پیام‌های پشت‌سرهم نپرند. */
+  clearTimeout(window.__tt); clearTimeout(window.__ttOut); t.classList.remove('is-out'); t.classList.add('on');
+  window.__tt=setTimeout(()=>{t.classList.add('is-out'); window.__ttOut=setTimeout(()=>t.classList.remove('on','is-out'),160);},1700);
 }
 function copyText(txt,after,msg){
   const value=String(txt==null?'':txt).trim();
@@ -794,9 +796,12 @@ function copyText(txt,after,msg){
       :'رونوشت این پیوند بیرونیِ تأییدنشده انجام نشد'); return false;
   }
   const done=()=>{toast(msg||'کپی شد'); if(after) after();};
+  /* «کپی شد» فقط بعد از موفقیت واقعی؛ اگر هر دو راه (Clipboard API و execCommand) شکست بخورند، خطا گفته می‌شود و after اجرا نمی‌شود. */
+  const failed=()=>toast('رونوشت انجام نشد؛ متن را دستی کپی کن','error');
   try{navigator.clipboard.writeText(value).then(done).catch(fb)}catch(e){fb()}
-  function fb(){const t=document.createElement('textarea');t.value=value;document.body.appendChild(t);t.select();
-    try{document.execCommand('copy')}catch(e){}t.remove();done()}
+  function fb(){const t=document.createElement('textarea');t.value=value;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';
+    document.body.appendChild(t);t.select();let ok=false;
+    try{ok=document.execCommand('copy')===true}catch(e){ok=false}t.remove();if(ok)done();else failed()}
   return true;
 }
 /* مقصدهای بیرونی در پیش‌نمایش محلی بی‌عمل می‌شوند؛ پیوندهای محتوای منتشرشده و حسابِ سروری زنده می‌مانند. */

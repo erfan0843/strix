@@ -206,6 +206,14 @@ console.log('\n── ۴-الف) تجربهٔ تولیدی فقط از محتو�
     detail.click('#pbShare'); await wait(30);
     ok(copied.length===2,'بدون Web Share، همرسانی به رونوشت نشانی برمی‌گردد');
     ok(/رونوشت شد/.test(detail.txt('#toast')),'بازخورد رونوشت به کاربر گفته می‌شود');
+    /* شکست واقعی کلیپ‌بورد (API رد می‌کند و execCommand هم false می‌دهد) نباید «رونوشت شد» بگوید */
+    Object.defineProperty(detail.window.navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('blocked')}}});
+    detail.doc.execCommand=()=>false;
+    detail.click('#pbCopy'); await wait(30);
+    ok(/ممکن نشد|انجام نشد/.test(detail.txt('#toast'))&&!/رونوشت شد/.test(detail.txt('#toast'))
+        &&detail.doc.querySelector('#toast').classList.contains('is-error'),
+      'وقتی کپی واقعاً شکست می‌خورد، توست خطا می‌دهد نه موفقیت دروغین');
+    Object.defineProperty(detail.window.navigator,'clipboard',{configurable:true,value:{writeText:async t=>{copied.push(t)}}});
   }
   const blockedMedia=detail.doc.querySelector('.pb-disabled');
   ok(blockedMedia?.textContent.includes('پشتیبانی نمی‌شود')

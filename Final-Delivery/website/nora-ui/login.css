@@ -55,6 +55,8 @@
 .lgbtn:hover{background:var(--brand-2)}
 .lgbtn:active{transform:scale(.99)}
 .lgbtn:disabled{opacity:.55;cursor:default;transform:none}
+.lgbtn[aria-busy="true"]{cursor:progress;opacity:.8}
+.lgbtn[aria-busy="true"]::before{content:'';flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-inline-end-color:transparent;animation:login-spin .8s linear infinite}
 .lgbtn:focus-visible,.lg-admin-link:focus-visible,.lglinks a:focus-visible,.lglinks button:focus-visible{outline:3px solid color-mix(in oklab,var(--brand) 45%,transparent);outline-offset:2px}
 .lgbtn.quiet{width:auto;min-height:40px;padding:4px 10px;border-radius:10px;background:transparent;color:var(--brand-ink);font-size:13px;font-weight:600}
 .lgbtn.quiet:hover{background:var(--brand-tint)}

@@ -28,7 +28,6 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
   border:.5px solid var(--hairline);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);
   cursor:pointer;text-decoration:none;transition:transform var(--t-fast) var(--spring),border-color var(--t-fast) var(--ease)}
 .icon-btn:hover{border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
-.icon-btn:active{transform:scale(.93)}
 .icon-btn .i{width:21px;height:21px}
 /* نشان پشتیبانی: در هر صفحه هست؛ در خودِ صفحهٔ پشتیبانی رنگ می‌گیرد */
 .help-btn{color:var(--ink-2)}
@@ -293,6 +292,8 @@ html[dir="ltr"][data-theme="dark"] .tsw-knob{transform:translateX(32px)}
 
 /* سطح لمس ۴۴px بدون جابه‌جایی نوار بالا */
 @media (pointer:coarse){.themesw{height:44px;margin-block:-3px}}
+/* دکمه‌های آیکونی ۳۸px نوار بالا: روی لمس، سطح ضربه به ۴۴px می‌رسد بدون بزرگ‌شدن خود آیکون */
+@media (pointer:coarse){.icon-btn::before{content:'';position:absolute;inset:-3px;border-radius:inherit}.crow>.icon-btn::before{inset:-7px}}
 @media (prefers-reduced-motion:reduce){.tsw-knob,.tsw-ico,.tsw-trk,.themesw{transition-duration:.01ms}}
 
 /* ── پرش درون‌صفحه: سرِ بخش، زیر نوار بالای چسبان پنهان نشود ── */
@@ -518,7 +519,6 @@ html[data-width="narrow"] main.wrap{max-width:600px}
 html[data-width="wide"] main.wrap{max-width:880px}
 html[data-density="tight"] .sec{margin-top:12px}
 html[data-density="airy"] .sec{margin-top:30px}
-html[data-motion="off"] *{animation:none!important; transition:none!important}
 html[data-accent="teal"]{--brand:#0E7C66; --brand-2:#0A5F4E; --brand-tint:rgba(14,124,102,.12); --brand-ink:#0A5F4E}
 html[data-accent="plum"]{--brand:#6E45C2; --brand-2:#57339B; --brand-tint:rgba(110,69,194,.11); --brand-ink:#57339B}
 html[data-accent="amber"]{--brand:#B25E00; --brand-2:#8F4B00; --brand-tint:rgba(178,94,0,.11); --brand-ink:#8F4B00}

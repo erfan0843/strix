@@ -187,7 +187,7 @@
               <button class="lgbtn quiet" type="button" id="lgCapNew" aria-label="کد امنیتی تازه" title="کد امنیتی تازه"${state.busy || state.captchaBusy ? ' disabled' : ''}><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
             </div>
           </div>
-          <button class="lgbtn" type="submit" id="lgPhoneSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال ارسال کد…' : 'دریافت کد'}</button>
+          <button class="lgbtn" type="submit" id="lgPhoneSubmit"${state.busy ? ' disabled aria-busy="true"' : ''}>${state.busy ? 'در حال ارسال کد…' : 'دریافت کد'}</button>
         </form>
       </div>`;
       if (!state.captchaToken && !state.captchaBusy && !state.captchaFailed) loadCaptcha();
@@ -213,7 +213,7 @@
           </div>
         </label>
         <p class="lg-otp-meta${expiresIn ? '' : ' is-over'}" id="lgOtpMeta">${expiresIn ? `اعتبار کد: ${clockLabel(expiresIn)}` : 'مهلت کد تمام شد؛ کد تازه بگیر.'}</p>
-        <button class="lgbtn" type="submit" id="lgOtpVerify"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال بررسی کد…' : 'تأیید و ورود'}</button>
+        <button class="lgbtn" type="submit" id="lgOtpVerify"${state.busy ? ' disabled aria-busy="true"' : ''}>${state.busy ? 'در حال بررسی کد…' : 'تأیید و ورود'}</button>
       </form>
       <div class="lg-phone-actions">
         <button class="lgbtn quiet" type="button" id="lgOtpResend"${state.busy || wait ? ' disabled' : ''}>${resendLabel}</button>
@@ -267,7 +267,7 @@
           <input class="lgtext" id="lgStaffPassword" name="password" type="password" autocomplete="current-password"
             required maxlength="1024" dir="ltr"/>
         </label>
-        <button class="lgbtn" type="submit" id="lgStaffSubmit"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال بررسی…' : 'ورود'}</button>
+        <button class="lgbtn" type="submit" id="lgStaffSubmit"${state.busy ? ' disabled aria-busy="true"' : ''}>${state.busy ? 'در حال بررسی…' : 'ورود'}</button>
       </form>
       <button class="lgbtn quiet" type="button" id="lgBack"${state.busy ? ' disabled' : ''}>ورود اعضا با شمارهٔ همراه</button>
     </div>`;
@@ -311,7 +311,7 @@
       <h2 class="lgdtitle">${heading}</h2>
       ${description ? `<p class="lgdle">${description}</p>` : ''}
       <a class="lgbtn" id="lgContinue" href="${escapeHtml(target)}">${destination}</a>
-      <button class="lgbtn quiet" type="button" id="lgLogout"${state.busy ? ' disabled' : ''}>${state.busy ? 'در حال خروج…' : 'خروج از حساب'}</button>
+      <button class="lgbtn quiet" type="button" id="lgLogout"${state.busy ? ' disabled aria-busy="true"' : ''}>${state.busy ? 'در حال خروج…' : 'خروج از حساب'}</button>
     </div>`;
     setStatus('');
   }
