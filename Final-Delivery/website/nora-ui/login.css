@@ -161,7 +161,7 @@
   min-height:calc(100svh - 55px);
   margin:0 auto;
   padding:clamp(18px,3.8vh,34px) 16px 18px;
-  align-content:center;
+  align-content:start;
   row-gap:11px;
 }
 .loginpage .lgcard{
