@@ -130,3 +130,157 @@
 @media (prefers-reduced-motion:reduce){
   .lg-spinner{animation-duration:1.5s}
 }
+
+
+/* ── بازچینی نهایی صفحهٔ ورود نورا: خلوت، متمرکز و بدون نوارهای اضافه ── */
+.loginpage{
+  background:
+    radial-gradient(ellipse 460px 300px at 50% 0%,color-mix(in oklab,var(--brand-tint) 72%,transparent),transparent 78%),
+    var(--paper);
+}
+.loginpage .topbar{
+  background:color-mix(in oklab,var(--paper) 92%,transparent);
+  border-bottom:1px solid var(--hairline-2);
+  box-shadow:none;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+.loginpage .topbar .wrap{
+  box-sizing:border-box;
+  width:100%;
+  max-width:1040px;
+  min-height:54px;
+  padding:8px 20px;
+}
+.loginpage .navclock{display:none}
+.loginpage .tabbar{display:none!important}
+.loginpage main.lwrap{
+  box-sizing:border-box;
+  width:100%;
+  max-width:100%;
+  min-height:calc(100svh - 55px);
+  margin:0 auto;
+  padding:clamp(18px,3.8vh,34px) 16px 18px;
+  align-content:center;
+  row-gap:11px;
+}
+.loginpage .lgcard{
+  box-sizing:border-box;
+  max-width:402px;
+  padding:27px 25px 20px;
+  border:1px solid color-mix(in oklab,var(--ink) 7%,var(--hairline));
+  border-radius:22px;
+  background:var(--surface);
+  box-shadow:0 16px 42px color-mix(in oklab,var(--ink) 7%,transparent);
+}
+.loginpage .lghead{gap:5px;margin-bottom:20px}
+.loginpage .lgmark{
+  width:44px;height:44px;
+  margin:0 0 5px;
+  border:1px solid color-mix(in oklab,var(--brand) 13%,var(--hairline));
+  border-radius:14px;
+  background:var(--brand-tint);
+  box-shadow:none;
+}
+.loginpage .lgmark img{width:34px;height:34px;object-fit:contain}
+.loginpage .lgcard h1{
+  font-size:clamp(22px,4vw,25px);
+  line-height:1.45;
+  letter-spacing:-.35px;
+}
+.loginpage .lglead{max-width:33ch;font-size:13px;line-height:1.8}
+.loginpage .lgstep,.loginpage .lgform{gap:12px}
+.loginpage .lgfield{gap:6px}
+.loginpage .lglbl{font-size:12.5px}
+.loginpage .lgtext{
+  box-sizing:border-box;
+  height:50px;
+  border-radius:12px;
+  border-color:var(--hairline);
+  background:color-mix(in oklab,var(--surface) 94%,var(--paper));
+}
+.loginpage .lgtext:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px var(--brand-tint);
+}
+.loginpage .lg-captcha{gap:7px}
+.loginpage .lg-cap-img{border-radius:12px}
+.loginpage .lgbtn{
+  min-height:50px;
+  border-radius:13px;
+  background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 92%,#fff),var(--brand));
+  box-shadow:0 4px 12px color-mix(in oklab,var(--brand) 17%,transparent);
+  transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease),opacity var(--t-fast) var(--ease);
+}
+@media (hover:hover) and (pointer:fine){
+  .loginpage .lgbtn:not(:disabled):hover{
+    background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 86%,#fff),var(--brand-2));
+    box-shadow:0 7px 16px color-mix(in oklab,var(--brand) 22%,transparent);
+    transform:translateY(-1px);
+  }
+  .loginpage .lgbtn.quiet:not(:disabled):hover{
+    background:var(--brand-tint);
+    box-shadow:none;
+    transform:none;
+  }
+}
+.loginpage .lgbtn:not(:disabled):active{transform:scale(.985)}
+.loginpage .lgbtn[aria-busy="true"]{box-shadow:none;transform:none}
+.loginpage .lgadmin-entry{margin-top:15px}
+.loginpage .lg-divider{
+  margin-bottom:5px;
+  background:linear-gradient(90deg,transparent,var(--hairline-2),transparent);
+}
+.loginpage .lg-admin-link{min-height:38px;border-radius:9px}
+.loginpage .lgstatus{margin-top:12px;border-radius:11px}
+.loginpage .lglinks{
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:0;
+  color:var(--ink-3);
+}
+.loginpage .lglinks a,.loginpage .lglinks button{
+  min-height:34px;
+  border-radius:8px;
+  transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease);
+}
+.loginpage .lglinks a:hover,.loginpage .lglinks button:hover{
+  color:var(--brand-ink);
+  background:var(--brand-tint);
+}
+.loginpage .lg-organization{
+  margin:0;
+  padding:0;
+  border:0;
+  color:var(--ink-4);
+  font-size:11px;
+  line-height:1.6;
+  text-align:center;
+}
+@media (min-width:640px){
+  .loginpage main.lwrap{
+    min-height:calc(100svh - 55px);
+    padding:22px 24px 18px;
+    align-content:center;
+  }
+  .loginpage .lgcard{max-width:402px;padding:30px 29px 22px}
+}
+@media (max-width:420px){
+  .loginpage .topbar .wrap{padding-inline:14px}
+  .loginpage .lgcard{padding:24px 18px 18px;border-radius:20px}
+  .loginpage .lghead{margin-bottom:18px}
+  .loginpage .lgmark{width:41px;height:41px;border-radius:13px}
+  .loginpage .lgmark img{width:32px;height:32px}
+}
+@media (max-width:359px){
+  .loginpage .lgcard{padding-inline:15px}
+  .loginpage .lg-captcha{gap:6px}
+}
+@media (max-height:680px){
+  .loginpage main.lwrap{align-content:start;padding-top:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .loginpage .lgstatus:not([hidden]){animation:none}
+  .loginpage .lg-spinner{animation:none;border-color:var(--brand);border-inline-end-color:transparent}
+}
+html[data-motion="off"] .loginpage .lg-spinner{animation:none;border-color:var(--brand);border-inline-end-color:transparent}
