@@ -1,0 +1,62 @@
+PASS open: phone form rendered 
+  note: initial focus = BODY (no autofocus on open — unchanged upstream behaviour, avoids forcing the mobile keyboard)
+PASS open: real captcha image loaded from /api/auth/captcha 
+PASS open: real labels present 
+PASS open: status region aria-live=polite 
+PASS open: no page errors 
+PASS invalid-phone: typed values preserved after error 
+PASS invalid-phone: field marked aria-invalid + error status shown شمارهٔ همراه درست نیست؛ یک شمارهٔ ایرانی
+PASS invalid-phone: error sits right under the form 13
+PASS invalid-phone: no OTP request sent 
+PASS invalid-phone: aria-invalid cleared on input 
+PASS invalid-phone: no page errors 
+PASS real-503: rapid clicks produce exactly one request 1
+PASS real-503: server error shown as error status, busy cleared کد امنیتی چهار رقمی را وارد کن.
+PASS real-503: phone preserved after server error 
+PASS real-503: fresh captcha reloaded 
+PASS real-503: no page errors 
+PASS loading: button busy+disabled with spinner, inputs locked {"busy":"true","dis":true,"anim":"login-spin","inputs":true}
+PASS loading: resolves into OTP step (mock) 
+PASS loading: no page errors 
+PASS otp: title/destination/6 slots/expiry visible {"title":"کد ورود","sent":"کد شش‌رقمی از ربات بله به ۰۹۱۲ ۳۴۵ ۶۷۸۹ ارسال شد.","slots":6,"meta":"اعتبار کد: ۳:۰۰","resendDis":true,"focus":"","slotBorder":"oklab
+PASS otp: resend locked while countdown runs 
+PASS otp: no nested cards inside the main card 
+PASS otp: slots reflect typed digits + current slot {"filled":2,"cur":1}
+PASS otp: incomplete code -> local validation message 
+PASS otp: resend unlocks after resend_in 
+PASS otp: change-number returns to phone step with number kept + focused {"form":true,"phone":"09123456789","focus":"lgPhone"}
+PASS otp-step: no page errors 
+PASS resend: returns to captcha step with guidance, phone kept برای ارسال دوبارهٔ کد، کد امنیتی تازه را وارد کن و
+PASS resend: no page errors 
+PASS staff: dedicated form, admin entry hidden {"title":"ورود مدیران","form":true,"admin":true,"btn":"ورود","backQuiet":true,"backBg":"rgba(0, 0, 0, 0)"}
+PASS staff: secondary "back to member login" is a quiet text button (not a second primary) rgba(0, 0, 0, 0)
+PASS staff: empty submit shows Persian in-page message (no browser bubble) 
+PASS staff: wrong password -> real 401 shown as error, username kept نام کاربری یا گذرواژه درست نیست.
+PASS staff: focus returns to password after error 
+PASS staff: back link returns to member login 
+PASS staff: no page errors 
+PASS staff-real: authenticated card with safe next target {"h":"ورود مالک تأیید شد","href":"admin.html#dash","logoutQuiet":true,"bg":"rgba(0, 0, 0, 0)"}
+PASS staff-real: logout is a quiet text button rgba(0, 0, 0, 0)
+PASS staff-real: logout returns to a login form 
+PASS staff-real: no page errors 
+PASS rules: sheet opens 
+PASS rules: honest "not published yet" text kept 
+PASS rules: sheet closes via بستن 
+PASS rules: Escape closes sheet and returns focus to قوانین 
+PASS rules: tapping the scrim closes sheet 
+PASS support: header icon with accessible name + guide link below card {"top":"پشتیبانی و راهنما","guide":true}
+PASS theme: toggle switches to dark and persists {"theme":"dark","stored":"dark","bg":"rgb(27, 33, 30)"}
+PASS rules-support-theme: no page errors 
+  tab order: skip* > brand* > themesw* > icon-btn* > lgPhone* > lgCapAnswer* > lgCapNew* > lgPhoneSubmit* > lg-admin-link* > A* > rulesBtn* > A*
+PASS keyboard: phone -> captcha -> submit -> admin -> rules reachable by Tab 
+PASS keyboard: focus-visible applies on tabbed controls 
+PASS keyboard: primary button focus ring is a themed 3px outline solid 3px
+PASS keyboard: no page errors 
+PASS reduced-motion: card fade disabled none
+PASS data-motion=off: card animation none 
+PASS reduced-motion: no page errors 
+PASS touch-360: tabbar visible at rest, hidden while a field inside the card is focused grid/none (initial grid)
+PASS touch-360: no horizontal overflow, no control under 34px tall []
+PASS touch-360: no page errors 
+
+58 passed, 0 failed
