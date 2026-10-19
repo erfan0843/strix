@@ -172,7 +172,7 @@
     if (!state.otpChallengeId) {
       setLead('شمارهٔ همراهت را وارد کن؛ کد یک‌بارمصرف را در ربات بله دریافت می‌کنی.');
       body.innerHTML = `<div class="lgstep" id="lgPhoneMethod">
-        <form class="lgform" id="lgPhoneForm" autocomplete="on">
+        <form class="lgform" id="lgPhoneForm" autocomplete="on" novalidate>
           <label class="lgfield" for="lgPhone">
             <span class="lglbl">شمارهٔ همراه</span>
             <input class="lgtext" id="lgPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national"
@@ -203,7 +203,7 @@
       : 'ارسال دوبارهٔ کد';
     body.innerHTML = `<div class="lgstep" id="lgPhoneCodeMethod">
       <p class="lg-otp-sent" role="status">کد شش‌رقمی از ربات بله به <b>${escapeHtml(displayPhone(state.phone))}</b> ارسال شد.</p>
-      <form class="lgform" id="lgPhoneCodeForm" autocomplete="on">
+      <form class="lgform" id="lgPhoneCodeForm" autocomplete="on" novalidate>
         <label class="lgfield lg-otp-field" for="lgOtpCode">
           <span class="lglbl">کد را این‌جا وارد کن</span>
           <div class="lg-otp-control">
@@ -256,7 +256,7 @@
     const body = $('#lgBody');
     if (!body) return;
     body.innerHTML = `<div class="lgstep" id="lgStaffMethod">
-      <form class="lgform" id="lgStaffForm" autocomplete="on">
+      <form class="lgform" id="lgStaffForm" autocomplete="on" novalidate>
         <label class="lgfield" for="lgStaffUsername">
           <span class="lglbl">نام کاربری</span>
           <input class="lgtext" id="lgStaffUsername" name="username" type="text" autocomplete="username"
@@ -351,6 +351,12 @@
     return { code, message: messages[code] || 'ورود انجام نشد؛ دوباره تلاش کن.' };
   }
 
+  function restoreStaffUsername(username, focusPassword) {
+    const field = $('#lgStaffUsername');
+    if (field) field.value = username || '';
+    if (focusPassword) { const pw = $('#lgStaffPassword'); if (pw && pw.focus) pw.focus(); }
+  }
+
   async function staffLogin(form) {
     if (state.busy || state.authenticated || !form) return;
     const username = String(form.elements.username && form.elements.username.value || '').trim();
@@ -363,6 +369,7 @@
     state.busy = true;
     state.mode = 'staff';
     renderStaffLogin();
+    restoreStaffUsername(username);
     setStatus('در حال بررسی…');
     let serverAccepted = false;
     try {
@@ -377,6 +384,7 @@
         const error = await responseError(response);
         state.busy = false;
         renderStaffLogin();
+        restoreStaffUsername(username, true);
         setStatus(error.message, 'error');
         return;
       }
@@ -425,6 +433,7 @@
       state.permissions = [];
       state.mode = 'staff';
       renderStaffLogin();
+      restoreStaffUsername(username, true);
       setStatus(serverAccepted
         ? 'ورود پذیرفته شد، اما دسترسی سرور تأیید نشد؛ دوباره تلاش کن.'
         : 'ورود انجام نشد؛ نام کاربری و گذرواژه را بررسی کن.', 'error');
@@ -492,6 +501,7 @@
     if (typedPhone && !normalizeIranPhone(typedPhone)) {
       setStatus('شمارهٔ همراه درست نیست؛ یک شمارهٔ ایرانی مثل ۰۹۱۲۳۴۵۶۷۸۹ بنویس.', 'error');
       const phoneField = form && form.elements.phone;
+      if (phoneField && phoneField.setAttribute) phoneField.setAttribute('aria-invalid', 'true');
       if (phoneField && phoneField.focus) phoneField.focus();
       return;
     }
@@ -774,6 +784,7 @@
 
   document.addEventListener('input', (event) => {
     if (event.target && event.target.id === 'lgOtpCode') syncOtpSlots(event.target);
+    if (event.target && event.target.id === 'lgPhone' && event.target.getAttribute('aria-invalid')) event.target.removeAttribute('aria-invalid');
   });
 
   document.addEventListener('focusin', (event) => {
@@ -847,7 +858,16 @@
     const target = event.target && event.target.closest ? event.target.closest('#lgCapNew') : null;
     if (target) loadCaptcha();
     const rules = event.target && event.target.closest ? event.target.closest('#rulesBtn') : null;
-    if (rules && typeof window.openSheet === 'function') { event.preventDefault(); window.openSheet('shRules'); }
+    if (rules && typeof window.openSheet === 'function') { event.preventDefault(); window.openSheet('shRules'); return; }
+    const close = event.target && event.target.closest
+      ? (event.target.closest('#shRules [data-close]') || event.target.closest('.scrim')) : null;
+    if (close && typeof window.closeSheets === 'function') { event.preventDefault(); window.closeSheets(); }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || typeof window.closeSheets !== 'function') return;
+    const sheet = $('#shRules');
+    if (sheet && sheet.classList.contains('on')) { event.preventDefault(); window.closeSheets(); const btn = $('#rulesBtn'); if (btn && btn.focus) btn.focus(); }
   });
 
   document.addEventListener('submit', (event) => {
