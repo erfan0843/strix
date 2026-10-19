@@ -76,8 +76,8 @@
   .landing-card #formMeta:empty{display:none}
   .botbar.start-mode{bottom:calc(24px + var(--safe-b));justify-content:center;width:min(400px,calc(100% - 32px));padding:0;border:0;background:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
   .botbar.start-mode #prev{display:none!important}
-  .botbar.start-mode #next{position:relative;isolation:isolate;display:flex;width:100%;min-height:62px;margin:0 auto;border-radius:19px;font-family:'Estedad',var(--f);font-size:18px;font-weight:750;letter-spacing:-.1px;box-shadow:0 10px 24px color-mix(in oklab,var(--brand) 28%,transparent),0 1px 0 rgba(255,255,255,.35) inset;animation:noraStartLift 2.6s ease-in-out infinite}
-  .botbar.start-mode #next:after{content:'';position:absolute;z-index:1;inset:-5px;border:2px solid color-mix(in oklab,var(--brand) 44%,transparent);border-radius:inherit;pointer-events:none;animation:noraStartPulse 2.4s ease-out infinite}
+  .botbar.start-mode #next{position:relative;isolation:isolate;overflow:visible;display:flex;width:100%;min-height:62px;margin:0 auto;border-radius:19px;font-family:'Estedad',var(--f);font-size:18px;font-weight:750;letter-spacing:-.1px;box-shadow:0 10px 24px color-mix(in oklab,var(--brand) 28%,transparent),0 1px 0 rgba(255,255,255,.35) inset;animation:noraStartLift 2.6s ease-in-out infinite}
+  .botbar.start-mode #next:after{content:'';position:absolute;z-index:1;inset:-5px;width:auto;height:auto;opacity:1;background:none;transform:none;border:2px solid color-mix(in oklab,var(--brand) 44%,transparent);border-radius:inherit;pointer-events:none;animation:noraStartPulse 2.4s ease-out infinite}
   .botbar.start-mode #next:hover{animation-play-state:paused;transform:translateY(-2px);filter:brightness(1.035)}
   .botbar.start-mode #next:active{animation-play-state:paused;transform:scale(.985)}
   @keyframes noraStartLift{0%,100%{box-shadow:0 9px 21px color-mix(in oklab,var(--brand) 24%,transparent),0 1px 0 rgba(255,255,255,.35) inset}50%{box-shadow:0 15px 32px color-mix(in oklab,var(--brand) 38%,transparent),0 1px 0 rgba(255,255,255,.4) inset}}

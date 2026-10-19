@@ -69,7 +69,7 @@ test('Offline private navigation uses a generic fallback, never an old private r
   const env=environment({fail:true}),cache=new Map();
   const fallback={kind:'generic-offline-fixture'},privateResponse={kind:'private-fixture-not-for-display'};
   cache.set(env.key('offline.html'),fallback);cache.set(env.key('account.html'),privateResponse);
-  env.stores.set('nora-v98',cache);
+  env.stores.set('nora-v99',cache);
   const reply=await env.run('fetch',{url:origin+'/account.html',method:'GET',mode:'navigate'});
   assert.equal(reply,fallback);assert.equal(env.writes.length,0);
 });
@@ -77,7 +77,7 @@ test('Offline private navigation uses a generic fallback, never an old private r
 test('Query-string navigation is not replaced by another cached query variant',async()=>{
   const env=environment({fail:true}),cache=new Map();const fallback={kind:'generic-offline-fixture'};
   cache.set(env.key('offline.html'),fallback);cache.set(env.key('events.html?q=private-fixture'),{kind:'wrong-query'});
-  env.stores.set('nora-v98',cache);
+  env.stores.set('nora-v99',cache);
   const reply=await env.run('fetch',{url:origin+'/events.html?q=other',method:'GET',mode:'navigate'});
   assert.equal(reply,fallback);
 });
