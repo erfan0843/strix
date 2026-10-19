@@ -11,13 +11,13 @@
 - همهٔ آزمون‌های بصری/رفتاری این گزارش روی **همان سرور تست محلی** اجرا شده‌اند، نه دامنهٔ زنده.
 
 ### فایل‌های بررسی‌شده
-`icons.svg`، `glass.css`، `nora.css`، `ui.js`، CSS/JS صفحه‌ها (`events-page.css`, `events.css`, `person-page.css`, `partner-page.css`, `login.css/js`, `account.css/js`, `support.css/js`, `admin.css/js`, `events-page.js`, `event-page.js`, `post.html`)، بلوک‌های `<style>` درون `home/form/create/builder/event/events/post/final-page-review`، و اسپرایت‌های SVG درون همهٔ ۱۹ صفحهٔ HTML. اسکریپت `tools/screenshot-matrix.mjs` هم در هر صفحه `use[href]` شکسته، کنترل‌های کوچک‌تر از ۲۴px، دکمهٔ آیکونی بدون نام دسترس‌پذیر، گلیف/ایموجی در کنترل‌ها، سرریز افقی و خطای کنسول را شمرد (`logs/metrics-before.jsonl`).
+`icons.svg`، `glass.css`، `nora.css`، `ui.js`، CSS/JS صفحه‌ها (`events-page.css`, `events.css`, `person-page.css`, `partner-page.css`, `login.css/js`, `account.css/js`, `support.css/js`, `admin.css/js`, `events-page.js`, `event-page.js`, `post.html`)، بلوک‌های `<style>` درون `home/form/create/builder/event/events/post/final-page-review`، و اسپرایت‌های SVG درون همهٔ ۱۹ صفحهٔ HTML. اسکریپت `tools/screenshot-matrix.mjs` هم در هر صفحه `use[href]` شکسته، کنترل‌های کوچک‌تر از ۲۴px، دکمهٔ آیکونی بدون نام دسترس‌پذیر، گلیف/ایموجی در کنترل‌ها، سرریز افقی و خطای کنسول را شمرد (خروجی خط‌به‌خط در `logs/screenshots-before.log`؛ فایل‌های `metrics-*.jsonl` هرگز commit نشده بودند — بند ۵).
 
 ### یافته‌های اولیه
 | # | یافته | شاهد |
 |---|---|---|
 | 1 | مجموعهٔ آیکون نورا (شبکهٔ ۲۴، ضخامت ۱٫۷، سرِ گرد) در ۱۰ صفحه + `icons.svg` یکسان است، اما **`events.html` (۱۶ نماد) و `support.html` (۴۳ نماد)** و تک‌نمادهایی در `account/admin/login/offline` همان شناسه‌ها را با **رسم متفاوت** (ضخامت ۱٫۸، مسیر دیگر) داشتند؛ در مجموع ۴۹ شناسه از ۱۰۲ شناسه بین صفحه‌ها واگرا بود | اسکریپت مقایسهٔ بدنهٔ `<symbol>`ها (بخش ۱) |
-| 2 | دو ارجاع شکسته: `builder.html → #i-refresh` (دکمهٔ «به‌روزرسانی API» و «تازه‌سازی») و `form.html → #i-info` (۳ جا، از جمله پیام پیش‌نمایش پرداخت) | `metrics-before.jsonl`: form ۷ بار `broken:["#i-info"]`؛ builder ۷ بار |
+| 2 | دو ارجاع شکسته: `builder.html → #i-refresh` (دکمهٔ «به‌روزرسانی API» و «تازه‌سازی») و `form.html → #i-info` (۳ جا، از جمله پیام پیش‌نمایش پرداخت) | `logs/screenshots-before.log`: form ۷ بار `broken=1`؛ builder ۷ بار؛ nora-pay-preview (→form) ۷ بار |
 | 3 | کلید شب/روز در `events/person/partner` به‌جای SVG، گلیف متنی `☼`/`☾` داشت که در عمل **خالی** دیده می‌شد؛ در `home/login/event/post/account/support` SVG بود | `shots/compare/cmp-events-top-zoom.jpg`, `cmp-person-top-zoom.jpg` |
 | 4 | `create.html` برای «شب / روز» (ریل دسکتاپ و نوار پایین) آیکون **چشم** داشت | `shots/compare/cmp-create-1280.jpg` |
 | 5 | `icons.svg` (که Service Worker آن را در پوسته کش می‌کند) فقط ۶۳ نماد داشت؛ ۳۹ نمادِ فقط-درون-صفحه در آن نبود | `git diff icons.svg` |
@@ -26,7 +26,7 @@
 | 8 | تنظیم «حرکت: خاموش» نورا (`html[data-motion="off"]`) فقط در `nora.css` بود → در صفحه‌های فقط-`glass.css` (form/create/builder) اثر نداشت | `nora.css:521` |
 | 9 | دکمه‌های بنر خانه (`.bbtn`) هیچ hover/active/focus اختصاصی نداشتند | `home.html` style block |
 | 10 | نسخهٔ کش `nora.css` در `login.html` (`v=121`) با بقیه (`v=101`) ناهمخوان بود | grep |
-| 11 | هیچ دکمهٔ آیکونی بدون نام دسترس‌پذیر، هیچ سرریز افقی و هیچ خطای کنسول در ۱۳۳ ترکیب صفحه×ویوپورت×تم یافت نشد | `metrics-before.jsonl` |
+| 11 | هیچ دکمهٔ آیکونی بدون نام دسترس‌پذیر، هیچ سرریز افقی و هیچ خطای کنسول در ۱۳۳ ترکیب اجراشده (بند ۴ و ۵) یافت نشد | خطوط `ctrls=… iconOnlyNoName=0 … overflowX=false errs=0` در `logs/screenshots-before.log` (فایل `metrics-before.jsonl` ثبت نشده بود؛ بند ۵) |
 
 ---
 
@@ -71,7 +71,13 @@ JS: `login.js` روی سه دکمهٔ submit و «خروج» هنگام `state.b
 
 ## ۴. تصاویر قبل و بعد
 
-- `shots/before/` و `shots/after/`: ۸۷ تصویر در هر پوشه — همهٔ ۱۸ صفحه در `390×844` و `1280×800` روشن + تاریک؛ و `360×800`، `768×1024`، `1440×900` برای home/events/create/form/login. (کل ۱۳۳ ترکیب در هر اجرا گرفته شد؛ سنجه‌های همه در `logs/metrics-*.jsonl` است.)
+**ماتریس واقعی اجراشده (اصلاح‌شده در ممیزی ۲۰۲۶-۱۰-۱۹):** اسکریپت `tools/screenshot-matrix.mjs` برای هر یک از ۱۹ صفحه **۷ ترکیب** می‌گیرد، نه ۱۰: پنج ویوپورت در تم روشن (`360×800`, `390×844`, `768×1024`, `1280×800`, `1440×900`) + دو ویوپورت در تم تاریک (`390×844`, `1280×800`). پس کل هر اجرا **۱۹ × ۷ = ۱۳۳** ترکیب است (نه ۱۹ × ۵ × ۲ = ۱۹۰). ویوپورت‌های ۳۶۰/۷۶۸/۱۴۴۰ در تم تاریک **هیچ‌وقت گرفته نشده‌اند**. لاگ «قبل» ۱۳۹ خط نتیجه دارد چون ۶ ترکیب `nora-pay-preview` پس از یک SIGSEGV مرورگر دوباره اجرا شد (تکراری، نه ترکیب اضافه).
+
+- `shots/before/` و `shots/after/`: **۸۷ فایل در هر پوشه** (فهرست دقیق و میانگین روشنایی هر فایل: `logs/audit-shot-inventory.txt`):
+  - ۱۸ صفحه (همهٔ فهرست به‌جز `index`) × ۴ = ۷۲ تصویر: `390×844` و `1280×800`، هرکدام روشن و تاریک؛
+  - ۵ صفحهٔ home/events/create/form/login × ۳ ویوپورت اضافهٔ روشن (`360×800`, `768×1024`, `1440×900`) = ۱۵ تصویر؛
+  - **در پوشهٔ شواهد نیست** (گرفته شد ولی هنگام فشرده‌سازی حذف شد و با ریست محیط از دست رفت): ۷ تصویر `index` (ریدایرکت به خانه؛ نتیجه در لاگ همان خانه است) و ۳۹ تصویر `360/768/1440` روشنِ ۱۳ صفحهٔ دیگر. نتیجهٔ سنجه‌های خودکار این ۴۶ ترکیب فقط در `logs/screenshots-*.log` موجود است.
+- **صفحه‌هایی که تم تاریک ندارند** (تصویر «تاریک» آن‌ها با روشن یکسان است؛ میانگین روشنایی ≈۲۳۶–۲۴۲ در هر دو): `404.html` (بدون `glass.css`/`nora.css`)، `offline.html` و `final-page-review.html` (استایل مستقل، بدون توکن تاریک). `index.html` فقط ریدایرکت است. `nora-pay-preview` به `form.html` می‌رود و تاریک واقعی دارد. بقیهٔ ۱۵ صفحه در هر دو تم رندر شده‌اند (میانگین روشنایی تاریک ۲۴–۵۷).
 - `shots/compare/`: مقایسه‌های کنار هم — `cmp-events-390.jpg`، `cmp-person-390.jpg`، `cmp-support-390.jpg`، `cmp-create-1280.jpg`، `cmp-events-1280-dark.jpg`، `cmp-partner-390-dark.jpg`، زوم سر صفحه‌ها، `sheet-shine.png` (سه فریم: ساکن / hover با درخشش / hover ساکن‌شده)، `sheet-interact.png` (چرخانهٔ busy روی دکمهٔ اصلی، فرم و ورود؛ توست خطا؛ کلید شب/روز person در روشن و تاریک).
 - `shots/interact/`: برش‌های رفتاری (`primary-busy`, `primary-focus`, `toast-error`, `login-busy`, `form-next-busy`, `person-theme-switch`, `person-dark-top`, `primary-hover-shine`).
 
@@ -81,8 +87,8 @@ JS: `login.js` روی سه دکمهٔ submit و «خروج» هنگام `state.b
 
 | فرمان / اسکریپت | نتیجه | exit | لاگ |
 |---|---|---|---|
-| `tools/screenshot-matrix.mjs` قبل از تغییر (۱۹ صفحه × ۷ ترکیب) | ۱۳۳ تصویر؛ `broken`: form ۷، builder ۷، nora-pay-preview (→form) ۷؛ گلیف در کلید تم: events/person/partner | 0 (یک بار SIGSEGV مرورگر، با retry تکمیل شد) | `logs/screenshots-before.log`, `metrics-before.jsonl` |
-| همان، بعد از تغییر | ۱۳۳ تصویر؛ **broken=0، emoji=0، overflowX=0، errs=0 در همه** | 0 | `logs/screenshots-after.log`, `metrics-after.jsonl` |
+| `tools/screenshot-matrix.mjs` قبل از تغییر (۱۹ صفحه × ۷ ترکیب = ۱۳۳؛ بند ۴) | ۱۳۳ ترکیب (۱۳۹ خط لاگ با ۶ تکرار پس از SIGSEGV)؛ `broken`: form ۷، builder ۷، nora-pay-preview (→form) ۷؛ گلیف در کلید تم: events/person/partner | 0 (یک بار SIGSEGV مرورگر، با retry تکمیل شد) | `logs/screenshots-before.log` |
+| همان، بعد از تغییر | ۱۳۳ ترکیب؛ **broken=0، emoji=0، overflowX=0، errs=0 در همه** | 0 | `logs/screenshots-after.log` |
 | `tools/interaction-checks.mjs` (Playwright روی سرور تست؛ hover/active/focus/disabled/busy، لمس، کاهش حرکت، `data-motion`، توست، کپی موفق/ناموفق، سگمنت، icon-btn، hit-area لمسی، صفحه‌کلید، تم تاریک، busy ورود/فرم، ارجاع‌های `<use>` در ۱۳ صفحه) | **35 passed, 0 failed** | 0 | `logs/interact-final.log` (اجراهای میانی با شکست‌های خودِ اسکریپت: `interact-run1-first-attempt.log`, `interact-run4.log`) |
 | `node tools/run-unit-tests.cjs` (۲۵ مجموعه) — اجرای اول | 24/25؛ `admin.test` ۳ شکست: کپی در jsdom حالا صادقانه «ناموفق» می‌گفت (jsdom کلیپ‌بورد ندارد) | 1 | `logs/unit-tests-run1-before-test-fix.log` |
 | `node admin.test.mjs` پس از شبیه‌سازی `execCommand` موفق در harness تست | ۸۱۷ ✓، ۰ ✗ | 0 | `logs/admin-test-after-fix.log` |
@@ -130,7 +136,7 @@ JS: `login.js` روی سه دکمهٔ submit و «خروج» هنگام `state.b
 | pop روی `.chip.on` | چیپ‌های فیلتر در events با هر تغییر دوباره رندر می‌شوند و pop همگانی آزاردهنده می‌شد؛ فقط گذار نرم |
 | ripple/موج روی همهٔ دکمه‌ها | طبق درخواست انجام نشد؛ press + درخشش کنترل‌شده |
 | `nora.css` هنوز چند اندازهٔ آیکون را روی `.btn .i` بازتعریف می‌کند (۲۰ به‌جای ۱۹) | رفتار فعلی صفحه‌های nora است؛ تغییرش تأثیر چیدمانی گسترده دارد و ارزش ریسکش را نداشت |
-| ممیزی چشمی کامل همهٔ تصاویر ۷۶۸/۱۴۴۰ | سنجه‌های خودکار (سرریز، خطا، ارجاع شکسته) در همهٔ ۱۳۳ ترکیب صفر بود؛ بازبینی چشمی روی برش‌های مقایسه انجام شد نه تک‌تک تصاویر |
+| ممیزی چشمی کامل همهٔ تصاویر ۷۶۸/۱۴۴۰ | سنجه‌های خودکار (سرریز، خطا، ارجاع شکسته) در همهٔ ۱۳۳ ترکیب اجراشده صفر بود؛ بازبینی چشمی روی برش‌های مقایسه انجام شد نه تک‌تک تصاویر |
 
 ---
 
@@ -140,3 +146,38 @@ JS: `login.js` روی سه دکمهٔ submit و «خروج» هنگام `state.b
 - **`a1b6229`** — لایهٔ تعامل: `glass.css`, `nora.css`, `login.css`, `ui.js`, `login.js`, `account.js`, `post.test.mjs`, `admin.test.mjs`.
 - کامیت گزارش/شواهد: هش در پاسخ نهایی.
 - هیچ وابستگی تازه، هیچ تغییر در API/مدل داده/احراز هویت/مسیرها؛ همه فقط روی `arena/840de336-strix`؛ PR #1 باز.
+
+---
+
+## ۱۰. ممیزی مستقل شواهد و کیفیت بصری (۲۰۲۶-۱۰-۱۹، پس از پایان فاز)
+
+### ۱۰.۱ تطبیق اعداد با فایل‌ها
+- ادعای «۱۹ صفحه × ۵ ویوپورت × روشن/تاریک» در نسخهٔ اول این گزارش **نادرست** بود؛ ماتریس واقعی ۱۹ × ۷ = ۱۳۳ است (بند ۴ اصلاح شد). ویوپورت‌های ۳۶۰/۷۶۸/۱۴۴۰ در تم تاریک هیچ‌گاه گرفته نشده‌اند و در این ممیزی هم اضافه نشدند، چون بررسی ۳۹۰/۱۲۸۰ تاریک برای همهٔ صفحه‌ها موجود است و هیچ ایراد وابسته به عرضِ تاریک دیده نشد.
+- ۸۷ + ۸۷ فایل با اسکریپت و لاگ تطبیق داده شد (`logs/audit-shot-inventory.txt`)؛ ترکیب ۴۶ تصویرِ حذف‌شده از پوشهٔ شواهد و سه صفحهٔ بدون تم تاریک در بند ۴ ثبت شد.
+- `metrics-before/after.jsonl` که نسخهٔ اول گزارش به آن ارجاع می‌داد، **هرگز در Git نبود** (پوشهٔ `logs/` در `.gitignore` است و فقط `.log`ها با `-f` اضافه شده بودند) و با ریست محیط از بین رفت؛ ارجاع‌ها به لاگ خط‌به‌خط اصلاح شد.
+
+### ۱۰.۲ بازبینی چشمی (روی تصاویر موجود)
+برگه‌های مقایسهٔ قبل/بعد (۳۹۰ روشن+تاریک برای home/events/event/form/login/account/support/admin/post؛ ۱۲۸۰ برای home/event/admin/builder روشن و events/account تاریک) در `shots/audit-review/` است. ترازبندی آیکون/متن، RTL، خوانایی، تاریک و موبایل در این صفحه‌ها بدون جابه‌جایی چیدمان بود. سه ایراد پیدا شد:
+
+| # | گروه | ایراد | رفع |
+|---|---|---|---|
+| A | **ضروری** | دکمهٔ «شروع» فرم (`.botbar.start-mode #next`) در تصویر «بعد» یک **نوار درخشش ثابت** وسط دکمه داشت و حلقهٔ تپندهٔ خودش گم شده بود: شبه‌عنصر `::after` حلقهٔ فرم با `::after` درخششِ مشترک `.btn.primary` ادغام می‌شد (`width:38%` + گرادیان + `overflow:hidden` روی حلقه اعمال می‌شد). این را در فاز اصلی ندیده بودم. | `form.html`: `overflow:visible` روی دکمهٔ شروع و بازنشانی `width/height/opacity/background/transform` در حلقه؛ درخشش روی این دکمه به‌خاطر ویژگی‌بودن selector با id هرگز فعال نمی‌شود، حلقهٔ تپنده مثل قبل است (`shots/audit-fix/cmp-form-start.jpg`, `form-start-hover.jpg`) |
+| B | **ضروری** | نماد `i-handshake` («همکاری با ما» و «راه‌های تماس» در پشتیبانی — تنها مصرف‌کننده) پس از یکدست‌سازی به نسخهٔ اکثریت، در ۲۰px مثل دو فلش خوانده می‌شد نه دست‌دادن. | بدنهٔ واضح‌تر (نسخهٔ قبلی پشتیبانی) در هر ۸ تعریف (۷ صفحه + `icons.svg`) یکسان شد (`shots/audit-fix/cmp-support-icon.jpg`) |
+| C | **ضروری** (قاعدهٔ «یک کنش = یک نماد» که خودِ این فاز وضع کرد) | ریل دسکتاپ پنل مدیریت «شب / روز» هنوز آیکون **چشم** داشت؛ در create همین مورد اصلاح شده بود. | `admin.html`: جفت `i-moon`/`i-sun` حالت‌آگاه (نمادها به اسپرایت admin افزوده شد)؛ منطق `admTheme` دست نخورد (`shots/audit-fix/cmp-admin-theme.jpg`: روشن → ماه، تاریک → خورشید) |
+| D | بهبود کم‌ریسک (انجام نشد) | آیکون هدفون/زنگ نوار بالای پشتیبانی پس از یکدست‌سازی کمی نازک‌تر از قبل است (حالا با خانه یکسان) | تغییر عمدی فاز؛ نیازی به اقدام نیست |
+| E | سلیقه‌ای (انجام نشد) | در ۳۹۰، کلید شب/روز نوار بالای events بدون دکمهٔ پشتیبانی/زنگ کنار خودش کمی تنهاست؛ تب‌بار دسکتاپ خیلی پهن است | خارج از این فاز |
+
+نسخهٔ Service Worker به `nora-v99` رسید چون `icons.svg` (در پوستهٔ کش‌شده) تغییر کرد؛ پین‌های `admin.test.mjs` و `service-worker-privacy.test.mjs` هم‌زمان به‌روز شدند.
+
+### ۱۰.۳ آزمون‌های رگرسیون این ممیزی (واقعاً اجراشده)
+محیط sandbox پیش از این ممیزی ریست شده بود؛ venv، وابستگی‌های Node، مرورگر و سرور تست با **DB تازه و بدون seed قبلی** دوباره ساخته شد.
+
+| فرمان | نتیجه | exit | لاگ |
+|---|---|---|---|
+| `tools/audit-fix-check.mjs` (Playwright روی سرور تست: support ۳۹۰ روشن/تاریک، admin ۱۲۸۰ روشن/تاریک با نشست مالک، صفحهٔ شروع فرمِ پیش‌نمایش ۳۹۰ روشن/تاریک و ۱۲۸۰ + hover؛ ارجاع‌های `<use>`، خطای صفحه، وضعیت محاسبه‌شدهٔ `::after`) | ۷ صفحه، broken=0، errs=0؛ `::after` دکمهٔ شروع: `noraStartPulse`، بدون گرادیان، hover هم همان | 0 | `logs/audit-fix-check.log` |
+| `node tools/run-unit-tests.cjs` — اجرای اول | 24/25: `qr.test` فقط به‌خاطر نبود بستهٔ `jsqr` در محیط تازه | 1 | `logs/audit-unit-tests-run1-missing-jsqr.log` |
+| `node qr.test.mjs` پس از نصب `jsqr` | ۳۳ بررسی، ۰ خطا | 0 | `logs/audit-qr-test.log` |
+| `node tools/run-unit-tests.cjs` — اجرای دوم | **25/25 passed; 0 failed** | 0 | `logs/audit-unit-tests-run2.log` |
+| `pytest -q tests` (بک‌اند؛ HTML صفحه‌ها تغییر کرد) | 225 passed, 4 skipped | 0 | `logs/audit-pytest.log` |
+
+**اجرا نشد:** `interaction-checks.mjs` (۳۵ سنجه) و ماتریس کامل اسکرین‌شات، چون به seed سرور تست (رویداد/مطلب/فرم منتشرشده) نیاز دارند که با ریست محیط از بین رفته و بازسازی آن خارج از این ممیزی بود؛ تغییرات این ممیزی فقط سه ناحیهٔ بالا را لمس می‌کنند که مستقیماً در مرورگر بازبینی شدند. نتایج ۳۵/۳۵ و ۱۳۳/۱۳۳ در بند ۵ متعلق به پیش از این ممیزی‌اند.
