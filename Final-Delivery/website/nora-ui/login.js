@@ -164,13 +164,13 @@
   function renderPhoneLogin() {
     clearOtpTimer();
     setAdminEntryVisible(true);
-    setTitle('ورود به نورا');
+    setTitle('ورود یا ثبت‌نام');
     setLead('');
     const body = $('#lgBody');
     if (!body) return;
 
     if (!state.otpChallengeId) {
-      setLead('شمارهٔ همراهت را بنویس تا کد ورود را در بله برایت بفرستیم.');
+      setLead('شمارهٔ همراهت را وارد کن؛ کد یک‌بارمصرف را در ربات بله دریافت می‌کنی.');
       body.innerHTML = `<div class="lgstep" id="lgPhoneMethod">
         <form class="lgform" id="lgPhoneForm" autocomplete="on">
           <label class="lgfield" for="lgPhone">
