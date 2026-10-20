@@ -1,0 +1,23 @@
+  test phones (unique per run): 09121488590 09122488590
+PASS new member: REAL verify → confirmation card «حسابت ساخته شد» {"h":"حسابت ساخته شد","d":"حساب نورا با همین شماره ساخته و وارد شد. اطلاعات تکمیلی پروفایل در ربات بله ثبت می‌شود و وضعیتش در «حساب من» دیده می‌شود.","cont":"ac
+PASS new member: no auto-redirect before the user reads the card 
+PASS new member: «تکمیل پروفایل در ربات بله» link comes from the server (delivery_bot_url) and stays active ["account.html","https://ble.ir/nora_preview_bot"]
+PASS new member: tabbar label switches to «حساب من» after server session 
+PASS new member: exactly one account + identity created in DB {"before":{"identities_for_phone":0,"accounts":5},"after":{"identities_for_phone":1,"accounts":6}}
+PASS new member: real httpOnly session cookie set by server 
+PASS new member: lands on account page in server mode /account.html server
+PASS new member: account page confirms server session 
+PASS new member: account page shows profile-not-yet-filled status (completion lives in Bale bot per v1 scope) 
+PASS new member: no page errors 
+PASS returning member: no second account created {"before":{"identities_for_phone":1,"accounts":6},"after":{"identities_for_phone":1,"accounts":6}}
+PASS returning member: straight to requested destination with server session {"url":"/account.html#notifications","src":"server"}
+PASS returning member: no page errors 
+PASS wrong code: REAL 401 shown in Persian, user stays on the code step {"st":"کد نادرست است یا مهلتش گذشته است.","kind":"error","step":true,"val":""}
+PASS wrong then right code: same challenge still verifies (attempt counter, not lockout) 
+PASS consumed/expired challenge: REAL 401 → «کد نادرست است یا مهلتش گذشته است» کد نادرست است یا مهلتش گذشته است.
+  note: IP rate-limit (429 login_temporarily_blocked) covered by pytest, not triggered here to keep the shared test server usable
+PASS offline during verify: «ارتباط با سرور برقرار نشد»، no fake login, button re-enabled {"st":"ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.","kind":"error","auth":false,"busy":false}
+  meCalls 2
+PASS SIMULATED new-member card: bot link rendered from server value, single primary action {"bot":true,"primaries":1,"links":["account.html","https://ble.ir/nora_bot"],"h":"حسابت ساخته شد"}
+
+18 passed, 0 failed
