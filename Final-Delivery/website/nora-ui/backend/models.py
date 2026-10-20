@@ -196,6 +196,7 @@ class FormResponseRecord(Base):
     ticket_claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ticket_checked_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ticket_checked_in_by_bale_user_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    ticket_checked_in_by_account_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     receipt_review_task_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

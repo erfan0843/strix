@@ -152,8 +152,11 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
         assert {"ix_admin_audit_events_created", "ix_admin_audit_events_action_created", "ix_admin_audit_events_target"} <= {
             index["name"] for index in inspector.get_indexes("admin_audit_events")
         }
+        assert "ticket_checked_in_by_account_id" in {
+            column["name"] for column in inspector.get_columns("form_responses")
+        }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0026_admin_audit_events"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0027_ticket_checkin_account"
     finally:
         engine.dispose()
 

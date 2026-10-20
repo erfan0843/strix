@@ -32,7 +32,7 @@ from urllib.parse import quote, unquote, urlsplit
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import and_, create_engine, delete, func, or_, select, text, update
+from sqlalchemy import and_, case, create_engine, delete, func, or_, select, text, update
 from sqlalchemy.engine import CursorResult, Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload, sessionmaker
@@ -44,6 +44,7 @@ from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_cap
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
 from . import data_staging as data_staging_mod
 from . import audit as audit_mod
+from . import content_admin as content_admin_mod
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
@@ -1978,6 +1979,627 @@ def create_app(
         db.commit()
         db.refresh(record)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+
+    # ── مدیریت رکوردی رویداد و مطلب روی همان سند site_content ──
+    # منبع حقیقت همان سند است؛ این مسیرها فقط چرخهٔ «پیش‌نویس/منتشر/متوقف/بایگانی»
+    # را روی ردیف‌ها می‌افزایند. ویرایش/ساخت با ev_create و تغییر وضعیت با ev_publish.
+    _CONTENT_KIND = r"^(events|articles)$"
+    _CONTENT_EDIT_PERMS = ("ev_create",)
+    _CONTENT_PUBLISH_PERMS = ("ev_publish",)
+
+    def _content_rows(record: SiteContentRecord | None, kind: str) -> list[Any]:
+        return list(((record.content if record else None) or {}).get(kind) or [])
+
+    def _content_kind(kind: str) -> str:
+        if kind not in content_admin_mod.KINDS:
+            raise HTTPException(404, "content_kind_not_found")
+        return kind
+
+    def _content_error(error: content_admin_mod.ContentAdminError) -> HTTPException:
+        return HTTPException(422, {"code": error.code, "field": error.field})
+
+    def _content_record_response(
+        record: SiteContentRecord, kind: str, row: dict[str, Any], *, saved: bool = False
+    ) -> dict[str, Any]:
+        return {
+            "kind": kind,
+            "record": content_admin_mod.detail(kind, row),
+            "version": record.version,
+            "updated_at": _as_utc(record.updated_at).isoformat() if record.updated_at else None,
+            "saved": saved,
+        }
+
+    async def _content_write_payload(request: Request, db: Session, *, need_record: bool) -> tuple[dict[str, Any], SiteContentRecord]:
+        payload = await _read_json_object(request, 4 * 1024 * 1024)
+        allowed = {"record", "expected_version", "status"} if need_record else {"status", "expected_version"}
+        if not set(payload) <= allowed or "expected_version" not in payload or (need_record and "record" not in payload):
+            raise HTTPException(400, "invalid_content_request")
+        expected_version = payload.get("expected_version")
+        if isinstance(expected_version, bool) or not isinstance(expected_version, int) or expected_version < 0:
+            raise HTTPException(422, "invalid_site_content_version")
+        record = db.get(SiteContentRecord, "public")
+        current_version = record.version if record else 0
+        if expected_version != current_version:
+            raise HTTPException(409, {"code": "site_content_version_conflict", "current_version": current_version})
+        if record is None:
+            record = SiteContentRecord(id="public", content={key: [] for key in CONTENT_KEYS}, version=0)
+            db.add(record)
+        return payload, record
+
+    def _content_store(record: SiteContentRecord, kind: str, rows: list[Any]) -> None:
+        current: dict[str, Any] = {key: list((record.content or {}).get(key, [])) for key in CONTENT_KEYS}
+        if isinstance((record.content or {}).get("banner_settings"), dict):
+            current["banner_settings"] = dict((record.content or {})["banner_settings"])
+        current[kind] = rows
+        record.content = current
+        record.version = (record.version or 0) + 1
+        record.updated_at = _utc_now()
+
+    @app.get("/api/admin/content/{kind}")
+    def list_admin_content(
+        kind: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        status: str = Query(default="", pattern=r"^(|draft|published|paused|archived)$"),
+        sort: str = Query(default="updated", pattern=r"^(updated|created|title|date)$"),
+        order: str = Query(default="desc", pattern=r"^(asc|desc)$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_CONTENT_EDIT_PERMS, *_CONTENT_PUBLISH_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        kind = _content_kind(kind)
+        record = db.get(SiteContentRecord, "public")
+        try:
+            result = content_admin_mod.list_records(
+                kind, _content_rows(record, kind), q=q, status=status, sort=sort, order=order, limit=limit, offset=offset
+            )
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        result.update({
+            "kind": kind,
+            "version": record.version if record else 0,
+            "source": "site_content",
+            "can_edit": has_permission(role, "ev_create"),
+            "can_publish": has_permission(role, "ev_publish"),
+            "q": q,
+            "status": status,
+            "sort": sort,
+            "order": order,
+        })
+        return result
+
+    @app.get("/api/admin/content/{kind}/{record_id}")
+    def get_admin_content_record(
+        kind: str,
+        record_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_CONTENT_EDIT_PERMS, *_CONTENT_PUBLISH_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        kind = _content_kind(kind)
+        record = db.get(SiteContentRecord, "public")
+        found = content_admin_mod.find_row(_content_rows(record, kind), record_id)
+        if record is None or found is None:
+            raise HTTPException(404, "content_record_not_found")
+        return _content_record_response(record, kind, found[1])
+
+    @app.post("/api/admin/content/{kind}")
+    async def create_admin_content_record(
+        kind: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_CONTENT_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        kind = _content_kind(kind)
+        payload, record = await _content_write_payload(request, db, need_record=True)
+        status = payload.get("status", "draft")
+        if status not in {"draft", "published"}:
+            raise HTTPException(422, {"code": "invalid_status", "field": "status"})
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        if status == "published" and not has_permission(role, "ev_publish"):
+            raise HTTPException(403, "permission_denied")
+        rows = _content_rows(record, kind)
+        try:
+            content_admin_mod.ensure_capacity(kind, rows)
+            record_id = content_admin_mod.new_record_id(kind)
+            while content_admin_mod.find_row(rows, record_id):
+                record_id = content_admin_mod.new_record_id(kind)
+            row = content_admin_mod.build_record(kind, payload.get("record"), existing=None, record_id=record_id, status=status)
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        rows.append(row)
+        _content_store(record, kind, rows)
+        record_audit(
+            db, identity, "content.create", target_type=f"content.{kind}", target_id=record_id,
+            details={"kind": kind, "title": str(row.get("t") or "")[:120], "status": status, "version": record.version},
+        )
+        db.commit()
+        db.refresh(record)
+        return _content_record_response(record, kind, row, saved=True)
+
+    @app.put("/api/admin/content/{kind}/{record_id}")
+    async def update_admin_content_record(
+        kind: str,
+        record_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_CONTENT_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        kind = _content_kind(kind)
+        payload, record = await _content_write_payload(request, db, need_record=True)
+        if "status" in payload:
+            raise HTTPException(400, "invalid_content_request")
+        rows = _content_rows(record, kind)
+        found = content_admin_mod.find_row(rows, record_id)
+        if found is None:
+            raise HTTPException(404, "content_record_not_found")
+        index, existing = found
+        current_status = content_admin_mod.status_of(existing)
+        try:
+            row = content_admin_mod.build_record(
+                kind, payload.get("record"), existing=existing, record_id=record_id, status=current_status
+            )
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        rows[index] = row
+        _content_store(record, kind, rows)
+        record_audit(
+            db, identity, "content.update", target_type=f"content.{kind}", target_id=record_id,
+            details={"kind": kind, "title": str(row.get("t") or "")[:120], "status": current_status, "version": record.version},
+        )
+        db.commit()
+        db.refresh(record)
+        return _content_record_response(record, kind, row, saved=True)
+
+    @app.post("/api/admin/content/{kind}/{record_id}/status")
+    async def set_admin_content_status(
+        kind: str,
+        record_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_CONTENT_PUBLISH_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        kind = _content_kind(kind)
+        payload, record = await _content_write_payload(request, db, need_record=False)
+        status = payload.get("status")
+        if not isinstance(status, str) or status not in content_admin_mod.STATUSES:
+            raise HTTPException(422, {"code": "invalid_status", "field": "status"})
+        rows = _content_rows(record, kind)
+        found = content_admin_mod.find_row(rows, record_id)
+        if found is None:
+            raise HTTPException(404, "content_record_not_found")
+        index, existing = found
+        previous = content_admin_mod.status_of(existing)
+        try:
+            row = content_admin_mod.apply_status(kind, existing, status)
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        rows[index] = row
+        _content_store(record, kind, rows)
+        record_audit(
+            db, identity, "content.status", target_type=f"content.{kind}", target_id=record_id,
+            details={"kind": kind, "title": str(row.get("t") or "")[:120], "from": previous, "status": status, "version": record.version},
+        )
+        db.commit()
+        db.refresh(record)
+        return _content_record_response(record, kind, row, saved=True)
+
+    # ── فهرست کاربران برای مدیران دارای us_view (جدا از «حساب‌ها و نقش‌ها») ──
+    # فقط دادهٔ غیرمحرمانه: نام نمایشی پروفایل، نوع ورود، نقش، شمارش سوابق.
+    # شمارهٔ تلفن (که فقط digest آن ذخیره است)، hash و توکن هرگز برنمی‌گردند.
+    def _user_identity_summary(identities: Sequence[PlatformIdentityRecord]) -> dict[str, Any]:
+        providers = sorted({item.provider for item in identities if item.provider in {"bale", "phone"}})
+        bale_ids = [item.provider_user_id for item in identities if item.provider == "bale"]
+        return {
+            "providers": providers,
+            "bale_user_id": bale_ids[0] if bale_ids else None,
+            "linked": len(providers) > 1,
+        }
+
+    def _admin_user_row(
+        db: Session, account: AccountRecord, *, role: str | None, profile: AccountProfileRecord | None,
+        identities: Sequence[PlatformIdentityRecord], viewer_role: str | None,
+    ) -> dict[str, Any]:
+        fields = (profile.fields if profile is not None else {}) or {}
+        registrations = int(db.scalar(
+            select(func.count(FormResponseRecord.id))
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(
+                account_form_record_scope(db, account.id),
+                FormResponseRecord.added_by_response_id.is_(None),
+                FormRecord.model == "registration",
+            )
+        ) or 0)
+        pending_reviews = int(db.scalar(
+            select(func.count(AdminTaskRecord.id)).where(
+                AdminTaskRecord.account_id == account.id, AdminTaskRecord.status == "pending"
+            )
+        ) or 0)
+        row: dict[str, Any] = {
+            "account_id": account.id,
+            "display_name": str(fields.get("fullName") or "")[:120],
+            "city": str(fields.get("city") or "")[:80],
+            "province": str(fields.get("province") or "")[:80],
+            "role": role,
+            "status": "active",
+            "created_at": _as_utc(account.created_at).isoformat(),
+            "profile_updated_at": _as_utc(profile.updated_at).isoformat() if profile is not None else None,
+            "registrations": registrations,
+            "pending_reviews": pending_reviews,
+        }
+        row.update(_user_identity_summary(identities))
+        if viewer_role == ROLE_OWNER:
+            row["email"] = str(fields.get("email") or "")[:160]
+        return row
+
+    @app.get("/api/admin/users")
+    def list_admin_users(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        provider: str = Query(default="", pattern=r"^(|bale|phone|linked)$"),
+        role_filter: str = Query(default="", alias="role", pattern=r"^(|assigned|none)$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        query = (
+            select(AccountRecord, AccountRoleRecord, AccountProfileRecord)
+            .outerjoin(AccountRoleRecord, AccountRoleRecord.account_id == AccountRecord.id)
+            .outerjoin(AccountProfileRecord, AccountProfileRecord.account_id == AccountRecord.id)
+            .where(AccountRecord.id.in_(
+                select(PlatformIdentityRecord.account_id).where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
+            ))
+        )
+        if role_filter == "assigned":
+            query = query.where(AccountRoleRecord.role.is_not(None))
+        elif role_filter == "none":
+            query = query.where(AccountRoleRecord.role.is_(None))
+        candidates = db.execute(query.order_by(AccountRecord.created_at.desc(), AccountRecord.id).limit(5000)).all()
+        account_ids = [account.id for account, _role, _profile in candidates]
+        identities_by_account: dict[str, list[PlatformIdentityRecord]] = {}
+        if account_ids:
+            for item in db.scalars(
+                select(PlatformIdentityRecord).where(PlatformIdentityRecord.account_id.in_(account_ids))
+            ).all():
+                identities_by_account.setdefault(item.account_id, []).append(item)
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        selected = []
+        for account, role, profile in candidates:
+            identities = identities_by_account.get(account.id, [])
+            summary = _user_identity_summary(identities)
+            if provider == "linked" and not summary["linked"]:
+                continue
+            if provider in {"bale", "phone"} and provider not in summary["providers"]:
+                continue
+            if needle:
+                name = str(((profile.fields if profile is not None else {}) or {}).get("fullName") or "")
+                haystack = " ".join(part for part in (
+                    unicodedata.normalize("NFKC", name).lower(),
+                    (summary["bale_user_id"] or "").lower(),
+                    account.id.lower(),
+                ) if part)
+                if needle not in haystack:
+                    continue
+            selected.append((account, role, profile, identities))
+        page = selected[offset: offset + limit]
+        return {
+            "source": "shared_server_database",
+            "items": [
+                _admin_user_row(
+                    db, account, role=role.role if role is not None else None, profile=profile,
+                    identities=identities, viewer_role=viewer_role,
+                )
+                for account, role, profile, identities in page
+            ],
+            "total": len(selected),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(selected),
+            "q": q,
+            "provider": provider,
+            "role": role_filter,
+            "can_open_roles": viewer_role == ROLE_OWNER,
+        }
+
+    @app.get("/api/admin/users/{account_id}")
+    def get_admin_user(
+        account_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        identities = list(db.scalars(
+            select(PlatformIdentityRecord).where(PlatformIdentityRecord.account_id == account_id)
+        ).all()) if account is not None else []
+        if account is None or not any(item.provider in {"bale", "phone"} for item in identities):
+            raise HTTPException(404, "user_not_found")
+        role = db.get(AccountRoleRecord, account_id)
+        profile = db.get(AccountProfileRecord, account_id)
+        row = _admin_user_row(
+            db, account, role=role.role if role is not None else None, profile=profile,
+            identities=identities, viewer_role=viewer_role,
+        )
+        registrations = db.execute(
+            select(FormResponseRecord, FormPaymentRecord)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                account_form_record_scope(db, account_id),
+                FormResponseRecord.added_by_response_id.is_(None),
+                FormRecord.model == "registration",
+            )
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(50)
+        ).all()
+        registration_rows = []
+        for record, payment in registrations:
+            snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+            event = _json_dict_member(snapshot, "event")
+            form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
+            registration_rows.append({
+                "id": record.id,
+                "form_id": record.form_id,
+                "form_name": form_name,
+                "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
+                "event_date": _ticket_text(event.get("date") or "", 120),
+                "status": record.status,
+                "payment_status": payment.status if payment is not None else None,
+                "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+                "ticket_checked_in": record.ticket_checked_in_at is not None,
+                "created_at": _as_utc(record.created_at).isoformat(),
+            })
+        tasks = db.scalars(
+            select(AdminTaskRecord)
+            .where(AdminTaskRecord.account_id == account_id)
+            .order_by(AdminTaskRecord.created_at.desc())
+            .limit(50)
+        ).all()
+        row["reviews"] = [
+            {
+                "id": task.id,
+                "kind": task.kind,
+                "status": task.status,
+                "created_at": _as_utc(task.created_at).isoformat(),
+                "reviewed_at": _as_utc(task.reviewed_at).isoformat() if task.reviewed_at else None,
+            }
+            for task in tasks
+        ]
+        row["registration_items"] = registration_rows
+        row["notifications"] = int(db.scalar(
+            select(func.count(UserNotificationRecord.id)).where(UserNotificationRecord.account_id == account_id)
+        ) or 0)
+        row["last_session_at"] = (
+            lambda value: _as_utc(value).isoformat() if value else None
+        )(db.scalar(
+            select(func.max(AccountSessionRecord.created_at)).where(AccountSessionRecord.account_id == account_id)
+        ))
+        if viewer_role == ROLE_OWNER:
+            credential = db.get(ManagerCredentialRecord, account_id)
+            row["manager_username"] = credential.username_key if credential is not None else None
+        row["source"] = "shared_server_database"
+        return row
+
+    # ── حضور و غیاب: همان ستون‌های check-in بلیت که ربات می‌نویسد ──
+    # منبع مشترک: form_responses.ticket_checked_in_*؛ پنل فقط همان رکورد را می‌خواند
+    # و با مجوز attendance و ثبت دلیل/ممیزی، حضور را ثبت یا اصلاح می‌کند.
+    def _attendance_actor(record: FormResponseRecord) -> dict[str, Any] | None:
+        if record.ticket_checked_in_at is None:
+            return None
+        if record.ticket_checked_in_by_account_id:
+            return {"kind": "web", "id": record.ticket_checked_in_by_account_id}
+        if record.ticket_checked_in_by_bale_user_id:
+            return {"kind": "bot", "id": record.ticket_checked_in_by_bale_user_id}
+        return {"kind": "unknown", "id": ""}
+
+    def _attendance_person(db: Session, record: FormResponseRecord) -> dict[str, Any]:
+        mobile = str(record.registrant_mobile or "")
+        return {
+            "response_id": record.id,
+            "form_id": record.form_id,
+            "name": _form_ticket_name(record),
+            "companion": record.added_by_response_id is not None,
+            "added_by_name": _ticket_text(record.added_by_name or "", 120) if record.added_by_response_id else "",
+            "status": record.status,
+            "serial": record.ticket_serial,
+            "mobile_hint": (mobile[-4:] if len(mobile) >= 4 else ""),
+            "payment_approved": _response_payment_approved(db, record),
+            "ticket_eligible": _form_ticket_eligible(record),
+            "checked_in": record.ticket_checked_in_at is not None,
+            "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
+            "checked_in_by": _attendance_actor(record),
+            "ticket_type": _form_response_ticket_type(record),
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+
+    @app.get("/api/admin/attendance/forms")
+    def list_attendance_forms(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        forms = db.scalars(
+            select(FormRecord)
+            .where(FormRecord.owner_id == identity.owner_id, FormRecord.model == "registration")
+            .order_by(FormRecord.updated_at.desc(), FormRecord.id)
+        ).all()
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            forms = [
+                form for form in forms
+                if needle in unicodedata.normalize("NFKC", f"{form.title} {form.event_id or ''}").lower()
+            ]
+        page = forms[offset: offset + limit]
+        items = []
+        for form in page:
+            totals = db.execute(
+                select(
+                    func.count(FormResponseRecord.id),
+                    func.sum(case((FormResponseRecord.ticket_checked_in_at.is_not(None), 1), else_=0)),
+                    func.sum(case((FormResponseRecord.status == "accepted", 1), else_=0)),
+                ).where(FormResponseRecord.form_id == form.id)
+            ).one()
+            settings_value = form.settings if isinstance(form.settings, dict) else {}
+            event = _json_dict_member(settings_value, "event")
+            items.append({
+                "form_id": form.id,
+                "title": form.title,
+                "status": form.status,
+                "event_id": form.event_id,
+                "event_title": _ticket_text(event.get("title") or "", 160),
+                "event_date": _ticket_text(event.get("date") or "", 120),
+                "event_time": _ticket_text(event.get("time") or "", 120),
+                "people": int(totals[0] or 0),
+                "accepted": int(totals[2] or 0),
+                "checked_in": int(totals[1] or 0),
+                "updated_at": _as_utc(form.updated_at).isoformat(),
+            })
+        return {
+            "source": "shared_server_database",
+            "items": items,
+            "total": len(forms),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(forms),
+            "q": q,
+        }
+
+    @app.get("/api/admin/attendance/forms/{form_id}/people")
+    def list_attendance_people(
+        form_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        state: str = Query(default="", pattern=r"^(|checked_in|pending)$"),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        form = get_owned_form(db, identity.owner_id, form_id)
+        query = select(FormResponseRecord).where(FormResponseRecord.form_id == form.id)
+        if state == "checked_in":
+            query = query.where(FormResponseRecord.ticket_checked_in_at.is_not(None))
+        elif state == "pending":
+            query = query.where(FormResponseRecord.ticket_checked_in_at.is_(None))
+        records = db.scalars(
+            query.order_by(FormResponseRecord.created_at.asc(), FormResponseRecord.id).limit(5000)
+        ).all()
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            digits = re.sub(r"\D", "", needle.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")))
+            records = [
+                record for record in records
+                if needle in unicodedata.normalize("NFKC", _form_ticket_name(record)).lower()
+                or (record.ticket_serial and needle in record.ticket_serial.lower())
+                or (len(digits) >= 4 and str(record.registrant_mobile or "").endswith(digits))
+            ]
+        page = records[offset: offset + limit]
+        return {
+            "source": "shared_server_database",
+            "form": {"form_id": form.id, "title": form.title, "status": form.status, "event_id": form.event_id},
+            "items": [_attendance_person(db, record) for record in page],
+            "total": len(records),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(records),
+            "q": q,
+            "state": state,
+        }
+
+    async def _attendance_target(
+        request: Request, db: Session, identity: OwnerIdentity | AccountIdentity, response_id: str, *, require_reason: bool
+    ) -> tuple[FormResponseRecord, str]:
+        if not _BOT_FORM_RESPONSE_ID.fullmatch(response_id or ""):
+            raise HTTPException(404, "ticket_not_found")
+        payload = await _read_json_object(request, 4096)
+        if not set(payload) <= {"reason"}:
+            raise HTTPException(400, "invalid_attendance_payload")
+        reason = payload.get("reason", "")
+        if not isinstance(reason, str) or len(reason) > 300:
+            raise HTTPException(422, {"code": "invalid_reason", "field": "reason"})
+        reason = reason.strip()
+        if require_reason and len(reason) < 3:
+            raise HTTPException(422, {"code": "reason_required", "field": "reason"})
+        record = db.scalar(
+            select(FormResponseRecord)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(FormResponseRecord.id == response_id, FormRecord.owner_id == identity.owner_id)
+            .options(selectinload(FormResponseRecord.draft))
+            .with_for_update()
+        )
+        if record is None:
+            raise HTTPException(404, "ticket_not_found")
+        return record, reason
+
+    @app.post("/api/admin/attendance/responses/{response_id}/check-in")
+    async def admin_check_in(
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        record, reason = await _attendance_target(request, db, identity, response_id, require_reason=False)
+        if record.ticket_checked_in_at is not None:
+            raise HTTPException(409, {"code": "already_checked_in", "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat()})
+        if not _response_payment_approved(db, record):
+            raise HTTPException(409, {"code": "ticket_payment_not_confirmed"})
+        _ensure_form_ticket(record)
+        record.ticket_checked_in_at = _utc_now()
+        record.ticket_checked_in_by_account_id = (
+            identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+        )[:36]
+        record.ticket_checked_in_by_bale_user_id = None
+        record_audit(
+            db, identity, "attendance.check_in", target_type="form_response", target_id=record.id,
+            details={"form_id": record.form_id, "reason": reason[:160], "source": "web"},
+        )
+        db.commit()
+        db.refresh(record)
+        return {"saved": True, "person": _attendance_person(db, record)}
+
+    @app.post("/api/admin/attendance/responses/{response_id}/undo-check-in")
+    async def admin_undo_check_in(
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        record, reason = await _attendance_target(request, db, identity, response_id, require_reason=True)
+        if record.ticket_checked_in_at is None:
+            raise HTTPException(409, {"code": "not_checked_in"})
+        previous = _attendance_actor(record) or {}
+        previous_at = _as_utc(record.ticket_checked_in_at).isoformat()
+        record.ticket_checked_in_at = None
+        record.ticket_checked_in_by_account_id = None
+        record.ticket_checked_in_by_bale_user_id = None
+        record_audit(
+            db, identity, "attendance.undo_check_in", target_type="form_response", target_id=record.id,
+            details={
+                "form_id": record.form_id, "reason": reason[:160], "previous_at": previous_at,
+                "previous_by": f"{previous.get('kind', '')}:{previous.get('id', '')}"[:80],
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return {"saved": True, "person": _attendance_person(db, record)}
 
     # ── داده‌ها و مهاجرت: بارگذاری نسخهٔ پشتیبان برای ممیزی (بدون تغییر داده) ──
     # فایل فقط در staging خصوصی (بیرون UI_ROOT) ذخیره می‌شود، فقط‌خواندنی

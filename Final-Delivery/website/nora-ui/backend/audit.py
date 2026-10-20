@@ -45,6 +45,11 @@ ACTIONS = frozenset(
         "backup.audit",
         "backup.delete",
         "site_content.update",
+        "content.create",
+        "content.update",
+        "content.status",
+        "attendance.check_in",
+        "attendance.undo_check_in",
         "cooperation_request.update",
     }
 )

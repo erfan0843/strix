@@ -105,7 +105,7 @@ def _public_record(record: Any, *, require_published: bool = False) -> bool:
             if visibility and visibility not in {"public", "published"}:
                 return False
     status = _text(record.get("status"), 24, allow_number=False).lower()
-    if status in {"draft", "private", "hidden", "pending", "paused", "unpublished", "rejected"}:
+    if status in {"draft", "private", "hidden", "pending", "paused", "unpublished", "rejected", "archived"}:
         return False
     return not require_published or _published_flag(record.get("pub"))
 
