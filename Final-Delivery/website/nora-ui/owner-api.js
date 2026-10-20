@@ -60,6 +60,26 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state'];
+  function adminQuery(params) {
+    const source = params && typeof params === 'object' ? params : {};
+    const parts = [];
+    ADMIN_QUERY_KEYS.forEach(key => {
+      if (source[key] === undefined || source[key] === null || source[key] === '') return;
+      parts.push(key + '=' + encodeURIComponent(String(source[key]).slice(0, 80)));
+    });
+    return parts.length ? '?' + parts.join('&') : '';
+  }
+  function contentKind(kind) {
+    if (kind !== 'events' && kind !== 'articles') throw new TypeError('Unknown content kind');
+    return kind;
+  }
+  function recordId(value) {
+    const id = String(value || '');
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(id)) throw new TypeError('Invalid record id');
+    return id;
+  }
+
   async function request(path, options) {
     const opts = options || {};
     const parts = typeof path === 'string' ? path.split('?', 2) : [];
@@ -69,7 +89,9 @@
        (جست‌وجوی حساب، نقش، وضعیت کارتابل، پیشوند عملیات تاریخچه). */
     const safeQuery = !query
       || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})(?:&q=[A-Za-z0-9%._-]{0,240})?(?:&role=(?:assigned|manager|club-supervisor|none))?(?:&status=(?:pending|decided|approved|rejected))?(?:&action=[a-z_.]{0,64})?$/.test(query)
-      || /^period=(?:7d|30d|90d|365d|all)$/.test(query);
+      || /^period=(?:7d|30d|90d|365d|all)$/.test(query)
+      /* فهرست‌های مدیریتی مرحلهٔ دوم (محتوا، کاربران، حضور): فقط کلیدهای ثابت با مقدار کدشده */
+      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
     if (typeof path !== 'string' || !/^\/api\/[A-Za-z0-9/_-]*$/.test(pathname) || pathname.includes('..')
         || !safeQuery) {
       throw new TypeError('Only fixed same-origin API paths are allowed');
@@ -193,6 +215,39 @@
     removeManagerCredentials: accountId => request('/api/owner/accounts/'
       + encodeURIComponent(String(accountId)) + '/manager-credentials', {
         method: 'DELETE', body: {}, ownerWrite: true
+      }),
+    /* مدیریت رکوردی رویداد/مطلب روی همان سند site_content */
+    listAdminContent: (kind, params) => request('/api/admin/content/' + contentKind(kind) + adminQuery(params)),
+    getAdminContent: (kind, id) => request('/api/admin/content/' + contentKind(kind) + '/' + recordId(id)),
+    createAdminContent: (kind, record, expectedVersion, status, csrfCookieName) => request(
+      '/api/admin/content/' + contentKind(kind), {
+        method: 'POST',
+        body: Object.assign({ record, expected_version: Number(expectedVersion) || 0 },
+          status ? { status: String(status) } : {}),
+        csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    updateAdminContent: (kind, id, record, expectedVersion, csrfCookieName) => request(
+      '/api/admin/content/' + contentKind(kind) + '/' + recordId(id), {
+        method: 'PUT', body: { record, expected_version: Number(expectedVersion) || 0 },
+        csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    setAdminContentStatus: (kind, id, status, expectedVersion, csrfCookieName) => request(
+      '/api/admin/content/' + contentKind(kind) + '/' + recordId(id) + '/status', {
+        method: 'POST', body: { status: String(status), expected_version: Number(expectedVersion) || 0 },
+        csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    /* فهرست کاربران (us_view) و حضور و غیاب (attendance) */
+    listAdminUsers: params => request('/api/admin/users' + adminQuery(params)),
+    getAdminUser: accountId => request('/api/admin/users/' + recordId(accountId)),
+    listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
+    listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),
+    attendanceCheckIn: (responseId, reason, csrfCookieName) => request(
+      '/api/admin/attendance/responses/' + recordId(responseId) + '/check-in', {
+        method: 'POST', body: reason ? { reason: String(reason) } : {}, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    attendanceUndoCheckIn: (responseId, reason, csrfCookieName) => request(
+      '/api/admin/attendance/responses/' + recordId(responseId) + '/undo-check-in', {
+        method: 'POST', body: { reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
       }),
     getPublicSiteContent: () => request('/api/public/site-content'),
     getOwnerSiteContent: () => request('/api/owner/site-content'),
