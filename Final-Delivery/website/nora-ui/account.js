@@ -879,6 +879,7 @@ function serverAccountExpired(){
   delete window.NORA_ACCOUNT_SOURCE;
   window.NORA_UI?.updateAccountNavigation?.();
   state.account=null; state.checking=false; state.checked=true; state.error=''; resetServerAccountData();
+  if(UI().clearProfileCache) UI().clearProfileCache();
   updateAccountBanner(); render(); toast('ورود حساب پایان یافته؛ برای دسترسی به اطلاعاتت دوباره وارد شو.');
 }
 function accountLoadError(error,fallback){
@@ -1028,7 +1029,9 @@ async function logoutServerAccount(button){
     delete window.NORA_ACCOUNT_SOURCE;
     window.NORA_UI?.updateAccountNavigation?.();
     SERVER_ACCOUNT_STATE.account=null; SERVER_ACCOUNT_STATE.checked=true; SERVER_ACCOUNT_STATE.checking=false;
-    SERVER_ACCOUNT_STATE.error=''; resetServerAccountData(); updateAccountBanner(); render();
+    SERVER_ACCOUNT_STATE.error=''; resetServerAccountData();
+    if(UI().clearProfileCache) UI().clearProfileCache();
+    updateAccountBanner(); render();
     toast('از حساب خارج شدی.');
   }catch(error){
     if(button) button.disabled=false;

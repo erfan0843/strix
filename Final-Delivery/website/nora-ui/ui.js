@@ -1018,11 +1018,19 @@ function themeSwitchHTML(o){
    یک منبع حقیقت برای خانه و صفحهٔ حساب من. رشته‌ها پاک‌سازی می‌شوند و وضعیت
    فقط از میان چهار حالت خودش می‌آید، وگرنه دادهٔ خراب صفحه را به‌هم می‌زند. */
 const P_STATUS=['draft','pending','approved','rejected'];
+/* کلیدهای پروفایل سروری (همان PROFILE_FIELD_KEYS بک‌اند)؛ در نسخهٔ تولیدی data.js بار نمی‌شود،
+   پس فهرست فیلدهای نمونه خالی است و بدون این فهرست نام واقعی کاربر از کش حذف می‌شد. */
+const SERVER_PROFILE_KEYS=['fullName','nationalId','birthDate','gender','province','city','address','email'];
+function profileKeys(){
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, keys=(A.fields||[]).map(f=>f&&f.k).filter(Boolean);
+  SERVER_PROFILE_KEYS.forEach(k=>{ if(!keys.includes(k)) keys.push(k) });
+  return keys;
+}
 function cleanProfile(v){
-  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, out={};
-  (A.fields||[]).forEach(f=>{
-    const raw=v&&v[f.k];
-    out[f.k]=typeof raw==='string'?raw.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,120):'';
+  const out={};
+  profileKeys().forEach(k=>{
+    const raw=v&&v[k];
+    out[k]=typeof raw==='string'?raw.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,120):'';
   });
   out.status=P_STATUS.includes(v&&v.status)?v.status:'draft';
   out.reason=typeof (v&&v.reason)==='string'?(v.reason||'').replace(/[\u0000-\u001f<>]/g,'').slice(0,200):'';
@@ -1048,8 +1056,21 @@ function accountEntryHref(next='account.html'){
   /* «ورود/ثبت‌نام» ابتدا نمای امن مهمان را باز می‌کند؛ فقط بخش شخصی، ورود واقعی می‌خواهد. */
   return next;
 }
+/* صفحه‌های عمومی (خانه، رویدادها، پشتیبانی…): وضعیت ورود فقط از سرور خوانده می‌شود (کوکی httpOnly)
+   تا برچسب نوار پایین برای عضوِ واردشده «حساب من» باشد. صفحه‌های حساب و ورود خودشان این را مدیریت می‌کنند
+   و این بررسی چیزی جز برچسب/aria نوار را تغییر نمی‌دهد (منبع دادهٔ صفحه را «سروری» نمی‌کند). */
+let serverNavSession=false;
+function probeAccountNavigation(){
+  if(NORA_TEST_FIXTURE_MODE||window.NORA_ACCOUNT_SOURCE==='server'||typeof fetch!=='function') return;
+  if(!document.querySelector('.tabbar [data-account-nav-label]')) return;
+  if(/(?:^|\/)(?:account|login)\.html$/.test(location.pathname)||location.protocol==='file:') return;
+  fetch('/api/account/me',{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
+    .then(r=>r&&r.ok?r.json().catch(()=>null):null)
+    .then(d=>{ if(d&&d.authenticated===true){ serverNavSession=true; updateAccountNavigation() } })
+    .catch(()=>{});
+}
 function updateAccountNavigation(){
-  const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server';
+  const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server'||serverNavSession;
   const label=first||(authenticated?'حساب من':'ورود/ثبت‌نام'), destination=accountEntryHref('account.html');
   document.querySelectorAll('[data-account-nav-label]').forEach(node=>{node.textContent=label});
   document.querySelectorAll('.tabbar [data-account-nav]').forEach(link=>{
@@ -1122,12 +1143,14 @@ function saveProfile(v){
   const p=cleanProfile(v), server=window.NORA_ACCOUNT_SOURCE==='server';
   if(NORA_TEST_FIXTURE_MODE||server) try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
   if(server&&window.NORA_SERVER_API&&typeof window.NORA_SERVER_API.saveAccountProfile==='function'){
-    const fields={}; ['fullName','nationalId','birthDate','gender','province','city','address','email'].forEach(k=>{ fields[k]=p[k]||'' });
+    const fields={}; SERVER_PROFILE_KEYS.forEach(k=>{ fields[k]=p[k]||'' });
     window.NORA_SERVER_API.saveAccountProfile(fields).catch(()=>{ try{ toast('ذخیرهٔ پروفایل روی سرور انجام نشد؛ دوباره تلاش کن') }catch(e){} });
   }
   return p;
 }
 /* پروفایل حساب واقعی را از سرور می‌خواند و کش محلی را به‌روز می‌کند */
+/* خروج/انقضای نشست: کش محلی پروفایل سروری پاک می‌شود تا دادهٔ حساب قبلی روی دستگاه نماند */
+function clearProfileCache(){ try{localStorage.removeItem(PROF_KEY)}catch(e){} }
 function syncServerProfile(){
   const api=window.NORA_SERVER_API;
   if(window.NORA_ACCOUNT_SOURCE!=='server'||!api||typeof api.accountProfile!=='function') return Promise.resolve(null);
@@ -2996,7 +3019,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
      `initData` داشته باشند؛ این تابع تنها مرجع آن قاعده است. */
   baleMiniAppInitData:baleMiniAppInitData,hasServerSession:hasServerSession,baleLinkMode:baleLinkMode,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
-  profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
+  profile:profile,saveProfile:saveProfile,clearProfileCache:clearProfileCache,profilePercent:profilePercent,profileMissing:profileMissing,
   syncServerProfile:syncServerProfile,
   fillTrust:fillTrust,trustPick:trustPick,
   uiSet:uiSet,uiSetSave:uiSetSave,UISET_META:UISET_META,menuAllowed:menuAllowed,uiSetDef:UISET_DEF,
@@ -3024,6 +3047,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   imageToWebPDataURL:imageToWebPDataURL,imageErrorMessage:imageErrorMessage,showPageLoader:showPageLoader,hidePageLoader:hidePageLoader,initPageLoader:initPageLoader});
 Object.defineProperty(window.NORA_UI,'universitiesByProvince',{configurable:true,enumerable:true,get:universitiesByProvince});
 normalizePrimaryNavigation();
+probeAccountNavigation();
 document.addEventListener('nora:login',updateAccountNavigation);
 document.addEventListener('nora:logout',updateAccountNavigation);
 addEventListener('storage',event=>{if(event.key===SESS_KEY) updateAccountNavigation()});
