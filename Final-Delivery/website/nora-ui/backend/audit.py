@@ -131,7 +131,11 @@ def list_admin_events(
     target_type: str = "",
 ) -> tuple[list[AdminAuditEventRecord], bool]:
     query = select(AdminAuditEventRecord)
-    if action:
+    if action.endswith("."):
+        # Group filter such as ``role.`` or ``workflow.``: every action in that family.
+        # The prefix is validated upstream to ``[a-z_.]`` so it contains no LIKE wildcards.
+        query = query.where(AdminAuditEventRecord.action.like(action + "%"))
+    elif action:
         query = query.where(AdminAuditEventRecord.action == action)
     if target_type:
         query = query.where(AdminAuditEventRecord.target_type == target_type)

@@ -146,6 +146,10 @@ def test_role_and_credential_changes_are_audited_without_secrets_and_visible_to_
 
             filtered = client.get("/api/owner/audit?action=role.set")
             assert [item["action"] for item in filtered.json()["items"]] == ["role.set"]
+            grouped = client.get("/api/owner/audit?action=role.")
+            assert [item["action"] for item in grouped.json()["items"]] == ["role.clear", "role.set"]
+            assert client.get("/api/owner/audit?action=manager_credentials.").json()["items"][0]["action"] == "manager_credentials.remove"
+            assert client.get("/api/owner/audit?action=nothing.").json()["items"] == []
             assert client.get("/api/owner/audit?action=DROP%20TABLE").status_code == 422
 
             # Failed requests leave no trail (nothing happened).
