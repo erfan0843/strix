@@ -1,0 +1,162 @@
+[
+ {
+  "method": "GET",
+  "path": "/api/auth/me",
+  "owner": "200",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/account/me",
+  "owner": "401:authentication_required",
+  "manager": "200",
+  "member": "200",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/inbox",
+  "owner": "200",
+  "manager": "200",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/reports/summary",
+  "owner": "200",
+  "manager": "200",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/forms?limit=1",
+  "owner": "200",
+  "manager": "200",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/forms/a660e91e-3e37-4811-abac-131155e9120d",
+  "owner": "200",
+  "manager": "200",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/forms/a660e91e-3e37-4811-abac-131155e9120d/responses?limit=1",
+  "owner": "200",
+  "manager": "200",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "POST",
+  "path": "/api/forms/a660e91e-3e37-4811-abac-131155e9120d/publish",
+  "owner": "409:version_conflict",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "POST",
+  "path": "/api/forms/a660e91e-3e37-4811-abac-131155e9120d/pause",
+  "owner": "409:version_conflict",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/owner/accounts",
+  "owner": "200",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/owner/accounts/a2fcad11-aa55-4849-b3e2-3a4cf806f09b/role",
+  "owner": "200",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/owner/accounts/a2fcad11-aa55-4849-b3e2-3a4cf806f09b/manager-credentials",
+  "owner": "200",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/owner/service-settings",
+  "owner": "200",
+  "manager": "403:permission_denied",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/owner/data/status",
+  "owner": "200",
+  "manager": "403:permission_denied",
+  "member": "403:manager_password_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/owner/site-content",
+  "owner": "200",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/cooperation-requests",
+  "owner": "200",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ },
+ {
+  "method": "GET",
+  "path": "/api/integrations/status",
+  "owner": "200",
+  "manager": "200",
+  "member": "200",
+  "anonymous": "200"
+ },
+ {
+  "method": "GET",
+  "path": "/api/health",
+  "owner": "200",
+  "manager": "200",
+  "member": "200",
+  "anonymous": "200"
+ },
+ {
+  "method": "POST",
+  "path": "/api/outbox",
+  "owner": "400:unsupported_kind",
+  "manager": "400:unsupported_kind",
+  "member": "400:unsupported_kind",
+  "anonymous": "400:unsupported_kind"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/owner/site-content",
+  "owner": "400:invalid_site_content_request",
+  "manager": "401:authentication_required",
+  "member": "401:authentication_required",
+  "anonymous": "401:authentication_required"
+ }
+]
