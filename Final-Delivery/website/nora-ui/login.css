@@ -123,7 +123,7 @@
 .lgcheck{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--ok-tint);color:var(--ok);margin-bottom:2px;box-shadow:none}
 .lgcheck svg,.lgcheck .i{width:26px;height:26px}
 .lgdtitle{margin:0;color:var(--ink);font-family:'Estedad',var(--f);font-size:18px;font-weight:700;letter-spacing:0}
-.lgdle{margin:0;max-width:32ch;color:var(--ink-3);font-size:13px;line-height:1.85}
+.lgdle{margin:0;max-width:40ch;color:var(--ink-3);font-size:13px;line-height:1.85}
 .lg-authenticated .lgbtn{margin-top:6px}
 .lg-authenticated .lgbtn.quiet{margin-top:0}
 

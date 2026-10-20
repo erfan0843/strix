@@ -20,6 +20,9 @@
     otpTimerId: 0,
     role: null,
     permissions: [],
+    accountCreated: false,
+    profileSaved: true,
+    deliveryBotUrl: '',
   };
 
   function escapeHtml(value) {
@@ -143,6 +146,7 @@
       location.replace(managerTarget);
       return;
     }
+    if (state.accountCreated) return; /* حساب تازه: اول کارت تأیید و راهنمای تکمیل پروفایل دیده می‌شود */
     const accountTarget = safeAccountNext();
     if (accountTarget) location.replace(accountTarget);
   }
@@ -170,7 +174,7 @@
     if (!body) return;
 
     if (!state.otpChallengeId) {
-      setLead('شمارهٔ همراهت را وارد کن؛ کد یک‌بارمصرف را در ربات بله دریافت می‌کنی.');
+      setLead('شمارهٔ همراهت را وارد کن؛ کد یک‌بارمصرف در ربات بله می‌آید. حساب نداری؟ ساخته می‌شود.');
       body.innerHTML = `<div class="lgstep" id="lgPhoneMethod">
         <form class="lgform" id="lgPhoneForm" autocomplete="on" novalidate>
           <label class="lgfield" for="lgPhone">
@@ -296,14 +300,21 @@
       : canContinueToManager
         ? 'رفتن به پنل مدیریت'
         : 'رفتن به حساب من';
+    const newPhoneAccount = state.provider === 'phone' && state.accountCreated && !managerDenied;
     const heading = isOwner ? 'ورود مالک تأیید شد'
       : state.provider === 'manager-password' ? 'ورود مدیر تأیید شد'
-        : state.provider === 'phone' ? 'ورود با شمارهٔ همراه تأیید شد'
-          : state.provider === 'bale' ? 'ورود با بله تأیید شد' : 'ورود تأیید شد';
+        : newPhoneAccount ? 'حسابت ساخته شد'
+          : state.provider === 'phone' ? 'ورود با شمارهٔ همراه تأیید شد'
+            : state.provider === 'bale' ? 'ورود با بله تأیید شد' : 'ورود تأیید شد';
     const description = managerDenied
       ? hasAdminRole
         ? 'برای ورود مدیریت، نام کاربری و گذرواژه لازم است.'
         : 'دسترسی مدیریت برای این حساب فعال نیست.'
+      : newPhoneAccount
+        ? 'حساب نورا با همین شماره ساخته و وارد شد. اطلاعات تکمیلی پروفایل در ربات بله ثبت می‌شود و وضعیتش در «حساب من» دیده می‌شود.'
+        : '';
+    const botLink = newPhoneAccount && state.deliveryBotUrl
+      ? `<a class="lgbtn quiet" href="${escapeHtml(state.deliveryBotUrl)}" target="_blank" rel="noopener">تکمیل پروفایل در ربات بله</a>`
       : '';
 
     body.innerHTML = `<div class="lgstep lg-authenticated" id="lgAuthenticated">
@@ -311,6 +322,7 @@
       <h2 class="lgdtitle">${heading}</h2>
       ${description ? `<p class="lgdle">${description}</p>` : ''}
       <a class="lgbtn" id="lgContinue" href="${escapeHtml(target)}">${destination}</a>
+      ${botLink}
       <button class="lgbtn quiet" type="button" id="lgLogout"${state.busy ? ' disabled aria-busy="true"' : ''}>${state.busy ? 'در حال خروج…' : 'خروج از حساب'}</button>
     </div>`;
     setStatus('');
@@ -349,6 +361,15 @@
       same_origin_required: 'صفحه را تازه کن و دوباره تلاش کن.',
     };
     return { code, message: messages[code] || 'ورود انجام نشد؛ دوباره تلاش کن.' };
+  }
+
+  /* همان نشانه‌ای که account.js پس از تأیید نشست سرور می‌گذارد: برچسب ناوبری «حساب من» می‌شود
+     و نگهبان پیوندهای بیرونی ui.js، پیوند ربات بله را که از سرور آمده غیرفعال نمی‌کند. */
+  function markServerAccount(on) {
+    try {
+      if (on) window.NORA_ACCOUNT_SOURCE = 'server'; else delete window.NORA_ACCOUNT_SOURCE;
+      if (window.NORA_UI && typeof window.NORA_UI.updateAccountNavigation === 'function') window.NORA_UI.updateAccountNavigation();
+    } catch (_) {}
   }
 
   function restoreStaffUsername(username, focusPassword) {
@@ -610,6 +631,12 @@
       state.provider = 'phone';
       state.role = typeof session.role === 'string' ? session.role : null;
       state.permissions = Array.isArray(session.permissions) ? session.permissions.slice() : [];
+      /* تصمیم «حساب تازه / عضو قدیمی» فقط از پاسخ سرور و فقط پس از تأیید کد می‌آید */
+      state.accountCreated = payload.created === true;
+      state.profileSaved = payload.profile_saved !== false;
+      state.deliveryBotUrl = typeof session.delivery_bot_url === 'string'
+        && /^https:\/\/ble\.ir\/[A-Za-z0-9_]{3,64}$/.test(session.delivery_bot_url) ? session.delivery_bot_url : '';
+      markServerAccount(true);
       state.authenticated = true;
       state.busy = false;
       state.phone = '';
@@ -687,6 +714,10 @@
       state.provider = '';
       state.role = null;
       state.permissions = [];
+      state.accountCreated = false;
+      state.profileSaved = true;
+      state.deliveryBotUrl = '';
+      markServerAccount(false);
       state.phone = '';
       state.otpChallengeId = '';
       state.otpExpiresAt = 0;
@@ -744,6 +775,7 @@
       if (response.ok) {
         const payload = await response.json();
         if (payload && payload.authenticated === true && ['bale', 'phone', 'manager-password'].includes(payload.provider)) {
+          markServerAccount(true);
           state.provider = payload.provider;
           state.role = typeof payload.role === 'string' ? payload.role : null;
           state.permissions = Array.isArray(payload.permissions) ? payload.permissions.slice() : [];

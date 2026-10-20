@@ -185,6 +185,46 @@ console.log('\n— درخواست و تأیید OTP بله (Safir) —');
   p.dom.window.close();
 }
 
+console.log('\n— حساب تازه در برابر عضو قدیمی (تصمیم سرور پس از تأیید کد) —');
+{
+  const routesFor = (created, botUrl) => ({
+    '/api/auth/phone-otp/request': [reply(200, { accepted: true, challenge_id: '6a1d2f33-8f1e-4b55-9d0c-1c2e3f4a5b6c', expires_in: 180, resend_in: 90 })],
+    '/api/auth/phone-otp/verify': [reply(200, { authenticated: true, account_id: 'acc-new', provider: 'phone', created, profile_saved: false })],
+    '/api/account/me': [unauthorized(), reply(200, {
+      authenticated: true, account_id: 'acc-new', provider: 'phone', role: null, permissions: [], delivery_bot_url: botUrl,
+    })],
+  });
+  const drive = async (p) => {
+    p.fill('#lgPhone', '۰۹۱۲۳۴۵۶۷۸۹'); p.fill('#lgCapAnswer', '4321'); p.submit('#lgPhoneForm'); await delay(8);
+    p.fill('#lgOtpCode', '004271'); p.submit('#lgPhoneCodeForm'); await delay(10);
+  };
+  const fresh = await load({ url: 'https://nora.test/login.html?mode=server&next=account.html%23notifications', routes: routesFor(true, 'https://ble.ir/nora_bot') });
+  await drive(fresh);
+  check(fresh.text('#lgAuthenticated').includes('حسابت ساخته شد') && fresh.text('#lgAuthenticated').includes('ربات بله'),
+    'حساب تازه: کارت تأیید می‌گوید حساب ساخته شد و تکمیل پروفایل کجاست');
+  check(fresh.doc.querySelector('#lgContinue')?.getAttribute('href') === 'account.html#notifications', 'حساب تازه: مقصد اولیه حفظ می‌شود');
+  const bot = fresh.doc.querySelector('#lgAuthenticated a[href="https://ble.ir/nora_bot"]');
+  check(!!bot && bot.classList.contains('quiet') && bot.getAttribute('rel') === 'noopener', 'حساب تازه: پیوند ربات بله فقط از پاسخ سرور و به‌صورت دکمهٔ ثانویه');
+  check(fresh.doc.querySelectorAll('#lgAuthenticated .lgbtn:not(.quiet)').length === 1, 'حساب تازه: فقط یک اقدام اصلی');
+  fresh.dom.window.close();
+
+  const returning = await load({ url: 'https://nora.test/login.html?mode=server&next=account.html%23notifications', routes: routesFor(false, 'javascript:alert(1)') });
+  await drive(returning);
+  check(returning.text('#lgAuthenticated').includes('ورود با شمارهٔ همراه تأیید شد') && !returning.text('#lgAuthenticated').includes('ساخته شد'),
+    'عضو قدیمی: همان کارت ورود، بدون ادعای ساخت حساب');
+  check(returning.doc.querySelectorAll('#lgAuthenticated a[href^="javascript"]').length === 0, 'نشانی ربات نامعتبر هرگز رندر نمی‌شود');
+  returning.dom.window.close();
+
+  const legacy = await load({ routes: {
+    '/api/auth/phone-otp/request': [reply(200, { accepted: true, challenge_id: '6a1d2f33-8f1e-4b55-9d0c-1c2e3f4a5b6c', expires_in: 180, resend_in: 90 })],
+    '/api/auth/phone-otp/verify': [reply(200, { authenticated: true, account_id: 'acc-old', provider: 'phone' })],
+    '/api/account/me': [unauthorized(), reply(200, { authenticated: true, account_id: 'acc-old', provider: 'phone', role: null, permissions: [] })],
+  } });
+  await drive(legacy);
+  check(legacy.text('#lgAuthenticated').includes('ورود با شمارهٔ همراه تأیید شد'), 'پاسخ بدون پرچم created مثل عضو قدیمی رفتار می‌کند (سازگاری)');
+  legacy.dom.window.close();
+}
+
 console.log('\n— مسیر پیوند حساب: بازگشت پس از ورود با شماره —');
 {
   /* کاربری که از مسیر پیوند حساب (`account.html?link=bale`) به ورود آمده باید

@@ -39,7 +39,7 @@ from sqlalchemy.orm import Session, selectinload, sessionmaker
 from sqlalchemy.sql.elements import ColumnElement
 from starlette.middleware.gzip import GZipMiddleware
 
-from .accounts import get_or_create_bale_account, get_or_create_phone_account
+from .accounts import get_or_create_bale_account, get_or_create_phone_account, phone_account_exists
 from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
 from . import data_staging as data_staging_mod
@@ -2912,7 +2912,10 @@ def create_app(
             db.rollback()
             raise HTTPException(401, "invalid_or_expired_otp")
 
+        # Decided server-side, after the code is proven: returning member vs. first login.
+        existed = phone_account_exists(db, phone, pepper=cfg.otp_pepper)
         account = get_or_create_phone_account(db, phone, pepper=cfg.otp_pepper)
+        profile_saved = db.get(AccountProfileRecord, account.id) is not None
         raw_session, raw_csrf = new_token(), new_token()
         db.add(
             AccountSessionRecord(
@@ -2938,7 +2941,13 @@ def create_app(
         }
         response.set_cookie(cfg.account_cookie_name, raw_session, httponly=True, **cookie_options)
         response.set_cookie(cfg.account_csrf_cookie_name, raw_csrf, httponly=False, **cookie_options)
-        return {"authenticated": True, "account_id": account.id, "provider": "phone"}
+        return {
+            "authenticated": True,
+            "account_id": account.id,
+            "provider": "phone",
+            "created": not existed,
+            "profile_saved": profile_saved,
+        }
 
     @app.get("/api/account/me")
     def account_me(identity: AccountIdentity = Depends(require_account)):
