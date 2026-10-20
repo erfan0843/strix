@@ -150,7 +150,9 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     'صفحهٔ معرفی حساب مهمان امکانات واقعی را نشان می‌دهد و ورود امن و پشتیبانی باز است');
   ok(!!production.doc.querySelector('.account-promo-hero')
     &&production.all('.account-promo-feature').length===3
-    &&production.all('.account-promo a[href="login.html?mode=server&next=account.html"]').length===2
+    &&production.all('.account-promo a[href="login.html?mode=server&next=account.html"]').length===1
+    &&production.doc.querySelector('.account-promo-hero .btn.primary[href="login.html?mode=server&next=account.html"]')
+    &&!production.doc.querySelector('.account-promo-bottom')
     &&production.doc.querySelector('.account-promo a[href="events.html"]')
     &&!production.txt('#profBox').includes('نیاز به ورود')
     &&!production.doc.querySelector('.server-account-head'),
@@ -161,10 +163,11 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&sessionProbeOnly(production),
     'نمای کوچک فقط نام بخش‌هاست؛ معرفی حساب دادهٔ خصوصی نمی‌خواند و OTP یا حساب محلی نمی‌سازد');
   ok(production.all('.account-promo-feature h4').length===3
-    &&production.doc.querySelector('.account-promo-preview-brand img')?.getAttribute('alt')===''
-    &&production.doc.querySelector('.account-promo-preview-brand img')?.getAttribute('width')==='24'
-    &&production.doc.querySelector('.account-promo-preview-brand img')?.getAttribute('height')==='24',
-    'کارت‌های امکانات تیتر معنایی دارند و نشان تزئینی نورا بدون جابه‌جایی چیدمان نمایش داده می‌شود');
+    &&!production.doc.querySelector('.account-promo-preview,.account-promo-showcase')
+    &&production.doc.querySelector('.account-promo-hero .account-promo-avatar')?.getAttribute('aria-hidden')==='true'
+    &&production.txt('.account-promo-identity').includes('مهمان')
+    &&production.all('#profBox .server-rows .mini-guest').length===3,
+    'کارت‌های امکانات تیتر معنایی دارند؛ به‌جای نمای ساختگیِ حساب، هویت «مهمان» و نشانهٔ «بعد از ورود» روی بخش‌های خصوصی دیده می‌شود');
   ok(!production.doc.body.textContent.includes('نشست'),
     'واژهٔ نشست در متن قابل‌مشاهدهٔ حساب تولیدی وجود ندارد');
   await production.nav('events');

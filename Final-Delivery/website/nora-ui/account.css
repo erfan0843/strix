@@ -83,181 +83,131 @@ body.hasbotbar{padding-bottom:178px}
 .guestcard .btn.primary{width:100%;justify-content:center;margin-top:14px}
 .guestcard .demo{margin-top:8px;display:inline-flex;margin-inline:auto}
 
-/* صفحهٔ معرفی حساب؛ استداد برای تیتر، وزیرمتن برای متن و بدون بولد مصنوعی */
+/* صفحهٔ معرفی حساب؛ استداد برای تیتر، وزیرمتن برای متن و بدون بولد مصنوعی
+   «حساب من» برای مهمان: سرِ صفحه با همان زبان سرِ پروفایل عضو (کاور تیره، هویت، یک کنش اصلی)،
+   فهرست «بعد از ورود چه چیزهایی این‌جاست» داخل همان سر، و زیرش بخش‌های واقعی حساب. */
 .account-promo{
   --promo-action:color-mix(in srgb,var(--brand) 72%,#062D4B);
   --promo-action-end:color-mix(in srgb,var(--brand-2) 76%,#062D4B);
-  --promo-preview:#F7FAFB;
-  --promo-preview-card:#FFFFFF;
-  --promo-preview-ink:#213D49;
-  --promo-preview-muted:#536D79;
-  --promo-preview-line:#DDE7EB;
-  display:grid;gap:24px;max-width:100%;font-family:var(--f);font-synthesis:none;
+  --promo-ink:#FFFFFF;--promo-ink-2:#D8E7E8;--promo-ink-3:#B9CFCF;--promo-line:rgba(255,255,255,.14);--promo-panel:rgba(255,255,255,.06);
+  display:grid;gap:0;max-width:100%;font-family:var(--f);font-synthesis:none;
 }
 .account-promo h2,.account-promo h3,.account-promo h4,
-.account-promo-preview b,.account-promo-preview-head,.account-promo-bottom b{font-family:var(--f-h)}
+.account-promo-who b,.account-promo-bottom b{font-family:var(--f-h)}
 .account-promo-hero{
-  isolation:isolate;position:relative;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(212px,.88fr);
-  align-items:center;gap:25px;overflow:hidden;padding:30px 26px;border-radius:calc(var(--r-xl) + 4px);color:#fff;
-  background:radial-gradient(240px 200px at 0% 0%,rgba(153,193,200,.17),transparent 75%),
-    radial-gradient(190px 170px at 100% 100%,rgba(140,195,167,.12),transparent 80%),
+  isolation:isolate;position:relative;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(200px,.7fr);
+  align-items:stretch;gap:0;overflow:hidden;border-radius:calc(var(--r-xl) + 2px);color:var(--promo-ink);
+  background:radial-gradient(260px 220px at 0% 0%,rgba(153,193,200,.17),transparent 75%),
+    radial-gradient(220px 180px at 100% 100%,rgba(140,195,167,.12),transparent 80%),
     linear-gradient(135deg,#123745 0%,#174D5B 58%,#255F59 100%);
   border:1px solid rgba(255,255,255,.16);box-shadow:0 2px 0 rgba(255,255,255,.07) inset,0 18px 40px rgba(15,52,63,.14);
 }
 .account-promo-hero::before,.account-promo-hero::after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%}
-.account-promo-hero::before{width:340px;height:340px;inset-inline-end:-173px;top:-231px;border:1px solid rgba(235,224,185,.17);
+.account-promo-hero::before{width:360px;height:360px;inset-inline-start:-200px;bottom:-230px;border:1px solid rgba(235,224,185,.16);
   box-shadow:0 0 0 24px rgba(255,255,255,.025),0 0 0 49px rgba(255,255,255,.018)}
-.account-promo-hero::after{width:230px;height:230px;inset-inline-start:-100px;bottom:-193px;border:1px solid rgba(255,255,255,.12);
+.account-promo-hero::after{width:200px;height:200px;inset-inline-end:-80px;top:-120px;border:1px solid rgba(255,255,255,.12);
   box-shadow:0 0 0 19px rgba(255,255,255,.025)}
-.account-promo-copy,.account-promo-showcase{position:relative;min-width:0}
-.account-promo-copy{z-index:2}
+.account-promo-copy{position:relative;z-index:2;min-width:0;display:grid;align-content:start;padding:24px 26px 24px}
+/* سرِ سر: هویت مهمان (مثل آواتار عضو) و نشان حساب */
+.account-promo-top{display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.account-promo-top .account-promo-eyebrow{order:-1}
+.account-promo-identity{display:inline-flex;align-items:center;gap:10px;min-width:0}
+.account-promo-avatar{width:46px;height:46px;flex:0 0 auto;display:grid;place-items:center;border-radius:50%;
+  border:1.5px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.06);color:#E6F1EF}
+.account-promo-avatar .i{width:22px;height:22px}
+.account-promo-who{display:grid;gap:2px;min-width:0}
+.account-promo-who b{font-size:15px;font-weight:700;line-height:1.5;letter-spacing:-.2px}
+.account-promo-who small{color:var(--promo-ink-3);font-size:11px;font-weight:400;line-height:1.6}
 .account-promo-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid rgba(224,225,185,.23);
-  border-radius:var(--r-pill);background:rgba(255,255,255,.035);color:#E2E8D1;font-size:11px;font-weight:500;line-height:1.6}
+  border-radius:var(--r-pill);background:rgba(255,255,255,.035);color:#E2E8D1;font-size:11px;font-weight:500;line-height:1.6;white-space:nowrap}
 .account-promo-eyebrow .i{width:14px;height:14px;color:#D4C899}
-.account-promo-copy h2{margin:18px 0 13px;font-size:clamp(29px,4.2vw,34px);line-height:1.55;letter-spacing:-.35px;font-weight:550}
+.account-promo-copy h2{margin:18px 0 10px;font-size:26px;line-height:1.5;letter-spacing:-.35px;font-weight:550;text-wrap:balance}
 .account-promo-copy h2>span,.account-promo-copy h2>strong{display:block}
 .account-promo-copy h2 strong{width:fit-content;position:relative;isolation:isolate;color:#D3EEE0;font-weight:760}
 .account-promo-copy h2 strong::after{content:"";position:absolute;z-index:-1;inset-inline:1px;bottom:5px;height:8px;border-radius:var(--r-pill);
   background:linear-gradient(90deg,rgba(208,224,189,.03),rgba(208,224,189,.17))}
-.account-promo-copy>p{max-width:31em;margin:0;color:#D8E7E8;font-size:13px;font-weight:400;line-height:2;text-wrap:pretty}
-.account-promo-actions{display:grid;gap:6px;margin-top:22px}
-.account-promo .btn.primary{min-height:46px;border:1px solid rgba(255,255,255,.17);border-radius:14px;padding:10px 16px;
-  background:linear-gradient(180deg,var(--promo-action),var(--promo-action-end));color:#fff;font-size:13px;font-weight:620;line-height:1.6;
-  box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 7px 16px rgba(2,30,51,.18);
-  transition:box-shadow var(--t) var(--ease),transform var(--t-fast) var(--ease),filter var(--t) var(--ease)}
+.account-promo-copy>p{max-width:31em;margin:0;color:var(--promo-ink-2);font-size:13px;font-weight:400;line-height:2;text-wrap:pretty}
+.account-promo-copy .ident-hint{margin:12px 0 0;color:var(--promo-ink-2)}
+.account-promo-actions{display:grid;gap:6px;margin-top:20px}
+.account-promo .btn.primary{min-height:48px;border:1px solid rgba(255,255,255,.17);border-radius:14px;padding:10px 16px;
+  background:linear-gradient(180deg,var(--promo-action),var(--promo-action-end));color:#fff;font-size:13.5px;font-weight:620;line-height:1.6;
+  box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 9px 22px rgba(2,30,51,.18);transition:filter var(--t-fast) var(--ease),transform var(--t-fast) var(--ease)}
 .account-promo .btn.primary>.i{width:17px;height:17px;flex:0 0 auto}
 .account-promo .btn.primary:hover{filter:brightness(1.07);box-shadow:0 1px 0 rgba(255,255,255,.20) inset,0 9px 22px rgba(2,30,51,.22)}
 .account-promo .btn.primary:active{transform:translateY(1px)}
 .account-promo-actions>.btn{width:100%;justify-content:center}
-.account-promo-public{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;color:#E6F1EF;
-  font-size:12px;font-weight:500;text-decoration:none;border-radius:12px;transition:background var(--t) var(--ease)}
-.account-promo-public:hover{background:rgba(255,255,255,.05)}
-.account-promo-public .i{width:14px;height:14px}
-.account-promo-meta{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:8px}
-.account-promo-secure{display:flex;align-items:center;justify-content:center;gap:6px;color:#C4DAD8;font-size:10.5px;font-weight:400;line-height:1.7}
+.account-promo-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 10px;margin-top:10px}
+.account-promo-secure{display:inline-flex;align-items:center;gap:6px;color:#C4DAD8;font-size:10.5px;font-weight:400;line-height:1.7}
 .account-promo-secure .i{width:13px;height:13px;flex:0 0 auto}
-.account-promo .account-promo-retry{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:6px 8px;
-  color:#EAF1EE;border:0;background:transparent;box-shadow:none;font-family:var(--f);font-size:10.5px;font-weight:500}
-.account-promo .account-promo-retry:hover{background:rgba(255,255,255,.05)}
+.account-promo-public{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 6px;border-radius:9px;color:#E6F1EF;
+  font-size:11.5px;font-weight:600;text-decoration:none;transition:background var(--t-fast) var(--ease)}
+.account-promo-public:hover{background:rgba(255,255,255,.06)}
+.account-promo-public .i{width:14px;height:14px}
+.account-promo .account-promo-retry{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:6px 8px;
+  border:1px solid rgba(255,255,255,.22);border-radius:9px;background:rgba(255,255,255,.05);color:#E6F1EF;font-size:11px;font-weight:600}
+.account-promo .account-promo-retry:hover{background:rgba(255,255,255,.1)}
 .account-promo-retry .i{width:13px;height:13px}
 .account-promo-hero a:focus-visible,.account-promo-hero button:focus-visible{outline:3px solid #DBEDE2;outline-offset:4px}
-.account-promo-showcase{isolation:isolate;z-index:1;margin:12px 0}
-.account-promo-showcase::before{content:"";position:absolute;inset:-8px 8px -9px -6px;z-index:-1;border:1px solid rgba(232,239,223,.22);
-  border-radius:25px;background:rgba(243,247,241,.055);transform:rotate(-4deg);pointer-events:none}
-.account-promo-preview{position:relative;padding:15px;border:1px solid rgba(255,255,255,.8);border-radius:22px;
-  background:var(--promo-preview);color:var(--promo-preview-ink);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 16px 30px rgba(4,29,37,.19)}
-.account-promo-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;font-size:11px;font-weight:600;line-height:1.6}
-.account-promo-preview-brand{display:flex;align-items:center;gap:7px;min-width:0}
-.account-promo-preview-brand img{display:block;flex:0 0 auto;width:24px;height:24px}
-.account-promo-pill{padding:3px 8px;border:1px solid #D2E5DD;border-radius:var(--r-pill);background:#E8F3EC;color:#2B6252;
-  font-family:var(--f);font-size:9px;font-weight:500;line-height:1.7;white-space:nowrap}
-.account-promo-preview-event{display:flex;align-items:center;gap:9px;padding:12px 9px;border:1px solid var(--promo-preview-line);
-  border-radius:14px;background:var(--promo-preview-card);box-shadow:0 2px 5px rgba(24,57,69,.025)}
-.account-promo-preview-event>.i{width:12px;height:12px;color:var(--promo-preview-muted);flex:0 0 auto}
-.account-promo-preview-icon{width:34px;height:38px;display:grid;place-items:center;flex:0 0 auto;border:1px solid #DCE9F8;border-radius:11px;background:#EAF2FD;color:#286AB2}
-.account-promo-preview-icon .i{width:18px;height:18px}
-.account-promo-preview-label{display:grid;gap:4px;min-width:0;flex:1}
-.account-promo-preview-label b{font-size:11px;font-weight:650;line-height:1.6}
-.account-promo-preview-label small{color:var(--promo-preview-muted);font-size:9.5px;font-weight:400;line-height:1.7}
-.account-promo-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
-.account-promo-preview-grid>div{display:grid;justify-items:start;gap:5px;padding:11px 9px;border:1px solid var(--promo-preview-line);border-radius:14px;background:var(--promo-preview-card)}
-.account-promo-mini-icon{width:28px;height:28px;display:grid;place-items:center;margin-bottom:2px;border-radius:9px;background:#EEF3F5;color:#486879}
-.account-promo-mini-icon .i{width:15px;height:15px}
-.account-promo-mini-icon.notice{background:#F6EEDF;color:#806431}
-.account-promo-mini-icon.files{background:#E5F1EA;color:#306B57}
-.account-promo-preview-grid b{font-size:10.5px;font-weight:620;line-height:1.6}
-.account-promo-preview-grid small{color:var(--promo-preview-muted);font-size:9.5px;font-weight:400;line-height:1.6}
-.account-promo-preview-foot{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--promo-preview-line);
-  color:var(--promo-preview-muted);font-size:9.5px;font-weight:400;line-height:1.7}
-.account-promo-preview-foot .i{width:12px;height:12px;color:#3B7563;flex:0 0 auto}
-.account-promo-benefits{display:grid;gap:15px}
-.account-promo-section-head{display:grid;gap:5px;padding:0 3px}
-.account-promo-section-head>span{color:var(--ink-3);font-size:11px;font-weight:500;line-height:1.6}
-.account-promo-section-head h3{margin:0;color:var(--ink);font-size:18px;font-weight:650;line-height:1.7;letter-spacing:-.2px}
-.account-promo-features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.account-promo-feature{display:grid;align-content:start;justify-items:start;gap:14px;min-width:0;padding:17px 15px;border:1px solid var(--hairline);
-  border-radius:20px;background:linear-gradient(150deg,var(--surface),var(--surface-2));box-shadow:0 1px 0 rgba(255,255,255,.55) inset,0 5px 16px rgba(20,40,35,.035)}
-.account-promo-feature-icon{width:39px;height:39px;display:grid;place-items:center;flex:0 0 auto;border-radius:13px;
-  background:var(--brand-tint);color:var(--brand-ink);box-shadow:0 1px 0 rgba(255,255,255,.3) inset}
-.account-promo-feature-icon .i{width:19px;height:19px}
-.account-promo-feature-icon.notices{background:var(--accent-tint);color:var(--accent-ink)}
-.account-promo-feature-icon.files{background:var(--ok-tint);color:var(--ok)}
+/* فهرست «بعد از ورود»: ستون دوم سر، روی یک پنل شفاف؛ نه کارت جدا، نه نمای ساختگی */
+.account-promo-features{position:relative;z-index:1;display:grid;align-content:center;gap:4px;margin:0;padding:18px 20px;list-style:none;
+  border-inline-end:1px solid var(--promo-line);background:var(--promo-panel)}
+.account-promo-feature{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:10px 6px;border-radius:14px}
+.account-promo-feature+.account-promo-feature{border-top:1px solid rgba(255,255,255,.08)}
+.account-promo-feature-icon{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#DCEBFF}
+.account-promo-feature-icon .i{width:18px;height:18px}
+.account-promo-feature-icon.notices{color:#F1E2B8}
+.account-promo-feature-icon.files{color:#CDEBDB}
 .account-promo-feature>div{min-width:0}
-.account-promo-feature h4{margin:0;font-size:13px;font-weight:650;line-height:1.7;letter-spacing:-.1px;color:var(--ink)}
-.account-promo-feature p{margin:6px 0 0;color:var(--ink-3);font-size:11.5px;font-weight:400;line-height:1.9;text-wrap:pretty}
-.account-promo-bottom{display:flex;align-items:center;gap:11px;padding:16px;border:1px solid color-mix(in oklab,var(--brand) 12%,var(--hairline));
-  border-radius:21px;background:linear-gradient(135deg,color-mix(in oklab,var(--brand-tint) 45%,var(--surface)),var(--surface));
-  box-shadow:0 1px 0 rgba(255,255,255,.5) inset}
-.account-promo-bottom-icon{width:37px;height:37px;display:grid;place-items:center;flex:0 0 auto;border-radius:12px;
-  background:var(--surface);color:var(--brand-ink);border:1px solid var(--hairline-2)}
-.account-promo-bottom-icon .i{width:17px;height:17px}
-.account-promo-bottom>span:nth-child(2){display:grid;gap:5px;min-width:0;flex:1}
-.account-promo-bottom b{font-size:12px;font-weight:600;line-height:1.7}
-.account-promo-bottom small{font-size:10.5px;font-weight:400;line-height:1.7;color:var(--ink-3)}
-.account-promo-bottom>.btn{min-height:42px;gap:5px;padding:9px 12px;white-space:nowrap;font-size:12px}
-.account-promo-bottom>.btn .i{width:14px;height:14px}
+.account-promo-feature h4{margin:0;font-size:13px;font-weight:650;line-height:1.7;letter-spacing:-.1px;color:var(--promo-ink)}
+.account-promo-feature p{margin:2px 0 0;color:var(--promo-ink-2);font-size:11.5px;font-weight:400;line-height:1.85;text-wrap:pretty}
+/* ردیف‌های حساب برای مهمان: نشانهٔ «بعد از ورود» آرام است، نه هشدار */
+.mrow2 .mini.mini-guest{color:var(--ink-3);background:var(--surface-sunk)}
 :root[data-theme="dark"] .account-promo{
   --promo-action:color-mix(in srgb,var(--brand) 52%,#062D4B);
   --promo-action-end:color-mix(in srgb,var(--brand-2) 50%,#062D4B);
-  --promo-preview:#1E333B;--promo-preview-card:#253E47;--promo-preview-ink:#E4EDEE;
-  --promo-preview-muted:#BECED2;--promo-preview-line:#39515B;
+  --promo-panel:rgba(0,0,0,.14);--promo-line:rgba(255,255,255,.1);
 }
 :root[data-theme="dark"] .account-promo-hero{border-color:rgba(178,216,208,.18);box-shadow:0 1px 0 rgba(255,255,255,.035) inset,0 18px 38px rgba(0,0,0,.15)}
-:root[data-theme="dark"] .account-promo-preview{border-color:#4E686F;box-shadow:0 1px 0 rgba(255,255,255,.035) inset,0 16px 30px rgba(0,0,0,.20)}
-:root[data-theme="dark"] .account-promo-pill{background:#274A42;border-color:#3D5B4E;color:#C9E5D2}
-:root[data-theme="dark"] .account-promo-preview-icon{background:#29485F;border-color:#3B5770;color:#C2DCFF}
-:root[data-theme="dark"] .account-promo-mini-icon.notice{background:#514834;color:#E8D7B2}
-:root[data-theme="dark"] .account-promo-mini-icon.files{background:#305044;color:#C2E4D4}
-:root[data-theme="dark"] .account-promo-preview-foot .i{color:#C2E4D4}
-:root[data-theme="dark"] .account-promo-feature,:root[data-theme="dark"] .account-promo-bottom{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 5px 16px rgba(0,0,0,.07)}
 @media(max-width:600px){
-  .account-promo{gap:22px}
-  .account-promo-hero{grid-template-columns:minmax(0,1fr);gap:18px;padding:24px 22px;border-radius:28px}
-  .account-promo-copy h2{margin:15px 0 10px;font-size:clamp(29px,7.5vw,34px);line-height:1.4}
+  .account-promo-hero{grid-template-columns:minmax(0,1fr);border-radius:28px}
+  .account-promo-copy{padding:22px 20px 20px}
+  .account-promo-top{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .account-promo-top .account-promo-eyebrow{order:0}
+  .account-promo-copy h2{margin:18px 0 8px;font-size:clamp(26px,7vw,30px);line-height:1.45}
   .account-promo-copy>p{max-width:none;font-size:13px;line-height:1.95}
-  .account-promo-actions{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-top:19px}
-  .account-promo-public{padding:0 5px;font-size:11px}
-  .account-promo-meta{justify-content:flex-start;margin-top:9px}
-  .account-promo-showcase{width:min(100%,370px);justify-self:center;margin:2px 0 5px}
-  .account-promo-showcase::before{inset:-5px 6px -6px -5px;transform:rotate(-2.5deg)}
-  .account-promo-preview{padding:14px}
-  .account-promo-preview-head{margin-bottom:11px}
-  .account-promo-preview-grid>div{padding:9px 12px}
-  .account-promo-mini-icon{width:25px;height:25px}
-  .account-promo-preview-foot{margin-top:10px;padding-top:8px}
-  .account-promo-section-head h3{font-size:17px}
-  .account-promo-features{grid-template-columns:minmax(0,1fr);gap:10px}
-  .account-promo-feature{display:flex;align-items:flex-start;gap:13px;padding:16px;border-radius:18px}
-  .account-promo-feature h4{font-size:13.5px}
-  .account-promo-feature p{font-size:12px;margin-top:4px}
+  .account-promo-actions{margin-top:18px}
+  .account-promo-meta{margin-top:8px}
+  .account-promo-features{border-inline-end:0;border-top:1px solid var(--promo-line);padding:10px 14px 12px;gap:0}
+  .account-promo-feature{padding:9px 6px}
+  .account-promo-feature h4{font-size:12.5px}
+  .account-promo-feature p{font-size:11px;line-height:1.75}
 }
 @media(max-width:430px){
-  .account-promo-hero{padding:22px 19px}
-  .account-promo-meta{justify-content:center;margin-top:7px}
-  .account-promo .btn.primary{font-size:12px}
-  .account-promo-bottom{flex-wrap:wrap}
-  .account-promo-bottom>.btn{width:100%;justify-content:center;margin-top:3px}
+  .account-promo-copy{padding:20px 18px 18px}
+  .account-promo .btn.primary{font-size:12.5px}
+  .account-promo-eyebrow{font-size:10.5px;padding:4px 9px}
 }
 @media(max-width:375px){
-  .account-promo-actions{grid-template-columns:minmax(0,1fr);gap:4px}
+  .account-promo-top{gap:8px}
+  .account-promo-who small{display:none}
 }
 @media(max-width:350px){
-  .account-promo-hero{padding:20px 16px;border-radius:24px}
-  .account-promo-copy h2{font-size:28px}
-  .account-promo-preview{padding:12px}
-  .account-promo-preview-head{font-size:10.5px}
-  .account-promo-preview-brand img{width:21px;height:21px}
+  .account-promo-hero{border-radius:24px}
+  .account-promo-copy{padding:18px 16px 16px}
+  .account-promo-copy h2{font-size:26px}
+  .account-promo-features{padding-inline:10px}
 }
 @media(prefers-reduced-motion:reduce){
   .account-promo .btn,.account-promo-public{transition:none}
   .account-promo .btn.primary:active{transform:none}
 }
 @media(forced-colors:active){
-  .account-promo-hero,.account-promo-preview,.account-promo-feature,.account-promo-bottom{background:Canvas;color:CanvasText;border:1px solid CanvasText;box-shadow:none}
-  .account-promo .btn.primary,.account-promo-public{background:ButtonFace;color:ButtonText;border:1px solid ButtonText}
+  .account-promo-hero,.account-promo-features{background:Canvas;color:CanvasText;border:1px solid CanvasText;box-shadow:none}
+  .account-promo .btn.primary,.account-promo-public,.account-promo-avatar{background:ButtonFace;color:ButtonText;border:1px solid ButtonText}
   .account-promo-hero a:focus-visible,.account-promo-hero button:focus-visible{outline-color:Highlight}
-  .account-promo h2 strong,.account-promo-copy>p,.account-promo-eyebrow,.account-promo-secure{color:CanvasText}
-  .account-promo-showcase::before,.account-promo-hero::before,.account-promo-hero::after,.account-promo-copy h2 strong::after{display:none}
+  .account-promo h2 strong,.account-promo-copy>p,.account-promo-eyebrow,.account-promo-secure,.account-promo-feature h4,.account-promo-feature p{color:CanvasText}
+  .account-promo-hero::before,.account-promo-hero::after,.account-promo-copy h2 strong::after{display:none}
 }
 
 /* ══ نورا پی: کارت خودش، سرِ صفحه، جدا از ردیف‌ها ═════════════════════ */
@@ -925,7 +875,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 /* ══ ردیف‌های بخش‌ها: سبک و بی‌سایه ══════════════════════════════════ */
 .mrows{margin-top:12px;background:var(--surface);border-radius:var(--r-lg);
   border:.5px solid var(--hairline-2);box-shadow:none;overflow:hidden}
-.mrows .mhead{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;color:var(--ink-3)}
+.mrows .mhead{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;color:var(--ink-3);background:none;border-radius:0;box-shadow:none}
 .mrows .mhead .i{width:16px;height:16px;color:var(--ink-4)}
 .mrows .mhead b{font-size:12.5px;font-weight:700;color:var(--ink-3)}
 .mrow2{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:11px;width:100%;

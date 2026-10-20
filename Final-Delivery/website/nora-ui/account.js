@@ -387,21 +387,27 @@ const SERVER_ROWS=[
 ];
 function serverRowsBox(){
   const state=SERVER_ACCOUNT_STATE, loaded=state.account&&state.registrationsLoaded&&!state.registrationsError;
-  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ':k==='book'?'تازه‌ها در خانه':'';
+  const guest=!state.account;
+  /* مهمان: بخش‌های خصوصی با نشانهٔ «بعد از ورود» می‌آیند تا پیش از کلیک معلوم باشد چه انتظاری داشته باشد؛ مقصد و رفتار ورود همان قبلی است. */
+  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ':k==='book'?'تازه‌ها در خانه':guest?'بعد از ورود':'';
   return `<div class="mrows anim server-rows" style="--i:3">
     <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
       <span class="cap">${faN(SERVER_ROWS.length)} بخش</span></div>
     ${SERVER_ROWS.map(r=>`<a class="mrow2" href="${esc(r.h)}">
       <span class="ic">${ico(r.i)}</span>
       <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
-      ${mini(r.k)?`<span class="mini">${ico(r.k==='book'?'i-book':'i-check')}${esc(mini(r.k))}</span>`:''}
+      ${mini(r.k)?`<span class="mini${guest&&r.k!=='book'?' mini-guest':''}">${ico(r.k==='book'?'i-book':guest?'i-lock':'i-check')}${esc(mini(r.k))}</span>`:''}
       <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
     </a>`).join('')}</div>`;
 }
 function serverAccountGuestLanding(){
   const loginHref=serverLoginHref();
-  /* مهمانِ مسیر پیوند باید بداند کجاست و چه باید بکند؛ کارت هویت‌ها برای
-     کاربر بی‌نشست اصلاً ساخته نمی‌شود، پس توضیح همان‌جا می‌آید که چشمش است. */
+  /* صفحهٔ «حساب من» برای مهمان: همان صفحهٔ حساب است، نه یک تبلیغ. سرِ صفحه مثل
+     سرِ پروفایلِ عضو ساخته می‌شود (نشان حساب، هویت «مهمان»، یک کنش اصلی) و زیرش
+     همان بخش‌های واقعی حساب می‌آید. هیچ دادهٔ خصوصی خوانده نمی‌شود و هیچ نمای
+     ساختگی (پیش‌نمایش کارت/عدد) ساخته نمی‌شود؛ فقط قابلیت‌هایی که در وب endpoint
+     دارند معرفی می‌شوند. مهمانِ مسیر پیوند باید بداند کجاست و چه باید بکند؛
+     کارت هویت‌ها برای کاربر بی‌نشست اصلاً ساخته نمی‌شود، پس توضیح همان‌جا می‌آید که چشمش است. */
   const linkNotice=linkModeRequested()?`<p class="cap ident-hint">${ico('i-lock')} این صفحه از
     <b>مسیر پیوند حساب</b> باز شده است. برای وصل‌کردن حساب بله، اول با شمارهٔ موبایلی که
     حسابت را با آن ساخته‌ای وارد شو؛ مالکیت حساب بله بعد از ورود و با امضای خودِ بله اثبات می‌شود.</p>`:'';
@@ -409,59 +415,42 @@ function serverAccountGuestLanding(){
   return `<div class="account-promo">
     <section class="account-promo-hero" aria-labelledby="accountPromoTitle">
       <div class="account-promo-copy">
-        <span class="account-promo-eyebrow">${ico('i-sparkle')} حساب کاربری نورا</span>
-        <h2 id="accountPromoTitle"><span>رویدادهایت،</span> <strong>همه یک‌جا.</strong></h2>
-        <p>با حساب نورا ثبت‌نام‌ها، اعلان‌ها و فایل‌های مربوط به خودت را یک‌جا پیگیری کن.</p>
+        <div class="account-promo-top">
+          <span class="account-promo-identity">
+            <span class="account-promo-avatar" aria-hidden="true">${ico('i-user')}</span>
+            <span class="account-promo-who"><b>مهمان</b><small>هنوز وارد حسابت نشده‌ای</small></span>
+          </span>
+          <span class="account-promo-eyebrow">${ico('i-sparkle')} حساب کاربری نورا</span>
+        </div>
+        <h2 id="accountPromoTitle"><span>وارد حسابت شو،</span> <strong>همه‌چیز همین‌جاست.</strong></h2>
+        <p>ثبت‌نام‌ها، اعلان‌ها، فایل‌ها و وضعیت پرداخت‌هایت بعد از ورود با شمارهٔ همراه در همین صفحه دیده می‌شوند.</p>
         ${linkNotice}
         <div class="account-promo-actions">
           <a class="btn primary" href="${esc(loginHref)}">${ico('i-mobile')} ورود یا ساخت حساب</a>
+        </div>
+        <div class="account-promo-meta">
+          <small class="account-promo-secure">${ico('i-shield')} ورود امن با کد یک‌بارمصرف؛ بدون گذرواژه</small>
           <a class="account-promo-public" href="events.html">دیدن رویدادها ${ico('i-chev-left')}</a>
-        </div>
-        <div class="account-promo-meta"><small class="account-promo-secure">${ico('i-shield')} ورود امن با شمارهٔ همراه</small>${retry}</div>
-      </div>
-      <div class="account-promo-showcase">
-        <div class="account-promo-preview" aria-label="معرفی بخش‌های حساب پس از ورود">
-          <div class="account-promo-preview-head">
-            <span class="account-promo-preview-brand"><img src="nora-mark-mini.svg" alt="" width="24" height="24"/><span>حساب تو در نورا</span></span>
-            <span class="account-promo-pill">خصوصی</span>
-          </div>
-          <div class="account-promo-preview-event">
-            <span class="account-promo-preview-icon">${ico('i-calendar')}</span>
-            <span class="account-promo-preview-label"><b>رویدادهای من</b><small>ثبت‌نام‌ها و وضعیتشان</small></span>
-            ${ico('i-chev-left')}
-          </div>
-          <div class="account-promo-preview-grid">
-            <div><span class="account-promo-mini-icon notice">${ico('i-bell')}</span><b>اعلان‌ها</b><small>خبرهای حساب</small></div>
-            <div><span class="account-promo-mini-icon files">${ico('i-archive')}</span><b>فایل‌ها</b><small>مربوط به تو</small></div>
-          </div>
-          <div class="account-promo-preview-foot">${ico('i-shield')} فقط برای حساب خودت</div>
+          ${retry}
         </div>
       </div>
-    </section>
-    ${serverPayBar()}
-    ${serverRowsBox()}
-    <section class="account-promo-benefits" aria-labelledby="accountPromoBenefitsTitle">
-      <div class="account-promo-section-head"><span>با ورود به نورا</span><h3 id="accountPromoBenefitsTitle">چه چیزهایی دم دستت است؟</h3></div>
-      <div class="account-promo-features">
-        <article class="account-promo-feature">
+      <ul class="account-promo-features" aria-label="بعد از ورود چه چیزهایی این‌جاست">
+        <li class="account-promo-feature">
           <span class="account-promo-feature-icon events">${ico('i-calendar')}</span>
-          <div><h4>ثبت‌نام‌هایت</h4><p>رویدادهایی که با حسابت ثبت‌نام کرده‌ای، با وضعیت هرکدام.</p></div>
-        </article>
-        <article class="account-promo-feature">
+          <div><h4>ثبت‌نام‌هایت</h4><p>رویدادهایی که ثبت‌نام کرده‌ای، با وضعیت هرکدام.</p></div>
+        </li>
+        <li class="account-promo-feature">
           <span class="account-promo-feature-icon notices">${ico('i-bell')}</span>
-          <div><h4>اعلان‌های حساب</h4><p>خبرهای مربوط به حسابت را در یک‌جا دنبال کن.</p></div>
-        </article>
-        <article class="account-promo-feature">
+          <div><h4>اعلان‌های حساب</h4><p>خبرهای حسابت، یک‌جا.</p></div>
+        </li>
+        <li class="account-promo-feature">
           <span class="account-promo-feature-icon files">${ico('i-archive')}</span>
-          <div><h4>فایل‌های شخصی</h4><p>فایل‌های ثبت‌شده برای حسابت را راحت‌تر پیدا کن.</p></div>
-        </article>
-      </div>
+          <div><h4>فایل‌های شخصی</h4><p>فایل‌های ثبت‌شده برای حسابت.</p></div>
+        </li>
+      </ul>
     </section>
-    <section class="account-promo-bottom">
-      <span class="account-promo-bottom-icon">${ico('i-sparkle')}</span>
-      <span><b>حسابت را بساز و همراه رویدادهایت باش.</b><small>ورود یا ثبت‌نام با شمارهٔ همراه</small></span>
-      <a class="btn primary" href="${esc(loginHref)}">شروع کن ${ico('i-chev-left')}</a>
-    </section>
+    ${serverRowsBox()}
+    ${serverPayBar()}
   </div>`;
 }
 /* ══ همهٔ بخش‌های حساب (طبق طراحی تأییدشدهٔ prototype-34-user) ══
