@@ -1,0 +1,12 @@
+== member (phone session a2fcad11) ==
+GET /api/admin/content/events                           403 {"detail":"manager_password_required"}
+GET /api/admin/content/articles                         403 {"detail":"manager_password_required"}
+GET /api/admin/users                                    403 {"detail":"manager_password_required"}
+GET /api/admin/users/1e00afb7-0000-0000-0000-000000000000 403 {"detail":"manager_password_required"}
+GET /api/admin/attendance/forms                         403 {"detail":"manager_password_required"}
+POST /api/admin/content/events                          403 {"detail":"manager_password_required"}
+POST /api/admin/attendance/responses/6f905904-fcc5-4003-a16e-000000000000/check-in 403 {"detail":"manager_password_required"}
+== anonymous ==
+GET /api/admin/content/events                           401 {"detail":"authentication_required"}
+GET /api/admin/users                                    401 {"detail":"authentication_required"}
+GET /api/admin/attendance/forms                         401 {"detail":"authentication_required"}

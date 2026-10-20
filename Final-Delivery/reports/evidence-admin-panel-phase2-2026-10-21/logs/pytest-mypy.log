@@ -1,0 +1,5 @@
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+240 passed, 4 skipped, 1 warning in 52.29s
+PYTEST_EXIT=0
+Success: no issues found in 52 source files
+MYPY_EXIT=0
