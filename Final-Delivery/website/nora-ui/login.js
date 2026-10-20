@@ -93,6 +93,11 @@
   function setTitle(message) {
     const element = $('#lgTitle');
     if (element) element.textContent = message || 'ورود به نورا';
+    const staffLike = /مدیر|مالک/.test(message || '');
+    const eyebrow = $('#lgEyebrow span');
+    if (eyebrow) eyebrow.textContent = staffLike ? 'پنل مدیریت نورا' : 'حساب کاربری نورا';
+    const secure = $('.lgsecure');
+    if (secure) secure.hidden = staffLike;
   }
 
   function setStatus(message, kind) {

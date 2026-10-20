@@ -1,45 +1,80 @@
-/* صفحهٔ ورود/ثبت‌نام نورا — یک ستون، یک کارت، یک کار در هر گام.
-   رنگ‌ها، فونت، توکن‌ها و اجزای مشترک (نوار بالا، کلید تم، تب‌بار، ورقه) از glass.css/nora.css می‌آیند؛
-   این فایل فقط چیدمان و اجزای خودِ صفحهٔ ورود را تعریف می‌کند (بدون لایهٔ override جداگانه). */
+/* صفحهٔ ورود/ثبت‌نام نورا — یک بلوک، دو ناحیه: سرِ تیره با زبان بصری «حساب کاربری نورا»
+   (همان سربرگی که کاربر از account.html می‌شناسد) و پنلِ روشنِ فرم که از زیر آن بالا می‌آید.
+   موبایل: روی‌هم؛ نمایشگر پهن: کنار هم. رنگ‌ها، فونت، توکن‌ها و اجزای مشترک (نوار بالا، کلید تم،
+   تب‌بار، ورقه) از glass.css/nora.css می‌آیند؛ این فایل فقط چیدمان و اجزای خودِ صفحهٔ ورود را تعریف می‌کند. */
 @keyframes login-spin{to{transform:rotate(360deg)}}
 @keyframes login-fade{from{opacity:0}to{opacity:1}}
+@keyframes login-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ── توکن‌های محلی: همان پالت سربرگ حساب (account.css) تا دو صفحه یک خانواده باشند ── */
+.loginpage{
+  --lg-hero-a:#123745; --lg-hero-b:#174D5B; --lg-hero-c:#255F59;
+  --lg-hero-ink:#FFFFFF; --lg-hero-ink-2:#D8E7E8; --lg-hero-ink-3:#B9CFCF; --lg-hero-line:rgba(255,255,255,.16);
+  --lg-action:color-mix(in srgb,var(--brand) 72%,#062D4B); --lg-action-end:color-mix(in srgb,var(--brand-2) 76%,#062D4B);
+  --lg-field:color-mix(in oklab,var(--surface) 92%,var(--paper)); --lg-field-line:color-mix(in oklab,var(--ink) 14%,transparent);
+  --lg-radius:28px; --lg-panel-radius:22px;
+}
+:root[data-theme="dark"] .loginpage{--lg-hero-a:#0F2A34;--lg-hero-b:#143E4A;--lg-hero-c:#1E4D48;--lg-hero-line:rgba(178,216,208,.2);
+  --lg-action:color-mix(in srgb,var(--brand) 64%,#0B3A66);--lg-action-end:color-mix(in srgb,var(--brand-2) 70%,#0B3A66);
+  --lg-field:color-mix(in oklab,var(--surface) 86%,#000);--lg-field-line:rgba(255,255,255,.16)}
 
 /* ── صفحه و نوار بالا ─────────────────────────────────────────────────── */
-.loginpage{min-height:100svh;color:var(--ink);overflow-x:hidden;
-  background:radial-gradient(ellipse 520px 300px at 50% -40px,color-mix(in oklab,var(--brand-tint) 70%,transparent),transparent 76%),var(--paper)}
+.loginpage{min-height:100svh;color:var(--ink);overflow-x:hidden;background:var(--paper)}
 .loginpage::before{display:none}
 .login-icons{display:none}
 .loginpage .topbar,html.atscroll .loginpage .topbar{background:color-mix(in oklab,var(--paper) 94%,transparent);
   border-bottom:1px solid var(--hairline-2);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
-.loginpage .topbar .wrap{box-sizing:border-box;width:100%;max-width:1040px;min-height:54px;padding:8px 20px}
+.loginpage .topbar .wrap{box-sizing:border-box;width:100%;max-width:1120px;min-height:54px;padding:8px 20px}
 .loginpage .navclock{display:none}
 
 /* ── چیدمان: موبایل از بالا می‌چیند (با باز شدن کیبورد نمی‌پرد)، نمایشگر پهن وسط می‌نشیند ── */
 .loginpage main.lwrap{box-sizing:border-box;width:100%;max-width:none;margin:0;
-  padding:clamp(16px,3.4vh,30px) 16px calc(84px + var(--safe-b,0px));
-  display:grid;justify-items:center;align-content:start;row-gap:12px;animation:none}
-.lgcard{box-sizing:border-box;width:100%;max-width:400px;margin:0;padding:26px 22px 18px;
-  border:1px solid color-mix(in oklab,var(--ink) 7%,var(--hairline));border-radius:20px;background:var(--surface);
-  box-shadow:0 12px 34px color-mix(in oklab,var(--ink) 6%,transparent);
-  animation:login-fade .28s var(--ease) both}
+  padding:12px 14px calc(84px + var(--safe-b,0px));
+  display:grid;justify-items:center;align-content:start;row-gap:10px;animation:none}
 
-/* ── سر کارت: نشان واقعی نورا، عنوان حالت، یک خط راهنما ── */
-.lghead{display:grid;justify-items:center;gap:5px;margin-bottom:18px;text-align:center}
-.lgmark{width:44px;height:44px;margin:0 0 6px;display:grid;place-items:center;border-radius:14px;
-  border:1px solid color-mix(in oklab,var(--brand) 14%,var(--hairline));background:var(--brand-tint);box-shadow:none}
-.lgmark img{display:block;width:32px;height:32px;object-fit:contain}
-.lgcard h1{margin:0;color:var(--ink);font-family:'Estedad',var(--f);font-size:clamp(21px,4vw,24px);font-weight:700;letter-spacing:-.3px;line-height:1.45}
-.lglead{margin:0;max-width:46ch;color:var(--ink-3);font-size:13px;line-height:1.8}
+/* ── بلوک ورود: یک کادر با دو ناحیه (سرِ تیره + پنل فرم) ── */
+.lgcard{box-sizing:border-box;position:relative;isolation:isolate;width:100%;max-width:440px;margin:0;padding:0;overflow:hidden;
+  display:grid;border:1px solid var(--lg-hero-line);border-radius:var(--lg-radius);background:var(--surface);
+  box-shadow:0 2px 0 rgba(255,255,255,.06) inset,0 22px 48px -18px rgba(15,52,63,.28);
+  animation:login-rise .34s var(--ease) both}
+:root[data-theme="dark"] .lgcard{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 22px 44px -16px rgba(0,0,0,.45)}
+
+/* سرِ تیره: نشان حالت (eyebrow)، عنوان، یک خط راهنما */
+.lghead{position:relative;z-index:0;isolation:isolate;overflow:hidden;display:grid;justify-items:start;align-content:start;gap:0;
+  padding:22px 22px 40px;text-align:start;color:var(--lg-hero-ink);
+  background:radial-gradient(240px 200px at 0% 0%,rgba(153,193,200,.17),transparent 75%),
+    radial-gradient(190px 170px at 100% 100%,rgba(140,195,167,.12),transparent 80%),
+    linear-gradient(135deg,var(--lg-hero-a) 0%,var(--lg-hero-b) 58%,var(--lg-hero-c) 100%)}
+.lghead::before,.lghead::after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%}
+.lghead::before{width:300px;height:300px;inset-inline-end:-150px;top:-200px;border:1px solid rgba(235,224,185,.17);
+  box-shadow:0 0 0 24px rgba(255,255,255,.025),0 0 0 49px rgba(255,255,255,.018)}
+.lghead::after{width:200px;height:200px;inset-inline-start:-90px;bottom:-150px;border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 0 19px rgba(255,255,255,.025)}
+.lgmark{display:none}
+.lgeyebrow{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid rgba(224,225,185,.23);border-radius:var(--r-pill);
+  background:rgba(255,255,255,.04);color:#E2E8D1;font-size:11px;font-weight:500;line-height:1.6}
+.lgeyebrow .i{width:14px;height:14px;color:#D4C899;flex:0 0 auto}
+.lgcard h1{margin:14px 0 0;color:var(--lg-hero-ink);font-family:var(--f-h,'Estedad',var(--f));font-size:clamp(26px,6.4vw,30px);font-weight:720;letter-spacing:-.4px;line-height:1.45;
+  text-wrap:balance}
+.lglead{margin:8px 0 0;max-width:34em;color:var(--lg-hero-ink-2);font-size:13px;font-weight:400;line-height:1.95;text-wrap:pretty}
 .lglead:empty{display:none}
+.lgsecure{display:none;align-items:center;gap:7px;margin:0;color:var(--lg-hero-ink-3);font-size:11.5px;line-height:1.7}
+.lgsecure .i{width:14px;height:14px;flex:0 0 auto;color:#C4DAD8}
+.lgsecure[hidden]{display:none!important}
+
+/* پنل فرم: از زیر سربرگ بالا می‌آید؛ گوشه‌های بالایش گرد، پایینش گوشهٔ خودِ بلوک */
+.lgpanel{position:relative;z-index:1;margin-top:-20px;padding:22px 20px 14px;border-radius:var(--lg-panel-radius) var(--lg-panel-radius) 0 0;
+  background:var(--surface);box-shadow:0 -1px 0 rgba(255,255,255,.5) inset}
+:root[data-theme="dark"] .lgpanel{box-shadow:0 -1px 0 rgba(255,255,255,.06) inset}
 
 /* ── فرم ── */
 .lgbody{min-width:0}
 .lgstep{display:grid;gap:12px}
 .lgform{display:grid;gap:12px}
 .lgfield{display:grid;gap:6px;min-width:0}
-.lglbl{margin-inline:2px;color:var(--ink-2);font-size:12.5px;font-weight:600}
-.lgtext{box-sizing:border-box;width:100%;height:50px;padding:0 14px;border:1px solid var(--hairline);border-radius:12px;outline:0;
-  background:color-mix(in oklab,var(--surface) 94%,var(--paper));color:var(--ink);font:inherit;font-size:16px;
+.lglbl{margin-inline:2px;color:var(--ink-2);font-size:12.5px;font-weight:600;letter-spacing:-.1px}
+.lgtext{box-sizing:border-box;width:100%;height:52px;padding:0 14px;border:1px solid var(--lg-field-line);border-radius:14px;outline:0;
+  background:var(--lg-field);color:var(--ink);font:inherit;font-size:16px;
   transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease),background var(--t) var(--ease)}
 .lgtext[dir="ltr"]{text-align:left;font-variant-numeric:tabular-nums}
 .lgtext::placeholder{color:var(--ink-4)}
@@ -51,31 +86,31 @@
 
 /* کد امنیتی: تصویر، ورودی و تازه‌سازی در یک ردیف هم‌قد */
 .lg-captcha{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:8px;margin:0}
-.lg-cap-img{width:124px;height:50px;border:1px solid var(--hairline);border-radius:12px;overflow:hidden;
+.lg-cap-img{width:124px;height:52px;border:1px solid var(--lg-field-line);border-radius:14px;overflow:hidden;
   background:#fff;display:grid;place-items:center;line-height:0}
 .lg-cap-img img.lg-cap-pic{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .lg-cap-img .lg-spinner{width:18px;height:18px}
 .lg-cap-fail{padding:0 8px;font-size:11.5px;line-height:1.5;color:var(--ink-3);text-align:center}
 .lg-captcha .lgtext{text-align:center;letter-spacing:.18em}
 .lg-captcha .lgtext::placeholder{letter-spacing:0}
-.lg-captcha .lgbtn.quiet{width:44px;min-height:44px;padding:0;border:1px solid var(--hairline);border-radius:12px;color:var(--ink-3);background:transparent}
+.lg-captcha .lgbtn.quiet{width:44px;min-height:44px;padding:0;border:1px solid var(--lg-field-line);border-radius:14px;color:var(--ink-3);background:transparent}
 .lg-captcha .lgbtn.quiet svg{width:19px;height:19px}
 
 /* ── دکمه‌ها: یک کنش اصلی تمام‌عرض؛ کنش‌های کمکی متنی و آرام ── */
-.lgbtn{box-sizing:border-box;width:100%;min-height:50px;padding:0 18px;border:0;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 92%,#fff),var(--brand));color:#fff;
+.lgbtn{box-sizing:border-box;width:100%;min-height:52px;margin-top:4px;padding:0 18px;border:1px solid rgba(255,255,255,.14);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(180deg,var(--lg-action),var(--lg-action-end));color:#fff;
   font:inherit;font-size:15px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;
-  box-shadow:0 4px 12px color-mix(in oklab,var(--brand) 17%,transparent);
+  box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 8px 20px -6px rgba(2,30,51,.35);
   transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease),opacity var(--t-fast) var(--ease)}
 .lgbtn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .lgbtn[aria-busy="true"]{cursor:progress;opacity:.85;box-shadow:none;transform:none}
 .lgbtn[aria-busy="true"]::before{content:'';flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-inline-end-color:transparent;animation:login-spin .8s linear infinite}
 .lgbtn:not(:disabled):active{transform:scale(.985)}
-.lgbtn.quiet{width:auto;min-height:40px;padding:4px 10px;border-radius:10px;background:transparent;color:var(--brand-ink);font-size:13px;font-weight:600;box-shadow:none}
+.lgbtn.quiet{width:auto;min-height:40px;margin-top:0;padding:4px 10px;border:0;border-radius:10px;background:transparent;color:var(--brand-ink);font-size:13px;font-weight:600;box-shadow:none}
 .lgbtn.quiet:disabled{color:var(--ink-3);background:transparent;opacity:.75}
 @media (hover:hover) and (pointer:fine){
-  .lgbtn:not(.quiet):not(:disabled):hover{background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 86%,#fff),var(--brand-2));
-    box-shadow:0 7px 16px color-mix(in oklab,var(--brand) 22%,transparent);transform:translateY(-1px)}
+  .lgbtn:not(.quiet):not(:disabled):hover{filter:brightness(1.07);
+    box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 10px 24px -6px rgba(2,30,51,.4);transform:translateY(-1px)}
   .lgbtn.quiet:not(:disabled):hover{background:var(--brand-tint);box-shadow:none;transform:none}
   .lg-captcha .lgbtn.quiet:not(:disabled):hover{color:var(--brand-ink);border-color:color-mix(in oklab,var(--brand) 30%,var(--hairline))}
   .lgtext:hover:not(:focus){border-color:color-mix(in oklab,var(--ink) 22%,transparent)}
@@ -89,8 +124,8 @@
 .lg-otp-field .lglbl{text-align:center;margin:0}
 .lg-otp-control{position:relative;width:100%;height:54px;direction:ltr;touch-action:manipulation}
 .lg-otp-slots{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-.lg-otp-slot{min-width:0;border:1px solid color-mix(in oklab,var(--ink) 16%,var(--hairline));border-radius:12px;display:grid;place-items:center;
-  background:color-mix(in oklab,var(--surface) 94%,var(--paper));color:var(--ink);font-family:'Nora Latin',var(--f);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;cursor:text;
+.lg-otp-slot{min-width:0;border:1px solid var(--lg-field-line);border-radius:14px;display:grid;place-items:center;
+  background:var(--lg-field);color:var(--ink);font-family:'Nora Latin',var(--f);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;cursor:text;
   transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease),background var(--t) var(--ease)}
 .lg-otp-slot.is-filled{border-color:color-mix(in oklab,var(--ink) 34%,transparent);background:var(--surface)}
 .lg-otp-slot.is-current{border-color:var(--brand);background:var(--surface);box-shadow:0 0 0 3px var(--brand-tint)}
@@ -105,7 +140,7 @@
 .lg-otp-help{margin:0;padding:0 4px;color:var(--ink-4);font-size:12px;line-height:1.75;text-align:center}
 
 /* ── پیام وضعیت: زیر همان گام، با نشانهٔ نوع (نه فقط رنگ) ── */
-.lgstatus{position:relative;margin:12px 0 0;padding:10px 12px 10px 12px;padding-inline-start:36px;border:1px solid var(--hairline);border-radius:12px;background:var(--surface-2);
+.lgstatus{position:relative;margin:12px 0 0;padding:10px 12px 10px 12px;padding-inline-start:36px;border:1px solid var(--hairline);border-radius:14px;background:var(--surface-2);
   color:var(--ink-2);font-size:13px;line-height:1.75;text-align:start;animation:login-fade .18s var(--ease) both}
 .lgstatus::before{content:'';position:absolute;inset-inline-start:12px;top:12px;width:16px;height:16px;border-radius:50%;
   background:currentColor;-webkit-mask:var(--lg-status-icon) center/16px no-repeat;mask:var(--lg-status-icon) center/16px no-repeat;
@@ -120,17 +155,17 @@
 .lg-loading{min-height:120px;place-items:center}
 .lg-spinner{width:22px;height:22px;border:2px solid var(--hairline);border-top-color:var(--brand);border-radius:50%;animation:login-spin .8s linear infinite}
 .lg-authenticated{justify-items:center;text-align:center;gap:10px}
-.lgcheck{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--ok-tint);color:var(--ok);margin-bottom:2px;box-shadow:none}
+.lgcheck{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--ok-tint);color:var(--ok);margin-bottom:4px;box-shadow:0 0 0 6px color-mix(in oklab,var(--ok-tint) 55%,transparent)}
 .lgcheck svg,.lgcheck .i{width:26px;height:26px}
-.lgdtitle{margin:0;color:var(--ink);font-family:'Estedad',var(--f);font-size:18px;font-weight:700;letter-spacing:0}
+.lgdtitle{margin:0;color:var(--ink);font-family:var(--f-h,'Estedad',var(--f));font-size:19px;font-weight:700;letter-spacing:-.2px}
 .lgdle{margin:0;max-width:40ch;color:var(--ink-3);font-size:13px;line-height:1.85}
 .lg-authenticated .lgbtn{margin-top:6px}
 .lg-authenticated .lgbtn.quiet{margin-top:0}
 
 /* ── ورود مدیران (کم‌تأکید، پای کارت) ── */
-.lgadmin-entry{margin-top:14px}
+.lgadmin-entry{margin-top:12px}
 .lgadmin-entry[hidden]{display:none}
-.lg-divider{height:1px;display:block;margin-bottom:6px;background:linear-gradient(90deg,transparent,var(--hairline-2),transparent)}
+.lg-divider{height:1px;display:block;margin-bottom:4px;background:linear-gradient(90deg,transparent,var(--hairline),transparent)}
 .lg-admin-links{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
 .lg-admin-link{min-height:38px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:9px;
   color:var(--ink-3);font-size:12.5px;font-weight:600;text-decoration:none;transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
@@ -138,7 +173,7 @@
 .lg-admin-link svg{width:16px;height:16px;flex:0 0 auto}
 
 /* ── زیر کارت: راهنما/قوانین و نام رسمی مؤسسه (ظریف) ── */
-.lglinks{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px;margin:0;font-size:12.5px;color:var(--ink-3)}
+.lglinks{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px;margin:4px 0 0;font-size:12.5px;color:var(--ink-3)}
 .lglinks a,.lglinks button{min-height:34px;padding:0 6px;display:inline-flex;align-items:center;border:0;border-radius:8px;background:none;
   color:var(--ink-3);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;
   transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
@@ -150,24 +185,37 @@
 /* ── تب‌بار: الگوی ثابت موبایل نورا می‌ماند؛ روی نمایشگر پهن نوار اضافه نمی‌شود ── */
 @media (min-width:640px){
   .loginpage .tabbar{display:none!important}
-  .loginpage main.lwrap{min-height:calc(100svh - 55px);padding:24px 24px 24px;align-content:center}
-  .lgcard{max-width:400px;padding:30px 28px 20px}
-  .lghead{margin-bottom:20px}
+  .loginpage main.lwrap{min-height:calc(100svh - 55px);padding:28px 24px 28px;align-content:center;row-gap:12px}
+  .lgcard{max-width:460px}
+  .lghead{padding:26px 28px 44px}
+  .lgpanel{padding:26px 28px 16px}
+}
+/* نمایشگر پهن: سربرگ و فرم کنار هم، در یک بلوک */
+@media (min-width:900px){
+  .lgcard{max-width:860px;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);align-items:stretch}
+  .lghead{padding:34px 34px 30px;align-content:start}
+  .lgcard h1{margin-top:18px;font-size:32px;line-height:1.4}
+  .lglead{margin-top:12px;font-size:13.5px}
+  .lgsecure{display:inline-flex;margin-top:auto;padding-top:28px}
+  .lgpanel{margin:0;padding:34px 36px 20px;border-radius:0;box-shadow:none;border-inline-start:1px solid var(--hairline-2);display:grid;align-content:center}
+  .lghead::before{width:340px;height:340px;inset-inline-end:auto;inset-inline-start:-190px;top:auto;bottom:-210px}
+  .lghead::after{width:180px;height:180px;inset-inline-start:auto;inset-inline-end:-70px;top:-90px;bottom:auto}
 }
 @media (max-width:420px){
   .loginpage .topbar .wrap{padding-inline:14px}
-  .lgcard{padding:24px 18px 16px;border-radius:18px}
-  .lgmark{width:42px;height:42px;border-radius:13px}
-  .lgmark img{width:31px;height:31px}
+  .lgcard{border-radius:26px}
+  .lghead{padding:20px 20px 38px}
+  .lgpanel{padding:20px 18px 12px}
 }
 @media (max-width:359px){
-  .lgcard{padding-inline:15px}
+  .lgpanel{padding-inline:15px}
   .lg-captcha{gap:6px}
   .lg-cap-img{width:104px}
 }
-@media (max-height:680px){
-  .loginpage main.lwrap{align-content:start;padding-top:14px}
-  .lghead{margin-bottom:14px}
+@media (max-height:680px) and (max-width:899px){
+  .loginpage main.lwrap{align-content:start;padding-top:10px}
+  .lghead{padding-bottom:34px}
+  .lgpanel{margin-top:-16px}
 }
 /* کیبورد موبایل / ارتفاع کوتاه: تب‌بار ثابت روی فرم نمی‌افتد */
 @media (max-width:639px){
@@ -177,6 +225,8 @@
 @media (max-height:560px){
   .loginpage .tabbar{display:none!important}
   .loginpage main.lwrap{padding-bottom:calc(20px + var(--safe-b,0px))}
+  .lglead{display:none}
+  .lghead{padding-top:16px;padding-bottom:32px}
 }
 
 /* ── کاهش حرکت: چرخانه ساکن، بدون fade ── */
