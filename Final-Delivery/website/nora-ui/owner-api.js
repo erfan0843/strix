@@ -65,8 +65,10 @@
     const parts = typeof path === 'string' ? path.split('?', 2) : [];
     const pathname = parts[0] || '';
     const query = parts[1] || '';
+    /* فقط پارامترهای ثابت و شناخته‌شده: صفحه‌بندی، بازهٔ گزارش، و فیلترهای محدود
+       (جست‌وجوی حساب، نقش، وضعیت کارتابل، پیشوند عملیات تاریخچه). */
     const safeQuery = !query
-      || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})$/.test(query)
+      || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})(?:&q=[A-Za-z0-9%._-]{0,240})?(?:&role=(?:assigned|manager|club-supervisor|none))?(?:&status=(?:pending|decided|approved|rejected))?(?:&action=[a-z_.]{0,64})?$/.test(query)
       || /^period=(?:7d|30d|90d|365d|all)$/.test(query);
     if (typeof path !== 'string' || !/^\/api\/[A-Za-z0-9/_-]*$/.test(pathname) || pathname.includes('..')
         || !safeQuery) {
@@ -172,8 +174,14 @@
     unlinkBaleIdentity: () => request('/api/account/identities/bale', {
       method: 'DELETE', body: {}, csrfWrite: true, csrfCookie: 'nora_account_csrf'
     }),
-    listAccountRoles: (limit, offset) => request('/api/owner/accounts?limit='
-      + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))),
+    listAccountRoles: (limit, offset, query, roleFilter) => request('/api/owner/accounts?limit='
+      + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))
+      + (query ? '&q=' + encodeURIComponent(String(query).slice(0, 80)) : '')
+      + (roleFilter ? '&role=' + encodeURIComponent(String(roleFilter)) : '')),
+    /* ردپای عملیات مدیریتی: فقط مالک؛ فقط شناسه و نتیجه، هیچ مقدار محرمانه‌ای در آن نیست. */
+    listAuditEvents: (limit, offset, action) => request('/api/owner/audit?limit='
+      + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))
+      + (action ? '&action=' + encodeURIComponent(String(action)) : '')),
     setAccountRole: (accountId, role) => request('/api/owner/accounts/'
       + encodeURIComponent(String(accountId)) + '/role', {
         method: 'PUT', body: { role: role == null ? null : String(role) }, ownerWrite: true
@@ -228,8 +236,10 @@
       + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))),
     updateCooperationRequest: (id, status) => request('/api/cooperation-requests/'
       + encodeURIComponent(String(id)), { method: 'PATCH', body: { status }, ownerWrite: true }),
-    listAdminInbox: (limit, offset) => request('/api/admin/inbox?limit='
-      + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))),
+    /* status: pending (پیش‌فرض) | decided | approved | rejected — تاریخچهٔ تصمیم‌ها از همان جدول خوانده می‌شود. */
+    listAdminInbox: (limit, offset, status) => request('/api/admin/inbox?limit='
+      + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))
+      + (status && status !== 'pending' ? '&status=' + encodeURIComponent(String(status)) : '')),
     getReportSummary: period => {
       const allowed = ['7d', '30d', '90d', '365d', 'all'];
       const selected = allowed.includes(String(period)) ? String(period) : '30d';

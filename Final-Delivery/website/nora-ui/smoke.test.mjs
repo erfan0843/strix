@@ -954,8 +954,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(page.txt('#teamBox').includes('از API این صفحه پشتیبانی نمی‌شود')
     &&!page.txt('#teamBox').includes('خانم رستگار'),'فهرست کارشناسان ساختگی در تجربهٔ تولیدی نمایش داده نمی‌شود');
   page.click('[data-go="fKartabl"]');
-  ok(page.txt('#kartabl').includes('به API متصل نیست')&&!page.txt('#kartabl').includes('سارا محمدی'),
-    'کارتابل فاقد API توضیح روشن دارد و رسید نمونه نشان نمی‌دهد');
+  ok(page.txt('#kartabl').includes('کارتابل مشترک پنل مدیران')&&!!page.doc.querySelector('#kartabl a[href="admin.html#inbox"]')
+    &&!page.txt('#kartabl').includes('سارا محمدی'),
+    'کارتابل فاقد API به کارتابل مشترک پنل پیوند می‌دهد و رسید نمونه نشان نمی‌دهد');
   page.click('[data-go="fAttend"]');
   ok(page.txt('#attBody').includes('هیچ داده یا صندلی نمونه‌ای نمایش داده نمی‌شود')
     &&page.txt('#attBody').includes('تا اتصال API حضور'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');

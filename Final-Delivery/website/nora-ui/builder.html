@@ -603,7 +603,7 @@
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=130"></script>
-<script src="owner-api.js?v=108"></script>
+<script src="owner-api.js?v=109"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
@@ -1578,9 +1578,10 @@ function renderMine(){
 }
 function renderKartabl(){
   if(!RECEIPT_REVIEWER){
-    const message=TEST_FIXTURE_MODE?'دسترسی به بازبینی فیش ندارید.':'کارتابل رسید در این صفحه به API متصل نیست؛ دادهٔ نمونه نمایش داده نمی‌شود.';
+    const message=TEST_FIXTURE_MODE?'دسترسی به بازبینی فیش ندارید.':'فیش‌های پرداخت و پروفایل‌ها در کارتابل مشترک پنل مدیران (از API سرور) بررسی می‌شوند؛ این صفحه دادهٔ نمونه نشان نمی‌دهد.';
+    const link=TEST_FIXTURE_MODE?'':'<a class="btn sm" href="admin.html#inbox" style="margin-inline-start:10px">باز کردن کارتابل مشترک</a>';
     const box=document.getElementById('kartabl');
-    if(box) box.innerHTML='<div class="card sunk"><span class="sub">'+message+'</span></div>';
+    if(box) box.innerHTML='<div class="card sunk row"><span class="sub">'+message+'</span>'+link+'</div>';
     const top=document.getElementById('kTop'); if(top) top.textContent='—';
     const badge=document.getElementById('kBadge'); if(badge) badge.textContent='—';
     return;

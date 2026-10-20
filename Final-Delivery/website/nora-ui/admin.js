@@ -32,6 +32,9 @@ let SERVER_WORKFLOW_LOADING=false;
 let SERVER_WORKFLOW_LOADED=false;
 let SERVER_WORKFLOW_ERROR='';
 let SERVER_WORKFLOW_HAS_MORE=false;
+let SERVER_WORKFLOW_STATUS='pending'; /* pending | decided: تاریخچهٔ تصمیم‌ها از همان جدول سرور */
+let SERVER_ROLE_QUERY='',SERVER_ROLE_FILTER='';
+let SERVER_AUDIT_ITEMS=[],SERVER_AUDIT_LOADING=false,SERVER_AUDIT_LOADED=false,SERVER_AUDIT_ERROR='',SERVER_AUDIT_HAS_MORE=false,SERVER_AUDIT_ACTION='';
 let SERVER_REPORT_DATA=null;
 let SERVER_REPORT_LOADING=false;
 let SERVER_REPORT_ERROR='';
@@ -599,14 +602,15 @@ function renderNav(){
 }
 function renderBar(){
   const s=secOf(S.sec);
-  const searchOn=S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')
-    :S.sec==='users'?(!S.uV&&S.uHub!=='reports'):false;
   const live=!IS_TEST&&!!SERVER_AUTH;
+  /* در حالت سروری فهرست رویداد/کاربر محلی وجود ندارد؛ جعبهٔ جست‌وجوی بی‌اثر نشان داده نمی‌شود */
+  const searchOn=live?false:S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')
+    :S.sec==='users'?(!S.uV&&S.uHub!=='reports'):false;
   const previewLabel=live?'وضعیت از API سرور':'پیش‌نمایش محلی';
   const previewTitle=live?'داده و مجوز فقط از API مجاز سرور خوانده می‌شوند'
     :'این نمای آزمایشی محلی است و مجوز سروری ندارد';
   const identity=live
-    ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span>${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?'نام کاربری مدیر':SERVER_AUTH.provider==='phone'?'شمارهٔ موبایل':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
+    ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span dir="auto">${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?esc(SERVER_AUTH.manager_username||'حساب مدیر'):SERVER_AUTH.provider==='phone'?'حساب تلفنی':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
     :`<button class="chip" data-who-sheet aria-label="پروفایل شخصی ${esc(meDisplay(me()))}">
       ${ico('i-user')}<span>${esc(meDisplay(me()))}</span><small class="cap">پروفایل من · ${esc(roleName(me()))}</small></button>`;
   $('#admBar').innerHTML=`
@@ -1707,10 +1711,13 @@ function loadSharedWorkflowInbox(append=false){
   if(SERVER_WORKFLOW_LOADING) return;
   const offset=append?SERVER_WORKFLOW_ITEMS.length:0;
   SERVER_WORKFLOW_LOADING=true; SERVER_WORKFLOW_ERROR=''; renderBody();
-  Promise.resolve(api.listAdminInbox(SERVER_WORKFLOW_PAGE,offset)).then(result=>{
+  const requestedStatus=SERVER_WORKFLOW_STATUS;
+  Promise.resolve(api.listAdminInbox(SERVER_WORKFLOW_PAGE,offset,requestedStatus)).then(result=>{
+    if(requestedStatus!==SERVER_WORKFLOW_STATUS) return;
     const items=Array.isArray(result&&result.items)?result.items:[];
     if(items.some(x=>!x||typeof x.id!=='string'||!['profile_review','receipt_review'].includes(x.kind)
-      ||!x.payload||typeof x.payload!=='object'||x.status!=='pending'
+      ||!x.payload||typeof x.payload!=='object'
+      ||(requestedStatus==='pending'?x.status!=='pending':!['approved','rejected'].includes(x.status))
       ||(x.files!==undefined&&(!Array.isArray(x.files)||x.files.some(file=>!file||typeof file.id!=='string'
         ||typeof file.file_name!=='string'||typeof file.content_type!=='string'))))) throw new Error('invalid_inbox');
     SERVER_WORKFLOW_ITEMS=append?SERVER_WORKFLOW_ITEMS.concat(items):items;
@@ -1720,7 +1727,9 @@ function loadSharedWorkflowInbox(append=false){
       :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.'
       :'خواندن کارتابل انجام نشد؛ دوباره تلاش کنید.';
     if(!append) SERVER_WORKFLOW_ITEMS=[]; SERVER_WORKFLOW_LOADED=true;
-  }).finally(()=>{SERVER_WORKFLOW_LOADING=false; if(S.uV==='shared-inbox') renderBody()});
+  }).finally(()=>{SERVER_WORKFLOW_LOADING=false;
+    if(requestedStatus!==SERVER_WORKFLOW_STATUS){loadSharedWorkflowInbox(false); return} /* زبانه در میانهٔ بارگذاری عوض شد */
+    if(S.uV==='shared-inbox') renderBody()});
 }
 function loadServerReports(force=false){
   if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')) return;
@@ -1753,7 +1762,7 @@ function loadServerReports(force=false){
   }).finally(()=>{
     if(requestId!==SERVER_REPORT_REQUEST) return;
     SERVER_REPORT_LOADING=false;
-    if(S.sec==='users'&&S.uHub==='reports') renderBody();
+    if((S.sec==='users'&&S.uHub==='reports')||S.sec==='dash') renderBody();
   });
 }
 function decideSharedWorkflow(taskId,decision){
@@ -1787,8 +1796,12 @@ function sharedWorkflowInboxView(){
   if(!canUseSharedInbox()) return `<section class="card stack">${uBack}${emptyBox('مجوز دسترسی به کارتابل برای این نقش فعال نیست.')}</section>`;
   const api=window.NORA_SERVER_API, kind=S.sharedWorkflowKind||'all';
   const items=SERVER_WORKFLOW_ITEMS.filter(task=>kind==='all'||task.kind===kind);
+  const history=SERVER_WORKFLOW_STATUS==='decided';
   const tabs=[['all','همه'],['profile_review','پروفایل‌ها'],['receipt_review','فیش‌ها']].map(([key,label])=>
     `<button class="chip ${kind===key?'on':''}" data-workflow-kind="${key}">${esc(label)}</button>`).join('');
+  const statusTabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="وضعیت کارتابل">
+    <button class="chip ${history?'':'on'}" role="tab" aria-selected="${!history}" data-workflow-status="pending">در انتظار</button>
+    <button class="chip ${history?'on':''}" role="tab" aria-selected="${history}" data-workflow-status="decided">تاریخچهٔ تصمیم‌ها</button></div>`;
   const cards=items.map(task=>{
     const data=task.payload||{}, isReceipt=task.kind==='receipt_review';
     const lines=Object.entries(data).filter(([key,value])=>!['file_refs','amount','currency'].includes(key)
@@ -1811,6 +1824,17 @@ function sharedWorkflowInboxView(){
       return `<a class="btn sm quiet workflow-file-download" href="${esc(src)}" target="_blank" rel="noopener">${ico('i-download')} ${esc(name)}${size}</a>`;
     }).join('');
     const title=isReceipt?'فیش پرداخت':'پروفایل';
+    if(task.status!=='pending'){
+      const approved=task.status==='approved';
+      const reviewer=task.reviewed_by?(SERVER_AUTH&&(task.reviewed_by===SERVER_AUTH.account_id||task.reviewed_by===SERVER_AUTH.owner_id)?'شما':'شناسهٔ '+task.reviewed_by.slice(0,8)):'نامشخص';
+      return `<article class="card stack" data-workflow-card="${esc(task.id)}">
+        <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${tag(approved?'تأییدشده':'ردشده',approved?'ok':'stop')}</div>
+        <div class="cap">شناسهٔ بله: ${esc(task.bale_user_id||'ثبت‌نشده')} · کد درخواست: ${esc(task.id.slice(0,8))}</div>
+        ${amount}${lines||'<p class="cap">اطلاعاتی برای نمایش ثبت نشده است.</p>'}
+        <div class="admlirow"><span class="sp"><small class="cap">تصمیم</small><b>${approved?'تأیید':'رد'} · ${esc(reviewer)} · ${esc(svcWhen(task.reviewed_at)||'زمان نامشخص')}</b>
+          ${task.review_reason?`<small class="cap">دلیل: ${esc(task.review_reason)}</small>`:''}</span></div>
+      </article>`;
+    }
     return `<article class="card stack" data-workflow-card="${esc(task.id)}">
       <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${tag('در انتظار','warn')}</div>
       <div class="cap">شناسهٔ بله: ${esc(task.bale_user_id||'ثبت‌نشده')} · کد درخواست: ${esc(task.id.slice(0,8))}</div>
@@ -1824,12 +1848,12 @@ function sharedWorkflowInboxView(){
   const content=SERVER_WORKFLOW_LOADING?`<div class="empty"><p class="cap">در حال خواندن کارتابل…</p></div>`
     :SERVER_WORKFLOW_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_WORKFLOW_ERROR)}</p>${btn('تلاش دوباره','data-workflow-refresh','i-refresh')}</div>`
     :!SERVER_WORKFLOW_LOADED?`<div class="empty"><p class="cap">در حال آماده‌سازی کارتابل…</p></div>`
-    :cards||emptyBox('درخواستی در انتظار بررسی نیست.');
+    :cards||emptyBox(history?'هنوز تصمیمی ثبت نشده است.':'درخواستی در انتظار بررسی نیست.');
   return `<section class="stack">
     <section class="card stack"><div class="row">${btn('بازگشت','data-uback','i-back')}<span class="sp"></span>${btn('بازخوانی','data-workflow-refresh','i-refresh')}</div>
       <div class="row"><div class="head">کارتابل پروفایل و فیش</div><span class="sp"></span>${SERVER_WORKFLOW_LOADED?tag(fa(SERVER_WORKFLOW_ITEMS.length)+' مورد',''):''}</div>
-      <p class="cap">درخواست‌ها از پایگاه مشترک ربات و وب‌اپ خوانده می‌شوند؛ تصمیم شما پس از ثبت، برای همکار و کاربر در همان پایگاه ثبت می‌شود.</p>
-      <div class="admfilters">${tabs}</div></section>
+      <p class="cap">${history?'تصمیم‌های ثبت‌شده با نام تصمیم‌گیرنده، زمان و دلیل از همان پایگاه خوانده می‌شوند و قابل تغییر نیستند.':'درخواست‌ها از پایگاه مشترک ربات و وب‌اپ خوانده می‌شوند؛ تصمیم شما پس از ثبت، برای همکار و کاربر در همان پایگاه ثبت می‌شود.'}</p>
+      ${statusTabs}<div class="admfilters">${tabs}</div></section>
     <div class="stack">${content}</div>
     ${SERVER_WORKFLOW_HAS_MORE?`<div class="row"><span class="sp"></span>${btn('درخواست‌های بیشتر','data-workflow-more','i-chev-left')}</div>`:''}
   </section>`;
@@ -2828,9 +2852,11 @@ function serverRoleRow(item){
     </details>`:'';
   const options=`<option value="">بدون نقش</option>${ROLE_DEFS.filter(r=>r.k!==ROLE_OWNER)
     .map(r=>`<option value="${esc(r.k)}" ${role===r.k?'selected':''}>${esc(r.n)}</option>`).join('')}`;
+  const displayName=String(item.display_name||'').trim();
   return `<div class="admlirow server-role-row">
     <span class="ic">${ico('i-user')}</span>
-    <span class="sp"><b>${esc(provider)} <span dir="ltr">${esc(item.provider_user_id||'')}</span></b>
+    <span class="sp"><b>${displayName?esc(displayName)+' · ':''}${esc(provider)} <span dir="ltr">${esc(item.provider_user_id||'')}</span></b>
+      ${displayName?'':'<small class="cap">نام در پروفایل حساب ثبت نشده است</small>'}
       <small class="cap">شناسهٔ سروری: <span dir="ltr">${esc(accountId)}</span></small>
       <small class="cap">${esc(rolePermissionsCopy(role||null))}</small>${managerLogin}</span>
     ${tag(roleBadge,role===ROLE_CLUB?'brand':role?'':'warn')}
@@ -2855,7 +2881,12 @@ function cUServerStaff(){
       <div class="row"><div class="head">حساب‌های تأییدشده</div><span class="sp"></span>
         ${SERVER_ROLE_LOADED?tag(fa(SERVER_ROLE_ITEMS.length)+' حساب',''):''}
         ${SERVER_ROLE_LOADED?btn('بازخوانی','data-role-refresh','i-refresh'):''}</div>
-      <p class="cap">حق عضویت باشگاه و قوانین امتیاز فعلاً فقط در اختیار مالک می‌مانند.</p>
+      <form class="row tight server-role-search" data-role-search-form onsubmit="return false">
+        <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="serverRoleQuery" type="search" class="input" value="${esc(SERVER_ROLE_QUERY)}" maxlength="80" autocomplete="off" placeholder="نام پروفایل، شناسهٔ بله، نام کاربری مدیر یا ابتدای شناسهٔ حساب" aria-label="جست‌وجوی حساب"/></label>
+        <button class="btn sm" type="submit" data-role-search>جست‌وجو</button></form>
+      <div class="admfilters">${[['','همه'],['assigned','دارای نقش'],['manager','مدیر'],['club-supervisor','سرپرست باشگاه'],['none','بدون نقش']].map(([key,label])=>
+        `<button class="chip ${SERVER_ROLE_FILTER===key?'on':''}" type="button" data-role-filter="${key}">${esc(label)}</button>`).join('')}</div>
+      <p class="cap">شمارهٔ تلفن در سرور فقط به‌صورت هش نگه‌داری می‌شود؛ حساب تلفنی را با نام پروفایل یا شناسهٔ حساب پیدا کنید. حق عضویت باشگاه و قوانین امتیاز فعلاً فقط در اختیار مالک می‌مانند.</p>
       <div class="tlist">${content}</div>
       ${SERVER_ROLE_LOADED&&SERVER_ROLE_HAS_MORE?`<div class="row"><span class="sp"></span>${btn('حساب‌های بیشتر','data-role-more','i-chev-left')}</div>`:''}
     </div>
@@ -2872,16 +2903,21 @@ async function loadServerRoleAccounts(append){
     SERVER_ROLE_ERROR='رابط سرور در دسترس نیست؛ نقش‌ها تغییر نکردند.'; SERVER_ROLE_LOADED=true; renderBody(); return;
   }
   const offset=append?SERVER_ROLE_ITEMS.length:0;
+  const requestedQuery=SERVER_ROLE_QUERY, requestedFilter=SERVER_ROLE_FILTER;
   SERVER_ROLE_LOADING=true; SERVER_ROLE_ERROR=''; renderBody();
   try{
-    const result=await api.listAccountRoles(SERVER_ROLE_PAGE,offset);
-    const items=Array.isArray(result&&result.items)?result.items:[];
-    SERVER_ROLE_ITEMS=append?SERVER_ROLE_ITEMS.concat(items):items;
-    SERVER_ROLE_HAS_MORE=!!(result&&result.has_more);
-    SERVER_ROLE_LOADED=true;
+    const result=await api.listAccountRoles(SERVER_ROLE_PAGE,offset,requestedQuery,requestedFilter);
+    if(requestedQuery===SERVER_ROLE_QUERY&&requestedFilter===SERVER_ROLE_FILTER){
+      const items=Array.isArray(result&&result.items)?result.items:[];
+      SERVER_ROLE_ITEMS=append?SERVER_ROLE_ITEMS.concat(items):items;
+      SERVER_ROLE_HAS_MORE=!!(result&&result.has_more);
+      SERVER_ROLE_LOADED=true;
+    }
   }catch(error){SERVER_ROLE_ERROR=roleApiError(error); SERVER_ROLE_LOADED=true}
   finally{
     SERVER_ROLE_LOADING=false;
+    /* فیلتر یا جست‌وجو در میانهٔ بارگذاری عوض شد: نتیجهٔ کهنه کنار گذاشته و درخواست تازه فرستاده می‌شود */
+    if(requestedQuery!==SERVER_ROLE_QUERY||requestedFilter!==SERVER_ROLE_FILTER){loadServerRoleAccounts(false); return}
     if(S.uV==='tools'&&S.uTool==='staff') renderBody();
   }
 }
@@ -2895,6 +2931,8 @@ async function saveServerAccountRole(accountId){
     toast('این نقش قابل واگذاری نیست'); renderBody(); return;
   }
   if((item.role||null)===selected){toast('نقش تغییری نکرد'); return}
+  if(selected===null&&typeof window.confirm==='function'
+    &&!window.confirm('نقش این حساب برداشته می‌شود؛ ورود مدیر و نشست‌های فعال آن همین حالا بسته می‌شوند. ادامه می‌دهید؟')){renderBody(); return}
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.setAccountRole!=='function'){toast('رابط سرور در دسترس نیست؛ نقشی تغییر نکرد'); return}
   const button=$$('[data-save-server-role]').find(node=>node.dataset.saveServerRole===String(accountId));
@@ -2947,6 +2985,7 @@ async function removeServerManagerCredentials(accountId){
   const item=SERVER_ROLE_ITEMS.find(row=>String(row.account_id)===String(accountId));
   const api=window.NORA_SERVER_API;
   if(!item||!item.manager_login_enabled) return;
+  if(typeof window.confirm==='function'&&!window.confirm('ورود با نام کاربری این مدیر حذف و نشست‌های فعال او بسته می‌شود. ادامه می‌دهید؟')) return;
   if(!api||typeof api.removeManagerCredentials!=='function'){toast('رابط سرور در دسترس نیست؛ ورود مدیر تغییر نکرد');return}
   const button=$$('[data-remove-manager-credentials]').find(node=>node.dataset.removeManagerCredentials===String(accountId));
   if(button) button.disabled=true;
@@ -5104,7 +5143,11 @@ function performanceSettingsView(){
       ${perfMetric('کارهای طولانی صفحه',m.longTaskCount,'',null,m.longTaskMs==null?'در این مرورگر ثبت نشده':fa(m.longTaskMs)+' میلی‌ثانیه مجموع')}
       ${perfMetric('خطاهای جاوااسکریپت',m.clientErrors,'',null,'فقط خطاهای همین بارگذاری مرورگر')}
     </div><p class="cap">LCP، INP و CLS فقط با پشتیبانی مرورگر ثبت می‌شوند؛ INP برآورد این صفحه است، نه گزارش تجمیعی کاربران. اندازهٔ انتقال نیز ممکن است به‌علت کش یا محدودیت مرورگر ناقص باشد.</p>`+sdEnd()+
-    sdSect('تبدیل و نگه‌داری تصویر','WebP · خروجی شفافیت‌پذیر')+
+    /* تنظیم‌های WebP و لودر فقط ترجیح همین مرورگرند، نه تنظیم سامانه؛ در پنل سروری نمایش داده نمی‌شوند */
+    (IS_TEST?perfLocalPreferencesView(config,m,edgeOptions,loaderOptions,loaderEnabled):'');
+}
+function perfLocalPreferencesView(config,m,edgeOptions,loaderOptions,loaderEnabled){
+  return sdSect('تبدیل و نگه‌داری تصویر','WebP · خروجی شفافیت‌پذیر')+
     `<div class="slist"><div class="sline"><span class="lst"><i class="ldot"></i></span><span class="sp"><b>تبدیل تصویرهای بارگذاری‌شده به WebP</b><small class="cap">همیشه روشن؛ قالب دیگری به‌عنوان نسخهٔ اصلی ذخیره نمی‌شود.</small></span><span class="tag ok">WebP</span></div></div>
       <div class="stprof perf-fields">
         <label class="fld"><span>کیفیت خروجی WebP · ${esc(fa(config.imageQuality))}٪</span><input class="input" type="range" min="50" max="95" step="1" value="${config.imageQuality}" data-perf="imageQuality" aria-label="کیفیت خروجی WebP"/><small class="cap">کیفیت بالاتر، فایل بزرگ‌تر؛ شفافیت حفظ می‌شود.</small></label>
@@ -6229,6 +6272,26 @@ function serverHealthView(){
     ${!api?'<p class="cap">رابط API هم‌مبدأ بارگذاری نشده است.</p>':''}
   </section>`;
 }
+function serverDashboardKpis(){
+  if(!canPerm('rp_view')) return '';
+  const data=SERVER_REPORT_DATA, period=new Map(SERVER_REPORT_PERIODS).get(SERVER_REPORT_PERIOD)||SERVER_REPORT_PERIOD;
+  const num=value=>Number.isSafeInteger(value)&&value>=0?fa(value.toLocaleString('en-US')):'نامشخص';
+  const pendingReviews=data?Object.values(data.reviews.by_kind||{}).reduce((sum,statuses)=>sum+(Number(statuses&&statuses.pending)||0),0):null;
+  const tiles=data?[
+    ['فرم‌های سرور',num(data.forms.total),num(data.forms.by_status.published||0)+' منتشرشده'],
+    ['پاسخ‌های ثبت‌شده',num(data.responses.total),'دورهٔ '+period],
+    ['در انتظار بررسی',num(pendingReviews),'پروفایل و فیش · دورهٔ '+period],
+    ['حساب‌های تأییدشده',num(data.accounts.total),num(Object.values(data.accounts.by_role||{}).reduce((a,b)=>a+(Number(b)||0),0))+' با نقش']
+  ].map(([label,value,sub])=>`<div class="kpi"><small class="cap">${esc(label)}</small><b>${value}</b><small class="cap">${esc(sub)}</small></div>`).join(''):'';
+  const state=SERVER_REPORT_LOADING?'<p class="cap">در حال خواندن شمارش‌ها از پایگاه سرور…</p>'
+    :SERVER_REPORT_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_REPORT_ERROR)}</p>${btn('تلاش دوباره','data-server-report-refresh','i-refresh')}</div>`
+    :!data?'<p class="cap">شمارش‌ها هنوز از سرور خوانده نشده‌اند.</p>':'';
+  return `<section class="card stack"><div class="row"><div class="head">شمارش‌های پایگاه سرور</div><span class="sp"></span>${tag('از API گزارش','ok')}
+      <button class="btn sm quiet" data-user-hub="reports">گزارش کامل</button></div>
+    ${tiles?`<div class="kpis dash-kpis">${tiles}</div>`:''}${state}
+    <p class="cap">این اعداد همان خروجی <span dir="ltr">/api/admin/reports/summary</span> هستند؛ مبلغ، حضور و باشگاه در پایگاه مشترک نیستند و شمرده نمی‌شوند.</p>
+  </section>`;
+}
 function serverDashboard(){
   const modules=[];
   if(canSec('events')) modules.push(`<button class="utile" data-sec="events"><span class="tt">${ico('i-calendar')}<b>رویدادها و مطالب</b></span><small>فهرست و ویرایش سروری هنوز متصل نیست</small></button>`);
@@ -6236,6 +6299,7 @@ function serverDashboard(){
   if(canSec('forms')) modules.push(`<a class="utile" href="builder.html"><span class="tt">${ico('i-doc')}<b>فرم‌ها</b></span><small>فرم‌ساز متصل به API سرور</small></a>`);
   if(isOwner()) modules.push(`<button class="utile" data-sec="settings"><span class="tt">${ico('i-sliders')}<b>تنظیمات مالک</b></span><small>ماژول‌های متصل و وضعیت اتصال</small></button>`);
   return `<div class="stack">
+    ${serverDashboardKpis()}
     ${serverHealthView()}
     <section class="card stack"><div class="head">ماژول‌های این حساب</div>
       <p class="cap">نقش و مجوز از سرور می‌آید. بخش فاقد API دادهٔ ساختگی نشان نمی‌دهد و وضعیت آن جداگانه اعلام می‌شود.</p>
@@ -6605,7 +6669,70 @@ function securitySettingsView(){
     <div class="row tight" style="flex-wrap:wrap">
       ${canSec('users')?btn('حساب‌ها و نقش‌های سرور','data-server-role-module','i-user'):''}
       ${canSec('users')?btn('پرونده‌ها و دسترسی کاربران','data-user-hub="users"','i-idcard'):''}</div>
+  </section>${isOwner()?serverAuditView():''}`;
+}
+const AUDIT_ACTION_LABELS={'role.set':'تعیین نقش','role.clear':'برداشتن نقش','manager_credentials.set':'تعریف ورود مدیر',
+  'manager_credentials.remove':'حذف ورود مدیر','workflow.decide':'تصمیم کارتابل','form.publish':'انتشار فرم','form.pause':'توقف فرم',
+  'form.response.delete':'حذف پاسخ فرم','cooperation_request.update':'به‌روزرسانی درخواست همکاری','site_content.update':'ویرایش محتوای عمومی',
+  'service_secret.store':'ذخیرهٔ اعتبارنامه','service_secret.clear':'حذف اعتبارنامه','service_secret.test':'آزمایش اتصال',
+  'backup.upload':'بارگذاری پشتیبان','backup.audit':'بررسی پشتیبان','backup.delete':'حذف پشتیبان'};
+const AUDIT_TARGET_LABELS={account:'حساب',admin_task:'درخواست کارتابل',form:'فرم',form_response:'پاسخ فرم',cooperation_request:'درخواست همکاری',
+  site_content:'محتوای عمومی',service_secret:'سرویس',backup_upload:'فایل پشتیبان'};
+function auditDetailText(details){
+  if(!details||typeof details!=='object') return '';
+  const roleName=value=>value?(typeof roleDef==='function'?(roleDef(value).n||value):value):'بدون نقش';
+  const parts=[];
+  if('previous_role' in details||'role' in details) parts.push(roleName(details.previous_role)+' ← '+roleName(details.role));
+  if(details.username) parts.push('نام کاربری '+details.username+(details.replaced?' (جایگزین)':''));
+  if(details.decision) parts.push((details.kind==='receipt_review'?'فیش':'پروفایل')+' · '+(details.decision==='approved'?'تأیید':'رد')+(details.has_reason?' · با دلیل':''));
+  if(details.title) parts.push(String(details.title));
+  if(details.from_status&&details.status) parts.push(details.from_status+' ← '+details.status);
+  if(Array.isArray(details.keys)) parts.push(fa(details.keys.length)+' کلید');
+  if(details.code) parts.push('کد '+details.code);
+  if(Number.isFinite(details.size_bytes)) parts.push(perfBytes(details.size_bytes));
+  if('unchanged' in details) parts.push(details.unchanged?'بدون تغییر':'تغییر یافته');
+  return parts.join(' · ');
+}
+function serverAuditView(){
+  const actions=[['','همه'],['role.','نقش‌ها'],['manager_credentials.','ورود مدیر'],['workflow.','کارتابل'],['form.','فرم‌ها'],['service_secret.','سرویس‌ها'],['backup.','پشتیبان']];
+  const filters=actions.map(([key,label])=>`<button class="chip ${SERVER_AUDIT_ACTION===key?'on':''}" type="button" data-audit-action="${key}">${esc(label)}</button>`).join('');
+  const rows=SERVER_AUDIT_ITEMS.map(ev=>{
+    const actor=ev.actor_kind==='owner'?'مالک':ev.actor_kind==='account'?((typeof roleDef==='function'&&ev.actor_role?roleDef(ev.actor_role).n:'')||'حساب')+' '+String(ev.actor_id||'').slice(0,8):'سامانه';
+    const detail=auditDetailText(ev.details);
+    return `<div class="admlirow audit-row"><span class="ic">${ico(ev.outcome==='ok'?'i-check':'i-info')}</span>
+      <span class="sp"><b>${esc(AUDIT_ACTION_LABELS[ev.action]||ev.action)}</b>
+        <small class="cap">${esc(AUDIT_TARGET_LABELS[ev.target_type]||ev.target_type||'')}${ev.target_id?' <span dir="ltr">'+esc(String(ev.target_id).slice(0,12))+'</span>':''}${detail?' · '+esc(detail):''}</small>
+        <small class="cap">${esc(actor)} · ${esc(svcWhen(ev.created_at)||'')}</small></span>
+      ${tag(ev.outcome==='ok'?'انجام شد':'ناموفق',ev.outcome==='ok'?'ok':'stop')}</div>`;
+  }).join('');
+  const body=SERVER_AUDIT_LOADING&&!SERVER_AUDIT_ITEMS.length?'<p class="cap">در حال خواندن تاریخچه از سرور…</p>'
+    :SERVER_AUDIT_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_AUDIT_ERROR)}</p>${btn('تلاش دوباره','data-audit-refresh','i-refresh')}</div>`
+    :rows||(SERVER_AUDIT_LOADED?emptyBox('هنوز عملیاتی ثبت نشده است.'):'');
+  return `<section class="card stack" data-audit-panel>
+    <div class="row"><div class="head">تاریخچهٔ عملیات</div><span class="sp"></span>${SERVER_AUDIT_LOADED?tag(fa(SERVER_AUDIT_ITEMS.length)+' مورد',''):''}${btn('بازخوانی','data-audit-refresh','i-refresh')}</div>
+    <p class="cap">تغییر نقش، ورود مدیر، تصمیم کارتابل، انتشار و توقف فرم، اعتبارنامه‌ها و پشتیبان‌ها روی سرور ثبت می‌شوند؛ مقدار محرمانه در هیچ ردیفی نوشته نمی‌شود. درخواست‌های ناموفق (۴۰۱/۴۰۳/۴۲۲) ردیفی نمی‌سازند.</p>
+    <div class="admfilters">${filters}</div>
+    <div class="admlist">${body}</div>
+    ${SERVER_AUDIT_HAS_MORE?`<div class="row"><span class="sp"></span>${btn('موارد قدیمی‌تر','data-audit-more','i-more')}</div>`:''}
   </section>`;
+}
+function loadServerAuditEvents(append=false){
+  const api=window.NORA_SERVER_API;
+  if(!isOwner()||!api||typeof api.listAuditEvents!=='function'){SERVER_AUDIT_ERROR='تاریخچهٔ عملیات فقط با نشست مالک در دسترس است.'; SERVER_AUDIT_LOADED=true; renderBody(); return}
+  if(SERVER_AUDIT_LOADING) return;
+  const offset=append?SERVER_AUDIT_ITEMS.length:0, requested=SERVER_AUDIT_ACTION;
+  SERVER_AUDIT_LOADING=true; SERVER_AUDIT_ERROR=''; renderBody();
+  Promise.resolve(api.listAuditEvents(30,offset,requested)).then(result=>{
+    if(requested!==SERVER_AUDIT_ACTION) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(ev=>!ev||typeof ev.action!=='string'||typeof ev.created_at!=='string')) throw new Error('invalid_audit');
+    SERVER_AUDIT_ITEMS=append?SERVER_AUDIT_ITEMS.concat(items):items;
+    SERVER_AUDIT_HAS_MORE=!!result.has_more; SERVER_AUDIT_LOADED=true;
+  }).catch(error=>{
+    SERVER_AUDIT_ERROR=error&&(error.status===401||error.status===403)?'این تاریخچه فقط برای مالک باز است.'
+      :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن تاریخچه انجام نشد؛ دوباره تلاش کنید.';
+    if(!append) SERVER_AUDIT_ITEMS=[]; SERVER_AUDIT_LOADED=true;
+  }).finally(()=>{SERVER_AUDIT_LOADING=false; if(S.sec==='settings'&&S.setG==='security') renderBody()});
 }
 async function dataLoad(){
   if(DATA_LOADING) return;
@@ -6801,10 +6928,11 @@ function serverSettingsView(){
     ['data','داده‌ها و مهاجرت','i-layers'],
     ['security','امنیت و دسترسی‌ها','i-shield'],
     ['publishing','محتوای عمومی و همکاری','i-doc'],
-    ['bots','وضعیت پیام‌رسان','i-bell'],
     ['performance','سلامت و سرعت','i-trend']
   ];
-  const selected=S.setG==='texts'?'publishing':defs.some(x=>x[0]===S.setG)?S.setG:'services';
+  /* وضعیت واقعی بله (توکن، آزمایش اتصال، تحویل) در «اتصال سرویس‌ها» از API مالک خوانده می‌شود؛
+     اسکلت عمومی /api/integrations/status همیشه «وصل نیست» می‌گفت و دیگر در پنل نمایش داده نمی‌شود. */
+  const selected=S.setG==='texts'?'publishing':S.setG==='bots'?'services':defs.some(x=>x[0]===S.setG)?S.setG:'services';
   if(S.setG!==selected){S.setG=selected;save()}
   const tabs=defs.map(([key,title,icon])=>`<button class="chip ${selected===key?'on':''}" data-setg="${key}">
     ${ico(icon)}<span>${esc(title)}</span></button>`).join('');
@@ -6821,10 +6949,6 @@ function serverSettingsView(){
   else if(selected==='publishing') content=(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
-  else if(selected==='bots') content=`<section class="card stack"><div class="row"><div class="head">وضعیت پیام‌رسان</div><span class="sp"></span>${tag('فقط وضعیت عمومی','warn')}</div>
-    <p class="cap">وضعیت بله و ایتا از API هم‌مبدأ خوانده می‌شود. این صفحه secret نمی‌پذیرد؛ مشاهدهٔ اتصال به‌تنهایی ارسال را فعال نمی‌کند.</p>
-    <div data-bot-status class="bot-status" role="status" aria-live="polite">وضعیت اتصال از سرور دریافت نشده است.</div>
-    <div class="row"><span class="sp"></span>${btn('بازخوانی وضعیت','data-bot-refresh','i-refresh')}</div></section>`;
   else content=performanceSettingsView();
   const routes=`<section class="card stack"><div class="head">میان‌برهای سروری</div><div class="row" style="flex-wrap:wrap">
     <a class="btn sm" href="builder.html">فرم‌ساز و پاسخ‌های سروری</a>
@@ -6856,10 +6980,10 @@ function demoNote(){
     :sharedInbox
       ?'این کارتابل از API و پایگاه مشترک ربات و وب‌اپ خوانده می‌شود. تصمیم در همان‌جا ثبت و اعلان کاربر برای تحویل ربات صف می‌شود؛ این صفحه وجهی جابه‌جا نمی‌کند.'
       :!IS_TEST&&SERVER_AUTH
-        ?'نقش و مجوز این حساب از سرور خوانده شده است. رویدادها، فهرست کاربران و بیشتر تغییرهای این صفحه هنوز نمونه‌اند و فقط در همین مرورگر می‌مانند؛ ارسال پیام، پرداخت و صدور واقعی فعال نیست.'
+        ?'نقش و مجوز این حساب از سرور خوانده شده است. بخش‌هایی که هنوز API سروری ندارند (رویدادها، فهرست کاربران، باشگاه و گواهی) خالی می‌مانند و هیچ دادهٔ نمونه‌ای نشان نمی‌دهند؛ ارسال پیام و پرداخت از این پنل انجام نمی‌شود.'
         :'داده‌ها و تغییرهای این پنل فقط در همین مرورگر می‌مانند؛ پیام، اعلان، پرداخت یا صدور واقعی انجام نمی‌شود. تأیید مالک فقط همین وضعیت محلی را عوض می‌کند. نقش‌های این نمای آزمایشی مجوز سروری نیستند.';
-  const title=sharedReports?'گزارش زندهٔ سرور':sharedInbox?'کارتابل مشترک':!IS_TEST&&SERVER_AUTH?'داده‌های کاری پیش‌نمایش‌اند':'پیش‌نمایش محلی';
-  const badge=sharedReports?'گزارش تجمیعی سرور':sharedInbox?'کارتابل و مجوز از سرور': 'ارسال و پرداخت واقعی وصل نیست';
+  const title=sharedReports?'گزارش زندهٔ سرور':sharedInbox?'کارتابل مشترک':!IS_TEST&&SERVER_AUTH?'منبع داده: API سرور':'پیش‌نمایش محلی';
+  const badge=sharedReports?'گزارش تجمیعی سرور':sharedInbox?'کارتابل و مجوز از سرور':!IS_TEST&&SERVER_AUTH?'بدون دادهٔ نمونه':'ارسال و پرداخت واقعی وصل نیست';
   return `<div class="card stack" data-demo-notice role="note" style="margin-bottom:var(--sp-2);border-inline-start:3px solid var(--warn)">
     <div class="row"><b>${esc(title)}</b><span class="sp"></span>${tag(badge,'warn')}</div>
     <p class="cap">${esc(note)}</p></div>`;
@@ -6921,7 +7045,7 @@ function renderBody(){
   const host=$('#admBody'); host.innerHTML=(IS_TEST?demoNote():'')+body();
   Object.keys(SERVICE_DRAFT).forEach(key=>{const input=host.querySelector('#svcInput_'+key); if(input&&!input.value) input.value=SERVICE_DRAFT[key]});
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
-  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')
+  if(!IS_TEST&&SERVER_AUTH&&((S.sec==='users'&&S.uHub==='reports')||S.sec==='dash')&&canPerm('rp_view')
     &&!SERVER_REPORT_LOADING&&!SERVER_REPORT_ERROR
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){
     loadServerReports(false); return;
@@ -6935,6 +7059,7 @@ function renderBody(){
   }
   if(host.querySelector('[data-service-settings]')&&!SERVICE_LOADING&&!SERVICE_DATA&&!SERVICE_ERROR) serviceLoad();
   if(host.querySelector('[data-data-panel]')&&!DATA_LOADING&&!DATA_STATUS&&!DATA_ERROR) dataLoad();
+  if(host.querySelector('[data-audit-panel]')&&!SERVER_AUDIT_LOADING&&!SERVER_AUDIT_LOADED) loadServerAuditEvents(false);
   if(host.querySelector('[data-bot-status]')) loadBotStatus();
 }
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */
@@ -7037,6 +7162,15 @@ document.addEventListener('click',e=>{
     S.uV='shared-inbox'; S.sharedWorkflowKind='all'; save(); renderBody(); loadSharedWorkflowInbox(false); return}
   const workflowKind=q('[data-workflow-kind]'); if(workflowKind){
     S.sharedWorkflowKind=workflowKind.dataset.workflowKind||'all'; save(); renderBody(); return}
+  const workflowStatus=q('[data-workflow-status]'); if(workflowStatus){
+    const next=workflowStatus.dataset.workflowStatus==='decided'?'decided':'pending';
+    if(next!==SERVER_WORKFLOW_STATUS){SERVER_WORKFLOW_STATUS=next; SERVER_WORKFLOW_ITEMS=[]; SERVER_WORKFLOW_LOADED=false; SERVER_WORKFLOW_HAS_MORE=false; renderBody(); loadSharedWorkflowInbox(false)}
+    return}
+  if(q('[data-role-search]')){const input=$('#serverRoleQuery'); SERVER_ROLE_QUERY=String(input&&input.value||'').trim().slice(0,80); loadServerRoleAccounts(false); return}
+  const roleFilter=q('[data-role-filter]'); if(roleFilter){SERVER_ROLE_FILTER=roleFilter.dataset.roleFilter||''; loadServerRoleAccounts(false); return}
+  if(q('[data-audit-refresh]')){loadServerAuditEvents(false); return}
+  if(q('[data-audit-more]')){loadServerAuditEvents(true); return}
+  const auditFilter=q('[data-audit-action]'); if(auditFilter){SERVER_AUDIT_ACTION=auditFilter.dataset.auditAction||''; loadServerAuditEvents(false); return}
   if(q('[data-workflow-refresh]')){loadSharedWorkflowInbox(false); return}
   if(q('[data-workflow-more]')){loadSharedWorkflowInbox(true); return}
   const workflowApprove=q('[data-workflow-approve]'); if(workflowApprove){decideSharedWorkflow(workflowApprove.dataset.workflowApprove,'approved'); return}
@@ -8775,8 +8909,9 @@ document.addEventListener('input',e=>{
 addEventListener('hashchange',()=>{
   const k=(location.hash||'').replace('#','');
   if(k==='money'||k==='finance'){
-    S.sec='settings'; S.setG='money'; S.finTab='gates'; S.q=''; save(); render();
+    S.sec='settings'; S.setG=IS_TEST?'money':'services'; S.finTab='gates'; S.q=''; save(); render();
   }else if(k==='reports') go('reports');
+  else if(k==='inbox'&&!IS_TEST){S.sec='users'; S.uHub='users'; S.uV='shared-inbox'; S.sharedWorkflowKind='all'; S.q=''; save(); render();}
   else if(k==='newev'&&k!==S.sec){S.sec='newev'; S.q=''; save(); render();}
   else if(k==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null; S.q='';
     if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';
@@ -8797,8 +8932,9 @@ window.addEventListener('keydown',e=>{
 function startAdminApplication(){
   const h=(location.hash||'').replace('#','');
   if(h==='cert'){S.sec='users'; S.uHub='users'; S.uV='cert';}
-  else if(h==='money'||h==='finance'){S.sec='settings';S.setG='money';S.finTab='gates'}
+  else if(h==='money'||h==='finance'){S.sec='settings';S.setG=IS_TEST?'money':'services';S.finTab='gates'}
   else if(h==='reports'){S.sec='users';S.uHub='reports'}
+  else if(h==='inbox'&&!IS_TEST){S.sec='users';S.uHub='users';S.uV='shared-inbox';S.sharedWorkflowKind='all'}
   else if(h==='newev') S.sec='newev';
   else if(h==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null;
     if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';}

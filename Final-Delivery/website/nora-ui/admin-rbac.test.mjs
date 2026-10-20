@@ -41,6 +41,18 @@ async function loadProductionSession(identity) {
     get length() { return values.size; },
   };
   const accountRoles = new Map();
+  const confirmAnswers = [];
+  const decidedTasks = [
+    {id:'00000000-0000-4000-8000-000000000009',account_id:'acc-03',bale_user_id:'73429',kind:'receipt_review',
+      payload:{amount:120000,currency:'ریال',ref_code:'R-9'},status:'rejected',version:3,
+      reviewed_by:'acc-01',reviewed_at:'2026-10-02T10:00:00+00:00',review_reason:'مبلغ ناقص'},
+  ];
+  const auditEvents = [
+    {id:1,created_at:'2026-10-03T09:00:00+00:00',actor_kind:'owner',actor_id:'owner-01',actor_role:'owner',action:'role.set',
+      target_type:'account',target_id:'acc-01',outcome:'ok',details:{previous_role:null,role:'manager'}},
+    {id:2,created_at:'2026-10-03T09:05:00+00:00',actor_kind:'account',actor_id:'acc-01',actor_role:'manager',action:'workflow.decide',
+      target_type:'admin_task',target_id:'00000000-0000-4000-8000-000000000009',outcome:'ok',details:{kind:'receipt_review',decision:'rejected',has_reason:true}},
+  ];
   let workflowTasks = [
     {id:'00000000-0000-4000-8000-000000000001',account_id:'acc-01',bale_user_id:'73421',kind:'profile_review',
       payload:{full_name:'آزمایش زنده',file_refs:['00000000-0000-4000-8000-000000000101']},
@@ -56,6 +68,7 @@ async function loadProductionSession(identity) {
     provider: identity.provider || 'bale',
     role: identity.role,
     permissions: identity.permissions || rolePermissions(identity.role),
+    manager_username: identity.provider === 'manager-password' ? 'qa.manager' : null,
   };
   const owner = {
     authenticated: true,
@@ -65,7 +78,7 @@ async function loadProductionSession(identity) {
   };
   const ownerList = () => ({
     items: [{
-      account_id: 'acc-01', provider: 'bale', provider_user_id: '73421',
+      account_id: 'acc-01', provider: 'bale', provider_user_id: '73421', display_name: 'سارا آزمایشی',
       role: accountRoles.get('acc-01') || null,
       permissions: accountRoles.get('acc-01') ? rolePermissions(accountRoles.get('acc-01')) : [],
       manager_username: null,
@@ -84,6 +97,7 @@ async function loadProductionSession(identity) {
       Object.defineProperty(window, 'localStorage', { configurable: true, value: store });
       window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
       window.scrollTo = () => {};
+      window.confirm = (message) => { confirmAnswers.push(String(message)); return identity.confirm !== false; };
       Object.defineProperty(window.document, 'cookie', {
         configurable: true, get: () => 'nora_csrf=owner-csrf; nora_account_csrf=account-csrf',
       });
@@ -101,10 +115,20 @@ async function loadProductionSession(identity) {
         if (path === '/api/health') return reply(200, { ok: true, formsEnabled: true, responsesEnabled: true });
         if (path === '/api/integrations/status') return reply(200, identity.integrationStatus || { providers: [] });
         if (path === '/api/owner/accounts?limit=50&offset=0') return reply(200, ownerList());
+        if (path === '/api/owner/accounts?limit=50&offset=0&q=%D8%B3%D8%A7%D8%B1%D8%A7&role=assigned') {
+          return reply(200, { ...ownerList(), q: 'سارا', items: accountRoles.get('acc-01') ? ownerList().items : [] });
+        }
+        const auditPath = path.match(/^\/api\/owner\/audit\?limit=30&offset=0(?:&action=([a-z_.]*))?$/);
+        if (auditPath) {
+          if (identity.role !== 'owner') return reply(401, { detail: 'authentication_required' });
+          const prefix = auditPath[1] || '';
+          return reply(200, { items: auditEvents.filter(ev => ev.action.startsWith(prefix)), limit: 30, offset: 0, has_more: false, actions: [] });
+        }
         if (path === '/api/owner/site-content') return reply(200, { content: {}, version: 0, updated_at: null });
         if (path === '/api/forms') return reply(200, { items: [] });
         if (path === '/api/cooperation-requests?limit=50&offset=0') return reply(200, { items: [], total: 0 });
-        if (path === '/api/admin/inbox?limit=50&offset=0') return reply(200, { items: workflowTasks, has_more: false });
+        if (path === '/api/admin/inbox?limit=50&offset=0') return reply(200, { items: workflowTasks, has_more: false, status: 'pending' });
+        if (path === '/api/admin/inbox?limit=50&offset=0&status=decided') return reply(200, { items: decidedTasks, has_more: false, status: 'decided' });
         const reportPath = path.match(/^\/api\/admin\/reports\/summary\?period=(7d|30d|90d|365d|all)$/);
         if (reportPath) return reply(200, {
           source:'shared_server_database', period:reportPath[1], generated_at:'2026-10-01T08:00:00+00:00',
@@ -164,7 +188,7 @@ async function loadProductionSession(identity) {
     element.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
     return element;
   };
-  return { dom, window: dom.window, doc: dom.window.document, calls, storageOps, click, until };
+  return { dom, window: dom.window, doc: dom.window.document, calls, storageOps, click, until, confirmAnswers };
 }
 
 console.log('— پیش‌نمایش بدون API ورود وب —');
@@ -190,6 +214,9 @@ console.log('— نقش حساب از نشست سرور —');
   try {
     await app.until(() => app.doc.querySelector('#admNav [data-sec="users"]'), 'ناوبری مدیر');
     assert.match(app.doc.querySelector('#admBar').textContent, /مدیر/);
+    assert.match(app.doc.querySelector('#admBar .server-identity').textContent, /qa\.manager/,
+      'نشان هویت، نام کاربری واقعی مدیر را از /api/account/me نشان می‌دهد نه متن ثابت');
+    assert.equal(app.doc.querySelector('#admBar .searchbox'), null, 'جعبهٔ جست‌وجوی بی‌اثر در حالت سروری نیست');
     assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /وضعیت از API سرور/);
     assert.ok(app.doc.querySelector('#admNav a[data-center-href]'));
     const settingsNav = [...app.doc.getElementById('admNav').getElementsByTagName('button')]
@@ -206,6 +233,14 @@ console.log('— نقش حساب از نشست سرور —');
     assert.doesNotMatch(app.doc.querySelector('#admBody').textContent, /سارا محمدی|NL-1024|جلسهٔ شعر و موسیقی|رویدادهای نزدیک/,
       'ورود سروری فهرست، رویداد یا داشبورد آزمایشی را به حساب واقعی نشان نمی‌دهد');
     assert.equal(app.doc.querySelector('[data-server-logout]') !== null, true);
+
+    app.click('#admNav [data-sec="dash"]');
+    await app.until(() => app.doc.querySelector('#admBody .dash-kpis'), 'شمارش‌های داشبورد از API گزارش');
+    assert.ok(app.calls.some(call => call.path === '/api/admin/reports/summary?period=30d'), 'داشبورد همان API گزارش را می‌خواند');
+    assert.match(app.doc.querySelector('#admBody .dash-kpis').textContent, /فرم‌های سرور/);
+    assert.match(app.doc.querySelector('#admBody .dash-kpis').textContent, /۳|3/);
+    assert.match(app.doc.querySelector('#admBody .dash-kpis').textContent, /در انتظار بررسی/);
+    assert.match(app.doc.querySelector('#admBody').textContent, /\/api\/admin\/reports\/summary/);
 
     app.click('#admNav [data-sec="users"]');
     if(!app.doc.querySelector('[data-open-workflow-inbox]')&&app.doc.querySelector('[data-uback]')) app.click('[data-uback]');
@@ -236,6 +271,17 @@ console.log('— نقش حساب از نشست سرور —');
     assert.deepEqual(JSON.parse(receiptDecision.options.body), {
       decision:'rejected', reason:'تصویر خوانا نیست', expected_version:2,
     });
+
+    app.click('[data-workflow-status="decided"]');
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/inbox?limit=50&offset=0&status=decided'), 'خواندن تاریخچهٔ تصمیم‌ها');
+    await app.until(() => app.doc.querySelector('[data-workflow-card="00000000-0000-4000-8000-000000000009"]'), 'کارت تاریخچه');
+    const historyCard = app.doc.querySelector('[data-workflow-card="00000000-0000-4000-8000-000000000009"]');
+    assert.match(historyCard.textContent, /ردشده/);
+    assert.match(historyCard.textContent, /مبلغ ناقص/);
+    assert.match(historyCard.textContent, /شما/, 'تصمیم‌گیرندهٔ برابر با حساب جاری «شما» نشان داده می‌شود');
+    assert.equal(historyCard.querySelector('[data-workflow-approve],[data-workflow-reject]'), null, 'کارت تاریخچه فقط‌خواندنی است');
+    app.click('[data-workflow-status="pending"]');
+    await app.until(() => app.doc.querySelector('[data-workflow-status="pending"].on'), 'بازگشت به در انتظار');
 
     app.click('[data-uback]');
     app.click('[data-user-hub="reports"]');
@@ -269,29 +315,45 @@ console.log('— الزام گذرواژه برای ورود وبِ حساب م�
   }
 }
 
-console.log('— وضعیت واقعی اتصال پیام‌رسان‌ها —');
+console.log('— تنظیمات مالک: بدون زبانهٔ اسکلت پیام‌رسان؛ تاریخچهٔ عملیات —');
 {
-  const app = await loadProductionSession({
-    role: 'owner',
-    integrationStatus: {
-      mode: 'server-scaffold', deliveryEnabled: false, queueEnabled: false,
-      providers: [
-        { id: 'bale', connected: false, state: 'not_connected' },
-        { id: 'eitaa', connected: false, state: 'mini_app_not_connected' },
-      ],
-    },
-  });
+  const app = await loadProductionSession({ role: 'owner' });
   try {
     await app.until(() => app.doc.querySelector('#admBar .server-identity'), 'ورود مالک');
     app.click('#admNav [data-sec="settings"]');
-    app.click('[data-setg="bots"]');
-    await app.until(() => app.doc.querySelector('[data-bot-status]')?.textContent.includes('ربات و مینی‌اپ وصل نیستند'), 'وضعیت پیام‌رسان از API');
-    const status = app.doc.querySelector('[data-bot-status]').textContent;
-    assert.match(status, /ارسال خاموش است/);
-    assert.match(status, /مینی‌اپ وصل نیست؛ اعلان بیرونی خاموش است/);
-    assert.doesNotMatch(status, /اسکلت آماده|نمونه|در حال آزمایش/);
-    assert.ok(app.calls.some(call => call.path === '/api/integrations/status' && call.method === 'GET'));
-    assert.ok(app.calls.every(call => call.path !== '/api/outbox'), 'بازخوانی وضعیت هیچ ارسال یا صفی ایجاد نمی‌کند');
+    await app.until(() => app.doc.querySelector('[data-setg="services"]'), 'زبانه‌های تنظیمات');
+    assert.equal(app.doc.querySelector('[data-setg="bots"]'), null, 'زبانهٔ اسکلت «وضعیت پیام‌رسان» که همیشه «وصل نیست» می‌گفت حذف شده است');
+    assert.equal(app.doc.querySelector('[data-bot-status]'), null);
+    assert.ok(app.calls.every(call => call.path !== '/api/integrations/status'), 'پنل سروری اسکلت عمومی را صدا نمی‌زند');
+    app.click('[data-setg="performance"]');
+    assert.equal(app.doc.querySelector('[data-perf="imageQuality"]'), null, 'ترجیح‌های فقط‌مرورگری (WebP/لودر) در پنل سروری به‌عنوان تنظیم سامانه نشان داده نمی‌شوند');
+    assert.ok(app.doc.querySelector('[data-perf-check]'), 'بررسی سلامت شبکه باقی است');
+    app.click('[data-setg="security"]');
+    await app.until(() => app.calls.some(call => call.path === '/api/owner/audit?limit=30&offset=0'), 'خواندن تاریخچهٔ عملیات');
+    await app.until(() => app.doc.querySelectorAll('[data-audit-panel] .audit-row').length === 2, 'دو ردیف تاریخچه');
+    const audit = app.doc.querySelector('[data-audit-panel]').textContent;
+    assert.match(audit, /تعیین نقش/);
+    assert.match(audit, /بدون نقش ← مدیر/);
+    assert.match(audit, /تصمیم کارتابل/);
+    assert.match(audit, /فیش · رد · با دلیل/);
+    app.click('[data-audit-action="workflow."]');
+    await app.until(() => app.calls.some(call => call.path === '/api/owner/audit?limit=30&offset=0&action=workflow.'), 'فیلتر تاریخچه');
+    await app.until(() => app.doc.querySelectorAll('[data-audit-panel] .audit-row').length === 1, 'فقط ردیف کارتابل');
+  } finally {
+    app.dom.window.close();
+  }
+}
+
+console.log('— مدیر: تاریخچهٔ عملیات و زبانهٔ تنظیمات بسته است —');
+{
+  const app = await loadProductionSession({ role: 'manager', provider: 'manager-password' });
+  try {
+    await app.until(() => app.doc.querySelector('#admNav [data-sec="users"]'), 'ناوبری مدیر');
+    app.window.location.hash = '#settings';
+    app.click('#admNav [data-sec="settings"]');
+    await delay(60);
+    assert.equal(app.doc.querySelector('[data-audit-panel]'), null, 'مدیر تاریخچهٔ عملیات مالک را نمی‌بیند');
+    assert.ok(app.calls.every(call => !call.path.startsWith('/api/owner/audit')), 'مدیر API تاریخچهٔ مالک را صدا نمی‌زند');
   } finally {
     app.dom.window.close();
   }
@@ -304,6 +366,7 @@ console.log('— واگذاری نقش با نشست مالک و CSRF —');
     await app.until(() => app.doc.querySelector('#admBar .server-identity'), 'نشست مالک');
     await app.until(() => app.doc.querySelector('[data-server-roleassign="acc-01"]'), 'فهرست حساب‌های بله');
 
+    assert.match(app.doc.querySelector('.server-role-row').textContent, /سارا آزمایشی/, 'نام پروفایل کنار شناسهٔ بله نشان داده می‌شود');
     const select = app.doc.querySelector('[data-server-roleassign="acc-01"]');
     assert.deepEqual([...select.options].map((option) => option.value), ['', 'manager', 'club-supervisor']);
     assert.equal(app.doc.querySelector('[data-server-roleassign="acc-01"] option[value="owner"]'), null);
@@ -311,6 +374,15 @@ console.log('— واگذاری نقش با نشست مالک و CSRF —');
     app.click('[data-save-server-role="acc-01"]');
     await app.until(() => app.calls.some((call) => call.path === '/api/owner/accounts/acc-01/role' && call.method === 'PUT'), 'ذخیرهٔ نقش');
     await app.until(() => app.doc.querySelector('.server-role-row')?.textContent.includes('سرپرست باشگاه'), 'نمایش نقش تازه');
+    assert.equal(app.confirmAnswers.length, 0, 'تعیین نقش تأییدیهٔ اضافی نمی‌خواهد');
+
+    app.doc.querySelector('#serverRoleQuery').value = 'سارا';
+    app.click('[data-role-filter="assigned"]');
+    await app.until(() => app.calls.some(call => call.path === '/api/owner/accounts?limit=50&offset=0&role=assigned'), 'فیلتر دارای نقش');
+    app.doc.querySelector('#serverRoleQuery').value = 'سارا';
+    app.click('[data-role-search]');
+    await app.until(() => app.calls.some(call => call.path === '/api/owner/accounts?limit=50&offset=0&q=%D8%B3%D8%A7%D8%B1%D8%A7&role=assigned'), 'جست‌وجوی نام');
+    await app.until(() => app.doc.querySelector('[data-server-roleassign="acc-01"]'), 'نتیجهٔ جست‌وجو');
 
     const write = app.calls.find((call) => call.path === '/api/owner/accounts/acc-01/role' && call.method === 'PUT');
     assert.equal(write.options.headers['X-CSRF-Token'], 'owner-csrf');
@@ -341,10 +413,34 @@ console.log('— واگذاری نقش با نشست مالک و CSRF —');
     app.click('[data-remove-manager-credentials="acc-01"]');
     await app.until(() => app.calls.some(call => call.path === '/api/owner/accounts/acc-01/manager-credentials'
       && call.method === 'DELETE'), 'حذف ورود مدیر');
+    assert.match(app.confirmAnswers.at(-1) || '', /ورود با نام کاربری این مدیر حذف/, 'حذف ورود مدیر تأییدیه می‌گیرد');
     const credentialsDelete = app.calls.find(call => call.path === '/api/owner/accounts/acc-01/manager-credentials'
       && call.method === 'DELETE');
     assert.equal(credentialsDelete.options.headers['X-CSRF-Token'], 'owner-csrf');
     await app.until(() => !app.doc.querySelector('[data-remove-manager-credentials="acc-01"]'), 'بسته‌شدن ورود مدیر');
+  } finally {
+    app.dom.window.close();
+  }
+}
+
+console.log('— انصراف از برداشتن نقش —');
+{
+  const app = await loadProductionSession({ role: 'owner', confirm: false });
+  try {
+    await app.until(() => app.doc.querySelector('[data-server-roleassign="acc-01"]'), 'فهرست حساب‌ها');
+    const select = app.doc.querySelector('[data-server-roleassign="acc-01"]');
+    select.value = 'manager';
+    app.click('[data-save-server-role="acc-01"]');
+    await app.until(() => app.calls.filter(call => call.path === '/api/owner/accounts/acc-01/role' && call.method === 'PUT').length === 1, 'تعیین نقش');
+    await app.until(() => app.doc.querySelector('[data-server-roleassign="acc-01"]')?.value === 'manager'
+      && !app.doc.querySelector('[data-save-server-role="acc-01"]')?.disabled, 'نقش مدیر از فهرست تازه');
+    const clear = app.doc.querySelector('[data-server-roleassign="acc-01"]');
+    clear.value = '';
+    app.click('[data-save-server-role="acc-01"]');
+    await delay(80);
+    assert.match(app.confirmAnswers.at(-1) || '', /نقش این حساب برداشته می‌شود/, 'برداشتن نقش تأییدیه می‌خواهد');
+    assert.equal(app.calls.filter(call => call.path === '/api/owner/accounts/acc-01/role' && call.method === 'PUT').length, 1,
+      'با انصراف، هیچ درخواست حذف نقشی به سرور نمی‌رود');
   } finally {
     app.dom.window.close();
   }
