@@ -1,0 +1,20 @@
+
+## mobile 390x844 light
+1 home tabbar person entry: {"href":"account.html","text":"ورود/ثبت‌نام","visible":true,"icon":null}
+2 account page: {"url":"/account.html","title":"نورا · حساب من","css":["glass.css?v=100","nora.css?v=102","account.css?v=108"],"js":["ui.js?v=129","owner-api.js?v=108","account.js?v=128"],"guest":true,"h2":"حساب من","loginLink":"login.html?mode=server&next=account.html","sections":["sr","profwrap","DIV","hfoot"],"docH":1173,"ox":false}
+  page errors: none
+
+## mobile 390x844 dark
+1 home tabbar person entry: {"href":"account.html","text":"ورود/ثبت‌نام","visible":true,"icon":null}
+2 account page: {"url":"/account.html","title":"نورا · حساب من","css":["glass.css?v=100","nora.css?v=102","account.css?v=108"],"js":["ui.js?v=129","owner-api.js?v=108","account.js?v=128"],"guest":true,"h2":"حساب من","loginLink":"login.html?mode=server&next=account.html","sections":["sr","profwrap","DIV","hfoot"],"docH":1173,"ox":false}
+  page errors: none
+
+## desktop 1280x800 light
+1 home tabbar person entry: {"href":"account.html","text":"ورود/ثبت‌نام","visible":true,"icon":null}
+2 account page: {"url":"/account.html","title":"نورا · حساب من","css":["glass.css?v=100","nora.css?v=102","account.css?v=108"],"js":["ui.js?v=129","owner-api.js?v=108","account.js?v=128"],"guest":true,"h2":"حساب من","loginLink":"login.html?mode=server&next=account.html","sections":["sr","profwrap","DIV","hfoot"],"docH":999,"ox":false}
+  page errors: none
+
+## desktop 1280x800 dark
+1 home tabbar person entry: {"href":"account.html","text":"ورود/ثبت‌نام","visible":true,"icon":null}
+2 account page: {"url":"/account.html","title":"نورا · حساب من","css":["glass.css?v=100","nora.css?v=102","account.css?v=108"],"js":["ui.js?v=129","owner-api.js?v=108","account.js?v=128"],"guest":true,"h2":"حساب من","loginLink":"login.html?mode=server&next=account.html","sections":["sr","profwrap","DIV","hfoot"],"docH":999,"ox":false}
+  page errors: none
