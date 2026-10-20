@@ -693,3 +693,37 @@ class AccountProfileRecord(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
+
+
+class AdminAuditEventRecord(Base):
+    """Append-only trail of administrative actions (who did what, to which record, when).
+
+    Stores identifiers and outcomes only. Secret values, passwords, tokens and
+    uploaded content never enter ``details``; callers pass a small whitelisted
+    dictionary and :func:`backend.audit.record_admin_event` drops any key that
+    looks like credential material.
+    """
+
+    __tablename__ = "admin_audit_events"
+    __table_args__ = (
+        CheckConstraint(
+            "actor_kind IN ('owner', 'account')",
+            name="ck_admin_audit_events_actor_kind",
+        ),
+        Index("ix_admin_audit_events_created", "created_at"),
+        Index("ix_admin_audit_events_action_created", "action", "created_at"),
+        Index("ix_admin_audit_events_target", "target_type", "target_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    actor_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    actor_role: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_type: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    target_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False, default="ok")
+    details: Mapped[dict[str, Any]] = mapped_column(JSON_VALUE, nullable=False, default=dict)

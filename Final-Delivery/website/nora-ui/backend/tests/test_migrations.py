@@ -145,9 +145,15 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
         assert {"uq_form_payment_transactions_transaction", "uq_form_payment_transactions_provider_charge"} <= {
             constraint["name"] for constraint in inspector.get_unique_constraints("form_payment_transactions")
         }
-        assert "service_checks" in set(inspect(engine).get_table_names())
+        assert {"service_checks", "admin_audit_events"} <= set(inspect(engine).get_table_names())
+        assert {"id", "created_at", "actor_kind", "actor_id", "actor_role", "action", "target_type", "target_id", "outcome", "details"} <= {
+            column["name"] for column in inspector.get_columns("admin_audit_events")
+        }
+        assert {"ix_admin_audit_events_created", "ix_admin_audit_events_action_created", "ix_admin_audit_events_target"} <= {
+            index["name"] for index in inspector.get_indexes("admin_audit_events")
+        }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0025_service_checks"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0026_admin_audit_events"
     finally:
         engine.dispose()
 
@@ -161,7 +167,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             "cooperation_requests", "site_content", "accounts", "platform_identities",
             "account_sessions", "miniapp_auth_replays", "phone_otp_challenges", "account_roles", "manager_credentials", "admin_tasks",
             "user_notifications", "private_files", "form_receipt_uploads",
-            "form_payments", "form_payment_transactions", "service_checks",
+            "form_payments", "form_payment_transactions", "service_checks", "admin_audit_events",
         } & tables
     finally:
         engine.dispose()

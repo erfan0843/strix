@@ -295,7 +295,15 @@ def test_upload_and_audit_never_write_to_the_operational_database(data_env):
     assert client.get("/api/owner/data/uploads", headers=headers).status_code == 200
     assert client.get(f"/api/owner/data/uploads/{upload_id}", headers=headers).status_code == 200
     assert client.post(f"/api/owner/data/uploads/{upload_id}/audit", headers=headers).status_code == 200
-    assert database_snapshot(engine) == before
+    after = database_snapshot(engine)
+    # The only operational rows allowed to appear are the audit-trail entries for
+    # the two owner actions; they reference the upload id, never its content.
+    trail = after.pop("admin_audit_events")
+    before.pop("admin_audit_events", None)
+    assert after == before
+    assert [row[5] for row in trail] == ["backup.upload", "backup.audit"]
+    assert all(row[7] == upload_id for row in trail)
+    assert all(len(repr(row)) < 600 for row in trail)
 
 
 def test_oversized_upload_is_rejected_and_nothing_is_left(data_env, monkeypatch):

@@ -43,6 +43,7 @@ from .accounts import get_or_create_bale_account, get_or_create_phone_account, p
 from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
 from . import data_staging as data_staging_mod
+from . import audit as audit_mod
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
@@ -217,6 +218,29 @@ class AccountIdentity:
     role: str | None = None
     owner_id: str = ""
     provider: str = "bale"
+
+
+def record_audit(
+    db: Session,
+    identity: "OwnerIdentity | AccountIdentity",
+    action: str,
+    *,
+    target_type: str = "",
+    target_id: str = "",
+    outcome: str = "ok",
+    details: Mapping[str, Any] | None = None,
+) -> None:
+    """Append an audit row for the acting owner/manager (committed with the caller)."""
+    if isinstance(identity, OwnerIdentity):
+        audit_mod.record_admin_event(
+            db, actor_kind=audit_mod.ACTOR_OWNER, actor_id=identity.owner_id, actor_role=ROLE_OWNER,
+            action=action, target_type=target_type, target_id=target_id, outcome=outcome, details=details,
+        )
+        return
+    audit_mod.record_admin_event(
+        db, actor_kind=audit_mod.ACTOR_ACCOUNT, actor_id=identity.account_id, actor_role=identity.role or "",
+        action=action, target_type=target_type, target_id=target_id, outcome=outcome, details=details,
+    )
 
 
 def _runtime_settings(db: Session, cfg: Settings) -> Settings:
@@ -1947,6 +1971,10 @@ def create_app(
             record.content = current
             record.version = current_version + 1
             record.updated_at = _utc_now()
+        record_audit(
+            db, _identity, "site_content.update", target_type="site_content", target_id="public",
+            details={"keys": ",".join(sorted(str(key) for key in incoming))[:160], "version": current_version + 1},
+        )
         db.commit()
         db.refresh(record)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
@@ -2103,6 +2131,11 @@ def create_app(
             meta["id"], _owner_upload_actor(identity), meta["sha256"][:16],
             meta["size_bytes"], meta["structure"].get("table_count"),
         )
+        record_audit(
+            db, identity, "backup.upload", target_type="backup_upload", target_id=str(meta["id"]),
+            details={"size_bytes": int(meta["size_bytes"]), "table_count": meta["structure"].get("table_count")},
+        )
+        db.commit()
         return {"upload": store.get_upload(meta["id"])}
 
     @app.get("/api/owner/data/uploads/{upload_id}")
@@ -2123,6 +2156,7 @@ def create_app(
         upload_id: str,
         request: Request,
         identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
     ):
         cfg: Settings = request.app.state.settings
         store = _data_store(cfg)
@@ -2138,6 +2172,12 @@ def create_app(
             upload_id, _owner_upload_actor(identity), meta.get("state"),
             (meta.get("audit") or {}).get("unchanged"),
         )
+        record_audit(
+            db, identity, "backup.audit", target_type="backup_upload", target_id=upload_id,
+            outcome=str(meta.get("state") or "ok"),
+            details={"unchanged": (meta.get("audit") or {}).get("unchanged")},
+        )
+        db.commit()
         return {
             "upload": store.get_upload(upload_id),
             "unchanged": (meta.get("audit") or {}).get("unchanged"),
@@ -2148,6 +2188,7 @@ def create_app(
         upload_id: str,
         request: Request,
         identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
     ):
         cfg: Settings = request.app.state.settings
         store = _data_store(cfg)
@@ -2158,6 +2199,8 @@ def create_app(
         data_logger.info("backup deleted id=%s actor=%s removed=%s", upload_id, _owner_upload_actor(identity), removed)
         if not removed:
             raise HTTPException(404, "upload_not_found")
+        record_audit(db, identity, "backup.delete", target_type="backup_upload", target_id=upload_id)
+        db.commit()
         return {"deleted": True}
 
     # ── اتصال سرویس‌ها: تنظیمات متمرکز اعتبارنامه‌ها ────────────────────────
@@ -2219,6 +2262,10 @@ def create_app(
             "service secret stored service=%s actor=%s", spec.storage_id,
             getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
         )
+        record_audit(
+            db, identity, "service_secret.store", target_type="service_secret", target_id=spec.storage_id,
+        )
+        db.commit()
         return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
 
     @app.delete("/api/owner/service-settings/{storage_id}")
@@ -2240,13 +2287,18 @@ def create_app(
             getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
             removed,
         )
+        record_audit(
+            db, identity, "service_secret.clear", target_type="service_secret", target_id=spec.storage_id,
+            details={"removed": bool(removed)},
+        )
+        db.commit()
         return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
 
     @app.post("/api/owner/service-settings/{storage_id}/test")
     def test_owner_service_secret(
         storage_id: str,
         request: Request,
-        _identity: OwnerIdentity | AccountIdentity = Depends(
+        identity: OwnerIdentity | AccountIdentity = Depends(
             require_permission_write("sys_settings")
         ),
         db: Session = Depends(get_db),
@@ -2259,6 +2311,11 @@ def create_app(
         ok, code = probe_bale_bot(token)
         check = service_settings_mod.record_check(db, spec.storage_id, ok, code)
         settings_logger.info("service probe service=%s ok=%s code=%s", spec.storage_id, ok, code)
+        record_audit(
+            db, identity, "service_secret.test", target_type="service_secret", target_id=spec.storage_id,
+            outcome="ok" if ok else "failed", details={"code": code},
+        )
+        db.commit()
         return {"ok": ok, "code": code, "check": check}
 
     @app.post("/api/public/cooperation-requests", status_code=201)
@@ -2950,10 +3007,10 @@ def create_app(
         }
 
     @app.get("/api/account/me")
-    def account_me(identity: AccountIdentity = Depends(require_account)):
+    def account_me(identity: AccountIdentity = Depends(require_account), db: Session = Depends(get_db)):
         bot_username = app.state.settings.bale_bot_username
         delivery_bot_url = f"https://ble.ir/{bot_username}" if re.fullmatch(r"[A-Za-z0-9_]{3,64}", bot_username) else ""
-        return {
+        payload: dict[str, Any] = {
             "authenticated": True,
             "account_id": identity.account_id,
             "provider": identity.provider,
@@ -2961,6 +3018,11 @@ def create_app(
             "permissions": sorted(permissions_for_role(identity.role)),
             "delivery_bot_url": delivery_bot_url,
         }
+        if identity.provider == "manager-password":
+            # Staff sessions show their own login name in the panel header (never the hash).
+            credential = db.get(ManagerCredentialRecord, identity.account_id)
+            payload["manager_username"] = credential.username_key if credential is not None else None
+        return payload
 
     ACCOUNT_IDENTITY_PROVIDERS = ("phone", "bale")
 
@@ -3964,21 +4026,30 @@ def create_app(
     def admin_workflow_inbox(
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
+        status: str = Query(default="pending", pattern=r"^(pending|decided|approved|rejected)$"),
         identity: OwnerIdentity | AccountIdentity = Depends(
             require_any_permission("us_approve", "receipt_approve")
         ),
         db: Session = Depends(get_db),
     ):
+        """Shared review inbox. ``status=pending`` (default) lists open work; the
+        other values expose the decision history (who decided what, when)."""
         role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         kinds = [kind for kind in ("profile_review", "receipt_review") if has_permission(role, workflow_permission(kind))]
-        tasks = db.scalars(
-            select(AdminTaskRecord)
-            .where(AdminTaskRecord.status == "pending", AdminTaskRecord.kind.in_(kinds))
-            .order_by(AdminTaskRecord.created_at.asc(), AdminTaskRecord.id)
-            .offset(offset)
-            .limit(limit + 1)
-        ).all()
-        return {"items": admin_inbox_task_views(db, tasks[:limit]), "has_more": len(tasks) > limit}
+        statuses = ("approved", "rejected") if status == "decided" else (status,)
+        query = select(AdminTaskRecord).where(
+            AdminTaskRecord.status.in_(statuses), AdminTaskRecord.kind.in_(kinds)
+        )
+        if status == "pending":
+            query = query.order_by(AdminTaskRecord.created_at.asc(), AdminTaskRecord.id)
+        else:
+            query = query.order_by(AdminTaskRecord.reviewed_at.desc(), AdminTaskRecord.id)
+        tasks = db.scalars(query.offset(offset).limit(limit + 1)).all()
+        return {
+            "items": admin_inbox_task_views(db, tasks[:limit]),
+            "has_more": len(tasks) > limit,
+            "status": status,
+        }
 
     @app.get("/api/admin/inbox/{task_id}/files/{file_id}")
     def admin_workflow_file(
@@ -4050,26 +4121,90 @@ def create_app(
                 )
             )
         apply_admin_task_decision(db, task, decision, reason.strip(), reviewer_id, reviewer_bale_id)
+        record_audit(
+            db, identity, "workflow.decide", target_type="admin_task", target_id=task.id,
+            details={"kind": task.kind, "decision": decision, "has_reason": bool(reason.strip())},
+        )
         db.commit()
         return {"task": admin_task_view(db.get(AdminTaskRecord, task.id)), "accepted": True}
+
+    @app.get("/api/owner/audit")
+    def list_owner_audit_events(
+        limit: int = Query(default=50, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        action: str = Query(default="", max_length=64, pattern=r"^[a-z_.]*$"),
+        target_type: str = Query(default="", max_length=32, pattern=r"^[a-z_]*$"),
+        _identity: OwnerIdentity = Depends(require_owner),
+        db: Session = Depends(get_db),
+    ):
+        """Owner-only, read-only view of the administrative audit trail."""
+        rows, has_more = audit_mod.list_admin_events(
+            db, limit=limit, offset=offset, action=action, target_type=target_type
+        )
+        return {
+            "items": [audit_mod.audit_event_view(row) for row in rows],
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "actions": sorted(audit_mod.ACTIONS),
+        }
 
     @app.get("/api/owner/accounts")
     def list_account_roles(
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
+        q: str = Query(default="", max_length=80),
+        role_filter: str = Query(default="", alias="role", pattern=r"^(|assigned|manager|club-supervisor|none)$"),
         _identity: OwnerIdentity = Depends(require_owner),
         db: Session = Depends(get_db),
     ):
-        records = db.execute(
-            select(AccountRecord, PlatformIdentityRecord, AccountRoleRecord, ManagerCredentialRecord)
+        """Verified accounts with their server role.
+
+        Phone numbers are stored only as a peppered digest, so the owner identifies
+        an account by the member's own profile name (``display_name``), the Bale id,
+        the manager username or the account id prefix. ``q`` matches those fields.
+        """
+        query = (
+            select(AccountRecord, PlatformIdentityRecord, AccountRoleRecord, ManagerCredentialRecord, AccountProfileRecord)
             .join(PlatformIdentityRecord, PlatformIdentityRecord.account_id == AccountRecord.id)
             .outerjoin(AccountRoleRecord, AccountRoleRecord.account_id == AccountRecord.id)
             .outerjoin(ManagerCredentialRecord, ManagerCredentialRecord.account_id == AccountRecord.id)
+            .outerjoin(AccountProfileRecord, AccountProfileRecord.account_id == AccountRecord.id)
             .where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
-            .order_by(AccountRecord.created_at.desc(), AccountRecord.id)
-            .offset(offset)
-            .limit(limit + 1)
-        ).all()
+        )
+        if role_filter == "assigned":
+            query = query.where(AccountRoleRecord.role.is_not(None))
+        elif role_filter == "none":
+            query = query.where(AccountRoleRecord.role.is_(None))
+        elif role_filter:
+            query = query.where(AccountRoleRecord.role == role_filter)
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            # Profile names live inside JSON; filter in Python over a bounded window
+            # so the search stays dialect-agnostic (SQLite + PostgreSQL).
+            candidates = db.execute(
+                query.order_by(AccountRecord.created_at.desc(), AccountRecord.id).limit(2000)
+            ).all()
+            def _matches(row: Any) -> bool:
+                account, identity, role, credential, profile = row
+                name = str(((profile.fields if profile is not None else {}) or {}).get("fullName") or "")
+                haystack = " ".join(
+                    part for part in (
+                        unicodedata.normalize("NFKC", name).lower(),
+                        identity.provider_user_id.lower() if identity.provider == "bale" else "",
+                        (credential.username_key if credential is not None else ""),
+                        account.id.lower(),
+                    ) if part
+                )
+                return needle in haystack
+            filtered = [row for row in candidates if _matches(row)]
+            records = filtered[offset: offset + limit + 1]
+        else:
+            records = list(db.execute(
+                query.order_by(AccountRecord.created_at.desc(), AccountRecord.id)
+                .offset(offset)
+                .limit(limit + 1)
+            ).all())
         has_more = len(records) > limit
         items = [
             {
@@ -4080,15 +4215,16 @@ def create_app(
                     if identity.provider == "bale"
                     else "OTP-" + identity.provider_user_id[:8]
                 ),
+                "display_name": str(((profile.fields if profile is not None else {}) or {}).get("fullName") or "")[:120],
                 "role": role.role if role is not None else None,
                 "permissions": sorted(permissions_for_role(role.role if role is not None else None)),
                 "manager_username": credential.username_key if credential is not None else None,
                 "manager_login_enabled": credential is not None,
                 "created_at": _as_utc(account.created_at).isoformat(),
             }
-            for account, identity, role, credential in records[:limit]
+            for account, identity, role, credential, profile in records[:limit]
         ]
-        return {"items": items, "limit": limit, "offset": offset, "has_more": has_more}
+        return {"items": items, "limit": limit, "offset": offset, "has_more": has_more, "q": q}
 
     @app.put("/api/owner/accounts/{account_id}/role")
     async def set_account_role(
@@ -4107,6 +4243,7 @@ def create_app(
         if account is None:
             raise HTTPException(404, "account_not_found")
         current = db.get(AccountRoleRecord, account_id)
+        previous_role = current.role if current is not None else None
         if role is None:
             if current is not None:
                 db.delete(current)
@@ -4120,6 +4257,11 @@ def create_app(
             current.role = role
             current.assigned_by = _identity.owner_id
             current.updated_at = _utc_now()
+        record_audit(
+            db, _identity, "role.clear" if role is None else "role.set",
+            target_type="account", target_id=account_id,
+            details={"previous_role": previous_role, "role": role},
+        )
         db.commit()
         return {
             "account_id": account_id,
@@ -4169,6 +4311,7 @@ def create_app(
             raise HTTPException(409, "manager_username_taken")
 
         credential = db.get(ManagerCredentialRecord, account_id)
+        replaced = credential is not None
         encoded_password = hash_password(password)
         if credential is None:
             credential = ManagerCredentialRecord(
@@ -4182,6 +4325,10 @@ def create_app(
             credential.password_hash = encoded_password
             credential.updated_at = _utc_now()
         _revoke_manager_password_sessions(db, account_id, _utc_now())
+        record_audit(
+            db, _identity, "manager_credentials.set", target_type="account", target_id=account_id,
+            details={"username": username_key, "replaced": replaced},
+        )
         try:
             db.commit()
         except IntegrityError:
@@ -4205,6 +4352,10 @@ def create_app(
         if credential is not None:
             db.delete(credential)
         _revoke_manager_password_sessions(db, account_id, _utc_now())
+        record_audit(
+            db, _identity, "manager_credentials.remove", target_type="account", target_id=account_id,
+            details={"had_login": credential is not None},
+        )
         db.commit()
         return {"account_id": account_id, "configured": False}
 
@@ -4274,8 +4425,13 @@ def create_app(
         record = db.get(CooperationRequestRecord, request_id)
         if record is None:
             raise HTTPException(404, "cooperation_request_not_found")
+        previous_status = record.status
         record.status = payload["status"]
         record.updated_at = _utc_now()
+        record_audit(
+            db, _identity, "cooperation_request.update", target_type="cooperation_request",
+            target_id=record.id, details={"from_status": previous_status, "status": record.status},
+        )
         db.commit()
         return {"id": record.id, "status": record.status}
 
@@ -4917,6 +5073,10 @@ def create_app(
         if cast(CursorResult[Any], result).rowcount != 1:
             db.rollback()
             raise HTTPException(409, "form_conflict")
+        record_audit(
+            db, identity, "form.publish", target_type="form", target_id=form_id,
+            details={"from_status": record.status, "title": record.title},
+        )
         db.commit()
         db.expire_all()
         return _form_dict(get_owned_form(db, identity.owner_id, form_id))
@@ -4949,6 +5109,10 @@ def create_app(
         if cast(CursorResult[Any], result).rowcount != 1:
             db.rollback()
             raise HTTPException(409, "form_conflict")
+        record_audit(
+            db, identity, "form.pause", target_type="form", target_id=form_id,
+            details={"title": record.title},
+        )
         db.commit()
         db.expire_all()
         return _form_dict(get_owned_form(db, identity.owner_id, form_id))
@@ -7040,6 +7204,10 @@ def create_app(
             db.delete(draft)
         else:
             db.delete(record)
+        record_audit(
+            db, identity, "form.response.delete", target_type="form_response", target_id=response_id,
+            details={"form_id": form_id},
+        )
         db.commit()
         return {"deleted": True}
 
