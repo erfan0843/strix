@@ -404,6 +404,9 @@ input.input[type=time]{padding-inline:10px;text-align:center}
   .admkinds{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admkpi{grid-template-columns:1fr}
   .admbar .searchbox{min-width:0;width:100%}
+  /* موبایل: عنوان بخش یک خط کامل می‌گیرد تا کلمه‌به‌کلمه نشکند؛ نشان‌ها زیرش می‌نشینند */
+  .admbar .tt{flex:1 1 100%;min-width:0}
+  .admbar .nmark+.tt{flex-basis:calc(100% - 56px)}
 }
 @media print{
   .rail,.tabbar,.scrim,.sheet,.toast,#admTabs{display:none !important}
