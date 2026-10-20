@@ -361,6 +361,14 @@ function serverPayBar(){
   const meta=guest?chip('وارد شو و وضعیت پرداخت‌هایت را ببین')
     :state.registrationsLoaded&&!state.registrationsError?chip(paid?faN(paid)+' ثبت‌نام دارای وضعیت پرداخت':'هنوز پرداختی ثبت نشده')
     :chip('وضعیت از سرور خوانده می‌شود');
+  if(guest) return `<div class="paybar anim server-paybar is-guest" style="--i:1">
+    <a class="pbmain" href="account.html#payments" aria-label="نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام">
+      <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
+      <span class="ptx"><small>نورا پی</small><b>پرداخت‌ها و رسیدهای ثبت‌نام</b></span>
+      <span class="mini mini-guest">${ico('i-lock')}بعد از ورود</span>
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+    </a>
+  </div>`;
   return `<div class="paybar anim server-paybar" style="--i:1">
     <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام">
       <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
@@ -389,65 +397,39 @@ function serverRowsBox(){
   const state=SERVER_ACCOUNT_STATE, loaded=state.account&&state.registrationsLoaded&&!state.registrationsError;
   const guest=!state.account;
   /* مهمان: بخش‌های خصوصی با نشانهٔ «بعد از ورود» می‌آیند تا پیش از کلیک معلوم باشد چه انتظاری داشته باشد؛ مقصد و رفتار ورود همان قبلی است. */
-  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ':k==='book'?'تازه‌ها در خانه':guest?'بعد از ورود':'';
-  return `<div class="mrows anim server-rows" style="--i:3">
+  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ':k==='book'?(guest?'':'تازه‌ها در خانه'):guest?'بعد از ورود':'';
+  return `<div class="mrows anim server-rows${guest?' is-guest':''}" style="--i:3">
     <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
       <span class="cap">${faN(SERVER_ROWS.length)} بخش</span></div>
     ${SERVER_ROWS.map(r=>`<a class="mrow2" href="${esc(r.h)}">
       <span class="ic">${ico(r.i)}</span>
-      <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
+      <span class="tx"><b>${esc(r.n)}</b>${guest?'':`<small>${esc(r.s)}</small>`}</span>
       ${mini(r.k)?`<span class="mini${guest&&r.k!=='book'?' mini-guest':''}">${ico(r.k==='book'?'i-book':guest?'i-lock':'i-check')}${esc(mini(r.k))}</span>`:''}
       <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
     </a>`).join('')}</div>`;
 }
 function serverAccountGuestLanding(){
   const loginHref=serverLoginHref();
-  /* صفحهٔ «حساب من» برای مهمان: همان صفحهٔ حساب است، نه یک تبلیغ. سرِ صفحه مثل
-     سرِ پروفایلِ عضو ساخته می‌شود (نشان حساب، هویت «مهمان»، یک کنش اصلی) و زیرش
-     همان بخش‌های واقعی حساب می‌آید. هیچ دادهٔ خصوصی خوانده نمی‌شود و هیچ نمای
-     ساختگی (پیش‌نمایش کارت/عدد) ساخته نمی‌شود؛ فقط قابلیت‌هایی که در وب endpoint
-     دارند معرفی می‌شوند. مهمانِ مسیر پیوند باید بداند کجاست و چه باید بکند؛
-     کارت هویت‌ها برای کاربر بی‌نشست اصلاً ساخته نمی‌شود، پس توضیح همان‌جا می‌آید که چشمش است. */
+  /* «حساب من» برای مهمان، کمینه: یک بلوک کوتاه (آیکون، عنوان، یک جمله، یک کنش) و زیرش
+     همان بخش‌های واقعی حساب. هیچ معرفی قابلیت، نمای ساختگی یا دادهٔ خصوصی ساخته نمی‌شود.
+     مهمانِ مسیر پیوند باید بداند کجاست و چه باید بکند؛ کارت هویت‌ها برای کاربر بی‌نشست
+     اصلاً ساخته نمی‌شود، پس توضیح همان‌جا می‌آید که چشمش است. */
   const linkNotice=linkModeRequested()?`<p class="cap ident-hint">${ico('i-lock')} این صفحه از
     <b>مسیر پیوند حساب</b> باز شده است. برای وصل‌کردن حساب بله، اول با شمارهٔ موبایلی که
     حسابت را با آن ساخته‌ای وارد شو؛ مالکیت حساب بله بعد از ورود و با امضای خودِ بله اثبات می‌شود.</p>`:'';
   const retry=SERVER_ACCOUNT_STATE.error?`<button class="btn account-promo-retry" data-server-account-retry aria-label="بررسی دوبارهٔ وضعیت ورود">${ico('i-refresh')} بررسی دوباره</button>`:'';
   return `<div class="account-promo">
     <section class="account-promo-hero" aria-labelledby="accountPromoTitle">
+      <span class="account-promo-avatar" aria-hidden="true">${ico('i-user')}</span>
       <div class="account-promo-copy">
-        <div class="account-promo-top">
-          <span class="account-promo-identity">
-            <span class="account-promo-avatar" aria-hidden="true">${ico('i-user')}</span>
-            <span class="account-promo-who"><b>مهمان</b><small>هنوز وارد حسابت نشده‌ای</small></span>
-          </span>
-          <span class="account-promo-eyebrow">${ico('i-sparkle')} حساب کاربری نورا</span>
-        </div>
-        <h2 id="accountPromoTitle"><span>وارد حسابت شو،</span> <strong>همه‌چیز همین‌جاست.</strong></h2>
-        <p>ثبت‌نام‌ها، اعلان‌ها، فایل‌ها و وضعیت پرداخت‌هایت بعد از ورود با شمارهٔ همراه در همین صفحه دیده می‌شوند.</p>
+        <h2 id="accountPromoTitle">حساب من</h2>
+        <p>برای ادامه وارد حساب شو.</p>
         ${linkNotice}
-        <div class="account-promo-actions">
-          <a class="btn primary" href="${esc(loginHref)}">${ico('i-mobile')} ورود یا ساخت حساب</a>
-        </div>
-        <div class="account-promo-meta">
-          <small class="account-promo-secure">${ico('i-shield')} ورود امن با کد یک‌بارمصرف؛ بدون گذرواژه</small>
-          <a class="account-promo-public" href="events.html">دیدن رویدادها ${ico('i-chev-left')}</a>
-          ${retry}
-        </div>
       </div>
-      <ul class="account-promo-features" aria-label="بعد از ورود چه چیزهایی این‌جاست">
-        <li class="account-promo-feature">
-          <span class="account-promo-feature-icon events">${ico('i-calendar')}</span>
-          <div><h4>ثبت‌نام‌هایت</h4><p>رویدادهایی که ثبت‌نام کرده‌ای، با وضعیت هرکدام.</p></div>
-        </li>
-        <li class="account-promo-feature">
-          <span class="account-promo-feature-icon notices">${ico('i-bell')}</span>
-          <div><h4>اعلان‌های حساب</h4><p>خبرهای حسابت، یک‌جا.</p></div>
-        </li>
-        <li class="account-promo-feature">
-          <span class="account-promo-feature-icon files">${ico('i-archive')}</span>
-          <div><h4>فایل‌های شخصی</h4><p>فایل‌های ثبت‌شده برای حسابت.</p></div>
-        </li>
-      </ul>
+      <div class="account-promo-actions">
+        <a class="btn primary" href="${esc(loginHref)}">${ico('i-mobile')} ورود یا ساخت حساب</a>
+        ${retry}
+      </div>
     </section>
     ${serverRowsBox()}
     ${serverPayBar()}
@@ -1479,7 +1461,7 @@ function clubTab(){
       `<div class="kinds">${STORE.map(r=>{const can=pts>=r.cost, got=!!(bookState().rewards||{})[r.n];
         return `<div class="kind">
         ${ico(got?'i-check':'i-wallet','width:19px;height:19px;color:'+(got?'var(--ok)':'var(--ink-4)'))}
-        <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
+        <span class="tx"><b>${esc(r.n)}</b>${guest?'':`<small>${esc(r.s)}</small>`}</span>
         ${got?chip('گرفته شد','ok'):`<button class="btn sm ${can?'primary':'quiet'}" ${can?'':'disabled'} data-reward="${esc(r.n)}">${faNum(r.cost)} امتیاز</button>`}</div>`}).join('')}</div>`)+
     invitePanel();
 }

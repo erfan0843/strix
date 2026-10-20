@@ -143,31 +143,34 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&production.doc.querySelector('.tabbar [data-account-nav]')?.getAttribute('href')==='account.html'
     &&production.doc.querySelector('.help-btn')?.getAttribute('href')==='support.html'
     &&production.txt('#profBox').includes('رویدادهای من')
-    &&production.txt('#profBox').includes('ثبت‌نام‌هایت')
-    &&production.txt('#profBox').includes('اعلان‌های حساب')
-    &&production.txt('#profBox').includes('فایل‌های شخصی')
+    &&production.txt('#profBox').includes('حساب من')
+    &&production.txt('#profBox').includes('برای ادامه وارد حساب شو')
+    &&!production.txt('#profBox').includes('فایل‌های شخصی')
+    &&!production.txt('#profBox').includes('ثبت‌نام‌هایت')
+    &&!production.doc.querySelector('.account-promo-feature,.account-promo-features')
     &&!production.txt('#profBox').includes('در دسترس نیست'),
-    'صفحهٔ معرفی حساب مهمان امکانات واقعی را نشان می‌دهد و ورود امن و پشتیبانی باز است');
+    'صفحهٔ مهمان فقط عنوان کوتاه، یک جمله و بخش‌های واقعی را نشان می‌دهد؛ هیچ ادعای «فایل‌های شخصی» یا فهرست امکانات تبلیغاتی ندارد');
   ok(!!production.doc.querySelector('.account-promo-hero')
-    &&production.all('.account-promo-feature').length===3
+    &&production.all('.account-promo-feature').length===0
     &&production.all('.account-promo a[href="login.html?mode=server&next=account.html"]').length===1
     &&production.doc.querySelector('.account-promo-hero .btn.primary[href="login.html?mode=server&next=account.html"]')
     &&!production.doc.querySelector('.account-promo-bottom')
-    &&production.doc.querySelector('.account-promo a[href="events.html"]')
+    &&production.doc.querySelector('.tabbar a[href="events.html"]')
     &&!production.txt('#profBox').includes('نیاز به ورود')
     &&!production.doc.querySelector('.server-account-head'),
-    'مهمان به‌جای کارت محدودیت، معرفی امکانات، دعوت به ساخت حساب و مسیر رویدادهای عمومی می‌بیند');
+    'مهمان به‌جای کارت محدودیت، یک بلوک کوتاه با یک دکمهٔ ورود می‌بیند؛ مسیر رویدادهای عمومی در نوار پایین است');
   ok(!production.doc.querySelector('.account-promo-preview a, .account-promo-preview button')
     &&!production.doc.querySelector('.account-promo [data-login], .account-promo [data-demo]')
     &&!production.txt('#profBox').includes('۵۴۳۲۱')
     &&sessionProbeOnly(production),
     'نمای کوچک فقط نام بخش‌هاست؛ معرفی حساب دادهٔ خصوصی نمی‌خواند و OTP یا حساب محلی نمی‌سازد');
-  ok(production.all('.account-promo-feature h4').length===3
-    &&!production.doc.querySelector('.account-promo-preview,.account-promo-showcase')
+  ok(!production.doc.querySelector('.account-promo-preview,.account-promo-showcase,.account-promo-eyebrow')
     &&production.doc.querySelector('.account-promo-hero .account-promo-avatar')?.getAttribute('aria-hidden')==='true'
-    &&production.txt('.account-promo-identity').includes('مهمان')
-    &&production.all('#profBox .server-rows .mini-guest').length===3,
-    'کارت‌های امکانات تیتر معنایی دارند؛ به‌جای نمای ساختگیِ حساب، هویت «مهمان» و نشانهٔ «بعد از ورود» روی بخش‌های خصوصی دیده می‌شود');
+    &&production.all('#profBox .server-rows .mini-guest').length===3
+    &&production.all('#profBox .server-rows.is-guest .mrow2 small').length===0
+    &&!!production.doc.querySelector('#profBox .server-paybar.is-guest a.pbmain[href="account.html#payments"]')
+    &&!production.doc.querySelector('#profBox .server-paybar .pbrow, #profBox .server-paybar .trustline'),
+    'بدون نمای ساختگی و نشان تزئینی؛ ردیف‌های مهمان فقط نام + نشانهٔ «بعد از ورود» دارند و نورا پی یک ردیف با همان مقصد است');
   ok(!production.doc.body.textContent.includes('نشست'),
     'واژهٔ نشست در متن قابل‌مشاهدهٔ حساب تولیدی وجود ندارد');
   await production.nav('events');
