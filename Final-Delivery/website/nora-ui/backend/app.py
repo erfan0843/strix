@@ -3137,6 +3137,68 @@ def create_app(
             return "owner", identity.owner_id
         return "account", identity.account_id
 
+    def _interaction_question_notification(
+        db: Session, question: EventQuestionRecord
+    ) -> dict[str, Any] | None:
+        if not question.notification_id:
+            return None
+        item = db.get(UserNotificationRecord, question.notification_id)
+        if item is None:
+            return None
+        return {
+            "id": item.id,
+            "state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts),
+            "delivery_status": item.delivery_status,
+            "attempts": item.delivery_attempts,
+            "last_error": item.last_delivery_error or None,
+            "has_bale_target": bool(item.bale_user_id),
+            "created_at": _as_utc(item.created_at).isoformat(),
+            "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
+        }
+
+    def _queue_question_answer_notification(db: Session, question: EventQuestionRecord, event_title: str) -> UserNotificationRecord:
+        """One outbox row per answered question (idempotent via ``notification_id``).
+
+        The answer itself is already persisted; this only enqueues. Accounts without a
+        server-verified Bale identity get a web-only row (``failed`` / ``no_bale_identity``)
+        so nothing is ever sent to a guessed destination and the state stays honest.
+        """
+        existing = db.get(UserNotificationRecord, question.notification_id) if question.notification_id else None
+        bale_ids = verified_bale_ids_for_account(db, question.account_id)
+        target = bale_ids[0] if bale_ids else ""
+        title = "پاسخ برگزارکننده به پرسش شما"
+        body = (
+            f"پرسش شما دربارهٔ «{event_title}» پاسخ داده شد.\n\n"
+            f"پرسش: {question.body[:300]}\n\nپاسخ: {question.answer_body[:900]}"
+        )
+        if existing is not None:
+            existing.title = title
+            existing.body = body
+            if existing.delivery_status != "delivered":
+                existing.bale_user_id = target
+                existing.delivery_status = "pending" if target else "failed"
+                existing.last_delivery_error = None if target else "no_bale_identity"
+            db.flush()
+            return existing
+        item = UserNotificationRecord(
+            id=str(uuid.uuid4()),
+            account_id=question.account_id,
+            bale_user_id=target,
+            source_task_id=None,
+            kind=interaction_mod.NOTIFICATION_KIND,
+            title=title,
+            body=body,
+            file_refs=[],
+            delivery_status="pending" if target else "failed",
+            delivery_attempts=0,
+            last_delivery_error=None if target else "no_bale_identity",
+        )
+        db.add(item)
+        db.flush()
+        question.notification_id = item.id
+        db.flush()
+        return item
+
     @app.get("/api/public/events/{event_id}/interaction")
     def public_event_interaction(event_id: str, request: Request, response: Response, db: Session = Depends(get_db)):
         """Resources, Q&A and reviews of one event for the current viewer (guest, account or staff)."""
@@ -3282,6 +3344,122 @@ def create_app(
         if public_event is None:
             raise HTTPException(404, "event_not_found")
         return event_id, public_event
+
+    @app.post("/api/account/events/{event_id}/questions", status_code=201)
+    async def account_ask_event_question(
+        event_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        event_id, event = _interaction_event_for_write(db, event_id)
+        if event.get("qaClosed") is True or str(event.get("lifecycle") or "") == "cancelled":
+            raise HTTPException(409, {"code": "qa_closed", "reason": "cancelled" if event.get("lifecycle") == "cancelled" else "closed"})
+        payload = await _read_json_object(request, 16_384)
+        if set(payload) - {"body"}:
+            raise HTTPException(400, "invalid_question")
+        try:
+            body = interaction_mod.clean_text(
+                payload.get("body"), interaction_mod.QUESTION_MAX_CHARS, field="body",
+                minimum=interaction_mod.QUESTION_MIN_CHARS, required=True,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(
+            request, db, cfg, identity, limit=interaction_mod.QUESTIONS_PER_HOUR, scope="event-question",
+        )
+        digest = interaction_mod.body_hash(body)
+        duplicate = db.scalar(
+            select(EventQuestionRecord.id).where(
+                EventQuestionRecord.event_id == event_id,
+                EventQuestionRecord.account_id == identity.account_id,
+                EventQuestionRecord.body_hash == digest,
+            )
+        )
+        if duplicate:
+            raise HTTPException(409, {"code": "duplicate_question", "id": duplicate})
+        open_count = int(db.scalar(
+            select(func.count(EventQuestionRecord.id)).where(
+                EventQuestionRecord.event_id == event_id,
+                EventQuestionRecord.account_id == identity.account_id,
+                EventQuestionRecord.answered_at.is_(None),
+                EventQuestionRecord.status != "hidden",
+            )
+        ) or 0)
+        if open_count >= interaction_mod.OPEN_QUESTIONS_PER_EVENT:
+            raise HTTPException(429, {"code": "too_many_open_questions", "limit": interaction_mod.OPEN_QUESTIONS_PER_EVENT})
+        record = EventQuestionRecord(
+            id=interaction_mod.new_id(),
+            event_id=event_id,
+            account_id=identity.account_id,
+            author_label=interaction_mod.author_label(_interaction_display_name(db, identity.account_id)),
+            body=body,
+            body_hash=digest,
+            status="pending",
+        )
+        db.add(record)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, {"code": "duplicate_question"}) from None
+        db.refresh(record)
+        return interaction_mod.question_public_view(record, viewer_account_id=identity.account_id)
+
+    async def _interaction_report(
+        request: Request, db: Session, identity: AccountIdentity, *, event_id: str, kind: str, target_id: str
+    ) -> dict[str, Any]:
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        parsed = interaction_mod.parse_row_id(target_id)
+        target: EventQuestionRecord | EventReviewRecord | None = None
+        if parsed:
+            target = db.get(EventQuestionRecord, parsed) if kind == "question" else db.get(EventReviewRecord, parsed)
+        if target is None or target.event_id != event_id or target.account_id == identity.account_id:
+            raise HTTPException(404, "report_target_not_found")
+        visible = (
+            interaction_mod.question_visible_to(target, identity.account_id)
+            if isinstance(target, EventQuestionRecord)
+            else interaction_mod.review_visible_to(target, identity.account_id)
+        )
+        if not visible:
+            raise HTTPException(404, "report_target_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reason"}:
+            raise HTTPException(400, "invalid_report")
+        try:
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=20, scope="event-report")
+        existing = db.scalar(
+            select(EventContentReportRecord).where(
+                EventContentReportRecord.target_kind == kind,
+                EventContentReportRecord.target_id == target.id,
+                EventContentReportRecord.reporter_account_id == identity.account_id,
+            )
+        )
+        if existing is not None:
+            return {"reported": True, "id": existing.id, "status": existing.status, "duplicate": True}
+        record = EventContentReportRecord(
+            id=interaction_mod.new_id(), event_id=event_id, target_kind=kind, target_id=target.id,
+            reporter_account_id=identity.account_id, reason=reason, status="open",
+        )
+        db.add(record)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return {"reported": True, "duplicate": True}
+        return {"reported": True, "id": record.id, "status": "open", "duplicate": False}
+
+    @app.post("/api/account/events/{event_id}/questions/{question_id}/report", status_code=201)
+    async def account_report_event_question(
+        event_id: str, question_id: str, request: Request,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        return await _interaction_report(request, db, identity, event_id=event_id, kind="question", target_id=question_id)
 
     # ── پنل: منابع ──
 
@@ -3484,6 +3662,299 @@ def create_app(
             db.commit()
             db.refresh(record)
         return interaction_mod.resource_admin_view(record)
+
+    # ── پنل: پرسش‌وپاسخ ──
+
+    def _admin_question(db: Session, event_id: str, question_id: str) -> EventQuestionRecord:
+        parsed = interaction_mod.parse_row_id(question_id)
+        record = db.get(EventQuestionRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id:
+            raise HTTPException(404, "question_not_found")
+        return record
+
+    def _admin_question_rows(
+        db: Session, rows: Sequence[EventQuestionRecord]
+    ) -> list[dict[str, Any]]:
+        titles = _interaction_event_titles(db, {row.event_id for row in rows})
+        counts = interaction_mod.open_report_counts(db, "question", [row.id for row in rows])
+        return [
+            interaction_mod.question_admin_view(
+                row, notification=_interaction_question_notification(db, row),
+                open_reports=counts.get(row.id, 0), event_title=titles.get(row.event_id, ""),
+            )
+            for row in rows
+        ]
+
+    def _question_filters(status: str, answered: str) -> list[ColumnElement[bool]]:
+        filters: list[ColumnElement[bool]] = []
+        if status:
+            if status not in interaction_mod.QUESTION_STATUSES:
+                raise HTTPException(422, {"code": "invalid_choice", "field": "status"})
+            filters.append(EventQuestionRecord.status == status)
+        if answered == "false":
+            filters.append(EventQuestionRecord.answered_at.is_(None))
+        elif answered == "true":
+            filters.append(EventQuestionRecord.answered_at.is_not(None))
+        elif answered:
+            raise HTTPException(422, {"code": "invalid_choice", "field": "answered"})
+        return filters
+
+    @app.get("/api/admin/events/{event_id}/questions")
+    def admin_list_event_questions(
+        event_id: str,
+        response: Response,
+        status: str = Query(default="", max_length=16),
+        answered: str = Query(default="", max_length=8),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        filters = [EventQuestionRecord.event_id == event_id, *_question_filters(status, answered)]
+        total = int(db.scalar(select(func.count(EventQuestionRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventQuestionRecord).where(*filters)
+            .order_by(EventQuestionRecord.created_at.desc(), EventQuestionRecord.id).limit(limit).offset(offset)
+        ).all()
+        return {"source": "shared_server_database", "event_id": event_id, "items": _admin_question_rows(db, rows),
+                "total": total, "limit": limit, "offset": offset}
+
+    @app.get("/api/admin/event-questions")
+    def admin_list_all_event_questions(
+        response: Response,
+        status: str = Query(default="", max_length=16),
+        answered: str = Query(default="false", max_length=8),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Cross-event work list (unanswered by default) for the existing events section."""
+        response.headers["Cache-Control"] = "private, no-store"
+        filters = _question_filters(status, answered)
+        total = int(db.scalar(select(func.count(EventQuestionRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventQuestionRecord).where(*filters)
+            .order_by(EventQuestionRecord.created_at.asc(), EventQuestionRecord.id).limit(limit).offset(offset)
+        ).all()
+        return {"source": "shared_server_database", "items": _admin_question_rows(db, rows),
+                "total": total, "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/events/{event_id}/questions/{question_id}/answer")
+    async def admin_answer_event_question(
+        event_id: str,
+        question_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Persist the answer first; the notification is queued afterwards and never blocks it."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_question(db, event_id, question_id)
+        payload = await _read_json_object(request, 32_768)
+        if set(payload) - {"answer", "official", "publish", "label"}:
+            raise HTTPException(400, "invalid_answer")
+        try:
+            answer = interaction_mod.clean_text(
+                payload.get("answer"), interaction_mod.ANSWER_MAX_CHARS, field="answer", required=True, minimum=2,
+            )
+            label = interaction_mod.clean_text(payload.get("label"), 120, field="label")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        official = payload.get("official", True)
+        publish = payload.get("publish", True)
+        if not isinstance(official, bool) or not isinstance(publish, bool):
+            raise HTTPException(422, {"code": "invalid_choice", "field": "official"})
+        actor_kind, actor_id = _interaction_actor(identity)
+        first_answer = record.answered_at is None
+        record.answer_body = answer
+        record.answer_official = official
+        record.answered_at = _utc_now()
+        record.answered_by_kind = actor_kind
+        record.answered_by_id = actor_id
+        record.answer_label = label or interaction_mod.ANSWER_LABEL_DEFAULT
+        if publish and record.status != "hidden":
+            record.status = "published"
+        db.flush()
+        titles = _interaction_event_titles(db, {event_id})
+        notification = _queue_question_answer_notification(db, record, titles.get(event_id, ""))
+        record_audit(
+            db, identity, "event_question.answer", target_type="event_question", target_id=record.id,
+            details={
+                "event_id": event_id, "first_answer": first_answer, "official": official,
+                "published": record.status == "published", "notification_id": notification.id,
+                "notification_state": interaction_mod.delivery_state(notification.delivery_status, notification.delivery_attempts),
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_question_rows(db, [record])[0]
+
+    @app.post("/api/admin/events/{event_id}/questions/{question_id}/status")
+    async def admin_set_event_question_status(
+        event_id: str,
+        question_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_question(db, event_id, question_id)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "reason"}:
+            raise HTTPException(400, "invalid_status")
+        try:
+            status = interaction_mod.choice(payload.get("status"), interaction_mod.QUESTION_STATUSES, field="status")
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if status == "hidden" and not reason:
+            raise HTTPException(422, {"code": "text_required", "field": "reason"})
+        previous = record.status
+        actor_kind, actor_id = _interaction_actor(identity)
+        record.status = status
+        record.moderation_reason = reason
+        record.moderated_by_kind = actor_kind
+        record.moderated_by_id = actor_id
+        record.moderated_at = _utc_now()
+        if status == "hidden":
+            db.execute(
+                update(EventContentReportRecord)
+                .where(
+                    EventContentReportRecord.target_kind == "question",
+                    EventContentReportRecord.target_id == record.id,
+                    EventContentReportRecord.status == "open",
+                )
+                .values(status="resolved", resolution_note="hidden", resolved_by_kind=actor_kind,
+                        resolved_by_id=actor_id, resolved_at=_utc_now())
+            )
+        record_audit(
+            db, identity, "event_question.status", target_type="event_question", target_id=record.id,
+            details={"event_id": event_id, "from": previous, "to": status, "reason": reason},
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_question_rows(db, [record])[0]
+
+    @app.get("/api/admin/event-reports")
+    def admin_list_event_reports(
+        response: Response,
+        status: str = Query(default="open", max_length=16),
+        event_id: str = Query(default="", max_length=100),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        filters: list[ColumnElement[bool]] = []
+        if status:
+            if status not in interaction_mod.REPORT_STATUSES:
+                raise HTTPException(422, {"code": "invalid_choice", "field": "status"})
+            filters.append(EventContentReportRecord.status == status)
+        if event_id:
+            filters.append(EventContentReportRecord.event_id == _admin_event_id(db, event_id))
+        total = int(db.scalar(select(func.count(EventContentReportRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventContentReportRecord).where(*filters)
+            .order_by(EventContentReportRecord.created_at.asc(), EventContentReportRecord.id).limit(limit).offset(offset)
+        ).all()
+        titles = _interaction_event_titles(db, {row.event_id for row in rows})
+        items = []
+        for row in rows:
+            target: EventQuestionRecord | EventReviewRecord | None = (
+                db.get(EventQuestionRecord, row.target_id) if row.target_kind == "question"
+                else db.get(EventReviewRecord, row.target_id)
+            )
+            items.append(interaction_mod.report_admin_view(
+                row, excerpt=target.body if target is not None else "", event_title=titles.get(row.event_id, ""),
+            ))
+        return {"source": "shared_server_database", "items": items, "total": total, "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/event-reports/{report_id}/resolve")
+    async def admin_resolve_event_report(
+        report_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        parsed = interaction_mod.parse_row_id(report_id)
+        record = db.get(EventContentReportRecord, parsed) if parsed else None
+        if record is None:
+            raise HTTPException(404, "report_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "note"}:
+            raise HTTPException(400, "invalid_resolution")
+        try:
+            status = interaction_mod.choice(payload.get("status"), ("resolved", "dismissed"), field="status")
+            note = interaction_mod.clean_text(payload.get("note"), interaction_mod.REASON_MAX_CHARS, field="note")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        actor_kind, actor_id = _interaction_actor(identity)
+        previous = record.status
+        record.status = status
+        record.resolution_note = note
+        record.resolved_by_kind = actor_kind
+        record.resolved_by_id = actor_id
+        record.resolved_at = _utc_now()
+        record_audit(
+            db, identity, "event_report.resolve", target_type="event_content_report", target_id=record.id,
+            details={"event_id": record.event_id, "target_kind": record.target_kind, "from": previous, "to": status, "note": note},
+        )
+        db.commit()
+        return interaction_mod.report_admin_view(record)
+
+    @app.get("/api/admin/event-interaction/summary")
+    def admin_event_interaction_summary(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Honest counts for the panel badge: real rows, zero when nothing needs action."""
+        response.headers["Cache-Control"] = "private, no-store"
+        unanswered = int(db.scalar(
+            select(func.count(EventQuestionRecord.id)).where(
+                EventQuestionRecord.answered_at.is_(None), EventQuestionRecord.status != "hidden",
+            )
+        ) or 0)
+        pending_reviews = int(db.scalar(
+            select(func.count(EventReviewRecord.id)).where(EventReviewRecord.status == "pending")
+        ) or 0)
+        open_reports = int(db.scalar(
+            select(func.count(EventContentReportRecord.id)).where(EventContentReportRecord.status == "open")
+        ) or 0)
+        failed_notifications = int(db.scalar(
+            select(func.count(EventQuestionRecord.id))
+            .join(UserNotificationRecord, UserNotificationRecord.id == EventQuestionRecord.notification_id)
+            .where(UserNotificationRecord.delivery_status == "failed")
+        ) or 0)
+        per_event: dict[str, dict[str, int]] = {}
+        for event_key, count in db.execute(
+            select(EventQuestionRecord.event_id, func.count(EventQuestionRecord.id))
+            .where(EventQuestionRecord.answered_at.is_(None), EventQuestionRecord.status != "hidden")
+            .group_by(EventQuestionRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_key), {})["unanswered"] = int(count)
+        for event_key, count in db.execute(
+            select(EventReviewRecord.event_id, func.count(EventReviewRecord.id))
+            .where(EventReviewRecord.status == "pending").group_by(EventReviewRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_key), {})["pending_reviews"] = int(count)
+        for event_key, count in db.execute(
+            select(EventResourceRecord.event_id, func.count(EventResourceRecord.id))
+            .where(EventResourceRecord.status != "removed").group_by(EventResourceRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_key), {})["resources"] = int(count)
+        return {
+            "source": "shared_server_database",
+            "unanswered_questions": unanswered,
+            "pending_reviews": pending_reviews,
+            "open_reports": open_reports,
+            "failed_notifications": failed_notifications,
+            "per_event": per_event,
+        }
 
     @app.get("/api/owner/data/status")
     def get_owner_data_status(
