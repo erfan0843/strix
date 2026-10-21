@@ -6347,7 +6347,7 @@ const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخ�
 const CT={kind:'events',q:'',status:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:''};
 const US={q:'',provider:'',role:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
 const AT={q:'',offset:0,limit:20,forms:null,loading:false,error:'',key:'',formId:'',form:null,people:null,pq:'',state:'',poffset:0,plimit:50,ploading:false,perror:'',pkey:'',busy:'',msg:null};
-const CERT_SRV={data:null,loading:false,error:''};
+const CERT_SRV={data:null,loading:false,error:'',key:'',q:'',status:'',kind:'',event:'',offset:0,limit:20,detailId:'',detail:null,detailError:'',detailLoading:false};
 function p2Err(error,fallback){
   const code=error&&error.code||'';
   if(error&&error.status===0) return 'سرور در دسترس نیست؛ اتصال را بررسی کنید و دوباره تلاش کنید.';
@@ -6779,26 +6779,81 @@ function serverAttendanceView(){
     ${d?p2Pager(total,AT.offset,AT.limit,'data-att-page="prev"','data-att-page="next"'):''}
   </section>`;
 }
-/* ── گواهینامه‌ها: فقط آنچه واقعاً در سرور هست (رویدادهای گواهی‌دار) ── */
+/* ── گواهینامه‌ها (certificate): آینهٔ تأییدشدهٔ گواهی‌های ربات در پایگاه مشترک ── */
+function ceKey(){return [CERT_SRV.q,CERT_SRV.status,CERT_SRV.kind,CERT_SRV.event,CERT_SRV.offset,CERT_SRV.limit].join('|')}
 async function ceLoad(){
-  const api=window.NORA_SERVER_API; CERT_SRV.loading=true; CERT_SRV.error=''; renderBody();
-  try{CERT_SRV.data=await api.listAdminContent('events',{limit:100,offset:0,sort:'date',order:'desc'})}
-  catch(error){CERT_SRV.error=p2Err(error,'فهرست رویدادها از سرور دریافت نشد.')}
-  finally{CERT_SRV.loading=false; if(S.uV==='cert'||S.sec==='cert') renderBody()}
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminCertificates!=='function'){CERT_SRV.error='رابط سرور در دسترس نیست.'; CERT_SRV.key=ceKey(); renderBody(); return}
+  const key=ceKey(); CERT_SRV.loading=true; CERT_SRV.error=''; renderBody();
+  try{const result=await api.listAdminCertificates({limit:CERT_SRV.limit,offset:CERT_SRV.offset,q:CERT_SRV.q,status:CERT_SRV.status,kind:CERT_SRV.kind,event_ref:CERT_SRV.event}); if(key===ceKey()){CERT_SRV.data=result; CERT_SRV.key=key}}
+  catch(error){if(key===ceKey()){CERT_SRV.error=p2Err(error,'فهرست گواهی‌ها از سرور دریافت نشد.'); CERT_SRV.key=key}}
+  finally{CERT_SRV.loading=false; if(key!==ceKey()){ceLoad(); return} if(S.uV==='cert'||S.sec==='cert') renderBody()}
+}
+async function ceLoadDetail(id){
+  const api=window.NORA_SERVER_API; CERT_SRV.detailId=id; CERT_SRV.detail=null; CERT_SRV.detailError=''; CERT_SRV.detailLoading=true; renderBody();
+  try{const result=await api.getAdminCertificate(id); if(CERT_SRV.detailId===id) CERT_SRV.detail=result&&result.certificate||null}
+  catch(error){if(CERT_SRV.detailId===id) CERT_SRV.detailError=p2Err(error,'پروندهٔ گواهی دریافت نشد.')}
+  finally{CERT_SRV.detailLoading=false; if(CERT_SRV.detailId===id) renderBody()}
+}
+const CE_KIND={event:'رویداد',batch:'فهرست اکسل',form:'فرم',manual:'دستی',center:'مرکز صدور'};
+function ceStatusTag(item){
+  const st=item.effective_status||item.status;
+  return st==='revoked'?tag('باطل‌شده','stop'):st==='expired'?tag('منقضی','warn'):tag('صادرشده','ok');
+}
+function ceRow(item){
+  const holder=item.holder||{}, name=holder.display_name||'بدون نام ثبت‌شده';
+  const meta=[item.event_title||item.title||'',item.issued_on?'صدور '+item.issued_on:(item.issued_at?'صدور '+svcWhen(item.issued_at):''),item.expires_on?'اعتبار تا '+item.expires_on:'',CE_KIND[item.kind]||''].filter(Boolean).join(' · ');
+  return `<button class="admlirow" type="button" data-cert-open="${esc(item.id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-medal')}</span>
+    <span class="sp"><b>${esc(name)}</b><small class="cap" dir="ltr">${esc(item.serial||item.full_code||('#'+(item.legacy_id||'')))}${item.full_code&&item.serial&&item.full_code!==item.serial?' · '+esc(item.full_code):''}</small><small class="cap">${esc(meta)}</small></span>
+    ${item.has_file?tag('فایل','brand'):''}${ceStatusTag(item)}${ico('i-chev-left')}</button>`;
+}
+function serverCertList(){
+  const d=CERT_SRV.data, total=d?Number(d.total)||0:0, counts=d&&d.counts||{};
+  const body=CERT_SRV.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست گواهی‌ها از سرور…</p></div>`
+    :CERT_SRV.error?`<div class="empty"><p class="cap">${esc(CERT_SRV.error)}</p>${btn('تلاش دوباره','data-cert-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-cert-refresh','i-refresh')}</div>`
+    :d.items.length?d.items.map(ceRow).join(''):emptyBox(CERT_SRV.q||CERT_SRV.status||CERT_SRV.kind||CERT_SRV.event?'با این جست‌وجو یا فیلتر گواهی‌ای پیدا نشد.':'هنوز گواهی‌ای از ربات به پایگاه مشترک رسیده است؟ خیر؛ فهرست خالی است. گواهی تنها از مسیر ربات صادر می‌شود و پس از صدور یا اجرای انتقال کنترل‌شده این‌جا دیده می‌شود.');
+  const statuses=[['','همه'],['issued','صادرشده'],['expired','منقضی'],['revoked','باطل‌شده']].map(([k,l])=>`<button class="chip ${CERT_SRV.status===k?'on':''}" type="button" data-cert-status="${k}">${esc(l)}</button>`).join('');
+  const kinds=[['','هر مسیری']].concat(Object.keys(CE_KIND).map(k=>[k,CE_KIND[k]])).map(([k,l])=>`<button class="chip ${CERT_SRV.kind===k?'on':''}" type="button" data-cert-kind="${k}">${esc(l)}</button>`).join('');
+  const events=(d&&d.events||[]);
+  const evSel=events.length?`<label class="fld"><span>رویداد</span><select class="input" data-cert-event><option value="">همهٔ رویدادها</option>${events.map(e=>`<option value="${esc(e.event_ref)}" ${CERT_SRV.event===e.event_ref?'selected':''}>${esc(e.event_title||('رویداد '+e.event_ref))} (${fa(e.count)})</option>`).join('')}</select></label>`:'';
+  return `<section class="card stack" data-cert-panel>
+    <div class="row" style="flex-wrap:wrap"><div class="head">گواهینامه‌ها</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(counts.issued||0)+' صادرشده · '+fa(counts.revoked||0)+' باطل',''):''}${btn('بازخوانی','data-cert-refresh','i-refresh')}</div>
+    <p class="cap">هر ردیف یک گواهی است که ربات بله صادر کرده و با شناسهٔ پایدار و مالکِ تأییدشده (هویت بلهٔ همان حساب) به پایگاه مشترک رسیده است. صدور و ابطال فقط از ربات انجام می‌شود؛ این صفحه فقط می‌خواند. گواهی‌های قدیمی‌ای که صاحبشان هنوز حساب سروری ندارد، تا زمان ورود آن فرد در ربات می‌مانند و این‌جا شمرده نمی‌شوند.</p>
+    <form class="row tight server-role-search" data-cert-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="certQuery" type="search" class="input" value="${esc(CERT_SRV.q)}" maxlength="80" autocomplete="off" placeholder="سریال، کد استعلام، نام دارنده، شناسهٔ بله یا رویداد" aria-label="جست‌وجوی گواهی"/></label>
+      <button class="btn sm" type="submit" data-cert-search>جست‌وجو</button></form>
+    <div class="admfilters">${statuses}</div><div class="admfilters">${kinds}</div>${evSel}
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,CERT_SRV.offset,CERT_SRV.limit,'data-cert-page="prev"','data-cert-page="next"'):''}
+  </section>`;
+}
+function serverCertDetail(){
+  const d=CERT_SRV.detail, back=`<div class="row">${btn('بازگشت به فهرست','data-cert-back','i-back')}<span class="sp"></span></div>`;
+  if(CERT_SRV.detailLoading) return `<section class="card stack" data-cert-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت پروندهٔ گواهی…</p></div></section>`;
+  if(CERT_SRV.detailError||!d) return `<section class="card stack" data-cert-detail>${back}<div class="empty"><p class="cap">${esc(CERT_SRV.detailError||'گواهی‌ای انتخاب نشده است.')}</p>${CERT_SRV.detailId?btn('تلاش دوباره',`data-cert-open="${esc(CERT_SRV.detailId)}"`,'i-refresh'):''}</div></section>`;
+  const api=window.NORA_SERVER_API, holder=d.holder||{};
+  const files=(d.files||[]).map(f=>`<a class="btn sm" href="${esc(api.adminCertificateFileUrl(d.id,f.slot))}" ${f.slot==='pdf'?'download':'target="_blank" rel="noopener"'} data-cert-file="${esc(f.slot)}">${ico(f.slot==='pdf'?'i-download':'i-image')}${f.slot==='pdf'?'دریافت PDF':'پیش‌نمایش تصویر'}</a>`).join('');
+  const info=[['وضعیت ثبت‌شده',d.status==='revoked'?'باطل‌شده':'صادرشده',''],['وضعیت مؤثر',d.effective_status==='revoked'?'باطل‌شده':d.effective_status==='expired'?'منقضی (تاریخ اعتبار گذشته)':'معتبر',''],
+    ['سریال',d.serial||'','ltr'],['کد استعلام',d.full_code||'','ltr'],['شمارهٔ نامه',d.doc_no||'','ltr'],['کد فردی',d.person_code||'','ltr'],
+    ['رویداد',d.event_title||(d.event_ref?'رویداد '+d.event_ref:''),''],['عنوان گواهی',d.title||'',''],['مسیر صدور',CE_KIND[d.kind]||d.kind,''],
+    ['تاریخ صدور',d.issued_on||(d.issued_at?svcWhen(d.issued_at):''),''],['تاریخ اعتبار',d.expires_on||'بدون تاریخ انقضا',''],['ابطال',d.revoked_at?svcWhen(d.revoked_at):'',''],
+    ['استعلام‌های ثبت‌شده در ربات',fa(d.verify_count||0),''],['دارنده',holder.display_name||'بدون نام ثبت‌شده',''],['منبع نام',holder.name_source==='profile'?'پروفایل حساب سرور':holder.name_source==='certificate'?'متن خود گواهی (ربات)':'ثبت نشده',''],
+    ['شناسهٔ حساب',holder.account_id||'','ltr'],['شناسهٔ بله',holder.bale_user_id||'','ltr'],['شناسهٔ ربات','#'+(d.legacy_id||''),'ltr'],['صادرکننده (شناسهٔ بله)',d.issued_by_bale_user_id||'','ltr'],
+    ['منبع',d.source==='bot_legacy'?'انتقال کنترل‌شده از پایگاه قدیمی ربات':'صدور زندهٔ ربات',''],['آخرین همگام‌سازی',svcWhen(d.synced_at),'']].filter(([,v])=>v!=='');
+  return `<section class="card stack" data-cert-detail>${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-medal')}</span><div class="head">${esc(d.serial||d.full_code||'گواهی')}</div><span class="sp"></span>${d.has_file?tag('فایل','brand'):''}${ceStatusTag(d)}</div>
+    <p class="cap">مالک این گواهی سمت سرور از شناسهٔ بلهٔ ثبت‌شده در ربات تعیین شده است، نه از نام یا شماره. ابطال یا ویرایش فقط از ربات ممکن است و این‌جا دکمه‌ای برای آن نیست.</p>
+    <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap">${files||`<span class="cap">فایلی برای این گواهی در پایگاه مشترک نیست؛ یا هنگام صدور ساخته نشده، یا هنوز از ربات بارگذاری نشده است.</span>`}</div>
+    ${holder.account_id&&canPerm('us_view')?`<div class="row tight">${btn('پروندهٔ کاربر','data-cert-user-open="'+esc(holder.account_id)+'"','i-user')}</div>`:''}
+  </section>`;
 }
 function serverCertView(){
   if(!canPerm('certificate')) return `<section class="card stack">${uBack}${emptyBox('مجوز گواهینامه برای این نقش فعال نیست.')}</section>`;
-  const rows=CERT_SRV.data?CERT_SRV.data.items.filter(item=>item.cert):[];
-  const list=CERT_SRV.loading?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن رویدادهای گواهی‌دار…</p></div>`
-    :CERT_SRV.error?`<div class="empty"><p class="cap">${esc(CERT_SRV.error)}</p>${btn('تلاش دوباره','data-cert-refresh','i-refresh')}</div>`
-    :!CERT_SRV.data?'':rows.length?rows.map(item=>`<div class="admlirow"><span class="ic">${ico('i-medal')}</span><span class="sp"><b>${esc(item.t)}</b><small class="cap">${esc([item.on||item.when,item.certMin?'حداقل حضور '+fa(item.certMin)+'٪':'',item.sess?fa(item.sess)+' جلسه':''].filter(Boolean).join(' · ')||'بدون شرط ثبت‌شده')}</small></span>${ctStatusLabel(item.status)}${tag('صدور: فقط از ربات','warn')}</div>`).join('')
-      :emptyBox('هیچ رویدادی با گزینهٔ «گواهی دارد» در محتوای سرور ثبت نشده است.');
-  return `<section class="card stack" data-cert-panel>${uBack}
-    <div class="row" style="flex-wrap:wrap"><div class="head">گواهینامه‌ها</div><span class="sp"></span>${tag('صدور متصل نیست','warn')}${btn('بازخوانی','data-cert-refresh','i-refresh')}</div>
-    <p class="cap">گواهی‌های صادرشده، قالب‌ها و تأیید نهایی فقط در پایگاه SQLite ربات بله (جدول‌های certificates، cert_issues، cert_batches) هستند و در پایگاه مشترک جدولی برای آن‌ها وجود ندارد؛ بنابراین این صفحه هیچ گواهیِ صادرشده یا شمار صدوری نشان نمی‌دهد. فقط رویدادهای محتوای سرور که «گواهی دارد» علامت خورده‌اند (قابل‌صدور، نه صادرشده) فهرست می‌شوند.</p>
-    <div class="tlist">${list}</div>
-    <p class="cap">اتصال واقعی نیازمند یکی از دو مسیر است: انتقال کنترل‌شدهٔ جدول‌های گواهی به پایگاه مشترک از روی نسخهٔ پشتیبان، یا API فقط‌خواندنی در ربات؛ هر دو در گزارش مرحلهٔ دوم به‌عنوان شکاف ثبت شده‌اند.</p>
-  </section>`;
+  if(S.certSel&&!CERT_SRV.detailId&&/^[0-9a-fA-F-]{36}$/.test(String(S.certSel))) CERT_SRV.detailId=String(S.certSel);
+  if(CERT_SRV.detailId) return `<div class="stack">${uBack}${serverCertDetail()}</div>`;
+  return `<div class="stack">${uBack}${serverCertList()}</div>`;
 }
 function serverClubView(){
   return `<section class="card stack" role="status">${uBack}
@@ -6811,8 +6866,8 @@ function p2UserHubCards(){
   const cards=[];
   if(canPerm('attendance')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-check')}</span><b>حضور و غیاب</b><span class="sp"></span>${tag('API سرور','ok')}</div>
     <p class="cap">حضور بلیت‌های ثبت‌نام سرور؛ همان رکوردی که ربات هنگام اسکن می‌نویسد.</p>${btn('بازکردن حضور و غیاب','data-open-attendance','i-chev-left')}</article>`);
-  if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('صدور متصل نیست','warn')}</div>
-    <p class="cap">رویدادهای گواهی‌دار محتوای سرور؛ گواهی‌های صادرشده فقط در ربات هستند.</p>${btn('وضعیت گواهی‌ها','data-open-cert','i-chev-left')}</article>`);
+  if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+    <p class="cap">گواهی‌های صادرشدهٔ ربات که با مالک تأییدشده به پایگاه مشترک رسیده‌اند؛ جست‌وجو، وضعیت و فایل. صدور فقط از ربات.</p>${btn('بازکردن گواهینامه‌ها','data-open-cert','i-chev-left')}</article>`);
   if(isOwner()||canPerm('cl_member')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-star')}</span><b>باشگاه</b><span class="sp"></span>${tag('داده در پایگاه ربات','warn')}</div>
     <p class="cap">امتیاز و عضویت فقط در پایگاه ربات است؛ بدون مهاجرت نمایش داده نمی‌شود.</p>${btn('چرا خالی است؟','data-open-club','i-info')}</article>`);
   return cards;
@@ -6853,7 +6908,19 @@ document.addEventListener('click',e=>{
   const atPPage=q('[data-att-ppage]'); if(atPPage){const total=AT.people?Number(AT.people.total)||0:0; AT.poffset=atPPage.dataset.attPpage==='next'?Math.min(AT.poffset+AT.plimit,Math.max(0,total-1)):Math.max(0,AT.poffset-AT.plimit); atLoadPeople(); return}
   const atIn=q('[data-att-checkin]'); if(atIn){atAct(atIn.dataset.attCheckin,false); return}
   const atUndo=q('[data-att-undo]'); if(atUndo){atAct(atUndo.dataset.attUndo,true); return}
-  if(q('[data-cert-refresh]')){ceLoad(); return}
+  if(q('[data-cert-refresh]')){CERT_SRV.data=null; CERT_SRV.key=''; ceLoad(); return}
+  if(q('[data-cert-search]')){const input=$('#certQuery'); CERT_SRV.q=String(input&&input.value||'').trim().slice(0,80); CERT_SRV.offset=0; ceLoad(); return}
+  const ceStatus=q('[data-cert-status]'); if(ceStatus){CERT_SRV.status=ceStatus.dataset.certStatus||''; CERT_SRV.offset=0; ceLoad(); return}
+  const ceKind=q('[data-cert-kind]'); if(ceKind){CERT_SRV.kind=ceKind.dataset.certKind||''; CERT_SRV.offset=0; ceLoad(); return}
+  const cePage=q('[data-cert-page]'); if(cePage){const total=CERT_SRV.data?Number(CERT_SRV.data.total)||0:0; CERT_SRV.offset=cePage.dataset.certPage==='next'?Math.min(CERT_SRV.offset+CERT_SRV.limit,Math.max(0,total-1)):Math.max(0,CERT_SRV.offset-CERT_SRV.limit); ceLoad(); return}
+  const ceOpen=q('[data-cert-open]'); if(ceOpen){S.certSel=ceOpen.dataset.certOpen; save(); ceLoadDetail(ceOpen.dataset.certOpen); return}
+  if(q('[data-cert-back]')){CERT_SRV.detailId=''; CERT_SRV.detailLoadedId=''; CERT_SRV.detail=null; CERT_SRV.detailError=''; S.certSel=''; save(); renderBody(); return}
+  const ceUser=q('[data-cert-user-open]'); if(ceUser){if(!canPerm('us_view')){toast('مجوز فهرست کاربران برای این نقش فعال نیست'); return} S.sec='users'; S.uHub='users'; S.uV='user'; S.uSel=ceUser.dataset.certUserOpen; save(); usLoadDetail(S.uSel); return}
+  if(q('[data-cert-file]')) return; /* پیوند مستقیم؛ مرورگر خودش دانلود می‌کند */
+});
+document.addEventListener('change',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!t.matches||!t.matches('[data-cert-event]')) return;
+  CERT_SRV.event=String(t.value||'').slice(0,40); CERT_SRV.offset=0; ceLoad();
 });
 document.addEventListener('input',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit) return;
@@ -7596,7 +7663,8 @@ function renderBody(){
     if(host.querySelector('[data-user-detail]')&&!US.detailLoading&&!US.detail&&!US.detailError&&S.uSel&&US.detailId!==S.uSel) usLoadDetail(S.uSel);
     if(host.querySelector('[data-att-panel]')&&!host.querySelector('[data-att-people]')&&!AT.loading&&AT.key!==atKey()) atLoadForms();
     if(host.querySelector('[data-att-people]')&&!AT.ploading&&AT.pkey!==atPKey()) atLoadPeople();
-    if(host.querySelector('[data-cert-panel]')&&!CERT_SRV.loading&&!CERT_SRV.data&&!CERT_SRV.error) ceLoad();
+    if(host.querySelector('[data-cert-panel]')&&!CERT_SRV.loading&&CERT_SRV.key!==ceKey()) ceLoad();
+    if(host.querySelector('[data-cert-detail]')&&!CERT_SRV.detailLoading&&!CERT_SRV.detail&&!CERT_SRV.detailError&&CERT_SRV.detailId&&CERT_SRV.detailId!==CERT_SRV.detailLoadedId){CERT_SRV.detailLoadedId=CERT_SRV.detailId; ceLoadDetail(CERT_SRV.detailId)}
   }
 }
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */

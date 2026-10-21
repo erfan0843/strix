@@ -60,7 +60,7 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
-  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state'];
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot'];
   function adminQuery(params) {
     const source = params && typeof params === 'object' ? params : {};
     const parts = [];
@@ -239,6 +239,10 @@
     /* فهرست کاربران (us_view) و حضور و غیاب (attendance) */
     listAdminUsers: params => request('/api/admin/users' + adminQuery(params)),
     getAdminUser: accountId => request('/api/admin/users/' + recordId(accountId)),
+    /* گواهینامه‌ها (certificate): آینهٔ تأییدشدهٔ گواهی‌های ربات در پایگاه مشترک؛ فقط‌خواندنی */
+    listAdminCertificates: params => request('/api/admin/certificates' + adminQuery(params)),
+    getAdminCertificate: certificateId => request('/api/admin/certificates/' + recordId(certificateId)),
+    adminCertificateFileUrl: (certificateId, slot) => '/api/admin/certificates/' + recordId(certificateId) + '/file' + adminQuery({ slot: slot || 'pdf' }),
     listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
     listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),
     attendanceCheckIn: (responseId, reason, csrfCookieName) => request(
