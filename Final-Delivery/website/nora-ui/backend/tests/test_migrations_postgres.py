@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 
 from backend.models import AccountRecord, FormRecord, FormResponseDraftRecord
@@ -22,7 +23,8 @@ from backend.models import AccountRecord, FormRecord, FormResponseDraftRecord
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
-HEAD = "0023_payment_secrets"
+# Resolved from the migration scripts so the test never pins a stale head.
+HEAD = ScriptDirectory.from_config(Config(str(BACKEND_ROOT / "alembic.ini"))).get_current_head()
 PRE_COMPANIONS = "0017_form_companions"
 
 
