@@ -63,6 +63,8 @@ bale_api.send_invoice = lambda *a, **k: _api("sendInvoice", {})
 
 import config  # noqa: E402
 import database  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+import _points_fixture as _pf  # noqa: E402  (موجودی آزمایشی از مسیر دفترکل)
 import auth  # noqa: E402
 import forms as F  # noqa: E402
 import payments as PAY  # noqa: E402
@@ -572,8 +574,7 @@ database.db_execute("""INSERT INTO lottery_prizes
     VALUES (?,1,'🥇','جایزه امتیازی',1,25)""", (lid2,))
 
 pu = U[0]
-database.db_execute("UPDATE users SET total_points=0 WHERE bale_user_id=?",
-                    (pu,))
+_pf.set_balance(pu, 0)
 database.db_execute("""INSERT INTO form_responses
     (form_id, bale_user_id, status, score, max_score)
     VALUES (?,?,'completed',80,100)""", (fid2, pu))

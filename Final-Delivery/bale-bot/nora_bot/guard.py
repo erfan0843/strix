@@ -524,7 +524,11 @@ def check_new_features():
                                     '"callback_data": "cc_home"'),
         # ---- فاز ۴۰ — رفع باگ‌های اسکن ----
         "امتیاز حضور خودکار": ("attendance_auto.py", "_award_points"),
-        "امتیاز نظرسنجی": ("survey.py", "_award_points"),
+        "امتیاز نظرسنجی": ("survey.py", "pl.post_points"),
+        # ---- فاز ششم — دفترکل امتیاز ----
+        "دفترکل امتیاز": ("points_ledger.py", "def post_points"),
+        "نگهبان شمارندهٔ امتیاز": ("points_ledger.py", "points_ledger_guard"),
+        "تعدیل دستی از دفترکل": ("admin.py", "def confirm_points_adjust"),
         "نگهبان شناسه": ("main.py", "_NUM_ONLY_PREFIXES"),
         "پیام شناسهٔ نامعتبر": ("main.py", "def _bad_id"),
         "ابزار مشترک": ("helpers.py", "def guard_admin"),

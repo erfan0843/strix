@@ -19,9 +19,10 @@ from pathlib import Path
 
 from config import (
     SUPER_ADMIN_ID, DB_PATH, BACKUP_DIR, IMPORT_DIR,
-    USERS_PER_PAGE,
+    USERS_PER_PAGE, POINTS_MANUAL_ADJUST_MAX,
 )
 from database import db_execute, db_scalar, backup_db, log
+import points_ledger as pl
 from auth import (
     get_user, get_user_by_id, set_state, get_state_data, clear_state,
     get_state_name,
@@ -682,6 +683,9 @@ def show_user_detail(cid, admin_id, target_id):
             if u.get("is_admin"):
                 btns.append([{"text": "🔐 نقش و دسترسی‌ها",
                               "callback_data": f"pm_view_{target_id}"}])
+            if u.get("bale_user_id"):
+                btns.append([{"text": "🏅 تعدیل امتیاز (دفترکل)",
+                              "callback_data": f"upts_{target_id}"}])
             btns.append([{"text": "🗑️ حذف کاربر", "callback_data": f"udq_{target_id}"}])
     else:
         btns.append([{"text": "🔒 سوپرادمین قابل تغییر نیست", "callback_data": "noop"}])
@@ -723,7 +727,7 @@ PROFILE_EDIT_FIELDS = [
     ("company_name",    "🏢 محل کار",          "text"),
     ("email",           "📧 ایمیل",            "text"),
     ("bio",             "📝 بیو",              "text"),
-    ("total_points",    "🏅 امتیاز",           "num"),
+    # «امتیاز» عمداً این‌جا نیست: تغییر موجودی فقط از «تعدیل امتیاز» (دفترکل) ممکن است.
 ]
 
 PROFILE_EDIT_MAP = {k: (lbl, t) for k, lbl, t in PROFILE_EDIT_FIELDS}
@@ -912,6 +916,162 @@ def handle_edit_profile(message):
     log_action(admin_id, "admin_edit_profile", {"target": tid, "field": key})
     send(cid, f"✅ {label} ذخیره شد", kb_remove())
     return show_profile_editor(cid, admin_id, tid)
+
+
+# ══════════════════════════════════════════════════════════
+# 🏅 فاز ششم — تعدیل دستی امتیاز از طریق دفترکل
+#   * فقط سوپرادمین (مالک ربات)؛ جدا از فرم ویرایش پروفایل
+#   * دلتا (نه مقدار مطلق) + دلیل اجباری + تأیید دومرحله‌ای
+#   * سقف از POINTS_MANUAL_ADJUST_MAX؛ تنظیم‌نشده = غیرفعال (fail-closed)
+#   * مقدار قبلی/جدید/عامل/دلیل در ردیف دفترکل ثبت می‌شود (تغییرناپذیر)
+# ══════════════════════════════════════════════════════════
+STATE_POINTS_ADJUST = "adm_points_adjust"
+_ADJ_MIN_REASON = 5
+
+
+def _points_adjust_allowed(cid, admin_id):
+    if admin_id != SUPER_ADMIN_ID or not _is_admin(admin_id):
+        send(cid, "🔒 تعدیل امتیاز فقط برای مالک ربات مجاز است")
+        return False
+    if POINTS_MANUAL_ADJUST_MAX <= 0:
+        send(cid, "⛔ تعدیل دستی امتیاز غیرفعال است.\n\n"
+                  "برای فعال‌سازی، سقف هر تعدیل را در تنظیمات محیط "
+                  "(POINTS_MANUAL_ADJUST_MAX) مشخص کنید.")
+        return False
+    return True
+
+
+def start_points_adjust(cid, admin_id, target_id):
+    """مرحلهٔ ۱: دریافت دلتا"""
+    if not _points_adjust_allowed(cid, admin_id):
+        return
+    u = get_user_by_id(target_id)
+    if not u or not u.get("bale_user_id"):
+        return send(cid, "❌ کاربر یافت نشد یا شناسهٔ بله ندارد")
+    bale = int(u["bale_user_id"])
+    cur = int(u.get("total_points") or 0)
+    led = pl.balance(bale) if pl.last_entry(bale) else None
+    warn = ""
+    if led is None and cur != 0:
+        warn = "\n⚠️ این کاربر ردیف افتتاحیهٔ دفترکل ندارد؛ تعدیل تا اجرای افتتاحیه ممکن نیست."
+    elif led is not None and led != cur:
+        warn = f"\n⚠️ شمارنده ({cur}) با دفترکل ({led}) نمی‌خواند؛ تعدیل تا رفع ناسازگاری ممکن نیست."
+    set_state(admin_id, STATE_POINTS_ADJUST,
+              {"tid": int(target_id), "bale": bale, "step": "delta"}, merge=False)
+    return send(cid, (
+        f"🏅 تعدیل امتیاز — {u.get('first_name') or ''} {u.get('last_name') or ''}\n"
+        f"━━━━━━━━━━━━━━\n\n"
+        f"موجودی فعلی: {cur}\n"
+        f"سقف هر تعدیل: ±{POINTS_MANUAL_ADJUST_MAX}{warn}\n\n"
+        f"مقدار تغییر را با علامت بفرستید (مثلاً +50 یا -20):"
+    ), kb_cancel())
+
+
+def handle_points_adjust(message):
+    """مرحلهٔ ۲ (دلتا → دلیل) و ۳ (دلیل → پیش‌نمایش تأیید)"""
+    admin_id = message["from"]["id"]
+    cid = message["chat"]["id"]
+    text = (message.get("text") or "").strip()
+    d = get_state_data(admin_id) or {}
+    tid = d.get("tid")
+
+    if text in (BTN_BACK, "🔙 بازگشت", "❌ انصراف", "لغو"):
+        clear_state(admin_id)
+        send(cid, "❌ لغو شد", kb_remove())
+        return show_user_detail(cid, admin_id, tid) if tid else None
+    if not _points_adjust_allowed(cid, admin_id):
+        clear_state(admin_id)
+        return
+    step = d.get("step")
+    if step == "delta":
+        raw = normalize_digits(text).replace("٬", "").replace(",", "").replace(" ", "")
+        if not re.fullmatch(r"[+-]?\d{1,9}", raw):
+            return send(cid, "⚠️ فقط یک عدد با علامت بفرستید (مثلاً +50 یا -20):")
+        delta = int(raw)
+        if delta == 0:
+            return send(cid, "⚠️ تغییر صفر معنا ندارد؛ عدد دیگری بفرستید:")
+        if abs(delta) > POINTS_MANUAL_ADJUST_MAX:
+            return send(cid, f"⚠️ بیش از سقف مجاز هر تعدیل (±{POINTS_MANUAL_ADJUST_MAX}) است:")
+        set_state(admin_id, STATE_POINTS_ADJUST, {"delta": delta, "step": "reason"})
+        return send(cid, "📝 دلیل این تعدیل را بنویسید (حداقل ۵ نویسه؛ در دفترکل ثبت می‌شود):")
+    if step == "reason":
+        reason = text[:300]
+        if len(reason) < _ADJ_MIN_REASON:
+            return send(cid, "⚠️ دلیل خیلی کوتاه است؛ حداقل ۵ نویسه:")
+        token = pl.new_manual_key()
+        set_state(admin_id, STATE_POINTS_ADJUST, {"reason": reason, "step": "confirm", "key": token})
+        u = get_user_by_id(tid) or {}
+        cur = int(u.get("total_points") or 0)
+        delta = int(d.get("delta") or 0)
+        send(cid, "🔎 بازبینی", kb_remove())
+        return send(cid, (
+            f"🏅 تأیید تعدیل امتیاز\n━━━━━━━━━━━━━━\n\n"
+            f"👤 {u.get('first_name') or ''} {u.get('last_name') or ''}\n"
+            f"موجودی فعلی: {cur}\n"
+            f"تغییر: {delta:+d}\n"
+            f"موجودی جدید: {cur + delta}\n"
+            f"📝 دلیل: {reason}\n\n"
+            f"این ردیف در دفترکل ثبت می‌شود و قابل ویرایش نیست (فقط با ردیف معکوس برمی‌گردد)."
+        ), {"inline_keyboard": [
+            [{"text": "✅ ثبت تعدیل", "callback_data": f"uptsok_{tid}"}],
+            [{"text": "❌ انصراف", "callback_data": f"uptsno_{tid}"}]]})
+    clear_state(admin_id)
+    return send(cid, "⚠️ مرحلهٔ نامعتبر؛ دوباره شروع کنید.", kb_remove())
+
+
+def confirm_points_adjust(cid, admin_id, target_id, yes=True):
+    """مرحلهٔ ۴: ثبت نهایی (idempotent روی کلید همین تأیید)"""
+    d = get_state_data(admin_id) or {}
+    if not yes:
+        clear_state(admin_id)
+        send(cid, "❌ لغو شد")
+        return show_user_detail(cid, admin_id, target_id)
+    if not _points_adjust_allowed(cid, admin_id):
+        clear_state(admin_id)
+        return
+    if (get_state_name(admin_id) != STATE_POINTS_ADJUST or d.get("step") != "confirm"
+            or int(d.get("tid") or 0) != int(target_id) or not d.get("key")):
+        clear_state(admin_id)
+        return send(cid, "⚠️ این تأیید دیگر معتبر نیست؛ دوباره شروع کنید.")
+    delta = int(d.get("delta") or 0)
+    reason = str(d.get("reason") or "")
+    if delta == 0 or abs(delta) > POINTS_MANUAL_ADJUST_MAX or len(reason) < _ADJ_MIN_REASON:
+        clear_state(admin_id)
+        return send(cid, "⚠️ دادهٔ تعدیل نامعتبر است؛ دوباره شروع کنید.")
+    bale = int(d.get("bale") or 0)
+    u = get_user_by_id(target_id)
+    if not u or int(u.get("bale_user_id") or 0) != bale:
+        clear_state(admin_id)
+        return send(cid, "❌ کاربر یافت نشد")
+    before = int(u.get("total_points") or 0)
+    try:
+        res = pl.post_points(
+            bale, delta, entry_type="manual_adjust", source="admin_manual",
+            ref_key=str(d["key"]), reason=reason, actor_kind="admin", actor_id=admin_id,
+            meta={"before": before, "after": before + delta, "target_user_id": int(target_id)})
+    except pl.InsufficientPoints as e:
+        clear_state(admin_id)
+        have = int(e.have)
+        return send(cid, "⚠️ موجودی (" + str(have) + ") برای این کاهش کافی نیست؛ موجودی منفی مجاز نیست.")
+    except pl.LedgerError as e:
+        clear_state(admin_id)
+        log(f"❌ تعدیل دستی امتیاز {bale} توسط {admin_id}: {e.code}")
+        msgs = {
+            "opening_balance_missing": "این کاربر ردیف افتتاحیهٔ دفترکل ندارد؛ ابتدا افتتاحیه اجرا شود.",
+            "balance_out_of_sync": "شمارنده با دفترکل نمی‌خواند؛ ابتدا با doctor بررسی شود.",
+        }
+        return send(cid, "⚠️ تعدیل ثبت نشد: " + msgs.get(e.code, e.code))
+    clear_state(admin_id)
+    pl.sync_pending(limit=5)
+    log_action(admin_id, "points_manual_adjust",
+               {"target": int(target_id), "delta": delta, "before": res.balance_before,
+                "after": res.balance_after, "ledger_id": res.entry_id, "dup": not res.created})
+    if not res.created:
+        send(cid, "ℹ️ این تعدیل قبلاً ثبت شده بود؛ تغییر دوباره‌ای اعمال نشد.")
+    else:
+        send(cid, f"✅ تعدیل ثبت شد (ردیف دفترکل #{res.entry_id})\n"
+                  f"{res.balance_before} → {res.balance_after}")
+    return show_user_detail(cid, admin_id, target_id)
 
 
 def _recalc_percent(target_id):

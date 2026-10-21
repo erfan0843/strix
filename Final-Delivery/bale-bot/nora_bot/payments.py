@@ -25,7 +25,8 @@ from config import (
     PAYMENT_TEST_MODE, CURRENCY_LABEL, check_amount, FILES_DIR,
     money,
 )
-from database import db_execute, db_scalar, get_setting, set_setting, log
+from database import db_execute, db_scalar, db_transaction, get_setting, set_setting, log
+import points_ledger as pl
 from auth import (
     get_user, get_user_by_id, set_state, get_state_name, get_state_data,
     update_state_data, clear_state, log_action, normalize_digits,
@@ -363,43 +364,19 @@ def points_quote(uid, amount):
 
 
 def spend_points(uid, points, reason=""):
-    """
-    🔴 کسر اتمیک امتیاز — شرط داخل خود UPDATE است تا race نشود.
-    خروجی: (ok, remaining)
-    """
-    try:
-        pts = int(points or 0)
-    except (TypeError, ValueError):
-        return False, 0
-    if pts <= 0:
-        return True, int((get_user(uid) or {}).get("total_points") or 0)
+    """🔴 حذف‌شده (فاز ششم): کسر امتیاز فقط از مسیر دفترکل و با کلید رویداد تجاری.
 
-    before = int((get_user(uid) or {}).get("total_points") or 0)
-    if before < pts:
-        return False, before
-
-    db_execute("""UPDATE users SET total_points = total_points - ?
-        WHERE bale_user_id=? AND COALESCE(total_points,0) >= ?""",
-        (pts, uid, pts))
-    after = int((get_user(uid) or {}).get("total_points") or 0)
-    if after != before - pts:
-        return False, after
-    log_action(uid, "points_spent", {"points": pts, "reason": reason})
-    return True, after
+    این تابع دیگر چیزی کم نمی‌کند؛ برای سازگاری امضای قدیمی، ``(False, موجودی)``
+    برمی‌گرداند و لاگ می‌کند. پرداخت با امتیاز در ``_do_points_payment`` است.
+    """
+    log("❌ spend_points: مسیر مستقیم حذف شده؛ از points_ledger.post_points استفاده کنید")
+    return False, int((get_user(uid) or {}).get("total_points") or 0)
 
 
 def refund_points(uid, points, reason=""):
-    """برگرداندن امتیاز (مثلاً وقتی پرداخت باقی‌مانده ناموفق شد)"""
-    try:
-        pts = int(points or 0)
-    except (TypeError, ValueError):
-        return False
-    if pts <= 0:
-        return True
-    db_execute("UPDATE users SET total_points=COALESCE(total_points,0)+? "
-               "WHERE bale_user_id=?", (pts, uid))
-    log_action(uid, "points_refund", {"points": pts, "reason": reason})
-    return True
+    """🔴 غیرفعال (طبق تصمیم فاز پنجم/ششم فعال نمی‌شود): هیچ تغییری نمی‌دهد."""
+    log("❌ refund_points: مسیر غیرفعال است؛ برگشت فقط با ردیف دفترکل")
+    return False
 
 
 def allowed_methods(obj):
@@ -2071,21 +2048,64 @@ def _do_points_payment(cid, uid, ev, rid, amount, q=None):
         return send(cid, render("pay_txt_points_low",
                                 have=q["have"], need=q["need_full"]))
 
-    ok, left = spend_points(uid, q["use"], f"payment_ev{ev.get('id')}")
-    if not ok:
-        return send(cid, "⚠️ کسر امتیاز ناموفق بود. دوباره تلاش کنید.")
-
+    use = int(q["use"] or 0)
+    covered = int(q["covered"] or 0)
+    kind, frid = pay_target(ev)
+    target = int(frid or 0) if kind == "form" else int(ev.get("id") or 0)
     payload = _payload("pt", ev, uid, rid)
-    db_execute("""INSERT INTO transactions
-        (bale_user_id, event_id, registration_id, payload, amount,
-         status, method, points_used, transaction_id, form_response_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?)""",
-        (uid, ev["id"], rid, payload, q["covered"],
-         "paid" if q["full"] else "partial", "points", q["use"],
-         f"PT{int(time.time()) % 1000000}", _frid(ev)))
+    txcode = f"PT{int(time.time()) % 1000000}"
+
+    # 🔴 ساخت تراکنش + کسر امتیاز + ردیف دفترکل در یک تراکنش پایگاه.
+    # کلید idempotency از وضعیت مقصد *پیش از* این پرداخت ساخته می‌شود
+    # (مبلغ پرداخت‌شدهٔ قبلی + مبلغ همین درخواست): تکرار همان درخواست (دو بار
+    # زدن دکمه/retry) همان کلید را می‌سازد و رد می‌شود؛ قسط بعدی که پس از
+    # mark_paid مبلغ پرداخت‌شده‌اش فرق دارد، کلید تازه می‌گیرد.
+    try:
+        with db_transaction():
+            if kind == "form":
+                paid_before = db_scalar("SELECT COALESCE(amount_paid,0) FROM form_responses WHERE id=?",
+                                        (frid,))
+            else:
+                paid_before = db_scalar("SELECT COALESCE(amount_paid,0) FROM event_registrations WHERE id=?",
+                                        (rid,)) if rid else 0
+            ref_key = (f"pay:{kind}:{target}:{rid or 0}:paid{int(paid_before or 0)}"
+                       f":amt{int(amount or 0)}")
+            if pl.find_entry("payment_spend", ref_key):
+                raise pl.LedgerError("duplicate_payment")
+            tx_id = db_execute("""INSERT INTO transactions
+                (bale_user_id, event_id, registration_id, payload, amount,
+                 status, method, points_used, transaction_id, form_response_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (uid, ev["id"], rid, payload, covered,
+                 "paid" if q["full"] else "partial", "points", use, txcode, _frid(ev)))
+            if not tx_id:
+                raise pl.LedgerError("transaction_insert_failed")
+            if use > 0:
+                res = pl.post_points(
+                    uid, -use, entry_type="spend", source="payment_spend", ref_key=ref_key,
+                    ref_table="transactions", ref_id=tx_id, actor_kind="user", actor_id=uid,
+                    reason=f"پرداخت با امتیاز ({'فرم' if kind == 'form' else 'رویداد'} {target})",
+                    meta={"covered_rial": covered, "amount_rial": int(amount or 0),
+                          "transaction_code": txcode, "full": bool(q["full"])})
+                if not res.created:
+                    raise pl.LedgerError("duplicate_payment")
+                left = res.balance_after
+            else:
+                left = int(q.get("have") or 0)
+    except pl.InsufficientPoints as e:
+        return send(cid, render("pay_txt_points_low", have=e.have, need=q["need_full"]))
+    except pl.LedgerError as e:
+        if e.code == "duplicate_payment":
+            return send(cid, "ℹ️ این پرداخت امتیازی قبلاً ثبت شده است.")
+        log(f"❌ پرداخت با امتیاز {uid}/{kind}{target}: {e.code}")
+        return send(cid, "⚠️ کسر امتیاز ناموفق بود. دوباره تلاش کنید.")
+    except Exception as e:
+        log(f"❌ پرداخت با امتیاز {uid}/{kind}{target}: {type(e).__name__}")
+        return send(cid, "⚠️ کسر امتیاز ناموفق بود. دوباره تلاش کنید.")
+    pl.sync_pending(limit=5)
 
     log_action(uid, "points_payment",
-               {"points": q["use"], "amount": q["covered"]})
+               {"points": use, "amount": covered, "tx": tx_id})
 
     if q["full"]:
         mark_paid(ev, rid, q["covered"], full=True)

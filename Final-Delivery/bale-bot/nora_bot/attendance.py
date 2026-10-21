@@ -27,7 +27,8 @@ from config import (
     SUPER_ADMIN_ID, FILES_DIR, EVENTS_DIR, CURRENCY_LABEL,
     org_name, bot_name, brand,
 )
-from database import db_execute, db_scalar, get_setting, set_setting, log
+from database import db_execute, db_scalar, db_transaction, get_setting, set_setting, log
+import points_ledger as pl
 from auth import (
     get_user, get_user_by_id, set_state, get_state_name, get_state_data,
     update_state_data, clear_state, log_action, normalize_digits,
@@ -1053,13 +1054,18 @@ def set_status(cid, uid, sid, bale_uid, status, page=0):
                    "recorded_by=? WHERE id=?", (status, uid, ex["id"]))
     else:
         u = get_user(bale_uid)
-        db_execute("""INSERT OR IGNORE INTO attendance_records
-            (session_id, event_id, user_id, bale_user_id, method,
-             status, recorded_by) VALUES (?,?,?,?,'manual',?,?)""",
-            (sid, s["event_id"], (u or {}).get("id"), bale_uid,
-             status, uid))
-        if status in ("present", "late"):
-            _award_points(bale_uid, s.get("points") or 0)
+        try:
+            with db_transaction():
+                db_execute("""INSERT OR IGNORE INTO attendance_records
+                    (session_id, event_id, user_id, bale_user_id, method,
+                     status, recorded_by) VALUES (?,?,?,?,'manual',?,?)""",
+                    (sid, s["event_id"], (u or {}).get("id"), bale_uid,
+                     status, uid))
+                if status in ("present", "late"):
+                    _award_points(bale_uid, s.get("points") or 0, sid, _record_id(sid, bale_uid))
+        except pl.LedgerError:
+            return send(cid, "⚠️ ثبت حضور انجام نشد (خطای امتیاز). دوباره تلاش کنید.")
+        pl.sync_pending(limit=5)
 
     log_action(uid, "attendance_status_set",
                {"session_id": sid, "user": bale_uid, "status": status})
@@ -1148,11 +1154,16 @@ def toggle_manual(cid, uid, sid, target_bale, page=0):
         db_execute("DELETE FROM attendance_records WHERE id=?", (ex["id"],))
     else:
         u = get_user(target_bale)
-        db_execute("""INSERT OR IGNORE INTO attendance_records
-            (session_id, event_id, user_id, bale_user_id, method, status, recorded_by)
-            VALUES (?,?,?,?,'manual','present',?)""",
-            (sid, s["event_id"], (u or {}).get("id"), target_bale, uid))
-        _award_points(target_bale, s.get("points") or 0)
+        try:
+            with db_transaction():
+                db_execute("""INSERT OR IGNORE INTO attendance_records
+                    (session_id, event_id, user_id, bale_user_id, method, status, recorded_by)
+                    VALUES (?,?,?,?,'manual','present',?)""",
+                    (sid, s["event_id"], (u or {}).get("id"), target_bale, uid))
+                _award_points(target_bale, s.get("points") or 0, sid, _record_id(sid, target_bale))
+        except pl.LedgerError:
+            send(cid, "⚠️ ثبت حضور انجام نشد (خطای امتیاز). دوباره تلاش کنید.")
+        pl.sync_pending(limit=5)
     manual_list(cid, uid, sid, page)
 
 
@@ -1205,17 +1216,24 @@ def mark_all(cid, uid, sid, confirmed=False):
               WHERE session_id=? AND bale_user_id IS NOT NULL)
     """, (s["event_id"], sid), fetch="all") or []
 
-    n = 0
+    n = failed = 0
     for r in rows:
-        got = db_execute("""INSERT OR IGNORE INTO attendance_records
-            (session_id, event_id, user_id, bale_user_id, method,
-             status, recorded_by) VALUES (?,?,?,?,'manual','present',?)""",
-            (sid, s["event_id"], r.get("user_id"), r["bale_user_id"], uid))
-        if got:
-            n += 1
-            _award_points(r["bale_user_id"], s.get("points") or 0)
-    log_action(uid, "attendance_mark_all", {"session_id": sid, "count": n})
-    send(cid, f"✅ {n} نفر حاضر شدند 💚")
+        try:
+            with db_transaction():
+                got = db_execute("""INSERT OR IGNORE INTO attendance_records
+                    (session_id, event_id, user_id, bale_user_id, method,
+                     status, recorded_by) VALUES (?,?,?,?,'manual','present',?)""",
+                    (sid, s["event_id"], r.get("user_id"), r["bale_user_id"], uid))
+                if got:
+                    n += 1
+                    _award_points(r["bale_user_id"], s.get("points") or 0, sid,
+                                  _record_id(sid, r["bale_user_id"]))
+        except pl.LedgerError:
+            failed += 1
+    pl.sync_pending(limit=20)
+    log_action(uid, "attendance_mark_all", {"session_id": sid, "count": n, "failed": failed})
+    send(cid, f"✅ {n} نفر حاضر شدند 💚"
+              + (f"\n⚠️ {failed} نفر ثبت نشدند؛ دوباره تلاش کنید." if failed else ""))
     return manual_list(cid, uid, sid, 0)
 
 
@@ -1242,11 +1260,34 @@ def clear_all(cid, uid, sid, confirmed=False):
     return show_session(cid, uid, sid)
 
 
-def _award_points(bale_id, pts):
-    if pts and bale_id:
-        db_execute(
-            "UPDATE users SET total_points=COALESCE(total_points,0)+? WHERE bale_user_id=?",
-            (pts, bale_id))
+def _record_id(sid, bale_id):
+    """شناسهٔ رکورد حضور (lastrowid پس از INSERT OR IGNORE قابل اتکا نیست)."""
+    row = db_execute("SELECT id FROM attendance_records WHERE session_id=? AND bale_user_id=?",
+                     (sid, bale_id), fetch="one")
+    return row["id"] if row else None
+
+
+def _award_points(bale_id, pts, sid=None, record_id=None):
+    """امتیاز حضور یک جلسه برای یک کاربر؛ کلید دفترکل = (جلسه، کاربر).
+
+    پاک‌کردن و ثبت دوبارهٔ حضور همان جلسه، امتیاز دوباره نمی‌دهد.
+    خروجی: True اگر ردیف تازه ثبت شد.
+    """
+    try:
+        pts = int(pts or 0)
+    except (TypeError, ValueError):
+        pts = 0
+    if pts <= 0 or not bale_id or not sid:
+        return False
+    try:
+        res = pl.post_points(
+            bale_id, pts, entry_type="award", source="attendance_session",
+            ref_key=f"att:{int(sid)}:{int(bale_id)}", ref_table="attendance_records",
+            ref_id=record_id, reason=f"حضور جلسهٔ {int(sid)}")
+    except pl.LedgerError as e:
+        log(f"❌ امتیاز حضور جلسه {sid} برای {bale_id}: {e.code}")
+        raise
+    return res.created
 
 
 # ==================== کاربر: ثبت حضور ====================
@@ -1421,16 +1462,22 @@ def record_attendance(cid, uid, s, method, lat=None, lon=None, dist=None):
     from events import get_event
 
     u = get_user(uid)
-    rid = db_execute("""INSERT OR IGNORE INTO attendance_records
-        (session_id, event_id, user_id, bale_user_id, method, status,
-         lat, lon, distance_m)
-        VALUES (?,?,?,?,?,'present',?,?,?)""",
-        (s["id"], s["event_id"], (u or {}).get("id"), uid, method, lat, lon, dist))
+    pts = s.get("points") or 0
+    try:
+        with db_transaction():
+            rid = db_execute("""INSERT OR IGNORE INTO attendance_records
+                (session_id, event_id, user_id, bale_user_id, method, status,
+                 lat, lon, distance_m)
+                VALUES (?,?,?,?,?,'present',?,?,?)""",
+                (s["id"], s["event_id"], (u or {}).get("id"), uid, method, lat, lon, dist))
+            # تکرار ثبت حضور همان جلسه (ردیف موجود) امتیاز دوباره نمی‌دهد
+            _award_points(uid, pts, s["id"], _record_id(s["id"], uid))
+    except pl.LedgerError:
+        clear_state(uid)
+        return send(cid, "⚠️ ثبت حضور انجام نشد. دوباره تلاش کنید.")
+    pl.sync_pending(limit=5)
 
     clear_state(uid)
-
-    pts = s.get("points") or 0
-    _award_points(uid, pts)
 
     db_execute("""UPDATE event_registrations
         SET attended=1, attended_at=CURRENT_TIMESTAMP, status='attended'

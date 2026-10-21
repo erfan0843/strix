@@ -67,6 +67,8 @@ bale_api.send_invoice = lambda *a, **k: _api("sendInvoice", {})
 
 import config  # noqa: E402
 import database  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+import _points_fixture as _pf  # noqa: E402  (موجودی آزمایشی از مسیر دفترکل)
 import auth  # noqa: E402
 import forms as F  # noqa: E402
 import payments as PAY  # noqa: E402
@@ -428,8 +430,7 @@ check("رند به بالا", PAY.rial_to_points(500001) == 51)
 check("صفر امن است", PAY.rial_to_points(0) == 0)
 check("مقدار خراب کرش نمی‌کند", PAY.rial_to_points(None) == 0)
 
-database.db_execute("UPDATE users SET total_points=100 WHERE bale_user_id=?",
-                    (U1,))
+_pf.set_balance(U1, 100)
 q = PAY.points_quote(U1, 500000)     # ۵۰ امتیاز لازم، ۱۰۰ دارد
 check("پوشش کامل", q["ok"] and q["full"], str(q))
 check("۵۰ امتیاز کسر می‌شود", q["use"] == 50, str(q["use"]))
@@ -468,22 +469,29 @@ database.set_setting("pay_points_enabled", "1", "t", "payment")
 # ═══════════ ۸) کسر امتیاز اتمیک ═══════════
 print("\n[۸] 🔒 کسر امتیاز اتمیک")
 
-database.db_execute("UPDATE users SET total_points=100 WHERE bale_user_id=?",
-                    (U1,))
-ok, left = PAY.spend_points(U1, 30, "test")
-check("کسر موفق", ok and left == 70, f"{ok} {left}")
+_pf.set_balance(U1, 100)
+import points_ledger as _PL
+_r1 = _PL.post_points(U1, -30, entry_type="spend", source="payment_spend",
+                      ref_key="pay:test:1:1:paid0:amt300000", ref_table="transactions", ref_id=1,
+                      actor_kind="user", actor_id=U1)
+check("کسر موفق", _r1.created and _r1.balance_after == 70, str(_r1))
 
-ok2, left2 = PAY.spend_points(U1, 999, "test")
-check("🔒 کسر بیش از موجودی رد شد", not ok2, f"{ok2} {left2}")
-check("امتیاز دست‌نخورده ماند", left2 == 70, str(left2))
+try:
+    _PL.post_points(U1, -999, entry_type="spend", source="payment_spend",
+                    ref_key="pay:test:1:1:paid0:amt999", ref_table="transactions", ref_id=2)
+    _ok2 = False
+except _PL.InsufficientPoints:
+    _ok2 = True
+check("🔒 کسر بیش از موجودی رد شد", _ok2)
+check("امتیاز دست‌نخورده ماند", database.db_scalar(
+    "SELECT total_points FROM users WHERE bale_user_id=?", (U1,)) == 70)
 
-PAY.refund_points(U1, 30, "test")
+_r2 = _PL.reverse_entry(_r1.entry_id, reason="تست برگشت", actor_id=S)
 after = database.db_scalar("SELECT total_points FROM users "
                            "WHERE bale_user_id=?", (U1,))
-check("بازگشت امتیاز", after == 100, str(after))
-
-check("کسر صفر امن است", PAY.spend_points(U1, 0)[0])
-check("کسر منفی امن است", PAY.spend_points(U1, -5)[0])
+check("بازگشت امتیاز (ردیف معکوس)", after == 100, str(after))
+check("🔒 مسیر قدیمی spend_points چیزی کم نمی‌کند", PAY.spend_points(U1, 10)[0] is False)
+check("🔒 مسیر قدیمی refund_points غیرفعال است", PAY.refund_points(U1, 10) is False)
 check("موجودی تغییر نکرد",
       database.db_scalar("SELECT total_points FROM users "
                          "WHERE bale_user_id=?", (U1,)) == 100)
@@ -549,8 +557,7 @@ eid = database.db_execute(
 ev = EV.get_event(eid)
 check("رویداد امتیازی ساخته شد", bool(ev))
 
-database.db_execute("UPDATE users SET total_points=100 WHERE bale_user_id=?",
-                    (U1,))
+_pf.set_balance(U1, 100)
 u1row = auth.get_user(U1)
 rid = database.db_execute(
     "INSERT INTO event_registrations (event_id, user_id, bale_user_id, status) "
@@ -646,8 +653,7 @@ check("روش‌های مجاز خوانده شد",
       PAY.allowed_methods(ev3) == ["bale_wallet", "onsite", "points"],
       str(PAY.allowed_methods(ev3)))
 
-database.db_execute("UPDATE users SET total_points=200 WHERE bale_user_id=?",
-                    (U1,))
+_pf.set_balance(U1, 200)
 rid4 = database.db_execute(
     "INSERT INTO event_registrations (event_id, user_id, bale_user_id, status) "
     "VALUES (?,?,?,'pending')", (eid3, auth.get_user(U1)["id"], U1))

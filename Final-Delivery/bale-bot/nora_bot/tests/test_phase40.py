@@ -99,7 +99,7 @@ check("survey دیگر club.add_points ندارد",
       "from club import add_points" not in SRC["survey.py"])
 check("از _award_points استفاده می‌کند",
       "_award_points" in SRC["attendance_auto.py"])
-check("survey هم _award_points", "_award_points" in SRC["survey.py"])
+check("survey از دفترکل امتیاز می‌دهد", "post_points" in SRC["survey.py"])
 check("خطا لاگ می‌شود (نه pass بی‌صدا)",
       "امتیاز حضور" in SRC["attendance_auto.py"])
 
@@ -108,11 +108,15 @@ import attendance as att
 _p0 = (database.db_execute("SELECT total_points FROM users WHERE"
                            " bale_user_id=40500", fetch="one")
        or {}).get("total_points") or 0
-att._award_points(40500, 15)
+_sid40 = database.db_execute(
+    "INSERT INTO attendance_sessions (event_id, title, session_code, points) "
+    "VALUES (1, 'جلسهٔ آزمایشی ۴۰', 'S40CODE', 15)")
+att._award_points(40500, 15, _sid40)          # دفترکل: کلید (جلسه، کاربر)
+att._award_points(40500, 15, _sid40)          # تکرار → بدون اثر دوم
 _p1 = (database.db_execute("SELECT total_points FROM users WHERE"
                            " bale_user_id=40500", fetch="one")
        or {}).get("total_points") or 0
-check("🔑 امتیاز واقعاً اضافه می‌شود", _p1 == _p0 + 15,
+check("🔑 امتیاز واقعاً اضافه می‌شود (یک‌بار)", _p1 == _p0 + 15,
       f"{_p0}→{_p1}")
 
 # ══════════════════════════════════════════════════════════

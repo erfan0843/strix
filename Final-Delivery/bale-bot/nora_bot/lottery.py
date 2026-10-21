@@ -32,6 +32,7 @@ from datetime import datetime
 
 from config import SUPER_ADMIN_ID
 from database import db_execute, db_scalar, get_setting, set_setting, log
+import points_ledger as pl
 from auth import (
     set_state, get_state_data, clear_state, log_action,
     normalize_digits, is_admin as _is_admin,
@@ -1037,7 +1038,7 @@ def run_draw(cid, uid, lid, silent=False):
             idx += 1
             rank_no += 1
             code = gen_code()
-            db_execute("""INSERT INTO lottery_winners
+            wid = db_execute("""INSERT INTO lottery_winners
                 (lottery_id, prize_id, bale_user_id, response_id,
                  registration_id, rank_no, score, time_taken, code)
                 VALUES (?,?,?,?,?,?,?,?,?)""",
@@ -1045,7 +1046,7 @@ def run_draw(cid, uid, lid, silent=False):
                  person.get("registration_id"), rank_no, person["score"],
                  person["time_taken"], code))
             winners.append({**person, "prize": p, "rank": rank_no,
-                            "code": code})
+                            "code": code, "winner_id": wid})
 
     log_action(uid, "lottery_draw",
                {"lid": lid, "winners": len(winners), "participants": len(parts)})
@@ -1058,11 +1059,14 @@ def run_draw(cid, uid, lid, silent=False):
                 import occasions as oc
                 real, _ = oc.cap_points(w["uid"], pts)
                 if real > 0:
-                    db_execute("UPDATE users SET total_points="
-                               "COALESCE(total_points,0)+? "
-                               "WHERE bale_user_id=?", (real, w["uid"]))
+                    pl.post_points(
+                        w["uid"], real, entry_type="award", source="lottery_prize",
+                        ref_key=f"lot:{lid}:{w['prize'].get('id')}:{w['uid']}",
+                        ref_table="lottery_winners", ref_id=w.get("winner_id"),
+                        reason=f"جایزهٔ قرعه‌کشی {lid}")
             except Exception as e:
-                log(f"⚠️ امتیاز جایزه: {e}")
+                log(f"⚠️ امتیاز جایزه: {getattr(e, 'code', type(e).__name__)}")
+    pl.sync_pending(limit=20)
 
     _notify(lot, winners, parts)
 

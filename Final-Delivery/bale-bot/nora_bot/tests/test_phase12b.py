@@ -57,6 +57,8 @@ bale_api.send_photo = lambda c, p, cap=None, kb=None: _file("sendPhoto", "p", c,
 bale_api.send_document = lambda c, d, cap=None, kb=None: _file("sendDocument", "d", c, d, cap, kb)
 
 import database  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+import _points_fixture as _pf  # noqa: E402  (موجودی آزمایشی از مسیر دفترکل)
 import auth  # noqa: E402
 import forms as F  # noqa: E402
 import payments as PAY  # noqa: E402
@@ -206,9 +208,11 @@ check("۵ پاداش پیش‌فرض",
       database.db_scalar("SELECT COUNT(*) FROM rewards") >= 5)
 check("۳ نوع پاداش", len(CL.REWARD_TYPES) == 3)
 
-database.db_execute("UPDATE users SET total_points=100 WHERE bale_user_id=?",
-                    (U1,))
+_pf.set_balance(U1, 100)
 SENT.clear()
+import secrets as _secrets
+def _nonce():
+    return _secrets.token_hex(5)
 M.handle_callback(cb(U1, "cl_shop"))
 check("صفحه فروشگاه", "فروشگاه پاداش" in last())
 check("امتیاز کاربر نمایش", "100" in last())
@@ -222,7 +226,7 @@ check("تأیید خرید", "تأیید خرید" in last())
 check("باقیمانده نمایش", "باقیمانده" in last())
 
 SENT.clear()
-M.handle_callback(cb(U1, f"cl_buyok_{_r10['id']}"))
+M.handle_callback(cb(U1, f"cl_buyok_{_r10['id']}_{_nonce()}"))
 _after = database.db_scalar("SELECT total_points FROM users WHERE bale_user_id=?",
                             (U1,))
 check("امتیاز کسر شد", _after == 100 - int(_r10["cost"]), str(_after))
@@ -244,9 +248,8 @@ check("🔒 امتیاز ناکافی رد شد", "امتیاز کافی" in las
 
 # سقف هر کاربر
 SENT.clear()
-database.db_execute("UPDATE users SET total_points=500 WHERE bale_user_id=?",
-                    (U1,))
-M.handle_callback(cb(U1, f"cl_buyok_{_r10['id']}"))
+_pf.set_balance(U1, 500)
+M.handle_callback(cb(U1, f"cl_buyok_{_r10['id']}_{_nonce()}"))
 check("سقف هر کاربر رعایت شد", "حداکثر" in alltext(), alltext()[-70:])
 
 # موجودی
@@ -254,15 +257,15 @@ database.db_execute("UPDATE rewards SET stock=1, sold=1 WHERE key='vip30'")
 _vip = database.db_execute("SELECT * FROM rewards WHERE key='vip30'",
                            fetch="one")
 SENT.clear()
-M.handle_callback(cb(U1, f"cl_buyok_{_vip['id']}"))
+M.handle_callback(cb(U1, f"cl_buyok_{_vip['id']}_{_nonce()}"))
 check("⛔ موجودی تمام‌شده رد شد", "موجودی" in alltext())
 database.db_execute("UPDATE rewards SET stock=0, sold=0 WHERE key='vip30'")
 
 # VIP خودکار
-database.db_execute("UPDATE users SET total_points=500, is_vip=0 "
-                    "WHERE bale_user_id=?", (U2,))
+_pf.set_balance(U2, 500)
+database.db_execute("UPDATE users SET is_vip=0 WHERE bale_user_id=?", (U2,))
 SENT.clear()
-M.handle_callback(cb(U2, f"cl_buyok_{_vip['id']}"))
+M.handle_callback(cb(U2, f"cl_buyok_{_vip['id']}_{_nonce()}"))
 check("⭐ VIP خودکار فعال شد", database.db_execute(
     "SELECT is_vip FROM users WHERE bale_user_id=?", (U2,),
     fetch="one")["is_vip"] == 1)
@@ -270,10 +273,9 @@ check("⭐ VIP خودکار فعال شد", database.db_execute(
 # جایزه دستی → در انتظار ادمین
 _book = database.db_execute("SELECT * FROM rewards WHERE key='book'",
                             fetch="one")
-database.db_execute("UPDATE users SET total_points=500 WHERE bale_user_id=?",
-                    (U3,))
+_pf.set_balance(U3, 500)
 SENT.clear()
-M.handle_callback(cb(U3, f"cl_buyok_{_book['id']}"))
+M.handle_callback(cb(U3, f"cl_buyok_{_book['id']}_{_nonce()}"))
 _rd = database.db_execute("""SELECT * FROM reward_redemptions
     WHERE bale_user_id=? ORDER BY id DESC LIMIT 1""", (U3,), fetch="one")
 check("جایزه دستی در انتظار", _rd and _rd["status"] == "pending")

@@ -271,12 +271,13 @@ check("تاگل از مرور کار می‌کند",
 # ═══════════ باگ ۳: ویرایش پروفایل کاربر ═══════════
 print("\n[۳] ✏️ ویرایش پروفایل کاربران توسط ادمین")
 
-check("۲۰ فیلد قابل ویرایش", len(AD.PROFILE_EDIT_FIELDS) == 20,
+check("۱۹ فیلد قابل ویرایش (امتیاز جدا شد → دفترکل)", len(AD.PROFILE_EDIT_FIELDS) == 19,
       str(len(AD.PROFILE_EDIT_FIELDS)))
 keys = [k for k, _, _ in AD.PROFILE_EDIT_FIELDS]
 for k in ("first_name", "last_name", "mobile", "national_id", "birth_date",
-          "gender", "city", "education_level", "email", "total_points"):
+          "gender", "city", "education_level", "email"):
     check(f"فیلد {k}", k in keys)
+check("🔒 total_points در ویرایشگر پروفایل نیست", "total_points" not in keys)
 
 u1row = auth.get_user(U1)
 tid = u1row["id"]
@@ -291,7 +292,7 @@ M.handle_callback(cb(S, f"upe_{tid}"))
 check("ویرایشگر باز شد", "ویرایش پروفایل" in last(), last()[:50])
 ed = allcb()
 check("همه فیلدها دکمه دارند",
-      sum(1 for d in ed if d.startswith("upf_")) == 20, str(len(ed)))
+      sum(1 for d in ed if d.startswith("upf_")) == 19, str(len(ed)))
 check("دکمه تأیید پروفایل", f"upst_{tid}" in ed)
 check("دکمه محاسبه درصد", f"uprc_{tid}" in ed)
 
@@ -368,13 +369,35 @@ check("🔒 ایمیل نامعتبر رد شد", "معتبر" in last(), last()
 M.process_message(msg(S, "a@b.com"))
 check("ایمیل ذخیره شد", auth.get_user(U1).get("email") == "a@b.com")
 
-# امتیاز
+# امتیاز — دیگر از فرم ویرایش نیست؛ فقط «تعدیل امتیاز» سوپرادمین از دفترکل
 SENT.clear()
 M.handle_callback(cb(S, f"upf_total_points_{tid}"))
 M.process_message(msg(S, "150"))
-check("امتیاز ذخیره شد",
+check("🔒 فرم ویرایش امتیاز را نمی‌نویسد",
+      int(auth.get_user(U1).get("total_points") or 0) == 0,
+      str(auth.get_user(U1).get("total_points")))
+import admin as _AD_PTS
+_AD_PTS.POINTS_MANUAL_ADJUST_MAX = 0
+SENT.clear()
+M.handle_callback(cb(S, f"upts_{tid}"))
+check("⛔ بدون سقف محیطی، تعدیل غیرفعال (fail-closed)", "غیرفعال" in last(), last()[:60])
+_AD_PTS.POINTS_MANUAL_ADJUST_MAX = 500
+SENT.clear()
+M.handle_callback(cb(S, f"upts_{tid}"))
+M.process_message(msg(S, "+150"))
+M.process_message(msg(S, "تست تعدیل دستی با دلیل"))
+check("هنوز تأیید نشده → بدون تغییر",
+      int(auth.get_user(U1).get("total_points") or 0) == 0)
+M.handle_callback(cb(S, f"uptsok_{tid}"))
+check("امتیاز با تعدیل دفترکل ثبت شد",
       int(auth.get_user(U1).get("total_points") or 0) == 150,
       str(auth.get_user(U1).get("total_points")))
+M.handle_callback(cb(S, f"uptsok_{tid}"))
+check("تأیید دوباره بی‌اثر است",
+      int(auth.get_user(U1).get("total_points") or 0) == 150)
+check("ردیف دفترکل با دلیل و عامل", database.db_execute(
+    "SELECT COUNT(*) AS c FROM points_ledger WHERE entry_type='manual_adjust' "
+    "AND actor_id=? AND reason LIKE '%دلیل%'", (S,), fetch="one")["c"] == 1)
 
 # درصد تکمیل
 SENT.clear()

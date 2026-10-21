@@ -74,6 +74,9 @@ FILE_URL = f"https://tapi.bale.ai/file/bot{BOT_TOKEN}"
 SHARED_API_URL = (os.getenv("NORA_SHARED_API_URL") or "").strip().rstrip("/")
 SHARED_API_TOKEN = (os.getenv("NORA_BOT_SERVICE_TOKEN") or "").strip()
 SHARED_API_TIMEOUT_SECONDS = _int_env("NORA_SHARED_API_TIMEOUT_SECONDS", 8)
+# سقف قدرمطلق هر تعدیل دستی امتیاز توسط سوپرادمین (دفترکل، فاز ششم).
+# تنظیم‌نشده یا صفر = تعدیل دستی غیرفعال (fail-closed).
+POINTS_MANUAL_ADJUST_MAX = max(0, _int_env("POINTS_MANUAL_ADJUST_MAX", 0))
 
 
 def shared_api_url_error(value):

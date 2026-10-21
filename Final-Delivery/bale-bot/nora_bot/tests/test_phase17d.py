@@ -81,6 +81,8 @@ bale_api.send_invoice = _invoice
 
 import config  # noqa: E402
 import database  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+import _points_fixture as _pf  # noqa: E402  (موجودی آزمایشی از مسیر دفترکل)
 import auth  # noqa: E402
 import profile as PR  # noqa: E402
 import forms as F  # noqa: E402
@@ -370,8 +372,7 @@ check("نرخ عیناً ریال خوانده شد", PAY.points_rate_rial() == 
 check("۱۰ امتیاز = ۲۰۰٬۰۰۰ ریال", PAY.points_to_rial(10) == 200000)
 check("۲۰۰٬۰۰۰ ریال = ۱۰ امتیاز", PAY.rial_to_points(200000) == 10)
 
-database.db_execute("UPDATE users SET total_points=50 WHERE bale_user_id=?",
-                    (U1,))
+_pf.set_balance(U1, 50)
 q = PAY.points_quote(U1, 1000000)
 check("۵۰ امتیاز = ۱٬۰۰۰٬۰۰۰ ریال پوشش", q["covered"] == 1000000, str(q))
 check("پوشش کامل است", q["full"], str(q))

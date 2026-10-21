@@ -2208,6 +2208,12 @@ def handle_callback(cb):
             return admin_mod.set_profile_choice(cid, uid, _parts[0],
                                                 _parts[1], _parts[2])
         return send(cid, "❌ نامعتبر")
+    if data.startswith("uptsok_"):
+        return admin_mod.confirm_points_adjust(cid, uid, num("uptsok_"), True)
+    if data.startswith("uptsno_"):
+        return admin_mod.confirm_points_adjust(cid, uid, num("uptsno_"), False)
+    if data.startswith("upts_"):
+        return admin_mod.start_points_adjust(cid, uid, num("upts_"))
     if data.startswith("upst_"):
         return admin_mod.toggle_profile_status(cid, uid, num("upst_"))
     if data.startswith("uprc_"):
@@ -3159,7 +3165,14 @@ def handle_callback(cb):
     if data == "cl_board":
         return club_mod.show_leaderboard(cid, uid, "points")
     if data.startswith("cl_buyok_"):
-        return club_mod.do_buy(cid, uid, num("cl_buyok_"))
+        # cl_buyok_{reward_id}_{nonce}؛ nonce کلید یک‌بارمصرف همان تأیید است
+        rest = data[len("cl_buyok_"):]
+        rid_s, _, nonce = rest.partition("_")
+        try:
+            rid = int(rid_s)
+        except (TypeError, ValueError):
+            return _bad_id()
+        return club_mod.do_buy(cid, uid, rid, nonce or None)
     if data.startswith("cl_buy_"):
         return club_mod.confirm_buy(cid, uid, num("cl_buy_"))
 
@@ -3743,6 +3756,8 @@ def process_message(msg):
             return admin_mod.handle_add_user(msg)
         if state_name == admin_mod.STATE_EDIT_PROFILE:
             return admin_mod.handle_edit_profile(msg)
+        if state_name == admin_mod.STATE_POINTS_ADJUST:
+            return admin_mod.handle_points_adjust(msg)
         if state_name == tk_mod.STATE_INBOX_REPLY:
             return tk_mod.handle_inbox_reply(msg)
         if state_name == pay_mod.STATE_CARD_ADD:
