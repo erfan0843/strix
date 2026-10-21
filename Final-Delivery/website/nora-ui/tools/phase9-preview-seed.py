@@ -183,7 +183,8 @@ def main() -> None:
             "NORA_COOKIE_SECURE=true",
             "NORA_COOKIE_SAMESITE=none",
             f"NORA_BALE_BOT_TOKEN={BOT_TOKEN}",
-            f"NORA_BOT_SERVICE_TOKEN={SERVICE_TOKEN}",
+            # Served env: the bot bridge is not part of the preview; Settings.from_env rejects tokens < 32 chars, so leave it blank.
+            "NORA_BOT_SERVICE_TOKEN=",
             "NORA_OWNER_BALE_USER_ID=70001",
         ]) + "\n", encoding="utf-8",
     )
