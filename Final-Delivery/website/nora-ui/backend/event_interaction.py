@@ -505,6 +505,7 @@ def question_public_view(
         "event_id": record.event_id,
         "author": record.author_label or AUTHOR_LABEL_DEFAULT,
         "mine": mine,
+        "session_id": record.session_id,
         "body": record.body,
         "status": record.status,
         "answered": bool(record.answered_at),
@@ -552,6 +553,8 @@ def review_public_view(record: EventReviewRecord, *, viewer_account_id: str | No
         "author": record.author_label or AUTHOR_LABEL_DEFAULT,
         "mine": mine,
         "verified_attendee": bool(record.verified_attendee),
+        # Server-decided badge: 'attendee' (checked-in) | 'buyer' (active purchased access) | '' (legacy/none).
+        "badge": record.badge or ("attendee" if record.verified_attendee else ""),
         "body": record.body,
         "status": record.status,
         "edited": record.edit_count > 0,

@@ -191,7 +191,7 @@ console.log('\n— خطای سرور و نبود سرور —');
   ok(m.errors.length===0&&m.txt('#resources').includes('در دسترس نیست'),'۴۰۴: پیام صادقانه، بدون داده‌ی ساختگی');
   m.dom.window.close();
   const html=fs.readFileSync(DIR+'event.html','utf8');
-  ok(html.indexOf('event-interaction.js?v=2')<html.indexOf('event-page.js?v=105'),'ماژول تعامل پیش از اسکریپت صفحه بار می‌شود');
+  ok(html.indexOf('event-interaction.js?v=3')<html.indexOf('event-page.js?v=105'),'ماژول تعامل پیش از اسکریپت صفحه بار می‌شود');
   const src=fs.readFileSync(DIR+'event-interaction.js','utf8');
   ok(!/rating|stars|★/.test(src),'در کد صفحه هیچ امتیاز ستاره‌ای/عددی وجود ندارد');
   ok(/credentials: 'same-origin'/.test(src)&&/X-CSRF-Token/.test(src),'درخواست‌ها با کوکی نشست و CSRF ارسال می‌شوند');

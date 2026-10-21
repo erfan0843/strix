@@ -52,7 +52,8 @@
     text_too_short: 'متن خیلی کوتاه است.',
     text_too_long: 'متن از حد مجاز بلندتر است.',
     text_required: 'متن را بنویسید.',
-    review_not_eligible: 'ثبت دیدگاه فقط برای شرکت‌کنندگان با حضور تأییدشده ممکن است.',
+    review_not_eligible: 'ثبت دیدگاه فقط برای شرکت‌کنندگان با حضور تأییدشده یا دارندگان دسترسی محتوای ضبط‌شده ممکن است.',
+    session_not_found: 'جلسهٔ انتخاب‌شده در دسترس نیست؛ پرسش را بدون جلسه ثبت کنید.',
     review_exists: 'برای این رویداد قبلاً دیدگاه ثبت کرده‌اید.',
     review_locked: 'این دیدگاه دیگر قابل ویرایش نیست.',
     authentication_required: 'نشست شما معتبر نیست؛ دوباره وارد شوید.',
@@ -61,7 +62,7 @@
     network: 'ارتباط با سرور برقرار نشد.'
   };
   const SOURCE_READY = () => root.NORA_PUBLIC_SOURCE === 'server';
-  const S = { event: null, page: null, data: null, loading: false, error: '', busy: {}, msg: {}, editReview: false };
+  const S = { event: null, page: null, data: null, loading: false, error: '', busy: {}, msg: {}, editReview: false, questionSession: '' };
 
   function csrf() {
     const prefix = 'nora_account_csrf=';
@@ -157,7 +158,13 @@
   }
 
   /* ── پرسش‌وپاسخ ── */
+  function sessionTitle(id) {
+    if (!id || !R.data || !Array.isArray(R.data.sessions)) return '';
+    const s = R.data.sessions.find(x => x && x.id === id);
+    return s ? String(s.title || '') : '';
+  }
   function questionRow(row) {
+    const anchor = row.session_id ? `<span class="tag" data-ei-session-tag="${esc(row.session_id)}">${esc(sessionTitle(row.session_id) || 'دربارهٔ یکی از جلسات')}</span>` : '';
     const status = row.mine && row.status !== 'published'
       ? `<span class="tag ${row.status === 'hidden' ? 'stop' : ''}">${esc(row.status === 'hidden' ? 'پنهان‌شده' : 'در انتظار بررسی')}</span>` : '';
     const answer = row.answered
@@ -166,7 +173,7 @@
     const report = !row.mine && S.data.viewer.signed_in && !S.data.viewer.staff
       ? (row.reported ? '<small class="ei-wait">گزارش شما ثبت شد</small>' : `<button type="button" class="ei-link" data-ei-report="question" data-id="${esc(row.id)}">گزارش محتوای نامناسب</button>`)
       : '';
-    return `<li class="ei-question" data-question="${esc(row.id)}"><div class="ei-byline"><b>${esc(row.author)}</b>${row.mine ? '<span class="tag brand">شما</span>' : ''}${status}<small>${esc(when(row.created_at))}</small></div>
+    return `<li class="ei-question" data-question="${esc(row.id)}"><div class="ei-byline"><b>${esc(row.author)}</b>${row.mine ? '<span class="tag brand">شما</span>' : ''}${anchor}${status}<small>${esc(when(row.created_at))}</small></div>
       <p>${breaks(row.body)}</p>${answer}${report ? `<div class="ei-actions">${report}</div>` : ''}</li>`;
   }
   function qaForm() {
@@ -174,7 +181,11 @@
     if (!ev.qa_open) return `<p class="registration-notice" role="status">${esc(ev.qa_closed_reason === 'cancelled' ? 'این رویداد لغو شده و پرسش تازه پذیرفته نمی‌شود.' : 'پرسش‌وپاسخ این رویداد بسته شده است؛ پرسش‌های پاسخ‌داده‌شده همچنان قابل مشاهده‌اند.')}</p>`;
     if (!viewer.signed_in) return `<div class="ei-login"><span>برای پرسیدن، وارد حساب شوید.</span><a class="btn sm" href="${esc(loginHref('qa'))}">ورود</a></div>`;
     const busy = !!S.busy.question;
+    const sessions = R.data && Array.isArray(R.data.sessions) ? R.data.sessions.filter(x => x && x.id && x.status === 'published') : [];
+    const picker = sessions.length ? `<label class="cap" for="eiQuestionSession">دربارهٔ کدام بخش؟ (اختیاری)</label>
+      <select id="eiQuestionSession" class="input" data-ei-question-session ${busy ? 'disabled' : ''}><option value="">کل رویداد</option>${sessions.map(x => `<option value="${esc(x.id)}" ${S.questionSession === x.id ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select>` : '';
     return `<form class="ei-form" data-ei-form="question" novalidate>
+      ${picker}
       <label class="cap" for="eiQuestionBody">پرسش شما (حداکثر ۱۰۰۰ نویسه)</label>
       <textarea id="eiQuestionBody" class="input" rows="3" maxlength="1000" required placeholder="پرسش خود را دربارهٔ همین رویداد بنویسید…" ${busy ? 'disabled' : ''}></textarea>
       <div class="ei-form-row"><small class="cap">پرسش پس از بررسی برگزارکننده منتشر می‌شود.</small><button type="submit" class="btn sm primary" ${busy ? 'disabled' : ''}>${busy ? 'در حال ارسال…' : 'ثبت پرسش'}</button></div>
@@ -194,7 +205,9 @@
 
   /* ── دیدگاه‌ها ── */
   function reviewRow(row) {
-    const badge = row.verified_attendee ? '<span class="tag ok">شرکت‌کنندهٔ تأییدشده</span>' : '';
+    const kind = row.badge || (row.verified_attendee ? 'attendee' : '');
+    const badge = kind === 'attendee' ? '<span class="tag ok" data-ei-badge="attendee">شرکت‌کنندهٔ تأییدشده</span>'
+      : kind === 'buyer' ? '<span class="tag ok" data-ei-badge="buyer">خریدار تأییدشده</span>' : '';
     const own = row.mine && row.status !== 'published'
       ? `<span class="tag ${row.status === 'hidden' ? 'stop' : ''}">${esc(row.status === 'hidden' ? 'پنهان‌شده' : row.status === 'withdrawn' ? 'پس‌گرفته‌شده' : 'در انتظار تأیید')}</span>` : '';
     const report = !row.mine && S.data.viewer.signed_in && !S.data.viewer.staff
@@ -213,15 +226,18 @@
         ${can ? `<div class="ei-actions"><button type="button" class="btn sm quiet" data-ei-edit-review ${busy ? 'disabled' : ''}>ویرایش</button><button type="button" class="btn sm quiet" data-ei-withdraw-review ${busy ? 'disabled' : ''}>پس‌گرفتن</button></div>` : ''}
         ${message('review')}</div>`;
     }
-    if (!viewer.signed_in) return `<div class="ei-login"><span>دیدگاه‌ها فقط از شرکت‌کنندگان با حضور تأییدشده پذیرفته می‌شود.</span><a class="btn sm quiet" href="${esc(loginHref('reviews'))}">ورود</a></div>`;
+    const sellable = !!(S.data.recording && S.data.recording.sellable);
+    const who = sellable ? 'شرکت‌کنندگان با حضور تأییدشده و دارندگان دسترسی محتوای ضبط‌شده' : 'شرکت‌کنندگان با حضور تأییدشده';
+    if (!viewer.signed_in) return `<div class="ei-login"><span>دیدگاه‌ها فقط از ${esc(who)} پذیرفته می‌شود.</span><a class="btn sm quiet" href="${esc(loginHref('reviews'))}">ورود</a></div>`;
     if (!r.eligible) {
       const p = viewer.participation;
-      return `<p class="registration-notice" role="status">${esc(p.registered ? 'ثبت‌نام شما ثبت شده است؛ پس از تأیید حضور در رویداد می‌توانید دیدگاه بنویسید.' : 'ثبت دیدگاه فقط برای شرکت‌کنندگانی که حضورشان تأیید شده ممکن است.')}</p>`;
+      return `<p class="registration-notice" role="status">${esc(p.registered ? 'ثبت‌نام شما ثبت شده است؛ پس از تأیید حضور در رویداد' + (sellable ? ' یا با دریافت دسترسی محتوای ضبط‌شده' : '') + ' می‌توانید دیدگاه بنویسید.' : 'ثبت دیدگاه فقط برای ' + who + ' ممکن است.')}</p>`;
     }
+    const badgeLabel = r.badge === 'buyer' ? 'خریدار تأییدشده' : 'شرکت‌کنندهٔ تأییدشده';
     return `<form class="ei-form" data-ei-form="review" novalidate>
       <label class="cap" for="eiReviewBody">${esc(S.editReview ? 'ویرایش دیدگاه (پس از ویرایش دوباره بررسی می‌شود)' : 'دیدگاه شما دربارهٔ این رویداد (بدون امتیاز؛ فقط متن)')}</label>
       <textarea id="eiReviewBody" class="input" rows="3" maxlength="1500" required placeholder="تجربهٔ خود از این رویداد را بنویسید…" ${busy ? 'disabled' : ''}>${esc(S.editReview && mine ? mine.body : '')}</textarea>
-      <div class="ei-form-row"><small class="cap">پس از تأیید برگزارکننده با نشان «شرکت‌کنندهٔ تأییدشده» منتشر می‌شود.</small>
+      <div class="ei-form-row"><small class="cap">پس از تأیید برگزارکننده با نشان «${esc(badgeLabel)}» منتشر می‌شود.</small>
         ${S.editReview ? '<button type="button" class="btn sm quiet" data-ei-cancel-edit>انصراف</button>' : ''}
         <button type="submit" class="btn sm primary" ${busy ? 'disabled' : ''}>${busy ? 'در حال ارسال…' : (S.editReview ? 'ذخیرهٔ ویرایش' : 'ثبت دیدگاه')}</button></div>
       ${message('review')}</form>`;
@@ -394,6 +410,8 @@
     }
     R.loading = false;
     renderRecording();
+    /* The Q&A form/list reference the loaded sessions (optional per-session questions); refresh them once. */
+    if (S.data) renderQa(containers().qa);
     const target = (root.location.hash || '').replace(/^#/, '');
     if (target === 'recording' || target === 'recording-order' || target === 'recording-sessions') {
       const node = doc.getElementById(target);
@@ -504,10 +522,15 @@
   async function submitQuestion(form) {
     const field = form.querySelector('#eiQuestionBody');
     const body = field ? String(field.value || '').trim() : '';
+    const select = form.querySelector('[data-ei-question-session]');
+    const sessionId = select ? String(select.value || '') : '';
+    S.questionSession = sessionId;
     if (body.length < 5) { S.msg.question = { kind: 'warn', text: ERRORS.text_too_short }; render(); return; }
     S.busy.question = true; S.msg.question = null; render();
     try {
-      await api(`/api/account/events/${encodeURIComponent(String(S.event.id))}/questions`, { method: 'POST', body: { body } });
+      const payload = sessionId ? { body, session_id: sessionId } : { body };
+      await api(`/api/account/events/${encodeURIComponent(String(S.event.id))}/questions`, { method: 'POST', body: payload });
+      S.questionSession = '';
       S.msg.question = { kind: 'ok', text: 'پرسش شما ثبت شد و پس از بررسی برگزارکننده منتشر می‌شود.' };
       S.busy.question = false;
       await load();

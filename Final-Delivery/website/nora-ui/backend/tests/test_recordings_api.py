@@ -589,3 +589,59 @@ def test_wallet_orders_grant_access_only_from_the_verified_webhook_and_stay_idem
         assert buyer_id != second_id
         queue = owner.get("/api/admin/recording-orders?status=paid").json()
         assert queue["total"] == 2 and {row["status"] for row in queue["items"]} == {"paid", "paid_manual"}
+
+
+def test_buyers_review_with_server_badge_and_questions_can_anchor_to_a_published_session():
+    """Phase 9 §9: a verified buyer may review (badge 'buyer', never 'attendee'); a non-buyer non-attendee is
+    refused with a reason that names the real options; questions may reference one published session of the
+    same event's product and nothing else (foreign/draft/unknown sessions → 404)."""
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            held, version = held_event(owner, 0)
+            other_held, version = held_event(owner, version, t="کارگاه دیگر")
+            product = build_sellable_product(owner, held, price=0, payment_card=None)
+            assert set_status(owner, held, "ready").status_code == 200
+            assert set_status(owner, held, "published").status_code == 200
+            recording_id, session_id = product["recording"]["id"], product["_session_id"]
+            draft_session = owner.post(f"/api/admin/events/{held}/recording/sessions",
+                                       json={"title": "جلسهٔ پیش‌نویس"}, headers=owner_write_headers(owner))
+            assert draft_session.status_code == 201
+            foreign = build_sellable_product(owner, other_held, price=0, payment_card=None)
+
+            member = TestClient(app)
+            bale_login(member, 97001)
+            headers = account_write_headers(member)
+            # Not attended, not a buyer: refused with the real options.
+            refused = member.post(f"/api/account/events/{held}/reviews", json={"body": "دیدگاه پیش از خرید"}, headers=headers)
+            assert refused.status_code == 403 and refused.json()["detail"]["reason"] == "attendance_or_purchase_required"
+            before = interaction(member, held)["reviews"]
+            assert (before["eligible"], before["badge"]) == (False, "")
+            # Claim the free product → buyer → may review; badge decided server-side.
+            assert member.post(f"/api/account/recordings/{recording_id}/claim", headers=headers).status_code == 201
+            payload = interaction(member, held)
+            assert payload["viewer"]["buyer"] is True and (payload["reviews"]["eligible"], payload["reviews"]["badge"]) == (True, "buyer")
+            review = member.post(f"/api/account/events/{held}/reviews", json={"body": "دیدگاه خریدار دربارهٔ محتوای ضبط‌شده"}, headers=headers)
+            assert review.status_code == 201, review.text
+            assert review.json()["badge"] == "buyer" and review.json()["verified_attendee"] is False
+            mine = interaction(member, held)["reviews"]["mine"]
+            assert mine["badge"] == "buyer" and mine["status"] == "pending"
+
+            # Session-level question: only a published session of this event's product.
+            ask = f"/api/account/events/{held}/questions"
+            assert member.post(ask, json={"body": "سؤال دربارهٔ جلسهٔ یکم که مفصل است", "session_id": session_id}, headers=headers).status_code == 201
+            assert member.post(ask, json={"body": "سؤال دربارهٔ جلسهٔ پیش‌نویس که مفصل است", "session_id": draft_session.json()["id"]},
+                               headers=headers).status_code == 404
+            assert member.post(ask, json={"body": "سؤال دربارهٔ جلسهٔ رویداد دیگر که مفصل است", "session_id": foreign["_session_id"]},
+                               headers=headers).status_code == 404
+            assert member.post(ask, json={"body": "سؤال با شناسهٔ نامعتبر که مفصل است", "session_id": "nope"}, headers=headers).status_code == 404
+            assert member.post(ask, json={"body": "سؤال عمومی بدون جلسه که مفصل است", "session_id": None}, headers=headers).status_code == 201
+            questions = interaction(member, held)["questions"]["items"]
+            assert {q["session_id"] for q in questions} == {session_id, None}
+            # The admin list carries the session title so moderators see the anchor.
+            listed = owner.get(f"/api/admin/events/{held}/questions").json()["items"]
+            anchored = [q for q in listed if q["session_id"] == session_id]
+            assert len(anchored) == 1
+    finally:
+        engine.dispose()

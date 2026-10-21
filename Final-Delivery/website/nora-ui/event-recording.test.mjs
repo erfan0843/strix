@@ -34,12 +34,12 @@ function product(viewerKind, extra = {}) {
     id: REC, event_id: EV, status: extra.status || 'published', title: 'ضبط کارگاه نجوم', summary: 'سه جلسه دربارهٔ آسمان شب.', outcomes: 'شناخت صور فلکی', audience: 'علاقه‌مندان', access_terms: 'مشاهدهٔ برخط؛ جزوه قابل دانلود', refund_policy: 'تا ۷ روز با درخواست کتبی',
     faq: [{ q: 'آیا دانلود دارد؟', a: 'جزوه بله، ویدئو خیر.' }], price: extra.price == null ? 1500000 : extra.price, currency: 'IRR', free: extra.price === 0, access_days: 90, attendee_access: false, download_default: true, cover_url: '', published_at: '2026-10-21T06:00:00Z',
     session_count: 1, total_minutes: 95,
-    sessions: [{ id: SESS, title: 'جلسهٔ یکم: آسمان شب', description: '', sort_order: 1, duration_minutes: 95, preview: false, resources: [
+    sessions: [{ id: SESS, title: 'جلسهٔ یکم: آسمان شب', description: '', sort_order: 1, duration_minutes: 95, preview: false, status: 'published', resources: [
       res(VID, 'ویدئوی جلسه', 'video/mp4', 'view', allowed, allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), false),
       res(PDF, 'جزوهٔ جلسه', 'application/pdf', 'download', true, allowed ? 'purchased' : 'preview', true) ] }],
     viewer: { signed_in: signedIn, staff: false, access: { state: allowed ? 'active' : 'none', allowed, reason: allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), source: allowed ? 'purchase' : '', expires_at: allowed ? '2027-01-19T06:00:00Z' : '' }, cta } } };
 }
-async function load({ events = content.events, recording = product('guest'), cookie = '', onFetch = null, hash = '', file = 'event.html' } = {}) {
+async function load({ events = content.events, recording = product('guest'), cookie = '', onFetch = null, hash = '', file = 'event.html', interactionPatch = null } = {}) {
   const errors = [], calls = [];
   let current = recording;
   const dom = await JSDOM.fromFile(DIR + file, { url: pathToFileURL(DIR + file).href + (file === 'event.html' ? '?id=' + EV : '') + hash, runScripts: 'dangerously', pretendToBeVisual: true,
@@ -54,7 +54,7 @@ async function load({ events = content.events, recording = product('guest'), coo
         const url = String(path || ''); calls.push({ url, init });
         if (onFetch) { const custom = await onFetch(url, init, { set: value => { current = value; } }); if (custom) return custom; }
         if (url === '/api/public/site-content') return { ok: true, status: 200, json: async () => ({ content: { ...content, events }, server_time: new Date().toISOString() }) };
-        if (url === '/api/public/events/' + EV + '/interaction') return { ok: true, status: 200, json: async () => interaction() };
+        if (url === '/api/public/events/' + EV + '/interaction') return { ok: true, status: 200, json: async () => interactionPatch ? interactionPatch(interaction()) : interaction() };
         if (url === '/api/public/events/' + EV + '/recording') {
           if (current === 'missing') return { ok: false, status: 404, json: async () => ({ detail: 'recording_not_found' }) };
           if (current === 'fail') return { ok: false, status: 500, json: async () => ({ detail: 'boom' }) };
@@ -232,6 +232,40 @@ console.log('\n— فهرست رویدادها: صافی «ضبط‌شده»، �
   ok(!p.doc.querySelector('[data-event-id="ev-none"] [data-event-recording]') && !p.doc.querySelector('[data-event-id="ev-draft-rec"] [data-event-recording]'), 'برگزارشدهٔ بدون محصول منتشرشده هیچ دکمهٔ خریدی ندارد');
   ok(p.doc.querySelector('[data-event-id="ev-up"] a[href^="form.html"]'), 'رویداد پیش‌رو همچنان دکمهٔ ثبت‌نام خود را دارد');
   p.dom.window.close();
+}
+
+console.log('\n— پرسش‌وپاسخ و دیدگاه‌ها: پرسش جلسه‌ای اختیاری، نشان «خریدار تأییدشده» از سرور، پیام واجد شرایط بودن —');
+{
+  const patch = base => { base.viewer.signed_in = true; base.viewer.buyer = true; base.recording = { id: REC, status: 'published', sellable: true };
+    base.reviews = { eligible: true, badge: 'buyer', items: [
+      { id: 'rv-1', event_id: EV, author: 'م. ر.', mine: false, verified_attendee: true, badge: 'attendee', body: 'کارگاه عالی بود', status: 'published', edited: false, created_at: '2026-10-19T06:00:00Z', updated_at: '', reported: false },
+      { id: 'rv-2', event_id: EV, author: 'س. ک.', mine: false, verified_attendee: false, badge: 'buyer', body: 'ضبط باکیفیت بود', status: 'published', edited: false, created_at: '2026-10-20T06:00:00Z', updated_at: '', reported: false } ], total: 2, mine: null };
+    base.questions = { items: [ { id: 'q-1', event_id: EV, author: 'ن. ا.', mine: false, session_id: SESS, body: 'آیا اسلایدها هم هست؟', status: 'published', answered: true, answer: 'بله، جزوه ضمیمه است.', answer_official: true, answer_label: 'برگزارکننده', answered_at: '2026-10-20T07:00:00Z', created_at: '2026-10-20T06:00:00Z', reported: false },
+      { id: 'q-2', event_id: EV, author: 'ن. ا.', mine: true, session_id: null, body: 'پرسش کلی من', status: 'pending', answered: false, answer: '', answer_official: false, answer_label: '', answered_at: '', created_at: '2026-10-21T06:00:00Z', reported: false } ], total: 2, mine_pending: 1 };
+    return base; };
+  const posted = [];
+  const p = await load({ recording: product('buyer'), cookie: 'nora_account_csrf=csrf-token-123', interactionPatch: patch, onFetch: async (url, init) => {
+    if (url === '/api/account/events/' + EV + '/questions' && init.method === 'POST') { posted.push(JSON.parse(init.body)); return { ok: true, status: 201, json: async () => ({ id: 'q-3', status: 'pending' }) }; }
+    return null;
+  } });
+  ok(p.errors.length === 0, 'بدون خطای JavaScript' + (p.errors.length ? ': ' + p.errors[0] : ''));
+  ok(p.doc.querySelector('[data-review="rv-1"] [data-ei-badge="attendee"]') && p.doc.querySelector('[data-review="rv-2"] [data-ei-badge="buyer"]')
+    && p.txt('[data-review="rv-2"]').includes('خریدار تأییدشده') && !p.doc.querySelector('#reviews [data-ei-star], #reviews .stars'), 'نشان‌های «شرکت‌کنندهٔ تأییدشده» و «خریدار تأییدشده» از مقدار سرور؛ بدون امتیاز ستاره‌ای');
+  ok(p.doc.querySelector('form[data-ei-form="review"]') && p.txt('form[data-ei-form="review"]').includes('با نشان «خریدار تأییدشده» منتشر می‌شود'), 'خریدار واجد شرایط دیدگاه است و نشان آیندهٔ خودش را می‌بیند');
+  const tag = p.doc.querySelector('[data-question="q-1"] [data-ei-session-tag="' + SESS + '"]');
+  ok(tag && tag.textContent.includes('جلسهٔ یکم') && !p.doc.querySelector('[data-question="q-2"] [data-ei-session-tag]'), 'پرسش جلسه‌ای با عنوان واقعی جلسه برچسب می‌خورد؛ پرسش کلی برچسب ندارد');
+  const select = p.doc.querySelector('form[data-ei-form="question"] select[data-ei-question-session]');
+  ok(select && select.options.length === 2 && select.options[0].value === '' && select.options[1].value === SESS, 'انتخاب‌گر اختیاری جلسه فقط جلسات منتشرشدهٔ محصول را دارد و پیش‌فرض «کل رویداد» است');
+  select.value = SESS;
+  p.doc.querySelector('#eiQuestionBody').value = 'پرسش دربارهٔ جلسهٔ یکم';
+  p.doc.querySelector('form[data-ei-form="question"]').dispatchEvent(new p.window.Event('submit', { bubbles: true, cancelable: true }));
+  await wait(200);
+  ok(posted.length === 1 && posted[0].session_id === SESS && posted[0].body === 'پرسش دربارهٔ جلسهٔ یکم', 'پرسش با شناسهٔ جلسه فرستاده می‌شود؛ تصمیم اعتبار آن با سرور است');
+  p.dom.window.close();
+
+  const notEligible = await load({ recording: product('member'), cookie: 'nora_account_csrf=x', interactionPatch: base => { base.viewer.signed_in = true; base.recording = { id: REC, status: 'published', sellable: true }; return base; } });
+  ok(!notEligible.doc.querySelector('form[data-ei-form="review"]') && notEligible.txt('#reviews').includes('دارندگان دسترسی محتوای ضبط‌شده'), 'غیرشرکت‌کنندهٔ بدون خرید: فرم دیدگاه نیست و پیام راه‌های واقعی واجد شرایط شدن را می‌گوید');
+  notEligible.dom.window.close();
 }
 
 console.log(`\nevent-recording: ${checks} بررسی، ${fails} خطا`);

@@ -6800,7 +6800,8 @@ function eiNotification(n){
 function eiQuestionRow(q){
   const id=esc(q.id), ev=esc(q.event_id), busy=EI.busy===q.id, draft=EI.q.draft[q.id];
   const answered=!!q.answered;
-  const info=[q.author,svcWhen(q.created_at)||q.created_at,EI.all&&q.event_title?'رویداد: '+q.event_title:'',q.open_reports?`${fa(q.open_reports)} گزارش باز`:'',q.moderation_reason?'دلیل: '+q.moderation_reason:''].filter(Boolean).join(' · ');
+  const sessionTitle=q.session_id?(((REC.data&&REC.data.recording&&REC.data.recording.sessions)||[]).find(x=>x.id===q.session_id)||{}).title||'':'';
+  const info=[q.author,svcWhen(q.created_at)||q.created_at,EI.all&&q.event_title?'رویداد: '+q.event_title:'',q.session_id?'جلسه: '+(sessionTitle||'یکی از جلسات محتوای ضبط‌شده'):'',q.open_reports?`${fa(q.open_reports)} گزارش باز`:'',q.moderation_reason?'دلیل: '+q.moderation_reason:''].filter(Boolean).join(' · ');
   const form=draft!=null?`<div class="stack" data-ei-answer-form="${id}"><label class="fld" for="eiAns_${id}"><span class="lbl">پاسخ برگزارکننده</span><textarea id="eiAns_${id}" class="input" rows="4" maxlength="4000" data-ei-answer-text="${id}">${esc(draft.text||'')}</textarea><small class="cap">با ارسال، پرسش و پاسخ منتشر می‌شوند و اعلان برای پرسش‌گر در صف قرار می‌گیرد (ثبت پاسخ مستقل از ارسال اعلان است).</small></label>
       <div class="row tight" style="flex-wrap:wrap"><label class="chip ${draft.official!==false?'on':''}"><input type="checkbox" data-ei-answer-official="${id}" ${draft.official!==false?'checked':''} hidden/>پاسخ رسمی</label>
       ${btn('ارسال و انتشار',`data-ei-answer-send="${id}" data-ei-event="${ev}"`,'i-send')}${btn('ذخیره بدون انتشار',`data-ei-answer-send="${id}" data-ei-event="${ev}" data-ei-answer-publish="false"`,'i-eye-off')}<button class="btn sm quiet" data-ei-answer-cancel="${id}">انصراف</button></div></div>`:'';
@@ -6856,7 +6857,8 @@ async function eiQuestionResend(eventId,id){
 /* ── دیدگاه‌ها ── */
 function eiReviewRow(r){
   const id=esc(r.id), busy=EI.busy===r.id;
-  const info=[r.author,r.verified_attendee?'شرکت‌کنندهٔ تأییدشده':'بدون تأیید حضور',svcWhen(r.created_at)||r.created_at,r.edit_count?`${fa(r.edit_count)} بار ویرایش`:'',r.open_reports?`${fa(r.open_reports)} گزارش باز`:'',r.moderation_reason?'دلیل: '+r.moderation_reason:''].filter(Boolean).join(' · ');
+  const badge=r.badge==='buyer'?'خریدار تأییدشده':(r.badge==='attendee'||r.verified_attendee)?'شرکت‌کنندهٔ تأییدشده':'بدون تأیید حضور یا خرید';
+  const info=[r.author,badge,svcWhen(r.created_at)||r.created_at,r.edit_count?`${fa(r.edit_count)} بار ویرایش`:'',r.open_reports?`${fa(r.open_reports)} گزارش باز`:'',r.moderation_reason?'دلیل: '+r.moderation_reason:''].filter(Boolean).join(' · ');
   const actions=eiCanMod()&&r.status!=='withdrawn'?[r.status!=='published'?btn('تأیید و انتشار',`data-ei-rv-status="published" data-ei-id="${id}"`,'i-globe'):'',
     r.status!=='hidden'?btn('پنهان‌کردن',`data-ei-rv-status="hidden" data-ei-id="${id}"`,'i-eye-off'):'',
     r.status==='hidden'?btn('بازگشت به انتظار',`data-ei-rv-status="pending" data-ei-id="${id}"`,'i-refresh'):''].join(''):'';
@@ -6868,7 +6870,7 @@ function eiReviews(){
   const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
   const filters=`<div class="admfilters" role="group" aria-label="فیلتر دیدگاه‌ها">${[['','همه'],['pending','در انتظار تأیید'],['published','منتشرشده'],['hidden','پنهان'],['withdrawn','پس‌گرفته']].map(([k,l])=>`<button class="chip ${EI.rv.status===k?'on':''}" type="button" data-ei-rv-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
   const list=items.length?`<div class="admlist">${items.map(eiReviewRow).join('')}</div>`:emptyBox('دیدگاهی با این فیلتر ثبت نشده است.');
-  return `<div class="stack"><p class="cap" style="margin:0">فقط حساب‌هایی که حضورشان در همین رویداد ثبت شده می‌توانند دیدگاه بنویسند؛ نشان «شرکت‌کنندهٔ تأییدشده» از سرور می‌آید. دیدگاه تا تأیید شما منتشر نمی‌شود. امتیاز ستاره‌ای وجود ندارد.</p>
+  return `<div class="stack"><p class="cap" style="margin:0">فقط حساب‌هایی که حضورشان در همین رویداد ثبت شده یا دسترسی فعال به محتوای ضبط‌شدهٔ آن دارند می‌توانند دیدگاه بنویسند؛ نشان «شرکت‌کنندهٔ تأییدشده» یا «خریدار تأییدشده» را سرور تعیین می‌کند. دیدگاه تا تأیید شما منتشر نمی‌شود. امتیاز ستاره‌ای وجود ندارد.</p>
     ${filters}${list}${p2Pager(total,EI.rv.offset,EI.rv.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
 }
 async function eiReviewStatus(id,status){

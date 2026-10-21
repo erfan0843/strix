@@ -3447,7 +3447,7 @@ def create_app(
         if event.get("qaClosed") is True or str(event.get("lifecycle") or "") == "cancelled":
             raise HTTPException(409, {"code": "qa_closed", "reason": "cancelled" if event.get("lifecycle") == "cancelled" else "closed"})
         payload = await _read_json_object(request, 16_384)
-        if set(payload) - {"body"}:
+        if set(payload) - {"body", "session_id"}:
             raise HTTPException(400, "invalid_question")
         try:
             body = interaction_mod.clean_text(
@@ -3456,6 +3456,19 @@ def create_app(
             )
         except interaction_mod.InteractionError as error:
             raise _interaction_error(error) from None
+        # Phase 9 (optional): bind the question to one published session of this event's recorded product.
+        session_id: str | None = None
+        raw_session = payload.get("session_id")
+        if raw_session not in (None, ""):
+            parsed_session = interaction_mod.parse_row_id(raw_session)
+            product_row = _recording_for_event(db, event_id)
+            session_row = db.get(RecordingSessionRecord, parsed_session) if parsed_session and product_row is not None else None
+            if (
+                product_row is None or session_row is None or session_row.recording_id != product_row.id
+                or session_row.status != "published" or product_row.status not in {"published", "sales_paused"}
+            ):
+                raise HTTPException(404, {"code": "session_not_found"})
+            session_id = session_row.id
         cfg: Settings = request.app.state.settings
         _enforce_owner_upload_limit(
             request, db, cfg, identity, limit=interaction_mod.QUESTIONS_PER_HOUR, scope="event-question",
@@ -3488,6 +3501,7 @@ def create_app(
             body=body,
             body_hash=digest,
             status="pending",
+            session_id=session_id,
         )
         db.add(record)
         try:
@@ -3568,10 +3582,21 @@ def create_app(
     ):
         event_id, _event = _interaction_event_for_write(db, event_id)
         participation = _interaction_participation(db, identity.account_id, event_id)
-        if not participation.attended:
+        # Phase 9: a verified buyer (active recording access) may review too; the badge is decided here, never by the client.
+        recording_row = _recording_for_event(db, event_id)
+        recording_viewer = _recording_viewer(
+            db, recording_row, account=identity, staff=False, participation=participation, now=_utc_now(),
+        )
+        buyer = recording_viewer.access_state == "active"
+        if not participation.attended and not buyer:
+            sellable = recording_row is not None and recording_row.status in {"published", "sales_paused"}
             raise HTTPException(
                 403,
-                {"code": "review_not_eligible", "reason": "attendance_required", "registered": participation.registered},
+                {
+                    "code": "review_not_eligible",
+                    "reason": "attendance_or_purchase_required" if sellable else "attendance_required",
+                    "registered": participation.registered,
+                },
             )
         payload = await _read_json_object(request, 16_384)
         if set(payload) - {"body"}:
@@ -3594,7 +3619,8 @@ def create_app(
             id=interaction_mod.new_id(), event_id=event_id, account_id=identity.account_id,
             response_id=participation.response_id,
             author_label=interaction_mod.author_label(_interaction_display_name(db, identity.account_id)),
-            verified_attendee=True, body=body, status="pending",
+            verified_attendee=bool(participation.attended), badge="attendee" if participation.attended else "buyer",
+            body=body, status="pending",
         )
         db.add(record)
         try:
