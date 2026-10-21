@@ -3083,6 +3083,408 @@ def create_app(
             return Response(status_code=304, headers=headers)
         return Response(content=record.content, media_type=record.content_type, headers=headers)
 
+    # ── فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه و گزارش محتوای رویداد ──
+    # رویداد از همان سند site_content می‌آید؛ ثبت‌نام/حضور از همان form_responses.
+    # هر تصمیم دسترسی در همین‌جا و روی ردیف‌های واقعی گرفته می‌شود، نه در مرورگر.
+    _INTERACTION_READ_PERMS = ("ev_create", "ev_publish")
+    _INTERACTION_MODERATE_PERMS = ("ev_publish",)
+    _INTERACTION_RESOURCE_PERMS = ("ev_create",)
+
+    def _interaction_error(error: interaction_mod.InteractionError) -> HTTPException:
+        detail: Any = {"code": error.code, "field": error.field} if error.field else error.code
+        return HTTPException(error.status, detail)
+
+    def _interaction_event(db: Session, event_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """``(public_projection, stored_row)``; the projection is ``None`` unless published."""
+        record = db.get(SiteContentRecord, "public")
+        found = content_admin_mod.find_row(_content_rows(record, "events"), event_id)
+        if found is None:
+            return None, None
+        stored = found[1]
+        projected = public_site_content({"events": [stored]}).get("events") or []
+        return (projected[0] if projected else None), stored
+
+    def _interaction_event_titles(db: Session, event_ids: set[str]) -> dict[str, str]:
+        if not event_ids:
+            return {}
+        record = db.get(SiteContentRecord, "public")
+        titles: dict[str, str] = {}
+        for row in _content_rows(record, "events"):
+            if isinstance(row, dict) and str(row.get("id") or "") in event_ids:
+                titles[str(row["id"])] = str(row.get("t") or row.get("n") or "")[:160]
+        return titles
+
+    def _interaction_staff(request: Request, db: Session) -> OwnerIdentity | AccountIdentity | None:
+        try:
+            return require_any_permission(*_INTERACTION_READ_PERMS)(request, db)
+        except HTTPException:
+            return None
+
+    def _interaction_participation(db: Session, account_id: str, event_id: str) -> interaction_mod.Participation:
+        return interaction_mod.participation_for(
+            db, account_id, event_id,
+            scope=account_form_record_scope(db, account_id),
+            payment_approved=_response_payment_approved,
+        )
+
+    def _interaction_display_name(db: Session, account_id: str) -> str:
+        profile = db.get(AccountProfileRecord, account_id)
+        fields = profile.fields if profile is not None and isinstance(profile.fields, dict) else {}
+        return str(fields.get("fullName") or "")[:120]
+
+    def _interaction_actor(identity: OwnerIdentity | AccountIdentity) -> tuple[str, str]:
+        if isinstance(identity, OwnerIdentity):
+            return "owner", identity.owner_id
+        return "account", identity.account_id
+
+    @app.get("/api/public/events/{event_id}/interaction")
+    def public_event_interaction(event_id: str, request: Request, response: Response, db: Session = Depends(get_db)):
+        """Resources, Q&A and reviews of one event for the current viewer (guest, account or staff)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        staff = _interaction_staff(request, db)
+        account = account_identity_from_request(request, db) if staff is None or isinstance(staff, AccountIdentity) else None
+        if isinstance(staff, AccountIdentity):
+            account = staff
+        public_event, stored = _interaction_event(db, event_id)
+        if stored is None or (public_event is None and staff is None):
+            raise HTTPException(404, "event_not_found")
+        source = public_event or {}
+        now = _utc_now()
+        participation = (
+            _interaction_participation(db, account.account_id, event_id) if account is not None else None
+        )
+        viewer_id = account.account_id if account is not None else None
+        resources = db.scalars(
+            select(EventResourceRecord)
+            .where(EventResourceRecord.event_id == event_id, EventResourceRecord.status != "removed")
+            .order_by(EventResourceRecord.sort_order.asc(), EventResourceRecord.created_at.asc())
+        ).all()
+        resource_rows = [
+            interaction_mod.resource_public_view(
+                row, now=now, signed_in=account is not None, participation=participation, staff=staff is not None
+            )
+            for row in resources
+            if staff is not None or interaction_mod.resource_is_live(row, now)
+        ]
+        questions = db.scalars(
+            select(EventQuestionRecord)
+            .where(EventQuestionRecord.event_id == event_id)
+            .order_by(EventQuestionRecord.created_at.desc(), EventQuestionRecord.id)
+            .limit(300)
+        ).all()
+        visible_questions = [row for row in questions if interaction_mod.question_visible_to(row, viewer_id)]
+        reported_q = interaction_mod.reported_by(db, "question", viewer_id, [row.id for row in visible_questions])
+        reviews = db.scalars(
+            select(EventReviewRecord)
+            .where(EventReviewRecord.event_id == event_id)
+            .order_by(EventReviewRecord.created_at.desc(), EventReviewRecord.id)
+            .limit(300)
+        ).all()
+        visible_reviews = [row for row in reviews if interaction_mod.review_visible_to(row, viewer_id)]
+        reported_r = interaction_mod.reported_by(db, "review", viewer_id, [row.id for row in visible_reviews])
+        mine_review = next((row for row in reviews if viewer_id and row.account_id == viewer_id), None)
+        lifecycle = str(source.get("lifecycle") or stored.get("lifecycle") or "scheduled")
+        qa_closed = bool(source.get("qaClosed") if public_event else stored.get("qaClosed") is True)
+        return {
+            "source": "shared_server_database",
+            "server_time": event_time.to_iso(now),
+            "event": {
+                "id": event_id,
+                "title": str(source.get("t") or stored.get("t") or "")[:240],
+                "published": public_event is not None,
+                "lifecycle": lifecycle,
+                "qa_open": not qa_closed and lifecycle != "cancelled",
+                "qa_closed_reason": "cancelled" if lifecycle == "cancelled" else ("closed" if qa_closed else ""),
+            },
+            "viewer": {
+                "signed_in": account is not None,
+                "staff": staff is not None,
+                "participation": (participation or interaction_mod.Participation()).as_dict(),
+            },
+            "resources": resource_rows,
+            "questions": {
+                "items": [
+                    interaction_mod.question_public_view(row, viewer_account_id=viewer_id, reported=row.id in reported_q)
+                    for row in visible_questions
+                ],
+                "total": len(visible_questions),
+                "mine_pending": sum(1 for row in visible_questions if viewer_id and row.account_id == viewer_id and row.status == "pending"),
+            },
+            "reviews": {
+                "eligible": bool(participation and participation.attended),
+                "items": [
+                    interaction_mod.review_public_view(row, viewer_account_id=viewer_id, reported=row.id in reported_r)
+                    for row in visible_reviews
+                ],
+                "total": len(visible_reviews),
+                "mine": interaction_mod.review_public_view(mine_review, viewer_account_id=viewer_id) if mine_review else None,
+            },
+        }
+
+    @app.get("/api/public/events/{event_id}/resources/{resource_id}/download")
+    def public_event_resource_download(
+        event_id: str, resource_id: str, request: Request, db: Session = Depends(get_db)
+    ):
+        """The only way to read resource bytes; access is decided here per request."""
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        parsed = interaction_mod.parse_row_id(resource_id)
+        record = db.get(EventResourceRecord, parsed) if parsed else None
+        # The event id in the URL must match: swapping ids across events is a 404, not a bypass.
+        if record is None or record.event_id != event_id or record.kind != "file":
+            raise HTTPException(404, "resource_not_found")
+        staff = _interaction_staff(request, db)
+        account = staff if isinstance(staff, AccountIdentity) else (
+            account_identity_from_request(request, db) if staff is None else None
+        )
+        public_event, stored = _interaction_event(db, event_id)
+        if stored is None or (public_event is None and staff is None):
+            raise HTTPException(404, "resource_not_found")
+        now = _utc_now()
+        participation = (
+            _interaction_participation(db, account.account_id, event_id) if account is not None else None
+        )
+        allowed, reason = interaction_mod.resource_access_state(
+            record, now=now, signed_in=account is not None, participation=participation, staff=staff is not None
+        )
+        if not allowed:
+            if reason in {"removed", "not_published"}:
+                raise HTTPException(404, "resource_not_found")
+            raise HTTPException(
+                401 if reason == "login_required" else 403,
+                {"code": "resource_access_denied", "reason": reason},
+            )
+        if record.content is None:
+            raise HTTPException(404, "resource_not_found")
+        headers = {
+            "Cache-Control": "private, no-store",
+            "Vary": "Cookie",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Disposition": interaction_mod.content_disposition(record.file_name),
+            "X-Nora-Resource-Access": reason,
+        }
+        return Response(content=record.content, media_type=record.content_type, headers=headers)
+
+    def _interaction_event_for_write(db: Session, event_id: str) -> tuple[str, dict[str, Any]]:
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        public_event, stored = _interaction_event(db, event_id)
+        if public_event is None:
+            raise HTTPException(404, "event_not_found")
+        return event_id, public_event
+
+    # ── پنل: منابع ──
+
+    def _admin_event_id(db: Session, event_id: str) -> str:
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        _public, stored = _interaction_event(db, event_id)
+        if stored is None:
+            raise HTTPException(404, "event_not_found")
+        return event_id
+
+    def _admin_resource(db: Session, event_id: str, resource_id: str) -> EventResourceRecord:
+        parsed = interaction_mod.parse_row_id(resource_id)
+        record = db.get(EventResourceRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id:
+            raise HTTPException(404, "resource_not_found")
+        return record
+
+    @app.get("/api/admin/events/{event_id}/resources")
+    def admin_list_event_resources(
+        event_id: str,
+        response: Response,
+        include_removed: bool = Query(default=False),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        query = select(EventResourceRecord).where(EventResourceRecord.event_id == event_id)
+        if not include_removed:
+            query = query.where(EventResourceRecord.status != "removed")
+        rows = db.scalars(query.order_by(EventResourceRecord.sort_order.asc(), EventResourceRecord.created_at.asc())).all()
+        return {
+            "source": "shared_server_database",
+            "event_id": event_id,
+            "items": [interaction_mod.resource_admin_view(row) for row in rows],
+            "limits": {"max_bytes": interaction_mod.MAX_BYTES, "content_types": list(interaction_mod.CONTENT_TYPES)},
+        }
+
+    @app.post("/api/admin/events/{event_id}/resources", status_code=201)
+    async def admin_create_event_resource(
+        event_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        payload = await _read_json_object(request, 16_384)
+        try:
+            fields = interaction_mod.validate_resource_fields(
+                payload, existing=None, parse_datetime=event_time.parse_event_datetime
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if fields.get("status") == "published" and fields.get("kind", "file") == "file":
+            # A file row cannot be published before its bytes exist.
+            raise HTTPException(409, {"code": "resource_file_missing"})
+        actor_kind, actor_id = _interaction_actor(identity)
+        record = EventResourceRecord(
+            id=interaction_mod.new_id(), event_id=event_id, created_by_kind=actor_kind, created_by_id=actor_id,
+            status=fields.pop("status", "draft"), **fields,
+        )
+        db.add(record)
+        record_audit(
+            db, identity, "event_resource.create", target_type="event_resource", target_id=record.id,
+            details={"event_id": event_id, "kind": record.kind, "access": record.access, "status": record.status},
+        )
+        db.commit()
+        db.refresh(record)
+        return interaction_mod.resource_admin_view(record)
+
+    @app.put("/api/admin/events/{event_id}/resources/{resource_id}")
+    async def admin_update_event_resource(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed":
+            raise HTTPException(409, {"code": "resource_removed"})
+        payload = await _read_json_object(request, 16_384)
+        try:
+            fields = interaction_mod.validate_resource_fields(
+                payload, existing=record, parse_datetime=event_time.parse_event_datetime
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if "kind" in fields and fields["kind"] != record.kind:
+            raise HTTPException(409, {"code": "resource_kind_immutable"})
+        if fields.get("status") == "published" and record.kind == "file" and record.content is None:
+            raise HTTPException(409, {"code": "resource_file_missing"})
+        before = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
+        for key, value in fields.items():
+            setattr(record, key, value)
+        after = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
+        changed = sorted(fields)
+        # Audit details are flat scalars (see audit.sanitize_details): before/after per watched key.
+        details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(changed)[:200]}
+        for key in ("access", "status", "publish_at"):
+            if before[key] != after[key]:
+                details[f"{key}_before"] = before[key]
+                details[f"{key}_after"] = after[key]
+        record_audit(
+            db, identity, "event_resource.update", target_type="event_resource", target_id=record.id,
+            details=details,
+        )
+        db.commit()
+        db.refresh(record)
+        return interaction_mod.resource_admin_view(record)
+
+    @app.put("/api/admin/events/{event_id}/resources/{resource_id}/file")
+    async def admin_upload_event_resource_file(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Upload or replace the bytes of a file resource (raw body + ``X-File-Name``)."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed" or record.kind != "file":
+            raise HTTPException(409, {"code": "resource_not_file"})
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="event-resource-upload")
+        declared = unquote(request.headers.get("x-file-name", "resource"))
+        chunks: list[bytes] = []
+        size = 0
+        async for chunk in request.stream():
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > interaction_mod.MAX_BYTES:
+                record_audit(
+                    db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                    outcome="rejected", details={"code": "file_too_large", "size": size},
+                )
+                db.commit()
+                raise HTTPException(413, "file_too_large")
+            chunks.append(chunk)
+        content = b"".join(chunks)
+        try:
+            content_type, file_name, digest = interaction_mod.validate_upload(content, declared)
+        except interaction_mod.InteractionError as error:
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                outcome="rejected", details={"code": error.code, "size": len(content)},
+            )
+            db.commit()
+            raise _interaction_error(error) from None
+        previous_hash = record.content_hash
+        record.content = content
+        record.content_type = content_type
+        record.content_size = len(content)
+        record.content_hash = digest
+        record.file_name = file_name
+        record_audit(
+            db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+            details={
+                "event_id": event_id, "content_type": content_type, "size": len(content),
+                "replaced": bool(previous_hash), "previous_hash": previous_hash[:16],
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return interaction_mod.resource_admin_view(record)
+
+    @app.post("/api/admin/events/{event_id}/resources/{resource_id}/remove")
+    async def admin_remove_event_resource(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Logical removal: the row (and its audit trail) stays; downloads stop immediately."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reason"}:
+            raise HTTPException(400, "invalid_removal")
+        try:
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if record.status != "removed":
+            record.status = "removed"
+            record.removed_at = _utc_now()
+            record.removed_reason = reason
+            record.content = None
+            record_audit(
+                db, identity, "event_resource.remove", target_type="event_resource", target_id=record.id,
+                details={"event_id": event_id, "reason": reason, "size": record.content_size},
+            )
+            db.commit()
+            db.refresh(record)
+        return interaction_mod.resource_admin_view(record)
+
     @app.get("/api/owner/data/status")
     def get_owner_data_status(
         request: Request,
