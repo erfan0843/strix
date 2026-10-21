@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import csv
 import hashlib
+import io
 import hmac
 import html
 import json
@@ -49,6 +51,7 @@ from . import club_points as club_points_mod
 from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
 from . import event_interaction as interaction_mod
+from . import recordings as recordings_mod
 from . import event_time
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
@@ -66,11 +69,13 @@ from .models import (
     AccountRoleRecord,
     AccountSessionRecord,
     CertificateRecord,
+    AdminAuditEventRecord,
     AdminTaskRecord,
     Base,
     CooperationRequestRecord,
     EventContentReportRecord,
     EventQuestionRecord,
+    EventRecordingRecord,
     EventResourceRecord,
     EventReviewRecord,
     FormFieldRecord,
@@ -89,6 +94,9 @@ from .models import (
     PrivateFileRecord,
     PublicMediaRecord,
     PublicWriteThrottleRecord,
+    RecordingAccessRecord,
+    RecordingOrderRecord,
+    RecordingSessionRecord,
     SiteContentRecord,
     UserNotificationRecord,
 )
@@ -2008,6 +2016,11 @@ def create_app(
             event["registration"] = event_time.registration_state(
                 event, now=now, has_form=primary is not None, form_full=form_full
             )
+        cards = _recording_cards(db, [str(event.get("id")) for event in public["events"] if event.get("id")])
+        for event in public["events"]:
+            card = cards.get(str(event.get("id")))
+            if card is not None:
+                event["recording"] = card
         public["banners"] = _public_banner_rows(public["banners"], public["events"], now, owner_view=owner_view)
         for person in public["people"]:
             form_id = str(person.get("form") or "")
@@ -2058,6 +2071,13 @@ def create_app(
                     "startsAt": event.get("startsAt") or "", "regClosesAt": event.get("regClosesAt") or "",
                     "state": state, "lifecycle": registration.get("lifecycle") or "scheduled",
                 }
+                recording_card = event.get("recording") if isinstance(event.get("recording"), dict) else None
+                if recording_card is not None and recording_card.get("sellable"):
+                    # The banner of a recorded product leads to its sales section; a countdown
+                    # (registration/start) would be a lie for a held event.
+                    row["event"]["recording"] = {"sellable": True, "price": recording_card.get("price", 0)}
+                    row["href"] = f"event.html?id={event.get('id')}#recording"
+                    countdown = ""
                 if not row.get("href"):
                     row["href"] = f"event.html?id={event.get('id')}"
                 if countdown == "reg_close":
@@ -3225,6 +3245,11 @@ def create_app(
             _interaction_participation(db, account.account_id, event_id) if account is not None else None
         )
         viewer_id = account.account_id if account is not None else None
+        recording_row = _recording_for_event(db, event_id)
+        recording_viewer = _recording_viewer(
+            db, recording_row, account=account, staff=staff is not None, participation=participation, now=now,
+        )
+        purchased_state = _purchased_state(recording_row, recording_viewer)
         resources = db.scalars(
             select(EventResourceRecord)
             .where(EventResourceRecord.event_id == event_id, EventResourceRecord.status != "removed")
@@ -3232,11 +3257,16 @@ def create_app(
         ).all()
         resource_rows = [
             interaction_mod.resource_public_view(
-                row, now=now, signed_in=account is not None, participation=participation, staff=staff is not None
+                row, now=now, signed_in=account is not None, participation=participation, staff=staff is not None,
+                purchased=purchased_state,
             )
             for row in resources
-            if staff is not None or interaction_mod.resource_is_live(row, now)
+            # Session files of the recorded product are listed inside its sessions, not in the general list.
+            if (staff is not None or interaction_mod.resource_is_live(row, now)) and not row.session_id
         ]
+        recording_payload = _recording_public_payload(
+            db, request, event_id=event_id, public_event=public_event, account=account, staff=staff is not None, now=now,
+        )
         questions = db.scalars(
             select(EventQuestionRecord)
             .where(EventQuestionRecord.event_id == event_id)
@@ -3256,6 +3286,7 @@ def create_app(
         mine_review = next((row for row in reviews if viewer_id and row.account_id == viewer_id), None)
         lifecycle = str(source.get("lifecycle") or stored.get("lifecycle") or "scheduled")
         qa_closed = bool(source.get("qaClosed") if public_event else stored.get("qaClosed") is True)
+        buyer = recording_viewer.access_state == "active"
         return {
             "source": "shared_server_database",
             "server_time": event_time.to_iso(now),
@@ -3264,6 +3295,7 @@ def create_app(
                 "title": str(source.get("t") or stored.get("t") or "")[:240],
                 "published": public_event is not None,
                 "lifecycle": lifecycle,
+                "held": recordings_mod.event_held(source, now) if public_event else False,
                 "qa_open": not qa_closed and lifecycle != "cancelled",
                 "qa_closed_reason": "cancelled" if lifecycle == "cancelled" else ("closed" if qa_closed else ""),
             },
@@ -3271,7 +3303,9 @@ def create_app(
                 "signed_in": account is not None,
                 "staff": staff is not None,
                 "participation": (participation or interaction_mod.Participation()).as_dict(),
+                "buyer": buyer,
             },
+            "recording": recording_payload,
             "resources": resource_rows,
             "questions": {
                 "items": [
@@ -3282,7 +3316,8 @@ def create_app(
                 "mine_pending": sum(1 for row in visible_questions if viewer_id and row.account_id == viewer_id and row.status == "pending"),
             },
             "reviews": {
-                "eligible": bool(participation and participation.attended),
+                "eligible": bool(participation and participation.attended) or buyer,
+                "badge": "attendee" if participation and participation.attended else ("buyer" if buyer else ""),
                 "items": [
                     interaction_mod.review_public_view(row, viewer_account_id=viewer_id, reported=row.id in reported_r)
                     for row in visible_reviews
@@ -3317,27 +3352,79 @@ def create_app(
         participation = (
             _interaction_participation(db, account.account_id, event_id) if account is not None else None
         )
+        purchased_state: tuple[bool, str] | None = None
+        preview_open = False
+        if record.access == "purchased" or record.session_id:
+            recording_row = _recording_for_event(db, event_id)
+            viewer = _recording_viewer(
+                db, recording_row, account=account, staff=staff is not None, participation=participation, now=now,
+            )
+            purchased_state = _purchased_state(recording_row, viewer)
+            if recording_row is not None and record.session_id and recording_row.status in recordings_mod.SHELF_STATUSES:
+                session = db.get(RecordingSessionRecord, record.session_id)
+                preview_open = bool(
+                    session is not None and session.preview and session.status == "published"
+                    and record.access in {"public", "purchased"}
+                )
         allowed, reason = interaction_mod.resource_access_state(
-            record, now=now, signed_in=account is not None, participation=participation, staff=staff is not None
+            record, now=now, signed_in=account is not None, participation=participation, staff=staff is not None,
+            purchased=purchased_state,
         )
+        if not allowed and preview_open and interaction_mod.resource_is_live(record, now):
+            allowed, reason = True, "preview"
         if not allowed:
             if reason in {"removed", "not_published"}:
                 raise HTTPException(404, "resource_not_found")
+            if reason.startswith("purchase") or reason.startswith("access_"):
+                # Unauthorized attempts on paid content are logged (no bytes, no account data in the row).
+                audit_mod.record_admin_event(
+                    db, actor_kind=audit_mod.ACTOR_ACCOUNT if account is not None else "guest",
+                    actor_id=account.account_id if account is not None else "", actor_role="",
+                    action="recording.download.denied", target_type="event_resource", target_id=record.id,
+                    outcome="denied", details={"event_id": event_id, "reason": reason},
+                )
+                db.commit()
             raise HTTPException(
                 401 if reason == "login_required" else 403,
                 {"code": "resource_access_denied", "reason": reason},
             )
         if record.content is None:
             raise HTTPException(404, "resource_not_found")
+        return _resource_file_response(request, record, reason)
+
+    def _resource_file_response(request: Request, record: EventResourceRecord, reason: str) -> Response:
+        """Whole file (download) or inline bytes with HTTP Range support (``delivery='view'``)."""
+        content = record.content or b""
         headers = {
             "Cache-Control": "private, no-store",
             "Vary": "Cookie",
             "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "default-src 'none'; sandbox",
-            "Content-Disposition": interaction_mod.content_disposition(record.file_name),
             "X-Nora-Resource-Access": reason,
         }
-        return Response(content=record.content, media_type=record.content_type, headers=headers)
+        if record.delivery != "view":
+            headers["Content-Disposition"] = interaction_mod.content_disposition(record.file_name)
+            return Response(content=content, media_type=record.content_type, headers=headers)
+        headers["Content-Disposition"] = interaction_mod.content_disposition(record.file_name).replace("attachment", "inline", 1)
+        headers["Accept-Ranges"] = "bytes"
+        total = len(content)
+        range_header = request.headers.get("range", "")
+        match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip()) if range_header else None
+        if match is None:
+            return Response(content=content, media_type=record.content_type, headers=headers)
+        start_text, end_text = match.group(1), match.group(2)
+        if not start_text and not end_text:
+            raise HTTPException(416, "range_not_satisfiable", headers={"Content-Range": f"bytes */{total}"})
+        if start_text:
+            start = int(start_text)
+            end = min(int(end_text), total - 1) if end_text else total - 1
+        else:
+            suffix = int(end_text)
+            start, end = max(0, total - suffix), total - 1
+        if start >= total or start > end:
+            raise HTTPException(416, "range_not_satisfiable", headers={"Content-Range": f"bytes */{total}"})
+        headers["Content-Range"] = f"bytes {start}-{end}/{total}"
+        return Response(content=content[start:end + 1], status_code=206, media_type=record.content_type, headers=headers)
 
     def _interaction_event_for_write(db: Session, event_id: str) -> tuple[str, dict[str, Any]]:
         try:
@@ -3579,6 +3666,16 @@ def create_app(
             raise HTTPException(404, "event_not_found")
         return event_id
 
+    def _check_resource_session(db: Session, event_id: str, fields: dict[str, Any]) -> None:
+        """A resource may only hang off a session of *this* event's recorded product."""
+        session_id = fields.get("session_id")
+        if not session_id:
+            return
+        session = db.get(RecordingSessionRecord, session_id)
+        recording = db.get(EventRecordingRecord, session.recording_id) if session is not None else None
+        if session is None or recording is None or recording.event_id != event_id:
+            raise HTTPException(404, "session_not_found")
+
     def _admin_resource(db: Session, event_id: str, resource_id: str) -> EventResourceRecord:
         parsed = interaction_mod.parse_row_id(resource_id)
         record = db.get(EventResourceRecord, parsed) if parsed else None
@@ -3625,6 +3722,7 @@ def create_app(
         if fields.get("status") == "published" and fields.get("kind", "file") == "file":
             # A file row cannot be published before its bytes exist.
             raise HTTPException(409, {"code": "resource_file_missing"})
+        _check_resource_session(db, event_id, fields)
         actor_kind, actor_id = _interaction_actor(identity)
         record = EventResourceRecord(
             id=interaction_mod.new_id(), event_id=event_id, created_by_kind=actor_kind, created_by_id=actor_id,
@@ -3662,6 +3760,7 @@ def create_app(
             raise HTTPException(409, {"code": "resource_kind_immutable"})
         if fields.get("status") == "published" and record.kind == "file" and record.content is None:
             raise HTTPException(409, {"code": "resource_file_missing"})
+        _check_resource_session(db, event_id, fields)
         before = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
         for key, value in fields.items():
             setattr(record, key, value)
@@ -4171,6 +4270,1334 @@ def create_app(
             "pending_reviews": pending_reviews,
             "open_reports": open_reports,
             "failed_notifications": failed_notifications,
+            "per_event": per_event,
+        }
+
+    # ── فاز ۹: محصول ضبط‌شدهٔ رویداد، سفارش خرید و دسترسی ──
+    # محصول به همان رویداد site_content بسته است؛ فایل‌ها همان event_resources هستند
+    # (access='purchased' + session_id). دسترسی فقط با ردیف recording_access یا
+    # پیش‌نمایش ستاد تصمیم می‌گیرد؛ هیچ داده‌ای از مرورگر مبنای دسترسی نیست.
+    _RECORDING_EDIT_PERMS = ("ev_create",)
+    _RECORDING_STATUS_PERMS = ("ev_publish",)
+    _RECORDING_ORDER_READ_PERMS = ("receipt_approve", "ev_publish", "finance")
+    _RECORDING_DECISION_PERMS = ("receipt_approve",)
+    _RECORDING_REFUND_PERMS = ("finance",)
+
+    def _recording_error(error: interaction_mod.InteractionError) -> HTTPException:
+        return _interaction_error(error)
+
+    def _wallet_ready(db: Session, request: Request) -> bool:
+        return bool(_runtime_settings(db, request.app.state.settings).form_bale_payments_ready)
+
+    def _recording_for_event(db: Session, event_id: str, *, for_update: bool = False) -> EventRecordingRecord | None:
+        query = select(EventRecordingRecord).where(EventRecordingRecord.event_id == event_id)
+        if for_update:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    def _recording_sessions(db: Session, recording_id: str) -> list[RecordingSessionRecord]:
+        return list(db.scalars(
+            select(RecordingSessionRecord)
+            .where(RecordingSessionRecord.recording_id == recording_id)
+            .order_by(RecordingSessionRecord.sort_order.asc(), RecordingSessionRecord.created_at.asc())
+        ).all())
+
+    def _recording_resources(db: Session, event_id: str) -> list[EventResourceRecord]:
+        return list(db.scalars(
+            select(EventResourceRecord)
+            .where(EventResourceRecord.event_id == event_id, EventResourceRecord.status != "removed")
+            .order_by(EventResourceRecord.sort_order.asc(), EventResourceRecord.created_at.asc())
+        ).all())
+
+    def _recording_viewer(
+        db: Session, recording: EventRecordingRecord | None, *, account: AccountIdentity | None,
+        staff: bool, participation: interaction_mod.Participation | None, now: datetime,
+    ) -> recordings_mod.Viewer:
+        account_id = account.account_id if account is not None else None
+        access = recordings_mod.access_for(db, recording.id, account_id) if recording is not None else None
+        open_order = recordings_mod.open_order_for(db, recording.id, account_id) if recording is not None else None
+        if open_order is not None and recordings_mod.expire_open_order(open_order, now):
+            db.commit()
+            open_order = None
+        previous = (
+            recordings_mod.latest_closed_order_for(db, recording.id, account_id)
+            if recording is not None and open_order is None else None
+        )
+        return recordings_mod.Viewer(
+            signed_in=account is not None, staff=staff, account_id=account_id, participation=participation,
+            access=access, access_state=recordings_mod.access_state(access, now),
+            open_order=open_order, previous_order=previous,
+        )
+
+    def _purchased_state(recording: EventRecordingRecord | None, viewer: recordings_mod.Viewer) -> tuple[bool, str]:
+        """``(allowed, reason)`` for ``access='purchased'`` resources, decided by the product layer."""
+        if recording is None:
+            return False, "purchase_required"
+        if recording.status not in recordings_mod.SHELF_STATUSES and not viewer.staff and viewer.access_state != "active":
+            return False, "purchase_required"
+        return recordings_mod.has_content_access(recording, viewer)
+
+    def _recording_public_payload(
+        db: Session, request: Request, *, event_id: str, public_event: dict[str, Any] | None,
+        account: AccountIdentity | None, staff: bool, now: datetime,
+    ) -> dict[str, Any] | None:
+        """The ``recording`` block of the public event page (``None`` when there is no shelf product)."""
+        recording = _recording_for_event(db, event_id)
+        if recording is None or (recording.status not in recordings_mod.SHELF_STATUSES and not staff):
+            return None
+        participation = _interaction_participation(db, account.account_id, event_id) if account is not None else None
+        viewer = _recording_viewer(db, recording, account=account, staff=staff, participation=participation, now=now)
+        allowed, reason = recordings_mod.has_content_access(recording, viewer)
+        sessions = _recording_sessions(db, recording.id)
+        resources = _recording_resources(db, event_id)
+        by_session: dict[str, list[EventResourceRecord]] = {}
+        for row in resources:
+            if row.session_id:
+                by_session.setdefault(row.session_id, []).append(row)
+        session_views: list[dict[str, Any]] = []
+        total_minutes = 0
+        for session in sessions:
+            if session.status != "published" and not staff:
+                continue
+            rows = [
+                recordings_mod.session_resource_view(
+                    row, recording=recording, session=session, allowed=allowed, reason=reason, now=now, staff=staff,
+                )
+                for row in by_session.get(session.id, [])
+                if staff or interaction_mod.resource_is_live(row, now)
+            ]
+            session_views.append(recordings_mod.session_public_view(session, rows, staff=staff))
+            if session.status == "published":
+                total_minutes += int(session.duration_minutes or 0)
+        cta = recordings_mod.viewer_cta(recording, viewer, wallet_ready=_wallet_ready(db, request))
+        return recordings_mod.recording_public_view(
+            recording, sessions=session_views, viewer=viewer, cta=cta, total_minutes=total_minutes, staff=staff,
+        )
+
+    def _recording_cards(db: Session, event_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Shelf summaries keyed by event id for the public snapshot (published/paused only)."""
+        if not event_ids:
+            return {}
+        rows = db.scalars(
+            select(EventRecordingRecord).where(
+                EventRecordingRecord.event_id.in_(event_ids),
+                EventRecordingRecord.status.in_(recordings_mod.SHELF_STATUSES),
+            )
+        ).all()
+        stats = recordings_mod.session_stats(db, [row.id for row in rows])
+        out: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            count, minutes = stats.get(row.id, (0, 0))
+            out[row.event_id] = recordings_mod.recording_card_view(row, session_count=count, total_minutes=minutes)
+        return out
+
+    def _recording_event_title(db: Session, event_id: str) -> str:
+        return _interaction_event_titles(db, {event_id}).get(event_id, "")
+
+    def _queue_recording_access_notification(
+        db: Session, access: RecordingAccessRecord, recording: EventRecordingRecord, *, kind_label: str,
+    ) -> UserNotificationRecord:
+        """One outbox row per access grant; web-only accounts get an honest ``failed`` row."""
+        bale_ids = verified_bale_ids_for_account(db, access.account_id)
+        target = bale_ids[0] if bale_ids else ""
+        title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+        expiry = interaction_mod.iso(access.expires_at)
+        body = f"دسترسی شما به «{title}» فعال شد ({kind_label})."
+        if expiry:
+            body += f"\nاعتبار دسترسی تا: {event_time.to_local_input(expiry)}"
+        body += "\nبرای مشاهده به بخش «محتوای من» در حساب کاربری بروید."
+        item = UserNotificationRecord(
+            id=str(uuid.uuid4()),
+            account_id=access.account_id,
+            bale_user_id=target,
+            source_task_id=None,
+            kind=recordings_mod.NOTIFICATION_KIND,
+            title="دسترسی به محتوای ضبط‌شده",
+            body=body,
+            file_refs=[],
+            delivery_status="pending" if target else "failed",
+            delivery_attempts=0,
+            last_delivery_error=None if target else "no_bale_identity",
+        )
+        db.add(item)
+        db.flush()
+        return item
+
+    def _grant_recording_access(
+        db: Session, recording: EventRecordingRecord, account_id: str, *, source: str, now: datetime,
+        order: RecordingOrderRecord | None = None, actor: tuple[str, str] = ("", ""), reason: str = "",
+        access_days: int | None = None,
+    ) -> tuple[RecordingAccessRecord, bool]:
+        """Idempotent: one row per (product, account); re-activates revoked/expired rows."""
+        row = recordings_mod.access_for(db, recording.id, account_id)
+        created = row is None
+        expires = recordings_mod.access_expiry(recording, now, days=access_days)
+        if row is None:
+            row = RecordingAccessRecord(
+                id=interaction_mod.new_id(), recording_id=recording.id, account_id=account_id,
+                source=source, status="active", order_id=order.id if order else None, expires_at=expires,
+                granted_by_kind=actor[0], granted_by_id=actor[1], reason=reason,
+            )
+            db.add(row)
+        else:
+            row.source = source
+            row.status = "active"
+            row.order_id = order.id if order else row.order_id
+            row.expires_at = expires
+            row.granted_by_kind, row.granted_by_id = actor
+            row.reason = reason
+            row.revoked_at = None
+            row.revoked_by_kind = ""
+            row.revoked_by_id = ""
+            row.revoke_reason = ""
+        db.flush()
+        label = {"purchase": "خرید", "free": "دسترسی رایگان", "granted": "اعطای دستی"}.get(source, source)
+        _queue_recording_access_notification(db, row, recording, kind_label=label)
+        return row, created
+
+    def _recording_admin_counts(db: Session, recording_id: str) -> dict[str, int]:
+        now = _utc_now()
+        rows = db.execute(
+            select(RecordingOrderRecord.status, func.count(RecordingOrderRecord.id))
+            .where(RecordingOrderRecord.recording_id == recording_id)
+            .group_by(RecordingOrderRecord.status)
+        ).all()
+        by_status = {str(status): int(count) for status, count in rows}
+        access_rows = db.scalars(
+            select(RecordingAccessRecord).where(RecordingAccessRecord.recording_id == recording_id)
+        ).all()
+        return {
+            "orders_open": sum(by_status.get(s, 0) for s in recordings_mod.OPEN_ORDER_STATUSES),
+            "orders_review": sum(by_status.get(s, 0) for s in recordings_mod.REVIEWABLE_ORDER_STATUSES),
+            "orders_paid": sum(by_status.get(s, 0) for s in recordings_mod.PAID_ORDER_STATUSES),
+            "orders_refunded": by_status.get("refunded", 0),
+            "access_active": sum(1 for row in access_rows if recordings_mod.access_state(row, now) == "active"),
+            "access_total": len(access_rows),
+        }
+
+    def _recording_admin_payload(
+        db: Session, request: Request, recording: EventRecordingRecord, *, event_id: str,
+    ) -> dict[str, Any]:
+        sessions = _recording_sessions(db, recording.id)
+        resources = _recording_resources(db, event_id)
+        per_session: dict[str, int] = {}
+        for row in resources:
+            if row.session_id:
+                per_session[row.session_id] = per_session.get(row.session_id, 0) + 1
+        public_event, _stored = _interaction_event(db, event_id)
+        blockers = recordings_mod.publish_blockers(
+            recording, public_event, sessions, resources, now=_utc_now(), wallet_ready=_wallet_ready(db, request),
+        )
+        return recordings_mod.recording_admin_view(
+            recording,
+            sessions=[recordings_mod.session_admin_view(s, resource_count=per_session.get(s.id, 0)) for s in sessions],
+            blockers=blockers, counts=_recording_admin_counts(db, recording.id),
+            event_title=_recording_event_title(db, event_id),
+        )
+
+    # ── عمومی ──
+
+    @app.get("/api/public/recordings")
+    def public_recordings_shelf(
+        response: Response,
+        limit: int = Query(default=50, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        db: Session = Depends(get_db),
+    ):
+        """Published/paused recorded products of published events (store shelf)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        record = db.get(SiteContentRecord, "public")
+        events = {
+            str(row.get("id")): row
+            for row in (public_site_content({"events": _content_rows(record, "events")}).get("events") or [])
+            if isinstance(row, dict) and row.get("id")
+        }
+        rows = db.scalars(
+            select(EventRecordingRecord)
+            .where(EventRecordingRecord.status.in_(recordings_mod.SHELF_STATUSES))
+            .order_by(EventRecordingRecord.published_at.desc().nullslast(), EventRecordingRecord.updated_at.desc())
+        ).all()
+        visible = [row for row in rows if row.event_id in events]
+        stats = recordings_mod.session_stats(db, [row.id for row in visible])
+        items: list[dict[str, Any]] = []
+        for row in visible[offset:offset + limit]:
+            count, minutes = stats.get(row.id, (0, 0))
+            card = recordings_mod.recording_card_view(row, session_count=count, total_minutes=minutes)
+            event = events[row.event_id]
+            card["event"] = {
+                "id": row.event_id, "t": event.get("t"), "kind": event.get("kind"), "when": event.get("when"),
+                "on": event.get("on"), "img": event.get("img"), "instructor": event.get("by") or event.get("instructor") or "",
+                "cat": event.get("cat") or "",
+            }
+            items.append(card)
+        return {
+            "source": "shared_server_database", "server_time": event_time.to_iso(_utc_now()),
+            "items": items, "total": len(visible), "limit": limit, "offset": offset,
+        }
+
+    @app.get("/api/public/events/{event_id}/recording")
+    def public_event_recording(event_id: str, request: Request, response: Response, db: Session = Depends(get_db)):
+        """The recorded product of one event for the current viewer, with the single server-decided CTA."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        staff = _interaction_staff(request, db)
+        account = staff if isinstance(staff, AccountIdentity) else (
+            account_identity_from_request(request, db) if staff is None else None
+        )
+        public_event, stored = _interaction_event(db, event_id)
+        if stored is None or (public_event is None and staff is None):
+            raise HTTPException(404, "event_not_found")
+        now = _utc_now()
+        payload = _recording_public_payload(
+            db, request, event_id=event_id, public_event=public_event, account=account, staff=staff is not None, now=now,
+        )
+        if payload is None:
+            raise HTTPException(404, "recording_not_found")
+        source = public_event or {}
+        return {
+            "source": "shared_server_database",
+            "server_time": event_time.to_iso(now),
+            "event": {
+                "id": event_id,
+                "title": str(source.get("t") or stored.get("t") or "")[:240],
+                "published": public_event is not None,
+                "held": recordings_mod.event_held(source, now) if public_event else False,
+                "lifecycle": str(source.get("lifecycle") or stored.get("lifecycle") or "scheduled"),
+            },
+            "recording": payload,
+        }
+
+    # ── حساب کاربری: دریافت رایگان، سفارش، رسید، کتابخانه ──
+
+    def _account_recording(db: Session, recording_id: str, *, for_update: bool = False) -> EventRecordingRecord:
+        parsed = interaction_mod.parse_row_id(recording_id)
+        if parsed is None:
+            raise HTTPException(404, "recording_not_found")
+        query = select(EventRecordingRecord).where(EventRecordingRecord.id == parsed)
+        if for_update:
+            query = query.with_for_update()
+        record = db.scalar(query)
+        if record is None:
+            raise HTTPException(404, "recording_not_found")
+        public_event, _stored = _interaction_event(db, record.event_id)
+        if public_event is None:
+            raise HTTPException(404, "recording_not_found")
+        return record
+
+    def _account_order(db: Session, identity: AccountIdentity, order_id: str, *, for_update: bool = False) -> RecordingOrderRecord:
+        parsed = interaction_mod.parse_row_id(order_id)
+        if parsed is None:
+            raise HTTPException(404, "order_not_found")
+        query = select(RecordingOrderRecord).where(RecordingOrderRecord.id == parsed)
+        if for_update:
+            query = query.with_for_update()
+        record = db.scalar(query)
+        # Another account's order is a 404, never a 403 (no existence leak).
+        if record is None or record.account_id != identity.account_id:
+            raise HTTPException(404, "order_not_found")
+        return record
+
+    @app.post("/api/account/recordings/{recording_id}/claim", status_code=201)
+    def account_claim_free_recording(
+        recording_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """Free product → access row directly; no order, no fake transaction."""
+        recording = _account_recording(db, recording_id, for_update=True)
+        if recording.status != "published":
+            raise HTTPException(409, {"code": "recording_not_on_sale", "status": recording.status})
+        if recording.price > 0:
+            raise HTTPException(409, {"code": "recording_not_free"})
+        now = _utc_now()
+        existing = recordings_mod.access_for(db, recording.id, identity.account_id)
+        if existing is not None and recordings_mod.access_state(existing, now) == "active":
+            return {"claimed": True, "created": False, "access": recordings_mod.access_view(existing, now)}
+        if existing is not None and existing.status == "revoked":
+            raise HTTPException(409, {"code": "access_revoked"})
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=30, scope="recording-claim")
+        row, created = _grant_recording_access(
+            db, recording, identity.account_id, source="free", now=now, actor=("account", identity.account_id),
+            reason="free_claim",
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing_row = recordings_mod.access_for(db, recording.id, identity.account_id)
+            if existing_row is None:
+                raise HTTPException(409, {"code": "access_conflict"}) from None
+            row, created = existing_row, False
+        return {"claimed": True, "created": created, "access": recordings_mod.access_view(row, now)}
+
+    async def _ensure_bale_payment_webhook(cfg: Settings) -> None:
+        """Make sure Bale posts payment updates to our dedicated webhook path (idempotent)."""
+        webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
+        webhook_result = webhook_info.get("result")
+        configured_webhook = webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
+        registered_webhook_url = _form_payment_registered_webhook_url(cfg)
+        current_webhook_url = configured_webhook.rstrip("/")
+        base_webhook_url = cfg.form_payment_webhook_url.rstrip("/")
+        if current_webhook_url == registered_webhook_url:
+            return
+        if current_webhook_url not in {"", base_webhook_url}:
+            raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
+        await asyncio.to_thread(call_bale_payment_api, cfg, "setWebhook", {"url": registered_webhook_url})
+        verified_webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
+        verified_result = verified_webhook_info.get("result")
+        verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
+        if verified_url.rstrip("/") != registered_webhook_url:
+            raise HTTPException(503, detail={"code": "bale_payment_webhook_registration_failed"})
+
+    @app.post("/api/account/recordings/{recording_id}/orders", status_code=201)
+    async def account_create_recording_order(
+        recording_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """Open one order for a paid product; amount/currency come from the server row only."""
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"method"}:
+            raise HTTPException(400, "invalid_order")
+        try:
+            method = interaction_mod.choice(payload.get("method"), recordings_mod.ORDER_METHODS, field="method")
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        recording = _account_recording(db, recording_id, for_update=True)
+        if recording.status != "published":
+            raise HTTPException(409, {"code": "recording_not_on_sale", "status": recording.status})
+        if recording.price <= 0:
+            raise HTTPException(409, {"code": "recording_is_free"})
+        now = _utc_now()
+        access = recordings_mod.access_for(db, recording.id, identity.account_id)
+        if recordings_mod.access_state(access, now) == "active":
+            raise HTTPException(409, {"code": "access_already_active"})
+        existing = recordings_mod.open_order_for(db, recording.id, identity.account_id)
+        if existing is not None and recordings_mod.expire_open_order(existing, now):
+            db.commit()
+            existing = None
+        if existing is not None:
+            # Idempotent: the open order is returned, never a second one.
+            return JSONResponse(status_code=200, content=recordings_mod.order_account_view(existing, recording))
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=20, scope="recording-order")
+        order_id = interaction_mod.new_id()
+        order = RecordingOrderRecord(
+            id=order_id, recording_id=recording.id, account_id=identity.account_id, method=method,
+            amount=recording.price, currency=recording.currency,
+            idempotency_key=recordings_mod.new_order_idempotency_key(recording.id, identity.account_id, order_id),
+        )
+        if method == "card_transfer":
+            if recording.payment_card is None:
+                raise HTTPException(503, {"code": "payment_method_not_available", "method": method})
+            order.status = "awaiting_receipt"
+            order.expires_at = now + recordings_mod.CARD_ORDER_TTL
+        else:
+            if not recording.bale_enabled or not cfg.form_bale_payments_ready:
+                raise HTTPException(503, {"code": "payment_method_not_available", "method": method})
+            bale_ids = verified_bale_ids_for_account(db, identity.account_id)
+            if not bale_ids:
+                raise HTTPException(409, {"code": "bale_identity_required"})
+            try:
+                await _ensure_bale_payment_webhook(cfg)
+                invoice_payload = recordings_mod.INVOICE_PREFIX + uuid.uuid4().hex
+                title = (recording.title or "محتوای ضبط‌شده").strip()[:32]
+                invoice_response = await asyncio.to_thread(
+                    call_bale_payment_api, cfg, "createInvoiceLink",
+                    {
+                        "title": title,
+                        "description": f"خرید دسترسی: {recording.title[:200]}"[:255],
+                        "payload": invoice_payload,
+                        "provider_token": cfg.form_payment_provider_token,
+                        "currency": recording.currency,
+                        "prices": [{"label": title, "amount": recording.price}],
+                    },
+                )
+                order.invoice_url = validated_invoice_url(invoice_response.get("result"))
+            except HTTPException:
+                raise
+            except BalePaymentAPIError as error:
+                raise HTTPException(503, detail={"code": error.code}) from None
+            order.invoice_payload = invoice_payload
+            order.payer_bale_user_id = bale_ids[0]
+            order.status = "pending"
+            order.expires_at = now + timedelta(seconds=cfg.form_payment_ttl_seconds)
+        db.add(order)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, {"code": "order_conflict"}) from None
+        db.refresh(order)
+        return recordings_mod.order_account_view(order, recording)
+
+    @app.get("/api/account/recording-orders")
+    def account_list_recording_orders(
+        response: Response,
+        limit: int = Query(default=50, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        now = _utc_now()
+        rows = db.scalars(
+            select(RecordingOrderRecord)
+            .where(RecordingOrderRecord.account_id == identity.account_id)
+            .order_by(RecordingOrderRecord.created_at.desc(), RecordingOrderRecord.id.desc())
+        ).all()
+        changed = False
+        for row in rows:
+            changed = recordings_mod.expire_open_order(row, now) or changed
+        if changed:
+            db.commit()
+        products = {
+            row.id: row for row in db.scalars(
+                select(EventRecordingRecord).where(EventRecordingRecord.id.in_({r.recording_id for r in rows} or {""}))
+            ).all()
+        }
+        titles = _interaction_event_titles(db, {p.event_id for p in products.values()})
+        items = []
+        for row in rows[offset:offset + limit]:
+            view = recordings_mod.order_account_view(row, products.get(row.recording_id))
+            product = products.get(row.recording_id)
+            view["event_title"] = titles.get(product.event_id, "") if product else ""
+            items.append(view)
+        return {"source": "shared_server_database", "items": items, "total": len(rows), "limit": limit, "offset": offset}
+
+    @app.get("/api/account/recording-orders/{order_id}")
+    def account_get_recording_order(
+        order_id: str, response: Response,
+        identity: AccountIdentity = Depends(require_account), db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        order = _account_order(db, identity, order_id)
+        if recordings_mod.expire_open_order(order, _utc_now()):
+            db.commit()
+        recording = db.get(EventRecordingRecord, order.recording_id)
+        view = recordings_mod.order_account_view(order, recording)
+        view["event_title"] = _recording_event_title(db, recording.event_id) if recording else ""
+        return view
+
+    @app.put("/api/account/recording-orders/{order_id}/receipt")
+    async def account_upload_recording_receipt(
+        order_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """Card-transfer receipt (raw body + ``X-File-Name``). Only moves the order to review."""
+        order = _account_order(db, identity, order_id, for_update=True)
+        now = _utc_now()
+        if recordings_mod.expire_open_order(order, now):
+            db.commit()
+        if order.method != "card_transfer" or order.status not in {"awaiting_receipt", "receipt_submitted"}:
+            raise HTTPException(409, {"code": "order_not_awaiting_receipt", "status": order.status})
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=20, scope="recording-receipt")
+        declared = unquote(request.headers.get("x-file-name", "receipt"))
+        note_raw = unquote(request.headers.get("x-receipt-note", ""))
+        chunks: list[bytes] = []
+        size = 0
+        async for chunk in request.stream():
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > recordings_mod.RECEIPT_MAX_BYTES:
+                raise HTTPException(413, "file_too_large")
+            chunks.append(chunk)
+        content = b"".join(chunks)
+        try:
+            content_type = recordings_mod.sniff_receipt(content)
+            note = interaction_mod.clean_text(note_raw, recordings_mod.NOTE_MAX, field="note")
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        order.receipt_content = content
+        order.receipt_content_type = content_type
+        order.receipt_file_name = recordings_mod.safe_receipt_name(declared, content_type)
+        order.receipt_size = len(content)
+        order.receipt_hash = hashlib.sha256(content).hexdigest()
+        order.receipt_note = note
+        order.receipt_submitted_at = now
+        order.status = "receipt_submitted"
+        order.updated_at = now
+        db.commit()
+        db.refresh(order)
+        return recordings_mod.order_account_view(order, db.get(EventRecordingRecord, order.recording_id))
+
+    @app.post("/api/account/recording-orders/{order_id}/cancel")
+    def account_cancel_recording_order(
+        order_id: str,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        order = _account_order(db, identity, order_id, for_update=True)
+        now = _utc_now()
+        if order.status not in {"pending", "awaiting_receipt"}:
+            raise HTTPException(409, {"code": "order_not_cancellable", "status": order.status})
+        order.status = "cancelled"
+        order.updated_at = now
+        db.commit()
+        db.refresh(order)
+        return recordings_mod.order_account_view(order, db.get(EventRecordingRecord, order.recording_id))
+
+    @app.get("/api/account/recordings")
+    def account_recording_library(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """«محتوای من»: every access row of the account with its real state (active/expired/revoked)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        now = _utc_now()
+        rows = db.execute(
+            select(RecordingAccessRecord, EventRecordingRecord)
+            .join(EventRecordingRecord, EventRecordingRecord.id == RecordingAccessRecord.recording_id)
+            .where(RecordingAccessRecord.account_id == identity.account_id)
+            .order_by(RecordingAccessRecord.created_at.desc())
+        ).all()
+        stats = recordings_mod.session_stats(db, [recording.id for _access, recording in rows])
+        titles = _interaction_event_titles(db, {recording.event_id for _access, recording in rows})
+        items = []
+        for access, recording in rows:
+            count, minutes = stats.get(recording.id, (0, 0))
+            items.append(recordings_mod.library_item_view(
+                access, recording, now=now, session_count=count, total_minutes=minutes,
+                event_title=titles.get(recording.event_id, ""),
+            ))
+        return {"source": "shared_server_database", "server_time": event_time.to_iso(now), "items": items, "total": len(items)}
+
+    # ── درگاه بله: شاخهٔ سفارش‌های محتوای ضبط‌شده (norac_) ──
+
+    async def _recording_webhook_precheckout(
+        db: Session, cfg: Settings, checkout: dict[str, Any], query_id: str, invoice_payload: str,
+    ) -> dict[str, Any]:
+        payer = checkout.get("from")
+        payer_id = payer.get("id") if isinstance(payer, dict) else None
+        amount = checkout.get("total_amount")
+        currency = checkout.get("currency")
+        order = db.scalar(
+            select(RecordingOrderRecord).where(RecordingOrderRecord.invoice_payload == invoice_payload).with_for_update()
+        )
+        recording = db.get(EventRecordingRecord, order.recording_id) if order is not None else None
+        now = _utc_now()
+        can_checkout = bool(
+            order is not None and order.method == "bale_wallet" and order.status == "pending"
+            and order.expires_at is not None and _as_utc(order.expires_at) > now
+            and isinstance(amount, int) and not isinstance(amount, bool)
+            and order.amount == amount and order.currency == currency == "IRR"
+            and isinstance(payer_id, (int, str)) and not isinstance(payer_id, bool)
+            and _BOT_FORM_USER_ID.fullmatch(str(payer_id))
+            and str(payer_id) == (order.payer_bale_user_id or "")
+            and recording is not None and recording.status == "published" and recording.price == order.amount
+        )
+        answer: dict[str, Any] = {"pre_checkout_query_id": query_id, "ok": can_checkout}
+        if not can_checkout:
+            answer["error_message"] = "این صورت‌حساب منقضی یا نامعتبر است؛ دوباره از صفحهٔ محتوا شروع کنید."
+        try:
+            await asyncio.to_thread(call_bale_payment_api, cfg, "answerPreCheckoutQuery", answer)
+        except BalePaymentAPIError as error:
+            raise HTTPException(503, detail={"code": error.code}) from None
+        return {"ok": True}
+
+    async def _recording_webhook_payment(
+        db: Session, cfg: Settings, *, invoice_payload: str, transaction_id: str, provider_charge_id: str | None,
+        callback_amount: int, callback_currency: str, payer_id: str,
+    ) -> dict[str, Any]:
+        """Grant access only after ``inquireTransaction`` says paid with matching amount/currency/payer."""
+        order = db.scalar(
+            select(RecordingOrderRecord).where(RecordingOrderRecord.invoice_payload == invoice_payload).with_for_update()
+        )
+        if order is None or order.method != "bale_wallet":
+            return {"ok": True}
+        prior = db.scalar(select(RecordingOrderRecord).where(RecordingOrderRecord.transaction_id == transaction_id))
+        if prior is not None and prior.id != order.id:
+            return {"ok": True}
+        if order.status in recordings_mod.PAID_ORDER_STATUSES and order.transaction_id == transaction_id:
+            return {"ok": True}  # duplicate delivery, already granted
+        if order.status in recordings_mod.PAID_ORDER_STATUSES:
+            return {"ok": True}  # paid through another charge; never a second grant
+        try:
+            inquiry = await asyncio.to_thread(call_bale_payment_api, cfg, "inquireTransaction", {"transaction_id": transaction_id})
+        except BalePaymentAPIError as error:
+            raise HTTPException(503, detail={"code": error.code}) from None
+        transaction = inquiry.get("result")
+        if not isinstance(transaction, dict):
+            return {"ok": True}
+        if transaction.get("status") == "pending":
+            raise HTTPException(503, detail={"code": "bale_transaction_pending"})
+        if transaction.get("status") != "paid" or str(transaction.get("id")) != transaction_id:
+            return {"ok": True}
+        provider_amount = transaction.get("amount")
+        now = _utc_now()
+        recording = db.scalar(
+            select(EventRecordingRecord).where(EventRecordingRecord.id == order.recording_id).with_for_update()
+        )
+        matches = (
+            isinstance(provider_amount, int) and not isinstance(provider_amount, bool)
+            and provider_amount == order.amount == callback_amount
+            and callback_currency == order.currency == "IRR"
+            and str(transaction.get("userID")) == payer_id == (order.payer_bale_user_id or "")
+            and recording is not None and recording.price == order.amount
+        )
+        order.transaction_id = transaction_id
+        order.provider_charge_id = provider_charge_id
+        order.updated_at = now
+        if not matches or recording is None or order.status not in {"pending", "needs_review"}:
+            order.status = "needs_review"
+            order.review_note = "amount/currency/payer mismatch or order not open at settlement"[:300]
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+            return {"ok": True}
+        order.status = "paid"
+        order.paid_at = now
+        _grant_recording_access(
+            db, recording, order.account_id, source="purchase", now=now, order=order, actor=("system", "bale_webhook"),
+            reason="bale_wallet_verified",
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+        return {"ok": True}
+
+    # ── پنل: محصول، جلسات، وضعیت ──
+
+    def _admin_recording_or_404(db: Session, event_id: str, *, for_update: bool = False) -> EventRecordingRecord:
+        record = _recording_for_event(db, event_id, for_update=for_update)
+        if record is None:
+            raise HTTPException(404, "recording_not_found")
+        return record
+
+    @app.get("/api/admin/events/{event_id}/recording")
+    def admin_get_event_recording(
+        event_id: str, request: Request, response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        record = _recording_for_event(db, event_id)
+        public_event, _stored = _interaction_event(db, event_id)
+        now = _utc_now()
+        base = {
+            "source": "shared_server_database",
+            "event_id": event_id,
+            "event_held": bool(public_event) and recordings_mod.event_held(public_event or {}, now),
+            "event_published": public_event is not None,
+            "wallet_ready": _wallet_ready(db, request),
+            "limits": {
+                "max_bytes": interaction_mod.MAX_BYTES, "content_types": list(interaction_mod.CONTENT_TYPES),
+                "max_price": recordings_mod.MAX_PRICE, "max_access_days": recordings_mod.MAX_ACCESS_DAYS,
+                "max_sessions": recordings_mod.MAX_SESSIONS,
+                "streaming": "none",  # files are served whole (with HTTP Range); no CDN/DRM/transcoding exists
+            },
+        }
+        if record is None:
+            return {**base, "recording": None}
+        return {**base, "recording": _recording_admin_payload(db, request, record, event_id=event_id)}
+
+    @app.put("/api/admin/events/{event_id}/recording")
+    async def admin_upsert_event_recording(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Create or edit the product fields (never the status)."""
+        event_id = _admin_event_id(db, event_id)
+        payload = await _read_json_object(request, 64_000)
+        record = _recording_for_event(db, event_id, for_update=True)
+        try:
+            fields = recordings_mod.validate_recording_fields(payload, existing=record)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        actor_kind, actor_id = _interaction_actor(identity)
+        expected = payload.get("expected_version")
+        if record is None:
+            record = EventRecordingRecord(
+                id=interaction_mod.new_id(), event_id=event_id, status="draft", faq=[], created_by_kind=actor_kind,
+                created_by_id=actor_id, updated_by_kind=actor_kind, updated_by_id=actor_id, **fields,
+            )
+            db.add(record)
+            record_audit(
+                db, identity, "recording.create", target_type="event_recording", target_id=record.id,
+                details={"event_id": event_id, "price": record.price},
+            )
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                raise HTTPException(409, {"code": "recording_exists"}) from None
+            db.refresh(record)
+            return _recording_admin_payload(db, request, record, event_id=event_id)
+        if expected is not None and (isinstance(expected, bool) or not isinstance(expected, int) or expected != record.version):
+            raise HTTPException(409, {"code": "version_conflict", "version": record.version})
+        if "price" in fields and fields["price"] != record.price:
+            open_orders = int(db.scalar(
+                select(func.count(RecordingOrderRecord.id)).where(
+                    RecordingOrderRecord.recording_id == record.id,
+                    RecordingOrderRecord.status.in_(recordings_mod.OPEN_ORDER_STATUSES),
+                )
+            ) or 0)
+            if open_orders:
+                raise HTTPException(409, {"code": "open_orders_block_price_change", "open_orders": open_orders})
+        changed = sorted(key for key, value in fields.items() if getattr(record, key) != value)
+        details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(changed)[:200]}
+        for key in ("price", "access_days", "attendee_access"):
+            if key in changed:
+                details[f"{key}_before"] = getattr(record, key)
+                details[f"{key}_after"] = fields[key]
+        if "payment_card" in changed:
+            details["payment_card_changed"] = True
+        for key, value in fields.items():
+            setattr(record, key, value)
+        if changed:
+            record.version += 1
+            record.updated_by_kind, record.updated_by_id = actor_kind, actor_id
+            record_audit(db, identity, "recording.update", target_type="event_recording", target_id=record.id, details=details)
+        db.commit()
+        db.refresh(record)
+        return _recording_admin_payload(db, request, record, event_id=event_id)
+
+    @app.post("/api/admin/events/{event_id}/recording/status")
+    async def admin_set_event_recording_status(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_STATUS_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_recording_or_404(db, event_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "reason"}:
+            raise HTTPException(400, "invalid_status_change")
+        try:
+            target = interaction_mod.choice(payload.get("status"), recordings_mod.STATUSES, field="status")
+            reason = recordings_mod.validate_reason(
+                payload.get("reason"), required=target in recordings_mod.REASON_REQUIRED_STATUSES,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        if not recordings_mod.can_transition(record.status, target):
+            raise HTTPException(409, {"code": "invalid_transition", "from": record.status, "to": target})
+        now = _utc_now()
+        if target == "published":
+            public_event, _stored = _interaction_event(db, event_id)
+            blockers = recordings_mod.publish_blockers(
+                record, public_event, _recording_sessions(db, record.id), _recording_resources(db, event_id),
+                now=now, wallet_ready=_wallet_ready(db, request),
+            )
+            if blockers:
+                raise HTTPException(409, {"code": "publish_blocked", "blockers": blockers})
+            if record.published_at is None:
+                record.published_at = now
+        before = record.status
+        record.status = target
+        record.status_reason = reason
+        record.version += 1
+        record.updated_by_kind, record.updated_by_id = _interaction_actor(identity)
+        record_audit(
+            db, identity, "recording.status", target_type="event_recording", target_id=record.id,
+            details={"event_id": event_id, "status_before": before, "status_after": target, "reason": reason},
+        )
+        db.commit()
+        db.refresh(record)
+        return _recording_admin_payload(db, request, record, event_id=event_id)
+
+    def _admin_session(db: Session, recording: EventRecordingRecord, session_id: str) -> RecordingSessionRecord:
+        parsed = interaction_mod.parse_row_id(session_id)
+        record = db.get(RecordingSessionRecord, parsed) if parsed else None
+        if record is None or record.recording_id != recording.id:
+            raise HTTPException(404, "session_not_found")
+        return record
+
+    @app.post("/api/admin/events/{event_id}/recording/sessions", status_code=201)
+    async def admin_create_recording_session(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        payload = await _read_json_object(request, 16_384)
+        try:
+            fields = recordings_mod.validate_session_fields(payload, existing=None)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        count = int(db.scalar(
+            select(func.count(RecordingSessionRecord.id)).where(RecordingSessionRecord.recording_id == recording.id)
+        ) or 0)
+        if count >= recordings_mod.MAX_SESSIONS:
+            raise HTTPException(409, {"code": "too_many_sessions", "limit": recordings_mod.MAX_SESSIONS})
+        if "sort_order" not in fields:
+            fields["sort_order"] = count + 1
+        session = RecordingSessionRecord(id=interaction_mod.new_id(), recording_id=recording.id, **fields)
+        db.add(session)
+        record_audit(
+            db, identity, "recording.session.create", target_type="recording_session", target_id=session.id,
+            details={"event_id": event_id, "recording_id": recording.id, "title": session.title[:120]},
+        )
+        db.commit()
+        db.refresh(session)
+        return recordings_mod.session_admin_view(session)
+
+    @app.put("/api/admin/events/{event_id}/recording/sessions/{session_id}")
+    async def admin_update_recording_session(
+        event_id: str, session_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        session = _admin_session(db, recording, session_id)
+        payload = await _read_json_object(request, 16_384)
+        try:
+            fields = recordings_mod.validate_session_fields(payload, existing=session)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        before = {"status": session.status, "preview": session.preview}
+        for key, value in fields.items():
+            setattr(session, key, value)
+        details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(sorted(fields))[:200]}
+        if before["status"] != session.status:
+            details["status_before"], details["status_after"] = before["status"], session.status
+        if before["preview"] != session.preview:
+            details["preview_after"] = session.preview
+        record_audit(db, identity, "recording.session.update", target_type="recording_session", target_id=session.id, details=details)
+        db.commit()
+        db.refresh(session)
+        resource_count = int(db.scalar(
+            select(func.count(EventResourceRecord.id)).where(
+                EventResourceRecord.session_id == session.id, EventResourceRecord.status != "removed",
+            )
+        ) or 0)
+        return recordings_mod.session_admin_view(session, resource_count=resource_count)
+
+    @app.delete("/api/admin/events/{event_id}/recording/sessions/{session_id}")
+    def admin_delete_recording_session(
+        event_id: str, session_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        session = _admin_session(db, recording, session_id)
+        attached = int(db.scalar(
+            select(func.count(EventResourceRecord.id)).where(
+                EventResourceRecord.session_id == session.id, EventResourceRecord.status != "removed",
+            )
+        ) or 0)
+        if attached:
+            raise HTTPException(409, {"code": "session_has_resources", "resources": attached})
+        record_audit(
+            db, identity, "recording.session.delete", target_type="recording_session", target_id=session.id,
+            details={"event_id": event_id, "title": session.title[:120]},
+        )
+        db.delete(session)
+        db.commit()
+        return {"deleted": True, "id": session.id}
+
+    # ── پنل: سفارش‌ها و دسترسی‌ها ──
+
+    def _admin_order(db: Session, order_id: str, *, for_update: bool = False) -> RecordingOrderRecord:
+        parsed = interaction_mod.parse_row_id(order_id)
+        if parsed is None:
+            raise HTTPException(404, "order_not_found")
+        query = select(RecordingOrderRecord).where(RecordingOrderRecord.id == parsed)
+        if for_update:
+            query = query.with_for_update()
+        record = db.scalar(query)
+        if record is None:
+            raise HTTPException(404, "order_not_found")
+        return record
+
+    def _order_duplicates(db: Session, orders: Sequence[RecordingOrderRecord]) -> dict[str, int]:
+        """Other orders of the same account for the same product (duplicate payments to review)."""
+        if not orders:
+            return {}
+        keys = {(row.recording_id, row.account_id) for row in orders}
+        counts: dict[tuple[str, str], int] = {}
+        for recording_id, account_id, count in db.execute(
+            select(RecordingOrderRecord.recording_id, RecordingOrderRecord.account_id, func.count(RecordingOrderRecord.id))
+            .where(RecordingOrderRecord.recording_id.in_({k[0] for k in keys}))
+            .group_by(RecordingOrderRecord.recording_id, RecordingOrderRecord.account_id)
+        ).all():
+            counts[(str(recording_id), str(account_id))] = int(count)
+        return {row.id: max(0, counts.get((row.recording_id, row.account_id), 1) - 1) for row in orders}
+
+    def _admin_order_rows(db: Session, orders: Sequence[RecordingOrderRecord]) -> list[dict[str, Any]]:
+        products = {
+            row.id: row for row in db.scalars(
+                select(EventRecordingRecord).where(EventRecordingRecord.id.in_({o.recording_id for o in orders} or {""}))
+            ).all()
+        }
+        titles = _interaction_event_titles(db, {p.event_id for p in products.values()})
+        access_rows = {
+            (row.recording_id, row.account_id): row for row in db.scalars(
+                select(RecordingAccessRecord).where(RecordingAccessRecord.recording_id.in_({o.recording_id for o in orders} or {""}))
+            ).all()
+        }
+        duplicates = _order_duplicates(db, orders)
+        now = _utc_now()
+        out = []
+        for order in orders:
+            product = products.get(order.recording_id)
+            out.append(recordings_mod.order_admin_view(
+                order, recording=product, event_title=titles.get(product.event_id, "") if product else "",
+                access=access_rows.get((order.recording_id, order.account_id)), duplicates=duplicates.get(order.id, 0),
+                account_label=_interaction_display_name(db, order.account_id), now=now,
+            ))
+        return out
+
+    @app.get("/api/admin/recording-orders")
+    def admin_list_recording_orders(
+        request: Request,
+        response: Response,
+        status: str = Query(default=""),
+        event_id: str = Query(default=""),
+        q: str = Query(default="", max_length=120),
+        format: str = Query(default=""),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_RECORDING_ORDER_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        filters: list[ColumnElement[bool]] = []
+        if status:
+            try:
+                filters.append(RecordingOrderRecord.status.in_(recordings_mod.order_filters(status)))
+            except interaction_mod.InteractionError as error:
+                raise _recording_error(error) from None
+        if event_id:
+            try:
+                parsed_event = interaction_mod.parse_event_id(event_id)
+            except interaction_mod.InteractionError as error:
+                raise _interaction_error(error) from None
+            filters.append(RecordingOrderRecord.recording_id.in_(
+                select(EventRecordingRecord.id).where(EventRecordingRecord.event_id == parsed_event)
+            ))
+        needle = q.strip()
+        if needle:
+            like = f"%{needle}%"
+            filters.append(
+                RecordingOrderRecord.id.like(like)
+                | RecordingOrderRecord.account_id.like(like)
+                | RecordingOrderRecord.transaction_id.like(like)
+                | RecordingOrderRecord.recording_id.in_(select(EventRecordingRecord.id).where(EventRecordingRecord.title.like(like)))
+            )
+        now = _utc_now()
+        query = select(RecordingOrderRecord).where(*filters).order_by(
+            RecordingOrderRecord.created_at.desc(), RecordingOrderRecord.id.desc()
+        )
+        if format == "csv":
+            # Export is finance-only: it carries account ids and transaction ids.
+            require_any_permission(*_RECORDING_REFUND_PERMS)(request, db)
+            rows = db.scalars(query.limit(5000)).all()
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(["order_id", "event_id", "product", "account_id", "method", "status", "amount", "currency",
+                             "created_at", "paid_at", "decided_at", "decision_reason", "refund_reference", "transaction_id"])
+            for row in _admin_order_rows(db, rows):
+                writer.writerow([row["id"], row["event_id"], row["product_title"], row["account_id"], row["method"], row["status"],
+                                 row["amount"], row["currency"], row["created_at"], row["paid_at"], row["decided_at"],
+                                 row["decision_reason"], row["refund_reference"], row["transaction_id"]])
+            record_audit(db, identity, "recording.orders.export", target_type="recording_orders", details={"rows": len(rows), "status": status})
+            db.commit()
+            return Response(
+                content="\ufeff" + buffer.getvalue(), media_type="text/csv; charset=utf-8",
+                headers={"Content-Disposition": 'attachment; filename="recording-orders.csv"', "Cache-Control": "private, no-store"},
+            )
+        total = int(db.scalar(select(func.count(RecordingOrderRecord.id)).where(*filters)) or 0)
+        page = db.scalars(query.limit(limit).offset(offset)).all()
+        changed = False
+        for order in page:
+            changed = recordings_mod.expire_open_order(order, now) or changed
+        if changed:
+            db.commit()
+        return {"source": "shared_server_database", "items": _admin_order_rows(db, page), "total": total, "limit": limit, "offset": offset}
+
+    @app.get("/api/admin/recording-orders/{order_id}")
+    def admin_get_recording_order(
+        order_id: str, response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_RECORDING_ORDER_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        order = _admin_order(db, order_id)
+        if recordings_mod.expire_open_order(order, _utc_now()):
+            db.commit()
+        view = _admin_order_rows(db, [order])[0]
+        history = db.scalars(
+            select(AdminAuditEventRecord)
+            .where(AdminAuditEventRecord.target_type == "recording_order", AdminAuditEventRecord.target_id == order.id)
+            .order_by(AdminAuditEventRecord.created_at.asc())
+        ).all()
+        view["history"] = [
+            {
+                "action": row.action, "actor_kind": row.actor_kind, "actor_role": row.actor_role, "outcome": row.outcome,
+                "details": row.details, "at": _as_utc(row.created_at).isoformat(),
+            }
+            for row in history
+        ]
+        return view
+
+    @app.get("/api/admin/recording-orders/{order_id}/receipt")
+    def admin_get_recording_receipt(
+        order_id: str,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_RECORDING_ORDER_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        order = _admin_order(db, order_id)
+        if order.receipt_content is None:
+            raise HTTPException(404, "receipt_not_found")
+        headers = {
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Disposition": interaction_mod.content_disposition(order.receipt_file_name or "receipt.bin").replace("attachment", "inline", 1),
+        }
+        return Response(content=order.receipt_content, media_type=order.receipt_content_type or "application/octet-stream", headers=headers)
+
+    @app.post("/api/admin/recording-orders/{order_id}/decision")
+    async def admin_decide_recording_order(
+        order_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_DECISION_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Approve (→ paid_manual + access) or reject a submitted receipt / flagged order. Reason required."""
+        order = _admin_order(db, order_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"decision", "reason"}:
+            raise HTTPException(400, "invalid_decision")
+        try:
+            decision = interaction_mod.choice(payload.get("decision"), ("approve", "reject"), field="decision")
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        now = _utc_now()
+        if recordings_mod.expire_open_order(order, now):
+            db.commit()
+        if order.status not in recordings_mod.REVIEWABLE_ORDER_STATUSES:
+            raise HTTPException(409, {"code": "order_not_reviewable", "status": order.status})
+        recording = db.scalar(
+            select(EventRecordingRecord).where(EventRecordingRecord.id == order.recording_id).with_for_update()
+        )
+        if recording is None:
+            raise HTTPException(404, "recording_not_found")
+        actor = _interaction_actor(identity)
+        before = order.status
+        order.decided_at = now
+        order.decided_by_kind, order.decided_by_id = actor
+        order.decision_reason = reason
+        order.updated_at = now
+        if decision == "approve":
+            if order.amount != recording.price and order.method == "card_transfer":
+                # Price changed since the order was opened: the reviewer must see the mismatch, never auto-approve.
+                order.review_note = f"amount {order.amount} differs from current price {recording.price}"[:300]
+            order.status = "paid_manual"
+            order.paid_at = now
+            _grant_recording_access(
+                db, recording, order.account_id, source="purchase", now=now, order=order, actor=actor, reason=reason,
+            )
+            action = "recording.order.approve"
+        else:
+            order.status = "rejected"
+            action = "recording.order.reject"
+        record_audit(
+            db, identity, action, target_type="recording_order", target_id=order.id,
+            details={"recording_id": recording.id, "account_id": order.account_id, "amount": order.amount,
+                     "status_before": before, "status_after": order.status, "reason": reason},
+        )
+        db.commit()
+        return _admin_order_rows(db, [order])[0]
+
+    @app.post("/api/admin/recording-orders/{order_id}/refund")
+    async def admin_refund_recording_order(
+        order_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_REFUND_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Record a refund that was really executed (reference required) and revoke the access."""
+        order = _admin_order(db, order_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reference", "reason"}:
+            raise HTTPException(400, "invalid_refund")
+        try:
+            reference = interaction_mod.clean_text(payload.get("reference"), 120, field="reference", required=True, minimum=3)
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        if order.status not in recordings_mod.PAID_ORDER_STATUSES:
+            raise HTTPException(409, {"code": "order_not_refundable", "status": order.status})
+        now = _utc_now()
+        actor = _interaction_actor(identity)
+        before = order.status
+        order.status = "refunded"
+        order.refund_reference = reference
+        order.refunded_at = now
+        order.decision_reason = reason
+        order.decided_at = now
+        order.decided_by_kind, order.decided_by_id = actor
+        order.updated_at = now
+        access = recordings_mod.access_for(db, order.recording_id, order.account_id)
+        if access is not None and access.status != "revoked":
+            access.status = "revoked"
+            access.revoked_at = now
+            access.revoked_by_kind, access.revoked_by_id = actor
+            access.revoke_reason = f"refund:{reference}"[:300]
+        record_audit(
+            db, identity, "recording.order.refund", target_type="recording_order", target_id=order.id,
+            details={"recording_id": order.recording_id, "account_id": order.account_id, "amount": order.amount,
+                     "status_before": before, "reference": reference, "reason": reason, "access_revoked": access is not None},
+        )
+        db.commit()
+        return _admin_order_rows(db, [order])[0]
+
+    @app.get("/api/admin/events/{event_id}/recording/access")
+    def admin_list_recording_access(
+        event_id: str, response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        now = _utc_now()
+        rows = db.scalars(
+            select(RecordingAccessRecord)
+            .where(RecordingAccessRecord.recording_id == recording.id)
+            .order_by(RecordingAccessRecord.created_at.desc())
+        ).all()
+        return {
+            "source": "shared_server_database", "recording_id": recording.id,
+            "items": [recordings_mod.access_view(row, now, account_label=_interaction_display_name(db, row.account_id)) for row in rows],
+            "total": len(rows),
+        }
+
+    @app.post("/api/admin/events/{event_id}/recording/access", status_code=201)
+    async def admin_grant_recording_access(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_STATUS_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Manual grant: existing account id (server-verified), reason, optional scope in days."""
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"account_id", "reason", "access_days"}:
+            raise HTTPException(400, "invalid_grant")
+        account_id = interaction_mod.parse_row_id(payload.get("account_id"))
+        if account_id is None or db.get(AccountRecord, account_id) is None:
+            raise HTTPException(404, "account_not_found")
+        try:
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+            days = payload.get("access_days")
+            access_days = None
+            if days not in (None, "", 0):
+                if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= recordings_mod.MAX_ACCESS_DAYS:
+                    raise interaction_mod.InteractionError("invalid_number", field="access_days")
+                access_days = days
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        now = _utc_now()
+        row, created = _grant_recording_access(
+            db, recording, account_id, source="granted", now=now, actor=_interaction_actor(identity), reason=reason,
+            access_days=access_days,
+        )
+        record_audit(
+            db, identity, "recording.access.grant", target_type="recording_access", target_id=row.id,
+            details={"recording_id": recording.id, "account_id": account_id, "reason": reason,
+                     "access_days": access_days if access_days is not None else (recording.access_days or 0), "created": created},
+        )
+        db.commit()
+        db.refresh(row)
+        return {"granted": True, "created": created, "access": recordings_mod.access_view(row, now)}
+
+    @app.post("/api/admin/events/{event_id}/recording/access/{access_id}/revoke")
+    async def admin_revoke_recording_access(
+        event_id: str, access_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_STATUS_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        parsed = interaction_mod.parse_row_id(access_id)
+        row = db.get(RecordingAccessRecord, parsed) if parsed else None
+        if row is None or row.recording_id != recording.id:
+            raise HTTPException(404, "access_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reason"}:
+            raise HTTPException(400, "invalid_revoke")
+        try:
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        now = _utc_now()
+        if row.status != "revoked":
+            row.status = "revoked"
+            row.revoked_at = now
+            row.revoked_by_kind, row.revoked_by_id = _interaction_actor(identity)
+            row.revoke_reason = reason
+            record_audit(
+                db, identity, "recording.access.revoke", target_type="recording_access", target_id=row.id,
+                details={"recording_id": recording.id, "account_id": row.account_id, "reason": reason},
+            )
+            db.commit()
+            db.refresh(row)
+        return recordings_mod.access_view(row, now)
+
+    @app.get("/api/admin/recordings/summary")
+    def admin_recordings_summary(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Real counts for the panel badges; zero when nothing needs action."""
+        response.headers["Cache-Control"] = "private, no-store"
+        by_status = {
+            str(status): int(count) for status, count in db.execute(
+                select(EventRecordingRecord.status, func.count(EventRecordingRecord.id)).group_by(EventRecordingRecord.status)
+            ).all()
+        }
+        orders = {
+            str(status): int(count) for status, count in db.execute(
+                select(RecordingOrderRecord.status, func.count(RecordingOrderRecord.id)).group_by(RecordingOrderRecord.status)
+            ).all()
+        }
+        now = _utc_now()
+        active_access = sum(
+            1 for row in db.scalars(select(RecordingAccessRecord).where(RecordingAccessRecord.status == "active")).all()
+            if recordings_mod.access_state(row, now) == "active"
+        )
+        per_event: dict[str, dict[str, Any]] = {}
+        for row in db.scalars(select(EventRecordingRecord)).all():
+            per_event[row.event_id] = {"status": row.status, "price": row.price}
+        for recording_id, event_id, count in db.execute(
+            select(RecordingOrderRecord.recording_id, EventRecordingRecord.event_id, func.count(RecordingOrderRecord.id))
+            .join(EventRecordingRecord, EventRecordingRecord.id == RecordingOrderRecord.recording_id)
+            .where(RecordingOrderRecord.status.in_(recordings_mod.REVIEWABLE_ORDER_STATUSES))
+            .group_by(RecordingOrderRecord.recording_id, EventRecordingRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_id), {})["orders_review"] = int(count)
+        return {
+            "source": "shared_server_database",
+            "recordings": by_status,
+            "orders_review": sum(orders.get(s, 0) for s in recordings_mod.REVIEWABLE_ORDER_STATUSES),
+            "orders_open": sum(orders.get(s, 0) for s in recordings_mod.OPEN_ORDER_STATUSES),
+            "orders_paid": sum(orders.get(s, 0) for s in recordings_mod.PAID_ORDER_STATUSES),
+            "orders_refunded": orders.get("refunded", 0),
+            "active_access": active_access,
             "per_event": per_event,
         }
 
@@ -7472,30 +8899,7 @@ def create_app(
             raise HTTPException(410, detail={"code": "form_full"})
 
         try:
-            webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
-            webhook_result = webhook_info.get("result")
-            configured_webhook = (
-                webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
-            )
-            registered_webhook_url = _form_payment_registered_webhook_url(cfg)
-            current_webhook_url = configured_webhook.rstrip("/")
-            base_webhook_url = cfg.form_payment_webhook_url.rstrip("/")
-            if current_webhook_url != registered_webhook_url:
-                if current_webhook_url not in {"", base_webhook_url}:
-                    raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
-                await asyncio.to_thread(
-                    call_bale_payment_api,
-                    cfg,
-                    "setWebhook",
-                    {"url": registered_webhook_url},
-                )
-                verified_webhook_info = await asyncio.to_thread(
-                    call_bale_payment_api, cfg, "getWebhookInfo", {}
-                )
-                verified_result = verified_webhook_info.get("result")
-                verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
-                if verified_url.rstrip("/") != registered_webhook_url:
-                    raise HTTPException(503, detail={"code": "bale_payment_webhook_registration_failed"})
+            await _ensure_bale_payment_webhook(cfg)
             payment_id = str(uuid.uuid4())
             invoice_payload = "nora_" + uuid.uuid4().hex
             title = str(form.title or "ثبت‌نام").strip()[:32] or "ثبت‌نام"
@@ -7661,6 +9065,8 @@ def create_app(
             if not isinstance(query_id, str) or not 1 <= len(query_id) <= 160:
                 return {"ok": True}
             invoice_payload = checkout.get("invoice_payload")
+            if isinstance(invoice_payload, str) and invoice_payload.startswith(recordings_mod.INVOICE_PREFIX) and len(invoice_payload) <= 128:
+                return await _recording_webhook_precheckout(db, cfg, checkout, query_id, invoice_payload)
             payer = checkout.get("from")
             payer_id = payer.get("id") if isinstance(payer, dict) else None
             amount = checkout.get("total_amount")
@@ -7725,6 +9131,12 @@ def create_app(
         ):
             return {"ok": True}
         payer_id = str(payer_id_raw)
+        if invoice_payload.startswith(recordings_mod.INVOICE_PREFIX):
+            return await _recording_webhook_payment(
+                db, cfg, invoice_payload=invoice_payload, transaction_id=transaction_id,
+                provider_charge_id=provider_charge_id, callback_amount=callback_amount,
+                callback_currency=callback_currency, payer_id=payer_id,
+            )
         payment = db.scalar(
             select(FormPaymentRecord)
             .where(FormPaymentRecord.invoice_payload == invoice_payload)

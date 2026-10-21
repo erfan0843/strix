@@ -1,0 +1,816 @@
+"""Phase 9: recorded-content products of held events, orders and access rights.
+
+Pure rules shared by the HTTP routes in ``app.py``. Three concepts never merge:
+
+* **event + attendance** – from ``site_content`` and ``form_responses`` (phase 7/8);
+  attendance is *read* here only to decide the ``attendee_access`` courtesy and the
+  review badge, never written.
+* **recorded product** – ``event_recordings`` (one per event) with ordered
+  ``recording_sessions``; files/handouts are ordinary ``event_resources`` rows that
+  carry ``session_id`` and ``access='purchased'``.
+* **access right** – ``recording_access`` per account, created by a verified
+  payment (``recording_orders``), a free claim or an audited manual grant.
+
+Everything here is side-effect free apart from the SQLAlchemy session passed in;
+no route trusts a client-supplied access flag, price or account id.
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Mapping
+from urllib.parse import urlsplit
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from .event_interaction import (
+    InteractionError,
+    Participation,
+    as_utc,
+    choice,
+    clean_text,
+    iso,
+    resource_is_live,
+    utc_now,
+)
+from .models import (
+    RECORDING_ACCESS_SOURCES,
+    RECORDING_ACCESS_STATUSES,
+    RECORDING_ORDER_METHODS,
+    RECORDING_ORDER_STATUSES,
+    RECORDING_SESSION_STATUSES,
+    RECORDING_STATUSES,
+    EventRecordingRecord,
+    EventResourceRecord,
+    RecordingAccessRecord,
+    RecordingOrderRecord,
+    RecordingSessionRecord,
+)
+from .responses import public_payment_card
+
+STATUSES = RECORDING_STATUSES
+SESSION_STATUSES = RECORDING_SESSION_STATUSES
+ORDER_METHODS = RECORDING_ORDER_METHODS
+ORDER_STATUSES = RECORDING_ORDER_STATUSES
+ACCESS_SOURCES = RECORDING_ACCESS_SOURCES
+ACCESS_STATUSES = RECORDING_ACCESS_STATUSES
+
+# Public shelf: on sale or paused (paused is shown as off-sale, never as a dead button).
+SHELF_STATUSES: tuple[str, ...] = ("published", "sales_paused")
+OPEN_ORDER_STATUSES: tuple[str, ...] = ("pending", "awaiting_receipt", "receipt_submitted", "needs_review")
+PAID_ORDER_STATUSES: tuple[str, ...] = ("paid", "paid_manual")
+CLOSED_ORDER_STATUSES: tuple[str, ...] = ("rejected", "cancelled", "expired", "refunded")
+REVIEWABLE_ORDER_STATUSES: tuple[str, ...] = ("receipt_submitted", "needs_review")
+TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "draft": ("ready", "archived"),
+    "ready": ("draft", "published", "archived"),
+    "published": ("sales_paused", "archived"),
+    "sales_paused": ("published", "archived"),
+    "archived": ("ready",),
+}
+REASON_REQUIRED_STATUSES: tuple[str, ...] = ("sales_paused", "archived")
+
+MAX_PRICE = 2_000_000_000
+MAX_ACCESS_DAYS = 3650
+MAX_FAQ = 12
+MAX_SESSIONS = 60
+TITLE_MAX = 160
+SHORT_TEXT_MAX = 2000
+LONG_TEXT_MAX = 6000
+REASON_MAX = 300
+NOTE_MAX = 300
+RECEIPT_MAX_BYTES = 8 * 1024 * 1024
+CARD_ORDER_TTL = timedelta(days=3)
+WALLET_ORDER_TTL_SECONDS_DEFAULT = 900
+INVOICE_PREFIX = "norac_"
+NOTIFICATION_KIND = "recording_access"
+CURRENCY = "IRR"
+
+_SAFE_RELATIVE = re.compile(r"^/api/public/media/[0-9a-f-]{36}$")
+_RECEIPT_SIGNATURES: tuple[tuple[bytes, str], ...] = (
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"%PDF-", "application/pdf"),
+)
+
+
+def new_order_idempotency_key(recording_id: str, account_id: str, nonce: str) -> str:
+    return f"rec:{recording_id[:8]}:{account_id[:8]}:{nonce}"[:80]
+
+
+# ── event facts ──
+
+
+def event_held(event: Mapping[str, Any], now: datetime) -> bool:
+    """True once the event has really taken place according to the server clock.
+
+    ``past`` is the editor's explicit flag; otherwise the end time, or the start
+    time when no end is recorded. Cancelled events are never "held".
+    """
+    if str(event.get("lifecycle") or "") == "cancelled":
+        return False
+    if event.get("past") is True:
+        return True
+    registration = event.get("registration") if isinstance(event.get("registration"), Mapping) else {}
+    ends = _parse(event.get("endsAt")) or _parse(registration.get("endsAt") if registration else None)
+    starts = _parse(event.get("startsAt")) or _parse(registration.get("startsAt") if registration else None)
+    if ends is not None:
+        return ends <= now
+    return starts is not None and starts <= now
+
+
+def _parse(value: Any) -> datetime | None:
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return as_utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
+    except ValueError:
+        return None
+
+
+# ── validation ──
+
+
+def _flag(value: Any, *, field: str, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    raise InteractionError("invalid_flag", field=field)
+
+
+def _price(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        if isinstance(value, str) and re.fullmatch(r"\d{1,10}", value.strip()):
+            value = int(value.strip())
+        else:
+            raise InteractionError("invalid_number", field="price")
+    if not 0 <= value <= MAX_PRICE:
+        raise InteractionError("invalid_number", field="price")
+    return value
+
+
+def _access_days(value: Any) -> int | None:
+    if value in (None, "", 0):
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= MAX_ACCESS_DAYS:
+        raise InteractionError("invalid_number", field="access_days")
+    return value
+
+
+def _faq(value: Any) -> list[dict[str, str]]:
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list) or len(value) > MAX_FAQ:
+        raise InteractionError("invalid_faq", field="faq")
+    out: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, Mapping) or set(item) - {"q", "a"}:
+            raise InteractionError("invalid_faq", field="faq")
+        question = clean_text(item.get("q"), 300, field="faq", required=True, minimum=3)
+        answer = clean_text(item.get("a"), SHORT_TEXT_MAX, field="faq", required=True, minimum=2)
+        out.append({"q": question, "a": answer})
+    return out
+
+
+def _cover(value: Any) -> str:
+    text = clean_text(value, 2048, field="cover_url")
+    if not text:
+        return ""
+    if _SAFE_RELATIVE.fullmatch(text):
+        return text
+    parts = urlsplit(text)
+    if parts.scheme != "https" or not parts.netloc or any(ch.isspace() for ch in text):
+        raise InteractionError("invalid_link", field="cover_url")
+    return text
+
+
+def _payment_card(value: Any) -> dict[str, str] | None:
+    if value in (None, "", {}):
+        return None
+    if not isinstance(value, Mapping):
+        raise InteractionError("invalid_payment_card", field="payment_card")
+    card = public_payment_card({"paymentCard": dict(value)})
+    if card is None:
+        raise InteractionError("invalid_payment_card", field="payment_card")
+    return card
+
+
+def validate_recording_fields(payload: Mapping[str, Any], *, existing: EventRecordingRecord | None) -> dict[str, Any]:
+    """Editable product fields; status changes go through ``transition`` only."""
+    allowed = {
+        "title", "summary", "outcomes", "audience", "access_terms", "refund_policy", "faq", "price",
+        "access_days", "attendee_access", "download_default", "bale_enabled", "payment_card", "cover_url",
+        "expected_version",
+    }
+    unknown = set(payload) - allowed
+    if unknown:
+        raise InteractionError("unexpected_fields", field=",".join(sorted(str(key) for key in unknown))[:80])
+    out: dict[str, Any] = {}
+    if "title" in payload or existing is None:
+        out["title"] = clean_text(payload.get("title"), TITLE_MAX, field="title", minimum=2)
+    for key, limit in (
+        ("summary", SHORT_TEXT_MAX), ("outcomes", SHORT_TEXT_MAX), ("audience", SHORT_TEXT_MAX),
+        ("access_terms", SHORT_TEXT_MAX), ("refund_policy", LONG_TEXT_MAX),
+    ):
+        if key in payload:
+            out[key] = clean_text(payload.get(key), limit, field=key)
+    if "faq" in payload:
+        out["faq"] = _faq(payload.get("faq"))
+    if "price" in payload or existing is None:
+        out["price"] = _price(payload.get("price", 0))
+    if "access_days" in payload:
+        out["access_days"] = _access_days(payload.get("access_days"))
+    for key, default in (("attendee_access", False), ("download_default", True), ("bale_enabled", True)):
+        if key in payload:
+            out[key] = _flag(payload.get(key), field=key, default=default)
+    if "payment_card" in payload:
+        out["payment_card"] = _payment_card(payload.get("payment_card"))
+    if "cover_url" in payload:
+        out["cover_url"] = _cover(payload.get("cover_url"))
+    return out
+
+
+def validate_session_fields(payload: Mapping[str, Any], *, existing: RecordingSessionRecord | None) -> dict[str, Any]:
+    allowed = {"title", "description", "sort_order", "duration_minutes", "status", "preview"}
+    unknown = set(payload) - allowed
+    if unknown:
+        raise InteractionError("unexpected_fields", field=",".join(sorted(str(key) for key in unknown))[:80])
+    out: dict[str, Any] = {}
+    if "title" in payload or existing is None:
+        out["title"] = clean_text(payload.get("title"), TITLE_MAX, field="title", required=True, minimum=2)
+    if "description" in payload:
+        out["description"] = clean_text(payload.get("description"), SHORT_TEXT_MAX, field="description")
+    if "sort_order" in payload:
+        raw = payload.get("sort_order")
+        if isinstance(raw, bool) or not isinstance(raw, int) or not 0 <= raw <= 10_000:
+            raise InteractionError("invalid_number", field="sort_order")
+        out["sort_order"] = raw
+    if "duration_minutes" in payload:
+        raw = payload.get("duration_minutes")
+        if raw in (None, "", 0):
+            out["duration_minutes"] = None
+        elif isinstance(raw, bool) or not isinstance(raw, int) or not 1 <= raw <= 6000:
+            raise InteractionError("invalid_number", field="duration_minutes")
+        else:
+            out["duration_minutes"] = raw
+    if "status" in payload:
+        out["status"] = choice(payload.get("status"), SESSION_STATUSES, field="status")
+    if "preview" in payload:
+        out["preview"] = _flag(payload.get("preview"), field="preview", default=False)
+    return out
+
+
+def validate_reason(value: Any, *, required: bool) -> str:
+    return clean_text(value, REASON_MAX, field="reason", required=required, minimum=3 if required else 0)
+
+
+def sniff_receipt(content: bytes) -> str:
+    if not content:
+        raise InteractionError("file_empty", status=400)
+    if len(content) > RECEIPT_MAX_BYTES:
+        raise InteractionError("file_too_large", status=413)
+    for prefix, content_type in _RECEIPT_SIGNATURES:
+        if content.startswith(prefix):
+            return content_type
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    raise InteractionError("file_type_not_allowed", status=415)
+
+
+def safe_receipt_name(declared: str, content_type: str) -> str:
+    extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf"}[content_type]
+    stem = str(declared or "").replace("\\", "/").rsplit("/", 1)[-1]
+    stem = stem.rsplit(".", 1)[0] if "." in stem else stem
+    stem = re.sub(r"[^0-9A-Za-z\u0600-\u06FF._ -]+", "", unicodedata.normalize("NFC", stem)).strip(" .-_")[:60]
+    return f"{stem or 'receipt'}.{extension}"
+
+
+# ── status machine ──
+
+
+def can_transition(current: str, target: str) -> bool:
+    return target in TRANSITIONS.get(current, ())
+
+
+def publish_blockers(
+    recording: EventRecordingRecord,
+    event: Mapping[str, Any] | None,
+    sessions: list[RecordingSessionRecord],
+    resources: list[EventResourceRecord],
+    *,
+    now: datetime,
+    wallet_ready: bool,
+) -> list[str]:
+    """Why the product cannot go on sale right now (empty list = may publish)."""
+    blockers: list[str] = []
+    if event is None:
+        blockers.append("event_not_published")
+    else:
+        if str(event.get("lifecycle") or "") == "cancelled":
+            blockers.append("event_cancelled")
+        elif not event_held(event, now):
+            blockers.append("event_not_held")
+    if not recording.title.strip():
+        blockers.append("no_title")
+    published_sessions = {row.id for row in sessions if row.status == "published"}
+    if not published_sessions:
+        blockers.append("no_published_session")
+    if not any(
+        row.session_id in published_sessions and row.status == "published" and (row.kind == "link" or row.content is not None)
+        for row in resources
+    ):
+        blockers.append("no_live_resource")
+    if recording.price > 0 and recording.payment_card is None and not (recording.bale_enabled and wallet_ready):
+        blockers.append("no_payment_method")
+    return blockers
+
+
+# ── access ──
+
+
+def access_state(row: RecordingAccessRecord | None, now: datetime) -> str:
+    """``active`` / ``expired`` / ``revoked`` / ``none`` — evaluated on every request."""
+    if row is None:
+        return "none"
+    if row.status == "revoked":
+        return "revoked"
+    expires = as_utc(row.expires_at)
+    if expires is not None and expires <= now:
+        return "expired"
+    return "active" if row.status == "active" else row.status
+
+
+def access_for(db: Session, recording_id: str, account_id: str | None) -> RecordingAccessRecord | None:
+    if not account_id:
+        return None
+    return db.scalar(
+        select(RecordingAccessRecord).where(
+            RecordingAccessRecord.recording_id == recording_id, RecordingAccessRecord.account_id == account_id,
+        )
+    )
+
+
+def open_order_for(db: Session, recording_id: str, account_id: str | None) -> RecordingOrderRecord | None:
+    if not account_id:
+        return None
+    return db.scalar(
+        select(RecordingOrderRecord)
+        .where(
+            RecordingOrderRecord.recording_id == recording_id,
+            RecordingOrderRecord.account_id == account_id,
+            RecordingOrderRecord.status.in_(OPEN_ORDER_STATUSES),
+        )
+        .order_by(RecordingOrderRecord.created_at.desc())
+    )
+
+
+def latest_closed_order_for(db: Session, recording_id: str, account_id: str | None) -> RecordingOrderRecord | None:
+    if not account_id:
+        return None
+    return db.scalar(
+        select(RecordingOrderRecord)
+        .where(
+            RecordingOrderRecord.recording_id == recording_id,
+            RecordingOrderRecord.account_id == account_id,
+            RecordingOrderRecord.status.in_(("rejected", "cancelled", "expired")),
+        )
+        .order_by(RecordingOrderRecord.created_at.desc())
+    )
+
+
+def expire_open_order(order: RecordingOrderRecord, now: datetime) -> bool:
+    """Lazily expire a timed-out open order (returns True when the row changed)."""
+    expires = as_utc(order.expires_at)
+    if order.status in OPEN_ORDER_STATUSES and order.status != "needs_review" and expires is not None and expires <= now:
+        order.status = "expired"
+        order.updated_at = now
+        return True
+    return False
+
+
+def access_expiry(recording: EventRecordingRecord, now: datetime, *, days: int | None = None) -> datetime | None:
+    span = days if days is not None else recording.access_days
+    return now + timedelta(days=span) if span else None
+
+
+@dataclass(frozen=True)
+class Viewer:
+    signed_in: bool
+    staff: bool
+    account_id: str | None
+    participation: Participation | None
+    access: RecordingAccessRecord | None
+    access_state: str
+    open_order: RecordingOrderRecord | None
+    previous_order: RecordingOrderRecord | None
+
+
+def has_content_access(recording: EventRecordingRecord, viewer: Viewer) -> tuple[bool, str]:
+    """Server-side decision whether the viewer may read purchased-only resources."""
+    if viewer.staff:
+        return True, "staff"
+    if viewer.access_state == "active":
+        return True, "purchased"
+    if recording.attendee_access and viewer.participation is not None and viewer.participation.attended:
+        return True, "attended"
+    if viewer.access_state in {"expired", "revoked"}:
+        return False, f"access_{viewer.access_state}"
+    if not viewer.signed_in:
+        return False, "login_required"
+    return False, "purchase_required"
+
+
+def viewer_cta(recording: EventRecordingRecord, viewer: Viewer, *, wallet_ready: bool) -> dict[str, Any]:
+    """The single call to action the page may show; nothing else is derived client-side."""
+    allowed, reason = has_content_access(recording, viewer)
+    methods: list[str] = []
+    if recording.payment_card is not None:
+        methods.append("card_transfer")
+    if recording.bale_enabled and wallet_ready:
+        methods.append("bale_wallet")
+    if allowed:
+        kind = "staff_preview" if reason == "staff" and viewer.access_state != "active" else "view"
+        return {"kind": kind, "reason": reason, "methods": methods}
+    if recording.status not in SHELF_STATUSES:
+        return {"kind": "unavailable", "reason": recording.status, "methods": []}
+    if recording.status == "sales_paused":
+        return {"kind": "off_sale", "reason": "sales_paused", "methods": []}
+    if not viewer.signed_in:
+        return {"kind": "login", "reason": "login_required", "methods": methods}
+    if viewer.open_order is not None:
+        return {
+            "kind": "order_open", "reason": viewer.open_order.status, "methods": methods,
+            "order": order_account_view(viewer.open_order, recording),
+        }
+    if recording.price <= 0:
+        return {"kind": "free", "reason": "free", "methods": []}
+    if not methods:
+        return {"kind": "off_sale", "reason": "no_payment_method", "methods": []}
+    out: dict[str, Any] = {"kind": "buy", "reason": reason, "methods": methods}
+    if viewer.previous_order is not None:
+        out["previous"] = {"status": viewer.previous_order.status, "id": viewer.previous_order.id}
+    return out
+
+
+# ── views ──
+
+
+def _text_block(value: str) -> str:
+    return value or ""
+
+
+def payment_card_view(card: Mapping[str, Any] | None, *, masked: bool) -> dict[str, str] | None:
+    if not card:
+        return None
+    number = str(card.get("number") or "")
+    return {
+        "number": (number[:4] + "******" + number[-4:]) if masked and len(number) == 16 else number,
+        "bank": str(card.get("bank") or ""),
+        "holder": str(card.get("holder") or ""),
+    }
+
+
+def session_public_view(
+    session: RecordingSessionRecord, resources: list[dict[str, Any]], *, staff: bool
+) -> dict[str, Any]:
+    view: dict[str, Any] = {
+        "id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "sort_order": session.sort_order,
+        "duration_minutes": session.duration_minutes,
+        "preview": session.preview,
+        "resources": resources,
+    }
+    if staff:
+        view["status"] = session.status
+    return view
+
+
+def session_admin_view(session: RecordingSessionRecord, *, resource_count: int = 0) -> dict[str, Any]:
+    return {
+        "id": session.id,
+        "recording_id": session.recording_id,
+        "title": session.title,
+        "description": session.description,
+        "sort_order": session.sort_order,
+        "duration_minutes": session.duration_minutes,
+        "status": session.status,
+        "preview": session.preview,
+        "resource_count": resource_count,
+        "created_at": iso(session.created_at),
+        "updated_at": iso(session.updated_at),
+    }
+
+
+def session_resource_view(
+    resource: EventResourceRecord, *, recording: EventRecordingRecord, session: RecordingSessionRecord,
+    allowed: bool, reason: str, now: datetime, staff: bool,
+) -> dict[str, Any]:
+    """Per-file state inside a session: preview files are open to everyone, the rest follow access."""
+    live = resource_is_live(resource, now)
+    preview = bool(session.preview)
+    open_to_all = preview and resource.access in {"public", "purchased"}
+    final_allowed = staff or (live and (allowed or open_to_all))
+    final_reason = "staff" if staff else ("preview" if open_to_all and not allowed else reason)
+    if not live and not staff:
+        final_allowed, final_reason = False, "not_published"
+    playable = resource.kind == "file" and resource.content_type in {"video/mp4", "audio/mpeg"}
+    view: dict[str, Any] = {
+        "id": resource.id,
+        "kind": resource.kind,
+        "title": resource.title,
+        "description": resource.description,
+        "access": resource.access,
+        "delivery": resource.delivery,
+        "file_name": resource.file_name if resource.kind == "file" else "",
+        "content_type": resource.content_type if resource.kind == "file" else "",
+        "size": resource.content_size if resource.kind == "file" else 0,
+        "published": live,
+        "publish_at": iso(resource.publish_at),
+        "allowed": final_allowed,
+        "reason": final_reason,
+        "playable": playable,
+        "downloadable": resource.delivery == "download" and resource.kind == "file",
+        "preview": open_to_all,
+    }
+    if staff:
+        view["status"] = resource.status
+    if final_allowed and resource.kind == "link":
+        view["link_url"] = resource.link_url
+    return view
+
+
+def recording_public_view(
+    recording: EventRecordingRecord,
+    *,
+    sessions: list[dict[str, Any]],
+    viewer: Viewer,
+    cta: dict[str, Any],
+    total_minutes: int,
+    staff: bool,
+) -> dict[str, Any]:
+    allowed, reason = has_content_access(recording, viewer)
+    view: dict[str, Any] = {
+        "id": recording.id,
+        "event_id": recording.event_id,
+        "status": recording.status,
+        "title": recording.title,
+        "summary": _text_block(recording.summary),
+        "outcomes": _text_block(recording.outcomes),
+        "audience": _text_block(recording.audience),
+        "access_terms": _text_block(recording.access_terms),
+        "refund_policy": _text_block(recording.refund_policy),
+        "faq": list(recording.faq or []),
+        "price": recording.price,
+        "currency": recording.currency,
+        "free": recording.price <= 0,
+        "access_days": recording.access_days,
+        "attendee_access": recording.attendee_access,
+        "download_default": recording.download_default,
+        "cover_url": recording.cover_url,
+        "published_at": iso(recording.published_at),
+        "session_count": len(sessions),
+        "total_minutes": total_minutes,
+        "sessions": sessions,
+        "viewer": {
+            "signed_in": viewer.signed_in,
+            "staff": staff,
+            "access": {
+                "state": viewer.access_state,
+                "allowed": allowed,
+                "reason": reason,
+                "source": viewer.access.source if viewer.access is not None else "",
+                "expires_at": iso(viewer.access.expires_at) if viewer.access is not None else "",
+            },
+            "cta": cta,
+        },
+    }
+    if staff:
+        view["status_reason"] = recording.status_reason
+    return view
+
+
+def recording_admin_view(
+    recording: EventRecordingRecord,
+    *,
+    sessions: list[dict[str, Any]],
+    blockers: list[str],
+    counts: Mapping[str, int],
+    event_title: str = "",
+) -> dict[str, Any]:
+    return {
+        "id": recording.id,
+        "event_id": recording.event_id,
+        "event_title": event_title,
+        "status": recording.status,
+        "status_reason": recording.status_reason,
+        "title": recording.title,
+        "summary": recording.summary,
+        "outcomes": recording.outcomes,
+        "audience": recording.audience,
+        "access_terms": recording.access_terms,
+        "refund_policy": recording.refund_policy,
+        "faq": list(recording.faq or []),
+        "price": recording.price,
+        "currency": recording.currency,
+        "access_days": recording.access_days,
+        "attendee_access": recording.attendee_access,
+        "download_default": recording.download_default,
+        "bale_enabled": recording.bale_enabled,
+        "payment_card": payment_card_view(recording.payment_card, masked=False),
+        "cover_url": recording.cover_url,
+        "published_at": iso(recording.published_at),
+        "version": recording.version,
+        "sessions": sessions,
+        "publish_blockers": blockers,
+        "transitions": list(TRANSITIONS.get(recording.status, ())),
+        "counts": dict(counts),
+        "created_at": iso(recording.created_at),
+        "updated_at": iso(recording.updated_at),
+    }
+
+
+def recording_card_view(recording: EventRecordingRecord, *, session_count: int, total_minutes: int) -> dict[str, Any]:
+    """Compact, secret-free summary attached to the public event snapshot."""
+    return {
+        "id": recording.id,
+        "status": recording.status,
+        "sellable": recording.status == "published",
+        "title": recording.title,
+        "summary": recording.summary[:300],
+        "price": recording.price,
+        "currency": recording.currency,
+        "free": recording.price <= 0,
+        "access_days": recording.access_days,
+        "cover_url": recording.cover_url,
+        "session_count": session_count,
+        "total_minutes": total_minutes,
+        "published_at": iso(recording.published_at),
+    }
+
+
+def order_account_view(order: RecordingOrderRecord, recording: EventRecordingRecord | None = None) -> dict[str, Any]:
+    view: dict[str, Any] = {
+        "id": order.id,
+        "recording_id": order.recording_id,
+        "method": order.method,
+        "status": order.status,
+        "open": order.status in OPEN_ORDER_STATUSES,
+        "paid": order.status in PAID_ORDER_STATUSES,
+        "amount": order.amount,
+        "currency": order.currency,
+        "expires_at": iso(order.expires_at),
+        "receipt_submitted": order.receipt_submitted_at is not None,
+        "receipt_submitted_at": iso(order.receipt_submitted_at),
+        "receipt_file_name": order.receipt_file_name,
+        "paid_at": iso(order.paid_at),
+        "decided_at": iso(order.decided_at),
+        "decision_reason": order.decision_reason if order.status in {"rejected", "refunded"} else "",
+        "refunded_at": iso(order.refunded_at),
+        "created_at": iso(order.created_at),
+        "updated_at": iso(order.updated_at),
+    }
+    if order.method == "bale_wallet" and order.status == "pending" and order.invoice_url:
+        view["invoice_url"] = order.invoice_url
+    if recording is not None:
+        view["event_id"] = recording.event_id
+        view["title"] = recording.title
+        if order.method == "card_transfer" and order.status in {"awaiting_receipt", "receipt_submitted"}:
+            view["card"] = payment_card_view(recording.payment_card, masked=False)
+    return view
+
+
+def order_admin_view(
+    order: RecordingOrderRecord,
+    *,
+    recording: EventRecordingRecord | None,
+    event_title: str = "",
+    access: RecordingAccessRecord | None = None,
+    duplicates: int = 0,
+    account_label: str = "",
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    moment = now or utc_now()
+    return {
+        "id": order.id,
+        "recording_id": order.recording_id,
+        "event_id": recording.event_id if recording is not None else "",
+        "event_title": event_title,
+        "product_title": recording.title if recording is not None else "",
+        "account_id": order.account_id,
+        "account_label": account_label,
+        "method": order.method,
+        "status": order.status,
+        "open": order.status in OPEN_ORDER_STATUSES,
+        "reviewable": order.status in REVIEWABLE_ORDER_STATUSES,
+        "amount": order.amount,
+        "currency": order.currency,
+        "expires_at": iso(order.expires_at),
+        "payer_bale_user_id": order.payer_bale_user_id or "",
+        "transaction_id": order.transaction_id or "",
+        "has_receipt": order.receipt_content is not None,
+        "receipt_file_name": order.receipt_file_name,
+        "receipt_content_type": order.receipt_content_type,
+        "receipt_size": order.receipt_size,
+        "receipt_note": order.receipt_note,
+        "receipt_submitted_at": iso(order.receipt_submitted_at),
+        "paid_at": iso(order.paid_at),
+        "decided_at": iso(order.decided_at),
+        "decided_by_kind": order.decided_by_kind,
+        "decision_reason": order.decision_reason,
+        "review_note": order.review_note,
+        "refund_reference": order.refund_reference,
+        "refunded_at": iso(order.refunded_at),
+        "duplicates": duplicates,
+        "access": access_view(access, moment) if access is not None else None,
+        "created_at": iso(order.created_at),
+        "updated_at": iso(order.updated_at),
+    }
+
+
+def access_view(row: RecordingAccessRecord, now: datetime, *, account_label: str = "") -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "recording_id": row.recording_id,
+        "account_id": row.account_id,
+        "account_label": account_label,
+        "source": row.source,
+        "status": row.status,
+        "state": access_state(row, now),
+        "order_id": row.order_id,
+        "expires_at": iso(row.expires_at),
+        "granted_by_kind": row.granted_by_kind,
+        "reason": row.reason,
+        "revoked_at": iso(row.revoked_at),
+        "revoke_reason": row.revoke_reason,
+        "created_at": iso(row.created_at),
+        "updated_at": iso(row.updated_at),
+    }
+
+
+def library_item_view(
+    row: RecordingAccessRecord, recording: EventRecordingRecord, *, now: datetime, session_count: int,
+    total_minutes: int, event_title: str,
+) -> dict[str, Any]:
+    state = access_state(row, now)
+    return {
+        "recording_id": recording.id,
+        "event_id": recording.event_id,
+        "title": recording.title or event_title,
+        "event_title": event_title,
+        "cover_url": recording.cover_url,
+        "status": recording.status,
+        "session_count": session_count,
+        "total_minutes": total_minutes,
+        "access": {
+            "state": state,
+            "source": row.source,
+            "expires_at": iso(row.expires_at),
+            "granted_at": iso(row.created_at),
+            "revoked_at": iso(row.revoked_at),
+        },
+        # Watch progress is not recorded anywhere yet: the page must not pretend otherwise.
+        "progress": None,
+    }
+
+
+# ── aggregates ──
+
+
+def session_stats(db: Session, recording_ids: list[str]) -> dict[str, tuple[int, int]]:
+    """``{recording_id: (published_session_count, total_minutes)}``."""
+    if not recording_ids:
+        return {}
+    rows = db.execute(
+        select(
+            RecordingSessionRecord.recording_id,
+            func.count(RecordingSessionRecord.id),
+            func.coalesce(func.sum(RecordingSessionRecord.duration_minutes), 0),
+        )
+        .where(
+            RecordingSessionRecord.recording_id.in_(recording_ids),
+            RecordingSessionRecord.status == "published",
+        )
+        .group_by(RecordingSessionRecord.recording_id)
+    ).all()
+    return {str(recording_id): (int(count), int(minutes or 0)) for recording_id, count, minutes in rows}
+
+
+def order_filters(status: str) -> tuple[str, ...]:
+    if status == "review":
+        return REVIEWABLE_ORDER_STATUSES
+    if status == "open":
+        return OPEN_ORDER_STATUSES
+    if status == "paid":
+        return PAID_ORDER_STATUSES
+    if status == "closed":
+        return CLOSED_ORDER_STATUSES
+    if status in ORDER_STATUSES:
+        return (status,)
+    raise InteractionError("invalid_choice", field="status")

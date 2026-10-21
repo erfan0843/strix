@@ -895,6 +895,7 @@ EVENT_RESOURCE_CONTENT_TYPES = (
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/zip",
     "audio/mpeg",
+    "video/mp4",
     "text/plain",
 )
 EVENT_RESOURCE_MAX_BYTES = 8388608

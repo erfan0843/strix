@@ -43,7 +43,7 @@ from .models import (
     FormResponseRecord,
 )
 
-ACCESS_LEVELS: tuple[str, ...] = ("public", "registered", "attended", "staff")
+ACCESS_LEVELS: tuple[str, ...] = ("public", "registered", "attended", "purchased", "staff")
 RESOURCE_KINDS: tuple[str, ...] = ("file", "link")
 RESOURCE_STATUSES: tuple[str, ...] = ("draft", "published", "removed")
 QUESTION_STATUSES: tuple[str, ...] = ("pending", "published", "hidden")
@@ -78,6 +78,7 @@ _EXTENSIONS: dict[str, str] = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
     "application/zip": "zip",
     "audio/mpeg": "mp3",
+    "video/mp4": "mp4",
     "text/plain": "txt",
 }
 _SIGNATURES: tuple[tuple[bytes, str], ...] = (
@@ -254,6 +255,10 @@ def sniff_content_type(content: bytes, declared_name: str) -> str:
             return content_type
     if content.startswith(b"RIFF") and content[8:12] == b"WEBP":
         return "image/webp"
+    if len(content) >= 12 and content[4:8] == b"ftyp":
+        # ISO base media file (MP4/M4V/M4A brands). Served as-is for in-page playback;
+        # there is no transcoding, streaming server or copy protection behind it.
+        return "video/mp4"
     if content.startswith(b"PK\x03\x04"):
         head = content[:4096]
         for marker, content_type in _OOXML_MARKERS.items():
@@ -318,6 +323,7 @@ def resource_access_state(
     signed_in: bool,
     participation: Participation | None,
     staff: bool,
+    purchased: tuple[bool, str] | None = None,
 ) -> tuple[bool, str]:
     """``(allowed, reason)``; ``reason`` is the user-facing state key when not allowed.
 
@@ -344,6 +350,10 @@ def resource_access_state(
         return (True, "registered") if part.registered else (False, "registration_required")
     if access == "attended":
         return (True, "attended") if part.attended else (False, "attendance_required")
+    if access == "purchased":
+        # Decided by the recorded-product layer (phase 9): a purchased/granted/free
+        # access row, or attendee courtesy when the product allows it.
+        return purchased if purchased is not None else (False, "purchase_required")
     return False, "staff_only"
 
 
@@ -354,9 +364,10 @@ def resource_public_view(
     signed_in: bool,
     participation: Participation | None,
     staff: bool,
+    purchased: tuple[bool, str] | None = None,
 ) -> dict[str, Any]:
     allowed, reason = resource_access_state(
-        record, now=now, signed_in=signed_in, participation=participation, staff=staff
+        record, now=now, signed_in=signed_in, participation=participation, staff=staff, purchased=purchased,
     )
     live = resource_is_live(record, now)
     view: dict[str, Any] = {
@@ -374,6 +385,8 @@ def resource_public_view(
         "size": record.content_size if record.kind == "file" else 0,
         "allowed": allowed,
         "reason": reason,
+        "session_id": record.session_id,
+        "delivery": record.delivery,
         "updated_at": iso(record.updated_at),
     }
     if allowed and record.kind == "link":
@@ -386,6 +399,8 @@ def resource_admin_view(record: EventResourceRecord) -> dict[str, Any]:
     return {
         "id": record.id,
         "event_id": record.event_id,
+        "session_id": record.session_id,
+        "delivery": record.delivery,
         "kind": record.kind,
         "title": record.title,
         "description": record.description,
@@ -412,7 +427,10 @@ def validate_resource_fields(
     payload: Mapping[str, Any], *, existing: EventResourceRecord | None, parse_datetime: Callable[[Any], str]
 ) -> dict[str, Any]:
     """Editable metadata (title, description, access, status, publish_at, link, order)."""
-    allowed = {"kind", "title", "description", "access", "status", "publish_at", "link_url", "sort_order", "publisher"}
+    allowed = {
+        "kind", "title", "description", "access", "status", "publish_at", "link_url", "sort_order", "publisher",
+        "session_id", "delivery",
+    }
     unknown = set(payload) - allowed
     if unknown:
         raise InteractionError("unexpected_fields", field=",".join(sorted(str(key) for key in unknown))[:80])
@@ -452,6 +470,17 @@ def validate_resource_fields(
         if isinstance(raw_order, bool) or not isinstance(raw_order, int) or not 0 <= raw_order <= 10_000:
             raise InteractionError("invalid_number", field="sort_order")
         out["sort_order"] = raw_order
+    if "session_id" in payload:
+        raw_session = payload.get("session_id")
+        if raw_session in (None, ""):
+            out["session_id"] = None
+        else:
+            parsed_session = parse_row_id(raw_session)
+            if parsed_session is None:
+                raise InteractionError("invalid_choice", field="session_id")
+            out["session_id"] = parsed_session
+    if "delivery" in payload:
+        out["delivery"] = choice(payload.get("delivery"), ("download", "view"), field="delivery", default="download")
     return out
 
 
