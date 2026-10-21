@@ -27,7 +27,9 @@ from urllib.parse import urlsplit
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from . import video_sources
 from .event_interaction import (
+    EMBED_KINDS,
     InteractionError,
     Participation,
     as_utc,
@@ -347,7 +349,7 @@ def publish_blockers(
     if not published_sessions:
         blockers.append("no_published_session")
     if not any(
-        row.session_id in published_sessions and row.status == "published" and (row.kind == "link" or row.content is not None)
+        row.session_id in published_sessions and row.status == "published" and (row.kind != "file" or row.content is not None)
         for row in resources
     ):
         blockers.append("no_live_resource")
@@ -667,7 +669,8 @@ def session_resource_view(
     final_reason = "staff" if staff else ("preview" if open_to_all and not allowed else reason)
     if not live and not staff:
         final_allowed, final_reason = False, "not_published"
-    playable = resource.kind == "file" and resource.content_type in {"video/mp4", "audio/mpeg"}
+    video = video_sources.from_stored(resource.kind, resource.link_url) if resource.kind in EMBED_KINDS else None
+    playable = (resource.kind == "file" and resource.content_type in {"video/mp4", "audio/mpeg"}) or video is not None
     view: dict[str, Any] = {
         "id": resource.id,
         "kind": resource.kind,
@@ -690,6 +693,12 @@ def session_resource_view(
         view["status"] = resource.status
     if final_allowed and resource.kind == "link":
         view["link_url"] = resource.link_url
+    if resource.kind in EMBED_KINDS:
+        # External embed (YouTube/Aparat): not private hosting, no DRM; the id is public once allowed.
+        view["external"] = True
+        if final_allowed:
+            view["video"] = video.as_dict() if video is not None else None
+            view["link_url"] = video.watch_url if video is not None else ""
     return view
 
 

@@ -6607,7 +6607,7 @@ function ctEditor(){
    پنهان‌کردن دکمه این‌جا فقط برای خوانایی است. هیچ رکورد نمونه‌ای جایگزین
    پاسخ خالی سرور نمی‌شود. */
 const EI={open:false,eventId:'',title:'',status:'',tab:'resources',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
-  res:{edit:null,includeRemoved:false,upFor:'',upError:'',session:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
+  res:{edit:null,includeRemoved:false,upFor:'',upError:'',session:'',preview:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
 const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['purchased','دارندگان دسترسی محتوای ضبط‌شده (خرید/رایگان/اعطا)'],['staff','فقط کادر']];
 const EI_ACCESS_LABEL=Object.fromEntries(EI_ACCESS);
 const EI_RES_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],removed:['حذف‌شده','stop']};
@@ -6619,7 +6619,7 @@ const EI_ERR={duplicate_question:'این پرسش تکراری است.',qa_close
   resource_file_missing:'پیش از انتشار باید فایل منبع بارگذاری شود.',resource_kind_immutable:'نوع منبع (فایل/پیوند) پس از ساخت تغییر نمی‌کند.',resource_not_file:'این منبع فایل نیست یا حذف شده است.',
   resource_removed:'این منبع حذف شده و دیگر ویرایش نمی‌شود.',review_exists:'برای این حساب پیش‌تر دیدگاهی ثبت شده است.',review_locked:'این دیدگاه قفل است.',review_withdrawn:'این دیدگاه پس گرفته شده است.',
   file_empty:'فایل خالی است.',file_too_large:'حجم فایل بیش از ۸ مگابایت است.',file_type_not_allowed:'سرور نوع این فایل را مجاز نمی‌داند (PDF، تصویر، اسناد آفیس، ZIP، MP3 یا متن).',
-  text_required:'متن یا دلیل لازم است.',text_too_short:'متن خیلی کوتاه است.',text_too_long:'متن خیلی بلند است.',invalid_link:'پیوند باید با https:// آغاز شود.',invalid_datetime:'زمان انتشار معتبر نیست.',
+  text_required:'متن یا دلیل لازم است.',text_too_short:'متن خیلی کوتاه است.',text_too_long:'متن خیلی بلند است.',invalid_link:'پیوند باید با https:// آغاز شود.',video_source_required:'نشانی یا شناسهٔ ویدیو لازم است.',invalid_video_source:'نشانی یا شناسهٔ ویدیو معتبر نیست.',html_not_allowed:'کد HTML یا iframe پذیرفته نمی‌شود؛ فقط نشانی یا شناسهٔ ویدیو را وارد کنید.',unsupported_video_host:'فقط نشانی‌های youtube.com / youtu.be و aparat.com پذیرفته می‌شوند.',invalid_video_id:'شناسهٔ ویدیو در این نشانی پیدا نشد یا معتبر نیست.',unsupported_video_provider:'این منبع ویدیو پشتیبانی نمی‌شود.',invalid_datetime:'زمان انتشار معتبر نیست.',
   invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.',unexpected_fields:'فیلد ناشناخته‌ای فرستاده شد.',too_many_open_questions:'شمار پرسش‌های باز این رویداد از حد گذشته است.',upload_rate_limited:'شمار بارگذاری‌ها در این ساعت از حد گذشته؛ کمی بعد دوباره تلاش کنید.'};
 function eiErr(error,fallback){const code=error&&error.code||''; if(EI_ERR[code]) return EI_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&EI_ERR[f.code]) return EI_ERR[f.code]+(f.field?` (${f.field})`:''); return p2Err(error,fallback)}
 function eiStatusTag(map,status){const row=map[status]||[status||'نامشخص','']; return tag(row[0],row[1])}
@@ -6695,7 +6695,7 @@ function eiPanel(){
 }
 /* ── منابع ── */
 function eiResourceMeta(r){
-  const size=r.kind==='file'?(r.size>=1048576?fa((r.size/1048576).toFixed(1))+' مگابایت':r.size>=1024?fa(Math.round(r.size/1024))+' کیلوبایت':r.size?fa(r.size)+' بایت':'بدون فایل'):'پیوند';
+  const size=r.kind==='file'?(r.size>=1048576?fa((r.size/1048576).toFixed(1))+' مگابایت':r.size>=1024?fa(Math.round(r.size/1024))+' کیلوبایت':r.size?fa(r.size)+' بایت':'بدون فایل'):EI_RES_KIND[r.kind]||'پیوند';
   return [size,r.kind==='file'&&r.file_name?r.file_name:'',EI_ACCESS_LABEL[r.access]||r.access,r.session_id?'جلسه: '+(recSessionLabel(r.session_id)||'ضبط‌شده'):'',r.session_id&&r.delivery==='view'?EI_DELIVERY_MODE.view:'',r.publish_at?'انتشار: '+(svcWhen(r.publish_at)||r.publish_at):'',r.publisher?'ناشر: '+r.publisher:'',r.live?'اکنون در صفحهٔ رویداد':r.status==='published'?'زمان‌بندی‌شده':''].filter(Boolean).join(' · ');
 }
 function eiResourceRow(r){
@@ -6704,9 +6704,27 @@ function eiResourceRow(r){
     r.kind==='file'?`<label class="btn sm quiet">${ico('i-file-up')}${r.size?'جایگزینی فایل':'بارگذاری فایل'}<input type="file" data-ei-file="${id}" hidden/></label>`:'',
     r.status==='draft'?btn('انتشار',`data-ei-res-status="published" data-ei-id="${id}"`,'i-globe'):btn('بازگشت به پیش‌نویس',`data-ei-res-status="draft" data-ei-id="${id}"`,'i-eye-off'),
     btn('حذف',`data-ei-res-remove="${id}"`,'i-trash')].join('');
-  return `<div class="admlirow" data-ei-res-row="${id}" ${busy?'aria-busy="true"':''}><span class="ic">${ico(r.kind==='link'?'i-link':'i-doc')}</span>
-    <span class="sp"><b>${esc(r.title)}</b>${r.description?`<small class="cap">${esc(r.description)}</small>`:''}<small class="cap">${esc(eiResourceMeta(r))}</small>${removed&&r.removed_reason?`<small class="cap">دلیل حذف: ${esc(r.removed_reason)}</small>`:''}</span>
-    ${eiStatusTag(EI_RES_STATUS,r.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+  const video=eiVideoOf(r), previewOpen=EI.res.preview===r.id;
+  const videoLine=video?`<small class="cap" dir="ltr" style="text-align:right">${esc(video.watch_url)}</small>`:(r.kind==='youtube'||r.kind==='aparat')?`<small class="cap" style="color:var(--stop)">نشانی ذخیره‌شده معتبر نیست؛ منبع را ویرایش کنید.</small>`:'';
+  const previewBtn=video&&!removed?btn(previewOpen?'بستن پیش‌نمایش':'پیش‌نمایش واقعی',`data-ei-res-preview="${id}"`,'i-play'):'';
+  const preview=video&&previewOpen?eiVideoPreview(r,video):'';
+  return `<div class="admlirow" data-ei-res-row="${id}" ${busy?'aria-busy="true"':''}><span class="ic">${ico(r.kind==='link'?'i-link':video||r.kind==='youtube'||r.kind==='aparat'?'i-play':'i-doc')}</span>
+    <span class="sp"><b>${esc(r.title)}</b>${r.description?`<small class="cap">${esc(r.description)}</small>`:''}<small class="cap">${esc(eiResourceMeta(r))}</small>${videoLine}${removed&&r.removed_reason?`<small class="cap">دلیل حذف: ${esc(r.removed_reason)}</small>`:''}${preview}</span>
+    ${eiStatusTag(EI_RES_STATUS,r.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${previewBtn}${actions}</div></div>`;
+}
+/* فاز ۹.۱ §۳: منبع ویدیوی بیرونی فقط با شناسهٔ اعتبارسنجی‌شدهٔ سرور و نشانی رسمی پخش‌کنندهٔ همان سکو نمایش داده می‌شود؛ هیچ HTML/iframe ذخیره یا تزریق نمی‌شود. */
+const EI_RES_KIND={link:'پیوند',youtube:'ویدیوی یوتیوب',aparat:'ویدیوی آپارات'};
+const EI_VIDEO_ORIGINS=['https://www.youtube-nocookie.com/embed/','https://www.aparat.com/video/video/embed/videohash/'];
+function eiVideoOf(r){
+  const v=r&&r.video; if(!v||typeof v!=='object') return null;
+  const embed=String(v.embed_url||''), watch=String(v.watch_url||'');
+  if(!EI_VIDEO_ORIGINS.some(o=>embed.startsWith(o))||!/^https:\/\/www\.(youtube|aparat)\.com\//.test(watch)) return null;
+  return {provider:v.provider==='aparat'?'aparat':'youtube',video_id:String(v.video_id||''),embed_url:embed,watch_url:watch};
+}
+function eiVideoPreview(r,video){
+  const name=video.provider==='aparat'?'آپارات':'یوتیوب';
+  return `<div class="ei-embed" data-ei-video-preview="${esc(r.id)}" data-ei-video-provider="${esc(video.provider)}"><iframe src="${esc(video.embed_url)}" title="${esc(r.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <small class="cap">این همان پخش‌کنندهٔ رسمی ${name} است که کاربر می‌بیند؛ اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد همین‌جا خطای خود سکو نمایش داده می‌شود و سرور نورا آن را تأیید نمی‌کند. میزبانی بیرونی = بدون حفاظت نورا؛ شناسهٔ ویدیو برای دارندگان دسترسی قابل‌مشاهده است. <a href="${esc(video.watch_url)}" target="_blank" rel="noopener noreferrer">باز کردن در ${name}</a></small>`;
 }
 function eiResources(){
   const items=EI.data&&Array.isArray(EI.data.items)?EI.data.items:[];
@@ -6726,7 +6744,7 @@ function eiResourceEditor(){
   const field=(label,key,opts)=>{const o=opts||{}, id='eif_'+key, attrs=`id="${id}" class="input" data-ei-field="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.dir?`dir="${o.dir}"`:''}`;
     return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="3">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
   return `<section class="card stack" data-ei-res-editor><div class="head">${e.id?'ویرایش منبع':'منبع تازه'}</div>
-    ${e.id?'':`<label class="fld" for="eif_kind"><span class="lbl">نوع</span><select id="eif_kind" class="input" data-ei-field="kind"><option value="file" ${f.kind!=='link'?'selected':''}>فایل (پس از ساخت بارگذاری می‌شود)</option><option value="link" ${f.kind==='link'?'selected':''}>پیوند https</option></select></label>`}
+    ${e.id?'':`<label class="fld" for="eif_kind"><span class="lbl">نوع</span><select id="eif_kind" class="input" data-ei-field="kind"><option value="file" ${!['link','youtube','aparat'].includes(f.kind)?'selected':''}>فایل خصوصی نورا (پس از ساخت بارگذاری می‌شود)</option><option value="youtube" ${f.kind==='youtube'?'selected':''}>ویدیوی یوتیوب (پخش‌کنندهٔ رسمی)</option><option value="aparat" ${f.kind==='aparat'?'selected':''}>ویدیوی آپارات (پخش‌کنندهٔ رسمی)</option><option value="link" ${f.kind==='link'?'selected':''}>پیوند https</option></select><small class="cap">${f.kind==='youtube'||f.kind==='aparat'?'جاسازی بیرونی میزبانی خصوصی نیست و حفاظتی مثل DRM ندارد؛ برای محتوای پولی حساس «فایل خصوصی نورا» امن‌تر است.':''}</small></label>`}
     ${field('عنوان','title',{max:160,err:err.title})}
     ${field('توضیح کوتاه','description',{textarea:true,max:800})}
     <div class="row tight" style="flex-wrap:wrap">
@@ -6734,9 +6752,9 @@ function eiResourceEditor(){
       ${field('زمان انتشار (اختیاری)','publish_at',{dir:'ltr',ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',hint:'ساعت تهران؛ خالی یعنی با انتشار بلافاصله در دسترس است.'})}
       ${field('نام ناشر (نمایشی)','publisher',{max:120})}
     </div>
-    ${f.kind==='link'?field('پیوند','link_url',{dir:'ltr',ph:'https://…',max:2048,err:err.link_url}):''}
+    ${f.kind==='link'?field('پیوند','link_url',{dir:'ltr',ph:'https://…',max:2048,err:err.link_url}):f.kind==='youtube'?field('نشانی یا شناسهٔ ویدیوی یوتیوب','link_url',{dir:'ltr',ph:'https://www.youtube.com/watch?v=… یا youtu.be/…',max:2048,err:err.link_url,hint:'سرور فقط شناسهٔ ۱۱ حرفی را نگه می‌دارد و نشانی رسمی پخش‌کننده را خودش می‌سازد؛ کد HTML پذیرفته نمی‌شود.'}):f.kind==='aparat'?field('نشانی یا شناسهٔ ویدیوی آپارات','link_url',{dir:'ltr',ph:'https://www.aparat.com/v/…',max:2048,err:err.link_url,hint:'سرور فقط شناسهٔ ویدیو را نگه می‌دارد؛ تنظیمات انتشار/جاسازی در خود آپارات تعیین می‌شود.'}):''}
     ${(REC.data&&REC.data.recording&&(REC.data.recording.sessions||[]).length)?`<div class="row tight" style="flex-wrap:wrap"><label class="fld" for="eif_session_id"><span class="lbl">جلسهٔ ضبط‌شده (اختیاری)</span><select id="eif_session_id" class="input" data-ei-field="session_id"><option value="" ${f.session_id?'':'selected'}>منبع عمومی رویداد (بدون جلسه)</option>${REC.data.recording.sessions.map(x=>`<option value="${x.id}" ${f.session_id===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select><small class="cap">فایل جلسه با سطح «دارندگان دسترسی» فقط برای خریداران/دارندگان دسترسی باز می‌شود.</small></label>
-      <label class="fld" for="eif_delivery"><span class="lbl">نحوهٔ تحویل</span><select id="eif_delivery" class="input" data-ei-field="delivery"><option value="download" ${f.delivery!=='view'?'selected':''}>قابل دانلود</option><option value="view" ${f.delivery==='view'?'selected':''}>فقط مشاهدهٔ برخط (بدون ادعای حفاظت از کپی)</option></select></label></div>`:''}
+      <label class="fld" for="eif_delivery"><span class="lbl">نحوهٔ تحویل</span><select id="eif_delivery" class="input" data-ei-field="delivery" ${f.kind==='youtube'||f.kind==='aparat'?'disabled':''}><option value="download" ${f.delivery!=='view'&&f.kind!=='youtube'&&f.kind!=='aparat'?'selected':''}>قابل دانلود</option><option value="view" ${f.delivery==='view'||f.kind==='youtube'||f.kind==='aparat'?'selected':''}>فقط مشاهدهٔ برخط (بدون ادعای حفاظت از کپی)</option></select>${f.kind==='youtube'||f.kind==='aparat'?'<small class="cap">منبع بیرونی فقط مشاهدهٔ برخط است؛ دانلود را خود سکو تعیین می‌کند.</small>':''}</label></div>`:''}
     ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
     <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت منبع','data-ei-res-save','i-check')}<button class="btn sm quiet" data-ei-res-cancel>انصراف</button></div></section>`;
 }
@@ -6750,9 +6768,10 @@ function eiResourceOpen(id){
 async function eiResourceSave(){
   const api=window.NORA_SERVER_API, e=EI.res.edit; if(!e||EI.busy) return;
   const f=e.form, payload={title:String(f.title||'').trim(),description:String(f.description||'').trim(),access:f.access,publish_at:String(f.publish_at||'').trim(),publisher:String(f.publisher||'').trim()};
-  if(REC.data&&REC.data.recording){payload.session_id=String(f.session_id||''); payload.delivery=f.delivery==='view'?'view':'download'}
-  if(!e.id) payload.kind=f.kind==='link'?'link':'file';
-  if((e.id?f.kind:payload.kind)==='link') payload.link_url=String(f.link_url||'').trim();
+  const external=f.kind==='youtube'||f.kind==='aparat';
+  if(REC.data&&REC.data.recording){payload.session_id=String(f.session_id||''); payload.delivery=external||f.delivery==='view'?'view':'download'}
+  if(!e.id) payload.kind=['link','youtube','aparat'].includes(f.kind)?f.kind:'file';
+  if(['link','youtube','aparat'].includes(e.id?f.kind:payload.kind)) payload.link_url=String(f.link_url||'').trim();
   EI.busy='save'; e.errors={}; e.formError=''; renderBody();
   try{
     const saved=e.id?await api.updateEventResource(EI.eventId,e.id,payload,staffCsrfCookie()):await api.createEventResource(EI.eventId,payload,staffCsrfCookie());
@@ -6920,6 +6939,7 @@ function eiClick(q){
     box.offset=page.dataset.eiPage==='next'?Math.min(box.offset+box.limit,Math.max(0,total-1)):Math.max(0,box.offset-box.limit); eiLoad(); return true}
   if(q('[data-ei-res-new]')){eiResourceOpen(''); return true}
   const resEdit=q('[data-ei-res-edit]'); if(resEdit){eiResourceOpen(resEdit.dataset.eiResEdit); return true}
+  const resPreview=q('[data-ei-res-preview]'); if(resPreview){EI.res.preview=EI.res.preview===resPreview.dataset.eiResPreview?'':resPreview.dataset.eiResPreview; renderBody(); return true}
   if(q('[data-ei-res-cancel]')){EI.res.edit=null; renderBody(); return true}
   if(q('[data-ei-res-save]')){eiResourceSave(); return true}
   const resStatus=q('[data-ei-res-status]'); if(resStatus){eiResourceStatus(resStatus.dataset.eiId,resStatus.dataset.eiResStatus); return true}

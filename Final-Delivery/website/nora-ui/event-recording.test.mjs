@@ -13,6 +13,13 @@ const REC = '99999999-9999-4999-8999-999999999999';
 const SESS = '55555555-5555-4555-8555-555555555551';
 const VID = '11111111-1111-4111-8111-111111111119';
 const PDF = '11111111-1111-4111-8111-111111111120';
+const YT = '11111111-1111-4111-8111-111111111121';
+const AP = '11111111-1111-4111-8111-111111111122';
+const BADV = '11111111-1111-4111-8111-111111111123';
+const YT_ID = 'dQw4w9WgXcQ', AP_ID = 'abc12Xy';
+/* همان شکل خروجی سرور (`video_sources.VideoSource.as_dict`) — مبدأ قاب فقط youtube-nocookie / aparat */
+const ytVideo = { provider: 'youtube', video_id: YT_ID, watch_url: 'https://www.youtube.com/watch?v=' + YT_ID, embed_url: 'https://www.youtube-nocookie.com/embed/' + YT_ID + '?rel=0&modestbranding=1&playsinline=1', frame_origin: 'https://www.youtube-nocookie.com' };
+const apVideo = { provider: 'aparat', video_id: AP_ID, watch_url: 'https://www.aparat.com/v/' + AP_ID, embed_url: 'https://www.aparat.com/video/video/embed/videohash/' + AP_ID + '/vt/frame', frame_origin: 'https://www.aparat.com' };
 const ORDER = '77777777-7777-4777-8777-777777777771';
 const FORM = '88888888-8888-4888-8888-888888888881';
 const card = { id: REC, status: 'published', sellable: true, title: 'ضبط کارگاه نجوم', summary: 'سه جلسه دربارهٔ آسمان شب', price: 1500000, currency: 'IRR', free: false, access_days: null, cover_url: '', session_count: 1, total_minutes: 95, published_at: '2026-10-21T06:00:00Z' };
@@ -38,7 +45,13 @@ function product(viewerKind, extra = {}) {
     session_count: 1, total_minutes: 95,
     sessions: [{ id: SESS, title: 'جلسهٔ یکم: آسمان شب', description: '', sort_order: 1, duration_minutes: 95, preview: false, status: 'published', resources: [
       res(VID, 'ویدئوی جلسه', 'video/mp4', 'view', allowed, allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), false),
-      res(PDF, 'جزوهٔ جلسه', 'application/pdf', 'download', true, allowed ? 'purchased' : 'preview', true) ] }],
+      res(PDF, 'جزوهٔ جلسه', 'application/pdf', 'download', true, allowed ? 'purchased' : 'preview', true),
+      ...(extra.external ? [
+        { id: YT, kind: 'youtube', title: 'ویدیوی یوتیوب جلسه', description: '', access: 'purchased', delivery: 'view', file_name: '', content_type: '', size: 0, published: true, publish_at: '', allowed, reason: allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), playable: true, downloadable: false, preview: false, external: true, ...(allowed ? { video: ytVideo, link_url: ytVideo.watch_url } : {}) },
+        { id: AP, kind: 'aparat', title: 'ویدیوی آپارات جلسه', description: '', access: 'purchased', delivery: 'view', file_name: '', content_type: '', size: 0, published: true, publish_at: '', allowed, reason: allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), playable: true, downloadable: false, preview: false, external: true, ...(allowed ? { video: apVideo, link_url: apVideo.watch_url } : {}) },
+        /* ردیفی که سرور نتوانسته منبع معتبر بسازد (video=null) یا کسی مبدأ ناامن تزریق کرده: هرگز قاب ساخته نمی‌شود */
+        { id: BADV, kind: 'youtube', title: 'ویدیوی خراب', description: '', access: 'purchased', delivery: 'view', file_name: '', content_type: '', size: 0, published: true, publish_at: '', allowed, reason: 'purchased', playable: false, downloadable: false, preview: false, external: true, ...(allowed ? { video: { provider: 'youtube', video_id: 'x', watch_url: 'https://evil.example/w', embed_url: 'https://evil.example/embed/x', frame_origin: 'https://evil.example' } } : {}) }
+      ] : []) ] }],
     viewer: { signed_in: signedIn, staff: false, access: { state: allowed ? 'active' : 'none', allowed, reason: allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), source: allowed ? 'purchase' : '', expires_at: allowed ? '2027-01-19T06:00:00Z' : '' }, cta } } };
 }
 async function load({ events = content.events, recording = product('guest'), cookie = '', onFetch = null, hash = '', file = 'event.html', interactionPatch = null } = {}) {
@@ -259,6 +272,42 @@ console.log('\n— پرسش‌وپاسخ و دیدگاه‌ها: پرسش جلس
   const notEligible = await load({ recording: product('member'), cookie: 'nora_account_csrf=x', interactionPatch: base => { base.viewer.signed_in = true; base.recording = { id: REC, status: 'published', sellable: true }; return base; } });
   ok(!notEligible.doc.querySelector('form[data-ei-form="review"]') && notEligible.txt('#reviews').includes('دارندگان دسترسی محتوای ضبط‌شده'), 'غیرشرکت‌کنندهٔ بدون خرید: فرم دیدگاه نیست و پیام راه‌های واقعی واجد شرایط شدن را می‌گوید');
   notEligible.dom.window.close();
+}
+
+
+console.log('\n— منابع ویدیوی بیرونی (فاز ۹.۱ §۳): قاب رسمی فقط پس از مجوز سرور؛ مهمان شناسه‌ای نمی‌بیند؛ مبدأ ناامن هرگز قاب نمی‌شود —');
+{
+  const guest = await load({ recording: product('guest', { external: true }) });
+  ok(guest.errors.length === 0, 'مهمان: بدون خطای JavaScript');
+  const lockedYt = guest.doc.querySelector('[data-rec-resource="' + YT + '"]');
+  ok(lockedYt && !lockedYt.querySelector('iframe') && lockedYt.textContent.includes('ویدیوی یوتیوب') && lockedYt.textContent.includes('میزبانی بیرونی') && !guest.doc.documentElement.outerHTML.includes(YT_ID) && !guest.doc.documentElement.outerHTML.includes(AP_ID), 'مهمان: ردیف ویدیوی بیرونی قفل است، نه قاب دارد نه شناسهٔ ویدیو در صفحه هست');
+  guest.dom.window.close();
+
+  const buyer = await load({ recording: product('buyer', { external: true }), cookie: 'nora_account_csrf=csrf-token-123' });
+  ok(buyer.errors.length === 0, 'خریدار: بدون خطای JavaScript');
+  const yt = buyer.doc.querySelector('[data-rec-resource="' + YT + '"] .ei-embed[data-rec-embed="' + YT + '"]');
+  const ytFrame = yt && yt.querySelector('iframe[data-rec-embed-frame="' + YT + '"]');
+  ok(ytFrame && ytFrame.getAttribute('src') === ytVideo.embed_url && yt.getAttribute('data-embed-provider') === 'youtube' && ytFrame.getAttribute('allowfullscreen') !== null && ytFrame.getAttribute('referrerpolicy') === 'strict-origin-when-cross-origin', 'یوتیوب: قاب از نشانی رسمی youtube-nocookie که سرور ساخته (privacy-enhanced)، با allowfullscreen و referrerpolicy');
+  /* jsdom با پاسخ ۴۰۳ شبیه‌سازی‌شده رویداد load قاب را فوری می‌فرستد؛ پس وضعیت یا هنوز loading است یا ready شده، هرگز بدون پوشش وضعیت نیست */
+  ok(['loading', 'ready'].includes(yt.getAttribute('data-embed-state')) && yt.querySelector('[data-rec-embed-state] [data-embed-text]').textContent.includes('در حال بارگذاری'), 'پوشش وضعیت بارگذاری واقعی وجود دارد و با رویداد load قاب برداشته می‌شود');
+  const ytNote = buyer.doc.querySelector('[data-rec-resource="' + YT + '"] .ei-embed-note');
+  /* نگهبان پیوند بیرونی ui.js در پیش‌نمایش file:// همهٔ hrefهای بیرونی را غیرفعال می‌کند (در سرور زنده با NORA_PUBLIC_SOURCE=server زنده می‌مانند)؛ پس وجود پیوند و rel سنجیده می‌شود، نه href پس از نگهبان */
+  const ytOpen = ytNote && ytNote.querySelector('a[data-rec-embed-open="' + YT + '"]');
+  ok(ytNote && ytNote.textContent.includes('میزبانی بیرونی') && ytNote.textContent.includes('DRM') && ytOpen && ytOpen.textContent.includes('باز کردن در یوتیوب') && ytOpen.getAttribute('rel') === 'noopener noreferrer' && (ytOpen.getAttribute('href') === ytVideo.watch_url || ytOpen.getAttribute('aria-disabled') === 'true'), 'یادداشت صادقانه: میزبانی بیرونی بدون DRM + پیوند جایگزین به خود یوتیوب');
+  const ap = buyer.doc.querySelector('[data-rec-resource="' + AP + '"] iframe[data-rec-embed-frame="' + AP + '"]');
+  const apOpen = buyer.doc.querySelector('[data-rec-resource="' + AP + '"] a[data-rec-embed-open="' + AP + '"]');
+  ok(ap && ap.getAttribute('src') === apVideo.embed_url && apOpen && apOpen.textContent.includes('باز کردن در آپارات'), 'آپارات: قاب از نشانی رسمی embed آپارات + پیوند جایگزین');
+  ok(!buyer.doc.querySelector('[data-rec-resource="' + YT + '"] a[download]') && !buyer.doc.querySelector('[data-rec-resource="' + AP + '"] a[download]') && !buyer.doc.querySelector('[data-rec-resource="' + YT + '"] video'), 'منبع بیرونی: نه دکمهٔ دانلود نورا، نه پخش‌کنندهٔ فایل خصوصی');
+  const bad = buyer.doc.querySelector('[data-rec-resource="' + BADV + '"]');
+  ok(bad && !bad.querySelector('iframe') && bad.querySelector('[data-rec-embed-invalid="' + BADV + '"]') && !buyer.doc.documentElement.outerHTML.includes('evil.example'), 'مبدأ خارج از فهرست مجاز: هیچ قابی ساخته نمی‌شود و نشانی ناامن در صفحه نیست');
+  ok([...buyer.doc.querySelectorAll('iframe')].every(f => /^https:\/\/www\.(youtube-nocookie|aparat)\.com\//.test(f.getAttribute('src') || '')), 'همهٔ قاب‌های صفحه فقط از دو مبدأ رسمی‌اند');
+  /* رویداد load قاب → وضعیت ready؛ خطا → پیام صادقانه */
+  ytFrame.dispatchEvent(new buyer.dom.window.Event('load'));
+  ok(yt.getAttribute('data-embed-state') === 'ready', 'پس از load قاب، پوشش بارگذاری برداشته می‌شود');
+  const apBox = buyer.doc.querySelector('.ei-embed[data-rec-embed="' + AP + '"]');
+  ap.dispatchEvent(new buyer.dom.window.Event('error'));
+  ok(apBox.getAttribute('data-embed-state') === 'error' && apBox.textContent.includes('بارگذاری نشد'), 'خطای قاب: وضعیت error با پیام و پیوند جایگزین، بدون ادعای پخش');
+  buyer.dom.window.close();
 }
 
 console.log(`\nevent-recording: ${checks} بررسی، ${fails} خطا`);

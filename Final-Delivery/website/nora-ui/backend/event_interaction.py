@@ -31,6 +31,7 @@ from urllib.parse import quote, urlsplit
 from sqlalchemy import ColumnElement, select
 from sqlalchemy.orm import Session
 
+from . import video_sources
 from .models import (
     EVENT_RESOURCE_CONTENT_TYPES,
     EVENT_RESOURCE_MAX_BYTES,
@@ -44,7 +45,10 @@ from .models import (
 )
 
 ACCESS_LEVELS: tuple[str, ...] = ("public", "registered", "attended", "purchased", "staff")
-RESOURCE_KINDS: tuple[str, ...] = ("file", "link")
+# ``youtube`` / ``aparat`` (phase 9.1 §3) store only the canonical watch URL of a validated
+# video id; the official embed URL is derived server-side (see ``video_sources``).
+RESOURCE_KINDS: tuple[str, ...] = ("file", "link", "youtube", "aparat")
+EMBED_KINDS: tuple[str, ...] = video_sources.EMBED_KINDS
 RESOURCE_STATUSES: tuple[str, ...] = ("draft", "published", "removed")
 QUESTION_STATUSES: tuple[str, ...] = ("pending", "published", "hidden")
 REVIEW_STATUSES: tuple[str, ...] = ("pending", "published", "hidden", "withdrawn")
@@ -393,6 +397,13 @@ def resource_public_view(
     }
     if allowed and record.kind == "link":
         view["link_url"] = record.link_url
+    if record.kind in EMBED_KINDS:
+        view["external"] = True
+        if allowed:
+            # Playback information (video id / official embed URL) only after the server-side access check.
+            video = video_sources.from_stored(record.kind, record.link_url)
+            view["video"] = video.as_dict() if video is not None else None
+            view["link_url"] = video.watch_url if video is not None else ""
     return view
 
 
@@ -412,7 +423,13 @@ def resource_admin_view(record: EventResourceRecord) -> dict[str, Any]:
         "publish_at": iso(record.publish_at),
         "publisher": record.publisher_label,
         "sort_order": record.sort_order,
-        "link_url": record.link_url if record.kind == "link" else "",
+        "link_url": record.link_url if record.kind in ("link", *EMBED_KINDS) else "",
+        "video": (
+            (lambda source: source.as_dict() if source is not None else None)(
+                video_sources.from_stored(record.kind, record.link_url)
+            )
+            if record.kind in EMBED_KINDS else None
+        ),
         "file_name": record.file_name,
         "content_type": record.content_type,
         "size": record.content_size,
@@ -467,6 +484,17 @@ def validate_resource_fields(
                 out["publish_at"] = as_utc(moment)
     if kind == "link" and ("link_url" in payload or existing is None or existing.kind != "link"):
         out["link_url"] = safe_link(payload.get("link_url"))
+    if kind in EMBED_KINDS and ("link_url" in payload or existing is None or existing.kind != kind):
+        # Accept a URL or a bare id, keep only the canonical watch URL of the validated id.
+        try:
+            out["link_url"] = video_sources.parse(kind, payload.get("link_url")).watch_url
+        except video_sources.VideoSourceError as error:
+            raise InteractionError(error.code, field="link_url") from None
+    if kind in EMBED_KINDS:
+        # External players are view-only by construction; Nora never hands out a download.
+        if payload.get("delivery") not in (None, "", "view"):
+            raise InteractionError("invalid_choice", field="delivery")
+        out["delivery"] = "view"
     if "sort_order" in payload:
         raw_order = payload.get("sort_order")
         if isinstance(raw_order, bool) or not isinstance(raw_order, int) or not 0 <= raw_order <= 10_000:

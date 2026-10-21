@@ -18,6 +18,7 @@ const OWNER = [...MANAGER, 'cl_member', 'cl_session', 'cl_cert', 'cl_content', '
   'role_assign', 'sys_fields', 'sys_settings', 'sys_backup', 'cert_final', 'user_delete', 'public_roster'];
 const EV = 'ev-qa-phase8';
 const RES_FILE = '11111111-1111-4111-8111-111111111111';
+const RES_YT = '33333333-3333-4333-8333-333333333399';
 const RES_NEW = '11111111-1111-4111-8111-222222222222';
 const Q1 = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const Q2 = 'aaaaaaaa-aaaa-4aaa-8aaa-bbbbbbbbbbbb';
@@ -110,7 +111,21 @@ async function loadPanel(identity) {
             const sent = json();
             if (!sent.title || sent.title.length < 2) return reply(422, { detail: { code: 'text_required', field: 'title' } });
             if (sent.kind === 'link' && !/^https:\/\//.test(sent.link_url || '')) return reply(422, { detail: { code: 'invalid_link', field: 'link_url' } });
-            const row = { ...state.resources[0], id: RES_NEW, kind: sent.kind || 'file', title: sent.title, description: sent.description || '', access: sent.access || 'public', status: 'draft', link_url: sent.link_url || '', publisher: sent.publisher || '' };
+            /* ۹.۱ §۳: آینهٔ قواعد backend/video_sources.py — فقط شناسهٔ معتبر؛ HTML و میزبان بیگانه ۴۲۲ */
+            let video = null;
+            if (sent.kind === 'youtube' || sent.kind === 'aparat') {
+              const raw = String(sent.link_url || '');
+              if (/[<>"']/.test(raw)) return reply(422, { detail: { code: 'html_not_allowed', field: 'link_url' } });
+              const yt = raw.match(/^(?:https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)|)([A-Za-z0-9_-]{11})(?:[?&#/].*)?$/);
+              const ap = raw.match(/^(?:https?:\/\/(?:www\.)?aparat\.com\/v\/|)([A-Za-z0-9]{3,24})(?:[?&#/].*)?$/);
+              if (/^https?:\/\//.test(raw) && !/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be|aparat\.com)\//.test(raw)) return reply(422, { detail: { code: 'unsupported_video_host', field: 'link_url' } });
+              if (sent.kind === 'youtube' && !yt) return reply(422, { detail: { code: 'invalid_video_id', field: 'link_url' } });
+              if (sent.kind === 'aparat' && !ap) return reply(422, { detail: { code: 'invalid_video_id', field: 'link_url' } });
+              video = sent.kind === 'youtube'
+                ? { provider: 'youtube', video_id: yt[1], watch_url: 'https://www.youtube.com/watch?v=' + yt[1], embed_url: 'https://www.youtube-nocookie.com/embed/' + yt[1] + '?rel=0&modestbranding=1&playsinline=1', frame_origin: 'https://www.youtube-nocookie.com' }
+                : { provider: 'aparat', video_id: ap[1], watch_url: 'https://www.aparat.com/v/' + ap[1], embed_url: 'https://www.aparat.com/video/video/embed/videohash/' + ap[1] + '/vt/frame', frame_origin: 'https://www.aparat.com' };
+            }
+            const row = { ...state.resources[0], id: state.nextId || RES_NEW, kind: sent.kind || 'file', title: sent.title, description: sent.description || '', access: sent.access || 'public', status: 'draft', link_url: video ? video.watch_url : (sent.link_url || ''), publisher: sent.publisher || '', video, delivery: video ? 'view' : (sent.delivery || 'download') };
             state.resources.push(row);
             return reply(201, row);
           }
@@ -296,6 +311,37 @@ console.log('— مالک: ورود از ردیف رویداد، منابع (س�
     assert.ok(created, 'ساخت منبع پیوند');
     assert.equal(JSON.parse(created.body).access, 'attended');
     assert.match(app.doc.querySelector(`[data-ei-res-row="${RES_NEW}"]`).textContent, /حاضران تأییدشده/);
+
+    /* ۹.۱ §۳: منبع ویدیوی یوتیوب/آپارات — فقط نشانی/شناسه، خطاهای سرور کنار فیلد، پیش‌نمایش واقعی از نشانی رسمی */
+    app.state.nextId = RES_YT;
+    app.click('[data-ei-res-new]');
+    await app.until(() => app.doc.querySelector('[data-ei-res-editor]'), 'ویرایشگر منبع (ویدیو)');
+    assert.deepEqual(Array.from(app.doc.querySelector('#eif_kind').options).map((o) => o.value), ['file', 'youtube', 'aparat', 'link'], 'سه منبع ویدیو + پیوند؛ هیچ گزینهٔ «کد embed»');
+    app.setField('#eif_kind', 'youtube');
+    await app.until(() => app.doc.querySelector('#eif_link_url'), 'فیلد نشانی ویدیو');
+    assert.match(app.body(), /DRM ندارد/, 'هشدار صادقانه: جاسازی بیرونی میزبانی خصوصی نیست');
+    app.setField('#eif_title', 'ویدیوی یوتیوب جلسه');
+    app.setField('#eif_link_url', '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>');
+    app.click('[data-ei-res-save]');
+    await app.until(() => /کد HTML یا iframe پذیرفته نمی‌شود/.test(app.body()), 'خطای html_not_allowed کنار فیلد');
+    app.setField('#eif_link_url', 'https://evil.example/watch?v=dQw4w9WgXcQ');
+    app.click('[data-ei-res-save]');
+    await app.until(() => /فقط نشانی‌های youtube\.com/.test(app.body()), 'خطای unsupported_video_host کنار فیلد');
+    app.setField('#eif_link_url', 'https://youtu.be/dQw4w9WgXcQ?si=tracking');
+    app.click('[data-ei-res-save]');
+    await app.until(() => app.doc.querySelector(`[data-ei-res-row="${RES_YT}"]`), 'منبع یوتیوب در فهرست');
+    const ytCreated = JSON.parse(app.calls.filter((c) => c.method === 'POST' && c.path === `/api/admin/events/${EV}/resources`).pop().body);
+    assert.equal(ytCreated.kind, 'youtube'); assert.equal(ytCreated.link_url, 'https://youtu.be/dQw4w9WgXcQ?si=tracking');
+    assert.ok(!('embed_html' in ytCreated) && !('embed_url' in ytCreated), 'پنل فقط نشانی خام را می‌فرستد؛ نشانی embed را سرور می‌سازد');
+    const ytRow = app.doc.querySelector(`[data-ei-res-row="${RES_YT}"]`);
+    assert.match(ytRow.textContent, /ویدیوی یوتیوب/); assert.match(ytRow.textContent, /https:\/\/www\.youtube\.com\/watch\?v=dQw4w9WgXcQ/);
+    assert.equal(ytRow.querySelector('iframe'), null, 'پیش‌نمایش پیش از درخواست مدیر بارگذاری نمی‌شود');
+    app.click(`[data-ei-res-preview="${RES_YT}"]`);
+    await app.until(() => app.doc.querySelector(`[data-ei-video-preview="${RES_YT}"] iframe`), 'پیش‌نمایش واقعی');
+    const frame = app.doc.querySelector(`[data-ei-video-preview="${RES_YT}"] iframe`);
+    assert.equal(frame.getAttribute('src'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1', 'قاب از نشانی رسمی youtube-nocookie که سرور برگردانده');
+    assert.match(app.doc.querySelector(`[data-ei-res-row="${RES_YT}"]`).textContent, /غیرقابل‌جاسازی/, 'توضیح: وضعیت واقعی را خود سکو نشان می‌دهد، سرور تأیید نمی‌کند');
+    app.state.nextId = '';
 
     /* حذف نرم با دلیل اجباری */
     app.click(`[data-ei-res-remove="${RES_NEW}"]`);

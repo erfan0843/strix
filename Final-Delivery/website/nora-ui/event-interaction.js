@@ -128,7 +128,7 @@
 
   /* ── منابع ── */
   function resourceRow(row) {
-    const kind = row.kind === 'link' ? 'پیوند' : (FORMAT[row.content_type] || 'فایل');
+    const kind = row.kind === 'link' ? 'پیوند' : row.kind === 'youtube' ? 'ویدیوی یوتیوب' : row.kind === 'aparat' ? 'ویدیوی آپارات' : (FORMAT[row.content_type] || 'فایل');
     const meta = [kind, row.kind === 'file' ? size(row.size) : '', ACCESS[row.access] || '',
       row.publisher ? `ناشر: ${row.publisher}` : '', row.publish_at ? `انتشار: ${when(row.publish_at)}` : ''].filter(Boolean);
     let action;
@@ -136,6 +136,10 @@
       action = `<a class="btn sm" href="/api/public/events/${encodeURIComponent(S.event.id)}/resources/${encodeURIComponent(row.id)}/download" download data-ei-download>دریافت فایل</a>`;
     } else if (row.allowed && row.kind === 'link' && /^https?:\/\//i.test(String(row.link_url || ''))) {
       action = `<a class="btn sm" href="${esc(row.link_url)}" target="_blank" rel="noopener noreferrer">بازکردن پیوند</a>`;
+    } else if (row.allowed && embedOf(row)) {
+      action = rEmbed(row, embedOf(row));
+    } else if (row.allowed && (row.kind === 'youtube' || row.kind === 'aparat')) {
+      action = `<span class="ei-lock">منبع ویدیو در سرور معتبر نیست؛ به برگزارکننده اطلاع دهید.</span>`;
     } else if (row.reason === 'login_required') {
       action = `<a class="btn sm quiet" href="${esc(loginHref('resources'))}">${esc(REASON.login_required)}</a>`;
     } else {
@@ -155,6 +159,7 @@
     const inner = rows.length ? `<ul class="ei-list">${rows.map(resourceRow).join('')}</ul>`
       : emptyBox('برای این رویداد هنوز فایل یا پیوندی منتشر نشده است.');
     box.innerHTML = section('resources', 'فایل‌ها و منابع', inner);
+    wireEmbeds(box);
   }
 
   /* ── پرسش‌وپاسخ ── */
@@ -293,6 +298,40 @@
   /* فاز ۹.۱: ورودی استاندارد خرید، فرم خریدِ فرم‌ساز است (purpose=recording_access)؛ شناسهٔ فرم از سرور می‌آید. */
   function rFormHref(formId) { return /^[A-Za-z0-9_-]{1,100}$/.test(String(formId || '')) ? `form.html?fid=${encodeURIComponent(String(formId))}&kind=reg` : ''; }
   function rFileHref(id) { return `/api/public/events/${encodeURIComponent(String(S.event.id))}/resources/${encodeURIComponent(id)}/download`; }
+  /* فاز ۹.۱ §۳: پخش‌کنندهٔ بیرونی فقط از نشانی رسمی‌ای ساخته می‌شود که سرور از شناسهٔ اعتبارسنجی‌شده تولید کرده است؛
+     هیچ HTML از سرور یا کاربر تزریق نمی‌شود و اگر نشانی خارج از دو مبدأ مجاز باشد، هیچ قابی ساخته نمی‌شود. */
+  const EMBED_ORIGINS = ['https://www.youtube-nocookie.com/embed/', 'https://www.aparat.com/video/video/embed/videohash/'];
+  const EMBED_NAME = { youtube: 'یوتیوب', aparat: 'آپارات' };
+  const EMBED_SLOW_MS = 12000;
+  function embedOf(row) {
+    const v = row && row.video;
+    if (!v || typeof v !== 'object') return null;
+    const embed = String(v.embed_url || ''), watch = String(v.watch_url || '');
+    if (!EMBED_ORIGINS.some(origin => embed.startsWith(origin)) || !/^https:\/\/www\.(youtube|aparat)\.com\//.test(watch)) return null;
+    return { provider: v.provider === 'aparat' ? 'aparat' : 'youtube', embed, watch };
+  }
+  function rEmbed(row, video) {
+    const name = EMBED_NAME[video.provider];
+    return `<div class="ei-embed" data-rec-embed="${esc(row.id)}" data-embed-provider="${esc(video.provider)}" data-embed-state="loading">
+        <iframe src="${esc(video.embed)}" title="${esc(row.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen data-rec-embed-frame="${esc(row.id)}"></iframe>
+        <div class="ei-embed-state" role="status" data-rec-embed-state><span data-embed-text>در حال بارگذاری پخش‌کنندهٔ ${esc(name)}…</span></div></div>
+      <p class="ei-embed-note">پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد، همان پیام خود ${esc(name)} در قاب دیده می‌شود. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
+  }
+  function wireEmbeds(scope) {
+    const win = doc.defaultView || window;
+    (scope || doc).querySelectorAll('.ei-embed[data-embed-state="loading"]').forEach(box => {
+      const frame = box.querySelector('iframe');
+      const text = box.querySelector('[data-embed-text]');
+      if (!frame) return;
+      const slow = win.setTimeout(() => {
+        if (box.getAttribute('data-embed-state') !== 'loading') return;
+        box.setAttribute('data-embed-state', 'slow');
+        if (text) text.textContent = 'پخش‌کننده هنوز بارگذاری نشده است (شبکه یا فیلترینگ؟). می‌توانید ویدیو را مستقیم در ' + (EMBED_NAME[box.getAttribute('data-embed-provider')] || 'سکوی میزبان') + ' باز کنید.';
+      }, EMBED_SLOW_MS);
+      frame.addEventListener('load', () => { win.clearTimeout(slow); box.setAttribute('data-embed-state', 'ready'); }, { once: true });
+      frame.addEventListener('error', () => { win.clearTimeout(slow); box.setAttribute('data-embed-state', 'error'); if (text) text.textContent = 'پخش‌کننده بارگذاری نشد؛ از پیوند زیر در خود سکو ببینید.'; }, { once: true });
+    });
+  }
 
   function rCta(compact) {
     const d = R.data; if (!d) return '';
@@ -347,8 +386,8 @@
     return `<div class="ei-rec-order" id="recording-order" data-ei-order-panel="${esc(status)}"><div class="ei-byline"><b>سفارش شما</b><span class="tag">${esc(R_ORDER_STATUS[status] || status)}</span></div>${body}</div>`;
   }
   function rResourceRow(row, sessionPreview) {
-    const label = row.kind === 'link' ? 'پیوند' : (FORMAT[row.content_type] || (row.content_type === 'video/mp4' ? 'ویدئو' : 'فایل'));
-    const meta = [label, row.kind === 'file' ? size(row.size) : '', row.delivery === 'view' ? 'فقط مشاهدهٔ برخط' : row.downloadable ? 'قابل دانلود' : '', row.preview || sessionPreview ? 'پیش‌نمایش رایگان' : ''].filter(Boolean).join(' · ');
+    const label = row.kind === 'link' ? 'پیوند' : row.kind === 'youtube' ? 'ویدیوی یوتیوب' : row.kind === 'aparat' ? 'ویدیوی آپارات' : (FORMAT[row.content_type] || (row.content_type === 'video/mp4' ? 'ویدئو' : 'فایل'));
+    const meta = [label, row.kind === 'file' ? size(row.size) : '', row.external ? 'میزبانی بیرونی' : '', row.delivery === 'view' ? 'فقط مشاهدهٔ برخط' : row.downloadable ? 'قابل دانلود' : '', row.preview || sessionPreview ? 'پیش‌نمایش رایگان' : ''].filter(Boolean).join(' · ');
     let action = '';
     if (row.allowed && row.kind === 'file' && row.playable && row.content_type === 'video/mp4') {
       action = `<video controls playsinline preload="none" ${row.downloadable ? '' : 'controlsList="nodownload"'} src="${esc(rFileHref(row.id))}" data-rec-player="${esc(row.id)}">پخش ویدئو در این مرورگر پشتیبانی نمی‌شود.</video>`;
@@ -361,6 +400,10 @@
         : `<a class="btn sm" href="${esc(rFileHref(row.id))}" target="_blank" rel="noopener" data-rec-open="${esc(row.id)}">مشاهدهٔ فایل</a>`;
     } else if (row.allowed && row.kind === 'link' && /^https?:\/\//i.test(String(row.link_url || ''))) {
       action = `<a class="btn sm" href="${esc(row.link_url)}" target="_blank" rel="noopener noreferrer">بازکردن پیوند</a>`;
+    } else if (row.allowed && embedOf(row)) {
+      action = rEmbed(row, embedOf(row));
+    } else if (row.allowed && (row.kind === 'youtube' || row.kind === 'aparat')) {
+      action = `<span class="ei-lock" data-rec-embed-invalid="${esc(row.id)}">منبع ویدیو در سرور معتبر نیست؛ به برگزارکننده اطلاع دهید.</span>`;
     } else if (row.reason === 'login_required') {
       action = `<a class="btn sm quiet" href="${esc(rLoginHref())}">${esc(R_ACCESS_REASON.login_required)}</a>`;
     } else {
@@ -410,6 +453,7 @@
       ${rBlock('دستاوردها', d.outcomes)}${rBlock('مخاطب', d.audience)}${rBlock('شرایط دسترسی', d.access_terms)}${rBlock('سیاست بازپرداخت', d.refund_policy)}
       <h3 class="ei-rec-sub" id="recording-sessions">جلسات</h3>${sessions.length ? `<ol class="ei-rec-sessions">${sessions.map(rSession).join('')}</ol>` : emptyBox('جلسه‌ای منتشر نشده است.')}${faq}`;
     box.innerHTML = section('recording', 'محتوای ضبط‌شده', inner, status);
+    wireEmbeds(box);
     fill(boxes.aside, `<p class="event-price">${esc(rMoney(d.price))}</p><div class="event-register-action">${rCta(true)}</div>`);
     fill(boxes.toolbar, rCta(true));
     const bar = doc.getElementById('ctabar');
