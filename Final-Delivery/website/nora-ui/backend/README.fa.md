@@ -121,6 +121,14 @@ PY
 - `0019_form_receipt_notes`: یادداشت اختیاری شرکت‌کننده روی رسید ارسالی.
 - `0020_form_payments`: intentهای کارت‌به‌کارت/کیف پول، payload فاکتور، مبلغ محاسبه‌شده و وضعیت server-side.
 - `0021_form_payment_transactions`: دفتر ثبت یکتای transaction/charge بله برای retry امن و جلوگیری از ثبت دوباره.
+- `0022_web_account_registration_history`: پیوند پاسخ‌های عمومی فرم به نشست تأییدشدهٔ حساب وب.
+- `0023_payment_secrets`: نگهداری رمزشدهٔ secretهای درگاه پرداخت که مالک وارد می‌کند.
+- `0024_account_profiles`: فیلدهای پروفایل عضو در صفحهٔ حساب.
+- `0025_service_checks`: ثبت نتیجهٔ آزمون‌های اتصال واقعی سرویس‌ها.
+- `0026_admin_audit_events`: تاریخچهٔ افزودنیِ عملیات مدیریتی (بدون secret).
+- `0027_ticket_checkin_account`: ثبت حساب پنل وبی که ورود بلیت را زده است.
+- `0028_certificates`: آینهٔ گواهی‌های صادرشدهٔ ربات برای پنل مدیران (`certificates`؛ فایل‌ها در `private_files`؛ مالک فقط از `platform_identities`). افزودنی و برگشت‌پذیر.
+- `0029_public_media`: تصاویر عمومی بارگذاری‌شده از پنل (`public_media`؛ URL پایدار `/api/public/media/{id}` در `site_content`). افزودنی و برگشت‌پذیر.
 
 پیوند عمومی در `create.html` پس از انتشار نشان داده می‌شود و به `form.html?fid=<شناسه>&kind=<نوع>` می‌رود. از افزودن `preview=1` به پیوند عمومی خودداری کنید؛ آن پارامتر عمداً پیش‌نمایش محلی سازنده را باز می‌کند.
 
