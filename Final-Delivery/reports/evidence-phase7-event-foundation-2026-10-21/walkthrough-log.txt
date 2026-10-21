@@ -1,0 +1,85 @@
+server_time=2026-10-21T11:46:16Z events=5 banners=3
+== home (desktop) ==
+  home: {"banners":[{"t":"[آزمون] ثبت‌نام کارگاه تا پایان مهلت","timer":"تا پایان ثبت‌نام۱ روز و ۲ ساعت و ۲۶ دقیقه","note":"این بنر آزمایشی به رویداد وصل است و زمانش را از خود رویداد می‌گیرد.","cta":"https://8000-ivyx47rwkw8o6w7u1vo8a.e2b.app/event.html?id=ev-61f2ac7e51"},{"t":"[آزمون] کمپین مستقل با مهلت","timer":"تا پایان فرصت۲ روز و ۱ ساعت و ۳۲ دقیقه","note":"شمارشگر کمپین مستقل با زمان اختصاصی.","cta":"https://8000-ivyx47rwkw8o6w7u1vo8a.e2b.app/events.html#list"},{"t":"[آزمون] بنر رویداد پرشده","timer":"ظرفیت این اردو تکمیل شد","note":"ظرفیت این اردو تکمیل شد","cta":"https://8000-ivyx47rwkw8o6w7u1vo8a.e2b.app/event.html?id=ev-6d70bd6c77"}],"top":[{"t":"[آزمون] کارگاه با ثبت‌نام باز","state":"ثبت‌نام باز است","timer":"تا پایان ثبت‌نام۱ روز و ۲ ساعت و ۲۶ دقیقه","cta":"ثبت‌نام و جزئیات"},{"t":"[آزمون] نشست با ثبت‌نام آینده","state":"ثبت‌نام هنوز آغاز نشده","timer":"تا آغاز ثبت‌نام۲ روز و ۲۳ ساعت و ۳۱ دقیقه","cta":"جزئیات"},{"t":"[آزمون] اردوی با ظرفیت تکمیل","state":"ظرفیت تکمیل شد","timer":"تا شروع رویداد۲۵ روز و ۲۳ ساعت و ۳۱ دقیقه","cta":"جزئیات"}],"openHidden":true,"soon":["[آزمون] جلسهٔ لغوشده","رویداد آزمایشی مرحلهٔ سوم (پوستر سروری)"],"past":[]}
+  ✓ بنر وصل به رویداد: شمارشگر مهلت از رویداد و مقصد صفحهٔ جزئیات
+  ✓ بنر کمپین مستقل: شمارشگر کمپین
+  ✓ بنر رویداد پرشده: متن پایان و فقط جزئیات
+  ✓ ویترین: کارت باز اول با نشان و شمارشگر
+  ✓ بنر خاموش و زمان‌بندی‌شدهٔ آینده نمایش داده نمی‌شوند
+  shot 01-home-desktop
+  shot 02-home-events-desktop
+  targets home: {"banner":"2026-10-22T14:13:01Z","card":"2026-10-22T14:13:01Z","serverClock":"2026-10-21T11:46:17.000Z"}
+== events (desktop) ==
+  cards: [{"id":"ev-61f2ac7e51","state":"ثبت‌نام باز است","timer":"2026-10-22T14:13:01Z","cover":"","reg":"form.html?fid=f96eb4ab-96d9-4bf6-8111-9239f207bf28&kind=reg","missing":""},{"id":"ev-c99fd10306","state":"ثبت‌نام هنوز آغاز نشده","timer":"2026-10-24T11:18:00Z","cover":"","reg":"","missing":"ثبت‌نام هنوز آغاز نشده"},{"id":"ev-6d70bd6c77","state":"ظرفیت تکمیل شد","timer":"2026-11-16T11:18:00Z","cover":"","reg":"","missing":"ظرفیت تکمیل شد"},{"id":"ev-0e796f247d","state":"لغو شد","timer":"","cover":"لغو شد","reg":"","missing":"لغو شد"},{"id":"ev-1bf98f0d18","state":"فرم ثبت‌نام منتشر نشده","timer":"","cover":"","reg":"","missing":"فرم ثبت‌نام منتشر نشده است"}]
+  ✓ کارت باز: دکمهٔ ثبت‌نام به فرم موجود
+  ✓ کارت آغازنشده: بدون دکمهٔ فرم
+  ✓ کارت تکمیل ظرفیت: بدون دکمهٔ فرم
+  ✓ کارت لغوشده: نشان لغو، بدون فرم
+  ✓ هدف شمارشگر کارت صفحهٔ رویدادها = کارت خانه = بنر
+  shot 03-events-desktop
+== detail pages (desktop) ==
+  04-detail-open-desktop: {"state":"ثبت‌نام باز است","timer":"2026-10-22T14:13:01Z","reg":"form.html?fid=f96eb4ab-96d9-4bf6-8111-9239f207bf28&kind=reg","bar":false,"notes":"مهلت ثبت‌نام تا ۳۰ مهر ۱۴۰۵، ۱۷:۴۳","start":"شروع (به وقت تهران)۱۲ آبان ۱۴۰۵، ۱۴:۴۸","calendar":true,"share":true,"tags":" آزمون فاز ۷کارگاه ثبت‌نام باز است [آزمون] کارگاه با ثبت‌نام باز رویداد آزمایشی فاز ۷ برای بررسی وضعیت ثبت‌نام و شمارشگر؛ دادهٔ آزمون، نه برنامهٔ واقعی. "}
+  shot 04-detail-open-desktop
+  ✓ جزئیات باز: وضعیت، CTA فرم، نوار پایین، همان هدف شمارش، تقویم و اشتراک
+  05-detail-not-started-desktop: {"state":"ثبت‌نام هنوز آغاز نشده","timer":"2026-10-24T11:18:00Z","reg":"","bar":true,"notes":"ثبت‌نام از ۲ آبان ۱۴۰۵، ۱۴:۴۸ آغاز می‌شود","start":"شروع (به وقت تهران)۲۰ آبان ۱۴۰۵، ۱۴:۴۸","calendar":true,"share":true,"tags":" آزمون فاز ۷نشست ثبت‌نام هنوز آغاز نشده [آزمون] نشست با ثبت‌نام آینده رویداد آزمایشی فاز ۷ برای بررسی وضعیت ثبت‌نام و شمارشگر؛ دادهٔ آزمون، نه برنامهٔ واقعی. "}
+  shot 05-detail-not-started-desktop
+  ✓ جزئیات آغازنشده: بدون CTA، زمان آغاز ثبت‌نام
+  06-detail-full-desktop: {"state":"ظرفیت تکمیل شد","timer":"2026-11-16T11:18:00Z","reg":"","bar":true,"notes":"ظرفیت این رویداد تکمیل شده است؛ ثبت‌نام تازه پذیرفته نمی‌شود.","start":"شروع (به وقت تهران)۲۵ آبان ۱۴۰۵، ۱۴:۴۸","calendar":true,"share":true,"tags":" آزمون فاز ۷اردو ظرفیت تکمیل شد [آزمون] اردوی با ظرفیت تکمیل رویداد آزمایشی فاز ۷ برای بررسی وضعیت ثبت‌نام و شمارشگر؛ دادهٔ آزمون، نه برنامهٔ واقعی. "}
+  shot 06-detail-full-desktop
+  ✓ جزئیات تکمیل ظرفیت: بدون CTA
+  07-detail-cancelled-desktop: {"state":"لغو شد","timer":"","reg":"","bar":true,"notes":"این رویداد لغو شده است و ثبت‌نامی انجام نمی‌شود.","start":"شروع (به وقت تهران)۲۸ آبان ۱۴۰۵، ۱۴:۴۸","calendar":false,"share":true,"tags":" آزمون فاز ۷نشست لغو شد [آزمون] جلسهٔ لغوشده رویداد آزمایشی فاز ۷ برای بررسی وضعیت ثبت‌نام و شمارشگر؛ دادهٔ آزمون، نه برنامهٔ واقعی. "}
+  shot 07-detail-cancelled-desktop
+  ✓ جزئیات لغوشده: بدون CTA/شمارشگر/تقویم
+== deadline before/after ==
+  set regClosesAt=2026-10-21T11:47:57Z → server state "open"
+  before: {"reg":true,"timer":"۱ دقیقه و ۱۴ ثانیه","soonCls":"nora-countdown is-soon"}
+  ✓ قبل از پایان مهلت: دکمهٔ ثبت‌نام و شمارش ثانیه‌ای
+  shot 08-detail-before-deadline-desktop
+  after (client): {"reg":false,"action":"مهلت ثبت‌نام طبق ساعت سرور به پایان رسید. برای وضعیت قطعی، صفحه را نوسازی کنید. به‌روزرسانی وضعیت","ended":"تا پایان ثبت‌ناممهلت ثبت‌نام به پایان رسید","bar":true}
+  ✓ پس از پایان مهلت (بدون نوسازی): CTA برداشته شد، دعوت به به‌روزرسانی
+  shot 09-detail-after-deadline-client-desktop
+  after (server): {"state":"ثبت‌نام بسته شد","reg":false,"timer":true,"startTimer":"تا شروع رویداد۱۲ روز و ۲۳ ساعت و ۲۹ دقیقه","notes":"مهلت ثبت‌نام ۲۹ مهر ۱۴۰۵، ۱۵:۱۷ به پایان رسید"}
+  ✓ پس از نوسازی: وضعیت «ثبت‌نام بسته شد» از سرور، بدون شمارشگر مهلت (فقط شمارش تا شروع رویداد مجاز است)
+  shot 10-detail-after-deadline-server-desktop
+  API after deadline: {"status":409,"code":"registration_closed","state":"closed"}
+  ✓ API فرم پس از مهلت: ۴۰۹ registration_closed (دور زدن از مسیر مستقیم ممکن نیست)
+  form.html gated: {"title":"ثبت‌نام این رویداد باز نیست","back":"event.html?id=ev-61f2ac7e51","screen":"uUnavailable"}
+  ✓ فرم با پیوند مستقیم پس از مهلت: پیام بسته‌بودن و بازگشت به همان رویداد
+  shot 11-form-gated-after-deadline-desktop
+  home after deadline: {"banner":"مهلت ثبت‌نام به پایان رسید","cta":"https://8000-ivyx47rwkw8o6w7u1vo8a.e2b.app/event.html?id=ev-61f2ac7e51","card":"ثبت‌نام بسته شد"}
+  ✓ خانه پس از مهلت: بنر «پایان‌یافته» با مقصد جزئیات و کارت «ثبت‌نام بسته شد»
+  shot 12-home-after-deadline-desktop
+  restored deadline → open
+  public page errors: []
+  HTTP>=400 (excluding expected probes): ["409 https://8000-ivyx47rwkw8o6w7u1vo8a.e2b.app/api/public/forms/f96eb4ab-96d9-4bf6-8111-9239f207bf28"]
+  ✓ بدون خطای جاوااسکریپت در صفحه‌های عمومی
+== mobile ==
+  ✓ 13-home-mobile: بدون سرریز افقی (0px)
+  shot 13-home-mobile
+  ✓ 14-events-mobile: بدون سرریز افقی (0px)
+  shot 14-events-mobile
+  ✓ 15-detail-open-mobile: بدون سرریز افقی (0px)
+  shot 15-detail-open-mobile
+  ✓ 16-detail-cancelled-mobile: بدون سرریز افقی (0px)
+  shot 16-detail-cancelled-mobile
+  shot 17-home-events-mobile
+  ✓ بدون خطای جاوااسکریپت در موبایل: []
+== owner panel ==
+  logged in as qa-owner
+  editor: {"startsAt":"1405/08/12 14:48","regClosesAt":"1405/07/30 17:48","regMode":"auto","lifecycle":"scheduled","state":"وضعیت فعلی ثبت‌نام طبق سرور: ثبت‌نام باز"}
+  ✓ ویرایشگر رویداد: زمان‌ها به شمسی/تهران پر شده و وضعیت ثبت‌نام سرور نشان داده می‌شود
+  shot 18-admin-event-editor-schedule-desktop
+  shot 19-admin-event-editor-schedule-mobile
+  banner manager: {"event":"ev-61f2ac7e51","countdown":"reg_close","afterEnd":"details","eventState":"وضعیت ثبت‌نام: ثبت‌نام باز · مهلت ثبت‌نام: 2026-10-22 14:18 · شروع رویداد: 2026-11-03 11:18 — این مقادیر از خود رویداد خوانده می‌شوند و در بنر ذخیره نمی‌شوند.","preview":"تا پایان ثبت‌نام: ۱ روز و ۲ ساعت و ۲۹ دقیقه","options":["بدون پیوند به رویداد","رویداد آزمایشی مرحلهٔ سوم (پوستر سروری) · 1405/09/01","[آزمون] کارگاه با ثبت‌نام باز · سه‌شنبه ۱۲ آبان","[آزمون] نشست با ثبت‌نام آینده · چهارشنبه ۲۰ آبان","[آزمون] اردوی با ظرفیت تکمیل · دوشنبه ۲۵ آبان","[آزمون] جلسهٔ لغوشده · پنجشنبه ۲۸ آبان"]}
+  ✓ مدیریت بنر: رویداد پیوندشده، نوع شمارشگر و پیش‌نمایش از مهلت رویداد؛ رویداد پیش‌نویس در فهرست نیست
+  shot 20-admin-banner-preview-desktop
+  ✓ پیش‌نمایش موبایل فعال شد
+  shot 21-admin-banner-preview-mobile-mode
+  dialog(confirm): تنظیمات و ۵ بنر روی سرور ذخیره می‌شود؛ بنرهای منتشرشدهٔ فعال در صفحهٔ خانه نمایش داده می‌ش
+  save state: بنرها و تنظیمات در نسخهٔ ۲۰ ذخیره شدند.
+  ✓ ویرایش بنر پس از بارگذاری دوبارهٔ پنل پابرجاست (از سرور)
+  ✓ API عمومی همان تغییر را برمی‌گرداند
+  shot 22-admin-banner-after-reload
+  ✓ بدون خطای جاوااسکریپت در پنل: []
+
+browser-flow phase7: 32 بررسی، 0 خطا
