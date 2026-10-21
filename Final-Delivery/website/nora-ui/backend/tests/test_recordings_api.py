@@ -1018,3 +1018,39 @@ def test_completion_certificate_policy_is_explicit_and_nothing_is_ever_issued_au
                 assert db.scalar(select(CertificateRecord.id)) is None
     finally:
         engine.dispose()
+
+
+def test_archiving_stops_listing_and_sales_but_keeps_a_still_active_access():
+    """Phase 9.1 integrity review: ``archived`` hides the product from the public and refuses new
+    purchases, yet a holder of a still-active access keeps the page, the CTA ``view`` and the files
+    (the same rule the download endpoint already applied). Nobody else gains anything."""
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            held, _version = held_event(owner, 0)
+            product = build_sellable_product(owner, held, price=0, payment_card=None)
+            recording_id, resource_id = product["recording"]["id"], product["_resource_id"]
+            assert set_status(owner, held, "ready").status_code == 200
+            assert set_status(owner, held, "published").status_code == 200
+            holder = TestClient(app)
+            bale_login(holder, 96001)
+            assert holder.post(f"/api/account/recordings/{recording_id}/claim", headers=account_write_headers(holder)).status_code == 201
+            download = f"/api/public/events/{held}/resources/{resource_id}/download"
+            assert holder.get(download).status_code == 200
+
+            assert set_status(owner, held, "archived", "پایان دورهٔ فروش").status_code == 200
+            guest, other = TestClient(app), TestClient(app)
+            bale_login(other, 96002)
+            assert guest.get(f"/api/public/events/{held}/recording").status_code == 404
+            assert other.get(f"/api/public/events/{held}/recording").status_code == 404
+            assert other.post(f"/api/account/recordings/{recording_id}/claim", headers=account_write_headers(other)).status_code == 409
+            assert other.get(download).status_code == 403
+            assert guest.get("/api/public/recordings").json()["total"] == 0  # no shelf listing
+            kept = recording_view(holder, held)
+            assert kept["status"] == "archived" and kept["purchase"]["on_sale"] is False
+            assert kept["viewer"]["access"]["state"] == "active" and kept["viewer"]["cta"]["kind"] == "view"
+            assert holder.get(download).status_code == 200
+            assert holder.get("/api/account/recordings").json()["items"][0]["access"]["state"] == "active"
+    finally:
+        engine.dispose()

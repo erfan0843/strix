@@ -33,7 +33,10 @@ from backend.security import hash_password  # noqa: E402
 from backend.roles import ROLE_MANAGER  # noqa: E402
 
 from test_event_registration_gate import create_published_event, create_published_form, iso  # noqa: E402
-from test_recordings_api import MP4, PNG, build_sellable_product, set_status, put_recording  # noqa: E402
+from test_recordings_api import (  # noqa: E402
+    MP4, PNG, build_sellable_product, inbox_decide, purchase_form, put_recording, set_status, submit_purchase,
+    upload_purchase_receipt,
+)
 from test_workflows_api import (  # noqa: E402
     BOT_TOKEN, SERVICE_TOKEN, account_write_headers, bale_login, owner_login, owner_write_headers,
 )
@@ -121,10 +124,30 @@ def main() -> None:
                          headers=owner_write_headers(owner)).status_code == 200
         assert owner.put(f"/api/admin/events/{paid_ev}/recording/sessions/{s2.json()['id']}", json={"status": "published"},
                          headers=owner_write_headers(owner)).status_code == 200
+        paid_rec = product["recording"]["id"]
+        # Phase 9.1 §3: a third session delivered from external players (YouTube privacy-enhanced + Aparat).
+        s3 = owner.post(f"/api/admin/events/{paid_ev}/recording/sessions",
+                        json={"title": "جلسهٔ سوم: منابع بیرونی (یوتیوب و آپارات)", "duration_minutes": 45}, headers=owner_write_headers(owner))
+        assert s3.status_code == 201, s3.text
+        for kind, raw, title in (
+            ("youtube", "https://youtu.be/jNQXAC9IVRw", "ویدیوی یوتیوب جلسهٔ سوم"),
+            ("aparat", "https://www.aparat.com/v/IM5AJ", "ویدیوی آپارات جلسهٔ سوم"),
+        ):
+            ext = owner.post(f"/api/admin/events/{paid_ev}/resources",
+                             json={"kind": kind, "title": title, "link_url": raw, "access": "purchased", "session_id": s3.json()["id"]},
+                             headers=owner_write_headers(owner))
+            assert ext.status_code == 201, ext.text
+            assert owner.put(f"/api/admin/events/{paid_ev}/resources/{ext.json()['id']}", json={"status": "published"},
+                             headers=owner_write_headers(owner)).status_code == 200
+        assert owner.put(f"/api/admin/events/{paid_ev}/recording/sessions/{s3.json()['id']}", json={"status": "published"},
+                         headers=owner_write_headers(owner)).status_code == 200
+        # Phase 9.1 §2: explicit completion-certificate policy (manual issuance only; nothing automatic exists).
+        assert put_recording(owner, paid_ev, certificate_policy="manual").status_code == 200
+        # Phase 9.1 §1: the purchase entry is a builder form (purpose=recording_access) — price/method/card live there.
+        paid_form = purchase_form(owner, paid_rec, price=1_500_000, methods=("card_transfer",))
         assert set_status(owner, paid_ev, "ready").status_code == 200
         published = set_status(owner, paid_ev, "published")
         assert published.status_code == 200, published.text
-        paid_rec = product["recording"]["id"]
 
         # Free product on the literary session.
         free = build_sellable_product(owner, free_ev, title="ضبط نشست ادبی پاییز", summary="یک جلسه ویدئو، رایگان.",
@@ -137,19 +160,18 @@ def main() -> None:
         buyer = TestClient(app); buyer_id = bale_login(buyer, 91001)
         pending = TestClient(app); pending_id = bale_login(pending, 91002)
         freer = TestClient(app); freer_id = bale_login(freer, 91003)
-        # buyer: order → receipt → approved by owner.
-        o1 = buyer.post(f"/api/account/recordings/{paid_rec}/orders", json={"method": "card_transfer"}, headers=account_write_headers(buyer))
-        assert o1.status_code == 201, o1.text
-        assert buyer.put(f"/api/account/recording-orders/{o1.json()['id']}/receipt", content=PNG,
-                         headers={**account_write_headers(buyer), "X-File-Name": "receipt.png", "X-Receipt-Note": quote("واریز ۱۴۰۵/۰۷/۲۸")}).status_code == 200
-        ok = owner.post(f"/api/admin/recording-orders/{o1.json()['id']}/decision",
-                        json={"decision": "approve", "reason": "رسید با مبلغ تطبیق داده شد"}, headers=owner_write_headers(owner))
+        # buyer: purchase form response → receipt in the same form → approved by the owner in the shared inbox.
+        r1 = submit_purchase(buyer, paid_form, name="خریدار آزمایشی یک")
+        assert r1.status_code == 200 and r1.json()["accepted"] is True, r1.text
+        rc1 = upload_purchase_receipt(buyer, paid_form, note="واریز ۱۴۰۵/۰۷/۲۸")
+        assert rc1.status_code == 200 and rc1.json()["uploaded"] is True, rc1.text
+        task_1 = rc1.json()["review_task_id"]
+        ok = inbox_decide(owner, task_1, "approved", "رسید با مبلغ تطبیق داده شد", owner_write_headers(owner))
         assert ok.status_code == 200, ok.text
-        # pending: order + receipt, waiting for review.
-        o2 = pending.post(f"/api/account/recordings/{paid_rec}/orders", json={"method": "card_transfer"}, headers=account_write_headers(pending))
-        assert o2.status_code == 201
-        assert pending.put(f"/api/account/recording-orders/{o2.json()['id']}/receipt", content=PNG,
-                           headers={**account_write_headers(pending), "X-File-Name": "receipt2.png"}).status_code == 200
+        # pending: response + receipt, waiting for review in the inbox.
+        r2 = submit_purchase(pending, paid_form, name="خریدار آزمایشی دو")
+        assert r2.status_code == 200 and r2.json()["accepted"] is True, r2.text
+        assert upload_purchase_receipt(pending, paid_form, name="receipt2.png").status_code == 200
         # free holder.
         assert freer.post(f"/api/account/recordings/{free_rec}/claim", headers=account_write_headers(freer)).status_code == 201
         # buyer asks a session question; owner answers; buyer reviews.
@@ -193,10 +215,11 @@ def main() -> None:
         f"- مالک: `{OWNER_USER}` / `{OWNER_PASS}` → `/login.html?mode=staff&next=admin.html%23dash`\n"
         f"- مدیر: `{MANAGER_USER}` / `{MANAGER_PASS}` → همان مسیر\n"
         f"- اعضا (هویت بلهٔ آزمایشی، بدون رمز؛ نشست با امضای initData آزمایشی): buyer=91001 ({buyer_id}), pending=91002 ({pending_id}), free=91003 ({freer_id})\n"
-        f"- رویدادها: paid={paid_ev} free={free_ev} plain={plain_ev} upcoming={up_ev}\n",
+        f"- رویدادها: paid={paid_ev} free={free_ev} plain={plain_ev} upcoming={up_ev}\n"
+        f"- فرم خرید محصول پولی (فاز ۹.۱): `form.html?fid={paid_form}&kind=reg` · محصول: {paid_rec}\n",
         encoding="utf-8",
     )
-    print("seeded", {"paid": paid_ev, "free": free_ev, "plain": plain_ev, "upcoming": up_ev,
+    print("seeded", {"paid": paid_ev, "free": free_ev, "plain": plain_ev, "upcoming": up_ev, "purchase_form": paid_form,
                      "buyer": buyer_id, "pending": pending_id, "free_holder": freer_id})
 
 

@@ -2853,6 +2853,8 @@ try{
     if($('#expertPick')) $('#expertPick').innerHTML=`<option>${esc(S.notify.expert)}</option>`;
     renderTiles(); renderCanvas(); renderLinks(); renderFin(); renderCoupon(); renderPreview(); renderReview();
     slugView(); evHeadFill();
+    /* فرم خرید ذخیره‌شده: رویداد/محصول از رکورد سرور خوانده شد، پس حالا (و نه پیش از آن) محصول را از API می‌خوانیم. */
+    enforcePurchaseFormRules(); if(isPurchaseForm()&&!PURCHASE_PRODUCT_STATE) void loadPurchaseProduct();
   }
 }catch(e){}
 if(ACTIVE_SERVER_FORM){
@@ -2863,6 +2865,20 @@ if(ACTIVE_SERVER_FORM){
 }else if(SERVER_FORM_CACHE_MISSING){
   setOwnerApiState('فرم دریافت نشده','برای ویرایش، فهرست سروری را در فرم‌ساز تازه کنید؛ دادهٔ محلی جایگزین نمی‌شود.');
   const saveButton=$('#publish');if(saveButton)saveButton.disabled=true;
+  hydrateServerFormFromApi();
+}
+/* فاز ۹.۱: پیوند «ویرایش در فرم‌ساز» پنل با حافظهٔ محلی خالی باز می‌شود. یک بار همان رکورد را از API می‌خوانیم
+   (با همان بررسی نشست و مجوز فرم‌ساز)، در حافظهٔ محلی می‌گذاریم و صفحه را تازه می‌کنیم؛ اگر سرور فرم را ندهد، همان وضعیت صادقانهٔ بالا می‌ماند. */
+async function hydrateServerFormFromApi(){
+  if(TEST_FIXTURE_MODE||QS.get('hydrated')==='1'||!SAFE_ID(S.fid))return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.getForm!=='function'||!window.NORA_UI||typeof NORA_UI.formPut!=='function')return;
+  try{
+    await formEditorSession(api);
+    const fresh=formFromServer(await api.getForm(S.fid));
+    if(!fresh||fresh.id!==S.fid||!NORA_UI.formPut(fresh))return;
+    const url=new URL(location.href);url.searchParams.set('hydrated','1');location.replace(url.toString());
+  }catch(error){/* بدون نشست یا مجوز معتبر، پیام «فرم دریافت نشده» به‌درستی باقی می‌ماند */}
 }
 </script>
 </body>

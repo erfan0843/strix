@@ -2399,7 +2399,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const files=['admin.html','admin.js','admin.css','builder.html','create.html'];
   const adminSource=fs.readFileSync(DIR+'admin.js','utf8');
   ok(adminSource.includes("isReceipt&&key==='note'?'توضیح ثبت فیش'")
-      &&adminSource.includes('${esc(String(value))}'),
+      &&adminSource.includes("(WORKFLOW_VALUES[key]||{})[String(value)]||String(value)")&&adminSource.includes('${esc(shown)}'),
     'یادداشت اختیاری فیش در کارتابل برچسب روشن دارد و متن آن escape می‌شود');
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
@@ -2424,7 +2424,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
      admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
      بی‌دلیل نشکند. */
-  ok(html.includes('admin.css?v=104')&&html.includes('admin.js?v=133')
+  ok(html.includes('admin.css?v=104')&&html.includes('admin.js?v=134')
       &&html.includes('owner-api.js?v=117')&&html.includes('data.js?v=100')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=4')
       &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=102'),

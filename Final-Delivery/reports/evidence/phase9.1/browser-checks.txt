@@ -1,0 +1,40 @@
+✓ m guest product: login CTA only; no direct order path; certificate policy stated
+✓ m guest external ids hidden: external rows listed as locked; no iframe, no video id anywhere in the DOM
+✓ m guest API: API: external rows carry no playback info; commerce source = purchase form; certificate never automatic
+✓ m guest purchase form: form.html in PURCHASE mode: server price, login required, purchase ≠ registration
+✓ m member buy CTA: only CTA is the purchase form of the product; no parallel order/receipt UI on the event page
+✓ m member real purchase: card/amount from server data, response stored → receipt step (u11); no access before approval
+✓ m member after submit: server CTA = order_open (ledger row tied to the form response), still no access
+✓ m member order open: event page shows the open order honestly and sends back to the same form (no parallel receipt upload)
+✓ m member account orders: order history from the server; form-backed order links to form.html, no receipt form in the account
+✓ m pending direct URL: receipt submitted ≠ access: private video URL → 403
+✓ m buyer players: private file player + two official embed frames (youtube-nocookie, aparat) built only from server-issued URLs
+✓ m buyer fallback links: fallback «open in platform» links live on the server origin; honest «external hosting, no DRM» note
+• m external playback state (sandbox): youtube=ready, aparat=ready — "ready" only means the iframe fired its load event (Chromium fires it for its own network-error page too), so it is NOT proof that the platform was reached or that the video plays; this sandbox has no route to youtube.com/aparat.com (curl → SSL connect error). Real playback = untested here.
+✓ m buyer API: playback info only for the access holder; external rows never downloadable through Nora
+✓ m buyer library certificate: library states the manual-only certificate policy; no issue button, no fake progress
+✓ m manager inbox: receipt review task of the purchase form sits in the shared inbox and reads as a PURCHASE (not a registration)
+✓ m manager product commerce: commerce box: source = purchase form, edit in builder, public form link; no card/wallet fields on the product; certificate policy visible
+✓ m manager resource preview: real preview only on request, from the official embed URL the server stored; honest note that the platform decides embeddability
+• m builder hydration: form fetched from the API on a cold cache (one reload)
+✓ m owner builder purchase mode: builder shows the purpose «دسترسی به محتوای ضبط‌شده» and the linked product
+✓ d guest product: login CTA only; no direct order path; certificate policy stated
+✓ d guest external ids hidden: external rows listed as locked; no iframe, no video id anywhere in the DOM
+✓ d guest API: API: external rows carry no playback info; commerce source = purchase form; certificate never automatic
+✓ d guest purchase form: form.html in PURCHASE mode: server price, login required, purchase ≠ registration
+✓ d member buy CTA: only CTA is the purchase form of the product; no parallel order/receipt UI on the event page
+✓ d member real purchase: card/amount from server data, response stored → receipt step (u11); no access before approval
+✓ d member after submit: server CTA = order_open (ledger row tied to the form response), still no access
+✓ d member order open: event page shows the open order honestly and sends back to the same form (no parallel receipt upload)
+✓ d member account orders: order history from the server; form-backed order links to form.html, no receipt form in the account
+✓ d pending direct URL: receipt submitted ≠ access: private video URL → 403
+✓ d buyer players: private file player + two official embed frames (youtube-nocookie, aparat) built only from server-issued URLs
+✓ d buyer fallback links: fallback «open in platform» links live on the server origin; honest «external hosting, no DRM» note
+• d external playback state (sandbox): youtube=ready, aparat=ready — "ready" only means the iframe fired its load event (Chromium fires it for its own network-error page too), so it is NOT proof that the platform was reached or that the video plays; this sandbox has no route to youtube.com/aparat.com (curl → SSL connect error). Real playback = untested here.
+✓ d buyer API: playback info only for the access holder; external rows never downloadable through Nora
+✓ d buyer library certificate: library states the manual-only certificate policy; no issue button, no fake progress
+✓ d manager inbox: receipt review task of the purchase form sits in the shared inbox and reads as a PURCHASE (not a registration)
+✓ d manager product commerce: commerce box: source = purchase form, edit in builder, public form link; no card/wallet fields on the product; certificate policy visible
+✓ d manager resource preview: real preview only on request, from the official embed URL the server stored; honest note that the platform decides embeddability
+• d builder hydration: form fetched from the API on a cold cache (one reload)
+✓ d owner builder purchase mode: builder shows the purpose «دسترسی به محتوای ضبط‌شده» and the linked product

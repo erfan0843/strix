@@ -1701,7 +1701,10 @@ const WORKFLOW_LABELS={full_name:'نام و نام خانوادگی',first_name:
   national_id:'کد ملی',birth_date:'تاریخ تولد',gender:'جنسیت',father_name:'نام پدر',mother_name:'نام مادر',
   province:'استان',city:'شهر',address:'نشانی',postal_code:'کد پستی',education_level:'مقطع تحصیلی',
   field_of_study:'رشته',university:'دانشگاه یا مدرسه',job_title:'شغل',company_name:'محل کار',email:'ایمیل',bio:'معرفی کوتاه',
-  event_title:'رویداد',ref_code:'کد پیگیری',transaction_id:'تراکنش',registration_id:'ثبت‌نام',form_response_id:'پاسخ فرم',note:'توضیح'};
+  event_title:'رویداد',ref_code:'کد پیگیری',transaction_id:'تراکنش',registration_id:'ثبت‌نام',form_response_id:'پاسخ فرم',note:'توضیح',
+  registration_source:'مسیر ثبت',form_id:'فرم',purchase_source:'نوع درخواست',product_title:'محصول ضبط‌شده',recording_id:'شناسهٔ محصول',event_id:'شناسهٔ رویداد',submitted_at:'زمان ارسال'};
+/* فاز ۹.۱ §۱: مقدارهای فنی بار درخواست با برچسب خوانا؛ فیشِ خرید محتوای ضبط‌شده باید برای بازبین به‌روشنی «خرید» (نه ثبت‌نام/حضور) خوانده شود. */
+const WORKFLOW_VALUES={registration_source:{public_form:'فرم عمومی'},purchase_source:{recording_access:'خرید دسترسی به محتوای ضبط‌شده (ثبت‌نام یا حضور به شمار نمی‌آید)'}};
 const canUseSharedInbox=()=>canPerm('us_approve')||canPerm('receipt_approve');
 function loadSharedWorkflowInbox(append=false){
   const api=window.NORA_SERVER_API;
@@ -1823,7 +1826,8 @@ function sharedWorkflowInboxView(){
       &&value!==null&&value!==''&&typeof value!=='object')
       .map(([key,value])=>{
         const label=isReceipt&&key==='note'?'توضیح ثبت فیش':(WORKFLOW_LABELS[key]||key.replace(/_/g,' '));
-        return `<div class="admlirow"><span class="sp"><small class="cap">${esc(label)}</small><b>${esc(String(value))}</b></span></div>`;
+        const shown=key==='submitted_at'?(svcWhen(value)||String(value)):((WORKFLOW_VALUES[key]||{})[String(value)]||String(value));
+        return `<div class="admlirow"><span class="sp"><small class="cap">${esc(label)}</small><b>${esc(shown)}</b></span></div>`;
       }).join('');
     const currency=data.currency==='IRR'?'ریال':(data.currency||'ریال');
     const amount=isReceipt&&Number.isFinite(+data.amount)?`<div class="row"><b>مبلغ</b><span class="sp"></span><b>${esc(fa((+data.amount).toLocaleString('en-US')))} ${esc(currency)}</b></div>`:'';
@@ -1837,7 +1841,7 @@ function sharedWorkflowInboxView(){
       const size=Number.isFinite(+meta.content_size)?' · '+esc(fa(Math.max(1,Math.round(+meta.content_size/1024))))+' کیلوبایت':'';
       return `<a class="btn sm quiet workflow-file-download" href="${esc(src)}" target="_blank" rel="noopener">${ico('i-download')} ${esc(name)}${size}</a>`;
     }).join('');
-    const title=isReceipt?'فیش پرداخت':'پروفایل';
+    const title=isReceipt?(data.purchase_source==='recording_access'?'فیش خرید محتوای ضبط‌شده':'فیش پرداخت'):'پروفایل';
     if(task.status!=='pending'){
       const approved=task.status==='approved';
       const reviewer=task.reviewed_by?(SERVER_AUTH&&(task.reviewed_by===SERVER_AUTH.account_id||task.reviewed_by===SERVER_AUTH.owner_id)?'شما':'شناسهٔ '+task.reviewed_by.slice(0,8)):'نامشخص';

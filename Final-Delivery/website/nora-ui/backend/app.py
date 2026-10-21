@@ -4495,10 +4495,15 @@ def create_app(
     ) -> dict[str, Any] | None:
         """The ``recording`` block of the public event page (``None`` when there is no shelf product)."""
         recording = _recording_for_event(db, event_id)
-        if recording is None or (recording.status not in recordings_mod.SHELF_STATUSES and not staff):
+        if recording is None:
             return None
         participation = _interaction_participation(db, account.account_id, event_id) if account is not None else None
         viewer = _recording_viewer(db, recording, account=account, staff=staff, participation=participation, now=now)
+        if recording.status not in recordings_mod.SHELF_STATUSES and not staff and viewer.access_state != "active":
+            # Off the shelf (draft/ready/archived): invisible to the public — but a holder of a still-active
+            # access keeps the page and the files, exactly like ``_purchased_state`` keeps the downloads
+            # (archiving stops listing and sales; it never silently strips a paid or granted access).
+            return None
         allowed, reason = recordings_mod.has_content_access(recording, viewer)
         sessions = _recording_sessions(db, recording.id)
         resources = _recording_resources(db, event_id)
