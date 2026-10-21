@@ -316,7 +316,14 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   const p=await load(memberStore(),'',{
     account:{authenticated:true,account_id:'server-account-1',provider:'bale',role:null,permissions:[],delivery_bot_url:'https://ble.ir/nora_test_bot'},
     notifications:[{id:noticeId,bale_user_id:'73424',kind:'receipt_rejected',title:'فیش نیاز به اصلاح دارد',
-      body:'تصویر رسید خوانا نیست.',file_refs:[fileId],delivery_status:'delivered',created_at:'2026-09-30T10:00:00+00:00',read:false}],
+      body:'تصویر رسید خوانا نیست.',file_refs:[fileId],delivery_status:'delivered',created_at:'2026-09-30T10:00:00+00:00',read:false},
+      /* فاز ۸: پاسخ پرسش رویداد با سه حالت صادقانهٔ ارسال */
+      {id:'00000000-0000-4000-8000-000000000211',bale_user_id:'',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پرسش شما دربارهٔ «کارگاه» پاسخ داده شد.',file_refs:[],
+        delivery_status:'failed',delivery_state:'failed',delivery_attempts:0,last_delivery_error:'no_bale_identity',created_at:'2026-09-30T11:00:00+00:00',read:true},
+      {id:'00000000-0000-4000-8000-000000000212',bale_user_id:'73424',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پاسخ دوم.',file_refs:[],
+        delivery_status:'pending',delivery_state:'retrying',delivery_attempts:2,last_delivery_error:'provider_delivery_failed',created_at:'2026-09-30T12:00:00+00:00',read:true},
+      {id:'00000000-0000-4000-8000-000000000213',bale_user_id:'73424',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پاسخ سوم.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T13:00:00+00:00',read:true}],
     files:[{id:fileId,task_id:'00000000-0000-4000-8000-000000000301',file_name:'receipt.pdf',
       content_type:'application/pdf',content_size:12345,created_at:'2026-09-30T10:00:00+00:00'}],
   });
@@ -332,6 +339,11 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   await wait(20);
   ok(p.inView()&&p.view().includes('فیش نیاز به اصلاح دارد')&&p.view().includes('تصویر رسید خوانا نیست.'),
     'اعلان و متن پیگیری در حساب نشان داده می‌شود');
+  ok(p.view().includes('حساب شما به بله پیوند نخورده؛ این اعلان فقط همین‌جا خوانده می‌شود')
+    &&p.view().includes('در حال تلاش دوباره است (۲ تلاش)')
+    &&p.view().includes('در صف است؛ هنوز تحویل نشده')
+    &&(p.view().match(/در ربات بله تحویل شد/g)||[]).length===1,
+    'اعلان پاسخ پرسش: بدون هویت بله، در حال تلاش دوباره و در صف جدا و صادقانه نشان داده می‌شوند؛ فقط تحویل واقعی «تحویل شد» است');
   const noticeBotLink=p.doc.querySelector('#viewBox .server-notice-files a.local-disabled-link');
   ok(noticeBotLink&&!noticeBotLink.hasAttribute('href')
     &&p.window.NORA_UI.baleStartHref('private_'+fileId)==='https://ble.ir/nora_test_bot?start=private_'+fileId

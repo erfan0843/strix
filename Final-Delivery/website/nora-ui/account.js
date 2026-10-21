@@ -749,9 +749,12 @@ function accountNotificationFiles(item){
 function accountNotificationsContent(){
   const state=SERVER_ACCOUNT_STATE;
   const items=state.notifications.map(item=>{
+    /* وضعیت ارسال از سرور: صف ≠ تحویل. حسابِ بدون هویت بلهٔ پیوندشده، اعلان را فقط همین‌جا می‌خواند و «خطای ارسال» نیست. */
     const delivery=item.delivery_status==='delivered'?'در ربات بله تحویل شد'
+      :item.last_delivery_error==='no_bale_identity'?'حساب شما به بله پیوند نخورده؛ این اعلان فقط همین‌جا خوانده می‌شود'
       :item.delivery_status==='failed'?'ارسال در بله انجام نشد؛ از پیوند بات استفاده کن'
-      :'برای ارسال از بات در صف است';
+      :item.delivery_state==='retrying'?`ارسال از بات در حال تلاش دوباره است (${faN(item.delivery_attempts||0)} تلاش)`
+      :'برای ارسال از بات در صف است؛ هنوز تحویل نشده';
     return `<article class="card acct server-notice ${item.read?'read':'unread'}">
       <div class="row"><b>${esc(item.title||'اعلان نورا')}</b><span class="sp"></span>${chip(item.read?'خوانده‌شده':'تازه',item.read?'':'warn')}</div>
       <p class="server-notice-body">${esc(item.body||'')}</p>
