@@ -231,7 +231,7 @@ def test_public_snapshot_and_form_entry_points_share_the_registration_state():
             assert submit.status_code == 409, submit.text
             assert submit.json()["detail"]["code"] == "registration_closed"
             page = visitor.get(f"/form.html?fid={form_id}")
-            assert page.status_code == 200 and '"closed"' in page.text
+            assert page.status_code == 200 and f'"registration-closed:{event_id}"' in page.text
             bot = client.get("/api/bot/forms/public", headers={"Authorization": f"Bearer {SERVICE_TOKEN}"})
             assert bot.status_code == 200
             listed = {item["id"] for item in bot.json()["items"]}

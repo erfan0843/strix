@@ -226,7 +226,7 @@ function ok(condition, label) {
   ok(html.includes('events-page.js?v=103') && html.includes('events-page.css?v=103'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
   ok(/__NORA_TEST_FIXTURE_MODE__===true\)document\.write/.test(html), 'data.js فقط در حالت آزمون صریح');
   const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
-  ok(detail.includes('event-page.js?v=102'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته است');
+  ok(detail.includes('event-page.js?v=103'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته است');
 }
 
 /* ۱۱) خطای API (مثلاً ۵۰۳): صفحهٔ رویدادها «منتشر نشده» نمی‌گوید؛ نبودِ دسترسی به سرور را روشن می‌گوید */
@@ -282,6 +282,53 @@ for (const file of ['events.html', 'event.html']) {
   ok(!cardOf('ev-ended') && !!cardOf('ev-open'), 'پایان‌یافته طبق سرور در صافی «پیش‌رو» نیست');
   ok(p.errors.length === 0, 'بدون خطای کنسول: ' + p.errors.join(' | '));
   p.window.close();
+}
+
+/* ۱۳) فاز ۷: صفحهٔ رویداد؛ وضعیت/شمارشگر/زمان‌ها از سرور، CTA فقط در حالت باز، تقویم فقط با زمان معتبر، اشتراک، پایان مهلت */
+{
+  const soon = new Date(Date.now() + 90_000).toISOString();           /* ۹۰ ثانیه تا مهلت */
+  const start = '2026-11-03T06:30:00Z';                                /* ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ تهران */
+  const base = { kind: 'کارگاه', privacy: 'public', d: 'شرح', when: '۱۲ آبان', on: '۱۴۰۵/۰۸/۱۲', place: 'سالن اصلی', conditions: 'ویژهٔ نوجوانان', forms: [{ id: 'f-x', need: 'reg', n: 'ثبت‌نام' }] };
+  const events = [
+    { ...base, id: 'd-open', t: 'کارگاه باز', startsAt: start, regClosesAt: soon, registration: { state: 'open', reason: '', lifecycle: 'scheduled', closesAt: soon, countdownTo: soon, startsAt: start, startsIn: start } },
+    { ...base, id: 'd-wait', t: 'کارگاه آینده', startsAt: start, registration: { state: 'not_started', reason: 'time', lifecycle: 'scheduled', opensAt: start, countdownTo: start, startsAt: start, startsIn: start } },
+    { ...base, id: 'd-full', t: 'کارگاه پر', startsAt: start, registration: { state: 'full', reason: 'capacity', lifecycle: 'scheduled', countdownTo: '', startsAt: start, startsIn: start } },
+    { ...base, id: 'd-cancel', t: 'کارگاه لغو', lifecycle: 'cancelled', startsAt: start, registration: { state: 'cancelled', reason: 'cancelled', lifecycle: 'cancelled', countdownTo: '' } },
+    { ...base, id: 'd-nodate', t: 'کارگاه بی‌زمان', registration: { state: 'open', reason: '', lifecycle: 'scheduled', countdownTo: '' } }
+  ];
+  const openPage = await load('?id=d-open', { file: 'event.html', events });
+  ok(openPage.errors.length === 0, 'صفحهٔ رویداد باز بدون خطا: ' + openPage.errors.join(' | '));
+  ok(openPage.doc.querySelector('.event-register .reg-state.live')?.textContent === 'ثبت‌نام باز است', 'وضعیت «ثبت‌نام باز است» از سرور');
+  ok(/تا پایان ثبت‌نام/.test(openPage.txt('[data-reg-timer]')) && openPage.doc.querySelector('[data-reg-timer] [data-countdown]'), 'شمارشگر مشترک تا مهلت');
+  ok(openPage.doc.querySelector('#reg')?.getAttribute('href') === 'form.html?fid=f-x&kind=reg' && openPage.doc.querySelector('#ctabar').hidden === false, 'CTA ثبت‌نام به فرم موجود و نوار پایین فعال');
+  ok(/۱۲ آبان ۱۴۰۵، ۱۰:۰۰/.test(openPage.txt('.detail-grid')), 'شروع به وقت تهران و تقویم شمسی از startsAt سرور (۱۴۰۵/۰۸/۱۲ ۱۰:۰۰)');
+  ok(/ویژهٔ نوجوانان/.test(openPage.txt('.event-conditions')), 'شرایط شرکت نمایش داده می‌شود');
+  ok(openPage.doc.querySelector('#addToCalendar') && openPage.doc.querySelector('#shareEvent'), 'دکمه‌های افزودن به تقویم و اشتراک‌گذاری');
+  let shared = null; openPage.window.navigator.share = async payload => { shared = payload; };
+  openPage.click('#shareEvent'); await wait(10);
+  ok(shared && shared.title === 'کارگاه باز' && /event\.html\?id=d-open$/.test(shared.url) && !/نمونه/.test(shared.text), 'اشتراک با عنوان و نشانی واقعی رویداد');
+  const timer = openPage.doc.querySelector('[data-reg-timer] [data-countdown]');
+  timer.dataset.countdown = new Date(Date.now() - 1000).toISOString();           /* شبیه‌سازی رسیدن مهلت */
+  await wait(1100);
+  ok(!openPage.doc.querySelector('#reg') && /نوسازی/.test(openPage.txt('[data-reg-action]')) && openPage.doc.querySelector('#ctabar').hidden === true,
+    'پس از پایان مهلت: دکمهٔ ثبت‌نام برداشته می‌شود و وضعیت قطعی به عکس تازهٔ سرور واگذار می‌شود');
+  openPage.window.close();
+  const waitPage = await load('?id=d-wait', { file: 'event.html', events });
+  ok(!waitPage.doc.querySelector('#reg') && waitPage.doc.querySelector('.event-register .reg-state.wait') && /تا آغاز ثبت‌نام/.test(waitPage.txt('[data-reg-timer]')) && waitPage.doc.querySelector('#ctabar').hidden,
+    'ثبت‌نام آغازنشده: بدون دکمهٔ فرم، شمارش تا آغاز ثبت‌نام');
+  waitPage.window.close();
+  const fullPage = await load('?id=d-full', { file: 'event.html', events });
+  ok(!fullPage.doc.querySelector('#reg') && /ظرفیت تکمیل شد/.test(fullPage.txt('.event-register')) && !fullPage.doc.querySelector('#ctabar:not([hidden])'),
+    'ظرفیت تکمیل: بدون دکمهٔ فرم، وضعیت صادقانه');
+  fullPage.window.close();
+  const cancelPage = await load('?id=d-cancel', { file: 'event.html', events });
+  ok(!cancelPage.doc.querySelector('#reg') && /لغو شد/.test(cancelPage.txt('.event-heading')) && !cancelPage.doc.querySelector('[data-countdown]') && !cancelPage.doc.querySelector('#addToCalendar'),
+    'لغوشده: نشان لغو، بدون فرم/شمارشگر/تقویم');
+  cancelPage.window.close();
+  const noDate = await load('?id=d-nodate', { file: 'event.html', events });
+  ok(noDate.doc.querySelector('#reg') && !noDate.doc.querySelector('[data-countdown]') && !noDate.doc.querySelector('#addToCalendar'),
+    'بدون زمان معتبر: ثبت‌نام باز ولی هیچ شمارشگر یا فایل تقویم ساختگی ساخته نمی‌شود');
+  noDate.window.close();
 }
 
 console.log(`\nevents-page: ${passed} قبول، ${failed} خطا`);

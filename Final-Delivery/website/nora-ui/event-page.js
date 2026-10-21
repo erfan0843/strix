@@ -121,13 +121,37 @@
     const tags = (Array.isArray(event.tags) ? event.tags : []).map(tag =>
       `<span class="tag">${esc(tag)}</span>`
     ).join('');
+    /* وضعیت ثبت‌نام فقط از سرور (event.registration)؛ بدون آن (سرور قدیمی) رفتار پیشین حفظ می‌شود */
+    const CD = root.NORA_COUNTDOWN;
+    const reg = event.registration && typeof event.registration === 'object' ? event.registration : null;
+    const lifecycle = reg ? reg.lifecycle : (event.lifecycle || 'scheduled');
+    const inactive = lifecycle === 'cancelled' || lifecycle === 'postponed';
+    const regOpen = reg ? (reg.state === 'open' && !inactive) : (!!form && !inactive);
+    const stateText = CD && reg ? CD.stateLabel(reg) : (lifecycle === 'cancelled' ? 'لغو شد' : lifecycle === 'postponed' ? 'به تعویق افتاد' : '');
+    const stateTone = CD && reg ? CD.stateTone(reg) : (inactive ? 'stop' : 'mute');
+    const target = CD && !isPast ? CD.eventTarget(event) : null;
+    const when = value => (CD && value ? CD.formatMoment(value) : '');
+    const formLink = form ? `<a class="btn primary" href="form.html?fid=${encodeURIComponent(form.id)}&kind=reg" id="reg">
+             <svg class="i" aria-hidden="true"><use href="#i-pen"/></svg> فرم ثبت‌نام همین رویداد
+           </a>${form.name ? `<small class="cap">${esc(form.name)}</small>` : ''}` : '';
+    const regNotes = [];
+    if (reg && reg.state === 'open' && reg.closesAt) regNotes.push(`مهلت ثبت‌نام تا ${when(reg.closesAt)}`);
+    if (reg && reg.state === 'not_started' && reg.opensAt) regNotes.push(`ثبت‌نام از ${when(reg.opensAt)} آغاز می‌شود`);
+    if (reg && reg.state === 'closed' && reg.closesAt) regNotes.push(`مهلت ثبت‌نام ${when(reg.closesAt)} به پایان رسید`);
+    if (reg && reg.state === 'full') regNotes.push('ظرفیت این رویداد تکمیل شده است؛ ثبت‌نام تازه پذیرفته نمی‌شود.');
+    if (lifecycle === 'cancelled') regNotes.push('این رویداد لغو شده است و ثبت‌نامی انجام نمی‌شود.');
+    if (lifecycle === 'postponed') regNotes.push('این رویداد به تعویق افتاده است؛ تا اعلام زمان تازه، ثبت‌نام باز نیست.');
     const registration = isPast
       ? `<p class="cap">ثبت‌نام این رویداد پایان یافته است.</p>`
-      : form
-        ? `<a class="btn primary" href="form.html?fid=${encodeURIComponent(form.id)}&kind=reg" id="reg">
-             <svg class="i" aria-hidden="true"><use href="#i-pen"/></svg> فرم ثبت‌نام همین رویداد
-           </a>${form.name ? `<small class="cap">${esc(form.name)}</small>` : ''}`
-        : `<p class="registration-notice" role="status">فرم ثبت‌نام عمومی برای این رویداد منتشر نشده است.</p>`;
+      : `${stateText ? `<p class="event-reg-state"><span class="reg-state ${esc(stateTone)}">${esc(stateText)}</span></p>` : ''}
+         ${target ? `<div class="event-reg-timer" data-reg-timer>${CD.markup(target)}</div>` : ''}
+         ${regNotes.length ? `<p class="cap event-reg-note">${regNotes.map(esc).join('<br>')}</p>` : ''}
+         <div data-reg-action>${regOpen && form ? formLink
+           : reg && reg.state === 'none' || (!form && !inactive) ? `<p class="registration-notice" role="status">فرم ثبت‌نام عمومی برای این رویداد منتشر نشده است.</p>`
+           : ''}</div>`;
+    const calendarButton = event.startsAt && Number.isFinite(Date.parse(event.startsAt)) && !isPast && lifecycle !== 'cancelled'
+      ? `<button type="button" class="btn quiet" id="addToCalendar"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> افزودن به تقویم</button>` : '';
+    const shareButton = `<button type="button" class="btn quiet" id="shareEvent"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg> اشتراک‌گذاری</button>`;
 
     root.document.title = `${event.t} · نورا`;
     const descriptionMeta = $('meta[name="description"]');
@@ -146,7 +170,7 @@
           <div class="event-cover">${coverHtml}</div>
           <div class="event-heading">
             <div class="event-tags">${tags}${event.kind ? `<span class="tag brand">${esc(event.kind)}</span>` : ''}
-              ${isPast ? '<span class="tag">برگزارشده</span>' : ''}</div>
+              ${isPast ? '<span class="tag">برگزارشده</span>' : ''}${!isPast && stateText ? `<span class="reg-state ${esc(stateTone)}">${esc(stateText)}</span>` : ''}</div>
             <h1>${esc(event.t)}</h1>
             ${event.d ? `<p class="event-lead">${textWithBreaks(event.d)}</p>` : ''}
           </div>
@@ -155,6 +179,9 @@
             <div class="detail-grid">
               ${infoRow('تاریخ', event.when)}
               ${infoRow('ساعت', event.time)}
+              ${infoRow('شروع (به وقت تهران)', when(event.startsAt))}
+              ${infoRow('پایان', when(event.endsAt))}
+              ${!isPast ? infoRow('مهلت ثبت‌نام', when(reg ? reg.closesAt : event.regClosesAt)) : ''}
               ${infoRow('شیوهٔ برگزاری', event.mode)}
               ${infoRow('مکان', event.place)}
               ${partner ? `<a class="detail-item event-partner-link" href="partner.html?id=${encodeURIComponent(partner.id)}"><span>نهاد همکار</span><b>${esc(partner.n)}</b></a>` : ''}
@@ -162,6 +189,7 @@
               ${infoRow('ظرفیت', event.cap ? `${digits(event.cap)} نفر` : '')}
               ${infoRow('تعداد جلسه', event.sess > 1 ? `${digits(event.sess)} جلسه` : '')}
             </div>
+            ${event.conditions ? `<div class="event-conditions"><b>شرایط شرکت</b><p>${textWithBreaks(event.conditions)}</p></div>` : ''}
           </section>
           ${schedule ? `<section class="event-section" aria-labelledby="event-schedule-title">
             <h2 id="event-schedule-title">زمان‌بندی و سرفصل‌ها</h2><ol class="schedule-list">${schedule}</ol>
@@ -204,17 +232,78 @@
           <h2 id="event-register-title">${isPast ? 'اطلاعات آرشیو' : 'ثبت‌نام'}</h2>
           ${!isPast ? `<p class="event-price">${esc(money(event.price))}</p>` : ''}
           <div class="event-register-action">${registration}</div>
+          <div class="event-share-row">${calendarButton}${shareButton}</div>
+          <div class="event-share-fallback" id="shareFallback" hidden><label class="cap" for="shareUrl">پیوند این رویداد</label><input id="shareUrl" class="input" type="text" readonly dir="ltr"/></div>
           <a class="back-link" href="events.html#list">بازگشت به فهرست رویدادها</a>
         </aside>
       </div>`;
 
-    if (!isPast && form && toolbar && toolbarInner) {
+    if (!isPast && regOpen && form && toolbar && toolbarInner) {
       toolbarInner.innerHTML = `<span><b>${esc(event.t)}</b><small>${esc(event.when || '')}</small></span>
         <span class="sp"></span><a class="btn primary" href="form.html?fid=${encodeURIComponent(form.id)}&kind=reg">ثبت‌نام</a>`;
       toolbar.hidden = false;
     } else {
       toolbar.hidden = true;
     }
+    if (CD) CD.mount(page);
+    bindActions(event, { form, regOpen });
+  }
+
+  /* پایان شمارش مهلت: دکمهٔ ثبت‌نام برداشته می‌شود، ولی وضعیت قطعی فقط با عکس تازهٔ سرور (نوسازی) تعیین می‌شود؛
+     سرور هم در GET فرم و ثبت پاسخ، مهلت را جداگانه بررسی می‌کند (۴۰۹ registration_closed). */
+  function onDeadlineEnded(detail) {
+    if (!detail || detail.kind !== 'reg_close') return;
+    const action = page.querySelector('[data-reg-action]');
+    if (action) action.innerHTML = `<p class="registration-notice" role="status">مهلت ثبت‌نام طبق ساعت سرور به پایان رسید. برای وضعیت قطعی، صفحه را نوسازی کنید.</p>
+      <button type="button" class="btn quiet" id="refreshState">به‌روزرسانی وضعیت</button>`;
+    if (toolbar) toolbar.hidden = true;
+    const refresh = page.querySelector('#refreshState');
+    if (refresh) refresh.addEventListener('click', () => root.location.reload());
+  }
+
+  function icsText(event) {
+    const stamp = value => new Date(value).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+    const clean = value => String(value || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/[,;]/g, m => '\\' + m);
+    const start = Date.parse(event.startsAt);
+    const end = Number.isFinite(Date.parse(event.endsAt)) && Date.parse(event.endsAt) > start ? Date.parse(event.endsAt) : start + 3600000;
+    const url = new URL(`event.html?id=${encodeURIComponent(event.id)}`, root.location.href).href;
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Nora//Event//FA', 'BEGIN:VEVENT',
+      `UID:${clean(event.id)}@nora`, `DTSTAMP:${stamp(Date.now())}`, `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`,
+      `SUMMARY:${clean(event.t)}`, event.place ? `LOCATION:${clean(event.place)}` : '', `URL:${url}`,
+      `DESCRIPTION:${clean((event.d || '').slice(0, 500))}`, 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+  }
+
+  function bindActions(event) {
+    page.addEventListener('nora:countdown-ended', e => onDeadlineEnded(e.detail), { once: true });
+    const calendar = page.querySelector('#addToCalendar');
+    if (calendar) calendar.addEventListener('click', () => {
+      try {
+        const blob = new root.Blob([icsText(event)], { type: 'text/calendar;charset=utf-8' });
+        const href = root.URL.createObjectURL(blob);
+        const link = root.document.createElement('a');
+        link.href = href; link.download = `nora-${String(event.id).replace(/[^A-Za-z0-9_-]/g, '')}.ics`;
+        root.document.body.appendChild(link); link.click(); link.remove();
+        root.setTimeout(() => root.URL.revokeObjectURL(href), 2000);
+      } catch (_) {
+        if (root.NORA_UI && root.NORA_UI.toast) root.NORA_UI.toast('ساخت فایل تقویم در این مرورگر ممکن نشد.');
+      }
+    });
+    const share = page.querySelector('#shareEvent');
+    if (share) share.addEventListener('click', async () => {
+      const url = new URL(`event.html?id=${encodeURIComponent(event.id)}`, root.location.href).href;
+      const payload = { title: event.t, text: [event.when, event.time, event.place].filter(Boolean).join(' · '), url };
+      const toast = msg => { if (root.NORA_UI && root.NORA_UI.toast) root.NORA_UI.toast(msg); };
+      try {
+        if (root.navigator && typeof root.navigator.share === 'function') { await root.navigator.share(payload); return; }
+      } catch (error) { if (error && error.name === 'AbortError') return; }
+      try {
+        if (root.navigator && root.navigator.clipboard && typeof root.navigator.clipboard.writeText === 'function') {
+          await root.navigator.clipboard.writeText(url); toast('پیوند رویداد کپی شد'); return;
+        }
+      } catch (_) { /* به حالت دستی می‌رویم */ }
+      const box = page.querySelector('#shareFallback'), input = page.querySelector('#shareUrl');
+      if (box && input) { input.value = url; box.hidden = false; input.focus(); input.select(); }
+    });
   }
 
   function start() {

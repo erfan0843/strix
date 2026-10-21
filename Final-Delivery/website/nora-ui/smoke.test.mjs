@@ -1150,6 +1150,21 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const draft=await load('form.html',draftStore,'?fid=f-route-draft');
   ok(draft.visible('.screen').join()==='uUnavailable'&&draft.txt('#unavailableTitle')==='فرم هنوز منتشر نشده',
     'فرم پیش‌نویس به‌جای نمایش فرم قابل‌ارسال، پیام وضعیت می‌دهد');
+  /* فاز ۷: سرور فرم منتشرشده را به‌خاطر بستهٔ بودن پنجرهٔ ثبت‌نام رویداد با registration-closed:<event> برمی‌گرداند */
+  const gatedHtml=fs.readFileSync(DIR+'form.html','utf8')
+    .replace('<!--nora-public-form-->','null').replace('<!--nora-public-draft-->','null')
+    .replace('<!--nora-public-error-->',safeScriptJSON('registration-closed:ev-gated-1'));
+  const gated=await loadHtml('form.html',gatedHtml,makeStore(),'?fid=f-gated');
+  ok(gated.errors.length===0&&gated.visible('.screen').join()==='uUnavailable'
+      &&gated.txt('#unavailableTitle')==='ثبت‌نام این رویداد باز نیست'&&gated.txt('#unavailableText').includes('ساعت و وضعیت سرور')
+      &&gated.doc.querySelector('#unavailableBack')?.getAttribute('href')==='event.html?id=ev-gated-1'
+      &&gated.doc.querySelector('#botbar').style.display==='none',
+    'بستهٔ بودن ثبت‌نام رویداد (دروازهٔ سرور) با پیام مشخص و بازگشت به صفحهٔ همان رویداد نمایش داده می‌شود؛ فرم باز نمی‌شود');
+  const injected=fs.readFileSync(DIR+'form.html','utf8')
+    .replace('<!--nora-public-form-->','null').replace('<!--nora-public-draft-->','null')
+    .replace('<!--nora-public-error-->',safeScriptJSON('registration-closed:javascript:alert(1)'));
+  const injectedPage=await loadHtml('form.html',injected,makeStore(),'?fid=f-gated');
+  ok(injectedPage.doc.querySelector('#unavailableBack')?.getAttribute('href')==='home.html','شناسهٔ رویداد نامعتبر در خطای مسیر، پیوند بازگشت را تغییر نمی‌دهد');
   const preview=await load('form.html',draftStore,'?fid=f-route-draft&preview=1');
   ok(!!preview.window.__NORA_FORM_PREVIEW&&preview.visible('.screen').join()==='u1',
     'پیش‌نمایش صریح سازنده می‌تواند پیش‌نویس را بدون انتشار باز کند');

@@ -149,5 +149,16 @@
     });
     return count;
   }
-  root.NORA_COUNTDOWN = { serverNow, remaining, phrase, markup, mount, eventTarget, stateLabel, stateTone, LABELS, STATES, ENDED };
+  /* نمایش یک لحظهٔ UTC سرور به وقت مرجع (همان منطقهٔ زمانی backend/event_time.py: Asia/Tehran) با تقویم شمسی */
+  function formatMoment(value, options) {
+    const ms = parseTarget(value);
+    if (!Number.isFinite(ms)) return '';
+    const opts = options || {};
+    try {
+      return new Intl.DateTimeFormat('fa-IR-u-ca-persian', Object.assign({ timeZone: 'Asia/Tehran', dateStyle: 'medium' }, opts.dateOnly ? {} : { timeStyle: 'short' })).format(new Date(ms));
+    } catch (_) {
+      try { return new Date(ms).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran' }); } catch (__) { return new Date(ms).toISOString(); }
+    }
+  }
+  root.NORA_COUNTDOWN = { serverNow, remaining, phrase, markup, mount, eventTarget, stateLabel, stateTone, formatMoment, LABELS, STATES, ENDED };
 })(typeof window === 'undefined' ? globalThis : window);

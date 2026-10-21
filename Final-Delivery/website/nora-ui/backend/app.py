@@ -8322,8 +8322,9 @@ def create_app(
                         route_error = "closed" if form.status in {"paused", "archived"} else "draft"
                     elif publication_issues(form, bale_ready=cfg.form_bale_payments_ready):
                         route_error = "invalid-form"
-                    elif _event_registration_block(db, form) is not None:
-                        route_error = "closed"
+                    elif (block := _event_registration_block(db, form)) is not None:
+                        # The form itself is published; only the event's registration window/status blocks it.
+                        route_error = "registration-closed:" + str(block.get("event_id") or "")
                     else:
                         accepted, waitlisted = _response_counts(db, form_id)
                         if _capacity_is_full(

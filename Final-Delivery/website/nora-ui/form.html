@@ -825,7 +825,7 @@
       </span>
       <h1 class="title" id="unavailableTitle">این فرم در دسترس نیست</h1>
       <p class="sub" id="unavailableText">ممکن است پیوند اشتباه باشد یا فرم هنوز منتشر نشده باشد.</p>
-      <a class="btn primary" href="home.html" style="margin-top:16px;text-decoration:none">رفتن به صفحهٔ اصلی</a>
+      <a class="btn primary" id="unavailableBack" href="home.html" style="margin-top:16px;text-decoration:none">رفتن به صفحهٔ اصلی</a>
     </div>
   </section>
 </div>
@@ -960,6 +960,7 @@ const ROUTE_ERROR_COPY={
   'unavailable':['فرم الان باز نشد','ارتباط با سرور برقرار نیست؛ کمی بعد دوباره تلاش کن.'],
   'draft':['فرم هنوز منتشر نشده','این پیش‌نویس قابل پاسخ‌گویی عمومی نیست.'],
   'closed':['پاسخ‌گیری بسته است','برای پیوند تازه با برگزارکننده تماس بگیر.'],
+  'registration-closed':['ثبت‌نام این رویداد باز نیست','طبق ساعت و وضعیت سرور، مهلت ثبت‌نام به پایان رسیده، هنوز آغاز نشده یا ظرفیت/وضعیت رویداد اجازهٔ ثبت‌نام نمی‌دهد. وضعیت دقیق و زمان‌ها را در صفحهٔ رویداد ببین.'],
   'event-not-found':['رویداد پیدا نشد','پیوند رویداد را بررسی کن و دوباره وارد شو.'],
   'empty-form':['فرم آماده نیست','این فرم هنوز پرسشی برای پاسخ‌گویی ندارد.'],
   'invalid-form':['فرم در دسترس نیست','پیوند فرم را بررسی کن و دوباره تلاش کن.']
@@ -967,7 +968,7 @@ const ROUTE_ERROR_COPY={
 const MAX_CONDITION_RULES=10;
 const FORM_TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
 /* ── تفکیک پیش‌نمایش محلی از فرم منتشرشده‌ای که bootstrap سرور دارد ── */
-const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',model:'',serverBacked:false,formVersion:0};
+const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',model:'',serverBacked:false,formVersion:0,closedEventId:''};
 (function(){
   try{
     const q=new URLSearchParams(location.search);
@@ -982,7 +983,12 @@ const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',mo
     FORM_ROUTE.eventId=String(FORM_ROUTE.serverBacked?'':(evId||'')); FORM_ROUTE.formId=String(fid||frId||'');
     CFG.kind='';CFG.venue='';CFG.date='';CFG.eventTitle='';CFG.eventContext=false;
     const fail=reason=>{FORM_ROUTE.error=reason;};
-    if(PUBLIC_ROUTE_ERROR&&fid){fail(String(PUBLIC_ROUTE_ERROR));return;}
+    if(PUBLIC_ROUTE_ERROR&&fid){
+      const routeError=String(PUBLIC_ROUTE_ERROR);
+      /* «registration-closed:<event>» از سرور: فرم منتشر است ولی پنجرهٔ ثبت‌نام رویداد بسته است */
+      if(routeError.startsWith('registration-closed')){FORM_ROUTE.closedEventId=routeError.slice('registration-closed:'.length);fail('registration-closed');return;}
+      fail(routeError);return;
+    }
     const U=window.NORA_UI||{};
     if(!U.formsAll){fail('not-found');return;}
     const isDraft=f=>!!(f&&(f.serverDraft===true||String(f.status||'').trim().toLowerCase()==='draft'||String(f.status||'').trim()==='پیش‌نویس'));
@@ -1585,9 +1591,22 @@ const DRAFT_SCREENS=['u2','u3','u4','u5','u6','u7','u8','u12'];
 const DRAFT_DAYS=30;   /* نوبت نیمه‌کاره بیش از یک ماه نمی‌ماند */
 let publicDraftTimer=0,publicDraftChain=Promise.resolve(),publicDraftRevision=0,publicDraftRestoreActive=false;
 let publicDraftReady=!FORM_ROUTE.serverBacked;
+/* ۴۰۹ با کد registration_closed: دروازهٔ ثبت‌نام رویداد در سرور (مهلت/آغاز/ظرفیت/لغو)، جدا از تغییر نسخهٔ فرم */
+function registrationClosedText(error){
+  const detail=error&&error.payload&&error.payload.detail;
+  const code=String(error&&error.code||detail&&detail.code||'');
+  if(code!=='registration_closed')return '';
+  const state=String(detail&&detail.state||'');
+  if(state==='not_started')return 'ثبت‌نام این رویداد هنوز آغاز نشده است؛ پاسخ پذیرفته نشد.';
+  if(state==='full')return 'ظرفیت این رویداد تکمیل شده است؛ پاسخ تازه پذیرفته نشد.';
+  if(state==='cancelled')return 'این رویداد لغو شده است؛ ثبت‌نامی انجام نمی‌شود.';
+  if(state==='ended')return 'این رویداد برگزار شده است؛ ثبت‌نام بسته است.';
+  return 'مهلت ثبت‌نام این رویداد طبق ساعت سرور به پایان رسیده است؛ پاسخ پذیرفته نشد.';
+}
 function publicDraftErrorText(error){
   if(!error||error.code==='server_unreachable')return 'اتصال قطع است؛ پیش‌نویس روی سرور ذخیره نشد. این صفحه را نبندید و پس از اتصال دوباره تلاش کنید.';
   if(error.status===401)return 'دسترسی امن این مرورگر در دسترس نیست؛ فرم را تازه کنید تا پیش‌نویس بازیابی شود.';
+  if(error.status===409&&registrationClosedText(error))return registrationClosedText(error);
   if(error.status===409)return 'نسخهٔ فرم تغییر کرده یا پاسخ‌گیری متوقف شده است؛ فرم را تازه کنید.';
   if(error.status===410)return 'ظرفیت فرم تکمیل شده است؛ پاسخ تازه پذیرفته نمی‌شود.';
   if(error.status===429)return 'درخواست‌های پیاپی زیاد است؛ یک دقیقه صبر کنید و دوباره تلاش کنید.';
@@ -3483,6 +3502,7 @@ if(REG&&Array.isArray(REG.q)){
           Number.isInteger(firstIssue.companion_index)?firstIssue.companion_index:null);
       }
       const message=error&&error.status===410?'ظرفیت این فرم تکمیل شده است؛ پاسخ تازه پذیرفته نشد.':
+        error&&error.status===409&&registrationClosedText(error)?registrationClosedText(error):
         error&&error.status===409?'فرم متوقف شده یا نسخهٔ آن تغییر کرده است؛ صفحه را تازه کنید.':
         error&&error.status===422&&firstIssue?String(firstIssue.message||'یکی از پاسخ‌ها در بررسی سرور پذیرفته نشد؛ فیلد مشخص‌شده را اصلاح کنید.'):
         publicDraftErrorText(error);
@@ -3626,6 +3646,10 @@ function show(id){
     const copy=ROUTE_ERROR_COPY[FORM_ROUTE.error]||ROUTE_ERROR_COPY['invalid-form'];
     const title=document.getElementById('unavailableTitle'),message=document.getElementById('unavailableText');
     if(title)title.textContent=copy[0];if(message)message.textContent=copy[1];
+    const backLink=document.getElementById('unavailableBack');
+    if(backLink&&FORM_ROUTE.error==='registration-closed'&&/^[A-Za-z0-9_-]{1,100}$/.test(FORM_ROUTE.closedEventId||'')){
+      backLink.setAttribute('href','event.html?id='+encodeURIComponent(FORM_ROUTE.closedEventId));backLink.textContent='رفتن به صفحهٔ رویداد';
+    }
     document.title='نورا · '+copy[0];
     const header=document.querySelector('.wrap > header');if(header)header.style.display='none';
     ['localPreviewNotice','draftStatus','footerLocalNotice'].forEach(key=>{const el=document.getElementById(key);if(el)el.style.display='none'});

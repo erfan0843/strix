@@ -39,3 +39,15 @@
 
 .detail-item.event-partner-link{color:inherit;text-decoration:none}
 .detail-item.event-partner-link:hover{text-decoration:underline;color:var(--brand-2,var(--brand))}
+
+/* فاز ۷: وضعیت ثبت‌نام، شمارشگر، شرایط، تقویم و اشتراک در صفحهٔ رویداد */
+.event-reg-state{margin:0 0 8px}
+.event-reg-timer{margin:0 0 10px}
+.event-reg-note{margin:0 0 10px;line-height:1.9}
+.event-conditions{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--surface-2,rgba(127,127,127,.08))}
+.event-conditions b{display:block;margin-bottom:4px;font-size:13px}
+.event-conditions p{margin:0;font-size:13px;line-height:1.9;color:var(--ink-2)}
+.event-share-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.event-share-row .btn{flex:1 1 140px;justify-content:center}
+.event-share-fallback{margin-top:8px;display:grid;gap:4px}
+.event-share-fallback .input{font-size:12px}
