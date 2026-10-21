@@ -77,3 +77,7 @@
 
 /* Inline breadcrumb links remain distinguishable without relying on color. */
 .seo-breadcrumb a{text-decoration:underline;text-underline-offset:3px}
+
+/* فاز ۷: وضعیت ثبت‌نام و شمارشگر روی کارت (از countdown.css) */
+.event-list-state{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.event-register-missing.reg-state{font-size:12px}

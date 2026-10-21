@@ -535,6 +535,70 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&!preserved.doc.getElementById('about')&&preserved.doc.querySelector('#evSec').hidden,
     'تنظیم‌های ذخیره‌شده حفظ می‌شوند و بخش حذف‌شده در خانه ساخته نمی‌شود');
 
+  /* ── فاز ۷: خانه با وضعیت ثبت‌نام سرور، گروه‌بندی، شمارشگر مشترک و بنر وصل به رویداد ── */
+  {
+    const serverNow=new Date('2026-11-01T10:00:00Z');
+    const iso=h=>new Date(serverNow.getTime()+h*3600_000).toISOString();
+    const content={events:[
+      {id:'p7-open',t:'کارگاه با ثبت‌نام باز',kind:'کارگاه',privacy:'public',when:'۱۲ آبان',on:'۱۴۰۵/۰۸/۱۲',d:'شرح',price:0,forms:[{id:'f-open',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(48),regClosesAt:iso(26.5),registration:{state:'open',reason:'',lifecycle:'scheduled',closesAt:iso(26.5),countdownTo:iso(26.5),startsAt:iso(48),startsIn:iso(48)}},
+      {id:'p7-wait',t:'نشست با ثبت‌نام آینده',kind:'نشست',privacy:'public',when:'۲۰ آبان',on:'۱۴۰۵/۰۸/۲۰',d:'شرح',price:0,forms:[{id:'f-wait',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(240),regOpensAt:iso(72),registration:{state:'not_started',reason:'time',lifecycle:'scheduled',opensAt:iso(72),countdownTo:iso(72),startsAt:iso(240),startsIn:iso(240)}},
+      {id:'p7-full',t:'اردوی پر',kind:'اردو',privacy:'public',when:'۲۵ آبان',on:'۱۴۰۵/۰۸/۲۵',d:'شرح',price:0,forms:[{id:'f-full',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(400),registration:{state:'full',reason:'capacity',lifecycle:'scheduled',countdownTo:'',startsAt:iso(400),startsIn:iso(400)}},
+      {id:'p7-cancel',t:'جلسهٔ لغوشده',kind:'نشست',privacy:'public',when:'۲۸ آبان',on:'۱۴۰۵/۰۸/۲۸',d:'شرح',price:0,lifecycle:'cancelled',
+        startsAt:iso(500),registration:{state:'cancelled',reason:'cancelled',lifecycle:'cancelled',countdownTo:''}},
+      {id:'p7-ended',t:'کارگاه تمام‌شده',kind:'کارگاه',privacy:'public',when:'۱ مهر',on:'۱۴۰۵/۰۷/۰۱',d:'شرح',price:0,
+        registration:{state:'ended',reason:'time',lifecycle:'scheduled',countdownTo:''}}
+    ],people:[],partners:[],articles:[],library:[],cooperation:[],banners:[
+      {id:'p7-banner-event',status:'published',active:true,order:1,t:'بنر رویداد',eventId:'p7-open',countdown:'reg_close',countdownTo:iso(26.5),countdownEnded:false,
+        afterEnd:'details',href:'event.html?id=p7-open',primaryLabel:'جزئیات',event:{id:'p7-open',t:'کارگاه با ثبت‌نام باز',when:'۱۲ آبان',startsAt:iso(48),regClosesAt:iso(26.5),state:'open',lifecycle:'scheduled'}},
+      {id:'p7-banner-ended',status:'published',active:true,order:2,t:'بنر تمام‌شده',eventId:'p7-full',countdown:'reg_close',countdownTo:'',countdownEnded:true,
+        afterEnd:'message',afterEndText:'ظرفیت این دوره تکمیل شد',href:'event.html?id=p7-full',primaryLabel:'جزئیات',event:{id:'p7-full',t:'اردوی پر',when:'۲۵ آبان',state:'full',lifecycle:'scheduled'}},
+      {id:'p7-banner-hidden',status:'published',active:true,order:3,t:'بنر پایان‌یافتهٔ پنهان',eventId:'p7-full',countdown:'reg_close',countdownTo:'',countdownEnded:true,afterEnd:'hide'}
+    ],banner_settings:{enabled:true,auto_rotate:false,interval_seconds:7,show_controls:true}};
+    const fetch7=async path=>path==='/api/public/site-content'
+      ?{ok:true,json:async()=>({content,server_time:serverNow.toISOString()})}:{ok:false,status:404,json:async()=>({})};
+    const p=await load('home.html',makeStore(),'',fetch7);
+    ok(p.errors.length===0,'خانهٔ فاز ۷ بی‌خطا بار شد'+(p.errors.length?': '+p.errors[0]:''));
+    ok(p.window.NORA_SERVER_CLOCK&&Math.abs(p.window.NORA_COUNTDOWN.serverNow()-serverNow.getTime())<5000,
+      'ساعت مرجع خانه از server_time پاسخ گرفته می‌شود، نه از ساعت مرورگر');
+    const card=id=>p.doc.querySelector(`#evSec .evc-cov[data-ev="${id}"]`)?.closest('.evcard');
+    const openCard=card('p7-open');
+    ok(openCard&&openCard.querySelector('.reg-state.live')?.textContent==='ثبت‌نام باز است'
+        &&/تا پایان ثبت‌نام/.test(openCard.querySelector('[data-countdown]')?.textContent||'')
+        &&/۱ روز و ۲ ساعت/.test(openCard.querySelector('.nora-countdown-value')?.textContent||''),
+      'کارت ثبت‌نام باز: نشان وضعیت و شمارشگر تا مهلت، محاسبه‌شده با ساعت سرور');
+    ok(openCard.querySelector('.evc-cta')?.getAttribute('href')==='event.html?id=p7-open'&&/ثبت‌نام و جزئیات/.test(openCard.querySelector('.evc-cta').textContent),
+      'دکمهٔ کارت باز به صفحهٔ جزئیات می‌رود، نه مستقیم به فرم');
+    ok(card('p7-wait')?.querySelector('.reg-state.wait')&&/تا آغاز ثبت‌نام/.test(card('p7-wait').textContent),
+      'کارت ثبت‌نام آغازنشده: نشان انتظار و شمارش تا آغاز ثبت‌نام');
+    ok(card('p7-full')?.querySelector('.reg-state.stop')?.textContent==='ظرفیت تکمیل شد'&&/تا شروع رویداد/.test(card('p7-full').textContent)
+        &&!/ثبت‌نام و جزئیات/.test(card('p7-full').querySelector('.evc-cta').textContent),
+      'کارت ظرفیت تکمیل: نشان توقف، فقط شمارش تا شروع، بدون دعوت به ثبت‌نام');
+    ok(card('p7-cancel')?.querySelector('.reg-state.stop')?.textContent==='لغو شد'&&!card('p7-cancel').querySelector('[data-countdown]'),
+      'رویداد لغوشده: نشان لغو و هیچ شمارشگری');
+    ok(!card('p7-ended')&&p.doc.querySelector('#pastList .evc-cov[data-ev="p7-ended"]'),
+      'پایان‌یافته طبق سرور از ویترین خارج و در برگزارشده‌ها است');
+    ok(p.all('#evTop .evcard').length===3&&p.all('#evTop .evc-cov')[0].dataset.ev==='p7-open',
+      'ویترین: اول ثبت‌نام باز، سپس بقیه؛ حداکثر سه کارت');
+    ok(p.doc.querySelector('#evSoonGroup').hidden===false&&p.all('#evSoon .evc-cov').map(e=>e.dataset.ev).join(',')==='p7-cancel'
+        &&p.doc.querySelector('#evOpenGroup').hidden===true,
+      'گروه «پیش رو» فقط کارت‌های باقی‌مانده به ترتیب تاریخ؛ گروه خالی «ثبت‌نام باز» پنهان است');
+    const banners=p.all('#bsdeck .bs');
+    ok(banners.length===2&&!p.doc.querySelector('#bsdeck').textContent.includes('بنر پایان‌یافتهٔ پنهان'),
+      'بنر پایان‌یافته با رفتار «پنهان» ساخته نمی‌شود');
+    ok(/تا پایان ثبت‌نام/.test(banners[0].querySelector('.btimer [data-countdown]')?.textContent||'')&&banners[0].querySelector('.bmeta')?.textContent==='۱۲ آبان',
+      'بنر وصل به رویداد: شمارشگر از مهلت خود رویداد و زمان رویداد از رکورد رویداد');
+    ok(banners[1].querySelector('.bnote')?.textContent==='ظرفیت این دوره تکمیل شد'&&banners[1].querySelector('.nora-countdown.is-ended')
+        &&banners[1].querySelector('.bacts a')?.getAttribute('href')==='event.html?id=p7-full'&&!banners[1].querySelector('a[href*="form.html"]'),
+      'بنر پایان‌یافته با رفتار «متن»: متن پایان، نشان پایان‌یافته و دکمه فقط به جزئیات');
+    const shares=[]; p.window.shareItem=async item=>{shares.push(item); return true};
+    const shareBtn=p.doc.createElement('button'); shareBtn.dataset.share='p7-open'; p.doc.body.appendChild(shareBtn); shareBtn.click(); await wait(20);
+    ok(shares.length===1&&shares[0].title==='کارگاه با ثبت‌نام باز'&&!/نمونه/.test(shares[0].title+shares[0].text)&&/event\.html\?id=p7-open$/.test(shares[0].url),
+      'اشتراک رویداد از خانه با عنوان و نشانی واقعی، بدون واژهٔ «نمونه»');
+    p.window.close();
+  }
 }
 
 /* ── ۲) فرم: پاسخ محلی، بدون روش پرداخت/رسید/بلیت ── */

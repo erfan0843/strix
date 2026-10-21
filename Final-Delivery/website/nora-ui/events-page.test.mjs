@@ -223,7 +223,7 @@ function ok(condition, label) {
 /* ۹) نسخهٔ فایل‌ها در صفحه */
 {
   const html = fs.readFileSync(DIR + 'events.html', 'utf8');
-  ok(html.includes('events-page.js?v=102') && html.includes('events-page.css?v=102'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
+  ok(html.includes('events-page.js?v=103') && html.includes('events-page.css?v=103'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
   ok(/__NORA_TEST_FIXTURE_MODE__===true\)document\.write/.test(html), 'data.js فقط در حالت آزمون صریح');
   const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
   ok(detail.includes('event-page.js?v=102'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته است');
@@ -249,6 +249,38 @@ for (const file of ['events.html', 'event.html']) {
   p.click('[data-theme-toggle]');
   ok(t1 !== t0 && now() === t0, file + ': هر کلیک روی کلید شب/روز دقیقاً یک بار تم را عوض می‌کند');
   ok(p.doc.querySelector('[data-theme-toggle]').getAttribute('aria-checked') === (t0 === 'dark' ? 'true' : 'false'), file + ': وضعیت aria-checked کلید با تم هم‌گام است');
+  p.window.close();
+}
+
+/* ۱۲) فاز ۷: وضعیت ثبت‌نام از سرور روی کارت؛ دکمهٔ ثبت‌نام فقط در حالت «باز»؛ پایان‌یافتهٔ سرور = برگزارشده؛ لغوشده هرگز فعال نیست */
+{
+  const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
+  const start = new Date(Date.now() + 10 * 86_400_000).toISOString();
+  const events = [
+    { id: 'ev-open', t: 'کارگاه باز', kind: 'کارگاه', privacy: 'public', d: 'شرح', when: 'آبان', on: '۱۴۰۵/۰۸/۰۳', forms: [{ id: 'f-open', need: 'reg', n: 'ثبت‌نام' }],
+      startsAt: start, regClosesAt: soon, registration: { state: 'open', reason: '', lifecycle: 'scheduled', closesAt: soon, countdownTo: soon, startsAt: start, startsIn: start } },
+    { id: 'ev-closed', t: 'کارگاه بسته', kind: 'کارگاه', privacy: 'public', d: 'شرح', when: 'آبان', on: '۱۴۰۵/۰۸/۰۴', forms: [{ id: 'f-closed', need: 'reg', n: 'ثبت‌نام' }],
+      registration: { state: 'closed', reason: 'time', lifecycle: 'scheduled', countdownTo: '' } },
+    { id: 'ev-cancel', t: 'نشست لغوشده', kind: 'نشست', privacy: 'public', d: 'شرح', when: 'آبان', on: '۱۴۰۵/۰۸/۰۵', forms: [{ id: 'f-cancel', need: 'reg', n: 'ثبت‌نام' }],
+      lifecycle: 'cancelled', registration: { state: 'cancelled', reason: 'cancelled', lifecycle: 'cancelled', countdownTo: '' } },
+    { id: 'ev-ended', t: 'کارگاه تمام‌شده', kind: 'کارگاه', privacy: 'public', d: 'شرح', when: 'مهر', on: '۱۴۰۵/۰۷/۰۱', forms: [{ id: 'f-ended', need: 'reg', n: 'ثبت‌نام' }],
+      registration: { state: 'ended', reason: 'time', lifecycle: 'scheduled', countdownTo: '' } }
+  ];
+  const p = await load('', { events });
+  const cardOf = id => p.doc.querySelector(`#eventsList [data-event-id="${id}"]`);
+  const openCard = cardOf('ev-open');
+  ok(!!openCard.querySelector('.reg-state.live') && /ثبت‌نام باز است/.test(openCard.textContent), 'کارت باز: نشان «ثبت‌نام باز است» از وضعیت سرور');
+  ok(/تا پایان ثبت‌نام/.test(openCard.textContent) && !!openCard.querySelector('[data-countdown]'), 'کارت باز: شمارشگر مشترک تا مهلت ثبت‌نام');
+  ok(openCard.querySelector('a.btn.primary')?.getAttribute('href') === 'form.html?fid=f-open&kind=reg', 'کارت باز: دکمهٔ ثبت‌نام به همان فرم موجود می‌رود');
+  const closedCard = cardOf('ev-closed');
+  ok(!closedCard.querySelector('a[href^="form.html"]') && /ثبت‌نام بسته شد/.test(closedCard.textContent), 'کارت بسته: بدون دکمهٔ فرم، با وضعیت صادقانه');
+  const cancelCard = cardOf('ev-cancel');
+  ok(!cancelCard.querySelector('a[href^="form.html"]') && /لغو شد/.test(cancelCard.querySelector('.cover-state')?.textContent || '') && !cancelCard.querySelector('[data-countdown]'), 'کارت لغوشده: نشان لغو، بدون فرم و بدون شمارشگر');
+  ok(!!cardOf('ev-ended') && /برگزارشده/.test(cardOf('ev-ended').querySelector('.cover-state')?.textContent || '') && !cardOf('ev-ended').querySelector('a[href^="form.html"]') && !cardOf('ev-ended').querySelector('[data-countdown]'), 'پایان‌یافته طبق ساعت سرور «برگزارشده» است: بدون فرم و شمارشگر');
+  p.click('[data-event-filter="upcoming"]');
+  await wait(20);
+  ok(!cardOf('ev-ended') && !!cardOf('ev-open'), 'پایان‌یافته طبق سرور در صافی «پیش‌رو» نیست');
+  ok(p.errors.length === 0, 'بدون خطای کنسول: ' + p.errors.join(' | '));
   p.window.close();
 }
 

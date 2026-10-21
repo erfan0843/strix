@@ -206,7 +206,8 @@
       forms,
       price: Number.isFinite(+record.price) && +record.price >= 0 ? +record.price : 0,
       cap: Number.isFinite(+record.cap) && +record.cap >= 0 ? +record.cap : 0,
-      past,
+      /* پایان‌یافته طبق ساعت سرور (endsAt گذشته) همان «برگزارشده» است؛ بدون این، کارت می‌توانست فعال به نظر برسد */
+      past: past || !!(registration && registration.state === 'ended'),
       media,
       cert: record.cert === true,
       certMin: Number.isFinite(+record.certMin) ? Math.max(0, Math.min(100, +record.certMin)) : 0,

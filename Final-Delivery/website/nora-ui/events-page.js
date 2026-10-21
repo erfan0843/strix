@@ -176,20 +176,34 @@
     if (event.kind && !tags.includes(event.kind)) tags.unshift(event.kind);
     const detailHref = `event.html?id=${encodeURIComponent(event.id)}`;
     const coverHtml = cover ? `<img src="${esc(cover)}" alt="" loading="lazy" decoding="async"/>` : '';
+    /* وضعیت ثبت‌نام فقط از سرور؛ دکمهٔ ثبت‌نام تنها در حالت «باز» به فرم می‌رود و در بقیهٔ حالت‌ها وضعیت صادقانه نوشته می‌شود */
+    const CD = window.NORA_COUNTDOWN;
+    const reg = event.registration && typeof event.registration === 'object' ? event.registration : null;
+    const regOpen = !!(reg && reg.state === 'open' && reg.lifecycle !== 'cancelled' && reg.lifecycle !== 'postponed');
+    const stateText = CD && reg ? CD.stateLabel(reg) : '';
+    const stateTone = CD && reg ? CD.stateTone(reg) : 'mute';
+    const target = CD && !event.past ? CD.eventTarget(event) : null;
+    const timerHtml = target ? CD.markup(target, { compact: true }) : '';
     const formButton = event.past
       ? ''
-      : formId
+      : regOpen && formId
         ? `<a class="btn primary" href="form.html?fid=${encodeURIComponent(formId)}&kind=reg">ثبت‌نام</a>`
-        : `<span class="event-register-missing">فرم ثبت‌نام منتشر نشده است</span>`;
+        : reg && reg.state && reg.state !== 'none'
+          ? `<span class="event-register-missing reg-state ${esc(stateTone)}">${esc(stateText || 'ثبت‌نام در دسترس نیست')}</span>`
+          : formId && !reg
+            ? `<a class="btn primary" href="form.html?fid=${encodeURIComponent(formId)}&kind=reg">ثبت‌نام</a>`
+            : `<span class="event-register-missing">فرم ثبت‌نام منتشر نشده است</span>`;
+    const coverState = event.past ? 'برگزارشده' : (reg && reg.lifecycle === 'cancelled') ? 'لغو شد' : (reg && reg.lifecycle === 'postponed') ? 'به تعویق افتاد' : '';
     return `<article class="event-list-card card paper" data-event-id="${esc(event.id)}">
       <a class="event-list-cover" href="${detailHref}" aria-label="جزئیات ${esc(event.t)}">
         ${coverHtml}<span class="cover-shade"></span>
         ${event.kind ? `<span class="cover-kind">${esc(event.kind)}</span>` : ''}
-        ${event.past ? '<span class="cover-state">برگزارشده</span>' : ''}
+        ${coverState ? `<span class="cover-state">${esc(coverState)}</span>` : ''}
         ${when ? `<span class="cover-date">${esc(when)}</span>` : ''}
       </a>
       <div class="event-list-body">
         ${tags.length ? `<div class="event-list-tags">${tags.slice(0, 4).map((tag, index) => `<span class="tag${index === 0 ? ' brand' : ''}">${esc(tag)}</span>`).join('')}</div>` : ''}
+        ${!event.past && stateText ? `<div class="event-list-state"><span class="reg-state ${esc(stateTone)}">${esc(stateText)}</span>${timerHtml}</div>` : ''}
         <a class="event-list-title" href="${detailHref}">${esc(event.t)}</a>
         ${event.d ? `<p class="event-list-description">${esc(cut(event.d, 700))}</p>` : ''}
         <div class="event-list-meta">
@@ -298,6 +312,7 @@
       : monthLabel(month.jy, month.jm);
     if (dayCount) dayCount.textContent = selected.length ? `${fa(selected.length)} برنامه در این روز` : 'برنامه‌ای در این روز نیست';
     dayHost.innerHTML = selected.map(item => card(item.event)).join('');
+    if (root.NORA_COUNTDOWN) root.NORA_COUNTDOWN.mount(dayHost);
     if (note) note.textContent = undated > 0
       ? `${fa(undated)} رویداد بدون تاریخ ماشین‌خوان فقط در نمای فهرست دیده می‌شود.`
       : '';
@@ -310,6 +325,7 @@
     const calendarMode = state.view === 'cal';
     list.innerHTML = calendarMode ? '' : visible.map(card).join('');
     list.hidden = calendarMode || !visible.length;
+    if (root.NORA_COUNTDOWN) root.NORA_COUNTDOWN.mount(list);
     empty.hidden = calendarMode || !!visible.length;
     if (calendar) calendar.hidden = !calendarMode;
     if (toolbar) toolbar.hidden = !records.length;

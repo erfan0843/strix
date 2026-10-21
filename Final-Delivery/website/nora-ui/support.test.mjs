@@ -420,7 +420,7 @@ async function load(store,hash,fixtureMode=true){
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها یک‌جا بررسی
      می‌شود تا با هر به‌روزرسانیِ بسته، این فایل بی‌دلیل نشکند. */
   ok(html.includes('support.css?v=99')&&html.includes('support.js?v=100')&&html.includes('nora.css?v=102')
-      &&html.includes('public-data.js?v=112')&&html.includes('data.js?v=99'),
+      &&html.includes('public-data.js?v=113')&&html.includes('data.js?v=99'),
     'نسخهٔ دارایی‌های پشتیبانی و ناوبری به‌روز است');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');

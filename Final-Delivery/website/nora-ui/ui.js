@@ -1681,9 +1681,11 @@ function evPosterCard(e,o){
       ${o.badge?`<span class="evc-day">${o.badge}</span>`:''}
     </${wrap}>
     <div class="evc-body">
+      ${o.status?`<div class="evc-status">${o.status}</div>`:''}
       <div class="evc-ttl">${escH(e.t)}</div>
       ${metas||partnerMeta?`<div class="evc-meta">${metas}${partnerMeta}</div>`:''}
       ${o.note?`<div class="evc-note">${escH(o.note)}</div>`:''}
+      ${o.timer?`<div class="evc-timer">${o.timer}</div>`:''}
       <div class="evc-foot">
         ${p?`<span class="evc-ava" style="--g:${escH(p.g||'')}">${p.photo?`<img src="${escH(p.photo)}" alt="${escH(p.n)}"/>`:escH(p.ini||'')}</span>
           <span class="evc-who"><b>${escH(p.n)}</b><small>${escH(p.r||'')}</small></span>`:''}
