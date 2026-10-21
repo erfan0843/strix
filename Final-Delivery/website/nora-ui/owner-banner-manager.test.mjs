@@ -139,11 +139,34 @@ assert.equal(updates[1].content.banners[1].eventId, '', 'untouched banners keep 
 assert.ok(!('regClosesAt' in savedRow) && !('startsAtEvent' in savedRow), 'no event date is duplicated into the banner payload');
 dom.window.document.querySelector('[data-obm-preview-mode="desktop"]').click();
 
+/* دکمهٔ اصلی فقط با متن: برای بنر وصل به رویداد مجاز است (مقصد = صفحهٔ رویداد)، بدون رویداد رد می‌شود */
+form.elements.namedItem('primaryHref').value = '';
+form.elements.namedItem('primaryHref').dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+form.elements.namedItem('countdown').value = 'reg_close';
+form.elements.namedItem('countdown').dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+assert.equal(await manager.save(), true, `label-only primary button is valid for an event-linked banner: ${dom.window.document.querySelector('#ownerBannerState').textContent}`);
+assert.equal(updates.length, 3);
+assert.equal(updates[2].content.banners[0].href, '');
+assert.equal(updates[2].content.banners[0].primaryLabel, 'جزئیات برنامه');
+eventSelect.value = '';
+eventSelect.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+form.elements.namedItem('countdown').value = '';
+form.elements.namedItem('countdown').dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+form.elements.namedItem('afterEnd').value = 'hide';
+form.elements.namedItem('afterEnd').dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+assert.equal(await manager.save(), false, 'a label-only primary button without an event has no destination and is rejected');
+assert.equal(updates.length, 3);
+assert.match(dom.window.document.querySelector('#ownerBannerState').textContent, /وصل به رویداد/);
+eventSelect.value = 'ev-open';
+eventSelect.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+form.elements.namedItem('primaryHref').value = '/events.html#upcoming';
+form.elements.namedItem('primaryHref').dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+
 api.updateSiteContent = async () => { throw { status: 409, code: 'site_content_version_conflict' }; };
 title.value = 'ویرایش هم‌زمان';
 title.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
 assert.equal(await manager.save(), false, 'the manager never overwrites a concurrent owner update');
-assert.equal(manager.state.version, 5);
+assert.equal(manager.state.version, 6);
 assert.match(dom.window.document.querySelector('#ownerBannerState').textContent, /هم‌زمان تغییر کرده/);
 
 api.me = async () => ({ authenticated: true, role: 'manager' });
