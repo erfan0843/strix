@@ -4146,6 +4146,16 @@ def main():
     set_mod.seed_phase5_settings()
     ensure_super_admin(SUPER_ADMIN_ID)
 
+    # 🏅 دفترکل امتیاز: بدون افتتاحیهٔ ثبت‌شده یا بدون نگهبان اجرا نمی‌شود
+    import points_ledger as _pl
+    _pl_problems = _pl.startup_check()
+    if _pl_problems:
+        guard.release_lock()
+        for _pp in _pl_problems:
+            log(f"❌ دفترکل امتیاز: {_pp}")
+        log("💡 ترتیب درست: توقف ربات → پشتیبان معتبر → افتتاحیه → اجرای این نسخه")
+        return 1
+
     for w in config_warnings():
         log(f"⚠️ {w}")
 

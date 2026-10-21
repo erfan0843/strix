@@ -271,8 +271,9 @@ _POINT_ACTIONS: dict[str, int] = {
     "points_spent": -1,
     "points_payment": -1,
 }
-# تغییرهایی که در کد ربات امتیاز می‌دهند ولی هیچ ردیفی در user_actions نمی‌نویسند
-# (attendance._award_points، events بستن رویداد، lottery). فقط برای مستندسازی.
+# تغییرهایی که در کد قدیمی ربات امتیاز می‌دادند ولی هیچ ردیفی در user_actions نمی‌نوشتند
+# (attendance._award_points، events بستن رویداد، lottery). فقط برای مستندسازی دورهٔ قبل از
+# دفترکل؛ از فاز ششم همهٔ مسیرها در points_ledger ردیف دارند (بخش points_ledger همین گزارش).
 _POINT_WRITERS_WITHOUT_LEDGER = ("attendance._award_points", "events.status_change", "lottery.prize")
 
 
@@ -396,6 +397,78 @@ def audit_certificates(conn: sqlite3.Connection, tables: set[str]) -> dict[str, 
     return out
 
 
+def _audit_points_ledger(conn: sqlite3.Connection, tables: set[str], ucols: set[str]) -> dict[str, Any]:
+    """دفترکل امتیاز فاز ششم (points_ledger): فقط گزارش، بدون هیچ اصلاحی.
+
+    * اختلاف شمارندهٔ users.total_points با آخرین balance_after هر کاربر
+    * کاربران غیرصفر بدون ردیف افتتاحیه، موجودی‌های منفی
+    * ردیف‌های تکراری/نامعتبر (کلید تکراری، زنجیرهٔ موجودی شکسته، بدون مرجع تجاری)
+    * وضعیت همگام‌سازی با سرور (pending/mirrored/unmapped/failed)
+    * کاربرانی که شناسهٔ بلهٔ قابل‌پیوندی ندارند
+    """
+    if "points_ledger" not in tables:
+        return {"installed": False,
+                "note": "جدول points_ledger وجود ندارد؛ این نسخهٔ پایگاه پیش از راه‌اندازی دفترکل است."}
+    lcols = _columns(conn, "points_ledger")
+    need = {"bale_user_id", "delta", "balance_after", "entry_type", "source", "ref_key"}
+    if not need <= lcols:
+        return {"installed": True, "status": "unexpected_schema"}
+    out: dict[str, Any] = {"installed": True, "entries": _count(conn, "points_ledger")}
+    out["by_entry_type"] = _group(conn, "points_ledger", "entry_type")
+    out["opening_rows"] = _scalar(conn, "SELECT COUNT(*) FROM points_ledger WHERE entry_type='opening_balance'")
+    out["duplicate_keys"] = _scalar(
+        conn, "SELECT COUNT(*) FROM (SELECT source, ref_key FROM points_ledger GROUP BY source, ref_key HAVING COUNT(*) > 1)")
+    out["missing_business_ref"] = _scalar(
+        conn, "SELECT COUNT(*) FROM points_ledger WHERE entry_type IN ('award','spend','refund') "
+              "AND (ref_key IS NULL OR ref_key = '' OR ref_table IS NULL)" if "ref_table" in lcols else
+              "SELECT COUNT(*) FROM points_ledger WHERE entry_type IN ('award','spend','refund') "
+              "AND (ref_key IS NULL OR ref_key = '')")
+    out["orphan_entries"] = _scalar(
+        conn, "SELECT COUNT(*) FROM points_ledger l WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.bale_user_id = l.bale_user_id)")
+    # زنجیرهٔ موجودی: balance_after هر ردیف = balance_after ردیف قبلی همان کاربر + delta
+    chain_breaks = 0
+    last: dict[int, int] = {}
+    for uid, delta, after in conn.execute(
+            "SELECT bale_user_id, delta, balance_after FROM points_ledger ORDER BY bale_user_id, id"):
+        prev = last.get(int(uid), 0)
+        if prev + int(delta) != int(after):
+            chain_breaks += 1
+        last[int(uid)] = int(after)
+    out["chain_breaks"] = chain_breaks
+    if "total_points" in ucols:
+        mismatched = without_opening = negative = unlinkable = 0
+        for raw, tp in conn.execute("SELECT bale_user_id, COALESCE(total_points,0) FROM users"):
+            tp = int(tp)
+            if raw is None or not re.fullmatch(r"[1-9][0-9]{0,19}", str(raw)):
+                if tp != 0:
+                    unlinkable += 1
+                continue
+            uid = int(raw)
+            if tp < 0:
+                negative += 1
+            if uid in last:
+                if last[uid] != tp:
+                    mismatched += 1
+            elif tp != 0:
+                without_opening += 1
+        out["counter_vs_ledger_mismatched_users"] = mismatched
+        out["users_nonzero_without_opening"] = without_opening
+        out["negative_balances"] = negative
+        out["users_with_points_but_unlinkable_bale_id"] = unlinkable
+        out["reconciled"] = mismatched == 0 and without_opening == 0 and chain_breaks == 0 and out["duplicate_keys"] == 0
+    if "shared_status" in lcols:
+        out["sync"] = _group(conn, "points_ledger", "shared_status")
+    if "points_ledger_meta" in tables:
+        meta = {str(k): str(v) for k, v in conn.execute(
+            "SELECT key, value FROM points_ledger_meta WHERE key IN "
+            "('opening_applied_at','guard_disabled_at','guard_enabled_at','opening_backup')")}
+        out["meta"] = meta
+    trig = {str(r[0]) for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
+    out["guard_installed"] = {"trg_users_points_guard_update", "trg_users_points_guard_insert"} <= trig
+    out["immutability_installed"] = {"trg_points_ledger_no_update", "trg_points_ledger_no_delete"} <= trig
+    return out
+
+
 def audit_club(conn: sqlite3.Connection, tables: set[str]) -> dict[str, Any]:
     """امتیاز و باشگاه: شمارنده روی users، دستاوردها، پاداش‌ها و کامل‌بودن دفترکل."""
     out: dict[str, Any] = {}
@@ -437,6 +510,7 @@ def audit_club(conn: sqlite3.Connection, tables: set[str]) -> dict[str, Any]:
         ledger["status"] = "user_actions_missing"
     out["points"] = points
     out["ledger"] = ledger
+    out["points_ledger"] = _audit_points_ledger(conn, tables, ucols)
     if "achievements" in tables:
         ach: dict[str, Any] = {"definitions": _count(conn, "achievements")}
         if "is_active" in _columns(conn, "achievements"):

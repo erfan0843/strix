@@ -151,14 +151,52 @@ class PostResult:
 
 
 # ───────────────────────── schema ─────────────────────────
-def ensure_schema(*, guard: bool = True) -> None:
-    """جدول‌ها، قیدها و trigger ها را (idempotent) می‌سازد."""
+def ensure_schema(*, guard: bool | None = None) -> None:
+    """جدول‌ها، قیدها و trigger ها را (idempotent) می‌سازد.
+
+    نگهبان ``users.total_points`` فقط وقتی نصب می‌شود که پایگاه نیاز به افتتاحیه
+    نداشته باشد (پایگاه تازه، یا افتتاحیه اجرا شده)؛ وگرنه اجرای ``doctor`` یا
+    نسخهٔ تازه روی پایگاهی که هنوز ربات قدیمی رویش کار می‌کند، امتیازدهی قدیمی را
+    پیش از زمان برنامه‌ریزی‌شده متوقف می‌کرد. اسکریپت افتتاحیه پس از ``--apply``
+    نگهبان را نصب می‌کند.
+    """
     with db_transaction() as conn:
         for q in _SCHEMA:
             conn.execute(q)
+        if guard is None:
+            guard = meta_get("guard_disabled_at") is None and not needs_opening()
         if guard:
             for q in _GUARD_TRIGGERS:
                 conn.execute(q)
+
+
+def needs_opening() -> bool:
+    """آیا کاربری با ``total_points<>0`` و بدون هیچ ردیف دفترکل وجود دارد؟"""
+    row = db_execute(
+        """SELECT COUNT(*) AS c FROM users u
+           WHERE COALESCE(u.total_points,0) <> 0 AND u.bale_user_id IS NOT NULL
+             AND NOT EXISTS (SELECT 1 FROM points_ledger l WHERE l.bale_user_id = u.bale_user_id)""",
+        fetch="one")
+    return bool(row and int(row["c"]) > 0)
+
+
+def startup_check() -> list[str]:
+    """پیش‌شرط‌های اجرای ربات با دفترکل؛ لیست خطاها (خالی = مجاز)."""
+    problems: list[str] = []
+    if needs_opening():
+        problems.append(
+            "کاربرانی با موجودی غیرصفر و بدون ردیف افتتاحیهٔ دفترکل وجود دارند؛ "
+            "ابتدا با ربات متوقف و پشتیبان معتبر، اسکریپت migrate_points_opening_balance.py را "
+            "(dry-run و سپس --apply --yes) اجرا کنید.")
+    if not guard_installed():
+        if meta_get("guard_disabled_at"):
+            problems.append(
+                "نگهبان total_points آگاهانه حذف شده (guard-off)؛ پیش از اجرای نسخهٔ دفترکل، "
+                "rebaseline و نصب دوبارهٔ نگهبان لازم است "
+                "(migrate_points_opening_balance.py rebaseline / guard-on).")
+        else:
+            problems.append("نگهبان total_points نصب نیست.")
+    return problems
 
 
 def guard_installed() -> bool:
@@ -349,6 +387,15 @@ def post_points(
             if delta != current:
                 raise LedgerError("opening_balance_mismatch")
             new_balance = current
+        elif source == "rebaseline":
+            # baseline مجدد صریح: اختلاف شمارنده با دفترکل را به‌عنوان یک ردیف
+            # قابل ممیزی ثبت می‌کند؛ شمارنده تغییر نمی‌کند.
+            if entry_type != "manual_adjust":
+                raise LedgerError("invalid_entry_type")
+            base = int(last["balance_after"]) if last is not None else 0
+            if base + delta != current:
+                raise LedgerError("rebaseline_mismatch")
+            new_balance = current
         else:
             if last is None and current != 0:
                 raise LedgerError("opening_balance_missing")
@@ -386,7 +433,7 @@ def post_points(
             raise LedgerError("ledger_constraint", type(exc).__name__) from None
         entry_id = int(cur.lastrowid)
 
-        if entry_type != "opening_balance":
+        if entry_type != "opening_balance" and new_balance != current:
             conn.execute("UPDATE points_ledger_meta SET value='1' WHERE key='write_gate'")
             try:
                 res = conn.execute(
@@ -560,13 +607,15 @@ def health_report() -> dict[str, Any]:
         problems.append(f"{rep['chain_breaks']} ردیف با زنجیرهٔ موجودی شکسته")
     if rep["orphan_entries"]:
         problems.append(f"{rep['orphan_entries']} ردیف بدون کاربر")
-    if rep["negative_balances"]:
-        problems.append(f"{rep['negative_balances']} کاربر با موجودی منفی (گزارش؛ اصلاح خودکار نمی‌شود)")
-    if rep["invalid_user_ids"]:
-        problems.append(f"{rep['invalid_user_ids']} کاربر با شناسهٔ بله نامعتبر (قابل همگام‌سازی نیست)")
     if rep["missing_business_ref"]:
         problems.append(f"{rep['missing_business_ref']} ردیف award/spend/refund بدون مرجع تجاری")
-    return {"ok": rep["ok"] and not problems, "problems": problems, "report": rep}
+    # هشدارها: سازگاری دفترکل را نمی‌شکنند ولی باید جداگانه بررسی و تصمیم‌گیری شوند
+    warnings: list[str] = []
+    if rep["negative_balances"]:
+        warnings.append(f"{rep['negative_balances']} کاربر با موجودی منفی (گزارش؛ اصلاح خودکار نمی‌شود)")
+    if rep["invalid_user_ids"]:
+        warnings.append(f"{rep['invalid_user_ids']} کاربر با شناسهٔ بله نامعتبر (قابل همگام‌سازی نیست)")
+    return {"ok": rep["ok"] and not problems, "problems": problems, "warnings": warnings, "report": rep}
 
 
 # ───────────────────────── server mirror ─────────────────────────
