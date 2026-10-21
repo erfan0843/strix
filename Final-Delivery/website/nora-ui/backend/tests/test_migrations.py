@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
@@ -181,7 +182,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             constraint["name"] for constraint in inspector.get_check_constraints("club_points_entries")
         }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
     finally:
         engine.dispose()
 
@@ -251,7 +252,7 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
     finally:
         engine.dispose()
 
@@ -305,7 +306,7 @@ def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
     finally:
         engine.dispose()
 
@@ -362,7 +363,7 @@ def test_club_points_migration_with_existing_data_round_trip(tmp_path, monkeypat
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
     finally:
         engine.dispose()
 
@@ -427,7 +428,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
                 "VALUES ('res-1', 'ev-legacy', 'جزوه', 'published', 'registered', 'file')"
             ))
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
     finally:
         engine.dispose()
 
@@ -450,6 +451,152 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_questions")) == 0
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+    finally:
+        engine.dispose()
+
+
+def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monkeypatch):
+    """0032 on a database that already holds phase-8 rows: upgrade, downgrade one step, upgrade again.
+
+    Existing resources/questions/reviews survive, the four new tables carry their
+    constraints (status/method/source checks, one access row per account+product,
+    unique provider ids), ``event_resources`` accepts ``access='purchased'`` and
+    ``delivery='view'`` only after the upgrade, and the downgrade folds purchased
+    files to ``staff`` (never public) instead of deleting them.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy-recordings.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0031_event_interaction")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO accounts (id) VALUES ('acc-legacy-5')"))
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind) "
+                "VALUES ('res-old', 'ev-held', 'جزوه', 'published', 'registered', 'file')"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_questions (id, event_id, account_id, body, body_hash, status) "
+                "VALUES ('q-old', 'ev-held', 'acc-legacy-5', 'پرسش قدیمی', 'h-old', 'published')"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_reviews (id, event_id, account_id, body, status, verified_attendee) "
+                "VALUES ('r-old', 'ev-held', 'acc-legacy-5', 'دیدگاه قدیمی', 'published', 1)"
+            ))
+        tables = set(inspect(engine).get_table_names())
+        assert not {"event_recordings", "recording_sessions", "recording_orders", "recording_access"} & tables
+        assert "delivery" not in {column["name"] for column in inspect(engine).get_columns("event_resources")}
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
+        assert {"event_recordings", "recording_sessions", "recording_orders", "recording_access"} <= tables
+        assert {"session_id", "delivery"} <= {column["name"] for column in inspector.get_columns("event_resources")}
+        assert "session_id" in {column["name"] for column in inspector.get_columns("event_questions")}
+        assert "badge" in {column["name"] for column in inspector.get_columns("event_reviews")}
+        assert {"ck_event_resources_access", "ck_event_resources_delivery"} <= {
+            constraint["name"] for constraint in inspector.get_check_constraints("event_resources")
+        }
+        assert {"ck_event_recordings_status", "ck_event_recordings_price", "ck_event_recordings_access_days"} <= {
+            constraint["name"] for constraint in inspector.get_check_constraints("event_recordings")
+        }
+        assert {"uq_event_recordings_event"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("event_recordings")
+        }
+        assert {"ck_recording_orders_method", "ck_recording_orders_status", "ck_recording_orders_amount"} <= {
+            constraint["name"] for constraint in inspector.get_check_constraints("recording_orders")
+        }
+        assert {
+            "uq_recording_orders_idempotency", "uq_recording_orders_invoice_payload",
+            "uq_recording_orders_transaction", "uq_recording_orders_provider_charge",
+        } <= {constraint["name"] for constraint in inspector.get_unique_constraints("recording_orders")}
+        assert {"uq_recording_access_account"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("recording_access")
+        }
+        with engine.begin() as connection:
+            # Old rows kept, new columns defaulted.
+            assert connection.scalar(text("SELECT delivery FROM event_resources WHERE id = 'res-old'")) == "download"
+            assert connection.scalar(text("SELECT badge FROM event_reviews WHERE id = 'r-old'")) == ""
+            connection.execute(text(
+                "INSERT INTO event_recordings (id, event_id, status, title, faq, price) "
+                "VALUES ('rec-1', 'ev-held', 'draft', 'نسخهٔ ضبط‌شده', '[]', 1500000)"
+            ))
+            connection.execute(text(
+                "INSERT INTO recording_sessions (id, recording_id, title, status, sort_order) "
+                "VALUES ('ses-1', 'rec-1', 'جلسهٔ اول', 'published', 1)"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, session_id, delivery) "
+                "VALUES ('res-new', 'ev-held', 'ویدیوی جلسه', 'published', 'purchased', 'file', 'ses-1', 'view')"
+            ))
+            connection.execute(text(
+                "INSERT INTO recording_orders (id, recording_id, account_id, method, status, amount, idempotency_key) "
+                "VALUES ('ord-1', 'rec-1', 'acc-legacy-5', 'card_transfer', 'awaiting_receipt', 1500000, 'idem-1')"
+            ))
+            connection.execute(text(
+                "INSERT INTO recording_access (id, recording_id, account_id, source, status, order_id) "
+                "VALUES ('acc-r-1', 'rec-1', 'acc-legacy-5', 'purchase', 'active', 'ord-1')"
+            ))
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+        with engine.connect() as connection:
+            for statement in (
+                # one product per event
+                "INSERT INTO event_recordings (id, event_id, status, title, faq) VALUES ('rec-dup', 'ev-held', 'draft', 'x', '[]')",
+                # unknown state / delivery / method / source
+                "INSERT INTO event_recordings (id, event_id, status, title, faq) VALUES ('rec-bad', 'ev-2', 'live', 'x', '[]')",
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, delivery) "
+                "VALUES ('res-bad', 'ev-held', 'x', 'published', 'purchased', 'file', 'stream')",
+                "INSERT INTO recording_orders (id, recording_id, account_id, method, status, amount, idempotency_key) "
+                "VALUES ('ord-bad', 'rec-1', 'acc-legacy-5', 'cash', 'pending', 1, 'idem-2')",
+                # replayed idempotency key / duplicate access row
+                "INSERT INTO recording_orders (id, recording_id, account_id, method, status, amount, idempotency_key) "
+                "VALUES ('ord-dup', 'rec-1', 'acc-legacy-5', 'card_transfer', 'pending', 1, 'idem-1')",
+                "INSERT INTO recording_access (id, recording_id, account_id, source, status) "
+                "VALUES ('acc-r-dup', 'rec-1', 'acc-legacy-5', 'granted', 'active')",
+            ):
+                transaction = connection.begin()
+                try:
+                    with pytest.raises(IntegrityError):
+                        connection.execute(text(statement))
+                finally:
+                    transaction.rollback()
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0031_event_interaction")
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
+        assert not {"event_recordings", "recording_sessions", "recording_orders", "recording_access"} & tables
+        assert {"event_resources", "event_questions", "event_reviews", "user_notifications"} <= tables
+        assert "delivery" not in {column["name"] for column in inspector.get_columns("event_resources")}
+        assert "badge" not in {column["name"] for column in inspector.get_columns("event_reviews")}
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM event_resources")) == 2
+            assert connection.scalar(text("SELECT access FROM event_resources WHERE id = 'res-new'")) == "staff"
+            assert connection.scalar(text("SELECT access FROM event_resources WHERE id = 'res-old'")) == "registered"
+            assert connection.scalar(text("SELECT count(*) FROM event_questions")) == 1
+            assert connection.scalar(text("SELECT count(*) FROM event_reviews")) == 1
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM event_recordings")) == 0
+            assert connection.scalar(text("SELECT count(*) FROM event_resources")) == 2
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
     finally:
         engine.dispose()

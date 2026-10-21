@@ -915,14 +915,16 @@ class EventResourceRecord(Base):
     __table_args__ = (
         CheckConstraint("kind IN ('file', 'link')", name="ck_event_resources_kind"),
         CheckConstraint(
-            "access IN ('public', 'registered', 'attended', 'staff')",
+            "access IN ('public', 'registered', 'attended', 'purchased', 'staff')",
             name="ck_event_resources_access",
         ),
         CheckConstraint(
             "status IN ('draft', 'published', 'removed')", name="ck_event_resources_status"
         ),
         CheckConstraint("content_size BETWEEN 0 AND 8388608", name="ck_event_resources_size"),
+        CheckConstraint("delivery IN ('download', 'view')", name="ck_event_resources_delivery"),
         Index("ix_event_resources_event_status", "event_id", "status", "sort_order"),
+        Index("ix_event_resources_session", "session_id"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -941,6 +943,12 @@ class EventResourceRecord(Base):
     content_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    # Phase 9: a resource may belong to one session of the event's recorded product and
+    # may be handed out for download or only for in-page viewing (video/audio/PDF/image).
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("recording_sessions.id", ondelete="SET NULL"), nullable=True
+    )
+    delivery: Mapped[str] = mapped_column(String(10), nullable=False, default="download")
     created_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
     created_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(
@@ -997,6 +1005,10 @@ class EventQuestionRecord(Base):
     notification_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("user_notifications.id", ondelete="SET NULL"), nullable=True
     )
+    # Phase 9: optional anchor to one session of the recorded product (same event).
+    session_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("recording_sessions.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -1036,6 +1048,8 @@ class EventReviewRecord(Base):
     )
     author_label: Mapped[str] = mapped_column(String(120), nullable=False, default="")
     verified_attendee: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Phase 9: server-decided badge: 'attendee' (checked-in) or 'buyer' (active purchased access).
+    badge: Mapped[str] = mapped_column(String(16), nullable=False, default="")
     body: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     edit_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -1083,4 +1097,214 @@ class EventContentReportRecord(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+# ── Phase 9: recorded-content products, orders and access rights ──
+
+RECORDING_STATUSES = ("draft", "ready", "published", "sales_paused", "archived")
+RECORDING_SESSION_STATUSES = ("draft", "published", "hidden")
+RECORDING_ORDER_METHODS = ("card_transfer", "bale_wallet")
+RECORDING_ORDER_STATUSES = (
+    "pending", "awaiting_receipt", "receipt_submitted", "paid", "paid_manual",
+    "needs_review", "rejected", "cancelled", "expired", "refunded",
+)
+RECORDING_ACCESS_SOURCES = ("purchase", "free", "granted")
+RECORDING_ACCESS_STATUSES = ("active", "expired", "revoked")
+
+
+class EventRecordingRecord(Base):
+    """The recorded product of one held event (at most one per event).
+
+    Attendance/registration rows are never touched: the product is a separate
+    concept. ``payment_card`` is the card-transfer destination and is only ever
+    returned to staff or to the buyer of an open card order. ``status`` is the
+    only publication switch; the public shelf shows ``published``/``sales_paused``.
+    """
+
+    __tablename__ = "event_recordings"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft', 'ready', 'published', 'sales_paused', 'archived')",
+            name="ck_event_recordings_status",
+        ),
+        CheckConstraint("price BETWEEN 0 AND 2000000000", name="ck_event_recordings_price"),
+        CheckConstraint("access_days IS NULL OR access_days BETWEEN 1 AND 3650", name="ck_event_recordings_access_days"),
+        UniqueConstraint("event_id", name="uq_event_recordings_event"),
+        Index("ix_event_recordings_status", "status", "published_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
+    title: Mapped[str] = mapped_column(String(160), nullable=False, default="")
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    outcomes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    audience: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    access_terms: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    refund_policy: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    faq: Mapped[list[dict[str, Any]]] = mapped_column(JSON_VALUE, nullable=False, default=list)
+    price: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="IRR")
+    access_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    attendee_access: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    download_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    bale_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    payment_card: Mapped[dict[str, Any] | None] = mapped_column(JSON_VALUE, nullable=True)
+    cover_url: Mapped[str] = mapped_column(String(2048), nullable=False, default="")
+    status_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    created_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    updated_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    updated_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class RecordingSessionRecord(Base):
+    """One ordered session of a recorded product; files hang off ``event_resources.session_id``."""
+
+    __tablename__ = "recording_sessions"
+    __table_args__ = (
+        CheckConstraint("status IN ('draft', 'published', 'hidden')", name="ck_recording_sessions_status"),
+        CheckConstraint(
+            "duration_minutes IS NULL OR duration_minutes BETWEEN 1 AND 6000", name="ck_recording_sessions_duration"
+        ),
+        Index("ix_recording_sessions_recording_order", "recording_id", "sort_order"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    recording_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("event_recordings.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str] = mapped_column(String(2000), nullable=False, default="")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
+    preview: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class RecordingOrderRecord(Base):
+    """A purchase of one recorded product by one account (never a registration).
+
+    Mirrors the invariants of ``form_payments``: the amount is the server price at
+    order time, every provider identifier is unique, a receipt upload only moves the
+    order to ``receipt_submitted`` and the access right is created by the approving
+    staff member or by the verified Bale transaction — never by the browser.
+    """
+
+    __tablename__ = "recording_orders"
+    __table_args__ = (
+        CheckConstraint("method IN ('card_transfer', 'bale_wallet')", name="ck_recording_orders_method"),
+        CheckConstraint(
+            "status IN ('pending', 'awaiting_receipt', 'receipt_submitted', 'paid', 'paid_manual', "
+            "'needs_review', 'rejected', 'cancelled', 'expired', 'refunded')",
+            name="ck_recording_orders_status",
+        ),
+        CheckConstraint("amount BETWEEN 0 AND 2000000000", name="ck_recording_orders_amount"),
+        CheckConstraint("receipt_size BETWEEN 0 AND 8388608", name="ck_recording_orders_receipt_size"),
+        UniqueConstraint("idempotency_key", name="uq_recording_orders_idempotency"),
+        UniqueConstraint("invoice_payload", name="uq_recording_orders_invoice_payload"),
+        UniqueConstraint("transaction_id", name="uq_recording_orders_transaction"),
+        UniqueConstraint("provider_charge_id", name="uq_recording_orders_provider_charge"),
+        Index("ix_recording_orders_recording_status", "recording_id", "status", "created_at"),
+        Index("ix_recording_orders_account_created", "account_id", "created_at"),
+        Index("ix_recording_orders_status_created", "status", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    recording_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("event_recordings.id", ondelete="CASCADE"), nullable=False
+    )
+    account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    method: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="IRR")
+    idempotency_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    invoice_payload: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    invoice_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    transaction_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    provider_charge_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    payer_bale_user_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    receipt_content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    receipt_content_type: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    receipt_file_name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    receipt_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    receipt_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    receipt_note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    receipt_submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decided_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    decided_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    decision_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    review_note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    refund_reference: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class RecordingAccessRecord(Base):
+    """The right of one account to one recorded product (one row per pair).
+
+    ``source`` says how it came to be (purchase / free claim / manual grant), ``status``
+    whether it is usable now. Expiry is evaluated against ``expires_at`` on every
+    download; revocation keeps the row and the actor/reason.
+    """
+
+    __tablename__ = "recording_access"
+    __table_args__ = (
+        CheckConstraint("source IN ('purchase', 'free', 'granted')", name="ck_recording_access_source"),
+        CheckConstraint("status IN ('active', 'expired', 'revoked')", name="ck_recording_access_status"),
+        UniqueConstraint("recording_id", "account_id", name="uq_recording_access_account"),
+        Index("ix_recording_access_account", "account_id", "status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    recording_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("event_recordings.id", ondelete="CASCADE"), nullable=False
+    )
+    account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    order_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("recording_orders.id", ondelete="SET NULL"), nullable=True
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    granted_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    granted_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    revoked_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    revoke_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )

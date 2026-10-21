@@ -17,6 +17,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
 
 from backend.models import AccountRecord, FormRecord, FormResponseDraftRecord
 
@@ -84,6 +85,24 @@ def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monke
                 assert {"uq_event_reviews_account_event"} <= {
                     constraint["name"] for constraint in inspect(connection).get_unique_constraints("event_reviews", schema=schema)
                 }
+                # Phase 9 (0032): recorded products, orders and access rights + widened resource access.
+                assert {"event_recordings", "recording_sessions", "recording_orders", "recording_access"} <= head_tables
+                assert {"uq_recording_access_account"} <= {
+                    constraint["name"] for constraint in inspect(connection).get_unique_constraints("recording_access", schema=schema)
+                }
+                assert {"session_id", "delivery"} <= {
+                    column["name"] for column in inspect(connection).get_columns("event_resources", schema=schema)
+                }
+                connection.execute(text(
+                    "INSERT INTO event_resources (id, event_id, title, status, access, kind, delivery) "
+                    "VALUES ('res-pg-1', 'ev-pg', 'ویدیوی جلسه', 'published', 'purchased', 'file', 'view')"
+                ))
+                with pytest.raises(IntegrityError):
+                    with connection.begin_nested():
+                        connection.execute(text(
+                            "INSERT INTO event_resources (id, event_id, title, status, access, kind, delivery) "
+                            "VALUES ('res-pg-2', 'ev-pg', 'نامعتبر', 'published', 'purchased', 'file', 'stream')"
+                        ))
                 version_type = inspect(connection).get_columns("alembic_version", schema=schema)[0]["type"]
                 expected_length = {"VARCHAR(32)": 64, "VARCHAR(33)": 64, "VARCHAR(128)": 128, "TEXT": None}[initial_type]
                 assert getattr(version_type, "length", None) == expected_length
@@ -93,6 +112,10 @@ def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monke
                     "SELECT id, account_id, bot_bale_user_id FROM form_response_drafts"
                 )).one()
                 assert tuple(old_draft) == (draft_id, None, "70001")
+                command.downgrade(config, "0031_event_interaction")
+                # Downgrade folds purchased-only files to 'staff' (never public) and keeps the row.
+                assert connection.scalar(text("SELECT access FROM event_resources WHERE id = 'res-pg-1'")) == "staff"
+                assert "event_recordings" not in set(inspect(connection).get_table_names(schema=schema))
                 command.downgrade(config, PRE_COMPANIONS)
                 assert connection.scalar(text("SELECT version_num FROM alembic_version")) == PRE_COMPANIONS
                 assert connection.scalar(text("SELECT id FROM accounts")) == account_id
