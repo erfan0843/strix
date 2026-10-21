@@ -360,8 +360,8 @@
           || !['right', 'center'].includes(row.align)) return 'چیدمان یا تم رنگی یکی از بنرها معتبر نیست.';
       if (!safeImageUrl(row.img)) return 'نشانی تصویر باید HTTPS یا مسیر امن همین سایت باشد.';
       if (!safeActionUrl(row.href) || !safeActionUrl(row.secondaryHref)) return 'پیوند دکمه باید HTTPS یا مسیر امن همین سایت باشد.';
-      if (row.href && !row.primaryLabel) return 'برای دکمهٔ اصلی، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید.';
-      if (row.primaryLabel && !row.href && !row.eventId) return 'برای دکمهٔ اصلی، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید؛ فقط بنر وصل به رویداد می‌تواند بدون پیوند، به صفحهٔ رویداد برود.';
+      /* بنر وصل به رویداد: پیوند دکمهٔ اصلی از خود رویداد می‌آید و متن پیش‌فرض «جزئیات رویداد» است؛ قاعدهٔ «هر دو یا هیچ» فقط برای بنرهای بدون رویداد */
+      if (!row.eventId && !!row.href !== !!row.primaryLabel) return 'برای دکمهٔ اصلی، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید؛ فقط بنر وصل به رویداد می‌تواند بدون پیوند، به صفحهٔ رویداد برود.';
       if (!!row.secondaryHref !== !!row.secondaryLabel) return 'برای دکمهٔ دوم، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید.';
       if ((row.startsAt && !utcDate(row.startsAt)) || (row.endsAt && !utcDate(row.endsAt))) return 'زمان شروع یا پایان نمایش معتبر نیست.';
       if (row.startsAt && row.endsAt && Date.parse(row.startsAt) > Date.parse(row.endsAt)) return 'زمان پایان باید بعد از زمان شروع باشد.';
