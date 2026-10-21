@@ -1580,20 +1580,27 @@ def apply_shared_review_projection(task):
     if decision not in {"approved", "rejected"}:
         raise ValueError("shared_receipt_task_not_decided")
     data = task.get("payload") or {}
+    if data.get("registration_source") == "public_form":
+        # The shared API owns public-web response cancellation and notifications;
+        # never project this UUID into the bot's legacy SQLite form tables.
+        # Phase 9.1: purchase receipts of web-only buyers carry an empty Bale id,
+        # so the log is keyed by 0 instead of failing the projection.
+        try:
+            target = int(task.get("bale_user_id") or 0)
+        except (TypeError, ValueError):
+            target = 0
+        log_action(max(target, 0), "public_form_receipt_approved" if decision == "approved" else "public_form_receipt_rejected", {
+            "shared_task": task.get("id"),
+            "reason": task.get("review_reason") or "",
+            "purchase_source": data.get("purchase_source") or "",
+        })
+        return
     try:
         target = int(task.get("bale_user_id"))
     except (TypeError, ValueError):
         raise ValueError("invalid_shared_receipt_user") from None
     if target <= 0:
         raise ValueError("invalid_shared_receipt_user")
-    if data.get("registration_source") == "public_form":
-        # The shared API owns public-web response cancellation and notifications;
-        # never project this UUID into the bot's legacy SQLite form tables.
-        log_action(target, "public_form_receipt_approved" if decision == "approved" else "public_form_receipt_rejected", {
-            "shared_task": task.get("id"),
-            "reason": task.get("review_reason") or "",
-        })
-        return
 
     shared_task_id = task.get("id")
     existing = db_execute(

@@ -37,6 +37,7 @@ from .event_interaction import (
     resource_is_live,
     utc_now,
 )
+from .financials import PaymentConfigurationError, normalize_payment_methods
 from .models import (
     RECORDING_ACCESS_SOURCES,
     RECORDING_ACCESS_STATUSES,
@@ -46,11 +47,12 @@ from .models import (
     RECORDING_STATUSES,
     EventRecordingRecord,
     EventResourceRecord,
+    FormRecord,
     RecordingAccessRecord,
     RecordingOrderRecord,
     RecordingSessionRecord,
 )
-from .responses import public_payment_card
+from .responses import public_payment_card, purchase_form_price
 
 STATUSES = RECORDING_STATUSES
 SESSION_STATUSES = RECORDING_SESSION_STATUSES
@@ -90,6 +92,8 @@ INVOICE_PREFIX = "norac_"
 NOTIFICATION_KIND = "recording_access"
 ORDER_NOTIFICATION_KIND = "recording_order"
 CURRENCY = "IRR"
+CERTIFICATE_POLICIES: tuple[str, ...] = ("none", "manual")
+PURCHASE_FORM_PURPOSE = "recording_access"
 
 _SAFE_RELATIVE = re.compile(r"^/api/public/media/[0-9a-f-]{36}$")
 _RECEIPT_SIGNATURES: tuple[tuple[bytes, str], ...] = (
@@ -206,7 +210,7 @@ def validate_recording_fields(payload: Mapping[str, Any], *, existing: EventReco
     allowed = {
         "title", "summary", "outcomes", "audience", "access_terms", "refund_policy", "faq", "price",
         "access_days", "attendee_access", "download_default", "bale_enabled", "payment_card", "cover_url",
-        "expected_version",
+        "expected_version", "certificate_policy",
     }
     unknown = set(payload) - allowed
     if unknown:
@@ -233,7 +237,21 @@ def validate_recording_fields(payload: Mapping[str, Any], *, existing: EventReco
         out["payment_card"] = _payment_card(payload.get("payment_card"))
     if "cover_url" in payload:
         out["cover_url"] = _cover(payload.get("cover_url"))
+    if "certificate_policy" in payload:
+        out["certificate_policy"] = choice(payload.get("certificate_policy"), CERTIFICATE_POLICIES, field="certificate_policy")
     return out
+
+
+COMMERCIAL_FIELDS: tuple[str, ...] = ("price", "payment_card", "bale_enabled")
+
+
+def commercial_fields_changed(fields: Mapping[str, Any], existing: EventRecordingRecord) -> list[str]:
+    """Which product-level commercial fields a PUT tries to change (refused once a form is linked)."""
+    changed: list[str] = []
+    for key in COMMERCIAL_FIELDS:
+        if key in fields and fields[key] != getattr(existing, key):
+            changed.append(key)
+    return changed
 
 
 def validate_session_fields(payload: Mapping[str, Any], *, existing: RecordingSessionRecord | None) -> dict[str, Any]:
@@ -306,6 +324,7 @@ def publish_blockers(
     *,
     now: datetime,
     wallet_ready: bool,
+    commerce: Commerce | None = None,
 ) -> list[str]:
     """Why the product cannot go on sale right now (empty list = may publish)."""
     blockers: list[str] = []
@@ -326,7 +345,17 @@ def publish_blockers(
         for row in resources
     ):
         blockers.append("no_live_resource")
-    if recording.price > 0 and recording.payment_card is None and not (recording.bale_enabled and wallet_ready):
+    if commerce is None:
+        commerce = commerce_for(recording, None, wallet_ready=wallet_ready)
+    if commerce.source != "form":
+        if commerce.price > 0:
+            # Paid products sell only through a purchase form built in the form builder.
+            blockers.append("purchase_form_required")
+    elif not commerce.valid:
+        blockers.append("purchase_form_invalid_price")
+    elif commerce.form_status != "published":
+        blockers.append("purchase_form_not_published")
+    elif commerce.price > 0 and not commerce.methods:
         blockers.append("no_payment_method")
     return blockers
 
@@ -411,6 +440,108 @@ class Viewer:
     previous_order: RecordingOrderRecord | None
 
 
+@dataclass(frozen=True)
+class Commerce:
+    """Where the product's price / payment methods come from (phase 9.1).
+
+    ``source='form'``: a purchase form (``forms.purpose='recording_access'``) is
+    linked to the product and its builder settings are authoritative. ``source=
+    'product'``: no purchase form exists; the product may only be free (claim) —
+    a paid product without a published purchase form cannot be published.
+    """
+
+    source: str
+    price: int
+    currency: str
+    methods: tuple[str, ...]
+    form_id: str | None
+    form_status: str
+    form_title: str
+    valid: bool
+
+    @property
+    def free(self) -> bool:
+        return self.valid and self.price <= 0
+
+    @property
+    def on_sale(self) -> bool:
+        return self.source != "form" or self.form_status == "published"
+
+
+def purchase_form_for(db: Session, recording_id: str) -> FormRecord | None:
+    """The purchase form of a product: the published one, else the most recent one."""
+    rows = list(db.scalars(
+        select(FormRecord)
+        .where(FormRecord.recording_id == recording_id, FormRecord.purpose == PURCHASE_FORM_PURPOSE)
+        .order_by(FormRecord.updated_at.desc(), FormRecord.id.desc())
+    ).all())
+    for row in rows:
+        if row.status == "published":
+            return row
+    return rows[0] if rows else None
+
+
+def purchase_forms_for(db: Session, recording_ids: list[str]) -> dict[str, FormRecord]:
+    out: dict[str, FormRecord] = {}
+    if not recording_ids:
+        return out
+    rows = db.scalars(
+        select(FormRecord)
+        .where(FormRecord.recording_id.in_(recording_ids), FormRecord.purpose == PURCHASE_FORM_PURPOSE)
+        .order_by(FormRecord.updated_at.desc(), FormRecord.id.desc())
+    ).all()
+    for row in rows:
+        current = out.get(str(row.recording_id))
+        if current is None or (current.status != "published" and row.status == "published"):
+            out[str(row.recording_id)] = row
+    return out
+
+
+def commerce_for(recording: EventRecordingRecord, form: FormRecord | None, *, wallet_ready: bool) -> Commerce:
+    """Derive price and methods from the purchase form when one exists (never from both)."""
+    if form is None:
+        methods: list[str] = []
+        if recording.payment_card is not None:
+            methods.append("card_transfer")
+        if recording.bale_enabled and wallet_ready:
+            methods.append("bale_wallet")
+        return Commerce(
+            source="product", price=int(recording.price), currency=recording.currency, methods=tuple(methods),
+            form_id=None, form_status="", form_title="", valid=True,
+        )
+    settings = form.settings if isinstance(form.settings, dict) else {}
+    price = purchase_form_price(settings)
+    try:
+        selected = normalize_payment_methods(settings)
+    except PaymentConfigurationError:
+        selected = []
+    methods = []
+    if price is not None and price > 0:
+        if "card_transfer" in selected and settings.get("receiptReviewRequired") is True and public_payment_card(settings) is not None:
+            methods.append("card_transfer")
+        if "bale_wallet" in selected and wallet_ready:
+            methods.append("bale_wallet")
+    return Commerce(
+        source="form", price=price if price is not None else 0, currency=CURRENCY, methods=tuple(methods),
+        form_id=form.id, form_status=form.status, form_title=form.title, valid=price is not None,
+    )
+
+
+def commerce_view(commerce: Commerce) -> dict[str, Any]:
+    return {
+        "source": commerce.source,
+        "price": commerce.price,
+        "currency": commerce.currency,
+        "free": commerce.free,
+        "methods": list(commerce.methods),
+        "form_id": commerce.form_id,
+        "form_status": commerce.form_status,
+        "form_title": commerce.form_title,
+        "valid": commerce.valid,
+        "on_sale": commerce.on_sale,
+    }
+
+
 def has_content_access(recording: EventRecordingRecord, viewer: Viewer) -> tuple[bool, str]:
     """Server-side decision whether the viewer may read purchased-only resources."""
     if viewer.staff:
@@ -426,33 +557,42 @@ def has_content_access(recording: EventRecordingRecord, viewer: Viewer) -> tuple
     return False, "purchase_required"
 
 
-def viewer_cta(recording: EventRecordingRecord, viewer: Viewer, *, wallet_ready: bool) -> dict[str, Any]:
-    """The single call to action the page may show; nothing else is derived client-side."""
+def viewer_cta(
+    recording: EventRecordingRecord, viewer: Viewer, *, wallet_ready: bool, commerce: Commerce | None = None,
+) -> dict[str, Any]:
+    """The single call to action the page may show; nothing else is derived client-side.
+
+    ``form_id`` (when present) is the purchase form: the page sends the member to
+    ``form.html?fid=…`` and never to a parallel checkout.
+    """
+    if commerce is None:
+        commerce = commerce_for(recording, None, wallet_ready=wallet_ready)
     allowed, reason = has_content_access(recording, viewer)
-    methods: list[str] = []
-    if recording.payment_card is not None:
-        methods.append("card_transfer")
-    if recording.bale_enabled and wallet_ready:
-        methods.append("bale_wallet")
+    methods = list(commerce.methods)
+    form_id = commerce.form_id
     if allowed:
         kind = "staff_preview" if reason == "staff" and viewer.access_state != "active" else "view"
-        return {"kind": kind, "reason": reason, "methods": methods}
+        return {"kind": kind, "reason": reason, "methods": methods, "form_id": form_id}
     if recording.status not in SHELF_STATUSES:
-        return {"kind": "unavailable", "reason": recording.status, "methods": []}
+        return {"kind": "unavailable", "reason": recording.status, "methods": [], "form_id": form_id}
     if recording.status == "sales_paused":
-        return {"kind": "off_sale", "reason": "sales_paused", "methods": []}
+        return {"kind": "off_sale", "reason": "sales_paused", "methods": [], "form_id": form_id}
+    if commerce.source == "form" and (not commerce.valid or commerce.form_status != "published"):
+        return {"kind": "off_sale", "reason": "purchase_form_not_published", "methods": [], "form_id": form_id}
     if not viewer.signed_in:
-        return {"kind": "login", "reason": "login_required", "methods": methods}
+        return {"kind": "login", "reason": "login_required", "methods": methods, "form_id": form_id}
     if viewer.open_order is not None:
         return {
-            "kind": "order_open", "reason": viewer.open_order.status, "methods": methods,
+            "kind": "order_open", "reason": viewer.open_order.status, "methods": methods, "form_id": form_id,
             "order": order_account_view(viewer.open_order, recording),
         }
-    if recording.price <= 0:
-        return {"kind": "free", "reason": "free", "methods": []}
+    if commerce.price <= 0:
+        return {"kind": "free", "reason": "free", "methods": [], "form_id": form_id}
+    if commerce.source != "form":
+        return {"kind": "off_sale", "reason": "purchase_form_required", "methods": [], "form_id": None}
     if not methods:
-        return {"kind": "off_sale", "reason": "no_payment_method", "methods": []}
-    out: dict[str, Any] = {"kind": "buy", "reason": reason, "methods": methods}
+        return {"kind": "off_sale", "reason": "no_payment_method", "methods": [], "form_id": form_id}
+    out: dict[str, Any] = {"kind": "buy", "reason": reason, "methods": methods, "form_id": form_id}
     if viewer.previous_order is not None:
         out["previous"] = {"status": viewer.previous_order.status, "id": viewer.previous_order.id}
     return out
@@ -555,8 +695,11 @@ def recording_public_view(
     cta: dict[str, Any],
     total_minutes: int,
     staff: bool,
+    commerce: Commerce | None = None,
 ) -> dict[str, Any]:
     allowed, reason = has_content_access(recording, viewer)
+    if commerce is None:
+        commerce = commerce_for(recording, None, wallet_ready=False)
     view: dict[str, Any] = {
         "id": recording.id,
         "event_id": recording.event_id,
@@ -568,9 +711,17 @@ def recording_public_view(
         "access_terms": _text_block(recording.access_terms),
         "refund_policy": _text_block(recording.refund_policy),
         "faq": list(recording.faq or []),
-        "price": recording.price,
-        "currency": recording.currency,
-        "free": recording.price <= 0,
+        # Price/method come from the purchase form when one is linked (single source).
+        "price": commerce.price,
+        "currency": commerce.currency,
+        "free": commerce.free,
+        "purchase": {
+            "form_id": commerce.form_id,
+            "source": commerce.source,
+            "methods": list(commerce.methods),
+            "on_sale": commerce.on_sale and recording.status == "published",
+        },
+        "certificate_policy": recording.certificate_policy,
         "access_days": recording.access_days,
         "attendee_access": recording.attendee_access,
         "download_default": recording.download_default,
@@ -604,7 +755,10 @@ def recording_admin_view(
     blockers: list[str],
     counts: Mapping[str, int],
     event_title: str = "",
+    commerce: Commerce | None = None,
 ) -> dict[str, Any]:
+    if commerce is None:
+        commerce = commerce_for(recording, None, wallet_ready=False)
     return {
         "id": recording.id,
         "event_id": recording.event_id,
@@ -618,8 +772,12 @@ def recording_admin_view(
         "access_terms": recording.access_terms,
         "refund_policy": recording.refund_policy,
         "faq": list(recording.faq or []),
+        # Stored product fields (legacy / free-claim only once a purchase form exists).
         "price": recording.price,
         "currency": recording.currency,
+        # Effective commercial settings: the purchase form wins when linked.
+        "commerce": commerce_view(commerce),
+        "certificate_policy": recording.certificate_policy,
         "access_days": recording.access_days,
         "attendee_access": recording.attendee_access,
         "download_default": recording.download_default,
@@ -637,17 +795,22 @@ def recording_admin_view(
     }
 
 
-def recording_card_view(recording: EventRecordingRecord, *, session_count: int, total_minutes: int) -> dict[str, Any]:
+def recording_card_view(
+    recording: EventRecordingRecord, *, session_count: int, total_minutes: int, commerce: Commerce | None = None,
+) -> dict[str, Any]:
     """Compact, secret-free summary attached to the public event snapshot."""
+    if commerce is None:
+        commerce = commerce_for(recording, None, wallet_ready=False)
     return {
         "id": recording.id,
         "status": recording.status,
-        "sellable": recording.status == "published",
+        "sellable": recording.status == "published" and commerce.on_sale,
         "title": recording.title,
         "summary": recording.summary[:300],
-        "price": recording.price,
-        "currency": recording.currency,
-        "free": recording.price <= 0,
+        "price": commerce.price,
+        "currency": commerce.currency,
+        "free": commerce.free,
+        "purchase_form_id": commerce.form_id,
         "access_days": recording.access_days,
         "cover_url": recording.cover_url,
         "session_count": session_count,
@@ -674,6 +837,8 @@ def order_account_view(order: RecordingOrderRecord, recording: EventRecordingRec
         "decided_at": iso(order.decided_at),
         "decision_reason": order.decision_reason if order.status in {"rejected", "refunded"} else "",
         "refunded_at": iso(order.refunded_at),
+        "form_response_id": order.form_response_id,
+        "form_payment_id": order.form_payment_id,
         "created_at": iso(order.created_at),
         "updated_at": iso(order.updated_at),
     }
@@ -682,7 +847,11 @@ def order_account_view(order: RecordingOrderRecord, recording: EventRecordingRec
     if recording is not None:
         view["event_id"] = recording.event_id
         view["title"] = recording.title
-        if order.method == "card_transfer" and order.status in {"awaiting_receipt", "receipt_submitted"}:
+        if (
+            order.method == "card_transfer" and order.status in {"awaiting_receipt", "receipt_submitted"}
+            and order.form_payment_id is None
+        ):
+            # Legacy (pre-9.1) order: the destination card lived on the product.
             view["card"] = payment_card_view(recording.payment_card, masked=False)
     return view
 
@@ -729,6 +898,8 @@ def order_admin_view(
         "refund_reference": order.refund_reference,
         "refunded_at": iso(order.refunded_at),
         "duplicates": duplicates,
+        "form_response_id": order.form_response_id,
+        "form_payment_id": order.form_payment_id,
         "access": access_view(access, moment) if access is not None else None,
         "created_at": iso(order.created_at),
         "updated_at": iso(order.updated_at),

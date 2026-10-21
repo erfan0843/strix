@@ -111,6 +111,8 @@ from .responses import (
     AnswerValidationError,
     public_form_data,
     publication_issues,
+    purchase_form_price,
+    purchase_form_selection,
     response_snapshot,
     validate_answers,
     validate_companions,
@@ -484,6 +486,8 @@ def _form_dict(form: FormRecord | None) -> dict[str, Any]:
         "need": form.need,
         "slug": form.slug or "",
         "ev": form.event_id or "",
+        "purpose": form.purpose or "registration",
+        "recording_id": form.recording_id if form.purpose == "recording_access" else None,
         "fields": [_field_dict(field) for field in form.fields],
         "settings": form.settings or {},
         "status": form.status,
@@ -493,12 +497,23 @@ def _form_dict(form: FormRecord | None) -> dict[str, Any]:
     }
 
 
+def _snapshot_purpose(record: FormResponseRecord) -> str:
+    snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+    return "recording_access" if snapshot.get("purpose") == "recording_access" else "registration"
+
+
+def _form_is_purchase(form: FormRecord) -> bool:
+    return form.purpose == "recording_access"
+
+
 def _form_ticket_eligible(record: FormResponseRecord) -> bool:
     snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
     return (
         record.status == "accepted"
         and snapshot.get("model") == "registration"
         and snapshot.get("need") == "reg"
+        # Purchase-form responses never become tickets/registrations.
+        and _snapshot_purpose(record) == "registration"
     )
 
 
@@ -715,9 +730,16 @@ def _response_payment_approved(db: Session, record: FormResponseRecord) -> bool:
 
 
 def _create_public_form_receipt_task(
-    db: Session, record: FormResponseRecord, bale_user_id: str
+    db: Session, record: FormResponseRecord, bale_user_id: str, *,
+    account: AccountRecord | None = None, purchase: bool = False,
 ) -> AdminTaskRecord | None:
-    """Move a browser-uploaded receipt into the shared manager inbox at Bale claim time."""
+    """Move a browser-uploaded receipt into the shared manager inbox.
+
+    Registration forms reach this at Bale ticket-claim time; purchase forms (phase
+    9.1) reach it right after the upload with the buyer's own account. ``bale_user_id``
+    may be empty for a web-only buyer: the task row then carries ``""`` exactly like
+    ``user_notifications`` does for accounts without a Bale identity.
+    """
     snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
     if snapshot.get("receipt_review_required") is not True:
         return None
@@ -730,10 +752,11 @@ def _create_public_form_receipt_task(
     if upload is None:
         return None
 
-    try:
-        account = get_or_create_bale_account(db, bale_user_id)
-    except ValueError:
-        raise HTTPException(422, "invalid_bale_user_id") from None
+    if account is None:
+        try:
+            account = get_or_create_bale_account(db, bale_user_id)
+        except ValueError:
+            raise HTTPException(422, "invalid_bale_user_id") from None
     db.flush()
 
     response_key = record.id.replace("-", "").lower()
@@ -749,6 +772,15 @@ def _create_public_form_receipt_task(
         "file_refs": [upload.id],
         "submitted_at": _as_utc(upload.created_at).isoformat(),
     }
+    if purchase:
+        form_row = db.get(FormRecord, record.form_id)
+        recording_row = db.get(EventRecordingRecord, form_row.recording_id or "") if form_row is not None else None
+        task_payload.update({
+            "purchase_source": "recording_access",
+            "recording_id": recording_row.id if recording_row is not None else (form_row.recording_id if form_row else ""),
+            "product_title": _ticket_text((recording_row.title if recording_row is not None else "") or snapshot.get("name") or "محتوای ضبط‌شده", 160),
+            "event_id": recording_row.event_id if recording_row is not None else "",
+        })
     payment_record = db.scalar(
         select(FormPaymentRecord).where(FormPaymentRecord.response_id == record.id)
     )
@@ -973,6 +1005,10 @@ def _event_registration_block(db: Session, form: FormRecord, now: datetime | Non
     Capacity is checked by the callers as before; this gate only adds the event-level
     rules so a direct API call cannot bypass what the public pages show.
     """
+    if _form_is_purchase(form):
+        # Buying the recording of a held event is gated by the product (see
+        # ``_purchase_form_block``), never by the event's registration window.
+        return None
     site = db.get(SiteContentRecord, "public")
     if site is None:
         return None
@@ -995,7 +1031,22 @@ def _event_registration_block(db: Session, form: FormRecord, now: datetime | Non
     return None
 
 
+def _purchase_form_block(db: Session, form: FormRecord) -> dict[str, Any] | None:
+    """Why a purchase form cannot take responses right now (``None`` = on sale)."""
+    if not _form_is_purchase(form):
+        return None
+    recording = db.get(EventRecordingRecord, form.recording_id or "")
+    if recording is None:
+        return {"code": "recording_not_found", "status": ""}
+    if recording.status != "published":
+        return {"code": "recording_not_on_sale", "status": recording.status, "recording_id": recording.id}
+    return None
+
+
 def _raise_if_event_registration_blocked(db: Session, form: FormRecord) -> None:
+    purchase_block = _purchase_form_block(db, form)
+    if purchase_block is not None:
+        raise HTTPException(409, detail=purchase_block)
     blocked = _event_registration_block(db, form)
     if blocked is not None:
         raise HTTPException(409, detail={
@@ -1785,9 +1836,14 @@ def create_app(
         if task.status != "pending":
             raise HTTPException(409, "workflow_already_reviewed")
         task_payload = task.payload if isinstance(task.payload, dict) else {}
+        is_purchase_receipt = (
+            task.kind == "receipt_review"
+            and task_payload.get("purchase_source") == "recording_access"
+        )
         is_public_form_receipt = (
             task.kind == "receipt_review"
             and task_payload.get("registration_source") == "public_form"
+            and not is_purchase_receipt
         )
         linked_response = None
         if is_public_form_receipt:
@@ -1811,6 +1867,26 @@ def create_app(
             )
             if linked_response is None:
                 raise HTTPException(409, "linked_public_form_response_unavailable")
+        purchase_form: FormRecord | None = None
+        if is_purchase_receipt:
+            # Purchase receipts are tied to the buyer's web account, never to a Bale ticket claim.
+            linked_response = db.scalar(
+                select(FormResponseRecord)
+                .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+                .where(
+                    FormResponseRecord.id == task_payload.get("form_response_id"),
+                    FormResponseRecord.form_id == task_payload.get("form_id"),
+                    FormResponseRecord.status == "accepted",
+                    FormResponseRecord.receipt_review_task_id == task.id,
+                    FormResponseDraftRecord.account_id == task.account_id,
+                )
+                .with_for_update()
+            )
+            if linked_response is None:
+                raise HTTPException(409, "linked_public_form_response_unavailable")
+            purchase_form = db.get(FormRecord, linked_response.form_id)
+            if purchase_form is None or not _form_is_purchase(purchase_form):
+                raise HTTPException(409, "linked_public_form_response_unavailable")
         now = _utc_now()
         result = db.execute(
             update(AdminTaskRecord)
@@ -1833,7 +1909,7 @@ def create_app(
             db.rollback()
             raise HTTPException(409, "workflow_version_conflict")
         db.flush()
-        if is_public_form_receipt and linked_response is not None:
+        if (is_public_form_receipt or is_purchase_receipt) and linked_response is not None:
             payment_record = db.scalar(
                 select(FormPaymentRecord)
                 .where(FormPaymentRecord.response_id == linked_response.id)
@@ -1842,7 +1918,33 @@ def create_app(
             if payment_record is not None and payment_record.method == "card_transfer":
                 payment_record.status = "paid_manual" if decision == "approved" else "rejected"
                 payment_record.updated_at = now
-        if is_public_form_receipt and decision == "rejected" and linked_response is not None:
+        # Reviewer identity as recorded on the task: the owner id (web or bot owner) or a staff account id.
+        actor_kind = audit_mod.ACTOR_OWNER if reviewer_id == settings.owner_id else audit_mod.ACTOR_ACCOUNT
+        purchase_actor = (actor_kind, reviewer_id)
+        if is_purchase_receipt and linked_response is not None and purchase_form is not None:
+            payment_record = db.scalar(
+                select(FormPaymentRecord).where(FormPaymentRecord.response_id == linked_response.id)
+            )
+            if decision == "approved":
+                if payment_record is None or payment_record.status != "paid_manual":
+                    raise HTTPException(409, "linked_public_form_response_unavailable")
+                order, _access = _finalize_purchase(
+                    db, form=purchase_form, response=linked_response, payment=payment_record,
+                    account_id=task.account_id, now=now, actor=purchase_actor, reason=reason or "receipt_approved",
+                )
+            else:
+                order = _reject_purchase(db, response=linked_response, reason=reason or "receipt_rejected", now=now, actor=purchase_actor)
+            audit_mod.record_admin_event(
+                db, actor_kind=actor_kind, actor_id=reviewer_id, actor_role="",
+                action="recording.order.approve" if decision == "approved" else "recording.order.reject",
+                target_type="recording_order", target_id=order.id if order is not None else "",
+                details={
+                    "task_id": task.id, "form_id": purchase_form.id, "recording_id": purchase_form.recording_id,
+                    "account_id": task.account_id, "amount": int(payment_record.amount) if payment_record else None,
+                    "status_after": order.status if order is not None else "", "reason": reason, "via": "inbox",
+                },
+            )
+        if (is_public_form_receipt or is_purchase_receipt) and decision == "rejected" and linked_response is not None:
             draft = linked_response.draft
             if draft is not None:
                 draft.answers = {}
@@ -1852,6 +1954,12 @@ def create_app(
             db.flush()
         target_kind = task.kind.removesuffix("_review") + ("_approved" if decision == "approved" else "_rejected")
         approved = decision == "approved"
+        if is_purchase_receipt and approved:
+            # The access grant already queued «دسترسی فعال شد»; a second message would be noise.
+            updated_task = db.get(AdminTaskRecord, task.id)
+            if updated_task is None:
+                raise HTTPException(404, "admin_task_not_found")
+            return updated_task
         if task.kind == "profile_review":
             title = "پروفایل تأیید شد" if approved else "پروفایل نیاز به اصلاح دارد"
             body = "پروفایل شما ثبت شد." if approved else ("پروفایل شما تأیید نشد." + (" دلیل: " + reason if reason else ""))
@@ -1861,6 +1969,13 @@ def create_app(
                 "ثبت‌نامت نهایی است و بلیتت در گفت‌وگوی بله در دسترسه."
                 if approved else
                 "ثبت‌نام قبلی لغو شد. اگر هنوز می‌خوای شرکت کنی، فرم رو دوباره پر کن."
+            )
+        elif is_purchase_receipt:
+            product_title = str(task_payload.get("product_title") or "محتوای ضبط‌شده")
+            title = "نتیجهٔ بررسی خرید محتوای ضبط‌شده"
+            body = (
+                f"رسید خرید «{product_title}» تأیید نشد." + (f"\nدلیل: {reason}" if reason else "")
+                + "\nدر صورت نیاز می‌توانید از صفحهٔ همان رویداد دوباره فرم خرید را پر کنید."
             )
         else:
             title = "فیش پرداخت تأیید شد" if approved else "فیش پرداخت تأیید نشد"
@@ -1873,8 +1988,9 @@ def create_app(
             kind=target_kind,
             title=title,
             body=body,
-            file_refs=[] if is_public_form_receipt else list(task_payload.get("file_refs", [])),
-            delivery_status="pending",
+            file_refs=[] if (is_public_form_receipt or is_purchase_receipt) else list(task_payload.get("file_refs", [])),
+            delivery_status="pending" if task.bale_user_id else "failed",
+            last_delivery_error=None if task.bale_user_id else "no_bale_identity",
         )
         db.add(notification)
         db.flush()
@@ -1997,6 +2113,8 @@ def create_app(
             for form in published_forms:
                 settings_value = form.settings if isinstance(form.settings, dict) else {}
                 if form.id not in by_id or form.need != "reg" or settings_value.get("eventVisible") is False:
+                    continue
+                if _form_is_purchase(form):
                     continue
                 if form.event_id and str(form.event_id) != str(event.get("id")):
                     continue
@@ -2216,7 +2334,10 @@ def create_app(
             return False
         return db.scalar(
             select(FormRecord.id)
-            .where(FormRecord.event_id == event_id, FormRecord.status == "published", FormRecord.need == "reg")
+            .where(
+                FormRecord.event_id == event_id, FormRecord.status == "published", FormRecord.need == "reg",
+                FormRecord.purpose == "registration",
+            )
             .limit(1)
         ) is not None
 
@@ -2435,6 +2556,7 @@ def create_app(
                 account_form_record_scope(db, account.id),
                 FormResponseRecord.added_by_response_id.is_(None),
                 FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
             )
         ) or 0)
         pending_reviews = int(db.scalar(
@@ -2563,6 +2685,7 @@ def create_app(
                 account_form_record_scope(db, account_id),
                 FormResponseRecord.added_by_response_id.is_(None),
                 FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
             )
             .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
             .limit(50)
@@ -2659,7 +2782,10 @@ def create_app(
         response.headers["Cache-Control"] = "private, no-store"
         forms = db.scalars(
             select(FormRecord)
-            .where(FormRecord.owner_id == identity.owner_id, FormRecord.model == "registration")
+            .where(
+                FormRecord.owner_id == identity.owner_id, FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
             .order_by(FormRecord.updated_at.desc(), FormRecord.id)
         ).all()
         needle = unicodedata.normalize("NFKC", q or "").strip().lower()
@@ -4395,9 +4521,13 @@ def create_app(
             session_views.append(recordings_mod.session_public_view(session, rows, staff=staff))
             if session.status == "published":
                 total_minutes += int(session.duration_minutes or 0)
-        cta = recordings_mod.viewer_cta(recording, viewer, wallet_ready=_wallet_ready(db, request))
+        commerce = recordings_mod.commerce_for(
+            recording, recordings_mod.purchase_form_for(db, recording.id), wallet_ready=_wallet_ready(db, request),
+        )
+        cta = recordings_mod.viewer_cta(recording, viewer, wallet_ready=_wallet_ready(db, request), commerce=commerce)
         return recordings_mod.recording_public_view(
             recording, sessions=session_views, viewer=viewer, cta=cta, total_minutes=total_minutes, staff=staff,
+            commerce=commerce,
         )
 
     def _recording_cards(db: Session, event_ids: list[str]) -> dict[str, dict[str, Any]]:
@@ -4411,10 +4541,14 @@ def create_app(
             )
         ).all()
         stats = recordings_mod.session_stats(db, [row.id for row in rows])
+        forms = recordings_mod.purchase_forms_for(db, [row.id for row in rows])
         out: dict[str, dict[str, Any]] = {}
         for row in rows:
             count, minutes = stats.get(row.id, (0, 0))
-            out[row.event_id] = recordings_mod.recording_card_view(row, session_count=count, total_minutes=minutes)
+            commerce = recordings_mod.commerce_for(row, forms.get(row.id), wallet_ready=False)
+            out[row.event_id] = recordings_mod.recording_card_view(
+                row, session_count=count, total_minutes=minutes, commerce=commerce,
+            )
         return out
 
     def _recording_event_title(db: Session, event_id: str) -> str:
@@ -4504,6 +4638,129 @@ def create_app(
         _queue_recording_access_notification(db, row, recording, kind_label=label)
         return row, created
 
+    # ── Phase 9.1: purchase-form finalization (single path for card / wallet / free) ──
+
+    def _purchase_recording_for_form(
+        db: Session, form: FormRecord, *, for_update: bool = False,
+    ) -> EventRecordingRecord | None:
+        if not _form_is_purchase(form) or not form.recording_id:
+            return None
+        query = select(EventRecordingRecord).where(EventRecordingRecord.id == form.recording_id)
+        if for_update:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    def _purchase_ledger_for_response(db: Session, response_id: str, *, for_update: bool = False) -> RecordingOrderRecord | None:
+        query = select(RecordingOrderRecord).where(RecordingOrderRecord.form_response_id == response_id)
+        if for_update:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    def _upsert_purchase_ledger(
+        db: Session, *, recording: EventRecordingRecord, account_id: str, response: FormResponseRecord,
+        payment: FormPaymentRecord, now: datetime,
+    ) -> RecordingOrderRecord:
+        """One internal ledger row per purchase-form response; amounts copied from the form payment."""
+        order = _purchase_ledger_for_response(db, response.id, for_update=True)
+        status_map = {
+            "awaiting_receipt": "awaiting_receipt", "receipt_submitted": "receipt_submitted", "pending": "pending",
+            "paid": "paid", "paid_manual": "paid_manual", "rejected": "rejected", "cancelled": "cancelled",
+            "paid_review": "needs_review", "expired": "expired", "refunded": "refunded",
+        }
+        if order is None:
+            order = RecordingOrderRecord(
+                id=interaction_mod.new_id(), recording_id=recording.id, account_id=account_id, method=payment.method,
+                amount=int(payment.amount), currency=payment.currency,
+                idempotency_key="form-purchase:" + response.id, form_response_id=response.id, form_payment_id=payment.id,
+            )
+            db.add(order)
+        order.method = payment.method
+        order.amount = int(payment.amount)
+        order.currency = payment.currency
+        order.form_payment_id = payment.id
+        order.status = status_map.get(payment.status, "needs_review")
+        order.invoice_payload = payment.invoice_payload
+        order.payer_bale_user_id = payment.payer_bale_user_id
+        order.expires_at = payment.expires_at if payment.method == "bale_wallet" else None
+        order.updated_at = now
+        db.flush()
+        return order
+
+    def _finalize_purchase(
+        db: Session, *, form: FormRecord, response: FormResponseRecord, payment: FormPaymentRecord | None,
+        account_id: str, now: datetime, actor: tuple[str, str], reason: str,
+    ) -> tuple[RecordingOrderRecord | None, RecordingAccessRecord]:
+        """Grant access for one accepted purchase-form response (idempotent).
+
+        * free form (no payment): access ``source='free'`` directly, no ledger row,
+          no fake transaction;
+        * paid form: the ledger row mirrors the already-verified form payment
+          (``paid`` from the webhook inquiry, ``paid_manual`` from the inbox) and the
+          access row points at it (``source='purchase'``).
+        Never touches ``form_responses`` ticket/check-in columns.
+        """
+        recording = _purchase_recording_for_form(db, form, for_update=True)
+        if recording is None:
+            raise HTTPException(409, {"code": "recording_not_found"})
+        order: RecordingOrderRecord | None = None
+        if payment is None:
+            access, _created = _grant_recording_access(
+                db, recording, account_id, source="free", now=now, actor=actor, reason=reason,
+            )
+            return None, access
+        if payment.status not in {"paid", "paid_manual"}:
+            raise HTTPException(409, {"code": "payment_not_settled", "status": payment.status})
+        order = _upsert_purchase_ledger(
+            db, recording=recording, account_id=account_id, response=response, payment=payment, now=now,
+        )
+        order.transaction_id = payment.transaction_id
+        order.provider_charge_id = payment.provider_charge_id
+        order.paid_at = order.paid_at or now
+        if payment.status == "paid_manual":
+            order.decided_at = now
+            order.decided_by_kind, order.decided_by_id = actor
+            order.decision_reason = reason
+        access, _created = _grant_recording_access(
+            db, recording, account_id, source="purchase", now=now, order=order, actor=actor, reason=reason,
+        )
+        return order, access
+
+    def _reject_purchase(
+        db: Session, *, response: FormResponseRecord, reason: str, now: datetime, actor: tuple[str, str],
+    ) -> RecordingOrderRecord | None:
+        """Close the ledger row of a rejected purchase receipt; the response itself is removed by the caller."""
+        order = _purchase_ledger_for_response(db, response.id, for_update=True)
+        if order is None:
+            return None
+        order.status = "rejected"
+        order.decided_at = now
+        order.decided_by_kind, order.decided_by_id = actor
+        order.decision_reason = reason
+        order.form_response_id = None
+        order.updated_at = now
+        db.flush()
+        return order
+
+    def _purchase_state_view(db: Session, form: FormRecord, account_id: str | None, now: datetime) -> dict[str, Any] | None:
+        """What form.html shows after a purchase submit: product, access state, ledger status."""
+        recording = _purchase_recording_for_form(db, form)
+        if recording is None:
+            return None
+        access = recordings_mod.access_for(db, recording.id, account_id) if account_id else None
+        return {
+            "recording_id": recording.id,
+            "event_id": recording.event_id,
+            "title": recording.title,
+            "access_state": recordings_mod.access_state(access, now),
+        }
+
+    def _require_purchase_account(request: Request, db: Session, form: FormRecord) -> AccountIdentity | None:
+        """Purchase forms need a signed-in account because the access right belongs to one."""
+        identity = account_identity_from_request(request, db)
+        if _form_is_purchase(form) and identity is None:
+            raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
+        return identity
+
     def _recording_admin_counts(db: Session, recording_id: str) -> dict[str, int]:
         now = _utc_now()
         rows = db.execute(
@@ -4534,14 +4791,18 @@ def create_app(
             if row.session_id:
                 per_session[row.session_id] = per_session.get(row.session_id, 0) + 1
         public_event, _stored = _interaction_event(db, event_id)
+        commerce = recordings_mod.commerce_for(
+            recording, recordings_mod.purchase_form_for(db, recording.id), wallet_ready=_wallet_ready(db, request),
+        )
         blockers = recordings_mod.publish_blockers(
             recording, public_event, sessions, resources, now=_utc_now(), wallet_ready=_wallet_ready(db, request),
+            commerce=commerce,
         )
         return recordings_mod.recording_admin_view(
             recording,
             sessions=[recordings_mod.session_admin_view(s, resource_count=per_session.get(s.id, 0)) for s in sessions],
             blockers=blockers, counts=_recording_admin_counts(db, recording.id),
-            event_title=_recording_event_title(db, event_id),
+            event_title=_recording_event_title(db, event_id), commerce=commerce,
         )
 
     # ── عمومی ──
@@ -4568,10 +4829,14 @@ def create_app(
         ).all()
         visible = [row for row in rows if row.event_id in events]
         stats = recordings_mod.session_stats(db, [row.id for row in visible])
+        forms = recordings_mod.purchase_forms_for(db, [row.id for row in visible])
         items: list[dict[str, Any]] = []
         for row in visible[offset:offset + limit]:
             count, minutes = stats.get(row.id, (0, 0))
-            card = recordings_mod.recording_card_view(row, session_count=count, total_minutes=minutes)
+            card = recordings_mod.recording_card_view(
+                row, session_count=count, total_minutes=minutes,
+                commerce=recordings_mod.commerce_for(row, forms.get(row.id), wallet_ready=False),
+            )
             event = events[row.event_id]
             card["event"] = {
                 "id": row.event_id, "t": event.get("t"), "kind": event.get("kind"), "when": event.get("when"),
@@ -4661,7 +4926,10 @@ def create_app(
         recording = _account_recording(db, recording_id, for_update=True)
         if recording.status != "published":
             raise HTTPException(409, {"code": "recording_not_on_sale", "status": recording.status})
-        if recording.price > 0:
+        commerce = recordings_mod.commerce_for(
+            recording, recordings_mod.purchase_form_for(db, recording.id), wallet_ready=False,
+        )
+        if not commerce.free:
             raise HTTPException(409, {"code": "recording_not_free"})
         now = _utc_now()
         existing = recordings_mod.access_for(db, recording.id, identity.account_id)
@@ -4704,88 +4972,19 @@ def create_app(
         if verified_url.rstrip("/") != registered_webhook_url:
             raise HTTPException(503, detail={"code": "bale_payment_webhook_registration_failed"})
 
-    @app.post("/api/account/recordings/{recording_id}/orders", status_code=201)
-    async def account_create_recording_order(
-        recording_id: str,
-        request: Request,
-        identity: AccountIdentity = Depends(require_account_write),
-        db: Session = Depends(get_db),
+    # Phase 9.1: orders are no longer opened here. A purchase starts from the product's
+    # purchase form (form.html?fid=…); the ledger row is created by the server from that
+    # form's response/payment. The retired routes answer 410 so old clients fail loudly.
+    @app.post("/api/account/recordings/{recording_id}/orders")
+    def account_create_recording_order_retired(
+        recording_id: str, identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
     ):
-        """Open one order for a paid product; amount/currency come from the server row only."""
-        payload = await _read_json_object(request, 4096)
-        if set(payload) - {"method"}:
-            raise HTTPException(400, "invalid_order")
-        try:
-            method = interaction_mod.choice(payload.get("method"), recordings_mod.ORDER_METHODS, field="method")
-        except interaction_mod.InteractionError as error:
-            raise _recording_error(error) from None
-        recording = _account_recording(db, recording_id, for_update=True)
-        if recording.status != "published":
-            raise HTTPException(409, {"code": "recording_not_on_sale", "status": recording.status})
-        if recording.price <= 0:
-            raise HTTPException(409, {"code": "recording_is_free"})
-        now = _utc_now()
-        access = recordings_mod.access_for(db, recording.id, identity.account_id)
-        if recordings_mod.access_state(access, now) == "active":
-            raise HTTPException(409, {"code": "access_already_active"})
-        existing = recordings_mod.open_order_for(db, recording.id, identity.account_id)
-        if existing is not None and recordings_mod.expire_open_order(existing, now):
-            db.commit()
-            existing = None
-        if existing is not None:
-            # Idempotent: the open order is returned, never a second one.
-            return JSONResponse(status_code=200, content=recordings_mod.order_account_view(existing, recording))
-        cfg: Settings = _runtime_settings(db, request.app.state.settings)
-        _enforce_owner_upload_limit(request, db, cfg, identity, limit=20, scope="recording-order")
-        order_id = interaction_mod.new_id()
-        order = RecordingOrderRecord(
-            id=order_id, recording_id=recording.id, account_id=identity.account_id, method=method,
-            amount=recording.price, currency=recording.currency,
-            idempotency_key=recordings_mod.new_order_idempotency_key(recording.id, identity.account_id, order_id),
-        )
-        if method == "card_transfer":
-            if recording.payment_card is None:
-                raise HTTPException(503, {"code": "payment_method_not_available", "method": method})
-            order.status = "awaiting_receipt"
-            order.expires_at = now + recordings_mod.CARD_ORDER_TTL
-        else:
-            if not recording.bale_enabled or not cfg.form_bale_payments_ready:
-                raise HTTPException(503, {"code": "payment_method_not_available", "method": method})
-            bale_ids = verified_bale_ids_for_account(db, identity.account_id)
-            if not bale_ids:
-                raise HTTPException(409, {"code": "bale_identity_required"})
-            try:
-                await _ensure_bale_payment_webhook(cfg)
-                invoice_payload = recordings_mod.INVOICE_PREFIX + uuid.uuid4().hex
-                title = (recording.title or "محتوای ضبط‌شده").strip()[:32]
-                invoice_response = await asyncio.to_thread(
-                    call_bale_payment_api, cfg, "createInvoiceLink",
-                    {
-                        "title": title,
-                        "description": f"خرید دسترسی: {recording.title[:200]}"[:255],
-                        "payload": invoice_payload,
-                        "provider_token": cfg.form_payment_provider_token,
-                        "currency": recording.currency,
-                        "prices": [{"label": title, "amount": recording.price}],
-                    },
-                )
-                order.invoice_url = validated_invoice_url(invoice_response.get("result"))
-            except HTTPException:
-                raise
-            except BalePaymentAPIError as error:
-                raise HTTPException(503, detail={"code": error.code}) from None
-            order.invoice_payload = invoice_payload
-            order.payer_bale_user_id = bale_ids[0]
-            order.status = "pending"
-            order.expires_at = now + timedelta(seconds=cfg.form_payment_ttl_seconds)
-        db.add(order)
-        try:
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(409, {"code": "order_conflict"}) from None
-        db.refresh(order)
-        return recordings_mod.order_account_view(order, recording)
+        recording = _account_recording(db, recording_id)
+        form = recordings_mod.purchase_form_for(db, recording.id)
+        raise HTTPException(410, {
+            "code": "use_purchase_form",
+            "form_id": form.id if form is not None and form.status == "published" else None,
+        })
 
     @app.get("/api/account/recording-orders")
     def account_list_recording_orders(
@@ -4837,50 +5036,16 @@ def create_app(
         return view
 
     @app.put("/api/account/recording-orders/{order_id}/receipt")
-    async def account_upload_recording_receipt(
-        order_id: str,
-        request: Request,
-        identity: AccountIdentity = Depends(require_account_write),
-        db: Session = Depends(get_db),
+    def account_upload_recording_receipt_retired(
+        order_id: str, identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
     ):
-        """Card-transfer receipt (raw body + ``X-File-Name``). Only moves the order to review."""
-        order = _account_order(db, identity, order_id, for_update=True)
-        now = _utc_now()
-        if recordings_mod.expire_open_order(order, now):
-            db.commit()
-        if order.method != "card_transfer" or order.status not in {"awaiting_receipt", "receipt_submitted"}:
-            raise HTTPException(409, {"code": "order_not_awaiting_receipt", "status": order.status})
-        cfg: Settings = request.app.state.settings
-        _enforce_owner_upload_limit(request, db, cfg, identity, limit=20, scope="recording-receipt")
-        declared = unquote(request.headers.get("x-file-name", "receipt"))
-        note_raw = unquote(request.headers.get("x-receipt-note", ""))
-        chunks: list[bytes] = []
-        size = 0
-        async for chunk in request.stream():
-            if not chunk:
-                continue
-            size += len(chunk)
-            if size > recordings_mod.RECEIPT_MAX_BYTES:
-                raise HTTPException(413, "file_too_large")
-            chunks.append(chunk)
-        content = b"".join(chunks)
-        try:
-            content_type = recordings_mod.sniff_receipt(content)
-            note = interaction_mod.clean_text(note_raw, recordings_mod.NOTE_MAX, field="note")
-        except interaction_mod.InteractionError as error:
-            raise _recording_error(error) from None
-        order.receipt_content = content
-        order.receipt_content_type = content_type
-        order.receipt_file_name = recordings_mod.safe_receipt_name(declared, content_type)
-        order.receipt_size = len(content)
-        order.receipt_hash = hashlib.sha256(content).hexdigest()
-        order.receipt_note = note
-        order.receipt_submitted_at = now
-        order.status = "receipt_submitted"
-        order.updated_at = now
-        db.commit()
-        db.refresh(order)
-        return recordings_mod.order_account_view(order, db.get(EventRecordingRecord, order.recording_id))
+        order = _account_order(db, identity, order_id)
+        recording = db.get(EventRecordingRecord, order.recording_id)
+        form = recordings_mod.purchase_form_for(db, recording.id) if recording is not None else None
+        raise HTTPException(410, {
+            "code": "use_purchase_form",
+            "form_id": form.id if form is not None and form.status == "published" else None,
+        })
 
     @app.post("/api/account/recording-orders/{order_id}/cancel")
     def account_cancel_recording_order(
@@ -4888,8 +5053,11 @@ def create_app(
         identity: AccountIdentity = Depends(require_account_write),
         db: Session = Depends(get_db),
     ):
+        """Only legacy (pre-9.1) open orders can be cancelled here; form-backed rows follow the form payment."""
         order = _account_order(db, identity, order_id, for_update=True)
         now = _utc_now()
+        if order.form_response_id is not None or order.form_payment_id is not None:
+            raise HTTPException(409, {"code": "order_follows_form_payment", "status": order.status})
         if order.status not in {"pending", "awaiting_receipt"}:
             raise HTTPException(409, {"code": "order_not_cancellable", "status": order.status})
         order.status = "cancelled"
@@ -4925,101 +5093,9 @@ def create_app(
             ))
         return {"source": "shared_server_database", "server_time": event_time.to_iso(now), "items": items, "total": len(items)}
 
-    # ── درگاه بله: شاخهٔ سفارش‌های محتوای ضبط‌شده (norac_) ──
-
-    async def _recording_webhook_precheckout(
-        db: Session, cfg: Settings, checkout: dict[str, Any], query_id: str, invoice_payload: str,
-    ) -> dict[str, Any]:
-        payer = checkout.get("from")
-        payer_id = payer.get("id") if isinstance(payer, dict) else None
-        amount = checkout.get("total_amount")
-        currency = checkout.get("currency")
-        order = db.scalar(
-            select(RecordingOrderRecord).where(RecordingOrderRecord.invoice_payload == invoice_payload).with_for_update()
-        )
-        recording = db.get(EventRecordingRecord, order.recording_id) if order is not None else None
-        now = _utc_now()
-        can_checkout = bool(
-            order is not None and order.method == "bale_wallet" and order.status == "pending"
-            and order.expires_at is not None and _as_utc(order.expires_at) > now
-            and isinstance(amount, int) and not isinstance(amount, bool)
-            and order.amount == amount and order.currency == currency == "IRR"
-            and isinstance(payer_id, (int, str)) and not isinstance(payer_id, bool)
-            and _BOT_FORM_USER_ID.fullmatch(str(payer_id))
-            and str(payer_id) == (order.payer_bale_user_id or "")
-            and recording is not None and recording.status == "published" and recording.price == order.amount
-        )
-        answer: dict[str, Any] = {"pre_checkout_query_id": query_id, "ok": can_checkout}
-        if not can_checkout:
-            answer["error_message"] = "این صورت‌حساب منقضی یا نامعتبر است؛ دوباره از صفحهٔ محتوا شروع کنید."
-        try:
-            await asyncio.to_thread(call_bale_payment_api, cfg, "answerPreCheckoutQuery", answer)
-        except BalePaymentAPIError as error:
-            raise HTTPException(503, detail={"code": error.code}) from None
-        return {"ok": True}
-
-    async def _recording_webhook_payment(
-        db: Session, cfg: Settings, *, invoice_payload: str, transaction_id: str, provider_charge_id: str | None,
-        callback_amount: int, callback_currency: str, payer_id: str,
-    ) -> dict[str, Any]:
-        """Grant access only after ``inquireTransaction`` says paid with matching amount/currency/payer."""
-        order = db.scalar(
-            select(RecordingOrderRecord).where(RecordingOrderRecord.invoice_payload == invoice_payload).with_for_update()
-        )
-        if order is None or order.method != "bale_wallet":
-            return {"ok": True}
-        prior = db.scalar(select(RecordingOrderRecord).where(RecordingOrderRecord.transaction_id == transaction_id))
-        if prior is not None and prior.id != order.id:
-            return {"ok": True}
-        if order.status in recordings_mod.PAID_ORDER_STATUSES and order.transaction_id == transaction_id:
-            return {"ok": True}  # duplicate delivery, already granted
-        if order.status in recordings_mod.PAID_ORDER_STATUSES:
-            return {"ok": True}  # paid through another charge; never a second grant
-        try:
-            inquiry = await asyncio.to_thread(call_bale_payment_api, cfg, "inquireTransaction", {"transaction_id": transaction_id})
-        except BalePaymentAPIError as error:
-            raise HTTPException(503, detail={"code": error.code}) from None
-        transaction = inquiry.get("result")
-        if not isinstance(transaction, dict):
-            return {"ok": True}
-        if transaction.get("status") == "pending":
-            raise HTTPException(503, detail={"code": "bale_transaction_pending"})
-        if transaction.get("status") != "paid" or str(transaction.get("id")) != transaction_id:
-            return {"ok": True}
-        provider_amount = transaction.get("amount")
-        now = _utc_now()
-        recording = db.scalar(
-            select(EventRecordingRecord).where(EventRecordingRecord.id == order.recording_id).with_for_update()
-        )
-        matches = (
-            isinstance(provider_amount, int) and not isinstance(provider_amount, bool)
-            and provider_amount == order.amount == callback_amount
-            and callback_currency == order.currency == "IRR"
-            and str(transaction.get("userID")) == payer_id == (order.payer_bale_user_id or "")
-            and recording is not None and recording.price == order.amount
-        )
-        order.transaction_id = transaction_id
-        order.provider_charge_id = provider_charge_id
-        order.updated_at = now
-        if not matches or recording is None or order.status not in {"pending", "needs_review"}:
-            order.status = "needs_review"
-            order.review_note = "amount/currency/payer mismatch or order not open at settlement"[:300]
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-            return {"ok": True}
-        order.status = "paid"
-        order.paid_at = now
-        _grant_recording_access(
-            db, recording, order.account_id, source="purchase", now=now, order=order, actor=("system", "bale_webhook"),
-            reason="bale_wallet_verified",
-        )
-        try:
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-        return {"ok": True}
+    # Phase 9.1: the dedicated ``norac_`` wallet branch is gone; recorded-content wallet
+    # payments are ordinary purchase-form payments (``nora_`` invoices) and are finalized
+    # by ``_finalize_purchase`` inside the shared webhook transaction.
 
     # ── پنل: محصول، جلسات، وضعیت ──
 
@@ -5093,6 +5169,14 @@ def create_app(
             return _recording_admin_payload(db, request, record, event_id=event_id)
         if expected is not None and (isinstance(expected, bool) or not isinstance(expected, int) or expected != record.version):
             raise HTTPException(409, {"code": "version_conflict", "version": record.version})
+        purchase_form = recordings_mod.purchase_form_for(db, record.id)
+        if purchase_form is not None:
+            locked = recordings_mod.commercial_fields_changed(fields, record)
+            if locked:
+                # Price / card / wallet switch live in the purchase form once one is linked.
+                raise HTTPException(409, {
+                    "code": "commercial_settings_in_form", "fields": locked, "form_id": purchase_form.id,
+                })
         if "price" in fields and fields["price"] != record.price:
             open_orders = int(db.scalar(
                 select(func.count(RecordingOrderRecord.id)).where(
@@ -5104,7 +5188,7 @@ def create_app(
                 raise HTTPException(409, {"code": "open_orders_block_price_change", "open_orders": open_orders})
         changed = sorted(key for key, value in fields.items() if getattr(record, key) != value)
         details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(changed)[:200]}
-        for key in ("price", "access_days", "attendee_access"):
+        for key in ("price", "access_days", "attendee_access", "certificate_policy"):
             if key in changed:
                 details[f"{key}_before"] = getattr(record, key)
                 details[f"{key}_after"] = fields[key]
@@ -5146,6 +5230,9 @@ def create_app(
             blockers = recordings_mod.publish_blockers(
                 record, public_event, _recording_sessions(db, record.id), _recording_resources(db, event_id),
                 now=now, wallet_ready=_wallet_ready(db, request),
+                commerce=recordings_mod.commerce_for(
+                    record, recordings_mod.purchase_form_for(db, record.id), wallet_ready=_wallet_ready(db, request),
+                ),
             )
             if blockers:
                 raise HTTPException(409, {"code": "publish_blocked", "blockers": blockers})
@@ -5440,6 +5527,13 @@ def create_app(
             db.commit()
         if order.status not in recordings_mod.REVIEWABLE_ORDER_STATUSES:
             raise HTTPException(409, {"code": "order_not_reviewable", "status": order.status})
+        if order.form_response_id is not None or order.form_payment_id is not None:
+            # Form-backed purchases are decided once, in the shared inbox (receipt_review task).
+            response = db.get(FormResponseRecord, order.form_response_id) if order.form_response_id else None
+            raise HTTPException(409, {
+                "code": "decide_in_inbox",
+                "task_id": response.receipt_review_task_id if response is not None else None,
+            })
         recording = db.scalar(
             select(EventRecordingRecord).where(EventRecordingRecord.id == order.recording_id).with_for_update()
         )
@@ -6873,6 +6967,7 @@ def create_app(
             account_form_record_scope(db, identity.account_id),
             FormResponseRecord.added_by_response_id.is_(None),
             FormRecord.model == "registration",
+            FormRecord.purpose == "registration",
         )
         total = int(db.scalar(
             select(func.count(FormResponseRecord.id))
@@ -8172,12 +8267,15 @@ def create_app(
         create_key = request.headers.get("idempotency-key", "").strip()
         if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", create_key):
             raise HTTPException(428, "idempotency_key_required")
+        event_id = _resolve_purchase_link(db, normalized)
         canonical_payload = {
             "name": normalized.title,
             "model": normalized.model,
             "need": normalized.need,
             "slug": normalized.slug,
-            "event_id": normalized.event_id,
+            "event_id": event_id,
+            "purpose": normalized.purpose,
+            "recording_id": normalized.recording_id,
             "settings": normalized.settings,
             "fields": [
                 {"id": field.key, "t": field.field_type, "l": field.label, "config": field.config}
@@ -8210,7 +8308,9 @@ def create_app(
             model=normalized.model,
             need=normalized.need,
             slug=normalized.slug,
-            event_id=normalized.event_id,
+            event_id=event_id,
+            purpose=normalized.purpose,
+            recording_id=normalized.recording_id,
             status="draft",
             create_key=create_key,
             create_hash=payload_hash,
@@ -8252,6 +8352,36 @@ def create_app(
             raise HTTPException(404, "form_not_found")
         return record
 
+    def _resolve_purchase_link(db: Session, normalized: Any) -> str | None:
+        """Validate ``purpose='recording_access'`` against a real product and fix ``event_id``.
+
+        Returns the event id the form must carry (the product's event). Ids are
+        looked up server-side; a client cannot point a form at a foreign event.
+        """
+        if normalized.purpose != "recording_access":
+            return normalized.event_id
+        recording = db.get(EventRecordingRecord, normalized.recording_id or "")
+        if recording is None:
+            raise HTTPException(422, detail={"code": "recording_not_found", "message": "محصول ضبط‌شده پیدا نشد."})
+        if normalized.event_id and normalized.event_id != recording.event_id:
+            raise HTTPException(
+                422,
+                detail={"code": "purchase_form_event_mismatch", "message": "رویداد فرم با رویداد محصول یکی نیست."},
+            )
+        return recording.event_id
+
+    def _other_published_purchase_form(db: Session, record: FormRecord) -> FormRecord | None:
+        if not _form_is_purchase(record):
+            return None
+        return db.scalar(
+            select(FormRecord).where(
+                FormRecord.recording_id == record.recording_id,
+                FormRecord.purpose == "recording_access",
+                FormRecord.status == "published",
+                FormRecord.id != record.id,
+            )
+        )
+
     @app.get("/api/forms/{form_id}")
     def get_form(
         form_id: str,
@@ -8272,12 +8402,34 @@ def create_app(
         issues = publication_issues(
             record, bale_ready=_runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         )
+        purchase: dict[str, Any] | None = None
+        if _form_is_purchase(record):
+            recording = db.get(EventRecordingRecord, record.recording_id or "")
+            other = _other_published_purchase_form(db, record)
+            if recording is None:
+                issues.append({"code": "recording_not_found", "message": "محصول ضبط‌شدهٔ این فرم دیگر وجود ندارد."})
+            if other is not None and record.status != "published":
+                issues.append({
+                    "code": "purchase_form_already_published",
+                    "message": f"فرم خرید دیگری («{other.title}») برای این محصول منتشر است؛ ابتدا آن را متوقف کنید.",
+                })
+            settings_value = record.settings if isinstance(record.settings, dict) else {}
+            purchase = {
+                "recording_id": record.recording_id,
+                "recording_title": recording.title if recording is not None else "",
+                "recording_status": recording.status if recording is not None else "",
+                "event_id": recording.event_id if recording is not None else record.event_id,
+                "price": purchase_form_price(settings_value),
+                "other_published_form_id": other.id if other is not None else None,
+            }
         publishable_status = record.status in {"draft", "paused"}
         return {
             "source": "same_server_database",
             "form_id": record.id,
             "version": record.version,
             "status": record.status,
+            "purpose": record.purpose,
+            "purchase": purchase,
             "publishable": publishable_status and not issues,
             "status_issue": None if publishable_status else "فرم باید پیش‌نویس یا متوقف باشد تا منتشر شود.",
             "issues": issues,
@@ -8324,6 +8476,7 @@ def create_app(
                 409,
                 detail={"code": "version_conflict", "current_version": record.version},
             )
+        event_id = _resolve_purchase_link(db, normalized)
 
         # Compare-and-swap at the database, not just in Python: two owners' tabs
         # cannot silently overwrite one another after both read the same version.
@@ -8339,7 +8492,9 @@ def create_app(
                 model=normalized.model,
                 need=normalized.need,
                 slug=normalized.slug,
-                event_id=normalized.event_id,
+                event_id=event_id,
+                purpose=normalized.purpose,
+                recording_id=normalized.recording_id,
                 settings=normalized.settings,
                 version=FormRecord.version + 1,
                 updated_at=_utc_now(),
@@ -8397,7 +8552,8 @@ def create_app(
         db: Session, form_id: str, *, bale_ready: bool = False
     ) -> FormRecord:
         form = get_published_form(db, form_id, bale_ready=bale_ready)
-        if form_has_companions(form) or _form_uses_payment(form):
+        if form_has_companions(form) or _form_uses_payment(form) or _form_is_purchase(form):
+            # Purchases start from form.html with a signed-in account (access is granted to it).
             raise HTTPException(404, "bot_form_not_supported")
         return form
 
@@ -8745,6 +8901,17 @@ def create_app(
                 422,
                 detail={"code": "form_not_publishable", "issues": issues},
             )
+        if _form_is_purchase(record):
+            if db.get(EventRecordingRecord, record.recording_id or "") is None:
+                raise HTTPException(422, detail={"code": "form_not_publishable", "issues": [
+                    {"code": "recording_not_found", "message": "محصول ضبط‌شدهٔ این فرم دیگر وجود ندارد."},
+                ]})
+            other = _other_published_purchase_form(db, record)
+            if other is not None:
+                raise HTTPException(409, detail={
+                    "code": "purchase_form_already_published", "form_id": other.id, "title": other.title,
+                    "message": "برای این محصول یک فرم خرید منتشرشده وجود دارد؛ ابتدا آن را متوقف کنید.",
+                })
         result = db.execute(
             update(FormRecord)
             .where(
@@ -8815,12 +8982,26 @@ def create_app(
         accepted, waitlisted = _response_counts(db, form_id)
         if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form_id), waitlisted):
             raise HTTPException(410, detail={"code": "form_full"})
-        return public_form_data(
+        data = public_form_data(
             form,
             accepted_count=accepted,
             waitlisted_count=waitlisted,
             bale_ready=cfg.form_bale_payments_ready,
         )
+        if _form_is_purchase(form):
+            # The purchase header of form.html: product + the caller's real access state.
+            identity = account_identity_from_request(request, db)
+            now = _utc_now()
+            purchase = _purchase_state_view(db, form, identity.account_id if identity else None, now) or {}
+            settings_value = form.settings if isinstance(form.settings, dict) else {}
+            purchase.update({
+                "signed_in": identity is not None,
+                "price": purchase_form_price(settings_value),
+                "currency": "IRR",
+                "selection": purchase_form_selection(settings_value),
+            })
+            data["purchase"] = purchase
+        return data
 
     @app.post("/api/public/forms/{form_id}/coupon-check")
     def check_public_coupon(
@@ -8891,7 +9072,15 @@ def create_app(
         )
         if draft is None or draft.form_version != form.version:
             raise HTTPException(409, "form_version_changed")
-        bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        purchase_identity = _require_purchase_account(request, db, form)
+        bind_public_draft_account(draft, purchase_identity, db)
+        if _form_is_purchase(form):
+            purchase_recording = _purchase_recording_for_form(db, form)
+            if purchase_recording is None or purchase_recording.status != "published":
+                raise HTTPException(409, detail={"code": "recording_not_on_sale"})
+            current_access = recordings_mod.access_for(db, purchase_recording.id, draft.account_id)
+            if recordings_mod.access_state(current_access, _utc_now()) == "active":
+                raise HTTPException(409, detail={"code": "access_already_active", "recording_id": purchase_recording.id})
         if db.scalar(select(FormResponseRecord.id).where(FormResponseRecord.draft_id == draft.id)):
             raise HTTPException(409, detail={"code": "response_already_submitted"})
         answers, submitted = draft_answers(db, draft)
@@ -9130,8 +9319,6 @@ def create_app(
             if not isinstance(query_id, str) or not 1 <= len(query_id) <= 160:
                 return {"ok": True}
             invoice_payload = checkout.get("invoice_payload")
-            if isinstance(invoice_payload, str) and invoice_payload.startswith(recordings_mod.INVOICE_PREFIX) and len(invoice_payload) <= 128:
-                return await _recording_webhook_precheckout(db, cfg, checkout, query_id, invoice_payload)
             payer = checkout.get("from")
             payer_id = payer.get("id") if isinstance(payer, dict) else None
             amount = checkout.get("total_amount")
@@ -9196,12 +9383,6 @@ def create_app(
         ):
             return {"ok": True}
         payer_id = str(payer_id_raw)
-        if invoice_payload.startswith(recordings_mod.INVOICE_PREFIX):
-            return await _recording_webhook_payment(
-                db, cfg, invoice_payload=invoice_payload, transaction_id=transaction_id,
-                provider_charge_id=provider_charge_id, callback_amount=callback_amount,
-                callback_currency=callback_currency, payer_id=payer_id,
-            )
         payment = db.scalar(
             select(FormPaymentRecord)
             .where(FormPaymentRecord.invoice_payload == invoice_payload)
@@ -9307,6 +9488,12 @@ def create_app(
                 return False
             if db.scalar(select(FormResponseRecord.id).where(FormResponseRecord.draft_id == draft.id)):
                 return False
+            purchase_recording: EventRecordingRecord | None = None
+            if _form_is_purchase(form):
+                # The access right needs an account; the product must still be on sale.
+                purchase_recording = _purchase_recording_for_form(db, form, for_update=True)
+                if draft.account_id is None or purchase_recording is None or purchase_recording.status != "published":
+                    return False
             form_settings = form.settings if isinstance(form.settings, dict) else {}
             try:
                 normalized_answers = validate_answers(form.fields, draft.answers or {}, partial=False)
@@ -9400,6 +9587,12 @@ def create_app(
             payment.provider_charge_id = provider_charge_id
             payment.payer_bale_user_id = payer_id
             payment.updated_at = now_inner
+            if purchase_recording is not None and draft.account_id:
+                db.flush()
+                _finalize_purchase(
+                    db, form=form, response=response_record, payment=payment, account_id=draft.account_id,
+                    now=now_inner, actor=("system", "bale_webhook"), reason="bale_wallet_verified",
+                )
             return True
 
         if already_paid and payment.transaction_id == transaction_id:
@@ -9446,7 +9639,7 @@ def create_app(
         ).all()
         items = []
         for form in records:
-            if publication_issues(form, bale_ready=cfg.form_bale_payments_ready) or form_has_companions(form) or _form_uses_payment(form):
+            if publication_issues(form, bale_ready=cfg.form_bale_payments_ready) or form_has_companions(form) or _form_uses_payment(form) or _form_is_purchase(form):
                 continue
             if _event_registration_block(db, form) is not None:
                 continue
@@ -10312,7 +10505,16 @@ def create_app(
             raise HTTPException(401, "response_draft_required")
         if draft.form_version != form.version:
             raise HTTPException(409, "form_version_changed")
-        account_linked = bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        purchase_identity = _require_purchase_account(request, db, form)
+        account_linked = bind_public_draft_account(draft, purchase_identity, db)
+        purchase_recording: EventRecordingRecord | None = None
+        if _form_is_purchase(form):
+            purchase_recording = _purchase_recording_for_form(db, form, for_update=True)
+            if purchase_recording is None or purchase_recording.status != "published":
+                raise HTTPException(409, detail={"code": "recording_not_on_sale"})
+            current_access = recordings_mod.access_for(db, purchase_recording.id, draft.account_id)
+            if recordings_mod.access_state(current_access, _utc_now()) == "active":
+                raise HTTPException(409, detail={"code": "access_already_active", "recording_id": purchase_recording.id})
         try:
             normalized = validate_answers(form.fields, payload["answers"], partial=False)
             settings = form.settings if isinstance(form.settings, dict) else {}
@@ -10377,6 +10579,8 @@ def create_app(
             return {
                 "accepted": True,
                 "status": existing.status,
+                "purpose": form.purpose,
+                "purchase": _purchase_state_view(db, form, draft.account_id, _utc_now()) if purchase_recording is not None else None,
                 "tracking_code": _form_tracking_code(existing),
                 "ticket_type": _form_response_ticket_type(existing),
                 "receipt_uploaded": existing.receipt_upload is not None or existing.receipt_review_task_id is not None,
@@ -10513,6 +10717,19 @@ def create_app(
                 existing_payment.selection = payment_summary
                 existing_payment.status = "awaiting_receipt"
                 existing_payment.updated_at = now
+        purchase_view: dict[str, Any] | None = None
+        if purchase_recording is not None and draft.account_id:
+            if existing_payment is None:
+                # Free product sold through a form: the accepted response is the purchase.
+                _finalize_purchase(
+                    db, form=form, response=existing, payment=None, account_id=draft.account_id, now=now,
+                    actor=("account", draft.account_id), reason="purchase_form_free:" + existing.id,
+                )
+            else:
+                _upsert_purchase_ledger(
+                    db, recording=purchase_recording, account_id=draft.account_id, response=existing,
+                    payment=existing_payment, now=now,
+                )
         draft.answers = {}
         draft.companions = []
         draft.has_unsaved_changes = False
@@ -10523,9 +10740,13 @@ def create_app(
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, "response_conflict") from None
+        if purchase_recording is not None:
+            purchase_view = _purchase_state_view(db, form, draft.account_id, now)
         return {
             "accepted": True,
             "status": existing.status,
+            "purpose": form.purpose,
+            "purchase": purchase_view,
             "tracking_code": _form_tracking_code(existing),
             "ticket_type": _form_response_ticket_type(existing),
             "receipt_uploaded": (
@@ -10567,7 +10788,14 @@ def create_app(
         )
         if record is None:
             raise HTTPException(409, detail={"code": "ticket_response_not_submitted"})
-        _ensure_form_ticket(record)
+        is_purchase = _snapshot_purpose(record) == "recording_access"
+        if is_purchase:
+            if record.status != "accepted":
+                raise HTTPException(409, detail={"code": "ticket_not_accepted"})
+            if draft.account_id is None or account_identity_from_request(request, db) is None:
+                raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
+        else:
+            _ensure_form_ticket(record)
         snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
         if snapshot.get("receipt_review_required") is not True:
             raise HTTPException(422, "public_form_receipt_not_required")
@@ -10662,7 +10890,34 @@ def create_app(
         if payment_record is not None and payment_record.status == "awaiting_receipt":
             payment_record.status = "receipt_submitted"
             payment_record.updated_at = _utc_now()
+        task_id: str | None = None
+        if is_purchase and draft.account_id:
+            # Purchases are reviewed in the shared inbox right away (no Bale ticket claim step).
+            db.flush()
+            account = db.get(AccountRecord, draft.account_id)
+            if account is None:
+                raise HTTPException(409, detail={"code": "account_required"})
+            bale_ids = verified_bale_ids_for_account(db, account.id)
+            task = _create_public_form_receipt_task(
+                db, record, bale_ids[0] if bale_ids else "", account=account, purchase=True,
+            )
+            task_id = task.id if task is not None else None
+            form_record = db.get(FormRecord, record.form_id)
+            recording = _purchase_recording_for_form(db, form_record) if form_record is not None else None
+            if recording is not None and payment_record is not None:
+                order = _upsert_purchase_ledger(
+                    db, recording=recording, account_id=account.id, response=record, payment=payment_record,
+                    now=_utc_now(),
+                )
+                order.receipt_submitted_at = _utc_now()
+                order.receipt_file_name = safe_name
+                order.receipt_content_type = content_type
+                order.receipt_size = len(blob)
+                order.receipt_hash = content_hash
+                order.receipt_note = receipt_note[:300]
         db.commit()
+        if is_purchase:
+            return {"uploaded": True, "created": created, "review_task_id": task_id}
         return {"uploaded": True, "created": created}
 
     @app.get("/api/public/forms/{form_id}/ticket-image")

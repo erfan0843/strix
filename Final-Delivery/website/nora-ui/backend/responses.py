@@ -87,6 +87,37 @@ def _has_money_configuration(settings: dict[str, Any]) -> bool:
     return bool(settings.get("sync", {}).get("money")) if isinstance(settings.get("sync"), dict) else False
 
 
+def _purchase_form_issues(form: FormRecord, settings: dict[str, Any]) -> list[dict[str, str]]:
+    """Extra publish blockers for a purchase form (one account, one deterministic price)."""
+    issues: list[dict[str, str]] = []
+    if form.model != "registration" or not getattr(form, "recording_id", None):
+        issues.append({
+            "code": "purchase_form_invalid_link",
+            "message": "فرم خرید باید به یک محصول ضبط‌شده پیوند داشته باشد.",
+        })
+    if settings.get("guestsOn") is True:
+        issues.append({
+            "code": "companions_not_allowed_for_purchase",
+            "message": "فرم خرید برای یک حساب است؛ همراهان را خاموش کنید.",
+        })
+    if "ticketing" in settings:
+        issues.append({
+            "code": "ticketing_not_allowed_for_purchase",
+            "message": "فرم خرید بلیت صادر نمی‌کند؛ مدل‌های بلیت را بردارید.",
+        })
+    if _count_setting(settings.get("cap", 0)) or _count_setting(settings.get("wait", 0)):
+        issues.append({
+            "code": "capacity_not_allowed_for_purchase",
+            "message": "ظرفیت و صف انتظار برای فرم خرید معنا ندارد؛ آن‌ها را صفر بگذارید.",
+        })
+    if purchase_form_selection(settings) is None:
+        issues.append({
+            "code": "purchase_form_requires_fixed_price",
+            "message": "قیمت فرم خرید باید یکتا باشد: همهٔ مبلغ‌ها اجباری و بدون گروه انتخابی.",
+        })
+    return issues
+
+
 def public_payment_card(settings: dict[str, Any]) -> dict[str, str] | None:
     """Return only the selected, public card destination saved with a form."""
     raw = settings.get("paymentCard")
@@ -172,10 +203,48 @@ def _assigned_ticket_type(
     return {"id": selected["id"], "name": selected["name"]}
 
 
+def form_purpose(form: FormRecord) -> str:
+    """``registration`` (every legacy form) or ``recording_access`` (purchase entry of a product)."""
+    return "recording_access" if getattr(form, "purpose", None) == "recording_access" else "registration"
+
+
+def purchase_form_selection(settings: dict[str, Any]) -> dict[str, Any] | None:
+    """The only valid price selection of a purchase form: every item, no optional groups.
+
+    Returns ``None`` when the financial settings are invalid or allow more than one
+    outcome (optional items / groups), i.e. when the list price is not deterministic.
+    An empty ``fin`` list is a free product and yields ``{"items": []}``.
+    """
+    try:
+        financial = normalize_financial_config(settings)
+    except PaymentConfigurationError:
+        return None
+    if financial["groups"]:
+        return None
+    if any(not item["req"] for item in financial["fin"]):
+        return None
+    return {"items": list(range(len(financial["fin"])))}
+
+
+def purchase_form_price(settings: dict[str, Any]) -> int | None:
+    """Server-calculated list price (IRR) of a purchase form; ``0`` = free; ``None`` = invalid."""
+    selection = purchase_form_selection(settings)
+    if selection is None:
+        return None
+    if not selection["items"]:
+        return 0
+    try:
+        return int(calculate_payment_amount(settings, selection, party_count=1)["amount"])
+    except PaymentConfigurationError:
+        return None
+
+
 def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[dict[str, str]]:
     """Return invalid or unavailable settings that must be fixed before public release."""
     issues: list[dict[str, str]] = []
     settings = form.settings if isinstance(form.settings, dict) else {}
+    if form_purpose(form) == "recording_access":
+        issues.extend(_purchase_form_issues(form, settings))
     if "ticketing" in settings:
         try:
             _normalize_ticketing_setting(settings["ticketing"], form.model)
@@ -882,6 +951,8 @@ def public_form_data(
         "name": form.title,
         "model": form.model,
         "need": form.need,
+        "purpose": form_purpose(form),
+        "recording_id": getattr(form, "recording_id", None) if form_purpose(form) == "recording_access" else None,
         "slug": form.slug or "",
         "fields": fields,
         "settings": public_settings,
@@ -906,6 +977,7 @@ def response_snapshot(
         "name": form.title,
         "model": form.model,
         "need": form.need,
+        "purpose": form_purpose(form),
         "version": form.version,
         "receipt_review_required": settings.get("receiptReviewRequired") is True
         and not (isinstance(payment, dict) and payment.get("method") == "bale_wallet"),

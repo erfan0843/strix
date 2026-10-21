@@ -219,6 +219,8 @@ def participation_for(
             scope,
             FormResponseRecord.added_by_response_id.is_(None),
             FormRecord.model == "registration",
+            # Purchase forms (phase 9.1) share the model but never count as registration.
+            FormRecord.purpose == "registration",
             FormRecord.event_id == event_id,
         )
         .order_by(FormResponseRecord.created_at.asc(), FormResponseRecord.id.asc())
