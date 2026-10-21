@@ -1706,6 +1706,17 @@ def handle_callback(cb):
     if data.startswith("cc_alist_"):
         _i, _p = two("cc_alist_")
         return cc_mod.show_share_list(cid, uid, _i, _p)
+    # 🎬 فاز ۹.۲ — نوع گواهی طرح و ابطال گواهی یک گیرندهٔ مرکز
+    if data.startswith("cc_kind_"):
+        return cc_mod.show_kind_pick(cid, uid, num("cc_kind_"))
+    if data.startswith("cc_setkind_"):
+        _rest = data[len("cc_setkind_"):]
+        _i, _, _k = _rest.partition("_")
+        return cc_mod.set_kind(cid, uid, _i, _k)
+    if data.startswith("cc_sunrev_"):
+        return cc_mod.revoke_share(cid, uid, num("cc_sunrev_"), undo=True)
+    if data.startswith("cc_srev_"):
+        return cc_mod.revoke_share(cid, uid, num("cc_srev_"))
     if data.startswith("cc_prev_"):
         return cc_mod.show_preview(cid, uid, num("cc_prev_"))
     if data.startswith("cc_pw_"):

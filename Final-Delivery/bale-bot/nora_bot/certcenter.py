@@ -70,6 +70,11 @@ ISSUE_SCHEMA = {
     "link_token": "TEXT",               # لینک عمومی دریافت
     "link_on": "INTEGER DEFAULT 1",
     "auto_photo": "INTEGER DEFAULT 1",  # عکس پرسنلی خودکار
+    # 🎬 فاز ۹.۲ — نوع گواهی طرح: «عمومی/حضور» یا «پایان محتوای
+    #    آموزشی ضبط‌شده». روی ستون source گواهی‌ها و آینهٔ سرور
+    #    اثر می‌گذارد (CERT_KINDS). شرط صدور هر دو دستی است؛
+    #    خرید یا تماشای محتوا به‌تنهایی گیرنده نمی‌سازد.
+    "cert_kind": "TEXT DEFAULT 'general'",
     "total": "INTEGER DEFAULT 0",
     "built": "INTEGER DEFAULT 0",       # چند نفر واقعاً ساختند
     "published_at": "TIMESTAMP",
@@ -91,6 +96,38 @@ SHARE_SCHEMA = {
     "built_at": "TIMESTAMP",
     "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
 }
+
+# 🎬 فاز ۹.۲ — نوع گواهی یک طرح
+#
+#   کلید → (آیکون، برچسب، مقدار ستون certificates.source، توضیح)
+#
+#   «general»               همان رفتار قبلی مرکز (source='center')
+#   «recording_completion»  گواهی پایان محتوای آموزشی ضبط‌شده
+#                           (source='recording') — گواهی حضور نیست،
+#                           فقط با تأیید دستی همین مرکز صادر می‌شود
+#                           و در آینهٔ سرور با kind='recording'
+#                           از گواهی‌های حضور جدا دیده می‌شود.
+CERT_KINDS = {
+    "general": ("🎓", "عمومی / حضور در رویداد", "center",
+                "همان گواهینامهٔ معمول مرکز صدور"),
+    "recording_completion": ("🎬", "پایان محتوای آموزشی ضبط‌شده",
+                             "recording",
+                             "برای کسانی که محتوای ضبط‌شده را گذرانده‌اند؛ "
+                             "خرید یا تماشا به‌تنهایی مبنای صدور نیست"),
+}
+DEFAULT_KIND = "general"
+
+
+def kind_of(iss):
+    """🎬 نوع گواهی یک طرح — همیشه یکی از CERT_KINDS"""
+    k = str((iss or {}).get("cert_kind") or "").strip()
+    return k if k in CERT_KINDS else DEFAULT_KIND
+
+
+def source_of_kind(kind):
+    """مقدار ستون certificates.source برای این نوع"""
+    return CERT_KINDS.get(kind, CERT_KINDS[DEFAULT_KIND])[2]
+
 
 AUDIENCES = {
     "event":   ("🎉", "شرکت‌کنندگان یک رویداد"),
@@ -704,7 +741,7 @@ def build_one(iid, share_id, notify=False):
          files.get("png") or files.get("pdf") or files.get("docx"),
          info["doc_no"], info["person_code"], info["full_code"],
          info["issued_on"], info["expires_on"], info["valid_months"],
-         "center", iss.get("created_by")))
+         source_of_kind(kind_of(iss)), iss.get("created_by")))
 
     # 🔴 باگ رفع‌شده: اگر INSERT شکست می‌خورد (مثلاً جدول نبود)،
     #    `cid_` تهی می‌شد ولی کد بی‌سروصدا ادامه می‌داد و سهم را
@@ -1086,8 +1123,9 @@ def start_new(cid, uid):
         "━━━━━━━━━━━━━━\n\n"
         "📝 یک نام برای این طرح بنویسید:\n\n"
         "مثال: گواهینامهٔ کارگاه هلال احمر ۱۴۰۵\n\n"
-        "💡 این نام فقط برای خودتان است و روی گواهینامه\n"
-        "   چاپ نمی‌شود."
+        "💡 این نام روی فایل گواهینامه چاپ نمی‌شود؛ ولی\n"
+        "   به‌عنوان عنوان گواهی در استعلام سرور و حساب\n"
+        "   کاربر نمایش داده می‌شود."
     ), kb_cancel())
 
 
@@ -1125,6 +1163,14 @@ def show_issue(cid, uid, iid, note=""):
     lines += [f"{'📢 منتشرشده' if pub else '📝 پیش‌نویس'}"
               f"   ·   📅 {_jd.fmt(iss.get('created_at'), 'date')}", ""]
 
+    # نوع گواهی (فاز ۹.۲)
+    knd = kind_of(iss)
+    kic, klbl, _ksrc, kdesc = CERT_KINDS[knd]
+    lines.append(f"🏷️ نوع گواهی: {kic} {klbl}")
+    if knd == "recording_completion":
+        lines.append("   ⚠️ گواهی حضور نیست؛ فقط گیرندگانی که خودتان "
+                     "تأیید می‌کنید")
+    lines.append("")
     # گام ۱ — قالب
     lines.append(f"{'✅' if tid else '⬜'} ۱. قالب: "
                  f"{tpl.get('name') if tpl else '—'}")
@@ -1167,6 +1213,9 @@ def show_issue(cid, uid, iid, note=""):
     lines += ["━━━━━━━━━━━━━━"]
 
     btns = []
+    if not pub:
+        btns.append([{"text": f"🏷️ نوع گواهی: {kic} {_short(klbl, 20)}",
+                      "callback_data": f"cc_kind_{iss['id']}"}])
     btns.append([{"text": f"📄 قالب: {_short(tpl.get('name') if tpl else 'انتخاب کنید', 22)}",
                   "callback_data": f"cc_tpl_{iss['id']}"}])
     if ask:
@@ -1205,6 +1254,92 @@ def show_issue(cid, uid, iid, note=""):
                   "callback_data": f"cc_del_{iss['id']}"}])
     btns.append([{"text": "🔙 مرکز صدور", "callback_data": "cc_home"}])
     send_or_edit(cid, "\n".join(lines), {"inline_keyboard": btns})
+
+
+def show_kind_pick(cid, uid, iid):
+    """🏷️ فاز ۹.۲ — انتخاب نوع گواهی طرح"""
+    from bale_api import send_or_edit
+    if not _guard(cid, uid):
+        return
+    iss = get_issue(iid)
+    if not iss:
+        return show_home(cid, uid, "❌ طرح یافت نشد")
+    cur = kind_of(iss)
+    lines = ["🏷️ نوع گواهی این طرح", "━━━━━━━━━━━━━━", ""]
+    for k, (ic, lbl, _src, desc) in CERT_KINDS.items():
+        mark = "✅ " if k == cur else ""
+        lines += [f"{mark}{ic} {lbl}", f"   {desc}", ""]
+    lines += ["💡 در هر دو حالت صدور دستی است و با تأیید شما انجام",
+              "   می‌شود؛ نوع فقط عنوان و دسته‌بندی گواهی را در",
+              "   استعلام و حساب کاربر جدا می‌کند."]
+    btns = [[{"text": f"{'✅ ' if k == cur else ''}{ic} {lbl}",
+              "callback_data": f"cc_setkind_{iss['id']}_{k}"}]
+            for k, (ic, lbl, _s, _d) in CERT_KINDS.items()]
+    btns.append([{"text": "🔙 بازگشت",
+                  "callback_data": f"cc_v_{iss['id']}"}])
+    send_or_edit(cid, "\n".join(lines), {"inline_keyboard": btns})
+
+
+def set_kind(cid, uid, iid, kind):
+    """🏷️ ثبت نوع گواهی — فقط پیش از انتشار"""
+    from bale_api import send
+    if not _guard(cid, uid):
+        return
+    iss = get_issue(iid)
+    if not iss:
+        return show_home(cid, uid, "❌ طرح یافت نشد")
+    if kind not in CERT_KINDS:
+        return send(cid, "⚠️ نوع نامعتبر")
+    if iss.get("status") == "published":
+        return show_issue(cid, uid, iid,
+                          "⚠️ طرح منتشرشده است؛ نوع آن تغییر نمی‌کند")
+    db_execute("UPDATE cert_issues SET cert_kind=? WHERE id=?",
+               (kind, int(iid)))
+    try:
+        from auth import log_action
+        log_action(uid, "cert_issue_kind",
+                   {"issue": int(iid), "kind": kind})
+    except Exception:
+        pass
+    show_issue(cid, uid, iid,
+               f"✅ نوع گواهی: {CERT_KINDS[kind][0]} {CERT_KINDS[kind][1]}")
+
+
+def revoke_share(cid, uid, share_id, undo=False):
+    """
+    🚫 فاز ۹.۲ — ابطال / بازگردانی گواهی یک گیرندهٔ مرکز صدور
+
+    گواهی‌های مرکز event_id ندارند و از مسیر ابطال رویداد
+    (certissue.revoke) قابل دسترسی نبودند. ردیف حذف نمی‌شود؛
+    فقط revoked عوض می‌شود، عامل و دلیل در گزارش فعالیت می‌ماند
+    و وضعیت تازه به آینهٔ سرور می‌رسد.
+    """
+    from bale_api import send
+    if not _guard(cid, uid):
+        return
+    sh = db_execute("SELECT * FROM cert_shares WHERE id=?",
+                    (int(share_id),), fetch="one")
+    if not sh or not sh.get("cert_id"):
+        return send(cid, "❌ گواهی ساخته‌شده‌ای برای این گیرنده نیست")
+    cert_id = int(sh["cert_id"])
+    db_execute("UPDATE certificates SET revoked=? WHERE id=?",
+               (0 if undo else 1, cert_id))
+    try:
+        from auth import log_action
+        log_action(uid, "cert_restored" if undo else "cert_revoked",
+                   {"certificate": cert_id, "share": int(share_id),
+                    "issue": sh.get("issue_id"),
+                    "reason": "cert_center_admin"})
+    except Exception:
+        pass
+    try:
+        import shared_certificates as _sc
+        _sc.sync_after_change(cert_id)
+    except Exception:
+        pass
+    send(cid, "♻️ از ابطال خارج شد" if undo else
+              "🚫 باطل شد — استعلام دیگر تأیید نمی‌کند")
+    return show_share_list(cid, uid, sh.get("issue_id"))
 
 
 def show_tpl_pick(cid, uid, iid):
@@ -1532,16 +1667,35 @@ def show_share_list(cid, uid, iid, page=0):
 
     lines = [f"📋 گیرندگان ({_fa(len(rows))})",
              "━━━━━━━━━━━━━━", ""]
+    revoked_ids = set()
+    built_ids = [s["cert_id"] for s in chunk if s.get("cert_id")]
+    if built_ids:
+        marks = ",".join("?" * len(built_ids))
+        for r in db_execute(
+                f"SELECT id FROM certificates WHERE id IN ({marks}) "
+                "AND COALESCE(revoked,0)=1", tuple(built_ids),
+                fetch="all") or []:
+            revoked_ids.add(r["id"])
+    btns = []
     for i, s in enumerate(chunk, page * per + 1):
         st = {"built": "✅", "failed": "❌"}.get(s.get("state"), "⏳")
+        rev = s.get("cert_id") in revoked_ids
+        if rev:
+            st = "🚫"
         who = s.get("full_name") or "—"
         tag = "" if s.get("bale_user_id") else " ⚠️"
         lines.append(f"{_fa(i)}. {st} {who}{tag}")
+        if s.get("state") == "built" and s.get("cert_id"):
+            btns.append([{
+                "text": (f"♻️ بازگردانی {_short(who, 18)}" if rev
+                         else f"🚫 ابطال {_short(who, 18)}"),
+                "callback_data": (f"cc_sunrev_{s['id']}" if rev
+                                  else f"cc_srev_{s['id']}")}])
     if not rows:
         lines.append("📭 خالی")
-    lines += ["", "✅ دریافت‌کرده · ⏳ در انتظار · ⚠️ بدون حساب ربات"]
+    lines += ["", "✅ دریافت‌کرده · ⏳ در انتظار · 🚫 باطل‌شده · "
+              "⚠️ بدون حساب ربات"]
 
-    btns = []
     nav = []
     if page > 0:
         nav.append({"text": "◀️",
@@ -1654,8 +1808,23 @@ def do_publish(cid, uid, iid):
     n, err = publish(iid, notify=True)
     if err:
         return show_issue(cid, uid, iid, f"❌ {err}")
+    _audit_publish(uid, iid, "notify")
     show_issue(cid, uid, iid,
                f"🎉 منتشر شد — {_fa(n)} اعلان فرستاده شد")
+
+
+def _audit_publish(uid, iid, way):
+    """📝 فاز ۹.۲ — عامل، نوع و راه انتشار در گزارش فعالیت"""
+    try:
+        from auth import log_action
+        iss = get_issue(iid) or {}
+        log_action(uid, "cert_issue_published",
+                   {"issue": int(iid), "kind": kind_of(iss),
+                    "title": str(iss.get("title") or "")[:80],
+                    "way": way,
+                    "recipients": int(iss.get("total") or 0)})
+    except Exception:
+        pass
 
 
 def renotify(cid, uid, iid):
@@ -2348,7 +2517,7 @@ def show_stats(cid, uid):
                     "WHERE state='failed'") or 0
     n_all = db_scalar("SELECT COUNT(*) FROM certificates") or 0
     n_ctr = db_scalar("SELECT COUNT(*) FROM certificates "
-                      "WHERE source='center'") or 0
+                      "WHERE source IN ('center','recording')") or 0
     pct = int(n_b * 100 / max(1, n_sh))
     bar = "█" * (pct // 10) + "░" * (10 - pct // 10)
 
@@ -2864,12 +3033,14 @@ def publish_way(cid, uid, iid, way):
         n, err = publish(iid, notify=False)
         if err:
             return show_issue(cid, uid, iid, f"❌ {err}")
+        _audit_publish(uid, iid, "link")
         return show_link(cid, uid, iid)
 
     if way == "silent":
         n, err = publish(iid, notify=False)
         if err:
             return show_issue(cid, uid, iid, f"❌ {err}")
+        _audit_publish(uid, iid, "silent")
         return show_issue(cid, uid, iid,
                           "🤫 منتشر شد — بدون اعلان")
 
@@ -2878,6 +3049,7 @@ def publish_way(cid, uid, iid, way):
     n, err = publish(iid, notify=True)
     if err:
         return show_issue(cid, uid, iid, f"❌ {err}")
+    _audit_publish(uid, iid, "notify")
     return show_issue(cid, uid, iid,
                       f"🎉 منتشر شد — {_fa(n)} اعلان فرستاده شد")
 

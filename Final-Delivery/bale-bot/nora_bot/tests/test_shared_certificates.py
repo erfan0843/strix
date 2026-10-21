@@ -145,6 +145,13 @@ class SharedCertificateSyncTests(unittest.TestCase):
             self.assertEqual(fallback["kind"], "manual")
             self.assertEqual(fallback["holder_name"], "علی رضایی")
             self.assertEqual(fallback["title"], "")
+            # فاز ۹.۲ — گواهی پایان محتوای ضبط‌شده: kind جدا؛ بدون جدول‌های مرکز، عنوان به نام قالب برمی‌گردد
+            run("INSERT INTO certificates (id, event_id, bale_user_id, serial, template_id, source) "
+                "VALUES (6, NULL, 910001, 'NC-0006', 5, 'recording')")
+            recording = sc.build_payload(run, sc.load_certificate(run, 6), source="bot", source_key="")
+            self.assertEqual(recording["kind"], "recording")
+            self.assertEqual(recording["event_ref"], "")
+            self.assertEqual(recording["title"], "قالب پایه")
         finally:
             conn.close()
 

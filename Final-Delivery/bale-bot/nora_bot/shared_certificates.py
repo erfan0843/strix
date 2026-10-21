@@ -28,7 +28,11 @@ _META_TABLE = "nora_legacy_migration_meta"
 _UUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\Z")
 _USER_ID = re.compile(r"[1-9][0-9]{0,19}\Z")
 _MAX_FILE = 8 * 1024 * 1024
-_SOURCE_KINDS = {"event": "event", "batch": "batch", "form": "form", "manual": "manual", "center": "center"}
+_SOURCE_KINDS = {
+    "event": "event", "batch": "batch", "form": "form", "manual": "manual", "center": "center",
+    # فاز ۹.۲ — گواهی «پایان محتوای آموزشی ضبط‌شده» از مرکز صدور (certcenter.CERT_KINDS)
+    "recording": "recording",
+}
 SYNC_COLUMNS = {"shared_certificate_id": "TEXT", "shared_synced_at": "TEXT"}
 
 Executor = Callable[..., Any]
@@ -141,6 +145,16 @@ def build_payload(run: Executor, cert: dict[str, Any], *, source: str, source_ke
     title = ""
     if cert.get("event_cert_id"):
         row = run("SELECT title FROM event_certs WHERE id=?", (int(cert["event_cert_id"]),), fetch="one")
+        title = _text((row or {}).get("title"), 200)
+    if not title and str(cert.get("source") or "") in ("center", "recording"):
+        # گواهی مرکز صدور: عنوان طرح (cert_issues.title) از طریق سهم گیرنده
+        try:
+            row = run(
+                "SELECT i.title FROM cert_shares s JOIN cert_issues i ON i.id=s.issue_id WHERE s.cert_id=?",
+                (int(cert["id"]),), fetch="one",
+            )
+        except Exception:
+            row = None
         title = _text((row or {}).get("title"), 200)
     if not title and cert.get("template_id"):
         row = run("SELECT name FROM cert_templates WHERE id=?", (int(cert["template_id"]),), fetch="one")
