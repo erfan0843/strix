@@ -315,7 +315,7 @@
     return `<div class="ei-embed" data-rec-embed="${esc(row.id)}" data-embed-provider="${esc(video.provider)}" data-embed-state="loading">
         <iframe src="${esc(video.embed)}" title="${esc(row.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen data-rec-embed-frame="${esc(row.id)}"></iframe>
         <div class="ei-embed-state" role="status" data-rec-embed-state><span data-embed-text>در حال بارگذاری پخش‌کنندهٔ ${esc(name)}…</span></div></div>
-      <p class="ei-embed-note">پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد، همان پیام خود ${esc(name)} در قاب دیده می‌شود. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
+      <p class="ei-embed-note">پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد یا شناسه‌اش اشتباه ثبت شده باشد، همان پیام یا کد خطای خود ${esc(name)} در قاب دیده می‌شود و نورا نمی‌تواند آن را برطرف کند؛ در این حالت از پیوند روبه‌رو در خود سکو ببینید یا به برگزارکننده اطلاع دهید. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
   }
   function wireEmbeds(scope) {
     const win = doc.defaultView || window;

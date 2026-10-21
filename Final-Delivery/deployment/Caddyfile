@@ -7,5 +7,10 @@ lifeline1.ir, www.lifeline1.ir {
         Strict-Transport-Security "max-age=31536000"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # فاز ۹.۲ — CSP پیشنهادی برای قاب‌های ویدیو (فعال نیست؛ در این مخزن در مرورگر واقعی آزموده نشده).
+        # پخش‌کنندهٔ محتوای ضبط‌شده فقط از دو مبدأ رسمی قاب می‌سازد (event-interaction.js → EMBED_ORIGINS):
+        #   youtube-nocookie.com و aparat.com. 'self' برای پیش‌نمایش PDF و loading-preview.html لازم است.
+        # پیش از فعال‌کردن، صفحه‌های رویداد/حساب/پنل را با ویدیوی یوتیوب و آپارات در مرورگر آزمایش کنید.
+        # Content-Security-Policy "frame-src 'self' https://www.youtube-nocookie.com https://www.aparat.com"
     }
 }
