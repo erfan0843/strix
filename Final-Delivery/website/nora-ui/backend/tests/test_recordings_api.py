@@ -36,6 +36,7 @@ from backend.config import Settings  # noqa: E402
 from backend.models import (  # noqa: E402
     AdminAuditEventRecord,
     Base,
+    CertificateRecord,
     FormResponseRecord,
     RecordingAccessRecord,
     RecordingOrderRecord,
@@ -952,5 +953,68 @@ def test_registration_and_purchase_forms_of_one_event_stay_separate():
             assert relabel.status_code == 409 and relabel.json()["detail"]["code"] in {"published_form_read_only", "form_has_responses"}
             assert owner.get(f"/api/forms/{registration_form}").json()["purpose"] == "registration"
             assert registrant_id
+    finally:
+        engine.dispose()
+
+
+def test_completion_certificate_policy_is_explicit_and_nothing_is_ever_issued_automatically():
+    """§۲ فاز ۹.۱: گواهی «پایان محتوای ضبط‌شده» یک سوییچ صریح به‌ازای هر محصول است؛ خرید/دسترسی/تماشا
+    هیچ گواهی‌ای صادر نمی‌کند و حضور (ticket_checked_in_at) را هم لمس نمی‌کند."""
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            held, _version = held_event(owner, 0)
+            product = build_sellable_product(owner, held, price=0, payment_card=None)
+            recording = product["recording"]
+            # Default: no certificate; the admin payload states the policy and that nothing is automatic.
+            assert recording["certificate_policy"] == "none"
+            assert recording["certificate"] == {
+                "kind": "recording_completion", "policy": "none", "automatic": False,
+                "manual_issue_only": False, "counts_as_attendance": False,
+            }
+            # Only the two known policies exist: there is no "automatic" / "on_purchase" mode to pick.
+            bad = put_recording(owner, held, certificate_policy="automatic")
+            assert bad.status_code == 422
+            bad = put_recording(owner, held, certificate_policy="on_purchase")
+            assert bad.status_code == 422
+            toggled = put_recording(owner, held, certificate_policy="manual")
+            assert toggled.status_code == 200 and toggled.json()["certificate"]["manual_issue_only"] is True
+            audit = [row for row in audit_actions(engine) if row == "recording.update"]
+            assert audit, "تغییر سیاست گواهی باید در لاگ ممیزی ثبت شود"
+            with Session(engine) as db:
+                last = db.scalars(
+                    select(AdminAuditEventRecord).where(AdminAuditEventRecord.action == "recording.update")
+                    .order_by(AdminAuditEventRecord.created_at.desc())
+                ).first()
+                assert last is not None and last.details["certificate_policy_before"] == "none"
+                assert last.details["certificate_policy_after"] == "manual"
+
+            assert set_status(owner, held, "ready").status_code == 200
+            assert set_status(owner, held, "published").status_code == 200
+            recording_id = recording["id"]
+
+            # Guest/member views carry the same honest statement.
+            member = TestClient(app)
+            bale_login(member, 95201)
+            view = recording_view(member, held)
+            assert view["certificate"]["policy"] == "manual" and view["certificate"]["automatic"] is False
+            assert view["certificate"]["counts_as_attendance"] is False
+
+            # A free claim (access granted) issues nothing and the library repeats the policy.
+            claimed = member.post(f"/api/account/recordings/{recording_id}/claim", headers=account_write_headers(member))
+            assert claimed.status_code == 201
+            library = member.get("/api/account/recordings").json()["items"]
+            assert library[0]["certificate"]["policy"] == "manual" and library[0]["certificate"]["automatic"] is False
+            with Session(engine) as db:
+                assert db.scalar(select(CertificateRecord.id)) is None
+                assert len(db.scalars(select(RecordingAccessRecord)).all()) == 1
+            # No server route issues a recording certificate: the only mirror entry point is the bot service.
+            for path in (f"/api/account/recordings/{recording_id}/certificate",
+                         f"/api/admin/events/{held}/recording/certificate"):
+                assert member.post(path, headers=account_write_headers(member)).status_code in {404, 405}
+            assert owner.post("/api/bot/certificates", json={}).status_code in {401, 403}
+            with Session(engine) as db:
+                assert db.scalar(select(CertificateRecord.id)) is None
     finally:
         engine.dispose()

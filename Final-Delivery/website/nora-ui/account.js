@@ -922,11 +922,16 @@ function recLibraryCard(item){
   const expiry=access.state==='revoked'?(access.revoked_at?'لغو در '+accountServerDate(access.revoked_at):'لغو شده')
     :access.expires_at?(active?'دسترسی تا ':'پایان‌یافته در ')+accountServerDate(access.expires_at):active?'دسترسی دائمی':'';
   const unpublished=item.status&&item.status!=='published';
+  /* گواهی پایان محتوا: فقط بیان سیاست سرور؛ هیچ دکمهٔ «دریافت گواهی» وجود ندارد چون صدور خودکار وجود ندارد. */
+  const cert=item.certificate&&!item.certificate.automatic?(item.certificate.policy==='manual'
+    ?'گواهی پایان محتوا: فقط با صدور دستی برگزارکننده؛ خرید یا تماشا به‌تنهایی گواهی نمی‌سازد'
+    :'گواهی پایان محتوا: برای این محتوا صادر نمی‌شود'):'';
   return `<article class="card acct server-registration rec-library" data-account-rec-library="${esc(item.recording_id)}" data-rec-access-state="${esc(access.state||'')}">
     <div class="row"><span class="sp"><b>${esc(item.title||'محتوای ضبط‌شده')}</b>${meta?`<small class="cap">${esc(meta)}</small>`:''}</span>${chip(label,tone)}</div>
     <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">
       ${source?`<small class="cap">${esc(source)}</small>`:''}${expiry?`<small class="cap">${esc(expiry)}</small>`:''}
       ${access.granted_at?`<small class="cap">از ${esc(accountServerDate(access.granted_at))}</small>`:''}</div>
+    ${cert?`<small class="cap" data-account-rec-certificate="${esc(item.certificate.policy)}">${esc(cert)}</small>`:''}
     <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
       ${active&&!unpublished?`<a class="btn sm primary" href="${esc(recEventHref(item,'#recording-sessions'))}" data-account-rec-view>${ico('i-play')} مشاهدهٔ جلسات</a>`
         :active&&unpublished?`<small class="cap">این محتوا فعلاً از سوی برگزارکننده در دسترس نیست.</small>`

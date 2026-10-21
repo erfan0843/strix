@@ -7018,18 +7018,24 @@ function recSummaryCard(){
     <div class="kpis">${cells.map(([l,v])=>`<div class="kpi"><b>${fa(Number(v)||0)}</b><small>${esc(l)}</small></div>`).join('')}</div>
     <div class="row tight" style="flex-wrap:wrap">${btn('سفارش‌های نیازمند بررسی','data-rec-open-orders','i-wallet')}</div></article>`;
 }
+/* فاز ۹.۱ §۲: گواهی پایان محتوای ضبط‌شده: سوییچ صریح به‌ازای هر محصول؛ هیچ حالت خودکاری وجود ندارد.
+   سرور نه نمره‌ای ثبت می‌کند نه «تماشا» را می‌شناسد؛ «manual» فقط یعنی برگزارکننده می‌تواند از مسیر موجود صدور
+   گواهی (ربات، با مجوز و لاگ) آن را صادر کند. خرید/دسترسی/تماشا به‌تنهایی هیچ گواهی‌ای نمی‌سازد و گواهی حضور رویداد جداست. */
+const REC_CERT_POLICY={none:'صادر نمی‌شود',manual:'فقط صدور دستی توسط برگزارکننده (خرید به‌تنهایی کافی نیست)'};
+const REC_CERT_HINT='این گواهی با «گواهی حضور» رویداد یکی نیست و هیچ‌وقت خودکار صادر نمی‌شود؛ سرور نمره یا تکمیل تماشا را ثبت نمی‌کند، پس صدور فقط از مسیر موجود گواهینامه (با مجوز و دلیل و لاگ) انجام می‌شود.';
 /* ── زبانهٔ محصول ── */
 function recForm(rec){
   /* فاز ۹.۱: کارت مقصد و کلید کیف پول دیگر روی محصول ویرایش نمی‌شوند (منبع: فرم خرید). قیمت فقط تا پیش از اتصال فرم ویرایش‌پذیر است. */
   return {title:rec?rec.title:EI.title||'',summary:rec?rec.summary:'',outcomes:rec?rec.outcomes:'',audience:rec?rec.audience:'',access_terms:rec?rec.access_terms:'',refund_policy:rec?rec.refund_policy:'',
     faq:rec?(rec.faq||[]).map(x=>`${x.q} :: ${x.a}`).join('\n'):'',price:rec?String(recFormSourced(rec)?rec.commerce.price:rec.price):'0',access_days:rec&&rec.access_days?String(rec.access_days):'',attendee_access:rec?!!rec.attendee_access:false,
-    download_default:rec?rec.download_default!==false:true,cover_url:rec?rec.cover_url||'':'',formSourced:recFormSourced(rec)};
+    download_default:rec?rec.download_default!==false:true,cover_url:rec?rec.cover_url||'':'',certificate_policy:rec&&rec.certificate_policy==='manual'?'manual':'none',formSourced:recFormSourced(rec)};
 }
 function recPayload(f){
   const faq=String(f.faq||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf('::'); return i<0?{q:l,a:''}:{q:l.slice(0,i).trim(),a:l.slice(i+2).trim()}});
   const out={title:String(f.title||'').trim(),summary:String(f.summary||'').trim(),outcomes:String(f.outcomes||'').trim(),audience:String(f.audience||'').trim(),access_terms:String(f.access_terms||'').trim(),refund_policy:String(f.refund_policy||'').trim(),
     faq,access_days:String(f.access_days||'').trim()?Number(String(f.access_days).trim()):null,
-    attendee_access:!!f.attendee_access,download_default:!!f.download_default,cover_url:String(f.cover_url||'').trim()};
+    attendee_access:!!f.attendee_access,download_default:!!f.download_default,cover_url:String(f.cover_url||'').trim(),
+    certificate_policy:f.certificate_policy==='manual'?'manual':'none'};
   /* قیمت فقط وقتی فرستاده می‌شود که منبع تجاری هنوز خود محصول باشد؛ با فرم خرید متصل، سرور تغییر آن را ۴۰۹ می‌کند. */
   if(!f.formSourced) out.price=/^\d+$/.test(String(f.price).trim())?Number(String(f.price).trim()):String(f.price);
   return out;
@@ -7056,6 +7062,12 @@ function recEditor(){
       ${field('نشانی جلد (از رسانه‌های پنل)','cover_url',{dir:'ltr',ph:'/api/public/media/…',max:300})}
     </div>
     <div class="row tight" style="flex-wrap:wrap">${flag('حاضران تأییدشده رایگان دسترسی دارند','attendee_access')}${flag('فایل‌ها به‌طور پیش‌فرض قابل دانلود باشند','download_default')}</div>
+    <label class="fld" for="recf_certificate_policy" data-rec-certificate><span class="lbl">گواهی «پایان محتوای آموزشی ضبط‌شده»</span>
+      <select id="recf_certificate_policy" class="input" data-rec-field="certificate_policy">
+        <option value="none" ${f.certificate_policy!=='manual'?'selected':''}>${esc(REC_CERT_POLICY.none)}</option>
+        <option value="manual" ${f.certificate_policy==='manual'?'selected':''}>${esc(REC_CERT_POLICY.manual)}</option>
+      </select>
+      <small class="cap" ${err.certificate_policy?'style="color:var(--stop)"':''}>${esc(err.certificate_policy||REC_CERT_HINT)}</small></label>
     <p class="cap" data-rec-commerce-note>کارت مقصد کارت‌به‌کارت و کیف پول بله روی محصول تنظیم نمی‌شوند؛ این‌ها در «فرم خرید» همین محصول (فرم‌ساز) تعریف می‌شوند${walletReady?'.':' · کیف پول بله روی این سرور آمادهٔ دریافت پرداخت نیست؛ تا پیکربندی، فقط کارت‌به‌کارت با بررسی رسید کار می‌کند.'}</p>
     ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
     <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت محصول (پیش‌نویس)',`data-rec-save ${EI.busy?'disabled':''}`,'i-check')}<button class="btn sm quiet" data-rec-cancel>انصراف</button></div></section>`;
@@ -7064,7 +7076,7 @@ function recStatusBox(rec){
   const blockers=(rec.publish_blockers||[]).map(b=>`<li>${esc(REC_BLOCKER[b]||b)}</li>`).join('');
   const transitions=eiCanMod()?(rec.transitions||[]).map(t=>{const disabled=t==='published'&&(rec.publish_blockers||[]).length; return btn(REC_STATUS_ACTION[t]||t,`data-rec-status="${t}" ${disabled?'disabled title="موانع انتشار را برطرف کنید"':''}`,t==='published'?'i-globe':t==='archived'?'i-trash':t==='sales_paused'?'i-lock':'i-refresh')}).join(''):'';
   const c=rec.counts||{};
-  return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.commerce?rec.commerce.price:rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
+  return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.commerce?rec.commerce.price:rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}${tag(rec.certificate_policy==='manual'?'گواهی پایان محتوا: صدور دستی':'بدون گواهی پایان محتوا','')}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
     ${rec.status_reason?`<p class="cap">دلیل آخرین تغییر وضعیت: ${esc(rec.status_reason)}</p>`:''}
     <p class="cap" data-rec-counts>سفارش‌های باز: ${fa(c.orders_open||0)} · در انتظار بررسی: ${fa(c.orders_review||0)} · پرداخت‌شده: ${fa(c.orders_paid||0)} · دسترسی فعال: ${fa(c.access_active||0)} از ${fa(c.access_total||0)} · جلسات منتشرشده: ${fa((rec.sessions||[]).filter(x=>x.status==='published').length)}</p>
     ${blockers?`<div class="stack" data-rec-blockers><small class="cap">موانع انتشار (از سرور):</small><ul class="cap" style="margin:0;padding-inline-start:18px">${blockers}</ul></div>`:(rec.status==='published'?`<p class="cap">این محصول در صفحهٔ رویداد قابل خرید است${recFormSourced(rec)?' (از راه فرم خرید)':''}.</p>`:'')}

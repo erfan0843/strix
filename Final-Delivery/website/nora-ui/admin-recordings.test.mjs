@@ -170,7 +170,10 @@ async function loadPanel(identity) {
             const prev = state.recording;
             state.recording = { id: REC_ID, event_id: EV, event_title: 'کارگاه برگزارشده', status: prev ? prev.status : 'draft', status_reason: prev ? prev.status_reason : '', currency: 'IRR', published_at: null, version: prev ? prev.version + 1 : 1, created_at: '2026-10-21T06:00:00+00:00', updated_at: '2026-10-21T06:00:00+00:00',
               title: sent.title, summary: sent.summary || '', outcomes: sent.outcomes || '', audience: sent.audience || '', access_terms: sent.access_terms || '', refund_policy: sent.refund_policy || '', faq: sent.faq || [], price: 'price' in sent ? sent.price : (prev ? prev.price : 0), access_days: sent.access_days,
-              attendee_access: !!sent.attendee_access, download_default: sent.download_default !== false, bale_enabled: prev ? prev.bale_enabled : true, payment_card: prev ? prev.payment_card : null, cover_url: sent.cover_url || '' };
+              attendee_access: !!sent.attendee_access, download_default: sent.download_default !== false, bale_enabled: prev ? prev.bale_enabled : true, payment_card: prev ? prev.payment_card : null, cover_url: sent.cover_url || '',
+              certificate_policy: 'certificate_policy' in sent ? sent.certificate_policy : (prev ? prev.certificate_policy : 'none') };
+            if (!['none', 'manual'].includes(state.recording.certificate_policy)) return reply(422, { detail: { code: 'invalid_choice', field: 'certificate_policy' } });
+            state.recording.certificate = { kind: 'recording_completion', policy: state.recording.certificate_policy, automatic: false, manual_issue_only: state.recording.certificate_policy === 'manual', counts_as_attendance: false };
             return reply(prev ? 200 : 201, adminRecording());
           }
           if (part === 'status') {
@@ -275,11 +278,19 @@ console.log('— مالک: ساخت محصول، جلسه، فایل جلسه ا
     assert.equal(app.doc.querySelector('[data-rec-flag="bale_enabled"]'), null, 'ویرایشگر محصول کلید کیف پول ندارد');
     assert.match(app.doc.querySelector('[data-rec-commerce-note]').textContent, /در «فرم خرید» همین محصول/, 'توضیح منبع تجاری');
     app.setField('#recf_faq', 'آیا دانلود دارد؟ :: بله، جزوه‌ها قابل دانلود است.');
+    /* ۹.۱ §۲: گواهی پایان محتوا یک سوییچ صریح با دو حالت است؛ هیچ گزینهٔ خودکاری وجود ندارد */
+    const certSelect = app.doc.querySelector('#recf_certificate_policy');
+    assert.ok(certSelect && certSelect.tagName === 'SELECT', 'انتخاب‌گر سیاست گواهی پایان محتوا');
+    assert.deepEqual(Array.from(certSelect.options).map((o) => o.value), ['none', 'manual'], 'فقط «صادر نمی‌شود» و «صدور دستی»');
+    assert.equal(certSelect.value, 'none', 'پیش‌فرض: بدون گواهی');
+    assert.match(app.doc.querySelector('[data-rec-certificate]').textContent, /هیچ‌وقت خودکار صادر نمی‌شود/, 'توضیح صادقانه: صدور خودکار وجود ندارد');
     app.click('[data-rec-save]');
     await app.until(() => app.doc.querySelector('[data-rec-status-box]'), 'محصول ساخته شد');
     const created = app.calls.find((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/recording`);
     const sentBody = JSON.parse(created.body);
     assert.equal(sentBody.price, 1500000); assert.equal(sentBody.access_days, null);
+    assert.equal(sentBody.certificate_policy, 'none', 'سیاست گواهی در payload می‌رود');
+    assert.match(app.doc.querySelector('[data-rec-status-box]').textContent, /بدون گواهی پایان محتوا/, 'کادر وضعیت سیاست گواهی را نشان می‌دهد');
     assert.ok(!('payment_card' in sentBody) && !('bale_enabled' in sentBody), 'کارت مقصد/کیف پول در payload محصول فرستاده نمی‌شود');
     assert.deepEqual(sentBody.faq, [{ q: 'آیا دانلود دارد؟', a: 'بله، جزوه‌ها قابل دانلود است.' }]);
     assert.equal(created.headers['X-CSRF-Token'], 'owner-csrf');
@@ -343,10 +354,13 @@ console.log('— مالک: ساخت محصول، جلسه، فایل جلسه ا
     app.click('[data-rec-edit]'); await app.until(() => app.doc.querySelector('[data-rec-editor]'), 'ویرایشگر');
     assert.equal(app.doc.querySelector('#recf_price'), null, 'با فرم متصل، فیلد قیمت وجود ندارد');
     assert.match(app.doc.querySelector('[data-rec-price-locked]').textContent, /از فرم‌ساز تغییر می‌کنند/);
-    app.setField('#recf_summary', 'خلاصهٔ تازه'); app.click('[data-rec-save]');
+    app.setField('#recf_summary', 'خلاصهٔ تازه'); app.setField('#recf_certificate_policy', 'manual'); app.click('[data-rec-save]');
     await app.until(() => app.doc.querySelector('[data-rec-status-box]'), 'ذخیرهٔ غیرتجاری');
     const edited = JSON.parse(app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/recording`).pop().body);
     assert.ok(!('price' in edited) && edited.summary === 'خلاصهٔ تازه', 'ویرایش غیرتجاری بدون فیلد قیمت فرستاده می‌شود');
+    assert.equal(edited.certificate_policy, 'manual', 'سوییچ گواهی دستی ذخیره می‌شود');
+    assert.match(app.doc.querySelector('[data-rec-status-box]').textContent, /گواهی پایان محتوا: صدور دستی/, 'وضعیت پس از تغییر سیاست');
+    assert.equal(app.doc.querySelector('[data-rec-issue-certificate], [data-rec-cert-issue]'), null, 'پنل دکمهٔ صدور گواهی برای محصول ندارد (مسیر صدور فقط مسیر موجود گواهینامه است)');
     /* انتشار فرم خرید در فرم‌ساز → مانع برطرف */
     app.state.purchaseForm.status = 'published';
     app.click('[data-ei-tab="orders"]'); await app.until(() => app.doc.querySelector('[data-rec-orders]'), 'زبانهٔ سفارش‌ها');

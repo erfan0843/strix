@@ -92,7 +92,13 @@ INVOICE_PREFIX = "norac_"
 NOTIFICATION_KIND = "recording_access"
 ORDER_NOTIFICATION_KIND = "recording_order"
 CURRENCY = "IRR"
+# Completion-certificate policy of a recorded product. There is deliberately no automatic mode:
+# the server has no trustworthy completion/scoring signal (the form builder does not grade
+# answers server-side and play events are browser values), so ``manual`` only records that the
+# organiser *may* issue a certificate through the existing bot issuance path (permission +
+# action log + shared mirror).  Purchase alone never yields a certificate of any kind.
 CERTIFICATE_POLICIES: tuple[str, ...] = ("none", "manual")
+CERTIFICATE_KIND = "recording_completion"
 PURCHASE_FORM_PURPOSE = "recording_access"
 
 _SAFE_RELATIVE = re.compile(r"^/api/public/media/[0-9a-f-]{36}$")
@@ -687,6 +693,24 @@ def session_resource_view(
     return view
 
 
+def certificate_view(recording: EventRecordingRecord) -> dict[str, Any]:
+    """Honest certificate statement for one recorded product.
+
+    * ``kind`` is the completion certificate («پایان محتوای آموزشی ضبط‌شده»), never the event's
+      attendance certificate — buying or watching a recording is not attendance.
+    * ``automatic`` is always ``False``: nothing on the server issues a certificate from a
+      purchase, an access grant or a play event.
+    * ``manual_issue_only`` mirrors the organiser's explicit per-product toggle.
+    """
+    return {
+        "kind": CERTIFICATE_KIND,
+        "policy": recording.certificate_policy,
+        "automatic": False,
+        "manual_issue_only": recording.certificate_policy == "manual",
+        "counts_as_attendance": False,
+    }
+
+
 def recording_public_view(
     recording: EventRecordingRecord,
     *,
@@ -722,6 +746,7 @@ def recording_public_view(
             "on_sale": commerce.on_sale and recording.status == "published",
         },
         "certificate_policy": recording.certificate_policy,
+        "certificate": certificate_view(recording),
         "access_days": recording.access_days,
         "attendee_access": recording.attendee_access,
         "download_default": recording.download_default,
@@ -778,6 +803,7 @@ def recording_admin_view(
         # Effective commercial settings: the purchase form wins when linked.
         "commerce": commerce_view(commerce),
         "certificate_policy": recording.certificate_policy,
+        "certificate": certificate_view(recording),
         "access_days": recording.access_days,
         "attendee_access": recording.attendee_access,
         "download_default": recording.download_default,
@@ -947,6 +973,7 @@ def library_item_view(
             "granted_at": iso(row.created_at),
             "revoked_at": iso(row.revoked_at),
         },
+        "certificate": certificate_view(recording),
         # Watch progress is not recorded anywhere yet: the page must not pretend otherwise.
         "progress": None,
     }

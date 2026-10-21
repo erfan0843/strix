@@ -275,6 +275,13 @@
     use_purchase_form: 'خرید فقط از فرم خرید همین محصول انجام می‌شود.', order_follows_form_payment: 'این سفارش به پرداخت فرم خرید وابسته است و از این‌جا لغو نمی‌شود.',
     recording_not_on_sale: 'این محتوا الان در فروش نیست.', account_required: 'برای خرید باید وارد حساب شوید.'
   };
+  function rCertificate(d) {
+    const c = d && d.certificate;
+    if (!c || c.automatic) return '';
+    return c.policy === 'manual'
+      ? 'گواهی «پایان محتوای آموزشی ضبط‌شده» فقط با تأیید و صدور دستی برگزارکننده؛ خرید یا تماشا به‌تنهایی گواهی نمی‌سازد و با گواهی حضور رویداد یکی نیست'
+      : 'برای این محتوا گواهی صادر نمی‌شود (خرید، حضور در رویداد به شمار نمی‌آید)';
+  }
   const rMoney = value => (Number(value) > 0 ? `${fa(Number(value).toLocaleString('en-US'))} ریال` : 'رایگان');
   const rMinutes = value => { const n = Number(value) || 0; if (!n) return ''; const h = Math.floor(n / 60), m = n % 60; return h ? `${fa(h)} ساعت${m ? ` و ${fa(m)} دقیقه` : ''}` : `${fa(m)} دقیقه`; };
   const rDescribe = error => (error && error.code && R_ERRORS[error.code]) ? R_ERRORS[error.code] : describe(error);
@@ -390,7 +397,9 @@
       ['نحوهٔ دریافت', d.download_default ? 'مشاهدهٔ برخط و دانلود (هر فایل طبق تنظیم خود)' : 'مشاهدهٔ برخط (دانلود فقط برای فایل‌های مجاز)'],
       ['جلسات', d.session_count ? `${fa(d.session_count)} جلسه${d.total_minutes ? ` · ${rMinutes(d.total_minutes)}` : ''}` : ''],
       ['انتشار', d.published_at ? when(d.published_at) : ''],
-      d.attendee_access ? ['شرکت‌کنندگان', 'برای حاضران تأییدشدهٔ همین رویداد رایگان است'] : null
+      d.attendee_access ? ['شرکت‌کنندگان', 'برای حاضران تأییدشدهٔ همین رویداد رایگان است'] : null,
+      /* گواهی پایان محتوا: فقط آنچه سرور می‌گوید؛ هیچ حالت خودکاری وجود ندارد و خرید، حضور به شمار نمی‌آید. */
+      ['گواهی پایان محتوا', rCertificate(d)]
     ].filter(item => item && item[1]);
     const status = d.status !== 'published' ? `<span class="reg-state ${d.status === 'sales_paused' ? 'warn' : 'mute'}">${esc(d.status === 'sales_paused' ? 'فروش متوقف' : d.status === 'archived' ? 'بایگانی' : d.status === 'ready' ? 'آمادهٔ انتشار (فقط کادر)' : 'پیش‌نویس (فقط کادر)')}</span>` : (v.access && v.access.allowed ? `<span class="reg-state ok">دسترسی دارید</span>` : d.free ? `<span class="reg-state ok">دسترسی رایگان</span>` : `<span class="reg-state mute">قابل خرید</span>`);
     const cover = d.cover_url && /^(?:\/api\/public\/media\/[0-9a-f-]{36}|https:\/\/[^\s"']+)$/i.test(String(d.cover_url)) ? `<img class="ei-rec-cover" src="${esc(d.cover_url)}" alt="" loading="lazy" decoding="async"/>` : '';

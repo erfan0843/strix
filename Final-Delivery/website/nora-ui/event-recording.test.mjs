@@ -33,7 +33,8 @@ function product(viewerKind, extra = {}) {
       : { kind: 'buy', reason: 'purchase_required', methods: ['card_transfer'], form_id: FORM });
   return { recording: {
     id: REC, event_id: EV, status: extra.status || 'published', title: 'ضبط کارگاه نجوم', summary: 'سه جلسه دربارهٔ آسمان شب.', outcomes: 'شناخت صور فلکی', audience: 'علاقه‌مندان', access_terms: 'مشاهدهٔ برخط؛ جزوه قابل دانلود', refund_policy: 'تا ۷ روز با درخواست کتبی',
-    faq: [{ q: 'آیا دانلود دارد؟', a: 'جزوه بله، ویدئو خیر.' }], price: extra.price == null ? 1500000 : extra.price, currency: 'IRR', free: extra.price === 0, access_days: 90, attendee_access: false, download_default: true, cover_url: '', published_at: '2026-10-21T06:00:00Z',
+    faq: [{ q: 'آیا دانلود دارد؟', a: 'جزوه بله، ویدئو خیر.' }], price: extra.price == null ? 1500000 : extra.price, currency: 'IRR', free: extra.price === 0, access_days: 90,
+    certificate_policy: extra.certificate_policy || 'none', certificate: { kind: 'recording_completion', policy: extra.certificate_policy || 'none', automatic: false, manual_issue_only: extra.certificate_policy === 'manual', counts_as_attendance: false }, attendee_access: false, download_default: true, cover_url: '', published_at: '2026-10-21T06:00:00Z',
     session_count: 1, total_minutes: 95,
     sessions: [{ id: SESS, title: 'جلسهٔ یکم: آسمان شب', description: '', sort_order: 1, duration_minutes: 95, preview: false, status: 'published', resources: [
       res(VID, 'ویدئوی جلسه', 'video/mp4', 'view', allowed, allowed ? 'purchased' : (signedIn ? 'purchase_required' : 'login_required'), false),
@@ -87,13 +88,20 @@ console.log('\n— مهمان روی رویداد برگزارشده با محص
   ok(!p.doc.querySelector('#reg') && p.txt('.event-register').includes('محتوای ضبط‌شده') && p.doc.querySelector('[data-recording-aside] [data-rec-login]'), 'ستون کناری به‌جای ثبت‌نام، پنل فشردهٔ محصول با همان CTA را نشان می‌دهد؛ فرم ثبت‌نام بسته است');
   ok(p.txt('#recording').includes('۹۰ روز پس از فعال‌شدن') && p.txt('#recording').includes('۱ جلسه') && p.txt('#recording').includes('۱ ساعت و ۳۵ دقیقه'), 'مدت دسترسی، شمار جلسات و مدت واقعی از سرور نمایش داده می‌شود');
   ok(!/تخفیف|نفر خریده|پرفروش|محبوب/.test(p.txt('#recording')), 'هیچ شمارندهٔ ساختگی، تخفیف یا برچسب محبوبیت نیست');
-  const vid = p.doc.querySelector('[data-rec-resource="' + VID + '"]');
-  ok(vid && !vid.querySelector('video') && !vid.querySelector('a[download]') && vid.textContent.includes('برای دسترسی وارد حساب شوید'), 'ویدئوی قفل برای مهمان: نه پخش‌کننده، نه پیوند؛ فقط دعوت به ورود');
-  const pdf = p.doc.querySelector('[data-rec-resource="' + PDF + '"] a[download]');
-  ok(pdf && pdf.getAttribute('href') === '/api/public/events/' + EV + '/resources/' + PDF + '/download' && p.txt('[data-rec-resource="' + PDF + '"]').includes('پیش‌نمایش رایگان'), 'فایل پیش‌نمایش برای همه از نقطهٔ مجوزدار سرور قابل دریافت است');
-  ok(p.txt('#recording').includes('آیا دانلود دارد؟') && p.txt('#recording').includes('تا ۷ روز با درخواست کتبی'), 'پرسش‌های متداول و سیاست بازپرداخت از سرور');
-  ok(p.doc.querySelector('#qa') && p.doc.querySelector('#reviews'), 'پرسش‌وپاسخ و دیدگاه‌ها همچنان داخل همین صفحه‌اند');
+  /* ۹.۱ §۲: گواهی پایان محتوا فقط طبق سیاست سرور؛ پیش‌فرض «صادر نمی‌شود» و هرگز «خودکار» */
+  ok(p.txt('#recording').includes('گواهی پایان محتوا') && p.txt('#recording').includes('برای این محتوا گواهی صادر نمی‌شود') && !/گواهی حضور شما|دریافت گواهی/.test(p.txt('#recording')), 'سیاست گواهی «none» صادقانه و بدون دکمهٔ دریافت');
   p.dom.window.close();
+  const certified = await load({ recording: product('guest', { certificate_policy: 'manual' }) });
+  ok(certified.txt('#recording').includes('فقط با تأیید و صدور دستی برگزارکننده') && certified.txt('#recording').includes('با گواهی حضور رویداد یکی نیست') && !certified.doc.querySelector('[data-rec-certificate-issue]'), 'سیاست «manual»: صدور دستی، جدا از گواهی حضور، بدون دکمهٔ صدور');
+  certified.dom.window.close();
+  const again = await load();
+  const vid = again.doc.querySelector('[data-rec-resource="' + VID + '"]');
+  ok(vid && !vid.querySelector('video') && !vid.querySelector('a[download]') && vid.textContent.includes('برای دسترسی وارد حساب شوید'), 'ویدئوی قفل برای مهمان: نه پخش‌کننده، نه پیوند؛ فقط دعوت به ورود');
+  const pdf = again.doc.querySelector('[data-rec-resource="' + PDF + '"] a[download]');
+  ok(pdf && pdf.getAttribute('href') === '/api/public/events/' + EV + '/resources/' + PDF + '/download' && again.txt('[data-rec-resource="' + PDF + '"]').includes('پیش‌نمایش رایگان'), 'فایل پیش‌نمایش برای همه از نقطهٔ مجوزدار سرور قابل دریافت است');
+  ok(again.txt('#recording').includes('آیا دانلود دارد؟') && again.txt('#recording').includes('تا ۷ روز با درخواست کتبی'), 'پرسش‌های متداول و سیاست بازپرداخت از سرور');
+  ok(again.doc.querySelector('#qa') && again.doc.querySelector('#reviews'), 'پرسش‌وپاسخ و دیدگاه‌ها همچنان داخل همین صفحه‌اند');
+  again.dom.window.close();
 }
 
 console.log('\n— کاربر واردشده (فاز ۹.۱): خرید فقط از فرم خریدِ فرم‌ساز؛ سفارش فرم‌دار باز بدون مسیر رسید موازی —');
