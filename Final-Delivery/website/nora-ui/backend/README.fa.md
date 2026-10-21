@@ -183,6 +183,13 @@ PY
 | `GET /api/forms/{id}/responses` | فهرست مستقل پاسخ هر نفر با مجوز `fm_responses`؛ ردیف همراه، نام/موبایل و «افزوده‌شده توسط» دارد. pagination حداکثر ۱۰۰ نفر. |
 | `DELETE /api/forms/{id}/responses/{response_id}` | حذف پاسخ فقط برای مالک و با CSRF. |
 | `GET /api/integrations/status`, `POST /api/outbox` | سیاست اتصال خاموش؛ پیام/صفی ایجاد یا ارسال نمی‌شود. |
+| `GET /api/public/events/{id}/interaction` | (فاز ۸) نمای تعامل یک رویداد منتشرشده: منابع با وضعیت دسترسیِ همین بیننده (`allowed`/`reason`)، پرسش‌های منتشرشده + پرسش‌های در انتظارِ خودِ کاربر، دیدگاه‌های منتشرشده و دیدگاه خود کاربر، وضعیت باز/بستهٔ پرسش‌وپاسخ و `server_time`. منابع `staff`/حذف‌شده/زمان‌بندی‌نشده برای غیرکارکنان دیده نمی‌شود. |
+| `GET /api/public/events/{id}/resources/{rid}/download` | (فاز ۸) دانلود فقط پس از بررسی سمت سرور: رویداد منتشر، منبع منتشر و `publish_at ≤ now`، سطح دسترسی `public` / `registered` (پاسخ پذیرفته‌شده با پرداخت تأییدشده در فرم همین رویداد) / `attended` (`ticket_checked_in_at`) / `staff`. ۴۰۱ بدون نشست، ۴۰۳ با `detail.reason`، ۴۰۴ برای شناسهٔ ناشناخته؛ `Content-Disposition` + `nosniff` + `no-store`. |
+| `POST /api/account/events/{id}/questions`, `POST …/questions/{qid}/report` | (فاز ۸) پرسش فقط با نشست حساب (هویت از سرور)، حداکثر ۱۰۰۰ نویسه، ضدتکرار (۴۰۹) و ۵ پرسش در ساعت (۴۲۹)؛ `qaClosed` یا رویداد لغوشده → ۴۰۹ `qa_closed`. گزارش فقط برای محتوای قابل‌مشاهده. |
+| `POST /api/account/events/{id}/reviews`, `PUT …/reviews/{rid}`, `POST …/reviews/{rid}/withdraw`, `POST …/reviews/{rid}/report` | (فاز ۸) دیدگاه فقط برای حضور تأییدشده (۴۰۳ `review_not_eligible`)، یک دیدگاه برای هر حساب/رویداد، بدون امتیاز عددی؛ ویرایش/انصراف خود کاربر بدون پاک‌شدن ردیف ممیزی. |
+| `GET/POST /api/admin/events/{id}/resources`, `PUT …/{rid}`, `PUT …/{rid}/file`, `POST …/{rid}/remove` | (فاز ۸) مدیریت منابع با `ev_create`: فایل (نوع/حجم/نام بررسی می‌شود، حداکثر ۸ مگابایت، بایت‌ها در DB) یا پیوند، زمان انتشار، سطح دسترسی، جایگزینی فایل، حذف منطقی با دلیل؛ همه با ردیف ممیزی. |
+| `GET /api/admin/events/{id}/questions`, `GET /api/admin/event-questions?answered=false`, `POST …/questions/{qid}/answer`, `POST …/questions/{qid}/status`, `POST …/questions/{qid}/resend-notification` | (فاز ۸) خواندن با `ev_create`/`ev_publish`؛ پاسخ، رسمی‌کردن، انتشار/پنهان‌سازی (پنهان‌سازی نیازمند دلیل) و ارسال دوبارهٔ اعلان فقط با `ev_publish`. پاسخ مستقل از نتیجهٔ اعلان ذخیره می‌شود. |
+| `GET /api/admin/events/{id}/reviews`, `POST …/reviews/{rid}/status`, `GET /api/admin/event-reports`, `POST /api/admin/event-reports/{id}/resolve`, `GET /api/admin/event-interaction/summary` | (فاز ۸) دیدگاه‌ها و گزارش‌های محتوا به تفکیک رویداد + خلاصهٔ بین‌رویدادی (بی‌پاسخ، در انتظار، گزارش باز) برای داشبورد؛ تغییر وضعیت با دلیل و بازیگر ممیزی می‌شود. |
 
 ## آزمون و وضعیت استقرار
 

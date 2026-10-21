@@ -102,3 +102,7 @@ schema.graphql
 
 # دیتابیس محلی ربات: هرگز در Git یا بسته‌ی تحویلی
 Final-Delivery/bale-bot/nora_bot/nora.db
+
+# اعتبارنامه‌های پیش‌نمایش محلی: هرگز در Git
+*.local.md
+*.local.txt
