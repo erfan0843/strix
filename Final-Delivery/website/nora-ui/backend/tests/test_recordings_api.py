@@ -313,6 +313,10 @@ def test_card_transfer_purchase_is_reviewed_server_side_and_access_is_decided_pe
             assert member.get("/api/account/recordings").json()["items"][0]["access"]["state"] == "revoked"
             assert recording_view(member, event_id)["viewer"]["cta"]["kind"] == "buy"
             assert owner.post(refund_url, json={"reference": "again", "reason": "دوباره"}, headers=owner_write_headers(owner)).status_code == 409
+            # The buyer is told about the refund through the same outbox (recorded ≠ delivered), reason + reference included.
+            after_refund = notifications(engine, member_id)
+            assert [item.kind for item in after_refund] == ["recording_access", "recording_order"]
+            assert "TRX-REF-2026-01" in after_refund[1].body and "انصراف خریدار" in after_refund[1].body and after_refund[1].delivery_status == "pending"
             # Export carries ids → finance only.
             assert manager.get("/api/admin/recording-orders?format=csv").status_code == 403
             export = owner.get("/api/admin/recording-orders?format=csv")
@@ -643,5 +647,47 @@ def test_buyers_review_with_server_badge_and_questions_can_anchor_to_a_published
             listed = owner.get(f"/api/admin/events/{held}/questions").json()["items"]
             anchored = [q for q in listed if q["session_id"] == session_id]
             assert len(anchored) == 1
+    finally:
+        engine.dispose()
+
+
+def test_rejected_card_orders_notify_the_buyer_with_the_reason_and_allow_a_fresh_order():
+    """Phase 9 §7/§8: a rejection is a reviewed decision with a reason; the buyer learns about it through the
+    same outbox (recorded ≠ delivered), gains no access, sees the previous order on the CTA and may order again."""
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            held, _version = held_event(owner, 0)
+            product = build_sellable_product(owner, held, price=1_200_000)
+            assert set_status(owner, held, "ready").status_code == 200
+            assert set_status(owner, held, "published").status_code == 200
+            recording_id = product["recording"]["id"]
+            download = f"/api/public/events/{held}/resources/{product['_resource_id']}/download"
+
+            buyer = TestClient(app)
+            buyer_id = bale_login(buyer, 97101)
+            order = buyer.post(f"/api/account/recordings/{recording_id}/orders", json={"method": "card_transfer"}, headers=account_write_headers(buyer))
+            assert order.status_code == 201
+            order_id = order.json()["id"]
+            sent = buyer.put(f"/api/account/recording-orders/{order_id}/receipt", content=PNG,
+                             headers={**account_write_headers(buyer), "X-File-Name": "receipt.png"})
+            assert sent.status_code == 200 and sent.json()["status"] == "receipt_submitted"
+            assert notifications(engine, buyer_id) == []
+
+            rejected = owner.post(f"/api/admin/recording-orders/{order_id}/decision",
+                                  json={"decision": "reject", "reason": "مبلغ واریزی با سفارش نمی‌خواند"}, headers=owner_write_headers(owner))
+            assert rejected.status_code == 200 and rejected.json()["status"] == "rejected" and rejected.json()["access"] is None
+            assert buyer.get(download).status_code == 403
+            queued = notifications(engine, buyer_id)
+            assert [item.kind for item in queued] == ["recording_order"]
+            assert "مبلغ واریزی با سفارش نمی‌خواند" in queued[0].body and queued[0].delivery_status == "pending" and queued[0].delivery_attempts == 0
+            mine = buyer.get(f"/api/account/recording-orders/{order_id}").json()
+            assert mine["status"] == "rejected" and mine["decision_reason"] == "مبلغ واریزی با سفارش نمی‌خواند" and mine["open"] is False
+            cta = recording_view(buyer, held)["viewer"]["cta"]
+            assert cta["kind"] == "buy" and cta["previous"] == {"status": "rejected", "id": order_id}
+            again = buyer.post(f"/api/account/recordings/{recording_id}/orders", json={"method": "card_transfer"}, headers=account_write_headers(buyer))
+            assert again.status_code == 201 and again.json()["id"] != order_id
+            assert "recording.order.reject" in audit_actions(engine)
     finally:
         engine.dispose()

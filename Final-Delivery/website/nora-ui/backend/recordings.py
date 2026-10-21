@@ -88,6 +88,7 @@ CARD_ORDER_TTL = timedelta(days=3)
 WALLET_ORDER_TTL_SECONDS_DEFAULT = 900
 INVOICE_PREFIX = "norac_"
 NOTIFICATION_KIND = "recording_access"
+ORDER_NOTIFICATION_KIND = "recording_order"
 CURRENCY = "IRR"
 
 _SAFE_RELATIVE = re.compile(r"^/api/public/media/[0-9a-f-]{36}$")

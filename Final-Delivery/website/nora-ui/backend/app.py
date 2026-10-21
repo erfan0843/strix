@@ -4449,6 +4449,29 @@ def create_app(
         db.flush()
         return item
 
+    def _queue_recording_order_notification(
+        db: Session, order: RecordingOrderRecord, *, title: str, body: str,
+    ) -> UserNotificationRecord:
+        """Decision outbox row (reject/refund): same honest delivery states as the access notification."""
+        bale_ids = verified_bale_ids_for_account(db, order.account_id)
+        target = bale_ids[0] if bale_ids else ""
+        item = UserNotificationRecord(
+            id=str(uuid.uuid4()),
+            account_id=order.account_id,
+            bale_user_id=target,
+            source_task_id=None,
+            kind=recordings_mod.ORDER_NOTIFICATION_KIND,
+            title=title,
+            body=body,
+            file_refs=[],
+            delivery_status="pending" if target else "failed",
+            delivery_attempts=0,
+            last_delivery_error=None if target else "no_bale_identity",
+        )
+        db.add(item)
+        db.flush()
+        return item
+
     def _grant_recording_access(
         db: Session, recording: EventRecordingRecord, account_id: str, *, source: str, now: datetime,
         order: RecordingOrderRecord | None = None, actor: tuple[str, str] = ("", ""), reason: str = "",
@@ -5440,6 +5463,12 @@ def create_app(
         else:
             order.status = "rejected"
             action = "recording.order.reject"
+            product_title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+            _queue_recording_order_notification(
+                db, order, title="نتیجهٔ بررسی سفارش محتوای ضبط‌شده",
+                body=(f"سفارش شما برای «{product_title}» تأیید نشد.\nدلیل: {reason}\n"
+                      "در صورت نیاز می‌توانید از صفحهٔ همان رویداد سفارش تازه ثبت کنید؛ جزئیات در بخش «سفارش‌ها و پرداخت‌ها» حساب شماست."),
+            )
         record_audit(
             db, identity, action, target_type="recording_order", target_id=order.id,
             details={"recording_id": recording.id, "account_id": order.account_id, "amount": order.amount,
@@ -5482,6 +5511,15 @@ def create_app(
             access.revoked_at = now
             access.revoked_by_kind, access.revoked_by_id = actor
             access.revoke_reason = f"refund:{reference}"[:300]
+        refunded_product = db.get(EventRecordingRecord, order.recording_id)
+        product_title = (
+            (refunded_product.title or _recording_event_title(db, refunded_product.event_id)) if refunded_product else ""
+        ) or "محتوای ضبط‌شده"
+        _queue_recording_order_notification(
+            db, order, title="بازپرداخت سفارش محتوای ضبط‌شده",
+            body=(f"بازپرداخت سفارش شما برای «{product_title}» ثبت شد (شمارهٔ پیگیری: {reference}).\n"
+                  f"دلیل: {reason}\nدسترسی این سفارش از این پس فعال نیست."),
+        )
         record_audit(
             db, identity, "recording.order.refund", target_type="recording_order", target_id=order.id,
             details={"recording_id": order.recording_id, "account_id": order.account_id, "amount": order.amount,
