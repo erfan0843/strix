@@ -1,0 +1,39 @@
+owner login 200
+manager bale login 200
+manager account role before: None
+assign manager 200
+credentials 200
+manager password login 200
+member bale login 200
+
+== upload validation (owner) ==
+fake-image.png   declared=image/png    -> 415 unsupported_image_type
+logo.png         declared=image/png    -> 415 unsupported_image_type
+big.jpg          declared=image/jpeg   -> 413 image_too_large
+poster-ok.png as poster.exe/octet-stream -> 201 {'content_type': 'image/png', 'width': 900, 'height': 600, 'file_name': 'poster.png', 'created': True}
+same bytes again -> created= False same id: True
+
+== permission matrix ==
+anon POST 401 | anon GET list 401
+member POST 403 | member GET list 403
+manager(bale-only) GET list 403 manager_password_required
+manager(password) POST 201 cover.jpg
+manager POST without CSRF 403
+manager GET certificates 200 | member GET certificates 403 | anon 401
+
+== public serving ==
+GET /api/public/media/b13c7bf3-6bd7-492d-b71c-7d971a2fd28c 200 image/png public, max-age=31536000, immutable nosniff default-src 'none'; sandbox
+304 on ETag: 304
+bad id: 404 | tampered: 404
+
+== usage + delete policy ==
+list total 2 items: [('poster.png', False), ('cover.jpg', False)]
+event create 200 True
+delete in-use -> 409 {'code': 'media_in_use', 'used_in': 1}
+manager deletes unused owner upload -> 200 {'deleted': True, 'id': 'b13c7bf3-6bd7-492d-b71c-7d971a2fd28c'}
+delete again -> 404 | public GET after delete -> 404
+member DELETE in-use -> 403
+publish 200
+public site-content poster: ['/api/public/media/6710d003-4196-4957-83ea-26c03609d99a']
+audit media rows: []
+audit (action=media.) rows: [('media.delete', 'ok', 'manager', ['content_type', 'file_name', 'size']), ('media.upload', 'ok', 'manager', ['content_type', 'height', 'size', 'width']), ('media.upload', 'ok', 'owner', ['content_type', 'height', 'size', 'width']), ('media.upload', 'rejected', 'owner', ['code', 'size']), ('media.upload', 'rejected', 'owner', ['code', 'size'])]

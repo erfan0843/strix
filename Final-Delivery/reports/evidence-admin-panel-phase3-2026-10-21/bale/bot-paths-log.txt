@@ -1,0 +1,28 @@
+seeded ticket response 6068e663-8092-4ca9-9a44-92531ceef70b for member account (form 7a3a0000-0000-4000-8000-0000000000a7)
+
+== attendance: bot scan path (shared_form_ticket.check_in) ==
+member tries check-in -> bot reply: 🔒 فقط مسئول دارای دسترسی بررسی پاسخ فرم می‌تواند ورود را ثبت کند.
+manager check-in #1 -> bot reply: ✅ ورود در پایگاه مشترک ثبت شد. | شماره ثبت: NORA-6068E66380924CA99A44
+manager check-in #2 (duplicate) -> bot reply: ⚠️ این بلیت قبلاً استفاده شده است. | شماره ثبت: NORA-6068E66380924CA99A44
+panel API (manager) sees: checked_in=True checked_in_by={'kind': 'bot', 'id': '910777'} source=shared_server_database
+anonymous undo -> 401
+manager undo without reason -> 422 {'code': 'reason_required', 'field': 'reason'}
+manager undo with reason -> 200
+bot re-scan after undo -> ✅ ورود در پایگاه مشترک ثبت شد. | شماره ثبت: NORA-6068E66380924CA99A44
+final state: checked_in=True by={'kind': 'bot', 'id': '910777'}
+audit attendance rows: [["attendance.undo_check_in", "manager", "آزمون مرحلهٔ سوم: اسکن اشتباه"], ["attendance.undo_check_in", "manager", "آزمون مرحلهٔ سوم: اسکن اشتباه"], ["attendance.undo_check_in", "manager", "آزمون مرحلهٔ سوم: اسکن اشتباه"]]
+
+== kartabl: bot submit_workflow -> manager decision -> notification delivery ==
+bot created task ed22cae8-4ab9-491e-be16-6d03c3626bdf kind=profile_review status=pending created=True
+same idempotency key + same payload again -> created=False same id=True
+same key, different payload -> rejected by server: idempotency_key_reused
+manager inbox shows task: True version=1
+anonymous decision -> 401
+manager rejects with reason -> 200 status=rejected reason=آزمون مرحلهٔ سوم: اطلاعات ناقص notification={"status": "queued", "attempts": 0, "delivered_at": null, "last_error": null}
+server notification queue for member: 1 pending (decision saved, not yet delivered)
+bot delivery run with simulated Bale failure -> delivered=0; bot attempted sendMessage to chat 910778
+queue after failure: 1 still pending for member
+task after failed attempt (manager view): {"status": "retrying", "attempts": 1, "delivered_at": null, "last_error": "provider_delivery_failed"}
+bot delivery run with simulated Bale success -> delivered=1; message text: پروفایل نیاز به اصلاح دارد |  | پروفایل شما تأیید نشد. دلیل: آزمون مرحلهٔ سوم: اطلاعات ناقص
+task after delivery (manager view): {"status": "rejected", "review_reason": "آزمون مرحلهٔ سوم: اطلاعات ناقص", "notification": {"status": "delivered", "attempts": 2, "delivered_at": "2026-10-21T07:49:02.928325+00:00", "last_error": null}}
+reports notifications by_delivery_status: {"delivered": 2}

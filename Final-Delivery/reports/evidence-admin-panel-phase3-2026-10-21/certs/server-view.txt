@@ -1,0 +1,7 @@
+owner login 200
+list 200 total 3 counts {'issued': 2, 'revoked': 1} events [{'event_ref': '1', 'event_title': 'کارگاه ساختگی الف', 'count': 2}, {'event_ref': '2', 'event_title': 'کارگاه ساختگی ب', 'count': 1}]
+  NC-0002 issued expired event file کاربر دوم certificate
+  NC-0003 revoked revoked manual - کاربر یکم certificate
+  NC-0001 issued issued event file کاربر یکم certificate
+file 200 application/pdf attachment; filename="NC-0002.pdf" 193 bytes
+search q=NC-0003: 1 | status=revoked: 1
