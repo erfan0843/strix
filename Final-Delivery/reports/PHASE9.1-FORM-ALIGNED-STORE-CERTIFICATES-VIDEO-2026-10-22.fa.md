@@ -28,7 +28,7 @@
 
 **پخش جلسه‌ها:**
 - `event_resources.kind ∈ {file, link}`؛ فایل در DB (≤ ۸MB، `video/mp4` مجاز)، `delivery=view` با Range؛ `link_url` فقط `http/https` کلی و فقط وقتی `allowed`. پخش‌کنندهٔ صفحه (`event-interaction.js`) فقط `<video src=/api/public/events/{id}/resources/{rid}/download>` دارد. هیچ پشتیبانی از آپارات/یوتیوب، هیچ allowlist میزبان، هیچ `embed_url` سروری.
-- سرآیندهای امنیتی: `X-Content-Type-Options`, `Referrer-Policy: same-origin`, `X-Frame-Options: SAMEORIGIN` (یا `frame-ancestors` از `NORA_FRAME_ANCESTORS` برای پیش‌نمایش)، `Permissions-Policy`. **CSP کامل (`frame-src/script-src`) روی صفحه‌ها وجود ندارد**؛ بنابراین افزودن iframe نیازی به بازکردن CSP ندارد، ولی allowlist باید در کد اعمال شود. `Referrer-Policy: same-origin` یعنی به یوتیوب/آپارات Referer فرستاده نمی‌شود (ویدئوهای «محدود به دامنه» پخش نخواهند شد — مستند می‌شود، تغییر داده نمی‌شود).
+- سرآیندهای امنیتی: `X-Content-Type-Options`, `Referrer-Policy: same-origin`, `X-Frame-Options: SAMEORIGIN` (یا `frame-ancestors` از `NORA_FRAME_ANCESTORS` برای پیش‌نمایش)، `Permissions-Policy`. **CSP کامل (`frame-src/script-src`) روی صفحه‌ها وجود ندارد**؛ بنابراین افزودن iframe نیازی به بازکردن CSP ندارد، ولی allowlist باید در کد اعمال شود. `Referrer-Policy: same-origin` یعنی به یوتیوب/آپارات Referer فرستاده نمی‌شود (ویدئوهای «محدود به دامنه» پخش نخواهند شد — مستند می‌شود، تغییر داده نمی‌شود). **[اصلاح در فاز ۹.۲، `4338672`/گزارش ۹.۲ بخش ۲]: این جمله نادرست بود؛ صفت `referrerpolicy="strict-origin-when-cross-origin"` روی خود `<iframe>` بر درخواست قاب حاکم است و مبدأ سایت به یوتیوب/آپارات فرستاده می‌شود.**
 
 ### الف‑۲) تصمیم معماری (حداقل تغییر، بدون سیستم موازی)
 
