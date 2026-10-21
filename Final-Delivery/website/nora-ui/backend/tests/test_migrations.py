@@ -170,8 +170,18 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
         assert "uq_public_media_hash" in {
             constraint["name"] for constraint in inspector.get_unique_constraints("public_media")
         }
+        assert {"id", "account_id", "bale_user_id", "external_key", "source_id", "ledger_id", "delta", "balance_after",
+                "entry_type", "source", "ref_key", "reason", "actor_kind", "reverses_external_key", "bot_created_at"} <= {
+            column["name"] for column in inspector.get_columns("club_points_entries")
+        }
+        assert {"uq_club_points_entries_external_key", "uq_club_points_entries_source_ledger"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("club_points_entries")
+        }
+        assert {"ck_club_points_entries_entry_type", "ck_club_points_entries_actor_kind", "ck_club_points_entries_delta"} <= {
+            constraint["name"] for constraint in inspector.get_check_constraints("club_points_entries")
+        }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0029_public_media"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
     finally:
         engine.dispose()
 
@@ -186,6 +196,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             "account_sessions", "miniapp_auth_replays", "phone_otp_challenges", "account_roles", "manager_credentials", "admin_tasks",
             "user_notifications", "private_files", "form_receipt_uploads",
             "form_payments", "form_payment_transactions", "service_checks", "admin_audit_events", "certificates", "public_media",
+            "club_points_entries",
         } & tables
     finally:
         engine.dispose()
@@ -240,7 +251,7 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0029_public_media"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
     finally:
         engine.dispose()
 
@@ -294,6 +305,63 @@ def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
+    finally:
+        engine.dispose()
+
+
+def test_club_points_migration_with_existing_data_round_trip(tmp_path, monkeypatch):
+    """0030 on a database that already holds accounts, certificates and media: upgrade, downgrade one step, upgrade again."""
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy-points.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0029_public_media")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO accounts (id) VALUES ('acc-legacy-3')"))
+            connection.execute(text(
+                "INSERT INTO certificates (id, account_id, bale_user_id, external_key, source, legacy_id, status, serial) "
+                "VALUES ('cert-3', 'acc-legacy-3', '910001', 'src:3', 'bot_legacy', 3, 'issued', 'N-3')"
+            ))
+        assert "club_points_entries" not in set(inspect(engine).get_table_names())
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO club_points_entries (id, account_id, bale_user_id, external_key, source_id, ledger_id, delta, "
+                "balance_after, entry_type, source, ref_key) VALUES ('pt-1', 'acc-legacy-3', '910001', "
+                "'0c7f7f5e-9c1e-4a7e-8a1c-2b3d4e5f6a7b:1', '0c7f7f5e-9c1e-4a7e-8a1c-2b3d4e5f6a7b', 1, 120, 120, "
+                "'opening_balance', 'legacy_counter', 'opening:910001')"
+            ))
+            assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 1
+            assert connection.scalar(text("SELECT count(*) FROM certificates")) == 1
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0029_public_media")
+    engine = create_engine(database_url)
+    try:
+        tables = set(inspect(engine).get_table_names())
+        assert "club_points_entries" not in tables
+        assert {"certificates", "public_media"} <= tables
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM accounts")) == 1
+            assert connection.scalar(text("SELECT count(*) FROM certificates")) == 1
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0029_public_media"
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
     finally:
         engine.dispose()

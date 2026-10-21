@@ -823,3 +823,57 @@ class AdminAuditEventRecord(Base):
     target_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
     outcome: Mapped[str] = mapped_column(String(32), nullable=False, default="ok")
     details: Mapped[dict[str, Any]] = mapped_column(JSON_VALUE, nullable=False, default=dict)
+
+
+class ClubPointsEntryRecord(Base):
+    """Read-only mirror of one row of the Bale bot's points ledger.
+
+    The bot's ``points_ledger`` is the single source of truth; this copy exists
+    so the managers' panel can show history without a second write path. The
+    owner is resolved server-side from the Bale user id through
+    ``platform_identities`` (never from a client-sent account id); entries of
+    people without a server identity are not stored. ``external_key`` is the
+    bot's stable identity (``<source_id>:<ledger_id>``) and makes sync
+    idempotent. Rows are append-only: a differing payload for an existing key
+    is rejected, mirroring the ledger's own immutability.
+    """
+
+    __tablename__ = "club_points_entries"
+    __table_args__ = (
+        CheckConstraint(
+            "entry_type IN ('opening_balance', 'award', 'spend', 'refund', 'reversal', 'manual_adjust')",
+            name="ck_club_points_entries_entry_type",
+        ),
+        CheckConstraint("actor_kind IN ('system', 'admin', 'user')", name="ck_club_points_entries_actor_kind"),
+        CheckConstraint("ledger_id > 0", name="ck_club_points_entries_ledger_id"),
+        CheckConstraint("delta <> 0 OR entry_type = 'opening_balance'", name="ck_club_points_entries_delta"),
+        UniqueConstraint("external_key", name="uq_club_points_entries_external_key"),
+        UniqueConstraint("source_id", "ledger_id", name="uq_club_points_entries_source_ledger"),
+        Index("ix_club_points_entries_account_ledger", "account_id", "ledger_id"),
+        Index("ix_club_points_entries_bale_user", "bale_user_id"),
+        Index("ix_club_points_entries_type_created", "entry_type", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    bale_user_id: Mapped[str] = mapped_column(String(40), nullable=False)
+    external_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(36), nullable=False, default="")
+    ledger_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    delta: Mapped[int] = mapped_column(Integer, nullable=False)
+    balance_after: Mapped[int] = mapped_column(Integer, nullable=False)
+    entry_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    source: Mapped[str] = mapped_column(String(40), nullable=False)
+    ref_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    actor_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="system")
+    reverses_external_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    bot_created_at: Mapped[str] = mapped_column(String(40), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    synced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

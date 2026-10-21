@@ -129,6 +129,7 @@ PY
 - `0027_ticket_checkin_account`: ثبت حساب پنل وبی که ورود بلیت را زده است.
 - `0028_certificates`: آینهٔ گواهی‌های صادرشدهٔ ربات برای پنل مدیران (`certificates`؛ فایل‌ها در `private_files`؛ مالک فقط از `platform_identities`). افزودنی و برگشت‌پذیر.
 - `0029_public_media`: تصاویر عمومی بارگذاری‌شده از پنل (`public_media`؛ URL پایدار `/api/public/media/{id}` در `site_content`). افزودنی و برگشت‌پذیر.
+- `0030_club_points_entries`: آینهٔ فقط‌خواندنی دفترکل امتیاز ربات (`club_points_entries`؛ کلید پایدار `external_key = <source_id>:<ledger_id>`؛ فقط ردیف‌های کاربران با هویت بلهٔ پیوندشده). نوشتن فقط از `POST /api/bot/club/points` با توکن سرویس ربات؛ پنل فقط می‌خواند (`GET /api/admin/club/points…` با مجوز `cl_member`). هیچ امتیازی سمت سرور ساخته/خرج نمی‌شود. افزودنی و برگشت‌پذیر.
 
 پیوند عمومی در `create.html` پس از انتشار نشان داده می‌شود و به `form.html?fid=<شناسه>&kind=<نوع>` می‌رود. از افزودن `preview=1` به پیوند عمومی خودداری کنید؛ آن پارامتر عمداً پیش‌نمایش محلی سازنده را باز می‌کند.
 

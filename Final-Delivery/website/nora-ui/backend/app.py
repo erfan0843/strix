@@ -45,6 +45,7 @@ from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated
 from . import data_staging as data_staging_mod
 from . import audit as audit_mod
 from . import certificates as certificates_mod
+from . import club_points as club_points_mod
 from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
 from . import service_settings as service_settings_mod
@@ -2692,6 +2693,55 @@ def create_app(
             "can_revoke": False,
         }
 
+    # ── امتیاز باشگاه: آینهٔ فقط‌خواندنی دفترکل ربات (هیچ مسیر نوشتن امتیازی در پنل وجود ندارد) ──
+    # ربات تنها نویسنده است؛ مالک هر ردیف سمت سرور از شناسهٔ بله حل می‌شود.
+
+    @app.get("/api/admin/club/points")
+    def list_admin_club_points(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        entry_type: str = Query(default="", pattern=r"^(|opening_balance|award|spend|refund|reversal|manual_adjust)$"),
+        account_id: str = Query(default="", max_length=36, pattern=r"^[0-9a-fA-F-]*$"),
+        bale_user_id: str = Query(default="", max_length=20, pattern=r"^[0-9]*$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("cl_member")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        return club_points_mod.list_entries(
+            db, account_id=account_id, bale_user_id=bale_user_id, entry_type=entry_type,
+            q=q, limit=limit, offset=offset,
+        )
+
+    @app.get("/api/admin/club/points/members")
+    def list_admin_club_points_members(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("cl_member")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        return club_points_mod.list_members(db, q=q, limit=limit, offset=offset)
+
+    @app.get("/api/admin/club/points/members/{account_id}")
+    def get_admin_club_points_member(
+        account_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("cl_member")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "member_not_found")
+        summary = club_points_mod.member_summary(db, account_id)
+        if summary is None:
+            raise HTTPException(404, "member_not_found")
+        summary["history"] = club_points_mod.list_entries(db, account_id=account_id, limit=100)["items"]
+        return summary
+
     @app.get("/api/admin/certificates/{certificate_id}/file")
     def admin_certificate_file(
         certificate_id: str,
@@ -4266,6 +4316,28 @@ def create_app(
             "account_id": record.account_id,
             "has_file": record.file_id is not None,
             "has_preview": record.preview_file_id is not None,
+        }
+
+    @app.post("/api/bot/club/points")
+    async def submit_bot_club_points_entry(
+        request: Request,
+        _service: None = Depends(require_bot_service),
+        db: Session = Depends(get_db),
+    ):
+        """Mirror one immutable row of the bot's points ledger. Owner resolved server-side; unmapped owners are not stored."""
+        payload = await _read_json_object(request, 8 * 1024)
+        try:
+            submission = club_points_mod.validate_submission(payload)
+            record, created = club_points_mod.upsert(db, submission)
+        except club_points_mod.ClubPointsError as error:
+            raise HTTPException(error.status_code, error.code) from None
+        db.commit()
+        return {
+            "id": record.id,
+            "created": created,
+            "external_key": record.external_key,
+            "account_id": record.account_id,
+            "balance_after": record.balance_after,
         }
 
     @app.get("/api/bot/files")

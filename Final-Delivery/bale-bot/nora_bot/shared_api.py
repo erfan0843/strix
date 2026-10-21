@@ -1173,6 +1173,31 @@ def submit_certificate(
     }
 
 
+def submit_points_entry(bale_user_id: int | str, external_key: str, entry: dict) -> dict:
+    """Mirror one immutable row of the bot's points ledger (idempotent on ``external_key``).
+
+    The server resolves the owner from ``bale_user_id`` and answers 404
+    ``owner_identity_not_found`` when that person has no server identity; the
+    caller keeps the row as ``unmapped`` and retries after account linking.
+    409 ``points_entry_conflict`` means the key already exists with different
+    data — the bot never overwrites a mirrored row.
+    """
+    raw_user_id = _validated_user_id(bale_user_id)
+    if not isinstance(external_key, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}:[1-9][0-9]{0,17}", external_key):
+        raise SharedAPIError(422, "invalid_external_key")
+    if not isinstance(entry, dict) or not entry:
+        raise SharedAPIError(422, "invalid_points_entry")
+    result = _request_json(
+        "POST", "/api/bot/club/points",
+        payload={"bale_user_id": raw_user_id, "external_key": external_key, "entry": entry},
+    )
+    record_id = result.get("id") if isinstance(result, dict) else None
+    if (not isinstance(record_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", record_id)
+            or not isinstance(result.get("created"), bool)):
+        raise SharedAPIError(502, "shared_api_invalid_points_entry")
+    return {"id": record_id, "created": result["created"]}
+
+
 def list_workflows(bale_user_id: int | str, *, limit: int = 50, offset: int = 0) -> dict:
     """Fetch pending manager work from the same queue used by the web app."""
     raw_user_id = _validated_user_id(bale_user_id)
