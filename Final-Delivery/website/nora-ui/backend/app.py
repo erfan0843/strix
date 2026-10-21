@@ -1627,6 +1627,10 @@ def create_app(
             "body": item.body,
             "file_refs": item.file_refs,
             "delivery_status": item.delivery_status,
+            # Derived outbox state: queued ≠ delivered; retrying = pending after ≥1 failed attempt.
+            "delivery_state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts),
+            "delivery_attempts": item.delivery_attempts,
+            "last_delivery_error": item.last_delivery_error or None,
             "created_at": _as_utc(item.created_at).isoformat(),
             "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
             "read": item.read_at is not None,
@@ -3940,6 +3944,32 @@ def create_app(
         db.refresh(record)
         return _admin_question_rows(db, [record])[0]
 
+    @app.post("/api/admin/events/{event_id}/questions/{question_id}/resend-notification")
+    def admin_resend_event_question_notification(
+        event_id: str,
+        question_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Re-queue the same outbox row (never a second one); delivered rows are left alone."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_question(db, event_id, question_id)
+        if record.answered_at is None:
+            raise HTTPException(409, {"code": "question_not_answered"})
+        titles = _interaction_event_titles(db, {event_id})
+        notification = _queue_question_answer_notification(db, record, titles.get(event_id, ""))
+        record_audit(
+            db, identity, "event_question.notification_resend", target_type="event_question", target_id=record.id,
+            details={
+                "event_id": event_id, "notification_id": notification.id,
+                "state": interaction_mod.delivery_state(notification.delivery_status, notification.delivery_attempts),
+                "attempts": notification.delivery_attempts,
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_question_rows(db, [record])[0]
+
     # ── پنل: دیدگاه‌ها و گزارش‌ها ──
 
     def _admin_review_rows(db: Session, rows: Sequence[EventReviewRecord]) -> list[dict[str, Any]]:
@@ -5965,7 +5995,11 @@ def create_app(
     ):
         items = db.scalars(
             select(UserNotificationRecord)
-            .where(UserNotificationRecord.delivery_status == "pending")
+            .where(
+                UserNotificationRecord.delivery_status == "pending",
+                # Rows without a Bale destination (web-only accounts) are never handed to the bot.
+                UserNotificationRecord.bale_user_id != "",
+            )
             .order_by(UserNotificationRecord.created_at.asc(), UserNotificationRecord.id)
             .limit(limit)
         ).all()
