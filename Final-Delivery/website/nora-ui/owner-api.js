@@ -60,7 +60,7 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
-  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id'];
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id'];
   function adminQuery(params) {
     const source = params && typeof params === 'object' ? params : {};
     const parts = [];
@@ -91,7 +91,7 @@
       || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})(?:&q=[A-Za-z0-9%._-]{0,240})?(?:&role=(?:assigned|manager|club-supervisor|none))?(?:&status=(?:pending|decided|approved|rejected))?(?:&action=[a-z_.]{0,64})?$/.test(query)
       || /^period=(?:7d|30d|90d|365d|all)$/.test(query)
       /* فهرست‌های مدیریتی مرحلهٔ دوم به بعد (محتوا، کاربران، حضور، گواهی، امتیاز باشگاه): فقط کلیدهای ثابت با مقدار کدشده */
-      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
+      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
     if (typeof path !== 'string' || !/^\/api\/[A-Za-z0-9/_-]*$/.test(pathname) || pathname.includes('..')
         || !safeQuery) {
       throw new TypeError('Only fixed same-origin API paths are allowed');
@@ -164,6 +164,39 @@
     }
     if (!payload || typeof payload.url !== 'string' || !/^\/api\/public\/media\/[0-9a-f-]{36}$/.test(payload.url)) {
       throw new OwnerApiError(502, 'invalid_media_upload', payload);
+    }
+    return payload;
+  }
+
+  /* فاز ۸ — بارگذاری/جایگزینی فایل منبع رویداد: بدنهٔ خام؛ نام فقط اعلامی (درصدکدشده تا سرآیند ASCII بماند)؛ سرور نوع واقعی را از بایت‌ها می‌سنجد. */
+  async function uploadEventResourceFile(eventId, resourceId, blob, fileName, csrfCookieName) {
+    if (!blob || typeof blob.size !== 'number') throw new TypeError('Invalid resource upload');
+    const path = '/api/admin/events/' + recordId(eventId) + '/resources/' + recordId(resourceId) + '/file';
+    const safeName = encodeURIComponent(String(fileName || 'resource').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 120) || 'resource');
+    const headers = {
+      Accept: 'application/json',
+      'Content-Type': blob.type || 'application/octet-stream',
+      'X-File-Name': safeName
+    };
+    const csrf = csrfCookie(csrfCookieName);
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    let response;
+    try {
+      response = await root.fetch(path, {
+        method: 'PUT', headers, credentials: 'same-origin', cache: 'no-store', redirect: 'error', body: blob
+      });
+    } catch (_) {
+      throw new OwnerApiError(0, 'server_unreachable', null);
+    }
+    let payload = null;
+    try { payload = await response.json(); } catch (_) { /* non-JSON response */ }
+    if (!response.ok) {
+      const detail = payload && payload.detail;
+      const code = (detail && typeof detail === 'object' && detail.code)
+        || (typeof detail === 'string' && detail)
+        || (payload && (payload.error || payload.code))
+        || 'server_request_failed';
+      throw new OwnerApiError(response.status, code, payload);
     }
     return payload;
   }
@@ -288,6 +321,45 @@
     deleteAdminMedia: (mediaId, csrfCookieName) => request('/api/admin/media/' + recordId(mediaId), {
       method: 'DELETE', csrfWrite: true, csrfCookie: csrfCookieName || undefined
     }),
+    /* فاز ۸ — منابع، پرسش‌وپاسخ، دیدگاه و گزارش‌های رویداد (ev_create / ev_publish؛ تصمیم نهایی در سرور) */
+    listEventResources: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/resources' + adminQuery(params)),
+    createEventResource: (eventId, payload, csrfCookieName) => request('/api/admin/events/' + recordId(eventId) + '/resources', {
+      method: 'POST', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+    }),
+    updateEventResource: (eventId, resourceId, payload, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/resources/' + recordId(resourceId), {
+        method: 'PUT', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    uploadEventResourceFile,
+    removeEventResource: (eventId, resourceId, reason, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/resources/' + recordId(resourceId) + '/remove', {
+        method: 'POST', body: { reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    listEventQuestions: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/questions' + adminQuery(params)),
+    listAllEventQuestions: params => request('/api/admin/event-questions' + adminQuery(params)),
+    answerEventQuestion: (eventId, questionId, payload, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/questions/' + recordId(questionId) + '/answer', {
+        method: 'POST', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    setEventQuestionStatus: (eventId, questionId, status, reason, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/questions/' + recordId(questionId) + '/status', {
+        method: 'POST', body: { status: String(status), reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    resendEventQuestionNotification: (eventId, questionId, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/questions/' + recordId(questionId) + '/resend-notification', {
+        method: 'POST', body: {}, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    listEventReviews: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/reviews' + adminQuery(params)),
+    setEventReviewStatus: (eventId, reviewId, status, reason, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/reviews/' + recordId(reviewId) + '/status', {
+        method: 'POST', body: { status: String(status), reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    listEventReports: params => request('/api/admin/event-reports' + adminQuery(params)),
+    resolveEventReport: (reportId, status, note, csrfCookieName) => request(
+      '/api/admin/event-reports/' + recordId(reportId) + '/resolve', {
+        method: 'POST', body: { status: String(status), note: String(note || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    eventInteractionSummary: () => request('/api/admin/event-interaction/summary'),
     listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
     listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),
     attendanceCheckIn: (responseId, reason, csrfCookieName) => request(

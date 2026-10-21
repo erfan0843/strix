@@ -6316,6 +6316,7 @@ function serverDashboard(){
   return `<div class="stack">
     ${serverDashboardKpis()}
     ${serverHealthView()}
+    ${eiSummaryCard()}
     <section class="card stack"><div class="head">ماژول‌های این حساب</div>
       <p class="cap">نقش و مجوز از سرور می‌آید. بخش فاقد API دادهٔ ساختگی نشان نمی‌دهد و وضعیت آن جداگانه اعلام می‌شود.</p>
       <div class="admtiles">${modules.join('')||emptyBox('برای این حساب ماژول فعالی ثبت نشده است.')}</div>
@@ -6449,6 +6450,7 @@ function ctActions(item){
   const id=esc(item.id), st=item.status, out=[];
   if(ctCan('can_edit')) out.push(btn('ویرایش',`data-ct-edit="${id}"`,'i-pen'));
   if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
+  if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('منابع و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
   if(ctCan('can_publish')){
     if(st==='draft'||st==='paused') out.push(btn(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
     if(st==='published') out.push(btn('توقف انتشار',`data-ct-set="paused" data-ct-id="${id}"`,'i-eye-off'));
@@ -6493,7 +6495,7 @@ function ctList(){
   </section>`;
 }
 function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
-    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:''}
+    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false}
   :{t:'',cat:'',lead:'',body:'',cov:'',who:'',at:'',tags:'',pin:false,min:''}}
 function ctEditable(kind,record){
   const base=ctBlank(kind), out={};
@@ -6569,6 +6571,7 @@ function ctEditor(){
     <div class="row tight" style="flex-wrap:wrap">
       <label class="chip ${f.past?'on':''}"><input type="checkbox" data-ct-check="past" ${f.past?'checked':''} hidden/>برگزارشده (آرشیو)</label>
       <label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label>
+      <label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label>
     </div>
     ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
     ${imageBox}`
@@ -6597,12 +6600,343 @@ function ctEditor(){
     </div>
   </section>`;
 }
+/* ══ فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه‌ها و گزارش‌های هر رویداد ═════════════
+   ابزار داخلی داخل همان ماژول «رویدادها»؛ از ردیف رویداد باز می‌شود. مجوز
+   در سرور اعمال می‌شود (ev_create برای منابع، ev_publish برای پاسخ/تعدیل)؛
+   پنهان‌کردن دکمه این‌جا فقط برای خوانایی است. هیچ رکورد نمونه‌ای جایگزین
+   پاسخ خالی سرور نمی‌شود. */
+const EI={open:false,eventId:'',title:'',status:'',tab:'resources',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
+  res:{edit:null,includeRemoved:false,upFor:'',upError:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
+const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['staff','فقط کادر']];
+const EI_ACCESS_LABEL=Object.fromEntries(EI_ACCESS);
+const EI_RES_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],removed:['حذف‌شده','stop']};
+const EI_Q_STATUS={pending:['در انتظار','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop']};
+const EI_RV_STATUS={pending:['در انتظار تأیید','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop'],withdrawn:['پس‌گرفته','']};
+const EI_DELIVERY={queued:['در صف ارسال','warn'],retrying:['در حال تلاش دوباره','warn'],delivered:['تحویل‌شده','ok'],failed:['ناموفق','stop']};
+const EI_ERR={duplicate_question:'این پرسش تکراری است.',qa_closed:'پرسش‌وپاسخ این رویداد بسته است.',question_not_answered:'این پرسش هنوز پاسخی ندارد که اعلان آن فرستاده شود.',
+  resource_file_missing:'پیش از انتشار باید فایل منبع بارگذاری شود.',resource_kind_immutable:'نوع منبع (فایل/پیوند) پس از ساخت تغییر نمی‌کند.',resource_not_file:'این منبع فایل نیست یا حذف شده است.',
+  resource_removed:'این منبع حذف شده و دیگر ویرایش نمی‌شود.',review_exists:'برای این حساب پیش‌تر دیدگاهی ثبت شده است.',review_locked:'این دیدگاه قفل است.',review_withdrawn:'این دیدگاه پس گرفته شده است.',
+  file_empty:'فایل خالی است.',file_too_large:'حجم فایل بیش از ۸ مگابایت است.',file_type_not_allowed:'سرور نوع این فایل را مجاز نمی‌داند (PDF، تصویر، اسناد آفیس، ZIP، MP3 یا متن).',
+  text_required:'متن یا دلیل لازم است.',text_too_short:'متن خیلی کوتاه است.',text_too_long:'متن خیلی بلند است.',invalid_link:'پیوند باید با https:// آغاز شود.',invalid_datetime:'زمان انتشار معتبر نیست.',
+  invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.',unexpected_fields:'فیلد ناشناخته‌ای فرستاده شد.',too_many_open_questions:'شمار پرسش‌های باز این رویداد از حد گذشته است.',upload_rate_limited:'شمار بارگذاری‌ها در این ساعت از حد گذشته؛ کمی بعد دوباره تلاش کنید.'};
+function eiErr(error,fallback){const code=error&&error.code||''; if(EI_ERR[code]) return EI_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&EI_ERR[f.code]) return EI_ERR[f.code]+(f.field?` (${f.field})`:''); return p2Err(error,fallback)}
+function eiStatusTag(map,status){const row=map[status]||[status||'نامشخص','']; return tag(row[0],row[1])}
+function eiCanRes(){return canPerm('ev_create')}
+function eiCanMod(){return canPerm('ev_publish')}
+function eiOpen(eventId,title,status){
+  EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||''; EI.status=status||''; EI.tab=eventId?(eiCanRes()?'resources':'questions'):'questions';
+  EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
+  if(EI.all){EI.q.answered='false'} else {EI.q.answered=''}
+  eiLoad();
+}
+function eiClose(){EI.open=false; EI.data=null; EI.res.edit=null; renderBody()}
+function eiKey(){return [EI.all?'*':EI.eventId,EI.tab,EI.res.includeRemoved,EI.q.status,EI.q.answered,EI.q.offset,EI.rv.status,EI.rv.offset,EI.rp.status,EI.rp.offset].join('|')}
+async function eiLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listEventResources!=='function'){EI.error='رابط سرور در دسترس نیست.'; renderBody(); return}
+  const key=eiKey(); EI.loading=true; EI.error=''; renderBody();
+  try{
+    let result;
+    if(EI.tab==='resources') result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''});
+    else if(EI.tab==='questions') result=EI.all?await api.listAllEventQuestions({status:EI.q.status,answered:EI.q.answered||'false',limit:EI.q.limit,offset:EI.q.offset})
+      :await api.listEventQuestions(EI.eventId,{status:EI.q.status,answered:EI.q.answered,limit:EI.q.limit,offset:EI.q.offset});
+    else if(EI.tab==='reviews') result=await api.listEventReviews(EI.eventId,{status:EI.rv.status,limit:EI.rv.limit,offset:EI.rv.offset});
+    else result=await api.listEventReports({status:EI.rp.status,event_id:EI.all?'':EI.eventId,limit:EI.rp.limit,offset:EI.rp.offset});
+    if(key===eiKey()){EI.data=result; EI.key=key}
+  }catch(error){if(key===eiKey()){EI.data=null; EI.error=eiErr(error,'فهرست از سرور دریافت نشد.'); EI.key=key}}
+  finally{EI.loading=false; if(key!==eiKey()){eiLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
+}
+async function eiLoadSummary(){
+  const api=window.NORA_SERVER_API; if(!api||typeof api.eventInteractionSummary!=='function'||!eiCanMod()) return;
+  try{EI.summary=await api.eventInteractionSummary(); EI.summaryError=''}
+  catch(error){EI.summary=null; EI.summaryError=eiErr(error,'خلاصهٔ پرسش‌ها و گزارش‌ها دریافت نشد.')}
+  finally{EI.summaryLoading=false}
+  if(S.sec==='dash'||S.sec==='events') renderBody();
+}
+function eiSummaryCard(){
+  if(!eiCanMod()) return '';
+  const s=EI.summary;
+  if(!s&&!EI.summaryError) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور','ok')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
+  if(!s) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('خطا','stop')}</div><p class="cap">${esc(EI.summaryError)}</p>${btn('تلاش دوباره','data-ei-summary-refresh','i-refresh')}</article>`;
+  const counts=[['پرسش بی‌پاسخ',s.unanswered_questions,'warn'],['دیدگاه در انتظار تأیید',s.pending_reviews,'warn'],['گزارش باز',s.open_reports,'stop'],['اعلان ناموفق',s.failed_notifications,'stop']];
+  return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+    <div class="row tight" style="flex-wrap:wrap">${counts.map(([l,n,k])=>tag(`${l}: ${fa(Number(n)||0)}`,Number(n)>0?k:'')).join('')}</div>
+    <p class="cap">پاسخ، انتشار، پنهان‌کردن و رسیدگی به گزارش از صفحهٔ هر رویداد یا فهرست بی‌پاسخ‌ها انجام می‌شود؛ هر اقدام با نام اقدام‌کننده و دلیل ثبت می‌شود.</p>
+    <div class="row tight" style="flex-wrap:wrap">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-chev-left')}${Number(s.open_reports)>0?btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag'):''}</div></article>`;
+}
+function eiHeader(){
+  const tabs=[];
+  if(!EI.all&&eiCanRes()) tabs.push(['resources','منابع']);
+  tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
+  if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
+  if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
+  const live=EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`:'';
+  return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به فهرست</button>
+      <b>${esc(EI.all?'کارتابل پرسش‌ها و گزارش‌ها':EI.title||EI.eventId)}</b>${EI.all?'':ctStatusLabel(EI.status)}<span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>
+    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های تعامل رویداد">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}</div>`;
+}
+function eiPanel(){
+  let body;
+  if(EI.loading&&!EI.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
+  else if(EI.error) body=`<div class="stack">${p2Msg({kind:'stop',text:EI.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  else if(EI.tab==='resources') body=eiResources();
+  else if(EI.tab==='questions') body=eiQuestions();
+  else if(EI.tab==='reviews') body=eiReviews();
+  else body=eiReports();
+  return `<section class="card stack" data-ei-panel>${eiHeader()}${p2Msg(EI.msg)}${body}</section>`;
+}
+/* ── منابع ── */
+function eiResourceMeta(r){
+  const size=r.kind==='file'?(r.size>=1048576?fa((r.size/1048576).toFixed(1))+' مگابایت':r.size>=1024?fa(Math.round(r.size/1024))+' کیلوبایت':r.size?fa(r.size)+' بایت':'بدون فایل'):'پیوند';
+  return [size,r.kind==='file'&&r.file_name?r.file_name:'',EI_ACCESS_LABEL[r.access]||r.access,r.publish_at?'انتشار: '+(svcWhen(r.publish_at)||r.publish_at):'',r.publisher?'ناشر: '+r.publisher:'',r.live?'اکنون در صفحهٔ رویداد':r.status==='published'?'زمان‌بندی‌شده':''].filter(Boolean).join(' · ');
+}
+function eiResourceRow(r){
+  const id=esc(r.id), removed=r.status==='removed', busy=EI.busy===r.id;
+  const actions=removed||!eiCanRes()?'':[btn('ویرایش',`data-ei-res-edit="${id}"`,'i-pen'),
+    r.kind==='file'?`<label class="btn sm quiet">${ico('i-file-up')}${r.size?'جایگزینی فایل':'بارگذاری فایل'}<input type="file" data-ei-file="${id}" hidden/></label>`:'',
+    r.status==='draft'?btn('انتشار',`data-ei-res-status="published" data-ei-id="${id}"`,'i-globe'):btn('بازگشت به پیش‌نویس',`data-ei-res-status="draft" data-ei-id="${id}"`,'i-eye-off'),
+    btn('حذف',`data-ei-res-remove="${id}"`,'i-trash')].join('');
+  return `<div class="admlirow" data-ei-res-row="${id}" ${busy?'aria-busy="true"':''}><span class="ic">${ico(r.kind==='link'?'i-link':'i-doc')}</span>
+    <span class="sp"><b>${esc(r.title)}</b>${r.description?`<small class="cap">${esc(r.description)}</small>`:''}<small class="cap">${esc(eiResourceMeta(r))}</small>${removed&&r.removed_reason?`<small class="cap">دلیل حذف: ${esc(r.removed_reason)}</small>`:''}</span>
+    ${eiStatusTag(EI_RES_STATUS,r.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiResources(){
+  const items=EI.data&&Array.isArray(EI.data.items)?EI.data.items:[];
+  const head=`<div class="row" style="flex-wrap:wrap;gap:8px"><p class="cap" style="margin:0">دسترسی هر منبع در سرور و بر پایهٔ ثبت‌نام تأییدشده یا حضور ثبت‌شدهٔ همین رویداد سنجیده می‌شود؛ فایل خصوصی با نشانی مستقیم هم باز نمی‌شود.</p><span class="sp"></span>
+      <label class="chip ${EI.res.includeRemoved?'on':''}"><input type="checkbox" data-ei-res-removed ${EI.res.includeRemoved?'checked':''} hidden/>نمایش حذف‌شده‌ها</label>
+      ${eiCanRes()?btn('منبع تازه','data-ei-res-new','i-plus'):''}</div>`;
+  const editor=EI.res.edit?eiResourceEditor():'';
+  const upload=EI.res.upError?p2Msg({kind:'stop',text:EI.res.upError}):EI.res.upFor?p2Msg({kind:'warn',text:'در حال بارگذاری فایل در سرور…'}):'';
+  const list=items.length?`<div class="admlist">${items.map(eiResourceRow).join('')}</div>`:emptyBox('برای این رویداد هنوز منبعی ثبت نشده است.');
+  return `<div class="stack">${head}${upload}${editor}${list}</div>`;
+}
+function eiResourceEditor(){
+  const e=EI.res.edit, f=e.form, err=e.errors||{};
+  const field=(label,key,opts)=>{const o=opts||{}, id='eif_'+key, attrs=`id="${id}" class="input" data-ei-field="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.dir?`dir="${o.dir}"`:''}`;
+    return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="3">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
+  return `<section class="card stack" data-ei-res-editor><div class="head">${e.id?'ویرایش منبع':'منبع تازه'}</div>
+    ${e.id?'':`<label class="fld" for="eif_kind"><span class="lbl">نوع</span><select id="eif_kind" class="input" data-ei-field="kind"><option value="file" ${f.kind!=='link'?'selected':''}>فایل (پس از ساخت بارگذاری می‌شود)</option><option value="link" ${f.kind==='link'?'selected':''}>پیوند https</option></select></label>`}
+    ${field('عنوان','title',{max:160,err:err.title})}
+    ${field('توضیح کوتاه','description',{textarea:true,max:800})}
+    <div class="row tight" style="flex-wrap:wrap">
+      <label class="fld" for="eif_access"><span class="lbl">سطح دسترسی</span><select id="eif_access" class="input" data-ei-field="access">${EI_ACCESS.map(([v,l])=>`<option value="${v}" ${f.access===v?'selected':''}>${esc(l)}</option>`).join('')}</select><small class="cap">«ثبت‌نام‌شدگان» یعنی پاسخ پذیرفته‌شده با پرداخت تأییدشده؛ «حاضران» یعنی حضور ثبت‌شده در همین رویداد.</small></label>
+      ${field('زمان انتشار (اختیاری)','publish_at',{dir:'ltr',ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',hint:'ساعت تهران؛ خالی یعنی با انتشار بلافاصله در دسترس است.'})}
+      ${field('نام ناشر (نمایشی)','publisher',{max:120})}
+    </div>
+    ${f.kind==='link'?field('پیوند','link_url',{dir:'ltr',ph:'https://…',max:2048,err:err.link_url}):''}
+    ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
+    <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت منبع','data-ei-res-save','i-check')}<button class="btn sm quiet" data-ei-res-cancel>انصراف</button></div></section>`;
+}
+function eiResourceOpen(id){
+  const item=id?(EI.data&&EI.data.items||[]).find(r=>r.id===id):null;
+  EI.res.edit={id:item?item.id:'',errors:{},formError:'',form:item?{kind:item.kind,title:item.title||'',description:item.description||'',access:item.access||'public',publish_at:item.publish_at_local||'',publisher:item.publisher||'',link_url:item.link_url||''}
+    :{kind:'file',title:'',description:'',access:'public',publish_at:'',publisher:'',link_url:''}};
+  if(item&&item.publish_at&&!item.publish_at_local) EI.res.edit.form.publish_at=item.publish_at;
+  EI.msg=null; renderBody();
+}
+async function eiResourceSave(){
+  const api=window.NORA_SERVER_API, e=EI.res.edit; if(!e||EI.busy) return;
+  const f=e.form, payload={title:String(f.title||'').trim(),description:String(f.description||'').trim(),access:f.access,publish_at:String(f.publish_at||'').trim(),publisher:String(f.publisher||'').trim()};
+  if(!e.id) payload.kind=f.kind==='link'?'link':'file';
+  if((e.id?f.kind:payload.kind)==='link') payload.link_url=String(f.link_url||'').trim();
+  EI.busy='save'; e.errors={}; e.formError=''; renderBody();
+  try{
+    const saved=e.id?await api.updateEventResource(EI.eventId,e.id,payload,staffCsrfCookie()):await api.createEventResource(EI.eventId,payload,staffCsrfCookie());
+    EI.msg={kind:'ok',text:e.id?'تغییرهای منبع ذخیره شد.':(saved.kind==='file'?'منبع ساخته شد؛ اکنون فایل آن را بارگذاری و سپس منتشر کنید.':'منبع ساخته شد (پیش‌نویس).')};
+    EI.res.edit=null; EI.key=''; eiLoad();
+  }catch(error){
+    const fe=p2FieldErr(error);
+    if(error&&error.status===422&&fe&&fe.field&&Object.prototype.hasOwnProperty.call(f,fe.field)) e.errors[fe.field]=EI_ERR[fe.code]||fe.text; else e.formError=eiErr(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
+    renderBody();
+  }finally{EI.busy=''}
+}
+async function eiResourceStatus(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const item=(EI.data&&EI.data.items||[]).find(r=>r.id===id); if(!item) return;
+  if(status==='published'&&typeof window.confirm==='function'&&!window.confirm(`«${item.title}» برای ${EI_ACCESS_LABEL[item.access]||item.access} منتشر می‌شود${item.publish_at?' (از زمان انتشار تعیین‌شده)':''}. ادامه می‌دهید؟`)) return;
+  EI.busy=id; renderBody();
+  try{await api.updateEventResource(EI.eventId,id,{status},staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'منبع منتشر شد.':'منبع به پیش‌نویس برگشت و از صفحهٔ رویداد برداشته شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiResourceRemove(id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const item=(EI.data&&EI.data.items||[]).find(r=>r.id===id); if(!item) return;
+  const reason=typeof window.prompt==='function'?window.prompt(`دلیل حذف «${item.title}» (در ردپای عملیات ثبت می‌شود):`,''):'';
+  if(reason===null||!String(reason).trim()){toast('حذف بدون دلیل انجام نمی‌شود'); return}
+  EI.busy=id; renderBody();
+  try{await api.removeEventResource(EI.eventId,id,String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:'منبع حذف شد (نرم؛ با دلیل و نام اقدام‌کننده ثبت شد).'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'حذف انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiResourceUpload(id,file){
+  const api=window.NORA_SERVER_API; if(!file||EI.res.upFor) return;
+  if(file.size>8*1024*1024){EI.res.upError='حجم فایل بیش از ۸ مگابایت است؛ فایل کوچک‌تری انتخاب کنید.'; renderBody(); return}
+  EI.res.upFor=id; EI.res.upError=''; renderBody();
+  try{const saved=await api.uploadEventResourceFile(EI.eventId,id,file,file.name,staffCsrfCookie()); EI.msg={kind:'ok',text:`فایل «${saved.file_name||file.name}» در سرور ذخیره شد${saved.status==='draft'?'؛ منبع هنوز پیش‌نویس است':''}.`}; EI.key=''; EI.res.upFor=''; eiLoad()}
+  catch(error){EI.res.upFor=''; EI.res.upError=eiErr(error,'بارگذاری انجام نشد؛ چیزی ذخیره نشد.'); renderBody()}
+}
+/* ── پرسش‌وپاسخ ── */
+function eiNotification(n){
+  if(!n) return '';
+  const st=EI_DELIVERY[n.state]||[n.state,''];
+  const parts=[`تلاش: ${fa(n.attempts||0)}`,n.delivered_at?'تحویل: '+(svcWhen(n.delivered_at)||n.delivered_at):'',n.last_error?'آخرین خطا: '+n.last_error:'',n.has_bale_target?'':'بدون هویت بلهٔ پیوندشده'].filter(Boolean);
+  return `<small class="cap">اعلان پاسخ: ${tag(st[0],st[1])} ${esc(parts.join(' · '))}</small>`;
+}
+function eiQuestionRow(q){
+  const id=esc(q.id), ev=esc(q.event_id), busy=EI.busy===q.id, draft=EI.q.draft[q.id];
+  const answered=!!q.answered;
+  const info=[q.author,svcWhen(q.created_at)||q.created_at,EI.all&&q.event_title?'رویداد: '+q.event_title:'',q.open_reports?`${fa(q.open_reports)} گزارش باز`:'',q.moderation_reason?'دلیل: '+q.moderation_reason:''].filter(Boolean).join(' · ');
+  const form=draft!=null?`<div class="stack" data-ei-answer-form="${id}"><label class="fld" for="eiAns_${id}"><span class="lbl">پاسخ برگزارکننده</span><textarea id="eiAns_${id}" class="input" rows="4" maxlength="4000" data-ei-answer-text="${id}">${esc(draft.text||'')}</textarea><small class="cap">با ارسال، پرسش و پاسخ منتشر می‌شوند و اعلان برای پرسش‌گر در صف قرار می‌گیرد (ثبت پاسخ مستقل از ارسال اعلان است).</small></label>
+      <div class="row tight" style="flex-wrap:wrap"><label class="chip ${draft.official!==false?'on':''}"><input type="checkbox" data-ei-answer-official="${id}" ${draft.official!==false?'checked':''} hidden/>پاسخ رسمی</label>
+      ${btn('ارسال و انتشار',`data-ei-answer-send="${id}" data-ei-event="${ev}"`,'i-send')}${btn('ذخیره بدون انتشار',`data-ei-answer-send="${id}" data-ei-event="${ev}" data-ei-answer-publish="false"`,'i-eye-off')}<button class="btn sm quiet" data-ei-answer-cancel="${id}">انصراف</button></div></div>`:'';
+  const actions=eiCanMod()&&!form?[btn(answered?'ویرایش پاسخ':'پاسخ',`data-ei-answer-open="${id}"`,'i-pen'),
+    q.status!=='published'?btn('انتشار',`data-ei-q-status="published" data-ei-id="${id}" data-ei-event="${ev}"`,'i-globe'):'',
+    q.status!=='hidden'?btn('پنهان‌کردن',`data-ei-q-status="hidden" data-ei-id="${id}" data-ei-event="${ev}"`,'i-eye-off'):'',
+    answered&&q.notification&&q.notification.state!=='delivered'?btn('ارسال دوبارهٔ اعلان',`data-ei-q-resend="${id}" data-ei-event="${ev}"`,'i-refresh'):''].join(''):'';
+  return `<div class="admlirow" data-ei-q-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-text')}</span>
+    <span class="sp"><p style="margin:0;white-space:pre-wrap">${esc(q.body)}</p><small class="cap">${esc(info)}</small>
+      ${answered?`<p class="cap" style="margin:6px 0 0;white-space:pre-wrap;border-inline-start:3px solid var(--ok);padding-inline-start:8px"><b>${q.answer_official?'پاسخ رسمی':'پاسخ'}</b> · ${esc(q.answer_label||'')}${q.answered_at?' · '+esc(svcWhen(q.answered_at)||'') :''}<br/>${esc(q.answer)}</p>${eiNotification(q.notification)}`:`<small class="cap">${tag('بی‌پاسخ','warn')}</small>`}
+      ${form}</span>
+    ${eiStatusTag(EI_Q_STATUS,q.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiQuestions(){
+  const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
+  const filters=`<div class="admfilters" role="group" aria-label="فیلتر پرسش‌ها">
+      ${[['','همه'],['false','بی‌پاسخ'],['true','پاسخ‌داده‌شده']].map(([k,l])=>`<button class="chip ${(EI.q.answered||'')===k?'on':''}" type="button" data-ei-q-answered="${k}" ${EI.all&&k===''?'hidden':''}>${esc(l)}</button>`).join('')}
+      <span class="sp"></span>
+      ${[['','هر وضعیت'],['pending','در انتظار'],['published','منتشرشده'],['hidden','پنهان']].map(([k,l])=>`<button class="chip ${EI.q.status===k?'on':''}" type="button" data-ei-q-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(eiQuestionRow).join('')}</div>`:emptyBox(EI.q.answered==='false'?'پرسش بی‌پاسخی وجود ندارد.':'پرسشی با این فیلتر ثبت نشده است.');
+  return `<div class="stack"><p class="cap" style="margin:0">هر پرسش به شناسهٔ رویداد و نشست سروری پرسش‌گر گره خورده است. پنهان‌کردن نیازمند دلیل است و با نام اقدام‌کننده ثبت می‌شود. باز/بسته‌بودن پرسش‌وپاسخ از ویرایش خود رویداد (گزینهٔ «پرسش‌وپاسخ بسته») تنظیم می‌شود.</p>
+    ${filters}${list}${p2Pager(total,EI.q.offset,EI.q.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function eiAnswerSend(eventId,id,publish){
+  const api=window.NORA_SERVER_API, draft=EI.q.draft[id]; if(!draft||EI.busy) return;
+  const text=String(draft.text||'').trim();
+  if(text.length<2){EI.msg={kind:'stop',text:'متن پاسخ لازم است.'}; renderBody(); return}
+  EI.busy=id; renderBody();
+  try{
+    const saved=await api.answerEventQuestion(eventId,id,{answer:text,official:draft.official!==false,publish:publish!==false},staffCsrfCookie());
+    const n=saved&&saved.notification, st=n?(EI_DELIVERY[n.state]||[n.state])[0]:'';
+    EI.msg={kind:'ok',text:`پاسخ ثبت شد${publish===false?' (بدون انتشار)':' و منتشر شد'}${n?` · اعلان پرسش‌گر: ${st}${n.has_bale_target?'':' (بدون هویت بلهٔ پیوندشده؛ در حساب کاربر دیده می‌شود)'}`:''}.`};
+    delete EI.q.draft[id]; EI.key=''; eiLoad();
+  }catch(error){EI.msg={kind:'stop',text:eiErr(error,'ثبت پاسخ انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiQuestionStatus(eventId,id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  let reason='';
+  if(status==='hidden'){reason=typeof window.prompt==='function'?window.prompt('دلیل پنهان‌کردن این پرسش (در ردپای عملیات ثبت می‌شود):',''):''; if(reason===null||!String(reason).trim()){toast('پنهان‌کردن بدون دلیل انجام نمی‌شود'); return}}
+  EI.busy=id; renderBody();
+  try{await api.setEventQuestionStatus(eventId,id,status,String(reason||'').trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:status==='hidden'?'پرسش پنهان شد و از صفحهٔ رویداد برداشته شد.':'پرسش منتشر شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiQuestionResend(eventId,id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  EI.busy=id; renderBody();
+  try{const saved=await api.resendEventQuestionNotification(eventId,id,staffCsrfCookie()); const n=saved&&saved.notification; EI.msg={kind:'ok',text:`اعلان دوباره در صف قرار گرفت${n?' · وضعیت: '+(EI_DELIVERY[n.state]||[n.state])[0]:''}؛ تحویل فقط پس از ارسال واقعی ربات گزارش می‌شود.`}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'ارسال دوباره انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+/* ── دیدگاه‌ها ── */
+function eiReviewRow(r){
+  const id=esc(r.id), busy=EI.busy===r.id;
+  const info=[r.author,r.verified_attendee?'شرکت‌کنندهٔ تأییدشده':'بدون تأیید حضور',svcWhen(r.created_at)||r.created_at,r.edit_count?`${fa(r.edit_count)} بار ویرایش`:'',r.open_reports?`${fa(r.open_reports)} گزارش باز`:'',r.moderation_reason?'دلیل: '+r.moderation_reason:''].filter(Boolean).join(' · ');
+  const actions=eiCanMod()&&r.status!=='withdrawn'?[r.status!=='published'?btn('تأیید و انتشار',`data-ei-rv-status="published" data-ei-id="${id}"`,'i-globe'):'',
+    r.status!=='hidden'?btn('پنهان‌کردن',`data-ei-rv-status="hidden" data-ei-id="${id}"`,'i-eye-off'):'',
+    r.status==='hidden'?btn('بازگشت به انتظار',`data-ei-rv-status="pending" data-ei-id="${id}"`,'i-refresh'):''].join(''):'';
+  return `<div class="admlirow" data-ei-rv-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-user')}</span>
+    <span class="sp"><p style="margin:0;white-space:pre-wrap">${esc(r.body)}</p><small class="cap">${esc(info)}</small></span>
+    ${eiStatusTag(EI_RV_STATUS,r.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiReviews(){
+  const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
+  const filters=`<div class="admfilters" role="group" aria-label="فیلتر دیدگاه‌ها">${[['','همه'],['pending','در انتظار تأیید'],['published','منتشرشده'],['hidden','پنهان'],['withdrawn','پس‌گرفته']].map(([k,l])=>`<button class="chip ${EI.rv.status===k?'on':''}" type="button" data-ei-rv-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(eiReviewRow).join('')}</div>`:emptyBox('دیدگاهی با این فیلتر ثبت نشده است.');
+  return `<div class="stack"><p class="cap" style="margin:0">فقط حساب‌هایی که حضورشان در همین رویداد ثبت شده می‌توانند دیدگاه بنویسند؛ نشان «شرکت‌کنندهٔ تأییدشده» از سرور می‌آید. دیدگاه تا تأیید شما منتشر نمی‌شود. امتیاز ستاره‌ای وجود ندارد.</p>
+    ${filters}${list}${p2Pager(total,EI.rv.offset,EI.rv.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function eiReviewStatus(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  let reason='';
+  if(status==='hidden'){reason=typeof window.prompt==='function'?window.prompt('دلیل پنهان‌کردن این دیدگاه (در ردپای عملیات ثبت می‌شود):',''):''; if(reason===null||!String(reason).trim()){toast('پنهان‌کردن بدون دلیل انجام نمی‌شود'); return}}
+  EI.busy=id; renderBody();
+  try{await api.setEventReviewStatus(EI.eventId,id,status,String(reason||'').trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'دیدگاه منتشر شد.':status==='hidden'?'دیدگاه پنهان شد.':'دیدگاه به حالت انتظار برگشت.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+/* ── گزارش‌ها ── */
+function eiReportRow(r){
+  const id=esc(r.id), busy=EI.busy===r.id;
+  const info=[r.target_kind==='question'?'پرسش':'دیدگاه',EI.all&&r.event_title?'رویداد: '+r.event_title:'',svcWhen(r.created_at)||r.created_at,r.resolution_note?'یادداشت: '+r.resolution_note:''].filter(Boolean).join(' · ');
+  const actions=eiCanMod()&&r.status==='open'?btn('رسیدگی شد',`data-ei-rp-resolve="resolved" data-ei-id="${id}"`,'i-check')+btn('رد گزارش',`data-ei-rp-resolve="dismissed" data-ei-id="${id}"`,'i-close'):'';
+  const st={open:['باز','stop'],resolved:['رسیدگی‌شده','ok'],dismissed:['ردشده','']}[r.status]||[r.status,''];
+  return `<div class="admlirow" data-ei-rp-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-flag')}</span>
+    <span class="sp"><b>دلیل گزارش: ${esc(r.reason)}</b><small class="cap">متن: ${esc(r.excerpt||'')}</small><small class="cap">${esc(info)}</small></span>
+    ${tag(st[0],st[1])}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiReports(){
+  const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
+  const filters=`<div class="admfilters" role="group" aria-label="فیلتر گزارش‌ها">${[['open','باز'],['resolved','رسیدگی‌شده'],['dismissed','ردشده']].map(([k,l])=>`<button class="chip ${EI.rp.status===k?'on':''}" type="button" data-ei-rp-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(eiReportRow).join('')}</div>`:emptyBox(EI.rp.status==='open'?'گزارش بازی وجود ندارد.':'گزارشی با این وضعیت نیست.');
+  return `<div class="stack"><p class="cap" style="margin:0">گزارش کاربران محتوا را خودکار پنهان نمی‌کند؛ پس از بررسی، پرسش/دیدگاه را در زبانهٔ خودش پنهان کنید و این‌جا نتیجه را ثبت کنید.</p>${filters}${list}${p2Pager(total,EI.rp.offset,EI.rp.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function eiReportResolve(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const note=typeof window.prompt==='function'?window.prompt(status==='resolved'?'یادداشت رسیدگی (اختیاری):':'دلیل رد گزارش (اختیاری):',''):'';
+  if(note===null) return;
+  EI.busy=id; renderBody();
+  try{await api.resolveEventReport(id,status,String(note||'').trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:status==='resolved'?'گزارش رسیدگی‌شده ثبت شد.':'گزارش رد شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'ثبت نتیجه انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+function eiClick(q){
+  if(q('[data-ei-close]')){eiClose(); return true}
+  if(q('[data-ei-refresh]')){EI.key=''; eiLoad(); return true}
+  if(q('[data-ei-summary-refresh]')){EI.summary=null; EI.summaryError=''; renderBody(); eiLoadSummary(); return true}
+  const openAll=q('[data-ei-open-all]'); if(openAll){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); if(openAll.dataset.eiOpenAll==='reports') {EI.tab='reports'; EI.key=''; eiLoad()} return true}
+  const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||''); return true}
+  if(!EI.open) return false;
+  const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EI.res.edit=null; EI.key=''; eiLoad(); return true}
+  const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.rp, total=EI.data?Number(EI.data.total)||0:0;
+    box.offset=page.dataset.eiPage==='next'?Math.min(box.offset+box.limit,Math.max(0,total-1)):Math.max(0,box.offset-box.limit); eiLoad(); return true}
+  if(q('[data-ei-res-new]')){eiResourceOpen(''); return true}
+  const resEdit=q('[data-ei-res-edit]'); if(resEdit){eiResourceOpen(resEdit.dataset.eiResEdit); return true}
+  if(q('[data-ei-res-cancel]')){EI.res.edit=null; renderBody(); return true}
+  if(q('[data-ei-res-save]')){eiResourceSave(); return true}
+  const resStatus=q('[data-ei-res-status]'); if(resStatus){eiResourceStatus(resStatus.dataset.eiId,resStatus.dataset.eiResStatus); return true}
+  const resRemove=q('[data-ei-res-remove]'); if(resRemove){eiResourceRemove(resRemove.dataset.eiResRemove); return true}
+  const qa=q('[data-ei-q-answered]'); if(qa){EI.q.answered=qa.dataset.eiQAnswered; EI.q.offset=0; eiLoad(); return true}
+  const qf=q('[data-ei-q-filter]'); if(qf){EI.q.status=qf.dataset.eiQFilter; EI.q.offset=0; eiLoad(); return true}
+  const ansOpen=q('[data-ei-answer-open]'); if(ansOpen){const id=ansOpen.dataset.eiAnswerOpen, item=(EI.data&&EI.data.items||[]).find(x=>x.id===id); EI.q.draft[id]={text:item&&item.answer||'',official:item&&item.answered?item.answer_official!==false:true}; renderBody(); return true}
+  const ansCancel=q('[data-ei-answer-cancel]'); if(ansCancel){delete EI.q.draft[ansCancel.dataset.eiAnswerCancel]; renderBody(); return true}
+  const ansSend=q('[data-ei-answer-send]'); if(ansSend){const id=ansSend.dataset.eiAnswerSend, ta=document.querySelector(`[data-ei-answer-text="${id}"]`); if(EI.q.draft[id]&&ta) EI.q.draft[id].text=ta.value; eiAnswerSend(ansSend.dataset.eiEvent,id,ansSend.dataset.eiAnswerPublish!=='false'); return true}
+  const qs=q('[data-ei-q-status]'); if(qs){eiQuestionStatus(qs.dataset.eiEvent,qs.dataset.eiId,qs.dataset.eiQStatus); return true}
+  const qr=q('[data-ei-q-resend]'); if(qr){eiQuestionResend(qr.dataset.eiEvent,qr.dataset.eiQResend); return true}
+  const rvf=q('[data-ei-rv-filter]'); if(rvf){EI.rv.status=rvf.dataset.eiRvFilter; EI.rv.offset=0; eiLoad(); return true}
+  const rvs=q('[data-ei-rv-status]'); if(rvs){eiReviewStatus(rvs.dataset.eiId,rvs.dataset.eiRvStatus); return true}
+  const rpf=q('[data-ei-rp-filter]'); if(rpf){EI.rp.status=rpf.dataset.eiRpFilter; EI.rp.offset=0; eiLoad(); return true}
+  const rpr=q('[data-ei-rp-resolve]'); if(rpr){eiReportResolve(rpr.dataset.eiId,rpr.dataset.eiRpResolve); return true}
+  return false;
+}
+function eiChange(t){
+  if(!EI.open||!t||!t.dataset) return false;
+  if(t.matches('[data-ei-res-removed]')){EI.res.includeRemoved=!!t.checked; eiLoad(); return true}
+  if(t.dataset.eiFile){const file=t.files&&t.files[0]; if(file) eiResourceUpload(t.dataset.eiFile,file); t.value=''; return true}
+  if(t.dataset.eiField&&EI.res.edit){EI.res.edit.form[t.dataset.eiField]=t.value; if(t.dataset.eiField==='kind') renderBody(); return true}
+  if(t.dataset.eiAnswerOfficial){const d=EI.q.draft[t.dataset.eiAnswerOfficial]; if(d) d.official=!!t.checked; return true}
+  if(t.dataset.eiAnswerText){const d=EI.q.draft[t.dataset.eiAnswerText]; if(d) d.text=t.value; return true}
+  return false;
+}
 function serverContentView(){
   if(!canSec('events')) return serverUnavailableModule('رویدادها و مطالب','این حساب مجوز مدیریت محتوا ندارد.');
   const tabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="نوع محتوا">
     <button class="chip ${CT.kind==='events'?'on':''}" role="tab" aria-selected="${CT.kind==='events'}" data-ct-kind="events">رویدادها</button>
     <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-ct-kind="articles">مطالب</button></div>`;
-  return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():(CM.open?cmPanel():'')+ctList()}</div>`;
+  if(EI.open&&CT.kind==='events'&&!CT.edit) return `<div class="stack">${tabs}${eiPanel()}</div>`;
+  const inbox=CT.kind==='events'&&!CT.edit&&eiCanMod()?`<div class="row" style="flex-wrap:wrap;gap:8px">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-inbox')}${btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag')}</div>`:'';
+  return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():inbox+(CM.open?cmPanel():'')+ctList()}</div>`;
 }
 async function ctOpenEditor(id){
   const api=window.NORA_SERVER_API;
@@ -7052,6 +7386,7 @@ document.addEventListener('click',e=>{
   const ctPage=q('[data-ct-page]'); if(ctPage){const total=CT.data?Number(CT.data.total)||0:0; CT.offset=ctPage.dataset.ctPage==='next'?Math.min(CT.offset+CT.limit,Math.max(0,total-1)):Math.max(0,CT.offset-CT.limit); CT.data=CT.data; ctLoad(); return}
   if(q('[data-ct-new]')){if(!ctCan('can_edit')){toast('مجوز ساخت محتوا برای این نقش فعال نیست'); return} ctOpenEditor(''); return}
   const ctEdit=q('[data-ct-edit]'); if(ctEdit){ctOpenEditor(ctEdit.dataset.ctEdit); return}
+  if(eiClick(q)) return;
   const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
   if(q('[data-ct-cancel]')){CT.edit=null; renderBody(); return}
   if(q('[data-ct-save]')){ctSave(false); return}
@@ -7115,6 +7450,7 @@ document.addEventListener('change',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t) return;
   if(t.matches&&t.matches('[data-ct-sort]')){CT.sort=P2_SORTS.some(([k])=>k===t.value)?t.value:'updated'; ctReset(); ctLoad(); return}
   if(t.matches&&t.matches('[data-ct-order]')){CT.order=t.value==='asc'?'asc':'desc'; ctReset(); ctLoad(); return}
+  if(eiChange(t)) return;
   if(!CT.edit) return;
   if(t.dataset&&t.dataset.ctCheck){CT.edit.form[t.dataset.ctCheck]=!!t.checked; renderBody(); return}
   if(t.dataset&&t.dataset.ctImage){const file=t.files&&t.files[0]; if(file) ctUploadImage(file,t.dataset.ctImage); return}
@@ -7823,6 +8159,7 @@ function renderBody(){
   const host=$('#admBody'); host.innerHTML=(IS_TEST?demoNote():'')+body();
   Object.keys(SERVICE_DRAFT).forEach(key=>{const input=host.querySelector('#svcInput_'+key); if(input&&!input.value) input.value=SERVICE_DRAFT[key]});
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&eiCanMod()&&!EI.summary&&!EI.summaryError&&!EI.summaryLoading){EI.summaryLoading=true; eiLoadSummary()}
   if(!IS_TEST&&SERVER_AUTH&&((S.sec==='users'&&S.uHub==='reports')||S.sec==='dash')&&canPerm('rp_view')
     &&!SERVER_REPORT_LOADING&&!SERVER_REPORT_ERROR
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){
