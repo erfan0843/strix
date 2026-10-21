@@ -272,7 +272,9 @@ def _strip_bytes(row: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def detail(kind: str, row: dict[str, Any]) -> dict[str, Any]:
+def detail(kind: str, row: dict[str, Any], *, has_form: bool | None = None) -> dict[str, Any]:
+    """``has_form`` lets the API pass the real link (forms declared on the row *or* a
+    published form whose ``event_id`` points here) so the panel state matches the public one."""
     out = _strip_bytes(row)
     out["status"] = status_of(row)
     out["created_at"] = _text(row.get("created_at"), 40, allow_number=False)
@@ -284,7 +286,8 @@ def detail(kind: str, row: dict[str, Any]) -> dict[str, Any]:
         # Panel fill-back in the reference zone; the stored value stays UTC.
         out["local_times"] = {key: event_time.to_local_input(row.get(key)) for key in EVENT_DATETIME_FIELDS}
         out["registration"] = event_time.registration_state(
-            row, now=datetime.now(timezone.utc), has_form=bool(row.get("forms")),
+            row, now=datetime.now(timezone.utc),
+            has_form=bool(row.get("forms")) if has_form is None else has_form,
         )
     return out
 

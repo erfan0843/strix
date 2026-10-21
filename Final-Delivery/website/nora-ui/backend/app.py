@@ -2175,12 +2175,28 @@ def create_app(
     def _content_error(error: content_admin_mod.ContentAdminError) -> HTTPException:
         return HTTPException(422, {"code": error.code, "field": error.field})
 
+    def _content_has_form(db: Session, kind: str, row: dict[str, Any]) -> bool | None:
+        """Same link rule as the public snapshot: declared on the row or a published
+        registration form with ``event_id`` = this event (so panel state == public state)."""
+        if kind != "events":
+            return None
+        if row.get("forms"):
+            return True
+        event_id = str(row.get("id") or "")
+        if not event_id:
+            return False
+        return db.scalar(
+            select(FormRecord.id)
+            .where(FormRecord.event_id == event_id, FormRecord.status == "published", FormRecord.need == "reg")
+            .limit(1)
+        ) is not None
+
     def _content_record_response(
-        record: SiteContentRecord, kind: str, row: dict[str, Any], *, saved: bool = False
+        record: SiteContentRecord, kind: str, row: dict[str, Any], *, saved: bool = False, db: Session | None = None
     ) -> dict[str, Any]:
         return {
             "kind": kind,
-            "record": content_admin_mod.detail(kind, row),
+            "record": content_admin_mod.detail(kind, row, has_form=_content_has_form(db, kind, row) if db is not None else None),
             "version": record.version,
             "updated_at": _as_utc(record.updated_at).isoformat() if record.updated_at else None,
             "saved": saved,
@@ -2262,7 +2278,7 @@ def create_app(
         found = content_admin_mod.find_row(_content_rows(record, kind), record_id)
         if record is None or found is None:
             raise HTTPException(404, "content_record_not_found")
-        return _content_record_response(record, kind, found[1])
+        return _content_record_response(record, kind, found[1], db=db)
 
     @app.post("/api/admin/content/{kind}")
     async def create_admin_content_record(
@@ -2296,7 +2312,7 @@ def create_app(
         )
         db.commit()
         db.refresh(record)
-        return _content_record_response(record, kind, row, saved=True)
+        return _content_record_response(record, kind, row, saved=True, db=db)
 
     @app.put("/api/admin/content/{kind}/{record_id}")
     async def update_admin_content_record(
@@ -2330,7 +2346,7 @@ def create_app(
         )
         db.commit()
         db.refresh(record)
-        return _content_record_response(record, kind, row, saved=True)
+        return _content_record_response(record, kind, row, saved=True, db=db)
 
     @app.post("/api/admin/content/{kind}/{record_id}/status")
     async def set_admin_content_status(
@@ -2363,7 +2379,7 @@ def create_app(
         )
         db.commit()
         db.refresh(record)
-        return _content_record_response(record, kind, row, saved=True)
+        return _content_record_response(record, kind, row, saved=True, db=db)
 
     # ── فهرست کاربران برای مدیران دارای us_view (جدا از «حساب‌ها و نقش‌ها») ──
     # فقط دادهٔ غیرمحرمانه: نام نمایشی پروفایل، نوع ورود، نقش، شمارش سوابق.

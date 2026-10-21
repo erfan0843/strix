@@ -202,6 +202,11 @@ def test_public_snapshot_and_form_entry_points_share_the_registration_state():
             event = public_event(client, event_id)
             assert event["registration"]["state"] == "open"
             assert event["registration"]["countdownTo"] == event["regClosesAt"]
+            # Panel detail must agree with the public state even when the link lives on the
+            # form (event_id) rather than on the event row ("forms").
+            panel = client.get(f"/api/admin/content/events/{event_id}").json()["record"]
+            assert panel["registration"]["state"] == "open"
+            assert panel["registration"]["countdownTo"] == event["registration"]["countdownTo"]
             assert event["forms"][0]["id"] == form_id
             assert event["lifecycle"] == "scheduled" and event["regMode"] == "auto"
 
