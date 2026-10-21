@@ -1,0 +1,23 @@
+✓ seed via /api/bot/certificates: recording+event for holder, revoked recording for another member mirrored (200); unknown kind rejected 422 (200/200/200/422)
+✓ m guest: GET /api/account/certificates → 401; nothing rendered
+✓ m holder sees own rows: cards = API rows (8: event + recording; earlier runs of this script add rows); no issuer/account identifiers in the payload
+✓ m holder kinds distinct: completion certificate labelled, titled and numbered apart from the attendance certificate
+✓ m holder delivery via bot: file only through the Bale bot deep link; no account download route; no "request/issue" button
+✓ m holder no foreign rows: the other member's certificate is not present anywhere on the page
+✓ m other member: only own revoked certificate(s); real status; no delivery button; nothing of the holder
+✓ m empty state: no synthetic certificate; purchase/viewing stated as not creating one
+✓ m manager registry: kind filter works end to end (8 recording rows, label shown)
+✓ m embed attributes: document Referrer-Policy=same-origin; iframe referrerpolicy=strict-origin-when-cross-origin (origin reaches YouTube/Aparat → error-153 precondition met); no page CSP; new in-frame error guidance shown
+• m external playback (sandbox): youtube=ready, aparat=ready — the sandbox has no route to youtube.com/aparat.com; "ready" only means the iframe fired load (Chromium fires it for its own error page). Real playback is NOT verified here.
+✓ d guest: GET /api/account/certificates → 401; nothing rendered
+✓ d holder sees own rows: cards = API rows (8: event + recording; earlier runs of this script add rows); no issuer/account identifiers in the payload
+✓ d holder kinds distinct: completion certificate labelled, titled and numbered apart from the attendance certificate
+✓ d holder delivery via bot: file only through the Bale bot deep link; no account download route; no "request/issue" button
+✓ d holder no foreign rows: the other member's certificate is not present anywhere on the page
+✓ d other member: only own revoked certificate(s); real status; no delivery button; nothing of the holder
+✓ d empty state: no synthetic certificate; purchase/viewing stated as not creating one
+✓ d manager registry: kind filter works end to end (8 recording rows, label shown)
+✓ d embed attributes: document Referrer-Policy=same-origin; iframe referrerpolicy=strict-origin-when-cross-origin (origin reaches YouTube/Aparat → error-153 precondition met); no page CSP; new in-frame error guidance shown
+• d external playback (sandbox): youtube=ready, aparat=ready — the sandbox has no route to youtube.com/aparat.com; "ready" only means the iframe fired load (Chromium fires it for its own error page). Real playback is NOT verified here.
+
+ARTIFACTS: 12 screenshots in phase9.2
