@@ -90,7 +90,10 @@
   const monthLabel = (jy, jm) => `${MONTHS[jm - 1]} ${fa(jy).replace(/٬/g, '')}`;
 
   /* ── وضعیت صفحه ── */
-  const state = { status: 'all', kind: '', mode: '', sort: 'near', view: 'list', month: '', day: 0, query: '' };
+  const state = { status: 'all', kind: '', mode: '', access: '', sort: 'near', view: 'list', month: '', day: 0, query: '' };
+  /* فاز ۹: «ضبط‌شده» یعنی محصول منتشرشدهٔ سرور برای همین رویداد؛ برگزارشده بدون محصول منتشرشده، قابل خرید نیست */
+  const recorded = event => !!(event.recording && event.recording.sellable);
+  const recordedAccess = event => recorded(event) ? (event.recording.free ? 'رایگان' : 'قابل خرید') : '';
   let records = [];
   const params = new URLSearchParams(root.location.search);
 
@@ -128,18 +131,20 @@
   function statusMatches(event) {
     if (state.status === 'upcoming' && event.past) return false;
     if (state.status === 'past' && !event.past) return false;
+    if (state.status === 'recorded' && !recorded(event)) return false;
     return true;
   }
   function facetMatches(event, ignore) {
     if (ignore !== 'kind' && state.kind && String(event.kind || '') !== state.kind) return false;
     if (ignore !== 'mode' && state.mode && modeOf(event) !== state.mode) return false;
+    if (ignore !== 'access' && state.access && recordedAccess(event) !== state.access) return false;
     return true;
   }
   function queryMatches(event) {
     if (!state.query) return true;
     const teacher = person(event);
     const haystack = [event.t, event.kind, event.d, event.when, event.time, event.place, modeOf(event),
-      ...(Array.isArray(event.tags) ? event.tags : []), teacher && teacher.n, teacher && teacher.r]
+      ...(Array.isArray(event.tags) ? event.tags : []), teacher && teacher.n, teacher && teacher.r, recorded(event) ? event.recording.title : '']
       .filter(Boolean).join(' ').toLocaleLowerCase();
     return haystack.includes(state.query.toLocaleLowerCase());
   }
@@ -194,11 +199,14 @@
             ? `<a class="btn primary" href="form.html?fid=${encodeURIComponent(formId)}&kind=reg">ثبت‌نام</a>`
             : `<span class="event-register-missing">فرم ثبت‌نام منتشر نشده است</span>`;
     const coverState = event.past ? 'برگزارشده' : (reg && reg.lifecycle === 'cancelled') ? 'لغو شد' : (reg && reg.lifecycle === 'postponed') ? 'به تعویق افتاد' : '';
-    return `<article class="event-list-card card paper" data-event-id="${esc(event.id)}">
+    const rec = recorded(event) ? event.recording : null;
+    const recMeta = rec ? [rec.sessionCount ? `${fa(rec.sessionCount)} جلسه` : '', rec.totalMinutes ? `${fa(rec.totalMinutes)} دقیقه` : '', rec.free ? 'دسترسی رایگان' : `${fa(rec.price)} ریال`].filter(Boolean).join(' · ') : '';
+    const recButton = rec ? `<a class="btn ${event.past ? 'primary' : 'quiet'}" href="${detailHref}#recording" data-event-recording="${esc(event.id)}">${rec.free ? 'محتوای ضبط‌شده (رایگان)' : 'خرید محتوای ضبط‌شده'}</a>` : '';
+    return `<article class="event-list-card card paper" data-event-id="${esc(event.id)}"${rec ? ' data-event-recorded="true"' : ''}>
       <a class="event-list-cover" href="${detailHref}" aria-label="جزئیات ${esc(event.t)}">
         ${coverHtml}<span class="cover-shade"></span>
         ${event.kind ? `<span class="cover-kind">${esc(event.kind)}</span>` : ''}
-        ${coverState ? `<span class="cover-state">${esc(coverState)}</span>` : ''}
+        ${coverState ? `<span class="cover-state">${esc(coverState)}${rec ? ' · ضبط‌شده' : ''}</span>` : rec ? '<span class="cover-state">ضبط‌شده</span>' : ''}
         ${when ? `<span class="cover-date">${esc(when)}</span>` : ''}
       </a>
       <div class="event-list-body">
@@ -213,9 +221,10 @@
           ${event.cap ? `<span><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span>ظرفیت ${fa(event.cap)} نفر</span></span>` : ''}
           ${!event.past ? `<span><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span>${event.price ? `${fa(event.price)} ریال` : 'رایگان'}</span></span>` : ''}
           ${event.past && Array.isArray(event.media) && event.media.length ? `<span><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg><span>${fa(event.media.length)} رسانهٔ منتشرشده</span></span>` : ''}
+          ${rec ? `<span data-event-recording-meta><svg class="i" aria-hidden="true"><use href="#i-play"/></svg><span>${esc(['ضبط‌شده', recMeta].filter(Boolean).join(' · '))}</span></span>` : ''}
         </div>
         ${profile ? `<a class="event-list-teacher" href="person.html?id=${encodeURIComponent(profile.id)}"><svg class="i" aria-hidden="true"><use href="#i-graduation"/></svg>${esc(profile.n)}</a>` : ''}
-        <div class="event-list-actions"><a class="btn quiet" href="${detailHref}">جزئیات کامل</a>${formButton}</div>
+        <div class="event-list-actions"><a class="btn quiet" href="${detailHref}">جزئیات کامل</a>${formButton}${recButton}</div>
       </div>
     </article>`;
   }
@@ -240,12 +249,15 @@
     const modes = count(base.filter(event => facetMatches(event, 'mode')), modeOf);
     if (state.kind && !kinds.some(item => item.k === state.kind)) kinds.push({ k: state.kind, c: 0 });
     if (state.mode && !modes.some(item => item.k === state.mode)) modes.push({ k: state.mode, c: 0 });
+    const access = state.status === 'recorded' ? count(base.filter(event => facetMatches(event, 'access')), recordedAccess) : [];
+    if (state.access && !access.some(item => item.k === state.access)) access.push({ k: state.access, c: 0 });
     const html = chipRow('نوع برنامه', 'kind', kinds.length > 1 || state.kind ? kinds : [], state.kind)
-      + chipRow('شیوهٔ برگزاری', 'mode', modes.length > 1 || state.mode ? modes : [], state.mode);
+      + chipRow('شیوهٔ برگزاری', 'mode', modes.length > 1 || state.mode ? modes : [], state.mode)
+      + chipRow('دسترسی محتوای ضبط‌شده', 'access', access.length > 1 || state.access ? access : [], state.access);
     host.innerHTML = html;
     host.hidden = !html;
     const reset = $('#eventFacetReset');
-    if (reset) reset.hidden = !(state.kind || state.mode);
+    if (reset) reset.hidden = !(state.kind || state.mode || state.access);
   }
 
   /* ── تقویم ماهانه از تاریخ‌های واقعی ── */
@@ -329,15 +341,16 @@
     empty.hidden = calendarMode || !!visible.length;
     if (calendar) calendar.hidden = !calendarMode;
     if (toolbar) toolbar.hidden = !records.length;
-    const statusLabel = state.status === 'upcoming' ? ' پیش‌رو' : state.status === 'past' ? ' برگزارشده' : ' منتشرشده';
-    const facetLabel = [state.kind, state.mode].filter(Boolean).map(item => ` · ${item}`).join('');
+    const statusLabel = state.status === 'upcoming' ? ' پیش‌رو' : state.status === 'past' ? ' برگزارشده' : state.status === 'recorded' ? ' با محتوای ضبط‌شده' : ' منتشرشده';
+    const facetLabel = [state.kind, state.mode, state.access].filter(Boolean).map(item => ` · ${item}`).join('');
     count.textContent = visible.length
       ? `${fa(visible.length)} رویداد${statusLabel}${facetLabel}`
       : 'نتیجه‌ای پیدا نشد';
     if (!records.length) $('#eventsEmptyMessage').textContent = root.NORA_PUBLIC_SOURCE === 'unavailable'
       ? 'به پایگاه عمومی سرور دسترسی نیست؛ فهرست رویدادها فعلاً قابل نمایش نیست. کمی بعد دوباره تلاش کن.'
       : 'در حال حاضر رویدادی در فهرست عمومی منتشر نشده است.';
-    else $('#eventsEmptyMessage').textContent = state.query || state.kind || state.mode ? 'واژهٔ جست‌وجو یا صافی‌ها را تغییر دهید.' : 'برای این وضعیت رویدادی در دسترس نیست.';
+    else $('#eventsEmptyMessage').textContent = state.query || state.kind || state.mode || state.access ? 'واژهٔ جست‌وجو یا صافی‌ها را تغییر دهید.'
+      : state.status === 'recorded' ? 'هنوز محتوای ضبط‌شده‌ای برای فروش یا دسترسی منتشر نشده است.' : 'برای این وضعیت رویدادی در دسترس نیست.';
     root.document.querySelectorAll('[data-event-filter]').forEach(button => {
       const active = button.dataset.eventFilter === state.status;
       button.classList.toggle('on', active);
@@ -362,9 +375,10 @@
   function viewFromHash() {
     const hash = String(root.location.hash || '').replace('#', '');
     if (hash === 'cal') setView('cal', { updateHash: false });
-    else if (hash === 'list' || hash === 'upcoming' || hash === 'cat' || hash === 'lib' || hash === 'library') {
+    else if (hash === 'list' || hash === 'upcoming' || hash === 'cat' || hash === 'lib' || hash === 'library' || hash === 'recorded') {
       if (hash === 'upcoming') state.status = 'upcoming';
       if (hash === 'lib' || hash === 'library') state.status = 'past';
+      if (hash === 'recorded') state.status = 'recorded';
       setView('list', { updateHash: false });
     }
   }
@@ -380,11 +394,13 @@
     state.query = initialSearch.trim();
     if (params.get('status') === 'past') state.status = 'past';
     else if (params.get('status') === 'upcoming') state.status = 'upcoming';
+    else if (params.get('status') === 'recorded') state.status = 'recorded';
     const initialKind = cut(params.get('kind') || '', 80);
     if (initialKind && records.some(event => String(event.kind || '') === initialKind)) state.kind = initialKind;
     if (params.get('view') === 'cal' || root.location.hash === '#cal') state.view = 'cal';
     if (root.location.hash === '#upcoming') state.status = 'upcoming';
     if (root.location.hash === '#lib' || root.location.hash === '#library') state.status = 'past';
+    if (root.location.hash === '#recorded') state.status = 'recorded';
     if (initialEvent) {
       const match = records.find(event => String(event.id) === initialEvent);
       if (match) root.location.replace(`event.html?id=${encodeURIComponent(match.id)}`);
@@ -397,7 +413,7 @@
       search.value = ''; state.query = ''; clear.hidden = true; search.focus(); render();
     });
     root.document.querySelectorAll('[data-event-filter]').forEach(button => {
-      button.addEventListener('click', () => { state.status = button.dataset.eventFilter; state.day = 0; render(); });
+      button.addEventListener('click', () => { state.status = button.dataset.eventFilter; state.day = 0; if (state.status !== 'recorded') state.access = ''; render(); });
     });
     root.document.querySelectorAll('[data-event-view]').forEach(button => {
       button.addEventListener('click', () => setView(button.dataset.eventView));
@@ -405,7 +421,7 @@
     const sort = $('#eventSort');
     if (sort) sort.addEventListener('change', () => { state.sort = ['near', 'cheap', 'dear', 'title'].includes(sort.value) ? sort.value : 'near'; render(); });
     const reset = $('#eventFacetReset');
-    if (reset) reset.addEventListener('click', () => { state.kind = ''; state.mode = ''; render(); });
+    if (reset) reset.addEventListener('click', () => { state.kind = ''; state.mode = ''; state.access = ''; render(); });
     root.document.addEventListener('click', ev => {
       const target = ev.target && ev.target.closest ? ev.target : null;
       if (!target) return;
@@ -413,6 +429,8 @@
       if (kind) { state.kind = state.kind === kind.dataset.eventKind ? '' : kind.dataset.eventKind; state.day = 0; render(); return; }
       const mode = target.closest('[data-event-mode]');
       if (mode) { state.mode = state.mode === mode.dataset.eventMode ? '' : mode.dataset.eventMode; state.day = 0; render(); return; }
+      const access = target.closest('[data-event-access]');
+      if (access) { state.access = state.access === access.dataset.eventAccess ? '' : access.dataset.eventAccess; state.day = 0; render(); return; }
       const month = target.closest('[data-event-month]');
       if (month) { state.month = month.dataset.eventMonth; state.day = 0; renderCalendar(); return; }
       const day = target.closest('[data-event-day]');
@@ -420,7 +438,7 @@
     });
     root.addEventListener('hashchange', viewFromHash);
     render();
-    if (['#list', '#cal', '#cat', '#lib', '#library', '#upcoming'].includes(root.location.hash)) {
+    if (['#list', '#cal', '#cat', '#lib', '#library', '#upcoming', '#recorded'].includes(root.location.hash)) {
       requestAnimationFrame(() => { const anchor = $('#eventToolbar') || $('#eventsList'); if (anchor && anchor.scrollIntoView) anchor.scrollIntoView({ block: 'start' }); });
     }
   }

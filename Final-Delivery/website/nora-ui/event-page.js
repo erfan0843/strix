@@ -110,6 +110,9 @@
     const serverSnapshot = root.NORA_PUBLIC_SOURCE === 'server';
     /* فاز ۸: منابع/پرسش‌وپاسخ/دیدگاه فقط با API سرور معنا دارند؛ بدون سرور هیچ بخش خالی یا ساختگی ساخته نمی‌شود. */
     const interactive = serverSnapshot && root.NORA_EVENT_INTERACTION && typeof root.NORA_EVENT_INTERACTION.mount === 'function';
+    /* فاز ۹: محصول ضبط‌شده فقط وقتی سرور کارت آن را در همین رکورد فرستاده باشد؛ متن کامل، جلسات و CTA از API محصول می‌آید. */
+    const recording = interactive && event.recording && typeof event.recording === 'object' ? event.recording : null;
+    const recordingHeld = !!(recording && (isPast || (event.registration && event.registration.state === 'ended')));
     const cover = safeUrl(event.posterUp || event.poster);
     const coverHtml = cover
       ? `<img class="event-cover-image" src="${esc(cover)}" alt="پوستر ${esc(event.t)}" decoding="async"/>`
@@ -172,7 +175,7 @@
           <div class="event-cover">${coverHtml}</div>
           <div class="event-heading">
             <div class="event-tags">${tags}${event.kind ? `<span class="tag brand">${esc(event.kind)}</span>` : ''}
-              ${isPast ? '<span class="tag">برگزارشده</span>' : ''}${!isPast && stateText ? `<span class="reg-state ${esc(stateTone)}">${esc(stateText)}</span>` : ''}</div>
+              ${isPast ? '<span class="tag">برگزارشده</span>' : ''}${recording && recording.sellable ? '<span class="tag">ضبط‌شده</span>' : ''}${!isPast && stateText ? `<span class="reg-state ${esc(stateTone)}">${esc(stateText)}</span>` : ''}</div>
             <h1>${esc(event.t)}</h1>
             ${event.d ? `<p class="event-lead">${textWithBreaks(event.d)}</p>` : ''}
           </div>
@@ -196,6 +199,7 @@
           ${schedule ? `<section class="event-section" aria-labelledby="event-schedule-title">
             <h2 id="event-schedule-title">زمان‌بندی و سرفصل‌ها</h2><ol class="schedule-list">${schedule}</ol>
           </section>` : ''}
+          ${recording ? '<div data-event-interaction="recording" hidden></div>' : ''}
           ${interactive ? '<div data-event-interaction="resources" hidden></div>' : ''}
           ${instructor ? `<section class="event-section" aria-labelledby="event-instructor-title">
             <h2 id="event-instructor-title">مدرس / برگزارکننده</h2>
@@ -233,8 +237,9 @@
           ${relatedSection(event)}
         </article>
         <aside class="event-register card paper" aria-labelledby="event-register-title">
-          <h2 id="event-register-title">${isPast ? 'اطلاعات آرشیو' : 'ثبت‌نام'}</h2>
+          <h2 id="event-register-title">${recordingHeld && recording.sellable ? 'محتوای ضبط‌شده' : isPast ? 'اطلاعات آرشیو' : 'ثبت‌نام'}</h2>
           ${!isPast ? `<p class="event-price">${esc(money(event.price))}</p>` : ''}
+          ${recordingHeld && recording.sellable ? '<div class="event-recording-aside" data-recording-aside><p class="cap" role="status">در حال خواندن وضعیت دسترسی…</p></div>' : ''}
           <div class="event-register-action">${registration}</div>
           <div class="event-share-row">${calendarButton}${shareButton}</div>
           <div class="event-share-fallback" id="shareFallback" hidden><label class="cap" for="shareUrl">پیوند این رویداد</label><input id="shareUrl" class="input" type="text" readonly dir="ltr"/></div>
@@ -246,6 +251,11 @@
       toolbarInner.innerHTML = `<span><b>${esc(event.t)}</b><small>${esc(event.when || '')}</small></span>
         <span class="sp"></span><a class="btn primary" href="form.html?fid=${encodeURIComponent(form.id)}&kind=reg">ثبت‌نام</a>`;
       toolbar.hidden = false;
+    } else if (recordingHeld && recording.sellable && toolbar && toolbarInner) {
+      /* رویداد برگزارشده با محصول منتشرشده: نوار پایین موبایل به‌جای شمارش معکوس، CTA سروری محصول را نشان می‌دهد (پر می‌شود پس از پاسخ API). */
+      toolbarInner.innerHTML = `<span><b>${esc(recording.title || event.t)}</b><small>محتوای ضبط‌شده</small></span>
+        <span class="sp"></span><span data-recording-toolbar></span>`;
+      toolbar.hidden = true;
     } else {
       toolbar.hidden = true;
     }

@@ -38,3 +38,33 @@
 @media (max-width:560px){
   .ei-form-row .btn,.ei-login .btn{margin-inline-start:0}
 }
+/* فاز ۹: محصول ضبط‌شده؛ بخش خطی داخل همان مقاله، بدون کارت تودرتو و بدون شمارش معکوس */
+.ei-rec-cover{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-md);display:block;margin-bottom:10px}
+.ei-rec-title{margin:0 0 6px;font-size:15px}
+.ei-rec-summary,.ei-rec-block p{margin:0;font-size:13px;line-height:1.9;color:var(--ink-1)}
+.ei-rec-cta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.ei-rec-cta .btn{min-height:40px}
+.ei-rec-why,.ei-rec-expiry{flex-basis:100%;font-size:11px;color:var(--ink-3);line-height:1.7}
+.ei-rec-facts,.ei-rec-card{margin:0 0 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.ei-rec-facts div,.ei-rec-card div{padding:8px 10px;border:1px solid var(--hairline);border-radius:var(--r-md);display:grid;gap:3px}
+.ei-rec-facts dt,.ei-rec-card dt{font-size:11px;color:var(--ink-3)}
+.ei-rec-facts dd,.ei-rec-card dd{margin:0;font-size:13px;font-weight:600}
+.ei-rec-block{display:grid;gap:4px;margin-bottom:12px}
+.ei-rec-block>b{font-size:13px}
+.ei-rec-sub{font-size:14px;margin:14px 0 8px}
+.ei-rec-sessions{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:10px}
+.ei-rec-session{padding:11px 12px;border:1px solid var(--hairline);border-radius:var(--r-md);display:grid;gap:8px}
+.ei-rec-session>p{margin:0;font-size:13px;line-height:1.9}
+.ei-rec-files{gap:6px}
+.ei-rec-files>li{padding:9px 10px}
+.ei-rec-action video,.ei-rec-action audio{width:100%;max-height:60vh;border-radius:var(--r-sm,8px);background:#000}
+.ei-rec-action audio{background:transparent}
+.ei-rec-order{display:grid;gap:10px;padding:12px;border:1px solid var(--hairline);border-radius:var(--r-md);margin-bottom:12px}
+.ei-rec-order .ei-form{margin:0}
+.ei-rec-order input[type=file]{font-size:12px}
+.ei-rec-faq{border-top:1px solid var(--hairline);padding:6px 0}
+.ei-rec-faq summary{cursor:pointer;font-size:13px;line-height:1.8}
+.ei-rec-faq p{margin:4px 0 0;font-size:12px;line-height:1.9;color:var(--ink-2)}
+.event-recording-aside{display:grid;gap:8px}
+.event-recording-aside .event-register-action .btn{width:100%;justify-content:center}
+@media (prefers-reduced-motion:reduce){.ei-rec-faq{transition:none}}

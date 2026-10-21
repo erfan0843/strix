@@ -186,6 +186,23 @@
       countdownTo: isoText(registrationRaw.countdownTo),
       startsIn: isoText(registrationRaw.startsIn)
     } : null;
+    /* فاز ۹: کارت محصول ضبط‌شده فقط از سرور (بدون شمارنده/تخفیف)؛ فقط کلیدهای شناخته‌شده عبور می‌کنند */
+    const recRaw = record.recording && typeof record.recording === 'object' ? record.recording : null;
+    const recording = recRaw && text(recRaw.id, 100) && text(recRaw.title, 240) ? {
+      id: text(recRaw.id, 100),
+      status: ['draft', 'ready', 'published', 'sales_paused', 'archived'].includes(recRaw.status) ? recRaw.status : '',
+      sellable: recRaw.sellable === true && recRaw.status === 'published',
+      title: text(recRaw.title, 240),
+      summary: text(recRaw.summary, 300),
+      price: Number.isFinite(+recRaw.price) && +recRaw.price >= 0 ? Math.trunc(+recRaw.price) : 0,
+      currency: text(recRaw.currency, 8) || 'IRR',
+      free: recRaw.free === true || !(Number.isFinite(+recRaw.price) && +recRaw.price > 0),
+      accessDays: Number.isFinite(+recRaw.access_days) && +recRaw.access_days > 0 ? Math.trunc(+recRaw.access_days) : 0,
+      coverUrl: publicMediaPath(recRaw.cover_url),
+      sessionCount: Number.isFinite(+recRaw.session_count) && +recRaw.session_count > 0 ? Math.trunc(+recRaw.session_count) : 0,
+      totalMinutes: Number.isFinite(+recRaw.total_minutes) && +recRaw.total_minutes > 0 ? Math.trunc(+recRaw.total_minutes) : 0,
+      publishedAt: isoText(recRaw.published_at)
+    } : null;
     const normalized = Object.assign({}, record, {
       id,
       t: title,
@@ -220,6 +237,7 @@
       lifecycle,
       conditions: text(record.conditions, 1000),
       registration,
+      recording,
       privacy
     });
     ['code', 'regs', 'reg', 'taken', 'spots', 'sold', 'attendees', 'registrants'].forEach(key => delete normalized[key]);

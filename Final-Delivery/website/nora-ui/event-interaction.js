@@ -31,16 +31,19 @@
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
-    'application/zip': 'ZIP', 'audio/mpeg': 'MP3', 'text/plain': 'متن'
+    'application/zip': 'ZIP', 'audio/mpeg': 'MP3', 'video/mp4': 'ویدئو MP4', 'text/plain': 'متن'
   };
-  const ACCESS = { public: 'عمومی', registered: 'ویژهٔ ثبت‌نام‌شدگان', attended: 'ویژهٔ شرکت‌کنندگان', staff: 'ویژهٔ برگزارکنندگان' };
+  const ACCESS = { public: 'عمومی', registered: 'ویژهٔ ثبت‌نام‌شدگان', attended: 'ویژهٔ شرکت‌کنندگان', purchased: 'ویژهٔ دارندگان دسترسی محتوای ضبط‌شده', staff: 'ویژهٔ برگزارکنندگان' };
   const REASON = {
     login_required: 'برای دریافت وارد حساب شوید',
     registration_required: 'نیازمند ثبت‌نام تأییدشده',
     attendance_required: 'ویژهٔ شرکت‌کنندگان با حضور تأییدشده',
     staff_only: 'فقط برای برگزارکنندگان',
     not_published: 'هنوز منتشر نشده',
-    removed: 'برداشته شده'
+    removed: 'برداشته شده',
+    purchase_required: 'ویژهٔ دارندگان دسترسی محتوای ضبط‌شده',
+    access_expired: 'مدت دسترسی شما به پایان رسیده',
+    access_revoked: 'دسترسی شما لغو شده'
   };
   const ERRORS = {
     duplicate_question: 'همین پرسش را پیش‌تر ثبت کرده‌اید.',
@@ -235,11 +238,249 @@
     box.innerHTML = section('reviews', 'دیدگاه شرکت‌کنندگان', `${reviewForm()}${list}`);
   }
 
+  /* ── فاز ۹: محصول ضبط‌شدهٔ همین رویداد ──
+     همهٔ متن، جلسات، وضعیت دسترسی و «تنها دکمهٔ اقدام» از /api/public/events/{id}/recording می‌آید.
+     این بخش هیچ وضعیتی را از داده‌های مرورگر نتیجه نمی‌گیرد: خرید ≠ ثبت‌نام ≠ حضور؛ رسید فقط «ارسال» می‌شود
+     و دسترسی تنها پس از تأیید سرور (بررسی رسید یا رویداد تأییدشدهٔ بله) باز می‌شود. بدون شمارش معکوس، بدون شمارندهٔ ساختگی. */
+  const R = { data: null, loading: false, error: '', status: 0, busy: '', msg: null, method: '', note: '' };
+  const R_ORDER_STATUS = {
+    pending: 'در انتظار پرداخت در بله', awaiting_receipt: 'در انتظار واریز و ارسال رسید', receipt_submitted: 'رسید ارسال شد؛ در انتظار بررسی برگزارکننده',
+    needs_review: 'پرداخت نیازمند بررسی برگزارکننده', paid: 'پرداخت تأیید شد', paid_manual: 'پرداخت تأیید شد', rejected: 'سفارش رد شد',
+    cancelled: 'سفارش لغو شد', expired: 'مهلت سفارش گذشت', refunded: 'بازپرداخت شد'
+  };
+  const R_ACCESS_REASON = { purchased: 'دسترسی خریداری‌شده', free: 'دسترسی رایگان', granted: 'دسترسی اعطاشده', attendee: 'دسترسی شرکت‌کنندهٔ تأییدشده', staff: 'پیش‌نمایش کادر', preview: 'پیش‌نمایش رایگان',
+    access_expired: 'مدت دسترسی شما به پایان رسیده است', access_revoked: 'دسترسی شما لغو شده است', purchase_required: 'نیازمند دسترسی', login_required: 'برای دسترسی وارد حساب شوید', not_published: 'هنوز منتشر نشده' };
+  const R_ERRORS = {
+    recording_not_free: 'این محتوا رایگان نیست.', access_already_active: 'شما هم‌اکنون دسترسی فعال دارید.', recording_is_free: 'این محتوا رایگان است؛ نیازی به سفارش نیست.',
+    payment_method_not_available: 'این روش پرداخت فعلاً در دسترس نیست.', bale_identity_required: 'پرداخت با کیف پول بله فقط با حساب پیوندخورده به بله ممکن است.',
+    order_not_awaiting_receipt: 'این سفارش در وضعیت دریافت رسید نیست.', order_not_cancellable: 'این سفارش دیگر قابل لغو نیست.', file_too_large: 'حجم رسید بیش از ۸ مگابایت است.',
+    file_type_not_allowed: 'رسید باید تصویر (JPG/PNG/WebP) یا PDF باشد.', file_empty: 'فایل رسید خالی است.', upload_rate_limited: 'شمار بارگذاری‌ها زیاد است؛ کمی بعد دوباره تلاش کنید.',
+    sales_paused: 'فروش این محتوا فعلاً متوقف است.', recording_not_available: 'این محتوا در دسترس نیست.'
+  };
+  const rMoney = value => (Number(value) > 0 ? `${fa(Number(value).toLocaleString('en-US'))} ریال` : 'رایگان');
+  const rMinutes = value => { const n = Number(value) || 0; if (!n) return ''; const h = Math.floor(n / 60), m = n % 60; return h ? `${fa(h)} ساعت${m ? ` و ${fa(m)} دقیقه` : ''}` : `${fa(m)} دقیقه`; };
+  const rDescribe = error => (error && error.code && R_ERRORS[error.code]) ? R_ERRORS[error.code] : describe(error);
+  function rContainers() {
+    const page = S.page || doc;
+    return { section: page.querySelector('[data-event-interaction="recording"]'), aside: doc.querySelector('[data-recording-aside]'), toolbar: doc.querySelector('[data-recording-toolbar]') };
+  }
+  function rLoginHref() { return loginHref('recording'); }
+  function rFileHref(id) { return `/api/public/events/${encodeURIComponent(String(S.event.id))}/resources/${encodeURIComponent(id)}/download`; }
+
+  function rCta(compact) {
+    const d = R.data; if (!d) return '';
+    const v = d.viewer, cta = v.cta || { kind: 'unavailable' }, kind = cta.kind;
+    const expiry = v.access && v.access.expires_at ? `<small class="ei-rec-expiry">دسترسی تا ${esc(when(v.access.expires_at))}</small>` : '';
+    const busyAttr = R.busy ? ' disabled aria-busy="true"' : '';
+    if (kind === 'view') return `<a class="btn primary" href="#recording-sessions" data-rec-view>مشاهدهٔ جلسات</a>${expiry}${compact ? '' : `<small class="ei-rec-why">${esc(R_ACCESS_REASON[v.access.reason] || 'دسترسی فعال')}</small>`}`;
+    if (kind === 'staff_preview') return `<span class="tag">پیش‌نمایش کادر؛ خرید از این حساب انجام نمی‌شود</span>`;
+    if (kind === 'login') return `<a class="btn primary" href="${esc(rLoginHref())}" data-rec-login>${d.free ? 'ورود برای دریافت دسترسی رایگان' : 'ورود برای خرید دسترسی'}</a>`;
+    if (kind === 'free') return `<button type="button" class="btn primary" data-rec-claim${busyAttr}>${R.busy === 'claim' ? 'در حال ثبت…' : 'دریافت دسترسی رایگان'}</button>${compact ? '' : '<small class="ei-rec-why">بدون پرداخت و بدون تراکنش؛ دسترسی روی حساب شما ثبت می‌شود.</small>'}`;
+    if (kind === 'off_sale') return `<span class="ei-lock" data-rec-off-sale>${esc(cta.reason === 'no_payment_method' ? 'فروش این محتوا فعلاً فعال نیست' : 'فروش این محتوا فعلاً متوقف است')}</span>`;
+    if (kind === 'order_open') return compact ? `<a class="btn primary" href="#recording-order" data-rec-continue>${esc(R_ORDER_STATUS[cta.reason] || 'ادامهٔ سفارش')}</a>` : '';
+    if (kind === 'buy') {
+      const methods = Array.isArray(cta.methods) ? cta.methods : [];
+      const prev = cta.previous && cta.previous.status ? `<small class="ei-rec-why" data-rec-previous="${esc(cta.previous.status)}">${esc(R_ORDER_STATUS[cta.previous.status] || '')}؛ می‌توانید دوباره تلاش کنید.</small>` : '';
+      if (compact) return `<a class="btn primary" href="#recording" data-rec-buy-jump>خرید دسترسی · ${esc(rMoney(d.price))}</a>`;
+      const buttons = methods.map(m => `<button type="button" class="btn ${m === methods[0] ? 'primary' : 'quiet'}" data-rec-order="${esc(m)}"${busyAttr}>${R.busy === m ? 'در حال ساخت سفارش…' : m === 'bale_wallet' ? 'پرداخت با کیف پول بله' : 'خرید دسترسی (کارت‌به‌کارت)'}</button>`).join('');
+      return `${buttons}${prev}`;
+    }
+    return `<span class="ei-lock">این محتوا در دسترس نیست</span>`;
+  }
+  function rOrderPanel() {
+    const d = R.data; const cta = d && d.viewer.cta;
+    if (!cta || cta.kind !== 'order_open' || !cta.order) return '';
+    const o = cta.order, status = o.status;
+    let body = '';
+    if (o.method === 'card_transfer' && (status === 'awaiting_receipt' || status === 'receipt_submitted')) {
+      const card = o.card || {};
+      body += `<dl class="ei-rec-card"><div><dt>مبلغ قابل واریز</dt><dd>${esc(rMoney(o.amount))}</dd></div>
+        ${card.number ? `<div><dt>شمارهٔ کارت</dt><dd dir="ltr">${esc(String(card.number).replace(/(\d{4})(?=\d)/g, '$1-'))}</dd></div>` : ''}
+        ${card.bank ? `<div><dt>بانک</dt><dd>${esc(card.bank)}</dd></div>` : ''}${card.holder ? `<div><dt>به نام</dt><dd>${esc(card.holder)}</dd></div>` : ''}
+        ${o.expires_at ? `<div><dt>مهلت ارسال رسید</dt><dd>${esc(when(o.expires_at))}</dd></div>` : ''}</dl>`;
+      body += status === 'receipt_submitted'
+        ? `<p class="ei-note ok" role="status">رسید «${esc(o.receipt_file_name || 'فایل')}» در ${esc(when(o.receipt_submitted_at))} ارسال شد. دسترسی فقط پس از بررسی و تأیید برگزارکننده فعال می‌شود؛ نتیجه در «سفارش‌ها و پرداخت‌ها»ی حساب شما ثبت می‌شود. در صورت نیاز می‌توانید رسید را جایگزین کنید.</p>`
+        : `<p class="cap">پس از واریز، تصویر یا PDF رسید را بفرستید. ارسال رسید پرداخت را قطعی نمی‌کند؛ برگزارکننده آن را بررسی می‌کند.</p>`;
+      body += `<form class="ei-form" data-rec-receipt-form novalidate><label class="cap" for="eiReceiptFile">فایل رسید (JPG، PNG، WebP یا PDF؛ تا ۸ مگابایت)</label><input id="eiReceiptFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-rec-receipt-file/>
+        <label class="cap" for="eiReceiptNote">یادداشت (اختیاری، مثلاً شمارهٔ پیگیری)</label><input id="eiReceiptNote" class="input" type="text" maxlength="300" data-rec-receipt-note value="${esc(R.note)}"/>
+        <div class="ei-form-row">${status === 'awaiting_receipt' ? `<button type="button" class="btn sm quiet" data-rec-cancel${R.busy ? ' disabled' : ''}>انصراف از سفارش</button>` : ''}<button type="submit" class="btn primary"${R.busy ? ' disabled aria-busy="true"' : ''}>${R.busy === 'receipt' ? 'در حال ارسال…' : status === 'receipt_submitted' ? 'جایگزینی رسید' : 'ارسال رسید'}</button></div></form>`;
+    } else if (o.method === 'bale_wallet' && status === 'pending') {
+      body += `<p class="cap">مبلغ ${esc(rMoney(o.amount))} از طریق کیف پول بله پرداخت می‌شود. دسترسی تنها پس از تأیید پرداخت توسط سرور (نه با بازگشت از صفحهٔ پرداخت) فعال می‌شود.${o.expires_at ? ` مهلت پرداخت: ${esc(when(o.expires_at))}.` : ''}</p>
+        <div class="ei-form-row">${/^https:\/\//i.test(String(o.invoice_url || '')) ? `<a class="btn primary" href="${esc(o.invoice_url)}" target="_blank" rel="noopener noreferrer" data-rec-invoice>ادامهٔ پرداخت در بله</a>` : '<span class="ei-lock">پیوند پرداخت در دسترس نیست</span>'}
+        <button type="button" class="btn sm quiet" data-rec-refresh>بررسی وضعیت</button><button type="button" class="btn sm quiet" data-rec-cancel${R.busy ? ' disabled' : ''}>انصراف</button></div>`;
+    } else {
+      body += `<p class="ei-note warn" role="status">${esc(R_ORDER_STATUS[status] || status)}. نتیجه پس از بررسی در حساب شما ثبت می‌شود.</p><div class="ei-form-row"><button type="button" class="btn sm quiet" data-rec-refresh>بررسی وضعیت</button></div>`;
+    }
+    return `<div class="ei-rec-order" id="recording-order" data-ei-order-panel="${esc(status)}"><div class="ei-byline"><b>سفارش شما</b><span class="tag">${esc(R_ORDER_STATUS[status] || status)}</span></div>${body}</div>`;
+  }
+  function rResourceRow(row, sessionPreview) {
+    const label = row.kind === 'link' ? 'پیوند' : (FORMAT[row.content_type] || (row.content_type === 'video/mp4' ? 'ویدئو' : 'فایل'));
+    const meta = [label, row.kind === 'file' ? size(row.size) : '', row.delivery === 'view' ? 'فقط مشاهدهٔ برخط' : row.downloadable ? 'قابل دانلود' : '', row.preview || sessionPreview ? 'پیش‌نمایش رایگان' : ''].filter(Boolean).join(' · ');
+    let action = '';
+    if (row.allowed && row.kind === 'file' && row.playable && row.content_type === 'video/mp4') {
+      action = `<video controls playsinline preload="none" ${row.downloadable ? '' : 'controlsList="nodownload"'} src="${esc(rFileHref(row.id))}" data-rec-player="${esc(row.id)}">پخش ویدئو در این مرورگر پشتیبانی نمی‌شود.</video>`;
+      if (row.downloadable) action += `<a class="btn sm quiet" href="${esc(rFileHref(row.id))}" download data-rec-download="${esc(row.id)}">دریافت فایل</a>`;
+    } else if (row.allowed && row.kind === 'file' && row.content_type === 'audio/mpeg') {
+      action = `<audio controls preload="none" src="${esc(rFileHref(row.id))}" data-rec-player="${esc(row.id)}"></audio>${row.downloadable ? `<a class="btn sm quiet" href="${esc(rFileHref(row.id))}" download data-rec-download="${esc(row.id)}">دریافت فایل</a>` : ''}`;
+    } else if (row.allowed && row.kind === 'file') {
+      action = row.downloadable
+        ? `<a class="btn sm" href="${esc(rFileHref(row.id))}" download data-rec-download="${esc(row.id)}">دریافت فایل</a>`
+        : `<a class="btn sm" href="${esc(rFileHref(row.id))}" target="_blank" rel="noopener" data-rec-open="${esc(row.id)}">مشاهدهٔ فایل</a>`;
+    } else if (row.allowed && row.kind === 'link' && /^https?:\/\//i.test(String(row.link_url || ''))) {
+      action = `<a class="btn sm" href="${esc(row.link_url)}" target="_blank" rel="noopener noreferrer">بازکردن پیوند</a>`;
+    } else if (row.reason === 'login_required') {
+      action = `<a class="btn sm quiet" href="${esc(rLoginHref())}">${esc(R_ACCESS_REASON.login_required)}</a>`;
+    } else {
+      action = `<span class="ei-lock" data-rec-locked="${esc(row.id)}">${esc(R_ACCESS_REASON[row.reason] || 'قفل')}</span>`;
+    }
+    return `<li class="ei-resource" data-rec-resource="${esc(row.id)}"><div class="ei-resource-text"><b>${esc(row.title)}</b>${row.status && row.status !== 'published' ? `<span class="tag">${esc(row.status === 'draft' ? 'پیش‌نویس' : 'زمان‌بندی‌شده')}</span>` : ''}
+      ${row.description ? `<p>${breaks(row.description)}</p>` : ''}<small>${esc(meta)}</small></div><div class="ei-resource-action ei-rec-action">${action}</div></li>`;
+  }
+  function rSession(row, index) {
+    const dur = rMinutes(row.duration_minutes);
+    const res = Array.isArray(row.resources) ? row.resources : [];
+    return `<li class="ei-rec-session" data-rec-session="${esc(row.id)}"><div class="ei-byline"><b>${fa(index + 1)}. ${esc(row.title)}</b>${row.preview ? '<span class="tag">پیش‌نمایش رایگان</span>' : ''}${row.status && row.status !== 'published' ? `<span class="tag stop">${esc(row.status === 'draft' ? 'پیش‌نویس' : 'پنهان')}</span>` : ''}${dur ? `<small>${esc(dur)}</small>` : ''}</div>
+      ${row.description ? `<p>${breaks(row.description)}</p>` : ''}
+      ${res.length ? `<ul class="ei-list ei-rec-files">${res.map(r => rResourceRow(r, row.preview)).join('')}</ul>` : '<small class="ei-wait">فایلی برای این جلسه منتشر نشده است.</small>'}</li>`;
+  }
+  function rBlock(title, text) { return text ? `<div class="ei-rec-block"><b>${esc(title)}</b><p>${breaks(text)}</p></div>` : ''; }
+  function renderRecording() {
+    const boxes = rContainers();
+    const box = boxes.section;
+    const fill = (node, html) => { if (node) node.innerHTML = html; };
+    if (!box) return;
+    if (R.status === 404 || (R.data && R.data.viewer && R.data.viewer.cta && R.data.viewer.cta.kind === 'unavailable' && !R.data.viewer.staff)) {
+      box.hidden = true; box.innerHTML = '';
+      fill(boxes.aside, '<p class="cap">محتوای ضبط‌شدهٔ این رویداد هنوز منتشر نشده است.</p>'); fill(boxes.toolbar, '');
+      return;
+    }
+    box.hidden = false;
+    if (R.loading && !R.data) { box.innerHTML = section('recording', 'محتوای ضبط‌شده', loadingBox('در حال خواندن محتوای ضبط‌شده…')); return; }
+    if (R.error && !R.data) { box.innerHTML = section('recording', 'محتوای ضبط‌شده', errorBox(R.error, 'data-rec-retry')); fill(boxes.aside, errorBox(R.error, 'data-rec-retry')); return; }
+    const d = R.data, v = d.viewer, sessions = Array.isArray(d.sessions) ? d.sessions : [];
+    const facts = [
+      ['قیمت', rMoney(d.price)],
+      ['مدت دسترسی', d.access_days ? `${fa(d.access_days)} روز پس از فعال‌شدن` : 'دائمی'],
+      ['نحوهٔ دریافت', d.download_default ? 'مشاهدهٔ برخط و دانلود (هر فایل طبق تنظیم خود)' : 'مشاهدهٔ برخط (دانلود فقط برای فایل‌های مجاز)'],
+      ['جلسات', d.session_count ? `${fa(d.session_count)} جلسه${d.total_minutes ? ` · ${rMinutes(d.total_minutes)}` : ''}` : ''],
+      ['انتشار', d.published_at ? when(d.published_at) : ''],
+      d.attendee_access ? ['شرکت‌کنندگان', 'برای حاضران تأییدشدهٔ همین رویداد رایگان است'] : null
+    ].filter(item => item && item[1]);
+    const status = d.status !== 'published' ? `<span class="reg-state ${d.status === 'sales_paused' ? 'warn' : 'mute'}">${esc(d.status === 'sales_paused' ? 'فروش متوقف' : d.status === 'archived' ? 'بایگانی' : d.status === 'ready' ? 'آمادهٔ انتشار (فقط کادر)' : 'پیش‌نویس (فقط کادر)')}</span>` : (v.access && v.access.allowed ? `<span class="reg-state ok">دسترسی دارید</span>` : d.free ? `<span class="reg-state ok">دسترسی رایگان</span>` : `<span class="reg-state mute">قابل خرید</span>`);
+    const cover = d.cover_url && /^(?:\/api\/public\/media\/[0-9a-f-]{36}|https:\/\/[^\s"']+)$/i.test(String(d.cover_url)) ? `<img class="ei-rec-cover" src="${esc(d.cover_url)}" alt="" loading="lazy" decoding="async"/>` : '';
+    const faq = Array.isArray(d.faq) && d.faq.length ? `<div class="ei-rec-block"><b>پرسش‌های متداول</b>${d.faq.map(item => `<details class="ei-rec-faq"><summary>${esc(item.q)}</summary><p>${breaks(item.a)}</p></details>`).join('')}</div>` : '';
+    const inner = `${cover}<h3 class="ei-rec-title">${esc(d.title)}</h3>${d.summary ? `<p class="ei-rec-summary">${breaks(d.summary)}</p>` : ''}
+      ${message('recording')}<div class="ei-rec-cta" data-rec-cta="${esc(v.cta.kind)}">${rCta(false)}</div>${rOrderPanel()}
+      <dl class="ei-rec-facts">${facts.map(([k, val]) => `<div><dt>${esc(k)}</dt><dd>${esc(val)}</dd></div>`).join('')}</dl>
+      ${rBlock('دستاوردها', d.outcomes)}${rBlock('مخاطب', d.audience)}${rBlock('شرایط دسترسی', d.access_terms)}${rBlock('سیاست بازپرداخت', d.refund_policy)}
+      <h3 class="ei-rec-sub" id="recording-sessions">جلسات</h3>${sessions.length ? `<ol class="ei-rec-sessions">${sessions.map(rSession).join('')}</ol>` : emptyBox('جلسه‌ای منتشر نشده است.')}${faq}`;
+    box.innerHTML = section('recording', 'محتوای ضبط‌شده', inner, status);
+    fill(boxes.aside, `<p class="event-price">${esc(rMoney(d.price))}</p><div class="event-register-action">${rCta(true)}</div>`);
+    fill(boxes.toolbar, rCta(true));
+    const bar = doc.getElementById('ctabar');
+    if (bar && boxes.toolbar) bar.hidden = !boxes.toolbar.innerHTML.trim();
+  }
+  async function loadRecording() {
+    if (!S.event || !rContainers().section) return;
+    R.loading = true; R.error = ''; R.status = 0;
+    renderRecording();
+    try {
+      R.data = await api(`/api/public/events/${encodeURIComponent(String(S.event.id))}/recording`);
+      R.data = R.data && R.data.recording ? R.data.recording : null;
+      if (!R.data) R.status = 404;
+    } catch (error) {
+      R.status = error && error.status ? error.status : 0;
+      if (R.status !== 404) R.error = describe(error);
+    }
+    R.loading = false;
+    renderRecording();
+    const target = (root.location.hash || '').replace(/^#/, '');
+    if (target === 'recording' || target === 'recording-order' || target === 'recording-sessions') {
+      const node = doc.getElementById(target);
+      if (node && typeof node.scrollIntoView === 'function') { try { node.scrollIntoView({ block: 'start' }); } catch (_) { /* بدون اسکرول */ } }
+    }
+  }
+  async function rClaim() {
+    if (!R.data || R.busy) return;
+    R.busy = 'claim'; R.msg = null; renderRecording();
+    try {
+      await api(`/api/account/recordings/${encodeURIComponent(R.data.id)}/claim`, { method: 'POST', body: {} });
+      R.msg = { kind: 'ok', text: 'دسترسی رایگان روی حساب شما ثبت شد.' }; S.msg.recording = R.msg;
+    } catch (error) { S.msg.recording = { kind: 'warn', text: rDescribe(error) }; }
+    R.busy = '';
+    await loadRecording();
+  }
+  async function rOrder(method) {
+    if (!R.data || R.busy) return;
+    R.busy = method; S.msg.recording = null; renderRecording();
+    try {
+      const order = await api(`/api/account/recordings/${encodeURIComponent(R.data.id)}/orders`, { method: 'POST', body: { method } });
+      S.msg.recording = { kind: 'ok', text: order && order.method === 'bale_wallet' ? 'سفارش ساخته شد؛ پرداخت را در بله کامل کنید.' : 'سفارش ساخته شد؛ پس از واریز، رسید را بفرستید.' };
+      root.location.hash = 'recording-order';
+    } catch (error) { S.msg.recording = { kind: 'warn', text: rDescribe(error) }; }
+    R.busy = '';
+    await loadRecording();
+  }
+  async function rCancel() {
+    const cta = R.data && R.data.viewer.cta; if (!cta || !cta.order || R.busy) return;
+    if (typeof root.confirm === 'function' && !root.confirm('سفارش لغو شود؟ در صورت واریز، رسید را پیش از لغو بفرستید.')) return;
+    R.busy = 'cancel'; renderRecording();
+    try { await api(`/api/account/recording-orders/${encodeURIComponent(cta.order.id)}/cancel`, { method: 'POST', body: {} }); S.msg.recording = { kind: 'ok', text: 'سفارش لغو شد.' }; }
+    catch (error) { S.msg.recording = { kind: 'warn', text: rDescribe(error) }; }
+    R.busy = '';
+    await loadRecording();
+  }
+  async function rReceipt(form) {
+    const cta = R.data && R.data.viewer.cta; if (!cta || !cta.order || R.busy) return;
+    const input = form.querySelector('[data-rec-receipt-file]'); const file = input && input.files && input.files[0];
+    const noteField = form.querySelector('[data-rec-receipt-note]'); R.note = noteField ? String(noteField.value || '').slice(0, 300) : '';
+    if (!file) { S.msg.recording = { kind: 'warn', text: 'فایل رسید را انتخاب کنید.' }; renderRecording(); return; }
+    if (file.size > 8 * 1024 * 1024) { S.msg.recording = { kind: 'warn', text: R_ERRORS.file_too_large }; renderRecording(); return; }
+    R.busy = 'receipt'; S.msg.recording = null; renderRecording();
+    const safeName = encodeURIComponent(String(file.name || 'receipt').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 120) || 'receipt');
+    let response;
+    try {
+      response = await root.fetch(`/api/account/recording-orders/${encodeURIComponent(cta.order.id)}/receipt`, {
+        method: 'PUT', credentials: 'same-origin', cache: 'no-store', redirect: 'error', body: file,
+        headers: { Accept: 'application/json', 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': safeName, 'X-Receipt-Note': encodeURIComponent(R.note), 'X-CSRF-Token': csrf() }
+      });
+    } catch (_) { response = null; }
+    let payload = null; try { payload = response ? await response.json() : null; } catch (_) { payload = null; }
+    if (response && response.ok) { S.msg.recording = { kind: 'ok', text: 'رسید ارسال شد و در صف بررسی برگزارکننده قرار گرفت؛ ارسال رسید به‌معنای تأیید پرداخت نیست.' }; R.note = ''; }
+    else {
+      const detail = payload && payload.detail; const code = detail && typeof detail === 'object' ? detail.code : (typeof detail === 'string' ? detail : '');
+      S.msg.recording = { kind: 'warn', text: rDescribe({ code, status: response ? response.status : 0 }) };
+    }
+    R.busy = '';
+    await loadRecording();
+  }
+  function rBind(page) {
+    if (page.__noraRecordingBound) return;
+    page.__noraRecordingBound = true;
+    const handler = event => {
+      const target = event.target && event.target.closest ? event.target.closest('[data-rec-retry],[data-rec-claim],[data-rec-order],[data-rec-cancel],[data-rec-refresh]') : null;
+      if (!target) return;
+      event.preventDefault();
+      if (target.hasAttribute('data-rec-retry') || target.hasAttribute('data-rec-refresh')) { loadRecording(); return; }
+      if (target.hasAttribute('data-rec-claim')) { rClaim(); return; }
+      if (target.hasAttribute('data-rec-order')) { rOrder(target.getAttribute('data-rec-order')); return; }
+      if (target.hasAttribute('data-rec-cancel')) { rCancel(); }
+    };
+    doc.addEventListener('click', handler);
+    page.addEventListener('submit', event => {
+      const form = event.target && event.target.closest ? event.target.closest('form[data-rec-receipt-form]') : null;
+      if (!form) return;
+      event.preventDefault();
+      rReceipt(form);
+    });
+  }
+
   function render() {
     const boxes = containers();
     renderResources(boxes.resources);
     renderQa(boxes.qa);
     renderReviews(boxes.reviews);
+    if (R.data || R.loading || R.error || R.status) renderRecording();
   }
 
   async function load() {
@@ -354,9 +595,11 @@
     if (!event || !page || !SOURCE_READY()) return false;
     S.event = event; S.page = page; S.data = null; S.error = ''; S.msg = {}; S.busy = {}; S.editReview = false;
     bind(page);
+    R.data = null; R.loading = false; R.error = ''; R.status = 0; R.busy = ''; R.note = '';
     load().catch(() => { /* خطاها داخل load مدیریت می‌شوند */ });
+    if (rContainers().section) { rBind(page); loadRecording().catch(() => { /* خطاها داخل loadRecording مدیریت می‌شوند */ }); }
     return true;
   }
 
-  root.NORA_EVENT_INTERACTION = { mount, reload: load, state: S, ERRORS, ACCESS, REASON };
+  root.NORA_EVENT_INTERACTION = { mount, reload: load, reloadRecording: loadRecording, state: S, recording: R, ERRORS, ACCESS, REASON };
 })(typeof window === 'undefined' ? globalThis : window);
