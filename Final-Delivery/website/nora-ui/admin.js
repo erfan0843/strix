@@ -6317,6 +6317,7 @@ function serverDashboard(){
     ${serverDashboardKpis()}
     ${serverHealthView()}
     ${eiSummaryCard()}
+    ${recSummaryCard()}
     <section class="card stack"><div class="head">ماژول‌های این حساب</div>
       <p class="cap">نقش و مجوز از سرور می‌آید. بخش فاقد API دادهٔ ساختگی نشان نمی‌دهد و وضعیت آن جداگانه اعلام می‌شود.</p>
       <div class="admtiles">${modules.join('')||emptyBox('برای این حساب ماژول فعالی ثبت نشده است.')}</div>
@@ -6606,10 +6607,11 @@ function ctEditor(){
    پنهان‌کردن دکمه این‌جا فقط برای خوانایی است. هیچ رکورد نمونه‌ای جایگزین
    پاسخ خالی سرور نمی‌شود. */
 const EI={open:false,eventId:'',title:'',status:'',tab:'resources',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
-  res:{edit:null,includeRemoved:false,upFor:'',upError:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
-const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['staff','فقط کادر']];
+  res:{edit:null,includeRemoved:false,upFor:'',upError:'',session:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
+const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['purchased','دارندگان دسترسی محتوای ضبط‌شده (خرید/رایگان/اعطا)'],['staff','فقط کادر']];
 const EI_ACCESS_LABEL=Object.fromEntries(EI_ACCESS);
 const EI_RES_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],removed:['حذف‌شده','stop']};
+const EI_DELIVERY_MODE={download:'قابل دانلود',view:'فقط مشاهدهٔ برخط'};
 const EI_Q_STATUS={pending:['در انتظار','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop']};
 const EI_RV_STATUS={pending:['در انتظار تأیید','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop'],withdrawn:['پس‌گرفته','']};
 const EI_DELIVERY={queued:['در صف ارسال','warn'],retrying:['در حال تلاش دوباره','warn'],delivered:['تحویل‌شده','ok'],failed:['ناموفق','stop']};
@@ -6625,19 +6627,21 @@ function eiCanRes(){return canPerm('ev_create')}
 function eiCanMod(){return canPerm('ev_publish')}
 function eiOpen(eventId,title,status){
   EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||''; EI.status=status||''; EI.tab=eventId?(eiCanRes()?'resources':'questions'):'questions';
-  EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
+  EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.res.session=''; recReset(); EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
   if(EI.all){EI.q.answered='false'} else {EI.q.answered=''}
   eiLoad();
 }
 function eiClose(){EI.open=false; EI.data=null; EI.res.edit=null; renderBody()}
-function eiKey(){return [EI.all?'*':EI.eventId,EI.tab,EI.res.includeRemoved,EI.q.status,EI.q.answered,EI.q.offset,EI.rv.status,EI.rv.offset,EI.rp.status,EI.rp.offset].join('|')}
+function eiKey(){return [EI.all?'*':EI.eventId,EI.tab,EI.res.includeRemoved,EI.q.status,EI.q.answered,EI.q.offset,EI.rv.status,EI.rv.offset,EI.rp.status,EI.rp.offset,REC.orders.status,REC.orders.q,REC.orders.offset].join('|')}
 async function eiLoad(){
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.listEventResources!=='function'){EI.error='رابط سرور در دسترس نیست.'; renderBody(); return}
   const key=eiKey(); EI.loading=true; EI.error=''; renderBody();
   try{
     let result;
-    if(EI.tab==='resources') result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''});
+    if(EI.tab==='resources'){result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''}); if(!REC.data&&typeof api.getEventRecording==='function'){try{REC.data=await api.getEventRecording(EI.eventId)}catch(_){/* بدون محصول هم فهرست منابع کار می‌کند */}}}
+    else if(EI.tab==='recording') result=await recLoad();
+    else if(EI.tab==='orders') result=await api.listRecordingOrders({status:REC.orders.status,event_id:EI.all?'':EI.eventId,q:REC.orders.q,limit:REC.orders.limit,offset:REC.orders.offset});
     else if(EI.tab==='questions') result=EI.all?await api.listAllEventQuestions({status:EI.q.status,answered:EI.q.answered||'false',limit:EI.q.limit,offset:EI.q.offset})
       :await api.listEventQuestions(EI.eventId,{status:EI.q.status,answered:EI.q.answered,limit:EI.q.limit,offset:EI.q.offset});
     else if(EI.tab==='reviews') result=await api.listEventReviews(EI.eventId,{status:EI.rv.status,limit:EI.rv.limit,offset:EI.rv.offset});
@@ -6667,9 +6671,11 @@ function eiSummaryCard(){
 function eiHeader(){
   const tabs=[];
   if(!EI.all&&eiCanRes()) tabs.push(['resources','منابع']);
+  if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','ضبط‌شده و فروش']);
   tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
   if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
   if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
+  if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'سفارش‌ها']);
   const live=EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`:'';
   return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به فهرست</button>
       <b>${esc(EI.all?'کارتابل پرسش‌ها و گزارش‌ها':EI.title||EI.eventId)}</b>${EI.all?'':ctStatusLabel(EI.status)}<span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>
@@ -6680,6 +6686,8 @@ function eiPanel(){
   if(EI.loading&&!EI.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
   else if(EI.error) body=`<div class="stack">${p2Msg({kind:'stop',text:EI.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
   else if(EI.tab==='resources') body=eiResources();
+  else if(EI.tab==='recording') body=recPanel();
+  else if(EI.tab==='orders') body=recOrdersPanel();
   else if(EI.tab==='questions') body=eiQuestions();
   else if(EI.tab==='reviews') body=eiReviews();
   else body=eiReports();
@@ -6688,7 +6696,7 @@ function eiPanel(){
 /* ── منابع ── */
 function eiResourceMeta(r){
   const size=r.kind==='file'?(r.size>=1048576?fa((r.size/1048576).toFixed(1))+' مگابایت':r.size>=1024?fa(Math.round(r.size/1024))+' کیلوبایت':r.size?fa(r.size)+' بایت':'بدون فایل'):'پیوند';
-  return [size,r.kind==='file'&&r.file_name?r.file_name:'',EI_ACCESS_LABEL[r.access]||r.access,r.publish_at?'انتشار: '+(svcWhen(r.publish_at)||r.publish_at):'',r.publisher?'ناشر: '+r.publisher:'',r.live?'اکنون در صفحهٔ رویداد':r.status==='published'?'زمان‌بندی‌شده':''].filter(Boolean).join(' · ');
+  return [size,r.kind==='file'&&r.file_name?r.file_name:'',EI_ACCESS_LABEL[r.access]||r.access,r.session_id?'جلسه: '+(recSessionLabel(r.session_id)||'ضبط‌شده'):'',r.session_id&&r.delivery==='view'?EI_DELIVERY_MODE.view:'',r.publish_at?'انتشار: '+(svcWhen(r.publish_at)||r.publish_at):'',r.publisher?'ناشر: '+r.publisher:'',r.live?'اکنون در صفحهٔ رویداد':r.status==='published'?'زمان‌بندی‌شده':''].filter(Boolean).join(' · ');
 }
 function eiResourceRow(r){
   const id=esc(r.id), removed=r.status==='removed', busy=EI.busy===r.id;
@@ -6707,8 +6715,11 @@ function eiResources(){
       ${eiCanRes()?btn('منبع تازه','data-ei-res-new','i-plus'):''}</div>`;
   const editor=EI.res.edit?eiResourceEditor():'';
   const upload=EI.res.upError?p2Msg({kind:'stop',text:EI.res.upError}):EI.res.upFor?p2Msg({kind:'warn',text:'در حال بارگذاری فایل در سرور…'}):'';
-  const list=items.length?`<div class="admlist">${items.map(eiResourceRow).join('')}</div>`:emptyBox('برای این رویداد هنوز منبعی ثبت نشده است.');
-  return `<div class="stack">${head}${upload}${editor}${list}</div>`;
+  const sessions=REC.data&&REC.data.recording&&REC.data.recording.sessions||[];
+  const sessionFilter=sessions.length?`<label class="fld" style="max-width:320px"><span class="lbl">فیلتر جلسهٔ ضبط‌شده</span><select class="input" data-ei-res-session-filter><option value="" ${EI.res.session?'':'selected'}>همهٔ منابع</option>${sessions.map(x=>`<option value="${x.id}" ${EI.res.session===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>`:'';
+  const visible=EI.res.session?items.filter(r=>r.session_id===EI.res.session):items;
+  const list=visible.length?`<div class="admlist">${visible.map(eiResourceRow).join('')}</div>`:emptyBox(EI.res.session?'این جلسه هنوز فایلی ندارد.':'برای این رویداد هنوز منبعی ثبت نشده است.');
+  return `<div class="stack">${head}${sessionFilter}${upload}${editor}${list}</div>`;
 }
 function eiResourceEditor(){
   const e=EI.res.edit, f=e.form, err=e.errors||{};
@@ -6724,19 +6735,22 @@ function eiResourceEditor(){
       ${field('نام ناشر (نمایشی)','publisher',{max:120})}
     </div>
     ${f.kind==='link'?field('پیوند','link_url',{dir:'ltr',ph:'https://…',max:2048,err:err.link_url}):''}
+    ${(REC.data&&REC.data.recording&&(REC.data.recording.sessions||[]).length)?`<div class="row tight" style="flex-wrap:wrap"><label class="fld" for="eif_session_id"><span class="lbl">جلسهٔ ضبط‌شده (اختیاری)</span><select id="eif_session_id" class="input" data-ei-field="session_id"><option value="" ${f.session_id?'':'selected'}>منبع عمومی رویداد (بدون جلسه)</option>${REC.data.recording.sessions.map(x=>`<option value="${x.id}" ${f.session_id===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select><small class="cap">فایل جلسه با سطح «دارندگان دسترسی» فقط برای خریداران/دارندگان دسترسی باز می‌شود.</small></label>
+      <label class="fld" for="eif_delivery"><span class="lbl">نحوهٔ تحویل</span><select id="eif_delivery" class="input" data-ei-field="delivery"><option value="download" ${f.delivery!=='view'?'selected':''}>قابل دانلود</option><option value="view" ${f.delivery==='view'?'selected':''}>فقط مشاهدهٔ برخط (بدون ادعای حفاظت از کپی)</option></select></label></div>`:''}
     ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
     <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت منبع','data-ei-res-save','i-check')}<button class="btn sm quiet" data-ei-res-cancel>انصراف</button></div></section>`;
 }
 function eiResourceOpen(id){
   const item=id?(EI.data&&EI.data.items||[]).find(r=>r.id===id):null;
-  EI.res.edit={id:item?item.id:'',errors:{},formError:'',form:item?{kind:item.kind,title:item.title||'',description:item.description||'',access:item.access||'public',publish_at:item.publish_at_local||'',publisher:item.publisher||'',link_url:item.link_url||''}
-    :{kind:'file',title:'',description:'',access:'public',publish_at:'',publisher:'',link_url:''}};
+  EI.res.edit={id:item?item.id:'',errors:{},formError:'',form:item?{kind:item.kind,title:item.title||'',description:item.description||'',access:item.access||'public',publish_at:item.publish_at_local||'',publisher:item.publisher||'',link_url:item.link_url||'',session_id:item.session_id||'',delivery:item.delivery||'download'}
+    :{kind:'file',title:'',description:'',access:EI.res.session?'purchased':'public',publish_at:'',publisher:'',link_url:'',session_id:EI.res.session||'',delivery:'download'}};
   if(item&&item.publish_at&&!item.publish_at_local) EI.res.edit.form.publish_at=item.publish_at;
   EI.msg=null; renderBody();
 }
 async function eiResourceSave(){
   const api=window.NORA_SERVER_API, e=EI.res.edit; if(!e||EI.busy) return;
   const f=e.form, payload={title:String(f.title||'').trim(),description:String(f.description||'').trim(),access:f.access,publish_at:String(f.publish_at||'').trim(),publisher:String(f.publisher||'').trim()};
+  if(REC.data&&REC.data.recording){payload.session_id=String(f.session_id||''); payload.delivery=f.delivery==='view'?'view':'download'}
   if(!e.id) payload.kind=f.kind==='link'?'link':'file';
   if((e.id?f.kind:payload.kind)==='link') payload.link_url=String(f.link_url||'').trim();
   EI.busy='save'; e.errors={}; e.formError=''; renderBody();
@@ -6892,14 +6906,15 @@ async function eiReportResolve(id,status){
   finally{EI.busy=''}
 }
 function eiClick(q){
+  if(recClick(q)) return true;
   if(q('[data-ei-close]')){eiClose(); return true}
   if(q('[data-ei-refresh]')){EI.key=''; eiLoad(); return true}
   if(q('[data-ei-summary-refresh]')){EI.summary=null; EI.summaryError=''; renderBody(); eiLoadSummary(); return true}
   const openAll=q('[data-ei-open-all]'); if(openAll){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); if(openAll.dataset.eiOpenAll==='reports') {EI.tab='reports'; EI.key=''; eiLoad()} return true}
   const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||''); return true}
   if(!EI.open) return false;
-  const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EI.res.edit=null; EI.key=''; eiLoad(); return true}
-  const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.rp, total=EI.data?Number(EI.data.total)||0:0;
+  const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EI.res.edit=null; EI.res.session=''; REC.edit=null; REC.session=null; EI.key=''; eiLoad(); return true}
+  const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.tab==='orders'?REC.orders:EI.rp, total=EI.data?Number(EI.data.total)||0:0;
     box.offset=page.dataset.eiPage==='next'?Math.min(box.offset+box.limit,Math.max(0,total-1)):Math.max(0,box.offset-box.limit); eiLoad(); return true}
   if(q('[data-ei-res-new]')){eiResourceOpen(''); return true}
   const resEdit=q('[data-ei-res-edit]'); if(resEdit){eiResourceOpen(resEdit.dataset.eiResEdit); return true}
@@ -6922,11 +6937,337 @@ function eiClick(q){
 }
 function eiChange(t){
   if(!EI.open||!t||!t.dataset) return false;
+  if(recChange(t)) return true;
+  if(t.matches('[data-ei-res-session-filter]')){EI.res.session=t.value||''; renderBody(); return true}
   if(t.matches('[data-ei-res-removed]')){EI.res.includeRemoved=!!t.checked; eiLoad(); return true}
   if(t.dataset.eiFile){const file=t.files&&t.files[0]; if(file) eiResourceUpload(t.dataset.eiFile,file); t.value=''; return true}
   if(t.dataset.eiField&&EI.res.edit){EI.res.edit.form[t.dataset.eiField]=t.value; if(t.dataset.eiField==='kind') renderBody(); return true}
   if(t.dataset.eiAnswerOfficial){const d=EI.q.draft[t.dataset.eiAnswerOfficial]; if(d) d.official=!!t.checked; return true}
   if(t.dataset.eiAnswerText){const d=EI.q.draft[t.dataset.eiAnswerText]; if(d) d.text=t.value; return true}
+  return false;
+}
+/* ══ فاز ۹: محصول ضبط‌شدهٔ رویداد: جلسات، شرایط فروش، سفارش‌ها و دسترسی‌ها ═════
+   زبانهٔ «ضبط‌شده و فروش» داخل همان ابزار رویداد (EI) و کارتابل «سفارش‌ها» برای
+   همهٔ رویدادها. وضعیت محصول، مجوزها (ev_create/ev_publish/receipt_approve/finance)
+   و هر تصمیم مالی در سرور تعیین می‌شود؛ این‌جا فقط همان پاسخ بازتاب داده می‌شود.
+   هیچ شمارندهٔ ساختگی، تخفیف یا «پرداخت موفق» بدون تأیید سرور نمایش داده نمی‌شود. */
+const REC={data:null,edit:null,session:null,access:{items:null,error:'',grant:null},
+  orders:{status:'review',q:'',offset:0,limit:20,detail:null,detailError:'',detailLoading:false},summary:null,summaryError:'',summaryLoading:false};
+const REC_STATUS={draft:['پیش‌نویس',''],ready:['آمادهٔ انتشار','warn'],published:['در حال فروش','ok'],sales_paused:['فروش متوقف','warn'],archived:['بایگانی','stop']};
+const REC_STATUS_ACTION={ready:'آماده‌سازی برای انتشار',published:'انتشار و شروع فروش',sales_paused:'توقف فروش',archived:'بایگانی محصول',draft:'بازگشت به پیش‌نویس'};
+const REC_SESSION_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],hidden:['پنهان','stop']};
+const REC_ORDER_STATUS={pending:['در انتظار پرداخت','warn'],awaiting_receipt:['در انتظار رسید','warn'],receipt_submitted:['رسید ارسال‌شده؛ نیازمند بررسی','warn'],paid:['پرداخت تأییدشده (بله)','ok'],paid_manual:['پرداخت تأییدشده (بررسی دستی)','ok'],
+  needs_review:['نیازمند بررسی','warn'],rejected:['رد شده','stop'],cancelled:['لغو شده',''],expired:['منقضی',''],refunded:['بازپرداخت‌شده','stop']};
+const REC_ACCESS_STATE={active:['فعال','ok'],expired:['منقضی',''],revoked:['لغوشده','stop']};
+const REC_ACCESS_SOURCE={purchase:'خرید',free:'دسترسی رایگان',granted:'اعطای دستی'};
+const REC_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
+const REC_BLOCKER={event_not_held:'رویداد هنوز برگزار نشده است؛ فروش محتوای ضبط‌شده پس از برگزاری ممکن است.',no_published_session:'دست‌کم یک جلسهٔ منتشرشده لازم است.',no_live_resource:'دست‌کم یک فایل/پیوند منتشرشده در جلسات لازم است.',no_payment_method:'برای محصول پولی باید کارت مقصد یا کیف پول بله (پیکربندی‌شده در سرور) فعال باشد.'};
+const REC_ERR={publish_blocked:'انتشار ممکن نیست؛ موارد زیر را برطرف کنید.',open_orders_block_price_change:'تا وقتی سفارش باز وجود دارد، قیمت تغییر نمی‌کند.',version_conflict:'نسخهٔ محصول در این میان تغییر کرده؛ بازخوانی کنید.',session_has_resources:'این جلسه فایل دارد؛ اول فایل‌ها را حذف یا جابه‌جا کنید.',
+  too_many_sessions:'شمار جلسات از حد مجاز گذشته است.',order_not_reviewable:'این سفارش در وضعیت قابل‌بررسی نیست.',access_already_active:'این حساب هم‌اکنون دسترسی فعال دارد.',invalid_payment_card:'شمارهٔ کارت معتبر نیست (۱۶ رقم).',invalid_number:'عدد واردشده معتبر نیست.',invalid_faq:'هر پرسش متداول باید پرسش (≥۳ نویسه) و پاسخ داشته باشد.',
+  invalid_transition:'این تغییر وضعیت مجاز نیست.',reason_required:'دلیل لازم است.',recording_not_found:'برای این رویداد هنوز محصول ضبط‌شده‌ای ساخته نشده است.',account_not_found:'حسابی با این شناسه پیدا نشد.',order_not_paid:'فقط سفارش پرداخت‌شده بازپرداخت می‌شود.',refund_reference_required:'شمارهٔ پیگیری بازپرداخت لازم است.',
+  event_not_published:'رویداد منتشر نشده است.',session_not_found:'جلسه پیدا نشد.',session_resource_access:'فایل جلسه باید سطح دسترسی «خریداران» یا «عمومی» داشته باشد.'};
+function recErr(error,fallback){const code=error&&error.code||''; if(REC_ERR[code]) return REC_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&(REC_ERR[f.code]||EI_ERR[f.code])) return (REC_ERR[f.code]||EI_ERR[f.code])+(f.field?` (${f.field})`:''); return eiErr(error,fallback)}
+function recCanOrders(){return canPerm('receipt_approve')||canPerm('ev_publish')||canPerm('finance')}
+function recCanDecide(){return canPerm('receipt_approve')}
+function recCanFinance(){return canPerm('finance')}
+function recReset(){REC.data=null; REC.edit=null; REC.session=null; REC.access={items:null,error:'',grant:null}; REC.orders.offset=0; REC.orders.detail=null; REC.orders.detailError=''; REC.orders.status='review'; REC.orders.q=''}
+function recMoney(v){const n=Number(v)||0; return n===0?'رایگان':fa(n.toLocaleString('en-US'))+' ریال'}
+function recTag(map,k){const row=map[k]||[k||'نامشخص','']; return tag(row[0],row[1])}
+function recSessionLabel(id){const s=REC.data&&REC.data.recording&&(REC.data.recording.sessions||[]).find(x=>x.id===id); return s?s.title:''}
+/* ── خلاصهٔ داشبورد (فقط دادهٔ سرور) ── */
+async function recLoadSummary(){
+  const api=window.NORA_SERVER_API; if(!api||typeof api.recordingsSummary!=='function'||!recCanOrders()) return;
+  try{REC.summary=await api.recordingsSummary(); REC.summaryError=''}
+  catch(error){REC.summary=null; REC.summaryError=recErr(error,'خلاصهٔ فروش محتوای ضبط‌شده دریافت نشد.')}
+  finally{REC.summaryLoading=false}
+  if(S.sec==='dash'||S.sec==='events') renderBody();
+}
+function recSummaryCard(){
+  if(!recCanOrders()) return '';
+  const s=REC.summary, head=`<div class="row"><span class="ic">${ico('i-play')}</span><b>محتوای ضبط‌شده و فروش</b><span class="sp"></span>`;
+  if(!s&&!REC.summaryError) return `<article class="card stack" data-rec-summary>${head}${tag('API سرور','ok')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
+  if(!s) return `<article class="card stack" data-rec-summary>${head}${tag('خطا','stop')}</div><p class="cap">${esc(REC.summaryError)}</p>${btn('تلاش دوباره','data-rec-summary-refresh','i-refresh')}</article>`;
+  const r=s.recordings||{}, o=s.orders||{};
+  const cells=[['در حال فروش',r.published],['آمادهٔ انتشار',r.ready],['پیش‌نویس',r.draft],['فروش متوقف',r.sales_paused],['سفارش نیازمند بررسی',Number(o.receipt_submitted||0)+Number(o.needs_review||0)],['پرداخت تأییدشده',Number(o.paid||0)+Number(o.paid_manual||0)],['بازپرداخت‌شده',s.orders_refunded],['دسترسی فعال',s.active_access]];
+  return `<article class="card stack" data-rec-summary>${head}${tag('API سرور','ok')}</div>
+    <div class="kpis">${cells.map(([l,v])=>`<div class="kpi"><b>${fa(Number(v)||0)}</b><small>${esc(l)}</small></div>`).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap">${btn('سفارش‌های نیازمند بررسی','data-rec-open-orders','i-wallet')}</div></article>`;
+}
+/* ── زبانهٔ محصول ── */
+function recForm(rec){
+  const card=rec&&rec.payment_card||{};
+  return {title:rec?rec.title:EI.title||'',summary:rec?rec.summary:'',outcomes:rec?rec.outcomes:'',audience:rec?rec.audience:'',access_terms:rec?rec.access_terms:'',refund_policy:rec?rec.refund_policy:'',
+    faq:rec?(rec.faq||[]).map(x=>`${x.q} :: ${x.a}`).join('\n'):'',price:rec?String(rec.price):'0',access_days:rec&&rec.access_days?String(rec.access_days):'',attendee_access:rec?!!rec.attendee_access:false,
+    download_default:rec?rec.download_default!==false:true,bale_enabled:rec?rec.bale_enabled!==false:true,card_number:card.number||'',card_bank:card.bank||'',card_holder:card.holder||'',cover_url:rec?rec.cover_url||'':''};
+}
+function recPayload(f){
+  const faq=String(f.faq||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf('::'); return i<0?{q:l,a:''}:{q:l.slice(0,i).trim(),a:l.slice(i+2).trim()}});
+  const number=String(f.card_number||'').replace(/\D/g,'');
+  const out={title:String(f.title||'').trim(),summary:String(f.summary||'').trim(),outcomes:String(f.outcomes||'').trim(),audience:String(f.audience||'').trim(),access_terms:String(f.access_terms||'').trim(),refund_policy:String(f.refund_policy||'').trim(),
+    faq,price:/^\d+$/.test(String(f.price).trim())?Number(String(f.price).trim()):String(f.price),access_days:String(f.access_days||'').trim()?Number(String(f.access_days).trim()):null,
+    attendee_access:!!f.attendee_access,download_default:!!f.download_default,bale_enabled:!!f.bale_enabled,cover_url:String(f.cover_url||'').trim(),
+    payment_card:number||f.card_bank||f.card_holder?{number,bank:String(f.card_bank||'').trim(),holder:String(f.card_holder||'').trim()}:null};
+  return out;
+}
+function recEditor(){
+  const e=REC.edit, f=e.form, err=e.errors||{};
+  const field=(label,key,o)=>{o=o||{}; const id='recf_'+key, attrs=`id="${id}" class="input" data-rec-field="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.dir?`dir="${o.dir}"`:''} ${o.im?`inputmode="${o.im}"`:''}`;
+    return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="${o.rows||3}">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
+  const flag=(label,key,hint)=>`<label class="chip ${f[key]?'on':''}"><input type="checkbox" data-rec-flag="${key}" ${f[key]?'checked':''} hidden/>${esc(label)}</label>${hint?`<small class="cap">${esc(hint)}</small>`:''}`;
+  const walletReady=REC.data&&REC.data.wallet_ready;
+  return `<section class="card stack" data-rec-editor><div class="head">${e.id?'ویرایش محصول ضبط‌شده':'ساخت محصول ضبط‌شده برای این رویداد'}</div>
+    <p class="cap">این محصول به همین رویداد بسته است و با ثبت‌نام/حضور یکی نیست؛ خرید دسترسی، حضور به شمار نمی‌آید. تا پیش از «انتشار» در سایت دیده نمی‌شود.</p>
+    ${field('عنوان محصول','title',{max:160})}
+    ${field('معرفی کوتاه','summary',{textarea:true,max:2000})}
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
+      <div class="stack" style="flex:1 1 260px;min-width:0">${field('دستاوردها (برای چه کسی مفید است؟)','outcomes',{textarea:true,max:2000})}${field('مخاطب','audience',{textarea:true,max:2000,rows:2})}</div>
+      <div class="stack" style="flex:1 1 260px;min-width:0">${field('شرایط دسترسی','access_terms',{textarea:true,max:2000,hint:'مثلاً مشاهدهٔ برخط، دانلود جزوه‌ها، مدت دسترسی.'})}${field('سیاست بازپرداخت','refund_policy',{textarea:true,max:4000,rows:2,hint:'بازپرداخت فقط با شمارهٔ پیگیری واقعی و مجوز مالی ثبت می‌شود.'})}</div>
+    </div>
+    ${field('پرسش‌های متداول (هر خط: پرسش :: پاسخ)','faq',{textarea:true,rows:3})}
+    <div class="row tight" style="flex-wrap:wrap;align-items:flex-start">
+      ${field('قیمت (ریال؛ ۰ یعنی رایگان)','price',{dir:'ltr',im:'numeric',max:10})}
+      ${field('مدت دسترسی (روز؛ خالی = دائمی)','access_days',{dir:'ltr',im:'numeric',max:4})}
+      ${field('نشانی جلد (از رسانه‌های پنل)','cover_url',{dir:'ltr',ph:'/api/public/media/…',max:300})}
+    </div>
+    <div class="row tight" style="flex-wrap:wrap">${flag('حاضران تأییدشده رایگان دسترسی دارند','attendee_access')}${flag('فایل‌ها به‌طور پیش‌فرض قابل دانلود باشند','download_default')}${flag('پرداخت با کیف پول بله',"bale_enabled")}</div>
+    ${!walletReady?`<p class="cap">کیف پول بله روی این سرور آمادهٔ دریافت پرداخت نیست؛ تا پیکربندی، فقط کارت‌به‌کارت با بررسی رسید کار می‌کند.</p>`:''}
+    <div class="head">کارت مقصد کارت‌به‌کارت (برای محصول پولی)</div>
+    <div class="row tight" style="flex-wrap:wrap">${field('شمارهٔ کارت','card_number',{dir:'ltr',im:'numeric',max:19,err:err.payment_card})}${field('بانک','card_bank',{max:60})}${field('به نام','card_holder',{max:80})}</div>
+    ${err.payment_card?`<p class="cap" style="color:var(--stop)">${esc(err.payment_card)}</p>`:''}
+    ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
+    <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت محصول (پیش‌نویس)',`data-rec-save ${EI.busy?'disabled':''}`,'i-check')}<button class="btn sm quiet" data-rec-cancel>انصراف</button></div></section>`;
+}
+function recStatusBox(rec){
+  const blockers=(rec.publish_blockers||[]).map(b=>`<li>${esc(REC_BLOCKER[b]||b)}</li>`).join('');
+  const transitions=eiCanMod()?(rec.transitions||[]).map(t=>{const disabled=t==='published'&&(rec.publish_blockers||[]).length; return btn(REC_STATUS_ACTION[t]||t,`data-rec-status="${t}" ${disabled?'disabled title="موانع انتشار را برطرف کنید"':''}`,t==='published'?'i-globe':t==='archived'?'i-trash':t==='sales_paused'?'i-lock':'i-refresh')}).join(''):'';
+  const c=rec.counts||{};
+  return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
+    ${rec.status_reason?`<p class="cap">دلیل آخرین تغییر وضعیت: ${esc(rec.status_reason)}</p>`:''}
+    <p class="cap">سفارش‌های باز: ${fa(c.open_orders||0)} · پرداخت‌شده: ${fa(c.paid_orders||0)} · دسترسی فعال: ${fa(c.active_access||0)} · جلسات منتشرشده: ${fa(c.published_sessions||0)}</p>
+    ${blockers?`<div class="stack" data-rec-blockers><small class="cap">موانع انتشار (از سرور):</small><ul class="cap" style="margin:0;padding-inline-start:18px">${blockers}</ul></div>`:(rec.status==='published'?`<p class="cap">این محصول در صفحهٔ رویداد قابل خرید است.</p>`:'')}
+    <div class="row tight" style="flex-wrap:wrap">${eiCanRes()?btn('ویرایش محصول','data-rec-edit','i-pen'):''}${transitions}</div></section>`;
+}
+function recSessionRow(s){
+  const busy=EI.busy===s.id, dur=s.duration_minutes?` · ${fa(s.duration_minutes)} دقیقه`:'';
+  const actions=eiCanRes()?[btn('ویرایش',`data-rec-sess-edit="${s.id}"`,'i-pen'),btn(`فایل‌های جلسه (${fa(s.resource_count||0)})`,`data-rec-sess-files="${s.id}"`,'i-doc'),btn('افزودن فایل',`data-rec-sess-add="${s.id}"`,'i-file-up'),
+    s.status==='published'?btn('پنهان‌کردن',`data-rec-sess-status="hidden" data-rec-id="${s.id}"`,'i-eye-off'):btn('انتشار جلسه',`data-rec-sess-status="published" data-rec-id="${s.id}"`,'i-globe'),
+    btn('حذف',`data-rec-sess-del="${s.id}"`,'i-trash')].join(''):'';
+  return `<div class="admlirow" data-rec-sess-row="${s.id}" ${busy?'aria-busy="true"':''}><span class="ic">${ico('i-play')}</span>
+    <span class="sp"><b>${fa(s.sort_order)}. ${esc(s.title)}</b>${s.description?`<small class="cap">${esc(s.description)}</small>`:''}<small class="cap">${recTag(REC_SESSION_STATUS,s.status)}${s.preview?tag('پیش‌نمایش رایگان','ok'):''}${dur}${s.resource_count?'':' · هنوز فایلی ندارد'}</small></span>
+    <span class="row tight" style="flex-wrap:wrap">${actions}</span></div>`;
+}
+function recSessionEditor(){
+  const e=REC.session, f=e.form, err=e.errors||{};
+  const field=(label,key,o)=>{o=o||{}; const id='recs_'+key, attrs=`id="${id}" class="input" data-rec-sfield="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.dir?`dir="${o.dir}"`:''} ${o.im?`inputmode="${o.im}"`:''}`;
+    return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="2">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
+  return `<section class="card stack" data-rec-sess-editor><div class="head">${e.id?'ویرایش جلسه':'جلسهٔ تازه'}</div>
+    ${field('عنوان جلسه','title',{max:160})}${field('توضیح','description',{textarea:true,max:2000})}
+    <div class="row tight" style="flex-wrap:wrap">${field('ترتیب','sort_order',{dir:'ltr',im:'numeric',max:3})}${field('مدت (دقیقه؛ فقط اگر واقعی است)','duration_minutes',{dir:'ltr',im:'numeric',max:4,hint:'خالی بگذارید تا مدتی نمایش داده نشود.'})}</div>
+    <label class="chip ${f.preview?'on':''}"><input type="checkbox" data-rec-sflag="preview" ${f.preview?'checked':''} hidden/>پیش‌نمایش رایگان (فایل‌های این جلسه برای همه باز است)</label>
+    ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
+    <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ جلسه':'ساخت جلسه','data-rec-sess-save','i-check')}<button class="btn sm quiet" data-rec-sess-cancel>انصراف</button></div></section>`;
+}
+function recAccessBox(rec){
+  const a=REC.access, g=a.grant;
+  let list;
+  if(a.items===null&&!a.error) list=`<p class="cap" role="status">در حال خواندن دسترسی‌ها…</p>`;
+  else if(a.error) list=`${p2Msg({kind:'stop',text:a.error})}${btn('تلاش دوباره','data-rec-access-refresh','i-refresh')}`;
+  else if(!a.items.length) list=emptyBox('هنوز هیچ حسابی به این محتوا دسترسی ندارد.');
+  else list=`<div class="admlist">${a.items.map(x=>`<div class="admlirow" data-rec-access-row="${x.id}"><span class="ic">${ico('i-key')}</span>
+      <span class="sp"><b>${esc(x.account_label||x.account_id)}</b><small class="cap">${recTag(REC_ACCESS_STATE,x.state)} · ${esc(REC_ACCESS_SOURCE[x.source]||x.source)}${x.expires_at?' · تا '+esc(svcWhen(x.expires_at)):' · دائمی'}${x.reason?' · دلیل: '+esc(x.reason):''}${x.revoke_reason?' · دلیل لغو: '+esc(x.revoke_reason):''}</small></span>
+      ${eiCanMod()&&x.state==='active'?btn('لغو دسترسی',`data-rec-access-revoke="${x.id}"`,'i-lock'):''}</div>`).join('')}</div>`;
+  const grant=g?`<section class="card stack" data-rec-grant-form><div class="head">اعطای دستی دسترسی</div><p class="cap">فقط با شناسهٔ حساب موجود و دلیل؛ با نام اقدام‌کننده در ردپای عملیات ثبت می‌شود. اعطا، تراکنش یا حضور نمی‌سازد.</p>
+      <div class="row tight" style="flex-wrap:wrap"><label class="fld" for="recg_account"><span class="lbl">شناسهٔ حساب</span><input id="recg_account" class="input" dir="ltr" data-rec-gfield="account_id" value="${esc(g.account_id||'')}"/></label>
+      <label class="fld" for="recg_days"><span class="lbl">مدت (روز؛ خالی = طبق محصول)</span><input id="recg_days" class="input" dir="ltr" inputmode="numeric" data-rec-gfield="access_days" value="${esc(g.access_days||'')}"/></label></div>
+      <label class="fld" for="recg_reason"><span class="lbl">دلیل</span><input id="recg_reason" class="input" data-rec-gfield="reason" maxlength="400" value="${esc(g.reason||'')}"/></label>
+      ${g.error?p2Msg({kind:'stop',text:g.error}):''}
+      <div class="row tight"><button class="btn sm" data-rec-grant-save>${ico('i-check')}ثبت اعطا</button><button class="btn sm quiet" data-rec-grant-cancel>انصراف</button></div></section>`:'';
+  return `<section class="card stack" data-rec-access-box><div class="row"><div class="head">دسترسی‌ها (${a.items?fa(a.items.length):'…'})</div><span class="sp"></span>${btn('بازخوانی','data-rec-access-refresh','i-refresh')}${eiCanMod()&&!g?btn('اعطای دستی','data-rec-grant-open','i-plus'):''}</div>${grant}${list}</section>`;
+}
+function recPanelBody(){
+  const d=REC.data;
+  if(!d) return `<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
+  const rec=d.recording;
+  const limits=d.limits||{};
+  const infra=`<p class="cap" data-rec-limits>زیرساخت فعلی: فایل‌ها تا ${fa(Math.round((limits.max_bytes||0)/1048576))} مگابایت (ویدئوی MP4، صوت، PDF و اسناد) روی حافظهٔ خصوصی سرور و تحویل با بررسی دسترسی در هر درخواست؛ پخش جریانی/CDN/حفاظت از کپی وجود ندارد${d.event_held?'':' · این رویداد هنوز برگزار نشده و تا پایان آن منتشر نمی‌شود'}.</p>`;
+  if(!rec){
+    if(REC.edit) return infra+recEditor();
+    return `${infra}${emptyBox('برای این رویداد هنوز محصول ضبط‌شده‌ای ساخته نشده است.')}${eiCanRes()?`<div class="row">${btn('ساخت محصول ضبط‌شده','data-rec-create','i-plus')}</div>`:''}`;
+  }
+  if(REC.edit) return infra+recEditor();
+  const sessions=rec.sessions||[];
+  const sessionList=sessions.length?`<div class="admlist">${sessions.map(recSessionRow).join('')}</div>`:emptyBox('هنوز جلسه‌ای تعریف نشده است؛ برای انتشار دست‌کم یک جلسهٔ منتشرشده با فایل لازم است.');
+  return `${recStatusBox(rec)}${infra}
+    <section class="card stack" data-rec-sessions><div class="row"><div class="head">جلسات (${fa(sessions.length)})</div><span class="sp"></span>${eiCanRes()&&!REC.session?btn('جلسهٔ تازه','data-rec-sess-new','i-plus'):''}</div>
+    <p class="cap">فایل هر جلسه از زبانهٔ «منابع» با انتخاب همان جلسه و سطح «خریداران» بارگذاری می‌شود؛ هر درخواست دانلود/مشاهده در سرور با دسترسی واقعی حساب سنجیده می‌شود.</p>
+    ${REC.session?recSessionEditor():''}${sessionList}</section>
+    ${recAccessBox(rec)}`;
+}
+function recPanel(){return `<div class="stack" data-rec-panel>${recPanelBody()}</div>`}
+async function recLoad(){
+  const api=window.NORA_SERVER_API;
+  const result=await api.getEventRecording(EI.eventId);
+  REC.data=result;
+  if(result&&result.recording&&REC.access.items===null&&!REC.access.error) recLoadAccess();
+  return result;
+}
+async function recLoadAccess(){
+  const api=window.NORA_SERVER_API; if(!api) return;
+  try{const r=await api.listRecordingAccess(EI.eventId); REC.access.items=r.items||[]; REC.access.error=''}
+  catch(error){REC.access.items=null; REC.access.error=recErr(error,'فهرست دسترسی‌ها دریافت نشد.')}
+  if(EI.open&&EI.tab==='recording') renderBody();
+}
+async function recSave(){
+  const api=window.NORA_SERVER_API, e=REC.edit; if(!e||EI.busy) return;
+  const payload=recPayload(e.form); if(e.id&&REC.data&&REC.data.recording) payload.expected_version=REC.data.recording.version;
+  EI.busy='rec-save'; e.errors={}; e.formError=''; renderBody();
+  try{await api.saveEventRecording(EI.eventId,payload,staffCsrfCookie()); EI.msg={kind:'ok',text:e.id?'محصول ذخیره شد.':'محصول ضبط‌شده ساخته شد (پیش‌نویس؛ در سایت دیده نمی‌شود).'}; REC.edit=null; REC.access.items=null; EI.key=''; eiLoad()}
+  catch(error){const fe=p2FieldErr(error); if(error&&error.status===422&&fe&&fe.field&&(Object.prototype.hasOwnProperty.call(e.form,fe.field)||fe.field==='payment_card')) e.errors[fe.field]=REC_ERR[fe.code]||EI_ERR[fe.code]||fe.text; else e.formError=recErr(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.'); renderBody()}
+  finally{EI.busy=''}
+}
+async function recStatus(status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  let reason='';
+  if(status==='sales_paused'||status==='archived'){reason=typeof window.prompt==='function'?window.prompt(`دلیل «${REC_STATUS_ACTION[status]}» (در ردپای عملیات ثبت می‌شود):`,''):''; if(reason===null||!String(reason).trim()){toast('این تغییر بدون دلیل انجام نمی‌شود'); return} reason=String(reason).trim()}
+  if(status==='published'&&typeof window.confirm==='function'&&!window.confirm('محصول در صفحهٔ رویداد قابل خرید می‌شود. ادامه می‌دهید؟')) return;
+  EI.busy='rec-status'; renderBody();
+  try{await api.setEventRecordingStatus(EI.eventId,status,reason,staffCsrfCookie()); EI.msg={kind:'ok',text:`وضعیت محصول به «${REC_STATUS[status]?REC_STATUS[status][0]:status}» تغییر کرد.`}; EI.key=''; eiLoad()}
+  catch(error){const blockers=error&&error.payload&&error.payload.detail&&Array.isArray(error.payload.detail.blockers)?error.payload.detail.blockers:[]; EI.msg={kind:'stop',text:recErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')+(blockers.length?' '+blockers.map(b=>REC_BLOCKER[b]||b).join(' '):'')}; renderBody()}
+  finally{EI.busy=''}
+}
+function recSessionOpen(id){
+  const s=id?(REC.data.recording.sessions||[]).find(x=>x.id===id):null, n=(REC.data.recording.sessions||[]).length;
+  REC.session={id:s?s.id:'',errors:{},formError:'',form:s?{title:s.title,description:s.description||'',sort_order:String(s.sort_order),duration_minutes:s.duration_minutes?String(s.duration_minutes):'',preview:!!s.preview}:{title:'',description:'',sort_order:String(n+1),duration_minutes:'',preview:false}};
+  renderBody();
+}
+async function recSessionSave(){
+  const api=window.NORA_SERVER_API, e=REC.session; if(!e||EI.busy) return;
+  const f=e.form, payload={title:String(f.title||'').trim(),description:String(f.description||'').trim(),sort_order:Number(String(f.sort_order||'').trim())||0,duration_minutes:String(f.duration_minutes||'').trim()?Number(String(f.duration_minutes).trim()):null,preview:!!f.preview};
+  EI.busy='rec-sess'; e.errors={}; e.formError=''; renderBody();
+  try{e.id?await api.updateRecordingSession(EI.eventId,e.id,payload,staffCsrfCookie()):await api.createRecordingSession(EI.eventId,payload,staffCsrfCookie()); EI.msg={kind:'ok',text:e.id?'جلسه ذخیره شد.':'جلسه ساخته شد (پیش‌نویس). اکنون فایل آن را از زبانهٔ «منابع» اضافه کنید.'}; REC.session=null; EI.key=''; eiLoad()}
+  catch(error){const fe=p2FieldErr(error); if(error&&error.status===422&&fe&&fe.field&&Object.prototype.hasOwnProperty.call(f,fe.field)) e.errors[fe.field]=REC_ERR[fe.code]||EI_ERR[fe.code]||fe.text; else e.formError=recErr(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.'); renderBody()}
+  finally{EI.busy=''}
+}
+async function recSessionStatus(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return; EI.busy=id; renderBody();
+  try{await api.updateRecordingSession(EI.eventId,id,{status},staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'جلسه منتشر شد.':'جلسه پنهان شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'تغییر وضعیت جلسه انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recSessionDelete(id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const s=(REC.data.recording.sessions||[]).find(x=>x.id===id); if(!s) return;
+  if(typeof window.confirm==='function'&&!window.confirm(`جلسهٔ «${s.title}» حذف شود؟ (جلسه‌ای که فایل دارد حذف نمی‌شود)`)) return;
+  EI.busy=id; renderBody();
+  try{await api.deleteRecordingSession(EI.eventId,id,staffCsrfCookie()); EI.msg={kind:'ok',text:'جلسه حذف شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'حذف جلسه انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recGrantSave(){
+  const api=window.NORA_SERVER_API, g=REC.access.grant; if(!g||EI.busy) return;
+  const payload={account_id:String(g.account_id||'').trim(),reason:String(g.reason||'').trim()}; if(String(g.access_days||'').trim()) payload.access_days=Number(String(g.access_days).trim());
+  EI.busy='rec-grant'; g.error=''; renderBody();
+  try{await api.grantRecordingAccess(EI.eventId,payload,staffCsrfCookie()); EI.msg={kind:'ok',text:'دسترسی اعطا شد و با دلیل و نام اقدام‌کننده ثبت شد.'}; REC.access.grant=null; REC.access.items=null; recLoadAccess(); EI.key=''; eiLoad()}
+  catch(error){g.error=recErr(error,'اعطا انجام نشد؛ چیزی تغییر نکرد.'); renderBody()}
+  finally{EI.busy=''}
+}
+async function recRevoke(accessId){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const reason=typeof window.prompt==='function'?window.prompt('دلیل لغو دسترسی (در ردپای عملیات ثبت می‌شود):',''):'';
+  if(reason===null||!String(reason).trim()){toast('لغو بدون دلیل انجام نمی‌شود'); return}
+  EI.busy=accessId; renderBody();
+  try{await api.revokeRecordingAccess(EI.eventId,accessId,String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:'دسترسی لغو شد.'}; REC.access.items=null; recLoadAccess(); EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'لغو دسترسی انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+/* ── سفارش‌ها ── */
+function recOrderRow(o){
+  const busy=EI.busy===o.id, id=o.id, d=REC.orders.detail&&REC.orders.detail.id===id?REC.orders.detail:null;
+  const receipt=o.has_receipt?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.recordingOrderReceiptUrl(id))}" target="_blank" rel="noopener">${ico('i-image')}رسید (${esc(o.receipt_file_name||'فایل')})</a>`:'';
+  const actions=[recCanDecide()&&o.reviewable?btn('تأیید پرداخت',`data-rec-order-decide="approve" data-rec-id="${id}"`,'i-check')+btn('رد',`data-rec-order-decide="reject" data-rec-id="${id}"`,'i-close'):'',
+    recCanFinance()&&(o.status==='paid'||o.status==='paid_manual')?btn('ثبت بازپرداخت',`data-rec-order-refund="${id}"`,'i-wallet'):'',
+    btn(d?'بستن تاریخچه':'تاریخچه',`data-rec-order-detail="${id}"`,'i-list')].join('');
+  const history=d?`<div class="stack" data-rec-order-history>${REC.orders.detailLoading?'<p class="cap">در حال خواندن…</p>':REC.orders.detailError?p2Msg({kind:'stop',text:REC.orders.detailError}):(d.history&&d.history.length?`<ul class="cap" style="margin:0;padding-inline-start:18px">${d.history.map(h=>`<li>${esc(svcWhen(h.at))} · ${esc(h.action)} · ${esc(h.actor_role||h.actor_kind||'')}${h.details&&h.details.reason?' · '+esc(h.details.reason):''}</li>`).join('')}</ul>`:'<p class="cap">هنوز اقدام مدیریتی روی این سفارش ثبت نشده است.</p>')}</div>`:'';
+  return `<div class="admlirow" data-rec-order-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-wallet')}</span>
+    <span class="sp"><b>${esc(o.product_title||o.event_title||o.recording_id)}</b>${o.event_title&&o.event_title!==o.product_title?`<small class="cap">رویداد: ${esc(o.event_title)}</small>`:''}
+      <small class="cap">${recTag(REC_ORDER_STATUS,o.status)} · ${esc(REC_METHOD[o.method]||o.method)} · ${recMoney(o.amount)} · خریدار: ${esc(o.account_label||o.account_id)}${o.duplicates?` · ${tag(`${fa(o.duplicates)} سفارش دیگر از همین حساب`,'warn')}`:''}</small>
+      <small class="cap">ثبت: ${esc(svcWhen(o.created_at))}${o.receipt_submitted_at?' · رسید: '+esc(svcWhen(o.receipt_submitted_at)):''}${o.paid_at?' · پرداخت: '+esc(svcWhen(o.paid_at)):''}${o.decided_at?' · تصمیم: '+esc(svcWhen(o.decided_at))+(o.decision_reason?' («'+esc(o.decision_reason)+'»)':''):''}${o.refunded_at?' · بازپرداخت: '+esc(svcWhen(o.refunded_at))+' · پیگیری '+esc(o.refund_reference||''):''}${o.transaction_id?' · تراکنش '+esc(o.transaction_id):''}</small>
+      ${o.receipt_note?`<small class="cap">یادداشت خریدار: ${esc(o.receipt_note)}</small>`:''}
+      <small class="cap">دسترسی: ${o.access?recTag(REC_ACCESS_STATE,o.access.state)+(o.access.expires_at?' تا '+esc(svcWhen(o.access.expires_at)):''):'ندارد'}</small>${history}</span>
+    <span class="row tight" style="flex-wrap:wrap">${receipt}${actions}</span></div>`;
+}
+function recOrdersPanel(){
+  const o=REC.orders, data=EI.data, items=data&&data.items||[], total=data?Number(data.total)||0:0;
+  const filters=`<div class="admfilters" role="group" aria-label="وضعیت سفارش">${[['review','نیازمند بررسی'],['open','باز'],['paid','پرداخت‌شده'],['closed','بسته‌شده'],['','همه']].map(([k,l])=>`<button class="chip ${o.status===k?'on':''}" type="button" data-rec-order-filter="${k}">${esc(l)}</button>`).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap"><input class="input" type="search" data-rec-order-q placeholder="جست‌وجو: شناسهٔ سفارش/حساب/تراکنش یا عنوان محصول" value="${esc(o.q)}" style="flex:1 1 220px"/>${btn('جست‌وجو','data-rec-order-search','i-search')}
+    ${recCanFinance()?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.recordingOrdersExportUrl({status:o.status,event_id:EI.all?'':EI.eventId,q:o.q}))}" download data-rec-order-export>${ico('i-download')}خروجی CSV</a>`:''}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(recOrderRow).join('')}</div>`:emptyBox(o.status==='review'?'سفارشی در انتظار بررسی نیست.':'سفارشی با این فیلتر پیدا نشد.');
+  return `<div class="stack" data-rec-orders><p class="cap">رسید به‌تنهایی پرداخت را قطعی نمی‌کند؛ دسترسی فقط پس از تأیید این‌جا (با دلیل) یا تأیید سرور بله داده می‌شود. بازپرداخت فقط با شمارهٔ پیگیری و مجوز مالی ثبت می‌شود.</p>${filters}${list}${p2Pager(total,o.offset,o.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function recOrderDecide(id,decision){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const reason=typeof window.prompt==='function'?window.prompt(decision==='approve'?'دلیل/مرجع تأیید پرداخت (مثلاً شمارهٔ پیگیری رسید):':'دلیل رد سفارش:',''):'';
+  if(reason===null||!String(reason).trim()){toast('تصمیم بدون دلیل ثبت نمی‌شود'); return}
+  EI.busy=id; renderBody();
+  try{await api.decideRecordingOrder(id,decision,String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:decision==='approve'?'پرداخت تأیید و دسترسی خریدار فعال شد.':'سفارش رد شد؛ خریدار می‌تواند دوباره تلاش کند.'}; REC.orders.detail=null; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'ثبت تصمیم انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recOrderRefund(id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const reference=typeof window.prompt==='function'?window.prompt('شمارهٔ پیگیری بازپرداخت واقعی (بدون آن ثبت نمی‌شود):',''):'';
+  if(reference===null||!String(reference).trim()){toast('بازپرداخت بدون شمارهٔ پیگیری ثبت نمی‌شود'); return}
+  const reason=window.prompt('دلیل بازپرداخت:',''); if(reason===null||!String(reason).trim()){toast('دلیل لازم است'); return}
+  EI.busy=id; renderBody();
+  try{await api.refundRecordingOrder(id,String(reference).trim(),String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:'بازپرداخت ثبت و دسترسی خریدار لغو شد.'}; REC.orders.detail=null; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'ثبت بازپرداخت انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recOrderDetail(id){
+  const api=window.NORA_SERVER_API;
+  if(REC.orders.detail&&REC.orders.detail.id===id){REC.orders.detail=null; renderBody(); return}
+  REC.orders.detail={id,history:[]}; REC.orders.detailLoading=true; REC.orders.detailError=''; renderBody();
+  try{REC.orders.detail=await api.getRecordingOrder(id)}
+  catch(error){REC.orders.detailError=recErr(error,'تاریخچهٔ سفارش دریافت نشد.')}
+  finally{REC.orders.detailLoading=false; renderBody()}
+}
+function recClick(q){
+  if(q('[data-rec-summary-refresh]')){REC.summary=null; REC.summaryError=''; renderBody(); recLoadSummary(); return true}
+  if(q('[data-rec-open-orders]')){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); EI.tab='orders'; REC.orders.status='review'; REC.orders.offset=0; EI.key=''; eiLoad(); return true}
+  if(!EI.open) return false;
+  if(q('[data-rec-create]')){REC.edit={id:'',errors:{},formError:'',form:recForm(null)}; EI.msg=null; renderBody(); return true}
+  if(q('[data-rec-edit]')){REC.edit={id:REC.data.recording.id,errors:{},formError:'',form:recForm(REC.data.recording)}; EI.msg=null; renderBody(); return true}
+  if(q('[data-rec-cancel]')){REC.edit=null; renderBody(); return true}
+  if(q('[data-rec-save]')){recSave(); return true}
+  const st=q('[data-rec-status]'); if(st){if(!st.hasAttribute('disabled')) recStatus(st.dataset.recStatus); return true}
+  if(q('[data-rec-sess-new]')){recSessionOpen(''); return true}
+  const se=q('[data-rec-sess-edit]'); if(se){recSessionOpen(se.dataset.recSessEdit); return true}
+  if(q('[data-rec-sess-cancel]')){REC.session=null; renderBody(); return true}
+  if(q('[data-rec-sess-save]')){recSessionSave(); return true}
+  const ss=q('[data-rec-sess-status]'); if(ss){recSessionStatus(ss.dataset.recId,ss.dataset.recSessStatus); return true}
+  const sd=q('[data-rec-sess-del]'); if(sd){recSessionDelete(sd.dataset.recSessDel); return true}
+  const sf=q('[data-rec-sess-files]'); if(sf){EI.res.session=sf.dataset.recSessFiles; EI.tab='resources'; EI.msg=null; EI.key=''; eiLoad(); return true}
+  const sa=q('[data-rec-sess-add]'); if(sa){EI.res.session=sa.dataset.recSessAdd; EI.tab='resources'; EI.msg=null; EI.key=''; eiResourceOpen(''); EI.res.edit.form.session_id=sa.dataset.recSessAdd; EI.res.edit.form.access='purchased'; eiLoad(); return true}
+  if(q('[data-rec-access-refresh]')){REC.access.items=null; REC.access.error=''; renderBody(); recLoadAccess(); return true}
+  if(q('[data-rec-grant-open]')){REC.access.grant={account_id:'',reason:'',access_days:'',error:''}; renderBody(); return true}
+  if(q('[data-rec-grant-cancel]')){REC.access.grant=null; renderBody(); return true}
+  if(q('[data-rec-grant-save]')){recGrantSave(); return true}
+  const rv=q('[data-rec-access-revoke]'); if(rv){recRevoke(rv.dataset.recAccessRevoke); return true}
+  const of=q('[data-rec-order-filter]'); if(of){REC.orders.status=of.dataset.recOrderFilter; REC.orders.offset=0; REC.orders.detail=null; eiLoad(); return true}
+  if(q('[data-rec-order-search]')){const inp=document.querySelector('[data-rec-order-q]'); REC.orders.q=inp?String(inp.value||'').trim().slice(0,120):''; REC.orders.offset=0; eiLoad(); return true}
+  const od=q('[data-rec-order-decide]'); if(od){recOrderDecide(od.dataset.recId,od.dataset.recOrderDecide); return true}
+  const orf=q('[data-rec-order-refund]'); if(orf){recOrderRefund(orf.dataset.recOrderRefund); return true}
+  const odt=q('[data-rec-order-detail]'); if(odt){recOrderDetail(odt.dataset.recOrderDetail); return true}
+  return false;
+}
+function recChange(t){
+  if(!EI.open||!t||!t.dataset) return false;
+  if(t.dataset.recField&&REC.edit){REC.edit.form[t.dataset.recField]=t.value; return true}
+  if(t.dataset.recFlag&&REC.edit){REC.edit.form[t.dataset.recFlag]=!!t.checked; return true}
+  if(t.dataset.recSfield&&REC.session){REC.session.form[t.dataset.recSfield]=t.value; return true}
+  if(t.dataset.recSflag&&REC.session){REC.session.form[t.dataset.recSflag]=!!t.checked; return true}
+  if(t.dataset.recGfield&&REC.access.grant){REC.access.grant[t.dataset.recGfield]=t.value; return true}
+  if(t.matches&&t.matches('[data-rec-order-q]')){REC.orders.q=String(t.value||'').trim().slice(0,120); return true}
   return false;
 }
 function serverContentView(){
@@ -8160,6 +8501,7 @@ function renderBody(){
   Object.keys(SERVICE_DRAFT).forEach(key=>{const input=host.querySelector('#svcInput_'+key); if(input&&!input.value) input.value=SERVICE_DRAFT[key]});
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&eiCanMod()&&!EI.summary&&!EI.summaryError&&!EI.summaryLoading){EI.summaryLoading=true; eiLoadSummary()}
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&recCanOrders()&&!REC.summary&&!REC.summaryError&&!REC.summaryLoading){REC.summaryLoading=true; recLoadSummary()}
   if(!IS_TEST&&SERVER_AUTH&&((S.sec==='users'&&S.uHub==='reports')||S.sec==='dash')&&canPerm('rp_view')
     &&!SERVER_REPORT_LOADING&&!SERVER_REPORT_ERROR
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){

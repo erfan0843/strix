@@ -60,7 +60,7 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
-  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id'];
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id', 'format'];
   function adminQuery(params) {
     const source = params && typeof params === 'object' ? params : {};
     const parts = [];
@@ -360,6 +360,50 @@
         method: 'POST', body: { status: String(status), note: String(note || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
       }),
     eventInteractionSummary: () => request('/api/admin/event-interaction/summary'),
+    /* فاز ۹ — محصول ضبط‌شدهٔ رویداد، جلسات، وضعیت فروش، سفارش‌ها و دسترسی‌ها (ev_create / ev_publish / receipt_approve / finance؛ همه در سرور) */
+    getEventRecording: eventId => request('/api/admin/events/' + recordId(eventId) + '/recording'),
+    saveEventRecording: (eventId, payload, csrfCookieName) => request('/api/admin/events/' + recordId(eventId) + '/recording', {
+      method: 'PUT', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+    }),
+    setEventRecordingStatus: (eventId, status, reason, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/recording/status', {
+        method: 'POST', body: reason ? { status: String(status), reason: String(reason) } : { status: String(status) },
+        csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    createRecordingSession: (eventId, payload, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/recording/sessions', {
+        method: 'POST', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    updateRecordingSession: (eventId, sessionId, payload, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/recording/sessions/' + recordId(sessionId), {
+        method: 'PUT', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    deleteRecordingSession: (eventId, sessionId, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/recording/sessions/' + recordId(sessionId), {
+        method: 'DELETE', csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    listRecordingAccess: eventId => request('/api/admin/events/' + recordId(eventId) + '/recording/access'),
+    grantRecordingAccess: (eventId, payload, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/recording/access', {
+        method: 'POST', body: payload, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    revokeRecordingAccess: (eventId, accessId, reason, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/recording/access/' + recordId(accessId) + '/revoke', {
+        method: 'POST', body: { reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    listRecordingOrders: params => request('/api/admin/recording-orders' + adminQuery(params)),
+    getRecordingOrder: orderId => request('/api/admin/recording-orders/' + recordId(orderId)),
+    recordingOrderReceiptUrl: orderId => '/api/admin/recording-orders/' + recordId(orderId) + '/receipt',
+    recordingOrdersExportUrl: params => '/api/admin/recording-orders' + adminQuery(Object.assign({}, params || {}, { format: 'csv' })),
+    decideRecordingOrder: (orderId, decision, reason, csrfCookieName) => request(
+      '/api/admin/recording-orders/' + recordId(orderId) + '/decision', {
+        method: 'POST', body: { decision: String(decision), reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    refundRecordingOrder: (orderId, reference, reason, csrfCookieName) => request(
+      '/api/admin/recording-orders/' + recordId(orderId) + '/refund', {
+        method: 'POST', body: { reference: String(reference || ''), reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    recordingsSummary: () => request('/api/admin/recordings/summary'),
     listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
     listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),
     attendanceCheckIn: (responseId, reason, csrfCookieName) => request(
