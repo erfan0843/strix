@@ -1783,7 +1783,8 @@ function decideSharedWorkflow(taskId,decision){
     .then(result=>{
       if(!result||result.accepted!==true||!result.task) throw new Error('decision_not_accepted');
       SERVER_WORKFLOW_ITEMS=SERVER_WORKFLOW_ITEMS.filter(x=>x.id!==taskId);
-      toast(decision==='approved'?'درخواست تأیید شد. اعلان کاربر در صف ثبت شد.':'درخواست رد شد. اعلان کاربر در صف ثبت شد.');
+      const n=result.task.notification&&result.task.notification.status;
+      toast((decision==='approved'?'تصمیم «تأیید» در سرور ثبت شد':'تصمیم «رد» در سرور ثبت شد')+(n==='queued'?'؛ اعلان کاربر در صف ربات است، هنوز تحویل نشده.':n==='delivered'?'؛ اعلان تحویل شد.':'؛ وضعیت ارسال اعلان هنوز نامشخص است.'));
       loadSharedWorkflowInbox(false);
     }).catch(error=>{
       if(card) card.querySelectorAll('button').forEach(button=>button.disabled=false);
@@ -1791,6 +1792,19 @@ function decideSharedWorkflow(taskId,decision){
         :error&&error.status===409?'این درخواست قبلاً بررسی شده؛ کارتابل را تازه کنید.'
         :'ثبت تصمیم انجام نشد؛ اتصال را بررسی کنید.');
     });
+}
+/* وضعیت تحویل اعلان کاربر، جدا از ثبت تصمیم: فقط از دادهٔ واقعی صف اعلان سرور (task.notification). */
+const WF_NOTIFY={queued:['در صف ارسال ربات','warn'],retrying:['ارسال ناموفق؛ تلاش دوباره در صف','warn'],delivered:['تحویل‌شده به بله','ok'],failed:['ارسال ناموفق','stop'],unknown:['وضعیت ارسال نامشخص','']};
+function workflowNotificationRow(task){
+  const n=task&&task.notification&&typeof task.notification==='object'?task.notification:null;
+  const [label,kind]=WF_NOTIFY[n&&n.status]||WF_NOTIFY.unknown;
+  const detail=!n?'سرور وضعیت اعلان را برنگردانده است.'
+    :n.status==='delivered'?`تحویل در ${svcWhen(n.delivered_at)||'زمان نامشخص'}${n.attempts>1?' · پس از '+fa(n.attempts)+' تلاش':''}`
+    :n.status==='failed'?`پس از ${fa(n.attempts)} تلاش؛ ${n.last_error?'خطای آخر: '+n.last_error:'بدون جزئیات خطا'}`
+    :n.status==='retrying'?`${fa(n.attempts)} تلاش ناموفق؛ ربات دوباره تلاش می‌کند`
+    :n.status==='queued'?'ربات هنوز این اعلان را برنداشته است'
+    :'برای این کار ردیف اعلانی در سرور نیست (کار قدیمی یا بدون اعلان).';
+  return `<div class="admlirow" data-workflow-notification="${esc(n?n.status:'unknown')}"><span class="sp"><small class="cap">اعلان به کاربر</small><b>${esc(label)}</b><small class="cap">${esc(detail)}</small></span>${tag(label,kind)}</div>`;
 }
 function sharedWorkflowInboxView(){
   if(!canUseSharedInbox()) return `<section class="card stack">${uBack}${emptyBox('مجوز دسترسی به کارتابل برای این نقش فعال نیست.')}</section>`;
@@ -1832,7 +1846,8 @@ function sharedWorkflowInboxView(){
         <div class="cap">شناسهٔ بله: ${esc(task.bale_user_id||'ثبت‌نشده')} · کد درخواست: ${esc(task.id.slice(0,8))}</div>
         ${amount}${lines||'<p class="cap">اطلاعاتی برای نمایش ثبت نشده است.</p>'}
         <div class="admlirow"><span class="sp"><small class="cap">تصمیم</small><b>${approved?'تأیید':'رد'} · ${esc(reviewer)} · ${esc(svcWhen(task.reviewed_at)||'زمان نامشخص')}</b>
-          ${task.review_reason?`<small class="cap">دلیل: ${esc(task.review_reason)}</small>`:''}</span></div>
+          ${task.review_reason?`<small class="cap">دلیل: ${esc(task.review_reason)}</small>`:''}</span>${tag('ثبت‌شده در سرور','ok')}</div>
+        ${workflowNotificationRow(task)}
       </article>`;
     }
     return `<article class="card stack" data-workflow-card="${esc(task.id)}">

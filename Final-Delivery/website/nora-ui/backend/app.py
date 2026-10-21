@@ -1521,12 +1521,45 @@ def create_app(
                 "content_type": item.content_type,
                 "content_size": item.content_size,
             })
+        # وضعیت تحویل اعلان، جدا از وضعیت تصمیم: از همان صف اعلان سرور خوانده می‌شود،
+        # نه از ثبت تصمیم. نبود ردیف اعلان برای کار تصمیم‌گرفته‌شده «نامشخص» گزارش می‌شود.
+        decided_ids = [task.id for task in tasks if task.status != "pending"]
+        notifications = db.scalars(
+            select(UserNotificationRecord)
+            .where(UserNotificationRecord.source_task_id.in_(decided_ids))
+            .order_by(UserNotificationRecord.created_at, UserNotificationRecord.id)
+        ).all() if decided_ids else []
+        notification_by_task: dict[str, UserNotificationRecord] = {}
+        for outbox in notifications:
+            if outbox.source_task_id and outbox.account_id == task_accounts.get(outbox.source_task_id):
+                notification_by_task.setdefault(outbox.source_task_id, outbox)
         views = []
         for task in tasks:
             view = admin_task_view(task)
             view["files"] = files_by_task.get(task.id, [])
+            if task.status != "pending":
+                view["notification"] = task_notification_view(notification_by_task.get(task.id))
             views.append(view)
         return views
+
+    def task_notification_view(item: UserNotificationRecord | None) -> dict[str, Any]:
+        """Delivery state of the user's notification for one decided task.
+
+        ``unknown``: no outbox row (older tasks or none queued); ``queued``: waiting
+        for the bot; ``retrying``: at least one failed attempt, still pending;
+        ``delivered`` / ``failed``: provider acknowledgement recorded by the bot.
+        """
+        if item is None:
+            return {"status": "unknown", "attempts": 0, "delivered_at": None, "last_error": None}
+        status = item.delivery_status
+        if status == "pending":
+            status = "retrying" if item.delivery_attempts > 0 else "queued"
+        return {
+            "status": status,
+            "attempts": item.delivery_attempts,
+            "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
+            "last_error": item.last_delivery_error,
+        }
 
     def user_notification_view(item: UserNotificationRecord) -> dict[str, Any]:
         return {
@@ -4959,7 +4992,10 @@ def create_app(
             details={"kind": task.kind, "decision": decision, "has_reason": bool(reason.strip())},
         )
         db.commit()
-        return {"task": admin_task_view(db.get(AdminTaskRecord, task.id)), "accepted": True}
+        refreshed = db.get(AdminTaskRecord, task.id)
+        if refreshed is None:
+            raise HTTPException(404, "admin_task_not_found")
+        return {"task": admin_inbox_task_views(db, [refreshed])[0], "accepted": True}
 
     @app.get("/api/owner/audit")
     def list_owner_audit_events(

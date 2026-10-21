@@ -79,7 +79,24 @@ async function loadPanel(identity) {
         if (path === '/api/forms') return reply(200, { items: [] });
         if (path === '/api/owner/site-content') return reply(200, { content: {}, version: 1, updated_at: null });
         if (/^\/api\/admin\/reports\/summary\?period=/.test(path)) return reply(200, { source: 'shared_server_database', period: '30d', forms: { total: 0, by_status: {} }, responses: { total: 0, by_status: {} }, accounts: { total: 0, by_role: {} }, reviews: { total: 0, by_kind: {} }, notifications: { total: 0, by_delivery_status: {} }, cooperation_requests: { total: 0, by_status: {} } });
-        if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
+        if (path.startsWith('/api/admin/inbox')) {
+          const decided = /status=decided/.test(path);
+          const base = { account_id: ACC, bale_user_id: '910778', kind: 'profile_review', payload: { full_name: 'عضو آزمایشی' }, version: 2, projection_status: 'pending', projection_attempts: 0, created_at: '2026-10-21T08:00:00+00:00', files: [] };
+          const m = path.match(/^\/api\/admin\/inbox\/([^/]+)\/decision$/);
+          if (m && method === 'POST') {
+            if (!has('us_approve')) return reply(403, { detail: 'permission_denied' });
+            const sent = JSON.parse(options.body || '{}');
+            return reply(200, { accepted: true, task: { ...base, id: m[1], status: sent.decision, review_reason: sent.reason, reviewed_by: 'owner-01', reviewed_at: '2026-10-21T09:00:00+00:00', notification: { status: 'queued', attempts: 0, delivered_at: null, last_error: null } } });
+          }
+          if (!decided) return reply(200, { items: [{ ...base, id: 'task-pending-1', status: 'pending', review_reason: null, reviewed_by: null, reviewed_at: null }], has_more: false });
+          return reply(200, { has_more: false, items: [
+            { ...base, id: 'task-d1', status: 'approved', review_reason: '', reviewed_by: 'owner-01', reviewed_at: '2026-10-21T09:00:00+00:00', notification: { status: 'delivered', attempts: 1, delivered_at: '2026-10-21T09:05:00+00:00', last_error: null } },
+            { ...base, id: 'task-d2', status: 'rejected', review_reason: 'اطلاعات ناقص', reviewed_by: 'acc-mgr', reviewed_at: '2026-10-21T09:10:00+00:00', notification: { status: 'retrying', attempts: 2, delivered_at: null, last_error: 'provider_delivery_failed' } },
+            { ...base, id: 'task-d3', status: 'approved', review_reason: '', reviewed_by: 'owner-01', reviewed_at: '2026-10-21T09:20:00+00:00', notification: { status: 'queued', attempts: 0, delivered_at: null, last_error: null } },
+            { ...base, id: 'task-d4', status: 'rejected', review_reason: 'تکراری', reviewed_by: 'owner-01', reviewed_at: '2026-10-21T09:30:00+00:00', notification: { status: 'failed', attempts: 5, delivered_at: null, last_error: 'provider_delivery_failed' } },
+            { ...base, id: 'task-d5', status: 'approved', review_reason: '', reviewed_by: 'owner-01', reviewed_at: '2026-10-20T09:30:00+00:00' },
+          ] });
+        }
         if (path.startsWith('/api/owner/audit')) return reply(200, { items: [], limit: 30, offset: 0, has_more: false, actions: [] });
         if (path.startsWith('/api/admin/content/')) {
           if (method === 'POST' && path === '/api/admin/content/events') {
@@ -362,6 +379,38 @@ console.log('— فهرست تصاویر: وضعیت استفاده از site_co
     assert.equal(limited.doc.querySelector('[data-ct-media]'), null, 'بدون ev_create دکمهٔ تصاویر نیست');
     assert.ok(limited.calls.every((c) => !c.path.startsWith('/api/admin/media')));
   } finally { limited.close(); }
+}
+
+console.log('— کارتابل: وضعیت تحویل اعلان جدا از ثبت تصمیم و فقط از دادهٔ سرور —');
+{
+  const app = await loadPanel({ role: 'owner', sec: 'users', state: { uV: 'shared-inbox', sharedWorkflowKind: 'all' } });
+  try {
+    await app.until(() => app.doc.querySelector('[data-workflow-status="decided"]') && app.doc.querySelector('[data-workflow-approve="task-pending-1"]'), 'کارتابل در انتظار');
+    app.click('[data-workflow-approve="task-pending-1"]');
+    await app.until(() => app.calls.some((c) => c.method === 'POST' && c.path === '/api/admin/inbox/task-pending-1/decision'), 'ثبت تصمیم');
+    await app.until(() => /در صف ربات است، هنوز تحویل نشده/.test(app.doc.body.textContent), 'پیام صادقانه پس از تصمیم');
+    assert.doesNotMatch(app.doc.body.textContent, /اعلان کاربر در صف ثبت شد\./, 'پیام قدیمیِ مبهم دیگر نمایش داده نمی‌شود');
+
+    app.click('[data-workflow-status="decided"]');
+    await app.until(() => app.doc.querySelector('[data-workflow-card="task-d4"]'), 'تاریخچهٔ تصمیم‌ها');
+    assert.ok(app.calls.some((c) => /^\/api\/admin\/inbox\?limit=\d+&offset=0&status=decided$/.test(c.path)));
+    const stateOf = (id) => app.doc.querySelector(`[data-workflow-card="${id}"] [data-workflow-notification]`).getAttribute('data-workflow-notification');
+    assert.equal(stateOf('task-d1'), 'delivered');
+    assert.equal(stateOf('task-d2'), 'retrying');
+    assert.equal(stateOf('task-d3'), 'queued');
+    assert.equal(stateOf('task-d4'), 'failed');
+    assert.equal(stateOf('task-d5'), 'unknown', 'کار بدون ردیف اعلان «نامشخص» است، نه موفق');
+    const textOf = (id) => app.doc.querySelector(`[data-workflow-card="${id}"]`).textContent;
+    assert.match(textOf('task-d1'), /تحویل‌شده به بله/);
+    assert.match(textOf('task-d2'), /۲ تلاش ناموفق/);
+    assert.match(textOf('task-d3'), /ربات هنوز این اعلان را برنداشته/);
+    assert.match(textOf('task-d4'), /ارسال ناموفق/);
+    assert.match(textOf('task-d4'), /provider_delivery_failed/);
+    assert.match(textOf('task-d5'), /وضعیت ارسال نامشخص/);
+    for (const id of ['task-d1', 'task-d2', 'task-d3', 'task-d4', 'task-d5']) assert.match(textOf(id), /ثبت‌شده در سرور/, 'ثبت تصمیم همیشه جدا نشان داده می‌شود');
+    assert.doesNotMatch(textOf('task-d3'), /تحویل‌شده/, 'صف ≠ تحویل');
+    app.noLeak();
+  } finally { app.close(); }
 }
 
 console.log('آزمون مرحلهٔ سوم پنل: قبول');
