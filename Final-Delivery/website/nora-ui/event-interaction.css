@@ -8,11 +8,12 @@
 .ei-list>li{padding:11px 12px;border:1px solid var(--hairline);border-radius:var(--r-md);display:grid;gap:6px}
 .ei-list p{margin:0;line-height:1.9;font-size:13px;color:var(--ink-1)}
 .ei-list small,.ei-byline small{font-size:11px;color:var(--ink-3)}
-.ei-resource{grid-template-columns:minmax(0,1fr) auto;align-items:center}
+/* ستون محتوای رویداد باریک است؛ متن و دکمه زیر هم می‌نشینند تا عنوان له نشود */
+.ei-resource{grid-template-columns:minmax(0,1fr)}
 .ei-resource-text{display:grid;gap:4px;min-width:0}
 .ei-resource-text b{font-size:13px}
-.ei-resource-action{display:flex;align-items:center;justify-content:flex-end}
-.ei-lock{font-size:11px;color:var(--ink-3);padding:6px 10px;border:1px dashed var(--hairline);border-radius:999px;white-space:nowrap}
+.ei-resource-action{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:6px}
+.ei-lock{font-size:11px;color:var(--ink-3);padding:6px 10px;border:1px dashed var(--hairline);border-radius:999px;line-height:1.7}
 .ei-byline{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .ei-byline b{font-size:13px}
 .ei-byline .tag{font-size:10px;padding:2px 7px}
@@ -35,7 +36,5 @@
 .ei-mine p{margin:0;font-size:13px;line-height:1.9}
 .ei-section .registration-notice{margin-bottom:12px}
 @media (max-width:560px){
-  .ei-resource{grid-template-columns:1fr}
-  .ei-resource-action{justify-content:flex-start}
   .ei-form-row .btn,.ei-login .btn{margin-inline-start:0}
 }
