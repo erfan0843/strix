@@ -74,6 +74,19 @@ def _bounded_int_env(name: str, default: int, minimum: int, maximum: int) -> int
     return value
 
 
+def _cookie_samesite_env(cookie_secure: bool) -> str:
+    """NORA_COOKIE_SAMESITE ∈ {strict, lax, none}; پیش‌فرض و هر مقدار نامعتبر → strict.
+
+    «none» بدون کوکی امن را مرورگرها رد می‌کنند؛ در آن حالت هم strict می‌ماند (fail-safe).
+    """
+    value = (os.getenv("NORA_COOKIE_SAMESITE") or "strict").strip().lower()
+    if value not in {"strict", "lax", "none"}:
+        return "strict"
+    if value == "none" and not cookie_secure:
+        return "strict"
+    return value
+
+
 def _bool_env(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
@@ -102,6 +115,9 @@ class Settings:
     seo_business_description: str = ""
     session_ttl_seconds: int = 8 * 60 * 60
     cookie_secure: bool = True
+    # SameSite کوکی‌های نشست/CSRF. پیش‌فرض strict. «none» فقط برای پیش‌نمایش داخل iframe
+    # (مثل محیط آزمایشی) و فقط همراه cookie_secure معنا دارد؛ در تولید دست نزنید.
+    cookie_samesite: str = "strict"
     cookie_name: str = "nora_session"
     csrf_cookie_name: str = "nora_csrf"
     account_cookie_name: str = "nora_account_session"
@@ -289,6 +305,7 @@ class Settings:
             seo_business_description=os.getenv("NORA_SEO_BUSINESS_DESCRIPTION", "").strip(),
             session_ttl_seconds=ttl,
             cookie_secure=_bool_env("NORA_COOKIE_SECURE", True),
+            cookie_samesite=_cookie_samesite_env(_bool_env("NORA_COOKIE_SECURE", True)),
             bale_bot_token=os.getenv("NORA_BALE_BOT_TOKEN", "").strip(),
             bale_bot_username=bale_bot_username,
             bot_service_token=bot_service_token,

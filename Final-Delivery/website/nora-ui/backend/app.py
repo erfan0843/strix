@@ -434,6 +434,15 @@ def _field_dict(field: FormFieldRecord) -> dict[str, Any]:
     return {"id": field.field_key, "t": field.field_type, "l": field.label, **(field.config or {})}
 
 
+def _samesite(cfg: Settings) -> Literal["lax", "strict", "none"]:
+    value = str(getattr(cfg, "cookie_samesite", "strict") or "strict").lower()
+    if value == "lax":
+        return "lax"
+    if value == "none" and bool(cfg.cookie_secure):
+        return "none"
+    return "strict"
+
+
 class _CookieOptions(TypedDict):
     secure: bool
     samesite: Literal["lax", "strict", "none"]
@@ -3304,7 +3313,7 @@ def create_app(
         db.commit()
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -3399,7 +3408,7 @@ def create_app(
             raise HTTPException(503, "account_session_unavailable") from None
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -3477,7 +3486,7 @@ def create_app(
 
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -3552,8 +3561,8 @@ def create_app(
             record.revoked_at = _utc_now()
             db.commit()
         cfg: Settings = request.app.state.settings
-        response.delete_cookie(cfg.cookie_name, path="/", secure=cfg.cookie_secure, httponly=True, samesite="strict")
-        response.delete_cookie(cfg.csrf_cookie_name, path="/", secure=cfg.cookie_secure, httponly=False, samesite="strict")
+        response.delete_cookie(cfg.cookie_name, path="/", secure=cfg.cookie_secure, httponly=True, samesite=_samesite(cfg))
+        response.delete_cookie(cfg.csrf_cookie_name, path="/", secure=cfg.cookie_secure, httponly=False, samesite=_samesite(cfg))
         return {"authenticated": False}
 
     @app.post("/api/auth/bale-mini-app")
@@ -3639,7 +3648,7 @@ def create_app(
 
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -3885,7 +3894,7 @@ def create_app(
 
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -5317,14 +5326,14 @@ def create_app(
             path="/",
             secure=cfg.cookie_secure,
             httponly=True,
-            samesite="strict",
+            samesite=_samesite(cfg),
         )
         response.delete_cookie(
             cfg.account_csrf_cookie_name,
             path="/",
             secure=cfg.cookie_secure,
             httponly=False,
-            samesite="strict",
+            samesite=_samesite(cfg),
         )
         return {"authenticated": False}
 
@@ -5723,7 +5732,7 @@ def create_app(
             token,
             httponly=True,
             secure=cfg.cookie_secure,
-            samesite="strict",
+            samesite=_samesite(cfg),
             path=f"/api/public/forms/{form_id}",
             max_age=cfg.response_draft_ttl_seconds,
         )
@@ -5734,7 +5743,7 @@ def create_app(
             path=f"/api/public/forms/{form_id}",
             secure=cfg.cookie_secure,
             httponly=True,
-            samesite="strict",
+            samesite=_samesite(cfg),
         )
 
     def enforce_public_write_limit(
