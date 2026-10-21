@@ -30,7 +30,7 @@ from .models import (
 SOURCE = "shared_server_database"
 STATUSES = ("issued", "revoked")
 SOURCES = ("bot", "bot_legacy")
-KINDS = ("event", "batch", "form", "manual")
+KINDS = ("event", "batch", "form", "manual", "center")
 EXTERNAL_KEY_RE = re.compile(r"[A-Za-z0-9:_-]{3,120}")
 BALE_USER_ID_RE = re.compile(r"[1-9][0-9]{0,19}")
 UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}")

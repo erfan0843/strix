@@ -2615,7 +2615,7 @@ def create_app(
         response: Response,
         q: str = Query(default="", max_length=80),
         status: str = Query(default="", pattern=r"^(|issued|revoked|expired)$"),
-        kind: str = Query(default="", pattern=r"^(|event|batch|form|manual)$"),
+        kind: str = Query(default="", pattern=r"^(|event|batch|form|manual|center)$"),
         event_ref: str = Query(default="", max_length=40, pattern=r"^[A-Za-z0-9_.:-]*$"),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
