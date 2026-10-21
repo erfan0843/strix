@@ -817,6 +817,12 @@ def user_issue(cid, uid, eid, row_id):
         db_execute("UPDATE users SET total_certificates="
                    "COALESCE(total_certificates,0)+1 "
                    "WHERE bale_user_id=?", (int(uid),))
+        # 🪞 آینهٔ سرور مشترک (بهترین‌تلاش)
+        try:
+            import shared_certificates as _sc
+            _sc.sync_after_change(cert_id)
+        except Exception:
+            pass
         send(cid, (f"🎉 {c.get('title') or 'گواهینامه'} آماده شد\n"
                    f"🔖 شمارهٔ ثبت: {serial}"))
         return user_get(cid, uid, cert_id)

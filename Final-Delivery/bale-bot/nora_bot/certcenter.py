@@ -717,6 +717,12 @@ def build_one(iid, share_id, notify=False):
     db_execute(
         "UPDATE cert_shares SET cert_id=?, state='built', "
         "built_at=CURRENT_TIMESTAMP WHERE id=?", (cid_, sh["id"]))
+    # 🪞 آینهٔ سرور مشترک (بهترین‌تلاش؛ مالک بدون هویت سرور ذخیره نمی‌شود)
+    try:
+        import shared_certificates as _sc
+        _sc.sync_after_change(cid_)
+    except Exception:
+        pass
     db_execute("UPDATE cert_issues SET built=COALESCE(built,0)+1 "
                "WHERE id=?", (int(iid),))
     if uid:

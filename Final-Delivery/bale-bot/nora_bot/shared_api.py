@@ -1131,6 +1131,48 @@ def submit_workflow(
     return {"task": task, "created": result["created"]}
 
 
+def submit_certificate(
+    bale_user_id: int | str,
+    external_key: str,
+    certificate: dict,
+    file_refs: dict | None = None,
+) -> dict:
+    """Mirror one bot-issued certificate to the shared registry (idempotent on ``external_key``).
+
+    The server resolves the owner from ``bale_user_id`` and answers 404
+    ``owner_identity_not_found`` when that person has no server identity; the
+    caller must treat that as "not mirrored", never create an identity for it.
+    """
+    raw_user_id = _validated_user_id(bale_user_id)
+    if not isinstance(external_key, str) or not re.fullmatch(r"[A-Za-z0-9:_-]{3,120}", external_key):
+        raise SharedAPIError(422, "invalid_external_key")
+    if not isinstance(certificate, dict) or not certificate:
+        raise SharedAPIError(422, "invalid_certificate_data")
+    if file_refs is not None and (
+        not isinstance(file_refs, dict)
+        or set(file_refs) - {"pdf", "png"}
+        or any(value is not None and (not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", value))
+               for value in file_refs.values())
+    ):
+        raise SharedAPIError(422, "invalid_file_refs")
+    payload = {"bale_user_id": raw_user_id, "external_key": external_key, "certificate": certificate}
+    if file_refs:
+        payload["file_refs"] = {slot: value for slot, value in file_refs.items() if value}
+    result = _request_json("POST", "/api/bot/certificates", payload=payload)
+    record_id = result.get("id") if isinstance(result, dict) else None
+    if (not isinstance(record_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", record_id)
+            or not isinstance(result.get("created"), bool)
+            or result.get("status") not in {"issued", "revoked"}):
+        raise SharedAPIError(502, "shared_api_invalid_certificate")
+    return {
+        "id": record_id,
+        "created": result["created"],
+        "status": result["status"],
+        "has_file": bool(result.get("has_file")),
+        "has_preview": bool(result.get("has_preview")),
+    }
+
+
 def list_workflows(bale_user_id: int | str, *, limit: int = 50, offset: int = 0) -> dict:
     """Fetch pending manager work from the same queue used by the web app."""
     raw_user_id = _validated_user_id(bale_user_id)

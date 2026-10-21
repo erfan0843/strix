@@ -603,6 +603,12 @@ def issue_one(eid, bale_uid, admin_uid, ev=None, row=None,
         send_cert_files(bale_uid, cert, ev)
     log_action(bale_uid, "certificate_issued",
                {"event_id": eid, "serial": serial})
+    # 🪞 آینهٔ سرور مشترک (بهترین‌تلاش؛ ربات صادرکننده می‌ماند)
+    try:
+        import shared_certificates as _sc
+        _sc.sync_after_change(new_id)
+    except Exception:
+        pass
     return cert, err
 
 
@@ -1338,6 +1344,15 @@ def revoke(cid, uid, eid, bale_uid, undo=False):
                "AND bale_user_id=?", (0 if undo else 1, eid, bale_uid))
     log_action(uid, "cert_revoked" if not undo else "cert_restored",
                {"event_id": eid, "user": bale_uid})
+    # 🪞 وضعیت جدید را به ثبت مشترک سرور هم برسان (بهترین‌تلاش)
+    try:
+        import shared_certificates as _sc
+        for _row in db_execute("SELECT id FROM certificates WHERE event_id=? "
+                               "AND bale_user_id=?", (eid, bale_uid),
+                               fetch="all") or []:
+            _sc.sync_after_change(_row.get("id"))
+    except Exception:
+        pass
     send(cid, "♻️ از ابطال خارج شد" if undo else
               "🚫 باطل شد — اعتبارسنجی دیگر تأیید نمی‌کند")
     return show_one(cid, uid, eid, bale_uid)
