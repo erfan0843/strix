@@ -17,7 +17,11 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from .event_time import LIFECYCLES, REG_MODES
+
 CONTENT_KEYS = ("events", "people", "articles", "partners", "banners", "cooperation", "library")
+BANNER_COUNTDOWNS = ("reg_close", "event_start", "campaign_end")
+BANNER_AFTER_END = ("hide", "message", "details")
 MAX_RECORDS = {
     "events": 500,
     "people": 500,
@@ -167,6 +171,11 @@ def _banner_datetime(value: Any) -> str:
     if parsed.tzinfo is None:
         return ""
     return parsed.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _choice(value: Any, allowed: tuple[str, ...], default: str) -> str:
+    raw = _text(value, 24, allow_number=False).lower()
+    return raw if raw in allowed else default
 
 
 def _public_media_url(value: Any) -> str:
@@ -330,6 +339,16 @@ def _event(record: Any) -> dict[str, Any] | None:
         "cert": bool(record.get("cert")),
         "certMin": _number(record.get("certMin"), maximum=100),
         "certNote": _text(record.get("certNote"), 1_000),
+        # Phase 7: optional machine-readable schedule (UTC ISO, entered in Asia/Tehran),
+        # registration window and lifecycle. Missing values stay empty: no surface may
+        # invent a deadline or a countdown for them.
+        "startsAt": _banner_datetime(record.get("startsAt")),
+        "endsAt": _banner_datetime(record.get("endsAt")),
+        "regOpensAt": _banner_datetime(record.get("regOpensAt")),
+        "regClosesAt": _banner_datetime(record.get("regClosesAt")),
+        "regMode": _choice(record.get("regMode"), REG_MODES, "auto"),
+        "lifecycle": _choice(record.get("lifecycle"), LIFECYCLES, "scheduled"),
+        "conditions": _text(record.get("conditions"), 1_000),
         "privacy": "public",
     }
 
@@ -542,6 +561,9 @@ def _banner(record: Any) -> dict[str, Any] | None:
     status = _text(record.get("status"), 16, allow_number=False).lower()
     if status not in {"draft", "published", "paused"}:
         status = "published" if record.get("pub") is True and record.get("hidden") is not True else "draft"
+    event_ref = _text(record.get("eventId") or record.get("event_id"), 100, allow_number=False)
+    if event_ref and not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", event_ref):
+        return None
     layout = _text(record.get("layout"), 16, allow_number=False).lower()
     align = _text(record.get("align"), 16, allow_number=False).lower()
     theme = _text(record.get("theme"), 16, allow_number=False).lower()
@@ -571,6 +593,13 @@ def _banner(record: Any) -> dict[str, Any] | None:
         "focusY": _number(record.get("focusY"), maximum=100),
         "startsAt": _banner_datetime(record.get("startsAt") or record.get("starts_at")),
         "endsAt": _banner_datetime(record.get("endsAt") or record.get("ends_at")),
+        # Phase 7: optional link to a published event (destination + countdown source),
+        # countdown type, campaign-only deadline and the behaviour after the deadline.
+        "eventId": event_ref,
+        "countdown": _choice(record.get("countdown"), BANNER_COUNTDOWNS, ""),
+        "campaignEndsAt": _banner_datetime(record.get("campaignEndsAt") or record.get("campaign_ends_at")),
+        "afterEnd": _choice(record.get("afterEnd"), BANNER_AFTER_END, "hide"),
+        "afterEndText": _text(record.get("afterEndText") or record.get("after_end_text"), 160),
     }
 
 

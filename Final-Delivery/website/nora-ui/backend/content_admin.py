@@ -23,6 +23,7 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from . import event_time
 from .site_content import (
     MAX_RECORDS,
     SiteContentError,
@@ -51,7 +52,10 @@ SORTS = ("updated", "created", "title", "date")
 EVENT_EDITABLE = (
     "t", "kind", "d", "on", "when", "time", "place", "mode", "poster", "tags",
     "price", "cap", "past", "sess", "cert", "certMin", "certNote", "tchr", "partnerId",
+    # Phase 7: schedule + registration window (Jalali/Tehran or aware ISO input, UTC storage).
+    "startsAt", "endsAt", "regOpensAt", "regClosesAt", "regMode", "lifecycle", "conditions",
 )
+EVENT_DATETIME_FIELDS = ("startsAt", "endsAt", "regOpensAt", "regClosesAt")
 ARTICLE_EDITABLE = ("t", "cat", "lead", "body", "cov", "who", "at", "tags", "pin", "min", "tchr")
 EDITABLE = {"events": EVENT_EDITABLE, "articles": ARTICLE_EDITABLE}
 
@@ -131,6 +135,29 @@ def _validate_event(record: dict[str, Any]) -> None:
         value = _text(record.get(key), 100, allow_number=False)
         if value and not _RECORD_ID.fullmatch(value):
             raise ContentAdminError("invalid_reference", key)
+    parsed: dict[str, datetime | None] = {}
+    for key in EVENT_DATETIME_FIELDS:
+        try:
+            record[key] = event_time.parse_event_datetime(record.get(key))
+        except ValueError:
+            raise ContentAdminError("invalid_datetime", key) from None
+        moment = event_time.parse_utc(record[key]) if record[key] else None
+        if moment is not None and not event_time.clamp_future(moment):
+            raise ContentAdminError("invalid_datetime", key)
+        parsed[key] = moment
+    if parsed["startsAt"] and parsed["endsAt"] and parsed["endsAt"] < parsed["startsAt"]:
+        raise ContentAdminError("invalid_datetime_order", "endsAt")
+    if parsed["regOpensAt"] and parsed["regClosesAt"] and parsed["regClosesAt"] < parsed["regOpensAt"]:
+        raise ContentAdminError("invalid_datetime_order", "regClosesAt")
+    reg_mode = _text(record.get("regMode"), 24, allow_number=False).lower()
+    if reg_mode and reg_mode not in event_time.REG_MODES:
+        raise ContentAdminError("invalid_choice", "regMode")
+    record["regMode"] = reg_mode or "auto"
+    lifecycle = _text(record.get("lifecycle"), 24, allow_number=False).lower()
+    if lifecycle and lifecycle not in event_time.LIFECYCLES:
+        raise ContentAdminError("invalid_choice", "lifecycle")
+    record["lifecycle"] = lifecycle or "scheduled"
+    record["conditions"] = _text(record.get("conditions"), 1_000)
 
 
 def _validate_article(record: dict[str, Any]) -> None:
@@ -253,6 +280,12 @@ def detail(kind: str, row: dict[str, Any]) -> dict[str, Any]:
     out["public_path"] = (
         f"event.html?id={row.get('id')}" if kind == "events" else f"post.html?id={row.get('id')}"
     ) if out["status"] == "published" else ""
+    if kind == "events":
+        # Panel fill-back in the reference zone; the stored value stays UTC.
+        out["local_times"] = {key: event_time.to_local_input(row.get(key)) for key in EVENT_DATETIME_FIELDS}
+        out["registration"] = event_time.registration_state(
+            row, now=datetime.now(timezone.utc), has_form=bool(row.get("forms")),
+        )
     return out
 
 
@@ -280,6 +313,10 @@ def summary(kind: str, row: dict[str, Any]) -> dict[str, Any]:
             "certMin": _number(row.get("certMin"), maximum=100),
             "sess": _number(row.get("sess"), maximum=500),
             "has_poster": bool(_text(row.get("poster") or row.get("posterUp"), 1_500_000, allow_number=False)),
+            "lifecycle": _text(row.get("lifecycle"), 24, allow_number=False) or "scheduled",
+            "regMode": _text(row.get("regMode"), 24, allow_number=False) or "auto",
+            "startsAt": _text(row.get("startsAt"), 40, allow_number=False),
+            "regClosesAt": _text(row.get("regClosesAt"), 40, allow_number=False),
             "forms": [
                 {"id": _text(item.get("id"), 120, allow_number=False), "n": _text(item.get("n"), 160)}
                 for item in (row.get("forms") or []) if isinstance(item, dict)

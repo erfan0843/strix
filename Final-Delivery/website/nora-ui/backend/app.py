@@ -48,6 +48,7 @@ from . import certificates as certificates_mod
 from . import club_points as club_points_mod
 from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
+from . import event_time
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
@@ -950,6 +951,47 @@ def _capacity_is_full(form: FormRecord, accepted: int, waitlisted: int) -> bool:
     if cap <= 0 or accepted < cap:
         return False
     return wait <= 0 or waitlisted >= wait
+
+
+def _event_registration_block(db: Session, form: FormRecord, now: datetime | None = None) -> dict[str, Any] | None:
+    """Return the registration status when the event linked to ``form`` does not accept
+    new registrations right now (window, manual close, cancellation, ended), else ``None``.
+
+    Capacity is checked by the callers as before; this gate only adds the event-level
+    rules so a direct API call cannot bypass what the public pages show.
+    """
+    site = db.get(SiteContentRecord, "public")
+    if site is None:
+        return None
+    current = now or _utc_now()
+    for event in public_site_content(site.content or {}).get("events", []):
+        if not isinstance(event, dict):
+            continue
+        linked = bool(form.event_id and str(event.get("id") or "") == str(form.event_id))
+        if not linked:
+            linked = any(
+                isinstance(item, dict) and str(item.get("id") or "") == form.id
+                for item in _json_list_member(event, "forms")
+            )
+        if not linked:
+            continue
+        registration = event_time.registration_state(event, now=current, has_form=True)
+        if event_time.is_registration_blocked(registration["state"]):
+            return {"event_id": str(event.get("id") or ""), **registration}
+        return None
+    return None
+
+
+def _raise_if_event_registration_blocked(db: Session, form: FormRecord) -> None:
+    blocked = _event_registration_block(db, form)
+    if blocked is not None:
+        raise HTTPException(409, detail={
+            "code": "registration_closed",
+            "state": blocked["state"],
+            "event_id": blocked["event_id"],
+            "opens_at": blocked["opensAt"],
+            "closes_at": blocked["closesAt"],
+        })
 
 
 def _response_party_statuses(
@@ -1911,6 +1953,7 @@ def create_app(
         db: Session, content: dict[str, Any], version: int, updated_at: datetime | None, *, owner_view: bool = False
     ):
         public = public_site_content(content)
+        now = _utc_now()
         if owner_view:
             try:
                 public["banners"] = sanitize_site_content(
@@ -1944,6 +1987,19 @@ def create_app(
                     related.append({"id": form.id, "need": form.need, "n": form.title})
             event["forms"] = related
             event.pop("regForm", None)
+            # Registration state is computed once here (server clock, linked published form,
+            # that form's real capacity) and re-used by the home/list/detail pages and banners.
+            primary = by_id.get(related[0]["id"]) if related else None
+            form_full = False
+            if primary is not None:
+                accepted, waitlisted = _response_counts(db, primary.id)
+                form_full = _capacity_is_full(
+                    primary, accepted + _active_bale_payment_holds(db, primary.id), waitlisted
+                )
+            event["registration"] = event_time.registration_state(
+                event, now=now, has_form=primary is not None, form_full=form_full
+            )
+        public["banners"] = _public_banner_rows(public["banners"], public["events"], now, owner_view=owner_view)
         for person in public["people"]:
             form_id = str(person.get("form") or "")
             if form_id and form_id not in public_form_ids:
@@ -1961,7 +2017,78 @@ def create_app(
             "version": version,
             "updated_at": _as_utc(updated_at).isoformat() if updated_at else None,
             "delivery_bot_url": delivery_bot_url,
+            # Reference clock for every countdown; browsers only measure the offset to it.
+            "server_time": event_time.to_iso(now),
         }
+
+    def _public_banner_rows(
+        banners: list[dict[str, Any]], events: list[dict[str, Any]], now: datetime, *, owner_view: bool
+    ) -> list[dict[str, Any]]:
+        """Resolve event-linked banners and apply the publish window on the server clock.
+
+        Owner view keeps every row (the editor needs drafts and expired rows) but still
+        attaches the resolved event so the panel preview matches the public page.
+        """
+        by_event = {str(event.get("id")): event for event in events if isinstance(event, dict)}
+        rows: list[dict[str, Any]] = []
+        for banner in banners:
+            if not isinstance(banner, dict):
+                continue
+            row = dict(banner)
+            event = by_event.get(str(row.get("eventId") or "")) if row.get("eventId") else None
+            if row.get("eventId") and event is None and not owner_view:
+                # Linked event is unpublished/missing: never show a banner that points at it.
+                continue
+            countdown = str(row.get("countdown") or "")
+            resolved, target, expired = "", "", False
+            if event is not None:
+                registration = event.get("registration") or {}
+                state = str(registration.get("state") or "")
+                row["event"] = {
+                    "id": event.get("id"), "t": event.get("t"), "when": event.get("when"),
+                    "startsAt": event.get("startsAt") or "", "regClosesAt": event.get("regClosesAt") or "",
+                    "state": state, "lifecycle": registration.get("lifecycle") or "scheduled",
+                }
+                if not row.get("href"):
+                    row["href"] = f"event.html?id={event.get('id')}"
+                if countdown == "reg_close":
+                    if state == "open":
+                        resolved, target = "reg_close", str(registration.get("countdownTo") or "")
+                    elif state == "not_started":
+                        resolved, target = "reg_open", str(registration.get("opensAt") or "")
+                    else:
+                        resolved, expired = "reg_close", state in {"closed", "full", "ended", "cancelled"}
+                elif countdown == "event_start":
+                    resolved = "event_start"
+                    starts = event_time.parse_utc(event.get("startsAt"))
+                    if registration.get("lifecycle") == "cancelled":
+                        expired = True
+                    elif starts is not None:
+                        target, expired = (event_time.to_iso(starts), False) if starts > now else ("", True)
+                    else:
+                        resolved = ""
+            if countdown == "campaign_end":
+                ends_at = event_time.parse_utc(row.get("campaignEndsAt"))
+                if ends_at is not None:
+                    resolved = "campaign_end"
+                    target, expired = (event_time.to_iso(ends_at), False) if ends_at > now else ("", True)
+            # Only a real server-validated target (or a finished deadline) survives; the
+            # client never computes its own deadline from banner text.
+            row["countdown"] = resolved
+            row["countdownTo"] = target if resolved and not expired else ""
+            row["countdownEnded"] = bool(resolved) and expired
+            if not owner_view:
+                starts = event_time.parse_utc(row.get("startsAt"))
+                ends = event_time.parse_utc(row.get("endsAt"))
+                if (starts and starts > now) or (ends and ends <= now):
+                    continue
+                if row["countdownEnded"] and row.get("afterEnd", "hide") == "hide":
+                    continue
+                if row["countdownEnded"] and event is not None:
+                    # After the deadline the primary action may only lead to the detail page.
+                    row["href"] = f"event.html?id={event.get('id')}"
+            rows.append(row)
+        return rows
 
     @app.get("/api/public/site-content")
     def get_public_site_content(db: Session = Depends(get_db)):
@@ -5975,6 +6102,7 @@ def create_app(
         issues = publication_issues(form, bale_ready=bale_ready)
         if issues or form_has_companions(form) and not allow_companions:
             raise HTTPException(409, "form_not_open")
+        _raise_if_event_registration_blocked(db, form)
         return form
 
     def validate_expected_version(payload: dict[str, Any], record: FormRecord) -> int:
@@ -6075,6 +6203,7 @@ def create_app(
     ):
         cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
+        _raise_if_event_registration_blocked(db, form)
         accepted, waitlisted = _response_counts(db, form_id)
         if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form_id), waitlisted):
             raise HTTPException(410, detail={"code": "form_full"})
@@ -6725,6 +6854,8 @@ def create_app(
         items = []
         for form in records:
             if publication_issues(form, bale_ready=cfg.form_bale_payments_ready) or form_has_companions(form) or _form_uses_payment(form):
+                continue
+            if _event_registration_block(db, form) is not None:
                 continue
             accepted, waitlisted = _response_counts(db, form.id)
             if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form.id), waitlisted):
@@ -7456,6 +7587,8 @@ def create_app(
         bind_public_draft_account(draft, account_identity_from_request(request, db), db)
         answers, submitted = draft_answers(db, draft)
         companions = draft_companions(db, draft, submitted)
+        if submitted is None:
+            _raise_if_event_registration_blocked(db, form)
         accepted, waitlisted = _response_counts(db, form_id)
         if submitted is None and _capacity_is_full(
             form,
@@ -8189,6 +8322,8 @@ def create_app(
                         route_error = "closed" if form.status in {"paused", "archived"} else "draft"
                     elif publication_issues(form, bale_ready=cfg.form_bale_payments_ready):
                         route_error = "invalid-form"
+                    elif _event_registration_block(db, form) is not None:
+                        route_error = "closed"
                     else:
                         accepted, waitlisted = _response_counts(db, form_id)
                         if _capacity_is_full(
