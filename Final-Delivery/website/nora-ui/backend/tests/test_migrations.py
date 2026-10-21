@@ -182,7 +182,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             constraint["name"] for constraint in inspector.get_check_constraints("club_points_entries")
         }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()
 
@@ -252,7 +252,7 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()
 
@@ -306,7 +306,7 @@ def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()
 
@@ -363,7 +363,7 @@ def test_club_points_migration_with_existing_data_round_trip(tmp_path, monkeypat
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()
 
@@ -428,7 +428,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
                 "VALUES ('res-1', 'ev-legacy', 'جزوه', 'published', 'registered', 'file')"
             ))
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()
 
@@ -451,7 +451,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_questions")) == 0
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()
 
@@ -546,7 +546,7 @@ def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monk
                 "INSERT INTO recording_access (id, recording_id, account_id, source, status, order_id) "
                 "VALUES ('acc-r-1', 'rec-1', 'acc-legacy-5', 'purchase', 'active', 'ord-1')"
             ))
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
         with engine.connect() as connection:
             for statement in (
                 # one product per event
@@ -597,6 +597,150 @@ def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monk
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_recordings")) == 0
             assert connection.scalar(text("SELECT count(*) FROM event_resources")) == 2
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+    finally:
+        engine.dispose()
+
+
+def test_form_aligned_store_migration_round_trip(tmp_path, monkeypatch):
+    """0033 on a database that already holds phase-9 rows: upgrade, downgrade one step, upgrade again.
+
+    Existing forms keep working with ``purpose='registration'`` (the pre-9.1
+    behaviour), a purchase form can be tied to a product, the ledger row can be
+    tied to one response/payment at most once, ``certificate_policy`` only accepts
+    ``none``/``manual`` and ``kind`` accepts the two embed providers only after
+    the upgrade. The downgrade folds embeds to plain links instead of deleting them.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy-store.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0032_recorded_content")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO accounts (id) VALUES ('acc-legacy-6')"))
+            connection.execute(text(
+                "INSERT INTO forms (id, owner_id, title, model, need, status, settings, version) "
+                "VALUES ('form-old', 'owner-1', 'ثبت‌نام قدیمی', 'registration', 'reg', 'published', '{}', 1)"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_recordings (id, event_id, status, title, faq, price) "
+                "VALUES ('rec-1', 'ev-held', 'draft', 'نسخهٔ ضبط‌شده', '[]', 1500000)"
+            ))
+            connection.execute(text(
+                "INSERT INTO recording_orders (id, recording_id, account_id, method, status, amount, idempotency_key) "
+                "VALUES ('ord-old', 'rec-1', 'acc-legacy-6', 'card_transfer', 'paid_manual', 1500000, 'idem-old')"
+            ))
+        columns = {column["name"] for column in inspect(engine).get_columns("forms")}
+        assert not {"purpose", "recording_id"} & columns
+        with engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                with pytest.raises(IntegrityError):
+                    connection.execute(text(
+                        "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
+                        "VALUES ('res-yt-early', 'ev-held', 'x', 'published', 'purchased', 'youtube', 'https://youtu.be/dQw4w9WgXcQ')"
+                    ))
+            finally:
+                transaction.rollback()
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        assert {"purpose", "recording_id"} <= {column["name"] for column in inspector.get_columns("forms")}
+        assert "certificate_policy" in {column["name"] for column in inspector.get_columns("event_recordings")}
+        assert {"form_response_id", "form_payment_id"} <= {
+            column["name"] for column in inspector.get_columns("recording_orders")
+        }
+        assert {"uq_recording_orders_form_response", "uq_recording_orders_form_payment"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("recording_orders")
+        }
+        assert {"ck_forms_purpose"} <= {c["name"] for c in inspector.get_check_constraints("forms")}
+        assert {"ck_event_recordings_certificate_policy"} <= {
+            c["name"] for c in inspector.get_check_constraints("event_recordings")
+        }
+        with engine.begin() as connection:
+            # Old rows keep the pre-9.1 behaviour by default.
+            assert connection.scalar(text("SELECT purpose FROM forms WHERE id = 'form-old'")) == "registration"
+            assert connection.scalar(text("SELECT recording_id FROM forms WHERE id = 'form-old'")) is None
+            assert connection.scalar(text("SELECT certificate_policy FROM event_recordings WHERE id = 'rec-1'")) == "none"
+            assert connection.scalar(text("SELECT form_response_id FROM recording_orders WHERE id = 'ord-old'")) is None
+            connection.execute(text(
+                "INSERT INTO forms (id, owner_id, title, model, need, status, settings, version, purpose, recording_id, event_id) "
+                "VALUES ('form-buy', 'owner-1', 'خرید دسترسی', 'order', 'reg', 'published', '{}', 1, 'recording_access', 'rec-1', 'ev-held')"
+            ))
+            connection.execute(text(
+                "INSERT INTO form_response_drafts (id, form_id, form_version, token_hash, answers, companions, expires_at) "
+                "VALUES ('draft-1', 'form-buy', 1, 'hash-1', '{}', '[]', '2030-01-01 00:00:00')"
+            ))
+            connection.execute(text(
+                "INSERT INTO form_responses (id, form_id, draft_id, form_version, status, answers, companions, form_snapshot) "
+                "VALUES ('resp-1', 'form-buy', 'draft-1', 1, 'accepted', '{}', '[]', '{}')"
+            ))
+            connection.execute(text(
+                "INSERT INTO recording_orders (id, recording_id, account_id, method, status, amount, idempotency_key, form_response_id) "
+                "VALUES ('ord-form', 'rec-1', 'acc-legacy-6', 'card_transfer', 'paid_manual', 1500000, 'idem-form', 'resp-1')"
+            ))
+            connection.execute(text(
+                "UPDATE event_recordings SET certificate_policy = 'manual' WHERE id = 'rec-1'"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
+                "VALUES ('res-yt', 'ev-held', 'ویدیوی یوتیوب', 'published', 'purchased', 'youtube', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
+                "VALUES ('res-ap', 'ev-held', 'ویدیوی آپارات', 'published', 'purchased', 'aparat', 'https://www.aparat.com/v/abc12')"
+            ))
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+        with engine.connect() as connection:
+            for statement in (
+                "UPDATE forms SET purpose = 'shop' WHERE id = 'form-buy'",
+                "UPDATE event_recordings SET certificate_policy = 'auto' WHERE id = 'rec-1'",
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
+                "VALUES ('res-bad', 'ev-held', 'x', 'published', 'purchased', 'vimeo', 'https://vimeo.com/1')",
+                # one ledger row per form response
+                "INSERT INTO recording_orders (id, recording_id, account_id, method, status, amount, idempotency_key, form_response_id) "
+                "VALUES ('ord-dup', 'rec-1', 'acc-legacy-6', 'card_transfer', 'paid_manual', 1500000, 'idem-dup', 'resp-1')",
+            ):
+                transaction = connection.begin()
+                try:
+                    with pytest.raises(IntegrityError):
+                        connection.execute(text(statement))
+                finally:
+                    transaction.rollback()
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0032_recorded_content")
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        assert not {"purpose", "recording_id"} & {column["name"] for column in inspector.get_columns("forms")}
+        assert "certificate_policy" not in {column["name"] for column in inspector.get_columns("event_recordings")}
+        assert not {"form_response_id", "form_payment_id"} & {
+            column["name"] for column in inspector.get_columns("recording_orders")
+        }
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM forms")) == 2
+            assert connection.scalar(text("SELECT count(*) FROM recording_orders")) == 2
+            assert connection.scalar(text("SELECT kind FROM event_resources WHERE id = 'res-yt'")) == "link"
+            assert connection.scalar(text("SELECT link_url FROM event_resources WHERE id = 'res-ap'")) == "https://www.aparat.com/v/abc12"
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0032_recorded_content"
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT purpose FROM forms WHERE id = 'form-buy'")) == "registration"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
     finally:
         engine.dispose()

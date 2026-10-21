@@ -38,8 +38,13 @@ class FormRecord(Base):
             "status IN ('draft', 'published', 'paused', 'archived')",
             name="ck_forms_status",
         ),
+        CheckConstraint(
+            "purpose IN ('registration', 'recording_access')",
+            name="ck_forms_purpose",
+        ),
         UniqueConstraint("owner_id", "create_key", name="uq_forms_owner_create_key"),
         Index("ix_forms_owner_updated", "owner_id", "updated_at"),
+        Index("ix_forms_recording", "recording_id"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -49,6 +54,13 @@ class FormRecord(Base):
     need: Mapped[str] = mapped_column(String(40), nullable=False)
     slug: Mapped[str | None] = mapped_column(String(180), nullable=True)
     event_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Phase 9.1: what the form sells. ``registration`` keeps every legacy behaviour
+    # (ticket, attendance list, «رویدادهای من»); ``recording_access`` makes the form
+    # the purchase entry of one recorded product and never produces a ticket.
+    purpose: Mapped[str] = mapped_column(String(24), nullable=False, default="registration", server_default="registration")
+    recording_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("event_recordings.id", ondelete="SET NULL"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
     create_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
     create_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -914,7 +926,7 @@ class EventResourceRecord(Base):
 
     __tablename__ = "event_resources"
     __table_args__ = (
-        CheckConstraint("kind IN ('file', 'link')", name="ck_event_resources_kind"),
+        CheckConstraint("kind IN ('file', 'link', 'youtube', 'aparat')", name="ck_event_resources_kind"),
         CheckConstraint(
             "access IN ('public', 'registered', 'attended', 'purchased', 'staff')",
             name="ck_event_resources_access",
@@ -1131,6 +1143,7 @@ class EventRecordingRecord(Base):
         ),
         CheckConstraint("price BETWEEN 0 AND 2000000000", name="ck_event_recordings_price"),
         CheckConstraint("access_days IS NULL OR access_days BETWEEN 1 AND 3650", name="ck_event_recordings_access_days"),
+        CheckConstraint("certificate_policy IN ('none', 'manual')", name="ck_event_recordings_certificate_policy"),
         UniqueConstraint("event_id", name="uq_event_recordings_event"),
         Index("ix_event_recordings_status", "status", "published_at"),
     )
@@ -1152,6 +1165,11 @@ class EventRecordingRecord(Base):
     download_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     bale_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     payment_card: Mapped[dict[str, Any] | None] = mapped_column(JSON_VALUE, nullable=True)
+    # Phase 9.1: completion-certificate policy of the product. ``none`` = no
+    # certificate is ever offered; ``manual`` = staff may issue «گواهی پایان
+    # محتوای آموزشی ضبط‌شده» through the existing audited issuance path. There is
+    # no automatic mode because the server has no trusted completion/scoring data.
+    certificate_policy: Mapped[str] = mapped_column(String(12), nullable=False, default="none", server_default="none")
     cover_url: Mapped[str] = mapped_column(String(2048), nullable=False, default="")
     status_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1221,6 +1239,8 @@ class RecordingOrderRecord(Base):
         UniqueConstraint("invoice_payload", name="uq_recording_orders_invoice_payload"),
         UniqueConstraint("transaction_id", name="uq_recording_orders_transaction"),
         UniqueConstraint("provider_charge_id", name="uq_recording_orders_provider_charge"),
+        UniqueConstraint("form_response_id", name="uq_recording_orders_form_response"),
+        UniqueConstraint("form_payment_id", name="uq_recording_orders_form_payment"),
         Index("ix_recording_orders_recording_status", "recording_id", "status", "created_at"),
         Index("ix_recording_orders_account_created", "account_id", "created_at"),
         Index("ix_recording_orders_status_created", "status", "created_at"),
@@ -1242,6 +1262,15 @@ class RecordingOrderRecord(Base):
     invoice_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     transaction_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
     provider_charge_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    # Phase 9.1: the ledger row is created by the server from a valid purchase-form
+    # response/payment (form builder = commercial source of truth); both stay
+    # nullable so pre-9.1 rows and audited manual grants remain representable.
+    form_response_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("form_responses.id", ondelete="SET NULL"), nullable=True
+    )
+    form_payment_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("form_payments.id", ondelete="SET NULL"), nullable=True
+    )
     payer_bale_user_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     receipt_content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
