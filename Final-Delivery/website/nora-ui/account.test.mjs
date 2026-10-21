@@ -166,7 +166,7 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     'نمای کوچک فقط نام بخش‌هاست؛ معرفی حساب دادهٔ خصوصی نمی‌خواند و OTP یا حساب محلی نمی‌سازد');
   ok(!production.doc.querySelector('.account-promo-preview,.account-promo-showcase,.account-promo-eyebrow')
     &&production.doc.querySelector('.account-promo-hero .account-promo-avatar')?.getAttribute('aria-hidden')==='true'
-    &&production.all('#profBox .server-rows .mini-guest').length===3
+    &&production.all('#profBox .server-rows .mini-guest').length===4
     &&production.all('#profBox .server-rows.is-guest .mrow2 small').length===0
     &&!!production.doc.querySelector('#profBox .server-paybar.is-guest a.pbmain[href="account.html#payments"]')
     &&!production.doc.querySelector('#profBox .server-paybar .pbrow, #profBox .server-paybar .trustline'),
@@ -187,7 +187,7 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&!/عضوِ? نمونه|۱۲ عضو|چراغ‌ها را من خاموش می‌کنم/.test(production.view()),
     'باشگاه کتاب‌خوانی با کارت طراحی‌شده و حالت خالی روشن می‌ماند؛ کتاب ماه، اعضا یا امتیاز نمونه ندارد');
   ok(!!production.doc.querySelector('#profBox .server-paybar')&&!!production.doc.querySelector('#profBox .server-rows')
-    &&production.all('#profBox .server-rows a.mrow2').length===4
+    &&production.all('#profBox .server-rows a.mrow2').length===5
     &&production.txt('#profBox .server-rows').includes('باشگاه کتاب‌خوانی خط زندگی')
     &&production.txt('#profBox .server-paybar').includes('نورا پی')
     &&production.doc.querySelector('#profBox .server-paybar a[href="account.html#payments"]')
@@ -202,7 +202,7 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   },false,false);
   ok(live.doc.querySelector('.server-account-head')?.classList.contains('phead')
     &&!!live.doc.querySelector('.server-account-head .pstats [data-server-data-open="registrations"]')
-    &&!!live.doc.querySelector('#profBox .server-paybar')&&live.all('#profBox .server-rows a.mrow2').length===4
+    &&!!live.doc.querySelector('#profBox .server-paybar')&&live.all('#profBox .server-rows a.mrow2').length===5
     &&live.network.some(call=>call.path==='/api/account/registrations?limit=50&offset=0'),
     'حساب واردشده سر صفحهٔ طراحی‌شده (phead)، نورا پی و بخش‌های من را با شمارنده‌های سروری می‌بیند');
   ok(!!live.doc.querySelector('.server-account-head')&&live.txt('#profBox').includes('رویدادهای من')

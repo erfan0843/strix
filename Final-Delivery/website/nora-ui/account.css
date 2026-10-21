@@ -1355,3 +1355,10 @@ a.mrow2:focus-visible,a.pbtn:focus-visible{outline:2px solid var(--brand);outlin
 .server-account-strip .who{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 140px}
 .server-account-strip .who b{font-size:14px}
 .server-account-strip .who small{color:var(--muted);font-size:12px}
+/* فاز ۹ — «محتوای من» و «سفارش‌ها و پرداخت‌ها»: همان کارت‌های سروری، بدون کارت تودرتو یا سایهٔ تازه. */
+.rec-h3{font-size:12.5px;font-weight:800;color:var(--ink-2);margin:0 3px 6px}
+.rec-order .rec-card-dest{font-size:12.5px;line-height:1.9;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--surface-2,transparent)}
+.rec-order .rec-receipt{display:grid;gap:8px}
+.rec-order .rec-receipt input[type=file]{font-size:12px;max-width:100%}
+.rec-order .rec-receipt .input{padding:8px 10px;font-size:13px}
+.rec-order .tag.bad,.rec-library .tag.bad{background:color-mix(in oklab,var(--req) 12%,transparent);color:var(--req)}

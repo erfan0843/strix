@@ -1,0 +1,149 @@
+/* فاز ۹ — حساب کاربر: «محتوای من» (دسترسی‌های واقعی با وضعیت و مهلت) و «سفارش‌ها و پرداخت‌ها»
+   (سفارش‌های محتوای ضبط‌شده کنار پرداخت ثبت‌نام‌ها، جدا از هم). jsdom با fetch شبیه‌سازی‌شده؛ سروری اجرا نمی‌شود.
+   هیچ دسترسی/پیشرفتی در مرورگر ساخته نمی‌شود؛ ارسال رسید فقط وضعیت سفارش را به «در انتظار بررسی» می‌برد. */
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import jsdom from 'jsdom';
+const {JSDOM}=jsdom;
+const DIR=fileURLToPath(new URL('./',import.meta.url));
+const OPEN=DIR+'account.html', URLF=pathToFileURL(OPEN).href;
+let pass=0, fail=0;
+const ok=(c,m)=>{ if(c){pass++; console.log('   ✓ '+m)} else {fail++; console.log('   ✗ '+m)} };
+const wait=(t=120)=>new Promise(r=>setTimeout(r,t));
+const reply=(status,payload={})=>({ok:status>=200&&status<300,status,json:async()=>payload});
+const store=()=>{const m=new Map(); return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size}}};
+const ACCOUNT={authenticated:true,account_id:'acc-qa-9',provider:'phone',role:null,permissions:[],delivery_bot_url:'https://ble.ir/nora_test_bot'};
+const REC='99999999-9999-4999-8999-999999999999', EV='ev-qa-phase9', ORDER='77777777-7777-4777-8777-777777777771';
+const openOrder={id:ORDER,recording_id:REC,method:'card_transfer',status:'awaiting_receipt',open:true,paid:false,amount:1500000,currency:'IRR',expires_at:'2026-10-24T06:00:00Z',
+  receipt_submitted:false,receipt_submitted_at:'',receipt_file_name:'',paid_at:'',decided_at:'',decision_reason:'',refunded_at:'',created_at:'2026-10-21T06:00:00Z',updated_at:'',event_id:EV,
+  title:'ضبط کارگاه نجوم',event_title:'کارگاه نجوم',card:{number:'6037997599999993',bank:'ملی',holder:'انجمن نجوم'}};
+const paidOrder={...openOrder,id:'77777777-7777-4777-8777-777777777772',status:'paid_manual',open:false,paid:true,paid_at:'2026-10-20T06:00:00Z',decided_at:'2026-10-20T06:00:00Z',card:undefined,title:'ضبط نشست ادبی',event_title:'نشست ادبی',recording_id:'rec-2',event_id:'ev-2'};
+const rejectedOrder={...openOrder,id:'77777777-7777-4777-8777-777777777773',status:'rejected',open:false,paid:false,decided_at:'2026-10-19T06:00:00Z',decision_reason:'مبلغ واریزی با سفارش نمی‌خواند',card:undefined,title:'ضبط دورهٔ عکاسی',event_title:'دورهٔ عکاسی',recording_id:'rec-3',event_id:'ev-3'};
+const library=[
+  {recording_id:'rec-2',event_id:'ev-2',title:'ضبط نشست ادبی',event_title:'نشست ادبی',cover_url:'',status:'published',session_count:3,total_minutes:140,access:{state:'active',source:'purchase',expires_at:'2027-01-18T06:00:00Z',granted_at:'2026-10-20T06:00:00Z',revoked_at:''},progress:null},
+  {recording_id:'rec-4',event_id:'ev-4',title:'ضبط کارگاه رایگان',event_title:'کارگاه رایگان',cover_url:'',status:'published',session_count:0,total_minutes:0,access:{state:'active',source:'free',expires_at:'',granted_at:'2026-10-18T06:00:00Z',revoked_at:''},progress:null},
+  {recording_id:'rec-5',event_id:'ev-5',title:'ضبط دورهٔ قدیمی',event_title:'دورهٔ قدیمی',cover_url:'',status:'published',session_count:2,total_minutes:60,access:{state:'expired',source:'purchase',expires_at:'2026-09-01T06:00:00Z',granted_at:'2026-06-01T06:00:00Z',revoked_at:''},progress:null},
+  {recording_id:'rec-6',event_id:'ev-6',title:'ضبط لغوشده',event_title:'رویداد شش',cover_url:'',status:'published',session_count:1,total_minutes:30,access:{state:'revoked',source:'granted',expires_at:'',granted_at:'2026-07-01T06:00:00Z',revoked_at:'2026-08-01T06:00:00Z'},progress:null}];
+const registrations=[{id:'reg-1',form_name:'ثبت‌نام کارگاه',event_title:'کارگاه نجوم',status:'accepted',created_at:'2026-09-01T06:00:00Z',payment_status:'receipt_submitted'}];
+
+async function load(hash,server){
+  const errs=[], network=[]; let orders=server.orders||[];
+  const dom=await JSDOM.fromFile(OPEN,{runScripts:'dangerously',pretendToBeVisual:true,url:URLF+hash,
+    resources:{interceptors:[jsdom.requestInterceptor(request=>/^https?:/i.test(request.url)?new Response('',{status:200,headers:{'content-type':'text/html;charset=utf-8'}}):undefined)]},
+    beforeParse(w){
+      w.__NORA_TEST_FIXTURE_MODE__=false; w.scrollTo=()=>{}; w.confirm=()=>true;
+      if(w.Element&&!w.Element.prototype.scrollIntoView) w.Element.prototype.scrollIntoView=()=>{};
+      if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+      Object.defineProperty(w,'localStorage',{configurable:true,value:store()});
+      Object.defineProperty(w.document,'cookie',{configurable:true,get:()=>'nora_account_csrf=account-csrf'});
+      w.fetch=(url,options={})=>{
+        const path=String(url), method=String(options.method||'GET').toUpperCase(); network.push({path,method,options});
+        if(path==='/api/account/me') return Promise.resolve(server.account?reply(200,server.account):reply(401,{detail:'account_authentication_required'}));
+        if(/^\/api\/account\/registrations\?/.test(path)) return Promise.resolve(reply(200,{items:registrations,total:registrations.length,has_more:false}));
+        if(/^\/api\/account\/notifications\?/.test(path)) return Promise.resolve(reply(200,{items:[],has_more:false}));
+        if(/^\/api\/account\/files\?/.test(path)) return Promise.resolve(reply(200,{items:[],has_more:false}));
+        if(path==='/api/account/identities') return Promise.resolve(reply(200,{identities:[{provider:'phone',linked_at:'2026-01-01T00:00:00Z'}],available_providers:['bale'],bale_link_available:false}));
+        if(path==='/api/account/recordings') return Promise.resolve(server.libraryStatus?reply(server.libraryStatus,{detail:'boom'}):reply(200,{items:server.library||[],total:(server.library||[]).length}));
+        if(/^\/api\/account\/recording-orders\?limit=50&offset=0$/.test(path)) return Promise.resolve(server.ordersStatus?reply(server.ordersStatus,{detail:'boom'}):reply(200,{items:orders,total:orders.length,limit:50,offset:0}));
+        const receipt=path.match(/^\/api\/account\/recording-orders\/([0-9a-f-]{36})\/receipt$/);
+        if(receipt&&method==='PUT'){ const o=orders.find(x=>x.id===receipt[1]); const next={...o,status:'receipt_submitted',receipt_submitted:true,receipt_submitted_at:'2026-10-21T07:00:00Z',receipt_file_name:String(options.headers['X-File-Name'])}; orders=orders.map(x=>x.id===o.id?next:x); return Promise.resolve(reply(200,next)); }
+        const cancel=path.match(/^\/api\/account\/recording-orders\/([0-9a-f-]{36})\/cancel$/);
+        if(cancel&&method==='POST'){ const o=orders.find(x=>x.id===cancel[1]); const next={...o,status:'cancelled',open:false}; orders=orders.map(x=>x.id===o.id?next:x); return Promise.resolve(reply(200,next)); }
+        return Promise.resolve(reply(404,{detail:'not_found'}));
+      };
+      w.addEventListener('error',e=>errs.push('error: '+(e.message||'')));
+      w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
+    }});
+  const {window}=dom;
+  if(window.document.readyState!=='complete') await new Promise(resolve=>{const t=setTimeout(resolve,4000); window.addEventListener('load',()=>{clearTimeout(t);resolve()},{once:true})});
+  await wait(200);
+  const doc=window.document;
+  return {dom,window,doc,errs,network,view:()=>doc.querySelector('#viewBox').textContent.replace(/\s+/g,' ').trim(),inView:()=>!doc.querySelector('#viewBox').hidden,
+    click:sel=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel); el.dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true})); return el}};
+}
+
+console.log('\n── محتوای من: دسترسی‌های واقعی با وضعیت، مهلت و بدون «ادامهٔ مشاهده» ساختگی ──');
+{
+  const p=await load('#library',{account:ACCOUNT,library});
+  ok(p.errs.length===0,'نمای #library بی‌خطا باز می‌شود'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.inView()&&p.network.some(c=>c.path==='/api/account/recordings')&&p.doc.title==='نورا · محتوای من','#library از API کتابخانهٔ حساب می‌خواند و عنوان خودش را دارد');
+  const cards=[...p.doc.querySelectorAll('[data-account-rec-library]')];
+  ok(cards.length===4&&p.view().includes('۲ دسترسی فعال از ۴'),'همهٔ دسترسی‌ها با شمارندهٔ واقعی فعال/کل نمایش داده می‌شوند');
+  const active=p.doc.querySelector('[data-account-rec-library="rec-2"]');
+  ok(active.dataset.recAccessState==='active'&&active.textContent.includes('دسترسی فعال')&&active.textContent.includes('خریداری‌شده')&&active.textContent.includes('دسترسی تا')&&active.textContent.includes('۳ جلسه')&&active.textContent.includes('۲ ساعت و ۲۰ دقیقه')
+    &&active.querySelector('a[data-account-rec-view]').getAttribute('href')==='event.html?id=ev-2#recording-sessions','دسترسی فعال: منبع، مهلت واقعی، شمار/مدت جلسات و پیوند «مشاهدهٔ جلسات» به همان صفحهٔ رویداد');
+  const free=p.doc.querySelector('[data-account-rec-library="rec-4"]');
+  ok(free.textContent.includes('دسترسی رایگان')&&free.textContent.includes('دسترسی دائمی')&&!free.textContent.includes('جلسه')&&!free.textContent.includes('دقیقه'),'دسترسی رایگان دائمی؛ شمار جلسه/مدت فقط وقتی واقعی باشد');
+  const expired=p.doc.querySelector('[data-account-rec-library="rec-5"]');
+  ok(expired.textContent.includes('منقضی‌شده')&&expired.textContent.includes('پایان‌یافته در')&&!expired.querySelector('[data-account-rec-view]')&&expired.querySelector('a[href="event.html?id=ev-5#recording"]'),'دسترسی منقضی: بدون دکمهٔ مشاهده، فقط پیوند به صفحهٔ محصول');
+  const revoked=p.doc.querySelector('[data-account-rec-library="rec-6"]');
+  ok(revoked.textContent.includes('لغوشده')&&revoked.textContent.includes('اعطاشده')&&!revoked.querySelector('[data-account-rec-view]'),'دسترسی لغوشده: وضعیت صادقانه و بدون دکمهٔ مشاهده');
+  ok(!p.view().includes('ادامهٔ مشاهده')&&!/٪|درصد/.test(p.view())&&p.view().includes('پیشرفت تماشا هنوز در سرور ثبت نمی‌شود'),'بدون دادهٔ پیشرفت واقعی، «ادامهٔ مشاهده» یا درصد ساختگی نیست');
+  p.dom.window.close();
+
+  const empty=await load('#library',{account:ACCOUNT,library:[]});
+  ok(empty.view().includes('هنوز به محتوای ضبط‌شده‌ای دسترسی نداری')&&empty.view().includes('۰ دسترسی فعال از ۰'),'حالت خالی صادقانه');
+  empty.dom.window.close();
+  const failed=await load('#library',{account:ACCOUNT,libraryStatus:500});
+  ok(failed.view().includes('محتوای تو خوانده نشد')&&!!failed.doc.querySelector('[data-account-library-refresh]')&&!failed.doc.querySelector('[data-account-rec-library]'),'خطای سرور: پیام و تلاش دوباره، بدون کارت ساختگی');
+  failed.dom.window.close();
+  const guest=await load('#library',{account:null});
+  ok(guest.inView()&&!guest.network.some(c=>c.path==='/api/account/recordings')&&guest.view().includes('ورود')
+    &&!!guest.doc.querySelector('#viewBox a[href="login.html?mode=server&next='+encodeURIComponent('account.html#library')+'"]'),'مهمان در #library فقط دعوت به ورود با بازگشت به همین بخش می‌بیند؛ API صدا زده نمی‌شود');
+  guest.dom.window.close();
+}
+
+console.log('\n── سفارش‌ها و پرداخت‌ها: سفارش باز با رسید، پرداخت‌شده، ردشده؛ جدا از پرداخت ثبت‌نام ──');
+{
+  const p=await load('#payments',{account:ACCOUNT,orders:[openOrder,paidOrder,rejectedOrder]});
+  ok(p.errs.length===0,'نمای #payments بی‌خطا باز می‌شود'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.doc.title==='نورا · سفارش‌ها و پرداخت‌ها'&&p.network.some(c=>c.path==='/api/account/recording-orders?limit=50&offset=0')&&p.network.some(c=>/^\/api\/account\/registrations\?/.test(c.path)),'سفارش‌های محتوا و پرداخت ثبت‌نام‌ها هر دو از سرور خوانده می‌شوند');
+  ok(p.view().includes('سفارش‌های محتوای ضبط‌شده')&&p.view().includes('پرداخت ثبت‌نام‌ها')&&p.view().includes('۳ سفارش محتوای ضبط‌شده')&&p.view().includes('۱ ثبت‌نام دارای وضعیت پرداخت'),'دو فهرست جدا با شمارنده‌های واقعی: خرید محتوا ≠ ثبت‌نام');
+  const open=p.doc.querySelector('[data-account-rec-order="'+ORDER+'"]');
+  ok(open.dataset.recOrderStatus==='awaiting_receipt'&&open.textContent.includes('در انتظار رسید')&&open.textContent.includes('6037-9975-9999-9993')&&open.textContent.includes('۱,۵۰۰,۰۰۰ ریال')&&open.textContent.includes('مهلت:'),'سفارش باز: وضعیت، کارت مقصد، مبلغ و مهلت از سرور');
+  ok(!!open.querySelector('form[data-account-rec-receipt]')&&!!open.querySelector('[data-account-rec-cancel]')&&open.textContent.includes('ارسال رسید پرداخت را قطعی نمی‌کند'),'فرم رسید با توضیح صادقانه و انصراف');
+  const paid=p.doc.querySelector('[data-account-rec-order="'+paidOrder.id+'"]');
+  ok(paid.textContent.includes('پرداخت تأیید شد')&&paid.querySelector('a[data-account-rec-view]').getAttribute('href')==='event.html?id=ev-2#recording-sessions'&&!paid.querySelector('form'),'سفارش پرداخت‌شده: فقط «مشاهدهٔ جلسات»');
+  const rejected=p.doc.querySelector('[data-account-rec-order="'+rejectedOrder.id+'"]');
+  ok(rejected.textContent.includes('رد شد')&&rejected.textContent.includes('مبلغ واریزی با سفارش نمی‌خواند')&&rejected.querySelector('a[data-account-rec-retry]').getAttribute('href')==='event.html?id=ev-3#recording'&&!rejected.querySelector('form'),'سفارش ردشده: دلیل سرور و مسیر سفارش دوباره از صفحهٔ محصول');
+  /* ارسال رسید */
+  const form=open.querySelector('form[data-account-rec-receipt]'), input=form.querySelector('[data-account-rec-file]');
+  Object.defineProperty(input,'files',{configurable:true,value:[new p.window.File([new Uint8Array(16)],'رسید.jpg',{type:'image/jpeg'})]});
+  form.querySelector('[data-account-rec-note]').value='پیگیری ۴۵۶';
+  form.dispatchEvent(new p.window.Event('submit',{bubbles:true,cancelable:true}));
+  await wait(250);
+  const put=p.network.find(c=>c.method==='PUT'&&c.path==='/api/account/recording-orders/'+ORDER+'/receipt');
+  ok(!!put&&put.options.headers['X-CSRF-Token']==='account-csrf'&&decodeURIComponent(put.options.headers['X-File-Name'])==='رسید.jpg'&&decodeURIComponent(put.options.headers['X-Receipt-Note'])==='پیگیری ۴۵۶'&&put.options.headers['Content-Type']==='image/jpeg','رسید با PUT خام، CSRF حساب، نام درصدکدشده و یادداشت فرستاده می‌شود');
+  const after=p.doc.querySelector('[data-account-rec-order="'+ORDER+'"]');
+  ok(after.dataset.recOrderStatus==='receipt_submitted'&&after.textContent.includes('در انتظار بررسی')&&!after.querySelector('form')&&!after.querySelector('[data-account-rec-cancel]')&&!after.querySelector('[data-account-rec-view]'),'پس از رسید: «در انتظار بررسی»، بدون فرم/انصراف و بدون دکمهٔ مشاهده (رسید دسترسی نمی‌سازد)');
+  p.dom.window.close();
+
+  /* انصراف */
+  const c=await load('#payments',{account:ACCOUNT,orders:[openOrder]});
+  c.click('[data-account-rec-cancel="'+ORDER+'"]'); await wait(200);
+  const post=c.network.find(x=>x.method==='POST'&&x.path==='/api/account/recording-orders/'+ORDER+'/cancel');
+  ok(!!post&&post.options.headers['X-CSRF-Token']==='account-csrf'&&c.doc.querySelector('[data-account-rec-order="'+ORDER+'"]').dataset.recOrderStatus==='cancelled'&&!!c.doc.querySelector('[data-account-rec-retry]'),'انصراف با CSRF؛ کارت به «لغو شد» و مسیر سفارش دوباره تغییر می‌کند');
+  c.dom.window.close();
+
+  const none=await load('#payments',{account:ACCOUNT,orders:[]});
+  ok(none.view().includes('سفارشی برای محتوای ضبط‌شده نداری')&&none.view().includes('۱ ثبت‌نام دارای وضعیت پرداخت')&&!none.view().includes('کیف پول'),'بدون سفارش: حالت خالی صادقانه؛ پرداخت ثبت‌نام‌ها سر جایش می‌ماند');
+  none.dom.window.close();
+  const failed=await load('#payments',{account:ACCOUNT,ordersStatus:500});
+  ok(failed.view().includes('سفارش‌های محتوای ضبط‌شده خوانده نشدند')&&!!failed.doc.querySelector('[data-account-rec-orders-refresh]')&&failed.view().includes('ثبت‌نام کارگاه'),'خطای سرویس سفارش‌ها فهرست پرداخت ثبت‌نام‌ها را از کار نمی‌اندازد');
+  failed.dom.window.close();
+  const guest=await load('#payments',{account:null});
+  ok(guest.view().includes('ورود')&&!guest.network.some(x=>/recording-orders/.test(x.path)),'مهمان: دعوت به ورود، بدون فراخوانی سفارش‌ها');
+  guest.dom.window.close();
+}
+
+console.log('\n── خانهٔ حساب: ردیف‌های «محتوای من» و «سفارش‌ها و پرداخت‌ها» با شمارندهٔ سروری ──');
+{
+  const p=await load('',{account:ACCOUNT,library,orders:[openOrder]});
+  await p.window.NORA_UI?.syncServerProfile?.(); await wait(150);
+  const rows=p.doc.querySelector('.server-rows');
+  ok(!!rows&&!!rows.querySelector('a[href="account.html#library"]')&&!rows.querySelector('a[href="account.html#payments"]')&&rows.textContent.includes('۵ بخش')&&p.doc.querySelector('.server-paybar').textContent.includes('سفارش‌ها و پرداخت‌ها')&&!!p.doc.querySelector('.server-paybar a[href="account.html#payments"]'),'بخش‌های من شامل «محتوای من» است و نورا پی تنها ورودی «سفارش‌ها و پرداخت‌ها» می‌ماند');
+  ok(!rows.textContent.includes('دسترسی فعال'),'شمارندهٔ کتابخانه پیش از خواندن از سرور نمایش داده نمی‌شود (بدون عدد حدسی)');
+  p.dom.window.close();
+}
+
+console.log(`\naccount-recordings: ${pass} قبول، ${fail} خطا`);
+if(fail) process.exit(1);

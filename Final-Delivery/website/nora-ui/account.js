@@ -123,7 +123,10 @@ const S={view:'',vtab:'up',ptab:'info',ctab:'home',invF:'all',txAll:false,edit:f
 const SERVER_ACCOUNT_STATE={account:null,checking:true,checked:false,error:'',
   registrations:[],registrationsTotal:0,registrationsLoaded:false,registrationsLoading:false,registrationsError:'',registrationsMore:false,
   notifications:[],notificationsLoaded:false,notificationsLoading:false,notificationsError:'',notificationsMore:false,
-  files:[],filesLoaded:false,filesLoading:false,filesError:'',filesMore:false};
+  files:[],filesLoaded:false,filesLoading:false,filesError:'',filesMore:false,
+  /* فاز ۹: دسترسی‌های محتوای ضبط‌شده و سفارش‌های آن؛ فقط از سرور، هیچ‌جا محلی ساخته نمی‌شود. */
+  library:[],libraryLoaded:false,libraryLoading:false,libraryError:'',
+  recOrders:[],recOrdersTotal:0,recOrdersLoaded:false,recOrdersLoading:false,recOrdersError:'',recOrdersMore:false,recOrderBusy:''};
 const SERVER_ACCOUNT_PAGE=50;
 const SERVER_DATA_VIEW={k:'server-data',n:'اعلان‌ها و فایل‌های من',s:'داده‌های حساب تو از سرور خوانده می‌شود.'};
 /* وضعیت پیوند هویت‌ها. جدا نگه داشته می‌شود چون هم بار خودش را دارد و هم
@@ -284,10 +287,11 @@ function serverAccountAccessCard(next='notifications'){
   if(state.account) return '';
   if(state.checking) return card('حساب امن','در حال بررسی وضعیت ورود…','i-shield',
     `<p class="cap">اطلاعات شخصی فقط پس از تأیید سرور نمایش داده می‌شود.</p>`);
-  const destination=['events','notifications','my-files','forms','payments','profile'].includes(next)?next:'notifications';
+  const destination=['events','notifications','my-files','forms','payments','profile','library'].includes(next)?next:'notifications';
   const loginHref=serverLoginHref(destination);
   const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':destination==='forms'?'برای دیدن فرم‌های خودت وارد حساب شو.'
-    :destination==='payments'?'برای دیدن وضعیت پرداخت‌هایت وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
+    :destination==='payments'?'برای دیدن سفارش‌ها و وضعیت پرداخت‌هایت وارد حساب شو.'
+    :destination==='library'?'برای دیدن محتوای ضبط‌شده‌ای که به آن دسترسی داری وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
   const retry=state.error?`<button class="btn quiet" data-server-account-retry>${ico('i-refresh')} تلاش دوباره</button>`:'';
   return card('نیاز به ورود',description,'i-mobile',
     `<div class="row" style="flex-wrap:wrap">
@@ -357,18 +361,18 @@ function serverPayBar(){
     :state.registrationsLoaded&&!state.registrationsError?chip(paid?faN(paid)+' ثبت‌نام دارای وضعیت پرداخت':'هنوز پرداختی ثبت نشده')
     :chip('وضعیت از سرور خوانده می‌شود');
   if(guest) return `<div class="paybar anim server-paybar is-guest" style="--i:1">
-    <a class="pbmain" href="account.html#payments" aria-label="نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام">
+    <a class="pbmain" href="account.html#payments" aria-label="نورا پی · سفارش‌ها و پرداخت‌ها">
       <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
-      <span class="ptx"><small>نورا پی</small><b>پرداخت‌ها و رسیدهای ثبت‌نام</b></span>
+      <span class="ptx"><small>نورا پی</small><b>سفارش‌ها و پرداخت‌ها</b></span>
       <span class="mini mini-guest">${ico('i-lock')}بعد از ورود</span>
       <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
     </a>
   </div>`;
   return `<div class="paybar anim server-paybar" style="--i:1">
-    <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام">
+    <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی · سفارش‌ها و پرداخت‌ها">
       <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
       <span class="ptx"><small>نورا پی</small>
-        <b>پرداخت‌ها و رسیدهای ثبت‌نام</b>
+        <b>سفارش‌ها و پرداخت‌ها</b>
         <span class="pmeta">${meta}${chip('نسخهٔ اول · بدون موجودی','')}</span></span>
       <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
     </button>
@@ -385,6 +389,7 @@ function serverPayBar(){
 const SERVER_ROWS=[
   {k:'events',h:'account.html#events',n:'رویدادهای من',s:'ثبت‌نام‌ها، وضعیت و بلیت هر رویداد',i:'i-calendar'},
   {k:'forms',h:'account.html#forms',n:'فرم‌های من',s:'پاسخ‌های فرم و وضعیت بررسی',i:'i-doc'},
+  {k:'library',h:'account.html#library',n:'محتوای من',s:'محتوای ضبط‌شده‌ای که به آن دسترسی داری',i:'i-play'},
   {k:'profile',h:'account.html#profile',n:'پروفایل من',s:'نوع ورود، دسترسی‌ها و پیوند حساب بله',i:'i-idcard'},
   {k:'book',h:'account.html#book',n:'باشگاه کتاب‌خوانی خط زندگی',s:'کتاب ماه، جلسه‌ها و تازه‌های باشگاه',i:'i-book'}
 ];
@@ -392,7 +397,9 @@ function serverRowsBox(){
   const state=SERVER_ACCOUNT_STATE, loaded=state.account&&state.registrationsLoaded&&!state.registrationsError;
   const guest=!state.account;
   /* مهمان: بخش‌های خصوصی با نشانهٔ «بعد از ورود» می‌آیند تا پیش از کلیک معلوم باشد چه انتظاری داشته باشد؛ مقصد و رفتار ورود همان قبلی است. */
-  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ':k==='book'?(guest?'':'تازه‌ها در خانه'):guest?'بعد از ورود':'';
+  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ'
+    :k==='library'&&state.account&&state.libraryLoaded&&!state.libraryError?faN(state.library.filter(x=>x.access&&x.access.state==='active').length)+' دسترسی فعال'
+    :k==='book'?(guest?'':'تازه‌ها در خانه'):guest?'بعد از ورود':'';
   return `<div class="mrows anim server-rows${guest?' is-guest':''}" style="--i:3">
     <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
       <span class="cap">${faN(SERVER_ROWS.length)} بخش</span></div>
@@ -825,22 +832,204 @@ function accountRegistrationsContent(mode){
       :empty2('ثبت‌نامی به حسابت وصل نیست','ثبت‌نام بعدی‌ات اینجا می‌آید.','i-calendar'));
   const counter=mode==='payments'?`${faN(source.length)} ثبت‌نام دارای وضعیت پرداخت از ${faN(state.registrationsTotal)}`
     :mode==='forms'?`${faN(state.registrationsTotal)} پاسخ فرم در این حساب`:`${faN(state.registrationsTotal)} ثبت‌نام در این حساب`;
-  return `<div class="row" style="margin:0 0 8px"><span class="cap">${counter}</span><span class="sp"></span>
+  /* سفارش‌های محتوای ضبط‌شده جدا از پرداخت ثبت‌نام‌ها فهرست می‌شوند: خرید محتوا ≠ ثبت‌نام رویداد. */
+  const orders=mode==='payments'&&!TEST_FIXTURE_MODE?`<h3 class="rec-h3">سفارش‌های محتوای ضبط‌شده</h3>${accountRecordingOrdersContent()}<h3 class="rec-h3" style="margin-top:14px">پرداخت ثبت‌نام‌ها</h3>`:'';
+  return orders+`<div class="row" style="margin:0 0 8px"><span class="cap">${counter}</span><span class="sp"></span>
     <button class="btn sm quiet" data-account-registrations-refresh aria-label="بازخوانی ثبت‌نام‌ها">${ico('i-refresh')} بازخوانی</button></div>
     <div class="stack">${body}</div>
     ${state.registrationsMore?`<div class="row"><span class="sp"></span><button class="btn quiet" data-account-registrations-more>ثبت‌نام‌های بیشتر</button></div>`:''}`;
 }
 const ACCOUNT_REGISTRATION_VIEWS={
   forms:{k:'forms',n:'فرم‌های من',s:'پاسخ‌های فرم و ثبت‌نام‌های همین حساب از سرور',i:'i-doc'},
-  payments:{k:'payments',n:'پرداخت‌ها و رسیدها',s:'وضعیت پرداخت ثبت‌نام‌های پولی همین حساب از سرور',i:'i-wallet'}
+  payments:{k:'payments',n:'سفارش‌ها و پرداخت‌ها',s:'سفارش‌های محتوای ضبط‌شده و وضعیت پرداخت ثبت‌نام‌های پولی همین حساب از سرور',i:'i-wallet'}
 };
+const ACCOUNT_LIBRARY_VIEW={k:'library',n:'محتوای من',s:'محتوای ضبط‌شده‌ای که این حساب به آن دسترسی دارد؛ وضعیت و مهلت از سرور خوانده می‌شود.',i:'i-play'};
+/* ── فاز ۹: سفارش‌های محتوای ضبط‌شده و کتابخانهٔ حساب ──
+   خرید ≠ ثبت‌نام ≠ حضور: این بخش فقط دسترسی‌ها و سفارش‌های محتوای ضبط‌شده را نشان می‌دهد.
+   ارسال رسید سفارش را فقط به «در انتظار بررسی» می‌برد؛ دسترسی تنها با تصمیم سرور/درگاه ساخته می‌شود. */
+const REC_ORDER_STATUS={pending:['در انتظار پرداخت','warn'],awaiting_receipt:['در انتظار رسید','warn'],receipt_submitted:['رسید ثبت شد؛ در انتظار بررسی','warn'],
+  paid:['پرداخت شد','ok'],paid_manual:['پرداخت تأیید شد','ok'],needs_review:['نیازمند بررسی','warn'],rejected:['رد شد','bad'],
+  cancelled:['لغو شد',''],expired:['منقضی شد',''],refunded:['بازپرداخت شد','']};
+const REC_ACCESS_STATE={active:['دسترسی فعال','ok'],expired:['منقضی‌شده',''],revoked:['لغوشده','bad']};
+function recMoney(amount,currency){ const n=Math.max(0,Math.round(+amount||0)); return faN(n.toLocaleString('en-US'))+' '+(currency==='IRR'||!currency?'ریال':esc(String(currency))); }
+function recDuration(minutes){ const m=Math.max(0,Math.round(+minutes||0)); if(!m) return ''; const h=Math.floor(m/60), r=m%60;
+  return h?(faN(h)+' ساعت'+(r?' و '+faN(r)+' دقیقه':'')):faN(m)+' دقیقه'; }
+function recEventHref(item,anchor){ return 'event.html?id='+encodeURIComponent(String(item.event_id||''))+(anchor||'#recording'); }
+function recOrderCard(order){
+  const state=SERVER_ACCOUNT_STATE, [label,tone]=REC_ORDER_STATUS[order.status]||[order.status,''];
+  const busy=state.recOrderBusy===order.id;
+  const title=order.title||order.event_title||'محتوای ضبط‌شده';
+  const openCard=order.open&&order.method==='card_transfer'&&order.card&&['pending','awaiting_receipt'].includes(order.status);
+  const cardNumber=openCard?String(order.card.number||'').replace(/\D/g,'').replace(/(\d{4})(?=\d)/g,'$1-'):'';
+  const facts=[`ثبت: ${esc(accountServerDate(order.created_at))}`,
+    order.paid_at?`پرداخت: ${esc(accountServerDate(order.paid_at))}`:'',
+    order.receipt_submitted_at?`رسید: ${esc(accountServerDate(order.receipt_submitted_at))}`:'',
+    order.decided_at?`تصمیم: ${esc(accountServerDate(order.decided_at))}`:'',
+    order.refunded_at?`بازپرداخت: ${esc(accountServerDate(order.refunded_at))}`:'',
+    order.open&&order.expires_at?`مهلت: ${esc(accountServerDate(order.expires_at))}`:''].filter(Boolean);
+  let actions='';
+  if(order.paid) actions=`<a class="btn sm primary" href="${esc(recEventHref(order,'#recording-sessions'))}" data-account-rec-view>${ico('i-play')} مشاهدهٔ جلسات</a>`;
+  else if(order.open){
+    const receipt=order.status==='awaiting_receipt'||(order.status==='pending'&&order.method==='card_transfer')?`<form class="rec-receipt" data-account-rec-receipt="${esc(order.id)}">
+        <label class="cap" for="recr_${esc(order.id)}">تصویر رسید کارت‌به‌کارت (حداکثر ۸ مگابایت)</label>
+        <input id="recr_${esc(order.id)}" type="file" accept="image/*,application/pdf" data-account-rec-file required ${busy?'disabled':''}/>
+        <input type="text" class="input" maxlength="500" placeholder="شمارهٔ پیگیری یا توضیح (اختیاری)" data-account-rec-note ${busy?'disabled':''}/>
+        <div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm primary" type="submit" ${busy?'disabled':''}>${ico('i-send')} ارسال رسید</button>
+          <button class="btn sm quiet" type="button" data-account-rec-cancel="${esc(order.id)}" ${busy?'disabled':''}>انصراف از سفارش</button></div>
+        <small class="cap">ارسال رسید پرداخت را قطعی نمی‌کند؛ پس از بررسی برگزارکننده نتیجه همین‌جا و در اعلان‌ها می‌آید.</small></form>`:'';
+    const invoice=order.method==='bale_wallet'&&order.status==='pending'&&typeof order.invoice_url==='string'&&/^https:\/\//.test(order.invoice_url)
+      ?`<a class="btn sm primary" href="${esc(order.invoice_url)}" target="_blank" rel="noopener" data-account-rec-invoice>${ico('i-wallet')} ادامهٔ پرداخت در بله</a>
+        <button class="btn sm quiet" type="button" data-account-rec-cancel="${esc(order.id)}" ${busy?'disabled':''}>انصراف</button>`:'';
+    const waiting=order.status==='receipt_submitted'||order.status==='needs_review'?`<small class="cap">${order.status==='needs_review'?'پرداخت نیازمند بررسی دستی است؛ نتیجه پس از تصمیم همین‌جا می‌آید.':'رسید رسیده و در صف بررسی است؛ تا تصمیم، دسترسی فعال نمی‌شود.'}</small>`:'';
+    actions=`${openCard?`<div class="rec-card-dest"><b>کارت مقصد:</b> <span dir="ltr">${esc(cardNumber)}</span>${order.card.bank?' · '+esc(order.card.bank):''}${order.card.holder?' · '+esc(order.card.holder):''}<br><b>مبلغ:</b> ${recMoney(order.amount,order.currency)}</div>`:''}${receipt}${invoice}${waiting}`;
+  }else if(order.status==='rejected'||order.status==='cancelled'||order.status==='expired') actions=`<a class="btn sm quiet" href="${esc(recEventHref(order))}" data-account-rec-retry>${ico('i-refresh')} سفارش دوباره از صفحهٔ محصول</a>`;
+  else if(order.status==='refunded') actions=`<small class="cap">دسترسی این سفارش پس از بازپرداخت فعال نیست.</small>`;
+  return `<article class="card acct server-registration rec-order" data-account-rec-order="${esc(order.id)}" data-rec-order-status="${esc(order.status)}">
+    <div class="row"><span class="sp"><b>${esc(title)}</b>
+      <small class="cap">${esc(order.event_title&&order.event_title!==title?order.event_title+' · ':'')}${order.method==='bale_wallet'?'کیف پول بله':'کارت‌به‌کارت'} · ${recMoney(order.amount,order.currency)}</small></span>${chip(label,tone)}</div>
+    <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">${facts.map(f=>`<small class="cap">${f}</small>`).join('')}
+      ${order.decision_reason&&(order.status==='rejected'||order.status==='refunded')?`<small class="cap">دلیل: ${esc(order.decision_reason)}</small>`:''}</div>
+    ${actions?`<div class="rec-actions" style="margin-top:8px;display:grid;gap:8px">${actions}</div>`:''}
+  </article>`;
+}
+function accountRecordingOrdersContent(){
+  const state=SERVER_ACCOUNT_STATE;
+  const loading=!state.recOrdersLoaded&&!state.recOrdersError;
+  const body=loading?`<div class="empty2"><b>در حال خواندن سفارش‌ها…</b></div>`
+    :state.recOrdersError?`<div class="empty2"><b>${esc(state.recOrdersError)}</b><button class="btn quiet" data-account-rec-orders-refresh>تلاش دوباره</button></div>`
+    :state.recOrders.length?state.recOrders.map(recOrderCard).join('')
+    :empty2('سفارشی برای محتوای ضبط‌شده نداری','خرید دسترسی از بخش «محتوای ضبط‌شده» صفحهٔ هر رویداد انجام می‌شود و همین‌جا پیگیری می‌شود.','i-play');
+  return `<div class="row" style="margin:0 0 8px"><span class="cap">${state.recOrdersLoaded&&!state.recOrdersError?faN(state.recOrdersTotal)+' سفارش محتوای ضبط‌شده':'سفارش‌های محتوای ضبط‌شده'}</span><span class="sp"></span>
+    <button class="btn sm quiet" data-account-rec-orders-refresh aria-label="بازخوانی سفارش‌ها">${ico('i-refresh')} بازخوانی</button></div>
+    <div class="stack" data-account-rec-orders>${body}</div>
+    ${state.recOrdersMore?`<div class="row"><span class="sp"></span><button class="btn quiet" data-account-rec-orders-more>سفارش‌های بیشتر</button></div>`:''}`;
+}
+function recLibraryCard(item){
+  const access=item.access||{}, [label,tone]=REC_ACCESS_STATE[access.state]||['نامشخص',''];
+  const active=access.state==='active';
+  const meta=[item.event_title&&item.event_title!==item.title?item.event_title:'',
+    item.session_count>0?faN(item.session_count)+' جلسه':'', recDuration(item.total_minutes)].filter(Boolean).join(' · ');
+  const source={purchase:'خریداری‌شده',free:'دسترسی رایگان',granted:'اعطاشده توسط برگزارکننده'}[access.source]||'';
+  const expiry=access.state==='revoked'?(access.revoked_at?'لغو در '+accountServerDate(access.revoked_at):'لغو شده')
+    :access.expires_at?(active?'دسترسی تا ':'پایان‌یافته در ')+accountServerDate(access.expires_at):active?'دسترسی دائمی':'';
+  const unpublished=item.status&&item.status!=='published';
+  return `<article class="card acct server-registration rec-library" data-account-rec-library="${esc(item.recording_id)}" data-rec-access-state="${esc(access.state||'')}">
+    <div class="row"><span class="sp"><b>${esc(item.title||'محتوای ضبط‌شده')}</b>${meta?`<small class="cap">${esc(meta)}</small>`:''}</span>${chip(label,tone)}</div>
+    <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">
+      ${source?`<small class="cap">${esc(source)}</small>`:''}${expiry?`<small class="cap">${esc(expiry)}</small>`:''}
+      ${access.granted_at?`<small class="cap">از ${esc(accountServerDate(access.granted_at))}</small>`:''}</div>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      ${active&&!unpublished?`<a class="btn sm primary" href="${esc(recEventHref(item,'#recording-sessions'))}" data-account-rec-view>${ico('i-play')} مشاهدهٔ جلسات</a>`
+        :active&&unpublished?`<small class="cap">این محتوا فعلاً از سوی برگزارکننده در دسترس نیست.</small>`
+        :`<a class="btn sm quiet" href="${esc(recEventHref(item))}">صفحهٔ محصول</a>`}
+    </div>
+  </article>`;
+}
+function accountLibraryContent(){
+  const state=SERVER_ACCOUNT_STATE;
+  const loading=!state.libraryLoaded&&!state.libraryError;
+  const body=loading?`<div class="empty2"><b>در حال خواندن محتوای تو…</b></div>`
+    :state.libraryError?`<div class="empty2"><b>${esc(state.libraryError)}</b><button class="btn quiet" data-account-library-refresh>تلاش دوباره</button></div>`
+    :state.library.length?state.library.map(recLibraryCard).join('')
+    :empty2('هنوز به محتوای ضبط‌شده‌ای دسترسی نداری','با خرید یا دریافت رایگان از صفحهٔ هر رویداد برگزارشده، محتوای آن اینجا می‌آید.','i-play');
+  const active=state.library.filter(x=>x.access&&x.access.state==='active').length;
+  return `<div class="row" style="margin:0 0 8px"><span class="cap">${state.libraryLoaded&&!state.libraryError?faN(active)+' دسترسی فعال از '+faN(state.library.length):'محتوای ضبط‌شدهٔ این حساب'}</span><span class="sp"></span>
+    <button class="btn sm quiet" data-account-library-refresh aria-label="بازخوانی محتوای من">${ico('i-refresh')} بازخوانی</button></div>
+    <div class="stack" data-account-library>${body}</div>
+    <p class="trustline"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>پیشرفت تماشا هنوز در سرور ثبت نمی‌شود؛ هر بار از فهرست جلسات شروع می‌کنی. مهلت‌ها زمان واقعی سرورند.</span></p>`;
+}
+function serverAccountLibraryView(t){
+  const state=SERVER_ACCOUNT_STATE;
+  let content;
+  if(state.checking) content=empty2('در حال بررسی حساب','وضعیت ورود از سرور بررسی می‌شود.','i-shield');
+  else if(!state.account) content=serverAccountAccessCard('library');
+  else content=accountLibraryContent();
+  return viewHead(t,state.account?'محتوای ضبط‌شدهٔ تو':'نیاز به ورود',null)+(state.account?serverAccountStrip():'')+`<div class="panel stack">${content}</div>`;
+}
+async function loadAccountLibrary(force=false){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!state.account||state.libraryLoading||(!force&&state.libraryLoaded)) return;
+  state.libraryLoading=true; state.libraryError='';
+  if(S.view==='library') renderView();
+  try{
+    if(!api||typeof api.getAccountRecordings!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountRecordings();
+    if(!state.account) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(item=>!item||typeof item.recording_id!=='string'||typeof item.event_id!=='string'||!item.access||typeof item.access.state!=='string'))
+      throw new Error('invalid_account_library');
+    state.library=items; state.libraryLoaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.libraryError=accountLoadError(error,'محتوای تو خوانده نشد؛ دوباره تلاش کن.'); state.libraryLoaded=true;
+  }finally{
+    state.libraryLoading=false;
+    if(S.view==='library') renderView();
+    if(!TEST_FIXTURE_MODE) renderProfile();
+  }
+}
+async function loadAccountRecordingOrders(append=false,force=false){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!state.account||state.recOrdersLoading||(!force&&!append&&state.recOrdersLoaded)) return;
+  state.recOrdersLoading=true; state.recOrdersError='';
+  if(!append){state.recOrders=[];state.recOrdersTotal=0;state.recOrdersMore=false;state.recOrdersLoaded=false;}
+  if(S.view==='payments') renderView();
+  try{
+    if(!api||typeof api.getAccountRecordingOrders!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountRecordingOrders(SERVER_ACCOUNT_PAGE,append?state.recOrders.length:0);
+    if(!state.account) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(item=>!item||typeof item.id!=='string'||typeof item.status!=='string'||typeof item.recording_id!=='string'))
+      throw new Error('invalid_account_recording_orders');
+    state.recOrders=append?state.recOrders.concat(items):items;
+    state.recOrdersTotal=Number.isFinite(+result.total)?Math.max(0,+result.total):state.recOrders.length;
+    state.recOrdersMore=state.recOrders.length<state.recOrdersTotal; state.recOrdersLoaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.recOrdersError=accountLoadError(error,'سفارش‌های محتوای ضبط‌شده خوانده نشدند؛ دوباره تلاش کن.'); state.recOrdersLoaded=true;
+  }finally{
+    state.recOrdersLoading=false;
+    if(S.view==='payments') renderView();
+    if(!TEST_FIXTURE_MODE) renderProfile();
+  }
+}
+function recReplaceOrder(order){
+  const state=SERVER_ACCOUNT_STATE, i=state.recOrders.findIndex(x=>x.id===order.id);
+  if(i>-1) state.recOrders[i]=Object.assign({},state.recOrders[i],order); else state.recOrders.unshift(order);
+}
+async function cancelAccountRecordingOrder(id){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!api||typeof api.cancelAccountRecordingOrder!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  if(state.recOrderBusy) return;
+  if(!window.confirm('از این سفارش انصراف می‌دهی؟ اگر مبلغی واریز کرده‌ای، به‌جای انصراف رسید را بفرست.')) return;
+  state.recOrderBusy=id; renderView();
+  try{ const order=await api.cancelAccountRecordingOrder(id); if(order&&order.id) recReplaceOrder(order); toast('سفارش لغو شد.'); }
+  catch(error){ toast(error&&error.status===409?'این سفارش دیگر قابل انصراف نیست؛ فهرست بازخوانی می‌شود.':accountLoadError(error,'انصراف انجام نشد؛ دوباره تلاش کن.')); if(error&&error.status===409) loadAccountRecordingOrders(false,true); }
+  finally{ state.recOrderBusy=''; renderView(); }
+}
+async function submitAccountRecordingReceipt(form){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API, id=form.dataset.accountRecReceipt;
+  const fileInput=form.querySelector('[data-account-rec-file]'), file=fileInput&&fileInput.files&&fileInput.files[0];
+  if(!file){toast('اول تصویر رسید را انتخاب کن');return}
+  if(file.size>8*1024*1024){toast('حجم رسید بیش از ۸ مگابایت است');return}
+  if(!api||typeof api.uploadAccountRecordingReceipt!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  if(state.recOrderBusy) return;
+  const note=(form.querySelector('[data-account-rec-note]')||{}).value||'';
+  state.recOrderBusy=id; renderView();
+  try{ const order=await api.uploadAccountRecordingReceipt(id,file,file.name,note); recReplaceOrder(order); toast('رسید ثبت شد؛ پس از بررسی نتیجه اعلام می‌شود.'); }
+  catch(error){
+    const code=error&&error.code;
+    toast(code==='file_too_large'?'حجم رسید بیش از حد مجاز است':code==='unsupported_file_type'?'نوع فایل رسید پذیرفته نیست':code==='order_not_awaiting_receipt'?'این سفارش در وضعیت دریافت رسید نیست؛ فهرست بازخوانی می‌شود.':accountLoadError(error,'ارسال رسید انجام نشد؛ دوباره تلاش کن.'));
+    if(code==='order_not_awaiting_receipt') loadAccountRecordingOrders(false,true);
+  }finally{ state.recOrderBusy=''; renderView(); }
+}
 function serverAccountRegistrationsView(t,mode){
   const state=SERVER_ACCOUNT_STATE;
   let content;
   if(state.checking) content=empty2('در حال بررسی حساب','وضعیت ورود از سرور بررسی می‌شود.','i-shield');
   else if(!state.account) content=serverAccountAccessCard(mode||'events');
   else content=accountRegistrationsContent(mode);
-  return viewHead(t,state.account?(mode==='payments'?'پرداخت‌های تو':mode==='forms'?'فرم‌های تو':'ثبت‌نام‌های تو'):'نیاز به ورود',null)+
+  return viewHead(t,state.account?(mode==='payments'?'سفارش‌ها و پرداخت‌های تو':mode==='forms'?'فرم‌های تو':'ثبت‌نام‌های تو'):'نیاز به ورود',null)+
     (state.account?serverAccountStrip():'')+`<div class="panel stack">${content}</div>`;
 }
 function serverAccountDataView(t){
@@ -867,6 +1056,8 @@ function resetServerAccountData(){
   state.notifications=[]; state.notificationsLoaded=false; state.notificationsLoading=false;
   state.notificationsError=''; state.notificationsMore=false;
   state.files=[]; state.filesLoaded=false; state.filesLoading=false; state.filesError=''; state.filesMore=false;
+  state.library=[]; state.libraryLoaded=false; state.libraryLoading=false; state.libraryError='';
+  state.recOrders=[]; state.recOrdersTotal=0; state.recOrdersLoaded=false; state.recOrdersLoading=false; state.recOrdersError=''; state.recOrdersMore=false; state.recOrderBusy='';
   /* وضعیت پیوند هم به همین حساب گره خورده است؛ در خروج/انقضا پاک می‌شود تا
      اطلاعات حساب قبلی روی صفحه نماند. */
   IDENTITY_STATE.list=null; IDENTITY_STATE.loaded=false; IDENTITY_STATE.loading=false;
@@ -1010,6 +1201,8 @@ async function checkServerAccount(){
     resetServerAccountData(); updateAccountBanner(); render(); loadServerAccountData(false);
     if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
     if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) loadAccountRegistrations();
+    if(S.view==='payments'&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
+    if(S.view==='library') loadAccountLibrary();
   }catch(error){
     delete window.NORA_ACCOUNT_SOURCE;
     window.NORA_UI?.updateAccountNavigation?.();
@@ -3060,6 +3253,7 @@ function serverBookClubView(t){
 }
 function viewOf(k){ if(String(k||'').indexOf('acc-')===0) return accScreen(k)?accScreenView:null;
   if(ACCOUNT_REGISTRATION_VIEWS[k]) return t=>serverAccountRegistrationsView(t,k);
+  if(k==='library') return serverAccountLibraryView;
   return k==='events'?VS.events : k==='profile'?VS.profile
   : k==='pay'?VS.pay : k==='book'?VS.book : k==='server-data'?serverAccountDataView : null }
 /* نشانی‌های کوتاه، همان تب پروفایل را باز می‌کنند */
@@ -3069,7 +3263,7 @@ const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
   club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club'],
   invite:['profile','ptab','invite'], invite2:['profile','ptab','invite']};
 function renderView(){
-  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:ACCOUNT_REGISTRATION_VIEWS[S.view]||(String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view)), fn=viewOf(S.view);
+  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:S.view==='library'?ACCOUNT_LIBRARY_VIEW:ACCOUNT_REGISTRATION_VIEWS[S.view]||(String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view)), fn=viewOf(S.view);
   if(!box||!t||!fn) return;
   box.innerHTML=`<section class="sec" aria-label="${esc(t.n)}">${fn(t)}</section>`;
   document.title='نورا · '+t.n;
@@ -3101,6 +3295,12 @@ function route(){
   if(raw==='events'||ACCOUNT_REGISTRATION_VIEWS[raw]){
     S.view=raw; S.edit=false; S.errs={}; render();
     if(SERVER_ACCOUNT_STATE.account) loadAccountRegistrations();
+    if(raw==='payments'&&SERVER_ACCOUNT_STATE.account&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
+    try{window.scrollTo({top:0})}catch(e){}; return;
+  }
+  if(raw==='library'){
+    S.view='library'; S.edit=false; S.errs={}; render();
+    if(SERVER_ACCOUNT_STATE.account) loadAccountLibrary();
     try{window.scrollTo({top:0})}catch(e){}; return;
   }
   if(raw==='notifications'||raw==='my-files'||raw==='account-data'){
@@ -3128,6 +3328,10 @@ document.addEventListener('change',ev=>{
   if(/^f_birthDate_[dmy]$/.test(el.id)){ syncDate('birthDate'); return }
   if(el.id==='f_city'&&S.errs&&S.errs.city) S.errs.city='';
 });
+document.addEventListener('submit',ev=>{
+  const form=ev.target&&ev.target.closest?ev.target.closest('form[data-account-rec-receipt]'):null;
+  if(!form) return; ev.preventDefault(); submitAccountRecordingReceipt(form);
+});
 document.addEventListener('click',ev=>{
   const t=ev.target;
   const dataOpen=t.closest('[data-server-data-open]'); if(dataOpen){
@@ -3147,6 +3351,10 @@ document.addEventListener('click',ev=>{
   const refreshData=t.closest('[data-account-data-refresh]'); if(refreshData){loadServerAccountData(true);return}
   if(t.closest('[data-account-registrations-refresh]')){loadAccountRegistrations(false,true);return}
   if(t.closest('[data-account-registrations-more]')){loadAccountRegistrations(true,true);return}
+  if(t.closest('[data-account-rec-orders-refresh]')){loadAccountRecordingOrders(false,true);return}
+  if(t.closest('[data-account-rec-orders-more]')){loadAccountRecordingOrders(true,true);return}
+  if(t.closest('[data-account-library-refresh]')){loadAccountLibrary(true);return}
+  const recCancel=t.closest('[data-account-rec-cancel]'); if(recCancel){cancelAccountRecordingOrder(recCancel.dataset.accountRecCancel);return}
   if(t.closest('[data-account-notices-more]')){loadAccountNotifications(true,true);return}
   if(t.closest('[data-account-files-more]')){loadAccountFiles(true,true);return}
   const noticeRead=t.closest('[data-account-notice-read]'); if(noticeRead){
