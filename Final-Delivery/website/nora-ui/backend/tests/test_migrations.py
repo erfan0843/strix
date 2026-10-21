@@ -155,8 +155,17 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
         assert "ticket_checked_in_by_account_id" in {
             column["name"] for column in inspector.get_columns("form_responses")
         }
+        assert {"id", "account_id", "bale_user_id", "external_key", "source", "legacy_id", "status", "serial", "full_code", "file_id", "preview_file_id"} <= {
+            column["name"] for column in inspector.get_columns("certificates")
+        }
+        assert "uq_certificates_external_key" in {
+            constraint["name"] for constraint in inspector.get_unique_constraints("certificates")
+        }
+        assert {"ck_certificates_status", "ck_certificates_source"} <= {
+            constraint["name"] for constraint in inspector.get_check_constraints("certificates")
+        }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0027_ticket_checkin_account"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0028_certificates"
     finally:
         engine.dispose()
 
@@ -170,7 +179,61 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             "cooperation_requests", "site_content", "accounts", "platform_identities",
             "account_sessions", "miniapp_auth_replays", "phone_otp_challenges", "account_roles", "manager_credentials", "admin_tasks",
             "user_notifications", "private_files", "form_receipt_uploads",
-            "form_payments", "form_payment_transactions", "service_checks", "admin_audit_events",
+            "form_payments", "form_payment_transactions", "service_checks", "admin_audit_events", "certificates",
         } & tables
+    finally:
+        engine.dispose()
+
+
+def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypatch):
+    """0028 on a database that already holds accounts/identities/files: upgrade, downgrade one step, upgrade again."""
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0027_ticket_checkin_account")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO accounts (id) VALUES ('acc-legacy-1')"))
+            connection.execute(text(
+                "INSERT INTO platform_identities (id, account_id, provider, provider_user_id) "
+                "VALUES ('pid-1', 'acc-legacy-1', 'bale', '910001')"
+            ))
+        assert "certificates" not in set(inspect(engine).get_table_names())
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO certificates (id, account_id, bale_user_id, external_key, source, legacy_id, status, serial) "
+                "VALUES ('cert-1', 'acc-legacy-1', '910001', 'src:1', 'bot_legacy', 1, 'issued', 'N-1')"
+            ))
+            assert connection.scalar(text("SELECT count(*) FROM certificates")) == 1
+            assert connection.scalar(text("SELECT count(*) FROM accounts")) == 1
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0027_ticket_checkin_account")
+    engine = create_engine(database_url)
+    try:
+        tables = set(inspect(engine).get_table_names())
+        assert "certificates" not in tables
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM accounts")) == 1
+            assert connection.scalar(text("SELECT count(*) FROM platform_identities")) == 1
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0027_ticket_checkin_account"
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0028_certificates"
     finally:
         engine.dispose()

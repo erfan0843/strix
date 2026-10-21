@@ -681,6 +681,67 @@ class PrivateFileRecord(Base):
     )
 
 
+class CertificateRecord(Base):
+    """Certificate issued by the Bale bot, mirrored to the shared server for the managers' panel.
+
+    The bot stays the issuing system; this table is a verified copy whose owner
+    is resolved server-side from the Bale user id through ``platform_identities``
+    (never from a client-sent account id). ``external_key`` is the bot's stable
+    identity for the row (``<source_id>:<legacy_id>``) and makes sync idempotent.
+    Rows whose owner has no server identity are not stored here at all.
+    """
+
+    __tablename__ = "certificates"
+    __table_args__ = (
+        CheckConstraint("status IN ('issued', 'revoked')", name="ck_certificates_status"),
+        CheckConstraint("source IN ('bot', 'bot_legacy')", name="ck_certificates_source"),
+        UniqueConstraint("external_key", name="uq_certificates_external_key"),
+        Index("ix_certificates_account_created", "account_id", "created_at"),
+        Index("ix_certificates_status_created", "status", "created_at"),
+        Index("ix_certificates_serial", "serial"),
+        Index("ix_certificates_full_code", "full_code"),
+        Index("ix_certificates_event_ref", "event_ref"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    bale_user_id: Mapped[str] = mapped_column(String(40), nullable=False)
+    external_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False, default="bot")
+    source_id: Mapped[str] = mapped_column(String(36), nullable=False, default="")
+    legacy_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="issued")
+    serial: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    full_code: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    doc_no: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    person_code: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    kind: Mapped[str] = mapped_column(String(16), nullable=False, default="event")
+    event_ref: Mapped[str] = mapped_column(String(40), nullable=False, default="")
+    event_title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    title: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    holder_name: Mapped[str] = mapped_column(String(160), nullable=False, default="")
+    issued_on: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    expires_on: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    issued_by_bale_user_id: Mapped[str] = mapped_column(String(40), nullable=False, default="")
+    verify_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    file_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("private_files.id", ondelete="SET NULL"), nullable=True
+    )
+    preview_file_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("private_files.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    synced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class AccountProfileRecord(Base):
     """Member-entered profile fields; one row per verified platform account."""
 

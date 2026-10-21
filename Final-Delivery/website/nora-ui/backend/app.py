@@ -44,6 +44,7 @@ from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_cap
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
 from . import data_staging as data_staging_mod
 from . import audit as audit_mod
+from . import certificates as certificates_mod
 from . import content_admin as content_admin_mod
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
@@ -60,6 +61,7 @@ from .models import (
     AccountRecord,
     AccountRoleRecord,
     AccountSessionRecord,
+    CertificateRecord,
     AdminTaskRecord,
     Base,
     CooperationRequestRecord,
@@ -2601,6 +2603,83 @@ def create_app(
         db.refresh(record)
         return {"saved": True, "person": _attendance_person(db, record)}
 
+    # ── گواهی‌ها: آینهٔ تأییدشدهٔ گواهی‌های صادرشده توسط ربات (فقط‌خواندنی برای پنل) ──
+    # مالک هر ردیف سمت سرور از شناسهٔ بله حل می‌شود؛ ردیف بدون هویت سرور ذخیره نمی‌شود.
+    # در این فاز هیچ عملیات تغییردهنده‌ای (ابطال/ویرایش) از پنل وجود ندارد؛ ربات تنها نویسنده است.
+
+    def _certificate_error(error: certificates_mod.CertificateError) -> HTTPException:
+        return HTTPException(error.status_code, error.code)
+
+    @app.get("/api/admin/certificates")
+    def list_admin_certificates(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        status: str = Query(default="", pattern=r"^(|issued|revoked|expired)$"),
+        kind: str = Query(default="", pattern=r"^(|event|batch|form|manual)$"),
+        event_ref: str = Query(default="", max_length=40, pattern=r"^[A-Za-z0-9_.:-]*$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("certificate")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        result = certificates_mod.list_records(
+            db, q=q, status=status, kind=kind, event_ref=event_ref, limit=limit, offset=offset,
+            today_jalali=certificates_mod.today_jalali(),
+        )
+        result["events"] = certificates_mod.event_options(db)
+        result["can_revoke"] = False
+        return result
+
+    def _admin_certificate(db: Session, certificate_id: str) -> CertificateRecord:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", certificate_id or ""):
+            raise HTTPException(404, "certificate_not_found")
+        record = db.get(CertificateRecord, certificate_id)
+        if record is None:
+            raise HTTPException(404, "certificate_not_found")
+        return record
+
+    @app.get("/api/admin/certificates/{certificate_id}")
+    def get_admin_certificate(
+        certificate_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("certificate")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        record = _admin_certificate(db, certificate_id)
+        return {
+            "source": certificates_mod.SOURCE,
+            "certificate": certificates_mod.detail(db, record, today_jalali=certificates_mod.today_jalali()),
+            "can_revoke": False,
+        }
+
+    @app.get("/api/admin/certificates/{certificate_id}/file")
+    def admin_certificate_file(
+        certificate_id: str,
+        slot: str = Query(default="pdf", pattern=r"^(pdf|png)$"),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("certificate")),
+        db: Session = Depends(get_db),
+    ):
+        record = _admin_certificate(db, certificate_id)
+        file_id = record.file_id if slot == "pdf" else record.preview_file_id
+        item = db.get(PrivateFileRecord, file_id) if file_id else None
+        if item is None or item.account_id != record.account_id:
+            raise HTTPException(404, "certificate_file_not_found")
+        disposition = "inline" if item.content_type.startswith("image/") else "attachment"
+        stem = re.sub(r"[^A-Za-z0-9._-]", "_", record.serial or record.full_code or record.id)[:60] or "certificate"
+        extension = "png" if item.content_type.startswith("image/") else "pdf"
+        return Response(
+            content=item.content,
+            media_type=item.content_type,
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{stem}.{extension}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+
     # ── داده‌ها و مهاجرت: بارگذاری نسخهٔ پشتیبان برای ممیزی (بدون تغییر داده) ──
     # فایل فقط در staging خصوصی (بیرون UI_ROOT) ذخیره می‌شود، فقط‌خواندنی
     # بررسی می‌شود و هیچ عملیات نوشتنی روی آن یا روی پایگاه عملیاتی اجرا نمی‌شود.
@@ -4023,6 +4102,29 @@ def create_app(
             item = existing
             return {"id": item.id, "content_type": item.content_type, "size": item.content_size, "created": False}
         return {"id": item.id, "content_type": item.content_type, "size": item.content_size, "created": True}
+
+    @app.post("/api/bot/certificates")
+    async def submit_bot_certificate(
+        request: Request,
+        _service: None = Depends(require_bot_service),
+        db: Session = Depends(get_db),
+    ):
+        """Mirror one bot-issued certificate. Owner is resolved server-side; unmapped owners are not stored."""
+        payload = await _read_json_object(request, 16 * 1024)
+        try:
+            submission = certificates_mod.validate_submission(payload)
+            record, created = certificates_mod.upsert(db, submission)
+        except certificates_mod.CertificateError as error:
+            raise _certificate_error(error) from None
+        db.commit()
+        return {
+            "id": record.id,
+            "created": created,
+            "status": record.status,
+            "account_id": record.account_id,
+            "has_file": record.file_id is not None,
+            "has_preview": record.preview_file_id is not None,
+        }
 
     @app.get("/api/bot/files")
     def list_bot_private_files(
