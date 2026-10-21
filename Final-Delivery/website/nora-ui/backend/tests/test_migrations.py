@@ -164,8 +164,14 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
         assert {"ck_certificates_status", "ck_certificates_source"} <= {
             constraint["name"] for constraint in inspector.get_check_constraints("certificates")
         }
+        assert {"id", "content_hash", "content_type", "content_size", "width", "height", "file_name", "uploaded_by_kind", "content"} <= {
+            column["name"] for column in inspector.get_columns("public_media")
+        }
+        assert "uq_public_media_hash" in {
+            constraint["name"] for constraint in inspector.get_unique_constraints("public_media")
+        }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0028_certificates"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0029_public_media"
     finally:
         engine.dispose()
 
@@ -179,7 +185,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             "cooperation_requests", "site_content", "accounts", "platform_identities",
             "account_sessions", "miniapp_auth_replays", "phone_otp_challenges", "account_roles", "manager_credentials", "admin_tasks",
             "user_notifications", "private_files", "form_receipt_uploads",
-            "form_payments", "form_payment_transactions", "service_checks", "admin_audit_events", "certificates",
+            "form_payments", "form_payment_transactions", "service_checks", "admin_audit_events", "certificates", "public_media",
         } & tables
     finally:
         engine.dispose()
@@ -234,6 +240,60 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0029_public_media"
+    finally:
+        engine.dispose()
+
+
+def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypatch):
+    """0029 on a database that already holds content and certificates: upgrade, downgrade one step, upgrade again."""
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy-media.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0028_certificates")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO accounts (id) VALUES ('acc-legacy-2')"))
+            connection.execute(text(
+                "INSERT INTO site_content (id, content, version) VALUES ('public', '{\"events\": []}', 3)"
+            ))
+        assert "public_media" not in set(inspect(engine).get_table_names())
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO public_media (id, content_hash, content_type, content_size, content) "
+                "VALUES ('media-1', 'a' * 64, 'image/png', 4, x'89504e47')"
+            ))
+            assert connection.scalar(text("SELECT count(*) FROM public_media")) == 1
+            assert connection.scalar(text("SELECT version FROM site_content WHERE id='public'")) == 3
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0028_certificates")
+    engine = create_engine(database_url)
+    try:
+        tables = set(inspect(engine).get_table_names())
+        assert "public_media" not in tables
+        assert "certificates" in tables
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM accounts")) == 1
+            assert connection.scalar(text("SELECT version FROM site_content WHERE id='public'")) == 3
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0028_certificates"
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0029_public_media"
     finally:
         engine.dispose()

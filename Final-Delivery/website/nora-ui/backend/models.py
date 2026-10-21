@@ -681,6 +681,40 @@ class PrivateFileRecord(Base):
     )
 
 
+class PublicMediaRecord(Base):
+    """Public image uploaded from the managers' panel for events/articles.
+
+    Stored in the shared database exactly like ``private_files`` (no filesystem
+    paths, no client-chosen names). Served read-only at ``/api/public/media/{id}``;
+    ``site_content`` only keeps that stable URL. Deduplicated by content hash.
+    """
+
+    __tablename__ = "public_media"
+    __table_args__ = (
+        CheckConstraint("content_size BETWEEN 1 AND 3145728", name="ck_public_media_size"),
+        CheckConstraint(
+            "content_type IN ('image/jpeg', 'image/png', 'image/webp')",
+            name="ck_public_media_content_type",
+        ),
+        UniqueConstraint("content_hash", name="uq_public_media_hash"),
+        Index("ix_public_media_created", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    content_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    height: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    file_name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    uploaded_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    uploaded_by_id: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class CertificateRecord(Base):
     """Certificate issued by the Bale bot, mirrored to the shared server for the managers' panel.
 

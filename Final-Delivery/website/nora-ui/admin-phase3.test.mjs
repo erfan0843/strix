@@ -19,6 +19,9 @@ const ACC = '0f0f0f0f-1111-4222-8333-444444444444';
 const C1 = 'a165e049-0000-4000-8000-000000000001';
 const C2 = 'a165e049-0000-4000-8000-000000000002';
 const FILE_ID = 'f1f1f1f1-0000-4000-8000-00000000000f';
+const MEDIA_USED = 'b1b1b1b1-0000-4000-8000-000000000001';
+const MEDIA_FREE = 'b1b1b1b1-0000-4000-8000-000000000002';
+const MEDIA_NEW = 'b1b1b1b1-0000-4000-8000-000000000003';
 
 function makeCerts() {
   const holder = { account_id: ACC, bale_user_id: '910001', display_name: 'زهرا آزمایشی', name_source: 'profile' };
@@ -36,6 +39,10 @@ function makeCerts() {
 
 async function loadPanel(identity) {
   const certs = identity.certs || makeCerts();
+  const media = { uploads: 0, items: [
+    { id: MEDIA_USED, url: `/api/public/media/${MEDIA_USED}`, content_type: 'image/jpeg', size: 150000, width: 1200, height: 800, file_name: 'poster-used.jpg', created_at: '2026-10-20T09:00:00+00:00', used_in: 2, in_use: true },
+    { id: MEDIA_FREE, url: `/api/public/media/${MEDIA_FREE}`, content_type: 'image/webp', size: 40000, width: 800, height: 600, file_name: 'old-cover.webp', created_at: '2026-10-19T09:00:00+00:00', used_in: 0, in_use: false },
+  ] };
   const calls = [];
   const values = new Map([['nora-admin', JSON.stringify({ v: 78, sec: identity.sec || 'users', ...(identity.state || {}) })]]);
   const store = {
@@ -59,7 +66,7 @@ async function loadPanel(identity) {
       window.fetch = async (url, options = {}) => {
         const path = String(url);
         const method = String(options.method || 'GET').toUpperCase();
-        calls.push({ path, method, headers: options.headers || {} });
+        calls.push({ path, method, headers: options.headers || {}, body: typeof options.body === 'string' ? options.body : null });
         if (identity.outage && path.startsWith('/api/admin/')) throw new TypeError('network down');
         if (identity.expired && path.startsWith('/api/admin/')) return reply(401, { detail: 'authentication_required' });
         if (path === '/api/auth/me') return identity.role === 'owner'
@@ -74,7 +81,36 @@ async function loadPanel(identity) {
         if (/^\/api\/admin\/reports\/summary\?period=/.test(path)) return reply(200, { source: 'shared_server_database', period: '30d', forms: { total: 0, by_status: {} }, responses: { total: 0, by_status: {} }, accounts: { total: 0, by_role: {} }, reviews: { total: 0, by_kind: {} }, notifications: { total: 0, by_delivery_status: {} }, cooperation_requests: { total: 0, by_status: {} } });
         if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
         if (path.startsWith('/api/owner/audit')) return reply(200, { items: [], limit: 30, offset: 0, has_more: false, actions: [] });
-        if (path.startsWith('/api/admin/content/')) return reply(200, { items: [], total: 0, counts: {}, limit: 20, offset: 0, has_more: false, kind: 'events', version: 1, source: 'site_content', can_edit: true, can_publish: true });
+        if (path.startsWith('/api/admin/content/')) {
+          if (method === 'POST' && path === '/api/admin/content/events') {
+            const sent = JSON.parse(options.body || '{}');
+            return reply(200, { saved: true, version: 2, record: { id: 'ev-new-1', status: 'draft', t: sent.record.t, poster: sent.record.poster || '', on: '1405/08/12' } });
+          }
+          return reply(200, { items: [], total: 0, counts: {}, limit: 20, offset: 0, has_more: false, kind: 'events', version: 1, source: 'site_content', can_edit: has('ev_create'), can_publish: has('ev_publish') });
+        }
+        /* ── تصاویر عمومی ── */
+        if (path === '/api/admin/media' && method === 'POST') {
+          if (!has('ev_create')) return reply(403, { detail: 'permission_denied' });
+          if (!(options.headers || {})['X-CSRF-Token']) return reply(403, { detail: 'csrf_check_failed' });
+          media.uploads += 1;
+          const name = String((options.headers || {})['X-File-Name'] || '');
+          if (identity.rejectUpload && media.uploads === 1) return reply(415, { detail: 'unsupported_image_type' });
+          media.items.unshift({ id: MEDIA_NEW, url: `/api/public/media/${MEDIA_NEW}`, content_type: 'image/png', size: 2048, width: 640, height: 480, file_name: name.replace(/\.[^.]+$/, '') + '.png', created_at: '2026-10-21T09:00:00+00:00', used_in: 0, in_use: false });
+          return reply(201, { ...media.items[0], created: true, source: 'shared_server_database' });
+        }
+        if (path.startsWith('/api/admin/media')) {
+          if (!has('ev_create')) return reply(403, { detail: 'permission_denied' });
+          const one = path.match(/^\/api\/admin\/media\/([^/?]+)$/);
+          if (one && method === 'DELETE') {
+            const item = media.items.find((m) => m.id === one[1]);
+            if (!item) return reply(404, { detail: 'media_not_found' });
+            if (item.in_use) return reply(409, { detail: { code: 'media_in_use', used_in: item.used_in } });
+            media.items = media.items.filter((m) => m.id !== one[1]);
+            return reply(200, { deleted: true, id: one[1] });
+          }
+          if (/^\/api\/admin\/media\?limit=20&offset=0$/.test(path)) return reply(200, { source: 'shared_server_database', items: media.items, total: media.items.length, limit: 20, offset: 0, has_more: false, unused: media.items.filter((m) => !m.in_use).length, max_bytes: 3145728 });
+          return reply(404, { detail: 'not_found' });
+        }
         if (path.startsWith('/api/admin/users')) {
           if (!has('us_view')) return reply(403, { detail: 'permission_denied' });
           const row = { account_id: ACC, display_name: 'زهرا آزمایشی', city: '', province: '', role: null, status: 'active', created_at: '2026-10-01T08:00:00+00:00', profile_updated_at: null, registrations: 0, pending_reviews: 0, providers: ['bale'], bale_user_id: '910001', linked: false };
@@ -135,7 +171,13 @@ async function loadPanel(identity) {
     assert.doesNotMatch(text, /0912|09\d{9}|hash|token|password/i, 'شماره، هش یا توکن در خروجی پنل نیست');
     assert.doesNotMatch(text, /سارا محمدی|NL-1024|جلسهٔ شعر و موسیقی|NORA-۰۵۰۴/, 'دادهٔ نمونهٔ محلی با دادهٔ سرور قاطی نمی‌شود');
   };
-  return { dom, window: dom.window, doc, calls, click, type, until, body, noLeak, certs, store: values, close: () => dom.window.close() };
+  const pickFile = (sel, name, type, bytes) => {
+    const input = doc.querySelector(sel); assert.ok(input, `ورودی فایل پیدا نشد: ${sel}`);
+    const file = new dom.window.File([bytes || new Uint8Array(64)], name, { type });
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    input.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  };
+  return { dom, window: dom.window, doc, calls, click, type, until, body, noLeak, certs, media, pickFile, store: values, close: () => dom.window.close() };
 }
 
 const openCerts = async (app) => {
@@ -252,6 +294,74 @@ console.log('— قطع سرور و نشست منقضی: پیام و تلاش د
     assert.equal(empty.doc.querySelector('[data-cert-open]'), null);
     empty.noLeak();
   } finally { empty.close(); }
+}
+
+console.log('— پوستر رویداد: بارگذاری واقعی به سرور، خطا و تلاش دوباره، نشانی پایدار در فرم و ذخیره —');
+{
+  const app = await loadPanel({ role: 'owner', sec: 'events', rejectUpload: true });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-new]'), 'فهرست رویدادها');
+    app.click('[data-ct-new]');
+    await app.until(() => app.doc.querySelector('[data-ct-image="poster"]'), 'ویرایشگر رویداد');
+    assert.equal(app.doc.querySelector('[data-ct-image="poster"]').getAttribute('accept'), 'image/png,image/jpeg,image/webp');
+
+    /* فایل غیرتصویری در همان مرورگر رد می‌شود و هیچ درخواستی نمی‌رود */
+    app.pickFile('[data-ct-image="poster"]', 'virus.exe', 'application/x-msdownload');
+    await app.until(() => app.doc.querySelector('[data-ct-image-state="error"]'), 'ردِ محلی فایل غیرتصویری');
+    assert.equal(app.calls.filter((c) => c.path === '/api/admin/media').length, 0);
+    assert.equal(app.doc.querySelector('[data-ct-image-retry]'), null, 'برای فایل نامعتبر «تلاش دوباره» معنا ندارد');
+
+    /* سرور نوع واقعی را رد می‌کند → پیام سرور + تلاش دوباره با همان فایل */
+    app.pickFile('[data-ct-image="poster"]', 'poster.png', 'image/png');
+    await app.until(() => app.doc.querySelector('[data-ct-image-state="error"]') && /تشخیص نداد/.test(app.body()), 'خطای سرور نمایش داده می‌شود');
+    const first = app.calls.find((c) => c.path === '/api/admin/media' && c.method === 'POST');
+    assert.ok(first && first.headers['X-CSRF-Token'] === 'owner-csrf' && first.headers['X-File-Name'] === 'poster.png');
+    assert.ok(app.doc.querySelector('[data-ct-image-retry="poster"]'), 'دکمهٔ تلاش دوباره');
+    app.click('[data-ct-image-retry="poster"]');
+    await app.until(() => app.doc.querySelector(`img[src="/api/public/media/${MEDIA_NEW}"]`), 'پیش‌نمایش از نشانی پایدار سرور');
+    assert.equal(app.calls.filter((c) => c.path === '/api/admin/media' && c.method === 'POST').length, 2);
+    assert.equal(app.doc.querySelector('[data-ct-image-state]'), null, 'پس از موفقیت وضعیت خطا/انتظار نمی‌ماند');
+    assert.match(app.body(), new RegExp(`/api/public/media/${MEDIA_NEW}`));
+    assert.doesNotMatch(app.body(), /data:image/, 'دیگر base64 در فرم ذخیره نمی‌شود');
+
+    /* ذخیرهٔ رویداد همان نشانی را می‌فرستد */
+    app.type('#ctf_t', 'رویداد با پوستر');
+    app.type('#ctf_on', '1405/08/12');
+    app.click('[data-ct-save]');
+    await app.until(() => app.calls.some((c) => c.method === 'POST' && c.path === '/api/admin/content/events'), 'ذخیرهٔ رویداد');
+    const saveCall = app.calls.find((c) => c.method === 'POST' && c.path === '/api/admin/content/events');
+    assert.equal(JSON.parse(saveCall.body).record.poster, `/api/public/media/${MEDIA_NEW}`, 'فقط نشانی پایدار در سند محتوا ذخیره می‌شود');
+    app.noLeak();
+  } finally { app.close(); }
+}
+
+console.log('— فهرست تصاویر: وضعیت استفاده از site_content، حذف فقط برای بدون‌استفاده و با تأیید —');
+{
+  const app = await loadPanel({ role: 'owner', sec: 'events' });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-media]'), 'دکمهٔ تصاویر');
+    app.click('[data-ct-media]');
+    await app.until(() => app.doc.querySelector(`[data-ct-media-row="${MEDIA_USED}"]`), 'فهرست تصاویر');
+    assert.ok(app.calls.some((c) => c.path === '/api/admin/media?limit=20&offset=0'));
+    assert.match(app.body(), /در حال استفاده · ۲/);
+    assert.match(app.body(), /بدون استفاده/);
+    assert.equal(app.doc.querySelector(`[data-ct-media-row="${MEDIA_USED}"] [data-ct-media-del]`), null, 'تصویر در حال استفاده دکمهٔ حذف ندارد');
+    assert.ok(app.doc.querySelector(`[data-ct-media-del="${MEDIA_FREE}"]`), 'تصویر بدون استفاده قابل حذف صریح است');
+    app.click(`[data-ct-media-del="${MEDIA_FREE}"]`);
+    await app.until(() => app.calls.some((c) => c.method === 'DELETE' && c.path === `/api/admin/media/${MEDIA_FREE}`), 'درخواست حذف');
+    const del = app.calls.find((c) => c.method === 'DELETE');
+    assert.equal(del.headers['X-CSRF-Token'], 'owner-csrf');
+    await app.until(() => !app.doc.querySelector(`[data-ct-media-row="${MEDIA_FREE}"]`) && app.doc.querySelector(`[data-ct-media-row="${MEDIA_USED}"]`), 'فهرست پس از حذف تازه شد');
+    app.click('[data-ct-media-close]');
+    await app.until(() => !app.doc.querySelector('[data-ct-media-panel]'), 'بستن فهرست');
+    app.noLeak();
+  } finally { app.close(); }
+  const limited = await loadPanel({ role: 'manager', sec: 'events', permissions: MANAGER.filter((p) => p !== 'ev_create') });
+  try {
+    await limited.until(() => limited.doc.querySelector('[data-ct-panel]') || /مجوز/.test(limited.body()), 'صفحهٔ محتوا برای مدیر بدون ev_create');
+    assert.equal(limited.doc.querySelector('[data-ct-media]'), null, 'بدون ev_create دکمهٔ تصاویر نیست');
+    assert.ok(limited.calls.every((c) => !c.path.startsWith('/api/admin/media')));
+  } finally { limited.close(); }
 }
 
 console.log('آزمون مرحلهٔ سوم پنل: قبول');

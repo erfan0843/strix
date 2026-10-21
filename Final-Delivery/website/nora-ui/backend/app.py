@@ -45,6 +45,7 @@ from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated
 from . import data_staging as data_staging_mod
 from . import audit as audit_mod
 from . import certificates as certificates_mod
+from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
@@ -79,6 +80,7 @@ from .models import (
     PlatformIdentityRecord,
     PhoneOTPChallengeRecord,
     PrivateFileRecord,
+    PublicMediaRecord,
     PublicWriteThrottleRecord,
     SiteContentRecord,
     UserNotificationRecord,
@@ -1216,7 +1218,10 @@ def create_app(
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         path = request.url.path.lower()
-        if path.startswith("/api/"):
+        if path.startswith("/api/public/media/") and response.status_code in {200, 304}:
+            # تصویر عمومی با شناسهٔ ثابت و محتوای تغییرناپذیر؛ هدر کش را خود مسیر تعیین می‌کند.
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        elif path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
             response.headers["X-Robots-Tag"] = "noindex, nofollow"
         elif path in {"/account.html", "/login.html", "/admin.html", "/builder.html", "/create.html", "/form.html"}:
@@ -2705,10 +2710,11 @@ def create_app(
     def _enforce_owner_upload_limit(
         request: Request, db: Session, cfg: Settings, identity: OwnerIdentity | AccountIdentity,
         limit: int = 10,
+        scope: str = "data-upload",
     ) -> None:
         """At most ``limit`` uploads per hour per actor; stored, not in-memory only."""
         key_hash = throttle_digest(
-            cfg.owner_password_hash or cfg.owner_id or "nora", "data-upload\0" + _owner_upload_actor(identity)
+            cfg.owner_password_hash or cfg.owner_id or "nora", scope + "\0" + _owner_upload_actor(identity)
         )
         now = _utc_now()
         db.execute(
@@ -2733,6 +2739,109 @@ def create_app(
             raise HTTPException(429, "upload_rate_limited", headers={"Retry-After": str(retry)})
         record.attempts += 1
         db.commit()
+
+    # ── تصاویر عمومی پنل (پوستر رویداد / جلد مطلب) ──
+    # بایت‌ها در همان پایگاه مشترک (مثل private_files) می‌مانند؛ نوع واقعی از
+    # محتوای فایل تشخیص داده و با Pillow رمزگشایی می‌شود؛ site_content فقط
+    # نشانی پایدار /api/public/media/{id} را نگه می‌دارد. هیچ حذف خودکاری نیست.
+
+    def _media_actor(identity: OwnerIdentity | AccountIdentity) -> tuple[str, str]:
+        if isinstance(identity, OwnerIdentity):
+            return "owner", identity.owner_id
+        return "account", identity.account_id
+
+    @app.post("/api/admin/media", status_code=201)
+    async def upload_admin_media(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_create")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="media-upload")
+        declared = request.headers.get("x-file-name", "image")
+        chunks: list[bytes] = []
+        size = 0
+        async for chunk in request.stream():
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > public_media_mod.MAX_BYTES:
+                raise HTTPException(413, "image_too_large")
+            chunks.append(chunk)
+        content = b"".join(chunks)
+        actor_kind, actor_id = _media_actor(identity)
+        try:
+            record, created = public_media_mod.store(
+                db, content, declared_name=declared, actor_kind=actor_kind, actor_id=actor_id,
+            )
+        except public_media_mod.MediaError as error:
+            record_audit(
+                db, identity, "media.upload", target_type="public_media", outcome="rejected",
+                details={"code": error.code, "size": size},
+            )
+            db.commit()
+            raise HTTPException(error.status, error.code) from None
+        if created:
+            record_audit(
+                db, identity, "media.upload", target_type="public_media", target_id=record.id,
+                details={"content_type": record.content_type, "size": record.content_size,
+                         "width": record.width, "height": record.height},
+            )
+        db.commit()
+        payload = public_media_mod.serialize(record)
+        payload["created"] = created
+        payload["source"] = public_media_mod.SOURCE
+        return payload
+
+    @app.get("/api/admin/media")
+    def list_admin_media(
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("ev_create")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        return public_media_mod.list_records(db, limit=limit, offset=offset)
+
+    @app.delete("/api/admin/media/{media_id}")
+    def delete_admin_media(
+        media_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_create")),
+        db: Session = Depends(get_db),
+    ):
+        parsed = public_media_mod.parse_id(media_id)
+        record = db.get(PublicMediaRecord, parsed) if parsed else None
+        if record is None:
+            raise HTTPException(404, "media_not_found")
+        used_in = public_media_mod.usage_index(db).get(record.id, 0)
+        if used_in:
+            raise HTTPException(409, {"code": "media_in_use", "used_in": used_in})
+        record_audit(
+            db, identity, "media.delete", target_type="public_media", target_id=record.id,
+            details={"content_type": record.content_type, "size": record.content_size, "file_name": record.file_name},
+        )
+        db.delete(record)
+        db.commit()
+        return {"deleted": True, "id": record.id}
+
+    @app.get("/api/public/media/{media_id}")
+    def public_media_file(media_id: str, request: Request, db: Session = Depends(get_db)):
+        parsed = public_media_mod.parse_id(media_id)
+        record = db.get(PublicMediaRecord, parsed) if parsed else None
+        if record is None:
+            raise HTTPException(404, "media_not_found")
+        etag = f'"{record.content_hash[:32]}"'
+        headers = {
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "ETag": etag,
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Disposition": f'inline; filename="{record.file_name}"',
+        }
+        if request.headers.get("if-none-match", "") == etag:
+            return Response(status_code=304, headers=headers)
+        return Response(content=record.content, media_type=record.content_type, headers=headers)
 
     @app.get("/api/owner/data/status")
     def get_owner_data_status(

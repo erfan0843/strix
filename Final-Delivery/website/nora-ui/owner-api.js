@@ -133,6 +133,41 @@
     return payload;
   }
 
+  /* بارگذاری تصویر عمومی پنل (پوستر/جلد): بدنهٔ خام، نام فقط نمایشی؛ سرور نوع واقعی را از بایت‌ها تشخیص می‌دهد. */
+  async function uploadAdminMedia(blob, fileName, csrfCookieName) {
+    if (!blob || typeof blob.size !== 'number') throw new TypeError('Invalid media upload');
+    const safeName = String(fileName || 'image').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 120) || 'image';
+    const headers = {
+      Accept: 'application/json',
+      'Content-Type': blob.type || 'application/octet-stream',
+      'X-File-Name': safeName
+    };
+    const csrf = csrfCookie(csrfCookieName);
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    let response;
+    try {
+      response = await root.fetch('/api/admin/media', {
+        method: 'POST', headers, credentials: 'same-origin', cache: 'no-store', redirect: 'error', body: blob
+      });
+    } catch (_) {
+      throw new OwnerApiError(0, 'server_unreachable', null);
+    }
+    let payload = null;
+    try { payload = await response.json(); } catch (_) { /* non-JSON response */ }
+    if (!response.ok) {
+      const detail = payload && payload.detail;
+      const code = (detail && typeof detail === 'object' && detail.code)
+        || (typeof detail === 'string' && detail)
+        || (payload && (payload.error || payload.code))
+        || 'server_request_failed';
+      throw new OwnerApiError(response.status, code, payload);
+    }
+    if (!payload || typeof payload.url !== 'string' || !/^\/api\/public\/media\/[0-9a-f-]{36}$/.test(payload.url)) {
+      throw new OwnerApiError(502, 'invalid_media_upload', payload);
+    }
+    return payload;
+  }
+
   async function uploadPublicReceipt(formId, blob, fileName, note) {
     const path = '/api/public/forms/' + encodeURIComponent(String(formId)) + '/receipt';
     if (!/^\/api\/public\/forms\/[A-Za-z0-9_-]+\/receipt$/.test(path) || !blob || typeof blob.size !== 'number') {
@@ -243,6 +278,12 @@
     listAdminCertificates: params => request('/api/admin/certificates' + adminQuery(params)),
     getAdminCertificate: certificateId => request('/api/admin/certificates/' + recordId(certificateId)),
     adminCertificateFileUrl: (certificateId, slot) => '/api/admin/certificates/' + recordId(certificateId) + '/file' + adminQuery({ slot: slot || 'pdf' }),
+    /* تصاویر عمومی (ev_create): بارگذاری، فهرست با وضعیت استفاده در site_content، حذف صریحِ بدون‌استفاده */
+    uploadAdminMedia,
+    listAdminMedia: params => request('/api/admin/media' + adminQuery(params)),
+    deleteAdminMedia: (mediaId, csrfCookieName) => request('/api/admin/media/' + recordId(mediaId), {
+      method: 'DELETE', csrfWrite: true, csrfCookie: csrfCookieName || undefined
+    }),
     listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
     listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),
     attendanceCheckIn: (responseId, reason, csrfCookieName) => request(

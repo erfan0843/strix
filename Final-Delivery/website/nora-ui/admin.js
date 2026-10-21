@@ -6345,6 +6345,8 @@ const staffCsrfCookie=()=>isOwner()?'nora_csrf':'nora_account_csrf';
 const P2_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
 const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخت'],['title','عنوان'],['date','تاریخ']];
 const CT={kind:'events',q:'',status:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:''};
+/* تصاویر عمومی (پوستر/جلد): بارگذاری واقعی به /api/admin/media و فهرست با وضعیت استفاده؛ هیچ حذف خودکاری نیست */
+const CM={up:{busy:false,error:'',file:null,field:'',name:''},open:false,data:null,loading:false,error:'',busy:'',offset:0,limit:20};
 const US={q:'',provider:'',role:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
 const AT={q:'',offset:0,limit:20,forms:null,loading:false,error:'',key:'',formId:'',form:null,people:null,pq:'',state:'',poffset:0,plimit:50,ploading:false,perror:'',pkey:'',busy:'',msg:null};
 const CERT_SRV={data:null,loading:false,error:'',key:'',q:'',status:'',kind:'',event:'',offset:0,limit:20,detailId:'',detail:null,detailError:'',detailLoading:false};
@@ -6363,6 +6365,14 @@ function p2Err(error,fallback){
   if(code==='ticket_not_accepted') return 'این ثبت‌نام در فهرست انتظار است و بلیت ندارد.';
   if(code==='ticket_not_eligible') return 'این پاسخ بلیت ثبت‌نام نیست.';
   if(code==='reason_required') return 'برای برگرداندن حضور باید دلیل بنویسید.';
+  if(code==='image_too_large') return 'حجم تصویر بیش از ۳ مگابایت است؛ تصویر کوچک‌تری انتخاب کنید.';
+  if(code==='unsupported_image_type') return 'سرور محتوای فایل را تصویر PNG، JPEG یا WebP تشخیص نداد؛ فایل پذیرفته نشد.';
+  if(code==='invalid_image') return 'فایل تصویر معتبر یا کامل نیست.';
+  if(code==='image_too_small') return 'ابعاد تصویر خیلی کوچک است.';
+  if(code==='image_dimensions_too_large') return 'ابعاد تصویر بیش از حد مجاز است.';
+  if(code==='upload_rate_limited') return 'شمار بارگذاری‌ها در این ساعت از حد گذشته؛ کمی بعد دوباره تلاش کنید.';
+  if(code==='media_in_use') return 'این تصویر هنوز در رویداد یا مطلبی استفاده می‌شود و حذف نمی‌شود.';
+  if(code==='media_not_found') return 'این تصویر در سرور پیدا نشد؛ شاید پیش‌تر حذف شده باشد.';
   if(error&&error.status===404) return 'موردی با این شناسه پیدا نشد.';
   return fallback||'درخواست انجام نشد؛ چیزی تغییر نکرد.';
 }
@@ -6445,7 +6455,7 @@ function ctList(){
   return `<section class="card stack" data-ct-panel>
     <div class="row" style="flex-wrap:wrap"><div class="head">${CT.kind==='events'?'رویدادها':'مطالب'}</div><span class="sp"></span>
       ${tag('منبع: site_content سرور','ok')}${d?tag('نسخهٔ '+fa(d.version),''):''}
-      ${btn('بازخوانی','data-ct-refresh','i-refresh')}${ctCan('can_edit')?btn(kindName+' تازه','data-ct-new','i-plus'):''}</div>
+      ${btn('بازخوانی','data-ct-refresh','i-refresh')}${ctCan('can_edit')?btn('تصاویر','data-ct-media','i-image')+btn(kindName+' تازه','data-ct-new','i-plus'):''}</div>
     <p class="cap">همان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.</p>
     <form class="row tight server-role-search" data-ct-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="ctQuery" type="search" class="input" value="${esc(CT.q)}" maxlength="80" autocomplete="off" placeholder="عنوان، دسته، مکان، برچسب یا شناسه" aria-label="جست‌وجوی محتوا"/></label>
@@ -6501,12 +6511,17 @@ function ctEditor(){
   const f=e.form, err=e.errors||{}, kind=CT.kind, isNew=!e.id;
   const title=isNew?(kind==='events'?'رویداد تازه':'مطلب تازه'):'ویرایش '+(kind==='events'?'رویداد':'مطلب');
   const img=kind==='events'?f.poster:f.cov, imgField=kind==='events'?'poster':'cov';
+  const up=CM.up, upHere=up.field===imgField;
+  const upState=upHere&&up.busy?`<span class="cap" data-ct-image-state="busy">${ico('i-clock')} در حال بارگذاری «${esc(up.name)}» در سرور…</span>`
+    :upHere&&up.error?`<span class="cap" style="color:var(--stop)" role="alert" data-ct-image-state="error">${esc(up.error)}</span>${up.file?btn('تلاش دوباره',`data-ct-image-retry="${imgField}"`,'i-refresh'):''}`:'';
   const imageBox=`<div class="fld"><span class="lbl">${kind==='events'?'پوستر':'تصویر جلد'}</span>
     <div class="row tight" style="flex-wrap:wrap;align-items:center">
       ${img?`<img src="${esc(img)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px"/>`:`<span class="cap">تصویری انتخاب نشده</span>`}
-      <label class="btn sm">${ico('i-upload')}انتخاب فایل<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="${imgField}" hidden/></label>
-      ${img?btn('حذف تصویر',`data-ct-image-clear="${imgField}"`,'i-close'):''}
-    </div>${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:'فایل تا حداکثر ۱۲۸۰ پیکسل کوچک می‌شود و در همان سند محتوا ذخیره می‌شود.'})}</div>`;
+      <label class="btn sm ${up.busy?'disabled':''}">${ico('i-upload')}انتخاب فایل<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="${imgField}" ${up.busy?'disabled':''} hidden/></label>
+      ${img&&!up.busy?btn('حذف تصویر',`data-ct-image-clear="${imgField}"`,'i-close'):''}
+    </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
+    ${img&&img.startsWith('/api/public/media/')?`<small class="cap" dir="ltr">${esc(img)}</small>`:''}
+    ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
   const fields=kind==='events'?`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}</div>
@@ -6551,7 +6566,7 @@ function serverContentView(){
   const tabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="نوع محتوا">
     <button class="chip ${CT.kind==='events'?'on':''}" role="tab" aria-selected="${CT.kind==='events'}" data-ct-kind="events">رویدادها</button>
     <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-ct-kind="articles">مطالب</button></div>`;
-  return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():ctList()}</div>`;
+  return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():(CM.open?cmPanel():'')+ctList()}</div>`;
 }
 async function ctOpenEditor(id){
   const api=window.NORA_SERVER_API;
@@ -6604,26 +6619,68 @@ async function ctSetStatus(id,status){
     if(error&&error.code==='site_content_version_conflict'){ctReset(); ctLoad()} else renderBody()}
   finally{CT.busy=''}
 }
-function ctReadImage(file,field){
-  if(!file||!/^image\/(png|jpeg|webp)$/.test(file.type)){toast('فقط PNG، JPEG یا WebP پذیرفته می‌شود'); return}
-  if(file.size>8*1024*1024){toast('حجم فایل بیش از ۸ مگابایت است'); return}
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const img=new Image();
-    img.onload=()=>{
-      const max=1280, scale=Math.min(1,max/Math.max(img.width,img.height));
-      const canvas=document.createElement('canvas'); canvas.width=Math.max(1,Math.round(img.width*scale)); canvas.height=Math.max(1,Math.round(img.height*scale));
-      try{canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height)}catch(e){}
-      let out=''; try{out=canvas.toDataURL('image/jpeg',0.82)}catch(e){out=''}
-      if(!out||out.length<64) out=String(reader.result||'');
-      if(out.length>1400000){toast('تصویر پس از فشرده‌سازی هم بزرگ است؛ تصویر کوچک‌تری انتخاب کنید'); return}
-      if(CT.edit){CT.edit.form[field]=out; renderBody()}
-    };
-    img.onerror=()=>toast('فایل تصویر خوانده نشد');
-    img.src=String(reader.result||'');
-  };
-  reader.onerror=()=>toast('فایل خوانده نشد');
-  reader.readAsDataURL(file);
+function ctUploadImage(file,field){
+  if(!file) return;
+  if(!/^image\/(png|jpeg|webp)$/.test(file.type)&&!/\.(png|jpe?g|webp)$/i.test(file.name||'')){CM.up={busy:false,error:'فقط PNG، JPEG یا WebP پذیرفته می‌شود.',file:null,field,name:file.name||''}; renderBody(); return}
+  if(file.size>3*1024*1024){CM.up={busy:false,error:'حجم فایل بیش از ۳ مگابایت است؛ تصویر کوچک‌تری انتخاب کنید.',file:null,field,name:file.name||''}; renderBody(); return}
+  CM.up={busy:false,error:'',file,field,name:file.name||'image'};
+  ctSendImage();
+}
+async function ctSendImage(){
+  const api=window.NORA_SERVER_API, up=CM.up;
+  if(!up.file||up.busy) return;
+  if(!api||typeof api.uploadAdminMedia!=='function'){up.error='رابط سرور در دسترس نیست.'; renderBody(); return}
+  up.busy=true; up.error=''; renderBody();
+  try{
+    const result=await api.uploadAdminMedia(up.file,up.name,staffCsrfCookie());
+    if(CT.edit) CT.edit.form[up.field]=result.url;
+    CM.data=null;
+    toast(result.created===false?'همین تصویر پیش‌تر در سرور بود؛ همان نشانی استفاده شد':`تصویر در سرور ذخیره شد (${fa(result.width)}×${fa(result.height)})`);
+    CM.up={busy:false,error:'',file:null,field:'',name:''};
+  }catch(error){
+    up.busy=false;
+    up.error=p2Err(error,'بارگذاری انجام نشد؛ چیزی ذخیره نشد.');
+    if(error&&(error.status===401||error.status===403)) up.file=null;
+  }
+  renderBody();
+}
+/* فهرست تصاویر بارگذاری‌شده با وضعیت استفاده در site_content؛ حذف فقط صریح و فقط برای بدون‌استفاده‌ها */
+async function cmLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminMedia!=='function'){CM.error='رابط سرور در دسترس نیست.'; renderBody(); return}
+  CM.loading=true; CM.error=''; renderBody();
+  try{CM.data=await api.listAdminMedia({limit:CM.limit,offset:CM.offset})}
+  catch(error){CM.error=p2Err(error,'فهرست تصاویر از سرور خوانده نشد.')}
+  finally{CM.loading=false; renderBody()}
+}
+async function cmDelete(id){
+  const api=window.NORA_SERVER_API, item=(CM.data&&CM.data.items||[]).find(x=>x.id===id);
+  if(!api||!item||CM.busy) return;
+  if(item.in_use){toast('این تصویر در حال استفاده است و حذف نمی‌شود'); return}
+  if(!confirm(`تصویر «${item.file_name}» از سرور حذف شود؟ این تصویر در هیچ رویداد یا مطلبی استفاده نشده است.`)) return;
+  CM.busy=id; renderBody();
+  try{await api.deleteAdminMedia(id,staffCsrfCookie()); toast('تصویر حذف شد'); CM.data=null; await cmLoad()}
+  catch(error){toast(p2Err(error,'حذف انجام نشد؛ چیزی تغییر نکرد.')); renderBody()}
+  finally{CM.busy=''}
+}
+const cmSize=n=>{n=Number(n)||0; return n>=1024*1024?fa((n/1024/1024).toFixed(1))+' مگابایت':fa(Math.max(1,Math.round(n/1024)))+' کیلوبایت'};
+function cmPanel(){
+  const d=CM.data;
+  const rows=d&&d.items.length?d.items.map(m=>`<div class="row tight" style="align-items:center;flex-wrap:wrap" data-ct-media-row="${esc(m.id)}">
+      <img src="${esc(m.url)}" alt="" loading="lazy" style="width:48px;height:48px;object-fit:cover;border-radius:8px;background:var(--surface-2)"/>
+      <div class="stack tight" style="flex:1;min-width:160px"><b dir="ltr" style="font-size:.9em">${esc(m.file_name)}</b><small class="cap">${fa(m.width)}×${fa(m.height)} · ${cmSize(m.size)} · ${esc(svcWhen(m.created_at))}</small></div>
+      ${m.in_use?tag('در حال استفاده · '+fa(m.used_in),'ok'):tag('بدون استفاده','warn')}
+      ${!m.in_use&&ctCan('can_edit')?btn(CM.busy===m.id?'در حال حذف…':'حذف',`data-ct-media-del="${esc(m.id)}" ${CM.busy?'disabled':''}`,'i-trash'):''}
+    </div>`).join(''):'';
+  const body=CM.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست تصاویر…</p></div>`
+    :CM.error?`<div class="empty"><p class="cap">${esc(CM.error)}</p>${btn('تلاش دوباره','data-ct-media-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز خوانده نشده است.</p></div>`
+    :rows||emptyBox('هنوز تصویری از پنل بارگذاری نشده است.');
+  return `<section class="card stack" data-ct-media-panel>
+    <div class="row" style="flex-wrap:wrap"><div class="head">تصاویر بارگذاری‌شده</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(d.total)+' تصویر',''):''}${btn('بازخوانی','data-ct-media-refresh','i-refresh')}${btn('بستن','data-ct-media-close','i-close')}</div>
+    <p class="cap">هر تصویر با نشانی پایدار خودش در پوستر رویداد یا جلد مطلب استفاده می‌شود. وضعیت «در حال استفاده» از همان سند محتوا شمرده می‌شود؛ هیچ تصویری خودکار حذف نمی‌شود و حذف فقط برای تصویرهای بدون استفاده و با تأیید انجام می‌شود.</p>
+    ${body}${d&&d.total>CM.limit?p2Pager(d.total,CM.offset,CM.limit,'data-ct-media-page="prev"','data-ct-media-page="next"'):''}
+  </section>`;
 }
 /* ── فهرست کاربران (us_view): جدا از «حساب‌ها و نقش‌ها» ── */
 function usKey(){return [US.q,US.provider,US.role,US.offset,US.limit].join('|')}
@@ -6888,6 +6945,12 @@ document.addEventListener('click',e=>{
   if(q('[data-ct-save]')){ctSave(false); return}
   if(q('[data-ct-save-publish]')){ctSave(true); return}
   const imgClear=q('[data-ct-image-clear]'); if(imgClear){if(CT.edit){CT.edit.form[imgClear.dataset.ctImageClear]=''; renderBody()} return}
+  const imgRetry=q('[data-ct-image-retry]'); if(imgRetry){ctSendImage(); return}
+  if(q('[data-ct-media]')){CM.open=!CM.open; if(CM.open&&!CM.data) cmLoad(); else renderBody(); return}
+  if(q('[data-ct-media-close]')){CM.open=false; renderBody(); return}
+  if(q('[data-ct-media-refresh]')){CM.data=null; cmLoad(); return}
+  const cmPage=q('[data-ct-media-page]'); if(cmPage){const total=CM.data?Number(CM.data.total)||0:0; CM.offset=cmPage.dataset.ctMediaPage==='next'?Math.min(CM.offset+CM.limit,Math.max(0,total-1)):Math.max(0,CM.offset-CM.limit); cmLoad(); return}
+  const cmDel=q('[data-ct-media-del]'); if(cmDel){cmDelete(cmDel.dataset.ctMediaDel); return}
   if(q('[data-users-refresh]')){US.data=null; US.key=''; usLoad(); return}
   if(q('[data-users-search]')){const input=$('#usersQuery'); US.q=String(input&&input.value||'').trim().slice(0,80); US.offset=0; usLoad(); return}
   const usProv=q('[data-users-provider]'); if(usProv){US.provider=usProv.dataset.usersProvider||''; US.offset=0; usLoad(); return}
@@ -6935,7 +6998,7 @@ document.addEventListener('change',e=>{
   if(t.matches&&t.matches('[data-ct-order]')){CT.order=t.value==='asc'?'asc':'desc'; ctReset(); ctLoad(); return}
   if(!CT.edit) return;
   if(t.dataset&&t.dataset.ctCheck){CT.edit.form[t.dataset.ctCheck]=!!t.checked; renderBody(); return}
-  if(t.dataset&&t.dataset.ctImage){const file=t.files&&t.files[0]; if(file) ctReadImage(file,t.dataset.ctImage); return}
+  if(t.dataset&&t.dataset.ctImage){const file=t.files&&t.files[0]; if(file) ctUploadImage(file,t.dataset.ctImage); return}
 });
 /* ══ اتصال سرویس‌ها · داده‌ها و مهاجرت ═══════════════════════════════════════
    همهٔ مقادیر از API هم‌مبدأ خوانده می‌شوند. مقدار محرمانه هرگز به مرورگر
@@ -7576,7 +7639,7 @@ function demoNote(){
     :sharedInbox
       ?'این کارتابل از API و پایگاه مشترک ربات و وب‌اپ خوانده می‌شود. تصمیم در همان‌جا ثبت و اعلان کاربر برای تحویل ربات صف می‌شود؛ این صفحه وجهی جابه‌جا نمی‌کند.'
       :!IS_TEST&&SERVER_AUTH
-        ?'نقش و مجوز این حساب از سرور خوانده شده است. بخش‌هایی که هنوز منبع سروری ندارند (باشگاه و صدور گواهی) خالی می‌مانند و هیچ دادهٔ نمونه‌ای نشان نمی‌دهند؛ ارسال پیام و پرداخت از این پنل انجام نمی‌شود.'
+        ?'نقش و مجوز این حساب از سرور خوانده شده است. گواهی‌های صادرشدهٔ ربات از ثبت مشترک سرور خوانده می‌شوند و صدور همچنان در ربات است؛ باشگاه هنوز منبع سروری ندارد و خالی می‌ماند. هیچ دادهٔ نمونه‌ای نشان داده نمی‌شود؛ ارسال پیام و پرداخت از این پنل انجام نمی‌شود.'
         :'داده‌ها و تغییرهای این پنل فقط در همین مرورگر می‌مانند؛ پیام، اعلان، پرداخت یا صدور واقعی انجام نمی‌شود. تأیید مالک فقط همین وضعیت محلی را عوض می‌کند. نقش‌های این نمای آزمایشی مجوز سروری نیستند.';
   const title=sharedReports?'گزارش زندهٔ سرور':sharedInbox?'کارتابل مشترک':!IS_TEST&&SERVER_AUTH?'منبع داده: API سرور':'پیش‌نمایش محلی';
   const badge=sharedReports?'گزارش تجمیعی سرور':sharedInbox?'کارتابل و مجوز از سرور':!IS_TEST&&SERVER_AUTH?'بدون دادهٔ نمونه':'ارسال و پرداخت واقعی وصل نیست';
