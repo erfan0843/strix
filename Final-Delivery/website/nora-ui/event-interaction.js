@@ -413,10 +413,18 @@
     /* The Q&A form/list reference the loaded sessions (optional per-session questions); refresh them once. */
     if (S.data) renderQa(containers().qa);
     const target = (root.location.hash || '').replace(/^#/, '');
-    if (target === 'recording' || target === 'recording-order' || target === 'recording-sessions') {
-      const node = doc.getElementById(target);
-      if (node && typeof node.scrollIntoView === 'function') { try { node.scrollIntoView({ block: 'start' }); } catch (_) { /* بدون اسکرول */ } }
-    }
+    if (R_JUMP_TARGETS.indexOf(target) >= 0) rScroll(target);
+  }
+  /* In-page jumps never fire `hashchange`: the shared shell (ui.js `uiHash`) reacts to it on `?id=` pages by opening the
+     legacy demo event sheet over the real page. replaceState + scrollIntoView keeps the URL shareable without that. */
+  const R_JUMP_TARGETS = ['recording', 'recording-order', 'recording-sessions'];
+  function rScroll(target) {
+    const node = doc.getElementById(target);
+    if (node && typeof node.scrollIntoView === 'function') { try { node.scrollIntoView({ block: 'start' }); } catch (_) { /* بدون اسکرول */ } }
+  }
+  function rJump(target) {
+    try { if (root.history && typeof root.history.replaceState === 'function') root.history.replaceState(root.history.state, '', '#' + target); } catch (_) { /* بدون تغییر نشانی */ }
+    rScroll(target);
   }
   async function rClaim() {
     if (!R.data || R.busy) return;
@@ -434,7 +442,7 @@
     try {
       const order = await api(`/api/account/recordings/${encodeURIComponent(R.data.id)}/orders`, { method: 'POST', body: { method } });
       S.msg.recording = { kind: 'ok', text: order && order.method === 'bale_wallet' ? 'سفارش ساخته شد؛ پرداخت را در بله کامل کنید.' : 'سفارش ساخته شد؛ پس از واریز، رسید را بفرستید.' };
-      root.location.hash = 'recording-order';
+      rJump('recording-order');
     } catch (error) { S.msg.recording = { kind: 'warn', text: rDescribe(error) }; }
     R.busy = '';
     await loadRecording();
@@ -476,6 +484,12 @@
     if (page.__noraRecordingBound) return;
     page.__noraRecordingBound = true;
     const handler = event => {
+      const jump = event.target && event.target.closest ? event.target.closest('a[data-rec-view],a[data-rec-continue],a[data-rec-buy-jump]') : null;
+      if (jump) {
+        const hash = (jump.getAttribute('href') || '').replace(/^#/, '');
+        if (R_JUMP_TARGETS.indexOf(hash) >= 0) { event.preventDefault(); rJump(hash); }
+        return;
+      }
       const target = event.target && event.target.closest ? event.target.closest('[data-rec-retry],[data-rec-claim],[data-rec-order],[data-rec-cancel],[data-rec-refresh]') : null;
       if (!target) return;
       event.preventDefault();

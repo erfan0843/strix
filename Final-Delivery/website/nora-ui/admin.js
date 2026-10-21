@@ -7045,7 +7045,7 @@ function recStatusBox(rec){
   const c=rec.counts||{};
   return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
     ${rec.status_reason?`<p class="cap">دلیل آخرین تغییر وضعیت: ${esc(rec.status_reason)}</p>`:''}
-    <p class="cap">سفارش‌های باز: ${fa(c.open_orders||0)} · پرداخت‌شده: ${fa(c.paid_orders||0)} · دسترسی فعال: ${fa(c.active_access||0)} · جلسات منتشرشده: ${fa(c.published_sessions||0)}</p>
+    <p class="cap" data-rec-counts>سفارش‌های باز: ${fa(c.orders_open||0)} · در انتظار بررسی: ${fa(c.orders_review||0)} · پرداخت‌شده: ${fa(c.orders_paid||0)} · دسترسی فعال: ${fa(c.access_active||0)} از ${fa(c.access_total||0)} · جلسات منتشرشده: ${fa((rec.sessions||[]).filter(x=>x.status==='published').length)}</p>
     ${blockers?`<div class="stack" data-rec-blockers><small class="cap">موانع انتشار (از سرور):</small><ul class="cap" style="margin:0;padding-inline-start:18px">${blockers}</ul></div>`:(rec.status==='published'?`<p class="cap">این محصول در صفحهٔ رویداد قابل خرید است.</p>`:'')}
     <div class="row tight" style="flex-wrap:wrap">${eiCanRes()?btn('ویرایش محصول','data-rec-edit','i-pen'):''}${transitions}</div></section>`;
 }

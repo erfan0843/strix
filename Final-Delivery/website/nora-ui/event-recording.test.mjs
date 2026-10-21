@@ -157,6 +157,13 @@ console.log('\n— خریدار: CTA مشاهده، پخش‌کنندهٔ وید
   ok(video && video.getAttribute('src') === '/api/public/events/' + EV + '/resources/' + VID + '/download' && !p.doc.querySelector('[data-rec-resource="' + VID + '"] a[download]'), 'ویدئوی «فقط مشاهده»: پخش‌کننده از نقطهٔ مجوزدار سرور، بدون پیوند دانلود');
   ok(p.doc.querySelector('[data-rec-resource="' + PDF + '"] a[download]'), 'جزوهٔ قابل دانلود پیوند دریافت دارد');
   ok(p.doc.querySelector('[data-recording-aside] [data-rec-view]'), 'پنل کناری هم به مشاهده تغییر کرده است');
+  /* ui.js `uiHash` opens the legacy demo event sheet on every hashchange of a `?id=` page; the CTAs must jump without it. */
+  let hashChanges = 0, scrolled = ''; p.dom.window.addEventListener('hashchange', () => { hashChanges += 1; });
+  p.doc.getElementById('recording-sessions').scrollIntoView = () => { scrolled = 'recording-sessions'; };
+  view.dispatchEvent(new p.dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise(resolve => setTimeout(resolve, 50));
+  /* jsdom rejects replaceState on file:// URLs, so only the behaviour that matters is asserted: scroll, no hashchange, no sheet. */
+  ok(scrolled === 'recording-sessions' && hashChanges === 0 && !p.doc.getElementById('shEvent'), 'پرش «مشاهدهٔ جلسات» بدون hashchange: ورقهٔ نمایشی قدیمی (NaN خرید) باز نمی‌شود');
   p.dom.window.close();
 }
 

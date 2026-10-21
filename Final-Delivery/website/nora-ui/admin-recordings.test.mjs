@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ADMIN_HTML = resolve(HERE, 'admin.html');
+const fa = (n) => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
 const delay = (ms = 10) => new Promise((done) => setTimeout(done, ms));
 const reply = (status, payload = {}) => ({ ok: status >= 200 && status < 300, status, json: async () => payload });
 const MANAGER = ['ev_create', 'ev_publish', 'ev_cancel', 'attendance', 'certificate', 'fm_create', 'fm_responses', 'fm_export',
@@ -70,7 +71,8 @@ async function loadPanel(identity) {
     const published = state.sessions.filter((s) => s.status === 'published').length;
     return { ...rec, sessions: state.sessions.map((s) => ({ ...s, resource_count: state.resources.filter((r) => r.session_id === s.id && r.status !== 'removed').length })),
       publish_blockers: blockersFor(state), transitions: { draft: ['ready', 'archived'], ready: ['draft', 'published', 'archived'], published: ['sales_paused', 'archived'], sales_paused: ['published', 'archived'], archived: ['ready'] }[rec.status],
-      counts: { open_orders: state.orders.filter((o) => o.open).length, paid_orders: state.orders.filter((o) => /^paid/.test(o.status)).length, active_access: state.access.filter((a) => a.state === 'active').length, published_sessions: published } };
+      /* Same keys as backend `_recording_admin_counts` (app.py) — the panel must read these, not invented ones. */
+      counts: { orders_open: state.orders.filter((o) => o.open).length, orders_review: state.orders.filter((o) => o.status === 'receipt_submitted' || o.status === 'needs_review').length, orders_paid: state.orders.filter((o) => /^paid/.test(o.status)).length, orders_refunded: 0, access_active: state.access.filter((a) => a.state === 'active').length, access_total: state.access.length } };
   };
   const dom = await JSDOM.fromFile(ADMIN_HTML, {
     runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true,
@@ -309,6 +311,15 @@ console.log('— مالک: ساخت محصول، جلسه، فایل جلسه ا
     await app.until(() => /در حال فروش/.test(app.doc.querySelector('[data-rec-status-box]').textContent), 'منتشر شد');
     const statusCalls = app.calls.filter((c) => c.method === 'POST' && c.path === `/api/admin/events/${EV}/recording/status`).map((c) => JSON.parse(c.body));
     assert.deepEqual(statusCalls, [{ status: 'ready' }, { status: 'published' }], 'گذارها فقط وضعیت را می‌فرستند؛ دلیل تنها برای توقف/بایگانی');
+    /* شمارنده‌ها از کلیدهای واقعی سرور (orders_open/orders_review/orders_paid/access_active/access_total) و فهرست جلسات خوانده می‌شوند؛ صفر ساختگی ممنوع */
+    {
+      const counts = app.doc.querySelector('[data-rec-counts]').textContent;
+      const want = { open: app.state.orders.filter((o) => o.open).length, review: app.state.orders.filter((o) => o.status === 'receipt_submitted' || o.status === 'needs_review').length, sessions: app.state.sessions.filter((x) => x.status === 'published').length };
+      assert.ok(want.open > 0 && want.sessions > 0, 'دادهٔ آزمون باید سفارش باز و جلسهٔ منتشرشده داشته باشد');
+      assert.match(counts, new RegExp('سفارش‌های باز: ' + fa(want.open) + ' · در انتظار بررسی: ' + fa(want.review)), 'سفارش‌های باز/در انتظار بررسی از شمارندهٔ سرور');
+      assert.match(counts, new RegExp('جلسات منتشرشده: ' + fa(want.sessions)), 'جلسات منتشرشده از فهرست واقعی جلسات');
+      assert.doesNotMatch(counts, /سفارش‌های باز: ۰/, 'با سفارش باز واقعی، صفر نمایش داده نمی‌شود');
+    }
 
     /* توقف فروش بدون دلیل انجام نمی‌شود */
     app.click('[data-rec-status="sales_paused"]');

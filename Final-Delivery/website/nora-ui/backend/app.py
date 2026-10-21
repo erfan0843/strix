@@ -5075,8 +5075,9 @@ def create_app(
         expected = payload.get("expected_version")
         if record is None:
             record = EventRecordingRecord(
-                id=interaction_mod.new_id(), event_id=event_id, status="draft", faq=[], created_by_kind=actor_kind,
-                created_by_id=actor_id, updated_by_kind=actor_kind, updated_by_id=actor_id, **fields,
+                id=interaction_mod.new_id(), event_id=event_id, status="draft", created_by_kind=actor_kind,
+                created_by_id=actor_id, updated_by_kind=actor_kind, updated_by_id=actor_id,
+                **{"faq": [], **fields},
             )
             db.add(record)
             record_audit(

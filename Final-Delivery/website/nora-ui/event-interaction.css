@@ -66,5 +66,7 @@
 .ei-rec-faq summary{cursor:pointer;font-size:13px;line-height:1.8}
 .ei-rec-faq p{margin:4px 0 0;font-size:12px;line-height:1.9;color:var(--ink-2)}
 .event-recording-aside{display:grid;gap:8px}
+/* نوار پایین دسکتاپ: عنوان و برچسب زیر هم، نه چسبیده به هم */
+#ctabar .inbar>span:first-child{display:grid;min-width:0}#ctabar .inbar>span:first-child b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#ctabar .inbar>span:first-child small{color:var(--ink-3)}
 .event-recording-aside .event-register-action .btn{width:100%;justify-content:center}
 @media (prefers-reduced-motion:reduce){.ei-rec-faq{transition:none}}

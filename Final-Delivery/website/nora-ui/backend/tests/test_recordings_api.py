@@ -659,7 +659,10 @@ def test_rejected_card_orders_notify_the_buyer_with_the_reason_and_allow_a_fresh
         with TestClient(app) as owner:
             owner_login(owner)
             held, _version = held_event(owner, 0)
-            product = build_sellable_product(owner, held, price=1_200_000)
+            # FAQ supplied on the very first PUT (regression: the create path used to pass ``faq`` twice).
+            product = build_sellable_product(owner, held, price=1_200_000,
+                                             faq=[{"q": "دانلود دارد؟", "a": "فقط جزوه."}])
+            assert product["recording"]["faq"] == [{"q": "دانلود دارد؟", "a": "فقط جزوه."}]
             assert set_status(owner, held, "ready").status_code == 200
             assert set_status(owner, held, "published").status_code == 200
             recording_id = product["recording"]["id"]
