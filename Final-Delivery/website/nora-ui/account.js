@@ -56,17 +56,12 @@ function dtParts(v){
 const dtTxt=t=>t?(t.y+'/'+String(t.m).padStart(2,'0')+'/'+String(t.d).padStart(2,'0')):'';
 const myUp=()=>EVENTS.filter(e=>MY_UP.indexOf(e.id)>-1);
 const myPast=()=>PAST.filter(e=>MY_PAST.indexOf(e.id)>-1);
-function cdParts(e){
-  /* روز و ساعت و دقیقهٔ مانده؛ در پیش‌نمایش از شمارهٔ روز خود داده می‌آید */
-  const days=+String(e.dn||'').replace(/\D/g,'')||0;
-  const mins=((days*24+7)*60)+37;
-  return {d:Math.floor(mins/1440), h:Math.floor(mins%1440/60), m:mins%60};
-}
+/* شمارش معکوس فقط با شمارشگر مشترک و زمان معتبر سرور (startsAt/registration)؛ هیچ عدد نمونه‌ای ساخته نمی‌شود */
 function cdLine(e){
-  const t=cdParts(e);
-  return `<span class="cdline">${ico('i-clock')}
-    <b>شمارش نمونه</b> · ${faN(t.d)} روز و ${faN(t.h)} ساعت و ${faN(t.m)} دقیقه
-    <small>زمان واقعی رویداد وصل نیست.</small></span>`;
+  const CD=window.NORA_COUNTDOWN;
+  if(!CD||typeof CD.eventTarget!=='function'||typeof CD.markup!=='function') return '';
+  const target=CD.eventTarget(e);
+  return target?`<span class="cdline">${CD.markup(target)}</span>`:'';
 }
 /* هر پارامتر فرم پروفایل، یک خط از پروفایل تو می‌شود؛ عکس هم پارامتر است */
 const PHOTO_SEED=['people/p5.svg','people/p2.svg','people/p7.svg'];

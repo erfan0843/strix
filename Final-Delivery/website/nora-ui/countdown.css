@@ -1,0 +1,25 @@
+/* شمارشگر و نشان وضعیت ثبت‌نام مشترک (خانه، کارت، صفحهٔ رویداد، بنر) */
+.nora-countdown{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 10px;border-radius:999px;
+  background:color-mix(in srgb,var(--brand,#0a56b8) 10%,var(--surface,#fff));color:var(--ink,#1a2338);
+  font-size:12.5px;line-height:1.7;font-variant-numeric:tabular-nums;direction:rtl}
+.nora-countdown .i{width:15px;height:15px;flex:none;color:var(--brand,#0a56b8)}
+.nora-countdown-label{color:var(--ink-3,#5b6478);white-space:nowrap}
+.nora-countdown-value{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nora-countdown.is-soon{background:color-mix(in srgb,#b7791f 14%,var(--surface,#fff))}
+.nora-countdown.is-soon .i{color:#b7791f}
+.nora-countdown.is-ended{background:var(--surface-2,#f1f3f7);color:var(--ink-3,#5b6478)}
+.nora-countdown.is-ended .i{color:var(--ink-4,#8a92a6)}
+.nora-countdown.is-compact{padding:3px 8px;font-size:11.5px}
+.nora-countdown.is-compact .nora-countdown-label{display:none}
+.nora-countdown.on-dark{background:rgba(255,255,255,.16);color:#fff}
+.nora-countdown.on-dark .i,.nora-countdown.on-dark .nora-countdown-label{color:rgba(255,255,255,.85)}
+.nora-countdown.on-dark.is-ended{background:rgba(0,0,0,.28);color:rgba(255,255,255,.85)}
+.reg-state{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;line-height:1.7;white-space:nowrap}
+.reg-state::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.reg-state.live{background:color-mix(in srgb,#1d8a4b 14%,var(--surface,#fff));color:#1d8a4b}
+.reg-state.wait{background:color-mix(in srgb,#b7791f 14%,var(--surface,#fff));color:#8a5a12}
+.reg-state.stop{background:color-mix(in srgb,#c0392b 12%,var(--surface,#fff));color:#a93226}
+.reg-state.mute{background:var(--surface-2,#f1f3f7);color:var(--ink-3,#5b6478)}
+.reg-state.on-dark{background:rgba(255,255,255,.18);color:#fff}
+html[data-theme="dark"] .nora-countdown{background:rgba(255,255,255,.08)}
+html[data-theme="dark"] .nora-countdown.is-ended,html[data-theme="dark"] .reg-state.mute{background:rgba(255,255,255,.06)}

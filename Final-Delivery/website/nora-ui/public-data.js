@@ -46,6 +46,13 @@
     return publicPath(path);
   };
   const deliveryCode = value => /^[0-9a-f]{32}$/i.test(String(value || '')) ? String(value).toLowerCase() : '';
+  /* ساعت مرجع: اختلاف ساعت سرور با مرورگر؛ تا پاسخ سرور نرسد صفر است */
+  const serverNow = () => Date.now() + ((root.NORA_SERVER_CLOCK && Number.isFinite(root.NORA_SERVER_CLOCK.offsetMs)) ? root.NORA_SERVER_CLOCK.offsetMs : 0);
+  const rememberServerClock = value => {
+    const ms = Date.parse(String(value || ''));
+    if (!Number.isFinite(ms)) return;
+    root.NORA_SERVER_CLOCK = { serverTime: new Date(ms).toISOString(), offsetMs: ms - Date.now(), receivedAt: Date.now() };
+  };
   const publicBotUrl = value => { const url = text(value, 256); return /^https:\/\/ble[.]ir\/[A-Za-z0-9_]{3,64}$/i.test(url) ? url : ''; };
   const fileMedia = item => {
     const kind = text(item && (item.k || item.kind), 24).toLowerCase();
@@ -162,6 +169,23 @@
       }
       return row;
     }).filter(item => item.t || item.src || item.url || item.delivery_id);
+    const registrationRaw = record.registration && typeof record.registration === 'object' ? record.registration : {};
+    const REG_STATES = ['open', 'not_started', 'full', 'closed', 'ended', 'cancelled', 'none'];
+    const LIFECYCLES = ['scheduled', 'cancelled', 'postponed'];
+    const isoText = value => { const raw = text(value, 40); return raw && Number.isFinite(Date.parse(raw)) ? raw : ''; };
+    const lifecycle = LIFECYCLES.includes(record.lifecycle) ? record.lifecycle : 'scheduled';
+    /* وضعیت ثبت‌نام فقط از سرور می‌آید؛ اگر سرور قدیمی باشد و چیزی نفرستد، «نامشخص» می‌ماند و شمارشگری ساخته نمی‌شود */
+    const registration = REG_STATES.includes(registrationRaw.state) ? {
+      state: registrationRaw.state,
+      reason: text(registrationRaw.reason, 24),
+      lifecycle: LIFECYCLES.includes(registrationRaw.lifecycle) ? registrationRaw.lifecycle : lifecycle,
+      opensAt: isoText(registrationRaw.opensAt),
+      closesAt: isoText(registrationRaw.closesAt),
+      startsAt: isoText(registrationRaw.startsAt),
+      endsAt: isoText(registrationRaw.endsAt),
+      countdownTo: isoText(registrationRaw.countdownTo),
+      startsIn: isoText(registrationRaw.startsIn)
+    } : null;
     const normalized = Object.assign({}, record, {
       id,
       t: title,
@@ -187,6 +211,14 @@
       cert: record.cert === true,
       certMin: Number.isFinite(+record.certMin) ? Math.max(0, Math.min(100, +record.certMin)) : 0,
       certNote: text(record.certNote, 1000),
+      startsAt: isoText(record.startsAt),
+      endsAt: isoText(record.endsAt),
+      regOpensAt: isoText(record.regOpensAt),
+      regClosesAt: isoText(record.regClosesAt),
+      regMode: ['auto', 'closed', 'full'].includes(record.regMode) ? record.regMode : 'auto',
+      lifecycle,
+      conditions: text(record.conditions, 1000),
+      registration,
       privacy
     });
     ['code', 'regs', 'reg', 'taken', 'spots', 'sold', 'attendees', 'registrants'].forEach(key => delete normalized[key]);
@@ -280,7 +312,8 @@
     if (!title) return null;
     const startsAt = text(record.startsAt || record.starts_at, 40);
     const endsAt = text(record.endsAt || record.ends_at, 40);
-    const now = Date.now();
+    /* بازهٔ نمایش با ساعت سرور سنجیده می‌شود (public-data اختلاف را نگه می‌دارد)، نه ساعت مرورگر */
+    const now = serverNow();
     const start = startsAt ? Date.parse(startsAt) : NaN;
     const end = endsAt ? Date.parse(endsAt) : NaN;
     if ((startsAt && !Number.isFinite(start)) || (endsAt && !Number.isFinite(end))
@@ -296,8 +329,24 @@
     // نوع بنر: «sponsored» و «partner» در خانه برچسب روشن «تبلیغ»/«حامی» می‌گیرند؛ هر مقدار دیگر اعلان عادی است.
     const kind = ['sponsored', 'partner'].includes(record.kind) ? record.kind : 'notice';
     const overlay = Number.isFinite(+record.overlay) ? Math.max(0, Math.min(90, Math.round(+record.overlay))) : 48;
+    /* شمارشگر بنر: نوع و هدف فقط از سرور (رویداد یا کمپین)؛ پس از پایان، رفتار پیکربندی‌شده */
+    const countdown = ['reg_close', 'reg_open', 'event_start', 'campaign_end'].includes(record.countdown) ? record.countdown : '';
+    const countdownTo = text(record.countdownTo, 40);
+    const countdownEnded = record.countdownEnded === true;
+    const afterEnd = ['hide', 'message', 'details'].includes(record.afterEnd) ? record.afterEnd : 'hide';
+    if (countdownEnded && afterEnd === 'hide') return null;
+    const linked = record.event && typeof record.event === 'object' ? record.event : null;
+    const event = linked && text(linked.id, 100) ? {
+      id: text(linked.id, 100), t: text(linked.t, 240), when: text(linked.when, 120),
+      state: text(linked.state, 24), lifecycle: text(linked.lifecycle, 24) || 'scheduled'
+    } : null;
     return {
       id: text(record.id, 100), status: 'published', active: true,
+      eventId: text(record.eventId, 100), event,
+      countdown: countdown && (countdownEnded || Number.isFinite(Date.parse(countdownTo))) ? countdown : '',
+      countdownTo: countdown && !countdownEnded && Number.isFinite(Date.parse(countdownTo)) ? countdownTo : '',
+      countdownEnded: !!countdown && countdownEnded,
+      afterEnd, afterEndText: text(record.afterEndText, 160),
       order: Number.isFinite(+record.order) ? Math.max(0, Math.min(1000, Math.round(+record.order))) : 0,
       t: title,
       tag: text(record.eyebrow || record.tag, 80),
@@ -445,6 +494,7 @@
         if (payload && payload.content && typeof payload.content === 'object' && !Array.isArray(payload.content)) {
           remote = payload.content;
           deliveryBotUrl = publicBotUrl(payload.delivery_bot_url);
+          rememberServerClock(payload.server_time);
         }
       } else if (response.status === 404) {
         // سرور سالم است ولی مالک هنوز چیزی منتشر نکرده؛ این «خالی» است، نه «در دسترس نبودن».
