@@ -319,6 +319,19 @@ console.log('— مالک: ساخت محصول، جلسه، فایل جلسه ا
     await app.until(() => app.doc.querySelector('[data-ei-res-editor]') && app.doc.querySelector('#eif_session_id'), 'ویرایشگر منبع با فیلد جلسه');
     assert.equal(app.doc.querySelector('#eif_session_id').value, SESS1);
     assert.equal(app.doc.querySelector('#eif_access').value, 'purchased');
+    /* فاز ۹.۳: منبع بیرونیِ پولی → هشدار صریح سطح حفاظت (Unlisted/عمومی)؛ رایگان → فقط یادآوری بدون DRM؛ فایل → هیچ هشداری */
+    app.setField('#eif_kind', 'youtube');
+    await app.until(() => app.doc.querySelector('[data-ei-external-warning="paid"]'), 'هشدار منبع بیرونی پولی');
+    assert.match(app.doc.querySelector('[data-ei-external-warning="paid"]').textContent, /Unlisted/);
+    assert.match(app.doc.querySelector('[data-ei-external-warning="paid"]').textContent, /نباید «ویدیوی محافظت‌شده» معرفی کرد/);
+    app.setField('#eif_access', 'public');
+    await app.until(() => app.doc.querySelector('[data-ei-external-warning="free"]'), 'یادآوری منبع بیرونی رایگان');
+    assert.doesNotMatch(app.doc.querySelector('[data-ei-external-warning="free"]').textContent, /Unlisted/);
+    app.setField('#eif_access', 'purchased');
+    app.setField('#eif_kind', 'file');
+    await app.until(() => !app.doc.querySelector('[data-ei-external-warning]'), 'فایل خصوصی: بدون هشدار بیرونی');
+    assert.equal(app.doc.querySelector('#eif_access').value, 'purchased');
+    assert.equal(app.doc.querySelector('#eif_session_id').value, SESS1);
     app.setField('#eif_title', 'ویدئوی جلسهٔ یکم');
     app.setField('#eif_delivery', 'view');
     app.click('[data-ei-res-save]');

@@ -304,6 +304,9 @@ console.log('\n— منابع ویدیوی بیرونی (فاز ۹.۱ §۳): ق�
   /* رویداد load قاب → وضعیت ready؛ خطا → پیام صادقانه */
   ytFrame.dispatchEvent(new buyer.dom.window.Event('load'));
   ok(yt.getAttribute('data-embed-state') === 'ready', 'پس از load قاب، پوشش بارگذاری برداشته می‌شود');
+  /* فاز ۹.۳: load ≠ پخش؛ وضعیت صادقانه کنار قاب و بدون هیچ ادعای «پخش شد» */
+  const ytPlayNote = yt.parentElement.querySelector("[data-embed-playback-note]");
+  ok(yt.getAttribute('data-embed-playback') === 'unverified' && ytPlayNote && ytPlayNote.textContent.includes("پخش‌کننده بارگذاری شد") && ytPlayNote.textContent.includes('نورا آن را تأیید نمی‌کند') && !yt.parentElement.textContent.includes('پخش شد'), 'پس از load: «پخش‌کننده بارگذاری شد؛ … نورا آن را تأیید نمی‌کند» (data-embed-playback=unverified)');
   const apBox = buyer.doc.querySelector('.ei-embed[data-rec-embed="' + AP + '"]');
   ap.dispatchEvent(new buyer.dom.window.Event('error'));
   ok(apBox.getAttribute('data-embed-state') === 'error' && apBox.textContent.includes('بارگذاری نشد'), 'خطای قاب: وضعیت error با پیام و پیوند جایگزین، بدون ادعای پخش');

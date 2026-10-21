@@ -315,7 +315,7 @@
     return `<div class="ei-embed" data-rec-embed="${esc(row.id)}" data-embed-provider="${esc(video.provider)}" data-embed-state="loading">
         <iframe src="${esc(video.embed)}" title="${esc(row.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen data-rec-embed-frame="${esc(row.id)}"></iframe>
         <div class="ei-embed-state" role="status" data-rec-embed-state><span data-embed-text>در حال بارگذاری پخش‌کنندهٔ ${esc(name)}…</span></div></div>
-      <p class="ei-embed-note">پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد یا شناسه‌اش اشتباه ثبت شده باشد، همان پیام یا کد خطای خود ${esc(name)} در قاب دیده می‌شود و نورا نمی‌تواند آن را برطرف کند؛ در این حالت از پیوند روبه‌رو در خود سکو ببینید یا به برگزارکننده اطلاع دهید. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
+      <p class="ei-embed-note"><span data-embed-playback-note></span> پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد یا شناسه‌اش اشتباه ثبت شده باشد، همان پیام یا کد خطای خود ${esc(name)} در قاب دیده می‌شود و نورا نمی‌تواند آن را برطرف کند؛ در این حالت از پیوند روبه‌رو در خود سکو ببینید یا به برگزارکننده اطلاع دهید. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
   }
   function wireEmbeds(scope) {
     const win = doc.defaultView || window;
@@ -328,7 +328,13 @@
         box.setAttribute('data-embed-state', 'slow');
         if (text) text.textContent = 'پخش‌کننده هنوز بارگذاری نشده است (شبکه یا فیلترینگ؟). می‌توانید ویدیو را مستقیم در ' + (EMBED_NAME[box.getAttribute('data-embed-provider')] || 'سکوی میزبان') + ' باز کنید.';
       }, EMBED_SLOW_MS);
-      frame.addEventListener('load', () => { win.clearTimeout(slow); box.setAttribute('data-embed-state', 'ready'); }, { once: true });
+      frame.addEventListener('load', () => {
+        win.clearTimeout(slow); box.setAttribute('data-embed-state', 'ready');
+        /* «load» فقط یعنی قاب پاسخ داد (حتی صفحهٔ خطای مرورگر)؛ پخش یا خطای ویدیو را خود سکو داخل قاب نشان می‌دهد و نورا آن را تأیید نمی‌کند. */
+        box.setAttribute('data-embed-playback', 'unverified');
+        const note = box.parentElement && box.parentElement.querySelector('[data-embed-playback-note]');
+        if (note) note.textContent = 'پخش‌کننده بارگذاری شد؛ پخش و خطاهای ویدیو را خود ' + (EMBED_NAME[box.getAttribute('data-embed-provider')] || 'سکو') + ' داخل قاب نشان می‌دهد و نورا آن را تأیید نمی‌کند.';
+      }, { once: true });
       frame.addEventListener('error', () => { win.clearTimeout(slow); box.setAttribute('data-embed-state', 'error'); if (text) text.textContent = 'پخش‌کننده بارگذاری نشد؛ از پیوند زیر در خود سکو ببینید.'; }, { once: true });
     });
   }
