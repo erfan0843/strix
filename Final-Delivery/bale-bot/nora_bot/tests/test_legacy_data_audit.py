@@ -283,3 +283,152 @@ class LegacyAuditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class CertificateAndClubAuditTests(unittest.TestCase):
+    """بخش فاز سوم: ساختار گواهی‌ها و باشگاه — فقط شمارش، بدون داده‌ٔ شخصی."""
+
+    def setUp(self) -> None:
+        import tempfile
+
+        self._tmp = tempfile.TemporaryDirectory(prefix="nora-audit-cert-")
+        self.tmp = Path(self._tmp.name)
+        self.db = self.tmp / "legacy.db"
+        build_legacy(self.db)
+        conn = sqlite3.connect(self.db)
+        conn.executescript(
+            """
+            DROP TABLE certificates;
+            CREATE TABLE certificates (
+                id INTEGER PRIMARY KEY, event_id INTEGER, bale_user_id INTEGER, serial TEXT,
+                revoked INTEGER DEFAULT 0, source TEXT DEFAULT 'event', event_cert_id INTEGER DEFAULT 0,
+                pdf_path TEXT, png_path TEXT, full_code TEXT, expires_on TEXT, verify_count INTEGER DEFAULT 0
+            );
+            CREATE TABLE cert_issues (id INTEGER PRIMARY KEY, title TEXT, status TEXT);
+            CREATE TABLE cert_shares (id INTEGER PRIMARY KEY, issue_id INTEGER, bale_user_id INTEGER,
+                full_name TEXT, state TEXT, cert_id INTEGER);
+            CREATE TABLE cert_batches (id INTEGER PRIMARY KEY, code TEXT, is_active INTEGER, match_by TEXT);
+            CREATE TABLE cert_batch_rows (id INTEGER PRIMARY KEY, batch_id INTEGER, full_name TEXT, mobile TEXT,
+                status TEXT, claimed_by INTEGER, cert_id INTEGER);
+            CREATE TABLE achievements (id INTEGER PRIMARY KEY, key TEXT, is_active INTEGER DEFAULT 1);
+            CREATE TABLE user_achievements (id INTEGER PRIMARY KEY, bale_user_id INTEGER, achievement_key TEXT, points_given INTEGER);
+            CREATE TABLE rewards (id INTEGER PRIMARY KEY, key TEXT);
+            CREATE TABLE reward_redemptions (id INTEGER PRIMARY KEY, bale_user_id INTEGER, reward_key TEXT, status TEXT);
+            CREATE TABLE point_rules (id INTEGER PRIMARY KEY, key TEXT, is_active INTEGER DEFAULT 1, total_awarded INTEGER DEFAULT 0);
+            CREATE TABLE user_actions (id INTEGER PRIMARY KEY, bale_user_id INTEGER, action_type TEXT, action_data TEXT);
+            ALTER TABLE users ADD COLUMN total_points INTEGER DEFAULT 0;
+            ALTER TABLE users ADD COLUMN is_vip INTEGER DEFAULT 0;
+            UPDATE users SET total_points = 40, is_vip = 1 WHERE id = 1;
+            UPDATE users SET total_points = 10 WHERE id = 2;
+            """
+        )
+        conn.executemany(
+            "INSERT INTO certificates (id, event_id, bale_user_id, serial, revoked, source, pdf_path, full_code, expires_on, verify_count)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?)",
+            [
+                (1, 1, 101, "N-0001", 0, "event", "files/certs/1.pdf", "140501-A1", "1407/01/01", 2),
+                (2, 1, 102, "N-0002", 0, "event", None, "140501-A2", None, 0),
+                (3, 1, 888, "N-0003", 1, "batch", "files/certs/3.pdf", None, None, 0),   # بی‌صاحب + باطل
+                (4, 1, None, "N-0001", 0, "batch", None, None, None, 0),                # بدون شناسه + سریال تکراری
+                (5, 9, 101, "N-0005", 0, "manual", "../../etc/x.pdf", None, None, 0),   # رویداد غایب + مسیر ناامن
+            ],
+        )
+        conn.executemany("INSERT INTO cert_issues VALUES (?,?,?)", [(1, "طرح", "published"), (2, "طرح۲", "draft")])
+        conn.executemany(
+            "INSERT INTO cert_shares VALUES (?,?,?,?,?,?)",
+            [(1, 1, 101, "زهرا", "built", 1), (2, 1, None, "اکسلی", "ready", None), (3, 1, 102, "علی", "built", 999)],
+        )
+        conn.execute("INSERT INTO cert_batches VALUES (1, 'B1', 1, 'mobile')")
+        conn.executemany(
+            "INSERT INTO cert_batch_rows VALUES (?,?,?,?,?,?,?)",
+            [(1, 1, "الف", "09120000001", "issued", 101, 1), (2, 1, "ب", "09120000007", "pending", None, None)],
+        )
+        conn.execute("INSERT INTO achievements (key) VALUES ('first_step')")
+        conn.executemany(
+            "INSERT INTO user_achievements (bale_user_id, achievement_key, points_given) VALUES (?,?,?)",
+            [(101, "first_step", 5), (102, "ghost", 5), (999, "first_step", 5)],
+        )
+        conn.execute("INSERT INTO rewards (key) VALUES ('disc10')")
+        conn.executemany(
+            "INSERT INTO reward_redemptions (bale_user_id, reward_key, status) VALUES (?,?,?)",
+            [(101, "disc10", "done"), (999, "disc10", "pending")],
+        )
+        conn.execute("INSERT INTO point_rules (key, total_awarded) VALUES ('r1', 30)")
+        conn.executemany(
+            "INSERT INTO user_actions (bale_user_id, action_type, action_data) VALUES (?,?,?)",
+            [(101, "achievement", '{"key":"first_step","points":5}'),
+             (101, "reward_redeem", '{"key":"disc10","points":60}'),
+             (102, "point_rule", '{"rule":"r1","points":10}'),
+             (102, "profile_edit", '{"field":"bio"}')],
+        )
+        conn.commit()
+        conn.close()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_certificate_structure_and_ownership_counts(self):
+        report = audit.run_audit(self.db)
+        certs = report["legacy"]["certificates"]
+        self.assertTrue(certs["present"])
+        self.assertEqual(certs["owner_key"], "bale_user_id")
+        self.assertEqual(certs["total"], 5)
+        self.assertEqual(certs["with_bale_user_id"], 4)
+        self.assertEqual(certs["without_bale_user_id"], 1)
+        self.assertEqual(certs["owner_in_users"], 3)
+        self.assertEqual(certs["owner_missing_from_users"], 1)
+        self.assertEqual(certs["revoked"], 1)
+        self.assertEqual(certs["active"], 4)
+        self.assertEqual(certs["by_source"], {"event": 2, "batch": 2, "manual": 1})
+        self.assertEqual(certs["duplicate_serials"], 1)
+        self.assertEqual(certs["with_full_code"], 2)
+        self.assertEqual(certs["with_file_path"], 3)
+        self.assertEqual(certs["without_file_path"], 2)
+        self.assertEqual(certs["file_paths_outside_relative_root"], 1)
+        self.assertEqual(certs["event_missing"], 1)
+        self.assertEqual(certs["verified_at_least_once"], 1)
+        self.assertEqual(certs["issues_by_status"], {"published": 1, "draft": 1})
+        self.assertEqual(certs["shares"]["by_state"], {"built": 2, "ready": 1})
+        self.assertEqual(certs["shares"]["without_bale_user_id"], 1)
+        self.assertEqual(certs["shares"]["built_with_missing_certificate"], 1)
+        self.assertEqual(certs["batch_rows"]["by_status"], {"issued": 1, "pending": 1})
+        self.assertEqual(certs["batch_rows"]["unclaimed_without_bale_user_id"], 1)
+
+    def test_club_points_ledger_is_reported_as_incomplete(self):
+        report = audit.run_audit(self.db)
+        club = report["legacy"]["club"]
+        self.assertEqual(club["points"]["storage"], "users.total_points")
+        self.assertEqual(club["points"]["users_with_points"], 2)
+        self.assertEqual(club["points"]["sum_recorded"], 50)
+        self.assertEqual(club["points"]["vip_users"], 1)
+        ledger = club["ledger"]
+        self.assertEqual(ledger["rows_by_type"], {"achievement": 1, "reward_redeem": 1, "point_rule": 1})
+        self.assertEqual(ledger["net_points_in_ledger"], 5 - 60 + 10)
+        self.assertEqual(ledger["counter_minus_ledger"], 50 - (5 - 60 + 10))
+        self.assertFalse(ledger["reconstructible"])
+        self.assertEqual(ledger["retention_days_in_code"], 90)
+        self.assertEqual(club["achievements"]["earned_orphans"], 1)
+        self.assertEqual(club["achievements"]["earned_unknown_key"], 1)
+        self.assertEqual(club["rewards"]["redemption_orphans"], 1)
+        self.assertEqual(club["point_rules"]["sum_total_awarded"], 30)
+        self.assertEqual(club["membership_level"]["status"], "not_a_data_field")
+
+    def test_certificate_blockers_and_privacy(self):
+        before = file_digest(self.db)
+        report = audit.run_audit(self.db, include_identifiers=True)
+        codes = {item["code"] for item in report["blockers"]}
+        self.assertIn("certificate_owner_missing", codes)
+        self.assertIn("certificate_without_owner_key", codes)
+        self.assertIn("certificate_duplicate_serial", codes)
+        blob = json.dumps(report, ensure_ascii=False)
+        for secret in ("0912000000", "زهرا", "علی", "اکسلی", "files/certs", "etc/x.pdf", "N-0001", "140501-A1"):
+            self.assertNotIn(secret, blob)
+        self.assertEqual(sorted(report["legacy"]["certificate_bale_ids"]), ["101", "101", "102", "888"])
+        self.assertEqual(file_digest(self.db), before)
+
+    def test_correlation_counts_certificate_rows_with_server_identity(self):
+        legacy = {"bale_ids": ["101", "102", "888"], "certificate_bale_ids": ["101", "101", "102", "888"]}
+        server = {"bale_subject_ids": ["101", "888"], "phone_subjects": []}
+        corr = audit.correlate(legacy, server, legacy_mobiles=[], pepper=PEPPER)
+        self.assertEqual(corr["certificate_rows_with_server_bale_identity"], 3)
+        self.assertEqual(corr["certificate_rows_without_server_identity"], 1)

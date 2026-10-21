@@ -32,7 +32,7 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
-REPORT_VERSION = 1
+REPORT_VERSION = 2
 
 # دامنه‌ها فقط برای گروه‌بندی گزارش‌اند؛ منبع حقیقت همان جدول‌ها هستند.
 _DOMAINS: dict[str, tuple[str, ...]] = {
@@ -234,9 +234,14 @@ def audit_legacy(database: Path) -> dict[str, Any]:
                         conn, f"SELECT COUNT(*) FROM users WHERE {flag} NOT IN (0, NULL)"
                     )
 
+        certificates = audit_certificates(conn, tables)
+        club = audit_club(conn, tables)
+
         return {
             "path": database.name,
             "size_bytes": database.stat().st_size,
+            "certificates": certificates,
+            "club": club,
             "tables": len(tables),
             "missing_required_tables": [t for t in _REQUIRED_TABLES if t not in tables],
             "counts": counts,
@@ -250,6 +255,235 @@ def audit_legacy(database: Path) -> dict[str, Any]:
             },
             "orphans_by_bale_user_id": orphans,
         }
+    finally:
+        conn.close()
+
+
+# ───────────────────────── گواهی‌ها و باشگاه (فاز سوم) ─────────────────────────
+
+# کنش‌هایی از user_actions که به امتیاز مربوط‌اند؛ علامت = جهت اثر روی total_points.
+_POINT_ACTIONS: dict[str, int] = {
+    "achievement": +1,
+    "point_rule": +1,
+    "birthday_greeting": +1,
+    "points_refund": +1,
+    "reward_redeem": -1,
+    "points_spent": -1,
+    "points_payment": -1,
+}
+# تغییرهایی که در کد ربات امتیاز می‌دهند ولی هیچ ردیفی در user_actions نمی‌نویسند
+# (attendance._award_points، events بستن رویداد، lottery). فقط برای مستندسازی.
+_POINT_WRITERS_WITHOUT_LEDGER = ("attendance._award_points", "events.status_change", "lottery.prize")
+
+
+def _has(conn: sqlite3.Connection, tables: set[str], table: str, *cols: str) -> bool:
+    return table in tables and set(cols) <= _columns(conn, table)
+
+
+def _group(conn: sqlite3.Connection, table: str, column: str, *, limit: int = 12) -> dict[str, int]:
+    """شمارش بر حسب یک ستون وضعیت؛ مقدارها کوتاه و فقط حروف/عدد تا چیزی شخصی چاپ نشود."""
+    if not _IDENT.fullmatch(table) or not _IDENT.fullmatch(column):
+        raise AuditError("invalid_table_name")
+    out: dict[str, int] = {}
+    for row in conn.execute(
+        f"SELECT COALESCE(CAST({column} AS TEXT), '') v, COUNT(*) n FROM {table} "
+        f"GROUP BY v ORDER BY n DESC LIMIT {int(limit)}"
+    ):
+        key = str(row[0])[:24]
+        key = key if re.fullmatch(r"[A-Za-z0-9_.-]*", key) else "other"
+        out[key or "empty"] = out.get(key or "empty", 0) + int(row[1])
+    return out
+
+
+def audit_certificates(conn: sqlite3.Connection, tables: set[str]) -> dict[str, Any]:
+    """ساختار و سلامت دادهٔ گواهی‌ها — فقط شمارش و کد وضعیت."""
+    out: dict[str, Any] = {"present": "certificates" in tables}
+    if "certificates" not in tables:
+        return out
+    cols = _columns(conn, "certificates")
+    out["columns"] = sorted(cols)
+    out["total"] = _count(conn, "certificates")
+    has_bale = "bale_user_id" in cols
+    out["owner_key"] = "bale_user_id" if has_bale else "none"
+    if has_bale:
+        out["with_bale_user_id"] = _scalar(
+            conn, "SELECT COUNT(*) FROM certificates WHERE bale_user_id IS NOT NULL AND bale_user_id <> ''")
+        out["without_bale_user_id"] = out["total"] - out["with_bale_user_id"]
+        out["owner_in_users"] = _scalar(
+            conn, "SELECT COUNT(*) FROM certificates c WHERE c.bale_user_id IS NOT NULL AND c.bale_user_id <> '' "
+                  "AND EXISTS (SELECT 1 FROM users u WHERE u.bale_user_id = c.bale_user_id)")
+        out["owner_missing_from_users"] = out["with_bale_user_id"] - out["owner_in_users"]
+    if "revoked" in cols:
+        out["revoked"] = _scalar(conn, "SELECT COUNT(*) FROM certificates WHERE COALESCE(revoked,0) <> 0")
+        out["active"] = out["total"] - out["revoked"]
+    if "source" in cols:
+        out["by_source"] = _group(conn, "certificates", "source")
+    if "serial" in cols:
+        out["duplicate_serials"] = _scalar(
+            conn, "SELECT COUNT(*) FROM (SELECT serial FROM certificates WHERE serial IS NOT NULL AND serial <> '' "
+                  "GROUP BY serial HAVING COUNT(*) > 1)")
+        out["without_serial"] = _scalar(conn, "SELECT COUNT(*) FROM certificates WHERE serial IS NULL OR serial = ''")
+    if "full_code" in cols:
+        out["with_full_code"] = _scalar(conn, "SELECT COUNT(*) FROM certificates WHERE full_code IS NOT NULL AND full_code <> ''")
+        out["duplicate_full_codes"] = _scalar(
+            conn, "SELECT COUNT(*) FROM (SELECT full_code FROM certificates WHERE full_code IS NOT NULL AND full_code <> '' "
+                  "GROUP BY full_code HAVING COUNT(*) > 1)")
+    if {"event_id", "bale_user_id", "event_cert_id"} <= cols:
+        out["duplicate_event_user_slot"] = _scalar(
+            conn, "SELECT COUNT(*) FROM (SELECT event_id, bale_user_id, COALESCE(event_cert_id,0) FROM certificates "
+                  "WHERE bale_user_id IS NOT NULL GROUP BY 1,2,3 HAVING COUNT(*) > 1)")
+    file_cols = [c for c in ("pdf_path", "png_path", "docx_path", "file_path") if c in cols]
+    out["file_columns"] = file_cols
+    if file_cols:
+        any_file = " OR ".join(f"({c} IS NOT NULL AND {c} <> '')" for c in file_cols)
+        out["with_file_path"] = _scalar(conn, f"SELECT COUNT(*) FROM certificates WHERE {any_file}")
+        out["without_file_path"] = out["total"] - out["with_file_path"]
+        unsafe = " OR ".join(f"({c} LIKE '%..%' OR {c} LIKE '/%' OR {c} LIKE '%:\\%')" for c in file_cols)
+        out["file_paths_outside_relative_root"] = _scalar(conn, f"SELECT COUNT(*) FROM certificates WHERE {unsafe}")
+    if "expires_on" in cols:
+        out["with_expiry"] = _scalar(conn, "SELECT COUNT(*) FROM certificates WHERE expires_on IS NOT NULL AND expires_on <> ''")
+    if "event_id" in cols and "events" in tables:
+        out["event_missing"] = _scalar(
+            conn, "SELECT COUNT(*) FROM certificates c WHERE c.event_id IS NOT NULL AND c.event_id <> 0 "
+                  "AND NOT EXISTS (SELECT 1 FROM events e WHERE e.id = c.event_id)")
+    if "verify_count" in cols:
+        out["verified_at_least_once"] = _scalar(conn, "SELECT COUNT(*) FROM certificates WHERE COALESCE(verify_count,0) > 0")
+
+    # طرح‌ها و سهم‌ها (مرکز صدور): سهم = رزرو، نه گواهی صادرشده
+    if _has(conn, tables, "cert_issues", "status"):
+        out["issues_by_status"] = _group(conn, "cert_issues", "status")
+    if "cert_shares" in tables:
+        scols = _columns(conn, "cert_shares")
+        shares: dict[str, Any] = {"total": _count(conn, "cert_shares")}
+        if "state" in scols:
+            shares["by_state"] = _group(conn, "cert_shares", "state")
+        if "bale_user_id" in scols:
+            shares["without_bale_user_id"] = _scalar(
+                conn, "SELECT COUNT(*) FROM cert_shares WHERE bale_user_id IS NULL OR bale_user_id = ''")
+        if "cert_id" in scols:
+            shares["built_with_missing_certificate"] = _scalar(
+                conn, "SELECT COUNT(*) FROM cert_shares s WHERE s.cert_id IS NOT NULL "
+                      "AND NOT EXISTS (SELECT 1 FROM certificates c WHERE c.id = s.cert_id)")
+        out["shares"] = shares
+    if "cert_batches" in tables:
+        bcols = _columns(conn, "cert_batches")
+        batches: dict[str, Any] = {"total": _count(conn, "cert_batches")}
+        if "is_active" in bcols:
+            batches["active"] = _scalar(conn, "SELECT COUNT(*) FROM cert_batches WHERE COALESCE(is_active,0) <> 0")
+        if "match_by" in bcols:
+            batches["by_match_key"] = _group(conn, "cert_batches", "match_by")
+        out["batches"] = batches
+    if "cert_batch_rows" in tables:
+        rcols = _columns(conn, "cert_batch_rows")
+        rows: dict[str, Any] = {"total": _count(conn, "cert_batch_rows")}
+        if "status" in rcols:
+            rows["by_status"] = _group(conn, "cert_batch_rows", "status")
+        if "claimed_by" in rcols:
+            rows["unclaimed_without_bale_user_id"] = _scalar(
+                conn, "SELECT COUNT(*) FROM cert_batch_rows WHERE claimed_by IS NULL OR claimed_by = ''")
+        if "cert_id" in rcols:
+            rows["claimed_with_missing_certificate"] = _scalar(
+                conn, "SELECT COUNT(*) FROM cert_batch_rows r WHERE r.cert_id IS NOT NULL "
+                      "AND NOT EXISTS (SELECT 1 FROM certificates c WHERE c.id = r.cert_id)")
+        out["batch_rows"] = rows
+    for table, key in (("event_certs", "event_cert_definitions"), ("cert_templates", "templates"),
+                       ("cert_verifies", "verification_log")):
+        if table in tables:
+            entry: dict[str, Any] = {"total": _count(conn, table)}
+            if "is_active" in _columns(conn, table):
+                entry["active"] = _scalar(conn, f"SELECT COUNT(*) FROM {table} WHERE COALESCE(is_active,0) <> 0")
+            out[key] = entry
+    return out
+
+
+def audit_club(conn: sqlite3.Connection, tables: set[str]) -> dict[str, Any]:
+    """امتیاز و باشگاه: شمارنده روی users، دستاوردها، پاداش‌ها و کامل‌بودن دفترکل."""
+    out: dict[str, Any] = {}
+    ucols = _columns(conn, "users") if "users" in tables else set()
+    points: dict[str, Any] = {"storage": "users.total_points" if "total_points" in ucols else "none"}
+    if "total_points" in ucols:
+        points["users_with_points"] = _scalar(conn, "SELECT COUNT(*) FROM users WHERE COALESCE(total_points,0) > 0")
+        points["users_with_negative_points"] = _scalar(conn, "SELECT COUNT(*) FROM users WHERE COALESCE(total_points,0) < 0")
+        points["sum_recorded"] = _scalar(conn, "SELECT COALESCE(SUM(total_points),0) FROM users")
+        points["max_recorded"] = _scalar(conn, "SELECT COALESCE(MAX(total_points),0) FROM users")
+    if "is_vip" in ucols:
+        points["vip_users"] = _scalar(conn, "SELECT COUNT(*) FROM users WHERE COALESCE(is_vip,0) <> 0")
+    # دفترکل: user_actions فقط بخشی از تغییرها را دارد و پس از ۹۰ روز پاک می‌شود.
+    ledger: dict[str, Any] = {"table": "user_actions", "retention_days_in_code": 90,
+                              "writers_without_ledger_row": list(_POINT_WRITERS_WITHOUT_LEDGER)}
+    if _has(conn, tables, "user_actions", "action_type", "action_data"):
+        by_type: dict[str, int] = {}
+        net = 0
+        parsed = 0
+        for row in conn.execute(
+            "SELECT action_type, action_data FROM user_actions WHERE action_type IN (%s)"
+            % ",".join("?" * len(_POINT_ACTIONS)), tuple(_POINT_ACTIONS)):
+            kind = str(row[0])
+            by_type[kind] = by_type.get(kind, 0) + 1
+            try:
+                data = json.loads(row[1] or "{}")
+                value = int(data.get("points") or 0)
+            except (ValueError, TypeError, json.JSONDecodeError):
+                continue
+            parsed += 1
+            net += _POINT_ACTIONS[kind] * value
+        ledger["rows_by_type"] = by_type
+        ledger["rows_parsed"] = parsed
+        ledger["net_points_in_ledger"] = net
+        if "total_points" in ucols:
+            ledger["counter_minus_ledger"] = int(points["sum_recorded"]) - net
+            ledger["reconstructible"] = ledger["counter_minus_ledger"] == 0
+    else:
+        ledger["status"] = "user_actions_missing"
+    out["points"] = points
+    out["ledger"] = ledger
+    if "achievements" in tables:
+        ach: dict[str, Any] = {"definitions": _count(conn, "achievements")}
+        if "is_active" in _columns(conn, "achievements"):
+            ach["active_definitions"] = _scalar(conn, "SELECT COUNT(*) FROM achievements WHERE COALESCE(is_active,0) <> 0")
+        if _has(conn, tables, "user_achievements", "bale_user_id", "achievement_key"):
+            ach["earned_rows"] = _count(conn, "user_achievements")
+            ach["earned_distinct_users"] = _scalar(conn, "SELECT COUNT(DISTINCT bale_user_id) FROM user_achievements")
+            ach["earned_orphans"] = _scalar(
+                conn, "SELECT COUNT(*) FROM user_achievements a WHERE NOT EXISTS "
+                      "(SELECT 1 FROM users u WHERE u.bale_user_id = a.bale_user_id)")
+            ach["earned_unknown_key"] = _scalar(
+                conn, "SELECT COUNT(*) FROM user_achievements a WHERE NOT EXISTS "
+                      "(SELECT 1 FROM achievements d WHERE d.key = a.achievement_key)")
+        out["achievements"] = ach
+    if "rewards" in tables:
+        rw: dict[str, Any] = {"definitions": _count(conn, "rewards")}
+        if _has(conn, tables, "reward_redemptions", "status", "bale_user_id"):
+            rw["redemptions"] = _count(conn, "reward_redemptions")
+            rw["redemptions_by_status"] = _group(conn, "reward_redemptions", "status")
+            rw["redemption_orphans"] = _scalar(
+                conn, "SELECT COUNT(*) FROM reward_redemptions r WHERE NOT EXISTS "
+                      "(SELECT 1 FROM users u WHERE u.bale_user_id = r.bale_user_id)")
+        out["rewards"] = rw
+    if "point_rules" in tables:
+        pr: dict[str, Any] = {"definitions": _count(conn, "point_rules")}
+        pcols = _columns(conn, "point_rules")
+        if "is_active" in pcols:
+            pr["active"] = _scalar(conn, "SELECT COUNT(*) FROM point_rules WHERE COALESCE(is_active,0) <> 0")
+        if "total_awarded" in pcols:
+            pr["sum_total_awarded"] = _scalar(conn, "SELECT COALESCE(SUM(total_awarded),0) FROM point_rules")
+        out["point_rules"] = pr
+    out["membership_level"] = {
+        "status": "not_a_data_field",
+        "note": "tier فقط صفت تعریف دستاورد است؛ سطح عضویت ذخیره‌شده‌ای برای کاربر وجود ندارد (فقط is_vip).",
+    }
+    return out
+
+
+def collect_legacy_cert_bale_ids(database: Path) -> list[str]:
+    conn = _open_readonly(database)
+    try:
+        tables = _tables(conn)
+        if not _has(conn, tables, "certificates", "bale_user_id"):
+            return []
+        return [str(r[0]) for r in conn.execute(
+            "SELECT bale_user_id FROM certificates WHERE bale_user_id IS NOT NULL AND bale_user_id <> ''"
+        )]
     finally:
         conn.close()
 
@@ -359,7 +593,12 @@ def correlate(legacy: dict[str, Any], server: dict[str, Any], *,
             matched_users += 1
             matched_subjects.add(digest)
 
+    cert_ids = [str(v) for v in legacy.get("certificate_bale_ids") or ()]
+    cert_mapped = sum(1 for v in cert_ids if v in server_bale)
+
     return {
+        "certificate_rows_with_server_bale_identity": cert_mapped,
+        "certificate_rows_without_server_identity": len(cert_ids) - cert_mapped,
         "legacy_bale_ids_present_in_server": len(present),
         "legacy_bale_ids_absent_from_server": len(absent),
         "legacy_phones_matching_a_server_phone_identity": matched_users,
@@ -377,6 +616,9 @@ _BLOCKER_TEXT = {
     "duplicate_mobile": "شمارهٔ موبایل تکراری بین کاربران وجود دارد",
     "invalid_mobile": "شماره‌هایی هست که با قاعدهٔ سرور نرمال نمی‌شوند",
     "duplicate_bale_identity": "یک شناسهٔ بله به چند کاربر محلی وصل است",
+    "certificate_owner_missing": "گواهی‌هایی هست که شناسهٔ بلهٔ آن‌ها در users نیست",
+    "certificate_without_owner_key": "گواهی‌هایی بدون شناسهٔ بله هست؛ مالک قابل‌اثبات ندارند",
+    "certificate_duplicate_serial": "سریال گواهی تکراری وجود دارد",
 }
 
 
@@ -399,6 +641,19 @@ def build_blockers(report: dict[str, Any]) -> list[dict[str, Any]]:
         blockers.append({"code": "invalid_mobile",
                          "count": legacy["users"]["mobile_not_normalizable"],
                          "text": _BLOCKER_TEXT["invalid_mobile"]})
+    certs = legacy.get("certificates") or {}
+    if certs.get("owner_missing_from_users"):
+        blockers.append({"code": "certificate_owner_missing",
+                         "count": certs["owner_missing_from_users"],
+                         "text": _BLOCKER_TEXT["certificate_owner_missing"]})
+    if certs.get("without_bale_user_id"):
+        blockers.append({"code": "certificate_without_owner_key",
+                         "count": certs["without_bale_user_id"],
+                         "text": _BLOCKER_TEXT["certificate_without_owner_key"]})
+    if certs.get("duplicate_serials"):
+        blockers.append({"code": "certificate_duplicate_serial",
+                         "count": certs["duplicate_serials"],
+                         "text": _BLOCKER_TEXT["certificate_duplicate_serial"]})
     if legacy["users"]["duplicate_bale_ids"]:
         blockers.append({"code": "duplicate_bale_identity",
                          "count": legacy["users"]["duplicate_bale_ids"],
@@ -444,6 +699,7 @@ def run_audit(database: Path, *, server_database_url: str | None = None,
     }
     if include_identifiers:
         legacy["bale_ids"] = collect_legacy_bale_ids(database)
+        legacy["certificate_bale_ids"] = collect_legacy_cert_bale_ids(database)
     if server_database_url:
         server = audit_server(server_database_url)
         if not include_identifiers:
@@ -490,6 +746,30 @@ def _print_human(report: dict[str, Any]) -> None:
         orphans = ", ".join(f"{k}={v:,}" for k, v in legacy["orphans_by_bale_user_id"].items() if v)
         if orphans:
             print(f"  ردیف‌های بی‌صاحب: {orphans}")
+    certs = legacy.get("certificates") or {}
+    if certs.get("present"):
+        print()
+        print("گواهی‌ها:")
+        print(f"  کل: {certs.get('total', 0):,} | فعال: {certs.get('active', 0):,} | باطل: {certs.get('revoked', 0):,}")
+        print(f"  با شناسهٔ بله: {certs.get('with_bale_user_id', 0):,} | بدون شناسه: {certs.get('without_bale_user_id', 0):,}"
+              f" | مالک غایب از users: {certs.get('owner_missing_from_users', 0):,}")
+        print(f"  سریال تکراری: {certs.get('duplicate_serials', 0):,} | با فایل: {certs.get('with_file_path', 0):,}"
+              f" | بی‌فایل: {certs.get('without_file_path', 0):,}")
+        if certs.get("shares"):
+            print(f"  سهم‌های مرکز صدور (رزرو، نه صادرشده): {certs['shares'].get('total', 0):,}")
+        if certs.get("batch_rows"):
+            print(f"  ردیف‌های دستهٔ اکسل: {certs['batch_rows'].get('total', 0):,}")
+    club = legacy.get("club") or {}
+    if club:
+        pts = club.get("points") or {}
+        ledger = club.get("ledger") or {}
+        print()
+        print("باشگاه:")
+        print(f"  کاربران دارای امتیاز: {pts.get('users_with_points', 0):,} | جمع شمارنده: {pts.get('sum_recorded', 0):,}"
+              f" | VIP: {pts.get('vip_users', 0):,}")
+        if "reconstructible" in ledger:
+            print(f"  دفترکل امتیاز: {'کامل' if ledger['reconstructible'] else 'ناقص'} "
+                  f"(شمارنده − دفترکل = {ledger.get('counter_minus_ledger', 0):,})")
     if report.get("server"):
         srv = report["server"]
         print()
@@ -505,6 +785,8 @@ def _print_human(report: dict[str, Any]) -> None:
         print(f"  شناسهٔ بله غایب از سرور: {corr['legacy_bale_ids_absent_from_server']:,}")
         print(f"  شماره‌های منطبق با هویت سرور: "
               f"{corr['legacy_phones_matching_a_server_phone_identity']:,}")
+        print(f"  گواهی‌های با هویت بلهٔ موجود در سرور: {corr['certificate_rows_with_server_bale_identity']:,}"
+              f" | بدون هویت سرور: {corr['certificate_rows_without_server_identity']:,}")
     print()
     if report["blockers"]:
         print("موانع:")
