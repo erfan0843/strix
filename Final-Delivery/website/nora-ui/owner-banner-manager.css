@@ -61,3 +61,12 @@
 .owner-banner-manager [dir="ltr"]{font-family:'Nora Latin',var(--f)}
 @media(max-width:760px){.owner-banner-manager .obm-layout{grid-template-columns:1fr}.owner-banner-manager .obm-list{max-height:210px;grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.owner-banner-manager .obm-fields{grid-template-columns:1fr}.owner-banner-manager .obm-wide{grid-column:auto}.owner-banner-manager .obm-fieldset{grid-template-columns:1fr}.owner-banner-manager .obm-list{grid-template-columns:1fr}.owner-banner-manager .obm-heading{flex-wrap:wrap}.owner-banner-manager .obm-preview-card.layout-split{grid-template-columns:34% minmax(0,1fr);gap:8px;padding-inline:12px}.owner-banner-manager .obm-preview-card.layout-split .obm-preview-body{font-size:11px}}
+/* فاز ۷: پیش‌نمایش موبایل/دسکتاپ و شمارشگر داخل پیش‌نمایش */
+.owner-banner-manager .obm-preview-modes{display:inline-flex;gap:4px;margin-inline-end:8px}
+.owner-banner-manager .obm-preview-modes .btn.on{background:var(--brand,#326bd1);color:#fff;border-color:transparent}
+.owner-banner-manager .obm-preview[data-preview-mode="mobile"]{max-width:390px;margin-inline:auto;padding:10px;border:1px solid var(--hairline,#dde3ee);border-radius:28px;background:var(--surface-2,#f3f5f9)}
+.owner-banner-manager .obm-preview[data-preview-mode="mobile"] .obm-preview-card{min-height:250px;padding-inline:14px}
+.owner-banner-manager .obm-preview[data-preview-mode="mobile"] .obm-preview-content h4{font-size:18px}
+.owner-banner-manager .obm-preview-countdown{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;padding:4px 11px;border-radius:99px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.38);font-size:12px;font-variant-numeric:tabular-nums}
+.owner-banner-manager .obm-preview-countdown.is-ended{background:rgba(0,0,0,.3)}
+.owner-banner-manager #ownerBannerEventFields small.cap{display:block;margin-top:4px;line-height:1.7}

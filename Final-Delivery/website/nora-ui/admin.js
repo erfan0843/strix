@@ -6395,7 +6395,11 @@ const P2_FIELD_ERR={title_required:'عنوان لازم است.',invalid_jalali_
   invalid_number:'عدد معتبر نیست.',invalid_image:'تصویر معتبر نیست (فقط آدرس همین سایت، https یا فایل تصویری).',invalid_reference:'شناسهٔ ارجاع معتبر نیست.',
   invalid_date:'تاریخ باید به شکل 2026-10-21 باشد.',invalid_body:'متن مطلب معتبر نیست.',article_body_required:'برای انتشار، لید یا متن مطلب لازم است.',
   event_description_required:'برای انتشار، شرح رویداد لازم است.',unexpected_record_fields:'فیلد ناشناخته‌ای فرستاده شد.',invalid_status:'وضعیت معتبر نیست.',
-  invalid_status_transition:'این تغییر وضعیت از حالت فعلی مجاز نیست.',status_unchanged:'وضعیت همین حالا همین است.'};
+  invalid_status_transition:'این تغییر وضعیت از حالت فعلی مجاز نیست.',status_unchanged:'وضعیت همین حالا همین است.',
+  invalid_datetime:'زمان باید به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ (ساعت تهران) باشد و در بازهٔ معقول قرار گیرد.',invalid_datetime_order:'زمان پایان باید بعد از زمان شروع باشد.',
+  invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.'};
+const CT_DATETIME_FIELDS=['startsAt','endsAt','regOpensAt','regClosesAt'];
+const CT_REG_STATE={open:'ثبت‌نام باز',not_started:'ثبت‌نام هنوز آغاز نشده',full:'ظرفیت تکمیل',closed:'ثبت‌نام بسته',ended:'برگزارشده',cancelled:'لغوشده',none:'بدون فرم ثبت‌نام'};
 function p2FieldErr(error){
   const detail=error&&error.payload&&error.payload.detail;
   if(!detail||typeof detail!=='object') return null;
@@ -6408,6 +6412,10 @@ function p2Pager(total,offset,limit,prevAttr,nextAttr){
   return `<div class="row"><small class="cap">${fa(from)} تا ${fa(to)} از ${fa(total)}</small><span class="sp"></span>
     <button class="btn sm quiet" ${prevAttr} ${offset<=0?'disabled':''}>${ico('i-chev-right')}قبلی</button>
     <button class="btn sm quiet" ${nextAttr} ${to>=total?'disabled':''}>بعدی${ico('i-chev-left')}</button></div>`;
+}
+function p2Sel(label,field,value,options,opts){
+  const o=opts||{}, id='ctf_'+field;
+  return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span><select id="${id}" class="input" data-ct-field="${field}">${options.map(([v,l])=>`<option value="${esc(v)}" ${String(value||'')===v?'selected':''}>${esc(l)}</option>`).join('')}</select><small class="cap" data-ct-err="${field}" ${o.err?'style="color:var(--stop)"':''}>${esc(o.err||o.hint||'')}</small></label>`;
 }
 function p2Inp(label,field,value,opts){
   const o=opts||{}, err=o.err||'', id='ctf_'+field;
@@ -6484,7 +6492,8 @@ function ctList(){
     ${d?p2Pager(total,CT.offset,CT.limit,'data-ct-page="prev"','data-ct-page="next"'):''}
   </section>`;
 }
-function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:''}
+function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
+    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:''}
   :{t:'',cat:'',lead:'',body:'',cov:'',who:'',at:'',tags:'',pin:false,min:''}}
 function ctEditable(kind,record){
   const base=ctBlank(kind), out={};
@@ -6492,6 +6501,9 @@ function ctEditable(kind,record){
     let value=record?record[key]:undefined;
     if(key==='tags') value=Array.isArray(value)?value.join('، '):(value||'');
     else if(key==='body') value=Array.isArray(value)?value.join('\n\n'):(value||'');
+    /* زمان‌ها در سرور UTC ذخیره‌اند؛ پنل همان مقدار شمسی/تهران را که سرور برمی‌گرداند نشان می‌دهد */
+    else if(CT_DATETIME_FIELDS.includes(key)) value=record&&record.local_times&&typeof record.local_times[key]==='string'?record.local_times[key]:(value||'');
+    else if(key==='regMode'||key==='lifecycle') value=value||base[key];
     else if(typeof base[key]==='boolean') value=!!value;
     else value=value==null?'':(typeof value==='number'&&value===0?'':String(value));
     out[key]=value;
@@ -6542,6 +6554,15 @@ function ctEditor(){
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}</div>
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',dir:'ltr',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰ تا ۱۳'})}</div>
     ${p2Inp('مکان','place',f.place,{max:240})}
+    <div class="card stack" data-ct-schedule>
+      <strong>زمان‌بندی دقیق و وضعیت ثبت‌نام</strong>
+      <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا شمارشگری ساخته نشود.</small>
+      <div class="row tight" style="flex-wrap:wrap">${p2Inp('شروع رویداد','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',dir:'ltr',err:err.startsAt})}${p2Inp('پایان رویداد','endsAt',f.endsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۳:۰۰',dir:'ltr',err:err.endsAt})}</div>
+      <div class="row tight" style="flex-wrap:wrap">${p2Inp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',dir:'ltr',err:err.regOpensAt})}${p2Inp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',dir:'ltr',err:err.regClosesAt,hint:'پس از این لحظه، فرم ثبت‌نام در سرور بسته می‌شود.'})}</div>
+      <div class="row tight" style="flex-wrap:wrap">${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (بر پایهٔ زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
+      ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
+      ${e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:''}
+    </div>
     ${p2Inp('شرح','d',f.d,{textarea:true,rows:6,err:err.d,hint:'برای انتشار لازم است.'})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('هزینه (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان'})}${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap})}${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}</div>
     ${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}
@@ -6590,7 +6611,7 @@ async function ctOpenEditor(id){
   try{
     const result=await api.getAdminContent(CT.kind,id);
     const record=result.record||{};
-    CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at};
+    CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at,registration:record.registration||null};
     CT.msg=null;
   }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای ویرایش دریافت نشد.')}}
   finally{CT.busy=''; renderBody()}

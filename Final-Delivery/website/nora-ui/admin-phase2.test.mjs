@@ -95,13 +95,18 @@ async function loadPanel(identity) {
           }
           if (method === 'GET' && id) {
             const rec = world.events.find((e) => e.id === id);
-            return rec ? reply(200, { kind, record: rec, version: world.version }) : reply(404, { detail: 'content_record_not_found' });
+            if (!rec) return reply(404, { detail: 'content_record_not_found' });
+            /* مانند content_admin.detail: زمان‌ها UTC ذخیره‌اند و local_times شمسی/تهران برمی‌گردد */
+            const detail = { ...rec, local_times: { startsAt: rec.startsAt ? '1405/08/12 10:00' : '', endsAt: '', regOpensAt: '', regClosesAt: rec.regClosesAt ? '1405/08/10 23:59' : '' },
+              registration: { state: rec.lifecycle === 'cancelled' ? 'cancelled' : 'open', reason: '' } };
+            return reply(200, { kind, record: detail, version: world.version });
           }
           if (method === 'POST' && !id) {
             const denied = needWrite(); if (denied) return denied;
             if (body.expected_version !== world.version) return reply(409, { detail: { code: 'site_content_version_conflict', current_version: world.version } });
             if (!String(body.record.t || '').trim()) return reply(422, { detail: { code: 'title_required', field: 't' } });
             if (body.record.on && !/^\d{4}\/\d{2}\/\d{2}$/.test(body.record.on)) return reply(422, { detail: { code: 'invalid_jalali_date', field: 'on' } });
+            if (body.record.regClosesAt && !/^\d{4}\/\d{2}\/\d{2}( ([01]\d|2[0-3]):[0-5]\d)?$/.test(body.record.regClosesAt)) return reply(422, { detail: { code: 'invalid_datetime', field: 'regClosesAt' } });
             if (body.status === 'published' && !String(body.record.d || '').trim()) return reply(422, { detail: { code: 'event_description_required', field: 'd' } });
             world.version += 1;
             const rec = { id: 'ev-new1', ...body.record, status: body.status || 'draft', updated_at: '2026-10-21T08:00:00+00:00', created_at: '2026-10-21T08:00:00+00:00' };
@@ -237,13 +242,37 @@ console.log('— مالک: فهرست رویدادها از site_content، فی�
     app.click('[data-ct-save]');
     await app.until(() => app.doc.querySelector('[data-ct-err="on"]')?.textContent.includes('تاریخ'), 'خطای تاریخ شمسی زیر فیلد تاریخ');
     app.type('#ctf_on', '1405/09/10');
+    /* فاز ۷: زمان‌بندی دقیق؛ خطای ۴۲۲ سرور زیر همان فیلد و ارسال حالت ثبت‌نام/وضعیت برگزاری */
+    assert.equal(app.doc.querySelector('#ctf_regMode').value, 'auto', 'حالت ثبت‌نام پیش‌فرض خودکار است');
+    assert.equal(app.doc.querySelector('#ctf_lifecycle').value, 'scheduled');
+    app.type('#ctf_regClosesAt', '1405/08/10 25:99');
+    app.click('[data-ct-save]');
+    await app.until(() => app.doc.querySelector('[data-ct-err="regClosesAt"]')?.textContent.includes('ساعت تهران'), 'خطای زمان نامعتبر زیر فیلد مهلت ثبت‌نام');
+    assert.equal(app.world.events.length, 2, 'با زمان نامعتبر چیزی ساخته نشد');
+    app.type('#ctf_regClosesAt', '1405/08/10 23:59');
+    app.type('#ctf_startsAt', '1405/08/12 10:00');
+    app.type('#ctf_conditions', 'ویژهٔ نوجوانان ۱۲ تا ۱۶ سال');
     app.click('[data-ct-save]');
     await app.until(() => app.doc.querySelector('[data-ct-row="ev-new1"]'), 'رکورد تازه در فهرست');
+    {
+      const created = app.calls.find((c) => c.method === 'POST' && c.path === '/api/admin/content/events' && c.body.record.regClosesAt === '1405/08/10 23:59');
+      assert.ok(created, 'مهلت ثبت‌نام به همان شکل ورودی به سرور می‌رود تا سرور به UTC تبدیل کند');
+      assert.equal(created.body.record.startsAt, '1405/08/12 10:00');
+      assert.equal(created.body.record.regMode, 'auto');
+      assert.equal(created.body.record.lifecycle, 'scheduled');
+      assert.equal(created.body.record.conditions, 'ویژهٔ نوجوانان ۱۲ تا ۱۶ سال');
+    }
     assert.match(app.body(), /رکورد ساخته شد · نسخهٔ ۸ · وضعیت از سرور: پیش‌نویس/);
     const create = app.calls.find((c) => c.method === 'POST' && c.path === '/api/admin/content/events');
     assert.equal(create.body.expected_version, 7);
     assert.equal(create.headers['X-CSRF-Token'], 'owner-csrf', 'نوشتن با CSRF مالک');
 
+    app.click('[data-ct-edit="ev-new1"]');
+    await app.until(() => app.doc.querySelector('#ctf_startsAt')?.value === '1405/08/12 10:00', 'پرکردن دوبارهٔ زمان‌ها از local_times سرور (نه مقدار خام UTC)');
+    assert.equal(app.doc.querySelector('#ctf_regClosesAt').value, '1405/08/10 23:59');
+    assert.match(app.doc.querySelector('[data-ct-reg-state]').textContent, /ثبت‌نام باز/, 'وضعیت فعلی ثبت‌نام از سرور نمایش داده می‌شود');
+    app.click('[data-ct-cancel]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-new1"]'), 'بازگشت به فهرست');
     app.click('[data-ct-set="published"][data-ct-id="ev-new1"], [data-ct-row="ev-new1"] [data-ct-set="published"]');
     await app.until(() => app.calls.some((c) => c.path === '/api/admin/content/events/ev-new1/status'), 'درخواست انتشار');
     assert.ok(app.dialogs.some(([k, m]) => k === 'confirm' && m.includes('منتشر می‌شود')), 'انتشار تأیید می‌خواهد');

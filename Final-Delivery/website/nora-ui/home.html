@@ -27,6 +27,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=100"/>
 <link rel="stylesheet" href="nora.css?v=102"/>
+<link rel="stylesheet" href="countdown.css?v=1"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -49,6 +50,8 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .bs h2{margin:0;font-size:clamp(19px,4vw,23px);font-weight:700;letter-spacing:-.3px;line-height:1.5;text-shadow:0 1px 12px rgba(0,0,0,.22);text-wrap:balance}
   .bs .bmeta{font-size:12.5px;opacity:.96}
   .bs .bnote{max-width:58ch;font-size:13px;line-height:1.8;opacity:.94}
+  .bs .btimer{display:flex;flex-wrap:wrap;gap:6px}
+  .bs.align-center .btimer{justify-content:center}
   .bs .bacts{display:flex;gap:8px;margin-top:5px;flex-wrap:wrap}
   .bs .bbtn{-webkit-appearance:none;appearance:none;min-height:42px;padding:5px 15px;border-radius:var(--r-pill);
     border:1px solid rgba(255,255,255,.65);cursor:pointer;background:rgba(255,255,255,.96);color:#10306B;
@@ -685,6 +688,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <script src="ui.js?v=130"></script>
 <script src="owner-api.js?v=113"></script>
 <script src="public-data.js?v=112"></script>
+<script src="countdown.js?v=1"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -845,6 +849,16 @@ function bannerActionMarkup(b,which,index){
   return label&&validLegacy?`<button class="bbtn${which==='b'?' ghost':''}" type="button" data-b${which==="a"?'a':'b'}="${index}">${esc(label)}</button>`:'';
 }
 let BNRLIST=[];
+/* شمارشگر بنر فقط از هدف معتبر سرور؛ پس از پایان، نشان «پایان‌یافته» (بدون دکمهٔ ثبت‌نام) */
+function bannerCountdownMarkup(b){
+  const CD=window.NORA_COUNTDOWN; if(!CD||!b||!b.countdown) return '';
+  if(b.countdownEnded){
+    const label=b.afterEndText||CD.ENDED[b.countdown]||'به پایان رسید';
+    return `<span class="nora-countdown on-dark is-ended" role="status"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><b class="nora-countdown-value">${esc(label)}</b></span>`;
+  }
+  const html=CD.markup({kind:b.countdown,at:b.countdownTo});
+  return html?html.replace('class="nora-countdown','class="nora-countdown on-dark'):'';
+}
 function renderBanner(){
   const U=uiOpt(),settings=bannerSettings(),sec=$('#bnr'),server=productionBannerMode(),intro=introBannerAllowed();
   if((!server&&!intro&&!TEST_FIXTURE_MODE)||!settings.enabled||(!server&&!intro&&(!U.home.bnr||!U.bnr.on))){
@@ -867,13 +881,17 @@ function renderBanner(){
       first=i===0,tag=String(b.tag||b.eyebrow||'').trim(),tag2=String(b.tag2||'').trim(),
       meta=String(b.m||b.subtitle||'').trim(),note=String(b.n||b.s||b.body||'').trim(),
       kindLabel=BANNER_KIND_LABEL[b.kind]||'',
-      actionA=bannerActionMarkup(b,'a',i),actionB=bannerActionMarkup(b,'b',i);
+      actionA=bannerActionMarkup(b,'a',i),actionB=bannerActionMarkup(b,'b',i),
+      timer=bannerCountdownMarkup(b),
+      /* پس از پایان شمارش با رفتار «متن»، متن پایان جای یادداشت را می‌گیرد؛ مقصد دکمه را سرور به «جزئیات» برده است */
+      noteText=b.countdownEnded&&b.afterEnd==='message'&&b.afterEndText?b.afterEndText:note,
+      eventMeta=!meta&&b.event&&b.event.when?b.event.when:meta;
     return `<article class="bs layout-${layout} align-${align}${b.intro?' bs-intro':''}${kindLabel?' bs-'+esc(b.kind):''}" style="--g:${safeGradient(b.g||b.theme)};--bnr-overlay:${overlay/100};--focus-x:${fx}%;--focus-y:${fy}%"
       role="tabpanel" aria-roledescription="${b.intro?'معرفی':'بنر'}" aria-label="${esc(b.t)} · ${faN(i+1)} از ${faN(BNRLIST.length)}">
       <div class="btop">${kindLabel?`<span class="btag btag-kind">${esc(kindLabel)}</span>`:''}${tag?`<span class="btag">${esc(tag)}</span>`:''}${tag2?`<span class="btag">${esc(tag2)}</span>`:''}</div>
       <div class="bs-media"${image?`><img src="${esc(image)}" alt="${esc(b.imgAlt||'')}" loading="${first?'eager':'lazy'}" decoding="async"${first?' fetchpriority="high"':''}/></div>`:' hidden></div>'}
-      <div class="bcontent"><h2>${esc(b.t)}</h2>${meta?`<div class="bmeta">${esc(meta)}</div>`:''}
-        ${note?`<div class="bnote">${esc(note)}</div>`:''}${actionA||actionB?`<div class="bacts">${actionA}${actionB}</div>`:''}</div>
+      <div class="bcontent"><h2>${esc(b.t)}</h2>${eventMeta?`<div class="bmeta">${esc(eventMeta)}</div>`:''}
+        ${noteText?`<div class="bnote">${esc(noteText)}</div>`:''}${timer?`<div class="btimer">${timer}</div>`:''}${actionA||actionB?`<div class="bacts">${actionA}${actionB}</div>`:''}</div>
     </article>`;
   }).join('');
   const showControls=settings.show_controls!==false&&BNRLIST.length>1;
@@ -882,6 +900,7 @@ function renderBanner(){
   $('#bdots').innerHTML=BNRLIST.map((b,i)=>
     `<button type="button" role="tab" tabindex="${i===S.slide?0:-1}" data-bs="${i}" class="${i===S.slide?'on':''}" aria-label="رفتن به بنر ${faN(i+1)}" aria-selected="${i===S.slide}"></button>`).join('');
   slide(S.slide,true);
+  if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount($('#bsdeck'));
 }
 function slide(i){
   if(!BNRLIST.length) return;

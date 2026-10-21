@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="nora.css?v=102"/>
 <link rel="stylesheet" href="admin.css?v=103"/>
 <link rel="stylesheet" href="site-content-sync.css?v=99"/>
-<link rel="stylesheet" href="owner-banner-manager.css?v=3"/>
+<link rel="stylesheet" href="owner-banner-manager.css?v=4"/>
 <link rel="stylesheet" href="cooperation-inbox.css?v=98"/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
@@ -162,6 +162,24 @@
               <label class="fld"><span class="lbl">ترتیب نمایش</span><input class="input" type="number" name="order" min="0" max="1000" step="1" value="0"/></label>
               <label class="fld"><span class="lbl">شروع نمایش</span><input class="input" type="datetime-local" name="startsAt"/></label>
               <label class="fld"><span class="lbl">پایان نمایش</span><input class="input" type="datetime-local" name="endsAt"/></label>
+              <fieldset class="obm-fieldset obm-wide" id="ownerBannerEventFields"><legend>پیوند به رویداد و شمارشگر</legend>
+                <label class="fld obm-wide"><span class="lbl">رویداد منتشرشده (اختیاری)</span>
+                  <select class="input" name="eventId" id="ownerBannerEvent"><option value="">بدون پیوند به رویداد</option></select>
+                  <small class="cap">با انتخاب رویداد، مقصد دکمهٔ اصلی و زمانِ شمارشگر از همان رویداد خوانده می‌شود و تاریخ جداگانه‌ای در بنر ثبت نمی‌شود.</small></label>
+                <label class="fld"><span class="lbl">شمارشگر</span><select class="input" name="countdown">
+                  <option value="">بدون شمارشگر</option>
+                  <option value="reg_close">تا پایان ثبت‌نام رویداد</option>
+                  <option value="event_start">تا شروع رویداد</option>
+                  <option value="campaign_end">تا پایان کمپین مستقل</option></select></label>
+                <label class="fld"><span class="lbl">پایان کمپین مستقل</span><input class="input" type="datetime-local" name="campaignEndsAt"/>
+                  <small class="cap">فقط برای «کمپین مستقل»؛ برای رویداد از زمان خود رویداد استفاده می‌شود.</small></label>
+                <label class="fld"><span class="lbl">پس از پایان شمارش</span><select class="input" name="afterEnd">
+                  <option value="hide">بنر پنهان شود</option>
+                  <option value="message">بماند و متن پایان نمایش داده شود</option>
+                  <option value="details">بماند و دکمه به «جزئیات» برود</option></select></label>
+                <label class="fld"><span class="lbl">متن پس از پایان</span><input class="input" name="afterEndText" maxlength="160" placeholder="مثلاً: مهلت ثبت‌نام به پایان رسید"/></label>
+                <p class="cap obm-wide" id="ownerBannerEventState" role="status"></p>
+              </fieldset>
               <label class="fld"><span class="lbl">تیرگی لایهٔ روی تصویر: <output data-range-output="overlay">۴۸٪</output></span>
                 <input type="range" name="overlay" min="0" max="90" value="48"/></label>
               <label class="fld"><span class="lbl">جای افقی تصویر: <output data-range-output="focusX">۵۰٪</output></span>
@@ -176,8 +194,12 @@
               <label>فاصلهٔ چرخش (۴ تا ۲۰ ثانیه) <input class="input" type="number" name="rotateInterval" min="4" max="20" step="1" value="7"/></label>
               <label><input type="checkbox" name="showControls"/> نمایش کنترل‌های جابه‌جایی</label>
             </div>
-            <div class="obm-preview-wrap"><div class="row"><h3>پیش‌نمایش</h3><span class="sp"></span><span class="cap">پیش از ذخیره، فقط در همین پنل دیده می‌شود.</span></div>
-              <div class="obm-preview" id="ownerBannerPreview" aria-label="پیش‌نمایش بنر"></div></div>
+            <div class="obm-preview-wrap"><div class="row"><h3>پیش‌نمایش</h3><span class="sp"></span>
+                <div class="obm-preview-modes" role="group" aria-label="عرض پیش‌نمایش">
+                  <button class="btn sm quiet on" type="button" data-obm-preview-mode="desktop" aria-pressed="true">دسکتاپ</button>
+                  <button class="btn sm quiet" type="button" data-obm-preview-mode="mobile" aria-pressed="false">موبایل</button></div>
+                <span class="cap">پیش از ذخیره، فقط در همین پنل دیده می‌شود.</span></div>
+              <div class="obm-preview" id="ownerBannerPreview" data-preview-mode="desktop" aria-label="پیش‌نمایش بنر"></div></div>
             <div class="row obm-actions"><button class="btn primary" id="ownerBannerSave" type="submit">ذخیرهٔ تنظیمات بنر</button>
               <button class="btn quiet" id="ownerBannerCancel" type="button">بازخوانی آخرین نسخه</button></div>
           </form>
@@ -234,8 +256,9 @@
 <script src="ui.js?v=130"></script>
 <script src="owner-api.js?v=113"></script>
 <script src="site-content-sync.js?v=102"></script>
-<script src="owner-banner-manager.js?v=3"></script>
+<script src="countdown.js?v=1"></script>
+<script src="owner-banner-manager.js?v=4"></script>
 <script src="cooperation-inbox.js?v=98"></script>
-<script src="admin.js?v=127"></script>
+<script src="admin.js?v=128"></script>
 </body>
 </html>
