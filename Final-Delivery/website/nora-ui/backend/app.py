@@ -3461,6 +3461,108 @@ def create_app(
     ):
         return await _interaction_report(request, db, identity, event_id=event_id, kind="question", target_id=question_id)
 
+    @app.post("/api/account/events/{event_id}/reviews/{review_id}/report", status_code=201)
+    async def account_report_event_review(
+        event_id: str, review_id: str, request: Request,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        return await _interaction_report(request, db, identity, event_id=event_id, kind="review", target_id=review_id)
+
+    @app.post("/api/account/events/{event_id}/reviews", status_code=201)
+    async def account_post_event_review(
+        event_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        participation = _interaction_participation(db, identity.account_id, event_id)
+        if not participation.attended:
+            raise HTTPException(
+                403,
+                {"code": "review_not_eligible", "reason": "attendance_required", "registered": participation.registered},
+            )
+        payload = await _read_json_object(request, 16_384)
+        if set(payload) - {"body"}:
+            raise HTTPException(400, "invalid_review")
+        try:
+            body = interaction_mod.clean_text(
+                payload.get("body"), interaction_mod.REVIEW_MAX_CHARS, field="body",
+                minimum=interaction_mod.REVIEW_MIN_CHARS, required=True,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        existing = db.scalar(
+            select(EventReviewRecord).where(
+                EventReviewRecord.event_id == event_id, EventReviewRecord.account_id == identity.account_id,
+            )
+        )
+        if existing is not None:
+            raise HTTPException(409, {"code": "review_exists", "id": existing.id, "status": existing.status})
+        record = EventReviewRecord(
+            id=interaction_mod.new_id(), event_id=event_id, account_id=identity.account_id,
+            response_id=participation.response_id,
+            author_label=interaction_mod.author_label(_interaction_display_name(db, identity.account_id)),
+            verified_attendee=True, body=body, status="pending",
+        )
+        db.add(record)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, {"code": "review_exists"}) from None
+        db.refresh(record)
+        return interaction_mod.review_public_view(record, viewer_account_id=identity.account_id)
+
+    def _own_review(db: Session, identity: AccountIdentity, event_id: str, review_id: str) -> EventReviewRecord:
+        parsed = interaction_mod.parse_row_id(review_id)
+        record = db.get(EventReviewRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id or record.account_id != identity.account_id:
+            raise HTTPException(404, "review_not_found")
+        return record
+
+    @app.put("/api/account/events/{event_id}/reviews/{review_id}")
+    async def account_edit_event_review(
+        event_id: str, review_id: str, request: Request,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        record = _own_review(db, identity, event_id, review_id)
+        if record.status in {"hidden", "withdrawn"}:
+            raise HTTPException(409, {"code": "review_locked", "status": record.status})
+        payload = await _read_json_object(request, 16_384)
+        if set(payload) - {"body"}:
+            raise HTTPException(400, "invalid_review")
+        try:
+            body = interaction_mod.clean_text(
+                payload.get("body"), interaction_mod.REVIEW_MAX_CHARS, field="body",
+                minimum=interaction_mod.REVIEW_MIN_CHARS, required=True,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if body != record.body:
+            record.body = body
+            record.edit_count += 1
+            record.edited_at = _utc_now()
+            # An edited text is a new submission: it leaves the public list until re-approved.
+            record.status = "pending"
+            db.commit()
+            db.refresh(record)
+        return interaction_mod.review_public_view(record, viewer_account_id=identity.account_id)
+
+    @app.post("/api/account/events/{event_id}/reviews/{review_id}/withdraw")
+    def account_withdraw_event_review(
+        event_id: str, review_id: str,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        record = _own_review(db, identity, event_id, review_id)
+        if record.status != "withdrawn":
+            record.status = "withdrawn"
+            db.commit()
+            db.refresh(record)
+        return interaction_mod.review_public_view(record, viewer_account_id=identity.account_id)
+
     # ── پنل: منابع ──
 
     def _admin_event_id(db: Session, event_id: str) -> str:
@@ -3837,6 +3939,92 @@ def create_app(
         db.commit()
         db.refresh(record)
         return _admin_question_rows(db, [record])[0]
+
+    # ── پنل: دیدگاه‌ها و گزارش‌ها ──
+
+    def _admin_review_rows(db: Session, rows: Sequence[EventReviewRecord]) -> list[dict[str, Any]]:
+        titles = _interaction_event_titles(db, {row.event_id for row in rows})
+        counts = interaction_mod.open_report_counts(db, "review", [row.id for row in rows])
+        return [
+            interaction_mod.review_admin_view(row, open_reports=counts.get(row.id, 0), event_title=titles.get(row.event_id, ""))
+            for row in rows
+        ]
+
+    @app.get("/api/admin/events/{event_id}/reviews")
+    def admin_list_event_reviews(
+        event_id: str,
+        response: Response,
+        status: str = Query(default="", max_length=16),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        filters: list[ColumnElement[bool]] = [EventReviewRecord.event_id == event_id]
+        if status:
+            if status not in interaction_mod.REVIEW_STATUSES:
+                raise HTTPException(422, {"code": "invalid_choice", "field": "status"})
+            filters.append(EventReviewRecord.status == status)
+        total = int(db.scalar(select(func.count(EventReviewRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventReviewRecord).where(*filters)
+            .order_by(EventReviewRecord.created_at.desc(), EventReviewRecord.id).limit(limit).offset(offset)
+        ).all()
+        return {"source": "shared_server_database", "event_id": event_id, "items": _admin_review_rows(db, rows),
+                "total": total, "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/events/{event_id}/reviews/{review_id}/status")
+    async def admin_set_event_review_status(
+        event_id: str,
+        review_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        parsed = interaction_mod.parse_row_id(review_id)
+        record = db.get(EventReviewRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id:
+            raise HTTPException(404, "review_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "reason"}:
+            raise HTTPException(400, "invalid_status")
+        try:
+            status = interaction_mod.choice(payload.get("status"), ("pending", "published", "hidden"), field="status")
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if status == "hidden" and not reason:
+            raise HTTPException(422, {"code": "text_required", "field": "reason"})
+        if record.status == "withdrawn":
+            raise HTTPException(409, {"code": "review_withdrawn"})
+        previous = record.status
+        actor_kind, actor_id = _interaction_actor(identity)
+        record.status = status
+        record.moderation_reason = reason
+        record.moderated_by_kind = actor_kind
+        record.moderated_by_id = actor_id
+        record.moderated_at = _utc_now()
+        if status == "hidden":
+            db.execute(
+                update(EventContentReportRecord)
+                .where(
+                    EventContentReportRecord.target_kind == "review",
+                    EventContentReportRecord.target_id == record.id,
+                    EventContentReportRecord.status == "open",
+                )
+                .values(status="resolved", resolution_note="hidden", resolved_by_kind=actor_kind,
+                        resolved_by_id=actor_id, resolved_at=_utc_now())
+            )
+        record_audit(
+            db, identity, "event_review.status", target_type="event_review", target_id=record.id,
+            details={"event_id": event_id, "from": previous, "to": status, "reason": reason},
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_review_rows(db, [record])[0]
 
     @app.get("/api/admin/event-reports")
     def admin_list_event_reports(
