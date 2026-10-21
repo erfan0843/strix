@@ -314,6 +314,11 @@ def test_card_transfer_purchase_is_reviewed_server_side_and_access_is_decided_pe
             assert public_form.status_code == 200 and public_form.json()["purpose"] == "recording_access"
             assert public_form.json()["purchase"]["signed_in"] is False and public_form.json()["purchase"]["price"] == 1_500_000
             assert public_form.json()["purchase"]["recording_id"] == recording_id and public_form.json()["purchase"]["access_state"] == "none"
+            # The HTML entry (form.html) bootstraps the same purchase header — the UI reads price/state from it.
+            page = guest.get(f"/form.html?fid={form_id}&kind=reg")
+            assert page.status_code == 200 and '"purpose": "recording_access"' in page.text.replace('":"', '": "')
+            assert "\"signed_in\": false" in page.text.replace('":', '": ') and "\"event_id\": \"" + event_id in page.text.replace('":', '": ')
+            assert 'id="nora-public-error-data">null<' in page.text
             # The event deadline is long gone, yet the purchase form stays open: it is not a registration form.
             anonymous = submit_purchase(guest, form_id)
             assert anonymous.status_code == 401 and anonymous.json()["detail"]["code"] == "account_required"
@@ -367,6 +372,8 @@ def test_card_transfer_purchase_is_reviewed_server_side_and_access_is_decided_pe
             assert member.get("/api/account/recordings").json()["items"] == []
             mine = member.get("/api/account/recording-orders").json()
             assert mine["total"] == 1 and mine["items"][0]["status"] == "receipt_submitted" and mine["items"][0]["title"]
+            assert mine["items"][0]["purchase_form_id"] == form_id and "card" not in mine["items"][0]  # account page continues in the form
+            assert member.get(f"/api/account/recording-orders/{order_id}").json()["purchase_form_id"] == form_id
 
             # Another account never sees this order (404, not 403); cancelling a form-backed order is refused.
             stranger = TestClient(app)
@@ -447,6 +454,9 @@ def test_card_transfer_purchase_is_reviewed_server_side_and_access_is_decided_pe
             off_sale = submit_purchase(member, form_id)
             assert off_sale.status_code == 409 and off_sale.json()["detail"]["code"] == "recording_not_on_sale"
             assert public_event(guest, event_id)["recording"]["sellable"] is False
+            paused_page = member.get(f"/form.html?fid={form_id}&kind=reg")
+            assert paused_page.status_code == 200 and f"recording-not-on-sale:{recording_id}" in paused_page.text
+            assert 'id="nora-public-form-data">null<' in paused_page.text  # no price/card bootstrap while off sale
             assert set_status(owner, event_id, "archived", "پایان فروش").status_code == 200
             assert guest.get(f"/api/public/events/{event_id}/recording").status_code == 404
             assert "recording" not in public_event(guest, event_id)

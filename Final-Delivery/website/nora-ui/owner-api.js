@@ -244,47 +244,8 @@
     return payload;
   }
 
-  /* فاز ۹ — رسید سفارش محتوای ضبط‌شده: همان قالب ارسال خامِ رسید فرم، با PUT و توکن CSRF حساب.
-     ارسال رسید هیچ دسترسی‌ای نمی‌سازد؛ تصمیم فقط با مجوز بررسی رسید در سرور گرفته می‌شود. */
-  async function uploadAccountRecordingReceipt(orderId, blob, fileName, note) {
-    const path = '/api/account/recording-orders/' + encodeURIComponent(String(orderId)) + '/receipt';
-    if (!/^\/api\/account\/recording-orders\/[A-Za-z0-9_-]+\/receipt$/.test(path) || !blob || typeof blob.size !== 'number') {
-      throw new TypeError('Invalid recording receipt upload');
-    }
-    let safeName, encodedNote;
-    try {
-      safeName = encodeURIComponent(String(fileName || 'receipt').replace(/[\\/]/g, '_').slice(0, 120)) || 'receipt';
-      encodedNote = encodeURIComponent(String(note || '').replace(/\r\n?/g, '\n').trim().slice(0, 500));
-    } catch (_) { throw new TypeError('Invalid recording receipt note'); }
-    const headers = {
-      Accept: 'application/json',
-      'Content-Type': blob.type || 'application/octet-stream',
-      'X-File-Name': safeName,
-      'X-Receipt-Note': encodedNote
-    };
-    const csrf = csrfCookie('nora_account_csrf');
-    if (csrf) headers['X-CSRF-Token'] = csrf;
-    let response;
-    try {
-      response = await root.fetch(path, { method: 'PUT', headers, credentials: 'same-origin', cache: 'no-store', redirect: 'error', body: blob });
-    } catch (_) {
-      throw new OwnerApiError(0, 'server_unreachable', null);
-    }
-    let payload = null;
-    try { payload = await response.json(); } catch (_) { /* non-JSON response */ }
-    if (!response.ok) {
-      const detail = payload && payload.detail;
-      const code = (detail && typeof detail === 'object' && detail.code)
-        || (typeof detail === 'string' && detail)
-        || (payload && (payload.error || payload.code))
-        || 'server_request_failed';
-      throw new OwnerApiError(response.status, code, payload);
-    }
-    if (!payload || typeof payload.id !== 'string' || typeof payload.status !== 'string') {
-      throw new OwnerApiError(502, 'invalid_recording_receipt_upload', payload);
-    }
-    return payload;
-  }
+  /* فاز ۹.۱ — رسید سفارش محتوای ضبط‌شده دیگر از حساب فرستاده نمی‌شود؛ رسید فقط از فرم خرید
+     (uploadPublicFormReceipt) می‌رود و سرور مسیر حساب را با 410 use_purchase_form بسته است. */
 
   const api = Object.freeze({
     Error: OwnerApiError,
@@ -533,7 +494,6 @@
     cancelAccountRecordingOrder: id => request('/api/account/recording-orders/' + encodeURIComponent(String(id)) + '/cancel', {
       method: 'POST', body: {}, csrfWrite: true, csrfCookie: 'nora_account_csrf'
     }),
-    uploadAccountRecordingReceipt: (orderId, blob, fileName, note) => uploadAccountRecordingReceipt(orderId, blob, fileName, note),
     workflowFileUrl: (taskId, fileId) => '/api/admin/inbox/'
       + encodeURIComponent(String(taskId)) + '/files/' + encodeURIComponent(String(fileId)),
     accountFileUrl: fileId => '/api/account/files/' + encodeURIComponent(String(fileId)),

@@ -6963,11 +6963,34 @@ const REC_ORDER_STATUS={pending:['در انتظار پرداخت','warn'],awaiti
 const REC_ACCESS_STATE={active:['فعال','ok'],expired:['منقضی',''],revoked:['لغوشده','stop']};
 const REC_ACCESS_SOURCE={purchase:'خرید',free:'دسترسی رایگان',granted:'اعطای دستی'};
 const REC_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
-const REC_BLOCKER={event_not_held:'رویداد هنوز برگزار نشده است؛ فروش محتوای ضبط‌شده پس از برگزاری ممکن است.',no_published_session:'دست‌کم یک جلسهٔ منتشرشده لازم است.',no_live_resource:'دست‌کم یک فایل/پیوند منتشرشده در جلسات لازم است.',no_payment_method:'برای محصول پولی باید کارت مقصد یا کیف پول بله (پیکربندی‌شده در سرور) فعال باشد.'};
+const REC_BLOCKER={event_not_held:'رویداد هنوز برگزار نشده است؛ فروش محتوای ضبط‌شده پس از برگزاری ممکن است.',no_published_session:'دست‌کم یک جلسهٔ منتشرشده لازم است.',no_live_resource:'دست‌کم یک فایل/پیوند منتشرشده در جلسات لازم است.',no_payment_method:'فرم خرید این محصول هیچ روش پرداخت معتبری ندارد؛ در فرم‌ساز کارت‌به‌کارت (با کارت مقصد و بررسی رسید) یا کیف پول بله (پیکربندی‌شده در سرور) را فعال کنید.',
+  purchase_form_required:'محصول پولی فقط از راه «فرم خرید» فرم‌ساز فروخته می‌شود؛ هنوز فرم خریدی برای این محصول ساخته نشده است.',purchase_form_invalid_price:'گزینهٔ مالی فرم خرید معتبر نیست؛ در فرم‌ساز یک گزینهٔ مالی اجباری با مبلغ مشخص تعریف کنید.',purchase_form_not_published:'فرم خرید این محصول هنوز منتشر نشده است؛ آن را در فرم‌ساز منتشر کنید.',no_title:'عنوان محصول لازم است.',event_cancelled:'رویداد لغو شده است.'};
 const REC_ERR={publish_blocked:'انتشار ممکن نیست؛ موارد زیر را برطرف کنید.',open_orders_block_price_change:'تا وقتی سفارش باز وجود دارد، قیمت تغییر نمی‌کند.',version_conflict:'نسخهٔ محصول در این میان تغییر کرده؛ بازخوانی کنید.',session_has_resources:'این جلسه فایل دارد؛ اول فایل‌ها را حذف یا جابه‌جا کنید.',
   too_many_sessions:'شمار جلسات از حد مجاز گذشته است.',order_not_reviewable:'این سفارش در وضعیت قابل‌بررسی نیست.',access_already_active:'این حساب هم‌اکنون دسترسی فعال دارد.',invalid_payment_card:'شمارهٔ کارت معتبر نیست (۱۶ رقم).',invalid_number:'عدد واردشده معتبر نیست.',invalid_faq:'هر پرسش متداول باید پرسش (≥۳ نویسه) و پاسخ داشته باشد.',
   invalid_transition:'این تغییر وضعیت مجاز نیست.',reason_required:'دلیل لازم است.',recording_not_found:'برای این رویداد هنوز محصول ضبط‌شده‌ای ساخته نشده است.',account_not_found:'حسابی با این شناسه پیدا نشد.',order_not_paid:'فقط سفارش پرداخت‌شده بازپرداخت می‌شود.',refund_reference_required:'شمارهٔ پیگیری بازپرداخت لازم است.',
-  event_not_published:'رویداد منتشر نشده است.',session_not_found:'جلسه پیدا نشد.',session_resource_access:'فایل جلسه باید سطح دسترسی «خریداران» یا «عمومی» داشته باشد.'};
+  event_not_published:'رویداد منتشر نشده است.',session_not_found:'جلسه پیدا نشد.',session_resource_access:'فایل جلسه باید سطح دسترسی «خریداران» یا «عمومی» داشته باشد.',
+  commercial_settings_in_form:'قیمت، کارت مقصد و روش پرداخت این محصول در فرم خرید تعریف شده‌اند؛ آن‌ها را در فرم‌ساز تغییر دهید.',decide_in_inbox:'این سفارش از فرم خرید ثبت شده و رسید آن در «صندوق پیام‌ها» بررسی می‌شود.',order_follows_form_payment:'این سفارش دنبال پرداخت فرم خرید است و از این‌جا تغییر نمی‌کند.'};
+/* فاز ۹.۱: فرم‌ساز منبع قیمت/روش/کارت مقصد است؛ پنل فقط پیوند می‌دهد و وضعیت واقعی را از سرور نشان می‌دهد. */
+const REC_FORM_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
+function recFormSourced(rec){return !!(rec&&rec.commerce&&rec.commerce.source==='form'&&rec.commerce.form_id)}
+function recSafeId(v){return /^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):''}
+function recBuilderHref(rec){const fid=recSafeId(rec&&rec.commerce&&rec.commerce.form_id); return fid?'create.html?fid='+encodeURIComponent(fid)+'&back='+encodeURIComponent('admin.html#newev'):''}
+function recNewFormHref(rec){const rid=recSafeId(rec&&rec.id), ev=recSafeId(EI.eventId); return rid&&ev?'create.html?purpose=recording_access&recording='+encodeURIComponent(rid)+'&ev='+encodeURIComponent(ev)+'&back='+encodeURIComponent('admin.html#newev'):''}
+function recPublicFormHref(rec){const fid=recSafeId(rec&&rec.commerce&&rec.commerce.form_id); return fid&&rec.commerce.form_status==='published'?'form.html?fid='+encodeURIComponent(fid)+'&kind=reg':''}
+function recCommerceBox(rec){
+  const c=rec.commerce||{source:'product',price:rec.price,methods:[],form_id:null};
+  const methods=(c.methods||[]).map(m=>REC_METHOD[m]||m);
+  if(c.source==='form'){
+    const builder=recBuilderHref(rec), pub=recPublicFormHref(rec);
+    return `<section class="card stack" data-rec-commerce="form"><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">فروش و قیمت (از فرم خرید)</div>${recTag(REC_FORM_STATUS,c.form_status)}${c.valid?tag(recMoney(c.price),''):tag('قیمت نامعتبر','stop')}<span class="sp"></span></div>
+      <p class="cap">فرم خرید: <b>${esc(c.form_title||'بدون عنوان')}</b> · روش‌های فعال: ${methods.length?esc(methods.join('، ')):'هیچ'} · این محصول قیمت و کارت مقصد جداگانه ندارد؛ هر تغییر در فرم‌ساز انجام می‌شود و خریداران فقط از همین فرم می‌خرند.</p>
+      <div class="row tight" style="flex-wrap:wrap">${builder&&eiCanRes()?`<a class="btn sm" href="${esc(builder)}" target="_blank" rel="noopener" data-rec-form-edit>${ico('i-sliders')}ویرایش در فرم‌ساز</a>`:''}${pub?`<a class="btn sm quiet" href="${esc(pub)}" target="_blank" rel="noopener" data-rec-form-public>${ico('i-globe')}فرم خرید عمومی</a>`:''}</div></section>`;
+  }
+  const paid=Number(c.price||rec.price||0)>0, create=recNewFormHref(rec);
+  return `<section class="card stack" data-rec-commerce="product"><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">فروش و قیمت</div>${tag(recMoney(c.price!=null?c.price:rec.price),'')}<span class="sp"></span></div>
+    <p class="cap">${paid?'این محصول پولی است و هنوز فرم خرید ندارد. مبلغ، روش پرداخت و کارت مقصد در فرم خریدِ فرم‌ساز تعریف می‌شود و تا انتشار آن فرم، محصول منتشر نمی‌شود.':'این محصول رایگان است؛ دسترسی با یک کلیک در صفحهٔ رویداد (بدون تراکنش) داده می‌شود و فرم خرید لازم ندارد. برای پولی‌کردن، قیمت را تغییر دهید و فرم خرید بسازید.'}</p>
+    ${paid&&create&&eiCanRes()?`<div class="row tight" style="flex-wrap:wrap"><a class="btn sm" href="${esc(create)}" target="_blank" rel="noopener" data-rec-form-create>${ico('i-plus')}ساخت فرم خرید در فرم‌ساز</a></div>`:''}</section>`;
+}
 function recErr(error,fallback){const code=error&&error.code||''; if(REC_ERR[code]) return REC_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&(REC_ERR[f.code]||EI_ERR[f.code])) return (REC_ERR[f.code]||EI_ERR[f.code])+(f.field?` (${f.field})`:''); return eiErr(error,fallback)}
 function recCanOrders(){return canPerm('receipt_approve')||canPerm('ev_publish')||canPerm('finance')}
 function recCanDecide(){return canPerm('receipt_approve')}
@@ -6997,18 +7020,18 @@ function recSummaryCard(){
 }
 /* ── زبانهٔ محصول ── */
 function recForm(rec){
-  const card=rec&&rec.payment_card||{};
+  /* فاز ۹.۱: کارت مقصد و کلید کیف پول دیگر روی محصول ویرایش نمی‌شوند (منبع: فرم خرید). قیمت فقط تا پیش از اتصال فرم ویرایش‌پذیر است. */
   return {title:rec?rec.title:EI.title||'',summary:rec?rec.summary:'',outcomes:rec?rec.outcomes:'',audience:rec?rec.audience:'',access_terms:rec?rec.access_terms:'',refund_policy:rec?rec.refund_policy:'',
-    faq:rec?(rec.faq||[]).map(x=>`${x.q} :: ${x.a}`).join('\n'):'',price:rec?String(rec.price):'0',access_days:rec&&rec.access_days?String(rec.access_days):'',attendee_access:rec?!!rec.attendee_access:false,
-    download_default:rec?rec.download_default!==false:true,bale_enabled:rec?rec.bale_enabled!==false:true,card_number:card.number||'',card_bank:card.bank||'',card_holder:card.holder||'',cover_url:rec?rec.cover_url||'':''};
+    faq:rec?(rec.faq||[]).map(x=>`${x.q} :: ${x.a}`).join('\n'):'',price:rec?String(recFormSourced(rec)?rec.commerce.price:rec.price):'0',access_days:rec&&rec.access_days?String(rec.access_days):'',attendee_access:rec?!!rec.attendee_access:false,
+    download_default:rec?rec.download_default!==false:true,cover_url:rec?rec.cover_url||'':'',formSourced:recFormSourced(rec)};
 }
 function recPayload(f){
   const faq=String(f.faq||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf('::'); return i<0?{q:l,a:''}:{q:l.slice(0,i).trim(),a:l.slice(i+2).trim()}});
-  const number=String(f.card_number||'').replace(/\D/g,'');
   const out={title:String(f.title||'').trim(),summary:String(f.summary||'').trim(),outcomes:String(f.outcomes||'').trim(),audience:String(f.audience||'').trim(),access_terms:String(f.access_terms||'').trim(),refund_policy:String(f.refund_policy||'').trim(),
-    faq,price:/^\d+$/.test(String(f.price).trim())?Number(String(f.price).trim()):String(f.price),access_days:String(f.access_days||'').trim()?Number(String(f.access_days).trim()):null,
-    attendee_access:!!f.attendee_access,download_default:!!f.download_default,bale_enabled:!!f.bale_enabled,cover_url:String(f.cover_url||'').trim(),
-    payment_card:number||f.card_bank||f.card_holder?{number,bank:String(f.card_bank||'').trim(),holder:String(f.card_holder||'').trim()}:null};
+    faq,access_days:String(f.access_days||'').trim()?Number(String(f.access_days).trim()):null,
+    attendee_access:!!f.attendee_access,download_default:!!f.download_default,cover_url:String(f.cover_url||'').trim()};
+  /* قیمت فقط وقتی فرستاده می‌شود که منبع تجاری هنوز خود محصول باشد؛ با فرم خرید متصل، سرور تغییر آن را ۴۰۹ می‌کند. */
+  if(!f.formSourced) out.price=/^\d+$/.test(String(f.price).trim())?Number(String(f.price).trim()):String(f.price);
   return out;
 }
 function recEditor(){
@@ -7027,15 +7050,13 @@ function recEditor(){
     </div>
     ${field('پرسش‌های متداول (هر خط: پرسش :: پاسخ)','faq',{textarea:true,rows:3})}
     <div class="row tight" style="flex-wrap:wrap;align-items:flex-start">
-      ${field('قیمت (ریال؛ ۰ یعنی رایگان)','price',{dir:'ltr',im:'numeric',max:10})}
+      ${f.formSourced?`<div class="fld" data-rec-price-locked><span class="lbl">قیمت</span><b>${recMoney(f.price)}</b><small class="cap">قیمت، روش پرداخت و کارت مقصد در فرم خرید تعریف شده‌اند و از فرم‌ساز تغییر می‌کنند.</small></div>`
+        :field('قیمت (ریال؛ ۰ یعنی رایگان)','price',{dir:'ltr',im:'numeric',max:10,hint:'برای محصول پولی، مبلغ نهایی و روش پرداخت در فرم خریدِ فرم‌ساز تعریف می‌شود؛ این عدد فقط رایگان/پولی بودن و قیمت نمایشی تا پیش از اتصال فرم را مشخص می‌کند.'})}
       ${field('مدت دسترسی (روز؛ خالی = دائمی)','access_days',{dir:'ltr',im:'numeric',max:4})}
       ${field('نشانی جلد (از رسانه‌های پنل)','cover_url',{dir:'ltr',ph:'/api/public/media/…',max:300})}
     </div>
-    <div class="row tight" style="flex-wrap:wrap">${flag('حاضران تأییدشده رایگان دسترسی دارند','attendee_access')}${flag('فایل‌ها به‌طور پیش‌فرض قابل دانلود باشند','download_default')}${flag('پرداخت با کیف پول بله',"bale_enabled")}</div>
-    ${!walletReady?`<p class="cap">کیف پول بله روی این سرور آمادهٔ دریافت پرداخت نیست؛ تا پیکربندی، فقط کارت‌به‌کارت با بررسی رسید کار می‌کند.</p>`:''}
-    <div class="head">کارت مقصد کارت‌به‌کارت (برای محصول پولی)</div>
-    <div class="row tight" style="flex-wrap:wrap">${field('شمارهٔ کارت','card_number',{dir:'ltr',im:'numeric',max:19,err:err.payment_card})}${field('بانک','card_bank',{max:60})}${field('به نام','card_holder',{max:80})}</div>
-    ${err.payment_card?`<p class="cap" style="color:var(--stop)">${esc(err.payment_card)}</p>`:''}
+    <div class="row tight" style="flex-wrap:wrap">${flag('حاضران تأییدشده رایگان دسترسی دارند','attendee_access')}${flag('فایل‌ها به‌طور پیش‌فرض قابل دانلود باشند','download_default')}</div>
+    <p class="cap" data-rec-commerce-note>کارت مقصد کارت‌به‌کارت و کیف پول بله روی محصول تنظیم نمی‌شوند؛ این‌ها در «فرم خرید» همین محصول (فرم‌ساز) تعریف می‌شوند${walletReady?'.':' · کیف پول بله روی این سرور آمادهٔ دریافت پرداخت نیست؛ تا پیکربندی، فقط کارت‌به‌کارت با بررسی رسید کار می‌کند.'}</p>
     ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
     <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت محصول (پیش‌نویس)',`data-rec-save ${EI.busy?'disabled':''}`,'i-check')}<button class="btn sm quiet" data-rec-cancel>انصراف</button></div></section>`;
 }
@@ -7043,10 +7064,10 @@ function recStatusBox(rec){
   const blockers=(rec.publish_blockers||[]).map(b=>`<li>${esc(REC_BLOCKER[b]||b)}</li>`).join('');
   const transitions=eiCanMod()?(rec.transitions||[]).map(t=>{const disabled=t==='published'&&(rec.publish_blockers||[]).length; return btn(REC_STATUS_ACTION[t]||t,`data-rec-status="${t}" ${disabled?'disabled title="موانع انتشار را برطرف کنید"':''}`,t==='published'?'i-globe':t==='archived'?'i-trash':t==='sales_paused'?'i-lock':'i-refresh')}).join(''):'';
   const c=rec.counts||{};
-  return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
+  return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.commerce?rec.commerce.price:rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
     ${rec.status_reason?`<p class="cap">دلیل آخرین تغییر وضعیت: ${esc(rec.status_reason)}</p>`:''}
     <p class="cap" data-rec-counts>سفارش‌های باز: ${fa(c.orders_open||0)} · در انتظار بررسی: ${fa(c.orders_review||0)} · پرداخت‌شده: ${fa(c.orders_paid||0)} · دسترسی فعال: ${fa(c.access_active||0)} از ${fa(c.access_total||0)} · جلسات منتشرشده: ${fa((rec.sessions||[]).filter(x=>x.status==='published').length)}</p>
-    ${blockers?`<div class="stack" data-rec-blockers><small class="cap">موانع انتشار (از سرور):</small><ul class="cap" style="margin:0;padding-inline-start:18px">${blockers}</ul></div>`:(rec.status==='published'?`<p class="cap">این محصول در صفحهٔ رویداد قابل خرید است.</p>`:'')}
+    ${blockers?`<div class="stack" data-rec-blockers><small class="cap">موانع انتشار (از سرور):</small><ul class="cap" style="margin:0;padding-inline-start:18px">${blockers}</ul></div>`:(rec.status==='published'?`<p class="cap">این محصول در صفحهٔ رویداد قابل خرید است${recFormSourced(rec)?' (از راه فرم خرید)':''}.</p>`:'')}
     <div class="row tight" style="flex-wrap:wrap">${eiCanRes()?btn('ویرایش محصول','data-rec-edit','i-pen'):''}${transitions}</div></section>`;
 }
 function recSessionRow(s){
@@ -7099,7 +7120,7 @@ function recPanelBody(){
   if(REC.edit) return infra+recEditor();
   const sessions=rec.sessions||[];
   const sessionList=sessions.length?`<div class="admlist">${sessions.map(recSessionRow).join('')}</div>`:emptyBox('هنوز جلسه‌ای تعریف نشده است؛ برای انتشار دست‌کم یک جلسهٔ منتشرشده با فایل لازم است.');
-  return `${recStatusBox(rec)}${infra}
+  return `${recStatusBox(rec)}${recCommerceBox(rec)}${infra}
     <section class="card stack" data-rec-sessions><div class="row"><div class="head">جلسات (${fa(sessions.length)})</div><span class="sp"></span>${eiCanRes()&&!REC.session?btn('جلسهٔ تازه','data-rec-sess-new','i-plus'):''}</div>
     <p class="cap">فایل هر جلسه از زبانهٔ «منابع» با انتخاب همان جلسه و سطح «خریداران» بارگذاری می‌شود؛ هر درخواست دانلود/مشاهده در سرور با دسترسی واقعی حساب سنجیده می‌شود.</p>
     ${REC.session?recSessionEditor():''}${sessionList}</section>
@@ -7186,7 +7207,9 @@ async function recRevoke(accessId){
 function recOrderRow(o){
   const busy=EI.busy===o.id, id=o.id, d=REC.orders.detail&&REC.orders.detail.id===id?REC.orders.detail:null;
   const receipt=o.has_receipt?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.recordingOrderReceiptUrl(id))}" target="_blank" rel="noopener">${ico('i-image')}رسید (${esc(o.receipt_file_name||'فایل')})</a>`:'';
-  const actions=[recCanDecide()&&o.reviewable?btn('تأیید پرداخت',`data-rec-order-decide="approve" data-rec-id="${id}"`,'i-check')+btn('رد',`data-rec-order-decide="reject" data-rec-id="${id}"`,'i-close'):'',
+  const viaForm=!!(o.form_payment_id||o.form_response_id);
+  const actions=[recCanDecide()&&o.reviewable&&viaForm?`<a class="btn sm" href="admin.html#inbox" data-rec-order-inbox="${id}">${ico('i-inbox')}بررسی در صندوق پیام‌ها</a>`:'',
+    recCanDecide()&&o.reviewable&&!viaForm?btn('تأیید پرداخت',`data-rec-order-decide="approve" data-rec-id="${id}"`,'i-check')+btn('رد',`data-rec-order-decide="reject" data-rec-id="${id}"`,'i-close'):'',
     recCanFinance()&&(o.status==='paid'||o.status==='paid_manual')?btn('ثبت بازپرداخت',`data-rec-order-refund="${id}"`,'i-wallet'):'',
     btn(d?'بستن تاریخچه':'تاریخچه',`data-rec-order-detail="${id}"`,'i-list')].join('');
   const history=d?`<div class="stack" data-rec-order-history>${REC.orders.detailLoading?'<p class="cap">در حال خواندن…</p>':REC.orders.detailError?p2Msg({kind:'stop',text:REC.orders.detailError}):(d.history&&d.history.length?`<ul class="cap" style="margin:0;padding-inline-start:18px">${d.history.map(h=>`<li>${esc(svcWhen(h.at))} · ${esc(h.action)} · ${esc(h.actor_role||h.actor_kind||'')}${h.details&&h.details.reason?' · '+esc(h.details.reason):''}</li>`).join('')}</ul>`:'<p class="cap">هنوز اقدام مدیریتی روی این سفارش ثبت نشده است.</p>')}</div>`:'';
@@ -7195,7 +7218,7 @@ function recOrderRow(o){
       <small class="cap">${recTag(REC_ORDER_STATUS,o.status)} · ${esc(REC_METHOD[o.method]||o.method)} · ${recMoney(o.amount)} · خریدار: ${esc(o.account_label||o.account_id)}${o.duplicates?` · ${tag(`${fa(o.duplicates)} سفارش دیگر از همین حساب`,'warn')}`:''}</small>
       <small class="cap">ثبت: ${esc(svcWhen(o.created_at))}${o.receipt_submitted_at?' · رسید: '+esc(svcWhen(o.receipt_submitted_at)):''}${o.paid_at?' · پرداخت: '+esc(svcWhen(o.paid_at)):''}${o.decided_at?' · تصمیم: '+esc(svcWhen(o.decided_at))+(o.decision_reason?' («'+esc(o.decision_reason)+'»)':''):''}${o.refunded_at?' · بازپرداخت: '+esc(svcWhen(o.refunded_at))+' · پیگیری '+esc(o.refund_reference||''):''}${o.transaction_id?' · تراکنش '+esc(o.transaction_id):''}</small>
       ${o.receipt_note?`<small class="cap">یادداشت خریدار: ${esc(o.receipt_note)}</small>`:''}
-      <small class="cap">دسترسی: ${o.access?recTag(REC_ACCESS_STATE,o.access.state)+(o.access.expires_at?' تا '+esc(svcWhen(o.access.expires_at)):''):'ندارد'}</small>${history}</span>
+      <small class="cap">دسترسی: ${o.access?recTag(REC_ACCESS_STATE,o.access.state)+(o.access.expires_at?' تا '+esc(svcWhen(o.access.expires_at)):''):'ندارد'}${viaForm?' · ثبت‌شده از فرم خرید':' · سفارش قدیمی (پیش از اتصال فروش به فرم‌ساز)'}</small>${history}</span>
     <span class="row tight" style="flex-wrap:wrap">${receipt}${actions}</span></div>`;
 }
 function recOrdersPanel(){
@@ -7204,7 +7227,7 @@ function recOrdersPanel(){
     <div class="row tight" style="flex-wrap:wrap"><input class="input" type="search" data-rec-order-q placeholder="جست‌وجو: شناسهٔ سفارش/حساب/تراکنش یا عنوان محصول" value="${esc(o.q)}" style="flex:1 1 220px"/>${btn('جست‌وجو','data-rec-order-search','i-search')}
     ${recCanFinance()?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.recordingOrdersExportUrl({status:o.status,event_id:EI.all?'':EI.eventId,q:o.q}))}" download data-rec-order-export>${ico('i-download')}خروجی CSV</a>`:''}</div>`;
   const list=items.length?`<div class="admlist">${items.map(recOrderRow).join('')}</div>`:emptyBox(o.status==='review'?'سفارشی در انتظار بررسی نیست.':'سفارشی با این فیلتر پیدا نشد.');
-  return `<div class="stack" data-rec-orders><p class="cap">رسید به‌تنهایی پرداخت را قطعی نمی‌کند؛ دسترسی فقط پس از تأیید این‌جا (با دلیل) یا تأیید سرور بله داده می‌شود. بازپرداخت فقط با شمارهٔ پیگیری و مجوز مالی ثبت می‌شود.</p>${filters}${list}${p2Pager(total,o.offset,o.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+  return `<div class="stack" data-rec-orders><p class="cap">رسید به‌تنهایی پرداخت را قطعی نمی‌کند. سفارش‌های فرم خرید در «صندوق پیام‌ها» (همان مسیر بازبینی رسید فرم‌ها، با دلیل و ردپا) تأیید یا رد می‌شوند؛ تصمیم مستقیم این‌جا فقط برای سفارش‌های قدیمی است. بازپرداخت فقط با شمارهٔ پیگیری و مجوز مالی ثبت می‌شود.</p>${filters}${list}${p2Pager(total,o.offset,o.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
 }
 async function recOrderDecide(id,decision){
   const api=window.NORA_SERVER_API; if(EI.busy) return;

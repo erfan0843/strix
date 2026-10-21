@@ -251,6 +251,7 @@
           <div><div class="head tight" id="evHead">فرم تازه</div><div class="cap" id="evMeta">اطلاعات رویداد از سرور دریافت نشده است.</div></div>
           <span class="sp"></span><a class="tag brand" id="evChip" href="admin.html#newev" hidden>رویداد متصل</a>
         </div>
+        <div class="capability-box" id="purchaseFormBox" role="status" aria-live="polite" hidden data-purchase-form-box></div>
         <hr class="hr"/>
         <div class="head" style="margin-bottom:10px">مدل فرم</div>
         <div class="capability-box" id="modelCapabilitySummary" role="status" aria-live="polite">وضعیت مدل‌ها هنوز از API همین سامانه دریافت نشده است؛ امکانات نمایش‌داده‌شده را آمادهٔ انتشار فرض نکنید.</div>
@@ -703,7 +704,7 @@
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=131"></script>
-<script src="owner-api.js?v=116"></script>
+<script src="owner-api.js?v=117"></script>
 <script>
 /* ══ داده ══ */
 const TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
@@ -921,6 +922,25 @@ const NEED_BY_MODEL={registration:'reg',questionnaire:'other',survey:'survey',co
 const needForModel=(model=S.model)=>NEED_BY_MODEL[model]||S.need||'reg';
 if(QS.get('fid')) S.fid=QS.get('fid');
 if(QS.get('need')){S.need=QS.get('need');if(NEEDM[S.need])S.model=NEEDM[S.need]}
+/* ── فاز ۹.۱: فرم خرید محتوای ضبط‌شده (purpose=recording_access) ──
+   پنل REC رویداد ما را با ?purpose=recording_access&recording=<id>&ev=<id> می‌فرستد. قیمت، روش و کارت مقصد
+   همین‌جا تعریف می‌شود و محصول آن را از فرم می‌خواند؛ شناسه‌ها را سرور بررسی می‌کند (محصول واقعی، همان رویداد).
+   فرم خرید همیشه مدل ثبت‌نام، بدون همراه و بدون بلیت است و خرید ≠ ثبت‌نام ≠ حضور. */
+const SAFE_ID=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):'';
+S.purpose='registration'; S.recordingId='';
+if(QS.get('purpose')==='recording_access'&&SAFE_ID(QS.get('recording'))){
+  S.purpose='recording_access'; S.recordingId=SAFE_ID(QS.get('recording'));
+  S.model='registration'; S.need='reg'; S.guestsOn=false; S.ticketingEnabled=false;
+  if(SAFE_ID(QS.get('ev'))) S.evId=SAFE_ID(QS.get('ev'));
+  if(QS.get('back')&&!S.back) S.back=QS.get('back');
+}
+const isPurchaseForm=()=>S.purpose==='recording_access';
+function enforcePurchaseFormRules(){
+  if(!isPurchaseForm())return;
+  S.model='registration'; S.need='reg'; S.guestsOn=false; S.ticketingEnabled=false; S.maxPer=1;
+  const gs=document.getElementById('guestsOn'); if(gs){gs.classList.remove('on'); gs.setAttribute('aria-checked','false'); gs.setAttribute('aria-disabled','true')}
+  const ts=document.getElementById('ticketingEnabled'); if(ts){ts.classList.remove('on'); ts.setAttribute('aria-checked','false'); ts.setAttribute('aria-disabled','true')}
+}
 if(TEST_FIXTURE_MODE&&(QS.get('ev')||QS.get('name'))){
   S.evId=QS.get('ev')||'';
   S.back=QS.get('back')||'';
@@ -977,8 +997,43 @@ function applyFormDefaults(){
   const wc=document.getElementById('wcount'); if(wc) wc.value=faN(S.wait);
 }
 applyFormDefaults();
+enforcePurchaseFormRules();
 if(!QS.get('need')) S.need=NEED_BY_MODEL[S.model]||'reg';
+let PURCHASE_PRODUCT=null,PURCHASE_PRODUCT_STATE='';
+function renderPurchaseFormBox(){
+  const box=$('#purchaseFormBox'); if(!box)return;
+  if(!isPurchaseForm()){box.hidden=true;box.innerHTML='';return}
+  const product=PURCHASE_PRODUCT&&PURCHASE_PRODUCT.recording||null;
+  const stateText={draft:'پیش‌نویس',ready:'آمادهٔ انتشار',published:'منتشرشده',sales_paused:'فروش متوقف',archived:'بایگانی'};
+  const eventHref=S.evId?'event.html?id='+encodeURIComponent(S.evId)+'#recording':'';
+  const adminHref=S.evId?'admin.html#newev':'';
+  let info;
+  if(product&&product.id===S.recordingId) info=`<b>${esc(product.title||'محتوای ضبط‌شده')}</b> · وضعیت محصول: ${esc(stateText[product.status]||product.status||'نامشخص')}`
+    +(product.commerce&&product.commerce.source==='form'&&product.commerce.form_id&&product.commerce.form_id!==S.fid?' · این محصول هم‌اکنون یک فرم خرید منتشرشده دارد؛ انتشار فرم دوم رد می‌شود.':'');
+  else if(PURCHASE_PRODUCT_STATE==='loading') info='در حال خواندن محصول از سرور…';
+  else if(PURCHASE_PRODUCT_STATE==='forbidden') info='برای دیدن جزئیات محصول دسترسی مدیریتی لازم است؛ شناسهٔ محصول هنگام ذخیره در سرور بررسی می‌شود.';
+  else if(PURCHASE_PRODUCT_STATE==='mismatch') info='محصول این رویداد با شناسهٔ ارسال‌شده یکی نیست؛ از پنل رویداد دوباره وارد شوید.';
+  else if(PURCHASE_PRODUCT_STATE==='missing') info='محصول ضبط‌شده‌ای برای این رویداد در سرور نیست؛ ابتدا در پنل رویداد (زبانهٔ محتوای ضبط‌شده) محصول را بسازید.';
+  else info='جزئیات محصول از سرور دریافت نشد؛ شناسه هنگام ذخیره بررسی می‌شود.';
+  box.innerHTML=`<b>فرم خرید محتوای ضبط‌شده</b><div class="cap" style="margin-top:4px">${info}</div>
+    <div class="cap" style="margin-top:6px">قیمت، روش پرداخت و کارت مقصد را در بخش «مالی» همین فرم تعریف کنید؛ محصول همین‌ها را از فرم می‌خواند. خرید ثبت‌نام یا حضور به شمار نمی‌آید: همراه و مدل بلیت برای این فرم بسته است و کد محصول/رویداد را سرور بررسی می‌کند.</div>
+    ${eventHref||adminHref?`<div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">${adminHref?`<a class="btn sm quiet" href="${esc(adminHref)}">پنل رویداد</a>`:''}${eventHref?`<a class="btn sm quiet" href="${esc(eventHref)}" target="_blank" rel="noopener">صفحهٔ رویداد</a>`:''}</div>`:''}`;
+  box.hidden=false;
+}
+async function loadPurchaseProduct(){
+  if(!isPurchaseForm()||!S.evId)return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.getEventRecording!=='function'){PURCHASE_PRODUCT_STATE='unavailable';renderPurchaseFormBox();return}
+  PURCHASE_PRODUCT_STATE='loading';renderPurchaseFormBox();
+  try{
+    const data=await api.getEventRecording(S.evId);
+    PURCHASE_PRODUCT=data&&typeof data==='object'?data:null;
+    PURCHASE_PRODUCT_STATE=!PURCHASE_PRODUCT||!PURCHASE_PRODUCT.recording?'missing':PURCHASE_PRODUCT.recording.id!==S.recordingId?'mismatch':'ok';
+  }catch(error){PURCHASE_PRODUCT=null;PURCHASE_PRODUCT_STATE=error&&(error.status===401||error.status===403)?'forbidden':error&&error.status===404?'missing':'unavailable'}
+  renderPurchaseFormBox();
+}
 function evHeadFill(){
+  renderPurchaseFormBox();
   const nm=TEST_FIXTURE_MODE?(QS.get('name')||''):'';
   const eh=$('#evHead'), em=$('#evMeta'), ec=$('#evChip');
   if(eh) eh.textContent=nm||S.title||'فرم تازه';
@@ -1250,7 +1305,8 @@ function renderTiles(){
   $('#tiles').innerHTML=MODELS.map(m=>{
     const capability=modelCapability(m.k),blocked=!!(capability&&capability.publishable===false);
     const detail=capability?capability.reason:m.d;
-    return `<button class="tile ${S.model===m.k?'on':''}" data-model="${m.k}" ${blocked?'disabled aria-disabled="true"':''} title="${esc(detail)}">
+    const locked=isPurchaseForm()&&m.k!=='registration';
+    return `<button class="tile ${S.model===m.k?'on':''}" data-model="${m.k}" ${blocked||locked?'disabled aria-disabled="true"':''} title="${esc(locked?'فرم خرید محتوای ضبط‌شده فقط با مدل ثبت‌نام (پرداخت سروری) ساخته می‌شود.':detail)}">
       <div class="h"><span class="ic"><svg class="i lg"><use href="#${m.ic}"/></svg></span><b>${m.tn}</b>${capability?capabilityTag(capability.status,capability.reason):''}</div>
       <div class="d">${esc(m.d)}</div></button>`;
   }).join('');
@@ -2062,11 +2118,14 @@ function ownerLoginPanel(show,message){
     setTimeout(()=>$('#ownerUsername')&&$('#ownerUsername').focus(),0)}
 }
 function formPayloadForServer(row){
-  const core=new Set(['id','name','model','need','slug','ev','fields','status','version','created_at','updated_at','at','serverManaged','serverDraft','on']);
+  const core=new Set(['id','name','model','need','slug','ev','fields','status','version','created_at','updated_at','at','serverManaged','serverDraft','on','purpose','recording_id']);
   const settings={};
   Object.keys(row||{}).forEach(key=>{if(!core.has(key)) settings[key]=row[key]});
-  return {name:row.name,model:row.model,need:row.need,slug:String(row.slug||'').replace(/^\/+/,''),
+  const payload={name:row.name,model:row.model,need:row.need,slug:String(row.slug||'').replace(/^\/+/,''),
     ev:String(row.ev||''),fields:row.fields,settings};
+  /* فرم خرید: هدف و شناسهٔ محصول در سطح بالا می‌رود تا سرور آن را با محصول و رویداد واقعی بسنجد. */
+  if(row.purpose==='recording_access'&&row.recording_id){payload.purpose='recording_access';payload.recording_id=String(row.recording_id);delete settings.ticketing;settings.guestsOn=false}
+  return payload;
 }
 function formFromServer(record){
   const settings=record&&record.settings&&typeof record.settings==='object'?record.settings:{};
@@ -2076,7 +2135,9 @@ function formFromServer(record){
     kind:settings.kind||meta.tn||'فرم',slug:record.slug?'/'+record.slug:'',ev:record.ev||'',
     fields:Array.isArray(record.fields)?record.fields:[],status:record.status||'draft',
     version:record.version||1,serverManaged:true,serverDraft:record.status!=='published',on:record.status==='published'?1:0,
-    at:Date.parse(record.updated_at||'')||Date.now()
+    at:Date.parse(record.updated_at||'')||Date.now(),
+    purpose:record.purpose==='recording_access'?'recording_access':'registration',
+    recording_id:record.purpose==='recording_access'&&record.recording_id?String(record.recording_id):''
   });
   return row;
 }
@@ -2163,6 +2224,7 @@ function ownerApiErrorText(err){
   if(err.status===403) return 'بررسی مبدأ یا CSRF ناموفق بود؛ صفحه را از همان نشانی سامانه باز کنید و دوباره بکوشید.';
   if(err.status===404) return 'API فرم‌ساز روی این میزبان در دسترس نیست؛ سرور FastAPI را از نشانی همین سامانه اجرا کنید.';
   if(err.status===409){
+    if(err.code==='purchase_form_already_published')return 'این محصول هم‌اکنون یک فرم خرید منتشرشده دارد؛ ابتدا آن را متوقف کنید یا همان را ویرایش کنید.';
     if(err.code==='version_conflict')return 'نسخهٔ دیگری از این فرم در سرور ذخیره شده است؛ فهرست را تازه کنید تا ویرایش هم‌زمان بازنویسی نشود.';
     if(err.code==='published_form_read_only')return 'فرم منتشرشده است؛ ابتدا دریافت پاسخ را متوقف کنید و سپس ویرایش کنید.';
     if(err.code==='form_has_responses')return 'این فرم پاسخ دارد و نسخهٔ پرسش‌ها قفل است؛ برای تغییر سؤال‌ها فرم جدیدی بسازید تا پاسخ‌های قبلی جابه‌جا نشوند.';
@@ -2172,6 +2234,14 @@ function ownerApiErrorText(err){
   }
   if(err.status===413) return 'اندازهٔ تنظیمات فرم از سقف مجاز بیشتر است؛ توضیحات یا گزینه‌های سنگین را کوتاه کنید.';
   if(err.status===422){
+    const purchaseErrors={recording_not_found:'محصول ضبط‌شدهٔ این فرم در سرور پیدا نشد؛ از پنل رویداد دوباره وارد فرم‌ساز شوید.',
+      purchase_form_event_mismatch:'رویداد فرم با رویداد محصول یکی نیست؛ پیوند را از پنل همان رویداد باز کنید.',
+      purchase_form_recording_required:'فرم خرید باید به یک محصول ضبط‌شده متصل باشد.',
+      purchase_form_requires_registration_model:'فرم خرید فقط با مدل ثبت‌نام (پرداخت سروری) پذیرفته می‌شود.',
+      ticketing_not_allowed_for_purchase:'فرم خرید بلیت صادر نمی‌کند؛ مدل بلیت را خاموش کنید.',
+      companions_not_allowed_for_purchase:'فرم خرید برای یک حساب است؛ همراه‌آوردن را خاموش کنید.',
+      recording_requires_purchase_purpose:'فقط فرم خرید به محصول ضبط‌شده متصل می‌شود.'};
+    if(err.code&&purchaseErrors[err.code])return purchaseErrors[err.code];
     const issues=err.payload&&err.payload.detail&&err.payload.detail.issues;
     if(Array.isArray(issues)&&issues.length){
       const visible=issues.slice(0,8).map(x=>x&&x.message).filter(Boolean);
@@ -2398,7 +2468,7 @@ document.addEventListener('click',e=>{
     if(types.length<=2){toast('حالت تصادفی دست‌کم دو مدل بلیت می‌خواهد');return}
     types.splice(index,1);syncTicketingUI();renderReview();return;
   }
-  const mo=e.target.closest('[data-model]'); if(mo){S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();renderReview();return}
+  const mo=e.target.closest('[data-model]'); if(mo){if(isPurchaseForm()&&mo.dataset.model!=='registration'){toast('فرم خرید فقط با مدل ثبت‌نام ساخته می‌شود');return}S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();renderReview();return}
   const qk=e.target.closest('[data-quick]'); if(qk){applyPack(qk.dataset.quick);return}
   const ad=e.target.closest('[data-add]'); if(ad){addField(ad.dataset.add);return}
   const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();return}
@@ -2456,6 +2526,7 @@ document.addEventListener('click',e=>{
     }
     const on=!sw.classList.contains('on');
     if(sw.id==='ticketingEnabled'){
+      if(isPurchaseForm()){toast('فرم خرید محتوای ضبط‌شده بلیت صادر نمی‌کند؛ خرید ≠ ثبت‌نام');return}
       if(S.model!=='registration'){toast('مدل بلیت فقط برای فرم ثبت‌نام است');return}
       S.ticketingEnabled=on;
       if(on){S.ticketing=normalizeTicketingState(S.ticketing);
@@ -2467,7 +2538,7 @@ document.addEventListener('click',e=>{
     if(sw.id==='slugAuto'){S.slugAuto=on;S.nested=on;setSwitch(sw.id,on);if(on)updateAutoSlug();syncSettingsUI();slugView();return}
     if(sw.id==='couponAll'){if(!CAN_MONEY){toast('تنظیم مالی فقط برای مالک است');return}
       S.coupon.all=on;setSwitch(sw.id,on);renderReview();return}
-    if(sw.id==='guestsOn'){S.guestsOn=on;if(on&&S.maxPer<2)S.maxPer=2;$('#maxPer').value=faN(S.maxPer);$('#maxPer').removeAttribute('aria-invalid');setSwitch(sw.id,on);renderPreview();renderReview();toast(on?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد');return}
+    if(sw.id==='guestsOn'){if(isPurchaseForm()){toast('فرم خرید برای یک حساب است؛ همراه ندارد');return}S.guestsOn=on;if(on&&S.maxPer<2)S.maxPer=2;$('#maxPer').value=faN(S.maxPer);$('#maxPer').removeAttribute('aria-invalid');setSwitch(sw.id,on);renderPreview();renderReview();toast(on?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد');return}
     if(sw.id==='showOnEvent'){S.eventVisible=on;setSwitch(sw.id,on);renderReview();return}
     if(sw.id==='enableBaleWallet'){setBuiltInPaymentMethod('bale_wallet',on);return}
     if(sw.id==='receiptReviewRequired'){setBuiltInPaymentMethod('card_transfer',on);return;}
@@ -2520,7 +2591,7 @@ document.addEventListener('click',e=>{
       links:copy((S.links||[]).filter(link=>String(link&&link.t||'').trim()||String(link&&link.u||'').trim())),
       fields:(S.fields||[]).map(f=>Object.assign({},copy(f),{opts:(f.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o))})),
       scoring:{enabled:needForModel(S.model)==='survey',method:'weighted-mean',weightMax:5},
-      guestsOn:S.guestsOn, enabledPaymentMethods:enabledPaymentMethods,
+      guestsOn:isPurchaseForm()?false:S.guestsOn, enabledPaymentMethods:enabledPaymentMethods,
       receiptReviewRequired:enabledPaymentMethods.includes('card_transfer'),
       noraPayEnabled:false,
       paymentInstructions:String(S.paymentInstructions||'').replace(/\r\n?/g,'\n').trim().slice(0,500),
@@ -2528,8 +2599,11 @@ document.addEventListener('click',e=>{
       limit:S.limit, inviteCodes:S.limit==='invite'?S.inviteCodes:'',
       display:S.display, dir:S.dir, after:S.after, eventVisible:S.eventVisible!==false,
       onePerPerson:S.onePerPerson!==false, ev:S.evId||saved.ev||'', sync:sync, on:0,
-      ticketingEnabled:S.model==='registration'&&S.ticketingEnabled===true,
-      ...(S.model==='registration'&&S.ticketingEnabled?{ticketing:ticketingPayload()}:{})};
+      ticketingEnabled:!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled===true,
+      ...(!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled?{ticketing:ticketingPayload()}:{}),
+      purpose:isPurchaseForm()?'recording_access':'registration',
+      ...(isPurchaseForm()?{recording_id:S.recordingId}:{})};
+    if(isPurchaseForm()){enforcePurchaseFormRules();row.model='registration';row.need='reg';row.maxPer=1;delete row.ticketing}
     PENDING_DRAFT_ROW=row;
     $('#doneCard').style.display='none';
     saveServerDraft(row);return}
@@ -2696,7 +2770,9 @@ $('#pkStart').innerHTML=pickHTML('datetime',S.start);
 $('#pkEnd').innerHTML=pickHTML('datetime',S.end);
 initAll(document);
 renderStepper();renderTiles();syncSettingsUI();slugView();renderCatalog();if(!S.fid) applyPack('full');
+enforcePurchaseFormRules();
 renderLinks();renderFin();renderCoupon();renderPreview();renderReview();evHeadFill();go('s1');
+void loadPurchaseProduct();
 void refreshFormCapabilities();
 void refreshFormPaymentReadiness();
 /* اگر شناسهٔ فرم در نشانی باشد، همان فرم بار می‌شود؛ غیرمالک به دادهٔ مالی دست نمی‌زند. */
@@ -2712,6 +2788,7 @@ try{
     S.cap=cur.cap==null?S.cap:cur.cap; S.wait=cur.wait==null?S.wait:cur.wait;
     S.start=canonicalDateTime(cur.start,S.start); S.end=canonicalDateTime(cur.ends||cur.end,S.end);
     S.evId=cur.ev||S.evId;
+    if(cur.purpose==='recording_access'&&SAFE_ID(cur.recording_id)){S.purpose='recording_access';S.recordingId=SAFE_ID(cur.recording_id)}
     if(cur.intro!=null) S.intro=cur.intro;
     if(cur.introMedia!=null) S.introMedia=cur.introMedia;
     if(cur.introMediaNote!=null) S.introMediaNote=cur.introMediaNote;

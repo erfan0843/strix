@@ -12,10 +12,14 @@ const wait=(t=120)=>new Promise(r=>setTimeout(r,t));
 const reply=(status,payload={})=>({ok:status>=200&&status<300,status,json:async()=>payload});
 const store=()=>{const m=new Map(); return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear(),key:i=>[...m.keys()][i],get length(){return m.size}}};
 const ACCOUNT={authenticated:true,account_id:'acc-qa-9',provider:'phone',role:null,permissions:[],delivery_bot_url:'https://ble.ir/nora_test_bot'};
-const REC='99999999-9999-4999-8999-999999999999', EV='ev-qa-phase9', ORDER='77777777-7777-4777-8777-777777777771';
+const REC='99999999-9999-4999-8999-999999999999', EV='ev-qa-phase9', ORDER='77777777-7777-4777-8777-777777777771', FORM='88888888-8888-4888-8888-888888888881';
+const FORM_HREF='form.html?fid='+FORM+'&kind=reg';
 const openOrder={id:ORDER,recording_id:REC,method:'card_transfer',status:'awaiting_receipt',open:true,paid:false,amount:1500000,currency:'IRR',expires_at:'2026-10-24T06:00:00Z',
   receipt_submitted:false,receipt_submitted_at:'',receipt_file_name:'',paid_at:'',decided_at:'',decision_reason:'',refunded_at:'',created_at:'2026-10-21T06:00:00Z',updated_at:'',event_id:EV,
-  title:'ضبط کارگاه نجوم',event_title:'کارگاه نجوم',card:{number:'6037997599999993',bank:'ملی',holder:'انجمن نجوم'}};
+  title:'ضبط کارگاه نجوم',event_title:'کارگاه نجوم',card:{number:'6037997599999993',bank:'ملی',holder:'انجمن نجوم'},form_response_id:null,form_payment_id:null,purchase_form_id:FORM};
+/* فاز ۹.۱: سفارش فرم‌دار (پاسخ/پرداخت فرم خرید) — رسید و پیگیری فقط در همان فرم */
+const formOrder={...openOrder,id:'77777777-7777-4777-8777-777777777774',status:'receipt_submitted',receipt_submitted:true,receipt_submitted_at:'2026-10-21T07:00:00Z',receipt_file_name:'receipt.webp',card:undefined,
+  form_response_id:'99999999-9999-4999-8999-999999999991',form_payment_id:'99999999-9999-4999-8999-999999999992',title:'ضبط کارگاه فرم‌دار',event_title:'کارگاه فرم‌دار',recording_id:'rec-7',event_id:'ev-7'};
 const paidOrder={...openOrder,id:'77777777-7777-4777-8777-777777777772',status:'paid_manual',open:false,paid:true,paid_at:'2026-10-20T06:00:00Z',decided_at:'2026-10-20T06:00:00Z',card:undefined,title:'ضبط نشست ادبی',event_title:'نشست ادبی',recording_id:'rec-2',event_id:'ev-2'};
 const rejectedOrder={...openOrder,id:'77777777-7777-4777-8777-777777777773',status:'rejected',open:false,paid:false,decided_at:'2026-10-19T06:00:00Z',decision_reason:'مبلغ واریزی با سفارش نمی‌خواند',card:undefined,title:'ضبط دورهٔ عکاسی',event_title:'دورهٔ عکاسی',recording_id:'rec-3',event_id:'ev-3'};
 const library=[
@@ -92,29 +96,25 @@ console.log('\n── محتوای من: دسترسی‌های واقعی با �
   guest.dom.window.close();
 }
 
-console.log('\n── سفارش‌ها و پرداخت‌ها: سفارش باز با رسید، پرداخت‌شده، ردشده؛ جدا از پرداخت ثبت‌نام ──');
+console.log('\n── سفارش‌ها و پرداخت‌ها (۹.۱): سفارش فرم‌دار، سفارش قدیمی، پرداخت‌شده، ردشده؛ خرید فقط از فرم خرید ──');
 {
-  const p=await load('#payments',{account:ACCOUNT,orders:[openOrder,paidOrder,rejectedOrder]});
+  const p=await load('#payments',{account:ACCOUNT,orders:[openOrder,paidOrder,rejectedOrder,formOrder]});
   ok(p.errs.length===0,'نمای #payments بی‌خطا باز می‌شود'+(p.errs.length?': '+p.errs[0]:''));
   ok(p.doc.title==='نورا · سفارش‌ها و پرداخت‌ها'&&p.network.some(c=>c.path==='/api/account/recording-orders?limit=50&offset=0')&&p.network.some(c=>/^\/api\/account\/registrations\?/.test(c.path)),'سفارش‌های محتوا و پرداخت ثبت‌نام‌ها هر دو از سرور خوانده می‌شوند');
-  ok(p.view().includes('سفارش‌های محتوای ضبط‌شده')&&p.view().includes('پرداخت ثبت‌نام‌ها')&&p.view().includes('۳ سفارش محتوای ضبط‌شده')&&p.view().includes('۱ ثبت‌نام دارای وضعیت پرداخت'),'دو فهرست جدا با شمارنده‌های واقعی: خرید محتوا ≠ ثبت‌نام');
+  ok(p.view().includes('سفارش‌های محتوای ضبط‌شده')&&p.view().includes('پرداخت ثبت‌نام‌ها')&&p.view().includes('۴ سفارش محتوای ضبط‌شده')&&p.view().includes('۱ ثبت‌نام دارای وضعیت پرداخت'),'دو فهرست جدا با شمارنده‌های واقعی: خرید محتوا ≠ ثبت‌نام');
   const open=p.doc.querySelector('[data-account-rec-order="'+ORDER+'"]');
   ok(open.dataset.recOrderStatus==='awaiting_receipt'&&open.textContent.includes('در انتظار رسید')&&open.textContent.includes('6037-9975-9999-9993')&&open.textContent.includes('۱,۵۰۰,۰۰۰ ریال')&&open.textContent.includes('مهلت:'),'سفارش باز: وضعیت، کارت مقصد، مبلغ و مهلت از سرور');
-  ok(!!open.querySelector('form[data-account-rec-receipt]')&&!!open.querySelector('[data-account-rec-cancel]')&&open.textContent.includes('ارسال رسید پرداخت را قطعی نمی‌کند'),'فرم رسید با توضیح صادقانه و انصراف');
+  ok(!open.querySelector('form')&&!open.querySelector('input[type=file]')&&!!open.querySelector('[data-account-rec-legacy]')&&!!open.querySelector('[data-account-rec-cancel]')&&open.querySelector('a[data-account-rec-form]').getAttribute('href')===FORM_HREF,'سفارش قدیمی بدون فرم: بدون بارگذاری رسید در حساب؛ انصراف + پیوند فرم خرید');
+  const viaForm=p.doc.querySelector('[data-account-rec-order="'+formOrder.id+'"]');
+  ok(viaForm.dataset.recOrderStatus==='receipt_submitted'&&!!viaForm.querySelector('[data-account-rec-via-form]')&&viaForm.textContent.includes('در صف بررسی مدیران')&&!viaForm.querySelector('form')&&!viaForm.querySelector('[data-account-rec-cancel]')&&!viaForm.querySelector('[data-account-rec-view]')&&viaForm.querySelector('a[data-account-rec-form]').getAttribute('href')===FORM_HREF,'سفارش فرم‌دار: وضعیت واقعی، بدون انصراف/رسید/مشاهده؛ پیگیری در فرم خرید');
+  ok(!p.network.some(c=>c.method==='PUT'||(c.method==='POST'&&/\/orders$/.test(c.path))),'هیچ PUT رسید یا POST سفارش از صفحهٔ حساب فرستاده نمی‌شود');
   const paid=p.doc.querySelector('[data-account-rec-order="'+paidOrder.id+'"]');
   ok(paid.textContent.includes('پرداخت تأیید شد')&&paid.querySelector('a[data-account-rec-view]').getAttribute('href')==='event.html?id=ev-2#recording-sessions'&&!paid.querySelector('form'),'سفارش پرداخت‌شده: فقط «مشاهدهٔ جلسات»');
   const rejected=p.doc.querySelector('[data-account-rec-order="'+rejectedOrder.id+'"]');
-  ok(rejected.textContent.includes('رد شد')&&rejected.textContent.includes('مبلغ واریزی با سفارش نمی‌خواند')&&rejected.querySelector('a[data-account-rec-retry]').getAttribute('href')==='event.html?id=ev-3#recording'&&!rejected.querySelector('form'),'سفارش ردشده: دلیل سرور و مسیر سفارش دوباره از صفحهٔ محصول');
-  /* ارسال رسید */
-  const form=open.querySelector('form[data-account-rec-receipt]'), input=form.querySelector('[data-account-rec-file]');
-  Object.defineProperty(input,'files',{configurable:true,value:[new p.window.File([new Uint8Array(16)],'رسید.jpg',{type:'image/jpeg'})]});
-  form.querySelector('[data-account-rec-note]').value='پیگیری ۴۵۶';
-  form.dispatchEvent(new p.window.Event('submit',{bubbles:true,cancelable:true}));
-  await wait(250);
-  const put=p.network.find(c=>c.method==='PUT'&&c.path==='/api/account/recording-orders/'+ORDER+'/receipt');
-  ok(!!put&&put.options.headers['X-CSRF-Token']==='account-csrf'&&decodeURIComponent(put.options.headers['X-File-Name'])==='رسید.jpg'&&decodeURIComponent(put.options.headers['X-Receipt-Note'])==='پیگیری ۴۵۶'&&put.options.headers['Content-Type']==='image/jpeg','رسید با PUT خام، CSRF حساب، نام درصدکدشده و یادداشت فرستاده می‌شود');
-  const after=p.doc.querySelector('[data-account-rec-order="'+ORDER+'"]');
-  ok(after.dataset.recOrderStatus==='receipt_submitted'&&after.textContent.includes('در انتظار بررسی')&&!after.querySelector('form')&&!after.querySelector('[data-account-rec-cancel]')&&!after.querySelector('[data-account-rec-view]'),'پس از رسید: «در انتظار بررسی»، بدون فرم/انصراف و بدون دکمهٔ مشاهده (رسید دسترسی نمی‌سازد)');
+  ok(rejected.textContent.includes('رد شد')&&rejected.textContent.includes('مبلغ واریزی با سفارش نمی‌خواند')&&rejected.querySelector('a[data-account-rec-retry]').getAttribute('href')===FORM_HREF&&!rejected.querySelector('form'),'سفارش ردشده: دلیل سرور و خرید دوباره از فرم خرید');
+  const noForm=await load('#payments',{account:ACCOUNT,orders:[{...rejectedOrder,purchase_form_id:null}]});
+  ok(noForm.doc.querySelector('a[data-account-rec-retry]').getAttribute('href')==='event.html?id=ev-3#recording','بدون فرم منتشرشده: فقط پیوند صفحهٔ محصول، بدون مسیر ساختگی');
+  noForm.dom.window.close();
   p.dom.window.close();
 
   /* انصراف */

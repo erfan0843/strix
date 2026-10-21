@@ -846,7 +846,8 @@ const ACCOUNT_REGISTRATION_VIEWS={
 const ACCOUNT_LIBRARY_VIEW={k:'library',n:'محتوای من',s:'محتوای ضبط‌شده‌ای که این حساب به آن دسترسی دارد؛ وضعیت و مهلت از سرور خوانده می‌شود.',i:'i-play'};
 /* ── فاز ۹: سفارش‌های محتوای ضبط‌شده و کتابخانهٔ حساب ──
    خرید ≠ ثبت‌نام ≠ حضور: این بخش فقط دسترسی‌ها و سفارش‌های محتوای ضبط‌شده را نشان می‌دهد.
-   ارسال رسید سفارش را فقط به «در انتظار بررسی» می‌برد؛ دسترسی تنها با تصمیم سرور/درگاه ساخته می‌شود. */
+   فاز ۹.۱: خرید، رسید و پیگیری پرداخت فقط از فرم خریدِ فرم‌ساز (form.html) انجام می‌شود؛ این صفحه
+   دفتر داخلی سفارش را فقط می‌خواند و به همان فرم پیوند می‌دهد. دسترسی تنها با تصمیم سرور/درگاه ساخته می‌شود. */
 const REC_ORDER_STATUS={pending:['در انتظار پرداخت','warn'],awaiting_receipt:['در انتظار رسید','warn'],receipt_submitted:['رسید ثبت شد؛ در انتظار بررسی','warn'],
   paid:['پرداخت شد','ok'],paid_manual:['پرداخت تأیید شد','ok'],needs_review:['نیازمند بررسی','warn'],rejected:['رد شد','bad'],
   cancelled:['لغو شد',''],expired:['منقضی شد',''],refunded:['بازپرداخت شد','']};
@@ -855,6 +856,7 @@ function recMoney(amount,currency){ const n=Math.max(0,Math.round(+amount||0)); 
 function recDuration(minutes){ const m=Math.max(0,Math.round(+minutes||0)); if(!m) return ''; const h=Math.floor(m/60), r=m%60;
   return h?(faN(h)+' ساعت'+(r?' و '+faN(r)+' دقیقه':'')):faN(m)+' دقیقه'; }
 function recEventHref(item,anchor){ return 'event.html?id='+encodeURIComponent(String(item.event_id||''))+(anchor||'#recording'); }
+function recFormHref(item){ const id=String(item&&item.purchase_form_id||''); return /^[A-Za-z0-9_-]{1,100}$/.test(id)?'form.html?fid='+encodeURIComponent(id)+'&kind=reg':''; }
 function recOrderCard(order){
   const state=SERVER_ACCOUNT_STATE, [label,tone]=REC_ORDER_STATUS[order.status]||[order.status,''];
   const busy=state.recOrderBusy===order.id;
@@ -868,21 +870,28 @@ function recOrderCard(order){
     order.refunded_at?`بازپرداخت: ${esc(accountServerDate(order.refunded_at))}`:'',
     order.open&&order.expires_at?`مهلت: ${esc(accountServerDate(order.expires_at))}`:''].filter(Boolean);
   let actions='';
+  const formHref=recFormHref(order), viaForm=!!(order.form_payment_id||order.form_response_id);
+  const formLink=formHref?`<a class="btn sm primary" href="${esc(formHref)}" data-account-rec-form>${ico('i-doc')} ادامه در فرم خرید</a>`
+    :`<small class="cap" data-account-rec-form-missing>فرم خرید این محتوا فعلاً منتشر نیست؛ وضعیت را از صفحهٔ محصول پیگیری کن.</small>`;
   if(order.paid) actions=`<a class="btn sm primary" href="${esc(recEventHref(order,'#recording-sessions'))}" data-account-rec-view>${ico('i-play')} مشاهدهٔ جلسات</a>`;
-  else if(order.open){
-    const receipt=order.status==='awaiting_receipt'||(order.status==='pending'&&order.method==='card_transfer')?`<form class="rec-receipt" data-account-rec-receipt="${esc(order.id)}">
-        <label class="cap" for="recr_${esc(order.id)}">تصویر رسید کارت‌به‌کارت (حداکثر ۸ مگابایت)</label>
-        <input id="recr_${esc(order.id)}" type="file" accept="image/*,application/pdf" data-account-rec-file required ${busy?'disabled':''}/>
-        <input type="text" class="input" maxlength="500" placeholder="شمارهٔ پیگیری یا توضیح (اختیاری)" data-account-rec-note ${busy?'disabled':''}/>
-        <div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm primary" type="submit" ${busy?'disabled':''}>${ico('i-send')} ارسال رسید</button>
-          <button class="btn sm quiet" type="button" data-account-rec-cancel="${esc(order.id)}" ${busy?'disabled':''}>انصراف از سفارش</button></div>
-        <small class="cap">ارسال رسید پرداخت را قطعی نمی‌کند؛ پس از بررسی برگزارکننده نتیجه همین‌جا و در اعلان‌ها می‌آید.</small></form>`:'';
+  else if(order.open&&viaForm){
+    /* سفارش فرم‌دار: پرداخت/رسید/پیگیری در همان فرم خرید؛ این‌جا فقط وضعیت خوانده می‌شود. */
+    const note=order.status==='receipt_submitted'?'رسید در فرم خرید ثبت شده و در صف بررسی مدیران است؛ تا تصمیم، دسترسی فعال نمی‌شود.'
+      :order.status==='needs_review'?'پرداخت نیازمند بررسی دستی است؛ نتیجه پس از تصمیم همین‌جا و در اعلان‌ها می‌آید.'
+      :order.method==='bale_wallet'?'پرداخت کیف پول بله از همان فرم خرید ادامه می‌یابد؛ وضعیت فقط پس از تأیید وب‌هوک تغییر می‌کند.'
+      :'واریز و بارگذاری رسید در همان فرم خرید انجام می‌شود؛ مبلغ و کارت مقصد را فرم از سرور نشان می‌دهد.';
+    actions=`<small class="cap" data-account-rec-via-form>${esc(note)}</small>${['receipt_submitted','needs_review'].includes(order.status)?(formHref?`<a class="btn sm quiet" href="${esc(formHref)}" data-account-rec-form>${ico('i-doc')} مشاهدهٔ وضعیت در فرم خرید</a>`:''):formLink}`;
+  }else if(order.open){
+    /* سفارش قدیمی (پیش از ۹.۱) بدون فرم: مسیر رسید حساب بازنشسته است؛ فقط انصراف یا خرید از فرم. */
     const invoice=order.method==='bale_wallet'&&order.status==='pending'&&typeof order.invoice_url==='string'&&/^https:\/\//.test(order.invoice_url)
-      ?`<a class="btn sm primary" href="${esc(order.invoice_url)}" target="_blank" rel="noopener" data-account-rec-invoice>${ico('i-wallet')} ادامهٔ پرداخت در بله</a>
-        <button class="btn sm quiet" type="button" data-account-rec-cancel="${esc(order.id)}" ${busy?'disabled':''}>انصراف</button>`:'';
+      ?`<a class="btn sm primary" href="${esc(order.invoice_url)}" target="_blank" rel="noopener" data-account-rec-invoice>${ico('i-wallet')} ادامهٔ پرداخت در بله</a>`:'';
+    const cancel=['pending','awaiting_receipt'].includes(order.status)?`<button class="btn sm quiet" type="button" data-account-rec-cancel="${esc(order.id)}" ${busy?'disabled':''}>انصراف از سفارش</button>`:'';
     const waiting=order.status==='receipt_submitted'||order.status==='needs_review'?`<small class="cap">${order.status==='needs_review'?'پرداخت نیازمند بررسی دستی است؛ نتیجه پس از تصمیم همین‌جا می‌آید.':'رسید رسیده و در صف بررسی است؛ تا تصمیم، دسترسی فعال نمی‌شود.'}</small>`:'';
-    actions=`${openCard?`<div class="rec-card-dest"><b>کارت مقصد:</b> <span dir="ltr">${esc(cardNumber)}</span>${order.card.bank?' · '+esc(order.card.bank):''}${order.card.holder?' · '+esc(order.card.holder):''}<br><b>مبلغ:</b> ${recMoney(order.amount,order.currency)}</div>`:''}${receipt}${invoice}${waiting}`;
-  }else if(order.status==='rejected'||order.status==='cancelled'||order.status==='expired') actions=`<a class="btn sm quiet" href="${esc(recEventHref(order))}" data-account-rec-retry>${ico('i-refresh')} سفارش دوباره از صفحهٔ محصول</a>`;
+    const legacy=order.method==='card_transfer'&&['pending','awaiting_receipt'].includes(order.status)
+      ?`<small class="cap" data-account-rec-legacy>این سفارش پیش از اتصال فروش به فرم‌ساز ثبت شده و بارگذاری رسید برای آن در این صفحه بسته است. اگر هنوز واریزی نکرده‌ای، انصراف بده و از فرم خرید اقدام کن؛ اگر واریز کرده‌ای، با برگزارکننده در تماس باش.</small>`:'';
+    actions=`${openCard?`<div class="rec-card-dest"><b>کارت مقصد:</b> <span dir="ltr">${esc(cardNumber)}</span>${order.card.bank?' · '+esc(order.card.bank):''}${order.card.holder?' · '+esc(order.card.holder):''}<br><b>مبلغ:</b> ${recMoney(order.amount,order.currency)}</div>`:''}${legacy}${invoice}${waiting}<div class="row" style="flex-wrap:wrap;gap:8px">${cancel}${cancel&&formHref?`<a class="btn sm quiet" href="${esc(formHref)}" data-account-rec-form>${ico('i-doc')} خرید از فرم خرید</a>`:''}</div>`;
+  }else if(order.status==='rejected'||order.status==='cancelled'||order.status==='expired') actions=formHref?`<a class="btn sm quiet" href="${esc(formHref)}" data-account-rec-retry>${ico('i-refresh')} خرید دوباره از فرم خرید</a>`
+    :`<a class="btn sm quiet" href="${esc(recEventHref(order))}" data-account-rec-retry>${ico('i-refresh')} صفحهٔ محصول</a>`;
   else if(order.status==='refunded') actions=`<small class="cap">دسترسی این سفارش پس از بازپرداخت فعال نیست.</small>`;
   return `<article class="card acct server-registration rec-order" data-account-rec-order="${esc(order.id)}" data-rec-order-status="${esc(order.status)}">
     <div class="row"><span class="sp"><b>${esc(title)}</b>
@@ -898,7 +907,7 @@ function accountRecordingOrdersContent(){
   const body=loading?`<div class="empty2"><b>در حال خواندن سفارش‌ها…</b></div>`
     :state.recOrdersError?`<div class="empty2"><b>${esc(state.recOrdersError)}</b><button class="btn quiet" data-account-rec-orders-refresh>تلاش دوباره</button></div>`
     :state.recOrders.length?state.recOrders.map(recOrderCard).join('')
-    :empty2('سفارشی برای محتوای ضبط‌شده نداری','خرید دسترسی از بخش «محتوای ضبط‌شده» صفحهٔ هر رویداد انجام می‌شود و همین‌جا پیگیری می‌شود.','i-play');
+    :empty2('سفارشی برای محتوای ضبط‌شده نداری','خرید دسترسی از فرم خریدِ هر محتوا (از صفحهٔ رویداد) انجام می‌شود و همین‌جا پیگیری می‌شود.','i-play');
   return `<div class="row" style="margin:0 0 8px"><span class="cap">${state.recOrdersLoaded&&!state.recOrdersError?faN(state.recOrdersTotal)+' سفارش محتوای ضبط‌شده':'سفارش‌های محتوای ضبط‌شده'}</span><span class="sp"></span>
     <button class="btn sm quiet" data-account-rec-orders-refresh aria-label="بازخوانی سفارش‌ها">${ico('i-refresh')} بازخوانی</button></div>
     <div class="stack" data-account-rec-orders>${body}</div>
@@ -1001,27 +1010,11 @@ async function cancelAccountRecordingOrder(id){
   const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
   if(!api||typeof api.cancelAccountRecordingOrder!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
   if(state.recOrderBusy) return;
-  if(!window.confirm('از این سفارش انصراف می‌دهی؟ اگر مبلغی واریز کرده‌ای، به‌جای انصراف رسید را بفرست.')) return;
+  if(!window.confirm('از این سفارش انصراف می‌دهی؟ اگر مبلغی واریز کرده‌ای، انصراف نده و با برگزارکننده تماس بگیر.')) return;
   state.recOrderBusy=id; renderView();
   try{ const order=await api.cancelAccountRecordingOrder(id); if(order&&order.id) recReplaceOrder(order); toast('سفارش لغو شد.'); }
   catch(error){ toast(error&&error.status===409?'این سفارش دیگر قابل انصراف نیست؛ فهرست بازخوانی می‌شود.':accountLoadError(error,'انصراف انجام نشد؛ دوباره تلاش کن.')); if(error&&error.status===409) loadAccountRecordingOrders(false,true); }
   finally{ state.recOrderBusy=''; renderView(); }
-}
-async function submitAccountRecordingReceipt(form){
-  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API, id=form.dataset.accountRecReceipt;
-  const fileInput=form.querySelector('[data-account-rec-file]'), file=fileInput&&fileInput.files&&fileInput.files[0];
-  if(!file){toast('اول تصویر رسید را انتخاب کن');return}
-  if(file.size>8*1024*1024){toast('حجم رسید بیش از ۸ مگابایت است');return}
-  if(!api||typeof api.uploadAccountRecordingReceipt!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
-  if(state.recOrderBusy) return;
-  const note=(form.querySelector('[data-account-rec-note]')||{}).value||'';
-  state.recOrderBusy=id; renderView();
-  try{ const order=await api.uploadAccountRecordingReceipt(id,file,file.name,note); recReplaceOrder(order); toast('رسید ثبت شد؛ پس از بررسی نتیجه اعلام می‌شود.'); }
-  catch(error){
-    const code=error&&error.code;
-    toast(code==='file_too_large'?'حجم رسید بیش از حد مجاز است':code==='unsupported_file_type'?'نوع فایل رسید پذیرفته نیست':code==='order_not_awaiting_receipt'?'این سفارش در وضعیت دریافت رسید نیست؛ فهرست بازخوانی می‌شود.':accountLoadError(error,'ارسال رسید انجام نشد؛ دوباره تلاش کن.'));
-    if(code==='order_not_awaiting_receipt') loadAccountRecordingOrders(false,true);
-  }finally{ state.recOrderBusy=''; renderView(); }
 }
 function serverAccountRegistrationsView(t,mode){
   const state=SERVER_ACCOUNT_STATE;
@@ -3327,10 +3320,6 @@ document.addEventListener('change',ev=>{
   if(el.id==='f_province'){ syncCity(); return }
   if(/^f_birthDate_[dmy]$/.test(el.id)){ syncDate('birthDate'); return }
   if(el.id==='f_city'&&S.errs&&S.errs.city) S.errs.city='';
-});
-document.addEventListener('submit',ev=>{
-  const form=ev.target&&ev.target.closest?ev.target.closest('form[data-account-rec-receipt]'):null;
-  if(!form) return; ev.preventDefault(); submitAccountRecordingReceipt(form);
 });
 document.addEventListener('click',ev=>{
   const t=ev.target;

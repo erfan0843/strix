@@ -14,6 +14,7 @@ const SESS = '55555555-5555-4555-8555-555555555551';
 const VID = '11111111-1111-4111-8111-111111111119';
 const PDF = '11111111-1111-4111-8111-111111111120';
 const ORDER = '77777777-7777-4777-8777-777777777771';
+const FORM = '88888888-8888-4888-8888-888888888881';
 const card = { id: REC, status: 'published', sellable: true, title: 'ضبط کارگاه نجوم', summary: 'سه جلسه دربارهٔ آسمان شب', price: 1500000, currency: 'IRR', free: false, access_days: null, cover_url: '', session_count: 1, total_minutes: 95, published_at: '2026-10-21T06:00:00Z' };
 const heldEvent = { id: EV, t: 'کارگاه نجوم', kind: 'کارگاه', privacy: 'public', past: true, when: '۲۰ مهر', on: '۱۴۰۵/۰۷/۲۰', place: 'رصدخانه', price: 300000, d: 'شرح کارگاه.',
   registration: { state: 'ended', reason: '', lifecycle: 'scheduled', opensAt: '', closesAt: '', startsAt: '', endsAt: '', countdownTo: '', startsIn: '' }, forms: [{ id: 'form-qa-1', need: 'reg', n: 'فرم' }], recording: card };
@@ -29,7 +30,7 @@ function product(viewerKind, extra = {}) {
     allowed: allowedHere, reason, playable: type === 'video/mp4', downloadable: delivery === 'download', preview: previewOpen });
   const cta = extra.cta || (viewerKind === 'guest' ? { kind: 'login', reason: 'login_required', methods: ['card_transfer'] }
     : viewerKind === 'buyer' ? { kind: 'view', reason: 'purchased', methods: ['card_transfer'] }
-      : { kind: 'buy', reason: 'purchase_required', methods: ['card_transfer'] });
+      : { kind: 'buy', reason: 'purchase_required', methods: ['card_transfer'], form_id: FORM });
   return { recording: {
     id: REC, event_id: EV, status: extra.status || 'published', title: 'ضبط کارگاه نجوم', summary: 'سه جلسه دربارهٔ آسمان شب.', outcomes: 'شناخت صور فلکی', audience: 'علاقه‌مندان', access_terms: 'مشاهدهٔ برخط؛ جزوه قابل دانلود', refund_policy: 'تا ۷ روز با درخواست کتبی',
     faq: [{ q: 'آیا دانلود دارد؟', a: 'جزوه بله، ویدئو خیر.' }], price: extra.price == null ? 1500000 : extra.price, currency: 'IRR', free: extra.price === 0, access_days: 90, attendee_access: false, download_default: true, cover_url: '', published_at: '2026-10-21T06:00:00Z',
@@ -95,55 +96,32 @@ console.log('\n— مهمان روی رویداد برگزارشده با محص
   p.dom.window.close();
 }
 
-console.log('\n— کاربر واردشده: خرید → سفارش کارت‌به‌کارت → رسید → در انتظار بررسی؛ هیچ دسترسی پیش از تأیید —');
+console.log('\n— کاربر واردشده (فاز ۹.۱): خرید فقط از فرم خریدِ فرم‌ساز؛ سفارش فرم‌دار باز بدون مسیر رسید موازی —');
 {
-  let state = product('member');
-  let orderStatus = '';
-  const receipts = [];
-  const p = await load({ recording: state, cookie: 'nora_account_csrf=csrf-token-123', onFetch: async (url, init, ctl) => {
-    if (url === '/api/account/recordings/' + REC + '/orders' && init.method === 'POST') {
-      const body = JSON.parse(init.body || '{}');
-      if (body.method !== 'card_transfer') return { ok: false, status: 503, json: async () => ({ detail: { code: 'payment_method_not_available' } }) };
-      orderStatus = 'awaiting_receipt';
-      const order = { id: ORDER, recording_id: REC, method: 'card_transfer', status: orderStatus, open: true, paid: false, amount: 1500000, currency: 'IRR', expires_at: '2026-10-24T06:00:00Z', receipt_submitted: false, receipt_submitted_at: '', receipt_file_name: '', paid_at: '', decided_at: '', decision_reason: '', refunded_at: '', created_at: '2026-10-21T06:00:00Z', updated_at: '', event_id: EV, title: 'ضبط کارگاه نجوم', card: { number: '6037997599999993', bank: 'ملی', holder: 'انجمن نجوم' } };
-      state = product('member', { cta: { kind: 'order_open', reason: orderStatus, methods: ['card_transfer'], order } }); ctl.set(state);
-      return { ok: true, status: 201, json: async () => order };
-    }
-    if (url === '/api/account/recording-orders/' + ORDER + '/receipt' && init.method === 'PUT') {
-      receipts.push(init);
-      orderStatus = 'receipt_submitted';
-      const order = { ...state.recording.viewer.cta.order, status: orderStatus, receipt_submitted: true, receipt_submitted_at: '2026-10-21T07:00:00Z', receipt_file_name: 'receipt.jpg' };
-      state = product('member', { cta: { kind: 'order_open', reason: orderStatus, methods: ['card_transfer'], order } }); ctl.set(state);
-      return { ok: true, status: 200, json: async () => order };
-    }
-    return null;
-  } });
+  const p = await load({ recording: product('member'), cookie: 'nora_account_csrf=csrf-token-123' });
   ok(p.errors.length === 0, 'بدون خطای JavaScript' + (p.errors.length ? ': ' + p.errors[0] : ''));
-  const buy = p.doc.querySelector('[data-rec-cta="buy"] [data-rec-order="card_transfer"]');
-  ok(!!buy && !p.doc.querySelector('[data-rec-order="bale_wallet"]'), 'فقط روش‌هایی که سرور اعلام کرده نمایش داده می‌شود (کارت‌به‌کارت؛ بدون کیف پول بله)');
+  const buy = p.doc.querySelector('[data-rec-cta="buy"] a[data-rec-buy]');
+  ok(!!buy && buy.getAttribute('href') === 'form.html?fid=' + FORM + '&kind=reg', 'CTA خرید یک پیوند به فرم خرید همان محصول است (شناسهٔ فرم از سرور)');
+  ok(!p.doc.querySelector('[data-rec-order]') && !p.doc.querySelector('form[data-rec-receipt-form]'), 'هیچ دکمهٔ سفارش یا فرم رسید موازی در صفحهٔ رویداد نیست');
+  ok(p.txt('[data-rec-cta="buy"]').includes('کارت‌به‌کارت با بررسی رسید') && !p.txt('[data-rec-cta="buy"]').includes('کیف پول بله'), 'فقط روش‌هایی که سرور اعلام کرده نام برده می‌شود');
+  ok(!p.calls.some(c => c.url.endsWith('/orders')), 'هیچ درخواستی به مسیر بازنشستهٔ سفارش فرستاده نمی‌شود');
   ok(!p.doc.querySelector('[data-rec-resource="' + VID + '"] video') && p.txt('[data-rec-resource="' + VID + '"]').includes('نیازمند دسترسی'), 'پیش از خرید، ویدئو قفل است');
-  p.click('[data-rec-cta="buy"] [data-rec-order="card_transfer"]');
-  await wait(200);
-  const created = p.calls.find(c => c.url === '/api/account/recordings/' + REC + '/orders');
-  ok(created && created.init.headers['X-CSRF-Token'] === 'csrf-token-123' && JSON.parse(created.init.body).method === 'card_transfer', 'سفارش با CSRF و فقط «روش» ساخته می‌شود؛ مبلغ از مرورگر فرستاده نمی‌شود');
-  const panel = p.doc.querySelector('#recording-order[data-ei-order-panel="awaiting_receipt"]');
-  ok(!!panel && panel.textContent.includes('6037-9975-9999-9993') && panel.textContent.includes('ملی') && panel.textContent.includes('۱,۵۰۰,۰۰۰ ریال'), 'پنل سفارش باز: کارت مقصد و مبلغ از سرور');
-  ok(panel.textContent.includes('ارسال رسید پرداخت را قطعی نمی‌کند') && panel.querySelector('form[data-rec-receipt-form]') && panel.querySelector('[data-rec-cancel]'), 'فرم رسید با توضیح صادقانه و امکان انصراف');
-  ok(!p.doc.querySelector('[data-rec-order]'), 'با سفارش باز، دکمهٔ خرید دوباره نمایش داده نمی‌شود');
-  const form = panel.querySelector('form[data-rec-receipt-form]');
-  const input = form.querySelector('[data-rec-receipt-file]');
-  const file = new p.window.File([new Uint8Array(32)], 'رسید من.jpg', { type: 'image/jpeg' });
-  Object.defineProperty(input, 'files', { configurable: true, value: [file] });
-  form.querySelector('[data-rec-receipt-note]').value = 'پیگیری ۱۲۳';
-  form.dispatchEvent(new p.window.Event('submit', { bubbles: true, cancelable: true }));
-  await wait(250);
-  ok(receipts.length === 1 && receipts[0].headers['X-CSRF-Token'] === 'csrf-token-123' && /^[A-Za-z0-9%._-]+$/.test(String(receipts[0].headers['X-File-Name'])) && decodeURIComponent(receipts[0].headers['X-File-Name']) === 'رسید من.jpg' && decodeURIComponent(receipts[0].headers['X-Receipt-Note']) === 'پیگیری ۱۲۳',
-    'رسید با PUT خام، نام درصدکدشده، یادداشت و CSRF فرستاده می‌شود');
-  const after = p.doc.querySelector('#recording-order[data-ei-order-panel="receipt_submitted"]');
-  ok(!!after && after.textContent.includes('در انتظار بررسی برگزارکننده') && !after.querySelector('[data-rec-cancel]'), 'پس از ارسال رسید: وضعیت «در انتظار بررسی» و بدون انصراف');
-  ok(!p.doc.querySelector('[data-rec-resource="' + VID + '"] video') && !p.doc.querySelector('[data-rec-view]') && !/دسترسی دارید/.test(p.txt('#recording')), 'رسید به‌تنهایی هیچ دسترسی یا نشان «دسترسی دارید» نمی‌سازد');
-  ok(p.txt('#recording').includes('ارسال رسید به‌معنای تأیید پرداخت نیست'), 'پیام موفقیت صادقانه است');
+  const aside = p.doc.querySelector('[data-recording-aside] a[data-rec-buy]');
+  ok(aside && aside.getAttribute('href') === 'form.html?fid=' + FORM + '&kind=reg', 'پنل کناری هم به همان فرم خرید می‌رود');
   p.dom.window.close();
+
+  const order = { id: ORDER, recording_id: REC, method: 'card_transfer', status: 'receipt_submitted', open: true, paid: false, amount: 1500000, currency: 'IRR', expires_at: '', receipt_submitted: true, receipt_submitted_at: '2026-10-21T07:00:00Z', receipt_file_name: 'receipt.jpg', paid_at: '', decided_at: '', decision_reason: '', refunded_at: '', form_response_id: '99999999-9999-4999-8999-999999999991', form_payment_id: '99999999-9999-4999-8999-999999999992', created_at: '2026-10-21T06:00:00Z', updated_at: '', event_id: EV, title: 'ضبط کارگاه نجوم' };
+  const open = await load({ recording: product('member', { cta: { kind: 'order_open', reason: 'receipt_submitted', methods: ['card_transfer'], form_id: FORM, order } }), cookie: 'nora_account_csrf=csrf-token-123' });
+  const panel = open.doc.querySelector('#recording-order[data-ei-order-panel="receipt_submitted"]');
+  ok(!!panel && panel.querySelector('[data-rec-order-via-form]') && panel.querySelector('a[data-rec-continue-form]').getAttribute('href') === 'form.html?fid=' + FORM + '&kind=reg', 'سفارش فرم‌دار: وضعیت واقعی + «ادامه در فرم خرید»، بدون فرم رسید');
+  ok(!panel.querySelector('form') && !panel.querySelector('[data-rec-cancel]') && panel.textContent.includes('دسترسی فقط پس از تأیید فعال می‌شود'), 'بدون انصراف/رسید موازی؛ توضیح صادقانه دربارهٔ تأیید');
+  ok(!open.doc.querySelector('[data-rec-resource="' + VID + '"] video') && !open.doc.querySelector('[data-rec-view]') && !/دسترسی دارید/.test(open.txt('#recording')), 'رسید به‌تنهایی هیچ دسترسی یا نشان «دسترسی دارید» نمی‌سازد');
+  open.dom.window.close();
+
+  const legacy = await load({ recording: product('member', { cta: { kind: 'order_open', reason: 'awaiting_receipt', methods: ['card_transfer'], form_id: FORM, order: { ...order, status: 'awaiting_receipt', receipt_submitted: false, receipt_file_name: '', form_response_id: null, form_payment_id: null, card: { number: '6037997599999993', bank: 'ملی', holder: 'انجمن نجوم' } } } }), cookie: 'nora_account_csrf=csrf-token-123' });
+  const legacyPanel = legacy.doc.querySelector('#recording-order[data-ei-order-panel="awaiting_receipt"]');
+  ok(!!legacyPanel && legacyPanel.querySelector('[data-rec-legacy-order]') && legacyPanel.querySelector('[data-rec-cancel]') && !legacyPanel.querySelector('form[data-rec-receipt-form]'), 'سفارش قدیمی بدون فرم: هشدار، انصراف و پیوند فرم خرید؛ بدون بارگذاری رسید');
+  legacy.dom.window.close();
 }
 
 console.log('\n— خریدار: CTA مشاهده، پخش‌کنندهٔ ویدئو فقط از نقطهٔ مجوزدار، دانلود فقط برای فایل قابل دانلود، تاریخ انقضا —');
@@ -188,8 +166,8 @@ console.log('\n— محصول رایگان: دریافت بدون تراکنش؛
   ok(paused.doc.querySelector('[data-rec-cta="off_sale"] [data-rec-off-sale]') && !paused.doc.querySelector('[data-rec-cta] button, [data-rec-cta] a.btn') && paused.txt('#recording').includes('فروش متوقف'), 'فروش متوقف: متن وضعیت، بدون هیچ دکمه‌ای');
   paused.dom.window.close();
 
-  const retry = await load({ recording: product('member', { cta: { kind: 'buy', reason: 'purchase_required', methods: ['card_transfer', 'bale_wallet'], previous: { status: 'rejected', id: ORDER } } }), cookie: 'nora_account_csrf=x' });
-  ok(retry.doc.querySelector('[data-rec-previous="rejected"]') && retry.txt('[data-rec-cta="buy"]').includes('سفارش رد شد') && retry.doc.querySelector('[data-rec-order="bale_wallet"]') && retry.doc.querySelector('[data-rec-order="card_transfer"]'), 'سفارش قبلی ردشده: توضیح + هر دو روش اعلام‌شدهٔ سرور');
+  const retry = await load({ recording: product('member', { cta: { kind: 'buy', reason: 'purchase_required', methods: ['card_transfer', 'bale_wallet'], form_id: FORM, previous: { status: 'rejected', id: ORDER } } }), cookie: 'nora_account_csrf=x' });
+  ok(retry.doc.querySelector('[data-rec-previous="rejected"]') && retry.txt('[data-rec-cta="buy"]').includes('سفارش رد شد') && retry.txt('[data-rec-cta="buy"]').includes('کیف پول بله') && retry.doc.querySelector('[data-rec-cta="buy"] a[data-rec-buy]'), 'سفارش قبلی ردشده: توضیح + هر دو روش اعلام‌شدهٔ سرور + پیوند فرم خرید');
   retry.dom.window.close();
 }
 

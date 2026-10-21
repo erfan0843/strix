@@ -74,6 +74,11 @@
   .landing-card #formMeta,.landing-card #inviteBox,.landing-card #resumeRow,.landing-card #profileAssist{width:100%;text-align:start}
   .landing-card #formMeta{margin-top:12px!important}
   .landing-card #formMeta:empty{display:none}
+  .purchase-header,.purchase-result{display:grid;gap:8px;width:100%;text-align:start;margin-top:12px}
+  .purchase-header[hidden],.purchase-result[hidden]{display:none!important}
+  .purchase-header .purchase-price{font-size:var(--fs-sub);font-weight:800;font-variant-numeric:tabular-nums}
+  .purchase-header .purchase-actions,.purchase-result .purchase-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .purchase-header .purchase-actions .btn,.purchase-result .purchase-actions .btn{min-height:44px}
   .botbar.start-mode{bottom:calc(24px + var(--safe-b));justify-content:center;width:min(400px,calc(100% - 32px));padding:0;border:0;background:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
   .botbar.start-mode #prev{display:none!important}
   .botbar.start-mode #next{position:relative;isolation:isolate;overflow:visible;display:flex;width:100%;min-height:62px;margin:0 auto;border-radius:19px;font-family:'Estedad',var(--f);font-size:18px;font-weight:750;letter-spacing:-.1px;box-shadow:0 10px 24px color-mix(in oklab,var(--brand) 28%,transparent),0 1px 0 rgba(255,255,255,.35) inset;animation:noraStartLift 2.6s ease-in-out infinite}
@@ -493,6 +498,7 @@
       <span class="landing-icon" aria-hidden="true"><svg class="i"><use href="#i-doc"/></svg></span>
       <h1 class="landing-title" id="evTitle">—</h1>
       <p class="sub landing-lead" id="formLead" hidden></p>
+      <div class="card sunk purchase-header" id="purchaseHeader" hidden data-purchase-header></div>
       <p class="ev-line landing-meta" id="evMeta" hidden></p>
       <div class="landing-count" id="landingCount"></div>
       <div id="formMeta" class="stack tight" style="margin-top:8px"></div>
@@ -740,6 +746,7 @@
         <span class="tag warn" id="endStatusBadge">پیش‌نمایش</span>
       </div>
       <p class="final-confirmation" id="endText"></p>
+      <div class="card sunk purchase-result" id="purchaseResult" hidden data-purchase-result></div>
       <div class="server-ticket-preview" id="serverTicketPreview" hidden>
         <article class="server-ticket-card">
           <div class="server-ticket-head">
@@ -895,7 +902,7 @@
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=131"></script>
 <script src="form-quality.js?v=2"></script>
-<script src="owner-api.js?v=116"></script>
+<script src="owner-api.js?v=117"></script>
 <script type="application/json" id="nora-public-form-data"><!--nora-public-form--></script>
 <script type="application/json" id="nora-public-draft-data"><!--nora-public-draft--></script>
 <script type="application/json" id="nora-public-error-data"><!--nora-public-error--></script>
@@ -962,6 +969,7 @@ const ROUTE_ERROR_COPY={
   'closed':['پاسخ‌گیری بسته است','برای پیوند تازه با برگزارکننده تماس بگیر.'],
   'registration-closed':['ثبت‌نام این رویداد باز نیست','طبق ساعت و وضعیت سرور، مهلت ثبت‌نام به پایان رسیده، هنوز آغاز نشده یا ظرفیت/وضعیت رویداد اجازهٔ ثبت‌نام نمی‌دهد. وضعیت دقیق و زمان‌ها را در صفحهٔ رویداد ببین.'],
   'event-not-found':['رویداد پیدا نشد','پیوند رویداد را بررسی کن و دوباره وارد شو.'],
+  'recording-not-on-sale':['این محتوا الان در فروش نیست','طبق وضعیت سرور، محصول ضبط‌شدهٔ این فرم منتشر نشده یا فروش آن متوقف/بایگانی شده است. وضعیت واقعی را در صفحهٔ رویداد ببین.'],
   'empty-form':['فرم آماده نیست','این فرم هنوز پرسشی برای پاسخ‌گویی ندارد.'],
   'invalid-form':['فرم در دسترس نیست','پیوند فرم را بررسی کن و دوباره تلاش کن.']
 };
@@ -969,6 +977,65 @@ const MAX_CONDITION_RULES=10;
 const FORM_TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
 /* ── تفکیک پیش‌نمایش محلی از فرم منتشرشده‌ای که bootstrap سرور دارد ── */
 const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',model:'',serverBacked:false,formVersion:0,closedEventId:''};
+/* ── فاز ۹.۱: فرم خرید محتوای ضبط‌شده (purpose=recording_access) — خرید ≠ ثبت‌نام ≠ حضور؛ وضعیت فقط از سرور ── */
+const PURCHASE=(function(){
+  if(!PUBLIC_FORM_DATA||typeof PUBLIC_FORM_DATA!=='object'||PUBLIC_FORM_DATA.purpose!=='recording_access')return null;
+  const raw=PUBLIC_FORM_DATA.purchase&&typeof PUBLIC_FORM_DATA.purchase==='object'?PUBLIC_FORM_DATA.purchase:{};
+  const idOk=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''));
+  return {
+    recordingId:idOk(raw.recording_id)?String(raw.recording_id):'',
+    eventId:idOk(raw.event_id)?String(raw.event_id):'',
+    title:String(raw.title||'').slice(0,160),
+    price:Number.isSafeInteger(Number(raw.price))&&Number(raw.price)>=0?Number(raw.price):null,
+    signedIn:raw.signed_in===true,
+    accessState:['active','expired','revoked','none'].includes(raw.access_state)?raw.access_state:'none'
+  };
+})();
+function purchaseEventHref(){return PURCHASE&&PURCHASE.eventId?'event.html?id='+encodeURIComponent(PURCHASE.eventId)+'#recording':'events.html#recorded'}
+function purchaseLoginHref(){return 'login.html?next='+encodeURIComponent(location.pathname.replace(/^\/+/,'')+location.search)}
+function purchaseMoney(v){if(v==null)return '';if(v===0)return 'رایگان';try{return new Intl.NumberFormat('fa-IR').format(v)+' ریال'}catch(e){return String(v)+' ریال'}}
+function purchaseEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderPurchaseHeader(){
+  const box=document.getElementById('purchaseHeader');if(!box)return;
+  if(!PURCHASE){box.hidden=true;box.innerHTML='';return}
+  const stateText=PURCHASE.accessState==='active'?'دسترسی شما به این محتوا فعال است.':PURCHASE.accessState==='expired'?'دسترسی قبلی شما منقضی شده است.':PURCHASE.accessState==='revoked'?'دسترسی قبلی شما لغو شده است.':'';
+  const actions=[];
+  if(!PURCHASE.signedIn)actions.push(`<a class="btn primary" href="${purchaseEsc(purchaseLoginHref())}" data-purchase-login><svg class="i"><use href="#i-key"/></svg> ورود برای خرید</a>`);
+  if(PURCHASE.accessState==='active')actions.push(`<a class="btn primary" href="${purchaseEsc(purchaseEventHref())}" data-purchase-view><svg class="i"><use href="#i-play"/></svg> مشاهدهٔ محتوا</a>`);
+  actions.push(`<a class="btn quiet" href="${purchaseEsc(purchaseEventHref())}" data-purchase-event><svg class="i"><use href="#i-calendar"/></svg> صفحهٔ رویداد</a>`);
+  box.innerHTML=`<div class="head">خرید دسترسی به محتوای ضبط‌شده</div>
+    <div><b>${purchaseEsc(PURCHASE.title||'محتوای ضبط‌شده')}</b></div>
+    ${PURCHASE.price!=null?`<div class="purchase-price" data-purchase-price>${purchaseEsc(purchaseMoney(PURCHASE.price))}</div>`:''}
+    <p class="cap">خرید دسترسی، ثبت‌نام یا حضور در رویداد به شمار نمی‌آید و بلیت صادر نمی‌کند. مبلغ و روش پرداخت را سرور تعیین می‌کند؛ پس از تأیید پرداخت، محتوا در صفحهٔ رویداد و «محتوای من» باز می‌شود.</p>
+    ${PURCHASE.signedIn?'':'<p class="cap" data-purchase-login-note>برای خرید باید وارد حساب نورا شوی؛ دسترسی به یک حساب مشخص تعلق می‌گیرد.</p>'}
+    ${stateText?`<p class="cap" data-purchase-state="${purchaseEsc(PURCHASE.accessState)}">${purchaseEsc(stateText)}</p>`:''}
+    <div class="purchase-actions">${actions.join('')}</div>`;
+  box.hidden=false;
+}
+function renderPurchaseResult(){
+  const box=document.getElementById('purchaseResult');if(!box)return;
+  if(!PURCHASE||!FORM_ROUTE.serverBacked||!S.submitted){box.hidden=true;box.innerHTML='';return}
+  const response=S.serverResponse||{},intent=S.paymentIntent||{};
+  const method=String(response.paymentMethod||intent.method||''),status=String(response.paymentStatus||intent.status||'');
+  const active=PURCHASE.accessState==='active'||status==='paid'||status==='paid_manual';
+  let state,title,text;
+  if(active){state='active';title='دسترسی فعال شد';text='خرید ثبت و دسترسی روی حساب شما فعال شد. محتوا از صفحهٔ رویداد و بخش «محتوای من» در دسترس است.'}
+  else if(method==='card_transfer'&&response.receiptUploaded===true){state='review';title='رسید در انتظار بررسی';text='رسید دریافت شد و برای بازبینی دستی ثبت شد. دسترسی فقط پس از تأیید بازبین فعال می‌شود؛ نتیجه در اعلان‌های حساب شما می‌آید.'}
+  else if(method==='card_transfer'){state='receipt';title='رسید کارت‌به‌کارت را بارگذاری کن';text='پس از واریز، تصویر رسید را در همین صفحه ثبت کن. بارگذاری رسید به‌تنهایی دسترسی نمی‌دهد.'}
+  else if(method==='bale_wallet'){state=status==='paid_review'?'review':'pending';title=status==='paid_review'?'پرداخت نیازمند بررسی است':'در انتظار پرداخت در بله';text=status==='paid_review'?'پرداخت با اطلاعات صورتحساب مطابقت نداشت و برای بررسی دستی علامت خورد؛ دسترسی خودکار داده نمی‌شود.':'وضعیت پرداخت فقط از سرور و پس از تأیید وب‌هوک بله خوانده می‌شود.'}
+  else{state='pending';title='وضعیت خرید';text='وضعیت از سرور خوانده می‌شود.'}
+  box.innerHTML=`<div class="head">${purchaseEsc(title)}</div><p class="cap">${purchaseEsc(text)}</p>
+    <div class="purchase-actions">${active?`<a class="btn primary" href="${purchaseEsc(purchaseEventHref())}" data-purchase-view><svg class="i"><use href="#i-play"/></svg> مشاهدهٔ محتوا</a><a class="btn quiet" href="account.html#library" data-purchase-library>محتوای من</a>`:`<a class="btn quiet" href="${purchaseEsc(purchaseEventHref())}" data-purchase-event>صفحهٔ رویداد</a><a class="btn quiet" href="account.html#payments" data-purchase-orders>سفارش‌ها و پرداخت‌ها</a>`}</div>`;
+  box.dataset.purchaseState=state;box.hidden=false;
+}
+function purchaseErrorText(error){
+  if(!PURCHASE)return '';
+  const detail=error&&error.payload&&error.payload.detail,code=String(error&&error.code||detail&&detail.code||detail||'');
+  if(code==='account_required'||error&&error.status===401&&code!=='response_draft_required')return 'برای خرید باید وارد حساب نورا شوی؛ پس از ورود، همین فرم را دوباره باز کن.';
+  if(code==='recording_not_on_sale')return 'این محتوا الان در فروش نیست؛ وضعیت واقعی را در صفحهٔ رویداد ببین.';
+  if(code==='access_already_active')return 'دسترسی شما به این محتوا هم‌اکنون فعال است؛ از صفحهٔ رویداد آن را ببین.';
+  return '';
+}
 (function(){
   try{
     const q=new URLSearchParams(location.search);
@@ -987,6 +1054,7 @@ const FORM_ROUTE={requested:false,preview:false,error:'',eventId:'',formId:'',mo
       const routeError=String(PUBLIC_ROUTE_ERROR);
       /* «registration-closed:<event>» از سرور: فرم منتشر است ولی پنجرهٔ ثبت‌نام رویداد بسته است */
       if(routeError.startsWith('registration-closed')){FORM_ROUTE.closedEventId=routeError.slice('registration-closed:'.length);fail('registration-closed');return;}
+      if(routeError.startsWith('recording-not-on-sale')){fail('recording-not-on-sale');return;}
       fail(routeError);return;
     }
     const U=window.NORA_UI||{};
@@ -1772,7 +1840,7 @@ function renderServerTicketPreview(){
   const response=S.serverResponse||{},method=String(response.paymentMethod||S.paymentIntent&&S.paymentIntent.method||''),
     paymentStatus=String(response.paymentStatus||S.paymentIntent&&S.paymentIntent.status||'');
   const paymentApproved=method==='bale_wallet'?paymentStatus==='paid':method==='card_transfer'?paymentStatus==='paid_manual':true;
-  const eligible=FORM_ROUTE.serverBacked&&FORM_ROUTE.model==='registration'&&S.submitted
+  const eligible=!PURCHASE&&FORM_ROUTE.serverBacked&&FORM_ROUTE.model==='registration'&&S.submitted
     &&response.status==='accepted'&&paymentApproved;
   const assignedTicketType=normalizePublicTicketType(response.ticketType);
   if(ticketFormName)ticketFormName.textContent=String(CFG.eventTitle||CFG.title||'فرم ثبت‌نام').slice(0,160);
@@ -1825,6 +1893,7 @@ function renderServerTicketPreview(){
 async function prepareReceiptReviewLink(){
   const response=S.serverResponse||{},intent=S.paymentIntent||{},method=String(response.paymentMethod||intent.method||''),
     status=String(response.paymentStatus||intent.status||'');
+  if(PURCHASE)return false; /* خرید: بازبینی رسید در اینباکس مدیران انجام می‌شود، نه با پیوند بلیت بله */
   if(!FORM_ROUTE.serverBacked||!S.submitted||response.status!=='accepted'||method!=='card_transfer'
       ||status==='paid_manual'||response.receiptUploaded!==true)return false;
   const api=window.NORA_SERVER_API;
@@ -1848,6 +1917,7 @@ async function prepareReceiptReviewLink(){
   }
 }
 async function preparePublicTicketLink(){
+  if(PURCHASE){renderServerTicketPreview();return false} /* خرید هرگز بلیت ندارد */
   if(!FORM_ROUTE.serverBacked||FORM_ROUTE.model!=='registration'||!S.submitted
       ||!S.serverResponse||S.serverResponse.status!=='accepted'){
     renderServerTicketPreview();return false;
@@ -1897,6 +1967,7 @@ async function preparePublicTicketLink(){
 function publicPaymentErrorText(error){
   const detail=error&&error.payload&&error.payload.detail,
     code=String(error&&error.code||detail&&detail.code||detail||'');
+  if(purchaseErrorText(error))return purchaseErrorText(error);
   if(code==='response_draft_required'||error&&error.status===401)return 'پیش‌نویس پاسخ پیدا نشد؛ صفحه را تازه کن و دوباره پرداخت را شروع کن.';
   if(code==='payment_method_not_available')return 'این روش پرداخت برای فرم فعال نیست؛ انتخاب را بررسی کن.';
   if(code==='bale_payment_not_configured'||error&&error.status===503)return 'پرداخت بله هنوز در backend پیکربندی نشده است؛ پرداخت واقعی فعال نشد.';
@@ -2122,10 +2193,19 @@ function renderEnd(){
   const endText=document.getElementById('endText');
   if(endText)endText.textContent=FORM_ROUTE.serverBacked
     ?!S.submitted?'این فرم هنوز ثبت نشده است.'
+      :PURCHASE?'درخواست خرید ثبت شد؛ وضعیت دسترسی از سرور خوانده می‌شود.'
       :waiting?'پاسخت ثبت شد.'
         :receiptNeeded?'پاسخت ثبت شد؛ وضعیت بلیت هنوز آماده نیست.'
           :'وضعیت بلیت در این صفحه نمایش داده می‌شود.'
     :(CFG.endText||'پاسخ نمونه ذخیره شد.');
+  if(PURCHASE&&FORM_ROUTE.serverBacked&&S.submitted){
+    const active=PURCHASE.accessState==='active'||['paid','paid_manual'].includes(paymentStatus);
+    if(title)title.textContent=active?'دسترسی فعال شد':'درخواست خرید ثبت شد';
+    if(caption)caption.textContent=active?'محتوا از صفحهٔ رویداد و «محتوای من» در دسترس است.':'دسترسی فقط پس از تأیید پرداخت در سرور فعال می‌شود.';
+    if(badge){badge.textContent=active?'فعال':'در انتظار';badge.className='tag '+(active?'ok':'warn')}
+    if(icon)icon.innerHTML=`<svg class="i lg"><use href="#${active?'i-check':'i-clock'}"/></svg>`;
+  }
+  renderPurchaseResult();
   renderServerTicketPreview();
 }
 
@@ -2898,6 +2978,7 @@ if(REG&&Array.isArray(REG.q)){
   PROG.u1=0;
   document.title='نورا · '+(REG.title||CFG.title);
   const ttl=document.getElementById('evTitle');if(ttl)ttl.textContent=REG.title||CFG.title;
+  renderPurchaseHeader();
   const intro=document.getElementById('formLead');
   if(intro){const text=String(REG.intro||'').trim();intro.textContent=text;intro.hidden=!text;}
   const endTarget=hasExtras?'u8':(REG.display==='all'?'qall':(N?'qp'+(N-1):'u1'));
@@ -3481,6 +3562,8 @@ if(REG&&Array.isArray(REG.q)){
       S.serverResponse={status:result.status,message:String(result.message||''),trackingCode:String(result.tracking_code||''),
         ticketType:normalizePublicTicketType(result.ticket_type),receiptUploaded:result.receipt_uploaded===true,
         paymentMethod:paymentSelection?'card_transfer':'',paymentStatus:String(result.payment_status||''),ticketDeliveryUrl:'',ticketMessage:''};
+      if(PURCHASE&&result.purchase&&typeof result.purchase==='object'&&['active','expired','revoked','none'].includes(result.purchase.access_state))
+        PURCHASE.accessState=result.purchase.access_state;
       if(paymentSelection){
         S.paymentIntent=publicPaymentIntentFrom({payment_id:result.payment_id,method:'card_transfer',status:result.payment_status||'awaiting_receipt',
           amount:calc().sum,currency:'IRR',selection:paymentSelection},publicPaymentSelectionIdentity(paymentSelection,calc().count));
@@ -3501,7 +3584,8 @@ if(REG&&Array.isArray(REG.q)){
         if(index>=0)REGGATE.report(index,firstIssue.message||'پاسخ را بازبینی کنید.',
           Number.isInteger(firstIssue.companion_index)?firstIssue.companion_index:null);
       }
-      const message=error&&error.status===410?'ظرفیت این فرم تکمیل شده است؛ پاسخ تازه پذیرفته نشد.':
+      const message=purchaseErrorText(error)?purchaseErrorText(error):
+        error&&error.status===410?'ظرفیت این فرم تکمیل شده است؛ پاسخ تازه پذیرفته نشد.':
         error&&error.status===409&&registrationClosedText(error)?registrationClosedText(error):
         error&&error.status===409?'فرم متوقف شده یا نسخهٔ آن تغییر کرده است؛ صفحه را تازه کنید.':
         error&&error.status===422&&firstIssue?String(firstIssue.message||'یکی از پاسخ‌ها در بررسی سرور پذیرفته نشد؛ فیلد مشخص‌شده را اصلاح کنید.'):
@@ -3545,7 +3629,11 @@ function renderReceiptStep(){
     &&method==='card_transfer'&&response.receiptUploaded===true&&status!=='paid_manual';
   if(review)review.hidden=!reviewPending;
   const reviewMessage=document.getElementById('receiptReviewMessage'),reviewLink=document.getElementById('receiptReviewBaleLink');
-  if(reviewMessage)reviewMessage.textContent=response.ticketReviewMessage|| (status==='rejected'
+  if(reviewMessage)reviewMessage.textContent=PURCHASE?(status==='rejected'
+    ?'رسید تأیید نشد؛ دلیل در اعلان‌های حساب شماست و می‌توانی فرم خرید را دوباره پر کنی.'
+    :status==='paid_manual'?'رسید تأیید شد و دسترسی فعال است.'
+      :'رسید دریافت شد و در صف بررسی مدیران است؛ دسترسی فقط پس از تأیید فعال می‌شود. نتیجه در اعلان‌های حساب می‌آید.')
+    :response.ticketReviewMessage|| (status==='rejected'
     ?'رسید یا ثبت‌نام تأیید نشد؛ با برگزارکننده تماس بگیر.'
     :status==='paid_review'?'وضعیت نیازمند بررسی بیشتر است؛ بلیت هنوز آماده نیست.'
       :status==='paid_manual'?'بازبینی دستی تأیید شد؛ بلیت در همین صفحه آماده می‌شود.'
@@ -3690,6 +3778,12 @@ document.getElementById('next').onclick=()=>{
     if(typeof createPayment==='function')void createPayment();
     else{setPublicPaymentMessage('ساخت صورتحساب در این فرم در دسترس نیست؛ پرداختی انجام نشد.');toast('پرداخت آغاز نشد.','error')}
     return;
+  }
+  if(REG&&cur==='u1'&&PURCHASE&&FORM_ROUTE.serverBacked&&!PURCHASE.signedIn){
+    toast('برای خرید اول وارد حساب شو.');const login=document.querySelector('[data-purchase-login]');if(login)login.focus();return;
+  }
+  if(REG&&cur==='u1'&&PURCHASE&&FORM_ROUTE.serverBacked&&PURCHASE.accessState==='active'){
+    toast('دسترسی شما به این محتوا فعال است.');const view=document.querySelector('[data-purchase-view]');if(view)view.focus();return;
   }
   if(REG&&cur==='u1'){
     const invite=REGInviteProblem?REGInviteProblem():null;

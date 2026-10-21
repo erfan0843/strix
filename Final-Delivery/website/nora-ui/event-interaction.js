@@ -271,7 +271,9 @@
     payment_method_not_available: 'این روش پرداخت فعلاً در دسترس نیست.', bale_identity_required: 'پرداخت با کیف پول بله فقط با حساب پیوندخورده به بله ممکن است.',
     order_not_awaiting_receipt: 'این سفارش در وضعیت دریافت رسید نیست.', order_not_cancellable: 'این سفارش دیگر قابل لغو نیست.', file_too_large: 'حجم رسید بیش از ۸ مگابایت است.',
     file_type_not_allowed: 'رسید باید تصویر (JPG/PNG/WebP) یا PDF باشد.', file_empty: 'فایل رسید خالی است.', upload_rate_limited: 'شمار بارگذاری‌ها زیاد است؛ کمی بعد دوباره تلاش کنید.',
-    sales_paused: 'فروش این محتوا فعلاً متوقف است.', recording_not_available: 'این محتوا در دسترس نیست.'
+    sales_paused: 'فروش این محتوا فعلاً متوقف است.', recording_not_available: 'این محتوا در دسترس نیست.',
+    use_purchase_form: 'خرید فقط از فرم خرید همین محصول انجام می‌شود.', order_follows_form_payment: 'این سفارش به پرداخت فرم خرید وابسته است و از این‌جا لغو نمی‌شود.',
+    recording_not_on_sale: 'این محتوا الان در فروش نیست.', account_required: 'برای خرید باید وارد حساب شوید.'
   };
   const rMoney = value => (Number(value) > 0 ? `${fa(Number(value).toLocaleString('en-US'))} ریال` : 'رایگان');
   const rMinutes = value => { const n = Number(value) || 0; if (!n) return ''; const h = Math.floor(n / 60), m = n % 60; return h ? `${fa(h)} ساعت${m ? ` و ${fa(m)} دقیقه` : ''}` : `${fa(m)} دقیقه`; };
@@ -281,6 +283,8 @@
     return { section: page.querySelector('[data-event-interaction="recording"]'), aside: doc.querySelector('[data-recording-aside]'), toolbar: doc.querySelector('[data-recording-toolbar]') };
   }
   function rLoginHref() { return loginHref('recording'); }
+  /* فاز ۹.۱: ورودی استاندارد خرید، فرم خریدِ فرم‌ساز است (purpose=recording_access)؛ شناسهٔ فرم از سرور می‌آید. */
+  function rFormHref(formId) { return /^[A-Za-z0-9_-]{1,100}$/.test(String(formId || '')) ? `form.html?fid=${encodeURIComponent(String(formId))}&kind=reg` : ''; }
   function rFileHref(id) { return `/api/public/events/${encodeURIComponent(String(S.event.id))}/resources/${encodeURIComponent(id)}/download`; }
 
   function rCta(compact) {
@@ -292,14 +296,16 @@
     if (kind === 'staff_preview') return `<span class="tag">پیش‌نمایش کادر؛ خرید از این حساب انجام نمی‌شود</span>`;
     if (kind === 'login') return `<a class="btn primary" href="${esc(rLoginHref())}" data-rec-login>${d.free ? 'ورود برای دریافت دسترسی رایگان' : 'ورود برای خرید دسترسی'}</a>`;
     if (kind === 'free') return `<button type="button" class="btn primary" data-rec-claim${busyAttr}>${R.busy === 'claim' ? 'در حال ثبت…' : 'دریافت دسترسی رایگان'}</button>${compact ? '' : '<small class="ei-rec-why">بدون پرداخت و بدون تراکنش؛ دسترسی روی حساب شما ثبت می‌شود.</small>'}`;
-    if (kind === 'off_sale') return `<span class="ei-lock" data-rec-off-sale>${esc(cta.reason === 'no_payment_method' ? 'فروش این محتوا فعلاً فعال نیست' : 'فروش این محتوا فعلاً متوقف است')}</span>`;
+    if (kind === 'off_sale') return `<span class="ei-lock" data-rec-off-sale>${esc(cta.reason === 'no_payment_method' || cta.reason === 'purchase_form_required' || cta.reason === 'purchase_form_not_published' ? 'فروش این محتوا فعلاً فعال نیست' : 'فروش این محتوا فعلاً متوقف است')}</span>`;
     if (kind === 'order_open') return compact ? `<a class="btn primary" href="#recording-order" data-rec-continue>${esc(R_ORDER_STATUS[cta.reason] || 'ادامهٔ سفارش')}</a>` : '';
     if (kind === 'buy') {
       const methods = Array.isArray(cta.methods) ? cta.methods : [];
+      const formHref = rFormHref(cta.form_id);
       const prev = cta.previous && cta.previous.status ? `<small class="ei-rec-why" data-rec-previous="${esc(cta.previous.status)}">${esc(R_ORDER_STATUS[cta.previous.status] || '')}؛ می‌توانید دوباره تلاش کنید.</small>` : '';
-      if (compact) return `<a class="btn primary" href="#recording" data-rec-buy-jump>خرید دسترسی · ${esc(rMoney(d.price))}</a>`;
-      const buttons = methods.map(m => `<button type="button" class="btn ${m === methods[0] ? 'primary' : 'quiet'}" data-rec-order="${esc(m)}"${busyAttr}>${R.busy === m ? 'در حال ساخت سفارش…' : m === 'bale_wallet' ? 'پرداخت با کیف پول بله' : 'خرید دسترسی (کارت‌به‌کارت)'}</button>`).join('');
-      return `${buttons}${prev}`;
+      if (!formHref) return `<span class="ei-lock" data-rec-off-sale>فرم خرید این محتوا در دسترس نیست</span>`;
+      if (compact) return `<a class="btn primary" href="${esc(formHref)}" data-rec-buy>خرید دسترسی · ${esc(rMoney(d.price))}</a>`;
+      const how = methods.map(m => m === 'bale_wallet' ? 'کیف پول بله' : 'کارت‌به‌کارت با بررسی رسید').join(' یا ');
+      return `<a class="btn primary" href="${esc(formHref)}" data-rec-buy>خرید دسترسی · ${esc(rMoney(d.price))}</a><small class="ei-rec-why">خرید از فرم خرید همین محصول انجام می‌شود${how ? ` (${esc(how)})` : ''}؛ مبلغ و روش پرداخت را سرور تعیین می‌کند.</small>${prev}`;
     }
     return `<span class="ei-lock">این محتوا در دسترس نیست</span>`;
   }
@@ -308,18 +314,22 @@
     if (!cta || cta.kind !== 'order_open' || !cta.order) return '';
     const o = cta.order, status = o.status;
     let body = '';
-    if (o.method === 'card_transfer' && (status === 'awaiting_receipt' || status === 'receipt_submitted')) {
+    const formHref = rFormHref(cta.form_id);
+    if (o.form_payment_id || o.form_response_id) {
+      /* سفارش فرم‌دار (۹.۱): رسید/پرداخت در خود فرم خرید دنبال می‌شود؛ این‌جا فقط وضعیت واقعی و پیوند ادامه. */
+      body += `<p class="cap" data-rec-order-via-form>این سفارش از فرم خرید ثبت شده است. ${esc(status === 'receipt_submitted' ? 'رسید در صف بررسی برگزارکننده است؛ دسترسی فقط پس از تأیید فعال می‌شود.' : status === 'awaiting_receipt' ? 'پس از واریز، رسید را در همان فرم خرید بارگذاری کنید.' : status === 'pending' ? 'پرداخت در بله هنوز تأیید نشده است؛ وضعیت فقط از سرور خوانده می‌شود.' : 'نتیجه پس از بررسی در حساب شما ثبت می‌شود.')}</p>
+        <div class="ei-form-row">${formHref ? `<a class="btn primary" href="${esc(formHref)}" data-rec-continue-form>ادامه در فرم خرید</a>` : ''}<button type="button" class="btn sm quiet" data-rec-refresh>بررسی وضعیت</button><a class="btn sm quiet" href="account.html#payments">سفارش‌ها و پرداخت‌ها</a></div>`;
+    } else if (o.method === 'card_transfer' && (status === 'awaiting_receipt' || status === 'receipt_submitted')) {
       const card = o.card || {};
       body += `<dl class="ei-rec-card"><div><dt>مبلغ قابل واریز</dt><dd>${esc(rMoney(o.amount))}</dd></div>
         ${card.number ? `<div><dt>شمارهٔ کارت</dt><dd dir="ltr">${esc(String(card.number).replace(/(\d{4})(?=\d)/g, '$1-'))}</dd></div>` : ''}
         ${card.bank ? `<div><dt>بانک</dt><dd>${esc(card.bank)}</dd></div>` : ''}${card.holder ? `<div><dt>به نام</dt><dd>${esc(card.holder)}</dd></div>` : ''}
         ${o.expires_at ? `<div><dt>مهلت ارسال رسید</dt><dd>${esc(when(o.expires_at))}</dd></div>` : ''}</dl>`;
+      /* سفارش قدیمی (پیش از ۹.۱) بدون فرم: ارسال رسید از این صفحه بازنشسته شده است؛ مسیر درست، فرم خرید است. */
       body += status === 'receipt_submitted'
-        ? `<p class="ei-note ok" role="status">رسید «${esc(o.receipt_file_name || 'فایل')}» در ${esc(when(o.receipt_submitted_at))} ارسال شد. دسترسی فقط پس از بررسی و تأیید برگزارکننده فعال می‌شود؛ نتیجه در «سفارش‌ها و پرداخت‌ها»ی حساب شما ثبت می‌شود. در صورت نیاز می‌توانید رسید را جایگزین کنید.</p>`
-        : `<p class="cap">پس از واریز، تصویر یا PDF رسید را بفرستید. ارسال رسید پرداخت را قطعی نمی‌کند؛ برگزارکننده آن را بررسی می‌کند.</p>`;
-      body += `<form class="ei-form" data-rec-receipt-form novalidate><label class="cap" for="eiReceiptFile">فایل رسید (JPG، PNG، WebP یا PDF؛ تا ۸ مگابایت)</label><input id="eiReceiptFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-rec-receipt-file/>
-        <label class="cap" for="eiReceiptNote">یادداشت (اختیاری، مثلاً شمارهٔ پیگیری)</label><input id="eiReceiptNote" class="input" type="text" maxlength="300" data-rec-receipt-note value="${esc(R.note)}"/>
-        <div class="ei-form-row">${status === 'awaiting_receipt' ? `<button type="button" class="btn sm quiet" data-rec-cancel${R.busy ? ' disabled' : ''}>انصراف از سفارش</button>` : ''}<button type="submit" class="btn primary"${R.busy ? ' disabled aria-busy="true"' : ''}>${R.busy === 'receipt' ? 'در حال ارسال…' : status === 'receipt_submitted' ? 'جایگزینی رسید' : 'ارسال رسید'}</button></div></form>`;
+        ? `<p class="ei-note ok" role="status">رسید «${esc(o.receipt_file_name || 'فایل')}» در ${esc(when(o.receipt_submitted_at))} ارسال شد. دسترسی فقط پس از بررسی و تأیید برگزارکننده فعال می‌شود؛ نتیجه در «سفارش‌ها و پرداخت‌ها»ی حساب شما ثبت می‌شود.</p>`
+        : `<p class="ei-note warn" role="status" data-rec-legacy-order>این سفارش از مسیر قدیمی ثبت شده و رسید آن دیگر از این صفحه پذیرفته نمی‌شود. اگر هنوز واریز نکرده‌اید، سفارش را لغو کنید و از «فرم خرید» ادامه دهید؛ اگر واریز کرده‌اید، با برگزارکننده تماس بگیرید.</p>`;
+      body += `<div class="ei-form-row">${status === 'awaiting_receipt' ? `<button type="button" class="btn sm quiet" data-rec-cancel${R.busy ? ' disabled' : ''}>انصراف از سفارش</button>` : ''}${formHref ? `<a class="btn primary" href="${esc(formHref)}" data-rec-continue-form>فرم خرید</a>` : ''}<button type="button" class="btn sm quiet" data-rec-refresh>بررسی وضعیت</button></div>`;
     } else if (o.method === 'bale_wallet' && status === 'pending') {
       body += `<p class="cap">مبلغ ${esc(rMoney(o.amount))} از طریق کیف پول بله پرداخت می‌شود. دسترسی تنها پس از تأیید پرداخت توسط سرور (نه با بازگشت از صفحهٔ پرداخت) فعال می‌شود.${o.expires_at ? ` مهلت پرداخت: ${esc(when(o.expires_at))}.` : ''}</p>
         <div class="ei-form-row">${/^https:\/\//i.test(String(o.invoice_url || '')) ? `<a class="btn primary" href="${esc(o.invoice_url)}" target="_blank" rel="noopener noreferrer" data-rec-invoice>ادامهٔ پرداخت در بله</a>` : '<span class="ei-lock">پیوند پرداخت در دسترس نیست</span>'}
@@ -436,50 +446,17 @@
     R.busy = '';
     await loadRecording();
   }
-  async function rOrder(method) {
-    if (!R.data || R.busy) return;
-    R.busy = method; S.msg.recording = null; renderRecording();
-    try {
-      const order = await api(`/api/account/recordings/${encodeURIComponent(R.data.id)}/orders`, { method: 'POST', body: { method } });
-      S.msg.recording = { kind: 'ok', text: order && order.method === 'bale_wallet' ? 'سفارش ساخته شد؛ پرداخت را در بله کامل کنید.' : 'سفارش ساخته شد؛ پس از واریز، رسید را بفرستید.' };
-      rJump('recording-order');
-    } catch (error) { S.msg.recording = { kind: 'warn', text: rDescribe(error) }; }
-    R.busy = '';
-    await loadRecording();
-  }
+  /* ساخت سفارش از صفحهٔ رویداد (POST /orders فاز ۹) حذف شد: سرور آن را با 410 use_purchase_form بسته و خرید فقط از فرم خرید آغاز می‌شود. */
   async function rCancel() {
     const cta = R.data && R.data.viewer.cta; if (!cta || !cta.order || R.busy) return;
-    if (typeof root.confirm === 'function' && !root.confirm('سفارش لغو شود؟ در صورت واریز، رسید را پیش از لغو بفرستید.')) return;
+    if (typeof root.confirm === 'function' && !root.confirm('سفارش لغو شود؟ اگر مبلغی واریز کرده‌اید، لغو نکنید و با برگزارکننده تماس بگیرید.')) return;
     R.busy = 'cancel'; renderRecording();
     try { await api(`/api/account/recording-orders/${encodeURIComponent(cta.order.id)}/cancel`, { method: 'POST', body: {} }); S.msg.recording = { kind: 'ok', text: 'سفارش لغو شد.' }; }
     catch (error) { S.msg.recording = { kind: 'warn', text: rDescribe(error) }; }
     R.busy = '';
     await loadRecording();
   }
-  async function rReceipt(form) {
-    const cta = R.data && R.data.viewer.cta; if (!cta || !cta.order || R.busy) return;
-    const input = form.querySelector('[data-rec-receipt-file]'); const file = input && input.files && input.files[0];
-    const noteField = form.querySelector('[data-rec-receipt-note]'); R.note = noteField ? String(noteField.value || '').slice(0, 300) : '';
-    if (!file) { S.msg.recording = { kind: 'warn', text: 'فایل رسید را انتخاب کنید.' }; renderRecording(); return; }
-    if (file.size > 8 * 1024 * 1024) { S.msg.recording = { kind: 'warn', text: R_ERRORS.file_too_large }; renderRecording(); return; }
-    R.busy = 'receipt'; S.msg.recording = null; renderRecording();
-    const safeName = encodeURIComponent(String(file.name || 'receipt').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 120) || 'receipt');
-    let response;
-    try {
-      response = await root.fetch(`/api/account/recording-orders/${encodeURIComponent(cta.order.id)}/receipt`, {
-        method: 'PUT', credentials: 'same-origin', cache: 'no-store', redirect: 'error', body: file,
-        headers: { Accept: 'application/json', 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': safeName, 'X-Receipt-Note': encodeURIComponent(R.note), 'X-CSRF-Token': csrf() }
-      });
-    } catch (_) { response = null; }
-    let payload = null; try { payload = response ? await response.json() : null; } catch (_) { payload = null; }
-    if (response && response.ok) { S.msg.recording = { kind: 'ok', text: 'رسید ارسال شد و در صف بررسی برگزارکننده قرار گرفت؛ ارسال رسید به‌معنای تأیید پرداخت نیست.' }; R.note = ''; }
-    else {
-      const detail = payload && payload.detail; const code = detail && typeof detail === 'object' ? detail.code : (typeof detail === 'string' ? detail : '');
-      S.msg.recording = { kind: 'warn', text: rDescribe({ code, status: response ? response.status : 0 }) };
-    }
-    R.busy = '';
-    await loadRecording();
-  }
+  /* ارسال رسید از صفحهٔ رویداد (مسیر موازی فاز ۹) حذف شد؛ رسید فقط در فرم خرید (form.html) و با بازبینی اینباکس ثبت می‌شود. */
   function rBind(page) {
     if (page.__noraRecordingBound) return;
     page.__noraRecordingBound = true;
@@ -490,21 +467,14 @@
         if (R_JUMP_TARGETS.indexOf(hash) >= 0) { event.preventDefault(); rJump(hash); }
         return;
       }
-      const target = event.target && event.target.closest ? event.target.closest('[data-rec-retry],[data-rec-claim],[data-rec-order],[data-rec-cancel],[data-rec-refresh]') : null;
+      const target = event.target && event.target.closest ? event.target.closest('[data-rec-retry],[data-rec-claim],[data-rec-cancel],[data-rec-refresh]') : null;
       if (!target) return;
       event.preventDefault();
       if (target.hasAttribute('data-rec-retry') || target.hasAttribute('data-rec-refresh')) { loadRecording(); return; }
       if (target.hasAttribute('data-rec-claim')) { rClaim(); return; }
-      if (target.hasAttribute('data-rec-order')) { rOrder(target.getAttribute('data-rec-order')); return; }
       if (target.hasAttribute('data-rec-cancel')) { rCancel(); }
     };
     doc.addEventListener('click', handler);
-    page.addEventListener('submit', event => {
-      const form = event.target && event.target.closest ? event.target.closest('form[data-rec-receipt-form]') : null;
-      if (!form) return;
-      event.preventDefault();
-      rReceipt(form);
-    });
   }
 
   function render() {

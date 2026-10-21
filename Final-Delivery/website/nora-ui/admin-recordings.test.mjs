@@ -25,19 +25,33 @@ const RES1 = '11111111-1111-4111-8111-111111111119';
 const ORD1 = '77777777-7777-4777-8777-777777777771';
 const ORD2 = '77777777-7777-4777-8777-777777777772';
 const ACC1 = '88888888-8888-4888-8888-888888888881';
+const ORD3 = '77777777-7777-4777-8777-777777777773';
+const FORM = '66666666-6666-4666-8666-666666666661';
 
+/* Mirrors backend `recordings.commerce_for` / `publish_blockers` (phase 9.1): the purchase form is the commercial source. */
+function commerceFor(state) {
+  const rec = state.recording, f = state.purchaseForm;
+  if (!f) return { source: 'product', price: rec.price, currency: 'IRR', free: !(rec.price > 0), methods: [], form_id: null, form_status: '', form_title: '', valid: true, on_sale: true };
+  const methods = f.price > 0 ? f.methods.filter((m) => m !== 'bale_wallet' || state.walletReady) : [];
+  return { source: 'form', price: f.price, currency: 'IRR', free: !(f.price > 0), methods, form_id: f.id, form_status: f.status, form_title: f.title, valid: f.price != null, on_sale: f.status === 'published' };
+}
 function blockersFor(state) {
   const rec = state.recording; if (!rec) return [];
   const out = [];
   if (!state.sessions.some((s) => s.status === 'published')) out.push('no_published_session');
   if (!state.resources.some((r) => r.session_id && r.status === 'published')) out.push('no_live_resource');
-  if (rec.price > 0 && !rec.payment_card && !(rec.bale_enabled && state.walletReady)) out.push('no_payment_method');
+  const c = commerceFor(state);
+  if (c.source !== 'form') { if (c.price > 0) out.push('purchase_form_required'); }
+  else if (!c.valid) out.push('purchase_form_invalid_price');
+  else if (c.form_status !== 'published') out.push('purchase_form_not_published');
+  else if (c.price > 0 && !c.methods.length) out.push('no_payment_method');
   return out;
 }
 function makeState() {
   return {
     walletReady: false,
     recording: null,
+    purchaseForm: null,
     sessions: [],
     resources: [],
     access: [],
@@ -49,6 +63,11 @@ function makeState() {
         amount: 1500000, currency: 'IRR', expires_at: null, payer_bale_user_id: '4411', transaction_id: 'tx-77', has_receipt: false, receipt_file_name: '', receipt_content_type: '', receipt_size: 0, receipt_note: '',
         receipt_submitted_at: null, paid_at: '2026-10-21T05:00:00+00:00', decided_at: null, decided_by_kind: '', decision_reason: '', review_note: '', refund_reference: '', refunded_at: null, duplicates: 0,
         access: { id: ACC1, state: 'active', status: 'active', source: 'purchase', expires_at: null }, created_at: '2026-10-21T04:50:00+00:00', updated_at: '2026-10-21T05:00:00+00:00' },
+      /* Phase 9.1: an order that mirrors a purchase-form payment — its receipt is decided in the shared inbox, never here. */
+      { id: ORD3, recording_id: REC_ID, event_id: EV, event_title: 'کارگاه برگزارشده', product_title: 'ضبط کارگاه نجوم', account_id: 'acc-buyer-3', account_label: 'سارا م.', method: 'card_transfer', status: 'receipt_submitted', open: true, reviewable: true,
+        amount: 1500000, currency: 'IRR', expires_at: null, payer_bale_user_id: '', transaction_id: '', has_receipt: false, receipt_file_name: '', receipt_content_type: '', receipt_size: 0, receipt_note: '',
+        receipt_submitted_at: '2026-10-21T07:10:00+00:00', paid_at: null, decided_at: null, decided_by_kind: '', decision_reason: '', review_note: '', refund_reference: '', refunded_at: null, duplicates: 0, access: null,
+        form_response_id: '99999999-9999-4999-8999-999999999991', form_payment_id: '99999999-9999-4999-8999-999999999992', created_at: '2026-10-21T07:00:00+00:00', updated_at: '2026-10-21T07:10:00+00:00' },
     ],
   };
 }
@@ -70,7 +89,7 @@ async function loadPanel(identity) {
     const rec = state.recording; if (!rec) return null;
     const published = state.sessions.filter((s) => s.status === 'published').length;
     return { ...rec, sessions: state.sessions.map((s) => ({ ...s, resource_count: state.resources.filter((r) => r.session_id === s.id && r.status !== 'removed').length })),
-      publish_blockers: blockersFor(state), transitions: { draft: ['ready', 'archived'], ready: ['draft', 'published', 'archived'], published: ['sales_paused', 'archived'], sales_paused: ['published', 'archived'], archived: ['ready'] }[rec.status],
+      commerce: commerceFor(state), publish_blockers: blockersFor(state), transitions: { draft: ['ready', 'archived'], ready: ['draft', 'published', 'archived'], published: ['sales_paused', 'archived'], sales_paused: ['published', 'archived'], archived: ['ready'] }[rec.status],
       /* Same keys as backend `_recording_admin_counts` (app.py) — the panel must read these, not invented ones. */
       counts: { orders_open: state.orders.filter((o) => o.open).length, orders_review: state.orders.filter((o) => o.status === 'receipt_submitted' || o.status === 'needs_review').length, orders_paid: state.orders.filter((o) => /^paid/.test(o.status)).length, orders_refunded: 0, access_active: state.access.filter((a) => a.state === 'active').length, access_total: state.access.length } };
   };
@@ -146,11 +165,12 @@ async function loadPanel(identity) {
             const sent = json();
             if (!sent.title || sent.title.length < 2) return reply(422, { detail: { code: 'text_required', field: 'title' } });
             if (sent.payment_card && !/^\d{16}$/.test(sent.payment_card.number || '')) return reply(422, { detail: { code: 'invalid_payment_card', field: 'payment_card' } });
-            if (state.recording && state.recording.status === 'published' && sent.price !== state.recording.price && state.orders.some((o) => o.open)) return reply(409, { detail: { code: 'open_orders_block_price_change' } });
+            if (state.recording && state.purchaseForm && ['price', 'payment_card', 'bale_enabled'].some((k) => k in sent && JSON.stringify(sent[k]) !== JSON.stringify(state.recording[k]))) return reply(409, { detail: { code: 'commercial_settings_in_form', fields: ['price'], form_id: state.purchaseForm.id } });
+            if (state.recording && state.recording.status === 'published' && 'price' in sent && sent.price !== state.recording.price && state.orders.some((o) => o.open)) return reply(409, { detail: { code: 'open_orders_block_price_change' } });
             const prev = state.recording;
             state.recording = { id: REC_ID, event_id: EV, event_title: 'کارگاه برگزارشده', status: prev ? prev.status : 'draft', status_reason: prev ? prev.status_reason : '', currency: 'IRR', published_at: null, version: prev ? prev.version + 1 : 1, created_at: '2026-10-21T06:00:00+00:00', updated_at: '2026-10-21T06:00:00+00:00',
-              title: sent.title, summary: sent.summary || '', outcomes: sent.outcomes || '', audience: sent.audience || '', access_terms: sent.access_terms || '', refund_policy: sent.refund_policy || '', faq: sent.faq || [], price: sent.price, access_days: sent.access_days,
-              attendee_access: !!sent.attendee_access, download_default: sent.download_default !== false, bale_enabled: sent.bale_enabled !== false, payment_card: sent.payment_card || null, cover_url: sent.cover_url || '' };
+              title: sent.title, summary: sent.summary || '', outcomes: sent.outcomes || '', audience: sent.audience || '', access_terms: sent.access_terms || '', refund_policy: sent.refund_policy || '', faq: sent.faq || [], price: 'price' in sent ? sent.price : (prev ? prev.price : 0), access_days: sent.access_days,
+              attendee_access: !!sent.attendee_access, download_default: sent.download_default !== false, bale_enabled: prev ? prev.bale_enabled : true, payment_card: prev ? prev.payment_card : null, cover_url: sent.cover_url || '' };
             return reply(prev ? 200 : 201, adminRecording());
           }
           if (part === 'status') {
@@ -198,6 +218,7 @@ async function loadPanel(identity) {
             const g = guard('receipt_approve'); if (g) return g;
             const sent = json(); if (!sent.reason) return reply(422, { detail: { code: 'text_required', field: 'reason' } });
             if (!row.reviewable) return reply(409, { detail: { code: 'order_not_reviewable' } });
+            if (row.form_payment_id) return reply(409, { detail: { code: 'decide_in_inbox', task_id: 'task-1' } });
             row.status = sent.decision === 'approve' ? 'paid_manual' : 'rejected'; row.open = false; row.reviewable = false; row.decided_at = '2026-10-21T08:00:00+00:00'; row.decision_reason = sent.reason;
             if (sent.decision === 'approve') { row.paid_at = row.decided_at; row.access = { id: 'acc-x', state: 'active', status: 'active', source: 'purchase', expires_at: null }; }
             return reply(200, row);
@@ -249,22 +270,25 @@ console.log('— مالک: ساخت محصول، جلسه، فایل جلسه ا
     await app.until(() => app.doc.querySelector('[data-rec-editor]'), 'ویرایشگر محصول');
     app.setField('#recf_title', 'ضبط کارگاه نجوم');
     app.setField('#recf_price', '1500000');
-    app.setField('#recf_card_number', '1234');
-    app.click('[data-rec-save]');
-    await app.until(() => /شمارهٔ کارت معتبر نیست/.test(app.body()), 'خطای فیلد کارت از سرور');
-    app.setField('#recf_card_number', '6037-9975-9999-9993');
-    app.setField('#recf_card_bank', 'ملی');
+    /* ۹.۱: کارت مقصد و کلید کیف پول روی محصول نیستند؛ منبع آن‌ها فرم خرید است */
+    assert.equal(app.doc.querySelector('#recf_card_number'), null, 'ویرایشگر محصول فیلد کارت مقصد ندارد');
+    assert.equal(app.doc.querySelector('[data-rec-flag="bale_enabled"]'), null, 'ویرایشگر محصول کلید کیف پول ندارد');
+    assert.match(app.doc.querySelector('[data-rec-commerce-note]').textContent, /در «فرم خرید» همین محصول/, 'توضیح منبع تجاری');
     app.setField('#recf_faq', 'آیا دانلود دارد؟ :: بله، جزوه‌ها قابل دانلود است.');
     app.click('[data-rec-save]');
     await app.until(() => app.doc.querySelector('[data-rec-status-box]'), 'محصول ساخته شد');
-    const created = app.calls.find((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/recording` && /6037997599999993/.test(c.body || ''));
-    assert.ok(created, 'شمارهٔ کارت بدون جداکننده فرستاده می‌شود');
+    const created = app.calls.find((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/recording`);
     const sentBody = JSON.parse(created.body);
     assert.equal(sentBody.price, 1500000); assert.equal(sentBody.access_days, null);
+    assert.ok(!('payment_card' in sentBody) && !('bale_enabled' in sentBody), 'کارت مقصد/کیف پول در payload محصول فرستاده نمی‌شود');
     assert.deepEqual(sentBody.faq, [{ q: 'آیا دانلود دارد؟', a: 'بله، جزوه‌ها قابل دانلود است.' }]);
     assert.equal(created.headers['X-CSRF-Token'], 'owner-csrf');
     assert.match(app.doc.querySelector('[data-rec-status-box]').textContent, /پیش‌نویس/);
     assert.match(app.doc.querySelector('[data-rec-blockers]').textContent, /دست‌کم یک جلسهٔ منتشرشده لازم است/, 'موانع انتشار از سرور');
+    assert.match(app.doc.querySelector('[data-rec-blockers]').textContent, /هنوز فرم خریدی برای این محصول ساخته نشده/, 'مانع purchase_form_required با متن روشن');
+    const createForm = app.doc.querySelector('[data-rec-commerce="product"] a[data-rec-form-create]');
+    assert.ok(createForm, 'جعبهٔ «فروش و قیمت» پیوند ساخت فرم خرید دارد');
+    assert.equal(createForm.getAttribute('href'), `create.html?purpose=recording_access&recording=${REC_ID}&ev=${EV}&back=${encodeURIComponent('admin.html#newev')}`, 'پیوند فرم‌ساز با شناسهٔ محصول و رویداد (سرور دوباره می‌سنجد)');
     assert.equal(app.doc.querySelector('[data-rec-status="published"]'), null, 'در پیش‌نویس دکمهٔ انتشار وجود ندارد (گذار سرور)');
     assert.ok(app.doc.querySelector('[data-rec-status="ready"]'));
 
@@ -304,7 +328,30 @@ console.log('— مالک: ساخت محصول، جلسه، فایل جلسه ا
     app.click('[data-ei-tab="recording"]');
     await app.until(() => app.doc.querySelector(`[data-rec-sess-row="${SESS1}"]`) && /فایل‌های جلسه \(۱\)/.test(app.doc.querySelector(`[data-rec-sess-row="${SESS1}"]`).textContent), 'شمار فایل جلسه');
     app.click(`[data-rec-sess-status="published"][data-rec-id="${SESS1}"]`);
-    await app.until(() => !app.doc.querySelector('[data-rec-blockers]'), 'موانع انتشار برطرف شد');
+    await app.until(() => app.doc.querySelector('[data-rec-blockers]') && !/جلسهٔ منتشرشده لازم/.test(app.doc.querySelector('[data-rec-blockers]').textContent), 'موانع جلسه/فایل برطرف شد');
+    assert.match(app.doc.querySelector('[data-rec-blockers]').textContent, /هنوز فرم خریدی/, 'بدون فرم خرید همچنان منتشر نمی‌شود');
+    /* فرم خرید در فرم‌ساز ساخته شد (پیش‌نویس) → سرور مانع purchase_form_not_published می‌دهد */
+    app.state.purchaseForm = { id: FORM, status: 'draft', title: 'خرید ضبط کارگاه نجوم', price: 1500000, methods: ['card_transfer'] };
+    app.click('[data-ei-tab="orders"]'); await app.until(() => app.doc.querySelector('[data-rec-orders]'), 'زبانهٔ سفارش‌ها');
+    app.click('[data-ei-tab="recording"]'); await app.until(() => app.doc.querySelector('[data-rec-commerce="form"]'), 'جعبهٔ فروش از فرم');
+    assert.match(app.doc.querySelector('[data-rec-blockers]').textContent, /فرم خرید این محصول هنوز منتشر نشده/, 'مانع purchase_form_not_published');
+    const formBox = app.doc.querySelector('[data-rec-commerce="form"]');
+    assert.match(formBox.textContent, /خرید ضبط کارگاه نجوم/); assert.match(formBox.textContent, /پیش‌نویس/); assert.match(formBox.textContent, /۱,۵۰۰,۰۰۰ ریال/); assert.match(formBox.textContent, /کارت‌به‌کارت/);
+    assert.equal(formBox.querySelector('a[data-rec-form-edit]').getAttribute('href'), `create.html?fid=${FORM}&back=${encodeURIComponent('admin.html#newev')}`, 'ویرایش فقط در فرم‌ساز');
+    assert.equal(formBox.querySelector('a[data-rec-form-public]'), null, 'فرم منتشرنشده پیوند عمومی ندارد');
+    /* ویرایش محصول با فرم متصل: قیمت قفل است و در payload نمی‌رود */
+    app.click('[data-rec-edit]'); await app.until(() => app.doc.querySelector('[data-rec-editor]'), 'ویرایشگر');
+    assert.equal(app.doc.querySelector('#recf_price'), null, 'با فرم متصل، فیلد قیمت وجود ندارد');
+    assert.match(app.doc.querySelector('[data-rec-price-locked]').textContent, /از فرم‌ساز تغییر می‌کنند/);
+    app.setField('#recf_summary', 'خلاصهٔ تازه'); app.click('[data-rec-save]');
+    await app.until(() => app.doc.querySelector('[data-rec-status-box]'), 'ذخیرهٔ غیرتجاری');
+    const edited = JSON.parse(app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/recording`).pop().body);
+    assert.ok(!('price' in edited) && edited.summary === 'خلاصهٔ تازه', 'ویرایش غیرتجاری بدون فیلد قیمت فرستاده می‌شود');
+    /* انتشار فرم خرید در فرم‌ساز → مانع برطرف */
+    app.state.purchaseForm.status = 'published';
+    app.click('[data-ei-tab="orders"]'); await app.until(() => app.doc.querySelector('[data-rec-orders]'), 'زبانهٔ سفارش‌ها');
+    app.click('[data-ei-tab="recording"]'); await app.until(() => app.doc.querySelector('[data-rec-commerce="form"]') && !app.doc.querySelector('[data-rec-blockers]'), 'موانع انتشار برطرف شد');
+    assert.equal(app.doc.querySelector('[data-rec-commerce="form"] a[data-rec-form-public]').getAttribute('href'), `form.html?fid=${FORM}&kind=reg`, 'پیوند فرم خرید عمومی = form.html همان فرم');
     app.click('[data-rec-status="ready"]');
     await app.until(() => app.doc.querySelector('[data-rec-status="published"]'), 'دکمهٔ انتشار پس از آماده‌سازی');
     app.click('[data-rec-status="published"]');
@@ -361,6 +408,13 @@ console.log('— مالک: کارتابل سفارش‌ها (رسید ≠ پرد
     assert.equal(app.doc.querySelector(`[data-rec-order-row="${ORD2}"]`), null, 'فیلتر پیش‌فرض فقط نیازمند بررسی');
     const row = app.doc.querySelector(`[data-rec-order-row="${ORD1}"]`).textContent;
     assert.match(row, /رسید ارسال‌شده؛ نیازمند بررسی/); assert.match(row, /کارت‌به‌کارت/); assert.match(row, /۱ سفارش دیگر از همین حساب/); assert.match(row, /دسترسی: ندارد/);
+    assert.match(row, /سفارش قدیمی/, 'سفارش بدون فرم به‌روشنی «قدیمی» است');
+    /* ۹.۱: سفارش فرم‌دار فقط به صندوق پیام‌ها می‌رود */
+    const viaForm = app.doc.querySelector(`[data-rec-order-row="${ORD3}"]`);
+    assert.ok(viaForm, 'سفارش فرم‌دار در فهرست نیازمند بررسی');
+    assert.match(viaForm.textContent, /ثبت‌شده از فرم خرید/);
+    assert.equal(viaForm.querySelector('[data-rec-order-decide]'), null, 'بدون دکمهٔ تأیید/رد مستقیم');
+    assert.equal(viaForm.querySelector(`a[data-rec-order-inbox="${ORD3}"]`).getAttribute('href'), 'admin.html#inbox', 'بررسی در صندوق پیام‌ها');
     assert.doesNotMatch(row, /پرداخت تأییدشده/, 'رسید به‌تنهایی پرداخت تأییدشده نشان داده نمی‌شود');
     const receipt = app.doc.querySelector(`[data-rec-order-row="${ORD1}"] a[href$="/receipt"]`);
     assert.ok(receipt && receipt.getAttribute('href') === `/api/admin/recording-orders/${ORD1}/receipt`, 'رسید فقط از نقطهٔ مجوزدار سرور');

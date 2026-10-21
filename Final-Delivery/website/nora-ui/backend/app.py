@@ -4761,6 +4761,19 @@ def create_app(
             raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
         return identity
 
+    def _public_purchase_header(db: Session, request: Request, form: FormRecord) -> dict[str, Any]:
+        """The purchase header of form.html: product, server price and the caller's real access state."""
+        identity = account_identity_from_request(request, db)
+        purchase = _purchase_state_view(db, form, identity.account_id if identity else None, _utc_now()) or {}
+        settings_value = form.settings if isinstance(form.settings, dict) else {}
+        purchase.update({
+            "signed_in": identity is not None,
+            "price": purchase_form_price(settings_value),
+            "currency": "IRR",
+            "selection": purchase_form_selection(settings_value),
+        })
+        return purchase
+
     def _recording_admin_counts(db: Session, recording_id: str) -> dict[str, int]:
         now = _utc_now()
         rows = db.execute(
@@ -5013,11 +5026,15 @@ def create_app(
             ).all()
         }
         titles = _interaction_event_titles(db, {p.event_id for p in products.values()})
+        purchase_forms = recordings_mod.purchase_forms_for(db, list(products))
         items = []
         for row in rows[offset:offset + limit]:
             view = recordings_mod.order_account_view(row, products.get(row.recording_id))
             product = products.get(row.recording_id)
             view["event_title"] = titles.get(product.event_id, "") if product else ""
+            purchase_form = purchase_forms.get(row.recording_id)
+            # Phase 9.1: the account page continues/retries a purchase only through the builder's form.
+            view["purchase_form_id"] = purchase_form.id if purchase_form is not None and purchase_form.status == "published" else None
             items.append(view)
         return {"source": "shared_server_database", "items": items, "total": len(rows), "limit": limit, "offset": offset}
 
@@ -5033,6 +5050,8 @@ def create_app(
         recording = db.get(EventRecordingRecord, order.recording_id)
         view = recordings_mod.order_account_view(order, recording)
         view["event_title"] = _recording_event_title(db, recording.event_id) if recording else ""
+        purchase_form = recordings_mod.purchase_form_for(db, order.recording_id)
+        view["purchase_form_id"] = purchase_form.id if purchase_form is not None and purchase_form.status == "published" else None
         return view
 
     @app.put("/api/account/recording-orders/{order_id}/receipt")
@@ -8989,18 +9008,7 @@ def create_app(
             bale_ready=cfg.form_bale_payments_ready,
         )
         if _form_is_purchase(form):
-            # The purchase header of form.html: product + the caller's real access state.
-            identity = account_identity_from_request(request, db)
-            now = _utc_now()
-            purchase = _purchase_state_view(db, form, identity.account_id if identity else None, now) or {}
-            settings_value = form.settings if isinstance(form.settings, dict) else {}
-            purchase.update({
-                "signed_in": identity is not None,
-                "price": purchase_form_price(settings_value),
-                "currency": "IRR",
-                "selection": purchase_form_selection(settings_value),
-            })
-            data["purchase"] = purchase
+            data["purchase"] = _public_purchase_header(db, request, form)
         return data
 
     @app.post("/api/public/forms/{form_id}/coupon-check")
@@ -11170,6 +11178,9 @@ def create_app(
                         route_error = "closed" if form.status in {"paused", "archived"} else "draft"
                     elif publication_issues(form, bale_ready=cfg.form_bale_payments_ready):
                         route_error = "invalid-form"
+                    elif (purchase_block := _purchase_form_block(db, form)) is not None:
+                        # Purchase form of a product that is not on sale right now (draft/paused/archived).
+                        route_error = "recording-not-on-sale:" + str(purchase_block.get("recording_id") or "")
                     elif (block := _event_registration_block(db, form)) is not None:
                         # The form itself is published; only the event's registration window/status blocks it.
                         route_error = "registration-closed:" + str(block.get("event_id") or "")
@@ -11186,6 +11197,8 @@ def create_app(
                                 waitlisted_count=waitlisted,
                                 bale_ready=cfg.form_bale_payments_ready,
                             )
+                            if _form_is_purchase(form):
+                                form_data["purchase"] = _public_purchase_header(db, request, form)
             except SQLAlchemyError:
                 route_error = "unavailable"
 
