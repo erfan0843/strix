@@ -7624,7 +7624,7 @@ async function ceLoadDetail(id){
   catch(error){if(CERT_SRV.detailId===id) CERT_SRV.detailError=p2Err(error,'پروندهٔ گواهی دریافت نشد.')}
   finally{CERT_SRV.detailLoading=false; if(CERT_SRV.detailId===id) renderBody()}
 }
-const CE_KIND={event:'رویداد',batch:'فهرست اکسل',form:'فرم',manual:'دستی',center:'مرکز صدور'};
+const CE_KIND={event:'رویداد',batch:'فهرست اکسل',form:'فرم',manual:'دستی',center:'مرکز صدور',recording:'پایان محتوای ضبط‌شده'};
 function ceStatusTag(item){
   const st=item.effective_status||item.status;
   return st==='revoked'?tag('باطل‌شده','stop'):st==='expired'?tag('منقضی','warn'):tag('صادرشده','ok');

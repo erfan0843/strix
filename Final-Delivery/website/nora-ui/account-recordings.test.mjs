@@ -47,6 +47,8 @@ async function load(hash,server){
         if(/^\/api\/account\/files\?/.test(path)) return Promise.resolve(reply(200,{items:[],has_more:false}));
         if(path==='/api/account/identities') return Promise.resolve(reply(200,{identities:[{provider:'phone',linked_at:'2026-01-01T00:00:00Z'}],available_providers:['bale'],bale_link_available:false}));
         if(path==='/api/account/recordings') return Promise.resolve(server.libraryStatus?reply(server.libraryStatus,{detail:'boom'}):reply(200,{items:server.library||[],total:(server.library||[]).length}));
+        if(path==='/api/account/certificates'){ const items=server.certificates||[]; const counts={issued:0,revoked:0,expired:0}; items.forEach(c=>{counts[c.effective_status]=(counts[c.effective_status]||0)+1});
+          return Promise.resolve(server.certsStatus?reply(server.certsStatus,{detail:'boom'}):reply(200,{items,total:items.length,counts,delivery:'bale_bot',source:'shared_server_database'})); }
         if(/^\/api\/account\/recording-orders\?limit=50&offset=0$/.test(path)) return Promise.resolve(server.ordersStatus?reply(server.ordersStatus,{detail:'boom'}):reply(200,{items:orders,total:orders.length,limit:50,offset:0}));
         const receipt=path.match(/^\/api\/account\/recording-orders\/([0-9a-f-]{36})\/receipt$/);
         if(receipt&&method==='PUT'){ const o=orders.find(x=>x.id===receipt[1]); const next={...o,status:'receipt_submitted',receipt_submitted:true,receipt_submitted_at:'2026-10-21T07:00:00Z',receipt_file_name:String(options.headers['X-File-Name'])}; orders=orders.map(x=>x.id===o.id?next:x); return Promise.resolve(reply(200,next)); }
@@ -98,6 +100,36 @@ console.log('\n── محتوای من: دسترسی‌های واقعی با �
   ok(guest.inView()&&!guest.network.some(c=>c.path==='/api/account/recordings')&&guest.view().includes('ورود')
     &&!!guest.doc.querySelector('#viewBox a[href="login.html?mode=server&next='+encodeURIComponent('account.html#library')+'"]'),'مهمان در #library فقط دعوت به ورود با بازگشت به همین بخش می‌بیند؛ API صدا زده نمی‌شود');
   guest.dom.window.close();
+}
+
+console.log('\n── گواهینامه‌های من (۹.۲): فقط آینهٔ صدور واقعی ربات؛ پایان محتوای ضبط‌شده جدا از گواهی حضور ──');
+{
+  const certificates=[
+    {id:'c1',kind:'recording',status:'issued',effective_status:'issued',serial:'1421/R22',full_code:'1421/R22',doc_no:'1421',person_code:'R22',event_ref:'',event_title:'',title:'پایان دورهٔ ضبط‌شدهٔ نجوم مقدماتی',issued_on:'1405/07/30',expires_on:'',issued_at:'2026-10-22T06:00:00Z',revoked_at:null,has_file:true,has_preview:false},
+    {id:'c2',kind:'event',status:'issued',effective_status:'issued',serial:'NC-0023',full_code:'1421/A23',doc_no:'1421',person_code:'A23',event_ref:'17',event_title:'کارگاه نجوم',title:'گواهی حضور',issued_on:'1405/01/12',expires_on:'',issued_at:'2026-04-01T10:00:00Z',revoked_at:null,has_file:false,has_preview:false},
+    {id:'c3',kind:'recording',status:'revoked',effective_status:'revoked',serial:'1421/R24',full_code:'1421/R24',doc_no:'1421',person_code:'R24',event_ref:'',event_title:'',title:'پایان محتوای تلسکوپ',issued_on:'1405/07/01',expires_on:'',issued_at:'2026-09-23T06:00:00Z',revoked_at:'2026-10-01T06:00:00Z',has_file:false,has_preview:false}];
+  const p=await load('#library',{account:ACCOUNT,library,certificates});
+  ok(p.errs.length===0,'نمای #library با بخش گواهینامه‌ها بی‌خطا است'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.network.some(c=>c.path==='/api/account/certificates')&&p.network.filter(c=>c.method!=='GET'&&/certificat/.test(c.path)).length===0,'گواهینامه‌ها فقط با GET از سرور خوانده می‌شوند؛ هیچ درخواست ساخت/صدور از مرورگر نمی‌رود');
+  const cards=[...p.doc.querySelectorAll('[data-account-certificate]')];
+  ok(cards.length===3&&p.view().includes('گواهینامه‌های من')&&p.view().includes('۲ معتبر')&&p.view().includes('۱ باطل‌شده'),'هر سه رکورد با شمارندهٔ واقعی معتبر/باطل‌شده نمایش داده می‌شوند');
+  const rec=p.doc.querySelector('[data-account-certificate="c1"]'), att=p.doc.querySelector('[data-account-certificate="c2"]'), rev=p.doc.querySelector('[data-account-certificate="c3"]');
+  ok(rec.dataset.certKind==='recording'&&rec.textContent.includes('پایان محتوای آموزشی ضبط‌شده')&&rec.textContent.includes('پایان دورهٔ ضبط‌شدهٔ نجوم مقدماتی')&&rec.textContent.includes('1421/R22')&&rec.textContent.includes('گواهی حضور در رویداد نیست'),'گواهی پایان محتوای ضبط‌شده: نوع، عنوان صریح، شمارهٔ یکتا و تذکر «حضور نیست»');
+  ok(att.dataset.certKind==='event'&&att.textContent.includes('گواهی رویداد / حضور')&&att.textContent.includes('کارگاه نجوم')&&!att.textContent.includes('حضور در رویداد نیست'),'گواهی حضور رویداد با برچسب جدا و بدون تذکر محتوای ضبط‌شده');
+  const botLink=rec.querySelector('a[data-account-cert-bot]');
+  /* زیر file:// پیوند بیرونی توسط ui.js غیرفعال می‌شود (aria-disabled)؛ در سرور واقعی همان پیوند ble.ir می‌ماند. */
+  ok(!!botLink&&(String(botLink.getAttribute('href')||'').startsWith('https://ble.ir/nora_test_bot')||botLink.getAttribute('aria-disabled')==='true')&&!rec.querySelector('a[href*="/api/account/"]'),'دریافت فایل فقط از طریق ربات بله؛ هیچ پیوند دانلود مستقیم در حساب نیست');
+  ok(rev.dataset.certStatus==='revoked'&&rev.textContent.includes('باطل‌شده')&&!rev.querySelector('a[data-account-cert-bot]')&&rev.textContent.includes('در استعلام تأیید نمی‌شود'),'گواهی باطل‌شده با وضعیت واقعی و بدون دکمهٔ دریافت');
+  ok(!/درخواست گواهی|ساخت گواهی|صدور گواهی/.test(p.view()),'هیچ دکمهٔ «درخواست/ساخت گواهی» در حساب نیست (صدور فقط دستی در ربات)');
+  p.dom.window.close();
+
+  const empty=await load('#library',{account:ACCOUNT,library,certificates:[]});
+  ok(empty.doc.querySelectorAll('[data-account-certificate]').length===0&&empty.view().includes('هنوز گواهینامه‌ای در حساب ثبت نشده')&&empty.view().includes('خرید یا تماشای محتوا به‌تنهایی گواهی نمی‌سازد'),'حالت خالی صادقانه: بدون گواهی ساختگی؛ خرید/تماشا گواهی نمی‌سازد');
+  empty.dom.window.close();
+
+  const broken=await load('#library',{account:ACCOUNT,library,certsStatus:503});
+  ok(broken.view().includes('گواهینامه‌ها خوانده نشدند')&&!!broken.doc.querySelector('[data-account-certs-refresh]')&&broken.doc.querySelectorAll('[data-account-rec-library]').length===4,'خطای سرور گواهینامه‌ها: پیام خطا و «تلاش دوباره»؛ کتابخانه همچنان نمایش داده می‌شود');
+  broken.dom.window.close();
 }
 
 console.log('\n── سفارش‌ها و پرداخت‌ها (۹.۱): سفارش فرم‌دار، سفارش قدیمی، پرداخت‌شده، ردشده؛ خرید فقط از فرم خرید ──');

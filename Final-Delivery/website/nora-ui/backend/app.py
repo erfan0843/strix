@@ -2961,7 +2961,7 @@ def create_app(
         response: Response,
         q: str = Query(default="", max_length=80),
         status: str = Query(default="", pattern=r"^(|issued|revoked|expired)$"),
-        kind: str = Query(default="", pattern=r"^(|event|batch|form|manual|center)$"),
+        kind: str = Query(default="", pattern=r"^(|event|batch|form|manual|center|recording)$"),
         event_ref: str = Query(default="", max_length=40, pattern=r"^[A-Za-z0-9_.:-]*$"),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
@@ -7769,6 +7769,21 @@ def create_app(
             ],
             "has_more": len(items) > limit,
         }
+
+    @app.get("/api/account/certificates")
+    def account_certificates(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """«گواهینامه‌های من»: only rows the bot mirrored for this account; files come from the bot."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        result = certificates_mod.account_records(
+            db, identity.account_id, today_jalali=certificates_mod.today_jalali(),
+        )
+        result["source"] = certificates_mod.SOURCE
+        return result
 
     @app.get("/api/account/files/{file_id}")
     def account_private_file(

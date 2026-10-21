@@ -126,6 +126,8 @@ const SERVER_ACCOUNT_STATE={account:null,checking:true,checked:false,error:'',
   files:[],filesLoaded:false,filesLoading:false,filesError:'',filesMore:false,
   /* فاز ۹: دسترسی‌های محتوای ضبط‌شده و سفارش‌های آن؛ فقط از سرور، هیچ‌جا محلی ساخته نمی‌شود. */
   library:[],libraryLoaded:false,libraryLoading:false,libraryError:'',
+  /* فاز ۹.۲ — گواهینامه‌های من: فقط آینهٔ سرور از صدور واقعی ربات؛ مرورگر چیزی نمی‌سازد. */
+  certificates:[],certsCounts:null,certsLoaded:false,certsLoading:false,certsError:'',
   recOrders:[],recOrdersTotal:0,recOrdersLoaded:false,recOrdersLoading:false,recOrdersError:'',recOrdersMore:false,recOrderBusy:''};
 const SERVER_ACCOUNT_PAGE=50;
 const SERVER_DATA_VIEW={k:'server-data',n:'اعلان‌ها و فایل‌های من',s:'داده‌های حساب تو از سرور خوانده می‌شود.'};
@@ -924,7 +926,7 @@ function recLibraryCard(item){
   const unpublished=item.status&&item.status!=='published';
   /* گواهی پایان محتوا: فقط بیان سیاست سرور؛ هیچ دکمهٔ «دریافت گواهی» وجود ندارد چون صدور خودکار وجود ندارد. */
   const cert=item.certificate&&!item.certificate.automatic?(item.certificate.policy==='manual'
-    ?'گواهی پایان محتوا: فقط با صدور دستی برگزارکننده؛ خرید یا تماشا به‌تنهایی گواهی نمی‌سازد'
+    ?'گواهی پایان محتوا: فقط با صدور دستی برگزارکننده؛ خرید یا تماشا به‌تنهایی گواهی نمی‌سازد. گواهی صادرشده در «گواهینامه‌های من» همین صفحه می‌آید'
     :'گواهی پایان محتوا: برای این محتوا صادر نمی‌شود'):'';
   return `<article class="card acct server-registration rec-library" data-account-rec-library="${esc(item.recording_id)}" data-rec-access-state="${esc(access.state||'')}">
     <div class="row"><span class="sp"><b>${esc(item.title||'محتوای ضبط‌شده')}</b>${meta?`<small class="cap">${esc(meta)}</small>`:''}</span>${chip(label,tone)}</div>
@@ -952,12 +954,69 @@ function accountLibraryContent(){
     <div class="stack" data-account-library>${body}</div>
     <p class="trustline"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>پیشرفت تماشا هنوز در سرور ثبت نمی‌شود؛ هر بار از فهرست جلسات شروع می‌کنی. مهلت‌ها زمان واقعی سرورند.</span></p>`;
 }
+/* ── گواهینامه‌های من (فاز ۹.۲) ──
+   منبع: GET /api/account/certificates — آینهٔ سرور از گواهی‌هایی که ربات بله واقعاً صادر کرده است.
+   «پایان محتوای آموزشی ضبط‌شده» (kind=recording) از گواهی حضور/رویداد جدا نمایش داده می‌شود.
+   هیچ دکمهٔ «درخواست/ساخت گواهی» وجود ندارد؛ فایل از ربات بله دریافت می‌شود (همان سیاست فایل‌های خصوصی). */
+const ACCT_CERT_KIND={event:'گواهی رویداد / حضور',batch:'گواهی فهرستی',form:'گواهی فرم',manual:'صدور دستی',center:'مرکز صدور',recording:'پایان محتوای آموزشی ضبط‌شده'};
+const ACCT_CERT_STATUS={issued:['صادرشده','ok'],revoked:['باطل‌شده','stop'],expired:['منقضی','warn']};
+function accountCertificateCard(cert){
+  const st=cert.effective_status||cert.status||'issued', [label,tone]=ACCT_CERT_STATUS[st]||['نامشخص',''];
+  const kind=ACCT_CERT_KIND[cert.kind]||'گواهینامه', title=cert.title||cert.event_title||kind;
+  const code=cert.full_code||cert.serial||'', href=certBotHref();
+  const facts=[cert.event_title&&cert.event_title!==title?cert.event_title:'', cert.issued_on?'صدور '+cert.issued_on:(cert.issued_at?'صدور '+accountServerDate(cert.issued_at):''),
+    cert.expires_on?'اعتبار تا '+cert.expires_on:'', st==='revoked'&&cert.revoked_at?'ابطال در '+accountServerDate(cert.revoked_at):''].filter(Boolean);
+  return `<article class="card acct server-registration acct-cert" data-account-certificate="${esc(cert.id)}" data-cert-kind="${esc(cert.kind||'')}" data-cert-status="${esc(st)}">
+    <div class="row"><span class="sp"><b>${esc(title)}</b><small class="cap">${esc(kind)}</small></span>${chip(label,tone)}</div>
+    <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">
+      ${code?`<small class="cap" dir="ltr">${esc(code)}</small>`:`<small class="cap">شماره در رکورد ثبت نشده</small>`}${facts.map(f=>`<small class="cap">${esc(f)}</small>`).join('')}</div>
+    ${cert.kind==='recording'?`<small class="cap">این گواهی حضور در رویداد نیست؛ با تأیید دستی برگزارکننده برای محتوای ضبط‌شده صادر شده است.</small>`:''}
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      ${st==='issued'?(href?`<a class="btn sm primary" href="${esc(href)}" target="_blank" rel="noopener noreferrer" data-account-cert-bot>${ico('i-send')} دریافت فایل از ربات بله</a>`:`<span class="tag warn">پیوند ربات در دسترس نیست</span>`)
+        :`<small class="cap">${st==='revoked'?'این گواهی باطل شده و در استعلام تأیید نمی‌شود.':'مهلت اعتبار این گواهی گذشته است.'}</small>`}
+    </div>
+  </article>`;
+}
+function accountCertificatesContent(){
+  const state=SERVER_ACCOUNT_STATE;
+  const loading=!state.certsLoaded&&!state.certsError;
+  const body=loading?`<div class="empty2"><b>در حال خواندن گواهینامه‌ها…</b></div>`
+    :state.certsError?`<div class="empty2"><b>${esc(state.certsError)}</b><button class="btn quiet" data-account-certs-refresh>تلاش دوباره</button></div>`
+    :state.certificates.length?state.certificates.map(accountCertificateCard).join('')
+    :empty2('هنوز گواهینامه‌ای در حساب ثبت نشده','گواهی فقط پس از صدور واقعی توسط برگزارکننده در ربات بله اینجا دیده می‌شود؛ خرید یا تماشای محتوا به‌تنهایی گواهی نمی‌سازد.','i-medal');
+  const c=state.certsCounts||{};
+  const summary=state.certsLoaded&&!state.certsError?[faN(c.issued||0)+' معتبر',c.revoked?faN(c.revoked)+' باطل‌شده':'',c.expired?faN(c.expired)+' منقضی':''].filter(Boolean).join(' · '):'';
+  return `<div class="row" style="margin:14px 0 8px"><span class="sp"><b>${ico('i-medal')} گواهینامه‌های من</b>${summary?`<small class="cap">${esc(summary)}</small>`:''}</span>
+    <button class="btn sm quiet" data-account-certs-refresh aria-label="بازخوانی گواهینامه‌ها">${ico('i-refresh')} بازخوانی</button></div>
+    <div class="stack" data-account-certificates>${body}</div>`;
+}
+async function loadAccountCertificates(force=false){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!state.account||state.certsLoading||(!force&&state.certsLoaded)) return;
+  state.certsLoading=true; state.certsError='';
+  if(S.view==='library') renderView();
+  try{
+    if(!api||typeof api.getAccountCertificates!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountCertificates();
+    if(!state.account) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(item=>!item||typeof item.id!=='string'||typeof item.kind!=='string'||typeof item.effective_status!=='string'))
+      throw new Error('invalid_account_certificates');
+    state.certificates=items; state.certsCounts=result&&result.counts&&typeof result.counts==='object'?result.counts:null; state.certsLoaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.certsError=accountLoadError(error,'گواهینامه‌ها خوانده نشدند؛ دوباره تلاش کن.'); state.certsLoaded=true;
+  }finally{
+    state.certsLoading=false;
+    if(S.view==='library') renderView();
+  }
+}
 function serverAccountLibraryView(t){
   const state=SERVER_ACCOUNT_STATE;
   let content;
   if(state.checking) content=empty2('در حال بررسی حساب','وضعیت ورود از سرور بررسی می‌شود.','i-shield');
   else if(!state.account) content=serverAccountAccessCard('library');
-  else content=accountLibraryContent();
+  else content=accountLibraryContent()+accountCertificatesContent();
   return viewHead(t,state.account?'محتوای ضبط‌شدهٔ تو':'نیاز به ورود',null)+(state.account?serverAccountStrip():'')+`<div class="panel stack">${content}</div>`;
 }
 async function loadAccountLibrary(force=false){
@@ -1055,6 +1114,7 @@ function resetServerAccountData(){
   state.notificationsError=''; state.notificationsMore=false;
   state.files=[]; state.filesLoaded=false; state.filesLoading=false; state.filesError=''; state.filesMore=false;
   state.library=[]; state.libraryLoaded=false; state.libraryLoading=false; state.libraryError='';
+  state.certificates=[]; state.certsCounts=null; state.certsLoaded=false; state.certsLoading=false; state.certsError='';
   state.recOrders=[]; state.recOrdersTotal=0; state.recOrdersLoaded=false; state.recOrdersLoading=false; state.recOrdersError=''; state.recOrdersMore=false; state.recOrderBusy='';
   /* وضعیت پیوند هم به همین حساب گره خورده است؛ در خروج/انقضا پاک می‌شود تا
      اطلاعات حساب قبلی روی صفحه نماند. */
@@ -1191,8 +1251,12 @@ async function checkServerAccount(){
     const identity=await api.accountMe();
     if(!identity||identity.authenticated!==true||!['bale','phone','manager-password'].includes(identity.provider)||typeof identity.account_id!=='string')
       throw new Error('invalid_account_session');
-    if(typeof identity.delivery_bot_url==='string'&&/^https:\/\/ble[.]ir\/[A-Za-z0-9_]{3,64}$/i.test(identity.delivery_bot_url))
+    if(typeof identity.delivery_bot_url==='string'&&/^https:\/\/ble[.]ir\/[A-Za-z0-9_]{3,64}$/i.test(identity.delivery_bot_url)){
       N.BALE_BOT_URL=identity.delivery_bot_url;
+      /* فاز ۹.۲ — در حالت سرور data.js بارگذاری نمی‌شود و window.NORA وجود ندارد؛ ui.baleStartHref این
+         مقدار را به‌عنوان جایگزین می‌خواند تا پیوند دریافت از ربات (فایل خصوصی/گواهی) واقعاً ساخته شود. */
+      window.NORA_PUBLIC_BALE_BOT_URL=identity.delivery_bot_url;
+    }
     window.NORA_ACCOUNT_SOURCE='server';
     state.account=identity; state.checked=true; state.checking=false; state.error='';
     window.NORA_UI?.updateAccountNavigation?.();
@@ -1200,7 +1264,7 @@ async function checkServerAccount(){
     if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
     if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) loadAccountRegistrations();
     if(S.view==='payments'&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
-    if(S.view==='library') loadAccountLibrary();
+    if(S.view==='library'){loadAccountLibrary();loadAccountCertificates();}
   }catch(error){
     delete window.NORA_ACCOUNT_SOURCE;
     window.NORA_UI?.updateAccountNavigation?.();
@@ -3298,7 +3362,7 @@ function route(){
   }
   if(raw==='library'){
     S.view='library'; S.edit=false; S.errs={}; render();
-    if(SERVER_ACCOUNT_STATE.account) loadAccountLibrary();
+    if(SERVER_ACCOUNT_STATE.account){loadAccountLibrary();loadAccountCertificates();}
     try{window.scrollTo({top:0})}catch(e){}; return;
   }
   if(raw==='notifications'||raw==='my-files'||raw==='account-data'){
@@ -3348,6 +3412,7 @@ document.addEventListener('click',ev=>{
   if(t.closest('[data-account-rec-orders-refresh]')){loadAccountRecordingOrders(false,true);return}
   if(t.closest('[data-account-rec-orders-more]')){loadAccountRecordingOrders(true,true);return}
   if(t.closest('[data-account-library-refresh]')){loadAccountLibrary(true);return}
+  if(t.closest('[data-account-certs-refresh]')){loadAccountCertificates(true);return}
   const recCancel=t.closest('[data-account-rec-cancel]'); if(recCancel){cancelAccountRecordingOrder(recCancel.dataset.accountRecCancel);return}
   if(t.closest('[data-account-notices-more]')){loadAccountNotifications(true,true);return}
   if(t.closest('[data-account-files-more]')){loadAccountFiles(true,true);return}

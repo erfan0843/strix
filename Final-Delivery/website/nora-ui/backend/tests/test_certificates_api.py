@@ -285,3 +285,76 @@ def test_effective_status_and_jalali_expiry_helpers():
     assert certificates_mod.effective_status(record, "1405/01/01") == "revoked"
     today = certificates_mod.today_jalali()
     assert len(today) == 10 and today[4] == "/" and today[:2] == "14"
+
+
+def test_recording_completion_kind_and_account_view_are_owner_scoped():
+    """Phase 9.2: ``kind=recording`` (manual completion certificate from the bot centre)
+    is mirrored like any other kind, and «گواهینامه‌های من» shows only the caller's rows."""
+    app, engine = make_app()
+    try:
+        with TestClient(app) as client:
+            # Guest: no account → 401, nothing leaks.
+            assert client.get("/api/account/certificates").status_code == 401
+
+            holder = bale_login(client, 910001)
+            holder_cookies = dict(client.cookies)
+            client.cookies.clear()
+            other = bale_login(client, 910002)
+            other_cookies = dict(client.cookies)
+            client.cookies.clear()
+            assert holder != other
+
+            # Unknown kind is rejected; nothing stored.
+            bogus = submit(client, bale_user_id="910001", key=f"{SOURCE_ID}:21", certificate=base_certificate(legacy_id=21, kind="attendance_auto"))
+            assert bogus.status_code == 422 and bogus.json()["detail"] == "invalid_certificate_kind"
+
+            recording = submit(
+                client, bale_user_id="910001", key=f"{SOURCE_ID}:22",
+                certificate=base_certificate(
+                    legacy_id=22, kind="recording", serial="NC-0022", full_code="1421/R22", event_ref="", event_title="",
+                    title="پایان دورهٔ ضبط‌شدهٔ نجوم مقدماتی",
+                ),
+            )
+            assert recording.status_code == 200, recording.text
+            attendance = submit(client, bale_user_id="910001", key=f"{SOURCE_ID}:23", certificate=base_certificate(legacy_id=23, serial="NC-0023", full_code="1421/A23"))
+            assert attendance.status_code == 200
+            foreign = submit(
+                client, bale_user_id="910002", key=f"{SOURCE_ID}:24",
+                certificate=base_certificate(legacy_id=24, kind="recording", serial="NC-0024", full_code="1421/R24", holder_name="علی رضایی", status="revoked"),
+            )
+            assert foreign.status_code == 200
+            with Session(engine) as db:
+                assert db.scalar(select(func.count(CertificateRecord.id))) == 3
+
+            # Holder sees exactly their two rows, with the recording kind distinct from the event kind.
+            client.cookies.update(holder_cookies)
+            mine = client.get("/api/account/certificates")
+            assert mine.status_code == 200, mine.text
+            body = mine.json()
+            assert "no-store" in mine.headers["cache-control"]
+            assert body["total"] == 2 and body["delivery"] == "bale_bot" and body["counts"] == {"issued": 2, "revoked": 0, "expired": 0}
+            by_kind = {item["kind"]: item for item in body["items"]}
+            assert set(by_kind) == {"recording", "event"}
+            assert by_kind["recording"]["title"] == "پایان دورهٔ ضبط‌شدهٔ نجوم مقدماتی"
+            assert by_kind["recording"]["event_ref"] == "" and by_kind["recording"]["effective_status"] == "issued"
+            assert by_kind["recording"]["serial"] == "NC-0022" and by_kind["recording"]["has_file"] is False
+            # No issuer / account identifiers and nothing from the other account.
+            assert "issued_by_bale_user_id" not in by_kind["recording"] and "account_id" not in by_kind["recording"]
+            assert "NC-0024" not in mine.text and "علی رضایی" not in mine.text and other not in mine.text
+            client.cookies.clear()
+
+            # The other account sees only its own (revoked) certificate with the real status.
+            client.cookies.update(other_cookies)
+            theirs = client.get("/api/account/certificates").json()
+            assert theirs["total"] == 1 and theirs["items"][0]["serial"] == "NC-0024"
+            assert theirs["items"][0]["effective_status"] == "revoked" and theirs["counts"]["revoked"] == 1
+            assert "NC-0022" not in repr(theirs)
+            client.cookies.clear()
+
+            # Managers' panel filters the new kind like the others.
+            owner_login(client)
+            assert client.get("/api/admin/certificates?kind=recording").json()["total"] == 2
+            assert client.get("/api/admin/certificates?kind=event").json()["total"] == 1
+            assert client.get("/api/admin/certificates?kind=attendance_auto").status_code == 422
+    finally:
+        engine.dispose()

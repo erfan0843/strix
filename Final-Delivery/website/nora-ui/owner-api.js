@@ -488,6 +488,8 @@
     /* فاز ۹ — حساب کاربر: «محتوای من» (دسترسی‌های واقعی با وضعیت فعال/منقضی/لغوشده) و
        «سفارش‌ها و پرداخت‌ها» (سفارش‌های محتوای ضبط‌شده). هیچ‌کدام دسترسی نمی‌سازند؛ فقط می‌خوانند. */
     getAccountRecordings: () => request('/api/account/recordings'),
+    /* فاز ۹.۲ — «گواهینامه‌های من»: آینهٔ سرور از صدور واقعی ربات؛ فقط خواندنی، فایل از ربات بله. */
+    getAccountCertificates: () => request('/api/account/certificates'),
     getAccountRecordingOrders: (limit, offset) => request('/api/account/recording-orders?limit='
       + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))),
     getAccountRecordingOrder: id => request('/api/account/recording-orders/' + encodeURIComponent(String(id))),

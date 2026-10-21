@@ -30,7 +30,10 @@ from .models import (
 SOURCE = "shared_server_database"
 STATUSES = ("issued", "revoked")
 SOURCES = ("bot", "bot_legacy")
-KINDS = ("event", "batch", "form", "manual", "center")
+# ``recording`` (phase 9.2): «پایان محتوای آموزشی ضبط‌شده» issued manually from the
+# bot's certificate centre (``certcenter.CERT_KINDS``). It is never an attendance
+# certificate and nothing on the server creates it automatically.
+KINDS = ("event", "batch", "form", "manual", "center", "recording")
 EXTERNAL_KEY_RE = re.compile(r"[A-Za-z0-9:_-]{3,120}")
 BALE_USER_ID_RE = re.compile(r"[1-9][0-9]{0,19}")
 UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}")
@@ -292,6 +295,48 @@ def detail(db: Session, record: CertificateRecord, *, today_jalali: str | None =
         if file_id is not None
     ]
     return data
+
+
+def account_row(record: CertificateRecord, *, today_jalali: str | None = None) -> dict[str, Any]:
+    """What the holder sees in «حساب من»: own record only, no issuer/account identifiers."""
+    return {
+        "id": record.id,
+        "kind": record.kind,
+        "status": record.status,
+        "effective_status": effective_status(record, today_jalali),
+        "serial": record.serial,
+        "full_code": record.full_code,
+        "doc_no": record.doc_no,
+        "person_code": record.person_code,
+        "event_ref": record.event_ref,
+        "event_title": record.event_title,
+        "title": record.title,
+        "issued_on": record.issued_on,
+        "expires_on": record.expires_on,
+        "issued_at": _iso(record.issued_at),
+        "revoked_at": _iso(record.revoked_at),
+        "has_file": record.file_id is not None,
+        "has_preview": record.preview_file_id is not None,
+    }
+
+
+def account_records(db: Session, account_id: str, *, today_jalali: str | None = None) -> dict[str, Any]:
+    """Certificates mirrored for one account – ownership is the server-side ``account_id`` only.
+
+    Revoked rows stay visible with their real status; nothing is hidden or
+    synthesised. Files are delivered by the Bale bot (same policy as private files).
+    """
+    rows = list(db.scalars(
+        select(CertificateRecord)
+        .where(CertificateRecord.account_id == account_id)
+        .order_by(CertificateRecord.created_at.desc(), CertificateRecord.id)
+        .limit(500)
+    ).all())
+    items = [account_row(record, today_jalali=today_jalali) for record in rows]
+    counts = {"issued": 0, "revoked": 0, "expired": 0}
+    for item in items:
+        counts[item["effective_status"]] = counts.get(item["effective_status"], 0) + 1
+    return {"items": items, "total": len(items), "counts": counts, "delivery": "bale_bot"}
 
 
 def list_records(
