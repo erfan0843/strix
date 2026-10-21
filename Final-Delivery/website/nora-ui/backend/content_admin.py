@@ -54,6 +54,8 @@ EVENT_EDITABLE = (
     "price", "cap", "past", "sess", "cert", "certMin", "certNote", "tchr", "partnerId",
     # Phase 7: schedule + registration window (Jalali/Tehran or aware ISO input, UTC storage).
     "startsAt", "endsAt", "regOpensAt", "regClosesAt", "regMode", "lifecycle", "conditions",
+    # Phase 8: organizer switch for the event-page Q&A (no site-wide Q&A exists).
+    "qaClosed",
 )
 EVENT_DATETIME_FIELDS = ("startsAt", "endsAt", "regOpensAt", "regClosesAt")
 ARTICLE_EDITABLE = ("t", "cat", "lead", "body", "cov", "who", "at", "tags", "pin", "min", "tchr")
@@ -158,6 +160,10 @@ def _validate_event(record: dict[str, Any]) -> None:
         raise ContentAdminError("invalid_choice", "lifecycle")
     record["lifecycle"] = lifecycle or "scheduled"
     record["conditions"] = _text(record.get("conditions"), 1_000)
+    qa_closed = record.get("qaClosed")
+    if qa_closed not in (None, "", True, False, 0, 1, "true", "false"):
+        raise ContentAdminError("invalid_choice", "qaClosed")
+    record["qaClosed"] = qa_closed in (True, 1, "true")
 
 
 def _validate_article(record: dict[str, Any]) -> None:

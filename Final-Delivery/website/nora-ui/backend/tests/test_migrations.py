@@ -181,7 +181,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             constraint["name"] for constraint in inspector.get_check_constraints("club_points_entries")
         }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
     finally:
         engine.dispose()
 
@@ -251,7 +251,7 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
     finally:
         engine.dispose()
 
@@ -305,7 +305,7 @@ def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
     finally:
         engine.dispose()
 
@@ -362,6 +362,94 @@ def test_club_points_migration_with_existing_data_round_trip(tmp_path, monkeypat
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 0
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+    finally:
+        engine.dispose()
+
+
+def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, monkeypatch):
+    """0031 on a database that already holds accounts, notifications and points: upgrade, downgrade one step, upgrade again.
+
+    Existing rows survive both directions; the four new tables carry their constraints
+    (status/access/kind checks, one review per account+event, dedupe per question).
+    """
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy-interaction.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0030_club_points_entries")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("INSERT INTO accounts (id) VALUES ('acc-legacy-4')"))
+            connection.execute(text(
+                "INSERT INTO user_notifications (id, account_id, bale_user_id, kind, title, body, file_refs, delivery_status, delivery_attempts) "
+                "VALUES ('ntf-4', 'acc-legacy-4', '910004', 'legacy', 'عنوان', 'متن', '[]', 'delivered', 1)"
+            ))
+        assert not {"event_resources", "event_questions", "event_reviews", "event_content_reports"} & set(
+            inspect(engine).get_table_names()
+        )
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
+        assert {"event_resources", "event_questions", "event_reviews", "event_content_reports"} <= tables
+        assert {"id", "event_id", "kind", "access", "status", "publish_at", "content", "content_hash", "removed_at"} <= {
+            column["name"] for column in inspector.get_columns("event_resources")
+        }
+        assert {"ck_event_resources_kind", "ck_event_resources_access", "ck_event_resources_status", "ck_event_resources_size"} <= {
+            constraint["name"] for constraint in inspector.get_check_constraints("event_resources")
+        }
+        assert {"uq_event_questions_dedupe"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("event_questions")
+        }
+        assert {"uq_event_reviews_account_event"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("event_reviews")
+        }
+        assert {"uq_event_content_reports_once"} <= {
+            constraint["name"] for constraint in inspector.get_unique_constraints("event_content_reports")
+        }
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO event_questions (id, event_id, account_id, body, body_hash, status, notification_id) "
+                "VALUES ('q-1', 'ev-legacy', 'acc-legacy-4', 'پرسش', 'h1', 'published', 'ntf-4')"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_reviews (id, event_id, account_id, body, status, verified_attendee) "
+                "VALUES ('r-1', 'ev-legacy', 'acc-legacy-4', 'دیدگاه', 'pending', 1)"
+            ))
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind) "
+                "VALUES ('res-1', 'ev-legacy', 'جزوه', 'published', 'registered', 'file')"
+            ))
+            assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0030_club_points_entries")
+    engine = create_engine(database_url)
+    try:
+        tables = set(inspect(engine).get_table_names())
+        assert not {"event_resources", "event_questions", "event_reviews", "event_content_reports"} & tables
+        assert {"user_notifications", "club_points_entries", "certificates"} <= tables
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM accounts")) == 1
+            assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0030_club_points_entries"
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM event_questions")) == 0
+            assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0031_event_interaction"
     finally:
         engine.dispose()

@@ -78,6 +78,12 @@ def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monke
                 ))
                 command.upgrade(config, "head")
                 assert connection.scalar(text("SELECT version_num FROM alembic_version")) == HEAD
+                # Phase 8 (0031): the four interaction tables and their constraints exist on PostgreSQL too.
+                head_tables = set(inspect(connection).get_table_names(schema=schema))
+                assert {"event_resources", "event_questions", "event_reviews", "event_content_reports"} <= head_tables
+                assert {"uq_event_reviews_account_event"} <= {
+                    constraint["name"] for constraint in inspect(connection).get_unique_constraints("event_reviews", schema=schema)
+                }
                 version_type = inspect(connection).get_columns("alembic_version", schema=schema)[0]["type"]
                 expected_length = {"VARCHAR(32)": 64, "VARCHAR(33)": 64, "VARCHAR(128)": 128, "TEXT": None}[initial_type]
                 assert getattr(version_type, "length", None) == expected_length

@@ -48,6 +48,7 @@ from . import certificates as certificates_mod
 from . import club_points as club_points_mod
 from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
+from . import event_interaction as interaction_mod
 from . import event_time
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
@@ -68,6 +69,10 @@ from .models import (
     AdminTaskRecord,
     Base,
     CooperationRequestRecord,
+    EventContentReportRecord,
+    EventQuestionRecord,
+    EventResourceRecord,
+    EventReviewRecord,
     FormFieldRecord,
     FormPaymentRecord,
     FormPaymentTransactionRecord,

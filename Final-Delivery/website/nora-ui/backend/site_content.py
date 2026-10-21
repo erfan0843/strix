@@ -349,6 +349,8 @@ def _event(record: Any) -> dict[str, Any] | None:
         "regMode": _choice(record.get("regMode"), REG_MODES, "auto"),
         "lifecycle": _choice(record.get("lifecycle"), LIFECYCLES, "scheduled"),
         "conditions": _text(record.get("conditions"), 1_000),
+        # Phase 8: per-event Q&A switch (questions are only ever asked inside the event page).
+        "qaClosed": record.get("qaClosed") is True,
         "privacy": "public",
     }
 

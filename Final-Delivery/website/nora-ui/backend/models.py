@@ -7,6 +7,7 @@ from typing import Any
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -875,5 +876,211 @@ class ClubPointsEntryRecord(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     synced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+# ── فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه و گزارش محتوای رویداد ──
+# Events themselves stay in the versioned ``site_content`` document (``ev-…`` ids);
+# these row tables hold user-generated or access-controlled content that must not
+# live inside that single public document (per-row ACL, PII, concurrent writes).
+
+EVENT_RESOURCE_CONTENT_TYPES = (
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/zip",
+    "audio/mpeg",
+    "text/plain",
+)
+EVENT_RESOURCE_MAX_BYTES = 8388608
+
+
+class EventResourceRecord(Base):
+    """File or link published for one event with a server-enforced access level.
+
+    Binary content is stored in the shared database exactly like ``private_files``
+    and ``public_media`` (no filesystem path, no client-chosen storage name), so
+    path traversal is impossible by construction. ``access`` is evaluated by the
+    download endpoint against the caller's real registration/attendance rows;
+    the public snapshot never contains the bytes or a bypassable direct URL.
+    Removal is logical (``status='removed'``) so event history stays intact.
+    """
+
+    __tablename__ = "event_resources"
+    __table_args__ = (
+        CheckConstraint("kind IN ('file', 'link')", name="ck_event_resources_kind"),
+        CheckConstraint(
+            "access IN ('public', 'registered', 'attended', 'staff')",
+            name="ck_event_resources_access",
+        ),
+        CheckConstraint(
+            "status IN ('draft', 'published', 'removed')", name="ck_event_resources_status"
+        ),
+        CheckConstraint("content_size BETWEEN 0 AND 8388608", name="ck_event_resources_size"),
+        Index("ix_event_resources_event_status", "event_id", "status", "sort_order"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    kind: Mapped[str] = mapped_column(String(8), nullable=False, default="file")
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str] = mapped_column(String(800), nullable=False, default="")
+    access: Mapped[str] = mapped_column(String(16), nullable=False, default="public")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
+    publish_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    publisher_label: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    link_url: Mapped[str] = mapped_column(String(2048), nullable=False, default="")
+    file_name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    content_type: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    content_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    created_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    created_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    removed_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+
+
+class EventQuestionRecord(Base):
+    """One question asked by a signed-in account about one event, plus the organizer's answer.
+
+    Ownership comes from the server session (``account_id``); the browser never
+    names the author. ``author_label`` is a display snapshot (profile name or a
+    neutral label) so the public API never exposes phone numbers or account ids.
+    ``body_hash`` blocks exact duplicates per event/account. ``notification_id``
+    is the idempotency anchor for the answer notification: one outbox row per
+    answer, retries re-queue that same row instead of inserting another.
+    """
+
+    __tablename__ = "event_questions"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'published', 'hidden')", name="ck_event_questions_status"
+        ),
+        UniqueConstraint("event_id", "account_id", "body_hash", name="uq_event_questions_dedupe"),
+        Index("ix_event_questions_event_status_created", "event_id", "status", "created_at"),
+        Index("ix_event_questions_account_created", "account_id", "created_at"),
+        Index("ix_event_questions_unanswered", "answered_at", "status", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    author_label: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    body_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    answer_body: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    answer_official: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    answered_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    answered_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    answer_label: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    moderation_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    moderated_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    moderated_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    moderated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notification_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("user_notifications.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class EventReviewRecord(Base):
+    """Text feedback from a verified attendee of one event (no numeric rating).
+
+    Eligibility is decided server-side from the attendee's own ``form_responses``
+    row (``ticket_checked_in_at``); ``response_id`` records which attendance
+    qualified the review. One review per account and event (DB unique → a
+    concurrent duplicate fails). Submitting and being shown publicly are two
+    distinct states (``pending`` → ``published``); hiding keeps the row and
+    records the actor and reason; the author may withdraw without deleting it.
+    """
+
+    __tablename__ = "event_reviews"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'published', 'hidden', 'withdrawn')",
+            name="ck_event_reviews_status",
+        ),
+        UniqueConstraint("event_id", "account_id", name="uq_event_reviews_account_event"),
+        Index("ix_event_reviews_event_status_created", "event_id", "status", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    response_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("form_responses.id", ondelete="SET NULL"), nullable=True
+    )
+    author_label: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    verified_attendee: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    edit_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    moderation_reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    moderated_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    moderated_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    moderated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class EventContentReportRecord(Base):
+    """A signed-in user's report of an inappropriate question or review; handled in the panel."""
+
+    __tablename__ = "event_content_reports"
+    __table_args__ = (
+        CheckConstraint("target_kind IN ('question', 'review')", name="ck_event_content_reports_kind"),
+        CheckConstraint(
+            "status IN ('open', 'resolved', 'dismissed')", name="ck_event_content_reports_status"
+        ),
+        UniqueConstraint(
+            "target_kind", "target_id", "reporter_account_id", name="uq_event_content_reports_once"
+        ),
+        Index("ix_event_content_reports_status_created", "status", "created_at"),
+        Index("ix_event_content_reports_event", "event_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    target_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    target_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    reporter_account_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    resolution_note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    resolved_by_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    resolved_by_id: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
