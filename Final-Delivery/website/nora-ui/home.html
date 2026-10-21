@@ -27,7 +27,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=100"/>
 <link rel="stylesheet" href="nora.css?v=102"/>
-<link rel="stylesheet" href="countdown.css?v=1"/>
+<link rel="stylesheet" href="countdown.css?v=2"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -700,7 +700,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <script src="ui.js?v=131"></script>
 <script src="owner-api.js?v=114"></script>
 <script src="public-data.js?v=113"></script>
-<script src="countdown.js?v=2"></script>
+<script src="countdown.js?v=3"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    خانهٔ نورا، ویترین گروه فرهنگی خط زندگی
@@ -866,9 +866,10 @@ function bannerCountdownMarkup(b){
   const CD=window.NORA_COUNTDOWN; if(!CD||!b||!b.countdown) return '';
   if(b.countdownEnded){
     const label=b.afterEndText||CD.ENDED[b.countdown]||'به پایان رسید';
-    return `<span class="nora-countdown on-dark is-ended" role="status"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><b class="nora-countdown-value">${esc(label)}</b></span>`;
+    return `<span class="nora-countdown is-hero on-dark is-ended" role="status"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg><b class="nora-countdown-value">${esc(label)}</b></span>`;
   }
-  const html=CD.markup({kind:b.countdown,at:b.countdownTo});
+  /* اندازهٔ بنر (is-hero) و رنگ روی زمینهٔ تیره (on-dark)؛ منطق و هدف همان شمارشگر مشترک است */
+  const html=CD.markup({kind:b.countdown,at:b.countdownTo},{hero:true});
   return html?html.replace('class="nora-countdown','class="nora-countdown on-dark'):'';
 }
 function renderBanner(){

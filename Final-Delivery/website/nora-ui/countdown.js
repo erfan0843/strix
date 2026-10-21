@@ -103,26 +103,55 @@
   }
   const esc = value => String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  /* نشانهٔ HTML؛ `data-countdown` بعداً با `mount()` زنده می‌شود */
+  /* بلوک‌های عددی (روز/ساعت/دقیقه/ثانیه) فقط نمایشی‌اند (aria-hidden)؛ متن کامل در
+     `.nora-countdown-value` می‌ماند تا صفحه‌خوان و آزمون‌ها همان عبارت قبلی را بخوانند.
+     قاعدهٔ نمایش واحدها همان قاعدهٔ `phrase()` است: با وجود روز، ثانیه پنهان می‌شود و
+     بدون روز، بلوک روز پنهان است (`data-cd-units`). */
+  const UNITS = [['d', 'روز'], ['h', 'ساعت'], ['m', 'دقیقه'], ['s', 'ثانیه']];
+  const two = value => fa(value).padStart(2, fa(0));
+  function unitText(parts, unit) {
+    const value = parts ? parts[unit] : 0;
+    return unit === 'd' ? fa(value) : two(value);
+  }
+  function blocksMarkup(parts) {
+    return `<span class="nora-countdown-blocks" aria-hidden="true">` + UNITS.map(([unit, name]) =>
+      `<span class="cdb" data-unit="${unit}"><b class="cdb-n">${unitText(parts, unit)}</b><i class="cdb-u">${name}</i></span>`
+    ).join('') + `</span>`;
+  }
+  /* نشانهٔ HTML؛ `data-countdown` بعداً با `mount()` زنده می‌شود.
+     گزینه‌ها: compact (کارت‌ها)، hero (بنر/خانه)، label (متن سرآیند) */
   function markup(target, options) {
     const opts = options || {};
     if (!target || !Number.isFinite(parseTarget(target.at))) return '';
     const kind = LABELS[target.kind] ? target.kind : 'campaign_end';
     const parts = remaining(target.at);
     const label = opts.label || LABELS[kind];
-    const compact = opts.compact ? ' is-compact' : '';
-    return `<span class="nora-countdown${compact}" data-countdown="${esc(target.at)}" data-countdown-kind="${esc(kind)}" role="timer" aria-live="off" aria-label="${esc(label)}">`
-      + `<svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>`
-      + `<span class="nora-countdown-label">${esc(label)}</span>`
-      + `<b class="nora-countdown-value">${esc(parts && parts.ended ? ENDED[kind] : phrase(parts))}</b></span>`;
+    const size = opts.compact ? ' is-compact' : opts.hero ? ' is-hero' : '';
+    const ended = !!(parts && parts.ended);
+    return `<span class="nora-countdown${size}${ended ? ' is-ended' : ''}" data-countdown="${esc(target.at)}" data-countdown-kind="${esc(kind)}" data-cd-units="${parts && parts.d ? 'dhm' : 'hms'}" role="timer" aria-live="off" aria-label="${esc(label)}">`
+      + `<span class="nora-countdown-head"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>`
+      + `<span class="nora-countdown-label">${esc(label)}</span></span>`
+      + blocksMarkup(parts)
+      + `<b class="nora-countdown-value">${esc(ended ? ENDED[kind] : phrase(parts))}</b></span>`;
   }
   const timers = new WeakMap();
+  /* تغییر عدد یک بلوک؛ کلاس `is-tick` فقط یک حرکت کوتاه CSS است که زیر
+     prefers-reduced-motion خنثی می‌شود (در countdown.css) */
+  function setNumber(node, text) {
+    if (!node || node.textContent === text) return;
+    node.textContent = text;
+    node.classList.remove('is-tick');
+    void node.offsetWidth;
+    node.classList.add('is-tick');
+  }
   function tick(element) {
     const parts = remaining(element.dataset.countdown);
     const kind = element.dataset.countdownKind || 'campaign_end';
     const value = element.querySelector('.nora-countdown-value');
     if (!parts) { element.hidden = true; return false; }
     if (value) value.textContent = parts.ended ? (ENDED[kind] || 'به پایان رسید') : phrase(parts);
+    element.dataset.cdUnits = parts.d ? 'dhm' : 'hms';
+    UNITS.forEach(([unit]) => setNumber(element.querySelector(`.cdb[data-unit="${unit}"] .cdb-n`), unitText(parts, unit)));
     element.classList.toggle('is-ended', parts.ended);
     element.classList.toggle('is-soon', !parts.ended && parts.totalSeconds < 3600);
     if (parts.ended && element.dataset.countdownEnded !== '1') {
