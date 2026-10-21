@@ -1,7 +1,7 @@
 /* نورا — کش عمومی، بدون پاسخ حساب یا API.
    فقط پوستهٔ عمومیِ بی‌اتصال از پیش ذخیره می‌شود. پاسخ‌های شخصی، ناموفق،
    no-store و وابسته به Cookie وارد کش نمی‌شوند. robots/noindex مجوز نیستند. */
-const V='nora-v99';
+const V='nora-v100';
 // offline.html is an explicitly provisioned, static, cookie-free fallback.
 // Do not prefetch protected pages, ID-dependent detail routes, or unused JS bundles.
 const SHELL=['offline.html','glass.css','nora.css','nora-mark-mini.svg','icons.svg','manifest.webmanifest'];

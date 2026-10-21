@@ -123,9 +123,10 @@
      دیگری پذیرفته نمی‌شود تا محافظت بازکردن نشانی دلخواه باز هم برجا بماند. */
   function safeAccountNext() {
     const requested = new URLSearchParams(location.search).get('next') || '';
-    return /^account\.html(?:\?link=bale)?(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|payments|privacy|club|points|invite))?$/.test(requested)
-      ? requested
-      : '';
+    if (/^account\.html(?:\?link=bale)?(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|payments|privacy|club|points|invite))?$/.test(requested)) return requested;
+    /* فاز ۸: بازگشت به همان صفحهٔ رویداد (بخش منابع/پرسش‌وپاسخ/دیدگاه) پس از ورود؛ فقط شناسهٔ رویداد و یکی از سه لنگر ثابت. */
+    if (/^event\.html\?id=[A-Za-z0-9][A-Za-z0-9_-]{0,99}#(?:resources|qa|reviews)$/.test(requested)) return requested;
+    return '';
   }
 
   function safeOwnerNext() {

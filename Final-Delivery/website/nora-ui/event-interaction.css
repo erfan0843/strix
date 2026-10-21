@@ -1,0 +1,41 @@
+/* نورا — بخش‌های تعاملی صفحهٔ رویداد (منابع، پرسش‌وپاسخ، دیدگاه). بدون کارت تودرتو؛ فقط فهرست‌های خطی داخل همان مقاله. */
+.ei-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ei-head h2{margin:0}
+.ei-head .reg-state{margin-inline-start:auto}
+.ei-state{margin:0;padding:12px;border:1px dashed var(--hairline);border-radius:var(--r-md);font-size:12px;line-height:1.8;color:var(--ink-3)}
+.ei-error{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--stop,#b3261e)}
+.ei-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.ei-list>li{padding:11px 12px;border:1px solid var(--hairline);border-radius:var(--r-md);display:grid;gap:6px}
+.ei-list p{margin:0;line-height:1.9;font-size:13px;color:var(--ink-1)}
+.ei-list small,.ei-byline small{font-size:11px;color:var(--ink-3)}
+.ei-resource{grid-template-columns:minmax(0,1fr) auto;align-items:center}
+.ei-resource-text{display:grid;gap:4px;min-width:0}
+.ei-resource-text b{font-size:13px}
+.ei-resource-action{display:flex;align-items:center;justify-content:flex-end}
+.ei-lock{font-size:11px;color:var(--ink-3);padding:6px 10px;border:1px dashed var(--hairline);border-radius:999px;white-space:nowrap}
+.ei-byline{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ei-byline b{font-size:13px}
+.ei-byline .tag{font-size:10px;padding:2px 7px}
+.ei-answer{border-inline-start:3px solid var(--brand,#2a7f62);padding:8px 10px;border-radius:var(--r-sm,8px);background:color-mix(in srgb,var(--brand,#2a7f62) 6%,transparent);display:grid;gap:4px}
+.ei-answer b{font-size:12px}
+.ei-wait{font-size:11px;color:var(--ink-3)}
+.ei-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ei-link{background:none;border:0;padding:0;font:inherit;font-size:11px;color:var(--ink-3);text-decoration:underline;cursor:pointer}
+.ei-form{display:grid;gap:8px;margin-bottom:12px}
+.ei-form textarea{width:100%;min-height:84px;resize:vertical;font:inherit;line-height:1.8}
+.ei-form-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ei-form-row .btn{margin-inline-start:auto}
+.ei-form-row small{flex:1 1 180px}
+.ei-note{margin:0;font-size:12px;line-height:1.8;padding:8px 10px;border-radius:var(--r-md)}
+.ei-note.ok{color:var(--ok,#1f7a4d);border:1px solid color-mix(in srgb,var(--ok,#1f7a4d) 40%,transparent)}
+.ei-note.warn{color:var(--stop,#b3261e);border:1px solid color-mix(in srgb,var(--stop,#b3261e) 40%,transparent)}
+.ei-login{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-bottom:12px;padding:10px;border:1px dashed var(--hairline);border-radius:var(--r-md)}
+.ei-login .btn{margin-inline-start:auto}
+.ei-mine{display:grid;gap:6px;padding:11px 12px;border:1px solid var(--hairline);border-radius:var(--r-md);margin-bottom:12px}
+.ei-mine p{margin:0;font-size:13px;line-height:1.9}
+.ei-section .registration-notice{margin-bottom:12px}
+@media (max-width:560px){
+  .ei-resource{grid-template-columns:1fr}
+  .ei-resource-action{justify-content:flex-start}
+  .ei-form-row .btn,.ei-login .btn{margin-inline-start:0}
+}

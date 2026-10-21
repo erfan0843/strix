@@ -290,6 +290,22 @@ console.log('\n— مسیر پیوند حساب: بازگشت پس از ورود
   check(await drive(unknownHash) === 'account.html',
     'بخش ناشناخته در نشانی بازگشت پذیرفته نمی‌شود و به صفحهٔ حساب می‌افتد');
   unknownHash.dom.window.close();
+
+  /* فاز ۸: «برای پرسیدن وارد شوید» باید به همان صفحهٔ رویداد و همان بخش برگردد؛ فقط شناسه + لنگر ثابت. */
+  const eventQa = await load({
+    url: 'https://nora.test/login.html?mode=server&next=' + encodeURIComponent('event.html?id=ev-61f2ac7e51#qa'),
+    routes: phoneRoutes(),
+  });
+  check(await drive(eventQa) === 'event.html?id=ev-61f2ac7e51#qa',
+    'ورود از بخش پرسش‌وپاسخ رویداد، کاربر را به همان رویداد و همان بخش برمی‌گرداند');
+  eventQa.dom.window.close();
+  const eventBad = await load({
+    url: 'https://nora.test/login.html?mode=server&next=' + encodeURIComponent('event.html?id=ev-1&x=1#qa'),
+    routes: phoneRoutes(),
+  });
+  check(await drive(eventBad) === 'account.html',
+    'نشانی رویداد با پرس‌وجوی اضافه یا لنگر ناشناخته پذیرفته نمی‌شود');
+  eventBad.dom.window.close();
 }
 
 console.log('\n— خطاهای API بدون fallback محلی —');

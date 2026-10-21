@@ -108,6 +108,8 @@
     const form = registrationForm(event);
     const isPast = !!event.past;
     const serverSnapshot = root.NORA_PUBLIC_SOURCE === 'server';
+    /* فاز ۸: منابع/پرسش‌وپاسخ/دیدگاه فقط با API سرور معنا دارند؛ بدون سرور هیچ بخش خالی یا ساختگی ساخته نمی‌شود. */
+    const interactive = serverSnapshot && root.NORA_EVENT_INTERACTION && typeof root.NORA_EVENT_INTERACTION.mount === 'function';
     const cover = safeUrl(event.posterUp || event.poster);
     const coverHtml = cover
       ? `<img class="event-cover-image" src="${esc(cover)}" alt="پوستر ${esc(event.t)}" decoding="async"/>`
@@ -194,6 +196,7 @@
           ${schedule ? `<section class="event-section" aria-labelledby="event-schedule-title">
             <h2 id="event-schedule-title">زمان‌بندی و سرفصل‌ها</h2><ol class="schedule-list">${schedule}</ol>
           </section>` : ''}
+          ${interactive ? '<div data-event-interaction="resources" hidden></div>' : ''}
           ${instructor ? `<section class="event-section" aria-labelledby="event-instructor-title">
             <h2 id="event-instructor-title">مدرس / برگزارکننده</h2>
             <a class="event-person" href="person.html?id=${encodeURIComponent(instructor.id)}">
@@ -226,6 +229,7 @@
             ${event.certNote ? `<p>${textWithBreaks(event.certNote)}</p>` : ''}
             <p class="cap">${serverSnapshot?'این شرط از اطلاعات منتشرشدهٔ سرور است. این صفحه گواهی صادر یا استعلام نمی‌کند؛ روند صدور و تأیید را از برگزارکننده پیگیری کنید.':'این شرط صرفاً نمایشی است؛ بررسی درخواست و تأیید گواهی فقط پس از تأیید مالک انجام می‌شود. این صفحه گواهی رسمی صادر یا استعلام نمی‌کند.'}</p>
           </section>` : ''}
+          ${interactive ? '<div data-event-interaction="qa" hidden></div><div data-event-interaction="reviews" hidden></div>' : ''}
           ${relatedSection(event)}
         </article>
         <aside class="event-register card paper" aria-labelledby="event-register-title">
@@ -247,6 +251,7 @@
     }
     if (CD) CD.mount(page);
     bindActions(event, { form, regOpen });
+    if (interactive) root.NORA_EVENT_INTERACTION.mount(event, page);
   }
 
   /* پایان شمارش مهلت: دکمهٔ ثبت‌نام برداشته می‌شود، ولی وضعیت قطعی فقط با عکس تازهٔ سرور (نوسازی) تعیین می‌شود؛
