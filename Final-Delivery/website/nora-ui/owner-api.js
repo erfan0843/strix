@@ -60,7 +60,7 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
-  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot'];
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id'];
   function adminQuery(params) {
     const source = params && typeof params === 'object' ? params : {};
     const parts = [];
@@ -90,8 +90,8 @@
     const safeQuery = !query
       || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})(?:&q=[A-Za-z0-9%._-]{0,240})?(?:&role=(?:assigned|manager|club-supervisor|none))?(?:&status=(?:pending|decided|approved|rejected))?(?:&action=[a-z_.]{0,64})?$/.test(query)
       || /^period=(?:7d|30d|90d|365d|all)$/.test(query)
-      /* فهرست‌های مدیریتی مرحلهٔ دوم (محتوا، کاربران، حضور): فقط کلیدهای ثابت با مقدار کدشده */
-      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
+      /* فهرست‌های مدیریتی مرحلهٔ دوم به بعد (محتوا، کاربران، حضور، گواهی، امتیاز باشگاه): فقط کلیدهای ثابت با مقدار کدشده */
+      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
     if (typeof path !== 'string' || !/^\/api\/[A-Za-z0-9/_-]*$/.test(pathname) || pathname.includes('..')
         || !safeQuery) {
       throw new TypeError('Only fixed same-origin API paths are allowed');
@@ -278,6 +278,10 @@
     listAdminCertificates: params => request('/api/admin/certificates' + adminQuery(params)),
     getAdminCertificate: certificateId => request('/api/admin/certificates/' + recordId(certificateId)),
     adminCertificateFileUrl: (certificateId, slot) => '/api/admin/certificates/' + recordId(certificateId) + '/file' + adminQuery({ slot: slot || 'pdf' }),
+    /* امتیاز باشگاه (cl_member): آینهٔ فقط‌خواندنی دفترکل ربات؛ هیچ مسیر نوشتن امتیازی در پنل وجود ندارد */
+    listAdminClubPoints: params => request('/api/admin/club/points' + adminQuery(params)),
+    listAdminClubMembers: params => request('/api/admin/club/points/members' + adminQuery(params)),
+    getAdminClubMember: accountId => request('/api/admin/club/points/members/' + recordId(accountId)),
     /* تصاویر عمومی (ev_create): بارگذاری، فهرست با وضعیت استفاده در site_content، حذف صریحِ بدون‌استفاده */
     uploadAdminMedia,
     listAdminMedia: params => request('/api/admin/media' + adminQuery(params)),

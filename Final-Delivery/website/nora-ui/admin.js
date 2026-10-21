@@ -6927,13 +6927,88 @@ function serverCertView(){
   if(CERT_SRV.detailId) return `<div class="stack">${uBack}${serverCertDetail()}</div>`;
   return `<div class="stack">${uBack}${serverCertList()}</div>`;
 }
-function serverClubView(){
-  return `<section class="card stack" role="status" data-club-panel>${uBack}
-    <div class="row"><span class="ic">${ico('i-star')}</span><div class="head">باشگاه</div><span class="sp"></span>${tag('داده در پایگاه ربات','warn')}</div>
-    <p class="cap">ممیزی فقط‌خواندنی مرحلهٔ سوم ساختار واقعی باشگاه را مشخص کرد: امتیاز هر عضو یک شمارندهٔ قابل‌تغییر در پایگاه ربات است (users.total_points) که دست‌کم هشت مسیر آن را تغییر می‌دهند، اما دفترکل کاملی برای آن وجود ندارد؛ جدول user_actions فقط بخشی از تغییرها را نگه می‌دارد و پس از ۹۰ روز پاک می‌شود. «سطح عضویت» هم فیلد داده نیست و فقط از رتبهٔ دستاوردها (achievements) برمی‌آید.</p>
-    <p class="cap">به همین دلیل این صفحه عمداً عضو، امتیاز، سطح یا تاریخچه‌ای نمی‌سازد و تخمین نمی‌زند: نمایش امتیاز بدون دفترکل، «ثبت‌شده» را با «محاسبه‌شده» قاطی می‌کرد و هر اصلاح امتیاز بدون قاعدهٔ سروری و سابقهٔ دلیل، غیرقابل‌پیگیری بود. انتقال باشگاه به پایگاه مشترک نیازمند تصمیم محصول دربارهٔ دفترکل امتیاز و تعریف سطح است و در گزارش مرحلهٔ سوم به‌عنوان شکاف باز ثبت شده است.</p>
-    <p class="cap">فهرست حساب‌های تأییدشده (بدون امتیاز) در «فهرست کاربران» و گواهی‌های صادرشدهٔ ربات در «گواهینامه‌ها» در دسترس است.</p>
+/* ── باشگاه: آینهٔ فقط‌خواندنی دفترکل امتیاز ربات ──
+   منبع حقیقت امتیاز، دفترکل points_ledger در پایگاه ربات است؛ سرور فقط ردیف‌های
+   کاربرانی را نگه می‌دارد که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده است. این صفحه
+   هیچ امتیازی نمی‌سازد، تغییر نمی‌دهد و تخمین نمی‌زند؛ موجودی نمایشی = balance_after
+   آخرین ردیف آینه‌شده و کامل‌بودن تاریخچه از زنجیرهٔ موجودی استخراج می‌شود. */
+const CLUB_SRV={mode:'members',data:null,loading:false,error:'',key:'',q:'',type:'',offset:0,limit:20,memberId:'',member:null,memberError:'',memberLoading:false,memberLoadedId:''};
+const CL_TYPE={opening_balance:'موجودی افتتاحیه',award:'امتیاز',spend:'کسر',refund:'برگشت',reversal:'برگشت ردیف',manual_adjust:'تعدیل دستی'};
+const CL_SOURCE={legacy_counter:'شمارندهٔ قدیمی',achievement:'نشان',point_rule:'قانون امتیاز',birthday:'تولد',occasion:'مناسبت',event_finished:'پایان رویداد',attendance_session:'حضور در جلسه',lottery_prize:'جایزهٔ قرعه‌کشی',reward_redeem:'خرید پاداش',reward_reject_refund:'رد درخواست پاداش',payment_spend:'پرداخت با امتیاز',survey:'نظرسنجی',admin_manual:'تعدیل دستی ادمین',reversal:'برگشت',rebaseline:'تطبیق دوباره'};
+function clKey(){return [CLUB_SRV.mode,CLUB_SRV.q,CLUB_SRV.type,CLUB_SRV.offset,CLUB_SRV.limit].join('|')}
+async function clLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminClubMembers!=='function'){CLUB_SRV.error='رابط سرور در دسترس نیست.'; CLUB_SRV.key=clKey(); renderBody(); return}
+  const key=clKey(); CLUB_SRV.loading=true; CLUB_SRV.error=''; renderBody();
+  try{const params={limit:CLUB_SRV.limit,offset:CLUB_SRV.offset,q:CLUB_SRV.q}; if(CLUB_SRV.mode==='entries') params.entry_type=CLUB_SRV.type;
+    const result=CLUB_SRV.mode==='entries'?await api.listAdminClubPoints(params):await api.listAdminClubMembers(params);
+    if(key===clKey()){CLUB_SRV.data=result; CLUB_SRV.key=key}}
+  catch(error){if(key===clKey()){CLUB_SRV.error=p2Err(error,'دفترکل امتیاز از سرور دریافت نشد.'); CLUB_SRV.key=key}}
+  finally{CLUB_SRV.loading=false; if(key!==clKey()){clLoad(); return} if(S.uV==='club') renderBody()}
+}
+async function clLoadMember(id){
+  const api=window.NORA_SERVER_API; CLUB_SRV.memberId=id; CLUB_SRV.member=null; CLUB_SRV.memberError=''; CLUB_SRV.memberLoading=true; renderBody();
+  try{const result=await api.getAdminClubMember(id); if(CLUB_SRV.memberId===id) CLUB_SRV.member=result||null}
+  catch(error){if(CLUB_SRV.memberId===id) CLUB_SRV.memberError=p2Err(error,'تاریخچهٔ امتیاز این عضو دریافت نشد.')}
+  finally{CLUB_SRV.memberLoading=false; if(CLUB_SRV.memberId===id) renderBody()}
+}
+function clDelta(n){const v=Number(n)||0; return `<b dir="ltr" style="font-weight:700;color:${v<0?'var(--stop)':'var(--ok)'}">${v>0?'+':''}${esc(fa(v))}</b>`}
+function clCompleteTag(m){return m.history_complete?tag('تاریخچهٔ کامل','ok'):tag('تاریخچهٔ ناقص','warn')}
+function clEntryRow(item,withHolder){
+  const holder=item.holder||{}, name=holder.display_name||'بدون نام ثبت‌شده';
+  const meta=[CL_TYPE[item.entry_type]||item.entry_type,CL_SOURCE[item.source]||item.source,item.reason||'',item.bot_created_at?'ثبت در ربات '+(svcWhen(item.bot_created_at)||item.bot_created_at):''].filter(Boolean).join(' · ');
+  return `<div class="admlirow" data-club-entry="${esc(item.external_key)}"><span class="ic">${ico('i-star')}</span>
+    <span class="sp">${withHolder?`<b>${esc(name)}</b>`:''}<small class="cap">${esc(meta)}</small><small class="cap" dir="ltr">${esc(item.ref_key)}</small></span>
+    <span class="mini" style="text-align:end">${clDelta(item.delta)}<small class="cap" dir="ltr">موجودی ${esc(fa(item.balance_after))}</small></span></div>`;
+}
+function clMemberRow(m){
+  const name=m.display_name||'بدون نام ثبت‌شده';
+  return `<button class="admlirow" type="button" data-club-member="${esc(m.account_id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-user')}</span>
+    <span class="sp"><b>${esc(name)}</b><small class="cap">${esc(fa(m.entries))} ردیف · آخرین ثبت ${esc(svcWhen(m.latest_bot_created_at)||svcWhen(m.latest_synced_at)||'نامشخص')}</small></span>
+    <span class="mini" style="text-align:end"><b dir="ltr" style="font-weight:700">${esc(fa(m.latest_balance))}</b><small class="cap">امتیاز</small></span>${clCompleteTag(m)}${ico('i-chev-left')}</button>`;
+}
+function serverClubList(){
+  const d=CLUB_SRV.data, total=d?Number(d.total)||0:0, entries=CLUB_SRV.mode==='entries';
+  const emptyText=CLUB_SRV.q||CLUB_SRV.type?'با این جست‌وجو یا فیلتر ردیفی پیدا نشد.':'هنوز هیچ ردیفی از دفترکل امتیاز ربات به پایگاه مشترک نرسیده است. ردیف‌ها پس از راه‌اندازی دفترکل در ربات و فقط برای کاربرانی که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده، این‌جا دیده می‌شوند. این صفحه چیزی را تخمین نمی‌زند.';
+  const body=CLUB_SRV.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت دفترکل امتیاز از سرور…</p></div>`
+    :CLUB_SRV.error?`<div class="empty"><p class="cap">${esc(CLUB_SRV.error)}</p>${btn('تلاش دوباره','data-club-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-club-refresh','i-refresh')}</div>`
+    :d.items.length?d.items.map(it=>entries?clEntryRow(it,true):clMemberRow(it)).join(''):emptyBox(emptyText);
+  const modes=[['members','اعضا'],['entries','همهٔ ردیف‌ها']].map(([k,l])=>`<button class="chip ${CLUB_SRV.mode===k?'on':''}" type="button" data-club-mode="${k}">${esc(l)}</button>`).join('');
+  const types=entries?`<div class="admfilters">${[['','همه']].concat(Object.keys(CL_TYPE).map(k=>[k,CL_TYPE[k]])).map(([k,l])=>`<button class="chip ${CLUB_SRV.type===k?'on':''}" type="button" data-club-type="${k}">${esc(l)}</button>`).join('')}</div>`:'';
+  const partial=d&&!entries&&Number(d.partial)>0?`<p class="cap">${esc(fa(d.partial))} عضو تاریخچهٔ ناقص دارند: بخشی از ردیف‌های آن‌ها پیش از پیوند حساب ثبت شده و هنوز به سرور نرسیده است؛ برای این افراد موجودی نمایشی فقط «آخرین ردیف رسیده» است، نه موجودی قطعی.</p>`:'';
+  return `<section class="card stack" data-club-panel>
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-star')}</span><div class="head">امتیاز باشگاه</div><span class="sp"></span>${tag('آینهٔ خواندنی دفترکل ربات','ok')}${d?tag(fa(total)+(entries?' ردیف':' عضو'),''):''}${btn('بازخوانی','data-club-refresh','i-refresh')}</div>
+    <p class="cap">هر تغییر امتیاز در ربات یک ردیف تغییرناپذیر در دفترکل می‌سازد و همان ردیف، با کلید پایدار و مالکِ تأییدشده (هویت بلهٔ همان حساب)، به پایگاه مشترک می‌رسد. امتیاز فقط در ربات داده، خرج یا تعدیل می‌شود؛ این صفحه فقط می‌خواند و هیچ دکمه‌ای برای تغییر امتیاز ندارد.</p>
+    <form class="row tight server-role-search" data-club-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="clubQuery" type="search" class="input" value="${esc(CLUB_SRV.q)}" maxlength="80" autocomplete="off" placeholder="${entries?'نام، شناسهٔ بله، کلید مرجع یا دلیل':'نام یا شناسهٔ بله'}" aria-label="جست‌وجوی دفترکل امتیاز"/></label>
+      <button class="btn sm" type="submit" data-club-search>جست‌وجو</button></form>
+    <div class="admfilters">${modes}</div>${types}${partial}
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,CLUB_SRV.offset,CLUB_SRV.limit,'data-club-page="prev"','data-club-page="next"'):''}
   </section>`;
+}
+function serverClubMember(){
+  const m=CLUB_SRV.member, back=`<div class="row">${btn('بازگشت به فهرست','data-club-back','i-back')}<span class="sp"></span></div>`;
+  if(CLUB_SRV.memberLoading) return `<section class="card stack" data-club-member-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت تاریخچهٔ امتیاز…</p></div></section>`;
+  if(CLUB_SRV.memberError||!m) return `<section class="card stack" data-club-member-detail>${back}<div class="empty"><p class="cap">${esc(CLUB_SRV.memberError||'عضوی انتخاب نشده است.')}</p>${CLUB_SRV.memberId?btn('تلاش دوباره',`data-club-member="${esc(CLUB_SRV.memberId)}"`,'i-refresh'):''}</div></section>`;
+  const info=[['موجودی طبق آخرین ردیف رسیده',fa(m.latest_balance),'ltr'],['تعداد ردیف‌ها',fa(m.entries),''],['تاریخچه',m.history_complete?'کامل (زنجیرهٔ موجودی از صفر تا آخرین ردیف پیوسته است)':'ناقص ('+fa(m.chain_breaks)+' شکست در زنجیره؛ ردیف‌هایی پیش از پیوند حساب هنوز نرسیده‌اند)',''],
+    ['ردیف افتتاحیه',m.has_opening?'دارد':'ندارد',''],['آخرین ثبت در ربات',svcWhen(m.latest_bot_created_at)||m.latest_bot_created_at||'',''],['آخرین همگام‌سازی',svcWhen(m.latest_synced_at),''],
+    ['شناسهٔ حساب',m.account_id||'','ltr'],['شناسهٔ بله',m.bale_user_id||'','ltr']].filter(([,v])=>v!=='');
+  const history=(m.history||[]).map(it=>clEntryRow(it,false)).join('');
+  return `<section class="card stack" data-club-member-detail>${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-user')}</span><div class="head">${esc(m.display_name||'بدون نام ثبت‌شده')}</div><span class="sp"></span>${clCompleteTag(m)}</div>
+    <p class="cap">${esc(m.history_complete?'این موجودی برابر آخرین ردیف دفترکل ربات برای این عضو است و همهٔ ردیف‌های او به سرور رسیده‌اند.':'بخشی از تاریخچهٔ این عضو هنوز به سرور نرسیده است؛ عدد زیر فقط «آخرین ردیف رسیده» است و تا کامل‌شدن همگام‌سازی، موجودی قطعی را از ربات بپرسید.')} تغییر امتیاز فقط در ربات انجام می‌شود.</p>
+    <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
+    <div class="head" style="font-size:1rem">تاریخچه (تازه‌ترین بالا)</div>
+    <div class="tlist">${history||emptyBox('ردیفی برای نمایش نیست.')}</div>
+    ${m.account_id&&canPerm('us_view')?`<div class="row tight">${btn('پروندهٔ کاربر','data-cert-user-open="'+esc(m.account_id)+'"','i-user')}</div>`:''}
+  </section>`;
+}
+function serverClubView(){
+  if(!(isOwner()||canPerm('cl_member'))) return `<section class="card stack">${uBack}${emptyBox('امتیاز باشگاه فقط برای مالک و سرپرست باشگاه باز است.')}</section>`;
+  if(CLUB_SRV.memberId) return `<div class="stack">${uBack}${serverClubMember()}</div>`;
+  return `<div class="stack">${uBack}${serverClubList()}</div>`;
 }
 function p2UserHubCards(){
   const cards=[];
@@ -6941,8 +7016,8 @@ function p2UserHubCards(){
     <p class="cap">حضور بلیت‌های ثبت‌نام سرور؛ همان رکوردی که ربات هنگام اسکن می‌نویسد.</p>${btn('بازکردن حضور و غیاب','data-open-attendance','i-chev-left')}</article>`);
   if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
     <p class="cap">گواهی‌های صادرشدهٔ ربات که با مالک تأییدشده به پایگاه مشترک رسیده‌اند؛ جست‌وجو، وضعیت و فایل. صدور فقط از ربات.</p>${btn('بازکردن گواهینامه‌ها','data-open-cert','i-chev-left')}</article>`);
-  if(isOwner()||canPerm('cl_member')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-star')}</span><b>باشگاه</b><span class="sp"></span>${tag('داده در پایگاه ربات','warn')}</div>
-    <p class="cap">امتیاز و عضویت فقط در پایگاه ربات است؛ بدون مهاجرت نمایش داده نمی‌شود.</p>${btn('چرا خالی است؟','data-open-club','i-info')}</article>`);
+  if(isOwner()||canPerm('cl_member')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-star')}</span><b>امتیاز باشگاه</b><span class="sp"></span>${tag('آینهٔ دفترکل ربات','ok')}</div>
+    <p class="cap">تاریخچهٔ امتیاز اعضایی که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده؛ فقط‌خواندنی. امتیاز فقط در ربات تغییر می‌کند.</p>${btn('بازکردن امتیاز باشگاه','data-open-club','i-chev-left')}</article>`);
   return cards;
 }
 document.addEventListener('click',e=>{
@@ -6987,6 +7062,13 @@ document.addEventListener('click',e=>{
   const atPPage=q('[data-att-ppage]'); if(atPPage){const total=AT.people?Number(AT.people.total)||0:0; AT.poffset=atPPage.dataset.attPpage==='next'?Math.min(AT.poffset+AT.plimit,Math.max(0,total-1)):Math.max(0,AT.poffset-AT.plimit); atLoadPeople(); return}
   const atIn=q('[data-att-checkin]'); if(atIn){atAct(atIn.dataset.attCheckin,false); return}
   const atUndo=q('[data-att-undo]'); if(atUndo){atAct(atUndo.dataset.attUndo,true); return}
+  if(q('[data-club-refresh]')){CLUB_SRV.data=null; CLUB_SRV.key=''; clLoad(); return}
+  const clMode=q('[data-club-mode]'); if(clMode){if(clMode.dataset.clubMode!==CLUB_SRV.mode){CLUB_SRV.mode=clMode.dataset.clubMode==='entries'?'entries':'members'; CLUB_SRV.offset=0; CLUB_SRV.type=''; CLUB_SRV.data=null; clLoad()} return}
+  const clType=q('[data-club-type]'); if(clType){CLUB_SRV.type=clType.dataset.clubType||''; CLUB_SRV.offset=0; clLoad(); return}
+  if(q('[data-club-search]')){const input=$('#clubQuery'); CLUB_SRV.q=String(input&&input.value||'').trim().slice(0,80); CLUB_SRV.offset=0; clLoad(); return}
+  const clPage=q('[data-club-page]'); if(clPage){const total=CLUB_SRV.data?Number(CLUB_SRV.data.total)||0:0; CLUB_SRV.offset=clPage.dataset.clubPage==='next'?Math.min(CLUB_SRV.offset+CLUB_SRV.limit,Math.max(0,total-1)):Math.max(0,CLUB_SRV.offset-CLUB_SRV.limit); clLoad(); return}
+  const clMember=q('[data-club-member]'); if(clMember){clLoadMember(clMember.dataset.clubMember); return}
+  if(q('[data-club-back]')){CLUB_SRV.memberId=''; CLUB_SRV.member=null; CLUB_SRV.memberError=''; renderBody(); return}
   if(q('[data-cert-refresh]')){CERT_SRV.data=null; CERT_SRV.key=''; ceLoad(); return}
   if(q('[data-cert-search]')){const input=$('#certQuery'); CERT_SRV.q=String(input&&input.value||'').trim().slice(0,80); CERT_SRV.offset=0; ceLoad(); return}
   const ceStatus=q('[data-cert-status]'); if(ceStatus){CERT_SRV.status=ceStatus.dataset.certStatus||''; CERT_SRV.offset=0; ceLoad(); return}
@@ -7655,7 +7737,7 @@ function demoNote(){
     :sharedInbox
       ?'این کارتابل از API و پایگاه مشترک ربات و وب‌اپ خوانده می‌شود. تصمیم در همان‌جا ثبت و اعلان کاربر برای تحویل ربات صف می‌شود؛ این صفحه وجهی جابه‌جا نمی‌کند.'
       :!IS_TEST&&SERVER_AUTH
-        ?'نقش و مجوز این حساب از سرور خوانده شده است. گواهی‌های صادرشدهٔ ربات از ثبت مشترک سرور خوانده می‌شوند و صدور همچنان در ربات است؛ باشگاه هنوز منبع سروری ندارد و خالی می‌ماند. هیچ دادهٔ نمونه‌ای نشان داده نمی‌شود؛ ارسال پیام و پرداخت از این پنل انجام نمی‌شود.'
+        ?'نقش و مجوز این حساب از سرور خوانده شده است. گواهی‌های صادرشدهٔ ربات از ثبت مشترک سرور خوانده می‌شوند و صدور همچنان در ربات است؛ امتیاز باشگاه از آینهٔ خواندنی دفترکل ربات خوانده می‌شود و تغییر امتیاز فقط در ربات است. هیچ دادهٔ نمونه‌ای نشان داده نمی‌شود؛ ارسال پیام و پرداخت از این پنل انجام نمی‌شود.'
         :'داده‌ها و تغییرهای این پنل فقط در همین مرورگر می‌مانند؛ پیام، اعلان، پرداخت یا صدور واقعی انجام نمی‌شود. تأیید مالک فقط همین وضعیت محلی را عوض می‌کند. نقش‌های این نمای آزمایشی مجوز سروری نیستند.';
   const title=sharedReports?'گزارش زندهٔ سرور':sharedInbox?'کارتابل مشترک':!IS_TEST&&SERVER_AUTH?'منبع داده: API سرور':'پیش‌نمایش محلی';
   const badge=sharedReports?'گزارش تجمیعی سرور':sharedInbox?'کارتابل و مجوز از سرور':!IS_TEST&&SERVER_AUTH?'بدون دادهٔ نمونه':'ارسال و پرداخت واقعی وصل نیست';
@@ -7743,6 +7825,7 @@ function renderBody(){
     if(host.querySelector('[data-att-panel]')&&!host.querySelector('[data-att-people]')&&!AT.loading&&AT.key!==atKey()) atLoadForms();
     if(host.querySelector('[data-att-people]')&&!AT.ploading&&AT.pkey!==atPKey()) atLoadPeople();
     if(host.querySelector('[data-cert-panel]')&&!CERT_SRV.loading&&CERT_SRV.key!==ceKey()) ceLoad();
+    if(host.querySelector('[data-club-panel]')&&!CLUB_SRV.loading&&CLUB_SRV.key!==clKey()) clLoad();
     if(host.querySelector('[data-cert-detail]')&&!CERT_SRV.detailLoading&&!CERT_SRV.detail&&!CERT_SRV.detailError&&CERT_SRV.detailId&&CERT_SRV.detailId!==CERT_SRV.detailLoadedId){CERT_SRV.detailLoadedId=CERT_SRV.detailId; ceLoadDetail(CERT_SRV.detailId)}
   }
 }
