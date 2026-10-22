@@ -1760,7 +1760,7 @@ function loadServerOutbox(append=false){
 function vServerOutbox(){
   const o=SERVER_OUTBOX; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
   const kinds={recording_access:'دسترسی محتوا',recording_order:'سفارش',recording_purchase:'ثبت خرید',recording_content:'محتوای تازه',
-    certificate:'گواهی',event_question:'پاسخ پرسش',profile_review:'بررسی پروفایل',receipt_review:'بررسی فیش',admin_task:'کارتابل'};
+    certificate:'گواهی',event_question:'پاسخ پرسش',event_qa_answer:'پاسخ پرسش',receipt_rejected:'رد فیش',profile_review:'بررسی پروفایل',receipt_review:'بررسی فیش',admin_task:'کارتابل'};
   const stateTag=item=>item.last_delivery_error==='no_bale_identity'?tag('بدون هویت بله','warn')
     :item.delivery_state==='delivered'?tag('تحویل‌شده','ok')
     :item.delivery_state==='failed'?tag('ناموفق','stop')
