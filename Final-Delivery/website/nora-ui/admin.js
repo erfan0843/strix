@@ -7780,7 +7780,10 @@ function serverUserDetail(){
     <p class="cap">فقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند.</p>
     <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
     <div class="head">ثبت‌نام‌های سرور (${fa(d.registrations||0)})</div>
+    <p class="cap">این فهرست خلاصهٔ ثبت‌نام‌های همین حساب است؛ پاسخ کامل فیلدهای فرم از API مدیریتی ارائه نمی‌شود و در اینجا جعل یا از API حساب جاری خوانده نمی‌شود.</p>
     <div class="tlist">${regs||emptyBox('ثبت‌نامی در پایگاه مشترک برای این حساب نیست.')}</div>
+    <div class="head">پیام‌ها و اعلان‌های مرتبط</div>
+    <p class="cap">شمار اعلان‌های حساب در اطلاعات بالا فقط شمارش سروری است؛ فهرست امنِ محدود به این حساب هنوز API ندارد. صف سراسری اعلان‌ها در پرونده نمایش داده نمی‌شود.</p>
     <div class="head">درخواست‌های کارتابل</div>
     <div class="tlist">${reviews||emptyBox('درخواست پروفایل یا فیشی برای این حساب ثبت نشده است.')}</div>
   </section>`;
@@ -8721,6 +8724,28 @@ document.addEventListener('click',e=>{
   if(hit('[data-goto-service-payment]')){e.preventDefault(); S.sec='settings'; S.setG='services'; SERVICE_TAB='payment'; SERVICE_MSG=null; render(); return}
 });
 
+const SERVER_PEOPLE={loading:false,loaded:false,error:'',rows:[],version:0};
+async function serverPeopleLoad(){
+  if(!isOwner()||SERVER_PEOPLE.loading) return;
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.getOwnerSiteContent!=='function'){SERVER_PEOPLE.error='API محتوای مالک در دسترس نیست؛ فهرست واقعی خوانده نشد.'; SERVER_PEOPLE.loaded=false; renderBody(); return}
+  SERVER_PEOPLE.loading=true; SERVER_PEOPLE.error=''; renderBody();
+  try{
+    const result=await api.getOwnerSiteContent();
+    const content=result&&result.content&&typeof result.content==='object'?result.content:{};
+    SERVER_PEOPLE.rows=Array.isArray(content.people)?content.people.filter(row=>row&&typeof row==='object'&&row.id&&row.n):[];
+    SERVER_PEOPLE.version=Number.isInteger(+result.version)?+result.version:0;
+    SERVER_PEOPLE.loaded=true;
+  }catch(error){SERVER_PEOPLE.rows=[]; SERVER_PEOPLE.loaded=false; SERVER_PEOPLE.error=p2Err(error,'فهرست اساتید و کارکنان دریافت نشد.')}
+  finally{SERVER_PEOPLE.loading=false; if(S.sec==='settings'&&S.setG==='publishing') renderBody()}
+}
+function serverPeopleView(){
+  if(!isOwner()) return '';
+  if(!SERVER_PEOPLE.loaded&&!SERVER_PEOPLE.loading&&!SERVER_PEOPLE.error) serverPeopleLoad();
+  const rows=SERVER_PEOPLE.rows.map(person=>`<div class="admlirow"><span class="sp"><b>${esc(person.n)}</b><small class="cap">${esc(person.kind==='staff'?'کارکنان':'استاد')} · ${esc(person.r||person.role2||'بدون عنوان')}</small></span></div>`).join('');
+  const state=SERVER_PEOPLE.loading?'در حال دریافت فهرست از محتوای سرور…':SERVER_PEOPLE.error?SERVER_PEOPLE.error:SERVER_PEOPLE.loaded?`${fa(rows?SERVER_PEOPLE.rows.length:0)} مورد از محتوای سرور · نسخهٔ ${fa(SERVER_PEOPLE.version)}`:'فهرست هنوز دریافت نشده است.';
+  return `<section class="card stack" data-server-people><div class="row"><div class="head">اساتید و کارکنان · منبع محتوای سرور</div><span class="sp"></span>${btn('تازه‌سازی','data-server-people-refresh'+(SERVER_PEOPLE.loading?' disabled aria-busy="true"':''),'i-refresh')}</div><p class="cap" role="status">${esc(state)}</p><p class="cap">نمایش فقط‌خواندنی تا تأیید قرارداد نگهداری draft/hidden و معنای انتشار در site_content.people. هیچ ذخیرهٔ محلی یا پیام موفقیت ساختگی انجام نمی‌شود.</p>${SERVER_PEOPLE.loaded?(rows?`<div class="tlist">${rows}</div>`:emptyBox('در فهرست سروری موردی وجود ندارد.')):''}</section>`;
+}
 function serverSettingsView(){
   const defs=[
     ['services','اتصال سرویس‌ها','i-send'],
@@ -8746,7 +8771,7 @@ function serverSettingsView(){
   else if(selected==='data') content=canBackup?dataSettingsView()
     :serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.');
   else if(selected==='security') content=securitySettingsView();
-  else if(selected==='publishing') content=(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
+  else if(selected==='publishing') content=(isOwner()?serverPeopleView()+ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
   else content=performanceSettingsView();
@@ -9994,6 +10019,7 @@ document.addEventListener('click',e=>{
   const ppartnerShow=q('[data-ppartner-show]'); if(ppartnerShow){
     if(!isOwner()) return; const b=ppSet(), id=String(ppartnerShow.dataset.ppartnerShow);
     b.partnerHide=(b.partnerHide||[]).filter(item=>String(item)!==id); save(); renderBody(); return}
+  const peopleReload=q('[data-server-people-refresh]'); if(peopleReload){SERVER_PEOPLE.error=''; SERVER_PEOPLE.loaded=false; serverPeopleLoad(); return}
   const ppartnerReload=q('[data-ppartner-reload]'); if(ppartnerReload){ppPartnerServerLoad(); renderBody(); return}
   const ppartnerDelete=q('[data-ppartner-del]'); if(ppartnerDelete){
     if(!isOwner()) return; const b=ppSet(), id=String(ppartnerDelete.dataset.ppartnerDel);

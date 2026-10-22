@@ -96,6 +96,9 @@ console.log('— پنل مالک: فهرست نهادها از سرور —');
   const app = await loadOwnerPanel(server);
   try {
     await app.until(() => app.doc.querySelectorAll('[data-ppartner-row]').length === 2, 'فهرست سروری نهادها');
+    await app.until(() => app.doc.querySelector('[data-server-people]')?.textContent.includes('مدرس آزمایشی'), 'فهرست خواندنی اساتید از همان محتوای سرور');
+    ok(server.calls.some(call => call.path === '/api/owner/site-content' && call.method === 'GET'), 'اساتید/کارکنان از GET محتوای مالک خوانده می‌شوند');
+    ok(app.text('[data-server-people]').includes('فقط‌خواندنی') && !app.doc.querySelector('[data-server-people] [data-save]'), 'ویرایشگر تا تأیید قرارداد انتشار فعال نمی‌شود');
     ok(app.text('#ppPartnerSrvState').includes('۲ نهاد منتشرشده از سرور') && app.text('#ppPartnerSrvState').includes('نسخهٔ ۷'), 'وضعیت: فهرست از سرور با نسخهٔ واقعی بارگذاری شد');
     ok(!app.doc.querySelector('[data-ppartner-pub]') && !app.doc.querySelector('[data-ppartner-hide]') && !app.doc.querySelector('[data-ppartner-hidden]'), 'در تولید دکمهٔ انتشار محلی/پنهان‌سازی نمایش داده نمی‌شود');
     ok(!/گروه آموزشی نمونه|فضای فرهنگی نمونه/.test(app.text('#ppPartnerList')), 'دادهٔ نمونهٔ data.js جای فهرست سرور را نمی‌گیرد');
@@ -192,7 +195,10 @@ console.log('— نشست نامعتبر هنگام بارگذاری فهرست 
   try {
     await app.until(() => app.doc.querySelector('#ppPartnerSrvState')?.dataset.state === 'error', 'خطای بارگذاری');
     ok(app.text('#ppPartnerSrvState').includes('نشست مالک') && !app.doc.querySelector('[data-ppartner-row]') && app.doc.querySelector('[data-ppartner-reload]'), 'بدون نشست معتبر: فهرست خالی، پیام روشن، دکمهٔ تازه‌سازی');
-    server.fail = null; app.click('[data-ppartner-reload]');
+    ok(app.text('[data-server-people]').includes('نشست') && !app.text('[data-server-people]').includes('نسخهٔ'), 'خطای مجوز people به‌جای فهرست/موفقیت ساختگی نشان داده می‌شود');
+    server.fail = null; app.click('[data-server-people-refresh]');
+    await app.until(() => app.text('[data-server-people]').includes('مدرس آزمایشی'), 'تلاش دوبارهٔ فهرست people');
+    app.click('[data-ppartner-reload]');
     await app.until(() => app.doc.querySelectorAll('[data-ppartner-row]').length === 2, 'تازه‌سازی پس از رفع خطا');
     ok(true, 'تازه‌سازی از سرور فهرست را بازمی‌گرداند');
   } finally { app.dom.window.close(); }

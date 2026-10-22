@@ -84,6 +84,13 @@ async function loadPanel(identity) {
         if (path === '/api/admin/event-interaction/summary') return reply(200, { source: 'shared_server_database', unanswered_questions: 3, pending_reviews: 0, open_reports: 1, failed_notifications: 1, per_event: [] });
         if (path === '/api/admin/recordings/summary') return reply(200, { source: 'shared_server_database', recordings: 1, orders_review: 2, orders_open: 0, orders_paid: 1, orders_refunded: 0, active_access: 1, per_event: [] });
         if (path.startsWith('/api/admin/attendance/forms')) { return reply(200, { source: 'shared_server_database', items: [], total: 0, limit: 20, offset: 0, has_more: false, q: new URLSearchParams(path.split('?')[1] || '').get('q') || '' }); }
+        if (path === '/api/admin/users/00000000-0000-4000-8000-000000000001') return reply(200, {
+          source: 'shared_server_database', account_id: '00000000-0000-4000-8000-000000000001', display_name: 'حساب هدف', registrations: 2, notifications: 1,
+          registration_items: [
+            { id: 'r-1', form_name: 'فرم هدف', event_title: 'رویداد هدف', status: 'accepted', payment_status: 'pending', ticket_checked_in: false, created_at: '2026-10-20T08:00:00Z' },
+            { id: 'r-2', form_name: 'فرم وضعیت تازه', event_title: 'فرم وضعیت تازه', status: 'new_state', payment_status: null, ticket_checked_in: false, created_at: '2026-10-20T08:00:00Z' },
+          ], reviews: [],
+        });
         if (path.startsWith('/api/admin/users?')) return reply(200, { source: 'shared_server_database', items: [], total: 0, limit: 20, offset: 0, has_more: false });
         if (path.startsWith('/api/admin/events/ev-1/')) return reply(200, { items: [], total: 0, limit: 20, offset: 0, has_more: false });
         if (path === '/api/admin/storage/health') return reply(200, { ok: true });
@@ -242,6 +249,22 @@ console.log('— مرحلهٔ C-4: تصمیم رسید در کارتابل با 
     ok(app.confirms.length === 1 && app.decisions[0].id === '00000000-0000-4000-8000-000000000002' && app.decisions[0].decision === 'approved'
       && app.decisions[0].reason === 'مرجع واریز ۱۲۳۴۵' && app.decisions[0].expected_version === 3, 'پس از تأیید کاربر: تصمیم با دلیل و نسخهٔ درست به سرور می‌رود');
     await app.until(() => /در صف ربات است، هنوز تحویل نشده/.test(app.doc.body.textContent), 'پیام صادقانه: تصمیم ثبت شد ≠ اعلان تحویل شد');
+  } finally { app.window.close(); }
+}
+
+console.log('— U4/U5 پروندهٔ حساب: خلاصهٔ واقعی، وضعیت ناشناخته خنثی، پیام امن به‌جای صف سراسری —');
+{
+  const target = '00000000-0000-4000-8000-000000000001';
+  const app = await loadPanel({ role: 'owner', state: { v: 78, sec: 'users' } });
+  try {
+    const opener = app.doc.createElement('button'); opener.dataset.userOpen = target; opener.textContent = 'بازکردن حساب هدف'; app.doc.body.appendChild(opener);
+    app.click('[data-user-open]');
+    await app.until(() => app.doc.querySelector('[data-user-detail]')?.textContent.includes('فرم وضعیت تازه'), 'جزئیات پرونده از endpoint مدیریتی');
+    ok(app.calls.some(call => call.path === `/api/admin/users/${target}`), 'پرونده فقط از endpoint مدیریتی حساب هدف خوانده شد');
+    ok(app.text('[data-user-detail]').includes('پذیرفته') && app.text('[data-user-detail]').includes('new_state') && !app.text('[data-user-detail]').includes('new_state · پذیرفته'), 'وضعیت ثبت‌نام ناشناخته به‌اشتباه پذیرفته نمایش داده نمی‌شود');
+    ok(app.text('[data-user-detail]').includes('خلاصهٔ ثبت‌نام') && app.text('[data-user-detail]').includes('پاسخ کامل فیلدهای فرم'), 'محدودیت پاسخ‌های کامل فرم صادقانه اعلام می‌شود');
+    ok(app.text('[data-user-detail]').includes('فهرست امنِ محدود به این حساب') && !app.calls.some(call => call.path.startsWith('/api/admin/notifications') || call.path === '/api/account/notifications'), 'پیام‌های حساب از صف سراسری یا API حساب جاری جعل نمی‌شوند');
+    ok(!app.text('[data-user-detail]').includes('حساب دیگر'), 'اطلاعات حساب دیگر در پرونده درج نشده است');
   } finally { app.window.close(); }
 }
 
