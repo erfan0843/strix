@@ -1,0 +1,45 @@
+## desktop / owner
+- staff-login → HTTP 200; landed on /admin.html#dash; session via /api/auth/me: role=owner, permissions=47 (finance=true, us_view=true, ev_publish=true, receipt_approve=true)
+- dashboard loaded: hash=#dash, body chars=1359, headings=[]
+- side nav: داشبورد · رویدادها و مطالب · کاربران · فرم‌ها · تنظیمات
+- bottom tabs (open sections): داشبورد · رویدادها و مطالب · کاربران · فرم‌ها · تنظیمات
+- top bar: «داشبورد امروز در یک نگاه وضعیت از API سرور ۱۴:۲۱ مالک سامانه مالک خروج»
+- #users: hash=#users, body chars=2250, start «کاربران گزارش‌ها فهرست کاربران پایگاه مشترک سرور ۱۰ کاربر بازخوانی حساب‌هایی که دست‌کم یک‌بار با بله»
+- #settings: landed hash=#settings, body chars=4065, start «تنظیمات مالک هر ماژول وضعیت خود را از API سرور می‌خواند؛ APIِ متصل‌نشده با دادهٔ نمایشی پر نمی‌شود. اعتبارنامه»
+- #events: hash=#events, body chars=2004, start «رویدادها مطالب پرسش‌های بی‌پاسخ همهٔ رویدادها گزارش‌های باز رویدادها منبع: site_content سرور نسخهٔ ۹»
+- page JS errors: none
+
+## desktop / manager
+- staff-login → HTTP 200; landed on /admin.html#dash; session via /api/account/me: role=manager, permissions=33 (finance=false, us_view=true, ev_publish=true, receipt_approve=true)
+- dashboard loaded: hash=#dash, body chars=1317, headings=[]
+- side nav: داشبورد · رویدادها و مطالب · کاربران · فرم‌ها · تنظیمات 🔒
+- bottom tabs (open sections): داشبورد · رویدادها و مطالب · کاربران · فرم‌ها
+- top bar: «داشبورد امروز در یک نگاه وضعیت از API سرور ۱۴:۲۱ qa-manager مدیر خروج»
+- #users: hash=#users, body chars=1964, start «کاربران گزارش‌ها فهرست کاربران پایگاه مشترک سرور ۱۰ کاربر بازخوانی حساب‌هایی که دست‌کم یک‌بار با بله»
+- #settings: landed hash=#settings, body chars=1317, start «شمارش‌های پایگاه سرور از API گزارش گزارش کامل فرم‌های سرور ۱۴ ۸ منتشرشده پاسخ‌های ثبت‌شده ۱۰ دورهٔ ۳۰ روز در ا»
+- #events: hash=#events, body chars=2004, start «رویدادها مطالب پرسش‌های بی‌پاسخ همهٔ رویدادها گزارش‌های باز رویدادها منبع: site_content سرور نسخهٔ ۹»
+- page JS errors: none
+
+## mobile / owner
+- staff-login → HTTP 200; landed on /admin.html#dash; session via /api/auth/me: role=owner, permissions=47 (finance=true, us_view=true, ev_publish=true, receipt_approve=true)
+- dashboard loaded: hash=#dash, body chars=1359, headings=[]
+- side nav: داشبورد · رویدادها و مطالب · کاربران · فرم‌ها · تنظیمات
+- bottom tabs (open sections): داشبورد · رویدادها و مطالب · کاربران · فرم‌ها · تنظیمات
+- top bar: «داشبورد امروز در یک نگاه وضعیت از API سرور ۱۴:۲۲ مالک سامانه مالک خروج»
+- #users: hash=#users, body chars=2250, start «کاربران گزارش‌ها فهرست کاربران پایگاه مشترک سرور ۱۰ کاربر بازخوانی حساب‌هایی که دست‌کم یک‌بار با بله»
+- #settings: landed hash=#settings, body chars=4065, start «تنظیمات مالک هر ماژول وضعیت خود را از API سرور می‌خواند؛ APIِ متصل‌نشده با دادهٔ نمایشی پر نمی‌شود. اعتبارنامه»
+- #events: hash=#events, body chars=2004, start «رویدادها مطالب پرسش‌های بی‌پاسخ همهٔ رویدادها گزارش‌های باز رویدادها منبع: site_content سرور نسخهٔ ۹»
+- page JS errors: none
+
+## mobile / manager
+- staff-login → HTTP 200; landed on /admin.html#dash; session via /api/account/me: role=manager, permissions=33 (finance=false, us_view=true, ev_publish=true, receipt_approve=true)
+- dashboard loaded: hash=#dash, body chars=1317, headings=[]
+- side nav: داشبورد · رویدادها و مطالب · کاربران · فرم‌ها · تنظیمات 🔒
+- bottom tabs (open sections): داشبورد · رویدادها و مطالب · کاربران · فرم‌ها
+- top bar: «داشبورد امروز در یک نگاه وضعیت از API سرور ۱۴:۲۲ qa-manager مدیر خروج»
+- #users: hash=#users, body chars=1964, start «کاربران گزارش‌ها فهرست کاربران پایگاه مشترک سرور ۱۰ کاربر بازخوانی حساب‌هایی که دست‌کم یک‌بار با بله»
+- #settings: landed hash=#settings, body chars=1317, start «شمارش‌های پایگاه سرور از API گزارش گزارش کامل فرم‌های سرور ۱۴ ۸ منتشرشده پاسخ‌های ثبت‌شده ۱۰ دورهٔ ۳۰ روز در ا»
+- #events: hash=#events, body chars=2004, start «رویدادها مطالب پرسش‌های بی‌پاسخ همهٔ رویدادها گزارش‌های باز رویدادها منبع: site_content سرور نسخهٔ ۹»
+- page JS errors: none
+
+ARTIFACTS: 20 screenshots

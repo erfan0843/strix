@@ -1,0 +1,52 @@
+# readiness / publish blockers (server side)
+readiness draft w/ companions default mode: HTTP 200 {"source": "same_server_database", "form_id": "781f5050-f0ce-42cf-a364-bcc2089ea4dd", "version": 2, "status": "draft", "purpose": "registration", "purchase": null, "publishable": false, "status_issue": null, "issues": [{"code": "companion_answers_required", "m
+readiness draft bale_wallet form: HTTP 200 {"source": "same_server_database", "form_id": "17e97f34-bbf7-447b-bce8-aa104873b554", "version": 1, "status": "draft", "purpose": "recording_access", "purchase": {"recording_id": "107063d2-d8da-402d-b426-ddcb2195e9ba", "recording_title": "نسخهٔ ضبط‌شدهٔ کارگاه
+publish draft (server must refuse): HTTP 422 {"detail": {"code": "form_not_publishable", "issues": [{"code": "companion_answers_required", "message": "برای ثبت سروری، «پاسخ جداگانه برای هر پرسش» را برای همراهان انتخاب کنید."}]}}
+# coupon-check (public)
+coupon-check purchase form, bogus code: HTTP 200 {"valid": false, "off": 0, "all": false}
+# manager vs owner on responses
+manager GET responses: HTTP 200 {"items": [{"id": "b39a0d54-5380-4dff-acb0-3062fd74cb9f", "status": "accepted", "form_version": 2, "answers": {"11": "حضوری"}, "companions": [], "registrant_name": null, "registrant_mobile": null, "companion_index": null, "added_by_response_id": null, "added_b
+Traceback (most recent call last):
+  File "<stdin>", line 22, in <module>
+AttributeError: 'Client' object has no attribute 'delete'
+manager DELETE response: HTTP 401 {"detail": "authentication_required"}
+manager POST publish: HTTP 401 {"detail": "authentication_required"}
+manager POST pause: HTTP 401 {"detail": "authentication_required"}
+manager PUT draft (fm_create): HTTP 200 {"id": "781f5050-f0ce-42cf-a364-bcc2089ea4dd", "name": "[QA ۹.۷] فرم ممیزی فرم‌ساز", "model": "registration", "need": "reg", "slug": "qa-frm-mmyzy-frm-saz", "ev": "", "purpose": "registration", "recording_id": null, "fields": [{"id": "9", "t": "mobile", "l": "
+# pause → edit with responses → public state → republish
+owner pause: HTTP 200 {"id": "f8194695-b03a-41ef-bba7-1e3d951fd763", "name": "[QA ۹.۷] فرم ممیزی فرم‌ساز", "model": "registration", "need": "reg", "slug": "qa-frm-mmyzy-frm-saz", "ev": "", "purpose": "registration", "recording_id": null, "fields": [{"id": "9", "t": "mobile", "l": "
+owner PUT paused form with responses: HTTP 409 {"detail": {"code": "form_has_responses", "message": "پس از ثبت پاسخ، تعریف فرم تغییرناپذیر است؛ برای نسخهٔ تازه فرم دیگری بسازید."}}
+public GET paused form: HTTP 404 {"detail": "public_form_not_found"}
+public GET draft (unpublished) form: HTTP 404 {"detail": "public_form_not_found"}
+owner republish: HTTP 200 {"id": "f8194695-b03a-41ef-bba7-1e3d951fd763", "name": "[QA ۹.۷] فرم ممیزی فرم‌ساز", "model": "registration", "need": "reg", "slug": "qa-frm-mmyzy-frm-saz", "ev": "", "purpose": "registration", "recording_id": null, "fields": [{"id": "9", "t": "mobile", "l": "
+# export endpoints
+GET /responses.csv: HTTP 404 "<!doctype html>\n<html lang=\"fa\" dir=\"rtl\">\n<head>\n  <meta charset=\"utf-8\"/>\n  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n  <title>صفحه پیدا نشد | نورا</title>\n  <meta name=\"d"
+GET /export: HTTP 404 "<!doctype html>\n<html lang=\"fa\" dir=\"rtl\">\n<head>\n  <meta charset=\"utf-8\"/>\n  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n  <title>صفحه پیدا نشد | نورا</title>\n  <meta name=\"d"
+GET /responses/export: HTTP 404 "<!doctype html>\n<html lang=\"fa\" dir=\"rtl\">\n<head>\n  <meta charset=\"utf-8\"/>\n  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n  <title>صفحه پیدا نشد | نورا</title>\n  <meta name=\"d"
+# public payload leak check
+public form keys: ['after', 'cap', 'compFields', 'coupon', 'dir', 'display', 'enabledPaymentMethods', 'fields', 'fin', 'groups', 'guestsOn', 'id', 'limit', 'maxPer', 'methods', 'model', 'name', 'need', 'notify', 'onePerPerson', 'paymentCard', 'paymentInstructions', 'profilePrefill', 'purchase', 'purpose', 'receiptUploadRequired', 'recording_id', 'settings', 'slug', 'status', 'taken', 'version', 'wait', 'waitTaken']
+settings keys: ['after', 'cap', 'compFields', 'coupon', 'dir', 'display', 'enabledPaymentMethods', 'fin', 'groups', 'guestsOn', 'limit', 'maxPer', 'methods', 'notify', 'onePerPerson', 'paymentCard', 'paymentInstructions', 'profilePrefill', 'receiptUploadRequired', 'taken', 'wait', 'waitTaken']
+owner_id in payload? False | 'code' of coupon present? {"code": "", "off": 0, "all": false, "enabled": false}
+# response list shape (staff)
+keys: ['items', 'limit', 'offset', 'total'] | item keys: ['added_by_name', 'added_by_response_id', 'answers', 'companion_index', 'companions', 'created_at', 'form_snapshot', 'form_version', 'id', 'registrant_mobile', 'registrant_name', 'status', 'updated_at']
+# member 91012 (has a pending card_transfer response from the browser run) on a FRESH device/cookie
+GET draft: 200 {"answers":{},"companions":[],"submitted":false,"status":"draft","tracking_code":null,"ticket_type":null,"receipt_uploaded":false,"payment_intent":null,"form_version":2}
+public form purchase block for signed-in member: {'recording_id': '4f08277c-7c78-4374-bda5-eae207db8a78', 'event_id': 'ev-dbbc5c5acb', 'title': 'نسخهٔ ضبط\u200cشدهٔ کارگاه نجوم رصدی', 'access_state': 'none', 'signed_in': True, 'price': 1500000, 'currency': 'IRR', 'selection': {'items': [0]}}
+PATCH draft: 400 {"detail":"invalid_draft_payload"}
+POST responses (second attempt): 400 {"detail":"invalid_response_payload"}
+staff responses total: 3 [('82662400', 'accepted', None), ('efab427b', 'accepted', None), ('18ce4a19', 'accepted', None)]
+91012 orders: [('awaiting_receipt', '')]
+POST responses from a FRESH cookie while a card_transfer response is awaiting receipt: 422 {"detail":{"code":"payment_method_not_available"}}
+staff responses total now: 3
+91012 orders: [('awaiting_receipt', '4debaa8d')]
+(corrected payload) POST responses from a FRESH cookie while awaiting_receipt: 200 {"accepted":true,"status":"accepted","purpose":"recording_access","purchase":{"recording_id":"4f08277c-7c78-4374-bda5-eae207db8a78","event_id":"ev-dbbc5c5acb","title":"نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی","access_state":"none"},"tracking_code":"NORA-83B55F9FAE514B17BDF6","ticket_type":null,"receipt_uploaded":false,"payment_status":"awaiting_receipt","payment_id":"420754fe-640a-45f1-9cf9-763514ae1874",
+staff responses total now: 4
+91012 orders: [('awaiting_receipt', 'e36206e2'), ('awaiting_receipt', '4debaa8d')]
+fresh-cookie draft after that: {'submitted': True, 'status': 'accepted', 'receipt_uploaded': False, 'tracking_code': 'NORA-83B55F9FAE514B17BDF6'}
+91001 purchase.access_state: active
+91001 fresh-cookie POST while already entitled: 409 {"detail":{"code":"access_already_active","recording_id":"4f08277c-7c78-4374-bda5-eae207db8a78"}}
+91001 orders: ['paid_manual']
+91002 purchase.access_state: active
+91002 fresh-cookie POST while already entitled: 409 {"detail":{"code":"access_already_active","recording_id":"4f08277c-7c78-4374-bda5-eae207db8a78"}}
+91002 orders: ['paid_manual']
+staff responses total: 4

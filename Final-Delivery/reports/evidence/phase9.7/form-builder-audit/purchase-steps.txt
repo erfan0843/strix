@@ -1,0 +1,25 @@
+## desktop member 91012 login 200
+- after name: u8
+- ticked item: <label class="opt sq " data-fin="0" role="checkbox" aria-checked="false" tabindex="0">
+      <span class="mk"><svg class; bill «مدل ثبت‌نام مدل دلخواهت رو انتخاب کن. دسترسی به نسخهٔ ضبط‌شده اجباری ۱٬۵۰۰٬۰۰۰ ریال جمع کل برای ۱ نفر دسترسی به نسخهٔ ضبط‌شده ۱٬۵۰۰٬۰۰۰ جمع کل ۱٬۵۰۰٬۰۰۰ ریال صد و پنجاه هزار تومان روش پرداخت الزامی کا»
+- next → u9; toast «ذخیره شد»; body «کارت‌به‌کارت آز بانک آزمایشی 6037 •••• •••• 9993 به نام نورا کارت مقصد مبلغ کامل واریز ۱٬۵۰۰٬۰۰۰ ریال معادل صد و پنجاه هزار تومان مبلغ را واریز کنید و رسید را در همین صفحه بارگذاری کنید. واریز را به کارت مقصد انجام بده؛ فیش پس از ثبت پاسخ ارسال و دستی بررسی می‌شود. ۱٬۵۰۰٬۰۰۰ ریال صد و پنجاه هزار توم»
+  payment details: total «مبلغ کامل واریز ۱٬۵۰۰٬۰۰۰ ریال معادل صد و پنجاه هزار تومان» card «آز بانک آزمایشی 6037 •••• •••• 9993 به نام نورا کارت مقصد» note «مبلغ نهایی را backend محاسبه می‌کند؛ فیش پس از ثبت پاسخ به‌صورت دستی بازبینی می‌شود.» instr «مبلغ را واریز کنید و رسید را در همین صفحه بارگذاری کنید.» CTA «ثبت پاسخ و ادامه»
+- submit → u11; toast «ذخیره شد»; body «ثبت فیش انتخاب تصویر فیش فایلی انتخاب نشده توضیح (اختیاری)»
+  receipt step: «ثبت فیش انتخاب تصویر فیش فایلی انتخاب نشده توضیح (اختیاری)»; upload button «ثبت فیش انتخاب تصویر فیش فایلی انتخاب نش»; bale link «رفتن به بله برای بازبینی»
+- reload after submit → u11; body «»
+- account#payments: «پرش به محتوای حساب نورا حساب شخصی ۱۴:۵۶ حساب من سفارش‌ها و پرداخت‌ها سفارش‌ها و پرداخت‌های تو ن حساب نورا حساب بله وصل است · حساب امن حساب من خروج سفارش‌های محتوای ضبط‌شده ۱ سفارش محتوای ضبط‌شده بازخوانی نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی کارگاه نجوم رصدی (برگزارشده) · کارت‌به‌کارت · ۱,۵۰۰,۰۰۰ ریال در انتظار رسید ثبت: ۳۰ مهر ۱۴۰۵، ۱۱:۲۵ واریز و بارگذاری رسید در همان فرم خرید انجام می‌شود؛ مبلغ و کارت مقصد را فرم از سرور»
+- event page purchase box: «خانه / رویدادها / کارگاه نجوم رصدی (برگزارشده) کارگاه کارگاه برگزارشده ضبط‌شده کارگاه نجوم رصدی (برگزارشده) سه جلسهٔ عملی دربارهٔ آسمان شب، صور فلکی و کار با تلسکوپ. اطلاعات رویداد تاریخ 1405/07/20 ساعت ۱۰ تا ۱۳ شروع (به وقت تهران) ۲۱ مهر ۱۴۰۵، ۱۱:۲۳ پایان ۲۲ مهر ۱۴۰۵، ۱۱:۲۳ شیوهٔ برگزاری حضوری مکان رصدخانهٔ انجمن محتوای ضبط‌شده قابل خرید نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی سه جلسه ویدئو به‌همراه جزوه»
+- API: GET /api/account/me → 401×1; GET /api/public/site-content → 200×2; POST /api/auth/bale-mini-app → 200×1; GET /api/public/forms/{id}/draft → 200×2; PATCH /api/public/forms/{id}/draft → 200×3; POST /api/public/forms/{id}/responses → 200×1; GET /api/account/me → 200×2; GET /api/account/notifications → 200×1; GET /api/account/files → 200×1; GET /api/account/identities → 200×1; GET /api/account/registrations → 200×1; GET /api/account/profile → 200×1; GET /api/account/recording-orders → 200×1; GET /api/public/events/ev-dbbc5c5acb/recording → 200×1; GET /api/public/events/ev-dbbc5c5acb/interaction → 200×1
+## mobile member 91012 login 200
+- after name: u8
+- ticked item: <label class="opt sq " data-fin="0" role="checkbox" aria-checked="false" tabindex="0">
+      <span class="mk"><svg class; bill «مدل ثبت‌نام مدل دلخواهت رو انتخاب کن. دسترسی به نسخهٔ ضبط‌شده اجباری ۱٬۵۰۰٬۰۰۰ ریال جمع کل برای ۱ نفر دسترسی به نسخهٔ ضبط‌شده ۱٬۵۰۰٬۰۰۰ جمع کل ۱٬۵۰۰٬۰۰۰ ریال صد و پنجاه هزار تومان روش پرداخت الزامی کا»
+- next → u9; toast «ذخیره شد»; body «کارت‌به‌کارت آز بانک آزمایشی 6037 •••• •••• 9993 به نام نورا کارت مقصد مبلغ کامل واریز ۱٬۵۰۰٬۰۰۰ ریال معادل صد و پنجاه هزار تومان مبلغ را واریز کنید و رسید را در همین صفحه بارگذاری کنید. واریز را به کارت مقصد انجام بده؛ فیش پس از ثبت پاسخ ارسال و دستی بررسی می‌شود. ۱٬۵۰۰٬۰۰۰ ریال صد و پنجاه هزار توم»
+  payment details: total «مبلغ کامل واریز ۱٬۵۰۰٬۰۰۰ ریال معادل صد و پنجاه هزار تومان» card «آز بانک آزمایشی 6037 •••• •••• 9993 به نام نورا کارت مقصد» note «مبلغ نهایی را backend محاسبه می‌کند؛ فیش پس از ثبت پاسخ به‌صورت دستی بازبینی می‌شود.» instr «مبلغ را واریز کنید و رسید را در همین صفحه بارگذاری کنید.» CTA «ثبت پاسخ و ادامه»
+- API: GET /api/account/me → 401×1; GET /api/public/site-content → 200×1; POST /api/auth/bale-mini-app → 200×1; GET /api/public/forms/{id}/draft → 200×1; PATCH /api/public/forms/{id}/draft → 200×3
+DONE
+
+[u11-reload, same cookie injected from a fresh 91011 submission, 7 s wait]
+active=u11 uploadHidden=true reviewHidden=true submitted=true serverResponse={status:accepted,paymentStatus:awaiting_receipt,receiptUploaded:false,method:card_transfer} next="ثبت فیش"
+GET /api/public/forms/{id}/draft -> 200 (submitted:true, receipt_uploaded:false, payment_intent.status=awaiting_receipt)
+screenshot: desktop-p8-return-same-cookie-u11.png
