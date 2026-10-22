@@ -1821,6 +1821,8 @@ function loadServerSched(){
 async function runServerSched(){
   const api=window.NORA_SERVER_API, o=SERVER_SCHED;
   if(o.running||!api||typeof api.runScheduledPublish!=='function'||!canPerm('ev_publish')) return;
+  /* ممیزی ۱۴۰۵/۰۸/۰۱ ردیف A7: اجرای دستی زمان‌بند یک عمل انتشار واقعی است و پیش از آن تأیید می‌گیرد. */
+  if(!confirm('اجرای دستی زمان‌بند، همهٔ رویدادهای سررسیده را همین حالا منتشر و اعلان‌های آن‌ها را صف می‌کند. ادامه می‌دهید؟')) return;
   o.running=true; o.error=''; renderBody();
   try{const summary=await api.runScheduledPublish(staffCsrfCookie()); o.lastManual=summary; o.loaded=false; loadServerSched()}
   catch(error){o.error=error&&error.status===403?'مجوز «انتشار رویداد» برای اجرای دستی لازم است.':'اجرای دستی زمان‌بند انجام نشد؛ چیزی تغییر نکرد.'}
@@ -11448,6 +11450,7 @@ document.addEventListener('input',e=>{
 });
 addEventListener('hashchange',()=>{
   const k=(location.hash||'').replace('#','');
+  if(!IS_TEST&&serverHashRoute(k)){S.q=''; save(); render(); serverHashAfterRender(k); return}
   if(k==='money'||k==='finance'){
     S.sec='settings'; S.setG=IS_TEST?'money':'services'; S.finTab='gates'; S.q=''; save(); render();
   }else if(k==='reports') go('reports');
@@ -11471,7 +11474,9 @@ window.addEventListener('keydown',e=>{
 /* ══ بوت ═══════════════════════════════════════════════════════════════ */
 function startAdminApplication(){
   const h=(location.hash||'').replace('#','');
-  if(h==='cert'){S.sec='users'; S.uHub='users'; S.uV='cert';}
+  const serverRouted=!IS_TEST&&serverHashRoute(h);
+  if(serverRouted){}
+  else if(h==='cert'){S.sec='users'; S.uHub='users'; S.uV='cert';}
   else if(h==='money'||h==='finance'){S.sec='settings';S.setG=IS_TEST?'money':'services';S.finTab='gates'}
   else if(h==='reports'){S.sec='users';S.uHub='reports'}
   else if(h==='inbox'&&!IS_TEST){S.sec='users';S.uHub='users';S.uV='shared-inbox';S.sharedWorkflowKind='all'}
@@ -11487,7 +11492,35 @@ function startAdminApplication(){
   netSync();
   if(typeof initUI==='function'){try{initUI()}catch(e){}}
   bind(); sanitize(); render();
+  if(serverRouted) serverHashAfterRender(h);
   if(!IS_TEST&&isOwner()&&S.uV==='tools'&&S.uTool==='staff'&&!SERVER_ROLE_LOADED) loadServerRoleAccounts(false);
+}
+/* مسیرهای نام‌دار نسخهٔ مرجع (#money، #club، #att) در حالت سرور به مقصد واقعی و مجاز می‌روند؛ بی‌مجوز → داشبورد با پیام، نه صفحهٔ «متصل نشده». */
+function serverHashRoute(h){
+  if(IS_TEST||!SERVER_AUTH||!ROLE_KEYS.includes(SERVER_AUTH.role)) return false;
+  if(h==='money'||h==='finance'){
+    if(recCanOrders()&&canSec('events')){S.sec='events'; return true}
+    if(canPerm('rp_view')&&canSec('users')){S.sec='users'; S.uHub='reports'; S.uV=''; return true}
+    S.sec='dash'; return true;
+  }
+  if(h==='club'){
+    if(canManageClub()&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='club'; return true}
+    S.sec='dash'; return true;
+  }
+  if(h==='att'||h==='attendance'){
+    if(canPerm('attendance')&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='att'; return true}
+    S.sec='dash'; return true;
+  }
+  return false;
+}
+function serverHashAfterRender(h){
+  if(h==='money'||h==='finance'){
+    if(S.sec==='events'&&recCanOrders()){eiOpen('','',''); EI.tab='orders'; REC.orders.status='review'; REC.orders.offset=0; EI.key=''; eiLoad(); renderBody()}
+    else if(S.sec==='dash') toast('بخش مالی برای مجوزهای این حساب باز نیست؛ دسترسی را سرور تعیین می‌کند');
+  }
+  else if(h==='club'&&S.sec==='dash') toast('مدیریت باشگاه فقط برای مالک و سرپرست باشگاه باز است');
+  else if((h==='att'||h==='attendance')&&S.sec==='dash') toast('حضور و غیاب برای مجوزهای این حساب باز نیست');
+  try{history.replaceState(null,'','#'+(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec))}catch(e){}
 }
 function showServerAuthMessage(title,message,withLogin){
   const nav=$('#admNav'), tabs=$('#admTabs'), bar=$('#admBar'), body=$('#admBody');

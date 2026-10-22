@@ -526,4 +526,45 @@ console.log('— داشبورد: خلاصهٔ فروش فقط از API؛ مدی�
   } finally { limited.close(); }
 }
 
+console.log('— مسیرهای نام‌دار مرجع (#money، #club، #att) در حالت سرور به مقصد واقعی می‌روند —');
+{
+  /* ممیزی ۱۴۰۵/۰۸/۰۱ ردیف A8: `#money` برای دارندهٔ مجوز سفارش‌ها = کارتابل سفارش‌های ضبط‌شده (همهٔ رویدادها)، نه صفحهٔ «API متصل نشده» و نه تنظیمات قفل‌شده. */
+  const mgr = await loadPanel({ role: 'manager', sec: 'dash' });
+  try {
+    await mgr.until(() => mgr.doc.querySelector('#admNav [data-sec="events"]'), 'ناوبری');
+    mgr.dom.window.location.hash = '#money';
+    await mgr.until(() => mgr.doc.querySelector('[data-ei-tab="orders"].on'), 'زبانهٔ سفارش‌ها پس از #money');
+    await mgr.until(() => mgr.doc.querySelector(`[data-rec-order-row="${ORD1}"]`), 'سفارش‌ها بارگذاری شد');
+    assert.doesNotMatch(mgr.body(), /API مدیریتی این بخش هنوز به پنل متصل نشده/, 'مسیر مرده نیست');
+    assert.doesNotMatch(mgr.calls.filter((c) => c.path.startsWith('/api/admin/recording-orders?')).pop().path, /event_id=/, 'کارتابل سراسری');
+    /* اصلاح هش با history.replaceState در jsdom روی file:// ممکن نیست؛ در مرورگر واقعی بررسی می‌شود. */
+  } finally { mgr.close(); }
+  /* بدون مجوز سفارش/گزارش: داشبورد می‌ماند و هیچ API مالی صدا زده نمی‌شود. */
+  const noFin = await loadPanel({ role: 'manager', sec: 'dash', permissions: ['us_view'] });
+  try {
+    await noFin.until(() => noFin.doc.querySelector('#admNav [data-sec="users"]'), 'ناوبری');
+    noFin.dom.window.location.hash = '#money';
+    await delay(80);
+    assert.ok(noFin.doc.querySelector('#admNav [data-sec="dash"].on'), 'بی‌مجوز روی داشبورد می‌ماند');
+    assert.equal(noFin.calls.some((c) => c.path.startsWith('/api/admin/recording-orders')), false, 'بدون مجوز، API سفارش‌ها صدا زده نمی‌شود');
+    assert.doesNotMatch(noFin.body(), /API مدیریتی این بخش هنوز به پنل متصل نشده/);
+    noFin.dom.window.location.hash = '#club';
+    await delay(80);
+    assert.ok(noFin.doc.querySelector('#admNav [data-sec="dash"].on'), '#club بدون سرپرستی باشگاه → داشبورد');
+    assert.equal(noFin.calls.some((c) => c.path.startsWith('/api/admin/club')), false, 'API باشگاه صدا زده نمی‌شود');
+  } finally { noFin.close(); }
+  /* مالک: #club → مدیریت باشگاه، #att → حضور و غیاب. */
+  const own = await loadPanel({ role: 'owner', sec: 'dash' });
+  try {
+    await own.until(() => own.doc.querySelector('#admNav [data-sec="users"]'), 'ناوبری');
+    own.dom.window.location.hash = '#club';
+    await delay(80);
+    assert.ok(own.doc.querySelector('#admNav [data-sec="users"].on'), '#club → بخش کاربران');
+    assert.ok(own.doc.querySelector('[data-uv=""], [data-uback], .hub-tabs'), 'نمای داخلی کاربران باز است');
+    own.dom.window.location.hash = '#att';
+    await delay(80);
+    assert.ok(own.doc.querySelector('#admNav [data-sec="users"].on'), '#att → بخش کاربران');
+  } finally { own.close(); }
+}
+
 console.log('admin-recordings.test.mjs: همهٔ بررسی‌ها گذشت');
