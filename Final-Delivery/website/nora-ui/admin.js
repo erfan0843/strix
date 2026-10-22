@@ -8059,6 +8059,127 @@ function cmPanel(){
     ${body}${d&&d.total>CM.limit?p2Pager(d.total,CM.offset,CM.limit,'data-ct-media-page="prev"','data-ct-media-page="next"'):''}
   </section>`;
 }
+/* ── پروندهٔ کاربر: U4 ثبت‌نام‌ها (صفحه‌بندی + جزئیات از همان form_snapshot) و U5 اعلان‌های همین حساب ──
+   منبع: فقط GET /api/admin/users/{id}/registrations[/{response_id}] و …/notifications؛ فیلتر حساب در سرور است،
+   شماره/کد ملی را سرور ماسک می‌کند و مبلغ/شناسهٔ تراکنش فقط با finance_visible:true می‌آید. اینجا هیچ چیزی
+   «محاسبه» یا پر نمی‌شود؛ هر بخش حالت بارگذاری/خالی/خطا + تلاش دوباره دارد. */
+const UFL={acc:'',tab:'regs',regs:null,regsLoading:false,regsError:'',regsOffset:0,regsLimit:20,regsKey:'',
+  reg:null,regId:'',regLoading:false,regError:'',
+  notifs:null,notifsLoading:false,notifsError:'',notifsOffset:0,notifsLimit:20,notifsKey:''};
+function ufReset(acc){UFL.acc=acc||''; UFL.tab='regs'; UFL.regs=null; UFL.regsLoading=false; UFL.regsError=''; UFL.regsOffset=0; UFL.regsKey=''; UFL.reg=null; UFL.regId=''; UFL.regLoading=false; UFL.regError=''; UFL.notifs=null; UFL.notifsLoading=false; UFL.notifsError=''; UFL.notifsOffset=0; UFL.notifsKey=''}
+function ufApi(name){const api=window.NORA_SERVER_API; return api&&typeof api[name]==='function'?api[name]:null}
+function ufRegsKey(){return [UFL.acc,UFL.regsOffset,UFL.regsLimit].join('|')}
+function ufNotifsKey(){return [UFL.acc,UFL.notifsOffset,UFL.notifsLimit].join('|')}
+async function ufLoadRegs(){
+  const fn=ufApi('listAdminUserRegistrations'), acc=UFL.acc; if(!acc) return;
+  if(!fn){UFL.regsError='رابط سرور در دسترس نیست.'; UFL.regsKey=ufRegsKey(); renderBody(); return}
+  const key=ufRegsKey(); UFL.regsLoading=true; UFL.regsError=''; renderBody();
+  try{const result=await fn(acc,{limit:UFL.regsLimit,offset:UFL.regsOffset}); if(key===ufRegsKey()){UFL.regs=result; UFL.regsKey=key}}
+  catch(error){if(key===ufRegsKey()){UFL.regsError=p2Err(error,'فهرست ثبت‌نام‌های این حساب دریافت نشد.'); UFL.regsKey=key}}
+  finally{UFL.regsLoading=false; if(key!==ufRegsKey()&&UFL.acc){ufLoadRegs(); return} if(S.sec==='users') renderBody()}
+}
+async function ufLoadReg(id){
+  const fn=ufApi('getAdminUserRegistration'), acc=UFL.acc; if(!acc||!id) return;
+  UFL.regId=id; UFL.reg=null; UFL.regError=''; UFL.regLoading=true; renderBody();
+  if(!fn){UFL.regLoading=false; UFL.regError='رابط سرور در دسترس نیست.'; renderBody(); return}
+  try{const result=await fn(acc,id); if(UFL.regId===id&&UFL.acc===acc) UFL.reg=result}
+  catch(error){if(UFL.regId===id&&UFL.acc===acc) UFL.regError=p2Err(error,'جزئیات این ثبت‌نام دریافت نشد.')}
+  finally{if(UFL.regId===id){UFL.regLoading=false; if(S.sec==='users') renderBody()}}
+}
+async function ufLoadNotifs(){
+  const fn=ufApi('listAdminUserNotifications'), acc=UFL.acc; if(!acc) return;
+  if(!fn){UFL.notifsError='رابط سرور در دسترس نیست.'; UFL.notifsKey=ufNotifsKey(); renderBody(); return}
+  const key=ufNotifsKey(); UFL.notifsLoading=true; UFL.notifsError=''; renderBody();
+  try{const result=await fn(acc,{limit:UFL.notifsLimit,offset:UFL.notifsOffset}); if(key===ufNotifsKey()){UFL.notifs=result; UFL.notifsKey=key}}
+  catch(error){if(key===ufNotifsKey()){UFL.notifsError=p2Err(error,'اعلان‌های این حساب دریافت نشد.'); UFL.notifsKey=key}}
+  finally{UFL.notifsLoading=false; if(key!==ufNotifsKey()&&UFL.acc){ufLoadNotifs(); return} if(S.sec==='users') renderBody()}
+}
+const UF_PAY={paid:'پرداخت‌شده',paid_manual:'فیش تأییدشده',paid_review:'در بررسی',awaiting_receipt:'منتظر فیش',receipt_submitted:'فیش رسیده',pending:'در انتظار پرداخت',rejected:'رد شده',cancelled:'لغو',expired:'منقضی',refunded:'بازگشت وجه'};
+const UF_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
+const UF_TICKET={free:'رایگان',paid:'پولی',companion:'همراه',guest:'میهمان'};
+const UF_TASK={pending:'در انتظار بررسی',approved:'تأیید شد',rejected:'رد شد',cancelled:'لغو شد'};
+const UF_DELIVERY={queued:['در صف','warn'],retrying:['در حال تلاش دوباره','warn'],delivered:['تحویل‌شده','ok'],failed:['ناموفق','stop']};
+const UF_KIND={content_published:'انتشار محتوا',registration_accepted:'پذیرش ثبت‌نام',registration_waitlisted:'فهرست انتظار',receipt_approved:'تأیید فیش',receipt_rejected:'رد فیش',profile_approved:'تأیید پروفایل',profile_rejected:'رد پروفایل',attendance_checked_in:'ثبت حضور',certificate_issued:'صدور گواهی',recording_access_granted:'دسترسی ضبط',event_reminder:'یادآور رویداد',event_cancelled:'لغو رویداد',qa_answered:'پاسخ پرسش'};
+function ufPayTag(status){return status?tag(UF_PAY[status]||status,['paid','paid_manual'].includes(status)?'ok':['rejected','expired','cancelled'].includes(status)?'stop':'warn'):''}
+function ufRegStatus(status){return status==='waitlisted'?tag('فهرست انتظار','warn'):status==='cancelled'?tag('لغو شده','stop'):status==='pending'?tag('در انتظار','warn'):tag('پذیرفته','ok')}
+function ufRegRow(r){
+  return `<button class="admlirow" type="button" data-uf-reg="${esc(r.id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-ticket')}</span>
+    <span class="sp"><b>${esc(r.event_title||r.form_name)}</b><small class="cap">${esc([r.form_name!==r.event_title?r.form_name:'',r.event_date,svcWhen(r.created_at),UF_TICKET[r.ticket_type]||''].filter(Boolean).join(' · '))}</small></span>
+    ${ufRegStatus(r.status)}${ufPayTag(r.payment_status)}${r.receipt_uploaded?tag('فیش','brand'):''}${r.ticket_checked_in?tag('حاضر','ok'):''}${ico('i-chev-left')}</button>`;
+}
+function ufAnswer(a){
+  const label=`<small class="cap">${esc(a.label)}</small>`;
+  if(a.masked) return `<div class="admlirow" data-uf-masked="${esc(a.masked)}"><span class="sp">${label}<b dir="ltr" style="font-weight:600">${a.masked==='mobile'?(a.hint?'•••••••'+esc(a.hint):'••••••••••'):'••••••••••'}</b><small class="cap">${a.masked==='mobile'?'شمارهٔ همراه؛ سرور فقط چهار رقم پایانی را می‌فرستد.':'کد ملی؛ سرور آن را پنهان می‌کند.'}</small></span>${tag('ماسک‌شده','')}</div>`;
+  let v=a.value;
+  if(typeof v==='boolean') v=v?'بله':'خیر';
+  else if(Array.isArray(v)) v=v.join('، ');
+  else if(v&&typeof v==='object') v=Object.entries(v).map(([k,x])=>k+': '+x).join('، ');
+  return `<div class="admlirow"><span class="sp">${label}<b style="font-weight:600;white-space:pre-wrap">${esc(String(v==null?'':v))}</b></span></div>`;
+}
+function ufRegDetail(){
+  const back=`<div class="row tight">${btn('بازگشت به ثبت‌نام‌ها','data-uf-reg-back','i-back')}</div>`;
+  if(UFL.regLoading) return `<div data-uf-reg-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت جزئیات ثبت‌نام…</p></div></div>`;
+  const d=UFL.reg;
+  if(UFL.regError||!d) return `<div data-uf-reg-detail>${back}<div class="empty"><p class="cap">${esc(UFL.regError||'ثبت‌نامی انتخاب نشده است.')}</p>${UFL.regId?btn('تلاش دوباره',`data-uf-reg="${esc(UFL.regId)}"`,'i-refresh'):''}</div></div>`;
+  const ev=d.event||{}, form=d.form||{}, pay=d.payment, rc=d.receipt||{}, at=d.attendance||{};
+  const head=[['رویداد',ev.title||d.event_title||'',''],['تاریخ رویداد',ev.date||d.event_date||'',''],['فرم',form.name?form.name+(form.version?' · نسخهٔ '+fa(form.version):''):'',''],['نام ثبت‌نام‌کننده',d.registrant_name||'',''],
+    ['نوع بلیت',UF_TICKET[d.ticket_type]||d.ticket_type||'',''],['زمان ثبت',svcWhen(d.created_at),''],['آخرین تغییر',d.updated_at?svcWhen(d.updated_at):'',''],['شناسهٔ پاسخ',d.response_id||d.id,'ltr']].filter(([,v])=>v!=='');
+  const answers=(d.answers||[]).map(ufAnswer).join('');
+  const comps=(d.companions||[]).map(c=>`<div class="admlirow"><span class="ic">${ico('i-users')}</span><span class="sp"><b>${esc(c.name||'بدون نام')}</b><small class="cap" dir="ltr">${esc(String(c.id||'').slice(0,8))}…</small></span>${ufRegStatus(c.status)}${c.ticket_checked_in?tag('حاضر','ok'):tag('حضور ثبت نشده','')}</div>`).join('');
+  const payRows=pay?[['وضعیت پرداخت',UF_PAY[pay.status]||pay.status||'',''],['روش',UF_METHOD[pay.method]||pay.method||'','']].concat(d.finance_visible?[['مبلغ',pay.amount!=null?fa(Number(pay.amount).toLocaleString('en-US'))+' '+(pay.currency==='IRR'?'ریال':esc(pay.currency||'')):'',''],['شناسهٔ تراکنش',pay.transaction_id||'ثبت نشده','ltr']]:[]).filter(([,v])=>v!==''):[];
+  const kv=rows=>`<div class="admlist">${rows.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>`;
+  return `<div data-uf-reg-detail data-uf-finance="${d.finance_visible?'1':'0'}">${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-ticket')}</span><div class="head">${esc(ev.title||d.event_title||d.form_name||'ثبت‌نام')}</div><span class="sp"></span>${ufRegStatus(d.status)}${pay?ufPayTag(pay.status):''}${at.checked_in?tag('حاضر','ok'):''}</div>
+    <p class="cap">پاسخ‌ها از همان نسخهٔ منجمد فرم (form_snapshot) خوانده می‌شود؛ شمارهٔ همراه و کد ملی را سرور ماسک می‌کند. پرداخت ≠ ثبت‌نام ≠ حضور ≠ گواهی؛ هر کدام جداگانه نشان داده می‌شود.</p>
+    ${kv(head)}
+    <div class="head">پاسخ‌های فرم (${fa((d.answers||[]).length)})</div>
+    <div class="tlist" data-uf-answers>${answers||emptyBox('پاسخ قابل نمایشی در این ثبت‌نام نیست.')}</div>
+    <div class="head">همراهان (${fa((d.companions||[]).length)})</div>
+    <div class="tlist">${comps||emptyBox('همراهی برای این ثبت‌نام ثبت نشده است.')}</div>
+    <div class="head">پرداخت و فیش</div>
+    ${pay?kv(payRows):`<p class="cap">این ثبت‌نام رکورد پرداخت ندارد (فرم رایگان یا بدون پرداخت).</p>`}
+    ${pay&&!d.finance_visible?`<p class="cap" data-uf-finance-hidden>${ico('i-lock')} مبلغ و شناسهٔ تراکنش فقط با مجوز «مالی» نمایش داده می‌شود.</p>`:''}
+    <div class="admlist"><div class="admlirow"><span class="ic">${ico('i-doc')}</span><span class="sp"><small class="cap">فیش واریز</small><b style="font-weight:600">${rc.uploaded?'بارگذاری شده':'بارگذاری نشده'}${rc.task_status?' · بررسی: '+esc(UF_TASK[rc.task_status]||rc.task_status):''}</b>${rc.task_id?`<small class="cap" dir="ltr">${esc(String(rc.task_id).slice(0,8))}…</small>`:''}</span></div></div>
+    <div class="head">حضور</div>
+    <div class="admlist"><div class="admlirow"><span class="ic">${ico('i-check')}</span><span class="sp"><small class="cap">وضعیت حضور</small><b style="font-weight:600">${at.checked_in?'حاضر · '+esc(svcWhen(at.checked_in_at)):'حضور ثبت نشده'}</b>${at.checked_in_by?`<small class="cap">ثبت‌کننده: ${at.checked_in_by.kind==='bot'?'ربات':'پنل'} <span dir="ltr">${esc(String(at.checked_in_by.id||'').slice(0,8))}…</span></small>`:''}</span>${at.checked_in?tag('حاضر','ok'):''}</div></div>
+  </div>`;
+}
+function ufNotifRow(n){
+  const st=UF_DELIVERY[n.delivery_state]||[n.delivery_state||'نامشخص',''];
+  return `<div class="admlirow" data-uf-notif="${esc(n.id)}" data-uf-delivery="${esc(n.delivery_state||'')}"><span class="ic">${ico(n.delivery_state==='failed'?'i-bell-off':'i-bell')}</span>
+    <span class="sp"><b>${esc(n.title||UF_KIND[n.kind]||n.kind||'اعلان')}</b>${n.body?`<small class="cap" style="white-space:pre-wrap">${esc(String(n.body).slice(0,280))}${String(n.body).length>280?'…':''}</small>`:''}
+      <small class="cap">${esc([UF_KIND[n.kind]||n.kind,svcWhen(n.created_at),n.delivered_at?'تحویل: '+svcWhen(n.delivered_at):'',n.delivery_attempts?fa(n.delivery_attempts)+' تلاش':'',n.read?'خوانده‌شده':''].filter(Boolean).join(' · '))}</small>
+      ${n.last_delivery_error?`<small class="cap" style="color:var(--stop)">آخرین خطا: ${esc(String(n.last_delivery_error).slice(0,160))}</small>`:''}</span>
+    ${tag(n.scope==='audience'?'همگانی':'شخصی',n.scope==='audience'?'':'brand')}${tag(st[0],st[1])}${n.has_bale_identity===false?tag('بدون شناسهٔ بله','stop'):''}</div>`;
+}
+function ufPane(){
+  const tabs=[['regs','ثبت‌نام‌ها',UFL.regs?fa(UFL.regs.total):''],['notifs','اعلان‌های حساب',UFL.notifs?fa(UFL.notifs.total):''],['reviews','درخواست‌های کارتابل','']]
+    .map(([k,l,c])=>`<button class="chip ${UFL.tab===k?'on':''}" type="button" role="tab" aria-selected="${UFL.tab===k}" data-uf-tab="${k}">${esc(l)}${c!==''?` <small>${c}</small>`:''}</button>`).join('');
+  let body='';
+  if(UFL.tab==='regs'){
+    if(UFL.regId) body=ufRegDetail();
+    else{
+      const d=UFL.regs, total=d?Number(d.total)||0:0;
+      const list=UFL.regsLoading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت ثبت‌نام‌ها از سرور…</p></div>`
+        :UFL.regsError?`<div class="empty"><p class="cap">${esc(UFL.regsError)}</p>${btn('تلاش دوباره','data-uf-regs-refresh','i-refresh')}</div>`
+        :!d?`<div class="empty"><p class="cap">فهرست هنوز خوانده نشده است.</p>${btn('دریافت فهرست','data-uf-regs-refresh','i-refresh')}</div>`
+        :d.items.length?d.items.map(ufRegRow).join(''):emptyBox('ثبت‌نامی در پایگاه مشترک برای این حساب نیست.');
+      body=`<div class="row tight"><div class="head">ثبت‌نام‌های این حساب${d?' ('+fa(total)+')':''}</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-regs-refresh','i-refresh'):''}</div>
+        <p class="cap">فقط ثبت‌نام‌های اصلی همین حساب (همراهان زیر ثبت‌نام اصلی دیده می‌شوند)؛ برای جزئیات و پاسخ‌های فرم روی هر ردیف بزنید.</p>
+        <div class="tlist" data-uf-regs>${list}</div>${d?p2Pager(total,UFL.regsOffset,UFL.regsLimit,'data-uf-regs-page="prev"','data-uf-regs-page="next"'):''}`;
+    }
+  }else if(UFL.tab==='notifs'){
+    const d=UFL.notifs, total=d?Number(d.total)||0:0;
+    const list=UFL.notifsLoading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت اعلان‌های این حساب…</p></div>`
+      :UFL.notifsError?`<div class="empty"><p class="cap">${esc(UFL.notifsError)}</p>${btn('تلاش دوباره','data-uf-notifs-refresh','i-refresh')}</div>`
+      :!d?`<div class="empty"><p class="cap">فهرست هنوز خوانده نشده است.</p>${btn('دریافت فهرست','data-uf-notifs-refresh','i-refresh')}</div>`
+      :d.items.length?d.items.map(ufNotifRow).join(''):emptyBox('برای این حساب اعلانی در صف خروجی ثبت نشده است.');
+    body=`<div class="row tight"><div class="head">اعلان‌های این حساب${d?' ('+fa(total)+')':''}</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-notifs-refresh','i-refresh'):''}</div>
+      <p class="cap">فقط ردیف‌هایی که برای همین حساب نوشته شده‌اند (نه صف عمومی)؛ «در صف» و «در حال تلاش دوباره» یعنی هنوز تحویل نشده. این صفحه ارسال یا تلاش دوباره ندارد.</p>
+      <div class="tlist" data-uf-notifs>${list}</div>${d?p2Pager(total,UFL.notifsOffset,UFL.notifsLimit,'data-uf-notifs-page="prev"','data-uf-notifs-page="next"'):''}`;
+  }
+  return {tabs:`<div class="admfilters" role="tablist" data-uf-tabs>${tabs}</div>`,body};
+}
 /* ── فهرست کاربران (us_view): جدا از «حساب‌ها و نقش‌ها» ── */
 function usKey(){return [US.q,US.provider,US.role,US.offset,US.limit].join('|')}
 async function usLoad(){
@@ -8070,10 +8191,10 @@ async function usLoad(){
   finally{US.loading=false; if(key!==usKey()){usLoad(); return} if(S.sec==='users') renderBody()}
 }
 async function usLoadDetail(id){
-  const api=window.NORA_SERVER_API; US.detailId=id; US.detail=null; US.detailError=''; US.detailLoading=true; renderBody();
+  const api=window.NORA_SERVER_API; US.detailId=id; US.detail=null; US.detailError=''; US.detailLoading=true; ufReset(id); renderBody();
   try{const result=await api.getAdminUser(id); if(US.detailId===id) US.detail=result}
   catch(error){if(US.detailId===id) US.detailError=p2Err(error,'پروندهٔ کاربر دریافت نشد.')}
-  finally{US.detailLoading=false; if(US.detailId===id) renderBody()}
+  finally{US.detailLoading=false; if(US.detailId===id){renderBody(); if(US.detail&&UFL.acc===id) ufLoadRegs()}}
 }
 function usProviders(item){return (item.providers||[]).map(p=>tag(p==='bale'?'ورود بله':'ورود با شماره','')).join('')+(item.linked?tag('پیوندشده','brand'):'')}
 function usRoleTag(role){return role?tag(role==='club-supervisor'?'سرپرست باشگاه':role==='manager'?'مدیر':role,'brand'):tag('بدون نقش','')}
@@ -8108,7 +8229,7 @@ function serverUserDetail(){
   if(US.detailError||!d) return `<section class="card stack" data-user-detail>${back}<div class="empty"><p class="cap">${esc(US.detailError||'پرونده‌ای انتخاب نشده است.')}</p>${US.detailId?btn('تلاش دوباره',`data-user-open="${esc(US.detailId)}"`,'i-refresh'):''}</div></section>`;
   const regStatus=r=>r.status==='waitlisted'?tag('فهرست انتظار','warn'):tag('پذیرفته','ok');
   const pay=r=>r.payment_status?tag({paid:'پرداخت‌شده',paid_manual:'فیش تأییدشده',paid_review:'در بررسی',awaiting_receipt:'منتظر فیش',receipt_submitted:'فیش رسیده',pending:'در انتظار پرداخت',rejected:'رد شده',cancelled:'لغو',expired:'منقضی'}[r.payment_status]||r.payment_status,['paid','paid_manual'].includes(r.payment_status)?'ok':['rejected','expired','cancelled'].includes(r.payment_status)?'stop':'warn'):r.receipt_uploaded?tag('فیش بارگذاری‌شده','warn'):'';
-  const regs=(d.registration_items||[]).map(r=>`<div class="admlirow"><span class="ic">${ico('i-ticket')}</span><span class="sp"><b>${esc(r.event_title||r.form_name)}</b><small class="cap">${esc([r.form_name!==r.event_title?r.form_name:'',r.event_date,svcWhen(r.created_at)].filter(Boolean).join(' · '))}</small></span>${regStatus(r)}${pay(r)}${r.ticket_checked_in?tag('حاضر','ok'):''}</div>`).join('');
+  const pane=UFL.acc===d.account_id?ufPane():{tabs:'',body:''};
   const reviews=(d.reviews||[]).map(r=>`<div class="admlirow"><span class="ic">${ico('i-inbox')}</span><span class="sp"><b>${r.kind==='receipt_review'?'بررسی فیش':r.kind==='profile_review'?'بررسی پروفایل':esc(r.kind)}</b><small class="cap">${esc(svcWhen(r.created_at))}${r.reviewed_at?' · تصمیم: '+esc(svcWhen(r.reviewed_at)):''}</small></span>${tag(r.status==='pending'?'در انتظار':r.status==='approved'?'تأیید':r.status==='rejected'?'رد':r.status,r.status==='pending'?'warn':r.status==='approved'?'ok':'stop')}</div>`).join('');
   const info=[['شناسهٔ حساب',d.account_id,'ltr'],['شناسهٔ بله',d.bale_user_id||'',''],['نقش سروری',d.role?(d.role==='club-supervisor'?'سرپرست باشگاه':'مدیر'):'بدون نقش',''],['وضعیت حساب','فعال (سرور وضعیت تعلیق ندارد)',''],
     ['استان / شهر',[d.province,d.city].filter(Boolean).join(' / '),''],['عضویت',svcWhen(d.created_at),''],['آخرین ورود',d.last_session_at?svcWhen(d.last_session_at):'ثبت نشده',''],['به‌روزرسانی پروفایل',d.profile_updated_at?svcWhen(d.profile_updated_at):'پروفایل ثبت نشده',''],
@@ -8117,10 +8238,8 @@ function serverUserDetail(){
     <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-user')}</span><div class="head">${esc(d.display_name||'بدون نام پروفایل')}</div><span class="sp"></span>${usProviders(d)}${usRoleTag(d.role)}</div>
     <p class="cap">فقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند.</p>
     <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
-    <div class="head">ثبت‌نام‌های سرور (${fa(d.registrations||0)})</div>
-    <div class="tlist">${regs||emptyBox('ثبت‌نامی در پایگاه مشترک برای این حساب نیست.')}</div>
-    <div class="head">درخواست‌های کارتابل</div>
-    <div class="tlist">${reviews||emptyBox('درخواست پروفایل یا فیشی برای این حساب ثبت نشده است.')}</div>
+    ${pane.tabs}
+    ${UFL.tab==='reviews'?`<div class="head">درخواست‌های کارتابل</div><div class="tlist">${reviews||emptyBox('درخواست پروفایل یا فیشی برای این حساب ثبت نشده است.')}</div>`:pane.body}
   </section>`;
 }
 /* ── حضور و غیاب: همان check-in بلیت که ربات ثبت می‌کند ── */
@@ -8429,6 +8548,13 @@ document.addEventListener('click',e=>{
   const usProv=q('[data-users-provider]'); if(usProv){US.provider=usProv.dataset.usersProvider||''; US.offset=0; usLoad(); return}
   const usRole=q('[data-users-role]'); if(usRole){US.role=usRole.dataset.usersRole||''; US.offset=0; usLoad(); return}
   const usPage=q('[data-users-page]'); if(usPage){const total=US.data?Number(US.data.total)||0:0; US.offset=usPage.dataset.usersPage==='next'?Math.min(US.offset+US.limit,Math.max(0,total-1)):Math.max(0,US.offset-US.limit); usLoad(); return}
+  const ufTab=q('[data-uf-tab]'); if(ufTab){UFL.tab=ufTab.dataset.ufTab||'regs'; UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); if(UFL.tab==='regs'&&!UFL.regs&&!UFL.regsLoading) ufLoadRegs(); if(UFL.tab==='notifs'&&!UFL.notifs&&!UFL.notifsLoading) ufLoadNotifs(); return}
+  if(q('[data-uf-reg-back]')){UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); return}
+  const ufReg=q('[data-uf-reg]'); if(ufReg){ufLoadReg(ufReg.dataset.ufReg); return}
+  if(q('[data-uf-regs-refresh]')){UFL.regs=null; UFL.regsKey=''; ufLoadRegs(); return}
+  const ufRegsPage=q('[data-uf-regs-page]'); if(ufRegsPage){const total=UFL.regs?Number(UFL.regs.total)||0:0; UFL.regsOffset=ufRegsPage.dataset.ufRegsPage==='next'?Math.min(UFL.regsOffset+UFL.regsLimit,Math.max(0,total-1)):Math.max(0,UFL.regsOffset-UFL.regsLimit); ufLoadRegs(); return}
+  if(q('[data-uf-notifs-refresh]')){UFL.notifs=null; UFL.notifsKey=''; ufLoadNotifs(); return}
+  const ufNotifsPage=q('[data-uf-notifs-page]'); if(ufNotifsPage){const total=UFL.notifs?Number(UFL.notifs.total)||0:0; UFL.notifsOffset=ufNotifsPage.dataset.ufNotifsPage==='next'?Math.min(UFL.notifsOffset+UFL.notifsLimit,Math.max(0,total-1)):Math.max(0,UFL.notifsOffset-UFL.notifsLimit); ufLoadNotifs(); return}
   const usOpen=q('[data-user-open]'); if(usOpen){S.uV='user'; S.uSel=usOpen.dataset.userOpen; save(); usLoadDetail(usOpen.dataset.userOpen); return}
   if(q('[data-open-attendance]')){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} S.uV='att'; save(); renderBody(); return}
   if(q('[data-open-cert]')){if(!canPerm('certificate')){toast('مجوز گواهینامه برای این نقش فعال نیست'); return} S.uV='cert'; save(); renderBody(); return}
@@ -10865,7 +10991,7 @@ document.addEventListener('click',e=>{
   };
   const cqq=q('[data-cqueue]'); if(cqq){cqueue(); return}
   const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; if(S.uV==='club') S.uClub='rules'; save(); renderBody(); return}
-  const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; S.attForm=''; save(); renderBody(); return}
+  const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; S.attForm=''; ufReset(''); save(); renderBody(); return}
   const utag=q('[data-uTag]'); if(utag){S.uTag=(S.uTag===utag.dataset.utag)?'':utag.dataset.utag; save(); renderBody(); return}
     const uok=q('[data-uok]'); if(uok){const id=uok.dataset.uok, person=memOf(id)||{};
     S.uov[id]=Object.assign({},S.uov[id],{st:['تأیید محلی · نمونه','ok']}); save();

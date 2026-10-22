@@ -435,6 +435,10 @@
     /* فهرست کاربران (us_view) و حضور و غیاب (attendance) */
     listAdminUsers: params => request('/api/admin/users' + adminQuery(params)),
     getAdminUser: accountId => request('/api/admin/users/' + recordId(accountId)),
+    /* U4/U5: پروندهٔ کاربر؛ فقط ردیف‌های همین حساب (فیلتر در سرور)، صفحه‌بندی‌شده */
+    listAdminUserRegistrations: (accountId, params) => request('/api/admin/users/' + recordId(accountId) + '/registrations' + adminQuery(params)),
+    getAdminUserRegistration: (accountId, responseId) => request('/api/admin/users/' + recordId(accountId) + '/registrations/' + recordId(responseId)),
+    listAdminUserNotifications: (accountId, params) => request('/api/admin/users/' + recordId(accountId) + '/notifications' + adminQuery(params)),
     /* گواهینامه‌ها (certificate): آینهٔ تأییدشدهٔ گواهی‌های ربات در پایگاه مشترک؛ فقط‌خواندنی */
     listAdminCertificates: params => request('/api/admin/certificates' + adminQuery(params)),
     getAdminCertificate: certificateId => request('/api/admin/certificates/' + recordId(certificateId)),

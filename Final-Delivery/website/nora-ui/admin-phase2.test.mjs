@@ -27,7 +27,16 @@ function makeWorld() {
     { response_id: RID, name: 'کاربر آزمایشی', mobile_hint: '…۷۷۷', status: 'accepted', payment_approved: true, ticket_eligible: true,
       checked_in: false, checked_in_at: null, checked_in_by: null, serial: 'NORA-TEST0001', companion: 0, ticket_type: 'free' },
   ];
-  return { version: 7, events, people };
+  const registrations = [
+    { id: 'a1a1a1a1-1111-4222-8333-444444444401', form_id: 'fm-1', form_name: 'فرم ثبت‌نام', event_id: 'ev-a1', event_title: 'کارگاه نگارش', event_date: '1405/08/12', status: 'accepted', payment_status: 'paid_manual', receipt_uploaded: true, ticket_checked_in: true, ticket_type: 'paid', created_at: '2026-10-02T08:00:00+00:00' },
+    { id: 'a1a1a1a1-1111-4222-8333-444444444402', form_id: 'fm-2', form_name: 'فرم رایگان', event_id: 'ev-b2', event_title: 'نشست کتاب', event_date: '1405/09/01', status: 'waitlisted', payment_status: null, receipt_uploaded: false, ticket_checked_in: false, ticket_type: 'free', created_at: '2026-10-03T08:00:00+00:00' },
+  ];
+  const userNotifications = [
+    { id: 'n-1', kind: 'registration_accepted', title: 'ثبت‌نام شما پذیرفته شد', body: 'کارگاه نگارش', delivery_status: 'delivered', delivery_state: 'delivered', delivery_attempts: 1, last_delivery_error: null, link: 'event.html?id=ev-a1', created_at: '2026-10-02T08:05:00+00:00', delivered_at: '2026-10-02T08:06:00+00:00', read: true, scope: 'account', has_bale_identity: true, source_task_id: null },
+    { id: 'n-2', kind: 'content_published', title: 'رویداد تازه منتشر شد', body: 'نشست کتاب', delivery_status: 'pending', delivery_state: 'retrying', delivery_attempts: 2, last_delivery_error: 'bale_timeout', link: null, created_at: '2026-10-03T08:05:00+00:00', delivered_at: null, read: false, scope: 'audience', has_bale_identity: true, source_task_id: null },
+    { id: 'n-3', kind: 'receipt_approved', title: 'فیش تأیید شد', body: '', delivery_status: 'failed', delivery_state: 'failed', delivery_attempts: 0, last_delivery_error: 'no_bale_identity', link: null, created_at: '2026-10-04T08:05:00+00:00', delivered_at: null, read: false, scope: 'account', has_bale_identity: false, source_task_id: null },
+  ];
+  return { version: 7, events, people, registrations, userNotifications };
 }
 
 async function loadPanel(identity) {
@@ -183,7 +192,45 @@ async function loadPanel(identity) {
         const u = path.match(/^\/api\/admin\/users(?:\/([^?]+))?(?:\?(.*))?$/);
         if (u) {
           if (!has('us_view')) return reply(403, { detail: 'permission_denied' });
-          const [, id, query] = u;
+          const [, idPath, query] = u;
+          const [id, sub, subId] = String(idPath || '').split('/');
+          if (sub) {
+            /* U4/U5: فقط حساب هدف؛ شناسهٔ حساب دیگر یا پاسخ حساب دیگر → ۴۰۴ (در سرور داخل scope جست‌وجو می‌شود) */
+            if (id !== ACC) return reply(404, { detail: 'user_not_found' });
+            const params = new URLSearchParams(query || '');
+            const limit = Number(params.get('limit') || 20), offset = Number(params.get('offset') || 0);
+            const finance = has('finance');
+            if (sub === 'registrations' && !subId) {
+              if (identity.regsFail && !world.regsOk) return reply(503, { detail: 'service_unavailable' });
+              const all = world.registrations || [];
+              const items = all.slice(offset, offset + limit);
+              return reply(200, { source: 'shared_server_database', account_id: ACC, items, total: all.length, limit, offset, has_more: offset + limit < all.length });
+            }
+            if (sub === 'registrations' && subId) {
+              const row = (world.registrations || []).find((r) => r.id === subId);
+              if (!row) return reply(404, { detail: 'registration_not_found' });
+              const payment = row.payment_status ? { status: row.payment_status, method: 'card_transfer', ...(finance ? { amount: 1200000, currency: 'IRR', transaction_id: 'TRX-778899' } : {}) } : null;
+              return reply(200, { ...row, source: 'shared_server_database', account_id: ACC, response_id: row.id,
+                form: { id: 'fm-1', name: row.form_name, version: 3 }, event: { id: row.event_id, title: row.event_title, date: row.event_date }, registrant_name: 'سارا آزمایشی',
+                answers: [
+                  { field_id: 'f_name', label: 'نام و نام خانوادگی', type: 'text', value: 'سارا آزمایشی', masked: null },
+                  { field_id: 'f_mobile', label: 'شمارهٔ همراه', type: 'mobile', value: null, masked: 'mobile', hint: '4321' },
+                  { field_id: 'f_nid', label: 'کد ملی', type: 'nid', value: null, masked: 'national_id', hint: '' },
+                  { field_id: 'f_meal', label: 'وعدهٔ غذایی', type: 'select', value: ['گیاهی'], masked: null },
+                ],
+                companions: [{ id: 'c0c0c0c0-1111-4222-8333-444444444499', name: 'همراه یکم', status: 'accepted', ticket_checked_in: false }],
+                payment, finance_visible: finance,
+                receipt: { uploaded: !!row.receipt_uploaded, task_id: row.receipt_uploaded ? 't0t0t0t0-1111-4222-8333-444444444477' : null, task_status: row.receipt_uploaded ? 'approved' : null },
+                attendance: { checked_in: !!row.ticket_checked_in, checked_in_at: row.ticket_checked_in ? '2026-10-05T15:00:00+00:00' : null, checked_in_by: row.ticket_checked_in ? { kind: 'bot', id: '123456' } : null },
+                updated_at: '2026-10-05T15:00:00+00:00' });
+            }
+            if (sub === 'notifications' && !subId) {
+              const all = world.userNotifications || [];
+              const items = all.slice(offset, offset + limit);
+              return reply(200, { source: 'shared_server_database', account_id: ACC, items, total: all.length, limit, offset, has_more: offset + limit < all.length });
+            }
+            return reply(404, { detail: 'not_found' });
+          }
           const row = { account_id: ACC, display_name: 'سارا آزمایشی', city: 'تهران', province: 'تهران', role: null, status: 'active',
             created_at: '2026-10-01T08:00:00+00:00', profile_updated_at: null, registrations: 1, pending_reviews: 0, providers: ['phone'], bale_user_id: null, linked: false };
           if (!id) {
@@ -823,4 +870,94 @@ console.log('— مرحلهٔ ۲: انتخاب‌گر شناسه‌ای مدرس
   } finally { mgr.close(); }
 }
 
-console.log('آزمون مرحلهٔ دوم پنل: قبول');
+console.log('— مرحلهٔ ۳: پروندهٔ کاربر U4/U5؛ ثبت‌نام‌های صفحه‌بندی‌شده، جزئیات از form_snapshot با ماسک، مالی فقط با finance، اعلان‌های همین حساب با scope/delivery_state/has_bale_identity —');
+{
+  const REG1 = 'a1a1a1a1-1111-4222-8333-444444444401', REG2 = 'a1a1a1a1-1111-4222-8333-444444444402';
+  const openFile = async (app) => {
+    await section(app, 'users');
+    if (app.doc.querySelector('[data-uback]') && !app.doc.querySelector('[data-users-panel]')) app.click('[data-uback]');
+    await app.until(() => app.doc.querySelector(`[data-user-open="${ACC}"]`), 'فهرست کاربران');
+    app.click(`[data-user-open="${ACC}"]`);
+    await app.until(() => app.doc.querySelector('[data-user-detail]') && app.doc.querySelector(`[data-uf-reg="${REG1}"]`), 'پرونده + فهرست ثبت‌نام‌ها از API اختصاصی');
+  };
+  /* مالک (با finance) */
+  const app = await loadPanel({ role: 'owner', sec: 'users' });
+  try {
+    await openFile(app);
+    assert.ok(app.calls.some((c) => c.path === `/api/admin/users/${ACC}/registrations?limit=20&offset=0`), 'فهرست ثبت‌نام‌ها از /registrations صفحه‌بندی‌شده');
+    assert.equal(app.doc.querySelectorAll('[data-uf-reg]').length, 2, 'دو ثبت‌نام');
+    assert.match(app.body(), /نشست کتاب/); assert.match(app.body(), /فهرست انتظار/); assert.match(app.body(), /حاضر/);
+    assert.equal(app.calls.filter((c) => c.path.includes('/notifications')).length, 0, 'اعلان‌ها تا باز شدن زبانه خوانده نمی‌شوند');
+    app.noLeak();
+    /* جزئیات */
+    app.click(`[data-uf-reg="${REG1}"]`);
+    await app.until(() => app.doc.querySelector('[data-uf-reg-detail]') && app.doc.querySelector('[data-uf-answers]'), 'جزئیات ثبت‌نام');
+    assert.ok(app.calls.some((c) => c.path === `/api/admin/users/${ACC}/registrations/${REG1}`), 'جزئیات از مسیر همین حساب');
+    const detail = app.doc.querySelector('[data-uf-reg-detail]');
+    assert.equal(detail.getAttribute('data-uf-finance'), '1');
+    assert.match(detail.textContent, /نام و نام خانوادگی/); assert.match(detail.textContent, /وعدهٔ غذایی[\s\S]*گیاهی/);
+    assert.equal(app.doc.querySelectorAll('[data-uf-masked]').length, 2, 'دو پاسخ ماسک‌شده (همراه + کد ملی)');
+    assert.match(detail.textContent, /•••••••4321/, 'چهار رقم پایانی همراه فقط به‌صورت راهنما');
+    assert.doesNotMatch(detail.textContent.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, ''), /09\d{9}|\d{10}|[۰-۹]{10}/, 'هیچ شمارهٔ کامل یا کد ملی (جز شناسهٔ UUID پاسخ)');
+    assert.match(detail.textContent, /همراه یکم/); assert.match(detail.textContent, /حضور ثبت نشده/);
+    assert.match(detail.textContent, /کارت‌به‌کارت/); assert.match(detail.textContent, /۱,۲۰۰,۰۰۰ ریال/); assert.match(detail.textContent, /TRX-778899/, 'مالک با finance مبلغ و تراکنش را می‌بیند');
+    assert.equal(app.doc.querySelector('[data-uf-finance-hidden]'), null);
+    assert.match(detail.textContent, /بارگذاری شده · بررسی: تأیید شد/); assert.match(detail.textContent, /حاضر · /); assert.match(detail.textContent, /ثبت‌کننده: ربات/);
+    assert.match(detail.textContent, /نسخهٔ ۳/, 'نسخهٔ فرم از snapshot');
+    app.noLeak();
+    app.click('[data-uf-reg-back]');
+    await app.until(() => app.doc.querySelector(`[data-uf-reg="${REG2}"]`), 'بازگشت به فهرست ثبت‌نام‌ها');
+    app.click(`[data-uf-reg="${REG2}"]`);
+    await app.until(() => app.doc.querySelector('[data-uf-reg-detail]') && /رکورد پرداخت ندارد/.test(app.body()), 'ثبت‌نام رایگان بدون رکورد پرداخت');
+    /* اعلان‌ها */
+    app.click('[data-uf-tab="notifs"]');
+    await app.until(() => app.doc.querySelectorAll('[data-uf-notif]').length === 3, 'سه اعلان همین حساب');
+    assert.ok(app.calls.some((c) => c.path === `/api/admin/users/${ACC}/notifications?limit=20&offset=0`), 'از مسیر اختصاصی حساب، نه صف عمومی');
+    assert.equal(app.calls.filter((c) => c.path.startsWith('/api/admin/notifications')).length, 0, 'صف عمومی اعلان‌ها خوانده نشد');
+    const states = [...app.doc.querySelectorAll('[data-uf-notif]')].map((el) => el.getAttribute('data-uf-delivery'));
+    assert.deepEqual(states, ['delivered', 'retrying', 'failed']);
+    const nb = app.doc.querySelector('[data-uf-notifs]').textContent;
+    assert.match(nb, /تحویل‌شده/); assert.match(nb, /در حال تلاش دوباره/); assert.match(nb, /ناموفق/); assert.match(nb, /همگانی/); assert.match(nb, /شخصی/); assert.match(nb, /بدون شناسهٔ بله/); assert.match(nb, /bale_timeout/);
+    assert.equal(app.doc.querySelectorAll('[data-uf-notif] .tag.ok').length, 1, 'فقط ردیف تحویل‌شده سبز است؛ در صف ≠ تحویل');
+    assert.equal(app.doc.querySelector('[data-uf-notif] button'), null, 'بدون دکمهٔ ارسال/تلاش دوباره');
+    app.noLeak();
+    /* زبانهٔ کارتابل هنوز هست */
+    app.click('[data-uf-tab="reviews"]');
+    await app.until(() => /درخواست پروفایل یا فیشی/.test(app.body()), 'زبانهٔ کارتابل');
+  } finally { app.close(); }
+  /* مدیر us_view بدون finance */
+  const mgr = await loadPanel({ role: 'manager', sec: 'users' });
+  try {
+    await openFile(mgr);
+    mgr.click(`[data-uf-reg="${REG1}"]`);
+    await mgr.until(() => mgr.doc.querySelector('[data-uf-reg-detail][data-uf-finance="0"]'), 'جزئیات برای مدیر بدون finance');
+    const d = mgr.doc.querySelector('[data-uf-reg-detail]');
+    assert.match(d.textContent, /فیش تأییدشده/); assert.match(d.textContent, /کارت‌به‌کارت/);
+    assert.doesNotMatch(d.textContent, /TRX-778899|۱,۲۰۰,۰۰۰|ریال/, 'مبلغ و تراکنش برای مدیر بدون finance نمایش داده نمی‌شود');
+    assert.ok(mgr.doc.querySelector('[data-uf-finance-hidden]'), 'یادداشت صادقانهٔ «فقط با مجوز مالی»');
+    assert.equal(mgr.doc.querySelectorAll('[data-uf-masked]').length, 2);
+    mgr.noLeak();
+    /* خطای سرور + تلاش دوباره؛ شناسهٔ پاسخ حساب دیگر → پیدا نشد */
+    mgr.click('[data-uf-reg-back]');
+    await mgr.until(() => mgr.doc.querySelector(`[data-uf-reg="${REG2}"]`), 'فهرست');
+    const el = mgr.doc.querySelector(`[data-uf-reg="${REG2}"]`); el.setAttribute('data-uf-reg', 'b2b2b2b2-1111-4222-8333-444444444499');
+    mgr.click('[data-uf-reg="b2b2b2b2-1111-4222-8333-444444444499"]');
+    await mgr.until(() => /پیدا نشد/.test(mgr.body()), 'پاسخ حساب دیگر: فقط پیام پیدا نشد');
+    assert.equal(mgr.doc.querySelector('[data-uf-answers]'), null, 'هیچ پاسخی از حساب دیگر نشت نکرد');
+  } finally { mgr.close(); }
+  /* خطای فهرست ثبت‌نام‌ها + تلاش دوباره */
+  const bad = await loadPanel({ role: 'owner', sec: 'users', regsFail: true });
+  try {
+    await section(bad, 'users');
+    if (bad.doc.querySelector('[data-uback]') && !bad.doc.querySelector('[data-users-panel]')) bad.click('[data-uback]');
+    await bad.until(() => bad.doc.querySelector(`[data-user-open="${ACC}"]`), 'فهرست');
+    bad.click(`[data-user-open="${ACC}"]`);
+    await bad.until(() => bad.doc.querySelector('[data-uf-regs-refresh]') && !bad.doc.querySelector('[data-uf-reg]'), 'خطای فهرست ثبت‌نام‌ها با دکمهٔ تلاش دوباره');
+    assert.ok(bad.doc.querySelector('[data-user-detail]'), 'بقیهٔ پرونده با خطای یک بخش از بین نمی‌رود');
+    bad.world.regsOk = true;
+    bad.click('[data-uf-regs-refresh]');
+    await bad.until(() => bad.doc.querySelector(`[data-uf-reg="${REG1}"]`), 'تلاش دوباره موفق');
+  } finally { bad.close(); }
+}
+
+console.log('آزمون مرحلهٔ دوم و سوم پنل: قبول');
