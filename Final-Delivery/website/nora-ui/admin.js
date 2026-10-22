@@ -6467,13 +6467,18 @@ function serverDashboard(){
   const modules=[];
   if(canSec('events')) modules.push(`<button class="utile" data-sec="events"><span class="tt">${ico('i-calendar')}<b>رویدادها و مطالب</b></span><small>فهرست، ویرایش و انتشار روی محتوای سرور</small></button>`);
   if(canSec('users')) modules.push(`<button class="utile" data-sec="users"><span class="tt">${ico('i-users')}<b>کاربران، کارتابل و گزارش</b></span><small>فهرست کاربران، کارتابل، حضور و غیاب و گزارش از API</small></button>`);
-  if(canSec('forms')) modules.push(`<a class="utile" href="builder.html"><span class="tt">${ico('i-doc')}<b>فرم‌ها</b></span><small>فرم‌ساز متصل به API سرور</small></a>`);
+  if(canSec('forms')) modules.push(`<button class="utile" data-sec="forms"><span class="tt">${ico('i-doc')}<b>فرم‌ها</b></span><small>فهرست فرم‌های سرور و مرکز فرم‌ساز</small></button>`);
   if(isOwner()) modules.push(`<button class="utile" data-sec="settings"><span class="tt">${ico('i-sliders')}<b>تنظیمات مالک</b></span><small>ماژول‌های متصل و وضعیت اتصال</small></button>`);
   return `<div class="stack">
+    ${dashxDateBar()}
     ${serverDashboardKpis()}
+    ${dashxQueueCard()}
+    ${dashxUpcomingCard()}
     ${serverHealthView()}
     ${eiSummaryCard()}
     ${recSummaryCard()}
+    ${dashxSchedCard()}
+    ${dashxAuditCard()}
     <section class="card stack"><div class="head">ماژول‌های این حساب</div>
       <p class="cap">نقش و مجوز از سرور می‌آید. بخش فاقد API دادهٔ ساختگی نشان نمی‌دهد و وضعیت آن جداگانه اعلام می‌شود.</p>
       <div class="admtiles">${modules.join('')||emptyBox('برای این حساب ماژول فعالی ثبت نشده است.')}</div>
@@ -6489,6 +6494,8 @@ function serverUsersIndex(){
   if(isOwner()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-shield')}</span><b>حساب‌ها و نقش‌ها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
     <p class="cap">فهرست حساب‌های احراز‌شده و واگذاری نقش فقط از سرویس مالک انجام می‌شود.</p>${btn('مدیریت حساب‌های سرور','data-server-role-module','i-chev-left')}</article>`);
   p2UserHubCards().forEach(card=>cards.push(card));
+  cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-sliders')}</span><b>ابزارها و گزارش</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+    <p class="cap">گزارش کاربران، صندوق خروجی اعلان‌ها، تاریخچهٔ عملیات و نقشهٔ مجوزها؛ ابزار بدون API با دلیل مشخص می‌ماند.</p>${btn('بازکردن ابزارها','data-uv="tools"','i-chev-left')}</article>`);
   return `<div class="stack">${userHubTabs()}
     ${canPerm('us_view')?serverUsersList():''}
     ${cards.length?`<div class="admgrid">${cards.join('')}</div>`:''}
@@ -6497,18 +6504,18 @@ function serverUsersIndex(){
 function serverUsersView(){
   if(S.uHub==='reports') return `<div class="stack">${userHubTabs()}${vServerReports()}</div>`;
   const view=S.uV||'';
+  if(view==='req'){S.uV='shared-inbox'; save(); return serverUsersView()}
   if(view==='shared-inbox') return `<div class="stack">${userHubTabs()}${sharedWorkflowInboxView()}</div>`;
-  if(view==='tools'&&S.uTool==='staff') return `<div class="stack">${userHubTabs()}${cUServerStaff()}</div>`;
-  if(view==='tools'&&S.uTool==='report'&&canPerm('rp_view')) return `<div class="stack">${userHubTabs()}${vServerReports()}</div>`;
+  if(view==='tools') return `<div class="stack">${userHubTabs()}${serverToolsView()}</div>`;
   if(!view) return serverUsersIndex();
   if(view==='user') return `<div class="stack">${userHubTabs()}${serverUserDetail()}</div>`;
   if(view==='att') return `<div class="stack">${userHubTabs()}${serverAttendanceView()}</div>`;
   if(view==='cert') return `<div class="stack">${userHubTabs()}${serverCertView()}</div>`;
   if(view==='club') return `<div class="stack">${userHubTabs()}${serverClubView()}</div>`;
-  const titles={req:'درخواست‌های کاربر',club:'باشگاه',occ:'مناسبت‌ها',cert:'گواهینامه‌ها',tools:'ابزارهای کاربران',user:'پروندهٔ کاربر'};
-  const actions=view==='tools'&&isOwner()?btn('مدیریت حساب‌ها و نقش‌ها','data-server-role-module','i-shield'):'';
+  const titles={occ:'مناسبت‌ها',user:'پروندهٔ کاربر'};
+  const reasons={occ:'مناسبت‌ها و جایزهٔ مناسبتی به قاعدهٔ امتیاز نیاز دارند که فقط در ربات تعریف شده؛ پنل مسیر نوشتن امتیاز ندارد.'};
   return `<div class="stack">${userHubTabs()}${serverUnavailableModule(titles[view]||'کاربران',
-    'API این زیربخش هنوز فعال نیست؛ اطلاعات محلی به‌عنوان رکورد واقعی نمایش داده نمی‌شود.',actions)}</div>`;
+    reasons[view]||'API این زیربخش هنوز فعال نیست؛ اطلاعات محلی به‌عنوان رکورد واقعی نمایش داده نمی‌شود.',uBack)}</div>`;
 }
 /* ══ مرحلهٔ دوم: محتوا (رویداد/مطلب)، فهرست کاربران، حضور و غیاب، گواهی ═════
    همهٔ داده‌ها از API هم‌مبدأ خوانده می‌شوند؛ مجوز سمت سرور اعمال می‌شود و
@@ -6833,9 +6840,11 @@ function eiHeader(){
   if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
   if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'سفارش‌ها']);
   const live=EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`:'';
+  const jumps=EI.all?'':[canPerm('attendance')?`<button class="chip" data-ei-jump-attendance title="فرم‌های حضور همین رویداد در بخش کاربران">${ico('i-check')}ثبت‌نام و حضور</button>`:'',
+    canPerm('certificate')?`<button class="chip" data-ei-jump-cert title="گواهی‌های همین رویداد در بخش کاربران">${ico('i-medal')}گواهی‌ها</button>`:''].join('');
   return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به فهرست</button>
       <b>${esc(EI.all?'کارتابل پرسش‌ها و گزارش‌ها':EI.title||EI.eventId)}</b>${EI.all?'':ctStatusLabel(EI.status)}<span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>
-    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های تعامل رویداد">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}</div>`;
+    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های تعامل رویداد">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}${jumps}</div>`;
 }
 function eiPanel(){
   let body;
@@ -7733,7 +7742,7 @@ function serverUsersList(){
   </section>`;
 }
 function serverUserDetail(){
-  const d=US.detail, back=`<div class="row">${btn('بازگشت به فهرست','data-uback','i-back')}<span class="sp"></span>${d&&isOwner()?btn('حساب‌ها و نقش‌ها','data-server-role-module','i-shield'):''}</div>`;
+  const d=US.detail, back=`<div class="row" style="flex-wrap:wrap;gap:8px">${btn('بازگشت به فهرست','data-uback','i-back')}<span class="sp"></span>${d&&(isOwner()||canPerm('cl_member'))?`<button class="btn sm" data-user-club-points="${esc(d.account_id)}">${ico('i-star')}امتیاز باشگاه (فقط‌خواندنی)</button>`:''}${d&&isOwner()?btn('حساب‌ها و نقش‌ها','data-server-role-module','i-shield'):''}</div>`;
   if(US.detailLoading) return `<section class="card stack" data-user-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت پرونده از سرور…</p></div></section>`;
   if(US.detailError||!d) return `<section class="card stack" data-user-detail>${back}<div class="empty"><p class="cap">${esc(US.detailError||'پرونده‌ای انتخاب نشده است.')}</p>${US.detailId?btn('تلاش دوباره',`data-user-open="${esc(US.detailId)}"`,'i-refresh'):''}</div></section>`;
   const regStatus=r=>r.status==='waitlisted'?tag('فهرست انتظار','warn'):tag('پذیرفته','ok');
@@ -8016,6 +8025,21 @@ document.addEventListener('click',e=>{
   const t=e.target; if(!t||!t.closest) return;
   if(IS_TEST||!SERVER_AUTH) return;
   const q=s=>t.closest(s);
+  /* مرحلهٔ A: پرش از داشبورد/نقشهٔ امکانات به بخش مقصد، سپس همان رفتار عادی دکمه */
+  const leaveMap=q('[data-dashx-leave-map]'); if(leaveMap){DASHX.view=''; if(!leaveMap.hasAttribute('data-sec')&&!q('[data-dashx-go],[data-open-workflow-inbox],[data-open-attendance],[data-open-cert],[data-open-club],[data-server-role-module],[data-user-hub],[data-dashx-outbox],[data-dashx-audit-all],[data-ei-open-all]')){renderBody(); return}}
+  const goTo=q('[data-dashx-go]'); if(goTo&&S.sec!==goTo.dataset.dashxGo&&ALLSECS.some(x=>x.k===goTo.dataset.dashxGo)){S.sec=goTo.dataset.dashxGo; save(); try{history.replaceState(null,'','#'+S.sec)}catch(e){}}
+  if(q('[data-dashx-refresh]')){dashxLoad(true); if(eiCanMod()){EI.summary=null; EI.summaryError=''; EI.summaryLoading=true; eiLoadSummary()} if(recCanOrders()){REC.summary=null; REC.summaryError=''; REC.summaryLoading=true; recLoadSummary()} renderBody(); return}
+  if(q('[data-dashx-map]')){DASHX.view='map'; renderBody(); return}
+  if(q('[data-dashx-outbox]')){if(!canPerm('rp_view')){toast('مجوز گزارش برای این نقش فعال نیست'); return} S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='inbox'; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  if(q('[data-dashx-sched]')){if(!canPerm('rp_view')){toast('مجوز گزارش برای این نقش فعال نیست'); return} go('reports'); return}
+  if(q('[data-dashx-audit-all]')){if(!isOwner()){toast('تاریخچهٔ عملیات فقط برای مالک باز است'); return} S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='log'; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  if(q('[data-fs-refresh]')){FORMS_SRV.loaded=false; fsLoad(); return}
+  if(q('[data-fs-search]')){const input=$('#fsQuery'); FORMS_SRV.q=String(input&&input.value||'').trim().slice(0,80); FORMS_SRV.offset=0; renderBody(); return}
+  const fsStatus=q('[data-fs-status]'); if(fsStatus){FORMS_SRV.status=fsStatus.dataset.fsStatus||''; FORMS_SRV.offset=0; renderBody(); return}
+  const fsPage=q('[data-fs-page]'); if(fsPage){const total=fsRows().length; FORMS_SRV.offset=fsPage.dataset.fsPage==='next'?Math.min(FORMS_SRV.offset+FORMS_SRV.limit,Math.max(0,total-1)):Math.max(0,FORMS_SRV.offset-FORMS_SRV.limit); renderBody(); return}
+  if(q('[data-ei-jump-attendance]')){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} const ev=EI.eventId; eiClose(); S.sec='users'; S.uHub='users'; S.uV='att'; AT.q=ev; AT.offset=0; AT.formId=''; AT.form=null; AT.people=null; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  if(q('[data-ei-jump-cert]')){if(!canPerm('certificate')){toast('مجوز گواهینامه برای این نقش فعال نیست'); return} const ev=EI.eventId; eiClose(); S.sec='users'; S.uHub='users'; S.uV='cert'; CERT_SRV.event=ev; CERT_SRV.offset=0; CERT_SRV.detailId=''; CERT_SRV.detail=null; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  const clubOpen=q('[data-user-club-points]'); if(clubOpen){if(!(isOwner()||canPerm('cl_member'))){toast('امتیاز باشگاه فقط برای مالک و سرپرست باشگاه باز است'); return} S.uV='club'; CLUB_SRV.mode='members'; save(); clLoadMember(clubOpen.dataset.userClubPoints); return}
   const ctKind=q('[data-ct-kind]'); if(ctKind){const kind=ctKind.dataset.ctKind==='articles'?'articles':'events'; if(kind!==CT.kind){CT.kind=kind; CT.q=''; CT.status=''; CT.edit=null; CT.msg=null; ctReset(); renderBody(); ctLoad()} return}
   if(q('[data-ct-refresh]')){ctReset(); ctLoad(); return}
   if(q('[data-ct-search]')){const input=$('#ctQuery'); CT.q=String(input&&input.value||'').trim().slice(0,80); ctReset(); ctLoad(); return}
@@ -8485,7 +8509,7 @@ function loadServerAuditEvents(append=false){
     SERVER_AUDIT_ERROR=error&&(error.status===401||error.status===403)?'این تاریخچه فقط برای مالک باز است.'
       :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن تاریخچه انجام نشد؛ دوباره تلاش کنید.';
     if(!append) SERVER_AUDIT_ITEMS=[]; SERVER_AUDIT_LOADED=true;
-  }).finally(()=>{SERVER_AUDIT_LOADING=false; if(S.sec==='settings'&&S.setG==='security') renderBody()});
+  }).finally(()=>{SERVER_AUDIT_LOADING=false; if((S.sec==='settings'&&S.setG==='security')||(S.sec==='users'&&S.uV==='tools'&&S.uTool==='log')) renderBody()});
 }
 async function dataLoad(){
   if(DATA_LOADING) return;
@@ -8713,12 +8737,227 @@ function serverSettingsView(){
     <div class="admfilters" role="tablist" aria-label="ماژول‌های تنظیمات">${tabs}</div></section>
     ${content}${routes}</div>`;
 }
+/* ══ بازیابی پنل (مرحلهٔ A): زیرماژول‌های طراحی که فقط در حالت نمونه دیده می‌شدند،
+   این‌جا روی همان مسیر دادهٔ سرور (NORA_SERVER_API) و با همان مجوزهای backend/roles.py
+   داخل همان چهار بخش بالا رندر می‌شوند. هیچ دادهٔ data.js در این بخش خوانده نمی‌شود؛
+   ماژولی که API یا قاعدهٔ کسب‌وکار ندارد با دلیل دقیق «در دست ساخت / نیازمند سرویس» می‌ماند. */
+const JMONTHS_FA=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const DASHX={loading:false,loaded:false,error:'',inbox:null,upcoming:null,sched:null,audit:null,notif:null,at:0,view:''};
+const dashxCan=()=>({inbox:canUseSharedInbox(),events:canSec('events'),sched:canPerm('ev_publish')||isOwner(),audit:isOwner(),notif:canPerm('rp_view')});
+async function dashxLoad(manual){
+  if(IS_TEST||!SERVER_AUTH||DASHX.loading) return; if(DASHX.loaded&&!manual) return;
+  const api=window.NORA_SERVER_API;
+  if(!api){DASHX.error='رابط سرور در دسترس نیست.'; DASHX.loaded=true; if(S.sec==='dash') renderBody(); return}
+  DASHX.loading=true; DASHX.error=''; if(S.sec==='dash') renderBody();
+  const can=dashxCan(), failed=[];
+  const pull=async(ok,method,args,key,label)=>{
+    if(!ok||typeof api[method]!=='function'){DASHX[key]=null; return}
+    try{DASHX[key]=await api[method].apply(api,args)}catch(error){DASHX[key]=null; failed.push(label)}
+  };
+  await Promise.all([
+    pull(can.inbox,'listAdminInbox',[20,0,'pending'],'inbox','کارتابل'),
+    pull(can.events,'listAdminContent',['events',{status:'published',sort:'date',order:'asc',limit:20}],'upcoming','رویدادها'),
+    pull(can.sched,'getScheduledPublish',[],'sched','انتشار زمان‌بندی‌شده'),
+    pull(can.audit,'listAuditEvents',[7,0,''],'audit','تاریخچهٔ عملیات'),
+    pull(can.notif,'listAdminNotifications',[{limit:1}],'notif','اعلان‌ها')
+  ]);
+  DASHX.error=failed.length?'بخشی از داده‌های داشبورد از سرور دریافت نشد: '+failed.join('، ')+'.':'';
+  DASHX.loading=false; DASHX.loaded=true; DASHX.at=Date.now();
+  if(S.sec==='dash') renderBody();
+}
+/* تاریخ جلالی سمت مرورگر؛ ادعای همگام‌سازی با اینترنت نمی‌شود */
+function dashxDateBar(){
+  const n=jNow(), monthName=JMONTHS_FA[n.jm-1]||'';
+  let when=''; if(DASHX.at){try{when=new Date(DASHX.at).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit'})}catch(e){when=''}}
+  return `<section class="card" data-dashx-bar><div class="row" style="flex-wrap:wrap;gap:8px">
+    <span class="ic">${ico('i-calendar')}</span><div><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b>
+    <small class="cap" style="display:block">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 180px"></span>
+    ${when?`<small class="cap">آخرین بازخوانی ${esc(when)}</small>`:''}
+    <button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی داشبورد'}</button>
+    <button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></div></section>`;
+}
+/* کارهای در انتظار: فقط شمارش‌هایی که endpoint واقعی دارند؛ هر ردیف به همان ماژول می‌رود */
+function dashxQueueCard(){
+  const can=dashxCan(); const rows=[];
+  const n=v=>Number.isSafeInteger(Number(v))&&Number(v)>=0?Number(v):null;
+  const row=(label,count,hint,attrs,warn)=>rows.push(`<div class="admlirow"><span class="ic">${ico(warn&&count?'i-flag':'i-check')}</span>
+    <span class="sp" style="flex:1 1 180px"><b>${esc(label)}</b><small class="cap">${esc(hint)}</small></span>
+    <b dir="ltr" style="font-weight:700">${count===null?'؟':esc(fa(count))}</b>${attrs?`<button class="btn sm quiet" ${attrs}>${ico('i-chev-left')}</button>`:''}</div>`);
+  if(can.inbox){const d=DASHX.inbox; const c=d&&Array.isArray(d.items)?d.items.length:null;
+    row('درخواست‌های کارتابل (پروفایل و فیش)',c===null?null:(d.has_more?c+'+':c),'منتظر تصمیم در کارتابل مشترک','data-open-workflow-inbox data-dashx-go="users"',true)}
+  if(eiCanMod()){const s=EI.summary;
+    row('پرسش‌های بی‌پاسخ',s?n(s.unanswered_questions):null,'پرسش‌وپاسخ صفحهٔ رویدادها','data-ei-open-all="questions"',true);
+    row('دیدگاه‌های در انتظار',s?n(s.pending_reviews):null,'دیدگاه شرکت‌کنندگان تأییدشده','data-ei-open-all="questions"',false);
+    row('گزارش‌های باز',s?n(s.open_reports):null,'گزارش تخلف روی پرسش و دیدگاه','data-ei-open-all="reports"',true)}
+  if(recCanOrders()){const r=REC.summary; row('سفارش‌های ضبط‌شده در بررسی',r?n(r.orders_review):null,'رسید بانکی رسیده، منتظر تصمیم','data-ei-open-all="orders"',true)}
+  if(can.notif){const c=DASHX.notif&&DASHX.notif.counts; row('اعلان‌های ناموفق',c?n(c.failed):null,'صف تحویل ربات؛ تلاش دوباره از صندوق خروجی','data-dashx-outbox',true);
+    row('اعلان‌های در صف',c?n(c.queued):null,'هنوز تحویل نشده؛ صف ≠ تحویل','data-dashx-outbox',false)}
+  if(can.sched){const p=DASHX.sched&&DASHX.sched.pending; row('انتشار زمان‌بندی‌شدهٔ معوق',p?n(p.due_unannounced):null,'سررسیده اما اعلام‌نشده؛ اجرای زمان‌بند لازم است','data-dashx-sched',true)}
+  if(!rows.length) return '';
+  const state=DASHX.loading?'<p class="cap">در حال خواندن صف کارها از سرور…</p>':DASHX.error?`<div class="empty"><p class="cap">${esc(DASHX.error)}</p>${btn('تلاش دوباره','data-dashx-refresh','i-refresh')}</div>`:'';
+  return `<section class="card stack" data-dashx-queue><div class="row"><div class="head">کارهای در انتظار</div><span class="sp" style="flex:1 1 180px"></span>${tag('شمارش زندهٔ سرور','ok')}</div>
+    <div class="admlist">${rows.join('')}</div>${state}
+    <p class="cap">«؟» یعنی این شمارش هنوز از سرور نرسیده یا مجوز آن برای حساب شما فعال نیست؛ عدد نمونه جایگزین نمی‌شود.</p></section>`;
+}
+/* رویدادهای پیش رو از /api/admin/content/events (status=published) با زمان سرور */
+function dashxUpcomingCard(){
+  if(!canSec('events')) return '';
+  const d=DASHX.upcoming; const now=Date.parse(d&&d.server_now||'')||Date.now();
+  const items=d&&Array.isArray(d.items)?d.items.filter(e=>e&&!e.past&&(!e.startsAt||Date.parse(e.startsAt)>=now-3600e3)).slice(0,5):[];
+  const rows=items.map(e=>`<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
+    <span class="sp" style="flex:1 1 180px"><b>${esc(e.t||e.id)}</b><small class="cap">${esc([e.on||e.when,e.time,e.place,e.mode].filter(Boolean).join(' · '))}</small></span>
+    ${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
+    <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events">${ico('i-pen')}</button></div>`).join('');
+  const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
+  return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور','ok')}
+      <button class="btn sm quiet" data-sec="events">همهٔ رویدادها</button></div>
+    ${rows?`<div class="admlist">${rows}</div>`:''}${state}</section>`;
+}
+function dashxSchedCard(){
+  if(!dashxCan().sched||!DASHX.sched) return '';
+  const s=DASHX.sched, last=s.last_run||null, p=s.pending||{};
+  return `<section class="card stack" data-dashx-sched-card><div class="row"><div class="head">انتشار زمان‌بندی‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag(last&&last.ok===false?'آخرین اجرا ناموفق':'از API سرور',last&&last.ok===false?'warn':'ok')}</div>
+    <div class="kpis dash-kpis">
+      <div class="kpi"><small class="cap">در صف آینده</small><b>${esc(fa(Number(p.future)||0))}</b></div>
+      <div class="kpi"><small class="cap">سررسیده، اعلام‌نشده</small><b>${esc(fa(Number(p.due_unannounced)||0))}</b></div>
+      <div class="kpi"><small class="cap">آخرین اجرا</small><b style="font-size:.9em">${esc(last&&last.at?svcWhen(last.at):'ثبت نشده')}</b></div></div>
+    <p class="cap">${esc(typeof s.runner==='string'?s.runner:s.runner&&typeof s.runner==='object'?[s.runner.interval_hint,s.runner.manual].filter(Boolean).join(' · '):'')}</p></section>`;
+}
+function dashxAuditCard(){
+  if(!isOwner()) return '';
+  const d=DASHX.audit, items=d&&Array.isArray(d.items)?d.items:[];
+  const rows=items.map(ev=>`<div class="admlirow"><span class="ic">${ico('i-shield')}</span><span class="sp" style="flex:1 1 180px"><b dir="ltr" style="font-weight:600">${esc(ev.action||'')}</b>
+    <small class="cap">${esc((ev.actor_kind==='owner'?'مالک':ev.actor_role==='manager'?'مدیر':ev.actor_role==='club-supervisor'?'سرپرست باشگاه':'حساب')+' · '+(svcWhen(ev.created_at)||''))}</small></span>
+    ${ev.target_type?`<small class="cap" dir="ltr">${esc(ev.target_type)}</small>`:''}</div>`).join('');
+  return `<section class="card stack" data-dashx-audit><div class="row"><div class="head">آخرین عملیات ثبت‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag('فقط مالک','ok')}
+      <button class="btn sm quiet" data-dashx-audit-all>تاریخچهٔ کامل</button></div>
+    ${DASHX.loading&&!d?'<p class="cap">در حال خواندن تاریخچه…</p>':rows?`<div class="admlist">${rows}</div>`:emptyBox('هنوز عملیاتی در تاریخچهٔ سرور ثبت نشده است.')}</section>`;
+}
+/* ── نقشهٔ امکانات پنل: ثبت ایستا از ماتریس بازیابی؛ وضعیت هر ردیف از مجوز سروری حساب جاری ── */
+const PANEL_MODULES=[
+  ['dash','داشبورد','شمارش‌ها، کارهای در انتظار، رویدادهای پیش رو، سلامت سرور','server',()=>true,'data-sec="dash"'],
+  ['events','فهرست رویدادها و مطالب (جست‌وجو، فیلتر، صفحه‌بندی)','/api/admin/content/{kind}','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','ویرایشگر محتوا، پوستر، پیش‌نمایش و چرخهٔ انتشار (پیش‌نویس/انتشار/توقف/بایگانی)','/api/admin/content/{kind}/{id}, /status','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','پیوند فرم ثبت‌نام به رویداد و حالت ثبت‌نام','فرم‌ساز سروری (/api/forms) + فیلد ev','server',()=>canSec('events'),'data-sec="forms"'],
+  ['events','منابع، ضبط‌شده و فروش، پرسش‌وپاسخ، دیدگاه‌ها، گزارش‌ها، سفارش‌ها','/api/admin/events/{id}/…','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','زبانهٔ حضور و گواهی از کارت رویداد','/api/admin/attendance/forms, /api/admin/certificates','server',()=>canPerm('attendance')||canPerm('certificate'),'data-sec="events"'],
+  ['events','نسخه‌های قبلی محتوا (تاریخچهٔ ویرایش)','فقط expected_version و تعارض نسخه در API هست؛ ذخیرهٔ نسخه‌های قبلی ندارد','blocked',()=>canSec('events'),''],
+  ['events','نظرسنجی پس از رویداد','فرم نظرسنجی باید از فرم‌ساز ساخته و به رویداد پیوند شود؛ موتور جداگانه ندارد','external',()=>canSec('events'),'data-sec="forms"'],
+  ['events','یادآوری دستی به ثبت‌نام‌کنندگان','فقط اعلان‌های سیستمی صف می‌شوند؛ API ارسال دستی به گروه وجود ندارد','blocked',()=>canSec('events'),''],
+  ['users','فهرست کاربران، جست‌وجو، فیلتر نقش/ورود، پروندهٔ کاربر با ثبت‌نام‌ها و درخواست‌ها','/api/admin/users, /api/admin/users/{id}','server',()=>canPerm('us_view'),'data-sec="users"'],
+  ['users','کارتابل مشترک (پروفایل و فیش) و تاریخچهٔ تصمیم‌ها','/api/admin/inbox, /decision','server',()=>canUseSharedInbox(),'data-open-workflow-inbox'],
+  ['users','صندوق خروجی اعلان‌ها (صف/تحویل/ناموفق/تلاش دوباره)','/api/admin/notifications, /retry','server',()=>canPerm('rp_view'),'data-dashx-outbox'],
+  ['users','حضور و غیاب بلیت‌های سرور (ثبت و بازگشت با دلیل)','/api/admin/attendance/…','server',()=>canPerm('attendance'),'data-open-attendance'],
+  ['users','گواهی‌های صادرشدهٔ ربات (جست‌وجو، جزئیات، ابطال با مجوز)','/api/admin/certificates','server',()=>canPerm('certificate'),'data-open-cert'],
+  ['users','امتیاز باشگاه (آینهٔ خواندنی دفترکل ربات)','/api/admin/club/points, /members','server',()=>isOwner()||canPerm('cl_member'),'data-open-club'],
+  ['users','حساب‌ها و نقش‌ها، اعتبارنامهٔ مدیر','/api/owner/accounts (فقط مالک)','server',()=>isOwner(),'data-server-role-module'],
+  ['users','گزارش‌های دوره‌ای سرور','/api/admin/reports/summary','server',()=>canPerm('rp_view'),'data-user-hub="reports"'],
+  ['users','تاریخچهٔ عملیات (لاگ)','/api/owner/audit (فقط مالک)','server',()=>isOwner(),'data-dashx-audit-all'],
+  ['users','برچسب و یادداشت روی کاربر، فهرست مسدودها، افزودن دستی، ورودی اکسل','ستون/جدول و API ندارد؛ افزودن آن نیازمند تصمیم مدل داده است','blocked',()=>canPerm('us_view'),''],
+  ['users','مناسبت‌ها، دستاوردها، فروشگاه امتیاز، درخواست امتیاز، باشگاه کتاب','قاعدهٔ امتیاز و دفترکل فقط در ربات است؛ پنل مسیر نوشتن امتیاز ندارد','blocked',()=>isOwner()||canPerm('cl_member'),''],
+  ['forms','فهرست فرم‌های سرور با وضعیت و شمار پاسخ','/api/forms','server',()=>canSec('forms'),'data-sec="forms"'],
+  ['forms','ساخت و ویرایش فرم (create.html) و پاسخ‌ها/گزارش (builder.html)','فرم‌ساز سروری؛ منبع حقیقت ثبت‌نام و خرید','server',()=>canSec('forms'),'data-sec="forms"'],
+  ['forms','خروجی اکسل/CSV پاسخ‌ها','endpoint خروجی در مرحلهٔ B اضافه می‌شود؛ تا آن زمان دکمهٔ دانلود نمایش داده نمی‌شود','blocked',()=>canPerm('fm_responses'),''],
+  ['settings','اتصال سرویس‌ها و آزمایش اتصال، دامنه و راه‌اندازی، داده‌ها و مهاجرت، امنیت و دسترسی‌ها، محتوای عمومی و همکاری، سلامت','/api/owner/… (فقط مالک)','server',()=>isOwner(),'data-sec="settings"'],
+  ['settings','پوسته و ظاهر، تنظیمات فرم، گفت‌وگوی پشتیبانی داخل پنل','API و مدل داده ندارد؛ در حالت نمونه فقط در مرورگر ذخیره می‌شد','blocked',()=>isOwner(),''],
+  ['settings','قالب پیام‌ها و اعلان‌ها','متن اعلان‌ها در سرور ثابت است؛ ویرایش قالب نیازمند جدول و API است','blocked',()=>isOwner(),''],
+  ['settings','نورا پی / دفترکل مالی','فقط رسید فرم‌ساز و سفارش ضبط‌شده در سرور وجود دارد؛ درگاه و دفترکل جداگانه ندارد','blocked',()=>isOwner()||canPerm('finance'),'']
+];
+function panelModuleMapView(){
+  const groups=[['dash','داشبورد'],['events','رویدادها و مطالب'],['users','کاربران، کارتابل و گزارش'],['forms','فرم‌ها'],['settings','تنظیمات']];
+  const stateTag=(st,allowed)=>!allowed?tag('بدون مجوز این حساب','warn'):st==='server'?tag('متصل به سرور','ok'):st==='external'?tag('از مسیر موجود',''):tag('نیازمند سرویس','warn');
+  const sections=groups.map(([k,title])=>{
+    const rows=PANEL_MODULES.filter(m=>m[0]===k).map(([,name,source,st,can,attrs])=>{const allowed=!!can();
+      return `<div class="admlirow"><span class="ic">${ico(st==='server'?'i-check':'i-info')}</span>
+        <span class="sp" style="flex:1 1 180px"><b>${esc(name)}</b><small class="cap" ${/^\//.test(source)?'dir="ltr" style="text-align:start"':''}>${esc(source)}</small></span>${stateTag(st,allowed)}
+        ${allowed&&attrs&&st!=='blocked'?`<button class="btn sm quiet" ${attrs} data-dashx-leave-map>${ico('i-chev-left')}</button>`:''}</div>`}).join('');
+    return rows?`<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist">${rows}</div></section>`:''}).join('');
+  return `<div class="stack" data-panel-map>
+    <section class="card stack"><div class="row"><button class="btn sm quiet" data-dashx-leave-map>${ico('i-back')}بازگشت به داشبورد</button><div class="head">نقشهٔ امکانات پنل</div><span class="sp" style="flex:1 1 180px"></span>${tag('وضعیت از مجوز سروری','ok')}</div>
+      <p class="cap">هر ردیف می‌گوید آن امکان به کدام API وصل است یا چرا هنوز ساخته نشده. «متصل به سرور» یعنی داده و مجوز از backend می‌آید؛ «نیازمند سرویس» یعنی endpoint یا قاعدهٔ کسب‌وکار وجود ندارد و در این پنل با دادهٔ نمونه جایگزین نمی‌شود.</p></section>
+    ${sections}</div>`;
+}
+/* ── فرم‌ها: فهرست سروری داخل همان پنل؛ ویرایش/پاسخ‌ها به مرکز فرم‌ساز موجود می‌روند (ویرایشگر دوم ساخته نمی‌شود) ── */
+const FORMS_SRV={data:null,loading:false,loaded:false,error:'',q:'',status:'',offset:0,limit:20};
+async function fsLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listForms!=='function'){FORMS_SRV.error='رابط فرم‌ساز سروری در دسترس نیست.'; FORMS_SRV.loaded=true; renderBody(); return}
+  FORMS_SRV.loading=true; FORMS_SRV.error=''; renderBody();
+  try{const result=await api.listForms(); FORMS_SRV.data=result&&Array.isArray(result.items)?result:{items:[]}}
+  catch(error){FORMS_SRV.data=null; FORMS_SRV.error=p2Err(error,'فهرست فرم‌ها از سرور دریافت نشد.')}
+  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms') renderBody()}
+}
+const FS_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],closed:['بسته','stop'],archived:['بایگانی','stop']};
+const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};
+function fsRows(){
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const q=FORMS_SRV.q.trim().toLowerCase();
+  return items.filter(f=>!FORMS_SRV.status||String(f.status||'draft')===FORMS_SRV.status)
+    .filter(f=>!q||String(f.name||'').toLowerCase().includes(q)||String(f.id||'').toLowerCase().includes(q)||String(f.ev||'').toLowerCase().includes(q));
+}
+function serverFormsView(){
+  if(!canSec('forms')) return serverUnavailableModule('فرم‌ها','مجوز ساخت فرم یا مشاهدهٔ پاسخ‌ها برای این حساب فعال نیست.');
+  const all=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const counts=all.reduce((acc,f)=>{const k=String(f.status||'draft'); acc[k]=(acc[k]||0)+1; return acc},{});
+  const rows=fsRows(), total=rows.length, page=rows.slice(FORMS_SRV.offset,FORMS_SRV.offset+FORMS_SRV.limit);
+  const chips=[['','همه',all.length]].concat(Object.keys(FS_STATUS).filter(k=>counts[k]).map(k=>[k,FS_STATUS[k][0],counts[k]]))
+    .map(([k,l,c])=>`<button class="chip ${FORMS_SRV.status===k?'on':''}" data-fs-status="${k}">${esc(l)} <span class="bd">${esc(fa(c))}</span></button>`).join('');
+  const list=page.map(f=>{const st=FS_STATUS[String(f.status||'draft')]||[String(f.status||''),'']; const id=encodeURIComponent(String(f.id||''));
+    const meta=[FS_PURPOSE[f.purpose]||f.purpose||'',f.model?('مدل '+f.model):'',f.ev?('رویداد '+f.ev):'',f.recording_id?'محتوای ضبط‌شده':'',f.updated_at?('به‌روزرسانی '+svcWhen(f.updated_at)):''].filter(Boolean).join(' · ');
+    const published=String(f.status||'')==='published';
+    return `<div class="admlirow" data-fs-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span>
+      <span class="sp" style="flex:1 1 180px"><b>${esc(f.name||'بدون نام')}</b><small class="cap">${esc(meta)}</small></span>
+      ${tag(st[0],st[1])}<span class="mini" style="text-align:end"><b dir="ltr" style="font-weight:700">${esc(fa(Number(f.response_count)||0))}</b><small class="cap">پاسخ</small></span>
+      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}
+      ${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها و گزارش">${ico('i-inbox')}</a>`:''}
+      ${published?`<a class="btn sm quiet" href="form.html?fid=${id}&kind=${encodeURIComponent(String(f.need||'reg'))}" target="_blank" rel="noopener" title="صفحهٔ عمومی فرم">${ico('i-eye')}</a>`:''}</span></div>`}).join('');
+  const state=FORMS_SRV.loading?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن فرم‌ها از سرور…</p></div>`
+    :FORMS_SRV.error?`<div class="empty"><p class="cap">${esc(FORMS_SRV.error)}</p>${btn('تلاش دوباره','data-fs-refresh','i-refresh')}</div>`
+    :!FORMS_SRV.loaded?'':!all.length?emptyBox('هنوز فرمی در فرم‌ساز سروری ساخته نشده است.'):!rows.length?emptyBox('فرمی با این فیلتر پیدا نشد.'):'';
+  return `<div class="stack" data-forms-panel>
+    <section class="card stack"><div class="row" style="flex-wrap:wrap;gap:8px"><span class="ic">${ico('i-doc')}</span><div class="head">فرم‌های سرور</div>${tag('منبع حقیقت ثبت‌نام و خرید','ok')}<span class="sp" style="flex:1 1 180px"></span>
+      ${canPerm('fm_create')?`<a class="btn sm primary" href="create.html">${ico('i-plus')}فرم تازه</a>`:''}<a class="btn sm quiet" href="builder.html">${ico('i-chart')}مرکز فرم‌ساز و پاسخ‌ها</a>${btn('بازخوانی','data-fs-refresh','i-refresh')}</div>
+      <p class="cap">فهرست از <span dir="ltr">/api/forms</span> خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد و خروجی اکسل تا افزوده‌شدن endpoint واقعی نمایش داده نمی‌شود.</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="fsQuery" placeholder="جست‌وجوی نام، شناسه یا رویداد" value="${esc(FORMS_SRV.q)}" style="max-width:320px">${btn('جست‌وجو','data-fs-search','i-search')}</div>
+      <div class="admfilters">${chips}</div>
+      ${list?`<div class="admlist">${list}</div>`:''}${state}
+      ${p2Pager(total,FORMS_SRV.offset,FORMS_SRV.limit,'data-fs-page="prev"','data-fs-page="next"')}
+    </section></div>`;
+}
+/* ── ابزارهای کاربران در حالت سرور: زبانه‌های طراحی روی ماژول‌های سروری موجود؛ زبانهٔ بدون API با دلیل دقیق ── */
+const SERVER_TOOL_TABS=[['report','گزارش کاربران',()=>canPerm('rp_view')],['staff','مدیریت نقش‌ها و حساب‌ها',()=>isOwner()],['inbox','صندوق خروجی اعلان‌ها',()=>canPerm('rp_view')],
+  ['log','تاریخچهٔ عملیات',()=>isOwner()],['perms','نقشهٔ مجوزهای این حساب',()=>true],['par','پارامتر پروفایل',()=>canPerm('us_view')],['add','افزودن دستی',()=>canPerm('us_view')],
+  ['imp','ورودی اکسل',()=>canPerm('us_view')],['tags','برچسب‌ها',()=>canPerm('us_view')],['blocked','مسدودها',()=>canPerm('us_view')]];
+const SERVER_TOOL_BLOCKED={
+  par:'فیلدهای پروفایل در سرور ثابت و در /api/admin/users خوانده می‌شوند؛ تعریف پارامتر دلخواه نیازمند جدول و API است.',
+  add:'حساب فقط با ورود واقعی (بله یا مدیر) ساخته می‌شود؛ ساخت دستی حساب بدون احراز هویت، قاعدهٔ پیوند هویت را می‌شکند.',
+  imp:'ورودی اکسل به پایگاه مشترک endpoint ندارد و با قاعدهٔ «بدون ادغام خودکار رکوردها» سازگار نیست.',
+  tags:'ستون برچسب و یادداشت روی حساب در مدل داده نیست؛ افزودن آن نیازمند مهاجرت و API است.',
+  blocked:'وضعیت مسدودی حساب در مدل داده نیست؛ محدودسازی فعلاً فقط با نقش و مجوز انجام می‌شود.'};
+function serverPermissionMapView(){
+  const perms=SERVER_AUTH&&Array.isArray(SERVER_AUTH.permissions)?SERVER_AUTH.permissions.slice().sort():[];
+  const rows=(typeof PROWS!=='undefined'?PROWS:[]).map(r=>({k:r[0],n:r[1]||r[0]})).concat((typeof OWNER_PERMS!=='undefined'?OWNER_PERMS:[]).map(r=>({k:r[0],n:(r[1]||r[0])+' (مالک)'})));
+  const known=new Set(rows.map(r=>r.k)); perms.forEach(p=>{if(!known.has(p)) rows.push({k:p,n:p})});
+  return `<section class="card stack" data-perm-map><div class="row"><div class="head">نقشهٔ مجوزهای این حساب</div><span class="sp" style="flex:1 1 180px"></span>${tag(isOwner()?'مالک':'از نشست سرور','ok')}</div>
+    <p class="cap">این فهرست همان مجوزهایی است که سرور برای نشست جاری برگردانده و در هر درخواست دوباره بررسی می‌شود؛ پنهان‌بودن دکمه به‌تنهایی کنترل دسترسی نیست.</p>
+    <div class="admlist">${rows.map(r=>`<div class="admlirow"><span class="ic">${ico(perms.includes(r.k)||isOwner()?'i-check':'i-lock')}</span><span class="sp" style="flex:1 1 180px"><b>${esc(r.n)}</b><small class="cap" dir="ltr" style="text-align:start">${esc(r.k)}</small></span>${perms.includes(r.k)||isOwner()?tag('فعال','ok'):tag('غیرفعال','')}</div>`).join('')}</div></section>`;
+}
+function serverToolsView(){
+  const tabs=SERVER_TOOL_TABS.filter(t=>t[2]());
+  if(!tabs.length) return serverUnavailableModule('ابزارهای کاربران','هیچ‌کدام از ابزارها برای مجوزهای این حساب باز نیست.');
+  const cur=S.uTool||'report', known=SERVER_TOOL_TABS.find(t=>t[0]===cur), allowed=tabs.some(t=>t[0]===cur);
+  const chips=tabs.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-utool="${t[0]}">${esc(t[1])}</button>`).join('');
+  /* زبانهٔ بدون مجوز پنهان یا جابه‌جا نمی‌شود؛ همان پاسخ صریح «فقط با مالک / بدون مجوز» می‌ماند تا با سرور یکی باشد */
+  const denied=cur==='staff'?cUServerStaff():`<section class="card stack">${emptyBox((known?known[1]:'این ابزار')+' برای مجوزهای این حساب باز نیست؛ دسترسی را سرور تعیین می‌کند.')}</section>`;
+  const body=!allowed?denied:cur==='report'?vServerReports():cur==='staff'?cUServerStaff():cur==='inbox'?vServerOutbox():cur==='log'?serverAuditView():cur==='perms'?serverPermissionMapView()
+    :serverUnavailableModule(known?known[1]:cur,SERVER_TOOL_BLOCKED[cur]||'API این زیربخش هنوز فعال نیست.');
+  return `<div class="stack" data-server-tools><section class="card stack"><div class="row">${uBack}<div class="head">ابزارها و گزارش</div></div><div class="admfilters">${chips}</div></section>${body}</div>`;
+}
 function serverBody(){
-  if(S.sec==='dash') return serverDashboard();
+  if(S.sec==='dash') return DASHX.view==='map'?panelModuleMapView():serverDashboard();
   if(S.sec==='events'||S.sec==='newev') return serverContentView();
   if(S.sec==='users') return serverUsersView();
-  if(S.sec==='forms') return `<section class="card stack"><div class="head">مرکز فرم‌ها</div>
-    <p class="cap">تعریف فرم، انتشار و پاسخ‌ها از فرم‌ساز سروری مدیریت می‌شوند.</p><a class="btn primary" href="builder.html">بازکردن فرم‌ساز</a></section>`;
+  if(S.sec==='forms') return serverFormsView();
   if(S.sec==='settings') return serverSettingsView();
   if(S.sec==='cert') return `<div class="stack">${serverCertView()}</div>`;
   return serverUnavailableModule(secOf(S.sec).n,'API مدیریتی این بخش هنوز به پنل متصل نشده است.');
@@ -8798,13 +9037,15 @@ function renderBody(){
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&eiCanMod()&&!EI.summary&&!EI.summaryError&&!EI.summaryLoading){EI.summaryLoading=true; eiLoadSummary()}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&recCanOrders()&&!REC.summary&&!REC.summaryError&&!REC.summaryLoading){REC.summaryLoading=true; recLoadSummary()}
-  if(!IS_TEST&&SERVER_AUTH&&((S.sec==='users'&&S.uHub==='reports')||S.sec==='dash')&&canPerm('rp_view')
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!DASHX.loaded&&!DASHX.loading) dashxLoad(false);
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='forms'&&!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
+  if(!IS_TEST&&SERVER_AUTH&&((S.sec==='users'&&(S.uHub==='reports'||(S.uV==='tools'&&S.uTool==='report')))||S.sec==='dash')&&canPerm('rp_view')
     &&!SERVER_REPORT_LOADING&&!SERVER_REPORT_ERROR
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){
     loadServerReports(false); return;
   }
-  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')&&!SERVER_SCHED.loading&&!SERVER_SCHED.loaded) loadServerSched();
-  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')&&!SERVER_OUTBOX.loading&&!SERVER_OUTBOX.loaded){
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&(S.uHub==='reports'||(S.uV==='tools'&&S.uTool==='report'))&&canPerm('rp_view')&&!SERVER_SCHED.loading&&!SERVER_SCHED.loaded) loadServerSched();
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&((S.uHub==='reports')||(S.uV==='tools'&&S.uTool==='inbox'))&&canPerm('rp_view')&&!SERVER_OUTBOX.loading&&!SERVER_OUTBOX.loaded){
     loadServerOutbox(false); return;
   }
   if(S.uV==='shared-inbox'&&canUseSharedInbox()&&!SERVER_WORKFLOW_LOADING&&!SERVER_WORKFLOW_LOADED){
@@ -8845,7 +9086,7 @@ function sanitize(){
   if(S.sec==='reports'){S.sec='users';S.uHub='reports'}
   if(!['users','reports'].includes(S.uHub)) S.uHub='users';
   if(UCLUBTABS.every(t=>t[0]!==S.uClub)) S.uClub='rules';
-  if(UTOOLTABS.every(t=>t[0]!==S.uTool)) S.uTool='report';
+  if(UTOOLTABS.every(t=>t[0]!==S.uTool)&&S.uTool!=='perms') S.uTool='report';
   if(UPTABS.every(t=>t[0]!==S.uTab)) S.uTab='info';
   /* پروندهٔ سروری کاربر با شناسهٔ حساب (UUID) باز می‌ماند؛ نمونهٔ محلی با memOf سنجیده می‌شود */
   if(S.uV==='user'&&!memOf(S.uSel)&&!(IS_TEST===false&&/^[0-9a-fA-F-]{36}$/.test(String(S.uSel||'')))) S.uV='';
