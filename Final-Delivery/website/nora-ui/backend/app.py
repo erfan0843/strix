@@ -160,6 +160,7 @@ from .seo import (
 from .site_content import (
     CONTENT_KEYS,
     SiteContentError,
+    _public_record as is_public_content_row,
     public_site_content,
     resolve_public_delivery_file,
     NON_PUBLIC_RETAINED_KEYS,
@@ -2338,6 +2339,28 @@ def create_app(
             return _site_content_response(db, {key: [] for key in CONTENT_KEYS}, 0, None, owner_view=True)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
 
+    def _rejected_content_rows(raw_content: Any, accepted: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+        """Rows of the raw payload that the sanitiser did not keep, per category, with the reason."""
+        rejected: dict[str, list[dict[str, Any]]] = {}
+        if not isinstance(raw_content, dict):
+            return rejected
+        for key in CONTENT_KEYS:
+            if key not in accepted or not isinstance(raw_content.get(key), list):
+                continue
+            kept_ids = {str(row.get("id")) for row in accepted[key] if isinstance(row, dict) and row.get("id")}
+            missing: list[dict[str, Any]] = []
+            for index, row in enumerate(raw_content[key]):
+                row_id = str(row.get("id") or "")[:100] if isinstance(row, dict) else ""
+                if row_id and row_id in kept_ids:
+                    continue
+                reason = "invalid_row" if not isinstance(row, dict) else (
+                    "non_public" if not is_public_content_row(row) else "missing_required_fields"
+                )
+                missing.append({"index": index, "id": row_id, "reason": reason})
+            if missing:
+                rejected[key] = missing[:100]
+        return rejected
+
     @app.patch("/api/owner/site-content")
     async def update_owner_site_content(
         request: Request,
@@ -2356,6 +2379,10 @@ def create_app(
             raise HTTPException(422, {"code": str(error)}) from None
         if not incoming:
             raise HTTPException(422, "empty_site_content_update")
+        # H1 (additive diagnostic): the allow-list sanitiser silently skips rows it cannot publish
+        # (missing id/name, hidden/draft flags). Report them back so an editor never mistakes a
+        # dropped row for a saved one; nothing about what is stored changes.
+        rejected_rows = _rejected_content_rows(payload.get("content"), incoming)
         record = db.get(SiteContentRecord, "public")
         current_version = record.version if record else 0
         if expected_version != current_version:
@@ -2386,7 +2413,9 @@ def create_app(
         )
         db.commit()
         db.refresh(record)
-        return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+        result = _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+        result["rejected_rows"] = rejected_rows
+        return result
 
     # ── مدیریت رکوردی رویداد و مطلب روی همان سند site_content ──
     # منبع حقیقت همان سند است؛ این مسیرها فقط چرخهٔ «پیش‌نویس/منتشر/متوقف/بایگانی»
@@ -2821,6 +2850,267 @@ def create_app(
             row["manager_username"] = credential.username_key if credential is not None else None
         row["source"] = "shared_server_database"
         return row
+
+    # ── U4 / U5: پروندهٔ یک حساب — ثبت‌نام‌های صفحه‌بندی‌شده، جزئیات یک پاسخ و اعلان‌های همان حساب ──
+    # همان scope سروری پروندهٔ کاربر (``account_form_record_scope``) و همان جدول اعلان‌ها؛ شناسهٔ
+    # مسیر فقط «کدام حساب» را می‌گوید و مجوز از نشست (``us_view``) می‌آید. پاسخ حساب دیگر → 404.
+    _ADMIN_REGISTRATION_SCOPE_FILTERS = (
+        FormResponseRecord.added_by_response_id.is_(None),
+        FormRecord.model == "registration",
+        FormRecord.purpose == "registration",
+    )
+    # Answers the panel never receives in clear text (same policy as the user directory and the
+    # attendance list: no phone digits, no national id). Everything else is the member's own answer.
+    _ADMIN_ANSWER_MASKED_TYPES = {"mobile": "mobile", "nid": "national_id"}
+    # Notification kinds that are written for *many* accounts at once (fan-out) versus one account's
+    # own decision/transaction. No «global»/«system» broadcast table exists; this is the whole set.
+    _NOTIFICATION_AUDIENCE_KINDS = {notifications_mod.KIND_CONTENT_PUBLISHED}
+
+    def _admin_target_account(db: Session, account_id: str) -> AccountRecord:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        has_login = account is not None and db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.account_id == account_id,
+                PlatformIdentityRecord.provider.in_(("bale", "phone")),
+            ).limit(1)
+        ) is not None
+        if account is None or not has_login:
+            raise HTTPException(404, "user_not_found")
+        return account
+
+    def _admin_registration_summary(
+        record: FormResponseRecord, payment: FormPaymentRecord | None, form_event_id: str | None
+    ) -> dict[str, Any]:
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        event = _json_dict_member(snapshot, "event")
+        form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
+        return {
+            "id": record.id,
+            "form_id": record.form_id,
+            "form_name": form_name,
+            "event_id": str(form_event_id or "")[:120],
+            "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
+            "event_date": _ticket_text(event.get("date") or "", 120),
+            "status": record.status,
+            "payment_status": payment.status if payment is not None else None,
+            "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+            "ticket_checked_in": record.ticket_checked_in_at is not None,
+            "ticket_type": _form_response_ticket_type(record),
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+
+    @app.get("/api/admin/users/{account_id}/registrations")
+    def list_admin_user_registrations(
+        account_id: str,
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """U4 (list): the same rows as ``registration_items`` on the account file, paginated.
+
+        Primary registrations only (companion rows hang off their primary); forms with
+        ``model/purpose = registration``. Scope = the target account's own drafts plus legacy Bale
+        drafts the server has verified for it — never a row that names another account.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        filters = (account_form_record_scope(db, account_id), *_ADMIN_REGISTRATION_SCOPE_FILTERS)
+        total = int(db.scalar(
+            select(func.count(FormResponseRecord.id))
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(*filters)
+        ) or 0)
+        rows = db.execute(
+            select(FormResponseRecord, FormPaymentRecord, FormRecord.event_id)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(*filters)
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(limit + 1)
+            .offset(offset)
+        ).all()
+        return {
+            "source": "shared_server_database",
+            "account_id": account_id,
+            "items": [
+                _admin_registration_summary(record, payment, form_event_id)
+                for record, payment, form_event_id in rows[:limit]
+            ],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(rows) > limit,
+        }
+
+    @app.get("/api/admin/users/{account_id}/registrations/{response_id}")
+    def get_admin_user_registration(
+        account_id: str,
+        response_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """U4 (detail): one registration of *this* account with its labelled answers.
+
+        The response is looked up **inside** the account's scope, so a response id that belongs to
+        someone else is indistinguishable from a missing one (404). Answers are allow-listed by the
+        field list frozen in ``form_snapshot`` (unknown keys are dropped); phone and national-id
+        answers are masked; amounts/transaction ids appear only for a session that holds ``finance``.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", response_id or ""):
+            raise HTTPException(404, "registration_not_found")
+        row = db.execute(
+            select(FormResponseRecord, FormPaymentRecord, FormRecord.event_id)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                FormResponseRecord.id == response_id,
+                account_form_record_scope(db, account_id),
+                *_ADMIN_REGISTRATION_SCOPE_FILTERS,
+            )
+        ).first()
+        if row is None:
+            raise HTTPException(404, "registration_not_found")
+        record, payment, form_event_id = row
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(viewer_role, "finance")
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        answers_raw = record.answers if isinstance(record.answers, dict) else {}
+        answers: list[dict[str, Any]] = []
+        for field in _json_list_member(snapshot, "fields"):
+            if not isinstance(field, dict) or not isinstance(field.get("id"), str):
+                continue
+            field_id = field["id"]
+            field_type = str(field.get("type") or "")
+            value = answers_raw.get(field_id)
+            if value is None or value == "" or value == []:
+                continue
+            masked = _ADMIN_ANSWER_MASKED_TYPES.get(field_type)
+            if masked:
+                text = str(value)
+                answers.append({
+                    "field_id": field_id, "label": _ticket_text(field.get("label") or field_id, 160) or field_id,
+                    "type": field_type, "value": None, "masked": masked,
+                    "hint": text[-4:] if masked == "mobile" and len(text) >= 4 else "",
+                })
+                continue
+            if isinstance(value, (list, tuple)):
+                cleaned: Any = [_ticket_text(item, 4000) for item in value if isinstance(item, (str, int, float))][:100]
+            elif isinstance(value, dict):
+                cleaned = {str(k)[:80]: _ticket_text(v, 4000) for k, v in list(value.items())[:50] if isinstance(v, (str, int, float))}
+            elif isinstance(value, bool):
+                cleaned = value
+            else:
+                cleaned = _ticket_text(value, 4000)
+            answers.append({
+                "field_id": field_id, "label": _ticket_text(field.get("label") or field_id, 160) or field_id,
+                "type": field_type, "value": cleaned, "masked": None,
+            })
+        companions = db.scalars(
+            select(FormResponseRecord)
+            .where(FormResponseRecord.added_by_response_id == record.id)
+            .order_by(FormResponseRecord.companion_index, FormResponseRecord.id)
+            .limit(20)
+        ).all()
+        receipt_task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+        payment_view: dict[str, Any] | None = None
+        if payment is not None:
+            payment_view = {"status": payment.status, "method": payment.method}
+            if with_finance:
+                payment_view.update({
+                    "amount": int(payment.amount), "currency": payment.currency,
+                    "transaction_id": payment.transaction_id or None,
+                })
+        detail = _admin_registration_summary(record, payment, form_event_id)
+        detail.update({
+            "source": "shared_server_database",
+            "account_id": account_id,
+            "response_id": record.id,
+            "form": {"id": record.form_id, "name": detail["form_name"], "version": record.form_version},
+            "event": {"id": detail["event_id"], "title": detail["event_title"], "date": detail["event_date"]} if detail["event_id"] or snapshot.get("event") else None,
+            "registrant_name": _form_ticket_name(record),
+            "answers": answers,
+            "companions": [
+                {
+                    "id": companion.id,
+                    "name": _form_ticket_name(companion),
+                    "status": companion.status,
+                    "ticket_checked_in": companion.ticket_checked_in_at is not None,
+                }
+                for companion in companions
+            ],
+            "payment": payment_view,
+            "finance_visible": with_finance,
+            "receipt": {
+                "uploaded": detail["receipt_uploaded"],
+                "task_id": receipt_task.id if receipt_task is not None else None,
+                "task_status": receipt_task.status if receipt_task is not None else None,
+            },
+            "attendance": {
+                "checked_in": record.ticket_checked_in_at is not None,
+                "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
+                "checked_in_by": _attendance_actor(record),
+            },
+            "updated_at": _as_utc(record.updated_at).isoformat(),
+        })
+        return detail
+
+    @app.get("/api/admin/users/{account_id}/notifications")
+    def list_admin_user_notifications(
+        account_id: str,
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """U5: read-only outbox rows **of this account only** (``user_notifications.account_id``).
+
+        Not the global queue: the filter is the path account, enforced here. Every row in that table
+        is addressed to one account; ``scope`` tells the panel whether the text was written for this
+        account alone (``account``) or fanned out to an audience (``audience``). ``delivery_state``
+        keeps queued ≠ retrying ≠ delivered ≠ failed, and ``no_bale_identity`` stays a distinct,
+        non-network failure. No retry/send action lives on this path.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        total = int(db.scalar(
+            select(func.count(UserNotificationRecord.id)).where(UserNotificationRecord.account_id == account_id)
+        ) or 0)
+        rows = db.scalars(
+            select(UserNotificationRecord)
+            .where(UserNotificationRecord.account_id == account_id)
+            .order_by(UserNotificationRecord.created_at.desc(), UserNotificationRecord.id)
+            .offset(offset)
+            .limit(limit + 1)
+        ).all()
+        items = []
+        for row in rows[:limit]:
+            view = user_notification_view(row)
+            view.pop("bale_user_id", None)
+            view.pop("file_refs", None)
+            view["scope"] = "audience" if row.kind in _NOTIFICATION_AUDIENCE_KINDS else "account"
+            view["has_bale_identity"] = bool(row.bale_user_id)
+            view["source_task_id"] = row.source_task_id
+            items.append(view)
+        return {
+            "source": "shared_server_database",
+            "account_id": account_id,
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(rows) > limit,
+        }
 
     # ── حضور و غیاب: همان ستون‌های check-in بلیت که ربات می‌نویسد ──
     # منبع مشترک: form_responses.ticket_checked_in_*؛ پنل فقط همان رکورد را می‌خواند
