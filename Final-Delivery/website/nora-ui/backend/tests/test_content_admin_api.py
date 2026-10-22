@@ -461,6 +461,11 @@ def test_event_and_article_person_or_partner_references_must_exist_in_the_same_d
             article = post("articles", {"t": "مطلب", "tchr": "pp-teacher-1"})
             assert article.status_code == 200, article.text
             version = article.json()["version"]
+            # Stage 2 (pickers): list summaries carry the reference ids so the panel can show the
+            # linked person/partner state per row without opening every record.
+            listed_event = client.get("/api/admin/content/events").json()["items"][0]
+            assert listed_event["tchr"] == "pp-teacher-1" and listed_event["partnerId"] == "pt-uni-1"
+            assert client.get("/api/admin/content/articles").json()["items"][0]["tchr"] == "pp-teacher-1"
 
             # Editing to an unknown id is refused too (merge path), the stored link survives.
             bad_edit = client.put(

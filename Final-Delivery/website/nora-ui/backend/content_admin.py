@@ -418,6 +418,8 @@ def summary(kind: str, row: dict[str, Any]) -> dict[str, Any]:
                 {"id": _text(item.get("id"), 120, allow_number=False), "n": _text(item.get("n"), 160)}
                 for item in (row.get("forms") or []) if isinstance(item, dict)
             ][:10],
+            "tchr": _text(row.get("tchr"), 100, allow_number=False),
+            "partnerId": _text(row.get("partnerId"), 100, allow_number=False),
         })
     else:
         base.update({
@@ -428,6 +430,7 @@ def summary(kind: str, row: dict[str, Any]) -> dict[str, Any]:
             "pin": bool(row.get("pin")),
             "has_cover": bool(_text(row.get("cov"), 1_500_000, allow_number=False)),
             "paragraphs": len(_text_list(row.get("body"), 100, 8000)),
+            "tchr": _text(row.get("tchr"), 100, allow_number=False),
         })
     return base
 
