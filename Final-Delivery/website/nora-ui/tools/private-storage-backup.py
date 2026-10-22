@@ -74,6 +74,35 @@ def referenced_rows() -> list[tuple[str, str, int | None, str | None]]:
         engine.dispose()
 
 
+def record_marker(key: str, value: dict[str, object]) -> None:
+    """Phase 9.5: remember the last verify/snapshot/restore in ``system_markers`` (read by the health view).
+
+    Best effort and additive: a database that predates migration 0036 simply gets no marker.
+    """
+    from sqlalchemy import text
+
+    from backend.models import SystemMarkerRecord
+
+    engine = create_engine(database_url(), pool_pre_ping=True)
+    try:
+        with Session(engine) as db:
+            try:
+                db.execute(text("SELECT 1 FROM system_markers LIMIT 1"))
+            except Exception:  # noqa: BLE001 - table absent (older schema): skip silently
+                db.rollback()
+                return
+            row = db.get(SystemMarkerRecord, key)
+            stamp = datetime.now(timezone.utc)
+            if row is None:
+                db.add(SystemMarkerRecord(key=key, value=value, updated_at=stamp))
+            else:
+                row.value = value
+                row.updated_at = stamp
+            db.commit()
+    finally:
+        engine.dispose()
+
+
 def list_committed(root: Path) -> dict[str, Path]:
     found: dict[str, Path] = {}
     if not root.is_dir():
@@ -117,6 +146,10 @@ def cmd_verify(args: argparse.Namespace) -> int:
         "note": "orphans/stale parts are listed only; deleting them is a manual, audited operator decision",
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    if not args.no_marker:
+        record_marker("storage_verify", {"ok": not (missing or mismatch), "referenced": len(rows), "missing": len(missing),
+                                         "size_mismatch": len(mismatch), "orphans": len(orphans), "stale_parts": len(stale),
+                                         "hash_checked": bool(args.hash)})
     return 1 if missing or mismatch else 0
 
 
@@ -137,6 +170,8 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
         files[key] = {"size": destination.stat().st_size, "sha256": sha256_of(destination)}
     (target / "MANIFEST.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"snapshot": str(target), "files": len(files)}, ensure_ascii=False))
+    if not args.no_marker:
+        record_marker("storage_snapshot", {"ok": True, "files": len(files), "bytes": int(sum(int(meta["size"]) for meta in files.values()))})
     return 0
 
 
@@ -168,6 +203,8 @@ def cmd_restore(args: argparse.Namespace) -> int:
         os.replace(temp, destination)
         restored.append(key)
     print(json.dumps({"restored": len(restored), "skipped_existing": skipped, "corrupt_in_snapshot": corrupt}, ensure_ascii=False, indent=2))
+    if not args.no_marker:
+        record_marker("storage_restore", {"ok": not corrupt, "restored": len(restored), "skipped_existing": len(skipped), "corrupt": len(corrupt)})
     return 1 if corrupt else 0
 
 
@@ -184,6 +221,8 @@ def main(argv: list[str] | None = None) -> int:
     restore.add_argument("source")
     restore.add_argument("--force", action="store_true", help="overwrite files that already exist in the store")
     restore.set_defaults(func=cmd_restore)
+    for command in (verify, snapshot, restore):
+        command.add_argument("--no-marker", action="store_true", help="do not record the run in system_markers")
     args = parser.parse_args(argv)
     return int(args.func(args))
 

@@ -45,7 +45,7 @@ if str(BACKEND_ROOT.parent) not in sys.path:
 from backend import storage as storage_mod  # noqa: E402
 from backend.app import create_app  # noqa: E402
 from backend.config import UI_ROOT, Settings  # noqa: E402
-from backend.models import Base, EventResourceRecord, RecordingAccessRecord  # noqa: E402
+from backend.models import Base, EventResourceRecord, RecordingAccessRecord, SystemMarkerRecord  # noqa: E402
 from backend.security import hash_password  # noqa: E402
 from test_recordings_api import MP4, build_sellable_product, held_event, purchase_form, set_status  # noqa: E402
 from test_workflows_api import BOT_TOKEN, SERVICE_TOKEN, bale_login, owner_login, owner_write_headers  # noqa: E402
@@ -467,5 +467,22 @@ def test_backup_snapshot_restores_files_that_rows_point_at(tmp_path):
                 owner_login(owner_again)
                 item = owner_again.get(f"/api/admin/events/{event_id}/resources").json()["items"][0]
                 assert item["storage"] == {"backend": "local_disk", "state": "ready"}
+                # Phase 9.5: every tool run leaves a marker that the read-only health view reports
+                # (last verify / snapshot / restore), without paths or secrets.
+                health = owner_again.get("/api/admin/storage/health")
+                assert health.status_code == 200
+                markers = health.json()["markers"]
+                assert markers["storage_verify"]["ok"] is True and markers["storage_verify"]["at"]
+                assert markers["storage_verify"]["orphans"] == 1 and markers["storage_verify"]["stale_parts"] == 0
+                assert markers["storage_snapshot"]["ok"] is True and markers["storage_snapshot"]["files"] == 2  # referenced + orphan (snapshots never drop files)
+                assert markers["storage_restore"]["ok"] is True and markers["storage_restore"]["restored"] == 2
+                assert "scheduled_publish" not in markers
+                assert str(store) not in json.dumps(health.json())
+            # --no-marker leaves the recorded state untouched (operator dry runs).
+            with Session(engine) as db:
+                before = {m.key: m.updated_at for m in db.query(SystemMarkerRecord).all()}
+            assert run_backup_tool("verify", "--no-marker", db_url=db_url, store=store).returncode == 0
+            with Session(engine) as db:
+                assert {m.key: m.updated_at for m in db.query(SystemMarkerRecord).all()} == before
     finally:
         engine.dispose()
