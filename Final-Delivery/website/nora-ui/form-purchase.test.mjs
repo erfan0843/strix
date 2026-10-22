@@ -56,8 +56,8 @@ function api({accessState='none',submitStatus=200,submitPayload=null}={}){
   };
   return {fetch,calls};
 }
-async function load(form,fetchImpl,routeError=''){
-  const html=fs.readFileSync(DIR+'form.html','utf8').replace('<!--nora-public-form-->',safe(form)).replace('<!--nora-public-draft-->',safe(null))
+async function load(form,fetchImpl,routeError='',draftBootstrap=null){
+  const html=fs.readFileSync(DIR+'form.html','utf8').replace('<!--nora-public-form-->',safe(form)).replace('<!--nora-public-draft-->',safe(draftBootstrap))
     .replace('<!--nora-public-route-error-->',routeError?safe(routeError):'');
   const errors=[],url=pathToFileURL(DIR+'form.html').href+'?fid='+FID+'&kind=reg';
   const dom=new JSDOM(html,{url,runScripts:'dangerously',resources:offlineResources,pretendToBeVisual:true,beforeParse(w){
@@ -121,6 +121,31 @@ test('فرم خرید محتوای ضبط‌شده در form.html',async()=>{
     const after=p.doc.querySelector('#purchaseResult');
     ok(after&&!after.hidden&&after.dataset.purchaseState==='review'&&p.txt('#purchaseResult').includes('فقط پس از تأیید بازبین'),'پس از رسید: «در انتظار بررسی» و تصریح این‌که رسید به‌تنهایی دسترسی نمی‌دهد');
     ok(!p.doc.querySelector('[data-purchase-view]')&&p.doc.querySelector('[data-purchase-orders]').getAttribute('href')==='account.html#payments','بدون دکمهٔ «مشاهدهٔ محتوا»؛ پیگیری از «سفارش‌ها و پرداخت‌ها»');
+    p.dom.window.close();
+  }
+  console.log('\n— بازگشت/reload با همان کوکی در awaiting_receipt: کارت بارگذاری رسید باید نمایان باشد (9.7-پ) —');
+  for(const bootstrap of [true,false]){
+    const reloadApi=api();
+    /* همان وضعیت سرور پس از ثبت پاسخ با کارت‌به‌کارت و پیش از بارگذاری رسید */
+    const pending={payment_id:'pay-1',method:'card_transfer',status:'awaiting_receipt',amount:1500000,currency:'IRR',invoice_url:'',expires_at:'',
+      selection:{items:[{index:0,name:'دسترسی به ضبط',amount:1500000}],party_count:1,coupon_code:'',coupon_percent:0}};
+    const savedDraft={answers:{'full-name':'خریدار آزمایشی'},companions:[],submitted:true,status:'accepted',form_version:1,tracking_code:'F000000001',receipt_uploaded:false,payment_intent:pending};
+    const baseFetch=reloadApi.fetch;
+    const fetchWithDraft=async(path,init={})=>{
+      const method=String(init.method||'GET').toUpperCase();
+      if(path==='/api/public/forms/'+FID+'/draft'&&method==='GET'){reloadApi.calls.push({path,method,body:null});return {ok:true,status:200,json:async()=>savedDraft}}
+      if(path==='/api/public/forms/'+FID+'/payment-intents/pay-1'){reloadApi.calls.push({path,method,body:null});return {ok:true,status:200,json:async()=>({...pending,response_status:'accepted',receipt_uploaded:false,tracking_code:'F000000001',ticket_type:null})}}
+      return baseFetch(path,init);
+    };
+    const p=await load(purchaseForm({signedIn:true}),fetchWithDraft,'',bootstrap?savedDraft:null);
+    await wait(400);
+    const label=bootstrap?'bootstrap سروری':'بازیابی با GET /draft';
+    ok(p.errors.length===0,'بدون خطای JavaScript ('+label+')'+(p.errors.length?': '+p.errors[0]:''));
+    ok(p.visible().join()==='u11','پس از reload گام رسید (u11) باز می‌شود ('+label+')');
+    const box=p.doc.querySelector('#serverReceiptUpload');
+    ok(box&&box.hidden===false,'کارت بارگذاری رسید نمایان است، نه فقط دکمهٔ «ثبت فیش» ('+label+')');
+    ok(p.doc.querySelector('#serverReceiptReview').hidden===true&&p.doc.querySelector('#serverTicketPreview').hidden===true,'بدون پیام «در صف بررسی» و بدون پیش‌نمایش بلیت پیش از بارگذاری رسید ('+label+')');
+    ok(!reloadApi.calls.some(c=>c.method==='POST'&&c.path.endsWith('/responses')),'reload پاسخ/سفارش دوباره نمی‌سازد ('+label+')');
     p.dom.window.close();
   }
   console.log('\n— دسترسی فعال: فرم دوباره خرید نمی‌گیرد —');

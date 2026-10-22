@@ -1034,6 +1034,12 @@ function purchaseErrorText(error){
   if(code==='account_required'||error&&error.status===401&&code!=='response_draft_required')return 'برای خرید باید وارد حساب نورا شوی؛ پس از ورود، همین فرم را دوباره باز کن.';
   if(code==='recording_not_on_sale')return 'این محتوا الان در فروش نیست؛ وضعیت واقعی را در صفحهٔ رویداد ببین.';
   if(code==='access_already_active')return 'دسترسی شما به این محتوا هم‌اکنون فعال است؛ از صفحهٔ رویداد آن را ببین.';
+  if(code==='purchase_order_pending'){
+    const st=detail&&typeof detail==='object'?String(detail.order_status||''):'';
+    return st==='receipt_submitted'||st==='needs_review'
+      ?'برای این محتوا با همین حساب یک سفارش در انتظار بازبینی رسید دارید؛ سفارش دوم ثبت نمی‌شود. نتیجهٔ بازبینی از صفحهٔ رویداد و حساب شما قابل پیگیری است.'
+      :'برای این محتوا با همین حساب یک سفارش باز دارید (در انتظار پرداخت یا رسید)؛ همان سفارش را از همان دستگاه/حساب ادامه دهید. سفارش دوم ثبت نمی‌شود.';
+  }
   return '';
 }
 (function(){
@@ -1853,7 +1859,9 @@ function renderServerTicketPreview(){
     &&method!=='bale_wallet'&&paymentStatus!=='paid_manual';
   const code=String(response.trackingCode||'');
   if(trackingRow){trackingRow.hidden=!eligible||!code;if(trackingCode)trackingCode.textContent=eligible?code:''}
-  if(receiptBox)receiptBox.hidden=!(eligible&&receiptRequired&&!receiptUploaded&&method==='card_transfer');
+  /* نمایش کارت بارگذاری رسید فقط در renderReceiptStep تصمیم‌گیری می‌شود؛ این تابع (پیش‌نمایش بلیت) پیش‌تر آن را برای فرم خرید
+     و وضعیت awaiting_receipt پنهان می‌کرد و پس از reload گام رسید خالی می‌ماند (یافتهٔ 9.7-پ). */
+  if(receiptBox)renderReceiptStep();
   card.hidden=!eligible||needsReceipt;
   if(!eligible||needsReceipt){
     link.hidden=true;link.removeAttribute('href');message.hidden=true;message.textContent='';

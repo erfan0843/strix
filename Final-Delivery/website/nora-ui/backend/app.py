@@ -5378,6 +5378,29 @@ def create_app(
             raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
         return identity
 
+    def _reject_duplicate_purchase_order(
+        db: Session, recording: EventRecordingRecord, account_id: str | None, *, own_response_id: str | None = None,
+    ) -> None:
+        """One open purchase order per account and product (server-side, independent of the browser cookie).
+
+        A second device/cookie of the same signed-in account must resume the pending order
+        (``pending``/``awaiting_receipt``/``receipt_submitted``/``needs_review``) instead of
+        creating a parallel response + ledger row that staff would have to reconcile by hand.
+        The caller's own response (resubmit of the same draft) is never counted as a duplicate.
+        """
+        if not account_id:
+            return
+        open_order = recordings_mod.open_order_for(db, recording.id, account_id)
+        if open_order is None or (own_response_id and open_order.form_response_id == own_response_id):
+            return
+        raise HTTPException(409, detail={
+            "code": "purchase_order_pending",
+            "recording_id": recording.id,
+            "order_status": open_order.status,
+            "response_id": open_order.form_response_id,
+            "message": "برای این محصول یک سفارش باز با همین حساب ثبت شده است؛ همان سفارش را ادامه دهید یا منتظر بازبینی بمانید.",
+        })
+
     def _public_purchase_header(db: Session, request: Request, form: FormRecord) -> dict[str, Any]:
         """The purchase header of form.html: product, server price and the caller's real access state."""
         identity = account_identity_from_request(request, db)
@@ -10001,6 +10024,7 @@ def create_app(
             current_access = recordings_mod.access_for(db, purchase_recording.id, draft.account_id)
             if recordings_mod.access_state(current_access, _utc_now()) == "active":
                 raise HTTPException(409, detail={"code": "access_already_active", "recording_id": purchase_recording.id})
+            _reject_duplicate_purchase_order(db, purchase_recording, draft.account_id)
         if db.scalar(select(FormResponseRecord.id).where(FormResponseRecord.draft_id == draft.id)):
             raise HTTPException(409, detail={"code": "response_already_submitted"})
         answers, submitted = draft_answers(db, draft)
@@ -11511,6 +11535,10 @@ def create_app(
                 "registrants_count": 1 + len(normalized_companions),
                 "message": "پاسخ این نشست قبلاً ثبت شده است.",
             }
+        if purchase_recording is not None:
+            _reject_duplicate_purchase_order(
+                db, purchase_recording, draft.account_id, own_response_id=existing.id if existing is not None else None,
+            )
         pending_intents = db.scalars(
             select(FormPaymentRecord)
             .where(
