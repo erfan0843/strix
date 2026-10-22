@@ -222,10 +222,14 @@ def test_receipt_flow_purchase_recorded_then_decision_without_duplicates():
             assert mine[0]["kind"] == "recording_purchase" and mine[0]["link"] == f"/event.html?id={event_id}#recording"
             assert mine[0]["delivery_state"] == "queued"
             task_id = sent.json()["review_task_id"]
-            approved = inbox_decide(owner, task_id, "approved", "", owner_write_headers(owner))
+            # Panel restore C-4: a receipt decision without a reason is refused before anything changes.
+            blank = inbox_decide(owner, task_id, "approved", "", owner_write_headers(owner))
+            assert blank.status_code == 422 and blank.json()["detail"] == "receipt_decision_reason_required"
+            assert list(rows(engine, buyer_id)) == ["recording_purchase"]
+            approved = inbox_decide(owner, task_id, "approved", "مبلغ با فیش تطبیق داده شد", owner_write_headers(owner))
             assert approved.status_code == 200, approved.text
             # A second decision on the same task is rejected by the version gate; even so, rows are unique per task+kind.
-            inbox_decide(owner, task_id, "approved", "", owner_write_headers(owner))
+            inbox_decide(owner, task_id, "approved", "دوباره", owner_write_headers(owner))
             after = rows(engine, buyer_id)
             # Approval = «دسترسی فعال شد» (one row); a separate "receipt approved" message would be noise (9.1 decision).
             assert sorted(after) == ["recording_access", "recording_purchase"]
