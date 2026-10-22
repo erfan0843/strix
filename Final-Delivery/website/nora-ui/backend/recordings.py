@@ -21,7 +21,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 from sqlalchemy import func, select
@@ -333,9 +333,17 @@ def publish_blockers(
     now: datetime,
     wallet_ready: bool,
     commerce: Commerce | None = None,
+    file_ready: Callable[[EventResourceRecord], bool] | None = None,
 ) -> list[str]:
-    """Why the product cannot go on sale right now (empty list = may publish)."""
+    """Why the product cannot go on sale right now (empty list = may publish).
+
+    ``file_ready`` answers whether a file resource really has its bytes (inline row or a present,
+    size-matching object in the private store); the default only knows the inline column.
+    """
     blockers: list[str] = []
+    if file_ready is None:
+        def file_ready(row: EventResourceRecord) -> bool:
+            return row.content is not None
     if event is None:
         blockers.append("event_not_published")
     else:
@@ -349,7 +357,7 @@ def publish_blockers(
     if not published_sessions:
         blockers.append("no_published_session")
     if not any(
-        row.session_id in published_sessions and row.status == "published" and (row.kind != "file" or row.content is not None)
+        row.session_id in published_sessions and row.status == "published" and (row.kind != "file" or file_ready(row))
         for row in resources
     ):
         blockers.append("no_live_resource")

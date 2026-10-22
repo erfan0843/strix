@@ -28,7 +28,8 @@ const RP1 = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 function makeState() {
   return {
     resources: [{ id: RES_FILE, event_id: EV, kind: 'file', title: 'جزوهٔ جلسه', description: '', access: 'registered', status: 'draft', publish_at: null, live: false,
-      publisher: '', file_name: '', content_type: '', size: 0, content_hash: '', sort_order: 0, link_url: '', created_by_kind: 'owner', created_at: '2026-10-20T06:00:00+00:00', updated_at: '2026-10-20T06:00:00+00:00', removed_at: null, removed_reason: '' }],
+      publisher: '', file_name: '', content_type: '', size: 0, content_hash: '', sort_order: 0, link_url: '', created_by_kind: 'owner', created_at: '2026-10-20T06:00:00+00:00', updated_at: '2026-10-20T06:00:00+00:00', removed_at: null, removed_reason: '',
+      storage: { backend: 'local_disk', state: 'empty' } }],
     questions: [
       { id: Q1, event_id: EV, event_title: 'کارگاه آزمایشی', author: 'مینا ر.', mine: false, body: 'ساعت شروع دقیقاً چند است؟', status: 'pending', answered: false, answer: '', answer_official: false, answer_label: '', answered_at: null,
         created_at: '2026-10-20T07:00:00+00:00', updated_at: '2026-10-20T07:00:00+00:00', reported: false, moderation_reason: '', moderated_by_kind: '', moderated_at: null, answered_by_kind: '', notification: null, open_reports: 1 },
@@ -105,7 +106,10 @@ async function loadPanel(identity) {
           if (!rid && method === 'GET') {
             const includeRemoved = /include_removed=true/.test(query || '');
             const items = state.resources.filter((r) => includeRemoved || r.status !== 'removed');
-            return reply(200, { source: 'shared_server_database', event_id: EV, items, total: items.length, max_bytes: 8388608, allowed_types: ['application/pdf'] });
+            /* فاز ۹.۴: کلیدهای واقعی پاسخ سرور — سقف از سرور، وضعیت حافظهٔ خصوصی بدون مسیر فیزیکی */
+            return reply(200, { source: 'shared_server_database', event_id: EV, items, total: items.length,
+              limits: { max_bytes: 536870912, inline_max_bytes: 8388608, content_types: ['application/pdf'],
+                storage: { configured: true, backend: 'local_disk', max_bytes: 536870912, free_bytes: 19327352832, writable: true } } });
           }
           if (!rid && method === 'POST') {
             const sent = json();
@@ -134,6 +138,7 @@ async function loadPanel(identity) {
           if (action === '/file' && method === 'PUT') {
             if (identity.rejectFile) return reply(415, { detail: { code: 'file_type_not_allowed' } });
             row.file_name = decodeURIComponent(String(headers['X-File-Name'] || '')); row.size = options.body && options.body.size || 1; row.content_type = 'application/pdf'; row.content_hash = 'abc';
+            row.storage = { backend: 'local_disk', state: identity.fileVanishes ? 'missing' : 'ready' };
             return reply(200, row);
           }
           if (action === '/remove' && method === 'POST') {
@@ -274,6 +279,12 @@ console.log('— مالک: ورود از ردیف رویداد، منابع (س�
     assert.match(app.body(), /کارگاه آزمایشی/);
     assert.match(app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"]`).textContent, /پیش‌نویس/);
     assert.match(app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"]`).textContent, /بدون فایل/);
+    /* فاز ۹.۴: وضعیت ذخیره‌سازی و سقف از سرور، نه از عدد ثابت پنل؛ هیچ مسیر فیزیکی نمایش داده نمی‌شود */
+    assert.equal(app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"] [data-ei-res-storage]`).getAttribute('data-ei-res-storage'), 'empty');
+    assert.ok(app.doc.querySelector('[data-ei-storage="local_disk"]'), 'خلاصهٔ حافظهٔ خصوصی دیسک');
+    assert.match(app.doc.querySelector('[data-ei-storage="local_disk"]').textContent, /۵۱۲ مگابایت/, 'سقف ۵۱۲ مگابایت از پاسخ سرور');
+    assert.match(app.doc.querySelector('[data-ei-storage="local_disk"]').textContent, /بیرون ریشهٔ وب/);
+    assert.doesNotMatch(app.body(), /\/var\/|\/srv\/|private-store/, 'مسیر فیزیکی هرگز در پنل نیست');
 
     /* انتشار پیش از بارگذاری فایل: سرور ۴۰۹ می‌دهد و پنل پیام انسانی نشان می‌دهد */
     app.click(`[data-ei-res-status="published"][data-ei-id="${RES_FILE}"]`);
@@ -287,6 +298,8 @@ console.log('— مالک: ورود از ردیف رویداد، منابع (س�
     assert.match(String(up.headers['X-File-Name']), /^[A-Za-z0-9%._-]+$/, 'نام فایل در سرآیند ASCII (درصدکدشده) است');
     assert.equal(decodeURIComponent(up.headers['X-File-Name']), 'جزوه نجوم.pdf');
     await app.until(() => /در سرور ذخیره شد/.test(app.body()) && /جزوه نجوم\.pdf/.test(app.body()), 'بازتاب فایل ذخیره‌شده');
+    await app.until(() => app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"] [data-ei-res-storage="ready"]`), 'برچسب «فایل آماده» پس از بارگذاری');
+    assert.match(app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"] [data-ei-res-storage="ready"]`).textContent, /روی دیسک خصوصی سرور/);
 
     /* اکنون انتشار */
     app.click(`[data-ei-res-status="published"][data-ei-id="${RES_FILE}"]`);

@@ -2,7 +2,20 @@
 # دامنه‌ی زیر فقط نمونه است؛ قبل از استفاده، رکورد DNS را به IP سرور اشاره دهید.
 lifeline1.ir, www.lifeline1.ir {
     encode zstd gzip
-    reverse_proxy 127.0.0.1:8000
+    # فاز ۹.۴ — بارگذاری فایل منابع رویداد (PUT /api/admin/events/*/resources/*/file) استریمی است و سقف آن
+    # در backend با NORA_PRIVATE_STORAGE_MAX_MIB (پیش‌فرض ۵۱۲ MiB) تعیین می‌شود. Caddy به‌طور پیش‌فرض بدنه را
+    # محدود نمی‌کند؛ اگر خواستید سقف proxy بگذارید، باید ≥ همان مقدار باشد وگرنه آپلودهای معتبر با 413 رد می‌شوند:
+    # request_body {
+    #     max_size 512MB
+    # }
+    # پاسخ‌های فایل با Content-Encoding: identity می‌آیند تا encode روی ویدیو/Range اعمال نشود.
+    reverse_proxy 127.0.0.1:8000 {
+        # آپلود/پخش ویدیوی طولانی: مهلت‌های پیش‌فرض برای فایل‌های چندصد مگابایتی روی پیوند کند کافی نیست.
+        transport http {
+            response_header_timeout 5m
+        }
+        flush_interval -1
+    }
     header {
         Strict-Transport-Security "max-age=31536000"
         X-Content-Type-Options "nosniff"

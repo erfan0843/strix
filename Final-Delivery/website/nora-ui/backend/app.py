@@ -25,14 +25,14 @@ import tempfile
 import unicodedata
 import uuid
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, replace as dataclass_replace
+from dataclasses import asdict, dataclass, replace as dataclass_replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Generator, Literal, Mapping, Sequence, TypedDict, cast
+from typing import Any, Generator, Iterator, Literal, Mapping, Sequence, TypedDict, cast
 from urllib.parse import quote, unquote, urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import and_, case, create_engine, delete, func, or_, select, text, update
 from sqlalchemy.engine import CursorResult, Engine
@@ -56,6 +56,7 @@ from . import event_time
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
+from . import storage as storage_mod
 from .financials import (
     PaymentConfigurationError,
     calculate_payment_amount,
@@ -1124,6 +1125,13 @@ def create_app(
         sessionmaker(bind=owned_engine, autoflush=False, expire_on_commit=False) if owned_engine else None
     )
     app.state.settings = settings
+    # Phase 9.4: private storage outside the web root (None = not configured → inline ≤ 8 MiB only).
+    app.state.private_storage = (
+        storage_mod.LocalPrivateStorage(
+            settings.private_storage_dir, max_bytes=settings.private_storage_max_bytes, forbidden_parents=(UI_ROOT,),
+        )
+        if settings.private_storage_dir else None
+    )
     if create_schema and owned_engine:
         Base.metadata.create_all(owned_engine)
 
@@ -3514,30 +3522,92 @@ def create_app(
                 401 if reason == "login_required" else 403,
                 {"code": "resource_access_denied", "reason": reason},
             )
-        if record.content is None:
+        if not _resource_has_bytes(request, record):
             raise HTTPException(404, "resource_not_found")
         return _resource_file_response(request, record, reason)
 
+    def _private_storage(request: Request) -> storage_mod.LocalPrivateStorage | None:
+        return getattr(request.app.state, "private_storage", None)
+
+    def _resource_storage_state(request: Request, record: EventResourceRecord) -> dict[str, Any]:
+        """Honest storage view for the panel: where the bytes are and whether they are reachable now."""
+        if record.kind != "file":
+            return {"backend": "none", "state": "not_file"}
+        if record.storage_key:
+            store = _private_storage(request)
+            if store is None:
+                return {"backend": "local_disk", "state": "storage_not_configured"}
+            size = store.size(record.storage_key)
+            if size is None:
+                return {"backend": "local_disk", "state": "missing"}
+            return {"backend": "local_disk", "state": "ready" if size == record.content_size else "size_mismatch"}
+        return {"backend": "database", "state": "ready" if record.content is not None else "empty"}
+
+    def _resource_limits(request: Request) -> dict[str, Any]:
+        store = _private_storage(request)
+        status = store.status() if store is not None else storage_mod.unconfigured_status(inline_max_bytes=interaction_mod.MAX_BYTES)
+        return {
+            "max_bytes": store.max_bytes if store is not None else interaction_mod.MAX_BYTES,
+            "inline_max_bytes": interaction_mod.MAX_BYTES,
+            "content_types": list(interaction_mod.CONTENT_TYPES),
+            "storage": asdict(status),
+        }
+
+    def _resource_has_bytes(request: Request, record: EventResourceRecord) -> bool:
+        return _resource_storage_state(request, record)["state"] == "ready"
+
+    def _resource_admin_view(request: Request, record: EventResourceRecord) -> dict[str, Any]:
+        view = interaction_mod.resource_admin_view(record)
+        view["storage"] = _resource_storage_state(request, record)
+        return view
+
     def _resource_file_response(request: Request, record: EventResourceRecord, reason: str) -> Response:
-        """Whole file (download) or inline bytes with HTTP Range support (``delivery='view'``)."""
-        content = record.content or b""
+        """Whole file (download) or inline bytes with HTTP Range support (``delivery='view'``).
+
+        Bytes come either from the row (legacy inline, ≤ 8 MiB) or from the private storage, streamed
+        in bounded chunks so a long video never sits in the web process' memory. ``Content-Encoding:
+        identity`` keeps the gzip middleware away so byte ranges stay exact.
+        """
         headers = {
             "Cache-Control": "private, no-store",
             "Vary": "Cookie",
             "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Encoding": "identity",
             "X-Nora-Resource-Access": reason,
         }
+        store = _private_storage(request) if record.storage_key else None
+        if record.storage_key:
+            total = store.size(record.storage_key) if store is not None else None
+            if total is None:
+                raise HTTPException(409, {"code": "resource_file_unavailable"})
+
+            def reader(start: int, end: int) -> Iterator[bytes]:
+                assert store is not None and record.storage_key
+                return store.open_range(record.storage_key, start, end)
+        else:
+            content = record.content or b""
+            total = len(content)
+
+            def reader(start: int, end: int) -> Iterator[bytes]:
+                for offset in range(start, end + 1, storage_mod.CHUNK_BYTES):
+                    yield content[offset:min(offset + storage_mod.CHUNK_BYTES, end + 1)]
+
+        def stream(start: int, end: int, status: int) -> Response:
+            headers["Content-Length"] = str(end - start + 1 if total else 0)
+            body = reader(start, end) if total else iter(())
+            return StreamingResponse(body, status_code=status, media_type=record.content_type, headers=headers)
+
         if record.delivery != "view":
             headers["Content-Disposition"] = interaction_mod.content_disposition(record.file_name)
-            return Response(content=content, media_type=record.content_type, headers=headers)
+            return stream(0, total - 1, 200)
         headers["Content-Disposition"] = interaction_mod.content_disposition(record.file_name).replace("attachment", "inline", 1)
         headers["Accept-Ranges"] = "bytes"
-        total = len(content)
         range_header = request.headers.get("range", "")
         match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip()) if range_header else None
         if match is None:
-            return Response(content=content, media_type=record.content_type, headers=headers)
+            # Multi-range or malformed ranges are answered with the whole body (RFC 9110 §14.2 allows ignoring).
+            return stream(0, total - 1, 200)
         start_text, end_text = match.group(1), match.group(2)
         if not start_text and not end_text:
             raise HTTPException(416, "range_not_satisfiable", headers={"Content-Range": f"bytes */{total}"})
@@ -3550,7 +3620,7 @@ def create_app(
         if start >= total or start > end:
             raise HTTPException(416, "range_not_satisfiable", headers={"Content-Range": f"bytes */{total}"})
         headers["Content-Range"] = f"bytes {start}-{end}/{total}"
-        return Response(content=content[start:end + 1], status_code=206, media_type=record.content_type, headers=headers)
+        return stream(start, end, 206)
 
     def _interaction_event_for_write(db: Session, event_id: str) -> tuple[str, dict[str, Any]]:
         try:
@@ -3838,6 +3908,7 @@ def create_app(
     @app.get("/api/admin/events/{event_id}/resources")
     def admin_list_event_resources(
         event_id: str,
+        request: Request,
         response: Response,
         include_removed: bool = Query(default=False),
         _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
@@ -3852,8 +3923,8 @@ def create_app(
         return {
             "source": "shared_server_database",
             "event_id": event_id,
-            "items": [interaction_mod.resource_admin_view(row) for row in rows],
-            "limits": {"max_bytes": interaction_mod.MAX_BYTES, "content_types": list(interaction_mod.CONTENT_TYPES)},
+            "items": [_resource_admin_view(request, row) for row in rows],
+            "limits": _resource_limits(request),
         }
 
     @app.post("/api/admin/events/{event_id}/resources", status_code=201)
@@ -3887,7 +3958,7 @@ def create_app(
         )
         db.commit()
         db.refresh(record)
-        return interaction_mod.resource_admin_view(record)
+        return _resource_admin_view(request, record)
 
     @app.put("/api/admin/events/{event_id}/resources/{resource_id}")
     async def admin_update_event_resource(
@@ -3910,7 +3981,7 @@ def create_app(
             raise _interaction_error(error) from None
         if "kind" in fields and fields["kind"] != record.kind:
             raise HTTPException(409, {"code": "resource_kind_immutable"})
-        if fields.get("status") == "published" and record.kind == "file" and record.content is None:
+        if fields.get("status") == "published" and record.kind == "file" and not _resource_has_bytes(request, record):
             raise HTTPException(409, {"code": "resource_file_missing"})
         _check_resource_session(db, event_id, fields)
         before = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
@@ -3930,7 +4001,7 @@ def create_app(
         )
         db.commit()
         db.refresh(record)
-        return interaction_mod.resource_admin_view(record)
+        return _resource_admin_view(request, record)
 
     @app.put("/api/admin/events/{event_id}/resources/{resource_id}/file")
     async def admin_upload_event_resource_file(
@@ -3940,7 +4011,13 @@ def create_app(
         identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
         db: Session = Depends(get_db),
     ):
-        """Upload or replace the bytes of a file resource (raw body + ``X-File-Name``)."""
+        """Upload or replace the bytes of a file resource (raw body + ``X-File-Name``).
+
+        With the private storage configured the body streams straight to a staged file (hashed on
+        the way, never held in memory) up to ``private_storage_max_bytes``; the row only points at
+        the new key after the file is fsync-ed and renamed, so an aborted or rejected upload leaves
+        the previous bytes untouched. Without it, the legacy inline path (≤ 8 MiB) applies.
+        """
         event_id = _admin_event_id(db, event_id)
         record = _admin_resource(db, event_id, resource_id)
         if record.status == "removed" or record.kind != "file":
@@ -3948,46 +4025,95 @@ def create_app(
         cfg: Settings = request.app.state.settings
         _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="event-resource-upload")
         declared = unquote(request.headers.get("x-file-name", "resource"))
-        chunks: list[bytes] = []
-        size = 0
-        async for chunk in request.stream():
-            if not chunk:
-                continue
-            size += len(chunk)
-            if size > interaction_mod.MAX_BYTES:
-                record_audit(
-                    db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
-                    outcome="rejected", details={"code": "file_too_large", "size": size},
-                )
-                db.commit()
-                raise HTTPException(413, "file_too_large")
-            chunks.append(chunk)
-        content = b"".join(chunks)
-        try:
-            content_type, file_name, digest = interaction_mod.validate_upload(content, declared)
-        except interaction_mod.InteractionError as error:
+        store = _private_storage(request)
+        limit = store.max_bytes if store is not None else interaction_mod.MAX_BYTES
+
+        def rejected(code: str, size: int, status: int) -> HTTPException:
             record_audit(
                 db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
-                outcome="rejected", details={"code": error.code, "size": len(content)},
+                outcome="rejected", details={"code": code, "size": size, "backend": "local_disk" if store else "database"},
             )
             db.commit()
-            raise _interaction_error(error) from None
-        previous_hash = record.content_hash
-        record.content = content
-        record.content_type = content_type
-        record.content_size = len(content)
-        record.content_hash = digest
-        record.file_name = file_name
-        record_audit(
-            db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
-            details={
-                "event_id": event_id, "content_type": content_type, "size": len(content),
-                "replaced": bool(previous_hash), "previous_hash": previous_hash[:16],
-            },
-        )
-        db.commit()
+            return HTTPException(status, code if status == 413 else {"code": code})
+
+        pending: storage_mod.PendingUpload | None = None
+        chunks: list[bytes] = []
+        size = 0
+        try:
+            if store is not None:
+                pending = store.begin()
+            async for chunk in request.stream():
+                if not chunk:
+                    continue
+                size += len(chunk)
+                if size > limit:
+                    raise rejected("file_too_large", size, 413)
+                if pending is not None:
+                    pending.write(chunk)
+                else:
+                    chunks.append(chunk)
+            head = pending.head if pending is not None else b"".join(chunks)[:8192]
+            try:
+                content_type = interaction_mod.sniff_content_type(head, declared)
+                if content_type not in interaction_mod.CONTENT_TYPES:
+                    raise interaction_mod.InteractionError("file_type_not_allowed", status=415)
+                file_name = interaction_mod.safe_file_name(declared, content_type)
+            except interaction_mod.InteractionError as error:
+                record_audit(
+                    db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                    outcome="rejected", details={"code": error.code, "size": size},
+                )
+                db.commit()
+                raise _interaction_error(error) from None
+            previous_hash, previous_key = record.content_hash, record.storage_key
+            if pending is not None:
+                stored = pending.commit()
+                pending = None
+                record.content = None
+                record.storage_key = stored.key
+                record.content_size = stored.size
+                record.content_hash = stored.sha256
+            else:
+                content = b"".join(chunks)
+                record.content = content
+                record.storage_key = None
+                record.content_size = len(content)
+                record.content_hash = hashlib.sha256(content).hexdigest()
+            record.content_type = content_type
+            record.file_name = file_name
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                details={
+                    "event_id": event_id, "content_type": content_type, "size": record.content_size,
+                    "backend": "local_disk" if record.storage_key else "database",
+                    "replaced": bool(previous_hash), "previous_hash": previous_hash[:16],
+                    "previous_storage_key": previous_key or "",
+                },
+            )
+            db.commit()
+        except storage_mod.StorageError as error:
+            if pending is not None:
+                pending.abort()
+                pending = None
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                outcome="rejected", details={"code": error.code, "size": size},
+            )
+            db.commit()
+            raise HTTPException(413 if error.code == "file_too_large" else 503, {"code": error.code}) from None
+        finally:
+            if pending is not None:  # any other failure (client abort, DB error): no trace on disk
+                pending.abort()
+        if previous_key and previous_key != record.storage_key and store is not None:
+            # Old bytes go only after the row points elsewhere (committed); purchases/access rows are untouched.
+            removed = store.delete(previous_key)
+            record_audit(
+                db, identity, "event_resource.file_pruned", target_type="event_resource", target_id=record.id,
+                outcome="ok" if removed else "missing", details={"previous_storage_key": previous_key},
+            )
+            db.commit()
         db.refresh(record)
-        return interaction_mod.resource_admin_view(record)
+        return _resource_admin_view(request, record)
 
     @app.post("/api/admin/events/{event_id}/resources/{resource_id}/remove")
     async def admin_remove_event_resource(
@@ -4018,7 +4144,7 @@ def create_app(
             )
             db.commit()
             db.refresh(record)
-        return interaction_mod.resource_admin_view(record)
+        return _resource_admin_view(request, record)
 
     # ── پنل: پرسش‌وپاسخ ──
 
@@ -4816,7 +4942,7 @@ def create_app(
         )
         blockers = recordings_mod.publish_blockers(
             recording, public_event, sessions, resources, now=_utc_now(), wallet_ready=_wallet_ready(db, request),
-            commerce=commerce,
+            commerce=commerce, file_ready=lambda row: _resource_has_bytes(request, row),
         )
         return recordings_mod.recording_admin_view(
             recording,
@@ -5187,10 +5313,11 @@ def create_app(
             "event_published": public_event is not None,
             "wallet_ready": _wallet_ready(db, request),
             "limits": {
-                "max_bytes": interaction_mod.MAX_BYTES, "content_types": list(interaction_mod.CONTENT_TYPES),
+                **_resource_limits(request),
                 "max_price": recordings_mod.MAX_PRICE, "max_access_days": recordings_mod.MAX_ACCESS_DAYS,
                 "max_sessions": recordings_mod.MAX_SESSIONS,
-                "streaming": "none",  # files are served whole (with HTTP Range); no CDN/DRM/transcoding exists
+                # Files are served as stored (chunked, with HTTP Range); no CDN/DRM/transcoding exists.
+                "streaming": "range_file" if _private_storage(request) is not None else "none",
             },
         }
         if record is None:
@@ -5297,6 +5424,7 @@ def create_app(
                 commerce=recordings_mod.commerce_for(
                     record, recordings_mod.purchase_form_for(db, record.id), wallet_ready=_wallet_ready(db, request),
                 ),
+                file_ready=lambda row: _resource_has_bytes(request, row),
             )
             if blockers:
                 raise HTTPException(409, {"code": "publish_blocked", "blockers": blockers})

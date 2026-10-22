@@ -934,7 +934,12 @@ class EventResourceRecord(Base):
         CheckConstraint(
             "status IN ('draft', 'published', 'removed')", name="ck_event_resources_status"
         ),
-        CheckConstraint("content_size BETWEEN 0 AND 8388608", name="ck_event_resources_size"),
+        # Inline bytes stay capped at 8 MiB; rows that point at the private store carry no DB cap
+        # (the cap there is NORA_PRIVATE_STORAGE_MAX_MIB, enforced while streaming).
+        CheckConstraint(
+            "content_size >= 0 AND (storage_key IS NOT NULL OR content_size <= 8388608)",
+            name="ck_event_resources_size",
+        ),
         CheckConstraint("delivery IN ('download', 'view')", name="ck_event_resources_delivery"),
         Index("ix_event_resources_event_status", "event_id", "status", "sort_order"),
         Index("ix_event_resources_session", "session_id"),
@@ -956,6 +961,9 @@ class EventResourceRecord(Base):
     content_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    # Phase 9.4: when set, the bytes live in the private storage (outside the web root) under this
+    # server-made key and ``content`` is NULL; NULL key = legacy inline bytes (≤ EVENT_RESOURCE_MAX_BYTES).
+    storage_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
     # Phase 9: a resource may belong to one session of the event's recorded product and
     # may be handed out for download or only for in-page viewing (video/audio/PDF/image).
     session_id: Mapped[str | None] = mapped_column(

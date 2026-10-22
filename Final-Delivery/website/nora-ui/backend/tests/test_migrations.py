@@ -182,7 +182,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             constraint["name"] for constraint in inspector.get_check_constraints("club_points_entries")
         }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -252,7 +252,7 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -306,7 +306,7 @@ def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -363,7 +363,7 @@ def test_club_points_migration_with_existing_data_round_trip(tmp_path, monkeypat
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -428,7 +428,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
                 "VALUES ('res-1', 'ev-legacy', 'جزوه', 'published', 'registered', 'file')"
             ))
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -451,7 +451,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_questions")) == 0
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -546,7 +546,7 @@ def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monk
                 "INSERT INTO recording_access (id, recording_id, account_id, source, status, order_id) "
                 "VALUES ('acc-r-1', 'rec-1', 'acc-legacy-5', 'purchase', 'active', 'ord-1')"
             ))
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
         with engine.connect() as connection:
             for statement in (
                 # one product per event
@@ -597,7 +597,7 @@ def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monk
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_recordings")) == 0
             assert connection.scalar(text("SELECT count(*) FROM event_resources")) == 2
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
     finally:
         engine.dispose()
 
@@ -698,7 +698,7 @@ def test_form_aligned_store_migration_round_trip(tmp_path, monkeypatch):
                 "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
                 "VALUES ('res-ap', 'ev-held', 'ویدیوی آپارات', 'published', 'purchased', 'aparat', 'https://www.aparat.com/v/abc12')"
             ))
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
         with engine.connect() as connection:
             for statement in (
                 "UPDATE forms SET purpose = 'shop' WHERE id = 'form-buy'",
@@ -741,6 +741,95 @@ def test_form_aligned_store_migration_round_trip(tmp_path, monkeypatch):
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT purpose FROM forms WHERE id = 'form-buy'")) == "registration"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0033_form_aligned_store"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+    finally:
+        engine.dispose()
+
+
+def test_private_storage_migration_round_trip(tmp_path, monkeypatch):
+    """0034 on a database that already holds phase-9.3 rows: upgrade, downgrade one step, upgrade again.
+
+    Existing inline resources keep working untouched (``storage_key`` NULL, 8 MiB check still
+    enforced for them); a row pointing at the private store may exceed 8 MiB; the downgrade
+    refuses while such a row exists (nothing is deleted silently) and succeeds once it is gone,
+    restoring the strict check.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'legacy-storage.db'}"
+    monkeypatch.setenv("NORA_DATABASE_URL", database_url)
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+
+    command.upgrade(config, "0033_form_aligned_store")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, content, content_size, content_type) "
+                "VALUES ('res-inline', 'ev-held', 'جزوه', 'published', 'purchased', 'file', X'255044462D', 5, 'application/pdf')"
+            ))
+        assert "storage_key" not in {c["name"] for c in inspect(engine).get_columns("event_resources")}
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        assert "storage_key" in {c["name"] for c in inspect(engine).get_columns("event_resources")}
+        with engine.begin() as connection:
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT storage_key FROM event_resources WHERE id = 'res-inline'")) is None
+            assert connection.scalar(text("SELECT content_size FROM event_resources WHERE id = 'res-inline'")) == 5
+            connection.execute(text(
+                "INSERT INTO event_resources (id, event_id, title, status, access, kind, content_size, content_type, storage_key) "
+                "VALUES ('res-disk', 'ev-held', 'ویدیو', 'published', 'purchased', 'file', 734003200, 'video/mp4', "
+                "'2026/10/0123456789abcdef0123456789abcdef')"
+            ))
+        with engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                with pytest.raises(IntegrityError):  # inline rows are still capped at 8 MiB
+                    connection.execute(text("UPDATE event_resources SET content_size = 9000000 WHERE id = 'res-inline'"))
+            finally:
+                transaction.rollback()
+    finally:
+        engine.dispose()
+
+    with pytest.raises(RuntimeError, match="exceed 8 MiB"):
+        command.downgrade(config, "0033_form_aligned_store")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT COUNT(*) FROM event_resources")) == 2  # refused, nothing removed
+            connection.execute(text("DELETE FROM event_resources WHERE id = 'res-disk'"))  # the operator's explicit decision
+    finally:
+        engine.dispose()
+
+    command.downgrade(config, "0033_form_aligned_store")
+    engine = create_engine(database_url)
+    try:
+        assert "storage_key" not in {c["name"] for c in inspect(engine).get_columns("event_resources")}
+        with engine.begin() as connection:
+            assert connection.scalar(text("SELECT content_size FROM event_resources WHERE id = 'res-inline'")) == 5
+        with engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                with pytest.raises(IntegrityError):
+                    connection.execute(text(
+                        "INSERT INTO event_resources (id, event_id, title, status, access, kind, content_size) "
+                        "VALUES ('res-big', 'ev-held', 'x', 'draft', 'purchased', 'file', 9000000)"
+                    ))
+            finally:
+                transaction.rollback()
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        with engine.begin() as connection:
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT storage_key FROM event_resources WHERE id = 'res-inline'")) is None
     finally:
         engine.dispose()

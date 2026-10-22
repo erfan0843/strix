@@ -154,6 +154,10 @@ class Settings:
     # serve an uploaded backup. Empty means "<nora-ui>/../var/nora-data-staging".
     data_staging_dir: str = ""
     data_upload_max_bytes: int = 256 * 1024 * 1024
+    # Phase 9.4: private file storage outside the web root for event resources larger than the
+    # in-database limit. Empty = not configured (uploads stay ≤ EVENT_RESOURCE_MAX_BYTES in the DB).
+    private_storage_dir: str = ""
+    private_storage_max_bytes: int = 512 * 1024 * 1024
     data_staging_retention_hours: int = 72
     legacy_audit_script: str = ""
 
@@ -264,6 +268,9 @@ class Settings:
         draft_write_limit = _bounded_int_env("NORA_RESPONSE_DRAFT_WRITE_LIMIT_PER_MINUTE", 120, 1, 10000)
         submit_limit = _bounded_int_env("NORA_RESPONSE_SUBMIT_LIMIT_PER_MINUTE", 10, 1, 1000)
         cooperation_limit = _bounded_int_env("NORA_COOPERATION_SUBMIT_LIMIT_PER_MINUTE", 5, 1, 100)
+        # MiB in the environment (1 MiB … 8 GiB); the production value must follow the real disk,
+        # reverse-proxy body limit and backup window — see deployment/PRIVATE-STORAGE-OPERATIONS.fa.md.
+        private_storage_max_mib = _bounded_int_env("NORA_PRIVATE_STORAGE_MAX_MIB", 512, 1, 8192)
         form_payment_ttl = _bounded_int_env("NORA_FORM_PAYMENT_TTL_SECONDS", 1800, 60, 24 * 60 * 60)
         form_payment_timeout = _bounded_int_env("NORA_FORM_PAYMENT_TIMEOUT_SECONDS", 8, 1, 8)
         form_payment_max_amount = _bounded_int_env(
@@ -322,6 +329,8 @@ class Settings:
             response_draft_write_limit_per_minute=draft_write_limit,
             response_submit_limit_per_minute=submit_limit,
             cooperation_submit_limit_per_minute=cooperation_limit,
+            private_storage_dir=os.getenv("NORA_PRIVATE_STORAGE_DIR", "").strip(),
+            private_storage_max_bytes=private_storage_max_mib * 1024 * 1024,
             safir_api_key=safir_api_key,
             safir_bot_id=safir_bot_id,
             safir_url=safir_url or "https://safir.bale.ai/api/v3/send_message",
