@@ -323,7 +323,16 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
       {id:'00000000-0000-4000-8000-000000000212',bale_user_id:'73424',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پاسخ دوم.',file_refs:[],
         delivery_status:'pending',delivery_state:'retrying',delivery_attempts:2,last_delivery_error:'provider_delivery_failed',created_at:'2026-09-30T12:00:00+00:00',read:true},
       {id:'00000000-0000-4000-8000-000000000213',bale_user_id:'73424',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پاسخ سوم.',file_refs:[],
-        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T13:00:00+00:00',read:true}],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T13:00:00+00:00',read:true,link:'/event.html?id=ev-qa-1#qa'},
+      /* فاز ۹.۴: پیوند اعلان فقط نسبی و به صفحهٔ داخل برنامه؛ هر چیز دیگر رندر نمی‌شود */
+      {id:'00000000-0000-4000-8000-000000000214',bale_user_id:'73424',kind:'recording_content',title:'جلسهٔ تازه منتشر شد',body:'جلسهٔ ۲ منتشر شد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T14:00:00+00:00',read:true,link:'/event.html?id=ev-rec-1#recording'},
+      {id:'00000000-0000-4000-8000-000000000215',bale_user_id:'73424',kind:'certificate',title:'گواهی صادر شد',body:'گواهی شما صادر شد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T15:00:00+00:00',read:true,link:'/account.html#certificates'},
+      {id:'00000000-0000-4000-8000-000000000216',bale_user_id:'73424',kind:'recording_access',title:'پیوند نامعتبر',body:'نباید دکمه داشته باشد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T16:00:00+00:00',read:true,link:'/api/admin/events/ev-1/resources/abc/download'},
+      {id:'00000000-0000-4000-8000-000000000217',bale_user_id:'73424',kind:'recording_access',title:'پیوند مطلق',body:'نباید دکمه داشته باشد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T17:00:00+00:00',read:true,link:'https://evil.example/event.html?id=x'}],
     files:[{id:fileId,task_id:'00000000-0000-4000-8000-000000000301',file_name:'receipt.pdf',
       content_type:'application/pdf',content_size:12345,created_at:'2026-09-30T10:00:00+00:00'}],
   });
@@ -344,6 +353,16 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&p.view().includes('در صف است؛ هنوز تحویل نشده')
     &&(p.view().match(/در ربات بله تحویل شد/g)||[]).length===1,
     'اعلان پاسخ پرسش: بدون هویت بله، در حال تلاش دوباره و در صف جدا و صادقانه نشان داده می‌شوند؛ فقط تحویل واقعی «تحویل شد» است');
+  {
+    const links=[...p.doc.querySelectorAll('#viewBox a[data-account-notice-link]')];
+    ok(links.length===3
+      &&links.some(a=>a.getAttribute('href')==='event.html?id=ev-qa-1#qa'&&/دیدن پاسخ در صفحهٔ رویداد/.test(a.textContent))
+      &&links.some(a=>a.getAttribute('href')==='event.html?id=ev-rec-1#recording'&&/دیدن محتوای تازه/.test(a.textContent))
+      &&links.some(a=>a.getAttribute('href')==='account.html#certificates'&&/دیدن گواهی‌ها/.test(a.textContent))
+      &&!links.some(a=>/api|evil/.test(a.getAttribute('href')||'')),
+      'پیوند اعلان فقط برای مسیرهای نسبی داخل برنامه رندر می‌شود؛ پیوند API/دانلود یا نشانی مطلق هرگز دکمه نمی‌شود');
+    ok(!p.doc.querySelector('#viewBox a[href*="/api/"]'),'هیچ پیوند API در صفحهٔ حساب نیست');
+  }
   const noticeBotLink=p.doc.querySelector('#viewBox .server-notice-files a.local-disabled-link');
   ok(noticeBotLink&&!noticeBotLink.hasAttribute('href')
     &&p.window.NORA_UI.baleStartHref('private_'+fileId)==='https://ble.ir/nora_test_bot?start=private_'+fileId

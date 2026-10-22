@@ -40,6 +40,9 @@ let SERVER_REPORT_LOADING=false;
 let SERVER_REPORT_ERROR='';
 let SERVER_REPORT_PERIOD='30d';
 let SERVER_REPORT_REQUEST=0;
+/* فاز ۹.۴ §۸: فهرست صندوق خروجی اعلان‌ها (فقط خواندن؛ rp_view در backend). ثبت ≠ ارسال ≠ تحویل. */
+const SERVER_OUTBOX={items:[],counts:null,state:'',loaded:false,loading:false,error:'',more:false,request:0};
+const SERVER_OUTBOX_STATES=[['','همه'],['queued','در صف'],['retrying','تلاش دوباره'],['delivered','تحویل‌شده'],['failed','ناموفق'],['no_bale_identity','بدون هویت بله']];
 let SERVER_HEALTH=null;
 let SERVER_HEALTH_LOADING=false;
 let SERVER_HEALTH_ERROR='';
@@ -1734,6 +1737,49 @@ function loadSharedWorkflowInbox(append=false){
     if(requestedStatus!==SERVER_WORKFLOW_STATUS){loadSharedWorkflowInbox(false); return} /* زبانه در میانهٔ بارگذاری عوض شد */
     if(S.uV==='shared-inbox') renderBody()});
 }
+function loadServerOutbox(append=false){
+  if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||SERVER_OUTBOX.loading) return;
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminNotifications!=='function'){SERVER_OUTBOX.error='رابط صندوق خروجی در دسترس نیست.'; SERVER_OUTBOX.loaded=true; renderBody(); return}
+  const requestId=++SERVER_OUTBOX.request; const state=SERVER_OUTBOX.state;
+  SERVER_OUTBOX.loading=true; SERVER_OUTBOX.error=''; renderBody();
+  Promise.resolve(api.listAdminNotifications({state,limit:30,offset:append?SERVER_OUTBOX.items.length:0})).then(data=>{
+    if(requestId!==SERVER_OUTBOX.request) return;
+    if(!data||data.source!=='shared_server_database'||!Array.isArray(data.items)||!data.counts||typeof data.counts!=='object')
+      throw new Error('invalid_outbox');
+    SERVER_OUTBOX.items=append?SERVER_OUTBOX.items.concat(data.items):data.items;
+    SERVER_OUTBOX.counts=data.counts; SERVER_OUTBOX.more=!!data.has_more; SERVER_OUTBOX.loaded=true;
+  }).catch(error=>{
+    if(requestId!==SERVER_OUTBOX.request) return;
+    SERVER_OUTBOX.error=error&&error.status===403?'مجوز مشاهدهٔ صندوق خروجی برای این نقش فعال نیست.'
+      :error&&error.status===401?'نشست پنل معتبر نیست؛ دوباره وارد شوید.'
+      :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن صندوق خروجی انجام نشد؛ دوباره تلاش کنید.';
+    SERVER_OUTBOX.loaded=true;
+  }).finally(()=>{if(requestId!==SERVER_OUTBOX.request) return; SERVER_OUTBOX.loading=false; renderBody()});
+}
+function vServerOutbox(){
+  const o=SERVER_OUTBOX; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
+  const kinds={recording_access:'دسترسی محتوا',recording_order:'سفارش',recording_purchase:'ثبت خرید',recording_content:'محتوای تازه',
+    certificate:'گواهی',event_question:'پاسخ پرسش',profile_review:'بررسی پروفایل',receipt_review:'بررسی فیش',admin_task:'کارتابل'};
+  const stateTag=item=>item.last_delivery_error==='no_bale_identity'?tag('بدون هویت بله','warn')
+    :item.delivery_state==='delivered'?tag('تحویل‌شده','ok')
+    :item.delivery_state==='failed'?tag('ناموفق','stop')
+    :item.delivery_state==='retrying'?tag('تلاش دوباره','warn'):tag('در صف','');
+  const chips=SERVER_OUTBOX_STATES.map(([key,label])=>`<button class="chip ${o.state===key?'on':''}" data-server-outbox-state="${key}" ${o.loading?'disabled':''}>${esc(label)}${o.counts&&key?` <small>${number(o.counts[key])}</small>`:''}</button>`).join('');
+  const rows=o.items.map(item=>`<div class="admlirow" data-server-outbox-row="${esc(item.id)}" data-server-outbox-state-row="${esc(item.last_delivery_error==='no_bale_identity'?'no_bale_identity':item.delivery_state||'')}">
+      <span class="sp"><b>${esc(item.title||'اعلان')}</b> <span class="mini">${esc(kinds[item.kind]||item.kind||'')}</span>
+        <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
+      ${stateTag(item)}</div>`).join('');
+  const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن صندوق خروجی از سرور…</p>`
+    :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-outbox-refresh','i-refresh')}</div>`
+    :rows||`<p class="cap">در این وضعیت اعلانی ثبت نشده است.</p>`;
+  return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
+    <p class="cap">هر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست. ارسال واقعی بله فقط با ربات زنده انجام می‌شود.</p>
+    <div class="admfilters" role="group" aria-label="وضعیت اعلان">${chips}</div>
+    <div class="admlist">${body}</div>
+    ${o.more?`<div class="row"><span class="sp"></span>${btn('اعلان‌های بیشتر','data-server-outbox-more','i-chev-left')}</div>`:''}
+  </section>`;
+}
 function loadServerReports(force=false){
   if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')) return;
   if(SERVER_REPORT_LOADING) return;
@@ -2582,6 +2628,7 @@ function vServerReports(){
       </div><p class="cap">آخرین محاسبهٔ سرور: ${esc(data.generated_at||'نامشخص')}</p>`:''}
       ${error}${loading}</section>
     ${groups?`<div class="admgrid">${groups}</div>`:''}
+    ${vServerOutbox()}
     <p class="cap">گزارش مالی، رویداد، حضور و باشگاه از این API ساخته نمی‌شود تا زمانی که همان داده‌ها نیز به پایگاه مشترک وصل شوند؛ هیچ‌کدام با عدد محلی جایگزین نشده‌اند.</p>
   </div>`;
 }
@@ -8594,6 +8641,9 @@ function renderBody(){
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){
     loadServerReports(false); return;
   }
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')&&!SERVER_OUTBOX.loading&&!SERVER_OUTBOX.loaded){
+    loadServerOutbox(false); return;
+  }
   if(S.uV==='shared-inbox'&&canUseSharedInbox()&&!SERVER_WORKFLOW_LOADING&&!SERVER_WORKFLOW_LOADED){
     loadSharedWorkflowInbox(false); return;
   }
@@ -8880,6 +8930,14 @@ document.addEventListener('click',e=>{
     SERVER_REPORT_REQUEST++; SERVER_REPORT_LOADING=false;
     SERVER_REPORT_DATA=null; SERVER_REPORT_ERROR=''; renderBody(); return;
   }
+  const outboxState=q('[data-server-outbox-state]'); if(outboxState){
+    const state=outboxState.dataset.serverOutboxState||'';
+    if(!SERVER_OUTBOX_STATES.some(row=>row[0]===state)) return;
+    SERVER_OUTBOX.state=state; SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error='';
+    loadServerOutbox(); return;
+  }
+  if(q('[data-server-outbox-refresh]')){SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error=''; loadServerOutbox(); return}
+  if(q('[data-server-outbox-more]')){loadServerOutbox(true); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
   const rc=q('[data-rcust]'); if(rc){const k2=rc.dataset.rcust, l=S.rpCust||[];

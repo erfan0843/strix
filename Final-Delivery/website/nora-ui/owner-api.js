@@ -463,6 +463,17 @@
     listAdminInbox: (limit, offset, status) => request('/api/admin/inbox?limit='
       + encodeURIComponent(String(limit || 50)) + '&offset=' + encodeURIComponent(String(offset || 0))
       + (status && status !== 'pending' ? '&status=' + encodeURIComponent(String(status)) : '')),
+    listAdminNotifications: params => {
+      const source = params && typeof params === 'object' ? params : {};
+      const states = ['queued', 'retrying', 'delivered', 'failed', 'no_bale_identity'];
+      const parts = [];
+      if (states.includes(String(source.state))) parts.push('state=' + encodeURIComponent(String(source.state)));
+      if (/^[a-z_]{1,40}$/.test(String(source.kind || ''))) parts.push('kind=' + String(source.kind));
+      const limit = Number(source.limit); const offset = Number(source.offset);
+      if (Number.isSafeInteger(limit) && limit > 0 && limit <= 100) parts.push('limit=' + limit);
+      if (Number.isSafeInteger(offset) && offset > 0) parts.push('offset=' + offset);
+      return request('/api/admin/notifications' + (parts.length ? '?' + parts.join('&') : ''));
+    },
     getReportSummary: period => {
       const allowed = ['7d', '30d', '90d', '365d', 'all'];
       const selected = allowed.includes(String(period)) ? String(period) : '30d';

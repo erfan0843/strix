@@ -139,6 +139,21 @@ async function loadProductionSession(identity) {
           notifications:{total:5,by_delivery_status:{delivered:4,pending:1}},
           cooperation_requests:{total:2,by_status:{new:2}},
         });
+        /* Phase 9.4 §8: global outbox list — the stub mirrors the real response keys (no raw bale_user_id). */
+        const outboxPath = path.match(/^\/api\/admin\/notifications(?:\?(.*))?$/);
+        if (outboxPath) {
+          if (identity.outboxForbidden) return reply(403, { detail: 'permission_denied' });
+          const params = new URLSearchParams(outboxPath[1] || '');
+          const all = [
+            { id: '10000000-0000-4000-8000-000000000001', kind: 'recording_access', title: 'دسترسی فعال شد', body: 'دسترسی شما فعال شد.', created_at: '2026-10-22T08:00:00+00:00', delivery_status: 'pending', delivery_state: 'queued', delivery_attempts: 0, last_delivery_error: '', delivered_at: null, link: '/event.html?id=ev-1#recording', account_id: 'acc-h1', account_label: 'مینا ر.', has_bale_identity: true, dedupe_key: 'recording_access:a:granted:-:first', read: false, file_refs: [] },
+            { id: '10000000-0000-4000-8000-000000000002', kind: 'recording_content', title: 'جلسهٔ تازه', body: 'جلسهٔ تازه منتشر شد.', created_at: '2026-10-22T07:00:00+00:00', delivery_status: 'pending', delivery_state: 'retrying', delivery_attempts: 2, last_delivery_error: 'bot_send_failed', delivered_at: null, link: '/event.html?id=ev-1#recording', account_id: 'acc-h2', account_label: '', has_bale_identity: true, dedupe_key: 'recording_content:session:s1:acc-h2', read: false, file_refs: [] },
+            { id: '10000000-0000-4000-8000-000000000003', kind: 'certificate', title: 'گواهی صادر شد', body: 'گواهی شما صادر شد.', created_at: '2026-10-22T06:00:00+00:00', delivery_status: 'failed', delivery_state: 'failed', delivery_attempts: 0, last_delivery_error: 'no_bale_identity', delivered_at: null, link: '/account.html#certificates', account_id: 'acc-web', account_label: 'حساب وب', has_bale_identity: false, dedupe_key: 'certificate:k1:issued', read: false, file_refs: [] },
+            { id: '10000000-0000-4000-8000-000000000004', kind: 'recording_order', title: 'سفارش رد شد', body: 'سفارش رد شد.', created_at: '2026-10-22T05:00:00+00:00', delivery_status: 'delivered', delivery_state: 'delivered', delivery_attempts: 1, last_delivery_error: '', delivered_at: '2026-10-22T05:01:00+00:00', link: '/account.html#orders', account_id: 'acc-h3', account_label: 'امید ن.', has_bale_identity: true, dedupe_key: 'recording_order:o1:rejected:-', read: true, file_refs: [] },
+          ];
+          const state = params.get('state') || '';
+          const items = all.filter(item => !state || (state === 'no_bale_identity' ? item.last_delivery_error === 'no_bale_identity' : item.delivery_state === state && item.last_delivery_error !== 'no_bale_identity'));
+          return reply(200, { source: 'shared_server_database', items, has_more: false, counts: { queued: 1, retrying: 1, delivered: 1, failed: 0, no_bale_identity: 1 }, limit: 30, offset: 0 });
+        }
         const workflowDecision = path.match(/^\/api\/admin\/inbox\/([0-9a-f-]{36})\/decision$/);
         if (workflowDecision && method === 'POST') {
           const body = JSON.parse(options.body || '{}');
@@ -294,6 +309,22 @@ console.log('— نقش حساب از نشست سرور —');
     app.click('[data-server-report-period="7d"]');
     await app.until(() => app.calls.some(call => call.path === '/api/admin/reports/summary?period=7d'), 'بازهٔ هفت‌روزه');
     await app.until(() => app.doc.querySelector('#admBody')?.textContent.includes('پاسخ‌های نهایی · ۷ روز'), 'نمای بازهٔ هفت‌روزه');
+
+    /* فاز ۹.۴ §۸: صندوق خروجی اعلان‌ها در همان صفحهٔ گزارش (rp_view) — صف/تلاش دوباره/تحویل/ناموفق/بدون هویت بله از سرور. */
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?limit=30'), 'خواندن صندوق خروجی');
+    await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 4, 'چهار ردیف صندوق خروجی');
+    const outbox = app.doc.querySelector('[data-server-outbox]');
+    assert.equal(outbox.querySelector('[data-server-outbox-row][data-server-outbox-state-row="queued"]').textContent.includes('در صف'), true);
+    assert.match(outbox.querySelector('[data-server-outbox-state-row="retrying"]').textContent, /۲ تلاش/, 'شمار تلاش‌ها دیده می‌شود');
+    assert.match(outbox.querySelector('[data-server-outbox-state-row="retrying"]').textContent, /bot_send_failed/, 'آخرین خطای ارسال دیده می‌شود');
+    assert.match(outbox.querySelector('[data-server-outbox-state-row="no_bale_identity"]').textContent, /بدون هویت بله/);
+    assert.match(outbox.querySelector('[data-server-outbox-state-row="delivered"]').textContent, /تحویل‌شده/);
+    assert.match(outbox.querySelector('[data-server-outbox-state="no_bale_identity"]').textContent, /۱/, 'شمارندهٔ وضعیت از counts سرور');
+    assert.doesNotMatch(outbox.textContent, /dedupe_key|recording_access:a:granted|4411/, 'کلید داخلی و شناسهٔ خام بله نمایش داده نمی‌شود');
+    app.click('[data-server-outbox-state="no_bale_identity"]');
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?state=no_bale_identity&limit=30'), 'فیلتر بدون هویت بله');
+    await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 1, 'فقط یک ردیف بدون هویت بله');
+    assert.equal(app.doc.querySelector('[data-server-outbox-row]').dataset.serverOutboxStateRow, 'no_bale_identity');
   } finally {
     app.dom.window.close();
   }

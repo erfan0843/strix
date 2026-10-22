@@ -755,6 +755,20 @@ function accountNotificationFiles(item){
       :`<span class="tag warn">پیوند دریافت بات در دسترس نیست</span>`;
   }).join('')}</div>`;
 }
+/* فاز ۹.۴: پیوند اعلان فقط وقتی رندر می‌شود که نسبی و به صفحهٔ داخل برنامه باشد (همان قاعدهٔ سرور؛ هرگز URL فایل/API). */
+function accountNotificationHref(link){
+  const raw=typeof link==='string'?link.trim():'';
+  if(!raw||!/^\/(event|events|account|certificate)\.html(?:\?[A-Za-z0-9_\-=&.%]*)?(?:#[A-Za-z0-9_\-]*)?$/.test(raw)) return '';
+  return raw.slice(1);
+}
+function accountNotificationLinkLabel(item,href){
+  if(/^event\.html\?id=.*#qa$/.test(href)) return 'دیدن پاسخ در صفحهٔ رویداد';
+  if(/^event\.html/.test(href)) return item.kind==='recording_content'?'دیدن محتوای تازه':'رفتن به صفحهٔ محصول';
+  if(/#certificates$/.test(href)) return 'دیدن گواهی‌ها';
+  if(/#orders$/.test(href)) return 'دیدن سفارش‌ها';
+  if(/#events$/.test(href)) return 'دیدن رویدادهای من';
+  return 'باز کردن';
+}
 function accountNotificationsContent(){
   const state=SERVER_ACCOUNT_STATE;
   const items=state.notifications.map(item=>{
@@ -769,6 +783,7 @@ function accountNotificationsContent(){
       <p class="server-notice-body">${esc(item.body||'')}</p>
       <div class="cap">${esc(accountServerDate(item.created_at))} · ${esc(delivery)}</div>
       ${accountNotificationFiles(item)}
+      ${(()=>{const href=accountNotificationHref(item.link); return href?`<div class="row" style="margin-top:8px"><a class="btn sm" href="${esc(href)}" data-account-notice-link="${esc(item.kind||'')}">${ico('i-link')} ${esc(accountNotificationLinkLabel(item,href))}</a></div>`:''})()}
       ${item.read?'':`<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn sm quiet" data-account-notice-read="${esc(item.id)}">${ico('i-check')} خواندم</button></div>`}
     </article>`;
   }).join('');

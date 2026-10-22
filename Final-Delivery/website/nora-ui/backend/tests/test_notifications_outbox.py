@@ -339,3 +339,68 @@ def test_notification_dedupe_migration_round_trip(tmp_path, monkeypatch):
     finally:
         engine.dispose()
     command.upgrade(config, "head")
+
+
+# ── panel: global outbox list (rp_view) ──
+
+
+def test_admin_notification_list_shows_states_counts_and_never_raw_bale_ids_or_file_urls():
+    from backend.roles import ROLE_CLUB_SUPERVISOR
+    from test_workflows_api import assign_manager
+
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            event_id, _v = held_event(owner, 0)
+            build_sellable_product(owner, event_id, price=0, payment_card=None)
+            assert set_status(owner, event_id, "ready").status_code == 200
+            assert set_status(owner, event_id, "published").status_code == 200
+            holder = TestClient(app)
+            holder_id = bale_login(holder, 97501)
+            grant_url = f"/api/admin/events/{event_id}/recording/access"
+            assert owner.post(grant_url, json={"account_id": holder_id, "reason": "اعطای آزمون"}, headers=owner_write_headers(owner)).status_code == 201
+            with Session(engine) as db:
+                db.add(AccountRecord(id="7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"))
+                db.commit()
+            assert owner.post(grant_url, json={"account_id": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d", "reason": "حساب وب"},
+                              headers=owner_write_headers(owner)).status_code == 201
+
+            # Guest and plain member: no access to the global outbox.
+            assert TestClient(app).get("/api/admin/notifications").status_code == 401
+            assert holder.get("/api/admin/notifications").status_code == 403
+
+            listing = owner.get("/api/admin/notifications")
+            assert listing.status_code == 200, listing.text
+            data = listing.json()
+            assert data["counts"] == {"queued": 1, "retrying": 0, "delivered": 0, "failed": 0, "no_bale_identity": 1}
+            assert {item["delivery_state"] for item in data["items"]} == {"queued", "failed"}
+            for item in data["items"]:
+                assert "bale_user_id" not in item and isinstance(item["has_bale_identity"], bool) and isinstance(item["account_label"], str)
+                assert "/api/" not in item["body"] and item["link"] == f"/event.html?id={event_id}#recording"
+            web_only = next(item for item in data["items"] if item["has_bale_identity"] is False)
+            assert web_only["last_delivery_error"] == "no_bale_identity" and web_only["delivery_state"] == "failed"
+            assert owner.get("/api/admin/notifications?state=no_bale_identity").json()["items"][0]["id"] == web_only["id"]
+            assert owner.get("/api/admin/notifications?state=queued").json()["items"][0]["has_bale_identity"] is True
+            assert owner.get("/api/admin/notifications?state=bogus").status_code == 422
+            assert owner.get("/api/admin/notifications?kind=recording_access").json()["counts"]["queued"] == 1
+            assert owner.get("/api/admin/notifications?kind=certificate").json()["items"] == []
+
+            # Attempts and errors are visible: one provider failure → retrying with attempts=1.
+            queued_id = owner.get("/api/admin/notifications?state=queued").json()["items"][0]["id"]
+            assert owner.post(f"/api/bot/notifications/{queued_id}/delivery-failed", json={"bale_user_id": "97501"},
+                              headers=service_headers()).status_code == 200
+            after = owner.get("/api/admin/notifications?state=retrying").json()
+            assert after["counts"]["retrying"] == 1 and after["counts"]["queued"] == 0
+            assert after["items"][0]["delivery_attempts"] == 1 and after["items"][0]["last_delivery_error"]
+
+            # Manager (rp_view) may read; a member without any role stays at 403 even after being an access holder.
+            # Role model is unchanged: club supervisor = manager ∪ club permissions, so it also reads.
+            manager = TestClient(app)
+            manager_id = bale_login(manager, 97502)
+            assign_manager(manager, manager_id)
+            assert manager.get("/api/admin/notifications").status_code == 200
+            assert holder.get("/api/admin/notifications?state=queued").status_code == 403
+            assert ROLE_CLUB_SUPERVISOR  # imported to document the role-model decision above
+    finally:
+        engine.dispose()

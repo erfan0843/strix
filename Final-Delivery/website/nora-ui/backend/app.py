@@ -8026,6 +8026,76 @@ def create_app(
         response.headers["Cache-Control"] = "private, no-store"
         return admin_reports_summary_data(db, role, period)
 
+    @app.get("/api/admin/notifications")
+    def admin_notifications(
+        response: Response,
+        state: str = Query(default=""),
+        kind: str = Query(default=""),
+        limit: int = Query(default=30, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("rp_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.4 §8: global outbox view for the panel — queue / retrying / delivered / failed / no-Bale.
+
+        Read-only, ``rp_view`` (same permission as the reports tab). Shows what the server knows:
+        recorded ≠ sent ≠ delivered; ``no_bale_identity`` is a distinct, non-network state. Bodies
+        never contain private file URLs (enforced at write time), so nothing here leaks access.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        if state not in {"", "queued", "retrying", "delivered", "failed", "no_bale_identity"}:
+            raise HTTPException(422, "invalid_notification_state")
+        if kind and not re.fullmatch(r"[a-z_]{1,40}", kind):
+            raise HTTPException(422, "invalid_notification_kind")
+        query = select(UserNotificationRecord)
+        if kind:
+            query = query.where(UserNotificationRecord.kind == kind)
+        if state == "queued":
+            query = query.where(UserNotificationRecord.delivery_status == "pending", UserNotificationRecord.delivery_attempts == 0)
+        elif state == "retrying":
+            query = query.where(UserNotificationRecord.delivery_status == "pending", UserNotificationRecord.delivery_attempts > 0)
+        elif state == "delivered":
+            query = query.where(UserNotificationRecord.delivery_status == "delivered")
+        elif state == "failed":
+            query = query.where(UserNotificationRecord.delivery_status == "failed", UserNotificationRecord.last_delivery_error != "no_bale_identity")
+        elif state == "no_bale_identity":
+            query = query.where(UserNotificationRecord.last_delivery_error == "no_bale_identity")
+        rows = db.scalars(
+            query.order_by(UserNotificationRecord.created_at.desc(), UserNotificationRecord.id).offset(offset).limit(limit + 1)
+        ).all()
+        counts_rows = db.execute(
+            select(UserNotificationRecord.delivery_status, UserNotificationRecord.last_delivery_error, func.count())
+            .group_by(UserNotificationRecord.delivery_status, UserNotificationRecord.last_delivery_error)
+        ).all()
+        counts = {"queued": 0, "retrying": 0, "delivered": 0, "failed": 0, "no_bale_identity": 0}
+        retrying = db.scalar(
+            select(func.count()).select_from(UserNotificationRecord).where(
+                UserNotificationRecord.delivery_status == "pending", UserNotificationRecord.delivery_attempts > 0,
+            )
+        ) or 0
+        for status, error, count in counts_rows:
+            if status == "pending":
+                counts["queued"] += int(count)
+            elif status == "delivered":
+                counts["delivered"] += int(count)
+            elif error == "no_bale_identity":
+                counts["no_bale_identity"] += int(count)
+            else:
+                counts["failed"] += int(count)
+        counts["queued"] -= int(retrying)
+        counts["retrying"] = int(retrying)
+        items = []
+        for row in rows[:limit]:
+            view = user_notification_view(row)
+            view["account_id"] = row.account_id
+            view["account_label"] = _interaction_display_name(db, row.account_id)
+            view["has_bale_identity"] = bool(row.bale_user_id)
+            view["dedupe_key"] = row.dedupe_key
+            view.pop("bale_user_id", None)  # the panel needs the state, not the raw Bale id
+            items.append(view)
+        return {"source": "shared_server_database", "items": items, "has_more": len(rows) > limit, "counts": counts,
+                "limit": limit, "offset": offset}
+
     @app.post("/api/bot/reports/summary")
     async def bot_admin_reports_summary(
         request: Request,
