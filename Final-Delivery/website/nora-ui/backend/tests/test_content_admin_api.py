@@ -597,3 +597,96 @@ def test_people_or_partners_referenced_by_events_cannot_be_removed_from_the_docu
             assert still_ok.status_code == 200, still_ok.text
     finally:
         engine.dispose()
+
+
+def test_event_parts_sessions_are_editable_validated_and_projected_publicly():
+    """ممیزی پنل ۱۴۰۵/۰۸/۰۱ ردیف B9: جلسه‌های رویداد (``parts``) از پنل قابل ویرایش‌اند، سرور شکل و اندازهٔ آن‌ها
+    را می‌سنجد و صفحهٔ عمومی همان فهرست را می‌خواند؛ مقدار نامعتبر ۴۲۲ فیلدی می‌دهد و چیزی ذخیره نمی‌کند."""
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            parts = [
+                {"title": "جلسهٔ نخست", "date": "۱۴۰۵/۰۸/۱۲", "time": "۱۰:۰۰", "to": "۱۲:۰۰", "description": "آشنایی"},
+                {"title": "", "date": "1405/08/19", "time": "10:00", "to": "", "description": ""},
+                {"title": "", "date": "", "time": "", "to": "", "description": ""},
+            ]
+            created = client.post(
+                "/api/admin/content/events",
+                json={"record": {**EVENT, "parts": parts}, "expected_version": 0},
+                headers=owner_write_headers(client),
+            )
+            assert created.status_code == 200, created.text
+            record_id = created.json()["record"]["id"]
+            stored = created.json()["record"]["parts"]
+            assert len(stored) == 2, "ردیف کاملاً خالی ذخیره نمی‌شود"
+            assert stored[0]["title"] == "جلسهٔ نخست" and stored[0]["to"] == "۱۲:۰۰"
+            assert stored[1]["date"] == "1405/08/19" and stored[1]["title"] == ""
+
+            detail = client.get(f"/api/admin/content/events/{record_id}")
+            assert detail.status_code == 200 and detail.json()["record"]["parts"] == stored
+
+            for bad in ("متن", [1], [{"title": "x", "unknown": "y"}], [{"title": 5}], [{"title": "a"}] * 81):
+                rejected = client.put(
+                    f"/api/admin/content/events/{record_id}",
+                    json={"record": {"parts": bad}, "expected_version": 1},
+                    headers=owner_write_headers(client),
+                )
+                assert rejected.status_code == 422, (bad, rejected.text)
+                assert rejected.json()["detail"]["code"] == "invalid_parts"
+                assert rejected.json()["detail"]["field"] == "parts"
+            assert client.get(f"/api/admin/content/events/{record_id}").json()["record"]["parts"] == stored
+
+            cleared = client.put(
+                f"/api/admin/content/events/{record_id}",
+                json={"record": {"parts": []}, "expected_version": 1},
+                headers=owner_write_headers(client),
+            )
+            assert cleared.status_code == 200 and cleared.json()["record"]["parts"] == []
+
+            restored = client.put(
+                f"/api/admin/content/events/{record_id}",
+                json={"record": {"parts": parts[:1]}, "expected_version": 2},
+                headers=owner_write_headers(client),
+            )
+            assert restored.status_code == 200
+            published = client.post(
+                f"/api/admin/content/events/{record_id}/status",
+                json={"status": "published", "expected_version": 3},
+                headers=owner_write_headers(client),
+            )
+            assert published.status_code == 200, published.text
+            public = client.get("/api/public/site-content").json()["content"]["events"]
+            assert [row["id"] for row in public] == [record_id]
+            assert public[0]["parts"] == [
+                {"title": "جلسهٔ نخست", "date": "۱۴۰۵/۰۸/۱۲", "time": "۱۰:۰۰", "to": "۱۲:۰۰", "description": "آشنایی"}
+            ]
+    finally:
+        engine.dispose()
+
+
+def test_legacy_event_parts_with_alias_keys_survive_status_changes():
+    """ردیف قدیمی با ``parts`` رشته‌ای یا کلیدهای مستعار (``n``/``d``) باید بدون ۴۲۲ منتشر شود؛ سخت‌گیری فقط روی ورودی تازه است."""
+    app, engine = content_app()
+    try:
+        with Session(engine) as session:
+            session.add(SiteContentRecord(id="public", content={"events": [{
+                "id": "legacy-parts", "t": "رویداد قدیمی", "on": "1405/09/01", "d": "شرح", "pub": True, "privacy": "public",
+                "parts": ["جلسهٔ یک", {"n": "جلسهٔ دو", "d": "توضیح"}],
+            }]}, version=1))
+            session.commit()
+        with TestClient(app) as client:
+            owner_login(client)
+            detail = client.get("/api/admin/content/events/legacy-parts")
+            assert detail.status_code == 200, detail.text
+            paused = client.post(
+                "/api/admin/content/events/legacy-parts/status",
+                json={"status": "paused", "expected_version": 1},
+                headers=owner_write_headers(client),
+            )
+            assert paused.status_code == 200, paused.text
+            parts = paused.json()["record"]["parts"]
+            assert [row["title"] for row in parts] == ["جلسهٔ یک", "جلسهٔ دو"]
+            assert parts[1]["description"] == "توضیح"
+    finally:
+        engine.dispose()

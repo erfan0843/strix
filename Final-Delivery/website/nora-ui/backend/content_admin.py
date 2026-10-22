@@ -30,6 +30,7 @@ from .site_content import (
     _article,
     _event,
     _number,
+    _parts,
     _public_record,
     _public_url,
     _text,
@@ -56,6 +57,8 @@ EVENT_EDITABLE = (
     "startsAt", "endsAt", "regOpensAt", "regClosesAt", "regMode", "lifecycle", "conditions",
     # Phase 8: organizer switch for the event-page Q&A (no site-wide Q&A exists).
     "qaClosed",
+    # Panel audit 1405/08/01 (B9): per-session schedule rows rendered by event-page.js.
+    "parts",
 )
 EVENT_DATETIME_FIELDS = ("startsAt", "endsAt", "regOpensAt", "regClosesAt")
 ARTICLE_EDITABLE = ("t", "cat", "lead", "body", "cov", "who", "at", "tags", "pin", "min", "tchr")
@@ -164,6 +167,37 @@ def _validate_event(record: dict[str, Any]) -> None:
     if qa_closed not in (None, "", True, False, 0, 1, "true", "false"):
         raise ContentAdminError("invalid_choice", "qaClosed")
     record["qaClosed"] = qa_closed in (True, 1, "true")
+    record["parts"] = _validate_parts(record.get("parts"))
+
+
+_PART_FIELDS = {"title": 240, "date": 80, "time": 80, "to": 80, "description": 1_200}
+
+
+def _validate_parts(value: Any) -> list[dict[str, str]]:
+    """Session rows: a list (<= 80) of ``{title,date,time,to,description}`` strings (legacy plain
+    strings are kept as titles).  Anything else is a field error; the public sanitiser drops rows
+    that end up completely empty."""
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list) or len(value) > 80:
+        raise ContentAdminError("invalid_parts", "parts")
+    out: list[dict[str, str]] = []
+    for item in value:
+        if isinstance(item, str):
+            item = {"title": item}
+        if not isinstance(item, dict) or set(item) - set(_PART_FIELDS):
+            raise ContentAdminError("invalid_parts", "parts")
+        row: dict[str, str] = {}
+        for key, maximum in _PART_FIELDS.items():
+            raw = item.get(key, "")
+            if raw is None:
+                raw = ""
+            if not isinstance(raw, str) or len(raw) > maximum:
+                raise ContentAdminError("invalid_parts", "parts")
+            row[key] = raw.strip()
+        if any(row.values()):
+            out.append(row)
+    return out
 
 
 def _validate_article(record: dict[str, Any]) -> None:
@@ -315,6 +349,9 @@ def build_record(
     merged: dict[str, Any] = dict(existing or {})
     merged.update({key: incoming[key] for key in EDITABLE[kind] if key in incoming})
     merged["id"] = record_id
+    if kind == "events" and "parts" not in incoming and merged.get("parts"):
+        # Legacy rows (plain strings / alias keys) are normalised leniently; only *incoming* parts are strict.
+        merged["parts"] = _parts(merged.get("parts"))
     VALIDATORS[kind](merged)
     _check_references(kind, incoming, references)
     # Force the public flags on a scratch copy so the sanitiser keeps the row; the
