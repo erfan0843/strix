@@ -1,0 +1,20 @@
+# فاز ۹.۶ §۷ — زمان‌بند و صندوق خروجی روی preview (دادهٔ مصنوعی)
+$ python -m backend.scheduled_publish --once --json   (همان کد systemd ExecStart)
+{"ok": true, "actor": "cli", "due": 0, "announced": 0, "notified": 0, "skipped": 0, "errors": 0, "at": "2026-10-22T10:23:53.363141+00:00"}
+exit=0
+$ دوباره (idempotent)
+{"ok": true, "actor": "cli", "due": 0, "announced": 0, "notified": 0, "skipped": 0, "errors": 0, "at": "2026-10-22T10:23:53.787395+00:00"}
+exit=0
+
+## HTTP: مجوزها و رفتار صندوق خروجی/زمان‌بند
+owner: GET /api/admin/notifications → 200 · GET /api/admin/scheduled-publish → 200
+manager: GET /api/admin/notifications → 200 · GET /api/admin/scheduled-publish → 200
+member: GET /api/admin/notifications → 403 · GET /api/admin/scheduled-publish → 403
+guest: GET /api/admin/notifications → 401 · GET /api/admin/scheduled-publish → 401
+monitor: {"now": "2026-10-22T10:23:54.179917+00:00", "last_run": {"at": "2026-10-22T10:23:53.787395Z", "ok": true, "actor": "cli", "due": 0, "announced": 0, "notified": 0, "skipped": 0, "errors": 0}, "pending": {"future": 0, "due_unannounced": 0}, "runner": "systemd timer or manual run; the web process does not run a background scheduler"}
+outbox rows (items خوانده‌شده: ۲۱) by state: {'pending': 21}
+retry روی ردیف pending (مالک) → 409 notification_not_failed
+retry (عضو) → 403
+retry (مهمان) → 401
+run دستی: عضو → 403 · مدیر (ev_publish) → 200 {"due": 0, "announced": 0, "actor": "account:0ec6fe92-3889-499e-9466-dd3aa16c"}
+outbox پس از run دستی: همان ۲۱ ردیف (بدون ردیف تازه)

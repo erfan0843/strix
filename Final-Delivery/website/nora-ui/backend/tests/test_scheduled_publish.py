@@ -334,3 +334,63 @@ def test_checked_in_attendees_of_a_courtesy_product_are_announced_once_without_a
             assert [n["kind"] for n in notes].count("recording_content") == 1
     finally:
         app.state.engine.dispose() if hasattr(app.state, "engine") else None
+
+
+def test_several_due_rows_in_one_pass_are_announced_oldest_first_and_a_far_past_time_is_just_due():
+    """Phase 9.6 §7: three rows become due in the same pass (two products, one with a publish_at years in the
+    past — a clock jump or a long outage): one run announces all three, oldest first, every holder gets exactly
+    one row per resource, and a second pass (double timer run) has nothing left to do."""
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            event_a, session_a, holder_a_id, holder_a = setup_product(owner, app)
+            event_b, _v = held_event(owner, 1, t="کارگاه دوم")
+            product_b = build_sellable_product(owner, event_b, price=0, payment_card=None)
+            assert set_status(owner, event_b, "ready").status_code == 200 and set_status(owner, event_b, "published").status_code == 200
+            holder_b = TestClient(app)
+            holder_b_id = bale_login(holder_b, 97302)
+            assert owner.post(f"/api/admin/events/{event_b}/recording/access", json={"account_id": holder_b_id, "reason": "اعطای آزمون"},
+                              headers=owner_write_headers(owner)).status_code == 201
+            h = owner_write_headers(owner)
+
+            def schedule(event_id: str, session_id: str, title: str, publish_at: str) -> str:
+                created = owner.post(f"/api/admin/events/{event_id}/resources", json={"title": title, "access": "purchased", "session_id": session_id,
+                                                                                      "kind": "link", "link_url": "https://example.org/" + publish_at[:4]}, headers=h)
+                assert created.status_code == 201, created.text
+                rid = created.json()["id"]
+                assert owner.put(f"/api/admin/events/{event_id}/resources/{rid}", json={"status": "published", "publish_at": publish_at}, headers=h).status_code == 200
+                return rid
+
+            rid_old = schedule(event_a, session_a, "منبع قدیمی", "2099-01-01T08:00:00+00:00")
+            rid_a = schedule(event_a, session_a, "منبع الف", "2099-01-01T09:00:00+00:00")
+            rid_b = schedule(event_b, product_b["_session_id"], "منبع ب", "2099-01-01T09:30:00+00:00")
+            assert content_rows(engine, holder_a_id) == [] and content_rows(engine, holder_b_id) == []
+            # Long outage / clock jump: the first row's time is now years in the past while the timer never ran.
+            # (Publishing through the API with a past time is announced immediately by the publish route itself —
+            # that path is covered by test_cli_once…; here the row must be picked up by the scheduler.)
+            with Session(engine) as db:
+                db.get(EventResourceRecord, rid_old).publish_at = datetime(2001, 6, 15, 8, 0, tzinfo=timezone.utc)
+                db.commit()
+            # The far-past row is visible right away (visibility = server clock), the 2099 rows are not.
+            visible = {r["id"] for s in holder_a.get(f"/api/public/events/{event_a}/recording").json()["recording"]["sessions"] for r in s["resources"]}
+            assert rid_old in visible and rid_a not in visible
+            with Session(engine) as db:
+                assert scheduled_publish.pending_count(db, datetime.now(timezone.utc)) == {"future": 2, "due_unannounced": 1}
+                assert [r.id for r in scheduled_publish.due_resources(db, AFTER)] == [rid_old, rid_a, rid_b]  # oldest first
+                run = scheduled_publish.announce_due(db, AFTER, actor="timer")
+                again = scheduled_publish.announce_due(db, AFTER + timedelta(minutes=5), actor="timer")
+                assert scheduled_publish.pending_count(db, AFTER) == {"future": 0, "due_unannounced": 0}
+            assert run["ok"] is True and (run["due"], run["announced"], run["notified"], run["skipped"], run["errors"]) == (3, 3, 3, 0, 0), run
+            assert (again["due"], again["announced"], again["notified"]) == (0, 0, 0), again
+            mine_a = content_rows(engine, holder_a_id)
+            assert sorted(n.dedupe_key for n in mine_a) == sorted(f"recording_content:resource:{rid}:{holder_a_id}" for rid in (rid_old, rid_a))
+            mine_b = content_rows(engine, holder_b_id)
+            assert [n.dedupe_key for n in mine_b] == [f"recording_content:resource:{rid_b}:{holder_b_id}"]
+            for rid in (rid_old, rid_a, rid_b):
+                assert resource(engine, rid).announced_at is not None
+            # The marker of the last pass is what the panel and the CLI report; the UTC instant is explicit.
+            state = owner.get("/api/admin/scheduled-publish").json()
+            assert state["last_run"]["due"] == 0 and state["last_run"]["at"] == "2099-01-01T10:05:01Z" and state["last_run"]["actor"] == "timer"
+    finally:
+        engine.dispose()

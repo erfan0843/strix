@@ -375,6 +375,11 @@ console.log('— نقش حساب از نشست سرور —');
     await app.until(() => app.doc.querySelector('[data-server-sched][data-server-sched-state="ok"]'), 'پس از اجرا وضعیت سالم');
     const schedAfter = app.doc.querySelector('[data-server-sched]');
     assert.match(schedAfter.querySelector('[data-server-sched-run]').textContent, /تایمر\/خط فرمان|دستی از پنل/);
+    // فاز ۹.۶ §۷: زمان UTC سرور (09:25Z) به وقت تهران (۱۲:۵۵، ۱۴۰۵/۰۷/۳۰) نمایش داده می‌شود و مقدار خام در datetime می‌ماند.
+    const runTime = schedAfter.querySelector('[data-server-sched-run] time');
+    assert.ok(runTime && runTime.getAttribute('datetime') === '2026-10-22T09:25:00+00:00', 'مقدار خام UTC در datetime');
+    assert.match(runTime.textContent, /۱۴۰۵\/۰۷\/۳۰ ۱۲:۵۵ به وقت تهران/);
+    assert.doesNotMatch(schedAfter.querySelector('[data-server-sched-run]').textContent, /T09:25:00/);
     assert.match(schedAfter.querySelector('[data-server-sched-manual]').textContent, /اعلان‌شده ۱/);
     assert.match(schedAfter.textContent, /زمان‌بندی‌شده برای آینده/);
 

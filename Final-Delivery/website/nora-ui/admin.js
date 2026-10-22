@@ -1821,10 +1821,17 @@ async function runServerSched(){
   catch(error){o.error=error&&error.status===403?'مجوز «انتشار رویداد» برای اجرای دستی لازم است.':'اجرای دستی زمان‌بند انجام نشد؛ چیزی تغییر نکرد.'}
   finally{o.running=false; renderBody()}
 }
+/* فاز ۹.۶ §۷: زمان اجرای زمان‌بند به وقت تهران (تقویم جلالی) نمایش داده می‌شود؛ مقدار خام UTC سرور در datetime می‌ماند. */
+function schedWhen(iso){
+  if(!iso) return '';
+  const ms=Date.parse(iso); if(isNaN(ms)) return esc(String(iso));
+  const c=clockParts(ms), j=d2j(g2d(c.gy,c.gm,c.gd));
+  return `${jForm(j.jy,j.jm,j.jd)} ${fa(jPad(c.h))}:${fa(jPad(c.mi))} به وقت تهران`;
+}
 function vServerSched(){
   const o=SERVER_SCHED, d=o.data; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
   const run=d&&d.last_run;
-  const runLine=run?`آخرین اجرا: ${esc(run.at||'')} · عامل: ${esc(run.actor==='cli'?'تایمر/خط فرمان':run.actor==='timer'?'تایمر':'دستی از پنل')} · ${run.ok?tag('موفق','ok'):tag('با خطا','stop')} · در موعد: ${number(run.due)} · اعلان‌شده: ${number(run.announced)} · اعلان‌های ساخته‌شده: ${number(run.notified)} · نادیده (بدون دارنده): ${number(run.skipped)}`
+  const runLine=run?`آخرین اجرا: <time datetime="${esc(run.at||'')}">${schedWhen(run.at)}</time> · عامل: ${esc(run.actor==='cli'?'تایمر/خط فرمان':run.actor==='timer'?'تایمر':'دستی از پنل')} · ${run.ok?tag('موفق','ok'):tag('با خطا','stop')} · در موعد: ${number(run.due)} · اعلان‌شده: ${number(run.announced)} · اعلان‌های ساخته‌شده: ${number(run.notified)} · نادیده (بدون دارنده): ${number(run.skipped)}`
     :'هنوز هیچ اجرایی ثبت نشده است؛ تا وقتی تایمر سیستم یا اجرای دستی ثبت نشود، انتشار زمان‌بندی‌شده «اعلان» نمی‌شود (خودِ نمایش محتوا با ساعت سرور محاسبه می‌شود و به زمان‌بند نیاز ندارد).';
   const pend=d?`<div class="admkpi"><div class="k"><small>زمان‌بندی‌شده برای آینده</small>${bits(number(d.pending.future))}</div><div class="k"><small>در موعد ولی اعلان‌نشده</small>${bits(number(d.pending.due_unannounced))}</div></div>${d.pending.due_unannounced>0?p2Msg({kind:'warn',text:'ردیف‌هایی به موعد رسیده‌اند ولی اعلان نشده‌اند؛ یعنی تایمر اجرا نشده است. «اجرای دستی» همان کار تایمر را یک‌بار انجام می‌دهد (بدون تکرار اعلان).'}):''}`:'';
   const manual=o.lastManual?`<p class="cap" data-server-sched-manual>اجرای دستی: در موعد ${number(o.lastManual.due)} · اعلان‌شده ${number(o.lastManual.announced)} · اعلان‌های ساخته‌شده ${number(o.lastManual.notified)}</p>`:'';
