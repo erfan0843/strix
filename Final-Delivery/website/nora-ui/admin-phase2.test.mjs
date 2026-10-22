@@ -34,7 +34,7 @@ async function loadPanel(identity) {
   const world = identity.world || makeWorld();
   const calls = [];
   const dialogs = [];
-  const values = new Map([['nora-admin', JSON.stringify({ v: 78, sec: identity.sec || 'events' })]]);
+  const values = new Map([['nora-admin', JSON.stringify({ v: 78, sec: identity.sec || 'events', ...(identity.state || {}) })]]);
   const store = {
     getItem(k) { return values.has(String(k)) ? values.get(String(k)) : null; },
     setItem(k, v) { values.set(String(k), String(v)); },
@@ -73,7 +73,38 @@ async function loadPanel(identity) {
         if (path === '/api/health') return reply(200, { ok: true, formsEnabled: true, responsesEnabled: true });
         if (path === '/api/integrations/status') return reply(200, { providers: [] });
         if (path === '/api/forms') return reply(200, { items: identity.forms || [] });
-        if (path === '/api/owner/site-content') return reply(200, { content: {}, version: world.version, updated_at: null });
+        if (path === '/api/owner/site-content') {
+          if (identity.role !== 'owner') return reply(401, { detail: 'authentication_required' });
+          if (!world.siteContent) return reply(200, { content: {}, version: world.version, updated_at: null });
+          const view = () => ({ content: JSON.parse(JSON.stringify(world.siteContent)), version: world.version, updated_at: '2026-10-22T08:00:00+00:00' });
+          if (method === 'GET') return reply(200, view());
+          if (method !== 'PATCH') return reply(405, { detail: 'method_not_allowed' });
+          /* همان قرارداد PATCH /api/owner/site-content: CSRF، بدنهٔ دقیق، نسخه، ردیف‌های ردشده، نگهبان ارجاع */
+          if ((options.headers || {})['X-CSRF-Token'] !== 'owner-csrf') return reply(403, { detail: 'csrf_check_failed' });
+          if (!body || Object.keys(body).sort().join() !== 'content,expected_version') return reply(400, { detail: 'invalid_site_content_request' });
+          if (body.expected_version !== world.version) return reply(409, { detail: { code: 'site_content_version_conflict', current_version: world.version } });
+          const rejected = {};
+          const incoming = {};
+          for (const key of Object.keys(body.content || {})) {
+            const rows = Array.isArray(body.content[key]) ? body.content[key] : [];
+            const kept = [];
+            rows.forEach((row, index) => {
+              if (!row || typeof row !== 'object') { (rejected[key] ||= []).push({ index, id: '', reason: 'invalid_row' }); return; }
+              if (!row.id || !String(row.n || '').trim()) { (rejected[key] ||= []).push({ index, id: String(row.id || ''), reason: 'missing_required_fields' }); return; }
+              if (row.hidden) { (rejected[key] ||= []).push({ index, id: String(row.id), reason: 'non_public' }); return; }
+              kept.push(row);
+            });
+            incoming[key] = kept;
+          }
+          if (incoming.people) {
+            const next = new Set(incoming.people.map((r) => String(r.id)));
+            const usedBy = (world.siteContent.events || []).filter((e) => e.tchr && !next.has(String(e.tchr)) && (world.siteContent.people || []).some((p) => String(p.id) === String(e.tchr)))
+              .map((e) => ({ kind: 'events', id: e.id, t: e.t, ref: e.tchr }));
+            if (usedBy.length) return reply(422, { detail: { code: 'reference_in_use', field: 'people', ids: [...new Set(usedBy.map((u) => u.ref))], used_by: usedBy } });
+          }
+          Object.assign(world.siteContent, incoming); world.version += 1; world.patches = (world.patches || 0) + 1;
+          return reply(200, { ...view(), rejected_rows: rejected });
+        }
         if (/^\/api\/admin\/reports\/summary\?period=/.test(path)) return reply(200, { source: 'shared_server_database', period: '30d', forms: { total: 0, by_status: {} }, responses: { total: 0, by_status: {} }, accounts: { total: 0, by_role: {} }, reviews: { total: 0, by_kind: {} }, notifications: { total: 0, by_delivery_status: {} }, cooperation_requests: { total: 0, by_status: {} } });
         if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
         if (path.startsWith('/api/owner/audit')) return reply(200, { items: [], limit: 30, offset: 0, has_more: false, actions: [] });
@@ -493,6 +524,170 @@ console.log('— B4 ممیزی مالک: فرم‌های ثبت‌نام همی�
     assert.equal(noForms.doc.querySelector('[data-ct-forms]'), null, 'بدون مجوز فرم‌ساز بلوک فرم‌ها نیست');
     assert.equal(noForms.calls.filter((c) => c.path === '/api/forms').length, 0, 'بدون مجوز، درخواستی به /api/forms نمی‌رود');
   } finally { noForms.close(); }
+}
+
+console.log('— H1 مالک: ویرایشگر سروری افراد روی GET/PATCH /api/owner/site-content؛ جست‌وجو، ویرایش، پیش‌نمایش، تأیید انتشار، ردیف ردشده، ۴۰۹ بدون از دست رفتن نوشته، نگهبان حذف —');
+{
+  const makeSite = () => ({
+    people: [
+      { id: 'pp-ali', n: 'علی موسوی', r: 'مدرس فن بیان', role2: '', kind: 'teacher', bio: 'ده سال تدریس', quote: '', where: 'تهران', yrs: '۱۰ سال', courses: '12', rate: '۴٫۸', tag: 'پیشنهادی', exp: ['فن بیان', 'تنفس'], links: [{ k: 'tg', v: 'alimousavi' }], photo: '', g: 'linear-gradient(135deg,#1E6FD0,#0A3A82)', form: '', formTxt: '' },
+      { id: 'pp-sara', n: 'سارا کریمی', r: 'دست‌اندرکار اجرا', role2: '', kind: 'staff', bio: '', quote: '', where: '', yrs: '', courses: '0', rate: '', tag: '', exp: ['هماهنگی'], links: [], photo: '', g: '', form: '', formTxt: '' },
+    ],
+    partners: [],
+    events: [{ id: 'ev-a1', t: 'کارگاه نگارش', when: 'پنجشنبه', tchr: 'pp-ali' }],
+    articles: [],
+  });
+  const world = { ...makeWorld(), siteContent: makeSite() };
+  const forms = [{ id: 'f-ask', name: 'پرسش از استاد', purpose: 'survey', status: 'published', fields: [{ id: 'q1' }] }];
+  const app = await loadPanel({ role: 'owner', sec: 'settings', state: { setG: 'people' }, world, forms });
+  try {
+    await app.until(() => app.doc.querySelector('[data-pe-row="pp-ali"]'), 'فهرست افراد از GET /api/owner/site-content');
+    assert.ok(app.doc.querySelector('[data-pe-row="pp-sara"]'));
+    assert.match(app.doc.querySelector('#peSrvState').textContent, /۲ پروفایل .*نسخهٔ ۷/);
+    assert.match(app.doc.querySelector('[data-pe-row="pp-ali"]').textContent, /۱ رویداد منتشرشده/, 'پیوند واقعی رویداد↔پروفایل در فهرست');
+    app.noLeak();
+
+    /* جست‌وجو بر پایهٔ نام/نقش/تخصص بدون درخواست تازه */
+    const before = app.calls.length;
+    app.type('[data-pe-q]', 'هماهنگی');
+    assert.equal(app.doc.querySelector('[data-pe-row="pp-ali"]'), null, 'جست‌وجو بر پایهٔ تخصص');
+    assert.ok(app.doc.querySelector('[data-pe-row="pp-sara"]'));
+    app.type('[data-pe-q]', '');
+    app.click('[data-pe-kind="staff"]');
+    assert.equal(app.doc.querySelector('[data-pe-row="pp-ali"]'), null, 'فیلتر نوع');
+    app.click('[data-pe-kind=""]');
+    assert.equal(app.calls.length, before, 'جست‌وجو و فیلتر سمت مرورگر روی همان فهرست سرور است');
+
+    /* ویرایش: فرم طراحی + پیش‌نمایش زنده + توضیح «ذخیره = انتشار فوری» */
+    app.click('[data-pe-edit="pp-ali"]');
+    await app.until(() => app.doc.querySelector('[data-pe-editor="pp-ali"]'), 'ویرایشگر');
+    assert.match(app.doc.querySelector('[data-pe-publish-note]').textContent, /ذخیره = انتشار فوری/);
+    assert.equal(app.doc.querySelector('[data-ppf="n"]').value, 'علی موسوی');
+    assert.ok(app.doc.querySelector('#ppPrev .tcard'), 'پیش‌نمایش کارت');
+    assert.equal(app.doc.querySelector('[data-ppstar]'), null, 'فیلدی که سرور ذخیره نمی‌کند (معرفی‌شده) در حالت سرور نیست');
+    assert.equal(app.doc.querySelector('[data-ppic]'), null, 'آیکون کارت هم ذخیره نمی‌شود');
+    assert.equal(app.doc.querySelector('[data-pplkv="other"]'), null, 'نوع پیوند «دیگر» را سرور می‌اندازد؛ پیشنهاد نمی‌شود');
+    assert.match(app.doc.querySelector('[data-pe-editor] .ppsec:last-of-type, [data-pe-editor]').textContent, /کارگاه نگارش/, 'رویداد وصل‌شده در ویرایشگر');
+    await app.until(() => app.doc.querySelector('[data-ppform="f-ask"]'), 'فرم‌های سروری (/api/forms) در انتخاب فرم پیوست');
+    app.type('[data-ppf="r"]', 'مدرس ارشد فن بیان');
+    assert.match(app.doc.querySelector('#ppPrev').textContent, /مدرس ارشد فن بیان/, 'پیش‌نمایش زنده');
+    app.click('[data-ppform="f-ask"]');
+    await app.until(() => app.doc.querySelector('[data-ppform=""]'), 'فرم وصل شد');
+
+    /* انصراف نوشته را نگه نمی‌دارد؛ ولی ذخیره فقط با تأیید انجام می‌شود */
+    app.dialogs.length = 0;
+    app.click('[data-pe-save]');
+    await app.until(() => app.world.patches === 1, 'PATCH پس از تأیید');
+    assert.equal(app.dialogs.length, 1);
+    assert.match(app.dialogs[0][1], /بلافاصله در سایت عمومی منتشر می‌شود/, 'پیش از ذخیره توضیح انتشار فوری');
+    const patch = app.calls.filter((c) => c.path === '/api/owner/site-content' && c.method === 'PATCH').pop();
+    assert.deepEqual(Object.keys(patch.body).sort(), ['content', 'expected_version'], 'بدنهٔ دقیق قرارداد');
+    assert.equal(patch.body.expected_version, 7);
+    assert.equal(patch.headers['X-CSRF-Token'], 'owner-csrf', 'CSRF مالک');
+    assert.deepEqual(Object.keys(patch.body.content), ['people'], 'فقط دستهٔ people فرستاده می‌شود');
+    const sent = patch.body.content.people.find((p) => p.id === 'pp-ali');
+    assert.equal(sent.r, 'مدرس ارشد فن بیان');
+    assert.equal(sent.form, 'f-ask');
+    assert.equal(sent.kind, 'teacher');
+    for (const key of Object.keys(sent)) assert.ok(['id', 'n', 'ini', 'r', 'role2', 'kind', 'bio', 'quote', 'where', 'yrs', 'courses', 'rate', 'tag', 'exp', 'links', 'photo', 'g', 'form', 'formTxt'].includes(key), `فیلد غیرمجاز فرستاده شد: ${key}`);
+    assert.equal(patch.body.content.people.length, 2, 'ردیف دیگر دست‌نخورده می‌ماند');
+    await app.until(() => /نسخهٔ ۸ سرور ذخیره شد/.test(app.doc.querySelector('#peSrvState').textContent), 'پیام موفقیت فقط پس از پاسخ سرور');
+    assert.equal(app.doc.querySelector('[data-pe-editor]'), null, 'ویرایشگر پس از موفقیت بسته می‌شود');
+    assert.match(app.doc.querySelector('[data-pe-row="pp-ali"]').textContent, /مدرس ارشد فن بیان/);
+
+    /* ترتیب: یک PATCH با همان نسخهٔ تازه */
+    app.click('[data-pe-down="pp-ali"]');
+    await app.until(() => app.world.patches === 2, 'PATCH ترتیب');
+    assert.deepEqual(app.world.siteContent.people.map((p) => p.id), ['pp-sara', 'pp-ali']);
+    assert.equal(app.calls.filter((c) => c.method === 'PATCH').pop().body.expected_version, 8);
+
+    /* شخص تازه: تأیید صریح؛ انصراف از تأیید = هیچ درخواستی */
+    app.click('[data-pe-new]');
+    await app.until(() => app.doc.querySelector('[data-pe-editor="new"]'), 'ویرایشگر شخص تازه');
+    app.dialogs.length = 0;
+    app.click('[data-pe-save]');
+    await delay(30);
+    assert.equal(app.world.patches, 2, 'بدون نام، درخواستی نمی‌رود');
+    app.type('[data-ppf="n"]', 'مدرس آزمایشی تازه');
+    app.type('[data-ppf="exp"]', 'نجوم، رصد');
+    app.window.confirm = (m) => { app.dialogs.push(['confirm', String(m)]); return false; };
+    app.click('[data-pe-save]');
+    await delay(30);
+    assert.equal(app.world.patches, 2, 'بدون تأیید، شخص تازه منتشر نمی‌شود');
+    assert.match(app.dialogs.pop()[1], /همین حالا روی سرور ذخیره و بلافاصله در سایت عمومی منتشر می‌شود/);
+    assert.ok(app.doc.querySelector('[data-pe-editor="new"]'), 'نوشته پس از انصراف باقی است');
+    app.window.confirm = () => true;
+    app.click('[data-pe-save]');
+    await app.until(() => app.world.patches === 3, 'PATCH شخص تازه');
+    const created = app.world.siteContent.people.find((p) => p.n === 'مدرس آزمایشی تازه');
+    assert.ok(created && /^pp-/.test(created.id), 'شناسهٔ تازه ساخته شد');
+    assert.deepEqual(created.exp, ['نجوم', 'رصد']);
+    await app.until(() => app.doc.querySelector(`[data-pe-row="${created.id}"]`), 'ردیف تازه در فهرست');
+
+    /* ردیف ردشده: موفقیت کامل گزارش نمی‌شود */
+    app.world.siteContent.people.push({ id: 'pp-hid', n: 'پنهان', kind: 'teacher', hidden: true });
+    app.click('[data-pe-refresh]');
+    await app.until(() => app.doc.querySelector('[data-pe-row="pp-hid"]'), 'ردیف غیرعمومی (شبیه‌سازی)');
+    app.click('[data-pe-edit="pp-sara"]');
+    await app.until(() => app.doc.querySelector('[data-pe-editor="pp-sara"]'), 'ویرایشگر');
+    app.type('[data-ppf="r"]', 'هماهنگ‌کنندهٔ اجرا');
+    app.click('[data-pe-save]');
+    await app.until(() => app.world.patches === 4, 'PATCH');
+    await app.until(() => app.doc.querySelector('[data-pe-rejected]'), 'ردیف ردشده نمایش داده می‌شود');
+    assert.match(app.doc.querySelector('#peSrvState').textContent, /۱ ردیف پذیرفته و منتشر نشد/);
+    assert.match(app.doc.querySelector('#peSrvState').textContent, /pp-hid/);
+    assert.doesNotMatch(app.doc.querySelector('#peSrvState').textContent, /همین حالا در سایت دیده می‌شود/, 'جملهٔ موفقیت کامل نیست');
+    assert.equal(app.doc.querySelector('[data-pe-rejected]').getAttribute('data-state'), 'warn');
+    assert.equal(app.doc.querySelector('[data-pe-editor]'), null, 'ردیف ویرایش‌شدهٔ خودِ مالک پذیرفته شده بود؛ ویرایشگر بسته شد');
+
+    /* ۴۰۹: نوشتهٔ مالک حفظ می‌شود، فهرست تازه می‌شود، تطبیق فیلدها و ذخیرهٔ دوباره */
+    app.click('[data-pe-edit="pp-ali"]');
+    await app.until(() => app.doc.querySelector('[data-pe-editor="pp-ali"]'), 'ویرایشگر');
+    app.type('[data-ppf="bio"]', 'زندگی‌نامهٔ تازهٔ من');
+    /* شخص دیگری هم‌زمان سرور را عوض می‌کند */
+    app.world.siteContent.people.find((p) => p.id === 'pp-ali').where = 'شیراز';
+    app.world.version += 1;
+    app.click('[data-pe-save]');
+    await app.until(() => app.doc.querySelector('[data-pe-conflict]'), 'پنل تعارض نسخه');
+    assert.match(app.doc.querySelector('#peSrvState').textContent, /نوشته‌هایتان همین‌جا مانده/);
+    assert.equal(app.doc.querySelector('[data-ppf="bio"]').value, 'زندگی‌نامهٔ تازهٔ من', 'نوشتهٔ مالک پس از ۴۰۹ از دست نرفته');
+    assert.ok(app.doc.querySelector('[data-pe-diff="where"]'), 'تفاوتِ تغییرِ دیگری (محل) نمایش داده می‌شود');
+    assert.match(app.doc.querySelector('[data-pe-diff="where"]').textContent, /روی سرور تغییر کرده/);
+    assert.ok(app.doc.querySelector('[data-pe-diff="bio"]'), 'تفاوتِ نوشتهٔ خودم');
+    app.click('[data-pe-take="where"]');
+    await delay(20);
+    assert.equal(app.doc.querySelector('[data-ppf="where"]').value, 'شیراز', 'گرفتن مقدار سرور برای یک فیلد');
+    assert.equal(app.doc.querySelector('[data-pe-diff="where"]'), null);
+    app.click('[data-pe-save]');
+    await app.until(() => app.world.patches === 5, 'ذخیرهٔ دوباره روی نسخهٔ تازه');
+    const again = app.calls.filter((c) => c.method === 'PATCH').pop();
+    assert.equal(again.body.expected_version, 12, 'نسخهٔ تازه پس از بارگذاری مجدد');
+    const ali = again.body.content.people.find((p) => p.id === 'pp-ali');
+    assert.equal(ali.bio, 'زندگی‌نامهٔ تازهٔ من');
+    assert.equal(ali.where, 'شیراز');
+    await app.until(() => !app.doc.querySelector('[data-pe-editor]'), 'بسته شد');
+
+    /* حذفِ شخصِ وصل‌شده: سرور ۴۲۲ reference_in_use می‌دهد و پیام رویداد را نام می‌برد؛ فهرست دست‌نخورده */
+    const patchesBefore = app.calls.filter((c) => c.method === 'PATCH').length;
+    app.click('[data-pe-del="pp-ali"]');
+    await app.until(() => app.calls.filter((c) => c.method === 'PATCH').length === patchesBefore + 1, 'PATCH حذف');
+    await app.until(() => /حذف انجام نشد/.test(app.doc.querySelector('#peSrvState').textContent), 'پیام نگهبان ارجاع');
+    assert.match(app.doc.querySelector('#peSrvState').textContent, /کارگاه نگارش/);
+    assert.ok(app.doc.querySelector('[data-pe-row="pp-ali"]'));
+    assert.ok(app.world.siteContent.people.some((p) => p.id === 'pp-ali'));
+    /* حذف شخص آزاد پس از تأیید */
+    app.click(`[data-pe-del="${created.id}"]`);
+    await app.until(() => !app.world.siteContent.people.some((p) => p.id === created.id), 'حذف شخص آزاد');
+    app.noLeak();
+  } finally { app.close(); }
+
+  /* مدیر (غیرمالک): تب افراد ویرایشگر ندارد و هیچ درخواستی به API مالک نمی‌رود */
+  const mgr = await loadPanel({ role: 'manager', sec: 'settings', state: { setG: 'people' }, world: { ...makeWorld(), siteContent: makeSite() } });
+  try {
+    await delay(150);
+    assert.equal(mgr.doc.querySelector('#peList'), null, 'بدون نشست مالک ویرایشگری نیست');
+    assert.equal(mgr.calls.filter((c) => c.path === '/api/owner/site-content').length, 0, 'مدیر به API مالک درخواست نمی‌فرستد');
+  } finally { mgr.close(); }
 }
 
 console.log('آزمون مرحلهٔ دوم پنل: قبول');

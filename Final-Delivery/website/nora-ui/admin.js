@@ -1102,7 +1102,12 @@ function canApprove(r){return !!r.wait&&(isOwner()||(isLead()&&r.f===myField().k
    فرم در فرم‌ساز ساخته می‌شود؛ این‌جا فقط وصلیم. مبلغ و ظرفیت و پنجرهٔ
    ثبت‌نام از همان فرم خوانده می‌شود تا رویداد و فرم یکی بمانند. */
 const FST=()=>(window.NORA_UI&&NORA_UI)||null;
-function madeForms(){try{const u=FST(); return u&&u.formsAll?u.formsAll():[]}catch(e){return []}}
+function madeForms(){
+  if(typeof ppPartnerServerMode==='function'&&ppPartnerServerMode()){
+    const items=typeof FORMS_SRV!=='undefined'&&FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+    return items.filter(f=>f&&f.purpose!=='recording_access').map(f=>({id:f.id,name:f.name||f.title||'',kind:(typeof FS_PURPOSE!=='undefined'&&FS_PURPOSE[f.purpose])||f.purpose||'',q:Array.isArray(f.fields)?f.fields.length:0,status:f.status||'draft',ev:f.ev||''}));
+  }
+  try{const u=FST(); return u&&u.formsAll?u.formsAll():[]}catch(e){return []}}
 function demoForms(){const F=(A.forms||{}); return (F.rows||[]).map((r,i)=>({id:'demo'+(i+1), name:r.n, kind:r.k,
   q:NR(un(String(r.got||'0'))), cap:0, fin:[], demo:1, need:''}))}
 /* نظرسنجی آمادهٔ نورا: با شناسهٔ auto هرجا فرم خواست، همین میآید */
@@ -4081,6 +4086,223 @@ async function ppPartnerCommit(list,what,onDone){
   if(onDone) onDone(ok);
   renderBody(); return ok;
 }
+/* ══ H1: ویرایشگر سروری «استادان و افراد سایت» ══
+   همان فرم و پیش‌نمایش طراحی (ppForm/ppPrev) روی دستهٔ people در /api/owner/site-content.
+   هیچ فهرستی از data.js یا localStorage ساخته نمی‌شود؛ فقط پیش‌نویسِ در حال تایپ (S.ppD) در
+   حافظهٔ پنل می‌ماند تا با ۴۰۹ یا خطای شبکه از دست نرود. ذخیره = انتشار فوری روی سرور؛
+   ردیف‌های ردشده (rejected_rows.people) هرگز «ذخیره‌شده» گزارش نمی‌شوند. */
+const PE_SRV={loaded:false,busy:false,requested:false,rows:[],events:[],articles:[],version:0,msg:'',state:'',rejected:null,conflict:null,q:'',kind:''};
+const PE_FIELDS=['id','n','ini','r','role2','kind','bio','quote','where','yrs','courses','rate','tag','exp','links','photo','g','form','formTxt'];
+const PE_LABELS={n:'نام',ini:'حرف آواتار',r:'نقش و سمت',role2:'سمت دوم',kind:'جایگاه',bio:'درباره',quote:'جمله',where:'محل',yrs:'سابقه',courses:'دوره',rate:'امتیاز',tag:'برچسب',exp:'تخصص‌ها',links:'راه‌های ارتباط',photo:'عکس',g:'رنگ جلد',form:'فرم پیوست',formTxt:'نوشتهٔ دکمه'};
+const peServerMode=()=>ppPartnerServerMode();
+const peVisible=()=>!!$('#peList');
+function peSrvSet(msg,state){PE_SRV.msg=msg||''; PE_SRV.state=state||'';
+  const el=$('#peSrvState'); if(el){el.textContent=PE_SRV.msg; if(PE_SRV.state) el.dataset.state=PE_SRV.state; else delete el.dataset.state}}
+function peApply(result){
+  const content=result&&result.content&&typeof result.content==='object'?result.content:{};
+  PE_SRV.version=Number.isInteger(+(result&&result.version))&&+result.version>=0?+result.version:0;
+  const rows=k=>Array.isArray(content[k])?content[k].filter(r=>r&&typeof r==='object'&&r.id!=null).map(r=>Object.assign({},r)):[];
+  PE_SRV.rows=rows('people'); PE_SRV.events=rows('events'); PE_SRV.articles=rows('articles');
+}
+const peRow=id=>PE_SRV.rows.filter(p=>String(p.id)===String(id))[0]||null;
+const peEvents=id=>PE_SRV.events.filter(e=>String(e.tchr||'')===String(id));
+const peArticles=id=>PE_SRV.articles.filter(a=>String(a.tchr||'')===String(id));
+function peError(error){
+  const code=error&&error.code||'';
+  if(code==='reference_in_use'){const d=error.payload&&error.payload.detail||{}, used=(d.used_by||[]).map(u=>(u.kind==='articles'?'مطلب «':'رویداد «')+(u.t||u.id)+'»');
+    return 'حذف انجام نشد: این شخص هنوز به '+(used.length?used.slice(0,4).join('، ')+(used.length>4?' و …':''):'رویداد یا مطلبی')+' وصل است. اول پیوند را در همان رویداد/مطلب بردار.'}
+  if(error&&error.status===409) return 'نسخهٔ محتوا هم‌زمان از جای دیگری تغییر کرده است؛ تغییر شما ذخیره نشد ولی نوشته‌هایتان همین‌جا مانده است. فهرست تازه بارگذاری شد؛ تفاوت‌ها را پایین ببینید و دوباره ذخیره کنید.';
+  if(error&&error.status===413) return 'حجم عکس یا متن از سقف سرور بیشتر است؛ عکس کوچک‌تری بگذارید. هیچ تغییری ذخیره نشد.';
+  if(error&&error.status===422) return 'ساختار پروفایل پذیرفته نشد ('+(code||'422')+')؛ نام، نشانی عکس و راه‌های تماس را بررسی کنید. هیچ تغییری ذخیره نشد.';
+  return ppPartnerSrvError(error).replace(/نهادها(ی همکار)?/g,'افراد');
+}
+async function peLoad(opts){
+  const o=opts||{}, api=window.NORA_SERVER_API;
+  PE_SRV.requested=true;
+  if(!api||typeof api.getOwnerSiteContent!=='function'){PE_SRV.loaded=false; peSrvSet('API مالک در این صفحه بارگذاری نشده است؛ فهرست افراد از سرور خوانده نشد.','error'); return false}
+  if(PE_SRV.busy) return false;
+  PE_SRV.busy=true; if(!o.keepMessage) peSrvSet('در حال دریافت فهرست افراد از سرور…','');
+  try{
+    const result=await api.getOwnerSiteContent(); peApply(result); PE_SRV.loaded=true;
+    if(!o.keepMessage) peSrvSet(PE_SRV.rows.length
+      ?fa(PE_SRV.rows.length)+' پروفایل منتشرشده از سرور بارگذاری شد (نسخهٔ '+fa(PE_SRV.version)+').'
+      :'هنوز شخصی روی سرور ثبت نشده است؛ پروفایل تازه پس از ذخیره بلافاصله در سایت دیده می‌شود.','success');
+    return true;
+  }catch(error){PE_SRV.loaded=false; PE_SRV.rows=[]; peSrvSet(peError(error),'error'); return false}
+  finally{PE_SRV.busy=false; if(peVisible()) renderBody()}
+}
+/* ردیف ارسالی فقط فیلدهای مجاز سرور را دارد؛ 'tch' طراحی به 'teacher' سرور برمی‌گردد. */
+function peRowOf(D,id){
+  const t=v=>String(v==null?'':v).trim(), dig=s=>t(s).replace(/[۰-۹]/g,x=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(x)));
+  const links=(D.links||[]).map(l=>({k:String(l.k||''),v:t(l.v)})).filter(l=>l.v&&['tel','mail','tg','ig','web'].indexOf(l.k)>=0);
+  const row={id:String(id),n:t(D.n),ini:t(D.ini),r:t(D.r),role2:t(D.role2),kind:D.kind==='staff'?'staff':'teacher',
+    bio:t(D.bio),quote:t(D.quote),where:t(D.where),yrs:t(D.yrs),courses:dig(D.courses)||'0',rate:t(D.rate),tag:t(D.tag),
+    exp:(D.exp||[]).map(x=>t(x)).filter(Boolean).slice(0,40),links:links,photo:t(D.photo),g:t(D.g)||PP_GS[0].v,
+    form:t(D.form),formTxt:t(D.formTxt)};
+  Object.keys(row).forEach(k=>{if(PE_FIELDS.indexOf(k)<0) delete row[k]});
+  return row;
+}
+const peNewId=()=>{let id; do{id='pp-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}while(peRow(id)); return id};
+function peOpen(key){
+  const row=key==='new'?null:peRow(key);
+  if(key!=='new'&&!row){toast('این شخص در فهرست سرور نیست'); return}
+  S.ppD=ppDraftOf(row,row&&row.kind==='staff'?'staff':'tch');
+  if(row) S.ppD.kind=row.kind; else S.ppD.rate='';  /* بدون امتیاز ساختگی برای شخص تازه */
+  S.ppEd=key; S.peBase=row?JSON.stringify(peRowOf(ppDraftOf(row,'tch'),row.id)):''; S.peBaseV=PE_SRV.version;
+  PE_SRV.conflict=null; PE_SRV.rejected=null; save();
+}
+function peClose(){S.ppEd=''; S.ppD=null; S.peBase=''; S.peBaseV=0; PE_SRV.conflict=null; save()}
+/* هر تغییر (افزودن/ویرایش/حذف/ترتیب) کل دستهٔ people را با expected_version و CSRF می‌فرستد. */
+async function peCommit(list,what,o){
+  o=o||{}; const api=window.NORA_SERVER_API;
+  if(!api||typeof api.updateSiteContent!=='function'){peSrvSet('API مالک در این صفحه بارگذاری نشده است؛ هیچ تغییری ذخیره نشد.','error'); toast('ذخیره نشد'); return false}
+  if(!PE_SRV.loaded){peSrvSet('فهرست سرور هنوز بارگذاری نشده است؛ اول «تازه‌سازی از سرور» را بزنید.','error'); toast('ذخیره نشد'); return false}
+  if(PE_SRV.busy){toast('درخواست قبلی هنوز در جریان است'); return false}
+  PE_SRV.busy=true; peSrvSet('در حال ذخیرهٔ '+what+' روی سرور…',''); renderBody();
+  let ok=false;
+  try{
+    const result=await api.updateSiteContent({people:list},PE_SRV.version);
+    peApply(result); PE_SRV.conflict=null;
+    const rej=result&&result.rejected_rows&&Array.isArray(result.rejected_rows.people)?result.rejected_rows.people:[];
+    PE_SRV.rejected=rej.length?rej:null;
+    const editedRejected=o.editedId&&rej.some(r=>String(r.id||'')===String(o.editedId));
+    if(rej.length){
+      const why={invalid_row:'ساختار نامعتبر',non_public:'ردیف غیرعمومی',missing_required_fields:'بی‌نام یا بی‌شناسه'};
+      peSrvSet('نسخهٔ '+fa(PE_SRV.version)+' ذخیره شد، اما '+fa(rej.length)+' ردیف پذیرفته و منتشر نشد: '
+        +rej.map(r=>(r.id?('«'+r.id+'» '):'ردیف '+fa((r.index|0)+1)+' ')+(why[r.reason]||r.reason||'')).join('، ')
+        +(editedRejected?'. پروفایل شما ذخیره نشده و همچنان برای اصلاح باز است.':'.'),'warn');
+      toast('ذخیره شد؛ برخی ردیف‌ها رد شدند');
+      ok=!editedRejected;
+    } else {
+      ok=true; peSrvSet(what+' در نسخهٔ '+fa(PE_SRV.version)+' سرور ذخیره شد؛ همین حالا در سایت دیده می‌شود.','success');
+      toast('روی سرور ذخیره و منتشر شد');
+    }
+    uLogAdd('افراد سایت روی سرور به‌روز شد: '+what+' ('+fa(PE_SRV.rows.length)+' پروفایل)');
+    if(ok&&o.closeEditor) peClose();
+  }catch(error){
+    peSrvSet(peError(error),'error'); toast('ذخیره نشد');
+    if(error&&error.status===409){
+      PE_SRV.conflict={what:what,at:Date.now(),current:error.payload&&error.payload.detail&&error.payload.detail.current_version};
+      PE_SRV.busy=false; await peLoad({keepMessage:true});
+    }
+  }finally{PE_SRV.busy=false}
+  renderBody(); return ok;
+}
+function peSave(){
+  const D=ppD(), key=S.ppEd; if(!D||!key){toast('پروفایلی باز نیست'); return}
+  D.n=String(D.n||'').trim(); if(!D.n){toast('نام را بنویس'); const el=$('[data-ppf="n"]'); if(el&&el.focus) el.focus(); return}
+  const isNew=key==='new', id=isNew?peNewId():String(key), row=peRowOf(D,id);
+  const exists=!isNew&&!!peRow(id);
+  const msg=isNew||!exists
+    ?'پروفایل «'+row.n+'» همین حالا روی سرور ذخیره و بلافاصله در سایت عمومی منتشر می‌شود (پیش‌نویس یا حالت پنهان وجود ندارد). ادامه می‌دهید؟'
+    :'تغییرات «'+row.n+'» همین حالا روی سرور ذخیره و بلافاصله در سایت عمومی منتشر می‌شود. ادامه می‌دهید؟';
+  if(!window.confirm(msg)) return;
+  const list=exists?PE_SRV.rows.map(p=>String(p.id)===id?row:p):PE_SRV.rows.concat([row]);
+  peCommit(list,(isNew||!exists?'افزودن ':'ویرایش ')+'پروفایل «'+row.n+'»',{editedId:id,closeEditor:true});
+}
+function peDelete(id){
+  const row=peRow(id); if(!row) return;
+  const used=peEvents(id).length+peArticles(id).length;
+  if(!window.confirm('پروفایل «'+(row.n||id)+'» از سایت عمومی برداشته می‌شود'+(used?'؛ '+fa(used)+' رویداد/مطلب منتشرشده به آن وصل است و سرور حذف را رد خواهد کرد':'')+'. ادامه می‌دهید؟')) return;
+  if(S.ppEd===id) peClose();
+  peCommit(PE_SRV.rows.filter(p=>String(p.id)!==String(id)),'حذف پروفایل «'+(row.n||id)+'»',{});
+}
+function peMove(id,dir){
+  const L=PE_SRV.rows.slice(), i=L.findIndex(p=>String(p.id)===String(id)), j=i+dir;
+  if(i<0||j<0||j>=L.length) return;
+  const t=L[i]; L[i]=L[j]; L[j]=t;
+  peCommit(L,'ترتیب فهرست افراد',{});
+}
+function peFilterRows(){
+  const q=String(PE_SRV.q||'').trim().toLowerCase();
+  return PE_SRV.rows.filter(p=>!PE_SRV.kind||(PE_SRV.kind==='staff'?p.kind==='staff':p.kind!=='staff'))
+    .filter(p=>!q||[p.n,p.r,p.role2,p.tag,p.where].concat(p.exp||[]).some(x=>String(x||'').toLowerCase().indexOf(q)>=0));
+}
+function peListHtml(){
+  if(!PE_SRV.loaded) return PE_SRV.state==='error'?`<div class="empty"><b>فهرست از سرور خوانده نشد</b><span class="cap">${esc(PE_SRV.msg)}</span><div class="row tight" style="justify-content:center;margin-top:8px">${btn('تلاش دوباره','data-pe-refresh','i-refresh')}</div></div>`
+    :`<div class="empty"><b>در حال دریافت فهرست افراد از سرور…</b></div>`;
+  const L=peFilterRows(), all=PE_SRV.rows;
+  if(!all.length) return `<div class="empty"><b>هنوز شخصی روی سرور ثبت نشده</b><span class="cap">با «افزودن شخص» نخستین پروفایل را بساز؛ پس از تأیید، بلافاصله در سایت دیده می‌شود.</span></div>`;
+  if(!L.length) return `<div class="empty"><b>چیزی با این جست‌وجو پیدا نشد</b><span class="cap">نام، نقش، برچسب یا تخصص را امتحان کن.</span></div>`;
+  return L.map(p=>{const i=all.indexOf(p), ev=peEvents(p.id).length, ar=peArticles(p.id).length, cur=S.ppEd===String(p.id);
+    return `<div class="scard pe-row ${cur?'on':''}" data-pe-row="${esc(p.id)}" style="cursor:default;align-items:center">
+      <span class="sav" style="--g:${esc(p.g||PP_GS[0].v)}">${ppPhotoSrc(p)?`<img src="${esc(ppPhotoSrc(p))}" alt=""/>`:esc(ppIni(p))}</span>
+      <span class="sbody" style="flex:1;min-width:0"><b>${esc(p.n||'')}</b><span class="rl">${esc(p.r||'')}${p.role2?' · '+esc(p.role2):''}</span>
+        <span class="mini-chips"><span class="mini-chip">${p.kind==='staff'?'دست‌اندرکار':'مدرس'}</span>${p.tag?`<span class="mini-chip">${esc(p.tag)}</span>`:''}${(p.exp||[]).slice(0,2).map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</span>
+        <span class="cap">${ev||ar?[ev?fa(ev)+' رویداد منتشرشده':'',ar?fa(ar)+' مطلب منتشرشده':''].filter(Boolean).join(' · '):'به رویداد یا مطلب منتشرشده‌ای وصل نیست'}${p.form?' · فرم پیوست':''}</span></span>
+      <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end">
+        ${i>0?btn('بالا','data-pe-up="'+esc(p.id)+'" aria-label="بالا بردن '+esc(p.n||'')+'"','i-chev-up'):''}
+        ${i<all.length-1?btn('پایین','data-pe-down="'+esc(p.id)+'" aria-label="پایین بردن '+esc(p.n||'')+'"','i-chev-down'):''}
+        ${btn('ویرایش','data-pe-edit="'+esc(p.id)+'"','i-pen')}
+        <a class="btn sm quiet" href="person.html?id=${encodeURIComponent(String(p.id))}" target="_blank" rel="noopener">${ico('i-user')} صفحهٔ عمومی</a>
+        ${btn('حذف','data-pe-del="'+esc(p.id)+'"','i-trash')}</span></div>`}).join('');
+}
+/* تطبیق پس از ۴۰۹: نسخهٔ سرور (تازه) در برابر نوشتهٔ شما؛ فقط فیلدهای متفاوت. */
+function peConflictHtml(D){
+  if(!PE_SRV.conflict||!D) return '';
+  const id=S.ppEd, srv=id&&id!=='new'?peRow(id):null, mine=peRowOf(D,id==='new'?'new':id);
+  const base=(()=>{try{return S.peBase?JSON.parse(S.peBase):null}catch(e){return null}})();
+  const show=v=>Array.isArray(v)?v.map(x=>typeof x==='object'?(x.k+': '+x.v):x).join('، '):(v==null?'':String(v));
+  let rows='';
+  if(id!=='new'&&!srv) rows=`<p class="cap">این شخص در نسخهٔ تازهٔ سرور وجود ندارد (در این میان حذف شده). «ذخیرهٔ دوباره» آن را با نوشته‌های شما دوباره می‌سازد.</p>`;
+  else if(srv){
+    const theirs=peRowOf(ppDraftOf(srv,'tch'),srv.id);
+    const diff=PE_FIELDS.filter(f=>f!=='id'&&JSON.stringify(theirs[f])!==JSON.stringify(mine[f]));
+    rows=diff.length?`<table class="tbl" style="width:100%"><thead><tr><th>فیلد</th><th>نسخهٔ سرور اکنون</th><th>نوشتهٔ شما</th><th></th></tr></thead><tbody>${diff.map(f=>{
+      const changedByOther=base&&JSON.stringify(base[f])!==JSON.stringify(theirs[f]);
+      return `<tr data-pe-diff="${esc(f)}"><td><b>${esc(PE_LABELS[f]||f)}</b>${changedByOther?'<small class="cap" style="display:block">روی سرور تغییر کرده</small>':''}</td>
+        <td class="cap">${f==='photo'?(theirs[f]?'عکس دارد':'بی‌عکس'):esc(show(theirs[f]).slice(0,160))||'خالی'}</td>
+        <td class="cap">${f==='photo'?(mine[f]?'عکس دارد':'بی‌عکس'):esc(show(mine[f]).slice(0,160))||'خالی'}</td>
+        <td>${btn('گرفتن مقدار سرور','data-pe-take="'+esc(f)+'"','i-check')}</td></tr>`}).join('')}</tbody></table>`
+      :`<p class="cap">نوشتهٔ شما با نسخهٔ تازهٔ سرور تفاوتی ندارد؛ می‌توانید بدون ذخیره ببندید.</p>`;
+  }
+  return `<section class="card stack" id="pePconflict" data-pe-conflict="1" style="border-color:var(--warn,#c80)">
+    <div class="head">تعارض نسخه؛ نوشتهٔ شما حفظ شده است</div>
+    <p class="cap">فهرست افراد از نسخهٔ تازهٔ سرور (${fa(PE_SRV.version)}) دوباره خوانده شد. هر ردیف را مقایسه کنید؛ «ذخیرهٔ دوباره» نوشتهٔ شما را روی نسخهٔ تازه می‌نشاند و «گرفتن نسخهٔ سرور» نوشتهٔ شما را دور می‌ریزد.</p>
+    ${rows}
+    <div class="row tight">${btn('ذخیرهٔ دوباره روی نسخهٔ تازه','data-pe-save','i-send')}${btn('گرفتن نسخهٔ سرور (دور ریختن نوشتهٔ من)','data-pe-reopen','i-refresh')}</div>
+  </section>`;
+}
+function peEditorHtml(){
+  const D=ppD(), key=S.ppEd; if(!D||!key) return '';
+  const isNew=key==='new', srv=isNew?null:peRow(key), kind=D.kind==='staff'?'staff':'tch';
+  const ev=isNew?[]:peEvents(key), ar=isNew?[]:peArticles(key);
+  const related=isNew?'':`<div class="ppsec"><div class="ppsec-t">${ico('i-calendar')}<b>برنامه‌ها و مطالب وصل‌شده</b><span class="sp"></span><span class="cap">فقط منتشرشده‌ها؛ از ویرایشگر رویداد/مطلب وصل می‌شوند</span></div>
+    ${ev.length||ar.length?`<div class="pprows">${ev.map(e=>`<div class="pprow">${ico('i-calendar')}<span class="sp">${esc(e.t||e.id)}<small class="cap" style="display:block">${esc(e.when||'')}</small></span><button class="btn sm quiet" data-pe-goev="${esc(e.id)}">ویرایش رویداد</button></div>`).join('')}
+      ${ar.map(a=>`<div class="pprow">${ico('i-article')}<span class="sp">${esc(a.t||a.id)}</span><button class="btn sm quiet" data-pe-goar="${esc(a.id)}">ویرایش مطلب</button></div>`).join('')}</div>`
+      :`<p class="cap">هنوز رویداد یا مطلب منتشرشده‌ای به این شخص وصل نیست؛ در ویرایشگر رویداد از «مدرس» و در مطلب از «نویسنده» انتخابش کن.</p>`}</div>`;
+  return `<section class="card stack" id="peEditor" data-pe-editor="${esc(key)}">
+    <div class="row"><div class="head">${isNew?'افزودن شخص تازه':'ویرایش «'+esc(srv?srv.n:D.n)+'»'}</div><span class="sp"></span>
+      ${isNew?'':`<span class="cap" dir="ltr">${esc(key)}</span>`}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}</div>
+    <p class="cap" data-pe-publish-note><b>ذخیره = انتشار فوری.</b> این پروفایل بلافاصله در صفحهٔ اصلی و صفحهٔ عمومی شخص دیده می‌شود؛ پیش‌نویس یا حالت پنهان وجود ندارد. فقط فیلدهای مجاز سرور ذخیره می‌شوند؛ تغییرات تا زمان ذخیره فقط در همین مرورگر است.</p>
+    ${peConflictHtml(D)}
+    <div class="pp-grid"><div class="stack">${ppForm(D,kind)}</div>
+      <div class="stack"><div class="ppsec-t">${ico('i-eye')}<b>پیش‌نمایش زنده</b><span class="cap">همان کارت و ورقه‌ای که کاربر می‌بیند</span></div><div id="ppPrev">${ppPrev(D)}</div>${related}</div></div>
+    <div class="row tight">${btn(isNew?'تأیید و انتشار فوری':'ذخیره و انتشار فوری','data-pe-save','i-send')}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}
+      ${isNew?'':btn('حذف از سایت','data-pe-del="'+esc(key)+'"','i-trash')}</div>
+  </section>`;
+}
+function peView(){
+  if(!peServerMode()) return '';
+  if(!isOwner()) return serverUnavailableModule('استادان و افراد سایت','ویرایش افراد سایت فقط با نشست مالک انجام می‌شود؛ سرور هم همین را بررسی می‌کند.');
+  if(!PE_SRV.loaded&&!PE_SRV.requested) peLoad();
+  if(!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
+  const kinds=[['','همه'],['teacher','مدرس‌ها'],['staff','دست‌اندرکاران']];
+  return `<section class="card stack" id="pePeopleManager">
+    <div class="row"><div class="head">استادان و افراد سایت (محتوای عمومی سرور)</div><span class="sp"></span>
+      ${btn('تازه‌سازی از سرور','data-pe-refresh','i-refresh')}<a class="btn sm tint" href="home.html#teachers" target="_blank" rel="noopener">${ico('i-users')} پیش‌نمایش خانهٔ کاربر</a></div>
+    <p class="cap">این فهرست همان دستهٔ «people» محتوای عمومی سرور است که ریل «اساتید و مدرسان»، صفحهٔ شخص و پیوند مدرس رویدادها از آن می‌خوانند. هر افزودن، ویرایش، حذف یا جابه‌جایی با نشست مالک، CSRF و نسخهٔ محتوا روی سرور ذخیره و بلافاصله منتشر می‌شود.</p>
+    <p class="sync-state" id="peSrvState" role="status" aria-live="polite"${PE_SRV.state?` data-state="${esc(PE_SRV.state)}"`:''}>${esc(PE_SRV.msg||'در حال دریافت فهرست افراد از سرور…')}</p>
+    ${PE_SRV.rejected?`<p class="sync-state" data-state="warn" data-pe-rejected>${fa(PE_SRV.rejected.length)} ردیف در آخرین ذخیره پذیرفته نشد و روی سایت نیست: ${PE_SRV.rejected.map(r=>esc((r.id||('ردیف '+fa((r.index|0)+1)))+' ('+(r.reason||'')+')')).join('، ')}</p>`:''}
+    <div class="row tight" style="flex-wrap:wrap;align-items:flex-end">
+      <label class="fld" style="flex:1;min-width:220px;max-width:360px"><span class="lbl">جست‌وجو</span>
+        <input class="input" data-pe-q="1" value="${esc(PE_SRV.q||'')}" placeholder="نام، نقش، تخصص یا برچسب" aria-label="جست‌وجو در افراد"/></label>
+      <div class="admfilters" role="group" aria-label="نوع">${kinds.map(k=>`<button class="chip ${PE_SRV.kind===k[0]?'on':''}" data-pe-kind="${k[0]}">${esc(k[1])}</button>`).join('')}</div>
+      <span class="sp"></span>${btn('افزودن شخص','data-pe-new','i-plus')}</div>
+    <div class="stack tight" id="peList">${peListHtml()}</div>
+    <p class="cap">ترتیب همین فهرست، ترتیب نمایش در سایت است. ردیف‌های غیرعمومی (پنهان/پیش‌نویس قدیمی) در این فهرست نمی‌آیند و با ذخیره هم پاک نمی‌شوند.</p>
+  </section>${peEditorHtml()}`;
+}
 const ppPartnerGradient=value=>{
   const raw=String(value||'').trim();
   return /^linear-gradient\(135deg,#[0-9a-f]{6},#[0-9a-f]{6}\)$/i.test(raw)?raw:PP_GS[0].v;
@@ -4160,12 +4382,13 @@ const ppPartnerPublishList=()=>ppPartnerMerged().map(row=>ppPartnerClean(row,tru
 const ppPartnerLogoPreview=row=>ppPartnerLogo(row.logo);
 const ppPhotoSrc=p=>p.photo||'';
 const PP_PHOTOS=()=>{const seen={},out=[];
+  if(ppPartnerServerMode()){PE_SRV.rows.forEach(p=>{if(p.photo&&!seen[p.photo]&&!/^data:/.test(p.photo)){seen[p.photo]=1; out.push(p.photo)}}); return out}
   PP_BASE().forEach(p=>{if(p.photo&&!seen[p.photo]){seen[p.photo]=1; out.push(p.photo)}});
   (ppSet().add||[]).forEach(p=>{if(p.photo&&!seen[p.photo]&&!/^data:/.test(p.photo)){seen[p.photo]=1; out.push(p.photo)}});
   return out};
 const ppIni=p=>p.ini||String(p.n||'ن').trim().charAt(0);
 const pubEv=()=>{try{const U=window.NORA_UI||{}; return (U.pubEvents&&U.pubEvents())||[]}catch(e){return []}};
-const ppAllEv=()=>((window.NORA||{}).EVENTS||[]).concat(pubEv());
+const ppAllEv=()=>ppPartnerServerMode()?PE_SRV.events:((window.NORA||{}).EVENTS||[]).concat(pubEv());
 /* جای هر کس در فهرست با خود مدیر است: بالا و پایین رفتن، در ord مینشیند */
 const ppKey=(p,i,kind)=>kind==='mgr'?('m'+i):String(p.id||('n'+i));
 const ppSort=(L,kind)=>{const o=ppSet().ord; if(!o||!o.length) return L;
@@ -4222,7 +4445,7 @@ function ppCard(p){
       <span class="av">${ppPhotoSrc(p)?`<img src="${esc(ppPhotoSrc(p))}" alt="${esc(p.n||'')}"/>`:esc(ppIni(p))}</span></div>
     <div class="tbody"><b class="nm">${esc(p.n||'')}</b>
       <span class="rl">${esc(p.r||'')}${p.role2?' · '+esc(p.role2):''}</span>
-      ${isStaff?'':`<div class="tstars">${ppStars(p.rate)}<span class="cap">${esc(String(p.rate||'۴٫۵'))} از ۵</span></div>`}
+      ${isStaff||!p.rate?'':`<div class="tstars">${ppStars(p.rate)}<span class="cap">${esc(String(p.rate))} از ۵</span></div>`}
       <div class="tmeta"><span><b>${esc(fa(p.courses||0))}</b> دوره</span>${p.yrs?`<span><b>${esc(p.yrs)}</b> تجربه</span>`:''}</div>
       <div class="taggline">${p.tag?`<span class="tagg brand">${esc(p.tag)}</span>`:''}${isStaff?'':`<span class="tagg">${esc((p.exp||[])[0]||'')}</span>`}</div>
       ${nx?`<div class="tnext">${ico('i-calendar')}<span>${esc(nx.t||'')} · ${esc(nx.when||'')}</span></div>`:''}</div>
@@ -4248,7 +4471,7 @@ function ppMgrCard(m){
 function ppSheet(p){
   const isStaff=p.kind==='staff', lks=ppLinks(p), nx=ppNextCourse(p.id);
   const evs=ppAllEv().filter(e=>e.tchr===p.id).slice(0,3);
-  const arts=((window.NORA||{}).ARTICLES||[]).filter(a=>a.tchr===p.id).slice(0,3);
+  const arts=(ppPartnerServerMode()?PE_SRV.articles:((window.NORA||{}).ARTICLES||[])).filter(a=>a.tchr===p.id).slice(0,3);
   const fm=p.form?madeForms().filter(f=>String(f.id)===String(p.form))[0]:null;
   const srow=(i,k,v)=>v?`<div class="pprow">${ico(i)}<span class="sp">${esc(k)}</span><b>${esc(v)}</b></div>`:'';
   return `<div class="ppsheet">
@@ -4337,7 +4560,7 @@ const ppF=(f,v)=>`data-ppf="${esc(f)}" value="${esc(v==null?'':v)}"`;
 const ppTA=(f,v,r)=>`data-ppf="${esc(f)}" rows="${r||2}"`;
 function ppLinkRows(D){
   const rows=(D.links||[]).map((l,i)=>`<div class="pplink">
-    <div class="admfilters">${PP_LK.map(x=>`<button class="chip ${l.k===x[0]?'on':''}" data-pplkk="${i}" data-pplkv="${x[0]}">${esc(x[1])}</button>`).join('')}</div>
+    <div class="admfilters">${PP_LK.filter(x=>!ppPartnerServerMode()||x[0]!=='other').map(x=>`<button class="chip ${l.k===x[0]?'on':''}" data-pplkk="${i}" data-pplkv="${x[0]}">${esc(x[1])}</button>`).join('')}</div>
     <div class="row tight"><input class="input" data-pplk="${i}" dir="ltr" value="${esc(l.v||'')}" placeholder="مثلاً ۰۹۱۲۳۴۵۶۷۸۹ یا @nora"/>
       ${btn('بردار','data-pplkdel="'+i+'"','i-trash')}</div>
     ${l.v?`<span class="cap" dir="ltr">${esc(ppHref(l.k,l.v))}</span>`:''}</div>`).join('');
@@ -4357,10 +4580,10 @@ function ppFormPick(D){
       ${btn('بردار','data-ppform="'+esc(f.id)+'"','i-check')}</div>`).join('')||'<p class="cap">فرمی ساخته نشده؛ در فرم‌ساز بساز و همینجا وصل کن.</p>'}
     <div class="row tight" style="margin-top:6px">
       <label class="fld" style="flex:1"><span class="lbl">نوشتهٔ دکمه</span><input class="input" ${ppF('formTxt',D.formTxt||(cur?('فرم '+formName(cur)):''))} placeholder="مثل: پرسش از ایشان"/></label>
-      <a class="btn sm quiet" href="create.html" target="_blank" rel="noopener">${ico('i-plus')} ساختن در فرم‌ساز</a></div></div>`;
+      <a class="btn sm quiet" href="create.html" target="_blank" rel="noopener">${ico('i-plus')} ساختن در فرم‌ساز</a></div>${ppPartnerServerMode()?`<span class="cap">فهرست فرم‌ها از فرم‌ساز سروری (/api/forms) خوانده می‌شود؛ فقط فرم منتشرشده روی صفحهٔ شخص دکمه می‌گیرد.</span>`:''}</div>`;
 }
 function ppForm(D,kind){
-  const isM=kind==='mgr', curPh=D.photo||'', photos=PP_PHOTOS();
+  const isM=kind==='mgr', curPh=D.photo||'', photos=PP_PHOTOS(), srv=ppPartnerServerMode();
   const gi=(()=>{const i=PP_GS.map(x=>x.v).indexOf(D.g); return i<0?0:i})();
   const sec=(t,d,body)=>`<div class="ppsec"><div class="ppsec-t">${ico('i-grid')}<b>${esc(t)}</b><span class="sp"></span><span class="cap">${esc(d||'')}</span></div>${body}</div>`;
   return [
@@ -4376,7 +4599,7 @@ function ppForm(D,kind){
           <button class="chip ${D.tag&&PP_TAGS.indexOf(D.tag)<0?'on':''}" data-pptag="__none">بی‌برچسب</button></div>
         ${D.tag&&PP_TAGS.indexOf(D.tag)<0?`<label class="fld" style="margin-top:6px"><span class="lbl">برچسبِ دلخواه</span><input class="input" ${ppF('tag',D.tag)}/></label>`:''}</div>`}`),
     isM?'':sec('ظاهر کارت','رنگ و عکسِ همان کارتی که کاربر میبیند',`
-      ${kind==='tch'?`<div class="fld"><span class="lbl">آیکون کارت</span>
+      ${kind==='tch'&&!srv?`<div class="fld"><span class="lbl">آیکون کارت</span>
         <div class="admfilters">${PP_ICS.map(x=>`<button class="chip ${D.ic===x[0]?'on':''}" data-ppic="${x[0]}">${ico(x[0])}${esc(x[1])}</button>`).join('')}</div></div>`:''}
       <div class="fld"><span class="lbl">رنگ جلد</span>
         <div class="admfilters">${PP_GS.map((x,i)=>`<button class="chip ${gi===i?'on':''}" data-ppg="${i}">${esc(x.n)}</button>`).join('')}</div></div>
@@ -4406,9 +4629,9 @@ function ppForm(D,kind){
           <button class="chip ${D.kind!=='staff'?'on':''}" data-ppkind="tch">${ico('i-graduation')}مدرس و استاد</button>
           <button class="chip ${D.kind==='staff'?'on':''}" data-ppkind="staff">${ico('i-idcard')}دست‌اندرکار</button></div>
         <span class="cap">مدرسها در ریل «اساتید و مدرسان» میآیند و دستاندرکاران در بخش خودشان.</span></div>
-      <div class="admsw" style="border:0;padding-inline:0">
+      ${srv?'':`<div class="admsw" style="border:0;padding-inline:0">
         <span class="sp"><b>معرفی‌شده</b><small>نخستِ فهرست می‌نشیند</small></span>
-        <span class="switch ${D.star?'on':''}" data-ppstar="1" role="switch" aria-checked="${D.star?'true':'false'}" aria-label="معرفی‌شده"></span></div>
+        <span class="switch ${D.star?'on':''}" data-ppstar="1" role="switch" aria-checked="${D.star?'true':'false'}" aria-label="معرفی‌شده"></span></div>`}
       <span class="cap">جابجا کردنِ ردیفها از دکمههای بالا و پایینِ فهرست است.</span>`)
   ].filter(Boolean).join('');
 }
@@ -8745,6 +8968,7 @@ function serverSettingsView(){
     ['data','داده‌ها و مهاجرت','i-layers'],
     ['security','امنیت و دسترسی‌ها','i-shield'],
     ['publishing','محتوای عمومی و همکاری','i-doc'],
+    ['people','استادان و افراد سایت','i-users'],
     ['performance','سلامت و سرعت','i-trend']
   ];
   /* وضعیت واقعی بله (توکن، آزمایش اتصال، تحویل) در «اتصال سرویس‌ها» از API مالک خوانده می‌شود؛
@@ -8763,6 +8987,7 @@ function serverSettingsView(){
   else if(selected==='data') content=canBackup?dataSettingsView()
     :serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.');
   else if(selected==='security') content=securitySettingsView();
+  else if(selected==='people') content=peView();
   else if(selected==='publishing') content=(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
@@ -8925,7 +9150,7 @@ async function fsLoad(){
   FORMS_SRV.loading=true; FORMS_SRV.error=''; renderBody();
   try{const result=await api.listForms(); FORMS_SRV.data=result&&Array.isArray(result.items)?result:{items:[]}}
   catch(error){FORMS_SRV.data=null; FORMS_SRV.error=p2Err(error,'فهرست فرم‌ها از سرور دریافت نشد.')}
-  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||(S.sec==='events'&&CT.edit)) renderBody()}
+  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||(S.sec==='events'&&CT.edit)||(S.sec==='settings'&&S.setG==='people')) renderBody()}
 }
 const FS_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],closed:['بسته','stop'],archived:['بایگانی','stop']};
 const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};
@@ -10032,6 +10257,21 @@ document.addEventListener('click',e=>{
     if(!ppPub('nora-partners',list)) return;
     uLogAdd('فهرست نهادهای همکار در مرورگر منتشر شد ('+fa(list.length)+' نهاد)');
     toast('فهرست نهادها در همین مرورگر منتشر شد؛ برای نمایش روی سرور، آن را در همگام‌سازی محتوای عمومی بفرست'); renderBody(); return}
+  /* H1: ویرایشگر سروری افراد (people) */
+  if(q('[data-pe-refresh]')){PE_SRV.loaded=false; peLoad(); renderBody(); return}
+  if(q('[data-pe-new]')){if(!isOwner()){toast('افزودن شخص فقط با مالک است'); return} if(!PE_SRV.loaded){toast('اول فهرست از سرور بارگذاری شود'); return} peOpen('new'); renderBody(); return}
+  const peEd=q('[data-pe-edit]'); if(peEd){if(!isOwner()){toast('ویرایش افراد فقط با مالک است'); return} peOpen(peEd.dataset.peEdit); renderBody(); return}
+  if(q('[data-pe-cancel]')){peClose(); renderBody(); return}
+  if(q('[data-pe-save]')){if(!isOwner()){toast('انتشار افراد فقط با مالک است'); return} peSave(); return}
+  const peDl=q('[data-pe-del]'); if(peDl){if(!isOwner()){toast('حذف افراد فقط با مالک است'); return} peDelete(peDl.dataset.peDel); return}
+  const peUp=q('[data-pe-up]'); if(peUp){peMove(peUp.dataset.peUp,-1); return}
+  const peDn=q('[data-pe-down]'); if(peDn){peMove(peDn.dataset.peDown,1); return}
+  const peKd=q('[data-pe-kind]'); if(peKd){PE_SRV.kind=peKd.dataset.peKind||''; renderBody(); return}
+  const peTk=q('[data-pe-take]'); if(peTk){const D=ppD(), srv=S.ppEd&&S.ppEd!=='new'?peRow(S.ppEd):null; if(D&&srv){const f=peTk.dataset.peTake, theirs=ppDraftOf(srv,'tch');
+      D[f]=f==='links'?theirs.links.map(l=>({k:l.k,v:l.v})):(f==='exp'?theirs.exp.slice():theirs[f]); save(); renderBody()} return}
+  if(q('[data-pe-reopen]')){const key=S.ppEd; if(key&&key!=='new'&&peRow(key)) peOpen(key); else peClose(); renderBody(); return}
+  const peGoEv=q('[data-pe-goev]'); if(peGoEv){S.sec='events'; CT.kind='events'; CT.edit=null; save(); renderBody(); ctOpenEditor(peGoEv.dataset.peGoev); return}
+  const peGoAr=q('[data-pe-goar]'); if(peGoAr){S.sec='events'; CT.kind='articles'; CT.edit=null; save(); renderBody(); ctOpenEditor(peGoAr.dataset.peGoar); return}
   const ppe=q('[data-pped]'); if(ppe){ppOpen(ppe.dataset.pped,S.ppTab||'tch'); renderBody(); return}
   const ppn=q('[data-ppnew]'); if(ppn){ppOpen('new',S.ppTab||'tch'); renderBody(); return}
   const ppx2=q('[data-ppx]'); if(ppx2){S.ppEd=''; S.ppD=null; save(); renderBody(); return}
@@ -10872,6 +11112,7 @@ document.addEventListener('change',e=>{
     ppShrink(f,(url,result,error)=>{ if(!url){toast(UI.imageErrorMessage?UI.imageErrorMessage(error):'این تصویر خوانده نشد'); return}
       D.photo=url; save(); renderBody(); toast('عکس ایشان به‌روزرسانی شد'); });
     return}
+  if(el.dataset.peQ!==undefined){PE_SRV.q=el.value; const list=$('#peList'); if(list) list.innerHTML=peListHtml(); return}
   if(el.dataset.ppartnerQ!==undefined){S.ppPartnerQ=el.value; save();
     const list=$('#ppPartnerList'); if(list) list.innerHTML=ppPartnerList(); return}
   if(el.dataset.ppartnerField){ppPartnerField(el.dataset.ppartnerField,el.value); ppPartnerPatch(); return}
@@ -10929,6 +11170,7 @@ document.addEventListener('input',e=>{
     if(box&&S.evId){const e=evOf(S.evId); if(e) box.innerHTML=evRegRows(e)} return}
   if(el.dataset.brtxt!==undefined){S.brTxt=el.value; save(); return}
   /* پروفایل: قلم در پیش‌نویس مینشیند و پیش‌نمایشِ کنار دستش همان لحظه تازه میشود */
+  if(el.dataset.peQ!==undefined){PE_SRV.q=el.value; const list=$('#peList'); if(list) list.innerHTML=peListHtml(); return}
   if(el.dataset.ppartnerQ!==undefined){S.ppPartnerQ=el.value; save();
     const list=$('#ppPartnerList'); if(list) list.innerHTML=ppPartnerList(); return}
   if(el.dataset.ppartnerField){ppPartnerField(el.dataset.ppartnerField,el.value); ppPartnerPatch(); return}
