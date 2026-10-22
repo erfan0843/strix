@@ -6577,7 +6577,7 @@ function p2Err(error,fallback){
   return fallback||'درخواست انجام نشد؛ چیزی تغییر نکرد.';
 }
 const P2_FIELD_ERR={title_required:'عنوان لازم است.',invalid_jalali_date:'تاریخ باید به شکل ۱۴۰۵/۰۸/۱۲ باشد.',date_required:'تاریخ شمسی یا متن زمان برگزاری لازم است.',
-  invalid_number:'عدد معتبر نیست.',invalid_image:'تصویر معتبر نیست (فقط آدرس همین سایت، https یا فایل تصویری).',invalid_reference:'شناسهٔ ارجاع معتبر نیست.',
+  invalid_number:'عدد معتبر نیست.',invalid_image:'تصویر معتبر نیست (فقط آدرس همین سایت، https یا فایل تصویری).',invalid_reference:'شناسهٔ ارجاع معتبر نیست.',unknown_reference:'این شناسه در فهرست افراد/نهادهای همکار سرور وجود ندارد؛ اول شخص یا نهاد را بسازید.',
   invalid_date:'تاریخ باید به شکل 2026-10-21 باشد.',invalid_body:'متن مطلب معتبر نیست.',article_body_required:'برای انتشار، لید یا متن مطلب لازم است.',
   event_description_required:'برای انتشار، شرح رویداد لازم است.',unexpected_record_fields:'فیلد ناشناخته‌ای فرستاده شد.',invalid_status:'وضعیت معتبر نیست.',
   invalid_status_transition:'این تغییر وضعیت از حالت فعلی مجاز نیست.',status_unchanged:'وضعیت همین حالا همین است.',
@@ -6719,6 +6719,25 @@ function ctPreview(form){
     <div class="evcard-body stack"><b>${esc(form.t||'عنوان هنوز وارد نشده')}</b><small class="cap">${esc(meta||'جزئیات هنوز وارد نشده')}</small><p class="cap" style="white-space:pre-wrap">${esc(String(text||'').slice(0,320))}</p>
     ${form.tags?`<div class="admfilters">${String(form.tags).split(/[,،\n]/).map(s=>s.trim()).filter(Boolean).slice(0,8).map(t=>tag(t,'')).join('')}</div>`:''}</div></article>`;
 }
+/* ممیزی پنل مالک ۱۴۰۵/۰۷/۳۰ (B4): فرم‌های ثبت‌نام همین رویداد از همان فهرست سروری فرم‌ها (GET /api/forms؛ فیلد ev)،
+   و دکمهٔ «ساخت فرم ثبت‌نام» که فرم‌ساز را با ?ev=<id>&need=reg باز می‌کند تا شناسهٔ رویداد بدون تایپ دوباره در فرم بنشیند.
+   فقط برای رویداد ذخیره‌شده؛ مجوزها همان مجوزهای فرم‌ساز (fm_create / fm_responses) و سرور هم همان‌ها را می‌سنجد. */
+function ctEventForms(e){
+  if(CT.kind!=='events'||!e||!e.id) return e&&!e.id&&canPerm('fm_create')?`<small class="cap" data-ct-forms="unsaved">پس از ذخیرهٔ رویداد می‌توانی فرم ثبت‌نام آن را همین‌جا بسازی.</small>`:'';
+  const canSee=canPerm('fm_create')||canPerm('fm_responses'); if(!canSee) return '';
+  if(!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const linked=items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access');
+  const q=new URLSearchParams({ev:String(e.id),need:'reg',name:String(e.form.t||''),back:'admin.html'}); if(e.form.cap) q.set('cap',String(e.form.cap));
+  const makeBtn=canPerm('fm_create')?`<a class="btn sm ${linked.length?'quiet':'primary'}" href="create.html?${q.toString()}" data-ct-form-create="${esc(String(e.id))}">${ico('i-plus')}${linked.length?'فرم دیگری برای این رویداد':'ساخت فرم ثبت‌نام برای این رویداد'}</a>`:'';
+  const rows=linked.map(f=>{const st=FS_STATUS[f.status]||[f.status||'',''], id=encodeURIComponent(String(f.id||''));
+    return `<div class="admlirow" data-ct-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''}</small></span>${tag(st[0],st[1])}
+      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}).join('');
+  const body=FORMS_SRV.loading&&!FORMS_SRV.loaded?`<small class="cap">در حال دریافت فرم‌های سرور…</small>`
+    :FORMS_SRV.error&&!FORMS_SRV.data?`<small class="cap" style="color:var(--stop)">${esc(FORMS_SRV.error)}</small> ${btn('تلاش دوباره','data-fs-refresh','i-refresh')}`
+    :rows||`<small class="cap">هنوز فرمی به این رویداد وصل نیست؛ تا فرم ثبت‌نامِ منتشرشده نباشد، دکمهٔ ثبت‌نام در صفحهٔ رویداد باز نمی‌شود.</small>`;
+  return `<div class="stack" data-ct-forms="${esc(String(e.id))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های ثبت‌نام این رویداد</strong><span class="sp"></span>${makeBtn}</div>${body}</div>`;
+}
 function ctEditor(){
   const e=CT.edit; if(!e) return '';
   const f=e.form, err=e.errors||{}, kind=CT.kind, isNew=!e.id;
@@ -6748,6 +6767,7 @@ function ctEditor(){
       <div class="row tight" style="flex-wrap:wrap">${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (بر پایهٔ زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
       ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
       ${e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:''}
+      ${ctEventForms(e)}
     </div>
     ${p2Inp('شرح','d',f.d,{textarea:true,rows:6,err:err.d,hint:'برای انتشار لازم است.'})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('هزینه (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان'})}${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap})}${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}</div>
@@ -8905,7 +8925,7 @@ async function fsLoad(){
   FORMS_SRV.loading=true; FORMS_SRV.error=''; renderBody();
   try{const result=await api.listForms(); FORMS_SRV.data=result&&Array.isArray(result.items)?result:{items:[]}}
   catch(error){FORMS_SRV.data=null; FORMS_SRV.error=p2Err(error,'فهرست فرم‌ها از سرور دریافت نشد.')}
-  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms') renderBody()}
+  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||(S.sec==='events'&&CT.edit)) renderBody()}
 }
 const FS_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],closed:['بسته','stop'],archived:['بایگانی','stop']};
 const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};

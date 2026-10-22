@@ -411,3 +411,89 @@ def test_status_of_and_public_filter_agree_for_every_lifecycle_status():
     assert content_admin.status_of({"id": "x", "t": "t", "hidden": True}) == "draft"
     assert content_admin.status_of({"id": "x", "t": "t", "pub": False}) == "draft"
     assert content_admin.status_of({"id": "x", "t": "t"}) == "published"
+
+
+def test_event_and_article_person_or_partner_references_must_exist_in_the_same_document():
+    """B1 of the owner-panel audit (2026-10-22): ``tchr``/``partnerId`` are *ids* into the
+    ``people``/``partners`` categories of the same ``site_content`` document. A well-formed but
+    unknown id used to be accepted, leaving the public page with a dangling instructor/partner
+    link. Existing rows that already carry a stale id must still change status (no data lock-in)."""
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            # Seed one person and one partner through the real owner document route.
+            person = {"id": "pp-teacher-1", "n": "مدرس آزمایشی", "kind": "teacher", "r": "مدرس نجوم"}
+            partner = {"id": "pt-uni-1", "n": "دانشگاه آزمایشی", "pub": True}
+            seeded = client.patch(
+                "/api/owner/site-content",
+                json={"content": {"people": [person], "partners": [partner]}, "expected_version": 0},
+                headers=owner_write_headers(client),
+            )
+            assert seeded.status_code == 200, seeded.text
+            version = seeded.json()["version"]
+
+            def post(kind, record, status="draft"):
+                return client.post(
+                    f"/api/admin/content/{kind}",
+                    json={"record": record, "expected_version": version, "status": status},
+                    headers=owner_write_headers(client),
+                )
+
+            # Unknown but well-formed ids → 422 on the exact field, nothing stored.
+            for kind, record, field in (
+                ("events", dict(EVENT, tchr="pp-nobody"), "tchr"),
+                ("events", dict(EVENT, partnerId="pt-nobody"), "partnerId"),
+                ("articles", {"t": "مطلب", "tchr": "pp-nobody"}, "tchr"),
+            ):
+                response = post(kind, record)
+                assert response.status_code == 422, (kind, field, response.text)
+                assert response.json()["detail"] == {"code": "unknown_reference", "field": field}
+            assert stored_rows(engine, "events") == [] and stored_rows(engine, "articles") == []
+
+            # Known ids are accepted and stored as given; empty clears the link.
+            created = post("events", dict(EVENT, tchr="pp-teacher-1", partnerId="pt-uni-1"))
+            assert created.status_code == 200, created.text
+            event_id = created.json()["record"]["id"]
+            version = created.json()["version"]
+            row = stored_rows(engine, "events")[0]
+            assert row["tchr"] == "pp-teacher-1" and row["partnerId"] == "pt-uni-1"
+            article = post("articles", {"t": "مطلب", "tchr": "pp-teacher-1"})
+            assert article.status_code == 200, article.text
+            version = article.json()["version"]
+
+            # Editing to an unknown id is refused too (merge path), the stored link survives.
+            bad_edit = client.put(
+                f"/api/admin/content/events/{event_id}",
+                json={"record": {"tchr": "pp-ghost"}, "expected_version": version},
+                headers=owner_write_headers(client),
+            )
+            assert bad_edit.status_code == 422 and bad_edit.json()["detail"]["field"] == "tchr"
+            assert stored_rows(engine, "events")[0]["tchr"] == "pp-teacher-1"
+            cleared = client.put(
+                f"/api/admin/content/events/{event_id}",
+                json={"record": {"tchr": ""}, "expected_version": version},
+                headers=owner_write_headers(client),
+            )
+            assert cleared.status_code == 200, cleared.text
+            version = cleared.json()["version"]
+            assert not stored_rows(engine, "events")[0].get("tchr")
+
+            # A legacy row with a stale id (written before this rule) still moves through the lifecycle.
+            with Session(engine) as db:
+                record = db.get(SiteContentRecord, "public")
+                content = dict(record.content or {})
+                rows = list(content["events"])
+                rows[0] = dict(rows[0], tchr="pp-legacy-gone")
+                content["events"] = rows
+                record.content = content
+                db.commit()
+            published = client.post(
+                f"/api/admin/content/events/{event_id}/status",
+                json={"status": "published", "expected_version": version},
+                headers=owner_write_headers(client),
+            )
+            assert published.status_code == 200, published.text
+            assert stored_rows(engine, "events")[0]["tchr"] == "pp-legacy-gone"
+    finally:
+        engine.dispose()

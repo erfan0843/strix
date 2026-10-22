@@ -2564,7 +2564,10 @@ def create_app(
             record_id = content_admin_mod.new_record_id(kind)
             while content_admin_mod.find_row(rows, record_id):
                 record_id = content_admin_mod.new_record_id(kind)
-            row = content_admin_mod.build_record(kind, payload.get("record"), existing=None, record_id=record_id, status=status)
+            row = content_admin_mod.build_record(
+                kind, payload.get("record"), existing=None, record_id=record_id, status=status,
+                references=content_admin_mod.reference_ids(record.content),
+            )
         except content_admin_mod.ContentAdminError as error:
             raise _content_error(error) from None
         rows.append(row)
@@ -2597,7 +2600,8 @@ def create_app(
         current_status = content_admin_mod.status_of(existing)
         try:
             row = content_admin_mod.build_record(
-                kind, payload.get("record"), existing=existing, record_id=record_id, status=current_status
+                kind, payload.get("record"), existing=existing, record_id=record_id, status=current_status,
+                references=content_admin_mod.reference_ids(record.content),
             )
         except content_admin_mod.ContentAdminError as error:
             raise _content_error(error) from None

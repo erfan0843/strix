@@ -209,6 +209,42 @@ def _publishable(kind: str, record: dict[str, Any]) -> None:
         raise ContentAdminError("event_description_required", "d")
 
 
+REFERENCE_FIELDS: dict[str, dict[str, str]] = {
+    # record field -> site_content category the id must exist in
+    "events": {"tchr": "people", "partnerId": "partners"},
+    "articles": {"tchr": "people"},
+}
+
+
+def reference_ids(content: Any) -> dict[str, set[str]]:
+    """Ids of the categories that events/articles may point at, read from the *same*
+    ``site_content`` document (hidden/draft rows included: an owner may link before publishing)."""
+    out: dict[str, set[str]] = {}
+    source = content if isinstance(content, dict) else {}
+    for category in {target for mapping in REFERENCE_FIELDS.values() for target in mapping.values()}:
+        ids: set[str] = set()
+        for row in source.get(category) or []:
+            if isinstance(row, dict):
+                value = _text(row.get("id"), 100, allow_number=False)
+                if value:
+                    ids.add(value)
+        out[category] = ids
+    return out
+
+
+def _check_references(kind: str, incoming: dict[str, Any], references: dict[str, set[str]] | None) -> None:
+    """Only ids the client is sending now are checked: a stale id already stored on a legacy row
+    must not block status changes or unrelated edits (no silent rewrite of stored data either)."""
+    if references is None:
+        return
+    for field, category in REFERENCE_FIELDS.get(kind, {}).items():
+        if field not in incoming:
+            continue
+        value = _text(incoming.get(field), 100, allow_number=False)
+        if value and value not in references.get(category, set()):
+            raise ContentAdminError("unknown_reference", field)
+
+
 def build_record(
     kind: str,
     incoming: Any,
@@ -216,8 +252,12 @@ def build_record(
     existing: dict[str, Any] | None,
     record_id: str,
     status: str,
+    references: dict[str, set[str]] | None = None,
 ) -> dict[str, Any]:
-    """Merge editable fields onto the stored row and run the canonical sanitiser."""
+    """Merge editable fields onto the stored row and run the canonical sanitiser.
+
+    ``references`` (from :func:`reference_ids`) makes ``tchr``/``partnerId`` real foreign keys into
+    the same document; ``None`` keeps the format-only check (status changes, legacy callers)."""
     if kind not in KINDS:
         raise ContentAdminError("invalid_content_kind")
     if not isinstance(incoming, dict):
@@ -229,6 +269,7 @@ def build_record(
     merged.update({key: incoming[key] for key in EDITABLE[kind] if key in incoming})
     merged["id"] = record_id
     VALIDATORS[kind](merged)
+    _check_references(kind, incoming, references)
     # Force the public flags on a scratch copy so the sanitiser keeps the row; the
     # lifecycle status is re-applied below and decides visibility at read time.
     probe = dict(merged)
