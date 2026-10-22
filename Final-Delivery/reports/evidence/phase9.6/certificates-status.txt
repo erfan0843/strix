@@ -1,0 +1,13 @@
+# فاز ۹.۶ §۵ — گواهی‌ها (۲۰۲۶-۱۰-۲۲)
+$ bale-bot/tools/certificate-pdf-check.py --json → exit=2 (STAGING_REQUIRED)
+  libreoffice_available=false · pdftoppm/pdftotext=none · engine=builtin_image · ۱۶/۱۷ بررسی موفق؛ تنها «pdf_has_text_layer_office_engine» رد (skipped: LibreOffice نصب نیست)
+  بررسی‌های موفق: issue kind=recording_completion، اسکن قالب DOCX واقعی، آماده‌سازی صدور، publish بی‌صدا، تولید واقعی (DOCX+PNG+PDF تصویری)، ردیف certificate با source=recording،
+  سریال/کدها، جایگزینی متن فارسی در DOCX (braces_left=0)، ساختار PDF معتبر (%PDF-1.4، EOF، ۱ صفحه)، PNG غیرخالی، retry idempotent (۱ ردیف)، revoke/restore با همگام‌سازی آینه و ممیزی،
+  revoke هرگز ردیفی حذف نمی‌کند، هیچ ارسال بله‌ای به دارنده (calls=6, to_holder=0).
+$ pytest nora_bot/tests -k cert → 16 passed, 2 skipped (آزمون موتور office واقعی skip)
+نصب LibreOffice در سندباکس ناممکن است (apt بدون شبکه) ⇒ PDF با لایهٔ متن واقعی: STAGING_REQUIRED. PDF تصویری ≠ PDF office؛ هیچ ادعای «رندر office» نمی‌شود.
+
+قواعد §۵ — AUTOMATED_TEST_ONLY + VERIFIED (HTTP, purchase-e2e-http.txt S4): خرید هیچ گواهی/حضوری نمی‌سازد (certs_for_event=0، attended=false)؛
+general ≠ recording_completion (source/kind متمایز در ربات و آینه)؛ completion فقط با certificate_policy ∈ {none, manual} و صدور دستی با مجوز+دلیل+ممیزی (test_recordings_api::test_completion_certificate_policy_is_explicit_and_nothing_is_ever_issued_automatically)؛ هیچ صادرکنندهٔ موازی: فقط certcenter ربات.
+
+دستور staging: نصب `libreoffice-writer` + `poppler-utils`، سپس همان ابزار (`--json`) باید exit=0 بدهد و `pdf_has_text_layer_office_engine.ok=true`؛ یک گواهی با نام/عنوان فارسی بلند صادر، PDF باز و متن با pdftotext استخراج شود؛ سپس revoke/restore و همگام‌سازی آینه در پنل بررسی شود.
