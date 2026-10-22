@@ -543,6 +543,7 @@ def test_empty_state_pagination_order_and_status_contract(scope_env):
         "payment_status", "receipt_uploaded", "ticket_checked_in", "ticket_type",
         "created_at",
         "event_id",  # فاز ۹.۳: کلید اتصال «رویدادهای من» به آرشیو (شناسهٔ رویداد؛ نه داده حساس، نه مبنای دسترسی)
+        "event_schedule",  # فاز ۹.۵: وضعیت/زمان رویداد با ساعت سرور برای شمارشگر مشترک (عمومی؛ بدون دادهٔ حساب)
     }
     assert isinstance(item["event_id"], str)
 

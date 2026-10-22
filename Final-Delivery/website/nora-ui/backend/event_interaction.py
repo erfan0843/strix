@@ -421,6 +421,8 @@ def resource_admin_view(record: EventResourceRecord) -> dict[str, Any]:
         "status": record.status,
         "live": resource_is_live(record, now),
         "publish_at": iso(record.publish_at),
+        # Phase 9.5 §8.2: when the holders were told (None = scheduled and not yet announced / never scheduled).
+        "announced_at": iso(record.announced_at),
         "publisher": record.publisher_label,
         "sort_order": record.sort_order,
         "link_url": record.link_url if record.kind in ("link", *EMBED_KINDS) else "",

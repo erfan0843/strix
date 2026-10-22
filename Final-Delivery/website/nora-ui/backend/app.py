@@ -5146,6 +5146,7 @@ def create_app(
             db, recording, what=what, target_id=target_id, title_text=title_text, now=now,
             bale_ids_for=lambda account_id: verified_bale_ids_for_account(db, account_id),
             event_title_for=lambda event_id: _recording_event_title(db, event_id),
+            payment_approved=_response_payment_approved,
         )
 
     def _queue_recording_order_notification(
@@ -7604,6 +7605,29 @@ def create_app(
             .limit(limit + 1)
             .offset(offset)
         ).all()
+        # Phase 9.5 §9 (additive): the live event schedule for the shared countdown — computed with the
+        # server clock by the same ``registration_state`` rule the public pages use, so «رویدادهای من»
+        # never invents a deadline. Only lifecycle/state and the two ISO targets leave the server.
+        site = db.get(SiteContentRecord, "public")
+        now = _utc_now()
+        live_events: dict[str, dict[str, Any]] = {}
+        for live_event in public_site_content(site.content or {}).get("events", []) if site is not None else []:
+            if isinstance(live_event, dict) and live_event.get("id"):
+                live_events[str(live_event.get("id"))] = live_event
+
+        def _event_schedule(event_id: str) -> dict[str, Any] | None:
+            live_event = live_events.get(event_id)
+            if live_event is None:
+                return None
+            registration = event_time.registration_state(live_event, now=now, has_form=True)
+            return {
+                "state": registration["state"],
+                "lifecycle": registration["lifecycle"],
+                "startsAt": registration["startsAt"],
+                "startsIn": registration["startsIn"],
+                "ended": registration["state"] == "ended",
+            }
+
         items = []
         for record, payment, form_event_id in rows[:limit]:
             snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
@@ -7618,6 +7642,7 @@ def create_app(
                 "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
                 "event_date": _ticket_text(event.get("date") or "", 120),
                 "event_time": _ticket_text(event.get("time") or "", 120),
+                "event_schedule": _event_schedule(str(form_event_id or "")) if form_event_id else None,
                 "status": record.status,
                 "payment_status": payment.status if payment is not None else None,
                 "receipt_uploaded": (

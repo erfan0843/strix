@@ -232,15 +232,32 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
 /* ── فهرست ثبت‌نام‌ها از API حساب وب، نه از دادهٔ محلی ── */
 {
   console.log('\n── ثبت‌نام‌های حساب وب ──');
+  const soon=new Date(Date.now()+3*24*3600*1000).toISOString();
   const registration={id:'00000000-0000-4000-8000-000000000401',form_name:'ثبت‌نام کارگاه',
     event_title:'کارگاه بهار',event_date:'۱۴۰۵/۰۲/۱۱',event_time:'۱۶:۰۰',status:'accepted',
     payment_status:'receipt_submitted',receipt_uploaded:true,ticket_checked_in:false,
-    ticket_type:{id:'standard',name:'ورودی عادی'},created_at:'2026-04-30T10:00:00+00:00'};
+    ticket_type:{id:'standard',name:'ورودی عادی'},created_at:'2026-04-30T10:00:00+00:00',
+    event_id:'ev-spring',event_schedule:{state:'open',lifecycle:'scheduled',startsAt:soon,startsIn:soon,ended:false}};
+  /* فاز ۹.۵ §۹: لغو/تعویق و ثبت‌نامِ بدون زمان سرور هرگز شمارش معکوس نمی‌سازند */
+  const cancelled={...registration,id:'00000000-0000-4000-8000-000000000402',event_title:'کارگاه لغوشده',event_id:'ev-cancel',
+    event_schedule:{state:'cancelled',lifecycle:'cancelled',startsAt:soon,startsIn:'',ended:false}};
+  const noSchedule={...registration,id:'00000000-0000-4000-8000-000000000403',event_title:'کارگاه بی‌زمان',event_id:'',event_schedule:null};
   const p=await load(memberStore(),'',{
     account:{authenticated:true,account_id:'registration-account-1',provider:'phone',role:null,permissions:[],delivery_bot_url:''},
-    registrations:[registration],notifications:[],files:[]
+    registrations:[registration,cancelled,noSchedule],notifications:[],files:[]
   },false,false);
   await p.nav('events');
+  ok(!!p.window.NORA_COUNTDOWN&&p.doc.querySelector('link[href="countdown.css?v=2"]')&&p.doc.querySelector('script[src="countdown.js?v=3"]'),
+    'صفحهٔ حساب همان شمارشگر مشترک (countdown.js/css) را بارگذاری می‌کند');
+  const cdCards=p.doc.querySelectorAll('[data-account-registration-countdown]');
+  ok(cdCards.length===1&&!!cdCards[0].querySelector('.nora-countdown[data-countdown]')&&cdCards[0].textContent.includes('تا شروع رویداد')
+    &&cdCards[0].closest('[data-account-registration-event="ev-spring"]')!==null,
+    'فقط ثبت‌نامِ دارای زمان سرور، شمارش معکوس مشترک «تا شروع رویداد» دارد');
+  ok(p.doc.querySelector('[data-account-registration-event="ev-cancel"] [data-account-registration-lifecycle="cancelled"]')?.textContent.includes('لغو شد')
+    &&!p.doc.querySelector('[data-account-registration-event="ev-cancel"] [data-countdown]'),
+    'رویداد لغوشده برچسب «لغو شد» دارد و شمارش معکوس ندارد');
+  ok(!Array.from(p.doc.querySelectorAll('.server-registration')).find(card=>card.textContent.includes('کارگاه بی‌زمان')).querySelector('[data-countdown],[data-account-registration-lifecycle]'),
+    'بدون event_schedule سرور هیچ زمانی ساخته نمی‌شود');
   ok(p.network.some(call=>call.path==='/api/account/registrations?limit=50&offset=0')
     &&p.view().includes('کارگاه بهار')&&p.view().includes('رسید ثبت شد')
     &&p.view().includes('ورودی عادی'),

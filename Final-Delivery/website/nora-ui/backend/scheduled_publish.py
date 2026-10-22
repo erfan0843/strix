@@ -78,9 +78,13 @@ def notify_content_published(
     now: datetime,
     bale_ids_for: Callable[[str], Sequence[str]] | None = None,
     event_title_for: Callable[[str], str] | None = None,
+    payment_approved: Callable[[Session, Any], bool] | None = None,
 ) -> int:
-    """New session/resource went live for a published product: one outbox row per *active* holder.
+    """New session/resource went live for a published product: one outbox row per entitled account.
 
+    Entitled = active ``recording_access`` holders (purchase/grant/free) plus, when the organizer
+    opened the product to attendees (``attendee_access``), the checked-in attendees whose access is
+    derived on every request (same rule as the product page; no access row is created here).
     Real data path only: the product must be published. Key
     ``recording_content:<what>:<id>:<account>`` so re-publishing after a draft round-trip, a double
     click, or the scheduler running after an immediate publish never duplicates a row.
@@ -89,21 +93,36 @@ def notify_content_published(
     if recording.status != "published":
         return 0
     holders = recordings_mod.active_holders(db, recording.id, now)
-    if not holders:
+    attendees: list[str] = []
+    if recording.attendee_access:
+        approved = payment_approved
+        if approved is None:
+            from .app import _response_payment_approved  # noqa: PLC0415 — CLI path; app.py imports this module
+            approved = _response_payment_approved
+        attendees = [a for a in recordings_mod.attended_account_ids(db, recording.event_id, payment_approved=approved)
+                     if a not in set(holders)]
+    if not holders and not attendees:
         return 0
     titles = event_title_for or (lambda event_id: event_title(db, event_id))
     product = recording.title or titles(recording.event_id) or "محتوای ضبط‌شده"
     noun = "جلسهٔ تازه" if what == "session" else "فایل/منبع تازه"
     body = (f"{noun} «{title_text}» برای «{product}» منتشر شد.\n"
             "برای مشاهده به صفحهٔ همان رویداد یا بخش «محتوای من» در حساب کاربری بروید.")
-    created = notifications_mod.fan_out(
-        db, account_ids=holders, kind=notifications_mod.KIND_CONTENT_PUBLISHED,
-        title="محتوای تازه در محصول خریداری‌شده", body=body,
-        key_for=lambda account_id: notifications_mod.dedupe_key("recording_content", what, target_id, account_id),
-        bale_ids_for=bale_ids_for or (lambda account_id: verified_bale_ids(db, account_id)),
-        link=notifications_mod.event_link(recording.event_id, anchor="recording"),
-    )
-    return len(created)
+    key_for = lambda account_id: notifications_mod.dedupe_key("recording_content", what, target_id, account_id)  # noqa: E731
+    bale_for = bale_ids_for or (lambda account_id: verified_bale_ids(db, account_id))
+    link = notifications_mod.event_link(recording.event_id, anchor="recording")
+    created = 0
+    if holders:
+        created += len(notifications_mod.fan_out(
+            db, account_ids=holders, kind=notifications_mod.KIND_CONTENT_PUBLISHED,
+            title="محتوای تازه در محصول خریداری‌شده", body=body, key_for=key_for, bale_ids_for=bale_for, link=link,
+        ))
+    if attendees:
+        created += len(notifications_mod.fan_out(
+            db, account_ids=attendees, kind=notifications_mod.KIND_CONTENT_PUBLISHED,
+            title="محتوای تازه در آرشیو حاضران رویداد", body=body, key_for=key_for, bale_ids_for=bale_for, link=link,
+        ))
+    return created
 
 
 def due_resources(db: Session, now: datetime) -> list[EventResourceRecord]:

@@ -50,6 +50,9 @@ from .models import (
     EventRecordingRecord,
     EventResourceRecord,
     FormRecord,
+    FormResponseDraftRecord,
+    FormResponseRecord,
+    PlatformIdentityRecord,
     RecordingAccessRecord,
     RecordingOrderRecord,
     RecordingSessionRecord,
@@ -399,6 +402,50 @@ def active_holders(db: Session, recording_id: str, now: datetime) -> list[str]:
         )
     ).all()
     return [row.account_id for row in rows if access_state(row, now) == "active"]
+
+
+def attended_account_ids(
+    db: Session, event_id: str, *, payment_approved: Callable[[Session, FormResponseRecord], bool],
+) -> list[str]:
+    """Accounts whose attendance gives *derived* content access (no ``recording_access`` row).
+
+    Same rule as :func:`event_interaction.participation_for` → ``attended``: a primary, accepted,
+    payment-approved response on a registration form of the event with the check-in column set.
+    Ownership follows the server's own links only: the draft's account, or a Bale identity the
+    server verified for an account (never a client-supplied id).
+    """
+    rows = db.execute(
+        select(FormResponseRecord, FormResponseDraftRecord.account_id, FormResponseDraftRecord.bot_bale_user_id)
+        .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+        .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+        .where(
+            FormRecord.model == "registration",
+            FormRecord.purpose == "registration",
+            FormRecord.event_id == event_id,
+            FormResponseRecord.added_by_response_id.is_(None),
+            FormResponseRecord.status == "accepted",
+            FormResponseRecord.ticket_checked_in_at.is_not(None),
+        )
+    ).all()
+    accounts: set[str] = set()
+    bale_ids: set[str] = set()
+    for record, account_id, bale_user_id in rows:
+        if not payment_approved(db, record):
+            continue
+        if account_id:
+            accounts.add(str(account_id))
+        elif bale_user_id:
+            bale_ids.add(str(bale_user_id))
+    if bale_ids:
+        linked = db.scalars(
+            select(PlatformIdentityRecord.account_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id.in_(sorted(bale_ids)),
+                PlatformIdentityRecord.account_id.is_not(None),
+            )
+        ).all()
+        accounts.update(str(item) for item in linked if item)
+    return sorted(accounts)
 
 
 def access_for(db: Session, recording_id: str, account_id: str | None) -> RecordingAccessRecord | None:

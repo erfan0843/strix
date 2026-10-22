@@ -839,6 +839,7 @@ function accountRegistrationsContent(mode){
     const payment=accountRegistrationPayment(item);
     const ticketType=item.ticket_type&&typeof item.ticket_type.name==='string'?item.ticket_type.name:'';
     const archive=mode==='events'||!mode?accountRegistrationArchive(item):null;
+    const schedule2=accountRegistrationSchedule(item);
     const archiveSource=archive?({attended:'آرشیو برای حاضران این رویداد',purchase:'آرشیو خریداری‌شده',free:'آرشیو رایگان',granted:'آرشیو اعطاشده'}[archive.access.source]||'آرشیو در دسترس'):'';
     return `<article class="card acct server-registration"${item.event_id?` data-account-registration-event="${esc(item.event_id)}"`:''}>
       <div class="row"><span class="sp"><b>${esc(item.event_title||item.form_name)}</b>
@@ -849,6 +850,7 @@ function accountRegistrationsContent(mode){
         ${ticketType?`<span class="tag">${esc(ticketType)}</span>`:''}
         ${item.ticket_checked_in?chip('حضور ثبت شده','ok'):''}
       </div>
+      ${schedule2}
       ${archive?`<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px" data-account-registration-archive="${esc(archive.recording_id)}" data-archive-source="${esc(archive.access.source||'')}">
         <small class="cap">${esc(archiveSource)}${archive.session_count>0?' · '+faN(archive.session_count)+' جلسه':''}</small><span class="sp"></span>
         <a class="btn sm primary" href="${esc(recEventHref(archive,'#recording-sessions'))}" data-account-registration-view>${ico('i-play')} مشاهدهٔ جلسات</a></div>`:''}
@@ -885,6 +887,18 @@ const REC_ACCESS_STATE={active:['دسترسی فعال','ok'],expired:['منقض
 function recMoney(amount,currency){ const n=Math.max(0,Math.round(+amount||0)); return faN(n.toLocaleString('en-US'))+' '+(currency==='IRR'||!currency?'ریال':esc(String(currency))); }
 function recDuration(minutes){ const m=Math.max(0,Math.round(+minutes||0)); if(!m) return ''; const h=Math.floor(m/60), r=m%60;
   return h?(faN(h)+' ساعت'+(r?' و '+faN(r)+' دقیقه':'')):faN(m)+' دقیقه'; }
+/* فاز ۹.۵ §۹: زمان رویداد ثبت‌نام‌شده فقط از event_schedule سرور (همان قاعدهٔ صفحات عمومی)؛ لغو/تعویق هرگز «فعال» دیده نمی‌شود و بدون زمان معتبر چیزی ساخته نمی‌شود */
+function accountRegistrationSchedule(item){
+  const sch=item&&item.event_schedule, CD=window.NORA_COUNTDOWN;
+  if(!sch||typeof sch!=='object'||!CD||typeof CD.eventTarget!=='function') return '';
+  if(sch.lifecycle==='cancelled'||sch.lifecycle==='postponed'){
+    const label=typeof CD.stateLabel==='function'?CD.stateLabel({lifecycle:sch.lifecycle}):'';
+    return label?`<div class="row" style="margin-top:6px" data-account-registration-lifecycle="${esc(sch.lifecycle)}">${chip(label,sch.lifecycle==='cancelled'?'stop':'warn')}</div>`:'';
+  }
+  const target=CD.eventTarget({registration:{state:sch.state,lifecycle:sch.lifecycle,startsIn:sch.startsIn||'',countdownTo:''}});
+  if(!target||target.kind!=='event_start') return '';
+  return `<div class="row" style="margin-top:6px" data-account-registration-countdown><span class="cdline">${CD.markup(target)}</span></div>`;
+}
 function recEventHref(item,anchor){ return 'event.html?id='+encodeURIComponent(String(item.event_id||''))+(anchor||'#recording'); }
 function recFormHref(item){ const id=String(item&&item.purchase_form_id||''); return /^[A-Za-z0-9_-]{1,100}$/.test(id)?'form.html?fid='+encodeURIComponent(id)+'&kind=reg':''; }
 function recOrderCard(order){
@@ -1661,7 +1675,7 @@ function myEventSheet(id){
 function openMyEvent(id){
   if(!$('#shMyEvent')) return;
   S.myEventId=String(id||''); S.refreshEventPending=false;
-  fillSheet('shMyEvent',myEventSheet(id));
+  fillSheet('shMyEvent',myEventSheet(id)); if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount($('#shMyEvent'));
   openSheet('shMyEvent');
 }
 function refreshMyEventFromStorage(){
@@ -1669,7 +1683,7 @@ function refreshMyEventFromStorage(){
   const sheet=$('#shMyEvent'), player=$('#shPlay');
   if(!S.myEventId||!sheet||!sheet.classList.contains('on'))return;
   if(player&&player.classList.contains('on')){S.refreshEventPending=true;return}
-  S.refreshEventPending=false; fillSheet('shMyEvent',myEventSheet(S.myEventId));
+  S.refreshEventPending=false; fillSheet('shMyEvent',myEventSheet(S.myEventId)); if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount($('#shMyEvent'));
 }
 function refreshMyEventAfterPlayer(detail){
   const target=typeof detail==='string'?detail:String(detail&&detail.id||''),
@@ -3360,6 +3374,7 @@ function renderView(){
   if(!box||!t||!fn) return;
   box.innerHTML=`<section class="sec" aria-label="${esc(t.n)}">${fn(t)}</section>`;
   document.title='نورا · '+t.n;
+  if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount(box);   /* همان شمارش معکوس مشترک؛ بدون آن فقط متن ایستا می‌ماند */
 }
 function accScreenTitle(k){ const x=accScreen(k); return x?{k,n:x.n,s:''}:null }
 function render(){

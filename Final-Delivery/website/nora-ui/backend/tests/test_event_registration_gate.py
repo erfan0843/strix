@@ -380,3 +380,47 @@ def test_banner_writes_require_the_owner_in_the_backend():
             assert client.get("/api/public/site-content").status_code == 404  # nothing was published
     finally:
         pass
+
+
+def test_account_registrations_expose_the_server_event_schedule_for_the_shared_countdown():
+    """Phase 9.5 §9: «رویدادهای من» gets the live event schedule from the server clock (same rule as the
+    public pages) — additive field, never a client-invented deadline, blank once cancelled."""
+    app, _engine = gate_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            event_id, version = create_published_event(client, 0)
+            form_id = create_published_form(client, event_id=event_id, key="phase95-schedule-form")
+            event = public_event(client, event_id)
+
+            member = TestClient(app)
+            bale_login(member, 950_001)
+            assert member.get(f"/api/public/forms/{form_id}/draft").status_code == 200
+            submitted = member.post(
+                f"/api/public/forms/{form_id}/responses",
+                json={"answers": {"full-name": "عضو آزمایشی"}}, headers=ORIGIN,
+            )
+            assert submitted.status_code == 200, submitted.text
+
+            items = member.get("/api/account/registrations").json()["items"]
+            assert len(items) == 1 and items[0]["event_id"] == event_id
+            schedule = items[0]["event_schedule"]
+            assert schedule["state"] == "open" and schedule["lifecycle"] == "scheduled"
+            assert schedule["startsAt"] == event["startsAt"] == schedule["startsIn"]
+            assert schedule["ended"] is False
+            assert set(schedule) == {"state", "lifecycle", "startsAt", "startsIn", "ended"}
+
+            # Cancelled → no countdown target, lifecycle visible; the registration row itself is untouched.
+            update_event(client, event_id, version, lifecycle="cancelled")
+            after = member.get("/api/account/registrations").json()["items"][0]
+            assert after["id"] == items[0]["id"] and after["status"] == items[0]["status"]
+            assert after["event_schedule"]["lifecycle"] == "cancelled"
+            assert after["event_schedule"]["state"] == "cancelled"
+            assert after["event_schedule"]["startsIn"] == ""
+
+            # Another account never sees this registration (scope unchanged by the additive field).
+            other = TestClient(app)
+            bale_login(other, 950_002)
+            assert other.get("/api/account/registrations").json()["items"] == []
+    finally:
+        app.state.engine.dispose() if hasattr(app.state, "engine") else None

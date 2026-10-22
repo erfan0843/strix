@@ -33,11 +33,11 @@ from backend import scheduled_publish  # noqa: E402
 from backend.app import create_app  # noqa: E402
 from backend.config import Settings  # noqa: E402
 from backend.models import (  # noqa: E402
-    AdminAuditEventRecord, Base, EventResourceRecord, SystemMarkerRecord, UserNotificationRecord,
+    AdminAuditEventRecord, Base, EventResourceRecord, RecordingAccessRecord, SystemMarkerRecord, UserNotificationRecord,
 )
 from backend.security import hash_password  # noqa: E402
 from test_event_registration_gate import gate_app  # noqa: E402
-from test_recordings_api import build_sellable_product, held_event, notifications, set_status  # noqa: E402
+from test_recordings_api import build_sellable_product, held_event, notifications, purchase_form, set_status  # noqa: E402
 from test_workflows_api import BOT_TOKEN, SERVICE_TOKEN, bale_login, owner_login, owner_write_headers  # noqa: E402
 
 FUTURE = "2099-01-01T10:00:00+00:00"
@@ -271,3 +271,66 @@ def test_cli_once_runs_the_same_pass_against_the_configured_database(tmp_path, m
                 raise AssertionError("missing database url must fail loudly")
     finally:
         engine.dispose()
+
+
+def test_checked_in_attendees_of_a_courtesy_product_are_announced_once_without_an_access_row():
+    """§8.2 gap closed in 9.5: attendee access is *derived* (no ``recording_access`` row), so the content
+    announcement must reach checked-in attendees too — once, and never the registrant who was absent."""
+    from test_event_registration_gate import ORIGIN, create_published_event, create_published_form, iso, update_event  # noqa: PLC0415
+
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            event_id, version = create_published_event(owner, 0, t="کارگاه حضوری با آرشیو حاضران", startsAt=iso(timedelta(days=3)))
+            registration_form = create_published_form(owner, event_id=event_id, key="sched-attendee-reg-0001")
+            attendee, absent = TestClient(app), TestClient(app)
+            attendee_id, absent_id = bale_login(attendee, 97401), bale_login(absent, 97402)
+            for client, name in ((attendee, "حاضر واقعی"), (absent, "ثبت‌نامی غایب")):
+                assert client.get(f"/api/public/forms/{registration_form}/draft").status_code == 200
+                assert client.post(f"/api/public/forms/{registration_form}/responses",
+                                   json={"answers": {"full-name": name}}, headers=ORIGIN).status_code == 200
+            response_id = attendee.get("/api/account/registrations").json()["items"][0]["id"]
+            assert owner.post(f"/api/admin/attendance/responses/{response_id}/check-in", json={},
+                              headers=owner_write_headers(owner)).status_code == 200
+            version = update_event(owner, event_id, version, startsAt=iso(timedelta(days=-9)), endsAt=iso(timedelta(days=-8)),
+                                   regClosesAt=iso(timedelta(days=-10)), past=True)
+            product = build_sellable_product(owner, event_id, price=900_000, payment_card=None, attendee_access=True)
+            purchase_form(owner, product["recording"]["id"], price=900_000)  # paid product publishes only with its form
+            assert set_status(owner, event_id, "ready").status_code == 200
+            assert set_status(owner, event_id, "published").status_code == 200
+            with Session(engine) as db:
+                assert db.scalar(select(RecordingAccessRecord).where(RecordingAccessRecord.account_id == attendee_id)) is None
+
+            h = owner_write_headers(owner)
+            base = f"/api/admin/events/{event_id}/resources"
+            created = owner.post(base, json={"title": "اسلایدهای حاضران", "access": "attended", "session_id": product["_session_id"],
+                                             "kind": "link", "link_url": "https://example.org/slides"}, headers=h)
+            assert created.status_code == 201, created.text
+            rid = created.json()["id"]
+            assert owner.put(f"{base}/{rid}", json={"status": "published", "publish_at": FUTURE}, headers=h).status_code == 200
+            assert content_rows(engine, attendee_id) == [] and content_rows(engine, absent_id) == []
+
+            later = datetime(2099, 1, 1, 10, 0, 1, tzinfo=timezone.utc)
+            with Session(engine) as db:
+                first = scheduled_publish.announce_due(db, later, actor="test")
+                second = scheduled_publish.announce_due(db, later, actor="test")
+            assert (first["due"], first["announced"], first["notified"]) == (1, 1, 1), first
+            assert (second["due"], second["announced"], second["notified"]) == (0, 0, 0), second
+            mine = content_rows(engine, attendee_id)
+            assert len(mine) == 1 and "آرشیو حاضران" in mine[0].title and mine[0].dedupe_key == f"recording_content:resource:{rid}:{attendee_id}"
+            assert content_rows(engine, absent_id) == [], "registration without check-in is not an entitlement"
+            # Visibility always follows the real server clock: still hidden while publish_at is in the future.
+            assert rid not in {r["id"] for s in attendee.get(f"/api/public/events/{event_id}/recording").json()["recording"]["sessions"] for r in s["resources"]}
+            # Owner moves the time back → live now; the attendee really sees it (derived access), the absent
+            # registrant does not, and the already-announced row is not duplicated by the immediate-publish path.
+            assert owner.put(f"{base}/{rid}", json={"publish_at": iso(timedelta(minutes=-1))}, headers=h).status_code == 200
+            assert len(content_rows(engine, attendee_id)) == 1
+            seen = attendee.get(f"/api/public/events/{event_id}/recording").json()["recording"]
+            assert rid in {r["id"] for s in seen["sessions"] for r in s["resources"]}
+            other = absent.get(f"/api/public/events/{event_id}/recording").json()["recording"]
+            assert other["viewer"]["cta"]["kind"] == "buy", "registered-but-absent member has no derived access"
+            notes = attendee.get("/api/account/notifications?limit=50&offset=0").json()["items"]
+            assert [n["kind"] for n in notes].count("recording_content") == 1
+    finally:
+        app.state.engine.dispose() if hasattr(app.state, "engine") else None
