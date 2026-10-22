@@ -261,12 +261,15 @@
         };
       }
       const playerBlock = ['img', 'vid', 'aud', 'gal'].includes(block.ty);
+      /* بلوک‌های فهرستی (ul/ol/tbl/gal) «x» آرایه‌ای دارند؛ post.html همان آرایه را می‌خواند. رشته‌شدنِ آرایه فهرست را خالی می‌کرد. */
+      const listX = Array.isArray(block.x) && ['ul', 'ol', 'tbl', 'gal'].includes(block.ty)
+        ? block.x.map(item => text(item, 1000)).filter(Boolean).slice(0, 100) : null;
       return Object.assign({}, block, {
-        x: text(block.x || block.text || block.title, 8000),
+        x: listX || text(block.x || block.text || block.title, 8000),
         src: playerBlock ? publicMediaPath(block.src || block.url) : publicPath(block.src || block.url),
         up: playerBlock ? publicMediaPath(block.up) : publicPath(block.up)
       });
-    }).filter(block => typeof block === 'string' ? block : (block.x || block.src || block.ty === 'file'));
+    }).filter(block => typeof block === 'string' ? block : ((Array.isArray(block.x) ? block.x.length : block.x) || block.src || block.up || block.ty === 'file' || block.ty === 'hr'));
     return Object.assign({}, record, {
       id, t: title,
       cat: text(record.cat || 'مطلب', 80),

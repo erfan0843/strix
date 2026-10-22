@@ -315,7 +315,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=131"></script>
-<script src="public-data.js?v=114"></script>
+<script src="public-data.js?v=115"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    صفحهٔ خواندن مطلب
@@ -366,7 +366,12 @@ function artToPost(a){
 function resolve(){
   if(window.NORA_PUBLIC_SOURCE==='server'){
     const published=ARTICLES().find(x=>String(x.id)===String(id));
-    if(published) return {p:Object.assign({},published,{author:published.who||'تحریریهٔ نورا',cover:{up:published.cov||'',g:published.g||''},pub:true}),pend:false,source:'server'};
+    if(published){
+      /* مطلبی که از پنل فقط با بندهای متنی (body) ذخیره شده، بلوک ندارد؛ همان بندها بلوکِ «p» می‌شوند تا بدنه خالی نماند. */
+      const blocks=Array.isArray(published.blocks)&&published.blocks.length?published.blocks
+        :(Array.isArray(published.body)?published.body:[]).filter(Boolean).map(x=>({ty:'p',x:x}));
+      return {p:Object.assign({},published,{blocks:blocks,author:published.who||'تحریریهٔ نورا',cover:{up:published.cov||'',g:published.g||''},pub:true}),pend:false,source:'server'};
+    }
   }
   /* محتوای محلی فقط در fixture آزمون یا پیش‌نمایش صریحِ سازنده خوانده می‌شود. */
   if(!TEST_FIXTURE_MODE&&!preview) return null;
