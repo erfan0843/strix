@@ -3268,6 +3268,36 @@ def create_app(
         detail: Any = {"code": error.code, "field": error.field} if error.field else error.code
         return HTTPException(error.status, detail)
 
+    _EXTERNAL_VIDEO_KINDS = ("youtube", "aparat")
+
+    def _pop_external_acknowledgement(payload: dict[str, Any]) -> bool:
+        """Phase 9.5 §6.4: ``acknowledge_external_exposure`` is a boolean flag outside the stored fields."""
+        if "acknowledge_external_exposure" not in payload:
+            return False
+        value = payload.pop("acknowledge_external_exposure")
+        if not isinstance(value, bool):
+            raise HTTPException(422, {"code": "invalid_value", "field": "acknowledge_external_exposure"})
+        return value
+
+    def _require_external_exposure_ack(
+        *, kind: str, before: tuple[str, str] | None, after: tuple[str, str], acknowledged: bool
+    ) -> bool:
+        """A paid (``purchased``) resource hosted on YouTube/Aparat is *not* protected by Nora.
+
+        Entering the state (published, purchased, external) requires the operator's explicit
+        ``acknowledge_external_exposure: true`` (recorded in the audit row); any other change is free.
+        Returns True when the acknowledgement was consumed (so the caller can audit it).
+        """
+        if kind not in _EXTERNAL_VIDEO_KINDS:
+            return False
+        exposed_after = after == ("published", "purchased")
+        exposed_before = before == ("published", "purchased")
+        if not exposed_after or exposed_before:
+            return False
+        if not acknowledged:
+            raise HTTPException(409, {"code": "external_exposure_acknowledgement_required", "provider": kind})
+        return True
+
     def _interaction_event(db: Session, event_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
         """``(public_projection, stored_row)``; the projection is ``None`` unless published."""
         record = db.get(SiteContentRecord, "public")
@@ -3932,6 +3962,7 @@ def create_app(
     ):
         event_id = _admin_event_id(db, event_id)
         payload = await _read_json_object(request, 16_384)
+        acknowledged = _pop_external_acknowledgement(payload)
         try:
             fields = interaction_mod.validate_resource_fields(
                 payload, existing=None, parse_datetime=event_time.parse_event_datetime
@@ -3941,6 +3972,10 @@ def create_app(
         if fields.get("status") == "published" and fields.get("kind", "file") == "file":
             # A file row cannot be published before its bytes exist.
             raise HTTPException(409, {"code": "resource_file_missing"})
+        ack_used = _require_external_exposure_ack(
+            kind=str(fields.get("kind", "file")), before=None,
+            after=(str(fields.get("status", "draft")), str(fields.get("access", "public"))), acknowledged=acknowledged,
+        )
         _check_resource_session(db, event_id, fields)
         actor_kind, actor_id = _interaction_actor(identity)
         record = EventResourceRecord(
@@ -3948,9 +3983,12 @@ def create_app(
             status=fields.pop("status", "draft"), **fields,
         )
         db.add(record)
+        create_details: dict[str, Any] = {"event_id": event_id, "kind": record.kind, "access": record.access, "status": record.status}
+        if ack_used:
+            create_details["external_exposure_acknowledged"] = True
         record_audit(
             db, identity, "event_resource.create", target_type="event_resource", target_id=record.id,
-            details={"event_id": event_id, "kind": record.kind, "access": record.access, "status": record.status},
+            details=create_details,
         )
         db.commit()
         db.refresh(record)
@@ -3969,6 +4007,7 @@ def create_app(
         if record.status == "removed":
             raise HTTPException(409, {"code": "resource_removed"})
         payload = await _read_json_object(request, 16_384)
+        acknowledged = _pop_external_acknowledgement(payload)
         try:
             fields = interaction_mod.validate_resource_fields(
                 payload, existing=record, parse_datetime=event_time.parse_event_datetime
@@ -3979,6 +4018,10 @@ def create_app(
             raise HTTPException(409, {"code": "resource_kind_immutable"})
         if fields.get("status") == "published" and record.kind == "file" and not _resource_has_bytes(request, record):
             raise HTTPException(409, {"code": "resource_file_missing"})
+        ack_used = _require_external_exposure_ack(
+            kind=record.kind, before=(record.status, record.access),
+            after=(str(fields.get("status", record.status)), str(fields.get("access", record.access))), acknowledged=acknowledged,
+        )
         _check_resource_session(db, event_id, fields)
         before = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
         for key, value in fields.items():
@@ -3987,6 +4030,8 @@ def create_app(
         changed = sorted(fields)
         # Audit details are flat scalars (see audit.sanitize_details): before/after per watched key.
         details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(changed)[:200]}
+        if ack_used:
+            details["external_exposure_acknowledged"] = True
         for key in ("access", "status", "publish_at"):
             if before[key] != after[key]:
                 details[f"{key}_before"] = before[key]

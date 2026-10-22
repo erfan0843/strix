@@ -310,12 +310,66 @@
     if (!EMBED_ORIGINS.some(origin => embed.startsWith(origin)) || !/^https:\/\/www\.(youtube|aparat)\.com\//.test(watch)) return null;
     return { provider: v.provider === 'aparat' ? 'aparat' : 'youtube', embed, watch };
   }
+  /* فاز ۹.۵ §۶: وضعیت صادقانهٔ پخش.
+     یوتیوب: به‌جای بارگذاری اسکریپت شخص‌ثالث، از همان کانال رسمی IFrame API روی postMessage استفاده می‌شود
+     (enablejsapi=1 + پیام «listening»)؛ فقط پیام‌هایی پذیرفته می‌شوند که مبدأشان دقیقاً youtube-nocookie و فرستنده‌شان همین قاب باشد.
+     تا وقتی onReady نرسیده، پخش «تأییدنشده» می‌ماند؛ خطاهای 2/5/100/101/150/153 به پیام قابل‌فهم نگاشت می‌شوند و هرگز «پخش شد» ادعا نمی‌شود.
+     آپارات هیچ API وضعیتی در قاب ندارد؛ پس فقط بارگذاری قاب و خطای قاب گزارش می‌شود و پخش همیشه «تأییدنشده از سوی نورا» است. */
+  const YT_FRAME_ORIGIN = 'https://www.youtube-nocookie.com';
+  const YT_STATE = { '-1': 'ready', 0: 'ended', 1: 'playing', 2: 'paused', 3: 'buffering', 5: 'ready' };
+  const YT_STATE_TEXT = { ready: 'پخش‌کننده آماده است؛ پخش را خودتان آغاز کنید (پخش خودکار نداریم).', playing: 'در حال پخش (گزارش خود یوتیوب).', paused: 'متوقف شده (گزارش خود یوتیوب).', buffering: 'در حال بافر کردن…', ended: 'پخش به پایان رسید (گزارش خود یوتیوب؛ نورا پایان تماشا را ثبت نمی‌کند).' };
+  const YT_ERROR_TEXT = {
+    2: 'شناسهٔ ویدیو نامعتبر است؛ به برگزارکننده اطلاع دهید.',
+    5: 'پخش‌کنندهٔ HTML5 یوتیوب در این مرورگر دچار خطا شد؛ در خود یوتیوب ببینید.',
+    100: 'ویدیو پیدا نشد (حذف‌شده یا خصوصی).',
+    101: 'صاحب ویدیو اجازهٔ جاسازی خارج از یوتیوب را نداده است؛ از پیوند «باز کردن در یوتیوب» استفاده کنید.',
+    150: 'صاحب ویدیو اجازهٔ جاسازی خارج از یوتیوب را نداده است؛ از پیوند «باز کردن در یوتیوب» استفاده کنید.',
+    153: 'یوتیوب درخواست جاسازی را بدون مبدأ معتبر رد کرد (خطای ۱۵۳)؛ اگر این صفحه را از نشانی رسمی نورا باز کرده‌اید به برگزارکننده اطلاع دهید.',
+  };
+  function embedFrameSrc(video) {
+    if (video.provider !== 'youtube') return video.embed;
+    const win = doc.defaultView || window;
+    const origin = win && win.location && /^https?:$/.test(String(win.location.protocol || '')) ? win.location.origin : '';
+    return video.embed + (video.embed.includes('?') ? '&' : '?') + 'enablejsapi=1' + (origin ? '&origin=' + encodeURIComponent(origin) : '');
+  }
   function rEmbed(row, video) {
     const name = EMBED_NAME[video.provider];
-    return `<div class="ei-embed" data-rec-embed="${esc(row.id)}" data-embed-provider="${esc(video.provider)}" data-embed-state="loading">
-        <iframe src="${esc(video.embed)}" title="${esc(row.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen data-rec-embed-frame="${esc(row.id)}"></iframe>
+    return `<div class="ei-embed" data-rec-embed="${esc(row.id)}" data-embed-provider="${esc(video.provider)}" data-embed-state="loading" data-embed-playback="unverified">
+        <iframe src="${esc(embedFrameSrc(video))}" title="${esc(row.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen data-rec-embed-frame="${esc(row.id)}"></iframe>
         <div class="ei-embed-state" role="status" data-rec-embed-state><span data-embed-text>در حال بارگذاری پخش‌کنندهٔ ${esc(name)}…</span></div></div>
-      <p class="ei-embed-note"><span data-embed-playback-note></span> پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد یا شناسه‌اش اشتباه ثبت شده باشد، همان پیام یا کد خطای خود ${esc(name)} در قاب دیده می‌شود و نورا نمی‌تواند آن را برطرف کند؛ در این حالت از پیوند روبه‌رو در خود سکو ببینید یا به برگزارکننده اطلاع دهید. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
+      <p class="ei-embed-note"><span data-embed-playback-note aria-live="polite"></span> پخش از ${esc(name)} (میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا). اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد یا شناسه‌اش اشتباه ثبت شده باشد، همان پیام یا کد خطای خود ${esc(name)} در قاب دیده می‌شود و نورا نمی‌تواند آن را برطرف کند؛ در این حالت از پیوند روبه‌رو در خود سکو ببینید یا به برگزارکننده اطلاع دهید. <a href="${esc(video.watch)}" target="_blank" rel="noopener noreferrer" data-rec-embed-open="${esc(row.id)}">باز کردن در ${esc(name)}</a></p>`;
+  }
+  function embedNote(box) { return box.parentElement && box.parentElement.querySelector('[data-embed-playback-note]'); }
+  function ytMessage(box, data) {
+    let msg = data;
+    if (typeof msg === 'string') { try { msg = JSON.parse(msg); } catch (_e) { return; } }
+    if (!msg || typeof msg !== 'object') return;
+    const note = embedNote(box);
+    const setPlayback = (state) => {
+      if (!YT_STATE_TEXT[state]) return;
+      box.setAttribute('data-embed-playback', state);
+      if (note) note.textContent = YT_STATE_TEXT[state];
+    };
+    if (msg.event === 'onReady') {
+      box.setAttribute('data-embed-state', 'ready');
+      box.setAttribute('data-embed-api', 'ready');
+      setPlayback('ready');
+    } else if (msg.event === 'onStateChange' && YT_STATE[String(msg.info)]) {
+      box.setAttribute('data-embed-api', 'ready');
+      setPlayback(YT_STATE[String(msg.info)]);
+    } else if (msg.event === 'infoDelivery' && msg.info && typeof msg.info === 'object' && YT_STATE[String(msg.info.playerState)]) {
+      box.setAttribute('data-embed-api', 'ready');
+      setPlayback(YT_STATE[String(msg.info.playerState)]);
+    } else if (msg.event === 'onError') {
+      const code = String(msg.info);
+      box.setAttribute('data-embed-state', 'error');
+      box.setAttribute('data-embed-playback', 'error');
+      box.setAttribute('data-embed-error', /^\d{1,3}$/.test(code) ? code : 'unknown');
+      const text = box.querySelector('[data-embed-text]');
+      const human = YT_ERROR_TEXT[code] || ('یوتیوب خطای ' + code + ' را گزارش کرد؛ در خود یوتیوب ببینید.');
+      if (text) text.textContent = human;
+      if (note) note.textContent = human;
+    }
   }
   function wireEmbeds(scope) {
     const win = doc.defaultView || window;
@@ -323,19 +377,34 @@
       const frame = box.querySelector('iframe');
       const text = box.querySelector('[data-embed-text]');
       if (!frame) return;
+      const provider = box.getAttribute('data-embed-provider');
       const slow = win.setTimeout(() => {
         if (box.getAttribute('data-embed-state') !== 'loading') return;
         box.setAttribute('data-embed-state', 'slow');
-        if (text) text.textContent = 'پخش‌کننده هنوز بارگذاری نشده است (شبکه یا فیلترینگ؟). می‌توانید ویدیو را مستقیم در ' + (EMBED_NAME[box.getAttribute('data-embed-provider')] || 'سکوی میزبان') + ' باز کنید.';
+        if (text) text.textContent = 'پخش‌کننده هنوز بارگذاری نشده است (شبکه یا فیلترینگ؟). می‌توانید ویدیو را مستقیم در ' + (EMBED_NAME[provider] || 'سکوی میزبان') + ' باز کنید.';
       }, EMBED_SLOW_MS);
+      if (provider === 'youtube' && typeof win.addEventListener === 'function') {
+        const onMessage = (event) => {
+          if (!box.isConnected) { win.removeEventListener('message', onMessage); return; }
+          if (event.origin !== YT_FRAME_ORIGIN || !frame.contentWindow || event.source !== frame.contentWindow) return;
+          ytMessage(box, event.data);
+        };
+        win.addEventListener('message', onMessage);
+      }
       frame.addEventListener('load', () => {
         win.clearTimeout(slow); box.setAttribute('data-embed-state', 'ready');
         /* «load» فقط یعنی قاب پاسخ داد (حتی صفحهٔ خطای مرورگر)؛ پخش یا خطای ویدیو را خود سکو داخل قاب نشان می‌دهد و نورا آن را تأیید نمی‌کند. */
         box.setAttribute('data-embed-playback', 'unverified');
-        const note = box.parentElement && box.parentElement.querySelector('[data-embed-playback-note]');
-        if (note) note.textContent = 'پخش‌کننده بارگذاری شد؛ پخش و خطاهای ویدیو را خود ' + (EMBED_NAME[box.getAttribute('data-embed-provider')] || 'سکو') + ' داخل قاب نشان می‌دهد و نورا آن را تأیید نمی‌کند.';
+        const note = embedNote(box);
+        if (note) note.textContent = provider === 'aparat'
+          ? 'قاب آپارات بارگذاری شد؛ آپارات وضعیت پخش را به نورا گزارش نمی‌کند، پس پخش و خطاهای ویدیو فقط داخل قاب دیده می‌شود و نورا آن را تأیید نمی‌کند.'
+          : 'پخش‌کننده بارگذاری شد؛ تا وقتی یوتیوب آمادگی را اعلام نکند پخش تأییدنشده است و خطاهای ویدیو داخل قاب دیده می‌شود؛ نورا آن را تأیید نمی‌کند.';
+        if (provider === 'youtube' && frame.contentWindow && typeof frame.contentWindow.postMessage === 'function') {
+          /* دست‌دادن رسمی IFrame API: پس از این پیام، پخش‌کننده onReady/onStateChange/onError را می‌فرستد. */
+          try { frame.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: box.getAttribute('data-rec-embed'), channel: 'widget' }), YT_FRAME_ORIGIN); } catch (_e) { /* قاب هنوز آماده نیست؛ وضعیت «تأییدنشده» می‌ماند */ }
+        }
       }, { once: true });
-      frame.addEventListener('error', () => { win.clearTimeout(slow); box.setAttribute('data-embed-state', 'error'); if (text) text.textContent = 'پخش‌کننده بارگذاری نشد؛ از پیوند زیر در خود سکو ببینید.'; }, { once: true });
+      frame.addEventListener('error', () => { win.clearTimeout(slow); box.setAttribute('data-embed-state', 'error'); box.setAttribute('data-embed-playback', 'error'); if (text) text.textContent = 'پخش‌کننده بارگذاری نشد؛ از پیوند زیر در خود سکو ببینید.'; }, { once: true });
     });
   }
 

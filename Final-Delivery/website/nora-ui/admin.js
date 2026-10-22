@@ -6710,7 +6710,7 @@ const EI_DELIVERY_MODE={download:'قابل دانلود',view:'فقط مشاهد
 const EI_Q_STATUS={pending:['در انتظار','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop']};
 const EI_RV_STATUS={pending:['در انتظار تأیید','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop'],withdrawn:['پس‌گرفته','']};
 const EI_DELIVERY={queued:['در صف ارسال','warn'],retrying:['در حال تلاش دوباره','warn'],delivered:['تحویل‌شده','ok'],failed:['ناموفق','stop']};
-const EI_ERR={duplicate_question:'این پرسش تکراری است.',qa_closed:'پرسش‌وپاسخ این رویداد بسته است.',question_not_answered:'این پرسش هنوز پاسخی ندارد که اعلان آن فرستاده شود.',
+const EI_ERR={external_exposure_acknowledgement_required:'این ویدیوی پولی روی سکوی بیرونی میزبانی می‌شود و نورا از آن محافظت نمی‌کند؛ انتشار فقط با تأیید صریح شما انجام می‌شود (کادر تأیید را علامت بزنید یا در پرسش انتشار تأیید کنید).',duplicate_question:'این پرسش تکراری است.',qa_closed:'پرسش‌وپاسخ این رویداد بسته است.',question_not_answered:'این پرسش هنوز پاسخی ندارد که اعلان آن فرستاده شود.',
   resource_file_missing:'پیش از انتشار باید فایل منبع بارگذاری شود.',resource_kind_immutable:'نوع منبع (فایل/پیوند) پس از ساخت تغییر نمی‌کند.',resource_not_file:'این منبع فایل نیست یا حذف شده است.',
   resource_removed:'این منبع حذف شده و دیگر ویرایش نمی‌شود.',review_exists:'برای این حساب پیش‌تر دیدگاهی ثبت شده است.',review_locked:'این دیدگاه قفل است.',review_withdrawn:'این دیدگاه پس گرفته شده است.',
   file_empty:'فایل خالی است.',file_too_large:'حجم فایل بیش از سقف پذیرفته‌شدهٔ این سرور است.',resumable_requires_private_storage:'بارگذاری قطعه‌ای فقط با حافظهٔ خصوصی دیسک روی سرور ممکن است.',upload_session_open_by_other:'کاربر دیگری در حال بارگذاری برای همین منبع است؛ بعداً دوباره تلاش کنید.',offset_mismatch:'ترتیب قطعه‌ها با سرور نمی‌خواند؛ بارگذاری از آخرین قطعهٔ تأییدشده ادامه می‌یابد.',chunk_checksum_mismatch:'قطعهٔ ارسالی در مسیر خراب شد و سرور آن را نپذیرفت.',sha256_mismatch:'اثر انگشت فایل روی سرور با فایل شما نمی‌خواند؛ هیچ فایلی جایگزین نشد.',upload_session_expired:'نشست بارگذاری منقضی شد (۲۴ ساعت)؛ بارگذاری را از نو شروع کنید.',upload_session_lost:'بخش موقت بارگذاری روی سرور پیدا نشد؛ از نو شروع کنید.',upload_incomplete:'هنوز همهٔ قطعه‌ها به سرور نرسیده است.',upload_completing:'سرور در حال نهایی‌کردن همین بارگذاری است.',upload_cancelled:'بارگذاری لغو شد؛ چیزی جایگزین نشد.',chunk_too_large:'اندازهٔ قطعه از سقف سرور بیشتر است.',resource_file_unavailable:'فایل این منبع روی حافظهٔ سرور در دسترس نیست؛ وضعیت ذخیره‌سازی را ببینید.',file_type_not_allowed:'سرور نوع این فایل را مجاز نمی‌داند (PDF، تصویر، اسناد آفیس، ZIP، MP3 یا متن).',
@@ -6905,7 +6905,7 @@ function eiResourceEditor(){
     ${f.kind==='link'?field('پیوند','link_url',{dir:'ltr',ph:'https://…',max:2048,err:err.link_url}):f.kind==='youtube'?field('نشانی یا شناسهٔ ویدیوی یوتیوب','link_url',{dir:'ltr',ph:'https://www.youtube.com/watch?v=… یا youtu.be/…',max:2048,err:err.link_url,hint:'سرور فقط شناسهٔ ۱۱ حرفی را نگه می‌دارد و نشانی رسمی پخش‌کننده را خودش می‌سازد؛ کد HTML پذیرفته نمی‌شود.'}):f.kind==='aparat'?field('نشانی یا شناسهٔ ویدیوی آپارات','link_url',{dir:'ltr',ph:'https://www.aparat.com/v/…',max:2048,err:err.link_url,hint:'سرور فقط شناسهٔ ویدیو را نگه می‌دارد؛ تنظیمات انتشار/جاسازی در خود آپارات تعیین می‌شود.'}):''}
     ${(f.kind==='youtube'||f.kind==='aparat')?`<p class="cap" data-ei-external-warning="${f.access==='purchased'?'paid':'free'}" style="margin:0;padding:8px 10px;border:1px dashed var(--line);border-radius:10px${f.access==='purchased'?';color:var(--stop)':''}">${f.access==='purchased'
       ?'هشدار سطح حفاظت: این منبع پولی روی '+(f.kind==='youtube'?'یوتیوب':'آپارات')+' میزبانی می‌شود. اگر ویدیو «عمومی» یا «فهرست‌نشده (Unlisted)» باشد، هرکس پیوند یا شناسه را داشته باشد می‌تواند آن را بیرون از نورا تماشا کند؛ نورا فقط قاب را پشت مجوز سرور می‌گذارد و این محصول را نباید «ویدیوی محافظت‌شده» معرفی کرد. برای محدودسازی واقعی باید از کنترل دسترسی مستند خود سکو یا زیرساخت پخش خصوصی استفاده شود.'
-      :'برای پیش‌نمایش رایگان، ویدیوی عمومی بیرونی مناسب است؛ این منبع حفاظت یا DRM ندارد.'}</p>`:''}
+      :'برای پیش‌نمایش رایگان، ویدیوی عمومی بیرونی مناسب است؛ این منبع حفاظت یا DRM ندارد.'}</p>${f.access==='purchased'?`<label class="chk" style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" data-ei-ack-external ${e.ackExternal?'checked':''}> <span>می‌دانم این ویدیوی پولی روی ${f.kind==='youtube'?'یوتیوب':'آپارات'} محافظت نمی‌شود و با آگاهی آن را برای «دارندگان دسترسی» منتشر می‌کنم؛ این تأیید با نام و زمان در لاگ ممیزی ثبت می‌شود و فقط هنگام انتشار منبع پولی لازم است.</span></label>`:''}`:''}
     ${(REC.data&&REC.data.recording&&(REC.data.recording.sessions||[]).length)?`<div class="row tight" style="flex-wrap:wrap"><label class="fld" for="eif_session_id"><span class="lbl">جلسهٔ ضبط‌شده (اختیاری)</span><select id="eif_session_id" class="input" data-ei-field="session_id"><option value="" ${f.session_id?'':'selected'}>منبع عمومی رویداد (بدون جلسه)</option>${REC.data.recording.sessions.map(x=>`<option value="${x.id}" ${f.session_id===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select><small class="cap">فایل جلسه با سطح «دارندگان دسترسی» فقط برای خریداران/دارندگان دسترسی باز می‌شود.</small></label>
       <label class="fld" for="eif_delivery"><span class="lbl">نحوهٔ تحویل</span><select id="eif_delivery" class="input" data-ei-field="delivery" ${f.kind==='youtube'||f.kind==='aparat'?'disabled':''}><option value="download" ${f.delivery!=='view'&&f.kind!=='youtube'&&f.kind!=='aparat'?'selected':''}>قابل دانلود</option><option value="view" ${f.delivery==='view'||f.kind==='youtube'||f.kind==='aparat'?'selected':''}>فقط مشاهدهٔ برخط (بدون ادعای حفاظت از کپی)</option></select>${f.kind==='youtube'||f.kind==='aparat'?'<small class="cap">منبع بیرونی فقط مشاهدهٔ برخط است؛ دانلود را خود سکو تعیین می‌کند.</small>':''}</label></div>`:''}
     ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
@@ -6925,6 +6925,7 @@ async function eiResourceSave(){
   if(REC.data&&REC.data.recording){payload.session_id=String(f.session_id||''); payload.delivery=external||f.delivery==='view'?'view':'download'}
   if(!e.id) payload.kind=['link','youtube','aparat'].includes(f.kind)?f.kind:'file';
   if(['link','youtube','aparat'].includes(e.id?f.kind:payload.kind)) payload.link_url=String(f.link_url||'').trim();
+  if(external&&f.access==='purchased'&&e.ackExternal===true) payload.acknowledge_external_exposure=true; /* فاز ۹.۵ §۶.۴: فقط با تیک صریح؛ سرور در ممیزی ثبت می‌کند */
   EI.busy='save'; e.errors={}; e.formError=''; renderBody();
   try{
     const saved=e.id?await api.updateEventResource(EI.eventId,e.id,payload,staffCsrfCookie()):await api.createEventResource(EI.eventId,payload,staffCsrfCookie());
@@ -6939,9 +6940,14 @@ async function eiResourceSave(){
 async function eiResourceStatus(id,status){
   const api=window.NORA_SERVER_API; if(EI.busy) return;
   const item=(EI.data&&EI.data.items||[]).find(r=>r.id===id); if(!item) return;
-  if(status==='published'&&typeof window.confirm==='function'&&!window.confirm(`«${item.title}» برای ${EI_ACCESS_LABEL[item.access]||item.access} منتشر می‌شود${item.publish_at?' (از زمان انتشار تعیین‌شده)':''}. ادامه می‌دهید؟`)) return;
+  const exposed=status==='published'&&['youtube','aparat'].includes(item.kind)&&item.access==='purchased';
+  const prompt=exposed
+    ?`هشدار سطح حفاظت: «${item.title}» یک ویدیوی پولی روی ${item.kind==='youtube'?'یوتیوب':'آپارات'} است. نورا فقط قاب را پشت مجوز سرور می‌گذارد؛ اگر ویدیو عمومی یا فهرست‌نشده باشد هرکس شناسه را بداند بیرون از نورا می‌بیند و نباید «محافظت‌شده» معرفی شود. با آگاهی از این موضوع منتشر می‌کنید؟ (تأیید شما با نام و زمان در لاگ ممیزی ثبت می‌شود)`
+    :`«${item.title}» برای ${EI_ACCESS_LABEL[item.access]||item.access} منتشر می‌شود${item.publish_at?' (از زمان انتشار تعیین‌شده)':''}. ادامه می‌دهید؟`;
+  if(status==='published'&&typeof window.confirm==='function'&&!window.confirm(prompt)) return;
+  const body=exposed?{status,acknowledge_external_exposure:true}:{status};
   EI.busy=id; renderBody();
-  try{await api.updateEventResource(EI.eventId,id,{status},staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'منبع منتشر شد.':'منبع به پیش‌نویس برگشت و از صفحهٔ رویداد برداشته شد.'}; EI.key=''; eiLoad()}
+  try{await api.updateEventResource(EI.eventId,id,body,staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'منبع منتشر شد.':'منبع به پیش‌نویس برگشت و از صفحهٔ رویداد برداشته شد.'}; EI.key=''; eiLoad()}
   catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
   finally{EI.busy=''}
 }
@@ -7134,6 +7140,7 @@ function eiChange(t){
   if(t.matches('[data-ei-res-session-filter]')){EI.res.session=t.value||''; renderBody(); return true}
   if(t.matches('[data-ei-res-removed]')){EI.res.includeRemoved=!!t.checked; eiLoad(); return true}
   if(t.dataset.eiFile){const file=t.files&&t.files[0]; if(file) eiResourceUpload(t.dataset.eiFile,file); t.value=''; return true}
+  if(t.hasAttribute&&t.hasAttribute('data-ei-ack-external')&&EI.res.edit){EI.res.edit.ackExternal=!!t.checked; return true}
   if(t.dataset.eiField&&EI.res.edit){EI.res.edit.form[t.dataset.eiField]=t.value; if(t.dataset.eiField==='kind'||(t.dataset.eiField==='access'&&['youtube','aparat'].includes(String(EI.res.edit.form.kind||'')))) renderBody(); return true}
   if(t.dataset.eiAnswerOfficial){const d=EI.q.draft[t.dataset.eiAnswerOfficial]; if(d) d.official=!!t.checked; return true}
   if(t.dataset.eiAnswerText){const d=EI.q.draft[t.dataset.eiAnswerText]; if(d) d.text=t.value; return true}

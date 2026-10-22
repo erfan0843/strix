@@ -172,9 +172,15 @@ def test_external_sessions_reveal_playback_info_only_after_the_server_access_che
             assert upload.status_code == 409 and upload.json()["detail"]["code"] == "resource_not_file"
             assert owner.get(f"/api/public/events/{held}/resources/{yt_id}/download").status_code == 404
 
-            # Publishing: external rows count as live resources (no upload needed).
+            # Publishing: external rows count as live resources (no upload needed) — but a *paid-level*
+            # (``purchased``) external video is not protected by Nora, so phase 9.5 §6.4 demands the
+            # operator's explicit, audited acknowledgement before it goes live.
             for rid in (yt_id, ap_id):
-                assert owner.put(f"{base}/{rid}", json={"status": "published"}, headers=owner_write_headers(owner)).status_code == 200
+                refused = owner.put(f"{base}/{rid}", json={"status": "published"}, headers=owner_write_headers(owner))
+                assert refused.status_code == 409, refused.text
+                assert refused.json()["detail"]["code"] == "external_exposure_acknowledgement_required"
+                assert owner.put(f"{base}/{rid}", json={"status": "published", "acknowledge_external_exposure": True},
+                                 headers=owner_write_headers(owner)).status_code == 200
             assert owner.put(f"/api/admin/events/{held}/recording/sessions/{session_id}", json={"status": "published"},
                              headers=owner_write_headers(owner)).status_code == 200
             assert owner.get(f"/api/admin/events/{held}/recording").json()["recording"]["publish_blockers"] == []
@@ -215,5 +221,72 @@ def test_external_sessions_reveal_playback_info_only_after_the_server_access_che
             # Kind switch back to a plain link requires a fresh URL; the stored canonical URL is not reused silently.
             switched = owner.put(f"{base}/{yt_id}", json={"kind": "link"}, headers=owner_write_headers(owner))
             assert switched.status_code == 422 and switched.json()["detail"]["field"] == "link_url"
+    finally:
+        engine.dispose()
+
+
+def test_paid_external_publish_requires_recorded_acknowledgement():
+    """§6.4: entering (published, purchased, youtube|aparat) needs ``acknowledge_external_exposure: true``.
+
+    The flag is not stored on the row; the audit trail carries ``external_exposure_acknowledged``
+    with actor and time. Draft, free-level and file resources never ask for it.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from backend.models import AdminAuditEventRecord
+
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            held, _version = held_event(owner, 0)
+            assert put_recording(owner, held, title="ضبط", price=150_000).status_code == 200
+            base = f"/api/admin/events/{held}/resources"
+            h = owner_write_headers(owner)
+
+            # Create directly as published+purchased: refused without the flag, 422 for a non-boolean, 201 with it.
+            body = {"kind": "youtube", "title": "درس یکم", "link_url": YT, "access": "purchased", "status": "published"}
+            refused = owner.post(base, json=body, headers=h)
+            assert refused.status_code == 409 and refused.json()["detail"] == {
+                "code": "external_exposure_acknowledgement_required", "provider": "youtube"}
+            bad = owner.post(base, json={**body, "acknowledge_external_exposure": "yes"}, headers=h)
+            assert bad.status_code == 422 and bad.json()["detail"]["field"] == "acknowledge_external_exposure"
+            created = owner.post(base, json={**body, "acknowledge_external_exposure": True}, headers=h)
+            assert created.status_code == 201, created.text
+            assert "acknowledge_external_exposure" not in created.json()
+
+            # Draft / free-level external rows and private files never need the flag.
+            draft = owner.post(base, json={"kind": "aparat", "title": "پیش‌نویس", "link_url": AP, "access": "purchased"}, headers=h)
+            assert draft.status_code == 201, draft.text
+            free = owner.post(base, json={"kind": "youtube", "title": "تیزر", "link_url": YT, "access": "public", "status": "published"}, headers=h)
+            assert free.status_code == 201, free.text
+            plain = owner.post(base, json={"kind": "file", "title": "جزوه", "access": "purchased"}, headers=h)
+            assert plain.status_code == 201, plain.text
+
+            # Transition paths into the exposed state: status→published and access→purchased each need it once.
+            draft_id = draft.json()["id"]
+            assert owner.put(f"{base}/{draft_id}", json={"status": "published"}, headers=h).status_code == 409
+            assert owner.put(f"{base}/{draft_id}", json={"title": "عنوان تازه"}, headers=h).status_code == 200  # unrelated edit is free
+            assert owner.put(f"{base}/{draft_id}", json={"status": "published", "acknowledge_external_exposure": True}, headers=h).status_code == 200
+            # Already exposed: later edits (even re-sending status) do not ask again; leaving the state is free.
+            assert owner.put(f"{base}/{draft_id}", json={"status": "published", "title": "باز هم"}, headers=h).status_code == 200
+            assert owner.put(f"{base}/{draft_id}", json={"access": "registered"}, headers=h).status_code == 200
+            back = owner.put(f"{base}/{draft_id}", json={"access": "purchased"}, headers=h)
+            assert back.status_code == 409 and back.json()["detail"]["provider"] == "aparat"
+            assert owner.put(f"{base}/{draft_id}", json={"access": "purchased", "acknowledge_external_exposure": False}, headers=h).status_code == 409
+            assert owner.put(f"{base}/{draft_id}", json={"access": "purchased", "acknowledge_external_exposure": True}, headers=h).status_code == 200
+
+            with Session(engine) as db:
+                rows = db.scalars(select(AdminAuditEventRecord).order_by(AdminAuditEventRecord.created_at, AdminAuditEventRecord.id)).all()
+                acknowledged = [r for r in rows if r.details.get("external_exposure_acknowledged") is True]
+                assert [(r.action, r.target_id) for r in acknowledged] == [
+                    ("event_resource.create", created.json()["id"]),
+                    ("event_resource.update", draft_id),
+                    ("event_resource.update", draft_id),
+                ]
+                assert all(r.actor_id for r in acknowledged)
+                # Refused attempts and unrelated edits never carry the flag.
+                assert sum(1 for r in rows if r.action == "event_resource.update" and r.target_id == draft_id) == 5
     finally:
         engine.dispose()

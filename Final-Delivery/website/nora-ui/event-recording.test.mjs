@@ -287,7 +287,7 @@ console.log('\n— منابع ویدیوی بیرونی (فاز ۹.۱ §۳): ق�
   ok(buyer.errors.length === 0, 'خریدار: بدون خطای JavaScript');
   const yt = buyer.doc.querySelector('[data-rec-resource="' + YT + '"] .ei-embed[data-rec-embed="' + YT + '"]');
   const ytFrame = yt && yt.querySelector('iframe[data-rec-embed-frame="' + YT + '"]');
-  ok(ytFrame && ytFrame.getAttribute('src') === ytVideo.embed_url && yt.getAttribute('data-embed-provider') === 'youtube' && ytFrame.getAttribute('allowfullscreen') !== null && ytFrame.getAttribute('referrerpolicy') === 'strict-origin-when-cross-origin', 'یوتیوب: قاب از نشانی رسمی youtube-nocookie که سرور ساخته (privacy-enhanced)، با allowfullscreen و referrerpolicy');
+  ok(ytFrame && ytFrame.getAttribute('src').startsWith(ytVideo.embed_url) && ytFrame.getAttribute('src').includes('enablejsapi=1') && !ytFrame.getAttribute('src').includes('autoplay') && yt.getAttribute('data-embed-provider') === 'youtube' && ytFrame.getAttribute('allowfullscreen') !== null && ytFrame.getAttribute('referrerpolicy') === 'strict-origin-when-cross-origin', 'یوتیوب: قاب از نشانی رسمی youtube-nocookie که سرور ساخته (privacy-enhanced)، با allowfullscreen و referrerpolicy');
   /* jsdom با پاسخ ۴۰۳ شبیه‌سازی‌شده رویداد load قاب را فوری می‌فرستد؛ پس وضعیت یا هنوز loading است یا ready شده، هرگز بدون پوشش وضعیت نیست */
   ok(['loading', 'ready'].includes(yt.getAttribute('data-embed-state')) && yt.querySelector('[data-rec-embed-state] [data-embed-text]').textContent.includes('در حال بارگذاری'), 'پوشش وضعیت بارگذاری واقعی وجود دارد و با رویداد load قاب برداشته می‌شود');
   const ytNote = buyer.doc.querySelector('[data-rec-resource="' + YT + '"] .ei-embed-note');
@@ -309,7 +309,31 @@ console.log('\n— منابع ویدیوی بیرونی (فاز ۹.۱ §۳): ق�
   ok(yt.getAttribute('data-embed-playback') === 'unverified' && ytPlayNote && ytPlayNote.textContent.includes("پخش‌کننده بارگذاری شد") && ytPlayNote.textContent.includes('نورا آن را تأیید نمی‌کند') && !yt.parentElement.textContent.includes('پخش شد'), 'پس از load: «پخش‌کننده بارگذاری شد؛ … نورا آن را تأیید نمی‌کند» (data-embed-playback=unverified)');
   const apBox = buyer.doc.querySelector('.ei-embed[data-rec-embed="' + AP + '"]');
   ap.dispatchEvent(new buyer.dom.window.Event('error'));
-  ok(apBox.getAttribute('data-embed-state') === 'error' && apBox.textContent.includes('بارگذاری نشد'), 'خطای قاب: وضعیت error با پیام و پیوند جایگزین، بدون ادعای پخش');
+  ok(apBox.getAttribute('data-embed-state') === 'error' && apBox.getAttribute('data-embed-playback') === 'error' && apBox.textContent.includes('بارگذاری نشد'), 'خطای قاب: وضعیت error با پیام و پیوند جایگزین، بدون ادعای پخش');
+  /* فاز ۹.۵ §۶: کانال IFrame API یوتیوب روی postMessage (بدون اسکریپت شخص‌ثالث)؛ فقط پیام از مبدأ youtube-nocookie و از خودِ قاب پذیرفته می‌شود */
+  const W = buyer.dom.window, ytSource = ytFrame.contentWindow;
+  const ytMsg = (data, origin, source) => W.dispatchEvent(new W.MessageEvent('message', { data, origin: origin || 'https://www.youtube-nocookie.com', source: source === undefined ? ytSource : source }));
+  ytMsg(JSON.stringify({ event: 'onReady', info: {} }), 'https://evil.example');
+  ytMsg(JSON.stringify({ event: 'onStateChange', info: 1 }), undefined, null);
+  ok(yt.getAttribute('data-embed-playback') === 'unverified' && !yt.hasAttribute('data-embed-api'), 'پیام از مبدأ دیگر یا از پنجره‌ای جز قاب نادیده گرفته می‌شود (پخش همچنان تأییدنشده)');
+  ytMsg(JSON.stringify({ event: 'onReady', info: {} }));
+  ok(yt.getAttribute('data-embed-api') === 'ready' && yt.getAttribute('data-embed-playback') === 'ready' && ytPlayNote.textContent.includes('پخش خودکار نداریم'), 'onReady: آماده، بدون پخش خودکار');
+  ytMsg(JSON.stringify({ event: 'onStateChange', info: 1 }));
+  ok(yt.getAttribute('data-embed-playback') === 'playing' && ytPlayNote.textContent.includes('گزارش خود یوتیوب'), 'onStateChange=1 → playing با ذکر اینکه گزارش خود یوتیوب است');
+  ytMsg(JSON.stringify({ event: 'onStateChange', info: 2 }));
+  ok(yt.getAttribute('data-embed-playback') === 'paused', 'onStateChange=2 → paused');
+  ytMsg(JSON.stringify({ event: 'infoDelivery', info: { playerState: 3 } }));
+  ok(yt.getAttribute('data-embed-playback') === 'buffering', 'infoDelivery.playerState=3 → buffering');
+  ytMsg(JSON.stringify({ event: 'onStateChange', info: 0 }));
+  ok(yt.getAttribute('data-embed-playback') === 'ended' && ytPlayNote.textContent.includes('نورا پایان تماشا را ثبت نمی‌کند'), 'onStateChange=0 → ended، بدون ثبت تکمیل تماشا در نورا');
+  ytMsg(JSON.stringify({ event: 'onError', info: 101 }));
+  ok(yt.getAttribute('data-embed-state') === 'error' && yt.getAttribute('data-embed-error') === '101' && yt.getAttribute('data-embed-playback') === 'error' && yt.textContent.includes('اجازهٔ جاسازی خارج از یوتیوب را نداده') && ytPlayNote.textContent.includes('باز کردن در یوتیوب'), 'onError=101 → پیام قابل‌فهم «غیرقابل‌جاسازی» + ارجاع به خود یوتیوب');
+  ytMsg(JSON.stringify({ event: 'onError', info: 153 }));
+  ok(yt.getAttribute('data-embed-error') === '153' && yt.textContent.includes('۱۵۳'), 'onError=153 → پیام مبدأ/ارجاع‌دهندهٔ نامعتبر');
+  ytMsg('not json');
+  ytMsg(JSON.stringify({ event: 'onError', info: '<img src=x onerror=alert(1)>' }));
+  ok(yt.getAttribute('data-embed-error') === 'unknown' && !yt.innerHTML.includes('<img'), 'پیام نامعتبر یا کد ناشناخته: بدون تزریق HTML');
+  ok(!buyer.doc.querySelector('script[src*="youtube"]'), 'هیچ اسکریپت شخص‌ثالثی از یوتیوب بارگذاری نمی‌شود');
   buyer.dom.window.close();
 }
 

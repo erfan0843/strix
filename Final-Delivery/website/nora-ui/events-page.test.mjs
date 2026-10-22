@@ -226,7 +226,7 @@ function ok(condition, label) {
   ok(html.includes('events-page.js?v=104') && html.includes('events-page.css?v=104'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
   ok(/__NORA_TEST_FIXTURE_MODE__===true\)document\.write/.test(html), 'data.js فقط در حالت آزمون صریح');
   const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
-  ok(detail.includes('event-page.js?v=105') && detail.includes('event-interaction.js?v=7') && detail.includes('event-interaction.css?v=5'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته و ماژول تعامل بارگذاری می‌شود');
+  ok(detail.includes('event-page.js?v=105') && detail.includes('event-interaction.js?v=8') && detail.includes('event-interaction.css?v=5'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته و ماژول تعامل بارگذاری می‌شود');
 }
 
 /* ۱۱) خطای API (مثلاً ۵۰۳): صفحهٔ رویدادها «منتشر نشده» نمی‌گوید؛ نبودِ دسترسی به سرور را روشن می‌گوید */

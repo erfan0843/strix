@@ -204,7 +204,14 @@ async function loadPanel(identity) {
           if (!action && method === 'PUT') {
             const sent = json();
             if (sent.status === 'published' && row.kind === 'file' && !row.size) return reply(409, { detail: { code: 'resource_file_missing' } });
-            Object.assign(row, sent); if (sent.status === 'published') row.live = true;
+            /* فاز ۹.۵ §۶.۴ — آینهٔ قاعدهٔ سرور: ورود به حالت (منتشرشده، دارندگان دسترسی، ویدیوی بیرونی) فقط با تأیید صریح */
+            const after = [sent.status || row.status, sent.access || row.access].join('|');
+            if (['youtube', 'aparat'].includes(row.kind) && after === 'published|purchased' && !(row.status === 'published' && row.access === 'purchased')) {
+              if (sent.acknowledge_external_exposure !== true || identity.rejectExternalAck) return reply(409, { detail: { code: 'external_exposure_acknowledgement_required', provider: row.kind } });
+              state.acknowledged = (state.acknowledged || 0) + 1;
+            }
+            const { acknowledge_external_exposure: _ack, ...fields } = sent;
+            Object.assign(row, fields); if (sent.status === 'published') row.live = true;
             return reply(200, row);
           }
           return reply(404, { detail: 'not_found' });
@@ -323,7 +330,7 @@ async function loadPanel(identity) {
 
 console.log('— مالک: ورود از ردیف رویداد، منابع (ساخت، بارگذاری، انتشار، حذف با دلیل) —');
 {
-  const app = await loadPanel({ role: 'owner', sec: 'events' });
+  const identityFlags = { role: 'owner', sec: 'events' }; const app = await loadPanel(identityFlags);
   try {
     await app.until(() => app.doc.querySelector(`[data-ct-interaction="${EV}"]`), 'دکمهٔ منابع و پرسش‌ها در ردیف رویداد');
     assert.ok(app.doc.querySelector('[data-ei-open-all]'), 'دکمهٔ کارتابل بی‌پاسخ‌ها در بالای فهرست رویدادها');
@@ -409,6 +416,36 @@ console.log('— مالک: ورود از ردیف رویداد، منابع (س�
     assert.equal(frame.getAttribute('src'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1', 'قاب از نشانی رسمی youtube-nocookie که سرور برگردانده');
     assert.match(app.doc.querySelector(`[data-ei-res-row="${RES_YT}"]`).textContent, /غیرقابل‌جاسازی/, 'توضیح: وضعیت واقعی را خود سکو نشان می‌دهد، سرور تأیید نمی‌کند');
     app.state.nextId = '';
+
+    /* فاز ۹.۵ §۶.۴: ویدیوی بیرونی برای «دارندگان دسترسی» — هشدار صریح + تأیید ثبت‌شدنی؛ منبع رایگان/پیش‌نویس هرگز نمی‌پرسد */
+    app.click(`[data-ei-res-edit="${RES_YT}"]`);
+    await app.until(() => app.doc.querySelector('[data-ei-res-editor]') && app.doc.querySelector('#eif_access'), 'ویرایشگر منبع یوتیوب');
+    assert.equal(app.doc.querySelector('[data-ei-ack-external]'), null, 'منبع عمومی: کادر تأیید وجود ندارد');
+    app.setField('#eif_access', 'purchased');
+    await app.until(() => app.doc.querySelector('[data-ei-ack-external]'), 'کادر تأیید پس از انتخاب «دارندگان دسترسی»');
+    assert.match(app.body(), /هشدار سطح حفاظت/, 'هشدار صریح کنار فرم');
+    app.click('[data-ei-res-save]');
+    await app.until(() => !app.doc.querySelector('[data-ei-res-editor]'), 'ذخیرهٔ پیش‌نویس با سطح «دارندگان دسترسی»');
+    const draftSave = JSON.parse(app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/resources/${RES_YT}`).pop().body);
+    assert.equal(draftSave.access, 'purchased'); assert.ok(!('acknowledge_external_exposure' in draftSave), 'بدون تیک، پرچم تأیید فرستاده نمی‌شود (پیش‌نویس به آن نیاز ندارد)');
+    const confirms = []; const realConfirm = app.dom.window.confirm;
+    app.dom.window.confirm = (text) => { confirms.push(String(text)); return false; };
+    app.click(`[data-ei-res-status="published"][data-ei-id="${RES_YT}"]`);
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(confirms.length, 1); assert.match(confirms[0], /هشدار سطح حفاظت/); assert.match(confirms[0], /لاگ ممیزی/);
+    assert.equal(app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/resources/${RES_YT}` && /published/.test(c.body || '')).length, 0, 'انصراف در پرسش تأیید: هیچ درخواستی فرستاده نمی‌شود');
+    app.dom.window.confirm = (text) => { confirms.push(String(text)); return true; };
+    identityFlags.rejectExternalAck = true;
+    app.click(`[data-ei-res-status="published"][data-ei-id="${RES_YT}"]`);
+    await app.until(() => /انتشار فقط با تأیید صریح شما/.test(app.body()), 'پاسخ ۴۰۹ سرور به پیام قابل‌فهم نگاشت می‌شود');
+    assert.equal(app.doc.querySelector(`[data-ei-res-row="${RES_YT}"]`).textContent.includes('منتشرشده'), false, 'پس از ۴۰۹ هیچ ادعای انتشار نمی‌شود');
+    identityFlags.rejectExternalAck = false;
+    app.click(`[data-ei-res-status="published"][data-ei-id="${RES_YT}"]`);
+    await app.until(() => /منتشرشده/.test(app.doc.querySelector(`[data-ei-res-row="${RES_YT}"]`).textContent), 'انتشار پس از تأیید صریح');
+    const pubYt = JSON.parse(app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/events/${EV}/resources/${RES_YT}`).pop().body);
+    assert.deepEqual(pubYt, { status: 'published', acknowledge_external_exposure: true }, 'پرچم تأیید فقط همراه انتشار منبع پولی بیرونی فرستاده می‌شود');
+    assert.equal(app.state.acknowledged, 1, 'سرور (شبیه‌سازی) دقیقاً یک تأیید ثبت کرد');
+    app.dom.window.confirm = realConfirm;
 
     /* حذف نرم با دلیل اجباری */
     app.click(`[data-ei-res-remove="${RES_NEW}"]`);
