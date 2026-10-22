@@ -2173,9 +2173,15 @@ def test_approved_public_form_receipt_unlocks_ticket_only_after_manual_review(co
         assert task.bale_user_id == "73421"
         assert task.payload["form_response_id"] == response_id
         task_id = task.id
-    approved = owner.post(
+    blank_reason = owner.post(
         f"/api/admin/inbox/{task_id}/decision",
         json={"decision": "approved", "reason": "", "expected_version": 1},
+        headers=csrf_headers(owner),
+    )
+    assert blank_reason.status_code == 422 and blank_reason.json()["detail"] == "receipt_decision_reason_required"
+    approved = owner.post(
+        f"/api/admin/inbox/{task_id}/decision",
+        json={"decision": "approved", "reason": "مبلغ با فیش تطبیق داده شد", "expected_version": 1},
         headers=csrf_headers(owner),
     )
     assert approved.status_code == 200, approved.text

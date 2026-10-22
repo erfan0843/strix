@@ -25,7 +25,7 @@ const EVENTS = [
 ];
 
 async function loadPanel(identity) {
-  const calls = [];
+  const calls = []; const confirms = []; const decisions = [];
   const values = new Map([['nora-admin', JSON.stringify(identity.state || { v: 78, sec: 'dash' })]]);
   const store = {
     getItem(k) { return values.has(String(k)) ? values.get(String(k)) : null; },
@@ -43,7 +43,7 @@ async function loadPanel(identity) {
       Object.defineProperty(window, 'localStorage', { configurable: true, value: store });
       window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
       window.scrollTo = () => {};
-      window.confirm = () => true;
+      window.confirm = (message) => { confirms.push(String(message)); return identity.confirm !== false; };
       Object.defineProperty(window.document, 'cookie', { configurable: true, get: () => 'nora_csrf=owner-csrf; nora_account_csrf=account-csrf' });
       window.fetch = async (url, options = {}) => {
         const path = String(url); const method = String(options.method || 'GET').toUpperCase();
@@ -61,7 +61,15 @@ async function loadPanel(identity) {
           notifications: { total: 5, by_delivery_status: { delivered: 4, pending: 1 } }, cooperation_requests: { total: 0, by_status: {} },
         });
         if (path === '/api/admin/inbox?limit=20&offset=0') return reply(200, { items: [{ id: '00000000-0000-4000-8000-000000000001', kind: 'profile_review', status: 'pending', version: 1, payload: {}, files: [] }, { id: '00000000-0000-4000-8000-000000000002', kind: 'receipt_review', status: 'pending', version: 1, payload: { amount: 1000 }, files: [] }], has_more: false, status: 'pending' });
-        if (path === '/api/admin/inbox?limit=50&offset=0') return reply(200, { items: [{ id: '00000000-0000-4000-8000-000000000001', account_id: 'acc-02', bale_user_id: '1', kind: 'profile_review', status: 'pending', version: 1, payload: { full_name: 'آزمایش زنده' }, files: [] }], has_more: false, status: 'pending' });
+        if (path === '/api/admin/inbox?limit=50&offset=0') return reply(200, { items: [
+          { id: '00000000-0000-4000-8000-000000000001', account_id: 'acc-02', bale_user_id: '1', kind: 'profile_review', status: 'pending', version: 1, payload: { full_name: 'آزمایش زنده' }, files: [] },
+          { id: '00000000-0000-4000-8000-000000000002', account_id: 'acc-03', bale_user_id: '2', kind: 'receipt_review', status: 'pending', version: 3, payload: { amount: 1500000, currency: 'IRR', purchase_source: 'recording_access', note: 'واریز شد' }, files: [] },
+        ], has_more: false, status: 'pending' });
+        const decisionMatch = path.match(/^\/api\/admin\/inbox\/([^/]+)\/decision$/);
+        if (decisionMatch && method === 'POST') {
+          const sent = JSON.parse(options.body || '{}'); decisions.push({ id: decisionMatch[1], ...sent });
+          return reply(200, { accepted: true, task: { id: decisionMatch[1], status: sent.decision, review_reason: sent.reason, notification: { status: 'queued', attempts: 0, delivered_at: null, last_error: null } } });
+        }
         if (path.startsWith('/api/admin/content/events')) {
           const q = new URLSearchParams(path.split('?')[1] || '');
           const items = q.get('status') === 'published' ? EVENTS : EVENTS;
@@ -98,7 +106,7 @@ async function loadPanel(identity) {
   const click = (selector) => { const el = doc.querySelector(selector); assert.ok(el, `عنصر پیدا نشد: ${selector}`); el.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true })); return el; };
   const text = (selector) => (doc.querySelector(selector)?.textContent || '').replace(/\s+/g, ' ');
   const stored = () => JSON.parse(values.get('nora-admin') || '{}');
-  return { dom, window: dom.window, doc, calls, click, until, text, stored };
+  return { dom, window: dom.window, doc, calls, confirms, decisions, click, until, text, stored };
 }
 
 let checks = 0; const ok = (cond, label) => { checks += 1; assert.ok(cond, label); };
@@ -201,6 +209,39 @@ console.log('— مدیر بدون مجوز گزارش: کارت‌های واب
     app.click('[data-dashx-map]'); await delay(30);
     const settingsRows = [...app.doc.querySelectorAll('[data-panel-map] .admlirow')].filter(r => r.textContent.includes('/api/owner/'));
     ok(settingsRows.length && settingsRows.every(r => r.textContent.includes('بدون مجوز این حساب') && !r.querySelector('button')), 'ردیف‌های مالک در نقشه برای مدیر «بدون مجوز» و بدون دکمه‌اند');
+  } finally { app.window.close(); }
+}
+
+console.log('— مرحلهٔ C-4: تصمیم رسید در کارتابل با تأییدیه و دلیل الزامی؛ انصراف هیچ درخواستی نمی‌فرستد —');
+{
+  const app = await loadPanel({ role: 'owner', state: { v: 78, sec: 'users', uV: 'shared-inbox', sharedWorkflowKind: 'all' }, confirm: false });
+  try {
+    await app.until(() => app.doc.querySelector('[data-workflow-approve="00000000-0000-4000-8000-000000000002"]'), 'کارت رسید در کارتابل');
+    const reason = app.doc.querySelector('[data-workflow-reason="00000000-0000-4000-8000-000000000002"]');
+    ok(reason && reason.hasAttribute('required') && /الزامی/.test(app.text('[data-workflow-card="00000000-0000-4000-8000-000000000002"]')), 'برای رسید، دلیل/مرجع الزامی اعلام شده است');
+    const profileReason = app.doc.querySelector('[data-workflow-reason="00000000-0000-4000-8000-000000000001"]');
+    ok(profileReason && !profileReason.hasAttribute('required'), 'برای پروفایل، دلیل همچنان دلخواه است');
+    app.click('[data-workflow-approve="00000000-0000-4000-8000-000000000002"]'); await delay(40);
+    ok(app.decisions.length === 0 && app.confirms.length === 0 && reason.getAttribute('aria-invalid') === 'true', 'تأیید رسید بدون دلیل: نه تأییدیه، نه درخواست سرور');
+    reason.value = 'مبلغ و شمارهٔ پیگیری با فیش تطبیق داده شد';
+    app.click('[data-workflow-approve="00000000-0000-4000-8000-000000000002"]'); await delay(40);
+    ok(app.confirms.length === 1 && /۱,۵۰۰,۰۰۰|1,500,000/.test(app.confirms[0]) && /تطبیق داده شد/.test(app.confirms[0]) && /تأیید رسید/.test(app.confirms[0]), 'تأییدیه مبلغ واقعی، دلیل و نوع تصمیم را نشان می‌دهد');
+    ok(app.decisions.length === 0, 'انصراف در تأییدیه: هیچ تصمیمی به سرور نمی‌رود');
+    ok(!app.doc.querySelector('[data-workflow-approve="00000000-0000-4000-8000-000000000002"]').disabled, 'دکمه‌ها پس از انصراف فعال می‌مانند');
+    app.click('[data-workflow-reject="00000000-0000-4000-8000-000000000002"]'); await delay(40);
+    ok(app.confirms.length === 2 && /رد رسید/.test(app.confirms[1]) && app.decisions.length === 0, 'رد رسید هم تأییدیه می‌خواهد و با انصراف ارسال نمی‌شود');
+  } finally { app.window.close(); }
+}
+{
+  const app = await loadPanel({ role: 'owner', state: { v: 78, sec: 'users', uV: 'shared-inbox', sharedWorkflowKind: 'all' } });
+  try {
+    await app.until(() => app.doc.querySelector('[data-workflow-approve="00000000-0000-4000-8000-000000000002"]'), 'کارت رسید در کارتابل');
+    app.doc.querySelector('[data-workflow-reason="00000000-0000-4000-8000-000000000002"]').value = 'مرجع واریز ۱۲۳۴۵';
+    app.click('[data-workflow-approve="00000000-0000-4000-8000-000000000002"]');
+    await app.until(() => app.decisions.length === 1, 'ثبت تصمیم پس از تأییدیه');
+    ok(app.confirms.length === 1 && app.decisions[0].id === '00000000-0000-4000-8000-000000000002' && app.decisions[0].decision === 'approved'
+      && app.decisions[0].reason === 'مرجع واریز ۱۲۳۴۵' && app.decisions[0].expected_version === 3, 'پس از تأیید کاربر: تصمیم با دلیل و نسخهٔ درست به سرور می‌رود');
+    await app.until(() => /در صف ربات است، هنوز تحویل نشده/.test(app.doc.body.textContent), 'پیام صادقانه: تصمیم ثبت شد ≠ اعلان تحویل شد');
   } finally { app.window.close(); }
 }
 

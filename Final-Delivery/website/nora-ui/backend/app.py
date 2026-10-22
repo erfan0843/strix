@@ -8808,6 +8808,10 @@ def create_app(
             raise HTTPException(403, "permission_denied")
         if task.status != "pending" or task.version != expected_version:
             raise HTTPException(409, "workflow_version_conflict")
+        if task.kind == "receipt_review" and len(reason.strip()) < 2:
+            # A receipt decision moves money/access state; it is only accepted with a stated, audited reason
+            # (the panel asks for confirmation + reason, but the rule lives here).
+            raise HTTPException(422, "receipt_decision_reason_required")
         reviewer_id = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
         reviewer_bale_id = None
         if isinstance(identity, AccountIdentity):

@@ -1923,12 +1923,15 @@ function decideSharedWorkflow(taskId,decision){
   if(!task){toast('این درخواست دیگر در کارتابل نیست؛ فهرست را تازه کنید'); loadSharedWorkflowInbox(false); return}
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.decideAdminTask!=='function'){toast('رابط سرور در دسترس نیست'); return}
-  let reason='';
-  if(decision==='rejected'){
-    const field=Array.from(document.querySelectorAll('[data-workflow-reason]')).find(node=>node.dataset.workflowReason===taskId);
-    reason=String(field&&field.value||'').trim();
-    if(reason.length>500){toast('دلیل رد بیشتر از ۵۰۰ نویسه است'); return}
+  const field=Array.from(document.querySelectorAll('[data-workflow-reason]')).find(node=>node.dataset.workflowReason===taskId);
+  const reason=String(field&&field.value||'').trim(), isReceipt=task.kind==='receipt_review';
+  if(reason.length>500){toast('دلیل تصمیم بیشتر از ۵۰۰ نویسه است'); return}
+  if(isReceipt&&reason.length<2){
+    toast('برای تأیید یا رد رسید، دلیل/مرجع کوتاه لازم است (سرور بدون دلیل نمی‌پذیرد).');
+    if(field){field.setAttribute('aria-invalid','true');field.focus()}
+    return;
   }
+  if(typeof window.confirm==='function'&&!window.confirm(workflowDecisionPrompt(task,decision,reason))) return;
   const card=Array.from(document.querySelectorAll('[data-workflow-card]')).find(node=>node.dataset.workflowCard===taskId);
   if(card) card.querySelectorAll('button').forEach(button=>button.disabled=true);
   api.decideAdminTask(taskId,decision,reason,task.version,isOwner()?'nora_csrf':'nora_account_csrf')
@@ -1942,8 +1945,24 @@ function decideSharedWorkflow(taskId,decision){
       if(card) card.querySelectorAll('button').forEach(button=>button.disabled=false);
       toast(error&&error.status===403?'مجوز یا ورود شما برای این کار کافی نیست.'
         :error&&error.status===409?'این درخواست قبلاً بررسی شده؛ کارتابل را تازه کنید.'
+        :error&&error.code==='receipt_decision_reason_required'?'سرور تصمیم رسید را بدون دلیل نمی‌پذیرد؛ دلیل/مرجع را بنویسید.'
         :'ثبت تصمیم انجام نشد؛ اتصال را بررسی کنید.');
     });
+}
+/* متن تأییدیهٔ پیش از ثبت تصمیم: تصمیم، مبلغ واقعی (اگر رسید است)، شناسهٔ بله و دلیل؛ هیچ پیامدی وعده داده نمی‌شود جز آنچه سرور انجام می‌دهد. */
+function workflowDecisionPrompt(task,decision,reason){
+  const data=task&&task.payload&&typeof task.payload==='object'?task.payload:{};
+  const isReceipt=task&&task.kind==='receipt_review', approve=decision==='approved';
+  const amount=isReceipt&&Number.isFinite(+data.amount)&&+data.amount>0?fa(Math.round(+data.amount).toLocaleString('en-US'))+' '+(data.currency==='IRR'||!data.currency?'ریال':String(data.currency)):'';
+  const lines=[isReceipt
+      ?(approve?'تأیید رسید: پرداخت «دستی تأییدشده» ثبت می‌شود و دسترسی/بلیت مربوط فعال می‌گردد. این کار برگشت‌ناپذیر نیست اما در ممیزی با نام شما ثبت می‌شود.'
+               :'رد رسید: پاسخ/سفارش کاربر بسته می‌شود و دلیل برای او ارسال می‌شود (در صف اعلان).')
+      :(approve?'تأیید پروفایل: اطلاعات کاربر در حساب او اعمال می‌شود.':'رد پروفایل: کاربر باید اطلاعات را دوباره بفرستد.'),
+    amount?'مبلغ رسید: '+amount:'',
+    'شناسهٔ بله: '+(task&&task.bale_user_id||'ثبت‌نشده')+' · کد درخواست: '+String(task&&task.id||'').slice(0,8),
+    reason?'دلیل: '+reason:'بدون دلیل',
+    'ادامه می‌دهید؟'].filter(Boolean);
+  return lines.join('\n');
 }
 /* وضعیت تحویل اعلان کاربر، جدا از ثبت تصمیم: فقط از دادهٔ واقعی صف اعلان سرور (task.notification). */
 const WF_NOTIFY={queued:['در صف ارسال ربات','warn'],retrying:['ارسال ناموفق؛ تلاش دوباره در صف','warn'],delivered:['تحویل‌شده به بله','ok'],failed:['ارسال ناموفق','stop'],unknown:['وضعیت ارسال نامشخص','']};
@@ -2008,7 +2027,8 @@ function sharedWorkflowInboxView(){
       <div class="cap">شناسهٔ بله: ${esc(task.bale_user_id||'ثبت‌نشده')} · کد درخواست: ${esc(task.id.slice(0,8))}</div>
       ${amount}${lines||'<p class="cap">اطلاعاتی برای نمایش ثبت نشده است.</p>'}
       ${files||((data.photo_file_id||data.proof_file_id)?'<p class="cap">تصویر در مخزن امن سرور ثبت نشده است.</p>':'')}
-      <label class="fld"><span class="lbl">دلیل رد · دلخواه</span><textarea class="input" rows="2" maxlength="500" data-workflow-reason="${esc(task.id)}" placeholder="اگر لازم است، دلیل کوتاهی بنویسید"></textarea></label>
+      <label class="fld"><span class="lbl">${isReceipt?'دلیل / مرجع تصمیم · الزامی برای تأیید و رد رسید':'دلیل رد · دلخواه'}</span><textarea class="input" rows="2" maxlength="500" data-workflow-reason="${esc(task.id)}" ${isReceipt?'required aria-required="true"':''} placeholder="${isReceipt?'مثلاً: مبلغ و شمارهٔ پیگیری با فیش تطبیق داده شد':'اگر لازم است، دلیل کوتاهی بنویسید'}"></textarea></label>
+      ${isReceipt?'<p class="cap">پیش از ثبت، خلاصهٔ تصمیم (مبلغ، شناسه، دلیل) برای تأیید دوباره نشان داده می‌شود؛ سرور تصمیم رسید را بدون دلیل نمی‌پذیرد.</p>':''}
       <div class="row"><button class="btn primary" data-workflow-approve="${esc(task.id)}">تأیید</button>
         <button class="btn quiet" data-workflow-reject="${esc(task.id)}">رد</button></div>
     </article>`;
