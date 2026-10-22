@@ -42,7 +42,7 @@ async function load(hash,server){
       w.fetch=(url,options={})=>{
         const path=String(url), method=String(options.method||'GET').toUpperCase(); network.push({path,method,options});
         if(path==='/api/account/me') return Promise.resolve(server.account?reply(200,server.account):reply(401,{detail:'account_authentication_required'}));
-        if(/^\/api\/account\/registrations\?/.test(path)) return Promise.resolve(reply(200,{items:registrations,total:registrations.length,has_more:false}));
+        if(/^\/api\/account\/registrations\?/.test(path)){ const regs=server.registrations||registrations; return Promise.resolve(reply(200,{items:regs,total:regs.length,has_more:false})); }
         if(/^\/api\/account\/notifications\?/.test(path)) return Promise.resolve(reply(200,{items:[],has_more:false}));
         if(/^\/api\/account\/files\?/.test(path)) return Promise.resolve(reply(200,{items:[],has_more:false}));
         if(path==='/api/account/identities') return Promise.resolve(reply(200,{identities:[{provider:'phone',linked_at:'2026-01-01T00:00:00Z'}],available_providers:['bale'],bale_link_available:false}));
@@ -179,6 +179,42 @@ console.log('\n── خانهٔ حساب: ردیف‌های «محتوای من
   ok(!!rows&&!!rows.querySelector('a[href="account.html#library"]')&&!rows.querySelector('a[href="account.html#payments"]')&&rows.textContent.includes('۵ بخش')&&p.doc.querySelector('.server-paybar').textContent.includes('سفارش‌ها و پرداخت‌ها')&&!!p.doc.querySelector('.server-paybar a[href="account.html#payments"]'),'بخش‌های من شامل «محتوای من» است و نورا پی تنها ورودی «سفارش‌ها و پرداخت‌ها» می‌ماند');
   ok(!rows.textContent.includes('دسترسی فعال'),'شمارندهٔ کتابخانه پیش از خواندن از سرور نمایش داده نمی‌شود (بدون عدد حدسی)');
   p.dom.window.close();
+}
+
+/* فاز ۹.۳: «رویدادهای من» — پیوند «مشاهدهٔ جلسات» فقط وقتی کتابخانهٔ سرور دسترسی فعال همان رویداد را برگرداند */
+console.log('\n── رویدادهای من: پیوند آرشیو فقط از کتابخانهٔ سرور؛ ثبت‌نام یا حضور به‌تنهایی پیوند نمی‌سازد ──');
+{
+  const regs=[
+    {id:'reg-a',event_id:'ev-2',form_name:'ثبت‌نام نشست',event_title:'نشست ادبی',status:'accepted',created_at:'2026-09-01T06:00:00Z',ticket_checked_in:true},
+    {id:'reg-b',event_id:'ev-9',form_name:'ثبت‌نام کارگاه',event_title:'کارگاه بدون آرشیو',status:'accepted',created_at:'2026-09-02T06:00:00Z',ticket_checked_in:true},
+    {id:'reg-c',event_id:'ev-5',form_name:'ثبت‌نام دوره',event_title:'دورهٔ قدیمی',status:'accepted',created_at:'2026-09-03T06:00:00Z',ticket_checked_in:false},
+    {id:'reg-d',event_id:'ev-8',form_name:'ثبت‌نام حضوری',event_title:'کارگاه حضوری',status:'accepted',created_at:'2026-09-04T06:00:00Z',ticket_checked_in:true}];
+  const attended={recording_id:'rec-8',event_id:'ev-8',title:'ضبط کارگاه حضوری',event_title:'کارگاه حضوری',cover_url:'',status:'archived',session_count:2,total_minutes:90,
+    access:{state:'active',source:'attended',expires_at:null,granted_at:null,revoked_at:null},progress:null,certificate:{automatic:false,policy:'none'}};
+  const p=await load('#events',{account:ACCOUNT,library:[...library,attended],registrations:regs});
+  ok(p.errs.length===0,'نمای #events با کتابخانهٔ سرور بی‌خطا باز می‌شود'+(p.errs.length?': '+p.errs[0]:''));
+  ok(p.network.some(c=>c.path==='/api/account/recordings')&&p.network.some(c=>/^\/api\/account\/registrations\?/.test(c.path)),'#events هم ثبت‌نام‌ها و هم کتابخانه را از سرور می‌خواند');
+  const cards=[...p.doc.querySelectorAll('[data-account-registration-event]')];
+  ok(cards.length===4&&cards.map(c=>c.getAttribute('data-account-registration-event')).join()==='ev-2,ev-9,ev-5,ev-8','هر ثبت‌نام شناسهٔ رویداد خودش را دارد');
+  const link=sel=>p.doc.querySelector(`[data-account-registration-event="${sel}"] a[data-account-registration-view]`);
+  ok(!!link('ev-2')&&link('ev-2').getAttribute('href')==='event.html?id=ev-2#recording-sessions'&&p.doc.querySelector('[data-account-registration-event="ev-2"] [data-archive-source="purchase"]'),'ثبت‌نام با آرشیو خریداری‌شده → «مشاهدهٔ جلسات» به #recording-sessions');
+  ok(!link('ev-9')&&!p.doc.querySelector('[data-account-registration-event="ev-9"] [data-account-registration-archive]'),'حضور ثبت‌شده بدون محصول در کتابخانه → بدون پیوند (حضور ≠ دسترسی)');
+  ok(!link('ev-5'),'دسترسی منقضی‌شده (state=expired) → بدون پیوند');
+  const held=p.doc.querySelector('[data-account-registration-event="ev-8"] [data-account-registration-archive="rec-8"]');
+  ok(!!held&&held.getAttribute('data-archive-source')==='attended'&&held.textContent.includes('آرشیو برای حاضران این رویداد')&&held.textContent.includes('۲ جلسه')&&link('ev-8').getAttribute('href')==='event.html?id=ev-8#recording-sessions','آرشیو حاضران (source=attended، بایگانی‌شده) → برچسب صریح + «مشاهدهٔ جلسات»');
+  ok(cards.every(c=>![...c.querySelectorAll('a,button')].some(b=>/خرید|ادامهٔ مشاهده/.test(b.textContent))&&!c.querySelector('[data-rec-cta]')),'روی کارت‌های ثبت‌نام نه دکمهٔ خرید هست نه «ادامهٔ مشاهده» ساختگی');
+  p.dom.window.close();
+
+  /* بدون کتابخانه (خطای سرور): هیچ پیوندی حدس زده نمی‌شود و خود ثبت‌نام‌ها سالم می‌مانند */
+  const q=await load('#events',{account:ACCOUNT,libraryStatus:500,registrations:regs});
+  ok(q.doc.querySelectorAll('[data-account-registration-event]').length===4&&!q.doc.querySelector('[data-account-registration-view]'),'خطای کتابخانه → ثبت‌نام‌ها نمایش داده می‌شوند ولی هیچ پیوند آرشیوی حدس زده نمی‌شود');
+  q.dom.window.close();
+
+  /* کتابخانه: کارت attended برچسب خودش را دارد و بایگانی‌شده با دسترسی فعال قابل باز کردن است */
+  const r=await load('#library',{account:ACCOUNT,library:[attended]});
+  const card=r.doc.querySelector('[data-account-rec-library="rec-8"]');
+  ok(!!card&&card.textContent.includes('دسترسی حاضران رویداد')&&!!card.querySelector('a[data-account-rec-view]')&&!card.textContent.includes('فعلاً از سوی برگزارکننده'),'کارت کتابخانه: «دسترسی حاضران رویداد» + «مشاهدهٔ جلسات» برای محصول بایگانی‌شده با دسترسی فعال');
+  r.dom.window.close();
 }
 
 console.log(`\naccount-recordings: ${pass} قبول، ${fail} خطا`);

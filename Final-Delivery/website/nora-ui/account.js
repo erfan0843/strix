@@ -807,6 +807,14 @@ function accountRegistrationPayment(item){
     rejected:'پرداخت رد شد',cancelled:'صورتحساب لغو شد',expired:'صورتحساب منقضی شد'};
   return labels[item.payment_status]||'';
 }
+/* فاز ۹.۳: پیوند «مشاهدهٔ جلسات» در «رویدادهای من» فقط از کتابخانهٔ سرور (/api/account/recordings) می‌آید؛
+   ثبت‌نام یا حتی «حضور ثبت شده» به‌تنهایی پیوند نمی‌سازد — تصمیم دسترسی (خرید/رایگان/اعطا/حضور با سیاست محصول) با سرور است. */
+function accountRegistrationArchive(item){
+  const state=SERVER_ACCOUNT_STATE;
+  if(!state.libraryLoaded||state.libraryError||!item||typeof item.event_id!=='string'||!item.event_id) return null;
+  const found=state.library.find(x=>x&&x.event_id===item.event_id&&x.access&&x.access.state==='active'&&typeof x.recording_id==='string');
+  return found||null;
+}
 function accountRegistrationsContent(mode){
   const state=SERVER_ACCOUNT_STATE;
   const source=mode==='payments'?state.registrations.filter(item=>!!item.payment_status):state.registrations;
@@ -815,7 +823,9 @@ function accountRegistrationsContent(mode){
     const schedule=[item.event_date,item.event_time].filter(Boolean).join(' · ');
     const payment=accountRegistrationPayment(item);
     const ticketType=item.ticket_type&&typeof item.ticket_type.name==='string'?item.ticket_type.name:'';
-    return `<article class="card acct server-registration">
+    const archive=mode==='events'||!mode?accountRegistrationArchive(item):null;
+    const archiveSource=archive?({attended:'آرشیو برای حاضران این رویداد',purchase:'آرشیو خریداری‌شده',free:'آرشیو رایگان',granted:'آرشیو اعطاشده'}[archive.access.source]||'آرشیو در دسترس'):'';
+    return `<article class="card acct server-registration"${item.event_id?` data-account-registration-event="${esc(item.event_id)}"`:''}>
       <div class="row"><span class="sp"><b>${esc(item.event_title||item.form_name)}</b>
         <small class="cap">${esc(item.form_name)}${schedule?' · '+esc(schedule):''}</small></span>${status}</div>
       <div class="row" style="margin-top:7px;flex-wrap:wrap">
@@ -824,6 +834,9 @@ function accountRegistrationsContent(mode){
         ${ticketType?`<span class="tag">${esc(ticketType)}</span>`:''}
         ${item.ticket_checked_in?chip('حضور ثبت شده','ok'):''}
       </div>
+      ${archive?`<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px" data-account-registration-archive="${esc(archive.recording_id)}" data-archive-source="${esc(archive.access.source||'')}">
+        <small class="cap">${esc(archiveSource)}${archive.session_count>0?' · '+faN(archive.session_count)+' جلسه':''}</small><span class="sp"></span>
+        <a class="btn sm primary" href="${esc(recEventHref(archive,'#recording-sessions'))}" data-account-registration-view>${ico('i-play')} مشاهدهٔ جلسات</a></div>`:''}
     </article>`;
   }).join('');
   const loading=state.registrationsLoading&&!state.registrationsLoaded||!state.registrationsLoaded&&!state.registrationsError;
@@ -920,10 +933,12 @@ function recLibraryCard(item){
   const active=access.state==='active';
   const meta=[item.event_title&&item.event_title!==item.title?item.event_title:'',
     item.session_count>0?faN(item.session_count)+' جلسه':'', recDuration(item.total_minutes)].filter(Boolean).join(' · ');
-  const source={purchase:'خریداری‌شده',free:'دسترسی رایگان',granted:'اعطاشده توسط برگزارکننده'}[access.source]||'';
+  /* «attended»: دسترسی حاصل از حضور ثبت‌شده در خود رویداد (سیاست برگزارکننده)؛ خرید یا اعطا نیست و ردیف دسترسی ندارد. */
+  const source={purchase:'خریداری‌شده',free:'دسترسی رایگان',granted:'اعطاشده توسط برگزارکننده',attended:'دسترسی حاضران رویداد'}[access.source]||'';
   const expiry=access.state==='revoked'?(access.revoked_at?'لغو در '+accountServerDate(access.revoked_at):'لغو شده')
     :access.expires_at?(active?'دسترسی تا ':'پایان‌یافته در ')+accountServerDate(access.expires_at):active?'دسترسی دائمی':'';
-  const unpublished=item.status&&item.status!=='published';
+  /* صفحهٔ محصول برای دارندهٔ دسترسی فعال در «توقف فروش» و «بایگانی» هم باز می‌ماند؛ فقط پیش‌نویس/آماده از دید او بسته است. */
+  const unpublished=!!item.status&&!['published','sales_paused','archived'].includes(item.status);
   /* گواهی پایان محتوا: فقط بیان سیاست سرور؛ هیچ دکمهٔ «دریافت گواهی» وجود ندارد چون صدور خودکار وجود ندارد. */
   const cert=item.certificate&&!item.certificate.automatic?(item.certificate.policy==='manual'
     ?'گواهی پایان محتوا: فقط با صدور دستی برگزارکننده؛ خرید یا تماشا به‌تنهایی گواهی نمی‌سازد. گواهی صادرشده در «گواهینامه‌های من» همین صفحه می‌آید'
@@ -1037,7 +1052,7 @@ async function loadAccountLibrary(force=false){
     state.libraryError=accountLoadError(error,'محتوای تو خوانده نشد؛ دوباره تلاش کن.'); state.libraryLoaded=true;
   }finally{
     state.libraryLoading=false;
-    if(S.view==='library') renderView();
+    if(S.view==='library'||S.view==='events') renderView();
     if(!TEST_FIXTURE_MODE) renderProfile();
   }
 }
@@ -1263,6 +1278,7 @@ async function checkServerAccount(){
     resetServerAccountData(); updateAccountBanner(); render(); loadServerAccountData(false);
     if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
     if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) loadAccountRegistrations();
+    if(S.view==='events'&&!TEST_FIXTURE_MODE) loadAccountLibrary();
     if(S.view==='payments'&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
     if(S.view==='library'){loadAccountLibrary();loadAccountCertificates();}
   }catch(error){
@@ -3357,6 +3373,7 @@ function route(){
   if(raw==='events'||ACCOUNT_REGISTRATION_VIEWS[raw]){
     S.view=raw; S.edit=false; S.errs={}; render();
     if(SERVER_ACCOUNT_STATE.account) loadAccountRegistrations();
+    if(raw==='events'&&SERVER_ACCOUNT_STATE.account&&!TEST_FIXTURE_MODE) loadAccountLibrary();
     if(raw==='payments'&&SERVER_ACCOUNT_STATE.account&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
     try{window.scrollTo({top:0})}catch(e){}; return;
   }

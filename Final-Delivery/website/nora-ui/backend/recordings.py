@@ -988,6 +988,58 @@ def library_item_view(
     }
 
 
+def courtesy_library_item_view(
+    recording: EventRecordingRecord, *, session_count: int, total_minutes: int, event_title: str,
+) -> dict[str, Any]:
+    """«محتوای من» for a checked-in attendee of a product with ``attendee_access``.
+
+    No ``recording_access`` row exists (nothing was purchased or granted): the access is
+    *derived* on every request by the same rule the product page uses
+    (:func:`has_content_access` → ``attended``), so the library and the page cannot disagree.
+    """
+    return {
+        "recording_id": recording.id,
+        "event_id": recording.event_id,
+        "title": recording.title or event_title,
+        "event_title": event_title,
+        "cover_url": recording.cover_url,
+        "status": recording.status,
+        "session_count": session_count,
+        "total_minutes": total_minutes,
+        "access": {
+            "state": "active",
+            "source": "attended",
+            "expires_at": None,
+            "granted_at": None,
+            "revoked_at": None,
+        },
+        "certificate": certificate_view(recording),
+        "progress": None,
+    }
+
+
+def attendee_courtesy_candidates(
+    db: Session, *, event_ids: set[str], exclude_recording_ids: set[str],
+) -> list[EventRecordingRecord]:
+    """Products of ``event_ids`` whose organizer opened them to checked-in attendees.
+
+    Only products that were really published at some point (``published`` /
+    ``sales_paused`` / ``archived``) qualify; drafts never reach a member's library.
+    """
+    if not event_ids:
+        return []
+    rows = db.scalars(
+        select(EventRecordingRecord)
+        .where(
+            EventRecordingRecord.event_id.in_(sorted(event_ids)),
+            EventRecordingRecord.attendee_access.is_(True),
+            EventRecordingRecord.status.in_(("published", "sales_paused", "archived")),
+        )
+        .order_by(EventRecordingRecord.updated_at.desc())
+    ).all()
+    return [row for row in rows if row.id not in exclude_recording_ids]
+
+
 # ── aggregates ──
 
 

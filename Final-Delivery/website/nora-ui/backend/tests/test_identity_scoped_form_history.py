@@ -542,7 +542,9 @@ def test_empty_state_pagination_order_and_status_contract(scope_env):
         "id", "form_name", "event_title", "event_date", "event_time", "status",
         "payment_status", "receipt_uploaded", "ticket_checked_in", "ticket_type",
         "created_at",
+        "event_id",  # فاز ۹.۳: کلید اتصال «رویدادهای من» به آرشیو (شناسهٔ رویداد؛ نه داده حساس، نه مبنای دسترسی)
     }
+    assert isinstance(item["event_id"], str)
 
     # مدل فرم در قرارداد وب محفوظ است: نظرسنجی در «ثبت‌نام‌های من» نمی‌آید.
     seed_response(engine, form_id="form-survey", account_id="acct-a")

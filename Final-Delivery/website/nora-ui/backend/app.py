@@ -4499,12 +4499,14 @@ def create_app(
             return None
         participation = _interaction_participation(db, account.account_id, event_id) if account is not None else None
         viewer = _recording_viewer(db, recording, account=account, staff=staff, participation=participation, now=now)
-        if recording.status not in recordings_mod.SHELF_STATUSES and not staff and viewer.access_state != "active":
-            # Off the shelf (draft/ready/archived): invisible to the public — but a holder of a still-active
-            # access keeps the page and the files, exactly like ``_purchased_state`` keeps the downloads
-            # (archiving stops listing and sales; it never silently strips a paid or granted access).
-            return None
         allowed, reason = recordings_mod.has_content_access(recording, viewer)
+        keeps_archived = recording.status == "archived" and allowed  # phase 9.3: attendee courtesy survives archiving too
+        if recording.status not in recordings_mod.SHELF_STATUSES and not staff and viewer.access_state != "active" and not keeps_archived:
+            # Off the shelf (draft/ready/archived): invisible to the public — but a holder of a still-active
+            # access (purchased/granted/free, or a checked-in attendee of a courtesy product) keeps the page and
+            # the files, exactly like ``_purchased_state`` keeps the downloads (archiving stops listing and
+            # sales; it never silently strips an access).
+            return None
         sessions = _recording_sessions(db, recording.id)
         resources = _recording_resources(db, event_id)
         by_session: dict[str, list[EventResourceRecord]] = {}
@@ -5106,14 +5108,52 @@ def create_app(
             .where(RecordingAccessRecord.account_id == identity.account_id)
             .order_by(RecordingAccessRecord.created_at.desc())
         ).all()
-        stats = recordings_mod.session_stats(db, [recording.id for _access, recording in rows])
-        titles = _interaction_event_titles(db, {recording.event_id for _access, recording in rows})
+        # Phase 9.3: products opened to checked-in attendees (``attendee_access``) are part of the
+        # member's library too — derived with the same server rule as the product page
+        # (``has_content_access`` → ``attended``), never by creating an access row.
+        checked_in_event_ids = {
+            str(event_id) for (event_id,) in db.execute(
+                select(FormRecord.event_id)
+                .join(FormResponseRecord, FormResponseRecord.form_id == FormRecord.id)
+                .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+                .where(
+                    account_form_record_scope(db, identity.account_id),
+                    FormResponseRecord.added_by_response_id.is_(None),
+                    FormResponseRecord.ticket_checked_in_at.is_not(None),
+                    FormRecord.model == "registration",
+                    FormRecord.purpose == "registration",
+                    FormRecord.event_id.is_not(None),
+                )
+                .distinct()
+            ).all()
+            if event_id
+        }
+        active_purchased = {
+            recording.id for access, recording in rows if recordings_mod.access_state(access, now) == "active"
+        }
+        courtesy = [
+            recording for recording in recordings_mod.attendee_courtesy_candidates(
+                db, event_ids=checked_in_event_ids, exclude_recording_ids=active_purchased,
+            )
+            if _interaction_participation(db, identity.account_id, recording.event_id).attended
+        ]
+        courtesy_ids = {recording.id for recording in courtesy}
+        all_recordings = [recording for _access, recording in rows] + courtesy
+        stats = recordings_mod.session_stats(db, [recording.id for recording in all_recordings])
+        titles = _interaction_event_titles(db, {recording.event_id for recording in all_recordings})
         items = []
         for access, recording in rows:
+            if recording.id in courtesy_ids:
+                continue  # an expired/revoked purchase of an attendee: the page grants «attended», so does the library
             count, minutes = stats.get(recording.id, (0, 0))
             items.append(recordings_mod.library_item_view(
                 access, recording, now=now, session_count=count, total_minutes=minutes,
                 event_title=titles.get(recording.event_id, ""),
+            ))
+        for recording in courtesy:
+            count, minutes = stats.get(recording.id, (0, 0))
+            items.append(recordings_mod.courtesy_library_item_view(
+                recording, session_count=count, total_minutes=minutes, event_title=titles.get(recording.event_id, ""),
             ))
         return {"source": "shared_server_database", "server_time": event_time.to_iso(now), "items": items, "total": len(items)}
 
@@ -7000,7 +7040,7 @@ def create_app(
             .where(*filters)
         ) or 0)
         rows = db.execute(
-            select(FormResponseRecord, FormPaymentRecord)
+            select(FormResponseRecord, FormPaymentRecord, FormRecord.event_id)
             .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
             .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
             .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
@@ -7010,12 +7050,15 @@ def create_app(
             .offset(offset)
         ).all()
         items = []
-        for record, payment in rows[:limit]:
+        for record, payment, form_event_id in rows[:limit]:
             snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
             event = _json_dict_member(snapshot, "event")
             form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
             items.append({
                 "id": record.id,
+                # Phase 9.3 (additive): lets «رویدادهای من» link a held event to the archive the member can
+                # already open (the library decides access; this is only the join key, never an access basis).
+                "event_id": str(form_event_id or "")[:120],
                 "form_name": form_name,
                 "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
                 "event_date": _ticket_text(event.get("date") or "", 120),

@@ -1054,3 +1054,93 @@ def test_archiving_stops_listing_and_sales_but_keeps_a_still_active_access():
             assert holder.get("/api/account/recordings").json()["items"][0]["access"]["state"] == "active"
     finally:
         engine.dispose()
+
+
+# ── Phase 9.3: the account library lists attendee-courtesy archives with the same server rule as the page ──
+
+
+def test_checked_in_attendees_see_courtesy_archives_in_their_library_without_any_access_row():
+    """«محتوای من» must agree with the product page: a checked-in attendee of a product with
+    ``attendee_access`` sees it (source ``attended``) although nothing was bought or granted; a merely
+    registered member, a product closed to attendees, or a draft never appears; no access row is created."""
+    app, engine = gate_app()
+    try:
+        with TestClient(app) as owner:
+            owner_login(owner)
+            event_id, version = create_published_event(owner, 0, t="کارگاه حضوری با آرشیو", startsAt=iso(timedelta(days=3)))
+            registration_form = create_published_form(owner, event_id=event_id, key="courtesy-library-reg-0001")
+
+            attendee = TestClient(app)
+            attendee_id = bale_login(attendee, 99101)
+            registered_only = TestClient(app)
+            registered_only_id = bale_login(registered_only, 99102)
+            for client, name in ((attendee, "حاضر واقعی"), (registered_only, "ثبت‌نامی بدون حضور")):
+                assert client.get(f"/api/public/forms/{registration_form}/draft").status_code == 200
+                assert client.post(f"/api/public/forms/{registration_form}/responses",
+                                   json={"answers": {"full-name": name}}, headers=ORIGIN).status_code == 200
+            attendee_registration = attendee.get("/api/account/registrations").json()["items"][0]
+            attendee_response = attendee_registration["id"]
+            assert attendee_registration["event_id"] == event_id  # join key for «رویدادهای من» → archive link
+            assert owner.post(f"/api/admin/attendance/responses/{attendee_response}/check-in", json={},
+                              headers=owner_write_headers(owner)).status_code == 200
+
+            # Event held → product with attendee courtesy, sold through a purchase form to everyone else.
+            version = update_event(owner, event_id, version, startsAt=iso(timedelta(days=-9)), endsAt=iso(timedelta(days=-8)),
+                                   regClosesAt=iso(timedelta(days=-10)), past=True)
+            product = build_sellable_product(owner, event_id, price=900_000, payment_card=None, attendee_access=True)
+            recording_id = product["recording"]["id"]
+            download = f"/api/public/events/{event_id}/resources/{product['_resource_id']}/download"
+            purchase_form(owner, recording_id, price=900_000)
+
+            # Draft: nobody's library lists it, even the attendee.
+            assert attendee.get("/api/account/recordings").json()["total"] == 0
+            assert set_status(owner, event_id, "ready").status_code == 200
+            assert set_status(owner, event_id, "published").status_code == 200
+
+            # Attendee: page says «attended», library lists the same product with source=attended, no row exists.
+            page = recording_view(attendee, event_id)
+            assert page["viewer"]["cta"]["kind"] == "view" and page["viewer"]["access"]["reason"] == "attended"
+            assert attendee.get(download).status_code == 200
+            library = attendee.get("/api/account/recordings").json()
+            assert library["total"] == 1
+            item = library["items"][0]
+            assert item["recording_id"] == recording_id and item["event_id"] == event_id
+            assert item["access"] == {"state": "active", "source": "attended", "expires_at": None, "granted_at": None, "revoked_at": None}
+            assert item["progress"] is None and item["certificate"]["automatic"] is False
+            with Session(engine) as db:
+                assert db.scalar(select(RecordingAccessRecord.id).where(RecordingAccessRecord.account_id == attendee_id)) is None
+
+            # Registered-but-not-checked-in member: buy CTA on the page, empty library.
+            assert recording_view(registered_only, event_id)["viewer"]["cta"]["kind"] == "buy"
+            assert registered_only.get(download).status_code == 403
+            assert registered_only.get("/api/account/recordings").json()["total"] == 0
+            assert registered_only_id != attendee_id
+
+            # A stranger never sees anyone's library; guest is 401.
+            assert TestClient(app).get("/api/account/recordings").status_code == 401
+
+            # Organizer closes the courtesy: page and library change together; no row was ever written.
+            assert put_recording(owner, event_id, attendee_access=False).status_code == 200
+            assert recording_view(attendee, event_id)["viewer"]["cta"]["kind"] == "buy"
+            assert attendee.get(download).status_code == 403
+            assert attendee.get("/api/account/recordings").json()["total"] == 0
+            assert put_recording(owner, event_id, attendee_access=True).status_code == 200
+
+            # Archived product keeps the courtesy (same as a still-active purchase).
+            assert set_status(owner, event_id, "archived", reason="پایان فروش").status_code == 200
+            archived_item = attendee.get("/api/account/recordings").json()["items"][0]
+            assert archived_item["status"] == "archived" and archived_item["access"]["source"] == "attended"
+
+            # Attendee who also holds a revoked manual grant: the page grants «attended», so the library shows one
+            # active attended row — never a duplicate and never a misleading «revoked».
+            grant_url = f"/api/admin/events/{event_id}/recording/access"
+            granted = owner.post(grant_url, json={"account_id": attendee_id, "reason": "آزمون ۹.۳"}, headers=owner_write_headers(owner))
+            assert granted.status_code == 201
+            assert owner.post(f"{grant_url}/{granted.json()['access']['id']}/revoke", json={"reason": "آزمون ۹.۳"},
+                              headers=owner_write_headers(owner)).status_code == 200
+            assert recording_view(attendee, event_id)["viewer"]["access"]["reason"] == "attended"
+            merged = attendee.get("/api/account/recordings").json()
+            assert merged["total"] == 1 and merged["items"][0]["access"] == {
+                "state": "active", "source": "attended", "expires_at": None, "granted_at": None, "revoked_at": None}
+    finally:
+        engine.dispose()
