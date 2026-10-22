@@ -232,6 +232,53 @@ def reference_ids(content: Any) -> dict[str, set[str]]:
     return out
 
 
+def removed_references_in_use(
+    category: str, stored_rows: Any, final_rows: Any, content: Any
+) -> tuple[list[str], list[dict[str, str]]]:
+    """Ids of ``category`` (people/partners) that a whole-category replace would drop although an
+    event/article row of the same document still points at them (any lifecycle status).
+
+    Returns ``(removed_ids_in_use, used_by)`` where ``used_by`` names each referencing row with
+    ``kind``/``id``/``t``/``ref``. Ids that never existed in the stored category are not reported:
+    a stale legacy link must not lock the category (same stance as ``_check_references``)."""
+    def ids_of(rows: Any) -> set[str]:
+        out: set[str] = set()
+        for row in rows if isinstance(rows, list) else []:
+            if isinstance(row, dict):
+                value = _text(row.get("id"), 100, allow_number=False)
+                if value:
+                    out.add(value)
+        return out
+
+    removed = ids_of(stored_rows) - ids_of(final_rows)
+    if not removed:
+        return [], []
+    source = content if isinstance(content, dict) else {}
+    in_use: list[str] = []
+    used_by: list[dict[str, str]] = []
+    for kind, mapping in REFERENCE_FIELDS.items():
+        fields = [field for field, target in mapping.items() if target == category]
+        if not fields:
+            continue
+        for row in source.get(kind) or []:
+            if not isinstance(row, dict):
+                continue
+            for field in fields:
+                ref = _text(row.get(field), 100, allow_number=False)
+                if ref and ref in removed:
+                    if ref not in in_use:
+                        in_use.append(ref)
+                    used_by.append({
+                        "kind": kind,
+                        "id": _text(row.get("id"), 100, allow_number=False),
+                        "t": _text(row.get("t"), 160),
+                        "ref": ref,
+                    })
+                    if len(used_by) >= 40:
+                        return in_use, used_by
+    return in_use, used_by
+
+
 def _check_references(kind: str, incoming: dict[str, Any], references: dict[str, set[str]] | None) -> None:
     """Only ids the client is sending now are checked: a stale id already stored on a legacy row
     must not block status changes or unrelated edits (no silent rewrite of stored data either)."""

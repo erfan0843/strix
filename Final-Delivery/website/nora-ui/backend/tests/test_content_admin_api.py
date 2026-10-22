@@ -497,3 +497,98 @@ def test_event_and_article_person_or_partner_references_must_exist_in_the_same_d
             assert stored_rows(engine, "events")[0]["tchr"] == "pp-legacy-gone"
     finally:
         engine.dispose()
+
+
+def test_people_or_partners_referenced_by_events_cannot_be_removed_from_the_document():
+    """H1 of the owner-panel work (2026-10-22): the people editor replaces the whole ``people``
+    category through ``PATCH /api/owner/site-content``. Dropping a row that an event/article still
+    points at (``tchr``/``partnerId``) would leave the same dangling link B1 forbids on the other
+    side, so the server refuses it with the referencing rows named. Editing a row in place, removing
+    an unreferenced row, and ids that never existed in ``people`` are unaffected."""
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            people = [
+                {"id": "pp-used", "n": "مدرس وصل‌شده", "kind": "teacher", "r": "مدرس"},
+                {"id": "pp-free", "n": "مدرس آزاد", "kind": "teacher", "r": "مدرس"},
+            ]
+            partners = [{"id": "pt-used", "n": "نهاد وصل‌شده", "pub": True}, {"id": "pt-free", "n": "نهاد آزاد", "pub": True}]
+            seeded = client.patch(
+                "/api/owner/site-content",
+                json={"content": {"people": people, "partners": partners}, "expected_version": 0},
+                headers=owner_write_headers(client),
+            )
+            assert seeded.status_code == 200, seeded.text
+            version = seeded.json()["version"]
+            created = client.post(
+                "/api/admin/content/events",
+                json={"record": dict(EVENT, tchr="pp-used", partnerId="pt-used"), "expected_version": version, "status": "draft"},
+                headers=owner_write_headers(client),
+            )
+            assert created.status_code == 200, created.text
+            event_id = created.json()["record"]["id"]
+            version = created.json()["version"]
+            article = client.post(
+                "/api/admin/content/articles",
+                json={"record": {"t": "مطلب", "tchr": "pp-used"}, "expected_version": version, "status": "draft"},
+                headers=owner_write_headers(client),
+            )
+            assert article.status_code == 200, article.text
+            version = article.json()["version"]
+
+            def patch(content):
+                return client.patch(
+                    "/api/owner/site-content",
+                    json={"content": content, "expected_version": version},
+                    headers=owner_write_headers(client),
+                )
+
+            # Dropping the referenced person (draft event + draft article both point at it) → 422 naming them.
+            refused = patch({"people": [people[1]]})
+            assert refused.status_code == 422, refused.text
+            detail = refused.json()["detail"]
+            assert detail["code"] == "reference_in_use" and detail["field"] == "people"
+            assert detail["ids"] == ["pp-used"]
+            used_by = {(item["kind"], item["id"]) for item in detail["used_by"]}
+            assert ("events", event_id) in used_by and len(used_by) == 2
+            assert all(item["ref"] == "pp-used" for item in detail["used_by"])
+            assert [row["id"] for row in stored_rows(engine, "people")] == ["pp-used", "pp-free"]
+
+            # Same rule for partners.
+            refused_partner = patch({"partners": [partners[1]]})
+            assert refused_partner.status_code == 422, refused_partner.text
+            assert refused_partner.json()["detail"]["code"] == "reference_in_use"
+            assert refused_partner.json()["detail"]["field"] == "partners"
+            assert refused_partner.json()["detail"]["ids"] == ["pt-used"]
+
+            # Editing the referenced row in place and dropping the free one is fine; version moves on.
+            edited = patch({"people": [dict(people[0], r="مدرس ارشد")]})
+            assert edited.status_code == 200, edited.text
+            assert edited.json()["rejected_rows"] == {}
+            version = edited.json()["version"]
+            rows = stored_rows(engine, "people")
+            assert [row["id"] for row in rows] == ["pp-used"] and rows[0]["r"] == "مدرس ارشد"
+            assert stored_rows(engine, "events")[0]["tchr"] == "pp-used"
+
+            # Rows the sanitiser cannot publish are still reported, never silently "saved".
+            partial = patch({"people": [people[0], {"n": "بی‌شناسه"}, {"id": "pp-hidden", "n": "پنهان", "hidden": True}]})
+            assert partial.status_code == 200, partial.text
+            reasons = {item["reason"] for item in partial.json()["rejected_rows"]["people"]}
+            assert reasons == {"missing_required_fields", "non_public"}
+            version = partial.json()["version"]
+            assert [row["id"] for row in stored_rows(engine, "people")] == ["pp-used"]
+
+            # Stale ids that never existed in ``people`` do not lock the category.
+            with Session(engine) as db:
+                record = db.get(SiteContentRecord, "public")
+                content = dict(record.content or {})
+                rows = list(content["events"])
+                rows[0] = dict(rows[0], tchr="pp-legacy-gone")
+                content["events"] = rows
+                record.content = content
+                db.commit()
+            still_ok = patch({"people": [dict(people[0], r="مدرس")]})
+            assert still_ok.status_code == 200, still_ok.text
+    finally:
+        engine.dispose()

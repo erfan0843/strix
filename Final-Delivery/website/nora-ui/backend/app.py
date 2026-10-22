@@ -2399,6 +2399,18 @@ def create_app(
         for key in NON_PUBLIC_RETAINED_KEYS:
             if key in incoming:
                 incoming[key] = retain_non_public_rows(current.get(key), incoming[key])
+        # H1: a whole-category replace of people/partners must not drop a row that an event or
+        # article of the same document still links to (mirror of the B1 ``unknown_reference`` rule).
+        for category in ("people", "partners"):
+            if category not in incoming:
+                continue
+            in_use, used_by = content_admin_mod.removed_references_in_use(
+                category, current.get(category), incoming[category], current
+            )
+            if in_use:
+                raise HTTPException(422, {
+                    "code": "reference_in_use", "field": category, "ids": in_use, "used_by": used_by,
+                })
         current.update(incoming)
         if record is None:
             record = SiteContentRecord(id="public", content=current, version=1)

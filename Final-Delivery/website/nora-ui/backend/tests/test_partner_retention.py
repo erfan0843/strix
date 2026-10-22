@@ -162,27 +162,36 @@ def test_stored_non_public_partners_stay_private_and_survive_panel_operations(en
     # 3) reorder
     reordered = [edited[2], edited[0], edited[1]]
     version = panel_save(reordered, version, "reorder")
-    # 4) delete a published partner
-    version = panel_save([reordered[0], reordered[2]], version, "delete")
-    assert "p-1" not in public_partner_ids(client)
+    # 4) delete a published partner that nothing links to
+    version = panel_save([reordered[0], reordered[1]], version, "delete")
+    assert "p-2" not in public_partner_ids(client)
     assert stored(engine)["content"]["events"][0]["partnerId"] == "p-1"  # related event untouched
+    # 4b) H1 (2026-10-22): a partner an event still points at cannot be dropped (no dangling
+    # ``partnerId``); the refusal names the event and writes nothing.
+    before_guard = stored(engine)
+    refused = patch_partners(client, headers, [reordered[0]], version)
+    assert refused.status_code == 422, refused.text
+    assert refused.json()["detail"]["code"] == "reference_in_use"
+    assert refused.json()["detail"]["ids"] == ["p-1"]
+    assert refused.json()["detail"]["used_by"][0]["id"] == "ev-1"
+    assert stored(engine) == before_guard
 
     # 5) stale expected_version → 409, nothing written, retry on the fresh version succeeds
     before = stored(engine)
-    stale = patch_partners(client, headers, [reordered[0]], version - 1)
+    stale = patch_partners(client, headers, [reordered[1], reordered[0]], version - 1)
     assert stale.status_code == 409, stale.text
     assert stale.json()["detail"]["current_version"] == version
     assert stored(engine) == before
-    assert public_partner_ids(client) == ["p-3", "p-2"]
-    version = panel_save([reordered[0]], version, "retry-after-409")
+    assert public_partner_ids(client) == ["p-3", "p-1"]
+    version = panel_save([reordered[1], reordered[0]], version, "retry-after-409")
 
     # 6) an explicit row with the same id as a stored non-public row replaces it (intentional publish)
-    response = patch_partners(client, headers, [reordered[0], {"id": "np-paused", "n": "نهاد متوقف → منتشر", "pub": True}], version)
+    response = patch_partners(client, headers, [reordered[1], reordered[0], {"id": "np-paused", "n": "نهاد متوقف → منتشر", "pub": True}], version)
     assert response.status_code == 200, response.text
     kept = {row["id"]: row for row in stored(engine)["content"]["partners"]}
     assert kept["np-paused"]["n"] == "نهاد متوقف → منتشر" and "status" not in kept["np-paused"]
     assert set(NON_PUBLIC_IDS) - {"np-paused"} <= set(kept)
-    assert public_partner_ids(client) == ["p-3", "np-paused"]
+    assert public_partner_ids(client) == ["p-1", "p-3", "np-paused"]
 
 
 def test_non_public_partner_rows_cannot_be_created_through_the_owner_api(env):
