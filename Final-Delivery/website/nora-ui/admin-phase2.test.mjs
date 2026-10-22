@@ -44,7 +44,7 @@ async function loadPanel(identity) {
   const perms = identity.permissions || (identity.role === 'owner' ? OWNER : MANAGER);
   const has = (p) => perms.includes(p);
   const list = (kind) => ({
-    items: kind === 'events' ? world.events : [], total: kind === 'events' ? world.events.length : 0,
+    items: kind === 'events' ? world.events : (world.articles || []), total: kind === 'events' ? world.events.length : (world.articles || []).length,
     counts: { draft: 1, published: 1, paused: 0, archived: 0 }, limit: 20, offset: 0, has_more: false, kind,
     version: world.version, source: 'site_content', can_edit: has('ev_create'), can_publish: has('ev_publish'),
   });
@@ -109,6 +109,21 @@ async function loadPanel(identity) {
         if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
         if (path.startsWith('/api/owner/audit')) return reply(200, { items: [], limit: 30, offset: 0, has_more: false, actions: [] });
 
+        /* B1: tchr/partnerId must be ids of people/partners in the same document */
+        const refCheck = (kind, record) => {
+          const site = world.siteContent || { people: [], partners: [] };
+          const refs = kind === 'events' ? [['tchr', 'people'], ['partnerId', 'partners']] : [['tchr', 'people']];
+          for (const [field, cat] of refs) {
+            const value = String((record || {})[field] || '');
+            if (value && !(site[cat] || []).some((r) => String(r.id) === value)) return reply(422, { detail: { code: 'unknown_reference', field } });
+          }
+          return null;
+        };
+        if (path === '/api/public/site-content') {
+          if (!world.siteContent) return reply(404, { detail: 'site_content_not_published' });
+          const pub = (rows) => (rows || []).filter((r) => !r.hidden);
+          return reply(200, { content: { people: pub(world.siteContent.people), partners: pub(world.siteContent.partners), events: [], articles: [] }, version: world.version });
+        }
         /* ── محتوا ── */
         const needWrite = () => (has('ev_create') ? null : reply(403, { detail: 'permission_denied' }));
         const needPublish = () => (has('ev_publish') ? null : reply(403, { detail: 'permission_denied' }));
@@ -125,7 +140,7 @@ async function loadPanel(identity) {
             return reply(200, out);
           }
           if (method === 'GET' && id) {
-            const rec = world.events.find((e) => e.id === id);
+            const rec = (kind === 'articles' ? (world.articles || []) : world.events).find((e) => e.id === id);
             if (!rec) return reply(404, { detail: 'content_record_not_found' });
             /* مانند content_admin.detail: زمان‌ها UTC ذخیره‌اند و local_times شمسی/تهران برمی‌گردد */
             const detail = { ...rec, local_times: { startsAt: rec.startsAt ? '1405/08/12 10:00' : '', endsAt: '', regOpensAt: '', regClosesAt: rec.regClosesAt ? '1405/08/10 23:59' : '' },
@@ -139,22 +154,24 @@ async function loadPanel(identity) {
             if (body.record.on && !/^\d{4}\/\d{2}\/\d{2}$/.test(body.record.on)) return reply(422, { detail: { code: 'invalid_jalali_date', field: 'on' } });
             if (body.record.regClosesAt && !/^\d{4}\/\d{2}\/\d{2}( ([01]\d|2[0-3]):[0-5]\d)?$/.test(body.record.regClosesAt)) return reply(422, { detail: { code: 'invalid_datetime', field: 'regClosesAt' } });
             if (body.status === 'published' && !String(body.record.d || '').trim()) return reply(422, { detail: { code: 'event_description_required', field: 'd' } });
+            const refErr = refCheck(kind, body.record); if (refErr) return refErr;
             world.version += 1;
-            const rec = { id: 'ev-new1', ...body.record, status: body.status || 'draft', updated_at: '2026-10-21T08:00:00+00:00', created_at: '2026-10-21T08:00:00+00:00' };
-            world.events.unshift(rec);
+            const rec = { id: kind === 'articles' ? 'ar-new1' : 'ev-new1', ...body.record, status: body.status || 'draft', updated_at: '2026-10-21T08:00:00+00:00', created_at: '2026-10-21T08:00:00+00:00' };
+            (kind === 'articles' ? (world.articles ||= []) : world.events).unshift(rec);
             return reply(200, { kind, record: rec, version: world.version, saved: true });
           }
           if (method === 'PUT' && id) {
             const denied = needWrite(); if (denied) return denied;
-            const rec = world.events.find((e) => e.id === id);
+            const rec = (kind === 'articles' ? (world.articles || []) : world.events).find((e) => e.id === id);
             if (!rec) return reply(404, { detail: 'content_record_not_found' });
             if (body.expected_version !== world.version) return reply(409, { detail: { code: 'site_content_version_conflict', current_version: world.version } });
+            const refErr = refCheck(kind, body.record); if (refErr) return refErr;
             Object.assign(rec, body.record); world.version += 1;
             return reply(200, { kind, record: rec, version: world.version, saved: true });
           }
           if (method === 'POST' && statusOp) {
             const denied = needPublish(); if (denied) return denied;
-            const rec = world.events.find((e) => e.id === id);
+            const rec = (kind === 'articles' ? (world.articles || []) : world.events).find((e) => e.id === id);
             if (!rec) return reply(404, { detail: 'content_record_not_found' });
             if (body.expected_version !== world.version) return reply(409, { detail: { code: 'site_content_version_conflict', current_version: world.version } });
             if (body.status === 'published' && !rec.d) return reply(422, { detail: { code: 'event_description_required', field: 'd' } });
@@ -687,6 +704,122 @@ console.log('— H1 مالک: ویرایشگر سروری افراد روی GET/
     await delay(150);
     assert.equal(mgr.doc.querySelector('#peList'), null, 'بدون نشست مالک ویرایشگری نیست');
     assert.equal(mgr.calls.filter((c) => c.path === '/api/owner/site-content').length, 0, 'مدیر به API مالک درخواست نمی‌فرستد');
+  } finally { mgr.close(); }
+}
+
+console.log('— مرحلهٔ ۲: انتخاب‌گر شناسه‌ای مدرس/نهاد در رویداد و نویسنده در مطلب؛ فهرست از /api/public/site-content؛ جست‌وجو، Enter، شناسهٔ ناموجود، ذخیره و بازخوانی —');
+{
+  const site = () => ({
+    people: [
+      { id: 'pp-ali', n: 'علی موسوی', r: 'مدرس فن بیان', kind: 'teacher', exp: ['فن بیان', 'تنفس'], g: '' },
+      { id: 'pp-sara', n: 'سارا کریمی', r: 'دست‌اندرکار اجرا', kind: 'staff', exp: ['هماهنگی'], g: '' },
+      { id: 'pp-hid', n: 'پنهان', r: 'مدرس', kind: 'teacher', hidden: true },
+    ],
+    partners: [{ id: 'pt-1', n: 'دانشگاه آزمایشی', type: 'دانشگاهی', collab: 'میزبانی', focus: ['سالن'] }],
+    events: [], articles: [],
+  });
+  const world = { ...makeWorld(), siteContent: site(), articles: [
+    { id: 'ar-1', t: 'یادداشت سردبیر', cat: 'یادداشت', who: '', tchr: '', lead: 'لید', body: ['بند'], status: 'draft', updated_at: '2026-10-20T10:00:00+00:00', created_at: '2026-10-20T10:00:00+00:00' },
+  ] };
+  world.events[1].tchr = 'pp-ghost'; /* ردیف قدیمی با شناسهٔ آویزان */
+  const app = await loadPanel({ role: 'owner', sec: 'events', world });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست');
+    const ownerCalls0 = app.calls.filter((c) => c.path === '/api/owner/site-content').length;
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-pick="tchr"]') && app.doc.querySelector('[data-ct-pick="partnerId"]'), 'دو انتخاب‌گر در ویرایشگر رویداد');
+    await app.until(() => app.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-ali"]'), 'فهرست افراد از سرور عمومی');
+    assert.equal(app.calls.filter((c) => c.path === '/api/public/site-content').length, 1, 'یک درخواست برای هر دو انتخاب‌گر');
+    assert.equal(app.calls.filter((c) => c.path === '/api/owner/site-content').length, ownerCalls0, 'انتخاب‌گر به API مالک نیاز ندارد');
+    assert.equal(app.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-hid"]'), null, 'ردیف غیرعمومی پیشنهاد نمی‌شود');
+    assert.ok(app.doc.querySelector('[data-ct-pick-empty="tchr"]'), 'حالت «مدرسی وصل نیست»');
+    assert.ok(app.doc.querySelector('[data-ct-pick-manage="people"]'), 'مالک: میان‌بر مدیریت افراد');
+
+    /* جست‌وجو با تخصص + Enter = انتخاب نخستین نتیجه؛ بدون درخواست تازه */
+    const calls0 = app.calls.length;
+    app.type('[data-ct-pick-q="tchr"]', 'هماهنگی');
+    assert.equal(app.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-ali"]'), null, 'فیلتر تخصص');
+    assert.ok(app.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-sara"]'));
+    assert.equal(app.doc.activeElement, app.doc.querySelector('[data-ct-pick-q="tchr"]'), 'فوکوس روی جست‌وجو می‌ماند');
+    app.doc.querySelector('[data-ct-pick-q="tchr"]').dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await delay(20);
+    assert.ok(app.doc.querySelector('[data-ct-pick-current="pp-sara"]'), 'Enter نخستین نتیجه را انتخاب کرد');
+    assert.equal(app.calls.length, calls0, 'جست‌وجو و انتخاب سمت مرورگر است');
+    assert.match(app.doc.querySelector('#ctPreview').textContent, /مدرس: سارا کریمی/, 'پیش‌نمایش کارت نام پروفایل را نشان می‌دهد');
+    /* انتخاب با کلیک (جایگزینی) و نهاد */
+    app.type('[data-ct-pick-q="tchr"]', '');
+    app.click('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-ali"]');
+    await delay(20);
+    assert.ok(app.doc.querySelector('[data-ct-pick-current="pp-ali"]'));
+    assert.ok(app.doc.querySelector('[data-ct-pick-current="pp-ali"] a[href="person.html?id=pp-ali"]'), 'پیوند صفحهٔ عمومی همان شناسه');
+    app.click('[data-ct-pick-set="partnerId"][data-ct-pick-id="pt-1"]');
+    await delay(20);
+    assert.ok(app.doc.querySelector('[data-ct-pick-current="pt-1"]'));
+    assert.match(app.doc.querySelector('#ctPreview').textContent, /با همکاری دانشگاه آزمایشی/);
+    app.click('[data-ct-save]');
+    await app.until(() => app.world.events.find((e) => e.id === 'ev-a1').tchr === 'pp-ali', 'ذخیره با شناسه');
+    const put = app.calls.filter((c) => c.method === 'PUT' && c.path === '/api/admin/content/events/ev-a1').pop();
+    assert.equal(put.body.record.tchr, 'pp-ali'); assert.equal(put.body.record.partnerId, 'pt-1');
+    await app.until(() => /مدرس: علی موسوی/.test((app.doc.querySelector('[data-ct-row="ev-a1"]') || {}).textContent || ''), 'ردیف فهرست وضعیت پیوند را نشان می‌دهد');
+    assert.match(app.doc.querySelector('[data-ct-row="ev-a1"]').textContent, /نهاد: دانشگاه آزمایشی/);
+    /* بازخوانی: مقدار ذخیره‌شده دوباره به‌صورت کارت وصل‌شده می‌آید */
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-pick-current="pp-ali"]'), 'پس از بازخوانی وصل است');
+    app.click('[data-ct-cancel]');
+
+    /* شناسهٔ ناموجود روی ردیف قدیمی: هشدار، ذخیره بدون درخواست متوقف می‌شود، با برداشتن پیوند ذخیره می‌شود */
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-b2"]'), 'فهرست');
+    assert.match(app.doc.querySelector('[data-ct-row="ev-b2"]').textContent, /مدرس ناموجود: pp-ghost/);
+    app.click('[data-ct-edit="ev-b2"]');
+    await app.until(() => app.doc.querySelector('[data-ct-pick-invalid]'), 'هشدار شناسهٔ ناموجود');
+    const puts = app.calls.filter((c) => c.method === 'PUT').length;
+    app.click('[data-ct-save]');
+    await delay(60);
+    assert.equal(app.calls.filter((c) => c.method === 'PUT').length, puts, 'با شناسهٔ ناموجود درخواستی نمی‌رود');
+    assert.match(app.doc.querySelector('[data-ct-err="tchr"]').textContent, /وجود ندارد/, 'خطای همان فیلد');
+    app.click('[data-ct-pick-clear="tchr"]');
+    await delay(20);
+    assert.ok(app.doc.querySelector('[data-ct-pick-empty="tchr"]'));
+    app.click('[data-ct-save]');
+    await app.until(() => app.calls.filter((c) => c.method === 'PUT').length === puts + 1, 'ذخیره پس از برداشتن');
+    assert.equal(app.calls.filter((c) => c.method === 'PUT').pop().body.record.tchr, '', 'پاک‌کردن پیوند');
+
+    /* سرور هم مرجع نهایی است: اگر فهرست مرورگر کهنه باشد، ۴۲۲ unknown_reference روی همان فیلد می‌نشیند */
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-b2"]'), 'فهرست');
+    app.click('[data-ct-edit="ev-b2"]');
+    await app.until(() => app.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-sara"]'), 'انتخاب‌گر');
+    app.click('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-sara"]');
+    await delay(20);
+    app.world.siteContent.people = app.world.siteContent.people.filter((p) => p.id !== 'pp-sara'); /* حذف هم‌زمان روی سرور */
+    app.click('[data-ct-save]');
+    await app.until(() => /وجود ندارد/.test((app.doc.querySelector('[data-ct-err="tchr"]') || {}).textContent || ''), 'خطای سرور روی فیلد مدرس');
+    app.click('[data-ct-cancel]');
+
+    /* مطلب: نویسندهٔ پروفایلی + نام میهمان آزاد */
+    app.click('[data-ct-kind="articles"]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ar-1"]'), 'فهرست مطالب');
+    app.click('[data-ct-edit="ar-1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-pick="tchr"]'), 'انتخاب‌گر نویسنده');
+    assert.equal(app.doc.querySelector('[data-ct-pick="partnerId"]'), null, 'مطلب نهاد ندارد');
+    assert.ok(app.doc.querySelector('#ctf_who'), 'نام میهمان آزاد باقی است');
+    await app.until(() => app.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-ali"]'), 'فهرست');
+    app.click('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-ali"]');
+    await delay(20);
+    assert.match(app.doc.querySelector('#ctPreview').textContent, /علی موسوی/);
+    app.click('[data-ct-save]');
+    await app.until(() => app.world.articles[0].tchr === 'pp-ali', 'نویسندهٔ پروفایلی ذخیره شد');
+    await app.until(() => /نویسنده: علی موسوی/.test((app.doc.querySelector('[data-ct-row="ar-1"]') || {}).textContent || ''), 'ردیف مطلب نویسندهٔ پروفایلی را نشان می‌دهد');
+    app.noLeak();
+  } finally { app.close(); }
+
+  /* مدیر با ev_create: همان انتخاب‌گر از منبع عمومی، بدون API مالک و بدون میان‌بر مدیریت افراد */
+  const mgr = await loadPanel({ role: 'manager', sec: 'events', world: { ...makeWorld(), siteContent: site() } });
+  try {
+    await mgr.until(() => mgr.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست مدیر');
+    mgr.click('[data-ct-edit="ev-a1"]');
+    await mgr.until(() => mgr.doc.querySelector('[data-ct-pick-set="tchr"][data-ct-pick-id="pp-ali"]'), 'انتخاب‌گر برای مدیر');
+    assert.equal(mgr.calls.filter((c) => c.path === '/api/owner/site-content').length, 0);
+    assert.equal(mgr.doc.querySelector('[data-ct-pick-manage]'), null, 'مدیر میان‌بر مدیریت افراد ندارد');
   } finally { mgr.close(); }
 }
 

@@ -4030,6 +4030,7 @@ function ppPartnerSrvApply(result){
   const content=result&&result.content&&typeof result.content==='object'?result.content:{};
   PP_SRV.version=Number.isInteger(+(result&&result.version))&&+result.version>=0?+result.version:0;
   PP_SRV.rows=Array.isArray(content.partners)?content.partners.filter(row=>row&&typeof row==='object'&&row.id!=null).map(row=>Object.assign({},row)):[];
+  if(typeof pkInvalidate==='function') pkInvalidate();
 }
 function ppPartnerSrvError(error){
   if(!error||error.status===0||error.code==='server_unreachable') return 'به API همین سرور دسترسی نیست؛ هیچ تغییری ذخیره نشد.';
@@ -4103,6 +4104,7 @@ function peApply(result){
   PE_SRV.version=Number.isInteger(+(result&&result.version))&&+result.version>=0?+result.version:0;
   const rows=k=>Array.isArray(content[k])?content[k].filter(r=>r&&typeof r==='object'&&r.id!=null).map(r=>Object.assign({},r)):[];
   PE_SRV.rows=rows('people'); PE_SRV.events=rows('events'); PE_SRV.articles=rows('articles');
+  if(typeof pkInvalidate==='function') pkInvalidate();
 }
 const peRow=id=>PE_SRV.rows.filter(p=>String(p.id)===String(id))[0]||null;
 const peEvents=id=>PE_SRV.events.filter(e=>String(e.tchr||'')===String(id));
@@ -6846,12 +6848,13 @@ async function ctLoad(){
   finally{CT.loading=false; if(key!==ctKey()){ctLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
 }
 function ctStatusLabel(status){const row=P2_STATUS[status]||[status,'']; return tag(row[0],row[1])}
+function ctRefMeta(field,id){if(!id) return ''; if(!PK.loaded) return (field==='partnerId'?'نهاد: ':'مدرس: ')+id; const n=pkName(field,id); return n?(field==='partnerId'?'نهاد: ':'مدرس: ')+n:(field==='partnerId'?'نهاد ناموجود: ':'مدرس ناموجود: ')+id}
 function ctEventMeta(item){
-  return [item.kind,item.on||item.when,item.time,item.place,item.mode,item.price?fa(item.price)+' ریال':'',item.cap?'ظرفیت '+fa(item.cap):'',item.cert?'گواهی':'',item.past?'برگزارشده':'']
+  return [item.kind,item.on||item.when,item.time,item.place,item.mode,item.price?fa(item.price)+' ریال':'',item.cap?'ظرفیت '+fa(item.cap):'',item.cert?'گواهی':'',item.past?'برگزارشده':'',ctRefMeta('tchr',item.tchr),ctRefMeta('partnerId',item.partnerId)]
     .filter(Boolean).join(' · ');
 }
 function ctArticleMeta(item){
-  return [item.cat,item.who,item.at?svcWhen(item.at)||item.at:'',item.paragraphs?fa(item.paragraphs)+' بند':'',item.pin?'سنجاق‌شده':''].filter(Boolean).join(' · ');
+  return [item.cat,item.tchr?ctRefMeta('tchr',item.tchr).replace(/^مدرس/,'نویسنده'):item.who,item.at?svcWhen(item.at)||item.at:'',item.paragraphs?fa(item.paragraphs)+' بند':'',item.pin?'سنجاق‌شده':''].filter(Boolean).join(' · ');
 }
 function ctActions(item){
   const id=esc(item.id), st=item.status, out=[];
@@ -6901,9 +6904,100 @@ function ctList(){
     ${d?p2Pager(total,CT.offset,CT.limit,'data-ct-page="prev"','data-ct-page="next"'):''}
   </section>`;
 }
+/* ══ مرحلهٔ ۲: انتخاب‌گر شناسه‌محور مدرس/نهاد (رویداد) و نویسندهٔ پروفایلی (مطلب) ══
+   فهرست‌ها فقط از /api/public/site-content (ردیف‌های منتشرشدهٔ people/partners همان سند site_content)؛
+   نه data.js و نه localStorage. مقدار ذخیره‌شده همان id است که سرور با قاعدهٔ B1 (unknown_reference)
+   می‌سنجد؛ پیش از ارسال هم اگر فهرست بارگذاری شده باشد، شناسهٔ ناموجود همان‌جا متوقف می‌شود. */
+const PK={loaded:false,loading:false,error:'',people:[],partners:[],q:{},at:0};
+const PK_DEFS={tchr:{cat:'people',icon:'i-graduation'},partnerId:{cat:'partners',icon:'i-handshake'}};
+function pkLabel(field){
+  if(field==='partnerId') return 'نهاد همکار (از نهادهای منتشرشدهٔ سایت)';
+  return CT.kind==='articles'?'نویسنده از پروفایل‌های سایت':'مدرس (از پروفایل‌های سایت)';
+}
+const pkRows=field=>PK[(PK_DEFS[field]||{}).cat||'people']||[];
+const pkRow=(field,id)=>id?pkRows(field).filter(p=>String(p.id)===String(id))[0]||null:null;
+const pkInvalidate=()=>{PK.loaded=false};
+async function pkLoad(force){
+  const api=window.NORA_SERVER_API;
+  if(PK.loading||(PK.loaded&&!force)) return;
+  if(!api||typeof api.getPublicSiteContent!=='function'){PK.error='رابط محتوای سرور در دسترس نیست.'; PK.loaded=true; pkPatchAll(); return}
+  PK.loading=true; PK.error=''; pkPatchAll();
+  try{
+    const result=await api.getPublicSiteContent();
+    const content=result&&result.content&&typeof result.content==='object'?result.content:(result||{});
+    const rows=k=>Array.isArray(content[k])?content[k].filter(r=>r&&typeof r==='object'&&r.id!=null):[];
+    PK.people=rows('people'); PK.partners=rows('partners'); PK.loaded=true; PK.at=Date.now();
+  }catch(error){PK.error=error&&error.status===404?'هنوز محتوای عمومی روی سرور منتشر نشده است؛ فهرست افراد/نهادها خالی است.':p2Err(error,'فهرست افراد و نهادها از سرور دریافت نشد.'); PK.loaded=false}
+  finally{PK.loading=false; pkPatchAll()}
+}
+function pkPatchAll(){Object.keys(PK_DEFS).forEach(field=>{const box=document.getElementById('ctPick-'+field); if(box&&CT.edit) box.innerHTML=pkInner(field)})}
+function pkFilter(field){
+  const q=String(PK.q[field]||'').trim().toLowerCase(), rows=pkRows(field);
+  if(!q) return rows.slice(0,8);
+  return rows.filter(p=>[p.n,p.r,p.role2,p.tag,p.type,p.collab,p.where].concat(p.exp||[],p.focus||[]).some(x=>String(x||'').toLowerCase().indexOf(q)>=0)).slice(0,8);
+}
+function pkCard(field,p){
+  const sub=field==='partnerId'?[p.type,p.collab].filter(Boolean).join(' · '):[p.r,p.role2].filter(Boolean).join(' · ');
+  const chips=(field==='partnerId'?(p.focus||[]):(p.exp||[])).slice(0,3);
+  const av=field==='partnerId'?(p.logo?`<img src="${esc(p.logo)}" alt=""/>`:esc(String(p.n||'ن').charAt(0))):(ppPhotoSrc(p)?`<img src="${esc(ppPhotoSrc(p))}" alt=""/>`:esc(ppIni(p)));
+  return `<span class="sav" style="--g:${esc(p.g||PP_GS[0].v)}">${av}</span><span class="sbody" style="flex:1;min-width:0"><b>${esc(p.n||'')}</b>${sub?`<span class="rl">${esc(sub)}</span>`:''}${chips.length?`<span class="mini-chips">${chips.map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</span>`:''}</span>`;
+}
+function pkInner(field){
+  const e=CT.edit, f=e?e.form:{}, value=String(f[field]||''), err=e&&e.errors?e.errors[field]:'';
+  const def=PK_DEFS[field], cur=pkRow(field,value);
+  const pub=field==='partnerId'?'partner.html?id=':'person.html?id=';
+  let state='';
+  if(value&&cur) state=`<div class="scard pickrow on" data-ct-pick-current="${esc(value)}" style="cursor:default;align-items:center">${pkCard(field,cur)}
+      <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end"><span class="tag brand">وصل شده</span>
+        <a class="btn sm quiet" href="${pub}${encodeURIComponent(value)}" target="_blank" rel="noopener">${ico('i-eye')} صفحهٔ عمومی</a>
+        ${btn('بردار',`data-ct-pick-clear="${esc(field)}"`,'i-close')}</span></div>`;
+  else if(value&&PK.loaded) state=`<div class="scard" data-ct-pick-current="${esc(value)}" data-ct-pick-invalid="1" style="cursor:default;align-items:center;border-color:var(--stop)">
+      <span class="sav">؟</span><span class="sbody" style="flex:1"><b>شناسهٔ <span dir="ltr">${esc(value)}</span> در فهرست منتشرشدهٔ سایت نیست</b>
+        <span class="cap">ذخیره با این مقدار رد می‌شود (پیوند شکسته). یکی از فهرست را انتخاب کن یا آن را بردار.</span></span>
+      ${btn('بردار',`data-ct-pick-clear="${esc(field)}"`,'i-close')}</div>`;
+  else if(value) state=`<div class="scard" data-ct-pick-current="${esc(value)}" style="cursor:default"><span class="sbody"><b dir="ltr">${esc(value)}</b><span class="cap">فهرست سرور هنوز بارگذاری نشده؛ اعتبار این شناسه پس از دریافت فهرست مشخص می‌شود.</span></span>${btn('بردار',`data-ct-pick-clear="${esc(field)}"`,'i-close')}</div>`;
+  else state=`<span class="cap" data-ct-pick-empty="${esc(field)}">${field==='partnerId'?'نهادی وصل نیست.':CT.kind==='articles'?'نویسندهٔ پروفایلی وصل نیست؛ نام میهمان را می‌توان در فیلد «نویسندهٔ میهمان» نوشت.':'مدرسی وصل نیست؛ کارت و صفحهٔ رویداد بدون پروفایل مدرس نمایش داده می‌شوند.'}</span>`;
+  let list='';
+  if(PK.loading&&!PK.loaded) list=`<small class="cap" role="status" aria-busy="true">در حال دریافت فهرست از سرور…</small>`;
+  else if(PK.error&&!PK.loaded) list=`<small class="cap" style="color:var(--stop)" role="alert">${esc(PK.error)}</small> ${btn('تلاش دوباره',`data-ct-pick-refresh="${esc(field)}"`,'i-refresh')}`;
+  else if(!pkRows(field).length) list=`<small class="cap">${field==='partnerId'?'هنوز نهاد منتشرشده‌ای روی سرور نیست.':'هنوز شخص منتشرشده‌ای روی سرور نیست.'}</small>`;
+  else{
+    const hits=pkFilter(field).filter(p=>String(p.id)!==value);
+    list=hits.length?`<div class="stack tight" role="listbox" aria-label="${esc(pkLabel(field))}">${hits.map(p=>`<button type="button" class="scard pickrow" role="option" data-ct-pick-set="${esc(field)}" data-ct-pick-id="${esc(p.id)}" style="text-align:start;align-items:center">${pkCard(field,p)}<span class="tag">انتخاب</span></button>`).join('')}</div>`
+      :`<small class="cap">${(PK.q[field]||'').trim()?'چیزی با این جست‌وجو پیدا نشد.':'گزینهٔ دیگری جز همین مورد وصل‌شده منتشر نشده است.'}</small>`;
+  }
+  const manage=field!=='partnerId'&&isOwner()?`<button type="button" class="btn sm quiet" data-ct-pick-manage="people">${ico('i-users')} مدیریت افراد سایت</button>`:'';
+  return `<div class="row tight" style="flex-wrap:wrap;align-items:center"><span class="lbl">${esc(pkLabel(field))}</span><span class="sp"></span>${manage}${btn('تازه‌سازی',`data-ct-pick-refresh="${esc(field)}"`,'i-refresh')}</div>
+    ${state}
+    <input class="input" data-ct-pick-q="${esc(field)}" value="${esc(PK.q[field]||'')}" placeholder="${field==='partnerId'?'جست‌وجو: نام، دسته یا نوع همکاری':'جست‌وجو: نام، نقش یا تخصص'}" aria-label="${esc(pkLabel(field))}" autocomplete="off"/>
+    ${list}
+    <small class="cap" data-ct-err="${esc(field)}" ${err?'style="color:var(--stop)"':''}>${esc(err||'انتخاب با یک کلیک یا Enter روی نخستین نتیجه؛ مقدار ذخیره‌شده همان شناسهٔ پروفایل است و کارت و صفحهٔ عمومی از همان می‌خوانند.')}</small>`;
+}
+function ctPicker(field){
+  if(!PK_DEFS[field]) return '';
+  if(!PK.loaded&&!PK.loading) pkLoad();
+  return `<div class="fld stack tight" data-ct-pick="${esc(field)}" id="ctPick-${esc(field)}">${pkInner(field)}</div>`;
+}
+function pkSet(field,id){
+  if(!CT.edit) return; CT.edit.form[field]=String(id||'');
+  if(CT.edit.errors) delete CT.edit.errors[field];
+  PK.q[field]=''; renderBody();
+}
+/* پیش از ارسال: شناسهٔ ناموجود (وقتی فهرست بارگذاری شده) همین‌جا می‌ایستد؛ سرور هم همان را با unknown_reference رد می‌کند. */
+function pkPreflight(e){
+  if(!e||!PK.loaded) return true;
+  let ok=true;
+  Object.keys(PK_DEFS).forEach(field=>{
+    if(!Object.prototype.hasOwnProperty.call(e.form,field)) return;
+    const value=String(e.form[field]||''); if(!value||pkRow(field,value)) return;
+    e.errors=e.errors||{}; e.errors[field]=P2_FIELD_ERR.unknown_reference; ok=false;
+  });
+  return ok;
+}
+const pkName=(field,id)=>{const p=pkRow(field,id); return p?String(p.n||''):''};
 function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
-    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false}
-  :{t:'',cat:'',lead:'',body:'',cov:'',who:'',at:'',tags:'',pin:false,min:''}}
+    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,tchr:'',partnerId:''}
+  :{t:'',cat:'',lead:'',body:'',cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
 function ctEditable(kind,record){
   const base=ctBlank(kind), out={};
   Object.keys(base).forEach(key=>{
@@ -6935,8 +7029,8 @@ function ctPayload(kind,form){
 function ctPreview(form){
   const kind=CT.kind, img=kind==='events'?form.poster:form.cov;
   const safeImg=img&&/^(data:image\/(png|jpeg|webp|gif);base64,|https:\/\/|\.?\/?[A-Za-z0-9_])/i.test(img)?img:'';
-  const meta=kind==='events'?[form.kind,form.on||form.when,form.time,form.place,form.mode,form.price&&Number(form.price)?fa(form.price)+' ریال':'رایگان'].filter(Boolean).join(' · ')
-    :[form.cat||'مطلب',form.who,form.at].filter(Boolean).join(' · ');
+  const meta=kind==='events'?[form.kind,form.on||form.when,form.time,form.place,form.mode,form.price&&Number(form.price)?fa(form.price)+' ریال':'رایگان',pkName('tchr',form.tchr)?'مدرس: '+pkName('tchr',form.tchr):'',pkName('partnerId',form.partnerId)?'با همکاری '+pkName('partnerId',form.partnerId):''].filter(Boolean).join(' · ')
+    :[form.cat||'مطلب',pkName('tchr',form.tchr)||form.who,form.at].filter(Boolean).join(' · ');
   const text=kind==='events'?form.d:(form.lead||String(form.body||'').split(/\n\s*\n/)[0]||'');
   return `<article class="evcard"><div class="evcard-cover" style="min-height:120px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden">${safeImg?`<img src="${esc(safeImg)}" alt="" style="width:100%;height:160px;object-fit:cover"/>`:`<span class="cap">${ico('i-image')} بدون تصویر</span>`}</div>
     <div class="evcard-body stack"><b>${esc(form.t||'عنوان هنوز وارد نشده')}</b><small class="cap">${esc(meta||'جزئیات هنوز وارد نشده')}</small><p class="cap" style="white-space:pre-wrap">${esc(String(text||'').slice(0,320))}</p>
@@ -6982,6 +7076,7 @@ function ctEditor(){
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}</div>
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',dir:'ltr',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰ تا ۱۳'})}</div>
     ${p2Inp('مکان','place',f.place,{max:240})}
+    <div class="card stack" data-ct-people><strong>مدرس و نهاد همکار (پیوند شناسه‌ای)</strong><small class="cap">هر دو از ردیف‌های منتشرشدهٔ همین سایت انتخاب می‌شوند تا کارت رویداد و صفحهٔ عمومی همان پروفایل را نشان دهند؛ تایپ آزاد نام این‌جا ذخیره نمی‌شود.</small>${ctPicker('tchr')}${ctPicker('partnerId')}</div>
     <div class="card stack" data-ct-schedule>
       <strong>زمان‌بندی دقیق و وضعیت ثبت‌نام</strong>
       <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا شمارشگری ساخته نشود.</small>
@@ -7004,7 +7099,8 @@ function ctEditor(){
     ${imageBox}`
   :`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('دسته','cat',f.cat,{max:80,ph:'اخبار، آموزش…'})}${p2Inp('نویسنده','who',f.who,{max:160})}${p2Inp('تاریخ انتشار','at',f.at,{max:30,ph:'2026-10-21',dir:'ltr',err:err.at})}</div>
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('دسته','cat',f.cat,{max:80,ph:'اخبار، آموزش…'})}${p2Inp('نویسندهٔ میهمان (نام آزاد، اختیاری)','who',f.who,{max:160,hint:'اگر نویسنده پروفایل سایت دارد، پایین از فهرست انتخاب کن.'})}${p2Inp('تاریخ انتشار','at',f.at,{max:30,ph:'2026-10-21',dir:'ltr',err:err.at})}</div>
+    <div class="card stack" data-ct-people>${ctPicker('tchr')}</div>
     ${p2Inp('لید','lead',f.lead,{textarea:true,rows:3,err:err.lead})}
     ${p2Inp('متن','body',f.body,{textarea:true,rows:10,err:err.body,hint:'هر بند را با یک خط خالی جدا کنید.'})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}${p2Inp('زمان مطالعه (دقیقه)','min',f.min,{type:'numeric',dir:'ltr',err:err.min})}</div>
@@ -7863,7 +7959,9 @@ function ctCurrentVersion(){return CT.edit&&CT.edit.version!=null?CT.edit.versio
 async function ctSave(publish){
   const api=window.NORA_SERVER_API, e=CT.edit; if(!e||CT.busy) return;
   const record=ctPayload(CT.kind,e.form);
-  CT.busy='save'; e.errors={}; e.formError=''; renderBody();
+  e.errors={}; e.formError='';
+  if(!pkPreflight(e)){e.formError='پیوند مدرس/نهاد/نویسنده به شناسه‌ای اشاره می‌کند که در سایت نیست؛ هیچ درخواستی فرستاده نشد.'; renderBody(); return}
+  CT.busy='save'; renderBody();
   try{
     const result=e.id?await api.updateAdminContent(CT.kind,e.id,record,ctCurrentVersion(),staffCsrfCookie())
       :await api.createAdminContent(CT.kind,record,ctCurrentVersion(),publish?'published':'',staffCsrfCookie());
@@ -8309,6 +8407,10 @@ document.addEventListener('click',e=>{
   const ctStatus=q('[data-ct-status]'); if(ctStatus){CT.status=ctStatus.dataset.ctStatus||''; ctReset(); ctLoad(); return}
   const ctPage=q('[data-ct-page]'); if(ctPage){const total=CT.data?Number(CT.data.total)||0:0; CT.offset=ctPage.dataset.ctPage==='next'?Math.min(CT.offset+CT.limit,Math.max(0,total-1)):Math.max(0,CT.offset-CT.limit); CT.data=CT.data; ctLoad(); return}
   if(q('[data-ct-new]')){if(!ctCan('can_edit')){toast('مجوز ساخت محتوا برای این نقش فعال نیست'); return} ctOpenEditor(''); return}
+  const pkSetEl=q('[data-ct-pick-set]'); if(pkSetEl){pkSet(pkSetEl.dataset.ctPickSet,pkSetEl.dataset.ctPickId); return}
+  const pkClr=q('[data-ct-pick-clear]'); if(pkClr){pkSet(pkClr.dataset.ctPickClear,''); return}
+  const pkRef=q('[data-ct-pick-refresh]'); if(pkRef){pkLoad(true); return}
+  if(q('[data-ct-pick-manage]')){if(!isOwner()){toast('مدیریت افراد فقط با مالک است'); return} S.sec='settings'; S.setG='people'; save(); try{history.replaceState(null,'','#settings')}catch(err){} renderBody(); return}
   const ctEdit=q('[data-ct-edit]'); if(ctEdit){ctOpenEditor(ctEdit.dataset.ctEdit); return}
   if(eiClick(q)) return;
   const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
@@ -8365,10 +8467,17 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit) return;
+  if(t.dataset&&t.dataset.ctPickQ){const field=t.dataset.ctPickQ; PK.q[field]=t.value; const box=document.getElementById('ctPick-'+field); if(box) box.innerHTML=pkInner(field);
+    const again=box&&box.querySelector('[data-ct-pick-q]'); if(again){again.focus(); try{again.setSelectionRange(again.value.length,again.value.length)}catch(err){}} return}
   const field=t.dataset&&t.dataset.ctField; if(!field) return;
   CT.edit.form[field]=t.value;
   if(CT.edit.errors&&CT.edit.errors[field]){delete CT.edit.errors[field]; const err=document.querySelector(`[data-ct-err="${field}"]`); if(err){err.textContent=''; err.removeAttribute('style')}}
   const preview=$('#ctPreview'); if(preview) preview.innerHTML=ctPreview(CT.edit.form);
+});
+document.addEventListener('keydown',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||e.key!=='Enter'||!(t.dataset&&t.dataset.ctPickQ)) return;
+  e.preventDefault(); const field=t.dataset.ctPickQ, first=pkFilter(field).filter(p=>String(p.id)!==String(CT.edit.form[field]||''))[0];
+  if(first) pkSet(field,first.id); else toast('نتیجه‌ای برای انتخاب نیست');
 });
 document.addEventListener('change',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t) return;
