@@ -74,6 +74,31 @@ def _bounded_int_env(name: str, default: int, minimum: int, maximum: int) -> int
     return value
 
 
+_CSP_SOURCE_RE = re.compile(r"\Ahttps://[a-z0-9.-]+(?::\d{1,5})?\Z")
+
+
+def _csp_frame_src_env() -> str:
+    """NORA_CSP_FRAME_SRC: explicit allowlist for ``frame-src`` (phase 9.4, opt-in; default off).
+
+    Space-separated sources; each must be ``'self'`` or an ``https://host`` origin (no paths,
+    wildcards, schemes other than https, or CSP punctuation). An invalid value aborts startup
+    instead of silently shipping a wrong policy. Empty ⇒ no frame-src header at all (unchanged).
+    """
+    raw = os.getenv("NORA_CSP_FRAME_SRC", "").strip()
+    if not raw:
+        return ""
+    sources: list[str] = []
+    for token in raw.split():
+        lowered = token.lower()
+        if lowered == "'self'":
+            sources.append("'self'")
+        elif _CSP_SOURCE_RE.fullmatch(lowered):
+            sources.append(lowered)
+        else:
+            raise ValueError("NORA_CSP_FRAME_SRC accepts only 'self' and https://host origins separated by spaces")
+    return " ".join(dict.fromkeys(sources))
+
+
 def _cookie_samesite_env(cookie_secure: bool) -> str:
     """NORA_COOKIE_SAMESITE ∈ {strict, lax, none}; پیش‌فرض و هر مقدار نامعتبر → strict.
 
@@ -158,6 +183,11 @@ class Settings:
     # in-database limit. Empty = not configured (uploads stay ≤ EVENT_RESOURCE_MAX_BYTES in the DB).
     private_storage_dir: str = ""
     private_storage_max_bytes: int = 512 * 1024 * 1024
+    # Phase 9.4: CSP frame-src allowlist for the external video embeds. Empty = header not sent.
+    # ``csp_report_only`` (default True) sends Content-Security-Policy-Report-Only so staging can
+    # watch securitypolicyviolation events before anything is enforced.
+    csp_frame_src: str = ""
+    csp_report_only: bool = True
     data_staging_retention_hours: int = 72
     legacy_audit_script: str = ""
 
@@ -331,6 +361,8 @@ class Settings:
             cooperation_submit_limit_per_minute=cooperation_limit,
             private_storage_dir=os.getenv("NORA_PRIVATE_STORAGE_DIR", "").strip(),
             private_storage_max_bytes=private_storage_max_mib * 1024 * 1024,
+            csp_frame_src=_csp_frame_src_env(),
+            csp_report_only=_bool_env("NORA_CSP_REPORT_ONLY", True),
             safir_api_key=safir_api_key,
             safir_bot_id=safir_bot_id,
             safir_url=safir_url or "https://safir.bale.ai/api/v3/send_message",

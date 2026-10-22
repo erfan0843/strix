@@ -1329,6 +1329,8 @@ def create_app(
     frame_ancestors = os.getenv("NORA_FRAME_ANCESTORS", "").strip()
     if any(ch in frame_ancestors for ch in ";\r\n"):
         frame_ancestors = ""
+    csp_frame_src = settings.csp_frame_src
+    csp_report_only = settings.csp_report_only
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -1340,6 +1342,16 @@ def create_app(
             response.headers["Content-Security-Policy"] = f"frame-ancestors {frame_ancestors}"
         else:
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        if csp_frame_src and "text/html" in response.headers.get("content-type", ""):
+            # فاز ۹.۴ §۵: allowlist صریح قاب‌های ویدیو (یوتیوب/آپارات) فقط وقتی NORA_CSP_FRAME_SRC تنظیم
+            # شده؛ پیش‌فرض Report-Only تا staging با مرورگر واقعی بی‌خطا شود، سپس NORA_CSP_REPORT_ONLY=0.
+            # پاسخ‌های فایل (CSP «sandbox») HTML نیستند و دست نمی‌خورند.
+            if csp_report_only:
+                response.headers["Content-Security-Policy-Report-Only"] = f"frame-src {csp_frame_src}"
+            elif "Content-Security-Policy" in response.headers:
+                response.headers["Content-Security-Policy"] += f"; frame-src {csp_frame_src}"
+            else:
+                response.headers["Content-Security-Policy"] = f"frame-src {csp_frame_src}"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         path = request.url.path.lower()
         if path.startswith("/api/public/media/") and response.status_code in {200, 304}:
