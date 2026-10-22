@@ -182,7 +182,7 @@ def test_public_response_and_cooperation_migrations_upgrade_and_downgrade(tmp_pa
             constraint["name"] for constraint in inspector.get_check_constraints("club_points_entries")
         }
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -252,7 +252,7 @@ def test_certificates_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM certificates")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -306,7 +306,7 @@ def test_public_media_migration_with_existing_data_round_trip(tmp_path, monkeypa
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM public_media")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -363,7 +363,7 @@ def test_club_points_migration_with_existing_data_round_trip(tmp_path, monkeypat
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM club_points_entries")) == 0
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -428,7 +428,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
                 "VALUES ('res-1', 'ev-legacy', 'جزوه', 'published', 'registered', 'file')"
             ))
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -451,7 +451,7 @@ def test_event_interaction_migration_with_existing_data_round_trip(tmp_path, mon
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_questions")) == 0
             assert connection.scalar(text("SELECT count(*) FROM user_notifications")) == 1
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -546,7 +546,7 @@ def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monk
                 "INSERT INTO recording_access (id, recording_id, account_id, source, status, order_id) "
                 "VALUES ('acc-r-1', 'rec-1', 'acc-legacy-5', 'purchase', 'active', 'ord-1')"
             ))
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
         with engine.connect() as connection:
             for statement in (
                 # one product per event
@@ -597,7 +597,7 @@ def test_recorded_content_migration_with_existing_data_round_trip(tmp_path, monk
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT count(*) FROM event_recordings")) == 0
             assert connection.scalar(text("SELECT count(*) FROM event_resources")) == 2
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -698,7 +698,7 @@ def test_form_aligned_store_migration_round_trip(tmp_path, monkeypatch):
                 "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
                 "VALUES ('res-ap', 'ev-held', 'ویدیوی آپارات', 'published', 'purchased', 'aparat', 'https://www.aparat.com/v/abc12')"
             ))
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
         with engine.connect() as connection:
             for statement in (
                 "UPDATE forms SET purpose = 'shop' WHERE id = 'form-buy'",
@@ -741,7 +741,7 @@ def test_form_aligned_store_migration_round_trip(tmp_path, monkeypatch):
     try:
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT purpose FROM forms WHERE id = 'form-buy'")) == "registration"
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
     finally:
         engine.dispose()
 
@@ -772,7 +772,7 @@ def test_private_storage_migration_round_trip(tmp_path, monkeypatch):
     finally:
         engine.dispose()
 
-    command.upgrade(config, "head")
+    command.upgrade(config, "0034_private_storage")
     engine = create_engine(database_url)
     try:
         assert "storage_key" in {c["name"] for c in inspect(engine).get_columns("event_resources")}
@@ -829,7 +829,7 @@ def test_private_storage_migration_round_trip(tmp_path, monkeypatch):
     engine = create_engine(database_url)
     try:
         with engine.begin() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0034_private_storage"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0035_notification_dedupe"
             assert connection.scalar(text("SELECT storage_key FROM event_resources WHERE id = 'res-inline'")) is None
     finally:
         engine.dispose()

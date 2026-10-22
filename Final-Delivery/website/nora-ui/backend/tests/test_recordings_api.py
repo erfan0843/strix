@@ -189,7 +189,10 @@ def inbox_decide(staff: TestClient, task_id: str, decision: str, reason: str, he
 
 def notifications(engine, account_id: str) -> list[UserNotificationRecord]:
     with Session(engine) as db:
-        return list(db.scalars(select(UserNotificationRecord).where(UserNotificationRecord.account_id == account_id)))
+        return list(db.scalars(
+            select(UserNotificationRecord).where(UserNotificationRecord.account_id == account_id)
+            .order_by(UserNotificationRecord.created_at.asc(), UserNotificationRecord.id)
+        ))
 
 
 # ── card transfer: full purchase path, access, refund, sales states ──
@@ -419,8 +422,15 @@ def test_card_transfer_purchase_is_reviewed_server_side_and_access_is_decided_pe
             assert member.get(download, headers={"Range": f"bytes={len(MP4) + 5}-"}).status_code == 416
             library = member.get("/api/account/recordings").json()["items"]
             assert len(library) == 1 and library[0]["access"]["state"] == "active" and library[0]["progress"] is None
-            queued = notifications(engine, member_id)
-            assert [item.kind for item in queued] == ["recording_access"] and queued[0].delivery_status == "pending"
+            queued = {item.kind: item for item in notifications(engine, member_id)}
+            # 9.4: purchase recorded (receipt uploaded) ≠ access activated; both honest, both queued ≠ delivered.
+            assert sorted(queued) == ["recording_access", "recording_purchase"]
+            assert {item.delivery_status for item in queued.values()} == {"pending"}
+            assert queued["recording_purchase"].dedupe_key.endswith(":receipt_submitted")
+            assert queued["recording_access"].dedupe_key.startswith("recording_access:")
+            assert {item.link for item in queued.values()} == {f"/event.html?id={event_id}#recording"}
+            assert "تأیید نشده" in queued["recording_purchase"].body
+            assert "/api/" not in queued["recording_purchase"].body + queued["recording_access"].body
             # Buyer may review (badge = buyer); attendance and registration still false: purchase ≠ registration ≠ attendance.
             page = interaction(member, event_id)
             assert page["viewer"]["participation"]["attended"] is False and page["viewer"]["participation"]["registered"] is False
@@ -440,9 +450,10 @@ def test_card_transfer_purchase_is_reviewed_server_side_and_access_is_decided_pe
             assert member.get("/api/account/recordings").json()["items"][0]["access"]["state"] == "revoked"
             assert recording_view(member, event_id)["viewer"]["cta"]["kind"] == "buy"
             assert owner.post(refund_url, json={"reference": "again", "reason": "دوباره"}, headers=owner_write_headers(owner)).status_code == 409
-            after_refund = notifications(engine, member_id)
-            assert [item.kind for item in after_refund] == ["recording_access", "recording_order"]
-            assert "TRX-REF-2026-01" in after_refund[1].body and "انصراف خریدار" in after_refund[1].body and after_refund[1].delivery_status == "pending"
+            after_refund = {item.kind: item for item in notifications(engine, member_id)}
+            assert sorted(after_refund) == ["recording_access", "recording_order", "recording_purchase"]
+            refund_note = after_refund["recording_order"]
+            assert "TRX-REF-2026-01" in refund_note.body and "انصراف خریدار" in refund_note.body and refund_note.delivery_status == "pending"
             assert manager.get("/api/admin/recording-orders?format=csv").status_code == 403
             export = owner.get("/api/admin/recording-orders?format=csv")
             assert export.status_code == 200 and "order_id" in export.text and order_id in export.text
@@ -859,17 +870,18 @@ def test_rejected_card_orders_notify_the_buyer_with_the_reason_and_allow_a_fresh
             task_id = sent.json()["review_task_id"]
             order_id = buyer.get("/api/account/recording-orders").json()["items"][0]["id"]
             assert buyer.get(f"/api/account/recording-orders/{order_id}").json()["status"] == "receipt_submitted"
-            assert notifications(engine, buyer_id) == []
+            assert [item.kind for item in notifications(engine, buyer_id)] == ["recording_purchase"]  # recorded, not paid
             # The receipt itself is a private file: only reviewers read it, through the task.
             assert owner.get(f"/api/admin/recording-orders/{order_id}/receipt").status_code in (200, 404)
 
             rejected = inbox_decide(owner, task_id, "rejected", "مبلغ واریزی با سفارش نمی‌خواند", owner_write_headers(owner))
             assert rejected.status_code == 200, rejected.text
             assert buyer.get(download).status_code == 403
-            queued = notifications(engine, buyer_id)
-            assert [item.kind for item in queued] == ["receipt_rejected"]
-            assert "مبلغ واریزی با سفارش نمی‌خواند" in queued[0].body and "نسخهٔ ضبط‌شدهٔ کارگاه" in queued[0].body
-            assert queued[0].delivery_status == "pending" and queued[0].delivery_attempts == 0  # queued ≠ delivered
+            queued = {item.kind: item for item in notifications(engine, buyer_id)}
+            assert sorted(queued) == ["receipt_rejected", "recording_purchase"]
+            verdict = queued["receipt_rejected"]
+            assert "مبلغ واریزی با سفارش نمی‌خواند" in verdict.body and "نسخهٔ ضبط‌شدهٔ کارگاه" in verdict.body
+            assert verdict.delivery_status == "pending" and verdict.delivery_attempts == 0  # queued ≠ delivered
             mine = buyer.get(f"/api/account/recording-orders/{order_id}").json()
             assert mine["status"] == "rejected" and mine["decision_reason"] == "مبلغ واریزی با سفارش نمی‌خواند" and mine["open"] is False
             assert owner.get(f"/api/forms/{form_id}/responses").json()["total"] == 0  # the rejected response is gone

@@ -551,6 +551,7 @@ class UserNotificationRecord(Base):
         Index("ix_user_notifications_account_created", "account_id", "created_at"),
         Index("ix_user_notifications_delivery", "delivery_status", "created_at"),
         UniqueConstraint("source_task_id", "kind", name="uq_user_notifications_task_kind"),
+        UniqueConstraint("dedupe_key", name="uq_user_notifications_dedupe_key"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -565,6 +566,10 @@ class UserNotificationRecord(Base):
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False, default="")
     file_refs: Mapped[list[Any]] = mapped_column(JSON_VALUE, nullable=False, default=list)
+    # Phase 9.4: stable idempotency key (retry/duplicate never adds a row) and an in-app page link
+    # (relative, validated by backend.notifications.safe_link; never a private file URL).
+    dedupe_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    link: Mapped[str | None] = mapped_column(String(200), nullable=True)
     delivery_status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     delivery_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_delivery_error: Mapped[str | None] = mapped_column(String(160), nullable=True)

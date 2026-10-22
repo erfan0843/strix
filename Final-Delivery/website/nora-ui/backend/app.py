@@ -47,6 +47,7 @@ from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated
 from . import data_staging as data_staging_mod
 from . import audit as audit_mod
 from . import certificates as certificates_mod
+from . import notifications as notifications_mod
 from . import club_points as club_points_mod
 from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
@@ -1710,6 +1711,8 @@ def create_app(
             "delivery_state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts),
             "delivery_attempts": item.delivery_attempts,
             "last_delivery_error": item.last_delivery_error or None,
+            # Relative in-app page (event/account); never a file URL. NULL for rows older than 9.4.
+            "link": item.link or None,
             "created_at": _as_utc(item.created_at).isoformat(),
             "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
             "read": item.read_at is not None,
@@ -2000,20 +2003,15 @@ def create_app(
         else:
             title = "فیش پرداخت تأیید شد" if approved else "فیش پرداخت تأیید نشد"
             body = "رسید پرداخت شما تأیید شد." if approved else ("رسید پرداخت تأیید نشد." + (" دلیل: " + reason if reason else ""))
-        notification = UserNotificationRecord(
-            id=str(uuid.uuid4()),
-            account_id=task.account_id,
-            bale_user_id=task.bale_user_id,
-            source_task_id=task.id,
-            kind=target_kind,
-            title=title,
-            body=body,
+        notifications_mod.queue(
+            db, account_id=task.account_id, kind=target_kind, title=title, body=body,
+            key=notifications_mod.dedupe_key("admin_task", task.id, target_kind),
+            bale_ids=[task.bale_user_id] if task.bale_user_id else [],
+            link=notifications_mod.account_link("registrations") if is_public_form_receipt
+            else notifications_mod.account_link("orders") if is_purchase_receipt else None,
             file_refs=[] if (is_public_form_receipt or is_purchase_receipt) else list(task_payload.get("file_refs", [])),
-            delivery_status="pending" if task.bale_user_id else "failed",
-            last_delivery_error=None if task.bale_user_id else "no_bale_identity",
+            source_task_id=task.id,
         )
-        db.add(notification)
-        db.flush()
         updated_task = db.get(AdminTaskRecord, task.id)
         if updated_task is None:
             raise HTTPException(404, "admin_task_not_found")
@@ -3333,40 +3331,20 @@ def create_app(
         server-verified Bale identity get a web-only row (``failed`` / ``no_bale_identity``)
         so nothing is ever sent to a guessed destination and the state stays honest.
         """
-        existing = db.get(UserNotificationRecord, question.notification_id) if question.notification_id else None
         bale_ids = verified_bale_ids_for_account(db, question.account_id)
-        target = bale_ids[0] if bale_ids else ""
         title = "پاسخ برگزارکننده به پرسش شما"
         body = (
             f"پرسش شما دربارهٔ «{event_title}» پاسخ داده شد.\n\n"
             f"پرسش: {question.body[:300]}\n\nپاسخ: {question.answer_body[:900]}"
         )
-        if existing is not None:
-            existing.title = title
-            existing.body = body
-            if existing.delivery_status != "delivered":
-                existing.bale_user_id = target
-                existing.delivery_status = "pending" if target else "failed"
-                existing.last_delivery_error = None if target else "no_bale_identity"
-            db.flush()
-            return existing
-        item = UserNotificationRecord(
-            id=str(uuid.uuid4()),
-            account_id=question.account_id,
-            bale_user_id=target,
-            source_task_id=None,
-            kind=interaction_mod.NOTIFICATION_KIND,
-            title=title,
-            body=body,
-            file_refs=[],
-            delivery_status="pending" if target else "failed",
-            delivery_attempts=0,
-            last_delivery_error=None if target else "no_bale_identity",
+        item, _created = notifications_mod.queue(
+            db, account_id=question.account_id, kind=interaction_mod.NOTIFICATION_KIND, title=title, body=body,
+            key=notifications_mod.dedupe_key("event_question", question.id, "answer"), bale_ids=bale_ids,
+            link=notifications_mod.event_link(question.event_id, anchor="qa"), refresh=True,
         )
-        db.add(item)
-        db.flush()
-        question.notification_id = item.id
-        db.flush()
+        if question.notification_id != item.id:
+            question.notification_id = item.id
+            db.flush()
         return item
 
     @app.get("/api/public/events/{event_id}/interaction")
@@ -4007,6 +3985,18 @@ def create_app(
             if before[key] != after[key]:
                 details[f"{key}_before"] = before[key]
                 details[f"{key}_after"] = after[key]
+        if before["status"] != "published" and record.status == "published" and record.session_id:
+            now = _utc_now()
+            live_now = record.publish_at is None or _as_utc(record.publish_at) <= now
+            product = db.scalar(
+                select(EventRecordingRecord).join(RecordingSessionRecord, RecordingSessionRecord.recording_id == EventRecordingRecord.id)
+                .where(RecordingSessionRecord.id == record.session_id)
+            )
+            session_row = db.get(RecordingSessionRecord, record.session_id)
+            if live_now and product is not None and session_row is not None and session_row.status == "published":
+                details["notified_holders"] = _notify_content_published(
+                    db, product, what="resource", target_id=record.id, title_text=record.title, now=now,
+                )
         record_audit(
             db, identity, "event_resource.update", target_type="event_resource", target_id=record.id,
             details=details,
@@ -4701,8 +4691,14 @@ def create_app(
 
     def _queue_recording_access_notification(
         db: Session, access: RecordingAccessRecord, recording: EventRecordingRecord, *, kind_label: str,
+        reactivated: bool = False, now: datetime | None = None,
     ) -> UserNotificationRecord:
-        """One outbox row per access grant; web-only accounts get an honest ``failed`` row."""
+        """One outbox row per access *activation*; web-only accounts get an honest ``failed`` row.
+
+        Idempotent: a retried webhook / double-submitted review (row already active) maps to the
+        key of the original activation and adds nothing. A real re-grant after a revocation or
+        expiry (``reactivated``) is a new activation and gets its own row.
+        """
         bale_ids = verified_bale_ids_for_account(db, access.account_id)
         target = bale_ids[0] if bale_ids else ""
         title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
@@ -4711,44 +4707,59 @@ def create_app(
         if expiry:
             body += f"\nاعتبار دسترسی تا: {event_time.to_local_input(expiry)}"
         body += "\nبرای مشاهده به بخش «محتوای من» در حساب کاربری بروید."
-        item = UserNotificationRecord(
-            id=str(uuid.uuid4()),
-            account_id=access.account_id,
-            bale_user_id=target,
-            source_task_id=None,
-            kind=recordings_mod.NOTIFICATION_KIND,
-            title="دسترسی به محتوای ضبط‌شده",
-            body=body,
-            file_refs=[],
-            delivery_status="pending" if target else "failed",
-            delivery_attempts=0,
-            last_delivery_error=None if target else "no_bale_identity",
+        stamp = (now or _utc_now()).strftime("%Y%m%dT%H%M") if reactivated else "first"
+        key = notifications_mod.dedupe_key("recording_access", access.id, access.source, access.order_id or "-", stamp)
+        item, _created = notifications_mod.queue(
+            db, account_id=access.account_id, kind=recordings_mod.NOTIFICATION_KIND,
+            title="دسترسی به محتوای ضبط‌شده", body=body, key=key, bale_ids=bale_ids,
+            link=notifications_mod.event_link(recording.event_id, anchor="recording"),
         )
-        db.add(item)
-        db.flush()
         return item
+
+    def _notify_content_published(
+        db: Session, recording: EventRecordingRecord, *, what: str, target_id: str, title_text: str, now: datetime,
+    ) -> int:
+        """New session/resource went live for a published product: one row per *active* access holder.
+
+        Real data path only: the product must be on sale/published and the content live now (a
+        scheduled ``publish_at`` in the future is not announced — nothing is visible yet). Key
+        ``recording_content:<what>:<id>:<account>`` so re-publishing after a draft round-trip or
+        a double click never duplicates.
+        """
+        if recording.status != "published":
+            return 0
+        holders = db.scalars(
+            select(RecordingAccessRecord).where(
+                RecordingAccessRecord.recording_id == recording.id, RecordingAccessRecord.status == "active",
+            )
+        ).all()
+        account_ids = [row.account_id for row in holders if recordings_mod.access_state(row, now) == "active"]
+        if not account_ids:
+            return 0
+        product = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+        noun = "جلسهٔ تازه" if what == "session" else "فایل/منبع تازه"
+        body = (f"{noun} «{title_text}» برای «{product}» منتشر شد.\n"
+                "برای مشاهده به صفحهٔ همان رویداد یا بخش «محتوای من» در حساب کاربری بروید.")
+        created = notifications_mod.fan_out(
+            db, account_ids=account_ids, kind=notifications_mod.KIND_CONTENT_PUBLISHED,
+            title="محتوای تازه در محصول خریداری‌شده", body=body,
+            key_for=lambda account_id: notifications_mod.dedupe_key("recording_content", what, target_id, account_id),
+            bale_ids_for=lambda account_id: verified_bale_ids_for_account(db, account_id),
+            link=notifications_mod.event_link(recording.event_id, anchor="recording"),
+        )
+        return len(created)
 
     def _queue_recording_order_notification(
         db: Session, order: RecordingOrderRecord, *, title: str, body: str,
     ) -> UserNotificationRecord:
         """Decision outbox row (reject/refund): same honest delivery states as the access notification."""
         bale_ids = verified_bale_ids_for_account(db, order.account_id)
-        target = bale_ids[0] if bale_ids else ""
-        item = UserNotificationRecord(
-            id=str(uuid.uuid4()),
-            account_id=order.account_id,
-            bale_user_id=target,
-            source_task_id=None,
-            kind=recordings_mod.ORDER_NOTIFICATION_KIND,
-            title=title,
-            body=body,
-            file_refs=[],
-            delivery_status="pending" if target else "failed",
-            delivery_attempts=0,
-            last_delivery_error=None if target else "no_bale_identity",
+        product = db.get(EventRecordingRecord, order.recording_id)
+        item, _created = notifications_mod.queue(
+            db, account_id=order.account_id, kind=recordings_mod.ORDER_NOTIFICATION_KIND, title=title, body=body,
+            key=notifications_mod.dedupe_key("recording_order", order.id, order.status, order.refund_reference or "-"),
+            bale_ids=bale_ids, link=notifications_mod.event_link(product.event_id) if product else notifications_mod.account_link("orders"),
         )
-        db.add(item)
-        db.flush()
         return item
 
     def _grant_recording_access(
@@ -4759,6 +4770,7 @@ def create_app(
         """Idempotent: one row per (product, account); re-activates revoked/expired rows."""
         row = recordings_mod.access_for(db, recording.id, account_id)
         created = row is None
+        reactivated = row is not None and recordings_mod.access_state(row, now) != "active"
         expires = recordings_mod.access_expiry(recording, now, days=access_days)
         if row is None:
             row = RecordingAccessRecord(
@@ -4780,7 +4792,7 @@ def create_app(
             row.revoke_reason = ""
         db.flush()
         label = {"purchase": "خرید", "free": "دسترسی رایگان", "granted": "اعطای دستی"}.get(source, source)
-        _queue_recording_access_notification(db, row, recording, kind_label=label)
+        _queue_recording_access_notification(db, row, recording, kind_label=label, reactivated=reactivated, now=now)
         return row, created
 
     # ── Phase 9.1: purchase-form finalization (single path for card / wallet / free) ──
@@ -5514,6 +5526,10 @@ def create_app(
             details["status_before"], details["status_after"] = before["status"], session.status
         if before["preview"] != session.preview:
             details["preview_after"] = session.preview
+        if before["status"] != "published" and session.status == "published":
+            details["notified_holders"] = _notify_content_published(
+                db, recording, what="session", target_id=session.id, title_text=session.title, now=_utc_now(),
+            )
         record_audit(db, identity, "recording.session.update", target_type="recording_session", target_id=session.id, details=details)
         db.commit()
         db.refresh(session)
@@ -7347,9 +7363,26 @@ def create_app(
         payload = await _read_json_object(request, 16 * 1024)
         try:
             submission = certificates_mod.validate_submission(payload)
+            prior_status = db.scalar(
+                select(CertificateRecord.status).where(CertificateRecord.external_key == submission["external_key"])
+            )
             record, created = certificates_mod.upsert(db, submission)
         except certificates_mod.CertificateError as error:
             raise _certificate_error(error) from None
+        # Issued / revoked notifications only on a real state change of the mirrored certificate
+        # (the bot center is the issuer; the server never issues). Keyed per certificate+status.
+        if record.status in {"issued", "revoked"} and record.status != prior_status:
+            label = record.title or record.event_title or "گواهی"
+            if record.status == "issued":
+                title, body = "گواهی شما صادر شد", f"گواهی «{label}» برای شما صادر شد و در بخش «گواهی‌ها» حساب کاربری قابل مشاهده است."
+            else:
+                title, body = "گواهی شما باطل شد", f"گواهی «{label}» باطل شد و دیگر معتبر نیست. برای پیگیری با برگزارکننده تماس بگیرید."
+            notifications_mod.queue(
+                db, account_id=record.account_id, kind=notifications_mod.KIND_CERTIFICATE, title=title, body=body,
+                key=notifications_mod.dedupe_key("certificate", record.external_key, record.status),
+                bale_ids=[record.bale_user_id] if record.bale_user_id else [],
+                link=notifications_mod.account_link("certificates"),
+            )
         db.commit()
         return {
             "id": record.id,
@@ -11126,6 +11159,16 @@ def create_app(
                 order.receipt_size = len(blob)
                 order.receipt_hash = content_hash
                 order.receipt_note = receipt_note[:300]
+                # Purchase recorded (not paid, not access): one honest row per ledger order.
+                product_title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+                notifications_mod.queue(
+                    db, account_id=account.id, kind=notifications_mod.KIND_PURCHASE_RECORDED,
+                    title="خرید شما ثبت شد و در انتظار بررسی است",
+                    body=(f"سفارش شما برای «{product_title}» به مبلغ {order.amount:,} {order.currency} ثبت و رسید دریافت شد.\n"
+                          "پرداخت هنوز تأیید نشده؛ پس از بررسی رسید، نتیجه و فعال‌شدن دسترسی جداگانه اطلاع داده می‌شود."),
+                    key=notifications_mod.dedupe_key("recording_order", order.id, "receipt_submitted"),
+                    bale_ids=bale_ids, link=notifications_mod.event_link(recording.event_id, anchor="recording"),
+                )
         db.commit()
         if is_purchase:
             return {"uploaded": True, "created": created, "review_task_id": task_id}

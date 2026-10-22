@@ -8,6 +8,7 @@ import tempfile
 import shared_api
 from auth import clear_state, get_state_data, set_state
 from bale_api import send, send_or_edit, send_photo, send_document, kb_cancel, kb_remove, BTN_BACK
+from config import NORA_WEBAPP_URL
 from database import log
 
 STATE_REJECT = "shared_workflow_reject"
@@ -338,12 +339,26 @@ def handle_reject_reason(message: dict[str, Any]) -> None:
     deliver_user_notifications(state.get("target_bale_user_id"))
 
 
+def _notification_webapp_button(item: dict[str, Any]) -> dict[str, Any] | None:
+    """فاز ۹.۴: اگر سرور پیوند نسبی صفحهٔ داخل برنامه داده و وب‌اپ تنظیم است، دکمهٔ بازکردن مینی‌اپ.
+
+    فقط مسیر نسبی صفحه (event/account) پذیرفته می‌شود؛ هیچ نشانی مطلق/فایل از اعلان به دکمه نمی‌رسد.
+    """
+    link = item.get("link")
+    if not NORA_WEBAPP_URL or not isinstance(link, str) or not link.startswith("/") or link.startswith("//"):
+        return None
+    if "/api/" in link or ".." in link or "\\" in link:
+        return None
+    return {"inline_keyboard": [[{"text": "🔗 باز کردن در مینی‌اپ", "web_app": {"url": NORA_WEBAPP_URL + link}}]]}
+
+
 def _deliver_notification_content(item: dict[str, Any], target: int | str) -> bool:
     body = item["title"]
     if item.get("body"):
         body += "\n\n" + item["body"]
     try:
-        result = send(target, body[:3500])
+        button = _notification_webapp_button(item)
+        result = send(target, body[:3500], button) if button else send(target, body[:3500])
     except Exception as exc:
         log(f"⚠️ ارسال متن اعلان انجام نشد: {type(exc).__name__}")
         return False
