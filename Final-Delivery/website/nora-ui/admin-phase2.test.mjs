@@ -183,6 +183,7 @@ async function loadPanel(identity) {
             if (!rec) return reply(404, { detail: 'content_record_not_found' });
             if (body.expected_version !== world.version) return reply(409, { detail: { code: 'site_content_version_conflict', current_version: world.version } });
             const refErr = refCheck(kind, body.record); if (refErr) return refErr;
+            if (Array.isArray(body.record.blocks) && body.record.blocks.some((b) => b && b.ty === 'img' && /^javascript:/i.test(b.src || ''))) return reply(422, { detail: { code: 'invalid_image', field: 'blocks' } });
             Object.assign(rec, body.record); world.version += 1;
             return reply(200, { kind, record: rec, version: world.version, saved: true });
           }
@@ -876,6 +877,75 @@ console.log('— مرحلهٔ ۲: انتخاب‌گر شناسه‌ای مدرس
     assert.equal(mgr.calls.filter((c) => c.path === '/api/owner/site-content').length, 0);
     assert.equal(mgr.doc.querySelector('[data-ct-pick-manage]'), null, 'مدیر میان‌بر مدیریت افراد ندارد');
   } finally { mgr.close(); }
+}
+
+console.log('— B20 ممیزی: بدنهٔ مطلب بلوکی (بند/تیتر/تصویر/فهرست) با همان API محتوا؛ مطلب قدیمیِ body-فقط بند می‌شود؛ ۴۲۲ روی بلوک‌ها؛ جابه‌جایی و حذف —');
+{
+  const world = { ...makeWorld(), articles: [
+    { id: 'ar-1', t: 'یادداشت سردبیر', cat: 'یادداشت', who: '', tchr: '', lead: 'لید', body: ['بند نخست', 'بند دوم'], status: 'draft', updated_at: '2026-10-20T10:00:00+00:00', created_at: '2026-10-20T10:00:00+00:00' },
+  ] };
+  const app = await loadPanel({ role: 'owner', sec: 'events', world });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-kind="articles"]'), 'زبانهٔ مطالب');
+    app.click('[data-ct-kind="articles"]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ar-1"]'), 'فهرست مطالب');
+    app.click('[data-ct-edit="ar-1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-blocks]'), 'ویرایشگر بلوکی');
+    assert.equal(app.doc.querySelector('#ctf_body'), null, 'متن آزاد قدیمی جای خود را به بلوک‌ها داده');
+    const rows = app.doc.querySelectorAll('[data-ct-block-row]');
+    assert.equal(rows.length, 1, 'body قدیمی یک بلوک «بند» می‌شود');
+    assert.equal(rows[0].getAttribute('data-ct-block-type'), 'p');
+    assert.equal(app.doc.querySelector('[data-ct-block="0"][data-ct-block-field="x"]').value, 'بند نخست\n\nبند دوم', 'بندها با خط خالی در یک جعبه');
+
+    /* افزودن تیتر، تصویر و فهرست از پالت؛ ترتیب با دکمه‌های بالا/پایین */
+    app.click('[data-ct-block-add="h"]');
+    await app.until(() => app.doc.querySelector('[data-ct-block="1"][data-ct-block-field="x"]'), 'بلوک تیتر');
+    assert.equal(app.doc.activeElement, app.doc.querySelector('[data-ct-block="1"][data-ct-block-field="x"]'), 'فوکوس روی بلوک تازه');
+    app.type('[data-ct-block="1"][data-ct-block-field="x"]', 'عنوان بخش');
+    app.click('[data-ct-block-move="1"][data-ct-block-dir="-1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-block-row="0"]').getAttribute('data-ct-block-type') === 'h', 'تیتر بالا رفت');
+    app.click('[data-ct-block-add="img"]');
+    await app.until(() => app.doc.querySelector('[data-ct-block="2"][data-ct-block-field="src"]'), 'بلوک تصویر');
+    assert.ok(app.doc.querySelector('[data-ct-image="block:2"]'), 'بارگذاری تصویر بلوک از همان مسیر رسانهٔ سرور');
+    app.type('[data-ct-block="2"][data-ct-block-field="src"]', 'javascript:alert(1)');
+    app.type('[data-ct-block="2"][data-ct-block-field="cap"]', 'زیرنویس');
+    app.click('[data-ct-block-add="ul"]');
+    await app.until(() => app.doc.querySelector('[data-ct-block="3"][data-ct-block-field="x"]'), 'بلوک فهرست');
+    app.type('[data-ct-block="3"][data-ct-block-field="x"]', 'یک\nدو');
+    app.click('[data-ct-block-add="hr"]');
+    await app.until(() => app.doc.querySelectorAll('[data-ct-block-row]').length === 5, 'جداکننده');
+
+    /* سرور نشانی ناامن تصویر را رد می‌کند → خطا روی بلوک‌ها، چیزی ذخیره نشد، نوشته‌ها می‌مانند */
+    const putsBefore = app.calls.filter((c) => c.method === 'PUT').length;
+    app.click('[data-ct-save]');
+    await app.until(() => /تصویر معتبر نیست/.test((app.doc.querySelector('[data-ct-err="blocks"]') || {}).textContent || ''), 'خطای ۴۲۲ روی بلوک‌ها');
+    const badPut = app.calls.filter((c) => c.method === 'PUT').pop();
+    assert.equal(app.calls.filter((c) => c.method === 'PUT').length, putsBefore + 1);
+    assert.deepEqual(badPut.body.record.blocks.map((b) => b.ty), ['h', 'p', 'p', 'img', 'ul', 'hr'], 'بند چندپاراگرافی به چند بلوک p شکسته می‌شود');
+    assert.deepEqual(badPut.body.record.body, ['بند نخست', 'بند دوم'], 'body از بندهای متنی مشتق می‌شود');
+    assert.deepEqual(app.world.articles[0].body, ['بند نخست', 'بند دوم']);
+    assert.equal(app.world.articles[0].blocks, undefined, 'چیزی ذخیره نشد');
+    assert.equal(app.doc.querySelector('[data-ct-block="1"][data-ct-block-field="x"]').value, 'بند نخست\n\nبند دوم', 'نوشته‌ها پس از خطا باقی‌اند');
+
+    /* اصلاح نشانی، حذف جداکننده با تأیید و ذخیرهٔ موفق */
+    app.type('[data-ct-block="2"][data-ct-block-field="src"]', '/api/public/media/med-77');
+    assert.equal((app.doc.querySelector('[data-ct-err="blocks"]') || {}).getAttribute('style'), null, 'با تایپ، خطا پاک می‌شود');
+    app.click('[data-ct-block-del="4"]');
+    await app.until(() => app.doc.querySelectorAll('[data-ct-block-row]').length === 4, 'جداکننده برداشته شد');
+    app.click('[data-ct-save]');
+    await app.until(() => Array.isArray(app.world.articles[0].blocks), 'ذخیره شد');
+    assert.deepEqual(app.world.articles[0].blocks, [
+      { ty: 'h', x: 'عنوان بخش', lv: 2 }, { ty: 'p', x: 'بند نخست' }, { ty: 'p', x: 'بند دوم' },
+      { ty: 'img', src: '/api/public/media/med-77', cap: 'زیرنویس' }, { ty: 'ul', x: 'یک\nدو' },
+    ]);
+    app.noLeak();
+
+    /* بازگشایی: بلوک‌های ذخیره‌شده همان‌طور برمی‌گردند (بدون ادغام دوباره با body) */
+    await app.until(() => app.doc.querySelector('[data-ct-row="ar-1"]'), 'فهرست پس از ذخیره');
+    app.click('[data-ct-edit="ar-1"]');
+    await app.until(() => app.doc.querySelectorAll('[data-ct-block-row]').length === 5, 'پنج بلوک ذخیره‌شده');
+    assert.deepEqual([...app.doc.querySelectorAll('[data-ct-block-row]')].map((r) => r.getAttribute('data-ct-block-type')), ['h', 'p', 'p', 'img', 'ul']);
+  } finally { app.close(); }
 }
 
 console.log('— مرحلهٔ ۳: پروندهٔ کاربر U4/U5؛ ثبت‌نام‌های صفحه‌بندی‌شده، جزئیات از form_snapshot با ماسک، مالی فقط با finance، اعلان‌های همین حساب با scope/delivery_state/has_bale_identity —');

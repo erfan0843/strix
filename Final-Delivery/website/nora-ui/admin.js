@@ -6805,7 +6805,7 @@ function p2Err(error,fallback){
 }
 const P2_FIELD_ERR={title_required:'عنوان لازم است.',invalid_jalali_date:'تاریخ باید به شکل ۱۴۰۵/۰۸/۱۲ باشد.',date_required:'تاریخ شمسی یا متن زمان برگزاری لازم است.',
   invalid_number:'عدد معتبر نیست.',invalid_image:'تصویر معتبر نیست (فقط آدرس همین سایت، https یا فایل تصویری).',invalid_reference:'شناسهٔ ارجاع معتبر نیست.',unknown_reference:'این شناسه در فهرست افراد/نهادهای همکار سرور وجود ندارد؛ اول شخص یا نهاد را بسازید.',
-  invalid_date:'تاریخ باید به شکل 2026-10-21 باشد.',invalid_body:'متن مطلب معتبر نیست.',article_body_required:'برای انتشار، لید یا متن مطلب لازم است.',
+  invalid_date:'تاریخ باید به شکل 2026-10-21 باشد.',invalid_body:'متن مطلب معتبر نیست.',invalid_blocks:'یکی از بلوک‌های بدنه پذیرفته نشد (نوع یا اندازهٔ نامعتبر).',article_body_required:'برای انتشار، لید یا دست‌کم یک بلوک بدنه لازم است.',
   event_description_required:'برای انتشار، شرح رویداد لازم است.',unexpected_record_fields:'فیلد ناشناخته‌ای فرستاده شد.',invalid_status:'وضعیت معتبر نیست.',
   invalid_status_transition:'این تغییر وضعیت از حالت فعلی مجاز نیست.',status_unchanged:'وضعیت همین حالا همین است.',
   invalid_datetime:'زمان باید به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ (ساعت تهران) باشد و در بازهٔ معقول قرار گیرد.',invalid_datetime_order:'زمان پایان باید بعد از زمان شروع باشد.',
@@ -7000,7 +7000,7 @@ function pkPreflight(e){
 const pkName=(field,id)=>{const p=pkRow(field,id); return p?String(p.n||''):''};
 function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
     startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,tchr:'',partnerId:'',parts:[]}
-  :{t:'',cat:'',lead:'',body:'',cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
+  :{t:'',cat:'',lead:'',body:'',blocks:[],cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
 function ctEditable(kind,record){
   const base=ctBlank(kind), out={};
   Object.keys(base).forEach(key=>{
@@ -7008,6 +7008,7 @@ function ctEditable(kind,record){
     if(key==='tags') value=Array.isArray(value)?value.join('، '):(value||'');
     else if(key==='parts') value=ctPartsFrom(value);
     else if(key==='body') value=Array.isArray(value)?value.join('\n\n'):(value||'');
+    else if(key==='blocks') value=ctBlocksFrom(value,record?record.body:null);
     /* زمان‌ها در سرور UTC ذخیره‌اند؛ پنل همان مقدار شمسی/تهران را که سرور برمی‌گرداند نشان می‌دهد */
     else if(CT_DATETIME_FIELDS.includes(key)) value=record&&record.local_times&&typeof record.local_times[key]==='string'?record.local_times[key]:(value||'');
     else if(key==='regMode'||key==='lifecycle') value=value||base[key];
@@ -7023,7 +7024,8 @@ function ctPayload(kind,form){
     let value=form[key];
     if(key==='tags') value=String(value||'').split(/[,،\n]/).map(s=>s.trim()).filter(Boolean);
     else if(key==='parts') value=ctPartsFrom(value).filter(p=>Object.keys(p).some(k=>p[k]));
-    else if(key==='body') value=String(value||'').replace(/\r/g,'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+    else if(key==='body') value=kind==='articles'&&Array.isArray(form.blocks)?ctBlocksPayload(form.blocks).filter(b=>b.ty==='p').map(b=>b.x):String(value||'').replace(/\r/g,'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+    else if(key==='blocks') value=ctBlocksPayload(value);
     else if(typeof blank[key]==='boolean') value=!!value;
     else value=String(value==null?'':value).trim();
     if(['price','cap','sess','certMin','min'].includes(key)) value=value===''?0:value;
@@ -7036,7 +7038,7 @@ function ctPreview(form){
   const safeImg=img&&/^(data:image\/(png|jpeg|webp|gif);base64,|https:\/\/|\.?\/?[A-Za-z0-9_])/i.test(img)?img:'';
   const meta=kind==='events'?[form.kind,form.on||form.when,form.time,form.place,form.mode,form.price&&Number(form.price)?fa(form.price)+' ریال':'رایگان',pkName('tchr',form.tchr)?'مدرس: '+pkName('tchr',form.tchr):'',pkName('partnerId',form.partnerId)?'با همکاری '+pkName('partnerId',form.partnerId):''].filter(Boolean).join(' · ')
     :[form.cat||'مطلب',pkName('tchr',form.tchr)||form.who,form.at].filter(Boolean).join(' · ');
-  const text=kind==='events'?form.d:(form.lead||String(form.body||'').split(/\n\s*\n/)[0]||'');
+  const text=kind==='events'?form.d:(form.lead||(ctBlocksPayload(form.blocks).find(b=>b.ty==='p')||{}).x||String(form.body||'').split(/\n\s*\n/)[0]||'');
   return `<article class="evcard"><div class="evcard-cover" style="min-height:120px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden">${safeImg?`<img src="${esc(safeImg)}" alt="" style="width:100%;height:160px;object-fit:cover"/>`:`<span class="cap">${ico('i-image')} بدون تصویر</span>`}</div>
     <div class="evcard-body stack"><b>${esc(form.t||'عنوان هنوز وارد نشده')}</b><small class="cap">${esc(meta||'جزئیات هنوز وارد نشده')}</small><p class="cap" style="white-space:pre-wrap">${esc(String(text||'').slice(0,320))}</p>
     ${form.tags?`<div class="admfilters">${String(form.tags).split(/[,،\n]/).map(s=>s.trim()).filter(Boolean).slice(0,8).map(t=>tag(t,'')).join('')}</div>`:''}</div></article>`;
@@ -7069,6 +7071,67 @@ function ctPartsFrom(value){
   if(!Array.isArray(value)) return [];
   return value.slice(0,80).map(item=>{const row={}; if(typeof item==='string'){row.title=item.trim()} else if(item&&typeof item==='object'){CT_PART_FIELDS.forEach(k=>{row[k]=String(item[k]==null?'':item[k]).trim()})}
     CT_PART_FIELDS.forEach(k=>{if(row[k]==null) row[k]=''}); return row});
+}
+/* ممیزی ۱۴۰۵/۰۸/۰۱ (B20): بدنهٔ مطلب = فهرست مرتب بلوک‌ها؛ همان انواعی که سرور می‌پذیرد و post.html بدون منبع بیرونی رسم می‌کند.
+   «بند» می‌تواند چند پاراگراف (جداشده با خط خالی) باشد و هنگام ارسال به چند بلوک p شکسته می‌شود؛ body روی سرور از همین بندها مشتق می‌شود. */
+const CT_BLOCK_TYPES=[['p','بند','i-text'],['h','تیتر','i-align'],['q','نقل‌قول','i-chat'],['img','تصویر','i-image'],['ul','فهرست','i-list'],['ol','فهرست شماره‌دار','i-number'],['box','کادر نکته','i-info'],['hr','جداکننده','i-more']];
+const CT_BLOCK_FIELDS={p:['x'],h:['x','lv'],q:['x','by'],img:['up','src','cap','alt'],ul:['x'],ol:['x'],box:['x','ic'],tog:['x','t'],hr:[]};
+function ctBlocksFrom(value,body){
+  const list=Array.isArray(value)?value:[];
+  const out=[];
+  list.slice(0,100).forEach(item=>{
+    if(typeof item==='string'){if(item.trim()) out.push({ty:'p',x:item.trim()}); return}
+    if(!item||typeof item!=='object'||!CT_BLOCK_FIELDS[item.ty]) return;
+    const row={ty:item.ty}; CT_BLOCK_FIELDS[item.ty].forEach(k=>{const v=item[k]; row[k]=k==='lv'?(String(v)==='3'?'3':'2'):Array.isArray(v)?v.join('\n'):String(v==null?'':v)});
+    out.push(row);
+  });
+  if(!out.length){const paras=(Array.isArray(body)?body:String(body||'').split(/\n\s*\n/)).map(x=>String(x||'').trim()).filter(Boolean);
+    if(paras.length) out.push({ty:'p',x:paras.join('\n\n')})}
+  return out;
+}
+function ctBlocksPayload(value){
+  const out=[];
+  (Array.isArray(value)?value:[]).forEach(b=>{
+    if(!b||!CT_BLOCK_FIELDS[b.ty]) return;
+    if(b.ty==='p'){String(b.x||'').replace(/\r/g,'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).forEach(x=>out.push({ty:'p',x})); return}
+    const row={ty:b.ty}; CT_BLOCK_FIELDS[b.ty].forEach(k=>{const v=String(b[k]==null?'':b[k]).trim(); if(v) row[k]=k==='lv'?(v==='3'?3:2):v});
+    if(b.ty==='hr'||(b.ty==='img'?(row.up||row.src):row.x)) out.push(row);
+  });
+  return out.slice(0,100);
+}
+function ctBlockLabel(ty){const t=CT_BLOCK_TYPES.find(x=>x[0]===ty); return t?t[1]:ty}
+function ctBlocksBox(f,err){
+  const blocks=Array.isArray(f.blocks)?f.blocks:(f.blocks=[]);
+  const up=CM.up;
+  const inp=(i,k,v,ph,extra)=>`<input type="text" class="input" data-ct-block="${i}" data-ct-block-field="${k}" value="${esc(v||'')}" placeholder="${esc(ph||'')}" ${extra||''}/>`;
+  const ta=(i,k,v,ph,rows)=>`<textarea class="input" rows="${rows||3}" data-ct-block="${i}" data-ct-block-field="${k}" placeholder="${esc(ph||'')}">${esc(v||'')}</textarea>`;
+  const rows=blocks.map((b,i)=>{
+    let body='';
+    switch(b.ty){
+      case 'p': body=ta(i,'x',b.x,'متن بند؛ برای بند تازه یک خط خالی بگذار',5); break;
+      case 'h': body=`<div class="row tight" style="flex-wrap:wrap">${inp(i,'x',b.x,'متن تیتر','maxlength="240" style="flex:2 1 200px"')}<select class="input" data-ct-block="${i}" data-ct-block-field="lv" style="flex:0 1 140px"><option value="2" ${b.lv!=='3'?'selected':''}>تیتر اصلی</option><option value="3" ${b.lv==='3'?'selected':''}>تیتر کوچک</option></select></div>`; break;
+      case 'q': body=ta(i,'x',b.x,'متن نقل‌قول',2)+inp(i,'by',b.by,'گوینده (اختیاری)','maxlength="200"'); break;
+      case 'img':{const src=b.up||b.src, here=up.field==='block:'+i;
+        body=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${src?`<img src="${esc(src)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px"/>`:'<span class="cap">تصویری انتخاب نشده</span>'}
+          <label class="btn sm ${up.busy?'disabled':''}">${ico('i-upload')}بارگذاری تصویر<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="block:${i}" ${up.busy?'disabled':''} hidden/></label>
+          ${here&&up.busy?`<span class="cap" data-ct-image-state="busy">${ico('i-clock')} در حال بارگذاری «${esc(up.name)}»…</span>`:''}
+          ${here&&up.error?`<span class="cap" style="color:var(--stop)" role="alert" data-ct-image-state="error">${esc(up.error)}</span>${up.file?btn('تلاش دوباره',`data-ct-image-retry="block:${i}"`,'i-refresh'):''}`:''}</div>
+          ${b.up?`<div class="row tight" style="flex-wrap:wrap;align-items:center"><small class="cap" dir="ltr">${esc(b.up)}</small>${up.busy?'':btn('حذف تصویر',`data-ct-block-img-clear="${i}"`,'i-close')}</div>`:''}
+          ${inp(i,'src',b.src,'یا نشانی تصویر (https یا مسیر همین سایت)','dir="ltr"')}
+          <div class="row tight" style="flex-wrap:wrap">${inp(i,'cap',b.cap,'زیرنویس (اختیاری)','maxlength="500" style="flex:1 1 160px"')}${inp(i,'alt',b.alt,'متن جایگزین برای دسترس‌پذیری','maxlength="300" style="flex:1 1 160px"')}</div>`; break}
+      case 'ul': case 'ol': body=ta(i,'x',b.x,'هر سطر یک مورد',4); break;
+      case 'box': body=ta(i,'x',b.x,'متن نکته یا هشدار',2); break;
+      case 'hr': body='<small class="cap">خط جداکننده بین بخش‌ها</small>'; break;
+      default: body='';
+    }
+    return `<div class="card stack" data-ct-block-row="${i}" data-ct-block-type="${esc(b.ty)}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><b>${fa(i+1)}. ${esc(ctBlockLabel(b.ty))}</b><span class="sp"></span>
+      ${i>0?`<button type="button" class="btn sm quiet" data-ct-block-move="${i}" data-ct-block-dir="-1" aria-label="بالا">${ico('i-chev-up')}</button>`:''}${i<blocks.length-1?`<button type="button" class="btn sm quiet" data-ct-block-move="${i}" data-ct-block-dir="1" aria-label="پایین">${ico('i-chev-down')}</button>`:''}
+      <button type="button" class="btn sm quiet" data-ct-block-del="${i}">${ico('i-trash')}برداشتن</button></div>${body}</div>`;
+  }).join('');
+  return `<div class="card stack" data-ct-blocks><div class="row" style="flex-wrap:wrap;gap:6px"><strong>بدنهٔ مطلب</strong><span class="sp"></span></div>
+    <small class="cap" data-ct-err="blocks" ${err?'style="color:var(--stop)"':''}>${esc(err||'بلوک‌ها به همین ترتیب در صفحهٔ مطلب می‌آیند. ویدیو، صدا، فایل و پیوند بیرونی هنوز از پنل افزوده نمی‌شود (نیازمند تصمیم منبع معتبر).')}</small>
+    ${rows||`<small class="cap" data-ct-blocks-empty>هنوز بلوکی نیست؛ از دکمه‌های زیر اضافه کن.</small>`}
+    <div class="admfilters" data-ct-block-palette>${CT_BLOCK_TYPES.map(t=>`<button type="button" class="chip" data-ct-block-add="${t[0]}">${ico(t[2])}${esc(t[1])}</button>`).join('')}</div></div>`;
 }
 /* قالب‌های رویداد: فقط مقدار پیش‌فرض برای فیلدهای خالی؛ قالب داده نیست و هرگز خودکار ذخیره نمی‌شود. */
 const CT_TEMPLATES=[
@@ -7242,7 +7305,7 @@ function ctEditor(){
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('دسته','cat',f.cat,{max:80,ph:'اخبار، آموزش…'})}${p2Inp('نویسندهٔ میهمان (نام آزاد، اختیاری)','who',f.who,{max:160,hint:'اگر نویسنده پروفایل سایت دارد، پایین از فهرست انتخاب کن.'})}${p2Inp('تاریخ انتشار','at',f.at,{max:30,ph:'2026-10-21',dir:'ltr',err:err.at})}</div>
     <div class="card stack" data-ct-people>${ctPicker('tchr')}</div>
     ${p2Inp('لید','lead',f.lead,{textarea:true,rows:3,err:err.lead})}
-    ${p2Inp('متن','body',f.body,{textarea:true,rows:10,err:err.body,hint:'هر بند را با یک خط خالی جدا کنید.'})}
+    ${ctBlocksBox(f,err.blocks||err.body)}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}${p2Inp('زمان مطالعه (دقیقه)','min',f.min,{type:'numeric',dir:'ltr',err:err.min})}</div>
     <label class="chip ${f.pin?'on':''}"><input type="checkbox" data-ct-check="pin" ${f.pin?'checked':''} hidden/>سنجاق در صدر فهرست</label>
     ${imageBox}`;
@@ -8153,7 +8216,7 @@ async function ctSendImage(){
   up.busy=true; up.error=''; renderBody();
   try{
     const result=await api.uploadAdminMedia(up.file,up.name,staffCsrfCookie());
-    if(CT.edit) CT.edit.form[up.field]=result.url;
+    if(CT.edit){const bm=/^block:(\d+)$/.exec(up.field); if(bm){const b=(CT.edit.form.blocks||[])[+bm[1]]; if(b&&b.ty==='img'){b.up=result.url; b.src=''}} else CT.edit.form[up.field]=result.url; ctDraftSave()}
     CM.data=null;
     toast(result.created===false?'همین تصویر پیش‌تر در سرور بود؛ همان نشانی استفاده شد':`تصویر در سرور ذخیره شد (${fa(result.width)}×${fa(result.height)})`);
     CM.up={busy:false,error:'',file:null,field:'',name:''};
@@ -8684,6 +8747,12 @@ document.addEventListener('click',e=>{
   if(q('[data-ct-part-add]')){if(CT.edit){const parts=CT.edit.form.parts=Array.isArray(CT.edit.form.parts)?CT.edit.form.parts:[]; if(parts.length>=80){toast('بیشینهٔ ۸۰ جلسه'); return}
       const prev=parts[parts.length-1], d=ctJDate(prev?prev.date:CT.edit.form.on); parts.push({title:'',date:d?ctJForm(d.j.jy,d.j.jm,d.j.jd):'',time:prev?prev.time:'',to:prev?prev.to:'',description:''}); ctDraftSave(); renderBody();
       const el=document.querySelector(`[data-ct-part="${parts.length-1}"][data-ct-part-field="title"]`); if(el) el.focus()} return}
+  const blkAdd=q('[data-ct-block-add]'); if(blkAdd){if(CT.edit){const blocks=CT.edit.form.blocks=Array.isArray(CT.edit.form.blocks)?CT.edit.form.blocks:[]; if(blocks.length>=100){toast('بیشینهٔ ۱۰۰ بلوک'); return}
+      const ty=blkAdd.dataset.ctBlockAdd; if(!CT_BLOCK_FIELDS[ty]) return; const row={ty}; CT_BLOCK_FIELDS[ty].forEach(k=>{row[k]=k==='lv'?'2':''}); blocks.push(row); ctDraftSave(); renderBody();
+      const el=document.querySelector(`[data-ct-block="${blocks.length-1}"]`); if(el) el.focus()} return}
+  const blkDel=q('[data-ct-block-del]'); if(blkDel){if(CT.edit&&Array.isArray(CT.edit.form.blocks)){const b=CT.edit.form.blocks[+blkDel.dataset.ctBlockDel]; if(b&&(b.x||b.up||b.src)&&!confirm('این بلوک برداشته شود؟ (تا «ذخیره» چیزی در سرور تغییر نمی‌کند)')) return; CT.edit.form.blocks.splice(+blkDel.dataset.ctBlockDel,1); ctDraftSave(); renderBody()} return}
+  const blkImgClear=q('[data-ct-block-img-clear]'); if(blkImgClear){if(CT.edit&&Array.isArray(CT.edit.form.blocks)){const b=CT.edit.form.blocks[+blkImgClear.dataset.ctBlockImgClear]; if(b){b.up=''; ctDraftSave(); renderBody()}} return}
+  const blkMv=q('[data-ct-block-move]'); if(blkMv){if(CT.edit&&Array.isArray(CT.edit.form.blocks)){const p=CT.edit.form.blocks, i=+blkMv.dataset.ctBlockMove, j=i+(+blkMv.dataset.ctBlockDir); if(p[i]&&p[j]){const t=p[i]; p[i]=p[j]; p[j]=t; ctDraftSave(); renderBody()}} return}
   const partDel=q('[data-ct-part-del]'); if(partDel){if(CT.edit&&Array.isArray(CT.edit.form.parts)){CT.edit.form.parts.splice(+partDel.dataset.ctPartDel,1); CT.dp=null; ctDraftSave(); renderBody()} return}
   const partMv=q('[data-ct-part-move]'); if(partMv){if(CT.edit&&Array.isArray(CT.edit.form.parts)){const p=CT.edit.form.parts, i=+partMv.dataset.ctPartMove, j=i+(+partMv.dataset.ctPartDir); if(p[i]&&p[j]){const t=p[i]; p[i]=p[j]; p[j]=t; CT.dp=null; ctDraftSave(); renderBody()}} return}
   const dpBtn=q('[data-ctdp]'); if(dpBtn){if(!CT.edit) return; const f=dpBtn.dataset.ctdp, cur=ctJDate(ctDpValue(f))||ctJDate(CT.edit.form.startsAt)||ctJDate(CT.edit.form.on), t=jToday(); CT.dp=CT.dp&&CT.dp.f===f?null:{f:f,y:(cur?cur.j:t).jy,m:(cur?cur.j:t).jm}; renderBody(); return}
@@ -8756,6 +8825,9 @@ document.addEventListener('input',e=>{
       let v=t.value; if(k==='time'||k==='to'){const fixed=ctTimeFix('time',v,false); if(fixed!==v){v=fixed; t.value=v}} row[k]=v;
       if(k==='date'){const wd=document.querySelector(`[data-ct-part-weekday="${i}"]`); if(wd) wd.textContent=ctWeekday(v)}
       if(CT.edit.errors&&CT.edit.errors.parts){delete CT.edit.errors.parts; const err=document.querySelector('[data-ct-err="parts"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
+      ctDraftSave()} return}
+  if(t.dataset&&t.dataset.ctBlock!=null){const i=+t.dataset.ctBlock, k=t.dataset.ctBlockField, row=(CT.edit.form.blocks||[])[i]; if(row&&(CT_BLOCK_FIELDS[row.ty]||[]).includes(k)){row[k]=t.value;
+      if(CT.edit.errors&&(CT.edit.errors.blocks||CT.edit.errors.body)){delete CT.edit.errors.blocks; delete CT.edit.errors.body; const err=document.querySelector('[data-ct-err="blocks"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
       ctDraftSave()} return}
   const field=t.dataset&&t.dataset.ctField; if(!field) return;
   const before=CT.edit.form[field]; let value=t.value;

@@ -690,3 +690,86 @@ def test_legacy_event_parts_with_alias_keys_survive_status_changes():
             assert parts[1]["description"] == "توضیح"
     finally:
         engine.dispose()
+
+
+def test_article_blocks_are_editable_validated_and_projected_publicly():
+    """ممیزی پنل ۱۴۰۵/۰۸/۰۱ ردیف B20: بدنهٔ مطلب به‌صورت بلوک (بند/تیتر/نقل‌قول/تصویر/فهرست/کادر/جداکننده) از پنل
+    ذخیره می‌شود؛ ``body`` همیشه بندهای متنی همان بلوک‌هاست؛ نوع یا کلید ناشناخته و تصویر با نشانی ناامن ۴۲۲ فیلدی
+    می‌دهد و چیزی ذخیره نمی‌کند؛ صفحهٔ عمومی همان بلوک‌ها را می‌گیرد."""
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            blocks = [
+                {"ty": "h", "x": "آغاز", "lv": "2"},
+                {"ty": "p", "x": "بند نخست"},
+                {"ty": "q", "x": "نقل‌قول", "by": "سردبیر"},
+                {"ty": "img", "up": "/api/public/media/med-1", "cap": "تصویر", "alt": "جایگزین"},
+                {"ty": "ul", "x": "یک\nدو\n\nسه"},
+                {"ty": "box", "x": "نکته", "ic": "i-info"},
+                {"ty": "hr"},
+                {"ty": "p", "x": "   "},
+                "بند آخر",
+            ]
+            created = client.post(
+                "/api/admin/content/articles",
+                json={"record": {"t": "مطلب بلوکی", "cat": "آموزش", "blocks": blocks}, "expected_version": 0},
+                headers=owner_write_headers(client),
+            )
+            assert created.status_code == 200, created.text
+            record = created.json()["record"]
+            record_id = record["id"]
+            assert [b["ty"] for b in record["blocks"]] == ["h", "p", "q", "img", "ul", "box", "hr", "p"], "بلوک خالی حذف می‌شود"
+            assert record["blocks"][0]["lv"] == 2
+            assert record["blocks"][4]["x"] == ["یک", "دو", "سه"]
+            assert record["blocks"][-1] == {"ty": "p", "x": "بند آخر"}
+            assert record["body"] == ["بند نخست", "بند آخر"], "body از بندهای متنی بلوک‌ها مشتق می‌شود"
+
+            for bad, code in (
+                ("متن", "invalid_blocks"),
+                ([1], "invalid_blocks"),
+                ([{"ty": "vid", "src": "https://example.com/v.mp4"}], "invalid_blocks"),
+                ([{"ty": "p", "x": "a", "href": "x"}], "invalid_blocks"),
+                ([{"ty": "h", "x": "a", "lv": 5}], "invalid_blocks"),
+                ([{"ty": "img", "src": "javascript:alert(1)"}], "invalid_image"),
+                ([{"ty": "img", "src": "../secret.png"}], "invalid_image"),
+                ([{"ty": "p", "x": "a"}] * 101, "invalid_blocks"),
+            ):
+                rejected = client.put(
+                    f"/api/admin/content/articles/{record_id}",
+                    json={"record": {"blocks": bad}, "expected_version": 1},
+                    headers=owner_write_headers(client),
+                )
+                assert rejected.status_code == 422, (bad, rejected.text)
+                assert rejected.json()["detail"]["code"] == code
+                assert rejected.json()["detail"]["field"] == "blocks"
+            assert client.get(f"/api/admin/content/articles/{record_id}").json()["record"]["blocks"] == record["blocks"]
+
+            # بدون لید و بدون بند متنی ولی با بلوک تیتر: انتشار مجاز است (بدنه خالی نیست)
+            only_heading = client.put(
+                f"/api/admin/content/articles/{record_id}",
+                json={"record": {"blocks": [{"ty": "h", "x": "فقط تیتر"}], "lead": ""}, "expected_version": 1},
+                headers=owner_write_headers(client),
+            )
+            assert only_heading.status_code == 200, only_heading.text
+            assert only_heading.json()["record"]["body"] == []
+            published = client.post(
+                f"/api/admin/content/articles/{record_id}/status",
+                json={"status": "published", "expected_version": 2},
+                headers=owner_write_headers(client),
+            )
+            assert published.status_code == 200, published.text
+            public = client.get("/api/public/site-content").json()["content"]["articles"]
+            assert [row["id"] for row in public] == [record_id]
+            assert public[0]["blocks"] == [{"ty": "h", "x": "فقط تیتر"}]
+
+            # مطلب بدون بلوک ولی با body: هر دو در خروجی عمومی هستند (post.html بندها را بلوک می‌کند)
+            legacy = client.post(
+                "/api/admin/content/articles",
+                json={"record": {"t": "مطلب قدیمی", "body": ["بند ۱", "بند ۲"]}, "expected_version": 3},
+                headers=owner_write_headers(client),
+            )
+            assert legacy.status_code == 200, legacy.text
+            assert legacy.json()["record"]["body"] == ["بند ۱", "بند ۲"] and legacy.json()["record"].get("blocks", []) == []
+    finally:
+        engine.dispose()

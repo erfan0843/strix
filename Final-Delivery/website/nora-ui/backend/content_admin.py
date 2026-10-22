@@ -61,7 +61,7 @@ EVENT_EDITABLE = (
     "parts",
 )
 EVENT_DATETIME_FIELDS = ("startsAt", "endsAt", "regOpensAt", "regClosesAt")
-ARTICLE_EDITABLE = ("t", "cat", "lead", "body", "cov", "who", "at", "tags", "pin", "min", "tchr")
+ARTICLE_EDITABLE = ("t", "cat", "lead", "body", "blocks", "cov", "who", "at", "tags", "pin", "min", "tchr")
 EDITABLE = {"events": EVENT_EDITABLE, "articles": ARTICLE_EDITABLE}
 
 _RECORD_ID = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
@@ -200,6 +200,72 @@ def _validate_parts(value: Any) -> list[dict[str, str]]:
     return out
 
 
+# ویرایشگر بلوکی پنل (ممیزی ۱۴۰۵/۰۸/۰۱، B20): فقط همین انواع ساده که post.html بدون منبع بیرونی رسم می‌کند.
+# ویدیو/صدا/فایل/پیوند بیرونی عمداً نیست: نیازمند تصمیم منبع معتبر (فایل نورا/آپارات/یوتیوب با شناسهٔ سرور) است.
+_BLOCK_TEXT_FIELDS: dict[str, int] = {"x": 8_000, "t": 240, "cap": 500, "alt": 300, "by": 200, "ic": 40}
+_BLOCK_TYPES: dict[str, frozenset[str]] = {
+    "p": frozenset({"x"}),
+    "h": frozenset({"x", "lv"}),
+    "q": frozenset({"x", "by"}),
+    "img": frozenset({"up", "src", "cap", "alt"}),
+    "ul": frozenset({"x"}),
+    "ol": frozenset({"x"}),
+    "box": frozenset({"x", "ic"}),
+    "tog": frozenset({"x", "t"}),
+    "hr": frozenset(),
+}
+_BLOCK_LIST_TYPES = frozenset({"ul", "ol"})
+
+
+def _normalize_blocks(value: Any) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list) or len(value) > 100:
+        raise ContentAdminError("invalid_blocks", "blocks")
+    out: list[dict[str, Any]] = []
+    for item in value:
+        if isinstance(item, str):
+            item = {"ty": "p", "x": item}
+        if not isinstance(item, dict) or not isinstance(item.get("ty"), str):
+            raise ContentAdminError("invalid_blocks", "blocks")
+        block_type = item["ty"]
+        allowed = _BLOCK_TYPES.get(block_type)
+        if allowed is None or set(item) - allowed - {"ty"}:
+            raise ContentAdminError("invalid_blocks", "blocks")
+        row: dict[str, Any] = {"ty": block_type}
+        for key in allowed:
+            raw = item.get(key)
+            if raw in (None, ""):
+                continue
+            if key == "x" and block_type in _BLOCK_LIST_TYPES:
+                if isinstance(raw, str):
+                    raw = raw.replace("\r", "").split("\n")
+                if not isinstance(raw, list) or len(raw) > 100 or any(not isinstance(part, str) or len(part) > 1_000 for part in raw):
+                    raise ContentAdminError("invalid_blocks", "blocks")
+                items = [part.strip() for part in raw if part.strip()]
+                if items:
+                    row["x"] = items
+                continue
+            if key == "lv":
+                if isinstance(raw, bool) or str(raw) not in ("2", "3"):
+                    raise ContentAdminError("invalid_blocks", "blocks")
+                row["lv"] = int(str(raw))
+                continue
+            if key in ("up", "src"):
+                if not isinstance(raw, str) or len(raw) > 1_500 or not _public_url(raw):
+                    raise ContentAdminError("invalid_image", "blocks")
+                row[key] = raw.strip()
+                continue
+            limit = _BLOCK_TEXT_FIELDS[key]
+            if not isinstance(raw, str) or len(raw) > limit:
+                raise ContentAdminError("invalid_blocks", "blocks")
+            if raw.strip():
+                row[key] = raw.strip()
+        if block_type == "hr" or block_type == "img" and (row.get("up") or row.get("src")) or row.get("x"):
+            out.append(row)
+    return out
+
+
 def _validate_article(record: dict[str, Any]) -> None:
     if not _text(record.get("t"), 240):
         raise ContentAdminError("title_required", "t")
@@ -209,6 +275,11 @@ def _validate_article(record: dict[str, Any]) -> None:
         record["body"] = body
     if body is not None and not isinstance(body, list):
         raise ContentAdminError("invalid_body", "body")
+    if "blocks" in record:
+        record["blocks"] = _normalize_blocks(record.get("blocks"))
+        # «body» همیشه بندهای متنی همان بلوک‌هاست تا فهرست/جست‌وجو/شمارش بندها یک منبع داشته باشند.
+        if record["blocks"]:
+            record["body"] = [str(block["x"]) for block in record["blocks"] if block["ty"] == "p" and block.get("x")]
     cover = _text(record.get("cov"), 1_500_000, allow_number=False)
     if cover and not _public_url(cover, image_data=True):
         raise ContentAdminError("invalid_image", "cov")
@@ -237,7 +308,10 @@ VALIDATORS = {"events": _validate_event, "articles": _validate_article}
 
 def _publishable(kind: str, record: dict[str, Any]) -> None:
     """Extra rules before a record becomes visible on the public site."""
-    if kind == "articles" and not (_text(record.get("lead"), 1000) or _text_list(record.get("body"), 100, 8000)):
+    if kind == "articles" and not (
+        _text(record.get("lead"), 1000) or _text_list(record.get("body"), 100, 8000)
+        or (isinstance(record.get("blocks"), list) and record["blocks"])
+    ):
         raise ContentAdminError("article_body_required", "body")
     if kind == "events" and not _text(record.get("d"), 10_000):
         raise ContentAdminError("event_description_required", "d")
