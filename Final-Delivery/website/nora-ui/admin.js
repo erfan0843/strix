@@ -1955,7 +1955,7 @@ function workflowDecisionPrompt(task,decision,reason){
   const isReceipt=task&&task.kind==='receipt_review', approve=decision==='approved';
   const amount=isReceipt&&Number.isFinite(+data.amount)&&+data.amount>0?fa(Math.round(+data.amount).toLocaleString('en-US'))+' '+(data.currency==='IRR'||!data.currency?'ریال':String(data.currency)):'';
   const lines=[isReceipt
-      ?(approve?'تأیید رسید: پرداخت «دستی تأییدشده» ثبت می‌شود و دسترسی/بلیت مربوط فعال می‌گردد. این کار برگشت‌ناپذیر نیست اما در ممیزی با نام شما ثبت می‌شود.'
+      ?(approve?'تأیید رسید: پرداخت «دستی تأییدشده» ثبت می‌شود و دسترسی/بلیت مربوط فعال می‌گردد. برگرداندن آن فقط از مسیر بازپرداخت (با مجوز مالی و مرجع) ممکن است و این تصمیم در ممیزی با نام شما ثبت می‌شود.'
                :'رد رسید: پاسخ/سفارش کاربر بسته می‌شود و دلیل برای او ارسال می‌شود (در صف اعلان).')
       :(approve?'تأیید پروفایل: اطلاعات کاربر در حساب او اعمال می‌شود.':'رد پروفایل: کاربر باید اطلاعات را دوباره بفرستد.'),
     amount?'مبلغ رسید: '+amount:'',
