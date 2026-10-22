@@ -9498,6 +9498,7 @@ def create_app(
         if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", create_key):
             raise HTTPException(428, "idempotency_key_required")
         event_id = _resolve_purchase_link(db, normalized)
+        _require_known_form_event(db, normalized, event_id, previous=None)
         _require_finance_for_commercial_change(identity, None, normalized.settings)
         canonical_payload = {
             "name": normalized.title,
@@ -9633,6 +9634,29 @@ def create_app(
             )
         return recording.event_id
 
+    def _require_known_form_event(db: Session, normalized: Any, event_id: str | None, *, previous: str | None) -> None:
+        """``forms.ev`` must name an event that exists in ``site_content.events`` (any status).
+
+        Checked only when the client sets a *new* non-empty id: a stale id already stored on the form
+        (event removed later) never blocks unrelated edits, and purchase forms are exempt because
+        their event id is derived from the recording record in :func:`_resolve_purchase_link`.
+        """
+        value = str(event_id or "").strip()
+        if not value or normalized.purpose == "recording_access" or value == str(previous or ""):
+            return
+        site = db.get(SiteContentRecord, "public")
+        content = site.content if site is not None and isinstance(site.content, dict) else {}
+        known = {
+            str(row.get("id") or "").strip()
+            for row in (content.get("events") or [])
+            if isinstance(row, dict)
+        }
+        if value not in known:
+            raise HTTPException(
+                422,
+                detail={"code": "unknown_reference", "field": "ev", "message": "رویدادی با این شناسه در محتوای سایت نیست؛ اول رویداد را بسازید."},
+            )
+
     def _other_published_purchase_form(db: Session, record: FormRecord) -> FormRecord | None:
         if not _form_is_purchase(record):
             return None
@@ -9740,6 +9764,7 @@ def create_app(
                 detail={"code": "version_conflict", "current_version": record.version},
             )
         event_id = _resolve_purchase_link(db, normalized)
+        _require_known_form_event(db, normalized, event_id, previous=record.event_id)
         _require_finance_for_commercial_change(identity, record.settings, normalized.settings)
 
         # Compare-and-swap at the database, not just in Python: two owners' tabs

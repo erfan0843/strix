@@ -34,6 +34,7 @@ from backend.config import Settings  # noqa: E402
 from backend.models import Base, FormPaymentRecord, PaymentSecretRecord  # noqa: E402
 from backend.security import hash_password  # noqa: E402
 from backend.service_settings import effective_settings  # noqa: E402
+from site_content_seed import seed_site_events  # noqa: E402
 
 OWNER_USER = "nora-owner"
 OWNER_PASS = "correct-horse-staple-42"
@@ -70,6 +71,7 @@ def runtime_env(monkeypatch):
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
+    seed_site_events(engine, ["event-wallet-runtime"])
     state: dict = {"webhook_url": "", "calls": []}
 
     def fake_bale_api(config, method, payload):

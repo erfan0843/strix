@@ -209,6 +209,13 @@ def test_owner_banner_manager_keeps_drafts_private_and_applies_versioned_setting
 def test_only_published_registration_forms_are_attached_to_public_events(client: TestClient):
 
     login(client)
+    # forms.ev is a checked reference: the event row has to exist before a form can name it
+    event_row = client.patch(
+        "/api/owner/site-content",
+        json={"content": {"events": [{"id": "event-form-1", "t": "رویداد ثبت‌نام", "privacy": "public"}]}, "expected_version": 0},
+        headers=csrf(client),
+    )
+    assert event_row.status_code == 200, event_row.text
     draft = client.post(
         "/api/forms",
         json={
@@ -236,7 +243,7 @@ def test_only_published_registration_forms_are_attached_to_public_events(client:
                 "forms": [{"id": form_id, "need": "reg", "n": "فرم محلی ادعایی"}],
                 "regForm": "not-a-server-form",
             }]},
-            "expected_version": 0,
+            "expected_version": 1,
         },
         headers=csrf(client),
     )

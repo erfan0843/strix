@@ -40,6 +40,7 @@ from backend.models import (  # noqa: E402
 )
 from backend.roles import permissions_for_role  # noqa: E402
 from backend.security import hash_password, token_digest  # noqa: E402
+from site_content_seed import seed_site_events  # noqa: E402
 
 
 @pytest.fixture
@@ -50,6 +51,8 @@ def configured_client():
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
+    # forms.ev is a checked reference: the event every valid_form() names must exist in site_content
+    seed_site_events(engine, {"event-2026-01": "کارگاه فرهنگ ایرانی"})
     settings = Settings(
         database_url=None,
         owner_id="owner-01",
@@ -1265,12 +1268,15 @@ def test_bot_conversation_saves_shared_draft_and_submission_is_idempotent(config
     assert ticket.json()["response_id"] == first_response_id
     assert ticket.json()["serial"].startswith("NORA-")
     assert ticket.json()["participant_name"] == "لیلا"
-    assert ticket.json()["event_title"] == "ثبت نام کارگاه"
+    # the event row exists in site_content (forms.ev is a checked reference), so the ticket carries
+    # the event title rather than the form-name fallback
+    assert ticket.json()["event_title"] == "کارگاه فرهنگ ایرانی"
     assert ticket.json()["ticket_type"] == {
         "id": "standard", "name": "ورودی استاندارد",
     }
-    assert ticket.json()["event_date"] == ""
-    assert ticket.json()["event_time"] == ""
+    # date/time come from the same seeded event row (no longer the empty "unknown event" fallback)
+    assert ticket.json()["event_date"] == "2026-11-13"
+    assert ticket.json()["event_time"] == "۱۶:۳۰ تا ۱۹:۰۰"
     assert "answers" not in ticket.json()
 
     retried = client.post(endpoint + "/responses", json=identity, headers=service_headers)
@@ -1660,13 +1666,14 @@ def test_web_account_registration_history_is_session_scoped_and_does_not_guess_o
     history = web.get("/api/account/registrations?limit=1&offset=0")
     assert history.status_code == 200, history.text
     assert history.headers.get("cache-control") == "no-store"
-    assert history.headers.get("vary") == "Cookie"
+    # GZip adds Accept-Encoding once the (now event-titled) payload crosses its minimum size
+    assert "Cookie" in [part.strip() for part in history.headers.get("vary", "").split(",")]
     result = history.json()
     assert result["source"] == "shared_server_database"
     assert result["total"] == 1 and result["has_more"] is False
     item = result["items"][0]
     assert item["form_name"] == "ثبت نام کارگاه"
-    assert item["event_title"] == "ثبت نام کارگاه"
+    assert item["event_title"] == "کارگاه فرهنگ ایرانی"  # resolved from the real event row named by forms.ev
     assert item["status"] == "accepted"
     assert not {"answers", "registrant_name", "registrant_mobile", "account_id"} & set(item)
     assert "لیلا رضایی" not in history.text
@@ -1730,7 +1737,7 @@ def test_public_registration_ticket_handoff_is_opaque_claimed_in_bale_and_checke
         json={"content": {"events": [{
             "id": "event-2026-01", "t": "کارگاه فرهنگ ایرانی", "privacy": "public",
             "when": "2026-11-13", "time": "۱۶:۳۰ تا ۱۹:۰۰", "place": "تهران",
-        }]}, "expected_version": 0},
+        }]}, "expected_version": owner.get("/api/owner/site-content").json()["version"]},
         headers=csrf_headers(owner),
     )
     assert event_update.status_code == 200, event_update.text
@@ -2598,3 +2605,64 @@ def test_public_form_never_exposes_coupon_code_and_validates_it_server_side(conf
     items = owner.get(f"/api/forms/{form_id}/responses").json()["items"]
     amounts = sorted(item["form_snapshot"]["payment"]["amount"] for item in items)
     assert amounts == [800000, 1000000]
+
+
+def test_form_event_reference_must_exist_in_site_content(configured_client):
+    """``forms.ev`` is a real reference into ``site_content.events`` (any status), not free text.
+
+    A new or re-pointed form may only name an event the owner has actually created; a stale id
+    that is *already* stored on a form keeps working (no silent rewrite, no blocked edits).
+    Purchase forms are unaffected: their event comes from the recording record.
+    """
+    owner, _settings = configured_client
+    login(owner)
+    headers = {**csrf_headers(owner), "Idempotency-Key": "ev-ref-check-0001"}
+
+    missing = owner.post("/api/forms", json={**valid_form(), "ev": "event-does-not-exist"}, headers=headers)
+    assert missing.status_code == 422, missing.text
+    assert missing.json()["detail"]["code"] == "unknown_reference"
+    assert missing.json()["detail"]["field"] == "ev"
+
+    seeded = owner.get("/api/owner/site-content").json()
+    assert "event-2026-01" in {row["id"] for row in seeded["content"]["events"]}
+    # a draft event (never published; only the content API can store non-public rows) is a valid
+    # target: the owner links the form before publishing the event
+    draft = owner.post(
+        "/api/admin/content/events",
+        json={"record": {"t": "رویداد پیش‌نویس", "kind": "کارگاه", "on": "1405/09/10", "place": "تهران", "d": "شرح"}, "expected_version": seeded["version"]},
+        headers=csrf_headers(owner),
+    )
+    assert draft.status_code == 200, draft.text
+    draft_id = draft.json()["record"]["id"]
+    assert draft.json()["record"]["status"] == "draft"
+
+    created = owner.post("/api/forms", json={**valid_form(), "ev": draft_id}, headers={**csrf_headers(owner), "Idempotency-Key": "ev-ref-check-0002"})
+    assert created.status_code == 201, created.text
+    form_id = created.json()["id"]
+    assert created.json()["ev"] == draft_id
+
+    # no event at all stays allowed (standalone forms)
+    standalone = owner.post("/api/forms", json={**valid_form(), "ev": ""}, headers={**csrf_headers(owner), "Idempotency-Key": "ev-ref-check-0003"})
+    assert standalone.status_code == 201, standalone.text
+    assert standalone.json()["ev"] == ""
+
+    # re-pointing an existing draft form at an unknown event is refused, to a known one accepted
+    repoint_bad = owner.put(f"/api/forms/{form_id}", json={**valid_form(), "ev": "event-ghost", "expected_version": 1}, headers=csrf_headers(owner))
+    assert repoint_bad.status_code == 422, repoint_bad.text
+    assert repoint_bad.json()["detail"] == {"code": "unknown_reference", "field": "ev", "message": repoint_bad.json()["detail"]["message"]}
+    repoint_ok = owner.put(f"/api/forms/{form_id}", json={**valid_form(), "ev": "event-2026-01", "expected_version": 1}, headers=csrf_headers(owner))
+    assert repoint_ok.status_code == 200, repoint_ok.text
+
+    # legacy: the event is removed from site_content afterwards; saving the form with its stored
+    # (now stale) id is still possible, so old forms are never locked by the new check
+    current = owner.get("/api/owner/site-content").json()
+    removed = owner.patch(
+        "/api/owner/site-content",
+        json={"content": {"events": [row for row in current["content"]["events"] if row["id"] != "event-2026-01"]}, "expected_version": current["version"]},
+        headers=csrf_headers(owner),
+    )
+    assert removed.status_code == 200, removed.text
+    assert "event-2026-01" not in {row["id"] for row in owner.get("/api/owner/site-content").json()["content"]["events"]}
+    legacy_save = owner.put(f"/api/forms/{form_id}", json={**valid_form(), "ev": "event-2026-01", "name": "نام تازه", "expected_version": 2}, headers=csrf_headers(owner))
+    assert legacy_save.status_code == 200, legacy_save.text
+    assert legacy_save.json()["ev"] == "event-2026-01" and legacy_save.json()["name"] == "نام تازه"

@@ -19,6 +19,7 @@ from backend.app import _form_payment_registered_webhook_url, _form_payment_webh
 from backend.config import Settings  # noqa: E402
 from backend.models import FormPaymentRecord, FormPaymentTransactionRecord, FormResponseRecord  # noqa: E402
 from backend.security import hash_password  # noqa: E402
+from site_content_seed import seed_site_events  # noqa: E402
 
 
 PAYMENT_BOT_TOKEN = "1234567890:" + "A" * 32
@@ -55,6 +56,7 @@ def payment_app(monkeypatch):
         poolclass=StaticPool,
     )
     backend_app.Base.metadata.create_all(engine)
+    seed_site_events(engine, ["event-wallet-01"])
     settings = valid_settings()
     state = {
         "webhook_url": "",
