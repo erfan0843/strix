@@ -9165,6 +9165,7 @@ def create_app(
         if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", create_key):
             raise HTTPException(428, "idempotency_key_required")
         event_id = _resolve_purchase_link(db, normalized)
+        _require_finance_for_commercial_change(identity, None, normalized.settings)
         canonical_payload = {
             "name": normalized.title,
             "model": normalized.model,
@@ -9248,6 +9249,38 @@ def create_app(
         if record is None:
             raise HTTPException(404, "form_not_found")
         return record
+
+    _FINANCE_SETTING_KEYS = ("fin", "groups", "coupon", "methods", "enabledPaymentMethods", "receiptReviewRequired")
+
+    def _finance_view(settings: Mapping[str, Any] | None) -> dict[str, Any]:
+        """Canonical view of the commercial settings so unchanged payloads compare equal."""
+        source = settings if isinstance(settings, Mapping) else {}
+        raw_coupon = source.get("coupon")
+        coupon: Mapping[str, Any] = raw_coupon if isinstance(raw_coupon, Mapping) else {}
+        return {
+            "fin": source.get("fin") if isinstance(source.get("fin"), list) else [],
+            "groups": source.get("groups") if isinstance(source.get("groups"), list) else [],
+            "coupon": {"code": str(coupon.get("code") or ""), "off": coupon.get("off") or 0, "all": bool(coupon.get("all"))},
+            "methods": source.get("methods") if isinstance(source.get("methods"), list) else [],
+            "enabledPaymentMethods": source.get("enabledPaymentMethods") if isinstance(source.get("enabledPaymentMethods"), list) else [],
+            "receiptReviewRequired": source.get("receiptReviewRequired") is True,
+        }
+
+    def _require_finance_for_commercial_change(
+        identity: OwnerIdentity | AccountIdentity, previous: Mapping[str, Any] | None, new: Mapping[str, Any]
+    ) -> None:
+        """Stage C-1 (panel restore): money settings of a form are written only by the owner or a
+        role holding ``finance``. Hiding the finance cards in create.html is not access control, so
+        the server rejects any change to the commercial keys from other editors; an unchanged copy
+        (what create.html sends for non-finance editors) passes."""
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        if has_permission(role, "finance"):
+            return
+        if _finance_view(previous) != _finance_view(new):
+            raise HTTPException(403, detail={
+                "code": "finance_permission_required",
+                "message": "تنظیم مبلغ، روش پرداخت و تخفیف فقط با مجوز مالی (مالک) ذخیره می‌شود.",
+            })
 
     def _resolve_purchase_link(db: Session, normalized: Any) -> str | None:
         """Validate ``purpose='recording_access'`` against a real product and fix ``event_id``.
@@ -9374,6 +9407,7 @@ def create_app(
                 detail={"code": "version_conflict", "current_version": record.version},
             )
         event_id = _resolve_purchase_link(db, normalized)
+        _require_finance_for_commercial_change(identity, record.settings, normalized.settings)
 
         # Compare-and-swap at the database, not just in Python: two owners' tabs
         # cannot silently overwrite one another after both read the same version.

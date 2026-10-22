@@ -951,7 +951,10 @@ if(TEST_FIXTURE_MODE&&(QS.get('ev')||QS.get('name'))){
   if(QS.get('end')) S.end=canonicalDateTime(QS.get('end'),S.end);
   if(QS.get('slug')) S.slug=QS.get('slug');
 }
-const CAN_MONEY=!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
+/* دسترسی مالی: در حالت نمونه از نقش محلی؛ در حالت واقعی فقط از نشست سرور (مالک یا مجوز finance).
+   این قفل رابط کاربری است؛ سرور هم تغییر تنظیمات مالی را بدون مجوز finance رد می‌کند (finance_permission_required). */
+let CAN_MONEY=TEST_FIXTURE_MODE&&!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
+const sessionHasFinance=session=>!!(session&&session.authenticated===true&&(session.role==='owner'||Array.isArray(session.permissions)&&session.permissions.includes('finance')));
 const FORM_CACHE_CANDIDATE=S.fid&&window.NORA_UI&&NORA_UI.formById?NORA_UI.formById(S.fid):null;
 const STORED_FORM=FORM_CACHE_CANDIDATE&&(TEST_FIXTURE_MODE||FORM_CACHE_CANDIDATE.serverManaged===true||FORM_CACHE_CANDIDATE.serverDraft===true)
   ?FORM_CACHE_CANDIDATE:null;
@@ -1529,13 +1532,44 @@ function applyFinanceAccess(){
   $('#formPaymentMethodsCard').hidden=!CAN_MONEY;
   $('#financeOwnerNotice').hidden=CAN_MONEY;
   $('#openFinanceSettings').hidden=!CAN_MONEY;
-  if(!CAN_MONEY){
-    const add=$('#addFin'); if(add){add.disabled=true;add.setAttribute('aria-disabled','true')}
-    const addMethod=$('#addFormPaymentMethod');if(addMethod){addMethod.disabled=true;addMethod.setAttribute('aria-disabled','true')}
-  }
+  [['#addFin'],['#addFormPaymentMethod']].forEach(([sel])=>{const el=$(sel); if(!el) return;
+    el.disabled=!CAN_MONEY; if(CAN_MONEY) el.removeAttribute('aria-disabled'); else el.setAttribute('aria-disabled','true')});
   renderFormPaymentMethods();
   renderCoupon();
   renderFinanceStatus();
+}
+/* نتیجهٔ نشست سرور: اگر مالک/مجوز مالی تأیید شد، دادهٔ مالی ذخیره‌شدهٔ همین فرم برای ویرایش بار می‌شود؛ در غیر این صورت فقط نمایش «تنظیم‌شده» می‌ماند. */
+function setFinanceAccess(on){
+  on=!!on; if(CAN_MONEY===on) return;
+  CAN_MONEY=on;
+  if(on){
+    const cur=ACTIVE_SERVER_FORM||STORED_FORM||null, copy=v=>v==null?v:JSON.parse(JSON.stringify(v));
+    if(cur){
+      if(!(S.fin&&S.fin.length)) S.fin=Array.isArray(cur.fin)?copy(cur.fin):[];
+      if(!(S.groups&&S.groups.length)) S.groups=Array.isArray(cur.groups)?copy(cur.groups):[];
+      if(!(S.coupon&&S.coupon.code)) S.coupon=Object.assign({code:'',off:0,all:false},copy(cur.coupon||{}));
+      if(!(S.methods&&S.methods.length)) S.methods=normalizeFormPaymentMethods(cur.methods);
+      if(!(S.enabledPaymentMethods&&S.enabledPaymentMethods.length)&&typeof normalizeEnabledPaymentMethods==='function')
+        S.enabledPaymentMethods=normalizeEnabledPaymentMethods(cur.enabledPaymentMethods!=null?cur.enabledPaymentMethods:(cur.receiptReviewRequired===true?['card_transfer']:[]));
+    }
+  }
+  applyFinanceAccess();
+  try{renderFin()}catch(e){}
+  try{renderPreview()}catch(e){}
+  try{renderReview()}catch(e){}
+}
+async function resolveFinanceAccess(){
+  if(TEST_FIXTURE_MODE) return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.me!=='function') return;
+  try{
+    let session=null;
+    try{session=await api.me()}catch(error){if(!error||error.status!==401) throw error}
+    if(!(session&&session.authenticated===true&&session.role==='owner')&&typeof api.accountMe==='function'){
+      try{session=await api.accountMe()}catch(error){session=null}
+    }
+    setFinanceAccess(sessionHasFinance(session));
+  }catch(error){setFinanceAccess(false)}
 }
 function renderLinks(){
   const host=$('#linkList');if(!host)return;
@@ -2208,6 +2242,7 @@ async function restoreFormEditorSession(){
     const session=await formEditorSession(api);
     CURRENT_EDITOR_ROLE=session.role||null;
     OWNER_AUTHENTICATED=true;
+    setFinanceAccess(sessionHasFinance(session));
     ownerLoginPanel(false);
     const role=CURRENT_EDITOR_ROLE==='owner'?'مالک':CURRENT_EDITOR_ROLE==='club-supervisor'?'سرپرست باشگاه':'مدیر';
     setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+ACTIVE_SERVER_FORM.status+'. دسترسی سروریِ '+role+' تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است.');
@@ -2220,6 +2255,7 @@ async function restoreFormEditorSession(){
 function ownerApiErrorText(err){
   if(!err||err.code==='server_unreachable') return 'به سرور همین سامانه دسترسی نیست؛ اتصال شبکه و نشانی همین صفحه را بررسی کنید.';
   if(err.status===401) return 'ورود معتبر پیدا نشد؛ با حساب بله وارد شوید یا با حساب مالک اقدام کنید.';
+  if(err.status===403&&err.code==='finance_permission_required') return 'تنظیم مبلغ، روش پرداخت و تخفیف فقط با مجوز مالی (مالک) ذخیره می‌شود؛ بقیهٔ فرم را می‌توانید بدون تغییر بخش مالی ذخیره کنید.';
   if(err.status===403&&err.code==='permission_denied') return 'این نقش اجازهٔ ساخت و ویرایش فرم را ندارد؛ برای دسترسی با مالک سامانه هماهنگ کنید.';
   if(err.status===403) return 'بررسی مبدأ یا CSRF ناموفق بود؛ صفحه را از همان نشانی سامانه باز کنید و دوباره بکوشید.';
   if(err.status===404) return 'API فرم‌ساز روی این میزبان در دسترس نیست؛ سرور FastAPI را از نشانی همین سامانه اجرا کنید.';
@@ -2280,6 +2316,7 @@ async function saveServerDraft(row){
     const editorSession=await formEditorSession(api);
     CURRENT_EDITOR_ROLE=editorSession.role||null;
     OWNER_AUTHENTICATED=true;
+    setFinanceAccess(sessionHasFinance(editorSession));
     if(ACTIVE_SERVER_FORM){
       const currentVersion=Number(ACTIVE_SERVER_FORM.version)||1;
       const latest=formFromServer(await api.getForm(ACTIVE_SERVER_FORM.id));
@@ -2407,6 +2444,7 @@ if(ownerLoginForm) ownerLoginForm.addEventListener('submit',async event=>{
     if(!owner||owner.authenticated!==true||owner.role!=='owner') throw new api.Error(403,'permission_denied',owner);
     CURRENT_EDITOR_ROLE='owner';
     OWNER_AUTHENTICATED=true;
+    setFinanceAccess(true);
     loginOk=true;
     setOwnerApiState('آمادهٔ مالک','ورود مالک از سرور تأیید شد؛ گذرواژه ذخیره نشد.');
     ownerLoginPanel(false);
@@ -2745,6 +2783,7 @@ $('#btnBack').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i>0) go(
 /* ══ آغاز ══ */
 initUI();
 applyFinanceAccess();
+void resolveFinanceAccess();
 /* بخش و کارشناس مسئول: فهرست کارشناسان از بخش می‌آید */
 (()=>{const dp=$('#deptPick'), ep=$('#expertPick'); if(!dp||!ep) return;
   const notifyTo=$('#notifyTo');
