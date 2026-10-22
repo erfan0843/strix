@@ -252,6 +252,7 @@
           <span class="sp"></span><a class="tag brand" id="evChip" href="admin.html#newev" hidden>رویداد متصل</a>
         </div>
         <div class="capability-box" id="purchaseFormBox" role="status" aria-live="polite" hidden data-purchase-form-box></div>
+        <div class="capability-box" id="evPickBox" hidden data-ev-pick-box></div>
         <hr class="hr"/>
         <div class="head" style="margin-bottom:10px">مدل فرم</div>
         <div class="capability-box" id="modelCapabilitySummary" role="status" aria-live="polite">وضعیت مدل‌ها هنوز از API همین سامانه دریافت نشده است؛ امکانات نمایش‌داده‌شده را آمادهٔ انتشار فرض نکنید.</div>
@@ -1038,8 +1039,57 @@ async function loadPurchaseProduct(){
   }catch(error){PURCHASE_PRODUCT=null;PURCHASE_PRODUCT_STATE=error&&(error.status===401||error.status===403)?'forbidden':error&&error.status===404?'missing':'unavailable'}
   renderPurchaseFormBox();
 }
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (D6): انتخاب رویداد از فهرست سروری داخل فرم‌ساز (بدون تایپ شناسه). منبع: /api/admin/content/events
+   با مجوز محتوا، وگرنه رویدادهای منتشرشدهٔ /api/public/site-content؛ هرگز data.js. سرور همچنان ev را می‌سنجد (unknown_reference). */
+const EVPICK={items:null,loading:false,error:'',q:'',open:false,source:''};
+const evNorm=v=>String(v||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/‌/g,' ').toLowerCase().trim();
+async function evPickLoad(force){
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(TEST_FIXTURE_MODE||isPurchaseForm()||!api||EVPICK.loading||(EVPICK.items&&!force))return;
+  EVPICK.loading=true;EVPICK.error='';renderEvPick();
+  try{
+    let items=null;
+    if(typeof api.listAdminContent==='function'){
+      try{const r=await api.listAdminContent('events',{limit:50,offset:0,sort:'date',order:'desc'});items=(r&&r.items||[]).map(x=>({id:x.id,t:x.t,on:x.on||'',status:x.status||''}));EVPICK.source='admin'}
+      catch(err){if(!(err&&(err.status===403||err.status===401)))throw err}
+    }
+    if(!items&&typeof api.getPublicSiteContent==='function'){const r=await api.getPublicSiteContent();items=((r&&r.content||{}).events||[]).map(x=>({id:x.id,t:x.t,on:x.on||'',status:'published'}));EVPICK.source='public'}
+    EVPICK.items=items||[];
+  }catch(err){EVPICK.error='فهرست رویدادها از سرور خوانده نشد؛ می‌توانی بعداً دوباره تلاش کنی.'}
+  finally{EVPICK.loading=false;renderEvPick()}
+}
+function evPickFilter(){const q=evNorm(EVPICK.q);return (EVPICK.items||[]).filter(x=>!q||evNorm(x.t).includes(q)||evNorm(x.id).includes(q)).slice(0,12)}
+function evPickName(id){const row=(EVPICK.items||[]).find(x=>String(x.id)===String(id));return row?row.t:''}
+function renderEvPick(){
+  const box=$('#evPickBox'); if(!box)return;
+  if(TEST_FIXTURE_MODE||isPurchaseForm()){box.hidden=true;box.innerHTML='';return}
+  const locked=!!(ACTIVE_SERVER_FORM&&ACTIVE_SERVER_FORM.status==='published');
+  const st={draft:'پیش‌نویس',published:'منتشرشده',paused:'متوقف',archived:'بایگانی'};
+  const cur=S.evId?`<div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><b data-ev-pick-current="${esc(S.evId)}">${esc(evPickName(S.evId)||'رویداد انتخاب‌شده')}</b><span class="cap" dir="ltr">${esc(S.evId)}</span><span class="sp"></span>${locked?'':`<button type="button" class="btn sm quiet" data-ev-unlink>قطع اتصال</button>`}</div>`
+    :`<div class="cap">هنوز رویدادی وصل نیست؛ بدون رویداد، دکمهٔ ثبت‌نام در هیچ صفحه‌ای باز نمی‌شود.</div>`;
+  const rows=EVPICK.open?(EVPICK.loading?'<div class="cap">در حال دریافت فهرست رویدادها از سرور…</div>'
+    :EVPICK.error?`<div class="cap" style="color:var(--stop)">${esc(EVPICK.error)}</div><button type="button" class="btn sm quiet" data-ev-pick-retry>تلاش دوباره</button>`
+    :(EVPICK.items&&!EVPICK.items.length?'<div class="cap">رویدادی روی سرور نیست؛ اول رویداد را در پنل بساز.</div>'
+      :`<div class="stack" style="gap:4px;margin-top:6px" role="listbox" aria-label="رویدادهای سرور">${evPickFilter().map(x=>`<button type="button" class="btn sm ${String(x.id)===String(S.evId)?'primary':'quiet'}" data-ev-pick="${esc(x.id)}" role="option" aria-selected="${String(x.id)===String(S.evId)}" style="justify-content:space-between;width:100%"><span>${esc(x.t||x.id)}</span><small class="cap">${esc([x.on,st[x.status]||''].filter(Boolean).join(' · '))}</small></button>`).join('')||'<div class="cap">نتیجه‌ای نیست.</div>'}</div>`)):'';
+  box.innerHTML=`<b>رویداد متصل به این فرم</b><div style="margin-top:6px">${cur}</div>
+    ${locked?'<div class="cap" style="margin-top:6px">فرم منتشرشده است؛ برای تغییر رویداد اول دریافت پاسخ را متوقف کن.</div>':`<div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="btn sm ${EVPICK.open?'':'primary'}" data-ev-pick-toggle aria-expanded="${EVPICK.open?'true':'false'}">${EVPICK.open?'بستن فهرست':(S.evId?'تغییر رویداد':'انتخاب رویداد از سرور')}</button>
+      ${EVPICK.open?`<input class="input" id="evPickQ" type="search" placeholder="جست‌وجوی عنوان رویداد… (Enter = نخستین نتیجه)" value="${esc(EVPICK.q)}" autocomplete="off" style="flex:1 1 220px"/>`:''}</div>${rows}
+      ${EVPICK.open&&EVPICK.source==='public'?'<div class="cap" style="margin-top:4px">فقط رویدادهای منتشرشده دیده می‌شوند؛ برای رویدادهای پیش‌نویس مجوز محتوا لازم است.</div>':''}`}`;
+  box.hidden=false;
+}
+function evPickSet(id){S.evId=id||'';EVPICK.open=false;evHeadFill();if(typeof renderReview==='function')renderReview();toast(id?'رویداد به فرم وصل شد؛ با ذخیره در سرور ثبت می‌شود':'اتصال رویداد برداشته شد؛ با ذخیره در سرور ثبت می‌شود')}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-ev-pick-toggle]')){EVPICK.open=!EVPICK.open;renderEvPick();if(EVPICK.open){evPickLoad(false);const q=$('#evPickQ');if(q)q.focus()}return}
+  if(e.target.closest('[data-ev-pick-retry]')){evPickLoad(true);return}
+  const pick=e.target.closest('[data-ev-pick]');if(pick){evPickSet(pick.dataset.evPick);return}
+  if(e.target.closest('[data-ev-unlink]')){evPickSet('');return}
+});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='evPickQ'){EVPICK.q=e.target.value;const box=$('#evPickBox');const list=box&&box.querySelector('[role="listbox"]');renderEvPick();const q=$('#evPickQ');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length)}catch(err){}}}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='evPickQ'){e.preventDefault();const first=evPickFilter()[0];if(first)evPickSet(first.id);else toast('نتیجه‌ای برای انتخاب نیست')}});
 function evHeadFill(){
   renderPurchaseFormBox();
+  renderEvPick();
   const nm=TEST_FIXTURE_MODE?(QS.get('name')||''):'';
   const eh=$('#evHead'), em=$('#evMeta'), ec=$('#evChip');
   if(eh) eh.textContent=nm||S.title||'فرم تازه';
@@ -1048,7 +1098,7 @@ function evHeadFill(){
   if(rm) rm.textContent=nm?('رویداد: '+nm):ACTIVE_SERVER_FORM?('نسخهٔ سروری '+faN(ACTIVE_SERVER_FORM.version||1)+' · '+(ACTIVE_SERVER_FORM.status||'draft')):'فرم‌ساز سروری';
   if(em){
     if(nm) em.textContent=[QS.get('when'),QS.get('place'),S.cap?('ظرفیت '+faN(S.cap)):''].filter(Boolean).join(' · ');
-    else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'فرم به رویداد «'+S.evId+'» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.':'رویدادی به این فرم متصل نیست.';
+    else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'فرم به رویداد «'+(evPickName(S.evId)||S.evId)+'» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.':'رویدادی به این فرم متصل نیست.';
   }
   if(ec){
     const linked=!!(S.evId||nm);
@@ -2281,6 +2331,8 @@ function ownerApiErrorText(err){
       companions_not_allowed_for_purchase:'فرم خرید برای یک حساب است؛ همراه‌آوردن را خاموش کنید.',
       recording_requires_purchase_purpose:'فقط فرم خرید به محصول ضبط‌شده متصل می‌شود.'};
     if(err.code&&purchaseErrors[err.code])return purchaseErrors[err.code];
+    /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (D3): سرور شناسهٔ رویداد فرم را با site_content می‌سنجد (a82f422). */
+    if(err.code==='unknown_reference'&&err.payload&&err.payload.detail&&err.payload.detail.field==='ev')return 'رویداد متصل به این فرم روی سرور پیدا نشد (شناسهٔ «'+String(S.evId||'')+'»)؛ رویداد را از فهرست «رویداد متصل به این فرم» دوباره انتخاب کن یا اتصال را بردار. چیزی ذخیره نشد.';
     const issues=err.payload&&err.payload.detail&&err.payload.detail.issues;
     if(Array.isArray(issues)&&issues.length){
       const visible=issues.slice(0,8).map(x=>x&&x.message).filter(Boolean);
