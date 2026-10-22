@@ -228,7 +228,13 @@ def test_stored_non_public_rows_in_other_categories_stay_private_and_survive_sav
 
     assert row["id"] not in public_ids(), f"{category}: stored non-public row leaked publicly"
     owner = client.get("/api/owner/site-content").json()
-    assert row["id"] not in [item.get("id") for item in owner["content"][category]]
+    owner_rows = owner["content"][category]
+    if category == "people":
+        # H1 owner editor receives hidden people with safe publication metadata; public projection stays filtered.
+        hidden_owner_row = next(item for item in owner_rows if item.get("id") == row["id"])
+        assert hidden_owner_row["hidden"] is True
+    else:
+        assert row["id"] not in [item.get("id") for item in owner_rows]
     page = {"events": "/event.html?id=", "people": "/person.html?id=", "articles": "/post.html?id="}[category] + row["id"]
     assert client.get(page).status_code == 404
 
@@ -243,6 +249,10 @@ def test_stored_non_public_rows_in_other_categories_stay_private_and_survive_sav
     with Session(engine) as db:
         stored_rows = {item["id"]: item for item in (db.get(SiteContentRecord, "public").content or {})[category]}
     assert row["id"] in stored_rows, f"{category}: non-public row deleted by a panel save"
-    for key, value in row.items():
-        assert stored_rows[row["id"]][key] == value
+    if category == "people":
+        assert stored_rows[row["id"]]["hidden"] is True
+        assert stored_rows[row["id"]]["n"] == row["n"]
+    else:
+        for key, value in row.items():
+            assert stored_rows[row["id"]][key] == value
     assert row["id"] not in public_ids()

@@ -37,6 +37,17 @@
 - فیلدهای معتبر/الزامی، معنای حذف/عدم انتشار، و اینکه ذخیرهٔ `people` فوراً در `/api/public/site-content` منتشر می‌شود، تأیید شود. جلوگیری از ID تکراری و CAS نسخهٔ `expected_version` باید حفظ شود.
 - آزمون بک‌اند لازم: GET مالک/غیرمالک؛ PATCH مجاز با `people` و افزایش نسخه؛ 401/403؛ 409 نسخهٔ قدیمی؛ 422 فیلد/دادهٔ نامعتبر و ID تکراری؛ دسته‌های دیگر بی‌تغییر؛ مشاهدهٔ مقدار ذخیره‌شده در projection عمومی مطابق سیاست انتشار؛ عدم حذف پنهانی رکوردهای غیرعمومی.
 
+## پیگیری بک‌اند (پیاده‌سازی مستقل پس از تحویل اولیه)
+
+قراردادهای پیشنهادی بالا پیاده‌سازی شدند؛ فایل‌های backend تغییرکرده: `backend/app.py`, `backend/site_content.py` و آزمون‌های `backend/tests/test_admin_user_records_api.py`, `backend/tests/test_site_content_api.py`, `backend/tests/test_partner_retention.py`.
+
+- **U4 فهرست:** `GET /api/admin/users/{account_id}/registrations?limit&offset` با `us_view`؛ `source`, `items`, `total`, `limit`, `offset`, `has_more`. فقط ثبت‌نام‌های اصلی (نه companion) که scope حساب از draft تأییدشدهٔ کاربر/هویت پیوندشده به دست می‌آید.
+- **U4 جزئیات:** `GET /api/admin/users/{account_id}/registrations/{response_id}` با همان مجوز؛ تطبیق هم‌زمان response و account و 404 برای پاسخ غریبه/ناموجود. `answers` از snapshot فرم با کلیدهای موجود فیلدهای فرم ساخته می‌شود؛ ستون `col:false` و mobile/credential برگردانده نمی‌شود. فیلد پرداخت/رسید/حضور فقط مقادیر رکورد واقعی‌اند.
+- **U5:** `GET /api/admin/users/{account_id}/notifications?limit&offset` با `us_view`; query مستقیماً روی `UserNotificationRecord.account_id` فیلتر می‌شود. هر ردیف `scope:"account"` است؛ صف سراسری جداست و هیچ endpoint نوشتن/ارسال اضافه نشده. پیوند نامعتبر قدیمی به null تبدیل می‌شود.
+- **H1:** همان `GET/PATCH /api/owner/site-content`، نه جدول یا مخزن جدید. GET مالک علاوه بر people عمومی، ردیف‌های private/draft را با فیلدهای محتوایی allowlist‌شده و نشانگرهای وضعیت می‌دهد. PATCH همان `{content:{people:[...]},expected_version}` را با `require_owner_write`، کنترل CAS و فیلدهای وضعیت سخت‌گیرانه می‌پذیرد. ردیف‌های غیرعمومی حذف‌شده از payload با سازوکار نگه‌داری موجود حفظ می‌شوند. projection عمومی people را دوباره از allowlist می‌سازد و فلگ‌ها/اطلاعات ناشناخته را حذف می‌کند؛ فقط ردیف‌هایی که `_public_record` می‌پذیرد منتشر می‌شوند. بدون migration.
+
+**آزمون‌های بک‌اند:** تمام `backend/tests`: **۳۶۷ passed، ۴ skipped**؛ Mypy: **۰ خطا در ۷۳ فایل**. موارد جدید شامل مالک/مدیر، عضو بی‌مجوز، صفحه‌بندی، پاسخ خالی/غریبه، فیلد مخفی، عدم نشت اعلان بین دو حساب، پیوند ناامن، حفظ draft people، 401 مالک و رد state/ID نامعتبر هستند. یک هشدار deprecation در TestClient/httpx موجود است. نتیجهٔ UI/مرورگر نقش‌محور هنوز منتظر اتصال فرانت‌اند است.
+
 ## وضعیت فرانت‌اند و آزمون
 
 - پروندهٔ کاربر از API سروری موجود می‌خواند و وضعیت ثبت‌نامِ ناشناخته دیگر «پذیرفته» تلقی نمی‌شود. در پرونده توضیح افزوده شد که ردیف‌ها خلاصه‌اند و جزئیات پاسخ API ندارد؛ دادهٔ فرم ساختگی نیست.

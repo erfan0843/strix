@@ -410,6 +410,50 @@ def _person(record: Any) -> dict[str, Any] | None:
     }
 
 
+def owner_person(record: Any) -> dict[str, Any] | None:
+    """Allowlisted people row for the owner editor, including explicit publication state."""
+    if not isinstance(record, dict):
+        return None
+    safe = dict(record)
+    for key in ("pub", "hidden", "pend", "privacy", "visibility", "status"):
+        safe.pop(key, None)
+    safe["pub"] = True  # _person applies the same field sanitizer; visibility is restored below.
+    person = _person(safe)
+    if person is None:
+        return None
+    for key in ("pub", "hidden", "pend"):
+        if key in record:
+            if not isinstance(record[key], bool):
+                raise SiteContentError("invalid_site_content_people_state")
+            person[key] = record[key]
+    for key, allowed in (("privacy", {"public", "private"}),
+                         ("visibility", {"public", "published", "private", "hidden"}),
+                         ("status", {"published", "draft", "paused", "archived", "private", "hidden", "pending", "rejected", "unpublished"})):
+        value = record.get(key)
+        if value is not None:
+            if not isinstance(value, str) or value.strip().lower() not in allowed:
+                raise SiteContentError("invalid_site_content_people_state")
+            person[key] = value.strip().lower()
+    return person
+
+
+def sanitize_owner_people(value: Any) -> list[dict[str, Any]]:
+    """Validate owner-managed people rows without dropping private/draft entries."""
+    if not isinstance(value, list) or len(value) > MAX_RECORDS["people"]:
+        raise SiteContentError("invalid_site_content_records")
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in value:
+        person = owner_person(raw)
+        if person is None:
+            raise SiteContentError("invalid_site_content_people")
+        if person["id"] in seen:
+            raise SiteContentError("duplicate_site_content_id")
+        seen.add(person["id"])
+        rows.append(person)
+    return rows
+
+
 def _article_block(value: Any, article_id: str, index: int) -> dict[str, Any] | str | None:
     if isinstance(value, str):
         return _text(value, 8_000)
@@ -702,6 +746,9 @@ def public_site_content(content: Any) -> dict[str, Any]:
     # Read-time boundary for stored rows that never passed the sanitiser (legacy or direct DB writes).
     for key in NON_PUBLIC_RETAINED_KEYS:
         public[key] = [row for row in public[key] if _public_record(row)]
+    # People rows are always projected through the public allowlist; owner-only publication
+    # flags and unknown/private fields must never leak from the shared content document.
+    public["people"] = [person for person in (_person(row) for row in public["people"]) if person]
     public["banners"] = [
         banner for banner in (_banner(item) for item in public["banners"])
         if banner and banner["status"] == "published" and banner["active"] is True

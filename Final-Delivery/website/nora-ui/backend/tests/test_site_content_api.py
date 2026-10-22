@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 BACKEND_PARENT = Path(__file__).resolve().parents[2]
@@ -57,6 +58,59 @@ def csrf(client: TestClient) -> dict[str, str]:
         "Origin": "http://testserver",
         "X-CSRF-Token": client.cookies.get("nora_csrf", ""),
     }
+
+
+def test_owner_people_api_preserves_private_rows_and_public_projection_is_allowlisted(client: TestClient):
+    login(client)
+    initial = client.patch("/api/owner/site-content", json={"content": {"people": [
+        {"id": "person-live", "n": "مدرس عمومی", "kind": "teacher", "r": "مدرس", "pub": True, "email": "never-public@example.test"},
+        {"id": "person-draft", "n": "کارمند پیش‌نویس", "kind": "staff", "r": "کارمند", "pub": False, "status": "draft", "mobile": "private"},
+    ]}, "expected_version": 0}, headers=csrf(client))
+    assert initial.status_code == 200, initial.text
+    assert initial.json()["version"] == 1
+    owner_rows = initial.json()["content"]["people"]
+    assert len(owner_rows) == 2 and owner_rows[1]["pub"] is False and owner_rows[1]["status"] == "draft"
+    public_rows = client.get("/api/public/site-content").json()["content"]["people"]
+    assert [row["id"] for row in public_rows] == ["person-live"]
+    assert "pub" not in public_rows[0] and "email" not in repr(public_rows)
+
+    # The editor replaces the public row but omits the draft; backend retention must keep it.
+    updated = client.patch("/api/owner/site-content", json={"content": {"people": [
+        {"id": "person-live", "n": "مدرس عمومی تازه", "kind": "teacher", "r": "مدرس ارشد", "pub": True},
+    ]}, "expected_version": 1}, headers=csrf(client))
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["version"] == 2
+    final_rows = updated.json()["content"]["people"]
+    assert {row["id"] for row in final_rows} == {"person-live", "person-draft"}
+    assert next(row for row in final_rows if row["id"] == "person-draft")["status"] == "draft"
+    public_final = client.get("/api/public/site-content").json()["content"]["people"]
+    assert len(public_final) == 1 and public_final[0]["n"] == "مدرس عمومی تازه"
+
+
+def test_owner_people_rejects_invalid_publication_state_and_duplicate_ids(client: TestClient):
+    login(client)
+    from uuid import uuid4
+    from backend.models import AccountRecord, AccountRoleRecord, ManagerCredentialRecord
+    manager_id = str(uuid4())
+    with Session(client.app.state.engine) as db:
+        db.add(AccountRecord(id=manager_id))
+        db.add(AccountRoleRecord(account_id=manager_id, role="manager", assigned_by="owner-01"))
+        db.add(ManagerCredentialRecord(account_id=manager_id, username_key="manager.people", password_hash=hash_password("manager-password-123")))
+        db.commit()
+    manager = TestClient(client.app)
+    login_response = manager.post("/api/auth/manager-login", json={"username": "manager.people", "password": "manager-password-123"}, headers={"Origin": "http://testserver"})
+    assert login_response.status_code == 200, login_response.text
+    assert manager.get("/api/owner/site-content").status_code == 401
+    assert manager.patch("/api/owner/site-content", json={"content": {"people": []}, "expected_version": 0}, headers={"Origin": "http://testserver"}).status_code == 401
+    invalid = client.patch("/api/owner/site-content", json={"content": {"people": [
+        {"id": "person-state", "n": "مدرس", "pub": "false"},
+    ]}, "expected_version": 0}, headers=csrf(client))
+    assert invalid.status_code == 422 and invalid.json()["detail"]["code"] == "invalid_site_content_people_state"
+    duplicate = {"content": {"people": [
+        {"id": "same", "n": "اول"}, {"id": "same", "n": "دوم"},
+    ]}, "expected_version": 0}
+    response = client.patch("/api/owner/site-content", json=duplicate, headers=csrf(client))
+    assert response.status_code == 422 and response.json()["detail"]["code"] == "duplicate_site_content_id"
 
 
 def test_public_site_content_not_available_until_owner_publishes(client: TestClient):

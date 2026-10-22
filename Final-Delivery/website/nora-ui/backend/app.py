@@ -165,6 +165,8 @@ from .site_content import (
     NON_PUBLIC_RETAINED_KEYS,
     retain_non_public_rows,
     sanitize_site_content,
+    owner_person,
+    sanitize_owner_people,
 )
 
 
@@ -2178,6 +2180,16 @@ def create_app(
                 ).get("banners", [])
             except SiteContentError:
                 public["banners"] = []
+            raw_people = content.get("people", [])
+            public["people"] = []
+            if isinstance(raw_people, list):
+                for raw_person in raw_people:
+                    try:
+                        person = owner_person(raw_person)
+                    except SiteContentError:
+                        person = None
+                    if person is not None:
+                        public["people"].append(person)
         cfg: Settings = _runtime_settings(db, app.state.settings)
         published_forms: Sequence[FormRecord] = db.scalars(
             select(FormRecord)
@@ -2350,8 +2362,11 @@ def create_app(
         expected_version = payload.get("expected_version")
         if isinstance(expected_version, bool) or not isinstance(expected_version, int) or expected_version < 0:
             raise HTTPException(422, "invalid_site_content_version")
+        raw_content = payload.get("content")
         try:
-            incoming = sanitize_site_content(payload.get("content"), partial=True)
+            incoming = sanitize_site_content(raw_content, partial=True)
+            if isinstance(raw_content, dict) and "people" in raw_content:
+                incoming["people"] = sanitize_owner_people(raw_content["people"])
         except SiteContentError as error:
             raise HTTPException(422, {"code": str(error)}) from None
         if not incoming:
@@ -2822,7 +2837,122 @@ def create_app(
         row["source"] = "shared_server_database"
         return row
 
-    # ── حضور و غیاب: همان ستون‌های check-in بلیت که ربات می‌نویسد ──
+    def _admin_target_account(db: Session, account_id: str) -> AccountRecord:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        verified = db.scalar(select(PlatformIdentityRecord.account_id).where(
+            PlatformIdentityRecord.account_id == account_id,
+            PlatformIdentityRecord.provider.in_(("bale", "phone")),
+        )) if account is not None else None
+        if account is None or verified is None:
+            raise HTTPException(404, "user_not_found")
+        return account
+
+    def _admin_registration_query(db: Session, account_id: str):
+        return (
+            select(FormResponseRecord, FormPaymentRecord, FormRecord)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                account_form_record_scope(db, account_id),
+                FormResponseRecord.added_by_response_id.is_(None),
+                FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
+        )
+
+    def _admin_registration_summary(record: FormResponseRecord, payment: FormPaymentRecord | None) -> dict[str, Any]:
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        event = _json_dict_member(snapshot, "event")
+        form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
+        return {
+            "id": record.id,
+            "form_id": record.form_id,
+            "form_name": form_name,
+            "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
+            "event_date": _ticket_text(event.get("date") or "", 120),
+            "status": record.status,
+            "payment_status": payment.status if payment is not None else None,
+            "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+            "ticket_checked_in": record.ticket_checked_in_at is not None,
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+
+    @app.get("/api/admin/users/{account_id}/registrations")
+    def admin_user_registrations(
+        account_id: str,
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        filters = (
+            account_form_record_scope(db, account_id),
+            FormResponseRecord.added_by_response_id.is_(None),
+            FormRecord.model == "registration",
+            FormRecord.purpose == "registration",
+        )
+        total = int(db.scalar(
+            select(func.count(FormResponseRecord.id))
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(*filters)
+        ) or 0)
+        rows = db.execute(_admin_registration_query(db, account_id)
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(limit).offset(offset)).all()
+        return {"source": "shared_server_database", "items": [_admin_registration_summary(record, payment) for record, payment, _form in rows],
+                "total": total, "limit": limit, "offset": offset, "has_more": offset + len(rows) < total}
+
+    @app.get("/api/admin/users/{account_id}/registrations/{response_id}")
+    def get_admin_user_registration(
+        account_id: str,
+        response_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        _admin_target_account(db, account_id)
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", response_id or ""):
+            raise HTTPException(404, "registration_not_found")
+        row = db.execute(_admin_registration_query(db, account_id).where(FormResponseRecord.id == response_id)).first()
+        if row is None:
+            raise HTTPException(404, "registration_not_found")
+        record, payment, form = row
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        raw_snapshot_fields: Any = snapshot.get("fields")
+        snapshot_fields: list[Any] = raw_snapshot_fields if isinstance(raw_snapshot_fields, list) else []
+        current_fields = {field.field_key: field for field in form.fields}
+        answers = record.answers if isinstance(record.answers, dict) else {}
+        answer_rows = []
+        for field in snapshot_fields:
+            if not isinstance(field, dict):
+                continue
+            key = str(field.get("id") or "")
+            current = current_fields.get(key)
+            if not key or key not in answers or current is None or (current.config or {}).get("col") is False:
+                continue
+            answer_rows.append({"field_id": key, "label": _ticket_text(field.get("label") or key, 160), "value": answers[key]})
+        event = _json_dict_member(snapshot, "event")
+        return {
+            "source": "shared_server_database", "account_id": account_id, "response_id": record.id,
+            "form": {"id": form.id, "name": _ticket_text(snapshot.get("name") or form.title, 160)},
+            "event": ({"id": form.event_id, "title": _ticket_text(event.get("title") or "", 160),
+                       "date": _ticket_text(event.get("date") or "", 120)} if form.event_id or event else None),
+            "status": record.status, "created_at": _as_utc(record.created_at).isoformat(), "answers": answer_rows,
+            "payment_status": payment.status if payment is not None else None,
+            "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+            "ticket_checked_in": record.ticket_checked_in_at is not None,
+        }
+
+    # ── حضور و غیاب: همان check-in بلیت که ربات می‌نویسد ──
     # منبع مشترک: form_responses.ticket_checked_in_*؛ پنل فقط همان رکورد را می‌خواند
     # و با مجوز attendance و ثبت دلیل/ممیزی، حضور را ثبت یا اصلاح می‌کند.
     def _attendance_actor(record: FormResponseRecord) -> dict[str, Any] | None:
@@ -8615,6 +8745,46 @@ def create_app(
             items.append(view)
         return {"source": "shared_server_database", "items": items, "has_more": len(rows) > limit, "counts": counts,
                 "limit": limit, "offset": offset}
+
+    @app.get("/api/admin/users/{account_id}/notifications")
+    def admin_user_notifications(
+        account_id: str,
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Read only notifications explicitly addressed to this account (never the global outbox)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        _admin_target_account(db, account_id)
+        total = int(db.scalar(select(func.count(UserNotificationRecord.id)).where(
+            UserNotificationRecord.account_id == account_id
+        )) or 0)
+        records = db.scalars(
+            select(UserNotificationRecord)
+            .where(UserNotificationRecord.account_id == account_id)
+            .order_by(UserNotificationRecord.created_at.desc(), UserNotificationRecord.id.desc())
+            .limit(limit).offset(offset)
+        ).all()
+        def _safe_notice_link(value: str | None) -> str | None:
+            try:
+                return notifications_mod.safe_link(value)
+            except notifications_mod.NotificationLinkError:
+                return None
+        return {
+            "source": "shared_server_database",
+            "items": [{
+                "id": item.id, "kind": item.kind, "title": item.title, "body": item.body,
+                "created_at": _as_utc(item.created_at).isoformat(), "scope": "account",
+                "delivery_status": item.delivery_status, "delivery_attempts": item.delivery_attempts,
+                "last_delivery_error": item.last_delivery_error,
+                "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
+                "link": _safe_notice_link(item.link), "read_at": _as_utc(item.read_at).isoformat() if item.read_at else None,
+            } for item in records],
+            "total": total, "limit": limit, "offset": offset, "has_more": offset + len(records) < total,
+        }
 
     @app.post("/api/admin/notifications/{notification_id}/retry")
     def admin_retry_notification(
