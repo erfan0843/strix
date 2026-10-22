@@ -11,6 +11,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -58,7 +60,7 @@ def test_report_only_is_the_default_when_an_allowlist_is_set():
         with TestClient(app) as client:
             page = client.get("/events.html")
             assert page.status_code == 200 and "text/html" in page.headers["content-type"]
-            assert page.headers["Content-Security-Policy-Report-Only"] == f"frame-src {ALLOWLIST}"
+            assert page.headers["Content-Security-Policy-Report-Only"] == f"frame-src {ALLOWLIST}; report-uri /api/csp-report"
             assert "frame-src" not in page.headers.get("Content-Security-Policy", "")
             assert page.headers.get("X-Frame-Options") == "SAMEORIGIN"  # clickjacking protection untouched
             api = client.get("/api/account/certificates")
@@ -72,7 +74,7 @@ def test_enforced_mode_only_with_explicit_flag_and_never_touches_file_sandbox():
     try:
         with TestClient(app) as client:
             page = client.get("/account.html")
-            assert page.headers["Content-Security-Policy"] == f"frame-src {ALLOWLIST}"
+            assert page.headers["Content-Security-Policy"] == f"frame-src {ALLOWLIST}; report-uri /api/csp-report"
             assert "Content-Security-Policy-Report-Only" not in page.headers
             # A file-type response keeps its own strict CSP (sandbox) — frame-src is not appended to non-HTML.
             robots = client.get("/robots.txt")
@@ -91,3 +93,38 @@ def test_env_parsing_accepts_only_https_origins_and_self(monkeypatch):
         monkeypatch.setenv("NORA_CSP_FRAME_SRC", bad)
         with pytest.raises(ValueError):
             config_mod._csp_frame_src_env()
+
+
+def test_csp_report_sink_logs_a_pii_free_summary_and_stores_nothing(caplog):
+    """Phase 9.6 §8: the browser posts violations here; only directive + blocked origin + document path reach the log."""
+    import logging
+
+    app, engine = csp_app(csp_frame_src=ALLOWLIST)
+    try:
+        with TestClient(app) as client:
+            legacy = {"csp-report": {
+                "document-uri": "https://nora.example/event.html?id=ev-1&session=SECRET-TOKEN",
+                "effective-directive": "frame-src", "violated-directive": "frame-src",
+                "blocked-uri": "https://player.vimeo.com/video/123?h=private-hash", "disposition": "report",
+                "original-policy": "frame-src 'self'"}}
+            with caplog.at_level(logging.WARNING, logger="nora.csp"):
+                response = client.post("/api/csp-report", content=json.dumps(legacy), headers={"Content-Type": "application/csp-report"})
+                assert response.status_code == 204 and response.content == b""
+                modern = [{"type": "csp-violation", "age": 3, "body": {
+                    "documentURL": "https://nora.example/account.html?tab=x", "effectiveDirective": "frame-src",
+                    "blockedURL": "https://www.youtube.com/embed/abc?autoplay=1", "disposition": "enforce"}}]
+                assert client.post("/api/csp-report", content=json.dumps(modern), headers={"Content-Type": "application/reports+json"}).status_code == 204
+            lines = [record.getMessage() for record in caplog.records if record.name == "nora.csp"]
+            assert len(lines) == 2 and all(line.startswith("csp_violation ") for line in lines)
+            first, second = (json.loads(line.split(" ", 1)[1]) for line in lines)
+            assert first == {"directive": "frame-src", "blocked": "https://player.vimeo.com", "document": "/event.html", "disposition": "report"}
+            assert second == {"directive": "frame-src", "blocked": "https://www.youtube.com", "document": "/account.html", "disposition": "enforce"}
+            joined = "\n".join(lines)
+            assert "SECRET-TOKEN" not in joined and "private-hash" not in joined and "autoplay" not in joined
+            # Garbage, wrong shapes and oversize bodies are refused without logging; nothing is persisted anywhere.
+            assert client.post("/api/csp-report", content=b"not json", headers={"Content-Type": "application/csp-report"}).status_code == 400
+            assert client.post("/api/csp-report", content=json.dumps({"hello": 1}), headers={"Content-Type": "application/json"}).status_code == 400
+            assert client.post("/api/csp-report", content=b"x" * (16 * 1024 + 1), headers={"Content-Type": "application/csp-report"}).status_code == 413
+            assert client.get("/api/csp-report").status_code in {404, 405}  # no read side: nothing is stored
+    finally:
+        engine.dispose()

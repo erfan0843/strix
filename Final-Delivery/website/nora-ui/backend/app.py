@@ -367,6 +367,34 @@ def _json_response(status: int, error: str, message: str | None = None) -> JSONR
     return JSONResponse(value, status_code=status)
 
 
+CSP_REPORT_PATH = "/api/csp-report"
+CSP_REPORT_MAX_BYTES = 16 * 1024
+csp_logger = logging.getLogger("nora.csp")
+
+
+def _csp_report_summary(body: dict[str, Any]) -> dict[str, str]:
+    """Keep only what an operator needs to tune ``frame-src``; strip anything identifying."""
+    def origin_only(value: object) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        parsed = urlsplit(text)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+        return text.split("?", 1)[0][:80]  # keyword values such as ``inline`` / ``eval`` / ``data``
+    def path_only(value: object) -> str:
+        parsed = urlsplit(str(value or ""))
+        return (parsed.path or "/")[:160]
+    directive = str(body.get("effective-directive") or body.get("effectiveDirective")
+                    or body.get("violated-directive") or body.get("violatedDirective") or "")[:80]
+    return {
+        "directive": directive,
+        "blocked": origin_only(body.get("blocked-uri") or body.get("blockedURL") or body.get("blockedURI")),
+        "document": path_only(body.get("document-uri") or body.get("documentURL") or body.get("documentURI")),
+        "disposition": str(body.get("disposition") or "")[:16],
+    }
+
+
 async def _read_json_object(request: Request, max_bytes: int) -> dict[str, Any]:
     declared = request.headers.get("content-length")
     if declared:
@@ -1353,12 +1381,15 @@ def create_app(
             # فاز ۹.۴ §۵: allowlist صریح قاب‌های ویدیو (یوتیوب/آپارات) فقط وقتی NORA_CSP_FRAME_SRC تنظیم
             # شده؛ پیش‌فرض Report-Only تا staging با مرورگر واقعی بی‌خطا شود، سپس NORA_CSP_REPORT_ONLY=0.
             # پاسخ‌های فایل (CSP «sandbox») HTML نیستند و دست نمی‌خورند.
+            # فاز ۹.۶ §۸: نقض‌ها به /api/csp-report می‌روند (فقط لاگ ساخت‌یافتهٔ بدون PII) تا staging بتواند
+            # مبدأهای واقعاً لازم را پیش از enforce جمع کند.
+            policy = f"frame-src {csp_frame_src}; report-uri {CSP_REPORT_PATH}"
             if csp_report_only:
-                response.headers["Content-Security-Policy-Report-Only"] = f"frame-src {csp_frame_src}"
+                response.headers["Content-Security-Policy-Report-Only"] = policy
             elif "Content-Security-Policy" in response.headers:
-                response.headers["Content-Security-Policy"] += f"; frame-src {csp_frame_src}"
+                response.headers["Content-Security-Policy"] += f"; {policy}"
             else:
-                response.headers["Content-Security-Policy"] = f"frame-src {csp_frame_src}"
+                response.headers["Content-Security-Policy"] = policy
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         path = request.url.path.lower()
         if path.startswith("/api/public/media/") and response.status_code in {200, 304}:
@@ -2022,6 +2053,35 @@ def create_app(
         if updated_task is None:
             raise HTTPException(404, "admin_task_not_found")
         return updated_task
+
+
+    @app.post(CSP_REPORT_PATH, status_code=204)
+    async def csp_report(request: Request) -> Response:
+        """Report sink for the frame-src policy (phase 9.6 §8): one PII-free WARNING line per violation.
+
+        Accepts the browser formats ``application/csp-report`` (``{"csp-report": {...}}``) and
+        ``application/reports+json`` (list of ``{"type": "csp-violation", "body": {...}}``). Nothing is
+        stored; ``document-uri`` is reduced to its path and ``blocked-uri`` to its origin, so no query
+        string, token or member identifier ever reaches the log. Operators read the journal.
+        """
+        raw = await request.body()
+        if len(raw) > CSP_REPORT_MAX_BYTES:
+            raise HTTPException(413, "request_too_large")
+        try:
+            payload = json.loads(raw.decode("utf-8")) if raw else None
+        except (UnicodeDecodeError, ValueError):
+            raise HTTPException(400, "invalid_csp_report") from None
+        bodies: list[dict[str, Any]] = []
+        if isinstance(payload, dict) and isinstance(payload.get("csp-report"), dict):
+            bodies.append(payload["csp-report"])
+        elif isinstance(payload, list):
+            bodies.extend(item["body"] for item in payload[:20]
+                          if isinstance(item, dict) and item.get("type") == "csp-violation" and isinstance(item.get("body"), dict))
+        else:
+            raise HTTPException(400, "invalid_csp_report")
+        for body in bodies:
+            csp_logger.warning("csp_violation %s", json.dumps(_csp_report_summary(body), ensure_ascii=False, sort_keys=True))
+        return Response(status_code=204)
 
     @app.get("/api/health")
     def health(request: Request):
