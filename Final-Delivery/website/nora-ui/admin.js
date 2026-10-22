@@ -4612,7 +4612,7 @@ function ppForm(D,kind){
           <span class="ppav big" style="--g:${esc(D.g||PP_GS[0].v)}">${curPh?`<img src="${esc(curPh)}" alt=""/>`:esc(ppIni(D))}</span>
           <label class="btn sm quiet" style="margin:0">${ico('i-upload')} بارگذاری عکس<input type="file" accept="image/*" data-ppfile="1" hidden/></label>
           ${curPh?btn('برداشتن عکس','data-ppphoto="__none"','i-trash'):''}
-          <span class="cap">${/^data:/.test(curPh)?'عکس بارگذاری‌شدهٔ خودتان':(curPh?esc(curPh.replace('people/','')):'بی‌عکس؛ حرفِ نام مینشیند')}</span></div>
+          <span class="cap" data-pp-photo-state>${/^data:/.test(curPh)?'عکس بارگذاری‌شدهٔ خودتان':/^\/api\/public\/media\//.test(curPh)?'عکس روی سرور (رسانهٔ عمومی)':(curPh?esc(curPh.replace('people/','')):'بی‌عکس؛ حرفِ نام مینشیند')}</span></div>
         <div class="admfilters" style="margin-top:6px">${photos.map(ph=>`<button class="chip ${curPh===ph?'on':''}" data-ppphoto="${esc(ph)}">${esc(ph.replace('people/',''))}</button>`).join('')}</div>
         <label class="fld" style="margin-top:6px"><span class="lbl">یا نشانی عکس</span><input class="input" ${ppF('photo',/^data:/.test(curPh)?'':curPh)} placeholder="مثل: people/p9.svg"/></label></div>`),
     isM?'':sec('درباره و آمار','همان ردیفهای ورقهٔ پروفایل',`
@@ -11519,6 +11519,15 @@ document.addEventListener('change',e=>{
     return}
   if(el.dataset.ppfile){const D=ppD(); const f=(el.files||[])[0];
     if(!D||!f) return;
+    /* ممیزی ۱۴۰۵/۰۸/۰۱ (G1): در حالت سرور عکس شخص با همان POST /api/admin/media بارگذاری می‌شود و فقط نشانی عمومی در site_content می‌نشیند؛ base64 داخل سند نمی‌رود. */
+    const api=window.NORA_SERVER_API;
+    if(typeof peServerMode==='function'&&peServerMode()&&api&&typeof api.uploadAdminMedia==='function'){
+      if(!/^image\/(png|jpeg|webp)$/.test(f.type)){toast('فقط PNG، JPEG یا WebP پذیرفته می‌شود'); el.value=''; return}
+      if(PE_SRV.photoBusy) return; PE_SRV.photoBusy=true; toast('در حال بارگذاری عکس در سرور…');
+      api.uploadAdminMedia(f,f.name,staffCsrfCookie()).then(result=>{D.photo=result.url; save(); renderBody(); toast(result.created===false?'همین عکس پیش‌تر در سرور بود؛ همان نشانی استفاده شد':'عکس در سرور ذخیره شد؛ با «ذخیره و انتشار» روی پروفایل می‌نشیند')})
+        .catch(error=>{toast(p2Err(error,'بارگذاری عکس انجام نشد؛ عکس قبلی دست‌نخورده ماند'))})
+        .finally(()=>{PE_SRV.photoBusy=false; el.value=''});
+      return}
     ppShrink(f,(url,result,error)=>{ if(!url){toast(UI.imageErrorMessage?UI.imageErrorMessage(error):'این تصویر خوانده نشد'); return}
       D.photo=url; save(); renderBody(); toast('عکس ایشان به‌روزرسانی شد'); });
     return}

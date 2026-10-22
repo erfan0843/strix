@@ -381,6 +381,28 @@ console.log('— فهرست تصاویر: وضعیت استفاده از site_co
   } finally { limited.close(); }
 }
 
+console.log('— عکس شخص (G1): بارگذاری واقعی با POST /api/admin/media و نشانی پایدار در فرم؛ بدون base64 —');
+{
+  const app = await loadPanel({ role: 'owner', sec: 'settings', state: { setG: 'people' } });
+  try {
+    await app.until(() => app.doc.querySelector('#peSrvState[data-state="success"]') && app.doc.querySelector('[data-pe-new]'), 'فهرست افراد از سرور بارگذاری شد');
+    app.click('[data-pe-new]');
+    await app.until(() => app.doc.querySelector('[data-pe-editor="new"] [data-ppfile]'), 'ویرایشگر شخص تازه با ورودی عکس');
+    app.pickFile('[data-ppfile]', 'cv.pdf', 'application/pdf');
+    await delay(30);
+    assert.equal(app.calls.filter((c) => c.path === '/api/admin/media').length, 0, 'فایل غیرتصویری در مرورگر رد می‌شود و درخواستی نمی‌رود');
+    app.pickFile('[data-ppfile]', 'teacher.png', 'image/png');
+    await app.until(() => app.doc.querySelector(`[data-pe-editor="new"] img[src="/api/public/media/${MEDIA_NEW}"]`), 'پیش‌نمایش عکس از نشانی پایدار سرور');
+    const up = app.calls.find((c) => c.path === '/api/admin/media' && c.method === 'POST');
+    assert.ok(up && up.headers['X-CSRF-Token'] === 'owner-csrf' && up.headers['X-File-Name'] === 'teacher.png', 'ارسال با CSRF و نام فایل');
+    assert.equal(app.doc.querySelector('[data-ppf="photo"]').value, `/api/public/media/${MEDIA_NEW}`, 'نشانی عکس در فیلد photo می‌نشیند');
+    assert.match(app.doc.querySelector('[data-pp-photo-state]').textContent, /عکس روی سرور/);
+    assert.doesNotMatch(app.body(), /data:image/, 'base64 در سند site_content نمی‌رود');
+    assert.equal(app.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/owner/site-content').length, 0, 'بارگذاری عکس به‌تنهایی چیزی منتشر نمی‌کند');
+    app.noLeak();
+  } finally { app.close(); }
+}
+
 console.log('— کارتابل: وضعیت تحویل اعلان جدا از ثبت تصمیم و فقط از دادهٔ سرور —');
 {
   const app = await loadPanel({ role: 'owner', sec: 'users', state: { uV: 'shared-inbox', sharedWorkflowKind: 'all' } });
