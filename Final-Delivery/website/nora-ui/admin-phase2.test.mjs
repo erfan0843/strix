@@ -72,7 +72,7 @@ async function loadPanel(identity) {
           : reply(200, { authenticated: true, account_id: 'acc-mgr', provider: 'manager-password', role: identity.role, permissions: perms, manager_username: 'qa.manager' });
         if (path === '/api/health') return reply(200, { ok: true, formsEnabled: true, responsesEnabled: true });
         if (path === '/api/integrations/status') return reply(200, { providers: [] });
-        if (path === '/api/forms') return reply(200, { items: [] });
+        if (path === '/api/forms') return reply(200, { items: identity.forms || [] });
         if (path === '/api/owner/site-content') return reply(200, { content: {}, version: world.version, updated_at: null });
         if (/^\/api\/admin\/reports\/summary\?period=/.test(path)) return reply(200, { source: 'shared_server_database', period: '30d', forms: { total: 0, by_status: {} }, responses: { total: 0, by_status: {} }, accounts: { total: 0, by_role: {} }, reviews: { total: 0, by_kind: {} }, notifications: { total: 0, by_delivery_status: {} }, cooperation_requests: { total: 0, by_status: {} } });
         if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
@@ -445,6 +445,54 @@ console.log('— قطع سرور و نشست منقضی: پیام و تلاش د
     await empty.until(() => /هنوز کاربری/.test(empty.body()), 'فهرست خالی صادقانه');
     empty.noLeak();
   } finally { empty.close(); }
+}
+
+console.log('— B4 ممیزی مالک: فرم‌های ثبت‌نام همین رویداد در ویرایشگر؛ ساخت فرم با شناسهٔ رویداد بدون تایپ دوباره؛ بدون مجوز فرم‌ساز هیچ پیوندی —');
+{
+  const forms = [
+    { id: 'f-reg-1', name: 'فرم ثبت‌نام کارگاه', need: 'reg', ev: 'ev-a1', purpose: 'registration', status: 'published', response_count: 4 },
+    { id: 'f-other', name: 'فرم رویداد دیگر', need: 'reg', ev: 'ev-zzz', purpose: 'registration', status: 'draft', response_count: 0 },
+    { id: 'f-buy', name: 'فرم خرید ضبط', need: 'reg', ev: 'ev-a1', purpose: 'recording_access', status: 'published', response_count: 1 },
+  ];
+  const app = await loadPanel({ role: 'owner', sec: 'events', forms });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست');
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-forms="ev-a1"]'), 'بلوک فرم‌های رویداد در ویرایشگر');
+    await app.until(() => app.doc.querySelector('[data-ct-form-row="f-reg-1"]'), 'فرم ثبت‌نام همین رویداد از GET /api/forms فهرست شد');
+    assert.equal(app.doc.querySelector('[data-ct-form-row="f-other"]'), null, 'فرم رویداد دیگر نشان داده نمی‌شود');
+    assert.equal(app.doc.querySelector('[data-ct-form-row="f-buy"]'), null, 'فرم خرید ضبط جزو ثبت‌نام نیست (خرید ≠ ثبت‌نام)');
+    const make = app.doc.querySelector('[data-ct-form-create="ev-a1"]');
+    assert.ok(make, 'دکمهٔ ساخت فرم برای همین رویداد');
+    const href = new URL(make.getAttribute('href'), 'http://x/');
+    assert.equal(href.pathname, '/create.html');
+    assert.equal(href.searchParams.get('ev'), 'ev-a1', 'شناسهٔ رویداد در آدرس فرم‌ساز (بدون تایپ دوباره)');
+    assert.equal(href.searchParams.get('need'), 'reg');
+    assert.equal(href.searchParams.get('name'), 'کارگاه نگارش');
+    assert.ok(app.doc.querySelector('[data-ct-form-row="f-reg-1"] a[href="create.html?fid=f-reg-1"]'), 'ویرایش فرم در فرم‌ساز');
+    assert.ok(app.doc.querySelector('[data-ct-form-row="f-reg-1"] a[href="builder.html?fid=f-reg-1#responses"]'), 'پاسخ‌های فرم');
+    app.click('[data-ct-cancel]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-b2"]'), 'بازگشت');
+    app.click('[data-ct-edit="ev-b2"]');
+    await app.until(() => app.doc.querySelector('[data-ct-forms="ev-b2"]'), 'بلوک برای رویداد بدون فرم');
+    assert.match(app.doc.querySelector('[data-ct-forms="ev-b2"]').textContent, /هنوز فرمی به این رویداد وصل نیست/);
+    assert.equal(app.doc.querySelector('[data-ct-form-row]'), null);
+    app.click('[data-ct-cancel]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-b2"]'), 'بازگشت');
+    app.click('[data-ct-new]');
+    await app.until(() => app.doc.querySelector('#ctf_t'), 'ویرایشگر رویداد تازه');
+    assert.ok(app.doc.querySelector('[data-ct-forms="unsaved"]'), 'رویداد ذخیره‌نشده: راهنما به‌جای پیوند');
+    assert.equal(app.doc.querySelector('[data-ct-form-create]'), null, 'بدون شناسه، پیوند ساخت فرم نیست');
+  } finally { app.close(); }
+  const noForms = await loadPanel({ role: 'manager', sec: 'events', forms, permissions: MANAGER.filter((p) => p !== 'fm_create' && p !== 'fm_responses' && p !== 'fm_export') });
+  try {
+    await noForms.until(() => noForms.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست مدیر');
+    noForms.click('[data-ct-edit="ev-a1"]');
+    await noForms.until(() => noForms.doc.querySelector('#ctf_t'), 'ویرایشگر');
+    await delay(120);
+    assert.equal(noForms.doc.querySelector('[data-ct-forms]'), null, 'بدون مجوز فرم‌ساز بلوک فرم‌ها نیست');
+    assert.equal(noForms.calls.filter((c) => c.path === '/api/forms').length, 0, 'بدون مجوز، درخواستی به /api/forms نمی‌رود');
+  } finally { noForms.close(); }
 }
 
 console.log('آزمون مرحلهٔ دوم پنل: قبول');

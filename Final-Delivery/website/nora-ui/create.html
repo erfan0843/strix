@@ -941,8 +941,11 @@ function enforcePurchaseFormRules(){
   const gs=document.getElementById('guestsOn'); if(gs){gs.classList.remove('on'); gs.setAttribute('aria-checked','false'); gs.setAttribute('aria-disabled','true')}
   const ts=document.getElementById('ticketingEnabled'); if(ts){ts.classList.remove('on'); ts.setAttribute('aria-checked','false'); ts.setAttribute('aria-disabled','true')}
 }
-if(TEST_FIXTURE_MODE&&(QS.get('ev')||QS.get('name'))){
-  S.evId=QS.get('ev')||'';
+/* ممیزی پنل مالک ۱۴۰۵/۰۷/۳۰ (B4): در حالت واقعی هم ویرایشگر رویداد پنل ما را با ?ev=<id>&need=reg&name=… می‌فرستد؛
+   شناسه فقط با الگوی امن پذیرفته می‌شود و همان‌طور که سرور انتظار دارد در payload (ev) می‌رود. بدون این، هیچ مسیر
+   رابطی برای وصل‌کردن فرم ثبت‌نام به رویداد سروری وجود نداشت (فهرست رویدادهای builder در حالت واقعی خالی است). */
+if((TEST_FIXTURE_MODE||!isPurchaseForm())&&(QS.get('ev')||QS.get('name'))){
+  S.evId=TEST_FIXTURE_MODE?(QS.get('ev')||''):SAFE_ID(QS.get('ev'));
   S.back=QS.get('back')||'';
   const nm=QS.get('name')||'';
   if(nm) S.title=(QS.get('title')||(NEED[S.need]||'فرم')+' '+nm);
@@ -1045,12 +1048,12 @@ function evHeadFill(){
   if(rm) rm.textContent=nm?('رویداد: '+nm):ACTIVE_SERVER_FORM?('نسخهٔ سروری '+faN(ACTIVE_SERVER_FORM.version||1)+' · '+(ACTIVE_SERVER_FORM.status||'draft')):'فرم‌ساز سروری';
   if(em){
     if(nm) em.textContent=[QS.get('when'),QS.get('place'),S.cap?('ظرفیت '+faN(S.cap)):''].filter(Boolean).join(' · ');
-    else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'اطلاعات رویداد از API این صفحه دریافت نمی‌شود.':'رویدادی به این فرم متصل نیست.';
+    else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'فرم به رویداد «'+S.evId+'» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.':'رویدادی به این فرم متصل نیست.';
   }
   if(ec){
     const linked=!!(S.evId||nm);
     ec.hidden=!linked&&!TEST_FIXTURE_MODE;
-    ec.textContent=linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):'رویداد متصل · جزئیات سروری در دسترس نیست'
+    ec.textContent=linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):(nm?'رویداد: '+nm:'رویداد متصل: '+S.evId)
       :'فرم نمونه از دل رویداد';
     if(S.back){const back=localPageHref(S.back); if(back) ec.setAttribute('href',back); else {ec.removeAttribute('href');ec.setAttribute('aria-disabled','true')}}
     else if(!TEST_FIXTURE_MODE) ec.removeAttribute('href');
