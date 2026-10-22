@@ -1,0 +1,2131 @@
+{
+ "base": "http://127.0.0.1:8000",
+ "at": "2026-10-22T19:25:28.917Z",
+ "steps": [
+  {
+   "name": "01-login",
+   "console": [
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+   ],
+   "pageErrors": [],
+   "failed": [
+    "401 GET /api/auth/me",
+    "401 GET /api/account/me"
+   ],
+   "notes": [
+    "url after submit: http://127.0.0.1:8000/login.html?mode=staff&next=admin.html | text=پرش به فرم ورود / نورا / گروه فرهنگی خط زندگی / پنل مدیریت نورا / ورود مدیران / ورود مالک تأیید شد / رفتن به پنل مدیریت / خروج از حساب / راهنما / · / قوانین /  / موسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی /  / قوانین و شرایط استفاد",
+    "clicked \"رفتن به پنل مدیریت\"",
+    "url after login: http://127.0.0.1:8000/admin.html",
+    "auth/me role=owner perms=47"
+   ],
+   "shots": [
+    {
+     "file": "01-login-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 0,
+     "head": "",
+     "text": "پرش به فرم ورود\nنورا\nگروه فرهنگی خط زندگی\nپنل مدیریت نورا\nورود مدیران\n\nبا نام کاربری و گذرواژه‌ای که برایت ساخته شده وارد شو.\n\nنام کاربری\nگذرواژه\nورود\nورود اعضا با شمارهٔ همراه\nراهنما\n·\nقوانین\n\nموسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی\n\nقوانین و شرایط استفاده\n\nمتن رسمی قوانین و شرایط استفاده هنوز منتشر نشده است؛ تا انتشار آن، برای هر پرسش دربارهٔ شرایط استفاده یا حریم خصوصی با پشتیبانی در تماس باش.\n",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "01-login-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 0,
+     "head": "",
+     "text": "پرش به فرم ورود\nنورا\nپنل مدیریت نورا\nورود مدیران\n\nبا نام کاربری و گذرواژه‌ای که برایت ساخته شده وارد شو.\n\nنام کاربری\nگذرواژه\nورود\nورود اعضا با شمارهٔ همراه\nراهنما\n·\nقوانین\n\nموسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی\n\nقوانین و شرایط استفاده\n\nمتن رسمی قوانین و شرایط استفاده هنوز منتشر نشده است؛ تا انتشار آن، برای هر پرسش دربارهٔ شرایط استفاده یا حریم خصوصی با پشتیبانی در تماس باش.\n\nتماس با پشتیبانی\nبست",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "01-login-confirmed-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 0,
+     "head": "",
+     "text": "پرش به فرم ورود\nنورا\nگروه فرهنگی خط زندگی\nپنل مدیریت نورا\nورود مدیران\nورود مالک تأیید شد\nرفتن به پنل مدیریت\nخروج از حساب\nراهنما\n·\nقوانین\n\nموسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی\n\nقوانین و شرایط استفاده\n\nمتن رسمی قوانین و شرایط استفاده هنوز منتشر نشده است؛ تا انتشار آن، برای هر پرسش دربارهٔ شرایط استفاده یا حریم خصوصی با پشتیبانی در تماس باش.\n\nتماس با پشتیبانی\nبستن",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/account/me",
+    "POST /api/auth/staff-login",
+    "GET /api/admin/event-interaction/summary",
+    "GET /api/admin/recordings/summary",
+    "GET /api/admin/reports/summary",
+    "GET /api/admin/inbox",
+    "GET /api/admin/content/events",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/owner/audit",
+    "GET /api/admin/notifications",
+    "GET /api/health",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "02-dash",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "NO-EFFECT button [dash] \"خروجی CSV\" <a class=\"btn sm quiet\" href=\"/api/admin/recording-orders?format=csv\" download=\"\" data-rec"
+   ],
+   "shots": [
+    {
+     "file": "02-dash-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 21,
+     "head": "شمارش‌های پایگاه سرور",
+     "text": "پنجشنبه ۳۰ مهر ۱۴۰۵\nتاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.\nآخرین بازخوانی ۲۲:۳۸\nبازخوانی داشبورد\nنقشهٔ امکانات پنل\nشمارش‌های پایگاه سرور\nاز API گزارش\nگزارش کامل\nفرم‌های سرور\n۳\n۳ منتشرشده\nپاسخ‌های ثبت‌شده\n۳\nدورهٔ ۳۰ روز\nدر انتظار بررسی\n۱\nپروفایل و فیش · دورهٔ ۳۰ روز\nحساب‌های تأییدشده\n۴\n۱ با نقش\n\nاین اعداد همان خروجی /api/admin/reports/summary هستند؛ مبلغ، حضو",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "02-dash-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 21,
+     "head": "شمارش‌های پایگاه سرور",
+     "text": "پنجشنبه ۳۰ مهر ۱۴۰۵\nتاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.\nآخرین بازخوانی ۲۲:۳۸\nبازخوانی داشبورد\nنقشهٔ امکانات پنل\nشمارش‌های پایگاه سرور\nاز API گزارش\nگزارش کامل\nفرم‌های سرور\n۳\n۳ منتشرشده\nپاسخ‌های ثبت‌شده\n۳\nدورهٔ ۳۰ روز\nدر انتظار بررسی\n۱\nپروفایل و فیش · دورهٔ ۳۰ روز\nحساب‌های تأییدشده\n۴\n۱ با نقش\n\nاین اعداد همان خروجی /api/admin/reports/summary هستند؛ مبلغ، حضو",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "02-dash-dark-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 21,
+     "head": "شمارش‌های پایگاه سرور",
+     "text": "پنجشنبه ۳۰ مهر ۱۴۰۵\nتاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.\nآخرین بازخوانی ۲۲:۳۸\nبازخوانی داشبورد\nنقشهٔ امکانات پنل\nشمارش‌های پایگاه سرور\nاز API گزارش\nگزارش کامل\nفرم‌های سرور\n۳\n۳ منتشرشده\nپاسخ‌های ثبت‌شده\n۳\nدورهٔ ۳۰ روز\nدر انتظار بررسی\n۱\nپروفایل و فیش · دورهٔ ۳۰ روز\nحساب‌های تأییدشده\n۴\n۱ با نقش\n\nاین اعداد همان خروجی /api/admin/reports/summary هستند؛ مبلغ، حضو",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "02-dash-dark-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 21,
+     "head": "شمارش‌های پایگاه سرور",
+     "text": "پنجشنبه ۳۰ مهر ۱۴۰۵\nتاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.\nآخرین بازخوانی ۲۲:۳۸\nبازخوانی داشبورد\nنقشهٔ امکانات پنل\nشمارش‌های پایگاه سرور\nاز API گزارش\nگزارش کامل\nفرم‌های سرور\n۳\n۳ منتشرشده\nپاسخ‌های ثبت‌شده\n۳\nدورهٔ ۳۰ روز\nدر انتظار بررسی\n۱\nپروفایل و فیش · دورهٔ ۳۰ روز\nحساب‌های تأییدشده\n۴\n۱ با نقش\n\nاین اعداد همان خروجی /api/admin/reports/summary هستند؛ مبلغ، حضو",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "02-dash-map-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 21,
+     "head": "نقشهٔ امکانات پنل",
+     "text": "بازگشت به داشبورد\nنقشهٔ امکانات پنل\nوضعیت از مجوز سروری\n\nهر ردیف می‌گوید آن امکان به کدام API وصل است یا چرا هنوز ساخته نشده. «متصل به سرور» یعنی داده و مجوز از backend می‌آید؛ «نیازمند سرویس» یعنی endpoint یا قاعدهٔ کسب‌وکار وجود ندارد و در این پنل با دادهٔ نمونه جایگزین نمی‌شود.\n\nداشبورد\nداشبورد\nشمارش‌ها، کارهای در انتظار، رویدادهای پیش رو، سلامت سرور\nمتصل به سرور\nرویدادها و مطالب\nفهرست رویدادها",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "02-dash-map-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 21,
+     "head": "نقشهٔ امکانات پنل",
+     "text": "بازگشت به داشبورد\nنقشهٔ امکانات پنل\nوضعیت از مجوز سروری\n\nهر ردیف می‌گوید آن امکان به کدام API وصل است یا چرا هنوز ساخته نشده. «متصل به سرور» یعنی داده و مجوز از backend می‌آید؛ «نیازمند سرویس» یعنی endpoint یا قاعدهٔ کسب‌وکار وجود ندارد و در این پنل با دادهٔ نمونه جایگزین نمی‌شود.\n\nداشبورد\nداشبورد\nشمارش‌ها، کارهای در انتظار، رویدادهای پیش رو، سلامت سرور\nمتصل به سرور\nرویدادها و مطالب\nفهرست رویدادها",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/event-interaction/summary",
+    "GET /api/admin/recordings/summary",
+    "GET /api/admin/reports/summary",
+    "GET /api/admin/inbox",
+    "GET /api/admin/content/events",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/owner/audit",
+    "GET /api/admin/notifications",
+    "GET /api/health",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/event-questions",
+    "GET /api/admin/event-reports",
+    "GET /api/admin/recording-orders",
+    "GET /api/admin/recording-orders/{uuid}",
+    "GET /api/admin/inbox/{uuid}/files/{uuid}"
+   ],
+   "probe": {
+    "label": "dash",
+    "tested": 16,
+    "noEffect": 1,
+    "items": [
+     {
+      "text": "بازخوانی داشبورد",
+      "html": "<button class=\"btn sm quiet\" data-dashx-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"><",
+      "effect": true,
+      "reqs": 7
+     },
+     {
+      "text": "نقشهٔ امکانات پنل",
+      "html": "<button class=\"btn sm quiet\" data-dashx-map=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-layers\"></use>",
+      "effect": true,
+      "reqs": 0
+     },
+     {
+      "text": "",
+      "html": "<button class=\"btn sm quiet\" data-sec=\"events\" data-dashx-leave-map=\"\"><svg class=\"i \" aria-hidden=\"true\"><use",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌های باز",
+      "html": "<button class=\"btn sm\" data-ei-open-all=\"reports\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-flag\"></use",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "پرسش‌های بی‌پاسخ (همهٔ رویدادها)",
+      "html": "<button class=\"chip \" role=\"tab\" aria-selected=\"false\" data-ei-tab=\"questions\">پرسش‌های بی‌پاسخ (همهٔ رویدادها",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌های باز (همهٔ رویدادها)",
+      "html": "<button class=\"chip \" role=\"tab\" aria-selected=\"false\" data-ei-tab=\"reports\">گزارش‌های باز (همهٔ رویدادها)</bu",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)",
+      "html": "<button class=\"chip \" role=\"tab\" aria-selected=\"false\" data-ei-tab=\"orders\">سفارش‌های محتوای ضبط‌شده (همهٔ روی",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "نیازمند بررسی",
+      "html": "<button class=\"chip on\" type=\"button\" data-rec-order-filter=\"review\">نیازمند بررسی</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "باز",
+      "html": "<button class=\"chip \" type=\"button\" data-rec-order-filter=\"open\">باز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "پرداخت‌شده",
+      "html": "<button class=\"chip \" type=\"button\" data-rec-order-filter=\"paid\">پرداخت‌شده</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بسته‌شده",
+      "html": "<button class=\"chip \" type=\"button\" data-rec-order-filter=\"closed\">بسته‌شده</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همه",
+      "html": "<button class=\"chip \" type=\"button\" data-rec-order-filter=\"\">همه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "جست‌وجو",
+      "html": "<button class=\"btn sm\" data-rec-order-search=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-search\"></use",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "خروجی CSV",
+      "html": "<a class=\"btn sm quiet\" href=\"/api/admin/recording-orders?format=csv\" download=\"\" data-rec-order-export=\"\"><sv",
+      "effect": false,
+      "reqs": 0
+     },
+     {
+      "text": "تاریخچه",
+      "html": "<button class=\"btn sm\" data-rec-order-detail=\"bcabb623-bf38-48e5-bbfe-0a6720cb9c3f\"><svg class=\"i \" aria-hidde",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بررسی در صندوق پیام‌ها",
+      "html": "<a class=\"btn sm\" href=\"admin.html#inbox\" data-rec-order-inbox=\"7be3f617-b86d-4b69-b0bc-06fe1dd5afc4\"><svg cla",
+      "effect": true,
+      "reqs": 10
+     }
+    ]
+   }
+  },
+  {
+   "name": "03-events-list",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "NO-EFFECT button [events-list] \"رویدادها\" <button class=\"chip on\" role=\"tab\" aria-selected=\"true\" data-ct-kind=\"events\">رویدادها</bu"
+   ],
+   "shots": [
+    {
+     "file": "03-events-list-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 33,
+     "head": "رویدادها",
+     "text": "رویدادها\nمطالب\nپرسش‌های بی‌پاسخ همهٔ رویدادها\nگزارش‌های باز\nرویدادها\nمنبع: site_content سرور\nنسخهٔ ۸\nبازخوانی\nتصاویر\nرویداد تازه\n\nهمان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.\n\nجست‌وجو\nهمه · ۵\nپیش‌نویس · ۱\nمنتشرشده · ۴\nمتوقف · ۰\nبایگانی · ۰\nترتیب\nآخ",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "03-events-list-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 33,
+     "head": "رویدادها",
+     "text": "رویدادها\nمطالب\nپرسش‌های بی‌پاسخ همهٔ رویدادها\nگزارش‌های باز\nرویدادها\nمنبع: site_content سرور\nنسخهٔ ۸\nبازخوانی\nتصاویر\nرویداد تازه\n\nهمان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.\n\nجست‌وجو\nهمه · ۵\nپیش‌نویس · ۱\nمنتشرشده · ۴\nمتوقف · ۰\nبایگانی · ۰\nترتیب\nآخ",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/content/events",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/content/articles",
+    "GET /api/admin/media"
+   ],
+   "probe": {
+    "label": "events-list",
+    "tested": 11,
+    "noEffect": 1,
+    "items": [
+     {
+      "text": "رویدادها",
+      "html": "<button class=\"chip on\" role=\"tab\" aria-selected=\"true\" data-ct-kind=\"events\">رویدادها</button>",
+      "effect": false,
+      "reqs": 0
+     },
+     {
+      "text": "مطالب",
+      "html": "<button class=\"chip \" role=\"tab\" aria-selected=\"false\" data-ct-kind=\"articles\">مطالب</button>",
+      "effect": true,
+      "reqs": 2
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-ct-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"></use></sv",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تصاویر",
+      "html": "<button class=\"btn sm\" data-ct-media=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-image\"></use></svg>تص",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-ct-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"></use></sv",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تصاویر",
+      "html": "<button class=\"btn sm\" data-ct-media=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-image\"></use></svg>تص",
+      "effect": true,
+      "reqs": 0
+     },
+     {
+      "text": "همه · ۱",
+      "html": "<button class=\"chip on\" type=\"button\" data-ct-status=\"\">همه · ۱</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "پیش‌نویس · ۰",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"draft\">پیش‌نویس · ۰</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "منتشرشده · ۱",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"published\">منتشرشده · ۱</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "متوقف · ۰",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"paused\">متوقف · ۰</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بایگانی · ۰",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"archived\">بایگانی · ۰</button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "04-event-new-validation",
+   "console": [
+    "error: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "error: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+    "error: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [
+    "422 POST /api/admin/content/events",
+    "422 POST /api/admin/content/events",
+    "422 POST /api/admin/content/events"
+   ],
+   "notes": [
+    "empty save → field errors: t:عنوان لازم است. | d:برای انتشار لازم است.",
+    "formError: ",
+    "bad jalali → تاریخ باید به شکل ۱۴۰۵/۰۸/۱۲ باشد.",
+    "end<start → on:برای مرتب‌سازی و تقویم صفحهٔ رویدادها | endsAt:زمان پایان باید بعد از زمان شروع باشد. | regClosesAt:پس از این لحظه، فرم ثبت‌نام در سرور بسته می‌شود. | lifecycle:رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد. | conditions:پیش‌نیاز، گروه سنی، لوازم همراه… | d:برای انتشار لازم است. | price:خالی یعنی رایگان | tags:با ویرگول جدا کنید | poster:فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود. // formError=",
+    "draft save msg: رکورد ساخته شد · نسخهٔ ۹ · وضعیت از سرور: پیش‌نویس · در سایت دیده نمی‌شود"
+   ],
+   "shots": [
+    {
+     "file": "04-event-new-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 5,
+     "head": "رویداد تازه",
+     "text": "رویدادها\nمطالب\nرویداد تازه\nهنوز ذخیره نشده\nنسخهٔ ۸\nعنوان\nنوع\nشیوهٔ برگزاری\nتاریخ شمسی\nبرای مرتب‌سازی و تقویم صفحهٔ رویدادها\nزمان به نوشتار\nساعت\nمکان\nزمان‌بندی دقیق و وضعیت ثبت‌نام\nساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا شمارشگری ساخته ن",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "04-event-new-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 5,
+     "head": "رویداد تازه",
+     "text": "رویدادها\nمطالب\nرویداد تازه\nهنوز ذخیره نشده\nنسخهٔ ۸\nعنوان\nنوع\nشیوهٔ برگزاری\nتاریخ شمسی\nبرای مرتب‌سازی و تقویم صفحهٔ رویدادها\nزمان به نوشتار\nساعت\nمکان\nزمان‌بندی دقیق و وضعیت ثبت‌نام\nساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا شمارشگری ساخته ن",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "04-event-new-errors-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 5,
+     "head": "رویداد تازه",
+     "text": "رویدادها\nمطالب\nرویداد تازه\nهنوز ذخیره نشده\nنسخهٔ ۸\nعنوان\nعنوان لازم است.\nنوع\nشیوهٔ برگزاری\nتاریخ شمسی\nبرای مرتب‌سازی و تقویم صفحهٔ رویدادها\nزمان به نوشتار\nساعت\nمکان\nزمان‌بندی دقیق و وضعیت ثبت‌نام\nساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا ",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "04-event-saved-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 37,
+     "head": "رویدادها",
+     "text": "رویدادها\nمطالب\n\nرکورد ساخته شد · نسخهٔ ۹ · وضعیت از سرور: پیش‌نویس · در سایت دیده نمی‌شود\n\nپرسش‌های بی‌پاسخ همهٔ رویدادها\nگزارش‌های باز\nرویدادها\nمنبع: site_content سرور\nنسخهٔ ۹\nبازخوانی\nتصاویر\nرویداد تازه\n\nهمان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کن",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "POST /api/admin/content/events",
+    "GET /api/admin/content/events"
+   ]
+  },
+  {
+   "name": "05-event-lifecycle",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "error: Failed to load resource: the server responded with a status of 409 (Conflict)",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [
+    "409 PUT /api/admin/content/events/ev-42421ba4f7"
+   ],
+   "notes": [
+    "new id: ev-42421ba4f7",
+    "dialog(confirm): «رویداد ممیزی از صفر (آزمایشی)» همین حالا در سایت منتشر می‌شود. ادامه می‌دهید؟",
+    "set published → وضعیت «رویداد ممیزی از صفر (آزمایشی)» از سرور: منتشرشده · نسخهٔ ۱۰",
+    "dialog(confirm): انتشار «رویداد ممیزی از صفر (آزمایشی)» متوقف می‌شود و صفحهٔ عمومی آن تا انتشار دوباره در دسترس نخواهد بود. ادامه می‌دهید؟",
+    "set paused → وضعیت «رویداد ممیزی از صفر (آزمایشی)» از سرور: متوقف · نسخهٔ ۱۱",
+    "dialog(confirm): «رویداد ممیزی از صفر (آزمایشی)» همین حالا در سایت منتشر می‌شود. ادامه می‌دهید؟",
+    "set published → وضعیت «رویداد ممیزی از صفر (آزمایشی)» از سرور: منتشرشده · نسخهٔ ۱۲",
+    "dialog(confirm): «رویداد ممیزی از صفر (آزمایشی)» بایگانی می‌شود: از سایت و فهرست‌های فعال خارج می‌شود ولی حذف نمی‌شود و قابل بازگردانی است. ادامه می‌دهید؟",
+    "set archived → وضعیت «رویداد ممیزی از صفر (آزمایشی)» از سرور: بایگانی · نسخهٔ ۱۳",
+    "set draft → وضعیت «رویداد ممیزی از صفر (آزمایشی)» از سرور: پیش‌نویس · نسخهٔ ۱۴",
+    "parallel update ok v15",
+    "stale save → formError=محتوا در این میان از جای دیگری تغییر کرده بود؛ فهرست تازه شد، دوباره تلاش کنید. | version tag=پیش‌نویس,نسخهٔ ۱۵",
+    "retry save → تغییرها ذخیره شد · نسخهٔ ۱۶ · وضعیت از سرور: پیش‌نویس · در سایت دیده نمی‌شود // ",
+    "editor has teacher/instructor field: false"
+   ],
+   "shots": [
+    {
+     "file": "05-event-lifecycle-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 37,
+     "head": "رویدادها",
+     "text": "رویدادها\nمطالب\n\nوضعیت «رویداد ممیزی از صفر (آزمایشی)» از سرور: پیش‌نویس · نسخهٔ ۱۴\n\nپرسش‌های بی‌پاسخ همهٔ رویدادها\nگزارش‌های باز\nرویدادها\nمنبع: site_content سرور\nنسخهٔ ۱۴\nبازخوانی\nتصاویر\nرویداد تازه\n\nهمان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.\n\nجس",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "05-event-edit-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 4,
+     "head": "ویرایش رویداد",
+     "text": "رویدادها\nمطالب\nویرایش رویداد\nپیش‌نویس\nنسخهٔ ۱۴\n\nشناسه: ev-42421ba4f7 · آخرین تغییر: ۱۴۰۵/۷/۳۰, ۲۲:۴۲\n\nعنوان\nنوع\nشیوهٔ برگزاری\nتاریخ شمسی\nبرای مرتب‌سازی و تقویم صفحهٔ رویدادها\nزمان به نوشتار\nساعت\nمکان\nزمان‌بندی دقیق و وضعیت ثبت‌نام\nساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقا",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "05-event-edit-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 4,
+     "head": "ویرایش رویداد",
+     "text": "رویدادها\nمطالب\nویرایش رویداد\nپیش‌نویس\nنسخهٔ ۱۴\n\nشناسه: ev-42421ba4f7 · آخرین تغییر: ۱۴۰۵/۷/۳۰, ۲۲:۴۲\n\nعنوان\nنوع\nشیوهٔ برگزاری\nتاریخ شمسی\nبرای مرتب‌سازی و تقویم صفحهٔ رویدادها\nزمان به نوشتار\nساعت\nمکان\nزمان‌بندی دقیق و وضعیت ثبت‌نام\nساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقا",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "05-event-409-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 4,
+     "head": "ویرایش رویداد",
+     "text": "رویدادها\nمطالب\nویرایش رویداد\nپیش‌نویس\nنسخهٔ ۱۵\n\nشناسه: ev-42421ba4f7 · آخرین تغییر: ۱۴۰۵/۷/۳۰, ۲۲:۴۲\n\nمحتوا در این میان از جای دیگری تغییر کرده بود؛ فهرست تازه شد، دوباره تلاش کنید.\n\nعنوان\nنوع\nشیوهٔ برگزاری\nتاریخ شمسی\nبرای مرتب‌سازی و تقویم صفحهٔ رویدادها\nزمان به نوشتار\nساعت\nمکان\nزمان‌بندی دقیق و وضعیت ثبت‌نام\nساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استان",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "POST /api/admin/content/events/ev-42421ba4f7/status",
+    "GET /api/admin/content/events",
+    "GET /api/admin/content/events/ev-42421ba4f7",
+    "PUT /api/admin/content/events/ev-42421ba4f7"
+   ]
+  },
+  {
+   "name": "06-articles",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "article result: رکورد ساخته شد · نسخهٔ ۱۷ · وضعیت از سرور: منتشرشده · در سایت دیده می‌شود"
+   ],
+   "shots": [
+    {
+     "file": "06-articles-list-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 14,
+     "head": "مطالب",
+     "text": "رویدادها\nمطالب\nمطالب\nمنبع: site_content سرور\nنسخهٔ ۱۶\nبازخوانی\nتصاویر\nمطلب تازه\n\nهمان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.\n\nجست‌وجو\nهمه · ۱\nپیش‌نویس · ۰\nمنتشرشده · ۱\nمتوقف · ۰\nبایگانی · ۰\nترتیب\nآخرین تغییر\nزمان ساخت\nعنوان\nتاریخ\nجهت\nنزولی\nصعودی\nم",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "06-article-new-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 5,
+     "head": "مطلب تازه",
+     "text": "رویدادها\nمطالب\nمطلب تازه\nهنوز ذخیره نشده\nنسخهٔ ۱۶\nعنوان\nدسته\nنویسنده\nتاریخ انتشار\nلید\nمتن\nهر بند را با یک خط خالی جدا کنید.\nبرچسب‌ها\nبا ویرگول جدا کنید\nزمان مطالعه (دقیقه)\nسنجاق در صدر فهرست\nتصویر جلد\nتصویری انتخاب نشده\nانتخاب فایل\nیا آدرس تصویر\nفایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند م",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "06-article-saved-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 17,
+     "head": "مطالب",
+     "text": "رویدادها\nمطالب\n\nرکورد ساخته شد · نسخهٔ ۱۷ · وضعیت از سرور: منتشرشده · در سایت دیده می‌شود\n\nمطالب\nمنبع: site_content سرور\nنسخهٔ ۱۷\nبازخوانی\nتصاویر\nمطلب تازه\n\nهمان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.\n\nجست‌وجو\nهمه · ۲\nپیش‌نویس · ۰\nمنتشرشده · ۲\nمتو",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/content/events",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/content/articles",
+    "POST /api/admin/content/articles"
+   ]
+  },
+  {
+   "name": "07-media",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [],
+   "shots": [
+    {
+     "file": "07-media-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 39,
+     "head": "تصاویر بارگذاری‌شده",
+     "text": "رویدادها\nمطالب\nپرسش‌های بی‌پاسخ همهٔ رویدادها\nگزارش‌های باز\nتصاویر بارگذاری‌شده\nپایگاه مشترک سرور\n۰ تصویر\nبازخوانی\nبستن\n\nهر تصویر با نشانی پایدار خودش در پوستر رویداد یا جلد مطلب استفاده می‌شود. وضعیت «در حال استفاده» از همان سند محتوا شمرده می‌شود؛ هیچ تصویری خودکار حذف نمی‌شود و حذف فقط برای تصویرهای بدون استفاده و با تأیید انجام می‌شود.\n\nهنوز تصویری از پنل بارگذاری نشده است.\n\nرویدادها\nمنبع: sit",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/content/events",
+    "GET /api/cooperation-requests",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/admin/media"
+   ]
+  },
+  {
+   "name": "08-event-interaction",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "ei tab absent: recordings",
+    "NO-EFFECT button [event-interaction] \"رویدادها\" <button class=\"chip on\" role=\"tab\" aria-selected=\"true\" data-ct-kind=\"events\">رویدادها</bu"
+   ],
+   "shots": [
+    {
+     "file": "08-ei-resources-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 14,
+     "head": "سلامت ذخیره‌سازی خصوصی",
+     "text": "رویدادها\nمطالب\nبازگشت به فهرست\nرویداد ممیزی از صفر (آزمایشی)\nپیش‌نویس\nبازخوانی\nمنابع\nضبط‌شده و فروش\nپرسش‌وپاسخ\nدیدگاه‌ها\nگزارش‌ها\nسفارش‌ها\nثبت‌نام و حضور\nگواهی‌ها\n\nدسترسی هر منبع در سرور و بر پایهٔ ثبت‌نام تأییدشده یا حضور ثبت‌شدهٔ همین رویداد سنجیده می‌شود؛ فایل خصوصی با نشانی مستقیم هم باز نمی‌شود.\n\nنمایش حذف‌شده‌ها\nمنبع تازه\n\nحافظهٔ خصوصی دیسک روی این سرور پیکربندی نشده؛ فایل‌ها در پایگاه داده ",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "08-ei-resources-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 14,
+     "head": "سلامت ذخیره‌سازی خصوصی",
+     "text": "رویدادها\nمطالب\nبازگشت به فهرست\nرویداد ممیزی از صفر (آزمایشی)\nپیش‌نویس\nبازخوانی\nمنابع\nضبط‌شده و فروش\nپرسش‌وپاسخ\nدیدگاه‌ها\nگزارش‌ها\nسفارش‌ها\nثبت‌نام و حضور\nگواهی‌ها\n\nدسترسی هر منبع در سرور و بر پایهٔ ثبت‌نام تأییدشده یا حضور ثبت‌شدهٔ همین رویداد سنجیده می‌شود؛ فایل خصوصی با نشانی مستقیم هم باز نمی‌شود.\n\nنمایش حذف‌شده‌ها\nمنبع تازه\n\nحافظهٔ خصوصی دیسک روی این سرور پیکربندی نشده؛ فایل‌ها در پایگاه داده ",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "08-ei-questions-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 19,
+     "head": "",
+     "text": "رویدادها\nمطالب\nبازگشت به فهرست\nرویداد ممیزی از صفر (آزمایشی)\nپیش‌نویس\nبازخوانی\nمنابع\nضبط‌شده و فروش\nپرسش‌وپاسخ\nدیدگاه‌ها\nگزارش‌ها\nسفارش‌ها\nثبت‌نام و حضور\nگواهی‌ها\n\nهر پرسش به شناسهٔ رویداد و نشست سروری پرسش‌گر گره خورده است. پنهان‌کردن نیازمند دلیل است و با نام اقدام‌کننده ثبت می‌شود. باز/بسته‌بودن پرسش‌وپاسخ از ویرایش خود رویداد (گزینهٔ «پرسش‌وپاسخ بسته») تنظیم می‌شود.\n\nهمه\nبی‌پاسخ\nپاسخ‌داده‌شده\n",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "08-ei-reviews-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 17,
+     "head": "",
+     "text": "رویدادها\nمطالب\nبازگشت به فهرست\nرویداد ممیزی از صفر (آزمایشی)\nپیش‌نویس\nبازخوانی\nمنابع\nضبط‌شده و فروش\nپرسش‌وپاسخ\nدیدگاه‌ها\nگزارش‌ها\nسفارش‌ها\nثبت‌نام و حضور\nگواهی‌ها\n\nفقط حساب‌هایی که حضورشان در همین رویداد ثبت شده یا دسترسی فعال به محتوای ضبط‌شدهٔ آن دارند می‌توانند دیدگاه بنویسند؛ نشان «شرکت‌کنندهٔ تأییدشده» یا «خریدار تأییدشده» را سرور تعیین می‌کند. دیدگاه تا تأیید شما منتشر نمی‌شود. امتیاز ستاره‌",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "08-ei-reports-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 15,
+     "head": "",
+     "text": "رویدادها\nمطالب\nبازگشت به فهرست\nرویداد ممیزی از صفر (آزمایشی)\nپیش‌نویس\nبازخوانی\nمنابع\nضبط‌شده و فروش\nپرسش‌وپاسخ\nدیدگاه‌ها\nگزارش‌ها\nسفارش‌ها\nثبت‌نام و حضور\nگواهی‌ها\n\nگزارش کاربران محتوا را خودکار پنهان نمی‌کند؛ پس از بررسی، پرسش/دیدگاه را در زبانهٔ خودش پنهان کنید و این‌جا نتیجه را ثبت کنید.\n\nباز\nرسیدگی‌شده\nردشده\n\nگزارش بازی وجود ندارد.",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "08-ei-orders-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 18,
+     "head": "",
+     "text": "رویدادها\nمطالب\nبازگشت به فهرست\nرویداد ممیزی از صفر (آزمایشی)\nپیش‌نویس\nبازخوانی\nمنابع\nضبط‌شده و فروش\nپرسش‌وپاسخ\nدیدگاه‌ها\nگزارش‌ها\nسفارش‌ها\nثبت‌نام و حضور\nگواهی‌ها\n\nرسید به‌تنهایی پرداخت را قطعی نمی‌کند. سفارش‌های فرم خرید در «صندوق پیام‌ها» (همان مسیر بازبینی رسید فرم‌ها، با دلیل و ردپا) تأیید یا رد می‌شوند؛ تصمیم مستقیم این‌جا فقط برای سفارش‌های قدیمی است. بازپرداخت فقط با شمارهٔ پیگیری و مجوز ما",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/admin/events/ev-42421ba4f7/resources",
+    "GET /api/admin/events/ev-42421ba4f7/recording",
+    "GET /api/admin/events/ev-42421ba4f7/questions",
+    "GET /api/admin/events/ev-42421ba4f7/reviews",
+    "GET /api/admin/event-reports",
+    "GET /api/admin/recording-orders",
+    "GET /api/admin/content/articles"
+   ],
+   "probe": {
+    "label": "event-interaction",
+    "tested": 11,
+    "noEffect": 1,
+    "items": [
+     {
+      "text": "رویدادها",
+      "html": "<button class=\"chip on\" role=\"tab\" aria-selected=\"true\" data-ct-kind=\"events\">رویدادها</button>",
+      "effect": false,
+      "reqs": 0
+     },
+     {
+      "text": "مطالب",
+      "html": "<button class=\"chip \" role=\"tab\" aria-selected=\"false\" data-ct-kind=\"articles\">مطالب</button>",
+      "effect": true,
+      "reqs": 2
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-ct-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"></use></sv",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تصاویر",
+      "html": "<button class=\"btn sm\" data-ct-media=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-image\"></use></svg>تص",
+      "effect": true,
+      "reqs": 0
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-ct-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"></use></sv",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تصاویر",
+      "html": "<button class=\"btn sm\" data-ct-media=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-image\"></use></svg>تص",
+      "effect": true,
+      "reqs": 0
+     },
+     {
+      "text": "همه · ۲",
+      "html": "<button class=\"chip on\" type=\"button\" data-ct-status=\"\">همه · ۲</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "پیش‌نویس · ۰",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"draft\">پیش‌نویس · ۰</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "منتشرشده · ۲",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"published\">منتشرشده · ۲</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "متوقف · ۰",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"paused\">متوقف · ۰</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بایگانی · ۰",
+      "html": "<button class=\"chip \" type=\"button\" data-ct-status=\"archived\">بایگانی · ۰</button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "09-users",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "user search input not found",
+    "user detail tabs: کاربران | گزارش‌ها",
+    "user detail full text: کاربران / گزارش‌ها / بازگشت به فهرست / امتیاز باشگاه (فقط‌خواندنی) / حساب‌ها و نقش‌ها / بدون نام پروفایل / ورود بله / بدون نقش /  / فقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند. /  / شناسهٔ حساب / 4912f0ac-77fb-4fee-9458-ad4074f41799 / شناسهٔ بله / 91003 / نقش سروری / بدون نقش / وضعیت حساب / فعال (سرور وضعیت تعلیق ندارد) / عضویت / ۱۴۰۵/۷/۳۰, ۲۱:۱۳ / آخرین ورود / ۱۴۰۵/۷/۳۰, ۲۱:۱۴ / به‌روزرسانی پروفایل / پروفایل ثبت نشده / اعلان‌های حساب / ۱ / ثبت‌نام‌های سرور (۱) / کارگاه آینده: مقدمات اخترفیزیک / فرم ثبت‌نام آزمایشی · 1405/08/15 · ۱۴۰۵/۷/۳۰, ۲۱:۱۴ / پذیرفته / درخواست‌های کارتابل /  / درخواست پروفایل یا فیشی برای این حساب ثبت نشده است.",
+    "U4 list element present=false | U5 element=false | api calls made: see failed/requests"
+   ],
+   "shots": [
+    {
+     "file": "09-users-index-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 22,
+     "head": "فهرست کاربران",
+     "text": "کاربران\nگزارش‌ها\nفهرست کاربران\nپایگاه مشترک سرور\n۴ کاربر\nبازخوانی\n\nحساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند. شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود؛ با نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب جست‌وجو کنید. واگذاری نقش از بخش جداگانهٔ «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.\n\nجست‌وجو\nهمه\nورود بله\nورود با شماره\nپیوندشده\nهر نقشی\nدارای نقش\nبد",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "09-users-index-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 22,
+     "head": "فهرست کاربران",
+     "text": "کاربران\nگزارش‌ها\nفهرست کاربران\nپایگاه مشترک سرور\n۴ کاربر\nبازخوانی\n\nحساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند. شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود؛ با نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب جست‌وجو کنید. واگذاری نقش از بخش جداگانهٔ «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.\n\nجست‌وجو\nهمه\nورود بله\nورود با شماره\nپیوندشده\nهر نقشی\nدارای نقش\nبد",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "09-users-search-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 22,
+     "head": "فهرست کاربران",
+     "text": "کاربران\nگزارش‌ها\nفهرست کاربران\nپایگاه مشترک سرور\n۴ کاربر\nبازخوانی\n\nحساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند. شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود؛ با نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب جست‌وجو کنید. واگذاری نقش از بخش جداگانهٔ «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.\n\nجست‌وجو\nهمه\nورود بله\nورود با شماره\nپیوندشده\nهر نقشی\nدارای نقش\nبد",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "09-user-detail-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 5,
+     "head": "بدون نام پروفایل",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nامتیاز باشگاه (فقط‌خواندنی)\nحساب‌ها و نقش‌ها\nبدون نام پروفایل\nورود بله\nبدون نقش\n\nفقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند.\n\nشناسهٔ حساب\n4912f0ac-77fb-4fee-9458-ad4074f41799\nشناسهٔ بله\n91003\nنقش سروری\nبدون نقش\nوضعیت حساب\nفعال (سرور وضعیت تعلیق ندارد)\nعضویت\n۱۴۰۵/",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "09-user-detail-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 5,
+     "head": "بدون نام پروفایل",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nامتیاز باشگاه (فقط‌خواندنی)\nحساب‌ها و نقش‌ها\nبدون نام پروفایل\nورود بله\nبدون نقش\n\nفقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند.\n\nشناسهٔ حساب\n4912f0ac-77fb-4fee-9458-ad4074f41799\nشناسهٔ بله\n91003\nنقش سروری\nبدون نقش\nوضعیت حساب\nفعال (سرور وضعیت تعلیق ندارد)\nعضویت\n۱۴۰۵/",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/users",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary",
+    "POST /api/admin/scheduled-publish/run",
+    "GET /api/admin/integrity/recordings",
+    "GET /api/admin/users/{uuid}"
+   ],
+   "probe": {
+    "label": "user-detail",
+    "tested": 5,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 0
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "09b-user-404",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "404 text: کاربران / گزارش‌ها / گزارش‌های زندهٔ پایگاه مشترک / بازخوانی /  / آمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری اعمال می‌شود. /  / ۷ روز / ۳۰ روز / ۹۰ روز / ۱۲ ماه / همهٔ زمان‌ها / کل فرم‌های سرور / ۳ / فرم‌های ساخته"
+   ],
+   "shots": [
+    {
+     "file": "09-user-404-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 18,
+     "head": "گزارش‌های زندهٔ پایگاه مشترک",
+     "text": "کاربران\nگزارش‌ها\nگزارش‌های زندهٔ پایگاه مشترک\nبازخوانی\n\nآمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری اعمال می‌شود.\n\n۷ روز\n۳۰ روز\n۹۰ روز\n۱۲ ماه\nهمهٔ زمان‌ها\nکل فرم‌های سرور\n۳\nفرم‌های ساخته‌شده در دوره\n۳\nپاسخ‌های دوره\n۳\nدرخواست‌های بررسی دوره\n۲\nحساب‌های تأییدشده\n۴\n\nآخرین محاسبهٔ سرور: 202",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "10-attendance",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [],
+   "shots": [
+    {
+     "file": "10-attendance-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 7,
+     "head": "حضور و غیاب",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nبازخوانی\nحضور و غیاب\nپایگاه مشترک سرور\n۲ فرم\n\nمنبع یکتا: همان ستون‌های check-in بلیت در پایگاه مشترک که ربات بله هنگام اسکن بلیت می‌نویسد. ثبت دستی فقط با مجوز «حضور و غیاب»، برای بلیت‌های پرداخت‌تأییدشده و با ثبت در تاریخچهٔ عملیات انجام می‌شود؛ برگرداندن حضور دلیل می‌خواهد. جلسه‌بندی و حضور رویدادهای قدیمی ربات (attendance_sessions) در این پایگاه نیست.\n\nجست‌وجو\nف",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/attendance/forms",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/users",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary"
+   ],
+   "probe": {
+    "label": "10-attendance",
+    "tested": 7,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "10-cert",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [],
+   "shots": [
+    {
+     "file": "10-cert-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 16,
+     "head": "گواهینامه‌ها",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nگواهینامه‌ها\nپایگاه مشترک سرور\n۰ صادرشده · ۰ باطل\nبازخوانی\n\nهر ردیف یک گواهی است که ربات بله صادر کرده و با شناسهٔ پایدار و مالکِ تأییدشده (هویت بلهٔ همان حساب) به پایگاه مشترک رسیده است. صدور و ابطال فقط از ربات انجام می‌شود؛ این صفحه فقط می‌خواند. گواهی‌های قدیمی‌ای که صاحبشان هنوز حساب سروری ندارد، تا زمان ورود آن فرد در ربات می‌مانند و این‌جا شمرده نمی‌شوند.\n\nج",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/certificates",
+    "GET /api/owner/site-content",
+    "GET /api/cooperation-requests",
+    "GET /api/forms",
+    "GET /api/admin/users",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary"
+   ],
+   "probe": {
+    "label": "10-cert",
+    "tested": 15,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همهٔ زمان‌ها",
+      "html": "<button class=\"chip \" data-server-report-period=\"all\">همهٔ زمان‌ها</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-outbox-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همه",
+      "html": "<button class=\"chip on\" data-server-outbox-state=\"\">همه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "در صف ۵",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"queued\">در صف <small>۵</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تلاش دوباره ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"retrying\">تلاش دوباره <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تحویل‌شده ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"delivered\">تحویل‌شده <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "ناموفق ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"failed\">ناموفق <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بدون هویت بله ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"no_bale_identity\">بدون هویت بله <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "10-club",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [],
+   "shots": [
+    {
+     "file": "10-club-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 7,
+     "head": "امتیاز باشگاه",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nامتیاز باشگاه\nآینهٔ خواندنی دفترکل ربات\n۰ عضو\nبازخوانی\n\nهر تغییر امتیاز در ربات یک ردیف تغییرناپذیر در دفترکل می‌سازد و همان ردیف، با کلید پایدار و مالکِ تأییدشده (هویت بلهٔ همان حساب)، به پایگاه مشترک می‌رسد. امتیاز فقط در ربات داده، خرج یا تعدیل می‌شود؛ این صفحه فقط می‌خواند و هیچ دکمه‌ای برای تغییر امتیاز ندارد.\n\nجست‌وجو\nاعضا\nهمهٔ ردیف‌ها\n\nهنوز هیچ ردیفی از دفتر",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/club/points/members",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/users",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary"
+   ],
+   "probe": {
+    "label": "10-club",
+    "tested": 7,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "11-inbox",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "inbox kinds: "
+   ],
+   "shots": [
+    {
+     "file": "11-inbox-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 11,
+     "head": "کارتابل پروفایل و فیش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت\nبازخوانی\nکارتابل پروفایل و فیش\n۱ مورد\n\nدرخواست‌ها از پایگاه مشترک ربات و وب‌اپ خوانده می‌شوند؛ تصمیم شما پس از ثبت، برای همکار و کاربر در همان پایگاه ثبت می‌شود.\n\nدر انتظار\nتاریخچهٔ تصمیم‌ها\nهمه\nپروفایل‌ها\nفیش‌ها\nفیش خرید محتوای ضبط‌شده\nدر انتظار\nشناسهٔ بله: 91002 · کد درخواست: d84aa265\nمبلغ\n۱,۵۰۰,۰۰۰ ریال\nمسیر ثبت\nفرم عمومی\nفرم\neb5ed519-c872-42ce-a664-69f618be18f1\nپاسخ فرم",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "11-inbox-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 11,
+     "head": "کارتابل پروفایل و فیش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت\nبازخوانی\nکارتابل پروفایل و فیش\n۱ مورد\n\nدرخواست‌ها از پایگاه مشترک ربات و وب‌اپ خوانده می‌شوند؛ تصمیم شما پس از ثبت، برای همکار و کاربر در همان پایگاه ثبت می‌شود.\n\nدر انتظار\nتاریخچهٔ تصمیم‌ها\nهمه\nپروفایل‌ها\nفیش‌ها\nفیش خرید محتوای ضبط‌شده\nدر انتظار\nشناسهٔ بله: 91002 · کد درخواست: d84aa265\nمبلغ\n۱,۵۰۰,۰۰۰ ریال\nمسیر ثبت\nفرم عمومی\nفرم\neb5ed519-c872-42ce-a664-69f618be18f1\nپاسخ فرم",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/inbox",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/inbox/{uuid}/files/{uuid}",
+    "GET /api/admin/users",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary"
+   ],
+   "probe": {
+    "label": "inbox",
+    "tested": 11,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همهٔ زمان‌ها",
+      "html": "<button class=\"chip \" data-server-report-period=\"all\">همهٔ زمان‌ها</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-outbox-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همه",
+      "html": "<button class=\"chip on\" data-server-outbox-state=\"\">همه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "در صف ۵",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"queued\">در صف <small>۵</small></button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "12-tools-report",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool report: apiUnavailable=0 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-report-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 24,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nگزارش‌های زندهٔ پایگاه مشترک\nبازخوانی\n\nآمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری ",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "12-tools-report-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 24,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nگزارش‌های زندهٔ پایگاه مشترک\nبازخوانی\n\nآمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری ",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/users",
+    "GET /api/admin/notifications"
+   ],
+   "probe": {
+    "label": "tools-report",
+    "tested": 15,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همهٔ زمان‌ها",
+      "html": "<button class=\"chip \" data-server-report-period=\"all\">همهٔ زمان‌ها</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-outbox-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همه",
+      "html": "<button class=\"chip on\" data-server-outbox-state=\"\">همه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "در صف ۵",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"queued\">در صف <small>۵</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تلاش دوباره ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"retrying\">تلاش دوباره <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تحویل‌شده ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"delivered\">تحویل‌شده <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "ناموفق ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"failed\">ناموفق <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بدون هویت بله ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"no_bale_identity\">بدون هویت بله <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "12-tools-staff",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool staff: apiUnavailable=0 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-staff-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 26,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nمدیریت نقش حساب‌ها\n\nنقش‌ها و مجوزها از سرور خوانده می‌شوند. فقط مالک می‌تواند برای حساب‌های تأییدشدهٔ بله یا تلفن نقش تعیین کند؛ روش ورود به‌تنهایی هیچ نقش مدیریتی نمی‌دهد.\n\nحساب‌های تأییدشده\n۴ حسا",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "12-tools-staff-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 26,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nمدیریت نقش حساب‌ها\n\nنقش‌ها و مجوزها از سرور خوانده می‌شوند. فقط مالک می‌تواند برای حساب‌های تأییدشدهٔ بله یا تلفن نقش تعیین کند؛ روش ورود به‌تنهایی هیچ نقش مدیریتی نمی‌دهد.\n\nحساب‌های تأییدشده\n۴ حسا",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/accounts",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/users",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary"
+   ],
+   "probe": {
+    "label": "tools-staff",
+    "tested": 15,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip on\" data-user-hub=\"users\" role=\"tab\" aria-selected=\"true\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 3
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همهٔ زمان‌ها",
+      "html": "<button class=\"chip \" data-server-report-period=\"all\">همهٔ زمان‌ها</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-outbox-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همه",
+      "html": "<button class=\"chip on\" data-server-outbox-state=\"\">همه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "در صف ۵",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"queued\">در صف <small>۵</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تلاش دوباره ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"retrying\">تلاش دوباره <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تحویل‌شده ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"delivered\">تحویل‌شده <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "ناموفق ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"failed\">ناموفق <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بدون هویت بله ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"no_bale_identity\">بدون هویت بله <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "12-tools-inbox",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool inbox: apiUnavailable=0 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-inbox-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 20,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nصندوق خروجی اعلان‌ها\nAPI سرور\nبازخوانی\n\nهر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط ",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/notifications",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-log",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool log: apiUnavailable=0 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-log-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 22,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nتاریخچهٔ عملیات\n۳۰ مورد\nبازخوانی\n\nتغییر نقش، ورود مدیر، تصمیم کارتابل، انتشار و توقف فرم، اعتبارنامه‌ها و پشتیبان‌ها روی سرور ثبت می‌شوند؛ مقدار محرمانه در هیچ ردیفی نوشته نمی‌شود. درخواست‌های نامو",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/audit",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-perms",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool perms: apiUnavailable=0 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-perms-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 13,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nنقشهٔ مجوزهای این حساب\nمالک\n\nاین فهرست همان مجوزهایی است که سرور برای نشست جاری برگردانده و در هر درخواست دوباره بررسی می‌شود؛ پنهان‌بودن دکمه به‌تنهایی کنترل دسترسی نیست.\n\nساخت و ویرایش رویداد\nev_",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-tags",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool tags: apiUnavailable=1 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-tags-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 13,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nبرچسب‌ها\nAPI متصل نیست\n\nستون برچسب و یادداشت روی حساب در مدل داده نیست؛ افزودن آن نیازمند مهاجرت و API است.\n\nتا اتصال endpoint و مجوز سروری، هیچ دادهٔ محلی یا نمونه‌ای در این بخش نمایش داده نمی‌شود",
+     "apiUnavailable": 1
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-blocked",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool blocked: apiUnavailable=1 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-blocked-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 13,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nمسدودها\nAPI متصل نیست\n\nوضعیت مسدودی حساب در مدل داده نیست؛ محدودسازی فعلاً فقط با نقش و مجوز انجام می‌شود.\n\nتا اتصال endpoint و مجوز سروری، هیچ دادهٔ محلی یا نمونه‌ای در این بخش نمایش داده نمی‌شود.",
+     "apiUnavailable": 1
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-par",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool par: apiUnavailable=1 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-par-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 13,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nپارامتر پروفایل\nAPI متصل نیست\n\nفیلدهای پروفایل در سرور ثابت و در /api/admin/users خوانده می‌شوند؛ تعریف پارامتر دلخواه نیازمند جدول و API است.\n\nتا اتصال endpoint و مجوز سروری، هیچ دادهٔ محلی یا نمو",
+     "apiUnavailable": 1
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-add",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool add: apiUnavailable=1 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-add-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 13,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nافزودن دستی\nAPI متصل نیست\n\nحساب فقط با ورود واقعی (بله یا مدیر) ساخته می‌شود؛ ساخت دستی حساب بدون احراز هویت، قاعدهٔ پیوند هویت را می‌شکند.\n\nتا اتصال endpoint و مجوز سروری، هیچ دادهٔ محلی یا نمونه‌",
+     "apiUnavailable": 1
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-tools-imp",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "tool imp: apiUnavailable=1 head=\"ابزارها و گزارش\""
+   ],
+   "shots": [
+    {
+     "file": "12-tools-imp-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 13,
+     "head": "ابزارها و گزارش",
+     "text": "کاربران\nگزارش‌ها\nبازگشت به فهرست\nابزارها و گزارش\nگزارش کاربران\nمدیریت نقش‌ها و حساب‌ها\nصندوق خروجی اعلان‌ها\nتاریخچهٔ عملیات\nنقشهٔ مجوزهای این حساب\nپارامتر پروفایل\nافزودن دستی\nورودی اکسل\nبرچسب‌ها\nمسدودها\nورودی اکسل\nAPI متصل نیست\n\nورودی اکسل به پایگاه مشترک endpoint ندارد و با قاعدهٔ «بدون ادغام خودکار رکوردها» سازگار نیست.\n\nتا اتصال endpoint و مجوز سروری، هیچ دادهٔ محلی یا نمونه‌ای در این بخش نمایش",
+     "apiUnavailable": 1
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests"
+   ]
+  },
+  {
+   "name": "12-reports-hub",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention"
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [],
+   "shots": [
+    {
+     "file": "12-reports-hub-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 18,
+     "head": "گزارش‌های زندهٔ پایگاه مشترک",
+     "text": "کاربران\nگزارش‌ها\nگزارش‌های زندهٔ پایگاه مشترک\nبازخوانی\n\nآمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری اعمال می‌شود.\n\n۷ روز\n۳۰ روز\n۹۰ روز\n۱۲ ماه\nهمهٔ زمان‌ها\nکل فرم‌های سرور\n۳\nفرم‌های ساخته‌شده در دوره\n۳\nپاسخ‌های دوره\n۳\nدرخواست‌های بررسی دوره\n۲\nحساب‌های تأییدشده\n۴\n\nآخرین محاسبهٔ سرور: 202",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "12-reports-hub-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 18,
+     "head": "گزارش‌های زندهٔ پایگاه مشترک",
+     "text": "کاربران\nگزارش‌ها\nگزارش‌های زندهٔ پایگاه مشترک\nبازخوانی\n\nآمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری اعمال می‌شود.\n\n۷ روز\n۳۰ روز\n۹۰ روز\n۱۲ ماه\nهمهٔ زمان‌ها\nکل فرم‌های سرور\n۳\nفرم‌های ساخته‌شده در دوره\n۳\nپاسخ‌های دوره\n۳\nدرخواست‌های بررسی دوره\n۲\nحساب‌های تأییدشده\n۴\n\nآخرین محاسبهٔ سرور: 202",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/admin/notifications",
+    "GET /api/admin/scheduled-publish",
+    "GET /api/admin/reports/summary",
+    "GET /api/owner/site-content",
+    "GET /api/forms",
+    "GET /api/cooperation-requests",
+    "GET /api/admin/users"
+   ],
+   "probe": {
+    "label": "reports-hub",
+    "tested": 15,
+    "noEffect": 0,
+    "items": [
+     {
+      "text": "کاربران",
+      "html": "<button class=\"chip \" data-user-hub=\"users\" role=\"tab\" aria-selected=\"false\">کاربران</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "گزارش‌ها",
+      "html": "<button class=\"chip \" data-user-hub=\"reports\" role=\"tab\" aria-selected=\"false\">گزارش‌ها</button>",
+      "effect": true,
+      "reqs": 0
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-report-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۷ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"7d\">۷ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۳۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"30d\">۳۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۹۰ روز",
+      "html": "<button class=\"chip \" data-server-report-period=\"90d\">۹۰ روز</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "۱۲ ماه",
+      "html": "<button class=\"chip \" data-server-report-period=\"365d\">۱۲ ماه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همهٔ زمان‌ها",
+      "html": "<button class=\"chip \" data-server-report-period=\"all\">همهٔ زمان‌ها</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بازخوانی",
+      "html": "<button class=\"btn sm\" data-server-outbox-refresh=\"\"><svg class=\"i \" aria-hidden=\"true\"><use href=\"#i-refresh\"",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "همه",
+      "html": "<button class=\"chip on\" data-server-outbox-state=\"\">همه</button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "در صف ۵",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"queued\">در صف <small>۵</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تلاش دوباره ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"retrying\">تلاش دوباره <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "تحویل‌شده ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"delivered\">تحویل‌شده <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "ناموفق ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"failed\">ناموفق <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     },
+     {
+      "text": "بدون هویت بله ۰",
+      "html": "<button class=\"chip \" data-server-outbox-state=\"no_bale_identity\">بدون هویت بله <small>۰</small></button>",
+      "effect": true,
+      "reqs": 1
+     }
+    ]
+   }
+  },
+  {
+   "name": "13-forms",
+   "console": [
+    "warning: The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded in",
+    "warning: The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intention",
+    "warning: The specified value \"Û±\" cannot be parsed, or is out of range."
+   ],
+   "pageErrors": [],
+   "failed": [],
+   "notes": [
+    "FATAL: page.evaluate: TypeError: Cannot read properties of null (reading 'innerHTML')\n    at eval (eval at evaluate (:370:30), <anonymous>:1:50)\n    at UtilityScript.evaluate (<anonymous>:372:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at probeButtons (./owner-audit.cjs:81:30)\n    at async ./owner-audit.cjs:296:5"
+   ],
+   "shots": [
+    {
+     "file": "13-forms-d.png",
+     "viewport": "1280x800",
+     "overflowX": false,
+     "scrollWidth": 1280,
+     "innerWidth": 1280,
+     "buttons": 4,
+     "head": "فرم‌های سرور",
+     "text": "فرم‌های سرور\nمنبع حقیقت ثبت‌نام و خرید\nفرم تازه\nمرکز فرم‌ساز و پاسخ‌ها\nبازخوانی\n\nفهرست از /api/forms خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد. خروجی CSV مستقیماً از سرور ساخته می‌شود (مجوز fm_export؛ ستون مالی فقط با مجوز مالی) و در تاریخچهٔ عملیات ثبت می‌گردد.\n\nجست‌وجو\nهمه\n۳\nمنتشرشده\n۳\nخرید نسخهٔ ضبط‌شده\nrecording_acce",
+     "apiUnavailable": 0
+    },
+    {
+     "file": "13-forms-m.png",
+     "viewport": "390x844",
+     "overflowX": false,
+     "scrollWidth": 390,
+     "innerWidth": 390,
+     "buttons": 4,
+     "head": "فرم‌های سرور",
+     "text": "فرم‌های سرور\nمنبع حقیقت ثبت‌نام و خرید\nفرم تازه\nمرکز فرم‌ساز و پاسخ‌ها\nبازخوانی\n\nفهرست از /api/forms خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد. خروجی CSV مستقیماً از سرور ساخته می‌شود (مجوز fm_export؛ ستون مالی فقط با مجوز مالی) و در تاریخچهٔ عملیات ثبت می‌گردد.\n\nجست‌وجو\nهمه\n۳\nمنتشرشده\n۳\nخرید نسخهٔ ضبط‌شده\nrecording_acce",
+     "apiUnavailable": 0
+    }
+   ],
+   "requests": [
+    "GET /api/auth/me",
+    "GET /api/forms",
+    "GET /api/owner/site-content",
+    "GET /api/cooperation-requests",
+    "GET /api/public/forms/capabilities",
+    "GET /api/health"
+   ]
+  }
+ ]
+}
