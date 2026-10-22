@@ -53,6 +53,7 @@ from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
 from . import event_interaction as interaction_mod
 from . import recordings as recordings_mod
+from . import integrity as integrity_mod
 from . import event_time
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
@@ -8025,6 +8026,19 @@ def create_app(
         role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         response.headers["Cache-Control"] = "private, no-store"
         return admin_reports_summary_data(db, role, period)
+
+    @app.get("/api/admin/integrity/recordings")
+    def admin_recording_integrity(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("rp_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §3: read-only purchase-chain audit (form → response → payment → ledger → access).
+
+        Same report as ``tools/recording-access-audit.py``; ids only, never fixes anything.
+        """
+        response.headers["Cache-Control"] = "no-store"
+        return integrity_mod.run(db, _utc_now())
 
     @app.get("/api/admin/notifications")
     def admin_notifications(

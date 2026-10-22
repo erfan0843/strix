@@ -154,6 +154,15 @@ async function loadProductionSession(identity) {
           const items = all.filter(item => !state || (state === 'no_bale_identity' ? item.last_delivery_error === 'no_bale_identity' : item.delivery_state === state && item.last_delivery_error !== 'no_bale_identity'));
           return reply(200, { source: 'shared_server_database', items, has_more: false, counts: { queued: 1, retrying: 1, delivered: 1, failed: 0, no_bale_identity: 1 }, limit: 30, offset: 0 });
         }
+        if (path === '/api/admin/integrity/recordings') {
+          return reply(200, { generated_at: '2026-10-22T09:00:00+00:00', read_only: true,
+            scanned: { purchase_forms: 2, payments: 5, orders: 5, access_rows: 6, products: 2 },
+            severity: { error: 1, warning: 0, info: 1 }, counts: { refund_without_revoke: 1, stale_active_status: 1 },
+            findings: [
+              { code: 'refund_without_revoke', severity: 'error', refs: { access_id: '20000000-0000-4000-8000-000000000001', order_id: '30000000-0000-4000-8000-000000000001' } },
+              { code: 'stale_active_status', severity: 'info', refs: { access_id: '20000000-0000-4000-8000-000000000002', recording_id: 'r1', expires_at: '2026-10-01T00:00:00+00:00' } },
+            ] });
+        }
         const workflowDecision = path.match(/^\/api\/admin\/inbox\/([0-9a-f-]{36})\/decision$/);
         if (workflowDecision && method === 'POST') {
           const body = JSON.parse(options.body || '{}');
@@ -325,6 +334,19 @@ console.log('— نقش حساب از نشست سرور —');
     await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?state=no_bale_identity&limit=30'), 'فیلتر بدون هویت بله');
     await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 1, 'فقط یک ردیف بدون هویت بله');
     assert.equal(app.doc.querySelector('[data-server-outbox-row]').dataset.serverOutboxStateRow, 'no_bale_identity');
+
+    /* فاز ۹.۵ §۳: ممیزی یکپارچگی فقط با کلیک اجرا می‌شود (GET فقط‌خواندنی) و فقط شمارش/کد نشان می‌دهد. */
+    const integrity = app.doc.querySelector('[data-server-integrity]');
+    assert.ok(integrity, 'کارت ممیزی در صفحهٔ گزارش');
+    assert.equal(app.calls.some(call => call.path === '/api/admin/integrity/recordings'), false, 'ممیزی خودکار اجرا نمی‌شود');
+    assert.match(integrity.textContent, /هنوز اجرا نشده/);
+    app.click('[data-server-integrity-run]');
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/integrity/recordings' && call.method === 'GET'), 'اجرای ممیزی');
+    await app.until(() => app.doc.querySelector('[data-server-integrity-row]'), 'ردیف یافته‌ها');
+    const integrityCard = app.doc.querySelector('[data-server-integrity]');
+    assert.match(integrityCard.querySelector('[data-server-integrity-row="refund_without_revoke"]').textContent, /بازپرداخت بدون لغو دسترسی/);
+    assert.match(integrityCard.textContent, /خطا/);
+    assert.doesNotMatch(integrityCard.textContent, /acc-secret|۰۹۱۲/, 'هیچ دادهٔ شخصی در کارت');
   } finally {
     app.dom.window.close();
   }

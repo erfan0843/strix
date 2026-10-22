@@ -474,6 +474,8 @@
       if (Number.isSafeInteger(offset) && offset > 0) parts.push('offset=' + offset);
       return request('/api/admin/notifications' + (parts.length ? '?' + parts.join('&') : ''));
     },
+    /* Phase 9.5 §3: read-only purchase-chain audit (ids only; the server never fixes anything). */
+    getRecordingIntegrity: () => request('/api/admin/integrity/recordings'),
     getReportSummary: period => {
       const allowed = ['7d', '30d', '90d', '365d', 'all'];
       const selected = allowed.includes(String(period)) ? String(period) : '30d';

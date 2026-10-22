@@ -42,6 +42,7 @@ let SERVER_REPORT_PERIOD='30d';
 let SERVER_REPORT_REQUEST=0;
 /* فاز ۹.۴ §۸: فهرست صندوق خروجی اعلان‌ها (فقط خواندن؛ rp_view در backend). ثبت ≠ ارسال ≠ تحویل. */
 const SERVER_OUTBOX={items:[],counts:null,state:'',loaded:false,loading:false,error:'',more:false,request:0};
+const SERVER_INTEGRITY={report:null,loading:false,error:'',request:0};
 const SERVER_OUTBOX_STATES=[['','همه'],['queued','در صف'],['retrying','تلاش دوباره'],['delivered','تحویل‌شده'],['failed','ناموفق'],['no_bale_identity','بدون هویت بله']];
 let SERVER_HEALTH=null;
 let SERVER_HEALTH_LOADING=false;
@@ -1780,6 +1781,48 @@ function vServerOutbox(){
     ${o.more?`<div class="row"><span class="sp"></span>${btn('اعلان‌های بیشتر','data-server-outbox-more','i-chev-left')}</div>`:''}
   </section>`;
 }
+function loadServerIntegrity(){
+  if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||SERVER_INTEGRITY.loading) return;
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.getRecordingIntegrity!=='function'){SERVER_INTEGRITY.error='رابط ممیزی در دسترس نیست.'; renderBody(); return}
+  const requestId=++SERVER_INTEGRITY.request;
+  SERVER_INTEGRITY.loading=true; SERVER_INTEGRITY.error=''; renderBody();
+  Promise.resolve(api.getRecordingIntegrity()).then(data=>{
+    if(requestId!==SERVER_INTEGRITY.request) return;
+    if(!data||data.read_only!==true||!Array.isArray(data.findings)||!data.severity||!data.scanned) throw new Error('invalid_integrity');
+    SERVER_INTEGRITY.report=data;
+  }).catch(error=>{
+    if(requestId!==SERVER_INTEGRITY.request) return;
+    SERVER_INTEGRITY.error=error&&error.status===403?'مجوز اجرای ممیزی برای این نقش فعال نیست.'
+      :error&&error.status===401?'نشست پنل معتبر نیست؛ دوباره وارد شوید.'
+      :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'اجرای ممیزی انجام نشد؛ دوباره تلاش کنید.';
+  }).finally(()=>{if(requestId!==SERVER_INTEGRITY.request) return; SERVER_INTEGRITY.loading=false; renderBody()});
+}
+const SERVER_INTEGRITY_LABELS={paid_payment_without_access:'پرداخت تسویه‌شده بدون دسترسی فعال',paid_payment_without_account:'پرداخت تسویه‌شده بدون حساب کاربری',
+  paid_payment_without_ledger:'پرداخت تسویه‌شده بدون ردیف دفتر',purchase_access_without_order:'دسترسی خرید بدون مرجع سفارش',purchase_access_order_missing:'مرجع سفارش دسترسی موجود نیست',
+  access_with_unpaid_order:'دسترسی فعال با سفارش پرداخت‌نشده',refund_without_revoke:'بازپرداخت بدون لغو دسترسی',order_without_form_payment:'ردیف دفتر بدون پرداخت فرم (قدیمی)',
+  order_payment_missing:'پرداخت ارجاع‌شدهٔ دفتر موجود نیست',order_payment_not_settled:'دفتر پرداخت‌شده ولی پرداخت فرم تسویه نشده',payment_unrelated_form:'پرداخت متعلق به فرم/محصول دیگر',
+  access_account_mismatch:'دسترسی روی حساب دیگری',order_account_mismatch:'سفارش روی حساب دیگری',duplicate_settled_payments:'پرداخت تکراری برای یک پاسخ',
+  duplicate_orders_for_payment:'چند ردیف دفتر برای یک پرداخت',duplicate_paid_orders:'چند سفارش پرداخت‌شده برای یک حساب',purchase_form_without_product:'فرم خرید بدون محصول',
+  purchase_form_event_mismatch:'رویداد فرم با محصول نمی‌خواند',published_without_purchase_form:'محصول در فروش بدون فرم خرید',purchase_form_unpublished:'فرم خرید منتشر نشده',
+  stale_active_status:'وضعیت active با انقضای گذشته (فقط ظاهری)'};
+function vServerIntegrity(){
+  const o=SERVER_INTEGRITY; const r=o.report; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
+  const sev={error:['خطا','stop'],warning:['هشدار','warn'],info:['اطلاع','']};
+  const rows=r?Object.keys(r.counts||{}).map(code=>{const s=sev[(r.findings.find(f=>f.code===code)||{}).severity]||sev.info;
+    return `<div class="admlirow" data-server-integrity-row="${esc(code)}"><span class="sp"><b>${esc(SERVER_INTEGRITY_LABELS[code]||code)}</b> <span class="mini">${esc(code)}</span></span>${tag(s[0],s[1])} <b>${number(r.counts[code])}</b></div>`}).join(''):'';
+  const summary=r?`<div class="admkpi">
+      <div class="k"><small>خطا</small>${bits(number(r.severity.error))}</div><div class="k"><small>هشدار</small>${bits(number(r.severity.warning))}</div><div class="k"><small>اطلاع</small>${bits(number(r.severity.info))}</div>
+      <div class="k"><small>پرداخت‌های بررسی‌شده</small>${bits(number(r.scanned.payments))}</div><div class="k"><small>دسترسی‌های بررسی‌شده</small>${bits(number(r.scanned.access_rows))}</div></div>
+    <p class="cap">آخرین اجرای سرور: ${esc(r.generated_at||'نامشخص')} · ${r.findings.length?'موارد زیر را با شناسه در گزارش JSON ابزار خط فرمان پیگیری کنید؛ هیچ اصلاح خودکاری انجام نمی‌شود.':'ناسازگاری‌ای یافت نشد.'}</p>`:'';
+  const body=o.loading?`<p class="cap">در حال اجرای ممیزی فقط‌خواندنی روی سرور…</p>`
+    :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-integrity-run','i-refresh')}</div>`
+    :r?summary+(rows?`<div class="admlist">${rows}</div>`:''):`<p class="cap">ممیزی هنوز اجرا نشده است؛ این عمل فقط می‌خواند و چیزی را تغییر نمی‌دهد.</p>`;
+  return `<section class="card stack" data-server-integrity><div class="row"><div class="head">ممیزی یکپارچگی خرید آرشیو</div><span class="sp"></span>${tag('فقط‌خواندنی','ok')} ${btn(r?'اجرای دوباره':'اجرای ممیزی','data-server-integrity-run','i-refresh')}</div>
+    <p class="cap">زنجیرهٔ فرم خرید → پاسخ → پرداخت → دفتر داخلی → دسترسی را روی پایگاه سرور بررسی می‌کند. خروجی فقط شناسه است (بدون نام یا شماره) و سرور هیچ ردیفی را خودکار اصلاح یا اعطا نمی‌کند.</p>
+    ${body}
+  </section>`;
+}
 function loadServerReports(force=false){
   if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')) return;
   if(SERVER_REPORT_LOADING) return;
@@ -2629,6 +2672,7 @@ function vServerReports(){
       ${error}${loading}</section>
     ${groups?`<div class="admgrid">${groups}</div>`:''}
     ${vServerOutbox()}
+    ${vServerIntegrity()}
     <p class="cap">گزارش مالی، رویداد، حضور و باشگاه از این API ساخته نمی‌شود تا زمانی که همان داده‌ها نیز به پایگاه مشترک وصل شوند؛ هیچ‌کدام با عدد محلی جایگزین نشده‌اند.</p>
   </div>`;
 }
@@ -8938,6 +8982,7 @@ document.addEventListener('click',e=>{
   }
   if(q('[data-server-outbox-refresh]')){SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error=''; loadServerOutbox(); return}
   if(q('[data-server-outbox-more]')){loadServerOutbox(true); return}
+  if(q('[data-server-integrity-run]')){loadServerIntegrity(); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
   const rc=q('[data-rcust]'); if(rc){const k2=rc.dataset.rcust, l=S.rpCust||[];
