@@ -50,6 +50,13 @@ async function loadPanel(identity) {
     removeItem(k) { values.delete(String(k)); }, clear() { values.clear(); },
     key(i) { return [...values.keys()][i] || null; }, get length() { return values.size; },
   };
+  const sessionValues = identity.sessionValues || new Map();
+  const sessionStore = {
+    getItem(k) { return sessionValues.has(String(k)) ? sessionValues.get(String(k)) : null; },
+    setItem(k, v) { sessionValues.set(String(k), String(v)); },
+    removeItem(k) { sessionValues.delete(String(k)); }, clear() { sessionValues.clear(); },
+    key(i) { return [...sessionValues.keys()][i] || null; }, get length() { return sessionValues.size; },
+  };
   const perms = identity.permissions || (identity.role === 'owner' ? OWNER : MANAGER);
   const has = (p) => perms.includes(p);
   const list = (kind) => ({
@@ -62,6 +69,7 @@ async function loadPanel(identity) {
     beforeParse(window) {
       Object.defineProperty(window.navigator, 'userAgent', { configurable: true, value: 'ArenaBrowser/1.0' });
       Object.defineProperty(window, 'localStorage', { configurable: true, value: store });
+      Object.defineProperty(window, 'sessionStorage', { configurable: true, value: sessionStore });
       window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
       window.scrollTo = () => {};
       window.confirm = (m) => { dialogs.push(['confirm', String(m)]); return identity.confirm !== false; };
@@ -301,7 +309,7 @@ async function loadPanel(identity) {
     assert.doesNotMatch(text, /0912|09\d{9}|hash|token|password/i, 'شماره، هش یا توکن در خروجی پنل نیست');
     assert.doesNotMatch(text, /سارا محمدی|NL-1024|جلسهٔ شعر و موسیقی/, 'دادهٔ نمونهٔ محلی با دادهٔ سرور قاطی نمی‌شود');
   };
-  return { dom, window: dom.window, doc, calls, dialogs, click, type, until, body, noLeak, world, close: () => dom.window.close() };
+  return { dom, window: dom.window, doc, calls, dialogs, click, type, until, body, noLeak, world, sessionValues, close: () => dom.window.close() };
 }
 
 const section = async (app, sec) => {
@@ -958,6 +966,116 @@ console.log('— مرحلهٔ ۳: پروندهٔ کاربر U4/U5؛ ثبت‌ن�
     bad.click('[data-uf-regs-refresh]');
     await bad.until(() => bad.doc.querySelector(`[data-uf-reg="${REG1}"]`), 'تلاش دوباره موفق');
   } finally { bad.close(); }
+}
+
+console.log('— ممیزی ۱۴۰۵/۰۸/۰۱ بخش B: قالب، تقویم شمسی و روز هفته، همگام‌سازی تاریخ/ساعت، دونقطهٔ خودکار، جلسه‌ها، فوکوس روی اولین خطا، تکثیر، پیش‌نویس محلی —');
+{
+  let app = await loadPanel({ role: 'owner', sec: 'events' });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست');
+    app.click('[data-ct-new]');
+    await app.until(() => app.doc.querySelector('#ctf_t'), 'ویرایشگر تازه');
+    /* B2: قالب فقط فیلدهای خالی را پر می‌کند و چیزی نمی‌فرستد */
+    assert.ok(app.doc.querySelector('[data-ct-templates]'), 'قالب‌ها فقط برای رکورد تازه');
+    app.type('#ctf_kind', 'نشست ویژه');
+    const postsBefore = app.calls.filter((c) => c.method === 'POST').length;
+    app.click('[data-ct-template="certified"]');
+    await app.until(() => app.doc.querySelector('[data-ct-template="certified"].on'), 'قالب انتخاب شد');
+    assert.equal(app.doc.querySelector('#ctf_kind').value, 'نشست ویژه', 'فیلد پرشده دست نمی‌خورد');
+    assert.equal(app.doc.querySelector('#ctf_mode').value, 'حضوری', 'فیلد خالی از قالب پر شد');
+    assert.ok(app.doc.querySelector('#ctf_certMin'), 'گواهی از قالب روشن شد');
+    assert.equal(app.calls.filter((c) => c.method === 'POST').length, postsBefore, 'قالب هیچ درخواستی نمی‌فرستد');
+    /* B7: روز هفته + همگام‌سازی شروع/پایان با تاریخ شمسی */
+    app.type('#ctf_on', '1405/08/14');
+    assert.match(app.doc.querySelector('[data-ct-weekday="on"]').textContent, /پنجشنبه/, 'روز هفته از تاریخ شمسی');
+    assert.equal(app.doc.querySelector('#ctf_startsAt').value, '1405/08/14', 'شروع رویداد همراه تاریخ شمسی پر شد');
+    assert.match(app.doc.querySelector('#ctf_when').value, /پنجشنبه ۱۴ آبان/, 'زمان به نوشتار از تاریخ پر شد');
+    /* B8: ساعت با عدد خالص دونقطه می‌گیرد و به شروع می‌رود؛ متن آزاد دست‌نخورده می‌ماند */
+    app.type('#ctf_time', '1030');
+    assert.equal(app.doc.querySelector('#ctf_time').value, '10:30', 'دونقطهٔ خودکار');
+    assert.equal(app.doc.querySelector('#ctf_startsAt').value, '1405/08/14 10:30', 'ساعت به شروع رویداد رفت');
+    app.type('#ctf_time', '10 تا 13');
+    assert.equal(app.doc.querySelector('#ctf_time').value, '10 تا 13', 'متن آزاد ساعت تغییر نمی‌کند');
+    app.type('#ctf_on', '1405/08/21');
+    assert.equal(app.doc.querySelector('#ctf_startsAt').value, '1405/08/21 10:30', 'تغییر تاریخ شمسی، تاریخ شروع را (با حفظ ساعت) جابه‌جا می‌کند');
+    app.type('#ctf_startsAt', '1405/08/21 0900');
+    app.doc.querySelector('#ctf_startsAt').dispatchEvent(new app.dom.window.Event('focusout', { bubbles: true }));
+    assert.equal(app.doc.querySelector('#ctf_startsAt').value, '1405/08/21 09:00', 'ساعت در فیلد تاریخ‌ساعت هم با ترک قلم کامل می‌شود');
+    app.type('#ctf_endsAt', '1405/08/21 12:00');
+    app.type('#ctf_on', '1405/08/28');
+    assert.equal(app.doc.querySelector('#ctf_startsAt').value, '1405/08/28 09:00');
+    assert.equal(app.doc.querySelector('#ctf_endsAt').value, '1405/08/28 12:00', 'پایان که هم‌تاریخ شروع بود همراه می‌آید');
+    /* تقویم کوچک: باز، روز، بسته */
+    app.click('[data-ctdp="on"]');
+    await app.until(() => app.doc.querySelector('[data-ctdp-box="on"]'), 'تقویم باز شد');
+    assert.match(app.doc.querySelector('[data-ctdp-box="on"] .dphead b').textContent, /آبان ۱۴۰۵/);
+    app.click('[data-ctdp-box="on"] [data-ctdp-day="5"]');
+    await app.until(() => !app.doc.querySelector('[data-ctdp-box]'), 'تقویم بسته شد');
+    assert.equal(app.doc.querySelector('#ctf_on').value, '1405/08/05', 'روز از تقویم با رقم لاتین نشست');
+    assert.equal(app.doc.querySelector('#ctf_startsAt').value, '1405/08/05 09:00');
+    /* B9: جلسه‌ها */
+    app.click('[data-ct-part-add]');
+    await app.until(() => app.doc.querySelector('[data-ct-part-row="0"]'), 'ردیف جلسه');
+    assert.equal(app.doc.querySelector('[data-ct-part="0"][data-ct-part-field="date"]').value, '1405/08/05', 'تاریخ جلسهٔ اول از تاریخ رویداد');
+    app.type('[data-ct-part="0"][data-ct-part-field="title"]', 'مقدمه');
+    app.type('[data-ct-part="0"][data-ct-part-field="time"]', '0900');
+    assert.equal(app.doc.querySelector('[data-ct-part="0"][data-ct-part-field="time"]').value, '09:00');
+    app.click('[data-ct-part-add]');
+    await app.until(() => app.doc.querySelector('[data-ct-part-row="1"]'), 'جلسهٔ دوم');
+    assert.equal(app.doc.querySelector('[data-ct-part="1"][data-ct-part-field="time"]').value, '09:00', 'ساعت جلسهٔ قبلی پیشنهاد می‌شود');
+    app.click('[data-ct-part-del="1"]');
+    await app.until(() => !app.doc.querySelector('[data-ct-part-row="1"]'), 'حذف جلسه');
+    /* B3: ذخیره با خطای سرور → فوکوس روی اولین فیلد خطادار */
+    app.type('#ctf_t', '');
+    app.click('[data-ct-save]');
+    await app.until(() => app.doc.querySelector('[data-ct-err="t"]')?.textContent.includes('عنوان لازم است'), 'خطا');
+    assert.equal(app.doc.activeElement, app.doc.querySelector('#ctf_t'), 'فوکوس روی اولین فیلد خطادار');
+    /* B17: پیش‌نویس محلی — ترک ویرایشگر و بازگشت، بازیابی با تأیید صریح */
+    app.type('#ctf_t', 'رویداد با جلسه');
+    app.type('#ctf_d', 'شرح کامل');
+    const draftKeys = () => [...app.sessionValues.keys()].filter((k) => k.startsWith('nora-admin-ct-draft:'));
+    assert.equal(draftKeys().length, 1, 'پیش‌نویس در sessionStorage همین زبانه');
+    app.close();
+    /* بارگذاری دوبارهٔ پنل در همان زبانه (همان sessionStorage): پیش‌نویس فقط با تأیید صریح برمی‌گردد و روی رکورد دیگر نشان داده نمی‌شود */
+    app = await loadPanel({ role: 'owner', sec: 'events', world: app.world, sessionValues: app.sessionValues });
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست پس از بارگذاری دوباره');
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('#ctf_t')?.value === 'کارگاه نگارش', 'ویرایش رکورد موجود');
+    assert.equal(app.doc.querySelector('[data-ct-draft]'), null, 'پیش‌نویس رکورد تازه روی رکورد دیگر نشان داده نمی‌شود');
+    app.click('[data-ct-cancel]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'بازگشت');
+    assert.equal(draftKeys().length, 1, 'انصراف از رکورد دیگر، پیش‌نویس رکورد تازه را پاک نمی‌کند');
+    app.click('[data-ct-new]');
+    await app.until(() => app.doc.querySelector('[data-ct-draft]'), 'هشدار پیش‌نویس ذخیره‌نشده');
+    assert.equal(app.doc.querySelector('#ctf_t').value, '', 'تا تأیید، فرم با پیش‌نویس پر نمی‌شود');
+    app.click('[data-ct-draft-restore]');
+    await app.until(() => app.doc.querySelector('#ctf_t')?.value === 'رویداد با جلسه', 'بازیابی');
+    assert.equal(app.doc.querySelector('[data-ct-part="0"][data-ct-part-field="title"]').value, 'مقدمه', 'جلسه‌ها هم برگشتند');
+    app.click('[data-ct-save]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-new1"]'), 'ذخیره شد');
+    const created = app.calls.filter((c) => c.method === 'POST' && c.path === '/api/admin/content/events').pop();
+    assert.deepEqual(created.body.record.parts, [{ title: 'مقدمه', date: '1405/08/05', time: '09:00', to: '', description: '' }], 'جلسه‌ها به همان شکل قرارداد سرور');
+    assert.equal(created.body.record.on, '1405/08/05');
+    assert.equal(created.body.record.startsAt, '1405/08/05 09:00');
+    assert.equal(draftKeys().length, 0, 'پس از ذخیره پیش‌نویس محلی پاک می‌شود');
+    /* B16: تکثیر = ویرایشگر تازه با نسخهٔ پرشده؛ تا ذخیره هیچ POSTی نیست */
+    const posts = app.calls.filter((c) => c.method === 'POST').length;
+    app.click('[data-ct-dup="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-copy-of="ev-a1"]'), 'رونوشت باز شد');
+    assert.equal(app.doc.querySelector('#ctf_t').value, 'کارگاه نگارش (رونوشت)');
+    assert.equal(app.doc.querySelector('#ctf_place').value, 'تهران');
+    assert.equal(app.calls.filter((c) => c.method === 'POST').length, posts, 'تکثیر بدون ذخیره درخواستی نمی‌فرستد');
+    assert.match(app.body(), /هنوز ذخیره نشده/);
+    app.click('[data-ct-cancel]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'انصراف از رونوشت');
+    assert.equal(app.world.events.filter((e) => e.t.includes('رونوشت')).length, 0);
+  } finally { app.close(); }
+  /* مدیر بدون ev_create: دکمهٔ تکثیر نیست */
+  const ro = await loadPanel({ role: 'manager', sec: 'events', permissions: ['ev_publish', 'pr_media', 'us_view'] });
+  try {
+    await ro.until(() => ro.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست');
+    assert.equal(ro.doc.querySelector('[data-ct-dup]'), null, 'بدون ev_create تکثیر نیست');
+  } finally { ro.close(); }
 }
 
 console.log('آزمون مرحلهٔ دوم و سوم پنل: قبول');

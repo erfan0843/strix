@@ -6771,7 +6771,7 @@ function serverUsersView(){
 const staffCsrfCookie=()=>isOwner()?'nora_csrf':'nora_account_csrf';
 const P2_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
 const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخت'],['title','عنوان'],['date','تاریخ']];
-const CT={kind:'events',q:'',status:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:''};
+const CT={kind:'events',q:'',status:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
 /* تصاویر عمومی (پوستر/جلد): بارگذاری واقعی به /api/admin/media و فهرست با وضعیت استفاده؛ هیچ حذف خودکاری نیست */
 const CM={up:{busy:false,error:'',file:null,field:'',name:''},open:false,data:null,loading:false,error:'',busy:'',offset:0,limit:20};
 const US={q:'',provider:'',role:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
@@ -6861,6 +6861,7 @@ function ctArticleMeta(item){
 function ctActions(item){
   const id=esc(item.id), st=item.status, out=[];
   if(ctCan('can_edit')) out.push(btn('ویرایش',`data-ct-edit="${id}"`,'i-pen'));
+  if(CT.kind==='events'&&ctCan('can_edit')) out.push(btn('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
   if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
   if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('منابع و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
   if(ctCan('can_publish')){
@@ -6998,13 +6999,14 @@ function pkPreflight(e){
 }
 const pkName=(field,id)=>{const p=pkRow(field,id); return p?String(p.n||''):''};
 function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
-    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,tchr:'',partnerId:''}
+    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,tchr:'',partnerId:'',parts:[]}
   :{t:'',cat:'',lead:'',body:'',cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
 function ctEditable(kind,record){
   const base=ctBlank(kind), out={};
   Object.keys(base).forEach(key=>{
     let value=record?record[key]:undefined;
     if(key==='tags') value=Array.isArray(value)?value.join('، '):(value||'');
+    else if(key==='parts') value=ctPartsFrom(value);
     else if(key==='body') value=Array.isArray(value)?value.join('\n\n'):(value||'');
     /* زمان‌ها در سرور UTC ذخیره‌اند؛ پنل همان مقدار شمسی/تهران را که سرور برمی‌گرداند نشان می‌دهد */
     else if(CT_DATETIME_FIELDS.includes(key)) value=record&&record.local_times&&typeof record.local_times[key]==='string'?record.local_times[key]:(value||'');
@@ -7020,6 +7022,7 @@ function ctPayload(kind,form){
   Object.keys(blank).forEach(key=>{
     let value=form[key];
     if(key==='tags') value=String(value||'').split(/[,،\n]/).map(s=>s.trim()).filter(Boolean);
+    else if(key==='parts') value=ctPartsFrom(value).filter(p=>Object.keys(p).some(k=>p[k]));
     else if(key==='body') value=String(value||'').replace(/\r/g,'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
     else if(typeof blank[key]==='boolean') value=!!value;
     else value=String(value==null?'':value).trim();
@@ -7057,6 +7060,137 @@ function ctEventForms(e){
     :rows||`<small class="cap">هنوز فرمی به این رویداد وصل نیست؛ تا فرم ثبت‌نامِ منتشرشده نباشد، دکمهٔ ثبت‌نام در صفحهٔ رویداد باز نمی‌شود.</small>`;
   return `<div class="stack" data-ct-forms="${esc(String(e.id))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های ثبت‌نام این رویداد</strong><span class="sp"></span>${makeBtn}</div>${body}</div>`;
 }
+/* ── ممیزی پنل ۱۴۰۵/۰۸/۰۱ (بخش B): کمک‌های ویرایشگر رویداد روی همان API؛ هیچ داده‌ای از data.js/localStorage وارد رکورد نمی‌شود ── */
+const CT_PART_FIELDS=['title','date','time','to','description'];
+/* تاریخ برای فیلدهای سرور با رقم لاتین نوشته می‌شود (سرور هر دو را می‌پذیرد؛ مرتب‌سازی عمومی روی همین رشته است) */
+const ctJForm=(jy,jm,jd)=>jy+'/'+jPad(jm)+'/'+jPad(jd);
+const ctJLong=(jy,jm,jd)=>JN[jWeek(jy,jm,jd)]+' '+fa(jd)+' '+(((NE().j||{}).months||JMONTHS_FA)[jm-1]||JMONTHS_FA[jm-1]||'');
+function ctPartsFrom(value){
+  if(!Array.isArray(value)) return [];
+  return value.slice(0,80).map(item=>{const row={}; if(typeof item==='string'){row.title=item.trim()} else if(item&&typeof item==='object'){CT_PART_FIELDS.forEach(k=>{row[k]=String(item[k]==null?'':item[k]).trim()})}
+    CT_PART_FIELDS.forEach(k=>{if(row[k]==null) row[k]=''}); return row});
+}
+/* قالب‌های رویداد: فقط مقدار پیش‌فرض برای فیلدهای خالی؛ قالب داده نیست و هرگز خودکار ذخیره نمی‌شود. */
+const CT_TEMPLATES=[
+  ['workshop','کارگاه حضوری',{kind:'کارگاه',mode:'حضوری',tags:'کارگاه',sess:'1'}],
+  ['online','نشست برخط',{kind:'نشست',mode:'برخط',tags:'برخط',sess:'1'}],
+  ['course','دورهٔ چندجلسه‌ای',{kind:'دوره',mode:'حضوری',tags:'دوره',sess:'4'}],
+  ['certified','کارگاه با گواهی',{kind:'کارگاه',mode:'حضوری',tags:'کارگاه، گواهی',cert:true,certMin:'80',sess:'1'}],
+  ['camp','اردو / بازدید',{kind:'اردو',mode:'حضوری',tags:'اردو',sess:'1'}],
+  ['talk','سخنرانی / جلسهٔ آزاد',{kind:'سخنرانی',mode:'حضوری',tags:'سخنرانی',price:'',sess:'1'}]];
+function ctApplyTemplate(key){
+  const e=CT.edit, tpl=CT_TEMPLATES.find(t=>t[0]===key); if(!e||!tpl) return;
+  const f=e.form, filled=[];
+  Object.keys(tpl[2]).forEach(k=>{const cur=f[k]; const empty=typeof cur==='boolean'?cur===false:String(cur==null?'':cur).trim()==='';
+    if(empty){f[k]=tpl[2][k]; filled.push(k)}});
+  e.template=key; ctDraftSave(); renderBody();
+  toast(filled.length?`قالب «${tpl[1]}» فقط فیلدهای خالی را پر کرد (${fa(filled.length)} فیلد)؛ چیزی ذخیره نشد.`:`همهٔ فیلدهای قالب «${tpl[1]}» از قبل مقدار داشتند؛ چیزی تغییر نکرد.`);
+}
+/* تاریخ شمسی: روز هفته از همان الگوریتم جلالی پنل؛ تقویم کوچک برای فیلدهای تاریخ و تاریخ‌ساعت. */
+function ctJDate(value){const t=un(String(value||'')).trim(); const m=t.match(/^(\d{4}\/\d{1,2}\/\d{1,2})(?:\s+(.*))?$/); if(!m) return null; const j=jParse(m[1]); return j?{j:j,rest:m[2]||''}:null}
+function ctWeekday(value){const d=ctJDate(value); return d?ctJLong(d.j.jy,d.j.jm,d.j.jd)+' '+fa(d.j.jy):''}
+function ctDateWithDay(field,jy,jm,jd){
+  const cur=String(ctDpValue(field)||''), d=ctJDate(cur), date=ctJForm(jy,jm,jd);
+  if(CT_DATETIME_FIELDS.includes(field)){const rest=d&&d.rest?d.rest:(un(String(CT.edit.form.time||'')).match(/^\d{1,2}:\d{2}$/)?h24(CT.edit.form.time,true):''); return rest?date+' '+rest:date}
+  return date;
+}
+function ctDpValue(field){const e=CT.edit; if(!e) return ''; const m=/^part:(\d+)$/.exec(field); if(m){const row=(e.form.parts||[])[+m[1]]; return row?row.date:''} return e.form[field]}
+function ctDpSet(field,value){const e=CT.edit; if(!e) return; const m=/^part:(\d+)$/.exec(field); if(m){const row=(e.form.parts||[])[+m[1]]; if(row) row.date=value; return} const old=e.form[field]; e.form[field]=value; ctSyncDates(field,old,value)}
+function ctDpBox(){
+  const dp=CT.dp; if(!dp||!CT.edit) return '';
+  const months=(NE().j||{}).months||JMONTHS_FA, days=(NE().j||{}).days||['ش','ی','د','س','چ','پ','ج'];
+  const t=jToday(), y=+dp.y||t.jy, m=+dp.m||t.jm, len=jLen(y,m), pad=jWeek(y,m,1), curD=ctJDate(ctDpValue(dp.f)), cur=curD&&curD.j;
+  let cells='<span class="db"></span>'.repeat(pad);
+  for(let d=1;d<=len;d++){const on=cur&&cur.jy===y&&cur.jm===m&&cur.jd===d, td=t.jy===y&&t.jm===m&&t.jd===d;
+    cells+=`<button type="button" class="dd ${on?'on':''} ${td?'today':''}" data-ctdp-day="${d}" aria-label="${esc(ctJLong(y,m,d))}">${esc(fa(d))}</button>`}
+  return `<div class="dp" data-ctdp-box="${esc(dp.f)}" role="dialog" aria-label="تقویم شمسی">
+    <div class="dphead"><button type="button" class="dpnav" data-ctdp-mv="-1" aria-label="ماه قبل">${ico('i-chev-right')}</button><b>${esc(months[m-1]||'')} ${esc(fa(y))}</b><button type="button" class="dpnav" data-ctdp-mv="1" aria-label="ماه بعد">${ico('i-chev-left')}</button><span class="sp"></span>
+      <button type="button" class="btn sm quiet" data-ctdp-today>امروز</button><button type="button" class="btn sm quiet" data-ctdp-close>بستن</button></div>
+    <div class="dpweek">${days.map(d=>`<span>${esc(d)}</span>`).join('')}</div><div class="dpgrid">${cells}</div></div>`;
+}
+function ctDateInp(label,field,value,opts){
+  const o=opts||{}, err=o.err||'', id='ctf_'+field, wd=ctWeekday(value), open=CT.dp&&CT.dp.f===field;
+  return `<div class="fld" data-ct-date="${field}"><label class="lbl" for="${id}">${esc(label)}</label>
+    <div class="withbtn"><input type="text" id="${id}" class="input" data-ct-field="${field}" maxlength="${o.max||20}" placeholder="${esc(o.ph||'')}" dir="ltr" inputmode="numeric" autocomplete="off" value="${esc(value==null?'':String(value))}"/>
+      <button type="button" class="btn sm quiet" data-ctdp="${field}" aria-label="تقویم شمسی" aria-expanded="${open?'true':'false'}">${ico('i-calendar')}</button></div>
+    <small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small>
+    <small class="cap" data-ct-weekday="${field}" aria-live="polite">${esc(wd)}</small>${open?ctDpBox():''}</div>`;
+}
+/* همگام‌سازی: تاریخ شروع/پایان دقیق تا وقتی دستی عوض نشده‌اند، همراه «تاریخ شمسی» و «ساعت» می‌آیند. */
+function ctSyncDates(field,oldVal,newVal){
+  const f=CT.edit&&CT.edit.form; if(!f) return;
+  const oldD=ctJDate(oldVal), newD=ctJDate(newVal);
+  if(field==='on'){
+    if(!newD) return;
+    const date=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd), time=un(String(f.time||'')).match(/^\d{1,2}:\d{2}$/)?h24(f.time,true):'';
+    ['startsAt','endsAt'].forEach(k=>{const cur=ctJDate(f[k]); const follows=!String(f[k]||'').trim()||(oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd);
+      if(follows){const rest=cur&&cur.rest?cur.rest:(k==='startsAt'?time:''); f[k]=rest?date+' '+rest:(k==='startsAt'?date:(String(f[k]||'').trim()?date:''))}});
+    if(!String(f.when||'').trim()) f.when=ctJLong(newD.j.jy,newD.j.jm,newD.j.jd);
+  }
+  if(field==='time'){
+    const t=un(String(newVal||'')); if(!/^\d{1,2}:\d{2}$/.test(t)) return;
+    const d=ctJDate(f.startsAt)||ctJDate(f.on); if(!d) return;
+    const cur=ctJDate(f.startsAt), oldT=un(String(oldVal||''));
+    if(!cur||!cur.rest||cur.rest===oldT) f.startsAt=ctJForm(d.j.jy,d.j.jm,d.j.jd)+' '+h24(t,true);
+  }
+  if(field==='startsAt'&&newD){
+    const cur=ctJDate(f.endsAt);
+    if(!String(f.endsAt||'').trim()||(oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd)) f.endsAt=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd)+(cur&&cur.rest?' '+cur.rest:'');
+  }
+}
+/* ساعت ۲۴ساعته: فقط وقتی کاربر عدد خالص می‌نویسد دونقطه خودکار می‌آید؛ متن آزاد («۱۰ تا ۱۳») دست‌نخورده می‌ماند. */
+function ctTimeFix(field,value,hard){
+  const raw=un(String(value||''));
+  if(field==='time'){ if(/^\d{3,4}$/.test(raw)||(hard&&/^\d{1,2}$/.test(raw))||/^\d{1,2}:\d{1,2}$/.test(raw)&&hard) return h24(raw,true); return value}
+  if(CT_DATETIME_FIELDS.includes(field)){const m=raw.match(/^(\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{1,4})$/); if(m&&(m[2].length>=3||hard)) return m[1]+' '+h24(m[2],true); return value}
+  return value;
+}
+/* پیش‌نویس محلی: فقط متن تایپ‌شدهٔ همین کاربر در همین زبانه (sessionStorage)، با برچسب صریح؛ هرگز به‌جای رکورد سرور نمایش داده نمی‌شود. */
+function ctDraftKey(){const e=CT.edit; if(!e||IS_TEST||!SERVER_AUTH) return ''; const who=SERVER_AUTH.account_id||SERVER_AUTH.owner_id||'x'; return `nora-admin-ct-draft:${who}:${CT.kind}:${e.id||'new'}`}
+function ctDraftSave(){const k=ctDraftKey(); if(!k) return; try{sessionStorage.setItem(k,JSON.stringify({form:CT.edit.form,at:Date.now(),version:CT.edit.version}))}catch(err){}}
+function ctDraftDrop(){const k=ctDraftKey(); if(!k) return; try{sessionStorage.removeItem(k)}catch(err){}}
+function ctDraftPeek(){const k=ctDraftKey(); if(!k) return null; try{const raw=sessionStorage.getItem(k); if(!raw) return null; const d=JSON.parse(raw); if(!d||!d.form||typeof d.form!=='object') return null;
+    if(JSON.stringify(d.form)===JSON.stringify(CT.edit.form)) return null; return d}catch(err){return null}}
+function ctDraftBanner(e){
+  if(!e.draft) return '';
+  const when=svcWhen(new Date(e.draft.at).toISOString())||'';
+  return `<div class="card stack" data-ct-draft role="status" style="border-inline-start:3px solid var(--warn)"><div class="row" style="flex-wrap:wrap;gap:6px"><b>پیش‌نویس ذخیره‌نشده از همین مرورگر</b><span class="sp"></span>${btn('بازیابی متن تایپ‌شده','data-ct-draft-restore','i-refresh')}${btn('دور انداختن','data-ct-draft-drop','i-close')}</div>
+    <p class="cap">${when?'آخرین تایپ: '+esc(when)+' · ':''}این متن در سرور ذخیره نشده و فقط در همین زبانهٔ مرورگر مانده است؛ تا «ذخیره» نزنی رکورد سرور تغییر نمی‌کند.</p></div>`;
+}
+function ctFocusFirstError(){
+  const box=document.querySelector('[data-ct-editor]'); if(!box) return;
+  const errs=[...box.querySelectorAll('[data-ct-err]')].filter(el=>el.getAttribute('style')&&el.textContent.trim());
+  const first=errs[0]; const target=first?(document.getElementById('ctf_'+first.dataset.ctErr)||first):box.querySelector('[data-ct-form-error]');
+  if(!target) return;
+  try{target.scrollIntoView({block:'center',behavior:'smooth'})}catch(err){}
+  if(typeof target.focus==='function') try{target.focus({preventScroll:true})}catch(err){try{target.focus()}catch(e2){}}
+}
+async function ctDuplicate(id){
+  const api=window.NORA_SERVER_API; if(!id||CT.busy||!ctCan('can_edit')) return;
+  CT.busy='load'; renderBody();
+  try{
+    const result=await api.getAdminContent(CT.kind,id); const record=result.record||{}, form=ctEditable(CT.kind,record);
+    form.t=(form.t||'')+' (رونوشت)'; if(CT.kind==='events'){form.past=false; form.lifecycle='scheduled'}
+    CT.edit={id:'',form:form,errors:{},status:'draft',version:result.version!=null?result.version:(CT.data?CT.data.version:0),copyOf:{id:record.id,t:record.t||record.id}};
+    CT.msg=null; CT.dp=null;
+  }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای تکثیر دریافت نشد.')}}
+  finally{CT.busy=''; renderBody()}
+}
+function ctPartsBox(f,err){
+  const parts=Array.isArray(f.parts)?f.parts:(f.parts=[]);
+  const rows=parts.map((p,i)=>{const open=CT.dp&&CT.dp.f==='part:'+i, wd=ctWeekday(p.date);
+    return `<div class="card stack" data-ct-part-row="${i}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><b>جلسهٔ ${fa(i+1)}</b><span class="sp"></span>${i>0?`<button type="button" class="btn sm quiet" data-ct-part-move="${i}" data-ct-part-dir="-1" aria-label="بالا">${ico('i-chev-up')}</button>`:''}${i<parts.length-1?`<button type="button" class="btn sm quiet" data-ct-part-move="${i}" data-ct-part-dir="1" aria-label="پایین">${ico('i-chev-down')}</button>`:''}<button type="button" class="btn sm quiet" data-ct-part-del="${i}">${ico('i-close')}حذف</button></div>
+      <div class="row tight" style="flex-wrap:wrap">
+        <label class="fld" style="flex:2 1 200px"><span class="lbl">عنوان</span><input type="text" class="input" maxlength="240" data-ct-part="${i}" data-ct-part-field="title" placeholder="مثلاً مقدمه و آشنایی" value="${esc(p.title||'')}"/></label>
+        <div class="fld" style="flex:1 1 160px"><span class="lbl">تاریخ شمسی</span><div class="withbtn"><input type="text" class="input" dir="ltr" inputmode="numeric" maxlength="12" data-ct-part="${i}" data-ct-part-field="date" placeholder="۱۴۰۵/۰۸/۱۲" value="${esc(p.date||'')}"/><button type="button" class="btn sm quiet" data-ctdp="part:${i}" aria-label="تقویم شمسی" aria-expanded="${open?'true':'false'}">${ico('i-calendar')}</button></div><small class="cap" data-ct-part-weekday="${i}">${esc(wd)}</small>${open?ctDpBox():''}</div>
+        <label class="fld" style="flex:0 1 110px"><span class="lbl">ساعت</span><input type="text" class="input" dir="ltr" inputmode="numeric" maxlength="5" data-ct-part="${i}" data-ct-part-field="time" placeholder="۱۰:۰۰" value="${esc(p.time||'')}"/></label>
+        <label class="fld" style="flex:0 1 110px"><span class="lbl">تا</span><input type="text" class="input" dir="ltr" inputmode="numeric" maxlength="5" data-ct-part="${i}" data-ct-part-field="to" placeholder="۱۲:۰۰" value="${esc(p.to||'')}"/></label>
+      </div>
+      <label class="fld"><span class="lbl">توضیح (اختیاری)</span><textarea class="input" rows="2" maxlength="1200" data-ct-part="${i}" data-ct-part-field="description">${esc(p.description||'')}</textarea></label></div>`}).join('');
+  return `<div class="card stack" data-ct-parts><div class="row" style="flex-wrap:wrap;gap:6px"><strong>جلسه‌ها (برنامهٔ صفحهٔ رویداد)</strong><span class="sp"></span>${btn('افزودن جلسه','data-ct-part-add','i-plus')}</div>
+    <small class="cap" data-ct-err="parts" ${err?'style="color:var(--stop)"':''}>${esc(err||'هر ردیف در صفحهٔ عمومی زیر «برنامهٔ جلسه‌ها» می‌آید؛ ردیف کاملاً خالی ذخیره نمی‌شود. «شمار جلسه‌ها» جدا و فقط عددی است.')}</small>
+    ${rows||`<small class="cap" data-ct-parts-empty>هنوز جلسه‌ای تعریف نشده.</small>`}</div>`;
+}
 function ctEditor(){
   const e=CT.edit; if(!e) return '';
   const f=e.form, err=e.errors||{}, kind=CT.kind, isNew=!e.id;
@@ -7076,19 +7210,21 @@ function ctEditor(){
   const fields=kind==='events'?`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}</div>
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',dir:'ltr',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰ تا ۱۳'})}</div>
+    ${isNew?`<div class="card stack" data-ct-templates style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>قالب شروع (اختیاری)</strong><span class="sp"></span><small class="cap">فقط فیلدهای خالی را پر می‌کند؛ ذخیره‌ای انجام نمی‌شود.</small></div><div class="admfilters">${CT_TEMPLATES.map(t=>`<button type="button" class="chip ${e.template===t[0]?'on':''}" data-ct-template="${t[0]}">${esc(t[1])}</button>`).join('')}</div></div>`:''}
+    <div class="row tight" style="flex-wrap:wrap">${ctDateInp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها؛ روز هفته خودکار نوشته می‌شود'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when,hint:'اگر خالی باشد، از تاریخ شمسی پر می‌شود'})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰:۰۰ یا «۱۰ تا ۱۳»',dir:'ltr',hint:'عدد خالص (مثلاً ۱۰۰۰) خودکار ۱۰:۰۰ می‌شود و به «شروع رویداد» می‌رود'})}</div>
     ${p2Inp('مکان','place',f.place,{max:240})}
     <div class="card stack" data-ct-people><strong>مدرس و نهاد همکار (پیوند شناسه‌ای)</strong><small class="cap">هر دو از ردیف‌های منتشرشدهٔ همین سایت انتخاب می‌شوند تا کارت رویداد و صفحهٔ عمومی همان پروفایل را نشان دهند؛ تایپ آزاد نام این‌جا ذخیره نمی‌شود.</small>${ctPicker('tchr')}${ctPicker('partnerId')}</div>
     <div class="card stack" data-ct-schedule>
       <strong>زمان‌بندی دقیق و وضعیت ثبت‌نام</strong>
       <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا شمارشگری ساخته نشود.</small>
-      <div class="row tight" style="flex-wrap:wrap">${p2Inp('شروع رویداد','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',dir:'ltr',err:err.startsAt})}${p2Inp('پایان رویداد','endsAt',f.endsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۳:۰۰',dir:'ltr',err:err.endsAt})}</div>
-      <div class="row tight" style="flex-wrap:wrap">${p2Inp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',dir:'ltr',err:err.regOpensAt})}${p2Inp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',dir:'ltr',err:err.regClosesAt,hint:'پس از این لحظه، فرم ثبت‌نام در سرور بسته می‌شود.'})}</div>
+      <div class="row tight" style="flex-wrap:wrap">${ctDateInp('شروع رویداد','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',err:err.startsAt,hint:'تاریخ آن همراه «تاریخ شمسی» می‌آید تا دستی عوضش کنی'})}${ctDateInp('پایان رویداد','endsAt',f.endsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۳:۰۰',err:err.endsAt,hint:'تاریخ پایان همراه شروع می‌آید؛ ساعت را بنویس'})}</div>
+      <div class="row tight" style="flex-wrap:wrap">${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه، فرم ثبت‌نام در سرور بسته می‌شود.'})}</div>
       <div class="row tight" style="flex-wrap:wrap">${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (بر پایهٔ زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
       ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
       ${e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:''}
       ${ctEventForms(e)}
     </div>
+    ${ctPartsBox(f,err.parts)}
     ${p2Inp('شرح','d',f.d,{textarea:true,rows:6,err:err.d,hint:'برای انتشار لازم است.'})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('هزینه (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان'})}${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap})}${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}</div>
     ${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}
@@ -7113,7 +7249,9 @@ function ctEditor(){
   return `<section class="card stack" data-ct-editor>
     <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${!isNew?ctStatusLabel(status):tag('هنوز ذخیره نشده','')}${e.version!=null?tag('نسخهٔ '+fa(e.version),''):''}</div>
     ${e.id?`<p class="cap">شناسه: <span dir="ltr">${esc(e.id)}</span>${e.updated_at?' · آخرین تغییر: '+esc(svcWhen(e.updated_at)):''}${status==='published'?' · این رکورد الان در سایت دیده می‌شود؛ ذخیره بلافاصله صفحهٔ عمومی را تغییر می‌دهد.':''}</p>`:''}
-    ${e.formError?`<p class="cap" style="color:var(--stop)">${esc(e.formError)}</p>`:''}
+    ${e.copyOf?`<p class="cap" data-ct-copy-of="${esc(e.copyOf.id)}">رونوشت از «${esc(e.copyOf.t)}»؛ هنوز ذخیره نشده و تا ذخیره، رکورد تازه‌ای در سرور نیست. تاریخ‌ها و فرم ثبت‌نام را برای رویداد تازه بازبینی کن.</p>`:''}
+    ${ctDraftBanner(e)}
+    ${e.formError?`<p class="cap" style="color:var(--stop)" role="alert" tabindex="-1" data-ct-form-error>${esc(e.formError)}</p>`:''}
     <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
       <div class="stack" style="flex:2 1 320px;min-width:0">${fields}</div>
       <div class="stack" style="flex:1 1 240px;min-width:0"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
@@ -7947,13 +8085,14 @@ function serverContentView(){
 }
 async function ctOpenEditor(id){
   const api=window.NORA_SERVER_API;
-  if(!id){CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.msg=null; renderBody(); return}
+  CT.dp=null;
+  if(!id){CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.edit.draft=ctDraftPeek(); CT.msg=null; renderBody(); return}
   CT.busy='load'; renderBody();
   try{
     const result=await api.getAdminContent(CT.kind,id);
     const record=result.record||{};
     CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at,registration:record.registration||null};
-    CT.msg=null;
+    CT.edit.draft=ctDraftPeek(); CT.msg=null;
   }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای ویرایش دریافت نشد.')}}
   finally{CT.busy=''; renderBody()}
 }
@@ -7969,7 +8108,7 @@ async function ctSave(publish){
       :await api.createAdminContent(CT.kind,record,ctCurrentVersion(),publish?'published':'',staffCsrfCookie());
     const saved=result.record||{}, label=(P2_STATUS[saved.status]||[saved.status])[0];
     CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(result.version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
-    CT.edit=null; ctReset(); ctLoad();
+    ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctLoad();
   }catch(error){
     const fieldErr=p2FieldErr(error);
     if(error&&error.status===422&&fieldErr&&fieldErr.field&&Object.prototype.hasOwnProperty.call(e.form,fieldErr.field)) e.errors[fieldErr.field]=fieldErr.text;
@@ -7977,7 +8116,7 @@ async function ctSave(publish){
     else if(error&&error.code==='site_content_version_conflict'){e.formError=p2Err(error); const current=error.payload&&error.payload.detail&&error.payload.detail.current_version; if(Number.isInteger(current)) e.version=current}
     else e.formError=p2Err(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
     renderBody();
-  }finally{CT.busy=''; if(CT.edit) renderBody()}
+  }finally{CT.busy=''; if(CT.edit){renderBody(); if(CT.edit.formError||Object.keys(CT.edit.errors||{}).length) ctFocusFirstError()}}
 }
 async function ctSetStatus(id,status){
   const api=window.NORA_SERVER_API; if(CT.busy) return;
@@ -8535,7 +8674,21 @@ document.addEventListener('click',e=>{
   const ctEdit=q('[data-ct-edit]'); if(ctEdit){ctOpenEditor(ctEdit.dataset.ctEdit); return}
   if(eiClick(q)) return;
   const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
-  if(q('[data-ct-cancel]')){CT.edit=null; renderBody(); return}
+  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; renderBody(); return}
+  const ctDup=q('[data-ct-dup]'); if(ctDup){ctDuplicate(ctDup.dataset.ctDup); return}
+  const ctTpl=q('[data-ct-template]'); if(ctTpl){ctApplyTemplate(ctTpl.dataset.ctTemplate); return}
+  if(q('[data-ct-draft-restore]')){if(CT.edit&&CT.edit.draft){CT.edit.form=Object.assign(ctBlank(CT.kind),CT.edit.draft.form); CT.edit.draft=null; CT.edit.errors={}; renderBody(); toast('متن تایپ‌شدهٔ قبلی برگشت؛ هنوز ذخیره نشده')} return}
+  if(q('[data-ct-draft-drop]')){if(CT.edit){CT.edit.draft=null; ctDraftDrop(); renderBody()} return}
+  if(q('[data-ct-part-add]')){if(CT.edit){const parts=CT.edit.form.parts=Array.isArray(CT.edit.form.parts)?CT.edit.form.parts:[]; if(parts.length>=80){toast('بیشینهٔ ۸۰ جلسه'); return}
+      const prev=parts[parts.length-1], d=ctJDate(prev?prev.date:CT.edit.form.on); parts.push({title:'',date:d?ctJForm(d.j.jy,d.j.jm,d.j.jd):'',time:prev?prev.time:'',to:prev?prev.to:'',description:''}); ctDraftSave(); renderBody();
+      const el=document.querySelector(`[data-ct-part="${parts.length-1}"][data-ct-part-field="title"]`); if(el) el.focus()} return}
+  const partDel=q('[data-ct-part-del]'); if(partDel){if(CT.edit&&Array.isArray(CT.edit.form.parts)){CT.edit.form.parts.splice(+partDel.dataset.ctPartDel,1); CT.dp=null; ctDraftSave(); renderBody()} return}
+  const partMv=q('[data-ct-part-move]'); if(partMv){if(CT.edit&&Array.isArray(CT.edit.form.parts)){const p=CT.edit.form.parts, i=+partMv.dataset.ctPartMove, j=i+(+partMv.dataset.ctPartDir); if(p[i]&&p[j]){const t=p[i]; p[i]=p[j]; p[j]=t; CT.dp=null; ctDraftSave(); renderBody()}} return}
+  const dpBtn=q('[data-ctdp]'); if(dpBtn){if(!CT.edit) return; const f=dpBtn.dataset.ctdp, cur=ctJDate(ctDpValue(f)), t=jToday(); CT.dp=CT.dp&&CT.dp.f===f?null:{f:f,y:(cur?cur.j:t).jy,m:(cur?cur.j:t).jm}; renderBody(); return}
+  const dpMv=q('[data-ctdp-mv]'); if(dpMv){if(!CT.dp) return; let y=+CT.dp.y, m=+CT.dp.m+(+dpMv.dataset.ctdpMv); if(m<1){m=12; y--} if(m>12){m=1; y++} CT.dp={f:CT.dp.f,y:y,m:m}; renderBody(); return}
+  const dpDay=q('[data-ctdp-day]'); if(dpDay){if(!CT.dp||!CT.edit) return; const f=CT.dp.f; ctDpSet(f,ctDateWithDay(f,+CT.dp.y,+CT.dp.m,+dpDay.dataset.ctdpDay)); CT.dp=null; ctDraftSave(); renderBody(); const el=document.getElementById('ctf_'+f); if(el) el.focus(); return}
+  if(q('[data-ctdp-today]')){if(!CT.dp||!CT.edit) return; const f=CT.dp.f, t=jToday(); ctDpSet(f,ctDateWithDay(f,t.jy,t.jm,t.jd)); CT.dp=null; ctDraftSave(); renderBody(); return}
+  if(q('[data-ctdp-close]')){CT.dp=null; renderBody(); return}
   if(q('[data-ct-save]')){ctSave(false); return}
   if(q('[data-ct-save-publish]')){ctSave(true); return}
   const imgClear=q('[data-ct-image-clear]'); if(imgClear){if(CT.edit){CT.edit.form[imgClear.dataset.ctImageClear]=''; renderBody()} return}
@@ -8597,10 +8750,28 @@ document.addEventListener('input',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit) return;
   if(t.dataset&&t.dataset.ctPickQ){const field=t.dataset.ctPickQ; PK.q[field]=t.value; const box=document.getElementById('ctPick-'+field); if(box) box.innerHTML=pkInner(field);
     const again=box&&box.querySelector('[data-ct-pick-q]'); if(again){again.focus(); try{again.setSelectionRange(again.value.length,again.value.length)}catch(err){}} return}
+  if(t.dataset&&t.dataset.ctPart!=null){const i=+t.dataset.ctPart, k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[i]; if(row&&CT_PART_FIELDS.includes(k)){
+      let v=t.value; if(k==='time'||k==='to'){const fixed=ctTimeFix('time',v,false); if(fixed!==v){v=fixed; t.value=v}} row[k]=v;
+      if(k==='date'){const wd=document.querySelector(`[data-ct-part-weekday="${i}"]`); if(wd) wd.textContent=ctWeekday(v)}
+      if(CT.edit.errors&&CT.edit.errors.parts){delete CT.edit.errors.parts; const err=document.querySelector('[data-ct-err="parts"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
+      ctDraftSave()} return}
   const field=t.dataset&&t.dataset.ctField; if(!field) return;
-  CT.edit.form[field]=t.value;
+  const before=CT.edit.form[field]; let value=t.value;
+  const fixed=ctTimeFix(field,value,false); if(fixed!==value){value=fixed; t.value=value}
+  CT.edit.form[field]=value;
+  if(CT.kind==='events') ctSyncDates(field,before,value);
   if(CT.edit.errors&&CT.edit.errors[field]){delete CT.edit.errors[field]; const err=document.querySelector(`[data-ct-err="${field}"]`); if(err){err.textContent=''; err.removeAttribute('style')}}
+  /* فیلدهای همگام‌شده بدون رندر کامل به‌روز می‌شوند تا فوکوس و کِرسر نپرد */
+  ['on','startsAt','endsAt','regOpensAt','regClosesAt','when'].forEach(k=>{const el=document.getElementById('ctf_'+k); if(el&&el!==t&&el.value!==String(CT.edit.form[k]||'')) el.value=String(CT.edit.form[k]||''); const wd=document.querySelector(`[data-ct-weekday="${k}"]`); if(wd) wd.textContent=ctWeekday(CT.edit.form[k])});
+  ctDraftSave();
   const preview=$('#ctPreview'); if(preview) preview.innerHTML=ctPreview(CT.edit.form);
+});
+document.addEventListener('focusout',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||!t.dataset) return;
+  if(t.dataset.ctPart!=null){const k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[+t.dataset.ctPart]; if(row&&(k==='time'||k==='to')){const v=ctTimeFix('time',t.value,true); if(v!==t.value){t.value=v; row[k]=v; ctDraftSave()}} return}
+  const field=t.dataset.ctField; if(!field) return;
+  const v=ctTimeFix(field,t.value,true); if(v!==t.value){const before=CT.edit.form[field]; t.value=v; CT.edit.form[field]=v; if(CT.kind==='events') ctSyncDates(field,before,v);
+    ['startsAt','endsAt'].forEach(k=>{const el=document.getElementById('ctf_'+k); if(el&&el!==t) el.value=String(CT.edit.form[k]||''); const wd=document.querySelector(`[data-ct-weekday="${k}"]`); if(wd) wd.textContent=ctWeekday(CT.edit.form[k])}); ctDraftSave()}
 });
 document.addEventListener('keydown',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||e.key!=='Enter'||!(t.dataset&&t.dataset.ctPickQ)) return;
