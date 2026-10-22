@@ -115,6 +115,14 @@ def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monke
                 assert "certificate_policy" in {
                     column["name"] for column in inspect(connection).get_columns("event_recordings", schema=schema)
                 }
+                # Phase 9.5 (0036): upload sessions, system markers and the one-shot announcement column.
+                assert {"upload_sessions", "system_markers"} <= head_tables
+                assert "announced_at" in {
+                    column["name"] for column in inspect(connection).get_columns("event_resources", schema=schema)
+                }
+                assert {"ck_upload_sessions_status", "ck_upload_sessions_bytes"} <= {
+                    check["name"] for check in inspect(connection).get_check_constraints("upload_sessions", schema=schema)
+                }
                 connection.execute(text(
                     "INSERT INTO event_resources (id, event_id, title, status, access, kind, link_url) "
                     "VALUES ('res-pg-yt', 'ev-pg', 'ویدیوی یوتیوب', 'published', 'purchased', 'youtube', 'https://youtu.be/dQw4w9WgXcQ')"

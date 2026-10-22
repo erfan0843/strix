@@ -6702,7 +6702,7 @@ function ctEditor(){
    پنهان‌کردن دکمه این‌جا فقط برای خوانایی است. هیچ رکورد نمونه‌ای جایگزین
    پاسخ خالی سرور نمی‌شود. */
 const EI={open:false,eventId:'',title:'',status:'',tab:'resources',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
-  res:{edit:null,includeRemoved:false,upFor:'',upError:'',session:'',preview:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
+  res:{edit:null,includeRemoved:false,upFor:'',upError:'',upProgress:null,session:'',preview:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
 const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['purchased','دارندگان دسترسی محتوای ضبط‌شده (خرید/رایگان/اعطا)'],['staff','فقط کادر']];
 const EI_ACCESS_LABEL=Object.fromEntries(EI_ACCESS);
 const EI_RES_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],removed:['حذف‌شده','stop']};
@@ -6713,7 +6713,7 @@ const EI_DELIVERY={queued:['در صف ارسال','warn'],retrying:['در حال
 const EI_ERR={duplicate_question:'این پرسش تکراری است.',qa_closed:'پرسش‌وپاسخ این رویداد بسته است.',question_not_answered:'این پرسش هنوز پاسخی ندارد که اعلان آن فرستاده شود.',
   resource_file_missing:'پیش از انتشار باید فایل منبع بارگذاری شود.',resource_kind_immutable:'نوع منبع (فایل/پیوند) پس از ساخت تغییر نمی‌کند.',resource_not_file:'این منبع فایل نیست یا حذف شده است.',
   resource_removed:'این منبع حذف شده و دیگر ویرایش نمی‌شود.',review_exists:'برای این حساب پیش‌تر دیدگاهی ثبت شده است.',review_locked:'این دیدگاه قفل است.',review_withdrawn:'این دیدگاه پس گرفته شده است.',
-  file_empty:'فایل خالی است.',file_too_large:'حجم فایل بیش از سقف پذیرفته‌شدهٔ این سرور است.',resource_file_unavailable:'فایل این منبع روی حافظهٔ سرور در دسترس نیست؛ وضعیت ذخیره‌سازی را ببینید.',file_type_not_allowed:'سرور نوع این فایل را مجاز نمی‌داند (PDF، تصویر، اسناد آفیس، ZIP، MP3 یا متن).',
+  file_empty:'فایل خالی است.',file_too_large:'حجم فایل بیش از سقف پذیرفته‌شدهٔ این سرور است.',resumable_requires_private_storage:'بارگذاری قطعه‌ای فقط با حافظهٔ خصوصی دیسک روی سرور ممکن است.',upload_session_open_by_other:'کاربر دیگری در حال بارگذاری برای همین منبع است؛ بعداً دوباره تلاش کنید.',offset_mismatch:'ترتیب قطعه‌ها با سرور نمی‌خواند؛ بارگذاری از آخرین قطعهٔ تأییدشده ادامه می‌یابد.',chunk_checksum_mismatch:'قطعهٔ ارسالی در مسیر خراب شد و سرور آن را نپذیرفت.',sha256_mismatch:'اثر انگشت فایل روی سرور با فایل شما نمی‌خواند؛ هیچ فایلی جایگزین نشد.',upload_session_expired:'نشست بارگذاری منقضی شد (۲۴ ساعت)؛ بارگذاری را از نو شروع کنید.',upload_session_lost:'بخش موقت بارگذاری روی سرور پیدا نشد؛ از نو شروع کنید.',upload_incomplete:'هنوز همهٔ قطعه‌ها به سرور نرسیده است.',upload_completing:'سرور در حال نهایی‌کردن همین بارگذاری است.',upload_cancelled:'بارگذاری لغو شد؛ چیزی جایگزین نشد.',chunk_too_large:'اندازهٔ قطعه از سقف سرور بیشتر است.',resource_file_unavailable:'فایل این منبع روی حافظهٔ سرور در دسترس نیست؛ وضعیت ذخیره‌سازی را ببینید.',file_type_not_allowed:'سرور نوع این فایل را مجاز نمی‌داند (PDF، تصویر، اسناد آفیس، ZIP، MP3 یا متن).',
   text_required:'متن یا دلیل لازم است.',text_too_short:'متن خیلی کوتاه است.',text_too_long:'متن خیلی بلند است.',invalid_link:'پیوند باید با https:// آغاز شود.',video_source_required:'نشانی یا شناسهٔ ویدیو لازم است.',invalid_video_source:'نشانی یا شناسهٔ ویدیو معتبر نیست.',html_not_allowed:'کد HTML یا iframe پذیرفته نمی‌شود؛ فقط نشانی یا شناسهٔ ویدیو را وارد کنید.',unsupported_video_host:'فقط نشانی‌های youtube.com / youtu.be و aparat.com پذیرفته می‌شوند.',invalid_video_id:'شناسهٔ ویدیو در این نشانی پیدا نشد یا معتبر نیست.',unsupported_video_provider:'این منبع ویدیو پشتیبانی نمی‌شود.',invalid_datetime:'زمان انتشار معتبر نیست.',
   invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.',unexpected_fields:'فیلد ناشناخته‌ای فرستاده شد.',too_many_open_questions:'شمار پرسش‌های باز این رویداد از حد گذشته است.',upload_rate_limited:'شمار بارگذاری‌ها در این ساعت از حد گذشته؛ کمی بعد دوباره تلاش کنید.'};
 function eiErr(error,fallback){const code=error&&error.code||''; if(EI_ERR[code]) return EI_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&EI_ERR[f.code]) return EI_ERR[f.code]+(f.field?` (${f.field})`:''); return p2Err(error,fallback)}
@@ -6813,7 +6813,40 @@ function eiStorageSummary(){
   if(!st.configured) return `<p class="cap" data-ei-storage="database" style="margin:0">حافظهٔ خصوصی دیسک روی این سرور پیکربندی نشده؛ فایل‌ها در پایگاه داده و تا ${cap} ذخیره می‌شوند. برای ویدیوهای بزرگ‌تر باید <span dir="ltr">NORA_PRIVATE_STORAGE_DIR</span> روی سرور تنظیم شود.</p>`;
   const free=typeof st.free_bytes==='number'?' · فضای آزاد دیسک: '+svcBytes(st.free_bytes):'';
   const writable=st.writable===false?' · <b style="color:var(--stop)">پوشهٔ ذخیره‌سازی قابل نوشتن نیست؛ بارگذاری تازه شکست می‌خورد</b>':'';
-  return `<p class="cap" data-ei-storage="local_disk" style="margin:0">فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ${cap}${free}${writable}). پخش با بررسی دسترسی در هر درخواست و پشتیبانی Range انجام می‌شود؛ پشتیبان‌گیری فایل‌ها جدا از پایگاه داده است.</p>`;
+  return `<p class="cap" data-ei-storage="local_disk" style="margin:0">فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ${cap}${free}${writable}). فایل‌های بزرگ‌تر از ${fa(String(EI_RESUMABLE_MIN/1048576))} مگابایت قطعه‌ای و قابل ادامه پس از قطع شبکه بارگذاری می‌شوند (هر قطعه و کل فایل با sha256 روی سرور تأیید می‌شود). پخش با بررسی دسترسی در هر درخواست و پشتیبانی Range انجام می‌شود؛ پشتیبان‌گیری فایل‌ها جدا از پایگاه داده است.</p>`;
+}
+const EI_HEALTH={report:null,loading:false,error:'',request:0};
+function eiLoadStorageHealth(){
+  if(IS_TEST&&!window.NORA_SERVER_API) return;
+  const api=window.NORA_SERVER_API; if(!api||typeof api.getStorageHealth!=='function'||EI_HEALTH.loading) return;
+  const requestId=++EI_HEALTH.request; EI_HEALTH.loading=true; EI_HEALTH.error=''; renderBody();
+  Promise.resolve(api.getStorageHealth()).then(data=>{
+    if(requestId!==EI_HEALTH.request) return;
+    if(!data||data.read_only!==true||typeof data.configured!=='boolean'||!data.referenced||!data.missing||!data.orphans||!data.incomplete) throw new Error('invalid_storage_health');
+    EI_HEALTH.report=data;
+  }).catch(error=>{
+    if(requestId!==EI_HEALTH.request) return;
+    EI_HEALTH.error=error&&error.status===403?'مجوز مشاهدهٔ سلامت ذخیره‌سازی برای این نقش فعال نیست.':error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن سلامت ذخیره‌سازی انجام نشد؛ دوباره تلاش کنید.';
+  }).finally(()=>{if(requestId!==EI_HEALTH.request) return; EI_HEALTH.loading=false; renderBody()});
+}
+function eiStorageHealthCard(){
+  const h=EI_HEALTH, r=h.report;
+  const stateTag=r?(r.state==='ok'?tag('سالم','ok'):r.state==='error'?tag('خطا: فایل مفقود/ناهمخوان','stop'):r.state==='warning'?tag('هشدار','warn'):r.state==='inline_only'?tag('فقط پایگاه داده',''):tag('پیکربندی‌نشده','stop')):'';
+  const marker=(key,label)=>{const m=r&&r.markers&&r.markers[key]; return m&&m.at?`${label}: ${esc(m.at)}${m.ok===false?' (ناموفق)':''}`:`${label}: ثبت نشده`};
+  const body=h.loading?`<p class="cap">در حال خواندن سلامت ذخیره‌سازی از سرور…</p>`
+    :h.error?`<div class="empty"><p class="cap">${esc(h.error)}</p>${btn('تلاش دوباره','data-ei-health-run','i-refresh')}</div>`
+    :!r?`<p class="cap">برای دیدن وضعیت واقعی دیسک، فایل‌های مفقود/یتیم و بارگذاری‌های ناتمام، بررسی را اجرا کنید (فقط‌خواندنی).</p>`
+    :`<div class="admkpi">
+        <div class="k"><small>فایل‌های ارجاع‌شده</small>${bits(fa(String(r.referenced.rows))+' · '+svcBytes(r.referenced.bytes))}</div>
+        <div class="k"><small>فضای آزاد دیسک</small>${bits(typeof r.free_bytes==='number'?svcBytes(r.free_bytes):'نامشخص')}</div>
+        <div class="k"><small>ردیف بدون فایل</small>${bits(fa(String(r.missing.count)))}</div>
+        <div class="k"><small>اندازهٔ ناهمخوان</small>${bits(fa(String(r.size_mismatch?r.size_mismatch.count:0)))}</div>
+        <div class="k"><small>فایل یتیم (بدون ردیف)</small>${bits(fa(String(r.orphans.count))+' · '+svcBytes(r.orphans.bytes))}</div>
+        <div class="k"><small>بارگذاری ناتمام</small>${bits(fa(String(r.incomplete.parts))+' · '+svcBytes(r.incomplete.bytes)+(r.incomplete.stale_parts?' · '+fa(String(r.incomplete.stale_parts))+' کهنه':''))}</div>
+      </div>
+      <p class="cap" data-ei-health-markers>${marker('storage_verify','آخرین بررسی پشتیبان (verify)')} · ${marker('storage_snapshot','آخرین پشتیبان‌گیری')} · آخرین بررسی سلامت: ${esc(r.generated_at||'')}${r.writable===false?' · <b style="color:var(--stop)">پوشه قابل نوشتن نیست</b>':''}</p>
+      ${r.missing.count||(r.size_mismatch&&r.size_mismatch.count)?`<p class="cap" style="color:var(--stop)">شناسهٔ منابع آسیب‌دیده: <span dir="ltr">${esc([...(r.missing.resource_ids||[]),...((r.size_mismatch||{}).resource_ids||[])].join(', '))}</span>؛ این منابع تا بازیابی فایل سرو نمی‌شوند؛ هیچ ردیفی خودکار حذف یا تعمیر نمی‌شود.</p>`:''}`;
+  return `<section class="card stack" data-ei-storage-health ${r?`data-ei-storage-health-state="${esc(r.state||'')}"`:''}><div class="row"><div class="head">سلامت ذخیره‌سازی خصوصی</div><span class="sp"></span>${stateTag} ${btn(r?'بررسی دوباره':'بررسی سلامت','data-ei-health-run','i-refresh')}</div>${body}</section>`;
 }
 function eiResourceRow(r){
   const id=esc(r.id), removed=r.status==='removed', busy=EI.busy===r.id;
@@ -6849,12 +6882,12 @@ function eiResources(){
       <label class="chip ${EI.res.includeRemoved?'on':''}"><input type="checkbox" data-ei-res-removed ${EI.res.includeRemoved?'checked':''} hidden/>نمایش حذف‌شده‌ها</label>
       ${eiCanRes()?btn('منبع تازه','data-ei-res-new','i-plus'):''}</div>`;
   const editor=EI.res.edit?eiResourceEditor():'';
-  const upload=EI.res.upError?p2Msg({kind:'stop',text:EI.res.upError}):EI.res.upFor?p2Msg({kind:'warn',text:'در حال بارگذاری فایل در سرور…'}):'';
+  const upload=EI.res.upError?p2Msg({kind:'stop',text:EI.res.upError}):EI.res.upFor?`<div class="card stack" role="status" aria-live="polite" style="border-inline-start:3px solid var(--warn)"><p class="cap" style="margin:0" data-ei-upload-progress>${esc(eiUploadProgressText())}</p></div>`:'';
   const sessions=REC.data&&REC.data.recording&&REC.data.recording.sessions||[];
   const sessionFilter=sessions.length?`<label class="fld" style="max-width:320px"><span class="lbl">فیلتر جلسهٔ ضبط‌شده</span><select class="input" data-ei-res-session-filter><option value="" ${EI.res.session?'':'selected'}>همهٔ منابع</option>${sessions.map(x=>`<option value="${x.id}" ${EI.res.session===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>`:'';
   const visible=EI.res.session?items.filter(r=>r.session_id===EI.res.session):items;
   const list=visible.length?`<div class="admlist">${visible.map(eiResourceRow).join('')}</div>`:emptyBox(EI.res.session?'این جلسه هنوز فایلی ندارد.':'برای این رویداد هنوز منبعی ثبت نشده است.');
-  return `<div class="stack">${head}${eiStorageSummary()}${sessionFilter}${upload}${editor}${list}</div>`;
+  return `<div class="stack">${head}${eiStorageSummary()}${eiCanRes()?eiStorageHealthCard():''}${sessionFilter}${upload}${editor}${list}</div>`;
 }
 function eiResourceEditor(){
   const e=EI.res.edit, f=e.form, err=e.errors||{};
@@ -6922,13 +6955,30 @@ async function eiResourceRemove(id){
   catch(error){EI.msg={kind:'stop',text:eiErr(error,'حذف انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
   finally{EI.busy=''}
 }
+const EI_RESUMABLE_MIN=8*1024*1024; /* فاز ۹.۵: فایل‌های بزرگ‌تر از این (و فقط با حافظهٔ خصوصی دیسک) قطعه‌ای و قابل ادامه می‌روند */
+function eiResumableAvailable(){
+  const limits=EI.data&&EI.data.limits||{}, st=limits.storage&&typeof limits.storage==='object'?limits.storage:null;
+  const api=window.NORA_SERVER_API;
+  return !!(st&&st.configured&&api&&typeof api.uploadEventResourceFileResumable==='function');
+}
+function eiUploadProgressText(){
+  const p=EI.res.upProgress; if(!p) return 'در حال بارگذاری فایل در سرور…';
+  const pct=p.total?Math.floor(p.sent*100/p.total):0;
+  const phase=p.phase==='finalizing'?'بررسی نهایی روی سرور (اندازه و sha256)…':p.phase==='resumed'?'ادامه پس از قطع ارتباط از آخرین قطعهٔ تأییدشده…':'بارگذاری قطعه‌ای قابل ادامه…';
+  return `${phase} ${fa(String(pct))}٪ (${svcBytes(p.sent)} از ${svcBytes(p.total)})`;
+}
 async function eiResourceUpload(id,file){
   const api=window.NORA_SERVER_API; if(!file||EI.res.upFor) return;
   const max=eiUploadMax();
   if(file.size>max){EI.res.upError=`حجم فایل بیش از سقف این سرور (${fa(Math.round(max/1048576))} مگابایت) است؛ فایل کوچک‌تری انتخاب کنید.`; renderBody(); return}
-  EI.res.upFor=id; EI.res.upError=''; renderBody();
-  try{const saved=await api.uploadEventResourceFile(EI.eventId,id,file,file.name,staffCsrfCookie()); EI.msg={kind:'ok',text:`فایل «${saved.file_name||file.name}» در سرور ذخیره شد${saved.status==='draft'?'؛ منبع هنوز پیش‌نویس است':''}.`}; EI.key=''; EI.res.upFor=''; eiLoad()}
-  catch(error){EI.res.upFor=''; EI.res.upError=eiErr(error,'بارگذاری انجام نشد؛ چیزی ذخیره نشد.'); renderBody()}
+  EI.res.upFor=id; EI.res.upError=''; EI.res.upProgress=null; renderBody();
+  const resumable=eiResumableAvailable()&&file.size>EI_RESUMABLE_MIN;
+  try{
+    const saved=resumable
+      ?await api.uploadEventResourceFileResumable(EI.eventId,id,file,file.name,staffCsrfCookie(),{onProgress:(sent,total,phase)=>{EI.res.upProgress={sent,total,phase}; const el=document.querySelector('[data-ei-upload-progress]'); if(el) el.textContent=eiUploadProgressText()}})
+      :await api.uploadEventResourceFile(EI.eventId,id,file,file.name,staffCsrfCookie());
+    EI.msg={kind:'ok',text:`فایل «${saved.file_name||file.name}» در سرور ذخیره شد${resumable?' (قطعه‌ای، با تأیید sha256 روی سرور)':''}${saved.status==='draft'?'؛ منبع هنوز پیش‌نویس است':''}.`}; EI.key=''; EI.res.upFor=''; EI.res.upProgress=null; eiLoad()}
+  catch(error){EI.res.upFor=''; EI.res.upProgress=null; EI.res.upError=eiErr(error,resumable?'بارگذاری قطعه‌ای کامل نشد؛ فایل قبلی منبع دست‌نخورده ماند.':'بارگذاری انجام نشد؛ چیزی ذخیره نشد.'); renderBody()}
 }
 /* ── پرسش‌وپاسخ ── */
 function eiNotification(n){
@@ -8983,6 +9033,7 @@ document.addEventListener('click',e=>{
   if(q('[data-server-outbox-refresh]')){SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error=''; loadServerOutbox(); return}
   if(q('[data-server-outbox-more]')){loadServerOutbox(true); return}
   if(q('[data-server-integrity-run]')){loadServerIntegrity(); return}
+  if(q('[data-ei-health-run]')){eiLoadStorageHealth(); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
   const rc=q('[data-rcust]'); if(rc){const k2=rc.dataset.rcust, l=S.rpCust||[];

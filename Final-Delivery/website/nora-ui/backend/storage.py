@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import BinaryIO, Iterator, Protocol
 
 KEY_PATTERN = re.compile(r"^\d{4}/\d{2}/[0-9a-f]{32}$")
+PART_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 CHUNK_BYTES = 256 * 1024
 INCOMING_DIR = ".incoming"
 
@@ -207,6 +208,115 @@ class LocalPrivateStorage:
                     if KEY_PATTERN.fullmatch(key):
                         yield key
 
+    # ── resumable (phase 9.5): a ``.part`` that survives across requests ──
+    def begin_part(self) -> str:
+        """Create an empty staged part and return its server-made id (32 hex chars)."""
+        incoming = self.root / INCOMING_DIR
+        incoming.mkdir(mode=0o700, parents=True, exist_ok=True)
+        part_id = uuid.uuid4().hex
+        path = incoming / f"{part_id}.part"
+        with open(path, "xb"):
+            pass
+        os.chmod(path, 0o600)
+        return part_id
+
+    def part_path(self, part_id: str) -> Path:
+        if not isinstance(part_id, str) or not PART_PATTERN.fullmatch(part_id):
+            raise StorageError("invalid_part_id")
+        return self.root / INCOMING_DIR / f"{part_id}.part"
+
+    def part_size(self, part_id: str) -> int | None:
+        try:
+            info = self.part_path(part_id).stat()
+        except (StorageError, FileNotFoundError):
+            return None
+        return info.st_size if stat.S_ISREG(info.st_mode) else None
+
+    def append_part(self, part_id: str, offset: int, chunks: Iterator[bytes], *, limit: int) -> tuple[int, str]:
+        """Append ``chunks`` at ``offset`` (which must equal the current size — the disk is the truth).
+
+        Returns ``(new_size, sha256_of_this_chunk)``. Never writes past ``limit``; on overflow the
+        bytes written so far stay (the session is failed by the caller, which also discards the part).
+        """
+        path = self.part_path(part_id)
+        try:
+            current = path.stat().st_size
+        except FileNotFoundError:
+            raise StorageError("part_missing") from None
+        if current != offset:
+            raise StorageError("offset_mismatch", str(current))
+        digest = hashlib.sha256()
+        written = 0
+        with open(path, "r+b") as fh:
+            fh.seek(current)
+            for chunk in chunks:
+                if not chunk:
+                    continue
+                if current + written + len(chunk) > limit:
+                    raise StorageError("file_too_large")
+                fh.write(chunk)
+                digest.update(chunk)
+                written += len(chunk)
+            fh.flush()
+            os.fsync(fh.fileno())
+        return current + written, digest.hexdigest()
+
+    def part_head(self, part_id: str, length: int = 8192) -> bytes:
+        with open(self.part_path(part_id), "rb") as fh:
+            return fh.read(length)
+
+    def part_sha256(self, part_id: str) -> str:
+        digest = hashlib.sha256()
+        with open(self.part_path(part_id), "rb") as fh:
+            for piece in iter(lambda: fh.read(CHUNK_BYTES), b""):
+                digest.update(piece)
+        return digest.hexdigest()
+
+    def commit_part(self, part_id: str, *, expected_size: int, sha256: str) -> StoredObject:
+        """Atomic move of a fully received part to a fresh key (same guarantees as ``PendingUpload.commit``)."""
+        path = self.part_path(part_id)
+        size = self.part_size(part_id)
+        if size is None:
+            raise StorageError("part_missing")
+        if size != expected_size:
+            raise StorageError("size_mismatch", str(size))
+        key = self.new_key()
+        final = self.resolve(key)
+        final.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        os.replace(path, final)
+        try:
+            dir_fd = os.open(final.parent, os.O_RDONLY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        except OSError:
+            pass
+        return StoredObject(key=key, size=size, sha256=sha256)
+
+    def discard_part(self, part_id: str) -> bool:
+        try:
+            self.part_path(part_id).unlink()
+        except (StorageError, FileNotFoundError):
+            return False
+        return True
+
+    def incoming_parts(self) -> list[tuple[str, int, float]]:
+        """``(part_id, size, mtime)`` for every staged part — for the health view (never deleted here)."""
+        incoming = self.root / INCOMING_DIR
+        if not incoming.is_dir():
+            return []
+        found: list[tuple[str, int, float]] = []
+        for item in sorted(incoming.iterdir()):
+            if item.suffix != ".part" or not PART_PATTERN.fullmatch(item.stem):
+                continue
+            try:
+                info = item.stat()
+            except FileNotFoundError:
+                continue
+            found.append((item.stem, info.st_size, info.st_mtime))
+        return found
+
     def stale_parts(self, *, older_than_seconds: int) -> list[Path]:
         """Leftover ``.part`` files (crashed uploads); listed only — removal is an operator decision."""
         incoming = self.root / INCOMING_DIR
@@ -234,6 +344,7 @@ def unconfigured_status(*, inline_max_bytes: int) -> StorageStatus:
 __all__ = [
     "CHUNK_BYTES",
     "KEY_PATTERN",
+    "PART_PATTERN",
     "LocalPrivateStorage",
     "PendingUpload",
     "PrivateStorage",

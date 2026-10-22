@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Generator, Iterator, Literal, Mapping, Sequence, TypedDict, cast
 from urllib.parse import quote, unquote, urlsplit
 
+from starlette.requests import ClientDisconnect
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -54,6 +55,7 @@ from . import content_admin as content_admin_mod
 from . import event_interaction as interaction_mod
 from . import recordings as recordings_mod
 from . import integrity as integrity_mod
+from . import upload_sessions as upload_mod
 from . import event_time
 from . import service_settings as service_settings_mod
 from .service_probe import probe_bale_bot
@@ -101,6 +103,8 @@ from .models import (
     RecordingOrderRecord,
     RecordingSessionRecord,
     SiteContentRecord,
+    SystemMarkerRecord,
+    UploadSessionRecord,
     UserNotificationRecord,
 )
 from .otp import (
@@ -3258,6 +3262,7 @@ def create_app(
     _INTERACTION_READ_PERMS = ("ev_create", "ev_publish")
     _INTERACTION_MODERATE_PERMS = ("ev_publish",)
     _INTERACTION_RESOURCE_PERMS = ("ev_create",)
+    _UPLOAD_SESSION_LOCKS: dict[str, asyncio.Lock] = {}
 
     def _interaction_error(error: interaction_mod.InteractionError) -> HTTPException:
         detail: Any = {"code": error.code, "field": error.field} if error.field else error.code
@@ -4117,6 +4122,369 @@ def create_app(
             db.commit()
         db.refresh(record)
         return _resource_admin_view(request, record)
+
+    # ── Phase 9.5 §5.2: resumable upload sessions (internal, limited protocol; see backend/upload_sessions.py) ──
+
+    def _upload_error(error: upload_mod.UploadSessionError) -> HTTPException:
+        detail: dict[str, Any] = {"code": error.code}
+        detail.update(error.extra)
+        return HTTPException(error.status, detail)
+
+    def _upload_store(request: Request) -> storage_mod.LocalPrivateStorage:
+        store = _private_storage(request)
+        if store is None:
+            raise HTTPException(409, {"code": "resumable_requires_private_storage"})
+        return store
+
+    def _upload_session_lock(session_id: str) -> asyncio.Lock:
+        lock = _UPLOAD_SESSION_LOCKS.get(session_id)
+        if lock is None:
+            if len(_UPLOAD_SESSION_LOCKS) > 512:  # bounded: forget idle locks (sessions are short-lived)
+                for key, candidate in list(_UPLOAD_SESSION_LOCKS.items()):
+                    if not candidate.locked():
+                        _UPLOAD_SESSION_LOCKS.pop(key, None)
+            lock = _UPLOAD_SESSION_LOCKS[session_id] = asyncio.Lock()
+        return lock
+
+    def _upload_session_audit(
+        db: Session, identity: OwnerIdentity | AccountIdentity, action: str, session: UploadSessionRecord, *,
+        outcome: str = "ok", **details: Any,
+    ) -> None:
+        record_audit(
+            db, identity, action, target_type="event_resource", target_id=session.resource_id, outcome=outcome,
+            details={"session_id": session.id, "event_id": session.event_id, "status": session.status,
+                     "received_bytes": session.received_bytes, "expected_size": session.expected_size, **details},
+        )
+
+    @app.post("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions")
+    async def admin_start_upload_session(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Open (or resume) a resumable upload for a file resource — private storage only."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed" or record.kind != "file":
+            raise HTTPException(409, {"code": "resource_not_file"})
+        store = _upload_store(request)
+        cfg: Settings = request.app.state.settings
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 4096))
+        if set(payload) - {"size", "sha256", "file_name"}:
+            raise HTTPException(400, "invalid_upload_session")
+        now = _utc_now()
+        upload_mod.expire_stale(db, store, now)
+        file_name = str(payload.get("file_name") or "resource")
+        try:
+            session, resumed = upload_mod.start(
+                db, store, record=record, event_id=event_id, actor=_interaction_actor(identity),
+                size=payload.get("size"), sha256=payload.get("sha256"), file_name=file_name, now=now,
+            )
+        except upload_mod.UploadSessionError as error:
+            record_audit(
+                db, identity, "event_resource.upload_session", target_type="event_resource", target_id=record.id,
+                outcome="rejected", details={"code": error.code, "event_id": event_id, "size": payload.get("size")},
+            )
+            db.commit()
+            raise _upload_error(error) from None
+        if not resumed:
+            _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="event-resource-upload")
+            _upload_session_audit(db, identity, "event_resource.upload_session", session, file_name=session.declared_name)
+        db.commit()
+        response.status_code = 200 if resumed else 201
+        return upload_mod.view(session, offset=store.part_size(session.part_id) or 0, resumed=resumed)
+
+    @app.get("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}")
+    def admin_upload_session_status(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """The resume point: the offset is the staged file's size on disk (cross-checked with the row)."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        store = _upload_store(request)
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=_interaction_actor(identity), now=_utc_now())
+            db.commit()
+            offset = upload_mod.current_offset(store, session) if session.status in ("open", "completing") else session.received_bytes
+        except upload_mod.UploadSessionError as error:
+            db.commit()
+            raise _upload_error(error) from None
+        return upload_mod.view(session, offset=offset)
+
+    @app.patch("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}")
+    async def admin_upload_session_chunk(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Append one chunk at ``Upload-Offset`` with a mandatory ``Upload-Checksum: sha256 <hex>``.
+
+        The body is bounded by ``MAX_CHUNK_BYTES`` (buffered, then appended + fsync-ed). A stale or
+        duplicate offset is refused with the real offset so the client re-syncs; a checksum mismatch
+        never leaves bytes behind.
+        """
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        store = _upload_store(request)
+        actor = _interaction_actor(identity)
+        try:
+            checksum = upload_mod.parse_checksum_header(request.headers.get("upload-checksum"))
+            raw_offset = request.headers.get("upload-offset", "")
+            if not raw_offset.isdigit():
+                raise upload_mod.UploadSessionError("upload_offset_required", 400)
+            offset = int(raw_offset)
+        except upload_mod.UploadSessionError as error:
+            raise _upload_error(error) from None
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > upload_mod.MAX_CHUNK_BYTES:
+            raise HTTPException(413, {"code": "chunk_too_large", "max_chunk_bytes": upload_mod.MAX_CHUNK_BYTES})
+        pieces: list[bytes] = []
+        received = 0
+        try:
+            async for piece in request.stream():
+                if not piece:
+                    continue
+                received += len(piece)
+                if received > upload_mod.MAX_CHUNK_BYTES:
+                    raise HTTPException(413, {"code": "chunk_too_large", "max_chunk_bytes": upload_mod.MAX_CHUNK_BYTES})
+                pieces.append(piece)
+        except ClientDisconnect:
+            # Nothing was appended: the next GET returns the unchanged offset and the client resumes.
+            raise HTTPException(400, {"code": "client_disconnected"}) from None
+        body = b"".join(pieces)
+        del pieces
+        async with _upload_session_lock(session_id):
+            now = _utc_now()
+            try:
+                session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=actor, now=now, for_update=True)
+                try:
+                    new_size = upload_mod.append(store, session, offset=offset, body=body, checksum=checksum, now=now)
+                except storage_mod.StorageError as error:
+                    upload_mod.fail(store, session, code=error.code, now=now)
+                    _upload_session_audit(db, identity, "event_resource.upload_chunk", session, outcome="rejected", code=error.code)
+                    db.commit()
+                    raise HTTPException(413 if error.code == "file_too_large" else 503, {"code": error.code}) from None
+                db.commit()
+            except upload_mod.UploadSessionError as error:
+                db.commit()
+                raise _upload_error(error) from None
+        return {"id": session.id, "offset": new_size, "expected_size": session.expected_size,
+                "complete": new_size == session.expected_size, "chunk_count": session.chunk_count}
+
+    @app.post("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}/complete")
+    async def admin_upload_session_complete(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Verify size + sha256 + sniffed type, then switch the resource to the new bytes atomically."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed" or record.kind != "file":
+            raise HTTPException(409, {"code": "resource_not_file"})
+        store = _upload_store(request)
+        cfg: Settings = request.app.state.settings
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 4096))
+        if set(payload) - {"sha256"}:
+            raise HTTPException(400, "invalid_upload_complete")
+        actor = _interaction_actor(identity)
+        async with _upload_session_lock(session_id):
+            now = _utc_now()
+            try:
+                session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=actor, now=now, for_update=True)
+                expected_digest = upload_mod.begin_complete(store, session, sha256=payload.get("sha256"), now=now)
+                db.commit()  # the lock is visible to everybody from here on (one finalizer only)
+            except upload_mod.UploadSessionError as error:
+                db.commit()
+                raise _upload_error(error) from None
+
+            def reject(code: str, status: int) -> HTTPException:
+                upload_mod.fail(store, session, code=code, now=_utc_now())
+                _upload_session_audit(db, identity, "event_resource.upload_complete", session, outcome="rejected", code=code)
+                db.commit()
+                return HTTPException(status, {"code": code})
+
+            try:
+                actual_digest = store.part_sha256(session.part_id)
+                if actual_digest != expected_digest:
+                    raise reject("sha256_mismatch", 422)
+                head = store.part_head(session.part_id)
+                try:
+                    content_type = interaction_mod.sniff_content_type(head, session.declared_name)
+                    if content_type not in interaction_mod.CONTENT_TYPES:
+                        raise interaction_mod.InteractionError("file_type_not_allowed", status=415)
+                    file_name = interaction_mod.safe_file_name(session.declared_name, content_type)
+                except interaction_mod.InteractionError as error:
+                    raise reject(error.code, error.status) from None
+                previous_hash, previous_key = record.content_hash, record.storage_key
+                stored = store.commit_part(session.part_id, expected_size=session.expected_size, sha256=actual_digest)
+            except storage_mod.StorageError as error:
+                raise reject(error.code, 413 if error.code == "file_too_large" else 503) from None
+            record.content = None
+            record.storage_key = stored.key
+            record.content_size = stored.size
+            record.content_hash = stored.sha256
+            record.content_type = content_type
+            record.file_name = file_name
+            session.status = "completed"
+            session.storage_key = stored.key
+            session.completed_at = now
+            session.updated_at = now
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                details={
+                    "event_id": event_id, "content_type": content_type, "size": record.content_size,
+                    "backend": "local_disk", "via": "resumable", "session_id": session.id, "chunks": session.chunk_count,
+                    "replaced": bool(previous_hash), "previous_hash": (previous_hash or "")[:16],
+                    "previous_storage_key": previous_key or "",
+                },
+            )
+            db.commit()
+        if previous_key and previous_key != record.storage_key:
+            removed = store.delete(previous_key)
+            record_audit(
+                db, identity, "event_resource.file_pruned", target_type="event_resource", target_id=record.id,
+                outcome="ok" if removed else "missing", details={"previous_storage_key": previous_key},
+            )
+            db.commit()
+        db.refresh(record)
+        result = _resource_admin_view(request, record)
+        result["upload_session"] = upload_mod.view(session)
+        return result
+
+    @app.delete("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}")
+    def admin_upload_session_abort(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        store = _upload_store(request)
+        now = _utc_now()
+        try:
+            session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=_interaction_actor(identity), now=now)
+        except upload_mod.UploadSessionError as error:
+            db.commit()
+            raise _upload_error(error) from None
+        if session.status in ("open", "completing"):
+            session.status = "aborted"
+            session.error_code = "aborted_by_client"
+            session.updated_at = now
+            store.discard_part(session.part_id)
+            _upload_session_audit(db, identity, "event_resource.upload_abort", session)
+        db.commit()
+        return upload_mod.view(session)
+
+    @app.get("/api/admin/storage/health")
+    def admin_storage_health(
+        request: Request,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §5.1: honest storage view — path-free, read-only.
+
+        ``configured``/``free_bytes``/``writable``, referenced rows and bytes, rows whose file is
+        missing or has the wrong size, orphan files without a row, incomplete parts (open sessions
+        and stale parts), and the last backup/verify markers written by
+        ``tools/private-storage-backup.py``. Nothing here deletes or repairs.
+        """
+        response.headers["Cache-Control"] = "no-store"
+        store = _private_storage(request)
+        now = _utc_now()
+        rows = db.execute(
+            select(EventResourceRecord.id, EventResourceRecord.storage_key, EventResourceRecord.content_size, EventResourceRecord.status)
+            .where(EventResourceRecord.storage_key.is_not(None))
+        ).all()
+        inline = db.execute(
+            select(func.count(EventResourceRecord.id), func.coalesce(func.sum(EventResourceRecord.content_size), 0))
+            .where(EventResourceRecord.storage_key.is_(None), EventResourceRecord.content.is_not(None))
+        ).one()
+        markers = {
+            row.key: {"at": interaction_mod.iso(row.updated_at), **(row.value if isinstance(row.value, dict) else {})}
+            for row in db.scalars(select(SystemMarkerRecord).where(SystemMarkerRecord.key.in_(
+                ("storage_verify", "storage_snapshot", "storage_restore", "scheduled_publish")
+            ))).all()
+        }
+        sessions = db.execute(
+            select(UploadSessionRecord.status, func.count(UploadSessionRecord.id), func.coalesce(func.sum(UploadSessionRecord.received_bytes), 0))
+            .group_by(UploadSessionRecord.status)
+        ).all()
+        session_counts = {status: {"count": int(count), "bytes": int(total)} for status, count, total in sessions}
+        base = {
+            "generated_at": now.isoformat(),
+            "read_only": True,
+            "max_bytes": store.max_bytes if store is not None else interaction_mod.MAX_BYTES,
+            "inline": {"rows": int(inline[0]), "bytes": int(inline[1]), "max_bytes": interaction_mod.MAX_BYTES},
+            "upload_sessions": session_counts,
+            "markers": markers,
+        }
+        if store is None:
+            base.update({
+                "configured": False, "backend": "database", "free_bytes": None, "writable": None,
+                "referenced": {"rows": len(rows), "bytes": int(sum(r.content_size or 0 for r in rows))},
+                "missing": {"count": len(rows), "resource_ids": [r.id for r in rows][:50]},
+                "size_mismatch": {"count": 0, "resource_ids": []},
+                "orphans": {"count": 0, "bytes": 0}, "incomplete": {"parts": 0, "bytes": 0, "stale_parts": 0},
+                "state": "not_configured" if rows else "inline_only",
+            })
+            return base
+        status = store.status()
+        missing: list[str] = []
+        mismatch: list[str] = []
+        referenced_bytes = 0
+        referenced_keys: set[str] = set()
+        for row in rows:
+            referenced_keys.add(row.storage_key)
+            size = store.size(row.storage_key)
+            if size is None:
+                missing.append(row.id)
+            elif size != (row.content_size or 0):
+                mismatch.append(row.id)
+            else:
+                referenced_bytes += size
+        orphan_count = 0
+        orphan_bytes = 0
+        for key in store.list_keys():
+            if key not in referenced_keys:
+                orphan_count += 1
+                orphan_bytes += store.size(key) or 0
+        parts = store.incoming_parts()
+        open_part_ids = set(db.scalars(select(UploadSessionRecord.part_id).where(UploadSessionRecord.status.in_(("open", "completing")))).all())
+        stale_cutoff = now.timestamp() - upload_mod.SESSION_TTL.total_seconds()
+        stale = [p for p in parts if p[0] not in open_part_ids and p[2] < stale_cutoff]
+        state = "error" if missing or mismatch else ("warning" if orphan_count or stale or not status.writable else "ok")
+        base.update({
+            "configured": True, "backend": status.backend, "free_bytes": status.free_bytes, "writable": status.writable,
+            "referenced": {"rows": len(rows), "bytes": referenced_bytes},
+            "missing": {"count": len(missing), "resource_ids": missing[:50]},
+            "size_mismatch": {"count": len(mismatch), "resource_ids": mismatch[:50]},
+            "orphans": {"count": orphan_count, "bytes": orphan_bytes},
+            "incomplete": {"parts": len(parts), "bytes": int(sum(p[1] for p in parts)), "stale_parts": len(stale),
+                           "open_sessions": len(open_part_ids)},
+            "state": state,
+        })
+        return base
 
     @app.post("/api/admin/events/{event_id}/resources/{resource_id}/remove")
     async def admin_remove_event_resource(

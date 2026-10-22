@@ -2,6 +2,7 @@
    fetch با مسیر دقیق شبیه‌سازی می‌شود؛ هیچ سروری اجرا نمی‌شود و هیچ پیامی فرستاده نمی‌شود.
    مجوز واقعی در سرور است؛ این‌جا فقط سنجیده می‌شود که پنل همان API را درست و صادقانه صدا می‌زند و بازتاب می‌دهد. */
 import assert from 'node:assert/strict';
+import nodeCrypto from 'node:crypto';
 import { JSDOM } from 'jsdom';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -97,6 +98,59 @@ async function loadPanel(identity) {
           const g = guard('ev_publish'); if (g) return g;
           return reply(200, { source: 'shared_server_database', unanswered_questions: state.questions.filter((q) => !q.answered).length, pending_reviews: state.reviews.filter((r) => r.status === 'pending').length,
             open_reports: state.reports.filter((r) => r.status === 'open').length, failed_notifications: 1, per_event: [] });
+        }
+        /* فاز ۹.۵ §۵: سلامت ذخیره‌سازی (فقط‌خواندنی) و نشست‌های بارگذاری قطعه‌ای — آینهٔ کلیدهای واقعی سرور */
+        if (path === '/api/admin/storage/health') {
+          const g = guard('ev_create'); if (g) return g;
+          return reply(200, { generated_at: '2026-10-22T10:00:00+00:00', read_only: true, configured: true, backend: 'local_disk', max_bytes: 536870912,
+            free_bytes: 19327352832, writable: true, referenced: { rows: 3, bytes: 15728640 }, missing: { count: 1, resource_ids: [RES_FILE] },
+            size_mismatch: { count: 0, resource_ids: [] }, orphans: { count: 2, bytes: 4096 }, incomplete: { parts: 1, bytes: 1048576, stale_parts: 0, open_sessions: 1 },
+            inline: { rows: 0, bytes: 0, max_bytes: 8388608 }, upload_sessions: { open: { count: 1, bytes: 1048576 } },
+            markers: { storage_verify: { at: '2026-10-21T22:00:00+00:00', ok: true } }, state: 'error' });
+        }
+        const us = path.match(/^\/api\/admin\/events\/([^/]+)\/resources\/([^/?]+)\/upload-sessions(?:\/([^/?]+))?(\/complete)?$/);
+        if (us) {
+          const g = guard('ev_create'); if (g) return g;
+          const [, , rid, sid, action] = us;
+          const row = state.resources.find((r) => r.id === rid);
+          if (!row) return reply(404, { detail: 'resource_not_found' });
+          state.uploadSessions = state.uploadSessions || {};
+          if (!sid && method === 'POST') {
+            const sent = json();
+            if (!Number.isSafeInteger(sent.size) || sent.size <= 0) return reply(422, { detail: { code: 'invalid_size' } });
+            const id = '55555555-5555-4555-8555-' + String(Object.keys(state.uploadSessions).length + 1).padStart(12, '0');
+            state.uploadSessions[id] = { id, offset: 0, size: sent.size, name: sent.file_name, chunks: [], status: 'open', failedOnce: false };
+            return reply(201, { id, resource_id: rid, status: 'open', offset: 0, expected_size: sent.size, chunk_bytes: 4194304, max_chunk_bytes: 8388608, chunk_count: 0, expires_at: '2026-10-23T10:00:00+00:00', resumed: false });
+          }
+          const session = state.uploadSessions[sid];
+          if (!session) return reply(404, { detail: { code: 'upload_session_not_found' } });
+          if (method === 'GET') return reply(200, { id: sid, status: session.status, offset: session.offset, expected_size: session.size, chunk_bytes: 4194304, max_chunk_bytes: 8388608, chunk_count: session.chunks.length, expires_at: '2026-10-23T10:00:00+00:00', resumed: false });
+          if (method === 'PATCH') {
+            const bytes = options.body; const offset = Number(headers['Upload-Offset']);
+            const checksum = String(headers['Upload-Checksum'] || '');
+            if (!/^sha256 [0-9a-f]{64}$/.test(checksum)) return reply(400, { detail: { code: 'chunk_checksum_required' } });
+            if (offset !== session.offset) return reply(409, { detail: { code: 'offset_mismatch', offset: session.offset } });
+            const digest = nodeCrypto.createHash('sha256').update(Buffer.from(bytes)).digest('hex');
+            if ('sha256 ' + digest !== checksum) return reply(400, { detail: { code: 'chunk_checksum_mismatch', offset: session.offset } });
+            session.chunks.push(Buffer.from(bytes)); session.offset += bytes.length;
+            if (identity.dropSecondChunkAck && session.chunks.length === 2 && !session.failedOnce) {
+              session.failedOnce = true; /* سرور بایت‌ها را نوشت ولی پاسخ به مرورگر نرسید */
+              throw new TypeError('network error');
+            }
+            return reply(200, { id: sid, offset: session.offset, expected_size: session.size, complete: session.offset === session.size, chunk_count: session.chunks.length });
+          }
+          if (action === '/complete' && method === 'POST') {
+            const sent = json();
+            if (session.offset !== session.size) return reply(409, { detail: { code: 'upload_incomplete', offset: session.offset, expected_size: session.size } });
+            const whole = nodeCrypto.createHash('sha256').update(Buffer.concat(session.chunks)).digest('hex');
+            if (sent.sha256 !== whole) return reply(422, { detail: { code: 'sha256_mismatch' } });
+            session.status = 'completed';
+            row.file_name = session.name; row.size = session.size; row.content_type = 'video/mp4'; row.content_hash = whole.slice(0, 16);
+            row.storage = { backend: 'local_disk', state: 'ready' };
+            return reply(200, { ...row, upload_session: { id: sid, status: 'completed', chunk_count: session.chunks.length } });
+          }
+          if (method === 'DELETE') { session.status = 'aborted'; return reply(200, { id: sid, status: 'aborted' }); }
+          return reply(405, { detail: 'method' });
         }
         let m = path.match(/^\/api\/admin\/events\/([^/]+)\/resources(?:\/([^/?]+))?(\/file|\/remove)?(?:\?(.*))?$/);
         if (m) {
@@ -518,6 +572,49 @@ console.log('— سرور ۴۰۳ برای اقدام: پیام مجوز، بدو
     app.click(`[data-ei-answer-send="${Q1}"]:not([data-ei-answer-publish])`);
     await app.until(() => /مجوز این کار را ندارد/.test(app.body()), 'پیام ۴۰۳');
     assert.match(app.doc.querySelector(`[data-ei-q-row="${Q1}"]`).textContent, /بی‌پاسخ/, 'ردیف همچنان بی‌پاسخ است');
+  } finally { app.close(); }
+}
+
+console.log('— فاز ۹.۵: بارگذاری قطعه‌ای قابل ادامه برای فایل بزرگ (قطع پاسخ، خواندن offset، ادامه، sha256 کل فایل) و کارت سلامت ذخیره‌سازی —');
+{
+  const app = await loadPanel({ role: 'owner', sec: 'events', dropSecondChunkAck: true });
+  try {
+    await app.until(() => app.doc.querySelector(`[data-ct-interaction="${EV}"]`), 'دکمهٔ منابع و پرسش‌ها در ردیف رویداد');
+    app.click(`[data-ct-interaction="${EV}"]`);
+    await app.until(() => app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"]`), 'پنل منابع');
+    assert.match(app.doc.querySelector('[data-ei-storage="local_disk"]').textContent, /قطعه‌ای و قابل ادامه/, 'خلاصهٔ ذخیره‌سازی روش بارگذاری بزرگ را می‌گوید');
+    /* فایل ۹ مگابایتی با الگوی ثابت؛ خلاصهٔ sha256 مرجع با Node محاسبه می‌شود */
+    const size = 9 * 1024 * 1024 + 7; const bytes = new Uint8Array(size);
+    for (let i = 0; i < size; i++) bytes[i] = (i * 31 + 7) & 0xff;
+    const expected = nodeCrypto.createHash('sha256').update(Buffer.from(bytes)).digest('hex');
+    app.pickFile(`[data-ei-file="${RES_FILE}"]`, 'جلسه بزرگ.mp4', 'video/mp4', bytes);
+    await app.until(() => app.calls.some((c) => c.method === 'POST' && c.path === `/api/admin/events/${EV}/resources/${RES_FILE}/upload-sessions`), 'شروع نشست بارگذاری');
+    assert.equal(app.calls.some((c) => c.method === 'PUT' && c.path.endsWith('/file')), false, 'فایل بزرگ از مسیر یک‌درخواستی نمی‌رود');
+    await app.until(() => app.calls.some((c) => c.method === 'POST' && c.path.endsWith('/complete')), 'نهایی‌سازی');
+    const patches = app.calls.filter((c) => c.method === 'PATCH');
+    assert.equal(patches.length, 3, 'سه قطعه؛ قطعهٔ دوم با وجود پاسخ گم‌شده روی سرور مانده بود و دوباره فرستاده نشد');
+    assert.ok(patches.every((c) => c.headers['X-CSRF-Token'] === 'owner-csrf' && /^sha256 [0-9a-f]{64}$/.test(c.headers['Upload-Checksum'])), 'هر قطعه با CSRF و sha256 خودش');
+    assert.deepEqual(patches.map((c) => c.headers['Upload-Offset']), ['0', '4194304', '8388608'], 'پس از قطع، offset واقعی از سرور خوانده و از همان‌جا ادامه می‌یابد');
+    assert.ok(app.calls.some((c) => c.method === 'GET' && /upload-sessions\/55555555/.test(c.path)), 'پرسش offset از سرور پس از خطای شبکه');
+    const complete = app.calls.find((c) => c.method === 'POST' && c.path.endsWith('/complete'));
+    assert.equal(JSON.parse(complete.body).sha256, expected, 'sha256 کل فایل (افزایشی، بدون نگه‌داشتن کل فایل) با مرجع Node برابر است');
+    await app.until(() => /قطعه‌ای، با تأیید sha256 روی سرور/.test(app.body()), 'پیام موفقیت صادقانه');
+    await app.until(() => app.doc.querySelector(`[data-ei-res-row="${RES_FILE}"] [data-ei-res-storage="ready"]`), 'فایل آماده');
+
+    /* کارت سلامت ذخیره‌سازی: فقط با کلیک، فقط‌خواندنی، وضعیت واقعی خطا و شناسهٔ منبع آسیب‌دیده */
+    const card = app.doc.querySelector('[data-ei-storage-health]');
+    assert.ok(card && /بررسی سلامت/.test(card.textContent));
+    assert.equal(app.calls.some((c) => c.path === '/api/admin/storage/health'), false, 'سلامت خودکار خوانده نمی‌شود');
+    app.click('[data-ei-health-run]');
+    await app.until(() => app.doc.querySelector('[data-ei-storage-health-state="error"]'), 'وضعیت خطا از سرور');
+    const health = app.doc.querySelector('[data-ei-storage-health]');
+    assert.match(health.textContent, /ردیف بدون فایل/);
+    assert.match(health.textContent, /فایل یتیم/);
+    assert.match(health.textContent, /بارگذاری ناتمام/);
+    assert.match(health.querySelector('[data-ei-health-markers]').textContent, /آخرین بررسی پشتیبان \(verify\): 2026-10-21/);
+    assert.match(health.querySelector('[data-ei-health-markers]').textContent, /آخرین پشتیبان‌گیری: ثبت نشده/);
+    assert.match(health.textContent, new RegExp(RES_FILE));
+    assert.doesNotMatch(health.textContent, /\/home\/|\/var\//, 'هیچ مسیر فیزیکی نمایش داده نمی‌شود');
   } finally { app.close(); }
 }
 

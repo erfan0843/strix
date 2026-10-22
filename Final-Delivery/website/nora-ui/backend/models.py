@@ -958,6 +958,8 @@ class EventResourceRecord(Base):
     access: Mapped[str] = mapped_column(String(16), nullable=False, default="public")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     publish_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Phase 9.5: set once by the scheduled-publish announcer (or the immediate path) — never twice.
+    announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     publisher_label: Mapped[str] = mapped_column(String(120), nullable=False, default="")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     link_url: Mapped[str] = mapped_column(String(2048), nullable=False, default="")
@@ -1348,6 +1350,70 @@ class RecordingAccessRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+UPLOAD_SESSION_STATUSES = ("open", "completing", "completed", "aborted", "expired", "failed")
+
+
+class UploadSessionRecord(Base):
+    """Phase 9.5: one resumable upload of one file resource (internal, limited protocol).
+
+    The session id is random and bound to the actor who opened it; the staged bytes live in
+    ``<private root>/.incoming/<part_id>.part`` until ``complete`` verifies size + sha256 and
+    moves them atomically under a fresh storage key. ``received_bytes`` mirrors the file size on
+    disk after every accepted chunk — the disk remains the truth for the next offset.
+    """
+
+    __tablename__ = "upload_sessions"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('open', 'completing', 'completed', 'aborted', 'expired', 'failed')",
+            name="ck_upload_sessions_status",
+        ),
+        CheckConstraint("expected_size > 0 AND received_bytes >= 0 AND received_bytes <= expected_size", name="ck_upload_sessions_bytes"),
+        Index("ix_upload_sessions_resource_status", "resource_id", "status"),
+        Index("ix_upload_sessions_expires", "expires_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    resource_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("event_resources.id", ondelete="CASCADE"), nullable=False
+    )
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    owner_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    part_id: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    declared_name: Mapped[str] = mapped_column(String(160), nullable=False, default="")
+    expected_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    expected_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    received_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    chunk_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="open")
+    error_code: Mapped[str] = mapped_column(String(40), nullable=False, default="")
+    storage_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class SystemMarkerRecord(Base):
+    """Phase 9.5: tiny key/value markers for operations (last backup verify, last scheduler run).
+
+    Written only by server-side jobs/CLIs; read by the health endpoints. Never holds secrets.
+    """
+
+    __tablename__ = "system_markers"
+
+    key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    value: Mapped[dict[str, Any]] = mapped_column(JSON_VALUE, nullable=False, default=dict)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
