@@ -536,7 +536,7 @@
 <aside class="sheet" id="shExcel" role="dialog" aria-label="خروجی اکسل">
   <div class="grabber"></div>
   <div class="head">خروجی اکسل</div>
-  <p class="cap" style="margin-top:4px">ستون‌هایی که لازم دارید را بردارید؛ خروجی همان لحظه ساخته می‌شود.</p>
+  <p class="cap" style="margin-top:4px">فایل CSV (سازگار با اکسل) همان لحظه از پاسخ‌های سرور ساخته می‌شود و در تاریخچهٔ عملیات ثبت می‌گردد.</p>
   <div class="row tight" style="margin-top:12px" id="cols"></div>
   <div class="row" style="margin-top:14px"><button class="btn primary" id="excelGo"><svg class="i"><use href="#i-download"/></svg> تولید فایل</button>
     <button class="btn quiet" data-close>بستن</button></div>
@@ -2211,8 +2211,24 @@ document.getElementById('rejGo').onclick=()=>{
     if(CURP&&CURP.id===p.id) openUser(p.id);}
   closeSheets(); renderKartabl(); renderAnswers(); renderMoney(); toast('رسید رد شد؛ اعلان '+(notice?'در صف تأیید مالک':'ثبت نشد')+' و ارسال نشده است');
 };
-document.getElementById('excelGo').onclick=()=>{const cols=[...document.querySelectorAll('#cols .chip.on')].length;
-  closeSheets(); log('خروجی اکسل با '+faN(cols)+' ستون ساخته شد'); toast('فایل اکسل آماده شد')};
+/* خروجی واقعی: CSV از GET /api/forms/{id}/responses?format=csv (مجوز fm_export سمت سرور؛ ستون مالی فقط با مجوز مالی).
+   برای فرم غیرسروری فایلی ساخته نمی‌شود و موفقیت ساختگی اعلام نمی‌شود. */
+document.getElementById('excelGo').onclick=async()=>{
+  const button=document.getElementById('excelGo');
+  if(!CUR||CUR.serverManaged!==true){closeSheets(); toast('خروجی فقط برای فرم‌های سروری ساخته می‌شود؛ ابتدا فرم‌ها را با سرور همگام کنید'); return}
+  button.disabled=true; button.setAttribute('aria-busy','true');
+  try{
+    const res=await fetch('/api/forms/'+encodeURIComponent(CUR.id)+'/responses?format=csv',{credentials:'same-origin',headers:{Accept:'text/csv'}});
+    if(res.status===401){toast('نشست معتبر نیست؛ دوباره وارد شوید'); return}
+    if(res.status===403){toast('مجوز خروجی پاسخ‌ها (fm_export) برای این حساب فعال نیست'); return}
+    if(!res.ok){toast('خروجی از سرور ساخته نشد (کد '+res.status+')'); return}
+    const blob=await res.blob(), link=document.createElement('a'), url=URL.createObjectURL(blob);
+    link.href=url; link.download='form-'+String(CUR.id).replace(/[^A-Za-z0-9_-]+/g,'-').slice(0,40)+'-responses.csv';
+    document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+    closeSheets(); log('خروجی CSV پاسخ‌ها از سرور دریافت شد'); toast('فایل CSV از سرور دریافت شد');
+  }catch(error){toast('سرور در دسترس نیست؛ خروجی ساخته نشد')}
+  finally{button.disabled=false; button.removeAttribute('aria-busy')}
+};
 document.getElementById('setSave').onclick=()=>{
   CUR.cap=NR(unFa(document.getElementById('setCap').value))||CUR.cap;
   CUR.per=NR(unFa(document.getElementById('setPer').value))||CUR.per;
@@ -2338,8 +2354,10 @@ const exportColumns=[
   ['نام و نام خانوادگی',true],['شماره موبایل',true],['تاریخ تولد',true],['استان و شهر',true],['دانشگاه',true],['شغل',true],['سطح تجربه',true],
   ['مبلغ',false],['کد پیگیری',true],['وضعیت پرداخت',false],['درگاه',false],['تاریخ ثبت',true],['یادداشت',true]
 ];
-document.getElementById('cols').innerHTML=exportColumns.filter(([name])=>FINANCE_OWNER||!['مبلغ','وضعیت پرداخت','درگاه'].includes(name)).map(([name,selected])=>
-  `<button class="chip ${selected?'on':''}" data-chip>${name}</button>`).join('');
+document.getElementById('cols').innerHTML=TEST_FIXTURE_MODE
+  ?exportColumns.filter(([name])=>FINANCE_OWNER||!['مبلغ','وضعیت پرداخت','درگاه'].includes(name)).map(([name,selected])=>
+    `<button class="chip ${selected?'on':''}" data-chip>${name}</button>`).join('')
+  :'<span class="cap">ستون‌ها همان پرسش‌های فرم‌اند که در فرم‌ساز «ستون خروجی اکسل» آن‌ها روشن است؛ شناسه، وضعیت، زمان ثبت، حضور و رسید همیشه هست و ستون‌های مبلغ/وضعیت پرداخت/تراکنش فقط با مجوز مالی (مالک) می‌آیند.</span>';
 document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR&&CUR.start||'');
 document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR&&CUR.ends||'');
 renderList(); renderPanel(); renderKartabl(); renderMoney(); renderTeam(); renderFormReports(); renderFormSettings();

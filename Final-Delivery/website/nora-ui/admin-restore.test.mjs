@@ -10,7 +10,7 @@ const ADMIN_HTML = resolve(HERE, 'admin.html');
 const delay = (ms = 10) => new Promise((r) => setTimeout(r, ms));
 const reply = (status, payload = {}) => ({ ok: status >= 200 && status < 300, status, json: async () => payload });
 
-const MANAGER_PERMS = ['ev_create', 'ev_publish', 'attendance', 'certificate', 'fm_create', 'fm_responses', 'receipt_approve',
+const MANAGER_PERMS = ['ev_create', 'ev_publish', 'attendance', 'certificate', 'fm_create', 'fm_responses', 'fm_export', 'receipt_approve',
   'us_view', 'us_approve', 'rp_view', 'sp_answer', 'qa_audit', 'pr_media'];
 const OWNER_PERMS = [...MANAGER_PERMS, 'cl_member', 'finance', 'role_assign', 'sys_settings', 'sys_backup'];
 
@@ -137,7 +137,8 @@ console.log('— مالک: داشبورد سروری؛ کارهای در انت�
     ok(app.stored().sec === 'forms', 'بخش فرم‌ها داخل همان پنل است');
     ok(app.doc.querySelector('a[href="create.html?fid=f-pub-1"]') && app.doc.querySelector('a[href="builder.html?fid=f-pub-1#responses"]'), 'ویرایش و پاسخ‌ها به فرم‌ساز موجود می‌روند؛ ویرایشگر دوم نیست');
     ok(app.doc.querySelector('[data-fs-row="f-pub-1"] a[href^="form.html?fid=f-pub-1"]') && !app.doc.querySelector('[data-fs-row="f-draft-1"] a[href^="form.html"]'), 'پیوند عمومی فقط برای فرم منتشرشده');
-    ok(!app.doc.querySelector('[data-forms-panel] a[download], [data-forms-panel] [data-fs-export]') && ![...app.doc.querySelectorAll('[data-forms-panel] button, [data-forms-panel] a')].some(b => /دانلود|خروجی اکسل|CSV/.test(b.textContent)), 'دکمهٔ خروجی ساختگی نیست');
+    ok(app.doc.querySelector('[data-fs-export="f-pub-1"]')?.getAttribute('href') === '/api/forms/f-pub-1/responses?format=csv', 'خروجی CSV به endpoint واقعی سرور اشاره می‌کند، نه فایل ساختگی');
+    ok(![...app.doc.querySelectorAll('[data-forms-panel] a[download]')].length, 'هیچ دانلود ساختگی سمت مرورگر نیست');
     app.click('[data-fs-status="draft"]'); await delay(30);
     ok(app.doc.querySelectorAll('[data-fs-row]').length === 1 && app.text('[data-fs-row]').includes('نظرسنجی پیش‌نویس'), 'فیلتر وضعیت روی همان پاسخ API');
     ok(app.text('[data-forms-panel]').includes('۷') , 'شمار پاسخ از response_count');
@@ -193,6 +194,10 @@ console.log('— مدیر بدون مجوز گزارش: کارت‌های واب
     await delay(150);
     ok(!app.calls.some(c => c.path.startsWith('/api/admin/notifications') || c.path.startsWith('/api/admin/inbox') || c.path.startsWith('/api/owner/audit')), 'بدون مجوز، درخواست اعلان/کارتابل/تاریخچه ارسال نمی‌شود');
     ok(!app.doc.querySelector('[data-dashx-audit]') && !app.doc.querySelector('[data-dashx-sched-card]'), 'کارت تاریخچه و زمان‌بندی برای این حساب نیست');
+    app.click('.utile[data-sec="events"]'); await delay(20);
+    if (app.doc.querySelector('.utile[data-sec="forms"]')) { app.click('.utile[data-sec="forms"]'); await delay(20); }
+    ok(!app.doc.querySelector('[data-fs-export]'), 'بدون مجوز fm_export پیوند خروجی نمایش داده نمی‌شود (اجرا هم سمت سرور رد می‌شود)');
+    app.click('#admNav [data-sec="dash"]'); await app.until(() => app.doc.querySelector('[data-dashx-bar]'), 'بازگشت به داشبورد');
     app.click('[data-dashx-map]'); await delay(30);
     const settingsRows = [...app.doc.querySelectorAll('[data-panel-map] .admlirow')].filter(r => r.textContent.includes('/api/owner/'));
     ok(settingsRows.length && settingsRows.every(r => r.textContent.includes('بدون مجوز این حساب') && !r.querySelector('button')), 'ردیف‌های مالک در نقشه برای مدیر «بدون مجوز» و بدون دکمه‌اند');

@@ -8857,7 +8857,7 @@ const PANEL_MODULES=[
   ['users','مناسبت‌ها، دستاوردها، فروشگاه امتیاز، درخواست امتیاز، باشگاه کتاب','قاعدهٔ امتیاز و دفترکل فقط در ربات است؛ پنل مسیر نوشتن امتیاز ندارد','blocked',()=>isOwner()||canPerm('cl_member'),''],
   ['forms','فهرست فرم‌های سرور با وضعیت و شمار پاسخ','/api/forms','server',()=>canSec('forms'),'data-sec="forms"'],
   ['forms','ساخت و ویرایش فرم (create.html) و پاسخ‌ها/گزارش (builder.html)','فرم‌ساز سروری؛ منبع حقیقت ثبت‌نام و خرید','server',()=>canSec('forms'),'data-sec="forms"'],
-  ['forms','خروجی اکسل/CSV پاسخ‌ها','endpoint خروجی در مرحلهٔ B اضافه می‌شود؛ تا آن زمان دکمهٔ دانلود نمایش داده نمی‌شود','blocked',()=>canPerm('fm_responses'),''],
+  ['forms','خروجی CSV پاسخ‌ها (سازگار با اکسل)','/api/forms/{id}/responses?format=csv','server',()=>canPerm('fm_export'),'data-sec="forms"'],
   ['settings','اتصال سرویس‌ها و آزمایش اتصال، دامنه و راه‌اندازی، داده‌ها و مهاجرت، امنیت و دسترسی‌ها، محتوای عمومی و همکاری، سلامت','/api/owner/… (فقط مالک)','server',()=>isOwner(),'data-sec="settings"'],
   ['settings','پوسته و ظاهر، تنظیمات فرم، گفت‌وگوی پشتیبانی داخل پنل','API و مدل داده ندارد؛ در حالت نمونه فقط در مرورگر ذخیره می‌شد','blocked',()=>isOwner(),''],
   ['settings','قالب پیام‌ها و اعلان‌ها','متن اعلان‌ها در سرور ثابت است؛ ویرایش قالب نیازمند جدول و API است','blocked',()=>isOwner(),''],
@@ -8910,6 +8910,7 @@ function serverFormsView(){
       ${tag(st[0],st[1])}<span class="mini" style="text-align:end"><b dir="ltr" style="font-weight:700">${esc(fa(Number(f.response_count)||0))}</b><small class="cap">پاسخ</small></span>
       <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}
       ${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها و گزارش">${ico('i-inbox')}</a>`:''}
+      ${canPerm('fm_export')?`<a class="btn sm quiet" href="/api/forms/${id}/responses?format=csv" data-fs-export="${esc(String(f.id||''))}" title="خروجی CSV پاسخ‌ها از سرور (ثبت در تاریخچه)">${ico('i-download')}</a>`:''}
       ${published?`<a class="btn sm quiet" href="form.html?fid=${id}&kind=${encodeURIComponent(String(f.need||'reg'))}" target="_blank" rel="noopener" title="صفحهٔ عمومی فرم">${ico('i-eye')}</a>`:''}</span></div>`}).join('');
   const state=FORMS_SRV.loading?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن فرم‌ها از سرور…</p></div>`
     :FORMS_SRV.error?`<div class="empty"><p class="cap">${esc(FORMS_SRV.error)}</p>${btn('تلاش دوباره','data-fs-refresh','i-refresh')}</div>`
@@ -8917,7 +8918,7 @@ function serverFormsView(){
   return `<div class="stack" data-forms-panel>
     <section class="card stack"><div class="row" style="flex-wrap:wrap;gap:8px"><span class="ic">${ico('i-doc')}</span><div class="head">فرم‌های سرور</div>${tag('منبع حقیقت ثبت‌نام و خرید','ok')}<span class="sp" style="flex:1 1 180px"></span>
       ${canPerm('fm_create')?`<a class="btn sm primary" href="create.html">${ico('i-plus')}فرم تازه</a>`:''}<a class="btn sm quiet" href="builder.html">${ico('i-chart')}مرکز فرم‌ساز و پاسخ‌ها</a>${btn('بازخوانی','data-fs-refresh','i-refresh')}</div>
-      <p class="cap">فهرست از <span dir="ltr">/api/forms</span> خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد و خروجی اکسل تا افزوده‌شدن endpoint واقعی نمایش داده نمی‌شود.</p>
+      <p class="cap">فهرست از <span dir="ltr">/api/forms</span> خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد. خروجی CSV مستقیماً از سرور ساخته می‌شود (مجوز fm_export؛ ستون مالی فقط با مجوز مالی) و در تاریخچهٔ عملیات ثبت می‌گردد.</p>
       <div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="fsQuery" placeholder="جست‌وجوی نام، شناسه یا رویداد" value="${esc(FORMS_SRV.q)}" style="max-width:320px">${btn('جست‌وجو','data-fs-search','i-search')}</div>
       <div class="admfilters">${chips}</div>
       ${list?`<div class="admlist">${list}</div>`:''}${state}

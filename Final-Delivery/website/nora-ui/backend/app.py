@@ -11968,12 +11968,75 @@ def create_app(
     @app.get("/api/forms/{form_id}/responses")
     def list_responses(
         form_id: str,
+        request: Request,
         limit: int = 50,
         offset: int = 0,
+        format: str = Query(default="", pattern=r"^(|csv)$"),
         identity: OwnerIdentity | AccountIdentity = Depends(require_permission("fm_responses")),
         db: Session = Depends(get_db),
     ):
-        get_owned_form(db, identity.owner_id, form_id)
+        form = get_owned_form(db, identity.owner_id, form_id)
+        if format == "csv":
+            # Real export (panel restore, stage B): same rows as the list, flattened by the form's
+            # current field keys. ``fm_export`` is required on top of ``fm_responses``; payment
+            # columns are finance-only because they carry amounts and transaction ids.
+            require_permission("fm_export")(request, db)
+            role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+            with_finance = has_permission(role, "finance")
+            fields = [
+                field for field in sorted(form.fields, key=lambda item: (item.position, item.row_id))
+                if (field.config or {}).get("col") is not False
+            ]
+            rows = db.execute(
+                select(FormResponseRecord, FormPaymentRecord)
+                .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+                .where(FormResponseRecord.form_id == form_id)
+                .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+                .limit(5000)
+            ).all()
+            header = ["response_id", "status", "created_at", "registrant_name", "companion_index", "added_by_name"]
+            header += [str(field.label or field.field_key) for field in fields]
+            header += ["checked_in_at", "receipt_uploaded"]
+            if with_finance:
+                header += ["payment_status", "payment_method", "amount", "currency", "transaction_id"]
+
+            def _cell(value: Any) -> str:
+                if value is None:
+                    return ""
+                if isinstance(value, (list, tuple)):
+                    return "، ".join(_cell(item) for item in value)
+                if isinstance(value, dict):
+                    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+                text = str(value)
+                # Neutralise spreadsheet formula injection on user-supplied answers.
+                return "'" + text if text[:1] in ("=", "+", "-", "@") else text
+
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(header)
+            for record, payment in rows:
+                answers = record.answers if isinstance(record.answers, dict) else {}
+                line = [record.id, record.status, _as_utc(record.created_at).isoformat(), _cell(record.registrant_name),
+                        "" if record.companion_index is None else str(record.companion_index), _cell(record.added_by_name)]
+                line += [_cell(answers.get(field.field_key)) for field in fields]
+                line += [_as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at is not None else "",
+                         "yes" if (record.receipt_review_task_id is not None or record.receipt_upload is not None) else "no"]
+                if with_finance:
+                    line += [payment.status if payment is not None else "", payment.method if payment is not None else "",
+                             str(payment.amount) if payment is not None else "", payment.currency if payment is not None else "",
+                             _cell(payment.transaction_id) if payment is not None else ""]
+                writer.writerow(line)
+            record_audit(
+                db, identity, "form.responses.export", target_type="form", target_id=form_id,
+                details={"rows": len(rows), "fields": len(fields), "finance_columns": with_finance},
+            )
+            db.commit()
+            safe_name = re.sub(r"[^A-Za-z0-9_-]+", "-", form_id)[:40] or "form"
+            return Response(
+                content="\ufeff" + buffer.getvalue(), media_type="text/csv; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="form-{safe_name}-responses.csv"',
+                         "Cache-Control": "private, no-store"},
+            )
         page_size = max(1, min(100, limit))
         start = max(0, min(1_000_000, offset))
         records = db.scalars(
