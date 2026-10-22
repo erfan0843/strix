@@ -7081,7 +7081,8 @@ const CT_TEMPLATES=[
 function ctApplyTemplate(key){
   const e=CT.edit, tpl=CT_TEMPLATES.find(t=>t[0]===key); if(!e||!tpl) return;
   const f=e.form, filled=[];
-  Object.keys(tpl[2]).forEach(k=>{const cur=f[k]; const empty=typeof cur==='boolean'?cur===false:String(cur==null?'':cur).trim()==='';
+  const blank=ctBlank(CT.kind);
+  Object.keys(tpl[2]).forEach(k=>{const cur=f[k]; const empty=typeof cur==='boolean'?cur===false:(String(cur==null?'':cur).trim()===''||String(cur)===String(blank[k]));
     if(empty){f[k]=tpl[2][k]; filled.push(k)}});
   e.template=key; ctDraftSave(); renderBody();
   toast(filled.length?`قالب «${tpl[1]}» فقط فیلدهای خالی را پر کرد (${fa(filled.length)} فیلد)؛ چیزی ذخیره نشد.`:`همهٔ فیلدهای قالب «${tpl[1]}» از قبل مقدار داشتند؛ چیزی تغییر نکرد.`);
@@ -7141,8 +7142,9 @@ function ctSyncDates(field,oldVal,newVal){
 /* ساعت ۲۴ساعته: فقط وقتی کاربر عدد خالص می‌نویسد دونقطه خودکار می‌آید؛ متن آزاد («۱۰ تا ۱۳») دست‌نخورده می‌ماند. */
 function ctTimeFix(field,value,hard){
   const raw=un(String(value||''));
-  if(field==='time'){ if(/^\d{3,4}$/.test(raw)||(hard&&/^\d{1,2}$/.test(raw))||/^\d{1,2}:\d{1,2}$/.test(raw)&&hard) return h24(raw,true); return value}
-  if(CT_DATETIME_FIELDS.includes(field)){const m=raw.match(/^(\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{1,4})$/); if(m&&(m[2].length>=3||hard)) return m[1]+' '+h24(m[2],true); return value}
+  /* وسط تایپ فقط با چهار رقم کامل دست می‌زنیم (۱۰۳ → ۰۱:۰۳ نشود)؛ با ترک قلم هر عدد ناقص کامل می‌شود */
+  if(field==='time'){ if(/^\d{4}$/.test(raw)||(hard&&(/^\d{1,3}$/.test(raw)||/^\d{1,2}:\d{1,2}$/.test(raw)))) return h24(raw,true); return value}
+  if(CT_DATETIME_FIELDS.includes(field)){const m=raw.match(/^(\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{1,4}|\d{1,2}:\d{1,2})$/); if(m&&(/^\d{4}$/.test(m[2])||hard)) return m[1]+' '+h24(m[2],true); return value}
   return value;
 }
 /* پیش‌نویس محلی: فقط متن تایپ‌شدهٔ همین کاربر در همین زبانه (sessionStorage)، با برچسب صریح؛ هرگز به‌جای رکورد سرور نمایش داده نمی‌شود. */
@@ -8684,7 +8686,7 @@ document.addEventListener('click',e=>{
       const el=document.querySelector(`[data-ct-part="${parts.length-1}"][data-ct-part-field="title"]`); if(el) el.focus()} return}
   const partDel=q('[data-ct-part-del]'); if(partDel){if(CT.edit&&Array.isArray(CT.edit.form.parts)){CT.edit.form.parts.splice(+partDel.dataset.ctPartDel,1); CT.dp=null; ctDraftSave(); renderBody()} return}
   const partMv=q('[data-ct-part-move]'); if(partMv){if(CT.edit&&Array.isArray(CT.edit.form.parts)){const p=CT.edit.form.parts, i=+partMv.dataset.ctPartMove, j=i+(+partMv.dataset.ctPartDir); if(p[i]&&p[j]){const t=p[i]; p[i]=p[j]; p[j]=t; CT.dp=null; ctDraftSave(); renderBody()}} return}
-  const dpBtn=q('[data-ctdp]'); if(dpBtn){if(!CT.edit) return; const f=dpBtn.dataset.ctdp, cur=ctJDate(ctDpValue(f)), t=jToday(); CT.dp=CT.dp&&CT.dp.f===f?null:{f:f,y:(cur?cur.j:t).jy,m:(cur?cur.j:t).jm}; renderBody(); return}
+  const dpBtn=q('[data-ctdp]'); if(dpBtn){if(!CT.edit) return; const f=dpBtn.dataset.ctdp, cur=ctJDate(ctDpValue(f))||ctJDate(CT.edit.form.startsAt)||ctJDate(CT.edit.form.on), t=jToday(); CT.dp=CT.dp&&CT.dp.f===f?null:{f:f,y:(cur?cur.j:t).jy,m:(cur?cur.j:t).jm}; renderBody(); return}
   const dpMv=q('[data-ctdp-mv]'); if(dpMv){if(!CT.dp) return; let y=+CT.dp.y, m=+CT.dp.m+(+dpMv.dataset.ctdpMv); if(m<1){m=12; y--} if(m>12){m=1; y++} CT.dp={f:CT.dp.f,y:y,m:m}; renderBody(); return}
   const dpDay=q('[data-ctdp-day]'); if(dpDay){if(!CT.dp||!CT.edit) return; const f=CT.dp.f; ctDpSet(f,ctDateWithDay(f,+CT.dp.y,+CT.dp.m,+dpDay.dataset.ctdpDay)); CT.dp=null; ctDraftSave(); renderBody(); const el=document.getElementById('ctf_'+f); if(el) el.focus(); return}
   if(q('[data-ctdp-today]')){if(!CT.dp||!CT.edit) return; const f=CT.dp.f, t=jToday(); ctDpSet(f,ctDateWithDay(f,t.jy,t.jm,t.jd)); CT.dp=null; ctDraftSave(); renderBody(); return}
