@@ -391,6 +391,16 @@ def access_state(row: RecordingAccessRecord | None, now: datetime) -> str:
     return "active" if row.status == "active" else row.status
 
 
+def active_holders(db: Session, recording_id: str, now: datetime) -> list[str]:
+    """Account ids whose access to the product is *active now* (status + expiry evaluated)."""
+    rows = db.scalars(
+        select(RecordingAccessRecord).where(
+            RecordingAccessRecord.recording_id == recording_id, RecordingAccessRecord.status == "active",
+        )
+    ).all()
+    return [row.account_id for row in rows if access_state(row, now) == "active"]
+
+
 def access_for(db: Session, recording_id: str, account_id: str | None) -> RecordingAccessRecord | None:
     if not account_id:
         return None

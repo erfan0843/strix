@@ -53,6 +53,7 @@ async function loadProductionSession(identity) {
     {id:2,created_at:'2026-10-03T09:05:00+00:00',actor_kind:'account',actor_id:'acc-01',actor_role:'manager',action:'workflow.decide',
       target_type:'admin_task',target_id:'00000000-0000-4000-8000-000000000009',outcome:'ok',details:{kind:'receipt_review',decision:'rejected',has_reason:true}},
   ];
+  let schedRuns = 0;
   let workflowTasks = [
     {id:'00000000-0000-4000-8000-000000000001',account_id:'acc-01',bale_user_id:'73421',kind:'profile_review',
       payload:{full_name:'آزمایش زنده',file_refs:['00000000-0000-4000-8000-000000000101']},
@@ -148,11 +149,29 @@ async function loadProductionSession(identity) {
             { id: '10000000-0000-4000-8000-000000000001', kind: 'recording_access', title: 'دسترسی فعال شد', body: 'دسترسی شما فعال شد.', created_at: '2026-10-22T08:00:00+00:00', delivery_status: 'pending', delivery_state: 'queued', delivery_attempts: 0, last_delivery_error: '', delivered_at: null, link: '/event.html?id=ev-1#recording', account_id: 'acc-h1', account_label: 'مینا ر.', has_bale_identity: true, dedupe_key: 'recording_access:a:granted:-:first', read: false, file_refs: [] },
             { id: '10000000-0000-4000-8000-000000000002', kind: 'recording_content', title: 'جلسهٔ تازه', body: 'جلسهٔ تازه منتشر شد.', created_at: '2026-10-22T07:00:00+00:00', delivery_status: 'pending', delivery_state: 'retrying', delivery_attempts: 2, last_delivery_error: 'bot_send_failed', delivered_at: null, link: '/event.html?id=ev-1#recording', account_id: 'acc-h2', account_label: '', has_bale_identity: true, dedupe_key: 'recording_content:session:s1:acc-h2', read: false, file_refs: [] },
             { id: '10000000-0000-4000-8000-000000000003', kind: 'certificate', title: 'گواهی صادر شد', body: 'گواهی شما صادر شد.', created_at: '2026-10-22T06:00:00+00:00', delivery_status: 'failed', delivery_state: 'failed', delivery_attempts: 0, last_delivery_error: 'no_bale_identity', delivered_at: null, link: '/account.html#certificates', account_id: 'acc-web', account_label: 'حساب وب', has_bale_identity: false, dedupe_key: 'certificate:k1:issued', read: false, file_refs: [] },
+            { id: '10000000-0000-4000-8000-000000000005', kind: 'recording_content', title: 'فایل تازه', body: 'فایل تازه منتشر شد.', created_at: '2026-10-22T04:30:00+00:00', delivery_status: 'failed', delivery_state: 'failed', delivery_attempts: 5, last_delivery_error: 'provider_delivery_failed', delivered_at: null, link: '/event.html?id=ev-1#recording', account_id: 'acc-h3', account_label: '', has_bale_identity: true, dedupe_key: 'recording_content:resource:r9:acc-h3', read: false, file_refs: [] },
             { id: '10000000-0000-4000-8000-000000000004', kind: 'recording_order', title: 'سفارش رد شد', body: 'سفارش رد شد.', created_at: '2026-10-22T05:00:00+00:00', delivery_status: 'delivered', delivery_state: 'delivered', delivery_attempts: 1, last_delivery_error: '', delivered_at: '2026-10-22T05:01:00+00:00', link: '/account.html#orders', account_id: 'acc-h3', account_label: 'امید ن.', has_bale_identity: true, dedupe_key: 'recording_order:o1:rejected:-', read: true, file_refs: [] },
           ];
           const state = params.get('state') || '';
           const items = all.filter(item => !state || (state === 'no_bale_identity' ? item.last_delivery_error === 'no_bale_identity' : item.delivery_state === state && item.last_delivery_error !== 'no_bale_identity'));
-          return reply(200, { source: 'shared_server_database', items, has_more: false, counts: { queued: 1, retrying: 1, delivered: 1, failed: 0, no_bale_identity: 1 }, limit: 30, offset: 0 });
+          return reply(200, { source: 'shared_server_database', items, has_more: false, counts: { queued: 1, retrying: 1, delivered: 1, failed: 1, no_bale_identity: 1 }, limit: 30, offset: 0 });
+        }
+        /* Phase 9.5 §8: retry re-queues the SAME row (server answers the updated view; no second row). */
+        const retryPath = path.match(/^\/api\/admin\/notifications\/([0-9a-f-]{36})\/retry$/);
+        if (retryPath && method === 'POST') {
+          if (!(identity.permissions || rolePermissions(identity.role)).includes('ev_publish')) return reply(403, { detail: 'permission_denied' });
+          if (retryPath[1] === '10000000-0000-4000-8000-000000000003') return reply(409, { detail: { code: 'no_bale_identity' } });
+          return reply(200, { id: retryPath[1], kind: 'recording_content', title: 'فایل تازه', body: 'فایل تازه منتشر شد.', created_at: '2026-10-22T04:30:00+00:00', delivery_status: 'pending', delivery_state: 'queued', delivery_attempts: 0, last_delivery_error: null, delivered_at: null, link: '/event.html?id=ev-1#recording', account_id: 'acc-h3', account_label: '', has_bale_identity: true, read: false, file_refs: [] });
+        }
+        /* Phase 9.5 §8.2: scheduled-publish monitor + manual run (ev_publish). */
+        if (path === '/api/admin/scheduled-publish' && method === 'GET') {
+          return reply(200, { now: '2026-10-22T09:30:00+00:00', last_run: schedRuns ? { at: '2026-10-22T09:25:00+00:00', ok: true, actor: schedRuns > 1 ? 'owner:acc-owner' : 'cli', due: 1, announced: 1, notified: 3, skipped: 0, errors: 0 } : null,
+            pending: { future: 2, due_unannounced: schedRuns ? 0 : 1 }, runner: { interval_hint: 'systemd timer (5 min)', manual: 'POST /api/admin/scheduled-publish/run' } });
+        }
+        if (path === '/api/admin/scheduled-publish/run' && method === 'POST') {
+          if (!(identity.permissions || rolePermissions(identity.role)).includes('ev_publish')) return reply(403, { detail: 'permission_denied' });
+          schedRuns += 1;
+          return reply(200, { ok: true, actor: 'owner:acc-owner', due: 1, announced: 1, notified: 3, skipped: 0, errors: 0, at: '2026-10-22T09:31:00+00:00' });
         }
         if (path === '/api/admin/integrity/recordings') {
           return reply(200, { generated_at: '2026-10-22T09:00:00+00:00', read_only: true,
@@ -321,7 +340,7 @@ console.log('— نقش حساب از نشست سرور —');
 
     /* فاز ۹.۴ §۸: صندوق خروجی اعلان‌ها در همان صفحهٔ گزارش (rp_view) — صف/تلاش دوباره/تحویل/ناموفق/بدون هویت بله از سرور. */
     await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?limit=30'), 'خواندن صندوق خروجی');
-    await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 4, 'چهار ردیف صندوق خروجی');
+    await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 5, 'پنج ردیف صندوق خروجی');
     const outbox = app.doc.querySelector('[data-server-outbox]');
     assert.equal(outbox.querySelector('[data-server-outbox-row][data-server-outbox-state-row="queued"]').textContent.includes('در صف'), true);
     assert.match(outbox.querySelector('[data-server-outbox-state-row="retrying"]').textContent, /۲ تلاش/, 'شمار تلاش‌ها دیده می‌شود');
@@ -330,6 +349,35 @@ console.log('— نقش حساب از نشست سرور —');
     assert.match(outbox.querySelector('[data-server-outbox-state-row="delivered"]').textContent, /تحویل‌شده/);
     assert.match(outbox.querySelector('[data-server-outbox-state="no_bale_identity"]').textContent, /۱/, 'شمارندهٔ وضعیت از counts سرور');
     assert.doesNotMatch(outbox.textContent, /dedupe_key|recording_access:a:granted|4411/, 'کلید داخلی و شناسهٔ خام بله نمایش داده نمی‌شود');
+    /* فاز ۹.۵ §۸: دکمهٔ «تلاش دوبارهٔ ارسال» فقط روی ردیف ناموفقِ دارای هویت بله؛ نه روی «بدون هویت بله»، نه روی در صف/تحویل‌شده. */
+    assert.equal(outbox.querySelectorAll('[data-server-outbox-retry]').length, 1, 'فقط یک ردیف قابل صف‌گذاری دوباره');
+    assert.equal(outbox.querySelector('[data-server-outbox-retry]').dataset.serverOutboxRetry, '10000000-0000-4000-8000-000000000005');
+    assert.equal(outbox.querySelector('[data-server-outbox-state-row="no_bale_identity"] [data-server-outbox-retry]'), null, 'بدون هویت بله دکمهٔ تلاش ندارد');
+    app.click('[data-server-outbox-retry]');
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications/10000000-0000-4000-8000-000000000005/retry' && call.method === 'POST'), 'درخواست صف‌گذاری دوباره');
+    const retryCall = app.calls.find(call => call.path === '/api/admin/notifications/10000000-0000-4000-8000-000000000005/retry');
+    assert.equal(retryCall.options.headers['X-CSRF-Token'], 'account-csrf', 'نوشتن با CSRF');
+    await app.until(() => app.doc.querySelector('[data-server-outbox-row="10000000-0000-4000-8000-000000000005"]')?.dataset.serverOutboxStateRow === 'queued', 'همان ردیف به «در صف» برگشت');
+    assert.equal(app.doc.querySelectorAll('[data-server-outbox-row]').length, 5, 'ردیف تازه‌ای ساخته نشد');
+    assert.match(app.doc.querySelector('[data-server-outbox]').textContent, /ردیف تازه‌ای ساخته نشد/);
+    assert.doesNotMatch(app.doc.querySelector('[data-server-outbox]').textContent, /تحویل شد\b/, 'صف‌گذاری دوباره «تحویل» اعلام نمی‌شود');
+
+    /* فاز ۹.۵ §۸.۲: کارت زمان‌بند — خودکار خوانده می‌شود، «در موعد ولی اعلان‌نشده» هشدار می‌دهد، اجرای دستی همان مسیر سرور است. */
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/scheduled-publish' && call.method === 'GET'), 'خواندن وضعیت زمان‌بند');
+    await app.until(() => app.doc.querySelector('[data-server-sched][data-server-sched-state="stalled"]'), 'وضعیت متوقف‌مانده');
+    const sched = app.doc.querySelector('[data-server-sched]');
+    assert.match(sched.textContent, /هنوز هیچ اجرایی ثبت نشده/, 'بدون اجرای قبلی، موفقیت ادعا نمی‌شود');
+    assert.match(sched.textContent, /تایمر اجرا نشده است/);
+    assert.equal(app.calls.some(call => call.path === '/api/admin/scheduled-publish/run'), false, 'اجرای دستی خودکار نیست');
+    app.click('[data-server-sched-run-now]');
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/scheduled-publish/run' && call.method === 'POST'), 'اجرای دستی');
+    assert.equal(app.calls.find(call => call.path === '/api/admin/scheduled-publish/run').options.headers['X-CSRF-Token'], 'account-csrf');
+    await app.until(() => app.doc.querySelector('[data-server-sched][data-server-sched-state="ok"]'), 'پس از اجرا وضعیت سالم');
+    const schedAfter = app.doc.querySelector('[data-server-sched]');
+    assert.match(schedAfter.querySelector('[data-server-sched-run]').textContent, /تایمر\/خط فرمان|دستی از پنل/);
+    assert.match(schedAfter.querySelector('[data-server-sched-manual]').textContent, /اعلان‌شده ۱/);
+    assert.match(schedAfter.textContent, /زمان‌بندی‌شده برای آینده/);
+
     app.click('[data-server-outbox-state="no_bale_identity"]');
     await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?state=no_bale_identity&limit=30'), 'فیلتر بدون هویت بله');
     await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 1, 'فقط یک ردیف بدون هویت بله');

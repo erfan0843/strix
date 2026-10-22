@@ -41,7 +41,9 @@ let SERVER_REPORT_ERROR='';
 let SERVER_REPORT_PERIOD='30d';
 let SERVER_REPORT_REQUEST=0;
 /* فاز ۹.۴ §۸: فهرست صندوق خروجی اعلان‌ها (فقط خواندن؛ rp_view در backend). ثبت ≠ ارسال ≠ تحویل. */
-const SERVER_OUTBOX={items:[],counts:null,state:'',loaded:false,loading:false,error:'',more:false,request:0};
+const SERVER_OUTBOX={items:[],counts:null,state:'',loaded:false,loading:false,error:'',more:false,request:0,retrying:'',notice:null};
+/* فاز ۹.۵ §۸.۲: وضعیت زمان‌بند انتشار (آخرین اجرای تایمر/دستی + ردیف‌های در انتظار) ؛ فقط از API سرور */
+const SERVER_SCHED={data:null,loading:false,running:false,error:'',loaded:false};
 const SERVER_INTEGRITY={report:null,loading:false,error:'',request:0};
 const SERVER_OUTBOX_STATES=[['','همه'],['queued','در صف'],['retrying','تلاش دوباره'],['delivered','تحویل‌شده'],['failed','ناموفق'],['no_bale_identity','بدون هویت بله']];
 let SERVER_HEALTH=null;
@@ -1770,15 +1772,66 @@ function vServerOutbox(){
   const rows=o.items.map(item=>`<div class="admlirow" data-server-outbox-row="${esc(item.id)}" data-server-outbox-state-row="${esc(item.last_delivery_error==='no_bale_identity'?'no_bale_identity':item.delivery_state||'')}">
       <span class="sp"><b>${esc(item.title||'اعلان')}</b> <span class="mini">${esc(kinds[item.kind]||item.kind||'')}</span>
         <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
-      ${stateTag(item)}</div>`).join('');
+      ${stateTag(item)}${item.delivery_state==='failed'&&item.last_delivery_error!=='no_bale_identity'&&canPerm('ev_publish')?btn(o.retrying===item.id?'در حال صف‌گذاری…':'تلاش دوبارهٔ ارسال',`data-server-outbox-retry="${esc(item.id)}" ${o.retrying?'disabled':''}`,'i-refresh'):''}</div>`).join('');
+  const notice=o.notice?p2Msg(o.notice):'';
   const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن صندوق خروجی از سرور…</p>`
     :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-outbox-refresh','i-refresh')}</div>`
     :rows||`<p class="cap">در این وضعیت اعلانی ثبت نشده است.</p>`;
   return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
     <p class="cap">هر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست. ارسال واقعی بله فقط با ربات زنده انجام می‌شود.</p>
     <div class="admfilters" role="group" aria-label="وضعیت اعلان">${chips}</div>
-    <div class="admlist">${body}</div>
+    ${notice}<div class="admlist">${body}</div>
     ${o.more?`<div class="row"><span class="sp"></span>${btn('اعلان‌های بیشتر','data-server-outbox-more','i-chev-left')}</div>`:''}
+  </section>`;
+}
+async function retryServerOutbox(id){
+  const api=window.NORA_SERVER_API, o=SERVER_OUTBOX;
+  if(o.retrying||!api||typeof api.retryAdminNotification!=='function'||!canPerm('ev_publish')) return;
+  const item=o.items.find(r=>r.id===id); if(!item||item.delivery_state!=='failed') return;
+  o.retrying=id; o.notice=null; renderBody();
+  try{
+    const updated=await api.retryAdminNotification(id,staffCsrfCookie());
+    if(!updated||updated.id!==id) throw new Error('invalid_retry');
+    Object.assign(item,updated); /* همان ردیف؛ ردیف تازه‌ای ساخته نمی‌شود */
+    o.notice={kind:'ok',text:'همان اعلان دوباره در صف ربات قرار گرفت (ردیف تازه‌ای ساخته نشد). تحویل واقعی فقط با ربات زنده انجام و جداگانه ثبت می‌شود.'};
+    if(o.counts){o.counts.failed=Math.max(0,(o.counts.failed||0)-1); o.counts.queued=(o.counts.queued||0)+1}
+  }catch(error){
+    const code=error&&error.payload&&error.payload.detail&&error.payload.detail.code;
+    o.notice={kind:'stop',text:code==='no_bale_identity'?'این حساب هنوز هویت بلهٔ تأییدشده ندارد؛ تا پیوند حساب، ارسال ممکن نیست (خطای شبکه نیست).'
+      :code==='already_delivered'?'این اعلان قبلاً تحویل شده است؛ دوباره فرستاده نمی‌شود.'
+      :code==='notification_not_failed'?'این اعلان هنوز در صف یا در حال تلاش است؛ فقط اعلان‌های ناموفق دوباره صف‌گذاری می‌شوند.'
+      :error&&error.status===403?'مجوز «انتشار رویداد» برای صف‌گذاری دوباره لازم است.':'صف‌گذاری دوباره انجام نشد؛ چیزی تغییر نکرد.'};
+  }finally{o.retrying=''; renderBody()}
+}
+function loadServerSched(){
+  const api=window.NORA_SERVER_API, o=SERVER_SCHED;
+  if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||o.loading||!api||typeof api.getScheduledPublish!=='function') return;
+  o.loading=true; o.error=''; renderBody();
+  Promise.resolve(api.getScheduledPublish()).then(data=>{
+    if(!data||typeof data!=='object'||!data.pending||typeof data.pending!=='object') throw new Error('invalid_sched');
+    o.data=data; o.loaded=true;
+  }).catch(error=>{o.error=error&&error.status===403?'مجوز مشاهدهٔ وضعیت زمان‌بند برای این نقش فعال نیست.':'وضعیت زمان‌بند از سرور خوانده نشد.'; o.loaded=true})
+    .finally(()=>{o.loading=false; renderBody()});
+}
+async function runServerSched(){
+  const api=window.NORA_SERVER_API, o=SERVER_SCHED;
+  if(o.running||!api||typeof api.runScheduledPublish!=='function'||!canPerm('ev_publish')) return;
+  o.running=true; o.error=''; renderBody();
+  try{const summary=await api.runScheduledPublish(staffCsrfCookie()); o.lastManual=summary; o.loaded=false; loadServerSched()}
+  catch(error){o.error=error&&error.status===403?'مجوز «انتشار رویداد» برای اجرای دستی لازم است.':'اجرای دستی زمان‌بند انجام نشد؛ چیزی تغییر نکرد.'}
+  finally{o.running=false; renderBody()}
+}
+function vServerSched(){
+  const o=SERVER_SCHED, d=o.data; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
+  const run=d&&d.last_run;
+  const runLine=run?`آخرین اجرا: ${esc(run.at||'')} · عامل: ${esc(run.actor==='cli'?'تایمر/خط فرمان':run.actor==='timer'?'تایمر':'دستی از پنل')} · ${run.ok?tag('موفق','ok'):tag('با خطا','stop')} · در موعد: ${number(run.due)} · اعلان‌شده: ${number(run.announced)} · اعلان‌های ساخته‌شده: ${number(run.notified)} · نادیده (بدون دارنده): ${number(run.skipped)}`
+    :'هنوز هیچ اجرایی ثبت نشده است؛ تا وقتی تایمر سیستم یا اجرای دستی ثبت نشود، انتشار زمان‌بندی‌شده «اعلان» نمی‌شود (خودِ نمایش محتوا با ساعت سرور محاسبه می‌شود و به زمان‌بند نیاز ندارد).';
+  const pend=d?`<div class="admkpi"><div class="k"><small>زمان‌بندی‌شده برای آینده</small>${bits(number(d.pending.future))}</div><div class="k"><small>در موعد ولی اعلان‌نشده</small>${bits(number(d.pending.due_unannounced))}</div></div>${d.pending.due_unannounced>0?p2Msg({kind:'warn',text:'ردیف‌هایی به موعد رسیده‌اند ولی اعلان نشده‌اند؛ یعنی تایمر اجرا نشده است. «اجرای دستی» همان کار تایمر را یک‌بار انجام می‌دهد (بدون تکرار اعلان).'}):''}`:'';
+  const manual=o.lastManual?`<p class="cap" data-server-sched-manual>اجرای دستی: در موعد ${number(o.lastManual.due)} · اعلان‌شده ${number(o.lastManual.announced)} · اعلان‌های ساخته‌شده ${number(o.lastManual.notified)}</p>`:'';
+  const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن وضعیت زمان‌بند از سرور…</p>`:o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-sched-refresh','i-refresh')}</div>`:d?`${pend}<p class="cap" data-server-sched-run>${runLine}</p>${manual}`:`<p class="cap">وضعیت هنوز خوانده نشده است.</p>`;
+  return `<section class="card stack" data-server-sched data-server-sched-state="${esc(o.loading?'loading':o.error?'error':d?(d.pending.due_unannounced>0?'stalled':'ok'):'idle')}"><div class="row"><div class="head">زمان‌بند انتشار و اعلان محتوا</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-sched-refresh','i-refresh')}${canPerm('ev_publish')?btn(o.running?'در حال اجرا…':'اجرای دستی یک نوبت',`data-server-sched-run-now ${o.running?'disabled':''}`,'i-globe'):''}</div>
+    <p class="cap">منبعِ زمان‌بندی‌شده تا رسیدن زمانش در صفحهٔ رویداد دیده نمی‌شود (محاسبه با ساعت سرور در هر درخواست). اعلان به دارندگان دسترسی را تایمر سیستم (systemd) یا اجرای دستی از همین‌جا انجام می‌دهد؛ هر منبع دقیقاً یک‌بار اعلان می‌شود و اجرای تکراری اثری ندارد.</p>
+    ${body}
   </section>`;
 }
 function loadServerIntegrity(){
@@ -2672,6 +2725,7 @@ function vServerReports(){
       ${error}${loading}</section>
     ${groups?`<div class="admgrid">${groups}</div>`:''}
     ${vServerOutbox()}
+    ${vServerSched()}
     ${vServerIntegrity()}
     <p class="cap">گزارش مالی، رویداد، حضور و باشگاه از این API ساخته نمی‌شود تا زمانی که همان داده‌ها نیز به پایگاه مشترک وصل شوند؛ هیچ‌کدام با عدد محلی جایگزین نشده‌اند.</p>
   </div>`;
@@ -8742,6 +8796,7 @@ function renderBody(){
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){
     loadServerReports(false); return;
   }
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')&&!SERVER_SCHED.loading&&!SERVER_SCHED.loaded) loadServerSched();
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')&&!SERVER_OUTBOX.loading&&!SERVER_OUTBOX.loaded){
     loadServerOutbox(false); return;
   }
@@ -9039,6 +9094,9 @@ document.addEventListener('click',e=>{
   }
   if(q('[data-server-outbox-refresh]')){SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error=''; loadServerOutbox(); return}
   if(q('[data-server-outbox-more]')){loadServerOutbox(true); return}
+  const outboxRetry=q('[data-server-outbox-retry]'); if(outboxRetry){retryServerOutbox(outboxRetry.dataset.serverOutboxRetry); return}
+  if(q('[data-server-sched-refresh]')){SERVER_SCHED.loaded=false; loadServerSched(); return}
+  if(q('[data-server-sched-run-now]')){runServerSched(); return}
   if(q('[data-server-integrity-run]')){loadServerIntegrity(); return}
   if(q('[data-ei-health-run]')){eiLoadStorageHealth(); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}

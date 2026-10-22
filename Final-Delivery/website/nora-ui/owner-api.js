@@ -603,6 +603,16 @@
     },
     /* Phase 9.5 §3: read-only purchase-chain audit (ids only; the server never fixes anything). */
     getRecordingIntegrity: () => request('/api/admin/integrity/recordings'),
+    /* Phase 9.5 §8: re-queue one failed outbox row (same row, never a second one) — ev_publish on the server. */
+    retryAdminNotification: (notificationId, csrfCookieName) => request(
+      '/api/admin/notifications/' + recordId(notificationId) + '/retry', {
+        method: 'POST', body: {}, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    /* Phase 9.5 §8.2: scheduled-publish monitor (last timer run + pending rows) and the manual run. */
+    getScheduledPublish: () => request('/api/admin/scheduled-publish'),
+    runScheduledPublish: csrfCookieName => request('/api/admin/scheduled-publish/run', {
+      method: 'POST', body: {}, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+    }),
     getReportSummary: period => {
       const allowed = ['7d', '30d', '90d', '365d', 'all'];
       const selected = allowed.includes(String(period)) ? String(period) : '30d';

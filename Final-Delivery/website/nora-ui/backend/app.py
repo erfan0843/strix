@@ -54,6 +54,7 @@ from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
 from . import event_interaction as interaction_mod
 from . import recordings as recordings_mod
+from . import scheduled_publish as scheduled_publish_mod
 from . import integrity as integrity_mod
 from . import upload_sessions as upload_mod
 from . import event_time
@@ -4036,6 +4037,9 @@ def create_app(
             if before[key] != after[key]:
                 details[f"{key}_before"] = before[key]
                 details[f"{key}_after"] = after[key]
+        if before["status"] == "published" and record.status != "published":
+            # Back to draft: a later re-publish is a new announcement decision (dedupe key still guards the outbox).
+            record.announced_at = None
         if before["status"] != "published" and record.status == "published" and record.session_id:
             now = _utc_now()
             live_now = record.publish_at is None or _as_utc(record.publish_at) <= now
@@ -4048,6 +4052,10 @@ def create_app(
                 details["notified_holders"] = _notify_content_published(
                     db, product, what="resource", target_id=record.id, title_text=record.title, now=now,
                 )
+                record.announced_at = now
+            elif not live_now:
+                # Scheduled: nothing is visible yet; the scheduler (timer / manual run) announces at publish_at.
+                details["scheduled_announcement"] = True
         record_audit(
             db, identity, "event_resource.update", target_type="event_resource", target_id=record.id,
             details=details,
@@ -5133,35 +5141,12 @@ def create_app(
     def _notify_content_published(
         db: Session, recording: EventRecordingRecord, *, what: str, target_id: str, title_text: str, now: datetime,
     ) -> int:
-        """New session/resource went live for a published product: one row per *active* access holder.
-
-        Real data path only: the product must be on sale/published and the content live now (a
-        scheduled ``publish_at`` in the future is not announced — nothing is visible yet). Key
-        ``recording_content:<what>:<id>:<account>`` so re-publishing after a draft round-trip or
-        a double click never duplicates.
-        """
-        if recording.status != "published":
-            return 0
-        holders = db.scalars(
-            select(RecordingAccessRecord).where(
-                RecordingAccessRecord.recording_id == recording.id, RecordingAccessRecord.status == "active",
-            )
-        ).all()
-        account_ids = [row.account_id for row in holders if recordings_mod.access_state(row, now) == "active"]
-        if not account_ids:
-            return 0
-        product = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
-        noun = "جلسهٔ تازه" if what == "session" else "فایل/منبع تازه"
-        body = (f"{noun} «{title_text}» برای «{product}» منتشر شد.\n"
-                "برای مشاهده به صفحهٔ همان رویداد یا بخش «محتوای من» در حساب کاربری بروید.")
-        created = notifications_mod.fan_out(
-            db, account_ids=account_ids, kind=notifications_mod.KIND_CONTENT_PUBLISHED,
-            title="محتوای تازه در محصول خریداری‌شده", body=body,
-            key_for=lambda account_id: notifications_mod.dedupe_key("recording_content", what, target_id, account_id),
+        """Phase 9.5: thin wrapper over the module-level fan-out shared with the scheduler."""
+        return scheduled_publish_mod.notify_content_published(
+            db, recording, what=what, target_id=target_id, title_text=title_text, now=now,
             bale_ids_for=lambda account_id: verified_bale_ids_for_account(db, account_id),
-            link=notifications_mod.event_link(recording.event_id, anchor="recording"),
+            event_title_for=lambda event_id: _recording_event_title(db, event_id),
         )
-        return len(created)
 
     def _queue_recording_order_notification(
         db: Session, order: RecordingOrderRecord, *, title: str, body: str,
@@ -8522,6 +8507,81 @@ def create_app(
             items.append(view)
         return {"source": "shared_server_database", "items": items, "has_more": len(rows) > limit, "counts": counts,
                 "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/notifications/{notification_id}/retry")
+    def admin_retry_notification(
+        notification_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_publish")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §8: re-queue a *failed* outbox row — the same row, never a second one.
+
+        The Bale target is re-resolved from the server-side identity table, so a ``no_bale_identity``
+        row becomes deliverable only if the account has linked Bale since; otherwise 409 with the
+        same honest code. Delivered rows are never touched. Audited with actor and previous state.
+        """
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", notification_id):
+            raise HTTPException(404, {"code": "notification_not_found"})
+        item = db.get(UserNotificationRecord, notification_id)
+        if item is None:
+            raise HTTPException(404, {"code": "notification_not_found"})
+        if item.delivery_status == "delivered":
+            raise HTTPException(409, {"code": "already_delivered"})
+        if item.delivery_status != "failed":
+            raise HTTPException(409, {"code": "notification_not_failed", "state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts)})
+        bale_ids = verified_bale_ids_for_account(db, item.account_id)
+        if not bale_ids:
+            raise HTTPException(409, {"code": "no_bale_identity"})
+        previous_attempts, previous_error = item.delivery_attempts, (item.last_delivery_error or "")[:80]
+        item.bale_user_id = str(bale_ids[0])
+        item.delivery_status = "pending"
+        item.delivery_attempts = 0
+        item.last_delivery_error = None
+        record_audit(
+            db, identity, "notification.retry", target_type="user_notification", target_id=item.id,
+            details={"kind": item.kind, "previous_attempts": previous_attempts, "previous_error": previous_error},
+        )
+        db.commit()
+        db.refresh(item)
+        view = user_notification_view(item)
+        view.pop("bale_user_id", None)
+        view["has_bale_identity"] = True
+        view["account_id"] = item.account_id
+        return view
+
+    @app.get("/api/admin/scheduled-publish")
+    def admin_scheduled_publish_state(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("rp_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §8.2: last scheduler run (marker) + how many scheduled rows wait. Read-only."""
+        response.headers["Cache-Control"] = "private, no-store"
+        now = _utc_now()
+        marker = db.get(SystemMarkerRecord, scheduled_publish_mod.MARKER_KEY)
+        return {
+            "now": now.isoformat(),
+            "last_run": ({"at": interaction_mod.iso(marker.updated_at), **(marker.value if isinstance(marker.value, dict) else {})}
+                         if marker is not None else None),
+            "pending": scheduled_publish_mod.pending_count(db, now),
+            "runner": "systemd timer or manual run; the web process does not run a background scheduler",
+        }
+
+    @app.post("/api/admin/scheduled-publish/run")
+    def admin_scheduled_publish_run(
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_publish")),
+        db: Session = Depends(get_db),
+    ):
+        """Run one announcement pass now (same function as the timer); idempotent; audited."""
+        actor_kind, actor_id = _interaction_actor(identity)
+        summary = scheduled_publish_mod.announce_due(db, _utc_now(), actor=f"{actor_kind}:{actor_id}"[:40])
+        record_audit(
+            db, identity, "scheduled_publish.run", target_type="system_marker", target_id=scheduled_publish_mod.MARKER_KEY,
+            details={"due": summary["due"], "announced": summary["announced"], "notified": summary["notified"],
+                     "skipped": summary["skipped"], "ok": summary["ok"]},
+        )
+        db.commit()
+        return summary
 
     @app.post("/api/bot/reports/summary")
     async def bot_admin_reports_summary(
