@@ -8217,7 +8217,11 @@ function serverContentView(){
 async function ctOpenEditor(id){
   const api=window.NORA_SERVER_API;
   CT.dp=null;
-  if(!id){CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.edit.draft=ctDraftPeek(); CT.msg=null; renderBody(); return}
+  if(!id){CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.edit.draft=ctDraftPeek(); CT.msg=null;
+    /* پیش‌فرض یادآورها از تنظیمات سروری مالک (events.reminders_default)؛ فقط برای رویداد تازه و فقط اگر مقدار از سرور آمده باشد */
+    if(CT.kind==='events'&&typeof sysCan==='function'&&sysCan()){const apply=()=>{const d=sysValue('events.reminders_default'); if(CT.edit&&!CT.edit.id&&d&&typeof d==='object'){CT.edit.form.remH24=d.h24===true; CT.edit.form.remH1=d.h1===true; CT.edit.remDefault=true;}};
+      if(SYS.loaded) apply(); else if(!SYS.error) sysLoad(false).then(()=>{if(SYS.loaded){apply(); if(CT.edit&&!CT.edit.id) renderBody()}});}
+    renderBody(); return}
   CT.busy='load'; renderBody();
   try{
     const result=await api.getAdminContent(CT.kind,id);
@@ -9668,50 +9672,245 @@ document.addEventListener('click',e=>{
   if(hit('[data-data-delete-yes]')){e.preventDefault(); dataDelete(hit('[data-data-delete-yes]').dataset.dataDeleteYes); return}
   if(hit('[data-data-delete-no]')){e.preventDefault(); DATA_CONFIRM=''; renderBody(); return}
   if(hit('[data-data-delete]')){e.preventDefault(); DATA_CONFIRM=hit('[data-data-delete]').dataset.dataDelete; DATA_MSG=null; renderBody(); return}
+  /* تنظیمات (طرح نورا): کاشی‌ها، میان‌برهای واقعی و انبار تنظیمات سروری */
+  if(hit('[data-sset-go]')){e.preventDefault(); const g=hit('[data-sset-go]').dataset.ssetGo; if(!isOwner()&&!canPerm('sys_settings')){toast('این کاشی فقط با مجوز «تنظیمات سامانه» باز می‌شود'); return} S.sec='settings'; S.setG=g; SYS.msg=null; save(); renderBody(); return}
+  if(hit('[data-sset-act]')){e.preventDefault(); const a=hit('[data-sset-act]').dataset.ssetAct;
+    if(a==='users-staff'){if(!isOwner()){toast('مدیریت نقش حساب‌ها فقط برای مالک است');return} S.sec='users';S.uHub='users';S.uV='tools';S.uTool='staff';save();render(); if(!SERVER_ROLE_LOADED)loadServerRoleAccounts(false); return}
+    if(a==='club'){S.sec='users';S.uHub='users';S.uV='club';save();render();return}
+    if(a==='cert'){if(!canPerm('certificate')){toast('مجوز گواهینامه برای این نقش فعال نیست'); return} S.sec='users';S.uHub='users';S.uV='cert';save();render();return}
+    if(a==='att'){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} S.sec='users';S.uHub='users';S.uV='att';save();render();return}
+    if(a==='outbox'){if(!canPerm('rp_view')){toast('مجوز «دیدن گزارش‌ها» لازم است'); return} S.sec='users';S.uHub='users';S.uV='tools';S.uTool='inbox';save();render();return}
+    if(a==='events'){go('events'); return}
+    return}
+  if(hit('[data-sset-pay]')){e.preventDefault(); if(!isOwner()){toast('تنظیمات درگاه فقط با مالک است'); return} S.setG='money'; SERVICE_TAB='payment'; SERVICE_MSG=null; save(); renderBody(); return}
+  if(hit('[data-sys-reload]')){e.preventDefault(); SYS.msg=null; SYS.error=''; sysLoad(true); return}
+  if(hit('[data-sys-cancel]')){e.preventDefault(); SYS.draft={}; SYS.msg=null; renderBody(); return}
+  if(hit('[data-sys-save]')){e.preventDefault(); sysSave(); return}
+  if(hit('[data-sys-switch]')){e.preventDefault(); const sw=hit('[data-sys-switch]'); if(SYS.busy||!SYS.loaded) return;
+    const key=sw.dataset.sysSwitch, slot=sw.dataset.sysSlot, cur=Object.assign({},sysDraft(key)||{}); cur[slot]=!cur[slot]; SYS.draft[key]=cur; SYS.msg=null; renderBody(); return}
   if(hit('[data-goto-service-payment]')){e.preventDefault(); S.sec='settings'; S.setG='services'; SERVICE_TAB='payment'; SERVICE_MSG=null; render(); return}
   if(hit('[data-goto-service]')){e.preventDefault(); if(!isOwner()){toast('تنظیمات سرویس فقط با مالک است'); return} S.sec='settings'; S.setG='services'; SERVICE_TAB=hit('[data-goto-service]').dataset.gotoService||'bale'; SERVICE_MSG=null; render(); return}
 });
+document.addEventListener('input',e=>{
+  const inp=e.target&&e.target.closest&&e.target.closest('[data-sys-text]'); if(!inp) return;
+  const key=inp.dataset.sysText; SYS.draft[key]=inp.value; SYS.msg=null;
+  const bar=document.querySelector('[data-sys-bar]'); if(bar){const dirty=sysDirty(); const sv=bar.querySelector('[data-sys-save]'); if(sv) sv.toggleAttribute('disabled',!dirty||SYS.busy);}
+});
 
-function serverSettingsView(){
-  const defs=[
-    ['services','اتصال سرویس‌ها','i-send'],
-    ['deploy','دامنه و راه‌اندازی','i-globe'],
-    ['data','داده‌ها و مهاجرت','i-layers'],
-    ['security','امنیت و دسترسی‌ها','i-shield'],
-    ['publishing','محتوای عمومی و همکاری','i-doc'],
-    ['people','استادان و افراد سایت','i-users'],
-    ['performance','سلامت و سرعت','i-trend']
-  ];
-  /* وضعیت واقعی بله (توکن، آزمایش اتصال، تحویل) در «اتصال سرویس‌ها» از API مالک خوانده می‌شود؛
-     اسکلت عمومی /api/integrations/status همیشه «وصل نیست» می‌گفت و دیگر در پنل نمایش داده نمی‌شود. */
-  const selected=S.setG==='texts'?'publishing':S.setG==='bots'?'services':defs.some(x=>x[0]===S.setG)?S.setG:'services';
-  if(S.setG!==selected){S.setG=selected;save()}
-  const tabs=defs.map(([key,title,icon])=>`<button class="chip ${selected===key?'on':''}" data-setg="${key}">
-    ${ico(icon)}<span>${esc(title)}</span></button>`).join('');
+/* ══ تنظیمات (بازگردانی طرح نورا ۱۴۰۵/۰۸/۰۱) ═══════════════════════════════
+   ساختار همان vSettings مرجع است: کاشی‌های حوزه در بالا (SKIN_TILES، همان نام و ترتیب)،
+   زیرش شش گروه (متن‌ها، مالی و کارمزد، گواهینامه، بلیت، اعلان‌ها، داده و پشتیبان) با بخش‌بند
+   کارتی. ولی هیچ کلیدی از data.js/localStorage خوانده یا در آن ذخیره نمی‌شود: هر گزینه یکی از
+   چهار وضعیت را دارد و فقط گزینه‌های «متصل» کنترل زنده دارند؛ بقیه فقط با توضیح دلیل می‌آیند.
+     live     → endpoint واقعی دارد (خواندن/ذخیره/بازخوانی سمت سرور)
+     builder  → به‌ازای هر فرم در فرم‌ساز تنظیم می‌شود (نه سراسری)
+     backend  → رفتار روشن است ولی سرویس/endpoint سمت سرور هنوز نیست
+     decision → تصمیم محصولی/زیرساختی مالک لازم است
+     scope    → خارج از دامنهٔ نسخهٔ فعلی
+   ماژول‌های قبلی (اتصال سرویس‌ها، دامنه، داده‌ها و مهاجرت، امنیت، محتوای عمومی، افراد، سلامت)
+   حذف نشده‌اند؛ هرکدام زیر گروه یا کاشیِ هم‌معنای خودش رندر می‌شود (کلید S.setG همان کلید قبلی می‌ماند). */
+const SSET_GROUPS=[
+  {k:'texts', n:'متن‌ها', i:'i-doc', s:'همهٔ پیام‌ها و برچسب‌ها'},
+  {k:'money', n:'مالی و کارمزد', i:'i-wallet', s:'درگاه، کارمزد و بازگشت', own:1},
+  {k:'cert',  n:'گواهینامه', i:'i-medal', s:'قالب، امضا، مهر و استعلام'},
+  {k:'ticket',n:'بلیت', i:'i-ticket', s:'چیدمان، لوگو و اندازه'},
+  {k:'notify',n:'اعلان‌ها', i:'i-bell', s:'یادآور، مناسبت و ساعت سکوت'},
+  {k:'data',  n:'داده و پشتیبان', i:'i-layers', s:'پشتیبان، بازگردانی و کلیدها'}];
+/* برگ انتخاب‌شده (S.setG) → گروه یا کاشی. کلیدهای قدیمی پنل سروری هم همین‌جا نگاشت می‌شوند تا
+   میان‌برها (#money، data-goto-service، data-ct-pick-manage) و آزمون‌ها بی‌تغییر کار کنند. */
+const SSET_LEAF={texts:{g:'texts'},money:{g:'money'},receipts:{g:'money'},cert:{g:'cert'},ticket:{g:'ticket'},notify:{g:'notify'},
+  data:{g:'data'},services:{g:'data'},bots:{g:'data'},
+  publishing:{t:'skin'},people:{t:'people'},deploy:{t:'ops'},security:{t:'ops'},performance:{t:'ops'},chat:{t:'chat'}};
+const SSET_STATUS={live:['متصل به سرور','ok'],builder:['به‌ازای هر فرم در فرم‌ساز',''],backend:['نیازمند بک‌اند','warn'],decision:['نیازمند تصمیم مالک','warn'],scope:['خارج از دامنهٔ این نسخه','']};
+/* یک ردیف گزینه: نام، شرح رفتار، وضعیت و (فقط برای live) کنترل واقعی */
+function ssetRow(label,status,why,control,attrs){
+  const st=SSET_STATUS[status]||SSET_STATUS.decision;
+  return `<div class="admsw" data-sset-row="${esc(status)}" ${attrs||''}><span class="sp"><b>${esc(label)}</b>${why?`<small>${esc(why)}</small>`:''}</span>
+    ${control||''}${tag(st[0],st[1])}</div>`;
+}
+/* ── انبار تنظیمات سروری: GET/PUT /api/owner/settings (کلیدهای allowlist با مصرف‌کنندهٔ واقعی) ── */
+const SYS={loading:false,loaded:false,error:'',items:[],draft:{},busy:false,msg:null,forbidden:false};
+function sysItem(key){return (SYS.items||[]).find(x=>x.key===key)||null}
+function sysValue(key){const it=sysItem(key); return it?it.value:undefined}
+function sysDraft(key){return Object.prototype.hasOwnProperty.call(SYS.draft,key)?SYS.draft[key]:sysValue(key)}
+function sysDirty(){return Object.keys(SYS.draft).some(k=>JSON.stringify(SYS.draft[k])!==JSON.stringify(sysValue(k)))}
+function sysCan(){return !!SERVER_AUTH&&(isOwner()||canPerm('sys_settings'))}
+async function sysLoad(force){
+  if(IS_TEST||!sysCan()||SYS.loading||(SYS.loaded&&!force)) return;
+  SYS.loading=true; SYS.error=''; if(S.sec==='settings') renderBody();
+  try{
+    const response=await fetch('/api/owner/settings',{credentials:'same-origin',headers:{'Accept':'application/json'}});
+    if(response.status===401||response.status===403){SYS.forbidden=true; SYS.error='این بخش فقط با مجوز «تنظیمات سامانه» در دسترس است.';}
+    else if(!response.ok) SYS.error='دریافت تنظیمات از سرور انجام نشد.';
+    else{const data=await response.json(); SYS.items=Array.isArray(data.items)?data.items:[]; SYS.loaded=true; SYS.forbidden=false; SYS.draft={};}
+  }catch(e){SYS.error='ارتباط با سرور برقرار نشد.'}
+  finally{SYS.loading=false; if(S.sec==='settings') renderBody()}
+}
+async function sysSave(){
+  if(SYS.busy||!sysDirty()) return;
+  const changes={}; Object.keys(SYS.draft).forEach(k=>{if(JSON.stringify(SYS.draft[k])!==JSON.stringify(sysValue(k))) changes[k]=SYS.draft[k]});
+  SYS.busy=true; SYS.msg=null; renderBody();
+  try{
+    const response=await fetch('/api/owner/settings',{method:'PUT',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':ownerCsrf()},body:JSON.stringify({changes})});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){SYS.items=Array.isArray(data.items)?data.items:SYS.items; SYS.draft={}; SYS.msg={kind:'ok',text:'ذخیره شد و همین حالا روی سرور اعمال است.'}}
+    else{const d=data&&data.detail||{}; SYS.msg={kind:'stop',text:(typeof d==='string'?svcCodeText(d):(d.message||svcCodeText(d.code||'')))||'ذخیره انجام نشد؛ چیزی تغییر نکرد.'}}
+  }catch(e){SYS.msg={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی تغییر نکرد.'}}
+  finally{SYS.busy=false; renderBody()}
+}
+function sysBar(){
+  if(!SYS.loaded&&SYS.loading) return `<p class="cap" data-sys-state="loading">${ico('i-clock')} در حال دریافت تنظیمات از سرور…</p>`;
+  if(!SYS.loaded&&SYS.error) return `<p class="cap" style="color:var(--stop)" role="alert" data-sys-state="error">${esc(SYS.error)} ${SYS.forbidden?'':btn('تلاش دوباره','data-sys-reload','i-refresh')}</p>`;
+  const dirty=sysDirty();
+  return `<div class="row tight" style="flex-wrap:wrap" data-sys-bar>
+    ${SYS.msg?`<span class="cap" role="status" data-sys-msg="${esc(SYS.msg.kind)}" style="border-inline-start:3px solid var(--${SYS.msg.kind==='ok'?'ok':'stop'});padding-inline-start:8px">${esc(SYS.msg.text)}</span>`:''}
+    ${dirty?tag('تغییر ذخیره‌نشده','warn'):''}<span class="sp"></span>
+    ${btn('بازخوانی از سرور',`data-sys-reload ${SYS.loading||SYS.busy?'disabled':''}`,'i-refresh')}
+    ${dirty?btn('انصراف',`data-sys-cancel ${SYS.busy?'disabled':''}`,'i-close'):''}
+    ${btn(SYS.busy?'در حال ذخیره…':'ذخیره در سرور',`data-sys-save ${dirty&&!SYS.busy?'':'disabled'}`,'i-check')}</div>`;
+}
+const sysSwitch=(key,slot,label)=>{const v=sysDraft(key)||{}, on=!!v[slot];
+  return `<span class="switch ${on?'on':''}" data-sys-switch="${esc(key)}" data-sys-slot="${esc(slot)}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}" ${SYS.busy||!SYS.loaded?'aria-disabled="true"':''}></span>`};
+/* ── کاشی‌های حوزه: همان SKIN_TILES مرجع؛ هر کاشی به مقصد واقعی خودش می‌رود ── */
+function ssetTiles(leaf){
+  const cur=(SSET_LEAF[leaf]||{}).t||'';
+  const dest={skin:{setg:'publishing'},forms:{href:'builder.html'},users:{act:'users-staff'},ops:{setg:'deploy'},book:{act:'club'},skdev:{act:'events'},people:{setg:'people'},chat:{setg:'chat'}};
+  const soon={chat:1};
+  return `<section class="card stack" data-sset-tiles>
+    <div class="row"><div class="head">تنظیمات سامانه</div><span class="sp"></span><span class="cap">${esc(fa(SKIN_TILES.length))} کاشی · هر کاشی یک حوزه</span></div>
+    <div class="sktgrid">${SKIN_TILES.map(x=>{const d=dest[x.k]||{}; const inner=`<span class="si">${ico(x.i)}</span><b>${esc(x.n)}</b><span class="cap">${esc(x.s)}</span>${soon[x.k]?tag('بخشی نیازمند سرویس','warn'):''}`;
+      if(d.href) return `<a class="sktile" href="${d.href}" data-sset-tile="${x.k}">${inner}</a>`;
+      return `<button type="button" class="sktile ${cur===x.k?'on':''}" data-sset-tile="${x.k}" ${d.setg?`data-sset-go="${d.setg}"`:''} ${d.act?`data-sset-act="${d.act}"`:''} aria-pressed="${cur===x.k?'true':'false'}">${inner}</button>`}).join('')}</div>
+  </section>`;
+}
+function ssetGroupTexts(){
+  const key='texts.reminder_head', it=sysItem(key), cur=String(sysDraft(key)==null?'':sysDraft(key));
+  const control=SYS.loaded?`<input class="input" data-sys-text="${key}" value="${esc(cur)}" maxlength="300" placeholder="یادآوری: «{رویداد}» {زمان} برگزار می‌شود." ${SYS.busy?'disabled':''}/>`:'';
+  return sdSect('نوشته‌های سامانه','۱ نوشتهٔ متصل · ۳ گزینهٔ بی‌مصرف‌کنندهٔ سروری')+`<p class="cap">فقط نوشته‌ای این‌جا ویرایش می‌شود که سرور واقعاً آن را می‌خواند. ${it&&it.consumer?'مصرف‌کننده: '+esc(it.consumer)+'.':''}</p>
+    <div class="admtext" data-sset-row="live"><span class="lbl">متن یادآور رویداد</span>${control||`<small class="cap">${SYS.loading?'در حال دریافت…':'مقدار از سرور دریافت نشد.'}</small>`}
+      <small class="cap" style="display:block;margin-top:4px">سطر نخست یادآور ۲۴ ساعت و ۱ ساعت قبل (B19) که زمان‌بند سرور در صف اعلان می‌گذارد؛ جای‌خالی‌ها: {رویداد} {زمان}. خالی = متن پیش‌فرض سرور.${it&&it.custom?' · سفارشی‌شده'+(it.updated_at?' در '+svcWhen(it.updated_at):''):''}</small></div>
+    ${sysBar()}`+sdEnd()
+    +sdSect('نوشته‌های بدون مصرف‌کنندهٔ سروری','۳ گزینه')
+    +ssetRow('متن پیام خوش‌آمد','backend','پیام خوش‌آمد را ربات بله هنگام /start می‌فرستد؛ وب‌اپ متن آن را نگه نمی‌دارد و endpoint مشترکی برای ویرایش نیست.')
+    +ssetRow('متن پیام گواهی','backend','اعلان «گواهی» با متن ثابت سرور صف می‌شود؛ قالب قابل‌ویرایش هنوز ساخته نشده.')
+    +ssetRow('متن پیام دعوت دوست','scope','کد دعوت و امتیاز معرفی در این نسخه وجود ندارد.')+sdEnd();
+}
+function ssetGroupMoney(){
+  const pay=svcService('payment'), st=pay?svcStateTag(pay.state):(SERVICE_LOADING?tag('در حال دریافت','' ):tag('وضعیت نامشخص','warn'));
+  const live=`<span class="row" style="gap:6px">${st}${btn('پیکربندی درگاه','data-sset-pay','i-wallet')}</span>`;
+  const payPanel=S.setG==='money'&&SERVICE_TAB==='payment'?servicesSettingsView():'';
+  return sdSect('درگاه و رسید','۲ گزینه')
+    +ssetRow('درگاه رسمی بله','live','توکن کیف پول و وب‌هوک رمزنگاری‌شده در سرور ذخیره می‌شوند و فقط آزمایش اتصال نتیجه را نشان می‌دهد؛ پرداخت هر فرم از همین پیکربندی می‌خواند.',live)
+    +ssetRow('کارت‌به‌کارت با تأیید رسید','builder','در فرم‌ساز برای هر فرم روشن می‌شود؛ بارگذاری رسید هرگز خرید را نهایی نمی‌کند و تأیید در کارتابل انجام می‌شود.',`<a class="btn sm quiet" href="builder.html">${ico('i-pen')}فرم‌ساز</a>`)
+    +(payPanel?`<div class="stack" data-sset-embed="payment">${payPanel}</div>`:'')+sdEnd()
+    +sdSect('اقساط و کارمزد','۲ گزینه')
+    +ssetRow('پرداخت اقساطی','decision','سرور فقط پرداخت یک‌مرحله‌ای ثبت می‌کند؛ قسط دوم، سررسید و بدهی به تعریف مالک و مدل داده نیاز دارد.')
+    +ssetRow('کارمزد روی کاربر','decision','مبلغ فرم همان مبلغ درگاه است؛ افزودن کارمزد به قیمت تصمیم مالی مالک است.')+sdEnd();
+}
+function ssetGroupCert(){
+  const open=canPerm('certificate')?btn('ثبت گواهی‌های صادرشده','data-sset-act="cert"','i-medal'):'';
+  return sdSect('قالب فایل ورد گواهینامه','صدور در ربات')+`<p class="cap">صدور و ابطال گواهی فقط در ربات بله انجام می‌شود و پنل ثبت مشترک سرور را می‌خواند؛ قالب ورد و پارامترهایش در همان مسیر ربات است و از این‌جا بارگذاری نمی‌شود تا دو مسیر صدور موازی ساخته نشود.</p>
+    ${ssetRow('بارگذاری قالب .docx','backend','endpoint بارگذاری و فهرست قالب‌ها سمت سرور نیست؛ تا تصمیم مالک، قالب همان قالب ربات است.',open)}`+sdEnd()
+    +sdSect('سیاست صدور گواهینامه','۴ کلید')
+    +ssetRow('صدور با تأیید سرپرست','decision','گواهی مشارکت و گواهی دورهٔ ضبط‌شده دو نوع جدا هستند؛ مرحلهٔ تأیید پیش از صدور تعریف نشده.')
+    +ssetRow('ساخت تنبل گواهی','backend','فایل گواهی همان لحظهٔ صدور در ربات ساخته می‌شود؛ ساخت هنگام اولین دیدن به سرویس فایل نیاز دارد.')
+    +ssetRow('گواهی چاپی','scope','چاپ و ارسال پستی در این نسخه نیست.')
+    +ssetRow('استعلام با کیوآرکد','live','هر گواهی شمارندهٔ استعلام (verify_count) دارد و صفحهٔ عمومی استعلام از ثبت مشترک می‌خواند؛ کلید خاموش/روشن ندارد.')+sdEnd();
+}
+function ssetGroupTicket(){
+  const att=canPerm('attendance')?btn('حضور و غیاب','data-sset-act="att"','i-check'):'';
+  return sdSect('نمای بلیت','۲ گزینه')
+    +ssetRow('بلیت تصویری','backend','ثبت‌نام تأییدشده در «حساب من» دیده می‌شود؛ تولید تصویر بلیت با هنر رویداد سرویس رندر سمت سرور می‌خواهد.')
+    +ssetRow('لوگو در بلیت','decision','وابسته به بلیت تصویری؛ تا ساخته‌نشدن آن تصمیمی لازم نیست.')+sdEnd()
+    +sdSect('ورود و مهمان','۲ گزینه')
+    +ssetRow('کارت ورود با کیوآرکد','live','حضور از ماژول «حضور و غیاب» روی همان ثبت‌نام‌های فرم ثبت می‌شود (حضور ≠ ثبت‌نام ≠ گواهی)؛ کلید سراسری ندارد.',att)
+    +ssetRow('بلیت مهمان','builder','«همراه» در تنظیمات هر فرم ثبت‌نام (guestsOn) روشن می‌شود و فرم‌های خرید همراه نمی‌پذیرند.',`<a class="btn sm quiet" href="builder.html">${ico('i-pen')}فرم‌ساز</a>`)+sdEnd();
+}
+function ssetGroupNotify(){
+  const key='events.reminders_default', it=sysItem(key);
+  const kinds=[['event_reminder','یادآوری رویداد','۲۴ ساعت و ۱ ساعت پیش از شروع، برای ثبت‌نام‌های پذیرفته‌شدهٔ فرم ثبت‌نام (B19)'],
+    ['registration_approved / rejected','تصمیم ثبت‌نام و رسید','پس از تصمیم کارتابل برای همان حساب'],
+    ['event_qa_answer','پاسخ پرسش رویداد','وقتی کادر به پرسش عمومی پاسخ می‌دهد'],
+    ['certificate','صدور گواهی','پس از ثبت گواهی در ثبت مشترک'],
+    ['recording_order / access / purchase / content','محتوای ضبط‌شده','سفارش، اعطای دسترسی، ثبت خرید و انتشار محتوا'],
+    ['content_published','انتشار زمان‌بندی‌شده','وقتی زمان‌بند سرور رکورد را منتشر می‌کند']];
+  const outbox=canPerm('rp_view')?btn('باز کردن دفتر نامه‌ها','data-sset-act="outbox"','i-inbox'):'';
+  return sdSect('نامه‌خانهٔ اعلان‌ها','یک صف، چند راه')+`<p class="cap">هر اعلان یک‌بار در صف سرور می‌نشیند (کلید یکتا؛ تکرار نمی‌شود)، در «حساب من» دیده می‌شود و اگر تحویل بله پیکربندی باشد از ربات هم می‌رود. «در صف» با «تحویل‌شده» یکی نیست و پیامک در این نسخه نیست.</p>
+    ${ssetRow('نام فرستندهٔ پیام‌ها','decision','فرستنده همیشه ربات نوراست؛ نام نمایشی جداگانه در مدل اعلان وجود ندارد.')}`+sdEnd()
+    +sdSect('اعلان‌ها',fa(kinds.length)+' نوع · همه از سرور')
+    +kinds.map(k=>`<div class="admsw" data-sset-kind="${esc(k[0])}"><span class="ic">${ico('i-bell')}</span><span class="sp"><b>${esc(k[1])}</b><small>${esc(k[2])}</small><small dir="ltr">${esc(k[0])}</small></span>${tag('همیشه روشن · سرور','ok')}</div>`).join('')
+    +`<p class="cap">کلید خاموش‌کردن هر نوع عمداً ساخته نشده: هر اعلان پیامد یک عمل ثبت‌شده است و خاموش‌کردنش تصمیم محصولی مالک می‌خواهد.</p>`+sdEnd()
+    +sdSect('ساعت‌ها و حالت‌های کلی','۲ کلید متصل · ۳ گزینه')+`<p class="cap">${it&&it.consumer?esc(it.consumer)+'.':''} زمان یادآورها ثابت است (۲۴ ساعت و ۱ ساعت قبل) و از زمان شروع رویداد در سرور حساب می‌شود.</p>`
+    +ssetRow('یادآور ۲۴ ساعت قبل؛ پیش‌فرض رویداد تازه','live','رویداد تازه در ویزارد با این کلید روشن ساخته می‌شود؛ در هر رویداد قابل تغییر است.',sysSwitch(key,'h24','یادآور ۲۴ ساعت قبل'))
+    +ssetRow('یادآور ۱ ساعت قبل؛ پیش‌فرض رویداد تازه','live','همان قاعده برای یادآور یک ساعت قبل.',sysSwitch(key,'h1','یادآور ۱ ساعت قبل'))
+    +sysBar()
+    +ssetRow('تبریک تولد','scope','تاریخ تولد در پروفایل سرور ذخیره نمی‌شود.')
+    +ssetRow('خبر رویداد تازه','backend','انتشار رویداد اعلان همگانی نمی‌سازد؛ ارسال به همهٔ اعضا endpoint، سقف و ممیزی جدا می‌خواهد.')
+    +ssetRow('ساعت سکوت ۲۳ تا ۸','decision','زمان‌بند سرور هر اعلان رسیده را همان لحظه صف می‌کند؛ نگه‌داشتن تا صبح تصمیم مالک و تغییر زمان‌بند است.')+sdEnd()
+    +sdSect('نامهٔ فوری به همهٔ اعضا','بدون دکمه')+`<p class="cap">ارسال همگانی عمداً دکمه ندارد: بدون endpoint اختصاصی با مجوز، سقف تعداد و ثبت ممیزی، هیچ پیام واقعی از پنل نمی‌رود. اطلاع‌رسانی رویداد از صفحهٔ همان رویداد و با گیرندگان واقعی انجام می‌شود.</p>`+sdEnd()
+    +sdSect('دفتر نامه‌ها','صف و تحویل از سرور')+`<p class="cap">همهٔ اعلان‌های صف‌شده با وضعیت «در صف / در حال تلاش / تحویل‌شده / ناموفق» در دفتر نامه‌ها (ابزارهای کاربران) دیده می‌شوند.</p><div class="row tight">${outbox||'<small class="cap">نیازمند مجوز «دیدن گزارش‌ها».</small>'}<span class="sp"></span></div>`+sdEnd();
+}
+function ssetGroupData(leaf){
+  const canSettings=isOwner()||canPerm('sys_settings'), canBackup=isOwner()||canPerm('sys_backup');
+  const sub=leaf==='services'||leaf==='bots'?'services':'data';
+  const chips=`<div class="admfilters" role="tablist" aria-label="زیربخش داده و پشتیبان">
+    <button class="chip ${sub==='data'?'on':''}" data-setg="data">${ico('i-layers')}<span>سیاست‌ها و مهاجرت</span></button>
+    <button class="chip ${sub==='services'?'on':''}" data-setg="services">${ico('i-key')}<span>اتصال‌ها و کلیدها</span></button></div>`;
+  if(sub==='services') return chips+sdSect('اتصال‌ها و کلیدها','کلید درگاه و ربات‌ها؛ مقدار پنهان می‌ماند')+`<p class="cap">اعتبارنامه‌ها رمزنگاری‌شده در سرور می‌مانند، هرگز برنمی‌گردند و فقط دنبالهٔ کوتاه و نتیجهٔ آزمایش اتصال نشان داده می‌شود.</p>`
+    +(canSettings?servicesSettingsView():serverUnavailableModule('اتصال سرویس‌ها','این بخش به مجوز «تنظیمات سامانه» نیاز دارد؛ بررسی مجوز و اعتبارسنجی مقدار سمت سرور انجام می‌شود.'))+sdEnd();
+  return chips+sdSect('سیاست‌ها','۴ گزینه')
+    +ssetRow('پشتیبان شبانه','backend','پشتیبان‌گیری زمان‌بندی‌شده کار cron سرور است؛ آخرین «راستی‌آزمایی پشتیبان» در «مدیریت پنل › سلامت و سرعت» از نشانگر سرور خوانده می‌شود.')
+    +ssetRow('نگه‌داری لاگ ۹۰ روز','decision','ممیزی سرور همهٔ رویدادها را نگه می‌دارد؛ هرس خودکار به تصمیم مالک و پشتیبان پیشین نیاز دارد.')
+    +ssetRow('ورود گروهی از اکسل','backend','فقط نسخهٔ پشتیبان SQLite نورا بارگذاری و ممیزی می‌شود (پایین)؛ ورود اکسل اعضا endpoint و قاعدهٔ یکتاسازی می‌خواهد.')
+    +ssetRow('حالت نگهداری','decision','بستن موقت سامانه با پیام، کلید سروری ندارد؛ تا تصمیم مالک از سطح وب‌سرور انجام می‌شود.')+sdEnd()
+    +sdSect('داده‌ها و مهاجرت','بارگذاری، ممیزی و حذف فقط سمت سرور')
+    +(canBackup?dataSettingsView():serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.'))+sdEnd();
+}
+function ssetTileView(tile,leaf){
   const canSettings=isOwner()||canPerm('sys_settings');
-  const canBackup=isOwner()||canPerm('sys_backup');
-  let content='';
-  if(selected==='services') content=canSettings?servicesSettingsView()
-    :serverUnavailableModule('اتصال سرویس‌ها','این بخش به مجوز «تنظیمات سامانه» نیاز دارد؛ بررسی مجوز و اعتبارسنجی مقدار سمت سرور انجام می‌شود.');
-  else if(selected==='deploy') content=canSettings?deploymentSettingsView()
-    :serverUnavailableModule('دامنه و راه‌اندازی','این بخش به مجوز «تنظیمات سامانه» نیاز دارد.');
-  else if(selected==='data') content=canBackup?dataSettingsView()
-    :serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.');
-  else if(selected==='security') content=securitySettingsView();
-  else if(selected==='people') content=peView();
-  else if(selected==='publishing') content=(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
-    <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
+  const back=`<div class="row"><button class="btn sm quiet" data-setg="texts">${ico('i-back')}بازگشت به گروه‌ها</button><span class="sp"></span></div>`;
+  if(tile==='skin') return back+(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
+    <p class="cap">بنرها، همگام‌سازی محتوای عمومی و صندوق همکاری از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
-  else content=performanceSettingsView();
-  const routes=`<section class="card stack"><div class="head">میان‌برهای سروری</div><div class="row" style="flex-wrap:wrap">
-    <a class="btn sm" href="builder.html">فرم‌ساز و پاسخ‌های سروری</a>
-    ${canSec('users')?`<button class="btn sm quiet" data-server-role-module>حساب‌ها و نقش‌های سرور</button>`:''}
-    ${canPerm('rp_view')?`<button class="btn sm quiet" data-user-hub="reports">گزارش سرور</button>`:''}
-  </div></section>`;
-  return `<div class="stack"><section class="card stack"><div class="head">تنظیمات مالک</div>
-    <p class="cap">هر ماژول وضعیت خود را از API سرور می‌خواند؛ APIِ متصل‌نشده با دادهٔ نمایشی پر نمی‌شود. اعتبارنامه‌ها فقط در «اتصال سرویس‌ها» مدیریت می‌شوند.</p>
-    <div class="admfilters" role="tablist" aria-label="ماژول‌های تنظیمات">${tabs}</div></section>
-    ${content}${routes}</div>`;
+  if(tile==='people') return back+peView();
+  if(tile==='chat') return back+`<section class="card stack" data-sset-chat><div class="head">پشتیبانی و گفتگو</div>
+    ${ssetRow('صندوق درخواست همکاری','live','پیام‌های فرم عمومی همکاری در صندوق سرور می‌نشینند و از کاشی «ظاهری سامانه» پاسخ داده می‌شوند.',btn('باز کردن صندوق','data-setg="publishing"','i-inbox'))}
+    ${ssetRow('صندوق تیکت کاربران','backend','تیکت و گفتگوی دوطرفه در وب‌اپ نیست؛ پشتیبانی از ربات بله انجام می‌شود.')}
+    ${ssetRow('پاسخ‌های آماده','decision','وابسته به صندوق تیکت.')}
+    ${ssetRow('ساعات پاسخ‌گویی و گزارش','decision','بدون صندوق تیکت، گزارشی برای نمایش نیست؛ عدد نمونه نشان داده نمی‌شود.')}</section>`;
+  /* ops: دامنه، امنیت، سلامت؛ همان سه ماژول قبلی */
+  const cur=['deploy','security','performance'].includes(leaf)?leaf:'deploy';
+  const chips=`<div class="admfilters" role="tablist" aria-label="زیربخش مدیریت پنل">${[['deploy','دامنه و راه‌اندازی','i-globe'],['security','امنیت و دسترسی‌ها','i-shield'],['performance','سلامت و سرعت','i-trend']].map(x=>`<button class="chip ${cur===x[0]?'on':''}" data-setg="${x[0]}">${ico(x[2])}<span>${esc(x[1])}</span></button>`).join('')}</div>`;
+  const body=cur==='deploy'?(canSettings?deploymentSettingsView():serverUnavailableModule('دامنه و راه‌اندازی','این بخش به مجوز «تنظیمات سامانه» نیاز دارد.'))
+    :cur==='security'?securitySettingsView():performanceSettingsView();
+  return back+`<section class="card stack"><div class="head">مدیریت پنل</div><p class="cap">کارتابل و لاگ در «کاربران › ابزارها و گزارش» هستند؛ این‌جا دامنه، امنیت نشست و سلامت سرور.</p>${chips}</section>${body}`;
+}
+function serverSettingsView(){
+  const own=isOwner(), canSettings=own||canPerm('sys_settings');
+  let leaf=SSET_LEAF[S.setG]?S.setG:'texts';
+  if(!canSettings){ if(!['cert','ticket','notify'].includes(leaf)) leaf='cert'; }
+  else if(!own&&(SSET_LEAF[leaf].g==='money')) leaf='texts';
+  if(S.setG!==leaf){S.setG=leaf; save()}
+  if(!IS_TEST&&canSettings&&!SYS.loaded&&!SYS.loading&&!SYS.error) sysLoad(false);
+  if(!IS_TEST&&own&&SSET_LEAF[leaf].g==='money'&&!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
+  const L2=SSET_LEAF[leaf], g=L2.g||'', tile=L2.t||'';
+  const groups=SSET_GROUPS.filter(x=>own||!x.own).filter(x=>canSettings||['cert','ticket','notify'].includes(x.k));
+  const chips=groups.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${x.k}">${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
+  const group=SSET_GROUPS.find(x=>x.k===g)||null;
+  const inner=tile?ssetTileView(tile,leaf)
+    :g==='texts'?ssetGroupTexts():g==='money'?ssetGroupMoney():g==='cert'?ssetGroupCert():g==='ticket'?ssetGroupTicket():g==='notify'?ssetGroupNotify():ssetGroupData(leaf);
+  const moved=!canSettings?`<div class="admlirow" data-sset-moved><span class="ic">${ico('i-info')}</span><span class="sp"><b>مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد</b><small class="cap">تنظیمات سامانه با حساب مالک است؛ این‌جا فقط وضعیت گروه‌های عمومی را می‌بینی.</small></span>${canSec('users')?btn('کاربران › ابزارها','data-sset-act="users-staff"','i-users'):''}</div>`:'';
+  const legend=`<p class="cap" data-sset-legend>هر گزینه یکی از این وضعیت‌ها را دارد: ${tag('متصل به سرور','ok')} کنترل زنده دارد و در سرور ذخیره می‌شود · ${tag('به‌ازای هر فرم در فرم‌ساز','')} · ${tag('نیازمند بک‌اند','warn')} · ${tag('نیازمند تصمیم مالک','warn')} · ${tag('خارج از دامنهٔ این نسخه','')}. هیچ کلیدی در مرورگر ذخیره نمی‌شود.</p>`;
+  return `<div class="stack" data-sset>${canSettings?ssetTiles(leaf):''}
+    <section class="card stack" data-sset-groups>
+      <div class="row"><div class="head">هر چیزی که در سامانه روشن است، از همین‌جا خاموش و روشن می‌شود</div><span class="sp"></span>
+        <span class="cap">${esc(fa(groups.length))} گروه${group?' · '+esc(group.n):tile?' · '+esc((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):''}</span></div>
+      ${moved}${legend}
+      <div class="admfilters" role="tablist" aria-label="گروه‌های تنظیمات">${chips}</div>
+      ${group?`<div class="admlirow" style="border:0;padding-bottom:0"><span class="ic">${ico(group.i)}</span><span class="sp"><b>${esc(group.n)}</b><small class="cap">${esc(group.s||'')}</small></span></div>`:''}
+      <div class="admset">${inner}</div>
+    </section></div>`;
 }
 /* ══ بازیابی پنل (مرحلهٔ A): زیرماژول‌های طراحی که فقط در حالت نمونه دیده می‌شدند،
    این‌جا روی همان مسیر دادهٔ سرور (NORA_SERVER_API) و با همان مجوزهای backend/roles.py
@@ -10399,7 +10598,8 @@ document.addEventListener('click',e=>{
   const cup=q('[data-cunpick]'); if(cup){S.cert.picked=(S.cert.picked||[]).filter(x=>x!==cup.dataset.cunpick); save(); renderBody(); return}
   const se=q('[data-setg]'); if(se){
     const g=se.dataset.setg;
-    if(!isOwner()&&(!isManager()||!['cert','receipts'].includes(g))){toast('این گروه تنظیمات فقط برای مالک در دسترس است');return}
+    if(!IS_TEST&&SERVER_AUTH){ if(!isOwner()&&!canPerm('sys_settings')&&!['cert','ticket','notify'].includes(g)){toast('این گروه تنظیمات فقط با مجوز «تنظیمات سامانه» باز می‌شود');return} SYS.msg=null; }
+    else if(!isOwner()&&(!isManager()||!['cert','receipts'].includes(g))){toast('این گروه تنظیمات فقط برای مالک در دسترس است');return}
     S.setG=g; S.finTab=(g==='money'||g==='receipts')?(isOwner()?'gates':'receipts'):S.finTab; save(); renderBody(); return}
   const perfCheck=q('[data-perf-check]'); if(perfCheck){
     if(!isOwner()||PERF_CHECKING)return;

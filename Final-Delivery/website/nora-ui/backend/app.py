@@ -55,6 +55,7 @@ from . import content_admin as content_admin_mod
 from . import event_interaction as interaction_mod
 from . import recordings as recordings_mod
 from . import event_reminders as event_reminders_mod
+from . import system_settings as system_settings_mod
 from . import scheduled_publish as scheduled_publish_mod
 from . import integrity as integrity_mod
 from . import upload_sessions as upload_mod
@@ -7108,6 +7109,40 @@ def create_app(
         if spec is None:
             raise HTTPException(404, "unknown_service_secret")
         return spec
+
+    # ── پنل «تنظیمات» (۱۴۰۵/۰۸/۰۱): کلیدهای allowlist با مصرف‌کنندهٔ واقعی سمت سرور ──
+    @app.get("/api/owner/settings")
+    def get_owner_system_settings(
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_settings")),
+        db: Session = Depends(get_db),
+    ):
+        response = JSONResponse(system_settings_mod.payload(db))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.put("/api/owner/settings")
+    async def put_owner_system_settings(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_settings")),
+        db: Session = Depends(get_db),
+    ):
+        payload = await _read_json_object(request, 16 * 1024)
+        if set(payload) != {"changes"} or not isinstance(payload.get("changes"), dict):
+            raise HTTPException(400, detail={"code": "invalid_settings_payload", "message": "بدنه باید فقط «changes» باشد."})
+        actor = getattr(identity, "owner_id", "") or getattr(identity, "account_id", "")
+        try:
+            written = system_settings_mod.apply(db, payload["changes"], actor=str(actor))
+        except system_settings_mod.SettingError as error:
+            raise HTTPException(422, detail={"code": error.code, "message": error.message}) from None
+        if written:
+            record_audit(
+                db, identity, "system_settings.update", target_type="system_settings",
+                target_id=",".join(sorted(written))[:120], details={"changed": ",".join(sorted(written))},
+            )
+        db.commit()
+        response = JSONResponse(system_settings_mod.payload(db))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
 
     @app.get("/api/owner/service-settings")
     def get_owner_service_settings(

@@ -313,7 +313,7 @@ def test_notification_dedupe_migration_round_trip(tmp_path, monkeypatch):
         assert {"dedupe_key", "link"} <= columns
         assert "uq_user_notifications_dedupe_key" in {u["name"] for u in inspect(engine).get_unique_constraints("user_notifications")}
         with engine.begin() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0037_account_status"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0038_system_settings"
             # Old rows: NULL key (several NULLs allowed), delivery state untouched.
             assert connection.scalar(text("SELECT COUNT(*) FROM user_notifications WHERE dedupe_key IS NULL")) == 2
             assert connection.scalar(text("SELECT delivery_status FROM user_notifications WHERE id = 'n-old-1'")) == "delivered"

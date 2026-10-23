@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 
 from . import content_admin, event_time
 from . import notifications as notifications_mod
+from . import system_settings as system_settings_mod
 from .models import (
     FormRecord,
     FormResponseDraftRecord,
@@ -177,13 +178,21 @@ def dedupe_key(event_id: str, slot: str, starts: datetime, account_id: str) -> s
     return notifications_mod.dedupe_key("event_reminder", event_id, slot, stamp, account_id)
 
 
-def message_for(row: dict[str, Any], slot: str, starts: datetime) -> tuple[str, str]:
+def message_for(row: dict[str, Any], slot: str, starts: datetime, *, head_template: str = "") -> tuple[str, str]:
+    """Title/body of one reminder.
+
+    ``head_template`` (owner setting ``texts.reminder_head``) replaces the built-in first line when
+    non-empty; ``{رویداد}`` and ``{زمان}`` are substituted, every other character is kept verbatim.
+    """
     title = str(row.get("t") or row.get("n") or "رویداد")[:120]
     when = event_time.to_local_input(event_time.to_iso(starts))
     place = str(row.get("place") or "").strip()
     mode = str(row.get("mode") or "").strip()
     where = " · ".join(part for part in (place, {"online": "برخط", "onsite": "حضوری", "hybrid": "حضوری و برخط"}.get(mode, mode)) if part)
     head = f"یادآوری: «{title}» {SLOT_LABEL[slot]} برگزار می‌شود."
+    template = str(head_template or "").strip()
+    if template:
+        head = template.replace("{رویداد}", title).replace("{زمان}", SLOT_LABEL[slot])[:400]
     body = f"{head}\nزمان شروع: {when} (به وقت تهران)" + (f"\nمکان: {where}" if where else "") + "\nجزئیات و تغییرات احتمالی در صفحهٔ رویداد."
     return (f"یادآوری رویداد: {title}"[:160], body)
 
@@ -239,6 +248,7 @@ def enqueue_due(
     event's data problem (counted in ``skipped``).
     """
     summary: dict[str, Any] = {"events": 0, "slots": 0, "queued": 0, "existing": 0, "skipped": 0, "recipients": 0, "withdrawn": 0}
+    head_template = str(system_settings_mod.get_value(db, "texts.reminder_head") or "")
     record = db.get(SiteContentRecord, "public")
     rows = ((record.content if record else None) or {}).get("events") or []
     for row in rows:
@@ -262,7 +272,7 @@ def enqueue_due(
         link = notifications_mod.event_link(event_id)
         for slot in slots:
             summary["slots"] += 1
-            title, body = message_for(row, slot, starts)
+            title, body = message_for(row, slot, starts, head_template=head_template)
             for account_id in accounts:
                 _row, created = notifications_mod.queue(
                     db, account_id=account_id, kind=KIND, title=title, body=body,

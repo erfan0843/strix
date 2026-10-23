@@ -125,6 +125,8 @@ ok(await waitFor(()=>doc.querySelector('[data-sec="settings"]')),
 
 console.log('\n── اتصال سرویس‌ها ──');
 click('[data-sec="settings"]');
+ok(await waitFor(()=>doc.querySelector('[data-sset-tiles]')&&doc.querySelector('[data-setg="texts"]')),'تنظیمات با کاشی‌های حوزه و گروه‌های طرح نورا باز شد');
+click('[data-setg="data"]');
 click('[data-setg="services"]');
 ok(await waitFor(()=>doc.querySelector('#svcInput_bale_bot')),'ماژول اتصال سرویس‌ها با دادهٔ سرور رندر شد');
 ok(doc.body.textContent.includes('بله و مینی‌اپ')&&doc.body.textContent.includes('پیامک و رمز یک‌بارمصرف')
@@ -187,7 +189,7 @@ click('[data-svc-tab="bale"]');
 ok(await waitFor(()=>doc.querySelector('#svcInput_bale_bot')),'بازگشت به تب بله');
 
 console.log('\n── دامنه، امنیت و داده‌ها ──');
-click('[data-setg="deploy"]');
+click('[data-sset-go="deploy"]');
 ok(await waitFor(()=>doc.body.textContent.includes('دامنه و راه‌اندازی')),'ماژول دامنه رندر شد');
 ok(doc.body.textContent.includes('NORA_PUBLIC_BASE_URL')&&doc.body.textContent.includes('https://nora.example'),
   'نشانی عمومی نمایش داده می‌شود');
@@ -199,7 +201,8 @@ ok(doc.body.textContent.includes('sys_settings')&&doc.body.textContent.includes(
   'مجوزهای مؤثر از سرور نمایش داده می‌شوند');
 
 click('[data-setg="data"]');
-ok(await waitFor(()=>doc.querySelector('[data-data-panel]')),'ماژول داده و مهاجرت رندر شد');
+ok(await waitFor(()=>doc.querySelector('[data-data-panel]')),'ماژول داده و مهاجرت زیر گروه «داده و پشتیبان» رندر شد');
+ok(doc.querySelectorAll('[data-sset-row]').length>=4&&!doc.querySelector('[data-sset-row] [data-tog]'),'گزینه‌های بی‌endpoint فقط با وضعیت و دلیل می‌آیند، نه کلید نمایشی');
 ok(await waitFor(()=>doc.body.textContent.includes('سقف هر فایل')),'سقف حجم از سرور نمایش داده شد');
 ok(await waitFor(()=>doc.body.textContent.includes('بیرون ریشهٔ وب')),'محل staging توضیح داده شد');
 ok(!CALLS.some(call=>call.method==='POST'&&call.path==='/api/owner/data/uploads'),'بدون انتخاب فایل درخواستی ارسال نشد');

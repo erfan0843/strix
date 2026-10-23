@@ -441,10 +441,14 @@ console.log('— تنظیمات مالک: بدون زبانهٔ اسکلت پی�
   try {
     await app.until(() => app.doc.querySelector('#admBar .server-identity'), 'ورود مالک');
     app.click('#admNav [data-sec="settings"]');
-    await app.until(() => app.doc.querySelector('[data-setg="services"]'), 'زبانه‌های تنظیمات');
+    await app.until(() => app.doc.querySelector('[data-sset-tiles]') && app.doc.querySelector('[data-setg="data"]'), 'کاشی‌ها و گروه‌های تنظیمات');
+    app.click('[data-setg="data"]');
+    await app.until(() => app.doc.querySelector('[data-setg="services"]'), 'زیربخش اتصال‌ها و کلیدها');
     assert.equal(app.doc.querySelector('[data-setg="bots"]'), null, 'زبانهٔ اسکلت «وضعیت پیام‌رسان» که همیشه «وصل نیست» می‌گفت حذف شده است');
     assert.equal(app.doc.querySelector('[data-bot-status]'), null);
     assert.ok(app.calls.every(call => call.path !== '/api/integrations/status'), 'پنل سروری اسکلت عمومی را صدا نمی‌زند');
+    app.click('[data-sset-go="deploy"]');
+    await app.until(() => app.doc.querySelector('[data-setg="performance"]'), 'زیربخش‌های مدیریت پنل');
     app.click('[data-setg="performance"]');
     assert.equal(app.doc.querySelector('[data-perf="imageQuality"]'), null, 'ترجیح‌های فقط‌مرورگری (WebP/لودر) در پنل سروری به‌عنوان تنظیم سامانه نشان داده نمی‌شوند');
     assert.ok(app.doc.querySelector('[data-perf-check]'), 'بررسی سلامت شبکه باقی است');

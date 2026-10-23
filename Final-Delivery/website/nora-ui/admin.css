@@ -673,6 +673,10 @@ a.btn{text-decoration:none}
   font:inherit;color:inherit;cursor:pointer;
   transition:transform var(--t-fast) var(--spring),border-color var(--t) var(--ease)}
 .sktile:hover{transform:translateY(-2px);border-color:color-mix(in oklab,var(--brand) 40%,transparent)}
+a.sktile{text-decoration:none;color:inherit}
+.sktile.on{border-color:var(--brand);box-shadow:0 0 0 2px color-mix(in oklab,var(--brand) 25%,transparent)}
+.switch[aria-disabled="true"]{opacity:.55;pointer-events:none}
+[data-sset-row] .tag{white-space:nowrap}
 .sktile .si{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
   background:var(--brand-tint);color:var(--brand-ink);margin-bottom:3px}
 .sktile b{font-size:13px;font-weight:600}

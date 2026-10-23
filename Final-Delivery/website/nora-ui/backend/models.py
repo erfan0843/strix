@@ -1415,6 +1415,19 @@ class UploadSessionRecord(Base):
     )
 
 
+class SystemSettingRecord(Base):
+    """Owner-editable system setting (allowlisted keys, see system_settings.py). Never secrets."""
+
+    __tablename__ = "system_settings"
+
+    key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    value: Mapped[dict[str, Any]] = mapped_column(JSON_VALUE, nullable=False, default=dict)
+    updated_by: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
 class SystemMarkerRecord(Base):
     """Phase 9.5: tiny key/value markers for operations (last backup verify, last scheduler run).
 
