@@ -135,7 +135,7 @@ from .roles import (
     is_assignable_role,
     permissions_for_role,
 )
-from .schemas import PayloadError, normalize_form_payload
+from .schemas import DIGIT_TRANSLATION, PayloadError, normalize_form_payload
 from .security import (
     BaleMiniAppIdentity,
     constant_time_equal,
@@ -2291,6 +2291,19 @@ def create_app(
                 form_full = _capacity_is_full(
                     primary, accepted + _active_bale_payment_holds(db, primary.id), waitlisted
                 )
+                # Single source of truth (event-file integration): the capacity the server enforces and the
+                # price it charges live in the registration form's settings. The stored event row keeps its
+                # declared values untouched; the public projection shows what really applies.
+                primary_settings = primary.settings if isinstance(primary.settings, dict) else {}
+                price_view = _event_file_price(primary_settings)
+                event["cap"] = _count_setting(primary_settings.get("cap", 0))
+                if price_view.get("valid"):
+                    event["price"] = int(price_view.get("base") or 0)
+                event["pricing"] = {
+                    "source": "form", "form_id": primary.id, "base": int(price_view.get("base") or 0),
+                    "has_optional": bool(price_view.get("has_optional")), "paid": bool(price_view.get("paid")),
+                    "valid": bool(price_view.get("valid")),
+                }
             event["registration"] = event_time.registration_state(
                 event, now=now, has_form=primary is not None, form_full=form_full
             )
@@ -3157,6 +3170,14 @@ def create_app(
         if row is None:
             raise HTTPException(404, "registration_not_found")
         record, payment, form_event_id = row
+        return _registration_detail_payload(db, identity, record, payment, form_event_id, account_id=account_id)
+
+    def _registration_detail_payload(
+        db: Session, identity: OwnerIdentity | AccountIdentity, record: FormResponseRecord,
+        payment: FormPaymentRecord | None, form_event_id: str | None, *, account_id: str | None,
+    ) -> dict[str, Any]:
+        """One registration with labelled answers, companions, payment (finance-masked), receipt and
+        attendance. Shared by the account file (U4) and the event file so both read the same rules."""
         viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         with_finance = has_permission(viewer_role, "finance")
         snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
@@ -3230,15 +3251,708 @@ def create_app(
                 "uploaded": detail["receipt_uploaded"],
                 "task_id": receipt_task.id if receipt_task is not None else None,
                 "task_status": receipt_task.status if receipt_task is not None else None,
+                "web_file": record.receipt_upload is not None,
             },
             "attendance": {
                 "checked_in": record.ticket_checked_in_at is not None,
                 "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
                 "checked_in_by": _attendance_actor(record),
             },
+            "payment_state": _registration_payment_state(db, record, payment),
+            "payment_approved": _response_payment_approved(db, record),
+            "ticket": {
+                "serial": record.ticket_serial,
+                "eligible": _form_ticket_eligible(record),
+                "type": _form_response_ticket_type(record),
+                "claimed_at": _as_utc(record.ticket_claimed_at).isoformat() if record.ticket_claimed_at else None,
+            },
             "updated_at": _as_utc(record.updated_at).isoformat(),
         })
         return detail
+
+    def _registration_payment_state(db: Session, record: FormResponseRecord, payment: FormPaymentRecord | None) -> str:
+        """Coarse payment class for lists/filters: ``free`` (nothing to pay), ``paid`` (confirmed by the
+        provider or a reviewed receipt), ``pending`` (waiting for payment/receipt/review), ``failed``
+        (rejected/cancelled/expired). Never derived from the registration status."""
+        if payment is None:
+            snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+            if snapshot.get("receipt_review_required") is not True:
+                return "free"
+            task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+            if task is not None and task.kind == "receipt_review":
+                return {"approved": "paid", "rejected": "failed"}.get(task.status, "pending")
+            return "pending"
+        if payment.status in {"paid", "paid_manual"}:
+            return "paid"
+        if payment.status in {"rejected", "cancelled", "expired"}:
+            return "failed"
+        return "pending"
+
+    # ── پروندهٔ رویداد (مأموریت ۱۴۰۵/۰۸/۰۱): نماهای خواندنی حول یک رویداد ──
+    # هیچ جدول تازه‌ای نیست؛ همه از forms / form_responses / form_payments / admin_tasks / form_receipt_uploads
+    # خوانده می‌شود. شناسهٔ رویداد و فرم سمت سرور سنجیده می‌شود و فرمِ رویداد دیگر ۴۰۴ می‌گیرد.
+    _EVENT_FILE_READ_PERMS = ("ev_create", "ev_publish", "fm_create", "fm_responses", "attendance", "finance", "certificate")
+    _EVENT_FILE_ID = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
+    _EVENT_FILE_FORM_TYPE = {"reg": "registration", "survey": "survey", "exam": "exam", "other": "other"}
+    _EVENT_FILE_PAYMENT_CLASS = {
+        "paid": "paid", "paid_manual": "paid",
+        "rejected": "failed", "cancelled": "failed", "expired": "failed",
+    }
+
+    def _event_file_row(db: Session, event_id: str) -> dict[str, Any]:
+        if not _EVENT_FILE_ID.fullmatch(event_id or ""):
+            raise HTTPException(404, "event_not_found")
+        record = db.get(SiteContentRecord, "public")
+        found = content_admin_mod.find_row(_content_rows(record, "events"), event_id)
+        if found is None:
+            raise HTTPException(404, "event_not_found")
+        return found[1]
+
+    def _event_file_forms(db: Session, owner_id: str, event_id: str) -> list[FormRecord]:
+        return list(db.scalars(
+            select(FormRecord)
+            .where(FormRecord.owner_id == owner_id, FormRecord.event_id == event_id)
+            .order_by(FormRecord.updated_at.desc(), FormRecord.id)
+            .limit(100)
+        ).all())
+
+    def _event_file_registration_forms(forms: list[FormRecord]) -> list[FormRecord]:
+        return [f for f in forms if f.model == "registration" and f.purpose == "registration"]
+
+    def _event_file_form(db: Session, owner_id: str, event_id: str, form_id: str) -> FormRecord:
+        form = db.scalar(select(FormRecord).where(FormRecord.id == form_id, FormRecord.owner_id == owner_id))
+        if form is None or str(form.event_id or "") != event_id:
+            raise HTTPException(404, "form_not_found")
+        return form
+
+    def _event_file_price(settings_value: Mapping[str, Any]) -> dict[str, Any]:
+        """Base price as the public form computes it: required items after their own discount; optional
+        items make it «از … ریال». Invalid finance settings are reported, never guessed."""
+        try:
+            financial = normalize_financial_config(dict(settings_value))
+        except PaymentConfigurationError as error:
+            return {"valid": False, "code": error.code, "base": 0, "has_optional": False, "paid": False}
+        items = financial["fin"]
+        base = sum((item["p"] * (100 - item["off"]) + 50) // 100 for item in items if item["req"])
+        optional = [item for item in items if not item["req"]]
+        return {
+            "valid": True, "base": int(base), "has_optional": bool(optional), "paid": bool(items),
+            "items": [{"label": item["l"], "amount": (item["p"] * (100 - item["off"]) + 50) // 100, "required": item["req"]} for item in items][:20],
+            "coupon": bool(financial["coupon"]["code"] and financial["coupon"]["off"]),
+        }
+
+    def _event_file_reg_settings(form: FormRecord | None) -> dict[str, Any] | None:
+        if form is None:
+            return None
+        settings_value = form.settings if isinstance(form.settings, dict) else {}
+        try:
+            methods = normalize_payment_methods(settings_value)
+        except PaymentConfigurationError:
+            methods = []
+        return {
+            "form_id": form.id, "form_name": form.title, "form_status": form.status, "form_version": form.version,
+            "cap": _count_setting(settings_value.get("cap", 0)),
+            "wait": _count_setting(settings_value.get("wait", 0)),
+            "price": _event_file_price(settings_value),
+            "methods": methods,
+            "receipt_review_required": settings_value.get("receiptReviewRequired") is True,
+            "source": "form_settings",
+        }
+
+    def _event_file_primary_form(db: Session, row: dict[str, Any], forms: list[FormRecord]) -> FormRecord | None:
+        """Same rule as the public snapshot / event cards: a published registration form of this event;
+        a form declared on the event row wins. Falls back to the newest draft/paused registration form
+        so the event file can still show «تنظیم‌شده در فرم ثبت‌نام» before publishing."""
+        summary = _content_registration_summary(db, "events", row)
+        if summary is not None:
+            for form in forms:
+                if form.id == summary["form_id"]:
+                    return form
+            found = db.get(FormRecord, summary["form_id"])
+            if found is not None:
+                return found
+        candidates = _event_file_registration_forms(forms)
+        return candidates[0] if candidates else None
+
+    def _event_file_response_rows(db: Session, form_ids: list[str]) -> list[tuple[FormResponseRecord, FormPaymentRecord | None]]:
+        if not form_ids:
+            return []
+        return list(db.execute(
+            select(FormResponseRecord, FormPaymentRecord)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(FormResponseRecord.form_id.in_(form_ids))
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(5000)
+        ).all())
+
+    def _event_file_counts(db: Session, forms: list[FormRecord], primary: FormRecord | None) -> dict[str, Any]:
+        reg_forms = _event_file_registration_forms(forms)
+        rows = _event_file_response_rows(db, [f.id for f in reg_forms])
+        counts: dict[str, Any] = {"total": 0, "accepted": 0, "waitlisted": 0, "paid": 0, "pending_payment": 0, "failed_payment": 0,
+                                  "free": 0, "checked_in": 0, "companions": 0}
+        for record, payment in rows:
+            counts["total"] += 1
+            counts[record.status if record.status in ("accepted", "waitlisted") else "accepted"] += 1
+            if record.added_by_response_id is not None:
+                counts["companions"] += 1
+            if record.ticket_checked_in_at is not None:
+                counts["checked_in"] += 1
+            state = _registration_payment_state(db, record, payment)
+            counts[{"paid": "paid", "pending": "pending_payment", "failed": "failed_payment"}.get(state, "free")] += 1
+        cap = wait = 0
+        holds = 0
+        if primary is not None:
+            settings_value = primary.settings if isinstance(primary.settings, dict) else {}
+            cap = _count_setting(settings_value.get("cap", 0))
+            wait = _count_setting(settings_value.get("wait", 0))
+            holds = _active_bale_payment_holds(db, primary.id)
+            accepted_primary, waitlisted_primary = _response_counts(db, primary.id)
+            counts["primary_accepted"] = accepted_primary
+            counts["primary_waitlisted"] = waitlisted_primary
+            counts["full"] = _capacity_is_full(primary, accepted_primary + holds, waitlisted_primary)
+            counts["remaining"] = max(0, cap - accepted_primary - holds) if cap > 0 else None
+        else:
+            counts["full"] = False
+            counts["remaining"] = None
+        counts["cap"] = cap
+        counts["wait"] = wait
+        counts["bale_holds"] = holds
+        counts["source"] = "form_responses"
+        return counts
+
+    def _event_file_form_card(form: FormRecord, response_count: int) -> dict[str, Any]:
+        return {
+            "id": form.id, "name": form.title, "model": form.model, "need": form.need,
+            "type": "purchase" if _form_is_purchase(form) else _EVENT_FILE_FORM_TYPE.get(form.need, "other"),
+            "purpose": form.purpose, "status": form.status, "version": form.version,
+            "response_count": int(response_count), "updated_at": _as_utc(form.updated_at).isoformat(),
+            "uses_payment": _form_uses_payment(form),
+        }
+
+    @app.get("/api/admin/events/{event_id}/overview")
+    def event_file_overview(
+        event_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_EVENT_FILE_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Head of the event file: the event row, every form linked to it (any type), the registration
+        settings read from the primary registration form (capacity / price / methods — the only values
+        the server enforces) and server-side counters. Aggregates only; no registrant data."""
+        response.headers["Cache-Control"] = "private, no-store"
+        row = _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        counts_by_form: dict[str, int] = {}
+        if forms:
+            counts_by_form = {
+                form_id: int(count) for form_id, count in db.execute(
+                    select(FormResponseRecord.form_id, func.count(FormResponseRecord.id))
+                    .where(FormResponseRecord.form_id.in_([f.id for f in forms]))
+                    .group_by(FormResponseRecord.form_id)
+                ).all()
+            }
+        primary = _event_file_primary_form(db, row, forms)
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        summary = content_admin_mod.summary("events", row)
+        summary["d"] = str(row.get("d") or "")[:2000]
+        summary["poster"] = str(row.get("poster") or row.get("posterUp") or "")[:1_500_000]
+        summary["joinUrl"] = str(row.get("joinUrl") or "")[:500]
+        summary["public_path"] = f"event.html?id={row.get('id')}" if summary["status"] == "published" else ""
+        summary["registration"] = event_time.registration_state(
+            row, now=_utc_now(), has_form=primary is not None and primary.status == "published",
+            form_full=bool(_event_file_counts(db, forms, primary).get("full")) if primary is not None else False,
+        )
+        return {
+            "source": "shared_server_database",
+            "event": summary,
+            "forms": [_event_file_form_card(form, counts_by_form.get(form.id, 0)) for form in forms],
+            "registration_settings": _event_file_reg_settings(primary),
+            "declared": {"cap": summary.get("cap"), "price": summary.get("price")},
+            "counts": _event_file_counts(db, forms, primary),
+            "can": {
+                "edit_event": has_permission(role, "ev_create"),
+                "publish_event": has_permission(role, "ev_publish"),
+                "forms": has_permission(role, "fm_create"),
+                "responses": has_permission(role, "fm_responses"),
+                "attendance": has_permission(role, "attendance"),
+                "finance": has_permission(role, "finance"),
+                "receipts": has_permission(role, "receipt_approve"),
+                "certificates": has_permission(role, "certificate"),
+                "export": has_permission(role, "fm_export"),
+            },
+        }
+
+    def _event_file_registration_row(db: Session, record: FormResponseRecord, payment: FormPaymentRecord | None, *, with_finance: bool) -> dict[str, Any]:
+        mobile = str(record.registrant_mobile or "")
+        state = _registration_payment_state(db, record, payment)
+        receipt_task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+        row: dict[str, Any] = {
+            "response_id": record.id, "form_id": record.form_id,
+            "name": _form_ticket_name(record),
+            "display_id": _form_tracking_code(record),
+            "mobile_hint": mobile[-4:] if len(mobile) >= 4 else "",
+            "companion": record.added_by_response_id is not None,
+            "added_by_name": _ticket_text(record.added_by_name or "", 120) if record.added_by_response_id else "",
+            "status": record.status,
+            "payment_state": state,
+            "payment_status": payment.status if payment is not None else None,
+            "payment_method": payment.method if payment is not None else ("card_transfer" if state != "free" else None),
+            "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+            "receipt_task_status": receipt_task.status if receipt_task is not None else None,
+            "ticket_serial": record.ticket_serial,
+            "ticket_type": _form_response_ticket_type(record),
+            "checked_in": record.ticket_checked_in_at is not None,
+            "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+        if with_finance and payment is not None:
+            row["amount"] = int(payment.amount)
+            row["currency"] = payment.currency
+        return row
+
+    @app.get("/api/admin/events/{event_id}/registrations")
+    def event_file_registrations(
+        event_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        status: str = Query(default="", pattern=r"^(|accepted|waitlisted)$"),
+        payment: str = Query(default="", pattern=r"^(|free|paid|pending|failed|unpaid)$"),
+        attendance: str = Query(default="", pattern=r"^(|checked_in|pending)$"),
+        form_id: str = Query(default="", max_length=36),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "attendance")),
+        db: Session = Depends(get_db),
+    ):
+        """Registrants of one event across its registration forms with a server-side summary.
+        Filters combine; counts come from the same rows the list shows. Amounts only with ``finance``."""
+        response.headers["Cache-Control"] = "private, no-store"
+        row = _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        reg_forms = _event_file_registration_forms(forms)
+        if form_id:
+            reg_forms = [f for f in reg_forms if f.id == form_id]
+            if not reg_forms:
+                raise HTTPException(404, "form_not_found")
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(role, "finance")
+        rows = _event_file_response_rows(db, [f.id for f in reg_forms])
+        items = [_event_file_registration_row(db, record, pay, with_finance=with_finance) for record, pay in rows]
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            digits = re.sub(r"\D", "", needle.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")))
+            by_id = {record.id: record for record, _ in rows}
+            items = [
+                item for item in items
+                if needle in unicodedata.normalize("NFKC", item["name"]).lower()
+                or needle in item["display_id"].lower()
+                or (item["ticket_serial"] and needle in item["ticket_serial"].lower())
+                or (len(digits) >= 4 and str(by_id[item["response_id"]].registrant_mobile or "").endswith(digits))
+            ]
+        if status:
+            items = [item for item in items if item["status"] == status]
+        if payment:
+            if payment == "unpaid":
+                items = [item for item in items if item["payment_state"] in ("pending", "failed")]
+            else:
+                items = [item for item in items if item["payment_state"] == payment]
+        if attendance:
+            items = [item for item in items if item["checked_in"] == (attendance == "checked_in")]
+        page = items[offset: offset + limit]
+        primary = _event_file_primary_form(db, row, forms)
+        return {
+            "source": "shared_server_database",
+            "event_id": event_id,
+            "forms": [{"id": f.id, "name": f.title, "status": f.status} for f in reg_forms],
+            "summary": _event_file_counts(db, forms, primary),
+            "items": page,
+            "total": len(items),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(items),
+            "finance_visible": with_finance,
+            "filters": {"q": q, "status": status, "payment": payment, "attendance": attendance, "form_id": form_id},
+        }
+
+    def _event_file_registration(db: Session, owner_id: str, event_id: str, response_id: str) -> tuple[FormResponseRecord, FormPaymentRecord | None, FormRecord]:
+        if not _BOT_FORM_RESPONSE_ID.fullmatch(response_id or ""):
+            raise HTTPException(404, "registration_not_found")
+        _event_file_row(db, event_id)
+        found = db.execute(
+            select(FormResponseRecord, FormPaymentRecord, FormRecord)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                FormResponseRecord.id == response_id,
+                FormRecord.owner_id == owner_id,
+                FormRecord.event_id == event_id,
+                FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
+        ).first()
+        if found is None:
+            raise HTTPException(404, "registration_not_found")
+        record, payment, form = found
+        return record, payment, form
+
+    @app.get("/api/admin/events/{event_id}/registrations/{response_id}")
+    def event_file_registration_detail(
+        event_id: str,
+        response_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "attendance")),
+        db: Session = Depends(get_db),
+    ):
+        """Person file inside the event: same payload as the account file (U4), looked up inside the
+        event's own forms so an id from another event is indistinguishable from a missing one."""
+        response.headers["Cache-Control"] = "private, no-store"
+        record, payment, form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        draft = db.get(FormResponseDraftRecord, record.draft_id)
+        detail = _registration_detail_payload(
+            db, identity, record, payment, form.event_id, account_id=draft.account_id if draft is not None else None,
+        )
+        detail["display_id"] = _form_tracking_code(record)
+        detail["mobile_hint"] = str(record.registrant_mobile or "")[-4:] if len(str(record.registrant_mobile or "")) >= 4 else ""
+        detail["event_id"] = event_id
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        detail["can"] = {
+            "receipt_file": (has_permission(role, "receipt_approve") or has_permission(role, "finance")) and record.receipt_upload is not None,
+            "payment_decision": has_permission(role, "receipt_approve") and payment is not None and payment.method == "card_transfer"
+            and payment.status in {"awaiting_receipt", "receipt_submitted"},
+            "attendance": has_permission(role, "attendance"),
+            "ticket_image": _form_ticket_eligible(record) and _response_payment_approved(db, record),
+        }
+        task_id = detail.get("receipt", {}).get("task_id")
+        if task_id:
+            task = db.get(AdminTaskRecord, task_id)
+            detail["receipt"]["task_version"] = task.version if task is not None else None
+            detail["receipt"]["task_files"] = list((task.payload or {}).get("file_refs") or [])[:5] if task is not None else []
+        audit_rows = db.scalars(
+            select(AdminAuditEventRecord)
+            .where(AdminAuditEventRecord.target_id == record.id)
+            .order_by(AdminAuditEventRecord.created_at.desc())
+            .limit(20)
+        ).all()
+        detail["audit"] = [
+            {"action": item.action, "actor_role": item.actor_role, "outcome": item.outcome,
+             "created_at": _as_utc(item.created_at).isoformat(),
+             "reason": str((item.details or {}).get("reason") or "")[:160] if isinstance(item.details, dict) else ""}
+            for item in audit_rows
+        ]
+        return detail
+
+    @app.get("/api/admin/events/{event_id}/registrations/{response_id}/receipt")
+    def event_file_registration_receipt(
+        event_id: str,
+        response_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("receipt_approve", "finance")),
+        db: Session = Depends(get_db),
+    ):
+        """The receipt uploaded through the public form for this registration (stored in the database,
+        served inline, never cached). Receipts that came through Bale are served by the inbox file route."""
+        record, _payment, _form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        upload = record.receipt_upload
+        if upload is None:
+            raise HTTPException(404, "receipt_not_found")
+        filename = re.sub(r"[^A-Za-z0-9._-]", "_", upload.file_name)[:80] or "receipt"
+        return Response(
+            content=upload.content,
+            media_type=upload.content_type,
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+
+    @app.get("/api/admin/events/{event_id}/registrations/{response_id}/ticket-image")
+    def event_file_registration_ticket_image(
+        event_id: str,
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("attendance", "fm_responses")),
+        db: Session = Depends(get_db),
+    ):
+        """The same ticket the registrant sees (same renderer, same gates: accepted + payment confirmed);
+        read-only for staff, no new ticket model."""
+        cfg: Settings = request.app.state.settings
+        record, _payment, _form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        if not _form_ticket_eligible(record):
+            raise HTTPException(409, detail={"code": "ticket_not_eligible"})
+        if not _response_payment_approved(db, record):
+            raise HTTPException(409, detail={"code": "ticket_payment_not_confirmed"})
+        serial = _ensure_form_ticket(record)
+        db.commit()
+        ticket = _form_ticket_payload(record)
+        bot_username = str(cfg.bale_bot_username or "").strip().lstrip("@")
+        qr_data = (
+            f"https://ble.ir/{bot_username}?start=ftv_{record.id}"
+            if re.fullmatch(r"[A-Za-z0-9_]{3,64}", bot_username) else record.id
+        )
+        image_data = {
+            "event_title": ticket["event_title"], "name": ticket["participant_name"], "serial": serial, "qr_data": qr_data,
+            "event_date": ticket["event_date"], "event_time": ticket["event_time"], "organization": ORGANIZATION_NAME,
+        }
+        ticket_type = ticket.get("ticket_type")
+        if isinstance(ticket_type, dict) and isinstance(ticket_type.get("name"), str):
+            image_data["ticket_type_name"] = ticket_type["name"]
+        try:
+            content = _render_public_form_ticket_image(image_data)
+        except Exception:
+            logging.getLogger(__name__).exception("Unable to render a staff ticket image")
+            raise HTTPException(503, detail={"code": "ticket_image_unavailable"}) from None
+        return Response(
+            content=content, media_type="image/jpeg",
+            headers={"Cache-Control": "private, no-store", "Content-Disposition": 'inline; filename="nora-ticket.jpg"',
+                     "X-Content-Type-Options": "nosniff"},
+        )
+
+    @app.post("/api/admin/events/{event_id}/registrations/{response_id}/payment-decision")
+    async def event_file_payment_decision(
+        event_id: str,
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("receipt_approve")),
+        db: Session = Depends(get_db),
+    ):
+        """Approve or reject a card-transfer receipt from the event file. When the receipt already has an
+        inbox task, the very same ``apply_admin_task_decision`` runs (one rule, one notification); a
+        web-only receipt (no task yet) is decided on ``form_payments`` with the identical outcome:
+        approved → ``paid_manual``; rejected → ``rejected`` and the registration is cancelled (as the inbox
+        does). Reason is mandatory; the audit row keeps old/new status, actor and reason. Repeating the
+        same decision is a no-op (``changed: false``)."""
+        payload = await _read_json_object(request, 2048)
+        if set(payload) - {"decision", "reason", "expected_status"}:
+            raise HTTPException(400, "invalid_payment_decision")
+        decision = payload.get("decision")
+        reason = payload.get("reason")
+        expected_status = payload.get("expected_status")
+        if decision not in {"approved", "rejected"} or not isinstance(reason, str) or len(reason) > 500:
+            raise HTTPException(422, detail={"code": "invalid_payment_decision"})
+        reason = reason.strip()
+        if len(reason) < 2:
+            raise HTTPException(422, detail={"code": "reason_required", "field": "reason"})
+        if expected_status is not None and not isinstance(expected_status, str):
+            raise HTTPException(422, detail={"code": "invalid_payment_decision"})
+        record, payment, _form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        target = "paid_manual" if decision == "approved" else "rejected"
+        task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+        if task is not None and task.kind == "receipt_review":
+            if task.status == decision:
+                return {"changed": False, "payment_status": payment.status if payment is not None else None, "via": "task"}
+            if task.status != "pending":
+                raise HTTPException(409, detail={"code": "receipt_already_decided", "task_status": task.status})
+            reviewer_id = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+            reviewer_bale_id = None
+            if isinstance(identity, AccountIdentity):
+                reviewer_bale_id = db.scalar(
+                    select(PlatformIdentityRecord.provider_user_id).where(
+                        PlatformIdentityRecord.account_id == identity.account_id,
+                        PlatformIdentityRecord.provider == "bale",
+                    )
+                )
+            apply_admin_task_decision(db, task, decision, reason, reviewer_id, reviewer_bale_id)
+            record_audit(
+                db, identity, "workflow.decide", target_type="admin_task", target_id=task.id,
+                details={"kind": task.kind, "decision": decision, "has_reason": True, "event_id": event_id, "response_id": record.id},
+            )
+            db.commit()
+            refreshed = db.scalar(select(FormPaymentRecord).where(FormPaymentRecord.id == payment.id)) if payment is not None else None
+            return {"changed": True, "payment_status": refreshed.status if refreshed is not None else None, "via": "task"}
+        if payment is None or payment.method != "card_transfer":
+            raise HTTPException(409, detail={"code": "manual_decision_not_applicable"})
+        if payment.status == target:
+            return {"changed": False, "payment_status": payment.status, "via": "payment"}
+        if expected_status is not None and expected_status != payment.status:
+            raise HTTPException(409, detail={"code": "payment_status_changed", "payment_status": payment.status})
+        if payment.status not in {"awaiting_receipt", "receipt_submitted"}:
+            raise HTTPException(409, detail={"code": "payment_not_reviewable", "payment_status": payment.status})
+        if decision == "approved" and record.receipt_upload is None:
+            raise HTTPException(409, detail={"code": "receipt_missing"})
+        previous = payment.status
+        now = _utc_now()
+        locked = db.scalar(select(FormPaymentRecord).where(FormPaymentRecord.id == payment.id, FormPaymentRecord.status == previous).with_for_update())
+        if locked is None:
+            raise HTTPException(409, detail={"code": "payment_status_changed"})
+        locked.status = target
+        locked.updated_at = now
+        draft = db.get(FormResponseDraftRecord, record.draft_id)
+        account_id = draft.account_id if draft is not None else None
+        if decision == "rejected":
+            # Same outcome as the inbox: the registration is cancelled and the seat is released; the
+            # payment row stays (response_id → NULL) as the financial trace.
+            if draft is not None:
+                draft.answers = {}
+                draft.companions = []
+                draft.bot_bale_user_id = None
+            locked.response_id = None  # همان SET NULL پایگاه، صریح برای SQLite بدون PRAGMA
+            db.delete(record)
+            db.flush()
+        record_audit(
+            db, identity, "payment.manual_decision", target_type="form_response", target_id=response_id,
+            details={"event_id": event_id, "form_id": locked.form_id, "payment_id": locked.id, "decision": decision,
+                     "previous_status": previous, "new_status": target, "amount": int(locked.amount), "reason": reason[:160],
+                     "registration_cancelled": decision == "rejected"},
+        )
+        if account_id:
+            notifications_mod.queue(
+                db, account_id=account_id,
+                kind="receipt_approved" if decision == "approved" else "receipt_rejected",
+                title="ثبت‌نامت نهایی شد" if decision == "approved" else "ثبت‌نامت لغو شد",
+                body="رسید پرداختت تأیید شد و ثبت‌نامت نهایی است." if decision == "approved"
+                else "رسید پرداخت تأیید نشد و ثبت‌نام قبلی لغو شد. دلیل: " + reason,
+                key=notifications_mod.dedupe_key("payment_decision", locked.id, target),
+                bale_ids=[], link=notifications_mod.account_link("registrations"), file_refs=[],
+            )
+        db.commit()
+        return {"changed": True, "payment_status": target, "via": "payment", "registration_cancelled": decision == "rejected"}
+
+    @app.get("/api/admin/events/{event_id}/payments")
+    def event_file_payments(
+        event_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        state: str = Query(default="", pattern=r"^(|paid|pending|failed)$"),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("finance")),
+        db: Session = Depends(get_db),
+    ):
+        """Every payment row of this event's registration forms, traceable to a person. Statuses are the
+        stored ``form_payments.status`` values; totals are sums of confirmed rows only."""
+        response.headers["Cache-Control"] = "private, no-store"
+        _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        reg_forms = _event_file_registration_forms(forms)
+        form_ids = [f.id for f in reg_forms]
+        rows: list[tuple[FormPaymentRecord, FormResponseRecord | None]] = []
+        if form_ids:
+            rows = list(db.execute(
+                select(FormPaymentRecord, FormResponseRecord)
+                .outerjoin(FormResponseRecord, FormResponseRecord.id == FormPaymentRecord.response_id)
+                .where(FormPaymentRecord.form_id.in_(form_ids))
+                .order_by(FormPaymentRecord.created_at.desc(), FormPaymentRecord.id.desc())
+                .limit(5000)
+            ).all())
+        items: list[dict[str, Any]] = []
+        totals = {"paid_amount": 0, "paid": 0, "pending": 0, "failed": 0}
+        for pay, record in rows:
+            cls = _EVENT_FILE_PAYMENT_CLASS.get(pay.status, "pending")
+            totals[cls] += 1
+            if cls == "paid":
+                totals["paid_amount"] += int(pay.amount)
+            task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record is not None and record.receipt_review_task_id else None
+            items.append({
+                "payment_id": pay.id, "form_id": pay.form_id, "response_id": pay.response_id,
+                "name": _form_ticket_name(record) if record is not None else "",
+                "display_id": _form_tracking_code(record) if record is not None else "",
+                "registration_status": record.status if record is not None else None,
+                "method": pay.method, "status": pay.status, "state": cls,
+                "amount": int(pay.amount), "currency": pay.currency, "party_count": int(pay.party_count or 1),
+                "transaction_id": pay.transaction_id, "provider_charge_id": pay.provider_charge_id,
+                "receipt": {
+                    "uploaded": record is not None and (record.receipt_upload is not None or record.receipt_review_task_id is not None),
+                    "web_file": record is not None and record.receipt_upload is not None,
+                    "task_id": task.id if task is not None else None,
+                    "task_status": task.status if task is not None else None,
+                },
+                "created_at": _as_utc(pay.created_at).isoformat(), "updated_at": _as_utc(pay.updated_at).isoformat(),
+                "expires_at": _as_utc(pay.expires_at).isoformat() if pay.expires_at else None,
+            })
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            items = [i for i in items if needle in unicodedata.normalize("NFKC", i["name"]).lower()
+                     or needle in i["display_id"].lower() or (i["transaction_id"] and needle in i["transaction_id"].lower())]
+        if state:
+            items = [i for i in items if i["state"] == state]
+        page = items[offset: offset + limit]
+        return {
+            "source": "form_payments", "event_id": event_id,
+            "forms": [{"id": f.id, "name": f.title, "status": f.status} for f in reg_forms],
+            "totals": totals, "items": page, "total": len(items), "limit": limit, "offset": offset,
+            "has_more": offset + limit < len(items), "filters": {"q": q, "state": state},
+        }
+
+    @app.get("/api/admin/events/{event_id}/forms/{form_id}/summary")
+    def event_file_form_summary(
+        event_id: str,
+        form_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses")),
+        db: Session = Depends(get_db),
+    ):
+        """Aggregate results of a survey/exam/other form linked to this event, computed from the stored
+        answers: per-option counts for choice fields, mean/min/max for numeric ones, response total.
+        No scoring: the server form model has no answer key, so none is invented."""
+        response.headers["Cache-Control"] = "private, no-store"
+        _event_file_row(db, event_id)
+        form = _event_file_form(db, identity.owner_id, event_id, form_id)
+        records = db.scalars(
+            select(FormResponseRecord).where(FormResponseRecord.form_id == form.id)
+            .order_by(FormResponseRecord.created_at.desc()).limit(5000)
+        ).all()
+        fields = sorted(form.fields, key=lambda item: (item.position, item.row_id))
+        choice_types = {"choice", "dropdown", "select", "multi", "imgchoice", "gender", "marital", "yesno", "rating", "scale", "bars"}
+        numeric_types = {"number", "amount", "price"}
+        out_fields: list[dict[str, Any]] = []
+        for field in fields:
+            config = field.config if isinstance(field.config, dict) else {}
+            kind = "text"
+            if field.field_type in choice_types:
+                kind = "choice"
+            elif field.field_type in numeric_types:
+                kind = "numeric"
+            answered = 0
+            counts: dict[str, int] = {}
+            numbers: list[float] = []
+            for record in records:
+                answers = record.answers if isinstance(record.answers, dict) else {}
+                value = answers.get(field.field_key)
+                if value is None or value == "" or value == []:
+                    continue
+                answered += 1
+                values = value if isinstance(value, list) else [value]
+                for item in values[:20]:
+                    if isinstance(item, bool):
+                        key = "بله" if item else "خیر"
+                    elif isinstance(item, (int, float)):
+                        numbers.append(float(item))
+                        key = str(item)
+                    elif isinstance(item, str):
+                        key = item.strip()[:120]
+                        try:
+                            numbers.append(float(item.translate(DIGIT_TRANSLATION)))
+                        except ValueError:
+                            pass
+                    else:
+                        continue
+                    if kind == "choice":
+                        counts[key] = counts.get(key, 0) + 1
+            entry: dict[str, Any] = {
+                "field_id": field.field_key, "label": field.label, "type": field.field_type, "kind": kind,
+                "answered": answered,
+            }
+            raw_options = config.get("opts") if isinstance(config.get("opts"), list) else config.get("options")
+            options: list[Any] = list(raw_options) if isinstance(raw_options, list) else []
+            if not options and field.field_type in ("yesno", "gender", "marital"):
+                options = {"yesno": ["بله", "خیر"], "gender": ["زن", "مرد"], "marital": ["مجرد", "متأهل"]}[field.field_type]
+            if kind == "choice":
+                labels = [str(o.get("l") if isinstance(o, dict) else o)[:120] for o in options][:50]
+                ordered = [{"label": label, "count": counts.pop(label, 0)} for label in labels]
+                ordered += [{"label": label, "count": count} for label, count in sorted(counts.items(), key=lambda kv: -kv[1])[:50]]
+                entry["options"] = ordered
+            if numbers and (kind == "numeric" or field.field_type in ("rating", "scale", "bars")):
+                entry["mean"] = round(sum(numbers) / len(numbers), 2)
+                entry["min"] = min(numbers)
+                entry["max"] = max(numbers)
+            out_fields.append(entry)
+        return {
+            "source": "form_responses", "event_id": event_id,
+            "form": _event_file_form_card(form, len(records)),
+            "responses": len(records), "fields": out_fields,
+            "scoring": None,  # کلید پاسخ/نمره در مدل سرور وجود ندارد؛ ادعایی هم نمی‌شود
+        }
 
     @app.get("/api/admin/users/{account_id}/notifications")
     def list_admin_user_notifications(
