@@ -106,7 +106,7 @@
 | D3 | اعتبارسنجی `ev` سروری | — | **کامل** | `_require_known_form_event`; `create.html` پیام فارسی برای 422 `unknown_reference`/`ev` | 422 `unknown_reference` | سرور | کد `a82f422`+`f24522e` · آزمون pytest سبز · مرورگر `evidence/panel-reference-2026-10-23/D3-unknown-ev-422.png`, `stage-d-results.json` (پیام فارسی، چیزی ذخیره نشد، متن تایپ‌شده ماند) | — | بسته |
 | D4 | پاسخ‌ها، جزئیات، CSV | `builder.html` | کامل | `builder.html` | `/responses[?format=csv]` | `fm_responses`, `fm_export`, `finance` | pytest, شواهد `panel-restore/` | xlsx → 422 صادقانه | حفظ |
 | D5 | ظرفیت/صف انتظار/همراهان/بلیت/پرداخت/فیش | ✓ | کامل | فرم‌ساز + `form.html` | مدل فرم | — | pytest فازهای ۷–۹ | — | حفظ |
-| D6 | انتخاب رویداد از فهرست سروری داخل فرم‌ساز | برگهٔ انتخاب رویداد | **کامل** | `#evPickBox` در `create.html` (`evPickLoad`/`renderEvPick`؛ جست‌وجوی فارسی، Enter، قطع اتصال، قفل برای فرم منتشرشده) | `GET /api/admin/content/events` (۴۰۱/۴۰۳ → `GET /api/public/site-content` فقط منتشرشده‌ها) | `ev_create` یا عمومی | کد `f24522e` · آزمون خودکار: **ندارد** (هیچ suite jsdom برای `create.html` نیست — ثبت به‌عنوان بدهی) · مرورگر `evidence/panel-reference-2026-10-23/D6-*.png`, `stage-d-results.json` (۱۱/۱۱؛ `ev` در بدنهٔ `POST /api/forms`) | — | بسته با بدهی آزمون jsdom |
+| D6 | انتخاب رویداد از فهرست سروری داخل فرم‌ساز | برگهٔ انتخاب رویداد | **کامل** | `#evPickBox` در `create.html` (`evPickLoad`/`renderEvPick`؛ جست‌وجوی فارسی، Enter، قطع اتصال، قفل برای فرم منتشرشده) | `GET /api/admin/content/events` (۴۰۱/۴۰۳ → `GET /api/public/site-content` فقط منتشرشده‌ها) | `ev_create` یا عمومی | کد `f24522e` · آزمون خودکار: `builder-event-picker.test.mjs` ۲۸/۲۸ · مرورگر `evidence/panel-reference-2026-10-23/D6-picker-open.png`, `D6-picked.png`, `D6-saved.png`, `stage-d-results.json` (۱۱/۱۱؛ `ev` در بدنهٔ `POST /api/forms`) | — (فوکوس قلم جست‌وجو هنگام بازنویسی فهرست از دست می‌رفت → رفع شد) | بسته |
 | D7 | وبهوک/گردش کار پیشرفته | ✓ | مسدود | — | مدل نیست | — | — | — | تصمیم |
 
 ### E. کارتابل و اعلان‌ها
@@ -175,7 +175,7 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 | B20 | ویرایشگر بلوکی مطلب + نمایش عمومی | `01fe58a`, `57de428` | pytest `test_article_blocks_*`؛ admin-phase2 (B20)؛ post ۱۰۴/۰؛ smoke ۸۰۸/۰ | ✓ `B20-block-editor.png`, `B20-public-post.png` (۷/۷ در `stage-b20-results.json`) |
 | C5 | تاریخچهٔ حساب در پروندهٔ کاربر (مالک) | `43e5150` | pytest `test_admin_audit_trail` ۴ passed؛ admin-phase2 (مالک + مدیر) | ✓ `C5-account-history.png`, `C5-manager-no-history-tab.png` (۱۱/۱۱) |
 | D3 | پیام فارسی ۴۲۲ `unknown_reference(ev)` در فرم‌ساز | `f24522e` | pytest (سرور) | ✓ `D3-unknown-ev-422.png` |
-| D6 | انتخاب‌گر رویداد در فرم‌ساز | `f24522e` | — (بدون suite برای `create.html`؛ بدهی) | ✓ `D6-picker-open.png`, `D6-picked.png`, `D6-saved.png` (۱۱/۱۱ در `stage-d-results.json`) |
+| D6 | انتخاب‌گر رویداد در فرم‌ساز | `f24522e` | `builder-event-picker.test.mjs` ۲۸/۲۸ (فهرست فقط از API مدیریتی/عمومی، جست‌وجو+Enter، قطع اتصال، خطا/تلاش دوباره، پنهان در فرم خرید، ۴۲۲ `unknown_reference`) | ✓ `D6-picker-open.png`, `D6-picked.png`, `D6-saved.png` (۱۱/۱۱ در `stage-d-results.json`) |
 | G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | ✓ `G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶: یک POST ۲۰۱، نشانی پایدار در `photo`، PATCH ۲۰۰، فایل از `/api/public/media/…` با `image/png` سرو شد) |
 
 ### نقص‌هایی که فقط در مرورگر پیدا شدند (و رفع شدند)
@@ -191,6 +191,6 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 
 ### باقی‌مانده‌ها به ترتیب اولویت (باگ/مسیر ناقص اول)
 1. ~~G1 شاهد مرورگر~~ انجام شد (`stage-g1-results.json`).
-2. D6 آزمون jsdom برای `create.html` (بدهی آزمون؛ M).
+2. ~~D6 آزمون jsdom~~ انجام شد (`builder-event-picker.test.mjs`؛ ضمناً اشکال ازدست‌رفتن فوکوس قلم جست‌وجو هنگام بازنویسی فهرست در `create.html` رفع شد).
 3. A2 چیپ سلامت «پیکربندی‌نشده» ≠ «خراب»؛ A6 ظرفیت روی کارت رویداد نزدیک؛ B1 صافی زمانی؛ F1 نمودار CSS؛ G1 رونوشت از پروفایل (همه P2).
 4. تصمیم مالک (مستند جدا، مسدودکننده نیست): A12، B14، B18، B19، B22، C1، C9، C11، D7، E4، F5، G4، H5؛ بلوک ویدیو/صدا در مطلب (منبع معتبر)؛ «مدت خودکار» رویداد؛ هوش مصنوعی داخلی (بدون شاهد در طراحی/تاریخچه).
