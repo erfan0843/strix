@@ -149,6 +149,13 @@ def test_role_and_credential_changes_are_audited_without_secrets_and_visible_to_
             grouped = client.get("/api/owner/audit?action=role.")
             assert [item["action"] for item in grouped.json()["items"]] == ["role.clear", "role.set"]
             assert client.get("/api/owner/audit?action=manager_credentials.").json()["items"][0]["action"] == "manager_credentials.remove"
+            # ممیزی C5: تاریخچهٔ یک حساب در پرونده = فیلتر دقیق target_type+target_id؛ شناسهٔ دیگر هیچ ردیفی ندارد
+            per_account = client.get(f"/api/owner/audit?target_type=account&target_id={account_id}")
+            assert per_account.status_code == 200
+            assert [item["action"] for item in per_account.json()["items"]] == actions
+            assert all(item["target_id"] == account_id for item in per_account.json()["items"])
+            assert client.get("/api/owner/audit?target_type=account&target_id=00000000-0000-4000-8000-000000000000").json()["items"] == []
+            assert client.get("/api/owner/audit?target_id=%27%20OR%201%3D1").status_code == 422
             assert client.get("/api/owner/audit?action=nothing.").json()["items"] == []
             assert client.get("/api/owner/audit?action=DROP%20TABLE").status_code == 422
 

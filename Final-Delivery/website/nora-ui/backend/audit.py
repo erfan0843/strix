@@ -134,6 +134,7 @@ def list_admin_events(
     offset: int,
     action: str = "",
     target_type: str = "",
+    target_id: str = "",
 ) -> tuple[list[AdminAuditEventRecord], bool]:
     query = select(AdminAuditEventRecord)
     if action.endswith("."):
@@ -144,6 +145,9 @@ def list_admin_events(
         query = query.where(AdminAuditEventRecord.action == action)
     if target_type:
         query = query.where(AdminAuditEventRecord.target_type == target_type)
+    if target_id:
+        # پروندهٔ کاربر (ممیزی C5): فقط رویدادهایی که هدفشان دقیقاً همین شناسه است؛ بدون LIKE و بدون حدس.
+        query = query.where(AdminAuditEventRecord.target_id == target_id)
     rows = db.scalars(
         query.order_by(AdminAuditEventRecord.created_at.desc(), AdminAuditEventRecord.id)
         .offset(offset)

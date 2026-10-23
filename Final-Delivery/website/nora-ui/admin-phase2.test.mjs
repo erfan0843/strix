@@ -124,7 +124,20 @@ async function loadPanel(identity) {
         }
         if (/^\/api\/admin\/reports\/summary\?period=/.test(path)) return reply(200, { source: 'shared_server_database', period: '30d', forms: { total: 0, by_status: {} }, responses: { total: 0, by_status: {} }, accounts: { total: 0, by_role: {} }, reviews: { total: 0, by_kind: {} }, notifications: { total: 0, by_delivery_status: {} }, cooperation_requests: { total: 0, by_status: {} } });
         if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
-        if (path.startsWith('/api/owner/audit')) return reply(200, { items: [], limit: 30, offset: 0, has_more: false, actions: [] });
+        if (path.startsWith('/api/owner/audit')) {
+          if (identity.role !== 'owner') return reply(401, { detail: 'owner_session_required' });
+          const qs = new URLSearchParams(path.split('?')[1] || '');
+          world.auditCalls = (world.auditCalls || 0) + 1;
+          if (world.auditFailOnce) { world.auditFailOnce = false; return reply(503, { detail: 'service_unavailable' }); }
+          const tid = qs.get('target_id') || '';
+          if (tid) {
+            /* فیلتر سمت سرور: فقط ردیف‌های همین هدف */
+            const all = (world.auditByTarget || {})[tid] || [];
+            const off = +qs.get('offset') || 0, lim = +qs.get('limit') || 20;
+            return reply(200, { items: all.slice(off, off + lim), limit: lim, offset: off, has_more: off + lim < all.length, actions: [] });
+          }
+          return reply(200, { items: [], limit: 30, offset: 0, has_more: false, actions: [] });
+        }
 
         /* B1: tchr/partnerId must be ids of people/partners in the same document */
         const refCheck = (kind, record) => {
@@ -1002,6 +1015,34 @@ console.log('— مرحلهٔ ۳: پروندهٔ کاربر U4/U5؛ ثبت‌ن�
     /* زبانهٔ کارتابل هنوز هست */
     app.click('[data-uf-tab="reviews"]');
     await app.until(() => /درخواست پروفایل یا فیشی/.test(app.body()), 'زبانهٔ کارتابل');
+
+    /* C5: تاریخچهٔ حساب — فقط مالک؛ فراخوانی جدا و فقط هنگام باز کردن زبانه؛ فیلتر target_id سمت سرور؛ خطا/تلاش دوباره/خالی/صفحه‌بندی */
+    assert.equal(app.world.auditCalls || 0, 0, 'تا زبانه باز نشود هیچ تماسی با مسیر ممیزی مالک نیست');
+    app.world.auditByTarget = { [ACC]: [
+      { id: 'au-1', created_at: '2026-10-22T10:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'role.set', target_type: 'account', target_id: ACC, outcome: 'ok', details: { previous_role: null, role: 'manager' } },
+      { id: 'au-2', created_at: '2026-10-21T10:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'manager_credentials.set', target_type: 'account', target_id: ACC, outcome: 'ok', details: { username: 'm.one', replaced: false } },
+    ], 'other-acc': [
+      { id: 'au-9', created_at: '2026-10-20T10:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'role.clear', target_type: 'account', target_id: 'other-acc', outcome: 'ok', details: {} },
+    ] };
+    app.world.auditFailOnce = true;
+    assert.ok(app.doc.querySelector('[data-uf-tab="hist"]'), 'زبانهٔ تاریخچه برای مالک');
+    app.click('[data-uf-tab="hist"]');
+    await app.until(() => app.doc.querySelector('[data-uf-hist-refresh]') && /دریافت نشد|در دسترس نیست|خطا/.test(app.doc.querySelector('[data-uf-hist-list]').textContent), 'خطای سرور + دکمهٔ تلاش دوباره');
+    const histCall = app.calls.filter((c) => c.path.startsWith('/api/owner/audit')).pop();
+    assert.ok(histCall && histCall.path.includes('target_type=account') && histCall.path.includes(`target_id=${ACC}`), 'فیلتر دقیق هدف در خود درخواست، نه در مرورگر');
+    assert.equal(app.doc.querySelectorAll('[data-uf-hist]').length, 0);
+    app.click('[data-uf-hist-refresh]');
+    await app.until(() => app.doc.querySelectorAll('[data-uf-hist]').length === 2, 'دو ردیف تاریخچهٔ همین حساب');
+    const hl = app.doc.querySelector('[data-uf-hist-list]').textContent;
+    assert.match(hl, /تعیین نقش/); assert.match(hl, /تعریف ورود مدیر/); assert.match(hl, /m\.one/);
+    assert.doesNotMatch(hl, /برداشتن نقش/, 'ردیف حساب دیگر دیده نمی‌شود');
+    assert.equal(app.doc.querySelector('[data-uf-hist-page]'), null, 'بدون صفحهٔ بعد وقتی has_more=false');
+    app.noLeak();
+    /* حساب بدون سابقه: پیام خالی صادقانه */
+    app.world.auditByTarget[ACC] = [];
+    app.click('[data-uf-hist-refresh]');
+    await app.until(() => /ثبت نشده است/.test(app.doc.querySelector('[data-uf-hist-list]').textContent), 'حالت خالی');
+    assert.equal(app.doc.querySelectorAll('[data-uf-hist]').length, 0);
   } finally { app.close(); }
   /* مدیر us_view بدون finance */
   const mgr = await loadPanel({ role: 'manager', sec: 'users' });
@@ -1022,6 +1063,9 @@ console.log('— مرحلهٔ ۳: پروندهٔ کاربر U4/U5؛ ثبت‌ن�
     mgr.click('[data-uf-reg="b2b2b2b2-1111-4222-8333-444444444499"]');
     await mgr.until(() => /پیدا نشد/.test(mgr.body()), 'پاسخ حساب دیگر: فقط پیام پیدا نشد');
     assert.equal(mgr.doc.querySelector('[data-uf-answers]'), null, 'هیچ پاسخی از حساب دیگر نشت نکرد');
+    /* C5: مدیر زبانهٔ تاریخچه ندارد و هیچ تماسی با مسیر مالک نمی‌گیرد */
+    assert.equal(mgr.doc.querySelector('[data-uf-tab="hist"]'), null, 'مدیر زبانهٔ تاریخچهٔ حساب ندارد');
+    assert.equal(mgr.calls.filter((c) => c.path.startsWith('/api/owner/')).length, 0, 'مدیر هیچ درخواستی به مسیرهای مالک نمی‌فرستد');
   } finally { mgr.close(); }
   /* خطای فهرست ثبت‌نام‌ها + تلاش دوباره */
   const bad = await loadPanel({ role: 'owner', sec: 'users', regsFail: true });

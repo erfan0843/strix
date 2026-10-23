@@ -9144,12 +9144,13 @@ def create_app(
         offset: int = Query(default=0, ge=0, le=1_000_000),
         action: str = Query(default="", max_length=64, pattern=r"^[a-z_.]*$"),
         target_type: str = Query(default="", max_length=32, pattern=r"^[a-z_]*$"),
+        target_id: str = Query(default="", max_length=120, pattern=r"^[A-Za-z0-9_.:-]*$"),
         _identity: OwnerIdentity = Depends(require_owner),
         db: Session = Depends(get_db),
     ):
         """Owner-only, read-only view of the administrative audit trail."""
         rows, has_more = audit_mod.list_admin_events(
-            db, limit=limit, offset=offset, action=action, target_type=target_type
+            db, limit=limit, offset=offset, action=action, target_type=target_type, target_id=target_id
         )
         return {
             "items": [audit_mod.audit_event_view(row) for row in rows],

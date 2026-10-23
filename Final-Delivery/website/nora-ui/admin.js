@@ -8272,7 +8272,25 @@ function cmPanel(){
 const UFL={acc:'',tab:'regs',regs:null,regsLoading:false,regsError:'',regsOffset:0,regsLimit:20,regsKey:'',
   reg:null,regId:'',regLoading:false,regError:'',
   notifs:null,notifsLoading:false,notifsError:'',notifsOffset:0,notifsLimit:20,notifsKey:''};
-function ufReset(acc){UFL.acc=acc||''; UFL.tab='regs'; UFL.regs=null; UFL.regsLoading=false; UFL.regsError=''; UFL.regsOffset=0; UFL.regsKey=''; UFL.reg=null; UFL.regId=''; UFL.regLoading=false; UFL.regError=''; UFL.notifs=null; UFL.notifsLoading=false; UFL.notifsError=''; UFL.notifsOffset=0; UFL.notifsKey=''}
+function ufReset(acc){UFL.acc=acc||''; UFL.tab='regs'; UFL.regs=null; UFL.regsLoading=false; UFL.regsError=''; UFL.regsOffset=0; UFL.regsKey=''; UFL.reg=null; UFL.regId=''; UFL.regLoading=false; UFL.regError=''; UFL.notifs=null; UFL.notifsLoading=false; UFL.notifsError=''; UFL.notifsOffset=0; UFL.notifsKey=''; UFL.hist=null; UFL.histLoading=false; UFL.histError=''; UFL.histOffset=0; UFL.histKey=''}
+function ufHistKey(){return [UFL.acc,UFL.histOffset,UFL.histLimit||20].join('|')}
+/* ممیزی C5: تاریخچهٔ حساب از همان ممیزی سرور (فقط مالک) با فیلتر دقیق هدف=همین حساب؛ ردیف‌هایی که هدفشان چیز دیگری است (پاسخ فرم، درخواست کارتابل) این‌جا نمی‌آیند و همین صریح گفته می‌شود. */
+async function ufLoadHist(){
+  const fn=ufApi('listTargetAuditEvents'), acc=UFL.acc; if(!acc) return;
+  if(!isOwner()){UFL.histError='تاریخچهٔ حساب فقط با نشست مالک خوانده می‌شود.'; UFL.histKey=ufHistKey(); renderBody(); return}
+  if(!fn){UFL.histError='رابط سرور در دسترس نیست.'; UFL.histKey=ufHistKey(); renderBody(); return}
+  const key=ufHistKey(); UFL.histLoading=true; UFL.histError=''; renderBody();
+  try{const result=await fn('account',acc,{limit:UFL.histLimit||20,offset:UFL.histOffset}); if(key===ufHistKey()){UFL.hist=result; UFL.histKey=key}}
+  catch(error){if(key===ufHistKey()){UFL.histError=p2Err(error,'تاریخچهٔ این حساب دریافت نشد.'); UFL.histKey=key}}
+  finally{UFL.histLoading=false; if(key!==ufHistKey()&&UFL.acc){ufLoadHist(); return} if(S.sec==='users') renderBody()}
+}
+function ufHistRow(ev){
+  const actor=ev.actor_kind==='owner'?'مالک':ev.actor_kind==='account'?((typeof roleDef==='function'&&ev.actor_role?roleDef(ev.actor_role).n:'')||'حساب')+' '+String(ev.actor_id||'').slice(0,8):'سامانه';
+  const detail=auditDetailText(ev.details);
+  return `<div class="admlirow" data-uf-hist="${esc(ev.id)}"><span class="ic">${ico(ev.outcome==='ok'?'i-check':'i-info')}</span>
+    <span class="sp"><b>${esc(AUDIT_ACTION_LABELS[ev.action]||ev.action)}</b>${detail?`<small class="cap">${esc(detail)}</small>`:''}<small class="cap">${esc(actor)} · ${esc(svcWhen(ev.created_at)||'')}</small></span>
+    ${tag(ev.outcome==='ok'?'انجام شد':'ناموفق',ev.outcome==='ok'?'ok':'stop')}</div>`;
+}
 function ufApi(name){const api=window.NORA_SERVER_API; return api&&typeof api[name]==='function'?api[name]:null}
 function ufRegsKey(){return [UFL.acc,UFL.regsOffset,UFL.regsLimit].join('|')}
 function ufNotifsKey(){return [UFL.acc,UFL.notifsOffset,UFL.notifsLimit].join('|')}
@@ -8359,7 +8377,7 @@ function ufNotifRow(n){
     ${tag(n.scope==='audience'?'همگانی':'شخصی',n.scope==='audience'?'':'brand')}${tag(st[0],st[1])}${n.has_bale_identity===false?tag('بدون شناسهٔ بله','stop'):''}</div>`;
 }
 function ufPane(){
-  const tabs=[['regs','ثبت‌نام‌ها',UFL.regs?fa(UFL.regs.total):''],['notifs','اعلان‌های حساب',UFL.notifs?fa(UFL.notifs.total):''],['reviews','درخواست‌های کارتابل','']]
+  const tabs=[['regs','ثبت‌نام‌ها',UFL.regs?fa(UFL.regs.total):''],['notifs','اعلان‌های حساب',UFL.notifs?fa(UFL.notifs.total):''],['reviews','درخواست‌های کارتابل','']].concat(isOwner()?[['hist','تاریخچهٔ حساب','']]:[])
     .map(([k,l,c])=>`<button class="chip ${UFL.tab===k?'on':''}" type="button" role="tab" aria-selected="${UFL.tab===k}" data-uf-tab="${k}">${esc(l)}${c!==''?` <small>${c}</small>`:''}</button>`).join('');
   let body='';
   if(UFL.tab==='regs'){
@@ -8383,6 +8401,16 @@ function ufPane(){
     body=`<div class="row tight"><div class="head">اعلان‌های این حساب${d?' ('+fa(total)+')':''}</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-notifs-refresh','i-refresh'):''}</div>
       <p class="cap">فقط ردیف‌هایی که برای همین حساب نوشته شده‌اند (نه صف عمومی)؛ «در صف» و «در حال تلاش دوباره» یعنی هنوز تحویل نشده. این صفحه ارسال یا تلاش دوباره ندارد.</p>
       <div class="tlist" data-uf-notifs>${list}</div>${d?p2Pager(total,UFL.notifsOffset,UFL.notifsLimit,'data-uf-notifs-page="prev"','data-uf-notifs-page="next"'):''}`;
+  }else if(UFL.tab==='hist'){
+    const d=UFL.hist, items=d&&Array.isArray(d.items)?d.items:[], lim=UFL.histLimit||20;
+    const list=UFL.histLoading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن تاریخچهٔ این حساب از ممیزی سرور…</p></div>`
+      :UFL.histError?`<div class="empty"><p class="cap">${esc(UFL.histError)}</p>${btn('تلاش دوباره','data-uf-hist-refresh','i-refresh')}</div>`
+      :!d?`<div class="empty"><p class="cap">تاریخچه هنوز خوانده نشده است.</p>${btn('دریافت تاریخچه','data-uf-hist-refresh','i-refresh')}</div>`
+      :items.length?items.map(ufHistRow).join(''):emptyBox('برای این حساب عملیات مدیریتی‌ای (نقش، ورود مدیر) ثبت نشده است.');
+    const pager=d?`<div class="row tight" data-uf-hist-pager>${UFL.histOffset>0?btn('جدیدترها','data-uf-hist-page="prev"','i-chev-right'):''}<span class="sp"></span>${d.has_more?btn('قدیمی‌ترها','data-uf-hist-page="next"','i-chev-left'):''}</div>`:'';
+    body=`<div class="row tight"><div class="head">تاریخچهٔ حساب (ممیزی سرور)</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-hist-refresh','i-refresh'):''}</div>
+      <p class="cap">فقط ردیف‌های ممیزی که هدفشان دقیقاً همین حساب است (تعیین/برداشتن نقش، تعریف/حذف ورود مدیر). تصمیم‌های کارتابل و فیش در «درخواست‌های کارتابل» و فهرست کامل عملیات در «تنظیمات → امنیت → تاریخچهٔ عملیات» است.</p>
+      <div class="tlist" data-uf-hist-list>${list}</div>${pager}`;
   }
   return {tabs:`<div class="admfilters" role="tablist" data-uf-tabs>${tabs}</div>`,body};
 }
@@ -8774,7 +8802,9 @@ document.addEventListener('click',e=>{
   const usProv=q('[data-users-provider]'); if(usProv){US.provider=usProv.dataset.usersProvider||''; US.offset=0; usLoad(); return}
   const usRole=q('[data-users-role]'); if(usRole){US.role=usRole.dataset.usersRole||''; US.offset=0; usLoad(); return}
   const usPage=q('[data-users-page]'); if(usPage){const total=US.data?Number(US.data.total)||0:0; US.offset=usPage.dataset.usersPage==='next'?Math.min(US.offset+US.limit,Math.max(0,total-1)):Math.max(0,US.offset-US.limit); usLoad(); return}
-  const ufTab=q('[data-uf-tab]'); if(ufTab){UFL.tab=ufTab.dataset.ufTab||'regs'; UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); if(UFL.tab==='regs'&&!UFL.regs&&!UFL.regsLoading) ufLoadRegs(); if(UFL.tab==='notifs'&&!UFL.notifs&&!UFL.notifsLoading) ufLoadNotifs(); return}
+  const ufTab=q('[data-uf-tab]'); if(ufTab){UFL.tab=ufTab.dataset.ufTab||'regs'; UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); if(UFL.tab==='regs'&&!UFL.regs&&!UFL.regsLoading) ufLoadRegs(); if(UFL.tab==='notifs'&&!UFL.notifs&&!UFL.notifsLoading) ufLoadNotifs(); if(UFL.tab==='hist'&&!UFL.hist&&!UFL.histLoading) ufLoadHist(); return}
+  if(q('[data-uf-hist-refresh]')){ufLoadHist(); return}
+  const ufHp=q('[data-uf-hist-page]'); if(ufHp){const lim=UFL.histLimit||20; UFL.histOffset=ufHp.dataset.ufHistPage==='next'?UFL.histOffset+lim:Math.max(0,UFL.histOffset-lim); ufLoadHist(); return}
   if(q('[data-uf-reg-back]')){UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); return}
   const ufReg=q('[data-uf-reg]'); if(ufReg){ufLoadReg(ufReg.dataset.ufReg); return}
   if(q('[data-uf-regs-refresh]')){UFL.regs=null; UFL.regsKey=''; ufLoadRegs(); return}
