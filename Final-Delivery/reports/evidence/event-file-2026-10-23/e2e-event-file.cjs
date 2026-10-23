@@ -6,6 +6,20 @@ const O = process.env.NORA_E2E_OWNER || 'http://127.0.0.1:8000', B = process.env
 const out = process.argv[2] || 'shots/event-file';
 const fs = require('node:fs'); const path = require('node:path'); fs.mkdirSync(out, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// نشست مالک مستقیم روی بک‌اند (بدون پروکسی؛ پروکسی توکن CSRF را خودش می‌گذارد و کنترل CSRF را پنهان می‌کند).
+// نام کاربری/گذرواژهٔ آزمایشی از فایل gitignore‌شده خوانده می‌شود و هرگز چاپ نمی‌شود.
+async function ownerSession() {
+  const text = fs.readFileSync(process.env.NORA_E2E_LOGIN_FILE || path.join(process.env.NORA_REPO_UI, 'PREVIEW-LOGIN.local.md'), 'utf8');
+  let creds = null;
+  for (const line of text.split('\n')) { if (!line.includes('مالک')) continue; const toks = [...line.matchAll(/`([^`]+)`/g)].map(m => m[1]); if (toks.length >= 2) { creds = { username: toks[0], password: toks[1] }; break; } }
+  if (!creds) throw new Error('owner test credentials not found');
+  const jar = new Map();
+  const store = r => { for (const c of (r.headers.getSetCookie ? r.headers.getSetCookie() : [])) { const [kv] = c.split(';'); const i = kv.indexOf('='); jar.set(kv.slice(0, i).trim(), kv.slice(i + 1).trim()); } };
+  const cookie = () => [...jar].map(([k, v]) => k + '=' + v).join('; ');
+  const login = await fetch(B + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: B }, body: JSON.stringify(creds) }); store(login); creds = null;
+  const csrf = jar.get('nora_csrf') || '';
+  return { loginStatus: login.status, csrf, fetch: (p, init) => fetch(B + p, Object.assign({}, init || {}, { headers: Object.assign({ Cookie: cookie(), Origin: B }, (init && init.headers) || {}) })) };
+}
 // a visible synthetic "receipt" (240×140 RGB stripes) so the person-file screenshot shows the image route working
 function fakeReceiptPng() {
   const zlib = require('zlib'); const w = 240, h = 140; const raw = Buffer.alloc((w * 3 + 1) * h);
@@ -197,9 +211,26 @@ async function surveyAnswer(formId, answers) {
   await shot('08-A-person-approved', true);
   const again = await api('/api/admin/events/' + A + '/registrations/' + rid(p1) + '/payment-decision', { method: 'POST', body: JSON.stringify({ decision: 'approved', reason: 'تکرار' }) });
   check('repeat approve is idempotent (changed:false)', again.status === 200 && again.body.changed === false);
-  const noCsrf = await page.evaluate(async ([p]) => { const r = await fetch(p, { method: 'POST', credentials: 'same-origin', body: JSON.stringify({ decision: 'approved', reason: 'x' }) }); return r.status; }, ['/api/admin/events/' + A + '/registrations/' + rid(p3) + '/payment-decision']);
-  L('decision without CSRF header', noCsrf);
-  check('decision without CSRF blocked', noCsrf === 403 || noCsrf === 415 || noCsrf === 422);
+  // ── CSRF/مبدأ: مستقیم روی بک‌اند با نشست واقعی مالک؛ بدنهٔ معتبر و Content-Type درست، فقط حفاظت را می‌سنجیم ──
+  const own = await ownerSession(); L('owner direct login', own.loginStatus);
+  check('owner direct backend session established', own.loginStatus === 200 && !!own.csrf);
+  const decisionPath = '/api/admin/events/' + A + '/registrations/' + rid(p3) + '/payment-decision';
+  const stateOf = async () => { const r = await own.fetch('/api/admin/events/' + A + '/registrations/' + rid(p3)); const b = await r.json(); return { status: b.status, payment: b.payment && b.payment.status, state: b.payment_state, audit: (b.audit || []).length }; };
+  const stBefore = await stateOf(); L('p3 before invalid requests', stBefore);
+  const validBody = JSON.stringify({ decision: 'approved', reason: 'درخواست بدون توکن CSRF' });
+  const csrfNone = await own.fetch(decisionPath, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: validBody });
+  const csrfWrong = await own.fetch(decisionPath, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'wrong-token-0000' }, body: JSON.stringify({ decision: 'approved', reason: 'توکن غلط' }) });
+  const csrfForeign = await own.fetch(decisionPath, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': own.csrf, Origin: 'http://evil.example' }, body: JSON.stringify({ decision: 'approved', reason: 'مبدأ غریبه' }) });
+  const csrfNoOrigin = await fetch(B + decisionPath, { method: 'POST', headers: { Cookie: 'nora_csrf=' + own.csrf, 'Content-Type': 'application/json', 'X-CSRF-Token': own.csrf }, body: JSON.stringify({ decision: 'approved', reason: 'بدون کوکی نشست' }) });
+  L('owner direct CSRF checks', { none: csrfNone.status, wrong: csrfWrong.status, foreignOrigin: csrfForeign.status, noSessionCookie: csrfNoOrigin.status });
+  check('owner direct: valid JSON decision without X-CSRF-Token → exactly 403', csrfNone.status === 403);
+  check('owner direct: wrong X-CSRF-Token → exactly 403', csrfWrong.status === 403);
+  check('owner direct: right token but foreign Origin → exactly 403', csrfForeign.status === 403);
+  check('owner direct: token without the session cookie → rejected (401/403)', csrfNoOrigin.status === 401 || csrfNoOrigin.status === 403);
+  const stAfter = await stateOf(); L('p3 after invalid requests', stAfter);
+  check('invalid requests changed nothing (registration status, payment status, audit count)', JSON.stringify(stAfter) === JSON.stringify(stBefore) && stAfter.payment === 'receipt_submitted' && stAfter.status === 'accepted');
+  const okDirect = await own.fetch(decisionPath, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': own.csrf }, body: JSON.stringify({ decision: 'approved', reason: 'x' }) });
+  check('owner direct: right token + right Origin reaches validation (reason too short → 422), i.e. CSRF layer is what blocked the others', okDirect.status === 422);
   // reject p3 → cancelled, capacity freed
   await click('[data-ef-person-close]'); await waitFor(async () => (await count('[data-ef-reg]')) === 3);
   await click('[data-ef-person="' + rid(p3) + '"]'); await waitFor(() => has('[data-ef-decision]'));
@@ -250,7 +281,7 @@ async function surveyAnswer(formId, answers) {
   check('survey summary box from direct URL', await waitFor(() => has('[data-ef-summary-box="' + survey.id + '"]')));
   const sb = await txt('[data-ef-summary-box="' + survey.id + '"]'); L('summary box', sb.slice(0, 300));
   check('aggregate: 3 responses, مدرس ۲ / محتوا ۱, mean 4', /۳ پاسخ/.test(sb) && /مدرس\s*۲/.test(sb) && /محتوا\s*۱/.test(sb) && /میانگین ۴/.test(sb));
-  check('quiz card says scoring needs a service (no fake score)', /نمره‌دهی آزمون نیازمند کلید پاسخ/.test(await txt('[data-ef-survey]')));
+  check('quiz card says scoring is not implemented at this stage (no fake score)', /نمره‌دهی آزمون در این مرحله پیاده‌سازی نشده/.test(await txt('[data-ef-survey]')) && /هیچ نمره یا نتیجه‌ای نمایش داده نمی‌شود/.test(await txt('[data-ef-survey]')) && !/نمرهٔ تو|نمره: ۱|امتیاز: /.test(await txt('[data-ef-survey]')));
   await shot('12-A-survey-summary', true);
 
   // ── 9) B isolation + wrong ids ──

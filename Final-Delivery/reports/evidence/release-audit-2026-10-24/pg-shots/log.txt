@@ -1,13 +1,13 @@
-events: {"A":"ev-4c39325761","B":"ev-6ddc6b98c3"}
+events: {"A":"ev-25791dafbe","B":"ev-7a1933941a"}
 PASS A: forms tab empty state with create action: 
-create reg form href: create.html?ev=ev-4c39325761&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D8%A7%D9%84%D9%81+%28%D9%BE%D8%B1%D9%88%D9%86%D8%AF%D9%87%29+212832&back=admin.html%23event%3Dev-4c39325761%26tab%3Dforms
+create reg form href: create.html?ev=ev-25791dafbe&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D8%A7%D9%84%D9%81+%28%D9%BE%D8%B1%D9%88%D9%86%D8%AF%D9%87%29+220520&back=admin.html%23event%3Dev-25791dafbe%26tab%3Dforms
 PASS create link carries ev + need=reg + back to this event/tab: 
-builder chip: {"hidden":false,"href":"admin.html#event=ev-4c39325761&tab=forms","text":"بازگشت به پروندهٔ رویداد"}
+builder chip: {"hidden":false,"href":"admin.html#event=ev-25791dafbe&tab=forms","text":"بازگشت به پروندهٔ رویداد"}
 PASS builder shows back link to event file A (same tab): 
 PASS back link returns to event A, forms tab: 
-forms: {"regA":"45ce06ea-a6ad-4ad6-bda7-8bebb4bcd178","regB":"8a334f71-b97e-4aea-be8f-7fde2cdff09e","pub":"d4590546-31f4-41e7-a56e-9f47aad90875","survey":"755eb86a-068e-4644-96c4-2d4a7e050acf","quiz":"0ace8130-7ee1-4d03-872b-3e042af8b783"}
+forms: {"regA":"ce38b32d-3fc6-4026-b53b-03cfff0348f2","regB":"ee6a138b-7966-4ffa-9b6b-b739443ab72c","pub":"6e6ea7ce-4205-40f4-b7a0-20eeda6fde30","survey":"09bc03a4-9f63-4154-a38c-0319f54a311d","quiz":"9c2d0e16-0ce5-499c-84fb-ec02afdaf7fb"}
 PASS overview renders head: 
-head: رویداد الف (پرونده) 212832ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۳ نفر · باقی‌مانده ۳فرم ثبت‌نام: فعالمبلغ: ۵۰۰,۰۰۰ ریال · کارت‌به‌کارت ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 212832» مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+head: رویداد الف (پرونده) 220520ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۳ نفر · باقی‌مانده ۳فرم ثبت‌نام: فعالمبلغ: ۵۰۰,۰۰۰ ریال · کارت‌به‌کارت ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 220520» مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
 PASS head: title + ثبت‌نام باز + cap 3 + price 500,000 + source label: 
 PASS head buttons: مشاهدهٔ صفحه / ویرایش رویداد / ویرایش تنظیمات ثبت‌نام: 
 PASS overview says declared event values are not the source: 
@@ -16,7 +16,7 @@ PASS hash kept after load:
 PASS public projection cap=3 price=500000 from form: 
 PASS forms tab lists reg A only: 
 PASS hash switched to tab=forms: 
-picker options: ["","0ace8130-7ee1-4d03-872b-3e042af8b783","755eb86a-068e-4644-96c4-2d4a7e050acf","d4590546-31f4-41e7-a56e-9f47aad90875","2419593d-5d76-4d43-934e-8d9fb558de23"]
+picker options: ["","9c2d0e16-0ce5-499c-84fb-ec02afdaf7fb","09bc03a4-9f63-4154-a38c-0319f54a311d","6e6ea7ce-4205-40f4-b7a0-20eeda6fde30","d4590546-31f4-41e7-a56e-9f47aad90875","2419593d-5d76-4d43-934e-8d9fb558de23"]
 PASS link picker offers unlinked survey/quiz/public form, not B’s linked form: 
 PASS survey linked (card appears): 
 PASS quiz linked (card appears): 
@@ -28,13 +28,13 @@ PASS browser back returns to A/forms:
 regA version: 2
 form settings update: 200
 republish: 200
-head after form change: رویداد الف (پرونده) 212832ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۴ نفر · باقی‌مانده ۴فرم ثبت‌نام: فعالمبلغ: ۶۰۰,۰۰۰ ریال · کارت‌به‌کارت ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 212832» مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+head after form change: رویداد الف (پرونده) 220520ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۴ نفر · باقی‌مانده ۴فرم ثبت‌نام: فعالمبلغ: ۶۰۰,۰۰۰ ریال · کارت‌به‌کارت ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 220520» مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
 PASS event file follows the form: cap 4, price 600,000: 
 PASS overview.registration_settings == form settings: 
 PASS editor shows capacity/price read-only «تنظیم‌شده در فرم ثبت‌نام»: 
 price field: {"value":"۶۰۰,۰۰۰ ریال","ro":true}
 PASS price field read-only too: 
-registrations: {"p1":"1d3d36ce-98ee-43ac-bbfc-fbaac7d674ca","p2":"29efca4c-99f3-4e71-a4c5-8b2ffd7274c3","p3":"3653cc89-9d8f-4026-907b-0dbffb148e1d","pB":"c4715a6f-9893-4b52-8372-0a583b331fd4"}
+registrations: {"p1":"ab6ef1d8-daff-4420-9c76-957da3b6a65a","p2":"61393a34-b08d-43f1-aa95-99a26add65ea","p3":"6d4562b9-3325-40ce-a0d9-48f64cc25546","pB":"cd73ec87-8415-4a24-b26b-046a33b1378f"}
 PASS public submit returned tracking codes (no row ids): 
 PASS registrants tab renders rows: 
 summary: کل: ۳پذیرفته‌شده: ۳فهرست انتظار: ۰پرداخت‌شده: ۰در انتظار پرداخت: ۳ناموفق: ۰رایگان: ۰حاضر: ۰ظرفیت باقی‌مانده: ۱ از ۴
@@ -44,7 +44,7 @@ PASS row shows «رسید فرستاده شده» separate from payment state:
 PASS filter paid → empty state with real counts: 
 PASS search narrows to one row: 
 PASS person file opens, hash has reg=: 
-person file: بازگشت به ثبت‌نام‌کنندگاننفر اول پروندهپذیرفته‌شدهدر انتظار پرداختNORA-1D3D36CE98EE43ACBBFC · فرم ثبت‌نام الف 212832 پاسخ‌های فرمنام کاملنفر اول پرونده پرداخت و رسیدروشکارت‌به‌کارتوضعیت پرداخترسید فرستاده شده؛ تأیید نشدهمبلغ۶۰۰,۰۰۰ ریالتصمیم دربارهٔ این پرداخت تأیید پرداخترد رسید و لغو ثبت‌نامتأیید 
+person file: بازگشت به ثبت‌نام‌کنندگاننفر اول پروندهپذیرفته‌شدهدر انتظار پرداختNORA-AB6EF1D8DAFF44209C76 · فرم ثبت‌نام الف 220520 پاسخ‌های فرمنام کاملنفر اول پرونده پرداخت و رسیدروشکارت‌به‌کارتوضعیت پرداخترسید فرستاده شده؛ تأیید نشدهمبلغ۶۰۰,۰۰۰ ریالتصمیم دربارهٔ این پرداخت تأیید پرداخترد رسید و لغو ثبت‌نامتأیید 
 PASS person file: answer, payment method, receipt image, no ticket yet: 
 PASS receipt image actually loads from the access-controlled route: 
 PASS refresh keeps the person file open: 
@@ -53,8 +53,17 @@ PASS approved → paid + ticket image link:
 ticket image: {"status":200,"type":"image/jpeg"}
 PASS ticket image served by the existing renderer (image/*): 
 PASS repeat approve is idempotent (changed:false): 
-decision without CSRF header: 415
-PASS decision without CSRF blocked: 
+owner direct login: 200
+PASS owner direct backend session established: 
+p3 before invalid requests: {"status":"accepted","payment":"receipt_submitted","state":"pending","audit":0}
+owner direct CSRF checks: {"none":403,"wrong":403,"foreignOrigin":403,"noSessionCookie":401}
+PASS owner direct: valid JSON decision without X-CSRF-Token → exactly 403: 
+PASS owner direct: wrong X-CSRF-Token → exactly 403: 
+PASS owner direct: right token but foreign Origin → exactly 403: 
+PASS owner direct: token without the session cookie → rejected (401/403): 
+p3 after invalid requests: {"status":"accepted","payment":"receipt_submitted","state":"pending","audit":0}
+PASS invalid requests changed nothing (registration status, payment status, audit count): 
+PASS owner direct: right token + right Origin reaches validation (reason too short → 422), i.e. CSRF layer is what blocked the others: 
 PASS reject → back to list, 2 rows, remaining 2 of 4: 
 summary after decisions: کل: ۲پذیرفته‌شده: ۲فهرست انتظار: ۰پرداخت‌شده: ۱در انتظار پرداخت: ۱ناموفق: ۰رایگان: ۰حاضر: ۰ظرفیت باقی‌مانده: ۲ از ۴
 PASS summary: paid 1, pending 1: 
@@ -78,9 +87,9 @@ dialog: حضور همین حالا با زمان سرور ثبت می‌شود. 
 PASS check-in recorded: 
 PASS summary shows حاضر: ۱: 
 PASS survey summary box from direct URL: 
-summary box: نتیجهٔ کلی «نظرسنجی الف 212832»۳ پاسخبستن رضایت کلی۳ پاسخ4۱3۱5۱میانگین ۴ · کمینه ۳ · بیشینه ۵بهترین بخش۳ پاسخمحتوا۱مدرس۲مکان۰پیشنهاد۲ پاسخ
+summary box: نتیجهٔ کلی «نظرسنجی الف 220520»۳ پاسخبستن رضایت کلی۳ پاسخ4۱3۱5۱میانگین ۴ · کمینه ۳ · بیشینه ۵بهترین بخش۳ پاسخمحتوا۱مدرس۲مکان۰پیشنهاد۲ پاسخ
 PASS aggregate: 3 responses, مدرس ۲ / محتوا ۱, mean 4: 
-PASS quiz card says scoring needs a service (no fake score): 
+PASS quiz card says scoring is not implemented at this stage (no fake score): 
 PASS B registrants: only B’s one row: 
 PASS A’s registration id under B → 404: 
 PASS A’s survey under B → 404: 

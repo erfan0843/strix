@@ -3,17 +3,17 @@ PASS manager session is a manager without finance
 PASS manager: event file opens by direct URL
 manager tabs ["overview","forms","regs","tickets","survey","certs","resources","notify","recording","orders","questions","reviews","reports"]
 PASS manager: no «پرداخت‌ها» tab (finance needed), but registrants/forms/tickets visible
-manager head رویداد الف (پرونده) 212832ثبت‌نام باز
+manager head رویداد الف (پرونده) 220520ثبت‌نام باز
       1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش
       ثبت‌نام: ۲ از ۴ نفر · باقی‌مانده ۲فرم ثبت‌نام: فعالمبلغ: ۶۰۰,۰۰۰ ریال · کارت‌به‌کارت
-      ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 212832»
+      ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 220520»
     مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
 PASS manager: head shows capacity + public form price, no per-person money
-manager row p1 نفر اول پروندهNORA-1D3D36CE98EE43ACBBFC · ۱۴۰۵/۸/۱, ۲۱:۲۹پرداخت‌شده · تأیید دستی رسید
+manager row p1 نفر اول پروندهNORA-AB6EF1D8DAFF44209C76 · ۱۴۰۵/۸/۱, ۲۲:۰۶پرداخت‌شده · تأیید دستی رسید
     پذیرفته‌شدهپرداخت‌شدهحاضر
     پروندهٔ ثبت‌نام
 PASS manager: registrant row keeps payment state but hides amount
-manager person p2 بازگشت به ثبت‌نام‌کنندگاننفر دوم بی‌رسیدپذیرفته‌شدهدر انتظار پرداختNORA-29EFCA4C99F34E71A4C5 · فرم ثبت‌نام الف 212832
+manager person p2 بازگشت به ثبت‌نام‌کنندگاننفر دوم بی‌رسیدپذیرفته‌شدهدر انتظار پرداختNORA-61393A34B08D43F1AA95 · فرم ثبت‌نام الف 220520
     
     پاسخ‌های فرمنام کاملنفر دوم بی‌رسید
     
@@ -44,7 +44,7 @@ PASS manager mobile: tickets tab opens, one checked-in row
 anonymous {"overview":401,"receipt":401,"ticket":401,"payments":401,"decision":401}
 PASS unauthenticated: overview/receipt/ticket/payments/decision all 401
 PASS unauthenticated: cancellations list + kept receipt → 401
-ticket serial NORA-1D3D36CE98EE43ACBBFC
+ticket serial NORA-AB6EF1D8DAFF44209C76
 PASS ticket serial is opaque (no name/mobile inside)
 PASS owner person file: audit shows manual decision + attendance
 TOTAL PASS 26 / FAIL 0
