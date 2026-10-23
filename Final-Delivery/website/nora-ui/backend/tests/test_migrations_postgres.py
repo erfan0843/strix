@@ -19,7 +19,7 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
-from backend.models import AccountRecord, FormResponseDraftRecord
+from backend.models import FormResponseDraftRecord
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
@@ -67,9 +67,9 @@ def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monke
                     f"ALTER TABLE alembic_version ALTER COLUMN version_num TYPE {initial_type}"
                 )
                 account_id, form_id, draft_id = (str(uuid4()) for _ in range(3))
-                connection.execute(AccountRecord.__table__.insert().values(id=account_id))
-                # Raw SQL: the ORM model already knows 0033's ``purpose`` column, which
-                # does not exist yet at this revision.
+                # Raw SQL at this revision: the ORM models already know columns that later
+                # migrations add (0037 ``accounts.status``…, 0033 ``forms.purpose``).
+                connection.execute(text("INSERT INTO accounts (id) VALUES (:id)"), {"id": account_id})
                 connection.execute(text(
                     "INSERT INTO forms (id, owner_id, title, model, need, status, settings, version) "
                     "VALUES (:id, 'migration-qa', 'فرم آزمون مهاجرت', 'registration', 'registration', 'draft', '{}', 1)"

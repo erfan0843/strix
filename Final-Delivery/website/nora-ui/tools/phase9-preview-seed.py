@@ -45,7 +45,10 @@ PREVIEW_DIR = Path(os.environ.get("NORA_PREVIEW_DIR") or (Path.home() / "nora-pr
 PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
 DB = PREVIEW_DIR / "nora.db"
 ENV = PREVIEW_DIR / "preview.env"
-CREDS = UI / "PREVIEW-LOGIN.local.md"
+CREDS = Path(os.environ.get("NORA_PREVIEW_LOGIN_FILE") or (UI / "PREVIEW-LOGIN.local.md"))
+# Optional: seed a disposable PostgreSQL (or any SQLAlchemy URL) instead of the SQLite file. The schema must
+# already exist there (``alembic upgrade head``); ``create_all`` then only fills in anything missing.
+DB_URL = os.environ.get("NORA_PREVIEW_DATABASE_URL") or ""
 
 TEST_HELPER_OWNER_PASSWORD = "correct-horse-staple-42"  # fixed value hard-coded in backend/tests/test_workflows_api.py::owner_login
 OWNER_USER = "qa-owner"
@@ -55,9 +58,12 @@ MANAGER_PASS = secrets.token_urlsafe(12)
 
 
 def main() -> None:
-    if DB.exists():
-        DB.unlink()
-    engine = create_engine(f"sqlite+pysqlite:///{DB}", connect_args={"check_same_thread": False})
+    if DB_URL:
+        engine = create_engine(DB_URL)
+    else:
+        if DB.exists():
+            DB.unlink()
+        engine = create_engine(f"sqlite+pysqlite:///{DB}", connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     settings = Settings(
         # Seeding runs with the test helpers' fixed credentials; the served env uses the QA ones (same owner_id).
@@ -200,7 +206,7 @@ def main() -> None:
     engine.dispose()
     ENV.write_text(
         "\n".join([
-            f"NORA_DATABASE_URL=sqlite+pysqlite:///{DB}",
+            f"NORA_DATABASE_URL={DB_URL or f'sqlite+pysqlite:///{DB}'}",
             "NORA_OWNER_ID=owner-qa",
             f"NORA_OWNER_USERNAME={OWNER_USER}",
             f"NORA_OWNER_PASSWORD_HASH='{hash_password(OWNER_PASS)}'",  # single-quoted: hash contains `$`

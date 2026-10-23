@@ -2,13 +2,13 @@
 // ورودی: ids.json از اجرای مالک (e2e-event-file.cjs). خروجی: shots-roles/*.png + log-roles.txt
 const path = require('path'); const fs = require('fs');
 const { launchBrowser } = require(process.env.NORA_REPO_UI + '/tools/browser-launch.cjs');
-const OWNER = 'http://127.0.0.1:8000', MANAGER = 'http://127.0.0.1:8080', BACKEND = 'http://127.0.0.1:8001';
+const OWNER = process.env.NORA_E2E_OWNER || 'http://127.0.0.1:8000', MANAGER = process.env.NORA_E2E_MANAGER || 'http://127.0.0.1:8080', BACKEND = process.env.NORA_E2E_BACKEND || 'http://127.0.0.1:8001';
 const out = process.argv[2]; fs.mkdirSync(out, { recursive: true });
-const ids = JSON.parse(fs.readFileSync(path.join(out, '..', 'shots', 'ids.json'), 'utf8'));
+const ids = JSON.parse(fs.readFileSync(process.env.NORA_E2E_IDS || path.join(out, '..', 'shots', 'ids.json'), 'utf8'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // نشست مدیر مستقیم روی بک‌اند: نام کاربری/گذرواژهٔ آزمایشی از فایل gitignore‌شده خوانده می‌شود و هرگز چاپ نمی‌شود
 async function managerSession() {
-  const text = fs.readFileSync(path.join(process.env.NORA_REPO_UI, 'PREVIEW-LOGIN.local.md'), 'utf8');
+  const text = fs.readFileSync(process.env.NORA_E2E_LOGIN_FILE || path.join(process.env.NORA_REPO_UI, 'PREVIEW-LOGIN.local.md'), 'utf8');
   let creds = null;
   for (const line of text.split('\n')) { if (!line.includes('مدیر')) continue; const toks = [...line.matchAll(/`([^`]+)`/g)].map(m => m[1]); if (toks.length >= 2) { creds = { username: toks[0], password: toks[1] }; break; } }
   if (!creds) throw new Error('manager test credentials not found');

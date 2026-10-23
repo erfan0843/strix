@@ -1,7 +1,8 @@
 // Real-browser E2E for the event file («پروندهٔ رویداد») — dev-only, test DB, synthetic accounts.
 // Usage: NORA_QA_BROWSER=sparticuz NORA_QA_DEPENDENCIES=<node-deps> node e2e-event-file.cjs <outdir>
 const { launchBrowser } = require(process.env.NORA_REPO_UI + '/tools/browser-launch.cjs');
-const O = 'http://127.0.0.1:8000', B = 'http://127.0.0.1:8001';
+// targets are overridable so the same acceptance runs against the SQLite and the PostgreSQL test servers
+const O = process.env.NORA_E2E_OWNER || 'http://127.0.0.1:8000', B = process.env.NORA_E2E_BACKEND || 'http://127.0.0.1:8001';
 const out = process.argv[2] || 'shots/event-file';
 const fs = require('node:fs'); const path = require('node:path'); fs.mkdirSync(out, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
