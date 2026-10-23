@@ -140,6 +140,9 @@ function ok(condition, label) {
   ok(!p.doc.querySelector('#eventCalendar').hidden && p.doc.querySelector('#eventsList').hidden, 'تقویم نمایان، فهرست پنهان');
   const months = p.all('[data-event-month]').map(el => el.dataset.eventMonth);
   ok(JSON.stringify(months) === JSON.stringify(['1405-7', '1405-8']), 'ماه‌ها فقط از تاریخ‌های واقعی: ' + months.join(','));
+  /* ماه آغازین تقویم به تاریخ امروز دستگاه وابسته است (ماه جاری یا نخستین ماه آینده)؛ آزمون نباید به تاریخ اجرا وابسته باشد → مهر را صریح انتخاب می‌کنیم */
+  p.click('[data-event-month="1405-7"]');
+  ok(p.doc.querySelector('[data-event-month="1405-7"]').classList.contains('on'), 'انتخاب صریح ماه مهر');
   ok(p.txt('[data-event-month="1405-7"]').includes('مهر') && p.txt('[data-event-month="1405-7"]').includes('۳'), 'برچسب ماه و شمار (۳ برنامه در مهر)');
   const hasDays = p.all('.event-cal-cell.has').map(el => el.dataset.eventDay);
   ok(JSON.stringify(hasDays) === JSON.stringify(['5', '10', '20']), 'روزهای دارای برنامه در مهر: ' + hasDays.join(','));
