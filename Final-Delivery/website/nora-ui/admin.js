@@ -4297,7 +4297,9 @@ function peEditorHtml(){
       ${isNew?'':`<span class="cap" dir="ltr">${esc(key)}</span>`}${isNew?'':btn('رونوشت از این پروفایل','data-pe-dup="'+esc(key)+'"','i-copy')}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}</div>
     <p class="cap" data-pe-publish-note><b>ذخیره = انتشار فوری.</b> این پروفایل بلافاصله در صفحهٔ اصلی و صفحهٔ عمومی شخص دیده می‌شود؛ پیش‌نویس یا حالت پنهان وجود ندارد. فقط فیلدهای مجاز سرور ذخیره می‌شوند؛ تغییرات تا زمان ذخیره فقط در همین مرورگر است.</p>
     ${peConflictHtml(D)}
-    <div class="pp-grid"><div class="stack">${ppForm(D,kind)}</div>
+    ${isNew?'':chTabs('content.people',key,'ویرایش')}
+    ${!isNew&&chIs('content.people',key)?chPanel():''}
+    <div class="pp-grid"${!isNew&&chIs('content.people',key)?' style="display:none" data-pe-edit-pane="hidden"':' data-pe-edit-pane="shown"'}><div class="stack">${ppForm(D,kind)}</div>
       <div class="stack"><div class="ppsec-t">${ico('i-eye')}<b>پیش‌نمایش زنده</b><span class="cap">همان کارت و ورقه‌ای که کاربر می‌بیند</span></div><div id="ppPrev">${ppPrev(D)}</div>${related}</div></div>
     <div class="row tight">${btn(isNew?'تأیید و انتشار فوری':'ذخیره و انتشار فوری','data-pe-save','i-send')}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}
       ${isNew?'':btn('حذف از سایت','data-pe-del="'+esc(key)+'"','i-trash')}</div>
@@ -7348,7 +7350,9 @@ function ctEditor(){
     ${e.copyOf?`<p class="cap" data-ct-copy-of="${esc(e.copyOf.id)}">رونوشت از «${esc(e.copyOf.t)}»؛ هنوز ذخیره نشده و تا ذخیره، رکورد تازه‌ای در سرور نیست. تاریخ‌ها و فرم ثبت‌نام را برای رویداد تازه بازبینی کن.</p>`:''}
     ${ctDraftBanner(e)}
     ${e.formError?`<p class="cap" style="color:var(--stop)" role="alert" tabindex="-1" data-ct-form-error>${esc(e.formError)}</p>`:''}
-    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
+    ${isNew?'':chTabs('content.'+kind,e.id,'ویرایش')}
+    ${!isNew&&chIs('content.'+kind,e.id)?chPanel():''}
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)${!isNew&&chIs('content.'+kind,e.id)?';display:none':''}" data-ct-edit-pane>
       <div class="stack" style="flex:2 1 320px;min-width:0">${fields}</div>
       <div class="stack" style="flex:1 1 240px;min-width:0"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
     </div>
@@ -8323,6 +8327,52 @@ function ufHistRow(ev){
     ${tag(ev.outcome==='ok'?'انجام شد':'ناموفق',ev.outcome==='ok'?'ok':'stop')}</div>`;
 }
 function ufApi(name){const api=window.NORA_SERVER_API; return api&&typeof api[name]==='function'?api[name]:null}
+/* ── تصمیم مالک ۱۴۰۵/۰۸/۰۱: زبانهٔ «تاریخچه» در ویرایشگر رویداد/مطلب/شخص ──
+   فقط از همان ردپای ممیزی سرور (GET /api/owner/audit با target_type=content.<kind> و target_id=همین رکورد)؛
+   بدون جدول نسخه، بدون snapshot، بدون بازگردانی. فقط مالک می‌خواند (سرور هم ۴۰۱ می‌دهد)؛
+   رکوردهای دیگر در فهرست نمی‌آیند چون فیلتر هدف دقیق است. */
+const CH={type:'',id:'',open:false,items:null,loading:false,error:'',offset:0,limit:20,hasMore:false,key:''};
+function chKey(){return [CH.type,CH.id,CH.offset].join('|')}
+function chIs(type,id){return CH.open&&CH.type===type&&String(CH.id)===String(id||'')}
+function chOpen(type,id){if(!id) return;
+  /* هر بار بازشدن زبانه = خواندن تازه (بازگشت به ویرایشگر همان رکورد نباید فهرست کهنه نشان دهد) */
+  if(!CH.open||CH.type!==type||String(CH.id)!==String(id)){CH.items=null; CH.error=''; CH.offset=0; CH.hasMore=false; CH.key=''}
+  CH.type=type; CH.id=String(id); CH.open=true; if(!CH.items&&!CH.loading) chLoad(); else renderBody()}
+function chClose(){CH.open=false; renderBody()}
+async function chLoad(){
+  const fn=ufApi('listTargetAuditEvents'); if(!CH.id) return;
+  if(!isOwner()){CH.error='تاریخچهٔ تغییرات فقط با نشست مالک خوانده می‌شود.'; CH.items=null; CH.key=chKey(); renderBody(); return}
+  if(!fn){CH.error='رابط سرور در دسترس نیست.'; CH.key=chKey(); renderBody(); return}
+  const key=chKey(); CH.loading=true; CH.error=''; renderBody();
+  try{const result=await fn(CH.type,CH.id,{limit:CH.limit,offset:CH.offset});
+    if(key===chKey()){CH.items=Array.isArray(result&&result.items)?result.items:[]; CH.hasMore=!!(result&&result.has_more); CH.key=key}}
+  catch(error){if(key===chKey()){CH.error=p2Err(error,'تاریخچهٔ این رکورد دریافت نشد.'); CH.key=key}}
+  finally{CH.loading=false; if(key!==chKey()&&CH.open){chLoad(); return} renderBody()}
+}
+function chTabs(type,id,active){
+  if(!isOwner()||!id) return '';
+  const hist=chIs(type,id);
+  return `<div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های ویرایشگر" data-ch-tabs="${esc(type)}">
+    <button type="button" class="chip ${hist?'':'on'}" role="tab" aria-selected="${!hist}" data-ch-pane="edit">${ico('i-pen')}${esc(active||'ویرایش')}</button>
+    <button type="button" class="chip ${hist?'on':''}" role="tab" aria-selected="${hist}" data-ch-pane="hist" data-ch-type="${esc(type)}" data-ch-id="${esc(String(id))}">${ico('i-clock')}تاریخچه</button></div>`;
+}
+function chPanel(){
+  const items=CH.items||[];
+  const body=CH.loading&&!CH.items?`<p class="cap" data-ch-state="loading">${ico('i-clock')} در حال دریافت تاریخچه از سرور…</p>`
+    :CH.error&&!CH.items?`<p class="cap" style="color:var(--stop)" role="alert" data-ch-state="error">${esc(CH.error)}</p>${btn('تلاش دوباره','data-ch-retry','i-refresh')}`
+    :!items.length?`<div data-ch-state="empty">${emptyBox('برای این رکورد هنوز تغییری در ردپای سرور ثبت نشده است (ردپا از زمان فعال‌شدن ممیزی رکوردی نگه داشته می‌شود).')}</div>`
+    :`<div class="admlist" data-ch-state="success">${items.map(ufHistRow).join('')}</div>`;
+  const pager=(CH.offset>0||CH.hasMore)&&!CH.loading?`<div class="row tight">${CH.offset>0?btn('جدیدترها','data-ch-page="prev"','i-back'):''}<span class="sp"></span>${CH.hasMore?btn('قدیمی‌ترها','data-ch-page="next"','i-next'):''}</div>`:'';
+  return `<section class="stack" data-ch-panel="${esc(CH.type)}" data-ch-record="${esc(CH.id)}" style="gap:8px">
+    <p class="cap">چه کسی، کی و چه کاری روی همین رکورد انجام داده است؛ از ردپای ممیزی سرور. محتوای نسخه‌های قبلی نگه داشته نمی‌شود و بازگردانی وجود ندارد.${CH.loading&&CH.items?' · در حال به‌روزرسانی…':''}</p>
+    ${body}${pager}</section>`;
+}
+function chClick(q){
+  const pane=q('[data-ch-pane]'); if(pane){if(pane.dataset.chPane==='hist') chOpen(pane.dataset.chType,pane.dataset.chId); else chClose(); return true}
+  if(q('[data-ch-retry]')){chLoad(); return true}
+  const pg=q('[data-ch-page]'); if(pg){CH.offset=pg.dataset.chPage==='next'?CH.offset+CH.limit:Math.max(0,CH.offset-CH.limit); CH.items=null; chLoad(); return true}
+  return false;
+}
 function ufRegsKey(){return [UFL.acc,UFL.regsOffset,UFL.regsLimit].join('|')}
 function ufNotifsKey(){return [UFL.acc,UFL.notifsOffset,UFL.notifsLimit].join('|')}
 async function ufLoadRegs(){
@@ -8799,7 +8849,8 @@ document.addEventListener('click',e=>{
   const ctEdit=q('[data-ct-edit]'); if(ctEdit){ctOpenEditor(ctEdit.dataset.ctEdit); return}
   if(eiClick(q)) return;
   const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
-  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; renderBody(); return}
+  if(chClick(q)) return;
+  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; CH.open=false; renderBody(); return}
   const ctDup=q('[data-ct-dup]'); if(ctDup){ctDuplicate(ctDup.dataset.ctDup); return}
   const ctTpl=q('[data-ct-template]'); if(ctTpl){ctApplyTemplate(ctTpl.dataset.ctTemplate); return}
   if(q('[data-ct-draft-restore]')){if(CT.edit&&CT.edit.draft){CT.edit.form=Object.assign(ctBlank(CT.kind),CT.edit.draft.form); CT.edit.draft=null; CT.edit.errors={}; renderBody(); toast('متن تایپ‌شدهٔ قبلی برگشت؛ هنوز ذخیره نشده')} return}
@@ -9259,7 +9310,9 @@ const AUDIT_ACTION_LABELS={'role.set':'تعیین نقش','role.clear':'بردا
   'manager_credentials.remove':'حذف ورود مدیر','workflow.decide':'تصمیم کارتابل','form.publish':'انتشار فرم','form.pause':'توقف فرم',
   'form.response.delete':'حذف پاسخ فرم','cooperation_request.update':'به‌روزرسانی درخواست همکاری','site_content.update':'ویرایش محتوای عمومی',
   'service_secret.store':'ذخیرهٔ اعتبارنامه','service_secret.clear':'حذف اعتبارنامه','service_secret.test':'آزمایش اتصال',
-  'backup.upload':'بارگذاری پشتیبان','backup.audit':'بررسی پشتیبان','backup.delete':'حذف پشتیبان'};
+  'backup.upload':'بارگذاری پشتیبان','backup.audit':'بررسی پشتیبان','backup.delete':'حذف پشتیبان',
+  'content.create':'ساخت رکورد','content.update':'ویرایش رکورد','content.status':'تغییر وضعیت','content.remove':'حذف رکورد',
+  'attendance.check_in':'ثبت حضور','attendance.undo_check_in':'لغو ثبت حضور'};
 const AUDIT_TARGET_LABELS={account:'حساب',admin_task:'درخواست کارتابل',form:'فرم',form_response:'پاسخ فرم',cooperation_request:'درخواست همکاری',
   site_content:'محتوای عمومی',service_secret:'سرویس',backup_upload:'فایل پشتیبان'};
 function auditDetailText(details){
@@ -9271,6 +9324,8 @@ function auditDetailText(details){
   if(details.decision) parts.push((details.kind==='receipt_review'?'فیش':'پروفایل')+' · '+(details.decision==='approved'?'تأیید':'رد')+(details.has_reason?' · با دلیل':''));
   if(details.title) parts.push(String(details.title));
   if(details.from_status&&details.status) parts.push(details.from_status+' ← '+details.status);
+  else if(details.from&&details.status&&typeof P2_STATUS==='object') parts.push((P2_STATUS[details.from]||[details.from])[0]+' ← '+(P2_STATUS[details.status]||[details.status])[0]);
+  if(details.version!=null&&!('previous_role' in details)) parts.push('نسخهٔ سند '+fa(details.version));
   if(Array.isArray(details.keys)) parts.push(fa(details.keys.length)+' کلید');
   if(details.code) parts.push('کد '+details.code);
   if(Number.isFinite(details.size_bytes)) parts.push(perfBytes(details.size_bytes));
@@ -10817,7 +10872,7 @@ document.addEventListener('click',e=>{
   if(q('[data-pe-refresh]')){PE_SRV.loaded=false; peLoad(); renderBody(); return}
   if(q('[data-pe-new]')){if(!isOwner()){toast('افزودن شخص فقط با مالک است'); return} if(!PE_SRV.loaded){toast('اول فهرست از سرور بارگذاری شود'); return} peOpen('new'); renderBody(); return}
   const peEd=q('[data-pe-edit]'); if(peEd){if(!isOwner()){toast('ویرایش افراد فقط با مالک است'); return} peOpen(peEd.dataset.peEdit); renderBody(); return}
-  if(q('[data-pe-cancel]')){peClose(); renderBody(); return}
+  if(q('[data-pe-cancel]')){peClose(); CH.open=false; renderBody(); return}
   const peDup=q('[data-pe-dup]'); if(peDup){if(!isOwner()){toast('رونوشت فقط با مالک است'); return} if(peDuplicate(peDup.dataset.peDup)) renderBody(); return}
   if(q('[data-pe-save]')){if(!isOwner()){toast('انتشار افراد فقط با مالک است'); return} peSave(); return}
   const peDl=q('[data-pe-del]'); if(peDl){if(!isOwner()){toast('حذف افراد فقط با مالک است'); return} peDelete(peDl.dataset.peDel); return}

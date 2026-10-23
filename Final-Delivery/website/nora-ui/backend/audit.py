@@ -48,6 +48,7 @@ ACTIONS = frozenset(
         "content.create",
         "content.update",
         "content.status",
+        "content.remove",
         "attendance.check_in",
         "attendance.undo_check_in",
         "cooperation_request.update",

@@ -710,6 +710,23 @@ console.log('— H1 مالک: ویرایشگر سروری افراد روی GET/
     app.click('[data-pe-edit="pp-ali"]');
     await app.until(() => app.doc.querySelector('[data-pe-editor="pp-ali"]'), 'ویرایشگر');
     assert.match(app.doc.querySelector('[data-pe-publish-note]').textContent, /ذخیره = انتشار فوری/);
+    /* تصمیم مالک ۱۴۰۵/۰۸/۰۱: زبانهٔ تاریخچهٔ شخص از همان ممیزی با هدف content.people/<id>؛ فرم پنهان می‌ماند نه نابود */
+    assert.ok(app.doc.querySelector('[data-ch-pane="hist"][data-ch-type="content.people"][data-ch-id="pp-ali"]'), 'زبانهٔ تاریخچهٔ شخص');
+    app.world.auditByTarget = { 'pp-ali': [
+      { id: 'ph-1', created_at: '2026-10-23T08:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'content.update', target_type: 'content.people', target_id: 'pp-ali', outcome: 'ok', details: { kind: 'people', title: 'علی موسوی', version: 7 } },
+    ], 'pp-sara': [
+      { id: 'ph-2', created_at: '2026-10-23T08:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'content.remove', target_type: 'content.people', target_id: 'pp-sara', outcome: 'ok', details: { kind: 'people', title: 'سارا کریمی', version: 7 } },
+    ] };
+    app.click('[data-ch-pane="hist"]');
+    await app.until(() => app.doc.querySelector('[data-ch-state="success"]'), 'تاریخچهٔ شخص');
+    const peHist = app.calls.filter((c) => c.path.startsWith('/api/owner/audit')).pop();
+    assert.ok(peHist.path.includes('target_type=content.people') && peHist.path.includes('target_id=pp-ali'), 'هدف دقیق شخص: ' + peHist.path);
+    assert.equal(app.doc.querySelectorAll('[data-ch-panel] [data-uf-hist]').length, 1);
+    assert.doesNotMatch(app.doc.querySelector('[data-ch-panel]').textContent, /سارا کریمی|حذف رکورد/, 'ردیف شخص دیگر نمی‌آید');
+    assert.equal(app.doc.querySelector('[data-pe-edit-pane]').dataset.peEditPane, 'hidden', 'فرم شخص پنهان ولی در DOM');
+    app.click('[data-ch-pane="edit"]');
+    await delay(20);
+    assert.equal(app.doc.querySelector('[data-pe-edit-pane]').dataset.peEditPane, 'shown');
     assert.equal(app.doc.querySelector('[data-ppf="n"]').value, 'علی موسوی');
     assert.ok(app.doc.querySelector('#ppPrev .tcard'), 'پیش‌نمایش کارت');
     assert.equal(app.doc.querySelector('[data-ppstar]'), null, 'فیلدی که سرور ذخیره نمی‌کند (معرفی‌شده) در حالت سرور نیست');
@@ -1272,6 +1289,75 @@ console.log('— ممیزی ۱۴۰۵/۰۸/۰۱ بخش B: قالب، تقویم �
     await ro.until(() => ro.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست');
     assert.equal(ro.doc.querySelector('[data-ct-dup]'), null, 'بدون ev_create تکثیر نیست');
   } finally { ro.close(); }
+}
+
+/* تصمیم مالک ۱۴۰۵/۰۸/۰۱: زبانهٔ «تاریخچه» رکورد از همان ردپای ممیزی سرور؛ فقط مالک؛ فیلتر دقیق هدف در خود درخواست؛
+   بارگذاری/خطا/تلاش دوباره/خالی؛ متن تایپ‌شده با رفت‌وبرگشت زبانه از دست نمی‌رود؛ بدون snapshot و بازگردانی. */
+console.log('— تاریخچهٔ رکورد (رویداد) از /api/owner/audit —');
+{
+  const world = makeWorld();
+  world.auditByTarget = { 'ev-a1': [
+    { id: 'ch-1', created_at: '2026-10-23T09:00:00+00:00', actor_kind: 'account', actor_id: 'acc-manager-1', actor_role: 'manager', action: 'content.status', target_type: 'content.events', target_id: 'ev-a1', outcome: 'ok', details: { kind: 'events', title: 'کارگاه نگارش', from: 'draft', status: 'published', version: 4 } },
+    { id: 'ch-2', created_at: '2026-10-22T09:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'content.update', target_type: 'content.events', target_id: 'ev-a1', outcome: 'ok', details: { kind: 'events', title: 'کارگاه نگارش', status: 'draft', version: 3 } },
+  ], 'ev-a2': [
+    { id: 'ch-9', created_at: '2026-10-21T09:00:00+00:00', actor_kind: 'owner', actor_id: 'owner-01', actor_role: 'owner', action: 'content.create', target_type: 'content.events', target_id: 'ev-a2', outcome: 'ok', details: { kind: 'events', title: 'رویداد دیگر', status: 'draft', version: 1 } },
+  ] };
+  world.auditFailOnce = true;
+  const app = await loadPanel({ role: 'owner', sec: 'events', world });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-edit="ev-a1"]'), 'فهرست');
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('#ctf_t'), 'ویرایشگر');
+    assert.equal(app.world.auditCalls || 0, 0, 'تا زبانه باز نشود تماسی با ممیزی نیست');
+    assert.ok(app.doc.querySelector('[data-ch-pane="hist"][data-ch-type="content.events"][data-ch-id="ev-a1"]'), 'زبانهٔ تاریخچه برای مالک روی رکورد موجود');
+    app.type('#ctf_t', 'عنوان تایپ‌شده پیش از تاریخچه');
+    app.click('[data-ch-pane="hist"]');
+    await app.until(() => app.doc.querySelector('[data-ch-state="error"]'), 'خطای سرور نشان داده می‌شود');
+    const call = app.calls.filter((c) => c.path.startsWith('/api/owner/audit')).pop();
+    assert.ok(call.path.includes('target_type=content.events') && call.path.includes('target_id=ev-a1'), 'فیلتر دقیق نوع و شناسهٔ هدف در خود درخواست: ' + call.path);
+    assert.ok(app.doc.querySelector('[data-ch-retry]'), 'دکمهٔ تلاش دوباره');
+    assert.equal(app.doc.querySelector('[data-ct-edit-pane]').style.display, 'none', 'فرم پنهان ولی در DOM');
+    assert.equal(app.doc.querySelector('#ctf_t').value, 'عنوان تایپ‌شده پیش از تاریخچه', 'متن تایپ‌شده هنگام خطا هم می‌ماند');
+    app.click('[data-ch-retry]');
+    await app.until(() => app.doc.querySelector('[data-ch-state="success"]'), 'تلاش دوباره موفق');
+    const rows = [...app.doc.querySelectorAll('[data-ch-panel] [data-uf-hist]')];
+    assert.equal(rows.length, 2, 'فقط دو ردیف همین رکورد');
+    const txt = app.doc.querySelector('[data-ch-panel]').textContent;
+    assert.match(txt, /تغییر وضعیت/); assert.match(txt, /ویرایش رکورد/); assert.match(txt, /پیش‌نویس ← منتشرشده|منتشرشده/);
+    assert.match(txt, /نسخهٔ سند ۴/, 'نسخهٔ سند هر ردیف');
+    assert.match(txt, /مالک/); assert.match(txt, /acc-mana/, 'عامل مدیر با شناسهٔ کوتاه');
+    assert.doesNotMatch(txt, /رویداد دیگر/, 'ردیف رکورد دیگر دیده نمی‌شود');
+    assert.doesNotMatch(txt, /بازگردانی به این نسخه/, 'بدون دکمهٔ بازگردانی');
+    assert.equal(app.doc.querySelector('[data-ch-page]'), null, 'بدون صفحه‌بندی وقتی has_more=false');
+    /* بازگشت به ویرایش: مقدار تایپ‌شده سر جایش است و بدون تماس تازه */
+    const calls0 = app.calls.length;
+    app.click('[data-ch-pane="edit"]');
+    await delay(20);
+    assert.notEqual(app.doc.querySelector('[data-ct-edit-pane]').style.display, 'none', 'فرم دوباره نمایان');
+    assert.equal(app.doc.querySelector('#ctf_t').value, 'عنوان تایپ‌شده پیش از تاریخچه', 'متن تایپ‌شده با رفت‌وبرگشت زبانه نمی‌پرد');
+    const extra = app.calls.slice(calls0).map((c) => c.method + ' ' + c.path);
+    assert.equal(extra.filter((p) => /owner\/audit|admin\/content/.test(p)).length, 0, 'جابه‌جایی زبانه تماس تازه‌ای با ممیزی یا محتوا ندارد: ' + extra.join(' | '));
+    /* رکورد خالی از سابقه: پیام صادقانه */
+    app.click('[data-ct-cancel]');
+    await app.until(() => !app.doc.querySelector('[data-ct-editor]'), 'بستن ویرایشگر');
+    app.world.auditByTarget['ev-a1'] = [];
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ch-pane="hist"]'), 'ویرایشگر دوباره');
+    assert.equal(app.doc.querySelector('[data-ch-panel]'), null, 'ویرایشگر تازه با زبانهٔ ویرایش باز می‌شود');
+    app.click('[data-ch-pane="hist"]');
+    await app.until(() => app.doc.querySelector('[data-ch-state="empty"]'), 'حالت خالی');
+    assert.match(app.doc.querySelector('[data-ch-state="empty"]').textContent, /هنوز تغییری/);
+    app.noLeak();
+  } finally { app.close(); }
+  /* مدیر با ev_create: ویرایش دارد ولی زبانهٔ تاریخچه ندارد (API هم ۴۰۱ می‌دهد) */
+  const mg = await loadPanel({ role: 'manager', sec: 'events', permissions: ['ev_create', 'ev_publish', 'pr_media'], world: makeWorld() });
+  try {
+    await mg.until(() => mg.doc.querySelector('[data-ct-edit="ev-a1"]'), 'فهرست مدیر');
+    mg.click('[data-ct-edit="ev-a1"]');
+    await mg.until(() => mg.doc.querySelector('#ctf_t'), 'ویرایشگر مدیر');
+    assert.equal(mg.doc.querySelector('[data-ch-pane]'), null, 'مدیر زبانهٔ تاریخچه ندارد');
+    assert.equal(mg.calls.filter((c) => c.path.startsWith('/api/owner/audit')).length, 0, 'مدیر هرگز مسیر ممیزی مالک را صدا نمی‌زند');
+  } finally { mg.close(); }
 }
 
 console.log('آزمون مرحلهٔ دوم و سوم پنل: قبول');

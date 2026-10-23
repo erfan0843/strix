@@ -343,6 +343,39 @@ def reference_ids(content: Any) -> dict[str, set[str]]:
     return out
 
 
+def row_changes(stored_rows: Any, final_rows: Any) -> list[tuple[str, str, str]]:
+    """Per-row diff of a whole-category replace (people/partners), for the audit trail.
+
+    Owner decision 1405/08/01 (history tab): changes to a person must be findable by that
+    person's id, exactly like event/article rows (``content.<kind>`` + record id). Returns
+    ``(action, id, title)`` tuples with action ``content.create`` / ``content.update`` /
+    ``content.remove``; rows without an id are ignored (the sanitiser drops them anyway).
+    """
+    def by_id(rows: Any) -> dict[str, dict[str, Any]]:
+        out: dict[str, dict[str, Any]] = {}
+        for row in rows if isinstance(rows, list) else []:
+            if isinstance(row, dict):
+                value = _text(row.get("id"), 100, allow_number=False)
+                if value and value not in out:
+                    out[value] = row
+        return out
+
+    def title_of(row: dict[str, Any]) -> str:
+        return _text(row.get("n") or row.get("t") or row.get("name"), 120, allow_number=False)
+
+    before, after = by_id(stored_rows), by_id(final_rows)
+    changes: list[tuple[str, str, str]] = []
+    for row_id, row in after.items():
+        if row_id not in before:
+            changes.append(("content.create", row_id, title_of(row)))
+        elif before[row_id] != row:
+            changes.append(("content.update", row_id, title_of(row)))
+    for row_id, row in before.items():
+        if row_id not in after:
+            changes.append(("content.remove", row_id, title_of(row)))
+    return changes
+
+
 def removed_references_in_use(
     category: str, stored_rows: Any, final_rows: Any, content: Any
 ) -> tuple[list[str], list[dict[str, str]]]:

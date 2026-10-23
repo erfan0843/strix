@@ -2411,6 +2411,14 @@ def create_app(
                 raise HTTPException(422, {
                     "code": "reference_in_use", "field": category, "ids": in_use, "used_by": used_by,
                 })
+        # Owner decision 1405/08/01 (history tab): people/partners are edited as a whole category,
+        # so one extra audit row per changed person makes that person's history filterable by id
+        # (target ``content.people``/``content.partners``), the same way event/article rows are.
+        row_audits: list[tuple[str, str, str, str]] = []
+        for category in ("people", "partners"):
+            if category in incoming:
+                for action, row_id, title in content_admin_mod.row_changes(current.get(category), incoming[category]):
+                    row_audits.append((category, action, row_id, title))
         current.update(incoming)
         if record is None:
             record = SiteContentRecord(id="public", content=current, version=1)
@@ -2423,6 +2431,11 @@ def create_app(
             db, _identity, "site_content.update", target_type="site_content", target_id="public",
             details={"keys": ",".join(sorted(str(key) for key in incoming))[:160], "version": current_version + 1},
         )
+        for category, action, row_id, title in row_audits[:200]:
+            record_audit(
+                db, _identity, action, target_type=f"content.{category}", target_id=row_id,
+                details={"kind": category, "title": title, "version": current_version + 1},
+            )
         db.commit()
         db.refresh(record)
         result = _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
@@ -9186,7 +9199,9 @@ def create_app(
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
         action: str = Query(default="", max_length=64, pattern=r"^[a-z_.]*$"),
-        target_type: str = Query(default="", max_length=32, pattern=r"^[a-z_]*$"),
+        # ``content.events`` / ``content.people``: dotted target types are the per-record history
+        # (owner decision 1405/08/01); the dot was previously rejected, which hid them from the filter.
+        target_type: str = Query(default="", max_length=32, pattern=r"^[a-z_.]*$"),
         target_id: str = Query(default="", max_length=120, pattern=r"^[A-Za-z0-9_.:-]*$"),
         _identity: OwnerIdentity = Depends(require_owner),
         db: Session = Depends(get_db),
