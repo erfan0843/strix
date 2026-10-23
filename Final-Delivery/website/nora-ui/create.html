@@ -922,6 +922,8 @@ const NEEDM={reg:'registration', survey:'survey', exam:'exam', other:'registrati
 const NEED_BY_MODEL={registration:'reg',questionnaire:'other',survey:'survey',contest:'exam',exam:'exam',attendance:'other',datacollect:'other',order:'reg',election:'other'};
 const needForModel=(model=S.model)=>NEED_BY_MODEL[model]||S.need||'reg';
 if(QS.get('fid')) S.fid=QS.get('fid');
+/* پروندهٔ رویداد: back=admin.html#event=<id>&tab=… ؛ فقط نشانی محلی امن پذیرفته می‌شود و دکمهٔ بازگشت به همان رویداد و زبانه می‌برد */
+if(QS.get('back')&&localPageHref(QS.get('back'))&&!S.back) S.back=QS.get('back');
 if(QS.get('need')){S.need=QS.get('need');if(NEEDM[S.need])S.model=NEEDM[S.need]}
 /* ── فاز ۹.۱: فرم خرید محتوای ضبط‌شده (purpose=recording_access) ──
    پنل REC رویداد ما را با ?purpose=recording_access&recording=<id>&ev=<id> می‌فرستد. قیمت، روش و کارت مقصد
@@ -1104,9 +1106,9 @@ function evHeadFill(){
     else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'فرم به رویداد «'+(evPickName(S.evId)||S.evId)+'» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.':'رویدادی به این فرم متصل نیست.';
   }
   if(ec){
-    const linked=!!(S.evId||nm);
-    ec.hidden=!linked&&!TEST_FIXTURE_MODE;
-    ec.textContent=linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):(nm?'رویداد: '+nm:'رویداد متصل: '+S.evId)
+    const linked=!!(S.evId||nm), fromEventFile=/^admin\.html#event=/.test(String(S.back||''));
+    ec.hidden=!linked&&!fromEventFile&&!TEST_FIXTURE_MODE;
+    ec.textContent=fromEventFile&&!TEST_FIXTURE_MODE?'بازگشت به پروندهٔ رویداد':linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):(nm?'رویداد: '+nm:'رویداد متصل: '+S.evId)
       :'فرم نمونه از دل رویداد';
     if(S.back){const back=localPageHref(S.back); if(back) ec.setAttribute('href',back); else {ec.removeAttribute('href');ec.setAttribute('aria-disabled','true')}}
     else if(!TEST_FIXTURE_MODE) ec.removeAttribute('href');

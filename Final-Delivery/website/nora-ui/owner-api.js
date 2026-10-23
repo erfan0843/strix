@@ -69,7 +69,7 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
-  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id', 'format', 'when', 'mode'];
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id', 'format', 'when', 'mode', 'payment', 'attendance', 'form_id'];
   function adminQuery(params) {
     const source = params && typeof params === 'object' ? params : {};
     const parts = [];
@@ -100,7 +100,7 @@
       || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})(?:&q=[A-Za-z0-9%._-]{0,240})?(?:&role=(?:assigned|manager|club-supervisor|none))?(?:&status=(?:pending|decided|approved|rejected))?(?:&action=[a-z_.]{0,64})?$/.test(query)
       || /^period=(?:7d|30d|90d|365d|all)$/.test(query)
       /* فهرست‌های مدیریتی مرحلهٔ دوم به بعد (محتوا، کاربران، حضور، گواهی، امتیاز باشگاه): فقط کلیدهای ثابت با مقدار کدشده */
-      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id|when|mode)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id|when|mode)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
+      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id|when|mode|payment|attendance|form_id)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id|when|mode|payment|attendance|form_id)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
     if (typeof path !== 'string' || !/^\/api\/[A-Za-z0-9/_-]*$/.test(pathname) || pathname.includes('..')
         || !safeQuery) {
       throw new TypeError('Only fixed same-origin API paths are allowed');
@@ -562,6 +562,20 @@
         method: 'POST', body: { reference: String(reference || ''), reason: String(reason || '') }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
       }),
     recordingsSummary: () => request('/api/admin/recordings/summary'),
+    /* پروندهٔ رویداد (یکپارچه‌سازی ۱۴۰۵/۰۸/۰۱): نماهای خواندنی حول یک رویداد؛ شناسه‌ها سمت سرور سنجیده می‌شوند */
+    eventFileOverview: eventId => request('/api/admin/events/' + recordId(eventId) + '/overview'),
+    eventFileRegistrations: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/registrations' + adminQuery(params)),
+    eventFileRegistration: (eventId, responseId) => request('/api/admin/events/' + recordId(eventId) + '/registrations/' + recordId(responseId)),
+    eventFileReceiptUrl: (eventId, responseId) => '/api/admin/events/' + recordId(eventId) + '/registrations/' + recordId(responseId) + '/receipt',
+    eventFileTicketImageUrl: (eventId, responseId) => '/api/admin/events/' + recordId(eventId) + '/registrations/' + recordId(responseId) + '/ticket-image',
+    eventFilePaymentDecision: (eventId, responseId, decision, reason, expectedStatus, csrfCookieName) => request(
+      '/api/admin/events/' + recordId(eventId) + '/registrations/' + recordId(responseId) + '/payment-decision', {
+        method: 'POST', body: Object.assign({ decision: String(decision), reason: String(reason || '') },
+          expectedStatus ? { expected_status: String(expectedStatus) } : {}),
+        csrfWrite: true, csrfCookie: csrfCookieName || undefined
+      }),
+    eventFilePayments: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/payments' + adminQuery(params)),
+    eventFileFormSummary: (eventId, formId) => request('/api/admin/events/' + recordId(eventId) + '/forms/' + recordId(formId) + '/summary'),
     listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
     listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),
     attendanceCheckIn: (responseId, reason, csrfCookieName) => request(

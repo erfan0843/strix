@@ -192,7 +192,9 @@ console.log('— مدیر: مسیر قدیمی «درخواست‌ها» به ک
     app.click('#admNav [data-sec="events"]');
     await app.until(() => app.doc.querySelector('[data-ct-interaction="ev-1"]'), 'فهرست رویدادها');
     app.click('[data-ct-interaction="ev-1"]'); await delay(60);
-    ok(app.doc.querySelector('[data-ei-jump-attendance]') && app.doc.querySelector('[data-ei-jump-cert]'), 'زبانه‌های حضور و گواهی روی کارت رویداد هستند');
+    ok(app.doc.querySelector('[data-ei-tab="tickets"]') && app.doc.querySelector('[data-ei-tab="certs"]'), 'زبانه‌های «بلیت و حضور» و «گواهی‌ها» در پروندهٔ رویداد هستند');
+    app.click('[data-ei-tab="tickets"]');
+    await app.until(() => app.doc.querySelector('[data-ei-jump-attendance]'), 'زبانهٔ بلیت و حضور با پرش به اسکن حضور');
     app.click('[data-ei-jump-attendance]');
     await app.until(() => app.doc.querySelector('[data-att-panel]'), 'حضور و غیاب');
     ok(app.stored().sec === 'users' && app.stored().uV === 'att', 'پرش به بخش کاربران/حضور داخل همان پنل');

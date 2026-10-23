@@ -13,7 +13,7 @@ const ok=(c,m)=>{checks++; if(!c){fails++; console.log('   ✗ '+m);} else conso
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitFor(fn,ms=4000){const end=Date.now()+ms; while(Date.now()<end){try{if(fn()) return true}catch(e){} await wait(25);} return false;}
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-const OWNER=['ev_create','ev_publish','us_view','rp_view','fm_create','fm_responses','sys_settings','sys_backup','attendance','certificate','us_notes','us_status'];
+const OWNER=['ev_create','ev_publish','us_view','rp_view','fm_create','fm_responses','sys_settings','sys_backup','attendance','certificate','us_notes','us_status','finance','receipt_approve'];
 
 let CALLS=[], ROLE='owner', PERMS=OWNER, WORLD=null;
 function makeWorld(){
@@ -60,6 +60,16 @@ async function fakeFetch(url,init){
   if(one&&method==='PUT'){const e=w.events.find(x=>x.id===one[1]); if(body.record&&body.record.joinUrl&&!/^https:\/\//.test(body.record.joinUrl)) return json({detail:{code:'invalid_link',field:'joinUrl'}},422); Object.assign(e,body.record||{}); w.version+=1; return json({record:e,version:w.version})}
   const st=path.match(/^\/api\/admin\/content\/events\/([^/]+)\/status$/);
   if(st&&method==='POST'){const e=w.events.find(x=>x.id===st[1]); if(!String(e.d||'').trim()) return json({detail:{code:'validation_error',field:'d',message:'برای انتشار، شرح رویداد لازم است.'}},422); e.status=body.status; w.version+=1; return json({record:e,version:w.version})}
+  /* پروندهٔ رویداد: نماهای سروریِ یک رویداد (فرم‌ها از همان w.forms با ev برابر) */
+  const ef=path.match(/^\/api\/admin\/events\/([^/]+)\/(overview|registrations|payments)$/);
+  if(ef&&method==='GET'){const e=w.events.find(x=>x.id===ef[1]); if(!e) return json({detail:'event_not_found'},404);
+    const forms=w.forms.filter(f=>String(f.ev||'')===e.id).map(f=>({id:f.id,name:f.name,model:'registration',need:f.need,type:f.need==='reg'?'registration':f.need,purpose:f.purpose,status:f.status,version:f.version,response_count:f.response_count||0,updated_at:'2026-10-20T10:00:00+00:00',uses_payment:false}));
+    const counts={total:0,accepted:0,waitlisted:0,paid:0,pending_payment:0,failed_payment:0,free:0,checked_in:0,companions:0,cap:0,wait:0,remaining:null,full:false,bale_holds:0,source:'form_responses'};
+    const can={edit_event:PERMS.includes('ev_create'),publish_event:PERMS.includes('ev_publish'),forms:PERMS.includes('fm_create'),responses:PERMS.includes('fm_responses'),attendance:PERMS.includes('attendance'),finance:ROLE==='owner',receipts:ROLE==='owner',certificates:PERMS.includes('certificate'),export:ROLE==='owner'};
+    if(ef[2]==='overview') return json({source:'shared_server_database',event:{...e,public_path:e.status==='published'?'event.html?id='+e.id:''},forms,registration_settings:null,declared:{cap:e.cap||0,price:e.price||0},counts,can});
+    if(ef[2]==='registrations') return json({source:'shared_server_database',event_id:e.id,forms:forms.filter(f=>f.type==='registration').map(f=>({id:f.id,name:f.name,status:f.status})),summary:counts,items:[],total:0,limit:50,offset:0,has_more:false,finance_visible:ROLE==='owner',filters:{}});
+    return json({source:'form_payments',event_id:e.id,forms:[],totals:{paid_amount:0,paid:0,pending:0,failed:0},items:[],total:0,limit:50,offset:0,has_more:false,filters:{}});
+  }
   if(path.startsWith('/api/admin/')||path.startsWith('/api/owner/')) return json({items:[],total:0,summary:{},content:{},version:w.version});
   return json({detail:'not_found'},404);
 }
@@ -276,39 +286,68 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   ok(errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).length===0,'بدون خطای جاوااسکریپت ('+errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).join(' | ').slice(0,200)+')');
 }
 
-console.log('── پروندهٔ رویداد: زبانه‌ها به ترتیب مرجع، هر زبانه با منبع سروری ──');
+console.log('── پروندهٔ رویداد: نمای کلی، فرم‌ها و فعالیت‌ها، ثبت‌نام‌کنندگان، نظرسنجی، اطلاع‌رسانی؛ هر زبانه با منبع سروری همین رویداد ──');
 {
-  const {doc,click}=await boot('owner');
+  const {doc,click,type}=await boot('owner');
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="events"]')),'پنل بالا آمد');
   click('#admNav [data-sec="events"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-file="ev-1"]')),'کارت رویداد دکمهٔ «پروندهٔ رویداد» دارد');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-file="ev-1"]')),'کارت رویداد دکمهٔ «مدیریت رویداد» دارد');
+  ok(/مدیریت رویداد/.test(doc.querySelector('[data-ct-file="ev-1"]').textContent),'برچسب دکمه: مدیریت رویداد');
   ok(doc.querySelector('[data-ct-interaction="ev-1"]'),'دکمهٔ «فایل‌ها و پرسش‌ها» حذف نشده');
   click('[data-ct-file="ev-1"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ei-panel] [data-ei-info="ev-1"]')),'پرونده روی «اطلاعات» باز می‌شود و رکورد را از GET /api/admin/content/events/ev-1 می‌خواند');
-  ok(CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/content/events/ev-1'),'درخواست رکورد به سرور رفت');
+  ok(await waitFor(()=>doc.querySelector('[data-ei-panel] [data-ef-overview="ev-1"]')),'پرونده روی «نمای کلی» باز می‌شود');
+  ok(CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/events/ev-1/overview'),'نمای کلی از GET /api/admin/events/ev-1/overview خوانده شد');
   const tabs=[...doc.querySelectorAll('[data-ei-panel] [data-ei-tab]')].map(x=>x.dataset.eiTab);
-  ok(JSON.stringify(tabs.slice(0,6))===JSON.stringify(['info','regs','survey','recording','orders','notify'])&&tabs.includes('resources')&&tabs.includes('questions'),'ترتیب زبانه‌ها: اطلاعات، ثبت‌نام‌ها، نظرسنجی، مالی×۲، اطلاع‌رسانی، سپس ابزارهای تعامل ('+tabs.join(',')+')');
-  ok(/فایل‌ها و رسانه‌ها/.test(doc.querySelector('[data-ei-panel] [data-ei-tab="resources"]').textContent),'زبانهٔ منابع با نام «فایل‌ها و رسانه‌ها»');
-  ok(doc.querySelector('[data-ei-jump-attendance]')&&doc.querySelector('[data-ei-jump-cert]'),'حضور و گواهینامه همچنان با پرش به ماژول واقعی بخش کاربران');
-  const info=doc.querySelector('[data-ei-info="ev-1"]').textContent;
-  ok(/کارگاه آزمون/.test(info)&&/تهران/.test(info)&&/ثبت‌نام بسته/.test(info)&&/فرم ثبت‌نام منتشرشده‌ای وصل نیست/.test(info),'اطلاعات: عنوان، مکان و وضعیت ثبت‌نام سرور با دلیل');
-  ok(!/\d+ نفر|ثبت‌نام‌شده: /.test(info),'هیچ شمارندهٔ ساختگی در اطلاعات نیست');
+  ok(JSON.stringify(tabs.slice(0,9))===JSON.stringify(['overview','forms','regs','payments','tickets','survey','certs','resources','notify'])&&tabs.includes('questions'),'ترتیب زبانه‌ها: نمای کلی، فرم‌ها و فعالیت‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی و آزمون، گواهی‌ها، فایل‌ها و رسانه‌ها، اطلاع‌رسانی و تاریخچه؛ سپس ابزارهای تعامل ('+tabs.join(',')+')');
+  const head=doc.querySelector('[data-ef-head]').textContent;
+  ok(/کارگاه آزمون/.test(head)&&/پیش‌نویس/.test(head)&&/بدون فرم ثبت‌نام/.test(head),'سربرگ: عنوان، وضعیت مشتق‌شده و وضعیت فرم ثبت‌نام (بدون فرم)');
+  ok(doc.querySelector('[data-ef-head] [data-ei-edit="ev-1"]')&&!doc.querySelector('[data-ef-head] [data-ef-reg-settings]'),'دکمهٔ «ویرایش رویداد» هست؛ «ویرایش تنظیمات ثبت‌نام» بدون فرم نیست');
+  const info=doc.querySelector('[data-ef-overview="ev-1"]').textContent;
+  ok(/تهران/.test(info)&&/ثبت‌نام بسته/.test(info)&&/هنوز فرمی به این رویداد وصل نیست/.test(info),'نمای کلی: مکان، وضعیت ثبت‌نام سرور، نبود فرم');
+  ok(/ثبت‌نام: ۰/.test(doc.querySelector('[data-ef-kpis]').textContent),'شمارنده‌ها از counts سرور (نه جمع مرورگر)');
+
+  console.log('── فرم‌ها و فعالیت‌ها: فقط فرم‌های همین رویداد؛ اتصال/قطع اتصال با POST /api/forms/{id}/event ──');
+  click('[data-ei-tab="forms"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-forms]')&&doc.querySelector('[data-ef-forms-empty]')),'زبانهٔ فرم‌ها: حالت خالی صریح');
+  const mk=doc.querySelector('[data-ef-create="reg"]').getAttribute('href');
+  ok(/^create\.html\?ev=ev-1&need=reg/.test(mk)&&/back=admin\.html%23event%3Dev-1%26tab%3Dforms/.test(mk),'ساخت فرم ثبت‌نام در فرم‌ساز با شناسهٔ رویداد و بازگشت به همین پرونده و زبانه ('+mk+')');
+  ok(doc.querySelector('[data-ef-create="survey"]')&&doc.querySelector('[data-ef-create="exam"]'),'ساخت نظرسنجی و آزمون هم از همین‌جا');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-link-pick]')),'انتخاب‌گر «اتصال فرم موجود» از همان GET /api/forms');
+  const opts=[...doc.querySelectorAll('[data-ef-link-pick] option')].map(o=>o.value+(o.disabled?'!':''));
+  ok(opts.includes('f-free')&&opts.includes('f-pub!')&&!opts.includes('f-other'),'نامزدها: فرم بی‌رویداد پیش‌نویس فعال، منتشرشده قفل، فرم رویداد دیگر نیست ('+opts.join(',')+')');
+  ok(!doc.querySelector('[data-ef-form="f-other"]'),'فرم رویداد دیگر در فهرست این رویداد نیست');
+  type('[data-ef-link-pick]','f-free');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-link-do]')&&!doc.querySelector('[data-ef-link-do]').disabled),'دکمهٔ «اتصال فرم» پس از انتخاب فعال می‌شود');
+  click('[data-ef-link-do]');
+  ok(await waitFor(()=>CALLS.some(c=>c.method==='POST'&&c.path==='/api/forms/f-free/event'&&c.body.ev==='ev-1'&&c.body.expected_version===2&&c.headers['X-CSRF-Token'])),'POST /api/forms/f-free/event با ev=ev-1، نسخه و CSRF');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-form="f-free"]')),'پس از پاسخ سرور، فرم زیر همین رویداد فهرست می‌شود (بازخوانی overview)');
+  ok(/فرم ثبت‌نام/.test(doc.querySelector('[data-ef-form="f-free"]').textContent)&&/۰ پاسخ/.test(doc.querySelector('[data-ef-form="f-free"]').textContent),'کارت فرم: نوع، شمار پاسخ از سرور');
+  ok(!CALLS.some(c=>c.method==='PUT'&&c.path.startsWith('/api/forms/')),'تعریف فرم (PUT /api/forms) دست نخورد؛ فرم‌ساز تنها ویرایشگر است');
+  const edit=doc.querySelector('[data-ef-form="f-free"] a[href^="create.html?fid=f-free"]');
+  ok(edit&&/back=admin\.html%23event%3Dev-1%26tab%3Dforms/.test(edit.getAttribute('href')),'«ویرایش فرم» به فرم‌ساز با بازگشت به همین رویداد و زبانه');
+  ok(doc.querySelector('[data-ef-unlink="f-free"]'),'«قطع اتصال» برای فرم پیش‌نویس بدون پاسخ');
+  click('[data-ef-unlink="f-free"]');
+  ok(await waitFor(()=>CALLS.filter(c=>c.method==='POST'&&c.path==='/api/forms/f-free/event').length===2&&CALLS.filter(c=>c.method==='POST'&&c.path==='/api/forms/f-free/event').pop().body.ev===''),'قطع اتصال: همان نقطهٔ پایانی با ev خالی (فرم حذف نمی‌شود)');
+  ok(await waitFor(()=>!doc.querySelector('[data-ef-form="f-free"]')&&doc.querySelector('[data-ef-forms-empty]')),'پس از قطع اتصال، فرم از پروندهٔ رویداد می‌رود');
+  ok(!CALLS.some(c=>c.method==='DELETE'),'هیچ حذفی فرستاده نشد');
+
+  console.log('── ثبت‌نام‌کنندگان و نظرسنجی: فقط از نماهای همین رویداد ──');
   click('[data-ei-tab="regs"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ei-regs]')),'زبانهٔ ثبت‌نام‌ها');
-  ok(doc.querySelector('[data-ei-regs-empty]')&&doc.querySelector('[data-ei-edit="ev-1"][data-ei-edit-step="3"]'),'بدون فرم: حالت خالی صریح + مسیر وصل/ساخت فرم');
-  ok(!doc.querySelector('[data-ei-form-row="f-other"]'),'فرم رویداد دیگر این‌جا نیست');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-regs]')),'زبانهٔ ثبت‌نام‌کنندگان');
+  ok(CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/events/ev-1/registrations'),'فهرست از GET /api/admin/events/ev-1/registrations');
+  ok(doc.querySelector('[data-ef-summary]')&&/بدون سقف ظرفیت/.test(doc.querySelector('[data-ef-summary]').textContent),'خلاصهٔ سروری (ظرفیت) بالای فهرست');
+  ok(doc.querySelector('[data-ef-regs-empty]')&&/فرم ثبت‌نامی به این رویداد وصل نیست/.test(doc.querySelector('[data-ef-regs-empty]').textContent)&&doc.querySelector('[data-ef-regs-empty] [data-ef-tab="forms"]'),'بدون فرم: حالت خالی با اقدام (رفتن به فرم‌ها)');
   click('[data-ei-tab="survey"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ei-survey]')),'زبانهٔ نظرسنجی');
-  ok(doc.querySelector('[data-ei-survey-empty]')&&/create\.html\?ev=ev-1/.test(doc.querySelector('[data-ei-survey-create]').getAttribute('href')),'نظرسنجی جدا از ثبت‌نام؛ ساخت فقط در فرم‌ساز با شناسهٔ رویداد');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-survey]')),'زبانهٔ نظرسنجی و آزمون');
+  ok(doc.querySelector('[data-ef-survey-empty]')&&/create\.html\?ev=ev-1&need=survey/.test(doc.querySelector('[data-ef-survey] [data-ef-create="survey"]').getAttribute('href')),'نظرسنجی جدا از ثبت‌نام؛ ساخت فقط در فرم‌ساز با شناسهٔ رویداد');
   click('[data-ei-tab="notify"]');
   ok(await waitFor(()=>doc.querySelector('[data-ei-notify]')),'زبانهٔ اطلاع‌رسانی و تاریخچه');
   ok(/۲۴ ساعت قبل: خاموش/.test(doc.querySelector('[data-ei-notify]').textContent)&&doc.querySelector('[data-ch-pane="hist"][data-ch-id="ev-1"]'),'وضعیت یادآورها از رکورد سرور + تاریخچهٔ مالک (B18)');
   ok(!doc.querySelector('[data-ntfbcast],[data-ei-send]'),'هیچ دکمهٔ ارسال دستی/همگانی وجود ندارد');
   click('[data-ch-pane="hist"][data-ch-id="ev-1"]');
   ok(await waitFor(()=>CALLS.some(c=>c.path.startsWith('/api/owner/audit'))&&doc.querySelector('[data-ch-panel="content.events"]')),'تاریخچه از /api/owner/audit داخل همان زبانه');
-  click('[data-ei-tab="regs"]'); await waitFor(()=>doc.querySelector('[data-ei-edit="ev-1"]'));
-  click('[data-ei-edit="ev-1"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-sec="reg"]')&&doc.querySelector('[data-ct-forms="ev-1"]')),'«وصل یا ساخت فرم» همان فرم فشرده را با بخش ثبت‌نام باز می‌کند');
+  click('[data-ef-head] [data-ei-edit="ev-1"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-sec="reg"]')&&doc.querySelector('[data-ct-forms="ev-1"]')),'«ویرایش رویداد» همان فرم فشرده را باز می‌کند');
 }
 
 console.log('── مدیر: مجوزها در ریل ──');

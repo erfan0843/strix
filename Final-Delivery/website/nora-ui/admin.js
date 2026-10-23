@@ -6919,7 +6919,7 @@ function ctActions(item){
   if(ctCan('can_edit')) out.push(btn('ویرایش',`data-ct-edit="${id}"`,'i-pen'));
   if(CT.kind==='events'&&ctCan('can_edit')) out.push(btn('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
   if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
-  if(CT.kind==='events') out.push(btn('پروندهٔ رویداد',`data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="اطلاعات، ثبت‌نام‌ها، حضور، نظرسنجی، مالی، گواهینامه، اطلاع‌رسانی"`,'i-doc'));
+  if(CT.kind==='events') out.push(btn('مدیریت رویداد',`data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="پروندهٔ رویداد: فرم‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی، گواهی‌ها، فایل‌ها"`,'i-doc'));
   if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('فایل‌ها و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
   if(ctCan('can_publish')){
     if(st==='draft'||st==='paused') out.push(btn(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
@@ -7523,7 +7523,9 @@ function ctEventSections(e,imageBox){
     ${ctFormLinkPicker(e)}
     ${regState}
   </div>`;
-  const capRow=`<div class="row tight" style="flex-wrap:wrap">${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap,hint:'خالی = بدون سقف در این‌جا'})}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه فرم در سرور بسته می‌شود؛ خالی = تا شروع'})}${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}</div>`;
+  const regForm=ctRegFormSettings(e);
+  const capField=regForm?`<label class="fld" data-ct-form-sourced="cap"><span class="lbl">ظرفیت</span><input class="input" value="${esc(regForm.cap>0?fa(regForm.cap)+' نفر'+(regForm.wait>0?' + '+fa(regForm.wait)+' انتظار':''):'بدون سقف')}" readonly aria-readonly="true"/><small class="cap">تنظیم‌شده در فرم ثبت‌نام «${esc(regForm.name)}» · <a href="${esc(regForm.href)}">ویرایش تنظیمات ثبت‌نام</a></small></label>`:p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap,hint:'خالی = بدون سقف در این‌جا'});
+  const capRow=`<div class="row tight" style="flex-wrap:wrap">${capField}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه فرم در سرور بسته می‌شود؛ خالی = تا شروع'})}${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}</div>`;
   const remCard=`<div class="card stack" data-ct-rem-step style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>یادآورهای خودکار</strong><span class="sp"></span><small class="cap">درون‌برنامه‌ای و بله از صف اعلان‌های سرور؛ پیامک ندارد.</small></div>
     <div class="row tight" style="flex-wrap:wrap" data-ct-reminders>
       <label class="chip ${f.remH24?'on':''}"><input type="checkbox" data-ct-check="remH24" ${f.remH24?'checked':''} hidden/>۲۴ ساعت قبل</label>
@@ -7532,7 +7534,7 @@ function ctEventSections(e,imageBox){
     </div>${ctReminderBox(e)}</div>`;
   const extraSum=[Number(f.price)?fa(f.price)+' ریال':'رایگان',f.cert?'گواهی دارد':'',String(f.conditions||'').trim()?'شرایط دارد':'',f.qaClosed?'پرسش‌وپاسخ بسته':'',String(f.regOpensAt||'').trim()?'آغاز ثبت‌نام: '+fa(f.regOpensAt):''].filter(Boolean).join(' · ');
   const extraBlock=ctMore(e,'extra',`
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('هزینهٔ نمایشی کارت (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان؛ مبلغ واقعی پرداخت در فرم ثبت‌نام (فرم‌ساز) است'})}${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}</div>
+    <div class="row tight" style="flex-wrap:wrap">${regForm?`<label class="fld" data-ct-form-sourced="price"><span class="lbl">مبلغ</span><input class="input" value="${esc(regForm.priceText)}" readonly aria-readonly="true"/><small class="cap">تنظیم‌شده در فرم ثبت‌نام · <a href="${esc(regForm.href)}">ویرایش تنظیمات ثبت‌نام</a></small></label>`:p2Inp('هزینهٔ نمایشی کارت (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان؛ مبلغ واقعی پرداخت در فرم ثبت‌نام (فرم‌ساز) است'})}${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}</div>
     <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label><label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label></div>
     ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
     ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
@@ -7553,6 +7555,15 @@ function ctEventSections(e,imageBox){
   return CT_TIME_LIST+main+reg+review;
 }
 function ctLinkedForms(e){if(!e||!e.id) return []; const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access')}
+/* یک منبع برای ظرفیت و مبلغ: تنظیمات فرم ثبت‌نام (همان چیزی که سرور اعمال می‌کند). ویرایشگر رویداد فقط نمایش می‌دهد؛ مقدار اعلامی قدیمی رویداد بازنویسی نمی‌شود. */
+function ctRegFormSettings(e){
+  const regs=ctLinkedForms(e).filter(f=>f.need==='reg'&&f.status!=='archived'); if(!regs.length) return null;
+  const f=regs.find(x=>x.status==='published')||regs[0], st=f.settings&&typeof f.settings==='object'?f.settings:{}, n=v=>Math.max(0,parseInt(String(v==null?'':v).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)),10)||0);
+  const fin=Array.isArray(st.fin)?st.fin.filter(x=>x&&typeof x==='object'):[], req=fin.filter(x=>x.req!==false&&x.req!==0), base=req.reduce((a,x)=>a+Math.floor((n(x.p)*(100-Math.min(100,n(x.off)))+50)/100),0);
+  const priceText=!fin.length?'رایگان':(fin.length>req.length?'از ':'')+fa(base.toLocaleString('en-US'))+' ریال';
+  const back='admin.html#'+new URLSearchParams({event:String(e.id),tab:'overview'}).toString();
+  return {id:f.id,name:f.name||f.title||'فرم ثبت‌نام',status:f.status,cap:n(st.cap),wait:n(st.wait),priceText,href:'create.html?'+new URLSearchParams({fid:String(f.id),back}).toString()};
+}
 /* گام ۴: وصل‌کردن فرمِ موجودِ انبار به همین رویداد (فقط مرجع؛ تعریف فرم در فرم‌ساز می‌ماند). نامزدها از همان GET /api/forms */
 function ctFormLinkPicker(e){
   if(!e||!e.id||!canPerm('fm_create')) return '';
@@ -7634,7 +7645,7 @@ function ctReviewBody(e){
    در سرور اعمال می‌شود (ev_create برای منابع، ev_publish برای پاسخ/تعدیل)؛
    پنهان‌کردن دکمه این‌جا فقط برای خوانایی است. هیچ رکورد نمونه‌ای جایگزین
    پاسخ خالی سرور نمی‌شود. */
-const EI={open:false,eventId:'',title:'',status:'',tab:'resources',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
+const EI={open:false,eventId:'',title:'',status:'',tab:'overview',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
   res:{edit:null,includeRemoved:false,upFor:'',upError:'',upProgress:null,session:'',preview:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
 const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['purchased','دارندگان دسترسی محتوای ضبط‌شده (خرید/رایگان/اعطا)'],['staff','فقط کادر']];
 const EI_ACCESS_LABEL=Object.fromEntries(EI_ACCESS);
@@ -7654,21 +7665,24 @@ function eiStatusTag(map,status){const row=map[status]||[status||'نامشخص',
 function eiCanRes(){return canPerm('ev_create')}
 function eiCanMod(){return canPerm('ev_publish')}
 function eiOpen(eventId,title,status,tab){
-  EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||''; EI.status=status||''; EI.tab=eventId?(tab||(eiCanRes()?'resources':'questions')):'questions';
+  const sameEvent=EI.open&&!EI.all&&eventId&&EI.eventId===eventId;
+  EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||(sameEvent?EI.title:''); EI.status=status||(sameEvent?EI.status:''); EI.tab=eventId?(tab==='info'?'overview':tab||'overview'):'questions';
   CH.open=false; EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.res.session=''; recReset(); EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
+  if(!sameEvent) efReset();
   if(EI.all){EI.q.answered='false'} else {EI.q.answered=''}
+  efSyncHash();
   eiLoad();
 }
-function eiClose(){EI.open=false; EI.data=null; EI.res.edit=null; renderBody()}
-function eiKey(){return [EI.all?'*':EI.eventId,EI.tab,EI.res.includeRemoved,EI.q.status,EI.q.answered,EI.q.offset,EI.rv.status,EI.rv.offset,EI.rp.status,EI.rp.offset,REC.orders.status,REC.orders.q,REC.orders.offset].join('|')}
+function eiClose(){EI.open=false; EI.data=null; EI.res.edit=null; if(!IS_TEST){try{if(/^#event=/.test(location.hash)) history.replaceState(null,'','#events')}catch(e){}} renderBody()}
+function eiKey(){return [EI.all?'*':EI.eventId,EI.tab,efKey(),EI.res.includeRemoved,EI.q.status,EI.q.answered,EI.q.offset,EI.rv.status,EI.rv.offset,EI.rp.status,EI.rp.offset,REC.orders.status,REC.orders.q,REC.orders.offset].join('|')}
 async function eiLoad(){
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.listEventResources!=='function'){EI.error='رابط سرور در دسترس نیست.'; renderBody(); return}
   const key=eiKey(); EI.loading=true; EI.error=''; renderBody();
   try{
     let result;
-    if(EI.tab==='info'||EI.tab==='notify') result=await api.getAdminContent('events',EI.eventId);
-    else if(EI.tab==='regs'||EI.tab==='survey'){if(!FORMS_SRV.loaded||!FORMS_SRV.data) await fsLoad(); result={forms:FORMS_SRV.data?(FORMS_SRV.data.items||[]).length:null,error:FORMS_SRV.error||''}}
+    if(!EI.all&&(EF_TAB_KEYS.has(EI.tab))) result=await efLoadTab(api);
+    else if(EI.tab==='notify') result=await api.getAdminContent('events',EI.eventId);
     else if(EI.tab==='resources'){result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''}); if(!REC.data&&typeof api.getEventRecording==='function'){try{REC.data=await api.getEventRecording(EI.eventId)}catch(_){/* بدون محصول هم فهرست منابع کار می‌کند */}}}
     else if(EI.tab==='recording') result=await recLoad();
     else if(EI.tab==='orders') result=await api.listRecordingOrders({status:REC.orders.status,event_id:EI.all?'':EI.eventId,q:REC.orders.q,limit:REC.orders.limit,offset:REC.orders.offset});
@@ -7677,7 +7691,7 @@ async function eiLoad(){
     else if(EI.tab==='reviews') result=await api.listEventReviews(EI.eventId,{status:EI.rv.status,limit:EI.rv.limit,offset:EI.rv.offset});
     else result=await api.listEventReports({status:EI.rp.status,event_id:EI.all?'':EI.eventId,limit:EI.rp.limit,offset:EI.rp.offset});
     if(key===eiKey()){EI.data=result; EI.key=key}
-  }catch(error){if(key===eiKey()){EI.data=null; EI.error=eiErr(error,'فهرست از سرور دریافت نشد.'); EI.key=key}}
+  }catch(error){if(key===eiKey()){EI.data=null; EI.error=EI.all?eiErr(error,'فهرست از سرور دریافت نشد.'):efErr(error,'پروندهٔ رویداد از سرور دریافت نشد.'); EI.key=key}}
   finally{EI.loading=false; if(key!==eiKey()){eiLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
 }
 async function eiLoadSummary(){
@@ -7700,31 +7714,39 @@ function eiSummaryCard(){
 }
 function eiHeader(){
   const tabs=[];
-  /* پروندهٔ رویداد به ترتیب مرجع: اطلاعات، ثبت‌نام‌ها/پاسخ‌ها، حضور (پرش)، نظرسنجی، مالی، گواهینامه (پرش)، اطلاع‌رسانی/تاریخچه؛ سپس ابزارهای تعامل */
-  if(!EI.all) tabs.push(['info','اطلاعات']);
-  if(!EI.all&&(canPerm('fm_responses')||canPerm('attendance')||canPerm('fm_create'))) tabs.push(['regs','ثبت‌نام‌ها و پاسخ‌ها']);
-  if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['survey','نظرسنجی']);
-  if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','مالی: ضبط‌شده و فروش']);
-  if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'مالی: سفارش‌ها']);
-  if(!EI.all&&canPerm('ev_create')) tabs.push(['notify','اطلاع‌رسانی و تاریخچه']);
+  /* پروندهٔ رویداد (یکپارچه‌سازی): نمای کلی، فرم‌ها و فعالیت‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی و آزمون، گواهی‌ها، فایل‌ها و رسانه‌ها، اطلاع‌رسانی و تاریخچه؛ سپس ابزارهای تعامل */
+  const regPerm=canPerm('fm_responses')||canPerm('attendance');
+  if(!EI.all) tabs.push(['overview','نمای کلی']);
+  if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['forms','فرم‌ها و فعالیت‌ها']);
+  if(!EI.all&&regPerm) tabs.push(['regs','ثبت‌نام‌کنندگان']);
+  if(!EI.all&&(canPerm('finance')||canPerm('receipt_approve'))) tabs.push(['payments','پرداخت‌ها']);
+  if(!EI.all&&regPerm) tabs.push(['tickets','بلیت و حضور']);
+  if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['survey','نظرسنجی و آزمون']);
+  if(!EI.all&&canPerm('certificate')) tabs.push(['certs','گواهی‌ها']);
   if(!EI.all&&eiCanRes()) tabs.push(['resources','فایل‌ها و رسانه‌ها']);
+  if(!EI.all&&canPerm('ev_create')) tabs.push(['notify','اطلاع‌رسانی و تاریخچه']);
+  if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','ضبط‌شده و فروش']);
+  if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'سفارش‌های ضبط‌شده']);
   tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
   if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
   if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
-  const live=EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`:'';
-  const jumps=EI.all?'':[canPerm('attendance')?`<button class="chip" data-ei-jump-attendance title="فرم‌های حضور همین رویداد در بخش کاربران">${ico('i-check')}ثبت‌نام و حضور</button>`:'',
-    canPerm('certificate')?`<button class="chip" data-ei-jump-cert title="گواهی‌های همین رویداد در بخش کاربران">${ico('i-medal')}گواهی‌ها</button>`:''].join('');
-  return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به فهرست</button>
-      <b>${esc(EI.all?'کارتابل پرسش‌ها و گزارش‌ها':EI.title||EI.eventId)}</b>${EI.all?'':ctStatusLabel(EI.status)}<span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>
-    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های تعامل رویداد">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}${jumps}</div>`;
+  const live=EI.all||EF.overview?'':(EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}مشاهدهٔ صفحه</a>`:'');
+  const head=EI.all?'':efHead();
+  return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به رویدادها</button>
+      ${head?'':`<b>${esc(EI.all?'کارتابل پرسش‌ها و گزارش‌ها':EI.title||EI.eventId)}</b>${EI.all?'':ctStatusLabel(EI.status)}`}<span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>${head}
+    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های پروندهٔ رویداد">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}</div>`;
 }
 function eiPanel(){
   let body;
   if(EI.loading&&!EI.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
   else if(EI.error) body=`<div class="stack">${p2Msg({kind:'stop',text:EI.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
-  else if(EI.tab==='info') body=eiInfo();
-  else if(EI.tab==='regs') body=eiRegs();
-  else if(EI.tab==='survey') body=eiSurvey();
+  else if(EI.tab==='overview'||EI.tab==='info') body=efOverview();
+  else if(EI.tab==='forms') body=efForms();
+  else if(EI.tab==='regs') body=efRegs();
+  else if(EI.tab==='payments') body=efPayments();
+  else if(EI.tab==='tickets') body=efTickets();
+  else if(EI.tab==='survey') body=efSurvey();
+  else if(EI.tab==='certs') body=efCerts();
   else if(EI.tab==='notify') body=eiNotify();
   else if(EI.tab==='resources') body=eiResources();
   else if(EI.tab==='recording') body=recPanel();
@@ -7785,6 +7807,363 @@ function eiNotify(){
     ${ctReminderBox(fake)}
     <small class="cap">اعلان‌های انتشار و ثبت‌نام از همان صف اعلان‌های سرور فرستاده می‌شوند؛ وضعیت تحویل هر پیام در «گزارش‌ها › صندوق خروجی». نامهٔ دستی/همگانی عمداً دکمه ندارد (بدون نقطهٔ پایانی، سقف و ممیزی).</small>
     ${hist}</div>`;
+}
+/* ══ پروندهٔ رویداد (یکپارچه‌سازی ۱۴۰۵/۰۸/۰۱) ═════════════════════════════════
+   همهٔ زبانه‌های رویداد از نماهای سروریِ همین رویداد خوانده می‌شوند:
+   GET /api/admin/events/{id}/overview | registrations | registrations/{rid} | payments | forms/{fid}/summary
+   ظرفیت و مبلغ تنها در تنظیمات فرم ثبت‌نام است («تنظیم‌شده در فرم ثبت‌نام»)؛ شمارنده‌ها از قاعدهٔ سرور می‌آیند؛
+   وضعیت ثبت‌نام ≠ وضعیت پرداخت ≠ رسید ارسال‌شده ≠ حضور. شناسهٔ رویداد و زبانه در نشانی (#event=…&tab=…) می‌ماند. */
+const EF_TABS=[['overview','نمای کلی'],['forms','فرم‌ها و فعالیت‌ها'],['regs','ثبت‌نام‌کنندگان'],['payments','پرداخت‌ها'],['tickets','بلیت و حضور'],['survey','نظرسنجی و آزمون'],['certs','گواهی‌ها'],['resources','فایل‌ها و رسانه‌ها'],['notify','اطلاع‌رسانی و تاریخچه']];
+const EF_TAB_KEYS=new Set(['overview','forms','regs','payments','tickets','survey','certs']);
+const EF_FORM_TYPE={registration:'فرم ثبت‌نام',survey:'نظرسنجی',exam:'آزمون',other:'فرم',purchase:'فرم خرید محتوای ضبط‌شده'};
+const EF_REG_STATUS={accepted:['پذیرفته‌شده','ok'],waitlisted:['فهرست انتظار','warn']};
+const EF_PAY_STATE={free:['رایگان',''],paid:['پرداخت‌شده','ok'],pending:['در انتظار پرداخت','warn'],failed:['ناموفق','stop']};
+const EF_PAY_STATUS={pending:'در انتظار پرداخت',awaiting_receipt:'در انتظار رسید',receipt_submitted:'رسید فرستاده شده؛ تأیید نشده',paid:'پرداخت موفق (بله)',paid_manual:'تأیید دستی رسید',paid_review:'در حال بررسی',rejected:'رد شده',cancelled:'لغو شده',expired:'منقضی'};
+const EF_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
+const EF_ERR={event_not_found:'این رویداد پیدا نشد یا حذف شده است.',registration_not_found:'این ثبت‌نام در پروندهٔ همین رویداد نیست.',form_not_found:'این فرم به همین رویداد وصل نیست.',receipt_not_found:'رسیدی ثبت نشده است.',reason_required:'نوشتن دلیل لازم است.',payment_state_changed:'وضعیت این پرداخت در این میان تغییر کرده؛ فهرست تازه شد.',payment_not_card_transfer:'این پرداخت از راه بله انجام شده و دستی تأیید نمی‌شود.',payment_not_decidable:'این پرداخت در وضعیت قابل‌تصمیم نیست.',receipt_task_locked:'رسید این پرداخت در صندوق پیام‌ها در حال بررسی است.',ticket_not_available:'برای این ثبت‌نام هنوز بلیتی صادر نشده است.',published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست تازه شد.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
+const EF={overview:null,ovError:'',
+  regs:{q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50},
+  att:{q:'',attendance:'',offset:0,limit:50},
+  pay:{q:'',state:'',offset:0,limit:50,receipt:''},
+  certs:{offset:0,limit:20},
+  person:{id:'',data:null,loading:false,error:'',decision:'',reason:''},
+  sum:{formId:'',data:null,loading:false,error:''},
+  link:{pick:'',busy:'',msg:null},busy:'',msg:null};
+function efErr(error,fallback){const code=error&&error.code||''; if(EF_ERR[code]) return EF_ERR[code]; const f=p2FieldErr(error); if(f&&EF_ERR[f.code]) return EF_ERR[f.code]; if(error&&error.status===404) return EF_ERR.event_not_found; return p2Err(error,fallback)}
+function efReset(){EF.overview=null; EF.ovError=''; EF.regs={q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50}; EF.att={q:'',attendance:'',offset:0,limit:50}; EF.pay={q:'',state:'',offset:0,limit:50,receipt:''}; EF.certs={offset:0,limit:20}; EF.person={id:'',data:null,loading:false,error:'',decision:'',reason:''}; EF.sum={formId:'',data:null,loading:false,error:''}; EF.link={pick:'',busy:'',msg:null}; EF.busy=''; EF.msg=null}
+function efHash(){if(EI.all||!EI.eventId) return '#events'; const p=new URLSearchParams({event:String(EI.eventId),tab:String(EI.tab||'overview')}); if(EI.tab==='regs'&&EF.person.id) p.set('reg',EF.person.id); if(EI.tab==='survey'&&EF.sum.formId) p.set('form',EF.sum.formId); return '#'+p.toString()}
+function efSyncHash(){if(IS_TEST) return; try{const h=efHash(); if(location.hash!==h) history.replaceState(null,'',h)}catch(e){}}
+function efParseHash(h){const s=String(h||'').replace(/^#/,''); if(!/^event=/.test(s)) return null; const p=new URLSearchParams(s); const id=String(p.get('event')||''); if(!/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null; const tab=String(p.get('tab')||'overview'); const safe=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):''; return {id,tab:EF_TAB_KEYS.has(tab)||['resources','notify','recording','orders','questions','reviews','reports'].includes(tab)?tab:'overview',reg:safe(p.get('reg')),form:safe(p.get('form'))}}
+function efMoney(n){return fa(Number(n||0).toLocaleString('en-US'))+' ریال'}
+function efKey(){return [EF.regs.q,EF.regs.status,EF.regs.payment,EF.regs.attendance,EF.regs.form_id,EF.regs.offset,EF.att.q,EF.att.attendance,EF.att.offset,EF.pay.q,EF.pay.state,EF.pay.offset,EF.certs.offset,EF.sum.formId].join('|')}
+async function efLoadOverview(api){const r=await api.eventFileOverview(EI.eventId); EF.overview=r; EF.ovError=''; if(r&&r.event){EI.title=r.event.t||r.event.title||EI.title; EI.status=r.event.status||EI.status} return r}
+async function efLoadTab(api){
+  if(EI.tab==='overview'||EI.tab==='forms'||EI.tab==='survey'||EI.tab==='certs'){
+    const ov=await efLoadOverview(api);
+    if(EI.tab==='forms'&&canPerm('fm_create')&&(!FORMS_SRV.loaded||!FORMS_SRV.data)){try{await fsLoad()}catch(_){/* گزینه‌های اتصال بعداً */}}
+    if(EI.tab==='survey'&&EF.sum.formId){const ok=(ov.forms||[]).some(f=>String(f.id)===EF.sum.formId&&(f.type==='survey'||f.type==='exam')); if(!ok){EF.sum.formId=''; EF.sum.data=null} else efLoadSummary(api)}
+    if(EI.tab==='certs'&&canPerm('certificate')) return {overview:ov,certs:await api.listAdminCertificates({event_ref:EI.eventId,limit:EF.certs.limit,offset:EF.certs.offset})};
+    return ov;
+  }
+  if(EI.tab==='regs'){const r=await api.eventFileRegistrations(EI.eventId,{q:EF.regs.q,status:EF.regs.status,payment:EF.regs.payment,attendance:EF.regs.attendance,form_id:EF.regs.form_id,limit:EF.regs.limit,offset:EF.regs.offset}); if(EF.person.id&&!EF.person.data&&!EF.person.loading) efLoadPerson(api,EF.person.id); return r}
+  if(EI.tab==='tickets') return api.eventFileRegistrations(EI.eventId,{q:EF.att.q,attendance:EF.att.attendance,status:'accepted',limit:EF.att.limit,offset:EF.att.offset});
+  if(EI.tab==='payments') return api.eventFilePayments(EI.eventId,{q:EF.pay.q,state:EF.pay.state,limit:EF.pay.limit,offset:EF.pay.offset});
+  return null;
+}
+async function efLoadPerson(api,id){
+  EF.person.id=id; EF.person.data=null; EF.person.error=''; EF.person.loading=true; EF.person.decision=''; EF.person.reason=''; efSyncHash(); renderBody();
+  try{const r=await api.eventFileRegistration(EI.eventId,id); if(EF.person.id===id) EF.person.data=r}
+  catch(error){if(EF.person.id===id) EF.person.error=efErr(error,'پروندهٔ ثبت‌نام دریافت نشد.')}
+  finally{EF.person.loading=false; if(EF.person.id===id&&EI.open) renderBody()}
+}
+async function efLoadSummary(api){
+  const id=EF.sum.formId; if(!id) return; EF.sum.data=null; EF.sum.error=''; EF.sum.loading=true; efSyncHash(); renderBody();
+  try{const r=await api.eventFileFormSummary(EI.eventId,id); if(EF.sum.formId===id) EF.sum.data=r}
+  catch(error){if(EF.sum.formId===id) EF.sum.error=efErr(error,'خلاصهٔ پاسخ‌ها دریافت نشد.')}
+  finally{EF.sum.loading=false; if(EF.sum.formId===id&&EI.open) renderBody()}
+}
+/* ── سربرگ پرونده ── */
+function efStatusTag(ov){
+  const e=ov&&ov.event||{}, reg=e.registration||{}, c=ov&&ov.counts||{};
+  if(e.status==='draft') return tag('پیش‌نویس','');
+  if(e.status==='archived') return tag('بایگانی','stop');
+  if(e.status==='paused') return tag('انتشار متوقف','warn');
+  if(reg.state==='ended'||e.past) return tag('برگزارشده','');
+  if(reg.state==='open') return tag('ثبت‌نام باز','ok');
+  if(reg.state==='full'||c.full) return tag('تکمیل ظرفیت','warn');
+  if(reg.state==='not_started') return tag('ثبت‌نام هنوز آغاز نشده','warn');
+  if(reg.state==='none'||reg.reason==='no_form') return tag('بدون فرم ثبت‌نام','warn');
+  return tag('ثبت‌نام بسته','stop');
+}
+function efPriceText(rs){
+  if(!rs) return '';
+  const p=rs.price||{}; if(p.valid===false) return 'تنظیمات مالی فرم ناقص است';
+  if(!p.paid) return 'رایگان';
+  return (p.has_optional?'از ':'')+efMoney(p.base)+(Array.isArray(rs.methods)&&rs.methods.length?' · '+rs.methods.map(m=>EF_METHOD[m]||m).join(' / '):'');
+}
+function efFormSettingsHref(formId){const q=new URLSearchParams({fid:String(formId),back:'admin.html'+efHashFor('overview')}); return 'create.html?'+q.toString()}
+function efHashFor(tab){const p=new URLSearchParams({event:String(EI.eventId),tab:String(tab||'overview')}); return '#'+p.toString()}
+function efHead(){
+  const ov=EF.overview; if(!ov) return '';
+  const e=ov.event||{}, c=ov.counts||{}, rs=ov.registration_settings, can=ov.can||{};
+  const when=[e.on||e.when,e.time,e.mode?ctModeLabel(e.mode)||e.mode:'',e.place].filter(Boolean).join(' · ');
+  const capText=rs?(c.cap>0?fa(c.total||0)+' از '+fa(c.cap)+' نفر'+(c.remaining!=null?' · باقی‌مانده '+fa(c.remaining):''):fa(c.total||0)+' نفر · بدون سقف'):'';
+  const poster=e.poster?`<img src="${esc(String(e.poster))}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;flex:none"/>`:`<span class="ic" style="width:56px;height:56px">${ico('i-calendar')}</span>`;
+  const actions=[e.public_path?`<a class="btn sm quiet" href="${esc(e.public_path)}" target="_blank" rel="noopener">${ico('i-eye')}مشاهدهٔ صفحه</a>`:'',
+    can.edit_event&&ctCan('can_edit')?btn('ویرایش رویداد',`data-ei-edit="${esc(String(e.id||EI.eventId))}"`,'i-pen'):'',
+    rs&&can.forms?`<a class="btn sm quiet" href="${esc(efFormSettingsHref(rs.form_id))}" data-ef-reg-settings>${ico('i-sliders')}ویرایش تنظیمات ثبت‌نام</a>`:'',
+    !rs&&can.forms&&!e.past?btn('ساخت فرم ثبت‌نام','data-ef-tab="forms"','i-plus'):''].filter(Boolean).join('');
+  return `<div class="row" data-ef-head style="flex-wrap:wrap;gap:12px;align-items:flex-start">${poster}
+    <div class="stack" style="flex:1 1 240px;gap:4px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong style="font-size:1.05em">${esc(e.t||e.title||'')}</strong>${efStatusTag(ov)}</div>
+      ${when?`<small class="cap">${esc(when)}</small>`:''}
+      <div class="row tight" style="flex-wrap:wrap">${capText?tag('ثبت‌نام: '+capText,c.full?'warn':''):tag('بدون فرم ثبت‌نام','warn')}${rs?tag((rs.form_status==='published'?'فرم ثبت‌نام: فعال':rs.form_status==='paused'?'فرم ثبت‌نام: متوقف':rs.form_status==='draft'?'فرم ثبت‌نام: پیش‌نویس':'فرم ثبت‌نام: بایگانی'),rs.form_status==='published'?'ok':'warn'):''}${rs?tag('مبلغ: '+efPriceText(rs),''):''}</div>
+      ${rs?`<small class="cap" data-ef-source>ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «${esc(rs.form_name||'')}»</small>`:''}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-self:center">${actions}</div></div>`;
+}
+/* ── نمای کلی ── */
+function efOverview(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const e=ov.event||{}, c=ov.counts||{}, rs=ov.registration_settings, forms=ov.forms||[], declared=ov.declared||{};
+  const kpis=[['ثبت‌نام',c.total],['پذیرفته‌شده',c.accepted],['فهرست انتظار',c.waitlisted],['پرداخت‌شده',c.paid],['در انتظار پرداخت',c.pending_payment],['ناموفق',c.failed_payment],['حاضر',c.checked_in]].filter(([,n])=>n!=null);
+  const diff=rs&&((Number(declared.cap)||0)!==(Number(rs.cap)||0)||(Number(declared.price)||0)!==(Number(rs.price&&rs.price.base)||0));
+  const rows=[['تاریخ',e.on||e.when],['ساعت',e.time],['شیوهٔ برگزاری',e.mode?ctModeLabel(e.mode)||e.mode:''],['مکان',e.place],['نوع',e.kind],
+    ['مدرس',e.tchr?ctRefMeta('tchr',e.tchr).replace(/^مدرس: /,''):''],['نهاد همکار',e.partnerId?ctRefMeta('partnerId',e.partnerId).replace(/^نهاد: /,''):''],
+    ['وضعیت انتشار',(P2_STATUS[e.status]||[e.status||''])[0]],['وضعیت ثبت‌نام',e.registration&&e.registration.state?CT_REG_STATE[e.registration.state]||e.registration.state:''],
+    ['ظرفیت',rs?(rs.cap>0?fa(rs.cap)+' نفر'+(rs.wait>0?' + '+fa(rs.wait)+' انتظار':''):'بدون سقف')+' · تنظیم‌شده در فرم ثبت‌نام':(declared.cap?fa(declared.cap)+' (اعلامی؛ تا فرم ثبت‌نام نباشد اعمال نمی‌شود)':'')],
+    ['مبلغ',rs?efPriceText(rs)+' · تنظیم‌شده در فرم ثبت‌نام':(declared.price?fa(declared.price)+' ریال (اعلامی؛ پرداختی گرفته نمی‌شود)':'رایگان')],
+    ['بررسی رسید',rs&&rs.receipt_review_required?'لازم است':''],['آخرین تغییر',e.updated_at?svcWhen(e.updated_at)||e.updated_at:'']].filter(([,v])=>v);
+  const formLine=forms.length?forms.map(f=>`${EF_FORM_TYPE[f.type]||'فرم'}: «${esc(f.name||'')}» (${esc((FS_STATUS[f.status]||[f.status])[0])}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''})`).join('؛ '):'';
+  return `<div class="stack" data-ef-overview="${esc(String(e.id||EI.eventId))}">
+    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
+    ${e.d?`<p class="cap" style="white-space:pre-wrap">${esc(String(e.d))}</p>`:''}
+    <div class="admlist">${rows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div>${esc(String(v))}</div></span></div>`).join('')}</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های این رویداد</strong><span class="sp"></span>${btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left')}</div>
+    ${formLine?`<small class="cap">${formLine}</small>`:`<small class="cap">هنوز فرمی به این رویداد وصل نیست.</small>`}</div>`;
+}
+/* ── فرم‌ها و فعالیت‌ها ── */
+function efFormCard(f){
+  const st=FS_STATUS[f.status]||[f.status||'',''], id=encodeURIComponent(String(f.id||'')), can=EF.overview&&EF.overview.can||{};
+  const linkState=f.status==='published'?'پیوند فعال':f.status==='paused'?'پیوند هست؛ دریافت پاسخ متوقف':'پیوند هست؛ هنوز منتشر نشده';
+  const back=encodeURIComponent('admin.html'+efHashFor('forms'));
+  const canUnlink=can.forms&&f.type!=='purchase'&&f.status!=='published'&&!(Number(f.response_count)>0);
+  const why=f.type==='purchase'?'فرم خرید به محصول ضبط‌شده وصل است':f.status==='published'?'اول در فرم‌ساز دریافت پاسخ را متوقف کن':Number(f.response_count)>0?'فرم پاسخ دارد؛ پیوند ثابت می‌ماند':'';
+  return `<div class="admlirow" data-ef-form="${esc(String(f.id||''))}" data-ei-form-row="${esc(String(f.id||''))}"><span class="ic">${ico(f.type==='survey'?'i-chart':f.type==='exam'?'i-graduation':'i-doc')}</span>
+    <span class="sp"><b>${esc(f.name||'فرم')}</b><small class="cap">${esc(EF_FORM_TYPE[f.type]||'فرم')} · ${fa(f.response_count||0)} پاسخ · ${esc(linkState)}</small><small class="cap">آخرین تغییر: ${esc(svcWhen(f.updated_at)||'')}</small></span>${tag(st[0],st[1])}
+    <span class="row" style="gap:4px;flex-wrap:wrap;justify-content:flex-end">
+      ${can.responses?(f.type==='registration'?btn('ثبت‌نام‌کنندگان',`data-ef-tab="regs" data-ef-form-filter="${esc(String(f.id))}"`,'i-users'):f.type==='survey'||f.type==='exam'?btn('مشاهدهٔ پاسخ‌ها',`data-ef-tab="survey" data-ef-sum="${esc(String(f.id))}"`,'i-chart'):`<a class="btn sm quiet" href="builder.html?fid=${id}#responses">${ico('i-inbox')}مشاهدهٔ پاسخ‌ها</a>`):''}
+      ${can.forms?`<a class="btn sm quiet" href="create.html?fid=${id}&back=${back}">${ico('i-pen')}ویرایش فرم</a>`:''}
+      ${can.forms&&f.type!=='purchase'?(canUnlink?btn('قطع اتصال',`data-ef-unlink="${esc(String(f.id))}" data-ef-ver="${esc(String(f.version||0))}" ${EF.link.busy?'disabled':''}`,'i-close'):`<small class="cap" title="${esc(why)}">قطع اتصال ممکن نیست: ${esc(why)}</small>`):''}</span></div>`;
+}
+function efForms(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const forms=ov.forms||[], can=ov.can||{}, e=ov.event||{}, past=!!e.past||(e.registration&&e.registration.state==='ended');
+  const back='admin.html'+efHashFor('forms');
+  const mk=(need,label,primary)=>{const q=new URLSearchParams({ev:String(EI.eventId),need,name:String(e.t||''),back}); return `<a class="btn sm ${primary?'primary':'quiet'}" href="create.html?${q.toString()}" data-ef-create="${need}">${ico('i-plus')}${esc(label)}</a>`};
+  const hasReg=forms.some(f=>f.type==='registration');
+  const create=can.forms?`<div class="row tight" style="flex-wrap:wrap" data-ef-create-row>${past?'':mk('reg',hasReg?'فرم ثبت‌نام دیگر':'ساخت فرم ثبت‌نام',!hasReg)}${mk('survey','ساخت نظرسنجی',false)}${mk('exam','ساخت آزمون',false)}</div>`:'';
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const cands=items.filter(f=>!String(f.ev||'')&&f.purpose!=='recording_access'&&f.status!=='archived'&&f.status!=='closed');
+  const opt=f=>{const st=FS_STATUS[f.status]||[f.status||'','']; const locked=f.status==='published'?'منتشرشده؛ اول متوقف کن':Number(f.response_count)>0?'پاسخ دارد':''; return `<option value="${esc(String(f.id))}" ${locked?'disabled':''} ${EF.link.pick===String(f.id)?'selected':''}>${esc(f.name||f.title||'فرم')} · ${esc(FS_PURPOSE[f.purpose]||f.need||'')} · ${esc(st[0])}${locked?' · '+locked:''}</option>`};
+  const link=can.forms?`<div class="stack" data-ef-link style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>اتصال فرم موجود</strong><span class="sp"></span><small class="cap">فقط فرم‌های بدون رویداد، پیش‌نویس یا متوقف و بدون پاسخ؛ سرور همین را می‌سنجد.</small></div>
+      ${FORMS_SRV.loading&&!FORMS_SRV.loaded?`<small class="cap">در حال خواندن فهرست فرم‌ها…</small>`:FORMS_SRV.error&&!FORMS_SRV.data?`<small class="cap" style="color:var(--stop)">${esc(FORMS_SRV.error)}</small> ${btn('تلاش دوباره','data-fs-refresh','i-refresh')}`
+      :cands.length?`<div class="row tight" style="flex-wrap:wrap;align-items:center"><select class="inp" data-ef-link-pick style="min-width:220px" ${EF.link.busy?'disabled':''}><option value="">انتخاب فرم…</option>${cands.map(opt).join('')}</select>${btn('اتصال فرم',`data-ef-link-do ${EF.link.busy||!EF.link.pick?'disabled':''}`,'i-link')}</div>`
+      :`<small class="cap" data-ef-link-empty>فرم بدون رویدادی در انبار نیست.</small>`}
+      ${EF.link.msg?p2Msg(EF.link.msg):''}</div>`:'';
+  return `<div class="stack" data-ef-forms>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های این رویداد</strong><span class="sp"></span>${tag(fa(forms.length)+' فرم','')}</div>
+    ${forms.length?`<div class="admlist">${forms.map(efFormCard).join('')}</div>`:`<div data-ef-forms-empty>${emptyBox(can.forms?'هنوز فرمی به این رویداد وصل نیست. فرم ثبت‌نام بساز یا فرم موجودی را وصل کن.':'هنوز فرمی به این رویداد وصل نیست.')}</div>`}
+    ${create}${link}
+    <small class="cap">قطع اتصال فقط پیوند فرم با رویداد را برمی‌دارد؛ فرم و پاسخ‌هایش حذف نمی‌شوند.</small></div>`;
+}
+async function efLinkForm(formId,version,detach){
+  const api=window.NORA_SERVER_API; if(EF.link.busy||!api) return;
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; const form=items.find(f=>String(f.id)===String(formId));
+  const ver=form?form.version:Number(version)||0;
+  if(!detach&&!form){EF.link.msg={kind:'stop',text:'فرم انتخاب‌شده در فهرست سرور نیست؛ فهرست را تازه کن.'}; renderBody(); return}
+  if(detach&&typeof window.confirm==='function'&&!window.confirm('پیوند این فرم با رویداد برداشته می‌شود؛ فرم و پاسخ‌هایش می‌مانند. ادامه می‌دهید؟')) return;
+  EF.link.busy=detach?'unlink':'link'; EF.link.msg=null; renderBody();
+  try{const saved=await api.linkFormEvent(formId,detach?'':EI.eventId,ver,staffCsrfCookie());
+    EF.link.msg={kind:'ok',text:detach?`«${saved.name||'فرم'}» از این رویداد جدا شد`:`«${saved.name||'فرم'}» به این رویداد وصل شد`}; EF.link.pick='';
+    FORMS_SRV.loaded=false; EI.key=''; await eiLoad();
+  }catch(error){EF.link.msg={kind:'stop',text:efErr(error,'اتصال فرم انجام نشد؛ چیزی تغییر نکرد.')}; if(error&&(error.code==='version_conflict'||error.status===409)){FORMS_SRV.loaded=false; EI.key=''; eiLoad()}}
+  finally{EF.link.busy=''; renderBody()}
+}
+/* ── ثبت‌نام‌کنندگان ── */
+function efSummaryChips(s,fin){
+  if(!s) return '';
+  const items=[['کل',s.total,''],['پذیرفته‌شده',s.accepted,'ok'],['فهرست انتظار',s.waitlisted,'warn'],['پرداخت‌شده',s.paid,'ok'],['در انتظار پرداخت',s.pending_payment,'warn'],['ناموفق',s.failed_payment,'stop'],['رایگان',s.free,''],['حاضر',s.checked_in,'ok']];
+  const cap=s.cap>0?tag('ظرفیت باقی‌مانده: '+fa(s.remaining==null?0:s.remaining)+' از '+fa(s.cap),s.full?'warn':''):tag('بدون سقف ظرفیت','');
+  return `<div class="row tight" style="flex-wrap:wrap" data-ef-summary>${items.map(([l,n,k])=>tag(l+': '+fa(Number(n)||0),Number(n)>0?k:'')).join('')}${cap}${s.bale_holds>0?tag('رزرو موقت بله: '+fa(s.bale_holds),'warn'):''}</div>`;
+}
+function efRegRow(r,fin){
+  const st=EF_REG_STATUS[r.status]||[r.status||'',''], ps=EF_PAY_STATE[r.payment_state]||[r.payment_state||'',''];
+  const pay=[ps[0],r.payment_status&&EF_PAY_STATUS[r.payment_status]&&r.payment_state!=='free'?EF_PAY_STATUS[r.payment_status]:'',fin&&r.amount!=null?efMoney(r.amount):'',r.receipt_uploaded&&r.payment_state!=='paid'?'رسید فرستاده شده':''].filter(Boolean).join(' · ');
+  return `<div class="admlirow" data-ef-reg="${esc(r.response_id)}"><span class="ic">${ico(r.companion?'i-users':'i-user')}</span>
+    <span class="sp"><b>${esc(r.name||'بدون نام')}</b>${r.companion?` <small class="cap">همراهِ ${esc(r.added_by_name||'')}</small>`:''}<small class="cap">${esc(r.display_id||'')}${r.mobile_hint?' · ···'+fa(r.mobile_hint):''} · ${esc(svcWhen(r.created_at)||'')}</small><small class="cap">${esc(pay)}${r.ticket_type?' · بلیت: '+esc(r.ticket_type):''}</small></span>
+    ${tag(st[0],st[1])}${tag(ps[0],ps[1])}${r.checked_in?tag('حاضر','ok'):''}
+    <span class="row" style="gap:4px">${btn('پروندهٔ ثبت‌نام',`data-ef-person="${esc(r.response_id)}"`,'i-idcard')}</span></div>`;
+}
+function efPager(box,d){const total=Number(d&&d.total)||0; if(total<=box.limit) return ''; const from=box.offset+1, to=Math.min(total,box.offset+box.limit);
+  return `<div class="row" style="flex-wrap:wrap;gap:6px"><small class="cap">${fa(from)} تا ${fa(to)} از ${fa(total)}</small><span class="sp"></span>${btn('قبلی',`data-ef-page="prev" ${box.offset<=0?'disabled':''}`,'i-chev-right')}${btn('بعدی',`data-ef-page="next" ${!d.has_more?'disabled':''}`,'i-chev-left')}</div>`}
+function efRegs(){
+  const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست ثبت‌نام‌کنندگان از سرور نیامد.');
+  if(EF.person.id) return efPerson();
+  const fin=!!d.finance_visible, b=EF.regs, forms=d.forms||[];
+  const chip=(k,v,l)=>`<button class="chip ${b[k]===v?'on':''}" type="button" data-ef-filter="${k}" data-ef-value="${esc(v)}">${esc(l)}</button>`;
+  const filters=`<div class="stack" style="gap:6px" data-ef-filters>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="جست‌وجوی نام، شماره یا کد پیگیری" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}${forms.length>1?`<select class="inp" data-ef-form-id><option value="">همهٔ فرم‌های ثبت‌نام</option>${forms.map(f=>`<option value="${esc(f.id)}" ${b.form_id===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`:''}</div>
+    <div class="admfilters" role="group" aria-label="وضعیت ثبت‌نام">${chip('status','','همه')}${chip('status','accepted','پذیرفته‌شده')}${chip('status','waitlisted','فهرست انتظار')}</div>
+    <div class="admfilters" role="group" aria-label="وضعیت پرداخت">${chip('payment','','هر پرداختی')}${chip('payment','paid','پرداخت‌شده')}${chip('payment','pending','در انتظار پرداخت')}${chip('payment','failed','ناموفق')}${chip('payment','free','رایگان')}</div>
+    <div class="admfilters" role="group" aria-label="حضور">${chip('attendance','','با و بی‌حضور')}${chip('attendance','checked_in','حاضر')}${chip('attendance','pending','هنوز نیامده')}</div></div>`;
+  const anyFilter=b.q||b.status||b.payment||b.attendance||b.form_id;
+  const empty=forms.length?(anyFilter?'با این جست‌وجو یا صافی کسی پیدا نشد.':'هنوز کسی در این رویداد ثبت‌نام نکرده است.'):'فرم ثبت‌نامی به این رویداد وصل نیست؛ اول در «فرم‌ها و فعالیت‌ها» فرم ثبت‌نام بساز.';
+  return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}
+    <small class="cap">وضعیت ثبت‌نام (پذیرفته/انتظار) از وضعیت پرداخت جداست؛ «رسید فرستاده شده» یعنی هنوز تأیید نشده.${fin?'':' مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.'}</small>
+    ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
+    ${efPager(b,d)}</div>`;
+}
+/* ── پروندهٔ ثبت‌نام (یک نفر داخل رویداد) ── */
+function efPerson(){
+  const p=EF.person, back=btn('بازگشت به ثبت‌نام‌کنندگان','data-ef-person-close','i-back');
+  if(p.loading&&!p.data) return `<div class="stack">${back}<p class="cap" role="status" aria-busy="true">در حال خواندن پروندهٔ ثبت‌نام…</p></div>`;
+  if(p.error||!p.data) return `<div class="stack">${back}${p2Msg({kind:'stop',text:p.error||'پروندهٔ ثبت‌نام دریافت نشد.'})}${btn('تلاش دوباره',`data-ef-person="${esc(p.id)}"`,'i-refresh')}</div>`;
+  const d=p.data, can=d.can||{}, pay=d.payment||null, rec=d.receipt||{}, att=d.attendance||{}, tk=d.ticket||{}, fin=!!d.finance_visible;
+  const ps=EF_PAY_STATE[d.payment_state]||[d.payment_state||'',''], st=EF_REG_STATUS[d.status]||[d.status||'',''];
+  const answers=(d.answers||[]).map(a=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(a.label||a.field_id||'')}</small><div>${a.masked?`<span class="cap">${a.masked==='mobile'?'شماره (پنهان)'+(a.hint?' ···'+fa(a.hint):''):'کد ملی (پنهان)'}</span>`:esc(Array.isArray(a.value)?a.value.join('، '):(a.value==null||a.value===''?'ـ':String(a.value)))}</div></span></div>`).join('');
+  const payRows=pay?[['روش',EF_METHOD[pay.method]||pay.method],['وضعیت پرداخت',EF_PAY_STATUS[pay.status]||pay.status],fin?['مبلغ',efMoney(pay.amount)]:null,fin&&pay.transaction_id?['شناسهٔ تراکنش',pay.transaction_id]:null].filter(Boolean):[['پرداخت',d.payment_state==='free'?'رایگان؛ پرداختی لازم نبوده':'رکورد پرداختی ثبت نشده']];
+  const receiptImg=rec.web_file&&can.receipt_file?`<img src="${esc(window.NORA_SERVER_API.eventFileReceiptUrl(EI.eventId,d.response_id))}" alt="رسید پرداخت" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-receipt-img/>`:'';
+  const receiptLine=!rec.uploaded?'رسیدی ثبت نشده':rec.web_file?(receiptImg?'':'رسید ثبت شده؛ نمایش فایل نیازمند مجوز رسید/مالی'):(rec.task_id&&(canPerm('receipt_approve')||canPerm('finance'))?`رسید از راه بله رسیده؛ فایل در <a href="admin.html#inbox">صندوق پیام‌ها</a>${rec.task_status?' · '+esc(rec.task_status==='pending'?'در انتظار بررسی':rec.task_status==='approved'?'تأییدشده':'ردشده'):''}`:'رسید از راه بله ثبت شده');
+  const decision=can.payment_decision?`<div class="stack" data-ef-decision style="gap:6px"><strong>تصمیم دربارهٔ این پرداخت</strong>
+      ${p.decision?`<label class="fld"><span class="lbl">دلیل (در تاریخچه ثبت می‌شود)</span><input class="inp" data-ef-reason value="${esc(p.reason)}" maxlength="300" placeholder="مثلاً: رسید با مبلغ و شمارهٔ کارت همخوانی دارد"/></label>
+        <div class="row tight" style="flex-wrap:wrap">${btn(p.decision==='approve'?'ثبت تأیید پرداخت':'ثبت رد و لغو ثبت‌نام',`data-ef-decide-go ${EF.busy?'disabled':''}`,p.decision==='approve'?'i-check':'i-close')}${btn('انصراف','data-ef-decide-cancel','i-back')}</div>`
+      :`<div class="row tight" style="flex-wrap:wrap">${btn('تأیید پرداخت','data-ef-decide="approve"','i-check')}${btn('رد رسید و لغو ثبت‌نام','data-ef-decide="reject"','i-close')}</div><small class="cap">تأیید فقط پس از دیدن رسید؛ رد، ثبت‌نام را لغو و ظرفیت را آزاد می‌کند. هر دو با نام و دلیل ثبت می‌شوند.</small>`}</div>`:'';
+  const ticket=tk.serial?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${tag('سریال بلیت: '+tk.serial,'')}${tk.type?tag('نوع: '+tk.type,''):''}${can.ticket_image?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.eventFileTicketImageUrl(EI.eventId,d.response_id))}" target="_blank" rel="noopener">${ico('i-ticket')}تصویر بلیت</a>`:''}</div>`:`<small class="cap">${tk.eligible?(d.payment_approved?'بلیت هنوز صادر نشده':'بلیت پس از تأیید پرداخت صادر می‌شود'):'این ثبت‌نام بلیت ندارد'}</small>`;
+  const attendance=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${att.checked_in?tag('حاضر · '+(svcWhen(att.checked_in_at)||''),'ok'):tag('حضور ثبت نشده','')}${can.attendance&&d.status==='accepted'?(att.checked_in?btn('برگرداندن حضور',`data-ef-att="undo" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-refresh'):btn('ثبت حضور',`data-ef-att="in" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-check')):''}</div>`;
+  const companions=(d.companions||[]).length?`<div class="admlist">${d.companions.map(c=>`<div class="admlirow"><span class="ic">${ico('i-user')}</span><span class="sp"><b>${esc(c.name||'همراه')}</b></span>${tag((EF_REG_STATUS[c.status]||[c.status])[0],(EF_REG_STATUS[c.status]||['',''])[1])}${c.ticket_checked_in?tag('حاضر','ok'):''}</div>`).join('')}</div>`:'';
+  const audit=(d.audit||[]).length?`<div class="admlist">${d.audit.map(a=>`<div class="admlirow"><span class="sp"><b>${esc(a.action)}</b><small class="cap">${esc(svcWhen(a.created_at)||'')} · ${esc(a.actor_role||'')}${a.reason?' · '+esc(a.reason):''}</small></span>${tag(a.outcome==='ok'||a.outcome==='success'?'انجام شد':a.outcome||'','')}</div>`).join('')}</div>`:'<small class="cap">اقدامی روی این ثبت‌نام ثبت نشده است.</small>';
+  const sec=(t,b)=>`<div class="card stack" style="gap:6px"><strong>${esc(t)}</strong>${b}</div>`;
+  return `<div class="stack" data-ef-person="${esc(d.response_id)}">
+    <div class="row" style="flex-wrap:wrap;gap:8px">${back}<b>${esc(d.registrant_name||'')}</b>${tag(st[0],st[1])}${tag(ps[0],ps[1])}<span class="sp"></span><small class="cap">${esc(d.display_id||'')}${d.form&&d.form.name?' · '+esc(d.form.name):''}</small></div>
+    ${p2Msg(EF.msg)}
+    ${sec('پاسخ‌های فرم',answers||'<small class="cap">پاسخی ثبت نشده است.</small>')}
+    ${companions?sec('همراهان',companions):''}
+    ${sec('پرداخت و رسید',`<div class="admlist">${payRows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div dir="auto">${esc(String(v))}</div></span></div>`).join('')}</div>${receiptLine?`<small class="cap">${receiptLine}</small>`:''}${receiptImg}${decision}`)}
+    ${sec('بلیت و حضور',ticket+attendance)}
+    ${sec('تاریخچهٔ اقدام‌ها',audit)}</div>`;
+}
+async function efDecide(){
+  const api=window.NORA_SERVER_API, p=EF.person, d=p.data; if(!api||!d||EF.busy) return;
+  const reason=String(p.reason||'').trim(); if(reason.length<2){EF.msg={kind:'stop',text:'نوشتن دلیل لازم است.'}; renderBody(); return}
+  EF.busy='decide'; EF.msg=null; renderBody();
+  try{const r=await api.eventFilePaymentDecision(EI.eventId,d.response_id,p.decision,reason,d.payment&&d.payment.status||'',staffCsrfCookie());
+    EF.msg={kind:'ok',text:r&&r.changed===false?'این تصمیم پیش‌تر ثبت شده بود؛ چیزی دوباره تغییر نکرد.':p.decision==='approve'?'پرداخت تأیید شد و بلیت صادر می‌شود.':'رسید رد شد و ثبت‌نام لغو شد؛ ظرفیت آزاد شد.'};
+    p.decision=''; p.reason='';
+    if(r&&r.registration_cancelled){EF.person.id=''; EF.person.data=null; EI.key=''; eiLoad(); return}
+    EI.key=''; eiLoad(); efLoadPerson(api,d.response_id);
+  }catch(error){EF.msg={kind:'stop',text:efErr(error,'ثبت تصمیم انجام نشد؛ چیزی تغییر نکرد.')}; if(error&&error.status===409){p.decision=''; efLoadPerson(api,d.response_id)} else renderBody()}
+  finally{EF.busy=''}
+}
+async function efAttendance(responseId,undo){
+  const api=window.NORA_SERVER_API; if(EF.busy||!api) return;
+  let reason='';
+  if(undo){if(typeof window.prompt!=='function') return; const typed=window.prompt('حضور برگردانده می‌شود و با دلیل در تاریخچه ثبت می‌شود. دلیل:',''); if(typed===null) return; reason=String(typed).trim(); if(reason.length<3){toast('برای برگرداندن حضور، دلیل لازم است'); return}}
+  else if(typeof window.confirm==='function'&&!window.confirm('حضور همین حالا با زمان سرور ثبت می‌شود. ادامه می‌دهید؟')) return;
+  EF.busy='att'; EF.msg=null; renderBody();
+  try{await (undo?api.attendanceUndoCheckIn(responseId,reason,staffCsrfCookie()):api.attendanceCheckIn(responseId,'',staffCsrfCookie()));
+    EF.msg={kind:'ok',text:undo?'حضور برگردانده شد.':'حضور ثبت شد.'}; EI.key=''; eiLoad(); if(EF.person.id===responseId) efLoadPerson(api,responseId)}
+  catch(error){EF.msg={kind:'stop',text:p2Err(error,undo?'برگرداندن حضور انجام نشد.':'ثبت حضور انجام نشد.')}; if(error&&error.status===409){EI.key=''; eiLoad()} else renderBody()}
+  finally{EF.busy=''}
+}
+/* ── پرداخت‌ها ── */
+function efPayRow(r){
+  const ps=EF_PAY_STATE[r.state]||[r.state||'',''], rec=r.receipt||{};
+  const receipt=!rec.uploaded?'رسیدی ثبت نشده':rec.web_file?(canPerm('receipt_approve')||canPerm('finance')?`<button class="btn sm quiet" type="button" data-ef-receipt="${esc(r.response_id||'')}">${ico('i-image')}رسید پرداخت</button>`:'رسید ثبت شده'):`رسید از راه بله${rec.task_status?' · '+esc(rec.task_status==='pending'?'در انتظار بررسی':rec.task_status==='approved'?'تأییدشده':'ردشده'):''}`;
+  const open=EF.pay.receipt&&EF.pay.receipt===r.response_id?`<div style="flex-basis:100%"><img src="${esc(window.NORA_SERVER_API.eventFileReceiptUrl(EI.eventId,r.response_id))}" alt="رسید پرداخت" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-receipt-img/></div>`:'';
+  return `<div class="admlirow" data-ef-pay="${esc(r.payment_id)}" style="flex-wrap:wrap"><span class="ic">${ico('i-wallet')}</span>
+    <span class="sp"><b>${esc(r.name||'بدون ثبت‌نام متصل')}</b><small class="cap">${esc(r.display_id||'')} · ${esc(EF_METHOD[r.method]||r.method||'')} · ${esc(EF_PAY_STATUS[r.status]||r.status||'')} · ${esc(svcWhen(r.created_at)||'')}</small><small class="cap" dir="auto">${efMoney(r.amount)}${r.party_count>1?' · '+fa(r.party_count)+' نفر':''}${r.transaction_id?' · تراکنش: '+esc(r.transaction_id):''}</small><small class="cap">${receipt}</small></span>
+    ${tag(ps[0],ps[1])}${r.registration_status?tag((EF_REG_STATUS[r.registration_status]||[r.registration_status])[0],''):tag('ثبت‌نام لغوشده','stop')}
+    <span class="row" style="gap:4px">${r.response_id?btn('پروندهٔ ثبت‌نام',`data-ef-person="${esc(r.response_id)}" data-ef-goto-regs`,'i-idcard'):''}</span>${open}</div>`;
+}
+function efPayments(){
+  const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست پرداخت‌ها از سرور نیامد.');
+  const t=d.totals||{}, b=EF.pay;
+  const chip=(v,l)=>`<button class="chip ${b.state===v?'on':''}" type="button" data-ef-filter="state" data-ef-value="${esc(v)}">${esc(l)}</button>`;
+  return `<div class="stack" data-ef-payments>
+    <div class="row tight" style="flex-wrap:wrap" data-ef-pay-totals>${tag('جمع پرداخت‌های موفق: '+efMoney(t.paid_amount),'ok')}${tag('موفق: '+fa(t.paid||0),'')}${tag('در انتظار: '+fa(t.pending||0),Number(t.pending)>0?'warn':'')}${tag('ناموفق: '+fa(t.failed||0),Number(t.failed)>0?'stop':'')}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="نام، کد پیگیری یا شناسهٔ تراکنش" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}<div class="admfilters" role="group" aria-label="وضعیت پرداخت">${chip('','همه')}${chip('paid','موفق')}${chip('pending','در انتظار')}${chip('failed','ناموفق')}</div></div>
+    <small class="cap">هر ردیف یک تراکنش واقعی است؛ «رسید فرستاده شده» تا تأیید نشود پرداخت موفق شمرده نمی‌شود. تأیید یا رد رسید از پروندهٔ ثبت‌نام همان نفر انجام می‌شود.</small>
+    ${d.items.length?`<div class="admlist">${d.items.map(efPayRow).join('')}</div>`:emptyBox(b.q||b.state?'با این جست‌وجو یا صافی پرداختی پیدا نشد.':'هنوز پرداختی برای این رویداد ثبت نشده است.')}
+    ${efPager(b,d)}</div>`;
+}
+/* ── بلیت و حضور ── */
+function efTickets(){
+  const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست از سرور نیامد.');
+  const s=d.summary||{}, b=EF.att, canAtt=canPerm('attendance');
+  const chip=(v,l)=>`<button class="chip ${b.attendance===v?'on':''}" type="button" data-ef-filter="attendance" data-ef-value="${esc(v)}">${esc(l)}</button>`;
+  const row=r=>`<div class="admlirow" data-ef-att-row="${esc(r.response_id)}"><span class="ic">${ico('i-ticket')}</span>
+      <span class="sp"><b>${esc(r.name||'بدون نام')}</b><small class="cap">${esc(r.display_id||'')}${r.ticket_serial?' · بلیت '+esc(r.ticket_serial):' · بلیت صادر نشده'}${r.ticket_type?' · '+esc(r.ticket_type):''}</small></span>
+      ${tag((EF_PAY_STATE[r.payment_state]||[''])[0],(EF_PAY_STATE[r.payment_state]||['',''])[1])}${r.checked_in?tag('حاضر · '+(svcWhen(r.checked_in_at)||''),'ok'):tag('نیامده','')}
+      <span class="row" style="gap:4px">${canAtt?(r.checked_in?btn('برگرداندن',`data-ef-att="undo" data-ef-rid="${esc(r.response_id)}" ${EF.busy?'disabled':''}`,'i-refresh'):btn('ثبت حضور',`data-ef-att="in" data-ef-rid="${esc(r.response_id)}" ${EF.busy?'disabled':''}`,'i-check')):''}${btn('پرونده',`data-ef-person="${esc(r.response_id)}" data-ef-goto-regs`,'i-idcard')}</span></div>`;
+  return `<div class="stack" data-ef-tickets>
+    <div class="row tight" style="flex-wrap:wrap">${tag('پذیرفته‌شده: '+fa(s.accepted||0),'')}${tag('حاضر: '+fa(s.checked_in||0),Number(s.checked_in)>0?'ok':'')}${s.accepted!=null?tag('نیامده: '+fa(Math.max(0,(Number(s.accepted)||0)-(Number(s.checked_in)||0))),''):''}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="نام، شماره یا کد پیگیری" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}<div class="admfilters" role="group" aria-label="حضور">${chip('','همه')}${chip('checked_in','حاضر')}${chip('pending','نیامده')}</div>${canAtt?btn('اسکن و فهرست حضور','data-ei-jump-attendance','i-qr'):''}</div>
+    <small class="cap">بلیت پس از پذیرش و تأیید پرداخت صادر می‌شود؛ حضور با زمان سرور ثبت می‌شود و همان رکوردی است که ربات می‌خواند.${canAtt?'':' ثبت حضور نیازمند مجوز حضور و غیاب است.'}</small>
+    ${p2Msg(EF.msg)}
+    ${d.items.length?`<div class="admlist">${d.items.map(row).join('')}</div>`:emptyBox(b.q||b.attendance?'کسی با این صافی پیدا نشد.':'هنوز ثبت‌نام پذیرفته‌شده‌ای نیست.')}
+    ${efPager(b,d)}</div>`;
+}
+/* ── نظرسنجی و آزمون ── */
+function efSurvey(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const list=(ov.forms||[]).filter(f=>f.type==='survey'||f.type==='exam'), can=ov.can||{}, back='admin.html'+efHashFor('survey');
+  const mk=(need,label)=>{const q=new URLSearchParams({ev:String(EI.eventId),need,name:String(ov.event&&ov.event.t||''),back}); return `<a class="btn sm quiet" href="create.html?${q.toString()}" data-ef-create="${need}">${ico('i-plus')}${esc(label)}</a>`};
+  const cards=list.map(f=>`<div class="admlirow" data-ef-form="${esc(f.id)}"><span class="ic">${ico(f.type==='exam'?'i-graduation':'i-chart')}</span><span class="sp"><b>${esc(f.name||'')}</b><small class="cap">${esc(EF_FORM_TYPE[f.type])} · ${fa(f.response_count||0)} پاسخ · ${esc((FS_STATUS[f.status]||[f.status])[0])}</small></span>
+      <span class="row" style="gap:4px;flex-wrap:wrap">${can.responses?btn(EF.sum.formId===f.id?'بستن نتیجه':'نتیجهٔ کلی',`data-ef-sum="${esc(f.id)}"`,'i-chart'):''}${can.responses?`<a class="btn sm quiet" href="builder.html?fid=${encodeURIComponent(f.id)}#responses">${ico('i-inbox')}پاسخ‌های تک‌تک</a>`:''}${can.forms?`<a class="btn sm quiet" href="create.html?fid=${encodeURIComponent(f.id)}&back=${encodeURIComponent(back)}">${ico('i-pen')}ویرایش فرم</a>`:''}</span></div>`).join('');
+  return `<div class="stack" data-ef-survey>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>نظرسنجی و آزمون این رویداد</strong><span class="sp"></span>${can.forms?mk('survey','ساخت نظرسنجی')+mk('exam','ساخت آزمون'):''}</div>
+    ${list.length?`<div class="admlist">${cards}</div>`:`<div data-ef-survey-empty>${emptyBox('نظرسنجی یا آزمونی به این رویداد وصل نیست.')}</div>`}
+    ${EF.sum.formId?efSummaryBox():''}
+    <small class="cap">نتیجهٔ کلی از پاسخ‌های همین فرم جمع می‌شود؛ پاسخ هر نفر جدا در فرم‌ساز دیده می‌شود. نمره‌دهی آزمون نیازمند کلید پاسخ در سرور است و فعلاً ساخته نشده.</small></div>`;
+}
+function efSummaryBox(){
+  const s=EF.sum;
+  if(s.loading&&!s.data) return `<p class="cap" role="status" aria-busy="true">در حال جمع‌بندی پاسخ‌ها…</p>`;
+  if(s.error) return `<div class="stack">${p2Msg({kind:'stop',text:s.error})}${btn('تلاش دوباره',`data-ef-sum-retry`,'i-refresh')}</div>`;
+  const d=s.data; if(!d) return '';
+  const fields=(d.fields||[]).map(f=>{
+    let body='';
+    if(f.kind==='choice'&&Array.isArray(f.options)){const max=Math.max(1,...f.options.map(o=>Number(o.count)||0)); body=`<div class="stack" style="gap:4px">${f.options.map(o=>`<div class="row" style="gap:6px;align-items:center"><small class="cap" style="min-width:120px">${esc(o.label)}</small><div style="flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden"><div style="width:${Math.round((Number(o.count)||0)/max*100)}%;height:100%;background:var(--brand)"></div></div><small class="cap">${fa(o.count||0)}</small></div>`).join('')}</div>`}
+    else if(f.kind==='numeric'&&f.mean!=null) body=`<small class="cap">میانگین ${fa(f.mean)} · کمینه ${fa(f.min)} · بیشینه ${fa(f.max)}</small>`;
+    else if(Array.isArray(f.samples)&&f.samples.length) body=`<small class="cap">${f.samples.map(x=>esc(x)).join(' · ')}</small>`;
+    return `<div class="admlirow" style="flex-wrap:wrap"><span class="sp"><b>${esc(f.label||f.field_id)}</b><small class="cap">${fa(f.answered||0)} پاسخ</small></span><div style="flex-basis:100%">${body}</div></div>`}).join('');
+  return `<div class="card stack" data-ef-summary-box="${esc(String(d.form&&d.form.id||''))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>نتیجهٔ کلی «${esc(d.form&&d.form.name||'')}»</strong>${tag(fa(d.responses||0)+' پاسخ','')}<span class="sp"></span>${btn('بستن','data-ef-sum-close','i-close')}</div>
+    ${d.responses?`<div class="admlist">${fields}</div>`:emptyBox('هنوز پاسخی برای این فرم ثبت نشده است.')}
+    ${d.form&&d.form.type==='exam'?`<small class="cap">نمره‌دهی: نیازمند سرویس (کلید پاسخ در سرور تعریف نشده است).</small>`:''}</div>`;
+}
+/* ── گواهی‌ها ── */
+function efCerts(){
+  const d=EI.data, ov=EF.overview||(d&&d.overview), certs=d&&d.certs;
+  if(!canPerm('certificate')) return `<div class="stack">${emptyBox('دیدن گواهی‌ها نیازمند مجوز گواهینامه است.')}</div>`;
+  if(!certs) return emptyBox('فهرست گواهی‌ها از سرور نیامد.');
+  const items=certs.items||[], total=Number(certs.total)||0;
+  const rows=items.map(item=>{const holder=item.holder||{}; return `<div class="admlirow" data-ef-cert="${esc(item.id)}"><span class="ic">${ico('i-medal')}</span><span class="sp"><b>${esc(holder.display_name||'بدون نام ثبت‌شده')}</b><small class="cap" dir="ltr">${esc(item.serial||item.full_code||'')}</small><small class="cap">${esc([item.issued_on?'صدور '+item.issued_on:(item.issued_at?'صدور '+svcWhen(item.issued_at):''),CE_KIND[item.kind]||''].filter(Boolean).join(' · '))}</small></span>${item.has_file?tag('فایل','brand'):''}${ceStatusTag(item)}</div>`}).join('');
+  return `<div class="stack" data-ef-certs>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>گواهی‌های این رویداد</strong>${tag(fa(total)+' گواهی','')}<span class="sp"></span>${btn('پرونده و فایل هر گواهی','data-ei-jump-cert','i-chev-left')}</div>
+    ${ov&&ov.event&&ov.event.cert?`<small class="cap">این رویداد «گواهی دارد»${ov.event.certMin?' · حداقل حضور '+fa(ov.event.certMin)+'٪':''}؛ صدور فقط از مسیر ربات یا انتقال کنترل‌شده انجام می‌شود.</small>`:`<small class="cap">برای این رویداد گواهی تعریف نشده؛ صدور خودکار ندارد.</small>`}
+    ${items.length?`<div class="admlist">${rows}</div>`:emptyBox('هنوز گواهی‌ای برای این رویداد صادر نشده است.')}
+    ${efPager(EF.certs,{total,has_more:EF.certs.offset+EF.certs.limit<total})}</div>`;
+}
+/* ── رویدادها (کلیک/تغییر) ── */
+function efBox(){return EI.tab==='regs'?EF.regs:EI.tab==='tickets'?EF.att:EI.tab==='payments'?EF.pay:EI.tab==='certs'?EF.certs:null}
+function efClick(q){
+  if(!EI.open||EI.all) return false;
+  const api=window.NORA_SERVER_API;
+  const tabBtn=q('[data-ef-tab]'); if(tabBtn){const next=tabBtn.dataset.efTab; if(tabBtn.dataset.efFormFilter){EF.regs.form_id=tabBtn.dataset.efFormFilter; EF.regs.offset=0} if(tabBtn.dataset.efSum){EF.sum.formId=tabBtn.dataset.efSum; EF.sum.data=null} EF.person.id=''; EF.person.data=null; EI.tab=next; EI.msg=null; EI.key=''; efSyncHash(); eiLoad(); return true}
+  const person=q('[data-ef-person]'); if(person){if(person.hasAttribute('data-ef-goto-regs')){EI.tab='regs'; EI.key=''; eiLoad()} EF.msg=null; efLoadPerson(api,person.dataset.efPerson); return true}
+  if(q('[data-ef-person-close]')){EF.person.id=''; EF.person.data=null; EF.msg=null; efSyncHash(); renderBody(); return true}
+  const flt=q('[data-ef-filter]'); if(flt){const box=efBox(); if(box){box[flt.dataset.efFilter]=flt.dataset.efValue||''; box.offset=0; EI.key=''; eiLoad()} return true}
+  if(q('[data-ef-search]')){const box=efBox(), inp=document.querySelector('[data-ef-q]'); if(box&&inp){box.q=String(inp.value||'').trim().slice(0,80); box.offset=0; EI.key=''; eiLoad()} return true}
+  const page=q('[data-ef-page]'); if(page){const box=efBox(); if(box){box.offset=page.dataset.efPage==='next'?box.offset+box.limit:Math.max(0,box.offset-box.limit); EI.key=''; eiLoad()} return true}
+  const dec=q('[data-ef-decide]'); if(dec){EF.person.decision=dec.dataset.efDecide; EF.person.reason=''; EF.msg=null; renderBody(); return true}
+  if(q('[data-ef-decide-cancel]')){EF.person.decision=''; renderBody(); return true}
+  if(q('[data-ef-decide-go]')){const inp=document.querySelector('[data-ef-reason]'); if(inp) EF.person.reason=inp.value; efDecide(); return true}
+  const att=q('[data-ef-att]'); if(att){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return true} efAttendance(att.dataset.efRid,att.dataset.efAtt==='undo'); return true}
+  const rc=q('[data-ef-receipt]'); if(rc){EF.pay.receipt=EF.pay.receipt===rc.dataset.efReceipt?'':rc.dataset.efReceipt; renderBody(); return true}
+  const sum=q('[data-ef-sum]'); if(sum){const id=sum.dataset.efSum; if(EF.sum.formId===id){EF.sum.formId=''; EF.sum.data=null; efSyncHash(); renderBody()} else {EF.sum.formId=id; efLoadSummary(api)} return true}
+  if(q('[data-ef-sum-close]')){EF.sum.formId=''; EF.sum.data=null; efSyncHash(); renderBody(); return true}
+  if(q('[data-ef-sum-retry]')){efLoadSummary(api); return true}
+  if(q('[data-ef-link-do]')){if(EF.link.pick) efLinkForm(EF.link.pick,0,false); return true}
+  const un=q('[data-ef-unlink]'); if(un){efLinkForm(un.dataset.efUnlink,un.dataset.efVer,true); return true}
+  return false;
+}
+function efChange(t){
+  if(!EI.open||EI.all||!t||!t.dataset) return false;
+  if(t.matches('[data-ef-link-pick]')){EF.link.pick=String(t.value||''); renderBody(); return true}
+  if(t.matches('[data-ef-form-id]')){EF.regs.form_id=String(t.value||''); EF.regs.offset=0; EI.key=''; eiLoad(); return true}
+  if(t.matches('[data-ef-reason]')){EF.person.reason=t.value; return true}
+  if(t.matches('[data-ef-q]')){const box=efBox(); if(box){const v=String(t.value||'').trim().slice(0,80); if(v!==box.q){box.q=v; box.offset=0; EI.key=''; eiLoad()}} return true}
+  return false;
 }
 /* ── منابع ── */
 function eiResourceMeta(r){
@@ -8108,11 +8487,12 @@ function eiClick(q){
   if(q('[data-ei-refresh]')){EI.key=''; eiLoad(); return true}
   if(q('[data-ei-summary-refresh]')){EI.summary=null; EI.summaryError=''; renderBody(); eiLoadSummary(); return true}
   const openAll=q('[data-ei-open-all]'); if(openAll){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); if(openAll.dataset.eiOpenAll==='reports') {EI.tab='reports'; EI.key=''; eiLoad()} return true}
-  const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||''); return true}
+  const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||'',eiCanRes()?'resources':'questions'); return true}
   const file=q('[data-ct-file]'); if(file){eiOpen(file.dataset.ctFile,file.dataset.ctTitle||'',file.dataset.ctEvStatus||'','info'); return true}
   const eiEdit=q('[data-ei-edit]'); if(eiEdit){if(!ctCan('can_edit')){toast('مجوز ویرایش محتوا برای این نقش فعال نیست'); return true} const id=eiEdit.dataset.eiEdit, step=eiEdit.dataset.eiEditStep; EI.open=false; EI.data=null; ctOpenEditor(id).then(()=>{if(CT.edit&&CT.edit.id===id&&step!=null) ctWizGo(step)}); return true}
   if(!EI.open) return false;
-  const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EI.res.edit=null; EI.res.session=''; REC.edit=null; REC.session=null; EI.key=''; eiLoad(); return true}
+  if(efClick(q)) return true;
+  const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EF.msg=null; EI.res.edit=null; EI.res.session=''; REC.edit=null; REC.session=null; EI.key=''; efSyncHash(); eiLoad(); return true}
   const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.tab==='orders'?REC.orders:EI.rp, total=EI.data?Number(EI.data.total)||0:0;
     box.offset=page.dataset.eiPage==='next'?Math.min(box.offset+box.limit,Math.max(0,total-1)):Math.max(0,box.offset-box.limit); eiLoad(); return true}
   if(q('[data-ei-res-new]')){eiResourceOpen(''); return true}
@@ -8137,6 +8517,7 @@ function eiClick(q){
 }
 function eiChange(t){
   if(!EI.open||!t||!t.dataset) return false;
+  if(efChange(t)) return true;
   if(recChange(t)) return true;
   if(t.matches('[data-ei-res-session-filter]')){EI.res.session=t.value||''; renderBody(); return true}
   if(t.matches('[data-ei-res-removed]')){EI.res.includeRemoved=!!t.checked; eiLoad(); return true}
@@ -10685,6 +11066,7 @@ function render(){
 function go(k){
   if(k==='reports'){S.uHub='reports'; S.uV=''; k='users'}
   else if(k==='users') S.uHub='users';
+  if(k==='events'&&EI.open){EI.open=false; EI.data=null; EI.res.edit=null}
   if(k==='newev'&&!IS_TEST&&SERVER_AUTH&&canSec('events')){S.sec='newev'; S.q=''; save(); try{history.replaceState(null,'','#newev')}catch(e){} window.scrollTo({top:0,behavior:'smooth'}); render(); return}
   if(!ALLSECS.some(section=>section.k===k)) k='dash';
   const changed=S.sec!==k; S.sec=k; S.q=''; save();
@@ -12587,6 +12969,7 @@ function serverHashRoute(h){
     if(canPerm('attendance')&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='att'; return true}
     S.sec='dash'; return true;
   }
+  if(efParseHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
   return false;
 }
 function serverHashAfterRender(h){
@@ -12596,6 +12979,18 @@ function serverHashAfterRender(h){
   }
   else if(h==='club'&&S.sec==='dash') toast('مدیریت باشگاه فقط برای مالک و سرپرست باشگاه باز است');
   else if((h==='att'||h==='attendance')&&S.sec==='dash') toast('حضور و غیاب برای مجوزهای این حساب باز نیست');
+  const ef=efParseHash(h);
+  if(ef){
+    if(S.sec!=='events'){toast('این حساب مجوز دیدن رویدادها را ندارد')}
+    else{
+      if(EI.open&&!EI.all&&EI.eventId===ef.id&&EI.tab===ef.tab&&(EF.person.id||'')===ef.reg&&(EF.sum.formId||'')===ef.form) return;
+      CT.kind='events'; CT.edit=null;
+      eiOpen(ef.id,'','',ef.tab);
+      if(ef.reg&&ef.tab==='regs'){EF.person.id=ef.reg; EF.person.data=null}
+      if(ef.form&&ef.tab==='survey'){EF.sum.formId=ef.form; EF.sum.data=null}
+      renderBody(); return;
+    }
+  }
   try{history.replaceState(null,'','#'+(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec))}catch(e){}
 }
 function showServerAuthMessage(title,message,withLogin){
