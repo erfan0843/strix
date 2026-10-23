@@ -333,6 +333,12 @@ console.log('— نقش حساب از نشست سرور —');
     assert.match(app.doc.querySelector('#admBody').textContent, /پاسخ‌های نهایی/);
     assert.match(app.doc.querySelector('#admBody').textContent, /حساب‌های تأییدشده/);
     assert.doesNotMatch(app.doc.querySelector('#admBody').textContent, /فروش محاسبه‌شدهٔ نمونه/);
+    /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (F1): نوار نسبت CSS از همان شمارش سرور؛ accepted=6 → ۱۰۰٪، waitlisted=2 → ۳۳٪؛ بدون سری زمانی */
+    const accBar = app.doc.querySelector('[data-report-bar="accepted"]'), waitBar = app.doc.querySelector('[data-report-bar="waitlisted"]');
+    assert.ok(accBar && waitBar, 'نوارهای گزارش پاسخ‌ها');
+    assert.equal(accBar.style.width, '100%'); assert.equal(waitBar.style.width, '33%');
+    assert.equal(accBar.dataset.value, '6'); assert.equal(waitBar.dataset.value, '2');
+    assert.doesNotMatch(app.doc.querySelector('#admBody').textContent, /روند|نمودار زمانی/);
 
     app.click('[data-server-report-period="7d"]');
     await app.until(() => app.calls.some(call => call.path === '/api/admin/reports/summary?period=7d'), 'بازهٔ هفت‌روزه');

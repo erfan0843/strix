@@ -2727,10 +2727,13 @@ function vServerReports(){
     superseded:'جایگزین‌شده',manager:'مدیر', 'club-supervisor':'سرپرست باشگاه',new:'جدید',
     reviewing:'در بررسی',contacted:'تماس‌گرفته',closed:'بسته',delivered:'تحویل‌شده',failed:'ناموفق'};
   const number=value=>Number.isSafeInteger(value)&&value>=0?fa(value.toLocaleString('en-US')):'نامشخص';
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (F1): نمودار میله‌ای سادهٔ CSS از همان شمارش‌های سرور (نسبت هر ردیف به بیشینهٔ همان گروه)؛ هیچ سری زمانی یا عدد جعلی ساخته نمی‌شود */
   const grouped=(title,counts)=>{
     const entries=counts&&typeof counts==='object'?Object.entries(counts):[];
-    return `<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist">${entries.map(([key,value])=>
-      `<div class="admlirow"><span class="sp">${esc(labels[key]||key)}</span><b>${number(value)}</b></div>`).join('')||'<p class="cap">در این دوره موردی ثبت نشده است.</p>'}</div></section>`;
+    const max=entries.reduce((m,[,v])=>Number.isSafeInteger(v)&&v>m?v:m,0);
+    return `<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist" data-report-group="${esc(title)}">${entries.map(([key,value])=>{
+      const w=max>0&&Number.isSafeInteger(value)&&value>0?Math.max(2,Math.round(value/max*100)):0;
+      return `<div class="admlirow"><span class="sp" style="flex:0 1 140px">${esc(labels[key]||key)}</span><span class="rbar" role="img" aria-label="${esc((labels[key]||key)+' '+number(value)+' از بیشینهٔ '+number(max))}"><i style="width:${w}%" data-report-bar="${esc(key)}" data-value="${Number.isSafeInteger(value)?value:''}"></i></span><b>${number(value)}</b></div>`}).join('')||'<p class="cap">در این دوره موردی ثبت نشده است.</p>'}</div></section>`;
   };
   const periodNames=new Map(SERVER_REPORT_PERIODS);
   const filters=SERVER_REPORT_PERIODS.map(([key,label])=>
@@ -9841,7 +9844,8 @@ function renderBody(){
   bkLibSync(); if(AUD.on) AUD.tick++;
   const host=$('#admBody'); host.innerHTML=(IS_TEST?demoNote():'')+body();
   Object.keys(SERVICE_DRAFT).forEach(key=>{const input=host.querySelector('#svcInput_'+key); if(input&&!input.value) input.value=SERVICE_DRAFT[key]});
-  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
+  /* A2: چیپ سلامت نوار بالا در همهٔ بخش‌ها معنادار باشد؛ یک بار در هر نشست خوانده می‌شود */
+  if(!IS_TEST&&SERVER_AUTH&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false); if(S.sec==='dash') return}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&eiCanMod()&&!EI.summary&&!EI.summaryError&&!EI.summaryLoading){EI.summaryLoading=true; eiLoadSummary()}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&recCanOrders()&&!REC.summary&&!REC.summaryError&&!REC.summaryLoading){REC.summaryLoading=true; recLoadSummary()}
   if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!DASHX.loaded&&!DASHX.loading) dashxLoad(false);

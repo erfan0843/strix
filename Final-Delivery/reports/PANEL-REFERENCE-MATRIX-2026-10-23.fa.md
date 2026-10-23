@@ -122,7 +122,7 @@
 
 | # | قابلیت | وضعیت | فایل/تابع | API | مجوز | آزمون · شاهد | اختلاف | اقدام |
 |---|---|---|---|---|---|---|---|---|
-| F1 | گزارش دوره‌ای با منبع و بازه | کامل | `vServerReports` | `reports/summary?period` | `rp_view` | pytest · مرورگر | ۹ گزارش تخصصی طراحی نیست؛ نمودار نیست | F-P2: نمودار میله‌ای سادهٔ CSS از همان داده (بدون سری زمانی جعلی) |
+| F1 | گزارش دوره‌ای با منبع و بازه | **کامل** | `vServerReports` (`grouped`: نوار نسبت `[data-report-group] .rbar [data-report-bar][data-value]`، نسبت به بیشینهٔ همان گروه؛ `admin.css` v105) | `reports/summary?period` (همان شمارش‌ها؛ هیچ سری زمانی ساخته نمی‌شود) | `rp_view` | admin-rbac (F1: ۶→۱۰۰٪، ۲→۳۳٪، مقدار داده روی نوار) · مرورگر `evidence/panel-reference-2026-10-23/F1-report-bars.png`, `stage-f1-results.json` (۴/۴؛ نوارها با `/api/admin/reports/summary?period=30d` تطبیق داده شد) | ۹ گزارش تخصصی طراحی (مالی/حضور/باشگاه) همچنان نیازمند منبع دادهٔ مشترک است (تصمیم F5) | بسته (نمودار)؛ گزارش‌های تخصصی → تصمیم |
 | F2 | مالی: مبلغ/رسید/بازپرداخت فقط با `finance` | کامل | `REC`, کارتابل | `recording-orders`, `refund` | `finance` سروری | pytest · مرورگر (prompt رد شد) | — | حفظ |
 | F3 | حضور | کامل | `serverAttendanceView` | `attendance/*` | `attendance` | pytest · مرورگر | — | حفظ |
 | F4 | گواهی: فهرست/فیلتر/صدور دستی با دلیل | کامل | `serverCertView` | `certificates`, `issue` | `certificate` | pytest · مرورگر | صدور خودکار/قالب در ربات | حفظ |
@@ -179,6 +179,7 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 | B1 | صافی زمانی امروز/پیش‌رو/گذشتهٔ فهرست رویدادها (`when`) | این شاخه (پس از `e4a552a`) | pytest content_admin ۱۲ passed · admin-phase2 «قبول» | ✓ `B1-when-past.png`, `B1-when-upcoming-draft.png`, `B1-when-mobile.png`, `stage-b1-results.json` (۱۲/۱۲: روز سرور ۱۴۰۵/۰۸/۰۱، ۳ گذشته/۳ پیش‌رو، ترکیب با وضعیت، ۴۲۲ برای مقدار نامعتبر، مدیر ۲۰۰، بی‌نشست ۴۰۱) |
 | A6 | ظرفیت/ثبت‌نام قطعی/در انتظار روی کارت رویداد پیش رو و ردیف فهرست (`registration` از `form_responses`) | این شاخه (پس از `8468714`) | pytest content_admin ۱۳ passed · admin-restore/phase2 «قبول» | ✓ `A6-dashboard-capacity.png`, `A6-events-list-capacity.png`, `stage-a6-results.json` (۶/۶؛ مقادیر صفر در DB آزمایشی) |
 | A2 | چیپ سلامت سه‌حالته (سالم/خراب/بررسی‌نشده) و تمایز «پیکربندی‌نشده» برای سرویس اختیاری | این شاخه (پس از `c4b5371`) | admin-phase2/rbac «قبول» | ✓ `A2-health-ok-unconfigured.png`, `A2-health-down.png`, `stage-a2-results.json` (۷/۷) |
+| F1 | نوار نسبت CSS در گزارش‌های سرور از همان شمارش‌ها | این شاخه (پس از `2039678`) | admin-rbac «قبول» | ✓ `F1-report-bars.png`, `stage-f1-results.json` (۴/۴) |
 | G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | ✓ `G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶: یک POST ۲۰۱، نشانی پایدار در `photo`، PATCH ۲۰۰، فایل از `/api/public/media/…` با `image/png` سرو شد) |
 
 ### نقص‌هایی که فقط در مرورگر پیدا شدند (و رفع شدند)
@@ -195,5 +196,5 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 ### باقی‌مانده‌ها به ترتیب اولویت (باگ/مسیر ناقص اول)
 1. ~~G1 شاهد مرورگر~~ انجام شد (`stage-g1-results.json`).
 2. ~~D6 آزمون jsdom~~ انجام شد (`builder-event-picker.test.mjs`؛ ضمناً اشکال ازدست‌رفتن فوکوس قلم جست‌وجو هنگام بازنویسی فهرست در `create.html` رفع شد).
-3. ~~A2 چیپ سلامت~~ (انجام شد)؛ ~~A6 ظرفیت روی کارت~~ (انجام شد)؛ ~~B1 صافی زمانی~~ (انجام شد)؛ F1 نمودار CSS؛ G1 رونوشت از پروفایل (همه P2).
+3. ~~A2 چیپ سلامت~~ (انجام شد)؛ ~~A6 ظرفیت روی کارت~~ (انجام شد)؛ ~~B1 صافی زمانی~~ (انجام شد)؛ ~~F1 نمودار CSS~~ (انجام شد)؛ G1 رونوشت از پروفایل (همه P2).
 4. تصمیم مالک (مستند جدا، مسدودکننده نیست): A12، B14، B18، B19، B22، C1، C9، C11، D7، E4، F5، G4، H5؛ بلوک ویدیو/صدا در مطلب (منبع معتبر)؛ «مدت خودکار» رویداد؛ هوش مصنوعی داخلی (بدون شاهد در طراحی/تاریخچه).
