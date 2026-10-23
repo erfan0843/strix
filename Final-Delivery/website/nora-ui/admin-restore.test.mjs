@@ -168,7 +168,8 @@ console.log('— مدیر: ابزارهای کاربران روی ماژول‌�
     app.click('[data-utool="inbox"]'); await app.until(() => app.text('#admBody').includes('صندوق خروجی اعلان‌ها') && app.text('#admBody').includes('گواهی صادر شد'), 'صندوق خروجی');
     ok(app.calls.some(c => c.path.startsWith('/api/admin/notifications')), 'صندوق خروجی همان API اعلان‌ها را می‌خواند');
     app.click('[data-utool="tags"]'); await delay(30);
-    ok(app.text('#admBody').includes('API متصل نیست') && app.text('#admBody').includes('ستون برچسب و یادداشت'), 'برچسب‌ها با دلیل دقیق مسدود است');
+    /* تصمیم مالک ۱۴۰۵/۰۸/۰۱ (C11 گزینهٔ ۱): یادداشت داخلی در پروندهٔ کاربر ساخته شد؛ فقط «برچسب» همچنان مسدود است و دلیلش دقیق می‌ماند */
+    ok(app.text('#admBody').includes('API متصل نیست') && app.text('#admBody').includes('برچسب روی حساب در مدل داده نیست') && app.text('#admBody').includes('یادداشت داخلی در پروندهٔ هر کاربر'), 'برچسب‌ها با دلیل دقیق مسدود است؛ یادداشت به پرونده ارجاع می‌دهد');
     app.click('[data-utool="perms"]'); await delay(30);
     const perms = app.text('[data-perm-map]');
     ok(perms.includes('rp_view') && perms.includes('finance'), 'نقشهٔ مجوزها کلیدهای واقعی را فهرست می‌کند');

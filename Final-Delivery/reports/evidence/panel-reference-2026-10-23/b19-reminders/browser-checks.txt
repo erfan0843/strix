@@ -1,0 +1,16 @@
+✓ d editor default off: switches unchecked; server read-model: ۲۴ ساعت پیش از شروع: خاموش | ۱ ساعت پیش از شروع: خاموش
+✓ d save + reopen: GET detail: reminders={"h24":true,"h1":true}; editor: ۲۴ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/12 13:37 | ۱ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/13 12:37
+✓ d soon event + form: event ev-5bc7cf014f starts in 20 h (24 h slot already «due», 1 h slot «scheduled»); registration form 86d3152b-a9f1-4405-a40d-15f755f485d2 published
+✓ registrations: member A accepted on the soon event (status=accepted); member B on the far event only (no public form id exposed — B simply has no registration on the soon event)
+✓ d scheduler run queued 1: manual run from the panel → reminders {"events":1,"slots":1,"queued":1,"existing":0,"skipped":0,"recipients":1,"withdrawn":0,"ok":true}; card: «اجرای دستی: در موعد ۰ · اعلان‌شده ۰ · اعلان‌های ساخته‌شده ۰ · یادآور رویداد صف‌شده ۱ · باطل‌شده ۰»
+✓ d second run idempotent: re-run → queued 0, existing 1 (dedupe key per event/slot/start/account)
+✓ d outbox queued row: outbox filtered by kind=event_reminder shows the queued reminder («یادآوری رویداد», «در صف»); API row pending, raw Bale id not exposed
+✓ d editor queued counter: 24 h slot: «۲۴ ساعت پیش از شروع: در نوبت اجرای زمان‌بند · در صف/ارسال‌شده: ۱ (در انتظار ۱، تحویل بله ۰، ناموفق ۰)»; 1 h slot: «۱ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/02 08:46»
+✓ d time change withdraws: PUT startsAt (+5 d) → run: withdrawn 1, queued 0; outbox row «باطل‌شده (تغییر زمان/لغو)» without retry; manual retry → 409 reminder_superseded
+✓ d editor after move: 24 h slot after the move: «۲۴ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/05 13:46 · باطل‌شده پس از تغییر زمان/لغو: ۱»
+✓ d member A in-app: account notifications: exactly 1 reminder row (title «یادآوری رویداد: کارگاه فردا (آزمون یادآور f895e4)»; original text with «فردا» + place + start time kept, now headed «دیگر معتبر نیست» because the start moved; link /event.html?id=ev-5bc7cf014f); shown in account.html; member → outbox 403
+• note: the withdrawn reminder is the same in-app row (nothing deleted); its Bale delivery is cancelled and the member reads the superseded head instead of a stale promise
+✓ member B + guest: member B (not registered on the soon event) has no reminder; guest → outbox 401
+• manager: GET outbox → 200, GET scheduled-publish → 200 (both follow the existing rp_view permission of this seeded manager; no new permission was added)
+✓ m editor: mobile editor shows both switches on and the two server states
+✓ m outbox: mobile outbox with kind filter shows 3 reminder row(s)

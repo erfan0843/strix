@@ -396,6 +396,11 @@ console.log('— نقش حساب از نشست سرور —');
     await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?state=no_bale_identity&limit=30'), 'فیلتر بدون هویت بله');
     await app.until(() => app.doc.querySelectorAll('[data-server-outbox-row]').length === 1, 'فقط یک ردیف بدون هویت بله');
     assert.equal(app.doc.querySelector('[data-server-outbox-row]').dataset.serverOutboxStateRow, 'no_bale_identity');
+    /* B19: فیلتر نوع «یادآوری رویداد» همان پارامتر kind سرور است و با وضعیت ترکیب می‌شود */
+    app.click('[data-server-outbox-kind="event_reminder"]');
+    await app.until(() => app.calls.some(call => call.path === '/api/admin/notifications?state=no_bale_identity&kind=event_reminder&limit=30'), 'فیلتر نوع یادآوری رویداد');
+    app.click('[data-server-outbox-kind=""]');
+    await app.until(() => app.calls.filter(call => call.path === '/api/admin/notifications?state=no_bale_identity&limit=30').length >= 2, 'بازگشت به همهٔ انواع');
 
     /* فاز ۹.۵ §۳: ممیزی یکپارچگی فقط با کلیک اجرا می‌شود (GET فقط‌خواندنی) و فقط شمارش/کد نشان می‌دهد. */
     const integrity = app.doc.querySelector('[data-server-integrity]');

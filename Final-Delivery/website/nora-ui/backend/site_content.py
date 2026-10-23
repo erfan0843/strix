@@ -351,6 +351,9 @@ def _event(record: Any) -> dict[str, Any] | None:
         "conditions": _text(record.get("conditions"), 1_000),
         # Phase 8: per-event Q&A switch (questions are only ever asked inside the event page).
         "qaClosed": record.get("qaClosed") is True,
+        # B19 reminder switches; only the two known booleans survive (event_reminders.py reads them).
+        "reminders": {key: (record.get("reminders") or {}).get(key) is True for key in ("h24", "h1")}
+        if isinstance(record.get("reminders"), dict) else {"h24": False, "h1": False},
         "privacy": "public",
     }
 

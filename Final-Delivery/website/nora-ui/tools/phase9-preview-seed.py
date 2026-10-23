@@ -137,7 +137,9 @@ def main() -> None:
                              json={"kind": kind, "title": title, "link_url": raw, "access": "purchased", "session_id": s3.json()["id"]},
                              headers=owner_write_headers(owner))
             assert ext.status_code == 201, ext.text
-            assert owner.put(f"/api/admin/events/{paid_ev}/resources/{ext.json()['id']}", json={"status": "published"},
+            # Phase 9.5 §6.4: a paid-level external video goes live only with the operator's audited acknowledgement.
+            assert owner.put(f"/api/admin/events/{paid_ev}/resources/{ext.json()['id']}",
+                             json={"status": "published", "acknowledge_external_exposure": True},
                              headers=owner_write_headers(owner)).status_code == 200
         assert owner.put(f"/api/admin/events/{paid_ev}/recording/sessions/{s3.json()['id']}", json={"status": "published"},
                          headers=owner_write_headers(owner)).status_code == 200

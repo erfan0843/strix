@@ -62,7 +62,10 @@ EVENT_EDITABLE = (
     "qaClosed",
     # Panel audit 1405/08/01 (B9): per-session schedule rows rendered by event-page.js.
     "parts",
+    # Owner decision 1405/08/01 (B19): reminder switches {"h24": bool, "h1": bool} (event_reminders.py).
+    "reminders",
 )
+REMINDER_SLOTS = ("h24", "h1")
 EVENT_DATETIME_FIELDS = ("startsAt", "endsAt", "regOpensAt", "regClosesAt")
 ARTICLE_EDITABLE = ("t", "cat", "lead", "body", "blocks", "cov", "who", "at", "tags", "pin", "min", "tchr")
 EDITABLE = {"events": EVENT_EDITABLE, "articles": ARTICLE_EDITABLE}
@@ -105,6 +108,24 @@ def status_of(row: Any) -> str:
     return "published" if _public_record(row, require_published=False) and (
         "pub" not in row or _public_record(row, require_published=True)
     ) else "draft"
+
+
+def normalise_reminders(value: Any) -> dict[str, bool]:
+    """``reminders`` payload → ``{"h24": bool, "h1": bool}``; unknown keys/values raise ValueError."""
+    if value in (None, ""):
+        return {key: False for key in REMINDER_SLOTS}
+    if not isinstance(value, dict) or any(key not in REMINDER_SLOTS for key in value):
+        raise ValueError("invalid_reminders")
+    out: dict[str, bool] = {}
+    for key in REMINDER_SLOTS:
+        raw = value.get(key, False)
+        if raw in (True, 1, "true", "1", "on"):
+            out[key] = True
+        elif raw in (False, 0, "false", "0", "off", "", None):
+            out[key] = False
+        else:
+            raise ValueError("invalid_reminders")
+    return out
 
 
 def _normalize_digits(value: Any) -> str:
@@ -171,6 +192,10 @@ def _validate_event(record: dict[str, Any]) -> None:
         raise ContentAdminError("invalid_choice", "qaClosed")
     record["qaClosed"] = qa_closed in (True, 1, "true")
     record["parts"] = _validate_parts(record.get("parts"))
+    try:
+        record["reminders"] = normalise_reminders(record.get("reminders"))
+    except ValueError:
+        raise ContentAdminError("invalid_choice", "reminders") from None
 
 
 _PART_FIELDS = {"title": 240, "date": 80, "time": 80, "to": 80, "description": 1_200}

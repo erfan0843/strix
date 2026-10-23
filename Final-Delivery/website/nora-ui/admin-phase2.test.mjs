@@ -201,13 +201,19 @@ async function loadPanel(identity) {
             out.total = out.items.length;
             return reply(200, out);
           }
+          /* B19: مانند event_reminders.preview — فقط مدل خواندنی؛ ارسال کار زمان‌بند سرور است */
+          const remPreview = (rec) => { const on = rec.reminders || { h24: false, h1: false };
+            const slot = (k) => ({ slot: k, enabled: !!on[k], fire_at: rec.startsAt ? '2026-11-02T06:30:00+00:00' : null, fire_at_local: rec.startsAt ? '1405/08/11 10:00' : null,
+              state: !on[k] ? 'off' : !rec.startsAt ? 'needs_start_time' : rec.lifecycle === 'cancelled' ? 'inactive' : 'scheduled',
+              queued: on[k] && rec.id === 'ev-a1' ? 2 : 0, delivery: { pending: on[k] && rec.id === 'ev-a1' ? 1 : 0, delivered: 0, failed: on[k] && rec.id === 'ev-a1' ? 1 : 0 }, superseded: 0 });
+            return { enabled: { h24: !!on.h24, h1: !!on.h1 }, starts_at: rec.startsAt || null, form_id: rec.id === 'ev-a1' ? 'fm-1' : null, slots: [slot('h24'), slot('h1')], channels: ['in_app', 'bale'], runner: 'scheduled_publish timer / manual run' }; };
           if (method === 'GET' && id) {
             const rec = (kind === 'articles' ? (world.articles || []) : world.events).find((e) => e.id === id);
             if (!rec) return reply(404, { detail: 'content_record_not_found' });
             /* مانند content_admin.detail: زمان‌ها UTC ذخیره‌اند و local_times شمسی/تهران برمی‌گردد */
             const detail = { ...rec, local_times: { startsAt: rec.startsAt ? '1405/08/12 10:00' : '', endsAt: '', regOpensAt: '', regClosesAt: rec.regClosesAt ? '1405/08/10 23:59' : '' },
               registration: { state: rec.lifecycle === 'cancelled' ? 'cancelled' : 'open', reason: '' } };
-            return reply(200, { kind, record: detail, version: world.version });
+            return reply(200, { kind, record: detail, version: world.version, ...(kind === 'events' ? { reminders: remPreview(rec) } : {}) });
           }
           if (method === 'POST' && !id) {
             const denied = needWrite(); if (denied) return denied;
@@ -229,8 +235,9 @@ async function loadPanel(identity) {
             if (body.expected_version !== world.version) return reply(409, { detail: { code: 'site_content_version_conflict', current_version: world.version } });
             const refErr = refCheck(kind, body.record); if (refErr) return refErr;
             if (Array.isArray(body.record.blocks) && body.record.blocks.some((b) => b && b.ty === 'img' && /^javascript:/i.test(b.src || ''))) return reply(422, { detail: { code: 'invalid_image', field: 'blocks' } });
+            if (body.record.reminders !== undefined && (typeof body.record.reminders !== 'object' || Object.keys(body.record.reminders).some((k) => !['h24', 'h1'].includes(k)))) return reply(422, { detail: { code: 'invalid_choice', field: 'reminders' } });
             Object.assign(rec, body.record); world.version += 1;
-            return reply(200, { kind, record: rec, version: world.version, saved: true });
+            return reply(200, { kind, record: rec, version: world.version, saved: true, ...(kind === 'events' ? { reminders: remPreview(rec) } : {}) });
           }
           if (method === 'POST' && statusOp) {
             const denied = needPublish(); if (denied) return denied;
@@ -1517,6 +1524,55 @@ console.log('— C1/C11: وضعیت حساب (مسدود/فعال فقط با م
     assert.match(ro.doc.querySelector('[data-uf-note-ro]').textContent, /یادداشت مدیر/, 'یادداشتِ قبلی خوانده می‌شود');
     assert.equal(ro.doc.querySelector('[data-uf-note-save]'), null);
   } finally { ro.close(); }
+}
+
+console.log('— B19: یادآور رویداد (۲۴ ساعت / ۱ ساعت قبل) در ویرایشگر؛ پیش‌فرض خاموش؛ ذخیره زیر record.reminders؛ وضعیت فقط از پاسخ سرور؛ خطای ۴۲۲ کنار همان فیلد —');
+{
+  const remWorld = makeWorld();
+  remWorld.events.find((e) => e.id === 'ev-a1').startsAt = '2026-11-03T06:30:00+00:00';
+  const app = await loadPanel({ role: 'owner', sec: 'events', world: remWorld });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-edit="ev-a1"]'), 'فهرست');
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-reminders]'), 'ویرایشگر با بلوک یادآور');
+    assert.equal(app.doc.querySelector('[data-ct-check="remH24"]').checked, false, 'پیش‌فرض خاموش');
+    assert.equal(app.doc.querySelector('[data-ct-check="remH1"]').checked, false);
+    assert.equal(app.doc.querySelectorAll('[data-ct-rem-slot]').length, 2, 'دو بازه از پاسخ سرور');
+    assert.match(app.doc.querySelector('[data-ct-rem-slot="h24"]').textContent, /خاموش/);
+    assert.match(app.doc.querySelector('[data-ct-rem-state]').textContent, /پیامک ندارد/, 'صادقانه: کانال پیامک وجود ندارد');
+    app.click('[data-ct-check="remH24"]');
+    await app.until(() => app.doc.querySelector('[data-ct-check="remH24"]').checked, 'چک‌باکس ۲۴ ساعت روشن');
+    assert.equal(app.doc.querySelector('[data-ct-check="remH1"]').checked, false, 'بازه‌ها مستقل‌اند');
+    app.click('[data-ct-save]');
+    await app.until(() => app.world.events.find((e) => e.id === 'ev-a1').reminders, 'ذخیره شد');
+    const put = app.calls.filter((c) => c.method === 'PUT' && c.path === '/api/admin/content/events/ev-a1').pop();
+    assert.deepEqual(put.body.record.reminders, { h24: true, h1: false }, 'قرارداد سرور: record.reminders با دو بولی');
+    assert.equal(put.body.record.remH24, undefined, 'کلیدهای فرم به سرور نشت نمی‌کنند');
+    /* بازخوانی: وضعیت زمان‌بندی و شمارندهٔ صف فقط از پاسخ سرور */
+    await app.until(() => app.doc.querySelector('[data-ct-edit="ev-a1"]'), 'فهرست پس از ذخیره');
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => app.doc.querySelector('[data-ct-check="remH24"]')?.checked, 'پس از بازخوانی روشن است');
+    const h24 = app.doc.querySelector('[data-ct-rem-slot="h24"]').textContent;
+    assert.match(h24, /زمان‌بندی‌شده/); assert.match(h24, /1405\/08\/11 10:00/, 'زمان ارسال همان متن شمسی سرور');
+    assert.match(h24, /در صف\/ارسال‌شده: ۲/); assert.match(h24, /ناموفق ۱/, 'خطای بله جداگانه دیده می‌شود، ردیف درون‌برنامه پابرجاست');
+    assert.match(app.doc.querySelector('[data-ct-rem-slot="h1"]').textContent, /خاموش/);
+    app.click('[data-ct-cancel]');
+    /* رویداد لغوشده: سرور «غیرفعال» می‌گوید و پنل همان را نشان می‌دهد */
+    await app.until(() => app.doc.querySelector('[data-ct-edit="ev-a1"]'), 'فهرست');
+    const cancelled = app.world.events.find((e) => e.id === 'ev-a1'); cancelled.lifecycle = 'cancelled';
+    app.click('[data-ct-edit="ev-a1"]');
+    await app.until(() => /غیرفعال/.test((app.doc.querySelector('[data-ct-rem-slot="h24"]') || {}).textContent || ''), 'وضعیت غیرفعال از سرور');
+    app.click('[data-ct-cancel]');
+  } finally { app.close(); }
+  /* رویداد تازه: تا ذخیره، وضعیت سرور نداریم و ادعایی هم نمی‌کنیم */
+  const fresh = await loadPanel({ role: 'owner', sec: 'events' });
+  try {
+    await fresh.until(() => fresh.doc.querySelector('[data-ct-new]'), 'فهرست');
+    fresh.click('[data-ct-new]');
+    await fresh.until(() => fresh.doc.querySelector('[data-ct-reminders]'), 'ویرایشگر تازه');
+    assert.equal(fresh.doc.querySelector('[data-ct-rem-slot]'), null, 'بدون رکورد ذخیره‌شده، هیچ وضعیت یادآوری ادعا نمی‌شود');
+    fresh.click('[data-ct-cancel]');
+  } finally { fresh.close(); }
 }
 
 console.log('آزمون مرحلهٔ دوم و سوم پنل: قبول');

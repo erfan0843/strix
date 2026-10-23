@@ -54,6 +54,7 @@ from . import public_media as public_media_mod
 from . import content_admin as content_admin_mod
 from . import event_interaction as interaction_mod
 from . import recordings as recordings_mod
+from . import event_reminders as event_reminders_mod
 from . import scheduled_publish as scheduled_publish_mod
 from . import integrity as integrity_mod
 from . import upload_sessions as upload_mod
@@ -2593,13 +2594,17 @@ def create_app(
     def _content_record_response(
         record: SiteContentRecord, kind: str, row: dict[str, Any], *, saved: bool = False, db: Session | None = None
     ) -> dict[str, Any]:
-        return {
+        out = {
             "kind": kind,
             "record": content_admin_mod.detail(kind, row, has_form=_content_has_form(db, kind, row) if db is not None else None),
             "version": record.version,
             "updated_at": _as_utc(record.updated_at).isoformat() if record.updated_at else None,
             "saved": saved,
         }
+        if kind == "events" and db is not None:
+            # B19: configured reminder slots, when they fire and what the outbox holds (read model; sending is the timer's job).
+            out["reminders"] = event_reminders_mod.preview(db, row, _utc_now(), is_purchase=_form_is_purchase)
+        return out
 
     async def _content_write_payload(request: Request, db: Session, *, need_record: bool) -> tuple[dict[str, Any], SiteContentRecord]:
         payload = await _read_json_object(request, 4 * 1024 * 1024)
@@ -3033,7 +3038,7 @@ def create_app(
     _ADMIN_ANSWER_MASKED_TYPES = {"mobile": "mobile", "nid": "national_id"}
     # Notification kinds that are written for *many* accounts at once (fan-out) versus one account's
     # own decision/transaction. No «global»/«system» broadcast table exists; this is the whole set.
-    _NOTIFICATION_AUDIENCE_KINDS = {notifications_mod.KIND_CONTENT_PUBLISHED}
+    _NOTIFICATION_AUDIENCE_KINDS = {notifications_mod.KIND_CONTENT_PUBLISHED, event_reminders_mod.KIND}
 
     def _admin_target_account(db: Session, account_id: str) -> AccountRecord:
         if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
@@ -9109,6 +9114,9 @@ def create_app(
             raise HTTPException(409, {"code": "already_delivered"})
         if item.delivery_status != "failed":
             raise HTTPException(409, {"code": "notification_not_failed", "state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts)})
+        if item.kind == event_reminders_mod.KIND and item.last_delivery_error == event_reminders_mod.STALE_ERROR:
+            # B19: a reminder withdrawn because the event moved/was cancelled must never be sent later.
+            raise HTTPException(409, {"code": "reminder_superseded"})
         bale_ids = verified_bale_ids_for_account(db, item.account_id)
         if not bale_ids:
             raise HTTPException(409, {"code": "no_bale_identity"})
@@ -9158,7 +9166,9 @@ def create_app(
         record_audit(
             db, identity, "scheduled_publish.run", target_type="system_marker", target_id=scheduled_publish_mod.MARKER_KEY,
             details={"due": summary["due"], "announced": summary["announced"], "notified": summary["notified"],
-                     "skipped": summary["skipped"], "ok": summary["ok"]},
+                     "skipped": summary["skipped"], "ok": summary["ok"],
+                     "reminders_queued": int((summary.get("reminders") or {}).get("queued") or 0),
+                     "reminders_withdrawn": int((summary.get("reminders") or {}).get("withdrawn") or 0)},
         )
         db.commit()
         return summary

@@ -41,7 +41,9 @@ let SERVER_REPORT_ERROR='';
 let SERVER_REPORT_PERIOD='30d';
 let SERVER_REPORT_REQUEST=0;
 /* فاز ۹.۴ §۸: فهرست صندوق خروجی اعلان‌ها (فقط خواندن؛ rp_view در backend). ثبت ≠ ارسال ≠ تحویل. */
-const SERVER_OUTBOX={items:[],counts:null,state:'',loaded:false,loading:false,error:'',more:false,request:0,retrying:'',notice:null};
+const SERVER_OUTBOX={items:[],counts:null,state:'',kind:'',loaded:false,loading:false,error:'',more:false,request:0,retrying:'',notice:null};
+/* B19: فیلتر نوع همان پارامتر kind سرور است (فقط انواعی که صف آن‌ها از این پنل خوانده می‌شود) */
+const SERVER_OUTBOX_KINDS=[['','همهٔ انواع'],['event_reminder','یادآوری رویداد'],['content_published','انتشار محتوا']];
 /* فاز ۹.۵ §۸.۲: وضعیت زمان‌بند انتشار (آخرین اجرای تایمر/دستی + ردیف‌های در انتظار) ؛ فقط از API سرور */
 const SERVER_SCHED={data:null,loading:false,running:false,error:'',loaded:false};
 const SERVER_INTEGRITY={report:null,loading:false,error:'',request:0};
@@ -1752,9 +1754,9 @@ function loadServerOutbox(append=false){
   if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||SERVER_OUTBOX.loading) return;
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.listAdminNotifications!=='function'){SERVER_OUTBOX.error='رابط صندوق خروجی در دسترس نیست.'; SERVER_OUTBOX.loaded=true; renderBody(); return}
-  const requestId=++SERVER_OUTBOX.request; const state=SERVER_OUTBOX.state;
+  const requestId=++SERVER_OUTBOX.request; const state=SERVER_OUTBOX.state, kind=SERVER_OUTBOX.kind;
   SERVER_OUTBOX.loading=true; SERVER_OUTBOX.error=''; renderBody();
-  Promise.resolve(api.listAdminNotifications({state,limit:30,offset:append?SERVER_OUTBOX.items.length:0})).then(data=>{
+  Promise.resolve(api.listAdminNotifications({state,kind,limit:30,offset:append?SERVER_OUTBOX.items.length:0})).then(data=>{
     if(requestId!==SERVER_OUTBOX.request) return;
     if(!data||data.source!=='shared_server_database'||!Array.isArray(data.items)||!data.counts||typeof data.counts!=='object')
       throw new Error('invalid_outbox');
@@ -1771,16 +1773,20 @@ function loadServerOutbox(append=false){
 function vServerOutbox(){
   const o=SERVER_OUTBOX; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
   const kinds={recording_access:'دسترسی محتوا',recording_order:'سفارش',recording_purchase:'ثبت خرید',recording_content:'محتوای تازه',
-    certificate:'گواهی',event_question:'پاسخ پرسش',event_qa_answer:'پاسخ پرسش',receipt_rejected:'رد فیش',profile_review:'بررسی پروفایل',receipt_review:'بررسی فیش',admin_task:'کارتابل'};
+    certificate:'گواهی',event_question:'پاسخ پرسش',event_qa_answer:'پاسخ پرسش',receipt_rejected:'رد فیش',profile_review:'بررسی پروفایل',receipt_review:'بررسی فیش',admin_task:'کارتابل',
+    content_published:'انتشار محتوا',event_reminder:'یادآوری رویداد'};
+  /* B19: یادآوری که پس از تغییر زمان/لغو رویداد باطل شده؛ ارسال نمی‌شود و تلاش دوباره ندارد */
+  const superseded=item=>item.kind==='event_reminder'&&item.last_delivery_error==='reminder_superseded';
   const stateTag=item=>item.last_delivery_error==='no_bale_identity'?tag('بدون هویت بله','warn')
+    :superseded(item)?tag('باطل‌شده (تغییر زمان/لغو)','')
     :item.delivery_state==='delivered'?tag('تحویل‌شده','ok')
     :item.delivery_state==='failed'?tag('ناموفق','stop')
     :item.delivery_state==='retrying'?tag('تلاش دوباره','warn'):tag('در صف','');
   const chips=SERVER_OUTBOX_STATES.map(([key,label])=>`<button class="chip ${o.state===key?'on':''}" data-server-outbox-state="${key}" ${o.loading?'disabled':''}>${esc(label)}${o.counts&&key?` <small>${number(o.counts[key])}</small>`:''}</button>`).join('');
   const rows=o.items.map(item=>`<div class="admlirow" data-server-outbox-row="${esc(item.id)}" data-server-outbox-state-row="${esc(item.last_delivery_error==='no_bale_identity'?'no_bale_identity':item.delivery_state||'')}">
       <span class="sp"><b>${esc(item.title||'اعلان')}</b> <span class="mini">${esc(kinds[item.kind]||item.kind||'')}</span>
-        <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
-      ${stateTag(item)}${item.delivery_state==='failed'&&item.last_delivery_error!=='no_bale_identity'&&canPerm('ev_publish')?btn(o.retrying===item.id?'در حال صف‌گذاری…':'تلاش دوبارهٔ ارسال',`data-server-outbox-retry="${esc(item.id)}" ${o.retrying?'disabled':''}`,'i-refresh'):''}</div>`).join('');
+        <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
+      ${stateTag(item)}${item.delivery_state==='failed'&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)&&canPerm('ev_publish')?btn(o.retrying===item.id?'در حال صف‌گذاری…':'تلاش دوبارهٔ ارسال',`data-server-outbox-retry="${esc(item.id)}" ${o.retrying?'disabled':''}`,'i-refresh'):''}</div>`).join('');
   const notice=o.notice?p2Msg(o.notice):'';
   const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن صندوق خروجی از سرور…</p>`
     :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-outbox-refresh','i-refresh')}</div>`
@@ -1788,6 +1794,7 @@ function vServerOutbox(){
   return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
     <p class="cap">هر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست. ارسال واقعی بله فقط با ربات زنده انجام می‌شود.</p>
     <div class="admfilters" role="group" aria-label="وضعیت اعلان">${chips}</div>
+    <div class="admfilters" role="group" aria-label="نوع اعلان">${SERVER_OUTBOX_KINDS.map(([key,label])=>`<button class="chip ${o.kind===key?'on':''}" data-server-outbox-kind="${key}" ${o.loading?'disabled':''}>${esc(label)}</button>`).join('')}</div>
     ${notice}<div class="admlist">${body}</div>
     ${o.more?`<div class="row"><span class="sp"></span>${btn('اعلان‌های بیشتر','data-server-outbox-more','i-chev-left')}</div>`:''}
   </section>`;
@@ -1807,6 +1814,7 @@ async function retryServerOutbox(id){
     const code=error&&error.payload&&error.payload.detail&&error.payload.detail.code;
     o.notice={kind:'stop',text:code==='no_bale_identity'?'این حساب هنوز هویت بلهٔ تأییدشده ندارد؛ تا پیوند حساب، ارسال ممکن نیست (خطای شبکه نیست).'
       :code==='already_delivered'?'این اعلان قبلاً تحویل شده است؛ دوباره فرستاده نمی‌شود.'
+      :code==='reminder_superseded'?'این یادآوری پس از تغییر زمان یا لغو رویداد باطل شده و دیگر ارسال نمی‌شود.'
       :code==='notification_not_failed'?'این اعلان هنوز در صف یا در حال تلاش است؛ فقط اعلان‌های ناموفق دوباره صف‌گذاری می‌شوند.'
       :error&&error.status===403?'مجوز «انتشار رویداد» برای صف‌گذاری دوباره لازم است.':'صف‌گذاری دوباره انجام نشد؛ چیزی تغییر نکرد.'};
   }finally{o.retrying=''; renderBody()}
@@ -1825,7 +1833,7 @@ async function runServerSched(){
   const api=window.NORA_SERVER_API, o=SERVER_SCHED;
   if(o.running||!api||typeof api.runScheduledPublish!=='function'||!canPerm('ev_publish')) return;
   /* ممیزی ۱۴۰۵/۰۸/۰۱ ردیف A7: اجرای دستی زمان‌بند یک عمل انتشار واقعی است و پیش از آن تأیید می‌گیرد. */
-  if(!confirm('اجرای دستی زمان‌بند، همهٔ رویدادهای سررسیده را همین حالا منتشر و اعلان‌های آن‌ها را صف می‌کند. ادامه می‌دهید؟')) return;
+  if(!confirm('اجرای دستی زمان‌بند، همهٔ رویدادهای سررسیده را همین حالا منتشر و اعلان‌های آن‌ها (و یادآورهای رویدادِ در موعد) را صف می‌کند. ادامه می‌دهید؟')) return;
   o.running=true; o.error=''; renderBody();
   try{const summary=await api.runScheduledPublish(staffCsrfCookie()); o.lastManual=summary; o.loaded=false; loadServerSched()}
   catch(error){o.error=error&&error.status===403?'مجوز «انتشار رویداد» برای اجرای دستی لازم است.':'اجرای دستی زمان‌بند انجام نشد؛ چیزی تغییر نکرد.'}
@@ -1841,10 +1849,10 @@ function schedWhen(iso){
 function vServerSched(){
   const o=SERVER_SCHED, d=o.data; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
   const run=d&&d.last_run;
-  const runLine=run?`آخرین اجرا: <time datetime="${esc(run.at||'')}">${schedWhen(run.at)}</time> · عامل: ${esc(run.actor==='cli'?'تایمر/خط فرمان':run.actor==='timer'?'تایمر':'دستی از پنل')} · ${run.ok?tag('موفق','ok'):tag('با خطا','stop')} · در موعد: ${number(run.due)} · اعلان‌شده: ${number(run.announced)} · اعلان‌های ساخته‌شده: ${number(run.notified)} · نادیده (بدون دارنده): ${number(run.skipped)}`
+  const runLine=run?`آخرین اجرا: <time datetime="${esc(run.at||'')}">${schedWhen(run.at)}</time> · عامل: ${esc(run.actor==='cli'?'تایمر/خط فرمان':run.actor==='timer'?'تایمر':'دستی از پنل')} · ${run.ok?tag('موفق','ok'):tag('با خطا','stop')} · در موعد: ${number(run.due)} · اعلان‌شده: ${number(run.announced)} · اعلان‌های ساخته‌شده: ${number(run.notified)} · نادیده (بدون دارنده): ${number(run.skipped)}${run.reminders&&typeof run.reminders==='object'?` · <span data-server-sched-reminders>یادآور رویداد: صف‌شده ${number(run.reminders.queued)} · باطل‌شده ${number(run.reminders.withdrawn)}${run.reminders.ok===false?' · '+tag('خطا در یادآورها','stop'):''}</span>`:''}`
     :'هنوز هیچ اجرایی ثبت نشده است؛ تا وقتی تایمر سیستم یا اجرای دستی ثبت نشود، انتشار زمان‌بندی‌شده «اعلان» نمی‌شود (خودِ نمایش محتوا با ساعت سرور محاسبه می‌شود و به زمان‌بند نیاز ندارد).';
   const pend=d?`<div class="admkpi"><div class="k"><small>زمان‌بندی‌شده برای آینده</small>${bits(number(d.pending.future))}</div><div class="k"><small>در موعد ولی اعلان‌نشده</small>${bits(number(d.pending.due_unannounced))}</div></div>${d.pending.due_unannounced>0?p2Msg({kind:'warn',text:'ردیف‌هایی به موعد رسیده‌اند ولی اعلان نشده‌اند؛ یعنی تایمر اجرا نشده است. «اجرای دستی» همان کار تایمر را یک‌بار انجام می‌دهد (بدون تکرار اعلان).'}):''}`:'';
-  const manual=o.lastManual?`<p class="cap" data-server-sched-manual>اجرای دستی: در موعد ${number(o.lastManual.due)} · اعلان‌شده ${number(o.lastManual.announced)} · اعلان‌های ساخته‌شده ${number(o.lastManual.notified)}</p>`:'';
+  const manual=o.lastManual?`<p class="cap" data-server-sched-manual>اجرای دستی: در موعد ${number(o.lastManual.due)} · اعلان‌شده ${number(o.lastManual.announced)} · اعلان‌های ساخته‌شده ${number(o.lastManual.notified)}${o.lastManual.reminders&&typeof o.lastManual.reminders==='object'?` · یادآور رویداد صف‌شده ${number(o.lastManual.reminders.queued)} · باطل‌شده ${number(o.lastManual.reminders.withdrawn)}`:''}</p>`:'';
   const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن وضعیت زمان‌بند از سرور…</p>`:o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-sched-refresh','i-refresh')}</div>`:d?`${pend}<p class="cap" data-server-sched-run>${runLine}</p>${manual}`:`<p class="cap">وضعیت هنوز خوانده نشده است.</p>`;
   return `<section class="card stack" data-server-sched data-server-sched-state="${esc(o.loading?'loading':o.error?'error':d?(d.pending.due_unannounced>0?'stalled':'ok'):'idle')}"><div class="row"><div class="head">زمان‌بند انتشار و اعلان محتوا</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-sched-refresh','i-refresh')}${canPerm('ev_publish')?btn(o.running?'در حال اجرا…':'اجرای دستی یک نوبت',`data-server-sched-run-now ${o.running?'disabled':''}`,'i-globe'):''}</div>
     <p class="cap">منبعِ زمان‌بندی‌شده تا رسیدن زمانش در صفحهٔ رویداد دیده نمی‌شود (محاسبه با ساعت سرور در هر درخواست). اعلان به دارندگان دسترسی را تایمر سیستم (systemd) یا اجرای دستی از همین‌جا انجام می‌دهد؛ هر منبع دقیقاً یک‌بار اعلان می‌شود و اجرای تکراری اثری ندارد.</p>
@@ -5507,7 +5515,7 @@ const STNOTE={
   'کارت ورود با کیوآرکد':'QR نمایشی در هیچ ورودی یا سامانهٔ پذیرشی اعتبار ندارد',
   'لوگو در بلیت':'نشان فقط روی تصویر نمونه می‌آید؛ بلیت واقعی ساخته نمی‌شود',
   'بلیت مهمان':'ثبت مهمان، ظرفیت یا مجوز ورود واقعی در این نسخه فعال نیست',
-  'یادآور شب قبل':'فقط تنظیم نمونه؛ زمان‌بندی یا ارسال پیام و اعلان انجام نمی‌شود',
+  'یادآور شب قبل':'فقط کلید نمونه؛ یادآور واقعی ۲۴ساعته/۱ساعته را در ویرایشگر هر رویداد روشن کنید',
   'تبریک تولد':'قالب پیش‌نمایش محلی؛ نه در صف ارسال می‌رود و نه برای کسی فرستاده می‌شود',
   'خبر رویداد تازه':'متن نمونه؛ هر خروجی واقعی نیازمند تأیید صریح مالک است و در این نسخه ارسال نمی‌شود',
   'ساعت سکوت ۲۳ تا ۸':'قاعدهٔ نمایشی؛ سرویس ارسال یا زمان‌بندی خودکار وجود ندارد',
@@ -5522,7 +5530,7 @@ const STSECT={
     ['ورود و مهمان',['کارت ورود با کیوآرکد','بلیت مهمان']]]};
 const STHINT={
   welcome:'وضعیت محلی عضویت، پیام خوشامد خودکار نمی‌فرستد؛ هر خروجی واقعی نیازمند تأیید صریح مالک است',
-  remind:'زمان یادآور فقط نمونه است؛ زمان‌بندی و ارسال بیرونی غیرفعال‌اند',
+  remind:'این ساعت فقط ترجیح محلی است؛ یادآور واقعی رویداد (۲۴ ساعت/۱ ساعت قبل) در ویرایشگر همان رویداد روشن می‌شود',
   cert:'گواهی فقط پس از تأیید صریح مالک به‌صورت رکورد محلیِ ارسال‌نشده ثبت می‌شود',
   invite:'کد و کارت دعوت فقط نمونه‌اند؛ ارجاع، پاداش یا اشتراک بیرونی فعال نیست'};
 const sdRowSw=(g,r)=>{const on=togDef(g,r[0],r[1]);
@@ -5749,7 +5757,7 @@ function vSettings(){
       ${sdEnd()}${sdSect('ساعتها و حالتهای کلی',esc(fa(rows.length))+' کلید')}
       ${rows.map(r=>sdRowSw(g,r)).join('')}
       <div class="row tight">
-        <label class="fld"><span>ساعت پیشنهادی یادآور (نمونه؛ زمان‌بندی غیرفعال)</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+        <label class="fld"><span>ساعت پیشنهادی یادآور (ترجیح محلی؛ یادآور واقعی در ویرایشگر رویداد)</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
         <label class="fld"><span>ساعت تبریک تولد</span><select class="input" data-ntfclock="bday">${['۸:۰۰','۹:۰۰','۱۰:۰۰'].map(x=>`<option ${ntfClock('bday')===x?'selected':''}>${x}</option>`).join('')}</select></label>
       </div>
       ${sdEnd()}${sdSect('پیش‌نویس نامهٔ همگانی','یک پیام برای صف مالک')}
@@ -7032,7 +7040,7 @@ function pkPreflight(e){
 }
 const pkName=(field,id)=>{const p=pkRow(field,id); return p?String(p.n||''):''};
 function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
-    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,tchr:'',partnerId:'',parts:[]}
+    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,remH24:false,remH1:false,tchr:'',partnerId:'',parts:[]}
   :{t:'',cat:'',lead:'',body:'',blocks:[],cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
 function ctEditable(kind,record){
   const base=ctBlank(kind), out={};
@@ -7045,6 +7053,8 @@ function ctEditable(kind,record){
     /* زمان‌ها در سرور UTC ذخیره‌اند؛ پنل همان مقدار شمسی/تهران را که سرور برمی‌گرداند نشان می‌دهد */
     else if(CT_DATETIME_FIELDS.includes(key)) value=record&&record.local_times&&typeof record.local_times[key]==='string'?record.local_times[key]:(value||'');
     else if(key==='regMode'||key==='lifecycle') value=value||base[key];
+    /* B19: کلیدهای یادآور در سرور زیر record.reminders هستند؛ در فرم دو چک‌باکس مستقل */
+    else if(key==='remH24'||key==='remH1') value=!!(record&&record.reminders&&record.reminders[key==='remH24'?'h24':'h1']===true);
     else if(typeof base[key]==='boolean') value=!!value;
     else value=value==null?'':(typeof value==='number'&&value===0?'':String(value));
     out[key]=value;
@@ -7064,7 +7074,22 @@ function ctPayload(kind,form){
     if(['price','cap','sess','certMin','min'].includes(key)) value=value===''?0:value;
     out[key]=value;
   });
+  if(kind==='events'){out.reminders={h24:!!form.remH24,h1:!!form.remH1}; delete out.remH24; delete out.remH1}
   return out;
+}
+/* B19: وضعیت یادآورها فقط از پاسخ سرور (GET/PUT محتوا → reminders) خوانده می‌شود؛ ارسال کار زمان‌بند است */
+const CT_REM_STATE={off:'خاموش',scheduled:'زمان‌بندی‌شده',due:'در نوبت اجرای زمان‌بند',window_passed:'زمان آن گذشته',inactive:'غیرفعال (رویداد لغو/به‌تعویق/منتشرنشده)',needs_start_time:'نیازمند زمان شروع'};
+const CT_REM_SLOT={h24:'۲۴ ساعت پیش از شروع',h1:'۱ ساعت پیش از شروع'};
+function ctReminderBox(e){
+  const r=e.reminders;
+  if(!r||!Array.isArray(r.slots)) return e.id?`<small class="cap" data-ct-rem-state>وضعیت یادآورها پس از ذخیره از سرور خوانده می‌شود.</small>`:'';
+  const slot=x=>{const d=x.delivery||{}; const n=(x.queued||0);
+    const q=n?` · در صف/ارسال‌شده: ${fa(n)} (در انتظار ${fa(d.pending||0)}، تحویل بله ${fa(d.delivered||0)}، ناموفق ${fa(d.failed||0)})`:'';
+    const sup=x.superseded?` · باطل‌شده پس از تغییر زمان/لغو: ${fa(x.superseded)}`:'';
+    return `<li data-ct-rem-slot="${esc(x.slot)}"><b>${esc(CT_REM_SLOT[x.slot]||x.slot)}</b>: ${esc(CT_REM_STATE[x.state]||x.state||'')}${x.fire_at&&x.state==='scheduled'?` · زمان ارسال: ${esc(x.fire_at_local||x.fire_at)}`:''}${esc(q)}${esc(sup)}</li>`};
+  return `<div class="card stack" data-ct-rem-state><small class="cap"><b>یادآور رویداد (سرور)</b> · گیرندگان: ثبت‌نام‌های پذیرفته‌شدهٔ فرم همین رویداد${r.form_id?'':' (هنوز فرم ثبت‌نامی وصل نیست)'} · کانال: اعلان درون‌برنامه و بله (اگر حساب بله وصل باشد) · پیامک ندارد</small>
+    <ul class="cap" style="margin:0;padding-inline-start:18px">${r.slots.map(slot).join('')}</ul>
+    <small class="cap">ارسال با همان زمان‌بند انتشار زمان‌دار انجام می‌شود؛ هر گیرنده برای هر بازه فقط یک بار. صف را در «صندوق خروجی» با نوع «یادآور رویداد» ببینید.</small></div>`;
 }
 function ctPreview(form){
   const kind=CT.kind, img=kind==='events'?form.poster:form.cov;
@@ -7331,6 +7356,12 @@ function ctEditor(){
       <label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label>
       <label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label>
     </div>
+    <div class="row tight" style="flex-wrap:wrap" data-ct-reminders>
+      <label class="chip ${f.remH24?'on':''}"><input type="checkbox" data-ct-check="remH24" ${f.remH24?'checked':''} hidden/>یادآور ۲۴ ساعت قبل</label>
+      <label class="chip ${f.remH1?'on':''}"><input type="checkbox" data-ct-check="remH1" ${f.remH1?'checked':''} hidden/>یادآور ۱ ساعت قبل</label>
+      ${err.reminders?`<small class="cap" data-ct-err="reminders" style="color:var(--danger)">${esc(err.reminders)}</small>`:''}
+    </div>
+    ${ctReminderBox(e)}
     ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
     ${imageBox}`
   :`
@@ -8191,7 +8222,7 @@ async function ctOpenEditor(id){
   try{
     const result=await api.getAdminContent(CT.kind,id);
     const record=result.record||{};
-    CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at,registration:record.registration||null};
+    CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at,registration:record.registration||null,reminders:result.reminders||null};
     CT.edit.draft=ctDraftPeek(); CT.msg=null;
   }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای ویرایش دریافت نشد.')}}
   finally{CT.busy=''; renderBody()}
@@ -8211,7 +8242,7 @@ async function ctSave(publish){
     ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctLoad();
   }catch(error){
     const fieldErr=p2FieldErr(error);
-    if(error&&error.status===422&&fieldErr&&fieldErr.field&&Object.prototype.hasOwnProperty.call(e.form,fieldErr.field)) e.errors[fieldErr.field]=fieldErr.text;
+    if(error&&error.status===422&&fieldErr&&fieldErr.field&&(Object.prototype.hasOwnProperty.call(e.form,fieldErr.field)||fieldErr.field==='reminders')) e.errors[fieldErr.field]=fieldErr.text;
     else if(error&&error.status===422&&fieldErr) e.formError=fieldErr.text;
     else if(error&&error.code==='site_content_version_conflict'){e.formError=p2Err(error); const current=error.payload&&error.payload.detail&&error.payload.detail.current_version; if(Number.isInteger(current)) e.version=current}
     else e.formError=p2Err(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
@@ -9795,9 +9826,10 @@ const PANEL_MODULES=[
   ['events','پیوند فرم ثبت‌نام به رویداد و حالت ثبت‌نام','فرم‌ساز سروری (/api/forms) + فیلد ev','server',()=>canSec('events'),'data-sec="forms"'],
   ['events','منابع، ضبط‌شده و فروش، پرسش‌وپاسخ، دیدگاه‌ها، گزارش‌ها، سفارش‌ها','/api/admin/events/{id}/…','server',()=>canSec('events'),'data-sec="events"'],
   ['events','زبانهٔ حضور و گواهی از کارت رویداد','/api/admin/attendance/forms, /api/admin/certificates','server',()=>canPerm('attendance')||canPerm('certificate'),'data-sec="events"'],
-  ['events','نسخه‌های قبلی محتوا (تاریخچهٔ ویرایش)','فقط expected_version و تعارض نسخه در API هست؛ ذخیرهٔ نسخه‌های قبلی ندارد','blocked',()=>canSec('events'),''],
+  ['events','تاریخچهٔ ویرایش محتوا (چه کسی، کی، چه نسخه‌ای)','زبانهٔ «تاریخچه» در ویرایشگر؛ از audit سرور، فقط مالک؛ ذخیرهٔ متن نسخه‌های قبلی و بازگردانی ندارد','server',()=>isOwner(),'data-sec="events"'],
+  ['events','یادآور خودکار رویداد (۲۴ ساعت و ۱ ساعت قبل)','در ویرایشگر هر رویداد روشن می‌شود؛ گیرندگان ثبت‌نام‌های پذیرفته‌شدهٔ همان رویداد؛ صف در صندوق خروجی؛ پیامک ندارد','server',()=>canSec('events'),'data-sec="events"'],
   ['events','نظرسنجی پس از رویداد','فرم نظرسنجی باید از فرم‌ساز ساخته و به رویداد پیوند شود؛ موتور جداگانه ندارد','external',()=>canSec('events'),'data-sec="forms"'],
-  ['events','یادآوری دستی به ثبت‌نام‌کنندگان','فقط اعلان‌های سیستمی صف می‌شوند؛ API ارسال دستی به گروه وجود ندارد','blocked',()=>canSec('events'),''],
+  ['events','یادآوری دستی/متن آزاد به ثبت‌نام‌کنندگان','فقط یادآور خودکار و اعلان‌های سیستمی صف می‌شوند؛ API ارسال دستی به گروه وجود ندارد','blocked',()=>canSec('events'),''],
   ['users','فهرست کاربران، جست‌وجو، فیلتر نقش/ورود، پروندهٔ کاربر با ثبت‌نام‌ها و درخواست‌ها','/api/admin/users, /api/admin/users/{id}','server',()=>canPerm('us_view'),'data-sec="users"'],
   ['users','کارتابل مشترک (پروفایل و فیش) و تاریخچهٔ تصمیم‌ها','/api/admin/inbox, /decision','server',()=>canUseSharedInbox(),'data-open-workflow-inbox'],
   ['users','صندوق خروجی اعلان‌ها (صف/تحویل/ناموفق/تلاش دوباره)','/api/admin/notifications, /retry','server',()=>canPerm('rp_view'),'data-dashx-outbox'],
@@ -10301,6 +10333,12 @@ document.addEventListener('click',e=>{
     const state=outboxState.dataset.serverOutboxState||'';
     if(!SERVER_OUTBOX_STATES.some(row=>row[0]===state)) return;
     SERVER_OUTBOX.state=state; SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error='';
+    loadServerOutbox(); return;
+  }
+  const outboxKind=q('[data-server-outbox-kind]'); if(outboxKind){
+    const kind=outboxKind.dataset.serverOutboxKind||'';
+    if(!SERVER_OUTBOX_KINDS.some(row=>row[0]===kind)) return;
+    SERVER_OUTBOX.kind=kind; SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error='';
     loadServerOutbox(); return;
   }
   if(q('[data-server-outbox-refresh]')){SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error=''; loadServerOutbox(); return}

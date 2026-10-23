@@ -30,6 +30,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from . import event_reminders as event_reminders_mod
 from . import notifications as notifications_mod
 from . import recordings as recordings_mod
 from .models import (
@@ -180,10 +181,33 @@ def announce_due(db: Session, now: datetime | None = None, *, actor: str = "time
         summary["ok"] = False
         summary["errors"] = 1
         summary["error_type"] = type(error).__name__
+    # Owner decision 1405/08/01 (B19): event reminders ride the same pass, in their own
+    # transaction, so a reminder problem never undoes announcements (and vice versa).
+    summary["reminders"] = enqueue_reminders(db, now)
+    if not summary["reminders"].get("ok", True):
+        summary["ok"] = False
+        summary["errors"] += 1
     summary["at"] = now.isoformat()
     write_marker(db, now, {k: v for k, v in summary.items() if k != "at"})
     db.commit()
     return summary
+
+
+def enqueue_reminders(db: Session, now: datetime) -> dict[str, Any]:
+    """Withdraw stale and queue due event reminders exactly once (dedupe key per event/slot/start/account)."""
+    from .app import _form_is_purchase, _response_payment_approved  # noqa: PLC0415 — CLI path; app.py imports this module
+
+    try:
+        result = event_reminders_mod.enqueue_due(
+            db, now, is_purchase=_form_is_purchase, payment_approved=_response_payment_approved,
+            bale_ids_for=lambda account_id: verified_bale_ids(db, account_id),
+        )
+        db.commit()
+        result["ok"] = True
+        return result
+    except Exception as error:  # noqa: BLE001 - recorded in the marker; the caller decides what to do
+        db.rollback()
+        return {"ok": False, "error_type": type(error).__name__, "queued": 0}
 
 
 def pending_count(db: Session, now: datetime) -> dict[str, int]:
@@ -221,8 +245,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps(summary, ensure_ascii=False))
     else:
+        reminders = summary.get("reminders") or {}
         print(f"scheduled-publish: due={summary['due']} announced={summary['announced']} notified={summary['notified']} "
-              f"skipped={summary['skipped']} ok={summary['ok']}")
+              f"skipped={summary['skipped']} reminders_queued={reminders.get('queued', 0)} ok={summary['ok']}")
     return 0 if summary["ok"] else 1
 
 
