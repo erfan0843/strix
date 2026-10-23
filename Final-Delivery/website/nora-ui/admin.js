@@ -6919,6 +6919,7 @@ function ctActions(item){
   if(ctCan('can_edit')) out.push(btn('ویرایش',`data-ct-edit="${id}"`,'i-pen'));
   if(CT.kind==='events'&&ctCan('can_edit')) out.push(btn('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
   if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
+  if(CT.kind==='events') out.push(btn('پروندهٔ رویداد',`data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="اطلاعات، ثبت‌نام‌ها، حضور، نظرسنجی، مالی، گواهینامه، اطلاع‌رسانی"`,'i-doc'));
   if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('منابع و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
   if(ctCan('can_publish')){
     if(st==='draft'||st==='paused') out.push(btn(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
@@ -7543,9 +7544,9 @@ function eiErr(error,fallback){const code=error&&error.code||''; if(EI_ERR[code]
 function eiStatusTag(map,status){const row=map[status]||[status||'نامشخص','']; return tag(row[0],row[1])}
 function eiCanRes(){return canPerm('ev_create')}
 function eiCanMod(){return canPerm('ev_publish')}
-function eiOpen(eventId,title,status){
-  EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||''; EI.status=status||''; EI.tab=eventId?(eiCanRes()?'resources':'questions'):'questions';
-  EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.res.session=''; recReset(); EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
+function eiOpen(eventId,title,status,tab){
+  EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||''; EI.status=status||''; EI.tab=eventId?(tab||(eiCanRes()?'resources':'questions')):'questions';
+  CH.open=false; EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.res.session=''; recReset(); EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
   if(EI.all){EI.q.answered='false'} else {EI.q.answered=''}
   eiLoad();
 }
@@ -7557,7 +7558,9 @@ async function eiLoad(){
   const key=eiKey(); EI.loading=true; EI.error=''; renderBody();
   try{
     let result;
-    if(EI.tab==='resources'){result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''}); if(!REC.data&&typeof api.getEventRecording==='function'){try{REC.data=await api.getEventRecording(EI.eventId)}catch(_){/* بدون محصول هم فهرست منابع کار می‌کند */}}}
+    if(EI.tab==='info'||EI.tab==='notify') result=await api.getAdminContent('events',EI.eventId);
+    else if(EI.tab==='regs'||EI.tab==='survey'){if(!FORMS_SRV.loaded||!FORMS_SRV.data) await fsLoad(); result={forms:FORMS_SRV.data?(FORMS_SRV.data.items||[]).length:null,error:FORMS_SRV.error||''}}
+    else if(EI.tab==='resources'){result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''}); if(!REC.data&&typeof api.getEventRecording==='function'){try{REC.data=await api.getEventRecording(EI.eventId)}catch(_){/* بدون محصول هم فهرست منابع کار می‌کند */}}}
     else if(EI.tab==='recording') result=await recLoad();
     else if(EI.tab==='orders') result=await api.listRecordingOrders({status:REC.orders.status,event_id:EI.all?'':EI.eventId,q:REC.orders.q,limit:REC.orders.limit,offset:REC.orders.offset});
     else if(EI.tab==='questions') result=EI.all?await api.listAllEventQuestions({status:EI.q.status,answered:EI.q.answered||'false',limit:EI.q.limit,offset:EI.q.offset})
@@ -7588,12 +7591,17 @@ function eiSummaryCard(){
 }
 function eiHeader(){
   const tabs=[];
+  /* پروندهٔ رویداد به ترتیب مرجع: اطلاعات، ثبت‌نام‌ها/پاسخ‌ها، حضور (پرش)، نظرسنجی، مالی، گواهینامه (پرش)، اطلاع‌رسانی/تاریخچه؛ سپس ابزارهای تعامل */
+  if(!EI.all) tabs.push(['info','اطلاعات']);
+  if(!EI.all&&(canPerm('fm_responses')||canPerm('attendance')||canPerm('fm_create'))) tabs.push(['regs','ثبت‌نام‌ها و پاسخ‌ها']);
+  if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['survey','نظرسنجی']);
+  if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','مالی: ضبط‌شده و فروش']);
+  if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'مالی: سفارش‌ها']);
+  if(!EI.all&&canPerm('ev_create')) tabs.push(['notify','اطلاع‌رسانی و تاریخچه']);
   if(!EI.all&&eiCanRes()) tabs.push(['resources','منابع']);
-  if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','ضبط‌شده و فروش']);
   tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
   if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
   if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
-  if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'سفارش‌ها']);
   const live=EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`:'';
   const jumps=EI.all?'':[canPerm('attendance')?`<button class="chip" data-ei-jump-attendance title="فرم‌های حضور همین رویداد در بخش کاربران">${ico('i-check')}ثبت‌نام و حضور</button>`:'',
     canPerm('certificate')?`<button class="chip" data-ei-jump-cert title="گواهی‌های همین رویداد در بخش کاربران">${ico('i-medal')}گواهی‌ها</button>`:''].join('');
@@ -7605,6 +7613,10 @@ function eiPanel(){
   let body;
   if(EI.loading&&!EI.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
   else if(EI.error) body=`<div class="stack">${p2Msg({kind:'stop',text:EI.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  else if(EI.tab==='info') body=eiInfo();
+  else if(EI.tab==='regs') body=eiRegs();
+  else if(EI.tab==='survey') body=eiSurvey();
+  else if(EI.tab==='notify') body=eiNotify();
   else if(EI.tab==='resources') body=eiResources();
   else if(EI.tab==='recording') body=recPanel();
   else if(EI.tab==='orders') body=recOrdersPanel();
@@ -7612,6 +7624,58 @@ function eiPanel(){
   else if(EI.tab==='reviews') body=eiReviews();
   else body=eiReports();
   return `<section class="card stack" data-ei-panel>${eiHeader()}${p2Msg(EI.msg)}${body}</section>`;
+}
+/* ── پروندهٔ رویداد (مرجع: زبانه‌های اطلاعات/ثبت‌نام‌ها/حضور/نظرسنجی/مالی/گواهینامه/اطلاع‌رسانی) ──
+   منبع هر زبانه: اطلاعات و اطلاع‌رسانی = GET /api/admin/content/events/{id} (رکورد + registration + reminders)؛
+   ثبت‌نام‌ها و نظرسنجی = GET /api/forms (فیلد ev + response_count)؛ حضور و گواهینامه = ماژول‌های واقعی بخش کاربران.
+   هیچ شمارندهٔ محلی ساخته نمی‌شود؛ «پاسخ ثبت‌شده» ≠ «ثبت‌نام تأییدشده» ≠ «حضور» ≠ «گواهی». */
+function eiEventForms(){const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(EI.eventId))}
+function eiFormRow(f){const st=FS_STATUS[f.status]||[f.status||'','']; const id=encodeURIComponent(String(f.id||''));
+  return `<div class="admlirow" data-ei-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ ثبت‌شده':''}</small></span>${tag(st[0],st[1])}
+    <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}
+function eiInfo(){
+  const r=EI.data&&EI.data.record; if(!r) return emptyBox('رکورد رویداد از سرور نیامد.');
+  const reg=r.registration||null;
+  const rows=[['نوع',r.kind],['تاریخ',r.on||r.when],['ساعت',r.time],['مکان',r.place],['شیوهٔ برگزاری',r.mode],['ظرفیت اعلامی',r.cap?fa(r.cap):''],['هزینهٔ نمایشی کارت',r.price?fa(r.price)+' ریال':'رایگان'],
+    ['مدرس',r.tchr?ctRefMeta('tchr',r.tchr).replace(/^مدرس: /,''):''],['نهاد همکار',r.partnerId?ctRefMeta('partnerId',r.partnerId).replace(/^نهاد: /,''):''],['جلسه‌ها',Array.isArray(r.parts)&&r.parts.length?fa(r.parts.length)+' جلسه':(r.sess?fa(r.sess)+' جلسه':'')],
+    ['وضعیت انتشار',(P2_STATUS[r.status]||[r.status||''])[0]],['وضعیت ثبت‌نام (سرور)',reg&&reg.state?(CT_REG_STATE[reg.state]||reg.state)+(reg.reason==='no_form'?' · فرم ثبت‌نام منتشرشده‌ای وصل نیست':''):'نامشخص'],
+    ['نسخهٔ محتوا',EI.data.version!=null?fa(EI.data.version):''],['آخرین تغییر',r.updated_at?svcWhen(r.updated_at)||r.updated_at:'']].filter(([,v])=>v);
+  return `<div class="stack" data-ei-info="${esc(String(r.id||''))}">
+    <div class="row" style="flex-wrap:wrap;gap:8px"><strong>${esc(r.t||'')}</strong><span class="sp"></span>${ctCan('can_edit')?btn('ویرایش در ویزارد',`data-ei-edit="${esc(String(r.id||''))}"`,'i-pen'):''}</div>
+    ${r.d?`<p class="cap" style="white-space:pre-wrap">${esc(String(r.d))}</p>`:''}
+    <div class="admlist">${rows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div>${esc(String(v))}</div></span></div>`).join('')}</div>
+    <small class="cap">همهٔ مقدارها از رکورد سروری همین رویداد؛ ویرایش فقط در ویزارد (همان ذخیرهٔ نسخه‌دار).</small></div>`;
+}
+function eiRegs(){
+  if(FORMS_SRV.error&&!FORMS_SRV.data) return `<div class="stack">${p2Msg({kind:'stop',text:FORMS_SRV.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  const regs=eiEventForms().filter(f=>f.purpose!=='recording_access'&&f.purpose!=='survey'&&f.purpose!=='exam');
+  const total=regs.reduce((n,f)=>n+(Number(f.response_count)||0),0);
+  const jumps=`<div class="row tight" style="flex-wrap:wrap">${canPerm('attendance')?btn('ثبت‌نام و حضور این رویداد (بخش کاربران)','data-ei-jump-attendance','i-check'):''}${canPerm('certificate')?btn('گواهی‌های این رویداد','data-ei-jump-cert','i-medal'):''}</div>`;
+  return `<div class="stack" data-ei-regs>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های ثبت‌نام این رویداد</strong><span class="sp"></span>${regs.length?tag(fa(regs.length)+' فرم · '+fa(total)+' پاسخ ثبت‌شده',''):''}</div>
+    <small class="cap">«پاسخ ثبت‌شده» شمار پاسخ‌های فرم از سرور است؛ وضعیت پذیرش/پرداخت/حضور هر نفر در «ثبت‌نام و حضور» بخش کاربران دیده و تصمیم‌گیری می‌شود.</small>
+    ${regs.length?`<div class="admlist">${regs.map(eiFormRow).join('')}</div>`:`<div data-ei-regs-empty>${emptyBox('فرم ثبت‌نامی به این رویداد وصل نیست؛ تا فرمِ منتشرشده نباشد ثبت‌نام باز نمی‌شود.')}</div>${ctCan('can_edit')?btn('وصل یا ساخت فرم در ویزارد (گام ۴)',`data-ei-edit="${esc(String(EI.eventId))}" data-ei-edit-step="3"`,'i-link'):''}`}
+    ${jumps}</div>`;
+}
+function eiSurvey(){
+  if(FORMS_SRV.error&&!FORMS_SRV.data) return `<div class="stack">${p2Msg({kind:'stop',text:FORMS_SRV.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  const list=eiEventForms().filter(f=>f.purpose==='survey'||f.purpose==='exam');
+  const q=new URLSearchParams({ev:String(EI.eventId),back:'admin.html'});
+  return `<div class="stack" data-ei-survey>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>نظرسنجی و آزمون این رویداد</strong><span class="sp"></span>${canPerm('fm_create')?`<a class="btn sm ${list.length?'quiet':'primary'}" href="create.html?${q.toString()}" data-ei-survey-create>${ico('i-plus')}ساخت در فرم‌ساز</a>`:''}</div>
+    <small class="cap">نظرسنجی و آزمون فرم‌های جدا با هدف خودشان هستند و با فرم ثبت‌نام قاطی نمی‌شوند؛ نتیجه‌ها در پاسخ‌های همان فرم.</small>
+    ${list.length?`<div class="admlist">${list.map(eiFormRow).join('')}</div>`:`<div data-ei-survey-empty>${emptyBox('نظرسنجی یا آزمونی به این رویداد وصل نیست.')}</div>`}</div>`;
+}
+function eiNotify(){
+  const d=EI.data||{}, r=d.record||{};
+  const fake={id:r.id,reminders:d.reminders||null,form:{remH24:!!(r.reminders&&r.reminders.h24),remH1:!!(r.reminders&&r.reminders.h1)}};
+  const hist=isOwner()?(chIs('content.events',EI.eventId)?chPanel():btn('تاریخچهٔ عملیات این رویداد (ردپای سرور)',`data-ch-pane="hist" data-ch-type="content.events" data-ch-id="${esc(String(EI.eventId))}"`,'i-clock')):`<small class="cap">تاریخچهٔ عملیات فقط با نشست مالک خوانده می‌شود.</small>`;
+  return `<div class="stack" data-ei-notify>
+    <strong>یادآورهای خودکار</strong>
+    <div class="row tight" style="flex-wrap:wrap">${tag('۲۴ ساعت قبل: '+(fake.form.remH24?'روشن':'خاموش'),fake.form.remH24?'ok':'')}${tag('۱ ساعت قبل: '+(fake.form.remH1?'روشن':'خاموش'),fake.form.remH1?'ok':'')}</div>
+    ${ctReminderBox(fake)}
+    <small class="cap">اعلان‌های انتشار و ثبت‌نام از همان صف اعلان‌های سرور فرستاده می‌شوند؛ وضعیت تحویل هر پیام در «گزارش‌ها › صندوق خروجی». نامهٔ دستی/همگانی عمداً دکمه ندارد (بدون نقطهٔ پایانی، سقف و ممیزی).</small>
+    ${hist}</div>`;
 }
 /* ── منابع ── */
 function eiResourceMeta(r){
@@ -7935,6 +7999,8 @@ function eiClick(q){
   if(q('[data-ei-summary-refresh]')){EI.summary=null; EI.summaryError=''; renderBody(); eiLoadSummary(); return true}
   const openAll=q('[data-ei-open-all]'); if(openAll){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); if(openAll.dataset.eiOpenAll==='reports') {EI.tab='reports'; EI.key=''; eiLoad()} return true}
   const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||''); return true}
+  const file=q('[data-ct-file]'); if(file){eiOpen(file.dataset.ctFile,file.dataset.ctTitle||'',file.dataset.ctEvStatus||'','info'); return true}
+  const eiEdit=q('[data-ei-edit]'); if(eiEdit){if(!ctCan('can_edit')){toast('مجوز ویرایش محتوا برای این نقش فعال نیست'); return true} const id=eiEdit.dataset.eiEdit, step=eiEdit.dataset.eiEditStep; EI.open=false; EI.data=null; ctOpenEditor(id).then(()=>{if(CT.edit&&CT.edit.id===id&&step!=null){CT.edit.step=Number(step); renderBody()}}); return true}
   if(!EI.open) return false;
   const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EI.res.edit=null; EI.res.session=''; REC.edit=null; REC.session=null; EI.key=''; eiLoad(); return true}
   const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.tab==='orders'?REC.orders:EI.rp, total=EI.data?Number(EI.data.total)||0:0;

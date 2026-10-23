@@ -156,6 +156,40 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   ok(errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).length===0,'بدون خطای جاوااسکریپت ('+errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).join(' | ').slice(0,200)+')');
 }
 
+console.log('── پروندهٔ رویداد: زبانه‌ها به ترتیب مرجع، هر زبانه با منبع سروری ──');
+{
+  const {doc,click}=await boot('owner');
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="events"]')),'پنل بالا آمد');
+  click('#admNav [data-sec="events"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-file="ev-1"]')),'کارت رویداد دکمهٔ «پروندهٔ رویداد» دارد');
+  ok(doc.querySelector('[data-ct-interaction="ev-1"]'),'دکمهٔ قبلی «منابع و پرسش‌ها» حذف نشده');
+  click('[data-ct-file="ev-1"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ei-panel] [data-ei-info="ev-1"]')),'پرونده روی «اطلاعات» باز می‌شود و رکورد را از GET /api/admin/content/events/ev-1 می‌خواند');
+  ok(CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/content/events/ev-1'),'درخواست رکورد به سرور رفت');
+  const tabs=[...doc.querySelectorAll('[data-ei-panel] [data-ei-tab]')].map(x=>x.dataset.eiTab);
+  ok(JSON.stringify(tabs.slice(0,6))===JSON.stringify(['info','regs','survey','recording','orders','notify'])&&tabs.includes('resources')&&tabs.includes('questions'),'ترتیب زبانه‌ها: اطلاعات، ثبت‌نام‌ها، نظرسنجی، مالی×۲، اطلاع‌رسانی، سپس ابزارهای تعامل ('+tabs.join(',')+')');
+  ok(doc.querySelector('[data-ei-jump-attendance]')&&doc.querySelector('[data-ei-jump-cert]'),'حضور و گواهینامه همچنان با پرش به ماژول واقعی بخش کاربران');
+  const info=doc.querySelector('[data-ei-info="ev-1"]').textContent;
+  ok(/کارگاه آزمون/.test(info)&&/تهران/.test(info)&&/ثبت‌نام بسته/.test(info)&&/فرم ثبت‌نام منتشرشده‌ای وصل نیست/.test(info),'اطلاعات: عنوان، مکان و وضعیت ثبت‌نام سرور با دلیل');
+  ok(!/\d+ نفر|ثبت‌نام‌شده: /.test(info),'هیچ شمارندهٔ ساختگی در اطلاعات نیست');
+  click('[data-ei-tab="regs"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ei-regs]')),'زبانهٔ ثبت‌نام‌ها');
+  ok(doc.querySelector('[data-ei-regs-empty]')&&doc.querySelector('[data-ei-edit="ev-1"][data-ei-edit-step="3"]'),'بدون فرم: حالت خالی صریح + مسیر وصل/ساخت فرم در گام ۴ ویزارد');
+  ok(!doc.querySelector('[data-ei-form-row="f-other"]'),'فرم رویداد دیگر این‌جا نیست');
+  click('[data-ei-tab="survey"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ei-survey]')),'زبانهٔ نظرسنجی');
+  ok(doc.querySelector('[data-ei-survey-empty]')&&/create\.html\?ev=ev-1/.test(doc.querySelector('[data-ei-survey-create]').getAttribute('href')),'نظرسنجی جدا از ثبت‌نام؛ ساخت فقط در فرم‌ساز با شناسهٔ رویداد');
+  click('[data-ei-tab="notify"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ei-notify]')),'زبانهٔ اطلاع‌رسانی و تاریخچه');
+  ok(/۲۴ ساعت قبل: خاموش/.test(doc.querySelector('[data-ei-notify]').textContent)&&doc.querySelector('[data-ch-pane="hist"][data-ch-id="ev-1"]'),'وضعیت یادآورها از رکورد سرور + تاریخچهٔ مالک (B18)');
+  ok(!doc.querySelector('[data-ntfbcast],[data-ei-send]'),'هیچ دکمهٔ ارسال دستی/همگانی وجود ندارد');
+  click('[data-ch-pane="hist"][data-ch-id="ev-1"]');
+  ok(await waitFor(()=>CALLS.some(c=>c.path.startsWith('/api/owner/audit'))&&doc.querySelector('[data-ch-panel="content.events"]')),'تاریخچه از /api/owner/audit داخل همان زبانه');
+  click('[data-ei-tab="regs"]'); await waitFor(()=>doc.querySelector('[data-ei-edit="ev-1"]'));
+  click('[data-ei-edit="ev-1"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-step-panel="3"]:not([hidden])')),'«وصل یا ساخت فرم» همان ویزارد را روی گام ۴ باز می‌کند');
+}
+
 console.log('── مدیر: مجوزها در ریل ──');
 {
   const {doc}=await boot('manager',['ev_create','us_view']);
