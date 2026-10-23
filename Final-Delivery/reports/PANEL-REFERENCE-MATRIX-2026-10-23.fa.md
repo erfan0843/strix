@@ -43,8 +43,8 @@
 | A4 | KPIها | چهار عدد با درصد تغییر | ناقص | `serverDashboardKpis` | `GET /api/admin/reports/summary?period` | `rp_view` (`require_any_permission`) | admin-phase2/3 | بدون «درصد تغییر نسبت به دورهٔ قبل» (API سری زمانی ندارد) | مسدود جزئی: نیازمند endpoint مقایسهٔ دوره؛ ثبت در «تصمیم‌ها» |
 | A5 | کارهای در انتظار (کارتابل، پرسش‌های بی‌پاسخ، سفارش‌ها، اعلان‌های ناموفق) | `cardQueue` با سقف | کامل | `dashx*` (`data-dashx-queue`) | `inbox`, `event-interaction/summary`, `recordings/summary`, `notifications?state=failed` | هر API مجوز خودش | admin-restore · مرورگر | — | حفظ |
 | A6 | رویدادهای نزدیک با ظرفیت | ✓ | کامل | `data-dashx-upcoming` | `content/events?status=published&sort=date` | `ev_create`/`ev_publish` | admin-restore | ظرفیت/ثبت‌نام‌شده روی کارت نیست (شمار ثبت‌نام از API فرم می‌آید) | A-P2: نمایش «ظرفیت فرم» وقتی `registration` در detail هست |
-| A7 | انتشار زمان‌بندی‌شده + اجرای دستی | — | کامل | `data-dashx-sched` | `scheduled-publish`, `POST …/run` | `ev_publish` | pytest scheduled | اجرای دستی بدون تأیید (B8) | A-P2: `confirm` پیش از اجرا |
-| A8 | بخش‌های `reports` / `money` / `club` | در طراحی اولیه بخش ناوبری بودند | **خراب (مسیر داخلی مرده)** | `serverBody` L9464 fallback | — | — | کد | از منو قابل‌رسیدن نیست؛ از `localStorage` → «API متصل نشده» | **A-P1**: `reports`→هاب گزارش‌ها، `club`→باشگاه، `money`→نمای مالی (سفارش‌ها+گزارش مالی) یا بازگشت صریح به داشبورد با پیام؛ معیار: هیچ `sec` ذخیره‌شده‌ای به صفحهٔ «متصل نشده» نرسد |
+| A7 | انتشار زمان‌بندی‌شده + اجرای دستی | — | **کامل** | `data-dashx-sched`, `runServerSched` با `confirm` | `scheduled-publish`, `POST …/run` | `ev_publish` | کد `ea95403` · آزمون admin.test/restore سبز · مرورگر `evidence/panel-reference-2026-10-23/stage-ab-results.json` (A7: تأیید/انصراف بدون POST؛ بدون تصویر جدا) | — | بسته |
+| A8 | بخش‌های `reports` / `money` / `club` | در طراحی اولیه بخش ناوبری بودند | **کامل (مسیرهای نام‌دار)** | `serverHashRoute`/`serverHashAfterRender` | — | `canSec` همان مقصد | کد `ea95403` · آزمون admin.test سبز · مرورگر `evidence/panel-reference-2026-10-23/A8-money-orders.png`, `A8-club.png` + `stage-ab-results.json` (`#att`، `#reports`) | هیچ `sec` ذخیره‌شده‌ای به «متصل نشده» نمی‌رسد | بسته |
 | A9 | نقشهٔ امکانات پنل | — | کامل | `panelModuleMapView` | — | — | admin-restore | — | حفظ؛ باید با این ماتریس هم‌خوان بماند |
 | A10 | خط زمانی مالک (audit) | `cardFeed` | کامل | `data-dashx-audit` | `/api/owner/audit` | `require_owner` | pytest audit | — | حفظ |
 | A11 | سلامت سامانه | `cardStatus` | کامل | `serverHealthView` | `/api/health`, `storage/health` | — | admin.test | — | حفظ |
@@ -57,25 +57,25 @@
 | # | قابلیت طراحی | مسیر/رفتار مرجع | وضعیت | فایل/تابع | API / مدل | مجوز (سرور) | آزمون · شاهد | اختلاف | اقدام / اولویت / معیار |
 |---|---|---|---|---|---|---|---|---|---|
 | B1 | فهرست رویدادها: جست‌وجو، فیلتر وضعیت، ترتیب، صفحه‌بندی | صافی همه/جاری/پیش‌رو/گذشته | کامل | `ctList` | `GET /api/admin/content/events` | `ev_create`/`ev_publish` (`_CONTENT_*_PERMS`) | admin-phase2, pytest · مرورگر | فیلتر زمانی «جاری/پیش‌رو/گذشته» نیست (فقط وضعیت انتشار) | B-P2: چیپ زمانی سمت کلاینت روی `on`/`startsAt` یا پارامتر API |
-| B2 | ساخت/ویرایش رویداد (همهٔ فیلدها) | ویزارد ۵ گامی با ۹ قالب | کامل (فرم تک‌صفحه‌ای) | `ctEditor`, `ctBlank`, `ctSave` | `POST/PUT content/events` با `expected_version` | `ev_create` | admin-phase2, pytest · مرورگر | ویزارد/قالب نیست | B-P1: **قالب‌های رویداد** (پیش‌فرض نوع/شیوه/ظرفیت/برچسب) بدون ویزارد؛ معیار: انتخاب قالب فقط فیلدهای خالی را پر کند، بدون ذخیرهٔ خودکار |
-| B3 | اعتبارسنجی فیلدی و فوکوس روی اولین خطا | خطای کنار فیلد + پرش | ناقص | `ctEditor` `e.errors` | 422 | — | pytest · مرورگر `04-event-new-errors` | بدون فوکوس/اسکرول | **B-P1 (S)**: پس از 422 اولین `[data-ct-err]` پر → `scrollIntoView`+`focus` |
+| B2 | ساخت/ویرایش رویداد (همهٔ فیلدها) | ویزارد ۵ گامی با ۹ قالب | **کامل (فرم تک‌صفحه‌ای + ۶ قالب شروع)** | `ctEditor`, `CT_TEMPLATES`, `ctApplyTemplate` | `POST/PUT content/events` با `expected_version` | `ev_create` | کد `e859c0a`+`b45e4ba` · آزمون admin-phase2 (بخش B) سبز · مرورگر `evidence/panel-reference-2026-10-23/stage-ab-results.json` (B2؛ بدون تصویر جدا) | قالب فقط فیلدهای خالی را پر می‌کند؛ بدون ذخیرهٔ خودکار | بسته (ویزارد چندگامی عمداً نه) |
+| B3 | اعتبارسنجی فیلدی و فوکوس روی اولین خطا | خطای کنار فیلد + پرش | **کامل** | `ctFocusFirstError` | 422 `detail.field` | — | کد `e859c0a` · آزمون admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/B3-focus-error.png` (فوکوس `#ctf_t`) | — | بسته |
 | B4 | قفل نسخه ۴۰۹ با حفظ نوشته | ✓ | کامل | `ctSave` | 409 | — | admin-phase2 · مرورگر `stage2-05` | — | حفظ |
 | B5 | چرخهٔ وضعیت با تأیید | ✓ | کامل | `ctSetStatus` | `POST …/status` | `ev_publish` | pytest · مرورگر | — | حفظ |
 | B6 | پیش‌نمایش زندهٔ کارت | کارت + صفحه | کامل | `ctPreview` | — | — | · مرورگر | پیش‌نمایش صفحهٔ کامل نیست | B-P2: پیوند «صفحهٔ عمومی» برای منتشرشده هست (`eiHeader`); کافی |
-| B7 | تاریخ شمسی: تقویم، روز هفته خودکار، همگام‌سازی `on`↔`startsAt`، پایان همراه شروع | ✓ (`dpBox`, `jcal`) | ناقص | ورودی متنی `on`, `startsAt`, `endsAt`, `when` | — | — | — | بدون تقویم/روز هفته/همگام‌سازی | **B-P1 (M)**: روز هفته زیر `on`؛ تایپ `on`+`time` → پیشنهاد `startsAt`/`endsAt` اگر خالی؛ تقویم کوچک `dpBox` از طراحی (بدون کتابخانه) |
-| B8 | ساعت ۲۴ با دونقطهٔ خودکار، مدت خودکار | ✓ | غایب | — | — | — | — | — | **B-P1 (S)**: `inputmode=numeric` + درج `:`؛ سقف ۲۳:۵۹ |
-| B9 | ردیف جلسه‌ها (هر جلسه تاریخ/ساعت) | `sessRows` | ناقص | فقط `sess` (شمار) | مدل رویداد `parts[]` در `site_content` (صفحهٔ عمومی `event-page.js` `parts` را نشان می‌دهد) | — | — | ویرایشگر `parts` ندارد ولی مدل عمومی دارد | **B-P1 (M)**: ویرایش `parts[]` (عنوان/تاریخ/ساعت/تا/شرح) در ویرایشگر؛ بررسی `EVENT_EDITABLE` شامل `parts` است یا نه |
+| B7 | تاریخ شمسی: تقویم، روز هفته خودکار، همگام‌سازی `on`↔`startsAt`، پایان همراه شروع | ✓ (`dpBox`, `jcal`) | **کامل** | `ctWeekday`, `ctSyncDates`, تقویم `[data-ctdp]` | — | — | کد `e859c0a`+`b45e4ba` · آزمون admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/B7-calendar.png`, `B7-calendar-mobile.png` + `stage-ab-results.json` | — | بسته |
+| B8 | ساعت ۲۴ با دونقطهٔ خودکار، مدت خودکار | ✓ | **کامل (دونقطه)** | `ctTimeFix` (۴ رقم زنده / ناقص‌ها در blur) | — | — | کد `e859c0a`+`b45e4ba` · آزمون admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/stage-ab-results.json` (B8: `1030`→`10:30`؛ بدون تصویر جدا) | «مدت خودکار» نیست (مدل مدت ندارد) | بسته؛ مدت = تصمیم‌نشده (P3) |
+| B9 | ردیف جلسه‌ها (هر جلسه تاریخ/ساعت) | `sessRows` | **کامل** | `ctPartsBox`, `ctPartsFrom` | `parts[]` در `EVENT_EDITABLE` (≤۸۰، 422 `invalid_parts`) | `ev_create` | کد `8040cea`+`e859c0a` · آزمون pytest `test_event_parts_*` + admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/B9-parts-editor.png`, `B9-public-event.png` | — | بسته |
 | B10 | ظرفیت/قیمت | ✓ | کامل | `cap`, `price` | — | — | pytest | ظرفیت رویداد ≠ ظرفیت فرم (تصمیم ۸) | ثبت تصمیم |
 | B11 | مدرس/نهاد همکار با شناسه | چیپ‌های `data-wtchr`, ساخت درجا | کامل | `PK`/`ctPicker` | `GET /api/public/site-content`; B1 سروری | `ev_create` + `unknown_reference` در `build_record` | jsdom مرحلهٔ ۲ · مرورگر `stage2-*` | «ساخت درجا» نیست؛ میان‌بر به ویرایشگر افراد (فقط مالک) هست | B-P2: ساخت درجا = ناوبری به H1 با بازگشت؛ قابل قبول |
 | B12 | فرم ثبت‌نام متصل از ویرایشگر | برگهٔ انتخاب از انبار + «ساختن در فرم‌ساز» | کامل | `ctEventForms`, `create.html?ev=` | `GET /api/forms`; `forms.ev` سروری | `fm_create` | admin-phase2 (B4) · مرورگر `fix-b4-*` | «انتخاب فرم موجود از برگه» نیست؛ فرم با `ev` خودش وصل می‌شود | B-P2: کافی (فرم خود `ev` را دارد) |
 | B13 | ثبت‌نام‌کنندگان/حضور/گواهی از پروندهٔ رویداد | تب‌های `reg/att/cert` | کامل | `eiHeader` `data-ei-jump-attendance/cert` | `attendance/forms?q=`, `certificates?event=` | `attendance`, `certificate` | admin-restore · مرورگر `08-ei-*` | پرش به بخش کاربران به‌جای تب درجا | حفظ |
 | B14 | منابع/ضبط/پرسش/دیدگاه/گزارش/سفارش | تب‌های `media/news/survey/money` | کامل | `EI`, `REC` | `/api/admin/events/{id}/*` | `ev_create`/`ev_publish`/`receipt_approve` | pytest EI/REC · مرورگر | نظرسنجی مدل ندارد؛ «اطلاع‌رسانی دستی» endpoint ندارد | مسدود (تصمیم ۳) |
 | B15 | پوستر: آپلود/URL | گالری + تم کارت | کامل | `CM` | `POST /api/admin/media` | `pr_media`/`ev_create` | admin-phase3 · مرورگر | گالری/تم نیست | B-P2 |
-| B16 | کپی/تکثیر رویداد | `copyev` | غایب | — | همان POST | `ev_create` | — | — | **B-P1 (S)**: «تکثیر» = `ctBlank` پر از رکورد (بدون id/وضعیت/تاریخ) → ذخیرهٔ تازه با تأیید |
-| B17 | پیش‌نویس محلی هنگام تایپ | `S.wiz` در `localStorage` | غایب | — | — | — | — | رفرش = از دست رفتن | **B-P1 (S)**: نگه‌داشتن فرم ویرایشگر در `sessionStorage` با کلید رکورد؛ بازیابی با پرسش؛ هرگز به‌عنوان دادهٔ سرور نمایش داده نشود |
+| B16 | کپی/تکثیر رویداد | `copyev` | **کامل** | `[data-ct-dup]` → `ctBlank` پر، بدون id/وضعیت/تاریخ | همان POST | `ev_create` | کد `e859c0a` · آزمون admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/B16-duplicate.png` | — | بسته |
+| B17 | پیش‌نویس محلی هنگام تایپ | `S.wiz` در `localStorage` | **کامل** | `ctDraftSave`/`ctDraftBanner` در `sessionStorage` با کلید حساب+رکورد | — | — | کد `e859c0a` · آزمون admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/B17-draft-banner.png` | هرگز به‌جای دادهٔ سرور نشان داده نمی‌شود | بسته |
 | B18 | تاریخچهٔ نسخه‌ها | `S.evHist` | مسدود | — | سرور فقط `version/updated_at`؛ حسابرسی `content.*` در audit | — | — | — | تصمیم: جدول تاریخچه |
 | B19 | یادآورها (بله/پیامک) | `remRows` | مسدود | — | مدل/زمان‌بند/سرویس نیست | — | — | — | تصمیم ۳ |
-| B20 | مطالب: فهرست، ویرایشگر، نویسندهٔ پروفایلی + میهمان، دسته، تصویر، وضعیت | ویرایشگر بلوکی دوگامی | ناقص | `ctEditor` (articles) | `content/articles` | `ev_create` | admin-phase2 · مرورگر `stage2-06` | بدنه = بندهای متنی؛ بلوک‌های عکس/ویدیو/نقل‌قول نیست (صفحهٔ عمومی `post.html` چه بلوک‌هایی می‌خواند باید بررسی شود) | B-P1 (M): بلوک‌های سادهٔ پشتیبانی‌شدهٔ `post.html` (تیتر/نقل‌قول/تصویر/ویدیو با منبع معتبر) فقط اگر مدل `body` آن‌ها را می‌پذیرد؛ وگرنه ثبت تصمیم |
+| B20 | مطالب: فهرست، ویرایشگر، نویسندهٔ پروفایلی + میهمان، دسته، تصویر، وضعیت، **بدنهٔ بلوکی** | ویرایشگر بلوکی دوگامی | **کامل (بلوک‌های p/h/q/img/ul/ol/box/hr)** | `ctBlocksBox`, `ctBlocksFrom`, `ctBlocksPayload`; عمومی `post.html` + `public-data.js` | `blocks` در `ARTICLE_EDITABLE` (422 `invalid_blocks`/`invalid_image`؛ `body` از بلوک‌های p مشتق) | `ev_create` | کد `01fe58a`+`57de428` · آزمون pytest `test_article_blocks_*` + admin-phase2 (B20) + post/smoke سبز · مرورگر `evidence/panel-reference-2026-10-23/B20-block-editor.png`, `B20-public-post.png`, `stage-b20-results.json` (۷/۷) | **نقص یافت‌شده در مرورگر و رفع‌شده:** مطلب body-فقط در حالت سرور بدنهٔ خالی داشت؛ فهرست‌های `ul/ol` در `public-data.js` رشته می‌شدند. ویدیو/صدا/فایل/پیوند بیرونی عمداً نیست (نیازمند تصمیم منبع معتبر) | بسته؛ رسانهٔ ویدیویی = تصمیم مالک |
 | B21 | پیش‌نمایش مطلب در `post.html` پیش از انتشار | ✓ | ناقص | پیش‌نمایش کارت در ویرایشگر | صفحهٔ عمومی فقط منتشرشده | — | — | پیش‌نویس در `post.html` دیده نمی‌شود | B-P2: پیش‌نمایش سروری نیازمند endpoint پیش‌نمایش مالک؛ تصمیم |
 | B22 | برچسب‌ها/دسته‌ها/تقویم/قالب مطلب/دکمه‌های خانه (`skdevView`) | ✓ | نمایشی | — | مدل پیکربندی سایت نیست | مالک | — | — | مسدود (خارج از v1) |
 | B23 | رسانه‌ها: فهرست با وضعیت استفاده | — | کامل | `cmPanel` | `GET /api/admin/media` | `pr_media` | admin-phase3 | — | حفظ |
@@ -88,7 +88,7 @@
 | C2 | پروندهٔ کاربر: اطلاعات/هویت‌ها/نقش | تب اطلاعات | کامل | `serverUserDetail` | `GET /api/admin/users/{id}` | `us_view`; ایمیل فقط مالک (سرور) | admin-phase2 · مرورگر | — | حفظ |
 | C3 | ثبت‌نام‌ها + جزئیات پاسخ (ماسک، همراهان، فیش، حضور، مالی با مجوز) | تب رویدادها و فرم‌ها | کامل | `UFL`/`uf*` | `…/registrations[/{id}]` | `us_view`; `finance` فقط روی پاسخ سرور | jsdom مرحلهٔ ۳ · مرورگر `stage3-*` (ثبت‌نام رایگان؛ پولی فقط jsdom+pytest) | — | مرورگر با ثبت‌نام پولی: C-P2 (نیازمند دادهٔ آزمایشی) |
 | C4 | اعلان‌های همان حساب | تب پیام‌ها | کامل | `UFL` notifs | `…/notifications` | `us_view` | jsdom · مرورگر | — | حفظ |
-| C5 | تاریخچهٔ حساب (audit) | تب تاریخچه | کامل (مالک) | `serverUserDetail` → پیوند audit با فیلتر | `/api/owner/audit?target=` | `require_owner` | admin-restore | باید در پرونده به‌صورت زبانه بررسی شود (U6 در مرحلهٔ A) | بررسی عملی در C |
+| C5 | تاریخچهٔ حساب (audit) | تب تاریخچه | **کامل (مالک)** | زبانهٔ `hist` در `ufPane` → `ufLoadHist` (فقط `isOwner()`؛ فراخوانی تنبل هنگام باز کردن زبانه) | `GET /api/owner/audit?target_type=account&target_id=` (فیلتر دقیق سمت سرور؛ `target_id` با الگوی محدود، ۴۲۲ روی ورودی بد) | `require_owner` سرور + زبانه فقط برای مالک | کد `43e5150` · آزمون pytest `test_admin_audit_trail` (مجاز/ناموجود/ورودی بد) + admin-phase2 (مالک: خطا→تلاش دوباره→۲ ردیف→خالی؛ مدیر: بدون زبانه و بدون تماس با `/api/owner/*`) سبز · مرورگر `evidence/panel-reference-2026-10-23/C5-account-history.png`, `C5-manager-no-history-tab.png`, `stage-c5-results.json` (۱۱/۱۱: مدیر ۴۰۱، بی‌نشست ۴۰۱) | ادعای قبلی «پیوند audit با فیلتر» نادرست بود: API پارامتر `target` نداشت؛ اکنون افزوده شد. فقط ردیف‌هایی که هدفشان همین حساب است (نقش/ورود مدیر) | بسته |
 | C6 | امتیاز باشگاه از پرونده | تب باشگاه | کامل (فقط‌خواندنی) | `[data-user-club-points]` | `club/points/members/{id}` | `cl_member` | pytest · مرورگر | — | حفظ |
 | C7 | درخواست‌ها (کارتابل) | کاشی درخواست‌ها | کامل | `sharedWorkflowInboxView` | `inbox`, `decision` | `us_approve`/`receipt_approve` | pytest workflows · مرورگر | — | حفظ |
 | C8 | حضور و غیاب | کاشی | کامل | `serverAttendanceView` | `attendance/*` | `attendance` | pytest · مرورگر | — | حفظ |
@@ -103,10 +103,10 @@
 |---|---|---|---|---|---|---|---|---|---|
 | D1 | فهرست فرم‌ها داخل پنل + وضعیت + پیوندها | `vForms` | کامل | `serverFormsView` | `GET /api/forms` | `fm_create`/`fm_responses` | admin-restore · مرورگر `13-forms-*` | — | حفظ |
 | D2 | ساخت/ویرایش در `create.html` با `?ev=` | ✓ | کامل | `create.html` | `POST/PUT /api/forms` | `fm_create`; مالی `finance` | pytest · مرورگر `fix-b4-create-prefilled` | — | حفظ |
-| D3 | اعتبارسنجی `ev` سروری | — | کامل‌ـ‌آزمون | `_require_known_form_event` | 422 `unknown_reference` | سرور | pytest `test_form_event_reference_must_exist_in_site_content` | **رفتار فرم‌ساز در برابر این ۴۲۲ در مرورگر آزموده نشده** | **D-P1**: بررسی `create.html` نگاشت `detail.message`؛ آزمون مرورگر ساخت فرم با `?ev=` معتبر و نامعتبر |
+| D3 | اعتبارسنجی `ev` سروری | — | **کامل** | `_require_known_form_event`; `create.html` پیام فارسی برای 422 `unknown_reference`/`ev` | 422 `unknown_reference` | سرور | کد `a82f422`+`f24522e` · آزمون pytest سبز · مرورگر `evidence/panel-reference-2026-10-23/D3-unknown-ev-422.png`, `stage-d-results.json` (پیام فارسی، چیزی ذخیره نشد، متن تایپ‌شده ماند) | — | بسته |
 | D4 | پاسخ‌ها، جزئیات، CSV | `builder.html` | کامل | `builder.html` | `/responses[?format=csv]` | `fm_responses`, `fm_export`, `finance` | pytest, شواهد `panel-restore/` | xlsx → 422 صادقانه | حفظ |
 | D5 | ظرفیت/صف انتظار/همراهان/بلیت/پرداخت/فیش | ✓ | کامل | فرم‌ساز + `form.html` | مدل فرم | — | pytest فازهای ۷–۹ | — | حفظ |
-| D6 | انتخاب رویداد از فهرست سروری داخل فرم‌ساز | برگهٔ انتخاب رویداد | ناقص | `create.html` فقط `?ev=` | `GET /api/admin/content/events` موجود | `ev_create` | — | بدون `?ev=`، رویداد را باید تایپ کرد یا نمی‌شود وصل کرد | **D-P1 (S)**: انتخاب‌گر رویداد (جست‌وجو، انتخاب با کلیک) در گام اول فرم‌ساز از API؛ بدون `data.js` |
+| D6 | انتخاب رویداد از فهرست سروری داخل فرم‌ساز | برگهٔ انتخاب رویداد | **کامل** | `#evPickBox` در `create.html` (`evPickLoad`/`renderEvPick`؛ جست‌وجوی فارسی، Enter، قطع اتصال، قفل برای فرم منتشرشده) | `GET /api/admin/content/events` (۴۰۱/۴۰۳ → `GET /api/public/site-content` فقط منتشرشده‌ها) | `ev_create` یا عمومی | کد `f24522e` · آزمون خودکار: **ندارد** (هیچ suite jsdom برای `create.html` نیست — ثبت به‌عنوان بدهی) · مرورگر `evidence/panel-reference-2026-10-23/D6-*.png`, `stage-d-results.json` (۱۱/۱۱؛ `ev` در بدنهٔ `POST /api/forms`) | — | بسته با بدهی آزمون jsdom |
 | D7 | وبهوک/گردش کار پیشرفته | ✓ | مسدود | — | مدل نیست | — | — | — | تصمیم |
 
 ### E. کارتابل و اعلان‌ها
@@ -132,7 +132,7 @@
 
 | # | قابلیت | وضعیت | فایل/تابع | API | مجوز | آزمون · شاهد | اختلاف | اقدام |
 |---|---|---|---|---|---|---|---|---|
-| G1 | فهرست سروری افراد: جست‌وجو، ویرایش، ترتیب، پیش‌نمایش، انتشار با تأیید، ۴۰۹، ردیف ردشده | کامل | `PE_SRV` | `GET/PATCH /api/owner/site-content` | `require_owner` + CSRF | jsdom H1 · مرورگر `h1-*` | «رونوشت از پروفایل» نیست؛ عکس فقط URL | G-P2: رونوشت (S)؛ **G-P1 (S)**: بارگذاری عکس با همان `POST /api/admin/media` (موجود) |
+| G1 | فهرست سروری افراد: جست‌وجو، ویرایش، ترتیب، پیش‌نمایش، انتشار با تأیید، ۴۰۹، ردیف ردشده، **عکس** | کامل | `PE_SRV`; عکس: `[data-ppfile]` → `api.uploadAdminMedia` در حالت سرور | `GET/PATCH /api/owner/site-content` + `POST /api/admin/media` (نشانی `/api/public/media/…` در `photo`؛ بدون base64) | `require_owner` + CSRF | کد `d22a431` · آزمون admin-phase3 (G1: فایل غیرتصویری رد، POST با CSRF، نشانی پایدار، بدون PATCH خودکار) سبز · مرورگر: **تأییدنشده** (فقط jsdom) | «رونوشت از پروفایل» هنوز نیست | عکس بسته؛ رونوشت P2 |
 | G2 | نهادهای همکار | کامل | `PP_SRV` | همان | مالک | pytest retention · مرورگر | — | حفظ |
 | G3 | انتخاب در رویداد/مطلب با جست‌وجوی فارسی و Enter | کامل | `PK` | `GET /api/public/site-content` | — | jsdom · مرورگر | — | حفظ |
 | G4 | مدیران (صفحهٔ پشتیبانی) | نمایشی | — | `nora-managers` فقط `localStorage` در طراحی؛ سرور ندارد | — | — | — | مسدود (تصمیم: مدل «تیم پشتیبانی») |
@@ -157,5 +157,40 @@
 ## ۲. برنامهٔ اجرا (ترتیب وابستگی) و معیار اتمام
 A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای دستی, A2 چیپ سلامت) → B (B3 فوکوس خطا, B8 ساعت, B7 تاریخ/روز هفته/همگام‌سازی, B16 تکثیر, B17 پیش‌نویس محلی, B9 جلسه‌ها اگر مدل اجازه دهد, B2 قالب‌ها) → C (C5 بررسی زبانهٔ تاریخچه) → D (D3 مرورگر `create.html` با ۴۲۲, D6 انتخاب‌گر رویداد) → E (E3 بسته: مجوز retry = `ev_publish` نوشتنی) → F (F1 نمودار ساده) → G (G1 عکس با media) → H (grep نهایی). هر بخش: کامیت کوچک + آزمون jsdom/pytest + مرورگر روی DB آزمایشی + به‌روزرسانی همین سند (بخش ۳).
 
-## ۳. وضعیت اجرا
-EXEC_PLACEHOLDER
+## ۳. وضعیت اجرا (به‌روزشده تا `43e5150` — 2026-10-23)
+
+سه سطح جدا برای هر مورد: **کد** (کامیت) / **آزمون خودکار** (suite و نتیجهٔ واقعی) / **مرورگر** (کرومیوم روی سرور آزمایشی `127.0.0.1:8000` با DB آزمایشی `/home/user/nora-preview`؛ شواهد در `evidence/panel-reference-2026-10-23/`). «—» یعنی انجام نشده و ادعایی هم نیست.
+
+| ردیف | موضوع | کد | آزمون خودکار | مرورگر |
+|---|---|---|---|---|
+| A7 | تأیید پیش از اجرای دستی انتشار زمان‌بندی‌شده | `ea95403` | admin.test ۸۱۷/۰، admin-restore ۵۰/۰ | ✓ `stage-ab-results.json` (A7؛ انصراف = بدون POST) |
+| A8 | مسیرهای `#money/#club/#att/#reports` به مقصد واقعی مجاز | `ea95403` | admin.test سبز | ✓ `A8-money-orders.png`, `A8-club.png`, `stage-ab-results.json` |
+| B2 | قالب‌های شروع رویداد | `e859c0a`, `b45e4ba` | admin-phase2 «قبول» | ✓ `stage-ab-results.json` (B2) |
+| B3 | فوکوس روی اولین خطای ۴۲۲ | `e859c0a` | admin-phase2 | ✓ `B3-focus-error.png` |
+| B7 | تقویم شمسی، روز هفته، همگام‌سازی تاریخ | `e859c0a`, `b45e4ba` | admin-phase2 | ✓ `B7-calendar.png`, `B7-calendar-mobile.png` |
+| B8 | دونقطهٔ خودکار ساعت | `e859c0a`, `b45e4ba` | admin-phase2 | ✓ `stage-ab-results.json` (B8) |
+| B9 | جلسه‌ها (`parts`) | `8040cea`, `e859c0a` | pytest content_admin ۱۱ passed؛ admin-phase2 | ✓ `B9-parts-editor.png`, `B9-public-event.png` |
+| B16 | تکثیر رویداد | `e859c0a` | admin-phase2 | ✓ `B16-duplicate.png` |
+| B17 | پیش‌نویس محلی زبانه | `e859c0a` | admin-phase2 | ✓ `B17-draft-banner.png` |
+| B20 | ویرایشگر بلوکی مطلب + نمایش عمومی | `01fe58a`, `57de428` | pytest `test_article_blocks_*`؛ admin-phase2 (B20)؛ post ۱۰۴/۰؛ smoke ۸۰۸/۰ | ✓ `B20-block-editor.png`, `B20-public-post.png` (۷/۷ در `stage-b20-results.json`) |
+| C5 | تاریخچهٔ حساب در پروندهٔ کاربر (مالک) | `43e5150` | pytest `test_admin_audit_trail` ۴ passed؛ admin-phase2 (مالک + مدیر) | ✓ `C5-account-history.png`, `C5-manager-no-history-tab.png` (۱۱/۱۱) |
+| D3 | پیام فارسی ۴۲۲ `unknown_reference(ev)` در فرم‌ساز | `f24522e` | pytest (سرور) | ✓ `D3-unknown-ev-422.png` |
+| D6 | انتخاب‌گر رویداد در فرم‌ساز | `f24522e` | — (بدون suite برای `create.html`؛ بدهی) | ✓ `D6-picker-open.png`, `D6-picked.png`, `D6-saved.png` (۱۱/۱۱ در `stage-d-results.json`) |
+| G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | — (تأییدنشده در مرورگر) |
+
+### نقص‌هایی که فقط در مرورگر پیدا شدند (و رفع شدند)
+- `b45e4ba`: `ctTimeFix` هنگام تایپ «۱» کاربر را قفل می‌کرد؛ قالب، پیش‌فرض خالی را رونویسی می‌کرد؛ تقویم روی ماه جاری باز می‌شد نه ماه رویداد.
+- `01fe58a`: مطلبِ ساخته‌شده از پنل (فقط `body`) در `post.html` حالت سرور **بدنهٔ خالی** داشت؛ فهرست‌های `ul/ol` در `public-data.js` به رشته تبدیل می‌شدند.
+- `43e5150`: ادعای ماتریس قبلی (C5 «کامل») نادرست بود — API فیلتر `target` نداشت.
+
+### رگرسیون اجراشده پس از آخرین تغییر (`43e5150`)
+- Node (هر فایل جدا، `timeout 280`): admin.test ۸۱۷/۰ · admin-phase2 قبول · admin-phase3 قبول · admin-rbac قبول · admin-restore ۵۰/۰ · admin-recordings گذشت · asset-audit ۳/۰ · smoke ۸۰۸/۰ · post ۱۰۴/۰ · events-page ۸۹/۰ · support ۱۷۹ · login ۱۰۵/۰ · account ۱۳۴/۰ · builder-purchase و form-purchase سبز · public-data-banner و site-content-sync سبز. (کل ۳۷ فایل یک‌جا اجرا نشد؛ فقط موارد مرتبط.)
+- pytest SQLite: `test_content_admin_api` + `test_site_content*` ۲۰ passed؛ `test_admin_audit_trail` ۴ passed. **کل مجموعهٔ pytest پس از `43e5150` اجرا نشده** (آخرین اجرای کامل: تنهٔ `a82f422`، ۳۷۰ passed/۴ skipped).
+- mypy: `PASS types` (۷۳ فایل).
+- PostgreSQL و ربات: **تأییدنشده** (محیط ندارد).
+
+### باقی‌مانده‌ها به ترتیب اولویت (باگ/مسیر ناقص اول)
+1. G1 شاهد مرورگر برای بارگذاری عکس شخص (S).
+2. D6 آزمون jsdom برای `create.html` (بدهی آزمون؛ M).
+3. A2 چیپ سلامت «پیکربندی‌نشده» ≠ «خراب»؛ A6 ظرفیت روی کارت رویداد نزدیک؛ B1 صافی زمانی؛ F1 نمودار CSS؛ G1 رونوشت از پروفایل (همه P2).
+4. تصمیم مالک (مستند جدا، مسدودکننده نیست): A12، B14، B18، B19، B22، C1، C9، C11، D7، E4، F5، G4، H5؛ بلوک ویدیو/صدا در مطلب (منبع معتبر)؛ «مدت خودکار» رویداد؛ هوش مصنوعی داخلی (بدون شاهد در طراحی/تاریخچه).
