@@ -7145,11 +7145,11 @@ function ctEventForms(e){
   if(!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
   const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
   const linked=items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access');
-  const q=new URLSearchParams({ev:String(e.id),need:'reg',name:String(e.form.t||''),back:'admin.html'}); if(e.form.cap) q.set('cap',String(e.form.cap));
+  const back=ctEditBack(e.id), q=new URLSearchParams({ev:String(e.id),need:'reg',name:String(e.form.t||''),back}); if(e.form.cap) q.set('cap',String(e.form.cap));
   const makeBtn=canPerm('fm_create')?`<a class="btn sm ${linked.length?'quiet':'primary'}" href="create.html?${q.toString()}" data-ct-form-create="${esc(String(e.id))}">${ico('i-plus')}${linked.length?'فرم دیگری برای این رویداد':'ساخت فرم ثبت‌نام برای این رویداد'}</a>`:'';
   const rows=linked.map(f=>{const st=FS_STATUS[f.status]||[f.status||'',''], id=encodeURIComponent(String(f.id||''));
     return `<div class="admlirow" data-ct-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''}</small></span>${tag(st[0],st[1])}
-      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}).join('');
+      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}&back=${encodeURIComponent(back)}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}).join('');
   const body=FORMS_SRV.loading&&!FORMS_SRV.loaded?`<small class="cap">در حال دریافت فرم‌های سرور…</small>`
     :FORMS_SRV.error&&!FORMS_SRV.data?`<small class="cap" style="color:var(--stop)">${esc(FORMS_SRV.error)}</small> ${btn('تلاش دوباره','data-fs-refresh','i-refresh')}`
     :rows||`<small class="cap">هنوز فرمی به این رویداد وصل نیست؛ تا فرم ثبت‌نامِ منتشرشده نباشد، دکمهٔ ثبت‌نام در صفحهٔ رویداد باز نمی‌شود.</small>`;
@@ -7429,6 +7429,7 @@ function ctEditor(){
     ${e.id?`<p class="cap">شناسه: <span dir="ltr">${esc(e.id)}</span>${e.updated_at?' · آخرین تغییر: '+esc(svcWhen(e.updated_at)):''}${status==='published'?' · این رکورد الان در سایت دیده می‌شود؛ ذخیره بلافاصله صفحهٔ عمومی را تغییر می‌دهد.':''}</p>`:''}
     ${e.copyOf?`<p class="cap" data-ct-copy-of="${esc(e.copyOf.id)}">رونوشت از «${esc(e.copyOf.t)}»؛ هنوز ذخیره نشده و تا ذخیره، رکورد تازه‌ای در سرور نیست. تاریخ‌ها و فرم ثبت‌نام را برای رویداد تازه بازبینی کن.</p>`:''}
     ${ctDraftBanner(e)}
+    ${e.restored?`<p class="cap" data-ct-restored role="status" style="border-inline-start:3px solid var(--warn);padding-inline-start:8px">${ico('i-refresh')} متن تایپ‌شدهٔ پیش از رفتن به فرم‌ساز بازیابی شد؛ هنوز در سرور ذخیره نشده است؛ با «ذخیرهٔ تغییرها» ثبت می‌شود یا با «انصراف» کنار می‌رود.</p>`:''}
     ${e.formError?`<p class="cap" style="color:var(--stop)" role="alert" tabindex="-1" data-ct-form-error>${esc(e.formError)}</p>`:''}
     ${isNew?'':chTabs('content.'+kind,e.id,'ویرایش')}
     ${inTabs?chPanel():''}
@@ -7463,7 +7464,7 @@ function ctJump(target){
   if(CT_MORE_LABEL[target]){e.more=e.more||{}; e.more[target]=true}
   if(target==='review') e.previewOpen=true;
   renderBody();
-  const sel=CT_MORE_LABEL[target]?`[data-ct-more="${target}"]`:`[data-ct-sec="${target}"]`;
+  const sel=CT_MORE_LABEL[target]?`[data-ct-more="${target}"]`:target==='when'?'[data-ct-when-row]':target==='notify'?'[data-ct-rem-step],[data-ct-sec="review"]':`[data-ct-sec="${target}"]`;
   const box=document.querySelector(sel); if(box&&typeof box.scrollIntoView==='function'){try{box.scrollIntoView({block:'start',behavior:'smooth'})}catch(_){}}
   const first=box&&box.querySelector('input:not([type=hidden]):not([type=file]),select,textarea'); if(first&&typeof first.focus==='function'){try{first.focus({preventScroll:true})}catch(_){}}
 }
@@ -7476,6 +7477,23 @@ const CT_MODES=[['حضوری','حضوری'],['آنلاین','آنلاین'],['ت
 function ctModeKind(mode){const t=String(mode||'').trim(); if(!t) return ''; if(t==='ترکیبی') return 'hybrid'; const on=/آنلاین|برخط|مجازی|online|وبینار/i.test(t), here=/حضوری|سالن|onsite/i.test(t); if(on&&here) return 'hybrid'; if(on) return 'online'; if(t==='حضوری'||here) return 'onsite'; return 'other'}
 function ctModeOptions(mode){const t=String(mode||'').trim(); const std=CT_MODES.some(([v])=>v===t); const opts=[]; if(!t) opts.push(['','انتخاب کن…']); if(t&&!std) opts.push([t,'فعلی: '+t]); return opts.concat(CT_MODES)}
 function ctModeLabel(mode){const k=ctModeKind(mode); return k==='hybrid'?'ترکیبی':k==='online'?'آنلاین':k==='onsite'?'حضوری':String(mode||'').trim()}
+/* نوار پنج گام (مسیر تعریف رویداد): فقط پرش و وضعیت؛ همهٔ فیلدها همیشه در همین صفحه‌اند تا هیچ متنی گم نشود */
+function ctStepRail(e){
+  const f=e.form||{}, err=e.errors||{}, past=!!f.past, mk=ctModeKind(f.mode), linked=ctLinkedForms(e), regs=linked.filter(x=>x.need==='reg'&&x.status!=='archived');
+  const has=v=>!!String(v==null?'':v).trim();
+  const steps=[
+    ['main','مشخصات و پوستر',has(f.t)&&has(f.poster)?'done':has(f.t)?'part':'',err.t||err.poster||err.d?'err':''],
+    ['when','زمان و مکان',has(f.on)&&(mk==='online'?has(f.joinUrl):has(f.place))?'done':has(f.on)||has(f.place)?'part':'',err.on||err.time||err.place||err.joinUrl||err.mode||err.startsAt||err.endsAt?'err':''],
+    ['reg','ثبت‌نام و فرم‌ها',past?'done':regs.length?'done':'',err.cap||err.regClosesAt||err.regMode?'err':''],
+    ['notify','صفحه و اطلاع‌رسانی',past?'done':(f.remH24||f.remH1)?'done':'',err.reminders?'err':''],
+    ['review','مرور و ذخیره','','']];
+  const sum={main:[has(f.t)?'عنوان دارد':'بدون عنوان',has(f.poster)?'پوستر دارد':'بدون پوستر'].join(' · '),
+    when:[has(f.on)?fa(f.on):'بدون تاریخ',mk?ctModeLabel(f.mode):'نوع برگزاری؟'].join(' · '),
+    reg:past?'برگزارشده؛ ثبت‌نام ندارد':regs.length?fa(regs.length)+' فرم ثبت‌نام':e.id?'بدون فرم ثبت‌نام':'پس از ذخیره',
+    notify:past?'بدون یادآور':[(f.remH24?'۲۴ ساعت':''),(f.remH1?'۱ ساعت':'')].filter(Boolean).join(' و ')||'یادآور خاموش',
+    review:e.id?(P2_STATUS[e.status]||[e.status||''])[0]:'هنوز ذخیره نشده'};
+  return `<ol class="ctsteps" data-ct-steps aria-label="گام‌های تعریف رویداد">${steps.map(([k,n,st,er],i)=>`<li><button type="button" class="ctstep ${er||st}" data-ct-step="${k}" aria-describedby="ctstep-${k}"><span class="num">${fa(i+1)}</span><span class="tt"><b>${esc(n)}</b><small id="ctstep-${k}" class="cap">${esc(er?'نیاز به اصلاح':sum[k])}</small></span></button></li>`).join('')}</ol>`;
+}
 function ctEventSections(e,imageBox){
   const f=e.form, err=e.errors||{}, isNew=!e.id, mk=ctModeKind(f.mode), past=!!f.past;
   const sec=(key,inner,hint)=>{const row=CT_SECTIONS.find(x=>x[0]===key); return `<section class="card stack ctsec" data-ct-sec="${key}"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="head">${ico(row[2])} ${esc(row[1])}</div><span class="sp"></span>${hint?`<small class="cap">${esc(hint)}</small>`:''}</div>${inner}</section>`};
@@ -7519,7 +7537,7 @@ function ctEventSections(e,imageBox){
   const formCard=`<div class="card stack" data-ct-forms-step style="gap:8px">
     <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم ثبت‌نام</strong><span class="sp"></span><small class="cap">از انبار فرم‌ها؛ فرم‌ساز تنها ویرایشگر فرم است.</small></div>
     ${ctEventForms(e)}
-    ${isNew&&canPerm('fm_create')?`<div class="row tight" style="flex-wrap:wrap">${btn('ذخیرهٔ پیش‌نویس و اتصال فرم',`data-ct-save-stay ${CT.busy?'disabled':''}`,'i-check')}</div>`:''}
+    ${isNew&&canPerm('fm_create')?`<div class="row tight" style="flex-wrap:wrap">${btn('ذخیرهٔ پیش‌نویس و ادامه به فرم ثبت‌نام',`data-ct-save-stay ${CT.busy?'disabled':''}`,'i-check')}</div>`:''}
     ${ctFormLinkPicker(e)}
     ${regState}
   </div>`;
@@ -7552,8 +7570,13 @@ function ctEventSections(e,imageBox){
     ${extraBlock}`,past?'':'فرم، ظرفیت، مهلت و یادآورها');
   /* ── ۳. مرور و ذخیره ── */
   const review=sec('review',ctReviewBody(e),'همه‌چیز از همین فرم و پاسخ سرور');
-  return CT_TIME_LIST+main+reg+review;
+  return CT_TIME_LIST+ctStepRail(e)+main+reg+review;
 }
+/* مسیر بازگشت از فرم‌ساز به همین ویرایشگر و همین بخش (admin.html#edit=<id>&sec=reg&from=builder)؛ فقط نشانی محلی */
+function ctEditBack(id,sec){return 'admin.html#'+new URLSearchParams({edit:String(id),sec:sec||'reg',from:'builder'}).toString()}
+function ctEditHash(){const e=CT.edit; if(!e||!e.id) return ''; return '#'+new URLSearchParams({edit:String(e.id)}).toString()}
+function ctEditHashClear(){if(IS_TEST) return; try{if(/^#edit=/.test(location.hash)) history.replaceState(null,'','#'+(S.sec==='newev'?'events':S.sec||'events'))}catch(err){}}
+function ctParseEditHash(h){const s=String(h||'').replace(/^#/,''); if(!/^edit=/.test(s)) return null; const p=new URLSearchParams(s); const id=String(p.get('edit')||''); if(!/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null; const sec=String(p.get('sec')||''); return {id,sec:/^[a-z]{1,20}$/.test(sec)?sec:'',from:p.get('from')==='builder'}}
 function ctLinkedForms(e){if(!e||!e.id) return []; const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access')}
 /* یک منبع برای ظرفیت و مبلغ: تنظیمات فرم ثبت‌نام (همان چیزی که سرور اعمال می‌کند). ویرایشگر رویداد فقط نمایش می‌دهد؛ مقدار اعلامی قدیمی رویداد بازنویسی نمی‌شود. */
 function ctRegFormSettings(e){
@@ -7561,7 +7584,7 @@ function ctRegFormSettings(e){
   const f=regs.find(x=>x.status==='published')||regs[0], st=f.settings&&typeof f.settings==='object'?f.settings:{}, n=v=>Math.max(0,parseInt(String(v==null?'':v).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)),10)||0);
   const fin=Array.isArray(st.fin)?st.fin.filter(x=>x&&typeof x==='object'):[], req=fin.filter(x=>x.req!==false&&x.req!==0), base=req.reduce((a,x)=>a+Math.floor((n(x.p)*(100-Math.min(100,n(x.off)))+50)/100),0);
   const priceText=!fin.length?'رایگان':(fin.length>req.length?'از ':'')+fa(base.toLocaleString('en-US'))+' ریال';
-  const back='admin.html#'+new URLSearchParams({event:String(e.id),tab:'overview'}).toString();
+  const back=ctEditBack(e.id);
   return {id:f.id,name:f.name||f.title||'فرم ثبت‌نام',status:f.status,cap:n(st.cap),wait:n(st.wait),priceText,href:'create.html?'+new URLSearchParams({fid:String(f.id),back}).toString()};
 }
 /* گام ۴: وصل‌کردن فرمِ موجودِ انبار به همین رویداد (فقط مرجع؛ تعریف فرم در فرم‌ساز می‌ماند). نامزدها از همان GET /api/forms */
@@ -8965,8 +8988,8 @@ function ctStartNew(){
 }
 /* «ثبت رویداد برگزارشده»: همان فرم و همان رکورد؛ فقط پیش‌فرض‌ها (past، ثبت‌نام بسته، یادآور خاموش). وضعیت از تاریخ + قواعد سرور می‌آید */
 function ctPastEntry(){const e=CT.edit; if(!e||e.id||CT.kind!=='events') return; e.form.past=true; e.form.regMode='closed'; e.form.remH24=false; e.form.remH1=false; e.remDefault=false; e.pastEntry=true}
-async function ctOpenEditor(id){
-  const api=window.NORA_SERVER_API;
+async function ctOpenEditor(id,opts){
+  const api=window.NORA_SERVER_API; opts=opts||{};
   CT.dp=null;
   if(!id){ctStartNew(); renderBody(); return}
   CT.busy='load'; renderBody();
@@ -8975,6 +8998,10 @@ async function ctOpenEditor(id){
     const record=result.record||{};
     CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at,registration:record.registration||null,reminders:result.reminders||null};
     CT.edit.draft=ctDraftPeek(); CT.msg=null;
+    /* بازگشت از فرم‌ساز: متن تایپ‌شدهٔ پیش از رفتن (همین زبانه، همین نسخهٔ سرور) بی‌کلیک برمی‌گردد؛ هنوز ذخیره نشده و با «ذخیره» به سرور می‌رود */
+    if(opts.restoreDraft&&CT.edit.draft&&CT.edit.draft.form&&CT.edit.draft.version===CT.edit.version){CT.edit.form=Object.assign(ctEditable(CT.kind,record),CT.edit.draft.form); CT.edit.draft=null; CT.edit.restored=true; CT.msg={kind:'ok',text:'متن تایپ‌شدهٔ پیش از رفتن به فرم‌ساز بازیابی شد؛ هنوز در سرور ذخیره نشده است.'}}
+    if(opts.refreshForms){FORMS_SRV.loaded=false}
+    if(!IS_TEST&&S.sec==='events'&&CT.kind==='events'){try{const h=ctEditHash(); if(h&&location.hash!==h) history.replaceState(null,'',h)}catch(err){}}
   }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای ویرایش دریافت نشد.')}}
   finally{CT.busy=''; renderBody()}
 }
@@ -8993,11 +9020,11 @@ async function ctSave(publish,stay){
     /* گام ۵ ویزارد: «ذخیره و انتشار» برای رکورد موجود = ذخیره، سپس همان مسیر تغییر وضعیت سرور (ev_publish، ممیزی) */
     if(publish&&e.id&&saved.status!=='published'&&typeof api.setAdminContentStatus==='function'){
       try{const st=await api.setAdminContentStatus(CT.kind,e.id,'published',version,staffCsrfCookie()); saved=st.record||saved; version=st.version}
-      catch(error){const fe=error&&error.status===422?p2FieldErr(error):null; CT.msg={kind:'stop',text:`تغییرها ذخیره شد (نسخهٔ ${fa(version)}) ولی انتشار انجام نشد: ${fe?fe.text:p2Err(error,'سرور انتشار را نپذیرفت.')}`}; ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctLoad(); return}
+      catch(error){const fe=error&&error.status===422?p2FieldErr(error):null; CT.msg={kind:'stop',text:`تغییرها ذخیره شد (نسخهٔ ${fa(version)}) ولی انتشار انجام نشد: ${fe?fe.text:p2Err(error,'سرور انتشار را نپذیرفت.')}`}; ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctEditHashClear(); ctLoad(); return}
     }
     const label=(P2_STATUS[saved.status]||[saved.status])[0];
     CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
-    ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset();
+    ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctEditHashClear();
     if(stay&&saved.id){await ctLoad(); await ctOpenEditor(saved.id); if(CT.edit&&CT.edit.id===saved.id) ctJump('reg'); return}
     /* ذخیرهٔ رکورد تازه از «تعریف جدید»: به فهرست همان نوع می‌رویم تا رکورد ذخیره‌شده و پیام موفقیت دیده شود (نه یک فرم خالی دیگر) */
     if(S.sec==='newev'){S.sec='events'; save(); try{history.replaceState(null,'','#events')}catch(err){} setTimeout(()=>{renderNav(); renderBar()},0)}
@@ -9718,7 +9745,7 @@ document.addEventListener('click',e=>{
   if(eiClick(q)) return;
   const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
   if(chClick(q)) return;
-  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; CH.open=false; if(S.sec==='newev'){go('events'); return} renderBody(); return}
+  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; CH.open=false; ctEditHashClear(); if(S.sec==='newev'){go('events'); return} renderBody(); return}
   const ctDup=q('[data-ct-dup]'); if(ctDup){ctDuplicate(ctDup.dataset.ctDup); return}
   const ctTpl=q('[data-ct-template]'); if(ctTpl){ctApplyTemplate(ctTpl.dataset.ctTemplate); return}
   if(q('[data-ct-draft-restore]')){if(CT.edit&&CT.edit.draft){CT.edit.form=Object.assign(ctBlank(CT.kind),CT.edit.draft.form); CT.edit.draft=null; CT.edit.errors={}; renderBody(); toast('متن تایپ‌شدهٔ قبلی برگشت؛ هنوز ذخیره نشده')} return}
@@ -9745,6 +9772,7 @@ document.addEventListener('click',e=>{
     ctDpSet(f,''); CT.dp=null; ctDraftSave(); renderBody(); return}
   const ctJumpBtn=q('[data-ct-jump]'); if(ctJumpBtn&&CT.edit){ctJump(ctJumpBtn.dataset.ctJump); return}
   if(q('[data-ct-preview-toggle]')&&CT.edit){CT.edit.previewOpen=!CT.edit.previewOpen; if(CT.edit.previewOpen) ctJump('review'); else renderBody(); return}
+  const stepBtn=q('[data-ct-step]'); if(stepBtn){ctJump(stepBtn.dataset.ctStep); return}
   if(q('[data-ct-save]')){ctSave(false); return}
   if(q('[data-ct-save-publish]')){ctSave(true); return}
   if(q('[data-ct-save-stay]')){ctSave(false,true); return}
@@ -13013,6 +13041,7 @@ function serverHashRoute(h){
     S.sec='dash'; return true;
   }
   if(efParseHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
+  if(ctParseEditHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
   return false;
 }
 function serverHashAfterRender(h){
@@ -13022,6 +13051,16 @@ function serverHashAfterRender(h){
   }
   else if(h==='club'&&S.sec==='dash') toast('مدیریت باشگاه فقط برای مالک و سرپرست باشگاه باز است');
   else if((h==='att'||h==='attendance')&&S.sec==='dash') toast('حضور و غیاب برای مجوزهای این حساب باز نیست');
+  const ed=ctParseEditHash(h);
+  if(ed){
+    if(S.sec!=='events'){toast('این حساب مجوز دیدن رویدادها را ندارد')}
+    else{
+      if(CT.edit&&CT.edit.id===ed.id&&!ed.from) return;
+      CT.kind='events'; EI.open=false; EI.data=null; CH.open=false;
+      ctOpenEditor(ed.id,{restoreDraft:ed.from,refreshForms:ed.from}).then(()=>{if(CT.edit&&CT.edit.id===ed.id&&ed.sec) ctJump(ed.sec)});
+      return;
+    }
+  }
   const ef=efParseHash(h);
   if(ef){
     if(S.sec!=='events'){toast('این حساب مجوز دیدن رویدادها را ندارد')}

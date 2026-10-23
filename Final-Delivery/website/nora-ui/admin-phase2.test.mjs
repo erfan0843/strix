@@ -690,7 +690,13 @@ console.log('— B4 ممیزی مالک: فرم‌های ثبت‌نام همی�
     assert.equal(href.searchParams.get('ev'), 'ev-a1', 'شناسهٔ رویداد در آدرس فرم‌ساز (بدون تایپ دوباره)');
     assert.equal(href.searchParams.get('need'), 'reg');
     assert.equal(href.searchParams.get('name'), 'کارگاه نگارش');
-    assert.ok(app.doc.querySelector('[data-ct-form-row="f-reg-1"] a[href="create.html?fid=f-reg-1"]'), 'ویرایش فرم در فرم‌ساز');
+    /* مسیر بازگشت فرم‌ساز (msg 97): پیوند ویرایش علاوه بر fid، مقصد بازگشت محلی به همین رویداد/همین بخش را هم می‌برد */
+    const editLink = app.doc.querySelector('[data-ct-form-row="f-reg-1"] a[href^="create.html?fid=f-reg-1"]');
+    assert.ok(editLink, 'ویرایش فرم در فرم‌ساز');
+    const editHref = new URL(editLink.getAttribute('href'), 'http://x/');
+    assert.equal(editHref.searchParams.get('fid'), 'f-reg-1');
+    assert.equal(editHref.searchParams.get('back'), 'admin.html#edit=ev-a1&sec=reg&from=builder', 'بازگشت به ویرایشگر همین رویداد، بخش ثبت‌نام');
+    assert.equal(href.searchParams.get('back'), 'admin.html#edit=ev-a1&sec=reg&from=builder', 'ساخت فرم هم همان مقصد بازگشت را دارد');
     assert.ok(app.doc.querySelector('[data-ct-form-row="f-reg-1"] a[href="builder.html?fid=f-reg-1#responses"]'), 'پاسخ‌های فرم');
     app.click('[data-ct-cancel]');
     await app.until(() => app.doc.querySelector('[data-ct-row="ev-b2"]'), 'بازگشت');

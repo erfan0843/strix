@@ -938,6 +938,21 @@ if(QS.get('purpose')==='recording_access'&&SAFE_ID(QS.get('recording'))){
   if(QS.get('back')&&!S.back) S.back=QS.get('back');
 }
 const isPurchaseForm=()=>S.purpose==='recording_access';
+/* زمینهٔ رویداد: فرم‌ساز از ویرایشگر رویداد (admin.html#edit=…) یا پروندهٔ رویداد (admin.html#event=…) باز شده است.
+   مقصد بازگشت فقط نشانی محلی همین پنل است؛ پارامتر URL نمی‌تواند به بیرون یا دور زدن مجوز ببرد. */
+const eventReturnHref=()=>{const back=localPageHref(S.back); return back&&/^admin\.html#(?:edit|event)=/.test(back)?back:''};
+const eventReturnLabel=()=>/^admin\.html#event=/.test(eventReturnHref())?'بازگشت به پروندهٔ رویداد':'بازگشت به تعریف رویداد';
+function syncSaveButtonLabel(){
+  const b=document.getElementById('publish'); if(!b) return;
+  const ctx=eventReturnHref(), icon='<svg class="i"><use href="#i-check"/></svg> ';
+  b.innerHTML=icon+(ctx?'ذخیره و بازگشت به رویداد':'ذخیرهٔ پیش‌نویس در سرور');
+  b.title=ctx?'فرم در سرور ذخیره می‌شود و فقط پس از تأیید سرور به همان رویداد برمی‌گردی':'';
+}
+/* پس از نخستین ذخیرهٔ موفق، شناسهٔ فرم در نشانی می‌نشیند تا رفرش همین فرم را باز کند (نه فرم تکراری) و زمینهٔ بازگشت بماند */
+function pinFormIdInUrl(id){
+  if(TEST_FIXTURE_MODE||!SAFE_ID(id)) return;
+  try{const url=new URL(location.href); if(url.searchParams.get('fid')===String(id)) return; url.searchParams.set('fid',String(id)); url.searchParams.delete('hydrated'); history.replaceState(null,'',url.toString())}catch(err){}
+}
 function enforcePurchaseFormRules(){
   if(!isPurchaseForm())return;
   S.model='registration'; S.need='reg'; S.guestsOn=false; S.ticketingEnabled=false; S.maxPer=1;
@@ -949,7 +964,7 @@ function enforcePurchaseFormRules(){
    رابطی برای وصل‌کردن فرم ثبت‌نام به رویداد سروری وجود نداشت (فهرست رویدادهای builder در حالت واقعی خالی است). */
 if((TEST_FIXTURE_MODE||!isPurchaseForm())&&(QS.get('ev')||QS.get('name'))){
   S.evId=TEST_FIXTURE_MODE?(QS.get('ev')||''):SAFE_ID(QS.get('ev'));
-  S.back=QS.get('back')||'';
+  S.back=TEST_FIXTURE_MODE?(QS.get('back')||''):localPageHref(QS.get('back'));
   const nm=QS.get('name')||'';
   if(nm) S.title=(QS.get('title')||(NEED[S.need]||'فرم')+' '+nm);
   if(QS.get('cap')) S.cap=NR(QS.get('cap'));
@@ -1108,11 +1123,13 @@ function evHeadFill(){
   if(ec){
     const linked=!!(S.evId||nm), fromEventFile=/^admin\.html#event=/.test(String(S.back||''));
     ec.hidden=!linked&&!fromEventFile&&!TEST_FIXTURE_MODE;
-    ec.textContent=fromEventFile&&!TEST_FIXTURE_MODE?'بازگشت به پروندهٔ رویداد':linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):(nm?'رویداد: '+nm:'رویداد متصل: '+S.evId)
+    const fromEditor=/^admin\.html#edit=/.test(String(S.back||''));
+    ec.textContent=(fromEventFile||fromEditor)&&!TEST_FIXTURE_MODE?eventReturnLabel():linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):(nm?'رویداد: '+nm:'رویداد متصل: '+S.evId)
       :'فرم نمونه از دل رویداد';
     if(S.back){const back=localPageHref(S.back); if(back) ec.setAttribute('href',back); else {ec.removeAttribute('href');ec.setAttribute('aria-disabled','true')}}
     else if(!TEST_FIXTURE_MODE) ec.removeAttribute('href');
   }
+  if(!TEST_FIXTURE_MODE) syncSaveButtonLabel();
 }
 const STEPS=[{k:'s1',n:'مدل و نام'},{k:'s2',n:'فیلدها و تنظیمات'},{k:'s3',n:'مالی و پرداخت'},{k:'s4',n:'مرور و ذخیرهٔ پیش‌نویس'}];
 const HINT={s1:'مدل را بزنید، بعد نام و نشانی را تأیید کنید',s2:'فیلدها را بچینید؛ تنظیمات همین‌جا کنارشان است',
@@ -2402,9 +2419,17 @@ async function saveServerDraft(row){
     let mirrored=false;
     try{mirrored=!!(window.NORA_UI&&typeof NORA_UI.formPut==='function'&&NORA_UI.formPut(saved))}catch(e){mirrored=false}
     $('#doneCard').style.display='block';
-    const back=localPageHref(S.back);
-    $('#doneLink').innerHTML=back?`<a class="btn sm" href="${esc(back)}">بازگشت</a>`:'';
+    pinFormIdInUrl(saved.id);
+    const back=localPageHref(S.back), ctx=eventReturnHref();
+    $('#doneLink').innerHTML=back?`<a class="btn sm" href="${esc(back)}" data-return-link>${esc(ctx?eventReturnLabel():'بازگشت')}</a>`:'';
     updateDoneCard(saved,mirrored);
+    if(ctx){
+      /* ذخیره در سرور تأیید شد (پاسخ ۲۰۰ با نسخه)؛ حالا به همان رویداد و همان بخش برمی‌گردیم. اگر ذخیره شکست بخورد به این‌جا نمی‌رسیم و فرم‌ساز با همهٔ داده‌ها می‌ماند. */
+      toast('فرم ذخیره شد؛ بازگشت به رویداد…');
+      setOwnerApiState('ذخیره شد','نسخهٔ '+faN(saved.version)+' در سرور ثبت شد؛ در حال بازگشت به رویداد.');
+      setTimeout(()=>{try{location.assign(ctx)}catch(err){}},700);
+      return;
+    }
     const editorRole=editorSession.role==='owner'?'مالک':editorSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
     setOwnerApiState('آمادهٔ ذخیره','دسترسی سروریِ '+editorRole+' تأیید شد. فرم با نسخهٔ '+faN(saved.version)+' در سرور ذخیره شد؛ وضعیت: '+saved.status+'.');
     ownerLoginPanel(false);
