@@ -6852,7 +6852,7 @@ async function ctLoad(){
 function ctStatusLabel(status){const row=P2_STATUS[status]||[status,'']; return tag(row[0],row[1])}
 function ctRefMeta(field,id){if(!id) return ''; if(!PK.loaded) return (field==='partnerId'?'نهاد: ':'مدرس: ')+id; const n=pkName(field,id); return n?(field==='partnerId'?'نهاد: ':'مدرس: ')+n:(field==='partnerId'?'نهاد ناموجود: ':'مدرس ناموجود: ')+id}
 function ctEventMeta(item){
-  return [item.kind,item.on||item.when,item.time,item.place,item.mode,item.price?fa(item.price)+' ریال':'',item.cap?'ظرفیت '+fa(item.cap):'',item.cert?'گواهی':'',item.past?'برگزارشده':'',ctRefMeta('tchr',item.tchr),ctRefMeta('partnerId',item.partnerId)]
+  return [item.kind,item.on||item.when,item.time,item.place,item.mode,item.price?fa(item.price)+' ریال':'',item.registration?ctRegMeta(item):(item.cap?'ظرفیت اعلامی '+fa(item.cap):''),item.cert?'گواهی':'',item.past?'برگزارشده':'',ctRefMeta('tchr',item.tchr),ctRefMeta('partnerId',item.partnerId)]
     .filter(Boolean).join(' · ');
 }
 function ctArticleMeta(item){
@@ -9581,13 +9581,22 @@ function dashxQueueCard(){
     <p class="cap">«؟» یعنی این شمارش هنوز از سرور نرسیده یا مجوز آن برای حساب شما فعال نیست؛ عدد نمونه جایگزین نمی‌شود.</p></section>`;
 }
 /* رویدادهای پیش رو از /api/admin/content/events (status=published) با زمان سرور */
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A6): ظرفیت/ثبت‌نام روی کارت رویداد از فرم ثبت‌نام منتشرشدهٔ متصل (پاسخ سرور item.registration؛ شمارش واقعی form_responses). بدون فرم = گفتن صریح، نه عدد. */
+function ctRegMeta(item,opts){
+  const r=item&&item.registration; const long=!!(opts&&opts.long);
+  if(r===undefined) return '';
+  if(!r) return long?'بدون فرم ثبت‌نام منتشرشده':'';
+  const parts=[(r.cap>0?'ظرفیت '+fa(r.cap):'ظرفیت آزاد'),'ثبت‌نام قطعی '+fa(r.accepted)].concat(r.waitlisted>0?['در انتظار '+fa(r.waitlisted)]:[]);
+  return parts.join(' · ')+(r.full?' · تکمیل':'');
+}
+function ctRegTag(item){const r=item&&item.registration; if(!r) return ''; return r.full?tag('ظرفیت تکمیل','warn'):(r.cap>0&&r.accepted>=Math.max(1,Math.floor(r.cap*0.8))?tag('نزدیک به تکمیل','warn'):'')}
 function dashxUpcomingCard(){
   if(!canSec('events')) return '';
   const d=DASHX.upcoming; const now=Date.parse(d&&d.server_now||'')||Date.now();
   const items=d&&Array.isArray(d.items)?d.items.filter(e=>e&&!e.past&&(!e.startsAt||Date.parse(e.startsAt)>=now-3600e3)).slice(0,5):[];
   const rows=items.map(e=>`<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
-    <span class="sp" style="flex:1 1 180px"><b>${esc(e.t||e.id)}</b><small class="cap">${esc([e.on||e.when,e.time,e.place,e.mode].filter(Boolean).join(' · '))}</small></span>
-    ${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
+    <span class="sp" style="flex:1 1 180px"><b>${esc(e.t||e.id)}</b><small class="cap">${esc([e.on||e.when,e.time,e.place,e.mode].filter(Boolean).join(' · '))}</small>${e.registration!==undefined?`<small class="cap" data-dashx-reg="${esc(e.id)}" title="${e.registration?'از پاسخ‌های فرم «'+esc(e.registration.form_name||'')+'» روی سرور':'فرم ثبت‌نام منتشرشده‌ای به این رویداد وصل نیست'}">${esc(ctRegMeta(e,{long:true}))}</small>`:''}</span>
+    ${ctRegTag(e)}${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
     <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events">${ico('i-pen')}</button></div>`).join('');
   const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
   return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور','ok')}

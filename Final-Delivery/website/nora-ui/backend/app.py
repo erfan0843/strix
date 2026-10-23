@@ -2466,6 +2466,44 @@ def create_app(
             .limit(1)
         ) is not None
 
+    def _content_registration_summary(db: Session, kind: str, item: dict[str, Any]) -> dict[str, Any] | None:
+        """Panel audit 1405/08/01 (A6): capacity/registered for an event card, from the primary linked
+        published registration form (same rule as the public snapshot) and real ``form_responses``
+        counts. Aggregates only (no registrant data). ``None`` when no published form is linked."""
+        if kind != "events":
+            return None
+        event_id = str(item.get("id") or "")
+        if not event_id:
+            return None
+        declared = [str(form.get("id") or "") for form in (item.get("forms") or []) if isinstance(form, dict)]
+        candidates = db.scalars(
+            select(FormRecord)
+            .where(FormRecord.status == "published", FormRecord.need == "reg", FormRecord.purpose == "registration")
+            .where(or_(FormRecord.event_id == event_id, FormRecord.id.in_(declared)) if declared else FormRecord.event_id == event_id)
+        ).all()
+        primary = None
+        for form in candidates:
+            if _form_is_purchase(form) or (form.event_id and str(form.event_id) != event_id):
+                continue
+            if primary is None or (form.id in declared and primary.id not in declared):
+                primary = form
+        if primary is None:
+            return None
+        settings_value = primary.settings if isinstance(primary.settings, dict) else {}
+        accepted, waitlisted = _response_counts(db, primary.id)
+        cap = _count_setting(settings_value.get("cap", 0))
+        wait = _count_setting(settings_value.get("wait", 0))
+        return {
+            "form_id": primary.id,
+            "form_name": primary.title,
+            "accepted": accepted,
+            "waitlisted": waitlisted,
+            "cap": cap,
+            "wait": wait,
+            "full": _capacity_is_full(primary, accepted, waitlisted),
+            "source": "form_responses",
+        }
+
     def _content_record_response(
         record: SiteContentRecord, kind: str, row: dict[str, Any], *, saved: bool = False, db: Session | None = None
     ) -> dict[str, Any]:
@@ -2527,6 +2565,9 @@ def create_app(
             )
         except content_admin_mod.ContentAdminError as error:
             raise _content_error(error) from None
+        if kind == "events":
+            for item in result["items"]:
+                item["registration"] = _content_registration_summary(db, kind, item)
         role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         result.update({
             "kind": kind,

@@ -839,3 +839,61 @@ def test_events_time_filter_is_judged_on_the_server_calendar_day():
             assert anonymous.get("/api/admin/content/events?when=past").status_code == 401
     finally:
         engine.dispose()
+
+
+def test_events_list_carries_real_registration_counts_from_the_linked_published_form():
+    """Panel audit 1405/08/01 (A6): the admin events list reports capacity/accepted/waitlisted of the
+    primary linked published registration form from ``form_responses`` (aggregates only); events
+    without a published registration form get ``registration: null`` (never a guessed number)."""
+    import uuid
+    from datetime import datetime, timedelta, timezone
+
+    from backend.models import FormRecord, FormResponseDraftRecord, FormResponseRecord
+
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            created = client.post(
+                "/api/admin/content/events",
+                json={"record": dict(EVENT, t="با فرم"), "expected_version": 0, "status": "published"},
+                headers=owner_write_headers(client),
+            )
+            assert created.status_code == 200, created.text
+            event_id = created.json()["record"]["id"]
+            version = created.json()["version"]
+            bare = client.post(
+                "/api/admin/content/events",
+                json={"record": dict(EVENT, t="بدون فرم"), "expected_version": version},
+                headers=owner_write_headers(client),
+            )
+            assert bare.status_code == 200, bare.text
+            with Session(engine) as db:
+                db.add(FormRecord(id="fm-reg", owner_id="owner-01", title="ثبت‌نام کارگاه", model="registration", need="reg",
+                                  status="published", version=1, settings={"cap": 3, "wait": 1}, event_id=event_id))
+                # A draft form and a survey linked to the same event must not be chosen.
+                db.add(FormRecord(id="fm-draft", owner_id="owner-01", title="پیش‌نویس", model="registration", need="reg",
+                                  status="draft", version=1, settings={"cap": 99}, event_id=event_id))
+                db.add(FormRecord(id="fm-survey", owner_id="owner-01", title="نظرسنجی", model="survey", need="other",
+                                  status="published", version=1, settings={}, event_id=event_id))
+                moment = datetime.now(timezone.utc)
+                for status in ("accepted", "accepted", "waitlisted"):
+                    draft_id = str(uuid.uuid4())
+                    db.add(FormResponseDraftRecord(id=draft_id, form_id="fm-reg", form_version=1, token_hash=uuid.uuid4().hex * 2,
+                                                   answers={}, companions=[], expires_at=moment + timedelta(days=1)))
+                    db.add(FormResponseRecord(id=str(uuid.uuid4()), form_id="fm-reg", draft_id=draft_id, form_version=1,
+                                              status=status, answers={}, companions=[], form_snapshot={"name": "x", "version": 1}))
+                db.commit()
+            body = client.get("/api/admin/content/events?sort=title&order=asc").json()
+            by_title = {item["t"]: item for item in body["items"]}
+            reg = by_title["با فرم"]["registration"]
+            assert reg["form_id"] == "fm-reg" and reg["form_name"] == "ثبت‌نام کارگاه"
+            assert (reg["accepted"], reg["waitlisted"], reg["cap"], reg["wait"], reg["full"]) == (2, 1, 3, 1, False)
+            assert reg["source"] == "form_responses"
+            assert by_title["بدون فرم"]["registration"] is None
+            # No registrant data leaks through the list.
+            assert not any(key in reg for key in ("answers", "registrant_name", "items", "responses"))
+            # Articles are untouched.
+            assert "registration" not in client.get("/api/admin/content/articles").json()
+    finally:
+        engine.dispose()

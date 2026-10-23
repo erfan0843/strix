@@ -174,6 +174,8 @@ async function loadPanel(identity) {
               out.when = when; out.today = TODAY; out.when_counts = { today: 0, upcoming: 0, past: 0, undated: 0 };
               world.events.forEach((e) => { out.when_counts[bucket(e)] += 1; });
               if (when) out.items = out.items.filter((e) => bucket(e) === when);
+              /* A6: مانند app.py — خلاصهٔ ثبت‌نام از فرم منتشرشدهٔ متصل؛ بدون فرم = null */
+              out.items = out.items.map((e) => ({ ...e, registration: e.id === 'ev-a1' ? { form_id: 'fm-1', form_name: 'فرم ثبت‌نام', accepted: 5, waitlisted: 0, cap: 5, wait: 0, full: true, source: 'form_responses' } : null }));
             } else if (params.get('when')) return reply(422, { detail: { code: 'invalid_when', field: 'when' } });
             out.total = out.items.length;
             return reply(200, out);
@@ -350,6 +352,9 @@ console.log('— مالک: فهرست رویدادها از site_content، فی�
     assert.match(app.body(), /site_content/);
     assert.match(app.body(), /نسخهٔ ۷/);
     assert.ok(app.doc.querySelector('[data-ct-row="ev-b2"]'));
+    /* A6: ظرفیت/ثبت‌نام واقعی روی ردیف فهرست؛ رویداد بدون فرم عدد نمی‌گیرد */
+    assert.match(app.doc.querySelector('[data-ct-row="ev-a1"]').textContent, /ظرفیت ۵ · ثبت‌نام قطعی ۵ · تکمیل/);
+    assert.doesNotMatch(app.doc.querySelector('[data-ct-row="ev-b2"]').textContent, /ثبت‌نام قطعی/);
     app.noLeak();
 
     app.click('[data-ct-status="published"]');

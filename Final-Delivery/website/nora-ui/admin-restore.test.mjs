@@ -20,7 +20,7 @@ const FORMS = [
   { id: 'f-buy-1', name: 'خرید محتوای ضبط‌شده', model: 'purchase', need: 'buy', purpose: 'purchase', ev: 'ev-1', recording_id: 'r-1', status: 'paused', version: 2, response_count: 2, updated_at: '2026-10-19T08:00:00+00:00' },
 ];
 const EVENTS = [
-  { id: 'ev-1', t: 'کارگاه آیندهٔ آزمایشی', status: 'published', created_at: '2026-10-01T08:00:00+00:00', updated_at: '2026-10-01T08:00:00+00:00', tags: [], kind: 'کارگاه', on: '1405/08/10', when: '1405/08/10', time: '۱۰ تا ۱۲', place: 'سالن', mode: 'حضوری', price: 0, cap: 0, past: false, lifecycle: 'scheduled', startsAt: '2026-11-01T06:30:00Z', regMode: 'auto', forms: [] },
+  { id: 'ev-1', t: 'کارگاه آیندهٔ آزمایشی', status: 'published', created_at: '2026-10-01T08:00:00+00:00', updated_at: '2026-10-01T08:00:00+00:00', tags: [], kind: 'کارگاه', on: '1405/08/10', when: '1405/08/10', time: '۱۰ تا ۱۲', place: 'سالن', mode: 'حضوری', price: 0, cap: 0, past: false, lifecycle: 'scheduled', startsAt: '2026-11-01T06:30:00Z', regMode: 'auto', forms: [], registration: { form_id: 'fm-1', form_name: 'ثبت‌نام کارگاه', accepted: 18, waitlisted: 2, cap: 20, wait: 5, full: false, source: 'form_responses' } },
   { id: 'ev-old', t: 'کارگاه گذشته', status: 'published', created_at: '2026-09-01T08:00:00+00:00', updated_at: '2026-09-01T08:00:00+00:00', tags: [], kind: 'کارگاه', on: '1405/06/01', when: '1405/06/01', time: '', place: '', mode: 'حضوری', price: 0, cap: 0, past: true, lifecycle: 'ended', startsAt: '2026-08-23T06:30:00Z', regMode: 'auto', forms: [] },
 ];
 
@@ -129,6 +129,10 @@ console.log('— مالک: داشبورد سروری؛ کارهای در انت�
     ok(app.calls.some(c => /^\/api\/admin\/content\/events\?.*status=published/.test(c.path)), 'رویدادهای پیش رو از API محتوا');
     const up = app.text('[data-dashx-upcoming]');
     ok(up.includes('کارگاه آیندهٔ آزمایشی') && !up.includes('کارگاه گذشته'), 'فقط رویداد منتشرشدهٔ آینده فهرست می‌شود');
+    /* A6: ظرفیت/ثبت‌نام از پاسخ سرور (registration از form_responses)، نه عدد ساختگی؛ ۱۸ از ۲۰ = نزدیک به تکمیل */
+    const regLine = app.text('[data-dashx-reg="ev-1"]');
+    ok(/ظرفیت ۲۰/.test(regLine) && /ثبت‌نام قطعی ۱۸/.test(regLine) && /در انتظار ۲/.test(regLine), 'کارت رویداد پیش رو ظرفیت/ثبت‌نام قطعی/در انتظار را از سرور نشان می‌دهد');
+    ok(up.includes('نزدیک به تکمیل'), 'برچسب «نزدیک به تکمیل» با ۸۰٪ ظرفیت');
     ok(/۲/.test(app.text('[data-dashx-sched-card]')) && app.text('[data-dashx-sched-card]').includes('systemd timer'), 'کارت زمان‌بندی خروجی API را نشان می‌دهد');
     ok(app.text('[data-dashx-audit]').includes('role.set'), 'تاریخچهٔ عملیات مالک از /api/owner/audit');
     ok(!/سارا محمدی|NL-1024|جلسهٔ شعر و موسیقی/.test(app.text('#admBody')), 'هیچ دادهٔ نمونهٔ data.js روی داشبورد نیست');
