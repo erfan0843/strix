@@ -1,8 +1,9 @@
-/* ناوبری طرح نورا + ویزارد پنج‌گامی رویداد (۱۴۰۵/۰۸/۰۱):
+/* ناوبری طرح نورا + فرم فشردهٔ رویداد (مرحلهٔ نهایی ۱۴۰۵/۰۸/۰۱):
    ریل = داشبورد، تعریف جدید، رویدادها، کاربران، فرم‌ها، گزارش‌ها، تنظیمات؛ نوار پایین پنج‌تایی.
-   #newev همان ویرایشگر سروری را با گام‌ها باز می‌کند؛ همهٔ پنل‌ها در DOM (غیرفعال‌ها hidden) تا ذخیره/۴۲۲ روی
-   همهٔ فیلدها کار کند. گام ۴: وصل‌کردن فرم موجود فقط با POST /api/forms/{id}/event (نسخه + CSRF)؛
-   گام ۵: بازبینی از فرم و وضعیت سرور، بی‌عدد ساختگی. مدیر بدون rp_view گزارش‌ها را در ریل ندارد. */
+   #newev همان ویرایشگر سروری را با سه بخش روی یک صفحه باز می‌کند (اطلاعات اصلی / ثبت‌نام و امکانات / مرور و ذخیره)
+   و جزئیات زیر <details> با عنوان صریح؛ همهٔ فیلدها در DOM تا ذخیره/۴۲۲/پیش‌نویس روی همه کار کند.
+   تاریخ/ساعت: ورودی ناقص بازنویسی نمی‌شود، پایانِ خالی خالی می‌ماند، ارقام فارسی و لاتین. نوع برگزاری فیلدها را عوض می‌کند.
+   وصل‌کردن فرم موجود فقط با POST /api/forms/{id}/event (نسخه + CSRF)؛ مرور از فرم و وضعیت سرور، بی‌عدد ساختگی. */
 import {fileURLToPath} from 'node:url';
 import jsdom from 'jsdom';
 const {JSDOM}=jsdom;
@@ -17,8 +18,10 @@ const OWNER=['ev_create','ev_publish','us_view','rp_view','fm_create','fm_respon
 let CALLS=[], ROLE='owner', PERMS=OWNER, WORLD=null;
 function makeWorld(){
   return {version:3,
-    events:[{id:'ev-1',t:'کارگاه آزمون',kind:'کارگاه',on:'1405/09/10',place:'تهران',d:'شرح کارگاه',status:'draft',updated_at:'2026-10-20T10:00:00+00:00',created_at:'2026-10-20T10:00:00+00:00',
-      registration:{state:'closed',reason:'no_form'}}],
+    events:[{id:'ev-1',t:'کارگاه آزمون',kind:'کارگاه',on:'1405/09/10',place:'تهران',mode:'حضوری',when_bucket:'upcoming',d:'شرح کارگاه',status:'draft',updated_at:'2026-10-20T10:00:00+00:00',created_at:'2026-10-20T10:00:00+00:00',
+      registration:{state:'closed',reason:'no_form'}},
+      {id:'ev-old',t:'نشست برگزارشده',kind:'نشست',on:'1405/06/10',place:'',mode:'آنلاین',joinUrl:'https://meet.example.org/old',past:true,when_bucket:'past',d:'شرح',status:'published',updated_at:'2026-09-01T10:00:00+00:00',created_at:'2026-09-01T10:00:00+00:00',
+      registration:{state:'ended',reason:'past'}}],
     forms:[{id:'f-free',name:'فرم آزاد انبار',ev:'',need:'reg',purpose:'registration',status:'draft',version:2,response_count:0},
       {id:'f-pub',name:'فرم منتشرشدهٔ بی‌رویداد',ev:'',need:'reg',purpose:'registration',status:'published',version:4,response_count:0},
       {id:'f-other',name:'فرم رویداد دیگر',ev:'ev-9',need:'survey',purpose:'survey',status:'draft',version:1,response_count:0}]};
@@ -41,18 +44,20 @@ async function fakeFetch(url,init){
     if(body.ev&&!w.events.some(e=>e.id===body.ev)) return json({detail:{code:'unknown_reference',field:'ev',message:'رویدادی با این شناسه نیست.'}},422);
     f.ev=body.ev||''; f.version+=1; return json({...f});
   }
-  if(path==='/api/admin/content/events'&&method==='GET') return json({items:w.events,total:w.events.length,counts:{draft:1,published:0,paused:0,archived:0},limit:20,offset:0,has_more:false,kind:'events',version:w.version,source:'site_content',can_edit:PERMS.includes('ev_create'),can_publish:PERMS.includes('ev_publish')});
+  if(path==='/api/admin/content/events'&&method==='GET'){const qs=new URLSearchParams(String(url).split('?')[1]||''); const mode=qs.get('mode')||'', when=qs.get('when')||'', status=qs.get('status')||'';
+    const items=w.events.filter(e=>(!mode||e.mode===mode)&&(!status||e.status===status)&&(!when||e.when_bucket===when)); const mc={}; w.events.forEach(e=>{if(e.mode) mc[e.mode]=(mc[e.mode]||0)+1});
+    return json({items,total:items.length,counts:{draft:w.events.filter(e=>e.status==='draft').length,published:w.events.filter(e=>e.status==='published').length,paused:0,archived:0},when_counts:{today:0,upcoming:w.events.filter(e=>e.when_bucket==='upcoming').length,past:w.events.filter(e=>e.when_bucket==='past').length,undated:0},mode:mode,mode_counts:mc,today:'1405/08/01',limit:20,offset:0,has_more:false,kind:'events',version:w.version,source:'site_content',can_edit:PERMS.includes('ev_create'),can_publish:PERMS.includes('ev_publish')})}
   if(path==='/api/admin/content/events'&&method==='POST'){
     const r=body.record||{};
     if(body.expected_version!==w.version) return json({detail:{code:'site_content_version_conflict',current_version:w.version}},409);
     if(!String(r.t||'').trim()) return json({detail:{code:'validation_error',field:'t',message:'عنوان لازم است.'}},422);
     if(r.regClosesAt&&/99/.test(r.regClosesAt)) return json({detail:{code:'validation_error',field:'regClosesAt',message:'ساعت تهران نامعتبر است.'}},422);
-    const rec={id:'ev-new',...r,status:body.status==='published'?'published':'draft',updated_at:'2026-10-21T10:00:00+00:00',created_at:'2026-10-21T10:00:00+00:00',registration:{state:'closed',reason:'no_form'}};
+    const rec={id:'ev-new',...r,when_bucket:'upcoming',status:body.status==='published'?'published':'draft',updated_at:'2026-10-21T10:00:00+00:00',created_at:'2026-10-21T10:00:00+00:00',registration:{state:'closed',reason:'no_form'}};
     w.events.push(rec); w.version+=1; return json({record:rec,version:w.version});
   }
   const one=path.match(/^\/api\/admin\/content\/events\/([^/]+)$/);
   if(one&&method==='GET'){const e=w.events.find(x=>x.id===one[1]); return e?json({record:e,version:w.version,reminders:{slots:[]}}):json({detail:'not_found'},404)}
-  if(one&&method==='PUT'){const e=w.events.find(x=>x.id===one[1]); Object.assign(e,body.record||{}); w.version+=1; return json({record:e,version:w.version})}
+  if(one&&method==='PUT'){const e=w.events.find(x=>x.id===one[1]); if(body.record&&body.record.joinUrl&&!/^https:\/\//.test(body.record.joinUrl)) return json({detail:{code:'invalid_link',field:'joinUrl'}},422); Object.assign(e,body.record||{}); w.version+=1; return json({record:e,version:w.version})}
   const st=path.match(/^\/api\/admin\/content\/events\/([^/]+)\/status$/);
   if(st&&method==='POST'){const e=w.events.find(x=>x.id===st[1]); if(!String(e.d||'').trim()) return json({detail:{code:'validation_error',field:'d',message:'برای انتشار، شرح رویداد لازم است.'}},422); e.status=body.status; w.version+=1; return json({record:e,version:w.version})}
   if(path.startsWith('/api/admin/')||path.startsWith('/api/owner/')) return json({items:[],total:0,summary:{},content:{},version:w.version});
@@ -76,61 +81,120 @@ async function boot(role,perms,hash){
 
 console.log('── ناوبری مالک: ریل و نوار پایین طبق مرجع ──');
 {
-  const {doc,click,errors}=await boot('owner');
+  const {doc,click,errors,window}=await boot('owner');
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="settings"]')),'پنل با نشست مالک بالا آمد');
   const rail=[...doc.querySelectorAll('#admNav [data-sec],#admNav [data-center-href]')].map(x=>x.dataset.sec||'forms');
   ok(JSON.stringify(rail)===JSON.stringify(['dash','newev','events','users','forms','reports','settings']),'ترتیب ریل: داشبورد، تعریف جدید، رویدادها، کاربران، فرم‌ها، گزارش‌ها، تنظیمات ('+rail.join(',')+')');
   const bar=[...doc.querySelectorAll('#admTabs [data-sec]')].map(x=>x.dataset.sec);
   ok(JSON.stringify(bar)===JSON.stringify(['dash','events','users','reports','settings']),'نوار پایین موبایل پنج‌تایی طبق مرجع ('+bar.join(',')+')');
   ok(doc.querySelector('#admNav [data-center-href]').getAttribute('href')==='builder.html','«فرم‌ها» به فرم‌ساز واقعی می‌رود (تنها ویرایشگر فرم)');
-  click('#admNav [data-sec="reports"]');
-  ok(await waitFor(()=>doc.querySelector('[data-uhub="reports"].on,[data-uhub-tab="reports"].on,[data-rp-panel],[data-rp-period]')||/گزارش/.test(doc.querySelector('#admBody').textContent)),'«گزارش‌ها» به مقصد واقعی (گزارش‌های سروری بخش کاربران) می‌رسد');
 
-  console.log('── تعریف جدید: ویزارد پنج‌گامی روی همان ویرایشگر سروری ──');
+  console.log('── تعریف جدید: فرم فشردهٔ سه‌بخشی روی همان ویرایشگر سروری ──');
   click('#admNav [data-sec="newev"]');
   ok(await waitFor(()=>doc.querySelector('[data-newev]')&&doc.querySelector('[data-ct-editor]')),'#newev ویرایشگر رویداد تازه را باز می‌کند');
-  const steps=[...doc.querySelectorAll('[data-ct-wizard] [data-ct-step]')].map(x=>x.textContent.replace(/[✓⚠\s]/g,''));
-  ok(steps.length===5&&/چیستیوپوستر/.test(steps[0])&&/زمانومکان/.test(steps[1])&&/ظرفیتوثبت‌نام/.test(steps[2])&&/فرم‌هاویادآوری‌ها/.test(steps[3])&&/کارتوصفحه/.test(steps[4]),'پنج گام با نام‌های مرجع');
-  ok(doc.querySelectorAll('[data-ct-step-panel]').length===5&&doc.querySelectorAll('[data-ct-step-panel][hidden]').length===4,'پنج پنل در DOM؛ فقط گام فعال دیده می‌شود');
-  ok(doc.querySelector('#ctf_t')&&doc.querySelector('#ctf_startsAt')&&doc.querySelector('#ctf_regClosesAt')&&doc.querySelector('[data-ct-check="remH24"]'),'همهٔ فیلدهای قبلی (عنوان، زمان، مهلت، یادآور) همچنان در فرم هستند؛ چیزی حذف نشده');
-  ok(!doc.querySelector('[data-ct-save-stay]'),'در گام ۱ هنوز «ذخیرهٔ پیش‌نویس و ادامه» نیست');
+  const secs=[...doc.querySelectorAll('[data-ct-sec]')].map(x=>x.dataset.ctSec);
+  ok(JSON.stringify(secs)===JSON.stringify(['main','reg','review']),'سه بخش روی یک صفحه: اطلاعات اصلی، ثبت‌نام و امکانات، مرور و ذخیره ('+secs.join(',')+')');
+  ok(!doc.querySelector('[data-ct-wizard],[data-ct-step-panel]'),'ویزارد اجباری چندصفحه‌ای دیگر نیست');
+  const mains=[...doc.querySelectorAll('[data-ct-sec="main"] [data-ct-field]')].map(x=>x.dataset.ctField);
+  ok(['t','mode','on','time','endTime','poster'].every(k=>mains.includes(k)),'اطلاعات اصلی: عنوان، نوع برگزاری، تاریخ، ساعت شروع/پایان، پوستر ('+mains.slice(0,8).join(',')+')');
+  const more=[...doc.querySelectorAll('details[data-ct-more]')].map(x=>x.dataset.ctMore+':'+(x.open?'باز':'بسته'));
+  ok(JSON.stringify(more)===JSON.stringify(['desc:بسته','sched:بسته','extra:بسته']),'سه بلوک «تنظیمات بیشتر» با عنوان صریح و پیش‌فرض بسته ('+more.join(',')+')');
+  ok(doc.querySelector('#ctf_d')&&doc.querySelector('#ctf_startsAt')&&doc.querySelector('#ctf_regClosesAt')&&doc.querySelector('[data-ct-check="remH24"]')&&doc.querySelector('[data-ct-parts]')&&doc.querySelector('#ctf_certMin')===null&&doc.querySelector('[data-ct-check="cert"]'),'همهٔ قابلیت‌های قبلی (شرح، زمان دقیق، مهلت، یادآور، جلسه‌ها، گواهی) در DOM هستند؛ چیزی حذف نشده');
   ok(doc.querySelector('[data-ct-waitlist]')&&/نیازمند بک‌اند/.test(doc.querySelector('[data-ct-waitlist]').textContent),'فهرست انتظار مرجع: بی‌کنترل، با وضعیت صریح');
-  click('[data-ct-actions] [data-ct-step="1"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-step-panel="1"]:not([hidden])')&&doc.querySelector('[data-ct-step-panel="0"][hidden]')),'«گام بعد» به زمان و مکان می‌رود');
-  click('[data-ct-wizard] [data-ct-step="4"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-review]')),'گام ۵: بازبینی پیش از انتشار');
+  const foot=[...doc.querySelectorAll('[data-ct-actions] .btn')].map(x=>x.textContent.trim());
+  ok(foot.length===4&&/انصراف/.test(foot[0])&&/ذخیرهٔ پیش‌نویس/.test(foot[1])&&/پیش‌نمایش/.test(foot[2])&&/انتشار/.test(foot[3]),'دکمه‌های پایین محدود: انصراف، ذخیرهٔ پیش‌نویس، پیش‌نمایش، انتشار ('+foot.join(' | ')+')');
+  ok(doc.querySelector('[data-ct-review-row="t"][data-ct-review-ok="0"]')&&doc.querySelector('[data-ct-review-row="on"][data-ct-review-ok="0"]'),'مرور: عنوان و تاریخ به‌عنوان ناقص علامت خورده‌اند');
   ok(/ذخیره‌نشده|پس از ذخیره/.test(doc.querySelector('[data-ct-review-server]').textContent),'وضعیت سرور برای رکورد ذخیره‌نشده صادقانه است');
-  ok(doc.querySelectorAll('[data-ct-review] [data-ct-step]').length>=3,'هر مورد ناقص دکمهٔ رفتن به گام خودش را دارد');
-  click('[data-ct-review] [data-ct-step="0"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-step-panel="0"]:not([hidden])')),'از بازبینی به گام ۱ برمی‌گردد');
 
-  console.log('── خطای ۴۲۲ سرور: پرش به گام همان فیلد ──');
-  const {type}=await (async()=>({type:(sel,v)=>{const el=doc.querySelector(sel); el.value=v; el.dispatchEvent(new doc.defaultView.Event('input',{bubbles:true}))}}))();
-  type('#ctf_t','رویداد ویزارد');
+  console.log('── نوع برگزاری: فیلدها با حالت عوض می‌شوند ──');
+  const type=(sel,v)=>{const el=doc.querySelector(sel); if(!el) throw new Error('نیست: '+sel); el.value=v; el.dispatchEvent(new window.Event('input',{bubbles:true}))};
+  const blur=sel=>doc.querySelector(sel).dispatchEvent(new window.Event('focusout',{bubbles:true}));
+  ok(doc.querySelector('#ctf_mode')&&doc.querySelector('#ctf_place')&&!doc.querySelector('#ctf_joinUrl'),'بدون انتخاب نوع: فقط مکان؛ پیوند با انتخاب آنلاین/ترکیبی می‌آید');
+  type('#ctf_mode','آنلاین');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-where="online"]')),'آنلاین انتخاب شد');
+  ok(!doc.querySelector('#ctf_place')&&doc.querySelector('#ctf_joinUrl'),'آنلاین: فقط پیوند ورود');
+  type('#ctf_joinUrl','https://meet.example.org/room');
+  type('#ctf_mode','حضوری');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-where="onsite"]'))&&doc.querySelector('#ctf_place')&&!doc.querySelector('#ctf_joinUrl'),'حضوری: فقط مکان');
+  type('#ctf_place','سالن اصلی');
+  type('#ctf_mode','ترکیبی');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-where="hybrid"]'))&&doc.querySelector('#ctf_place')?.value==='سالن اصلی'&&doc.querySelector('#ctf_joinUrl')?.value==='https://meet.example.org/room','ترکیبی: مکان و پیوند هر دو؛ متن تایپ‌شده با جابه‌جایی حالت گم نشده');
+
+  console.log('── تاریخ و ساعت: ورودی ناقص دست نمی‌خورد، پایانِ خالی خالی می‌ماند ──');
+  type('#ctf_on','1405/0');
+  ok(doc.querySelector('#ctf_on').value==='1405/0','تاریخ ناقص وسط تایپ بازنویسی نمی‌شود');
+  blur('#ctf_on');
+  ok(doc.querySelector('#ctf_on').value==='1405/0','تاریخ ناقص با ترک قلم هم قفل/بازنویسی نمی‌شود');
+  type('#ctf_on','۱۴۰۵۰۸۲۰');
+  ok(doc.querySelector('#ctf_on').value==='1405/08/20','هشت رقم فارسی کامل → ۱۴۰۵/۰۸/۲۰ (جداکننده خودکار برای صفحه‌کلید عددی)');
+  ok(/۱۴۰۵\/۰۸\/۲۰/.test(doc.querySelector('[data-ct-weekday="on"]').textContent)&&/آبان/.test(doc.querySelector('[data-ct-weekday="on"]').textContent),'راهنمای روز هفته با قالب فارسی ۱۴۰۵/۰۸/۲۰');
+  type('#ctf_on','1405/8/5'); blur('#ctf_on');
+  ok(doc.querySelector('#ctf_on').value==='1405/08/05','تاریخ کامل بدون صفر با ترک قلم صفرپُر می‌شود');
+  type('#ctf_time','9');
+  ok(doc.querySelector('#ctf_time').value==='9','یک رقم ساعت دست‌نخورده');
+  blur('#ctf_time');
+  ok(doc.querySelector('#ctf_time').value==='9','یک رقم ساعت حتی با ترک قلم بازنویسی نمی‌شود (ابهام)');
+  type('#ctf_time','۱۸۰۰');
+  ok(doc.querySelector('#ctf_time').value==='18:00','چهار رقم فارسی کامل → ۱۸:۰۰');
+  ok(doc.querySelector('#ctf_startsAt').value==='1405/08/05 18:00','شروع دقیق از تاریخ + ساعت شروع پر شد');
+  ok(doc.querySelector('#ctf_endsAt').value===''&&doc.querySelector('#ctf_endTime').value==='','پایانِ خالی هرگز خودکار پر نمی‌شود');
+  type('#ctf_endTime','1');
+  ok(doc.querySelector('#ctf_endTime').value==='1'&&doc.querySelector('#ctf_endsAt').value==='','ساعت پایان ناقص: نه بازنویسی، نه همگام‌سازی');
+  type('#ctf_endTime','2030');
+  ok(doc.querySelector('#ctf_endTime').value==='20:30'&&doc.querySelector('#ctf_endsAt').value==='1405/08/05 20:30','ساعت پایان کامل → پایان دقیق همان روز');
+  type('#ctf_on','1405/08/12');
+  ok(doc.querySelector('#ctf_startsAt').value==='1405/08/12 18:00'&&doc.querySelector('#ctf_endsAt').value==='1405/08/12 20:30'&&doc.querySelector('#ctf_endTime').value==='20:30','تغییر تاریخ، شروع و پایانِ هم‌روز را با حفظ ساعت جابه‌جا می‌کند');
+  type('#ctf_endTime','');
+  ok(doc.querySelector('#ctf_endsAt').value===''&&doc.querySelector('#ctf_endTime').value==='','پاک‌کردن ساعت پایان، پایان دقیق را خالی می‌کند');
+  type('#ctf_endTime','1700');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-review-warns]')&&/پایان پیش از شروع/.test(doc.querySelector('[data-ct-review-warns]').textContent)),'مرور: هشدار «پایان پیش از شروع» از همین فرم');
+  type('#ctf_endTime','');
+  ok(await waitFor(()=>!doc.querySelector('[data-ct-review-warns]')||!/پایان پیش از شروع/.test(doc.querySelector('[data-ct-review-warns]').textContent)),'با خالی‌شدن پایان، خطای ترتیب نمی‌ماند');
+
+  console.log('── تقویم: ماه/سال، امروز، پاک‌کردن، Escape ──');
+  click('[data-ctdp="on"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ctdp-box="on"]')),'تقویم زیر فیلد تاریخ باز شد');
+  ok(doc.querySelector('[data-ctdp-set="m"]')&&doc.querySelector('[data-ctdp-set="y"]')&&doc.querySelector('[data-ctdp-today]')&&doc.querySelector('[data-ctdp-clear]')&&doc.querySelector('[data-ctdp-mv="-1"]'),'انتخاب ماه و سال، ماه قبل/بعد، امروز، پاک‌کردن');
+  ok(/آبان ۱۴۰۵/.test(doc.querySelector('[data-ctdp-box="on"] .dphead b').textContent),'ماه فعلیِ تقویم از مقدار فیلد');
+  const mSel=doc.querySelector('[data-ctdp-set="m"]'); mSel.value='10'; mSel.dispatchEvent(new window.Event('change',{bubbles:true}));
+  ok(await waitFor(()=>/دی ۱۴۰۵/.test(doc.querySelector('[data-ctdp-box="on"] .dphead b').textContent)),'انتخاب ماه از فهرست');
+  click('[data-ctdp-box="on"] [data-ctdp-day="3"]');
+  ok(await waitFor(()=>doc.querySelector('#ctf_on').value==='1405/10/03'),'انتخاب روز از تقویم: ۱۴۰۵/۱۰/۰۳');
+  ok(doc.querySelector('#ctf_startsAt').value==='1405/10/03 18:00','شروع دقیق همراه آمد');
+  click('[data-ctdp="on"]'); await waitFor(()=>doc.querySelector('[data-ctdp-box="on"]'));
+  doc.querySelector('#ctf_on').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  ok(await waitFor(()=>!doc.querySelector('[data-ctdp-box="on"]')),'Escape تقویم را می‌بندد');
+  click('[data-ctdp="on"]'); await waitFor(()=>doc.querySelector('[data-ctdp-box="on"]'));
+  click('[data-ctdp-clear]');
+  ok(await waitFor(()=>doc.querySelector('#ctf_on').value===''),'پاک‌کردن تاریخ از تقویم');
+  type('#ctf_on','1405/08/12');
+
+  console.log('── خطای ۴۲۲ سرور: بلوک همان فیلد باز می‌شود ──');
+  type('#ctf_t','رویداد فشرده');
   type('#ctf_regClosesAt','1405/08/10 25:99');
-  click('[data-ct-wizard] [data-ct-step="3"]');
-  await waitFor(()=>doc.querySelector('[data-ct-step-panel="3"]:not([hidden])'));
   click('[data-ct-save]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-err="regClosesAt"]')&&doc.querySelector('[data-ct-step-panel="2"]:not([hidden])')),'خطای مهلت ثبت‌نام، ویزارد را به گام ۳ (ظرفیت و ثبت‌نام) می‌برد و خطا زیر همان فیلد است');
-  ok(doc.querySelector('[data-ct-wizard] [data-ct-step="2"][data-ct-step-state="error"]'),'نشان خطا روی گام مربوط');
-  ok(WORLD.events.length===1,'با خطای اعتبارسنجی چیزی ساخته نشد');
+  ok(await waitFor(()=>CALLS.some(c=>c.method==='POST'&&c.path==='/api/admin/content/events')&&doc.querySelector('[data-ct-sec="reg"] [data-ct-err="regClosesAt"][style]')&&/پذیرفته نشد|نامعتبر/.test(doc.querySelector('[data-ct-err="regClosesAt"]').textContent)),'خطای ۴۲۲ مهلت ثبت‌نام زیر همان فیلد در بخش ثبت‌نام');
+  ok(!doc.querySelector('[data-ct-save-stay][disabled]'),'پس از پاسخ سرور دکمه‌ها دوباره فعال‌اند');
+  ok(doc.querySelector('#ctf_t').value==='رویداد فشرده'&&doc.querySelector('#ctf_joinUrl').value==='https://meet.example.org/room','متن تایپ‌شده پس از خطا می‌ماند');
+  ok(WORLD.events.length===2,'با خطای اعتبارسنجی چیزی ساخته نشد');
 
-  console.log('── ذخیرهٔ پیش‌نویس و ادامه: شناسه می‌گیرد و در گام فرم‌ها می‌ماند ──');
+  console.log('── ذخیرهٔ پیش‌نویس و اتصال فرم: شناسه می‌گیرد و در بخش ثبت‌نام می‌ماند ──');
   type('#ctf_regClosesAt','1405/08/10 23:59');
-  ok(doc.querySelector('[data-ct-save-stay]'),'در گام ۳ دکمهٔ «ذخیرهٔ پیش‌نویس و ادامه» هست');
+  ok(doc.querySelector('[data-ct-forms="unsaved"]')&&doc.querySelector('[data-ct-save-stay]'),'رویداد ذخیره‌نشده: راهنمای «پس از ذخیره» + دکمهٔ ذخیرهٔ پیش‌نویس و اتصال فرم');
   click('[data-ct-save-stay]');
-  ok(await waitFor(()=>CALLS.some(c=>c.method==='POST'&&c.path==='/api/admin/content/events')),'POST ساخت رویداد فرستاده شد');
-  ok(CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events').every(c=>c.body.expected_version===3),'expected_version از فهرست سروری (نه صفر) حتی وقتی ویزارد مستقیم از #newev باز شده');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-step-panel="3"]:not([hidden])')&&doc.querySelector('[data-ct-forms="ev-new"]'),6000),'پس از ذخیره، ویرایشگر همان رکورد (ev-new) در گام ۴ باز است');
-  ok(doc.querySelector('#admNav [data-sec="events"].on')||doc.querySelector('#admNav [data-sec="events"][aria-current]')||true,'ادامهٔ کار زیر رویدادها و مطالب');
+  ok(await waitFor(()=>CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events').length===2),'POST ساخت رویداد فرستاده شد');
+  const created=CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events')[1];
+  ok(created.body.expected_version===3,'expected_version از فهرست سروری (نه صفر) حتی وقتی فرم مستقیم از #newev باز شده');
+  ok(created.body.record.mode==='ترکیبی'&&created.body.record.joinUrl==='https://meet.example.org/room'&&created.body.record.place==='سالن اصلی'&&created.body.record.startsAt==='1405/08/12 18:00'&&created.body.record.endsAt===''&&!('endTime' in created.body.record),'بدنه: نوع، پیوند، مکان، شروع دقیق؛ پایان خالی؛ فیلد مجازی ساعت پایان فرستاده نمی‌شود');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-forms="ev-new"]'),6000),'پس از ذخیره، ویرایشگر همان رکورد (ev-new) باز است و کارت فرم فعال شد');
   ok(doc.querySelector('[data-ct-form-create="ev-new"]')&&/create\.html\?/.test(doc.querySelector('[data-ct-form-create="ev-new"]').getAttribute('href'))&&/ev=ev-new/.test(doc.querySelector('[data-ct-form-create="ev-new"]').getAttribute('href')),'«ساخت فرم ثبت‌نام» فرم‌ساز واقعی را با شناسهٔ همین رویداد باز می‌کند');
   ok(await waitFor(()=>doc.querySelector('[data-ct-form-link-pick]')),'انتخاب‌گر فرم‌های بی‌رویداد از همان GET /api/forms');
   const opts=[...doc.querySelectorAll('[data-ct-form-link-pick] option')].map(o=>[o.value,o.disabled]);
   ok(opts.some(([v,d])=>v==='f-free'&&!d)&&opts.some(([v,d])=>v==='f-pub'&&d)&&!opts.some(([v])=>v==='f-other'),'پیش‌نویس انتخاب‌پذیر، منتشرشده غیرفعال با دلیل، فرم رویداد دیگر فهرست نمی‌شود');
+  ok(doc.querySelector('[data-ct-file="ev-new"]')&&doc.querySelector('[data-ct-interaction="ev-new"]'),'رکورد ذخیره‌شده: دکمهٔ پروندهٔ رویداد و «فایل‌ها و رسانه‌ها»');
 
   console.log('── وصل‌کردن فرم: فقط POST /api/forms/{id}/event ──');
   click('[data-ct-form-link-do]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-form-link] [role="alert"],[data-ct-form-link] .msg,[data-ct-form-link] [data-msg]')||/اول یک فرم را انتخاب کن/.test(doc.querySelector('[data-ct-form-link]').textContent)),'بدون انتخاب، درخواستی نمی‌رود');
   ok(!CALLS.some(c=>/\/api\/forms\/.+\/event$/.test(c.path)),'هیچ POST پیوندی بدون انتخاب فرستاده نشد');
   doc.querySelector('[data-ct-form-link-pick]').value='f-free';
   click('[data-ct-form-link-do]');
@@ -140,19 +204,64 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   ok(!CALLS.some(c=>c.method==='PUT'&&c.path.startsWith('/api/forms/')),'تعریف فرم (PUT /api/forms) دست نخورد؛ فرم‌ساز تنها ویرایشگر است');
   ok(await waitFor(()=>doc.querySelector('[data-ct-form-row="f-free"]')),'پس از پاسخ سرور، فرم زیر همین رویداد فهرست می‌شود (بازخوانی از /api/forms)');
   ok(doc.querySelector('[data-ct-form-unlink="f-free"]'),'جداکردن برای فرم پیش‌نویس بی‌پاسخ در دسترس است');
-  click('[data-ct-wizard] [data-ct-step="4"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-review-form="f-free"]')),'گام ۵: فرم وصل‌شده در بازبینی دیده می‌شود');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-review-form="f-free"]')),'مرور: فرم وصل‌شده دیده می‌شود');
   ok(/فرم‌های وصل‌شده: ۱/.test(doc.querySelector('[data-ct-review-server]').textContent)&&/منتشرشده: ۰/.test(doc.querySelector('[data-ct-review-server]').textContent),'شمارنده‌ها از همان فهرست سرور: ۱ فرم، ۰ منتشرشده');
   ok(doc.querySelector('[data-ct-public-link]')&&/event\.html\?id=ev-new/.test(doc.querySelector('[data-ct-public-link]').getAttribute('href')),'پیوند صفحهٔ عمومی با شناسهٔ واقعی');
-  ok(doc.querySelector('[data-ct-save-publish]'),'گام ۵ برای پیش‌نویس موجود هم «ذخیره و انتشار در سایت» دارد (ev_publish)');
+  ok(doc.querySelector('[data-ct-save-publish]'),'پیش‌نویس موجود «ذخیره و انتشار در سایت» دارد (ev_publish)');
+
+  console.log('── پیش‌نمایش و بازشوندگی بدون گم‌شدن متن ──');
+  ok(doc.querySelector('[data-ct-review-card][hidden]'),'کارت پیش‌نمایش تا درخواست پنهان است');
+  click('[data-ct-preview-toggle]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-review-card]:not([hidden]) #ctPreview')),'«پیش‌نمایش» کارت را در بخش مرور باز می‌کند');
+  ok(doc.querySelector('[data-ct-review-row="d"][data-ct-review-ok="0"] [data-ct-jump="desc"]'),'شرح خالی در مرور با دکمهٔ پرش به بلوک خودش');
+  click('[data-ct-jump="desc"]');
+  ok(await waitFor(()=>doc.querySelector('details[data-ct-more="desc"]').open),'پرش از مرور، بلوک «شرح…» را باز می‌کند');
+  type('#ctf_d','شرح تازه');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-review-row="d"][data-ct-review-ok="1"]')),'مرور بی‌درنگ از همین فرم به‌روز می‌شود');
+  const sched=doc.querySelector('details[data-ct-more="sched"]'); sched.open=true; sched.dispatchEvent(new window.Event('toggle')); sched.open=false; sched.dispatchEvent(new window.Event('toggle'));
+  type('#ctf_sess','3');
+  ok(doc.querySelector('#ctf_d').value==='شرح تازه'&&doc.querySelector('#ctf_joinUrl').value==='https://meet.example.org/room'&&doc.querySelector('#ctf_sess').value==='3'&&doc.querySelector('details[data-ct-more="desc"]').open,'باز و بسته‌شدن بلوک‌ها متن تایپ‌شده را گم نمی‌کند و حالت بازِ بلوک می‌ماند');
+
+  console.log('── پیوند نامعتبر: ۴۲۲ سرور روی همان فیلد ──');
+  type('#ctf_joinUrl','http://insecure.example.org');
+  click('[data-ct-save]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-err="joinUrl"]')&&doc.querySelector('[data-ct-err="joinUrl"]').textContent.trim().length>0),'خطای joinUrl زیر فیلد پیوند ورود');
+  type('#ctf_joinUrl','https://meet.example.org/room');
 
   console.log('── پیوند پس از بازگشایی حفظ می‌شود ──');
   click('[data-ct-cancel]');
   ok(await waitFor(()=>doc.querySelector('[data-ct-edit="ev-new"]')),'بازگشت به فهرست');
   click('[data-ct-edit="ev-new"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('#ctf_t')?.value==='رویداد ویزارد'),'ویرایش همان رکورد با همان ویزارد');
-  click('[data-ct-wizard] [data-ct-step="3"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('#ctf_t')?.value==='رویداد فشرده'),'ویرایش همان رکورد با همان فرم فشرده');
+  ok(doc.querySelector('[data-ct-where="hybrid"]')&&doc.querySelector('#ctf_joinUrl').value==='https://meet.example.org/room','نوع ترکیبی و پیوند ورود پس از بازگشایی از سرور');
   ok(await waitFor(()=>doc.querySelector('[data-ct-form-row="f-free"]')),'پیوند فرم پس از بازگشایی از سرور خوانده می‌شود');
+  click('[data-ct-cancel]'); await waitFor(()=>doc.querySelector('[data-ct-quick]'));
+
+  console.log('── فهرست: صافی ساده + شیوهٔ برگزاری ──');
+  const quick=[...doc.querySelectorAll('[data-ct-quick]')].map(x=>x.dataset.ctQuick);
+  ok(JSON.stringify(quick)===JSON.stringify(['all','upcoming','past','draft','archived']),'صافی‌های همه/پیش‌رو/برگزارشده/پیش‌نویس/بایگانی');
+  ok(doc.querySelector('details[data-ct-more-filters]')&&doc.querySelector('[data-ct-status="published"]')&&doc.querySelector('[data-ct-when="today"]'),'صافی‌های ریزتر زیر «صافی‌های بیشتر» مانده‌اند');
+  click('[data-ct-quick="past"]');
+  ok(await waitFor(()=>CALLS.some(c=>c.method==='GET'&&/\/api\/admin\/content\/events\?.*when=past/.test(c.path+'?'+(c.query||''))||CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/content/events'))&&doc.querySelector('[data-ct-row="ev-old"]')&&!doc.querySelector('[data-ct-row="ev-1"]')),'«برگزارشده» فقط رویداد گذشته را (از سرور، when=past) نشان می‌دهد');
+  ok(/آنلاین/.test(doc.querySelector('[data-ct-row="ev-old"]').textContent)&&/برگزارشده/.test(doc.querySelector('[data-ct-row="ev-old"]').textContent),'ردیف: شیوهٔ برگزاری و برگزارشده قابل تشخیص');
+  click('[data-ct-quick="all"]'); await waitFor(()=>doc.querySelector('[data-ct-row="ev-1"]'));
+  const modeSel=doc.querySelector('[data-ct-mode]'); ok(modeSel&&[...modeSel.options].some(o=>o.value==='حضوری')&&[...modeSel.options].some(o=>o.value==='آنلاین'),'انتخاب شیوهٔ برگزاری از mode_counts سرور');
+  modeSel.value='آنلاین'; modeSel.dispatchEvent(new window.Event('change',{bubbles:true}));
+  ok(await waitFor(()=>doc.querySelector('[data-ct-row="ev-old"]')&&!doc.querySelector('[data-ct-row="ev-1"]')),'صافی شیوهٔ برگزاری با پارامتر mode سرور');
+  modeSel.value=''; doc.querySelector('[data-ct-mode]').dispatchEvent(new window.Event('change',{bubbles:true})); await waitFor(()=>doc.querySelector('[data-ct-row="ev-1"]'));
+
+  console.log('── ثبت رویداد برگزارشده ──');
+  click('#admNav [data-sec="newev"]');
+  ok(await waitFor(()=>doc.querySelector('[data-newev-past]')),'چیپ «رویداد برگزارشده» در تعریف جدید');
+  click('[data-newev-past]');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-past-hint]')&&doc.querySelector('[data-ct-check="past"]')?.checked),'فرم برگزارشده: راهنمای صریح + علامت past (همان پرچم سرور)');
+  ok(doc.querySelector('[data-ct-past-reg]')&&!doc.querySelector('[data-ct-reminders]')&&!doc.querySelector('#ctf_regClosesAt')&&!doc.querySelector('[data-ct-save-stay]'),'بدون اجبار ثبت‌نام، مهلت و یادآور (بسته در بدنه می‌رود)');
+  ok(!doc.querySelector('[data-ct-review-row="form"]')&&!doc.querySelector('[data-ct-review-row="rem"]'),'مرور رویداد برگزارشده، فرم و یادآور را طلب نمی‌کند');
+  type('#ctf_t','نشست گذشته'); type('#ctf_on','1405/06/01'); type('#ctf_mode','حضوری'); await waitFor(()=>doc.querySelector('[data-ct-where="onsite"]')); type('#ctf_place','کتابخانه');
+  click('[data-ct-save]');
+  ok(await waitFor(()=>CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events').length===3),'ذخیرهٔ رویداد برگزارشده');
+  const pastBody=CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events').pop().body.record;
+  ok(pastBody.past===true&&pastBody.regMode==='closed'&&pastBody.reminders.h24===false&&pastBody.reminders.h1===false&&pastBody.on==='1405/06/01','بدنه: past=true، ثبت‌نام بسته، یادآور خاموش، تاریخ گذشته');
   ok(errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).length===0,'بدون خطای جاوااسکریپت ('+errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).join(' | ').slice(0,200)+')');
 }
 
@@ -162,19 +271,20 @@ console.log('── پروندهٔ رویداد: زبانه‌ها به ترتی
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="events"]')),'پنل بالا آمد');
   click('#admNav [data-sec="events"]');
   ok(await waitFor(()=>doc.querySelector('[data-ct-file="ev-1"]')),'کارت رویداد دکمهٔ «پروندهٔ رویداد» دارد');
-  ok(doc.querySelector('[data-ct-interaction="ev-1"]'),'دکمهٔ قبلی «منابع و پرسش‌ها» حذف نشده');
+  ok(doc.querySelector('[data-ct-interaction="ev-1"]'),'دکمهٔ «فایل‌ها و پرسش‌ها» حذف نشده');
   click('[data-ct-file="ev-1"]');
   ok(await waitFor(()=>doc.querySelector('[data-ei-panel] [data-ei-info="ev-1"]')),'پرونده روی «اطلاعات» باز می‌شود و رکورد را از GET /api/admin/content/events/ev-1 می‌خواند');
   ok(CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/content/events/ev-1'),'درخواست رکورد به سرور رفت');
   const tabs=[...doc.querySelectorAll('[data-ei-panel] [data-ei-tab]')].map(x=>x.dataset.eiTab);
   ok(JSON.stringify(tabs.slice(0,6))===JSON.stringify(['info','regs','survey','recording','orders','notify'])&&tabs.includes('resources')&&tabs.includes('questions'),'ترتیب زبانه‌ها: اطلاعات، ثبت‌نام‌ها، نظرسنجی، مالی×۲، اطلاع‌رسانی، سپس ابزارهای تعامل ('+tabs.join(',')+')');
+  ok(/فایل‌ها و رسانه‌ها/.test(doc.querySelector('[data-ei-panel] [data-ei-tab="resources"]').textContent),'زبانهٔ منابع با نام «فایل‌ها و رسانه‌ها»');
   ok(doc.querySelector('[data-ei-jump-attendance]')&&doc.querySelector('[data-ei-jump-cert]'),'حضور و گواهینامه همچنان با پرش به ماژول واقعی بخش کاربران');
   const info=doc.querySelector('[data-ei-info="ev-1"]').textContent;
   ok(/کارگاه آزمون/.test(info)&&/تهران/.test(info)&&/ثبت‌نام بسته/.test(info)&&/فرم ثبت‌نام منتشرشده‌ای وصل نیست/.test(info),'اطلاعات: عنوان، مکان و وضعیت ثبت‌نام سرور با دلیل');
   ok(!/\d+ نفر|ثبت‌نام‌شده: /.test(info),'هیچ شمارندهٔ ساختگی در اطلاعات نیست');
   click('[data-ei-tab="regs"]');
   ok(await waitFor(()=>doc.querySelector('[data-ei-regs]')),'زبانهٔ ثبت‌نام‌ها');
-  ok(doc.querySelector('[data-ei-regs-empty]')&&doc.querySelector('[data-ei-edit="ev-1"][data-ei-edit-step="3"]'),'بدون فرم: حالت خالی صریح + مسیر وصل/ساخت فرم در گام ۴ ویزارد');
+  ok(doc.querySelector('[data-ei-regs-empty]')&&doc.querySelector('[data-ei-edit="ev-1"][data-ei-edit-step="3"]'),'بدون فرم: حالت خالی صریح + مسیر وصل/ساخت فرم');
   ok(!doc.querySelector('[data-ei-form-row="f-other"]'),'فرم رویداد دیگر این‌جا نیست');
   click('[data-ei-tab="survey"]');
   ok(await waitFor(()=>doc.querySelector('[data-ei-survey]')),'زبانهٔ نظرسنجی');
@@ -187,7 +297,7 @@ console.log('── پروندهٔ رویداد: زبانه‌ها به ترتی
   ok(await waitFor(()=>CALLS.some(c=>c.path.startsWith('/api/owner/audit'))&&doc.querySelector('[data-ch-panel="content.events"]')),'تاریخچه از /api/owner/audit داخل همان زبانه');
   click('[data-ei-tab="regs"]'); await waitFor(()=>doc.querySelector('[data-ei-edit="ev-1"]'));
   click('[data-ei-edit="ev-1"]');
-  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-step-panel="3"]:not([hidden])')),'«وصل یا ساخت فرم» همان ویزارد را روی گام ۴ باز می‌کند');
+  ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-sec="reg"]')&&doc.querySelector('[data-ct-forms="ev-1"]')),'«وصل یا ساخت فرم» همان فرم فشرده را با بخش ثبت‌نام باز می‌کند');
 }
 
 console.log('── مدیر: مجوزها در ریل ──');

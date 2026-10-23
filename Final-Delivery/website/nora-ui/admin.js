@@ -6827,7 +6827,7 @@ function serverUsersView(){
 const staffCsrfCookie=()=>isOwner()?'nora_csrf':'nora_account_csrf';
 const P2_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
 const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخت'],['title','عنوان'],['date','تاریخ']];
-const CT={kind:'events',q:'',status:'',when:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
+const CT={kind:'events',q:'',status:'',when:'',mode:'',moreFilters:false,sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
 /* تصاویر عمومی (پوستر/جلد): بارگذاری واقعی به /api/admin/media و فهرست با وضعیت استفاده؛ هیچ حذف خودکاری نیست */
 const CM={up:{busy:false,error:'',file:null,field:'',name:''},open:false,data:null,loading:false,error:'',busy:'',offset:0,limit:20};
 const US={q:'',provider:'',role:'',status:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
@@ -6865,7 +6865,7 @@ const P2_FIELD_ERR={title_required:'عنوان لازم است.',invalid_jalali_
   event_description_required:'برای انتشار، شرح رویداد لازم است.',unexpected_record_fields:'فیلد ناشناخته‌ای فرستاده شد.',invalid_status:'وضعیت معتبر نیست.',
   invalid_status_transition:'این تغییر وضعیت از حالت فعلی مجاز نیست.',status_unchanged:'وضعیت همین حالا همین است.',
   invalid_datetime:'زمان باید به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ (ساعت تهران) باشد و در بازهٔ معقول قرار گیرد.',invalid_datetime_order:'زمان پایان باید بعد از زمان شروع باشد.',
-  invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.'};
+  invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.',invalid_link:'پیوند باید با https:// آغاز شود و نشانی معتبر باشد.'};
 const CT_DATETIME_FIELDS=['startsAt','endsAt','regOpensAt','regClosesAt'];
 const CT_REG_STATE={open:'ثبت‌نام باز',not_started:'ثبت‌نام هنوز آغاز نشده',full:'ظرفیت تکمیل',closed:'ثبت‌نام بسته',ended:'برگزارشده',cancelled:'لغوشده',none:'بدون فرم ثبت‌نام'};
 function p2FieldErr(error){
@@ -6892,7 +6892,7 @@ function p2Inp(label,field,value,opts){
   return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${control}<small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small></label>`;
 }
 /* ── محتوا: رویدادها و مطالب روی همان site_content ── */
-function ctKey(){return [CT.kind,CT.q,CT.status,CT.kind==='events'?CT.when:'',CT.sort,CT.order,CT.offset,CT.limit].join('|')}
+function ctKey(){return [CT.kind,CT.q,CT.status,CT.kind==='events'?CT.when:'',CT.kind==='events'?CT.mode:'',CT.sort,CT.order,CT.offset,CT.limit].join('|')}
 function ctCan(what){const d=CT.data; if(d&&typeof d[what]==='boolean') return d[what]; return what==='can_edit'?canPerm('ev_create'):canPerm('ev_publish')}
 function ctReset(){CT.offset=0; CT.data=null; CT.key=''}
 async function ctLoad(){
@@ -6900,7 +6900,7 @@ async function ctLoad(){
   if(!api||typeof api.listAdminContent!=='function'){CT.error='رابط سرور در دسترس نیست.'; CT.key=ctKey(); renderBody(); return}
   const key=ctKey(); CT.loading=true; CT.error=''; renderBody();
   try{
-    const result=await api.listAdminContent(CT.kind,{limit:CT.limit,offset:CT.offset,q:CT.q,status:CT.status,sort:CT.sort,order:CT.order,when:CT.kind==='events'?CT.when:''});
+    const result=await api.listAdminContent(CT.kind,{limit:CT.limit,offset:CT.offset,q:CT.q,status:CT.status,sort:CT.sort,order:CT.order,when:CT.kind==='events'?CT.when:'',mode:CT.kind==='events'?CT.mode:''});
     if(key===ctKey()){CT.data=result; CT.key=key}
   }catch(error){if(key===ctKey()){CT.error=p2Err(error,'فهرست محتوا از سرور دریافت نشد.'); CT.key=key}}
   finally{CT.loading=false; if(key!==ctKey()){ctLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
@@ -6908,7 +6908,7 @@ async function ctLoad(){
 function ctStatusLabel(status){const row=P2_STATUS[status]||[status,'']; return tag(row[0],row[1])}
 function ctRefMeta(field,id){if(!id) return ''; if(!PK.loaded) return (field==='partnerId'?'نهاد: ':'مدرس: ')+id; const n=pkName(field,id); return n?(field==='partnerId'?'نهاد: ':'مدرس: ')+n:(field==='partnerId'?'نهاد ناموجود: ':'مدرس ناموجود: ')+id}
 function ctEventMeta(item){
-  return [item.kind,item.on||item.when,item.time,item.place,item.mode,item.price?fa(item.price)+' ریال':'',item.registration?ctRegMeta(item):(item.cap?'ظرفیت اعلامی '+fa(item.cap):''),item.cert?'گواهی':'',item.past?'برگزارشده':'',ctRefMeta('tchr',item.tchr),ctRefMeta('partnerId',item.partnerId)]
+  return [item.kind,item.on||item.when,item.time,item.place,item.mode?(ctModeLabel(item.mode)||item.mode):'',item.price?fa(item.price)+' ریال':'',item.registration?ctRegMeta(item):(item.cap?'ظرفیت اعلامی '+fa(item.cap):''),item.cert?'گواهی':'',item.past?'برگزارشده':'',ctRefMeta('tchr',item.tchr),ctRefMeta('partnerId',item.partnerId)]
     .filter(Boolean).join(' · ');
 }
 function ctArticleMeta(item){
@@ -6920,7 +6920,7 @@ function ctActions(item){
   if(CT.kind==='events'&&ctCan('can_edit')) out.push(btn('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
   if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
   if(CT.kind==='events') out.push(btn('پروندهٔ رویداد',`data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="اطلاعات، ثبت‌نام‌ها، حضور، نظرسنجی، مالی، گواهینامه، اطلاع‌رسانی"`,'i-doc'));
-  if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('منابع و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
+  if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('فایل‌ها و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
   if(ctCan('can_publish')){
     if(st==='draft'||st==='paused') out.push(btn(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
     if(st==='published') out.push(btn('توقف انتشار',`data-ct-set="paused" data-ct-id="${id}"`,'i-eye-off'));
@@ -6937,6 +6937,20 @@ function ctRow(item){
     ${ctStatusLabel(item.status)}
     <div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${ctActions(item)}</div></div>`;
 }
+/* صافی سادهٔ رویدادها (مرحلهٔ نهایی): همه / پیش‌رو / برگزارشده / پیش‌نویس / بایگانی روی همان پارامترهای سرور (when با روز تهران، status)؛
+   شیوهٔ برگزاری از mode_counts سرور. صافی‌های ریزتر (امروز، منتشرشده، متوقف) زیر «صافی‌های بیشتر». */
+const CT_QUICK=[['all','همه',{status:'',when:''}],['upcoming','پیش‌رو',{status:'',when:'upcoming'}],['past','برگزارشده',{status:'',when:'past'}],['draft','پیش‌نویس',{status:'draft',when:''}],['archived','بایگانی',{status:'archived',when:''}]];
+function ctQuickKey(){const hit=CT_QUICK.find(([k,l,v])=>v.status===CT.status&&v.when===CT.when); return hit?hit[0]:''}
+function ctQuickFilters(d){
+  const counts=d&&d.counts||{}, wc=d&&d.when_counts||{}, mc=d&&d.mode_counts||{}, cur=ctQuickKey();
+  const n=k=>k==='all'?(d?Object.values(counts).reduce((a,b)=>a+(Number(b)||0),0):null):k==='upcoming'?wc.upcoming:k==='past'?wc.past:counts[k];
+  const modes=Object.keys(mc).sort((a,b)=>(mc[b]||0)-(mc[a]||0)); if(CT.mode&&!modes.includes(CT.mode)) modes.unshift(CT.mode);
+  return `<div class="row tight" style="flex-wrap:wrap;align-items:center" data-ct-quick-filters>
+    <div class="admfilters" role="group" aria-label="صافی رویدادها">${CT_QUICK.map(([k,l])=>{const c=n(k); return `<button class="chip ${cur===k?'on':''}" type="button" data-ct-quick="${k}">${esc(l)}${c!=null?' · '+fa(c):''}</button>`}).join('')}</div>
+    <span class="sp"></span>
+    <label class="fld" style="flex:0 1 190px;margin:0"><span class="lbl">شیوهٔ برگزاری</span><select class="input" data-ct-mode aria-label="شیوهٔ برگزاری"><option value="">همه</option>${modes.map(m=>`<option value="${esc(m)}" ${CT.mode===m?'selected':''}>${esc(ctModeLabel(m)||m)}${m!==ctModeLabel(m)&&ctModeLabel(m)?' ('+esc(m)+')':''}${mc[m]?' · '+fa(mc[m]):''}</option>`).join('')}</select></label>
+  </div>`;
+}
 function ctList(){
   const d=CT.data, counts=d&&d.counts||{}, total=d?Number(d.total)||0:0;
   const chips=[['','همه',d?Object.values(counts).reduce((a,b)=>a+(Number(b)||0),0):null]].concat(Object.keys(P2_STATUS).map(k=>[k,P2_STATUS[k][0],d?counts[k]:null]))
@@ -6948,7 +6962,7 @@ function ctList(){
     :CT.error?`<div class="empty"><p class="cap">${esc(CT.error)}</p>${btn('تلاش دوباره','data-ct-refresh','i-refresh')}</div>`
     :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-ct-refresh','i-refresh')}</div>`
     :d.items.length?d.items.map(ctRow).join('')
-      :emptyBox(CT.q||CT.status||(CT.kind==='events'&&CT.when)?'با این جست‌وجو یا فیلتر رکوردی پیدا نشد.':CT.kind==='events'?'هنوز رویدادی در سرور ثبت نشده است.':'هنوز مطلبی در سرور ثبت نشده است.');
+      :emptyBox(CT.q||CT.status||(CT.kind==='events'&&(CT.when||CT.mode))?'با این جست‌وجو یا فیلتر رکوردی پیدا نشد.':CT.kind==='events'?'هنوز رویدادی در سرور ثبت نشده است.':'هنوز مطلبی در سرور ثبت نشده است.');
   const kindName=CT.kind==='events'?'رویداد':'مطلب';
   return `<section class="card stack" data-ct-panel>
     <div class="row" style="flex-wrap:wrap"><div class="head">${CT.kind==='events'?'رویدادها':'مطالب'}</div><span class="sp"></span>
@@ -6958,7 +6972,7 @@ function ctList(){
     <form class="row tight server-role-search" data-ct-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="ctQuery" type="search" class="input" value="${esc(CT.q)}" maxlength="80" autocomplete="off" placeholder="عنوان، دسته، مکان، برچسب یا شناسه" aria-label="جست‌وجوی محتوا"/></label>
       <button class="btn sm" type="submit" data-ct-search>جست‌وجو</button></form>
-    <div class="admfilters">${chips}</div>${whenChips}
+    ${CT.kind==='events'?ctQuickFilters(d)+`<details class="ctmore" data-ct-more-filters ${CT.moreFilters?'open':''}><summary><span class="ctmore-t">${ico('i-chev-left')}<b>صافی‌های بیشتر</b></span><small class="cap">وضعیت انتشار (منتشرشده، متوقف) و «امروز»</small></summary><div class="stack ctmore-b"><div class="admfilters" data-ct-status-filters>${chips}</div>${whenChips}</div></details>`:`<div class="admfilters">${chips}</div>`}
     <div class="row tight" style="flex-wrap:wrap">
       <label class="fld" style="flex:1 1 140px"><span class="lbl">ترتیب</span><select class="input" data-ct-sort>${P2_SORTS.map(([k,l])=>`<option value="${k}" ${CT.sort===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
       <label class="fld" style="flex:1 1 120px"><span class="lbl">جهت</span><select class="input" data-ct-order><option value="desc" ${CT.order==='desc'?'selected':''}>نزولی</option><option value="asc" ${CT.order==='asc'?'selected':''}>صعودی</option></select></label>
@@ -7058,7 +7072,7 @@ function pkPreflight(e){
   return ok;
 }
 const pkName=(field,id)=>{const p=pkRow(field,id); return p?String(p.n||''):''};
-function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
+function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',joinUrl:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
     startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,remH24:false,remH1:false,tchr:'',partnerId:'',parts:[]}
   :{t:'',cat:'',lead:'',body:'',blocks:[],cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
 function ctEditable(kind,record){
@@ -7229,7 +7243,7 @@ function ctApplyTemplate(key){
 }
 /* تاریخ شمسی: روز هفته از همان الگوریتم جلالی پنل؛ تقویم کوچک برای فیلدهای تاریخ و تاریخ‌ساعت. */
 function ctJDate(value){const t=un(String(value||'')).trim(); const m=t.match(/^(\d{4}\/\d{1,2}\/\d{1,2})(?:\s+(.*))?$/); if(!m) return null; const j=jParse(m[1]); return j?{j:j,rest:m[2]||''}:null}
-function ctWeekday(value){const d=ctJDate(value); return d?ctJLong(d.j.jy,d.j.jm,d.j.jd)+' '+fa(d.j.jy):''}
+function ctWeekday(value){const d=ctJDate(value); return d?ctJLong(d.j.jy,d.j.jm,d.j.jd)+' '+fa(d.j.jy)+' · '+fa(ctJForm(d.j.jy,d.j.jm,d.j.jd))+(d.rest?' '+fa(d.rest):''):''}
 function ctDateWithDay(field,jy,jm,jd){
   const cur=String(ctDpValue(field)||''), d=ctJDate(cur), date=ctJForm(jy,jm,jd);
   if(CT_DATETIME_FIELDS.includes(field)){const rest=d&&d.rest?d.rest:(un(String(CT.edit.form.time||'')).match(/^\d{1,2}:\d{2}$/)?h24(CT.edit.form.time,true):''); return rest?date+' '+rest:date}
@@ -7244,14 +7258,17 @@ function ctDpBox(){
   let cells='<span class="db"></span>'.repeat(pad);
   for(let d=1;d<=len;d++){const on=cur&&cur.jy===y&&cur.jm===m&&cur.jd===d, td=t.jy===y&&t.jm===m&&t.jd===d;
     cells+=`<button type="button" class="dd ${on?'on':''} ${td?'today':''}" data-ctdp-day="${d}" aria-label="${esc(ctJLong(y,m,d))}">${esc(fa(d))}</button>`}
-  return `<div class="dp" data-ctdp-box="${esc(dp.f)}" role="dialog" aria-label="تقویم شمسی">
+  const years=[]; for(let yy=Math.min(y,t.jy-3);yy<=Math.max(y,t.jy+6);yy++) years.push(yy);
+  return `<div class="dp" data-ctdp-box="${esc(dp.f)}" role="dialog" aria-label="تقویم شمسی" aria-describedby="ctdpHint">
     <div class="dphead"><button type="button" class="dpnav" data-ctdp-mv="-1" aria-label="ماه قبل">${ico('i-chev-right')}</button><b>${esc(months[m-1]||'')} ${esc(fa(y))}</b><button type="button" class="dpnav" data-ctdp-mv="1" aria-label="ماه بعد">${ico('i-chev-left')}</button><span class="sp"></span>
-      <button type="button" class="btn sm quiet" data-ctdp-today>امروز</button><button type="button" class="btn sm quiet" data-ctdp-close>بستن</button></div>
-    <div class="dpweek">${days.map(d=>`<span>${esc(d)}</span>`).join('')}</div><div class="dpgrid">${cells}</div></div>`;
+      <select class="input dpsel" data-ctdp-set="m" aria-label="انتخاب ماه">${months.map((mo,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${esc(mo)}</option>`).join('')}</select>
+      <select class="input dpsel" data-ctdp-set="y" aria-label="انتخاب سال">${years.map(yy=>`<option value="${yy}" ${yy===y?'selected':''}>${esc(fa(yy))}</option>`).join('')}</select></div>
+    <div class="dpweek">${days.map(d=>`<span>${esc(d)}</span>`).join('')}</div><div class="dpgrid">${cells}</div>
+    <div class="row tight" style="flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm quiet" data-ctdp-today>امروز</button>${cur?`<button type="button" class="btn sm quiet" data-ctdp-clear>پاک‌کردن</button>`:''}<span class="sp"></span><small class="cap" id="ctdpHint">${cur?esc(ctJLong(cur.jy,cur.jm,cur.jd)+' '+fa(cur.jy)):'روزی انتخاب نشده'}</small><button type="button" class="btn sm quiet" data-ctdp-close>بستن</button></div></div>`;
 }
 function ctDateInp(label,field,value,opts){
   const o=opts||{}, err=o.err||'', id='ctf_'+field, wd=ctWeekday(value), open=CT.dp&&CT.dp.f===field;
-  return `<div class="fld" data-ct-date="${field}"><label class="lbl" for="${id}">${esc(label)}</label>
+  return `<div class="fld" data-ct-date="${field}" style="${o.style||''}"><label class="lbl" for="${id}">${esc(label)}</label>
     <div class="withbtn"><input type="text" id="${id}" class="input" data-ct-field="${field}" maxlength="${o.max||20}" placeholder="${esc(o.ph||'')}" dir="ltr" inputmode="numeric" autocomplete="off" value="${esc(value==null?'':String(value))}"/>
       <button type="button" class="btn sm quiet" data-ctdp="${field}" aria-label="تقویم شمسی" aria-expanded="${open?'true':'false'}">${ico('i-calendar')}</button></div>
     <small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small>
@@ -7281,12 +7298,48 @@ function ctSyncDates(field,oldVal,newVal){
   }
 }
 /* ساعت ۲۴ساعته: فقط وقتی کاربر عدد خالص می‌نویسد دونقطه خودکار می‌آید؛ متن آزاد («۱۰ تا ۱۳») دست‌نخورده می‌ماند. */
+/* قاعدهٔ مرحلهٔ نهایی: ورودی ناقص هرگز بازنویسی نمی‌شود؛ فقط ورودیِ کامل (۴ رقم ساعت، ۸ رقم تاریخ) همان لحظه قالب می‌گیرد
+   و با ترک قلم (blur) مقدارِ قابل‌فهم صفرپُر می‌شود. یک یا دو رقم تنها (مثل «۹») حتی با ترک قلم دست نمی‌خورد. */
+function ctDate8(raw){return /^\d{8}$/.test(raw)?raw.slice(0,4)+'/'+raw.slice(4,6)+'/'+raw.slice(6,8):''}
+function ctDatePad(raw){const m=raw.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/); return m?ctJForm(+m[1],+m[2],+m[3]):''}
 function ctTimeFix(field,value,hard){
-  const raw=un(String(value||''));
-  /* وسط تایپ فقط با چهار رقم کامل دست می‌زنیم (۱۰۳ → ۰۱:۰۳ نشود)؛ با ترک قلم هر عدد ناقص کامل می‌شود */
-  if(field==='time'){ if(/^\d{4}$/.test(raw)||(hard&&(/^\d{1,3}$/.test(raw)||/^\d{1,2}:\d{1,2}$/.test(raw)))) return h24(raw,true); return value}
-  if(CT_DATETIME_FIELDS.includes(field)){const m=raw.match(/^(\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{1,4}|\d{1,2}:\d{1,2})$/); if(m&&(/^\d{4}$/.test(m[2])||hard)) return m[1]+' '+h24(m[2],true); return value}
+  const raw=un(String(value||'')).trim();
+  if(field==='time'||field==='endTime'||field==='to'){
+    if(/^\d{4}$/.test(raw)) return h24(raw,true);
+    if(hard&&(/^\d{3}$/.test(raw)||/^\d{1,2}:\d{1,2}$/.test(raw))) return h24(raw,true);
+    return value;
+  }
+  if(field==='on'||field==='date'){
+    const d8=ctDate8(raw); if(d8) return d8;
+    if(hard){const p=ctDatePad(raw); if(p) return p}
+    return value;
+  }
+  if(CT_DATETIME_FIELDS.includes(field)){
+    const d8=ctDate8(raw); if(d8) return d8;
+    const m12=raw.match(/^(\d{8})\s*(\d{4})$/); if(m12) return ctDate8(m12[1])+' '+h24(m12[2],true);
+    const m=raw.match(/^(\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{1,4}|\d{1,2}:\d{1,2})$/);
+    if(m&&(/^\d{4}$/.test(m[2])||hard)) return (hard?(ctDatePad(m[1])||m[1]):m[1])+' '+h24(m[2],true);
+    if(hard){const p=ctDatePad(raw); if(p) return p}
+    return value;
+  }
   return value;
+}
+/* ساعت پایان ساده (فیلد مجازی endTime): فقط وقتی کامل است به endsAt همان روزِ شروع می‌رود؛ خالی‌شدنش endsAt را خالی می‌کند؛ ناقص هیچ‌کاره */
+function ctEndTimeFrom(f){const d=ctJDate(f.endsAt), s=ctJDate(f.startsAt)||ctJDate(f.on); if(!d||!d.rest) return ''; if(s&&(s.j.jy!==d.j.jy||s.j.jm!==d.j.jm||s.j.jd!==d.j.jd)) return ''; return d.rest}
+function ctSyncEndTime(f,value){
+  const t=un(String(value||'')).trim();
+  if(!t){f.endsAt=''; return}
+  if(!/^\d{1,2}:\d{2}$/.test(t)) return;
+  const d=ctJDate(f.startsAt)||ctJDate(f.on); if(!d) return;
+  f.endsAt=ctJForm(d.j.jy,d.j.jm,d.j.jd)+' '+h24(t,true);
+}
+function ctRefreshEndTime(active){const f=CT.edit&&CT.edit.form; if(!f) return; const derived=ctEndTimeFrom(f), cur=un(String(f.endTime||'')).trim();
+  /* متن ناقصِ «ساعت پایان» هرگز بازنویسی نمی‌شود؛ فقط وقتی مقدار مشتق‌شده داریم یا مقدار فعلی یک ساعت کامل است همگام می‌شود */
+  if(derived||/^\d{1,2}:\d{2}$/.test(cur)){ if(f.endTime!==derived){f.endTime=derived; const el=document.getElementById('ctf_endTime'); if(el&&el!==active) el.value=derived}}}
+const CT_TIME_LIST=`<datalist id="ctTimes">${Array.from({length:36},(_,i)=>{const h=6+Math.floor(i/2), m=i%2?'30':'00'; return `<option value="${jPad(h)}:${m}"></option>`}).join('')}</datalist>`;
+function ctTimeInp(label,field,value,opts){
+  const o=opts||{}, err=o.err||'', id='ctf_'+field;
+  return `<label class="fld" for="${id}" style="${o.style||''}"><span class="lbl">${esc(label)}</span><input type="text" id="${id}" class="input" data-ct-field="${field}" maxlength="${o.max||5}" placeholder="${esc(o.ph||'۱۰:۰۰')}" dir="ltr" inputmode="numeric" autocomplete="off" list="ctTimes" value="${esc(value==null?'':String(value))}"/><small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small></label>`;
 }
 /* پیش‌نویس محلی: فقط متن تایپ‌شدهٔ همین کاربر در همین زبانه (sessionStorage)، با برچسب صریح؛ هرگز به‌جای رکورد سرور نمایش داده نمی‌شود. */
 function ctDraftKey(){const e=CT.edit; if(!e||IS_TEST||!SERVER_AUTH) return ''; const who=SERVER_AUTH.account_id||SERVER_AUTH.owner_id||'x'; return `nora-admin-ct-draft:${who}:${CT.kind}:${e.id||'new'}`}
@@ -7350,60 +7403,7 @@ function ctEditor(){
     </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
     ${img&&img.startsWith('/api/public/media/')?`<small class="cap" dir="ltr">${esc(img)}</small>`:''}
     ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
-  const wizStep=ctWizStep(e);
-  const panel=(n,inner)=>`<div class="stack" data-ct-step-panel="${n}" ${wizStep===n?'':'hidden'}>${inner}</div>`;
-  const fields=kind==='events'?`
-    ${ctWizHeader(e)}
-    ${panel(0,`
-    <p class="cap">چیستی رویداد: عنوان، نوع، برگزارکننده و شرح؛ همان چیزی که روی کارت و صفحهٔ عمومی دیده می‌شود.</p>
-    ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}</div>
-    ${isNew?`<div class="card stack" data-ct-templates style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>قالب شروع (اختیاری)</strong><span class="sp"></span><small class="cap">فقط فیلدهای خالی را پر می‌کند؛ ذخیره‌ای انجام نمی‌شود.</small></div><div class="admfilters">${CT_TEMPLATES.map(t=>`<button type="button" class="chip ${e.template===t[0]?'on':''}" data-ct-template="${t[0]}">${esc(t[1])}</button>`).join('')}</div></div>`:''}
-    <div class="card stack" data-ct-people><strong>مدرس و نهاد همکار (پیوند شناسه‌ای)</strong><small class="cap">هر دو از ردیف‌های منتشرشدهٔ همین سایت انتخاب می‌شوند تا کارت رویداد و صفحهٔ عمومی همان پروفایل را نشان دهند؛ تایپ آزاد نام این‌جا ذخیره نمی‌شود.</small>${ctPicker('tchr')}${ctPicker('partnerId')}</div>
-    ${p2Inp('شرح','d',f.d,{textarea:true,rows:6,err:err.d,hint:'برای انتشار لازم است.'})}
-    ${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}
-    ${imageBox}`)}
-    ${panel(1,`
-    <p class="cap">زمان و مکان: تاریخ شمسی برای مرتب‌سازی و تقویم، ساعت دقیق برای شمارشگرها و یادآورها (به وقت تهران)، جلسه‌ها و وضعیت برگزاری.</p>
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}${p2Inp('مکان','place',f.place,{max:240})}</div>
-    <div class="row tight" style="flex-wrap:wrap">${ctDateInp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها؛ روز هفته خودکار نوشته می‌شود'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when,hint:'اگر خالی باشد، از تاریخ شمسی پر می‌شود'})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰:۰۰ یا «۱۰ تا ۱۳»',dir:'ltr',hint:'عدد خالص (مثلاً ۱۰۰۰) خودکار ۱۰:۰۰ می‌شود و به «شروع رویداد» می‌رود'})}</div>
-    <div class="card stack" data-ct-schedule>
-      <strong>زمان‌بندی دقیق</strong>
-      <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها در همهٔ صفحه‌ها از همین مقدار خوانده می‌شوند.</small>
-      <div class="row tight" style="flex-wrap:wrap">${ctDateInp('شروع رویداد','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',err:err.startsAt,hint:'تاریخ آن همراه «تاریخ شمسی» می‌آید تا دستی عوضش کنی'})}${ctDateInp('پایان رویداد','endsAt',f.endsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۳:۰۰',err:err.endsAt,hint:'تاریخ پایان همراه شروع می‌آید؛ ساعت را بنویس'})}</div>
-      <div class="row tight" style="flex-wrap:wrap">${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
-      <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.past?'on':''}"><input type="checkbox" data-ct-check="past" ${f.past?'checked':''} hidden/>برگزارشده (آرشیو)</label></div>
-    </div>
-    ${ctPartsBox(f,err.parts)}`)}
-    ${panel(2,`
-    <p class="cap">ظرفیت و ثبت‌نام: پنجرهٔ ثبت‌نام، حالت ثبت‌نام و ظرفیت کل. مبلغ واقعی پرداخت و روش‌های آن در فرم ثبت‌نام (فرم‌ساز) تعریف می‌شود؛ این‌جا فقط هزینهٔ نمایشی کارت است.</p>
-    <div class="card stack" data-ct-regwin>
-      <strong>پنجره و حالت ثبت‌نام</strong>
-      <small class="cap">باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از این مقدارها و زمان سرور خوانده می‌شود؛ فرم ثبت‌نام منتشرشده هم لازم است (گام بعد).</small>
-      <div class="row tight" style="flex-wrap:wrap">${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه، فرم ثبت‌نام در سرور بسته می‌شود.'})}</div>
-      <div class="row tight" style="flex-wrap:wrap">${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (بر پایهٔ زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap})}${p2Inp('هزینه (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان'})}</div>
-      ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
-      ${e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:''}
-    </div>
-    <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label><label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label></div>
-    ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
-    <div class="card stack" data-ct-waitlist><strong>فهرست انتظار</strong><small class="cap">در مرجع طراحی هست؛ سرور فعلی فهرست انتظار را در سطح فرم (ظرفیت فرم) نگه می‌دارد نه رویداد. ${tag('تصمیم مالک / نیازمند بک‌اند','warn')}</small></div>`)}
-    ${panel(3,`
-    <p class="cap">فرم‌ها و یادآوری‌ها: فرم ثبت‌نام از انبار فرم‌ها (فرم‌ساز تنها ویرایشگر فرم است) و یادآورهای خودکار درون‌برنامه‌ای و بله از صف اعلان‌های سرور.</p>
-    <div class="card stack" data-ct-forms-step>
-      ${ctEventForms(e)}
-      ${ctFormLinkPicker(e)}
-    </div>
-    <div class="card stack" data-ct-rem-step><strong>یادآورهای خودکار</strong><small class="cap">۲۴ ساعت و ۱ ساعت پیش از شروع؛ مستقل از هم، برای ثبت‌نام‌شدگان تأییدشده، درون‌برنامه‌ای و بله از همان صف اعلان‌ها. پیامک ندارد. تغییر زمان شروع، یادآورهای قدیمی را باطل می‌کند.</small>
-    <div class="row tight" style="flex-wrap:wrap" data-ct-reminders>
-      <label class="chip ${f.remH24?'on':''}"><input type="checkbox" data-ct-check="remH24" ${f.remH24?'checked':''} hidden/>یادآور ۲۴ ساعت قبل</label>
-      <label class="chip ${f.remH1?'on':''}"><input type="checkbox" data-ct-check="remH1" ${f.remH1?'checked':''} hidden/>یادآور ۱ ساعت قبل</label>
-      ${err.reminders?`<small class="cap" data-ct-err="reminders" style="color:var(--danger)">${esc(err.reminders)}</small>`:''}
-    </div>
-
-    ${ctReminderBox(e)}
-    </div>`)}
-    ${panel(4,ctWizReview(e))}`
+  const fields=kind==='events'?ctEventSections(e,imageBox)
   :`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('دسته','cat',f.cat,{max:80,ph:'اخبار، آموزش…'})}${p2Inp('نویسندهٔ میهمان (نام آزاد، اختیاری)','who',f.who,{max:160,hint:'اگر نویسنده پروفایل سایت دارد، پایین از فهرست انتخاب کن.'})}${p2Inp('تاریخ انتشار','at',f.at,{max:30,ph:'2026-10-21',dir:'ltr',err:err.at})}</div>
@@ -7414,7 +7414,11 @@ function ctEditor(){
     <label class="chip ${f.pin?'on':''}"><input type="checkbox" data-ct-check="pin" ${f.pin?'checked':''} hidden/>سنجاق در صدر فهرست</label>
     ${imageBox}`;
   const status=e.status||'draft';
-  const saveLabel=isNew?'ذخیره به‌عنوان پیش‌نویس':'ذخیرهٔ تغییرها';
+  const saveLabel=isNew?'ذخیرهٔ پیش‌نویس':'ذخیرهٔ تغییرها';
+  const inTabs=!isNew&&chIs('content.'+kind,e.id);
+  /* رویداد: پیش‌نمایش زندهٔ کارت داخل بخش «مرور و ذخیره» است (#ctPreview همان‌جا)؛ مطلب: ستون کناری قدیمی */
+  const side=kind==='events'?'':`<div class="stack" style="flex:1 1 240px;min-width:0"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>`;
+  const publishBtn=ctCan('can_publish')&&(isNew||(status!=='published'&&status!=='archived'))?btn(isNew?'انتشار':'ذخیره و انتشار در سایت',`data-ct-save-publish ${CT.busy?'disabled':''}`,'i-globe'):'';
   return `<section class="card stack" data-ct-editor>
     <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${!isNew?ctStatusLabel(status):tag('هنوز ذخیره نشده','')}${e.version!=null?tag('نسخهٔ '+fa(e.version),''):''}</div>
     ${e.id?`<p class="cap">شناسه: <span dir="ltr">${esc(e.id)}</span>${e.updated_at?' · آخرین تغییر: '+esc(svcWhen(e.updated_at)):''}${status==='published'?' · این رکورد الان در سایت دیده می‌شود؛ ذخیره بلافاصله صفحهٔ عمومی را تغییر می‌دهد.':''}</p>`:''}
@@ -7422,47 +7426,128 @@ function ctEditor(){
     ${ctDraftBanner(e)}
     ${e.formError?`<p class="cap" style="color:var(--stop)" role="alert" tabindex="-1" data-ct-form-error>${esc(e.formError)}</p>`:''}
     ${isNew?'':chTabs('content.'+kind,e.id,'ویرایش')}
-    ${!isNew&&chIs('content.'+kind,e.id)?chPanel():''}
-    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)${!isNew&&chIs('content.'+kind,e.id)?';display:none':''}" data-ct-edit-pane>
-      <div class="stack" style="flex:2 1 320px;min-width:0">${fields}</div>
-      <div class="stack" style="flex:1 1 240px;min-width:0${kind==='events'&&wizStep===4?';display:none':''}"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
+    ${inTabs?chPanel():''}
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)${inTabs?';display:none':''}" data-ct-edit-pane>
+      <div class="stack" style="flex:2 1 320px;min-width:0">${fields}</div>${side}
     </div>
-    <div class="row" style="flex-wrap:wrap" data-ct-actions>
+    <div class="row ctfoot" style="flex-wrap:wrap" data-ct-actions>
       ${btn('انصراف','data-ct-cancel','i-close')}<span class="sp"></span>
-      ${kind==='events'?`${wizStep>0?btn('گام قبل',`data-ct-step="${wizStep-1}"`,'i-chev-right'):''}${wizStep<4?btn('گام بعد',`data-ct-step="${wizStep+1}"`,'i-chev-left'):''}`:''}
-      ${kind==='events'&&isNew&&wizStep>=2&&wizStep<4?btn('ذخیرهٔ پیش‌نویس و ادامه',`data-ct-save-stay ${CT.busy?'disabled':''}`,'i-check'):''}
       ${btn(saveLabel,`data-ct-save ${CT.busy?'disabled':''}`,'i-check')}
-      ${ctCan('can_publish')&&(isNew||(status!=='published'&&status!=='archived'))?btn(isNew?'ذخیره و انتشار':'ذخیره و انتشار در سایت',`data-ct-save-publish ${CT.busy?'disabled':''}`,'i-globe'):''}
+      ${kind==='events'?btn('پیش‌نمایش','data-ct-preview-toggle','i-eye'):''}
+      ${publishBtn}
       ${kind==='events'&&!ctCan('can_publish')?`<small class="cap" data-ct-approval>انتشار با مالک یا مدیر دارای مجوز انتشار انجام می‌شود؛ ذخیره، پیش‌نویس را برای بازبینی نگه می‌دارد.</small>`:''}
     </div>
   </section>`;
 }
-/* ══ ویزارد پنج‌گامی رویداد (مرجع طراحی: event-wizard-research.md) ══
-   یک فرم، یک حالت (CT.edit.form)؛ گام‌ها فقط نمای همان فرم را تکه می‌کنند. همهٔ پنل‌ها در DOM هستند
-   (پنل‌های غیرفعال hidden) تا ذخیره، خطاهای ۴۲۲ و پیش‌نویس مرورگر روی همهٔ فیلدها کار کند. */
-const CT_WIZ_STEPS=[['what','چیستی و پوستر','i-text'],['when','زمان و مکان','i-calendar'],['cap','ظرفیت و ثبت‌نام','i-users'],['forms','فرم‌ها و یادآوری‌ها','i-doc'],['page','کارت و صفحه','i-eye']];
-const CT_WIZ_FIELD_STEP={t:0,kind:0,d:0,tags:0,poster:0,tchr:0,partnerId:0,mode:1,on:1,when:1,time:1,place:1,startsAt:1,endsAt:1,sess:1,parts:1,lifecycle:1,past:1,regOpensAt:2,regClosesAt:2,regMode:2,cap:2,price:2,conditions:2,cert:2,certMin:2,certNote:2,qaClosed:2,reminders:3,remH24:3,remH1:3};
-function ctWizStep(e){const n=Number(e&&e.step); return Number.isInteger(n)&&n>=0&&n<=4?n:0}
-function ctWizGo(n){const e=CT.edit; if(!e) return; const k=Math.max(0,Math.min(4,Number(n)||0)); e.step=k; renderBody(); const box=document.querySelector('[data-ct-editor]'); if(box&&typeof box.scrollIntoView==='function'){try{box.scrollIntoView({block:'start'})}catch(_){}}}
-function ctWizErrStep(e){const errs=Object.keys(e&&e.errors||{}); let best=null; errs.forEach(k=>{const n=CT_WIZ_FIELD_STEP[k]; if(n!=null&&(best==null||n<best)) best=n}); return best}
+/* ══ فرم فشردهٔ رویداد (مرحلهٔ نهایی ۱۴۰۵/۰۸/۰۱) ══
+   سه بخش روی یک صفحه: «اطلاعات اصلی»، «ثبت‌نام و امکانات»، «مرور و ذخیره»؛ جزئیات کم‌کاربرد زیر بلوک‌های
+   بازشوندهٔ <details> با عنوان صریح. همهٔ فیلدها همیشه در DOM‌اند (بسته یا باز) تا ذخیره، خطاهای ۴۲۲،
+   پیش‌نویس مرورگر و جابه‌جایی بین بخش‌ها هیچ متنی را گم نکند. یک فرم، یک حالت: CT.edit.form. */
+const CT_SECTIONS=[['main','اطلاعات اصلی','i-text'],['reg','ثبت‌نام و امکانات','i-users'],['review','مرور و ذخیره','i-eye']];
+const CT_MORE_LABEL={desc:'شرح، نوع، برچسب‌ها و برگزارکننده',sched:'زمان‌بندی دقیق، جلسه‌ها و وضعیت برگزاری',extra:'هزینه، گواهی، شرایط شرکت و پرسش‌وپاسخ'};
+const CT_FIELD_BLOCK={d:'desc',kind:'desc',tags:'desc',tchr:'desc',partnerId:'desc',when:'sched',startsAt:'sched',endsAt:'sched',sess:'sched',parts:'sched',lifecycle:'sched',past:'sched',regOpensAt:'extra',price:'extra',conditions:'extra',cert:'extra',certMin:'extra',certNote:'extra',qaClosed:'extra'};
+const CT_FIELD_SEC={cap:'reg',regClosesAt:'reg',regMode:'reg',regOpensAt:'reg',price:'reg',conditions:'reg',cert:'reg',certMin:'reg',certNote:'reg',qaClosed:'reg',reminders:'reg',remH24:'reg',remH1:'reg'};
+/* سازگاری با مسیرهای قدیمی (پروندهٔ رویداد با شمارهٔ گام ۰..۴) */
+const CT_STEP_TARGET=['main','sched','reg','reg','review'];
+function ctWizStep(){return 0}
+function ctWizGo(n){ctJump(CT_STEP_TARGET[Math.max(0,Math.min(4,Number(n)||0))])}
+function ctWizErrStep(e){const errs=Object.keys(e&&e.errors||{}); const k=errs.find(x=>CT_FIELD_BLOCK[x]||CT_FIELD_SEC[x]); return k?(CT_FIELD_BLOCK[k]||CT_FIELD_SEC[k]):(errs.length?'main':null)}
+function ctMoreOpen(e,key){const errs=e.errors||{}; if(e.more&&e.more[key]===true) return true; if(e.more&&e.more[key]===false) return false; return Object.keys(errs).some(k=>CT_FIELD_BLOCK[k]===key)}
+function ctJump(target){
+  const e=CT.edit; if(!e||!target) return;
+  if(CT_MORE_LABEL[target]){e.more=e.more||{}; e.more[target]=true}
+  if(target==='review') e.previewOpen=true;
+  renderBody();
+  const sel=CT_MORE_LABEL[target]?`[data-ct-more="${target}"]`:`[data-ct-sec="${target}"]`;
+  const box=document.querySelector(sel); if(box&&typeof box.scrollIntoView==='function'){try{box.scrollIntoView({block:'start',behavior:'smooth'})}catch(_){}}
+  const first=box&&box.querySelector('input:not([type=hidden]):not([type=file]),select,textarea'); if(first&&typeof first.focus==='function'){try{first.focus({preventScroll:true})}catch(_){}}
+}
+function ctMore(e,key,inner,summary){
+  const open=ctMoreOpen(e,key);
+  return `<details class="ctmore" data-ct-more="${key}" ${open?'open':''}><summary><span class="ctmore-t">${ico('i-chev-left')}<b>${esc(CT_MORE_LABEL[key]||key)}</b></span>${summary?`<small class="cap" data-ct-more-sum="${key}">${esc(summary)}</small>`:''}</summary><div class="stack ctmore-b">${inner}</div></details>`;
+}
+/* شیوهٔ برگزاری: سه گزینهٔ استاندارد؛ متن‌های قدیمی («حضوری و آنلاین»، «برخط»…) حفظ می‌شوند تا مالک خودش عوض کند */
+const CT_MODES=[['حضوری','حضوری'],['آنلاین','آنلاین'],['ترکیبی','ترکیبی (حضوری + آنلاین)']];
+function ctModeKind(mode){const t=String(mode||'').trim(); if(!t) return ''; if(t==='ترکیبی') return 'hybrid'; const on=/آنلاین|برخط|مجازی|online|وبینار/i.test(t), here=/حضوری|سالن|onsite/i.test(t); if(on&&here) return 'hybrid'; if(on) return 'online'; if(t==='حضوری'||here) return 'onsite'; return 'other'}
+function ctModeOptions(mode){const t=String(mode||'').trim(); const std=CT_MODES.some(([v])=>v===t); const opts=[]; if(!t) opts.push(['','انتخاب کن…']); if(t&&!std) opts.push([t,'فعلی: '+t]); return opts.concat(CT_MODES)}
+function ctModeLabel(mode){const k=ctModeKind(mode); return k==='hybrid'?'ترکیبی':k==='online'?'آنلاین':k==='onsite'?'حضوری':String(mode||'').trim()}
+function ctEventSections(e,imageBox){
+  const f=e.form, err=e.errors||{}, isNew=!e.id, mk=ctModeKind(f.mode), past=!!f.past;
+  const sec=(key,inner,hint)=>{const row=CT_SECTIONS.find(x=>x[0]===key); return `<section class="card stack ctsec" data-ct-sec="${key}"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="head">${ico(row[2])} ${esc(row[1])}</div><span class="sp"></span>${hint?`<small class="cap">${esc(hint)}</small>`:''}</div>${inner}</section>`};
+  const showPlace=mk!=='online', showJoin=mk==='online'||mk==='hybrid'||mk==='other';
+  if(f.endTime==null) f.endTime=ctEndTimeFrom(f);
+  /* ── ۱. اطلاعات اصلی ── */
+  const whereRow=`<div class="row tight" style="flex-wrap:wrap" data-ct-where="${mk||'none'}">
+    ${p2Sel('نوع برگزاری','mode',f.mode,ctModeOptions(f.mode),{err:err.mode,hint:mk==='online'?'فقط پیوند ورود لازم است':mk==='hybrid'?'مکان و پیوند ورود هر دو':mk==='onsite'?'مکان لازم است':''})}
+    ${showPlace?p2Inp('مکان','place',f.place,{max:240,err:err.place,ph:'سالن، شهر یا نشانی کوتاه'}):''}
+    ${showJoin?p2Inp(mk==='hybrid'?'پیوند ورود آنلاین':'پیوند یا اطلاعات ورود (https)','joinUrl',f.joinUrl,{max:1000,dir:'ltr',ph:'https://…',err:err.joinUrl,hint:'فقط در پنل نگه داشته می‌شود و در صفحهٔ عمومی نمایش داده نمی‌شود؛ ارسال خودکار آن به ثبت‌نام‌شدگان: تصمیم مالک'}):''}
+  </div>`;
+  const timeRow=`<div class="row tight" style="flex-wrap:wrap" data-ct-when-row>
+    ${ctDateInp(past?'تاریخ برگزاری':'تاریخ شروع','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۰۱',err:err.on,hint:'شمسی؛ با تایپ یا تقویم. ارقام فارسی و لاتین هر دو پذیرفته می‌شوند.',style:'flex:1 1 220px'})}
+    ${ctTimeInp('ساعت شروع','time',f.time,{err:err.time,hint:'۲۴ساعته، مثل ۱۸:۰۰؛ ۱۸۰۰ هم خودکار می‌شود',style:'flex:0 1 150px'})}
+    ${ctTimeInp('ساعت پایان (اختیاری)','endTime',f.endTime,{err:err.endsAt&&!String(f.endsAt||'').trim()?'':err.endsAt,hint:'خالی بماند اگر معلوم نیست',style:'flex:0 1 150px'})}
+  </div>`;
+  const descSum=[String(f.d||'').trim()?'شرح دارد':'بدون شرح',f.kind&&f.kind!=='رویداد'?f.kind:'',pkName('tchr',f.tchr)?'مدرس: '+pkName('tchr',f.tchr):''].filter(Boolean).join(' · ');
+  const descBlock=ctMore(e,'desc',`
+    ${p2Inp('شرح','d',f.d,{textarea:true,rows:5,err:err.d,hint:'برای انتشار لازم است؛ روی صفحهٔ عمومی دیده می‌شود.'})}
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}</div>
+    ${isNew?`<div class="stack" data-ct-templates style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>قالب شروع (اختیاری)</strong><span class="sp"></span><small class="cap">فقط فیلدهای خالی را پر می‌کند؛ ذخیره‌ای انجام نمی‌شود.</small></div><div class="admfilters">${CT_TEMPLATES.map(t=>`<button type="button" class="chip ${e.template===t[0]?'on':''}" data-ct-template="${t[0]}">${esc(t[1])}</button>`).join('')}</div></div>`:''}
+    <div class="stack" data-ct-people style="gap:6px"><strong>مدرس و نهاد همکار (پیوند شناسه‌ای)</strong><small class="cap">از ردیف‌های منتشرشدهٔ همین سایت انتخاب می‌شوند؛ تایپ آزاد نام این‌جا ذخیره نمی‌شود.</small>${ctPicker('tchr')}${ctPicker('partnerId')}</div>`,descSum);
+  const parts=Array.isArray(f.parts)?f.parts.filter(x=>x&&(x.title||x.date)):[];
+  const schedSum=[parts.length?fa(parts.length)+' جلسه':(Number(f.sess)?fa(f.sess)+' جلسه':''),String(f.endsAt||'').trim()&&!f.endTime?'پایان: '+fa(f.endsAt):'',f.lifecycle==='cancelled'?'لغوشده':f.lifecycle==='postponed'?'به تعویق افتاده':'',past?'برگزارشده (آرشیو)':''].filter(Boolean).join(' · ');
+  const schedBlock=ctMore(e,'sched',`
+    <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و یادآورها از همین مقدار خوانده می‌شوند. «شروع» خودکار از تاریخ و ساعت بالا پر می‌شود.</small>
+    <div class="row tight" style="flex-wrap:wrap">${ctDateInp('شروع رویداد (تاریخ و ساعت)','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',err:err.startsAt})}${ctDateInp('پایان رویداد (تاریخ و ساعت)','endsAt',f.endsAt,{max:20,ph:'خالی = نامشخص',err:err.endsAt,hint:'برای رویداد چندروزه تاریخ دیگری بنویس؛ خالی هرگز خودکار پر نمی‌شود'})}</div>
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when,hint:'اگر خالی باشد از تاریخ پر می‌شود'})}${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><label class="chip ${f.past?'on':''}"><input type="checkbox" data-ct-check="past" ${f.past?'checked':''} hidden/>برگزارشده (آرشیو)</label><small class="cap">«پیش‌رو / برگزارشده» در فهرست از تاریخ و روز سرور می‌آید؛ این علامت ثبت‌نام را پایان‌یافته می‌کند و آلبوم و رسانه‌ها را عمومی.</small></div>
+    ${ctPartsBox(f,err.parts)}`,schedSum);
+  const main=sec('main',`
+    ${past?`<p class="cap" data-ct-past-hint>${ico('i-layers')} ثبت رویداد برگزارشده: تاریخ گذشته را وارد کن؛ ثبت‌نام و یادآور لازم نیست. آلبوم، گزارش و فایل‌ها پس از ذخیره در «پروندهٔ رویداد ← فایل‌ها و رسانه‌ها» افزوده می‌شوند.</p>`:''}
+    ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
+    ${whereRow}
+    ${timeRow}
+    ${imageBox}
+    ${descBlock}
+    ${schedBlock}`);
+  /* ── ۲. ثبت‌نام و امکانات ── */
+  const regState=e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:'';
+  const formCard=`<div class="card stack" data-ct-forms-step style="gap:8px">
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم ثبت‌نام</strong><span class="sp"></span><small class="cap">از انبار فرم‌ها؛ فرم‌ساز تنها ویرایشگر فرم است.</small></div>
+    ${ctEventForms(e)}
+    ${isNew&&canPerm('fm_create')?`<div class="row tight" style="flex-wrap:wrap">${btn('ذخیرهٔ پیش‌نویس و اتصال فرم',`data-ct-save-stay ${CT.busy?'disabled':''}`,'i-check')}</div>`:''}
+    ${ctFormLinkPicker(e)}
+    ${regState}
+  </div>`;
+  const capRow=`<div class="row tight" style="flex-wrap:wrap">${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap,hint:'خالی = بدون سقف در این‌جا'})}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه فرم در سرور بسته می‌شود؛ خالی = تا شروع'})}${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}</div>`;
+  const remCard=`<div class="card stack" data-ct-rem-step style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>یادآورهای خودکار</strong><span class="sp"></span><small class="cap">درون‌برنامه‌ای و بله از صف اعلان‌های سرور؛ پیامک ندارد.</small></div>
+    <div class="row tight" style="flex-wrap:wrap" data-ct-reminders>
+      <label class="chip ${f.remH24?'on':''}"><input type="checkbox" data-ct-check="remH24" ${f.remH24?'checked':''} hidden/>۲۴ ساعت قبل</label>
+      <label class="chip ${f.remH1?'on':''}"><input type="checkbox" data-ct-check="remH1" ${f.remH1?'checked':''} hidden/>۱ ساعت قبل</label>
+      ${err.reminders?`<small class="cap" data-ct-err="reminders" style="color:var(--danger)">${esc(err.reminders)}</small>`:''}
+    </div>${ctReminderBox(e)}</div>`;
+  const extraSum=[Number(f.price)?fa(f.price)+' ریال':'رایگان',f.cert?'گواهی دارد':'',String(f.conditions||'').trim()?'شرایط دارد':'',f.qaClosed?'پرسش‌وپاسخ بسته':'',String(f.regOpensAt||'').trim()?'آغاز ثبت‌نام: '+fa(f.regOpensAt):''].filter(Boolean).join(' · ');
+  const extraBlock=ctMore(e,'extra',`
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('هزینهٔ نمایشی کارت (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان؛ مبلغ واقعی پرداخت در فرم ثبت‌نام (فرم‌ساز) است'})}${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}</div>
+    <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label><label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label></div>
+    ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
+    ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
+    <small class="cap" data-ct-waitlist>فهرست انتظار: سرور فعلی آن را در سطح فرم (ظرفیت فرم) نگه می‌دارد نه رویداد. ${tag('تصمیم مالک / نیازمند بک‌اند','warn')}</small>`,extraSum);
+  const fileLinks=!isNew?`<div class="row tight" style="flex-wrap:wrap;align-items:center" data-ct-file-links><small class="cap">${past?'تاریخچه، فایل‌ها و رسانه‌ها، حضور و گواهی':'ثبت‌نام‌ها، یادآورها و فایل‌ها'} در پروندهٔ رویداد:</small>${btn('پروندهٔ رویداد',`data-ct-file="${esc(e.id)}"`,'i-doc')}${eiCanRes()?btn('فایل‌ها و رسانه‌ها',`data-ct-interaction="${esc(e.id)}"`,'i-upload'):''}</div>`:'';
+  const reg=sec('reg',past?`
+    <p class="cap" data-ct-past-reg>رویداد برگزارشده: ثبت‌نام و یادآور تازه‌ای فعال نمی‌شود؛ فرم‌های وصل‌شدهٔ قبلی برای گزارش و حضور می‌مانند.</p>
+    ${e.id?ctEventForms(e):''}${regState}
+    ${fileLinks}
+    ${extraBlock}`:`
+    ${formCard}
+    ${capRow}
+    ${remCard}
+    ${fileLinks}
+    ${extraBlock}`,past?'':'فرم، ظرفیت، مهلت و یادآورها');
+  /* ── ۳. مرور و ذخیره ── */
+  const review=sec('review',ctReviewBody(e),'همه‌چیز از همین فرم و پاسخ سرور');
+  return CT_TIME_LIST+main+reg+review;
+}
 function ctLinkedForms(e){if(!e||!e.id) return []; const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access')}
-/* آمادگی هر گام فقط از همین فرم و پاسخ سرور (ثبت‌نام/فرم‌ها)؛ هیچ عددی ساخته نمی‌شود */
-function ctWizReady(e){
-  const f=e.form||{}, linked=ctLinkedForms(e), errs=e.errors||{};
-  const stepErr=n=>Object.keys(errs).some(k=>CT_WIZ_FIELD_STEP[k]===n);
-  return [
-    {ok:!!(String(f.t||'').trim()&&String(f.d||'').trim()),err:stepErr(0),hint:'عنوان و شرح'},
-    {ok:!!(String(f.on||'').trim()||String(f.startsAt||'').trim()),err:stepErr(1),hint:'تاریخ یا زمان شروع'},
-    {ok:!!(String(f.cap||'').trim()||f.regMode!=='auto'),err:stepErr(2),hint:'ظرفیت یا حالت ثبت‌نام'},
-    {ok:linked.some(x=>x.status==='published'),err:stepErr(3),hint:e.id?(linked.length?'فرم وصل است ولی منتشر نشده':'فرم ثبت‌نامی وصل نیست'):'پس از ذخیره'},
-    {ok:e.status==='published',err:false,hint:e.status==='published'?'در سایت':'هنوز منتشر نشده'}
-  ];
-}
-function ctWizHeader(e){
-  const cur=ctWizStep(e), ready=ctWizReady(e);
-  return `<nav class="admfilters hub-tabs" role="tablist" aria-label="گام‌های تعریف رویداد" data-ct-wizard>${CT_WIZ_STEPS.map(([k,l,ic],n)=>{const r=ready[n]; const mark=r.err?'⚠':r.ok?'✓':'';
-    return `<button type="button" class="chip ${cur===n?'on':''}" role="tab" aria-selected="${cur===n}" data-ct-step="${n}" data-ct-step-state="${r.err?'error':r.ok?'ok':'todo'}" title="${esc(r.hint||l)}">${ico(ic)}${fa(n+1)}. ${esc(l)}${mark?` <b aria-hidden="true">${mark}</b>`:''}</button>`}).join('')}</nav>`;
-}
 /* گام ۴: وصل‌کردن فرمِ موجودِ انبار به همین رویداد (فقط مرجع؛ تعریف فرم در فرم‌ساز می‌ماند). نامزدها از همان GET /api/forms */
 function ctFormLinkPicker(e){
   if(!e||!e.id||!canPerm('fm_create')) return '';
@@ -7494,30 +7579,48 @@ async function ctLinkForm(formId,eventId){
     CT.linkMsg={kind:'stop',text:map[code]||(f&&f.text)||p2Err(error,'پیوند فرم انجام نشد؛ چیزی تغییر نکرد.')}; if(code==='version_conflict'){FORMS_SRV.loaded=false; fsLoad()}}
   finally{CT.busy=''; renderBody()}
 }
-/* گام ۵: بازبینی پیش از انتشار؛ همهٔ وضعیت‌ها از فرم فعلی یا پاسخ سرور (ثبت‌نام، فرم‌ها، یادآورها)، بدون عدد ساختگی */
-function ctWizReview(e){
-  const f=e.form||{}, ready=ctWizReady(e), linked=ctLinkedForms(e), pub=linked.filter(x=>x.status==='published');
-  const reg=e.registration&&e.registration.state?(CT_REG_STATE[e.registration.state]||e.registration.state):(e.id?'هنوز از سرور نیامده':'پس از ذخیره');
+/* بخش ۳: مرور و ذخیره؛ همهٔ وضعیت‌ها از فرم فعلی یا پاسخ سرور (ثبت‌نام، فرم‌ها، یادآورها)، بدون عدد ساختگی */
+function ctReviewRows(e){
+  const f=e.form||{}, linked=ctLinkedForms(e), pub=linked.filter(x=>x.status==='published'), mk=ctModeKind(f.mode), past=!!f.past;
+  const t=jToday(), d=ctJDate(f.on), onPast=d&&(d.j.jy*10000+d.j.jm*100+d.j.jd)<(t.jy*10000+t.jm*100+t.jd);
+  const sd=ctJDate(f.startsAt), ed=ctJDate(f.endsAt), endBefore=sd&&ed&&(ed.j.jy*10000+ed.j.jm*100+ed.j.jd<sd.j.jy*10000+sd.j.jm*100+sd.j.jd||(ed.j.jy===sd.j.jy&&ed.j.jm===sd.j.jm&&ed.j.jd===sd.j.jd&&ed.rest&&sd.rest&&h24(ed.rest,true)<h24(sd.rest,true)));
   const rows=[
-    ['عنوان و شرح',ready[0].ok,0],['زمان شروع / تاریخ',ready[1].ok,1],['مکان یا شیوهٔ برگزاری',!!(String(f.place||'').trim()||String(f.mode||'').trim()),1],
-    ['پوستر',!!String(f.poster||'').trim(),0],['ظرفیت',!!String(f.cap||'').trim(),2],
-    ['فرم ثبت‌نام منتشرشده',pub.length>0,3],['یادآورها',!!(f.remH24||f.remH1),3]
-  ];
-  const parts=Array.isArray(f.parts)?f.parts.filter(x=>x&&(x.title||x.date)):[];
-  const live=e.id?`<a class="btn sm ${e.status==='published'?'':'quiet'}" href="event.html?id=${encodeURIComponent(String(e.id))}" target="_blank" rel="noopener" data-ct-public-link>${ico('i-globe')}صفحهٔ عمومی</a>`:'';
-  return `<p class="cap">کارت و صفحه: پیش‌نمایش کارت از همین فرم ساخته می‌شود؛ وضعیت انتشار، ثبت‌نام و فرم از سرور می‌آید. تا ذخیره و انتشار، چیزی در سایت تغییر نمی‌کند.</p>
-    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
-      <div class="stack" style="flex:1 1 260px;min-width:0"><div class="head">پیش‌نمایش کارت</div><div data-ct-review-card>${ctPreview(f)}</div></div>
-      <div class="stack" style="flex:1 1 260px;min-width:0" data-ct-review>
-        <div class="head">بازبینی پیش از انتشار</div>
-        ${rows.map(([l,ok,n])=>`<div class="row" style="gap:6px"><span>${ok?'✓':'·'}</span><span class="sp">${esc(l)}</span>${ok?tag('آماده','ok'):`<button type="button" class="chip" data-ct-step="${n}">${ico('i-pen')}تکمیل در گام ${fa(n+1)}</button>`}</div>`).join('')}
-        <div class="card stack" data-ct-review-server>
+    {k:'t',l:'عنوان',v:String(f.t||'').trim(),ok:!!String(f.t||'').trim(),need:true,to:'main'},
+    {k:'mode',l:'نوع برگزاری',v:ctModeLabel(f.mode),ok:!!mk,need:true,to:'main'},
+    {k:'on',l:'تاریخ و ساعت',v:[f.on?fa(f.on):'',f.time?fa(f.time):'',f.endTime?'تا '+fa(f.endTime):''].filter(Boolean).join(' '),ok:!!(String(f.on||'').trim()||String(f.startsAt||'').trim()),need:true,to:'main'},
+    mk!=='online'?{k:'place',l:'مکان',v:String(f.place||'').trim(),ok:!!String(f.place||'').trim(),need:mk==='onsite'||mk==='hybrid',to:'main'}:null,
+    mk==='online'||mk==='hybrid'?{k:'joinUrl',l:'پیوند ورود',v:String(f.joinUrl||'').trim()?'ثبت شده (فقط پنل)':'',ok:!!String(f.joinUrl||'').trim(),need:false,to:'main'}:null,
+    {k:'d',l:'شرح',v:String(f.d||'').trim()?fa(String(f.d).trim().length)+' نویسه':'',ok:!!String(f.d||'').trim(),need:true,to:'desc',note:'برای انتشار لازم است'},
+    {k:'poster',l:'پوستر',v:String(f.poster||'').trim()?'دارد':'',ok:!!String(f.poster||'').trim(),need:false,to:'main'},
+    past?null:{k:'form',l:'فرم ثبت‌نام',v:e.id?(linked.length?fa(linked.length)+' فرم'+(pub.length?' · منتشرشده: '+fa(pub.length):' · هیچ‌کدام منتشر نشده'):''):'پس از ذخیرهٔ پیش‌نویس',ok:pub.length>0,need:false,to:'reg',note:e.id&&!pub.length?'تا فرم منتشرشده نباشد دکمهٔ ثبت‌نام باز نمی‌شود':''},
+    past?null:{k:'cap',l:'ظرفیت و مهلت',v:[String(f.cap||'').trim()?fa(f.cap)+' نفر':'',String(f.regClosesAt||'').trim()?'مهلت '+fa(f.regClosesAt):'',f.regMode!=='auto'?(f.regMode==='closed'?'بسته (دستی)':'ظرفیت تکمیل (دستی)'):''].filter(Boolean).join(' · '),ok:!!(String(f.cap||'').trim()||f.regMode!=='auto'||String(f.regClosesAt||'').trim()),need:false,to:'reg'},
+    past?null:{k:'rem',l:'یادآورها',v:[f.remH24?'۲۴ ساعت':'',f.remH1?'۱ ساعت':''].filter(Boolean).join(' و ')||'خاموش',ok:!!(f.remH24||f.remH1),need:false,to:'reg'}
+  ].filter(Boolean);
+  const warns=[];
+  if(onPast&&!past) warns.push({t:'تاریخ در گذشته است ولی علامت «برگزارشده (آرشیو)» ندارد؛ در فهرست «برگزارشده» می‌آید و ثبت‌نام از زمان سرور بسته می‌شود.',to:'sched'});
+  if(!onPast&&past&&d) warns.push({t:'علامت «برگزارشده» دارد ولی تاریخش نگذشته است.',to:'sched'});
+  if(endBefore) warns.push({t:'ساعت پایان پیش از شروع است؛ سرور آن را نمی‌پذیرد.',to:'main'});
+  if(f.lifecycle==='cancelled') warns.push({t:'وضعیت «لغوشده»: ثبت‌نام هرگز باز نشان داده نمی‌شود.',to:'sched'});
+  if(mk==='online'&&String(f.place||'').trim()) warns.push({t:'رویداد آنلاین است ولی مکان هم دارد؛ مکان در کارت نمایش داده می‌شود.',to:'main'});
+  return {rows:rows,warns:warns,linked:linked,pub:pub};
+}
+function ctReviewBody(e){
+  const f=e.form||{}, r=ctReviewRows(e), linked=r.linked, pub=r.pub;
+  const reg=e.registration&&e.registration.state?(CT_REG_STATE[e.registration.state]||e.registration.state):(e.id?'هنوز از سرور نیامده':'پس از ذخیره');
+  const live=e.id?`<a class="btn sm ${e.status==='published'?'':'quiet'}" href="event.html?id=${encodeURIComponent(String(e.id))}" target="_blank" rel="noopener" data-ct-public-link>${ico('i-globe')}صفحهٔ عمومی${e.status==='published'?'':' (تا انتشار خالی است)'}</a>`:'';
+  const jump=(to,label)=>`<button type="button" class="chip" data-ct-jump="${to}">${ico('i-pen')}${esc(label||'ویرایش')}</button>`;
+  return `<div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
+      <div class="stack" style="flex:1 1 280px;min-width:0" data-ct-review>
+        ${r.rows.map(x=>`<div class="row ctrev" data-ct-review-row="${x.k}" data-ct-review-ok="${x.ok?'1':'0'}" style="gap:6px;align-items:flex-start"><span aria-hidden="true">${x.ok?'✓':(x.need?'!':'·')}</span><span class="sp"><b>${esc(x.l)}</b>${x.v?`<small class="cap"> · ${esc(x.v)}</small>`:x.need?`<small class="cap" style="color:var(--stop)"> · وارد نشده</small>`:`<small class="cap"> · ندارد</small>`}${x.note&&!x.ok?`<br><small class="cap">${esc(x.note)}</small>`:''}</span>${x.ok?'':jump(x.to)}</div>`).join('')}
+        ${r.warns.length?`<div class="stack" data-ct-review-warns style="gap:4px">${r.warns.map(w=>`<div class="row" style="gap:6px;align-items:flex-start"><span aria-hidden="true">⚠</span><small class="cap sp">${esc(w.t)}</small>${jump(w.to,'بررسی')}</div>`).join('')}</div>`:''}
+        <div class="card stack" data-ct-review-server style="gap:6px">
           <strong>وضعیت از سرور</strong>
-          <div class="row tight" style="flex-wrap:wrap">${tag('انتشار: '+((P2_STATUS[e.status]||[e.status||'ذخیره‌نشده'])[0]),e.status==='published'?'ok':'')}${tag('ثبت‌نام: '+reg,e.registration&&e.registration.state==='open'?'ok':'')}${tag('فرم‌های وصل‌شده: '+fa(linked.length)+(linked.length?' (منتشرشده: '+fa(pub.length)+')':''),pub.length?'ok':'warn')}${tag('جلسه‌ها: '+fa(parts.length||Number(f.sess)||0),'')}</div>
-          ${linked.length?`<div class="stack" style="gap:4px">${linked.map(x=>{const st=FS_STATUS[x.status]||[x.status||'','']; return `<small class="cap" data-ct-review-form="${esc(String(x.id))}">${esc(x.name||x.title||'فرم')} · ${esc(FS_PURPOSE[x.purpose]||x.need||'')} · ${esc(st[0])}${x.response_count!=null?' · '+fa(x.response_count)+' پاسخ':''}</small>`}).join('')}</div>`:''}
+          <div class="row tight" style="flex-wrap:wrap">${tag('انتشار: '+((P2_STATUS[e.status]||[e.status||'ذخیره‌نشده'])[0]),e.status==='published'?'ok':'')}${tag('ثبت‌نام: '+reg,e.registration&&e.registration.state==='open'?'ok':'')}${e.id?tag('فرم‌های وصل‌شده: '+fa(linked.length)+(linked.length?' (منتشرشده: '+fa(pub.length)+')':''),pub.length?'ok':(f.past?'':'warn')):''}</div>
+          ${linked.length?`<div class="stack" style="gap:4px">${linked.map(x=>{const st=FS_STATUS[x.status]||[x.status||'','']; return `<small class="cap" data-ct-review-form="${esc(String(x.id))}">${esc(x.name||x.title||'فرم')} · ${esc(FS_PURPOSE[x.purpose]||x.need||'')} · ${esc(st[0])}${x.response_count!=null?' · '+fa(x.response_count)+' پاسخ ثبت‌شده':''}</small>`}).join('')}</div>`:''}
           <div class="row tight" style="flex-wrap:wrap">${live}</div>
         </div>
       </div>
+      <div class="stack" style="flex:1 1 240px;min-width:0" data-ct-review-card ${e.previewOpen?'':'hidden'}><div class="head">پیش‌نمایش کارت</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
     </div>`;
 }
 /* ══ فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه‌ها و گزارش‌های هر رویداد ═════════════
@@ -7598,7 +7701,7 @@ function eiHeader(){
   if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','مالی: ضبط‌شده و فروش']);
   if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'مالی: سفارش‌ها']);
   if(!EI.all&&canPerm('ev_create')) tabs.push(['notify','اطلاع‌رسانی و تاریخچه']);
-  if(!EI.all&&eiCanRes()) tabs.push(['resources','منابع']);
+  if(!EI.all&&eiCanRes()) tabs.push(['resources','فایل‌ها و رسانه‌ها']);
   tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
   if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
   if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
@@ -7767,9 +7870,10 @@ function eiVideoPreview(r,video){
 }
 function eiResources(){
   const items=EI.data&&Array.isArray(EI.data.items)?EI.data.items:[];
-  const head=`<div class="row" style="flex-wrap:wrap;gap:8px"><p class="cap" style="margin:0">دسترسی هر منبع در سرور و بر پایهٔ ثبت‌نام تأییدشده یا حضور ثبت‌شدهٔ همین رویداد سنجیده می‌شود؛ فایل خصوصی با نشانی مستقیم هم باز نمی‌شود.</p><span class="sp"></span>
+  const guide=`<div class="admfilters" data-ei-res-guide aria-label="راهنمای فایل‌ها و رسانه‌ها">${[['پوستر','در ویرایش رویداد (بخش اطلاعات اصلی)'],['برنامه / راهنما','فایل PDF یا سند، دسترسی عمومی یا ثبت‌نام‌شدگان'],['پیوند ورود آنلاین','فیلد «پیوند ورود» در ویرایش رویداد (فقط پنل)'],['آلبوم و گزارش پس از رویداد','تصویر، PDF یا پیوند؛ پس از علامت «برگزارشده» عمومی می‌شود'],['ویدیو','پیوند آپارات/یوتیوب یا فایل نورا (ضبط‌شده‌ها در زبانهٔ محتوای ضبط‌شده)']].map(([a,b])=>`<span class="chip" title="${esc(b)}" style="cursor:help">${esc(a)}</span>`).join('')}</div>`;
+  const head=`${guide}<div class="row" style="flex-wrap:wrap;gap:8px"><p class="cap" style="margin:0">هر فایل یا پیوند به همین رکورد رویداد بسته است و با ذخیره و بازخوانی می‌ماند؛ دسترسی در سرور و بر پایهٔ ثبت‌نام تأییدشده یا حضور ثبت‌شدهٔ همین رویداد سنجیده می‌شود؛ فایل خصوصی با نشانی مستقیم هم باز نمی‌شود.</p><span class="sp"></span>
       <label class="chip ${EI.res.includeRemoved?'on':''}"><input type="checkbox" data-ei-res-removed ${EI.res.includeRemoved?'checked':''} hidden/>نمایش حذف‌شده‌ها</label>
-      ${eiCanRes()?btn('منبع تازه','data-ei-res-new','i-plus'):''}</div>`;
+      ${eiCanRes()?btn('افزودن فایل یا پیوند','data-ei-res-new','i-plus'):''}</div>`;
   const editor=EI.res.edit?eiResourceEditor():'';
   const upload=EI.res.upError?p2Msg({kind:'stop',text:EI.res.upError}):EI.res.upFor?`<div class="card stack" role="status" aria-live="polite" style="border-inline-start:3px solid var(--warn)"><p class="cap" style="margin:0" data-ei-upload-progress>${esc(eiUploadProgressText())}</p></div>`:'';
   const sessions=REC.data&&REC.data.recording&&REC.data.recording.sessions||[];
@@ -8000,7 +8104,7 @@ function eiClick(q){
   const openAll=q('[data-ei-open-all]'); if(openAll){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); if(openAll.dataset.eiOpenAll==='reports') {EI.tab='reports'; EI.key=''; eiLoad()} return true}
   const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||''); return true}
   const file=q('[data-ct-file]'); if(file){eiOpen(file.dataset.ctFile,file.dataset.ctTitle||'',file.dataset.ctEvStatus||'','info'); return true}
-  const eiEdit=q('[data-ei-edit]'); if(eiEdit){if(!ctCan('can_edit')){toast('مجوز ویرایش محتوا برای این نقش فعال نیست'); return true} const id=eiEdit.dataset.eiEdit, step=eiEdit.dataset.eiEditStep; EI.open=false; EI.data=null; ctOpenEditor(id).then(()=>{if(CT.edit&&CT.edit.id===id&&step!=null){CT.edit.step=Number(step); renderBody()}}); return true}
+  const eiEdit=q('[data-ei-edit]'); if(eiEdit){if(!ctCan('can_edit')){toast('مجوز ویرایش محتوا برای این نقش فعال نیست'); return true} const id=eiEdit.dataset.eiEdit, step=eiEdit.dataset.eiEditStep; EI.open=false; EI.data=null; ctOpenEditor(id).then(()=>{if(CT.edit&&CT.edit.id===id&&step!=null) ctWizGo(step)}); return true}
   if(!EI.open) return false;
   const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EI.res.edit=null; EI.res.session=''; REC.edit=null; REC.session=null; EI.key=''; eiLoad(); return true}
   const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.tab==='orders'?REC.orders:EI.rp, total=EI.data?Number(EI.data.total)||0:0;
@@ -8223,7 +8327,7 @@ function recPanelBody(){
   const sessionList=sessions.length?`<div class="admlist">${sessions.map(recSessionRow).join('')}</div>`:emptyBox('هنوز جلسه‌ای تعریف نشده است؛ برای انتشار دست‌کم یک جلسهٔ منتشرشده با فایل لازم است.');
   return `${recStatusBox(rec)}${recCommerceBox(rec)}${infra}
     <section class="card stack" data-rec-sessions><div class="row"><div class="head">جلسات (${fa(sessions.length)})</div><span class="sp"></span>${eiCanRes()&&!REC.session?btn('جلسهٔ تازه','data-rec-sess-new','i-plus'):''}</div>
-    <p class="cap">فایل هر جلسه از زبانهٔ «منابع» با انتخاب همان جلسه و سطح «خریداران» بارگذاری می‌شود؛ هر درخواست دانلود/مشاهده در سرور با دسترسی واقعی حساب سنجیده می‌شود.</p>
+    <p class="cap">فایل هر جلسه از زبانهٔ «فایل‌ها و رسانه‌ها» با انتخاب همان جلسه و سطح «خریداران» بارگذاری می‌شود؛ هر درخواست دانلود/مشاهده در سرور با دسترسی واقعی حساب سنجیده می‌شود.</p>
     ${REC.session?recSessionEditor():''}${sessionList}</section>
     ${recAccessBox(rec)}`;
 }
@@ -8407,7 +8511,8 @@ function serverNewDefinitionView(){
   if(!CT.data&&!CT.loading&&!CT.error) ctLoad();
   const kinds=`<section class="card stack" data-newev-kinds><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">تعریف جدید</div><span class="sp"></span><small class="cap">${esc(isOwner()||ctCan('can_publish')?'مالک و مدیر مجاز مستقیم منتشر می‌کنند':'پیش‌نویس ذخیره می‌شود و انتشار با مالک است')}</small></div>
     <div class="admfilters" role="tablist" aria-label="نوع تعریف">
-      <button class="chip ${CT.kind==='events'?'on':''}" role="tab" aria-selected="${CT.kind==='events'}" data-newev-kind="events">${ico('i-calendar')}<span>رویداد</span></button>
+      <button class="chip ${CT.kind==='events'&&!(CT.edit&&CT.edit.form&&CT.edit.form.past)?'on':''}" role="tab" aria-selected="${CT.kind==='events'&&!(CT.edit&&CT.edit.form&&CT.edit.form.past)}" data-newev-kind="events">${ico('i-calendar')}<span>رویداد</span></button>
+      <button class="chip ${CT.kind==='events'&&CT.edit&&CT.edit.form&&CT.edit.form.past?'on':''}" role="tab" aria-selected="${CT.kind==='events'&&!!(CT.edit&&CT.edit.form&&CT.edit.form.past)}" data-newev-kind="events" data-newev-past="1" title="رویدادی که پیش‌تر برگزار شده؛ بدون ثبت‌نام و یادآور">${ico('i-layers')}<span>رویداد برگزارشده</span></button>
       <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-newev-kind="articles">${ico('i-doc')}<span>مطلب</span></button>
       <a class="chip" href="create.html?back=${encodeURIComponent('admin.html#newev')}">${ico('i-pen')}<span>فرم (در فرم‌ساز)</span></a></div></section>`;
   return `<div class="stack" data-newev>${kinds}${p2Msg(CT.msg)}${CT.edit?ctEditor():(ctCan('can_edit')?'':serverUnavailableModule('تعریف جدید','مجوز ساخت محتوا برای این نقش فعال نیست.'))}</div>`;
@@ -8428,6 +8533,8 @@ function ctStartNew(){
   if(CT.kind==='events'&&typeof sysCan==='function'&&sysCan()){const apply=()=>{const d=sysValue('events.reminders_default'); if(CT.edit&&!CT.edit.id&&d&&typeof d==='object'){CT.edit.form.remH24=d.h24===true; CT.edit.form.remH1=d.h1===true; CT.edit.remDefault=true;}};
     if(SYS.loaded) apply(); else if(!SYS.error) sysLoad(false).then(()=>{if(SYS.loaded){apply(); if(CT.edit&&!CT.edit.id) renderBody()}});}
 }
+/* «ثبت رویداد برگزارشده»: همان فرم و همان رکورد؛ فقط پیش‌فرض‌ها (past، ثبت‌نام بسته، یادآور خاموش). وضعیت از تاریخ + قواعد سرور می‌آید */
+function ctPastEntry(){const e=CT.edit; if(!e||e.id||CT.kind!=='events') return; e.form.past=true; e.form.regMode='closed'; e.form.remH24=false; e.form.remH1=false; e.remDefault=false; e.pastEntry=true}
 async function ctOpenEditor(id){
   const api=window.NORA_SERVER_API;
   CT.dp=null;
@@ -8460,8 +8567,8 @@ async function ctSave(publish,stay){
     }
     const label=(P2_STATUS[saved.status]||[saved.status])[0];
     CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
-    ctDraftDrop(); const keepStep=stay?Math.min(4,ctWizStep(e)+(e.id?0:1)):null; CT.edit=null; CT.dp=null; ctReset();
-    if(keepStep!=null&&saved.id){await ctLoad(); await ctOpenEditor(saved.id); if(CT.edit&&CT.edit.id===saved.id){CT.edit.step=keepStep; renderBody()} return}
+    ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset();
+    if(stay&&saved.id){await ctLoad(); await ctOpenEditor(saved.id); if(CT.edit&&CT.edit.id===saved.id) ctJump('reg'); return}
     ctLoad();
   }catch(error){
     const fieldErr=p2FieldErr(error);
@@ -8469,7 +8576,7 @@ async function ctSave(publish,stay){
     else if(error&&error.status===422&&fieldErr) e.formError=fieldErr.text;
     else if(error&&error.code==='site_content_version_conflict'){e.formError=p2Err(error); const current=error.payload&&error.payload.detail&&error.payload.detail.current_version; if(Number.isInteger(current)) e.version=current}
     else e.formError=p2Err(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
-    if(CT.kind==='events'){const st=ctWizErrStep(e); if(st!=null) e.step=st}
+    if(CT.kind==='events'){const st=ctWizErrStep(e); if(st&&CT_MORE_LABEL[st]){e.more=e.more||{}; e.more[st]=true}}
     renderBody();
   }finally{CT.busy=''; if(CT.edit){renderBody(); if(CT.edit.formError||Object.keys(CT.edit.errors||{}).length) ctFocusFirstError()}}
 }
@@ -9165,9 +9272,12 @@ document.addEventListener('click',e=>{
   if(q('[data-ct-search]')){const input=$('#ctQuery'); CT.q=String(input&&input.value||'').trim().slice(0,80); ctReset(); ctLoad(); return}
   const ctStatus=q('[data-ct-status]'); if(ctStatus){CT.status=ctStatus.dataset.ctStatus||''; ctReset(); ctLoad(); return}
   const ctWhen=q('[data-ct-when]'); if(ctWhen){CT.when=ctWhen.dataset.ctWhen||''; ctReset(); ctLoad(); return}
+  const ctQuick=q('[data-ct-quick]'); if(ctQuick){const hit=CT_QUICK.find(([k])=>k===ctQuick.dataset.ctQuick); if(hit){CT.status=hit[2].status; CT.when=hit[2].when; ctReset(); ctLoad()} return}
   const ctPage=q('[data-ct-page]'); if(ctPage){const total=CT.data?Number(CT.data.total)||0:0; CT.offset=ctPage.dataset.ctPage==='next'?Math.min(CT.offset+CT.limit,Math.max(0,total-1)):Math.max(0,CT.offset-CT.limit); CT.data=CT.data; ctLoad(); return}
   if(q('[data-ct-new]')){if(!ctCan('can_edit')){toast('مجوز ساخت محتوا برای این نقش فعال نیست'); return} ctOpenEditor(''); return}
-  if(q('[data-newev-kind]')){const k=q('[data-newev-kind]').dataset.newevKind; if(CT.kind!==k||!CT.edit||CT.edit.id){ctDraftDrop(); CT.kind=k; CT.edit=null; CT.msg=null; save(); renderBody()} return}
+  if(q('[data-newev-kind]')){const b=q('[data-newev-kind]'), k=b.dataset.newevKind, wantPast=b.dataset.newevPast==='1';
+    const curPast=!!(CT.edit&&CT.edit.form&&CT.edit.form.past);
+    if(CT.kind!==k||!CT.edit||CT.edit.id||(k==='events'&&curPast!==wantPast)){ctDraftDrop(); CT.kind=k; CT.edit=null; CT.msg=null; save(); if(k==='events'&&wantPast&&ctCan('can_edit')){ctStartNew(); ctPastEntry()} renderBody()} return}
   const pkSetEl=q('[data-ct-pick-set]'); if(pkSetEl){pkSet(pkSetEl.dataset.ctPickSet,pkSetEl.dataset.ctPickId); return}
   const pkClr=q('[data-ct-pick-clear]'); if(pkClr){pkSet(pkClr.dataset.ctPickClear,''); return}
   const pkRef=q('[data-ct-pick-refresh]'); if(pkRef){pkLoad(true); return}
@@ -9197,6 +9307,12 @@ document.addEventListener('click',e=>{
   const dpDay=q('[data-ctdp-day]'); if(dpDay){if(!CT.dp||!CT.edit) return; const f=CT.dp.f; ctDpSet(f,ctDateWithDay(f,+CT.dp.y,+CT.dp.m,+dpDay.dataset.ctdpDay)); CT.dp=null; ctDraftSave(); renderBody(); const el=document.getElementById('ctf_'+f); if(el) el.focus(); return}
   if(q('[data-ctdp-today]')){if(!CT.dp||!CT.edit) return; const f=CT.dp.f, t=jToday(); ctDpSet(f,ctDateWithDay(f,t.jy,t.jm,t.jd)); CT.dp=null; ctDraftSave(); renderBody(); return}
   if(q('[data-ctdp-close]')){CT.dp=null; renderBody(); return}
+  if(q('[data-ctdp-clear]')){if(!CT.dp||!CT.edit) return; const f=CT.dp.f, form=CT.edit.form;
+    /* پاک‌کردن صریح تاریخ: شروع/پایانِ هم‌روزِ آن هم پاک می‌شوند (ساعت در «ساعت شروع/پایان» می‌ماند)؛ تایپ ناقص چنین کاری نمی‌کند */
+    if(f==='on'){const old=ctJDate(form.on); ['startsAt','endsAt'].forEach(k=>{const cur=ctJDate(form[k]); if(cur&&old&&cur.j.jy===old.j.jy&&cur.j.jm===old.j.jm&&cur.j.jd===old.j.jd) form[k]=''})}
+    ctDpSet(f,''); CT.dp=null; ctDraftSave(); renderBody(); return}
+  const ctJumpBtn=q('[data-ct-jump]'); if(ctJumpBtn&&CT.edit){ctJump(ctJumpBtn.dataset.ctJump); return}
+  if(q('[data-ct-preview-toggle]')&&CT.edit){CT.edit.previewOpen=!CT.edit.previewOpen; if(CT.edit.previewOpen) ctJump('review'); else renderBody(); return}
   if(q('[data-ct-save]')){ctSave(false); return}
   if(q('[data-ct-save-publish]')){ctSave(true); return}
   if(q('[data-ct-save-stay]')){ctSave(false,true); return}
@@ -9271,7 +9387,7 @@ document.addEventListener('input',e=>{
   if(t.dataset&&t.dataset.ctPickQ){const field=t.dataset.ctPickQ; PK.q[field]=t.value; const box=document.getElementById('ctPick-'+field); if(box) box.innerHTML=pkInner(field);
     const again=box&&box.querySelector('[data-ct-pick-q]'); if(again){again.focus(); try{again.setSelectionRange(again.value.length,again.value.length)}catch(err){}} return}
   if(t.dataset&&t.dataset.ctPart!=null){const i=+t.dataset.ctPart, k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[i]; if(row&&CT_PART_FIELDS.includes(k)){
-      let v=t.value; if(k==='time'||k==='to'){const fixed=ctTimeFix('time',v,false); if(fixed!==v){v=fixed; t.value=v}} row[k]=v;
+      let v=t.value; if(k==='time'||k==='to'||k==='date'){const fixed=ctTimeFix(k,v,false); if(fixed!==v){v=fixed; t.value=v}} row[k]=v;
       if(k==='date'){const wd=document.querySelector(`[data-ct-part-weekday="${i}"]`); if(wd) wd.textContent=ctWeekday(v)}
       if(CT.edit.errors&&CT.edit.errors.parts){delete CT.edit.errors.parts; const err=document.querySelector('[data-ct-err="parts"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
       ctDraftSave()} return}
@@ -9282,31 +9398,45 @@ document.addEventListener('input',e=>{
   const before=CT.edit.form[field]; let value=t.value;
   const fixed=ctTimeFix(field,value,false); if(fixed!==value){value=fixed; t.value=value}
   CT.edit.form[field]=value;
-  if(CT.kind==='events') ctSyncDates(field,before,value);
+  if(CT.kind==='events'){ if(field==='endTime') ctSyncEndTime(CT.edit.form,value); else ctSyncDates(field,before,value); ctRefreshEndTime(t)}
   if(CT.edit.errors&&CT.edit.errors[field]){delete CT.edit.errors[field]; const err=document.querySelector(`[data-ct-err="${field}"]`); if(err){err.textContent=''; err.removeAttribute('style')}}
+  if(field==='endTime'&&CT.edit.errors&&CT.edit.errors.endsAt){delete CT.edit.errors.endsAt; const err=document.querySelector('[data-ct-err="endsAt"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
   /* فیلدهای همگام‌شده بدون رندر کامل به‌روز می‌شوند تا فوکوس و کِرسر نپرد */
   ['on','startsAt','endsAt','regOpensAt','regClosesAt','when'].forEach(k=>{const el=document.getElementById('ctf_'+k); if(el&&el!==t&&el.value!==String(CT.edit.form[k]||'')) el.value=String(CT.edit.form[k]||''); const wd=document.querySelector(`[data-ct-weekday="${k}"]`); if(wd) wd.textContent=ctWeekday(CT.edit.form[k])});
   ctDraftSave();
+  /* نوع برگزاری فیلدهای مکان/پیوند را عوض می‌کند؛ select فوکوس حساسی ندارد */
+  if(field==='mode'&&CT.kind==='events'){renderBody(); return}
   const preview=$('#ctPreview'); if(preview) preview.innerHTML=ctPreview(CT.edit.form);
+  const rev=document.querySelector('[data-ct-review]'); if(rev&&CT.kind==='events'){const tmp=document.createElement('div'); tmp.innerHTML=ctReviewBody(CT.edit); const fresh=tmp.querySelector('[data-ct-review]'); if(fresh) rev.innerHTML=fresh.innerHTML}
+  ['desc','sched','extra'].forEach(k=>{const el=document.querySelector(`[data-ct-more-sum="${k}"]`); if(el){const tmp=document.createElement('div'); tmp.innerHTML=ctEventSections(CT.edit,''); const fresh=tmp.querySelector(`[data-ct-more-sum="${k}"]`); if(fresh) el.textContent=fresh.textContent}});
 });
 document.addEventListener('focusout',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||!t.dataset) return;
   if(t.dataset.ctPart!=null){const k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[+t.dataset.ctPart]; if(row&&(k==='time'||k==='to')){const v=ctTimeFix('time',t.value,true); if(v!==t.value){t.value=v; row[k]=v; ctDraftSave()}} return}
   const field=t.dataset.ctField; if(!field) return;
-  const v=ctTimeFix(field,t.value,true); if(v!==t.value){const before=CT.edit.form[field]; t.value=v; CT.edit.form[field]=v; if(CT.kind==='events') ctSyncDates(field,before,v);
+  const v=ctTimeFix(field,t.value,true); if(v!==t.value){const before=CT.edit.form[field]; t.value=v; CT.edit.form[field]=v; if(CT.kind==='events'){if(field==='endTime') ctSyncEndTime(CT.edit.form,v); else ctSyncDates(field,before,v); ctRefreshEndTime(t)}
     ['startsAt','endsAt'].forEach(k=>{const el=document.getElementById('ctf_'+k); if(el&&el!==t) el.value=String(CT.edit.form[k]||''); const wd=document.querySelector(`[data-ct-weekday="${k}"]`); if(wd) wd.textContent=ctWeekday(CT.edit.form[k])}); ctDraftSave()}
 });
 document.addEventListener('keydown',e=>{
+  if(!IS_TEST&&SERVER_AUTH&&CT.edit&&CT.dp&&e.key==='Escape'){const f=CT.dp.f; CT.dp=null; renderBody(); const el=document.getElementById('ctf_'+f); if(el) el.focus(); return}
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||e.key!=='Enter'||!(t.dataset&&t.dataset.ctPickQ)) return;
   e.preventDefault(); const field=t.dataset.ctPickQ, first=pkFilter(field).filter(p=>String(p.id)!==String(CT.edit.form[field]||''))[0];
   if(first) pkSet(field,first.id); else toast('نتیجه‌ای برای انتخاب نیست');
 });
+document.addEventListener('toggle',e=>{
+  const d=e.target; if(IS_TEST||!SERVER_AUTH||!d||!d.dataset) return;
+  if(d.hasAttribute&&d.hasAttribute('data-ct-more-filters')){CT.moreFilters=!!d.open; return}
+  if(!CT.edit||!d.dataset.ctMore) return;
+  CT.edit.more=CT.edit.more||{}; CT.edit.more[d.dataset.ctMore]=!!d.open;
+},true);
 document.addEventListener('change',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t) return;
   if(t.matches&&t.matches('[data-ct-sort]')){CT.sort=P2_SORTS.some(([k])=>k===t.value)?t.value:'updated'; ctReset(); ctLoad(); return}
   if(t.matches&&t.matches('[data-ct-order]')){CT.order=t.value==='asc'?'asc':'desc'; ctReset(); ctLoad(); return}
+  if(t.matches&&t.matches('[data-ct-mode]')){CT.mode=String(t.value||'').slice(0,80); ctReset(); ctLoad(); return}
   if(eiChange(t)) return;
   if(!CT.edit) return;
+  if(t.dataset&&t.dataset.ctdpSet&&CT.dp){const v=+t.value; if(t.dataset.ctdpSet==='m'&&v>=1&&v<=12) CT.dp={f:CT.dp.f,y:CT.dp.y,m:v}; if(t.dataset.ctdpSet==='y'&&v>1300&&v<1500) CT.dp={f:CT.dp.f,y:v,m:CT.dp.m}; renderBody(); return}
   if(t.dataset&&t.dataset.ctCheck){CT.edit.form[t.dataset.ctCheck]=!!t.checked; renderBody(); return}
   if(t.dataset&&t.dataset.ctImage){const file=t.files&&t.files[0]; if(file) ctUploadImage(file,t.dataset.ctImage); return}
 });
