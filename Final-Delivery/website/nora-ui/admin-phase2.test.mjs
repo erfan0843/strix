@@ -87,7 +87,11 @@ async function loadPanel(identity) {
           : reply(401, { detail: 'authentication_required' });
         if (path === '/api/account/me') return identity.role === 'owner' ? reply(401, { detail: 'authentication_required' })
           : reply(200, { authenticated: true, account_id: 'acc-mgr', provider: 'manager-password', role: identity.role, permissions: perms, manager_username: 'qa.manager' });
-        if (path === '/api/health') return reply(200, { ok: true, formsEnabled: true, responsesEnabled: true });
+        if (path === '/api/health') {
+          if (world.healthMode === 'down') return reply(503, { ok: false, mode: 'same-application', formsEnabled: false, responsesEnabled: false, deliveryEnabled: false, formBalePaymentsReady: false });
+          if (world.healthMode === 'unconfigured') return reply(200, { ok: true, mode: 'same-application', formsEnabled: true, responsesEnabled: true, workflowEnabled: true, notificationQueueEnabled: true, privateFileStorageEnabled: true, deliveryEnabled: false, formBalePaymentsReady: false });
+          return reply(200, { ok: true, formsEnabled: true, responsesEnabled: true });
+        }
         if (path === '/api/integrations/status') return reply(200, { providers: [] });
         if (path === '/api/forms') return reply(200, { items: identity.forms || [] });
         if (path === '/api/owner/site-content') {
@@ -343,6 +347,34 @@ const section = async (app, sec) => {
 };
 
 console.log('— مالک: فهرست رویدادها از site_content، فیلتر، ساخت با خطای سرور، انتشار —');
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A2): چیپ سلامت نوار بالا سه حالت دارد و سرویس اختیاری پیکربندی‌نشده «خراب» شمرده نمی‌شود */
+{
+  const world = { ...makeWorld(), healthMode: 'unconfigured' };
+  const app = await loadPanel({ role: 'owner', sec: 'dash', world });
+  try {
+    await app.until(() => app.doc.querySelector('[data-preview-badge][data-health-state="ok"]'), 'چیپ سلامت = سالم با ok=true');
+    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /وضعیت از API سرور · سالم/);
+    assert.match(app.doc.querySelector('[data-preview-badge]').getAttribute('title'), /پیکربندی‌نشده: تحویل بیرونی، پرداخت بله/);
+    await app.until(() => app.doc.querySelector('[data-health-row="deliveryEnabled"]'), 'کارت وضعیت واقعی سرویس');
+    assert.match(app.doc.querySelector('[data-health-row="deliveryEnabled"]').textContent, /پیکربندی‌نشده/);
+    assert.doesNotMatch(app.doc.querySelector('[data-health-row="deliveryEnabled"]').textContent, /خراب|خاموش/);
+    assert.match(app.doc.querySelector('[data-health-row="formsEnabled"]').textContent, /آماده/);
+    assert.ok(app.doc.querySelector('[data-health-row="formBalePaymentsReady"] [data-goto-service="payment"]'), 'دکمهٔ پیکربندی برای مالک به تنظیمات سرویس می‌رود');
+    app.click('[data-health-row="formBalePaymentsReady"] [data-goto-service="payment"]');
+    await app.until(() => app.doc.querySelector('[data-service-settings]') && app.calls.some((c) => c.path === '/api/owner/service-settings'), 'بخش «اتصال سرویس‌ها» باز شد و وضعیت از API مالک خواسته شد');
+    app.noLeak();
+  } finally { app.close(); }
+}
+{
+  const world = { ...makeWorld(), healthMode: 'down' };
+  const app = await loadPanel({ role: 'owner', sec: 'dash', world });
+  try {
+    await app.until(() => app.doc.querySelector('[data-preview-badge][data-health-state="down"]'), 'چیپ سلامت = خراب با ۵۰۳/ok=false');
+    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /وضعیت از API سرور · خراب/);
+    assert.ok(app.doc.querySelector('[data-preview-badge]').classList.contains('stop'));
+    app.noLeak();
+  } finally { app.close(); }
+}
 {
   const app = await loadPanel({ role: 'owner', sec: 'events' });
   try {

@@ -1,0 +1,84 @@
+{
+  "at": "2026-10-23T00:47:28.972Z",
+  "db": "test",
+  "health": {
+    "ok": true,
+    "mode": "same-application",
+    "deliveryEnabled": false,
+    "formsEnabled": true,
+    "responsesEnabled": true,
+    "workflowEnabled": true,
+    "notificationQueueEnabled": true,
+    "privateFileStorageEnabled": true,
+    "formBalePaymentsReady": false
+  },
+  "chip": {
+    "text": "وضعیت از API سرور · سالم",
+    "title": "هستهٔ API سالم است؛ سرویس اختیاری پیکربندی‌نشده: تحویل بیرونی، پرداخت بله",
+    "cls": "tag ok"
+  },
+  "chipDown": {
+    "text": "وضعیت از API سرور · خراب",
+    "cls": "tag stop"
+  },
+  "rows": [
+    {
+      "k": "formsEnabled",
+      "t": "فرم‌های سرورآماده"
+    },
+    {
+      "k": "responsesEnabled",
+      "t": "پاسخ‌های سرورآماده"
+    },
+    {
+      "k": "workflowEnabled",
+      "t": "کارتابل مشترکآماده"
+    },
+    {
+      "k": "notificationQueueEnabled",
+      "t": "صف اعلانآماده"
+    },
+    {
+      "k": "privateFileStorageEnabled",
+      "t": "ذخیرهٔ امن فایلآماده"
+    },
+    {
+      "k": "deliveryEnabled",
+      "t": "تحویل بیرونیتحویل بیرونی (اختیاری؛ از «اتصال سرویس‌ها» پیکربندی می‌شود)پیکربندی‌نشده پیکربندی"
+    },
+    {
+      "k": "formBalePaymentsReady",
+      "t": "آمادگی پیکربندی پرداخت بلهپرداخت بله (اختیاری؛ از «اتصال سرویس‌ها» پیکربندی می‌شود)پیکربندی‌نشده پیکربندی"
+    }
+  ],
+  "results": [
+    {
+      "ok": true,
+      "label": "A2: چیپ «سالم» با ok=true واقعی {\"text\":\"وضعیت از API سرور · سالم\",\"title\":\"هستهٔ API سالم است؛ سرویس اختیاری پیکربندی‌نشده: تحویل بیرونی، پرداخت بله\",\"cls\":\"tag ok\"}"
+    },
+    {
+      "ok": true,
+      "label": "A2: سرویس‌های اختیاری پیکربندی‌نشده در title، نه «خراب»"
+    },
+    {
+      "ok": true,
+      "label": "A2: کارت وضعیت: تحویل بیرونی=پیکربندی‌نشده، فرم‌ها=آماده"
+    },
+    {
+      "ok": true,
+      "label": "A2: «پیکربندی» → تنظیمات › اتصال سرویس‌ها › پرداخت {\"tab\":true,\"sec\":true}"
+    },
+    {
+      "ok": true,
+      "label": "A2: با قطع /api/health چیپ «خراب» می‌شود {\"text\":\"وضعیت از API سرور · خراب\",\"cls\":\"tag stop\"}"
+    },
+    {
+      "ok": true,
+      "label": "A2: بازخوانی وضعیت پس از برگشت سرویس → سالم"
+    },
+    {
+      "ok": true,
+      "label": "بدون خطای JS []"
+    }
+  ]
+}

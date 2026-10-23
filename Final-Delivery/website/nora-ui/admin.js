@@ -612,8 +612,11 @@ function renderBar(){
   /* در حالت سروری فهرست رویداد/کاربر محلی وجود ندارد؛ جعبهٔ جست‌وجوی بی‌اثر نشان داده نمی‌شود */
   const searchOn=live?false:S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')
     :S.sec==='users'?(!S.uV&&S.uHub!=='reports'):false;
-  const previewLabel=live?'وضعیت از API سرور':'پیش‌نمایش محلی';
-  const previewTitle=live?'داده و مجوز فقط از API مجاز سرور خوانده می‌شوند'
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A2): چیپ سلامت نوار بالا سه حالت صادقانه دارد: سالم (ok=true از /api/health)، خراب (ok=false یا پاسخ نگرفت)، بررسی‌نشده؛ سرویس اختیاریِ پیکربندی‌نشده «خراب» شمرده نمی‌شود */
+  const hs=live?serverHealthState():null;
+  const previewLabel=live?'وضعیت از API سرور · '+(hs?hs.label:'بررسی‌نشده'):'پیش‌نمایش محلی';
+  const previewClass=live?(hs?hs.cls:'warn'):'warn';
+  const previewTitle=live?(hs?hs.title:'داده و مجوز فقط از API مجاز سرور خوانده می‌شوند')
     :'این نمای آزمایشی محلی است و مجوز سروری ندارد';
   const identity=live
     ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span dir="auto">${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?esc(SERVER_AUTH.manager_username||'حساب مدیر'):SERVER_AUTH.provider==='phone'?'حساب تلفنی':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
@@ -623,7 +626,7 @@ function renderBar(){
     <span class="nmark" aria-hidden="true">${ico(s.i)}</span>
     <div class="tt"><div class="head">${esc(s.n)}</div><div class="cap">${esc(s.s||A.lead||'')}</div></div>
     <span class="sp"></span>
-    <span class="tag warn" data-preview-badge title="${esc(previewTitle)}">${esc(previewLabel)}</span>
+    <span class="tag ${previewClass}" data-preview-badge data-health-state="${hs?esc(hs.key):'unknown'}" title="${esc(previewTitle)}">${esc(previewLabel)}</span>
     <span class="navclock" title="${esc((NE().l||{}).local||'ساعت دستگاه')}" aria-label="${esc('تاریخ و ساعت دستگاه')}">${ico('i-clock')}
       <b data-clock>${esc(typeof clockFull==='function'?clockFull():'')}</b></span>
     ${searchOn?`<label class="searchbox">${ico('i-search')}
@@ -6668,10 +6671,20 @@ function serverUnavailableModule(title,message,actions=''){
     ${actions?`<div class="row" style="flex-wrap:wrap">${actions}</div>`:''}
   </section>`;
 }
+/* A2: سه حالت چیپ سلامت. «پیکربندی‌نشده» فقط برای سرویس‌های اختیاری (تحویل بیرونی، پرداخت بله) است و سلامت هسته را خراب نمی‌کند. */
+const HEALTH_OPTIONAL={deliveryEnabled:'تحویل بیرونی (اختیاری؛ از «اتصال سرویس‌ها» پیکربندی می‌شود)',formBalePaymentsReady:'پرداخت بله (اختیاری؛ از «اتصال سرویس‌ها» پیکربندی می‌شود)'};
+function serverHealthState(){
+  if(SERVER_HEALTH_LOADING&&!SERVER_HEALTH) return {key:'checking',label:'در حال بررسی',cls:'warn',title:'در حال خواندن /api/health'};
+  if(SERVER_HEALTH_ERROR&&!SERVER_HEALTH) return {key:'down',label:'خراب',cls:'stop',title:SERVER_HEALTH_ERROR};
+  if(!SERVER_HEALTH) return null;
+  if(SERVER_HEALTH.ok!==true) return {key:'down',label:'خراب',cls:'stop',title:'API سلامت ok=false برگرداند؛ پایگاه‌داده یا جدول‌های اصلی در دسترس نیستند'};
+  const unconfigured=Object.keys(HEALTH_OPTIONAL).filter(k=>SERVER_HEALTH[k]===false);
+  return {key:'ok',label:'سالم',cls:'ok',title:unconfigured.length?'هستهٔ API سالم است؛ سرویس اختیاری پیکربندی‌نشده: '+unconfigured.map(k=>HEALTH_OPTIONAL[k].split(' (')[0]).join('، '):'همهٔ سرویس‌های گزارش‌شده آماده‌اند'};
+}
 function serverHealthView(){
   const api=window.NORA_SERVER_API;
   const health=SERVER_HEALTH;
-  const label=(key)=>!health||typeof health[key]!=='boolean'?'از API گزارش نشده':health[key]?'آماده':'خاموش';
+  const label=(key)=>!health||typeof health[key]!=='boolean'?'از API گزارش نشده':health[key]?'آماده':(HEALTH_OPTIONAL[key]?'پیکربندی‌نشده':(health.ok===true?'خاموش':'خراب'));
   const rows=[['formsEnabled','فرم‌های سرور'],['responsesEnabled','پاسخ‌های سرور'],
     ['workflowEnabled','کارتابل مشترک'],['notificationQueueEnabled','صف اعلان'],
     ['privateFileStorageEnabled','ذخیرهٔ امن فایل'],['deliveryEnabled','تحویل بیرونی'],
@@ -6679,8 +6692,9 @@ function serverHealthView(){
   const status=SERVER_HEALTH_LOADING?'<p class="cap">در حال خواندن وضعیت API…</p>'
     :SERVER_HEALTH_ERROR?`<p class="cap">${esc(SERVER_HEALTH_ERROR)}</p>`
       :health?`<div class="admlist">${rows.map(([key,title])=>{
-        const known=typeof health[key]==='boolean',ready=health[key]===true;
-        return `<div class="admlirow"><span class="sp"><b>${esc(title)}</b></span>${tag(label(key),known&&ready?'ok':known?'warn':'')}</div>`;
+        const known=typeof health[key]==='boolean',ready=health[key]===true, optional=!!HEALTH_OPTIONAL[key];
+        const cls=known&&ready?'ok':!known?'':optional?'':(health.ok===true?'warn':'stop');
+        return `<div class="admlirow" data-health-row="${esc(key)}"><span class="sp"><b>${esc(title)}</b>${optional&&known&&!ready?`<small class="cap">${esc(HEALTH_OPTIONAL[key])}</small>`:''}</span>${tag(label(key),cls)}${optional&&known&&!ready&&isOwner()?`<button class="btn sm quiet" data-goto-service="${key==='formBalePaymentsReady'?'payment':'bale'}">${ico('i-sliders')} پیکربندی</button>`:''}</div>`;
       }).join('')}</div><p class="cap">نسخه: ${esc(health.mode||'نامشخص')} · هیچ شمار یا رکوردی از مرورگر اینجا استفاده نشده است.</p>`
       :`<p class="cap">وضعیت سرویس هنوز از API دریافت نشده است.</p>`;
   return `<section class="card stack" id="serverHealthPanel">
@@ -9475,6 +9489,7 @@ document.addEventListener('click',e=>{
   if(hit('[data-data-delete-no]')){e.preventDefault(); DATA_CONFIRM=''; renderBody(); return}
   if(hit('[data-data-delete]')){e.preventDefault(); DATA_CONFIRM=hit('[data-data-delete]').dataset.dataDelete; DATA_MSG=null; renderBody(); return}
   if(hit('[data-goto-service-payment]')){e.preventDefault(); S.sec='settings'; S.setG='services'; SERVICE_TAB='payment'; SERVICE_MSG=null; render(); return}
+  if(hit('[data-goto-service]')){e.preventDefault(); if(!isOwner()){toast('تنظیمات سرویس فقط با مالک است'); return} S.sec='settings'; S.setG='services'; SERVICE_TAB=hit('[data-goto-service]').dataset.gotoService||'bale'; SERVICE_MSG=null; render(); return}
 });
 
 function serverSettingsView(){
@@ -9797,6 +9812,7 @@ function loadServerHealth(manual=false){
     SERVER_HEALTH=null;SERVER_HEALTH_ERROR='وضعیت API سلامت دریافت نشد؛ برای جلوگیری از نمایش اطلاعات کهنه، داده‌ای جایگزین نشد.';
   }).finally(()=>{
     SERVER_HEALTH_LOADING=false;if(S.sec==='dash')renderBody();
+    try{renderBar()}catch(e){}
   });
 }
 function loadBotStatus(manual=false){
