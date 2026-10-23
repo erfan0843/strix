@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 import secrets
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
 from . import event_time
@@ -47,6 +47,9 @@ TRANSITIONS: dict[str, frozenset[str]] = {
     "archived": frozenset({"draft"}),
 }
 SORTS = ("updated", "created", "title", "date")
+# Panel audit 1405/08/01 (B1): server-side time buckets for the events list, judged on the
+# Tehran calendar day so the client never has to guess "today" from the browser clock.
+WHEN_FILTERS = ("today", "upcoming", "past")
 
 # Keys the panel may write. Everything else on a stored row (media files, agenda,
 # linked forms, partner references …) is preserved from the stored record.
@@ -566,6 +569,29 @@ def _sort_key(kind: str, sort: str) -> Callable[[dict[str, Any]], Any]:
     return lambda row: str(row.get("updated_at") or row.get("created_at") or "")
 
 
+def event_day_key(row: dict[str, Any]) -> str:
+    """``YYYY/MM/DD`` (zero-padded Jalali) for an event row, or ``""`` when ``on`` is not a date."""
+    match = _JALALI.fullmatch(_normalize_digits(row.get("on")))
+    return f"{match.group(1)}/{int(match.group(2)):02d}/{int(match.group(3)):02d}" if match else ""
+
+
+def today_jalali_key() -> str:
+    """Tehran calendar day as zero-padded ``YYYY/MM/DD`` (same convention as ``event_day_key``)."""
+    now = datetime.now(timezone(timedelta(hours=3, minutes=30)))
+    year, month, day = event_time.gregorian_to_jalali(now.year, now.month, now.day)
+    return f"{year:04d}/{month:02d}/{day:02d}"
+
+
+def event_time_bucket(row: dict[str, Any], today: str) -> str:
+    """``today`` / ``upcoming`` / ``past`` by the event's Jalali day; ``""`` when the row has no parsable date."""
+    key = event_day_key(row)
+    if not key:
+        return ""
+    if key == today:
+        return "today"
+    return "upcoming" if key > today else "past"
+
+
 def list_records(
     kind: str,
     rows: Any,
@@ -576,6 +602,8 @@ def list_records(
     order: str = "desc",
     limit: int = 20,
     offset: int = 0,
+    when: str = "",
+    today: str | None = None,
 ) -> dict[str, Any]:
     if kind not in KINDS:
         raise ContentAdminError("invalid_content_kind")
@@ -583,14 +611,24 @@ def list_records(
         raise ContentAdminError("invalid_status", "status")
     if sort not in SORTS:
         raise ContentAdminError("invalid_sort", "sort")
+    if when and (when not in WHEN_FILTERS or kind != "events"):
+        raise ContentAdminError("invalid_when", "when")
+    today_key = today or today_jalali_key()
     source = [row for row in (rows if isinstance(rows, list) else []) if isinstance(row, dict) and row.get("id")]
     counts = {name: 0 for name in STATUSES}
     for row in source:
         counts[status_of(row)] += 1
     needle = _fold(q).strip()
+    when_counts = {name: 0 for name in WHEN_FILTERS}
+    when_counts["undated"] = 0
+    if kind == "events":
+        for row in source:
+            when_counts[event_time_bucket(row, today_key) or "undated"] += 1
     selected = []
     for row in source:
         if status and status_of(row) != status:
+            continue
+        if when and event_time_bucket(row, today_key) != when:
             continue
         if needle:
             haystack = " ".join(
@@ -612,6 +650,9 @@ def list_records(
         "limit": limit,
         "offset": offset,
         "has_more": offset + limit < len(selected),
+        "when": when,
+        "today": today_key if kind == "events" else "",
+        "when_counts": when_counts if kind == "events" else {},
     }
 
 

@@ -166,6 +166,15 @@ async function loadPanel(identity) {
             const out = list(kind);
             if (params.get('status')) out.items = out.items.filter((e) => e.status === params.get('status'));
             if (params.get('q')) out.items = out.items.filter((e) => e.t.includes(params.get('q')));
+            /* B1: مانند content_admin.list_records — سطل زمانی روی روز شمسی سرور (ثابت ۱۴۰۵/۰۸/۰۱ در این دنیا) */
+            if (kind === 'events') {
+              const TODAY = '1405/08/01', bucket = (e) => !/^1[34]\d{2}\/\d{2}\/\d{2}$/.test(e.on || '') ? 'undated' : e.on === TODAY ? 'today' : e.on > TODAY ? 'upcoming' : 'past';
+              const when = params.get('when') || '';
+              if (when && !['today', 'upcoming', 'past'].includes(when)) return reply(422, { detail: [{ loc: ['query', 'when'], msg: 'pattern' }] });
+              out.when = when; out.today = TODAY; out.when_counts = { today: 0, upcoming: 0, past: 0, undated: 0 };
+              world.events.forEach((e) => { out.when_counts[bucket(e)] += 1; });
+              if (when) out.items = out.items.filter((e) => bucket(e) === when);
+            } else if (params.get('when')) return reply(422, { detail: { code: 'invalid_when', field: 'when' } });
             out.total = out.items.length;
             return reply(200, out);
           }
@@ -348,6 +357,22 @@ console.log('— مالک: فهرست رویدادها از site_content، فی�
     await app.until(() => !app.doc.querySelector('[data-ct-row="ev-b2"]'), 'پیش‌نویس با فیلتر منتشرشده پنهان است');
     app.click('[data-ct-status=""]');
     await app.until(() => app.doc.querySelector('[data-ct-row="ev-b2"]'), 'بازگشت به همه');
+
+    /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (B1): صافی زمانی امروز/پیش‌رو/گذشته سمت سرور (پارامتر when)؛ شمارنده‌ها از پاسخ سرور */
+    assert.ok(app.doc.querySelector('[data-ct-when-filters]') && app.doc.querySelectorAll('[data-ct-when]').length === 4, 'چهار چیپ زمانی');
+    assert.match(app.body(), /امروزِ سرور: ۱۴۰۵\/۰۸\/۰۱/);
+    assert.match(app.doc.querySelector('[data-ct-when="upcoming"]').textContent, /پیش‌رو · ۲/);
+    assert.match(app.doc.querySelector('[data-ct-when="past"]').textContent, /گذشته · ۰/);
+    app.click('[data-ct-when="past"]');
+    await app.until(() => app.calls.some((c) => c.path === '/api/admin/content/events?limit=20&offset=0&sort=updated&order=desc&when=past'), 'فیلتر زمانی سمت سرور با کلید when');
+    await app.until(() => !app.doc.querySelector('[data-ct-row="ev-a1"]') && /با این جست‌وجو یا فیلتر رکوردی پیدا نشد/.test(app.body()), 'گذشته: خالی با پیام فیلتر (نه «هنوز رویدادی نیست»)');
+    app.click('[data-ct-status="published"]');
+    await app.until(() => app.calls.some((c) => c.path === '/api/admin/content/events?limit=20&offset=0&status=published&sort=updated&order=desc&when=past'), 'وضعیت و زمان با هم به سرور می‌روند');
+    app.click('[data-ct-status=""]'); app.click('[data-ct-when="upcoming"]');
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]') && app.doc.querySelector('[data-ct-when="upcoming"].on'), 'پیش‌رو: ردیف‌ها برگشتند و چیپ فعال است');
+    app.click('[data-ct-when=""]');
+    await app.until(() => app.doc.querySelector('[data-ct-when=""].on') && app.doc.querySelector('[data-ct-row="ev-b2"]') && !/در حال دریافت فهرست از سرور/.test(app.body()), 'بازگشت به همهٔ زمان‌ها (فهرست کامل بارگذاری شد)');
+    app.noLeak();
 
     app.click('[data-ct-new]');
     await app.until(() => app.doc.querySelector('#ctf_t'), 'ویرایشگر رویداد تازه');

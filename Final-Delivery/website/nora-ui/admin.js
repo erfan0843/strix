@@ -6771,7 +6771,7 @@ function serverUsersView(){
 const staffCsrfCookie=()=>isOwner()?'nora_csrf':'nora_account_csrf';
 const P2_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
 const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخت'],['title','عنوان'],['date','تاریخ']];
-const CT={kind:'events',q:'',status:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
+const CT={kind:'events',q:'',status:'',when:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
 /* تصاویر عمومی (پوستر/جلد): بارگذاری واقعی به /api/admin/media و فهرست با وضعیت استفاده؛ هیچ حذف خودکاری نیست */
 const CM={up:{busy:false,error:'',file:null,field:'',name:''},open:false,data:null,loading:false,error:'',busy:'',offset:0,limit:20};
 const US={q:'',provider:'',role:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
@@ -6836,7 +6836,7 @@ function p2Inp(label,field,value,opts){
   return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${control}<small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small></label>`;
 }
 /* ── محتوا: رویدادها و مطالب روی همان site_content ── */
-function ctKey(){return [CT.kind,CT.q,CT.status,CT.sort,CT.order,CT.offset,CT.limit].join('|')}
+function ctKey(){return [CT.kind,CT.q,CT.status,CT.kind==='events'?CT.when:'',CT.sort,CT.order,CT.offset,CT.limit].join('|')}
 function ctCan(what){const d=CT.data; if(d&&typeof d[what]==='boolean') return d[what]; return what==='can_edit'?canPerm('ev_create'):canPerm('ev_publish')}
 function ctReset(){CT.offset=0; CT.data=null; CT.key=''}
 async function ctLoad(){
@@ -6844,7 +6844,7 @@ async function ctLoad(){
   if(!api||typeof api.listAdminContent!=='function'){CT.error='رابط سرور در دسترس نیست.'; CT.key=ctKey(); renderBody(); return}
   const key=ctKey(); CT.loading=true; CT.error=''; renderBody();
   try{
-    const result=await api.listAdminContent(CT.kind,{limit:CT.limit,offset:CT.offset,q:CT.q,status:CT.status,sort:CT.sort,order:CT.order});
+    const result=await api.listAdminContent(CT.kind,{limit:CT.limit,offset:CT.offset,q:CT.q,status:CT.status,sort:CT.sort,order:CT.order,when:CT.kind==='events'?CT.when:''});
     if(key===ctKey()){CT.data=result; CT.key=key}
   }catch(error){if(key===ctKey()){CT.error=p2Err(error,'فهرست محتوا از سرور دریافت نشد.'); CT.key=key}}
   finally{CT.loading=false; if(key!==ctKey()){ctLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
@@ -6884,11 +6884,14 @@ function ctList(){
   const d=CT.data, counts=d&&d.counts||{}, total=d?Number(d.total)||0:0;
   const chips=[['','همه',d?Object.values(counts).reduce((a,b)=>a+(Number(b)||0),0):null]].concat(Object.keys(P2_STATUS).map(k=>[k,P2_STATUS[k][0],d?counts[k]:null]))
     .map(([key,label,n])=>`<button class="chip ${CT.status===key?'on':''}" type="button" data-ct-status="${key}">${esc(label)}${n!=null?' · '+fa(n):''}</button>`).join('');
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (B1): صافی زمانی طرح مرجع (امروز/پیش‌رو/گذشته)؛ داوری روی سرور با روز تقویم تهران (پارامتر when)؛ نه ساعت مرورگر */
+  const wc=d&&d.when_counts||{}, whenChips=CT.kind!=='events'?'':`<div class="admfilters" data-ct-when-filters role="group" aria-label="صافی زمانی">${[['','همهٔ زمان‌ها',null],['today','امروز',wc.today],['upcoming','پیش‌رو',wc.upcoming],['past','گذشته',wc.past]]
+    .map(([key,label,n])=>`<button class="chip ${CT.when===key?'on':''}" type="button" data-ct-when="${key}">${esc(label)}${n!=null?' · '+fa(n):''}</button>`).join('')}${d&&d.today?`<span class="cap" title="روز سرور (تقویم تهران)">امروزِ سرور: ${esc(fa(d.today))}</span>`:''}${wc.undated?`<span class="cap">${fa(wc.undated)} رویداد بدون تاریخ قابل‌تشخیص در هیچ صافی زمانی نمی‌آید</span>`:''}</div>`;
   const body=CT.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست از سرور…</p></div>`
     :CT.error?`<div class="empty"><p class="cap">${esc(CT.error)}</p>${btn('تلاش دوباره','data-ct-refresh','i-refresh')}</div>`
     :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-ct-refresh','i-refresh')}</div>`
     :d.items.length?d.items.map(ctRow).join('')
-      :emptyBox(CT.q||CT.status?'با این جست‌وجو یا فیلتر رکوردی پیدا نشد.':CT.kind==='events'?'هنوز رویدادی در سرور ثبت نشده است.':'هنوز مطلبی در سرور ثبت نشده است.');
+      :emptyBox(CT.q||CT.status||(CT.kind==='events'&&CT.when)?'با این جست‌وجو یا فیلتر رکوردی پیدا نشد.':CT.kind==='events'?'هنوز رویدادی در سرور ثبت نشده است.':'هنوز مطلبی در سرور ثبت نشده است.');
   const kindName=CT.kind==='events'?'رویداد':'مطلب';
   return `<section class="card stack" data-ct-panel>
     <div class="row" style="flex-wrap:wrap"><div class="head">${CT.kind==='events'?'رویدادها':'مطالب'}</div><span class="sp"></span>
@@ -6898,7 +6901,7 @@ function ctList(){
     <form class="row tight server-role-search" data-ct-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="ctQuery" type="search" class="input" value="${esc(CT.q)}" maxlength="80" autocomplete="off" placeholder="عنوان، دسته، مکان، برچسب یا شناسه" aria-label="جست‌وجوی محتوا"/></label>
       <button class="btn sm" type="submit" data-ct-search>جست‌وجو</button></form>
-    <div class="admfilters">${chips}</div>
+    <div class="admfilters">${chips}</div>${whenChips}
     <div class="row tight" style="flex-wrap:wrap">
       <label class="fld" style="flex:1 1 140px"><span class="lbl">ترتیب</span><select class="input" data-ct-sort>${P2_SORTS.map(([k,l])=>`<option value="${k}" ${CT.sort===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
       <label class="fld" style="flex:1 1 120px"><span class="lbl">جهت</span><select class="input" data-ct-order><option value="desc" ${CT.order==='desc'?'selected':''}>نزولی</option><option value="asc" ${CT.order==='asc'?'selected':''}>صعودی</option></select></label>
@@ -8758,6 +8761,7 @@ document.addEventListener('click',e=>{
   if(q('[data-ct-refresh]')){ctReset(); ctLoad(); return}
   if(q('[data-ct-search]')){const input=$('#ctQuery'); CT.q=String(input&&input.value||'').trim().slice(0,80); ctReset(); ctLoad(); return}
   const ctStatus=q('[data-ct-status]'); if(ctStatus){CT.status=ctStatus.dataset.ctStatus||''; ctReset(); ctLoad(); return}
+  const ctWhen=q('[data-ct-when]'); if(ctWhen){CT.when=ctWhen.dataset.ctWhen||''; ctReset(); ctLoad(); return}
   const ctPage=q('[data-ct-page]'); if(ctPage){const total=CT.data?Number(CT.data.total)||0:0; CT.offset=ctPage.dataset.ctPage==='next'?Math.min(CT.offset+CT.limit,Math.max(0,total-1)):Math.max(0,CT.offset-CT.limit); CT.data=CT.data; ctLoad(); return}
   if(q('[data-ct-new]')){if(!ctCan('can_edit')){toast('مجوز ساخت محتوا برای این نقش فعال نیست'); return} ctOpenEditor(''); return}
   const pkSetEl=q('[data-ct-pick-set]'); if(pkSetEl){pkSet(pkSetEl.dataset.ctPickSet,pkSetEl.dataset.ctPickId); return}

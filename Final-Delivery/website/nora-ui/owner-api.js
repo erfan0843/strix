@@ -60,7 +60,7 @@
     return read('nora_csrf') || read('nora_account_csrf');
   }
 
-  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id', 'format'];
+  const ADMIN_QUERY_KEYS = ['limit', 'offset', 'q', 'status', 'sort', 'order', 'provider', 'role', 'state', 'kind', 'event_ref', 'slot', 'entry_type', 'account_id', 'bale_user_id', 'answered', 'include_removed', 'event_id', 'format', 'when'];
   function adminQuery(params) {
     const source = params && typeof params === 'object' ? params : {};
     const parts = [];
@@ -91,7 +91,7 @@
       || /^(?:limit=\d{1,3}&offset=\d{1,7}|offset=\d{1,7}&limit=\d{1,3})(?:&q=[A-Za-z0-9%._-]{0,240})?(?:&role=(?:assigned|manager|club-supervisor|none))?(?:&status=(?:pending|decided|approved|rejected))?(?:&action=[a-z_.]{0,64})?$/.test(query)
       || /^period=(?:7d|30d|90d|365d|all)$/.test(query)
       /* فهرست‌های مدیریتی مرحلهٔ دوم به بعد (محتوا، کاربران، حضور، گواهی، امتیاز باشگاه): فقط کلیدهای ثابت با مقدار کدشده */
-      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
+      || /^(?:(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id|when)=[A-Za-z0-9%._-]{0,240})(?:&(?:limit|offset|q|status|sort|order|provider|role|state|kind|event_ref|slot|entry_type|account_id|bale_user_id|answered|include_removed|event_id|target_type|target_id|when)=[A-Za-z0-9%._-]{0,240}){0,8}$/.test(query);
     if (typeof path !== 'string' || !/^\/api\/[A-Za-z0-9/_-]*$/.test(pathname) || pathname.includes('..')
         || !safeQuery) {
       throw new TypeError('Only fixed same-origin API paths are allowed');

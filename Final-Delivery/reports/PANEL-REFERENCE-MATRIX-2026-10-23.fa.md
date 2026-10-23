@@ -56,7 +56,7 @@
 
 | # | قابلیت طراحی | مسیر/رفتار مرجع | وضعیت | فایل/تابع | API / مدل | مجوز (سرور) | آزمون · شاهد | اختلاف | اقدام / اولویت / معیار |
 |---|---|---|---|---|---|---|---|---|---|
-| B1 | فهرست رویدادها: جست‌وجو، فیلتر وضعیت، ترتیب، صفحه‌بندی | صافی همه/جاری/پیش‌رو/گذشته | کامل | `ctList` | `GET /api/admin/content/events` | `ev_create`/`ev_publish` (`_CONTENT_*_PERMS`) | admin-phase2, pytest · مرورگر | فیلتر زمانی «جاری/پیش‌رو/گذشته» نیست (فقط وضعیت انتشار) | B-P2: چیپ زمانی سمت کلاینت روی `on`/`startsAt` یا پارامتر API |
+| B1 | فهرست رویدادها: جست‌وجو، فیلتر وضعیت، ترتیب، صفحه‌بندی | صافی همه/جاری/پیش‌رو/گذشته | **کامل** | `ctList` (چیپ‌های `[data-ct-when]` + «امروزِ سرور») | `GET /api/admin/content/events?when=today|upcoming|past` (سطل‌بندی روی روز شمسی تهران در سرور: `content_admin.event_time_bucket`؛ پاسخ `when_counts`/`today`؛ `when` روی مطالب یا مقدار ناشناخته → ۴۲۲) | `ev_create`/`ev_publish` (`_CONTENT_*_PERMS`؛ بی‌نشست ۴۰۱) | کد این شاخه · pytest `test_events_time_filter_is_judged_on_the_server_calendar_day` + admin-phase2 (B1) · مرورگر `evidence/panel-reference-2026-10-23/B1-when-past.png`, `B1-when-upcoming-draft.png`, `B1-when-mobile.png`, `stage-b1-results.json` (۱۲/۱۲) | — (رویداد بدون تاریخ قابل‌تشخیص در هیچ سطل زمانی نمی‌آید و شمارش جدا دارد) | بسته |
 | B2 | ساخت/ویرایش رویداد (همهٔ فیلدها) | ویزارد ۵ گامی با ۹ قالب | **کامل (فرم تک‌صفحه‌ای + ۶ قالب شروع)** | `ctEditor`, `CT_TEMPLATES`, `ctApplyTemplate` | `POST/PUT content/events` با `expected_version` | `ev_create` | کد `e859c0a`+`b45e4ba` · آزمون admin-phase2 (بخش B) سبز · مرورگر `evidence/panel-reference-2026-10-23/stage-ab-results.json` (B2؛ بدون تصویر جدا) | قالب فقط فیلدهای خالی را پر می‌کند؛ بدون ذخیرهٔ خودکار | بسته (ویزارد چندگامی عمداً نه) |
 | B3 | اعتبارسنجی فیلدی و فوکوس روی اولین خطا | خطای کنار فیلد + پرش | **کامل** | `ctFocusFirstError` | 422 `detail.field` | — | کد `e859c0a` · آزمون admin-phase2 سبز · مرورگر `evidence/panel-reference-2026-10-23/B3-focus-error.png` (فوکوس `#ctf_t`) | — | بسته |
 | B4 | قفل نسخه ۴۰۹ با حفظ نوشته | ✓ | کامل | `ctSave` | 409 | — | admin-phase2 · مرورگر `stage2-05` | — | حفظ |
@@ -176,6 +176,7 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 | C5 | تاریخچهٔ حساب در پروندهٔ کاربر (مالک) | `43e5150` | pytest `test_admin_audit_trail` ۴ passed؛ admin-phase2 (مالک + مدیر) | ✓ `C5-account-history.png`, `C5-manager-no-history-tab.png` (۱۱/۱۱) |
 | D3 | پیام فارسی ۴۲۲ `unknown_reference(ev)` در فرم‌ساز | `f24522e` | pytest (سرور) | ✓ `D3-unknown-ev-422.png` |
 | D6 | انتخاب‌گر رویداد در فرم‌ساز | `f24522e` | `builder-event-picker.test.mjs` ۲۸/۲۸ (فهرست فقط از API مدیریتی/عمومی، جست‌وجو+Enter، قطع اتصال، خطا/تلاش دوباره، پنهان در فرم خرید، ۴۲۲ `unknown_reference`) | ✓ `D6-picker-open.png`, `D6-picked.png`, `D6-saved.png` (۱۱/۱۱ در `stage-d-results.json`) |
+| B1 | صافی زمانی امروز/پیش‌رو/گذشتهٔ فهرست رویدادها (`when`) | این شاخه (پس از `e4a552a`) | pytest content_admin ۱۲ passed · admin-phase2 «قبول» | ✓ `B1-when-past.png`, `B1-when-upcoming-draft.png`, `B1-when-mobile.png`, `stage-b1-results.json` (۱۲/۱۲: روز سرور ۱۴۰۵/۰۸/۰۱، ۳ گذشته/۳ پیش‌رو، ترکیب با وضعیت، ۴۲۲ برای مقدار نامعتبر، مدیر ۲۰۰، بی‌نشست ۴۰۱) |
 | G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | ✓ `G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶: یک POST ۲۰۱، نشانی پایدار در `photo`، PATCH ۲۰۰، فایل از `/api/public/media/…` با `image/png` سرو شد) |
 
 ### نقص‌هایی که فقط در مرورگر پیدا شدند (و رفع شدند)
@@ -192,5 +193,5 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 ### باقی‌مانده‌ها به ترتیب اولویت (باگ/مسیر ناقص اول)
 1. ~~G1 شاهد مرورگر~~ انجام شد (`stage-g1-results.json`).
 2. ~~D6 آزمون jsdom~~ انجام شد (`builder-event-picker.test.mjs`؛ ضمناً اشکال ازدست‌رفتن فوکوس قلم جست‌وجو هنگام بازنویسی فهرست در `create.html` رفع شد).
-3. A2 چیپ سلامت «پیکربندی‌نشده» ≠ «خراب»؛ A6 ظرفیت روی کارت رویداد نزدیک؛ B1 صافی زمانی؛ F1 نمودار CSS؛ G1 رونوشت از پروفایل (همه P2).
+3. A2 چیپ سلامت «پیکربندی‌نشده» ≠ «خراب»؛ A6 ظرفیت روی کارت رویداد نزدیک؛ ~~B1 صافی زمانی~~ (انجام شد)؛ F1 نمودار CSS؛ G1 رونوشت از پروفایل (همه P2).
 4. تصمیم مالک (مستند جدا، مسدودکننده نیست): A12، B14، B18، B19، B22، C1، C9، C11، D7، E4، F5، G4، H5؛ بلوک ویدیو/صدا در مطلب (منبع معتبر)؛ «مدت خودکار» رویداد؛ هوش مصنوعی داخلی (بدون شاهد در طراحی/تاریخچه).

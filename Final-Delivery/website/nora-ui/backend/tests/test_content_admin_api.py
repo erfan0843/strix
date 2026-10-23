@@ -773,3 +773,69 @@ def test_article_blocks_are_editable_validated_and_projected_publicly():
             assert legacy.json()["record"]["body"] == ["بند ۱", "بند ۲"] and legacy.json()["record"].get("blocks", []) == []
     finally:
         engine.dispose()
+
+
+def test_events_time_filter_is_judged_on_the_server_calendar_day():
+    """Panel audit 1405/08/01 (B1): ``when=today|upcoming|past`` buckets events by their Jalali
+    ``on`` day against the Tehran date; undated rows are counted but never guessed into a bucket."""
+    # Pure helper first: deterministic "today".
+    today = "1405/08/01"
+    assert content_admin.event_time_bucket({"on": "۱۴۰۵/۰۸/۰۱"}, today) == "today"
+    assert content_admin.event_time_bucket({"on": "1405/8/2"}, today) == "upcoming"
+    assert content_admin.event_time_bucket({"on": "1404/12/29"}, today) == "past"
+    assert content_admin.event_time_bucket({"on": "پاییز"}, today) == ""
+    assert content_admin.event_time_bucket({}, today) == ""
+    rows = [
+        {"id": "ev-a", "t": "گذشته", "on": "1405/07/30", "status": "published"},
+        {"id": "ev-b", "t": "امروز", "on": "۱۴۰۵/۰۸/۰۱", "status": "draft"},
+        {"id": "ev-c", "t": "آینده", "on": "1405/08/15", "status": "published"},
+        {"id": "ev-d", "t": "بدون تاریخ", "when": "به‌زودی", "status": "draft"},
+    ]
+    listing = content_admin.list_records("events", rows, when="upcoming", today=today)
+    assert [item["id"] for item in listing["items"]] == ["ev-c"]
+    assert listing["when"] == "upcoming" and listing["today"] == today
+    assert listing["when_counts"] == {"today": 1, "upcoming": 1, "past": 1, "undated": 1}
+    assert [item["id"] for item in content_admin.list_records("events", rows, when="past", today=today)["items"]] == ["ev-a"]
+    assert [item["id"] for item in content_admin.list_records("events", rows, when="today", today=today)["items"]] == ["ev-b"]
+    # Filters combine (status AND when); no filter keeps undated rows.
+    assert content_admin.list_records("events", rows, when="upcoming", status="draft", today=today)["total"] == 0
+    assert content_admin.list_records("events", rows, today=today)["total"] == 4
+    assert content_admin.list_records("articles", [{"id": "ar-1", "t": "x", "at": "2026-10-01"}])["when_counts"] == {}
+    try:
+        content_admin.list_records("articles", [], when="past")
+        raise AssertionError("articles must reject when=")
+    except content_admin.ContentAdminError as error:
+        assert error.code == "invalid_when" and error.field == "when"
+    try:
+        content_admin.list_records("events", rows, when="soon", today=today)
+        raise AssertionError("unknown bucket must be rejected")
+    except content_admin.ContentAdminError as error:
+        assert error.code == "invalid_when"
+
+    # HTTP surface: real Tehran "today" from the server, far-future and far-past rows.
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            version = 0
+            for title, on in (("دور گذشته", "1399/01/15"), ("دور آینده", "1450/01/15")):
+                response = client.post(
+                    "/api/admin/content/events",
+                    json={"record": dict(EVENT, t=title, on=on), "expected_version": version},
+                    headers=owner_write_headers(client),
+                )
+                assert response.status_code == 200, response.text
+                version = response.json()["version"]
+            body = client.get("/api/admin/content/events?when=upcoming&sort=date").json()
+            assert [item["t"] for item in body["items"]] == ["دور آینده"]
+            assert body["when"] == "upcoming" and len(body["today"]) == 10
+            assert body["when_counts"]["past"] == 1 and body["when_counts"]["upcoming"] == 1
+            past = client.get("/api/admin/content/events?when=past").json()
+            assert [item["t"] for item in past["items"]] == ["دور گذشته"]
+            assert client.get("/api/admin/content/events?when=soon").status_code == 422
+            assert client.get("/api/admin/content/articles?when=past").status_code == 422
+            # Permission unchanged: anonymous still blocked on the filtered list.
+            anonymous = TestClient(app)
+            assert anonymous.get("/api/admin/content/events?when=past").status_code == 401
+    finally:
+        engine.dispose()

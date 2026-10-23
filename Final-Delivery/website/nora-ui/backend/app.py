@@ -2513,6 +2513,7 @@ def create_app(
         order: str = Query(default="desc", pattern=r"^(asc|desc)$"),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=100_000),
+        when: str = Query(default="", pattern=r"^(|today|upcoming|past)$"),
         identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_CONTENT_EDIT_PERMS, *_CONTENT_PUBLISH_PERMS)),
         db: Session = Depends(get_db),
     ):
@@ -2521,7 +2522,8 @@ def create_app(
         record = db.get(SiteContentRecord, "public")
         try:
             result = content_admin_mod.list_records(
-                kind, _content_rows(record, kind), q=q, status=status, sort=sort, order=order, limit=limit, offset=offset
+                kind, _content_rows(record, kind), q=q, status=status, sort=sort, order=order, limit=limit, offset=offset,
+                when=when,
             )
         except content_admin_mod.ContentAdminError as error:
             raise _content_error(error) from None
