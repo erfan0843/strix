@@ -722,6 +722,26 @@ console.log('— H1 مالک: ویرایشگر سروری افراد روی GET/
     app.click('[data-ppform="f-ask"]');
     await app.until(() => app.doc.querySelector('[data-ppform=""]'), 'فرم وصل شد');
 
+    /* ممیزی ۱۴۰۵/۰۸/۰۱ (G1 رونوشت): «رونوشت از این پروفایل» پیش‌نویس شخص تازه می‌سازد؛ بدون هیچ درخواست سروری تا تأیید */
+    {
+      const callsBefore = app.calls.length;
+      app.click('[data-pe-dup="pp-ali"]');
+      await app.until(() => app.doc.querySelector('[data-pe-editor="new"]'), 'ویرایشگر شخص تازه از روی رونوشت');
+      assert.equal(app.doc.querySelector('[data-ppf="n"]').value, 'علی موسوی (رونوشت)');
+      assert.equal(app.doc.querySelector('[data-ppf="r"]').value, 'مدرس ارشد فن بیان', 'ویرایش ذخیره‌نشدهٔ جاری هم رونوشت می‌شود');
+      assert.equal(app.doc.querySelector('[data-ppform=""]'), null, 'پیوند فرم به رونوشت منتقل نمی‌شود');
+      assert.equal(app.calls.length, callsBefore, 'رونوشت تا تأیید هیچ درخواستی نمی‌فرستد');
+      app.click('[data-pe-cancel]');
+      await app.until(() => !app.doc.querySelector('[data-pe-editor]'), 'بستن رونوشت بدون ذخیره');
+      assert.equal(app.doc.querySelector('[data-pe-row="pp-ali"]') && app.doc.querySelectorAll('[data-pe-row]').length, 2, 'فهرست دست‌نخورده');
+      app.click('[data-pe-edit="pp-ali"]');
+      await app.until(() => app.doc.querySelector('[data-pe-editor="pp-ali"]'), 'ویرایشگر دوباره');
+      app.type('[data-ppf="r"]', 'مدرس ارشد فن بیان');
+      await app.until(() => app.doc.querySelector('[data-ppform="f-ask"]'), 'فرم‌های سروری دوباره');
+      app.click('[data-ppform="f-ask"]');
+      await app.until(() => app.doc.querySelector('[data-ppform=""]'), 'فرم دوباره وصل شد');
+    }
+
     /* انصراف نوشته را نگه نمی‌دارد؛ ولی ذخیره فقط با تأیید انجام می‌شود */
     app.dialogs.length = 0;
     app.click('[data-pe-save]');

@@ -132,7 +132,7 @@
 
 | # | قابلیت | وضعیت | فایل/تابع | API | مجوز | آزمون · شاهد | اختلاف | اقدام |
 |---|---|---|---|---|---|---|---|---|
-| G1 | فهرست سروری افراد: جست‌وجو، ویرایش، ترتیب، پیش‌نمایش، انتشار با تأیید، ۴۰۹، ردیف ردشده، **عکس** | کامل | `PE_SRV`; عکس: `[data-ppfile]` → `api.uploadAdminMedia` در حالت سرور | `GET/PATCH /api/owner/site-content` + `POST /api/admin/media` (نشانی `/api/public/media/…` در `photo`؛ بدون base64) | `require_owner` + CSRF | کد `d22a431` · آزمون admin-phase3 (G1: فایل غیرتصویری رد، POST با CSRF، نشانی پایدار، بدون PATCH خودکار) سبز · مرورگر `evidence/panel-reference-2026-10-23/G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶) | «رونوشت از پروفایل» هنوز نیست | عکس بسته؛ رونوشت P2 |
+| G1 | فهرست سروری افراد: جست‌وجو، ویرایش، ترتیب، پیش‌نمایش، انتشار با تأیید، ۴۰۹، ردیف ردشده، **عکس** | کامل | `PE_SRV`; عکس: `[data-ppfile]` → `api.uploadAdminMedia` در حالت سرور | `GET/PATCH /api/owner/site-content` + `POST /api/admin/media` (نشانی `/api/public/media/…` در `photo`؛ بدون base64) | `require_owner` + CSRF | کد `d22a431` · آزمون admin-phase3 (G1: فایل غیرتصویری رد، POST با CSRF، نشانی پایدار، بدون PATCH خودکار) سبز · مرورگر `evidence/panel-reference-2026-10-23/G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶) | — («رونوشت از این پروفایل» `[data-pe-dup]` → `peDuplicate`: پیش‌نویس شخص تازه از پیش‌نویس جاری، نام «… (رونوشت)»، بدون امتیاز/پیوند فرم؛ تا تأیید هیچ درخواستی نمی‌رود؛ admin-phase2 + مرورگر `G1-duplicate-draft.png`, `stage-g1-dup-results.json` ۴/۴) | بسته |
 | G2 | نهادهای همکار | کامل | `PP_SRV` | همان | مالک | pytest retention · مرورگر | — | حفظ |
 | G3 | انتخاب در رویداد/مطلب با جست‌وجوی فارسی و Enter | کامل | `PK` | `GET /api/public/site-content` | — | jsdom · مرورگر | — | حفظ |
 | G4 | مدیران (صفحهٔ پشتیبانی) | نمایشی | — | `nora-managers` فقط `localStorage` در طراحی؛ سرور ندارد | — | — | — | مسدود (تصمیم: مدل «تیم پشتیبانی») |
@@ -180,6 +180,7 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 | A6 | ظرفیت/ثبت‌نام قطعی/در انتظار روی کارت رویداد پیش رو و ردیف فهرست (`registration` از `form_responses`) | این شاخه (پس از `8468714`) | pytest content_admin ۱۳ passed · admin-restore/phase2 «قبول» | ✓ `A6-dashboard-capacity.png`, `A6-events-list-capacity.png`, `stage-a6-results.json` (۶/۶؛ مقادیر صفر در DB آزمایشی) |
 | A2 | چیپ سلامت سه‌حالته (سالم/خراب/بررسی‌نشده) و تمایز «پیکربندی‌نشده» برای سرویس اختیاری | این شاخه (پس از `c4b5371`) | admin-phase2/rbac «قبول» | ✓ `A2-health-ok-unconfigured.png`, `A2-health-down.png`, `stage-a2-results.json` (۷/۷) |
 | F1 | نوار نسبت CSS در گزارش‌های سرور از همان شمارش‌ها | این شاخه (پس از `2039678`) | admin-rbac «قبول» | ✓ `F1-report-bars.png`, `stage-f1-results.json` (۴/۴) |
+| G1 (رونوشت) | «رونوشت از این پروفایل» در ویرایشگر سروری افراد | این شاخه (پس از `c022b43`) | admin-phase2 «قبول» | ✓ `G1-duplicate-draft.png`, `stage-g1-dup-results.json` (۴/۴؛ بدون درخواست نوشتنی، شمار افراد سرور ثابت) |
 | G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | ✓ `G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶: یک POST ۲۰۱، نشانی پایدار در `photo`، PATCH ۲۰۰، فایل از `/api/public/media/…` با `image/png` سرو شد) |
 
 ### نقص‌هایی که فقط در مرورگر پیدا شدند (و رفع شدند)
@@ -196,5 +197,5 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 ### باقی‌مانده‌ها به ترتیب اولویت (باگ/مسیر ناقص اول)
 1. ~~G1 شاهد مرورگر~~ انجام شد (`stage-g1-results.json`).
 2. ~~D6 آزمون jsdom~~ انجام شد (`builder-event-picker.test.mjs`؛ ضمناً اشکال ازدست‌رفتن فوکوس قلم جست‌وجو هنگام بازنویسی فهرست در `create.html` رفع شد).
-3. ~~A2 چیپ سلامت~~ (انجام شد)؛ ~~A6 ظرفیت روی کارت~~ (انجام شد)؛ ~~B1 صافی زمانی~~ (انجام شد)؛ ~~F1 نمودار CSS~~ (انجام شد)؛ G1 رونوشت از پروفایل (همه P2).
+3. ~~A2 چیپ سلامت~~ (انجام شد)؛ ~~A6 ظرفیت روی کارت~~ (انجام شد)؛ ~~B1 صافی زمانی~~ (انجام شد)؛ ~~F1 نمودار CSS~~ (انجام شد)؛ ~~G1 رونوشت از پروفایل~~ (انجام شد). **همهٔ موارد P2 بسته شدند.**
 4. تصمیم مالک (مستند جدا، مسدودکننده نیست): A12، B14، B18، B19، B22، C1، C9، C11، D7، E4، F5، G4، H5؛ بلوک ویدیو/صدا در مطلب (منبع معتبر)؛ «مدت خودکار» رویداد؛ هوش مصنوعی داخلی (بدون شاهد در طراحی/تاریخچه).

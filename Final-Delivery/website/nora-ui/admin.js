@@ -4162,6 +4162,17 @@ function peOpen(key){
   PE_SRV.conflict=null; PE_SRV.rejected=null; save();
 }
 function peClose(){S.ppEd=''; S.ppD=null; S.peBase=''; S.peBaseV=0; PE_SRV.conflict=null; save()}
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (G1 رونوشت): همان قابلیت طرح مرجع (data-ppdup) در حالت سرور: پیش‌نویس شخص تازه از روی ردیف سرور؛ شناسه، امتیاز و پیوند فرم تازه می‌شود؛
+   تا «تأیید و انتشار فوری» هیچ چیزی به سرور نمی‌رود. */
+function peDuplicate(key){
+  const row=peRow(key); if(!row){toast('این شخص در فهرست سرور نیست'); return false}
+  const kind=row.kind==='staff'?'staff':'tch';
+  /* از پیش‌نویس جاری (با ویرایش‌های ذخیره‌نشده) رونوشت می‌گیرد؛ وگرنه از ردیف سرور */
+  const D=(S.ppEd===key&&S.ppD)?JSON.parse(JSON.stringify(S.ppD)):ppDraftOf(row,kind); D.kind=row.kind; D.rate=''; D.form=''; D.formTxt='';
+  D.n=String(D.n||'بی‌نام')+' (رونوشت)';
+  S.ppD=D; S.ppEd='new'; S.peBase=''; S.peBaseV=PE_SRV.version; PE_SRV.conflict=null; PE_SRV.rejected=null; save();
+  toast('پیش‌نویس رونوشت ساخته شد؛ تا تأیید، چیزی در سرور ثبت نمی‌شود'); return true;
+}
 /* هر تغییر (افزودن/ویرایش/حذف/ترتیب) کل دستهٔ people را با expected_version و CSRF می‌فرستد. */
 async function peCommit(list,what,o){
   o=o||{}; const api=window.NORA_SERVER_API;
@@ -4283,7 +4294,7 @@ function peEditorHtml(){
       :`<p class="cap">هنوز رویداد یا مطلب منتشرشده‌ای به این شخص وصل نیست؛ در ویرایشگر رویداد از «مدرس» و در مطلب از «نویسنده» انتخابش کن.</p>`}</div>`;
   return `<section class="card stack" id="peEditor" data-pe-editor="${esc(key)}">
     <div class="row"><div class="head">${isNew?'افزودن شخص تازه':'ویرایش «'+esc(srv?srv.n:D.n)+'»'}</div><span class="sp"></span>
-      ${isNew?'':`<span class="cap" dir="ltr">${esc(key)}</span>`}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}</div>
+      ${isNew?'':`<span class="cap" dir="ltr">${esc(key)}</span>`}${isNew?'':btn('رونوشت از این پروفایل','data-pe-dup="'+esc(key)+'"','i-copy')}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}</div>
     <p class="cap" data-pe-publish-note><b>ذخیره = انتشار فوری.</b> این پروفایل بلافاصله در صفحهٔ اصلی و صفحهٔ عمومی شخص دیده می‌شود؛ پیش‌نویس یا حالت پنهان وجود ندارد. فقط فیلدهای مجاز سرور ذخیره می‌شوند؛ تغییرات تا زمان ذخیره فقط در همین مرورگر است.</p>
     ${peConflictHtml(D)}
     <div class="pp-grid"><div class="stack">${ppForm(D,kind)}</div>
@@ -10807,6 +10818,7 @@ document.addEventListener('click',e=>{
   if(q('[data-pe-new]')){if(!isOwner()){toast('افزودن شخص فقط با مالک است'); return} if(!PE_SRV.loaded){toast('اول فهرست از سرور بارگذاری شود'); return} peOpen('new'); renderBody(); return}
   const peEd=q('[data-pe-edit]'); if(peEd){if(!isOwner()){toast('ویرایش افراد فقط با مالک است'); return} peOpen(peEd.dataset.peEdit); renderBody(); return}
   if(q('[data-pe-cancel]')){peClose(); renderBody(); return}
+  const peDup=q('[data-pe-dup]'); if(peDup){if(!isOwner()){toast('رونوشت فقط با مالک است'); return} if(peDuplicate(peDup.dataset.peDup)) renderBody(); return}
   if(q('[data-pe-save]')){if(!isOwner()){toast('انتشار افراد فقط با مالک است'); return} peSave(); return}
   const peDl=q('[data-pe-del]'); if(peDl){if(!isOwner()){toast('حذف افراد فقط با مالک است'); return} peDelete(peDl.dataset.peDel); return}
   const peUp=q('[data-pe-up]'); if(peUp){peMove(peUp.dataset.peUp,-1); return}
