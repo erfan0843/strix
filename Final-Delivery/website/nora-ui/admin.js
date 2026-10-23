@@ -8143,7 +8143,7 @@ function efSurvey(){
     <div class="row" style="flex-wrap:wrap;gap:6px"><strong>نظرسنجی و آزمون این رویداد</strong><span class="sp"></span>${can.forms?mk('survey','ساخت نظرسنجی')+mk('exam','ساخت آزمون'):''}</div>
     ${list.length?`<div class="admlist">${cards}</div>`:`<div data-ef-survey-empty>${emptyBox('نظرسنجی یا آزمونی به این رویداد وصل نیست.')}</div>`}
     ${EF.sum.formId?efSummaryBox():''}
-    <small class="cap">نتیجهٔ کلی از پاسخ‌های همین فرم جمع می‌شود؛ پاسخ هر نفر جدا در فرم‌ساز دیده می‌شود. نمره‌دهی آزمون نیازمند کلید پاسخ در سرور است و فعلاً ساخته نشده.</small></div>`;
+    <small class="cap">نتیجهٔ کلی از پاسخ‌های همین فرم جمع می‌شود؛ پاسخ هر نفر جدا در فرم‌ساز دیده می‌شود. نمره‌دهی آزمون در این مرحله پیاده‌سازی نشده (کلید پاسخ و مدل نمره در سرور وجود ندارد)؛ هیچ نمره یا نتیجه‌ای نمایش داده نمی‌شود.</small></div>`;
 }
 function efSummaryBox(){
   const s=EF.sum;
@@ -8158,7 +8158,7 @@ function efSummaryBox(){
     return `<div class="admlirow" style="flex-wrap:wrap"><span class="sp"><b>${esc(f.label||f.field_id)}</b><small class="cap">${fa(f.answered||0)} پاسخ</small></span><div style="flex-basis:100%">${body}</div></div>`}).join('');
   return `<div class="card stack" data-ef-summary-box="${esc(String(d.form&&d.form.id||''))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>نتیجهٔ کلی «${esc(d.form&&d.form.name||'')}»</strong>${tag(fa(d.responses||0)+' پاسخ','')}<span class="sp"></span>${btn('بستن','data-ef-sum-close','i-close')}</div>
     ${d.responses?`<div class="admlist">${fields}</div>`:emptyBox('هنوز پاسخی برای این فرم ثبت نشده است.')}
-    ${d.form&&d.form.type==='exam'?`<small class="cap">نمره‌دهی: نیازمند سرویس (کلید پاسخ در سرور تعریف نشده است).</small>`:''}</div>`;
+    ${d.form&&d.form.type==='exam'?`<small class="cap">نمره‌دهی: پیاده‌سازی‌نشده در این مرحله (کلید پاسخ در سرور تعریف نشده)؛ فقط جمع‌بندی پاسخ‌ها نمایش داده می‌شود، نه نمره.</small>`:''}</div>`;
 }
 /* ── گواهی‌ها ── */
 function efCerts(){
