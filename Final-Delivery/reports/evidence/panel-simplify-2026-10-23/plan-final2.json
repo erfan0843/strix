@@ -1,0 +1,6 @@
+[
+ {"name":"events-list","target":"after","path":"/admin.html#events","full":false,"wait":2500},
+ {"name":"event-files","target":"before","path":"/admin.html#events","clicks":["[data-ct-file=\"ev-398eadbedc\"]","[data-ei-tab=\"resources\"]"],"full":true,"wait":2500,"after":2000,"viewports":["desktop"]},
+ {"name":"event-files","target":"after","path":"/admin.html#events","clicks":["[data-ct-file=\"ev-398eadbedc\"]","[data-ei-tab=\"resources\"]"],"full":true,"wait":2500,"after":2000,"viewports":["desktop"]},
+ {"name":"settings-home","target":"after","path":"/admin.html#settings","full":true,"viewports":["desktop","mobile"]}
+]

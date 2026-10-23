@@ -1,0 +1,63 @@
+PASS create form shows 3 sections: 
+PASS advanced blocks collapsed by default: 
+PASS online: join link shown, place hidden: 
+date typed persian → value while typing: ۱۴۰۵/۱۰/۲۰
+PASS persian digits kept while typing (no rewrite): 
+date typed persian → value after blur: 1405/10/20
+PASS persian digits normalized on blur: 
+PASS weekday hint shown: 
+PASS partial date untouched while typing: 
+PASS partial date untouched after blur: 
+PASS partial date: no error shown yet / no startsAt rewrite: 
+PASS 8 digits auto-separated: 
+PASS 4-digit time auto-colon: 
+PASS partial end time not rewritten: 
+PASS partial end time not rewritten on blur: 
+PASS empty end stays empty: 
+PASS no order error with empty end: 
+PASS end<start warning in review: 
+PASS end 20:00 accepted, warning gone: 
+PASS calendar opens: 
+PASS calendar has month/year selects: 
+calendar head after month select: آبان ۱۴۰۵
+PASS day click sets date: 
+PASS startsAt follows date change keeping time: 
+today button → value: 1405/08/01
+PASS clear button empties date: 
+PASS Escape closes calendar: 
+PASS mobile: date input numeric keyboard: 
+seed form: 201 d6a42cf9-fb67-47d0-8f55-2daf878bbe67
+saved new online event id: ev-948d5c9748
+PASS after save-stay editor stays on same record in reg section: 
+PASS form linked row visible: 
+PASS reopen: mode online + joinUrl persisted: 
+reopen values: {"on":"1405/10/20","time":"18:30","endTime":"20:00","startsAt":"1405/10/20 18:30","endsAt":"1405/10/20 20:00"}
+PASS reopen: date/time persisted: 
+PASS reopen: linked form row persists: 
+PASS hybrid: place and join both: 
+server record after hybrid save: {"mode":"ترکیبی","place":"سالن اصلی","joinUrl":"https://meet.example.org/nora-153241","startsAt":"2027-01-10T15:00:00Z","endsAt":"2027-01-10T16:30:00Z","status":"draft"}
+PASS server: hybrid with place+joinUrl, endsAt 90min after start: 
+PASS invalid link: 422 shown under joinUrl, edits kept: 
+PASS onsite: place shown, join hidden: 
+PASS review warns: publish needs description: 
+PASS publish without description: server 422 opens desc block with field error: 
+after publish state: {"hash":"#events","editor":false,"errs":"","status":"رکورد ساخته شد · نسخهٔ ۲۳ · وضعیت از سرور: منتشرشده · در سایت دیده می‌شود","rows":17}
+published onsite row: {"row":{"id":"ev-d780e0ba9d"},"server":{"status":"published","mode":"حضوری"}}
+PASS onsite published + upcoming (list row + server when=upcoming&status=published): 
+PASS public site-content has event without joinUrl: 
+PASS past entry: hint, no reminders, past checkbox on: 
+after past save state: {"hash":"#events","editor":false,"errs":"","status":"رکورد ساخته شد · نسخهٔ ۲۴ · وضعیت از سرور: پیش‌نویس · در سایت دیده نمی‌شود | هنوز بنری ذخیره نشده است؛ محتوای تازه پس از ذخیره و انتشار در سایت دیده می‌شود. | بدون رویداد: شمارشگر فقط می‌تواند «کمپین مستقل» با زمان اختصاصی باشد. | دسترسی مالک فعال است؛ انتخاب کنید کدام محتوای پشتیبانی‌شده روی نسخهٔ عمومی سرور  | ۰ درخواست در صندوق ثبت شده است. | در حال بارگذاری…سامانه مدیریت آموزش نورا | ۱۰ ثانیه و هنوز اینجاییدوضعیت اینترنت را بررسی کنید.\n        تلاش دوباره","rows":18}
+past row: {"row":{"id":"ev-eb2dc55ca9"},"inPastBucket":true}
+PASS past event saved and bucketed as past (server when=past): 
+PASS server: past=true regMode=closed reminders off: 
+PASS quick filter past shows the past row: 
+PASS mode filter keeps onsite past row: 
+PASS tab «فایل‌ها و رسانه‌ها» with guide: 
+resources after link create: ["d65928e5-c481-43c7-a230-73ebbda0eddd","d65928e5-c481-43c7-a230-73ebbda0eddd"]
+PASS link resource created: 
+file resource id: f955029d-5ea4-44a8-b768-891ca455ee3a
+file row after upload:  برنامهٔ رویداد (PDF)۲۴۱ بایت · qa-program.pdf · عمومیذخیره‌سازی: فایل آماده · در پایگاه داده (تا ۸ مگابایت) پیش‌نویسویرایشجایگزینی فایلانتشارحذف
+dialog: «برنامهٔ رویداد (PDF)» برای عمومی منتشر می‌شود. ادامه می‌دهید؟
+resources API after reload: 200 [{"kind":"link","title":"آلبوم عکس رویداد","size":0,"status":"draft"},{"kind":"file","title":"برنامهٔ رویداد (PDF)","size":241,"status":"published"}]
+PASS files persist after reload (link + uploaded pdf): 
+PASS files tab shows both rows: 

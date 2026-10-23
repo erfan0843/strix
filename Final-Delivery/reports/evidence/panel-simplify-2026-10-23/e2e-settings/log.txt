@@ -1,0 +1,8 @@
+PASS dirty state enables save: 
+PASS save success message: 
+PASS settings persist after reload: 
+PASS server returns saved value: 
+reminders default switch: {"exists":true}
+manager: {"locked":true,"put":403,"get":403,"sysInputs":0,"body":" پنل مدیریت نورا پنل مدیران گروه فرهنگی خط زندگی داشبوردتعریف جدیدرویدادها و مطالبکاربرانفرم‌هاگزارش‌هاتنظیمات پیوندها نمای عمومی سایت مرکز فرم‌ها شب / روز داشبوردامروز در یک نگاه وضعیت از API سرور · "}
+manager newev: {"editor":true,"publish":true,"body":" پنل مدیریت نورا پنل مدیران گروه فرهنگی خط زندگی داشبوردتعریف جدیدرویدادها و مطالبکاربرانفرم‌هاگزارش‌هاتنظیمات پیوندها نمای عمومی سایت مرکز فرم‌ها شب / روز تعری"}
+PASS manager: settings denied in UI and API: 
