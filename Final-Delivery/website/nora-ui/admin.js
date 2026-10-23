@@ -6804,7 +6804,7 @@ const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخ�
 const CT={kind:'events',q:'',status:'',when:'',sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
 /* تصاویر عمومی (پوستر/جلد): بارگذاری واقعی به /api/admin/media و فهرست با وضعیت استفاده؛ هیچ حذف خودکاری نیست */
 const CM={up:{busy:false,error:'',file:null,field:'',name:''},open:false,data:null,loading:false,error:'',busy:'',offset:0,limit:20};
-const US={q:'',provider:'',role:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
+const US={q:'',provider:'',role:'',status:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
 const AT={q:'',offset:0,limit:20,forms:null,loading:false,error:'',key:'',formId:'',form:null,people:null,pq:'',state:'',poffset:0,plimit:50,ploading:false,perror:'',pkey:'',busy:'',msg:null};
 const CERT_SRV={data:null,loading:false,error:'',key:'',q:'',status:'',kind:'',event:'',offset:0,limit:20,detailId:'',detail:null,detailError:'',detailLoading:false};
 function p2Err(error,fallback){
@@ -8306,8 +8306,10 @@ function cmPanel(){
    «محاسبه» یا پر نمی‌شود؛ هر بخش حالت بارگذاری/خالی/خطا + تلاش دوباره دارد. */
 const UFL={acc:'',tab:'regs',regs:null,regsLoading:false,regsError:'',regsOffset:0,regsLimit:20,regsKey:'',
   reg:null,regId:'',regLoading:false,regError:'',
-  notifs:null,notifsLoading:false,notifsError:'',notifsOffset:0,notifsLimit:20,notifsKey:''};
-function ufReset(acc){UFL.acc=acc||''; UFL.tab='regs'; UFL.regs=null; UFL.regsLoading=false; UFL.regsError=''; UFL.regsOffset=0; UFL.regsKey=''; UFL.reg=null; UFL.regId=''; UFL.regLoading=false; UFL.regError=''; UFL.notifs=null; UFL.notifsLoading=false; UFL.notifsError=''; UFL.notifsOffset=0; UFL.notifsKey=''; UFL.hist=null; UFL.histLoading=false; UFL.histError=''; UFL.histOffset=0; UFL.histKey=''}
+  notifs:null,notifsLoading:false,notifsError:'',notifsOffset:0,notifsLimit:20,notifsKey:'',
+  /* وضعیت حساب (مسدود/فعال؛ فقط مالک) و یادداشت داخلی (us_notes) */
+  blockOpen:false,blockReason:'',statusBusy:false,statusError:'',statusMsg:'',noteDraft:null,noteBusy:false,noteError:'',noteMsg:''};
+function ufReset(acc){UFL.acc=acc||''; UFL.tab='regs'; UFL.regs=null; UFL.regsLoading=false; UFL.regsError=''; UFL.regsOffset=0; UFL.regsKey=''; UFL.reg=null; UFL.regId=''; UFL.regLoading=false; UFL.regError=''; UFL.notifs=null; UFL.notifsLoading=false; UFL.notifsError=''; UFL.notifsOffset=0; UFL.notifsKey=''; UFL.hist=null; UFL.histLoading=false; UFL.histError=''; UFL.histOffset=0; UFL.histKey=''; UFL.blockOpen=false; UFL.blockReason=''; UFL.statusBusy=false; UFL.statusError=''; UFL.statusMsg=''; UFL.noteDraft=null; UFL.noteBusy=false; UFL.noteError=''; UFL.noteMsg=''}
 function ufHistKey(){return [UFL.acc,UFL.histOffset,UFL.histLimit||20].join('|')}
 /* ممیزی C5: تاریخچهٔ حساب از همان ممیزی سرور (فقط مالک) با فیلتر دقیق هدف=همین حساب؛ ردیف‌هایی که هدفشان چیز دیگری است (پاسخ فرم، درخواست کارتابل) این‌جا نمی‌آیند و همین صریح گفته می‌شود. */
 async function ufLoadHist(){
@@ -8362,7 +8364,7 @@ function chPanel(){
     :CH.error&&!CH.items?`<p class="cap" style="color:var(--stop)" role="alert" data-ch-state="error">${esc(CH.error)}</p>${btn('تلاش دوباره','data-ch-retry','i-refresh')}`
     :!items.length?`<div data-ch-state="empty">${emptyBox('برای این رکورد هنوز تغییری در ردپای سرور ثبت نشده است (ردپا از زمان فعال‌شدن ممیزی رکوردی نگه داشته می‌شود).')}</div>`
     :`<div class="admlist" data-ch-state="success">${items.map(ufHistRow).join('')}</div>`;
-  const pager=(CH.offset>0||CH.hasMore)&&!CH.loading?`<div class="row tight">${CH.offset>0?btn('جدیدترها','data-ch-page="prev"','i-back'):''}<span class="sp"></span>${CH.hasMore?btn('قدیمی‌ترها','data-ch-page="next"','i-next'):''}</div>`:'';
+  const pager=(CH.offset>0||CH.hasMore)&&!CH.loading?`<div class="row tight">${CH.offset>0?btn('جدیدترها','data-ch-page="prev"','i-back'):''}<span class="sp"></span>${CH.hasMore?btn('قدیمی‌ترها','data-ch-page="next"','i-chev-left'):''}</div>`:'';
   return `<section class="stack" data-ch-panel="${esc(CH.type)}" data-ch-record="${esc(CH.id)}" style="gap:8px">
     <p class="cap">چه کسی، کی و چه کاری روی همین رکورد انجام داده است؛ از ردپای ممیزی سرور. محتوای نسخه‌های قبلی نگه داشته نمی‌شود و بازگردانی وجود ندارد.${CH.loading&&CH.items?' · در حال به‌روزرسانی…':''}</p>
     ${body}${pager}</section>`;
@@ -8496,12 +8498,12 @@ function ufPane(){
   return {tabs:`<div class="admfilters" role="tablist" data-uf-tabs>${tabs}</div>`,body};
 }
 /* ── فهرست کاربران (us_view): جدا از «حساب‌ها و نقش‌ها» ── */
-function usKey(){return [US.q,US.provider,US.role,US.offset,US.limit].join('|')}
+function usKey(){return [US.q,US.provider,US.role,US.status,US.offset,US.limit].join('|')}
 async function usLoad(){
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.listAdminUsers!=='function'){US.error='رابط سرور در دسترس نیست.'; US.key=usKey(); renderBody(); return}
   const key=usKey(); US.loading=true; US.error=''; renderBody();
-  try{const result=await api.listAdminUsers({limit:US.limit,offset:US.offset,q:US.q,provider:US.provider,role:US.role}); if(key===usKey()){US.data=result; US.key=key}}
+  try{const result=await api.listAdminUsers({limit:US.limit,offset:US.offset,q:US.q,provider:US.provider,role:US.role,status:US.status}); if(key===usKey()){US.data=result; US.key=key}}
   catch(error){if(key===usKey()){US.error=p2Err(error,'فهرست کاربران از سرور دریافت نشد.'); US.key=key}}
   finally{US.loading=false; if(key!==usKey()){usLoad(); return} if(S.sec==='users') renderBody()}
 }
@@ -8517,23 +8519,25 @@ function usRow(item){
   return `<button class="admlirow" type="button" data-user-open="${esc(item.account_id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-user')}</span>
     <span class="sp"><b>${esc(item.display_name||'بدون نام پروفایل')}</b><small class="cap" dir="ltr">${esc(item.account_id.slice(0,8))}…${item.bale_user_id?' · bale '+esc(item.bale_user_id):''}</small>
       <small class="cap">${fa(item.registrations)} ثبت‌نام · ${item.pending_reviews?fa(item.pending_reviews)+' بررسی در انتظار':'بدون بررسی باز'} · عضویت ${esc(svcWhen(item.created_at))}</small></span>
-    ${usProviders(item)}${usRoleTag(item.role)}${ico('i-chev-left')}</button>`;
+    ${usProviders(item)}${usRoleTag(item.role)}${usStatusTag(item)}${ico('i-chev-left')}</button>`;
 }
+function usStatusTag(item){return item&&item.status==='blocked'?tag('مسدود','stop'):''}
 function serverUsersList(){
   const d=US.data, total=d?Number(d.total)||0:0;
   const body=US.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست کاربران از سرور…</p></div>`
     :US.error?`<div class="empty"><p class="cap">${esc(US.error)}</p>${btn('تلاش دوباره','data-users-refresh','i-refresh')}</div>`
     :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-users-refresh','i-refresh')}</div>`
-    :d.items.length?d.items.map(usRow).join(''):emptyBox(US.q||US.provider||US.role?'با این جست‌وجو یا فیلتر کاربری پیدا نشد.':'هنوز کاربری با ورود تأییدشده ثبت نشده است.');
+    :d.items.length?d.items.map(usRow).join(''):emptyBox(US.status==='blocked'&&!US.q&&!US.provider&&!US.role?'هیچ حسابی مسدود نیست.':US.q||US.provider||US.role||US.status?'با این جست‌وجو یا فیلتر کاربری پیدا نشد.':'هنوز کاربری با ورود تأییدشده ثبت نشده است.');
   const providers=[['','همه'],['bale','ورود بله'],['phone','ورود با شماره'],['linked','پیوندشده']].map(([k,l])=>`<button class="chip ${US.provider===k?'on':''}" type="button" data-users-provider="${k}">${esc(l)}</button>`).join('');
   const roles=[['','هر نقشی'],['assigned','دارای نقش'],['none','بدون نقش']].map(([k,l])=>`<button class="chip ${US.role===k?'on':''}" type="button" data-users-role="${k}">${esc(l)}</button>`).join('');
+  const statuses=[['','هر وضعیتی'],['active','فعال'],['blocked','مسدود'+(d&&d.blocked_total!=null?' ('+fa(d.blocked_total)+')':'')]].map(([k,l])=>`<button class="chip ${US.status===k?'on':''}" type="button" data-users-status="${k}">${esc(l)}</button>`).join('');
   return `<section class="card stack" data-users-panel>
     <div class="row" style="flex-wrap:wrap"><div class="head">فهرست کاربران</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(total)+' کاربر',''):''}${btn('بازخوانی','data-users-refresh','i-refresh')}</div>
     <p class="cap">حساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند. شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود؛ با نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب جست‌وجو کنید. واگذاری نقش از بخش جداگانهٔ «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.</p>
     <form class="row tight server-role-search" data-users-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="usersQuery" type="search" class="input" value="${esc(US.q)}" maxlength="80" autocomplete="off" placeholder="نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب" aria-label="جست‌وجوی کاربر"/></label>
       <button class="btn sm" type="submit" data-users-search>جست‌وجو</button></form>
-    <div class="admfilters">${providers}</div><div class="admfilters">${roles}</div>
+    <div class="admfilters">${providers}</div><div class="admfilters">${roles}</div><div class="admfilters" data-users-status-filter>${statuses}</div>
     <div class="tlist">${body}</div>
     ${d?p2Pager(total,US.offset,US.limit,'data-users-page="prev"','data-users-page="next"'):''}
   </section>`;
@@ -8546,16 +8550,82 @@ function serverUserDetail(){
   const pay=r=>r.payment_status?tag({paid:'پرداخت‌شده',paid_manual:'فیش تأییدشده',paid_review:'در بررسی',awaiting_receipt:'منتظر فیش',receipt_submitted:'فیش رسیده',pending:'در انتظار پرداخت',rejected:'رد شده',cancelled:'لغو',expired:'منقضی'}[r.payment_status]||r.payment_status,['paid','paid_manual'].includes(r.payment_status)?'ok':['rejected','expired','cancelled'].includes(r.payment_status)?'stop':'warn'):r.receipt_uploaded?tag('فیش بارگذاری‌شده','warn'):'';
   const pane=UFL.acc===d.account_id?ufPane():{tabs:'',body:''};
   const reviews=(d.reviews||[]).map(r=>`<div class="admlirow"><span class="ic">${ico('i-inbox')}</span><span class="sp"><b>${r.kind==='receipt_review'?'بررسی فیش':r.kind==='profile_review'?'بررسی پروفایل':esc(r.kind)}</b><small class="cap">${esc(svcWhen(r.created_at))}${r.reviewed_at?' · تصمیم: '+esc(svcWhen(r.reviewed_at)):''}</small></span>${tag(r.status==='pending'?'در انتظار':r.status==='approved'?'تأیید':r.status==='rejected'?'رد':r.status,r.status==='pending'?'warn':r.status==='approved'?'ok':'stop')}</div>`).join('');
-  const info=[['شناسهٔ حساب',d.account_id,'ltr'],['شناسهٔ بله',d.bale_user_id||'',''],['نقش سروری',d.role?(d.role==='club-supervisor'?'سرپرست باشگاه':'مدیر'):'بدون نقش',''],['وضعیت حساب','فعال (سرور وضعیت تعلیق ندارد)',''],
+  const info=[['شناسهٔ حساب',d.account_id,'ltr'],['شناسهٔ بله',d.bale_user_id||'',''],['نقش سروری',d.role?(d.role==='club-supervisor'?'سرپرست باشگاه':'مدیر'):'بدون نقش',''],['وضعیت حساب',d.status==='blocked'?'مسدود':'فعال',''],
     ['استان / شهر',[d.province,d.city].filter(Boolean).join(' / '),''],['عضویت',svcWhen(d.created_at),''],['آخرین ورود',d.last_session_at?svcWhen(d.last_session_at):'ثبت نشده',''],['به‌روزرسانی پروفایل',d.profile_updated_at?svcWhen(d.profile_updated_at):'پروفایل ثبت نشده',''],
     ['اعلان‌های حساب',fa(d.notifications||0),'']].concat(isOwner()?[['ایمیل',d.email||'',''],['نام کاربری مدیر',d.manager_username||'','ltr']]:[]).filter(([,v])=>v!=='');
   return `<section class="card stack" data-user-detail>${back}
     <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-user')}</span><div class="head">${esc(d.display_name||'بدون نام پروفایل')}</div><span class="sp"></span>${usProviders(d)}${usRoleTag(d.role)}</div>
     <p class="cap">فقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند.</p>
     <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
+    ${ufStatusBlock(d)}
+    ${ufNoteBlock(d)}
     ${pane.tabs}
     ${UFL.tab==='reviews'?`<div class="head">درخواست‌های کارتابل</div><div class="tlist">${reviews||emptyBox('درخواست پروفایل یا فیشی برای این حساب ثبت نشده است.')}</div>`:pane.body}
   </section>`;
+}
+/* ── وضعیت حساب: مسدود/فعال فقط با مالک؛ دلیل اجباری؛ سرور نشست‌ها را می‌بندد و در ممیزی ثبت می‌کند ── */
+function ufStatusBlock(d){
+  const blocked=d.status==='blocked', busy=UFL.statusBusy;
+  const meta=blocked?`<p class="cap" data-uf-block-meta>دلیل: ${esc(d.blocked_reason||'ثبت نشده')}${d.blocked_at?' · از '+esc(svcWhen(d.blocked_at)):''}${d.blocked_by?' · توسط '+esc(d.blocked_by==='owner'||/^owner/.test(String(d.blocked_by))?'مالک':String(d.blocked_by).slice(0,8)):''}</p>`
+    :`<p class="cap">حساب فعال است؛ ورود، ثبت‌نام و پرسش برایش باز است.</p>`;
+  const msg=UFL.statusError?`<p class="cap" role="alert" data-uf-status-err style="color:var(--stop)">${esc(UFL.statusError)}</p>`:UFL.statusMsg?`<p class="cap" role="status" data-uf-status-ok style="color:var(--ok)">${esc(UFL.statusMsg)}</p>`:'';
+  let actions='';
+  if(d.can_block&&isOwner()){
+    if(blocked) actions=`<button class="btn sm" type="button" data-uf-unblock ${busy?'disabled':''}>${ico('i-check')} ${busy?'در حال رفع مسدودی…':'رفع مسدودی'}</button>`;
+    else if(UFL.blockOpen) actions=`<form class="stack" data-uf-block-form onsubmit="return false">
+        <label class="lbl" for="ufBlockReason">دلیل مسدودسازی (اجباری؛ در تاریخچهٔ عملیات ثبت می‌شود و به خود کاربر نمایش داده نمی‌شود)</label>
+        <textarea id="ufBlockReason" class="input" rows="2" maxlength="500" ${busy?'disabled':''} placeholder="مثلاً: ثبت‌نام‌های تکراری با هویت جعلی">${esc(UFL.blockReason||'')}</textarea>
+        <div class="row tight"><button class="btn sm stop" type="button" data-uf-block-confirm ${busy?'disabled':''}>${ico('i-lock')} ${busy?'در حال مسدودسازی…':'تأیید مسدودسازی'}</button>
+        <button class="btn sm quiet" type="button" data-uf-block-cancel ${busy?'disabled':''}>انصراف</button></div>
+        <p class="cap">با تأیید، همهٔ نشست‌های فعال این حساب بسته می‌شود و ورود با بله یا رمز یک‌بارمصرف، ثبت‌نام و پرسش تازه برایش رد می‌شود. حساب مالک مسدودشدنی نیست.</p></form>`;
+    else actions=`<button class="btn sm quiet" type="button" data-uf-block>${ico('i-lock')} مسدودسازی حساب</button>`;
+  }else if(isOwner()&&!d.can_block) actions=`<p class="cap">حساب مالک مسدودشدنی نیست.</p>`;
+  else actions=`<p class="cap">مسدودسازی و رفع مسدودی فقط با مالک است.</p>`;
+  return `<div class="card stack" data-uf-status data-status="${blocked?'blocked':'active'}" style="padding:12px">
+    <div class="row" style="flex-wrap:wrap"><div class="head">وضعیت حساب</div><span class="sp"></span>${blocked?tag('مسدود','stop'):tag('فعال','ok')}</div>
+    ${meta}${msg}${actions}</div>`;
+}
+/* ── یادداشت داخلی: جدا از دلیل مسدودی؛ خواندن با us_view، نوشتن با us_notes؛ هرگز به کاربر نشان داده نمی‌شود ── */
+function ufNoteBlock(d){
+  const value=UFL.noteDraft!=null?UFL.noteDraft:(d.internal_note||''), busy=UFL.noteBusy;
+  const meta=d.note_updated_at?`<small class="cap">آخرین ویرایش ${esc(svcWhen(d.note_updated_at))}</small>`:'';
+  const msg=UFL.noteError?`<p class="cap" role="alert" data-uf-note-err style="color:var(--stop)">${esc(UFL.noteError)}</p>`:UFL.noteMsg?`<p class="cap" role="status" data-uf-note-ok style="color:var(--ok)">${esc(UFL.noteMsg)}</p>`:'';
+  const body=d.can_note?`<textarea id="ufNote" class="input" rows="3" maxlength="2000" ${busy?'disabled':''} placeholder="فقط برای تیم مدیریت؛ در پروفایل عمومی، API عضو یا پیام‌ها دیده نمی‌شود">${esc(value)}</textarea>
+      <div class="row tight">${meta}<span class="sp"></span><button class="btn sm" type="button" data-uf-note-save ${busy?'disabled':''}>${ico('i-pen')} ${busy?'در حال ذخیره…':'ذخیرهٔ یادداشت'}</button></div>`
+    :`<p data-uf-note-ro style="white-space:pre-wrap">${value?esc(value):'<span class="cap">یادداشتی ثبت نشده است.</span>'}</p>${meta}<p class="cap">ویرایش یادداشت نیازمند مجوز «یادداشت روی پرونده» است.</p>`;
+  return `<div class="card stack" data-uf-note style="padding:12px"><div class="row"><div class="head">یادداشت داخلی</div><span class="sp"></span>${tag('محرمانهٔ تیم','')}</div>${body}${msg}</div>`;
+}
+async function ufSetStatus(status){
+  const api=ufApi('setAccountStatus'), d=US.detail; if(!api||!d||UFL.statusBusy) return;
+  const id=d.account_id;
+  let reason='';
+  if(status==='blocked'){
+    const ta=$('#ufBlockReason'); reason=String(ta&&ta.value||UFL.blockReason||'').trim(); UFL.blockReason=reason;
+    if(reason.length<3){UFL.statusError='برای مسدودسازی نوشتن دلیل (دست‌کم ۳ نویسه) لازم است.'; renderBody(); return}
+    if(typeof window.confirm==='function'&&!window.confirm(`حساب «${d.display_name||id.slice(0,8)}» مسدود می‌شود، همهٔ نشست‌هایش بسته می‌شود و دلیل در تاریخچه ثبت می‌شود. ادامه می‌دهید؟`)) return;
+  }else if(typeof window.confirm==='function'&&!window.confirm(`مسدودی حساب «${d.display_name||id.slice(0,8)}» برداشته می‌شود و این کار در تاریخچه ثبت می‌شود. ادامه می‌دهید؟`)) return;
+  UFL.statusBusy=true; UFL.statusError=''; UFL.statusMsg=''; renderBody();
+  try{
+    const result=await api(id,status,status==='blocked'?reason:undefined);
+    if(US.detail&&US.detail.account_id===id){Object.assign(US.detail,{status:result.status,blocked_reason:result.blocked_reason,blocked_at:result.blocked_at,blocked_by:result.blocked_by})}
+    UFL.blockOpen=false; UFL.blockReason='';
+    UFL.statusMsg=status==='blocked'?`حساب مسدود شد${result.sessions_revoked?' · '+fa(result.sessions_revoked)+' نشست بسته شد':''}.`:(result.changed===false?'این حساب از قبل فعال بود.':'مسدودی برداشته شد؛ کاربر می‌تواند دوباره وارد شود.');
+    US.key=''; US.data=null; UFL.hist=null; UFL.histKey='';
+    toast(status==='blocked'?'حساب مسدود شد':'مسدودی برداشته شد');
+  }catch(error){UFL.statusError=p2Err(error,status==='blocked'?'مسدودسازی انجام نشد؛ چیزی تغییر نکرد.':'رفع مسدودی انجام نشد؛ چیزی تغییر نکرد.')}
+  finally{UFL.statusBusy=false; if(S.sec==='users') renderBody()}
+}
+async function ufSaveNote(){
+  const api=ufApi('setAdminUserNote'), d=US.detail; if(!api||!d||UFL.noteBusy) return;
+  const id=d.account_id, ta=$('#ufNote'), note=String(ta?ta.value:(UFL.noteDraft||'')).slice(0,2000);
+  UFL.noteDraft=note; UFL.noteBusy=true; UFL.noteError=''; UFL.noteMsg=''; renderBody();
+  try{
+    const result=await api(id,note,staffCsrfCookie());
+    if(US.detail&&US.detail.account_id===id){Object.assign(US.detail,{internal_note:result.internal_note,note_updated_at:result.note_updated_at,note_updated_by:result.note_updated_by})}
+    UFL.noteDraft=null; UFL.noteMsg=result.changed===false?'یادداشت تغییری نکرده بود.':(note?'یادداشت ذخیره شد (فقط برای تیم).':'یادداشت پاک شد.');
+    UFL.hist=null; UFL.histKey='';
+  }catch(error){UFL.noteError=p2Err(error,'یادداشت ذخیره نشد؛ متن شما همین‌جا مانده است.')}
+  finally{UFL.noteBusy=false; if(S.sec==='users') renderBody()}
 }
 /* ── حضور و غیاب: همان check-in بلیت که ربات ثبت می‌کند ── */
 function atKey(){return [AT.q,AT.offset,AT.limit].join('|')}
@@ -8884,6 +8954,12 @@ document.addEventListener('click',e=>{
   if(q('[data-users-search]')){const input=$('#usersQuery'); US.q=String(input&&input.value||'').trim().slice(0,80); US.offset=0; usLoad(); return}
   const usProv=q('[data-users-provider]'); if(usProv){US.provider=usProv.dataset.usersProvider||''; US.offset=0; usLoad(); return}
   const usRole=q('[data-users-role]'); if(usRole){US.role=usRole.dataset.usersRole||''; US.offset=0; usLoad(); return}
+  const usStatus=q('[data-users-status]'); if(usStatus){US.status=usStatus.dataset.usersStatus||''; US.offset=0; usLoad(); return}
+  if(q('[data-uf-block]')){UFL.blockOpen=true; UFL.statusError=''; UFL.statusMsg=''; renderBody(); const ta=$('#ufBlockReason'); if(ta) ta.focus(); return}
+  if(q('[data-uf-block-cancel]')){UFL.blockOpen=false; UFL.blockReason=''; UFL.statusError=''; renderBody(); return}
+  if(q('[data-uf-block-confirm]')){ufSetStatus('blocked'); return}
+  if(q('[data-uf-unblock]')){ufSetStatus('active'); return}
+  if(q('[data-uf-note-save]')){ufSaveNote(); return}
   const usPage=q('[data-users-page]'); if(usPage){const total=US.data?Number(US.data.total)||0:0; US.offset=usPage.dataset.usersPage==='next'?Math.min(US.offset+US.limit,Math.max(0,total-1)):Math.max(0,US.offset-US.limit); usLoad(); return}
   const ufTab=q('[data-uf-tab]'); if(ufTab){UFL.tab=ufTab.dataset.ufTab||'regs'; UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); if(UFL.tab==='regs'&&!UFL.regs&&!UFL.regsLoading) ufLoadRegs(); if(UFL.tab==='notifs'&&!UFL.notifs&&!UFL.notifsLoading) ufLoadNotifs(); if(UFL.tab==='hist'&&!UFL.hist&&!UFL.histLoading) ufLoadHist(); return}
   if(q('[data-uf-hist-refresh]')){ufLoadHist(); return}
@@ -9306,7 +9382,7 @@ function securitySettingsView(){
       ${canSec('users')?btn('پرونده‌ها و دسترسی کاربران','data-user-hub="users"','i-idcard'):''}</div>
   </section>${isOwner()?serverAuditView():''}`;
 }
-const AUDIT_ACTION_LABELS={'role.set':'تعیین نقش','role.clear':'برداشتن نقش','manager_credentials.set':'تعریف ورود مدیر',
+const AUDIT_ACTION_LABELS={'role.set':'تعیین نقش','role.clear':'برداشتن نقش','account.block':'مسدودسازی حساب','account.unblock':'رفع مسدودی حساب','account.note':'یادداشت داخلی حساب','manager_credentials.set':'تعریف ورود مدیر',
   'manager_credentials.remove':'حذف ورود مدیر','workflow.decide':'تصمیم کارتابل','form.publish':'انتشار فرم','form.pause':'توقف فرم',
   'form.response.delete':'حذف پاسخ فرم','cooperation_request.update':'به‌روزرسانی درخواست همکاری','site_content.update':'ویرایش محتوای عمومی',
   'service_secret.store':'ذخیرهٔ اعتبارنامه','service_secret.clear':'حذف اعتبارنامه','service_secret.test':'آزمایش اتصال',
@@ -9321,6 +9397,10 @@ function auditDetailText(details){
   const parts=[];
   if('previous_role' in details||'role' in details) parts.push(roleName(details.previous_role)+' ← '+roleName(details.role));
   if(details.username) parts.push('نام کاربری '+details.username+(details.replaced?' (جایگزین)':''));
+  if(details.reason&&details.status==='blocked') parts.push('دلیل: '+String(details.reason));
+  if(details.previous_reason&&details.status==='active') parts.push('دلیل قبلی: '+String(details.previous_reason));
+  if(details.sessions_revoked!=null) parts.push(fa(details.sessions_revoked)+' نشست بسته شد');
+  if(details.cleared===true) parts.push('یادداشت پاک شد'); else if(details.length!=null&&details.cleared===false) parts.push('طول یادداشت '+fa(details.length));
   if(details.decision) parts.push((details.kind==='receipt_review'?'فیش':'پروفایل')+' · '+(details.decision==='approved'?'تأیید':'رد')+(details.has_reason?' · با دلیل':''));
   if(details.title) parts.push(String(details.title));
   if(details.from_status&&details.status) parts.push(details.from_status+' ← '+details.status);
@@ -9807,8 +9887,8 @@ const SERVER_TOOL_BLOCKED={
   par:'فیلدهای پروفایل در سرور ثابت و در /api/admin/users خوانده می‌شوند؛ تعریف پارامتر دلخواه نیازمند جدول و API است.',
   add:'حساب فقط با ورود واقعی (بله یا مدیر) ساخته می‌شود؛ ساخت دستی حساب بدون احراز هویت، قاعدهٔ پیوند هویت را می‌شکند.',
   imp:'ورودی اکسل به پایگاه مشترک endpoint ندارد و با قاعدهٔ «بدون ادغام خودکار رکوردها» سازگار نیست.',
-  tags:'ستون برچسب و یادداشت روی حساب در مدل داده نیست؛ افزودن آن نیازمند مهاجرت و API است.',
-  blocked:'وضعیت مسدودی حساب در مدل داده نیست؛ محدودسازی فعلاً فقط با نقش و مجوز انجام می‌شود.'};
+  tags:'برچسب روی حساب در مدل داده نیست (یادداشت داخلی در پروندهٔ هر کاربر ثبت می‌شود)؛ افزودن برچسب نیازمند مهاجرت و API است.',
+  };
 function serverPermissionMapView(){
   const perms=SERVER_AUTH&&Array.isArray(SERVER_AUTH.permissions)?SERVER_AUTH.permissions.slice().sort():[];
   const rows=(typeof PROWS!=='undefined'?PROWS:[]).map(r=>({k:r[0],n:r[1]||r[0]})).concat((typeof OWNER_PERMS!=='undefined'?OWNER_PERMS:[]).map(r=>({k:r[0],n:(r[1]||r[0])+' (مالک)'})));
@@ -9824,9 +9904,13 @@ function serverToolsView(){
   const chips=tabs.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-utool="${t[0]}">${esc(t[1])}</button>`).join('');
   /* زبانهٔ بدون مجوز پنهان یا جابه‌جا نمی‌شود؛ همان پاسخ صریح «فقط با مالک / بدون مجوز» می‌ماند تا با سرور یکی باشد */
   const denied=cur==='staff'?cUServerStaff():`<section class="card stack">${emptyBox((known?known[1]:'این ابزار')+' برای مجوزهای این حساب باز نیست؛ دسترسی را سرور تعیین می‌کند.')}</section>`;
-  const body=!allowed?denied:cur==='report'?vServerReports():cur==='staff'?cUServerStaff():cur==='inbox'?vServerOutbox():cur==='log'?serverAuditView():cur==='perms'?serverPermissionMapView()
+  const body=!allowed?denied:cur==='report'?vServerReports():cur==='staff'?cUServerStaff():cur==='inbox'?vServerOutbox():cur==='log'?serverAuditView():cur==='perms'?serverPermissionMapView():cur==='blocked'?serverBlockedUsersView()
     :serverUnavailableModule(known?known[1]:cur,SERVER_TOOL_BLOCKED[cur]||'API این زیربخش هنوز فعال نیست.');
   return `<div class="stack" data-server-tools><section class="card stack"><div class="row">${uBack}<div class="head">ابزارها و گزارش</div></div><div class="admfilters">${chips}</div></section>${body}</div>`;
+}
+function serverBlockedUsersView(){
+  return `<div class="stack" data-server-blocked><section class="card stack"><div class="head">حساب‌های مسدود</div>
+    <p class="cap">همان فهرست کاربران با فیلتر «مسدود» از سرور. مسدودسازی و رفع مسدودی فقط با مالک و از داخل پروندهٔ هر کاربر انجام می‌شود (با دلیل و ثبت در تاریخچهٔ عملیات)؛ حساب مسدود نه وارد می‌شود، نه ثبت‌نام یا پرسش تازه می‌فرستد.</p></section>${serverUsersList()}</div>`;
 }
 function serverBody(){
   if(S.sec==='dash') return DASHX.view==='map'?panelModuleMapView():serverDashboard();
@@ -10195,7 +10279,9 @@ document.addEventListener('click',e=>{
   const us=q('[data-user]'); if(us){S.uV='user'; S.uSel=us.dataset.user; S.uTab='info'; S.uRej=''; save(); renderBody(); return}
   const utab=q('[data-utab]'); if(utab){S.uTab=utab.dataset.utab; save(); renderBody(); return}
   const ucl=q('[data-uclub]'); if(ucl){S.uClub=ucl.dataset.uclub; save(); renderBody(); return}
-  const utl=q('[data-utool]'); if(utl){S.uTool=utl.dataset.utool; save(); renderBody();
+  const utl=q('[data-utool]'); if(utl){S.uTool=utl.dataset.utool; save();
+    if(!IS_TEST&&S.uTool==='blocked'&&canPerm('us_view')){US.status='blocked'; US.offset=0; US.data=null; US.key=''; usLoad(); return}
+    renderBody();
     if(!IS_TEST&&S.uTool==='staff'&&isOwner()&&!SERVER_ROLE_LOADED) loadServerRoleAccounts(false); return}
   const uio=q('[data-uinboxopen]'); if(uio){S.uV='user'; S.uSel=uio.dataset.uinboxopen; S.uTab='msg'; S.uRej=''; save(); renderBody(); return}
   const ble=q('[data-bale]'); if(ble){baleIntro(ble.dataset.bale); return}

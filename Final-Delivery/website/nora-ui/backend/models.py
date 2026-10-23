@@ -342,6 +342,17 @@ class AccountRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    # Owner decision 1405/08/01: account status is ``active`` or ``blocked``. A blocked account
+    # cannot open a session (any provider), keep using an existing one, register or ask; the
+    # reason is mandatory and shown to staff only. ``internal_note`` is staff-only free text
+    # (``us_view``), never part of any member-facing or public payload.
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
+    blocked_reason: Mapped[str] = mapped_column(String(500), nullable=False, default="", server_default="")
+    blocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    blocked_by: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default="")
+    internal_note: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    note_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    note_updated_by: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default="")
 
     identities: Mapped[list["PlatformIdentityRecord"]] = relationship(
         back_populates="account",

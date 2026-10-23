@@ -128,6 +128,23 @@ async function loadPanel(identity) {
         }
         if (/^\/api\/admin\/reports\/summary\?period=/.test(path)) return reply(200, { source: 'shared_server_database', period: '30d', forms: { total: 0, by_status: {} }, responses: { total: 0, by_status: {} }, accounts: { total: 0, by_role: {} }, reviews: { total: 0, by_kind: {} }, notifications: { total: 0, by_delivery_status: {} }, cooperation_requests: { total: 0, by_status: {} } });
         if (path.startsWith('/api/admin/inbox')) return reply(200, { items: [], has_more: false });
+        /* C1/C11: وضعیت حساب فقط با مالک؛ دلیل اجباری؛ حساب مالک محافظت‌شده؛ سرور نشست‌ها را می‌بندد */
+        const st = path.match(/^\/api\/owner\/accounts\/([^/]+)\/status$/);
+        if (st && method === 'PUT') {
+          if (identity.role !== 'owner') return reply(401, { detail: 'owner_session_required' });
+          if ((options.headers || {})['X-CSRF-Token'] !== 'owner-csrf') return reply(403, { detail: 'csrf_check_failed' });
+          world.statusCalls = (world.statusCalls || []).concat([{ id: st[1], body }]);
+          if (st[1] === 'owner-acc') return reply(409, { detail: { code: 'owner_account_protected' } });
+          if (st[1] !== ACC) return reply(404, { detail: 'account_not_found' });
+          const acct = (world.account ||= { status: 'active', blocked_reason: '', blocked_at: null, blocked_by: '', internal_note: '', note_updated_at: null, note_updated_by: '' });
+          if (!['active', 'blocked'].includes(body.status)) return reply(422, { detail: { code: 'invalid_account_status' } });
+          if (body.status === 'blocked' && String(body.reason || '').trim().length < 3) return reply(422, { detail: { code: 'block_reason_required' } });
+          if (world.statusFailOnce) { world.statusFailOnce = false; return reply(503, { detail: 'service_unavailable' }); }
+          const changed = acct.status !== body.status;
+          if (body.status === 'blocked') Object.assign(acct, { status: 'blocked', blocked_reason: String(body.reason).trim(), blocked_at: '2026-10-23T09:00:00+00:00', blocked_by: 'owner-01' });
+          else Object.assign(acct, { status: 'active', blocked_reason: '', blocked_at: null, blocked_by: '' });
+          return reply(200, { account_id: ACC, changed, sessions_revoked: changed && body.status === 'blocked' ? 2 : 0, ...acct });
+        }
         if (path.startsWith('/api/owner/audit')) {
           if (identity.role !== 'owner') return reply(401, { detail: 'owner_session_required' });
           const qs = new URLSearchParams(path.split('?')[1] || '');
@@ -231,6 +248,20 @@ async function loadPanel(identity) {
           if (!has('us_view')) return reply(403, { detail: 'permission_denied' });
           const [, idPath, query] = u;
           const [id, sub, subId] = String(idPath || '').split('/');
+          const acct = (world.account ||= { status: 'active', blocked_reason: '', blocked_at: null, blocked_by: '', internal_note: '', note_updated_at: null, note_updated_by: '' });
+          if (sub === 'note' && method === 'PUT') {
+            if (!has('us_notes')) return reply(403, { detail: 'permission_denied' });
+            const csrf = (options.headers || {})['X-CSRF-Token'];
+            if (csrf !== (identity.role === 'owner' ? 'owner-csrf' : 'account-csrf')) return reply(403, { detail: 'csrf_check_failed' });
+            if (id !== ACC) return reply(404, { detail: 'user_not_found' });
+            if (Object.keys(body || {}).join() !== 'note') return reply(400, { detail: 'invalid_payload' });
+            if (String(body.note).length > 2000) return reply(422, { detail: { code: 'note_too_long' } });
+            if (world.noteFailOnce) { world.noteFailOnce = false; return reply(503, { detail: 'service_unavailable' }); }
+            const changed = acct.internal_note !== String(body.note).trim();
+            if (changed) Object.assign(acct, { internal_note: String(body.note).trim(), note_updated_at: '2026-10-23T09:05:00+00:00', note_updated_by: identity.role === 'owner' ? 'owner-01' : 'acc-mgr' });
+            world.noteCalls = (world.noteCalls || 0) + 1;
+            return reply(200, { account_id: ACC, changed, ...acct });
+          }
           if (sub) {
             /* U4/U5: فقط حساب هدف؛ شناسهٔ حساب دیگر یا پاسخ حساب دیگر → ۴۰۴ (در سرور داخل scope جست‌وجو می‌شود) */
             if (id !== ACC) return reply(404, { detail: 'user_not_found' });
@@ -268,15 +299,19 @@ async function loadPanel(identity) {
             }
             return reply(404, { detail: 'not_found' });
           }
-          const row = { account_id: ACC, display_name: 'سارا آزمایشی', city: 'تهران', province: 'تهران', role: null, status: 'active',
+          const row = { account_id: ACC, display_name: 'سارا آزمایشی', city: 'تهران', province: 'تهران', role: null, ...acct,
             created_at: '2026-10-01T08:00:00+00:00', profile_updated_at: null, registrations: 1, pending_reviews: 0, providers: ['phone'], bale_user_id: null, linked: false };
           if (!id) {
             const params = new URLSearchParams(query || '');
-            const items = identity.emptyUsers || (params.get('q') && !ACC.startsWith(params.get('q')) && !row.display_name.includes(params.get('q'))) ? [] : [row];
-            return reply(200, { items, total: items.length, limit: 20, offset: 0, has_more: false, can_open_roles: identity.role === 'owner' });
+            let items = identity.emptyUsers || (params.get('q') && !ACC.startsWith(params.get('q')) && !row.display_name.includes(params.get('q'))) ? [] : [row];
+            const statusFilter = params.get('status') || '';
+            if (statusFilter && !['active', 'blocked'].includes(statusFilter)) return reply(422, { detail: 'invalid_status_filter' });
+            if (statusFilter) items = items.filter((r) => r.status === statusFilter);
+            return reply(200, { items, total: items.length, limit: 20, offset: 0, has_more: false, status: statusFilter, blocked_total: acct.status === 'blocked' ? 1 : 0,
+              can_open_roles: identity.role === 'owner', can_block: identity.role === 'owner', can_note: has('us_notes') });
           }
           if (id !== ACC) return reply(404, { detail: 'user_not_found' });
-          return reply(200, { ...row, source: 'shared_server_database', registration_items: [{ form_name: 'فرم ثبت‌نام', event_title: 'کارگاه نگارش', status: 'accepted', payment_status: 'paid_manual', created_at: '2026-10-02T08:00:00+00:00' }],
+          return reply(200, { ...row, source: 'shared_server_database', can_block: identity.role === 'owner' && !identity.ownerFile, can_note: has('us_notes'), registration_items: [{ form_name: 'فرم ثبت‌نام', event_title: 'کارگاه نگارش', status: 'accepted', payment_status: 'paid_manual', created_at: '2026-10-02T08:00:00+00:00' }],
             reviews: [], notifications: 2, last_session_at: '2026-10-20T08:00:00+00:00', ...(identity.role === 'owner' ? { email: 'sara@example.test', manager_username: null } : {}) });
         }
         /* ── حضور ── */
@@ -1358,6 +1393,130 @@ console.log('— تاریخچهٔ رکورد (رویداد) از /api/owner/audi
     assert.equal(mg.doc.querySelector('[data-ch-pane]'), null, 'مدیر زبانهٔ تاریخچه ندارد');
     assert.equal(mg.calls.filter((c) => c.path.startsWith('/api/owner/audit')).length, 0, 'مدیر هرگز مسیر ممیزی مالک را صدا نمی‌زند');
   } finally { mg.close(); }
+}
+
+console.log('— C1/C11: وضعیت حساب (مسدود/فعال فقط با مالک، دلیل اجباری، تأیید) و یادداشت داخلی (us_notes) در پروندهٔ کاربر؛ فیلتر «مسدود» و زبانهٔ «مسدودها» —');
+{
+  const openUser = async (app) => {
+    await section(app, 'users');
+    if (app.doc.querySelector('[data-uback]') && !app.doc.querySelector('[data-users-panel]')) app.click('[data-uback]');
+    await app.until(() => app.doc.querySelector(`[data-user-open="${ACC}"]`), 'فهرست کاربران');
+    app.click(`[data-user-open="${ACC}"]`);
+    await app.until(() => app.doc.querySelector('[data-user-detail] [data-uf-status]'), 'پرونده با بلوک وضعیت');
+  };
+  /* مالک: مسدودسازی با دلیل اجباری + تأیید؛ خطای سرور متن را نگه می‌دارد؛ رفع مسدودی؛ فیلتر فهرست */
+  const app = await loadPanel({ role: 'owner', sec: 'users' });
+  try {
+    await openUser(app);
+    assert.equal(app.doc.querySelector('[data-uf-status]').dataset.status, 'active');
+    assert.ok(app.doc.querySelector('[data-uf-block]'), 'دکمهٔ مسدودسازی برای مالک');
+    assert.equal(app.doc.querySelector('[data-uf-unblock]'), null);
+    app.click('[data-uf-block]');
+    await app.until(() => app.doc.querySelector('#ufBlockReason'), 'فرم دلیل باز شد');
+    assert.equal(app.doc.querySelector('[data-uf-block]'), null, 'دکمه جای خود را به فرم داده است');
+    /* بدون دلیل: هیچ درخواستی نمی‌رود */
+    app.click('[data-uf-block-confirm]');
+    await app.until(() => app.doc.querySelector('[data-uf-status-err]'), 'خطای «دلیل لازم است» در خود فرم');
+    assert.equal((app.world.statusCalls || []).length, 0, 'بدون دلیل هیچ PUT وضعیتی ارسال نمی‌شود');
+    assert.equal(app.dialogs.filter((d) => d[0] === 'confirm').length, 0, 'تأیید پیش از دلیل پرسیده نمی‌شود');
+    /* انصراف در تأیید: چیزی ارسال نمی‌شود و متن می‌ماند */
+    app.type('#ufBlockReason', 'ثبت‌نام‌های تکراری با هویت جعلی');
+    app.window.confirm = (m) => { app.dialogs.push(['confirm', String(m)]); return false; };
+    app.click('[data-uf-block-confirm]');
+    await delay(60);
+    assert.equal((app.world.statusCalls || []).length, 0, 'با انصراف از تأیید درخواستی نمی‌رود');
+    assert.ok(app.dialogs.some((d) => d[0] === 'confirm' && /نشست/.test(d[1])), 'متن تأیید پیامد (بستن نشست‌ها) را می‌گوید');
+    /* خطای سرور: متن دلیل می‌ماند و خطا نمایش داده می‌شود */
+    app.window.confirm = (m) => { app.dialogs.push(['confirm', String(m)]); return true; };
+    app.world.statusFailOnce = true;
+    app.click('[data-uf-block-confirm]');
+    await app.until(() => app.doc.querySelector('[data-uf-status-err]') && app.doc.querySelector('#ufBlockReason'), 'خطای سرور + فرم باز می‌ماند');
+    assert.equal(app.doc.querySelector('#ufBlockReason').value, 'ثبت‌نام‌های تکراری با هویت جعلی', 'متن دلیل پس از خطا حفظ شد');
+    assert.equal(app.doc.querySelector('[data-uf-status]').dataset.status, 'active', 'وضعیت نمایشی تغییر نکرد');
+    /* موفق */
+    app.click('[data-uf-block-confirm]');
+    await app.until(() => app.doc.querySelector('[data-uf-status][data-status="blocked"]'), 'وضعیت مسدود از پاسخ سرور');
+    const sent = app.world.statusCalls.pop();
+    assert.deepEqual(sent.body, { status: 'blocked', reason: 'ثبت‌نام‌های تکراری با هویت جعلی' }, 'بدنهٔ دقیق PUT');
+    const put = app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/owner/accounts/${ACC}/status`).pop();
+    assert.equal(put.headers['X-CSRF-Token'], 'owner-csrf');
+    assert.match(app.doc.querySelector('[data-uf-status-ok]').textContent, /۲ نشست بسته شد/, 'تعداد نشست‌های بسته‌شده از سرور');
+    assert.match(app.doc.querySelector('[data-uf-block-meta]').textContent, /ثبت‌نام‌های تکراری با هویت جعلی/, 'دلیل در پرونده دیده می‌شود');
+    assert.ok(app.doc.querySelector('[data-uf-unblock]'), 'دکمهٔ رفع مسدودی');
+    assert.equal(app.doc.querySelector('[data-uf-block]'), null);
+    assert.equal(app.doc.querySelector('#ufBlockReason'), null, 'فرم بسته شد');
+    app.noLeak();
+    /* فهرست: برچسب «مسدود» و فیلتر وضعیت سمت سرور */
+    app.click('[data-uback]');
+    await app.until(() => app.doc.querySelector(`[data-user-open="${ACC}"] .tag.stop`), 'برچسب مسدود روی ردیف (فهرست پس از تغییر دوباره خوانده شد)');
+    app.click('[data-users-status="blocked"]');
+    await app.until(() => app.calls.some((c) => c.path === '/api/admin/users?limit=20&offset=0&status=blocked'), 'فیلتر status=blocked در خود درخواست');
+    await app.until(() => app.doc.querySelector('[data-users-status="blocked"].on') && app.doc.querySelector(`[data-user-open="${ACC}"]`), 'ردیف مسدود در فیلتر');
+    app.click('[data-users-status="active"]');
+    await app.until(() => app.calls.some((c) => c.path === '/api/admin/users?limit=20&offset=0&status=active'), 'فیلتر active');
+    await app.until(() => /پیدا نشد/.test(app.body()), 'حساب مسدود در فیلتر فعال نیست');
+    /* زبانهٔ «مسدودها» در ابزارها همان فهرست فیلترشده است، نه ماژول «API فعال نیست» */
+    app.click('[data-users-status=""]');
+    await app.until(() => app.doc.querySelector(`[data-user-open="${ACC}"]`), 'همه');
+    const toolsTab = app.doc.querySelector('[data-uv="tools"]');
+    assert.ok(toolsTab, 'کاشی «ابزارها» در صفحهٔ کاربران');
+    {
+      app.click('[data-uv="tools"]');
+      await app.until(() => app.doc.querySelector('[data-utool="blocked"]'), 'زبانهٔ مسدودها');
+      app.click('[data-utool="blocked"]');
+      await app.until(() => app.doc.querySelector('[data-server-blocked] [data-users-panel]') && app.doc.querySelector(`[data-user-open="${ACC}"]`), 'فهرست مسدودها از سرور');
+      assert.ok(app.calls.filter((c) => c.path === '/api/admin/users?limit=20&offset=0&status=blocked').length >= 2, 'زبانه هم با status=blocked می‌خواند');
+      assert.doesNotMatch(app.doc.querySelector('[data-server-blocked]').textContent, /API این زیربخش هنوز فعال نیست|در مدل داده نیست/);
+      app.click('[data-uback]');
+    }
+    /* رفع مسدودی با تأیید */
+    await openUser(app);
+    await app.until(() => app.doc.querySelector('[data-uf-unblock]'), 'پروندهٔ مسدود');
+    app.click('[data-uf-unblock]');
+    await app.until(() => app.doc.querySelector('[data-uf-status][data-status="active"]'), 'فعال شد');
+    assert.deepEqual(app.world.statusCalls.pop().body, { status: 'active' }, 'رفع مسدودی بدون دلیل ارسال می‌شود');
+    assert.ok(app.dialogs.some((d) => d[0] === 'confirm' && /مسدودی حساب/.test(d[1])), 'تأیید رفع مسدودی');
+    /* یادداشت داخلی مالک: ذخیره، خطا (متن می‌ماند)، پاک کردن */
+    assert.ok(app.doc.querySelector('#ufNote'), 'ویرایش یادداشت برای مالک');
+    app.type('#ufNote', 'پیگیری تلفنی انجام شد');
+    app.world.noteFailOnce = true;
+    app.click('[data-uf-note-save]');
+    await app.until(() => app.doc.querySelector('[data-uf-note-err]'), 'خطای ذخیرهٔ یادداشت');
+    assert.equal(app.doc.querySelector('#ufNote').value, 'پیگیری تلفنی انجام شد', 'متن یادداشت پس از خطا می‌ماند');
+    app.click('[data-uf-note-save]');
+    await app.until(() => app.doc.querySelector('[data-uf-note-ok]'), 'یادداشت ذخیره شد');
+    const notePut = app.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/users/${ACC}/note`).pop();
+    assert.deepEqual(notePut.body, { note: 'پیگیری تلفنی انجام شد' });
+    assert.equal(notePut.headers['X-CSRF-Token'], 'owner-csrf');
+    assert.match(app.doc.querySelector('[data-uf-note]').textContent, /آخرین ویرایش/);
+    app.noLeak();
+  } finally { app.close(); }
+  /* مدیر us_view+us_notes: بدون دکمهٔ مسدودسازی؛ یادداشت با CSRF حساب؛ هیچ تماسی با مسیر مالک */
+  const mgr = await loadPanel({ role: 'manager', sec: 'users' });
+  try {
+    await openUser(mgr);
+    assert.equal(mgr.doc.querySelector('[data-uf-block]'), null, 'مدیر دکمهٔ مسدودسازی ندارد');
+    assert.equal(mgr.doc.querySelector('[data-uf-unblock]'), null);
+    assert.match(mgr.doc.querySelector('[data-uf-status]').textContent, /فقط با مالک/);
+    assert.ok(mgr.doc.querySelector('#ufNote'), 'مدیر با us_notes یادداشت می‌نویسد');
+    mgr.type('#ufNote', 'یادداشت مدیر');
+    mgr.click('[data-uf-note-save]');
+    await mgr.until(() => mgr.doc.querySelector('[data-uf-note-ok]'), 'ذخیره شد');
+    const notePut = mgr.calls.filter((c) => c.method === 'PUT' && c.path === `/api/admin/users/${ACC}/note`).pop();
+    assert.equal(notePut.headers['X-CSRF-Token'], 'account-csrf', 'CSRF نشست حساب مدیر');
+    assert.equal(mgr.calls.filter((c) => c.path.startsWith('/api/owner/')).length, 0, 'مدیر هیچ درخواستی به مسیرهای مالک نمی‌فرستد');
+  } finally { mgr.close(); }
+  /* مدیر us_view بدون us_notes: فقط خواندن یادداشت */
+  const roWorld = makeWorld();
+  roWorld.account = { status: 'active', blocked_reason: '', blocked_at: null, blocked_by: '', internal_note: 'یادداشت مدیر', note_updated_at: '2026-10-23T09:05:00+00:00', note_updated_by: 'acc-mgr' };
+  const ro = await loadPanel({ role: 'manager', sec: 'users', permissions: MANAGER.filter((p) => p !== 'us_notes'), world: roWorld });
+  try {
+    await openUser(ro);
+    assert.equal(ro.doc.querySelector('#ufNote'), null, 'بدون us_notes جعبهٔ ویرایش نیست');
+    assert.ok(ro.doc.querySelector('[data-uf-note-ro]'), 'یادداشت فقط‌خواندنی');
+    assert.match(ro.doc.querySelector('[data-uf-note-ro]').textContent, /یادداشت مدیر/, 'یادداشتِ قبلی خوانده می‌شود');
+    assert.equal(ro.doc.querySelector('[data-uf-note-save]'), null);
+  } finally { ro.close(); }
 }
 
 console.log('آزمون مرحلهٔ دوم و سوم پنل: قبول');

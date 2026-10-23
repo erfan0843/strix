@@ -2336,7 +2336,7 @@ async function serverAuthPost(path,body){
   const r=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(body)});
   let data=null; try{data=await r.json()}catch(_){}
-  if(!r.ok) throw new Error((data&&(data.detail||data.message))||('HTTP '+r.status));
+  if(!r.ok){const d=data&&data.detail; throw new Error((d&&d.code)||(typeof d==='string'&&d)||(data&&data.message)||('HTTP '+r.status))}
   return data;
 }
 /* ── «مسیر پیوند حساب» صریح است، نه حدسی ─────────────────────────────
@@ -2395,10 +2395,9 @@ async function baleMiniAppBoot(){
     try{authDone()}catch(_){}
     return true;
   }catch(err){
-    /* کد خطای سرور ممکن است این‌ها باشد: invalid_bale_init_data (۴۰۱)،
-       bale_init_data_replayed (۴۰۹)، bale_auth_not_configured (۵۰۳). در همه
-       حالت‌ها کاربر با ورود معمولی ادامه می‌دهد. خودِ امضا لاگ نمی‌شود. */
+    /* ۴۰۱/۴۰۹/۵۰۳ (امضا، تکرار، پیکربندی) → ورود معمولی؛ ۴۰۳ account_blocked → پیام روشن. امضا لاگ نمی‌شود. */
     if(typeof console!=='undefined'&&console.warn) console.warn('mini app login skipped:',String(err&&err.message||err).slice(0,80));
+    if(err&&err.message==='account_blocked'){try{toast('این حساب مسدود شده است؛ با پشتیبانی نورا تماس بگیر.','stop')}catch(_){}}
     return false;
   }
 }

@@ -345,6 +345,61 @@ def _revoke_manager_password_sessions(db: Session, account_id: str, now: datetim
     )
 
 
+# ── Owner decision 1405/08/01: account status (active/blocked) ──────────────────────────────
+# One rule, enforced where identity is resolved: a blocked account never gets a session (any
+# provider), an existing session stops resolving, and bot-side registration for a Bale id that
+# belongs to a blocked account is refused. Hiding buttons is not access control.
+ACCOUNT_STATUS_ACTIVE = "active"
+ACCOUNT_STATUS_BLOCKED = "blocked"
+ACCOUNT_STATUSES = (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_BLOCKED)
+ACCOUNT_BLOCKED_DETAIL = {"code": "account_blocked"}
+_BLOCK_REASON_MIN = 3
+_BLOCK_REASON_MAX = 500
+_INTERNAL_NOTE_MAX = 2000
+
+
+def _account_is_blocked(db: Session, account_id: str | None) -> bool:
+    if not account_id:
+        return False
+    account = db.get(AccountRecord, account_id)
+    return account is not None and account.status == ACCOUNT_STATUS_BLOCKED
+
+
+def _bale_user_is_blocked(db: Session, bale_user_id: str | None) -> bool:
+    if not bale_user_id:
+        return False
+    identity = db.scalar(
+        select(PlatformIdentityRecord).where(
+            PlatformIdentityRecord.provider == "bale",
+            PlatformIdentityRecord.provider_user_id == str(bale_user_id),
+        )
+    )
+    return identity is not None and _account_is_blocked(db, identity.account_id)
+
+
+def _revoke_all_account_sessions(db: Session, account_id: str, now: datetime) -> int:
+    result = db.execute(
+        update(AccountSessionRecord)
+        .where(AccountSessionRecord.account_id == account_id, AccountSessionRecord.revoked_at.is_(None))
+        .values(revoked_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    return int(cast(CursorResult[Any], result).rowcount or 0)
+
+
+def _account_status_view(account: AccountRecord) -> dict[str, Any]:
+    """Staff-facing status block (``us_view``); never part of a member/public payload."""
+    return {
+        "status": account.status or ACCOUNT_STATUS_ACTIVE,
+        "blocked_reason": account.blocked_reason or "",
+        "blocked_at": _as_utc(account.blocked_at).isoformat() if account.blocked_at else None,
+        "blocked_by": account.blocked_by or "",
+        "internal_note": account.internal_note or "",
+        "note_updated_at": _as_utc(account.note_updated_at).isoformat() if account.note_updated_at else None,
+        "note_updated_by": account.note_updated_by or "",
+    }
+
+
 def _new_engine(database_url: str) -> Engine:
     # psycopg 3 is the installed PostgreSQL driver; normalize the common URL form.
     if database_url.startswith("postgres://"):
@@ -1459,6 +1514,11 @@ def create_app(
         )
         if not record or record.revoked_at is not None or _as_utc(record.expires_at) <= _utc_now():
             return None
+        if _account_is_blocked(db, record.account_id):
+            # Blocked after the session was opened: the cookie no longer resolves to an identity
+            # (optional-identity routes see an anonymous visitor; ``require_account`` says why).
+            request.state.account_blocked = True
+            return None
         role_record = db.get(AccountRoleRecord, record.account_id)
         role = role_record.role if role_record is not None else None
         return AccountIdentity(
@@ -1468,7 +1528,20 @@ def create_app(
     def require_account(request: Request, db: Session = Depends(get_db)) -> AccountIdentity:
         identity = account_identity_from_request(request, db)
         if identity is None:
+            if getattr(request.state, "account_blocked", False):
+                raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
             raise HTTPException(401, "authentication_required")
+        return identity
+
+    def public_write_identity(request: Request, db: Session) -> AccountIdentity | None:
+        """Optional identity for public *write* routes (form drafts/responses).
+
+        An anonymous visitor is fine; a cookie that belongs to a blocked account is not silently
+        downgraded to anonymous (that would let a blocked member register as a guest).
+        """
+        identity = account_identity_from_request(request, db)
+        if identity is None and getattr(request.state, "account_blocked", False):
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         return identity
 
     def bind_public_draft_account(
@@ -2755,7 +2828,7 @@ def create_app(
             "city": str(fields.get("city") or "")[:80],
             "province": str(fields.get("province") or "")[:80],
             "role": role,
-            "status": "active",
+            **_account_status_view(account),
             "created_at": _as_utc(account.created_at).isoformat(),
             "profile_updated_at": _as_utc(profile.updated_at).isoformat() if profile is not None else None,
             "registrations": registrations,
@@ -2772,6 +2845,7 @@ def create_app(
         q: str = Query(default="", max_length=80),
         provider: str = Query(default="", pattern=r"^(|bale|phone|linked)$"),
         role_filter: str = Query(default="", alias="role", pattern=r"^(|assigned|none)$"),
+        status: str = Query(default="", pattern=r"^(|active|blocked)$"),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
         identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
@@ -2787,6 +2861,17 @@ def create_app(
                 select(PlatformIdentityRecord.account_id).where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
             ))
         )
+        if status:
+            # Owner decision 1405/08/01: «مسدودها» is a server-side filter, never a client-side guess.
+            query = query.where(AccountRecord.status == status)
+        blocked_total = int(db.scalar(
+            select(func.count(AccountRecord.id)).where(
+                AccountRecord.status == ACCOUNT_STATUS_BLOCKED,
+                AccountRecord.id.in_(
+                    select(PlatformIdentityRecord.account_id).where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
+                ),
+            )
+        ) or 0)
         if role_filter == "assigned":
             query = query.where(AccountRoleRecord.role.is_not(None))
         elif role_filter == "none":
@@ -2835,17 +2920,23 @@ def create_app(
             "q": q,
             "provider": provider,
             "role": role_filter,
+            "status": status,
+            "blocked_total": blocked_total,
             "can_open_roles": viewer_role == ROLE_OWNER,
+            "can_block": viewer_role == ROLE_OWNER,
+            "can_note": has_permission(viewer_role, "us_notes"),
         }
 
     @app.get("/api/admin/users/{account_id}")
     def get_admin_user(
         account_id: str,
+        request: Request,
         response: Response,
         identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
         db: Session = Depends(get_db),
     ):
         response.headers["Cache-Control"] = "private, no-store"
+        cfg: Settings = request.app.state.settings
         viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
             raise HTTPException(404, "user_not_found")
@@ -2921,6 +3012,12 @@ def create_app(
             credential = db.get(ManagerCredentialRecord, account_id)
             row["manager_username"] = credential.username_key if credential is not None else None
         row["source"] = "shared_server_database"
+        # Capabilities the panel may *show*; the server re-checks them on every write.
+        is_owner_account = bool(cfg.owner_bale_user_id) and any(
+            item.provider == "bale" and item.provider_user_id == cfg.owner_bale_user_id for item in identities
+        )
+        row["can_block"] = viewer_role == ROLE_OWNER and not is_owner_account
+        row["can_note"] = has_permission(viewer_role, "us_notes")
         return row
 
     # ── U4 / U5: پروندهٔ یک حساب — ثبت‌نام‌های صفحه‌بندی‌شده، جزئیات یک پاسخ و اعلان‌های همان حساب ──
@@ -5735,7 +5832,7 @@ def create_app(
 
     def _require_purchase_account(request: Request, db: Session, form: FormRecord) -> AccountIdentity | None:
         """Purchase forms need a signed-in account because the access right belongs to one."""
-        identity = account_identity_from_request(request, db)
+        identity = public_write_identity(request, db)
         if _form_is_purchase(form) and identity is None:
             raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
         return identity
@@ -7276,6 +7373,9 @@ def create_app(
             raise HTTPException(401, "invalid_credentials")
 
         assert credential is not None  # established by the authenticated predicate
+        if _account_is_blocked(db, credential.account_id):
+            db.commit()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         for throttle_key in (ip_key, user_key):
             throttle = db.get(LoginThrottleRecord, throttle_key)
             if throttle is not None:
@@ -7407,6 +7507,9 @@ def create_app(
             }
 
         assert credential is not None  # successful manager branch
+        if _account_is_blocked(db, credential.account_id):
+            db.commit()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         db.add(
             AccountSessionRecord(
                 id=str(uuid.uuid4()),
@@ -7511,6 +7614,9 @@ def create_app(
             raise HTTPException(409, "bale_init_data_replayed")
 
         account = get_or_create_bale_account(db, verified.user_id)
+        if account.status == ACCOUNT_STATUS_BLOCKED:
+            db.rollback()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         raw_session, raw_csrf = new_token(), new_token()
         expires = now + timedelta(seconds=cfg.session_ttl_seconds)
         db.add(
@@ -7764,6 +7870,10 @@ def create_app(
         # Decided server-side, after the code is proven: returning member vs. first login.
         existed = phone_account_exists(db, phone, pepper=cfg.otp_pepper)
         account = get_or_create_phone_account(db, phone, pepper=cfg.otp_pepper)
+        if account.status == ACCOUNT_STATUS_BLOCKED:
+            # The code is consumed (no replay); the session is simply not opened.
+            db.commit()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         profile_saved = db.get(AccountProfileRecord, account.id) is not None
         raw_session, raw_csrf = new_token(), new_token()
         db.add(
@@ -9337,6 +9447,118 @@ def create_app(
             "role": role,
             "permissions": sorted(permissions_for_role(role)),
         }
+
+    @app.put("/api/owner/accounts/{account_id}/status")
+    async def set_account_status(
+        account_id: str,
+        request: Request,
+        _identity: OwnerIdentity = Depends(require_owner_write),
+        db: Session = Depends(get_db),
+    ):
+        """Owner decision 1405/08/01: block (reason mandatory) / re-activate an account.
+
+        The owner's own account (the Bale identity configured as ``owner_bale_user_id``) can never
+        be blocked; blocking revokes every open session of the account; both directions are audited
+        with actor, time and reason.
+        """
+        payload = await _read_json_object(request, 4096)
+        if not set(payload) <= {"status", "reason"} or "status" not in payload:
+            raise HTTPException(400, "invalid_account_status_payload")
+        status = payload.get("status")
+        if status not in ACCOUNT_STATUSES:
+            raise HTTPException(422, {"code": "invalid_account_status", "field": "status"})
+        reason_raw = payload.get("reason", "")
+        if reason_raw is not None and not isinstance(reason_raw, str):
+            raise HTTPException(422, {"code": "invalid_block_reason", "field": "reason"})
+        reason = " ".join(str(reason_raw or "").split())
+        if status == ACCOUNT_STATUS_BLOCKED and len(reason) < _BLOCK_REASON_MIN:
+            raise HTTPException(422, {"code": "block_reason_required", "field": "reason", "min": _BLOCK_REASON_MIN})
+        if len(reason) > _BLOCK_REASON_MAX:
+            raise HTTPException(422, {"code": "block_reason_too_long", "field": "reason", "max": _BLOCK_REASON_MAX})
+        account = db.get(AccountRecord, account_id)
+        if account is None:
+            raise HTTPException(404, "account_not_found")
+        cfg: Settings = request.app.state.settings
+        if status == ACCOUNT_STATUS_BLOCKED and cfg.owner_bale_user_id and db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.account_id == account_id,
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == cfg.owner_bale_user_id,
+            )
+        ) is not None:
+            raise HTTPException(409, {"code": "owner_account_protected"})
+        previous = account.status or ACCOUNT_STATUS_ACTIVE
+        now = _utc_now()
+        revoked = 0
+        if previous != status:
+            if status == ACCOUNT_STATUS_BLOCKED:
+                account.status = ACCOUNT_STATUS_BLOCKED
+                account.blocked_reason = reason
+                account.blocked_at = now
+                account.blocked_by = _identity.owner_id
+                revoked = _revoke_all_account_sessions(db, account_id, now)
+                record_audit(
+                    db, _identity, "account.block", target_type="account", target_id=account_id,
+                    details={"previous_status": previous, "status": status, "reason": reason, "sessions_revoked": revoked},
+                )
+            else:
+                previous_reason = account.blocked_reason or ""
+                account.status = ACCOUNT_STATUS_ACTIVE
+                account.blocked_reason = ""
+                account.blocked_at = None
+                account.blocked_by = ""
+                record_audit(
+                    db, _identity, "account.unblock", target_type="account", target_id=account_id,
+                    details={"previous_status": previous, "status": status, "reason": reason, "previous_reason": previous_reason},
+                )
+            db.commit()
+            db.refresh(account)
+        return {"account_id": account_id, "changed": previous != status, "sessions_revoked": revoked, **_account_status_view(account)}
+
+    @app.put("/api/admin/users/{account_id}/note")
+    async def set_account_internal_note(
+        account_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("us_notes")),
+        db: Session = Depends(get_db),
+    ):
+        """Staff-only internal note: read with ``us_view``, write with the catalogue's own
+        ``us_notes`` («یادداشت روی پرونده»); distinct from the block reason; never member-facing.
+
+        The audit row records only the note length, never its text.
+        """
+        payload = await _read_json_object(request, 16384)
+        if set(payload) != {"note"}:
+            raise HTTPException(400, "invalid_note_payload")
+        note_raw = payload.get("note")
+        if note_raw is not None and not isinstance(note_raw, str):
+            raise HTTPException(422, {"code": "invalid_note", "field": "note"})
+        note = str(note_raw or "").replace("\r\n", "\n").strip()
+        if len(note) > _INTERNAL_NOTE_MAX:
+            raise HTTPException(422, {"code": "note_too_long", "field": "note", "max": _INTERNAL_NOTE_MAX})
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        if account is None or not db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.account_id == account_id,
+                PlatformIdentityRecord.provider.in_(("bale", "phone")),
+            )
+        ):
+            raise HTTPException(404, "user_not_found")
+        actor = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+        changed = (account.internal_note or "") != note
+        if changed:
+            account.internal_note = note
+            account.note_updated_at = _utc_now()
+            account.note_updated_by = actor
+            record_audit(
+                db, identity, "account.note", target_type="account", target_id=account_id,
+                details={"length": len(note), "cleared": not note},
+            )
+            db.commit()
+            db.refresh(account)
+        return {"account_id": account_id, "changed": changed, **_account_status_view(account)}
 
     @app.put("/api/owner/accounts/{account_id}/manager-credentials")
     async def set_manager_credentials(
@@ -11237,6 +11459,8 @@ def create_app(
         bale_user_id, session_key = validate_bot_form_identity(
             payload.get("bale_user_id"), payload.get("session_key")
         )
+        if _bale_user_is_blocked(db, bale_user_id):
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         enforce_bot_form_write_limit(
             db, form_id, bale_user_id, cfg, cfg.response_draft_write_limit_per_minute
         )
@@ -11423,6 +11647,8 @@ def create_app(
         bale_user_id, session_key = validate_bot_form_identity(
             payload.get("bale_user_id"), payload.get("session_key")
         )
+        if _bale_user_is_blocked(db, bale_user_id):
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         enforce_bot_form_write_limit(
             db, form_id, bale_user_id, cfg, cfg.response_submit_limit_per_minute
         )
@@ -11708,7 +11934,7 @@ def create_app(
         enforce_public_write_limit(request, db, form_id, cfg, cfg.response_draft_write_limit_per_minute)
         _cleanup_expired_public_drafts(db)
         draft, raw_token = ensure_public_draft(request, db, form)
-        bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        bind_public_draft_account(draft, public_write_identity(request, db), db)
         answers, submitted = draft_answers(db, draft)
         companions = draft_companions(db, draft, submitted)
         if submitted is None:
@@ -11783,7 +12009,7 @@ def create_app(
             raise HTTPException(401, "response_draft_required")
         if draft.form_version != form.version:
             raise HTTPException(409, "form_version_changed")
-        bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        bind_public_draft_account(draft, public_write_identity(request, db), db)
         active_payment = db.scalar(
             select(FormPaymentRecord).where(
                 FormPaymentRecord.draft_id == draft.id,

@@ -21,7 +21,16 @@
     bale_identity_not_linked:'هیچ پیوند بله‌ای برای برداشتن نیست.',
     last_identity_cannot_be_removed:'این تنها راه ورود حساب است و برداشتنش حساب را بی‌صاحب می‌کند.',
     bale_auth_not_configured:'پیوند بله روی این سرور فعال نشده است.',
-    authentication_required:'نشست حساب معتبر نیست؛ دوباره وارد شو.'
+    authentication_required:'نشست حساب معتبر نیست؛ دوباره وارد شو.',
+    /* وضعیت حساب (مسدود/فعال) و یادداشت داخلی */
+    account_blocked:'این حساب مسدود شده است؛ برای پیگیری با پشتیبانی نورا تماس بگیر.',
+    owner_account_protected:'حساب مالک مسدودشدنی نیست.',
+    block_reason_required:'برای مسدودسازی نوشتن دلیل (دست‌کم ۳ نویسه) لازم است.',
+    block_reason_too_long:'دلیل مسدودسازی طولانی‌تر از حد مجاز است.',
+    invalid_account_status:'وضعیت درخواستی معتبر نیست.',
+    note_too_long:'یادداشت داخلی طولانی‌تر از حد مجاز است.',
+    account_not_found:'این حساب پیدا نشد.',
+    user_not_found:'این کاربر در پایگاه مشترک پیدا نشد.'
   });
   function apiErrorMessage(status,code){
     if(typeof code==='string'&&Object.prototype.hasOwnProperty.call(API_ERROR_TEXT,code))return API_ERROR_TEXT[code];
@@ -412,6 +421,13 @@
       + encodeURIComponent(String(accountId)) + '/role', {
         method: 'PUT', body: { role: role == null ? null : String(role) }, ownerWrite: true
       }),
+    setAccountStatus: (accountId, status, reason) => request('/api/owner/accounts/'
+      + encodeURIComponent(String(accountId)) + '/status', {
+        method: 'PUT', body: reason == null ? { status: String(status) } : { status: String(status), reason: String(reason) }, ownerWrite: true
+      }),
+    setAdminUserNote: (accountId, note, csrfCookieName) => request('/api/admin/users/' + recordId(accountId) + '/note', {
+      method: 'PUT', body: { note: String(note == null ? '' : note) }, csrfWrite: true, csrfCookie: csrfCookieName || undefined
+    }),
     setManagerCredentials: (accountId, username, password) => request('/api/owner/accounts/'
       + encodeURIComponent(String(accountId)) + '/manager-credentials', {
         method: 'PUT', body: { username, password }, ownerWrite: true
