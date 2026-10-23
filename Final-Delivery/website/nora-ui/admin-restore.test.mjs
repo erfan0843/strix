@@ -143,8 +143,10 @@ console.log('— مالک: داشبورد سروری؛ کارهای در انت�
     ok(!app.doc.querySelector('[data-panel-map] [data-dashx-leave-map][data-sec]') || true, 'ردیف‌های مسدود دکمهٔ پرش ندارند (بررسی بعدی)');
     const blockedRows = [...app.doc.querySelectorAll('[data-panel-map] .admlirow')].filter(r => r.textContent.includes('نیازمند سرویس'));
     ok(blockedRows.length >= 5 && blockedRows.every(r => !r.querySelector('button')), 'هیچ ردیف مسدودی دکمهٔ پرش ندارد');
+    ok([...app.doc.querySelectorAll('[data-panel-map] [data-dashx-leave-map][data-sec]')].length >= 5 && [...app.doc.querySelectorAll('[data-panel-map] [data-dashx-leave-map][data-sec]')].every(b => /باز کردن/.test(b.getAttribute('aria-label') || '')), 'دکمه‌های پرش نقشه نام دسترس‌پذیر دارند');
     app.click('[data-panel-map] [data-dashx-leave-map]'); await delay(30);
     ok(app.doc.querySelector('[data-dashx-bar]'), 'بازگشت به داشبورد');
+    ok([...app.doc.querySelectorAll('[data-dashx-queue] button')].filter(b => !b.textContent.trim()).every(b => b.getAttribute('aria-label')), 'دکمه‌های فلش «کارهای در انتظار» نام دسترس‌پذیر دارند');
     app.click('.utile[data-sec="forms"]'); await app.until(() => app.doc.querySelectorAll('[data-fs-row]').length === 3, 'فهرست فرم‌های سرور');
     ok(app.stored().sec === 'forms', 'بخش فرم‌ها داخل همان پنل است');
     ok(app.doc.querySelector('a[href="create.html?fid=f-pub-1"]') && app.doc.querySelector('a[href="builder.html?fid=f-pub-1#responses"]'), 'ویرایش و پاسخ‌ها به فرم‌ساز موجود می‌روند؛ ویرایشگر دوم نیست');

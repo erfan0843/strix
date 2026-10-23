@@ -9758,7 +9758,7 @@ function dashxQueueCard(){
   const n=v=>Number.isSafeInteger(Number(v))&&Number(v)>=0?Number(v):null;
   const row=(label,count,hint,attrs,warn)=>rows.push(`<div class="admlirow"><span class="ic">${ico(warn&&count?'i-flag':'i-check')}</span>
     <span class="sp" style="flex:1 1 180px"><b>${esc(label)}</b><small class="cap">${esc(hint)}</small></span>
-    <b dir="ltr" style="font-weight:700">${count===null?'؟':esc(fa(count))}</b>${attrs?`<button class="btn sm quiet" ${attrs}>${ico('i-chev-left')}</button>`:''}</div>`);
+    <b dir="ltr" style="font-weight:700">${count===null?'؟':esc(fa(count))}</b>${attrs?`<button class="btn sm quiet" ${attrs} aria-label="${esc('باز کردن '+label)}" title="${esc('باز کردن '+label)}">${ico('i-chev-left')}</button>`:''}</div>`);
   if(can.inbox){const d=DASHX.inbox; const c=d&&Array.isArray(d.items)?d.items.length:null;
     row('درخواست‌های کارتابل (پروفایل و فیش)',c===null?null:(d.has_more?c+'+':c),'منتظر تصمیم در کارتابل مشترک','data-open-workflow-inbox data-dashx-go="users"',true)}
   if(eiCanMod()){const s=EI.summary;
@@ -9792,7 +9792,7 @@ function dashxUpcomingCard(){
   const rows=items.map(e=>`<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
     <span class="sp" style="flex:1 1 180px"><b>${esc(e.t||e.id)}</b><small class="cap">${esc([e.on||e.when,e.time,e.place,e.mode].filter(Boolean).join(' · '))}</small>${e.registration!==undefined?`<small class="cap" data-dashx-reg="${esc(e.id)}" title="${e.registration?'از پاسخ‌های فرم «'+esc(e.registration.form_name||'')+'» روی سرور':'فرم ثبت‌نام منتشرشده‌ای به این رویداد وصل نیست'}">${esc(ctRegMeta(e,{long:true}))}</small>`:''}</span>
     ${ctRegTag(e)}${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
-    <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events">${ico('i-pen')}</button></div>`).join('');
+    <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events" aria-label="${esc('ویرایش '+(e.t||e.id||'رویداد'))}" title="ویرایش رویداد">${ico('i-pen')}</button></div>`).join('');
   const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
   return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور','ok')}
       <button class="btn sm quiet" data-sec="events">همهٔ رویدادها</button></div>
@@ -9856,7 +9856,7 @@ function panelModuleMapView(){
     const rows=PANEL_MODULES.filter(m=>m[0]===k).map(([,name,source,st,can,attrs])=>{const allowed=!!can();
       return `<div class="admlirow"><span class="ic">${ico(st==='server'?'i-check':'i-info')}</span>
         <span class="sp" style="flex:1 1 180px"><b>${esc(name)}</b><small class="cap" ${/^\//.test(source)?'dir="ltr" style="text-align:start"':''}>${esc(source)}</small></span>${stateTag(st,allowed)}
-        ${allowed&&attrs&&st!=='blocked'?`<button class="btn sm quiet" ${attrs} data-dashx-leave-map>${ico('i-chev-left')}</button>`:''}</div>`}).join('');
+        ${allowed&&attrs&&st!=='blocked'?`<button class="btn sm quiet" ${attrs} data-dashx-leave-map aria-label="${esc('باز کردن '+name)}" title="${esc('باز کردن '+name)}">${ico('i-chev-left')}</button>`:''}</div>`}).join('');
     return rows?`<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist">${rows}</div></section>`:''}).join('');
   return `<div class="stack" data-panel-map>
     <section class="card stack"><div class="row"><button class="btn sm quiet" data-dashx-leave-map>${ico('i-back')}بازگشت به داشبورد</button><div class="head">نقشهٔ امکانات پنل</div><span class="sp" style="flex:1 1 180px"></span>${tag('وضعیت از مجوز سروری','ok')}</div>
@@ -12001,6 +12001,9 @@ function startAdminApplication(){
   if(typeof initUI==='function'){try{initUI()}catch(e){}}
   bind(); sanitize(); render();
   if(serverRouted) serverHashAfterRender(h);
+  /* هش ناشناخته (مثل #posts قدیمی یا تایپ اشتباه) به آخرین بخش معتبر می‌افتد؛ نشانی هم باید همان بخش را بگوید نه هش مرده را */
+  else if(!IS_TEST&&h&&!['cert','money','finance','reports','inbox','newev','partners','club','att','attendance'].includes(h)&&!ALLSECS.some(section=>section.k===h))
+    try{history.replaceState(null,'','#'+(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec))}catch(e){}
   if(!IS_TEST&&isOwner()&&S.uV==='tools'&&S.uTool==='staff'&&!SERVER_ROLE_LOADED) loadServerRoleAccounts(false);
 }
 /* مسیرهای نام‌دار نسخهٔ مرجع (#money، #club، #att) در حالت سرور به مقصد واقعی و مجاز می‌روند؛ بی‌مجوز → داشبورد با پیام، نه صفحهٔ «متصل نشده». */
