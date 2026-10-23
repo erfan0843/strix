@@ -160,6 +160,20 @@ def _public_link(value: Any) -> str:
     return result
 
 
+def _join_url(value: Any) -> str:
+    """Online-session join link: HTTPS only, panel-only (``public_site_content`` strips it)."""
+    result = _text(value, 1_000, allow_number=False)
+    if not result or "\\" in result or any(ord(char) < 32 for char in result):
+        return ""
+    try:
+        parsed = urlsplit(result)
+    except ValueError:
+        return ""
+    if parsed.scheme.lower() != "https" or not parsed.hostname or parsed.username or parsed.password:
+        return ""
+    return result
+
+
 def _banner_datetime(value: Any) -> str:
     raw = _text(value, 40, allow_number=False)
     if not raw:
@@ -323,6 +337,9 @@ def _event(record: Any) -> dict[str, Any] | None:
         "time": _text(record.get("time"), 120),
         "place": _text(record.get("place"), 240),
         "mode": _text(record.get("mode"), 80),
+        # Final-stage simplification: online/hybrid events keep their join link on the row
+        # (owner panel + staff tools); the public projection removes it (see public_site_content).
+        "joinUrl": _join_url(record.get("joinUrl")),
         "poster": _public_url(record.get("poster"), image_data=True),
         "posterUp": _public_url(record.get("posterUp"), image_data=True),
         "tchr": _text(record.get("tchr"), 100, allow_number=False),
@@ -714,6 +731,7 @@ def public_site_content(content: Any) -> dict[str, Any]:
         if not isinstance(original, dict):
             continue
         event = dict(original)
+        event.pop("joinUrl", None)
         media_rows = []
         for media_index, original_media in enumerate(event.get("media") or []):
             if not isinstance(original_media, dict):

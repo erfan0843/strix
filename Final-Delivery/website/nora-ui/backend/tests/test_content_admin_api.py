@@ -897,3 +897,81 @@ def test_events_list_carries_real_registration_counts_from_the_linked_published_
             assert "registration" not in client.get("/api/admin/content/articles").json()
     finally:
         engine.dispose()
+
+
+def test_event_join_url_is_editable_validated_and_never_public_and_mode_filter_works():
+    """Final stage 1405/08/01: online/hybrid events keep an HTTPS ``joinUrl`` on the row (panel only);
+    the public projection strips it; ``mode=`` filters the admin list by the stored mode label."""
+    # Pure helpers first.
+    row = content_admin.build_record(
+        "events", dict(EVENT, mode="آنلاین", place="", joinUrl="https://meet.example.org/nora?room=1"),
+        existing=None, record_id="ev-online", status="published",
+    )
+    assert row["joinUrl"] == "https://meet.example.org/nora?room=1"
+    assert "joinUrl" not in public_site_content({"events": [row]})["events"][0]
+    for bad in ("http://meet.example.org/x", "javascript:alert(1)", "meet.example.org", "https://user:pw@h.example/x"):
+        try:
+            content_admin.build_record("events", dict(EVENT, joinUrl=bad), existing=None, record_id="ev-x", status="draft")
+            raise AssertionError(f"join link must be rejected: {bad}")
+        except content_admin.ContentAdminError as error:
+            assert error.code == "invalid_link" and error.field == "joinUrl"
+    rows = [
+        {"id": "ev-a", "t": "حضوری", "on": "1405/08/10", "mode": "حضوری", "status": "published"},
+        {"id": "ev-b", "t": "آنلاین", "on": "1405/08/11", "mode": "آنلاین", "status": "draft"},
+        {"id": "ev-c", "t": "ترکیبی", "on": "1405/08/12", "mode": "ترکیبی", "status": "published"},
+        {"id": "ev-d", "t": "بدون شیوه", "on": "1405/08/13", "status": "draft"},
+    ]
+    listing = content_admin.list_records("events", rows, mode="آنلاین", today="1405/08/01")
+    assert [item["id"] for item in listing["items"]] == ["ev-b"]
+    assert listing["mode"] == "آنلاین" and listing["mode_counts"] == {"حضوری": 1, "آنلاین": 1, "ترکیبی": 1}
+    assert content_admin.list_records("events", rows, mode="آنلاین", status="published", today="1405/08/01")["total"] == 0
+    assert content_admin.list_records("events", rows, today="1405/08/01")["total"] == 4
+    try:
+        content_admin.list_records("articles", [{"id": "ar-1", "t": "x", "at": "2026-10-01"}], mode="آنلاین")
+        raise AssertionError("articles must reject mode=")
+    except content_admin.ContentAdminError as error:
+        assert error.code == "invalid_mode" and error.field == "mode"
+
+    # HTTP surface: round trip, 422 field error, panel detail keeps the link, public never sees it.
+    app, engine = content_app()
+    try:
+        with TestClient(app) as client:
+            owner_login(client)
+            created = client.post(
+                "/api/admin/content/events",
+                json={"record": dict(EVENT, mode="ترکیبی", joinUrl="https://meet.example.org/hybrid"), "expected_version": 0, "status": "published"},
+                headers=owner_write_headers(client),
+            )
+            assert created.status_code == 200, created.text
+            event_id, version = created.json()["record"]["id"], created.json()["version"]
+            assert created.json()["record"]["joinUrl"] == "https://meet.example.org/hybrid"
+            detail = client.get(f"/api/admin/content/events/{event_id}").json()["record"]
+            assert detail["joinUrl"] == "https://meet.example.org/hybrid" and detail["mode"] == "ترکیبی"
+            public_rows = client.get("/api/public/site-content").json()["content"]["events"]
+            assert [row["id"] for row in public_rows] == [event_id]
+            assert "joinUrl" not in public_rows[0] and public_rows[0]["mode"] == "ترکیبی"
+            bad = client.put(
+                f"/api/admin/content/events/{event_id}",
+                json={"record": {"joinUrl": "http://insecure.example.org/x"}, "expected_version": version},
+                headers=owner_write_headers(client),
+            )
+            assert bad.status_code == 422 and bad.json()["detail"] == {"code": "invalid_link", "field": "joinUrl"}
+            assert client.get(f"/api/admin/content/events/{event_id}").json()["record"]["joinUrl"] == "https://meet.example.org/hybrid"
+            cleared = client.put(
+                f"/api/admin/content/events/{event_id}",
+                json={"record": {"joinUrl": ""}, "expected_version": version},
+                headers=owner_write_headers(client),
+            )
+            assert cleared.status_code == 200 and cleared.json()["record"]["joinUrl"] == ""
+            second = client.post(
+                "/api/admin/content/events",
+                json={"record": dict(EVENT, t="حضوری دوم", mode="حضوری"), "expected_version": cleared.json()["version"]},
+                headers=owner_write_headers(client),
+            )
+            assert second.status_code == 200, second.text
+            body = client.get("/api/admin/content/events?mode=%D8%AD%D8%B6%D9%88%D8%B1%DB%8C").json()
+            assert [item["t"] for item in body["items"]] == ["حضوری دوم"]
+            assert body["mode"] == "حضوری" and body["mode_counts"] == {"ترکیبی": 1, "حضوری": 1}
+            assert client.get("/api/admin/content/articles?mode=x").status_code == 422
+    finally:
+        engine.dispose()

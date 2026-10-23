@@ -29,6 +29,7 @@ from .site_content import (
     SiteContentError,
     _article,
     _event,
+    _join_url,
     _number,
     _parts,
     _public_record,
@@ -64,6 +65,8 @@ EVENT_EDITABLE = (
     "parts",
     # Owner decision 1405/08/01 (B19): reminder switches {"h24": bool, "h1": bool} (event_reminders.py).
     "reminders",
+    # Final stage 1405/08/01: HTTPS join link for online/hybrid events (never projected publicly).
+    "joinUrl",
 )
 REMINDER_SLOTS = ("h24", "h1")
 EVENT_DATETIME_FIELDS = ("startsAt", "endsAt", "regOpensAt", "regClosesAt")
@@ -144,6 +147,9 @@ def _validate_event(record: dict[str, Any]) -> None:
     poster = _text(record.get("poster"), 1_500_000, allow_number=False)
     if poster and not _public_url(poster, image_data=True):
         raise ContentAdminError("invalid_image", "poster")
+    join_url = _text(record.get("joinUrl"), 1_000, allow_number=False)
+    if join_url and not _join_url(join_url):
+        raise ContentAdminError("invalid_link", "joinUrl")
     for key, maximum in (("price", 100_000_000), ("cap", 100_000), ("sess", 500), ("certMin", 100)):
         raw = record.get(key)
         if raw in (None, ""):
@@ -662,6 +668,7 @@ def list_records(
     offset: int = 0,
     when: str = "",
     today: str | None = None,
+    mode: str = "",
 ) -> dict[str, Any]:
     if kind not in KINDS:
         raise ContentAdminError("invalid_content_kind")
@@ -671,6 +678,9 @@ def list_records(
         raise ContentAdminError("invalid_sort", "sort")
     if when and (when not in WHEN_FILTERS or kind != "events"):
         raise ContentAdminError("invalid_when", "when")
+    mode_needle = _fold(mode).strip() if kind == "events" else ""
+    if mode and (kind != "events" or not mode_needle):
+        raise ContentAdminError("invalid_mode", "mode")
     today_key = today or today_jalali_key()
     source = [row for row in (rows if isinstance(rows, list) else []) if isinstance(row, dict) and row.get("id")]
     counts = {name: 0 for name in STATUSES}
@@ -679,14 +689,20 @@ def list_records(
     needle = _fold(q).strip()
     when_counts = {name: 0 for name in WHEN_FILTERS}
     when_counts["undated"] = 0
+    mode_counts: dict[str, int] = {}
     if kind == "events":
         for row in source:
             when_counts[event_time_bucket(row, today_key) or "undated"] += 1
+            mode_label = _text(row.get("mode"), 80).strip()
+            if mode_label:
+                mode_counts[mode_label] = mode_counts.get(mode_label, 0) + 1
     selected = []
     for row in source:
         if status and status_of(row) != status:
             continue
         if when and event_time_bucket(row, today_key) != when:
+            continue
+        if mode_needle and _fold(row.get("mode")).strip() != mode_needle:
             continue
         if needle:
             haystack = " ".join(
@@ -711,6 +727,8 @@ def list_records(
         "when": when,
         "today": today_key if kind == "events" else "",
         "when_counts": when_counts if kind == "events" else {},
+        "mode": mode if kind == "events" else "",
+        "mode_counts": mode_counts,
     }
 
 
