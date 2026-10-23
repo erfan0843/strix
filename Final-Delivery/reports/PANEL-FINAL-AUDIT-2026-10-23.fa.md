@@ -88,7 +88,7 @@
 - `Final-Delivery/website/nora-ui/admin.js` (۳ نقطه: `dashxQueueCard`، ردیف‌های «رویدادهای پیش رو»، `panelModuleMapView`؛ + ۳ خط در `startAdminApplication`)
 - `Final-Delivery/website/nora-ui/admin.html` (`admin.js?v=165`), `admin.test.mjs` (پین)، `admin-restore.test.mjs` (دو بررسی)
 - `Final-Delivery/website/nora-ui/tools/panel-final-audit.cjs`, `panel-final-audit-gaps.cjs`, `panel-final-audit-fixcheck.cjs` (ابزار ممیزی؛ اعتبارنامه فقط از فایل محلی خارج از Git خوانده می‌شود و چاپ نمی‌شود)
-- `Final-Delivery/reports/evidence/panel-reference-2026-10-23/final-audit/` (۷۷ تصویر منتخب از ۱۹۴ گام + ۳ JSON؛ تصاویر تکراری حذف شدند)
+- `Final-Delivery/reports/evidence/panel-reference-2026-10-23/final-audit/` (۹۵ تصویر منتخب از ۱۹۴ گام + ۳ JSON؛ تصاویر تکراری خزش اصلی حذف شدند)
 - این گزارش
 
 ## ۷) آزموده‌شده / تأییدنشده
