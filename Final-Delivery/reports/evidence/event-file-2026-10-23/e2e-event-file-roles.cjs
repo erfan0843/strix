@@ -67,6 +67,13 @@ const check = (name, ok) => { ok ? pass++ : fail++; L((ok ? 'PASS ' : 'FAIL ') +
     check('manager: A’s registration under event B → 404', cross.status === 404);
     const rc = await page.evaluate(async p => { const r = await fetch(p, { credentials: 'same-origin' }); return { status: r.status, type: r.headers.get('content-type') }; }, '/api/admin/events/' + A + '/registrations/' + ids.p1 + '/receipt');
     L('manager receipt file', rc); check('manager (receipt_approve): receipt file readable', rc.status === 200 && /^image\//.test(rc.type || ''));
+    if (ids.cancellation) {
+      const canc = await api(MANAGER, '/api/admin/events/' + A + '/cancellations'); L('manager cancellations', { status: canc.status, total: canc.body && canc.body.total });
+      check('manager: cancelled snapshots readable, name + labelled answers, no amount (finance_visible=false)', canc.status === 200 && canc.body.finance_visible === false && canc.body.total >= 1 && !!canc.body.items[0].name && Array.isArray(canc.body.items[0].answers) && !('amount' in (canc.body.items[0].payment || {})));
+      const crc = await page.evaluate(async p => { const r = await fetch(p, { credentials: 'same-origin' }); return { status: r.status, type: r.headers.get('content-type') }; }, '/api/admin/events/' + A + '/cancellations/' + ids.cancellation + '/receipt');
+      check('manager (receipt_approve): kept receipt of cancelled registration readable', crc.status === 200 && /^image\//.test(crc.type || ''));
+      check('manager: cancelled receipt under event B → 404', (await api(MANAGER, '/api/admin/events/' + Bev + '/cancellations/' + ids.cancellation + '/receipt')).status === 404);
+    } else check('ids.json carries the cancellation id', false);
     // CSRF را نمی‌شود از پشت پروکسی سنجید (پروکسی توکن را خودش می‌گذارد)؛ پس با نشست واقعی مدیر مستقیم به بک‌اند می‌رویم
     const mgr = await managerSession();
     const csrfNone = await mgr.fetch('/api/admin/events/' + A + '/registrations/' + ids.p1 + '/payment-decision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: 'approved', reason: 'بدون توکن' }) });
@@ -93,6 +100,8 @@ const check = (name, ok) => { ok ? pass++ : fail++; L((ok ? 'PASS ' : 'FAIL ') +
     const a5 = await anon('/api/admin/events/' + A + '/registrations/' + ids.p1 + '/payment-decision', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BACKEND }, body: JSON.stringify({ decision: 'approved', reason: 'x' }) });
     L('anonymous', { overview: a1, receipt: a2, ticket: a3, payments: a4, decision: a5 });
     check('unauthenticated: overview/receipt/ticket/payments/decision all 401', [a1, a2, a3, a4, a5].every(s => s === 401));
+    const a6 = await anon('/api/admin/events/' + A + '/cancellations'), a7 = ids.cancellation ? await anon('/api/admin/events/' + A + '/cancellations/' + ids.cancellation + '/receipt') : 401;
+    check('unauthenticated: cancellations list + kept receipt → 401', a6 === 401 && a7 === 401);
     // ---------- مالک: جزئیات سریال/QR بدون PII ----------
     await page.goto('about:blank'); await page.goto(OWNER + '/admin.html#event=' + A + '&tab=regs&reg=' + ids.p1, { waitUntil: 'load' }); await sleep(2000);
     const od = await api(OWNER, '/api/admin/events/' + A + '/registrations/' + ids.p1);

@@ -36,7 +36,7 @@ def test_local_init_runs_actual_migrations_without_seeded_accounts_or_providers(
     engine = create_engine(values["NORA_DATABASE_URL"])
     try:
         with engine.connect() as connection:
-            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0038_system_settings"
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0039_form_registration_cancellations"
             assert connection.scalar(text("SELECT COUNT(*) FROM accounts")) == 0
             assert connection.scalar(text("SELECT COUNT(*) FROM form_responses")) == 0
         assert "site_content" in inspect(engine).get_table_names()

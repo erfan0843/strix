@@ -208,6 +208,20 @@ async function surveyAnswer(formId, answers) {
   const sum2 = await txt('[data-ef-summary]'); L('summary after decisions', sum2);
   check('summary: paid 1, pending 1', /پرداخت‌شده: ۱/.test(sum2) && /در انتظار پرداخت: ۱/.test(sum2));
   await shot('09-A-after-decisions', true);
+  // cancelled registration kept as a snapshot (identity, answers, payment, receipt) — read only with permission, audited
+  check('cancelled section present, closed by default', await has('[data-ef-cancelled]') && !(await has('[data-ef-cancel]')));
+  await click('[data-ef-cancel-toggle]');
+  check('cancelled list shows p3 with name, reason and payment status before', await waitFor(async () => (await count('[data-ef-cancel]')) === 1) && /نفر سوم ردشدنی/.test(await txt('[data-ef-cancelled]')) && /رسید ناخوانا است/.test(await txt('[data-ef-cancelled]')) && /رسید فرستاده شده/.test(await txt('[data-ef-cancelled]')));
+  check('cancelled row: receipt kept + answers collapsible', await has('[data-ef-cancel-receipt]') && /پاسخ‌های فرم/.test(await txt('[data-ef-cancelled]')));
+  await click('[data-ef-cancel-receipt]');
+  check('kept receipt image loads (200)', await waitFor(() => has('[data-ef-cancel-receipt-img]')) && await page.evaluate(async () => { const i = document.querySelector('[data-ef-cancel-receipt-img]'); const r = await fetch(i.getAttribute('src'), { credentials: 'same-origin' }); return r.status === 200 && /image\//.test(r.headers.get('content-type') || ''); }));
+  const cancApi = (await api('/api/admin/events/' + A + '/cancellations')).body; L('cancellations api', { total: cancApi.total, name: cancApi.items && cancApi.items[0] && cancApi.items[0].name, source: cancApi.items && cancApi.items[0] && cancApi.items[0].source });
+  check('cancellations API: 1 snapshot, source event_file, amount visible to owner, answers labelled', cancApi.total === 1 && cancApi.items[0].source === 'event_file' && cancApi.items[0].payment && cancApi.items[0].payment.amount === 600000 && Array.isArray(cancApi.items[0].answers) && cancApi.items[0].answers.length > 0);
+  check('cancellations of B: none (no cross-event mixing)', (await api('/api/admin/events/' + Bev + '/cancellations')).body.total === 0);
+  check('cancelled receipt via B’s event id → 404', (await api('/api/admin/events/' + Bev + '/cancellations/' + cancApi.items[0].id + '/receipt')).status === 404);
+  check('live registration row for p3 gone (404)', (await api('/api/admin/events/' + A + '/registrations/' + rid(p3))).status === 404);
+  await shot('09b-A-cancelled-kept', true);
+  ids.cancellation = cancApi.items[0].id;
 
   // ── 6) payments tab ──
   await click('[data-ei-tab="payments"]');
@@ -215,6 +229,7 @@ async function surveyAnswer(formId, answers) {
   const tot = await txt('[data-ef-pay-totals]'); L('totals', tot);
   check('totals: paid 1 / pending 1 / failed 1 / sum 600,000', /موفق: ۱/.test(tot) && /در انتظار: ۱/.test(tot) && /ناموفق: ۱/.test(tot) && /۶۰۰٬۰۰۰|۶۰۰,۰۰۰/.test(tot.replace(/\u066c/g, '٬')));
   check('rejected payment row says registration cancelled', /ثبت‌نام لغوشده/.test(await txt('[data-ef-payments]')));
+  check('rejected payment row keeps the person’s name from the snapshot + «پروندهٔ لغو»', /نفر سوم ردشدنی/.test(await txt('[data-ef-payments]')) && await has('[data-ef-cancel-open]'));
   check('p2 row: «رسیدی ثبت نشده»', /رسیدی ثبت نشده/.test(await txt('[data-ef-payments]')));
   await shot('10-A-payments', true);
 
@@ -262,7 +277,7 @@ async function surveyAnswer(formId, answers) {
 
   check('no page errors', perrs.length === 0);
   fs.writeFileSync(path.join(out, 'log.txt'), log.join('\n') + '\n');
-  fs.writeFileSync(path.join(out, 'ids.json'), JSON.stringify({ A, B: Bev, regA: regA.id, regB: regB.id, survey: survey.id, quiz: quiz.id, p1: rid(p1), p2: rid(p2), p3: rid(p3), pB: rid(pB) }, null, 2));
+  fs.writeFileSync(path.join(out, 'ids.json'), JSON.stringify({ A, B: Bev, regA: regA.id, regB: regB.id, survey: survey.id, quiz: quiz.id, p1: rid(p1), p2: rid(p2), p3: rid(p3), pB: rid(pB), cancellation: ids.cancellation || '' }, null, 2));
   await browser.close();
   const fails = log.filter(l => l.startsWith('FAIL')); console.log('\nTOTAL PASS ' + log.filter(l => l.startsWith('PASS')).length + ' / FAIL ' + fails.length);
   process.exit(0);

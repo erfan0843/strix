@@ -91,6 +91,7 @@ from .models import (
     FormPaymentTransactionRecord,
     FormReceiptUploadRecord,
     FormRecord,
+    FormRegistrationCancellationRecord,
     FormResponseDraftRecord,
     FormResponseRecord,
     LoginThrottleRecord,
@@ -684,6 +685,97 @@ def _form_ticket_name(record: FormResponseRecord) -> str:
             if value:
                 return value
     return ""
+
+
+def cancel_registration(
+    db: Session,
+    record: FormResponseRecord,
+    *,
+    reason: str,
+    source: str,
+    actor_kind: str,
+    actor_id: str,
+    actor_role: str = "",
+    payment_status_before: str | None = None,
+    receipt_file_refs: list[str] | None = None,
+) -> FormRegistrationCancellationRecord:
+    """The single way a live registration leaves ``form_responses``.
+
+    Writes an immutable snapshot (identity, answers, companions, payment reference, receipt bytes or
+    private-file refs, actor/reason/source) into ``form_registration_cancellations``, removes the
+    companions that this registration brought along (their child drafts cascade), wipes the person's
+    draft so they can register again, and deletes the live row. Callers keep their own rules for the
+    payment row, notifications and audit; they must not delete a response any other way.
+    """
+    form = db.get(FormRecord, record.form_id)
+    payment = db.scalar(select(FormPaymentRecord).where(FormPaymentRecord.response_id == record.id))
+    draft = db.get(FormResponseDraftRecord, record.draft_id)
+    children = list(db.scalars(
+        select(FormResponseRecord).where(FormResponseRecord.added_by_response_id == record.id)
+    ))
+    upload = record.receipt_upload
+    snapshot = FormRegistrationCancellationRecord(
+        id=str(uuid.uuid4()),
+        form_id=record.form_id,
+        event_id=(str(form.event_id) if form is not None and form.event_id else None),
+        response_id=record.id,
+        draft_id=record.draft_id,
+        account_id=draft.account_id if draft is not None else None,
+        bale_user_id=(draft.bot_bale_user_id if draft is not None and draft.bot_bale_user_id else None)
+        or record.ticket_claimed_by_bale_user_id,
+        display_name=_form_ticket_name(record),
+        status_before=record.status,
+        ticket_serial=record.ticket_serial,
+        form_fields=[
+            {"id": f["id"], "label": _ticket_text(f.get("label") or f["id"], 160) or f["id"], "type": str(f.get("type") or "")}
+            for f in _json_list_member(record.form_snapshot if isinstance(record.form_snapshot, dict) else {}, "fields")
+            if isinstance(f, dict) and isinstance(f.get("id"), str)
+        ][:200],
+        answers=dict(record.answers) if isinstance(record.answers, dict) else {},
+        companions=[
+            {
+                "response_id": child.id,
+                "name": _form_ticket_name(child),
+                "status": child.status,
+                "answers": dict(child.answers) if isinstance(child.answers, dict) else {},
+            }
+            for child in children
+        ],
+        payment_id=payment.id if payment is not None else None,
+        payment_method=payment.method if payment is not None else None,
+        payment_status_before=(payment_status_before if payment_status_before is not None
+                               else (payment.status if payment is not None else None)),
+        amount=int(payment.amount) if payment is not None else None,
+        currency=payment.currency if payment is not None else None,
+        receipt_file_name=upload.file_name if upload is not None else None,
+        receipt_content_type=upload.content_type if upload is not None else None,
+        receipt_content_size=upload.content_size if upload is not None else None,
+        receipt_content_hash=upload.content_hash if upload is not None else None,
+        receipt_content=bytes(upload.content) if upload is not None else None,
+        receipt_file_refs=[str(ref) for ref in (receipt_file_refs or [])][:5],
+        reason=str(reason or "")[:500],
+        source=source[:24],
+        actor_kind=actor_kind[:16],
+        actor_id=str(actor_id or "")[:80],
+        actor_role=str(actor_role or "")[:32],
+    )
+    db.add(snapshot)
+    # Companions came in with this registration: they leave with it (same as a re-submit replaces them).
+    for child in children:
+        child_draft = db.get(FormResponseDraftRecord, child.draft_id)
+        if child_draft is not None:
+            db.delete(child_draft)
+        else:
+            db.delete(child)
+    if payment is not None:
+        payment.response_id = None  # the database does SET NULL too; explicit for SQLite without the PRAGMA
+    if draft is not None:
+        draft.answers = {}
+        draft.companions = []
+        draft.bot_bale_user_id = None
+    db.delete(record)
+    db.flush()
+    return snapshot
 
 
 def _ticket_text(value: Any, maximum: int) -> str:
@@ -1982,6 +2074,7 @@ def create_app(
             and not is_purchase_receipt
         )
         linked_response = None
+        payment_status_before_decision: str | None = None
         if is_public_form_receipt:
             form_id = task_payload.get("form_id")
             response_id = task_payload.get("form_response_id")
@@ -2052,6 +2145,7 @@ def create_app(
                 .with_for_update()
             )
             if payment_record is not None and payment_record.method == "card_transfer":
+                payment_status_before_decision = payment_record.status
                 payment_record.status = "paid_manual" if decision == "approved" else "rejected"
                 payment_record.updated_at = now
         # Reviewer identity as recorded on the task: the owner id (web or bot owner) or a staff account id.
@@ -2081,13 +2175,18 @@ def create_app(
                 },
             )
         if (is_public_form_receipt or is_purchase_receipt) and decision == "rejected" and linked_response is not None:
-            draft = linked_response.draft
-            if draft is not None:
-                draft.answers = {}
-                draft.companions = []
-                draft.bot_bale_user_id = None
-            db.delete(linked_response)
-            db.flush()
+            cancelled = cancel_registration(
+                db, linked_response, reason=reason, source="inbox", actor_kind=actor_kind, actor_id=reviewer_id,
+                actor_role=ROLE_OWNER if actor_kind == audit_mod.ACTOR_OWNER else "",
+                payment_status_before=payment_status_before_decision,
+                receipt_file_refs=[str(ref) for ref in task_payload.get("file_refs", []) if ref],
+            )
+            audit_mod.record_admin_event(
+                db, actor_kind=actor_kind, actor_id=reviewer_id, actor_role="",
+                action="registration.cancel", target_type="form_response", target_id=cancelled.response_id,
+                details={"cancellation_id": cancelled.id, "form_id": cancelled.form_id, "event_id": cancelled.event_id or "",
+                         "source": "inbox", "task_id": task.id, "companions": len(cancelled.companions), "reason": reason[:160]},
+            )
         target_kind = task.kind.removesuffix("_review") + ("_approved" if decision == "approved" else "_rejected")
         approved = decision == "approved"
         if is_purchase_receipt and approved:
@@ -3172,18 +3271,10 @@ def create_app(
         record, payment, form_event_id = row
         return _registration_detail_payload(db, identity, record, payment, form_event_id, account_id=account_id)
 
-    def _registration_detail_payload(
-        db: Session, identity: OwnerIdentity | AccountIdentity, record: FormResponseRecord,
-        payment: FormPaymentRecord | None, form_event_id: str | None, *, account_id: str | None,
-    ) -> dict[str, Any]:
-        """One registration with labelled answers, companions, payment (finance-masked), receipt and
-        attendance. Shared by the account file (U4) and the event file so both read the same rules."""
-        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
-        with_finance = has_permission(viewer_role, "finance")
-        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
-        answers_raw = record.answers if isinstance(record.answers, dict) else {}
+    def _labelled_answers(fields: list[Any], answers_raw: Mapping[str, Any]) -> list[dict[str, Any]]:
+        """Answers in field order with labels; mobile/national id are masked for every staff viewer (U4)."""
         answers: list[dict[str, Any]] = []
-        for field in _json_list_member(snapshot, "fields"):
+        for field in fields:
             if not isinstance(field, dict) or not isinstance(field.get("id"), str):
                 continue
             field_id = field["id"]
@@ -3212,6 +3303,19 @@ def create_app(
                 "field_id": field_id, "label": _ticket_text(field.get("label") or field_id, 160) or field_id,
                 "type": field_type, "value": cleaned, "masked": None,
             })
+        return answers
+
+    def _registration_detail_payload(
+        db: Session, identity: OwnerIdentity | AccountIdentity, record: FormResponseRecord,
+        payment: FormPaymentRecord | None, form_event_id: str | None, *, account_id: str | None,
+    ) -> dict[str, Any]:
+        """One registration with labelled answers, companions, payment (finance-masked), receipt and
+        attendance. Shared by the account file (U4) and the event file so both read the same rules."""
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(viewer_role, "finance")
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        answers_raw = record.answers if isinstance(record.answers, dict) else {}
+        answers = _labelled_answers(_json_list_member(snapshot, "fields"), answers_raw)
         companions = db.scalars(
             select(FormResponseRecord)
             .where(FormResponseRecord.added_by_response_id == record.id)
@@ -3779,21 +3883,29 @@ def create_app(
         locked.updated_at = now
         draft = db.get(FormResponseDraftRecord, record.draft_id)
         account_id = draft.account_id if draft is not None else None
+        cancelled_id = ""
         if decision == "rejected":
             # Same outcome as the inbox: the registration is cancelled and the seat is released; the
-            # payment row stays (response_id → NULL) as the financial trace.
-            if draft is not None:
-                draft.answers = {}
-                draft.companions = []
-                draft.bot_bale_user_id = None
-            locked.response_id = None  # همان SET NULL پایگاه، صریح برای SQLite بدون PRAGMA
-            db.delete(record)
-            db.flush()
+            # payment row stays (response_id → NULL) as the financial trace and the snapshot keeps
+            # identity, answers, companions and the receipt file for audit.
+            actor_kind = audit_mod.ACTOR_OWNER if isinstance(identity, OwnerIdentity) else audit_mod.ACTOR_ACCOUNT
+            actor_id = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+            cancelled = cancel_registration(
+                db, record, reason=reason, source="event_file", actor_kind=actor_kind, actor_id=actor_id,
+                actor_role=ROLE_OWNER if isinstance(identity, OwnerIdentity) else (identity.role or ""),
+                payment_status_before=previous,
+            )
+            cancelled_id = cancelled.id
+            record_audit(
+                db, identity, "registration.cancel", target_type="form_response", target_id=response_id,
+                details={"cancellation_id": cancelled.id, "form_id": cancelled.form_id, "event_id": event_id,
+                         "source": "event_file", "companions": len(cancelled.companions), "reason": reason[:160]},
+            )
         record_audit(
             db, identity, "payment.manual_decision", target_type="form_response", target_id=response_id,
             details={"event_id": event_id, "form_id": locked.form_id, "payment_id": locked.id, "decision": decision,
                      "previous_status": previous, "new_status": target, "amount": int(locked.amount), "reason": reason[:160],
-                     "registration_cancelled": decision == "rejected"},
+                     "registration_cancelled": decision == "rejected", "cancellation_id": cancelled_id},
         )
         if account_id:
             notifications_mod.queue(
@@ -3835,6 +3947,16 @@ def create_app(
                 .order_by(FormPaymentRecord.created_at.desc(), FormPaymentRecord.id.desc())
                 .limit(5000)
             ).all())
+        detached_ids = [pay.id for pay, record in rows if record is None]
+        cancelled_by_payment: dict[str, FormRegistrationCancellationRecord] = {}
+        if detached_ids:
+            for found in db.scalars(
+                select(FormRegistrationCancellationRecord)
+                .where(FormRegistrationCancellationRecord.payment_id.in_(detached_ids))
+                .order_by(FormRegistrationCancellationRecord.created_at.asc())
+            ):
+                if found.payment_id:
+                    cancelled_by_payment[found.payment_id] = found
         items: list[dict[str, Any]] = []
         totals = {"paid_amount": 0, "paid": 0, "pending": 0, "failed": 0}
         for pay, record in rows:
@@ -3843,11 +3965,14 @@ def create_app(
             if cls == "paid":
                 totals["paid_amount"] += int(pay.amount)
             task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record is not None and record.receipt_review_task_id else None
+            snap: FormRegistrationCancellationRecord | None = cancelled_by_payment.get(pay.id) if record is None else None
             items.append({
                 "payment_id": pay.id, "form_id": pay.form_id, "response_id": pay.response_id,
-                "name": _form_ticket_name(record) if record is not None else "",
+                "name": _form_ticket_name(record) if record is not None else (snap.display_name if snap is not None else ""),
                 "display_id": _form_tracking_code(record) if record is not None else "",
-                "registration_status": record.status if record is not None else None,
+                "registration_status": record.status if record is not None else ("cancelled" if snap is not None else None),
+                "cancellation": ({"id": snap.id, "at": _as_utc(snap.created_at).isoformat(), "source": snap.source,
+                                  "reason": snap.reason} if snap is not None else None),
                 "method": pay.method, "status": pay.status, "state": cls,
                 "amount": int(pay.amount), "currency": pay.currency, "party_count": int(pay.party_count or 1),
                 "transaction_id": pay.transaction_id, "provider_charge_id": pay.provider_charge_id,
@@ -3873,6 +3998,121 @@ def create_app(
             "totals": totals, "items": page, "total": len(items), "limit": limit, "offset": offset,
             "has_more": offset + limit < len(items), "filters": {"q": q, "state": state},
         }
+
+    def _event_file_cancellation_row(
+        snap: FormRegistrationCancellationRecord, *, with_finance: bool, with_answers: bool
+    ) -> dict[str, Any]:
+        row: dict[str, Any] = {
+            "id": snap.id, "form_id": snap.form_id, "response_id": snap.response_id,
+            "name": snap.display_name, "status_before": snap.status_before, "ticket_serial": snap.ticket_serial,
+            "companions": [{"name": c.get("name", ""), "status": c.get("status", "")} for c in snap.companions
+                           if isinstance(c, dict)],
+            "payment": ({"payment_id": snap.payment_id, "method": snap.payment_method,
+                         "status_before": snap.payment_status_before} if snap.payment_id else None),
+            "receipt": {"stored": snap.receipt_content is not None or bool(snap.receipt_file_refs),
+                        "web_file": snap.receipt_content is not None,
+                        "file_refs": list(snap.receipt_file_refs or [])},
+            "reason": snap.reason, "source": snap.source,
+            "actor": {"kind": snap.actor_kind, "role": snap.actor_role},
+            "created_at": _as_utc(snap.created_at).isoformat(),
+            "finance_visible": with_finance,
+        }
+        if with_finance and snap.payment_id:
+            row["payment"]["amount"] = snap.amount
+            row["payment"]["currency"] = snap.currency
+        if with_answers:
+            fields = list(snap.form_fields) if isinstance(snap.form_fields, list) else []
+            row["answers"] = _labelled_answers(fields, snap.answers if isinstance(snap.answers, dict) else {})
+            companions_out: list[dict[str, Any]] = []
+            for c in snap.companions:
+                if not isinstance(c, dict):
+                    continue
+                raw_answers = c.get("answers")
+                companions_out.append({
+                    "name": c.get("name", ""), "status": c.get("status", ""),
+                    "answers": _labelled_answers(fields, raw_answers if isinstance(raw_answers, dict) else {}),
+                })
+            row["companions"] = companions_out
+        return row
+
+    @app.get("/api/admin/events/{event_id}/cancellations")
+    def event_file_cancellations(
+        event_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "receipt_approve", "finance")),
+        db: Session = Depends(get_db),
+    ):
+        """Registrations of this event that were cancelled (receipt rejected or deleted by the owner), read
+        from the immutable snapshots. Amounts only with ``finance``; answers only with ``fm_responses``;
+        every read is audited because it exposes personal data of people who are no longer registered."""
+        response.headers["Cache-Control"] = "private, no-store"
+        _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        form_ids = [f.id for f in forms]
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(role, "finance")
+        with_answers = has_permission(role, "fm_responses")
+        rows: list[FormRegistrationCancellationRecord] = []
+        if form_ids:
+            rows = list(db.scalars(
+                select(FormRegistrationCancellationRecord)
+                .where(FormRegistrationCancellationRecord.form_id.in_(form_ids))
+                .order_by(FormRegistrationCancellationRecord.created_at.desc(), FormRegistrationCancellationRecord.id.desc())
+                .limit(5000)
+            ))
+        items = [_event_file_cancellation_row(snap, with_finance=with_finance, with_answers=with_answers) for snap in rows]
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            items = [i for i in items if needle in unicodedata.normalize("NFKC", i["name"]).lower()
+                     or needle in (i["ticket_serial"] or "").lower()]
+        page = items[offset: offset + limit]
+        record_audit(
+            db, identity, "registration.cancellations.view", target_type="event", target_id=event_id,
+            details={"total": len(items), "offset": offset, "limit": limit, "with_answers": with_answers,
+                     "with_finance": with_finance},
+        )
+        db.commit()
+        return {
+            "source": "form_registration_cancellations", "event_id": event_id,
+            "items": page, "total": len(items), "limit": limit, "offset": offset,
+            "has_more": offset + limit < len(items), "filters": {"q": q}, "finance_visible": with_finance,
+        }
+
+    @app.get("/api/admin/events/{event_id}/cancellations/{cancellation_id}/receipt")
+    def event_file_cancellation_receipt(
+        event_id: str,
+        cancellation_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("receipt_approve", "finance")),
+        db: Session = Depends(get_db),
+    ):
+        """The web receipt kept with a cancelled registration (same gate and headers as the live receipt).
+        Receipts that came through Bale stay in the inbox private files (``receipt.file_refs``)."""
+        _event_file_row(db, event_id)
+        form_ids = {f.id for f in _event_file_forms(db, identity.owner_id, event_id)}
+        snap = db.get(FormRegistrationCancellationRecord, cancellation_id)
+        if snap is None or snap.form_id not in form_ids:
+            raise HTTPException(404, "cancellation_not_found")
+        if snap.receipt_content is None:
+            raise HTTPException(404, "receipt_not_found")
+        record_audit(
+            db, identity, "registration.cancellation.receipt_view", target_type="form_response",
+            target_id=snap.response_id, details={"cancellation_id": snap.id, "event_id": event_id},
+        )
+        db.commit()
+        filename = re.sub(r"[^A-Za-z0-9._-]", "_", snap.receipt_file_name or "receipt")[:80] or "receipt"
+        return Response(
+            content=snap.receipt_content,
+            media_type=snap.receipt_content_type or "application/octet-stream",
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
 
     @app.get("/api/admin/events/{event_id}/forms/{form_id}/summary")
     def event_file_form_summary(
@@ -13617,13 +13857,15 @@ def create_app(
         if record is None:
             raise HTTPException(404, "response_not_found")
         draft = db.get(FormResponseDraftRecord, record.draft_id)
+        cancelled = cancel_registration(
+            db, record, reason="owner_delete", source="owner_delete", actor_kind=audit_mod.ACTOR_OWNER,
+            actor_id=identity.owner_id, actor_role=ROLE_OWNER,
+        )
         if draft is not None:
             db.delete(draft)
-        else:
-            db.delete(record)
         record_audit(
             db, identity, "form.response.delete", target_type="form_response", target_id=response_id,
-            details={"form_id": form_id},
+            details={"form_id": form_id, "cancellation_id": cancelled.id, "companions": len(cancelled.companions)},
         )
         db.commit()
         return {"deleted": True}

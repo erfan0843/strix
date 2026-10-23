@@ -19,7 +19,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 
 from backend.app import create_app  # noqa: E402
 from backend.config import Settings  # noqa: E402
-from backend.models import AdminAuditEventRecord, Base, FormPaymentRecord, FormResponseRecord  # noqa: E402
+from backend.models import (  # noqa: E402
+    AdminAuditEventRecord, Base, FormPaymentRecord, FormRegistrationCancellationRecord, FormResponseRecord,
+)
 from backend.security import hash_password  # noqa: E402
 
 from test_event_registration_gate import create_published_event  # noqa: E402
@@ -233,6 +235,125 @@ def test_payment_decision_is_audited_idempotent_and_updates_counts_and_ticket():
             assert len(kept) == 1 and kept[0].response_id is None, "ردیف مالی حذف نمی‌شود؛ فقط از ثبت‌نام جدا می‌شود"
             assert db.scalar(select(FormResponseRecord).where(FormResponseRecord.id == rid_reject)) is None
         assert client.get(f"/api/admin/events/{event_a}/payments").json()["totals"]["failed"] == 1
+
+
+COMPANION_FIELDS = [
+    {"id": "full-name", "t": "fullname", "l": "نام کامل", "required": True},
+    {"id": "mobile", "t": "mobile", "l": "شمارهٔ همراه", "required": True},
+]
+
+
+def test_cancelled_registration_keeps_an_auditable_snapshot_and_removes_companions():
+    """رد رسید: ردیف زنده حذف و صندلی آزاد می‌شود، همراهان هم می‌روند، اما هویت/پاسخ‌ها/سابقهٔ مالی/رسید
+    در عکس‌برداری لغو می‌ماند و فقط با مجوز و با ثبت ممیزی خوانده می‌شود."""
+    with make_client() as client:
+        owner_login(client)
+        event_a, _ = create_published_event(client, 0, t="رویداد همراه‌دار")
+        event_b, _ = create_published_event(client, 1, t="رویداد دیگر")
+        settings = {**PAID_SETTINGS, "guestsOn": True, "maxPer": 3, "compFields": "name-mobile-answers"}
+        reg = create_form(client, event_id=event_a, key="ef-cancel-0000000000000000", settings=settings, fields=COMPANION_FIELDS)
+
+        visitor = TestClient(client.app)
+        assert visitor.get(f"/api/public/forms/{reg}/draft").status_code == 200
+        submitted = visitor.post(
+            f"/api/public/forms/{reg}/responses",
+            json={"answers": {"full-name": "سارا اصلی", "mobile": "09121110000"},
+                  "companions": [{"name": "نیما همراه", "mobile": "09121234567",
+                                  "answers": {"full-name": "نیما همراه", "mobile": "09121234567"}}],
+                  "payment": {"method": "card_transfer", "selection": {"items": [0], "coupon_code": ""}}},
+            headers=ORIGIN,
+        )
+        assert submitted.status_code == 200, submitted.text
+        receipt_png = _public_receipt_png()
+        assert visitor.post(f"/api/public/forms/{reg}/receipt", content=receipt_png,
+                            headers={**ORIGIN, "Content-Type": "image/png", "X-File-Name": "receipt.png"}).status_code == 200
+
+        before = client.get(f"/api/admin/events/{event_a}/registrations").json()
+        assert before["summary"]["total"] == 2 and {i["companion"] for i in before["items"]} == {True, False}
+        rid = next(i["response_id"] for i in before["items"] if not i["companion"])
+        assert client.get(f"/api/admin/events/{event_a}/cancellations").json()["total"] == 0
+
+        rejected = client.post(f"/api/admin/events/{event_a}/registrations/{rid}/payment-decision",
+                               json={"decision": "rejected", "reason": "رسید ناخوانا"}, headers=owner_write_headers(client))
+        assert rejected.status_code == 200 and rejected.json()["registration_cancelled"] is True
+
+        after = client.get(f"/api/admin/events/{event_a}/registrations").json()
+        assert after["summary"]["total"] == 0 and after["summary"]["remaining"] == 3, "همراه با ثبت‌نام اصلی می‌رود و صندلی‌ها آزاد می‌شوند"
+        with client.app.state.session_factory() as db:
+            assert db.scalar(select(FormResponseRecord).where(FormResponseRecord.form_id == reg)) is None
+            snap = db.scalar(select(FormRegistrationCancellationRecord).where(FormRegistrationCancellationRecord.response_id == rid))
+            assert snap is not None
+            assert snap.event_id == event_a and snap.form_id == reg and snap.source == "event_file"
+            assert snap.display_name == "سارا اصلی" and snap.answers["mobile"] == "09121110000" and snap.status_before == "accepted"
+            assert [c["name"] for c in snap.companions] == ["نیما همراه"] and snap.companions[0]["answers"]["mobile"] == "09121234567"
+            assert snap.amount == 1000000 and snap.payment_method == "card_transfer"  # دو نفر × ۵۰۰٬۰۰۰ and snap.payment_status_before == "receipt_submitted"
+            assert snap.receipt_content == receipt_png and snap.receipt_content_type == "image/png"
+            assert snap.reason == "رسید ناخوانا" and snap.actor_kind == "owner" and snap.actor_role == "owner"
+            payment = db.get(FormPaymentRecord, snap.payment_id)
+            assert payment is not None and payment.status == "rejected" and payment.response_id is None
+            cancel_audit = db.scalar(select(AdminAuditEventRecord).where(AdminAuditEventRecord.action == "registration.cancel"))
+            assert cancel_audit is not None and cancel_audit.details["cancellation_id"] == snap.id
+            assert cancel_audit.details["companions"] == 1 and cancel_audit.target_id == rid
+            snap_id = snap.id
+
+        # ردیف مالی جداشده در فهرست پرداخت‌ها نام و پیوند لغو را از عکس‌برداری می‌گیرد
+        pay_rows = client.get(f"/api/admin/events/{event_a}/payments").json()["items"]
+        assert len(pay_rows) == 1 and pay_rows[0]["response_id"] is None
+        assert pay_rows[0]["name"] == "سارا اصلی" and pay_rows[0]["registration_status"] == "cancelled"
+        assert pay_rows[0]["cancellation"]["id"] == snap_id and pay_rows[0]["cancellation"]["reason"] == "رسید ناخوانا"
+
+        # مالک: پاسخ‌ها + مبلغ؛ خواندن ممیزی می‌شود
+        listed = client.get(f"/api/admin/events/{event_a}/cancellations")
+        assert listed.status_code == 200 and "no-store" in listed.headers["cache-control"]
+        item = listed.json()["items"][0]
+        assert listed.json()["total"] == 1 and item["id"] == snap_id and item["name"] == "سارا اصلی"
+        by_label = {a["label"]: a for a in item["answers"]}
+        assert by_label["نام کامل"]["value"] == "سارا اصلی", "پاسخ‌ها با برچسب فارسی فیلد برمی‌گردند"
+        assert by_label["شمارهٔ همراه"]["masked"] == "mobile" and by_label["شمارهٔ همراه"]["hint"] == "0000", "شماره مانند پروندهٔ زنده پنهان می‌شود"
+        companion_mobile = next(a for a in item["companions"][0]["answers"] if a["field_id"] == "mobile")
+        assert companion_mobile["masked"] == "mobile" and companion_mobile["hint"] == "4567"
+        assert item["payment"]["amount"] == 1000000 and item["receipt"] == {"stored": True, "web_file": True, "file_refs": []}
+        assert client.get(f"/api/admin/events/{event_a}/cancellations?q=سارا").json()["total"] == 1
+        assert client.get(f"/api/admin/events/{event_a}/cancellations?q=نیست").json()["total"] == 0
+        receipt = client.get(f"/api/admin/events/{event_a}/cancellations/{snap_id}/receipt")
+        assert receipt.status_code == 200 and receipt.content == receipt_png and "no-store" in receipt.headers["cache-control"]
+        # رویداد دیگر: ۴۰۴ (بدون نشت بین رویدادها)
+        assert client.get(f"/api/admin/events/{event_b}/cancellations").json()["total"] == 0
+        assert client.get(f"/api/admin/events/{event_b}/cancellations/{snap_id}/receipt").status_code == 404
+        with client.app.state.session_factory() as db:
+            views = db.scalars(select(AdminAuditEventRecord).where(AdminAuditEventRecord.action == "registration.cancellations.view")).all()
+            assert len(views) >= 3 and views[-1].details["with_answers"] is True
+            assert db.scalar(select(AdminAuditEventRecord).where(AdminAuditEventRecord.action == "registration.cancellation.receipt_view")) is not None
+
+        # مدیر (بدون مجوز مالی): نام و پاسخ‌ها بله، مبلغ نه؛ حساب بی‌نقش ۴۰۳؛ بدون نشست ۴۰۱
+        client.cookies.clear()
+        assert client.get(f"/api/admin/events/{event_a}/cancellations").status_code == 401
+        assert client.get(f"/api/admin/events/{event_a}/cancellations/{snap_id}/receipt").status_code == 401
+        install_account_session(client, "11111111-1111-4111-8111-111111111111", None)
+        assert client.get(f"/api/admin/events/{event_a}/cancellations").status_code == 403
+        client.cookies.clear()
+        install_account_session(client, "22222222-2222-4222-8222-222222222222", "manager")
+        as_manager = client.get(f"/api/admin/events/{event_a}/cancellations")
+        assert as_manager.status_code == 200 and as_manager.json()["finance_visible"] is False
+        manager_item = as_manager.json()["items"][0]
+        assert manager_item["name"] == "سارا اصلی" and "amount" not in manager_item["payment"]
+        assert [a["label"] for a in manager_item["answers"]] == ["نام کامل", "شمارهٔ همراه"]
+        assert client.get(f"/api/admin/events/{event_a}/cancellations/{snap_id}/receipt").status_code == 200
+
+
+def test_owner_delete_response_also_keeps_the_snapshot():
+    with make_client() as client:
+        owner_login(client)
+        event_a, _ = create_published_event(client, 0, t="رویداد حذف")
+        reg = create_form(client, event_id=event_a, key="ef-delete-0000000000000000", settings={"cap": 3, "wait": 0})
+        register(client.app, reg, "حذف‌شده")
+        rid = client.get(f"/api/admin/events/{event_a}/registrations").json()["items"][0]["response_id"]
+        deleted = client.delete(f"/api/forms/{reg}/responses/{rid}", headers=owner_write_headers(client))
+        assert deleted.status_code == 200, deleted.text
+        assert client.get(f"/api/admin/events/{event_a}/registrations").json()["summary"]["total"] == 0
+        listed = client.get(f"/api/admin/events/{event_a}/cancellations").json()
+        assert listed["total"] == 1 and listed["items"][0]["source"] == "owner_delete" and listed["items"][0]["name"] == "حذف‌شده"
+        assert listed["items"][0]["payment"] is None and listed["items"][0]["receipt"]["stored"] is False
 
 
 def test_form_summary_aggregates_choices_and_permissions_are_server_side():

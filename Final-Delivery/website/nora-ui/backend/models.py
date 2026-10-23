@@ -1415,6 +1415,57 @@ class UploadSessionRecord(Base):
     )
 
 
+class FormRegistrationCancellationRecord(Base):
+    """Immutable snapshot taken the moment a registration is cancelled (receipt rejected or owner delete).
+
+    The live row in ``form_responses`` is still removed (the seat is released and the person can register
+    again — the existing rule), but who the person was, what they answered, which companions came along,
+    the payment row and the receipt file stay readable for staff with the right permission and every
+    cancellation is attributable (actor + reason + source). Never updated after insert.
+    """
+
+    __tablename__ = "form_registration_cancellations"
+    __table_args__ = (
+        Index("ix_form_reg_cancellations_event_created", "event_id", "created_at"),
+        Index("ix_form_reg_cancellations_form_created", "form_id", "created_at"),
+        Index("ix_form_reg_cancellations_payment", "payment_id"),
+        Index("ix_form_reg_cancellations_response", "response_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    form_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    event_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    response_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    draft_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    account_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    bale_user_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    display_name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    status_before: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    ticket_serial: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    form_fields: Mapped[list[Any]] = mapped_column(JSON_VALUE, nullable=False, default=list)
+    answers: Mapped[dict[str, Any]] = mapped_column(JSON_VALUE, nullable=False, default=dict)
+    companions: Mapped[list[Any]] = mapped_column(JSON_VALUE, nullable=False, default=list)
+    payment_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    payment_method: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    payment_status_before: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    amount: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    receipt_file_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    receipt_content_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    receipt_content_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    receipt_content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    receipt_content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    receipt_file_refs: Mapped[list[Any]] = mapped_column(JSON_VALUE, nullable=False, default=list)
+    reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    source: Mapped[str] = mapped_column(String(24), nullable=False, default="")
+    actor_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    actor_id: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    actor_role: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class SystemSettingRecord(Base):
     """Owner-editable system setting (allowlisted keys, see system_settings.py). Never secrets."""
 

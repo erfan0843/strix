@@ -7816,12 +7816,13 @@ function eiNotify(){
 const EF_TABS=[['overview','نمای کلی'],['forms','فرم‌ها و فعالیت‌ها'],['regs','ثبت‌نام‌کنندگان'],['payments','پرداخت‌ها'],['tickets','بلیت و حضور'],['survey','نظرسنجی و آزمون'],['certs','گواهی‌ها'],['resources','فایل‌ها و رسانه‌ها'],['notify','اطلاع‌رسانی و تاریخچه']];
 const EF_TAB_KEYS=new Set(['overview','forms','regs','payments','tickets','survey','certs']);
 const EF_FORM_TYPE={registration:'فرم ثبت‌نام',survey:'نظرسنجی',exam:'آزمون',other:'فرم',purchase:'فرم خرید محتوای ضبط‌شده'};
-const EF_REG_STATUS={accepted:['پذیرفته‌شده','ok'],waitlisted:['فهرست انتظار','warn']};
+const EF_REG_STATUS={accepted:['پذیرفته‌شده','ok'],waitlisted:['فهرست انتظار','warn'],cancelled:['ثبت‌نام لغوشده','stop']};
+const EF_CANCEL_SOURCE={event_file:'رد رسید در پروندهٔ رویداد',inbox:'رد رسید در صندوق پیام‌ها',owner_delete:'حذف پاسخ توسط مالک'};
 const EF_PAY_STATE={free:['رایگان',''],paid:['پرداخت‌شده','ok'],pending:['در انتظار پرداخت','warn'],failed:['ناموفق','stop']};
 const EF_PAY_STATUS={pending:'در انتظار پرداخت',awaiting_receipt:'در انتظار رسید',receipt_submitted:'رسید فرستاده شده؛ تأیید نشده',paid:'پرداخت موفق (بله)',paid_manual:'تأیید دستی رسید',paid_review:'در حال بررسی',rejected:'رد شده',cancelled:'لغو شده',expired:'منقضی'};
 const EF_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
 /* برچسب فارسی رویدادهای تاریخچه؛ کُد خام فقط وقتی برچسبی نداریم */
-const EF_AUDIT_FA={'payment.manual_decision':'تصمیم دستی دربارهٔ پرداخت','attendance.check_in':'ثبت حضور','attendance.undo_check_in':'برگرداندن حضور','form.response.delete':'حذف پاسخ','workflow.decide':'تصمیم از صندوق پیام‌ها','recording.access.grant':'دادن دسترسی ضبط‌شده','recording.access.revoke':'گرفتن دسترسی ضبط‌شده'};
+const EF_AUDIT_FA={'payment.manual_decision':'تصمیم دستی دربارهٔ پرداخت','registration.cancel':'لغو ثبت‌نام (عکس‌برداری نگه داشته شد)','registration.cancellations.view':'دیدن فهرست لغوشده‌ها','registration.cancellation.receipt_view':'دیدن رسید ثبت‌نام لغوشده','attendance.check_in':'ثبت حضور','attendance.undo_check_in':'برگرداندن حضور','form.response.delete':'حذف پاسخ','workflow.decide':'تصمیم از صندوق پیام‌ها','recording.access.grant':'دادن دسترسی ضبط‌شده','recording.access.revoke':'گرفتن دسترسی ضبط‌شده'};
 const EF_ROLE_FA={owner:'مالک',manager:'مدیر',club_supervisor:'سرپرست باشگاه',system:'سامانه',bot:'ربات'};
 const EF_ERR={receipt_missing:'تا رسیدی ثبت نشده، تأیید پرداخت ممکن نیست.',payment_not_reviewable:'این پرداخت در وضعیتی نیست که بشود درباره‌اش تصمیم گرفت.',payment_status_changed:'وضعیت پرداخت در این فاصله عوض شده؛ پرونده بازخوانی شد.',event_not_found:'این رویداد پیدا نشد یا حذف شده است.',registration_not_found:'این ثبت‌نام در پروندهٔ همین رویداد نیست.',form_not_found:'این فرم به همین رویداد وصل نیست.',receipt_not_found:'رسیدی ثبت نشده است.',reason_required:'نوشتن دلیل لازم است.',payment_state_changed:'وضعیت این پرداخت در این میان تغییر کرده؛ فهرست تازه شد.',payment_not_card_transfer:'این پرداخت از راه بله انجام شده و دستی تأیید نمی‌شود.',payment_not_decidable:'این پرداخت در وضعیت قابل‌تصمیم نیست.',receipt_task_locked:'رسید این پرداخت در صندوق پیام‌ها در حال بررسی است.',ticket_not_available:'برای این ثبت‌نام هنوز بلیتی صادر نشده است.',published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست تازه شد.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
 const EF={overview:null,ovError:'',
@@ -7831,9 +7832,10 @@ const EF={overview:null,ovError:'',
   certs:{offset:0,limit:20},
   person:{id:'',data:null,loading:false,error:'',decision:'',reason:''},
   sum:{formId:'',data:null,loading:false,error:''},
+  cancel:{open:false,data:null,loading:false,error:'',receipt:'',focus:''},
   link:{pick:'',busy:'',msg:null},busy:'',msg:null};
 function efErr(error,fallback){const code=error&&error.code||''; if(EF_ERR[code]) return EF_ERR[code]; const f=p2FieldErr(error); if(f&&EF_ERR[f.code]) return EF_ERR[f.code]; if(error&&error.status===404) return EF_ERR.event_not_found; return p2Err(error,fallback)}
-function efReset(){EF.overview=null; EF.ovError=''; EF.regs={q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50}; EF.att={q:'',attendance:'',offset:0,limit:50}; EF.pay={q:'',state:'',offset:0,limit:50,receipt:''}; EF.certs={offset:0,limit:20}; EF.person={id:'',data:null,loading:false,error:'',decision:'',reason:''}; EF.sum={formId:'',data:null,loading:false,error:''}; EF.link={pick:'',busy:'',msg:null}; EF.busy=''; EF.msg=null}
+function efReset(){EF.overview=null; EF.ovError=''; EF.regs={q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50}; EF.att={q:'',attendance:'',offset:0,limit:50}; EF.pay={q:'',state:'',offset:0,limit:50,receipt:''}; EF.certs={offset:0,limit:20}; EF.person={id:'',data:null,loading:false,error:'',decision:'',reason:''}; EF.sum={formId:'',data:null,loading:false,error:''}; EF.cancel={open:false,data:null,loading:false,error:'',receipt:'',focus:''}; EF.link={pick:'',busy:'',msg:null}; EF.busy=''; EF.msg=null}
 function efHash(){if(EI.all||!EI.eventId) return '#events'; const p=new URLSearchParams({event:String(EI.eventId),tab:String(EI.tab||'overview')}); if(EI.tab==='regs'&&EF.person.id) p.set('reg',EF.person.id); if(EI.tab==='survey'&&EF.sum.formId) p.set('form',EF.sum.formId); return '#'+p.toString()}
 function efSyncHash(){if(IS_TEST) return; try{const h=efHash(); if(location.hash!==h) history.replaceState(null,'',h)}catch(e){}}
 function efParseHash(h){const s=String(h||'').replace(/^#/,''); if(!/^event=/.test(s)) return null; const p=new URLSearchParams(s); const id=String(p.get('event')||''); if(!/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null; const tab=String(p.get('tab')||'overview'); const safe=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):''; return {id,tab:EF_TAB_KEYS.has(tab)||['resources','notify','recording','orders','questions','reviews','reports'].includes(tab)?tab:'overview',reg:safe(p.get('reg')),form:safe(p.get('form'))}}
@@ -8006,7 +8008,37 @@ function efRegs(){
   return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}
     <small class="cap">وضعیت ثبت‌نام (پذیرفته/انتظار) از وضعیت پرداخت جداست؛ «رسید فرستاده شده» یعنی هنوز تأیید نشده.${fin?'':' مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.'}</small>
     ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
-    ${efPager(b,d)}</div>`;
+    ${efPager(b,d)}${forms.length?efCancelled(fin):''}</div>`;
+}
+/* ── ثبت‌نام‌های لغوشده: عکس‌برداری سرور؛ فقط خواندنی، با مجوز و ممیزی ── */
+function efCancelled(fin){
+  const c=EF.cancel, head=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><strong>ثبت‌نام‌های لغوشده</strong>${c.data?tag(fa(c.data.total||0)+' مورد',''):''}<span class="sp"></span>${btn(c.open?'بستن':'نمایش',`data-ef-cancel-toggle ${c.loading?'disabled':''}`,c.open?'i-close':'i-clock')}</div>`;
+  if(!c.open) return `<div class="card stack" data-ef-cancelled style="gap:6px">${head}<small class="cap">کسانی که رسیدشان رد شده یا پاسخشان حذف شده؛ نام، پاسخ‌ها و سابقهٔ پرداخت اینجا می‌ماند و هر بار دیدنش ثبت می‌شود.</small></div>`;
+  let body='';
+  if(c.loading&&!c.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن لغوشده‌ها…</p>`;
+  else if(c.error) body=`${p2Msg({kind:'stop',text:c.error})}${btn('تلاش دوباره','data-ef-cancel-retry','i-refresh')}`;
+  else if(!c.data||!c.data.items.length) body=emptyBox('در این رویداد ثبت‌نامی لغو نشده است.');
+  else body=`<div class="admlist">${c.data.items.map(x=>efCancelRow(x,fin)).join('')}</div>`;
+  return `<div class="card stack" data-ef-cancelled style="gap:6px">${head}${body}</div>`;
+}
+function efCancelRow(x,fin){
+  const pay=x.payment||null, rec=x.receipt||{}, canRec=canPerm('receipt_approve')||canPerm('finance'), focus=EF.cancel.focus===x.id;
+  const meta=[svcWhen(x.created_at)||'',EF_CANCEL_SOURCE[x.source]||'',EF_ROLE_FA[x.actor&&x.actor.role]||'',x.status_before?'پیش از لغو: '+(EF_REG_STATUS[x.status_before]||[x.status_before])[0]:''].filter(Boolean).join(' · ');
+  const payLine=pay?[EF_METHOD[pay.method]||pay.method||'',pay.status_before?'وضعیت پرداخت هنگام لغو: '+(EF_PAY_STATUS[pay.status_before]||pay.status_before):'',fin&&pay.amount!=null?efMoney(pay.amount):''].filter(Boolean).join(' · '):'بدون رکورد پرداخت';
+  const receipt=!rec.stored?'رسیدی ثبت نشده بود':rec.web_file?(canRec?`<button class="btn sm quiet" type="button" data-ef-cancel-receipt="${esc(x.id)}">${ico('i-image')}رسید نگه‌داشته‌شده</button>`:'رسید نگه داشته شده؛ نمایش نیازمند مجوز رسید/مالی'):(canRec?`رسید از راه بله در <a href="admin.html#inbox">صندوق پیام‌ها</a> مانده`:'رسید از راه بله ثبت شده بود');
+  const open=EF.cancel.receipt===x.id&&rec.web_file&&canRec?`<div style="flex-basis:100%"><img src="${esc(window.NORA_SERVER_API.eventFileCancellationReceiptUrl(EI.eventId,x.id))}" alt="رسید ثبت‌نام لغوشده" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-cancel-receipt-img/></div>`:'';
+  const ansRow=a=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(a.label||a.field_id||'')}</small><div dir="auto">${a.masked?`<span class="cap">${a.masked==='mobile'?'شماره (پنهان)'+(a.hint?' ···'+fa(a.hint):''):'کد ملی (پنهان)'}</span>`:esc(Array.isArray(a.value)?a.value.join('، '):(a.value==null||a.value===''?'ـ':String(a.value)))}</div></span></div>`;
+  const answers=Array.isArray(x.answers)&&x.answers.length?`<details style="flex-basis:100%"><summary class="cap">پاسخ‌های فرم</summary><div class="admlist">${x.answers.map(ansRow).join('')}</div></details>`:'';
+  const comps=(x.companions||[]).length?`<small class="cap">همراهان لغوشده: ${x.companions.map(cm=>esc(cm.name||'همراه')).join('، ')}</small>`:'';
+  return `<div class="admlirow" data-ef-cancel="${esc(x.id)}" style="flex-wrap:wrap${focus?';outline:2px solid var(--brand);border-radius:12px':''}"><span class="ic">${ico('i-close')}</span>
+    <span class="sp"><b>${esc(x.name||'بدون نام')}</b><small class="cap">${esc(meta)}</small>${x.reason?`<small class="cap">دلیل: ${esc(x.reason)}</small>`:''}<small class="cap" dir="auto">${payLine}</small>${comps}<small class="cap">${receipt}</small></span>
+    ${tag('ثبت‌نام لغوشده','stop')}${answers}${open}</div>`;
+}
+async function efLoadCancellations(api){
+  const c=EF.cancel; c.loading=true; c.error=''; renderBody();
+  try{c.data=await api.eventFileCancellations(EI.eventId,{limit:200,offset:0})}
+  catch(error){c.error=efErr(error,'فهرست لغوشده‌ها دریافت نشد.')}
+  finally{c.loading=false; renderBody()}
 }
 /* ── پروندهٔ ثبت‌نام (یک نفر داخل رویداد) ── */
 function efPerson(){
@@ -8046,7 +8078,7 @@ async function efDecide(){
   try{const r=await api.eventFilePaymentDecision(EI.eventId,d.response_id,p.decision==='approve'?'approved':'rejected',reason,d.payment&&d.payment.status||'',staffCsrfCookie());
     EF.msg={kind:'ok',text:r&&r.changed===false?'این تصمیم پیش‌تر ثبت شده بود؛ چیزی دوباره تغییر نکرد.':p.decision==='approve'?'پرداخت تأیید شد و بلیت صادر می‌شود.':'رسید رد شد و ثبت‌نام لغو شد؛ ظرفیت آزاد شد.'};
     p.decision=''; p.reason='';
-    if(r&&r.registration_cancelled){EF.person.id=''; EF.person.data=null; EI.key=''; eiLoad(); return}
+    if(r&&r.registration_cancelled){EF.person.id=''; EF.person.data=null; EF.cancel.data=null; EI.key=''; eiLoad(); return}
     EI.key=''; eiLoad(); efLoadPerson(api,d.response_id);
   }catch(error){EF.msg={kind:'stop',text:efErr(error,'ثبت تصمیم انجام نشد؛ چیزی تغییر نکرد.')}; if(error&&error.status===409){p.decision=''; efLoadPerson(api,d.response_id)} else renderBody()}
   finally{EF.busy=''}
@@ -8068,9 +8100,9 @@ function efPayRow(r){
   const receipt=!rec.uploaded?'رسیدی ثبت نشده':rec.web_file?(canPerm('receipt_approve')||canPerm('finance')?`<button class="btn sm quiet" type="button" data-ef-receipt="${esc(r.response_id||'')}">${ico('i-image')}رسید پرداخت</button>`:'رسید ثبت شده'):`رسید از راه بله${rec.task_status?' · '+esc(rec.task_status==='pending'?'در انتظار بررسی':rec.task_status==='approved'?'تأییدشده':'ردشده'):''}`;
   const open=EF.pay.receipt&&EF.pay.receipt===r.response_id?`<div style="flex-basis:100%"><img src="${esc(window.NORA_SERVER_API.eventFileReceiptUrl(EI.eventId,r.response_id))}" alt="رسید پرداخت" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-receipt-img/></div>`:'';
   return `<div class="admlirow" data-ef-pay="${esc(r.payment_id)}" style="flex-wrap:wrap"><span class="ic">${ico('i-wallet')}</span>
-    <span class="sp"><b>${esc(r.name||(r.status==='rejected'?'ثبت‌نام لغوشده (نام با لغو حذف شده)':'بدون ثبت‌نام متصل'))}</b><small class="cap">${esc(r.display_id||('پرداخت '+String(r.payment_id||'').slice(0,8)))} · ${esc(EF_METHOD[r.method]||r.method||'')} · ${esc(EF_PAY_STATUS[r.status]||r.status||'')} · ${esc(svcWhen(r.created_at)||'')}</small><small class="cap" dir="auto">${efMoney(r.amount)}${r.party_count>1?' · '+fa(r.party_count)+' نفر':''}${r.transaction_id?' · تراکنش: '+esc(r.transaction_id):''}</small><small class="cap">${receipt}</small></span>
+    <span class="sp"><b>${esc(r.name||(r.status==='rejected'?'ثبت‌نام لغوشده (پیش از نگه‌داری عکس‌برداری)':'بدون ثبت‌نام متصل'))}</b>${r.cancellation?`<small class="cap">لغو ${esc(svcWhen(r.cancellation.at)||'')} · ${esc(EF_CANCEL_SOURCE[r.cancellation.source]||'')}${r.cancellation.reason?' · دلیل: '+esc(r.cancellation.reason):''}</small>`:''}<small class="cap">${esc(r.display_id||('پرداخت '+String(r.payment_id||'').slice(0,8)))} · ${esc(EF_METHOD[r.method]||r.method||'')} · ${esc(EF_PAY_STATUS[r.status]||r.status||'')} · ${esc(svcWhen(r.created_at)||'')}</small><small class="cap" dir="auto">${efMoney(r.amount)}${r.party_count>1?' · '+fa(r.party_count)+' نفر':''}${r.transaction_id?' · تراکنش: '+esc(r.transaction_id):''}</small><small class="cap">${receipt}</small></span>
     ${tag(ps[0],ps[1])}${r.registration_status?tag((EF_REG_STATUS[r.registration_status]||[r.registration_status])[0],''):tag('ثبت‌نام لغوشده','stop')}
-    <span class="row" style="gap:4px">${r.response_id?btn('پروندهٔ ثبت‌نام',`data-ef-person="${esc(r.response_id)}" data-ef-goto-regs`,'i-idcard'):''}</span>${open}</div>`;
+    <span class="row" style="gap:4px">${r.response_id?btn('پروندهٔ ثبت‌نام',`data-ef-person="${esc(r.response_id)}" data-ef-goto-regs`,'i-idcard'):r.cancellation?btn('پروندهٔ لغو',`data-ef-cancel-open="${esc(r.cancellation.id)}"`,'i-idcard'):''}</span>${open}</div>`;
 }
 function efPayments(){
   const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست پرداخت‌ها از سرور نیامد.');
@@ -8148,6 +8180,10 @@ function efClick(q){
   const api=window.NORA_SERVER_API;
   const tabBtn=q('[data-ef-tab]'); if(tabBtn){const next=tabBtn.dataset.efTab; if(tabBtn.dataset.efFormFilter){EF.regs.form_id=tabBtn.dataset.efFormFilter; EF.regs.offset=0} if(tabBtn.dataset.efSum){EF.sum.formId=tabBtn.dataset.efSum; EF.sum.data=null} EF.person.id=''; EF.person.data=null; EI.tab=next; EI.msg=null; EI.key=''; efSyncHash(); eiLoad(); return true}
   const person=q('[data-ef-person]'); if(person){if(person.hasAttribute('data-ef-goto-regs')){EI.tab='regs'; EI.key=''; eiLoad()} EF.msg=null; efLoadPerson(api,person.dataset.efPerson); return true}
+  if(q('[data-ef-cancel-toggle]')){EF.cancel.open=!EF.cancel.open; EF.cancel.focus=''; if(EF.cancel.open&&!EF.cancel.data) efLoadCancellations(api); else renderBody(); return true}
+  if(q('[data-ef-cancel-retry]')){efLoadCancellations(api); return true}
+  const cancelOpen=q('[data-ef-cancel-open]'); if(cancelOpen){EF.cancel.open=true; EF.cancel.focus=cancelOpen.dataset.efCancelOpen; EF.person.id=''; EF.person.data=null; EI.tab='regs'; EI.key=''; efSyncHash(); eiLoad(); efLoadCancellations(api); return true}
+  const cancelRec=q('[data-ef-cancel-receipt]'); if(cancelRec){EF.cancel.receipt=EF.cancel.receipt===cancelRec.dataset.efCancelReceipt?'':cancelRec.dataset.efCancelReceipt; renderBody(); return true}
   if(q('[data-ef-person-close]')){EF.person.id=''; EF.person.data=null; EF.msg=null; efSyncHash(); renderBody(); return true}
   const flt=q('[data-ef-filter]'); if(flt){const box=efBox(); if(box){box[flt.dataset.efFilter]=flt.dataset.efValue||''; box.offset=0; EI.key=''; eiLoad()} return true}
   if(q('[data-ef-search]')){const box=efBox(), inp=document.querySelector('[data-ef-q]'); if(box&&inp){box.q=String(inp.value||'').trim().slice(0,80); box.offset=0; EI.key=''; eiLoad()} return true}

@@ -117,6 +117,13 @@ def test_postgres_upgrade_and_downgrade_preserve_data_and_version_capacity(monke
                 }
                 # Phase 9.5 (0036): upload sessions, system markers and the one-shot announcement column.
                 assert {"upload_sessions", "system_markers"} <= head_tables
+                # 0038/0039: panel settings store and cancelled-registration snapshots (JSONB on PostgreSQL).
+                assert {"system_settings", "form_registration_cancellations"} <= head_tables
+                cancellation_columns = {
+                    column["name"]: column for column in inspect(connection).get_columns("form_registration_cancellations", schema=schema)
+                }
+                assert str(cancellation_columns["answers"]["type"]).upper() == "JSONB"
+                assert str(cancellation_columns["receipt_content"]["type"]).upper() == "BYTEA"
                 assert "announced_at" in {
                     column["name"] for column in inspect(connection).get_columns("event_resources", schema=schema)
                 }

@@ -575,6 +575,8 @@
         csrfWrite: true, csrfCookie: csrfCookieName || undefined
       }),
     eventFilePayments: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/payments' + adminQuery(params)),
+    eventFileCancellations: (eventId, params) => request('/api/admin/events/' + recordId(eventId) + '/cancellations' + adminQuery(params)),
+    eventFileCancellationReceiptUrl: (eventId, cancellationId) => '/api/admin/events/' + recordId(eventId) + '/cancellations/' + recordId(cancellationId) + '/receipt',
     eventFileFormSummary: (eventId, formId) => request('/api/admin/events/' + recordId(eventId) + '/forms/' + recordId(formId) + '/summary'),
     listAttendanceForms: params => request('/api/admin/attendance/forms' + adminQuery(params)),
     listAttendancePeople: (formId, params) => request('/api/admin/attendance/forms/' + recordId(formId) + '/people' + adminQuery(params)),

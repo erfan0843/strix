@@ -33,6 +33,7 @@ from backend.models import (  # noqa: E402
     AdminTaskRecord,
     Base,
     FormReceiptUploadRecord,
+    FormRegistrationCancellationRecord,
     FormResponseDraftRecord,
     FormResponseRecord,
     PlatformIdentityRecord,
@@ -2119,6 +2120,13 @@ def test_public_form_receipt_upload_precedes_ticket_and_rejection_cancels_regist
     )
     assert rejected.status_code == 200, rejected.text
     assert owner.get(f"/api/forms/{form_id}/responses").json()["total"] == 0
+    with owner.app.state.session_factory() as db:
+        snapshot = db.query(FormRegistrationCancellationRecord).filter_by(response_id=response_id).one()
+        assert snapshot.source == "inbox" and snapshot.reason == "فیش نامعتبر" and snapshot.bale_user_id == "73421"
+        assert snapshot.display_name and snapshot.answers, "هویت و پاسخ‌ها در عکس‌برداری لغو می‌مانند"
+        assert snapshot.receipt_file_refs == [private_file.id], "رسید بله در پروندهٔ خصوصی صندوق می‌ماند و مرجعش ثبت می‌شود"
+        assert snapshot.receipt_content is None
+        assert db.query(PrivateFileRecord).filter_by(id=private_file.id).count() == 1
     verify = owner.post(
         f"/api/bot/form-tickets/{response_id}/verify",
         json={"bale_user_id": "99999"},
