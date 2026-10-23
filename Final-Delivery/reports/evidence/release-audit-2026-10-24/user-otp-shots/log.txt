@@ -1,0 +1,22 @@
+PASS login page: phone form shown, no staff password field
+PASS captcha image rendered from server
+PASS captcha solved through the server verifier (test oracle)
+otp request status 200
+PASS OTP request accepted (200) through the real endpoint
+PASS code step shown with masked destination + resend
+PASS exactly one code written to the local sink for this phone (no SMS)
+PASS wrong code rejected by server (4xx), still on code step
+otp verify status 200
+PASS correct code → verify 200
+PASS login page shows authenticated state / continue to account
+account/me {"status":200,"authenticated":true,"provider":"phone","role":null}
+PASS account/me: authenticated phone user, no staff role
+PASS user session: admin events API 401/403
+PASS user session: forms (owner) API 401/403
+PASS account page loads for the phone user
+admin direct {"url":"/admin.html#events","adminApi":403}
+PASS direct admin URL with a user session: no admin data (API 401/403)
+PASS logout without CSRF token is refused (403) and the session stays
+logout {"status":200}
+PASS logout with CSRF ends the session (account/me unauthenticated)
+TOTAL PASS 16 / FAIL 0
