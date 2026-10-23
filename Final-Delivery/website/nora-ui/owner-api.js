@@ -603,6 +603,11 @@
     pauseForm: (id, expectedVersion) => request('/api/forms/' + encodeURIComponent(String(id)) + '/pause', {
       method: 'POST', body: { expected_version: Number(expectedVersion) }, ownerWrite: true
     }),
+    /* گام ۴ ویزارد رویداد: فقط مرجع رویداد فرم جابه‌جا می‌شود (POST /api/forms/{id}/event)؛ تعریف فرم دست‌نخورده می‌ماند */
+    linkFormEvent: (id, eventId, expectedVersion, csrfCookieName) => request('/api/forms/' + encodeURIComponent(String(id)) + '/event', {
+      method: 'POST', body: { ev: eventId == null ? '' : String(eventId), expected_version: Number(expectedVersion) },
+      csrfWrite: true, csrfCookie: csrfCookieName || undefined
+    }),
     listResponses: (id, limit, offset) => request('/api/forms/' + encodeURIComponent(String(id))
       + '/responses?limit=' + encodeURIComponent(String(limit || 50))
       + '&offset=' + encodeURIComponent(String(offset || 0))),

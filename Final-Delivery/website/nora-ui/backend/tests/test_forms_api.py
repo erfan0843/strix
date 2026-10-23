@@ -2666,3 +2666,73 @@ def test_form_event_reference_must_exist_in_site_content(configured_client):
     legacy_save = owner.put(f"/api/forms/{form_id}", json={**valid_form(), "ev": "event-2026-01", "name": "نام تازه", "expected_version": 2}, headers=csrf_headers(owner))
     assert legacy_save.status_code == 200, legacy_save.text
     assert legacy_save.json()["ev"] == "event-2026-01" and legacy_save.json()["name"] == "نام تازه"
+
+
+def test_wizard_links_existing_form_to_event_without_touching_definition(configured_client):
+    """``POST /api/forms/{id}/event`` moves only the event reference (wizard step 4).
+
+    The builder stays the sole editor of fields/settings; the link obeys the same guards as a
+    full edit: owned form, version CAS, real event id, immutable after responses, paused first
+    when published, purchase forms keep the recording's event. Every change is audited.
+    """
+    owner, _settings = configured_client
+    assert owner.post("/api/forms/any/event", json={"ev": "x", "expected_version": 1}).status_code == 401
+    login(owner)
+
+    created = owner.post(
+        "/api/forms", json={**valid_form(), "ev": ""}, headers=create_headers(owner, "wizard-link-create-key-0001")
+    )
+    assert created.status_code == 201, created.text
+    form_id = created.json()["id"]
+    assert created.json()["ev"] == ""
+    before = owner.get(f"/api/forms/{form_id}").json()
+
+    # version is mandatory and must match
+    assert owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-2026-01"}, headers=csrf_headers(owner)).status_code == 428
+    stale = owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-2026-01", "expected_version": 7}, headers=csrf_headers(owner))
+    assert stale.status_code == 409 and stale.json()["detail"]["code"] == "version_conflict"
+    # unknown event id refused (client-supplied id is validated against site_content)
+    ghost = owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-ghost", "expected_version": 1}, headers=csrf_headers(owner))
+    assert ghost.status_code == 422 and ghost.json()["detail"] == {"code": "unknown_reference", "field": "ev", "message": ghost.json()["detail"]["message"]}
+    assert owner.post(f"/api/forms/{form_id}/event", json={"ev": 5, "expected_version": 1}, headers=csrf_headers(owner)).status_code == 422
+
+    linked = owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-2026-01", "expected_version": 1}, headers=csrf_headers(owner))
+    assert linked.status_code == 200, linked.text
+    assert linked.json()["ev"] == "event-2026-01" and linked.json()["version"] == 2
+    after = owner.get(f"/api/forms/{form_id}").json()
+    assert after["fields"] == before["fields"] and after["settings"] == before["settings"] and after["name"] == before["name"]
+    # the event's form list sees the link
+    listed = owner.get("/api/forms").json()["items"]
+    assert [row["ev"] for row in listed if row["id"] == form_id] == ["event-2026-01"]
+    # same reference again is idempotent (no version bump)
+    again = owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-2026-01", "expected_version": 2}, headers=csrf_headers(owner))
+    assert again.status_code == 200 and again.json()["version"] == 2
+    # detach
+    detached = owner.post(f"/api/forms/{form_id}/event", json={"ev": None, "expected_version": 2}, headers=csrf_headers(owner))
+    assert detached.status_code == 200 and detached.json()["ev"] == "" and detached.json()["version"] == 3
+
+    audit = owner.get("/api/owner/audit", params={"target_type": "form", "target_id": form_id}).json()["items"]
+    link_rows = [row for row in audit if row["action"] == "form.event_link"]
+    assert len(link_rows) == 2
+    assert link_rows[0]["details"]["to_event"] in {"", "event-2026-01"}
+
+    # published → pause first (same rule as the builder)
+    published = owner.post(f"/api/forms/{form_id}/publish", json={"expected_version": 3}, headers=csrf_headers(owner))
+    assert published.status_code == 200, published.text
+    blocked = owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-2026-01", "expected_version": 4}, headers=csrf_headers(owner))
+    assert blocked.status_code == 409 and blocked.json()["detail"]["code"] == "published_form_read_only"
+
+    # once a response exists the link is frozen even for a paused form
+    visitor = TestClient(owner.app)
+    assert visitor.get(f"/api/public/forms/{form_id}").status_code == 200
+    assert visitor.get(f"/api/public/forms/{form_id}/draft").status_code == 200
+    submitted = visitor.post(
+        f"/api/public/forms/{form_id}/responses",
+        json={"answers": {"full-name": "پاسخ‌دهندهٔ نمونه"}},
+        headers={"Origin": "http://testserver"},
+    )
+    assert submitted.status_code == 200, submitted.text
+    paused = owner.post(f"/api/forms/{form_id}/pause", json={"expected_version": 4}, headers=csrf_headers(owner))
+    assert paused.status_code == 200, paused.text
+    frozen = owner.post(f"/api/forms/{form_id}/event", json={"ev": "event-2026-01", "expected_version": 5}, headers=csrf_headers(owner))
+    assert frozen.status_code == 409 and frozen.json()["detail"]["code"] == "form_has_responses"

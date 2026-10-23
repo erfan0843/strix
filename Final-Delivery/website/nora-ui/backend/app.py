@@ -10585,6 +10585,91 @@ def create_app(
         db.expire_all()
         return _form_dict(get_owned_form(db, identity.owner_id, form_id))
 
+    @app.post("/api/forms/{form_id}/event")
+    async def link_form_event(
+        form_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("fm_create")),
+        db: Session = Depends(get_db),
+    ):
+        """Attach an existing warehouse form to an event (or detach it) from the event wizard.
+
+        Only the reference moves: fields/settings stay untouched, so the builder remains the sole
+        form editor. Same guards as a full edit: owned form, ``expected_version`` compare-and-swap,
+        immutable once responses exist, published forms must be paused first, purchase forms keep
+        the event derived from their recording, and the target must be a real ``site_content`` event.
+        """
+        payload = await _read_json_object(request, request.app.state.settings.max_request_bytes)
+        expected = payload.get("expected_version")
+        raw_event = payload.get("ev", "")
+        if (
+            set(payload) - {"expected_version", "ev"}
+            or isinstance(expected, bool)
+            or not isinstance(expected, int)
+            or expected < 1
+        ):
+            raise HTTPException(428, "expected_version_required")
+        if raw_event is not None and not isinstance(raw_event, str):
+            raise HTTPException(422, detail={"code": "invalid_event_reference", "field": "ev"})
+        event_id = str(raw_event or "").strip()[:120]
+        record = get_owned_form(db, identity.owner_id, form_id)
+        if expected != record.version:
+            raise HTTPException(409, detail={"code": "version_conflict", "current_version": record.version})
+        previous = str(record.event_id or "")
+        if event_id == previous:
+            return _form_dict(record)
+        if record.purpose == "recording_access":
+            raise HTTPException(
+                409,
+                detail={"code": "purchase_form_event_fixed", "message": "رویداد فرم خرید از محصول ضبط‌شده می‌آید."},
+            )
+        if record.status == "published":
+            raise HTTPException(
+                409,
+                detail={"code": "published_form_read_only", "message": "ابتدا دریافت پاسخ را متوقف کنید."},
+            )
+        response_count = db.scalar(
+            select(func.count(FormResponseRecord.id)).where(FormResponseRecord.form_id == form_id)
+        ) or 0
+        if response_count:
+            raise HTTPException(
+                409,
+                detail={"code": "form_has_responses", "message": "پس از ثبت پاسخ، پیوند رویداد فرم تغییر نمی‌کند."},
+            )
+        if event_id:
+            site = db.get(SiteContentRecord, "public")
+            content = site.content if site is not None and isinstance(site.content, dict) else {}
+            known = {
+                str(row.get("id") or "").strip()
+                for row in (content.get("events") or [])
+                if isinstance(row, dict)
+            }
+            if event_id not in known:
+                raise HTTPException(
+                    422,
+                    detail={"code": "unknown_reference", "field": "ev", "message": "رویدادی با این شناسه در محتوای سایت نیست."},
+                )
+        result = db.execute(
+            update(FormRecord)
+            .where(
+                FormRecord.id == form_id,
+                FormRecord.owner_id == identity.owner_id,
+                FormRecord.version == expected,
+            )
+            .values(event_id=event_id or None, version=FormRecord.version + 1, updated_at=_utc_now())
+            .execution_options(synchronize_session=False)
+        )
+        if cast(CursorResult[Any], result).rowcount != 1:
+            db.rollback()
+            raise HTTPException(409, "form_conflict")
+        record_audit(
+            db, identity, "form.event_link", target_type="form", target_id=form_id,
+            details={"title": record.title, "from_event": previous, "to_event": event_id},
+        )
+        db.commit()
+        db.expire_all()
+        return _form_dict(get_owned_form(db, identity.owner_id, form_id))
+
     @app.get("/api/public/forms/{form_id}")
     def get_public_form(
         form_id: str,

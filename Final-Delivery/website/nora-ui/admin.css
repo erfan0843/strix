@@ -816,3 +816,7 @@ a.sktile{text-decoration:none;color:inherit}
 /* F1: نوار نسبت در گزارش‌های سرور */
 .admlirow .rbar{flex:1 1 60px;min-width:40px;height:6px;border-radius:3px;background:var(--surface-sunk);overflow:hidden}
 .admlirow .rbar i{display:block;height:100%;border-radius:3px;background:var(--brand);transition:width .2s ease}
+/* ویزارد پنج‌گامی رویداد: پنل‌های غیرفعال در DOM می‌مانند ولی دیده نمی‌شوند (.stack display:flex را نمی‌شکنند) */
+[data-ct-step-panel][hidden]{display:none!important}
+[data-ct-wizard] .chip[data-ct-step-state="error"]{border-color:var(--stop);color:var(--stop)}
+[data-ct-wizard] .chip[data-ct-step-state="ok"]:not(.on) b{color:var(--ok)}

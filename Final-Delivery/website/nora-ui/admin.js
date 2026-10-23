@@ -590,21 +590,39 @@ function miniSheet(title,html,label){
 }
 
 /* ══ ناوبری و نوار بالا ═════════════════════════════════════════════════ */
-const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:'ساخت مطلب تازه'}
+/* منوی پنل سروری = همان منوی مرجع (data.js طرح: newev, events, users, forms, reports, settings + داشبورد).
+   «گزارش‌ها» بخش جدا نیست؛ همان هاب گزارش سرور زیر «کاربران» است (S.uHub='reports') و «تعریف جدید»
+   همان ویرایشگر سروری رویداد/مطلب را با رکورد خالی باز می‌کند. مجوز هر مورد از canSec/canPerm سرور می‌آید. */
+const SERVER_MENU=[
+  {k:'newev',  n:'تعریف جدید', i:'i-plus',    s:'رویداد یا مطلب تازه تا انتشار یا تأیید'},
+  {k:'events', n:'رویدادها و مطالب', i:'i-calendar',s:'رویداد و مطلب، از انتشار تا رسانه'},
+  {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهینامه و ابزارها'},
+  {k:'forms',  n:'فرم‌ها',     i:'i-doc',     s:'ساخت فرم، پاسخ‌ها و گزارش'},
+  {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش تجمیعی سرور، خروجی و دفتر نامه‌ها'},
+  {k:'settings',n:'تنظیمات',   i:'i-sliders', s:'متن، مالی و پشتیبان'}];
+const SERVER_TABBAR=['dash','events','users','reports','settings'];
+const navSecs=()=>(!IS_TEST&&SERVER_AUTH)?[HOME].concat(SERVER_MENU):ALLSECS;
+const navCan=k=>k==='reports'?(canPerm('rp_view')&&canSec('users')):canSec(k);
+const navActive=k=>{const rep=S.sec==='users'&&S.uHub==='reports';
+  if(k==='reports') return rep; if(k==='users') return S.sec==='users'&&!rep;
+  if(k==='events') return S.sec==='events'||(S.sec==='newev'&&IS_TEST); return S.sec===k};
+const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:(!IS_TEST&&SERVER_AUTH)?'رویداد یا مطلب تازه تا انتشار یا تأیید':'ساخت مطلب تازه'}
+  :k==='reports'&&!IS_TEST&&SERVER_AUTH?SERVER_MENU.find(s=>s.k==='reports')
   :ALLSECS.find(s=>s.k===(k==='reports'?'users':k))||HOME;
 
 function renderNav(){
-  const secs=ALLSECS.filter(section=>canSec(section.k)).map(section=>section.k);
-  $('#admNav').innerHTML=ALLSECS.map(s=>{
-    const open=secs.indexOf(s.k)>-1, active=S.sec===s.k||(S.sec==='newev'&&s.k==='events'), lock=!open,
+  const all=navSecs(), live=!IS_TEST&&SERVER_AUTH;
+  const secs=all.filter(section=>navCan(section.k)).map(section=>section.k);
+  $('#admNav').innerHTML=all.map(s=>{
+    const open=secs.indexOf(s.k)>-1, active=navActive(s.k), lock=!open,
       contents=`${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span>${s.badge&&open?`<span class="tag warn bd">${esc(s.badge)}</span>`:(lock?`<span class="bd">${ico('i-lock')}</span>`:'')}`;
     if(s.k==='forms') return open
       ?`<a class="btn quiet block ${S.sec===s.k?'on':''}" href="builder.html" data-center-href="builder.html">${contents}</a>`
       :`<button class="btn quiet block" data-locked="1">${contents}</button>`;
     return `<button class="btn quiet block ${active?'on':''}" data-sec="${s.k}" ${open?'':'data-locked="1"'}>${contents}</button>`;}).join('');
   /* نوار پایین همان بخش‌های بازِ ریل است؛ مرکز فرم‌ها پیوند مستقیم دارد */
-  $('#admTabs').innerHTML=ALLSECS.filter(s=>secs.indexOf(s.k)>-1).map(s=>{
-    const active=S.sec===s.k||(S.sec==='newev'&&s.k==='events');
+  $('#admTabs').innerHTML=all.filter(s=>secs.indexOf(s.k)>-1&&(!live||SERVER_TABBAR.includes(s.k))).map(s=>{
+    const active=navActive(s.k)||(live&&s.k==='events'&&S.sec==='newev');
     return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span></a>`
       :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span></a>`}).join('');
 }
@@ -7257,7 +7275,8 @@ function ctSyncDates(field,oldVal,newVal){
   }
   if(field==='startsAt'&&newD){
     const cur=ctJDate(f.endsAt);
-    if(!String(f.endsAt||'').trim()||(oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd)) f.endsAt=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd)+(cur&&cur.rest?' '+cur.rest:'');
+    /* پایانِ خالی، خالی می‌ماند (سرور پایان اختیاری را می‌پذیرد)؛ پایانِ «فقط تاریخ» یعنی ۰۰:۰۰ و با شروعِ ساعت‌دار ۴۲۲ invalid_datetime_order می‌گرفت */
+    if(String(f.endsAt||'').trim()&&oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd) f.endsAt=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd)+(cur&&cur.rest?' '+cur.rest:'');
   }
 }
 /* ساعت ۲۴ساعته: فقط وقتی کاربر عدد خالص می‌نویسد دونقطه خودکار می‌آید؛ متن آزاد («۱۰ تا ۱۳») دست‌نخورده می‌ماند. */
@@ -7330,40 +7349,60 @@ function ctEditor(){
     </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
     ${img&&img.startsWith('/api/public/media/')?`<small class="cap" dir="ltr">${esc(img)}</small>`:''}
     ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
+  const wizStep=ctWizStep(e);
+  const panel=(n,inner)=>`<div class="stack" data-ct-step-panel="${n}" ${wizStep===n?'':'hidden'}>${inner}</div>`;
   const fields=kind==='events'?`
+    ${ctWizHeader(e)}
+    ${panel(0,`
+    <p class="cap">چیستی رویداد: عنوان، نوع، برگزارکننده و شرح؛ همان چیزی که روی کارت و صفحهٔ عمومی دیده می‌شود.</p>
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}</div>
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}</div>
     ${isNew?`<div class="card stack" data-ct-templates style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>قالب شروع (اختیاری)</strong><span class="sp"></span><small class="cap">فقط فیلدهای خالی را پر می‌کند؛ ذخیره‌ای انجام نمی‌شود.</small></div><div class="admfilters">${CT_TEMPLATES.map(t=>`<button type="button" class="chip ${e.template===t[0]?'on':''}" data-ct-template="${t[0]}">${esc(t[1])}</button>`).join('')}</div></div>`:''}
-    <div class="row tight" style="flex-wrap:wrap">${ctDateInp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها؛ روز هفته خودکار نوشته می‌شود'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when,hint:'اگر خالی باشد، از تاریخ شمسی پر می‌شود'})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰:۰۰ یا «۱۰ تا ۱۳»',dir:'ltr',hint:'عدد خالص (مثلاً ۱۰۰۰) خودکار ۱۰:۰۰ می‌شود و به «شروع رویداد» می‌رود'})}</div>
-    ${p2Inp('مکان','place',f.place,{max:240})}
     <div class="card stack" data-ct-people><strong>مدرس و نهاد همکار (پیوند شناسه‌ای)</strong><small class="cap">هر دو از ردیف‌های منتشرشدهٔ همین سایت انتخاب می‌شوند تا کارت رویداد و صفحهٔ عمومی همان پروفایل را نشان دهند؛ تایپ آزاد نام این‌جا ذخیره نمی‌شود.</small>${ctPicker('tchr')}${ctPicker('partnerId')}</div>
+    ${p2Inp('شرح','d',f.d,{textarea:true,rows:6,err:err.d,hint:'برای انتشار لازم است.'})}
+    ${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}
+    ${imageBox}`)}
+    ${panel(1,`
+    <p class="cap">زمان و مکان: تاریخ شمسی برای مرتب‌سازی و تقویم، ساعت دقیق برای شمارشگرها و یادآورها (به وقت تهران)، جلسه‌ها و وضعیت برگزاری.</p>
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('شیوهٔ برگزاری','mode',f.mode,{max:80,ph:'حضوری / برخط'})}${p2Inp('مکان','place',f.place,{max:240})}</div>
+    <div class="row tight" style="flex-wrap:wrap">${ctDateInp('تاریخ شمسی','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۱۲',err:err.on,hint:'برای مرتب‌سازی و تقویم صفحهٔ رویدادها؛ روز هفته خودکار نوشته می‌شود'})}${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when,hint:'اگر خالی باشد، از تاریخ شمسی پر می‌شود'})}${p2Inp('ساعت','time',f.time,{max:120,ph:'۱۰:۰۰ یا «۱۰ تا ۱۳»',dir:'ltr',hint:'عدد خالص (مثلاً ۱۰۰۰) خودکار ۱۰:۰۰ می‌شود و به «شروع رویداد» می‌رود'})}</div>
     <div class="card stack" data-ct-schedule>
-      <strong>زمان‌بندی دقیق و وضعیت ثبت‌نام</strong>
-      <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از همین مقادیر محاسبه می‌شود. خالی بگذارید تا شمارشگری ساخته نشود.</small>
+      <strong>زمان‌بندی دقیق</strong>
+      <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ وارد می‌شوند؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها در همهٔ صفحه‌ها از همین مقدار خوانده می‌شوند.</small>
       <div class="row tight" style="flex-wrap:wrap">${ctDateInp('شروع رویداد','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',err:err.startsAt,hint:'تاریخ آن همراه «تاریخ شمسی» می‌آید تا دستی عوضش کنی'})}${ctDateInp('پایان رویداد','endsAt',f.endsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۳:۰۰',err:err.endsAt,hint:'تاریخ پایان همراه شروع می‌آید؛ ساعت را بنویس'})}</div>
+      <div class="row tight" style="flex-wrap:wrap">${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
+      <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.past?'on':''}"><input type="checkbox" data-ct-check="past" ${f.past?'checked':''} hidden/>برگزارشده (آرشیو)</label></div>
+    </div>
+    ${ctPartsBox(f,err.parts)}`)}
+    ${panel(2,`
+    <p class="cap">ظرفیت و ثبت‌نام: پنجرهٔ ثبت‌نام، حالت ثبت‌نام و ظرفیت کل. مبلغ واقعی پرداخت و روش‌های آن در فرم ثبت‌نام (فرم‌ساز) تعریف می‌شود؛ این‌جا فقط هزینهٔ نمایشی کارت است.</p>
+    <div class="card stack" data-ct-regwin>
+      <strong>پنجره و حالت ثبت‌نام</strong>
+      <small class="cap">باز/بسته بودن ثبت‌نام در همهٔ صفحه‌ها از این مقدارها و زمان سرور خوانده می‌شود؛ فرم ثبت‌نام منتشرشده هم لازم است (گام بعد).</small>
       <div class="row tight" style="flex-wrap:wrap">${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه، فرم ثبت‌نام در سرور بسته می‌شود.'})}</div>
-      <div class="row tight" style="flex-wrap:wrap">${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (بر پایهٔ زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'رویداد لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
+      <div class="row tight" style="flex-wrap:wrap">${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (بر پایهٔ زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap})}${p2Inp('هزینه (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان'})}</div>
       ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
       ${e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:''}
+    </div>
+    <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label><label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label></div>
+    ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
+    <div class="card stack" data-ct-waitlist><strong>فهرست انتظار</strong><small class="cap">در مرجع طراحی هست؛ سرور فعلی فهرست انتظار را در سطح فرم (ظرفیت فرم) نگه می‌دارد نه رویداد. ${tag('تصمیم مالک / نیازمند بک‌اند','warn')}</small></div>`)}
+    ${panel(3,`
+    <p class="cap">فرم‌ها و یادآوری‌ها: فرم ثبت‌نام از انبار فرم‌ها (فرم‌ساز تنها ویرایشگر فرم است) و یادآورهای خودکار درون‌برنامه‌ای و بله از صف اعلان‌های سرور.</p>
+    <div class="card stack" data-ct-forms-step>
       ${ctEventForms(e)}
+      ${ctFormLinkPicker(e)}
     </div>
-    ${ctPartsBox(f,err.parts)}
-    ${p2Inp('شرح','d',f.d,{textarea:true,rows:6,err:err.d,hint:'برای انتشار لازم است.'})}
-    <div class="row tight" style="flex-wrap:wrap">${p2Inp('هزینه (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان'})}${p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap})}${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}</div>
-    ${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}
-    <div class="row tight" style="flex-wrap:wrap">
-      <label class="chip ${f.past?'on':''}"><input type="checkbox" data-ct-check="past" ${f.past?'checked':''} hidden/>برگزارشده (آرشیو)</label>
-      <label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label>
-      <label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label>
-    </div>
+    <div class="card stack" data-ct-rem-step><strong>یادآورهای خودکار</strong><small class="cap">۲۴ ساعت و ۱ ساعت پیش از شروع؛ مستقل از هم، برای ثبت‌نام‌شدگان تأییدشده، درون‌برنامه‌ای و بله از همان صف اعلان‌ها. پیامک ندارد. تغییر زمان شروع، یادآورهای قدیمی را باطل می‌کند.</small>
     <div class="row tight" style="flex-wrap:wrap" data-ct-reminders>
       <label class="chip ${f.remH24?'on':''}"><input type="checkbox" data-ct-check="remH24" ${f.remH24?'checked':''} hidden/>یادآور ۲۴ ساعت قبل</label>
       <label class="chip ${f.remH1?'on':''}"><input type="checkbox" data-ct-check="remH1" ${f.remH1?'checked':''} hidden/>یادآور ۱ ساعت قبل</label>
       ${err.reminders?`<small class="cap" data-ct-err="reminders" style="color:var(--danger)">${esc(err.reminders)}</small>`:''}
     </div>
+
     ${ctReminderBox(e)}
-    ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
-    ${imageBox}`
+    </div>`)}
+    ${panel(4,ctWizReview(e))}`
   :`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
     <div class="row tight" style="flex-wrap:wrap">${p2Inp('دسته','cat',f.cat,{max:80,ph:'اخبار، آموزش…'})}${p2Inp('نویسندهٔ میهمان (نام آزاد، اختیاری)','who',f.who,{max:160,hint:'اگر نویسنده پروفایل سایت دارد، پایین از فهرست انتخاب کن.'})}${p2Inp('تاریخ انتشار','at',f.at,{max:30,ph:'2026-10-21',dir:'ltr',err:err.at})}</div>
@@ -7385,14 +7424,100 @@ function ctEditor(){
     ${!isNew&&chIs('content.'+kind,e.id)?chPanel():''}
     <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)${!isNew&&chIs('content.'+kind,e.id)?';display:none':''}" data-ct-edit-pane>
       <div class="stack" style="flex:2 1 320px;min-width:0">${fields}</div>
-      <div class="stack" style="flex:1 1 240px;min-width:0"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
+      <div class="stack" style="flex:1 1 240px;min-width:0${kind==='events'&&wizStep===4?';display:none':''}"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
     </div>
-    <div class="row" style="flex-wrap:wrap">
+    <div class="row" style="flex-wrap:wrap" data-ct-actions>
       ${btn('انصراف','data-ct-cancel','i-close')}<span class="sp"></span>
+      ${kind==='events'?`${wizStep>0?btn('گام قبل',`data-ct-step="${wizStep-1}"`,'i-chev-right'):''}${wizStep<4?btn('گام بعد',`data-ct-step="${wizStep+1}"`,'i-chev-left'):''}`:''}
+      ${kind==='events'&&isNew&&wizStep>=2&&wizStep<4?btn('ذخیرهٔ پیش‌نویس و ادامه',`data-ct-save-stay ${CT.busy?'disabled':''}`,'i-check'):''}
       ${btn(saveLabel,`data-ct-save ${CT.busy?'disabled':''}`,'i-check')}
-      ${isNew&&ctCan('can_publish')?btn('ذخیره و انتشار',`data-ct-save-publish ${CT.busy?'disabled':''}`,'i-globe'):''}
+      ${ctCan('can_publish')&&(isNew||(status!=='published'&&status!=='archived'))?btn(isNew?'ذخیره و انتشار':'ذخیره و انتشار در سایت',`data-ct-save-publish ${CT.busy?'disabled':''}`,'i-globe'):''}
+      ${kind==='events'&&!ctCan('can_publish')?`<small class="cap" data-ct-approval>انتشار با مالک یا مدیر دارای مجوز انتشار انجام می‌شود؛ ذخیره، پیش‌نویس را برای بازبینی نگه می‌دارد.</small>`:''}
     </div>
   </section>`;
+}
+/* ══ ویزارد پنج‌گامی رویداد (مرجع طراحی: event-wizard-research.md) ══
+   یک فرم، یک حالت (CT.edit.form)؛ گام‌ها فقط نمای همان فرم را تکه می‌کنند. همهٔ پنل‌ها در DOM هستند
+   (پنل‌های غیرفعال hidden) تا ذخیره، خطاهای ۴۲۲ و پیش‌نویس مرورگر روی همهٔ فیلدها کار کند. */
+const CT_WIZ_STEPS=[['what','چیستی و پوستر','i-text'],['when','زمان و مکان','i-calendar'],['cap','ظرفیت و ثبت‌نام','i-users'],['forms','فرم‌ها و یادآوری‌ها','i-doc'],['page','کارت و صفحه','i-eye']];
+const CT_WIZ_FIELD_STEP={t:0,kind:0,d:0,tags:0,poster:0,tchr:0,partnerId:0,mode:1,on:1,when:1,time:1,place:1,startsAt:1,endsAt:1,sess:1,parts:1,lifecycle:1,past:1,regOpensAt:2,regClosesAt:2,regMode:2,cap:2,price:2,conditions:2,cert:2,certMin:2,certNote:2,qaClosed:2,reminders:3,remH24:3,remH1:3};
+function ctWizStep(e){const n=Number(e&&e.step); return Number.isInteger(n)&&n>=0&&n<=4?n:0}
+function ctWizGo(n){const e=CT.edit; if(!e) return; const k=Math.max(0,Math.min(4,Number(n)||0)); e.step=k; renderBody(); const box=document.querySelector('[data-ct-editor]'); if(box&&typeof box.scrollIntoView==='function'){try{box.scrollIntoView({block:'start'})}catch(_){}}}
+function ctWizErrStep(e){const errs=Object.keys(e&&e.errors||{}); let best=null; errs.forEach(k=>{const n=CT_WIZ_FIELD_STEP[k]; if(n!=null&&(best==null||n<best)) best=n}); return best}
+function ctLinkedForms(e){if(!e||!e.id) return []; const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access')}
+/* آمادگی هر گام فقط از همین فرم و پاسخ سرور (ثبت‌نام/فرم‌ها)؛ هیچ عددی ساخته نمی‌شود */
+function ctWizReady(e){
+  const f=e.form||{}, linked=ctLinkedForms(e), errs=e.errors||{};
+  const stepErr=n=>Object.keys(errs).some(k=>CT_WIZ_FIELD_STEP[k]===n);
+  return [
+    {ok:!!(String(f.t||'').trim()&&String(f.d||'').trim()),err:stepErr(0),hint:'عنوان و شرح'},
+    {ok:!!(String(f.on||'').trim()||String(f.startsAt||'').trim()),err:stepErr(1),hint:'تاریخ یا زمان شروع'},
+    {ok:!!(String(f.cap||'').trim()||f.regMode!=='auto'),err:stepErr(2),hint:'ظرفیت یا حالت ثبت‌نام'},
+    {ok:linked.some(x=>x.status==='published'),err:stepErr(3),hint:e.id?(linked.length?'فرم وصل است ولی منتشر نشده':'فرم ثبت‌نامی وصل نیست'):'پس از ذخیره'},
+    {ok:e.status==='published',err:false,hint:e.status==='published'?'در سایت':'هنوز منتشر نشده'}
+  ];
+}
+function ctWizHeader(e){
+  const cur=ctWizStep(e), ready=ctWizReady(e);
+  return `<nav class="admfilters hub-tabs" role="tablist" aria-label="گام‌های تعریف رویداد" data-ct-wizard>${CT_WIZ_STEPS.map(([k,l,ic],n)=>{const r=ready[n]; const mark=r.err?'⚠':r.ok?'✓':'';
+    return `<button type="button" class="chip ${cur===n?'on':''}" role="tab" aria-selected="${cur===n}" data-ct-step="${n}" data-ct-step-state="${r.err?'error':r.ok?'ok':'todo'}" title="${esc(r.hint||l)}">${ico(ic)}${fa(n+1)}. ${esc(l)}${mark?` <b aria-hidden="true">${mark}</b>`:''}</button>`}).join('')}</nav>`;
+}
+/* گام ۴: وصل‌کردن فرمِ موجودِ انبار به همین رویداد (فقط مرجع؛ تعریف فرم در فرم‌ساز می‌ماند). نامزدها از همان GET /api/forms */
+function ctFormLinkPicker(e){
+  if(!e||!e.id||!canPerm('fm_create')) return '';
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const cands=items.filter(f=>!String(f.ev||'')&&f.purpose!=='recording_access'&&f.status!=='archived'&&f.status!=='closed');
+  const busy=CT.busy==='link';
+  const opt=f=>{const st=FS_STATUS[f.status]||[f.status||'','']; const locked=f.status==='published'?'منتشرشده؛ اول متوقف کن':Number(f.response_count)>0?'پاسخ دارد؛ قفل':''; return `<option value="${esc(String(f.id))}" ${locked?'disabled':''}>${esc(f.name||f.title||'فرم')} · ${esc(FS_PURPOSE[f.purpose]||f.need||'')} · ${esc(st[0])}${locked?' · '+locked:''}</option>`};
+  const linked=ctLinkedForms(e);
+  const unlink=linked.filter(f=>f.status!=='published'&&!(Number(f.response_count)>0)).map(f=>`<button type="button" class="btn sm quiet" data-ct-form-unlink="${esc(String(f.id))}" ${busy?'disabled':''}>${ico('i-close')}جداکردن «${esc(f.name||f.title||'فرم')}»</button>`).join('');
+  return `<div class="stack" data-ct-form-link style="gap:6px">
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>وصل‌کردن فرم موجود از انبار</strong><span class="sp"></span><small class="cap">فقط فرم‌های پیش‌نویس/متوقف بدون پاسخ قابل جابه‌جایی‌اند؛ سرور همین را می‌سنجد.</small></div>
+    ${cands.length?`<div class="row tight" style="flex-wrap:wrap;align-items:center"><select class="inp" data-ct-form-link-pick style="min-width:220px" ${busy?'disabled':''}><option value="">یک فرم بی‌رویداد را انتخاب کن…</option>${cands.map(opt).join('')}</select>${btn('وصل به این رویداد',`data-ct-form-link-do ${busy?'disabled':''}`,'i-link')}</div>`
+      :`<small class="cap" data-ct-form-link-empty>فرم بی‌رویدادی در انبار نیست؛ با «ساخت فرم ثبت‌نام» فرم تازه با شناسهٔ همین رویداد ساخته می‌شود.</small>`}
+    ${unlink?`<div class="row tight" style="flex-wrap:wrap">${unlink}</div>`:''}
+    ${CT.linkMsg?p2Msg(CT.linkMsg):''}
+  </div>`;
+}
+async function ctLinkForm(formId,eventId){
+  const api=window.NORA_SERVER_API, e=CT.edit; if(!e||CT.busy||!api||typeof api.linkFormEvent!=='function') return;
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; const form=items.find(f=>String(f.id)===String(formId));
+  if(!form){CT.linkMsg={kind:'stop',text:'فرم انتخاب‌شده در فهرست سرور نیست؛ فهرست را بازخوانی کن.'}; renderBody(); return}
+  CT.busy='link'; CT.linkMsg=null; renderBody();
+  try{const saved=await api.linkFormEvent(formId,eventId,form.version,staffCsrfCookie());
+    CT.linkMsg={kind:'ok',text:eventId?`«${saved.name||form.name||'فرم'}» به این رویداد وصل شد · نسخهٔ ${fa(saved.version)}`:`«${saved.name||form.name||'فرم'}» از این رویداد جدا شد`};
+    FORMS_SRV.loaded=false; await fsLoad();
+    if(e.id&&typeof api.getAdminContent==='function'){try{const r=await api.getAdminContent(CT.kind,e.id); if(r&&r.record&&CT.edit===e){e.registration=r.record.registration||null}}catch(_){/* وضعیت ثبت‌نام بعداً از سرور می‌آید */}}
+  }catch(error){const f=p2FieldErr(error); const code=error&&error.code||'';
+    const map={published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند؛ فرم تازه بساز.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست را بازخوانی کن.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
+    CT.linkMsg={kind:'stop',text:map[code]||(f&&f.text)||p2Err(error,'پیوند فرم انجام نشد؛ چیزی تغییر نکرد.')}; if(code==='version_conflict'){FORMS_SRV.loaded=false; fsLoad()}}
+  finally{CT.busy=''; renderBody()}
+}
+/* گام ۵: بازبینی پیش از انتشار؛ همهٔ وضعیت‌ها از فرم فعلی یا پاسخ سرور (ثبت‌نام، فرم‌ها، یادآورها)، بدون عدد ساختگی */
+function ctWizReview(e){
+  const f=e.form||{}, ready=ctWizReady(e), linked=ctLinkedForms(e), pub=linked.filter(x=>x.status==='published');
+  const reg=e.registration&&e.registration.state?(CT_REG_STATE[e.registration.state]||e.registration.state):(e.id?'هنوز از سرور نیامده':'پس از ذخیره');
+  const rows=[
+    ['عنوان و شرح',ready[0].ok,0],['زمان شروع / تاریخ',ready[1].ok,1],['مکان یا شیوهٔ برگزاری',!!(String(f.place||'').trim()||String(f.mode||'').trim()),1],
+    ['پوستر',!!String(f.poster||'').trim(),0],['ظرفیت',!!String(f.cap||'').trim(),2],
+    ['فرم ثبت‌نام منتشرشده',pub.length>0,3],['یادآورها',!!(f.remH24||f.remH1),3]
+  ];
+  const parts=Array.isArray(f.parts)?f.parts.filter(x=>x&&(x.title||x.date)):[];
+  const live=e.id?`<a class="btn sm ${e.status==='published'?'':'quiet'}" href="event.html?id=${encodeURIComponent(String(e.id))}" target="_blank" rel="noopener" data-ct-public-link>${ico('i-globe')}صفحهٔ عمومی</a>`:'';
+  return `<p class="cap">کارت و صفحه: پیش‌نمایش کارت از همین فرم ساخته می‌شود؛ وضعیت انتشار، ثبت‌نام و فرم از سرور می‌آید. تا ذخیره و انتشار، چیزی در سایت تغییر نمی‌کند.</p>
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
+      <div class="stack" style="flex:1 1 260px;min-width:0"><div class="head">پیش‌نمایش کارت</div><div data-ct-review-card>${ctPreview(f)}</div></div>
+      <div class="stack" style="flex:1 1 260px;min-width:0" data-ct-review>
+        <div class="head">بازبینی پیش از انتشار</div>
+        ${rows.map(([l,ok,n])=>`<div class="row" style="gap:6px"><span>${ok?'✓':'·'}</span><span class="sp">${esc(l)}</span>${ok?tag('آماده','ok'):`<button type="button" class="chip" data-ct-step="${n}">${ico('i-pen')}تکمیل در گام ${fa(n+1)}</button>`}</div>`).join('')}
+        <div class="card stack" data-ct-review-server>
+          <strong>وضعیت از سرور</strong>
+          <div class="row tight" style="flex-wrap:wrap">${tag('انتشار: '+((P2_STATUS[e.status]||[e.status||'ذخیره‌نشده'])[0]),e.status==='published'?'ok':'')}${tag('ثبت‌نام: '+reg,e.registration&&e.registration.state==='open'?'ok':'')}${tag('فرم‌های وصل‌شده: '+fa(linked.length)+(linked.length?' (منتشرشده: '+fa(pub.length)+')':''),pub.length?'ok':'warn')}${tag('جلسه‌ها: '+fa(parts.length||Number(f.sess)||0),'')}</div>
+          ${linked.length?`<div class="stack" style="gap:4px">${linked.map(x=>{const st=FS_STATUS[x.status]||[x.status||'','']; return `<small class="cap" data-ct-review-form="${esc(String(x.id))}">${esc(x.name||x.title||'فرم')} · ${esc(FS_PURPOSE[x.purpose]||x.need||'')} · ${esc(st[0])}${x.response_count!=null?' · '+fa(x.response_count)+' پاسخ':''}</small>`}).join('')}</div>`:''}
+          <div class="row tight" style="flex-wrap:wrap">${live}</div>
+        </div>
+      </div>
+    </div>`;
 }
 /* ══ فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه‌ها و گزارش‌های هر رویداد ═════════════
    ابزار داخلی داخل همان ماژول «رویدادها»؛ از ردیف رویداد باز می‌شود. مجوز
@@ -8205,6 +8330,22 @@ function recChange(t){
   if(t.matches&&t.matches('[data-rec-order-q]')){REC.orders.q=String(t.value||'').trim().slice(0,120); return true}
   return false;
 }
+/* «تعریف جدید» (طرح مرجع): همان ویرایشگر سروری با رکورد خالی؛ نوع تعریف (رویداد/مطلب) بالای صفحه.
+   هیچ پیش‌نویسی در data.js/localStorage نیست؛ ذخیره فقط با API محتوا و مجوز سرور. */
+function serverNewDefinitionView(){
+  if(!canSec('events')) return serverUnavailableModule('تعریف جدید','این حساب مجوز ساخت محتوا ندارد.');
+  /* پس از نخستین ذخیره، رکورد شناسه دارد و ادامهٔ کار زیر «رویدادها و مطالب» است (همان قاعدهٔ مرجع: مدیریت پس از ساخت) */
+  if(CT.edit&&CT.edit.id){S.sec='events'; save(); try{history.replaceState(null,'','#events')}catch(e){} setTimeout(()=>{renderNav(); renderBar()},0); return serverContentView()}
+  if(!CT.edit&&ctCan('can_edit')) ctStartNew();
+  /* نسخهٔ محتوای سایت (expected_version) از همان فهرست سروری می‌آید؛ بدون آن ساخت رکورد ۴۰۹ می‌گیرد */
+  if(!CT.data&&!CT.loading&&!CT.error) ctLoad();
+  const kinds=`<section class="card stack" data-newev-kinds><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">تعریف جدید</div><span class="sp"></span><small class="cap">${esc(isOwner()||ctCan('can_publish')?'مالک و مدیر مجاز مستقیم منتشر می‌کنند':'پیش‌نویس ذخیره می‌شود و انتشار با مالک است')}</small></div>
+    <div class="admfilters" role="tablist" aria-label="نوع تعریف">
+      <button class="chip ${CT.kind==='events'?'on':''}" role="tab" aria-selected="${CT.kind==='events'}" data-newev-kind="events">${ico('i-calendar')}<span>رویداد</span></button>
+      <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-newev-kind="articles">${ico('i-doc')}<span>مطلب</span></button>
+      <a class="chip" href="create.html?back=${encodeURIComponent('admin.html#newev')}">${ico('i-pen')}<span>فرم (در فرم‌ساز)</span></a></div></section>`;
+  return `<div class="stack" data-newev>${kinds}${p2Msg(CT.msg)}${CT.edit?ctEditor():(ctCan('can_edit')?'':serverUnavailableModule('تعریف جدید','مجوز ساخت محتوا برای این نقش فعال نیست.'))}</div>`;
+}
 function serverContentView(){
   if(!canSec('events')) return serverUnavailableModule('رویدادها و مطالب','این حساب مجوز مدیریت محتوا ندارد.');
   const tabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="نوع محتوا">
@@ -8214,14 +8355,17 @@ function serverContentView(){
   const inbox=CT.kind==='events'&&!CT.edit&&eiCanMod()?`<div class="row" style="flex-wrap:wrap;gap:8px">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-inbox')}${btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag')}</div>`:'';
   return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():inbox+(CM.open?cmPanel():'')+ctList()}</div>`;
 }
+/* رکورد خالی برای ویرایشگر (بدون رندر)؛ هم از «رویداد تازه» در فهرست و هم از بخش «تعریف جدید» */
+function ctStartNew(){
+  CT.dp=null; CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.edit.draft=ctDraftPeek(); CT.msg=null;
+  /* پیش‌فرض یادآورها از تنظیمات سروری مالک (events.reminders_default)؛ فقط برای رویداد تازه و فقط اگر مقدار از سرور آمده باشد */
+  if(CT.kind==='events'&&typeof sysCan==='function'&&sysCan()){const apply=()=>{const d=sysValue('events.reminders_default'); if(CT.edit&&!CT.edit.id&&d&&typeof d==='object'){CT.edit.form.remH24=d.h24===true; CT.edit.form.remH1=d.h1===true; CT.edit.remDefault=true;}};
+    if(SYS.loaded) apply(); else if(!SYS.error) sysLoad(false).then(()=>{if(SYS.loaded){apply(); if(CT.edit&&!CT.edit.id) renderBody()}});}
+}
 async function ctOpenEditor(id){
   const api=window.NORA_SERVER_API;
   CT.dp=null;
-  if(!id){CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.edit.draft=ctDraftPeek(); CT.msg=null;
-    /* پیش‌فرض یادآورها از تنظیمات سروری مالک (events.reminders_default)؛ فقط برای رویداد تازه و فقط اگر مقدار از سرور آمده باشد */
-    if(CT.kind==='events'&&typeof sysCan==='function'&&sysCan()){const apply=()=>{const d=sysValue('events.reminders_default'); if(CT.edit&&!CT.edit.id&&d&&typeof d==='object'){CT.edit.form.remH24=d.h24===true; CT.edit.form.remH1=d.h1===true; CT.edit.remDefault=true;}};
-      if(SYS.loaded) apply(); else if(!SYS.error) sysLoad(false).then(()=>{if(SYS.loaded){apply(); if(CT.edit&&!CT.edit.id) renderBody()}});}
-    renderBody(); return}
+  if(!id){ctStartNew(); renderBody(); return}
   CT.busy='load'; renderBody();
   try{
     const result=await api.getAdminContent(CT.kind,id);
@@ -8231,25 +8375,35 @@ async function ctOpenEditor(id){
   }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای ویرایش دریافت نشد.')}}
   finally{CT.busy=''; renderBody()}
 }
-function ctCurrentVersion(){return CT.edit&&CT.edit.version!=null?CT.edit.version:(CT.data?CT.data.version:0)}
-async function ctSave(publish){
+function ctCurrentVersion(){if(CT.edit&&!CT.edit.id&&CT.data&&CT.data.version!=null) return CT.data.version; return CT.edit&&CT.edit.version!=null?CT.edit.version:(CT.data?CT.data.version:0)}
+async function ctSave(publish,stay){
   const api=window.NORA_SERVER_API, e=CT.edit; if(!e||CT.busy) return;
   const record=ctPayload(CT.kind,e.form);
   e.errors={}; e.formError='';
+  if(!e.id&&!CT.data){CT.busy='save'; renderBody(); await ctLoad(); CT.busy=''; if(!CT.data){e.formError=CT.error||'نسخهٔ محتوای سایت از سرور دریافت نشد؛ ذخیره انجام نشد.'; renderBody(); return}}
   if(!pkPreflight(e)){e.formError='پیوند مدرس/نهاد/نویسنده به شناسه‌ای اشاره می‌کند که در سایت نیست؛ هیچ درخواستی فرستاده نشد.'; renderBody(); return}
   CT.busy='save'; renderBody();
   try{
     const result=e.id?await api.updateAdminContent(CT.kind,e.id,record,ctCurrentVersion(),staffCsrfCookie())
       :await api.createAdminContent(CT.kind,record,ctCurrentVersion(),publish?'published':'',staffCsrfCookie());
-    const saved=result.record||{}, label=(P2_STATUS[saved.status]||[saved.status])[0];
-    CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(result.version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
-    ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctLoad();
+    let saved=result.record||{}, version=result.version;
+    /* گام ۵ ویزارد: «ذخیره و انتشار» برای رکورد موجود = ذخیره، سپس همان مسیر تغییر وضعیت سرور (ev_publish، ممیزی) */
+    if(publish&&e.id&&saved.status!=='published'&&typeof api.setAdminContentStatus==='function'){
+      try{const st=await api.setAdminContentStatus(CT.kind,e.id,'published',version,staffCsrfCookie()); saved=st.record||saved; version=st.version}
+      catch(error){const fe=error&&error.status===422?p2FieldErr(error):null; CT.msg={kind:'stop',text:`تغییرها ذخیره شد (نسخهٔ ${fa(version)}) ولی انتشار انجام نشد: ${fe?fe.text:p2Err(error,'سرور انتشار را نپذیرفت.')}`}; ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctLoad(); return}
+    }
+    const label=(P2_STATUS[saved.status]||[saved.status])[0];
+    CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
+    ctDraftDrop(); const keepStep=stay?Math.min(4,ctWizStep(e)+(e.id?0:1)):null; CT.edit=null; CT.dp=null; ctReset();
+    if(keepStep!=null&&saved.id){await ctLoad(); await ctOpenEditor(saved.id); if(CT.edit&&CT.edit.id===saved.id){CT.edit.step=keepStep; renderBody()} return}
+    ctLoad();
   }catch(error){
     const fieldErr=p2FieldErr(error);
     if(error&&error.status===422&&fieldErr&&fieldErr.field&&(Object.prototype.hasOwnProperty.call(e.form,fieldErr.field)||fieldErr.field==='reminders')) e.errors[fieldErr.field]=fieldErr.text;
     else if(error&&error.status===422&&fieldErr) e.formError=fieldErr.text;
     else if(error&&error.code==='site_content_version_conflict'){e.formError=p2Err(error); const current=error.payload&&error.payload.detail&&error.payload.detail.current_version; if(Number.isInteger(current)) e.version=current}
     else e.formError=p2Err(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
+    if(CT.kind==='events'){const st=ctWizErrStep(e); if(st!=null) e.step=st}
     renderBody();
   }finally{CT.busy=''; if(CT.edit){renderBody(); if(CT.edit.formError||Object.keys(CT.edit.errors||{}).length) ctFocusFirstError()}}
 }
@@ -8947,6 +9101,7 @@ document.addEventListener('click',e=>{
   const ctWhen=q('[data-ct-when]'); if(ctWhen){CT.when=ctWhen.dataset.ctWhen||''; ctReset(); ctLoad(); return}
   const ctPage=q('[data-ct-page]'); if(ctPage){const total=CT.data?Number(CT.data.total)||0:0; CT.offset=ctPage.dataset.ctPage==='next'?Math.min(CT.offset+CT.limit,Math.max(0,total-1)):Math.max(0,CT.offset-CT.limit); CT.data=CT.data; ctLoad(); return}
   if(q('[data-ct-new]')){if(!ctCan('can_edit')){toast('مجوز ساخت محتوا برای این نقش فعال نیست'); return} ctOpenEditor(''); return}
+  if(q('[data-newev-kind]')){const k=q('[data-newev-kind]').dataset.newevKind; if(CT.kind!==k||!CT.edit||CT.edit.id){ctDraftDrop(); CT.kind=k; CT.edit=null; CT.msg=null; save(); renderBody()} return}
   const pkSetEl=q('[data-ct-pick-set]'); if(pkSetEl){pkSet(pkSetEl.dataset.ctPickSet,pkSetEl.dataset.ctPickId); return}
   const pkClr=q('[data-ct-pick-clear]'); if(pkClr){pkSet(pkClr.dataset.ctPickClear,''); return}
   const pkRef=q('[data-ct-pick-refresh]'); if(pkRef){pkLoad(true); return}
@@ -8955,7 +9110,7 @@ document.addEventListener('click',e=>{
   if(eiClick(q)) return;
   const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
   if(chClick(q)) return;
-  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; CH.open=false; renderBody(); return}
+  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; CH.open=false; if(S.sec==='newev'){go('events'); return} renderBody(); return}
   const ctDup=q('[data-ct-dup]'); if(ctDup){ctDuplicate(ctDup.dataset.ctDup); return}
   const ctTpl=q('[data-ct-template]'); if(ctTpl){ctApplyTemplate(ctTpl.dataset.ctTemplate); return}
   if(q('[data-ct-draft-restore]')){if(CT.edit&&CT.edit.draft){CT.edit.form=Object.assign(ctBlank(CT.kind),CT.edit.draft.form); CT.edit.draft=null; CT.edit.errors={}; renderBody(); toast('متن تایپ‌شدهٔ قبلی برگشت؛ هنوز ذخیره نشده')} return}
@@ -8978,6 +9133,10 @@ document.addEventListener('click',e=>{
   if(q('[data-ctdp-close]')){CT.dp=null; renderBody(); return}
   if(q('[data-ct-save]')){ctSave(false); return}
   if(q('[data-ct-save-publish]')){ctSave(true); return}
+  if(q('[data-ct-save-stay]')){ctSave(false,true); return}
+  const ctStep=q('[data-ct-step]'); if(ctStep&&CT.edit){ctWizGo(ctStep.dataset.ctStep); return}
+  if(q('[data-ct-form-link-do]')){const sel=document.querySelector('[data-ct-form-link-pick]'); const fid=sel&&sel.value; if(!fid){CT.linkMsg={kind:'stop',text:'اول یک فرم را انتخاب کن.'}; renderBody(); return} if(CT.edit&&CT.edit.id) ctLinkForm(fid,CT.edit.id); return}
+  const ctUnlink=q('[data-ct-form-unlink]'); if(ctUnlink&&CT.edit&&CT.edit.id){if(typeof window.confirm==='function'&&!window.confirm('این فرم از رویداد جدا شود؟ خود فرم حذف نمی‌شود.')) return; ctLinkForm(ctUnlink.dataset.ctFormUnlink,''); return}
   const imgClear=q('[data-ct-image-clear]'); if(imgClear){if(CT.edit){CT.edit.form[imgClear.dataset.ctImageClear]=''; renderBody()} return}
   const imgRetry=q('[data-ct-image-retry]'); if(imgRetry){ctSendImage(); return}
   if(q('[data-ct-media]')){CM.open=!CM.open; if(CM.open&&!CM.data) cmLoad(); else renderBody(); return}
@@ -10070,7 +10229,7 @@ async function fsLoad(){
   FORMS_SRV.loading=true; FORMS_SRV.error=''; renderBody();
   try{const result=await api.listForms(); FORMS_SRV.data=result&&Array.isArray(result.items)?result:{items:[]}}
   catch(error){FORMS_SRV.data=null; FORMS_SRV.error=p2Err(error,'فهرست فرم‌ها از سرور دریافت نشد.')}
-  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||(S.sec==='events'&&CT.edit)||(S.sec==='settings'&&S.setG==='people')) renderBody()}
+  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||((S.sec==='events'||S.sec==='newev')&&CT.edit)||(S.sec==='settings'&&S.setG==='people')) renderBody()}
 }
 const FS_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],closed:['بسته','stop'],archived:['بایگانی','stop']};
 const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};
@@ -10145,7 +10304,8 @@ function serverBlockedUsersView(){
 }
 function serverBody(){
   if(S.sec==='dash') return DASHX.view==='map'?panelModuleMapView():serverDashboard();
-  if(S.sec==='events'||S.sec==='newev') return serverContentView();
+  if(S.sec==='newev') return serverNewDefinitionView();
+  if(S.sec==='events') return serverContentView();
   if(S.sec==='users') return serverUsersView();
   if(S.sec==='forms') return serverFormsView();
   if(S.sec==='settings') return serverSettingsView();
@@ -10321,6 +10481,7 @@ function render(){
 function go(k){
   if(k==='reports'){S.uHub='reports'; S.uV=''; k='users'}
   else if(k==='users') S.uHub='users';
+  if(k==='newev'&&!IS_TEST&&SERVER_AUTH&&canSec('events')){S.sec='newev'; S.q=''; save(); try{history.replaceState(null,'','#newev')}catch(e){} window.scrollTo({top:0,behavior:'smooth'}); render(); return}
   if(!ALLSECS.some(section=>section.k===k)) k='dash';
   const changed=S.sec!==k; S.sec=k; S.q=''; save();
   const route=S.uHub==='reports'&&k==='users'?'reports':k;
