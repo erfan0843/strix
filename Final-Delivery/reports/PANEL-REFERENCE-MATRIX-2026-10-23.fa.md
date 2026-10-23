@@ -132,7 +132,7 @@
 
 | # | قابلیت | وضعیت | فایل/تابع | API | مجوز | آزمون · شاهد | اختلاف | اقدام |
 |---|---|---|---|---|---|---|---|---|
-| G1 | فهرست سروری افراد: جست‌وجو، ویرایش، ترتیب، پیش‌نمایش، انتشار با تأیید، ۴۰۹، ردیف ردشده، **عکس** | کامل | `PE_SRV`; عکس: `[data-ppfile]` → `api.uploadAdminMedia` در حالت سرور | `GET/PATCH /api/owner/site-content` + `POST /api/admin/media` (نشانی `/api/public/media/…` در `photo`؛ بدون base64) | `require_owner` + CSRF | کد `d22a431` · آزمون admin-phase3 (G1: فایل غیرتصویری رد، POST با CSRF، نشانی پایدار، بدون PATCH خودکار) سبز · مرورگر: **تأییدنشده** (فقط jsdom) | «رونوشت از پروفایل» هنوز نیست | عکس بسته؛ رونوشت P2 |
+| G1 | فهرست سروری افراد: جست‌وجو، ویرایش، ترتیب، پیش‌نمایش، انتشار با تأیید، ۴۰۹، ردیف ردشده، **عکس** | کامل | `PE_SRV`; عکس: `[data-ppfile]` → `api.uploadAdminMedia` در حالت سرور | `GET/PATCH /api/owner/site-content` + `POST /api/admin/media` (نشانی `/api/public/media/…` در `photo`؛ بدون base64) | `require_owner` + CSRF | کد `d22a431` · آزمون admin-phase3 (G1: فایل غیرتصویری رد، POST با CSRF، نشانی پایدار، بدون PATCH خودکار) سبز · مرورگر `evidence/panel-reference-2026-10-23/G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶) | «رونوشت از پروفایل» هنوز نیست | عکس بسته؛ رونوشت P2 |
 | G2 | نهادهای همکار | کامل | `PP_SRV` | همان | مالک | pytest retention · مرورگر | — | حفظ |
 | G3 | انتخاب در رویداد/مطلب با جست‌وجوی فارسی و Enter | کامل | `PK` | `GET /api/public/site-content` | — | jsdom · مرورگر | — | حفظ |
 | G4 | مدیران (صفحهٔ پشتیبانی) | نمایشی | — | `nora-managers` فقط `localStorage` در طراحی؛ سرور ندارد | — | — | — | مسدود (تصمیم: مدل «تیم پشتیبانی») |
@@ -176,7 +176,7 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 | C5 | تاریخچهٔ حساب در پروندهٔ کاربر (مالک) | `43e5150` | pytest `test_admin_audit_trail` ۴ passed؛ admin-phase2 (مالک + مدیر) | ✓ `C5-account-history.png`, `C5-manager-no-history-tab.png` (۱۱/۱۱) |
 | D3 | پیام فارسی ۴۲۲ `unknown_reference(ev)` در فرم‌ساز | `f24522e` | pytest (سرور) | ✓ `D3-unknown-ev-422.png` |
 | D6 | انتخاب‌گر رویداد در فرم‌ساز | `f24522e` | — (بدون suite برای `create.html`؛ بدهی) | ✓ `D6-picker-open.png`, `D6-picked.png`, `D6-saved.png` (۱۱/۱۱ در `stage-d-results.json`) |
-| G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | — (تأییدنشده در مرورگر) |
+| G1 | بارگذاری عکس شخص با `POST /api/admin/media` | `d22a431` | admin-phase3 «قبول» | ✓ `G1-person-photo-upload.png`, `stage-g1-results.json` (۶/۶: یک POST ۲۰۱، نشانی پایدار در `photo`، PATCH ۲۰۰، فایل از `/api/public/media/…` با `image/png` سرو شد) |
 
 ### نقص‌هایی که فقط در مرورگر پیدا شدند (و رفع شدند)
 - `b45e4ba`: `ctTimeFix` هنگام تایپ «۱» کاربر را قفل می‌کرد؛ قالب، پیش‌فرض خالی را رونویسی می‌کرد؛ تقویم روی ماه جاری باز می‌شد نه ماه رویداد.
@@ -190,7 +190,7 @@ A (A8 مسیرهای مردهٔ `reports/money/club`, A7 تأیید اجرای �
 - PostgreSQL و ربات: **تأییدنشده** (محیط ندارد).
 
 ### باقی‌مانده‌ها به ترتیب اولویت (باگ/مسیر ناقص اول)
-1. G1 شاهد مرورگر برای بارگذاری عکس شخص (S).
+1. ~~G1 شاهد مرورگر~~ انجام شد (`stage-g1-results.json`).
 2. D6 آزمون jsdom برای `create.html` (بدهی آزمون؛ M).
 3. A2 چیپ سلامت «پیکربندی‌نشده» ≠ «خراب»؛ A6 ظرفیت روی کارت رویداد نزدیک؛ B1 صافی زمانی؛ F1 نمودار CSS؛ G1 رونوشت از پروفایل (همه P2).
 4. تصمیم مالک (مستند جدا، مسدودکننده نیست): A12، B14، B18، B19، B22، C1، C9، C11، D7، E4، F5، G4، H5؛ بلوک ویدیو/صدا در مطلب (منبع معتبر)؛ «مدت خودکار» رویداد؛ هوش مصنوعی داخلی (بدون شاهد در طراحی/تاریخچه).

@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-23T00:19:03.562Z",
+  "db": "test",
+  "person": "pp-mvk81k5rmj4j",
+  "previousPhoto": "/api/public/media/4ee47f74-6f80-440d-9b74-8fc29ef7497c",
+  "results": [
+    {
+      "ok": true,
+      "label": "G1: دقیقاً یک POST /api/admin/media با پاسخ 201"
+    },
+    {
+      "ok": true,
+      "label": "G1: فیلد photo = نشانی رسانهٔ سرور، برچسب «عکس روی سرور»، پیش‌نمایش تصویر"
+    },
+    {
+      "ok": true,
+      "label": "G1: بدون base64 در فرم"
+    },
+    {
+      "ok": true,
+      "label": "G1: ذخیره = یک PATCH /api/owner/site-content با ۲۰۰"
+    },
+    {
+      "ok": true,
+      "label": "G1: محتوای عمومی همان نشانی را دارد و فایل از سرور سرو می‌شود {\"photo\":\"/api/public/media/4ee47f74-6f80-440d-9b74-8fc29ef7497c\",\"mediaStatus\":200,\"ct\":\"image/png\"}"
+    },
+    {
+      "ok": true,
+      "label": "بدون خطای JS []"
+    }
+  ]
+}
