@@ -165,9 +165,19 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   doc.querySelector('#ctf_on').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
   ok(await waitFor(()=>!doc.querySelector('[data-ctdp-box="on"]')),'Escape تقویم را می‌بندد');
   click('[data-ctdp="on"]'); await waitFor(()=>doc.querySelector('[data-ctdp-box="on"]'));
+  type('#ctf_endTime','20:00');
+  ok(doc.querySelector('#ctf_endsAt').value==='1405/10/03 20:00','ساعت پایان پیش از پاک‌کردن تاریخ: پایان دقیق همان روز');
   click('[data-ctdp-clear]');
   ok(await waitFor(()=>doc.querySelector('#ctf_on').value===''),'پاک‌کردن تاریخ از تقویم');
+  ok(doc.querySelector('#ctf_startsAt').value===''&&doc.querySelector('#ctf_endsAt').value===''&&doc.querySelector('#ctf_endTime').value==='20:00'&&doc.querySelector('#ctf_time').value==='18:00','پاک‌کردن تاریخ، شروع/پایانِ هم‌روز را پاک می‌کند ولی ساعت‌های تایپ‌شده می‌مانند');
   type('#ctf_on','1405/08/12');
+  ok(doc.querySelector('#ctf_startsAt').value==='1405/08/12 18:00'&&doc.querySelector('#ctf_endsAt').value==='1405/08/12 20:00','تاریخ تازه: شروع و پایان از ساعت‌های نگه‌داشته‌شده ساخته می‌شوند');
+  type('#ctf_endTime','');
+  ok(doc.querySelector('#ctf_endsAt').value==='','پایان دوباره خالی');
+  type('#ctf_on','۱۴۰۵/۰۸/۱۲');
+  ok(doc.querySelector('#ctf_on').value==='۱۴۰۵/۰۸/۱۲','ارقام فارسی هنگام تایپ بازنویسی نمی‌شوند');
+  doc.querySelector('#ctf_on').dispatchEvent(new window.FocusEvent('focusout',{bubbles:true}));
+  ok(doc.querySelector('#ctf_on').value==='1405/08/12','پس از ترک فیلد به لاتین نرمال می‌شود');
 
   console.log('── خطای ۴۲۲ سرور: بلوک همان فیلد باز می‌شود ──');
   type('#ctf_t','رویداد فشرده');
@@ -260,6 +270,7 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   type('#ctf_t','نشست گذشته'); type('#ctf_on','1405/06/01'); type('#ctf_mode','حضوری'); await waitFor(()=>doc.querySelector('[data-ct-where="onsite"]')); type('#ctf_place','کتابخانه');
   click('[data-ct-save]');
   ok(await waitFor(()=>CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events').length===3),'ذخیرهٔ رویداد برگزارشده');
+  ok(await waitFor(()=>!doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-row]')),'پس از ذخیره از «تعریف جدید»، فهرست رویدادها با رکورد تازه دیده می‌شود (نه فرم خالی)');
   const pastBody=CALLS.filter(c=>c.method==='POST'&&c.path==='/api/admin/content/events').pop().body.record;
   ok(pastBody.past===true&&pastBody.regMode==='closed'&&pastBody.reminders.h24===false&&pastBody.reminders.h1===false&&pastBody.on==='1405/06/01','بدنه: past=true، ثبت‌نام بسته، یادآور خاموش، تاریخ گذشته');
   ok(errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).length===0,'بدون خطای جاوااسکریپت ('+errors.filter(e=>!/401|authentication_required|net::|sitemap/.test(e)).join(' | ').slice(0,200)+')');

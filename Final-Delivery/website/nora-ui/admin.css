@@ -836,7 +836,9 @@ a.sktile{text-decoration:none;color:inherit}
 .ctfoot{position:sticky;bottom:0;background:var(--surface);padding-top:8px;border-top:.5px solid var(--hairline);z-index:2}
 [data-ct-review-card][hidden]{display:none!important}
 /* تقویم: انتخاب ماه/سال و دکمه‌های پاک‌کردن/امروز/بستن */
-.dpsel{min-height:34px;padding:2px 6px;font-size:var(--fs-sub);flex:0 1 auto;min-width:0;width:auto}
+.dpsel{min-height:34px;padding:2px 6px;font-size:var(--fs-sub);flex:1 1 auto;min-width:0;width:auto}
 .dphead{flex-wrap:wrap}
+.dpsels{display:flex;gap:4px;flex:0 1 auto;min-width:0}
+@media (max-width:600px){.dpsels{flex:1 1 100%;margin-top:4px}}
 .dp .dpnav:focus-visible,.dp .dd:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 @media (max-width:600px){.ctfoot{padding-bottom:calc(8px + env(safe-area-inset-bottom))}.dp{padding:8px}.dd{min-height:40px}}

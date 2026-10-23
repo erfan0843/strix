@@ -7105,6 +7105,8 @@ function ctPayload(kind,form){
     else if(typeof blank[key]==='boolean') value=!!value;
     else value=String(value==null?'':value).trim();
     if(['price','cap','sess','certMin','min'].includes(key)) value=value===''?0:value;
+    /* ارقام فارسی/عربی در تاریخ و ساعت به لاتین (سرور فقط لاتین می‌پذیرد)؛ متن آزاد دست‌نخورده */
+    if(kind==='events'&&['on','time','startsAt','endsAt','regOpensAt','regClosesAt'].includes(key)&&typeof value==='string') value=un(value);
     out[key]=value;
   });
   if(kind==='events'){out.reminders={h24:!!form.remH24,h1:!!form.remH1}; delete out.remH24; delete out.remH1}
@@ -7261,8 +7263,8 @@ function ctDpBox(){
   const years=[]; for(let yy=Math.min(y,t.jy-3);yy<=Math.max(y,t.jy+6);yy++) years.push(yy);
   return `<div class="dp" data-ctdp-box="${esc(dp.f)}" role="dialog" aria-label="تقویم شمسی" aria-describedby="ctdpHint">
     <div class="dphead"><button type="button" class="dpnav" data-ctdp-mv="-1" aria-label="ماه قبل">${ico('i-chev-right')}</button><b>${esc(months[m-1]||'')} ${esc(fa(y))}</b><button type="button" class="dpnav" data-ctdp-mv="1" aria-label="ماه بعد">${ico('i-chev-left')}</button><span class="sp"></span>
-      <select class="input dpsel" data-ctdp-set="m" aria-label="انتخاب ماه">${months.map((mo,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${esc(mo)}</option>`).join('')}</select>
-      <select class="input dpsel" data-ctdp-set="y" aria-label="انتخاب سال">${years.map(yy=>`<option value="${yy}" ${yy===y?'selected':''}>${esc(fa(yy))}</option>`).join('')}</select></div>
+      <span class="dpsels"><select class="input dpsel" data-ctdp-set="m" aria-label="انتخاب ماه">${months.map((mo,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${esc(mo)}</option>`).join('')}</select>
+      <select class="input dpsel" data-ctdp-set="y" aria-label="انتخاب سال">${years.map(yy=>`<option value="${yy}" ${yy===y?'selected':''}>${esc(fa(yy))}</option>`).join('')}</select></span></div>
     <div class="dpweek">${days.map(d=>`<span>${esc(d)}</span>`).join('')}</div><div class="dpgrid">${cells}</div>
     <div class="row tight" style="flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm quiet" data-ctdp-today>امروز</button>${cur?`<button type="button" class="btn sm quiet" data-ctdp-clear>پاک‌کردن</button>`:''}<span class="sp"></span><small class="cap" id="ctdpHint">${cur?esc(ctJLong(cur.jy,cur.jm,cur.jd)+' '+fa(cur.jy)):'روزی انتخاب نشده'}</small><button type="button" class="btn sm quiet" data-ctdp-close>بستن</button></div></div>`;
 }
@@ -7281,8 +7283,10 @@ function ctSyncDates(field,oldVal,newVal){
   if(field==='on'){
     if(!newD) return;
     const date=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd), time=un(String(f.time||'')).match(/^\d{1,2}:\d{2}$/)?h24(f.time,true):'';
+    const endT=un(String(f.endTime||'')).match(/^\d{1,2}:\d{2}$/)?h24(f.endTime,true):'';
     ['startsAt','endsAt'].forEach(k=>{const cur=ctJDate(f[k]); const follows=!String(f[k]||'').trim()||(oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd);
-      if(follows){const rest=cur&&cur.rest?cur.rest:(k==='startsAt'?time:''); f[k]=rest?date+' '+rest:(k==='startsAt'?date:(String(f[k]||'').trim()?date:''))}});
+      /* «ساعت پایان» تایپ‌شده چسبنده است: اگر تاریخ پاک و دوباره وارد شود، پایانِ همان روز از آن ساخته می‌شود */
+      if(follows){const rest=cur&&cur.rest?cur.rest:(k==='startsAt'?time:endT); f[k]=rest?date+' '+rest:(k==='startsAt'?date:(String(f[k]||'').trim()?date:''))}});
     if(!String(f.when||'').trim()) f.when=ctJLong(newD.j.jy,newD.j.jm,newD.j.jd);
   }
   if(field==='time'){
@@ -7335,7 +7339,8 @@ function ctSyncEndTime(f,value){
 }
 function ctRefreshEndTime(active){const f=CT.edit&&CT.edit.form; if(!f) return; const derived=ctEndTimeFrom(f), cur=un(String(f.endTime||'')).trim();
   /* متن ناقصِ «ساعت پایان» هرگز بازنویسی نمی‌شود؛ فقط وقتی مقدار مشتق‌شده داریم یا مقدار فعلی یک ساعت کامل است همگام می‌شود */
-  if(derived||/^\d{1,2}:\d{2}$/.test(cur)){ if(f.endTime!==derived){f.endTime=derived; const el=document.getElementById('ctf_endTime'); if(el&&el!==active) el.value=derived}}}
+  /* بدون تاریخ (endsAt خالی) ساعتِ کاملِ تایپ‌شده نگه داشته می‌شود تا با ورود دوبارهٔ تاریخ به کار رود */
+  if(derived||(/^\d{1,2}:\d{2}$/.test(cur)&&String(f.endsAt||'').trim())){ if(f.endTime!==derived){f.endTime=derived; const el=document.getElementById('ctf_endTime'); if(el&&el!==active) el.value=derived}}}
 const CT_TIME_LIST=`<datalist id="ctTimes">${Array.from({length:36},(_,i)=>{const h=6+Math.floor(i/2), m=i%2?'30':'00'; return `<option value="${jPad(h)}:${m}"></option>`}).join('')}</datalist>`;
 function ctTimeInp(label,field,value,opts){
   const o=opts||{}, err=o.err||'', id='ctf_'+field;
@@ -7600,6 +7605,7 @@ function ctReviewRows(e){
   if(onPast&&!past) warns.push({t:'تاریخ در گذشته است ولی علامت «برگزارشده (آرشیو)» ندارد؛ در فهرست «برگزارشده» می‌آید و ثبت‌نام از زمان سرور بسته می‌شود.',to:'sched'});
   if(!onPast&&past&&d) warns.push({t:'علامت «برگزارشده» دارد ولی تاریخش نگذشته است.',to:'sched'});
   if(endBefore) warns.push({t:'ساعت پایان پیش از شروع است؛ سرور آن را نمی‌پذیرد.',to:'main'});
+  if(!String(f.d||'').trim()) warns.push({t:'برای «انتشار» شرح رویداد لازم است (قاعدهٔ سرور)؛ پیش‌نویس بدون شرح ذخیره می‌شود.',to:'desc'});
   if(f.lifecycle==='cancelled') warns.push({t:'وضعیت «لغوشده»: ثبت‌نام هرگز باز نشان داده نمی‌شود.',to:'sched'});
   if(mk==='online'&&String(f.place||'').trim()) warns.push({t:'رویداد آنلاین است ولی مکان هم دارد؛ مکان در کارت نمایش داده می‌شود.',to:'main'});
   return {rows:rows,warns:warns,linked:linked,pub:pub};
@@ -8569,6 +8575,8 @@ async function ctSave(publish,stay){
     CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
     ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset();
     if(stay&&saved.id){await ctLoad(); await ctOpenEditor(saved.id); if(CT.edit&&CT.edit.id===saved.id) ctJump('reg'); return}
+    /* ذخیرهٔ رکورد تازه از «تعریف جدید»: به فهرست همان نوع می‌رویم تا رکورد ذخیره‌شده و پیام موفقیت دیده شود (نه یک فرم خالی دیگر) */
+    if(S.sec==='newev'){S.sec='events'; save(); try{history.replaceState(null,'','#events')}catch(err){} setTimeout(()=>{renderNav(); renderBar()},0)}
     ctLoad();
   }catch(error){
     const fieldErr=p2FieldErr(error);
