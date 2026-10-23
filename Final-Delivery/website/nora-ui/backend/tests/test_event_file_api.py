@@ -271,3 +271,38 @@ def test_form_summary_aggregates_choices_and_permissions_are_server_side():
         assert listed.status_code == 200 and listed.json()["finance_visible"] is False
         assert client.get(f"/api/admin/events/{event_a}/payments").status_code == 403, "مبلغ‌ها فقط با مجوز مالی"
         assert client.get(f"/api/admin/events/{event_a}/forms/{survey}/summary").status_code == 200
+
+
+def test_phone_user_session_is_locked_out_of_the_event_file(monkeypatch):
+    """A signed-in public user (phone OTP) is not staff: every event-file route answers 403, never data.
+
+    Browser coverage of this role is impossible in the sandbox (OTP delivery needs the SMS gateway), so the
+    permission boundary is pinned here with the same app wiring the owner/manager tests use."""
+    from test_phone_otp_auth import CODE, make_client as make_otp_client, request_code, verify_code
+
+    client, _engine, _sends = make_otp_client(monkeypatch=monkeypatch)
+    with client:
+        challenge = request_code(client).json()
+        assert verify_code(client, challenge["challenge_id"], CODE).status_code == 200
+        me = client.get("/api/account/me").json()
+        assert me.get("authenticated") is True and me.get("role") not in ("owner", "manager")
+        event_id, response_id, form_id = "ev-anything", "resp-anything", "form-anything"
+        reads = [
+            f"/api/admin/events/{event_id}/overview",
+            f"/api/admin/events/{event_id}/registrations",
+            f"/api/admin/events/{event_id}/registrations/{response_id}",
+            f"/api/admin/events/{event_id}/registrations/{response_id}/receipt",
+            f"/api/admin/events/{event_id}/registrations/{response_id}/ticket-image",
+            f"/api/admin/events/{event_id}/payments",
+            f"/api/admin/events/{event_id}/forms/{form_id}/summary",
+        ]
+        for path in reads:
+            response = client.get(path)
+            assert response.status_code == 403, (path, response.status_code, response.text[:200])
+            assert "items" not in response.text and "receipt" not in response.headers.get("content-type", "")
+        decision = client.post(
+            f"/api/admin/events/{event_id}/registrations/{response_id}/payment-decision",
+            json={"decision": "approved", "reason": "کاربر عادی"},
+            headers={"Origin": "http://testserver", "X-CSRF-Token": client.cookies.get("nora_account_csrf", "")},
+        )
+        assert decision.status_code == 403, decision.text[:200]

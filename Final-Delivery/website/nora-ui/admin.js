@@ -7719,7 +7719,7 @@ function eiHeader(){
   if(!EI.all) tabs.push(['overview','نمای کلی']);
   if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['forms','فرم‌ها و فعالیت‌ها']);
   if(!EI.all&&regPerm) tabs.push(['regs','ثبت‌نام‌کنندگان']);
-  if(!EI.all&&(canPerm('finance')||canPerm('receipt_approve'))) tabs.push(['payments','پرداخت‌ها']);
+  if(!EI.all&&canPerm('finance')) tabs.push(['payments','پرداخت‌ها']); /* سرور فهرست پرداخت‌ها را فقط با finance می‌دهد؛ تأیید رسید از پروندهٔ هر نفر انجام می‌شود */
   if(!EI.all&&regPerm) tabs.push(['tickets','بلیت و حضور']);
   if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['survey','نظرسنجی و آزمون']);
   if(!EI.all&&canPerm('certificate')) tabs.push(['certs','گواهی‌ها']);
@@ -7820,7 +7820,7 @@ const EF_REG_STATUS={accepted:['پذیرفته‌شده','ok'],waitlisted:['فه
 const EF_PAY_STATE={free:['رایگان',''],paid:['پرداخت‌شده','ok'],pending:['در انتظار پرداخت','warn'],failed:['ناموفق','stop']};
 const EF_PAY_STATUS={pending:'در انتظار پرداخت',awaiting_receipt:'در انتظار رسید',receipt_submitted:'رسید فرستاده شده؛ تأیید نشده',paid:'پرداخت موفق (بله)',paid_manual:'تأیید دستی رسید',paid_review:'در حال بررسی',rejected:'رد شده',cancelled:'لغو شده',expired:'منقضی'};
 const EF_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
-const EF_ERR={event_not_found:'این رویداد پیدا نشد یا حذف شده است.',registration_not_found:'این ثبت‌نام در پروندهٔ همین رویداد نیست.',form_not_found:'این فرم به همین رویداد وصل نیست.',receipt_not_found:'رسیدی ثبت نشده است.',reason_required:'نوشتن دلیل لازم است.',payment_state_changed:'وضعیت این پرداخت در این میان تغییر کرده؛ فهرست تازه شد.',payment_not_card_transfer:'این پرداخت از راه بله انجام شده و دستی تأیید نمی‌شود.',payment_not_decidable:'این پرداخت در وضعیت قابل‌تصمیم نیست.',receipt_task_locked:'رسید این پرداخت در صندوق پیام‌ها در حال بررسی است.',ticket_not_available:'برای این ثبت‌نام هنوز بلیتی صادر نشده است.',published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست تازه شد.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
+const EF_ERR={receipt_missing:'تا رسیدی ثبت نشده، تأیید پرداخت ممکن نیست.',payment_not_reviewable:'این پرداخت در وضعیتی نیست که بشود درباره‌اش تصمیم گرفت.',payment_status_changed:'وضعیت پرداخت در این فاصله عوض شده؛ پرونده بازخوانی شد.',event_not_found:'این رویداد پیدا نشد یا حذف شده است.',registration_not_found:'این ثبت‌نام در پروندهٔ همین رویداد نیست.',form_not_found:'این فرم به همین رویداد وصل نیست.',receipt_not_found:'رسیدی ثبت نشده است.',reason_required:'نوشتن دلیل لازم است.',payment_state_changed:'وضعیت این پرداخت در این میان تغییر کرده؛ فهرست تازه شد.',payment_not_card_transfer:'این پرداخت از راه بله انجام شده و دستی تأیید نمی‌شود.',payment_not_decidable:'این پرداخت در وضعیت قابل‌تصمیم نیست.',receipt_task_locked:'رسید این پرداخت در صندوق پیام‌ها در حال بررسی است.',ticket_not_available:'برای این ثبت‌نام هنوز بلیتی صادر نشده است.',published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست تازه شد.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
 const EF={overview:null,ovError:'',
   regs:{q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50},
   att:{q:'',attendance:'',offset:0,limit:50},
@@ -7840,11 +7840,13 @@ async function efLoadOverview(api){const r=await api.eventFileOverview(EI.eventI
 async function efLoadTab(api){
   if(EI.tab==='overview'||EI.tab==='forms'||EI.tab==='survey'||EI.tab==='certs'){
     const ov=await efLoadOverview(api);
+    if(EI.tab==='overview') efSyncHash();
     if(EI.tab==='forms'&&canPerm('fm_create')&&(!FORMS_SRV.loaded||!FORMS_SRV.data)){try{await fsLoad()}catch(_){/* گزینه‌های اتصال بعداً */}}
     if(EI.tab==='survey'&&EF.sum.formId){const ok=(ov.forms||[]).some(f=>String(f.id)===EF.sum.formId&&(f.type==='survey'||f.type==='exam')); if(!ok){EF.sum.formId=''; EF.sum.data=null} else efLoadSummary(api)}
     if(EI.tab==='certs'&&canPerm('certificate')) return {overview:ov,certs:await api.listAdminCertificates({event_ref:EI.eventId,limit:EF.certs.limit,offset:EF.certs.offset})};
     return ov;
   }
+  if(!EF.overview){try{await efLoadOverview(api)}catch(error){if(error&&error.status===404) throw error}}
   if(EI.tab==='regs'){const r=await api.eventFileRegistrations(EI.eventId,{q:EF.regs.q,status:EF.regs.status,payment:EF.regs.payment,attendance:EF.regs.attendance,form_id:EF.regs.form_id,limit:EF.regs.limit,offset:EF.regs.offset}); if(EF.person.id&&!EF.person.data&&!EF.person.loading) efLoadPerson(api,EF.person.id); return r}
   if(EI.tab==='tickets') return api.eventFileRegistrations(EI.eventId,{q:EF.att.q,attendance:EF.att.attendance,status:'accepted',limit:EF.att.limit,offset:EF.att.offset});
   if(EI.tab==='payments') return api.eventFilePayments(EI.eventId,{q:EF.pay.q,state:EF.pay.state,limit:EF.pay.limit,offset:EF.pay.offset});
@@ -8007,7 +8009,7 @@ function efRegs(){
 function efPerson(){
   const p=EF.person, back=btn('بازگشت به ثبت‌نام‌کنندگان','data-ef-person-close','i-back');
   if(p.loading&&!p.data) return `<div class="stack">${back}<p class="cap" role="status" aria-busy="true">در حال خواندن پروندهٔ ثبت‌نام…</p></div>`;
-  if(p.error||!p.data) return `<div class="stack">${back}${p2Msg({kind:'stop',text:p.error||'پروندهٔ ثبت‌نام دریافت نشد.'})}${btn('تلاش دوباره',`data-ef-person="${esc(p.id)}"`,'i-refresh')}</div>`;
+  if(p.error||!p.data) return `<div class="stack" data-ef-person-file="${esc(p.id)}">${back}${p2Msg({kind:'stop',text:p.error||'پروندهٔ ثبت‌نام دریافت نشد.'})}${btn('تلاش دوباره',`data-ef-person="${esc(p.id)}"`,'i-refresh')}</div>`;
   const d=p.data, can=d.can||{}, pay=d.payment||null, rec=d.receipt||{}, att=d.attendance||{}, tk=d.ticket||{}, fin=!!d.finance_visible;
   const ps=EF_PAY_STATE[d.payment_state]||[d.payment_state||'',''], st=EF_REG_STATUS[d.status]||[d.status||'',''];
   const answers=(d.answers||[]).map(a=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(a.label||a.field_id||'')}</small><div>${a.masked?`<span class="cap">${a.masked==='mobile'?'شماره (پنهان)'+(a.hint?' ···'+fa(a.hint):''):'کد ملی (پنهان)'}</span>`:esc(Array.isArray(a.value)?a.value.join('، '):(a.value==null||a.value===''?'ـ':String(a.value)))}</div></span></div>`).join('');
@@ -8016,14 +8018,16 @@ function efPerson(){
   const receiptLine=!rec.uploaded?'رسیدی ثبت نشده':rec.web_file?(receiptImg?'':'رسید ثبت شده؛ نمایش فایل نیازمند مجوز رسید/مالی'):(rec.task_id&&(canPerm('receipt_approve')||canPerm('finance'))?`رسید از راه بله رسیده؛ فایل در <a href="admin.html#inbox">صندوق پیام‌ها</a>${rec.task_status?' · '+esc(rec.task_status==='pending'?'در انتظار بررسی':rec.task_status==='approved'?'تأییدشده':'ردشده'):''}`:'رسید از راه بله ثبت شده');
   const decision=can.payment_decision?`<div class="stack" data-ef-decision style="gap:6px"><strong>تصمیم دربارهٔ این پرداخت</strong>
       ${p.decision?`<label class="fld"><span class="lbl">دلیل (در تاریخچه ثبت می‌شود)</span><input class="inp" data-ef-reason value="${esc(p.reason)}" maxlength="300" placeholder="مثلاً: رسید با مبلغ و شمارهٔ کارت همخوانی دارد"/></label>
-        <div class="row tight" style="flex-wrap:wrap">${btn(p.decision==='approve'?'ثبت تأیید پرداخت':'ثبت رد و لغو ثبت‌نام',`data-ef-decide-go ${EF.busy?'disabled':''}`,p.decision==='approve'?'i-check':'i-close')}${btn('انصراف','data-ef-decide-cancel','i-back')}</div>`
-      :`<div class="row tight" style="flex-wrap:wrap">${btn('تأیید پرداخت','data-ef-decide="approve"','i-check')}${btn('رد رسید و لغو ثبت‌نام','data-ef-decide="reject"','i-close')}</div><small class="cap">تأیید فقط پس از دیدن رسید؛ رد، ثبت‌نام را لغو و ظرفیت را آزاد می‌کند. هر دو با نام و دلیل ثبت می‌شوند.</small>`}</div>`:'';
-  const ticket=tk.serial?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${tag('سریال بلیت: '+tk.serial,'')}${tk.type?tag('نوع: '+tk.type,''):''}${can.ticket_image?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.eventFileTicketImageUrl(EI.eventId,d.response_id))}" target="_blank" rel="noopener">${ico('i-ticket')}تصویر بلیت</a>`:''}</div>`:`<small class="cap">${tk.eligible?(d.payment_approved?'بلیت هنوز صادر نشده':'بلیت پس از تأیید پرداخت صادر می‌شود'):'این ثبت‌نام بلیت ندارد'}</small>`;
+        <div class="row tight" style="flex-wrap:wrap">${btn(p.decision==='approve'?'ثبت تأیید پرداخت':rec.uploaded?'ثبت رد و لغو ثبت‌نام':'ثبت لغو ثبت‌نام',`data-ef-decide-go ${EF.busy?'disabled':''}`,p.decision==='approve'?'i-check':'i-close')}${btn('انصراف','data-ef-decide-cancel','i-back')}</div>`
+      :rec.uploaded?`<div class="row tight" style="flex-wrap:wrap">${btn('تأیید پرداخت','data-ef-decide="approve"','i-check')}${btn('رد رسید و لغو ثبت‌نام','data-ef-decide="reject"','i-close')}</div><small class="cap">تأیید فقط پس از دیدن رسید؛ رد، ثبت‌نام را لغو و ظرفیت را آزاد می‌کند. هر دو با نام و دلیل ثبت می‌شوند.</small>`
+      :`<div class="row tight" style="flex-wrap:wrap">${btn('لغو ثبت‌نام پرداخت‌نشده','data-ef-decide="reject"','i-close')}</div><small class="cap">تا رسیدی ثبت نشده، تأیید پرداخت ممکن نیست (سرور هم نمی‌پذیرد). لغو، ثبت‌نام را حذف و ظرفیت را آزاد می‌کند و با نام و دلیل ثبت می‌شود.</small>`}</div>`:'';
+  const ticketState=!tk.eligible?'این ثبت‌نام بلیت ندارد':can.ticket_image?'':d.payment_approved?'بلیت هنوز صادر نشده':'بلیت پس از تأیید پرداخت صادر می‌شود';
+  const ticket=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${tk.serial&&tk.eligible?tag('سریال بلیت: '+tk.serial,''):''}${tk.type?tag('نوع: '+tk.type,''):''}${can.ticket_image?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.eventFileTicketImageUrl(EI.eventId,d.response_id))}" target="_blank" rel="noopener">${ico('i-ticket')}تصویر بلیت</a>`:''}${ticketState?`<small class="cap">${esc(ticketState)}</small>`:''}</div>`;
   const attendance=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${att.checked_in?tag('حاضر · '+(svcWhen(att.checked_in_at)||''),'ok'):tag('حضور ثبت نشده','')}${can.attendance&&d.status==='accepted'?(att.checked_in?btn('برگرداندن حضور',`data-ef-att="undo" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-refresh'):btn('ثبت حضور',`data-ef-att="in" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-check')):''}</div>`;
   const companions=(d.companions||[]).length?`<div class="admlist">${d.companions.map(c=>`<div class="admlirow"><span class="ic">${ico('i-user')}</span><span class="sp"><b>${esc(c.name||'همراه')}</b></span>${tag((EF_REG_STATUS[c.status]||[c.status])[0],(EF_REG_STATUS[c.status]||['',''])[1])}${c.ticket_checked_in?tag('حاضر','ok'):''}</div>`).join('')}</div>`:'';
   const audit=(d.audit||[]).length?`<div class="admlist">${d.audit.map(a=>`<div class="admlirow"><span class="sp"><b>${esc(a.action)}</b><small class="cap">${esc(svcWhen(a.created_at)||'')} · ${esc(a.actor_role||'')}${a.reason?' · '+esc(a.reason):''}</small></span>${tag(a.outcome==='ok'||a.outcome==='success'?'انجام شد':a.outcome||'','')}</div>`).join('')}</div>`:'<small class="cap">اقدامی روی این ثبت‌نام ثبت نشده است.</small>';
   const sec=(t,b)=>`<div class="card stack" style="gap:6px"><strong>${esc(t)}</strong>${b}</div>`;
-  return `<div class="stack" data-ef-person="${esc(d.response_id)}">
+  return `<div class="stack" data-ef-person-file="${esc(d.response_id)}">
     <div class="row" style="flex-wrap:wrap;gap:8px">${back}<b>${esc(d.registrant_name||'')}</b>${tag(st[0],st[1])}${tag(ps[0],ps[1])}<span class="sp"></span><small class="cap">${esc(d.display_id||'')}${d.form&&d.form.name?' · '+esc(d.form.name):''}</small></div>
     ${p2Msg(EF.msg)}
     ${sec('پاسخ‌های فرم',answers||'<small class="cap">پاسخی ثبت نشده است.</small>')}
@@ -8036,7 +8040,7 @@ async function efDecide(){
   const api=window.NORA_SERVER_API, p=EF.person, d=p.data; if(!api||!d||EF.busy) return;
   const reason=String(p.reason||'').trim(); if(reason.length<2){EF.msg={kind:'stop',text:'نوشتن دلیل لازم است.'}; renderBody(); return}
   EF.busy='decide'; EF.msg=null; renderBody();
-  try{const r=await api.eventFilePaymentDecision(EI.eventId,d.response_id,p.decision,reason,d.payment&&d.payment.status||'',staffCsrfCookie());
+  try{const r=await api.eventFilePaymentDecision(EI.eventId,d.response_id,p.decision==='approve'?'approved':'rejected',reason,d.payment&&d.payment.status||'',staffCsrfCookie());
     EF.msg={kind:'ok',text:r&&r.changed===false?'این تصمیم پیش‌تر ثبت شده بود؛ چیزی دوباره تغییر نکرد.':p.decision==='approve'?'پرداخت تأیید شد و بلیت صادر می‌شود.':'رسید رد شد و ثبت‌نام لغو شد؛ ظرفیت آزاد شد.'};
     p.decision=''; p.reason='';
     if(r&&r.registration_cancelled){EF.person.id=''; EF.person.data=null; EI.key=''; eiLoad(); return}
@@ -8114,8 +8118,8 @@ function efSummaryBox(){
   const fields=(d.fields||[]).map(f=>{
     let body='';
     if(f.kind==='choice'&&Array.isArray(f.options)){const max=Math.max(1,...f.options.map(o=>Number(o.count)||0)); body=`<div class="stack" style="gap:4px">${f.options.map(o=>`<div class="row" style="gap:6px;align-items:center"><small class="cap" style="min-width:120px">${esc(o.label)}</small><div style="flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden"><div style="width:${Math.round((Number(o.count)||0)/max*100)}%;height:100%;background:var(--brand)"></div></div><small class="cap">${fa(o.count||0)}</small></div>`).join('')}</div>`}
-    else if(f.kind==='numeric'&&f.mean!=null) body=`<small class="cap">میانگین ${fa(f.mean)} · کمینه ${fa(f.min)} · بیشینه ${fa(f.max)}</small>`;
-    else if(Array.isArray(f.samples)&&f.samples.length) body=`<small class="cap">${f.samples.map(x=>esc(x)).join(' · ')}</small>`;
+    if(f.mean!=null) body+=`<small class="cap" data-ef-mean>میانگین ${fa(f.mean)} · کمینه ${fa(f.min)} · بیشینه ${fa(f.max)}</small>`;
+    if(!body&&Array.isArray(f.samples)&&f.samples.length) body=`<small class="cap">${f.samples.map(x=>esc(x)).join(' · ')}</small>`;
     return `<div class="admlirow" style="flex-wrap:wrap"><span class="sp"><b>${esc(f.label||f.field_id)}</b><small class="cap">${fa(f.answered||0)} پاسخ</small></span><div style="flex-basis:100%">${body}</div></div>`}).join('');
   return `<div class="card stack" data-ef-summary-box="${esc(String(d.form&&d.form.id||''))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>نتیجهٔ کلی «${esc(d.form&&d.form.name||'')}»</strong>${tag(fa(d.responses||0)+' پاسخ','')}<span class="sp"></span>${btn('بستن','data-ef-sum-close','i-close')}</div>
     ${d.responses?`<div class="admlist">${fields}</div>`:emptyBox('هنوز پاسخی برای این فرم ثبت نشده است.')}
