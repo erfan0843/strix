@@ -2424,13 +2424,20 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
      admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
      بی‌دلیل نشکند. */
-  ok(html.includes('admin.css?v=112')&&html.includes('admin.js?v=174')
+  ok(html.includes('admin.css?v=113')&&html.includes('admin.js?v=175')
       &&html.includes('owner-api.js?v=130')&&html.includes('data.js?v=100')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=4')
-      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=102'),
+      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=103'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'nora-v100'"),'کارگر سرویس نسخهٔ تازه است');
+  /* پوستر رویداد: قاب A4 عمودی (۲۱۰:۲۹۷) با contain در ویرایشگر، پیش‌نمایش و سربرگ پروندهٔ رویداد؛ جانگهدار صریح برای حالت خالی */
+  {
+    const acss=fs.readFileSync(DIR+'admin.css','utf8'), ajs=fs.readFileSync(DIR+'admin.js','utf8');
+    ok(/\.ctposter\{[^}]*aspect-ratio:210\/297/.test(acss)&&/\.ctposter img\{[^}]*object-fit:contain/.test(acss),'قاب پوستر A4 با contain در admin.css');
+    ok(ajs.includes('data-ct-poster-frame="${img?\'image\':\'empty\'}"')&&ajs.includes('پوستر عمودی A4</small>')&&ajs.includes('class="ctposter sm" data-ef-poster'),'ویرایشگر و پروندهٔ رویداد از قاب پوستر و جانگهدار استفاده می‌کنند');
+    ok(!/poster\)\)}" alt="" style="width:72px;height:72px;object-fit:cover/.test(ajs),'هیچ بندانگشتی پوستر رویداد با cover (برش) باقی نمانده است');
+  }
   ok(!sw.includes("'admin.html'")&&!sw.includes("'admin.js'"),'صفحهٔ خصوصی و اسکریپت بلااستفادهٔ پنل در پیش‌کش عمومی نیستند');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

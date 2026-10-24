@@ -165,6 +165,13 @@ input.input[type=time]{padding-inline:10px;text-align:center}
   border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
 .evcard-cover{aspect-ratio:16/10;background:var(--surface-sunk);display:grid;place-items:center;overflow:hidden}
 .evcard-cover img{width:100%;height:100%;object-fit:cover}
+/* پوستر رویداد: قاب عمودی A4 (۲۱۰:۲۹۷)، تصویر کامل داخل قاب (contain) و هرگز برش نمی‌خورد؛ جای خالی = جانگهدار */
+.ctposter{display:inline-grid;place-items:center;align-content:center;gap:4px;width:120px;aspect-ratio:210/297;flex:none;
+  border-radius:10px;border:.5px dashed var(--hairline);background:var(--surface-2);color:var(--ink-4);text-align:center;overflow:hidden;box-sizing:border-box}
+.ctposter img{width:100%;height:100%;object-fit:contain;display:block}
+.ctposter small{font-size:11px;line-height:1.4;padding:0 6px}
+.ctposter .i{width:22px;height:22px}
+.ctposter.sm{width:54px;border-style:solid;border-radius:8px}
 .evcard-body{display:grid;gap:6px;padding:12px}
 .evcard-top{display:flex;gap:4px;flex-wrap:wrap}
 .evcard-body>b{font-size:var(--fs-sub);font-weight:800;line-height:1.6;overflow-wrap:anywhere}

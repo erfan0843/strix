@@ -203,7 +203,7 @@
     const recMeta = rec ? [rec.sessionCount ? `${fa(rec.sessionCount)} جلسه` : '', rec.totalMinutes ? `${fa(rec.totalMinutes)} دقیقه` : '', rec.free ? 'دسترسی رایگان' : `${fa(rec.price)} ریال`].filter(Boolean).join(' · ') : '';
     const recButton = rec ? `<a class="btn ${event.past ? 'primary' : 'quiet'}" href="${detailHref}#recording" data-event-recording="${esc(event.id)}">${rec.free ? 'محتوای ضبط‌شده (رایگان)' : 'خرید محتوای ضبط‌شده'}</a>` : '';
     return `<article class="event-list-card card paper" data-event-id="${esc(event.id)}"${rec ? ' data-event-recorded="true"' : ''}>
-      <a class="event-list-cover" href="${detailHref}" aria-label="جزئیات ${esc(event.t)}">
+      <a class="event-list-cover${cover ? ' has-poster' : ''}" href="${detailHref}" aria-label="جزئیات ${esc(event.t)}">
         ${coverHtml}<span class="cover-shade"></span>
         ${event.kind ? `<span class="cover-kind">${esc(event.kind)}</span>` : ''}
         ${coverState ? `<span class="cover-state">${esc(coverState)}${rec ? ' · ضبط‌شده' : ''}</span>` : rec ? '<span class="cover-state">ضبط‌شده</span>' : ''}

@@ -1675,7 +1675,7 @@ function evPosterCard(e,o){
   const cta=o.cta?`<${ctaTag} class="btn sm evc-cta ${o.ctaKind||'primary'}" ${ctaAct}>
       <svg class="i"><use href="#${o.ctaIcon||'i-pen'}"/></svg> ${escH(o.cta)}</${ctaTag}>`:'';
   return `<article class="evcard${o.past?' past':''}${o.cls?' '+o.cls:''}">
-    <${wrap} class="evc-cov" ${act} aria-label="جزئیات ${escH(e.t)}">
+    <${wrap} class="evc-cov${e.poster?' has-poster':''}" ${act} aria-label="جزئیات ${escH(e.t)}">
       ${cover}
       ${tags?`<span class="evc-tags">${tags}</span>`:''}
       ${o.badge?`<span class="evc-day">${o.badge}</span>`:''}
@@ -1938,7 +1938,7 @@ function bundleCard(past,o){
   const chips=Object.keys(past.counts||{}).map(k=>`<span class="tag">${faN(past.counts[k])} ${((((window.NORA||{}).MEDIA_KINDS)||{})[k]||{}).n||''}</span>`).join('');
   const mine=hasLib(past.id);
   return `<article class="evcard ${mine?'pinned':''}">
-    <button class="evc-cov" data-past="${escH(past.id)}" aria-label="جزئیات ${escH(past.t)}">
+    <button class="evc-cov${past.poster?' has-poster':''}" data-past="${escH(past.id)}" aria-label="جزئیات ${escH(past.t)}">
       ${past.poster?`<img src="${escH(past.poster)}" alt="پوستر ${escH(past.t)}" loading="lazy" decoding="async"/>`
         :`<span class="evc-grad" style="--g:${escH(past.g||'')}"><svg class="i"><use href="#${escH(past.icon||'i-archive')}"/></svg></span>`}
       <span class="evc-tags"><span class="evc-tag dark">برگزار شد</span>${mine?'<span class="evc-tag dark">در کتابخانه‌ات</span>':''}</span>
@@ -2020,7 +2020,7 @@ function eventSheet(id){
   fillSheet('shEvent',`
     <div class="esh">
       <button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button>
-      <span class="esh-cover" style="--g:${escH(e.g||'')}">
+      <span class="esh-cover${e.poster?' has-poster':''}" style="--g:${escH(e.g||'')}">
         ${e.poster?`<img src="${escH(e.poster)}" alt="پوستر ${escH(e.t)}" loading="lazy"/>`:''}
         <span class="esh-veil"></span>
         <span class="esh-top">

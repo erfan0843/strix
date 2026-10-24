@@ -7132,7 +7132,7 @@ function ctPreview(form){
   const meta=kind==='events'?[form.kind,form.on||form.when,form.time,form.place,form.mode,form.price&&Number(form.price)?fa(form.price)+' ریال':'رایگان',pkName('tchr',form.tchr)?'مدرس: '+pkName('tchr',form.tchr):'',pkName('partnerId',form.partnerId)?'با همکاری '+pkName('partnerId',form.partnerId):''].filter(Boolean).join(' · ')
     :[form.cat||'مطلب',pkName('tchr',form.tchr)||form.who,form.at].filter(Boolean).join(' · ');
   const text=kind==='events'?form.d:(form.lead||(ctBlocksPayload(form.blocks).find(b=>b.ty==='p')||{}).x||String(form.body||'').split(/\n\s*\n/)[0]||'');
-  return `<article class="evcard"><div class="evcard-cover" style="min-height:120px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden">${safeImg?`<img src="${esc(safeImg)}" alt="" style="width:100%;height:160px;object-fit:cover"/>`:`<span class="cap">${ico('i-image')} بدون تصویر</span>`}</div>
+  return `<article class="evcard"><div class="evcard-cover" style="min-height:120px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden">${safeImg?`<img src="${esc(safeImg)}" alt="" style="width:100%;height:${kind==='events'?'200px':'160px'};object-fit:${kind==='events'?'contain':'cover'}"/>`:`<span class="cap">${ico('i-image')} ${kind==='events'?'بدون پوستر':'بدون تصویر'}</span>`}</div>
     <div class="evcard-body stack"><b>${esc(form.t||'عنوان هنوز وارد نشده')}</b><small class="cap">${esc(meta||'جزئیات هنوز وارد نشده')}</small><p class="cap" style="white-space:pre-wrap">${esc(String(text||'').slice(0,320))}</p>
     ${form.tags?`<div class="admfilters">${String(form.tags).split(/[,،\n]/).map(s=>s.trim()).filter(Boolean).slice(0,8).map(t=>tag(t,'')).join('')}</div>`:''}</div></article>`;
 }
@@ -7402,12 +7402,13 @@ function ctEditor(){
     :upHere&&up.error?`<span class="cap" style="color:var(--stop)" role="alert" data-ct-image-state="error">${esc(up.error)}</span>${up.file?btn('تلاش دوباره',`data-ct-image-retry="${imgField}"`,'i-refresh'):''}`:'';
   const imageBox=`<div class="fld"><span class="lbl">${kind==='events'?'پوستر':'تصویر جلد'}</span>
     <div class="row tight" style="flex-wrap:wrap;align-items:center">
-      ${img?`<img src="${esc(img)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px"/>`:`<span class="cap">تصویری انتخاب نشده</span>`}
+      ${kind==='events'?`<span class="ctposter" data-ct-poster-frame="${img?'image':'empty'}">${img?`<img src="${esc(img)}" alt="پیش‌نمایش پوستر"/>`:`${ico('i-image')}<small>پوستر عمودی A4</small>`}</span>`
+        :img?`<img src="${esc(img)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px"/>`:`<span class="cap">تصویری انتخاب نشده</span>`}
       <label class="btn sm ${up.busy?'disabled':''}">${ico('i-upload')}انتخاب فایل<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="${imgField}" ${up.busy?'disabled':''} hidden/></label>
       ${img&&!up.busy?btn('حذف تصویر',`data-ct-image-clear="${imgField}"`,'i-close'):''}
     </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
     ${img&&img.startsWith('/api/public/media/')?`<small class="cap" dir="ltr">${esc(img)}</small>`:''}
-    ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
+    ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:(kind==='events'?'پوستر عمودی A4 (نسبت ۲۱۰ به ۲۹۷) در کارت‌ها و صفحهٔ رویداد کامل و بدون برش نمایش داده می‌شود. ':'')+'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
   const fields=kind==='events'?ctEventSections(e,imageBox)
   :`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
@@ -7961,7 +7962,7 @@ function efHead(){
   const e=ov.event||{}, c=ov.counts||{}, rs=ov.registration_settings, can=ov.can||{};
   const when=[e.on||e.when,e.time,e.mode?ctModeLabel(e.mode)||e.mode:'',e.place].filter(Boolean).join(' · ');
   const capText=rs?(c.cap>0?fa(c.total||0)+' از '+fa(c.cap)+' نفر'+(c.remaining!=null?' · باقی‌مانده '+fa(c.remaining):''):fa(c.total||0)+' نفر · بدون سقف'):'';
-  const poster=e.poster?`<img src="${esc(String(e.poster))}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;flex:none"/>`:`<span class="ic" style="width:56px;height:56px">${ico('i-calendar')}</span>`;
+  const poster=e.poster?`<span class="ctposter sm" data-ef-poster><img src="${esc(String(e.poster))}" alt=""/></span>`:`<span class="ic" style="width:56px;height:56px">${ico('i-calendar')}</span>`;
   const actions=[e.public_path?`<a class="btn sm quiet" href="${esc(e.public_path)}" target="_blank" rel="noopener">${ico('i-eye')}مشاهدهٔ صفحه</a>`:'',
     can.edit_event&&ctCan('can_edit')?btn('ویرایش رویداد',`data-ei-edit="${esc(String(e.id||EI.eventId))}"`,'i-pen'):'',
     rs&&can.forms?`<a class="btn sm quiet" href="${esc(efFormSettingsHref(rs.form_id))}" data-ef-reg-settings>${ico('i-sliders')}ویرایش تنظیمات ثبت‌نام</a>`:'',

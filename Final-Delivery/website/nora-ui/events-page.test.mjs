@@ -226,7 +226,7 @@ function ok(condition, label) {
 /* ۹) نسخهٔ فایل‌ها در صفحه */
 {
   const html = fs.readFileSync(DIR + 'events.html', 'utf8');
-  ok(html.includes('events-page.js?v=104') && html.includes('events-page.css?v=104'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
+  ok(html.includes('events-page.js?v=105') && html.includes('events-page.css?v=105'), 'نسخهٔ اسکریپت/استایل صفحه جلو رفته است');
   ok(/__NORA_TEST_FIXTURE_MODE__===true\)document\.write/.test(html), 'data.js فقط در حالت آزمون صریح');
   const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
   ok(detail.includes('event-page.js?v=105') && detail.includes('event-interaction.js?v=8') && detail.includes('event-interaction.css?v=5'), 'نسخهٔ اسکریپت صفحهٔ رویداد جلو رفته و ماژول تعامل بارگذاری می‌شود');
@@ -260,7 +260,7 @@ for (const file of ['events.html', 'event.html']) {
   const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
   const start = new Date(Date.now() + 10 * 86_400_000).toISOString();
   const events = [
-    { id: 'ev-open', t: 'کارگاه باز', kind: 'کارگاه', privacy: 'public', d: 'شرح', when: 'آبان', on: '۱۴۰۵/۰۸/۰۳', forms: [{ id: 'f-open', need: 'reg', n: 'ثبت‌نام' }],
+    { id: 'ev-open', t: 'کارگاه باز', kind: 'کارگاه', privacy: 'public', d: 'شرح', when: 'آبان', on: '۱۴۰۵/۰۸/۰۳', forms: [{ id: 'f-open', need: 'reg', n: 'ثبت‌نام' }], posterUp: '/api/public/media/poster-a4.png',
       startsAt: start, regClosesAt: soon, registration: { state: 'open', reason: '', lifecycle: 'scheduled', closesAt: soon, countdownTo: soon, startsAt: start, startsIn: start } },
     { id: 'ev-closed', t: 'کارگاه بسته', kind: 'کارگاه', privacy: 'public', d: 'شرح', when: 'آبان', on: '۱۴۰۵/۰۸/۰۴', forms: [{ id: 'f-closed', need: 'reg', n: 'ثبت‌نام' }],
       registration: { state: 'closed', reason: 'time', lifecycle: 'scheduled', countdownTo: '' } },
@@ -272,6 +272,19 @@ for (const file of ['events.html', 'event.html']) {
   const p = await load('', { events });
   const cardOf = id => p.doc.querySelector(`#eventsList [data-event-id="${id}"]`);
   const openCard = cardOf('ev-open');
+  /* پوستر A4 عمودی: کارت با پوستر کلاس has-poster می‌گیرد (قاب contain، متن زیر قاب)؛ کارت بی‌پوستر نه */
+  ok(!!openCard.querySelector('.event-list-cover.has-poster img[src="/api/public/media/poster-a4.png"]') && !cardOf('ev-closed').querySelector('.event-list-cover.has-poster'),
+    'کارت با پوستر has-poster دارد و کارت بدون پوستر ندارد');
+  {
+    const css = fs.readFileSync(DIR + 'events-page.css', 'utf8');
+    ok(/\.event-list-cover\.has-poster img\{[^}]*object-fit:contain/.test(css) && /\.event-list-cover\.has-poster \.cover-shade\{display:none\}/.test(css)
+      && /\.event-list-cover\.has-poster \.cover-kind,[^{]*\{position:static/.test(css),
+      'استایل پوستر: contain بدون برش، بدون سایهٔ روی تصویر، برچسب‌ها ایستا زیر قاب');
+    const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
+    ok(/\.event-cover-image\{[^}]*object-fit:contain/.test(detail), 'صفحهٔ رویداد: پوستر سربرگ contain است، نه cover');
+    const nora = fs.readFileSync(DIR + 'nora.css', 'utf8');
+    ok(/\.evc-cov\.has-poster img\{[^}]*object-fit:contain/.test(nora) && /\.evc-cov\.has-poster \.evc-tags\{position:static/.test(nora), 'کارت خانه: پوستر contain و برچسب‌ها زیر قاب');
+  }
   ok(!!openCard.querySelector('.reg-state.live') && /ثبت‌نام باز است/.test(openCard.textContent), 'کارت باز: نشان «ثبت‌نام باز است» از وضعیت سرور');
   ok(/تا پایان ثبت‌نام/.test(openCard.textContent) && !!openCard.querySelector('[data-countdown]'), 'کارت باز: شمارشگر مشترک تا مهلت ثبت‌نام');
   ok(openCard.querySelector('a.btn.primary')?.getAttribute('href') === 'form.html?fid=f-open&kind=reg', 'کارت باز: دکمهٔ ثبت‌نام به همان فرم موجود می‌رود');

@@ -73,6 +73,13 @@
 .events-footer a{color:var(--brand-ink);text-decoration:none}
 .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @media(min-width:900px){.event-list-cover{height:220px}}
+/* پوستر عمودی A4: قاب ثابت، تصویر کامل (contain) و بدون برش؛ متن‌ها زیر قاب می‌نشینند نه روی پوستر */
+.event-list-cover.has-poster{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;height:auto;padding:0 0 10px;background:var(--surface-2,#f3f5f9);color:var(--ink-2,#334)}
+.event-list-cover.has-poster img{position:static;flex:0 0 100%;width:100%;height:220px;object-fit:contain;background:var(--surface-sunk,#e9edf3)}
+.event-list-cover.has-poster .cover-shade{display:none}
+.event-list-cover.has-poster .cover-kind,.event-list-cover.has-poster .cover-state,.event-list-cover.has-poster .cover-date{position:static;margin-inline-start:12px;background:var(--surface,#fff);color:inherit;border:.5px solid var(--hairline,#dfe4ec);backdrop-filter:none;padding:4px 10px;border-radius:99px;font-size:11.5px;font-weight:600}
+.event-list-cover.has-poster .cover-date{margin-inline-start:auto;margin-inline-end:12px}
+@media(max-width:680px){.event-list-cover.has-poster img{height:200px}}
 @media(max-width:680px){.events-grid{grid-template-columns:1fr}.event-list-cover{height:200px}.events-hero{align-items:flex-start;flex-direction:column}.event-facet-label{min-width:0;flex-basis:100%;padding-top:0}.events-toolbar{align-items:stretch;flex-direction:column}.events-sort{justify-content:space-between}.events-hero .btn{width:100%;justify-content:center}.events-result-line{align-items:flex-start;flex-direction:column}}
 
 /* Inline breadcrumb links remain distinguishable without relying on color. */
