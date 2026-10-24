@@ -254,8 +254,19 @@ main.wrap{animation:pageIn .3s var(--ease) both}
 .evc-cta{justify-self:start;margin-top:2px}
 .evcard.past .evc-cov{aspect-ratio:16/9}
 /* ردیف افقی کارت‌های پوستردار */
-.evrail{display:flex;gap:var(--sp-2h);overflow:auto;padding:2px 2px 8px;margin:0 -2px;scroll-snap-type:x mandatory}
+/* ریل رویدادها: موبایل = ریل افقی با اسنپ؛ کارت ۲۶۴px در عرض ۳۶۰–۴۲۰ یعنی کارت بعدی همیشه از لبه پیداست (سرنخ ادامه، بدون ماسک مصنوعی وقتی فقط یک کارت هست)؛
+   از ۶۰۰px دو ستون و از ۹۰۰px (body.wide، عرض ۱۱۰۰) سه ستون هم‌عرض — ۳ کارت ۲۹۰px دیگر ۲۰۰px از عرض محتوا را خالی نمی‌گذارد.
+   کارت‌ها همچنان با Tab پیمایش می‌شوند؛ مرورگر کارت فوکوس‌شده را داخل ریل می‌آورد. */
+.evrail{display:flex;gap:var(--sp-2h);overflow:auto;padding:2px 2px 8px;margin:0 -2px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.evrail::-webkit-scrollbar{display:none}
 .evrail>*{flex:0 0 290px;scroll-snap-align:start}
+.evrail>.empty{flex:1 1 100%}
+@media (min-width:600px){
+  .evrail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;scroll-snap-type:none;padding:2px;margin:0}
+  .evrail>*{flex:none;min-width:0}
+  .evrail>.empty{grid-column:1/-1}
+}
+@media (min-width:900px){.evrail{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:420px){.evcard .evc-body{padding:13px} .evrail>*{flex:0 0 264px}
   .evrail .evc-who small{display:none} .evrail .evc-price{font-size:var(--fs-sub)}}
 
@@ -522,8 +533,8 @@ main.wrap{overflow:visible}
 /* ── اندازهٔ کارت‌ها از تنظیمهای ظاهری؛ روی <html> می‌نشیند ── */
 [data-cards="big"] .evc-cov{aspect-ratio:4/3}
 [data-cards="small"] .evc-cov{aspect-ratio:2/1}
-[data-cards="big"] .evrail>*{flex-basis:330px}
-[data-cards="small"] .evrail>*{flex-basis:244px}
+@media (max-width:599px){[data-cards="big"] .evrail>*{flex-basis:330px}
+[data-cards="small"] .evrail>*{flex-basis:244px}}
 [data-cards="big"] .tcard{flex-basis:276px}
 [data-cards="small"] .tcard{flex-basis:212px}
 
