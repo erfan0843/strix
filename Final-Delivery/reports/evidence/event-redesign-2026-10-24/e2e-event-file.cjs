@@ -191,12 +191,26 @@ async function surveyAnswer(formId, answers) {
   await setVal('[data-ef-q]', 'سوم'); await click('[data-ef-search]');
   const oneOk = await waitFor(async () => (await count('[data-ef-reg]')) === 1, 8000); if (!oneOk) L('rows after search', await count('[data-ef-reg]'));
   check('search narrows to one row', oneOk);
+  check('search result count line «۱ نتیجه با این صافی»', /۱ نتیجه/.test(await txt('[data-ef-count]')));
   await setVal('[data-ef-q]', ''); await click('[data-ef-search]'); await waitFor(async () => (await count('[data-ef-reg]')) === 3);
+  check('count line without filter «۳ نتیجه»', /۳ نتیجه/.test(await txt('[data-ef-count]')));
+  const orderNewest = await page.$$eval('[data-ef-reg] b', els => els.map(e => e.textContent.trim()));
+  await page.selectOption('[data-ef-sort]', 'oldest'); await sleep(1200);
+  const orderOldest = await page.$$eval('[data-ef-reg] b', els => els.map(e => e.textContent.trim())); L('sort newest/oldest', JSON.stringify([orderNewest, orderOldest]));
+  check('sort «قدیمی‌ترین» reverses the server order (sort= sent to API)', orderOldest.length === 3 && orderOldest.join('|') === orderNewest.slice().reverse().join('|'));
+  await page.selectOption('[data-ef-sort]', 'name'); await sleep(1200);
+  const orderName = await page.$$eval('[data-ef-reg] b', els => els.map(e => e.textContent.trim()));
+  check('sort «نام» is alphabetical', orderName.join('|') === orderName.slice().sort((x, y) => x.localeCompare(y, 'fa')).join('|'));
+  await page.selectOption('[data-ef-sort]', 'newest'); await sleep(1200);
 
   // ── 5) person file: answers, payment, receipt, decision (approve, idempotent, reject) ──
   await click('[data-ef-person="' + rid(p1) + '"]');
   check('person file opens, hash has reg=', await waitFor(() => has('[data-ef-person-file="' + rid(p1) + '"] [data-ef-decision]')) && (await hash()).includes('reg=' + rid(p1)));
   const pf = await txt('[data-ef-person-file="' + rid(p1) + '"]'); L('person file', pf.slice(0, 300));
+  const secOrder = await page.$$eval('[data-ef-person-file] [data-ef-sec] > strong', els => els.map(e => e.textContent.trim()));
+  L('person sections', JSON.stringify(secOrder));
+  check('person file order: answers → registration status → payment/receipt → ticket/attendance → audit', (() => { const i = k => secOrder.findIndex(t => t.includes(k)); return i('پاسخ') > -1 && i('پاسخ') < i('وضعیت ثبت‌نام') && i('وضعیت ثبت‌نام') < i('پرداخت') && i('پرداخت') < i('بلیت') && i('بلیت') < i('تاریخچه'); })());
+  check('person file shows registration date separately from payment', /تاریخ ثبت‌نام/.test(pf));
   check('person file: answer, payment method, receipt image, no ticket yet', /نفر اول پرونده/.test(pf) && /کارت‌به‌کارت/.test(pf) && await has('[data-ef-receipt-img]') && /بلیت پس از تأیید پرداخت/.test(pf));
   const imgOk = await page.evaluate(() => { const i = document.querySelector('[data-ef-receipt-img]'); return i && i.complete && i.naturalWidth > 0; });
   check('receipt image actually loads from the access-controlled route', imgOk);

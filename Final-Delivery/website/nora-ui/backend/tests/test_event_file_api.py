@@ -154,6 +154,13 @@ def test_registrations_list_summary_filters_person_file_and_cross_event_isolatio
         assert client.get(f"/api/admin/events/{event_a}/registrations?attendance=checked_in").json()["total"] == 0
         assert client.get(f"/api/admin/events/{event_a}/registrations?form_id={reg_b}").status_code == 404
         assert client.get(f"/api/admin/events/{event_a}/registrations?limit=1").json()["has_more"] is True
+        # sort is additive: default order (newest first) unchanged; oldest reverses it; name sorts case-folded; junk rejected
+        newest = [item["name"] for item in client.get(f"/api/admin/events/{event_a}/registrations").json()["items"]]
+        assert newest == [item["name"] for item in client.get(f"/api/admin/events/{event_a}/registrations?sort=newest").json()["items"]]
+        assert [item["name"] for item in client.get(f"/api/admin/events/{event_a}/registrations?sort=oldest").json()["items"]] == list(reversed(newest))
+        assert [item["name"] for item in client.get(f"/api/admin/events/{event_a}/registrations?sort=name").json()["items"]] == sorted(newest)
+        assert client.get(f"/api/admin/events/{event_a}/registrations?sort=name").json()["filters"]["sort"] == "name"
+        assert client.get(f"/api/admin/events/{event_a}/registrations?sort=drop").status_code == 422
 
         rid = by_name["مینا با رسید"]["response_id"]
         detail = client.get(f"/api/admin/events/{event_a}/registrations/{rid}")

@@ -3623,13 +3623,15 @@ def create_app(
         payment: str = Query(default="", pattern=r"^(|free|paid|pending|failed|unpaid)$"),
         attendance: str = Query(default="", pattern=r"^(|checked_in|pending)$"),
         form_id: str = Query(default="", max_length=36),
+        sort: str = Query(default="newest", pattern=r"^(newest|oldest|name)$"),
         limit: int = Query(default=50, ge=1, le=200),
         offset: int = Query(default=0, ge=0, le=100_000),
         identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "attendance")),
         db: Session = Depends(get_db),
     ):
         """Registrants of one event across its registration forms with a server-side summary.
-        Filters combine; counts come from the same rows the list shows. Amounts only with ``finance``."""
+        Filters combine; counts come from the same rows the list shows. Amounts only with ``finance``.
+        ``sort``: newest (default, unchanged behaviour) / oldest / name — applied after the filters, before paging."""
         response.headers["Cache-Control"] = "private, no-store"
         row = _event_file_row(db, event_id)
         forms = _event_file_forms(db, identity.owner_id, event_id)
@@ -3662,6 +3664,10 @@ def create_app(
                 items = [item for item in items if item["payment_state"] == payment]
         if attendance:
             items = [item for item in items if item["checked_in"] == (attendance == "checked_in")]
+        if sort == "oldest":
+            items = list(reversed(items))
+        elif sort == "name":
+            items.sort(key=lambda item: unicodedata.normalize("NFKC", str(item.get("name") or "")).casefold())
         page = items[offset: offset + limit]
         primary = _event_file_primary_form(db, row, forms)
         return {
@@ -3675,7 +3681,7 @@ def create_app(
             "offset": offset,
             "has_more": offset + limit < len(items),
             "finance_visible": with_finance,
-            "filters": {"q": q, "status": status, "payment": payment, "attendance": attendance, "form_id": form_id},
+            "filters": {"q": q, "status": status, "payment": payment, "attendance": attendance, "form_id": form_id, "sort": sort},
         }
 
     def _event_file_registration(db: Session, owner_id: str, event_id: str, response_id: str) -> tuple[FormResponseRecord, FormPaymentRecord | None, FormRecord]:

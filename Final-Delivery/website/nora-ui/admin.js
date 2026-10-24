@@ -7901,12 +7901,12 @@ const EF={overview:null,ovError:'',
   cancel:{open:false,data:null,loading:false,error:'',receipt:'',focus:''},
   link:{pick:'',busy:'',msg:null},busy:'',msg:null};
 function efErr(error,fallback){const code=error&&error.code||''; if(EF_ERR[code]) return EF_ERR[code]; const f=p2FieldErr(error); if(f&&EF_ERR[f.code]) return EF_ERR[f.code]; if(error&&error.status===404) return EF_ERR.event_not_found; return p2Err(error,fallback)}
-function efReset(){EF.overview=null; EF.ovError=''; EF.regs={q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50}; EF.att={q:'',attendance:'',offset:0,limit:50}; EF.pay={q:'',state:'',offset:0,limit:50,receipt:''}; EF.certs={offset:0,limit:20}; EF.person={id:'',data:null,loading:false,error:'',decision:'',reason:''}; EF.sum={formId:'',data:null,loading:false,error:''}; EF.cancel={open:false,data:null,loading:false,error:'',receipt:'',focus:''}; EF.link={pick:'',busy:'',msg:null}; EF.busy=''; EF.msg=null}
+function efReset(){EF.overview=null; EF.ovError=''; EF.regs={q:'',status:'',payment:'',attendance:'',form_id:'',sort:'newest',offset:0,limit:50}; EF.att={q:'',attendance:'',offset:0,limit:50}; EF.pay={q:'',state:'',offset:0,limit:50,receipt:''}; EF.certs={offset:0,limit:20}; EF.person={id:'',data:null,loading:false,error:'',decision:'',reason:''}; EF.sum={formId:'',data:null,loading:false,error:''}; EF.cancel={open:false,data:null,loading:false,error:'',receipt:'',focus:''}; EF.link={pick:'',busy:'',msg:null}; EF.busy=''; EF.msg=null}
 function efHash(){if(EI.all||!EI.eventId) return '#events'; const p=new URLSearchParams({event:String(EI.eventId),tab:String(EI.tab||'overview')}); if(EI.tab==='regs'&&EF.person.id) p.set('reg',EF.person.id); if(EI.tab==='survey'&&EF.sum.formId) p.set('form',EF.sum.formId); return '#'+p.toString()}
 function efSyncHash(){if(IS_TEST) return; try{const h=efHash(); if(location.hash!==h) history.replaceState(null,'',h)}catch(e){}}
 function efParseHash(h){const s=String(h||'').replace(/^#/,''); if(!/^event=/.test(s)) return null; const p=new URLSearchParams(s); const id=String(p.get('event')||''); if(!/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null; const tab=String(p.get('tab')||'overview'); const safe=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):''; return {id,tab:EF_TAB_KEYS.has(tab)||['resources','notify','recording','orders','questions','reviews','reports'].includes(tab)?tab:'overview',reg:safe(p.get('reg')),form:safe(p.get('form'))}}
 function efMoney(n){return fa(Number(n||0).toLocaleString('en-US'))+' ریال'}
-function efKey(){return [EF.regs.q,EF.regs.status,EF.regs.payment,EF.regs.attendance,EF.regs.form_id,EF.regs.offset,EF.att.q,EF.att.attendance,EF.att.offset,EF.pay.q,EF.pay.state,EF.pay.offset,EF.certs.offset,EF.sum.formId].join('|')}
+function efKey(){return [EF.regs.q,EF.regs.status,EF.regs.payment,EF.regs.attendance,EF.regs.form_id,EF.regs.sort,EF.regs.offset,EF.att.q,EF.att.attendance,EF.att.offset,EF.pay.q,EF.pay.state,EF.pay.offset,EF.certs.offset,EF.sum.formId].join('|')}
 async function efLoadOverview(api){const r=await api.eventFileOverview(EI.eventId); EF.overview=r; EF.ovError=''; if(r&&r.event){EI.title=r.event.t||r.event.title||EI.title; EI.status=r.event.status||EI.status} return r}
 async function efLoadTab(api){
   if(EI.tab==='overview'||EI.tab==='forms'||EI.tab==='survey'||EI.tab==='certs'){
@@ -7918,7 +7918,7 @@ async function efLoadTab(api){
     return ov;
   }
   if(!EF.overview){try{await efLoadOverview(api)}catch(error){if(error&&error.status===404) throw error}}
-  if(EI.tab==='regs'){const r=await api.eventFileRegistrations(EI.eventId,{q:EF.regs.q,status:EF.regs.status,payment:EF.regs.payment,attendance:EF.regs.attendance,form_id:EF.regs.form_id,limit:EF.regs.limit,offset:EF.regs.offset}); if(EF.person.id&&!EF.person.data&&!EF.person.loading) efLoadPerson(api,EF.person.id); return r}
+  if(EI.tab==='regs'){const r=await api.eventFileRegistrations(EI.eventId,{q:EF.regs.q,status:EF.regs.status,payment:EF.regs.payment,attendance:EF.regs.attendance,form_id:EF.regs.form_id,sort:EF.regs.sort==='newest'?'':EF.regs.sort,limit:EF.regs.limit,offset:EF.regs.offset}); if(EF.person.id&&!EF.person.data&&!EF.person.loading) efLoadPerson(api,EF.person.id); return r}
   if(EI.tab==='tickets') return api.eventFileRegistrations(EI.eventId,{q:EF.att.q,attendance:EF.att.attendance,status:'accepted',limit:EF.att.limit,offset:EF.att.offset});
   if(EI.tab==='payments') return api.eventFilePayments(EI.eventId,{q:EF.pay.q,state:EF.pay.state,limit:EF.pay.limit,offset:EF.pay.offset});
   return null;
@@ -8070,9 +8070,13 @@ function efRegs(){
     <div class="admfilters" role="group" aria-label="وضعیت پرداخت">${chip('payment','','هر پرداختی')}${chip('payment','paid','پرداخت‌شده')}${chip('payment','pending','در انتظار پرداخت')}${chip('payment','failed','ناموفق')}${chip('payment','free','رایگان')}</div>
     <div class="admfilters" role="group" aria-label="حضور">${chip('attendance','','با و بی‌حضور')}${chip('attendance','checked_in','حاضر')}${chip('attendance','pending','هنوز نیامده')}</div></div>`;
   const anyFilter=b.q||b.status||b.payment||b.attendance||b.form_id;
+  const total=Number(d.total)||0;
+  const countLine=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><small class="cap" data-ef-count role="status">${total?fa(total)+' نتیجه'+(anyFilter?' با این صافی':''):''}</small><span class="sp"></span>
+    <label class="row tight" style="gap:4px;align-items:center"><small class="cap">مرتب‌سازی</small><select class="inp" data-ef-sort aria-label="مرتب‌سازی فهرست" style="min-height:32px;padding:2px 8px">${[['newest','تازه‌ترین ثبت‌نام'],['oldest','قدیمی‌ترین ثبت‌نام'],['name','نام']].map(([v,l])=>`<option value="${v}" ${b.sort===v?'selected':''}>${l}</option>`).join('')}</select></label></div>`;
   const empty=forms.length?(anyFilter?'با این جست‌وجو یا صافی کسی پیدا نشد.':'هنوز کسی در این رویداد ثبت‌نام نکرده است.'):'فرم ثبت‌نامی به این رویداد وصل نیست؛ اول در «فرم‌ها و فعالیت‌ها» فرم ثبت‌نام بساز.';
   return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}
     <small class="cap">وضعیت ثبت‌نام (پذیرفته/انتظار) از وضعیت پرداخت جداست؛ «رسید فرستاده شده» یعنی هنوز تأیید نشده.${fin?'':' مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.'}</small>
+    ${d.items.length||anyFilter?countLine:''}
     ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
     ${efPager(b,d)}${forms.length?efCancelled(fin):''}</div>`;
 }
@@ -8127,14 +8131,15 @@ function efPerson(){
   const attendance=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${att.checked_in?tag('حاضر · '+(svcWhen(att.checked_in_at)||''),'ok'):tag('حضور ثبت نشده','')}${can.attendance&&d.status==='accepted'?(att.checked_in?btn('برگرداندن حضور',`data-ef-att="undo" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-refresh'):btn('ثبت حضور',`data-ef-att="in" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-check')):''}</div>`;
   const companions=(d.companions||[]).length?`<div class="admlist">${d.companions.map(c=>`<div class="admlirow"><span class="ic">${ico('i-user')}</span><span class="sp"><b>${esc(c.name||'همراه')}</b></span>${tag((EF_REG_STATUS[c.status]||[c.status])[0],(EF_REG_STATUS[c.status]||['',''])[1])}${c.ticket_checked_in?tag('حاضر','ok'):''}</div>`).join('')}</div>`:'';
   const audit=(d.audit||[]).length?`<div class="admlist">${d.audit.map(a=>`<div class="admlirow"><span class="sp"><b>${esc(EF_AUDIT_FA[a.action]||a.action)}</b><small class="cap">${esc(svcWhen(a.created_at)||'')} · ${esc(EF_ROLE_FA[a.actor_role]||a.actor_role||'')}${a.reason?' · '+esc(a.reason):''}</small></span>${tag(a.outcome==='ok'||a.outcome==='success'?'انجام شد':a.outcome==='denied'||a.outcome==='failed'?'انجام نشد':a.outcome||'','')}</div>`).join('')}</div>`:'<small class="cap">اقدامی روی این ثبت‌نام ثبت نشده است.</small>';
-  const sec=(t,b)=>`<div class="card stack" style="gap:6px"><strong>${esc(t)}</strong>${b}</div>`;
+  const sec=(t,b)=>`<div class="card stack" style="gap:6px" data-ef-sec><strong>${esc(t)}</strong>${b}</div>`;
   return `<div class="stack" data-ef-person-file="${esc(d.response_id)}">
     <div class="row" style="flex-wrap:wrap;gap:8px">${back}<b>${esc(d.registrant_name||'')}</b>${tag(st[0],st[1])}${tag(ps[0],ps[1])}<span class="sp"></span><small class="cap">${esc(d.display_id||'')}${d.form&&d.form.name?' · '+esc(d.form.name):''}</small></div>
     ${p2Msg(EF.msg)}
     ${sec('پاسخ‌های فرم',answers||'<small class="cap">پاسخی ثبت نشده است.</small>')}
-    ${companions?sec('همراهان',companions):''}
+    ${sec('وضعیت ثبت‌نام',`<div class="admlist" data-ef-person-reg>${[['وضعیت ثبت‌نام',st[0]],['تاریخ ثبت‌نام',svcWhen(d.created_at)||''],['فرم',d.form&&d.form.name||''],['کد پیگیری',d.display_id||''],['نوع بلیت',d.ticket_type||'']].filter(([,v])=>v).map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div dir="auto">${esc(String(v))}</div></span></div>`).join('')}</div><small class="cap">وضعیت ثبت‌نام از وضعیت پرداخت و از حضور جداست.</small>`)}
     ${sec('پرداخت و رسید',`<div class="admlist">${payRows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div dir="auto">${esc(String(v))}</div></span></div>`).join('')}</div>${receiptLine?`<small class="cap">${receiptLine}</small>`:''}${receiptImg}${decision}`)}
     ${sec('بلیت و حضور',ticket+attendance)}
+    ${companions?sec('همراهان',companions):''}
     ${sec('تاریخچهٔ اقدام‌ها',audit)}</div>`;
 }
 async function efDecide(){
@@ -8270,6 +8275,7 @@ function efChange(t){
   if(!EI.open||EI.all||!t||!t.dataset) return false;
   if(t.matches('[data-ef-link-pick]')){EF.link.pick=String(t.value||''); renderBody(); return true}
   if(t.matches('[data-ef-form-id]')){EF.regs.form_id=String(t.value||''); EF.regs.offset=0; EI.key=''; eiLoad(); return true}
+  if(t.matches('[data-ef-sort]')){const v=String(t.value||'newest'); EF.regs.sort=['newest','oldest','name'].includes(v)?v:'newest'; EF.regs.offset=0; EI.key=''; eiLoad(); return true}
   if(t.matches('[data-ef-reason]')){EF.person.reason=t.value; return true}
   if(t.matches('[data-ef-q]')){const box=efBox(); if(box){const v=String(t.value||'').trim().slice(0,80); if(v!==box.q){box.q=v; box.offset=0; EI.key=''; eiLoad()}} return true}
   return false;
