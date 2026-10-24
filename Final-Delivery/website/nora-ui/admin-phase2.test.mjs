@@ -506,6 +506,55 @@ console.log('— مالک: فهرست رویدادها از site_content، فی�
   } finally { app.close(); }
 }
 
+console.log('— ردیف رویداد: دو کنش روزانه دیده می‌شوند، بقیه در منوی «بیشتر» با شرط وضعیت/مجوز؛ Escape و کلیک بیرون می‌بندند —');
+{
+  const app = await loadPanel({ role: 'owner', sec: 'events' });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست');
+    const row = app.doc.querySelector('[data-ct-row="ev-a1"]');
+    const visible = [...row.querySelectorAll(':scope > .row > .btn')].map((b) => b.textContent.trim());
+    assert.deepEqual(visible, ['مدیریت رویداد', 'ویرایش'], 'فقط «مدیریت رویداد» و «ویرایش» بیرون منو هستند');
+    const menu = row.querySelector('details.actmenu');
+    assert.ok(menu && menu.querySelector('summary[aria-haspopup="menu"]'), 'منوی «بیشتر» با summary قابل‌فوکوس');
+    assert.deepEqual([...menu.querySelectorAll('.actmenu-item')].map((b) => b.textContent.trim()),
+      ['صفحهٔ عمومی', 'فایل‌ها و پرسش‌ها', 'تکثیر', 'توقف انتشار', 'بایگانی'], 'رویداد منتشرشده: همهٔ هفت کار حفظ شده‌اند (پنج‌تا در منو)');
+    assert.ok(menu.querySelector('a.actmenu-item[href="event.html?id=ev-a1"][target="_blank"]'), 'صفحهٔ عمومی همان پیوند قبلی است');
+    assert.ok(menu.querySelector('[data-ct-set="paused"][data-ct-id="ev-a1"]') && menu.querySelector('[data-ct-set="archived"][data-ct-id="ev-a1"]')
+      && menu.querySelector('[data-ct-dup="ev-a1"]') && menu.querySelector('[data-ct-interaction="ev-a1"]'), 'data-* کارها دست‌نخورده‌اند (مسیرهای قبلی)');
+    const draft = app.doc.querySelector('[data-ct-row="ev-b2"] details.actmenu');
+    assert.deepEqual([...draft.querySelectorAll('.actmenu-item')].map((b) => b.textContent.trim()),
+      ['فایل‌ها و پرسش‌ها', 'تکثیر', 'انتشار', 'بایگانی'], 'پیش‌نویس: نه «صفحهٔ عمومی» دارد نه «توقف انتشار»؛ «انتشار» دارد');
+    /* صفحه‌کلید: باز شدن منو فوکوس را به اولین گزینه می‌برد، Escape می‌بندد و فوکوس به دکمه برمی‌گردد */
+    menu.open = true; menu.dispatchEvent(new app.window.Event('toggle'));
+    assert.equal(menu.querySelector('summary').getAttribute('aria-expanded'), 'true', 'aria-expanded با باز شدن true می‌شود');
+    assert.equal(app.doc.activeElement, menu.querySelector('.actmenu-item'), 'فوکوس روی اولین گزینه');
+    app.doc.activeElement.dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    assert.equal(app.doc.activeElement.textContent.trim(), 'فایل‌ها و پرسش‌ها', 'پیکان پایین به گزینهٔ بعدی می‌رود');
+    app.doc.activeElement.dispatchEvent(new app.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    assert.equal(menu.open, false, 'Escape منو را می‌بندد');
+    assert.equal(app.doc.activeElement, menu.querySelector('summary'), 'فوکوس به دکمهٔ «بیشتر» برمی‌گردد');
+    menu.open = true;
+    app.doc.body.dispatchEvent(new app.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    assert.equal(menu.open, false, 'کلیک بیرون منو را می‌بندد');
+    /* بایگانی از داخل منو همان تأیید قبلی را می‌خواهد */
+    app.click('[data-ct-row="ev-a1"] [data-ct-set="archived"]');
+    await app.until(() => app.dialogs.some(([k, m]) => k === 'confirm' && m.includes('بایگانی می‌شود')), 'بایگانی از منو تأیید می‌خواهد');
+  } finally { app.close(); }
+}
+
+console.log('— مدیر محدود (بدون ev_publish): دو کنش بیرون، منو بدون انتشار/توقف/بایگانی —');
+{
+  const perms = MANAGER.filter((p) => !['ev_publish', 'us_view'].includes(p));
+  const app = await loadPanel({ role: 'manager', sec: 'events', permissions: perms });
+  try {
+    await app.until(() => app.doc.querySelector('[data-ct-row="ev-a1"]'), 'فهرست برای مدیر محدود');
+    const row = app.doc.querySelector('[data-ct-row="ev-a1"]');
+    assert.deepEqual([...row.querySelectorAll(':scope > .row > .btn')].map((b) => b.textContent.trim()), ['مدیریت رویداد', 'ویرایش'], 'همان دو کنش روزانه برای مدیر');
+    assert.equal(row.querySelector('[data-ct-set]'), null, 'کارهای وضعیت بدون ev_publish نه بیرون‌اند نه در منو');
+    assert.deepEqual([...row.querySelectorAll('.actmenu-item')].map((b) => b.textContent.trim()), ['صفحهٔ عمومی', 'فایل‌ها و پرسش‌ها', 'تکثیر'], 'منوی مدیر بدون ev_publish');
+  } finally { app.close(); }
+}
+
 console.log('— مالک: تعارض نسخه و رکورد ناموجود —');
 {
   const app = await loadPanel({ role: 'owner', sec: 'events' });

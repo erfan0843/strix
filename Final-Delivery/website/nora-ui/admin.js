@@ -6916,20 +6916,25 @@ function ctEventMeta(item){
 function ctArticleMeta(item){
   return [item.cat,item.tchr?ctRefMeta('tchr',item.tchr).replace(/^مدرس/,'نویسنده'):item.who,item.at?svcWhen(item.at)||item.at:'',item.paragraphs?fa(item.paragraphs)+' بند':'',item.pin?'سنجاق‌شده':''].filter(Boolean).join(' · ');
 }
+/* کنش‌های هر ردیف: دو کنش روزانه همیشه دیده می‌شوند («مدیریت رویداد» مسیر اصلی، «ویرایش» کنش مستقیم)؛
+   بقیه (صفحهٔ عمومی، تکثیر، فایل‌ها و پرسش‌ها، انتشار/توقف، بایگانی/بازگردانی) در منوی «بیشتر» با همان شرط‌های وضعیت و مجوز.
+   هیچ قابلیتی حذف نمی‌شود؛ data-* ها همان‌اند تا مسیرهای قبلی (و آزمون‌ها) کار کنند. تأیید توقف/بایگانی در ctSetStatus است. */
 function ctActions(item){
-  const id=esc(item.id), st=item.status, out=[];
-  if(ctCan('can_edit')) out.push(btn('ویرایش',`data-ct-edit="${id}"`,'i-pen'));
-  if(CT.kind==='events'&&ctCan('can_edit')) out.push(btn('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
-  if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
-  if(CT.kind==='events') out.push(btn('مدیریت رویداد',`data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="پروندهٔ رویداد: فرم‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی، گواهی‌ها، فایل‌ها"`,'i-doc'));
-  if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('فایل‌ها و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
+  const id=esc(item.id), st=item.status, primary=[], more=[];
+  const mi=(label,attrs,i,tone)=>`<button class="actmenu-item${tone?' '+tone:''}" role="menuitem" type="button" ${attrs}>${ico(i)}${esc(label)}</button>`;
+  if(CT.kind==='events') primary.push(`<button class="btn sm" data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="پروندهٔ رویداد: فرم‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، اطلاع‌رسانی و گزارش">${ico('i-doc')}مدیریت رویداد</button>`);
+  if(ctCan('can_edit')) primary.push(`<button class="btn sm${CT.kind==='events'?' quiet':''}" data-ct-edit="${id}">${ico('i-pen')}ویرایش</button>`);
+  if(st==='published') more.push(`<a class="actmenu-item" role="menuitem" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
+  if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) more.push(mi('فایل‌ها و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
+  if(CT.kind==='events'&&ctCan('can_edit')) more.push(mi('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
   if(ctCan('can_publish')){
-    if(st==='draft'||st==='paused') out.push(btn(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
-    if(st==='published') out.push(btn('توقف انتشار',`data-ct-set="paused" data-ct-id="${id}"`,'i-eye-off'));
-    if(st!=='archived') out.push(btn('بایگانی',`data-ct-set="archived" data-ct-id="${id}"`,'i-layers'));
-    if(st==='archived') out.push(btn('بازگردانی به پیش‌نویس',`data-ct-set="draft" data-ct-id="${id}"`,'i-refresh'));
+    if(st==='draft'||st==='paused') more.push(mi(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
+    if(st==='published') more.push(mi('توقف انتشار',`data-ct-set="paused" data-ct-id="${id}"`,'i-eye-off','warn'));
+    if(st!=='archived') more.push(mi('بایگانی',`data-ct-set="archived" data-ct-id="${id}"`,'i-trash','stop'));
+    if(st==='archived') more.push(mi('بازگردانی به پیش‌نویس',`data-ct-set="draft" data-ct-id="${id}"`,'i-refresh'));
   }
-  return out.join('');
+  const menu=more.length?`<details class="actmenu" data-ct-more="${id}"><summary class="btn sm quiet" aria-haspopup="menu" aria-label="کارهای بیشتر برای ${esc(item.t||'این رکورد')}">${ico('i-more')}بیشتر</summary><div class="actmenu-menu" role="menu" aria-label="کارهای بیشتر">${more.join('')}</div></details>`:'';
+  return primary.join('')+menu;
 }
 function ctRow(item){
   const meta=CT.kind==='events'?ctEventMeta(item):ctArticleMeta(item);
@@ -9924,7 +9929,20 @@ document.addEventListener('input',e=>{
   ['desc','sched','extra'].forEach(k=>{const el=document.querySelector(`[data-ct-more-sum="${k}"]`); if(el){const tmp=document.createElement('div'); tmp.innerHTML=ctEventSections(CT.edit,''); const fresh=tmp.querySelector(`[data-ct-more-sum="${k}"]`); if(fresh) el.textContent=fresh.textContent}});
 });
 /* منوی جمع‌شدهٔ «بخش‌های دیگر» پروندهٔ رویداد با کلیک بیرون از آن بسته می‌شود */
-document.addEventListener('click',e=>{document.querySelectorAll('details.efmore[open]').forEach(d=>{if(!(e.target instanceof Node)||!d.contains(e.target)) d.removeAttribute('open')})},true);
+document.addEventListener('click',e=>{document.querySelectorAll('details.efmore[open],details.actmenu[open]').forEach(d=>{
+  if(!(e.target instanceof Node)||!d.contains(e.target)) d.removeAttribute('open');
+  else if(d.classList.contains('actmenu')&&e.target.closest('.actmenu-item')) setTimeout(()=>d.removeAttribute('open'),0); /* بعد از انتخاب یک کار، منو بسته می‌شود */
+})},true);
+/* منوی «بیشتر» ردیف‌ها: با باز شدن، فوکوس روی اولین گزینه؛ Escape می‌بندد و فوکوس به دکمه برمی‌گردد؛ پیکان بالا/پایین بین گزینه‌ها */
+document.addEventListener('toggle',e=>{const d=e.target; if(!(d instanceof Element)||!d.matches('details.actmenu')) return;
+  const sum=d.querySelector('summary'); if(sum) sum.setAttribute('aria-expanded',d.open?'true':'false');
+  if(d.open){const first=d.querySelector('.actmenu-item'); if(first) first.focus()}},true);
+document.addEventListener('keydown',e=>{
+  const d=e.target instanceof Element?e.target.closest('details.actmenu'):null; if(!d) return;
+  if(e.key==='Escape'&&d.open){e.preventDefault(); d.removeAttribute('open'); const sum=d.querySelector('summary'); if(sum) sum.focus(); return}
+  if((e.key==='ArrowDown'||e.key==='ArrowUp')&&d.open){const items=[...d.querySelectorAll('.actmenu-item')]; if(!items.length) return; e.preventDefault();
+    const i=items.indexOf(document.activeElement), n=e.key==='ArrowDown'?(i+1)%items.length:(i-1+items.length)%items.length; items[n].focus()}
+});
 document.addEventListener('focusout',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||!t.dataset) return;
   if(t.dataset.ctPart!=null){const k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[+t.dataset.ctPart]; if(row&&(k==='time'||k==='to')){const v=ctTimeFix('time',t.value,true); if(v!==t.value){t.value=v; row[k]=v; ctDraftSave()}} return}

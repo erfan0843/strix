@@ -921,5 +921,20 @@ a.sktile{text-decoration:none;color:inherit}
 .efmore-grp b{flex:0 0 100%;font-size:var(--fs-cap);color:var(--ink-2)}
 .efmore-grp .lnk{min-height:34px;padding:4px 6px}
 @media (max-width:700px){.efmore-menu{inset-inline-end:auto;inset-inline-start:0}} /* موبایل: منو به سمت آغاز باز می‌شود تا از لبهٔ صفحه بیرون نزند */
+/* منوی «بیشتر» هر ردیف (فهرست رویدادها/مطالب): details بومی → با ماوس، صفحه‌کلید و لمس کار می‌کند؛ بستن با Escape/کلیک بیرون در admin.js.
+   دکمه در انتهای ردیف است، پس منو از همان لبه (inline-end) باز می‌شود و در هیچ عرضی بیرون نمی‌زند. */
+.actmenu{position:relative}
+.actmenu>summary{list-style:none;display:inline-flex;cursor:pointer}
+.actmenu>summary::-webkit-details-marker{display:none}
+.actmenu:not([open]) .actmenu-menu{display:none}
+.actmenu-menu{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:30;min-width:min(220px,80vw);max-width:min(92vw,320px);padding:6px;border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);box-shadow:0 12px 32px rgba(0,0,0,.14);display:grid;gap:2px}
+.actmenu-item{display:flex;align-items:center;gap:var(--sp-2);width:100%;min-height:var(--ctl-h);padding:0 var(--sp-3);border:0;border-radius:var(--r-xs);background:transparent;color:var(--ink);font:inherit;font-size:var(--fs-sub);text-align:start;text-decoration:none;cursor:pointer;white-space:nowrap}
+.actmenu-item .i{width:16px;height:16px;flex:0 0 auto;color:var(--ink-3)}
+.actmenu-item:hover{background:var(--surface-sunk)}
+.actmenu-item:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.actmenu-item.warn{color:var(--warn)} .actmenu-item.warn .i{color:var(--warn)}
+.actmenu-item.stop{color:var(--stop)} .actmenu-item.stop .i{color:var(--stop)}
+.actmenu-item.warn,.actmenu-item.stop{border-top:.5px solid var(--hairline);border-radius:0;margin-top:2px;padding-top:2px}
+.actmenu-item.warn+.actmenu-item.stop{border-top:0;margin-top:0;padding-top:0}
 @media (max-width:720px){.eftiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.eftile-main{min-height:84px;padding:10px;gap:var(--sp-2)}.eftile-main .ic{width:30px;height:30px}.eftile-sub{display:none}}

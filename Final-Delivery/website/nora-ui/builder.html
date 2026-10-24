@@ -616,7 +616,7 @@ const ADMIN_PERSON=TEST_FIXTURE_MODE&&window.NORA_UI&&NORA_UI.adminActor?NORA_UI
 const FINANCE_OWNER=TEST_FIXTURE_MODE&&!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
 const RECEIPT_REVIEWER=TEST_FIXTURE_MODE&&!!(ADMIN_PERSON&&(FINANCE_OWNER||ADMIN_PERSON.lv==='سرپرست'));
 let SERVER_FORMS=[];
-/* وضعیت فهرست سروری: idle | loading | loaded | unauthenticated | forbidden | error — مرجعِ متنِ حالت خالی و کارت وضعیت */
+/* وضعیت فهرست سروری: idle | loading | loaded | unauthenticated | forbidden | error؛ مرجعِ متنِ حالت خالی و کارت وضعیت */
 let SERVER_FORMS_STATE='idle', SERVER_FORMS_ERROR='';
 let SERVER_FORMS_SYNC=null;
 function ownerNoticeAdd(input){
