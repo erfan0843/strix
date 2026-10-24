@@ -7972,7 +7972,7 @@ function efHead(){
   return `<div class="row" data-ef-head style="flex-wrap:wrap;gap:12px;align-items:flex-start">${poster}
     <div class="stack" style="flex:1 1 240px;gap:4px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong style="font-size:1.05em">${esc(e.t||e.title||'')}</strong>${efStatusTag(ov)}</div>
       ${when?`<small class="cap">${esc(when)}</small>`:''}
-      <div class="row tight" style="flex-wrap:wrap">${capText?tag('ثبت‌نام: '+capText,c.full?'warn':''):tag('بدون فرم ثبت‌نام','warn')}${rs?tag((rs.form_status==='published'?'فرم ثبت‌نام: فعال':rs.form_status==='paused'?'فرم ثبت‌نام: متوقف':rs.form_status==='draft'?'فرم ثبت‌نام: پیش‌نویس':'فرم ثبت‌نام: بایگانی'),rs.form_status==='published'?'ok':'warn'):''}${rs?tag('مبلغ: '+efPriceText(rs),''):''}</div>
+      <div class="row tight ef-meta">${capText?tag('ثبت‌نام: '+capText,c.full?'warn':''):tag('بدون فرم ثبت‌نام','warn')}${rs?tag((rs.form_status==='published'?'فرم ثبت‌نام: فعال':rs.form_status==='paused'?'فرم ثبت‌نام: متوقف':rs.form_status==='draft'?'فرم ثبت‌نام: پیش‌نویس':'فرم ثبت‌نام: بایگانی'),rs.form_status==='published'?'ok':'warn'):''}${rs?tag('مبلغ: '+efPriceText(rs),''):''}</div>
       ${rs?`<small class="cap" data-ef-source>ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «${esc(rs.form_name||'')}»</small>`:''}</div>
     <div class="row tight" style="flex-wrap:wrap;align-self:center">${actions}</div></div>`;
 }
@@ -7990,7 +7990,7 @@ function efOverview(){
     ['بررسی رسید',rs&&rs.receipt_review_required?'لازم است':''],['آخرین تغییر',e.updated_at?svcWhen(e.updated_at)||e.updated_at:'']].filter(([,v])=>v);
   const formLine=forms.length?forms.map(f=>`${EF_FORM_TYPE[f.type]||'فرم'}: «${esc(f.name||'')}» (${esc((FS_STATUS[f.status]||[f.status])[0])}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''})`).join('؛ '):'';
   return `<div class="stack" data-ef-info="${esc(String(e.id||EI.eventId))}">
-    <div class="row tight" style="flex-wrap:wrap">${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    <div class="row tight ef-meta">${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
     ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
     ${e.d?`<p class="cap" style="white-space:pre-wrap">${esc(String(e.d))}</p>`:''}
     <div class="admlist">${rows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div>${esc(String(v))}</div></span></div>`).join('')}</div>
@@ -8050,7 +8050,7 @@ function efSummaryChips(s,fin){
   if(!s) return '';
   const items=[['کل',s.total,''],['پذیرفته‌شده',s.accepted,'ok'],['فهرست انتظار',s.waitlisted,'warn'],['پرداخت‌شده',s.paid,'ok'],['در انتظار پرداخت',s.pending_payment,'warn'],['ناموفق',s.failed_payment,'stop'],['رایگان',s.free,''],['حاضر',s.checked_in,'ok']];
   const cap=s.cap>0?tag('ظرفیت باقی‌مانده: '+fa(s.remaining==null?0:s.remaining)+' از '+fa(s.cap),s.full?'warn':''):tag('بدون سقف ظرفیت','');
-  return `<div class="row tight" style="flex-wrap:wrap" data-ef-summary>${items.map(([l,n,k])=>tag(l+': '+fa(Number(n)||0),Number(n)>0?k:'')).join('')}${cap}${s.bale_holds>0?tag('رزرو موقت بله: '+fa(s.bale_holds),'warn'):''}</div>`;
+  return `<div class="row tight ef-meta" data-ef-summary>${items.map(([l,n,k])=>tag(l+': '+fa(Number(n)||0),Number(n)>0?k:'')).join('')}${cap}${s.bale_holds>0?tag('رزرو موقت بله: '+fa(s.bale_holds),'warn'):''}</div>`;
 }
 function efRegRow(r,fin){
   const st=EF_REG_STATUS[r.status]||[r.status||'',''], ps=EF_PAY_STATE[r.payment_state]||[r.payment_state||'',''];
@@ -8070,8 +8070,9 @@ function efRegs(){
   const filters=`<div class="stack" style="gap:6px" data-ef-filters>
     <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="جست‌وجوی نام، شماره یا کد پیگیری" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}${forms.length>1?`<select class="inp" data-ef-form-id><option value="">همهٔ فرم‌های ثبت‌نام</option>${forms.map(f=>`<option value="${esc(f.id)}" ${b.form_id===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`:''}</div>
     <div class="admfilters" role="group" aria-label="وضعیت ثبت‌نام">${chip('status','','همه')}${chip('status','accepted','پذیرفته‌شده')}${chip('status','waitlisted','فهرست انتظار')}</div>
+    <details class="adv ef-more" ${b.payment||b.attendance?'open':''}><summary>${ico('i-sliders')}صافی‌های پرداخت و حضور${b.payment||b.attendance?tag('فعال','brand'):''}</summary><div class="adv-body">
     <div class="admfilters" role="group" aria-label="وضعیت پرداخت">${chip('payment','','هر پرداختی')}${chip('payment','paid','پرداخت‌شده')}${chip('payment','pending','در انتظار پرداخت')}${chip('payment','failed','ناموفق')}${chip('payment','free','رایگان')}</div>
-    <div class="admfilters" role="group" aria-label="حضور">${chip('attendance','','با و بی‌حضور')}${chip('attendance','checked_in','حاضر')}${chip('attendance','pending','هنوز نیامده')}</div></div>`;
+    <div class="admfilters" role="group" aria-label="حضور">${chip('attendance','','با و بی‌حضور')}${chip('attendance','checked_in','حاضر')}${chip('attendance','pending','هنوز نیامده')}</div></div></details></div>`;
   const anyFilter=b.q||b.status||b.payment||b.attendance||b.form_id;
   const total=Number(d.total)||0;
   const countLine=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><small class="cap" data-ef-count role="status">${total?fa(total)+' نتیجه'+(anyFilter?' با این صافی':''):''}</small><span class="sp"></span>
@@ -10770,10 +10771,10 @@ function serverSettingsView(){
   const inner=tile?ssetTileView(tile,leaf)
     :g==='texts'?ssetGroupTexts():g==='money'?ssetGroupMoney():g==='cert'?ssetGroupCert():g==='ticket'?ssetGroupTicket():g==='notify'?ssetGroupNotify():ssetGroupData(leaf);
   const moved=!canSettings?`<div class="admlirow" data-sset-moved><span class="ic">${ico('i-info')}</span><span class="sp"><b>مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد</b><small class="cap">تنظیمات سامانه با حساب مالک است؛ این‌جا فقط وضعیت گروه‌های عمومی را می‌بینی.</small></span>${canSec('users')?btn('کاربران › ابزارها','data-sset-act="users-staff"','i-users'):''}</div>`:'';
-  const legend=`<p class="cap" data-sset-legend>هر گزینه یکی از این وضعیت‌ها را دارد: ${tag('متصل به سرور','ok')} کنترل زنده دارد و در سرور ذخیره می‌شود · ${tag('به‌ازای هر فرم در فرم‌ساز','')} · ${tag('نیازمند بک‌اند','warn')} · ${tag('نیازمند تصمیم مالک','warn')} · ${tag('خارج از دامنهٔ این نسخه','')}. هیچ کلیدی در مرورگر ذخیره نمی‌شود.</p>`;
+  const legend=`<details class="adv"><summary>${ico('i-info')}راهنمای وضعیت گزینه‌ها</summary><div class="adv-body"><p class="cap" data-sset-legend>هر گزینه یکی از این وضعیت‌ها را دارد: ${tag('متصل به سرور','ok')} کنترل زنده دارد و در سرور ذخیره می‌شود · ${tag('به‌ازای هر فرم در فرم‌ساز','')} · ${tag('نیازمند بک‌اند','warn')} · ${tag('نیازمند تصمیم مالک','warn')} · ${tag('خارج از دامنهٔ این نسخه','')}. هیچ کلیدی در مرورگر ذخیره نمی‌شود.</p></div></details>`;
   return `<div class="stack" data-sset>${canSettings?ssetTiles(leaf):''}
     <section class="card stack" data-sset-groups>
-      <div class="row"><div class="head">هر چیزی که در سامانه روشن است، از همین‌جا خاموش و روشن می‌شود</div><span class="sp"></span>
+      <div class="row"><div class="head">تنظیمات سروری</div><span class="sp"></span>
         <span class="cap">${esc(fa(groups.length))} گروه${group?' · '+esc(group.n):tile?' · '+esc((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):''}</span></div>
       ${moved}${legend}
       <div class="admfilters" role="tablist" aria-label="گروه‌های تنظیمات">${chips}</div>

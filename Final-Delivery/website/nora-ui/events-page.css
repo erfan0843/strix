@@ -1,9 +1,10 @@
 .events-wrap{max-width:var(--content-w);padding-top:20px;padding-bottom:105px}
-.events-hero{display:flex;align-items:end;justify-content:space-between;gap:var(--sp-5);margin:8px 0 18px}
+.events-hero.page-head{align-items:end;margin:var(--sp-2) 0 var(--sp-4)}
 .events-kicker{font-size:var(--fs-cap);color:var(--brand-ink);font-weight:700}
-.events-hero h1{margin:4px 0;font-size:clamp(25px,5vw,36px);line-height:1.4}
-.events-hero p{margin:0;color:var(--ink-2);font-size:var(--fs-sub);line-height:1.8}
+.events-hero .ph-title{line-height:1.4}
 .events-hero .btn{flex:0 0 auto}
+/* ناحیهٔ فهرست پیش از رسیدن داده ارتفاع دارد تا فوتر بالا ننشیند و با رسیدن کارت‌ها نپرد */
+#eventsList:empty{min-height:60vh}
 .events-controls{display:grid;gap:var(--sp-3);padding:13px;border-radius:var(--r-lg)}
 .event-search{display:flex;align-items:center;gap:var(--sp-2);min-height:45px;padding:0 10px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-sunk)}
 .event-search:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint)}
@@ -80,7 +81,7 @@
 .event-list-cover.has-poster .cover-kind,.event-list-cover.has-poster .cover-state,.event-list-cover.has-poster .cover-date{position:static;margin-inline-start:12px;background:var(--surface,#fff);color:inherit;border:.5px solid var(--hairline,#dfe4ec);backdrop-filter:none;padding:4px 10px;border-radius:var(--r-pill);font-size:var(--fs-cap);font-weight:600}
 .event-list-cover.has-poster .cover-date{margin-inline-start:auto;margin-inline-end:12px}
 @media(max-width:680px){.event-list-cover.has-poster img{height:200px}}
-@media(max-width:680px){.events-grid{grid-template-columns:1fr}.event-list-cover{height:200px}.events-hero{align-items:flex-start;flex-direction:column}.event-facet-label{min-width:0;flex-basis:100%;padding-top:0}.events-toolbar{align-items:stretch;flex-direction:column}.events-sort{justify-content:space-between}.events-hero .btn{width:100%;justify-content:center}.events-result-line{align-items:flex-start;flex-direction:column}}
+@media(max-width:680px){.events-grid{grid-template-columns:1fr}.event-list-cover{height:200px}.events-hero.page-head{align-items:start}.event-facet-label{min-width:0;flex-basis:100%;padding-top:0}.events-toolbar{align-items:stretch;flex-direction:column}.events-sort{justify-content:space-between}.events-hero .btn{width:100%;justify-content:center}.events-result-line{align-items:flex-start;flex-direction:column}}
 
 /* Inline breadcrumb links remain distinguishable without relying on color. */
 .seo-breadcrumb a{text-decoration:underline;text-underline-offset:3px}

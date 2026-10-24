@@ -389,6 +389,10 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 @media (min-width:1041px){#admTabs{display:none}}
 /* داشبورد سروری: شمارش‌ها، جست‌وجوی حساب و تاریخچهٔ عملیات */
 .dash-bar{display:block;padding:var(--sp-1) var(--sp-2)}
+/* ردیف متا (برچسب‌های شمارش/وضعیت): دسکتاپ می‌شکند، موبایل یک ردیف اسکرول‌شونده */
+.ef-meta{flex-wrap:wrap}
+@media (max-width:600px){.ef-meta{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin-inline:-2px;padding-inline:2px}.ef-meta::-webkit-scrollbar{display:none}.ef-meta>*{flex:0 0 auto}}
+details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 @media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}}
 .dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);align-items:start}
 .dash-grid>section{min-width:0}
