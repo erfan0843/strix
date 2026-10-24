@@ -247,7 +247,7 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     registrations:[registration,cancelled,noSchedule],notifications:[],files:[]
   },false,false);
   await p.nav('events');
-  ok(!!p.window.NORA_COUNTDOWN&&p.doc.querySelector('link[href="countdown.css?v=2"]')&&p.doc.querySelector('script[src="countdown.js?v=3"]'),
+  ok(!!p.window.NORA_COUNTDOWN&&p.doc.querySelector('link[href="countdown.css?v=3"]')&&p.doc.querySelector('script[src="countdown.js?v=3"]'),
     'صفحهٔ حساب همان شمارشگر مشترک (countdown.js/css) را بارگذاری می‌کند');
   const cdCards=p.doc.querySelectorAll('[data-account-registration-countdown]');
   ok(cdCards.length===1&&!!cdCards[0].querySelector('.nora-countdown[data-countdown]')&&cdCards[0].textContent.includes('تا شروع رویداد')
