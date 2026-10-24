@@ -10882,8 +10882,8 @@ function dashxUpcomingCard(){
     ${ctRegTag(e)}${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
     <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events" aria-label="${esc('ویرایش '+(e.t||e.id||'رویداد'))}" title="ویرایش رویداد">${ico('i-pen')}</button></div>`).join('');
   const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
-  return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور')}
-      <button class="btn sm quiet" data-sec="events">همهٔ رویدادها</button></div>
+  return `<section class="card stack" data-dashx-upcoming><div class="sec-head"><div class="head sh-title">رویدادهای پیش رو</div>${tag('محتوای منتشرشدهٔ سرور')}
+      <button class="sh-link sh-link--action" type="button" data-sec="events" aria-label="همهٔ رویدادها در بخش رویدادها">همهٔ رویدادها</button></div>
     ${rows?`<div class="admlist">${rows}</div>`:''}${state}</section>`;
 }
 function dashxSchedCard(){

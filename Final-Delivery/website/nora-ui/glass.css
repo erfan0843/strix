@@ -444,6 +444,14 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .sec-head .sh-title,.sec-head h2,.sec-head h3{font-family:var(--f-h);font-size:var(--fs-head);font-weight:700;margin:0;letter-spacing:-.2px;min-width:0}
 .sec-head .sh-sub{font-size:var(--fs-cap);color:var(--ink-3)}
 .sec-head .sh-link{margin-inline-start:auto;font-size:var(--fs-sub);color:var(--brand-ink);text-decoration:none;font-weight:600;white-space:nowrap}
+/* گونهٔ «پیوند کنش ثانویه» در سرتیتر بخش (دکمه یا <a>): از متن ساده متمایز است (رنگ برند، نشانگر ادامه، هدف لمسی ≥۳۶px، hover/focus روشن)
+   ولی با کنش اصلی صفحه رقابت نمی‌کند (بی‌کادر، بی‌پرشدگی). فقط با کلاس صریح اعمال می‌شود؛ ظاهر بقیهٔ .sh-link ها دست نمی‌خورد. */
+.sh-link--action{display:inline-flex;align-items:center;gap:3px;min-height:36px;padding:0 var(--sp-2);margin-inline-end:calc(-1 * var(--sp-2));border:0;border-radius:var(--r-xs);background:transparent;color:var(--brand-ink);font:inherit;font-size:var(--fs-sub);font-weight:600;line-height:1;white-space:nowrap;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sh-link--action::after{content:'';width:7px;height:7px;border:solid currentColor;border-width:0 0 1.5px 1.5px;transform:rotate(45deg);margin-inline-start:2px;flex:0 0 auto;transition:transform var(--t-fast) var(--ease)}
+.sh-link--action:hover{background:var(--brand-tint);text-decoration:underline;text-underline-offset:3px}
+.sh-link--action:hover::after{transform:translateX(-2px) rotate(45deg)}
+.sh-link--action:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.sh-link--action:active{opacity:.75}
 /* ── حالت‌ها: یک مؤلفه برای بارگذاری/خالی/بی‌نتیجه/خطا/بی‌دسترسی/موفق؛ همیشه با یک عمل ── */
 .state{display:grid;justify-items:center;text-align:center;gap:var(--sp-1h);padding:var(--sp-6) var(--sp-4);color:var(--ink-3);border-radius:var(--r-md);background:var(--surface-sunk)}
 .state .i{width:28px;height:28px;opacity:.7}
