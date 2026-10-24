@@ -7735,11 +7735,21 @@ function eiSummaryCard(){
     <p class="cap">پاسخ، انتشار، پنهان‌کردن و رسیدگی به گزارش از صفحهٔ هر رویداد یا فهرست بی‌پاسخ‌ها انجام می‌شود؛ هر اقدام با نام اقدام‌کننده و دلیل ثبت می‌شود.</p>
     <div class="row tight" style="flex-wrap:wrap">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-chev-left')}${Number(s.open_reports)>0?btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag'):''}</div></article>`;
 }
-function eiHeader(){
+/* شش بخش پروندهٔ رویداد (msg 97): هر بخش یک کاشی روی صفحهٔ اصلی پرونده و یک زیرصفحه با عنوان و «بازگشت».
+   زیرزبانه‌های قبلی حذف نشده‌اند؛ فقط زیر بخش خودشان گروه شده‌اند. شمارنده‌ها فقط از counts سرور؛ بخشی که عدد سروری ندارد عدد نشان نمی‌دهد. */
+const EF_GROUPS=[
+  {k:'overview',t:'نمای کلی',d:'مشخصات، زمان، ظرفیت و مبلغ',i:'i-info',tabs:['info']},
+  {k:'forms',t:'فرم‌ها و ثبت‌نام',d:'فرم ثبت‌نام، نظرسنجی و آزمون',i:'i-doc',tabs:['forms','survey']},
+  {k:'regs',t:'ثبت‌نام‌کنندگان',d:'فهرست، جست‌وجو و پروندهٔ هر نفر',i:'i-users',tabs:['regs']},
+  {k:'pay',t:'پرداخت و حضور',d:'پرداخت‌ها، بلیت و ثبت حضور',i:'i-ticket',tabs:['payments','tickets']},
+  {k:'comms',t:'محتوا و ارتباطات',d:'فایل‌ها، اطلاع‌رسانی، ضبط‌شده، پرسش و دیدگاه',i:'i-chat',tabs:['resources','notify','recording','orders','questions','reviews']},
+  {k:'reports',t:'گزارش و گواهی',d:'گواهی‌ها و گزارش‌های باز',i:'i-medal',tabs:['certs','reports']}];
+function efGroupOf(tab){return EF_GROUPS.find(g=>g.tabs.includes(tab))||null}
+function eiTabList(){
   const tabs=[];
   /* پروندهٔ رویداد (یکپارچه‌سازی): نمای کلی، فرم‌ها و فعالیت‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی و آزمون، گواهی‌ها، فایل‌ها و رسانه‌ها، اطلاع‌رسانی و تاریخچه؛ سپس ابزارهای تعامل */
   const regPerm=canPerm('fm_responses')||canPerm('attendance');
-  if(!EI.all) tabs.push(['overview','نمای کلی']);
+  if(!EI.all) tabs.push(['overview','نمای کلی'],['info','مشخصات رویداد']);
   if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['forms','فرم‌ها و فعالیت‌ها']);
   if(!EI.all&&regPerm) tabs.push(['regs','ثبت‌نام‌کنندگان']);
   if(!EI.all&&canPerm('finance')) tabs.push(['payments','پرداخت‌ها']); /* سرور فهرست پرداخت‌ها را فقط با finance می‌دهد؛ تأیید رسید از پروندهٔ هر نفر انجام می‌شود */
@@ -7753,17 +7763,50 @@ function eiHeader(){
   tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
   if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
   if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
+  return tabs;
+}
+function eiHeader(){
+  const tabs=eiTabList();
   const live=EI.all||EF.overview?'':(EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}مشاهدهٔ صفحه</a>`:'');
-  const head=EI.all?'':efHead();
-  return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به رویدادها</button>
-      ${head?'':`<b>${esc(EI.all?'کارتابل پرسش‌ها و گزارش‌ها':EI.title||EI.eventId)}</b>${EI.all?'':ctStatusLabel(EI.status)}`}<span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>${head}
-    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های پروندهٔ رویداد">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}</div>`;
+  if(EI.all) return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به رویدادها</button>
+      <b>کارتابل پرسش‌ها و گزارش‌ها</b><span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>
+    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های کارتابل">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const label=Object.fromEntries(tabs), allowed=new Set(tabs.map(([k])=>k));
+  const top=`<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به رویدادها</button><span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>`;
+  if(EI.tab==='overview') return top+(efHead()||`<b>${esc(EI.title||EI.eventId)}</b>`);
+  /* زیرصفحهٔ یک بخش: بازگشت به پرونده + عنوان بخش + زیرزبانه‌های همان بخش؛ بخش‌های دیگر فقط در یک منوی جمع‌شده (یک ردیف، بدون چند خط چیپ در موبایل) */
+  const g=efGroupOf(EI.tab)||EF_GROUPS[0], mine=g.tabs.filter(k=>allowed.has(k));
+  const others=EF_GROUPS.filter(x=>x.k!==g.k&&x.tabs.some(k=>allowed.has(k)));
+  return top+`<div class="row efgrp" data-ef-group="${g.k}" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <button class="btn sm quiet" data-ei-tab="overview" data-ef-hub-back>${ico('i-back')}پروندهٔ رویداد</button>
+      <span class="stack" style="gap:0;flex:1 1 160px"><strong>${esc(g.t)}</strong><small class="cap">${esc(EI.title||'')}${EI.status?' · '+esc((P2_STATUS[EI.status]||[EI.status])[0]):''}</small></span>
+      <details class="efmore"><summary class="btn sm quiet" aria-label="بخش‌های دیگر پرونده">${ico('i-more')}بخش‌های دیگر</summary><div class="efmore-menu" role="menu">${others.map(x=>`<div class="efmore-grp"><b>${esc(x.t)}</b>${x.tabs.filter(k=>allowed.has(k)).map(k=>`<button class="lnk" role="menuitem" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</div>`).join('')}</div></details></div>
+    ${mine.length>1?`<div class="admfilters hub-tabs" role="tablist" aria-label="زیربخش‌های ${esc(g.t)}">${mine.map(k=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</div>`:''}`;
+}
+/* صفحهٔ اصلی پرونده: سربرگ، شمارنده‌های سرور و شش کاشی هم‌اندازه؛ هر کاشی به اولین زیربخش مجاز می‌رود و زیربخش‌های دیگرش را به‌صورت پیوند کوتاه دارد */
+function efHub(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const e=ov.event||{}, c=ov.counts||{}, forms=ov.forms||[], fin=!!(ov.can&&ov.can.finance), rs=ov.registration_settings, declared=ov.declared||{};
+  const diff=rs&&((Number(declared.cap)||0)!==(Number(rs.cap)||0)||(Number(declared.price)||0)!==(Number(rs.price&&rs.price.base)||0));
+  const tabs=eiTabList(), label=Object.fromEntries(tabs), allowed=new Set(tabs.map(([k])=>k));
+  const kpis=[['ثبت‌نام',c.total],['پذیرفته‌شده',c.accepted],['فهرست انتظار',c.waitlisted],['پرداخت‌شده',c.paid],['در انتظار پرداخت',c.pending_payment],['ناموفق',c.failed_payment],['حاضر',c.checked_in]].filter(([,n])=>n!=null);
+  const num={overview:e.on||e.when?esc(e.on||e.when):'',forms:fa(forms.length)+' فرم',regs:c.total!=null?fa(c.total)+' نفر':'',
+    pay:[fin&&c.paid!=null?fa(c.paid)+' پرداخت‌شده':'',c.checked_in!=null?fa(c.checked_in)+' حاضر':''].filter(Boolean).join('؛ '),comms:'',reports:''};
+  const desc={pay:fin?'پرداخت‌ها، بلیت و ثبت حضور':'بلیت و ثبت حضور (مبالغ فقط با دسترسی مالی)'};
+  const tiles=EF_GROUPS.map(g=>{const mine=g.tabs.filter(k=>allowed.has(k)); if(!mine.length) return '';
+    const subs=mine.length>1?`<span class="eftile-sub">${mine.map(k=>`<button class="lnk" data-ei-tab="${k}">${esc(label[k])}</button>`).join('<span aria-hidden="true">·</span>')}</span>`:'';
+    return `<div class="eftile" data-ef-tile="${g.k}"><button class="eftile-main" data-ei-tab="${mine[0]}"><span class="ic">${ico(g.i)}</span><span class="stack" style="gap:2px;text-align:start"><b>${esc(g.t)}</b><small class="cap">${esc(desc[g.k]||g.d)}</small>${num[g.k]?`<small class="eftile-num">${num[g.k]}</small>`:''}</span></button>${subs}</div>`}).join('');
+  return `<div class="stack" data-ef-overview="${esc(String(e.id||EI.eventId))}" data-ef-hub>
+    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
+    <div class="eftiles">${tiles}</div></div>`;
 }
 function eiPanel(){
   let body;
   if(EI.loading&&!EI.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
   else if(EI.error) body=`<div class="stack">${p2Msg({kind:'stop',text:EI.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
-  else if(EI.tab==='overview'||EI.tab==='info') body=efOverview();
+  else if(EI.tab==='overview') body=efHub();
+  else if(EI.tab==='info') body=efOverview();
   else if(EI.tab==='forms') body=efForms();
   else if(EI.tab==='regs') body=efRegs();
   else if(EI.tab==='payments') body=efPayments();
@@ -7837,7 +7880,7 @@ function eiNotify(){
    ظرفیت و مبلغ تنها در تنظیمات فرم ثبت‌نام است («تنظیم‌شده در فرم ثبت‌نام»)؛ شمارنده‌ها از قاعدهٔ سرور می‌آیند؛
    وضعیت ثبت‌نام ≠ وضعیت پرداخت ≠ رسید ارسال‌شده ≠ حضور. شناسهٔ رویداد و زبانه در نشانی (#event=…&tab=…) می‌ماند. */
 const EF_TABS=[['overview','نمای کلی'],['forms','فرم‌ها و فعالیت‌ها'],['regs','ثبت‌نام‌کنندگان'],['payments','پرداخت‌ها'],['tickets','بلیت و حضور'],['survey','نظرسنجی و آزمون'],['certs','گواهی‌ها'],['resources','فایل‌ها و رسانه‌ها'],['notify','اطلاع‌رسانی و تاریخچه']];
-const EF_TAB_KEYS=new Set(['overview','forms','regs','payments','tickets','survey','certs']);
+const EF_TAB_KEYS=new Set(['overview','info','forms','regs','payments','tickets','survey','certs']);
 const EF_FORM_TYPE={registration:'فرم ثبت‌نام',survey:'نظرسنجی',exam:'آزمون',other:'فرم',purchase:'فرم خرید محتوای ضبط‌شده'};
 const EF_REG_STATUS={accepted:['پذیرفته‌شده','ok'],waitlisted:['فهرست انتظار','warn'],cancelled:['ثبت‌نام لغوشده','stop']};
 const EF_CANCEL_SOURCE={event_file:'رد رسید در پروندهٔ رویداد',inbox:'رد رسید در صندوق پیام‌ها',owner_delete:'حذف پاسخ توسط مالک'};
@@ -7943,8 +7986,8 @@ function efOverview(){
     ['مبلغ',rs?efPriceText(rs)+' · تنظیم‌شده در فرم ثبت‌نام':(declared.price?fa(declared.price)+' ریال (اعلامی؛ پرداختی گرفته نمی‌شود)':'رایگان')],
     ['بررسی رسید',rs&&rs.receipt_review_required?'لازم است':''],['آخرین تغییر',e.updated_at?svcWhen(e.updated_at)||e.updated_at:'']].filter(([,v])=>v);
   const formLine=forms.length?forms.map(f=>`${EF_FORM_TYPE[f.type]||'فرم'}: «${esc(f.name||'')}» (${esc((FS_STATUS[f.status]||[f.status])[0])}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''})`).join('؛ '):'';
-  return `<div class="stack" data-ef-overview="${esc(String(e.id||EI.eventId))}">
-    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+  return `<div class="stack" data-ef-info="${esc(String(e.id||EI.eventId))}">
+    <div class="row tight" style="flex-wrap:wrap">${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
     ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
     ${e.d?`<p class="cap" style="white-space:pre-wrap">${esc(String(e.d))}</p>`:''}
     <div class="admlist">${rows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div>${esc(String(v))}</div></span></div>`).join('')}</div>
@@ -9870,6 +9913,8 @@ document.addEventListener('input',e=>{
   const rev=document.querySelector('[data-ct-review]'); if(rev&&CT.kind==='events'){const tmp=document.createElement('div'); tmp.innerHTML=ctReviewBody(CT.edit); const fresh=tmp.querySelector('[data-ct-review]'); if(fresh) rev.innerHTML=fresh.innerHTML}
   ['desc','sched','extra'].forEach(k=>{const el=document.querySelector(`[data-ct-more-sum="${k}"]`); if(el){const tmp=document.createElement('div'); tmp.innerHTML=ctEventSections(CT.edit,''); const fresh=tmp.querySelector(`[data-ct-more-sum="${k}"]`); if(fresh) el.textContent=fresh.textContent}});
 });
+/* منوی جمع‌شدهٔ «بخش‌های دیگر» پروندهٔ رویداد با کلیک بیرون از آن بسته می‌شود */
+document.addEventListener('click',e=>{document.querySelectorAll('details.efmore[open]').forEach(d=>{if(!(e.target instanceof Node)||!d.contains(e.target)) d.removeAttribute('open')})},true);
 document.addEventListener('focusout',e=>{
   const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||!t.dataset) return;
   if(t.dataset.ctPart!=null){const k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[+t.dataset.ctPart]; if(row&&(k==='time'||k==='to')){const v=ctTimeFix('time',t.value,true); if(v!==t.value){t.value=v; row[k]=v; ctDraftSave()}} return}

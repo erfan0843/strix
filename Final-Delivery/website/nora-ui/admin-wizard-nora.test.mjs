@@ -297,14 +297,21 @@ console.log('── پروندهٔ رویداد: نمای کلی، فرم‌ها
   click('[data-ct-file="ev-1"]');
   ok(await waitFor(()=>doc.querySelector('[data-ei-panel] [data-ef-overview="ev-1"]')),'پرونده روی «نمای کلی» باز می‌شود');
   ok(CALLS.some(c=>c.method==='GET'&&c.path==='/api/admin/events/ev-1/overview'),'نمای کلی از GET /api/admin/events/ev-1/overview خوانده شد');
+  /* msg 97: شش کاشی به‌جای ردیف بلند زبانه‌ها؛ هر زیرزبانهٔ قبلی زیر بخش خودش می‌ماند (حذف نشده) */
+  const tiles=[...doc.querySelectorAll('[data-ei-panel] [data-ef-tile]')].map(x=>x.dataset.efTile);
+  ok(JSON.stringify(tiles)===JSON.stringify(['overview','forms','regs','pay','comms','reports']),'شش کاشی پرونده: نمای کلی، فرم‌ها و ثبت‌نام، ثبت‌نام‌کنندگان، پرداخت و حضور، محتوا و ارتباطات، گزارش و گواهی');
   const tabs=[...doc.querySelectorAll('[data-ei-panel] [data-ei-tab]')].map(x=>x.dataset.eiTab);
-  ok(JSON.stringify(tabs.slice(0,9))===JSON.stringify(['overview','forms','regs','payments','tickets','survey','certs','resources','notify'])&&tabs.includes('questions'),'ترتیب زبانه‌ها: نمای کلی، فرم‌ها و فعالیت‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی و آزمون، گواهی‌ها، فایل‌ها و رسانه‌ها، اطلاع‌رسانی و تاریخچه؛ سپس ابزارهای تعامل ('+tabs.join(',')+')');
+  ok(['info','forms','survey','regs','payments','tickets','resources','notify','recording','questions','reviews','certs','reports'].every(k=>tabs.includes(k)),'همهٔ زیربخش‌های قبلی از روی کاشی‌ها در دسترس‌اند (هیچ قابلیتی حذف نشده)');
+  ok(/ثبت‌نام: ۰/.test(doc.querySelector('[data-ef-kpis]').textContent),'شمارنده‌ها از counts سرور (نه جمع مرورگر)');
   const head=doc.querySelector('[data-ef-head]').textContent;
   ok(/کارگاه آزمون/.test(head)&&/پیش‌نویس/.test(head)&&/بدون فرم ثبت‌نام/.test(head),'سربرگ: عنوان، وضعیت مشتق‌شده و وضعیت فرم ثبت‌نام (بدون فرم)');
   ok(doc.querySelector('[data-ef-head] [data-ei-edit="ev-1"]')&&!doc.querySelector('[data-ef-head] [data-ef-reg-settings]'),'دکمهٔ «ویرایش رویداد» هست؛ «ویرایش تنظیمات ثبت‌نام» بدون فرم نیست');
-  const info=doc.querySelector('[data-ef-overview="ev-1"]').textContent;
+  click('[data-ef-tile="overview"] [data-ei-tab="info"]');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-info="ev-1"]')),'کاشی «نمای کلی» زیرصفحهٔ مشخصات را باز می‌کند');
+  const info=doc.querySelector('[data-ef-info="ev-1"]').textContent;
   ok(/تهران/.test(info)&&/ثبت‌نام بسته/.test(info)&&/هنوز فرمی به این رویداد وصل نیست/.test(info),'نمای کلی: مکان، وضعیت ثبت‌نام سرور، نبود فرم');
-  ok(/ثبت‌نام: ۰/.test(doc.querySelector('[data-ef-kpis]').textContent),'شمارنده‌ها از counts سرور (نه جمع مرورگر)');
+  ok(doc.querySelector('[data-ef-group="overview"] [data-ef-hub-back]')&&/نمای کلی/.test(doc.querySelector('[data-ef-group="overview"]').textContent),'زیرصفحه: عنوان بخش + دکمهٔ بازگشت به پرونده');
+  ok(!doc.querySelector('[data-ei-panel] .hub-tabs [data-ei-tab="recording"]'),'در زیرصفحه ردیف بلند زبانه‌های بخش‌های دیگر نیست (فقط منوی جمع‌شده)');
 
   console.log('── فرم‌ها و فعالیت‌ها: فقط فرم‌های همین رویداد؛ اتصال/قطع اتصال با POST /api/forms/{id}/event ──');
   click('[data-ei-tab="forms"]');
@@ -346,6 +353,8 @@ console.log('── پروندهٔ رویداد: نمای کلی، فرم‌ها
   ok(!doc.querySelector('[data-ntfbcast],[data-ei-send]'),'هیچ دکمهٔ ارسال دستی/همگانی وجود ندارد');
   click('[data-ch-pane="hist"][data-ch-id="ev-1"]');
   ok(await waitFor(()=>CALLS.some(c=>c.path.startsWith('/api/owner/audit'))&&doc.querySelector('[data-ch-panel="content.events"]')),'تاریخچه از /api/owner/audit داخل همان زبانه');
+  click('[data-ef-hub-back]');
+  ok(await waitFor(()=>doc.querySelector('[data-ef-hub]')&&doc.querySelector('[data-ef-head] [data-ei-edit="ev-1"]')),'بازگشت به پرونده: کاشی‌ها و سربرگ با «ویرایش رویداد»');
   click('[data-ef-head] [data-ei-edit="ev-1"]');
   ok(await waitFor(()=>doc.querySelector('[data-ct-editor]')&&doc.querySelector('[data-ct-sec="reg"]')&&doc.querySelector('[data-ct-forms="ev-1"]')),'«ویرایش رویداد» همان فرم فشرده را باز می‌کند');
 }
