@@ -26,7 +26,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="stylesheet" href="glass.css?v=104"/>
 <link rel="stylesheet" href="nora.css?v=106"/>
 <link rel="stylesheet" href="countdown.css?v=4"/>
-<link rel="stylesheet" href="account.css?v=113"/>
+<link rel="stylesheet" href="account.css?v=114"/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
   <link rel="alternate icon" href="/favicon.ico" sizes="any"/>
   <link rel="apple-touch-icon" href="/icon-192.png"/>
@@ -122,6 +122,13 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <!-- نمای هر بخش، همین‌جا می‌نشیند -->
   <div id="viewBox" hidden></div>
 
+  <!-- پشتیبانی و راهنما: کارت آخرِ جریان صفحه (نه نوار ثابت) تا روی هیچ محتوایی نیفتد؛ همان id/رفتار، به صفحهٔ خودش می‌رود -->
+  <a class="supbar" id="supBar" href="support.html" data-open-support aria-label="پشتیبانی و راهنما">
+    <span class="si"><svg class="i" aria-hidden="true"><use href="#i-headphone"/></svg></span>
+    <span class="st"><b>پشتیبانی و راهنما</b><small>راهنمای محلی؛ تیکت یا گفت‌وگوی واقعی به کارشناس نمی‌رسد</small></span>
+    <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
+  </a>
+
   <footer class="hfoot">
     <div><b>حساب من</b></div>
     <div>موسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی</div>
@@ -132,13 +139,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div><a href="home.html">بازگشت به خانه</a> · <a href="events.html">رویدادها</a> · <a href="support.html">پشتیبانی</a> · © ۱۴۰۵</div>
   </footer>
 </main>
-
-<!-- پشتیبانی و راهنما: نوار پایین، به صفحهٔ خودش می‌رود -->
-<a class="supbar" id="supBar" href="support.html" data-open-support aria-label="پشتیبانی و راهنما">
-  <span class="si"><svg class="i" aria-hidden="true"><use href="#i-headphone"/></svg></span>
-  <span class="st"><b>پشتیبانی و راهنما</b><small>راهنمای محلی؛ تیکت یا گفت‌وگوی واقعی به کارشناس نمی‌رسد</small></span>
-  <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-</a>
 
 <p class="trustline center" data-trust="secure"></p>
 
