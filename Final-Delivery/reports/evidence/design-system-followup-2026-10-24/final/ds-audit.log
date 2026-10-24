@@ -1,0 +1,60 @@
+home@1440: sw=1440 main=170|1100|170 fonts=12px×52 13.5px×21 15px×12 16.5px×4 17px×3 9.5px×3 10px×3 30px×1 25px×1 11px×1 | btnH=34px×6 32px×4 38px×3 218px×3 196px×3 124px×2 44px×1 | radii=999px×17 28px×17 12px×9 22px×7 9px×3 50%×3 16px×3 8px×1 | cls=0.000
+events-public@1440: sw=1440 main=170|1100|170 fonts=12px×54 11px×17 15px×13 13.5px×11 16.5px×6 17px×3 9.5px×3 10px×3 27px×1 | btnH=36px×11 32px×8 38px×2 34px×1 | radii=999px×27 16px×14 22px×7 9px×3 12px×2 28px×1 | cls=0.000
+event-public@1440: sw=1440 main=390|660|390 fonts=12px×18 13.5px×13 11px×9 16.5px×6 15px×4 10px×3 18px×1 32px×1 20px×1 12.5px×1 | btnH=44px×3 38px×2 34px×2 | radii=16px×17 999px×7 12px×4 22px×2 28px×2 | cls=0.000
+admin-first@1440: sw=1440 main=60|1320|60 fonts=15px×32 12px×31 11px×22 13.5px×11 24px×8 20px×5 16.5px×4 30px×1 | btnH=34px×18 60px×10 | radii=22px×28 12px×18 999px×16 28px×3 16px×1 | cls=0.003
+admin-events@1440: sw=1440 main=60|1320|60 fonts=13.5px×62 12px×20 15px×17 11px×9 16.5px×2 30px×1 20px×1 | btnH=34px×50 60px×10 32px×7 48px×1 | radii=12px×51 999px×18 22px×12 16px×6 28px×3 | cls=0.003
+admin-edit@1440: sw=1440 main=60|1320|60 fonts=12px×69 15px×41 13.5px×25 11px×17 16.5px×5 30px×1 20px×1 | btnH=34px×26 60px×10 32px×6 56px×5 | radii=12px×32 999px×21 22px×19 16px×13 50%×5 28px×3 | cls=0.003
+admin-event-hub@1440: sw=1440 main=60|1320|60 fonts=12px×36 13.5px×17 11px×12 15px×10 30px×1 16.5px×1 20px×1 15.75px×1 | btnH=32px×14 60px×10 34px×6 152px×3 197px×2 88px×1 | radii=999px×16 22px×12 12px×12 16px×6 28px×3 | cls=0.003
+admin-regs@1440: sw=1440 main=60|1320|60 fonts=13.5px×18 11px×15 15px×14 12px×12 30px×1 16.5px×1 20px×1 | btnH=60px×10 34px×9 32px×5 | radii=999px×22 22px×13 12px×9 28px×3 16px×1 | cls=0.003
+admin-person@1440: sw=1440 main=60|1320|60 fonts=15px×27 12px×16 13.5px×13 11px×7 30px×1 16.5px×1 20px×1 | btnH=60px×10 34px×8 32px×2 | radii=22px×17 999px×11 12px×8 28px×3 | cls=0.003
+admin-settings@1440: sw=1440 main=60|1320|60 fonts=13.5px×26 12px×19 15px×11 11px×8 16.5px×3 30px×1 20px×1 | btnH=60px×10 32px×6 133px×4 34px×3 113px×3 | radii=22px×21 999px×13 12px×11 16px×4 28px×3 | cls=0.003
+admin-users@1440: sw=1440 main=60|1320|60 fonts=13.5px×27 15px×21 12px×20 11px×18 16.5px×2 30px×1 20px×1 | btnH=32px×12 34px×11 60px×10 90px×3 48px×1 89px×1 | radii=999px×32 22px×19 12px×12 28px×3 16px×1 | cls=0.000
+admin-reports@1440: sw=1440 main=60|1320|60 fonts=15px×31 12px×29 13.5px×25 16.5px×11 11px×9 20px×8 11.25px×5 30px×1 | btnH=32px×16 60px×10 34px×6 | radii=999px×27 22px×21 3px×16 16px×7 12px×6 28px×3 | cls=0.003
+builder@1440: sw=1440 main=60|1320|60 fonts=13.5px×34 15px×27 12px×15 16.5px×7 30px×1 20px×1 | btnH=43px×11 60px×10 31px×7 44px×4 32px×4 33px×4 73px×1 72px×1 | radii=16px×32 999px×15 22px×14 28px×7 12px×7 99px×6 | cls=0.000
+manager-first@1440: sw=1440 main=60|1320|60 fonts=15px×32 12px×31 11px×22 13.5px×11 24px×8 20px×5 16.5px×4 30px×1 | btnH=34px×18 60px×10 | radii=22px×28 12px×18 999px×16 28px×3 16px×1 | cls=0.003
+manager-event-hub@1440: sw=1440 main=60|1320|60 fonts=12px×33 13.5px×17 11px×12 15px×10 30px×1 16.5px×1 20px×1 15.75px×1 | btnH=32px×12 60px×10 34px×6 197px×3 152px×2 88px×1 | radii=999px×16 22px×12 12px×12 16px×6 28px×3 | cls=0.003
+home@1024: sw=1024 main=0|1024|0 fonts=12px×52 13.5px×21 15px×12 16.5px×4 17px×3 9.5px×3 10px×3 30px×1 25px×1 11px×1 | btnH=34px×6 32px×4 38px×3 202px×3 182px×3 140px×2 44px×1 | radii=999px×17 28px×17 12px×9 22px×7 9px×3 50%×3 16px×3 8px×1 | cls=0.000
+events-public@1024: sw=1024 main=0|1024|0 fonts=12px×54 11px×17 15px×13 13.5px×11 16.5px×6 17px×3 9.5px×3 10px×3 27px×1 | btnH=36px×11 32px×8 38px×2 34px×1 | radii=999px×27 16px×14 22px×7 9px×3 12px×2 28px×1 | cls=0.000
+event-public@1024: sw=1024 main=182|660|182 fonts=12px×18 13.5px×13 11px×9 16.5px×6 15px×4 10px×3 18px×1 32px×1 20px×1 12.5px×1 | btnH=44px×3 38px×2 34px×2 | radii=16px×17 999px×7 12px×4 22px×2 28px×2 | cls=0.000
+admin-first@1024: sw=1024 main=0|1024|0 fonts=12px×29 11px×27 15px×22 13.5px×11 24px×8 20px×5 16.5px×3 30px×1 | btnH=34px×18 | radii=22px×18 12px×18 999px×16 28px×3 16px×2 | cls=0.000
+admin-events@1024: sw=1024 main=0|1024|0 fonts=13.5px×62 12px×18 11px×14 15px×7 30px×1 20px×1 16.5px×1 | btnH=34px×50 32px×7 48px×1 | radii=12px×51 999px×18 16px×7 28px×3 22px×2 | cls=0.000
+admin-edit@1024: sw=1024 main=0|1024|0 fonts=12px×67 15px×31 13.5px×25 11px×22 16.5px×4 30px×1 20px×1 | btnH=34px×26 32px×6 56px×5 | radii=12px×32 999px×21 16px×14 22px×9 50%×5 28px×3 | cls=0.000
+admin-event-hub@1024: sw=1024 main=0|1024|0 fonts=12px×34 13.5px×17 11px×17 30px×1 20px×1 15.75px×1 | btnH=32px×14 34px×6 152px×3 197px×2 88px×1 | radii=999px×16 12px×12 16px×7 28px×3 22px×2 | cls=0.000
+admin-regs@1024: sw=1024 main=0|1024|0 fonts=11px×20 13.5px×18 12px×10 15px×4 30px×1 20px×1 | btnH=34px×9 32px×5 | radii=999px×22 12px×9 22px×3 28px×3 16px×2 | cls=0.000
+admin-person@1024: sw=1024 main=0|1024|0 fonts=15px×17 12px×14 13.5px×13 11px×12 30px×1 20px×1 | btnH=34px×8 32px×2 | radii=999px×11 12px×8 22px×7 28px×3 16px×1 | cls=0.001
+admin-settings@1024: sw=1024 main=0|1024|0 fonts=13.5px×26 12px×17 11px×13 16.5px×2 30px×1 20px×1 15px×1 | btnH=32px×6 133px×4 34px×3 113px×3 | radii=999px×13 22px×11 12px×11 16px×5 28px×3 | cls=0.000
+admin-users@1024: sw=1024 main=0|1024|0 fonts=13.5px×27 11px×23 12px×18 15px×11 30px×1 20px×1 16.5px×1 | btnH=32px×12 34px×11 90px×3 48px×1 89px×1 | radii=999px×32 12px×12 22px×9 28px×3 16px×2 | cls=0.000
+admin-reports@1024: sw=1024 main=0|1024|0 fonts=12px×27 13.5px×25 15px×21 11px×14 16.5px×10 20px×8 11.25px×5 30px×1 | btnH=32px×16 34px×6 | radii=999px×27 3px×16 22px×11 16px×8 12px×6 28px×3 | cls=0.000
+builder@1024: sw=1024 main=0|1024|0 fonts=13.5px×33 15px×17 12px×11 16.5px×6 9.16667px×5 30px×1 20px×1 | btnH=43px×11 31px×7 44px×4 32px×4 33px×4 50px×3 73px×1 72px×1 | radii=16px×32 999px×12 28px×7 99px×6 12px×6 22px×4 | cls=0.000
+manager-first@1024: sw=1024 main=0|1024|0 fonts=12px×29 11px×26 15px×22 13.5px×11 24px×8 20px×5 16.5px×3 30px×1 | btnH=34px×18 | radii=22px×18 12px×18 999px×16 28px×3 16px×2 | cls=0.000
+manager-event-hub@1024: sw=1024 main=0|1024|0 fonts=12px×31 13.5px×17 11px×16 30px×1 20px×1 15.75px×1 | btnH=32px×12 34px×6 197px×3 152px×2 88px×1 | radii=999px×16 12px×12 16px×7 28px×3 22px×2 | cls=0.000
+home@390: sw=390 main=0|390|0 fonts=12px×51 13.5px×23 15px×9 16px×7 9.5px×3 10px×3 11px×2 30px×1 20px×1 | btnH=34px×5 32px×4 38px×3 164px×3 147px×3 36px×1 157px×1 140px×1 | radii=999px×17 22px×17 12px×9 18px×7 9px×3 50%×3 16px×3 8px×1 | cls=0.000
+events-public@390: sw=390 main=0|390|0 fonts=12px×53 11px×17 15px×13 13.5px×11 16px×9 9.5px×3 10px×3 18.5px×1 | btnH=36px×11 32px×8 38px×2 34px×1 | radii=999px×27 16px×14 18px×7 9px×3 12px×2 22px×1 | cls=0.000
+event-public@390: sw=390 main=0|390|0 fonts=11px×15 12px×12 13.5px×12 16px×6 10px×3 15px×2 18px×1 22px×1 18.5px×1 | btnH=38px×2 34px×2 44px×2 | radii=16px×16 999px×6 12px×4 18px×2 22px×2 | cls=0.000
+admin-first@390: sw=390 main=0|390|0 fonts=12px×28 11px×27 15px×22 13.5px×10 24px×8 16px×4 18.5px×4 30px×1 | btnH=34px×18 | radii=18px×18 12px×18 999px×15 22px×3 16px×2 | cls=0.000
+admin-events@390: sw=390 main=0|390|0 fonts=13.5px×61 12px×18 11px×14 15px×7 16px×2 30px×1 | btnH=34px×50 32px×7 48px×1 | radii=12px×51 999px×17 16px×7 22px×3 18px×2 | cls=0.000
+admin-edit@390: sw=390 main=0|390|0 fonts=12px×67 15px×31 13.5px×24 11px×22 16px×5 30px×1 | btnH=34px×24 32px×6 56px×5 49px×1 48px×1 | radii=12px×32 999px×20 16px×14 18px×9 50%×5 22px×3 | cls=0.000
+admin-event-hub@390: sw=390 main=0|390|0 fonts=11px×17 13.5px×16 12px×14 30px×1 16px×1 15.75px×1 | btnH=34px×6 105px×6 32px×2 | radii=999px×15 12px×12 16px×7 22px×3 18px×2 | cls=0.000
+admin-regs@390: sw=390 main=0|390|0 fonts=11px×20 13.5px×17 12px×10 15px×4 30px×1 16px×1 | btnH=34px×9 32px×5 | radii=999px×21 12px×9 18px×3 22px×3 16px×2 | cls=0.000
+admin-person@390: sw=390 main=0|390|0 fonts=15px×17 12px×14 13.5px×12 11px×12 30px×1 16px×1 | btnH=34px×8 32px×2 | radii=999px×10 12px×8 18px×7 22px×3 16px×1 | cls=0.000
+admin-settings@390: sw=390 main=0|390|0 fonts=13.5px×25 12px×17 11px×13 16px×3 30px×1 15px×1 | btnH=32px×6 133px×5 34px×3 154px×2 | radii=999px×12 18px×11 12px×11 16px×5 22px×3 | cls=0.000
+admin-users@390: sw=390 main=0|390|0 fonts=13.5px×26 11px×23 12px×18 15px×11 16px×2 30px×1 | btnH=32px×12 34px×11 141px×3 48px×1 140px×1 | radii=999px×31 12px×12 18px×9 22px×3 16px×2 | cls=0.000
+admin-reports@390: sw=390 main=0|390|0 fonts=12px×27 13.5px×24 15px×21 11px×14 16px×11 18.5px×7 11.25px×5 30px×1 | btnH=32px×16 34px×6 | radii=999px×26 3px×16 18px×11 16px×8 12px×6 22px×3 | cls=0.000
+builder@390: sw=390 main=0|390|0 fonts=13.5px×33 15px×17 12px×11 16px×6 9.16667px×5 30px×1 18px×1 | btnH=44px×15 32px×11 34px×4 50px×3 75px×1 74px×1 | radii=16px×32 999px×12 22px×7 99px×6 12px×6 18px×4 | cls=0.000
+manager-first@390: sw=390 main=0|390|0 fonts=12px×28 11px×26 15px×22 13.5px×10 24px×8 16px×4 18.5px×4 30px×1 | btnH=34px×18 | radii=18px×18 12px×18 999px×15 22px×3 16px×2 | cls=0.000
+manager-event-hub@390: sw=390 main=0|390|0 fonts=13.5px×16 11px×16 12px×14 30px×1 16px×1 15.75px×1 | btnH=34px×6 123px×6 32px×2 | radii=999px×15 12px×12 16px×7 22px×3 18px×2 | cls=0.000
+home@360: sw=360 main=0|360|0 fonts=12px×51 13.5px×23 15px×9 16px×7 9.5px×3 10px×3 11px×2 30px×1 20px×1 | btnH=34px×5 32px×4 38px×3 164px×3 147px×3 140px×2 36px×1 44px×1 | radii=999px×17 22px×17 12px×9 18px×7 9px×3 50%×3 16px×3 8px×1 | cls=0.000
+events-public@360: sw=360 main=0|360|0 fonts=12px×53 11px×17 15px×13 13.5px×11 16px×9 9.5px×3 10px×3 18.5px×1 | btnH=36px×11 32px×8 38px×2 34px×1 | radii=999px×27 16px×14 18px×7 9px×3 12px×2 22px×1 | cls=0.000
+event-public@360: sw=360 main=0|360|0 fonts=11px×15 12px×12 13.5px×12 16px×6 10px×3 15px×2 18px×1 22px×1 18.5px×1 | btnH=38px×2 34px×2 44px×2 | radii=16px×16 999px×6 12px×4 18px×2 22px×2 | cls=0.000
+admin-first@360: sw=360 main=0|360|0 fonts=12px×28 11px×27 15px×22 13.5px×10 24px×8 16px×4 18.5px×4 30px×1 | btnH=34px×18 | radii=18px×18 12px×18 999px×15 22px×3 16px×2 | cls=0.000
+admin-events@360: sw=360 main=0|360|0 fonts=13.5px×61 12px×18 11px×14 15px×7 16px×2 30px×1 | btnH=34px×50 32px×7 48px×1 | radii=12px×51 999px×17 16px×7 22px×3 18px×2 | cls=0.000
+admin-edit@360: sw=360 main=0|360|0 fonts=12px×67 15px×31 13.5px×24 11px×22 16px×5 30px×1 | btnH=34px×24 32px×6 56px×5 49px×1 71px×1 | radii=12px×32 999px×20 16px×14 18px×9 50%×5 22px×3 | cls=0.000
+admin-event-hub@360: sw=360 main=0|360|0 fonts=11px×17 13.5px×16 12px×14 30px×1 16px×1 15.75px×1 | btnH=34px×6 126px×6 32px×2 | radii=999px×15 12px×12 16px×7 22px×3 18px×2 | cls=0.000
+admin-regs@360: sw=360 main=0|360|0 fonts=11px×20 13.5px×17 12px×10 15px×4 30px×1 16px×1 | btnH=34px×9 32px×5 | radii=999px×21 12px×9 18px×3 22px×3 16px×2 | cls=0.000
+admin-person@360: sw=360 main=0|360|0 fonts=15px×17 12px×14 13.5px×12 11px×12 30px×1 16px×1 | btnH=34px×8 32px×2 | radii=999px×10 12px×8 18px×7 22px×3 16px×1 | cls=0.000
+admin-settings@360: sw=360 main=0|360|0 fonts=13.5px×25 12px×17 11px×13 16px×3 30px×1 15px×1 | btnH=32px×6 133px×5 34px×3 174px×2 | radii=999px×12 18px×11 12px×11 16px×5 22px×3 | cls=0.000
+admin-users@360: sw=360 main=0|360|0 fonts=13.5px×26 11px×23 12px×18 15px×11 16px×2 30px×1 | btnH=32px×12 34px×11 121px×3 48px×1 120px×1 | radii=999px×31 12px×12 18px×9 22px×3 16px×2 | cls=0.000
+admin-reports@360: sw=360 main=0|360|0 fonts=12px×27 13.5px×24 15px×21 11px×14 16px×11 18.5px×7 11.25px×5 30px×1 | btnH=32px×16 34px×6 | radii=999px×26 3px×16 18px×11 16px×8 12px×6 22px×3 | cls=0.000
+builder@360: sw=360 main=0|360|0 fonts=13.5px×33 15px×17 12px×11 16px×6 9.16667px×5 30px×1 18px×1 | btnH=44px×15 32px×11 34px×4 50px×3 75px×1 74px×1 | radii=16px×32 999px×12 22px×7 99px×6 12px×6 18px×4 | cls=0.000
+manager-first@360: sw=360 main=0|360|0 fonts=12px×28 11px×26 15px×22 13.5px×10 24px×8 16px×4 18.5px×4 30px×1 | btnH=34px×18 | radii=18px×18 12px×18 999px×15 22px×3 16px×2 | cls=0.000
+manager-event-hub@360: sw=360 main=0|360|0 fonts=13.5px×16 11px×16 12px×14 30px×1 16px×1 15.75px×1 | btnH=34px×6 123px×6 32px×2 | radii=999px×15 12px×12 16px×7 22px×3 18px×2 | cls=0.000
