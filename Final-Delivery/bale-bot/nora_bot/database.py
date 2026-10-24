@@ -9,6 +9,7 @@
 - جدول settings برای متن‌های قابل تغییر از پنل ادمین
 - ستون UNIQUE روی mobile به‌صورت ایندکس جزئی (بدون خراب کردن رکوردهای موجود)
 """
+import contextlib
 import os
 import sqlite3
 import shutil
@@ -27,6 +28,8 @@ from config import (
 
 _lock = threading.RLock()
 _conn = None
+# عمق تراکنش چنددستوری فعال (فقط زیر همان قفل تغییر می‌کند)
+_tx_depth = 0
 
 
 # ==================== LOG ====================
@@ -95,9 +98,14 @@ def db_execute(query, params=(), fetch=None):
                 return dict(row) if row else None
             if fetch == "all":
                 return [dict(r) for r in cur.fetchall()]
-            conn.commit()
+            if _tx_depth == 0:
+                conn.commit()
             return cur.lastrowid
         except Exception as e:
+            if _tx_depth > 0:
+                # داخل تراکنش چنددستوری: خطا باید کل تراکنش را برگرداند،
+                # نه این‌که بی‌صدا بلعیده شود.
+                raise
             try:
                 conn.rollback()
             except Exception:
@@ -107,6 +115,56 @@ def db_execute(query, params=(), fetch=None):
             if fetch == "all":
                 return []
             return None
+
+
+@contextlib.contextmanager
+def db_transaction():
+    """تراکنش چنددستوری روی همان اتصال مشترک.
+
+    * بیرونی‌ترین فراخوانی ``BEGIN IMMEDIATE`` می‌زند، در پایان commit و در هر
+      استثنا rollback می‌کند و همان استثنا را بالا می‌فرستد.
+    * فراخوانی تو در تو هیچ ``BEGIN``/commit تازه‌ای نمی‌سازد و در تراکنش
+      بیرونی شرکت می‌کند (نتیجهٔ نهایی را بیرونی‌ترین سطح تعیین می‌کند).
+    * ``db_execute`` در این بازه commit مستقل نمی‌کند و خطا را بالا می‌دهد؛
+      بیرون از این بازه رفتارش دقیقاً مثل قبل است.
+    * قفل سراسری در کل بازه نگه داشته می‌شود، پس نخ دیگری وسط تراکنش نمی‌نویسد.
+    """
+    global _tx_depth
+    with _lock:
+        conn = get_db()
+        if _tx_depth > 0:
+            _tx_depth += 1
+            try:
+                yield conn
+            finally:
+                _tx_depth -= 1
+            return
+        if conn.in_transaction:
+            # باقی‌ماندهٔ یک تراکنش ضمنی ناتمام؛ پیش از BEGIN صریح بسته می‌شود.
+            conn.commit()
+        conn.execute("BEGIN IMMEDIATE")
+        _tx_depth = 1
+        try:
+            yield conn
+        except BaseException:
+            try:
+                conn.rollback()
+            finally:
+                _tx_depth = 0
+            raise
+        else:
+            try:
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                _tx_depth = 0
+
+
+def in_transaction():
+    """آیا هم‌اکنون داخل ``db_transaction`` هستیم؟"""
+    return _tx_depth > 0
 
 
 def db_scalar(query, params=(), default=0):
@@ -554,6 +612,14 @@ def init_db():
     fix_referral_codes()
     repair_broken_states()
     cleanup_expired()
+
+    # دفترکل امتیاز + نگهبان نوشتن مستقیم total_points (افزودنی و idempotent)
+    try:
+        import points_ledger as _pl
+        _pl.ensure_schema()
+    except Exception as e:
+        log(f"❌ راه‌اندازی دفترکل امتیاز: {type(e).__name__}")
+        raise
 
     log("✅ دیتابیس آماده")
 

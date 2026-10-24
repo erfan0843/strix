@@ -7,18 +7,18 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=99"/>
+<link rel="stylesheet" href="glass.css?v=102"/>
 <style>
   .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
-  .stepper4{display:flex;gap:4px;padding:5px}
-  .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:7px;
+  .stepper4{display:flex;gap:var(--sp-1);padding:5px}
+  .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:var(--sp-2);
     padding:9px 6px;border-radius:var(--r-pill);font-size:var(--fs-sub);color:var(--ink-3);cursor:pointer;white-space:nowrap}
-  .stepper4 button .n{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--surface-sunk)}
+  .stepper4 button .n{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:var(--fs-micro);background:var(--surface-sunk)}
   .stepper4 button.on{background:var(--brand-tint);color:var(--brand-ink);font-weight:600}
   .stepper4 button.on .n{background:var(--brand);color:#fff}
   .stepper4 button.done .n{background:var(--ok-tint);color:var(--ok)}
   .capability-box{margin:0 0 10px;padding:9px 11px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-2);font-size:var(--fs-sub);color:var(--ink-2)}
-  .cap-tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:2px 7px;margin-inline-start:4px;font-size:11px;background:var(--surface-sunk);color:var(--ink-2)}
+  .cap-tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:2px 7px;margin-inline-start:4px;font-size:var(--fs-micro);background:var(--surface-sunk);color:var(--ink-2)}
   .cap-tag.limited,.cap-tag.unavailable{background:var(--warn-tint);color:var(--warn)}
   .cap-tag.server{background:var(--ok-tint);color:var(--ok)}
   .tile:disabled{opacity:.62;cursor:not-allowed;filter:saturate(.55)}
@@ -27,15 +27,15 @@
   .block.drop-before{box-shadow:inset 0 3px 0 var(--brand)}
   .block.drop-after{box-shadow:inset 0 -3px 0 var(--brand)}
   button.handle{border:0;background:transparent;color:var(--ink-3);cursor:grab;touch-action:none}
-  button.handle:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  button.handle:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:var(--r-xs)}
   [aria-disabled="true"]{cursor:not-allowed}
   @media (max-width:560px){.stepper4 button span.t{display:none}}
   .prevbox{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface-2);padding:12px}
-  .finrow{display:grid;grid-template-columns:1.4fr .8fr .6fr auto;gap:8px;align-items:center}
-  @media (max-width:560px){.finrow{grid-template-columns:1fr 1fr;gap:6px}}
-  .linkrow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:8px;align-items:center}
-  @media (max-width:560px){.linkrow{grid-template-columns:1fr;gap:6px}}
-  .nora-pay-form-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+  .finrow{display:grid;grid-template-columns:1.4fr .8fr .6fr auto;gap:var(--sp-2);align-items:center}
+  @media (max-width:560px){.finrow{grid-template-columns:1fr 1fr;gap:var(--sp-1h)}}
+  .linkrow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:var(--sp-2);align-items:center}
+  @media (max-width:560px){.linkrow{grid-template-columns:1fr;gap:var(--sp-1h)}}
+  .nora-pay-form-mark{width:34px;height:34px;border-radius:var(--r-sm);display:grid;place-items:center;flex:0 0 auto;
     background:linear-gradient(145deg,#15243B,#2A3F6B);border:1px solid rgba(201,169,106,.52);color:#EBD79F;
     font:700 10px/1 Arial,sans-serif;letter-spacing:.7px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
   #doneEndPreview[hidden]{display:none!important}
@@ -44,7 +44,17 @@
   .form-payment-method-config textarea.input{min-height:58px;resize:vertical}
   #formPaymentMethodList>.empty{padding:12px;border:1px dashed var(--hairline);border-radius:var(--r-lg)}
   #addFormPaymentMethod:disabled{opacity:.5;cursor:not-allowed}
-  @media(max-width:560px){.form-payment-method-config .g2{grid-template-columns:1fr;gap:8px}}
+  @media(max-width:560px){.form-payment-method-config .g2{grid-template-columns:1fr;gap:var(--sp-2)}}
+  /* نوار پایین موبایل (.quicknav): جایگزین ریل کناری که زیر ۱۰۴۰px پنهان می‌شود؛ عمداً .tabbar نیست تا ناوبری اصلی سایت آن را بازنویسی نکند */
+  .quicknav{position:fixed;inset-inline:var(--sp-3);bottom:calc(var(--sp-3) + var(--safe-b));z-index:50;display:none;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;
+    background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:.5px solid var(--glass-line);border-radius:var(--r-xl);box-shadow:var(--sh-2),var(--sheen-top)}
+  .quicknav a,.quicknav button{-webkit-appearance:none;appearance:none;border:0;background:none;font:inherit;cursor:pointer;
+    display:grid;justify-items:center;gap:var(--sp-1);min-height:48px;padding:6px 2px;border-radius:var(--r-md);text-decoration:none;
+    color:var(--ink-3);font-size:var(--fs-micro);font-weight:600;line-height:1.3}
+  .quicknav .i{width:22px;height:22px}
+  .quicknav .tint{color:var(--brand-ink);background:var(--brand-tint)}
+  @media (max-width:1040px){.quicknav{display:grid}}
+  @media print{.quicknav{display:none!important}}
 </style>
 <meta name="description" content="ساخت و ویرایش فرم در پنل مجاز نورا؛ تنظیمات نهایی در سرور بررسی می‌شوند."/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
@@ -178,12 +188,15 @@
 
 <symbol id="i-print" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4.6h10V9"/><path d="M4.6 9h14.8v6.4H16v3.9H8v-3.9H4.6z"/><path d="M8 12.8h8"/></g></symbol>
 
+
+<symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></g></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.4 14.6a8.6 8.6 0 0 1-11-11 8.6 8.6 0 1 0 11 11z" fill="currentColor"/></symbol>
 </svg>
 <div class="shell">
   <aside class="rail">
     <div class="row" style="padding:6px 8px 12px">
       <span class="glass-thin" style="width:38px;height:38px;border-radius:12px;display:grid;place-items:center"><svg class="i lg"><use href="#i-doc"/></svg></span>
-      <div><div class="head tight">فرم تازه</div><div class="cap">رویداد: کارگاه فن بیان</div></div>
+      <div><div class="head tight" id="railHead">فرم تازه</div><div class="cap" id="railMeta">فرم‌ساز سروری</div></div>
     </div>
     <nav class="col tight">
       <a class="btn quiet block" href="index.html"><svg class="i"><use href="#i-layers"/></svg> زبان طراحی</a>
@@ -191,7 +204,7 @@
       <a class="btn quiet block" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> نمای کاربر</a>
     </nav>
     <hr class="hr"/>
-    <button class="btn quiet block" id="theme"><svg class="i"><use href="#i-eye"/></svg> شب / روز</button>
+    <button class="btn quiet block" id="theme" type="button"><svg class="i theme-ico-moon"><use href="#i-moon"/></svg><svg class="i theme-ico-sun"><use href="#i-sun"/></svg> شب / روز</button>
   </aside>
 
   <main class="main">
@@ -238,6 +251,8 @@
           <div><div class="head tight" id="evHead">فرم تازه</div><div class="cap" id="evMeta">اطلاعات رویداد از سرور دریافت نشده است.</div></div>
           <span class="sp"></span><a class="tag brand" id="evChip" href="admin.html#newev" hidden>رویداد متصل</a>
         </div>
+        <div class="capability-box" id="purchaseFormBox" role="status" aria-live="polite" hidden data-purchase-form-box></div>
+        <div class="capability-box" id="evPickBox" hidden data-ev-pick-box></div>
         <hr class="hr"/>
         <div class="head" style="margin-bottom:10px">مدل فرم</div>
         <div class="capability-box" id="modelCapabilitySummary" role="status" aria-live="polite">وضعیت مدل‌ها هنوز از API همین سامانه دریافت نشده است؛ امکانات نمایش‌داده‌شده را آمادهٔ انتشار فرض نکنید.</div>
@@ -564,12 +579,18 @@
   </main>
 </div>
 
+<nav class="quicknav" aria-label="پیوندهای فرم‌ساز" style="grid-template-columns:repeat(4,1fr)">
+  <a href="builder.html"><svg class="i"><use href="#i-align"/></svg><small>فرم‌های من</small></a>
+  <a href="form.html"><svg class="i"><use href="#i-mobile"/></svg><small>نمای کاربر</small></a>
+  <a href="index.html"><svg class="i"><use href="#i-layers"/></svg><small>زبان طراحی</small></a>
+  <button type="button" data-theme-toggle><svg class="i theme-ico-moon"><use href="#i-moon"/></svg><svg class="i theme-ico-sun"><use href="#i-sun"/></svg><small>شب / روز</small></button>
+</nav>
 <div class="scrim" id="scrim"></div>
 
 <aside class="sheet" id="shAdd" role="dialog" aria-label="افزودن فیلد">
   <div class="grabber"></div>
   <div class="row"><span class="head">افزودن فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-  <input class="input" id="catSearch" style="margin:12px 0" placeholder="جستجو؛ مثلاً کد ملی، امتیاز، استان"/>
+  <input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="margin:12px 0" placeholder="جستجو؛ مثلاً کد ملی، امتیاز، استان"/>
   <div class="row tight" id="catChips" style="margin-bottom:6px"></div>
   <div id="catList"></div>
 </aside>
@@ -683,8 +704,8 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=122"></script>
-<script src="owner-api.js?v=106"></script>
+<script src="ui.js?v=132"></script>
+<script src="owner-api.js?v=128"></script>
 <script>
 /* ══ داده ══ */
 const TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
@@ -901,10 +922,49 @@ const NEEDM={reg:'registration', survey:'survey', exam:'exam', other:'registrati
 const NEED_BY_MODEL={registration:'reg',questionnaire:'other',survey:'survey',contest:'exam',exam:'exam',attendance:'other',datacollect:'other',order:'reg',election:'other'};
 const needForModel=(model=S.model)=>NEED_BY_MODEL[model]||S.need||'reg';
 if(QS.get('fid')) S.fid=QS.get('fid');
+/* پروندهٔ رویداد: back=admin.html#event=<id>&tab=… ؛ فقط نشانی محلی امن پذیرفته می‌شود و دکمهٔ بازگشت به همان رویداد و زبانه می‌برد */
+if(QS.get('back')&&localPageHref(QS.get('back'))&&!S.back) S.back=QS.get('back');
 if(QS.get('need')){S.need=QS.get('need');if(NEEDM[S.need])S.model=NEEDM[S.need]}
-if(TEST_FIXTURE_MODE&&(QS.get('ev')||QS.get('name'))){
-  S.evId=QS.get('ev')||'';
-  S.back=QS.get('back')||'';
+/* ── فاز ۹.۱: فرم خرید محتوای ضبط‌شده (purpose=recording_access) ──
+   پنل REC رویداد ما را با ?purpose=recording_access&recording=<id>&ev=<id> می‌فرستد. قیمت، روش و کارت مقصد
+   همین‌جا تعریف می‌شود و محصول آن را از فرم می‌خواند؛ شناسه‌ها را سرور بررسی می‌کند (محصول واقعی، همان رویداد).
+   فرم خرید همیشه مدل ثبت‌نام، بدون همراه و بدون بلیت است و خرید ≠ ثبت‌نام ≠ حضور. */
+const SAFE_ID=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):'';
+S.purpose='registration'; S.recordingId='';
+if(QS.get('purpose')==='recording_access'&&SAFE_ID(QS.get('recording'))){
+  S.purpose='recording_access'; S.recordingId=SAFE_ID(QS.get('recording'));
+  S.model='registration'; S.need='reg'; S.guestsOn=false; S.ticketingEnabled=false;
+  if(SAFE_ID(QS.get('ev'))) S.evId=SAFE_ID(QS.get('ev'));
+  if(QS.get('back')&&!S.back) S.back=QS.get('back');
+}
+const isPurchaseForm=()=>S.purpose==='recording_access';
+/* زمینهٔ رویداد: فرم‌ساز از ویرایشگر رویداد (admin.html#edit=…) یا پروندهٔ رویداد (admin.html#event=…) باز شده است.
+   مقصد بازگشت فقط نشانی محلی همین پنل است؛ پارامتر URL نمی‌تواند به بیرون یا دور زدن مجوز ببرد. */
+const eventReturnHref=()=>{const back=localPageHref(S.back); return back&&/^admin\.html#(?:edit|event)=/.test(back)?back:''};
+const eventReturnLabel=()=>/^admin\.html#event=/.test(eventReturnHref())?'بازگشت به پروندهٔ رویداد':'بازگشت به تعریف رویداد';
+function syncSaveButtonLabel(){
+  const b=document.getElementById('publish'); if(!b) return;
+  const ctx=eventReturnHref(), icon='<svg class="i"><use href="#i-check"/></svg> ';
+  b.innerHTML=icon+(ctx?'ذخیره و بازگشت به رویداد':'ذخیرهٔ پیش‌نویس در سرور');
+  b.title=ctx?'فرم در سرور ذخیره می‌شود و فقط پس از تأیید سرور به همان رویداد برمی‌گردی':'';
+}
+/* پس از نخستین ذخیرهٔ موفق، شناسهٔ فرم در نشانی می‌نشیند تا رفرش همین فرم را باز کند (نه فرم تکراری) و زمینهٔ بازگشت بماند */
+function pinFormIdInUrl(id){
+  if(TEST_FIXTURE_MODE||!SAFE_ID(id)) return;
+  try{const url=new URL(location.href); if(url.searchParams.get('fid')===String(id)) return; url.searchParams.set('fid',String(id)); url.searchParams.delete('hydrated'); history.replaceState(null,'',url.toString())}catch(err){}
+}
+function enforcePurchaseFormRules(){
+  if(!isPurchaseForm())return;
+  S.model='registration'; S.need='reg'; S.guestsOn=false; S.ticketingEnabled=false; S.maxPer=1;
+  const gs=document.getElementById('guestsOn'); if(gs){gs.classList.remove('on'); gs.setAttribute('aria-checked','false'); gs.setAttribute('aria-disabled','true')}
+  const ts=document.getElementById('ticketingEnabled'); if(ts){ts.classList.remove('on'); ts.setAttribute('aria-checked','false'); ts.setAttribute('aria-disabled','true')}
+}
+/* ممیزی پنل مالک ۱۴۰۵/۰۷/۳۰ (B4): در حالت واقعی هم ویرایشگر رویداد پنل ما را با ?ev=<id>&need=reg&name=… می‌فرستد؛
+   شناسه فقط با الگوی امن پذیرفته می‌شود و همان‌طور که سرور انتظار دارد در payload (ev) می‌رود. بدون این، هیچ مسیر
+   رابطی برای وصل‌کردن فرم ثبت‌نام به رویداد سروری وجود نداشت (فهرست رویدادهای builder در حالت واقعی خالی است). */
+if((TEST_FIXTURE_MODE||!isPurchaseForm())&&(QS.get('ev')||QS.get('name'))){
+  S.evId=TEST_FIXTURE_MODE?(QS.get('ev')||''):SAFE_ID(QS.get('ev'));
+  S.back=TEST_FIXTURE_MODE?(QS.get('back')||''):localPageHref(QS.get('back'));
   const nm=QS.get('name')||'';
   if(nm) S.title=(QS.get('title')||(NEED[S.need]||'فرم')+' '+nm);
   if(QS.get('cap')) S.cap=NR(QS.get('cap'));
@@ -912,7 +972,10 @@ if(TEST_FIXTURE_MODE&&(QS.get('ev')||QS.get('name'))){
   if(QS.get('end')) S.end=canonicalDateTime(QS.get('end'),S.end);
   if(QS.get('slug')) S.slug=QS.get('slug');
 }
-const CAN_MONEY=!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
+/* دسترسی مالی: در حالت نمونه از نقش محلی؛ در حالت واقعی فقط از نشست سرور (مالک یا مجوز finance).
+   این قفل رابط کاربری است؛ سرور هم تغییر تنظیمات مالی را بدون مجوز finance رد می‌کند (finance_permission_required). */
+let CAN_MONEY=TEST_FIXTURE_MODE&&!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
+const sessionHasFinance=session=>!!(session&&session.authenticated===true&&(session.role==='owner'||Array.isArray(session.permissions)&&session.permissions.includes('finance')));
 const FORM_CACHE_CANDIDATE=S.fid&&window.NORA_UI&&NORA_UI.formById?NORA_UI.formById(S.fid):null;
 const STORED_FORM=FORM_CACHE_CANDIDATE&&(TEST_FIXTURE_MODE||FORM_CACHE_CANDIDATE.serverManaged===true||FORM_CACHE_CANDIDATE.serverDraft===true)
   ?FORM_CACHE_CANDIDATE:null;
@@ -936,7 +999,8 @@ function applyFormDefaults(){
   if(F.after) S.after=F.after;
   if(F.guests!=null) S.guestsOn=!!F.guests;
   if(S.guestsOn) S.maxPer=Math.max(2,S.maxPer);
-  if(F.wait!=null) S.wait=F.wait?20:0;
+  /* صف انتظار بدون ظرفیت اصلی در سرور قابل انتشار نیست؛ پیش‌فرض فقط وقتی ظرفیت مشخص است فعال می‌شود */
+  if(F.wait!=null) S.wait=(F.wait&&NR(S.cap)>0)?20:0;
   /* External event/attendance/invite limits are not server-enforced in this builder. */
   S.limit='none';
   if(F.dept) S.dept=F.dept;
@@ -957,23 +1021,115 @@ function applyFormDefaults(){
   const wc=document.getElementById('wcount'); if(wc) wc.value=faN(S.wait);
 }
 applyFormDefaults();
+enforcePurchaseFormRules();
 if(!QS.get('need')) S.need=NEED_BY_MODEL[S.model]||'reg';
+let PURCHASE_PRODUCT=null,PURCHASE_PRODUCT_STATE='';
+function renderPurchaseFormBox(){
+  const box=$('#purchaseFormBox'); if(!box)return;
+  if(!isPurchaseForm()){box.hidden=true;box.innerHTML='';return}
+  const product=PURCHASE_PRODUCT&&PURCHASE_PRODUCT.recording||null;
+  const stateText={draft:'پیش‌نویس',ready:'آمادهٔ انتشار',published:'منتشرشده',sales_paused:'فروش متوقف',archived:'بایگانی'};
+  const eventHref=S.evId?'event.html?id='+encodeURIComponent(S.evId)+'#recording':'';
+  const adminHref=S.evId?'admin.html#newev':'';
+  let info;
+  if(product&&product.id===S.recordingId) info=`<b>${esc(product.title||'محتوای ضبط‌شده')}</b> · وضعیت محصول: ${esc(stateText[product.status]||product.status||'نامشخص')}`
+    +(product.commerce&&product.commerce.source==='form'&&product.commerce.form_id&&product.commerce.form_id!==S.fid?' · این محصول هم‌اکنون یک فرم خرید منتشرشده دارد؛ انتشار فرم دوم رد می‌شود.':'');
+  else if(PURCHASE_PRODUCT_STATE==='loading') info='در حال خواندن محصول از سرور…';
+  else if(PURCHASE_PRODUCT_STATE==='forbidden') info='برای دیدن جزئیات محصول دسترسی مدیریتی لازم است؛ شناسهٔ محصول هنگام ذخیره در سرور بررسی می‌شود.';
+  else if(PURCHASE_PRODUCT_STATE==='mismatch') info='محصول این رویداد با شناسهٔ ارسال‌شده یکی نیست؛ از پنل رویداد دوباره وارد شوید.';
+  else if(PURCHASE_PRODUCT_STATE==='missing') info='محصول ضبط‌شده‌ای برای این رویداد در سرور نیست؛ ابتدا در پنل رویداد (زبانهٔ محتوای ضبط‌شده) محصول را بسازید.';
+  else info='جزئیات محصول از سرور دریافت نشد؛ شناسه هنگام ذخیره بررسی می‌شود.';
+  box.innerHTML=`<b>فرم خرید محتوای ضبط‌شده</b><div class="cap" style="margin-top:4px">${info}</div>
+    <div class="cap" style="margin-top:6px">قیمت، روش پرداخت و کارت مقصد را در بخش «مالی» همین فرم تعریف کنید؛ محصول همین‌ها را از فرم می‌خواند. خرید ثبت‌نام یا حضور به شمار نمی‌آید: همراه و مدل بلیت برای این فرم بسته است و کد محصول/رویداد را سرور بررسی می‌کند.</div>
+    ${eventHref||adminHref?`<div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">${adminHref?`<a class="btn sm quiet" href="${esc(adminHref)}">پنل رویداد</a>`:''}${eventHref?`<a class="btn sm quiet" href="${esc(eventHref)}" target="_blank" rel="noopener">صفحهٔ رویداد</a>`:''}</div>`:''}`;
+  box.hidden=false;
+}
+async function loadPurchaseProduct(){
+  if(!isPurchaseForm()||!S.evId)return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.getEventRecording!=='function'){PURCHASE_PRODUCT_STATE='unavailable';renderPurchaseFormBox();return}
+  PURCHASE_PRODUCT_STATE='loading';renderPurchaseFormBox();
+  try{
+    const data=await api.getEventRecording(S.evId);
+    PURCHASE_PRODUCT=data&&typeof data==='object'?data:null;
+    PURCHASE_PRODUCT_STATE=!PURCHASE_PRODUCT||!PURCHASE_PRODUCT.recording?'missing':PURCHASE_PRODUCT.recording.id!==S.recordingId?'mismatch':'ok';
+  }catch(error){PURCHASE_PRODUCT=null;PURCHASE_PRODUCT_STATE=error&&(error.status===401||error.status===403)?'forbidden':error&&error.status===404?'missing':'unavailable'}
+  renderPurchaseFormBox();
+}
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (D6): انتخاب رویداد از فهرست سروری داخل فرم‌ساز (بدون تایپ شناسه). منبع: /api/admin/content/events
+   با مجوز محتوا، وگرنه رویدادهای منتشرشدهٔ /api/public/site-content؛ هرگز data.js. سرور همچنان ev را می‌سنجد (unknown_reference). */
+const EVPICK={items:null,loading:false,error:'',q:'',open:false,source:''};
+const evNorm=v=>String(v||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/‌/g,' ').toLowerCase().trim();
+async function evPickLoad(force){
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(TEST_FIXTURE_MODE||isPurchaseForm()||!api||EVPICK.loading||(EVPICK.items&&!force))return;
+  EVPICK.loading=true;EVPICK.error='';renderEvPick();
+  try{
+    let items=null;
+    if(typeof api.listAdminContent==='function'){
+      try{const r=await api.listAdminContent('events',{limit:50,offset:0,sort:'date',order:'desc'});items=(r&&r.items||[]).map(x=>({id:x.id,t:x.t,on:x.on||'',status:x.status||''}));EVPICK.source='admin'}
+      catch(err){if(!(err&&(err.status===403||err.status===401)))throw err}
+    }
+    if(!items&&typeof api.getPublicSiteContent==='function'){const r=await api.getPublicSiteContent();items=((r&&r.content||{}).events||[]).map(x=>({id:x.id,t:x.t,on:x.on||'',status:'published'}));EVPICK.source='public'}
+    EVPICK.items=items||[];
+  }catch(err){EVPICK.error='فهرست رویدادها از سرور خوانده نشد؛ می‌توانی بعداً دوباره تلاش کنی.'}
+  finally{EVPICK.loading=false;renderEvPick()}
+}
+function evPickFilter(){const q=evNorm(EVPICK.q);return (EVPICK.items||[]).filter(x=>!q||evNorm(x.t).includes(q)||evNorm(x.id).includes(q)).slice(0,12)}
+function evPickName(id){const row=(EVPICK.items||[]).find(x=>String(x.id)===String(id));return row?row.t:''}
+function renderEvPick(){
+  const box=$('#evPickBox'); if(!box)return;
+  if(TEST_FIXTURE_MODE||isPurchaseForm()){box.hidden=true;box.innerHTML='';return}
+  /* بازنویسی innerHTML (در حال دریافت → فهرست) نباید فوکوس صفحه‌کلید را از قلم جست‌وجو بگیرد */
+  const hadFocus=!!(document.activeElement&&document.activeElement.id==='evPickQ');
+  const locked=!!(ACTIVE_SERVER_FORM&&ACTIVE_SERVER_FORM.status==='published');
+  const st={draft:'پیش‌نویس',published:'منتشرشده',paused:'متوقف',archived:'بایگانی'};
+  const cur=S.evId?`<div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><b data-ev-pick-current="${esc(S.evId)}">${esc(evPickName(S.evId)||'رویداد انتخاب‌شده')}</b><span class="cap" dir="ltr">${esc(S.evId)}</span><span class="sp"></span>${locked?'':`<button type="button" class="btn sm quiet" data-ev-unlink>قطع اتصال</button>`}</div>`
+    :`<div class="cap">هنوز رویدادی وصل نیست؛ بدون رویداد، دکمهٔ ثبت‌نام در هیچ صفحه‌ای باز نمی‌شود.</div>`;
+  const rows=EVPICK.open?(EVPICK.loading?'<div class="cap">در حال دریافت فهرست رویدادها از سرور…</div>'
+    :EVPICK.error?`<div class="cap" style="color:var(--stop)">${esc(EVPICK.error)}</div><button type="button" class="btn sm quiet" data-ev-pick-retry>تلاش دوباره</button>`
+    :(EVPICK.items&&!EVPICK.items.length?'<div class="cap">رویدادی روی سرور نیست؛ اول رویداد را در پنل بساز.</div>'
+      :`<div class="stack" style="gap:4px;margin-top:6px" role="listbox" aria-label="رویدادهای سرور">${evPickFilter().map(x=>`<button type="button" class="btn sm ${String(x.id)===String(S.evId)?'primary':'quiet'}" data-ev-pick="${esc(x.id)}" role="option" aria-selected="${String(x.id)===String(S.evId)}" style="justify-content:space-between;width:100%"><span>${esc(x.t||x.id)}</span><small class="cap">${esc([x.on,st[x.status]||''].filter(Boolean).join(' · '))}</small></button>`).join('')||'<div class="cap">نتیجه‌ای نیست.</div>'}</div>`)):'';
+  box.innerHTML=`<b>رویداد متصل به این فرم</b><div style="margin-top:6px">${cur}</div>
+    ${locked?'<div class="cap" style="margin-top:6px">فرم منتشرشده است؛ برای تغییر رویداد اول دریافت پاسخ را متوقف کن.</div>':`<div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="btn sm ${EVPICK.open?'':'primary'}" data-ev-pick-toggle aria-expanded="${EVPICK.open?'true':'false'}">${EVPICK.open?'بستن فهرست':(S.evId?'تغییر رویداد':'انتخاب رویداد از سرور')}</button>
+      ${EVPICK.open?`<input class="input" id="evPickQ" type="search" placeholder="جست‌وجوی عنوان رویداد… (Enter = نخستین نتیجه)" value="${esc(EVPICK.q)}" autocomplete="off" style="flex:1 1 220px"/>`:''}</div>${rows}
+      ${EVPICK.open&&EVPICK.source==='public'?'<div class="cap" style="margin-top:4px">فقط رویدادهای منتشرشده دیده می‌شوند؛ برای رویدادهای پیش‌نویس مجوز محتوا لازم است.</div>':''}`}`;
+  box.hidden=false;
+  if(hadFocus&&EVPICK.open){const q=$('#evPickQ');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length)}catch(err){}}}
+}
+function evPickSet(id){S.evId=id||'';EVPICK.open=false;evHeadFill();if(typeof renderReview==='function')renderReview();toast(id?'رویداد به فرم وصل شد؛ با ذخیره در سرور ثبت می‌شود':'اتصال رویداد برداشته شد؛ با ذخیره در سرور ثبت می‌شود')}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-ev-pick-toggle]')){EVPICK.open=!EVPICK.open;renderEvPick();if(EVPICK.open){evPickLoad(false);const q=$('#evPickQ');if(q)q.focus()}return}
+  if(e.target.closest('[data-ev-pick-retry]')){evPickLoad(true);return}
+  const pick=e.target.closest('[data-ev-pick]');if(pick){evPickSet(pick.dataset.evPick);return}
+  if(e.target.closest('[data-ev-unlink]')){evPickSet('');return}
+});
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='evPickQ'){EVPICK.q=e.target.value;const box=$('#evPickBox');const list=box&&box.querySelector('[role="listbox"]');renderEvPick();const q=$('#evPickQ');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length)}catch(err){}}}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='evPickQ'){e.preventDefault();const first=evPickFilter()[0];if(first)evPickSet(first.id);else toast('نتیجه‌ای برای انتخاب نیست')}});
 function evHeadFill(){
+  renderPurchaseFormBox();
+  renderEvPick();
   const nm=TEST_FIXTURE_MODE?(QS.get('name')||''):'';
   const eh=$('#evHead'), em=$('#evMeta'), ec=$('#evChip');
   if(eh) eh.textContent=nm||S.title||'فرم تازه';
+  const rh=$('#railHead'), rm=$('#railMeta');
+  if(rh) rh.textContent=nm||S.title||'فرم تازه';
+  if(rm) rm.textContent=nm?('رویداد: '+nm):ACTIVE_SERVER_FORM?('نسخهٔ سروری '+faN(ACTIVE_SERVER_FORM.version||1)+' · '+(ACTIVE_SERVER_FORM.status||'draft')):'فرم‌ساز سروری';
   if(em){
     if(nm) em.textContent=[QS.get('when'),QS.get('place'),S.cap?('ظرفیت '+faN(S.cap)):''].filter(Boolean).join(' · ');
-    else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'اطلاعات رویداد از API این صفحه دریافت نمی‌شود.':'رویدادی به این فرم متصل نیست.';
+    else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'فرم به رویداد «'+(evPickName(S.evId)||S.evId)+'» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.':'رویدادی به این فرم متصل نیست.';
   }
   if(ec){
-    const linked=!!(S.evId||nm);
-    ec.hidden=!linked&&!TEST_FIXTURE_MODE;
-    ec.textContent=linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):'رویداد متصل · جزئیات سروری در دسترس نیست'
+    const linked=!!(S.evId||nm), fromEventFile=/^admin\.html#event=/.test(String(S.back||''));
+    ec.hidden=!linked&&!fromEventFile&&!TEST_FIXTURE_MODE;
+    const fromEditor=/^admin\.html#edit=/.test(String(S.back||''));
+    ec.textContent=(fromEventFile||fromEditor)&&!TEST_FIXTURE_MODE?eventReturnLabel():linked?TEST_FIXTURE_MODE?(NEED[S.need]||'فرم')+' نمونهٔ رویداد '+(nm||''):(nm?'رویداد: '+nm:'رویداد متصل: '+S.evId)
       :'فرم نمونه از دل رویداد';
     if(S.back){const back=localPageHref(S.back); if(back) ec.setAttribute('href',back); else {ec.removeAttribute('href');ec.setAttribute('aria-disabled','true')}}
     else if(!TEST_FIXTURE_MODE) ec.removeAttribute('href');
   }
+  if(!TEST_FIXTURE_MODE) syncSaveButtonLabel();
 }
 const STEPS=[{k:'s1',n:'مدل و نام'},{k:'s2',n:'فیلدها و تنظیمات'},{k:'s3',n:'مالی و پرداخت'},{k:'s4',n:'مرور و ذخیرهٔ پیش‌نویس'}];
 const HINT={s1:'مدل را بزنید، بعد نام و نشانی را تأیید کنید',s2:'فیلدها را بچینید؛ تنظیمات همین‌جا کنارشان است',
@@ -1227,7 +1383,8 @@ function renderTiles(){
   $('#tiles').innerHTML=MODELS.map(m=>{
     const capability=modelCapability(m.k),blocked=!!(capability&&capability.publishable===false);
     const detail=capability?capability.reason:m.d;
-    return `<button class="tile ${S.model===m.k?'on':''}" data-model="${m.k}" ${blocked?'disabled aria-disabled="true"':''} title="${esc(detail)}">
+    const locked=isPurchaseForm()&&m.k!=='registration';
+    return `<button class="tile ${S.model===m.k?'on':''}" data-model="${m.k}" ${blocked||locked?'disabled aria-disabled="true"':''} title="${esc(locked?'فرم خرید محتوای ضبط‌شده فقط با مدل ثبت‌نام (پرداخت سروری) ساخته می‌شود.':detail)}">
       <div class="h"><span class="ic"><svg class="i lg"><use href="#${m.ic}"/></svg></span><b>${m.tn}</b>${capability?capabilityTag(capability.status,capability.reason):''}</div>
       <div class="d">${esc(m.d)}</div></button>`;
   }).join('');
@@ -1450,13 +1607,44 @@ function applyFinanceAccess(){
   $('#formPaymentMethodsCard').hidden=!CAN_MONEY;
   $('#financeOwnerNotice').hidden=CAN_MONEY;
   $('#openFinanceSettings').hidden=!CAN_MONEY;
-  if(!CAN_MONEY){
-    const add=$('#addFin'); if(add){add.disabled=true;add.setAttribute('aria-disabled','true')}
-    const addMethod=$('#addFormPaymentMethod');if(addMethod){addMethod.disabled=true;addMethod.setAttribute('aria-disabled','true')}
-  }
+  [['#addFin'],['#addFormPaymentMethod']].forEach(([sel])=>{const el=$(sel); if(!el) return;
+    el.disabled=!CAN_MONEY; if(CAN_MONEY) el.removeAttribute('aria-disabled'); else el.setAttribute('aria-disabled','true')});
   renderFormPaymentMethods();
   renderCoupon();
   renderFinanceStatus();
+}
+/* نتیجهٔ نشست سرور: اگر مالک/مجوز مالی تأیید شد، دادهٔ مالی ذخیره‌شدهٔ همین فرم برای ویرایش بار می‌شود؛ در غیر این صورت فقط نمایش «تنظیم‌شده» می‌ماند. */
+function setFinanceAccess(on){
+  on=!!on; if(CAN_MONEY===on) return;
+  CAN_MONEY=on;
+  if(on){
+    const cur=ACTIVE_SERVER_FORM||STORED_FORM||null, copy=v=>v==null?v:JSON.parse(JSON.stringify(v));
+    if(cur){
+      if(!(S.fin&&S.fin.length)) S.fin=Array.isArray(cur.fin)?copy(cur.fin):[];
+      if(!(S.groups&&S.groups.length)) S.groups=Array.isArray(cur.groups)?copy(cur.groups):[];
+      if(!(S.coupon&&S.coupon.code)) S.coupon=Object.assign({code:'',off:0,all:false},copy(cur.coupon||{}));
+      if(!(S.methods&&S.methods.length)) S.methods=normalizeFormPaymentMethods(cur.methods);
+      if(!(S.enabledPaymentMethods&&S.enabledPaymentMethods.length)&&typeof normalizeEnabledPaymentMethods==='function')
+        S.enabledPaymentMethods=normalizeEnabledPaymentMethods(cur.enabledPaymentMethods!=null?cur.enabledPaymentMethods:(cur.receiptReviewRequired===true?['card_transfer']:[]));
+    }
+  }
+  applyFinanceAccess();
+  try{renderFin()}catch(e){}
+  try{renderPreview()}catch(e){}
+  try{renderReview()}catch(e){}
+}
+async function resolveFinanceAccess(){
+  if(TEST_FIXTURE_MODE) return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.me!=='function') return;
+  try{
+    let session=null;
+    try{session=await api.me()}catch(error){if(!error||error.status!==401) throw error}
+    if(!(session&&session.authenticated===true&&session.role==='owner')&&typeof api.accountMe==='function'){
+      try{session=await api.accountMe()}catch(error){session=null}
+    }
+    setFinanceAccess(sessionHasFinance(session));
+  }catch(error){setFinanceAccess(false)}
 }
 function renderLinks(){
   const host=$('#linkList');if(!host)return;
@@ -2039,11 +2227,14 @@ function ownerLoginPanel(show,message){
     setTimeout(()=>$('#ownerUsername')&&$('#ownerUsername').focus(),0)}
 }
 function formPayloadForServer(row){
-  const core=new Set(['id','name','model','need','slug','ev','fields','status','version','created_at','updated_at','at','serverManaged','serverDraft','on']);
+  const core=new Set(['id','name','model','need','slug','ev','fields','status','version','created_at','updated_at','at','serverManaged','serverDraft','on','purpose','recording_id']);
   const settings={};
   Object.keys(row||{}).forEach(key=>{if(!core.has(key)) settings[key]=row[key]});
-  return {name:row.name,model:row.model,need:row.need,slug:String(row.slug||'').replace(/^\/+/,''),
+  const payload={name:row.name,model:row.model,need:row.need,slug:String(row.slug||'').replace(/^\/+/,''),
     ev:String(row.ev||''),fields:row.fields,settings};
+  /* فرم خرید: هدف و شناسهٔ محصول در سطح بالا می‌رود تا سرور آن را با محصول و رویداد واقعی بسنجد. */
+  if(row.purpose==='recording_access'&&row.recording_id){payload.purpose='recording_access';payload.recording_id=String(row.recording_id);delete settings.ticketing;settings.guestsOn=false}
+  return payload;
 }
 function formFromServer(record){
   const settings=record&&record.settings&&typeof record.settings==='object'?record.settings:{};
@@ -2053,7 +2244,9 @@ function formFromServer(record){
     kind:settings.kind||meta.tn||'فرم',slug:record.slug?'/'+record.slug:'',ev:record.ev||'',
     fields:Array.isArray(record.fields)?record.fields:[],status:record.status||'draft',
     version:record.version||1,serverManaged:true,serverDraft:record.status!=='published',on:record.status==='published'?1:0,
-    at:Date.parse(record.updated_at||'')||Date.now()
+    at:Date.parse(record.updated_at||'')||Date.now(),
+    purpose:record.purpose==='recording_access'?'recording_access':'registration',
+    recording_id:record.purpose==='recording_access'&&record.recording_id?String(record.recording_id):''
   });
   return row;
 }
@@ -2124,6 +2317,7 @@ async function restoreFormEditorSession(){
     const session=await formEditorSession(api);
     CURRENT_EDITOR_ROLE=session.role||null;
     OWNER_AUTHENTICATED=true;
+    setFinanceAccess(sessionHasFinance(session));
     ownerLoginPanel(false);
     const role=CURRENT_EDITOR_ROLE==='owner'?'مالک':CURRENT_EDITOR_ROLE==='club-supervisor'?'سرپرست باشگاه':'مدیر';
     setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+ACTIVE_SERVER_FORM.status+'. دسترسی سروریِ '+role+' تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است.');
@@ -2136,10 +2330,12 @@ async function restoreFormEditorSession(){
 function ownerApiErrorText(err){
   if(!err||err.code==='server_unreachable') return 'به سرور همین سامانه دسترسی نیست؛ اتصال شبکه و نشانی همین صفحه را بررسی کنید.';
   if(err.status===401) return 'ورود معتبر پیدا نشد؛ با حساب بله وارد شوید یا با حساب مالک اقدام کنید.';
+  if(err.status===403&&err.code==='finance_permission_required') return 'تنظیم مبلغ، روش پرداخت و تخفیف فقط با مجوز مالی (مالک) ذخیره می‌شود؛ بقیهٔ فرم را می‌توانید بدون تغییر بخش مالی ذخیره کنید.';
   if(err.status===403&&err.code==='permission_denied') return 'این نقش اجازهٔ ساخت و ویرایش فرم را ندارد؛ برای دسترسی با مالک سامانه هماهنگ کنید.';
   if(err.status===403) return 'بررسی مبدأ یا CSRF ناموفق بود؛ صفحه را از همان نشانی سامانه باز کنید و دوباره بکوشید.';
   if(err.status===404) return 'API فرم‌ساز روی این میزبان در دسترس نیست؛ سرور FastAPI را از نشانی همین سامانه اجرا کنید.';
   if(err.status===409){
+    if(err.code==='purchase_form_already_published')return 'این محصول هم‌اکنون یک فرم خرید منتشرشده دارد؛ ابتدا آن را متوقف کنید یا همان را ویرایش کنید.';
     if(err.code==='version_conflict')return 'نسخهٔ دیگری از این فرم در سرور ذخیره شده است؛ فهرست را تازه کنید تا ویرایش هم‌زمان بازنویسی نشود.';
     if(err.code==='published_form_read_only')return 'فرم منتشرشده است؛ ابتدا دریافت پاسخ را متوقف کنید و سپس ویرایش کنید.';
     if(err.code==='form_has_responses')return 'این فرم پاسخ دارد و نسخهٔ پرسش‌ها قفل است؛ برای تغییر سؤال‌ها فرم جدیدی بسازید تا پاسخ‌های قبلی جابه‌جا نشوند.';
@@ -2149,6 +2345,16 @@ function ownerApiErrorText(err){
   }
   if(err.status===413) return 'اندازهٔ تنظیمات فرم از سقف مجاز بیشتر است؛ توضیحات یا گزینه‌های سنگین را کوتاه کنید.';
   if(err.status===422){
+    const purchaseErrors={recording_not_found:'محصول ضبط‌شدهٔ این فرم در سرور پیدا نشد؛ از پنل رویداد دوباره وارد فرم‌ساز شوید.',
+      purchase_form_event_mismatch:'رویداد فرم با رویداد محصول یکی نیست؛ پیوند را از پنل همان رویداد باز کنید.',
+      purchase_form_recording_required:'فرم خرید باید به یک محصول ضبط‌شده متصل باشد.',
+      purchase_form_requires_registration_model:'فرم خرید فقط با مدل ثبت‌نام (پرداخت سروری) پذیرفته می‌شود.',
+      ticketing_not_allowed_for_purchase:'فرم خرید بلیت صادر نمی‌کند؛ مدل بلیت را خاموش کنید.',
+      companions_not_allowed_for_purchase:'فرم خرید برای یک حساب است؛ همراه‌آوردن را خاموش کنید.',
+      recording_requires_purchase_purpose:'فقط فرم خرید به محصول ضبط‌شده متصل می‌شود.'};
+    if(err.code&&purchaseErrors[err.code])return purchaseErrors[err.code];
+    /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (D3): سرور شناسهٔ رویداد فرم را با site_content می‌سنجد (a82f422). */
+    if(err.code==='unknown_reference'&&err.payload&&err.payload.detail&&err.payload.detail.field==='ev')return 'رویداد متصل به این فرم روی سرور پیدا نشد (شناسهٔ «'+String(S.evId||'')+'»)؛ رویداد را از فهرست «رویداد متصل به این فرم» دوباره انتخاب کن یا اتصال را بردار. چیزی ذخیره نشد.';
     const issues=err.payload&&err.payload.detail&&err.payload.detail.issues;
     if(Array.isArray(issues)&&issues.length){
       const visible=issues.slice(0,8).map(x=>x&&x.message).filter(Boolean);
@@ -2187,6 +2393,7 @@ async function saveServerDraft(row){
     const editorSession=await formEditorSession(api);
     CURRENT_EDITOR_ROLE=editorSession.role||null;
     OWNER_AUTHENTICATED=true;
+    setFinanceAccess(sessionHasFinance(editorSession));
     if(ACTIVE_SERVER_FORM){
       const currentVersion=Number(ACTIVE_SERVER_FORM.version)||1;
       const latest=formFromServer(await api.getForm(ACTIVE_SERVER_FORM.id));
@@ -2212,9 +2419,17 @@ async function saveServerDraft(row){
     let mirrored=false;
     try{mirrored=!!(window.NORA_UI&&typeof NORA_UI.formPut==='function'&&NORA_UI.formPut(saved))}catch(e){mirrored=false}
     $('#doneCard').style.display='block';
-    const back=localPageHref(S.back);
-    $('#doneLink').innerHTML=back?`<a class="btn sm" href="${esc(back)}">بازگشت</a>`:'';
+    pinFormIdInUrl(saved.id);
+    const back=localPageHref(S.back), ctx=eventReturnHref();
+    $('#doneLink').innerHTML=back?`<a class="btn sm" href="${esc(back)}" data-return-link>${esc(ctx?eventReturnLabel():'بازگشت')}</a>`:'';
     updateDoneCard(saved,mirrored);
+    if(ctx){
+      /* ذخیره در سرور تأیید شد (پاسخ ۲۰۰ با نسخه)؛ حالا به همان رویداد و همان بخش برمی‌گردیم. اگر ذخیره شکست بخورد به این‌جا نمی‌رسیم و فرم‌ساز با همهٔ داده‌ها می‌ماند. */
+      toast('فرم ذخیره شد؛ بازگشت به رویداد…');
+      setOwnerApiState('ذخیره شد','نسخهٔ '+faN(saved.version)+' در سرور ثبت شد؛ در حال بازگشت به رویداد.');
+      setTimeout(()=>{try{location.assign(ctx)}catch(err){}},700);
+      return;
+    }
     const editorRole=editorSession.role==='owner'?'مالک':editorSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
     setOwnerApiState('آمادهٔ ذخیره','دسترسی سروریِ '+editorRole+' تأیید شد. فرم با نسخهٔ '+faN(saved.version)+' در سرور ذخیره شد؛ وضعیت: '+saved.status+'.');
     ownerLoginPanel(false);
@@ -2225,6 +2440,8 @@ async function saveServerDraft(row){
     setOwnerApiState(err&&err.status===401?'ورود مالک لازم است':'ذخیره نشد',message);
     if(err&&err.status===401){OWNER_AUTHENTICATED=false;PENDING_DRAFT_ROW=row;ownerLoginPanel(true,message)}
     else {PENDING_DRAFT_ROW=null;toast(message)}
+    /* کارت وضعیت سروری (توقف/انتشار/پیوند عمومی) نباید پس از ذخیرهٔ ناموفق پنهان بماند */
+    if(ACTIVE_SERVER_FORM&&$('#doneCard').style.display==='none'){$('#doneCard').style.display='block';updateDoneCard(ACTIVE_SERVER_FORM,true,false)}
   }finally{
     OWNER_API_BUSY=false;
     if(button){button.disabled=false;button.removeAttribute('aria-busy')}
@@ -2264,6 +2481,7 @@ async function publishSavedForm(){
     toast('فرم منتشر شد؛ پیوند عمومی آماده است');
   }catch(error){
     const message=ownerApiErrorText(error);setOwnerApiState(error&&error.status===401?'ورود مالک لازم است':'انتشار انجام نشد',message);toast(message);
+    const doneNote=$('#doneNote');if(doneNote&&!(error&&error.status===401))doneNote.textContent='انتشار انجام نشد: '+message;
   }finally{OWNER_API_BUSY=false;if(button){button.disabled=false;button.removeAttribute('aria-busy')}}
 }
 async function pauseSavedForm(){
@@ -2311,6 +2529,7 @@ if(ownerLoginForm) ownerLoginForm.addEventListener('submit',async event=>{
     if(!owner||owner.authenticated!==true||owner.role!=='owner') throw new api.Error(403,'permission_denied',owner);
     CURRENT_EDITOR_ROLE='owner';
     OWNER_AUTHENTICATED=true;
+    setFinanceAccess(true);
     loginOk=true;
     setOwnerApiState('آمادهٔ مالک','ورود مالک از سرور تأیید شد؛ گذرواژه ذخیره نشد.');
     ownerLoginPanel(false);
@@ -2372,7 +2591,7 @@ document.addEventListener('click',e=>{
     if(types.length<=2){toast('حالت تصادفی دست‌کم دو مدل بلیت می‌خواهد');return}
     types.splice(index,1);syncTicketingUI();renderReview();return;
   }
-  const mo=e.target.closest('[data-model]'); if(mo){S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();renderReview();return}
+  const mo=e.target.closest('[data-model]'); if(mo){if(isPurchaseForm()&&mo.dataset.model!=='registration'){toast('فرم خرید فقط با مدل ثبت‌نام ساخته می‌شود');return}S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();renderReview();return}
   const qk=e.target.closest('[data-quick]'); if(qk){applyPack(qk.dataset.quick);return}
   const ad=e.target.closest('[data-add]'); if(ad){addField(ad.dataset.add);return}
   const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();return}
@@ -2430,6 +2649,7 @@ document.addEventListener('click',e=>{
     }
     const on=!sw.classList.contains('on');
     if(sw.id==='ticketingEnabled'){
+      if(isPurchaseForm()){toast('فرم خرید محتوای ضبط‌شده بلیت صادر نمی‌کند؛ خرید ≠ ثبت‌نام');return}
       if(S.model!=='registration'){toast('مدل بلیت فقط برای فرم ثبت‌نام است');return}
       S.ticketingEnabled=on;
       if(on){S.ticketing=normalizeTicketingState(S.ticketing);
@@ -2441,7 +2661,7 @@ document.addEventListener('click',e=>{
     if(sw.id==='slugAuto'){S.slugAuto=on;S.nested=on;setSwitch(sw.id,on);if(on)updateAutoSlug();syncSettingsUI();slugView();return}
     if(sw.id==='couponAll'){if(!CAN_MONEY){toast('تنظیم مالی فقط برای مالک است');return}
       S.coupon.all=on;setSwitch(sw.id,on);renderReview();return}
-    if(sw.id==='guestsOn'){S.guestsOn=on;if(on&&S.maxPer<2)S.maxPer=2;$('#maxPer').value=faN(S.maxPer);$('#maxPer').removeAttribute('aria-invalid');setSwitch(sw.id,on);renderPreview();renderReview();toast(on?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد');return}
+    if(sw.id==='guestsOn'){if(isPurchaseForm()){toast('فرم خرید برای یک حساب است؛ همراه ندارد');return}S.guestsOn=on;if(on&&S.maxPer<2)S.maxPer=2;$('#maxPer').value=faN(S.maxPer);$('#maxPer').removeAttribute('aria-invalid');setSwitch(sw.id,on);renderPreview();renderReview();toast(on?'همراه‌آوردن باز شد':'همراه‌آوردن بسته شد');return}
     if(sw.id==='showOnEvent'){S.eventVisible=on;setSwitch(sw.id,on);renderReview();return}
     if(sw.id==='enableBaleWallet'){setBuiltInPaymentMethod('bale_wallet',on);return}
     if(sw.id==='receiptReviewRequired'){setBuiltInPaymentMethod('card_transfer',on);return;}
@@ -2494,7 +2714,7 @@ document.addEventListener('click',e=>{
       links:copy((S.links||[]).filter(link=>String(link&&link.t||'').trim()||String(link&&link.u||'').trim())),
       fields:(S.fields||[]).map(f=>Object.assign({},copy(f),{opts:(f.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o))})),
       scoring:{enabled:needForModel(S.model)==='survey',method:'weighted-mean',weightMax:5},
-      guestsOn:S.guestsOn, enabledPaymentMethods:enabledPaymentMethods,
+      guestsOn:isPurchaseForm()?false:S.guestsOn, enabledPaymentMethods:enabledPaymentMethods,
       receiptReviewRequired:enabledPaymentMethods.includes('card_transfer'),
       noraPayEnabled:false,
       paymentInstructions:String(S.paymentInstructions||'').replace(/\r\n?/g,'\n').trim().slice(0,500),
@@ -2502,8 +2722,11 @@ document.addEventListener('click',e=>{
       limit:S.limit, inviteCodes:S.limit==='invite'?S.inviteCodes:'',
       display:S.display, dir:S.dir, after:S.after, eventVisible:S.eventVisible!==false,
       onePerPerson:S.onePerPerson!==false, ev:S.evId||saved.ev||'', sync:sync, on:0,
-      ticketingEnabled:S.model==='registration'&&S.ticketingEnabled===true,
-      ...(S.model==='registration'&&S.ticketingEnabled?{ticketing:ticketingPayload()}:{})};
+      ticketingEnabled:!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled===true,
+      ...(!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled?{ticketing:ticketingPayload()}:{}),
+      purpose:isPurchaseForm()?'recording_access':'registration',
+      ...(isPurchaseForm()?{recording_id:S.recordingId}:{})};
+    if(isPurchaseForm()){enforcePurchaseFormRules();row.model='registration';row.need='reg';row.maxPer=1;delete row.ticketing}
     PENDING_DRAFT_ROW=row;
     $('#doneCard').style.display='none';
     saveServerDraft(row);return}
@@ -2645,6 +2868,7 @@ $('#btnBack').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i>0) go(
 /* ══ آغاز ══ */
 initUI();
 applyFinanceAccess();
+void resolveFinanceAccess();
 /* بخش و کارشناس مسئول: فهرست کارشناسان از بخش می‌آید */
 (()=>{const dp=$('#deptPick'), ep=$('#expertPick'); if(!dp||!ep) return;
   const notifyTo=$('#notifyTo');
@@ -2670,7 +2894,9 @@ $('#pkStart').innerHTML=pickHTML('datetime',S.start);
 $('#pkEnd').innerHTML=pickHTML('datetime',S.end);
 initAll(document);
 renderStepper();renderTiles();syncSettingsUI();slugView();renderCatalog();if(!S.fid) applyPack('full');
+enforcePurchaseFormRules();
 renderLinks();renderFin();renderCoupon();renderPreview();renderReview();evHeadFill();go('s1');
+void loadPurchaseProduct();
 void refreshFormCapabilities();
 void refreshFormPaymentReadiness();
 /* اگر شناسهٔ فرم در نشانی باشد، همان فرم بار می‌شود؛ غیرمالک به دادهٔ مالی دست نمی‌زند. */
@@ -2686,6 +2912,7 @@ try{
     S.cap=cur.cap==null?S.cap:cur.cap; S.wait=cur.wait==null?S.wait:cur.wait;
     S.start=canonicalDateTime(cur.start,S.start); S.end=canonicalDateTime(cur.ends||cur.end,S.end);
     S.evId=cur.ev||S.evId;
+    if(cur.purpose==='recording_access'&&SAFE_ID(cur.recording_id)){S.purpose='recording_access';S.recordingId=SAFE_ID(cur.recording_id)}
     if(cur.intro!=null) S.intro=cur.intro;
     if(cur.introMedia!=null) S.introMedia=cur.introMedia;
     if(cur.introMediaNote!=null) S.introMediaNote=cur.introMediaNote;
@@ -2750,6 +2977,8 @@ try{
     if($('#expertPick')) $('#expertPick').innerHTML=`<option>${esc(S.notify.expert)}</option>`;
     renderTiles(); renderCanvas(); renderLinks(); renderFin(); renderCoupon(); renderPreview(); renderReview();
     slugView(); evHeadFill();
+    /* فرم خرید ذخیره‌شده: رویداد/محصول از رکورد سرور خوانده شد، پس حالا (و نه پیش از آن) محصول را از API می‌خوانیم. */
+    enforcePurchaseFormRules(); if(isPurchaseForm()&&!PURCHASE_PRODUCT_STATE) void loadPurchaseProduct();
   }
 }catch(e){}
 if(ACTIVE_SERVER_FORM){
@@ -2760,6 +2989,20 @@ if(ACTIVE_SERVER_FORM){
 }else if(SERVER_FORM_CACHE_MISSING){
   setOwnerApiState('فرم دریافت نشده','برای ویرایش، فهرست سروری را در فرم‌ساز تازه کنید؛ دادهٔ محلی جایگزین نمی‌شود.');
   const saveButton=$('#publish');if(saveButton)saveButton.disabled=true;
+  hydrateServerFormFromApi();
+}
+/* فاز ۹.۱: پیوند «ویرایش در فرم‌ساز» پنل با حافظهٔ محلی خالی باز می‌شود. یک بار همان رکورد را از API می‌خوانیم
+   (با همان بررسی نشست و مجوز فرم‌ساز)، در حافظهٔ محلی می‌گذاریم و صفحه را تازه می‌کنیم؛ اگر سرور فرم را ندهد، همان وضعیت صادقانهٔ بالا می‌ماند. */
+async function hydrateServerFormFromApi(){
+  if(TEST_FIXTURE_MODE||QS.get('hydrated')==='1'||!SAFE_ID(S.fid))return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.getForm!=='function'||!window.NORA_UI||typeof NORA_UI.formPut!=='function')return;
+  try{
+    await formEditorSession(api);
+    const fresh=formFromServer(await api.getForm(S.fid));
+    if(!fresh||fresh.id!==S.fid||!NORA_UI.formPut(fresh))return;
+    const url=new URL(location.href);url.searchParams.set('hydrated','1');location.replace(url.toString());
+  }catch(error){/* بدون نشست یا مجوز معتبر، پیام «فرم دریافت نشده» به‌درستی باقی می‌ماند */}
 }
 </script>
 </body>

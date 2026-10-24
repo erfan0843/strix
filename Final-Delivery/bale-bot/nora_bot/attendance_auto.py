@@ -404,28 +404,29 @@ def mark_present(session, user_id, method="code", status=None):
             except Exception:
                 pass
 
-    if old:
-        db_execute("UPDATE attendance_records SET status=?, method=? "
-                   "WHERE id=?", (st, method, old["id"]))
-    else:
-        db_execute(
-            "INSERT INTO attendance_records (session_id, event_id, "
-            "bale_user_id, method, status) VALUES (?,?,?,?,?)",
-            (int(sid), eid, int(user_id), method, st))
-
-    # 🏆 امتیاز جلسه
+    # 🏆 امتیاز جلسه — ثبت رکورد و امتیاز در یک تراکنش؛ کلید دفترکل
+    #    att:{session}:{user} با حضور دستی مشترک است → هر جلسه فقط یک‌بار.
     pts = int(session.get("points") or 0)
-    if pts and st == "present":
-        # 🔴 باگ رفع‌شده (فاز ۴۰) — «امتیاز جلسه داده نمی‌شد»:
-        #    `club.add_points` **وجود ندارد**. چون داخل
-        #    try/except بود، ImportError بی‌صدا بلعیده می‌شد و
-        #    کاربر با وجود حضور، هیچ امتیازی نمی‌گرفت.
-        #    تابع درست `attendance._award_points` است.
-        try:
-            from attendance import _award_points
-            _award_points(user_id, pts)
-        except Exception as _e:
-            log(f"⚠️ امتیاز حضور {user_id}: {_e}")
+    from attendance import _award_points, _record_id
+    from database import db_transaction
+    import points_ledger as pl
+    try:
+        with db_transaction():
+            if old:
+                db_execute("UPDATE attendance_records SET status=?, method=? "
+                           "WHERE id=?", (st, method, old["id"]))
+            else:
+                db_execute(
+                    "INSERT INTO attendance_records (session_id, event_id, "
+                    "bale_user_id, method, status) VALUES (?,?,?,?,?)",
+                    (int(sid), eid, int(user_id), method, st))
+            if pts and st == "present":
+                # 🔴 باگ رفع‌شده (فاز ۴۰) — «امتیاز جلسه داده نمی‌شد»؛ اکنون از دفترکل
+                _award_points(user_id, pts, sid, _record_id(int(sid), int(user_id)))
+    except pl.LedgerError as _e:
+        log(f"⚠️ امتیاز حضور {user_id}: {_e.code}")
+        return False, "ثبت حضور انجام نشد؛ دوباره تلاش کنید"
+    pl.sync_pending(limit=5)
 
     return True, ("✅ حضور شما ثبت شد" if st == "present"
                   else "⏰ حضور شما با تأخیر ثبت شد")

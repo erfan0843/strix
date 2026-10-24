@@ -1,0 +1,5 @@
+e2e-builder-return EXIT 0 TOTAL PASS 24 / FAIL 0
+e2e-event-file-roles EXIT 0 TOTAL PASS 26 / FAIL 0
+hub-shot EXIT 1 
+e2e-event-file EXIT 0 TOTAL PASS 83 / FAIL 0
+DONE

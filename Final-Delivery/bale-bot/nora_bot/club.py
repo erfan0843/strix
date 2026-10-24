@@ -10,12 +10,14 @@
 """
 import json
 import random
+import re
 import string
 from datetime import datetime
 
 from config import SUPER_ADMIN_ID, CURRENCY_LABEL, money
+import points_ledger as pl
 from database import (
-    db_execute, db_scalar, ensure_table, get_setting, set_setting, log,
+    db_execute, db_scalar, db_transaction, ensure_table, get_setting, set_setting, log,
 )
 from auth import (
     get_user, set_state, get_state_data, clear_state, log_action,
@@ -244,17 +246,28 @@ def check_achievements(uid, trigger=None, silent=False):
             continue
 
         pts, why = oc.cap_points(uid, a.get("points"))
-        db_execute("""INSERT OR IGNORE INTO user_achievements
-            (bale_user_id, achievement_key, points_given) VALUES (?,?,?)""",
-            (uid, key, pts))
-        if pts:
-            db_execute("UPDATE users SET total_points=COALESCE(total_points,0)+? "
-                       "WHERE bale_user_id=?", (pts, uid))
-            db_execute("""INSERT OR IGNORE INTO greeting_log
-                (bale_user_id, kind, ref_key, jyear, points_given)
-                VALUES (?,'achievement',?,0,?)""", (uid, key, pts))
-        db_execute("UPDATE achievements SET total_earned="
-                   "COALESCE(total_earned,0)+1 WHERE id=?", (a["id"],))
+        # ثبت نشان + امتیاز + لاگ سقف در یک تراکنش؛ کلید دفترکل = (کاربر، نشان)
+        try:
+            with db_transaction() as conn:
+                cur = conn.execute("""INSERT OR IGNORE INTO user_achievements
+                    (bale_user_id, achievement_key, points_given) VALUES (?,?,?)""",
+                    (uid, key, pts))
+                if cur.rowcount != 1:
+                    continue  # هم‌زمان ثبت شده؛ اثر دوم ندارد
+                ua_id = cur.lastrowid
+                if pts:
+                    pl.post_points(uid, pts, entry_type="award", source="achievement",
+                                   ref_key=f"ach:{uid}:{key}", ref_table="user_achievements",
+                                   ref_id=ua_id, reason=f"نشان {key}")
+                    conn.execute("""INSERT OR IGNORE INTO greeting_log
+                        (bale_user_id, kind, ref_key, jyear, points_given)
+                        VALUES (?,'achievement',?,0,?)""", (uid, key, pts))
+                conn.execute("UPDATE achievements SET total_earned="
+                             "COALESCE(total_earned,0)+1 WHERE id=?", (a["id"],))
+        except pl.LedgerError as e:
+            log(f"❌ امتیاز نشان {key} برای {uid}: {e.code}")
+            continue
+        pl.sync_pending(limit=5)
 
         if not silent:
             tier = TIERS.get(a.get("tier") or "bronze", TIERS["bronze"])
@@ -447,18 +460,30 @@ def confirm_buy(cid, uid, rid):
         f"📊 باقیمانده پس از خرید: {pts - cost}\n\n"
         f"⚠️ امتیاز کسر‌شده برنمی‌گردد. مطمئنید؟"
     ), {"inline_keyboard": [
-        [{"text": "✅ بله، خرید کن", "callback_data": f"cl_buyok_{r['id']}"}],
+        [{"text": "✅ بله، خرید کن",
+          "callback_data": f"cl_buyok_{r['id']}_{_buy_nonce()}"}],
         [{"text": "❌ انصراف", "callback_data": "cl_shop"}]]})
 
 
-def do_buy(cid, uid, rid):
-    """انجام خرید — کسر امتیاز و تحویل"""
+def _buy_nonce():
+    """شناسهٔ یک‌بارمصرف تأیید خرید؛ کلید idempotency دفترکل برای همین تأیید."""
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
+
+
+_NONCE_OK = re.compile(r"[a-z0-9]{6,16}\Z")
+
+
+def do_buy(cid, uid, rid, nonce=None):
+    """انجام خرید — ایجاد درخواست و کسر امتیاز در یک تراکنش (idempotent روی nonce)"""
     try:
         r = db_execute("SELECT * FROM rewards WHERE id=?", (int(rid),), fetch="one")
     except (TypeError, ValueError):
         r = None
     if not r or not r.get("is_active"):
         return send(cid, "❌ این پاداش موجود نیست")
+    if not nonce or not _NONCE_OK.fullmatch(str(nonce)):
+        # دکمهٔ قدیمی بدون شناسهٔ تأیید → مرحلهٔ تأیید دوباره
+        return confirm_buy(cid, uid, rid)
 
     cost = int(r.get("cost") or 0)
     stock = int(r.get("stock") or 0)
@@ -480,24 +505,53 @@ def do_buy(cid, uid, rid):
     if pts < cost:
         return send(cid, "🔒 امتیاز کافی ندارید")
 
-    # 🔴 کسر امتیاز به‌صورت اتمیک (شرط در خود UPDATE)
-    db_execute("""UPDATE users SET total_points = total_points - ?
-        WHERE bale_user_id=? AND COALESCE(total_points,0) >= ?""",
-        (cost, uid, cost))
-    fresh = int((get_user(uid) or {}).get("total_points") or 0)
-    if fresh != pts - cost:
-        return send(cid, "⚠️ خطا در کسر امتیاز. دوباره تلاش کنید.")
+    ref_key = f"redeem:{uid}:{r['id']}:{nonce}"
+    if pl.find_entry("reward_redeem", ref_key):
+        return send(cid, "ℹ️ این خرید قبلاً ثبت شده است.")
 
     code = "RW" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     rtype = r.get("reward_type") or "custom"
     auto = REWARD_TYPES.get(rtype, {}).get("auto", 0)
     status = "delivered" if auto else "pending"
+    pct = int(r.get("reward_value") or 10) if rtype == "discount" else 0
 
-    db_execute("""INSERT INTO reward_redemptions
-        (bale_user_id, reward_key, reward_title, cost, code, status)
-        VALUES (?,?,?,?,?,?)""",
-        (uid, r.get("key"), r.get("title"), cost, code, status))
-    db_execute("UPDATE rewards SET sold=COALESCE(sold,0)+1 WHERE id=?", (r["id"],))
+    # 🔴 درخواست + کسر امتیاز + تحویل خودکار در یک تراکنش؛ هر خطا همه را برمی‌گرداند
+    try:
+        with db_transaction() as conn:
+            cur = conn.execute("""INSERT INTO reward_redemptions
+                (bale_user_id, reward_key, reward_title, cost, code, status)
+                VALUES (?,?,?,?,?,?)""",
+                (uid, r.get("key"), r.get("title"), cost, code, status))
+            red_id = cur.lastrowid
+            if cost > 0:
+                res = pl.post_points(uid, -cost, entry_type="spend", source="reward_redeem",
+                                     ref_key=ref_key, ref_table="reward_redemptions",
+                                     ref_id=red_id, actor_kind="user", actor_id=uid,
+                                     reason=f"خرید پاداش {r.get('key') or r['id']}")
+                if not res.created:
+                    raise pl.LedgerError("duplicate_purchase")
+                fresh = res.balance_after
+            else:
+                fresh = pts
+            conn.execute("UPDATE rewards SET sold=COALESCE(sold,0)+1 WHERE id=?", (r["id"],))
+            if rtype == "vip":
+                conn.execute("UPDATE users SET is_vip=1 WHERE bale_user_id=?", (uid,))
+            elif rtype == "discount":
+                conn.execute("""INSERT INTO event_discount_codes
+                    (event_id, code, discount_type, amount, max_uses,
+                     per_user_limit, created_by)
+                    VALUES (NULL,?,'percent',?,1,1,?)""", (code, pct, uid))
+    except pl.InsufficientPoints:
+        return send(cid, "🔒 امتیاز کافی ندارید")
+    except pl.LedgerError as e:
+        if e.code == "duplicate_purchase":
+            return send(cid, "ℹ️ این خرید قبلاً ثبت شده است.")
+        log(f"❌ خرید پاداش {uid}/{r['id']}: {e.code}")
+        return send(cid, "⚠️ خطا در کسر امتیاز. دوباره تلاش کنید.")
+    except Exception as e:
+        log(f"❌ خرید پاداش {uid}/{r['id']}: {type(e).__name__}")
+        return send(cid, "⚠️ خرید انجام نشد. دوباره تلاش کنید.")
+    pl.sync_pending(limit=5)
     log_action(uid, "reward_redeem", {"key": r.get("key"), "points": cost})
 
     lines = [f"🎉 خرید انجام شد!", "━━━━━━━━━━━━━━", "",
@@ -505,23 +559,13 @@ def do_buy(cid, uid, rid):
              f"💰 {cost} امتیاز کسر شد",
              f"🏆 امتیاز باقیمانده: {fresh}", ""]
 
-    # تحویل خودکار
+    # تحویل خودکار (قبلاً داخل تراکنش ثبت شده؛ این‌جا فقط پیام)
     if rtype == "vip":
         days = int(r.get("reward_value") or 30)
-        db_execute("UPDATE users SET is_vip=1 WHERE bale_user_id=?", (uid,))
         lines.append(f"⭐ عضویت VIP شما برای {days} روز فعال شد!")
     elif rtype == "discount":
-        pct = int(r.get("reward_value") or 10)
-        try:
-            db_execute("""INSERT INTO event_discount_codes
-                (event_id, code, discount_type, amount, max_uses,
-                 per_user_limit, created_by)
-                VALUES (NULL,?,'percent',?,1,1,?)""", (code, pct, uid))
-            lines += [f"🎫 کد تخفیف {pct}٪ شما:", f"`{code}`", "",
-                      "💡 هنگام پرداخت این کد را وارد کنید."]
-        except Exception as e:
-            log(f"⚠️ ساخت کد تخفیف: {e}")
-            lines.append("⚠️ خطا در ساخت کد — با پشتیبانی تماس بگیرید")
+        lines += [f"🎫 کد تخفیف {pct}٪ شما:", f"`{code}`", "",
+                  "💡 هنگام پرداخت این کد را وارد کنید."]
     else:
         lines += [f"🔖 کد پیگیری: {code}", "",
                   "⏳ ادمین به‌زودی با شما تماس می‌گیرد."]
@@ -751,15 +795,36 @@ def handle_request(cid, uid, rid, approve=True):
             pass
         send(cid, "✅ تحویل ثبت شد")
     else:
-        # رد → امتیاز برگردد
-        db_execute("""UPDATE reward_redemptions SET status='rejected',
-            handled_by=?, handled_at=CURRENT_TIMESTAMP WHERE id=?""",
-            (uid, r["id"]))
-        db_execute("UPDATE users SET total_points=COALESCE(total_points,0)+? "
-                   "WHERE bale_user_id=?", (int(r.get("cost") or 0),
-                                            r["bale_user_id"]))
-        db_execute("UPDATE rewards SET sold=MAX(0,COALESCE(sold,0)-1) "
-                   "WHERE key=?", (r.get("reward_key"),))
+        # رد → امتیاز فقط یک‌بار برگردد؛ تغییر وضعیت و برگشت در یک تراکنش
+        cost = int(r.get("cost") or 0)
+        try:
+            with db_transaction() as conn:
+                cur = conn.execute("""UPDATE reward_redemptions SET status='rejected',
+                    handled_by=?, handled_at=CURRENT_TIMESTAMP
+                    WHERE id=? AND status='pending'""", (uid, r["id"]))
+                if cur.rowcount != 1:
+                    raise pl.LedgerError("already_handled")
+                if cost > 0:
+                    spend = db_execute(
+                        "SELECT id FROM points_ledger WHERE source='reward_redeem' "
+                        "AND ref_table='reward_redemptions' AND ref_id=?", (r["id"],), fetch="one")
+                    res = pl.post_points(
+                        r["bale_user_id"], cost, entry_type="refund",
+                        source="reward_reject_refund", ref_key=f"redeem-refund:{r['id']}",
+                        ref_table="reward_redemptions", ref_id=r["id"],
+                        actor_kind="admin", actor_id=uid,
+                        reverses_id=(spend or {}).get("id"),
+                        reason=f"رد درخواست پاداش {r.get('reward_key') or r['id']}")
+                    if not res.created:
+                        raise pl.LedgerError("already_refunded")
+                conn.execute("UPDATE rewards SET sold=MAX(0,COALESCE(sold,0)-1) "
+                             "WHERE key=?", (r.get("reward_key"),))
+        except pl.LedgerError as e:
+            if e.code in ("already_handled", "already_refunded"):
+                return send(cid, "⚠️ این درخواست قبلاً بررسی شده")
+            log(f"❌ برگشت امتیاز درخواست {r['id']}: {e.code}")
+            return send(cid, "⚠️ برگشت امتیاز انجام نشد؛ درخواست تغییر نکرد.")
+        pl.sync_pending(limit=5)
         try:
             send(r["bale_user_id"], (
                 f"❌ درخواست پاداش شما رد شد\n\n"

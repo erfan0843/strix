@@ -1,0 +1,18 @@
+login 200
+== owner: tampered / foreign ids ==
+/api/admin/users/00000000-0000-4000-8000-000000000000                    404 {"detail": "user_not_found"}
+/api/admin/users/not-a-uuid                                              404 {"detail": "user_not_found"}
+/api/admin/users/%27%20OR%201=1--                                        404 {"detail": "user_not_found"}
+/api/admin/content/events/ev-doesnotexist                                404 {"detail": "content_record_not_found"}
+/api/admin/content/articles/ev-dd1c4762f                                 404 {"detail": "content_record_not_found"}
+/api/admin/content/pages                                                 404 {"detail": "content_kind_not_found"}
+/api/admin/attendance/forms/nope/people                                  404 {"detail": "form_not_found"}
+/api/admin/users?limit=5000                                              422 {"detail": [{"type": "less_than_equal", "loc": ["query", "limit"], "msg": "Input should be less than or equal 
+/api/admin/content/events?status=hacked                                  422 {"detail": [{"type": "string_pattern_mismatch", "loc": ["query", "status"], "msg": "String should match patter
+/api/admin/users?q=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   422 {"detail": [{"type": "string_too_long", "loc": ["query", "q"], "msg": "String should have at most 80 character
+POST check-in unknown response                                           404 {'detail': 'ticket_not_found'}
+POST status unknown record                                               409 {'detail': {'code': 'site_content_version_conflict', 'current_version': 12}}
+POST create unexpected field                                             409 {'detail': {'code': 'site_content_version_conflict', 'current_version': 12}}
+POST create stale version                                                409 {'detail': {'code': 'site_content_version_conflict', 'current_version': 12}}
+user detail keys                                                         200 ['account_id', 'bale_user_id', 'city', 'created_at', 'display_name', 'email', 'last_session_at', 'linked', 'manager_username', 'notifications', 'pending_reviews', 'profile_updated_at', 'providers', 'province', 'registration_items', 'registrations', 'reviews', 'role', 'source', 'status']
+forbidden key fragments in detail: []

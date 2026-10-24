@@ -1,0 +1,48 @@
+# فاز ۹.۵ — ماتریس ممیزی نهایی یکپارچگی پیش از کد
+
+- تاریخ: ۱۴۰۵/۰۷/۳۰ (2026-10-22) · شاخه `arena/840de336-strix` · مبنا `786fb4a` (= HEAD راه‌دور، working tree تمیز) · PR #1 **باز** (`→ arena/01a0cd72-strix`، merge نشده) · سر مهاجرت `0035_notification_dedupe`
+- محیط واقعی این سندباکس: بدون اینترنت خروجی (youtube.com/aparat.com/بله غیرقابل دسترس؛ فقط pypi/npm/github)، بدون `soffice` (نصب apt ممکن نیست)، PostgreSQL موقت با `pgserver`، Chromium headless، پیش‌نمایش آزمایشی روی `:8000` با دادهٔ مصنوعی. دیسک ۱۸ GiB آزاد.
+- ورودی‌ها: `PHASE9.4-FINAL-INTEGRATION`, `PHASE9.4-AUDIT-MATRIX`, `deployment/PRIVATE-STORAGE-OPERATIONS.fa.md` (§۱–۱۰), `deployment/PRIVATE-VIDEO-STORAGE-REQUIREMENTS.fa.md`, خواندن مستقیم `app.py` (آپلود L4008، دانلود/Range L3454–3615، اعلان‌ها L4719–4800، صندوق خروجی L8030)، `recordings.py` (`has_content_access` L561، `viewer_cta` L576، گذارها L72–79)، `storage.py` (`PendingUpload`, `LocalPrivateStorage`), `notifications.py`, `event_interaction.py` (`is_live` L321), `video_sources.py`, `models.py`, مهاجرت‌های `0031…0035`, `event-interaction.js` (قاب L315–338), `account.js` (`cdLine` L60), `admin.js`, `owner-api.js`, `shared_workflows.py`, `certgen.py` (L1627–1750, `generate` L3385), `certissue.py`.
+
+وضعیت‌ها: **A** موجود و آزموده‌شده · **B** موجود ولی ناقص · **C** صرفاً رابط/منطق با mock · **D** نیازمند شبکه یا سرویس خارجی · **E** نیازمند تصمیم یا زیرساخت · **F** غایب.
+
+## ماتریس
+
+| قابلیت | وضعیت واقعی | منبع حقیقت | مدل/API | رابط کاربری | پنل مدیریت | مجوز | شکاف | اقدام ۹.۵ | آزمون پذیرش |
+|---|---|---|---|---|---|---|---|---|---|
+| ۱. خرید فرم‌محور آرشیو | **A** | `forms` (منتشرشده، `purpose=recording_access`) → `form_responses`/`form_payments`؛ `recording_orders` فقط دفتر داخلی با `form_response_id`/`form_payment_id` | `commerce_for` قیمت/روش را فقط از فرم می‌خواند؛ مسیرهای قدیمی ۴۱۰ | `form.html?fid=…` تنها ورودی خرید (`viewer_cta.form_id`) | زبانهٔ محصول: قیمت فقط‌خواندنی وقتی فرم وصل است (۴۰۹ `commercial_settings_in_form`) | عضو: پاسخ خودش؛ تصمیم رسید `receipt_approve` | بدون شکاف منطقی؛ **ابزار ممیزی اختلاف پاسخ/پرداخت/دسترسی وجود ندارد** | کامیت ۲: `tools/recording-access-audit.py` فقط‌گزارشی + endpoint فقط‌خواندنی پنل | ممیزی روی DB مصنوعی با ناسازگاری‌های تزریق‌شده همهٔ ۶ نوع را پیدا کند و چیزی را تغییر ندهد |
+| ۲. تأیید پرداخت و اعطای دسترسی | **A** | تصمیم inbox (`receipt_approve` + دلیل) یا وب‌هوک تأییدشدهٔ سروری؛ `_grant_recording_access` idempotent (یک ردیف per محصول/حساب) | `recording_access` فقط entitlement | — | کارتابل | backend | callback تکراری ⇒ همان ردیف (آزمون `test_recordings_api`) | بدون کد | رگرسیون + ممیزی |
+| ۳. رفتار بازگشت خریدار / پایان فروش / بایگانی | **A** | `has_content_access` پیش از وضعیت محصول ارزیابی می‌شود؛ `archived` از ویترین حذف اما دارندهٔ فعال CTA=view و فایل‌ها را نگه می‌دارد (`test_recordings_api` L1036) | — | `[data-rec-cta=view]` | گذارها با دلیل | backend | بدون شکاف | بدون کد؛ در ممیزی ۲ «دسترسی‌ای که باید منقضی/لغو باشد» گزارش شود | رگرسیون |
+| ۴. محصول رایگان | **A** | `claim` ⇒ `recording_access.source=free` بدون `form_payments`/تراکنش | — | CTA=free | — | عضو واردشده | — | بدون کد | رگرسیون |
+| ۵. حافظهٔ خصوصی و استریم | **A** (کوچک) / **E** (مقیاس) | `event_resources.storage_key` + دیسک خارج webroot؛ `content_hash` sha256 | `PUT …/file` یک‌درخواستی استریمی تا سقف؛ Range 206/416 | — | نشان وضعیت هر ردیف + `limits.storage` | `ev_create` | آپلود یک‌درخواستی تنها راه؛ بدون ادامه پس از قطع؛ سلامت ذخیره‌سازی (یتیم/ناقص/مفقود/حجم/آخرین پشتیبان) فقط در CLI `verify` و نه در پنل | کامیت ۳: نشست آپلود قطعه‌ای قابل ادامه (داخلی، محدود، آزموده) + `GET /api/admin/storage/health` فقط‌خواندنی + کارت پنل | آزمون‌های §۵.۳ با فایل > ۸ MiB و نزدیک سقف در TestClient؛ مرورگر واقعی روی پیش‌نمایش (قطع/ادامه شبیه‌سازی‌شده با دو درخواست) |
+| ۶. پشتیبان/بازیابی فایل‌ها | **A** (آزمایشی) | `tools/private-storage-backup.py verify/snapshot/restore` با sha256؛ `test_private_storage` چرخهٔ کامل | — | — | — | اپراتور | روی staging اجرا نشده؛ «آخرین پشتیبان/بررسی» جایی ثبت نمی‌شود | کامیت ۴: ثبت نشانگر آخرین `verify`/`snapshot` (جدول `system_markers`) + نمایش در سلامت؛ اجرای چرخهٔ ۶‌مرحله‌ای روی پیش‌نمایش و ثبت نتیجه | گزارش مرحله‌به‌مرحله با sha256 |
+| ۷. ویدیوی یوتیوب | **B** + **D** | `video_sources.py`: شناسهٔ سروری، `youtube-nocookie.com`, بدون autoplay، بدون HTML خام | `embed_url/watch_url` سروری | قاب با `load` ⇒ `unverified`؛ بدون IFrame API؛ خطاهای 101/150/153 تفکیک نمی‌شوند | هشدار `[data-ei-external-warning=paid]` | `ev_create` | وضعیت واقعی پلیر (آماده/پخش/پایان/خطا) خوانده نمی‌شود؛ پذیرش آگاهانهٔ مالک برای منبع خارجیِ پولی ثبت نمی‌شود | کامیت ۵: ماشین وضعیت IFrame API (`onReady/onStateChange/onError` → پیام فارسی)، بارگذاری API فقط وقتی قاب هست؛ انتشار منبع خارجی با `access=purchased` نیازمند `acknowledge_external_exposure:true` + ممیزی | jsdom با `YT` ساختگی؛ پخش واقعی **D: آزموده‌نشده** |
+| ۸. ویدیوی آپارات | **B** + **D** | همان ماژول؛ الگوی embed رسمی | — | فقط `load`/`error`؛ بدون API رسمی پخش | همان هشدار | — | ادعای «پخش» نباید باشد (نیست)؛ «مشاهده در آپارات» همیشه نشان داده می‌شود (مقصد معتبر دارد) | کامیت ۵: وضعیت‌های صادقانه `loading/ready(load)/error` بدون ادعای playing | jsdom؛ شبکه **D** |
+| ۹. CSP | **A** (کد) / **D** (آزمون) | `NORA_CSP_FRAME_SRC`, `NORA_CSP_REPORT_ONLY=1` پیش‌فرض | — | — | — | — | بدون آزمون واقعی | بدون تغییر پیش‌فرض؛ سند روش Report-Only (موجود §۸) | — |
+| ۱۰. گواهی حضور | **A** | مرکز `certcenter` ربات؛ حضور از check-in؛ آینهٔ سرور `certificates` | `POST /api/bot/certificates` | حساب: `article[data-account-certificate]` | — | `certificate` | — | بدون کد | رگرسیون |
+| ۱۱. گواهی پایان محتوای ضبط‌شده | **A** | `certificate_policy ∈ {none, manual}`؛ هیچ مسیر خودکار | — | برچسب نوع در حساب | زبانهٔ محصول | `ev_create` | — | بدون کد؛ مستند «بدون ردیابی تکمیل ⇒ بدون صدور خودکار» | رگرسیون |
+| ۱۲. PDF واقعی گواهی | **E** | `certgen.generate` نیازمند `soffice` | — | — | — | — | ابزار نیست؛ هیچ هارنس تکرارپذیر برای staging/CI | کامیت ۶: `bale-bot/tools/certificate-pdf-check.py` (اجرای واقعی `certgen` + اعتبارسنجی PDF: سرآیند، اندازه، متن فارسی با `pypdf`) + آزمون pytest با `skipif(no soffice)` | روی staging؛ اینجا **skipped صادقانه** |
+| ۱۳. اعلان‌ها: ثبت/صف/تلاش/تحویل/بدون‌بله | **A** | `notifications.queue` + `dedupe_key`؛ ربات ack | `GET /api/admin/notifications` | حساب با پیوند | کارت صندوق خروجی | `rp_view` | **تلاش مجدد از پنل وجود ندارد** (فقط برای پاسخ پرسش) | کامیت ۷: `POST /api/admin/notifications/{id}/retry` (`ev_publish`، فقط `failed`، بدون ردیف تازه، ممیزی) + دکمه در کارت | pytest + jsdom |
+| ۱۴. انتشار زمان‌بندی‌شده | **B** | `publish_at` آینده در API عمومی پنهان (`is_live`)؛ زنده‌شدن خودکار با زمان؛ **اعلان هرگز نمی‌رود** | — | — | ردیف «زمان‌بندی‌شده» | `ev_publish` | زمان‌بند/اعلان پس از موعد غایب؛ «یک‌بار» تضمین نمی‌شود | کامیت ۷: `backend/scheduled_publish.py` (`announce_due` idempotent با `announced_at`)، CLI + `systemd timer` + `POST /api/admin/scheduled-publish/run`؛ نشانگر آخرین اجرا در پنل | انتشار زمان‌دار → پیش از موعد پنهان، پس از موعد دقیقاً یک اعلان، اجرای دوباره صفر |
+| ۱۵. ارسال واقعی بله | **D** | ربات زنده | — | — | — | — | — | — | «صف و ساختار اعلان» |
+| ۱۶. حساب: رویدادهای من / محتوای من / گواهی / اعلان | **A** | APIهای `/api/account/*` | — | سه وضعیت جدا (ثبت‌نام، حضور/آرشیو، خرید) | — | نشست | **شمارشگر**: `account.html` `countdown.css/js` را بار نمی‌کند (گزارش فاز ۸ §ب‑۷) | کامیت ۸: بارگذاری همان دو فایل مشترک در `account.html` (بدون شمارشگر تازه) | jsdom `account.test.mjs` + مرورگر |
+| ۱۷. پنل: ذخیره‌سازی/آرشیو/گواهی/صندوق | **B** | — | — | — | وضعیت ذخیره‌سازی ✅، صندوق ✅، سلامت کلی ✗، تلاش مجدد ✗، زمان‌بندی ✗ | backend | موارد ۵، ۱۳، ۱۴ | کامیت‌های ۳/۷/۸ | jsdom + مرورگر |
+| ۱۸. مجوزهای مدیریتی | **A** | `roles.py` (owner ⊃ club-supervisor ⊃ manager) | هر endpoint `require_*` | — | — | backend | — | هر endpoint تازه با همان الگو + آزمون ۴۰۱/۴۰۳ | pytest |
+| ۱۹. مهاجرت | **A** | سر `0035` | — | — | — | — | — | `0036` (نشست آپلود، `announced_at`، `system_markers`) رفت‌وبرگشت SQLite+PG | `test_migrations` |
+
+## تصمیم‌های فنی این فاز (کم‌ریسک، برگشت‌پذیر؛ بدون انتظار تأیید)
+
+1. **آپلود قابل ادامه = قرارداد داخلی محدود** روی همان `LocalPrivateStorage` (نه tus کامل): نشست با شناسهٔ تصادفی، مالک، `expected_size`، `sha256` اعلامی اختیاری، `offset` سروری، قطعه فقط با `Upload-Offset == offset` جاری پذیرفته می‌شود، سقف تعداد قطعه و اندازه، انقضای ۲۴ ساعت، قفل `completing` در DB برای جلوگیری از دو نهایی‌سازی، انتقال اتمی فقط پس از تطبیق اندازه/sha256. دلیل: tus-py-server نیازمند وابستگی/پروکسی تازه و آزمون‌نشده در این محیط است؛ قرارداد داخلی با FastAPI/Caddy فعلی (سقف بدنهٔ هر قطعه ≤ ۸ MiB) سازگار است و با آزمون‌های واقعی HTTP پوشش داده می‌شود. آپلود یک‌درخواستی حفظ می‌شود.
+2. **سقف ۵۱۲ MiB پیش‌فرض حفظ می‌شود**؛ hard limit همان `max_bytes` در سرور (هم در نشست و هم در هر قطعه).
+3. **زمان‌بند = فرمان idempotent سروری** (`python -m backend.scheduled_publish`) با `systemd timer` نمونه + اجرای دستی از پنل؛ هیچ worker پس‌زمینه داخل uvicorn (restart-safe چون وضعیت در DB است: `announced_at`).
+4. **منبع خارجی برای محتوای پولی**: انتشار فقط با پذیرش صریح در همان درخواست (`acknowledge_external_exposure: true`) که در ممیزی با عامل/زمان ثبت می‌شود؛ پنل هرگز برچسب «محافظت‌شده» به آن نمی‌دهد.
+5. **PDF**: بدون ابزار، فقط هارنس تکرارپذیر؛ نتیجهٔ این مخزن «skipped/نیازمند staging».
+6. **ابزار ممیزی یکپارچگی** فقط گزارش می‌دهد (CLI + endpoint فقط‌خواندنی با `rp_view`)؛ هیچ اصلاح خودکار.
+
+## مواردی که واقعاً به تصمیم مالک نیاز دارند (ثبت، بدون توقف کار)
+
+- سقف تولیدی فایل و اندازهٔ دیسک/پشتیبان.
+- پذیرش ریسک منبع خارجی برای هر محصول پولی (در پنل، per-resource).
+- زمان نصب LibreOffice روی سرور ربات و آزمون PDF واقعی.
+- فعال‌سازی CSP enforce پس از دورهٔ Report-Only در staging.
+- دورهٔ اجرای زمان‌بند (پیش‌فرض نمونه: هر ۵ دقیقه).

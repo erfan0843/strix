@@ -11,7 +11,8 @@ import json
 from datetime import datetime
 
 from config import SUPER_ADMIN_ID
-from database import db_execute, db_scalar, ensure_table, get_setting, set_setting, log
+from database import db_execute, db_scalar, db_transaction, ensure_table, get_setting, set_setting, log
+import points_ledger as pl
 from auth import (
     set_state, get_state_data, clear_state, log_action, normalize_digits,
     is_admin as _is_admin,
@@ -293,9 +294,14 @@ def _already_sent(uid, kind, ref_key, jyear):
 
 
 def _mark_sent(uid, kind, ref_key, jyear, points):
+    """ثبت ارسال تبریک؛ شناسهٔ ردیف greeting_log را برمی‌گرداند (موجود یا تازه)."""
     db_execute("""INSERT OR IGNORE INTO greeting_log
         (bale_user_id, kind, ref_key, jyear, points_given) VALUES (?,?,?,?,?)""",
         (uid, kind, ref_key or "", jyear, points))
+    # lastrowid پس از INSERT OR IGNORE قابل اتکا نیست؛ شناسه را صریح می‌خوانیم
+    return (db_execute("SELECT id FROM greeting_log WHERE bale_user_id=? AND kind=? "
+                       "AND ref_key=? AND jyear=?", (uid, kind, ref_key or "", jyear),
+                       fetch="one") or {}).get("id")
 
 
 # ==================== 🔴 سیاست سخت‌گیرانه امتیاز ====================
@@ -351,10 +357,20 @@ def cap_points(uid, points):
     return max(0, p), ""
 
 
-def _give_points(uid, points):
-    if points > 0:
-        db_execute("UPDATE users SET total_points=COALESCE(total_points,0)+? "
-                   "WHERE bale_user_id=?", (points, uid))
+def _give_points(uid, points, *, source, ref_key, ref_id=None, reason=""):
+    """اعطای امتیاز تبریک/قانون از طریق دفترکل؛ کلید = همان رویداد تجاری.
+
+    خروجی: True اگر ردیف تازه ثبت شد (تکرار → False، بدون تغییر موجودی).
+    """
+    try:
+        points = int(points or 0)
+    except (TypeError, ValueError):
+        points = 0
+    if points <= 0:
+        return False
+    res = pl.post_points(uid, points, entry_type="award", source=source, ref_key=ref_key,
+                         ref_table="greeting_log", ref_id=ref_id, reason=reason)
+    return res.created
 
 
 def _user_name(u):
@@ -463,12 +479,21 @@ def check_point_rules(uid, trigger=None, silent=False):
         pts, capped_why = cap_points(uid, r.get("points"))
         if capped_why:
             log(f"🔴 سقف امتیاز: {uid} — {capped_why}")
-        db_execute("""INSERT OR IGNORE INTO greeting_log
-            (bale_user_id, kind, ref_key, jyear, points_given)
-            VALUES (?,'rule',?,0,?)""", (uid, key, pts))
-        _give_points(uid, pts)
-        db_execute("UPDATE point_rules SET total_awarded="
-                   "COALESCE(total_awarded,0)+1 WHERE id=?", (r["id"],))
+        # کلید دفترکل: قانون یک‌بارمصرف = (قانون، کاربر)؛ قانون تکرارشونده =
+        # (قانون، کاربر، شمارهٔ پیشرفتی که آن را فعال کرد) تا تکرار همان رخداد دو بار نشمرد
+        lkey = f"rule:{uid}:{key}" if r.get("once_only", 1) else f"rule:{uid}:{key}:n{have}"
+        try:
+            with db_transaction():
+                gl = _mark_sent(uid, "rule", key, 0, pts)
+                created = _give_points(uid, pts, source="point_rule", ref_key=lkey, ref_id=gl,
+                                       reason=f"قانون امتیاز {key}")
+                if created or not pts:
+                    db_execute("UPDATE point_rules SET total_awarded="
+                               "COALESCE(total_awarded,0)+1 WHERE id=?", (r["id"],))
+        except pl.LedgerError as e:
+            log(f"❌ امتیاز قانون {key} برای {uid}: {e.code}")
+            continue
+        pl.sync_pending(limit=5)
 
         if not silent and pts:
             fresh = db_execute("SELECT total_points FROM users WHERE bale_user_id=?",
@@ -532,11 +557,18 @@ def check_birthdays(dry_run=False):
                      wish=_r.choice(BIRTHDAY_WISHES))
         res = send(uid, txt)
         if res and res.get("ok"):
-            _give_points(uid, pts_b)
-            _mark_sent(uid, "birthday", "", jy, pts_b)
+            try:
+                with db_transaction():
+                    gl = _mark_sent(uid, "birthday", "", jy, pts_b)
+                    _give_points(uid, pts_b, source="birthday", ref_key=f"birthday:{uid}:{jy}",
+                                 ref_id=gl, reason=f"تبریک تولد {jy}")
+            except pl.LedgerError as e:
+                log(f"❌ امتیاز تولد {uid}: {e.code}")
+                continue
             log_action(uid, "birthday_greeting", {"points": pts_b})
             sent += 1
             names.append(_user_name(u))
+    pl.sync_pending(limit=20)
     return sent, names
 
 
@@ -587,9 +619,17 @@ def check_occasions(dry_run=False):
             res = send(uid, txt)
             if res and res.get("ok"):
                 pts_c, _ = cap_points(uid, pts)
-                _give_points(uid, pts_c)
-                _mark_sent(uid, "occasion", key, jy, pts_c)
+                try:
+                    with db_transaction():
+                        gl = _mark_sent(uid, "occasion", key, jy, pts_c)
+                        _give_points(uid, pts_c, source="occasion",
+                                     ref_key=f"occasion:{uid}:{key}:{jy}", ref_id=gl,
+                                     reason=f"مناسبت {key} {jy}")
+                except pl.LedgerError as e:
+                    log(f"❌ امتیاز مناسبت {key} برای {uid}: {e.code}")
+                    continue
                 n += 1
+        pl.sync_pending(limit=20)
 
         if n and not dry_run:
             db_execute("UPDATE occasions SET last_sent_year=?, "

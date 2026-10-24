@@ -1,0 +1,9 @@
+{
+  "steps": [
+    "B1 PUT tchr=pp-ghost → {\"status\":422,\"detail\":{\"code\":\"unknown_reference\",\"field\":\"tchr\"},\"versionBefore\":18,\"versionAfter\":18,\"tchrAfter\":\"pp-ghost\",\"clearStatus\":200,\"tchrCleared\":\"\"}",
+    "B4 editor block: فرم‌های ثبت‌نام این رویداد / ساخت فرم ثبت‌نام برای این رویداد / هنوز فرمی به این رویداد وصل نیست؛ تا فرم ثبت‌نامِ منتشرشده نباشد، دکمهٔ ثبت‌نام در صفحهٔ رویداد باز نمی‌شود.",
+    "B4 create href: create.html?ev=ev-42421ba4f7&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D9%85%D9%85%DB%8C%D8%B2%DB%8C+%D8%A7%D8%B2+%D8%B5%D9%81%D8%B1+%28%D8%A2%D8%B2%D9%85%D8%A7%DB%8C%D8%B4%DB%8C%29&back=admin.html&cap=12",
+    "B4 create.html state: {\"url\":\"http://127.0.0.1:8000/create.html?ev=ev-42421ba4f7&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D9%85%D9%85%DB%8C%D8%B2%DB%8C+%D8%A7%D8%B2+%D8%B5%D9%81%D8%B1+%28%D8%A2%D8%B2%D9%85%D8%A7%DB%8C%D8%B4%DB%8C%29&back=admin.html&cap=12\",\"evId\":\"ev-42421ba4f7\",\"title\":\"ثبت‌نام رویداد ممیزی از صفر (آزمایشی)\",\"chip\":\"رویداد متصل: ev-42421ba4f7\",\"chipHidden\":false,\"meta\":\"فرم به رویداد «ev-42421ba4f7» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.\"}",
+    "mobile overflowX=false"
+  ]
+}

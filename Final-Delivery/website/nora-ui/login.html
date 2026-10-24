@@ -11,10 +11,9 @@
 <meta property="og:site_name" content="نورا · گروه فرهنگی خط زندگی"/>
 <meta property="og:title" content="ورود · نورا"/>
 <meta property="og:description" content="با شمارهٔ موبایل و کد یک‌بارمصرف وارد شو؛ رمزی ندارد."/>
-<meta property="og:image" content="https://lifeline1.ir/nora-ui/icon-512.png"/>
+<meta property="og:image" content="icon-512.png"/>
 <meta property="og:locale" content="fa_IR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<link rel="canonical" href="https://lifeline1.ir/nora-ui/login.html"/>
 <link rel="icon" href="icon-192.png"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="manifest" href="manifest.webmanifest"/>
@@ -26,11 +25,12 @@ var m=document.querySelector('meta[name="theme-color"]');
 if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();</script>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=99"/>
-<link rel="stylesheet" href="nora.css?v=121"/>
-<link rel="stylesheet" href="login.css?v=123"/>
+<link rel="stylesheet" href="glass.css?v=102"/>
+<link rel="stylesheet" href="nora.css?v=105"/>
+<link rel="stylesheet" href="login.css?v=132"/>
 </head>
 <body class="hasbotbar loginpage">
+<a class="skip" href="#loginMain">پرش به فرم ورود</a>
 
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
 <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 10.2 12 4.2l7.6 6v8.4a1.6 1.6 0 0 1-1.6 1.6H6a1.6 1.6 0 0 1-1.6-1.6z"/><path d="M9.8 20.2v-6h4.4v6"/></g></symbol>
@@ -77,7 +77,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <symbol id="i-chev-right" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.4 15.2 12l-5.6 5.6"/></g></symbol>
 <symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.4 20.2h17.2"/><path d="M6.8 20.2v-7.4M12 20.2V4.6M17.2 20.2v-4.6"/></g></symbol>
 <symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 6.8A2.4 2.4 0 0 1 6.8 4.4h10.4a2.4 2.4 0 0 1 2.4 2.4v6.4a2.4 2.4 0 0 1-2.4 2.4h-4.6L8 19.4v-3.8H6.8a2.4 2.4 0 0 1-2.4-2.4z"/><path d="M9 9.6h6M9 12.4h3.6"/></g></symbol>
-<symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19.4 12a7.4 7.4 0 1 1-2.4-5.4"/><path d="M19.6 4.6v4.2h-4.2"/></g></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.8 4.6v4.2h-4.2"/></g></symbol>
 <symbol id="i-spinner" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4.2v3.2M12 16.6v3.2M4.2 12h3.2M16.6 12h3.2" opacity=".45"/><path d="M18.4 5.6l-2.3 2.3M7.9 16.1l-2.3 2.3M18.4 18.4l-2.3-2.3M7.9 7.9 5.6 5.6" opacity=".7"/></g></symbol>
 </svg>
 
@@ -88,57 +88,51 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
       <span class="tx"><b>نورا</b><small>گروه فرهنگی خط زندگی</small></span>
     </a>
     <span class="sp"></span>
-    <span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span>
     <button class="themesw" data-theme-toggle role="switch" aria-checked="false" aria-label="حالت شب" data-label-light="حالت شب" data-label-dark="حالت روز"><span class="tsw-trk" aria-hidden="true"><span class="tsw-ico tsw-sun"><svg class="i"><use href="#i-sun"/></svg></span><span class="tsw-ico tsw-moon"><svg class="i"><use href="#i-moon"/></svg></span><span class="tsw-knob"></span></span></button>
     <a class="icon-btn help-btn" href="support.html" data-open-support aria-label="پشتیبانی و راهنما" title="پشتیبانی و راهنما"><svg class="i"><use href="#i-headphone"/></svg></a>
   </div>
 </header>
 
-<main class="wrap lwrap">
+<main class="wrap lwrap" id="loginMain">
 
   <section class="lgcard" id="lgCard" aria-labelledby="lgTitle">
-    <div class="lghead">
-      <span class="lgmark" aria-hidden="true"><img src="nora-mark.svg" alt=""/></span>
+    <header class="lghead">
+      <span class="lgeyebrow" id="lgEyebrow"><svg class="i" aria-hidden="true"><use href="#i-sparkle"/></svg><span>حساب کاربری نورا</span></span>
       <h1 id="lgTitle">ورود به نورا</h1>
       <p class="lglead" id="lgLead"></p>
-    </div>
+      <p class="lgsecure"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>ورود امن با شمارهٔ همراه؛ بدون گذرواژه</span></p>
+    </header>
 
-    <div class="lgbody" id="lgBody"></div>
+    <div class="lgpanel">
+      <div class="lgbody" id="lgBody"></div>
 
-    <div class="lgadmin-entry" id="lgAdminEntry">
-      <span class="lg-divider" aria-hidden="true"></span>
-      <div class="lg-admin-links">
-        <a class="lg-admin-link" href="login.html?mode=staff&amp;next=admin.html%23dash">
-          <svg aria-hidden="true"><use href="#i-shield"/></svg>
-          <span>ورود مدیران</span>
-        </a>
+      <div class="lgstatus" id="lgStatus" role="status" aria-live="polite" hidden></div>
+
+      <div class="lgadmin-entry" id="lgAdminEntry">
+        <span class="lg-divider" aria-hidden="true"></span>
+        <div class="lg-admin-links">
+          <a class="lg-admin-link" href="login.html?mode=staff&amp;next=admin.html%23dash">
+            <svg aria-hidden="true"><use href="#i-shield"/></svg>
+            <span>ورود مدیران</span>
+          </a>
+        </div>
       </div>
     </div>
-
-    <div class="lgstatus" id="lgStatus" role="status" aria-live="polite" hidden></div>
-    <p class="lg-organization" id="lgOrganization">موسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی</p>
   </section>
 
   <nav class="lglinks" aria-label="پیوندهای ورود">
     <a href="support.html#reader">راهنما</a><span class="dot" aria-hidden="true">·</span>
-    <a href="support.html">پشتیبانی</a><span class="dot" aria-hidden="true">·</span>
     <button type="button" id="rulesBtn">قوانین</button>
   </nav>
 
-  <p class="lgfoot">گروه فرهنگی خط زندگی · تهران · © ۱۴۰۵</p>
+  <p class="lg-organization" id="lgOrganization">موسسه فرهنگی، اجتماعی و آموزشی خط‌زندگی</p>
 </main>
-
-<a class="supbar" id="supBar" href="support.html" data-open-support aria-label="پشتیبانی و راهنما">
-  <span class="si"><svg class="i" aria-hidden="true"><use href="#i-headphone"/></svg></span>
-  <span class="st"><b>پشتیبانی و راهنما</b><small>بی ورود باز است؛ گفت‌وگو با کارشناس و پرسش‌های پرتکرار</small></span>
-  <svg class="i" aria-hidden="true" style="width:16px;height:16px;color:var(--ink-4)"><use href="#i-chev-left"/></svg>
-</a>
 
 <aside class="sheet" id="shRules" role="dialog" aria-modal="false" aria-label="قوانین و شرایط استفاده"><div class="sbody">
   <div class="grabber"></div>
   <div class="head">قوانین و شرایط استفاده</div>
-  <p class="cap" style="margin-top:8px">متن کامل قوانین در صفحهٔ پشتیبانی است و بعداً قابل ویرایش خواهد بود.</p>
-  <div class="row" style="margin-top:12px"><a class="btn primary" href="support.html">رفتن به پشتیبانی</a><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
+  <p class="cap" style="margin-top:8px">متن رسمی قوانین و شرایط استفاده هنوز منتشر نشده است؛ تا انتشار آن، برای هر پرسش دربارهٔ شرایط استفاده یا حریم خصوصی با پشتیبانی در تماس باش.</p>
+  <div class="row" style="margin-top:12px"><a class="btn primary" href="support.html">تماس با پشتیبانی</a><span class="sp"></span><button class="btn quiet" data-close>بستن</button></div>
 </div></aside>
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -149,7 +143,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <a href="account.html" class="on" aria-current="page"><svg class="i"><use href="#i-idcard-f"/></svg><small>ورود/ثبت‌نام</small></a>
 </nav>
 <script>window.NORA_PAGE_LOADER_OFF=true;</script>
-<script src="ui.js?v=122"></script>
-<script src="login.js?v=122"></script>
+<script src="ui.js?v=132"></script>
+<script src="login.js?v=135"></script>
 </body>
 </html>

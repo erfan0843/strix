@@ -1,0 +1,72 @@
+  run 570053 phones 09123700531 09124700531
+  seeded forms {"free":"2aea3efc-5586-41ef-b2b4-73b8ed5895b0","paid":"a660e91e-3e37-4811-abac-131155e9120d"}
+PASS 1 login: real OTP verify → account.html in server mode, member head, no guest block ["/account.html","server",true,false]
+PASS 1 login: tabbar label «حساب من» حساب من
+PASS 1 login: head shows provider + honest «نام هنوز در پروفایل ثبت نشده» (incomplete account) ورود با شمارهٔ موبایل وصل است حساب امن ن حساب نورا ورود و دسترسی از سرور تأیید شده‌اند. نام هنوز در پروفایل ثبت نشده ۰ ثبت‌نام ۰ اعلان ۰ فایل حساب ثبت‌نام‌های م
+PASS 1 login: httpOnly session cookie + csrf cookie from server 
+PASS 1 login: account row exists in DB 64e5a6b9-cd0b-45a8-959a-c5109ea3f188
+PASS 2 session: full reload keeps member state (cookie session, no localStorage login) [true,false]
+PASS 2 session: home tabbar shows «حساب من» for the signed-in member {"tab":"حساب من","href":"account.html"}
+PASS 3 profile: deep link in a new tab opens profile view with server facts (name missing, provider) پروفایل من اطلاعات حساب وب و پیوند هویت از سرور اطلاعات من آنچه سرور دربارهٔ این حساب تأیید کرده است. نام هنوز در پروفایل حساب ثبت نشده است نوع ورود ورود با شمارهٔ موبایل دسترسی‌ها ۰ مورد شمارهٔ موبای
+PASS 3 profile: phone number itself is never rendered 
+PASS 3 profile: identity card mentions Bale linking honestly (no fake «وصل شد»)  راه‌های ورود و پیوند حساب پیوند فقط با اثبات مالکیت انجام می‌شود؛ سرور مرجع نهایی است. فقط شماره شمارهٔ موبایلورود با پیامک یک‌بارمصرف انجام می‌شود. وصل است حساب بلهبا پیوند بله، اعلان‌ها و فایل‌هایت
+PASS 3 profile: PUT /api/account/profile with CSRF → saved (real endpoint) {"status":200,"data":{"fields":{"fullName":"کاربر آزمایشی ممیزی","nationalId":"","birthDate":"","gender":"","province":"","city":"تهران","address":"","email":""
+PASS 3 profile: PUT with wrong CSRF token → 403 (no write) 403
+PASS 3 profile: after save the head shows the real name from the server profile ورود با شمارهٔ موبایل وصل است حساب امن ک کاربر آزمایشی ممیزی ورود و دسترسی از سرور تأیید شده‌اند. نام از پروفایل حساب ۰ 
+PASS 1-3: no page errors 
+PASS 4 registrations: empty state is honest (۰ ثبت‌نام, no sample rows) رویدادهای من ثبت‌نام‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۰ ثبت‌نام در این حساب بازخوانی ثبت‌نامی به حسابت وصل نیس
+PASS 4 registrations: free form registration accepted via public API with the member session [200,200,"accepted"]
+PASS 4 payments: paid form (card_transfer) registration → awaiting_receipt [200,200,"awaiting_receipt"]
+PASS 4 registrations: «رویدادهای من» lists both real registrations after refresh (۲ ثبت‌نام) رویدادهای من ثبت‌نام‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۲ ثبت‌نام در این حساب بازخوانی کارگاه پولی ممیزی 570053 کارگاه پولی ممیزی 570053 ثبت شد ثبت‌نام: ۲۸ مهر ۱۴۰۵، ۲۱:۲۶ 
+PASS 4 registrations: payment status chip «در انتظار رسید» on the paid one 
+PASS 4 registrations: answers (registrant name) are not exposed in the list (API returns no answers) 
+PASS 4 forms: «فرم‌های من» shows ۲ پاسخ فرم فرم‌های من فرم‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۲ پاسخ فرم در این حساب
+PASS 4 payments: «پرداخت‌ها» lists only the paid registration (۱ از ۲) with status پرداخت‌ها و رسیدها پرداخت‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۱ ثبت‌نام دارای وضعیت پرداخت از ۲ بازخوانی کارگاه پولی ممیزی 570053 کارگاه پولی ممیزی 57005
+PASS 4 payments: receipt upload accepted (real endpoint, uploaded:true) {"status":200,"data":{"uploaded":true,"created":true}}
+PASS 4 payments: after refresh the account shows «رسید ثبت شد» (server state, no local guess) پرداخت‌ها و رسیدها پرداخت‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۱ ثبت‌نام دارای وضعیت پرداخت از ۲ بازخوانی کارگاه پ
+PASS 4 head: registration counter in member head = ۲ (from server) ورود با شمارهٔ موبایل وصل است حساب امن ک کاربر آزمایشی ممیزی ورود و دسترسی از سرور تأیید شده‌اند. نام از پروفایل حساب ۲ ثبت‌نام ۰ اعلان ۰ فایل حساب ثبت‌نام‌های 
+PASS 4 notifications: view renders from server (empty, no sample) اعلان‌ها و فایل‌های من اعلان‌ها و فایل‌های خصوصی حساب اعلان‌ها فایل‌ها اعلان‌های حساب مشترک با ربات بله بازخوانی اعلانی نیست اگر بررسی پروفا
+PASS 4 files: view renders from server (empty, no sample) اعلان‌ها و فایل‌های من اعلان‌ها و فایل‌های خصوصی حساب اعلان‌ها فایل‌ها فایل‌های خصوصی همین حساب؛ دریافت فقط از بات بله بازخوانی فایلی ثبت نش
+PASS 4 certificates: «جزئیات گواهی» = honest status «فعلاً در ربات بله», no fake certificate data جزئیات گواهی ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج جزئیات گواهی این قابلیت در ربات بلهٔ نورا فعال است و هنوز در وب ارائه ن
+PASS 4 book club: server view without sample points باشگاه کتاب ماه، جلسه‌ها و تازه‌های باشگاه باشگاه کتاب‌خوانی خط زندگی کتاب ماه هنوز منتشر نشده است کتاب ماه، زمان جلسه و
+PASS 4: no horizontal overflow on 390 
+PASS 4: no page errors 
+PASS 5 isolation: member B sees ۰ registrations, none of A's رویدادهای من ثبت‌نام‌های تو ن حساب نورا ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۰ ثبت‌نام در این حساب بازخ
+PASS 5 isolation: ?account_id=<A> is ignored server-side (identity from session only) {"source":"shared_server_database","items":[],"total":0,"limit":50,"offset":0,"has_more":false}
+PASS 5 isolation: foreign/unknown file id → 404 404
+PASS 5 isolation: B opening the same form gets an empty draft, not A's answers {"answers":{},"companions":[],"submitted":false,"status":"draft","tracking_code":null,"ticket_type":null,"receipt_upload
+PASS 5: no page errors 
+PASS 5 guest: /registrations /me /profile without cookie → 401 401,401,401
+PASS 5 csrf: logout with session cookie but no CSRF header → 403 (session stays) 403
+PASS 6 api-error [mock 500]: registrations view shows error + «تلاش دوباره», no stale/sample data رویدادهای من ثبت‌نام‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خروج ۰ ثبت‌نام در این حساب بازخوانی ثبت‌نام‌ها خوانده نشدند؛ 
+PASS 6 api-error: retry after recovery loads the real list again رویدادهای من ثبت‌نام‌های تو ک کاربر آزمایشی ممیزی ورود با شمارهٔ موبایل وصل است · حساب امن حساب من خ
+PASS 6 api-error [mock offline /me]: no member data shown, retry button offered پرش به محتوای حساب نورا ۰۰:۵۷ حساب من حساب من برای ادامه وارد حساب شو. ورود یا ساخت حساب بررسی دوباره بخش‌های من ۴ بخش ر
+NOTE observation: with /api/account/me unreachable the page falls back to the guest block (with «بررسی دوباره»); a signed-in user sees the login CTA until retry succeeds.
+PASS 6 api-error: «بررسی دوباره» after recovery restores the member page without reload ورود با شمارهٔ موبایل وصل است حساب امن ک کاربر آزمایشی ممیزی ورود و دسترسی از سر
+PASS 6: no page errors 
+PASS 7 expiry: member page open before expiry 
+NOTE expired sessions in test DB: {"expired":1}
+PASS 7 expiry: real 401 on refresh → member state cleared, guest/«نیاز به ورود» shown پرش به محتوای حساب نورا ۰۰:۵۷ حساب من رویدادهای من نیاز به ورود نیاز به ورود برای دیدن ثبت‌نام‌ها وارد حساب شو. ورود/ثبت‌نام حساب من موسسه فرهنگی، اجتماعی و آمو
+PASS 7 expiry: tabbar label reverts to «ورود/ثبت‌نام» ورود/ثبت‌نام
+PASS 7 expiry: no account data remains on screen 
+PASS 7 expiry: reload with expired cookie → guest page (server rejects, nothing cached) 
+PASS 7 re-login after expiry: back to #events with the same account and both registrations ["/account.html#events",true]
+PASS 7 re-login: same account id (no duplicate account) 
+PASS 7: no page errors 
+PASS 8 logout: one click → guest page, tabbar «ورود/ثبت‌نام» (no confirm sheet, no localStorage demo path) [false,true,"ورود/ثبت‌نام"]
+PASS 8 logout: server revoked the session (revoked_at set in DB) {"before":{"total":2,"active":1,"revoked":0},"after":{"total":2,"active":0,"revoked":1}}
+PASS 8 logout: session cookie deleted by server response 
+PASS 8 logout: private deep link afterwards → «نیاز به ورود» (no data) پرداخت‌ها و رسیدها نیاز به ورود نیاز به ورود برای دیدن وضعیت پرداخت‌هایت وارد حساب شو. ورود/ثبت‌نام
+PASS 8 logout: replaying the revoked session cookie → 401 401
+PASS 8 re-login: card CTA keeps the return target (#payments) login.html?mode=server&next=account.html%23payments
+PASS 8 re-login: lands on #payments with the same account, payment state and profile name intact ["/account.html#payments",true]
+PASS 8: no page errors 
+PASS 9 desktop-light: member page renders, no horizontal overflow 
+PASS 9 desktop-light: no page errors 
+PASS 9 desktop-dark: member page renders, no horizontal overflow 
+PASS 9 desktop-dark: no page errors 
+PASS 9 mobile-dark: member page renders, no horizontal overflow 
+PASS 9 mobile-dark: no page errors 
+PASS DB footprint: exactly 2 test accounts (A,B) + 2 responses (A) added by this run; nothing else touched {"dbBefore":{"accounts":14,"responses":4,"forms":8},"dbAfter":{"accounts":16,"responses":6,"forms":8},"mine":{"drafts":2,"responses":2,"all_responses":6,"all_accounts":16}}
+
+66 passed / 0 failed

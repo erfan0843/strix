@@ -778,10 +778,15 @@ function initKeys(root){
   });
 }
 /* ── ابزارهای رابط ─────────────────────────────────────────────────────── */
-function toast(msg){
+function toast(msg,kind){
   const t=document.getElementById('toast'); if(!t) return;
+  /* برخی صفحه‌ها آیکون ✓ ثابت در توست دارند؛ برای پیام خطا/هشدار نباید نشانهٔ موفقیت دیده شود. */
+  const ic=t.querySelector('svg.i'); if(ic) ic.style.display=(kind==='error'||kind==='warn')?'none':'';
+  t.classList.toggle('is-error',kind==='error'||kind==='warn');
   const last=t.lastChild; if(last&&last.nodeType===3) last.textContent=' '+msg; else t.appendChild(document.createTextNode(' '+msg));
-  t.classList.add('on'); clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.classList.remove('on'),1700);
+  /* ورود با انیمیشن up؛ خروج نرم با is-out و بعد حذف on. توست تازه هر دو زمان‌سنج را صفر می‌کند تا پیام‌های پشت‌سرهم نپرند. */
+  clearTimeout(window.__tt); clearTimeout(window.__ttOut); t.classList.remove('is-out'); t.classList.add('on');
+  window.__tt=setTimeout(()=>{t.classList.add('is-out'); window.__ttOut=setTimeout(()=>t.classList.remove('on','is-out'),160);},1700);
 }
 function copyText(txt,after,msg){
   const value=String(txt==null?'':txt).trim();
@@ -791,9 +796,12 @@ function copyText(txt,after,msg){
       :'رونوشت این پیوند بیرونیِ تأییدنشده انجام نشد'); return false;
   }
   const done=()=>{toast(msg||'کپی شد'); if(after) after();};
+  /* «کپی شد» فقط بعد از موفقیت واقعی؛ اگر هر دو راه (Clipboard API و execCommand) شکست بخورند، خطا گفته می‌شود و after اجرا نمی‌شود. */
+  const failed=()=>toast('رونوشت انجام نشد؛ متن را دستی کپی کن','error');
   try{navigator.clipboard.writeText(value).then(done).catch(fb)}catch(e){fb()}
-  function fb(){const t=document.createElement('textarea');t.value=value;document.body.appendChild(t);t.select();
-    try{document.execCommand('copy')}catch(e){}t.remove();done()}
+  function fb(){const t=document.createElement('textarea');t.value=value;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';
+    document.body.appendChild(t);t.select();let ok=false;
+    try{ok=document.execCommand('copy')===true}catch(e){ok=false}t.remove();if(ok)done();else failed()}
   return true;
 }
 /* مقصدهای بیرونی در پیش‌نمایش محلی بی‌عمل می‌شوند؛ پیوندهای محتوای منتشرشده و حسابِ سروری زنده می‌مانند. */
@@ -976,6 +984,16 @@ function themeApply(v,save){
   return v;
 }
 function themeToggle(){return themeApply(themeNow()==='dark'?'light':'dark')}
+/* کلید شب/روز در سرِ همهٔ صفحه‌ها (رویدادها، رویداد، شخص، مطلب، ورود، حساب…)
+   یک‌جا همین‌جا وصل می‌شود، مستقل از این‌که صفحه initUI را صدا بزند یا نه؛
+   صفحه‌ای که خودش آن را دست می‌گیرد، همین پرچم را روی رویداد می‌گذارد تا دوبار عوض نشود */
+if(typeof document!=='undefined'&&document.addEventListener){
+  document.addEventListener('click',e=>{
+    const b=e.target&&e.target.closest&&e.target.closest('[data-theme-toggle]');
+    if(!b||e.noraThemeHandled) return;
+    e.noraThemeHandled=true; e.preventDefault(); themeToggle();
+  });
+}
 function themeInit(){
   let v=null;
   try{v=localStorage.getItem(THEME_KEY)}catch(e){}
@@ -1000,11 +1018,19 @@ function themeSwitchHTML(o){
    یک منبع حقیقت برای خانه و صفحهٔ حساب من. رشته‌ها پاک‌سازی می‌شوند و وضعیت
    فقط از میان چهار حالت خودش می‌آید، وگرنه دادهٔ خراب صفحه را به‌هم می‌زند. */
 const P_STATUS=['draft','pending','approved','rejected'];
+/* کلیدهای پروفایل سروری (همان PROFILE_FIELD_KEYS بک‌اند)؛ در نسخهٔ تولیدی data.js بار نمی‌شود،
+   پس فهرست فیلدهای نمونه خالی است و بدون این فهرست نام واقعی کاربر از کش حذف می‌شد. */
+const SERVER_PROFILE_KEYS=['fullName','nationalId','birthDate','gender','province','city','address','email'];
+function profileKeys(){
+  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, keys=(A.fields||[]).map(f=>f&&f.k).filter(Boolean);
+  SERVER_PROFILE_KEYS.forEach(k=>{ if(!keys.includes(k)) keys.push(k) });
+  return keys;
+}
 function cleanProfile(v){
-  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, out={};
-  (A.fields||[]).forEach(f=>{
-    const raw=v&&v[f.k];
-    out[f.k]=typeof raw==='string'?raw.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,120):'';
+  const out={};
+  profileKeys().forEach(k=>{
+    const raw=v&&v[k];
+    out[k]=typeof raw==='string'?raw.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,120):'';
   });
   out.status=P_STATUS.includes(v&&v.status)?v.status:'draft';
   out.reason=typeof (v&&v.reason)==='string'?(v.reason||'').replace(/[\u0000-\u001f<>]/g,'').slice(0,200):'';
@@ -1023,15 +1049,28 @@ function accountFirstName(user){
   const name=String(user&&user.name||'').trim();
   return name?name.split(/\s+/u)[0]:'';
 }
-const ACCOUNT_NEXT_RE=/^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|privacy|club|points|invite))?$/;
+const ACCOUNT_NEXT_RE=/^account\.html(?:#(?:events|profile|pay|book|notifications|my-files|account-data|info|auth|login|forms|payments|privacy|club|points|invite))?$/;
 function accountEntryHref(next='account.html'){
   next=String(next||'account.html');
   if(!ACCOUNT_NEXT_RE.test(next)) next='account.html';
   /* «ورود/ثبت‌نام» ابتدا نمای امن مهمان را باز می‌کند؛ فقط بخش شخصی، ورود واقعی می‌خواهد. */
   return next;
 }
+/* صفحه‌های عمومی (خانه، رویدادها، پشتیبانی…): وضعیت ورود فقط از سرور خوانده می‌شود (کوکی httpOnly)
+   تا برچسب نوار پایین برای عضوِ واردشده «حساب من» باشد. صفحه‌های حساب و ورود خودشان این را مدیریت می‌کنند
+   و این بررسی چیزی جز برچسب/aria نوار را تغییر نمی‌دهد (منبع دادهٔ صفحه را «سروری» نمی‌کند). */
+let serverNavSession=false;
+function probeAccountNavigation(){
+  if(NORA_TEST_FIXTURE_MODE||window.NORA_ACCOUNT_SOURCE==='server'||typeof fetch!=='function') return;
+  if(!document.querySelector('.tabbar [data-account-nav-label]')) return;
+  if(/(?:^|\/)(?:account|login)\.html$/.test(location.pathname)||location.protocol==='file:') return;
+  fetch('/api/account/me',{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
+    .then(r=>r&&r.ok?r.json().catch(()=>null):null)
+    .then(d=>{ if(d&&d.authenticated===true){ serverNavSession=true; updateAccountNavigation() } })
+    .catch(()=>{});
+}
 function updateAccountNavigation(){
-  const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server';
+  const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server'||serverNavSession;
   const label=first||(authenticated?'حساب من':'ورود/ثبت‌نام'), destination=accountEntryHref('account.html');
   document.querySelectorAll('[data-account-nav-label]').forEach(node=>{node.textContent=label});
   document.querySelectorAll('.tabbar [data-account-nav]').forEach(link=>{
@@ -1045,7 +1084,8 @@ const TAB_ICON_PATHS=Object.freeze({
   events:'<rect x="3.8" y="5.5" width="16.4" height="14.8" rx="3"/><path d="M8 3.7v3.5M16 3.7v3.5M3.8 10.2h16.4"/>',
   account:'<circle cx="12" cy="8.2" r="3.6"/><path d="M4.8 20c.6-3.6 3.4-5.6 7.2-5.6s6.6 2 7.2 5.6"/>',
   article:'<path d="M6 3.8h8l4 4V20H6z"/><path d="M14 3.8v4h4M9 12h6M9 15.5h6"/>',
-  book:'<path d="M4.4 5.2h5.2A2.4 2.4 0 0 1 12 7.6v11a2.1 2.1 0 0 0-2-1.6H4.4z"/><path d="M19.6 5.2h-5.2A2.4 2.4 0 0 0 12 7.6v11a2.1 2.1 0 0 1 2-1.6h5.6z"/>'
+  book:'<path d="M4.4 5.2h5.2A2.4 2.4 0 0 1 12 7.6v11a2.1 2.1 0 0 0-2-1.6H4.4z"/><path d="M19.6 5.2h-5.2A2.4 2.4 0 0 0 12 7.6v11a2.1 2.1 0 0 1 2-1.6h5.6z"/>',
+  partners:'<path d="M3.2 11.4 6.6 8a2 2 0 0 1 2.8 0l2.6 2.6"/><path d="M20.8 11.4 17.4 8a2 2 0 0 0-2.8 0l-2.6 2.6"/><path d="m8.4 12.6 3 3 3-3"/><path d="m10.2 15.2 1.8 1.8 1.8-1.8"/>'
 });
 function normalizePrimaryNavigation(){
   document.querySelectorAll('.tabbar:not(#admTabs)').forEach(bar=>{
@@ -1060,6 +1100,7 @@ function normalizePrimaryNavigation(){
         /کتابخانه/.test(label)||/#lib(?:$|[?&])/.test(href)?'book':
         /مطالب/.test(label)||/#articles(?:$|[?&])/.test(href)?'article':
         /رویداد/.test(label)||/^(?:\.\/)?events?\.html/.test(href)?'events':
+        /نهادهای همکار/.test(label)||/#partners(?:$|[?&])/.test(href)?'partners':
         /خانه/.test(label)||/^(?:\.\/)?home\.html(?:$|[?#])/.test(href)?'home':
         (index===0?'home':index===1?'events':'account');
       if(accountLink){
@@ -1102,12 +1143,14 @@ function saveProfile(v){
   const p=cleanProfile(v), server=window.NORA_ACCOUNT_SOURCE==='server';
   if(NORA_TEST_FIXTURE_MODE||server) try{localStorage.setItem(PROF_KEY,JSON.stringify(p))}catch(e){}
   if(server&&window.NORA_SERVER_API&&typeof window.NORA_SERVER_API.saveAccountProfile==='function'){
-    const fields={}; ['fullName','nationalId','birthDate','gender','province','city','address','email'].forEach(k=>{ fields[k]=p[k]||'' });
+    const fields={}; SERVER_PROFILE_KEYS.forEach(k=>{ fields[k]=p[k]||'' });
     window.NORA_SERVER_API.saveAccountProfile(fields).catch(()=>{ try{ toast('ذخیرهٔ پروفایل روی سرور انجام نشد؛ دوباره تلاش کن') }catch(e){} });
   }
   return p;
 }
 /* پروفایل حساب واقعی را از سرور می‌خواند و کش محلی را به‌روز می‌کند */
+/* خروج/انقضای نشست: کش محلی پروفایل سروری پاک می‌شود تا دادهٔ حساب قبلی روی دستگاه نماند */
+function clearProfileCache(){ try{localStorage.removeItem(PROF_KEY)}catch(e){} }
 function syncServerProfile(){
   const api=window.NORA_SERVER_API;
   if(window.NORA_ACCOUNT_SOURCE!=='server'||!api||typeof api.accountProfile!=='function') return Promise.resolve(null);
@@ -1623,7 +1666,7 @@ function evPosterCard(e,o){
   const p=o.person||null;
   const tags=(o.tags||[]).filter(Boolean).map(t=>`<span class="evc-tag${o.past&&t==='برگزار شد'?' dark':''}">${escH(t)}</span>`).join('');
   const metas=(o.meta||[]).filter(Boolean).map(m=>`<span class="mi"><svg class="i"><use href="#${m[0]}"/></svg>${escH(m[1])}</span>`).join('');
-  const partnerMeta=o.partner&&o.partner.id?`<button class="mi mi-partner" type="button" data-partner="${escH(o.partner.id)}" aria-label="نهاد همکار: ${escH(o.partner.n||'')}"><svg class="i"><use href="#i-handshake"/></svg>${escH(o.partner.n||'')}</button>`:'';
+  const partnerMeta=o.partner&&o.partner.id?`<a class="mi mi-partner" href="partner.html?id=${encodeURIComponent(o.partner.id)}" data-partner="${escH(o.partner.id)}" aria-label="نهاد همکار: ${escH(o.partner.n||'')}"><svg class="i"><use href="#i-handshake"/></svg>${escH(o.partner.n||'')}</a>`:'';
   const cover=e.poster
     ? `<img src="${escH(e.poster)}" alt="پوستر ${escH(e.t)}" loading="lazy" decoding="async"/>`
     : `<span class="evc-grad" style="--g:${escH(e.g||'')}"><svg class="i"><use href="#${escH(e.icon||'i-calendar')}"/></svg></span>`;
@@ -1638,9 +1681,11 @@ function evPosterCard(e,o){
       ${o.badge?`<span class="evc-day">${o.badge}</span>`:''}
     </${wrap}>
     <div class="evc-body">
+      ${o.status?`<div class="evc-status">${o.status}</div>`:''}
       <div class="evc-ttl">${escH(e.t)}</div>
       ${metas||partnerMeta?`<div class="evc-meta">${metas}${partnerMeta}</div>`:''}
       ${o.note?`<div class="evc-note">${escH(o.note)}</div>`:''}
+      ${o.timer?`<div class="evc-timer">${o.timer}</div>`:''}
       <div class="evc-foot">
         ${p?`<span class="evc-ava" style="--g:${escH(p.g||'')}">${p.photo?`<img src="${escH(p.photo)}" alt="${escH(p.n)}"/>`:escH(p.ini||'')}</span>
           <span class="evc-who"><b>${escH(p.n)}</b><small>${escH(p.r||'')}</small></span>`:''}
@@ -1924,6 +1969,7 @@ function isPre(id){return preList().indexOf(id)>-1}
 function prereg(id,after){
   const N=window.NORA||{}, e=(N.EVENTS||[]).find(x=>x.id===id);
   if(!e) return;
+  if(!NORA_TEST_FIXTURE_MODE){ location.href='event.html?id='+encodeURIComponent(id); return }   /* پیش‌ثبت‌نام محلی فقط در fixture آزمون */
   if(!walletUser()){ authSheet(()=>prereg(id,after)); return }
   const a=preList();
   if(a.indexOf(id)>-1){
@@ -1966,7 +2012,7 @@ function eventSheet(id){
   const hasFree=(e.media||[]).some(m=>!m.p||m.preview);
   const previewBtn=(past&&hasFree)?`<button class="btn quiet" data-uipreview="${escH(e.id)}"><svg class="i"><use href="#i-play-f"/></svg> پیش‌نمایش</button>`:'';
   const preOn=!past&&isPre(e.id);
-  const preBtn=past?'':`<button class="btn ${preOn?'primary':'quiet'}" data-uipre="${escH(e.id)}"><svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
+  const preBtn=(past||!NORA_TEST_FIXTURE_MODE)?'':`<button class="btn ${preOn?'primary':'quiet'}" data-uipre="${escH(e.id)}"><svg class="i"><use href="#${preOn?'i-check':'i-bell'}"/></svg> ${preOn?'پیش‌ثبت‌نام شده':'پیش‌ثبت‌نام'}</button>`;
   const mediaHtml=past?`
     <div class="sec-hd" style="margin-top:14px"><span class="fw">رسانه‌های این رویداد</span><span class="sp"></span>
       <span class="cap">${faN(e.mediaCount||((e.media||[]).length))} فایل</span></div>
@@ -1997,7 +2043,7 @@ function eventSheet(id){
       ${past?`<div class="srow"><svg class="i"><use href="#i-clock"/></svg><span class="sp">حجم بسته</span><b>${escH(e.rec)}</b></div>`
            :`<div class="srow"><svg class="i"><use href="#i-pin"/></svg><span class="sp">${escH(e.place)}</span><b>${room}</b></div>`}
       ${!past&&e.sess>1?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${faN(e.sess)} جلسه</b></div>`:''}
-      ${partner?`<a class="srow" href="home.html#partner=${encodeURIComponent(partner.id)}"><svg class="i"><use href="#i-handshake"/></svg><span class="sp">نهاد همکار</span><b>${escH(partner.n)}</b><svg class="i"><use href="#i-chev-left"/></svg></a>`:''}
+      ${partner?`<a class="srow" href="partner.html?id=${encodeURIComponent(partner.id)}"><svg class="i"><use href="#i-handshake"/></svg><span class="sp">نهاد همکار</span><b>${escH(partner.n)}</b><svg class="i"><use href="#i-chev-left"/></svg></a>`:''}
       ${past&&e.rec?`<div class="srow"><svg class="i"><use href="#i-layers"/></svg><span class="sp">جلسه‌ها</span><b>${escH(e.rec)}</b></div>`:''}
       ${past?`<div class="srow"><svg class="i"><use href="#i-play"/></svg><span class="sp">رسانه‌ها</span><b>${faN(e.mediaCount)} قلم · ${faN(e.sold)} خرید</b></div>`
            :`<div class="srow"><svg class="i"><use href="#i-users"/></svg><span class="sp">${e.cap?faN(e.taken)+' نفر ثبت‌نام کرده‌اند':'همه می‌توانند شرکت کنند'}</span><b>${price(price1)}</b></div>`}
@@ -2285,102 +2331,82 @@ function doBuy(pastId,mediaId){
   toast('خرید و پرداخت واقعی به درگاه و سرور وصل نیست؛ هیچ مبلغی کسر یا محتوایی آزاد نشد');
 }
 
-/* ── ورود: یک نسخهٔ کوچک برای خرید و کارهای نیازمند حساب ── */
-/* ورود واقعی: شماره → کد ۶ رقمی سرور (phone-otp). کد نمایشی و نشست ساختگی ندارد. */
-const SRV_AUTH={phone:'',challenge:'',busy:false,err:'',captchaToken:'',captchaImage:'',captchaFailed:false};
-async function loadServerCaptcha(){
-  if(SRV_AUTH.captchaBusy) return; SRV_AUTH.captchaBusy=true; SRV_AUTH.captchaFailed=false; SRV_AUTH.captchaToken='';
-  try{
-    const r=await fetch('/api/auth/captcha',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-    if(!r.ok) throw new Error('captcha');
-    const d=await r.json();
-    if(!d||typeof d.token!=='string'||typeof d.image!=='string') throw new Error('captcha');
-    SRV_AUTH.captchaToken=d.token; SRV_AUTH.captchaImage=d.image;
-  }catch(_){ SRV_AUTH.captchaImage=''; SRV_AUTH.captchaFailed=true; SRV_AUTH.err='کد امنیتی بارگذاری نشد؛ دوباره تلاش کن.' }
-  SRV_AUTH.captchaBusy=false;
-  if(document.getElementById('shAuth')&&document.getElementById('srvmob')) serverAuthSheet();
-}
-function serverAuthSheet(after){
-  const step=SRV_AUTH.challenge?'code':'phone';
-  fillSheet('shAuth',`
-    <div class="grabber"></div>
-    <div class="row" style="align-items:center;margin-bottom:10px">
-      <div><div class="head">${step==='code'?'کد تأیید':'ورود / ثبت‌نام با شمارهٔ موبایل'}</div>
-        <div class="cap">${step==='code'?'کد ۶ رقمی را به '+escH(SRV_AUTH.phone)+' فرستادیم':'برای تهیه و کتابخانه لازم است؛ رمزی ندارد'}</div></div>
-      <span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-    ${step==='code'
-      ? `<label class="lbl" for="srvcode">کد ۶ رقمی</label>
-         <input class="input num" id="srvcode" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code"/>
-         <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-code ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-check"/></svg> ورود</button>
-           <button class="btn quiet" data-srv-back>تغییر شماره</button></div>`
-      : `<label class="lbl" for="srvmob">شمارهٔ موبایل</label>
-         <input class="input num" id="srvmob" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" value="${escH(SRV_AUTH.phone)}"/>
-         <div class="row" style="margin-top:10px;align-items:center;gap:10px"><span style="line-height:0;border-radius:10px;overflow:hidden">${SRV_AUTH.captchaImage||(SRV_AUTH.captchaFailed?'<span class="cap">کد امنیتی بارگذاری نشد</span>':'<span class="cap">در حال بارگذاری کد امنیتی…</span>')}</span>
-           <button class="btn quiet" type="button" data-srv-captcha-new ${SRV_AUTH.busy||SRV_AUTH.captchaBusy?'disabled':''}>کد جدید</button></div>
-         <label class="lbl" for="srvcap" style="margin-top:8px">کد نمایش‌داده‌شده</label>
-         <input class="input num" id="srvcap" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="۴ رقم"/>
-         <div class="row" style="margin-top:12px"><button class="btn primary" data-srv-phone ${SRV_AUTH.busy?'disabled':''}><svg class="i"><use href="#i-send"/></svg> فرستادن کد</button>
-           <button class="btn quiet" data-close>بعداً</button></div>`}
-    ${SRV_AUTH.err?`<p class="cap" role="alert" style="margin-top:8px;color:#b3261e">${escH(SRV_AUTH.err)}</p>`:''}
-    <p class="cap" style="margin-top:10px">بعد از ورود، خرید و کتابخانه‌ات همه‌جا هست؛ در خانه هم همان حساب را می‌بینی.</p>`);
-  if(typeof after==='function') authSheet.after=after;
-  else if(authSheet.after===undefined) authSheet.after=null;
-  if(step==='phone'&&!SRV_AUTH.captchaToken&&!SRV_AUTH.captchaBusy&&!SRV_AUTH.captchaFailed) loadServerCaptcha();
-}
+/* ── ورود عضو فقط در صفحهٔ مستقل login.html انجام می‌شود؛ ورقهٔ درون‌صفحه‌ای OTP حذف شد ── */
 async function serverAuthPost(path,body){
   const r=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(body)});
   let data=null; try{data=await r.json()}catch(_){}
-  if(!r.ok) throw new Error((data&&(data.detail||data.message))||('HTTP '+r.status));
+  if(!r.ok){const d=data&&data.detail; throw new Error((d&&d.code)||(typeof d==='string'&&d)||(data&&data.message)||('HTTP '+r.status))}
   return data;
 }
-document.addEventListener('click',async e=>{
-  const t=e.target; if(!t||!t.closest) return;
-  const ph=t.closest('[data-srv-phone]'), cd=t.closest('[data-srv-code]'), bk=t.closest('[data-srv-back]'), nc=t.closest('[data-srv-captcha-new]');
-  if(!ph&&!cd&&!bk&&!nc) return;
-  e.preventDefault();
-  if(SRV_AUTH.busy) return;
-  if(nc){SRV_AUTH.err='';loadServerCaptcha();return}
-  if(bk){SRV_AUTH.challenge='';SRV_AUTH.err='';serverAuthSheet();return}
-  SRV_AUTH.busy=true; SRV_AUTH.err=''; serverAuthSheet();
+/* ── «مسیر پیوند حساب» صریح است، نه حدسی ─────────────────────────────
+   پارامتر `?link=bale` تنها نشانهٔ این مسیر است و ربات آن را در نشانی دکمهٔ
+   مینی‌اپ می‌گذارد. چرا لازم است: امضای `initData` بله یک‌بارمصرف است. اگر
+   همین صفحه در مسیر پیوند هم ورود خودکار بزند، امضا خرجِ ساختن یک حساب
+   تازه می‌شود و برای اثبات مالکیت در پیوند چیزی نمی‌ماند؛ بدتر آنکه هویت بله
+   به همان حساب خودکار می‌چسبد و پیوند به حساب شماره‌ای با ۴۰۹ رد می‌شود.
+   پس در این مسیر ورود خودکار انجام نمی‌شود و کاربر اول با شماره وارد می‌شود. */
+function baleLinkMode(){
   try{
-    if(ph){
-      const v=unFa((document.getElementById('srvmob')||{}).value||'').replace(/\D/g,'');
-      if(!/^09\d{9}$/.test(v)) throw new Error('شماره را کامل بنویس؛ ۱۱ رقم، با ۰۹');
-      const ca=unFa((document.getElementById('srvcap')||{}).value||'').replace(/\D/g,'');
-      if(!/^\d{4}$/.test(ca)) throw new Error('کد امنیتی چهار رقمی را وارد کن');
-      if(!SRV_AUTH.captchaToken) throw new Error('کد امنیتی هنوز آماده نیست؛ چند لحظه صبر کن');
-      const d=await serverAuthPost('/api/auth/phone-otp/request',{phone:v,captcha_token:SRV_AUTH.captchaToken,captcha_answer:ca});
-      SRV_AUTH.captchaToken='';
-      if(!d||d.accepted!==true||typeof d.challenge_id!=='string') throw new Error('پاسخ سرویس ورود نامعتبر است');
-      SRV_AUTH.phone=v; SRV_AUTH.challenge=d.challenge_id;
-    } else {
-      const v=unFa((document.getElementById('srvcode')||{}).value||'').replace(/\D/g,'');
-      if(!/^\d{6}$/.test(v)) throw new Error('کد ۶ رقمی را کامل وارد کن');
-      const d=await serverAuthPost('/api/auth/phone-otp/verify',{challenge_id:SRV_AUTH.challenge,phone:SRV_AUTH.phone,code:v});
-      if(!d||d.authenticated!==true) throw new Error('ورود انجام نشد؛ دوباره تلاش کن');
-      SRV_AUTH.challenge=''; SRV_AUTH.busy=false;
-      if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server';
-      syncBell&&syncBell(); authDone();
-      setTimeout(()=>{location.href='account.html'},80);
-      return;
-    }
-  }catch(err){SRV_AUTH.err=String(err&&err.message||'خطا در ورود')}
-  SRV_AUTH.busy=false; serverAuthSheet();
-  if(ph&&!SRV_AUTH.challenge) loadServerCaptcha();
-},false);
-/* تب «ورود/ثبت‌نام» برای مهمان همان برگه‌ی ورود را باز می‌کند، نه صفحه‌ی جدا */
-document.addEventListener('click',e=>{
-  const a=e.target&&e.target.closest&&e.target.closest('.tabbar [data-account-nav]');
-  if(!a||NORA_TEST_FIXTURE_MODE) return;
-  if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return;
-  e.preventDefault(); authSheet(); openSheet&&openSheet('shAuth');
-},false);
+    return new URLSearchParams(location.search).get('link')==='bale';
+  }catch(_){return false}
+}
+/* ── ورود مینی‌اپ بله ──────────────────────────────────────────────────
+   وقتی همین صفحه داخل شیشهٔ بله باز می‌شود، `Bale.WebApp.initData` یک دادهٔ
+   امضاشده و یک‌بارمصرف است. دو نکته مهم:
+   ۱) پیش از فرستادن امضا، وضعیت نشست پرسیده می‌شود (مالک، بعد حساب)؛ وگرنه
+      روی هر جابه‌جاییِ صفحه همان امضا دوباره فرستاده می‌شود و سرور آن را
+      ۴۰۹ «تکرار» می‌کند و کاربر بی‌دلیل از ورود باز می‌ماند.
+   ۲) هر خطایی بی‌سروصدا رد می‌شود؛ مسیر ورود معمولی (شماره/گذرواژه) دست‌نخورده
+      می‌ماند و کاربر پشت خطای فنی نمی‌ماند. */
+function baleMiniAppInitData(){
+  try{
+    const app=window.Bale&&window.Bale.WebApp;
+    const raw=app&&typeof app.initData==='string'?app.initData:'';
+    /* فقط رشتهٔ کاملی که امضا و زمان دارد؛ هم‌شکل با اعتبارسنجی سرور. */
+    return /(?:^|&)hash=/.test(raw)&&/(?:^|&)auth_date=/.test(raw)?raw:'';
+  }catch(_){return ''}
+}
+async function hasServerSession(){
+  for(const path of ['/api/auth/me','/api/account/me']){
+    try{
+      const r=await fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
+      if(r.ok){
+        const d=await r.json().catch(()=>null);
+        if(d&&d.authenticated===true) return true;
+      }
+    }catch(_){/* شبکه/سرور نیست؛ مسیر معمولی ورود را نمی‌بندیم */}
+  }
+  return false;
+}
+async function baleMiniAppBoot(){
+  if(NORA_TEST_FIXTURE_MODE) return false;
+  /* مسیر پیوند حساب: امضای یک‌بارمصرف باید برای اثبات مالکیت بماند. */
+  if(baleLinkMode()) return false;
+  if(window.NORA_ACCOUNT_SOURCE==='server'||sessUser()) return false;
+  const initData=baleMiniAppInitData();
+  if(!initData) return false;
+  if(await hasServerSession()){ if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server'; return true; }
+  try{
+    const d=await serverAuthPost('/api/auth/bale-mini-app',{init_data:initData});
+    if(!d||d.authenticated!==true) return false;
+    if(typeof window.NORA_ACCOUNT_SOURCE!=='undefined') window.NORA_ACCOUNT_SOURCE='server';
+    try{syncBell()}catch(_){}
+    try{authDone()}catch(_){}
+    return true;
+  }catch(err){
+    /* ۴۰۱/۴۰۹/۵۰۳ (امضا، تکرار، پیکربندی) → ورود معمولی؛ ۴۰۳ account_blocked → پیام روشن. امضا لاگ نمی‌شود. */
+    if(typeof console!=='undefined'&&console.warn) console.warn('mini app login skipped:',String(err&&err.message||err).slice(0,80));
+    if(err&&err.message==='account_blocked'){try{toast('این حساب مسدود شده است؛ با پشتیبانی نورا تماس بگیر.','stop')}catch(_){}}
+    return false;
+  }
+}
 function authSheet(after){
   if(!NORA_TEST_FIXTURE_MODE){
-    authSheet.after=authSheet.after===undefined?null:authSheet.after;
-    if(typeof after==='function') authSheet.after=after;
-    serverAuthSheet(after);
+    /* در نسخهٔ تولیدی هیچ ورقهٔ ورود درون‌صفحه‌ای وجود ندارد: ورود امن فقط در login.html
+       (کپچای سرور، OTP، نشست سروری) انجام می‌شود و کاربر به صفحهٔ حساب برمی‌گردد. */
+    authSheet.after=null;
+    location.href='login.html?mode=server&next='+encodeURIComponent(accountEntryHref('account.html'));
     return;
   }
   const pend=jread('nora-home-auth',null)||null;
@@ -2558,6 +2584,8 @@ addEventListener('hashchange',uiHash);
 sheetA11y();
 syncBell();
 try{uiHash()}catch(e){}
+/* اگر صفحه داخل مینی‌اپ بله باز شده باشد، هویت امضاشده همین‌جا نشست می‌سازد. */
+try{baleMiniAppBoot()}catch(e){}
 /* ── نوار بالا: وقت اسکرول، شیشهٔ پررنگ‌تر می‌شود (همان حس نوار آی‌اواس) ──
    پیش‌تر فقط صفحهٔ خانه این کلاس را می‌گذاشت و نوار رویدادها همیشه مات
    می‌ماند؛ حالا هر صفحه‌ای که ui.js را دارد همین رفتار را دارد. */
@@ -2988,8 +3016,11 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   uiOpen:uiOpen,eventSheet:eventSheet,mediaList:mediaList,bundleCard:bundleCard,player:player,buySheet:buySheet,doBuy:doBuy,
   videoEmbedInfo:videoEmbedInfo,safeHttpsMediaUrl:safeHttpsMediaUrl,baleStartHref:baleStartHref,
   authSheet:authSheet,uid:uid,prereg:prereg,isPre:isPre,preview:preview,library:library,addLib:addLib,hasLib:hasLib,progressOf:progressOf,setProgress:setProgress,
+  /* ورود خودکار مینی‌اپ و گامِ پیوند حساب هر دو باید یک قاعده برای شکل
+     `initData` داشته باشند؛ این تابع تنها مرجع آن قاعده است. */
+  baleMiniAppInitData:baleMiniAppInitData,hasServerSession:hasServerSession,baleLinkMode:baleLinkMode,
   unreadCount:unreadCount,markRead:markRead,syncBell:syncBell,menuSheet:menuSheet,noticesSheet:noticesSheet,LIB_KEY:LIB_KEY,
-  profile:profile,saveProfile:saveProfile,profilePercent:profilePercent,profileMissing:profileMissing,
+  profile:profile,saveProfile:saveProfile,clearProfileCache:clearProfileCache,profilePercent:profilePercent,profileMissing:profileMissing,
   syncServerProfile:syncServerProfile,
   fillTrust:fillTrust,trustPick:trustPick,
   uiSet:uiSet,uiSetSave:uiSetSave,UISET_META:UISET_META,menuAllowed:menuAllowed,uiSetDef:UISET_DEF,
@@ -3017,6 +3048,7 @@ window.NORA_UI=Object.assign(window.NORA_UI||{}, {shareItem:shareItem,copyText:c
   imageToWebPDataURL:imageToWebPDataURL,imageErrorMessage:imageErrorMessage,showPageLoader:showPageLoader,hidePageLoader:hidePageLoader,initPageLoader:initPageLoader});
 Object.defineProperty(window.NORA_UI,'universitiesByProvince',{configurable:true,enumerable:true,get:universitiesByProvince});
 normalizePrimaryNavigation();
+probeAccountNavigation();
 document.addEventListener('nora:login',updateAccountNavigation);
 document.addEventListener('nora:logout',updateAccountNavigation);
 addEventListener('storage',event=>{if(event.key===SESS_KEY) updateAccountNavigation()});

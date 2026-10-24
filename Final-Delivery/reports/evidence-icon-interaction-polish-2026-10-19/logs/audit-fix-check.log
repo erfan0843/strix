@@ -1,0 +1,10 @@
+login 200
+support-390 {"broken":[],"url":"/support.html","errs":[],"extra":null}
+support-390-dark {"broken":[],"url":"/support.html","errs":[],"extra":null}
+admin-1280 {"broken":[],"url":"/admin.html","errs":[],"extra":{"vis":["block","none"],"theme":"light"}}
+admin-1280-dark {"broken":[],"url":"/admin.html","errs":[],"extra":["none","block"]}
+form-start-390 {"broken":[],"url":"/form.html?fid=arena-nora-pay-preview&kind=reg&preview=1","errs":[],"extra":{"overflow":"visible","afterW":"362px","afterBg":"none","afterOpacity":"0.651813","afterAnim":"noraStartPulse","afterTransform":"matrix(0.993523, 0, 0, 0.993523, 0, 0)","start":"botbar glass start-mode"}}
+form-start-390-dark {"broken":[],"url":"/form.html?fid=arena-nora-pay-preview&kind=reg&preview=1","errs":[],"extra":{"overflow":"visible","afterW":"362px","afterBg":"none","afterOpacity":"0.651817","afterAnim":"noraStartPulse","afterTransform":"matrix(0.993523, 0, 0, 0.993523, 0, 0)","start":"botbar glass start-mode"}}
+form-start-1280 {"broken":[],"url":"/form.html?fid=arena-nora-pay-preview&kind=reg&preview=1","errs":[],"extra":{"overflow":"visible","afterW":"404px","afterBg":"none","afterOpacity":"0.640817","afterAnim":"noraStartPulse","afterTransform":"matrix(0.994898, 0, 0, 0.994898, 0, 0)","start":"botbar glass start-mode"}}
+form-start hover {"anim":"noraStartPulse","w":"404px"}
+fails 0

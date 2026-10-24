@@ -44,6 +44,20 @@ CONDITIONS = {
 
 MAX_PER_EVENT = 8          # سقف منطقی — بیشتر شود UI شلوغ می‌شود
 
+# 🧭 فاز ۹.۳ — سیاست گواهی حضور: ثبت‌نام یا پرداخت به‌تنهایی «حضور» را اثبات نمی‌کند.
+# شرط‌های زیر مجازند (حذف نمی‌شوند) ولی گواهی‌شان گواهی حضور نیست و ادمین باید این را آگاهانه انتخاب کند.
+NON_ATTENDANCE_CONDITIONS = ("none", "paid")
+ATTENDANCE_POLICY_WARNING = (
+    "⚠️ این شرط حضور را اثبات نمی‌کند: گواهیِ صادرشده با آن «گواهی حضور» نیست "
+    "(فقط ثبت‌نام/پرداخت). برای گواهی حضور از «حضور تأییدشده»، «حداقل جلسه» یا «تأیید دستی» استفاده کنید. "
+    "خرید محتوای ضبط‌شده هم ثبت‌نام این رویداد نیست و شرطی را برآورده نمی‌کند."
+)
+
+
+def condition_policy_note(cond):
+    """متن هشدار برای شرط‌های غیرحضوری؛ برای بقیه خالی."""
+    return ATTENDANCE_POLICY_WARNING if (cond or "present") in NON_ATTENDANCE_CONDITIONS else ""
+
 
 # ══════════════════════════════════════════════════════════
 # 📚 داده
@@ -427,6 +441,9 @@ def show_cert(cid, uid, row_id):
     note = (c.get("note") or "").strip()
     if note:
         lines += [f"💬 {note}", ""]
+    policy = condition_policy_note(c.get("condition"))
+    if policy:
+        lines += [policy, ""]
 
     btns = [
         [{"text": "✏️ عنوان", "callback_data": f"evce_title_{c['id']}"},
@@ -580,6 +597,9 @@ def show_cond(cid, uid, row_id):
         lines += ["", f"🎯 حداقل نمره: {_fa(c.get('min_score') or 0)}"]
         btns.append([{"text": "✏️ تغییر حداقل نمره",
                       "callback_data": f"evcn_score_{row_id}"}])
+    policy = condition_policy_note(cur)
+    if policy:
+        lines += ["", policy]
     btns.append([{"text": "🔙 بازگشت",
                   "callback_data": f"evc_v_{row_id}"}])
     send_or_edit(cid, "\n".join(lines), {"inline_keyboard": btns})
@@ -590,7 +610,20 @@ def set_cond(cid, uid, cond, row_id):
         return
     if cond not in CONDITIONS:
         return send(cid, "❌ نامعتبر")
+    c = get_cert(row_id)
+    if not c:
+        return send(cid, "❌ پیدا نشد")
+    before = (c.get("condition") or "present").strip()
     update_cert(row_id, condition=cond)
+    # 📝 فاز ۹.۳ — تغییر شرط صدور با عامل در گزارش فعالیت؛ شرط غیرحضوری صریحاً علامت می‌خورد
+    try:
+        from auth import log_action
+        log_action(uid, "event_cert_condition",
+                   {"event_cert": int(row_id), "event": int(c.get("event_id") or 0),
+                    "before": before, "after": cond,
+                    "attendance_proof": cond not in NON_ATTENDANCE_CONDITIONS})
+    except Exception:
+        pass
     return show_cond(cid, uid, row_id)
 
 
@@ -817,6 +850,12 @@ def user_issue(cid, uid, eid, row_id):
         db_execute("UPDATE users SET total_certificates="
                    "COALESCE(total_certificates,0)+1 "
                    "WHERE bale_user_id=?", (int(uid),))
+        # 🪞 آینهٔ سرور مشترک (بهترین‌تلاش)
+        try:
+            import shared_certificates as _sc
+            _sc.sync_after_change(cert_id)
+        except Exception:
+            pass
         send(cid, (f"🎉 {c.get('title') or 'گواهینامه'} آماده شد\n"
                    f"🔖 شمارهٔ ثبت: {serial}"))
         return user_get(cid, uid, cert_id)

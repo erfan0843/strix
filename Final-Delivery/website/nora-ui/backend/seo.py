@@ -168,7 +168,7 @@ def canonical_path(page_name: str, item_id: str | None = None) -> str:
     page = str(page_name or "").strip().lower()
     if page in {"home", "index"}:
         return "/"
-    if page in {"event", "post", "person"}:
+    if page in {"event", "post", "person", "partner"}:
         identifier = _public_id(item_id)
         if not identifier:
             return ""
@@ -205,7 +205,7 @@ def sitemap_xml(base_url: str, content: Mapping[str, Any] | None = None) -> str:
         raise ValueError("NORA_PUBLIC_BASE_URL is required to generate an absolute sitemap")
     paths = {"/", "/events.html"}
     snapshot = content if isinstance(content, Mapping) else {}
-    for kind, key in (("event", "events"), ("post", "articles"), ("person", "people")):
+    for kind, key in (("event", "events"), ("post", "articles"), ("person", "people"), ("partner", "partners")):
         rows = snapshot.get(key, [])
         if not isinstance(rows, list):
             continue
@@ -219,7 +219,7 @@ def sitemap_xml(base_url: str, content: Mapping[str, Any] | None = None) -> str:
                 or _seo_flag_active(row.get("pend"))
                 or ("pub" in row and not _seo_published_flag(row.get("pub")))
                 or (visibility and visibility not in {"public", "published"})
-                or status in {"draft", "private", "hidden", "pending", "unpublished", "rejected"}
+                or status in {"draft", "private", "hidden", "pending", "paused", "unpublished", "rejected"}
             ):
                 continue
             path = canonical_path(kind, _public_id(row.get("id")))
@@ -267,8 +267,13 @@ def structured_data(
     page_type: str = "WebPage",
     item: Mapping[str, Any] | None = None,
     local_business: Mapping[str, str] | None = None,
+    profile_entity: str = "Person",
 ) -> dict[str, Any]:
-    """Create JSON-LD using only supplied public content and explicit business data."""
+    """Create JSON-LD using only supplied public content and explicit business data.
+
+    ``profile_entity`` selects the ``ProfilePage`` main entity: ``Person`` for
+    people, ``Organization`` for partner organisations.
+    """
     base = normalize_public_base_url(base_url)
     graph: list[dict[str, Any]] = []
     org: dict[str, Any] = {
@@ -323,6 +328,24 @@ def structured_data(
         cover = _absolute_asset(base, public_item.get("cov"))
         if cover:
             page["image"] = cover
+    elif page_type == "ProfilePage" and profile_entity == "Organization":
+        # Partner organisations: only published, owner-entered facts. No address,
+        # telephone, legal id, ratings or headcount are ever invented here.
+        organization: dict[str, Any] = {
+            "@type": "Organization",
+            "name": _plain_text(public_item.get("n") or title, 180),
+        }
+        summary = _plain_text(public_item.get("s") or public_item.get("d"), 600)
+        if summary:
+            organization["description"] = summary
+        website_url = _plain_text(public_item.get("href"), 1_500)
+        if website_url.startswith("https://") or website_url.startswith("http://"):
+            organization["url"] = website_url
+        logo = _absolute_asset(base, public_item.get("logo"))
+        if logo:
+            organization["logo"] = logo
+            organization["image"] = logo
+        page["mainEntity"] = organization
     elif page_type == "ProfilePage":
         person: dict[str, Any] = {
             "@type": "Person",
@@ -340,7 +363,9 @@ def structured_data(
     graph.append(page)
     if base and page_url.startswith("https://") and page_url.rstrip("/") != base:
         crumbs = [{"@type": "ListItem", "position": 1, "name": "خانه", "item": base + "/"}]
-        if page_type in {"Article", "ProfilePage"}:
+        if page_type == "ProfilePage" and profile_entity == "Organization":
+            crumbs.append({"@type": "ListItem", "position": 2, "name": "نهادهای همکار", "item": base + "/#partners"})
+        elif page_type in {"Article", "ProfilePage"}:
             crumbs.append({"@type": "ListItem", "position": 2, "name": "مطالب" if page_type == "Article" else "پروفایل‌ها",
                            "item": base + ("/#articles" if page_type == "Article" else "/#teachers")})
         elif page_type == "WebPage" and "/event.html?" in page_url:
@@ -432,6 +457,7 @@ def default_page_description(page_name: str) -> str:
         "event": "اطلاعات رویدادهای عمومی و برنامه‌های منتشرشده در نورا.",
         "post": "مطالب و نوشته‌های عمومی منتشرشده در نورا.",
         "person": "پروفایل‌های عمومی و تأییدشدهٔ نورا.",
+        "partner": "نهادهای همکار منتشرشدهٔ نورا و گروه فرهنگی خط زندگی.",
         "support": "راهنمای استفاده و اطلاعات پشتیبانی نورا.",
         "login": "ورود امن به حساب نورا.",
         "account": "مدیریت اعلان‌ها و فایل‌های حساب کاربری در نورا.",
@@ -465,6 +491,15 @@ def dynamic_page_values(page_name: str, item: Mapping[str, Any]) -> tuple[str, s
         if not description:
             description = f"مطلب «{_plain_text(item.get('t'), 160)}» در نورا."
         return title, description, canonical_path("post", _public_id(item.get("id"))), "Article", "article"
+    if page_name == "partner":
+        name = _plain_text(item.get("n"), 160)
+        title = f"{name} | نهادهای همکار نورا"
+        description = (
+            _plain_text(item.get("s"), 240) or _plain_text(item.get("d"), 240)
+            or (f"{name} — {_plain_text(item.get('type'), 120)}؛ نهاد همکار نورا." if item.get("type")
+                else f"{name}، نهاد همکار گروه فرهنگی خط زندگی در نورا.")
+        )
+        return title, description, canonical_path("partner", _public_id(item.get("id"))), "ProfilePage", "website"
     title = f"{_plain_text(item.get('n'), 160)} | پروفایل نورا"
     description = _plain_text(item.get("bio"), 240) or _plain_text(item.get("r"), 240) or f"پروفایل عمومی {_plain_text(item.get('n'), 140)} در نورا."
     return title, description, canonical_path("person", _public_id(item.get("id"))), "ProfilePage", "profile"

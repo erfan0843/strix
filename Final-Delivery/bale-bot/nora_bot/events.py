@@ -19,7 +19,8 @@ from config import (
     PAYMENT_PROVIDER_TOKEN, PAYMENT_ENABLED, PAYMENT_TEST_MODE,
     CURRENCY_LABEL, check_amount,
 )
-from database import db_execute, db_scalar, get_setting, log
+from database import db_execute, db_scalar, db_transaction, get_setting, log
+import points_ledger as pl
 from auth import (
     get_user, get_user_by_id, set_state, get_state_name, get_state_data,
     update_state_data, clear_state, log_action, normalize_digits,
@@ -2162,18 +2163,39 @@ def set_event_status(cid, uid, eid, status):
 
     # اتمام رویداد → امتیازدهی به حاضرین
     if status == "finished" and ev.get("points_reward"):
+        # هر کاربر فقط یک‌بار به‌ازای هر رویداد (کلید evfin:{event}:{user})؛
+        # اجرای دوبارهٔ «پایان» امتیاز تکراری نمی‌دهد ولی نفرات ثبت‌نشده را تکمیل می‌کند.
         regs = db_execute(
-            "SELECT bale_user_id FROM event_registrations "
+            "SELECT id, bale_user_id FROM event_registrations "
             "WHERE event_id=? AND status IN ('confirmed','attended')", (eid,), fetch="all")
-        n = 0
+        n = dup = failed = 0
         for r in regs or []:
-            if r.get("bale_user_id"):
-                db_execute(
-                    "UPDATE users SET total_points=COALESCE(total_points,0)+?, "
-                    "total_events_registered=COALESCE(total_events_registered,0)+1 "
-                    "WHERE bale_user_id=?", (ev["points_reward"], r["bale_user_id"]))
-                n += 1
+            if not r.get("bale_user_id"):
+                continue
+            try:
+                with db_transaction():
+                    res = pl.post_points(
+                        r["bale_user_id"], int(ev["points_reward"]), entry_type="award",
+                        source="event_finished", ref_key=f"evfin:{eid}:{r['bale_user_id']}",
+                        ref_table="event_registrations", ref_id=r["id"],
+                        actor_kind="admin", actor_id=uid, reason=f"پایان رویداد {eid}")
+                    if res.created:
+                        db_execute(
+                            "UPDATE users SET total_events_registered="
+                            "COALESCE(total_events_registered,0)+1 WHERE bale_user_id=?",
+                            (r["bale_user_id"],))
+                        n += 1
+                    else:
+                        dup += 1
+            except pl.LedgerError as e:
+                failed += 1
+                log(f"❌ امتیاز پایان رویداد {eid} برای {r['bale_user_id']}: {e.code}")
+        pl.sync_pending(limit=50)
         extra = f"\n🏆 {ev['points_reward']} امتیاز به {n} نفر داده شد"
+        if dup:
+            extra += f"\nℹ️ {dup} نفر قبلاً امتیاز این رویداد را گرفته بودند"
+        if failed:
+            extra += f"\n⚠️ {failed} نفر ثبت نشدند؛ با اجرای دوبارهٔ «پایان» تکمیل می‌شود"
 
     send(cid, f"✅ وضعیت تغییر کرد: {STATUS_LABELS.get(status)}{extra}")
     show_event_admin(cid, uid, eid)

@@ -19,7 +19,7 @@ TMP = tempfile.mkdtemp(prefix="nora7_")
 os.environ.update({
     "BOT_TOKEN": "1095412158:T", "SUPER_ADMIN_ID": "100000001",
     "SAFIR_API_KEY": "k", "SAFIR_BOT_ID": "317041514",
-    "PAYMENT_PROVIDER_TOKEN": "WALLET-AvKTlq6kt9pJEyaH",
+    "PAYMENT_PROVIDER_TOKEN": "WALLET-FakeFixtureNotReal01",
     "DB_PATH": f"{TMP}/t.db", "BACKUP_DIR": f"{TMP}/b", "IMPORT_DIR": f"{TMP}/i",
     "FILES_DIR": f"{TMP}/f", "PROFILES_DIR": f"{TMP}/f/p",
     "EVENTS_DIR": f"{TMP}/f/e", "LOG_DIR": f"{TMP}/l",
@@ -562,7 +562,7 @@ check(f"🐛 همه {len(statics)} دکمه پاسخ دادند", not silent, st
 
 print("\n[۱۵] 🛡️ محافظت پرداخت واقعی")
 import config as _cfg
-_real = "WALLET-AvKTlq6kt9pJEyaH"
+_real = "WALLET-FakeFixtureNotReal01"
 check("توکن واقعی تشخیص داده می‌شود",
       not _real.upper().startswith("WALLET-TEST"))
 for amt, should in [(5000, False), (10000, True), (350000, True),

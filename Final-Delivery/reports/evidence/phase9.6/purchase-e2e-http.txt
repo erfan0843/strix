@@ -1,0 +1,42 @@
+# فاز ۹.۶ §۳ — سناریوی HTTP خرید→دسترسی روی http://127.0.0.1:8000 (دادهٔ مصنوعی، اجرای 7685fc)
+✓ S0 رویداد برگزارشدهٔ مصنوعی: POST /api/admin/content/events → 200
+✓ S0 محصول پولی (پیش‌نویس): PUT recording → 200
+✓ S0 جلسه + منبع خریداری‌شده + فایل: sessions 201 · resources 201 · file 200
+✓ S0 محصول پولی بدون فرم خرید منتشر نمی‌شود: ready 200 · publish → 409 publish_blocked blockers=['purchase_form_required']
+✓ S0 فرم خرید پیش‌نویس کافی نیست: publish with draft form → 409 blockers=['purchase_form_not_published']
+✓ S0 روش کیف پول بله بدون پیکربندی امن منتشر نمی‌شود (fail-closed): create 201 · publish → 422 form_not_publishable
+✓ S0 وب‌هوک بله بدون پیکربندی: 503 (هیچ تأییدی ممکن نیست): → 503 bale_payment_not_configured
+✓ S0 انتشار پس از انتشار فرم؛ قیمت/روش فقط از فرم: form publish 200 · product publish 200 · commerce={"source": "form", "price": 1250000, "currency": "IRR", "free": false, "methods": ["card_transfer"], "form_id": "903af5b0-2d8c-425e-a7d7-199095acb227", "form_st
+✓ S0 قیمت دوم روی محصول پذیرفته نمی‌شود: PUT price → 409 commercial_settings_in_form
+✓ S0 فرم خرید منتشرشدهٔ دوم برای همان محصول رد می‌شود: publish → 409 purchase_form_already_published
+✓ S1 مهمان: محصول را می‌بیند، CTA ورود، فرم خرید همان فرم منتشرشده: → 200 cta=login purchase={"form_id": "903af5b0-2d8c-425e-a7d7-199095acb227", "source": "form", "methods": ["card_transfer"], "on_sale": true}
+✓ S1 مهمان: دانلود 401، فرم قابل مشاهده، ارسال بدون حساب 401: download 401 · form 200 · submit 401 account_required
+✓ S1 فرم منتشرنشده قابل خرید نیست: draft 404 · submit 409 form_not_open
+✓ S2 عضو: CTA خرید با form_id؛ ادعای رایگان 409؛ مسیر قدیمی سفارش 410 → فرم: cta=buy · claim 409 recording_not_free · orders 410 use_purchase_form
+✓ S2 ارسال بدون روش پرداخت 422؛ خرید کارت‌به‌کارت → awaiting_receipt: no-payment 422 payment_method_required · buy 200 awaiting_receipt
+✓ S2 دفتر داخلی: یک سفارش با مبلغ فرم: orders=1 amount=1250000
+✓ S2 رسید ≠ تأیید: پیش و پس از رسید دانلود 403، کتابخانه خالی: before 403 purchase_required · receipt 200 · after 403 purchase_required · library=0
+✓ S2 ارسال دوبارهٔ همان خرید در حالت معلق: سفارش/پاسخ دوم ساخته نمی‌شود: resubmit 200 همان پاسخ معلق برگشت · orders=1
+✓ S2 خرید ≠ ثبت‌نام: رویداد در «ثبت‌نام‌ها» به عنوان ثبت‌نام ظاهر نمی‌شود: registrations=0
+✓ S3 IDOR: سفارش دیگری 404، دانلود غریبه 403، کتابخانهٔ غریبه خالی، سفارش حساب دیگر 404، منبع زیر رویداد دیگر 404: 404/403/0/404/404
+✓ S3 عضو عادی نمی‌تواند رسید را تأیید کند: → 403
+✓ S4 مدیر (receipt_approve): تأیید 200، تکرار 409: approve 200  · repeat 409
+✓ S4 خریدار: 200 با بایت‌های درست، Range 206، 416، کتابخانه فعال: 200/206/416 library=1 state=active
+✓ S4 بدون افشای نام فیزیکی/مسیر در سرآیندها: content-disposition=inline; filename="mp4.mp4"; filename*=UTF-8''%D8%AC%D9%84%D8%B3%D9%87%20%DB%B1.mp4
+✓ S4 دفتر: همان یک سفارش، paid_manual: orders=1 status=paid_manual
+✓ S4 خرید ≠ حضور ≠ گواهی: registered/attended نادرست، گواهی صفر: participation={"registered": false, "attended": false, "pending": false} buyer=True certs_for_event=0
+✓ S4 خرید دوباره روی حق فعال: 409 access_already_active: → 409 access_already_active
+✓ S4 نشست تازه/ورود دوباره: بدون درخواست خرید مجدد (CTA view، دانلود 200): cta=view download=200
+✓ S5 رسید ردشده: دانلود 403، کتابخانه خالی، وضعیت سفارش rejected: buy 200 · receipt 200 · reject 200  · dl 403 purchase_required · order=rejected
+✓ S5 پس از رد، خرید تازه ممکن است: → 200 
+✓ S6 محصول رایگان: ادعا 201 بدون تراکنش، تکرار idempotent، سفارش صفر: claim 201 · again 201 created=False · orders=0
+✓ S7 توقف فروش: دارندهٔ قبلی همچنان 200، دیگران off_sale و فرم 409: pause 200 · holder dl 200 · stranger cta=off_sale · buy 409 recording_not_on_sale
+✓ S7 بازپرداخت فقط finance با مرجع: مدیر 403، بدون مرجع 422، مالک 200، تکرار 409؛ دسترسی سرور-سمت بسته (403 access_revoked): 403/422/200/409 · dl 403 access_revoked · library=revoked · cta=off_sale
+✓ S7 لغو دستی با دلیل اجباری (مدیر/مالک، idempotent): بدون دلیل 4xx، لغو 200، تکرار 200 همان ردیف، دانلود 403، کتابخانه revoked: no-reason 422 · revoke 200 · again 200 · dl 403 access_revoked · library=revoked
+✓ S8 منبع یوتیوب خریداری‌شده روی محصول پولی بدون تأیید ریسک: 409: → 409 external_exposure_acknowledgement_required
+✓ S9 ممیزی: مالک/مدیر 200 و read_only، عضو 403، مهمان 401: 200/200/403/401
+• S9 نتیجهٔ ممیزی پس از کل سناریو: severity={"error": 1, "warning": 0, "info": 0} counts={"paid_payment_without_access": 1}
+✓ S9 پس از کل سناریو هیچ ناسازگاری برای این محصول ثبت نشده (بازپرداخت و لغو سازگار): findings for this product = 0
+
+event=ev-6a3f7f66da recording=107063d2-d8da-402d-b426-ddcb2195e9ba form=903af5b0-2d8c-425e-a7d7-199095acb227 unpublished_form=e0171fe3-9a90-4e4d-859d-2ad7954fe838 order=4315c46e-e713-4c4d-9263-00398beb579a
+نتیجه: 37 ✓ · 0 ✗

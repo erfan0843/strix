@@ -416,8 +416,11 @@ async function load(store,hash,fixtureMode=true){
   const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);
   ok(new Set(ids).size===ids.length,'شناسه‌های یکتا در صفحه');
   ok(!/[a-z-]+:[ ]*[^;{}]+;\s*}/.test('')&&!/class="(search|sup-hero)"/.test(html),'کلاس به‌جاماندهٔ طرح پیشین نیست');
-  ok(html.includes('support.css?v=99')&&html.includes('support.js?v=99')&&html.includes('nora.css?v=100')
-      &&html.includes('public-data.js?v=109')&&html.includes('ui.js?v=118')&&html.includes('data.js?v=99'),
+  /* نسخهٔ بستهٔ مشترک (ui.js) عمداً اینجا سنجیده نمی‌شود؛ یکنواختی و
+     رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها یک‌جا بررسی
+     می‌شود تا با هر به‌روزرسانیِ بسته، این فایل بی‌دلیل نشکند. */
+  ok(html.includes('support.css?v=100')&&html.includes('support.js?v=100')&&html.includes('nora.css?v=105')
+      &&html.includes('public-data.js?v=115')&&html.includes('data.js?v=99'),
     'نسخهٔ دارایی‌های پشتیبانی و ناوبری به‌روز است');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');
   ok(html.includes('rel="preload" as="image" href="posters/'),'پوستر نخستین پیش‌بار می‌شود');

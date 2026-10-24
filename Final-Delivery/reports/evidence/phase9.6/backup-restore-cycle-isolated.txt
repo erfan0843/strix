@@ -1,0 +1,53 @@
+# فاز ۹.۶ §۶ — چرخهٔ پشتیبان/بازیابی کامل (DB + ذخیره‌سازی خصوصی) به مقصد ایزوله — preview، دادهٔ مصنوعی
+# منبع هرگز بازنویسی نمی‌شود؛ بازیابی فقط در <restore-target>
+
+## ۱) سلامت و فضای آزاد
+free=18019 MiB total=20823 MiB
+$ private-storage-backup.py verify --hash   (منبع)
+{'referenced': 8, 'ok': 8, 'missing': [], 'size_mismatch': [], 'orphans': [], 'stale_parts': [], 'hash_checked': True}
+exit=0
+
+## ۲) اسنپ‌شات پایگاه (sqlite backup API، سازگار با سرور زنده) + اسنپ‌شات فایل‌ها
+source rows= {'event_resources': 19, 'recording_access': 6, 'recording_orders': 9, 'form_payments': 9, 'form_responses': 10, 'upload_sessions': 8, 'user_notifications': 21}
+snapshot rows= {'event_resources': 19, 'recording_access': 6, 'recording_orders': 9, 'form_payments': 9, 'form_responses': 10, 'upload_sessions': 8, 'user_notifications': 21}
+db snapshot bytes= 991232 sha256= 1ac26be107a29ed9…
+$ private-storage-backup.py snapshot <snap>/private
+{"snapshot": "/tmp/p96/snap/private", "files": 8}
+exit=0
+manifest entries= 8
+
+## ۳) بازیابی در مقصد ایزوله (DB کپی‌شده + دایرکتوری خالی)
+$ NORA_DATABASE_URL=<restore>/nora.db NORA_PRIVATE_STORAGE_DIR=<restore>/private private-storage-backup.py verify   (پیش از بازیابی باید missing بدهد)
+{'referenced': 8, 'ok': 0, 'missing': 8, 'size_mismatch': 0}
+exit=1
+$ … private-storage-backup.py restore <snap>/private
+{
+  "restored": 8,
+  "skipped_existing": [],
+  "corrupt_in_snapshot": []
+}
+exit=0
+$ … private-storage-backup.py verify --hash   (پس از بازیابی)
+{'referenced': 8, 'ok': 8, 'missing': 0, 'size_mismatch': 0, 'orphans': 0, 'hash_checked': True}
+exit=0
+$ … restore دوباره (نباید چیزی را بازنویسی کند)
+{  "restored": 0,  "skipped_existing": [    "2026/10/1b9b6496da3d4cd1960d87335e19d1a0",    "2026/10/2aeed0fda48c41afa613
+
+exit=0
+
+## ۴) تفاوت قبل/بعد: sha256 همهٔ فایل‌های منبع در برابر مقصد
+source files= 8 restored files= 8 identical= True only_in_source= [] only_in_restored= [] hash_diff= []
+منبع دست‌نخورده: 8 فایل
+
+## ۵) سرور دوم روی نسخهٔ بازیابی‌شده (127.0.0.1:8010، DB و دایرکتوری مقصد) — دانلود و مجوز دوباره
+storage health (restored): ok local_disk
+منابع فایل روی رویداد QA: 5 · بزرگ: [('b2c9caa5', 25165824)]
+✓ مالک: a1471245 → 200 len=88 sha256 با متادیتای ردیف برابر
+✓ مالک: 35bf59a3 → 200 len=88 sha256 با متادیتای ردیف برابر
+✓ مالک: b2c9caa5 → 200 len=25165824 sha256 با متادیتای ردیف برابر
+✓ مالک: 89bae45d → 200 len=88 sha256 با متادیتای ردیف برابر
+✓ مالک: ecb38128 → 200 len=88 sha256 با متادیتای ردیف برابر
+✓ مهمان روی منبع منتشرشده → 401 (70B)
+✓ عضو بدون حق → 403 purchase_required
+✓ دارندهٔ قبلی (seed) روی محصول خودش → 200 access=purchased
+ممیزی روی نسخهٔ بازیابی‌شده: {'error': 0, 'warning': 0, 'info': 0} {}

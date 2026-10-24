@@ -938,3 +938,34 @@ def test_workflow_projection_queue_and_ack_methods(monkeypatch):
     assert get_calls[0][0].endswith("/api/bot/workflows/projection-pending")
     assert post_calls[0][0].endswith(f"/{task_id}/projection-applied")
     assert post_calls[1][0].endswith(f"/{task_id}/projection-failed")
+
+
+def test_notification_link_becomes_a_webapp_button_only_for_relative_pages(monkeypatch):
+    """فاز ۹.۴: پیوند نسبی سرور + وب‌اپ تنظیم‌شده → دکمهٔ مینی‌اپ؛ بدون وب‌اپ یا با نشانی ناامن → فقط متن."""
+    import shared_workflows
+
+    sent = []
+    delivered = []
+    monkeypatch.setattr(shared_workflows.shared_api, "mark_notification_delivered",
+                        lambda notice_id, user_id: delivered.append(notice_id) or True)
+    monkeypatch.setattr(shared_workflows.shared_api, "mark_notification_failed", lambda *args: "failed")
+    monkeypatch.setattr(shared_workflows, "send", lambda user_id, text, kb=None: sent.append((str(user_id), text, kb)) or {"ok": True})
+
+    def items(link):
+        return [{"id": "00000000-0000-4000-8000-000000000311", "bale_user_id": "73421", "kind": "recording_content",
+                 "title": "محتوای تازه", "body": "جلسهٔ دوم منتشر شد.", "file_refs": [], "link": link}]
+
+    monkeypatch.setattr(shared_workflows, "NORA_WEBAPP_URL", "https://nora.example")
+    monkeypatch.setattr(shared_workflows.shared_api, "list_pending_notifications", lambda limit=50: items("/event.html?id=ev-1#recording"))
+    assert shared_workflows.deliver_pending_notifications() == 1
+    assert sent[-1][2] == {"inline_keyboard": [[{"text": "🔗 باز کردن در مینی‌اپ",
+                                                 "web_app": {"url": "https://nora.example/event.html?id=ev-1#recording"}}]]}
+    for unsafe in ("https://evil.example/x", "//evil.example/x", "/api/public/events/e/resources/r/download", None):
+        monkeypatch.setattr(shared_workflows.shared_api, "list_pending_notifications", lambda limit=50, u=unsafe: items(u))
+        assert shared_workflows.deliver_pending_notifications() == 1
+        assert sent[-1][2] is None, unsafe
+    monkeypatch.setattr(shared_workflows, "NORA_WEBAPP_URL", "")
+    monkeypatch.setattr(shared_workflows.shared_api, "list_pending_notifications", lambda limit=50: items("/account.html#certificates"))
+    assert shared_workflows.deliver_pending_notifications() == 1
+    assert sent[-1][2] is None and sent[-1][1] == "محتوای تازه\n\nجلسهٔ دوم منتشر شد."
+    assert len(delivered) == 6  # every attempt acknowledged to the server; text-only is still a delivery

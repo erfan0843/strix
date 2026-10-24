@@ -1,0 +1,64 @@
+# چرخهٔ پشتیبان/بازیابی فایل‌های خصوصی روی سرور پیش‌نمایش (دادهٔ مصنوعی) — ۲۰۲۶-۱۰-۲۲
+# tools/private-storage-backup.py — verify --hash → snapshot → (حذف شبیه‌سازی‌شدهٔ یک فایل ارجاع‌شده) → verify (exit 1, missing) → restore → verify --hash (exit 0)
+
+$ private-storage-backup.py verify --hash
+{
+  "checked_at": "2026-10-22T08:54:06+00:00",
+  "storage_exists": true,
+  "referenced": 1,
+  "ok": 1,
+  "missing": [],
+  "size_mismatch": [],
+  "orphans": [],
+  "stale_parts": [],
+  "hash_checked": true,
+  "note": "orphans/stale parts are listed only; deleting them is a manual, audited operator decision"
+}
+exit=0
+
+$ private-storage-backup.py snapshot <snapshot-dir>
+{"snapshot": "<snapshot-dir>", "files": 1}
+exit=0
+
+# simulated loss: moved one referenced file out of the store
+
+$ private-storage-backup.py verify
+{
+  "checked_at": "2026-10-22T08:54:06+00:00",
+  "storage_exists": true,
+  "referenced": 1,
+  "ok": 0,
+  "missing": [
+    "2026/10/decc248ff4754b82bae081094f35c481"
+  ],
+  "size_mismatch": [],
+  "orphans": [],
+  "stale_parts": [],
+  "hash_checked": false,
+  "note": "orphans/stale parts are listed only; deleting them is a manual, audited operator decision"
+}
+exit=1
+
+$ private-storage-backup.py restore <snapshot-dir>
+{
+  "restored": 1,
+  "skipped_existing": [],
+  "corrupt_in_snapshot": []
+}
+exit=0
+
+$ private-storage-backup.py verify --hash
+{
+  "checked_at": "2026-10-22T08:54:07+00:00",
+  "storage_exists": true,
+  "referenced": 1,
+  "ok": 1,
+  "missing": [],
+  "size_mismatch": [],
+  "orphans": [],
+  "stale_parts": [],
+  "hash_checked": true,
+  "note": "orphans/stale parts are listed only; deleting them is a manual, audited operator decision"
+}
+exit=0
+

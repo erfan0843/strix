@@ -1,0 +1,29 @@
+# فاز ۹.۶ — اجرای واقعی ابزار ممیزی روی نسخهٔ آزمایشی (کپی DB پیش‌نمایش؛ دادهٔ مصنوعی)
+# فرمان: NORA_DATABASE_URL=sqlite:////tmp/…/audit.db python tools/recording-access-audit.py --json
+
+## ۱) پیش از تزریق
+sha256(db) = df6278a98a31e8ec…
+exit=0
+severity= {'error': 0, 'warning': 0, 'info': 0} counts= {} scanned= {'purchase_forms': 2, 'payments': 2, 'orders': 2, 'access_rows': 2, 'products': 3} read_only= True
+
+## ۲) تزریق ۷ ناسازگاری کنترل‌شده (فقط روی کپی آزمایشی)
+injected: a) access revoked under a settled payment  b) purchase-source access without order  c) paid order moved to another account  d) refunded order with still-active access  e) purchase form set to draft under a published paid product  f) duplicate settled payment  g) active-but-expired access
+sha256(db) after injection = c9e9950802e0d9b3…
+
+## ۳) اجرای ابزار پس از تزریق
+exit=2
+severity= {'error': 6, 'warning': 1, 'info': 1}
+counts= {"access_account_mismatch": 1, "order_account_mismatch": 1, "paid_payment_without_access": 1, "paid_payment_without_account": 1, "purchase_access_without_order": 1, "purchase_form_unpublished": 1, "refund_without_revoke": 1, "stale_active_status": 1}
+ - error paid_payment_without_access {'payment_id': 'c7e1dd5d…', 'form_id': 'e19a45ff…', 'response_id': 'efab427b…', 'recording_id': '4f08277c…', 'account_id': '4c70b96e…', 'access_state': 'revoked'}
+ - error paid_payment_without_account {'payment_id': '33333333…', 'form_id': 'e19a45ff…', 'response_id': None}
+ - error access_account_mismatch {'access_id': 'f6a22549…', 'order_id': '0e0c2d39…', 'access_account_id': '4c70b96e…', 'order_account_id': 'fe0f5287…'}
+ - error refund_without_revoke {'access_id': '4a3eaa6b…', 'order_id': '22222222…'}
+ - error purchase_access_without_order {'access_id': '11111111…', 'recording_id': '7b6d4b68…', 'account_id': '767d3121…', 'access_state': 'active'}
+ - info stale_active_status {'access_id': '44444444…', 'recording_id': '61d21a59…', 'expires_at': '2026-01-…'}
+ - error order_account_mismatch {'order_id': '0e0c2d39…', 'order_account_id': 'fe0f5287…', 'response_account_id': '4c70b96e…', 'response_id': 'efab427b…'}
+ - warning purchase_form_unpublished {'recording_id': '61d21a59…', 'form_ids': ['93581adc-33df-4dbc-a154-6279f9023bc3']}
+
+sha256(db) after audit run = c9e9950802e0d9b3… → UNCHANGED (ابزار چیزی ننوشت)
+
+## ۴) --fail-on warning
+exit=2

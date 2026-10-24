@@ -54,8 +54,8 @@ test('account introduction keeps the supplied display/body pairing and real font
     'body text should use Vazirmatn without synthesized bold or italic');
   assert.match(intro, /\.account-promo h2,\.account-promo h3,\.account-promo h4,[\s\S]*?\{font-family:var\(--f-h\)\}/,
     'all introduction headings should use the supplied Estedad variable font');
-  assert.match(intro, /\.account-promo-feature h4\{[^}]*font-weight:650;/,
-    'feature titles should use a real weight in the Estedad variable range');
+  assert.match(intro, /\.account-promo-copy h2\{[^}]*font-weight:700;/,
+    'the guest title should use a real weight in the Estedad variable range');
   assert.match(intro, /\.account-promo-copy>p\{[^}]*font-weight:400;/,
     'body text should use the actual regular Vazirmatn face');
   assert.doesNotMatch(intro, /@font-face|url\(["']?https?:/i,

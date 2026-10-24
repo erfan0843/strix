@@ -1,0 +1,212 @@
+[
+  {
+    "ok": true,
+    "name": "intro banner visible 390x844 light",
+    "detail": "{\"links\":[[\"events.html\",\"home.html#articles\"]],\"imgs\":[{\"src\":\"home-banner.webp\",\"ok\":true}]}"
+  },
+  {
+    "ok": true,
+    "name": "intro CTAs point to real pages",
+    "detail": "[[\"events.html\",\"home.html#articles\"]]"
+  },
+  {
+    "ok": true,
+    "name": "intro background image loaded",
+    "detail": "[{\"src\":\"home-banner.webp\",\"ok\":true}]"
+  },
+  {
+    "ok": true,
+    "name": "intro has no slide controls",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no horizontal scroll 390",
+    "detail": "390/390"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors 390 light",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no new API calls",
+    "detail": "/api/public/site-content"
+  },
+  {
+    "ok": true,
+    "name": "primary CTA navigates to events.html",
+    "detail": "http://127.0.0.1:8000/events.html"
+  },
+  {
+    "ok": true,
+    "name": "secondary CTA scrolls to articles section",
+    "detail": "{\"y0\":0,\"y1\":{\"y\":2768,\"hash\":\"#articles\",\"top\":82.40625}}"
+  },
+  {
+    "ok": true,
+    "name": "CTA is keyboard focusable and in view",
+    "detail": "{\"tag\":\"A\",\"text\":\"دیدن رویدادها\",\"inView\":true}"
+  },
+  {
+    "ok": true,
+    "name": "intro banner visible 1280x800 light",
+    "detail": "{\"links\":[[\"events.html\",\"home.html#articles\"]],\"imgs\":[{\"src\":\"home-banner.webp\",\"ok\":true}]}"
+  },
+  {
+    "ok": true,
+    "name": "intro CTAs point to real pages",
+    "detail": "[[\"events.html\",\"home.html#articles\"]]"
+  },
+  {
+    "ok": true,
+    "name": "intro background image loaded",
+    "detail": "[{\"src\":\"home-banner.webp\",\"ok\":true}]"
+  },
+  {
+    "ok": true,
+    "name": "intro has no slide controls",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no horizontal scroll 1280",
+    "detail": "1280/1280"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors 1280 light",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no new API calls",
+    "detail": "/api/public/site-content"
+  },
+  {
+    "ok": true,
+    "name": "intro banner visible 390x844 dark",
+    "detail": "{\"links\":[[\"events.html\",\"home.html#articles\"]],\"imgs\":[{\"src\":\"home-banner.webp\",\"ok\":true}]}"
+  },
+  {
+    "ok": true,
+    "name": "intro CTAs point to real pages",
+    "detail": "[[\"events.html\",\"home.html#articles\"]]"
+  },
+  {
+    "ok": true,
+    "name": "intro background image loaded",
+    "detail": "[{\"src\":\"home-banner.webp\",\"ok\":true}]"
+  },
+  {
+    "ok": true,
+    "name": "intro has no slide controls",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no horizontal scroll 390",
+    "detail": "390/390"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors 390 dark",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no new API calls",
+    "detail": "/api/public/site-content"
+  },
+  {
+    "ok": true,
+    "name": "intro banner visible 1280x800 dark",
+    "detail": "{\"links\":[[\"events.html\",\"home.html#articles\"]],\"imgs\":[{\"src\":\"home-banner.webp\",\"ok\":true}]}"
+  },
+  {
+    "ok": true,
+    "name": "intro CTAs point to real pages",
+    "detail": "[[\"events.html\",\"home.html#articles\"]]"
+  },
+  {
+    "ok": true,
+    "name": "intro background image loaded",
+    "detail": "[{\"src\":\"home-banner.webp\",\"ok\":true}]"
+  },
+  {
+    "ok": true,
+    "name": "intro has no slide controls",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no horizontal scroll 1280",
+    "detail": "1280/1280"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors 1280 dark",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "no new API calls",
+    "detail": "/api/public/site-content"
+  },
+  {
+    "ok": true,
+    "name": "published banners replace intro; draft/inactive/expired hidden",
+    "detail": "[\"بنر آزمایشی ۱ (دادهٔ تست)\",\"بنر آزمایشی ۲ (دادهٔ تست)\"]"
+  },
+  {
+    "ok": true,
+    "name": "slide controls visible for 2 banners",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "next control moves to slide 2",
+    "detail": "{\"tf\":\"translateX(100%)\",\"on\":1}"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors with published banners",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "kind labels: sponsored→تبلیغ, partner→حامی, invalid→none",
+    "detail": "[[\"تبلیغ\"],[\"حامی\"],[]]"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors with kind labels",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "banner_settings.enabled=false hides intro too",
+    "detail": "{\"source\":\"server\",\"hidden\":true,\"intro\":false,\"n\":0,\"titles\":[],\"kinds\":[],\"links\":[],\"navHidden\":false,\"dotsHidden\":false,\"scrollW\":390,\"innerW\":390,\"imgs\":[]}"
+  },
+  {
+    "ok": true,
+    "name": "API unavailable: banner hidden, status card shown",
+    "detail": "{\"s\":{\"source\":\"unavailable\",\"hidden\":true,\"intro\":false,\"n\":0,\"titles\":[],\"kinds\":[],\"links\":[],\"navHidden\":false,\"dotsHidden\":false,\"scrollW\":390,\"innerW\":390,\"imgs\":[]},\"status\":{\"hidden\":false,\"title\":\"محتوای زنده در دسترس نیست\"}}"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors when API unavailable",
+    "detail": "Failed to load resource: net::ERR_FAILED"
+  },
+  {
+    "ok": true,
+    "name": "nothing published yet: intro visible + status card",
+    "detail": "{\"s\":{\"source\":\"empty\",\"hidden\":false,\"intro\":true},\"status\":{\"hidden\":false,\"title\":\"هنوز محتوای عمومی منتشر نشده است\"}}"
+  },
+  {
+    "ok": true,
+    "name": "no JS errors in empty state",
+    "detail": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  }
+]

@@ -380,25 +380,53 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.all('#shMenu .mrow[data-uijump]').every(row=>{
     const section=p.doc.getElementById(row.dataset.uijump); return !!section&&!section.hidden;
   }), 'هیچ ردیف منو به بخش پنهان یا خالی هدایت نمی‌شود');
-  p.click('#logoWall [data-partner="partner-live-1"]'); await wait(40);
-  ok(!p.doc.querySelector('#partnerBody a[href*="cooperation"]')&&p.doc.querySelector('#partnerBody [data-close]')!==null,
-    'کارت نهاد به بخش حذف‌شده پیوند نمی‌دهد و دکمهٔ بستن دارد');
-  ok(/همراه برنامه‌های آموزشی/.test(p.txt('#partnerBody'))&&/برگزاری کارگاه/.test(p.txt('#partnerBody'))
-      &&/مهر ۱۴۰۵/.test(p.txt('#partnerBody'))&&/آموزش/.test(p.txt('#partnerBody'))
-      &&/شرح همکاری/.test(p.txt('#partnerBody')),
-    'ورقهٔ نهاد معرفی، نوع و زمان همکاری، حوزه‌ها و شرح کامل را نشان می‌دهد');
-  ok(p.doc.querySelector('#partnerBody a[data-partner-site][aria-disabled="true"]')
-      &&p.doc.querySelector('#partnerBody a[data-partner-contact="mail"][aria-disabled="true"]'),
-    'وبگاه و رایانامهٔ نهاد در پیش‌نمایش محلی زیر نگهبان پیوند بیرونی‌اند');
-  ok(!p.doc.querySelector('#partnerBody a[href^="javascript:"]')
-      &&!p.doc.querySelector('#partnerBody a[data-partner-contact="other"]'),
-    'نشانی ناامنِ راه تماس به پیوند اجرایی تبدیل نمی‌شود');
-  p.click('#partnerBody [data-close]');
-  p.click('#evTop .mi-partner[data-partner="partner-live-1"]'); await wait(40);
-  ok(p.txt('#partnerBody').includes('نهاد همکار منتشرشده')
-      &&p.doc.querySelector('#partnerBody [data-close]'),
-    'پیوند روی کارت رویداد، برگهٔ همان نهاد همکار را باز می‌کند');
-  p.click('#partnerBody [data-close]');
+  ok(p.doc.querySelector('#logoWall a.logo[href="partner.html?id=partner-live-1"]')!==null
+      &&p.doc.querySelector('#footLogos a[href="partner.html?id=partner-live-1"]')!==null
+      &&p.doc.querySelector('#evTop a.mi-partner[href="partner.html?id=partner-live-1"]')!==null
+      &&!p.doc.querySelector('#shPartner')&&!p.doc.querySelector('#logoWall button'),
+    'کارت نهاد در خانه، نشان پایین صفحه و برچسب نهاد روی کارت رویداد همگی پیوند واقعی به صفحهٔ اختصاصی همان نهادند؛ ورقهٔ قدیمی حذف شده');
+  const partnerPage=await load('partner.html',store,'?id=partner-live-1',serverFetch,{fixtureMode:false});
+  ok(partnerPage.errors.length===0&&partnerPage.window.NORA_PUBLIC_SOURCE==='server'
+      &&partnerPage.doc.querySelector('.partner-profile h1')?.textContent==='نهاد همکار منتشرشده'
+      &&partnerPage.all('h1').length===1&&partnerPage.window.document.title.includes('نهاد همکار منتشرشده'),
+    'صفحهٔ اختصاصی نهاد از snapshot عمومی سرور همان شناسه را می‌خواند و یک h1 معنادار دارد');
+  ok(/نهاد فرهنگی/.test(partnerPage.txt('.partner-heading'))&&/همراه برنامه‌های آموزشی/.test(partnerPage.txt('.partner-lead'))
+      &&/برگزاری کارگاه/.test(partnerPage.txt('.partner-facts'))&&/مهر ۱۴۰۵/.test(partnerPage.txt('.partner-facts'))
+      &&partnerPage.all('.partner-tags .tag').map(tag=>tag.textContent).join()==='آموزش,کارگاه'
+      &&/شرح همکاری/.test(partnerPage.txt('.partner-desc')),
+    'نوع، معرفی کوتاه، نوع و زمان همکاری، حوزه‌ها و شرح کامل نهاد نمایش داده می‌شوند');
+  const siteLink=partnerPage.doc.querySelector('[data-partner-site]'), mailLink=partnerPage.doc.querySelector('[data-partner-contact="mail"]');
+  ok(siteLink&&mailLink&&(siteLink.getAttribute('aria-disabled')==='true'||(siteLink.getAttribute('href')==='https://partner.example.org/'
+      &&siteLink.getAttribute('rel')==='noopener noreferrer'&&siteLink.getAttribute('target')==='_blank')),
+    'وبگاه رسمی و رایانامهٔ نهاد ساخته می‌شوند و پیوند بیرونی یا با noopener است یا زیر نگهبان پیوند بیرونی پیش‌نمایش محلی');
+  ok(!partnerPage.doc.querySelector('a[href^="javascript:"]')&&!partnerPage.doc.querySelector('[data-partner-contact="other"]'),
+    'نشانی ناامن راه تماس در صفحهٔ نهاد به پیوند اجرایی تبدیل نمی‌شود');
+  ok(partnerPage.doc.querySelector('a.partner-event[href="event.html?id=event-live-1"]')!==null
+      &&partnerPage.all('a.partner-event').length===1,
+    'فقط رویدادی که در داده صریحاً partnerId همین نهاد را دارد به‌عنوان رویداد مرتبط فهرست می‌شود');
+  ok(partnerPage.doc.querySelector('.partner-breadcrumb a[href="home.html#partners"]')!==null
+      &&partnerPage.doc.querySelector('.partner-footer-nav a[href="home.html#partners"]')!==null
+      &&partnerPage.doc.querySelector('.topbar a[href="home.html#partners"]')!==null,
+    'مسیر بازگشت به خانه و بخش نهادهای همکار در بالای صفحه، مسیر صفحه و پایین مقاله وجود دارد');
+  const xssPartnerContent={...serverContent,partners:[{id:'partner-xss',n:'<img src=x onerror=alert(1)>',type:'<b>نوع</b>',
+    d:'<script>alert(1)</script>',logo:'javascript:alert(1)',href:'javascript:alert(1)',g:'url(javascript:alert(1))',
+    links:[{k:'web',v:'javascript:alert(1)'},{k:'mail',v:'<svg onload=alert(1)>@x.y'}]}]};
+  const xssPage=await load('partner.html',makeStore({}),'?id=partner-xss',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:xssPartnerContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(xssPage.errors.length===0&&xssPage.doc.querySelector('.partner-profile h1')?.textContent==='<img src=x onerror=alert(1)>'
+      &&!xssPage.doc.querySelector('.partner-profile img')&&!xssPage.doc.querySelector('.partner-profile script')
+      &&!xssPage.doc.querySelector('[data-partner-site]')&&xssPage.all('.partner-contact').length===0
+      &&xssPage.doc.querySelector('.partner-logo').getAttribute('style')==='--g:linear-gradient(135deg,#2E6B7A,#0B2447)'
+      &&xssPage.txt('.partner-logo')==='<i',
+    'نام/شرح/لوگو/پیوند مخرب نهاد فقط به‌صورت متن امن نمایش داده می‌شود؛ هیچ تصویر، اسکریپت یا پیوند اجرایی ساخته نمی‌شود');
+  const missingPartner=await load('partner.html',store,'?id=partner-does-not-exist',serverFetch,{fixtureMode:false});
+  ok(missingPartner.errors.length===0&&missingPartner.doc.querySelector('.partner-not-found[role="status"] h1')?.textContent==='این نهاد همکار در دسترس نیست'
+      &&missingPartner.doc.querySelector('.partner-not-found a[href="home.html#partners"]')!==null,
+    'شناسهٔ ناموجود در صفحهٔ نهاد، وضعیت «در دسترس نیست» با مسیر بازگشت نشان می‌دهد');
+  const offlinePartner=await load('partner.html',makeStore({}),'?id=partner-live-1','',{fixtureMode:false});
+  ok(offlinePartner.errors.length===0&&offlinePartner.window.NORA_PUBLIC_SOURCE==='unavailable'
+      &&offlinePartner.doc.querySelector('.partner-not-found h1')?.textContent==='محتوای زنده در دسترس نیست',
+    'خطای API در صفحهٔ نهاد پیام انسانی متفاوت از «پیدا نشد» می‌دهد و خطای JavaScript ندارد');
   const eventDetail=await load('event.html',store,'?id=event-live-1',serverFetch,{fixtureMode:false});
   ok(eventDetail.errors.length===0&&eventDetail.doc.querySelector('.event-detail'),'صفحهٔ اختصاصی رویداد منتشرشده سالم رندر شد');
   const eventLayout=eventDetail.doc.querySelector('.event-layout'),eventChildren=[...eventLayout.children],
@@ -409,8 +437,8 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&!/\.event-register\{[^}]*order\s*:\s*-1/i.test(eventStyles)
       &&eventStyles.includes('#ctabar{display:none!important}'),
     'جزئیات کامل پیش از پنل ثبت‌نام دیده می‌شوند و ثبت‌نام همان رویداد پس از آن در دسترس است');
-  ok(eventDetail.doc.querySelector('a.event-partner-link[href="home.html#partner=partner-live-1"]')?.textContent.includes('نهاد همکار منتشرشده'),
-    'صفحهٔ عمومی رویداد، پیوند نهاد همکار را به برگهٔ همان نهاد می‌رساند');
+  ok(eventDetail.doc.querySelector('a.event-partner-link[href="partner.html?id=partner-live-1"]')?.textContent.includes('نهاد همکار منتشرشده'),
+    'صفحهٔ عمومی رویداد، پیوند نهاد همکار را به صفحهٔ اختصاصی همان نهاد می‌رساند');
   const certContent={...serverContent,events:[{id:'event-cert-live',t:'رویداد آرشیوی دارای گواهی',
     kind:'کارگاه',privacy:'public',past:true,cert:true,certMin:85,certNote:'حضور در جلسهٔ پایانی',media:[]}]};
   const certFetch=async path=>path==='/api/public/site-content'
@@ -438,7 +466,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const updatedFetch=async path=>path==='/api/public/site-content'
     ?{ok:true,json:async()=>({content:updatedContent})}:{ok:false,status:404,json:async()=>({})};
   const editedPublic=await load('event.html',editedPublicStore,'?id=event-edit-public',updatedFetch,{fixtureMode:false});
-  ok(editedPublic.doc.querySelector('a.event-partner-link[href="home.html#partner=partner-live-1"]')!==null,
+  ok(editedPublic.doc.querySelector('a.event-partner-link[href="partner.html?id=partner-live-1"]')!==null,
     'صفحهٔ عمومی تغییر نهاد را از snapshot سروریِ منتشرشده می‌خواند');
   const teacherProfile=await load('person.html',store,'?id=person-live-1',serverFetch,{fixtureMode:false});
   ok(teacherProfile.errors.length===0&&teacherProfile.doc.querySelector('.person-profile')
@@ -466,11 +494,111 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   }), 'در نبود محتوای منتشرشده، منو پیوندی به بخش پنهان نمی‌سازد');
   ok(!emptyHome.txt('#shMenu').includes('· نمونه')&&!emptyHome.txt('#shMenu').includes('پیش‌نمایش'),
     'منوی عمومی عنوان یا دادهٔ نمونه نشان نمی‌دهد');
+  const noBannerContent={...serverContent,banners:[]};
+  const introHome=await load('home.html',makeStore({
+    'nora-uiset':JSON.stringify({v:1,home:{bnr:0},bnr:{on:0},bnrAdd:[{t:'بنر محلی ساختگی'}]})
+  }),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:noBannerContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  const introSlide=introHome.doc.querySelector('#bsdeck .bs');
+  ok(introHome.errors.length===0&&introHome.window.NORA_PUBLIC_SOURCE==='server'&&introHome.doc.querySelector('#bnr').hidden===false
+      &&introHome.doc.querySelector('#bnr').classList.contains('is-intro')&&introSlide?.classList.contains('bs-intro')
+      &&introHome.all('#bsdeck .bs').length===1&&introHome.doc.querySelector('#bdots').hidden&&introHome.doc.querySelector('#bnr .bnav').hidden,
+    'وقتی سرور بنر منتشرشده ندارد، بنر معرفی نورا (تک‌اسلاید، بدون کنترل چرخش) دیده می‌شود');
+  ok(!introHome.txt('#bsdeck').includes('بنر محلی')&&!/\d/.test(introHome.txt('#bsdeck').replace(/[۰-۹]/g,'0').replace(/0/g,''))
+      &&JSON.stringify(introHome.all('#bsdeck .bacts a').map(a=>a.getAttribute('href')))===JSON.stringify(['events.html','home.html#articles'])
+      &&introSlide.querySelector('.bs-media img')?.getAttribute('src')==='home-banner.webp',
+    'بنر معرفی فقط به مسیرهای واقعی نورا پیوند می‌دهد و از تنظیم محلی مرورگر یا دادهٔ ساختگی تأثیر نمی‌گیرد');
+  const disabledContent={...noBannerContent,banner_settings:{...serverContent.banner_settings,enabled:false}};
+  const disabledHome=await load('home.html',makeStore({}),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:disabledContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(disabledHome.errors.length===0&&disabledHome.doc.querySelector('#bnr').hidden&&disabledHome.all('#bsdeck .bs').length===0,
+    'خاموش‌کردن بنر از تنظیمات مالک، بنر معرفی را هم پنهان می‌کند');
+  const kindContent={...serverContent,banners:[
+    {id:'banner-ad',status:'published',active:true,order:0,t:'بنر حامی‌شده',kind:'sponsored',theme:'amber'},
+    {id:'banner-partner',status:'published',active:true,order:1,t:'بنر نهاد همکار',kind:'partner'},
+    {id:'banner-plain',status:'published',active:true,order:2,t:'اطلاعیهٔ ساده',kind:'javascript:x'}]};
+  const kindHome=await load('home.html',makeStore({}),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:kindContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(kindHome.errors.length===0&&!kindHome.doc.querySelector('#bnr').classList.contains('is-intro')
+      &&JSON.stringify(kindHome.all('#bsdeck .bs').map(slide=>[slide.classList.contains('bs-sponsored')||slide.classList.contains('bs-partner'),
+        slide.querySelector('.btag-kind')?.textContent||'']))===JSON.stringify([[true,'تبلیغ'],[true,'حامی'],[false,'']])
+      &&!kindHome.doc.querySelector('#bdots').hidden,
+    'نوع بنر (تبلیغ/حامی) با برچسب شفاف نمایش داده می‌شود و نوع نامعتبر برچسبی نمی‌سازد');
+  const unpublishedHome=await load('home.html',makeStore({}),'',async()=>({ok:false,status:404,json:async()=>({detail:'site_content_not_published'})}),{fixtureMode:false});
+  ok(unpublishedHome.errors.length===0&&unpublishedHome.window.NORA_PUBLIC_SOURCE==='empty'
+      &&unpublishedHome.doc.querySelector('#bnr').hidden===false&&unpublishedHome.doc.querySelector('#bnr').classList.contains('is-intro')
+      &&unpublishedHome.doc.querySelector('#publicContentStatus').hidden===false
+      &&unpublishedHome.txt('#publicContentStatus').includes('هنوز محتوای عمومی منتشر نشده'),
+    'سرور سالم ولی بدون محتوای منتشرشده: وضعیت «خالی» با بنر معرفی و کارت توضیح نمایش داده می‌شود');
   const preserved=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,home:{about:0,events:0}})}));
   ok(preserved.window.NORA_UI.uiSet().home.about===0&&preserved.window.NORA_UI.uiSet().home.events===0
       &&!preserved.doc.getElementById('about')&&preserved.doc.querySelector('#evSec').hidden,
     'تنظیم‌های ذخیره‌شده حفظ می‌شوند و بخش حذف‌شده در خانه ساخته نمی‌شود');
 
+  /* ── فاز ۷: خانه با وضعیت ثبت‌نام سرور، گروه‌بندی، شمارشگر مشترک و بنر وصل به رویداد ── */
+  {
+    const serverNow=new Date('2026-11-01T10:00:00Z');
+    const iso=h=>new Date(serverNow.getTime()+h*3600_000).toISOString();
+    const content={events:[
+      {id:'p7-open',t:'کارگاه با ثبت‌نام باز',kind:'کارگاه',privacy:'public',when:'۱۲ آبان',on:'۱۴۰۵/۰۸/۱۲',d:'شرح',price:0,forms:[{id:'f-open',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(48),regClosesAt:iso(26.5),registration:{state:'open',reason:'',lifecycle:'scheduled',closesAt:iso(26.5),countdownTo:iso(26.5),startsAt:iso(48),startsIn:iso(48)}},
+      {id:'p7-wait',t:'نشست با ثبت‌نام آینده',kind:'نشست',privacy:'public',when:'۲۰ آبان',on:'۱۴۰۵/۰۸/۲۰',d:'شرح',price:0,forms:[{id:'f-wait',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(240),regOpensAt:iso(72),registration:{state:'not_started',reason:'time',lifecycle:'scheduled',opensAt:iso(72),countdownTo:iso(72),startsAt:iso(240),startsIn:iso(240)}},
+      {id:'p7-full',t:'اردوی پر',kind:'اردو',privacy:'public',when:'۲۵ آبان',on:'۱۴۰۵/۰۸/۲۵',d:'شرح',price:0,forms:[{id:'f-full',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(400),registration:{state:'full',reason:'capacity',lifecycle:'scheduled',countdownTo:'',startsAt:iso(400),startsIn:iso(400)}},
+      {id:'p7-cancel',t:'جلسهٔ لغوشده',kind:'نشست',privacy:'public',when:'۲۸ آبان',on:'۱۴۰۵/۰۸/۲۸',d:'شرح',price:0,lifecycle:'cancelled',
+        startsAt:iso(500),registration:{state:'cancelled',reason:'cancelled',lifecycle:'cancelled',countdownTo:''}},
+      {id:'p7-ended',t:'کارگاه تمام‌شده',kind:'کارگاه',privacy:'public',when:'۱ مهر',on:'۱۴۰۵/۰۷/۰۱',d:'شرح',price:0,
+        registration:{state:'ended',reason:'time',lifecycle:'scheduled',countdownTo:''}}
+    ],people:[],partners:[],articles:[],library:[],cooperation:[],banners:[
+      {id:'p7-banner-event',status:'published',active:true,order:1,t:'بنر رویداد',eventId:'p7-open',countdown:'reg_close',countdownTo:iso(26.5),countdownEnded:false,
+        afterEnd:'details',href:'event.html?id=p7-open',primaryLabel:'جزئیات',event:{id:'p7-open',t:'کارگاه با ثبت‌نام باز',when:'۱۲ آبان',startsAt:iso(48),regClosesAt:iso(26.5),state:'open',lifecycle:'scheduled'}},
+      {id:'p7-banner-ended',status:'published',active:true,order:2,t:'بنر تمام‌شده',eventId:'p7-full',countdown:'reg_close',countdownTo:'',countdownEnded:true,
+        afterEnd:'message',afterEndText:'ظرفیت این دوره تکمیل شد',href:'event.html?id=p7-full',primaryLabel:'جزئیات',event:{id:'p7-full',t:'اردوی پر',when:'۲۵ آبان',state:'full',lifecycle:'scheduled'}},
+      {id:'p7-banner-hidden',status:'published',active:true,order:3,t:'بنر پایان‌یافتهٔ پنهان',eventId:'p7-full',countdown:'reg_close',countdownTo:'',countdownEnded:true,afterEnd:'hide'}
+    ],banner_settings:{enabled:true,auto_rotate:false,interval_seconds:7,show_controls:true}};
+    const fetch7=async path=>path==='/api/public/site-content'
+      ?{ok:true,json:async()=>({content,server_time:serverNow.toISOString()})}:{ok:false,status:404,json:async()=>({})};
+    const p=await load('home.html',makeStore(),'',fetch7);
+    ok(p.errors.length===0,'خانهٔ فاز ۷ بی‌خطا بار شد'+(p.errors.length?': '+p.errors[0]:''));
+    ok(p.window.NORA_SERVER_CLOCK&&Math.abs(p.window.NORA_COUNTDOWN.serverNow()-serverNow.getTime())<5000,
+      'ساعت مرجع خانه از server_time پاسخ گرفته می‌شود، نه از ساعت مرورگر');
+    const card=id=>p.doc.querySelector(`#evSec .evc-cov[data-ev="${id}"]`)?.closest('.evcard');
+    const openCard=card('p7-open');
+    ok(openCard&&openCard.querySelector('.reg-state.live')?.textContent==='ثبت‌نام باز است'
+        &&/تا پایان ثبت‌نام/.test(openCard.querySelector('[data-countdown]')?.textContent||'')
+        &&/۱ روز و ۲ ساعت/.test(openCard.querySelector('.nora-countdown-value')?.textContent||''),
+      'کارت ثبت‌نام باز: نشان وضعیت و شمارشگر تا مهلت، محاسبه‌شده با ساعت سرور');
+    ok(openCard.querySelector('.evc-cta')?.getAttribute('href')==='event.html?id=p7-open'&&/ثبت‌نام و جزئیات/.test(openCard.querySelector('.evc-cta').textContent),
+      'دکمهٔ کارت باز به صفحهٔ جزئیات می‌رود، نه مستقیم به فرم');
+    ok(card('p7-wait')?.querySelector('.reg-state.wait')&&/تا آغاز ثبت‌نام/.test(card('p7-wait').textContent),
+      'کارت ثبت‌نام آغازنشده: نشان انتظار و شمارش تا آغاز ثبت‌نام');
+    ok(card('p7-full')?.querySelector('.reg-state.stop')?.textContent==='ظرفیت تکمیل شد'&&/تا شروع رویداد/.test(card('p7-full').textContent)
+        &&!/ثبت‌نام و جزئیات/.test(card('p7-full').querySelector('.evc-cta').textContent),
+      'کارت ظرفیت تکمیل: نشان توقف، فقط شمارش تا شروع، بدون دعوت به ثبت‌نام');
+    ok(card('p7-cancel')?.querySelector('.reg-state.stop')?.textContent==='لغو شد'&&!card('p7-cancel').querySelector('[data-countdown]'),
+      'رویداد لغوشده: نشان لغو و هیچ شمارشگری');
+    ok(!card('p7-ended')&&p.doc.querySelector('#pastList .evc-cov[data-ev="p7-ended"]'),
+      'پایان‌یافته طبق سرور از ویترین خارج و در برگزارشده‌ها است');
+    ok(p.all('#evTop .evcard').length===3&&p.all('#evTop .evc-cov')[0].dataset.ev==='p7-open',
+      'ویترین: اول ثبت‌نام باز، سپس بقیه؛ حداکثر سه کارت');
+    ok(p.doc.querySelector('#evSoonGroup').hidden===false&&p.all('#evSoon .evc-cov').map(e=>e.dataset.ev).join(',')==='p7-cancel'
+        &&p.doc.querySelector('#evOpenGroup').hidden===true,
+      'گروه «پیش رو» فقط کارت‌های باقی‌مانده به ترتیب تاریخ؛ گروه خالی «ثبت‌نام باز» پنهان است');
+    const banners=p.all('#bsdeck .bs');
+    ok(banners.length===2&&!p.doc.querySelector('#bsdeck').textContent.includes('بنر پایان‌یافتهٔ پنهان'),
+      'بنر پایان‌یافته با رفتار «پنهان» ساخته نمی‌شود');
+    ok(/تا پایان ثبت‌نام/.test(banners[0].querySelector('.btimer [data-countdown]')?.textContent||'')&&banners[0].querySelector('.bmeta')?.textContent==='۱۲ آبان',
+      'بنر وصل به رویداد: شمارشگر از مهلت خود رویداد و زمان رویداد از رکورد رویداد');
+    ok(banners[1].querySelector('.bnote')?.textContent==='ظرفیت این دوره تکمیل شد'&&banners[1].querySelector('.nora-countdown.is-ended')
+        &&banners[1].querySelector('.bacts a')?.getAttribute('href')==='event.html?id=p7-full'&&!banners[1].querySelector('a[href*="form.html"]'),
+      'بنر پایان‌یافته با رفتار «متن»: متن پایان، نشان پایان‌یافته و دکمه فقط به جزئیات');
+    const shares=[]; p.window.shareItem=async item=>{shares.push(item); return true};
+    const shareBtn=p.doc.createElement('button'); shareBtn.dataset.share='p7-open'; p.doc.body.appendChild(shareBtn); shareBtn.click(); await wait(20);
+    ok(shares.length===1&&shares[0].title==='کارگاه با ثبت‌نام باز'&&!/نمونه/.test(shares[0].title+shares[0].text)&&/event\.html\?id=p7-open$/.test(shares[0].url),
+      'اشتراک رویداد از خانه با عنوان و نشانی واقعی، بدون واژهٔ «نمونه»');
+    p.window.close();
+  }
 }
 
 /* ── ۲) فرم: پاسخ محلی، بدون روش پرداخت/رسید/بلیت ── */
@@ -480,6 +608,14 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     cards:[{id:'smoke-card',bank:'بانک نمونه',no:'4111111111111111',name:'دارندهٔ نمونه',cap:5,dailyMax:500000,used:0,usedAmount:0}]};
   const store=makeStore({'nora-finance':JSON.stringify(finance)}), p=await load('form.html',store,'?guests=0');
   ok(p.errors.length===0,'فرم بی‌خطا بار شد');
+  {
+    const t=p.doc.getElementById('toast'), icon=t&&t.querySelector('svg.i');
+    p.window.toast('ذخیره انجام نشد؛ دوباره تلاش کن.','error');
+    const errorHidesCheck=!!icon&&icon.style.display==='none'&&t.classList.contains('is-error')&&t.textContent.includes('ذخیره انجام نشد');
+    p.window.toast('پاسخت بازیابی شد');
+    const successRestoresCheck=icon.style.display===''&&!t.classList.contains('is-error');
+    ok(errorHidesCheck&&successRestoresCheck,'توست خطا نشانهٔ ✓ موفقیت را نشان نمی‌دهد و توست بعدی آن را برمی‌گرداند');
+  }
   const visibleLandingText=[p.txt('#topTitle'),p.txt('#evTitle'),p.txt('#next'),
     ...['formLead','evMeta','landingCount','footerLocalNotice','formMeta'].map(id=>{const el=p.doc.getElementById(id);return el&&(el.hidden||el.style.display==='none')?'':el?.textContent||''})].join(' ');
   ok(p.doc.querySelector('#prev').hidden&&p.doc.querySelector('#botbar').classList.contains('start-mode')
@@ -882,8 +1018,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(page.txt('#teamBox').includes('از API این صفحه پشتیبانی نمی‌شود')
     &&!page.txt('#teamBox').includes('خانم رستگار'),'فهرست کارشناسان ساختگی در تجربهٔ تولیدی نمایش داده نمی‌شود');
   page.click('[data-go="fKartabl"]');
-  ok(page.txt('#kartabl').includes('به API متصل نیست')&&!page.txt('#kartabl').includes('سارا محمدی'),
-    'کارتابل فاقد API توضیح روشن دارد و رسید نمونه نشان نمی‌دهد');
+  ok(page.txt('#kartabl').includes('کارتابل مشترک پنل مدیران')&&!!page.doc.querySelector('#kartabl a[href="admin.html#inbox"]')
+    &&!page.txt('#kartabl').includes('سارا محمدی'),
+    'کارتابل فاقد API به کارتابل مشترک پنل پیوند می‌دهد و رسید نمونه نشان نمی‌دهد');
   page.click('[data-go="fAttend"]');
   ok(page.txt('#attBody').includes('هیچ داده یا صندلی نمونه‌ای نمایش داده نمی‌شود')
     &&page.txt('#attBody').includes('تا اتصال API حضور'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');
@@ -1013,6 +1150,21 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const draft=await load('form.html',draftStore,'?fid=f-route-draft');
   ok(draft.visible('.screen').join()==='uUnavailable'&&draft.txt('#unavailableTitle')==='فرم هنوز منتشر نشده',
     'فرم پیش‌نویس به‌جای نمایش فرم قابل‌ارسال، پیام وضعیت می‌دهد');
+  /* فاز ۷: سرور فرم منتشرشده را به‌خاطر بستهٔ بودن پنجرهٔ ثبت‌نام رویداد با registration-closed:<event> برمی‌گرداند */
+  const gatedHtml=fs.readFileSync(DIR+'form.html','utf8')
+    .replace('<!--nora-public-form-->','null').replace('<!--nora-public-draft-->','null')
+    .replace('<!--nora-public-error-->',safeScriptJSON('registration-closed:ev-gated-1'));
+  const gated=await loadHtml('form.html',gatedHtml,makeStore(),'?fid=f-gated');
+  ok(gated.errors.length===0&&gated.visible('.screen').join()==='uUnavailable'
+      &&gated.txt('#unavailableTitle')==='ثبت‌نام این رویداد باز نیست'&&gated.txt('#unavailableText').includes('ساعت و وضعیت سرور')
+      &&gated.doc.querySelector('#unavailableBack')?.getAttribute('href')==='event.html?id=ev-gated-1'
+      &&gated.doc.querySelector('#botbar').style.display==='none',
+    'بستهٔ بودن ثبت‌نام رویداد (دروازهٔ سرور) با پیام مشخص و بازگشت به صفحهٔ همان رویداد نمایش داده می‌شود؛ فرم باز نمی‌شود');
+  const injected=fs.readFileSync(DIR+'form.html','utf8')
+    .replace('<!--nora-public-form-->','null').replace('<!--nora-public-draft-->','null')
+    .replace('<!--nora-public-error-->',safeScriptJSON('registration-closed:javascript:alert(1)'));
+  const injectedPage=await loadHtml('form.html',injected,makeStore(),'?fid=f-gated');
+  ok(injectedPage.doc.querySelector('#unavailableBack')?.getAttribute('href')==='home.html','شناسهٔ رویداد نامعتبر در خطای مسیر، پیوند بازگشت را تغییر نمی‌دهد');
   const preview=await load('form.html',draftStore,'?fid=f-route-draft&preview=1');
   ok(!!preview.window.__NORA_FORM_PREVIEW&&preview.visible('.screen').join()==='u1',
     'پیش‌نمایش صریح سازنده می‌تواند پیش‌نویس را بدون انتشار باز کند');
@@ -3913,12 +4065,12 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 /* ── ۱۰) صفحه‌های عمومی و مدیریتی: نمایه‌پذیری و فقط API هم‌مبدأ ── */
 {
   console.log('\n── metadata، پنل و انتشار عمومی ──');
-  const files=['account.html','events.html','event.html','person.html','form.html','login.html','support.html','post.html','admin.html'];
+  const files=['account.html','events.html','event.html','person.html','partner.html','form.html','login.html','support.html','post.html','admin.html'];
   const publicFiles=new Set(['events.html']);
-  const serverSeoFiles=new Set(['event.html','person.html']);
+  const serverSeoFiles=new Set(['event.html','person.html','partner.html']);
   let checked=0;
   for(const file of files){
-    const p=await load(file,makeStore(),file==='event.html'?'?id=e1':file==='person.html'?'?id=p1':'');
+    const p=await load(file,makeStore(),file==='event.html'?'?id=e1':file==='person.html'?'?id=p1':file==='partner.html'?'?id=o1':'');
     const robots=p.doc.querySelector('meta[name="robots"]')?.content||'';
     const publicPage=publicFiles.has(file),serverSeoPage=serverSeoFiles.has(file);
     const correctRobots=publicPage?/index/.test(robots)&&!/noindex/.test(robots):/noindex/.test(robots);

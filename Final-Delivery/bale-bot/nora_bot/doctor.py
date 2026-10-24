@@ -658,6 +658,36 @@ except Exception as _e:
     warn("بررسی موتور گواهینامه ناموفق", str(_e)[:120])
 
 
+# ==================== ۱۳.۷ دفترکل امتیاز ====================
+head("۱۳.۷) 🏅 دفترکل امتیاز (فقط گزارش؛ هیچ اصلاح خودکاری انجام نمی‌شود)")
+try:
+    import points_ledger as _pl
+
+    _hr = _pl.health_report()
+    _rep = _hr.get("report") or {}
+    if not _rep.get("installed"):
+        warn("جدول points_ledger وجود ندارد",
+             "پس از توقف ربات و پشتیبان معتبر: migrate_points_opening_balance.py (dry-run → --apply --yes)")
+    else:
+        info(f"ردیف‌ها: {_rep.get('entries', 0)}  |  کاربران با دفترکل: {_rep.get('users_with_ledger', 0)}"
+             f" از {_rep.get('users_nonzero', 0)} کاربر غیرصفر")
+        _sync = _rep.get("sync") or {}
+        info("همگام‌سازی سرور: " + "  ".join(f"{k}={v}" for k, v in _sync.items()))
+        for _pr in _hr.get("problems") or []:
+            err("دفترکل امتیاز: " + _pr, "اصلاح فقط با اسکریپت و تأیید صریح (rebaseline / guard-on)")
+        for _wn in _hr.get("warnings") or []:
+            warn("دفترکل امتیاز: " + _wn)
+        if _hr.get("ok"):
+            ok("شمارندهٔ امتیاز با دفترکل تطبیق دارد", "نگهبان total_points نصب است")
+        _meta = _rep.get("meta") or {}
+        if _meta.get("guard_disabled_at"):
+            warn("نگهبان آگاهانه حذف شده (guard-off)", f"از {_meta['guard_disabled_at']}")
+    if not getattr(config, "POINTS_MANUAL_ADJUST_MAX", 0):
+        info("تعدیل دستی امتیاز غیرفعال است (POINTS_MANUAL_ADJUST_MAX تنظیم نشده) — رفتار پیش‌فرض و امن")
+except Exception as _e:
+    warn("بررسی دفترکل امتیاز ناموفق", type(_e).__name__)
+
+
 # ==================== ۱۴. راهنمای عیب‌یابی ====================
 head("۱۴) 🐞 ابزار عیب‌یابی داخل ربات")
 info("دستور /debug on  → گزارش دکمه‌های بدون هندلر و خطاهای API")

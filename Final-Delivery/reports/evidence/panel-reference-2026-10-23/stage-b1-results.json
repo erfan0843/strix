@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-23T00:34:13.759Z",
+  "db": "test",
+  "server_today": "1405/08/01",
+  "when_counts": {
+    "today": 0,
+    "upcoming": 3,
+    "past": 3,
+    "undated": 0
+  },
+  "listCalls": [
+    "/api/admin/content/events?limit=20&offset=0&sort=updated&order=desc",
+    "/api/admin/content/events?limit=100&offset=0",
+    "/api/admin/content/events?limit=20&offset=0&sort=updated&order=desc&when=past",
+    "/api/admin/content/events?limit=100&offset=0",
+    "/api/admin/content/events?limit=20&offset=0&sort=updated&order=desc&when=upcoming",
+    "/api/admin/content/events?limit=20&offset=0&status=draft&sort=updated&order=desc&when=upcoming",
+    "/api/admin/content/events?when=soon"
+  ],
+  "results": [
+    {
+      "ok": true,
+      "label": "B1: چهار چیپ زمانی + روز سرور (تهران) [\"همهٔ زمان‌ها\",\"امروز · ۰\",\"پیش‌رو · ۳\",\"گذشته · ۳\"]"
+    },
+    {
+      "ok": true,
+      "label": "B1: شمارنده‌های زمانی سرور جمعاً برابر کل {\"total\":6,\"wc\":{\"today\":0,\"upcoming\":3,\"past\":3,\"undated\":0},\"today\":\"1405/08/01\"}"
+    },
+    {
+      "ok": true,
+      "label": "B1: کلیک «گذشته» = یک درخواست سروری با when=past"
+    },
+    {
+      "ok": true,
+      "label": "B1: ردیف‌های گذشته = شمارندهٔ سرور (3)"
+    },
+    {
+      "ok": true,
+      "label": "B1: همهٔ ردیف‌های گذشته تاریخ پیش از امروز سرور دارند [\"1405/07/20\",\"1405/07/12\",\"1405/07/05\"]"
+    },
+    {
+      "ok": true,
+      "label": "B1: «پیش‌رو» مجموعهٔ جدا و برابر شمارندهٔ سرور (3)"
+    },
+    {
+      "ok": true,
+      "label": "B1: ترکیب وضعیت+زمان در یک درخواست"
+    },
+    {
+      "ok": true,
+      "label": "B1: چیپ‌ها در موبایل ۳۹۰ داخل صفحه‌اند {\"w\":81.53125,\"h\":32,\"inView\":true}"
+    },
+    {
+      "ok": true,
+      "label": "B1: when نامعتبر و when روی مطالب → ۴۲۲ (422,422)"
+    },
+    {
+      "ok": true,
+      "label": "بدون خطای JS []"
+    },
+    {
+      "ok": true,
+      "label": "B1: مدیر با ev_create همان صافی را دارد ({\"st\":200,\"n\":3})"
+    },
+    {
+      "ok": true,
+      "label": "B1: بدون نشست → ۴۰۱ (401)"
+    }
+  ]
+}

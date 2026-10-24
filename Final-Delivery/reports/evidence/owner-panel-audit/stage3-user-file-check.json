@@ -1,0 +1,13 @@
+{
+  "steps": [
+    "0 accounts in test DB: 4 → target 4912f0ac… (1 regs), other 59f188a7…",
+    "1 owner file: regs endpoint calls=1 rows=[\"کارگاه آینده: مقدمات اخترفیزیکفرم ثبت‌نام آزمایشی · 1405/08/15 · ۱۴۰۵/۷/۳۰, ۱۷:۴۴ پذیرفته\"]",
+    "2 owner detail: finance_visible=1 masked=[] hasAmount=false hasReceipt=true hasAttendance=true companions=true fullNumberLeak=none",
+    "3 owner notifs: per-account calls=1 generalQueueCalls=0 rows=[\"queued | دسترسی به محتوای ضبط‌شدهدسترسی شما به «ضبط نشست ادبی پاییز» فعال شد (دسترسی رایگان). برای مشاهده به بخش «محتوا\"]",
+    "4 manager detail: finance_visible=0 amountShown=false trxShown=false hiddenNote=false masked=0 payStatusShown=false",
+    "5 manager cross-account response id → {\"status\":404,\"body\":\"{\\\"detail\\\":\\\"registration_not_found\\\"}\"}",
+    "5 manager fake response id in UI → «پیدا نشد», answers rendered=false",
+    "6 manager notifs rows=1 ownerApiCalls=0",
+    "6 mobile overflowX=false"
+  ]
+}

@@ -1,0 +1,43 @@
+# فاز ۹.۶ — رگرسیون نهایی روی کد نهایی (تاریخ اجرا: 2026-10-22، کد: 221552c + ابزار مرورگر همین کامیت)
+# همهٔ اعداد تازه و از همین اجرا هستند؛ هیچ عددی از فازهای قبل بازاستفاده نشده.
+
+## ۱) pytest بک‌اند (SQLite درون‌حافظه)
+$ cd Final-Delivery/website/nora-ui/backend && python -m pytest -q tests
+359 passed, 4 skipped, 1 warning in 109.37s (0:01:49)
+EXIT=0
+skip (4): tests/test_migrations_postgres.py:50 — requires an explicitly configured disposable NORA_TEST_POSTGRES_URL (در اجرای PG زیر پوشش داده شد)
+
+## ۲) pytest بک‌اند روی PostgreSQL موقت (pgserver، Unix socket، schema موقت)
+$ cd Final-Delivery/website/nora-ui && python tools/run-postgres-tests.py
+363 passed, 1 warning in 118.50s (0:01:58)
+PASS backend
+EXIT=0
+(شامل test_migrations.py و test_migrations_postgres.py: زنجیرهٔ 0001…0036 upgrade/downgrade روی PG)
+
+## ۳) mypy
+$ cd Final-Delivery/website/nora-ui && python -m mypy --config-file backend/mypy.ini backend
+Success: no issues found in 73 source files
+EXIT=0
+
+## ۴) Node/jsdom (رابط کاربری)
+$ cd Final-Delivery/website/nora-ui && NODE_PATH=<deps> node --max-old-space-size=3072 tools/run-unit-tests.cjs
+Nora suites: 36/36 passed; 0 failed.
+EXIT=0
+
+## ۵) ربات بله
+$ cd Final-Delivery/bale-bot && python -m pytest -q nora_bot/tests
+208 passed, 2 skipped, 1 warning in 8.75s
+EXIT=0
+skip (2): test_points_sync_server.py:45 (backend import در venv ربات در دسترس نیست — وابستگی محیطی) · test_certificate_pdf_real_engine.py:61 (LibreOffice نصب نیست → STAGING_REQUIRED)
+
+## ۶) مرورگر واقعی (Chromium headless) روی preview با DB آزمایشی — ۷ پرسونای مصنوعی × دسکتاپ ۱۲۸۰×۸۰۰ و موبایل ۳۹۰×۸۴۴
+$ NORA_QA_BROWSER=sparticuz NORA_QA_ORIGIN=http://127.0.0.1:8000 node tools/phase9.6-browser-evidence.cjs <out>
+ARTIFACTS: 54 screenshots in browser
+EXIT=0
+checks: 44 ✓ / 0 ✗  → reports/evidence/phase9.6/browser/browser-checks.txt
+پرسوناها: مهمان · ثبت‌نامی بدون حضور (91012) · حاضر چک‌این‌شده (91011) · دارندهٔ خرید تأییدشده (91001) · خریدار در انتظار (91002) · مدیر (qa-manager) · مالک (owner-qa)
+اثبات «خرید ≠ حضور ≠ گواهی»: دارنده → viewer.buyer=true، participation.registered=false/attended=false، ثبت‌نام=۰، گواهی=۰، دانلود 206 با x-nora-resource-access=purchased.
+
+## محدودیت‌ها
+- تحویل واقعی بله، پخش واقعی YouTube/Aparat، جمع‌آوری CSP و PDF متنی LibreOffice در این محیط ممکن نیست (بدون اینترنت/staging) → BLOCKED_EXTERNAL_* / STAGING_REQUIRED.
+- preview روی سرور آزمایشی با DB آزمایشی است؛ هیچ دادهٔ واقعی/تولیدی در کار نیست.

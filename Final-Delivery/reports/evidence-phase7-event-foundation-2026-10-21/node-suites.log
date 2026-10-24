@@ -1,0 +1,54 @@
+PASS account-linking.test.mjs
+PASS account-screens.test.mjs
+PASS account.test.mjs
+PASS admin-club-points.test.mjs
+PASS وضعیت: فهرست از سرور با نسخهٔ واقعی بارگذاری شد
+PASS در تولید دکمهٔ انتشار محلی/پنهان‌سازی نمایش داده نمی‌شود
+PASS دادهٔ نمونهٔ data.js جای فهرست سرور را نمی‌گیرد
+PASS پیوند صفحهٔ عمومی هر نهاد
+PASS PATCH فقط دستهٔ partners را با expected_version فعلی می‌فرستد
+PASS ردیف تازه با فیلدهای پاک‌شده و pub=true ارسال شد
+PASS رویدادها، بنرها و پروفایل‌ها دست‌نخورده ماندند
+PASS پیام موفقیت فقط پس از پاسخ سرور و بستن ویرایشگر
+PASS ویرایش با نسخهٔ تازه و حفظ سایر نهادها
+PASS جابه‌جایی ترتیب روی سرور ذخیره می‌شود
+PASS ۴۰۹: پیام تعارض، بدون موفقیت کاذب
+PASS تغییر شخص دیگر بی‌صدا حذف نشد
+PASS پیش‌نویس مالک پس از تعارض باز می‌ماند
+PASS ذخیرهٔ مجدد روی نسخهٔ تازه، هر دو تغییر حفظ شد
+PASS حذف تأیید صریح می‌گیرد
+PASS نهاد از سرور حذف شد؛ رویداد مرتبط دست نخورد
+PASS patch-401: چیزی ذخیره نشد و ویرایشگر باز ماند
+PASS patch-500: چیزی ذخیره نشد و ویرایشگر باز ماند
+PASS network: چیزی ذخیره نشد و ویرایشگر باز ماند
+PASS مدیر با #partners به مدیریت نهادها نمی‌رسد
+PASS هیچ PATCH از نشست مدیر ارسال نشد
+PASS بدون نشست معتبر: فهرست خالی، پیام روشن، دکمهٔ تازه‌سازی
+PASS تازه‌سازی از سرور فهرست را بازمی‌گرداند
+PASS admin-partners-server.test.mjs
+PASS admin-phase2.test.mjs
+PASS admin-phase3.test.mjs
+PASS admin-rbac.test.mjs
+PASS admin-services.test.mjs
+PASS admin.test.mjs
+PASS asset-audit.test.mjs
+PASS audit-regression.test.mjs
+PASS countdown.test.mjs
+PASS delivery.test.mjs
+PASS events-page.test.mjs
+PASS font-loading.test.mjs
+PASS image-performance.test.mjs
+PASS integrations-ui.test.mjs
+PASS login.test.mjs
+PASS mini-app-login.test.mjs
+PASS owner-banner-manager.test.mjs
+PASS post.test.mjs
+PASS public-data-banner.test.mjs
+PASS qr.test.mjs
+PASS server.test.mjs
+PASS service-worker-privacy.test.mjs
+PASS site-content-sync.test.mjs
+PASS smoke.test.mjs
+PASS support.test.mjs
+Nora suites: 29/29 passed; 0 failed.
+EXIT=0

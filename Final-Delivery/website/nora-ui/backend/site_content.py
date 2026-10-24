@@ -17,7 +17,11 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from .event_time import LIFECYCLES, REG_MODES
+
 CONTENT_KEYS = ("events", "people", "articles", "partners", "banners", "cooperation", "library")
+BANNER_COUNTDOWNS = ("reg_close", "event_start", "campaign_end")
+BANNER_AFTER_END = ("hide", "message", "details")
 MAX_RECORDS = {
     "events": 500,
     "people": 500,
@@ -105,7 +109,7 @@ def _public_record(record: Any, *, require_published: bool = False) -> bool:
             if visibility and visibility not in {"public", "published"}:
                 return False
     status = _text(record.get("status"), 24, allow_number=False).lower()
-    if status in {"draft", "private", "hidden", "pending", "unpublished", "rejected"}:
+    if status in {"draft", "private", "hidden", "pending", "paused", "unpublished", "rejected", "archived"}:
         return False
     return not require_published or _published_flag(record.get("pub"))
 
@@ -156,6 +160,20 @@ def _public_link(value: Any) -> str:
     return result
 
 
+def _join_url(value: Any) -> str:
+    """Online-session join link: HTTPS only, panel-only (``public_site_content`` strips it)."""
+    result = _text(value, 1_000, allow_number=False)
+    if not result or "\\" in result or any(ord(char) < 32 for char in result):
+        return ""
+    try:
+        parsed = urlsplit(result)
+    except ValueError:
+        return ""
+    if parsed.scheme.lower() != "https" or not parsed.hostname or parsed.username or parsed.password:
+        return ""
+    return result
+
+
 def _banner_datetime(value: Any) -> str:
     raw = _text(value, 40, allow_number=False)
     if not raw:
@@ -167,6 +185,11 @@ def _banner_datetime(value: Any) -> str:
     if parsed.tzinfo is None:
         return ""
     return parsed.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _choice(value: Any, allowed: tuple[str, ...], default: str) -> str:
+    raw = _text(value, 24, allow_number=False).lower()
+    return raw if raw in allowed else default
 
 
 def _public_media_url(value: Any) -> str:
@@ -308,12 +331,20 @@ def _event(record: Any) -> dict[str, Any] | None:
         "kind": _text(record.get("kind") or "رویداد", 80),
         "d": _text(record.get("d") or record.get("about") or record.get("description") or record.get("rep"), 10_000),
         "when": _text(record.get("when") or record.get("on") or record.get("d"), 120),
+        # Machine-readable Jalali date the owner panel already stores (``on``);
+        # the public list sorts by it and builds the month view from it.
+        "on": _text(record.get("on"), 40),
         "time": _text(record.get("time"), 120),
         "place": _text(record.get("place"), 240),
         "mode": _text(record.get("mode"), 80),
+        # Final-stage simplification: online/hybrid events keep their join link on the row
+        # (owner panel + staff tools); the public projection removes it (see public_site_content).
+        "joinUrl": _join_url(record.get("joinUrl")),
         "poster": _public_url(record.get("poster"), image_data=True),
         "posterUp": _public_url(record.get("posterUp"), image_data=True),
         "tchr": _text(record.get("tchr"), 100, allow_number=False),
+        # Stable partner reference only; the public name is read from the published partner record.
+        "partnerId": _text(record.get("partnerId"), 100, allow_number=False),
         "tags": _text_list(record.get("tags"), 20, 80),
         "parts": _parts(record.get("parts") or record.get("agenda") or record.get("sess")),
         "forms": forms,
@@ -325,8 +356,46 @@ def _event(record: Any) -> dict[str, Any] | None:
         "cert": bool(record.get("cert")),
         "certMin": _number(record.get("certMin"), maximum=100),
         "certNote": _text(record.get("certNote"), 1_000),
+        # Phase 7: optional machine-readable schedule (UTC ISO, entered in Asia/Tehran),
+        # registration window and lifecycle. Missing values stay empty: no surface may
+        # invent a deadline or a countdown for them.
+        "startsAt": _banner_datetime(record.get("startsAt")),
+        "endsAt": _banner_datetime(record.get("endsAt")),
+        "regOpensAt": _banner_datetime(record.get("regOpensAt")),
+        "regClosesAt": _banner_datetime(record.get("regClosesAt")),
+        "regMode": _choice(record.get("regMode"), REG_MODES, "auto"),
+        "lifecycle": _choice(record.get("lifecycle"), LIFECYCLES, "scheduled"),
+        "conditions": _text(record.get("conditions"), 1_000),
+        # Phase 8: per-event Q&A switch (questions are only ever asked inside the event page).
+        "qaClosed": record.get("qaClosed") is True,
+        # B19 reminder switches; only the two known booleans survive (event_reminders.py reads them).
+        "reminders": {key: (record.get("reminders") or {}).get(key) is True for key in ("h24", "h1")}
+        if isinstance(record.get("reminders"), dict) else {"h24": False, "h1": False},
         "privacy": "public",
     }
+
+
+def _contact_links(value: Any) -> list[dict[str, str]]:
+    """Allowlisted public contact rows shared by people and partner profiles."""
+    links: list[dict[str, str]] = []
+    for link in _list(value, 12):
+        if not isinstance(link, dict):
+            continue
+        kind = _text(link.get("k"), 24, allow_number=False).lower()
+        raw = _text(link.get("v"), 300, allow_number=False)
+        if kind not in {"tel", "mail", "tg", "ig", "web"} or not raw:
+            continue
+        if kind == "mail":
+            raw = _public_url("mailto:" + raw.removeprefix("mailto:"))
+        elif kind == "tel":
+            raw = _public_url("tel:" + raw.removeprefix("tel:"))
+        elif kind in {"tg", "ig"} and not raw.startswith("http"):
+            raw = raw.lstrip("@")
+        else:
+            raw = _public_url(raw if ":" in raw else "https://" + raw)
+        if raw:
+            links.append({"k": kind, "v": raw})
+    return links
 
 
 def _person(record: Any) -> dict[str, Any] | None:
@@ -336,24 +405,7 @@ def _person(record: Any) -> dict[str, Any] | None:
     name = _text(record.get("n") or record.get("name"), 160)
     if not person_id or not name:
         return None
-    links: list[dict[str, str]] = []
-    for link in _list(record.get("links"), 12):
-        if not isinstance(link, dict):
-            continue
-        kind = _text(link.get("k"), 24, allow_number=False).lower()
-        value = _text(link.get("v"), 300, allow_number=False)
-        if kind not in {"tel", "mail", "tg", "ig", "web"} or not value:
-            continue
-        if kind == "mail":
-            value = _public_url("mailto:" + value.removeprefix("mailto:"))
-        elif kind == "tel":
-            value = _public_url("tel:" + value.removeprefix("tel:"))
-        elif kind in {"tg", "ig"} and not value.startswith("http"):
-            value = value.lstrip("@")
-        else:
-            value = _public_url(value if ":" in value else "https://" + value)
-        if value:
-            links.append({"k": kind, "v": value})
+    links = _contact_links(record.get("links"))
     form_id = _text(record.get("form"), 120, allow_number=False)
     return {
         "id": person_id,
@@ -447,6 +499,9 @@ def _article(record: Any) -> dict[str, Any] | None:
         "g": _text((record.get("cover") or {}).get("g") if isinstance(record.get("cover"), dict) else record.get("g"), 240),
         "at": _text(record.get("at"), 80),
         "pin": bool(record.get("pin")),
+        # پرچم انتشار باید در خروجی بماند؛ محتوای ذخیره‌شده دوباره پاک‌سازی می‌شود
+        # (snapshot سئو، نقشهٔ سایت) و بدون آن مطلبِ منتشرشده حذف و post.html?id= به ۴۰۴ می‌افتاد.
+        "pub": True,
     }
 
 
@@ -488,19 +543,29 @@ def _library(record: Any) -> dict[str, Any] | None:
 
 
 def _partner(record: Any) -> dict[str, Any] | None:
-    if not isinstance(record, dict) or record.get("hidden") is True or record.get("status") == "draft":
+    # Same server-side trust boundary as people/articles: pub/privacy/pend/status
+    # are enforced here because the public projection drops those flags.
+    if not _public_record(record):
         return None
     partner_id = _text(record.get("id"), 100, allow_number=False)
     name = _text(record.get("n") or record.get("name"), 180)
     if not partner_id or not name:
         return None
+    website = _text(record.get("href") or record.get("url"), 1_500, allow_number=False)
+    if website and ":" not in website and "//" not in website:
+        website = "https://" + website
     return {
         "id": partner_id,
         "n": name,
         "type": _text(record.get("type"), 160),
+        "s": _text(record.get("s") or record.get("summary"), 600),
+        "collab": _text(record.get("collab"), 160),
+        "since": _text(record.get("since"), 80),
+        "focus": _text_list(record.get("focus"), 12, 60),
         "d": _text(record.get("d") or record.get("description"), 4_000),
         "logo": _public_url(record.get("logo"), image_data=True),
-        "href": _public_url(record.get("href") or record.get("url")),
+        "href": _public_url(website),
+        "links": _contact_links(record.get("links")),
         "g": _text(record.get("g"), 240),
         "mon": _text(record.get("mon"), 8),
     }
@@ -518,9 +583,14 @@ def _banner(record: Any) -> dict[str, Any] | None:
     status = _text(record.get("status"), 16, allow_number=False).lower()
     if status not in {"draft", "published", "paused"}:
         status = "published" if record.get("pub") is True and record.get("hidden") is not True else "draft"
+    event_ref = _text(record.get("eventId") or record.get("event_id"), 100, allow_number=False)
+    if event_ref and not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", event_ref):
+        return None
     layout = _text(record.get("layout"), 16, allow_number=False).lower()
     align = _text(record.get("align"), 16, allow_number=False).lower()
     theme = _text(record.get("theme"), 16, allow_number=False).lower()
+    # نوع بنر برای برچسب‌گذاری شفاف محتوای تبلیغاتی/حامی در آینده؛ پیش‌فرض اعلان عادی است.
+    kind = _text(record.get("kind"), 16, allow_number=False).lower()
     return {
         "id": banner_id,
         "status": status,
@@ -537,6 +607,7 @@ def _banner(record: Any) -> dict[str, Any] | None:
         "secondaryHref": _public_link(record.get("secondaryHref") or record.get("secondary_href")),
         "secondaryLabel": _text(record.get("secondaryLabel") or record.get("secondary_label"), 60),
         "theme": theme if theme in {"ocean", "teal", "amber", "plum", "night"} else "ocean",
+        "kind": kind if kind in {"sponsored", "partner"} else "notice",
         "layout": layout if layout in {"cover", "split", "text"} else "cover",
         "align": align if align in {"right", "center"} else "right",
         "overlay": _number(record.get("overlay"), maximum=90),
@@ -544,6 +615,13 @@ def _banner(record: Any) -> dict[str, Any] | None:
         "focusY": _number(record.get("focusY"), maximum=100),
         "startsAt": _banner_datetime(record.get("startsAt") or record.get("starts_at")),
         "endsAt": _banner_datetime(record.get("endsAt") or record.get("ends_at")),
+        # Phase 7: optional link to a published event (destination + countdown source),
+        # countdown type, campaign-only deadline and the behaviour after the deadline.
+        "eventId": event_ref,
+        "countdown": _choice(record.get("countdown"), BANNER_COUNTDOWNS, ""),
+        "campaignEndsAt": _banner_datetime(record.get("campaignEndsAt") or record.get("campaign_ends_at")),
+        "afterEnd": _choice(record.get("afterEnd"), BANNER_AFTER_END, "hide"),
+        "afterEndText": _text(record.get("afterEndText") or record.get("after_end_text"), 160),
     }
 
 
@@ -610,10 +688,40 @@ def sanitize_site_content(value: Any, *, partial: bool = False) -> dict[str, Any
     return output
 
 
+NON_PUBLIC_RETAINED_KEYS = ("events", "people", "articles", "partners")
+
+
+def retain_non_public_rows(stored: Any, incoming: Any) -> list[dict[str, Any]]:
+    """Keep stored non-public rows that an owner-panel save could never see.
+
+    The owner panel and the public API both receive the published projection only, so a
+    category replace must not silently destroy private/hidden/paused/pending rows. Rows are
+    replaced only when the incoming payload names the same ``id`` explicitly.
+    """
+    rows: list[dict[str, Any]] = [row for row in (incoming or []) if isinstance(row, dict)]
+    present = {str(row.get("id") or "") for row in rows}
+    for row in (stored if isinstance(stored, list) else []):
+        if not isinstance(row, dict) or _public_record(row):
+            continue
+        row_id = str(row.get("id") or "")
+        if not row_id or row_id in present:
+            continue
+        present.add(row_id)
+        rows.append(dict(row))
+    return rows
+
+
+def retain_non_public_partners(stored: Any, incoming: Any) -> list[dict[str, Any]]:
+    return retain_non_public_rows(stored, incoming)
+
+
 def public_site_content(content: Any) -> dict[str, Any]:
     """Project public content without drafts or downloadable private file bytes."""
     source = content if isinstance(content, dict) else {}
     public: dict[str, Any] = {key: list(source.get(key) or []) for key in CONTENT_KEYS}
+    # Read-time boundary for stored rows that never passed the sanitiser (legacy or direct DB writes).
+    for key in NON_PUBLIC_RETAINED_KEYS:
+        public[key] = [row for row in public[key] if _public_record(row)]
     public["banners"] = [
         banner for banner in (_banner(item) for item in public["banners"])
         if banner and banner["status"] == "published" and banner["active"] is True
@@ -623,6 +731,7 @@ def public_site_content(content: Any) -> dict[str, Any]:
         if not isinstance(original, dict):
             continue
         event = dict(original)
+        event.pop("joinUrl", None)
         media_rows = []
         for media_index, original_media in enumerate(event.get("media") or []):
             if not isinstance(original_media, dict):

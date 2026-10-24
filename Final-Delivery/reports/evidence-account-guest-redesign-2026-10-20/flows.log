@@ -1,0 +1,33 @@
+PASS guest: hero with «مهمان» identity and new title وارد حسابت شو، همه‌چیز همین‌جاست.
+PASS guest: primary CTA → login.html (server mode, next=account.html) login.html?mode=server&next=account.html
+PASS guest: three real features only ثبت‌نام‌هایت|اعلان‌های حساب|فایل‌های شخصی
+PASS guest: 4 section rows (3 with «بعد از ورود»), paybar kept, duplicate bottom CTA + mock preview removed [4,3,true,false,false]
+PASS rows head: no inherited dark gradient (contrast fix) none
+PASS guest: no sample data, no horizontal overflow, primary CTA above the fold [false,false,321,1689]
+PASS guest-open: no page errors
+PASS guest: CTA opens the real login page with phone form /login.html?mode=server&next=account.html
+PASS guest-cta: no page errors
+PASS guest: «رویدادهای من» → existing needs-login view with secure login link (behaviour unchanged) {"hash":"#events","view":" رویدادهای من نیاز به ورود نیاز به ورودبرای دیدن ثبت‌نام‌ها وارد حساب شو. ورود/ثبت‌نام ","hidden":false,"loginLink":true}
+PASS guest-private-row: no page errors
+PASS guest: «دیدن رویدادها» → events.html /events.html
+PASS guest-public: no page errors
+PASS guest offline: hero stays, «بررسی دوباره» rendered in the meta row {"retry":true,"hero":true}
+PASS guest-offline: no page errors
+PASS guest 360x800 light: no overflow, CTA in view, no control <34px [false,317,0]
+PASS guest-360-light: no page errors
+PASS guest 360x800 dark: no overflow, CTA in view, no control <34px [false,317,0]
+PASS guest-360-dark: no page errors
+PASS guest 768x1024 light: no overflow, CTA in view, no control <34px [false,373,0]
+PASS guest-768-light: no page errors
+PASS guest 768x1024 dark: no overflow, CTA in view, no control <34px [false,373,0]
+PASS guest-768-dark: no page errors
+PASS guest 1280x800 light: no overflow, CTA in view, no control <34px [false,373,0]
+PASS guest-1280-light: no page errors
+PASS guest 1280x800 dark: no overflow, CTA in view, no control <34px [false,373,0]
+PASS guest-1280-dark: no page errors
+PASS member 390: real session → member head, 4 rows (no guest chips), paybar; no guest promo {"promo":false,"head":true,"rows":4,"guestChips":0,"paybar":true,"txt":" ورود با شمارهٔ موبایل وصل استحساب امن ن حساب نورا ورود و دسترسی از سرور تأیید شده‌اند. نام هنوز در پروفایل ثبت نشده ۰ثب"}
+PASS member-390: no page errors
+PASS member 1280: real session → member head, 4 rows (no guest chips), paybar; no guest promo {"promo":false,"head":true,"rows":4,"guestChips":0,"paybar":true,"txt":" ورود با شمارهٔ موبایل وصل استحساب امن ن حساب نورا ورود و دسترسی از سرور تأیید شده‌اند. نام هنوز در پروفایل ثبت نشده ۰ثب"}
+PASS member-1280: no page errors
+
+31 passed, 0 failed

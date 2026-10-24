@@ -1,0 +1,36 @@
+shot 01-owner-cert-list-desktop-light
+cert list rows: 3
+shot 02-owner-cert-filter-revoked-desktop-light
+shot 03-owner-cert-search-desktop-light
+shot 04-owner-cert-detail-desktop-light
+cert file link: none for this record
+shot 05-owner-cert-detail-after-reload-desktop-light
+shot 06-owner-club-note-desktop-light
+shot 07-owner-media-list-in-use-desktop-light
+shot 08-owner-event-editor-upload-rejected-desktop-light
+rejected upload message: سرور محتوای فایل را تصویر PNG، JPEG یا WebP تشخیص نداد؛ فایل پذیرفته نشد.
+uploaded poster url: /api/public/media/6710d003-4196-4957-83ea-26c03609d99a
+shot 09-owner-event-editor-upload-ok-desktop-light
+shot 10-owner-events-list-after-save-desktop-light
+poster after reload: /api/public/media/6710d003-4196-4957-83ea-26c03609d99a (same)
+shot 11-owner-event-editor-after-reload-desktop-light
+public GET /api/public/media/6710d003-4196-4957-83ea-26c03609d99a -> {"status":200,"type":"image/jpeg","cache":"public, max-age=31536000, immutable"}
+owner page errors: []
+shot 12-owner-cert-list-mobile-light
+shot 13-owner-cert-detail-mobile-light
+shot 14-owner-event-editor-upload-mobile-light
+shot 15-manager-cert-list-mobile-dark
+manager sees revoke/issue buttons: 0
+shot 16-manager-cert-detail-mobile-dark
+manager detail leaks phone/token? no
+shot 17-manager-media-list-mobile-dark
+manager delete buttons for in-use rows: 0
+manager tampered cert id -> {"status":404,"body":"{\"detail\":\"certificate_not_found\"}"}
+manager tampered file id -> 404
+manager page errors: []
+
+attendance row after reload: عضو آزمایشی | بلیت NORA-6068E66380924CA99A44 | حاضر · ۱۴۰۵/۷/۲۹, ۷:۴۹ · از ربات | برگرداندن
+shot 18-manager-attendance-bot-checkin-after-reload-desktop-light
+decided task card: {"state":"delivered","text":"پروفایل | ردشده | شناسهٔ بله: 910778 · کد درخواست: ed22cae8 | نام و نام خانوادگی | عضو آزمایشی | شهر | آزمون | معرفی کوتاه | درخواست آزمایشی مرحلهٔ سوم | تصمیم | رد · شما · ۱۴۰۵/۷/۲۹, ۷:۴۹ | دلیل: آزمون مرحلهٔ سوم: اطلاعات ناقص | ثبت‌شده در سرور | اعلان به کاربر | تحویل‌شده به بله | تحویل در ۱۴۰۵/۷/۲۹, ۷:۴۹ · پس از ۲ تلاش | تحویل‌شده به بله"}
+shot 19-manager-inbox-decided-notification-delivered-desktop-light
+page errors: []

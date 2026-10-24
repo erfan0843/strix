@@ -233,6 +233,10 @@ def test_bot_workflows_share_manager_web_inbox_and_user_notifications():
             )
             assert approved.status_code == 200, approved.text
             assert approved.json()["task"]["status"] == "approved"
+            # Decision saved != notification delivered: right after deciding, the outbox row is only queued.
+            assert approved.json()["task"]["notification"] == {
+                "status": "queued", "attempts": 0, "delivered_at": None, "last_error": None,
+            }
             stale = client.post(
                 f"/api/admin/inbox/{profile_task['id']}/decision",
                 json={"decision": "rejected", "reason": "", "expected_version": 1},
@@ -278,6 +282,18 @@ def test_bot_workflows_share_manager_web_inbox_and_user_notifications():
             queued = client.get("/api/bot/notifications?bale_user_id=73421", headers=service_headers())
             assert queued.status_code == 200
             assert len(queued.json()["items"]) == 2
+            # A failed provider attempt is reported as "retrying" on the decided task, never as success.
+            first_notice = queued.json()["items"][0]
+            failed_once = client.post(
+                f"/api/bot/notifications/{first_notice['id']}/delivery-failed",
+                headers=service_headers(), json={"bale_user_id": 73421},
+            )
+            assert failed_once.status_code == 200 and failed_once.json()["delivery_status"] == "pending"
+            decided_view = client.get("/api/admin/inbox?status=decided").json()["items"]
+            by_task = {item["id"]: item["notification"] for item in decided_view}
+            retrying = [view for view in by_task.values() if view["status"] == "retrying"]
+            assert len(retrying) == 1 and retrying[0]["attempts"] == 1 and retrying[0]["last_error"] == "provider_delivery_failed"
+            assert sorted(view["status"] for view in by_task.values()) == ["queued", "retrying"]
             for notice in queued.json()["items"]:
                 delivered = client.post(
                     f"/api/bot/notifications/{notice['id']}/delivered",
@@ -290,6 +306,9 @@ def test_bot_workflows_share_manager_web_inbox_and_user_notifications():
             with Session(engine) as db:
                 assert db.scalar(select(AdminTaskRecord).where(AdminTaskRecord.id == profile_task["id"])).status == "approved"
                 assert db.scalar(select(UserNotificationRecord).where(UserNotificationRecord.account_id == account_id)).delivery_status == "delivered"
+            delivered_view = {item["id"]: item["notification"] for item in client.get("/api/admin/inbox?status=decided").json()["items"]}
+            assert all(view["status"] == "delivered" and view["delivered_at"] for view in delivered_view.values())
+            assert "notification" not in client.get("/api/admin/inbox").json().get("items", [{}])[0] if client.get("/api/admin/inbox").json()["items"] else True
 
             health = client.get("/api/health")
             assert health.status_code == 200

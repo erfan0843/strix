@@ -1,0 +1,36 @@
+# فاز ۹.۶ §۴.۱ — آپلود ازسرگیرنده روی http://127.0.0.1:8000 (رویداد ev-6a3f7f66da، فایل 24 MiB)
+• سلامت ذخیره‌سازی: 200 state=ok backend=local_disk free=18895114240 max=536870912
+• دیسک آزاد (df محلی): 18019 MiB؛ نیاز حداقل ۳× فایل = 72 MiB
+✓ منبع پیش‌نویس ساخته شد: → 201
+• sha256(منبع) = 1abf419cf9961c87… size=25165824
+✓ گشودن نشست: 201، offset=0، اندازهٔ تکه از سرور: → 201 chunk=4194304 expires_at=2026-10-23T10:14:20.556927+00:00
+✓ پاسخ نشست کلید داخلی «storage_key» را افشا نمی‌کند: 
+✓ پاسخ نشست کلید داخلی «path» را افشا نمی‌کند: 
+✓ پاسخ نشست کلید داخلی «temp_path» را افشا نمی‌کند: 
+✓ تکهٔ ۱ با checksum: 200، offset = chunk: → 200 offset=4194304
+✓ تکرار تکهٔ ۱ (offset کهنه): 409 offset_mismatch با offset درست: → 409 offset_mismatch
+✓ checksum غلط: 400 chunk_checksum_mismatch و هیچ بایتی نگه داشته نشد: → 400 chunk_checksum_mismatch offset=4194304
+✓ قطع: تکهٔ کوتاه پذیرفته شد و GET نشست offset واقعی را می‌دهد: → 200 offset=5592405 status=open
+✓ تکمیل زودهنگام: 409 upload_incomplete: → 409 upload_incomplete
+✓ ازسرگیری از offset سرور تا پایان: 7 PATCH، 0.2s، 120.9 MiB/s
+✓ پس از کامل شدن، بایت اضافه 413: → 413 chunk_exceeds_expected_size
+✓ تکمیل با sha256 متفاوت از اعلام اولیه: 422 sha256_conflict: → 422 sha256_conflict
+✓ تکمیل: 200، اندازه = منبع، content_type ویدیو، storage ready: → 200 size=25165824 storage={'backend': 'local_disk', 'state': 'ready'}
+✓ تکمیل دوباره: 410 upload_session_completed (یک‌باره): → 410 upload_session_completed
+✓ پاسخ تکمیل کلید/مسیر فیزیکی ندارد: keys=['access', 'announced_at', 'content_hash', 'content_type', 'created_at', 'created_by_kind', 'delivery', 'description', 'event_id', 'file_name', 'id', 'kind']
+✓ بایت‌های ذخیره‌شده: sha256 و اندازه با منبع برابر: → 200 sha256=1abf419cf9961c87… len=25165824
+✓ سرآیندهای دانلود بدون مسیر/نام فیزیکی/کلید داخلی: content-disposition=inline; filename="mp4.mp4"; filename*=UTF-8''%D8%AC%D9%84%D8%B3%D9%87%D9%94%20%D8%A8%D8%B2%D8%B1%DA%AF.mp4
+✓ Range روی فایل بزرگ: 206 و ۱۶ بایت پایانی درست: → 206 content-range=bytes 25165808-25165823/25165824
+✓ مهمان روی منبع پیش‌نویس: 404 (وجود منبع افشا نمی‌شود): → 404 body=31B
+✓ مهمان روی منبع منتشرشدهٔ خریداری‌شده: 401 و هیچ بایتی: publish 200 · guest → 401 body=70B
+✓ نشست بزرگ‌تر از سقف: 413: → 413 max_bytes=536870912
+✓ لغو نشست نیمه‌کاره: status=aborted: → 200 {"id":"410254fb-7abb-4495-9dec-4ea765b235e5","resource_id":"b2c9caa5-4219-4a4a-b
+✓ پاک‌سازی temp: .incoming خالی پس از تکمیل و لغو: files=[]
+✓ دایرکتوری خصوصی زیر ریشهٔ وب نیست: private ∉ nora-ui/
+✓ فایل روی دیسک با اندازهٔ منبع و sha256 برابر: matches=2
+✓ مسیر ایستای /private/ از وب قابل دسترسی نیست: → 404
+✓ مسیر ایستای /.incoming/ از وب قابل دسترسی نیست: → 404
+✓ مسیر ایستای /private-store/ از وب قابل دسترسی نیست: → 404
+
+resource=b2c9caa5-4219-4a4a-bddd-070634af2ce5 session=82902a38-4503-48d7-bc5c-3996dd4ba930
+نتیجه: 29 ✓ · 0 ✗

@@ -1,0 +1,24 @@
+# قالب systemd برای «اعلان انتشار زمان‌بندی‌شدهٔ محتوا» (فاز ۹.۵ §۸.۲) — ویرایش کنید؛ قبل از فعال‌سازی روی staging تست شود
+# این سرویس «oneshot» است و فقط با تایمر nora-scheduled-publish.timer اجرا می‌شود؛ خودش دائمی نیست.
+# کار آن: منابعی که publish_at آن‌ها رسیده و هنوز announced_at ندارند را یک‌بار به دارندگان دسترسی فعال اعلان می‌کند
+# (صف اعلان = همان صندوق خروجی؛ ارسال واقعی با ربات بله انجام می‌شود). اجرای تکراری ایمن است (idempotent).
+# نمایش خودِ محتوا به زمان‌بند وابسته نیست: صفحهٔ رویداد با ساعت سرور در هر درخواست publish_at را بررسی می‌کند.
+# نصب: sudo cp nora-scheduled-publish.service nora-scheduled-publish.timer /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now nora-scheduled-publish.timer
+# اجرای دستی یک نوبت: sudo systemctl start nora-scheduled-publish.service && journalctl -u nora-scheduled-publish -n 20
+[Unit]
+Description=Nora scheduled-publish announcer (one pass)
+After=network-online.target nora-web.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nora
+Group=nora
+WorkingDirectory=/opt/nora/website/nora-ui
+# همان فایل محیطی وب؛ فقط NORA_DATABASE_URL خوانده می‌شود (هیچ توکنی لازم نیست)
+EnvironmentFile=/etc/nora/nora-web.env
+ExecStart=/opt/nora/venv/bin/python -m backend.scheduled_publish --once --json
+# خروجی JSON در journal می‌ماند؛ کد خروج ۰ = گذر کامل، ۱ = خطا (در پنل گزارش‌ها › «زمان‌بند انتشار» نیز آخرین اجرا دیده می‌شود)
+TimeoutStartSec=120
+Nice=5

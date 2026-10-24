@@ -14,7 +14,7 @@ const payload = {
         t: 'اعلام برنامه', eyebrow: 'تازه', subtitle: 'زیرعنوان', s: 'جزئیات کوتاه',
         img: 'https://nora.test/banner.webp', href: 'javascript:alert(1)', primaryLabel: 'پیوند ناامن',
         secondaryHref: '/events.html#upcoming', secondaryLabel: 'فهرست برنامه‌ها',
-        theme: 'unknown', layout: 'broken', align: 'center', overlay: 110, focusX: -5, focusY: 112 },
+        theme: 'unknown', layout: 'broken', align: 'center', overlay: 110, focusX: -5, focusY: 112, kind: 'sponsored' },
       { id: 'draft-banner', status: 'draft', t: 'پیش‌نویس خصوصی' },
       { id: 'statusless-banner', t: 'بدون وضعیت انتشار' },
       { id: 'paused-banner', status: 'paused', t: 'بنر متوقف' },
@@ -53,10 +53,33 @@ assert.equal(live.align, 'center');
 assert.equal(live.overlay, 90);
 assert.equal(live.focusX, 0);
 assert.equal(live.focusY, 100);
+assert.equal(live.kind, 'sponsored', 'the sponsored kind survives normalisation so the home page can label it «تبلیغ»');
+assert.equal(dom.window.NORA_PUBLIC.banners.find(banner => banner.id === 'unsafe-link-banner').kind, 'notice',
+  'banners without a valid kind are plain notices');
 assert.deepEqual(JSON.parse(JSON.stringify(dom.window.NORA_PUBLIC.bannerSettings)), {
   enabled: false, auto_rotate: true, interval_seconds: 20, show_controls: false
 });
 assert.equal(dom.window.NORA.BANNERS.length, 2);
 
 dom.window.close();
+
+// سرور سالم ولی هنوز چیزی منتشر نشده (404 site_content_not_published) باید «empty» باشد، نه «unavailable».
+async function sourceFor(response) {
+  const page = new JSDOM('<!doctype html><html><body></body></html>', {
+    url: 'https://nora.test/home.html', runScripts: 'dangerously',
+    beforeParse(window) { window.fetch = async () => response; }
+  });
+  Object.defineProperty(page.window.document, 'readyState', { configurable: true, value: 'complete' });
+  page.window.eval(source);
+  await page.window.NORA_PUBLIC_READY;
+  const result = { source: page.window.NORA_PUBLIC_SOURCE, banners: page.window.NORA.BANNERS.length };
+  page.window.close();
+  return result;
+}
+assert.deepEqual(await sourceFor({ ok: false, status: 404, json: async () => ({ detail: 'site_content_not_published' }) }),
+  { source: 'empty', banners: 0 }, 'unpublished site content is reported as empty');
+assert.deepEqual(await sourceFor({ ok: false, status: 404, json: async () => ({ detail: 'unexpected' }) }),
+  { source: 'unavailable', banners: 0 }, 'an unexpected 404 is still unavailable');
+assert.deepEqual(await sourceFor({ ok: false, status: 503, json: async () => ({}) }),
+  { source: 'unavailable', banners: 0 }, 'server errors stay unavailable');
 console.log('public-data-banner: publication filtering, schedules, safe CTAs, and rotation settings passed');

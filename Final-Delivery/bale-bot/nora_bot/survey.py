@@ -285,20 +285,30 @@ def mark_answered(eid, user_id, response_id=None):
                    fetch="one")
     if not r or r.get("answered"):
         return False
-    db_execute("UPDATE survey_sends SET answered=1, "
-               "answered_at=datetime('now'), response_id=? WHERE id=?",
-               (response_id, r["id"]))
+    from database import db_transaction
+    import points_ledger as pl
     try:
         from events import get_event
         ev = get_event(eid) or {}
         pts = int(ev.get("survey_points") or 0)
-        if pts:
-            # 🔴 باگ رفع‌شده (فاز ۴۰): همان باگ امتیاز حضور —
-            #    `club.add_points` وجود ندارد.
-            from attendance import _award_points
-            _award_points(user_id, pts)
     except Exception as _e:
-        log(f"⚠️ امتیاز نظرسنجی {user_id}: {_e}")
+        log(f"⚠️ امتیاز نظرسنجی {user_id}: {type(_e).__name__}")
+        pts = 0
+    # ثبت پاسخ + امتیاز در یک تراکنش؛ کلید دفترکل survey:{event}:{user}
+    try:
+        with db_transaction():
+            db_execute("UPDATE survey_sends SET answered=1, "
+                       "answered_at=datetime('now'), response_id=? WHERE id=?",
+                       (response_id, r["id"]))
+            if pts > 0:
+                pl.post_points(int(user_id), pts, entry_type="award", source="survey",
+                               ref_key=f"survey:{int(eid)}:{int(user_id)}",
+                               ref_table="survey_sends", ref_id=r["id"],
+                               reason=f"پاسخ نظرسنجی رویداد {int(eid)}")
+    except pl.LedgerError as _e:
+        log(f"❌ امتیاز نظرسنجی {user_id}: {_e.code}")
+        return False
+    pl.sync_pending(limit=5)
     return True
 
 

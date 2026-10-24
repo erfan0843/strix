@@ -1,0 +1,35 @@
+PASS guest: short block — «حساب من», one sentence, height < 300px ["حساب من","برای ادامه وارد حساب شو.",249]
+PASS guest: exactly one primary CTA → server login, visible at first glance ["login.html?mode=server&next=account.html",1,258]
+PASS guest: 4 real section rows, no descriptions, 3 «بعد از ورود» hints [["account.html#events","account.html#forms","account.html#profile","account.html#book"],0,3]
+PASS guest: نورا پی is one row → account.html#payments (no button row) ["account.html#payments",false]
+PASS guest: no feature cards / preview / eyebrow, no «فایل‌های شخصی», no promotional claims [0,false,false]
+PASS guest: rows head without inherited gradient, no sample data, no horizontal overflow ["none",false,false,1173]
+PASS guest-open: no page errors
+PASS guest: CTA opens the real login page with phone form /login.html?mode=server&next=account.html
+PASS guest-cta: no page errors
+PASS guest: «رویدادهای من» → existing needs-login view with secure login link (behaviour unchanged) {"hash":"#events","view":" رویدادهای من نیاز به ورود نیاز به ورودبرای دیدن ثبت‌نام‌ها وارد حساب شو. ورود/ثبت‌نام ","hidden":false,"loginLink":true}
+PASS guest-private-row: no page errors
+PASS guest: نورا پی row → existing payments needs-login view with secure login link {"hash":"#payments","view":" پرداخت‌ها و رسیدها نیاز به ورود نیاز به ورودبرای دیدن وضعیت پرداخت‌هایت وارد حساب شو. ورود/ثبت‌نام ","loginLink":true}
+PASS guest-pay-row: no page errors
+PASS guest: public events reachable from the shared tabbar (no extra link on the page) /events.html
+PASS guest-public: no page errors
+PASS guest offline: block stays, «بررسی دوباره» rendered under the CTA {"retry":true,"hero":true}
+PASS guest-offline: no page errors
+PASS guest 360x800 light: no overflow, CTA in view, no control <34px [false,258,0]
+PASS guest-360-light: no page errors
+PASS guest 360x800 dark: no overflow, CTA in view, no control <34px [false,258,0]
+PASS guest-360-dark: no page errors
+PASS guest 768x1024 light: no overflow, CTA in view, no control <34px [false,106,0]
+PASS guest-768-light: no page errors
+PASS guest 768x1024 dark: no overflow, CTA in view, no control <34px [false,106,0]
+PASS guest-768-dark: no page errors
+PASS guest 1280x800 light: no overflow, CTA in view, no control <34px [false,106,0]
+PASS guest-1280-light: no page errors
+PASS guest 1280x800 dark: no overflow, CTA in view, no control <34px [false,106,0]
+PASS guest-1280-dark: no page errors
+PASS member 390: real session → member head, 4 rows (no guest chips), paybar; no guest promo {"promo":false,"head":true,"rows":4,"guestChips":0,"paybar":true,"txt":" ورود با شمارهٔ موبایل وصل استحساب امن ع عضو آزمایشی ورود و دسترسی از سرور تأیید شده‌اند. نام از پروفایل حساب ۰ثبت‌نام ۰"}
+PASS member-390: no page errors
+PASS member 1280: real session → member head, 4 rows (no guest chips), paybar; no guest promo {"promo":false,"head":true,"rows":4,"guestChips":0,"paybar":true,"txt":" ورود با شمارهٔ موبایل وصل استحساب امن ع عضو آزمایشی ورود و دسترسی از سرور تأیید شده‌اند. نام از پروفایل حساب ۰ثبت‌نام ۰"}
+PASS member-1280: no page errors
+
+33 passed, 0 failed

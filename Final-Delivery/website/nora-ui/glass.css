@@ -27,12 +27,12 @@
   --accent:       #9C7C3C;      /* طلایی خاک‌گرفته — تزئینی */
   --accent-ink:   #86682B;      /* همان طلا، برای متن (تباین ۵٫۱) */
   --accent-tint:  rgba(156,124,60,.13);
-  --ok:           #0B7A57;
-  --ok-tint:      rgba(11,122,87,.10);
-  --warn:         #8A6A25;
-  --warn-tint:    rgba(138,106,37,.13);
-  --stop:         #B4453C;
-  --stop-tint:    rgba(180,69,60,.12);
+  --ok:           #0A6E4F;      /* متن وضعیت روی رنگ‌مایهٔ خودش ≥۴٫۵ حتی روی surface-sunk */
+  --ok-tint:      rgba(10,110,79,.10);
+  --warn:         #74561C;
+  --warn-tint:    rgba(116,86,28,.13);
+  --stop:         #9F3A31;
+  --stop-tint:    rgba(159,58,49,.12);
   --info:         #54719B;
   --info-tint:    rgba(84,113,155,.12);
 
@@ -58,9 +58,13 @@
   --blur-thin:    blur(16px) saturate(140%);
 
   /* ── هندسه: کارت ۲۸ · کنترل ۱۶ · چیپ ۱۴ ── */
-  --r-xl:28px; --r-lg:22px; --r-md:16px; --r-sm:12px; --r-pill:999px;
-  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+  --r-xl:28px; --r-lg:22px; --r-md:16px; --r-sm:12px; --r-xs:8px; --r-pill:999px;
+  --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px;
   --tap:44px;
+  /* ── ارتفاع کنترل‌ها: دو ارتفاع بیشتر نداریم؛ چیپ و برچسب ثابت‌اند ── */
+  --ctl-h:44px; --ctl-h-sm:34px; --chip-h:32px; --tag-h:24px;
+  /* ── عرض محتوا: فرم تک‌ستونه ۶۶۰ · صفحهٔ عمومی ۱۱۰۰ · پوستهٔ پنل ۱۳۲۰ ── */
+  --content-w-narrow:660px; --content-w:1100px; --shell-w:1320px; --page-pad:var(--sp-4);
 
   /* ── سایه: کم، دقیق ── */
   --sh-1:0 1px 2px rgba(20,40,35,.05), 0 4px 14px rgba(20,40,35,.05);
@@ -76,13 +80,15 @@
 
   /* ── حروف ── */
   --f:'Vazirmatn',system-ui,'Segoe UI',Tahoma,sans-serif;
-  --fs-display:27px; --fs-title:20px; --fs-head:16.5px;
-  --fs-body:15px;    --fs-sub:13.5px; --fs-cap:12px;
+  /* مقیاس بستهٔ تایپ: ۱۱ · ۱۲ · ۱۳.۵ · ۱۵ · ۱۶.۵ · ۱۸ · ۲۰ · ۲۴ · ۲۷ · ۳۲ · ۴۲؛ هیچ عدد دیگری در CSS صفحه‌ها نوشته نمی‌شود */
+  --fs-hero:42px; --fs-hero-m:32px; --fs-display:27px; --fs-kpi:24px; --fs-title:20px; --fs-lead:18px; --fs-head:16.5px;
+  --fs-body:15px;    --fs-sub:13.5px; --fs-cap:12px; --fs-micro:11px;
   --lh-tight:1.35; --lh:1.75;
 
   --rail:252px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
+@media (max-width:600px){:root{--page-pad:var(--sp-3)}}
 
 /* ── شب ─────────────────────────────────────────────────────────────────── */
 :root[data-theme="dark"]{
@@ -201,46 +207,65 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ── دکمه‌ها ───────────────────────────────────────────────────────────── */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-2);
-  min-height:var(--tap); padding:0 var(--sp-5);
+  min-height:var(--ctl-h); padding:0 var(--sp-5);
   border-radius:var(--r-md); border:.5px solid var(--hairline);
   background:var(--surface); color:var(--ink);
   font-size:var(--fs-body); font-weight:600; cursor:pointer;
-  box-shadow:var(--sh-1); transition:transform var(--t-fast) var(--spring), background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  box-shadow:var(--sh-1); transition:transform var(--t-fast) var(--spring), background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
   -webkit-tap-highlight-color:transparent;
 }
 .btn:hover{background:var(--surface-2)}
-.btn:active{transform:scale(.975)}
-.btn .i{width:19px;height:19px}
+.btn:active{transform:scale(.97)}
+.btn .i{width:19px;height:19px;transition:transform var(--t-fast) var(--spring)}
 .btn.primary{
+  position:relative; isolation:isolate; overflow:hidden;
   color:#fff; border-color:transparent;   /* کنش اصلی: آبی اپل، لبهٔ نوری بالا، سایهٔ نرم */
   background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 86%,#fff) 0%,var(--brand) 58%,var(--brand-2) 100%);
   box-shadow:0 1px 0 rgba(255,255,255,.30) inset, 0 4px 14px rgba(0,86,182,.26);
 }
 .btn.primary:hover{filter:brightness(1.04)}
 .btn.primary:active{transform:scale(.97); box-shadow:0 1px 0 rgba(255,255,255,.22) inset, 0 2px 6px rgba(0,86,182,.22)}
+/* درخششِ یک‌باره روی کنش اصلی: فقط با نشانگر واقعی، فقط وقتی حرکت مجاز است؛ متن زیرش نمی‌رود */
+.btn.primary::after{content:'';position:absolute;top:-20%;bottom:-20%;inset-inline-start:0;width:38%;z-index:-1;pointer-events:none;opacity:0;
+  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.30) 50%,transparent 100%);
+  transform:translateX(calc(var(--shine-dir,1)*-180%)) skewX(-16deg)}
+html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
+@keyframes btnShine{0%{transform:translateX(calc(var(--shine-dir,1)*-180%)) skewX(-16deg);opacity:0}18%{opacity:1}
+  100%{transform:translateX(calc(var(--shine-dir,1)*340%)) skewX(-16deg);opacity:0}}
 .btn.tint{background:var(--brand-tint); color:var(--brand-ink); border-color:transparent; box-shadow:none}
 .btn.quiet{background:transparent; border-color:transparent; box-shadow:none; color:var(--ink-2)}
 .btn.quiet:hover{background:var(--surface-sunk)}
+/* کنش برگشت‌ناپذیر: همیشه با رنگ توقف، و با hover پررنگ‌تر می‌شود تا با کنش عادی اشتباه نشود */
 .btn.stop{background:var(--stop-tint); color:var(--stop); border-color:transparent; box-shadow:none}
-.btn.sm{min-height:34px; padding:0 var(--sp-3); font-size:var(--fs-sub); border-radius:var(--r-sm); gap:6px}
+.btn.stop:hover{background:color-mix(in oklab,var(--stop) 20%,transparent)}
+.btn.sm{min-height:var(--ctl-h-sm); padding:0 var(--sp-3); font-size:var(--fs-sub); border-radius:var(--r-sm); gap:var(--sp-1h)}
 .btn.sm .i{width:16px;height:16px}
 .btn.icon{min-width:var(--tap); padding:0 var(--sp-3)}
 .btn.block{width:100%}
-.btn[disabled]{opacity:.45; pointer-events:none}
+.btn[disabled],.btn:disabled,.btn[aria-disabled="true"]{opacity:.45; pointer-events:none; transform:none; filter:none}
 .btn-row{display:flex; gap:var(--sp-2); flex-wrap:wrap}
+/* در حال انجام: چرخانه به‌جای آیکون، متن می‌ماند، کلیک دوباره ممکن نیست */
+@keyframes btnSpin{to{transform:rotate(360deg)}}
+.btn[aria-busy="true"]{pointer-events:none; cursor:progress; opacity:.82; transform:none; filter:none}
+.btn[aria-busy="true"]>.i{display:none}
+.btn[aria-busy="true"]::before{content:'';flex:0 0 auto;width:15px;height:15px;border-radius:50%;
+  border:2px solid currentColor;border-inline-end-color:transparent;opacity:.9;animation:btnSpin .8s linear infinite}
+.btn.sm[aria-busy="true"]::before{width:12px;height:12px;border-width:1.8px}
+.btn.primary[aria-busy="true"]::after{animation:none}
+.i.is-spinning{animation:btnSpin .9s linear infinite;transform-origin:50% 50%}
 
 /* ── چیپ و برچسب ────────────────────────────────────────────────────────── */
 .chip{
-  display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 var(--sp-3);
+  display:inline-flex; align-items:center; gap:var(--sp-1h); height:var(--chip-h); padding:0 var(--sp-3);
   border-radius:var(--r-pill); border:.5px solid var(--hairline);
   background:var(--surface); font-size:var(--fs-sub); font-weight:500; color:var(--ink-2);
-  cursor:pointer; transition:transform var(--t-fast) var(--spring), background var(--t-fast) var(--ease);
+  cursor:pointer;
 }
 .chip .i{width:16px;height:16px}
 .chip:hover{background:var(--surface-2)}
 .chip:active{transform:scale(.96)}
 .chip.on{background:var(--brand-tint); color:var(--brand-ink); border-color:transparent; font-weight:600}
-.tag{display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 10px; border-radius:var(--r-pill);
+.tag{display:inline-flex; align-items:center; gap:var(--sp-1h); height:var(--tag-h); padding:0 var(--sp-2h); border-radius:var(--r-pill);
   font-size:var(--fs-cap); font-weight:600; background:var(--surface-sunk); color:var(--ink-2)}
 .tag .i{width:14px;height:14px}
 .tag.ok{background:var(--ok-tint); color:var(--ok)}
@@ -255,7 +280,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .seg button{
   border:0; background:none; cursor:pointer; padding:0 var(--sp-4); height:32px;
   border-radius:var(--r-pill); font-size:var(--fs-sub); color:var(--ink-2); font-weight:500;
-  transition:background var(--t) var(--ease), color var(--t) var(--ease);
 }
 .seg button.on{background:var(--surface); color:var(--ink); font-weight:600; box-shadow:var(--sh-1)}
 .switch{width:50px;height:30px;border-radius:var(--r-pill);background:var(--surface-sunk);border:.5px solid var(--hairline);
@@ -268,7 +292,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ── فرم ───────────────────────────────────────────────────────────────── */
 .lbl{display:block;font-size:var(--fs-sub);font-weight:600;color:var(--ink-2);margin-bottom:6px}
 .input{
-  width:100%; min-height:var(--tap); padding:10px var(--sp-4);
+  width:100%; min-height:var(--ctl-h); padding:var(--sp-2h) var(--sp-4);
   border-radius:var(--r-md); border:.5px solid var(--hairline);
   background:var(--surface); box-shadow:var(--sh-1);
   transition:border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
@@ -382,12 +406,59 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .i.lg{width:24px;height:24px}
 .i.xl{width:30px;height:30px}
 .icon-btn{width:var(--tap);height:var(--tap);border-radius:var(--r-md);border:.5px solid transparent;background:none;
-  display:grid;place-items:center;cursor:pointer;color:var(--ink-2)}
+  display:grid;place-items:center;cursor:pointer;color:var(--ink-2);
+  transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),color var(--t-fast) var(--ease),border-color var(--t-fast) var(--ease)}
 .icon-btn:hover{background:var(--surface-sunk)}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn .i{transition:transform var(--t-fast) var(--spring)}
+.icon-btn.stop{color:var(--stop)}
+.icon-btn.stop:hover{background:var(--stop-tint)}
+.icon-btn[disabled],.icon-btn[aria-disabled="true"]{opacity:.45;pointer-events:none;transform:none}
+/* آیکون کلید شب/روز در دکمه‌های متنی: نشانهٔ حالتِ مقصد (در روز ماه، در شب خورشید) */
+.theme-ico-sun{display:none}
+:root[data-theme="dark"] .theme-ico-moon{display:none}
+:root[data-theme="dark"] .theme-ico-sun{display:inline-block}
 
 /* ── حالت‌ها ───────────────────────────────────────────────────────────── */
 .empty{text-align:center;padding:var(--sp-8) var(--sp-4);color:var(--ink-3)}
 .empty .i{width:34px;height:34px;opacity:.6}
+/* ── سربرگ صفحه (مشترک عمومی و پنل): بازگشت · عنوان · زیرعنوان · عمل‌ها · متا ── */
+.page-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--sp-2) var(--sp-3);padding:var(--sp-2) 0 var(--sp-3);min-width:0}
+.page-head .ph-tt{min-width:0;display:grid;gap:2px}
+.page-head .ph-kicker{font-size:var(--fs-cap);color:var(--ink-3);font-weight:600}
+.page-head .ph-title{font-family:var(--f-h);font-size:var(--fs-title);font-weight:700;letter-spacing:-.3px;line-height:var(--lh-tight);margin:0;overflow-wrap:anywhere}
+.page-head .ph-sub{font-size:var(--fs-sub);color:var(--ink-3);line-height:1.6;margin:0}
+.page-head .ph-actions{display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.page-head .ph-meta{grid-column:1/-1;display:flex;gap:var(--sp-1h);align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap;padding-bottom:2px;min-width:0}
+.page-head .ph-meta::-webkit-scrollbar{display:none}
+.page-head .ph-meta>*{flex:0 0 auto}
+.page-head.lg .ph-title{font-size:var(--fs-display)}
+@media (max-width:600px){.page-head .ph-title{font-size:var(--fs-lead)}.page-head.lg .ph-title{font-size:var(--fs-title)}}
+/* ── سرتیتر بخش: عنوان کارت/بخش همیشه یک اندازه (۱۶.۵) و یک پیوند ثانویه در سمت دیگر ── */
+.sec-head{display:flex;align-items:baseline;gap:var(--sp-2);margin:0 0 var(--sp-2h);min-width:0}
+.sec-head .sh-title,.sec-head h2,.sec-head h3{font-family:var(--f-h);font-size:var(--fs-head);font-weight:700;margin:0;letter-spacing:-.2px;min-width:0}
+.sec-head .sh-sub{font-size:var(--fs-cap);color:var(--ink-3)}
+.sec-head .sh-link{margin-inline-start:auto;font-size:var(--fs-sub);color:var(--brand-ink);text-decoration:none;font-weight:600;white-space:nowrap}
+/* ── حالت‌ها: یک مؤلفه برای بارگذاری/خالی/بی‌نتیجه/خطا/بی‌دسترسی/موفق؛ همیشه با یک عمل ── */
+.state{display:grid;justify-items:center;text-align:center;gap:var(--sp-1h);padding:var(--sp-6) var(--sp-4);color:var(--ink-3);border-radius:var(--r-md);background:var(--surface-sunk)}
+.state .i{width:28px;height:28px;opacity:.7}
+.state .st-title{font-size:var(--fs-body);font-weight:700;color:var(--ink-2)}
+.state .st-text{font-size:var(--fs-sub);max-width:46ch;line-height:1.8;margin:0}
+.state .st-actions{display:flex;gap:var(--sp-2);flex-wrap:wrap;justify-content:center;margin-top:var(--sp-1)}
+.state.compact{padding:var(--sp-3) var(--sp-4);grid-auto-flow:column;grid-template-columns:auto minmax(0,1fr) auto;justify-items:start;text-align:start;align-items:center;gap:var(--sp-3)}
+.state.compact .st-text{max-width:none}
+.state.error{background:var(--stop-tint)} .state.error .st-title{color:var(--stop)}
+.state.noaccess{background:var(--warn-tint)} .state.noaccess .st-title{color:var(--warn)}
+.state.ok{background:var(--ok-tint)} .state.ok .st-title{color:var(--ok)}
+.state.loading{background:transparent;padding:var(--sp-4)} .state.loading .skel{width:min(100%,320px)}
+/* ── بخش پیشرفته: امکانات کم‌کاربرد حذف نمی‌شوند؛ همین‌جا بسته می‌مانند ── */
+details.adv{border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
+details.adv>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:var(--sp-2);min-height:var(--ctl-h);padding:0 var(--sp-4);font-size:var(--fs-sub);font-weight:600;color:var(--ink-2)}
+details.adv>summary::-webkit-details-marker{display:none}
+details.adv>summary::after{content:'';width:8px;height:8px;border:solid currentColor;border-width:0 0 1.5px 1.5px;transform:rotate(-45deg);margin-inline-start:auto;transition:transform var(--t-fast) var(--ease);flex:0 0 auto}
+details.adv[open]>summary::after{transform:rotate(135deg)}
+details.adv>.adv-body{padding:0 var(--sp-4) var(--sp-4);display:grid;gap:var(--sp-3)}
+details.adv>summary .tag{margin-inline-start:var(--sp-1)}
 .skel{height:14px;border-radius:8px;background:linear-gradient(90deg,var(--surface-sunk),var(--surface),var(--surface-sunk));
   background-size:220% 100%;animation:sk 1.4s linear infinite}
 @keyframes sk{to{background-position:-120% 0}}
@@ -398,10 +469,42 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   border:.5px solid var(--glass-line); border-radius:var(--r-pill); box-shadow:var(--sh-2); font-size:var(--fs-sub); font-weight:600
 }
 .toast.on{display:flex;animation:up var(--t) var(--ease)}
+.toast.on.is-out{animation:toastOut var(--t-fast) var(--ease) forwards}
 @keyframes up{from{transform:translateY(12px);opacity:0}}
+@keyframes toastOut{to{transform:translateY(8px);opacity:0}}
+/* توست خطا/هشدار: فقط رنگ نیست؛ نشانهٔ ⓧ هم دارد (آیکون ✓ ثابت صفحه در این حالت پنهان می‌شود) */
+.toast.is-error{color:var(--stop);border-color:color-mix(in oklab,var(--stop) 38%,transparent)}
+.toast.is-error::before{content:'';flex:0 0 auto;width:17px;height:17px;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.4'/%3E%3Cpath d='M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.4'/%3E%3Cpath d='M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* ── لایهٔ hover: فقط با نشانگر واقعی (نه لمس)، و فقط وقتی حرکت مجاز است ── */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover{transform:translateY(-1px)}
+  .btn.primary:hover{box-shadow:0 1px 0 rgba(255,255,255,.32) inset, 0 6px 18px rgba(0,86,182,.30)}
+  .btn:hover>.i{transform:translateY(-.5px) scale(1.06)}
+  .btn:active{transform:scale(.97)}
+  .btn:active>.i{transform:none}
+  .icon-btn:hover{color:var(--brand-ink)}
+  .icon-btn:hover>.i{transform:scale(1.07)}
+  .icon-btn.stop:hover{color:var(--stop)}
+  .chip:hover{border-color:color-mix(in oklab,var(--brand) 30%,var(--hairline))}
+  .seg button:not(.on):hover{color:var(--ink);background:color-mix(in oklab,var(--surface) 55%,transparent)}
+}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  .btn.primary:not([disabled]):not([aria-busy="true"]):hover::after{animation:btnShine .56s var(--ease) 1 both}
+}
+/* ── کنترل‌های وضعیت‌دار: گذار نرم و pop ظریف هنگام فعال‌شدن ── */
+.chip,.seg button{transition:transform var(--t-fast) var(--spring),background var(--t) var(--ease),color var(--t) var(--ease),border-color var(--t) var(--ease),box-shadow var(--t) var(--ease)}
+@keyframes segPop{0%{transform:scale(.96)}55%{transform:scale(1.03)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:no-preference){.seg button.on{animation:segPop .36s var(--spring) 1}}
+/* حلقهٔ فوکوس روی زمینهٔ آبی کنش اصلی: یک حاشیهٔ روشن هم می‌گیرد تا با hover اشتباه نشود */
+.btn.primary:focus-visible{outline-offset:3px;box-shadow:0 0 0 2px var(--surface),0 4px 14px rgba(0,86,182,.26)}
+/* تنظیم «حرکت: خاموش» کاربر نورا (html[data-motion]) در همهٔ صفحه‌ها، نه فقط صفحه‌های nora.css */
+html[data-motion="off"] *{animation:none!important;transition:none!important}
 
 /* ── چیدمان کلی ────────────────────────────────────────────────────────── */
-.shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); gap:var(--sp-3); max-width:1320px; margin:0 auto; padding:var(--sp-3)}
+.shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); gap:var(--sp-3); max-width:var(--shell-w); margin:0 auto; padding:var(--sp-3)}
 .main{min-width:0; padding-bottom:110px}
 .split{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr); gap:var(--sp-3); align-items:start}
 .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3)}
@@ -474,7 +577,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 @media (max-width:420px){.tiles{grid-template-columns:1fr}}
 .tile{
   position:relative;text-align:start;cursor:pointer;border:.5px solid var(--hairline);background:var(--surface);
-  border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-1);display:flex;flex-direction:column;gap:10px;
+  border-radius:var(--r-lg);padding:var(--sp-4);box-shadow:var(--sh-1);display:flex;flex-direction:column;gap:var(--sp-2h);
   transition:transform var(--t) var(--spring),box-shadow var(--t) var(--ease),border-color var(--t) var(--ease)
 }
 .tile:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
@@ -543,7 +646,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 }
 .bankcard .row1{display:flex;align-items:center;gap:10px}
 .bankcard .chip{width:38px;height:28px;border-radius:7px;background:linear-gradient(140deg,#EFE1B4,#C9A85C);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);flex:0 0 auto;height:28px}
-.bankcard .num{font-variant-numeric:tabular-nums;letter-spacing:.6px;font-size:19px;font-weight:600;margin:16px 0 4px;direction:ltr;text-align:start}
+.bankcard .num{font-variant-numeric:tabular-nums;letter-spacing:.6px;font-size:var(--fs-title);font-weight:600;margin:16px 0 4px;direction:ltr;text-align:start}
 .bankcard .who{display:flex;justify-content:space-between;font-size:var(--fs-sub);opacity:.92;margin-top:12px}
 .bankcard .lbl2{position:relative;z-index:1}
 .copyrow{display:flex;align-items:center;gap:8px}
@@ -627,7 +730,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:900px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .metric{background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-lg);padding:14px;box-shadow:var(--sh-1)}
-.metric .n{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
+.metric .n{font-size:var(--fs-kpi);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
 .metric .l{font-size:var(--fs-cap);color:var(--ink-3)}
 .metric .d{font-size:var(--fs-cap);color:var(--ok)}
 .metric.acc .n{color:var(--accent-ink)}
@@ -688,7 +791,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .nora-loader-warning-copy b{font-weight:600}
 .nora-loader-warning-copy span{font-weight:500;opacity:.9}
 .nora-loader-retry{-webkit-appearance:none;appearance:none;flex:0 0 auto;min-height:31px;padding:0 9px;border:0;border-radius:var(--r-sm);
-  background:var(--brand-tint);color:var(--brand-ink);font:inherit;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;
+  background:var(--brand-tint);color:var(--brand-ink);font:inherit;font-size:var(--fs-micro);font-weight:600;white-space:nowrap;cursor:pointer;
   transition:transform var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
 .nora-loader-retry:hover{background:color-mix(in srgb,var(--brand) 16%,var(--surface))}
 .nora-loader-retry:active{transform:scale(.96)}
@@ -730,7 +833,7 @@ h1,h2,h3,h4,h5,
 /* ارقام فارسی هم‌عرض و درشت‌ترها با استداد */
 .numbook, .ev .prc, .cel{font-variant-numeric:tabular-nums}
 /* ── خط اطمینان: یک جملهٔ کوتاه، ته هر بخش ────────────────────────── */
-.trustline{display:flex;align-items:center;gap:7px;margin:10px 2px 0;font-size:11.5px;
+.trustline{display:flex;align-items:center;gap:var(--sp-2);margin:var(--sp-2h) 2px 0;font-size:var(--fs-cap);
   line-height:1.75;color:var(--ink-3)}
 .trustline .i{width:15px;height:15px;color:var(--ok);flex:0 0 auto}
 .trustline span{min-width:0}
@@ -742,4 +845,4 @@ h1,h2,h3,h4,h5,
   background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-2);white-space:nowrap}
 .navclock .i{width:16px;height:16px;color:var(--ink-3)}
 .navclock b{font-size:var(--fs-sub);font-weight:600;font-variant-numeric:tabular-nums}
-@media (max-width:560px){.navclock b{font-size:10.5px}.navclock{padding:5px 8px}}
+@media (max-width:560px){.navclock b{font-size:var(--fs-micro)}.navclock{padding:5px 8px}}

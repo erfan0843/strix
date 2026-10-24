@@ -1,0 +1,1 @@
+{"already_linked": 3, "backup": "nora-legacy-before-certificates-20261021T065915Z-c9dc6b57.sqlite", "candidates": 2, "failed": 0, "file_unavailable": 0, "issues": {"owner_identity_not_found": 2}, "mirrored": 0, "mode": "apply", "revoked_candidates": 0, "skipped_revoked": 0, "total": 6, "unmapped": 2, "with_pdf": 1, "with_png": 0, "without_owner_key": 1}

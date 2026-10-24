@@ -1,0 +1,32 @@
+✓ m events#recorded: archive filter shows only published products
+✓ m guest product: login CTA only, no order button, no countdown, no legacy sheet
+✓ m guest direct URL: direct video URL → 401 for guest
+✓ m buyer badge: published review carries server-side badge «خریدار تأییدشده»
+✓ m held without product: no purchase anywhere, registration ended
+✓ m upcoming: registration still offered, no product
+✓ m pending: receipt submitted → order_open state, no new order, no access
+✓ m pending direct URL: direct video URL → 403 purchase_required
+✓ m account orders: orders listed separately from registration payments
+✓ m buyer: purchased state → view + player, no buy button
+✓ m buyer stream: Range request → 206 for the buyer
+✓ m buyer review: buyer is review-eligible (own review shown as editable, not as a foreign row)
+✓ m library: library shows real access, no fake progress
+✓ m free holder: free claim → access, no transaction
+✓ m manager orders: manager sees review queue, no refund (finance = owner only)
+✓ m owner product tab: owner sees product management inside the event tool
+✓ d events#recorded: archive filter shows only published products
+✓ d guest product: login CTA only, no order button, no countdown, no legacy sheet
+✓ d guest direct URL: direct video URL → 401 for guest
+✓ d buyer badge: published review carries server-side badge «خریدار تأییدشده»
+✓ d held without product: no purchase anywhere, registration ended
+✓ d upcoming: registration still offered, no product
+✓ d pending: receipt submitted → order_open state, no new order, no access
+✓ d pending direct URL: direct video URL → 403 purchase_required
+✓ d account orders: orders listed separately from registration payments
+✓ d buyer: purchased state → view + player, no buy button
+✓ d buyer stream: Range request → 206 for the buyer
+✓ d buyer review: buyer is review-eligible (own review shown as editable, not as a foreign row)
+✓ d library: library shows real access, no fake progress
+✓ d free holder: free claim → access, no transaction
+✓ d manager orders: manager sees review queue, no refund (finance = owner only)
+✓ d owner product tab: owner sees product management inside the event tool

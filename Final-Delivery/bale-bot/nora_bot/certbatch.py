@@ -1063,12 +1063,17 @@ def _issue_for_row(cid, uid, batch, row, user):
             tpl = certgen.get_template(batch["template_id"])
         tpl = tpl or certgen.get_template()
 
+        # 🔴 باگ رفع‌شده (فاز ۳ پنل): جدول certificates ستون
+        #    created_at ندارد (زمان صدور در issued_at است)؛ INSERT
+        #    قبلی همیشه شکست می‌خورد و ادعای اکسلی بدون گواهی می‌ماند.
         cert_id = db_execute(
             "INSERT INTO certificates (bale_user_id, event_id, serial, "
-            "template_id, source, created_at) "
+            "template_id, source, issued_at) "
             "VALUES (?,?,?,?,'batch',datetime('now'))",
             (int(uid), batch.get("event_id"), serial,
              (tpl or {}).get("id")))
+        if not cert_id:
+            raise RuntimeError("certificate_insert_failed")
 
         # 🔍 فاز ۳۴ — شناسهٔ دولایه و تاریخ اعتبار
         try:
@@ -1112,6 +1117,12 @@ def _issue_for_row(cid, uid, batch, row, user):
                 (res.get("png"), res.get("pdf"), res.get("docx"),
                  path, cert_id))
         mark_claimed(row["id"], uid, cert_id)
+        # 🪞 آینهٔ سرور مشترک (بهترین‌تلاش)
+        try:
+            import shared_certificates as _sc
+            _sc.sync_after_change(cert_id)
+        except Exception:
+            pass
         # 🔴 باگ رفع‌شده (فاز ۳۷): شمارندهٔ گواهینامهٔ کاربر
         #    فقط در certissue بالا می‌رفت. کسی که از لینک
         #    اکسل گواهینامه می‌گرفت، در پروفایلش

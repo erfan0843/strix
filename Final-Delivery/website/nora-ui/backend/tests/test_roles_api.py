@@ -29,6 +29,7 @@ from backend.roles import (  # noqa: E402
     permissions_for_role,
 )
 from backend.security import hash_password  # noqa: E402
+from site_content_seed import seed_site_events  # noqa: E402
 
 BOT_TOKEN = "test-only-bale-token"
 
@@ -53,6 +54,7 @@ def auth_client(*, bot_service_token="", owner_bale_user_id=""):
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
+    seed_site_events(engine, ["event-role-test"])
     settings = Settings(
         database_url=None,
         owner_id="owner-01",

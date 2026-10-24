@@ -1,0 +1,15 @@
+# تایمر اجرای دوره‌ای nora-scheduled-publish.service — بازهٔ پیش‌فرض ۵ دقیقه (تصمیم مالک: بین ۱ تا ۱۵ دقیقه معقول است)
+# دقت اعلان = همین بازه؛ خودِ دیده‌شدن محتوا دقیقاً در publish_at (ساعت سرور) اتفاق می‌افتد و به تایمر ربطی ندارد.
+[Unit]
+Description=Run Nora scheduled-publish announcer every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+# اگر سرور خاموش بوده، اولین اجرا پس از بالا آمدن همهٔ موارد عقب‌افتاده را یک‌جا (و فقط یک‌بار) اعلان می‌کند
+Persistent=true
+AccuracySec=30s
+Unit=nora-scheduled-publish.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,10 @@
+........................................................................ [ 31%]
+........................................................................ [ 63%]
+.....ssss............................................................... [ 95%]
+..........                                                               [100%]
+=============================== warnings summary ===============================
+../../../../../venvs/nora/lib/python3.11/site-packages/fastapi/testclient.py:1
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+222 passed, 4 skipped, 1 warning in 38.93s

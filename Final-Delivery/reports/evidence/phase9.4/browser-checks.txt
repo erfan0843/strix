@@ -1,0 +1,25 @@
+✓ d storage notice: panel resources tab reads limits.storage from the server: data-ei-storage=local_disk «فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ۵۱۲ مگابایت · فضای آزاد دیسک: ۱۸.۰ گیگابایت). پخش با بررسی دسترسی در هر درخواست و »; existing seeded rows: ready/database, ready/database, ready/database (DB-inline files stay valid next to disk storage)
+✓ d owner upload via panel API: resource f8e6ea62-23a6-4dc4-b1b5-6ddb19a47f14 (session d5054fd2-e74c-47fe-b3d3-8cb22358aab8) uploaded 4096 B → storage {"backend":"local_disk","state":"ready"}, published & live
+✓ d owner new row: panel row for the new file: data-ei-res-storage=ready, backend=local_disk «ذخیره‌سازی: فایل آماده · روی دیسک خصوصی سرور»
+✓ d holder Range over HTTP: Range 0-99 → 206 bytes 0-99/4096 (100 B, Accept-Ranges=bytes); 999999- → 416 bytes */4096; 4000- → 206 bytes 4000-4095/4096; no Range → 200 4096 B; no filesystem path in headers
+✓ d holder notification: exactly ONE recording_content row for the new live resource (both desktop+mobile runs re-check the same row: idempotent); link=/event.html?id=ev-dbbc5c5acb#recording; delivery_state=queued (recorded ≠ delivered: no live bot here); body has no API/file path
+✓ d holder account link: account «اعلان‌ها» renders the in-app button «دیدن محتوای تازه» → event.html?id=ev-dbbc5c5acb#recording; zero /api/ links in the view
+✓ d holder link lands on product: clicked notification link → /event.html?id=ev-dbbc5c5acb#recording with CTA=view
+✓ d member outbox authz: GET /api/admin/notifications as a member → 403 (backend-enforced, no panel tab needed)
+✓ d pending buyer: Range download → 403; zero recording_content notifications (fan-out only to ACTIVE holders); viewer access_state=undefined
+✓ d guest: guest: download 401, admin outbox 401, account notifications 401
+✓ d manager outbox: API counts={"queued":6,"retrying":0,"delivered":0,"failed":0,"no_bale_identity":0} (no raw bale_user_id); panel card rows=[queued,queued,queued,queued,queued,queued] chips=[همه | در صف ۶ | تلاش دوباره ۰ | تحویل‌شده ۰ | ناموفق ۰ | بدون هویت بله ۰]
+✓ d manager outbox filter: filter «در صف» → 6 rows, all queued
+✓ m storage notice: panel resources tab reads limits.storage from the server: data-ei-storage=local_disk «فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ۵۱۲ مگابایت · فضای آزاد دیسک: ۱۸.۰ گیگابایت). پخش با بررسی دسترسی در هر درخواست و »; existing seeded rows: ready/database, ready/database, ready/database, ready/local_disk (DB-inline files stay valid next to disk storage)
+✓ m holder Range over HTTP: Range 0-99 → 206 bytes 0-99/4096 (100 B, Accept-Ranges=bytes); 999999- → 416 bytes */4096; 4000- → 206 bytes 4000-4095/4096; no Range → 200 4096 B; no filesystem path in headers
+✓ m holder notification: exactly ONE recording_content row for the new live resource (both desktop+mobile runs re-check the same row: idempotent); link=/event.html?id=ev-dbbc5c5acb#recording; delivery_state=queued (recorded ≠ delivered: no live bot here); body has no API/file path
+✓ m holder account link: account «اعلان‌ها» renders the in-app button «دیدن محتوای تازه» → event.html?id=ev-dbbc5c5acb#recording; zero /api/ links in the view
+✓ m holder link lands on product: clicked notification link → /event.html?id=ev-dbbc5c5acb#recording with CTA=view
+✓ m member outbox authz: GET /api/admin/notifications as a member → 403 (backend-enforced, no panel tab needed)
+✓ m pending buyer: Range download → 403; zero recording_content notifications (fan-out only to ACTIVE holders); viewer access_state=undefined
+✓ m guest: guest: download 401, admin outbox 401, account notifications 401
+✓ m manager outbox: API counts={"queued":6,"retrying":0,"delivered":0,"failed":0,"no_bale_identity":0} (no raw bale_user_id); panel card rows=[queued,queued,queued,queued,queued,queued] chips=[همه | در صف ۶ | تلاش دوباره ۰ | تحویل‌شده ۰ | ناموفق ۰ | بدون هویت بله ۰]
+✓ m manager outbox filter: filter «در صف» → 6 rows, all queued
+• idempotency: the resource was created once (desktop run) and both runs observed the same single recording_content row for the holder
+
+ARTIFACTS: 13 screenshots in p94

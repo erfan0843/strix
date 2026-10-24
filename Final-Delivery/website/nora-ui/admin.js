@@ -32,11 +32,22 @@ let SERVER_WORKFLOW_LOADING=false;
 let SERVER_WORKFLOW_LOADED=false;
 let SERVER_WORKFLOW_ERROR='';
 let SERVER_WORKFLOW_HAS_MORE=false;
+let SERVER_WORKFLOW_STATUS='pending'; /* pending | decided: تاریخچهٔ تصمیم‌ها از همان جدول سرور */
+let SERVER_ROLE_QUERY='',SERVER_ROLE_FILTER='';
+let SERVER_AUDIT_ITEMS=[],SERVER_AUDIT_LOADING=false,SERVER_AUDIT_LOADED=false,SERVER_AUDIT_ERROR='',SERVER_AUDIT_HAS_MORE=false,SERVER_AUDIT_ACTION='';
 let SERVER_REPORT_DATA=null;
 let SERVER_REPORT_LOADING=false;
 let SERVER_REPORT_ERROR='';
 let SERVER_REPORT_PERIOD='30d';
 let SERVER_REPORT_REQUEST=0;
+/* فاز ۹.۴ §۸: فهرست صندوق خروجی اعلان‌ها (فقط خواندن؛ rp_view در backend). ثبت ≠ ارسال ≠ تحویل. */
+const SERVER_OUTBOX={items:[],counts:null,state:'',kind:'',loaded:false,loading:false,error:'',more:false,request:0,retrying:'',notice:null};
+/* B19: فیلتر نوع همان پارامتر kind سرور است (فقط انواعی که صف آن‌ها از این پنل خوانده می‌شود) */
+const SERVER_OUTBOX_KINDS=[['','همهٔ انواع'],['event_reminder','یادآوری رویداد'],['content_published','انتشار محتوا']];
+/* فاز ۹.۵ §۸.۲: وضعیت زمان‌بند انتشار (آخرین اجرای تایمر/دستی + ردیف‌های در انتظار) ؛ فقط از API سرور */
+const SERVER_SCHED={data:null,loading:false,running:false,error:'',loaded:false};
+const SERVER_INTEGRITY={report:null,loading:false,error:'',request:0};
+const SERVER_OUTBOX_STATES=[['','همه'],['queued','در صف'],['retrying','تلاش دوباره'],['delivered','تحویل‌شده'],['failed','ناموفق'],['no_bale_identity','بدون هویت بله']];
 let SERVER_HEALTH=null;
 let SERVER_HEALTH_LOADING=false;
 let SERVER_HEALTH_ERROR='';
@@ -511,7 +522,9 @@ function linkForms(evId, w0){
 const evAll=()=>{const ov=S.evEdit||{};
   return (S.added||[]).concat(EVROWS).map(e=>ov[e.id]?Object.assign({},e,ov[e.id]):e);};
 const evOf=id=>evAll().find(e=>e.id===id)||null;
-const eventPartnerRows=()=>{try{return typeof ppPartnerMerged==='function'?ppPartnerMerged():((window.NORA||{}).PARTNERS||[])}catch(e){return []}};
+const eventPartnerRows=()=>{try{
+  if(typeof ppPartnerServerMode==='function'&&ppPartnerServerMode()&&!PP_SRV.loaded&&!PP_SRV.requested) ppPartnerServerLoad();
+  return typeof ppPartnerMerged==='function'?ppPartnerMerged():((window.NORA||{}).PARTNERS||[])}catch(e){return []}};
 const eventPartnerOf=id=>{if(!id)return null; try{return (typeof ppPartnerAll==='function'?ppPartnerAll():((window.NORA||{}).PARTNERS||[]))
   .find(row=>String(row.id)===String(id))||null}catch(e){return null}};
 const eventPartnerName=event=>{
@@ -577,47 +590,70 @@ function miniSheet(title,html,label){
 }
 
 /* ══ ناوبری و نوار بالا ═════════════════════════════════════════════════ */
-const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:'ساخت مطلب تازه'}
+/* منوی پنل سروری = همان منوی مرجع (data.js طرح: newev, events, users, forms, reports, settings + داشبورد).
+   «گزارش‌ها» بخش جدا نیست؛ همان هاب گزارش سرور زیر «کاربران» است (S.uHub='reports') و «تعریف جدید»
+   همان ویرایشگر سروری رویداد/مطلب را با رکورد خالی باز می‌کند. مجوز هر مورد از canSec/canPerm سرور می‌آید. */
+const SERVER_MENU=[
+  {k:'newev',  n:'تعریف جدید', i:'i-plus',    s:'رویداد یا مطلب تازه تا انتشار یا تأیید'},
+  {k:'events', n:'رویدادها و مطالب', t:'رویدادها', i:'i-calendar',s:'رویداد و مطلب، از انتشار تا رسانه'},
+  {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهینامه و ابزارها'},
+  {k:'forms',  n:'فرم‌ها',     i:'i-doc',     s:'ساخت فرم، پاسخ‌ها و گزارش'},
+  {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش تجمیعی سرور، خروجی و دفتر نامه‌ها'},
+  {k:'settings',n:'تنظیمات',   i:'i-sliders', s:'متن، مالی و پشتیبان'}];
+const SERVER_TABBAR=['dash','events','users','reports','settings'];
+const navSecs=()=>(!IS_TEST&&SERVER_AUTH)?[HOME].concat(SERVER_MENU):ALLSECS;
+const navCan=k=>k==='reports'?(canPerm('rp_view')&&canSec('users')):canSec(k);
+const navActive=k=>{const rep=S.sec==='users'&&S.uHub==='reports';
+  if(k==='reports') return rep; if(k==='users') return S.sec==='users'&&!rep;
+  if(k==='events') return S.sec==='events'||(S.sec==='newev'&&IS_TEST); return S.sec===k};
+const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:(!IS_TEST&&SERVER_AUTH)?'رویداد یا مطلب تازه تا انتشار یا تأیید':'ساخت مطلب تازه'}
+  :k==='reports'&&!IS_TEST&&SERVER_AUTH?SERVER_MENU.find(s=>s.k==='reports')
   :ALLSECS.find(s=>s.k===(k==='reports'?'users':k))||HOME;
 
 function renderNav(){
-  const secs=ALLSECS.filter(section=>canSec(section.k)).map(section=>section.k);
-  $('#admNav').innerHTML=ALLSECS.map(s=>{
-    const open=secs.indexOf(s.k)>-1, active=S.sec===s.k||(S.sec==='newev'&&s.k==='events'), lock=!open,
+  const all=navSecs(), live=!IS_TEST&&SERVER_AUTH;
+  const secs=all.filter(section=>navCan(section.k)).map(section=>section.k);
+  $('#admNav').innerHTML=all.map(s=>{
+    const open=secs.indexOf(s.k)>-1, active=navActive(s.k), lock=!open,
       contents=`${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span>${s.badge&&open?`<span class="tag warn bd">${esc(s.badge)}</span>`:(lock?`<span class="bd">${ico('i-lock')}</span>`:'')}`;
     if(s.k==='forms') return open
       ?`<a class="btn quiet block ${S.sec===s.k?'on':''}" href="builder.html" data-center-href="builder.html">${contents}</a>`
       :`<button class="btn quiet block" data-locked="1">${contents}</button>`;
     return `<button class="btn quiet block ${active?'on':''}" data-sec="${s.k}" ${open?'':'data-locked="1"'}>${contents}</button>`;}).join('');
   /* نوار پایین همان بخش‌های بازِ ریل است؛ مرکز فرم‌ها پیوند مستقیم دارد */
-  $('#admTabs').innerHTML=ALLSECS.filter(s=>secs.indexOf(s.k)>-1).map(s=>{
-    const active=S.sec===s.k||(S.sec==='newev'&&s.k==='events');
-    return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span></a>`
-      :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span></a>`}).join('');
+  $('#admTabs').innerHTML=all.filter(s=>secs.indexOf(s.k)>-1&&(!live||SERVER_TABBAR.includes(s.k))).map(s=>{
+    const active=navActive(s.k)||(live&&s.k==='events'&&S.sec==='newev');
+    return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.t||s.n)}</span></a>`
+      :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.t||s.n)}</span></a>`}).join('');
 }
 function renderBar(){
   const s=secOf(S.sec);
-  const searchOn=S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')
-    :S.sec==='users'?(!S.uV&&S.uHub!=='reports'):false;
   const live=!IS_TEST&&!!SERVER_AUTH;
-  const previewLabel=live?'وضعیت از API سرور':'پیش‌نمایش محلی';
-  const previewTitle=live?'داده و مجوز فقط از API مجاز سرور خوانده می‌شوند'
+  /* در حالت سروری فهرست رویداد/کاربر محلی وجود ندارد؛ جعبهٔ جست‌وجوی بی‌اثر نشان داده نمی‌شود */
+  const searchOn=live?false:S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')
+    :S.sec==='users'?(!S.uV&&S.uHub!=='reports'):false;
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A2): چیپ سلامت نوار بالا سه حالت صادقانه دارد: سالم (ok=true از /api/health)، خراب (ok=false یا پاسخ نگرفت)، بررسی‌نشده؛ سرویس اختیاریِ پیکربندی‌نشده «خراب» شمرده نمی‌شود */
+  const hs=live?serverHealthState():null;
+  const previewLabel=live?'وضعیت از API سرور · '+(hs?hs.label:'بررسی‌نشده'):'پیش‌نمایش محلی';
+  const previewClass=live?(hs?hs.cls:'warn'):'warn';
+  const previewTitle=live?(hs?hs.title:'داده و مجوز فقط از API مجاز سرور خوانده می‌شوند')
     :'این نمای آزمایشی محلی است و مجوز سروری ندارد';
   const identity=live
-    ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span>${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?'نام کاربری مدیر':SERVER_AUTH.provider==='phone'?'شمارهٔ موبایل':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
+    ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span dir="auto">${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?esc(SERVER_AUTH.manager_username||'حساب مدیر'):SERVER_AUTH.provider==='phone'?'حساب تلفنی':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
     :`<button class="chip" data-who-sheet aria-label="پروفایل شخصی ${esc(meDisplay(me()))}">
       ${ico('i-user')}<span>${esc(meDisplay(me()))}</span><small class="cap">پروفایل من · ${esc(roleName(me()))}</small></button>`;
+  /* سربرگ صفحه = الگوی مشترک page-head: عنوان/زیرعنوان، عمل‌ها (جست‌وجو، خروج)، و ردیف متا (سلامت، ساعت، هویت) که در موبایل یک ردیف اسکرول‌شونده است */
   $('#admBar').innerHTML=`
     <span class="nmark" aria-hidden="true">${ico(s.i)}</span>
-    <div class="tt"><div class="head">${esc(s.n)}</div><div class="cap">${esc(s.s||A.lead||'')}</div></div>
-    <span class="sp"></span>
-    <span class="tag warn" data-preview-badge title="${esc(previewTitle)}">${esc(previewLabel)}</span>
+    <div class="tt ph-tt"><div class="head ph-title">${esc(s.n)}</div><div class="cap ph-sub">${esc(s.s||A.lead||'')}</div></div>
+    <div class="ph-actions">${searchOn?`<label class="searchbox">${ico('i-search')}
+      <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
+    ${live?`<button class="btn sm quiet" type="button" data-server-logout>${ico('i-close')}${esc('خروج')}</button>`:''}</div>
+    <div class="ph-meta">
+    <span class="tag ${previewClass}" data-preview-badge data-health-state="${hs?esc(hs.key):'unknown'}" title="${esc(previewTitle)}">${esc(previewLabel)}</span>
     <span class="navclock" title="${esc((NE().l||{}).local||'ساعت دستگاه')}" aria-label="${esc('تاریخ و ساعت دستگاه')}">${ico('i-clock')}
       <b data-clock>${esc(typeof clockFull==='function'?clockFull():'')}</b></span>
-    ${searchOn?`<label class="searchbox">${ico('i-search')}
-      <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
-    ${identity}
-    ${live?`<button class="btn sm quiet" type="button" data-server-logout>${ico('i-close')}${esc('خروج')}</button>`:''}`;
+    ${identity}</div>`;
 }
 
 /* ══ بخش‌ها ═════════════════════════════════════════════════════════════ */
@@ -1090,7 +1126,12 @@ function canApprove(r){return !!r.wait&&(isOwner()||(isLead()&&r.f===myField().k
    فرم در فرم‌ساز ساخته می‌شود؛ این‌جا فقط وصلیم. مبلغ و ظرفیت و پنجرهٔ
    ثبت‌نام از همان فرم خوانده می‌شود تا رویداد و فرم یکی بمانند. */
 const FST=()=>(window.NORA_UI&&NORA_UI)||null;
-function madeForms(){try{const u=FST(); return u&&u.formsAll?u.formsAll():[]}catch(e){return []}}
+function madeForms(){
+  if(typeof ppPartnerServerMode==='function'&&ppPartnerServerMode()){
+    const items=typeof FORMS_SRV!=='undefined'&&FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+    return items.filter(f=>f&&f.purpose!=='recording_access').map(f=>({id:f.id,name:f.name||f.title||'',kind:(typeof FS_PURPOSE!=='undefined'&&FS_PURPOSE[f.purpose])||f.purpose||'',q:Array.isArray(f.fields)?f.fields.length:0,status:f.status||'draft',ev:f.ev||''}));
+  }
+  try{const u=FST(); return u&&u.formsAll?u.formsAll():[]}catch(e){return []}}
 function demoForms(){const F=(A.forms||{}); return (F.rows||[]).map((r,i)=>({id:'demo'+(i+1), name:r.n, kind:r.k,
   q:NR(un(String(r.got||'0'))), cap:0, fin:[], demo:1, need:''}))}
 /* نظرسنجی آمادهٔ نورا: با شناسهٔ auto هرجا فرم خواست، همین میآید */
@@ -1695,7 +1736,10 @@ const WORKFLOW_LABELS={full_name:'نام و نام خانوادگی',first_name:
   national_id:'کد ملی',birth_date:'تاریخ تولد',gender:'جنسیت',father_name:'نام پدر',mother_name:'نام مادر',
   province:'استان',city:'شهر',address:'نشانی',postal_code:'کد پستی',education_level:'مقطع تحصیلی',
   field_of_study:'رشته',university:'دانشگاه یا مدرسه',job_title:'شغل',company_name:'محل کار',email:'ایمیل',bio:'معرفی کوتاه',
-  event_title:'رویداد',ref_code:'کد پیگیری',transaction_id:'تراکنش',registration_id:'ثبت‌نام',form_response_id:'پاسخ فرم',note:'توضیح'};
+  event_title:'رویداد',ref_code:'کد پیگیری',transaction_id:'تراکنش',registration_id:'ثبت‌نام',form_response_id:'پاسخ فرم',note:'توضیح',
+  registration_source:'مسیر ثبت',form_id:'فرم',purchase_source:'نوع درخواست',product_title:'محصول ضبط‌شده',recording_id:'شناسهٔ محصول',event_id:'شناسهٔ رویداد',submitted_at:'زمان ارسال'};
+/* فاز ۹.۱ §۱: مقدارهای فنی بار درخواست با برچسب خوانا؛ فیشِ خرید محتوای ضبط‌شده باید برای بازبین به‌روشنی «خرید» (نه ثبت‌نام/حضور) خوانده شود. */
+const WORKFLOW_VALUES={registration_source:{public_form:'فرم عمومی'},purchase_source:{recording_access:'خرید دسترسی به محتوای ضبط‌شده (ثبت‌نام یا حضور به شمار نمی‌آید)'}};
 const canUseSharedInbox=()=>canPerm('us_approve')||canPerm('receipt_approve');
 function loadSharedWorkflowInbox(append=false){
   const api=window.NORA_SERVER_API;
@@ -1705,10 +1749,13 @@ function loadSharedWorkflowInbox(append=false){
   if(SERVER_WORKFLOW_LOADING) return;
   const offset=append?SERVER_WORKFLOW_ITEMS.length:0;
   SERVER_WORKFLOW_LOADING=true; SERVER_WORKFLOW_ERROR=''; renderBody();
-  Promise.resolve(api.listAdminInbox(SERVER_WORKFLOW_PAGE,offset)).then(result=>{
+  const requestedStatus=SERVER_WORKFLOW_STATUS;
+  Promise.resolve(api.listAdminInbox(SERVER_WORKFLOW_PAGE,offset,requestedStatus)).then(result=>{
+    if(requestedStatus!==SERVER_WORKFLOW_STATUS) return;
     const items=Array.isArray(result&&result.items)?result.items:[];
     if(items.some(x=>!x||typeof x.id!=='string'||!['profile_review','receipt_review'].includes(x.kind)
-      ||!x.payload||typeof x.payload!=='object'||x.status!=='pending'
+      ||!x.payload||typeof x.payload!=='object'
+      ||(requestedStatus==='pending'?x.status!=='pending':!['approved','rejected'].includes(x.status))
       ||(x.files!==undefined&&(!Array.isArray(x.files)||x.files.some(file=>!file||typeof file.id!=='string'
         ||typeof file.file_name!=='string'||typeof file.content_type!=='string'))))) throw new Error('invalid_inbox');
     SERVER_WORKFLOW_ITEMS=append?SERVER_WORKFLOW_ITEMS.concat(items):items;
@@ -1718,7 +1765,160 @@ function loadSharedWorkflowInbox(append=false){
       :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.'
       :'خواندن کارتابل انجام نشد؛ دوباره تلاش کنید.';
     if(!append) SERVER_WORKFLOW_ITEMS=[]; SERVER_WORKFLOW_LOADED=true;
-  }).finally(()=>{SERVER_WORKFLOW_LOADING=false; if(S.uV==='shared-inbox') renderBody()});
+  }).finally(()=>{SERVER_WORKFLOW_LOADING=false;
+    if(requestedStatus!==SERVER_WORKFLOW_STATUS){loadSharedWorkflowInbox(false); return} /* زبانه در میانهٔ بارگذاری عوض شد */
+    if(S.uV==='shared-inbox') renderBody()});
+}
+function loadServerOutbox(append=false){
+  if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||SERVER_OUTBOX.loading) return;
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminNotifications!=='function'){SERVER_OUTBOX.error='رابط صندوق خروجی در دسترس نیست.'; SERVER_OUTBOX.loaded=true; renderBody(); return}
+  const requestId=++SERVER_OUTBOX.request; const state=SERVER_OUTBOX.state, kind=SERVER_OUTBOX.kind;
+  SERVER_OUTBOX.loading=true; SERVER_OUTBOX.error=''; renderBody();
+  Promise.resolve(api.listAdminNotifications({state,kind,limit:30,offset:append?SERVER_OUTBOX.items.length:0})).then(data=>{
+    if(requestId!==SERVER_OUTBOX.request) return;
+    if(!data||data.source!=='shared_server_database'||!Array.isArray(data.items)||!data.counts||typeof data.counts!=='object')
+      throw new Error('invalid_outbox');
+    SERVER_OUTBOX.items=append?SERVER_OUTBOX.items.concat(data.items):data.items;
+    SERVER_OUTBOX.counts=data.counts; SERVER_OUTBOX.more=!!data.has_more; SERVER_OUTBOX.loaded=true;
+  }).catch(error=>{
+    if(requestId!==SERVER_OUTBOX.request) return;
+    SERVER_OUTBOX.error=error&&error.status===403?'مجوز مشاهدهٔ صندوق خروجی برای این نقش فعال نیست.'
+      :error&&error.status===401?'نشست پنل معتبر نیست؛ دوباره وارد شوید.'
+      :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن صندوق خروجی انجام نشد؛ دوباره تلاش کنید.';
+    SERVER_OUTBOX.loaded=true;
+  }).finally(()=>{if(requestId!==SERVER_OUTBOX.request) return; SERVER_OUTBOX.loading=false; renderBody()});
+}
+function vServerOutbox(){
+  const o=SERVER_OUTBOX; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
+  const kinds={recording_access:'دسترسی محتوا',recording_order:'سفارش',recording_purchase:'ثبت خرید',recording_content:'محتوای تازه',
+    certificate:'گواهی',event_question:'پاسخ پرسش',event_qa_answer:'پاسخ پرسش',receipt_rejected:'رد فیش',profile_review:'بررسی پروفایل',receipt_review:'بررسی فیش',admin_task:'کارتابل',
+    content_published:'انتشار محتوا',event_reminder:'یادآوری رویداد'};
+  /* B19: یادآوری که پس از تغییر زمان/لغو رویداد باطل شده؛ ارسال نمی‌شود و تلاش دوباره ندارد */
+  const superseded=item=>item.kind==='event_reminder'&&item.last_delivery_error==='reminder_superseded';
+  const stateTag=item=>item.last_delivery_error==='no_bale_identity'?tag('بدون هویت بله','warn')
+    :superseded(item)?tag('باطل‌شده (تغییر زمان/لغو)','')
+    :item.delivery_state==='delivered'?tag('تحویل‌شده','ok')
+    :item.delivery_state==='failed'?tag('ناموفق','stop')
+    :item.delivery_state==='retrying'?tag('تلاش دوباره','warn'):tag('در صف','');
+  const chips=SERVER_OUTBOX_STATES.map(([key,label])=>`<button class="chip ${o.state===key?'on':''}" data-server-outbox-state="${key}" ${o.loading?'disabled':''}>${esc(label)}${o.counts&&key?` <small>${number(o.counts[key])}</small>`:''}</button>`).join('');
+  const rows=o.items.map(item=>`<div class="admlirow" data-server-outbox-row="${esc(item.id)}" data-server-outbox-state-row="${esc(item.last_delivery_error==='no_bale_identity'?'no_bale_identity':item.delivery_state||'')}">
+      <span class="sp"><b>${esc(item.title||'اعلان')}</b> <span class="mini">${esc(kinds[item.kind]||item.kind||'')}</span>
+        <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
+      ${stateTag(item)}${item.delivery_state==='failed'&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)&&canPerm('ev_publish')?btn(o.retrying===item.id?'در حال صف‌گذاری…':'تلاش دوبارهٔ ارسال',`data-server-outbox-retry="${esc(item.id)}" ${o.retrying?'disabled':''}`,'i-refresh'):''}</div>`).join('');
+  const notice=o.notice?p2Msg(o.notice):'';
+  const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن صندوق خروجی از سرور…</p>`
+    :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-outbox-refresh','i-refresh')}</div>`
+    :rows||`<p class="cap">در این وضعیت اعلانی ثبت نشده است.</p>`;
+  return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
+    <p class="cap">هر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست. ارسال واقعی بله فقط با ربات زنده انجام می‌شود.</p>
+    <div class="admfilters" role="group" aria-label="وضعیت اعلان">${chips}</div>
+    <div class="admfilters" role="group" aria-label="نوع اعلان">${SERVER_OUTBOX_KINDS.map(([key,label])=>`<button class="chip ${o.kind===key?'on':''}" data-server-outbox-kind="${key}" ${o.loading?'disabled':''}>${esc(label)}</button>`).join('')}</div>
+    ${notice}<div class="admlist">${body}</div>
+    ${o.more?`<div class="row"><span class="sp"></span>${btn('اعلان‌های بیشتر','data-server-outbox-more','i-chev-left')}</div>`:''}
+  </section>`;
+}
+async function retryServerOutbox(id){
+  const api=window.NORA_SERVER_API, o=SERVER_OUTBOX;
+  if(o.retrying||!api||typeof api.retryAdminNotification!=='function'||!canPerm('ev_publish')) return;
+  const item=o.items.find(r=>r.id===id); if(!item||item.delivery_state!=='failed') return;
+  o.retrying=id; o.notice=null; renderBody();
+  try{
+    const updated=await api.retryAdminNotification(id,staffCsrfCookie());
+    if(!updated||updated.id!==id) throw new Error('invalid_retry');
+    Object.assign(item,updated); /* همان ردیف؛ ردیف تازه‌ای ساخته نمی‌شود */
+    o.notice={kind:'ok',text:'همان اعلان دوباره در صف ربات قرار گرفت (ردیف تازه‌ای ساخته نشد). تحویل واقعی فقط با ربات زنده انجام و جداگانه ثبت می‌شود.'};
+    if(o.counts){o.counts.failed=Math.max(0,(o.counts.failed||0)-1); o.counts.queued=(o.counts.queued||0)+1}
+  }catch(error){
+    const code=error&&error.payload&&error.payload.detail&&error.payload.detail.code;
+    o.notice={kind:'stop',text:code==='no_bale_identity'?'این حساب هنوز هویت بلهٔ تأییدشده ندارد؛ تا پیوند حساب، ارسال ممکن نیست (خطای شبکه نیست).'
+      :code==='already_delivered'?'این اعلان قبلاً تحویل شده است؛ دوباره فرستاده نمی‌شود.'
+      :code==='reminder_superseded'?'این یادآوری پس از تغییر زمان یا لغو رویداد باطل شده و دیگر ارسال نمی‌شود.'
+      :code==='notification_not_failed'?'این اعلان هنوز در صف یا در حال تلاش است؛ فقط اعلان‌های ناموفق دوباره صف‌گذاری می‌شوند.'
+      :error&&error.status===403?'مجوز «انتشار رویداد» برای صف‌گذاری دوباره لازم است.':'صف‌گذاری دوباره انجام نشد؛ چیزی تغییر نکرد.'};
+  }finally{o.retrying=''; renderBody()}
+}
+function loadServerSched(){
+  const api=window.NORA_SERVER_API, o=SERVER_SCHED;
+  if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||o.loading||!api||typeof api.getScheduledPublish!=='function') return;
+  o.loading=true; o.error=''; renderBody();
+  Promise.resolve(api.getScheduledPublish()).then(data=>{
+    if(!data||typeof data!=='object'||!data.pending||typeof data.pending!=='object') throw new Error('invalid_sched');
+    o.data=data; o.loaded=true;
+  }).catch(error=>{o.error=error&&error.status===403?'مجوز مشاهدهٔ وضعیت زمان‌بند برای این نقش فعال نیست.':'وضعیت زمان‌بند از سرور خوانده نشد.'; o.loaded=true})
+    .finally(()=>{o.loading=false; renderBody()});
+}
+async function runServerSched(){
+  const api=window.NORA_SERVER_API, o=SERVER_SCHED;
+  if(o.running||!api||typeof api.runScheduledPublish!=='function'||!canPerm('ev_publish')) return;
+  /* ممیزی ۱۴۰۵/۰۸/۰۱ ردیف A7: اجرای دستی زمان‌بند یک عمل انتشار واقعی است و پیش از آن تأیید می‌گیرد. */
+  if(!confirm('اجرای دستی زمان‌بند، همهٔ رویدادهای سررسیده را همین حالا منتشر و اعلان‌های آن‌ها (و یادآورهای رویدادِ در موعد) را صف می‌کند. ادامه می‌دهید؟')) return;
+  o.running=true; o.error=''; renderBody();
+  try{const summary=await api.runScheduledPublish(staffCsrfCookie()); o.lastManual=summary; o.loaded=false; loadServerSched()}
+  catch(error){o.error=error&&error.status===403?'مجوز «انتشار رویداد» برای اجرای دستی لازم است.':'اجرای دستی زمان‌بند انجام نشد؛ چیزی تغییر نکرد.'}
+  finally{o.running=false; renderBody()}
+}
+/* فاز ۹.۶ §۷: زمان اجرای زمان‌بند به وقت تهران (تقویم جلالی) نمایش داده می‌شود؛ مقدار خام UTC سرور در datetime می‌ماند. */
+function schedWhen(iso){
+  if(!iso) return '';
+  const ms=Date.parse(iso); if(isNaN(ms)) return esc(String(iso));
+  const c=clockParts(ms), j=d2j(g2d(c.gy,c.gm,c.gd));
+  return `${jForm(j.jy,j.jm,j.jd)} ${fa(jPad(c.h))}:${fa(jPad(c.mi))} به وقت تهران`;
+}
+function vServerSched(){
+  const o=SERVER_SCHED, d=o.data; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
+  const run=d&&d.last_run;
+  const runLine=run?`آخرین اجرا: <time datetime="${esc(run.at||'')}">${schedWhen(run.at)}</time> · عامل: ${esc(run.actor==='cli'?'تایمر/خط فرمان':run.actor==='timer'?'تایمر':'دستی از پنل')} · ${run.ok?tag('موفق','ok'):tag('با خطا','stop')} · در موعد: ${number(run.due)} · اعلان‌شده: ${number(run.announced)} · اعلان‌های ساخته‌شده: ${number(run.notified)} · نادیده (بدون دارنده): ${number(run.skipped)}${run.reminders&&typeof run.reminders==='object'?` · <span data-server-sched-reminders>یادآور رویداد: صف‌شده ${number(run.reminders.queued)} · باطل‌شده ${number(run.reminders.withdrawn)}${run.reminders.ok===false?' · '+tag('خطا در یادآورها','stop'):''}</span>`:''}`
+    :'هنوز هیچ اجرایی ثبت نشده است؛ تا وقتی تایمر سیستم یا اجرای دستی ثبت نشود، انتشار زمان‌بندی‌شده «اعلان» نمی‌شود (خودِ نمایش محتوا با ساعت سرور محاسبه می‌شود و به زمان‌بند نیاز ندارد).';
+  const pend=d?`<div class="admkpi"><div class="k"><small>زمان‌بندی‌شده برای آینده</small>${bits(number(d.pending.future))}</div><div class="k"><small>در موعد ولی اعلان‌نشده</small>${bits(number(d.pending.due_unannounced))}</div></div>${d.pending.due_unannounced>0?p2Msg({kind:'warn',text:'ردیف‌هایی به موعد رسیده‌اند ولی اعلان نشده‌اند؛ یعنی تایمر اجرا نشده است. «اجرای دستی» همان کار تایمر را یک‌بار انجام می‌دهد (بدون تکرار اعلان).'}):''}`:'';
+  const manual=o.lastManual?`<p class="cap" data-server-sched-manual>اجرای دستی: در موعد ${number(o.lastManual.due)} · اعلان‌شده ${number(o.lastManual.announced)} · اعلان‌های ساخته‌شده ${number(o.lastManual.notified)}${o.lastManual.reminders&&typeof o.lastManual.reminders==='object'?` · یادآور رویداد صف‌شده ${number(o.lastManual.reminders.queued)} · باطل‌شده ${number(o.lastManual.reminders.withdrawn)}`:''}</p>`:'';
+  const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن وضعیت زمان‌بند از سرور…</p>`:o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-sched-refresh','i-refresh')}</div>`:d?`${pend}<p class="cap" data-server-sched-run>${runLine}</p>${manual}`:`<p class="cap">وضعیت هنوز خوانده نشده است.</p>`;
+  return `<section class="card stack" data-server-sched data-server-sched-state="${esc(o.loading?'loading':o.error?'error':d?(d.pending.due_unannounced>0?'stalled':'ok'):'idle')}"><div class="row"><div class="head">زمان‌بند انتشار و اعلان محتوا</div><span class="sp"></span>${tag('API سرور')} ${btn('بازخوانی','data-server-sched-refresh','i-refresh')}${canPerm('ev_publish')?btn(o.running?'در حال اجرا…':'اجرای دستی یک نوبت',`data-server-sched-run-now ${o.running?'disabled':''}`,'i-globe'):''}</div>
+    <p class="cap">منبعِ زمان‌بندی‌شده تا رسیدن زمانش در صفحهٔ رویداد دیده نمی‌شود (محاسبه با ساعت سرور در هر درخواست). اعلان به دارندگان دسترسی را تایمر سیستم (systemd) یا اجرای دستی از همین‌جا انجام می‌دهد؛ هر منبع دقیقاً یک‌بار اعلان می‌شود و اجرای تکراری اثری ندارد.</p>
+    ${body}
+  </section>`;
+}
+function loadServerIntegrity(){
+  if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')||SERVER_INTEGRITY.loading) return;
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.getRecordingIntegrity!=='function'){SERVER_INTEGRITY.error='رابط ممیزی در دسترس نیست.'; renderBody(); return}
+  const requestId=++SERVER_INTEGRITY.request;
+  SERVER_INTEGRITY.loading=true; SERVER_INTEGRITY.error=''; renderBody();
+  Promise.resolve(api.getRecordingIntegrity()).then(data=>{
+    if(requestId!==SERVER_INTEGRITY.request) return;
+    if(!data||data.read_only!==true||!Array.isArray(data.findings)||!data.severity||!data.scanned) throw new Error('invalid_integrity');
+    SERVER_INTEGRITY.report=data;
+  }).catch(error=>{
+    if(requestId!==SERVER_INTEGRITY.request) return;
+    SERVER_INTEGRITY.error=error&&error.status===403?'مجوز اجرای ممیزی برای این نقش فعال نیست.'
+      :error&&error.status===401?'نشست پنل معتبر نیست؛ دوباره وارد شوید.'
+      :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'اجرای ممیزی انجام نشد؛ دوباره تلاش کنید.';
+  }).finally(()=>{if(requestId!==SERVER_INTEGRITY.request) return; SERVER_INTEGRITY.loading=false; renderBody()});
+}
+const SERVER_INTEGRITY_LABELS={paid_payment_without_access:'پرداخت تسویه‌شده بدون دسترسی فعال',paid_payment_without_account:'پرداخت تسویه‌شده بدون حساب کاربری',
+  paid_payment_without_ledger:'پرداخت تسویه‌شده بدون ردیف دفتر',purchase_access_without_order:'دسترسی خرید بدون مرجع سفارش',purchase_access_order_missing:'مرجع سفارش دسترسی موجود نیست',
+  access_with_unpaid_order:'دسترسی فعال با سفارش پرداخت‌نشده',refund_without_revoke:'بازپرداخت بدون لغو دسترسی',order_without_form_payment:'ردیف دفتر بدون پرداخت فرم (قدیمی)',
+  order_payment_missing:'پرداخت ارجاع‌شدهٔ دفتر موجود نیست',order_payment_not_settled:'دفتر پرداخت‌شده ولی پرداخت فرم تسویه نشده',payment_unrelated_form:'پرداخت متعلق به فرم/محصول دیگر',
+  access_account_mismatch:'دسترسی روی حساب دیگری',order_account_mismatch:'سفارش روی حساب دیگری',duplicate_settled_payments:'پرداخت تکراری برای یک پاسخ',
+  duplicate_orders_for_payment:'چند ردیف دفتر برای یک پرداخت',duplicate_paid_orders:'چند سفارش پرداخت‌شده برای یک حساب',purchase_form_without_product:'فرم خرید بدون محصول',
+  purchase_form_event_mismatch:'رویداد فرم با محصول نمی‌خواند',published_without_purchase_form:'محصول در فروش بدون فرم خرید',purchase_form_unpublished:'فرم خرید منتشر نشده',
+  stale_active_status:'وضعیت active با انقضای گذشته (فقط ظاهری)'};
+function vServerIntegrity(){
+  const o=SERVER_INTEGRITY; const r=o.report; const number=value=>Number.isSafeInteger(value)&&value>=0?fa(String(value)):'نامشخص';
+  const sev={error:['خطا','stop'],warning:['هشدار','warn'],info:['اطلاع','']};
+  const rows=r?Object.keys(r.counts||{}).map(code=>{const s=sev[(r.findings.find(f=>f.code===code)||{}).severity]||sev.info;
+    return `<div class="admlirow" data-server-integrity-row="${esc(code)}"><span class="sp"><b>${esc(SERVER_INTEGRITY_LABELS[code]||code)}</b> <span class="mini">${esc(code)}</span></span>${tag(s[0],s[1])} <b>${number(r.counts[code])}</b></div>`}).join(''):'';
+  const summary=r?`<div class="admkpi">
+      <div class="k"><small>خطا</small>${bits(number(r.severity.error))}</div><div class="k"><small>هشدار</small>${bits(number(r.severity.warning))}</div><div class="k"><small>اطلاع</small>${bits(number(r.severity.info))}</div>
+      <div class="k"><small>پرداخت‌های بررسی‌شده</small>${bits(number(r.scanned.payments))}</div><div class="k"><small>دسترسی‌های بررسی‌شده</small>${bits(number(r.scanned.access_rows))}</div></div>
+    <p class="cap">آخرین اجرای سرور: ${esc(r.generated_at||'نامشخص')} · ${r.findings.length?'موارد زیر را با شناسه در گزارش JSON ابزار خط فرمان پیگیری کنید؛ هیچ اصلاح خودکاری انجام نمی‌شود.':'ناسازگاری‌ای یافت نشد.'}</p>`:'';
+  const body=o.loading?`<p class="cap">در حال اجرای ممیزی فقط‌خواندنی روی سرور…</p>`
+    :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-integrity-run','i-refresh')}</div>`
+    :r?summary+(rows?`<div class="admlist">${rows}</div>`:''):`<p class="cap">ممیزی هنوز اجرا نشده است؛ این عمل فقط می‌خواند و چیزی را تغییر نمی‌دهد.</p>`;
+  return `<section class="card stack" data-server-integrity><div class="row"><div class="head">ممیزی یکپارچگی خرید آرشیو</div><span class="sp"></span>${tag('فقط‌خواندنی','ok')} ${btn(r?'اجرای دوباره':'اجرای ممیزی','data-server-integrity-run','i-refresh')}</div>
+    <p class="cap">زنجیرهٔ فرم خرید → پاسخ → پرداخت → دفتر داخلی → دسترسی را روی پایگاه سرور بررسی می‌کند. خروجی فقط شناسه است (بدون نام یا شماره) و سرور هیچ ردیفی را خودکار اصلاح یا اعطا نمی‌کند.</p>
+    ${body}
+  </section>`;
 }
 function loadServerReports(force=false){
   if(IS_TEST||!SERVER_AUTH||!canPerm('rp_view')) return;
@@ -1751,7 +1951,7 @@ function loadServerReports(force=false){
   }).finally(()=>{
     if(requestId!==SERVER_REPORT_REQUEST) return;
     SERVER_REPORT_LOADING=false;
-    if(S.sec==='users'&&S.uHub==='reports') renderBody();
+    if((S.sec==='users'&&S.uHub==='reports')||S.sec==='dash') renderBody();
   });
 }
 function decideSharedWorkflow(taskId,decision){
@@ -1760,33 +1960,70 @@ function decideSharedWorkflow(taskId,decision){
   if(!task){toast('این درخواست دیگر در کارتابل نیست؛ فهرست را تازه کنید'); loadSharedWorkflowInbox(false); return}
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.decideAdminTask!=='function'){toast('رابط سرور در دسترس نیست'); return}
-  let reason='';
-  if(decision==='rejected'){
-    const field=Array.from(document.querySelectorAll('[data-workflow-reason]')).find(node=>node.dataset.workflowReason===taskId);
-    reason=String(field&&field.value||'').trim();
-    if(reason.length>500){toast('دلیل رد بیشتر از ۵۰۰ نویسه است'); return}
+  const field=Array.from(document.querySelectorAll('[data-workflow-reason]')).find(node=>node.dataset.workflowReason===taskId);
+  const reason=String(field&&field.value||'').trim(), isReceipt=task.kind==='receipt_review';
+  if(reason.length>500){toast('دلیل تصمیم بیشتر از ۵۰۰ نویسه است'); return}
+  if(isReceipt&&reason.length<2){
+    toast('برای تأیید یا رد رسید، دلیل/مرجع کوتاه لازم است (سرور بدون دلیل نمی‌پذیرد).');
+    if(field){field.setAttribute('aria-invalid','true');field.focus()}
+    return;
   }
+  if(typeof window.confirm==='function'&&!window.confirm(workflowDecisionPrompt(task,decision,reason))) return;
   const card=Array.from(document.querySelectorAll('[data-workflow-card]')).find(node=>node.dataset.workflowCard===taskId);
   if(card) card.querySelectorAll('button').forEach(button=>button.disabled=true);
   api.decideAdminTask(taskId,decision,reason,task.version,isOwner()?'nora_csrf':'nora_account_csrf')
     .then(result=>{
       if(!result||result.accepted!==true||!result.task) throw new Error('decision_not_accepted');
       SERVER_WORKFLOW_ITEMS=SERVER_WORKFLOW_ITEMS.filter(x=>x.id!==taskId);
-      toast(decision==='approved'?'درخواست تأیید شد. اعلان کاربر در صف ثبت شد.':'درخواست رد شد. اعلان کاربر در صف ثبت شد.');
+      const n=result.task.notification&&result.task.notification.status;
+      toast((decision==='approved'?'تصمیم «تأیید» در سرور ثبت شد':'تصمیم «رد» در سرور ثبت شد')+(n==='queued'?'؛ اعلان کاربر در صف ربات است، هنوز تحویل نشده.':n==='delivered'?'؛ اعلان تحویل شد.':'؛ وضعیت ارسال اعلان هنوز نامشخص است.'));
       loadSharedWorkflowInbox(false);
     }).catch(error=>{
       if(card) card.querySelectorAll('button').forEach(button=>button.disabled=false);
       toast(error&&error.status===403?'مجوز یا ورود شما برای این کار کافی نیست.'
         :error&&error.status===409?'این درخواست قبلاً بررسی شده؛ کارتابل را تازه کنید.'
+        :error&&error.code==='receipt_decision_reason_required'?'سرور تصمیم رسید را بدون دلیل نمی‌پذیرد؛ دلیل/مرجع را بنویسید.'
         :'ثبت تصمیم انجام نشد؛ اتصال را بررسی کنید.');
     });
+}
+/* متن تأییدیهٔ پیش از ثبت تصمیم: تصمیم، مبلغ واقعی (اگر رسید است)، شناسهٔ بله و دلیل؛ هیچ پیامدی وعده داده نمی‌شود جز آنچه سرور انجام می‌دهد. */
+function workflowDecisionPrompt(task,decision,reason){
+  const data=task&&task.payload&&typeof task.payload==='object'?task.payload:{};
+  const isReceipt=task&&task.kind==='receipt_review', approve=decision==='approved';
+  const amount=isReceipt&&Number.isFinite(+data.amount)&&+data.amount>0?fa(Math.round(+data.amount).toLocaleString('en-US'))+' '+(data.currency==='IRR'||!data.currency?'ریال':String(data.currency)):'';
+  const lines=[isReceipt
+      ?(approve?'تأیید رسید: پرداخت «دستی تأییدشده» ثبت می‌شود و دسترسی/بلیت مربوط فعال می‌گردد. برگرداندن آن فقط از مسیر بازپرداخت (با مجوز مالی و مرجع) ممکن است و این تصمیم در ممیزی با نام شما ثبت می‌شود.'
+               :'رد رسید: پاسخ/سفارش کاربر بسته می‌شود و دلیل برای او ارسال می‌شود (در صف اعلان).')
+      :(approve?'تأیید پروفایل: اطلاعات کاربر در حساب او اعمال می‌شود.':'رد پروفایل: کاربر باید اطلاعات را دوباره بفرستد.'),
+    amount?'مبلغ رسید: '+amount:'',
+    'شناسهٔ بله: '+(task&&task.bale_user_id||'ثبت‌نشده')+' · کد درخواست: '+String(task&&task.id||'').slice(0,8),
+    reason?'دلیل: '+reason:'بدون دلیل',
+    'ادامه می‌دهید؟'].filter(Boolean);
+  return lines.join('\n');
+}
+/* وضعیت تحویل اعلان کاربر، جدا از ثبت تصمیم: فقط از دادهٔ واقعی صف اعلان سرور (task.notification). */
+const WF_NOTIFY={queued:['در صف ارسال ربات','warn'],retrying:['ارسال ناموفق؛ تلاش دوباره در صف','warn'],delivered:['تحویل‌شده به بله','ok'],failed:['ارسال ناموفق','stop'],unknown:['وضعیت ارسال نامشخص','']};
+function workflowNotificationRow(task){
+  const n=task&&task.notification&&typeof task.notification==='object'?task.notification:null;
+  const [label,kind]=WF_NOTIFY[n&&n.status]||WF_NOTIFY.unknown;
+  const detail=!n?'سرور وضعیت اعلان را برنگردانده است.'
+    :n.status==='delivered'?`تحویل در ${svcWhen(n.delivered_at)||'زمان نامشخص'}${n.attempts>1?' · پس از '+fa(n.attempts)+' تلاش':''}`
+    :n.status==='failed'?`پس از ${fa(n.attempts)} تلاش؛ ${n.last_error?'خطای آخر: '+n.last_error:'بدون جزئیات خطا'}`
+    :n.status==='retrying'?`${fa(n.attempts)} تلاش ناموفق؛ ربات دوباره تلاش می‌کند`
+    :n.status==='queued'?'ربات هنوز این اعلان را برنداشته است'
+    :'برای این کار ردیف اعلانی در سرور نیست (کار قدیمی یا بدون اعلان).';
+  return `<div class="admlirow" data-workflow-notification="${esc(n?n.status:'unknown')}"><span class="sp"><small class="cap">اعلان به کاربر</small><b>${esc(label)}</b><small class="cap">${esc(detail)}</small></span>${tag(label,kind)}</div>`;
 }
 function sharedWorkflowInboxView(){
   if(!canUseSharedInbox()) return `<section class="card stack">${uBack}${emptyBox('مجوز دسترسی به کارتابل برای این نقش فعال نیست.')}</section>`;
   const api=window.NORA_SERVER_API, kind=S.sharedWorkflowKind||'all';
   const items=SERVER_WORKFLOW_ITEMS.filter(task=>kind==='all'||task.kind===kind);
+  const history=SERVER_WORKFLOW_STATUS==='decided';
   const tabs=[['all','همه'],['profile_review','پروفایل‌ها'],['receipt_review','فیش‌ها']].map(([key,label])=>
     `<button class="chip ${kind===key?'on':''}" data-workflow-kind="${key}">${esc(label)}</button>`).join('');
+  const statusTabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="وضعیت کارتابل">
+    <button class="chip ${history?'':'on'}" role="tab" aria-selected="${!history}" data-workflow-status="pending">در انتظار</button>
+    <button class="chip ${history?'on':''}" role="tab" aria-selected="${history}" data-workflow-status="decided">تاریخچهٔ تصمیم‌ها</button></div>`;
   const cards=items.map(task=>{
     const data=task.payload||{}, isReceipt=task.kind==='receipt_review';
     const lines=Object.entries(data).filter(([key,value])=>!['file_refs','amount','currency'].includes(key)
@@ -1794,7 +2031,8 @@ function sharedWorkflowInboxView(){
       &&value!==null&&value!==''&&typeof value!=='object')
       .map(([key,value])=>{
         const label=isReceipt&&key==='note'?'توضیح ثبت فیش':(WORKFLOW_LABELS[key]||key.replace(/_/g,' '));
-        return `<div class="admlirow"><span class="sp"><small class="cap">${esc(label)}</small><b>${esc(String(value))}</b></span></div>`;
+        const shown=key==='submitted_at'?(svcWhen(value)||String(value)):((WORKFLOW_VALUES[key]||{})[String(value)]||String(value));
+        return `<div class="admlirow"><span class="sp"><small class="cap">${esc(label)}</small><b>${esc(shown)}</b></span></div>`;
       }).join('');
     const currency=data.currency==='IRR'?'ریال':(data.currency||'ریال');
     const amount=isReceipt&&Number.isFinite(+data.amount)?`<div class="row"><b>مبلغ</b><span class="sp"></span><b>${esc(fa((+data.amount).toLocaleString('en-US')))} ${esc(currency)}</b></div>`:'';
@@ -1808,13 +2046,26 @@ function sharedWorkflowInboxView(){
       const size=Number.isFinite(+meta.content_size)?' · '+esc(fa(Math.max(1,Math.round(+meta.content_size/1024))))+' کیلوبایت':'';
       return `<a class="btn sm quiet workflow-file-download" href="${esc(src)}" target="_blank" rel="noopener">${ico('i-download')} ${esc(name)}${size}</a>`;
     }).join('');
-    const title=isReceipt?'فیش پرداخت':'پروفایل';
+    const title=isReceipt?(data.purchase_source==='recording_access'?'فیش خرید محتوای ضبط‌شده':'فیش پرداخت'):'پروفایل';
+    if(task.status!=='pending'){
+      const approved=task.status==='approved';
+      const reviewer=task.reviewed_by?(SERVER_AUTH&&(task.reviewed_by===SERVER_AUTH.account_id||task.reviewed_by===SERVER_AUTH.owner_id)?'شما':'شناسهٔ '+task.reviewed_by.slice(0,8)):'نامشخص';
+      return `<article class="card stack" data-workflow-card="${esc(task.id)}">
+        <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${tag(approved?'تأییدشده':'ردشده',approved?'ok':'stop')}</div>
+        <div class="cap">شناسهٔ بله: ${esc(task.bale_user_id||'ثبت‌نشده')} · کد درخواست: ${esc(task.id.slice(0,8))}</div>
+        ${amount}${lines||'<p class="cap">اطلاعاتی برای نمایش ثبت نشده است.</p>'}
+        <div class="admlirow"><span class="sp"><small class="cap">تصمیم</small><b>${approved?'تأیید':'رد'} · ${esc(reviewer)} · ${esc(svcWhen(task.reviewed_at)||'زمان نامشخص')}</b>
+          ${task.review_reason?`<small class="cap">دلیل: ${esc(task.review_reason)}</small>`:''}</span>${tag('ثبت‌شده در سرور','ok')}</div>
+        ${workflowNotificationRow(task)}
+      </article>`;
+    }
     return `<article class="card stack" data-workflow-card="${esc(task.id)}">
       <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${tag('در انتظار','warn')}</div>
       <div class="cap">شناسهٔ بله: ${esc(task.bale_user_id||'ثبت‌نشده')} · کد درخواست: ${esc(task.id.slice(0,8))}</div>
       ${amount}${lines||'<p class="cap">اطلاعاتی برای نمایش ثبت نشده است.</p>'}
       ${files||((data.photo_file_id||data.proof_file_id)?'<p class="cap">تصویر در مخزن امن سرور ثبت نشده است.</p>':'')}
-      <label class="fld"><span class="lbl">دلیل رد · دلخواه</span><textarea class="input" rows="2" maxlength="500" data-workflow-reason="${esc(task.id)}" placeholder="اگر لازم است، دلیل کوتاهی بنویسید"></textarea></label>
+      <label class="fld"><span class="lbl">${isReceipt?'دلیل / مرجع تصمیم · الزامی برای تأیید و رد رسید':'دلیل رد · دلخواه'}</span><textarea class="input" rows="2" maxlength="500" data-workflow-reason="${esc(task.id)}" ${isReceipt?'required aria-required="true"':''} placeholder="${isReceipt?'مثلاً: مبلغ و شمارهٔ پیگیری با فیش تطبیق داده شد':'اگر لازم است، دلیل کوتاهی بنویسید'}"></textarea></label>
+      ${isReceipt?'<p class="cap">پیش از ثبت، خلاصهٔ تصمیم (مبلغ، شناسه، دلیل) برای تأیید دوباره نشان داده می‌شود؛ سرور تصمیم رسید را بدون دلیل نمی‌پذیرد.</p>':''}
       <div class="row"><button class="btn primary" data-workflow-approve="${esc(task.id)}">تأیید</button>
         <button class="btn quiet" data-workflow-reject="${esc(task.id)}">رد</button></div>
     </article>`;
@@ -1822,12 +2073,12 @@ function sharedWorkflowInboxView(){
   const content=SERVER_WORKFLOW_LOADING?`<div class="empty"><p class="cap">در حال خواندن کارتابل…</p></div>`
     :SERVER_WORKFLOW_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_WORKFLOW_ERROR)}</p>${btn('تلاش دوباره','data-workflow-refresh','i-refresh')}</div>`
     :!SERVER_WORKFLOW_LOADED?`<div class="empty"><p class="cap">در حال آماده‌سازی کارتابل…</p></div>`
-    :cards||emptyBox('درخواستی در انتظار بررسی نیست.');
+    :cards||emptyBox(history?'هنوز تصمیمی ثبت نشده است.':'درخواستی در انتظار بررسی نیست.');
   return `<section class="stack">
     <section class="card stack"><div class="row">${btn('بازگشت','data-uback','i-back')}<span class="sp"></span>${btn('بازخوانی','data-workflow-refresh','i-refresh')}</div>
       <div class="row"><div class="head">کارتابل پروفایل و فیش</div><span class="sp"></span>${SERVER_WORKFLOW_LOADED?tag(fa(SERVER_WORKFLOW_ITEMS.length)+' مورد',''):''}</div>
-      <p class="cap">درخواست‌ها از پایگاه مشترک ربات و وب‌اپ خوانده می‌شوند؛ تصمیم شما پس از ثبت، برای همکار و کاربر در همان پایگاه ثبت می‌شود.</p>
-      <div class="admfilters">${tabs}</div></section>
+      <p class="cap">${history?'تصمیم‌های ثبت‌شده با نام تصمیم‌گیرنده، زمان و دلیل از همان پایگاه خوانده می‌شوند و قابل تغییر نیستند.':'درخواست‌ها از پایگاه مشترک ربات و وب‌اپ خوانده می‌شوند؛ تصمیم شما پس از ثبت، برای همکار و کاربر در همان پایگاه ثبت می‌شود.'}</p>
+      ${statusTabs}<div class="admfilters">${tabs}</div></section>
     <div class="stack">${content}</div>
     ${SERVER_WORKFLOW_HAS_MORE?`<div class="row"><span class="sp"></span>${btn('درخواست‌های بیشتر','data-workflow-more','i-chev-left')}</div>`:''}
   </section>`;
@@ -2503,10 +2754,13 @@ function vServerReports(){
     superseded:'جایگزین‌شده',manager:'مدیر', 'club-supervisor':'سرپرست باشگاه',new:'جدید',
     reviewing:'در بررسی',contacted:'تماس‌گرفته',closed:'بسته',delivered:'تحویل‌شده',failed:'ناموفق'};
   const number=value=>Number.isSafeInteger(value)&&value>=0?fa(value.toLocaleString('en-US')):'نامشخص';
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (F1): نمودار میله‌ای سادهٔ CSS از همان شمارش‌های سرور (نسبت هر ردیف به بیشینهٔ همان گروه)؛ هیچ سری زمانی یا عدد جعلی ساخته نمی‌شود */
   const grouped=(title,counts)=>{
     const entries=counts&&typeof counts==='object'?Object.entries(counts):[];
-    return `<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist">${entries.map(([key,value])=>
-      `<div class="admlirow"><span class="sp">${esc(labels[key]||key)}</span><b>${number(value)}</b></div>`).join('')||'<p class="cap">در این دوره موردی ثبت نشده است.</p>'}</div></section>`;
+    const max=entries.reduce((m,[,v])=>Number.isSafeInteger(v)&&v>m?v:m,0);
+    return `<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist" data-report-group="${esc(title)}">${entries.map(([key,value])=>{
+      const w=max>0&&Number.isSafeInteger(value)&&value>0?Math.max(2,Math.round(value/max*100)):0;
+      return `<div class="admlirow"><span class="sp" style="flex:0 1 140px">${esc(labels[key]||key)}</span><span class="rbar" role="img" aria-label="${esc((labels[key]||key)+' '+number(value)+' از بیشینهٔ '+number(max))}"><i style="width:${w}%" data-report-bar="${esc(key)}" data-value="${Number.isSafeInteger(value)?value:''}"></i></span><b>${number(value)}</b></div>`}).join('')||'<p class="cap">در این دوره موردی ثبت نشده است.</p>'}</div></section>`;
   };
   const periodNames=new Map(SERVER_REPORT_PERIODS);
   const filters=SERVER_REPORT_PERIODS.map(([key,label])=>
@@ -2537,6 +2791,9 @@ function vServerReports(){
       </div><p class="cap">آخرین محاسبهٔ سرور: ${esc(data.generated_at||'نامشخص')}</p>`:''}
       ${error}${loading}</section>
     ${groups?`<div class="admgrid">${groups}</div>`:''}
+    ${vServerOutbox()}
+    ${vServerSched()}
+    ${vServerIntegrity()}
     <p class="cap">گزارش مالی، رویداد، حضور و باشگاه از این API ساخته نمی‌شود تا زمانی که همان داده‌ها نیز به پایگاه مشترک وصل شوند؛ هیچ‌کدام با عدد محلی جایگزین نشده‌اند.</p>
   </div>`;
 }
@@ -2826,9 +3083,11 @@ function serverRoleRow(item){
     </details>`:'';
   const options=`<option value="">بدون نقش</option>${ROLE_DEFS.filter(r=>r.k!==ROLE_OWNER)
     .map(r=>`<option value="${esc(r.k)}" ${role===r.k?'selected':''}>${esc(r.n)}</option>`).join('')}`;
+  const displayName=String(item.display_name||'').trim();
   return `<div class="admlirow server-role-row">
     <span class="ic">${ico('i-user')}</span>
-    <span class="sp"><b>${esc(provider)} <span dir="ltr">${esc(item.provider_user_id||'')}</span></b>
+    <span class="sp"><b>${displayName?esc(displayName)+' · ':''}${esc(provider)} <span dir="ltr">${esc(item.provider_user_id||'')}</span></b>
+      ${displayName?'':'<small class="cap">نام در پروفایل حساب ثبت نشده است</small>'}
       <small class="cap">شناسهٔ سروری: <span dir="ltr">${esc(accountId)}</span></small>
       <small class="cap">${esc(rolePermissionsCopy(role||null))}</small>${managerLogin}</span>
     ${tag(roleBadge,role===ROLE_CLUB?'brand':role?'':'warn')}
@@ -2853,7 +3112,12 @@ function cUServerStaff(){
       <div class="row"><div class="head">حساب‌های تأییدشده</div><span class="sp"></span>
         ${SERVER_ROLE_LOADED?tag(fa(SERVER_ROLE_ITEMS.length)+' حساب',''):''}
         ${SERVER_ROLE_LOADED?btn('بازخوانی','data-role-refresh','i-refresh'):''}</div>
-      <p class="cap">حق عضویت باشگاه و قوانین امتیاز فعلاً فقط در اختیار مالک می‌مانند.</p>
+      <form class="row tight server-role-search" data-role-search-form onsubmit="return false">
+        <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="serverRoleQuery" type="search" class="input" value="${esc(SERVER_ROLE_QUERY)}" maxlength="80" autocomplete="off" placeholder="نام پروفایل، شناسهٔ بله، نام کاربری مدیر یا ابتدای شناسهٔ حساب" aria-label="جست‌وجوی حساب"/></label>
+        <button class="btn sm" type="submit" data-role-search>جست‌وجو</button></form>
+      <div class="admfilters">${[['','همه'],['assigned','دارای نقش'],['manager','مدیر'],['club-supervisor','سرپرست باشگاه'],['none','بدون نقش']].map(([key,label])=>
+        `<button class="chip ${SERVER_ROLE_FILTER===key?'on':''}" type="button" data-role-filter="${key}">${esc(label)}</button>`).join('')}</div>
+      <p class="cap">شمارهٔ تلفن در سرور فقط به‌صورت هش نگه‌داری می‌شود؛ حساب تلفنی را با نام پروفایل یا شناسهٔ حساب پیدا کنید. حق عضویت باشگاه و قوانین امتیاز فعلاً فقط در اختیار مالک می‌مانند.</p>
       <div class="tlist">${content}</div>
       ${SERVER_ROLE_LOADED&&SERVER_ROLE_HAS_MORE?`<div class="row"><span class="sp"></span>${btn('حساب‌های بیشتر','data-role-more','i-chev-left')}</div>`:''}
     </div>
@@ -2870,16 +3134,21 @@ async function loadServerRoleAccounts(append){
     SERVER_ROLE_ERROR='رابط سرور در دسترس نیست؛ نقش‌ها تغییر نکردند.'; SERVER_ROLE_LOADED=true; renderBody(); return;
   }
   const offset=append?SERVER_ROLE_ITEMS.length:0;
+  const requestedQuery=SERVER_ROLE_QUERY, requestedFilter=SERVER_ROLE_FILTER;
   SERVER_ROLE_LOADING=true; SERVER_ROLE_ERROR=''; renderBody();
   try{
-    const result=await api.listAccountRoles(SERVER_ROLE_PAGE,offset);
-    const items=Array.isArray(result&&result.items)?result.items:[];
-    SERVER_ROLE_ITEMS=append?SERVER_ROLE_ITEMS.concat(items):items;
-    SERVER_ROLE_HAS_MORE=!!(result&&result.has_more);
-    SERVER_ROLE_LOADED=true;
+    const result=await api.listAccountRoles(SERVER_ROLE_PAGE,offset,requestedQuery,requestedFilter);
+    if(requestedQuery===SERVER_ROLE_QUERY&&requestedFilter===SERVER_ROLE_FILTER){
+      const items=Array.isArray(result&&result.items)?result.items:[];
+      SERVER_ROLE_ITEMS=append?SERVER_ROLE_ITEMS.concat(items):items;
+      SERVER_ROLE_HAS_MORE=!!(result&&result.has_more);
+      SERVER_ROLE_LOADED=true;
+    }
   }catch(error){SERVER_ROLE_ERROR=roleApiError(error); SERVER_ROLE_LOADED=true}
   finally{
     SERVER_ROLE_LOADING=false;
+    /* فیلتر یا جست‌وجو در میانهٔ بارگذاری عوض شد: نتیجهٔ کهنه کنار گذاشته و درخواست تازه فرستاده می‌شود */
+    if(requestedQuery!==SERVER_ROLE_QUERY||requestedFilter!==SERVER_ROLE_FILTER){loadServerRoleAccounts(false); return}
     if(S.uV==='tools'&&S.uTool==='staff') renderBody();
   }
 }
@@ -2893,6 +3162,8 @@ async function saveServerAccountRole(accountId){
     toast('این نقش قابل واگذاری نیست'); renderBody(); return;
   }
   if((item.role||null)===selected){toast('نقش تغییری نکرد'); return}
+  if(selected===null&&typeof window.confirm==='function'
+    &&!window.confirm('نقش این حساب برداشته می‌شود؛ ورود مدیر و نشست‌های فعال آن همین حالا بسته می‌شوند. ادامه می‌دهید؟')){renderBody(); return}
   const api=window.NORA_SERVER_API;
   if(!api||typeof api.setAccountRole!=='function'){toast('رابط سرور در دسترس نیست؛ نقشی تغییر نکرد'); return}
   const button=$$('[data-save-server-role]').find(node=>node.dataset.saveServerRole===String(accountId));
@@ -2945,6 +3216,7 @@ async function removeServerManagerCredentials(accountId){
   const item=SERVER_ROLE_ITEMS.find(row=>String(row.account_id)===String(accountId));
   const api=window.NORA_SERVER_API;
   if(!item||!item.manager_login_enabled) return;
+  if(typeof window.confirm==='function'&&!window.confirm('ورود با نام کاربری این مدیر حذف و نشست‌های فعال او بسته می‌شود. ادامه می‌دهید؟')) return;
   if(!api||typeof api.removeManagerCredentials!=='function'){toast('رابط سرور در دسترس نیست؛ ورود مدیر تغییر نکرد');return}
   const button=$$('[data-remove-manager-credentials]').find(node=>node.dataset.removeManagerCredentials===String(accountId));
   if(button) button.disabled=true;
@@ -3017,7 +3289,7 @@ const SKIN_TILES=[
  {k:'users', n:'کاربران و دسترسی', i:'i-users', s:'عضویت، پروفایل، درخواستها، مسدودها'},
  {k:'ops', n:'مدیریت پنل', i:'i-sliders', s:'کارتابل، لاگ، نگهداری، پشتیبان'},
  {k:'book', n:'باشگاه کتابخوانی', i:'i-book', s:'ترم، کتاب ماه، جلسهها، حق عضویت، پادکست، مسابقه'},
- {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'برچسبها، دستهها، تقویم، قالب مطلب، میانبرها'},
+ {k:'skdev', n:'رویدادها و مطالب', i:'i-calendar', s:'فهرست و تعریف رویداد و مطلب؛ تاریخ‌ها با تقویم شمسی داخل همان ویرایشگر'},
  {k:'people', n:'مدیران و اساتید', i:'i-users', s:'پروفایل، نقش، عکس و کارت معرفی'},
  {k:'chat', n:'پشتیبانی و گفتگو', i:'i-headphone', s:'صندوق تیکت، پاسخهای آماده، ساعات و گزارش'}];
 const SKIN_TABS=[['home','بخشهای خانه'],['menu','منو و کاشیها'],['bnr','بنرها'],
@@ -3781,7 +4053,306 @@ const ppLinks=p=>(p.links||[]).map(l=>({k:l.k||'other',v:String(l.v||'').trim()}
   .filter(l=>l.v).map(l=>Object.assign(l,{href:ppHref(l.k,l.v)}));
 /* نهادها از همان الگوی دادهٔ منتشرشده استفاده می‌کنند؛ نشانیِ واردشده پیش از
    ذخیره و پیش‌نمایش محدود می‌شود تا متن، CSS و پیوند خام به خروجی نرود. */
-const PP_PARTNER_BASE=()=>((window.NORA||{}).PARTNERS||[]);
+/* در تولید، تنها منبع معتبر نهادها همان دستهٔ partners در /api/owner/site-content است؛
+   پیش‌نویس مرورگر و دادهٔ نمونهٔ data.js فقط در حالت آزمایشی (fixture) به کار می‌رود. */
+const PP_SRV={loaded:false,busy:false,requested:false,rows:[],version:0,msg:'',state:''};
+const ppPartnerServerMode=()=>typeof IS_TEST!=='undefined'&&!IS_TEST;
+const PP_PARTNER_BASE=()=>ppPartnerServerMode()?PP_SRV.rows:((window.NORA||{}).PARTNERS||[]);
+function ppPartnerSrvSet(msg,state){PP_SRV.msg=msg||''; PP_SRV.state=state||'';
+  const el=$('#ppPartnerSrvState'); if(el){el.textContent=PP_SRV.msg; if(PP_SRV.state) el.dataset.state=PP_SRV.state; else delete el.dataset.state}}
+const ppPartnerSrvVisible=()=>!!$('#ppPartnerList');
+function ppPartnerSrvApply(result){
+  const content=result&&result.content&&typeof result.content==='object'?result.content:{};
+  PP_SRV.version=Number.isInteger(+(result&&result.version))&&+result.version>=0?+result.version:0;
+  PP_SRV.rows=Array.isArray(content.partners)?content.partners.filter(row=>row&&typeof row==='object'&&row.id!=null).map(row=>Object.assign({},row)):[];
+  if(typeof pkInvalidate==='function') pkInvalidate();
+}
+function ppPartnerSrvError(error){
+  if(!error||error.status===0||error.code==='server_unreachable') return 'به API همین سرور دسترسی نیست؛ هیچ تغییری ذخیره نشد.';
+  if(error.status===401) return 'نشست مالک معتبر نیست؛ دوباره وارد شوید. هیچ تغییری ذخیره نشد.';
+  if(error.status===403) return 'دسترسی مالک یا بررسی مبدأ/CSRF ناموفق بود؛ صفحه را از نشانی اصلی سایت باز کنید. هیچ تغییری ذخیره نشد.';
+  if(error.status===404) return 'API محتوای سرور در این میزبان در دسترس نیست؛ نهادها فقط با اتصال backend قابل مدیریت‌اند.';
+  if(error.status===409) return 'نسخهٔ سرور هم‌زمان توسط شخص دیگری تغییر کرده است؛ تغییر شما ذخیره نشد و فهرست تازه بارگذاری شد. پیش‌نویس را بازبینی و دوباره ذخیره کنید.';
+  if(error.status===413) return 'حجم لوگو یا محتوای نهادها از سقف سرور بیشتر است؛ لوگوی کوچک‌تری انتخاب کنید.';
+  if(error.status===422) return 'ساختار یکی از نهادها پذیرفته نشد؛ نام، نشانی‌ها و راه‌های تماس را بررسی کنید.';
+  if(error.status===503) return 'پایگاه‌دادهٔ سرور آماده نیست؛ تغییری ذخیره نشد.';
+  if(error.status>=500) return 'سرور فعلاً پاسخ‌گو نیست؛ تغییری ذخیره نشد. کمی بعد دوباره تلاش کنید.';
+  return 'ذخیره انجام نشد ('+(error.code||'خطای سرور')+').';
+}
+function ppPartnerSrvWizardRefresh(){
+  const select=$('#wzPartner'); if(!select) return;
+  const current=select.value, rows=PP_SRV.rows;
+  const keep=current&&!rows.some(p=>String(p.id)===current)?`<option value="${esc(current)}" selected>${esc(((S.wiz||{}).partnerName)||'نهاد دیگر در فهرست نیست')}</option>`:'';
+  select.innerHTML=`<option value="">بدون نهاد همکار</option>${keep}`+rows.map(p=>`<option value="${esc(p.id)}"${current===String(p.id)?' selected':''}>${esc(p.n||'نهاد بی‌نام')}</option>`).join('');
+}
+async function ppPartnerServerLoad(opts){
+  const o=opts||{}, api=window.NORA_SERVER_API;
+  PP_SRV.requested=true;
+  if(!api||typeof api.getOwnerSiteContent!=='function'){PP_SRV.loaded=false; ppPartnerSrvSet('API مالک در این صفحه بارگذاری نشده است؛ فهرست نهادها از سرور خوانده نشد.','error'); return false}
+  if(PP_SRV.busy) return false;
+  PP_SRV.busy=true; if(!o.keepMessage) ppPartnerSrvSet('در حال دریافت فهرست نهادهای همکار از سرور…','');
+  try{
+    const result=await api.getOwnerSiteContent(); ppPartnerSrvApply(result); PP_SRV.loaded=true;
+    if(!o.keepMessage) ppPartnerSrvSet(PP_SRV.rows.length
+      ?fa(PP_SRV.rows.length)+' نهاد منتشرشده از سرور بارگذاری شد (نسخهٔ '+fa(PP_SRV.version)+').'
+      :'هنوز نهادی روی سرور ثبت نشده است؛ نهاد تازه پس از ذخیره در سایت دیده می‌شود.','success');
+    return true;
+  }catch(error){PP_SRV.loaded=false; PP_SRV.rows=[]; ppPartnerSrvSet(ppPartnerSrvError(error),'error'); return false}
+  finally{PP_SRV.busy=false; if(ppPartnerSrvVisible()) renderBody(); else ppPartnerSrvWizardRefresh()}
+}
+/* هر تغییر (افزودن/ویرایش/حذف/ترتیب) کل دستهٔ partners را با expected_version می‌فرستد؛
+   دسته‌های دیگر دست نمی‌خورند و پیام موفقیت فقط پس از پاسخ موفق سرور نمایش داده می‌شود. */
+async function ppPartnerCommit(list,what,onDone){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.updateSiteContent!=='function'){ppPartnerSrvSet('API مالک در این صفحه بارگذاری نشده است؛ هیچ تغییری ذخیره نشد.','error'); toast('ذخیره نشد'); return false}
+  if(!PP_SRV.loaded){ppPartnerSrvSet('فهرست سرور هنوز بارگذاری نشده است؛ اول «تازه‌سازی از سرور» را بزنید.','error'); toast('ذخیره نشد'); return false}
+  if(PP_SRV.busy){toast('درخواست قبلی هنوز در جریان است'); return false}
+  PP_SRV.busy=true; ppPartnerSrvSet('در حال ذخیرهٔ '+what+' روی سرور…',''); renderBody();
+  let ok=false;
+  try{
+    const result=await api.updateSiteContent({partners:list},PP_SRV.version);
+    ppPartnerSrvApply(result); ok=true;
+    ppPartnerSrvSet(what+' در نسخهٔ '+fa(PP_SRV.version)+' سرور ذخیره شد؛ همین حالا در سایت دیده می‌شود.','success');
+    uLogAdd('نهادهای همکار روی سرور به‌روز شد: '+what+' ('+fa(PP_SRV.rows.length)+' نهاد)');
+    toast('روی سرور ذخیره شد');
+  }catch(error){
+    ppPartnerSrvSet(ppPartnerSrvError(error),'error'); toast('ذخیره نشد');
+    if(error&&error.status===409){PP_SRV.busy=false; await ppPartnerServerLoad({keepMessage:true})}
+  }finally{PP_SRV.busy=false}
+  if(onDone) onDone(ok);
+  renderBody(); return ok;
+}
+/* ══ H1: ویرایشگر سروری «استادان و افراد سایت» ══
+   همان فرم و پیش‌نمایش طراحی (ppForm/ppPrev) روی دستهٔ people در /api/owner/site-content.
+   هیچ فهرستی از data.js یا localStorage ساخته نمی‌شود؛ فقط پیش‌نویسِ در حال تایپ (S.ppD) در
+   حافظهٔ پنل می‌ماند تا با ۴۰۹ یا خطای شبکه از دست نرود. ذخیره = انتشار فوری روی سرور؛
+   ردیف‌های ردشده (rejected_rows.people) هرگز «ذخیره‌شده» گزارش نمی‌شوند. */
+const PE_SRV={loaded:false,busy:false,requested:false,rows:[],events:[],articles:[],version:0,msg:'',state:'',rejected:null,conflict:null,q:'',kind:''};
+const PE_FIELDS=['id','n','ini','r','role2','kind','bio','quote','where','yrs','courses','rate','tag','exp','links','photo','g','form','formTxt'];
+const PE_LABELS={n:'نام',ini:'حرف آواتار',r:'نقش و سمت',role2:'سمت دوم',kind:'جایگاه',bio:'درباره',quote:'جمله',where:'محل',yrs:'سابقه',courses:'دوره',rate:'امتیاز',tag:'برچسب',exp:'تخصص‌ها',links:'راه‌های ارتباط',photo:'عکس',g:'رنگ جلد',form:'فرم پیوست',formTxt:'نوشتهٔ دکمه'};
+const peServerMode=()=>ppPartnerServerMode();
+const peVisible=()=>!!$('#peList');
+function peSrvSet(msg,state){PE_SRV.msg=msg||''; PE_SRV.state=state||'';
+  const el=$('#peSrvState'); if(el){el.textContent=PE_SRV.msg; if(PE_SRV.state) el.dataset.state=PE_SRV.state; else delete el.dataset.state}}
+function peApply(result){
+  const content=result&&result.content&&typeof result.content==='object'?result.content:{};
+  PE_SRV.version=Number.isInteger(+(result&&result.version))&&+result.version>=0?+result.version:0;
+  const rows=k=>Array.isArray(content[k])?content[k].filter(r=>r&&typeof r==='object'&&r.id!=null).map(r=>Object.assign({},r)):[];
+  PE_SRV.rows=rows('people'); PE_SRV.events=rows('events'); PE_SRV.articles=rows('articles');
+  if(typeof pkInvalidate==='function') pkInvalidate();
+}
+const peRow=id=>PE_SRV.rows.filter(p=>String(p.id)===String(id))[0]||null;
+const peEvents=id=>PE_SRV.events.filter(e=>String(e.tchr||'')===String(id));
+const peArticles=id=>PE_SRV.articles.filter(a=>String(a.tchr||'')===String(id));
+function peError(error){
+  const code=error&&error.code||'';
+  if(code==='reference_in_use'){const d=error.payload&&error.payload.detail||{}, used=(d.used_by||[]).map(u=>(u.kind==='articles'?'مطلب «':'رویداد «')+(u.t||u.id)+'»');
+    return 'حذف انجام نشد: این شخص هنوز به '+(used.length?used.slice(0,4).join('، ')+(used.length>4?' و …':''):'رویداد یا مطلبی')+' وصل است. اول پیوند را در همان رویداد/مطلب بردار.'}
+  if(error&&error.status===409) return 'نسخهٔ محتوا هم‌زمان از جای دیگری تغییر کرده است؛ تغییر شما ذخیره نشد ولی نوشته‌هایتان همین‌جا مانده است. فهرست تازه بارگذاری شد؛ تفاوت‌ها را پایین ببینید و دوباره ذخیره کنید.';
+  if(error&&error.status===413) return 'حجم عکس یا متن از سقف سرور بیشتر است؛ عکس کوچک‌تری بگذارید. هیچ تغییری ذخیره نشد.';
+  if(error&&error.status===422) return 'ساختار پروفایل پذیرفته نشد ('+(code||'422')+')؛ نام، نشانی عکس و راه‌های تماس را بررسی کنید. هیچ تغییری ذخیره نشد.';
+  return ppPartnerSrvError(error).replace(/نهادها(ی همکار)?/g,'افراد');
+}
+async function peLoad(opts){
+  const o=opts||{}, api=window.NORA_SERVER_API;
+  PE_SRV.requested=true;
+  if(!api||typeof api.getOwnerSiteContent!=='function'){PE_SRV.loaded=false; peSrvSet('API مالک در این صفحه بارگذاری نشده است؛ فهرست افراد از سرور خوانده نشد.','error'); return false}
+  if(PE_SRV.busy) return false;
+  PE_SRV.busy=true; if(!o.keepMessage) peSrvSet('در حال دریافت فهرست افراد از سرور…','');
+  try{
+    const result=await api.getOwnerSiteContent(); peApply(result); PE_SRV.loaded=true;
+    if(!o.keepMessage) peSrvSet(PE_SRV.rows.length
+      ?fa(PE_SRV.rows.length)+' پروفایل منتشرشده از سرور بارگذاری شد (نسخهٔ '+fa(PE_SRV.version)+').'
+      :'هنوز شخصی روی سرور ثبت نشده است؛ پروفایل تازه پس از ذخیره بلافاصله در سایت دیده می‌شود.','success');
+    return true;
+  }catch(error){PE_SRV.loaded=false; PE_SRV.rows=[]; peSrvSet(peError(error),'error'); return false}
+  finally{PE_SRV.busy=false; if(peVisible()) renderBody()}
+}
+/* ردیف ارسالی فقط فیلدهای مجاز سرور را دارد؛ 'tch' طراحی به 'teacher' سرور برمی‌گردد. */
+function peRowOf(D,id){
+  const t=v=>String(v==null?'':v).trim(), dig=s=>t(s).replace(/[۰-۹]/g,x=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(x)));
+  const links=(D.links||[]).map(l=>({k:String(l.k||''),v:t(l.v)})).filter(l=>l.v&&['tel','mail','tg','ig','web'].indexOf(l.k)>=0);
+  const row={id:String(id),n:t(D.n),ini:t(D.ini),r:t(D.r),role2:t(D.role2),kind:D.kind==='staff'?'staff':'teacher',
+    bio:t(D.bio),quote:t(D.quote),where:t(D.where),yrs:t(D.yrs),courses:dig(D.courses)||'0',rate:t(D.rate),tag:t(D.tag),
+    exp:(D.exp||[]).map(x=>t(x)).filter(Boolean).slice(0,40),links:links,photo:t(D.photo),g:t(D.g)||PP_GS[0].v,
+    form:t(D.form),formTxt:t(D.formTxt)};
+  Object.keys(row).forEach(k=>{if(PE_FIELDS.indexOf(k)<0) delete row[k]});
+  return row;
+}
+const peNewId=()=>{let id; do{id='pp-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}while(peRow(id)); return id};
+function peOpen(key){
+  const row=key==='new'?null:peRow(key);
+  if(key!=='new'&&!row){toast('این شخص در فهرست سرور نیست'); return}
+  S.ppD=ppDraftOf(row,row&&row.kind==='staff'?'staff':'tch');
+  if(row) S.ppD.kind=row.kind; else S.ppD.rate='';  /* بدون امتیاز ساختگی برای شخص تازه */
+  S.ppEd=key; S.peBase=row?JSON.stringify(peRowOf(ppDraftOf(row,'tch'),row.id)):''; S.peBaseV=PE_SRV.version;
+  PE_SRV.conflict=null; PE_SRV.rejected=null; save();
+}
+function peClose(){S.ppEd=''; S.ppD=null; S.peBase=''; S.peBaseV=0; PE_SRV.conflict=null; save()}
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (G1 رونوشت): همان قابلیت طرح مرجع (data-ppdup) در حالت سرور: پیش‌نویس شخص تازه از روی ردیف سرور؛ شناسه، امتیاز و پیوند فرم تازه می‌شود؛
+   تا «تأیید و انتشار فوری» هیچ چیزی به سرور نمی‌رود. */
+function peDuplicate(key){
+  const row=peRow(key); if(!row){toast('این شخص در فهرست سرور نیست'); return false}
+  const kind=row.kind==='staff'?'staff':'tch';
+  /* از پیش‌نویس جاری (با ویرایش‌های ذخیره‌نشده) رونوشت می‌گیرد؛ وگرنه از ردیف سرور */
+  const D=(S.ppEd===key&&S.ppD)?JSON.parse(JSON.stringify(S.ppD)):ppDraftOf(row,kind); D.kind=row.kind; D.rate=''; D.form=''; D.formTxt='';
+  D.n=String(D.n||'بی‌نام')+' (رونوشت)';
+  S.ppD=D; S.ppEd='new'; S.peBase=''; S.peBaseV=PE_SRV.version; PE_SRV.conflict=null; PE_SRV.rejected=null; save();
+  toast('پیش‌نویس رونوشت ساخته شد؛ تا تأیید، چیزی در سرور ثبت نمی‌شود'); return true;
+}
+/* هر تغییر (افزودن/ویرایش/حذف/ترتیب) کل دستهٔ people را با expected_version و CSRF می‌فرستد. */
+async function peCommit(list,what,o){
+  o=o||{}; const api=window.NORA_SERVER_API;
+  if(!api||typeof api.updateSiteContent!=='function'){peSrvSet('API مالک در این صفحه بارگذاری نشده است؛ هیچ تغییری ذخیره نشد.','error'); toast('ذخیره نشد'); return false}
+  if(!PE_SRV.loaded){peSrvSet('فهرست سرور هنوز بارگذاری نشده است؛ اول «تازه‌سازی از سرور» را بزنید.','error'); toast('ذخیره نشد'); return false}
+  if(PE_SRV.busy){toast('درخواست قبلی هنوز در جریان است'); return false}
+  PE_SRV.busy=true; peSrvSet('در حال ذخیرهٔ '+what+' روی سرور…',''); renderBody();
+  let ok=false;
+  try{
+    const result=await api.updateSiteContent({people:list},PE_SRV.version);
+    peApply(result); PE_SRV.conflict=null;
+    const rej=result&&result.rejected_rows&&Array.isArray(result.rejected_rows.people)?result.rejected_rows.people:[];
+    PE_SRV.rejected=rej.length?rej:null;
+    const editedRejected=o.editedId&&rej.some(r=>String(r.id||'')===String(o.editedId));
+    if(rej.length){
+      const why={invalid_row:'ساختار نامعتبر',non_public:'ردیف غیرعمومی',missing_required_fields:'بی‌نام یا بی‌شناسه'};
+      peSrvSet('نسخهٔ '+fa(PE_SRV.version)+' ذخیره شد، اما '+fa(rej.length)+' ردیف پذیرفته و منتشر نشد: '
+        +rej.map(r=>(r.id?('«'+r.id+'» '):'ردیف '+fa((r.index|0)+1)+' ')+(why[r.reason]||r.reason||'')).join('، ')
+        +(editedRejected?'. پروفایل شما ذخیره نشده و همچنان برای اصلاح باز است.':'.'),'warn');
+      toast('ذخیره شد؛ برخی ردیف‌ها رد شدند');
+      ok=!editedRejected;
+    } else {
+      ok=true; peSrvSet(what+' در نسخهٔ '+fa(PE_SRV.version)+' سرور ذخیره شد؛ همین حالا در سایت دیده می‌شود.','success');
+      toast('روی سرور ذخیره و منتشر شد');
+    }
+    uLogAdd('افراد سایت روی سرور به‌روز شد: '+what+' ('+fa(PE_SRV.rows.length)+' پروفایل)');
+    if(ok&&o.closeEditor) peClose();
+  }catch(error){
+    peSrvSet(peError(error),'error'); toast('ذخیره نشد');
+    if(error&&error.status===409){
+      PE_SRV.conflict={what:what,at:Date.now(),current:error.payload&&error.payload.detail&&error.payload.detail.current_version};
+      PE_SRV.busy=false; await peLoad({keepMessage:true});
+    }
+  }finally{PE_SRV.busy=false}
+  renderBody(); return ok;
+}
+function peSave(){
+  const D=ppD(), key=S.ppEd; if(!D||!key){toast('پروفایلی باز نیست'); return}
+  D.n=String(D.n||'').trim(); if(!D.n){toast('نام را بنویس'); const el=$('[data-ppf="n"]'); if(el&&el.focus) el.focus(); return}
+  const isNew=key==='new', id=isNew?peNewId():String(key), row=peRowOf(D,id);
+  const exists=!isNew&&!!peRow(id);
+  const msg=isNew||!exists
+    ?'پروفایل «'+row.n+'» همین حالا روی سرور ذخیره و بلافاصله در سایت عمومی منتشر می‌شود (پیش‌نویس یا حالت پنهان وجود ندارد). ادامه می‌دهید؟'
+    :'تغییرات «'+row.n+'» همین حالا روی سرور ذخیره و بلافاصله در سایت عمومی منتشر می‌شود. ادامه می‌دهید؟';
+  if(!window.confirm(msg)) return;
+  const list=exists?PE_SRV.rows.map(p=>String(p.id)===id?row:p):PE_SRV.rows.concat([row]);
+  peCommit(list,(isNew||!exists?'افزودن ':'ویرایش ')+'پروفایل «'+row.n+'»',{editedId:id,closeEditor:true});
+}
+function peDelete(id){
+  const row=peRow(id); if(!row) return;
+  const used=peEvents(id).length+peArticles(id).length;
+  if(!window.confirm('پروفایل «'+(row.n||id)+'» از سایت عمومی برداشته می‌شود'+(used?'؛ '+fa(used)+' رویداد/مطلب منتشرشده به آن وصل است و سرور حذف را رد خواهد کرد':'')+'. ادامه می‌دهید؟')) return;
+  if(S.ppEd===id) peClose();
+  peCommit(PE_SRV.rows.filter(p=>String(p.id)!==String(id)),'حذف پروفایل «'+(row.n||id)+'»',{});
+}
+function peMove(id,dir){
+  const L=PE_SRV.rows.slice(), i=L.findIndex(p=>String(p.id)===String(id)), j=i+dir;
+  if(i<0||j<0||j>=L.length) return;
+  const t=L[i]; L[i]=L[j]; L[j]=t;
+  peCommit(L,'ترتیب فهرست افراد',{});
+}
+function peFilterRows(){
+  const q=String(PE_SRV.q||'').trim().toLowerCase();
+  return PE_SRV.rows.filter(p=>!PE_SRV.kind||(PE_SRV.kind==='staff'?p.kind==='staff':p.kind!=='staff'))
+    .filter(p=>!q||[p.n,p.r,p.role2,p.tag,p.where].concat(p.exp||[]).some(x=>String(x||'').toLowerCase().indexOf(q)>=0));
+}
+function peListHtml(){
+  if(!PE_SRV.loaded) return PE_SRV.state==='error'?`<div class="empty"><b>فهرست از سرور خوانده نشد</b><span class="cap">${esc(PE_SRV.msg)}</span><div class="row tight" style="justify-content:center;margin-top:8px">${btn('تلاش دوباره','data-pe-refresh','i-refresh')}</div></div>`
+    :`<div class="empty"><b>در حال دریافت فهرست افراد از سرور…</b></div>`;
+  const L=peFilterRows(), all=PE_SRV.rows;
+  if(!all.length) return `<div class="empty"><b>هنوز شخصی روی سرور ثبت نشده</b><span class="cap">با «افزودن شخص» نخستین پروفایل را بساز؛ پس از تأیید، بلافاصله در سایت دیده می‌شود.</span></div>`;
+  if(!L.length) return `<div class="empty"><b>چیزی با این جست‌وجو پیدا نشد</b><span class="cap">نام، نقش، برچسب یا تخصص را امتحان کن.</span></div>`;
+  return L.map(p=>{const i=all.indexOf(p), ev=peEvents(p.id).length, ar=peArticles(p.id).length, cur=S.ppEd===String(p.id);
+    return `<div class="scard pe-row ${cur?'on':''}" data-pe-row="${esc(p.id)}" style="cursor:default;align-items:center">
+      <span class="sav" style="--g:${esc(p.g||PP_GS[0].v)}">${ppPhotoSrc(p)?`<img src="${esc(ppPhotoSrc(p))}" alt=""/>`:esc(ppIni(p))}</span>
+      <span class="sbody" style="flex:1;min-width:0"><b>${esc(p.n||'')}</b><span class="rl">${esc(p.r||'')}${p.role2?' · '+esc(p.role2):''}</span>
+        <span class="mini-chips"><span class="mini-chip">${p.kind==='staff'?'دست‌اندرکار':'مدرس'}</span>${p.tag?`<span class="mini-chip">${esc(p.tag)}</span>`:''}${(p.exp||[]).slice(0,2).map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</span>
+        <span class="cap">${ev||ar?[ev?fa(ev)+' رویداد منتشرشده':'',ar?fa(ar)+' مطلب منتشرشده':''].filter(Boolean).join(' · '):'به رویداد یا مطلب منتشرشده‌ای وصل نیست'}${p.form?' · فرم پیوست':''}</span></span>
+      <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end">
+        ${i>0?btn('بالا','data-pe-up="'+esc(p.id)+'" aria-label="بالا بردن '+esc(p.n||'')+'"','i-chev-up'):''}
+        ${i<all.length-1?btn('پایین','data-pe-down="'+esc(p.id)+'" aria-label="پایین بردن '+esc(p.n||'')+'"','i-chev-down'):''}
+        ${btn('ویرایش','data-pe-edit="'+esc(p.id)+'"','i-pen')}
+        <a class="btn sm quiet" href="person.html?id=${encodeURIComponent(String(p.id))}" target="_blank" rel="noopener">${ico('i-user')} صفحهٔ عمومی</a>
+        ${btn('حذف','data-pe-del="'+esc(p.id)+'"','i-trash')}</span></div>`}).join('');
+}
+/* تطبیق پس از ۴۰۹: نسخهٔ سرور (تازه) در برابر نوشتهٔ شما؛ فقط فیلدهای متفاوت. */
+function peConflictHtml(D){
+  if(!PE_SRV.conflict||!D) return '';
+  const id=S.ppEd, srv=id&&id!=='new'?peRow(id):null, mine=peRowOf(D,id==='new'?'new':id);
+  const base=(()=>{try{return S.peBase?JSON.parse(S.peBase):null}catch(e){return null}})();
+  const show=v=>Array.isArray(v)?v.map(x=>typeof x==='object'?(x.k+': '+x.v):x).join('، '):(v==null?'':String(v));
+  let rows='';
+  if(id!=='new'&&!srv) rows=`<p class="cap">این شخص در نسخهٔ تازهٔ سرور وجود ندارد (در این میان حذف شده). «ذخیرهٔ دوباره» آن را با نوشته‌های شما دوباره می‌سازد.</p>`;
+  else if(srv){
+    const theirs=peRowOf(ppDraftOf(srv,'tch'),srv.id);
+    const diff=PE_FIELDS.filter(f=>f!=='id'&&JSON.stringify(theirs[f])!==JSON.stringify(mine[f]));
+    rows=diff.length?`<table class="tbl" style="width:100%"><thead><tr><th>فیلد</th><th>نسخهٔ سرور اکنون</th><th>نوشتهٔ شما</th><th></th></tr></thead><tbody>${diff.map(f=>{
+      const changedByOther=base&&JSON.stringify(base[f])!==JSON.stringify(theirs[f]);
+      return `<tr data-pe-diff="${esc(f)}"><td><b>${esc(PE_LABELS[f]||f)}</b>${changedByOther?'<small class="cap" style="display:block">روی سرور تغییر کرده</small>':''}</td>
+        <td class="cap">${f==='photo'?(theirs[f]?'عکس دارد':'بی‌عکس'):esc(show(theirs[f]).slice(0,160))||'خالی'}</td>
+        <td class="cap">${f==='photo'?(mine[f]?'عکس دارد':'بی‌عکس'):esc(show(mine[f]).slice(0,160))||'خالی'}</td>
+        <td>${btn('گرفتن مقدار سرور','data-pe-take="'+esc(f)+'"','i-check')}</td></tr>`}).join('')}</tbody></table>`
+      :`<p class="cap">نوشتهٔ شما با نسخهٔ تازهٔ سرور تفاوتی ندارد؛ می‌توانید بدون ذخیره ببندید.</p>`;
+  }
+  return `<section class="card stack" id="pePconflict" data-pe-conflict="1" style="border-color:var(--warn,#c80)">
+    <div class="head">تعارض نسخه؛ نوشتهٔ شما حفظ شده است</div>
+    <p class="cap">فهرست افراد از نسخهٔ تازهٔ سرور (${fa(PE_SRV.version)}) دوباره خوانده شد. هر ردیف را مقایسه کنید؛ «ذخیرهٔ دوباره» نوشتهٔ شما را روی نسخهٔ تازه می‌نشاند و «گرفتن نسخهٔ سرور» نوشتهٔ شما را دور می‌ریزد.</p>
+    ${rows}
+    <div class="row tight">${btn('ذخیرهٔ دوباره روی نسخهٔ تازه','data-pe-save','i-send')}${btn('گرفتن نسخهٔ سرور (دور ریختن نوشتهٔ من)','data-pe-reopen','i-refresh')}</div>
+  </section>`;
+}
+function peEditorHtml(){
+  const D=ppD(), key=S.ppEd; if(!D||!key) return '';
+  const isNew=key==='new', srv=isNew?null:peRow(key), kind=D.kind==='staff'?'staff':'tch';
+  const ev=isNew?[]:peEvents(key), ar=isNew?[]:peArticles(key);
+  const related=isNew?'':`<div class="ppsec"><div class="ppsec-t">${ico('i-calendar')}<b>برنامه‌ها و مطالب وصل‌شده</b><span class="sp"></span><span class="cap">فقط منتشرشده‌ها؛ از ویرایشگر رویداد/مطلب وصل می‌شوند</span></div>
+    ${ev.length||ar.length?`<div class="pprows">${ev.map(e=>`<div class="pprow">${ico('i-calendar')}<span class="sp">${esc(e.t||e.id)}<small class="cap" style="display:block">${esc(e.when||'')}</small></span><button class="btn sm quiet" data-pe-goev="${esc(e.id)}">ویرایش رویداد</button></div>`).join('')}
+      ${ar.map(a=>`<div class="pprow">${ico('i-article')}<span class="sp">${esc(a.t||a.id)}</span><button class="btn sm quiet" data-pe-goar="${esc(a.id)}">ویرایش مطلب</button></div>`).join('')}</div>`
+      :`<p class="cap">هنوز رویداد یا مطلب منتشرشده‌ای به این شخص وصل نیست؛ در ویرایشگر رویداد از «مدرس» و در مطلب از «نویسنده» انتخابش کن.</p>`}</div>`;
+  return `<section class="card stack" id="peEditor" data-pe-editor="${esc(key)}">
+    <div class="row"><div class="head">${isNew?'افزودن شخص تازه':'ویرایش «'+esc(srv?srv.n:D.n)+'»'}</div><span class="sp"></span>
+      ${isNew?'':`<span class="cap" dir="ltr">${esc(key)}</span>`}${isNew?'':btn('رونوشت از این پروفایل','data-pe-dup="'+esc(key)+'"','i-copy')}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}</div>
+    <p class="cap" data-pe-publish-note><b>ذخیره = انتشار فوری.</b> این پروفایل بلافاصله در صفحهٔ اصلی و صفحهٔ عمومی شخص دیده می‌شود؛ پیش‌نویس یا حالت پنهان وجود ندارد. فقط فیلدهای مجاز سرور ذخیره می‌شوند؛ تغییرات تا زمان ذخیره فقط در همین مرورگر است.</p>
+    ${peConflictHtml(D)}
+    ${isNew?'':chTabs('content.people',key,'ویرایش')}
+    ${!isNew&&chIs('content.people',key)?chPanel():''}
+    <div class="pp-grid"${!isNew&&chIs('content.people',key)?' style="display:none" data-pe-edit-pane="hidden"':' data-pe-edit-pane="shown"'}><div class="stack">${ppForm(D,kind)}</div>
+      <div class="stack"><div class="ppsec-t">${ico('i-eye')}<b>پیش‌نمایش زنده</b><span class="cap">همان کارت و ورقه‌ای که کاربر می‌بیند</span></div><div id="ppPrev">${ppPrev(D)}</div>${related}</div></div>
+    <div class="row tight">${btn(isNew?'تأیید و انتشار فوری':'ذخیره و انتشار فوری','data-pe-save','i-send')}${btn('بستن بدون ذخیره','data-pe-cancel','i-close')}
+      ${isNew?'':btn('حذف از سایت','data-pe-del="'+esc(key)+'"','i-trash')}</div>
+  </section>`;
+}
+function peView(){
+  if(!peServerMode()) return '';
+  if(!isOwner()) return serverUnavailableModule('استادان و افراد سایت','ویرایش افراد سایت فقط با نشست مالک انجام می‌شود؛ سرور هم همین را بررسی می‌کند.');
+  if(!PE_SRV.loaded&&!PE_SRV.requested) peLoad();
+  if(!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
+  const kinds=[['','همه'],['teacher','مدرس‌ها'],['staff','دست‌اندرکاران']];
+  return `<section class="card stack" id="pePeopleManager">
+    <div class="row"><div class="head">استادان و افراد سایت (محتوای عمومی سرور)</div><span class="sp"></span>
+      ${btn('تازه‌سازی از سرور','data-pe-refresh','i-refresh')}<a class="btn sm tint" href="home.html#teachers" target="_blank" rel="noopener">${ico('i-users')} پیش‌نمایش خانهٔ کاربر</a></div>
+    <p class="cap">این فهرست همان دستهٔ «people» محتوای عمومی سرور است که ریل «اساتید و مدرسان»، صفحهٔ شخص و پیوند مدرس رویدادها از آن می‌خوانند. هر افزودن، ویرایش، حذف یا جابه‌جایی با نشست مالک، CSRF و نسخهٔ محتوا روی سرور ذخیره و بلافاصله منتشر می‌شود.</p>
+    <p class="sync-state" id="peSrvState" role="status" aria-live="polite"${PE_SRV.state?` data-state="${esc(PE_SRV.state)}"`:''}>${esc(PE_SRV.msg||'در حال دریافت فهرست افراد از سرور…')}</p>
+    ${PE_SRV.rejected?`<p class="sync-state" data-state="warn" data-pe-rejected>${fa(PE_SRV.rejected.length)} ردیف در آخرین ذخیره پذیرفته نشد و روی سایت نیست: ${PE_SRV.rejected.map(r=>esc((r.id||('ردیف '+fa((r.index|0)+1)))+' ('+(r.reason||'')+')')).join('، ')}</p>`:''}
+    <div class="row tight" style="flex-wrap:wrap;align-items:flex-end">
+      <label class="fld" style="flex:1;min-width:220px;max-width:360px"><span class="lbl">جست‌وجو</span>
+        <input class="input" data-pe-q="1" value="${esc(PE_SRV.q||'')}" placeholder="نام، نقش، تخصص یا برچسب" aria-label="جست‌وجو در افراد"/></label>
+      <div class="admfilters" role="group" aria-label="نوع">${kinds.map(k=>`<button class="chip ${PE_SRV.kind===k[0]?'on':''}" data-pe-kind="${k[0]}">${esc(k[1])}</button>`).join('')}</div>
+      <span class="sp"></span>${btn('افزودن شخص','data-pe-new','i-plus')}</div>
+    <div class="stack tight" id="peList">${peListHtml()}</div>
+    <p class="cap">ترتیب همین فهرست، ترتیب نمایش در سایت است. ردیف‌های غیرعمومی (پنهان/پیش‌نویس قدیمی) در این فهرست نمی‌آیند و با ذخیره هم پاک نمی‌شوند.</p>
+  </section>${peEditorHtml()}`;
+}
 const ppPartnerGradient=value=>{
   const raw=String(value||'').trim();
   return /^linear-gradient\(135deg,#[0-9a-f]{6},#[0-9a-f]{6}\)$/i.test(raw)?raw:PP_GS[0].v;
@@ -3793,7 +4364,7 @@ function ppPartnerWebsite(value){
   catch(e){return ''}
 }
 function ppPartnerLogo(value){
-  const raw=String(value||'').trim(); if(!raw) return '';
+  const raw=String(value||'').trim(); if(!raw||raw.startsWith('//')) return '';
   if(/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(raw)) return raw;
   if(/^https?:\/\//i.test(raw)) return ppPartnerWebsite(raw);
   if(/^[./A-Za-z0-9_~%-][A-Za-z0-9_./~%-]*$/.test(raw)&&!/(?:^|\/)\.\.(?:\/|$)/.test(raw)) return raw;
@@ -3823,15 +4394,16 @@ const ppPartnerLinks=rows=>(Array.isArray(rows)?rows:[]).map(item=>{
   return {k:PP_LK.some(x=>x[0]===link.k)?link.k:'other',v:String(link.v||'').trim()};
 }).filter(link=>link.v).map(link=>Object.assign(link,{href:ppPartnerLinkHref(link.k,link.v)}));
 const ppPartnerAll=()=>{
+  if(ppPartnerServerMode()) return PP_SRV.rows.map(row=>Object.assign({},row));
   const b=ppSet(), edits=b.partnerO||{};
   return PP_PARTNER_BASE().map(row=>Object.assign({},row,edits[String(row.id)]||{}))
     .concat((b.partnerAdd||[]).map(row=>Object.assign({},row)));
 };
-const ppPartnerHidden=()=>ppSet().partnerHide||[];
+const ppPartnerHidden=()=>ppPartnerServerMode()?[]:(ppSet().partnerHide||[]);
 function ppPartnerVisibleRaw(){const hidden=ppPartnerHidden();
   return ppPartnerAll().filter(row=>hidden.indexOf(String(row.id))<0)}
 function ppPartnerMerged(){
-  const rows=ppPartnerVisibleRaw(), order=ppSet().partnerOrd||[];
+  const rows=ppPartnerVisibleRaw(), order=ppPartnerServerMode()?[]:(ppSet().partnerOrd||[]);
   if(!order.length) return rows;
   return rows.map((row,index)=>({row,index,key:String(row.id)})).sort((a,b)=>{
     const ai=order.indexOf(a.key),bi=order.indexOf(b.key);
@@ -3840,6 +4412,10 @@ function ppPartnerMerged(){
 }
 function ppPartnerMove(index,dir){
   const rows=ppPartnerMerged(), next=index+dir; if(index<0||next<0||next>=rows.length) return;
+  if(ppPartnerServerMode()){
+    const list=rows.map(row=>ppPartnerClean(row,true)), moved=list[index];
+    list.splice(index,1); list.splice(next,0,moved); ppPartnerCommit(list,'ترتیب نهادها'); return;
+  }
   const order=rows.map(row=>String(row.id)), moved=order[index];
   order.splice(index,1); order.splice(next,0,moved); ppSet().partnerOrd=order; save();
 }
@@ -3856,12 +4432,13 @@ const ppPartnerPublishList=()=>ppPartnerMerged().map(row=>ppPartnerClean(row,tru
 const ppPartnerLogoPreview=row=>ppPartnerLogo(row.logo);
 const ppPhotoSrc=p=>p.photo||'';
 const PP_PHOTOS=()=>{const seen={},out=[];
+  if(ppPartnerServerMode()){PE_SRV.rows.forEach(p=>{if(p.photo&&!seen[p.photo]&&!/^data:/.test(p.photo)){seen[p.photo]=1; out.push(p.photo)}}); return out}
   PP_BASE().forEach(p=>{if(p.photo&&!seen[p.photo]){seen[p.photo]=1; out.push(p.photo)}});
   (ppSet().add||[]).forEach(p=>{if(p.photo&&!seen[p.photo]&&!/^data:/.test(p.photo)){seen[p.photo]=1; out.push(p.photo)}});
   return out};
 const ppIni=p=>p.ini||String(p.n||'ن').trim().charAt(0);
 const pubEv=()=>{try{const U=window.NORA_UI||{}; return (U.pubEvents&&U.pubEvents())||[]}catch(e){return []}};
-const ppAllEv=()=>((window.NORA||{}).EVENTS||[]).concat(pubEv());
+const ppAllEv=()=>ppPartnerServerMode()?PE_SRV.events:((window.NORA||{}).EVENTS||[]).concat(pubEv());
 /* جای هر کس در فهرست با خود مدیر است: بالا و پایین رفتن، در ord مینشیند */
 const ppKey=(p,i,kind)=>kind==='mgr'?('m'+i):String(p.id||('n'+i));
 const ppSort=(L,kind)=>{const o=ppSet().ord; if(!o||!o.length) return L;
@@ -3918,7 +4495,7 @@ function ppCard(p){
       <span class="av">${ppPhotoSrc(p)?`<img src="${esc(ppPhotoSrc(p))}" alt="${esc(p.n||'')}"/>`:esc(ppIni(p))}</span></div>
     <div class="tbody"><b class="nm">${esc(p.n||'')}</b>
       <span class="rl">${esc(p.r||'')}${p.role2?' · '+esc(p.role2):''}</span>
-      ${isStaff?'':`<div class="tstars">${ppStars(p.rate)}<span class="cap">${esc(String(p.rate||'۴٫۵'))} از ۵</span></div>`}
+      ${isStaff||!p.rate?'':`<div class="tstars">${ppStars(p.rate)}<span class="cap">${esc(String(p.rate))} از ۵</span></div>`}
       <div class="tmeta"><span><b>${esc(fa(p.courses||0))}</b> دوره</span>${p.yrs?`<span><b>${esc(p.yrs)}</b> تجربه</span>`:''}</div>
       <div class="taggline">${p.tag?`<span class="tagg brand">${esc(p.tag)}</span>`:''}${isStaff?'':`<span class="tagg">${esc((p.exp||[])[0]||'')}</span>`}</div>
       ${nx?`<div class="tnext">${ico('i-calendar')}<span>${esc(nx.t||'')} · ${esc(nx.when||'')}</span></div>`:''}</div>
@@ -3944,7 +4521,7 @@ function ppMgrCard(m){
 function ppSheet(p){
   const isStaff=p.kind==='staff', lks=ppLinks(p), nx=ppNextCourse(p.id);
   const evs=ppAllEv().filter(e=>e.tchr===p.id).slice(0,3);
-  const arts=((window.NORA||{}).ARTICLES||[]).filter(a=>a.tchr===p.id).slice(0,3);
+  const arts=(ppPartnerServerMode()?PE_SRV.articles:((window.NORA||{}).ARTICLES||[])).filter(a=>a.tchr===p.id).slice(0,3);
   const fm=p.form?madeForms().filter(f=>String(f.id)===String(p.form))[0]:null;
   const srow=(i,k,v)=>v?`<div class="pprow">${ico(i)}<span class="sp">${esc(k)}</span><b>${esc(v)}</b></div>`:'';
   return `<div class="ppsheet">
@@ -4033,7 +4610,7 @@ const ppF=(f,v)=>`data-ppf="${esc(f)}" value="${esc(v==null?'':v)}"`;
 const ppTA=(f,v,r)=>`data-ppf="${esc(f)}" rows="${r||2}"`;
 function ppLinkRows(D){
   const rows=(D.links||[]).map((l,i)=>`<div class="pplink">
-    <div class="admfilters">${PP_LK.map(x=>`<button class="chip ${l.k===x[0]?'on':''}" data-pplkk="${i}" data-pplkv="${x[0]}">${esc(x[1])}</button>`).join('')}</div>
+    <div class="admfilters">${PP_LK.filter(x=>!ppPartnerServerMode()||x[0]!=='other').map(x=>`<button class="chip ${l.k===x[0]?'on':''}" data-pplkk="${i}" data-pplkv="${x[0]}">${esc(x[1])}</button>`).join('')}</div>
     <div class="row tight"><input class="input" data-pplk="${i}" dir="ltr" value="${esc(l.v||'')}" placeholder="مثلاً ۰۹۱۲۳۴۵۶۷۸۹ یا @nora"/>
       ${btn('بردار','data-pplkdel="'+i+'"','i-trash')}</div>
     ${l.v?`<span class="cap" dir="ltr">${esc(ppHref(l.k,l.v))}</span>`:''}</div>`).join('');
@@ -4053,10 +4630,10 @@ function ppFormPick(D){
       ${btn('بردار','data-ppform="'+esc(f.id)+'"','i-check')}</div>`).join('')||'<p class="cap">فرمی ساخته نشده؛ در فرم‌ساز بساز و همینجا وصل کن.</p>'}
     <div class="row tight" style="margin-top:6px">
       <label class="fld" style="flex:1"><span class="lbl">نوشتهٔ دکمه</span><input class="input" ${ppF('formTxt',D.formTxt||(cur?('فرم '+formName(cur)):''))} placeholder="مثل: پرسش از ایشان"/></label>
-      <a class="btn sm quiet" href="create.html" target="_blank" rel="noopener">${ico('i-plus')} ساختن در فرم‌ساز</a></div></div>`;
+      <a class="btn sm quiet" href="create.html" target="_blank" rel="noopener">${ico('i-plus')} ساختن در فرم‌ساز</a></div>${ppPartnerServerMode()?`<span class="cap">فهرست فرم‌ها از فرم‌ساز سروری (/api/forms) خوانده می‌شود؛ فقط فرم منتشرشده روی صفحهٔ شخص دکمه می‌گیرد.</span>`:''}</div>`;
 }
 function ppForm(D,kind){
-  const isM=kind==='mgr', curPh=D.photo||'', photos=PP_PHOTOS();
+  const isM=kind==='mgr', curPh=D.photo||'', photos=PP_PHOTOS(), srv=ppPartnerServerMode();
   const gi=(()=>{const i=PP_GS.map(x=>x.v).indexOf(D.g); return i<0?0:i})();
   const sec=(t,d,body)=>`<div class="ppsec"><div class="ppsec-t">${ico('i-grid')}<b>${esc(t)}</b><span class="sp"></span><span class="cap">${esc(d||'')}</span></div>${body}</div>`;
   return [
@@ -4072,7 +4649,7 @@ function ppForm(D,kind){
           <button class="chip ${D.tag&&PP_TAGS.indexOf(D.tag)<0?'on':''}" data-pptag="__none">بی‌برچسب</button></div>
         ${D.tag&&PP_TAGS.indexOf(D.tag)<0?`<label class="fld" style="margin-top:6px"><span class="lbl">برچسبِ دلخواه</span><input class="input" ${ppF('tag',D.tag)}/></label>`:''}</div>`}`),
     isM?'':sec('ظاهر کارت','رنگ و عکسِ همان کارتی که کاربر میبیند',`
-      ${kind==='tch'?`<div class="fld"><span class="lbl">آیکون کارت</span>
+      ${kind==='tch'&&!srv?`<div class="fld"><span class="lbl">آیکون کارت</span>
         <div class="admfilters">${PP_ICS.map(x=>`<button class="chip ${D.ic===x[0]?'on':''}" data-ppic="${x[0]}">${ico(x[0])}${esc(x[1])}</button>`).join('')}</div></div>`:''}
       <div class="fld"><span class="lbl">رنگ جلد</span>
         <div class="admfilters">${PP_GS.map((x,i)=>`<button class="chip ${gi===i?'on':''}" data-ppg="${i}">${esc(x.n)}</button>`).join('')}</div></div>
@@ -4081,7 +4658,7 @@ function ppForm(D,kind){
           <span class="ppav big" style="--g:${esc(D.g||PP_GS[0].v)}">${curPh?`<img src="${esc(curPh)}" alt=""/>`:esc(ppIni(D))}</span>
           <label class="btn sm quiet" style="margin:0">${ico('i-upload')} بارگذاری عکس<input type="file" accept="image/*" data-ppfile="1" hidden/></label>
           ${curPh?btn('برداشتن عکس','data-ppphoto="__none"','i-trash'):''}
-          <span class="cap">${/^data:/.test(curPh)?'عکس بارگذاری‌شدهٔ خودتان':(curPh?esc(curPh.replace('people/','')):'بی‌عکس؛ حرفِ نام مینشیند')}</span></div>
+          <span class="cap" data-pp-photo-state>${/^data:/.test(curPh)?'عکس بارگذاری‌شدهٔ خودتان':/^\/api\/public\/media\//.test(curPh)?'عکس روی سرور (رسانهٔ عمومی)':(curPh?esc(curPh.replace('people/','')):'بی‌عکس؛ حرفِ نام مینشیند')}</span></div>
         <div class="admfilters" style="margin-top:6px">${photos.map(ph=>`<button class="chip ${curPh===ph?'on':''}" data-ppphoto="${esc(ph)}">${esc(ph.replace('people/',''))}</button>`).join('')}</div>
         <label class="fld" style="margin-top:6px"><span class="lbl">یا نشانی عکس</span><input class="input" ${ppF('photo',/^data:/.test(curPh)?'':curPh)} placeholder="مثل: people/p9.svg"/></label></div>`),
     isM?'':sec('درباره و آمار','همان ردیفهای ورقهٔ پروفایل',`
@@ -4102,9 +4679,9 @@ function ppForm(D,kind){
           <button class="chip ${D.kind!=='staff'?'on':''}" data-ppkind="tch">${ico('i-graduation')}مدرس و استاد</button>
           <button class="chip ${D.kind==='staff'?'on':''}" data-ppkind="staff">${ico('i-idcard')}دست‌اندرکار</button></div>
         <span class="cap">مدرسها در ریل «اساتید و مدرسان» میآیند و دستاندرکاران در بخش خودشان.</span></div>
-      <div class="admsw" style="border:0;padding-inline:0">
+      ${srv?'':`<div class="admsw" style="border:0;padding-inline:0">
         <span class="sp"><b>معرفی‌شده</b><small>نخستِ فهرست می‌نشیند</small></span>
-        <span class="switch ${D.star?'on':''}" data-ppstar="1" role="switch" aria-checked="${D.star?'true':'false'}" aria-label="معرفی‌شده"></span></div>
+        <span class="switch ${D.star?'on':''}" data-ppstar="1" role="switch" aria-checked="${D.star?'true':'false'}" aria-label="معرفی‌شده"></span></div>`}
       <span class="cap">جابجا کردنِ ردیفها از دکمههای بالا و پایینِ فهرست است.</span>`)
   ].filter(Boolean).join('');
 }
@@ -4192,60 +4769,67 @@ function ppPartnerForm(draft){
   ].join('');
 }
 function ppPartnerDiff(row){
+  if(ppPartnerServerMode()) return false;
   const published=ppPubList('nora-partners'); if(!published) return true;
   const current=ppPartnerClean(row,true), old=published.find(item=>String(item.id)===String(row.id));
   return !old||JSON.stringify(old)!==JSON.stringify(current);
 }
 function ppPartnerDirty(){
+  if(ppPartnerServerMode()) return false;
   const published=ppPubList('nora-partners');
   return !published||JSON.stringify(published)!==JSON.stringify(ppPartnerPublishList());
 }
 function ppPartnerList(){
   const all=ppPartnerMerged(), query=String(S.ppPartnerQ||'').trim(), hidden=ppPartnerHidden();
   const hit=row=>!query||(String(row.n||'')+' '+String(row.type||'')+' '+String(row.collab||'')+' '+String(row.s||'')+' '+String(row.d||'')+' '+(row.focus||[]).join(' ')).includes(query);
-  const rows=query?all.filter(hit):all, editing=S.ppPartnerEd;
+  const rows=query?all.filter(hit):all, editing=S.ppPartnerEd, srv=ppPartnerServerMode();
   if(editing){
-    const draft=ppPartnerD();
-    return `${sdSect(editing==='new'?'نهاد تازه':'ویرایش نهاد',editing==='new'?'جزئیات را وارد کن؛ پیش‌نمایش زنده است':'همان چیزی که در صفحهٔ عمومی منتشر می‌شود')}
+    const draft=ppPartnerD(), busy=srv&&PP_SRV.busy;
+    return `${sdSect(editing==='new'?'نهاد تازه':'ویرایش نهاد',editing==='new'?(srv?'جزئیات را وارد کن؛ با «افزودن» روی سرور ذخیره و منتشر می‌شود':'جزئیات را وارد کن؛ پیش‌نمایش زنده است'):(srv?'پیش‌نویس در این مرورگر است؛ تا ذخیرهٔ موفق روی سرور، صفحهٔ عمومی تغییر نمی‌کند':'همان چیزی که در صفحهٔ عمومی منتشر می‌شود'))}
       <div class="pp-grid"><div id="ppPartnerPreview">${draft?ppPartnerPreview(draft):''}</div><div>${draft?ppPartnerForm(draft):''}</div></div>
-      <div class="row tight">${btn(editing==='new'?'افزودن نهاد':'ذخیرهٔ نهاد','data-ppartner-save','i-check')}
+      <div class="row tight">${btn(editing==='new'?(srv?'افزودن و انتشار روی سرور':'افزودن نهاد'):(srv?'ذخیره روی سرور':'ذخیرهٔ نهاد'),'data-ppartner-save'+(busy?' disabled aria-busy="true"':''),'i-check')}
         ${btn('انصراف','data-ppartner-cancel','i-close')}
         ${editing!=='new'?btn('رونوشت از این نهاد','data-ppartner-dup','i-copy'):''}</div>
-      ${editing!=='new'?`<div class="row tight">${btn('بازگشت به دادهٔ سامانه','data-ppartner-reset','i-trash')}<span class="cap">تغییرهای این نهاد پاک و دادهٔ پایه بازگردانده می‌شود.</span></div>`:''}
+      ${editing!=='new'&&!srv?`<div class="row tight">${btn('بازگشت به دادهٔ سامانه','data-ppartner-reset','i-trash')}<span class="cap">تغییرهای این نهاد پاک و دادهٔ پایه بازگردانده می‌شود.</span></div>`:''}
       ${sdEnd()}`;
   }
-  return `${sdSect('فهرست نهادهای همکار',esc(fa(all.length))+' نهاد · '+(hidden.length?esc(fa(hidden.length))+' پنهان':'همهٔ نهادهای فعال'))}
+  if(srv&&!PP_SRV.loaded) return `${sdSect('فهرست نهادهای همکار','از سرور')}${emptyBox(PP_SRV.busy?'در حال دریافت فهرست از سرور…':'فهرست نهادها از سرور خوانده نشد؛ پس از رفع مشکل، «تازه‌سازی از سرور» را بزنید.')}
+    <div class="row tight">${btn('تازه‌سازی از سرور','data-ppartner-reload'+(PP_SRV.busy?' disabled aria-busy="true"':''),'i-refresh')}</div>${sdEnd()}`;
+  return `${sdSect('فهرست نهادهای همکار',srv?esc(fa(all.length))+' نهاد منتشرشده روی سرور · نسخهٔ '+esc(fa(PP_SRV.version)):esc(fa(all.length))+' نهاد · '+(hidden.length?esc(fa(hidden.length))+' پنهان':'همهٔ نهادهای فعال'))}
     ${rows.map(row=>{const index=all.indexOf(row), isNew=(ppSet().partnerAdd||[]).some(item=>String(item.id)===String(row.id));
       const logo=ppPartnerLogo(row.logo), mon=String(row.mon||row.n||'ن').trim().slice(0,2)||'ن';
       return `<div class="admlirow" data-ppartner-row="${esc(row.id)}">
         <span class="pp-mini" style="--g:${esc(ppPartnerGradient(row.g))}">${logo?`<img src="${esc(logo)}" alt=""/>`:esc(mon)}</span>
         <span class="sp"><b>${esc(row.n||'بی‌نام')}</b><small class="cap">${esc([row.type,row.collab].filter(Boolean).join(' · '))}</small></span>
-        <span class="mini">${ppPartnerDiff(row)?tag('منتشرنشده','warn'):tag('همگام','ok')}
+        <span class="mini">${srv?`<a class="btn sm quiet" href="partner.html?id=${encodeURIComponent(String(row.id))}" target="_blank" rel="noopener">صفحهٔ عمومی</a>`:(ppPartnerDiff(row)?tag('منتشرنشده','warn'):tag('همگام','ok'))}
           ${index>0?btn('بالا','data-ppartner-up="'+index+'"','i-chev-up'):''}
           ${index<all.length-1?btn('پایین','data-ppartner-down="'+index+'"','i-chev-down'):''}
           ${btn('ویرایش','data-ppartner-edit="'+esc(row.id)+'"','i-pen')}
-          ${btn('پنهان','data-ppartner-hide="'+esc(row.id)+'"','i-eye-off')}
-          ${isNew?btn('حذف','data-ppartner-del="'+esc(row.id)+'"','i-trash'):''}</span></div>`}).join('')||emptyBox(query?'نهادی با این جست‌وجو پیدا نشد':'هنوز نهادی برای نمایش نیست')}
-    <div class="row tight">${btn('افزودن نهاد همکار','data-ppartner-new','i-plus')}</div>${sdEnd()}
-    ${sdSect('نهادهای پنهان','از فهرست عمومی کنار گذاشته‌اند؛ هر زمان می‌شود برگرداند')}
+          ${srv?'':btn('پنهان','data-ppartner-hide="'+esc(row.id)+'"','i-eye-off')}
+          ${(srv||isNew)?btn('حذف','data-ppartner-del="'+esc(row.id)+'"','i-trash'):''}</span></div>`}).join('')||emptyBox(query?'نهادی با این جست‌وجو پیدا نشد':(srv?'هنوز نهادی روی سرور ثبت نشده است':'هنوز نهادی برای نمایش نیست'))}
+    <div class="row tight">${btn('افزودن نهاد همکار','data-ppartner-new','i-plus')}${srv?btn('تازه‌سازی از سرور','data-ppartner-reload'+(PP_SRV.busy?' disabled aria-busy="true"':''),'i-refresh'):''}</div>${sdEnd()}
+    ${srv?'':`${sdSect('نهادهای پنهان','از فهرست عمومی کنار گذاشته‌اند؛ هر زمان می‌شود برگرداند')}
     ${ppPartnerAll().filter(row=>hidden.indexOf(String(row.id))>-1&&hit(row)).map(row=>`<div class="admlirow" data-ppartner-hidden="${esc(row.id)}">${ico('i-eye-off')}
       <span class="sp"><b>${esc(row.n||'بی‌نام')}</b><small class="cap">${esc(row.type||'')}</small></span>
-      <span class="mini">${btn('نمایش دوباره','data-ppartner-show="'+esc(row.id)+'"','i-eye')}</span></div>`).join('')||'<p class="cap">نهادی پنهان نشده است</p>'}${sdEnd()}`;
+      <span class="mini">${btn('نمایش دوباره','data-ppartner-show="'+esc(row.id)+'"','i-eye')}</span></div>`).join('')||'<p class="cap">نهادی پنهان نشده است</p>'}${sdEnd()}`}`;
 }
 function ppPartnerView(){
+  const srv=ppPartnerServerMode(); if(srv&&!PP_SRV.loaded&&!PP_SRV.requested) ppPartnerServerLoad();
   const dirty=ppPartnerDirty(), list=ppPartnerMerged();
-  const tabs=`<div class="admfilters">${PPTABS.map(tab=>`<button class="chip ${tab[0]==='partners'?'on':''}" data-pptab="${tab[0]}">${esc(tab[1])}</button>`).join('')}</div>`;
-  return `<section class="card stack">
-    <div class="row"><button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشی‌ها</button>
+  const tabs=srv?'':`<div class="admfilters">${PPTABS.map(tab=>`<button class="chip ${tab[0]==='partners'?'on':''}" data-pptab="${tab[0]}">${esc(tab[1])}</button>`).join('')}</div>`;
+  return `<section class="card stack" id="ppPartnerManager">
+    <div class="row">${srv?'':`<button class="btn sm quiet" data-skinback>${ico('i-chev-right')} بازگشت به کاشی‌ها</button>`}
       <span class="sp"></span><a class="btn sm tint" href="home.html#partners" target="_blank" rel="noopener">${ico('i-handshake')} پیش‌نمایش خانهٔ کاربر</a></div>
-    <div class="row"><div class="head">مدیران و اساتید</div><span class="sp"></span><span class="cap">${esc(fa(list.length))} نهاد همکار</span></div>
-    <p class="cap">تنظیم کامل هویت، لوگو، دسته و نوع همکاری، معرفی، وبگاه و راه‌های تماس. پیش‌نمایش کارت و ورقه زنده است؛ انتشار اینجا در همین مرورگر انجام می‌شود. برای انتشار عمومی روی سرور، بعد از آن دستهٔ «نهادهای همکار» را در همگام‌سازی محتوای عمومی بفرست.</p>
+    <div class="row"><div class="head">${srv?'نهادهای همکار (محتوای عمومی سرور)':'مدیران و اساتید'}</div><span class="sp"></span><span class="cap">${srv&&!PP_SRV.loaded?'':esc(fa(list.length))+' نهاد همکار'}</span></div>
+    ${srv?`<p class="cap">این فهرست همان دستهٔ «نهادهای همکار» محتوای عمومی سرور است: هر افزودن، ویرایش، حذف یا جابه‌جایی با نشست مالک و نسخهٔ محتوا روی سرور ذخیره می‌شود و بلافاصله در خانه و صفحهٔ اختصاصی نهاد دیده می‌شود. فقط فهرست منتشرشده مدیریت می‌شود؛ پیش‌نویس یا توقف نهاد روی سرور پشتیبانی نمی‌شود.</p>
+    <p class="sync-state" id="ppPartnerSrvState" role="status" aria-live="polite"${PP_SRV.state?` data-state="${esc(PP_SRV.state)}"`:''}>${esc(PP_SRV.msg||'در حال دریافت فهرست نهادهای همکار از سرور…')}</p>`
+    :`<p class="cap">تنظیم کامل هویت، لوگو، دسته و نوع همکاری، معرفی، وبگاه و راه‌های تماس. پیش‌نمایش کارت و ورقه زنده است؛ انتشار اینجا در همین مرورگر انجام می‌شود. برای انتشار عمومی روی سرور، بعد از آن دستهٔ «نهادهای همکار» را در همگام‌سازی محتوای عمومی بفرست.</p>`}
     ${tabs}<label class="fld" style="max-width:340px"><span class="lbl">جست‌وجو در نهادها</span>
       <input class="input" data-ppartner-q="1" value="${esc(S.ppPartnerQ||'')}" placeholder="نام، دسته یا نوع همکاری"/></label>
     <div class="stack tight" id="ppPartnerList">${ppPartnerList()}</div>
-    <hr class="hr"/><div class="row tight">${btn(dirty?'انتشار نهادهای همکار':'منتشر شد؛ بازانتشار','data-ppartner-pub','i-send')}
+    ${srv?'':`<hr class="hr"/><div class="row tight">${btn(dirty?'انتشار نهادهای همکار':'منتشر شد؛ بازانتشار','data-ppartner-pub','i-send')}
       <span class="cap">${dirty?'پیش‌نویس‌های نهادها هنوز در مرورگر منتشر نشده‌اند':'با صفحهٔ کاربر همین مرورگر همگام است'}</span></div>
-    <p class="cap">انتشار محلی به‌تنهایی نسخهٔ بین‌دستگاهی را عوض نمی‌کند؛ برای آن، از «همگام‌سازی محتوای عمومی» و حساب امن مالک استفاده کن.</p>
+    <p class="cap">انتشار محلی به‌تنهایی نسخهٔ بین‌دستگاهی را عوض نمی‌کند؛ برای آن، از «همگام‌سازی محتوای عمومی» و حساب امن مالک استفاده کن.</p>`}
   </section>`;
 }
 function ppList(kind){
@@ -4469,71 +5053,14 @@ function bkEdForm(type,i,x){
       <button class="btn sm quiet" data-copy="${esc(def)}" data-copy-msg="پیوند سامانه رونوشت شد">${ico('i-copy')} کپی پیوند پیشفرض</button></div></div>`;
 }
 
-/* ── کلید کیف پول بله (تنظیمات مالی مالک) ──
-   کلید فقط از این فرم وارد می‌شود، رمزنگاری‌شده در سرور ذخیره می‌شود،
-   و هرگز کامل برگردانده یا در این صفحه نگه‌داری نمی‌شود. */
-const WALLET_KEY_API='/api/owner/payment-settings';
-let WALLET_KEY_STATE=null, WALLET_KEY_BUSY=false, WALLET_KEY_MSG='';
-function walletCsrf(){const m=document.cookie.match(/(?:^|;\s*)nora_csrf=([^;]+)/);return m?decodeURIComponent(m[1]):''}
-async function walletKeyLoad(){
-  try{
-    const r=await fetch(WALLET_KEY_API,{credentials:'same-origin',headers:{Accept:'application/json'}});
-    if(!r.ok) throw new Error('http_'+r.status);
-    const j=await r.json(); WALLET_KEY_STATE=j.bale_wallet||{configured:false};
-  }catch(err){WALLET_KEY_STATE={error:true}}
-  WALLET_KEY_MSG=''; if(typeof renderBody==='function') renderBody();
+/* کلید کیف پول یک جای واحد دارد: «تنظیمات ← اتصال سرویس‌ها ← پرداخت».
+   فرم دوم اینجا ساخته نمی‌شود تا یک اعتبارنامه دو رابط نداشته باشد. */
+function walletSettingsLink(){
+  return `<div class="admset" style="margin-bottom:10px"><div class="admlirow">
+    <span class="ic">${ico('i-wallet')}</span>
+    <span class="sp"><b>کیف پول بله · کلید API</b><small class="cap" style="display:block">ثبت، تعویض، آزمایش اتصال و حذف کلید فقط در «تنظیمات ← اتصال سرویس‌ها ← پرداخت و کیف پول» انجام می‌شود؛ همان‌جا وضعیت واقعی و منبع مقدار نمایش داده می‌شود.</small></span>
+    <button class="btn sm" data-goto-service-payment>${ico('i-wallet')} رفتن به تنظیمات سرویس</button></div></div>`;
 }
-async function walletKeySave(){
-  const input=document.getElementById('walletKeyInput'); const value=(input&&input.value||'').trim();
-  if(!value){WALLET_KEY_MSG='کلید را وارد کنید.'; renderBody(); return}
-  WALLET_KEY_BUSY=true; WALLET_KEY_MSG='';
-  try{
-    const r=await fetch(WALLET_KEY_API+'/bale-wallet',{method:'PUT',credentials:'same-origin',
-      headers:{'Content-Type':'application/json','X-CSRF-Token':walletCsrf(),Origin:location.origin},
-      body:JSON.stringify({api_key:value})});
-    const j=await r.json().catch(()=>({}));
-    if(r.ok){WALLET_KEY_STATE=j.bale_wallet; WALLET_KEY_MSG='کلید ذخیره شد و فقط بخش پایانی آن نمایش داده می‌شود.'}
-    else{const code=(j.detail&&(j.detail.code||j.detail))||'save_failed';
-      WALLET_KEY_MSG=code==='invalid_bale_wallet_key_format'?'قالب کلید درست نیست.':code==='settings_encryption_not_configured'?'کلید رمزنگاری سرور تنظیم نشده؛ ذخیره انجام نشد.':'ذخیره انجام نشد.'}
-  }catch(err){WALLET_KEY_MSG='ارتباط با سرور برقرار نشد.'}
-  finally{WALLET_KEY_BUSY=false; if(input) input.value=''; renderBody()}
-}
-async function walletKeyClear(){
-  WALLET_KEY_BUSY=true;
-  try{
-    const r=await fetch(WALLET_KEY_API+'/bale-wallet',{method:'DELETE',credentials:'same-origin',
-      headers:{'X-CSRF-Token':walletCsrf(),Origin:location.origin}});
-    if(r.ok){const j=await r.json(); WALLET_KEY_STATE=j.bale_wallet; WALLET_KEY_MSG='کلید ذخیره‌شده حذف شد.'}
-    else WALLET_KEY_MSG='حذف انجام نشد.';
-  }catch(err){WALLET_KEY_MSG='ارتباط با سرور برقرار نشد.'}
-  finally{WALLET_KEY_BUSY=false; renderBody()}
-}
-function walletKeyCard(){
-  if(WALLET_KEY_STATE===null){WALLET_KEY_STATE={pending:true}; walletKeyLoad()}
-  const st=WALLET_KEY_STATE||{};
-  const status=st.pending?'در حال بارگذاری…':st.error?'وضعیت در دسترس نیست':st.configured
-    ?('ذخیره شده · پایان کلید: '+(st.hint||'…')+(st.source==='environment'?' (از تنظیمات سرور)':''))
-    :'هنوز کلیدی ذخیره نشده';
-  const ready=st.encryption_ready!==false;
-  return `<div class="admset" style="margin-bottom:10px" data-wallet-card>
-    <div class="admlirow"><span class="ic">${ico('i-wallet')}</span>
-      <span class="sp"><b>کیف پول بله · کلید API</b><small class="cap" style="display:block">${esc(status)}</small></span></div>
-    <div style="padding:8px 4px;display:flex;flex-direction:column;gap:8px">
-      <label class="cap" for="walletKeyInput">کلید کیف پول را وارد کنید (پس از ذخیره دیده نمی‌شود)</label>
-      <input id="walletKeyInput" type="password" autocomplete="off" spellcheck="false" dir="ltr"
-        ${ready&&!WALLET_KEY_BUSY?'':'disabled'} placeholder="کلید را وارد کنید" style="font:inherit;padding:8px;border-radius:8px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn sm" data-wallet-save ${ready&&!WALLET_KEY_BUSY?'':'disabled'}>${ico('i-check')} ذخیره کلید</button>
-        <button class="btn sm quiet" data-wallet-clear ${st.configured&&!WALLET_KEY_BUSY?'':'disabled'}>${ico('i-close')} حذف کلید ذخیره‌شده</button>
-      </div>
-      ${ready?'':'<p class="cap">کلید رمزنگاری سرور (NORA_SETTINGS_ENCRYPTION_KEY) تنظیم نشده؛ ذخیره غیرفعال است.</p>'}
-      ${WALLET_KEY_MSG?`<p class="cap" role="status">${esc(WALLET_KEY_MSG)}</p>`:''}
-    </div></div>`;
-}
-document.addEventListener('click',e=>{
-  if(e.target.closest&&e.target.closest('[data-wallet-save]')){e.preventDefault(); walletKeySave(); return}
-  if(e.target.closest&&e.target.closest('[data-wallet-clear]')){e.preventDefault(); walletKeyClear(); return}
-});
 function finView(){
   const FN=finC(), own=isOwner(), lead=isLead();
   const cur=S.finTab||(own?'gates':'receipts');
@@ -4558,7 +5085,7 @@ function finView(){
     `<button class="chip ${cur===t[0]?'on':''}" data-fintab="${t[0]}">${ico(t[2])}${esc(t[1])}</button>`).join('');
   let inner='';
   if(cur==='gates'){
-    inner=(own?walletKeyCard():'')+sdSect('درگاه‌های پرداخت نورا پی','تنظیمات نمایشی؛ اتصال واقعی نیازمند سرور است')+
+    inner=(own?walletSettingsLink():'')+sdSect('درگاه‌های پرداخت نورا پی','تنظیمات نمایشی؛ اتصال واقعی نیازمند سرور است')+
     `<p class="cap">${esc('تنظیم‌ها نمایشی‌اند؛ روشن‌کردن gate اتصال یا دریافت وجه ایجاد نمی‌کند. این صفحه کلید درگاه یا secret نمی‌پذیرد و به سرور واقعی وصل نیست.')}</p>`+
     finGates().map(g=>`<div class="admset" style="margin-bottom:10px"><div class="admlirow">
       <span class="ic">${ico(g.i||'i-wallet')}</span>
@@ -5007,7 +5534,7 @@ const STNOTE={
   'کارت ورود با کیوآرکد':'QR نمایشی در هیچ ورودی یا سامانهٔ پذیرشی اعتبار ندارد',
   'لوگو در بلیت':'نشان فقط روی تصویر نمونه می‌آید؛ بلیت واقعی ساخته نمی‌شود',
   'بلیت مهمان':'ثبت مهمان، ظرفیت یا مجوز ورود واقعی در این نسخه فعال نیست',
-  'یادآور شب قبل':'فقط تنظیم نمونه؛ زمان‌بندی یا ارسال پیام و اعلان انجام نمی‌شود',
+  'یادآور شب قبل':'فقط کلید نمونه؛ یادآور واقعی ۲۴ساعته/۱ساعته را در ویرایشگر هر رویداد روشن کنید',
   'تبریک تولد':'قالب پیش‌نمایش محلی؛ نه در صف ارسال می‌رود و نه برای کسی فرستاده می‌شود',
   'خبر رویداد تازه':'متن نمونه؛ هر خروجی واقعی نیازمند تأیید صریح مالک است و در این نسخه ارسال نمی‌شود',
   'ساعت سکوت ۲۳ تا ۸':'قاعدهٔ نمایشی؛ سرویس ارسال یا زمان‌بندی خودکار وجود ندارد',
@@ -5022,7 +5549,7 @@ const STSECT={
     ['ورود و مهمان',['کارت ورود با کیوآرکد','بلیت مهمان']]]};
 const STHINT={
   welcome:'وضعیت محلی عضویت، پیام خوشامد خودکار نمی‌فرستد؛ هر خروجی واقعی نیازمند تأیید صریح مالک است',
-  remind:'زمان یادآور فقط نمونه است؛ زمان‌بندی و ارسال بیرونی غیرفعال‌اند',
+  remind:'این ساعت فقط ترجیح محلی است؛ یادآور واقعی رویداد (۲۴ ساعت/۱ ساعت قبل) در ویرایشگر همان رویداد روشن می‌شود',
   cert:'گواهی فقط پس از تأیید صریح مالک به‌صورت رکورد محلیِ ارسال‌نشده ثبت می‌شود',
   invite:'کد و کارت دعوت فقط نمونه‌اند؛ ارجاع، پاداش یا اشتراک بیرونی فعال نیست'};
 const sdRowSw=(g,r)=>{const on=togDef(g,r[0],r[1]);
@@ -5080,7 +5607,11 @@ function performanceSettingsView(){
       ${perfMetric('کارهای طولانی صفحه',m.longTaskCount,'',null,m.longTaskMs==null?'در این مرورگر ثبت نشده':fa(m.longTaskMs)+' میلی‌ثانیه مجموع')}
       ${perfMetric('خطاهای جاوااسکریپت',m.clientErrors,'',null,'فقط خطاهای همین بارگذاری مرورگر')}
     </div><p class="cap">LCP، INP و CLS فقط با پشتیبانی مرورگر ثبت می‌شوند؛ INP برآورد این صفحه است، نه گزارش تجمیعی کاربران. اندازهٔ انتقال نیز ممکن است به‌علت کش یا محدودیت مرورگر ناقص باشد.</p>`+sdEnd()+
-    sdSect('تبدیل و نگه‌داری تصویر','WebP · خروجی شفافیت‌پذیر')+
+    /* تنظیم‌های WebP و لودر فقط ترجیح همین مرورگرند، نه تنظیم سامانه؛ در پنل سروری نمایش داده نمی‌شوند */
+    (IS_TEST?perfLocalPreferencesView(config,m,edgeOptions,loaderOptions,loaderEnabled):'');
+}
+function perfLocalPreferencesView(config,m,edgeOptions,loaderOptions,loaderEnabled){
+  return sdSect('تبدیل و نگه‌داری تصویر','WebP · خروجی شفافیت‌پذیر')+
     `<div class="slist"><div class="sline"><span class="lst"><i class="ldot"></i></span><span class="sp"><b>تبدیل تصویرهای بارگذاری‌شده به WebP</b><small class="cap">همیشه روشن؛ قالب دیگری به‌عنوان نسخهٔ اصلی ذخیره نمی‌شود.</small></span><span class="tag ok">WebP</span></div></div>
       <div class="stprof perf-fields">
         <label class="fld"><span>کیفیت خروجی WebP · ${esc(fa(config.imageQuality))}٪</span><input class="input" type="range" min="50" max="95" step="1" value="${config.imageQuality}" data-perf="imageQuality" aria-label="کیفیت خروجی WebP"/><small class="cap">کیفیت بالاتر، فایل بزرگ‌تر؛ شفافیت حفظ می‌شود.</small></label>
@@ -5245,7 +5776,7 @@ function vSettings(){
       ${sdEnd()}${sdSect('ساعتها و حالتهای کلی',esc(fa(rows.length))+' کلید')}
       ${rows.map(r=>sdRowSw(g,r)).join('')}
       <div class="row tight">
-        <label class="fld"><span>ساعت پیشنهادی یادآور (نمونه؛ زمان‌بندی غیرفعال)</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+        <label class="fld"><span>ساعت پیشنهادی یادآور (ترجیح محلی؛ یادآور واقعی در ویرایشگر رویداد)</span><select class="input" data-ntfclock="remind">${['۱۹:۰۰','۲۰:۰۰','۲۱:۰۰'].map(x=>`<option ${ntfClock('remind')===x?'selected':''}>${x}</option>`).join('')}</select></label>
         <label class="fld"><span>ساعت تبریک تولد</span><select class="input" data-ntfclock="bday">${['۸:۰۰','۹:۰۰','۱۰:۰۰'].map(x=>`<option ${ntfClock('bday')===x?'selected':''}>${x}</option>`).join('')}</select></label>
       </div>
       ${sdEnd()}${sdSect('پیش‌نویس نامهٔ همگانی','یک پیام برای صف مالک')}
@@ -6183,10 +6714,20 @@ function serverUnavailableModule(title,message,actions=''){
     ${actions?`<div class="row" style="flex-wrap:wrap">${actions}</div>`:''}
   </section>`;
 }
+/* A2: سه حالت چیپ سلامت. «پیکربندی‌نشده» فقط برای سرویس‌های اختیاری (تحویل بیرونی، پرداخت بله) است و سلامت هسته را خراب نمی‌کند. */
+const HEALTH_OPTIONAL={deliveryEnabled:'تحویل بیرونی (اختیاری؛ از «اتصال سرویس‌ها» پیکربندی می‌شود)',formBalePaymentsReady:'پرداخت بله (اختیاری؛ از «اتصال سرویس‌ها» پیکربندی می‌شود)'};
+function serverHealthState(){
+  if(SERVER_HEALTH_LOADING&&!SERVER_HEALTH) return {key:'checking',label:'در حال بررسی',cls:'warn',title:'در حال خواندن /api/health'};
+  if(SERVER_HEALTH_ERROR&&!SERVER_HEALTH) return {key:'down',label:'خراب',cls:'stop',title:SERVER_HEALTH_ERROR};
+  if(!SERVER_HEALTH) return null;
+  if(SERVER_HEALTH.ok!==true) return {key:'down',label:'خراب',cls:'stop',title:'API سلامت ok=false برگرداند؛ پایگاه‌داده یا جدول‌های اصلی در دسترس نیستند'};
+  const unconfigured=Object.keys(HEALTH_OPTIONAL).filter(k=>SERVER_HEALTH[k]===false);
+  return {key:'ok',label:'سالم',cls:'ok',title:unconfigured.length?'هستهٔ API سالم است؛ سرویس اختیاری پیکربندی‌نشده: '+unconfigured.map(k=>HEALTH_OPTIONAL[k].split(' (')[0]).join('، '):'همهٔ سرویس‌های گزارش‌شده آماده‌اند'};
+}
 function serverHealthView(){
   const api=window.NORA_SERVER_API;
   const health=SERVER_HEALTH;
-  const label=(key)=>!health||typeof health[key]!=='boolean'?'از API گزارش نشده':health[key]?'آماده':'خاموش';
+  const label=(key)=>!health||typeof health[key]!=='boolean'?'از API گزارش نشده':health[key]?'آماده':(HEALTH_OPTIONAL[key]?'پیکربندی‌نشده':(health.ok===true?'خاموش':'خراب'));
   const rows=[['formsEnabled','فرم‌های سرور'],['responsesEnabled','پاسخ‌های سرور'],
     ['workflowEnabled','کارتابل مشترک'],['notificationQueueEnabled','صف اعلان'],
     ['privateFileStorageEnabled','ذخیرهٔ امن فایل'],['deliveryEnabled','تحویل بیرونی'],
@@ -6194,8 +6735,9 @@ function serverHealthView(){
   const status=SERVER_HEALTH_LOADING?'<p class="cap">در حال خواندن وضعیت API…</p>'
     :SERVER_HEALTH_ERROR?`<p class="cap">${esc(SERVER_HEALTH_ERROR)}</p>`
       :health?`<div class="admlist">${rows.map(([key,title])=>{
-        const known=typeof health[key]==='boolean',ready=health[key]===true;
-        return `<div class="admlirow"><span class="sp"><b>${esc(title)}</b></span>${tag(label(key),known&&ready?'ok':known?'warn':'')}</div>`;
+        const known=typeof health[key]==='boolean',ready=health[key]===true, optional=!!HEALTH_OPTIONAL[key];
+        const cls=known&&ready?'ok':!known?'':optional?'':(health.ok===true?'warn':'stop');
+        return `<div class="admlirow" data-health-row="${esc(key)}"><span class="sp"><b>${esc(title)}</b>${optional&&known&&!ready?`<small class="cap">${esc(HEALTH_OPTIONAL[key])}</small>`:''}</span>${tag(label(key),cls)}${optional&&known&&!ready&&isOwner()?`<button class="btn sm quiet" data-goto-service="${key==='formBalePaymentsReady'?'payment':'bale'}">${ico('i-sliders')} پیکربندی</button>`:''}</div>`;
       }).join('')}</div><p class="cap">نسخه: ${esc(health.mode||'نامشخص')} · هیچ شمار یا رکوردی از مرورگر اینجا استفاده نشده است.</p>`
       :`<p class="cap">وضعیت سرویس هنوز از API دریافت نشده است.</p>`;
   return `<section class="card stack" id="serverHealthPanel">
@@ -6205,94 +6747,4280 @@ function serverHealthView(){
     ${!api?'<p class="cap">رابط API هم‌مبدأ بارگذاری نشده است.</p>':''}
   </section>`;
 }
+function serverDashboardKpis(){
+  if(!canPerm('rp_view')) return '';
+  const data=SERVER_REPORT_DATA, period=new Map(SERVER_REPORT_PERIODS).get(SERVER_REPORT_PERIOD)||SERVER_REPORT_PERIOD;
+  const num=value=>Number.isSafeInteger(value)&&value>=0?fa(value.toLocaleString('en-US')):'نامشخص';
+  const pendingReviews=data?Object.values(data.reviews.by_kind||{}).reduce((sum,statuses)=>sum+(Number(statuses&&statuses.pending)||0),0):null;
+  const tiles=data?[
+    ['فرم‌های سرور',num(data.forms.total),num(data.forms.by_status.published||0)+' منتشرشده'],
+    ['پاسخ‌های ثبت‌شده',num(data.responses.total),'دورهٔ '+period],
+    ['در انتظار بررسی',num(pendingReviews),'پروفایل و فیش · دورهٔ '+period],
+    ['حساب‌های تأییدشده',num(data.accounts.total),num(Object.values(data.accounts.by_role||{}).reduce((a,b)=>a+(Number(b)||0),0))+' با نقش']
+  ].map(([label,value,sub])=>`<div class="kpi"><small class="cap">${esc(label)}</small><b>${value}</b><small class="cap">${esc(sub)}</small></div>`).join(''):'';
+  const state=SERVER_REPORT_LOADING?'<p class="cap">در حال خواندن شمارش‌ها از پایگاه سرور…</p>'
+    :SERVER_REPORT_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_REPORT_ERROR)}</p>${btn('تلاش دوباره','data-server-report-refresh','i-refresh')}</div>`
+    :!data?'<p class="cap">شمارش‌ها هنوز از سرور خوانده نشده‌اند.</p>':'';
+  return `<section class="card stack"><div class="row"><div class="head">شمارش‌های پایگاه سرور</div><span class="sp"></span>${tag('از API گزارش')}
+      <button class="btn sm quiet" data-user-hub="reports">گزارش کامل</button></div>
+    ${tiles?`<div class="kpis dash-kpis">${tiles}</div>`:''}${state}
+    <p class="cap">این اعداد همان خروجی <span dir="ltr">/api/admin/reports/summary</span> هستند؛ مبلغ، حضور و باشگاه در پایگاه مشترک نیستند و شمرده نمی‌شوند.</p>
+  </section>`;
+}
 function serverDashboard(){
   const modules=[];
-  if(canSec('events')) modules.push(`<button class="utile" data-sec="events"><span class="tt">${ico('i-calendar')}<b>رویدادها و مطالب</b></span><small>فهرست و ویرایش سروری هنوز متصل نیست</small></button>`);
-  if(canSec('users')) modules.push(`<button class="utile" data-sec="users"><span class="tt">${ico('i-users')}<b>کاربران، کارتابل و گزارش</b></span><small>فقط کارتابل و گزارش‌های پشتیبانی‌شده از API باز می‌شوند</small></button>`);
-  if(canSec('forms')) modules.push(`<a class="utile" href="builder.html"><span class="tt">${ico('i-doc')}<b>فرم‌ها</b></span><small>فرم‌ساز متصل به API سرور</small></a>`);
+  if(canSec('events')) modules.push(`<button class="utile" data-sec="events"><span class="tt">${ico('i-calendar')}<b>رویدادها و مطالب</b></span><small>فهرست، ویرایش و انتشار روی محتوای سرور</small></button>`);
+  if(canSec('users')) modules.push(`<button class="utile" data-sec="users"><span class="tt">${ico('i-users')}<b>کاربران، کارتابل و گزارش</b></span><small>فهرست کاربران، کارتابل، حضور و غیاب و گزارش از API</small></button>`);
+  if(canSec('forms')) modules.push(`<button class="utile" data-sec="forms"><span class="tt">${ico('i-doc')}<b>فرم‌ها</b></span><small>فهرست فرم‌های سرور و مرکز فرم‌ساز</small></button>`);
   if(isOwner()) modules.push(`<button class="utile" data-sec="settings"><span class="tt">${ico('i-sliders')}<b>تنظیمات مالک</b></span><small>ماژول‌های متصل و وضعیت اتصال</small></button>`);
-  return `<div class="stack">
-    ${serverHealthView()}
-    <section class="card stack"><div class="head">ماژول‌های این حساب</div>
+  /* سلسله‌مراتب داشبورد: اول کارِ امروز (کارهای در انتظار + رویدادهای پیش رو)، بعد شمارش‌ها و خلاصه‌ها؛
+     وضعیت فنی، زمان‌بند، تاریخچه و ماژول‌ها حذف نشده‌اند، در بخش «وضعیت فنی و تاریخچه» بسته می‌مانند */
+  const work=[dashxQueueCard(),dashxUpcomingCard()].filter(Boolean), summaries=[eiSummaryCard(),recSummaryCard()].filter(Boolean);
+  const technical=[serverHealthView(),dashxSchedCard(),dashxAuditCard(),
+    `<section class="card stack"><div class="head">ماژول‌های این حساب</div>
       <p class="cap">نقش و مجوز از سرور می‌آید. بخش فاقد API دادهٔ ساختگی نشان نمی‌دهد و وضعیت آن جداگانه اعلام می‌شود.</p>
       <div class="admtiles">${modules.join('')||emptyBox('برای این حساب ماژول فعالی ثبت نشده است.')}</div>
-    </section>
+    </section>`].filter(Boolean);
+  return `<div class="stack dash">
+    ${dashxDateBar()}
+    ${work.length?`<div class="dash-grid">${work.join('')}</div>`:''}
+    ${serverDashboardKpis()}
+    ${summaries.length?`<div class="dash-grid">${summaries.join('')}</div>`:''}
+    <details class="adv" data-dash-adv><summary>${ico('i-layers')}وضعیت فنی و تاریخچه<span class="tag">${esc(fa(technical.length))} بخش</span></summary>
+      <div class="adv-body">${technical.join('')}</div></details>
   </div>`;
 }
 function serverUsersIndex(){
   const cards=[];
-  if(canUseSharedInbox()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-inbox')}</span><b>کارتابل مشترک</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(canUseSharedInbox()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-inbox')}</span><b>کارتابل مشترک</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">درخواست‌های پروفایل و رسید از پایگاه مشترک دریافت می‌شوند.</p>${btn('بازکردن کارتابل','data-open-workflow-inbox','i-chev-left')}</article>`);
-  if(canPerm('rp_view')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-chart')}</span><b>گزارش‌های سرور</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(canPerm('rp_view')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-chart')}</span><b>گزارش‌های سرور</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">آمار تجمیعی فقط از پایگاه سرور خوانده می‌شود.</p><button class="btn sm" data-user-hub="reports">گزارش‌ها</button></article>`);
-  if(isOwner()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-shield')}</span><b>حساب‌ها و نقش‌ها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(isOwner()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-shield')}</span><b>حساب‌ها و نقش‌ها</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">فهرست حساب‌های احراز‌شده و واگذاری نقش فقط از سرویس مالک انجام می‌شود.</p>${btn('مدیریت حساب‌های سرور','data-server-role-module','i-chev-left')}</article>`);
+  p2UserHubCards().forEach(card=>cards.push(card));
+  cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-sliders')}</span><b>ابزارها و گزارش</b><span class="sp"></span>${tag('API سرور')}</div>
+    <p class="cap">گزارش کاربران، صندوق خروجی اعلان‌ها، تاریخچهٔ عملیات و نقشهٔ مجوزها؛ ابزار بدون API با دلیل مشخص می‌ماند.</p>${btn('بازکردن ابزارها','data-uv="tools"','i-chev-left')}</article>`);
   return `<div class="stack">${userHubTabs()}
-    <section class="card stack"><div class="head">فهرست کاربران</div>
-      <p class="cap">API فهرست و پروندهٔ کاربران هنوز به این بخش متصل نیست؛ هیچ نام، امتیاز، برچسب یا سابقهٔ نمونه نمایش داده نمی‌شود.</p>
-      <div class="empty">${ico('i-users')}<p class="cap">فهرست سروری در دسترس نیست.</p></div>
-    </section>
+    ${canPerm('us_view')?serverUsersList():''}
     ${cards.length?`<div class="admgrid">${cards.join('')}</div>`:''}
-    <section class="card stack"><div class="head">باشگاه و گواهینامه‌ها</div>
-      <p class="cap">API عضویت، امتیاز، حضور و صدور گواهی به پنل مدیریتی متصل نشده است؛ وضعیت واقعی از سرور دریافت شود، نمونه‌ای جایگزین نمی‌شود.</p>
-      ${tag('در انتظار API','warn')}
-    </section>
   </div>`;
 }
 function serverUsersView(){
   if(S.uHub==='reports') return `<div class="stack">${userHubTabs()}${vServerReports()}</div>`;
   const view=S.uV||'';
+  if(view==='req'){S.uV='shared-inbox'; save(); return serverUsersView()}
   if(view==='shared-inbox') return `<div class="stack">${userHubTabs()}${sharedWorkflowInboxView()}</div>`;
-  if(view==='tools'&&S.uTool==='staff') return `<div class="stack">${userHubTabs()}${cUServerStaff()}</div>`;
-  if(view==='tools'&&S.uTool==='report'&&canPerm('rp_view')) return `<div class="stack">${userHubTabs()}${vServerReports()}</div>`;
+  if(view==='tools') return `<div class="stack">${userHubTabs()}${serverToolsView()}</div>`;
   if(!view) return serverUsersIndex();
-  const titles={req:'درخواست‌های کاربر',club:'باشگاه',occ:'مناسبت‌ها',cert:'گواهینامه‌ها',tools:'ابزارهای کاربران',user:'پروندهٔ کاربر'};
-  const actions=view==='tools'&&isOwner()?btn('مدیریت حساب‌ها و نقش‌ها','data-server-role-module','i-shield'):'';
+  if(view==='user') return `<div class="stack">${userHubTabs()}${serverUserDetail()}</div>`;
+  if(view==='att') return `<div class="stack">${userHubTabs()}${serverAttendanceView()}</div>`;
+  if(view==='cert') return `<div class="stack">${userHubTabs()}${serverCertView()}</div>`;
+  if(view==='club') return `<div class="stack">${userHubTabs()}${serverClubView()}</div>`;
+  const titles={occ:'مناسبت‌ها',user:'پروندهٔ کاربر'};
+  const reasons={occ:'مناسبت‌ها و جایزهٔ مناسبتی به قاعدهٔ امتیاز نیاز دارند که فقط در ربات تعریف شده؛ پنل مسیر نوشتن امتیاز ندارد.'};
   return `<div class="stack">${userHubTabs()}${serverUnavailableModule(titles[view]||'کاربران',
-    'API این زیربخش هنوز فعال نیست؛ اطلاعات محلی به‌عنوان رکورد واقعی نمایش داده نمی‌شود.',actions)}</div>`;
+    reasons[view]||'API این زیربخش هنوز فعال نیست؛ اطلاعات محلی به‌عنوان رکورد واقعی نمایش داده نمی‌شود.',uBack)}</div>`;
+}
+/* ══ مرحلهٔ دوم: محتوا (رویداد/مطلب)، فهرست کاربران، حضور و غیاب، گواهی ═════
+   همهٔ داده‌ها از API هم‌مبدأ خوانده می‌شوند؛ مجوز سمت سرور اعمال می‌شود و
+   پنهان‌کردن دکمه در این صفحه فقط برای خوانایی است. هیچ رکورد نمونه‌ای
+   جایگزین پاسخ خالی سرور نمی‌شود. */
+const staffCsrfCookie=()=>isOwner()?'nora_csrf':'nora_account_csrf';
+const P2_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
+const P2_SORTS=[['updated','آخرین تغییر'],['created','زمان ساخت'],['title','عنوان'],['date','تاریخ']];
+const CT={kind:'events',q:'',status:'',when:'',mode:'',moreFilters:false,sort:'updated',order:'desc',offset:0,limit:20,data:null,loading:false,error:'',busy:'',msg:null,edit:null,key:'',dp:null};
+/* تصاویر عمومی (پوستر/جلد): بارگذاری واقعی به /api/admin/media و فهرست با وضعیت استفاده؛ هیچ حذف خودکاری نیست */
+const CM={up:{busy:false,error:'',file:null,field:'',name:''},open:false,data:null,loading:false,error:'',busy:'',offset:0,limit:20};
+const US={q:'',provider:'',role:'',status:'',offset:0,limit:20,data:null,loading:false,error:'',key:'',detailId:'',detail:null,detailLoading:false,detailError:''};
+const AT={q:'',offset:0,limit:20,forms:null,loading:false,error:'',key:'',formId:'',form:null,people:null,pq:'',state:'',poffset:0,plimit:50,ploading:false,perror:'',pkey:'',busy:'',msg:null};
+const CERT_SRV={data:null,loading:false,error:'',key:'',q:'',status:'',kind:'',event:'',offset:0,limit:20,detailId:'',detail:null,detailError:'',detailLoading:false};
+function p2Err(error,fallback){
+  const code=error&&error.code||'';
+  if(error&&error.status===0) return 'سرور در دسترس نیست؛ اتصال را بررسی کنید و دوباره تلاش کنید.';
+  if(error&&error.status===401) return 'نشست شما معتبر نیست یا منقضی شده؛ دوباره وارد شوید.';
+  if(code==='csrf_check_failed') return 'نشست معتبر نیست؛ صفحه را تازه کنید و دوباره وارد شوید.';
+  if(code==='permission_denied'||error&&error.status===403) return 'این حساب مجوز این کار را ندارد.';
+  if(code==='site_content_version_conflict') return 'محتوا در این میان از جای دیگری تغییر کرده بود؛ فهرست تازه شد، دوباره تلاش کنید.';
+  if(code==='content_record_not_found') return 'این رکورد پیدا نشد؛ شاید در این میان تغییر کرده باشد.';
+  if(code==='content_limit_reached') return 'سقف شمار رکوردهای این دسته پر شده است.';
+  if(code==='already_checked_in') return 'حضور این نفر پیش‌تر ثبت شده است.';
+  if(code==='not_checked_in') return 'برای این نفر حضوری ثبت نشده که برگردانده شود.';
+  if(code==='ticket_payment_not_confirmed') return 'پرداخت یا فیش این ثبت‌نام هنوز تأیید نشده؛ مانند ربات، حضور بدون تأیید پرداخت ثبت نمی‌شود.';
+  if(code==='ticket_not_accepted') return 'این ثبت‌نام در فهرست انتظار است و بلیت ندارد.';
+  if(code==='ticket_not_eligible') return 'این پاسخ بلیت ثبت‌نام نیست.';
+  if(code==='reason_required') return 'برای برگرداندن حضور باید دلیل بنویسید.';
+  if(code==='image_too_large') return 'حجم تصویر بیش از ۳ مگابایت است؛ تصویر کوچک‌تری انتخاب کنید.';
+  if(code==='unsupported_image_type') return 'سرور محتوای فایل را تصویر PNG، JPEG یا WebP تشخیص نداد؛ فایل پذیرفته نشد.';
+  if(code==='invalid_image') return 'فایل تصویر معتبر یا کامل نیست.';
+  if(code==='image_too_small') return 'ابعاد تصویر خیلی کوچک است.';
+  if(code==='image_dimensions_too_large') return 'ابعاد تصویر بیش از حد مجاز است.';
+  if(code==='upload_rate_limited') return 'شمار بارگذاری‌ها در این ساعت از حد گذشته؛ کمی بعد دوباره تلاش کنید.';
+  if(code==='media_in_use') return 'این تصویر هنوز در رویداد یا مطلبی استفاده می‌شود و حذف نمی‌شود.';
+  if(code==='media_not_found') return 'این تصویر در سرور پیدا نشد؛ شاید پیش‌تر حذف شده باشد.';
+  if(error&&error.status===404) return 'موردی با این شناسه پیدا نشد.';
+  return fallback||'درخواست انجام نشد؛ چیزی تغییر نکرد.';
+}
+const P2_FIELD_ERR={title_required:'عنوان لازم است.',invalid_jalali_date:'تاریخ باید به شکل ۱۴۰۵/۰۸/۱۲ باشد.',date_required:'تاریخ شمسی یا متن زمان برگزاری لازم است.',
+  invalid_number:'عدد معتبر نیست.',invalid_image:'تصویر معتبر نیست (فقط آدرس همین سایت، https یا فایل تصویری).',invalid_reference:'شناسهٔ ارجاع معتبر نیست.',unknown_reference:'این شناسه در فهرست افراد/نهادهای همکار سرور وجود ندارد؛ اول شخص یا نهاد را بسازید.',
+  invalid_date:'تاریخ باید به شکل 2026-10-21 باشد.',invalid_body:'متن مطلب معتبر نیست.',invalid_blocks:'یکی از بلوک‌های بدنه پذیرفته نشد (نوع یا اندازهٔ نامعتبر).',article_body_required:'برای انتشار، لید یا دست‌کم یک بلوک بدنه لازم است.',
+  event_description_required:'برای انتشار، شرح رویداد لازم است.',unexpected_record_fields:'فیلد ناشناخته‌ای فرستاده شد.',invalid_status:'وضعیت معتبر نیست.',
+  invalid_status_transition:'این تغییر وضعیت از حالت فعلی مجاز نیست.',status_unchanged:'وضعیت همین حالا همین است.',
+  invalid_datetime:'زمان باید به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰ (ساعت تهران) باشد و در بازهٔ معقول قرار گیرد.',invalid_datetime_order:'زمان پایان باید بعد از زمان شروع باشد.',
+  invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.',invalid_link:'پیوند باید با https:// آغاز شود و نشانی معتبر باشد.'};
+const CT_DATETIME_FIELDS=['startsAt','endsAt','regOpensAt','regClosesAt'];
+const CT_REG_STATE={open:'ثبت‌نام باز',not_started:'ثبت‌نام هنوز آغاز نشده',full:'ظرفیت تکمیل',closed:'ثبت‌نام بسته',ended:'برگزارشده',cancelled:'لغوشده',none:'بدون فرم ثبت‌نام'};
+function p2FieldErr(error){
+  const detail=error&&error.payload&&error.payload.detail;
+  if(!detail||typeof detail!=='object') return null;
+  return {field:String(detail.field||''),code:String(detail.code||''),text:P2_FIELD_ERR[detail.code]||'مقدار این فیلد پذیرفته نشد.'};
+}
+function p2Msg(msg){return msg?`<div class="card stack" role="status" style="border-inline-start:3px solid var(--${msg.kind==='ok'?'ok':msg.kind==='warn'?'warn':'stop'})"><p class="cap" style="margin:0">${esc(msg.text)}</p></div>`:''}
+function p2Pager(total,offset,limit,prevAttr,nextAttr){
+  if(!total) return '';
+  const from=offset+1, to=Math.min(total,offset+limit);
+  return `<div class="row"><small class="cap">${fa(from)} تا ${fa(to)} از ${fa(total)}</small><span class="sp"></span>
+    <button class="btn sm quiet" ${prevAttr} ${offset<=0?'disabled':''}>${ico('i-chev-right')}قبلی</button>
+    <button class="btn sm quiet" ${nextAttr} ${to>=total?'disabled':''}>بعدی${ico('i-chev-left')}</button></div>`;
+}
+function p2Sel(label,field,value,options,opts){
+  const o=opts||{}, id='ctf_'+field;
+  return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span><select id="${id}" class="input" data-ct-field="${field}">${options.map(([v,l])=>`<option value="${esc(v)}" ${String(value||'')===v?'selected':''}>${esc(l)}</option>`).join('')}</select><small class="cap" data-ct-err="${field}" ${o.err?'style="color:var(--stop)"':''}>${esc(o.err||o.hint||'')}</small></label>`;
+}
+function p2Inp(label,field,value,opts){
+  const o=opts||{}, err=o.err||'', id='ctf_'+field;
+  const attrs=`id="${id}" class="input" data-ct-field="${field}" ${o.max?`maxlength="${o.max}"`:''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.dir?`dir="${o.dir}"`:''} ${o.type?`inputmode="${o.type}"`:''}`;
+  const control=o.textarea?`<textarea ${attrs} rows="${o.rows||4}">${esc(value||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(value==null?'':String(value))}"/>`;
+  return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${control}<small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small></label>`;
+}
+/* ── محتوا: رویدادها و مطالب روی همان site_content ── */
+function ctKey(){return [CT.kind,CT.q,CT.status,CT.kind==='events'?CT.when:'',CT.kind==='events'?CT.mode:'',CT.sort,CT.order,CT.offset,CT.limit].join('|')}
+function ctCan(what){const d=CT.data; if(d&&typeof d[what]==='boolean') return d[what]; return what==='can_edit'?canPerm('ev_create'):canPerm('ev_publish')}
+function ctReset(){CT.offset=0; CT.data=null; CT.key=''}
+async function ctLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminContent!=='function'){CT.error='رابط سرور در دسترس نیست.'; CT.key=ctKey(); renderBody(); return}
+  const key=ctKey(); CT.loading=true; CT.error=''; renderBody();
+  try{
+    const result=await api.listAdminContent(CT.kind,{limit:CT.limit,offset:CT.offset,q:CT.q,status:CT.status,sort:CT.sort,order:CT.order,when:CT.kind==='events'?CT.when:'',mode:CT.kind==='events'?CT.mode:''});
+    if(key===ctKey()){CT.data=result; CT.key=key}
+  }catch(error){if(key===ctKey()){CT.error=p2Err(error,'فهرست محتوا از سرور دریافت نشد.'); CT.key=key}}
+  finally{CT.loading=false; if(key!==ctKey()){ctLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
+}
+function ctStatusLabel(status){const row=P2_STATUS[status]||[status,'']; return tag(row[0],row[1])}
+function ctRefMeta(field,id){if(!id) return ''; if(!PK.loaded) return (field==='partnerId'?'نهاد: ':'مدرس: ')+id; const n=pkName(field,id); return n?(field==='partnerId'?'نهاد: ':'مدرس: ')+n:(field==='partnerId'?'نهاد ناموجود: ':'مدرس ناموجود: ')+id}
+function ctEventMeta(item){
+  return [item.kind,item.on||item.when,item.time,item.place,item.mode?(ctModeLabel(item.mode)||item.mode):'',item.price?fa(item.price)+' ریال':'',item.registration?ctRegMeta(item):(item.cap?'ظرفیت اعلامی '+fa(item.cap):''),item.cert?'گواهی':'',item.past?'برگزارشده':'',ctRefMeta('tchr',item.tchr),ctRefMeta('partnerId',item.partnerId)]
+    .filter(Boolean).join(' · ');
+}
+function ctArticleMeta(item){
+  return [item.cat,item.tchr?ctRefMeta('tchr',item.tchr).replace(/^مدرس/,'نویسنده'):item.who,item.at?svcWhen(item.at)||item.at:'',item.paragraphs?fa(item.paragraphs)+' بند':'',item.pin?'سنجاق‌شده':''].filter(Boolean).join(' · ');
+}
+function ctActions(item){
+  const id=esc(item.id), st=item.status, out=[];
+  if(ctCan('can_edit')) out.push(btn('ویرایش',`data-ct-edit="${id}"`,'i-pen'));
+  if(CT.kind==='events'&&ctCan('can_edit')) out.push(btn('تکثیر',`data-ct-dup="${id}" title="رونوشت به‌عنوان رویداد تازه (پیش‌نویس، تا ذخیره نشود ساخته نمی‌شود)"`,'i-layers'));
+  if(st==='published') out.push(`<a class="btn sm quiet" href="${CT.kind==='events'?'event.html':'post.html'}?id=${encodeURIComponent(item.id)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی</a>`);
+  if(CT.kind==='events') out.push(btn('مدیریت رویداد',`data-ct-file="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}" title="پروندهٔ رویداد: فرم‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی، گواهی‌ها، فایل‌ها"`,'i-doc'));
+  if(CT.kind==='events'&&st!=='archived'&&(eiCanRes()||eiCanMod())) out.push(btn('فایل‌ها و پرسش‌ها',`data-ct-interaction="${id}" data-ct-title="${esc(item.t||'')}" data-ct-ev-status="${esc(st||'')}"`,'i-inbox'));
+  if(ctCan('can_publish')){
+    if(st==='draft'||st==='paused') out.push(btn(st==='paused'?'انتشار دوباره':'انتشار',`data-ct-set="published" data-ct-id="${id}"`,'i-globe'));
+    if(st==='published') out.push(btn('توقف انتشار',`data-ct-set="paused" data-ct-id="${id}"`,'i-eye-off'));
+    if(st!=='archived') out.push(btn('بایگانی',`data-ct-set="archived" data-ct-id="${id}"`,'i-layers'));
+    if(st==='archived') out.push(btn('بازگردانی به پیش‌نویس',`data-ct-set="draft" data-ct-id="${id}"`,'i-refresh'));
+  }
+  return out.join('');
+}
+function ctRow(item){
+  const meta=CT.kind==='events'?ctEventMeta(item):ctArticleMeta(item);
+  const when=item.updated_at?'آخرین تغییر: '+svcWhen(item.updated_at):'بدون زمان ثبت‌شده';
+  return `<div class="admlirow" data-ct-row="${esc(item.id)}"><span class="ic">${ico(CT.kind==='events'?'i-calendar':'i-article')}</span>
+    <span class="sp"><b>${esc(item.t||'بدون عنوان')}</b><small class="cap">${esc(meta||'بدون جزئیات')}</small><small class="cap">${esc(when)}${item.forms&&item.forms.length?' · '+fa(item.forms.length)+' فرم پیوسته':''}</small></span>
+    ${ctStatusLabel(item.status)}
+    <div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${ctActions(item)}</div></div>`;
+}
+/* صافی سادهٔ رویدادها (مرحلهٔ نهایی): همه / پیش‌رو / برگزارشده / پیش‌نویس / بایگانی روی همان پارامترهای سرور (when با روز تهران، status)؛
+   شیوهٔ برگزاری از mode_counts سرور. صافی‌های ریزتر (امروز، منتشرشده، متوقف) زیر «صافی‌های بیشتر». */
+const CT_QUICK=[['all','همه',{status:'',when:''}],['upcoming','پیش‌رو',{status:'',when:'upcoming'}],['past','برگزارشده',{status:'',when:'past'}],['draft','پیش‌نویس',{status:'draft',when:''}],['archived','بایگانی',{status:'archived',when:''}]];
+function ctQuickKey(){const hit=CT_QUICK.find(([k,l,v])=>v.status===CT.status&&v.when===CT.when); return hit?hit[0]:''}
+function ctQuickFilters(d){
+  const counts=d&&d.counts||{}, wc=d&&d.when_counts||{}, mc=d&&d.mode_counts||{}, cur=ctQuickKey();
+  const n=k=>k==='all'?(d?Object.values(counts).reduce((a,b)=>a+(Number(b)||0),0):null):k==='upcoming'?wc.upcoming:k==='past'?wc.past:counts[k];
+  const modes=Object.keys(mc).sort((a,b)=>(mc[b]||0)-(mc[a]||0)); if(CT.mode&&!modes.includes(CT.mode)) modes.unshift(CT.mode);
+  return `<div class="row tight" style="flex-wrap:wrap;align-items:center" data-ct-quick-filters>
+    <div class="admfilters" role="group" aria-label="صافی رویدادها">${CT_QUICK.map(([k,l])=>{const c=n(k); return `<button class="chip ${cur===k?'on':''}" type="button" data-ct-quick="${k}">${esc(l)}${c!=null?' · '+fa(c):''}</button>`}).join('')}</div>
+    <span class="sp"></span>
+    <label class="fld" style="flex:0 1 190px;margin:0"><span class="lbl">شیوهٔ برگزاری</span><select class="input" data-ct-mode aria-label="شیوهٔ برگزاری"><option value="">همه</option>${modes.map(m=>`<option value="${esc(m)}" ${CT.mode===m?'selected':''}>${esc(ctModeLabel(m)||m)}${m!==ctModeLabel(m)&&ctModeLabel(m)?' ('+esc(m)+')':''}${mc[m]?' · '+fa(mc[m]):''}</option>`).join('')}</select></label>
+  </div>`;
+}
+function ctList(){
+  const d=CT.data, counts=d&&d.counts||{}, total=d?Number(d.total)||0:0;
+  const chips=[['','همه',d?Object.values(counts).reduce((a,b)=>a+(Number(b)||0),0):null]].concat(Object.keys(P2_STATUS).map(k=>[k,P2_STATUS[k][0],d?counts[k]:null]))
+    .map(([key,label,n])=>`<button class="chip ${CT.status===key?'on':''}" type="button" data-ct-status="${key}">${esc(label)}${n!=null?' · '+fa(n):''}</button>`).join('');
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (B1): صافی زمانی طرح مرجع (امروز/پیش‌رو/گذشته)؛ داوری روی سرور با روز تقویم تهران (پارامتر when)؛ نه ساعت مرورگر */
+  const wc=d&&d.when_counts||{}, whenChips=CT.kind!=='events'?'':`<div class="admfilters" data-ct-when-filters role="group" aria-label="صافی زمانی">${[['','همهٔ زمان‌ها',null],['today','امروز',wc.today],['upcoming','پیش‌رو',wc.upcoming],['past','گذشته',wc.past]]
+    .map(([key,label,n])=>`<button class="chip ${CT.when===key?'on':''}" type="button" data-ct-when="${key}">${esc(label)}${n!=null?' · '+fa(n):''}</button>`).join('')}${d&&d.today?`<span class="cap" title="روز سرور (تقویم تهران)">امروزِ سرور: ${esc(fa(d.today))}</span>`:''}${wc.undated?`<span class="cap">${fa(wc.undated)} رویداد بدون تاریخ قابل‌تشخیص در هیچ صافی زمانی نمی‌آید</span>`:''}</div>`;
+  const body=CT.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست از سرور…</p></div>`
+    :CT.error?`<div class="empty"><p class="cap">${esc(CT.error)}</p>${btn('تلاش دوباره','data-ct-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-ct-refresh','i-refresh')}</div>`
+    :d.items.length?d.items.map(ctRow).join('')
+      :emptyBox(CT.q||CT.status||(CT.kind==='events'&&(CT.when||CT.mode))?'با این جست‌وجو یا فیلتر رکوردی پیدا نشد.':CT.kind==='events'?'هنوز رویدادی در سرور ثبت نشده است.':'هنوز مطلبی در سرور ثبت نشده است.');
+  const kindName=CT.kind==='events'?'رویداد':'مطلب';
+  return `<section class="card stack" data-ct-panel>
+    <div class="row" style="flex-wrap:wrap"><div class="head">${CT.kind==='events'?'رویدادها':'مطالب'}</div><span class="sp"></span>
+      ${tag('منبع: site_content سرور','ok')}${d?tag('نسخهٔ '+fa(d.version),''):''}
+      ${btn('بازخوانی','data-ct-refresh','i-refresh')}${ctCan('can_edit')?btn('تصاویر','data-ct-media','i-image')+btn(kindName+' تازه','data-ct-new','i-plus'):''}</div>
+    <p class="cap">همان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.</p>
+    <form class="row tight server-role-search" data-ct-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="ctQuery" type="search" class="input" value="${esc(CT.q)}" maxlength="80" autocomplete="off" placeholder="عنوان، دسته، مکان، برچسب یا شناسه" aria-label="جست‌وجوی محتوا"/></label>
+      <button class="btn sm" type="submit" data-ct-search>جست‌وجو</button></form>
+    ${CT.kind==='events'?ctQuickFilters(d)+`<details class="ctmore" data-ct-more-filters ${CT.moreFilters?'open':''}><summary><span class="ctmore-t">${ico('i-chev-left')}<b>صافی‌های بیشتر</b></span><small class="cap">وضعیت انتشار (منتشرشده، متوقف) و «امروز»</small></summary><div class="stack ctmore-b"><div class="admfilters" data-ct-status-filters>${chips}</div>${whenChips}</div></details>`:`<div class="admfilters">${chips}</div>`}
+    <div class="row tight" style="flex-wrap:wrap">
+      <label class="fld" style="flex:1 1 140px"><span class="lbl">ترتیب</span><select class="input" data-ct-sort>${P2_SORTS.map(([k,l])=>`<option value="${k}" ${CT.sort===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
+      <label class="fld" style="flex:1 1 120px"><span class="lbl">جهت</span><select class="input" data-ct-order><option value="desc" ${CT.order==='desc'?'selected':''}>نزولی</option><option value="asc" ${CT.order==='asc'?'selected':''}>صعودی</option></select></label>
+    </div>
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,CT.offset,CT.limit,'data-ct-page="prev"','data-ct-page="next"'):''}
+  </section>`;
+}
+/* ══ مرحلهٔ ۲: انتخاب‌گر شناسه‌محور مدرس/نهاد (رویداد) و نویسندهٔ پروفایلی (مطلب) ══
+   فهرست‌ها فقط از /api/public/site-content (ردیف‌های منتشرشدهٔ people/partners همان سند site_content)؛
+   نه data.js و نه localStorage. مقدار ذخیره‌شده همان id است که سرور با قاعدهٔ B1 (unknown_reference)
+   می‌سنجد؛ پیش از ارسال هم اگر فهرست بارگذاری شده باشد، شناسهٔ ناموجود همان‌جا متوقف می‌شود. */
+const PK={loaded:false,loading:false,error:'',people:[],partners:[],q:{},at:0};
+const PK_DEFS={tchr:{cat:'people',icon:'i-graduation'},partnerId:{cat:'partners',icon:'i-handshake'}};
+function pkLabel(field){
+  if(field==='partnerId') return 'نهاد همکار (از نهادهای منتشرشدهٔ سایت)';
+  return CT.kind==='articles'?'نویسنده از پروفایل‌های سایت':'مدرس (از پروفایل‌های سایت)';
+}
+const pkRows=field=>PK[(PK_DEFS[field]||{}).cat||'people']||[];
+const pkRow=(field,id)=>id?pkRows(field).filter(p=>String(p.id)===String(id))[0]||null:null;
+const pkInvalidate=()=>{PK.loaded=false};
+async function pkLoad(force){
+  const api=window.NORA_SERVER_API;
+  if(PK.loading||(PK.loaded&&!force)) return;
+  if(!api||typeof api.getPublicSiteContent!=='function'){PK.error='رابط محتوای سرور در دسترس نیست.'; PK.loaded=true; pkPatchAll(); return}
+  PK.loading=true; PK.error=''; pkPatchAll();
+  try{
+    const result=await api.getPublicSiteContent();
+    const content=result&&result.content&&typeof result.content==='object'?result.content:(result||{});
+    const rows=k=>Array.isArray(content[k])?content[k].filter(r=>r&&typeof r==='object'&&r.id!=null):[];
+    PK.people=rows('people'); PK.partners=rows('partners'); PK.loaded=true; PK.at=Date.now();
+  }catch(error){PK.error=error&&error.status===404?'هنوز محتوای عمومی روی سرور منتشر نشده است؛ فهرست افراد/نهادها خالی است.':p2Err(error,'فهرست افراد و نهادها از سرور دریافت نشد.'); PK.loaded=false}
+  finally{PK.loading=false; pkPatchAll()}
+}
+function pkPatchAll(){Object.keys(PK_DEFS).forEach(field=>{const box=document.getElementById('ctPick-'+field); if(box&&CT.edit) box.innerHTML=pkInner(field)})}
+function pkFilter(field){
+  const q=String(PK.q[field]||'').trim().toLowerCase(), rows=pkRows(field);
+  if(!q) return rows.slice(0,8);
+  return rows.filter(p=>[p.n,p.r,p.role2,p.tag,p.type,p.collab,p.where].concat(p.exp||[],p.focus||[]).some(x=>String(x||'').toLowerCase().indexOf(q)>=0)).slice(0,8);
+}
+function pkCard(field,p){
+  const sub=field==='partnerId'?[p.type,p.collab].filter(Boolean).join(' · '):[p.r,p.role2].filter(Boolean).join(' · ');
+  const chips=(field==='partnerId'?(p.focus||[]):(p.exp||[])).slice(0,3);
+  const av=field==='partnerId'?(p.logo?`<img src="${esc(p.logo)}" alt=""/>`:esc(String(p.n||'ن').charAt(0))):(ppPhotoSrc(p)?`<img src="${esc(ppPhotoSrc(p))}" alt=""/>`:esc(ppIni(p)));
+  return `<span class="sav" style="--g:${esc(p.g||PP_GS[0].v)}">${av}</span><span class="sbody" style="flex:1;min-width:0"><b>${esc(p.n||'')}</b>${sub?`<span class="rl">${esc(sub)}</span>`:''}${chips.length?`<span class="mini-chips">${chips.map(x=>`<span class="mini-chip">${esc(x)}</span>`).join('')}</span>`:''}</span>`;
+}
+function pkInner(field){
+  const e=CT.edit, f=e?e.form:{}, value=String(f[field]||''), err=e&&e.errors?e.errors[field]:'';
+  const def=PK_DEFS[field], cur=pkRow(field,value);
+  const pub=field==='partnerId'?'partner.html?id=':'person.html?id=';
+  let state='';
+  if(value&&cur) state=`<div class="scard pickrow on" data-ct-pick-current="${esc(value)}" style="cursor:default;align-items:center">${pkCard(field,cur)}
+      <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end"><span class="tag brand">وصل شده</span>
+        <a class="btn sm quiet" href="${pub}${encodeURIComponent(value)}" target="_blank" rel="noopener">${ico('i-eye')} صفحهٔ عمومی</a>
+        ${btn('بردار',`data-ct-pick-clear="${esc(field)}"`,'i-close')}</span></div>`;
+  else if(value&&PK.loaded) state=`<div class="scard" data-ct-pick-current="${esc(value)}" data-ct-pick-invalid="1" style="cursor:default;align-items:center;border-color:var(--stop)">
+      <span class="sav">؟</span><span class="sbody" style="flex:1"><b>شناسهٔ <span dir="ltr">${esc(value)}</span> در فهرست منتشرشدهٔ سایت نیست</b>
+        <span class="cap">ذخیره با این مقدار رد می‌شود (پیوند شکسته). یکی از فهرست را انتخاب کن یا آن را بردار.</span></span>
+      ${btn('بردار',`data-ct-pick-clear="${esc(field)}"`,'i-close')}</div>`;
+  else if(value) state=`<div class="scard" data-ct-pick-current="${esc(value)}" style="cursor:default"><span class="sbody"><b dir="ltr">${esc(value)}</b><span class="cap">فهرست سرور هنوز بارگذاری نشده؛ اعتبار این شناسه پس از دریافت فهرست مشخص می‌شود.</span></span>${btn('بردار',`data-ct-pick-clear="${esc(field)}"`,'i-close')}</div>`;
+  else state=`<span class="cap" data-ct-pick-empty="${esc(field)}">${field==='partnerId'?'نهادی وصل نیست.':CT.kind==='articles'?'نویسندهٔ پروفایلی وصل نیست؛ نام میهمان را می‌توان در فیلد «نویسندهٔ میهمان» نوشت.':'مدرسی وصل نیست؛ کارت و صفحهٔ رویداد بدون پروفایل مدرس نمایش داده می‌شوند.'}</span>`;
+  let list='';
+  if(PK.loading&&!PK.loaded) list=`<small class="cap" role="status" aria-busy="true">در حال دریافت فهرست از سرور…</small>`;
+  else if(PK.error&&!PK.loaded) list=`<small class="cap" style="color:var(--stop)" role="alert">${esc(PK.error)}</small> ${btn('تلاش دوباره',`data-ct-pick-refresh="${esc(field)}"`,'i-refresh')}`;
+  else if(!pkRows(field).length) list=`<small class="cap">${field==='partnerId'?'هنوز نهاد منتشرشده‌ای روی سرور نیست.':'هنوز شخص منتشرشده‌ای روی سرور نیست.'}</small>`;
+  else{
+    const hits=pkFilter(field).filter(p=>String(p.id)!==value);
+    list=hits.length?`<div class="stack tight" role="listbox" aria-label="${esc(pkLabel(field))}">${hits.map(p=>`<button type="button" class="scard pickrow" role="option" data-ct-pick-set="${esc(field)}" data-ct-pick-id="${esc(p.id)}" style="text-align:start;align-items:center">${pkCard(field,p)}<span class="tag">انتخاب</span></button>`).join('')}</div>`
+      :`<small class="cap">${(PK.q[field]||'').trim()?'چیزی با این جست‌وجو پیدا نشد.':'گزینهٔ دیگری جز همین مورد وصل‌شده منتشر نشده است.'}</small>`;
+  }
+  const manage=field!=='partnerId'&&isOwner()?`<button type="button" class="btn sm quiet" data-ct-pick-manage="people">${ico('i-users')} مدیریت افراد سایت</button>`:'';
+  return `<div class="row tight" style="flex-wrap:wrap;align-items:center"><span class="lbl">${esc(pkLabel(field))}</span><span class="sp"></span>${manage}${btn('تازه‌سازی',`data-ct-pick-refresh="${esc(field)}"`,'i-refresh')}</div>
+    ${state}
+    <input class="input" data-ct-pick-q="${esc(field)}" value="${esc(PK.q[field]||'')}" placeholder="${field==='partnerId'?'جست‌وجو: نام، دسته یا نوع همکاری':'جست‌وجو: نام، نقش یا تخصص'}" aria-label="${esc(pkLabel(field))}" autocomplete="off"/>
+    ${list}
+    <small class="cap" data-ct-err="${esc(field)}" ${err?'style="color:var(--stop)"':''}>${esc(err||'انتخاب با یک کلیک یا Enter روی نخستین نتیجه؛ مقدار ذخیره‌شده همان شناسهٔ پروفایل است و کارت و صفحهٔ عمومی از همان می‌خوانند.')}</small>`;
+}
+function ctPicker(field){
+  if(!PK_DEFS[field]) return '';
+  if(!PK.loaded&&!PK.loading) pkLoad();
+  return `<div class="fld stack tight" data-ct-pick="${esc(field)}" id="ctPick-${esc(field)}">${pkInner(field)}</div>`;
+}
+function pkSet(field,id){
+  if(!CT.edit) return; CT.edit.form[field]=String(id||'');
+  if(CT.edit.errors) delete CT.edit.errors[field];
+  PK.q[field]=''; renderBody();
+}
+/* پیش از ارسال: شناسهٔ ناموجود (وقتی فهرست بارگذاری شده) همین‌جا می‌ایستد؛ سرور هم همان را با unknown_reference رد می‌کند. */
+function pkPreflight(e){
+  if(!e||!PK.loaded) return true;
+  let ok=true;
+  Object.keys(PK_DEFS).forEach(field=>{
+    if(!Object.prototype.hasOwnProperty.call(e.form,field)) return;
+    const value=String(e.form[field]||''); if(!value||pkRow(field,value)) return;
+    e.errors=e.errors||{}; e.errors[field]=P2_FIELD_ERR.unknown_reference; ok=false;
+  });
+  return ok;
+}
+const pkName=(field,id)=>{const p=pkRow(field,id); return p?String(p.n||''):''};
+function ctBlank(kind){return kind==='events'?{t:'',kind:'رویداد',d:'',on:'',when:'',time:'',place:'',mode:'',joinUrl:'',poster:'',tags:'',price:'',cap:'',past:false,sess:'',cert:false,certMin:'',certNote:'',
+    startsAt:'',endsAt:'',regOpensAt:'',regClosesAt:'',regMode:'auto',lifecycle:'scheduled',conditions:'',qaClosed:false,remH24:false,remH1:false,tchr:'',partnerId:'',parts:[]}
+  :{t:'',cat:'',lead:'',body:'',blocks:[],cov:'',who:'',at:'',tags:'',pin:false,min:'',tchr:''}}
+function ctEditable(kind,record){
+  const base=ctBlank(kind), out={};
+  Object.keys(base).forEach(key=>{
+    let value=record?record[key]:undefined;
+    if(key==='tags') value=Array.isArray(value)?value.join('، '):(value||'');
+    else if(key==='parts') value=ctPartsFrom(value);
+    else if(key==='body') value=Array.isArray(value)?value.join('\n\n'):(value||'');
+    else if(key==='blocks') value=ctBlocksFrom(value,record?record.body:null);
+    /* زمان‌ها در سرور UTC ذخیره‌اند؛ پنل همان مقدار شمسی/تهران را که سرور برمی‌گرداند نشان می‌دهد */
+    else if(CT_DATETIME_FIELDS.includes(key)) value=record&&record.local_times&&typeof record.local_times[key]==='string'?record.local_times[key]:(value||'');
+    else if(key==='regMode'||key==='lifecycle') value=value||base[key];
+    /* B19: کلیدهای یادآور در سرور زیر record.reminders هستند؛ در فرم دو چک‌باکس مستقل */
+    else if(key==='remH24'||key==='remH1') value=!!(record&&record.reminders&&record.reminders[key==='remH24'?'h24':'h1']===true);
+    else if(typeof base[key]==='boolean') value=!!value;
+    else value=value==null?'':(typeof value==='number'&&value===0?'':String(value));
+    out[key]=value;
+  });
+  return out;
+}
+function ctPayload(kind,form){
+  const out={}, blank=ctBlank(kind);
+  Object.keys(blank).forEach(key=>{
+    let value=form[key];
+    if(key==='tags') value=String(value||'').split(/[,،\n]/).map(s=>s.trim()).filter(Boolean);
+    else if(key==='parts') value=ctPartsFrom(value).filter(p=>Object.keys(p).some(k=>p[k]));
+    else if(key==='body') value=kind==='articles'&&Array.isArray(form.blocks)?ctBlocksPayload(form.blocks).filter(b=>b.ty==='p').map(b=>b.x):String(value||'').replace(/\r/g,'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+    else if(key==='blocks') value=ctBlocksPayload(value);
+    else if(typeof blank[key]==='boolean') value=!!value;
+    else value=String(value==null?'':value).trim();
+    if(['price','cap','sess','certMin','min'].includes(key)) value=value===''?0:value;
+    /* ارقام فارسی/عربی در تاریخ و ساعت به لاتین (سرور فقط لاتین می‌پذیرد)؛ متن آزاد دست‌نخورده */
+    if(kind==='events'&&['on','time','startsAt','endsAt','regOpensAt','regClosesAt'].includes(key)&&typeof value==='string') value=un(value);
+    out[key]=value;
+  });
+  if(kind==='events'){out.reminders={h24:!!form.remH24,h1:!!form.remH1}; delete out.remH24; delete out.remH1}
+  return out;
+}
+/* B19: وضعیت یادآورها فقط از پاسخ سرور (GET/PUT محتوا → reminders) خوانده می‌شود؛ ارسال کار زمان‌بند است */
+const CT_REM_STATE={off:'خاموش',scheduled:'زمان‌بندی‌شده',due:'در نوبت اجرای زمان‌بند',window_passed:'زمان آن گذشته',inactive:'غیرفعال (رویداد لغو/به‌تعویق/منتشرنشده)',needs_start_time:'نیازمند زمان شروع'};
+const CT_REM_SLOT={h24:'۲۴ ساعت پیش از شروع',h1:'۱ ساعت پیش از شروع'};
+function ctReminderBox(e){
+  const r=e.reminders;
+  if(!r||!Array.isArray(r.slots)) return e.id?`<small class="cap" data-ct-rem-state>وضعیت یادآورها پس از ذخیره از سرور خوانده می‌شود.</small>`:'';
+  const slot=x=>{const d=x.delivery||{}; const n=(x.queued||0);
+    const q=n?` · در صف/ارسال‌شده: ${fa(n)} (در انتظار ${fa(d.pending||0)}، تحویل بله ${fa(d.delivered||0)}، ناموفق ${fa(d.failed||0)})`:'';
+    const sup=x.superseded?` · باطل‌شده پس از تغییر زمان/لغو: ${fa(x.superseded)}`:'';
+    return `<li data-ct-rem-slot="${esc(x.slot)}"><b>${esc(CT_REM_SLOT[x.slot]||x.slot)}</b>: ${esc(CT_REM_STATE[x.state]||x.state||'')}${x.fire_at&&x.state==='scheduled'?` · زمان ارسال: ${esc(x.fire_at_local||x.fire_at)}`:''}${esc(q)}${esc(sup)}</li>`};
+  return `<div class="card stack" data-ct-rem-state><small class="cap"><b>یادآور رویداد (سرور)</b> · گیرندگان: ثبت‌نام‌های پذیرفته‌شدهٔ فرم همین رویداد${r.form_id?'':' (هنوز فرم ثبت‌نامی وصل نیست)'} · کانال: اعلان درون‌برنامه و بله (اگر حساب بله وصل باشد) · پیامک ندارد</small>
+    <ul class="cap" style="margin:0;padding-inline-start:18px">${r.slots.map(slot).join('')}</ul>
+    <small class="cap">ارسال با همان زمان‌بند انتشار زمان‌دار انجام می‌شود؛ هر گیرنده برای هر بازه فقط یک بار. صف را در «صندوق خروجی» با نوع «یادآور رویداد» ببینید.</small></div>`;
+}
+function ctPreview(form){
+  const kind=CT.kind, img=kind==='events'?form.poster:form.cov;
+  const safeImg=img&&/^(data:image\/(png|jpeg|webp|gif);base64,|https:\/\/|\.?\/?[A-Za-z0-9_])/i.test(img)?img:'';
+  const meta=kind==='events'?[form.kind,form.on||form.when,form.time,form.place,form.mode,form.price&&Number(form.price)?fa(form.price)+' ریال':'رایگان',pkName('tchr',form.tchr)?'مدرس: '+pkName('tchr',form.tchr):'',pkName('partnerId',form.partnerId)?'با همکاری '+pkName('partnerId',form.partnerId):''].filter(Boolean).join(' · ')
+    :[form.cat||'مطلب',pkName('tchr',form.tchr)||form.who,form.at].filter(Boolean).join(' · ');
+  const text=kind==='events'?form.d:(form.lead||(ctBlocksPayload(form.blocks).find(b=>b.ty==='p')||{}).x||String(form.body||'').split(/\n\s*\n/)[0]||'');
+  return `<article class="evcard"><div class="evcard-cover" style="min-height:120px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden">${safeImg?`<img src="${esc(safeImg)}" alt="" style="width:100%;height:${kind==='events'?'200px':'160px'};object-fit:${kind==='events'?'contain':'cover'}"/>`:`<span class="cap">${ico('i-image')} ${kind==='events'?'بدون پوستر':'بدون تصویر'}</span>`}</div>
+    <div class="evcard-body stack"><b>${esc(form.t||'عنوان هنوز وارد نشده')}</b><small class="cap">${esc(meta||'جزئیات هنوز وارد نشده')}</small><p class="cap" style="white-space:pre-wrap">${esc(String(text||'').slice(0,320))}</p>
+    ${form.tags?`<div class="admfilters">${String(form.tags).split(/[,،\n]/).map(s=>s.trim()).filter(Boolean).slice(0,8).map(t=>tag(t,'')).join('')}</div>`:''}</div></article>`;
+}
+/* ممیزی پنل مالک ۱۴۰۵/۰۷/۳۰ (B4): فرم‌های ثبت‌نام همین رویداد از همان فهرست سروری فرم‌ها (GET /api/forms؛ فیلد ev)،
+   و دکمهٔ «ساخت فرم ثبت‌نام» که فرم‌ساز را با ?ev=<id>&need=reg باز می‌کند تا شناسهٔ رویداد بدون تایپ دوباره در فرم بنشیند.
+   فقط برای رویداد ذخیره‌شده؛ مجوزها همان مجوزهای فرم‌ساز (fm_create / fm_responses) و سرور هم همان‌ها را می‌سنجد. */
+function ctEventForms(e){
+  if(CT.kind!=='events'||!e||!e.id) return e&&!e.id&&canPerm('fm_create')?`<small class="cap" data-ct-forms="unsaved">پس از ذخیرهٔ رویداد می‌توانی فرم ثبت‌نام آن را همین‌جا بسازی.</small>`:'';
+  const canSee=canPerm('fm_create')||canPerm('fm_responses'); if(!canSee) return '';
+  if(!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const linked=items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access');
+  const back=ctEditBack(e.id), q=new URLSearchParams({ev:String(e.id),need:'reg',name:String(e.form.t||''),back}); if(e.form.cap) q.set('cap',String(e.form.cap));
+  const makeBtn=canPerm('fm_create')?`<a class="btn sm ${linked.length?'quiet':'primary'}" href="create.html?${q.toString()}" data-ct-form-create="${esc(String(e.id))}">${ico('i-plus')}${linked.length?'فرم دیگری برای این رویداد':'ساخت فرم ثبت‌نام برای این رویداد'}</a>`:'';
+  const rows=linked.map(f=>{const st=FS_STATUS[f.status]||[f.status||'',''], id=encodeURIComponent(String(f.id||''));
+    return `<div class="admlirow" data-ct-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''}</small></span>${tag(st[0],st[1])}
+      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}&back=${encodeURIComponent(back)}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}).join('');
+  const body=FORMS_SRV.loading&&!FORMS_SRV.loaded?`<small class="cap">در حال دریافت فرم‌های سرور…</small>`
+    :FORMS_SRV.error&&!FORMS_SRV.data?`<small class="cap" style="color:var(--stop)">${esc(FORMS_SRV.error)}</small> ${btn('تلاش دوباره','data-fs-refresh','i-refresh')}`
+    :rows||`<small class="cap">هنوز فرمی به این رویداد وصل نیست؛ تا فرم ثبت‌نامِ منتشرشده نباشد، دکمهٔ ثبت‌نام در صفحهٔ رویداد باز نمی‌شود.</small>`;
+  return `<div class="stack" data-ct-forms="${esc(String(e.id))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های ثبت‌نام این رویداد</strong><span class="sp"></span>${makeBtn}</div>${body}</div>`;
+}
+/* ── ممیزی پنل ۱۴۰۵/۰۸/۰۱ (بخش B): کمک‌های ویرایشگر رویداد روی همان API؛ هیچ داده‌ای از data.js/localStorage وارد رکورد نمی‌شود ── */
+const CT_PART_FIELDS=['title','date','time','to','description'];
+/* تاریخ برای فیلدهای سرور با رقم لاتین نوشته می‌شود (سرور هر دو را می‌پذیرد؛ مرتب‌سازی عمومی روی همین رشته است) */
+const ctJForm=(jy,jm,jd)=>jy+'/'+jPad(jm)+'/'+jPad(jd);
+const ctJLong=(jy,jm,jd)=>JN[jWeek(jy,jm,jd)]+' '+fa(jd)+' '+(((NE().j||{}).months||JMONTHS_FA)[jm-1]||JMONTHS_FA[jm-1]||'');
+function ctPartsFrom(value){
+  if(!Array.isArray(value)) return [];
+  return value.slice(0,80).map(item=>{const row={}; if(typeof item==='string'){row.title=item.trim()} else if(item&&typeof item==='object'){CT_PART_FIELDS.forEach(k=>{row[k]=String(item[k]==null?'':item[k]).trim()})}
+    CT_PART_FIELDS.forEach(k=>{if(row[k]==null) row[k]=''}); return row});
+}
+/* ممیزی ۱۴۰۵/۰۸/۰۱ (B20): بدنهٔ مطلب = فهرست مرتب بلوک‌ها؛ همان انواعی که سرور می‌پذیرد و post.html بدون منبع بیرونی رسم می‌کند.
+   «بند» می‌تواند چند پاراگراف (جداشده با خط خالی) باشد و هنگام ارسال به چند بلوک p شکسته می‌شود؛ body روی سرور از همین بندها مشتق می‌شود. */
+const CT_BLOCK_TYPES=[['p','بند','i-text'],['h','تیتر','i-align'],['q','نقل‌قول','i-chat'],['img','تصویر','i-image'],['ul','فهرست','i-list'],['ol','فهرست شماره‌دار','i-number'],['box','کادر نکته','i-info'],['hr','جداکننده','i-more']];
+const CT_BLOCK_FIELDS={p:['x'],h:['x','lv'],q:['x','by'],img:['up','src','cap','alt'],ul:['x'],ol:['x'],box:['x','ic'],tog:['x','t'],hr:[]};
+function ctBlocksFrom(value,body){
+  const list=Array.isArray(value)?value:[];
+  const out=[];
+  list.slice(0,100).forEach(item=>{
+    if(typeof item==='string'){if(item.trim()) out.push({ty:'p',x:item.trim()}); return}
+    if(!item||typeof item!=='object'||!CT_BLOCK_FIELDS[item.ty]) return;
+    const row={ty:item.ty}; CT_BLOCK_FIELDS[item.ty].forEach(k=>{const v=item[k]; row[k]=k==='lv'?(String(v)==='3'?'3':'2'):Array.isArray(v)?v.join('\n'):String(v==null?'':v)});
+    out.push(row);
+  });
+  if(!out.length){const paras=(Array.isArray(body)?body:String(body||'').split(/\n\s*\n/)).map(x=>String(x||'').trim()).filter(Boolean);
+    if(paras.length) out.push({ty:'p',x:paras.join('\n\n')})}
+  return out;
+}
+function ctBlocksPayload(value){
+  const out=[];
+  (Array.isArray(value)?value:[]).forEach(b=>{
+    if(!b||!CT_BLOCK_FIELDS[b.ty]) return;
+    if(b.ty==='p'){String(b.x||'').replace(/\r/g,'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean).forEach(x=>out.push({ty:'p',x})); return}
+    const row={ty:b.ty}; CT_BLOCK_FIELDS[b.ty].forEach(k=>{const v=String(b[k]==null?'':b[k]).trim(); if(v) row[k]=k==='lv'?(v==='3'?3:2):v});
+    if(b.ty==='hr'||(b.ty==='img'?(row.up||row.src):row.x)) out.push(row);
+  });
+  return out.slice(0,100);
+}
+function ctBlockLabel(ty){const t=CT_BLOCK_TYPES.find(x=>x[0]===ty); return t?t[1]:ty}
+function ctBlocksBox(f,err){
+  const blocks=Array.isArray(f.blocks)?f.blocks:(f.blocks=[]);
+  const up=CM.up;
+  const inp=(i,k,v,ph,extra)=>`<input type="text" class="input" data-ct-block="${i}" data-ct-block-field="${k}" value="${esc(v||'')}" placeholder="${esc(ph||'')}" ${extra||''}/>`;
+  const ta=(i,k,v,ph,rows)=>`<textarea class="input" rows="${rows||3}" data-ct-block="${i}" data-ct-block-field="${k}" placeholder="${esc(ph||'')}">${esc(v||'')}</textarea>`;
+  const rows=blocks.map((b,i)=>{
+    let body='';
+    switch(b.ty){
+      case 'p': body=ta(i,'x',b.x,'متن بند؛ برای بند تازه یک خط خالی بگذار',5); break;
+      case 'h': body=`<div class="row tight" style="flex-wrap:wrap">${inp(i,'x',b.x,'متن تیتر','maxlength="240" style="flex:2 1 200px"')}<select class="input" data-ct-block="${i}" data-ct-block-field="lv" style="flex:0 1 140px"><option value="2" ${b.lv!=='3'?'selected':''}>تیتر اصلی</option><option value="3" ${b.lv==='3'?'selected':''}>تیتر کوچک</option></select></div>`; break;
+      case 'q': body=ta(i,'x',b.x,'متن نقل‌قول',2)+inp(i,'by',b.by,'گوینده (اختیاری)','maxlength="200"'); break;
+      case 'img':{const src=b.up||b.src, here=up.field==='block:'+i;
+        body=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${src?`<img src="${esc(src)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px"/>`:'<span class="cap">تصویری انتخاب نشده</span>'}
+          <label class="btn sm ${up.busy?'disabled':''}">${ico('i-upload')}بارگذاری تصویر<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="block:${i}" ${up.busy?'disabled':''} hidden/></label>
+          ${here&&up.busy?`<span class="cap" data-ct-image-state="busy">${ico('i-clock')} در حال بارگذاری «${esc(up.name)}»…</span>`:''}
+          ${here&&up.error?`<span class="cap" style="color:var(--stop)" role="alert" data-ct-image-state="error">${esc(up.error)}</span>${up.file?btn('تلاش دوباره',`data-ct-image-retry="block:${i}"`,'i-refresh'):''}`:''}</div>
+          ${b.up?`<div class="row tight" style="flex-wrap:wrap;align-items:center"><small class="cap" dir="ltr">${esc(b.up)}</small>${up.busy?'':btn('حذف تصویر',`data-ct-block-img-clear="${i}"`,'i-close')}</div>`:''}
+          ${inp(i,'src',b.src,'یا نشانی تصویر (https یا مسیر همین سایت)','dir="ltr"')}
+          <div class="row tight" style="flex-wrap:wrap">${inp(i,'cap',b.cap,'زیرنویس (اختیاری)','maxlength="500" style="flex:1 1 160px"')}${inp(i,'alt',b.alt,'متن جایگزین برای دسترس‌پذیری','maxlength="300" style="flex:1 1 160px"')}</div>`; break}
+      case 'ul': case 'ol': body=ta(i,'x',b.x,'هر سطر یک مورد',4); break;
+      case 'box': body=ta(i,'x',b.x,'متن نکته یا هشدار',2); break;
+      case 'hr': body='<small class="cap">خط جداکننده بین بخش‌ها</small>'; break;
+      default: body='';
+    }
+    return `<div class="card stack" data-ct-block-row="${i}" data-ct-block-type="${esc(b.ty)}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><b>${fa(i+1)}. ${esc(ctBlockLabel(b.ty))}</b><span class="sp"></span>
+      ${i>0?`<button type="button" class="btn sm quiet" data-ct-block-move="${i}" data-ct-block-dir="-1" aria-label="بالا">${ico('i-chev-up')}</button>`:''}${i<blocks.length-1?`<button type="button" class="btn sm quiet" data-ct-block-move="${i}" data-ct-block-dir="1" aria-label="پایین">${ico('i-chev-down')}</button>`:''}
+      <button type="button" class="btn sm quiet" data-ct-block-del="${i}">${ico('i-trash')}برداشتن</button></div>${body}</div>`;
+  }).join('');
+  return `<div class="card stack" data-ct-blocks><div class="row" style="flex-wrap:wrap;gap:6px"><strong>بدنهٔ مطلب</strong><span class="sp"></span></div>
+    <small class="cap" data-ct-err="blocks" ${err?'style="color:var(--stop)"':''}>${esc(err||'بلوک‌ها به همین ترتیب در صفحهٔ مطلب می‌آیند. ویدیو، صدا، فایل و پیوند بیرونی هنوز از پنل افزوده نمی‌شود (نیازمند تصمیم منبع معتبر).')}</small>
+    ${rows||`<small class="cap" data-ct-blocks-empty>هنوز بلوکی نیست؛ از دکمه‌های زیر اضافه کن.</small>`}
+    <div class="admfilters" data-ct-block-palette>${CT_BLOCK_TYPES.map(t=>`<button type="button" class="chip" data-ct-block-add="${t[0]}">${ico(t[2])}${esc(t[1])}</button>`).join('')}</div></div>`;
+}
+/* قالب‌های رویداد: فقط مقدار پیش‌فرض برای فیلدهای خالی؛ قالب داده نیست و هرگز خودکار ذخیره نمی‌شود. */
+const CT_TEMPLATES=[
+  ['workshop','کارگاه حضوری',{kind:'کارگاه',mode:'حضوری',tags:'کارگاه',sess:'1'}],
+  ['online','نشست برخط',{kind:'نشست',mode:'برخط',tags:'برخط',sess:'1'}],
+  ['course','دورهٔ چندجلسه‌ای',{kind:'دوره',mode:'حضوری',tags:'دوره',sess:'4'}],
+  ['certified','کارگاه با گواهی',{kind:'کارگاه',mode:'حضوری',tags:'کارگاه، گواهی',cert:true,certMin:'80',sess:'1'}],
+  ['camp','اردو / بازدید',{kind:'اردو',mode:'حضوری',tags:'اردو',sess:'1'}],
+  ['talk','سخنرانی / جلسهٔ آزاد',{kind:'سخنرانی',mode:'حضوری',tags:'سخنرانی',price:'',sess:'1'}]];
+function ctApplyTemplate(key){
+  const e=CT.edit, tpl=CT_TEMPLATES.find(t=>t[0]===key); if(!e||!tpl) return;
+  const f=e.form, filled=[];
+  const blank=ctBlank(CT.kind);
+  Object.keys(tpl[2]).forEach(k=>{const cur=f[k]; const empty=typeof cur==='boolean'?cur===false:(String(cur==null?'':cur).trim()===''||String(cur)===String(blank[k]));
+    if(empty){f[k]=tpl[2][k]; filled.push(k)}});
+  e.template=key; ctDraftSave(); renderBody();
+  toast(filled.length?`قالب «${tpl[1]}» فقط فیلدهای خالی را پر کرد (${fa(filled.length)} فیلد)؛ چیزی ذخیره نشد.`:`همهٔ فیلدهای قالب «${tpl[1]}» از قبل مقدار داشتند؛ چیزی تغییر نکرد.`);
+}
+/* تاریخ شمسی: روز هفته از همان الگوریتم جلالی پنل؛ تقویم کوچک برای فیلدهای تاریخ و تاریخ‌ساعت. */
+function ctJDate(value){const t=un(String(value||'')).trim(); const m=t.match(/^(\d{4}\/\d{1,2}\/\d{1,2})(?:\s+(.*))?$/); if(!m) return null; const j=jParse(m[1]); return j?{j:j,rest:m[2]||''}:null}
+function ctWeekday(value){const d=ctJDate(value); return d?ctJLong(d.j.jy,d.j.jm,d.j.jd)+' '+fa(d.j.jy)+' · '+fa(ctJForm(d.j.jy,d.j.jm,d.j.jd))+(d.rest?' '+fa(d.rest):''):''}
+function ctDateWithDay(field,jy,jm,jd){
+  const cur=String(ctDpValue(field)||''), d=ctJDate(cur), date=ctJForm(jy,jm,jd);
+  if(CT_DATETIME_FIELDS.includes(field)){const rest=d&&d.rest?d.rest:(un(String(CT.edit.form.time||'')).match(/^\d{1,2}:\d{2}$/)?h24(CT.edit.form.time,true):''); return rest?date+' '+rest:date}
+  return date;
+}
+function ctDpValue(field){const e=CT.edit; if(!e) return ''; const m=/^part:(\d+)$/.exec(field); if(m){const row=(e.form.parts||[])[+m[1]]; return row?row.date:''} return e.form[field]}
+function ctDpSet(field,value){const e=CT.edit; if(!e) return; const m=/^part:(\d+)$/.exec(field); if(m){const row=(e.form.parts||[])[+m[1]]; if(row) row.date=value; return} const old=e.form[field]; e.form[field]=value; ctSyncDates(field,old,value)}
+function ctDpBox(){
+  const dp=CT.dp; if(!dp||!CT.edit) return '';
+  const months=(NE().j||{}).months||JMONTHS_FA, days=(NE().j||{}).days||['ش','ی','د','س','چ','پ','ج'];
+  const t=jToday(), y=+dp.y||t.jy, m=+dp.m||t.jm, len=jLen(y,m), pad=jWeek(y,m,1), curD=ctJDate(ctDpValue(dp.f)), cur=curD&&curD.j;
+  let cells='<span class="db"></span>'.repeat(pad);
+  for(let d=1;d<=len;d++){const on=cur&&cur.jy===y&&cur.jm===m&&cur.jd===d, td=t.jy===y&&t.jm===m&&t.jd===d;
+    cells+=`<button type="button" class="dd ${on?'on':''} ${td?'today':''}" data-ctdp-day="${d}" aria-label="${esc(ctJLong(y,m,d))}">${esc(fa(d))}</button>`}
+  const years=[]; for(let yy=Math.min(y,t.jy-3);yy<=Math.max(y,t.jy+6);yy++) years.push(yy);
+  return `<div class="dp" data-ctdp-box="${esc(dp.f)}" role="dialog" aria-label="تقویم شمسی" aria-describedby="ctdpHint">
+    <div class="dphead"><button type="button" class="dpnav" data-ctdp-mv="-1" aria-label="ماه قبل">${ico('i-chev-right')}</button><b>${esc(months[m-1]||'')} ${esc(fa(y))}</b><button type="button" class="dpnav" data-ctdp-mv="1" aria-label="ماه بعد">${ico('i-chev-left')}</button><span class="sp"></span>
+      <span class="dpsels"><select class="input dpsel" data-ctdp-set="m" aria-label="انتخاب ماه">${months.map((mo,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${esc(mo)}</option>`).join('')}</select>
+      <select class="input dpsel" data-ctdp-set="y" aria-label="انتخاب سال">${years.map(yy=>`<option value="${yy}" ${yy===y?'selected':''}>${esc(fa(yy))}</option>`).join('')}</select></span></div>
+    <div class="dpweek">${days.map(d=>`<span>${esc(d)}</span>`).join('')}</div><div class="dpgrid">${cells}</div>
+    <div class="row tight" style="flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm quiet" data-ctdp-today>امروز</button>${cur?`<button type="button" class="btn sm quiet" data-ctdp-clear>پاک‌کردن</button>`:''}<span class="sp"></span><small class="cap" id="ctdpHint">${cur?esc(ctJLong(cur.jy,cur.jm,cur.jd)+' '+fa(cur.jy)):'روزی انتخاب نشده'}</small><button type="button" class="btn sm quiet" data-ctdp-close>بستن</button></div></div>`;
+}
+function ctDateInp(label,field,value,opts){
+  const o=opts||{}, err=o.err||'', id='ctf_'+field, wd=ctWeekday(value), open=CT.dp&&CT.dp.f===field;
+  return `<div class="fld" data-ct-date="${field}" style="${o.style||''}"><label class="lbl" for="${id}">${esc(label)}</label>
+    <div class="withbtn"><input type="text" id="${id}" class="input" data-ct-field="${field}" maxlength="${o.max||20}" placeholder="${esc(o.ph||'')}" dir="ltr" inputmode="numeric" autocomplete="off" value="${esc(value==null?'':String(value))}"/>
+      <button type="button" class="btn sm quiet" data-ctdp="${field}" aria-label="تقویم شمسی" aria-expanded="${open?'true':'false'}">${ico('i-calendar')}</button></div>
+    <small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small>
+    <small class="cap" data-ct-weekday="${field}" aria-live="polite">${esc(wd)}</small>${open?ctDpBox():''}</div>`;
+}
+/* همگام‌سازی: تاریخ شروع/پایان دقیق تا وقتی دستی عوض نشده‌اند، همراه «تاریخ شمسی» و «ساعت» می‌آیند. */
+function ctSyncDates(field,oldVal,newVal){
+  const f=CT.edit&&CT.edit.form; if(!f) return;
+  const oldD=ctJDate(oldVal), newD=ctJDate(newVal);
+  if(field==='on'){
+    if(!newD) return;
+    const date=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd), time=un(String(f.time||'')).match(/^\d{1,2}:\d{2}$/)?h24(f.time,true):'';
+    const endT=un(String(f.endTime||'')).match(/^\d{1,2}:\d{2}$/)?h24(f.endTime,true):'';
+    ['startsAt','endsAt'].forEach(k=>{const cur=ctJDate(f[k]); const follows=!String(f[k]||'').trim()||(oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd);
+      /* «ساعت پایان» تایپ‌شده چسبنده است: اگر تاریخ پاک و دوباره وارد شود، پایانِ همان روز از آن ساخته می‌شود */
+      if(follows){const rest=cur&&cur.rest?cur.rest:(k==='startsAt'?time:endT); f[k]=rest?date+' '+rest:(k==='startsAt'?date:(String(f[k]||'').trim()?date:''))}});
+    if(!String(f.when||'').trim()) f.when=ctJLong(newD.j.jy,newD.j.jm,newD.j.jd);
+  }
+  if(field==='time'){
+    const t=un(String(newVal||'')); if(!/^\d{1,2}:\d{2}$/.test(t)) return;
+    const d=ctJDate(f.startsAt)||ctJDate(f.on); if(!d) return;
+    const cur=ctJDate(f.startsAt), oldT=un(String(oldVal||''));
+    if(!cur||!cur.rest||cur.rest===oldT) f.startsAt=ctJForm(d.j.jy,d.j.jm,d.j.jd)+' '+h24(t,true);
+  }
+  if(field==='startsAt'&&newD){
+    const cur=ctJDate(f.endsAt);
+    /* پایانِ خالی، خالی می‌ماند (سرور پایان اختیاری را می‌پذیرد)؛ پایانِ «فقط تاریخ» یعنی ۰۰:۰۰ و با شروعِ ساعت‌دار ۴۲۲ invalid_datetime_order می‌گرفت */
+    if(String(f.endsAt||'').trim()&&oldD&&cur&&cur.j.jy===oldD.j.jy&&cur.j.jm===oldD.j.jm&&cur.j.jd===oldD.j.jd) f.endsAt=ctJForm(newD.j.jy,newD.j.jm,newD.j.jd)+(cur&&cur.rest?' '+cur.rest:'');
+  }
+}
+/* ساعت ۲۴ساعته: فقط وقتی کاربر عدد خالص می‌نویسد دونقطه خودکار می‌آید؛ متن آزاد («۱۰ تا ۱۳») دست‌نخورده می‌ماند. */
+/* قاعدهٔ مرحلهٔ نهایی: ورودی ناقص هرگز بازنویسی نمی‌شود؛ فقط ورودیِ کامل (۴ رقم ساعت، ۸ رقم تاریخ) همان لحظه قالب می‌گیرد
+   و با ترک قلم (blur) مقدارِ قابل‌فهم صفرپُر می‌شود. یک یا دو رقم تنها (مثل «۹») حتی با ترک قلم دست نمی‌خورد. */
+function ctDate8(raw){return /^\d{8}$/.test(raw)?raw.slice(0,4)+'/'+raw.slice(4,6)+'/'+raw.slice(6,8):''}
+function ctDatePad(raw){const m=raw.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/); return m?ctJForm(+m[1],+m[2],+m[3]):''}
+function ctTimeFix(field,value,hard){
+  const raw=un(String(value||'')).trim();
+  if(field==='time'||field==='endTime'||field==='to'){
+    if(/^\d{4}$/.test(raw)) return h24(raw,true);
+    if(hard&&(/^\d{3}$/.test(raw)||/^\d{1,2}:\d{1,2}$/.test(raw))) return h24(raw,true);
+    return value;
+  }
+  if(field==='on'||field==='date'){
+    const d8=ctDate8(raw); if(d8) return d8;
+    if(hard){const p=ctDatePad(raw); if(p) return p}
+    return value;
+  }
+  if(CT_DATETIME_FIELDS.includes(field)){
+    const d8=ctDate8(raw); if(d8) return d8;
+    const m12=raw.match(/^(\d{8})\s*(\d{4})$/); if(m12) return ctDate8(m12[1])+' '+h24(m12[2],true);
+    const m=raw.match(/^(\d{4}\/\d{1,2}\/\d{1,2})\s+(\d{1,4}|\d{1,2}:\d{1,2})$/);
+    if(m&&(/^\d{4}$/.test(m[2])||hard)) return (hard?(ctDatePad(m[1])||m[1]):m[1])+' '+h24(m[2],true);
+    if(hard){const p=ctDatePad(raw); if(p) return p}
+    return value;
+  }
+  return value;
+}
+/* ساعت پایان ساده (فیلد مجازی endTime): فقط وقتی کامل است به endsAt همان روزِ شروع می‌رود؛ خالی‌شدنش endsAt را خالی می‌کند؛ ناقص هیچ‌کاره */
+function ctEndTimeFrom(f){const d=ctJDate(f.endsAt), s=ctJDate(f.startsAt)||ctJDate(f.on); if(!d||!d.rest) return ''; if(s&&(s.j.jy!==d.j.jy||s.j.jm!==d.j.jm||s.j.jd!==d.j.jd)) return ''; return d.rest}
+function ctSyncEndTime(f,value){
+  const t=un(String(value||'')).trim();
+  if(!t){f.endsAt=''; return}
+  if(!/^\d{1,2}:\d{2}$/.test(t)) return;
+  const d=ctJDate(f.startsAt)||ctJDate(f.on); if(!d) return;
+  f.endsAt=ctJForm(d.j.jy,d.j.jm,d.j.jd)+' '+h24(t,true);
+}
+function ctRefreshEndTime(active){const f=CT.edit&&CT.edit.form; if(!f) return; const derived=ctEndTimeFrom(f), cur=un(String(f.endTime||'')).trim();
+  /* متن ناقصِ «ساعت پایان» هرگز بازنویسی نمی‌شود؛ فقط وقتی مقدار مشتق‌شده داریم یا مقدار فعلی یک ساعت کامل است همگام می‌شود */
+  /* بدون تاریخ (endsAt خالی) ساعتِ کاملِ تایپ‌شده نگه داشته می‌شود تا با ورود دوبارهٔ تاریخ به کار رود */
+  if(derived||(/^\d{1,2}:\d{2}$/.test(cur)&&String(f.endsAt||'').trim())){ if(f.endTime!==derived){f.endTime=derived; const el=document.getElementById('ctf_endTime'); if(el&&el!==active) el.value=derived}}}
+const CT_TIME_LIST=`<datalist id="ctTimes">${Array.from({length:36},(_,i)=>{const h=6+Math.floor(i/2), m=i%2?'30':'00'; return `<option value="${jPad(h)}:${m}"></option>`}).join('')}</datalist>`;
+function ctTimeInp(label,field,value,opts){
+  const o=opts||{}, err=o.err||'', id='ctf_'+field;
+  return `<label class="fld" for="${id}" style="${o.style||''}"><span class="lbl">${esc(label)}</span><input type="text" id="${id}" class="input" data-ct-field="${field}" maxlength="${o.max||5}" placeholder="${esc(o.ph||'۱۰:۰۰')}" dir="ltr" inputmode="numeric" autocomplete="off" list="ctTimes" value="${esc(value==null?'':String(value))}"/><small class="cap" data-ct-err="${field}" ${err?'style="color:var(--stop)"':''}>${esc(err||o.hint||'')}</small></label>`;
+}
+/* پیش‌نویس محلی: فقط متن تایپ‌شدهٔ همین کاربر در همین زبانه (sessionStorage)، با برچسب صریح؛ هرگز به‌جای رکورد سرور نمایش داده نمی‌شود. */
+function ctDraftKey(){const e=CT.edit; if(!e||IS_TEST||!SERVER_AUTH) return ''; const who=SERVER_AUTH.account_id||SERVER_AUTH.owner_id||'x'; return `nora-admin-ct-draft:${who}:${CT.kind}:${e.id||'new'}`}
+function ctDraftSave(){const k=ctDraftKey(); if(!k) return; try{sessionStorage.setItem(k,JSON.stringify({form:CT.edit.form,at:Date.now(),version:CT.edit.version}))}catch(err){}}
+function ctDraftDrop(){const k=ctDraftKey(); if(!k) return; try{sessionStorage.removeItem(k)}catch(err){}}
+function ctDraftPeek(){const k=ctDraftKey(); if(!k) return null; try{const raw=sessionStorage.getItem(k); if(!raw) return null; const d=JSON.parse(raw); if(!d||!d.form||typeof d.form!=='object') return null;
+    if(JSON.stringify(d.form)===JSON.stringify(CT.edit.form)) return null; return d}catch(err){return null}}
+function ctDraftBanner(e){
+  if(!e.draft) return '';
+  const when=svcWhen(new Date(e.draft.at).toISOString())||'';
+  return `<div class="card stack" data-ct-draft role="status" style="border-inline-start:3px solid var(--warn)"><div class="row" style="flex-wrap:wrap;gap:6px"><b>پیش‌نویس ذخیره‌نشده از همین مرورگر</b><span class="sp"></span>${btn('بازیابی متن تایپ‌شده','data-ct-draft-restore','i-refresh')}${btn('دور انداختن','data-ct-draft-drop','i-close')}</div>
+    <p class="cap">${when?'آخرین تایپ: '+esc(when)+' · ':''}این متن در سرور ذخیره نشده و فقط در همین زبانهٔ مرورگر مانده است؛ تا «ذخیره» نزنی رکورد سرور تغییر نمی‌کند.</p></div>`;
+}
+function ctFocusFirstError(){
+  const box=document.querySelector('[data-ct-editor]'); if(!box) return;
+  const errs=[...box.querySelectorAll('[data-ct-err]')].filter(el=>el.getAttribute('style')&&el.textContent.trim());
+  const first=errs[0]; const target=first?(document.getElementById('ctf_'+first.dataset.ctErr)||first):box.querySelector('[data-ct-form-error]');
+  if(!target) return;
+  try{target.scrollIntoView({block:'center',behavior:'smooth'})}catch(err){}
+  if(typeof target.focus==='function') try{target.focus({preventScroll:true})}catch(err){try{target.focus()}catch(e2){}}
+}
+async function ctDuplicate(id){
+  const api=window.NORA_SERVER_API; if(!id||CT.busy||!ctCan('can_edit')) return;
+  CT.busy='load'; renderBody();
+  try{
+    const result=await api.getAdminContent(CT.kind,id); const record=result.record||{}, form=ctEditable(CT.kind,record);
+    form.t=(form.t||'')+' (رونوشت)'; if(CT.kind==='events'){form.past=false; form.lifecycle='scheduled'}
+    CT.edit={id:'',form:form,errors:{},status:'draft',version:result.version!=null?result.version:(CT.data?CT.data.version:0),copyOf:{id:record.id,t:record.t||record.id}};
+    CT.msg=null; CT.dp=null;
+  }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای تکثیر دریافت نشد.')}}
+  finally{CT.busy=''; renderBody()}
+}
+function ctPartsBox(f,err){
+  const parts=Array.isArray(f.parts)?f.parts:(f.parts=[]);
+  const rows=parts.map((p,i)=>{const open=CT.dp&&CT.dp.f==='part:'+i, wd=ctWeekday(p.date);
+    return `<div class="card stack" data-ct-part-row="${i}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><b>جلسهٔ ${fa(i+1)}</b><span class="sp"></span>${i>0?`<button type="button" class="btn sm quiet" data-ct-part-move="${i}" data-ct-part-dir="-1" aria-label="بالا">${ico('i-chev-up')}</button>`:''}${i<parts.length-1?`<button type="button" class="btn sm quiet" data-ct-part-move="${i}" data-ct-part-dir="1" aria-label="پایین">${ico('i-chev-down')}</button>`:''}<button type="button" class="btn sm quiet" data-ct-part-del="${i}">${ico('i-close')}حذف</button></div>
+      <div class="row tight" style="flex-wrap:wrap">
+        <label class="fld" style="flex:2 1 200px"><span class="lbl">عنوان</span><input type="text" class="input" maxlength="240" data-ct-part="${i}" data-ct-part-field="title" placeholder="مثلاً مقدمه و آشنایی" value="${esc(p.title||'')}"/></label>
+        <div class="fld" style="flex:1 1 160px"><span class="lbl">تاریخ شمسی</span><div class="withbtn"><input type="text" class="input" dir="ltr" inputmode="numeric" maxlength="12" data-ct-part="${i}" data-ct-part-field="date" placeholder="۱۴۰۵/۰۸/۱۲" value="${esc(p.date||'')}"/><button type="button" class="btn sm quiet" data-ctdp="part:${i}" aria-label="تقویم شمسی" aria-expanded="${open?'true':'false'}">${ico('i-calendar')}</button></div><small class="cap" data-ct-part-weekday="${i}">${esc(wd)}</small>${open?ctDpBox():''}</div>
+        <label class="fld" style="flex:0 1 110px"><span class="lbl">ساعت</span><input type="text" class="input" dir="ltr" inputmode="numeric" maxlength="5" data-ct-part="${i}" data-ct-part-field="time" placeholder="۱۰:۰۰" value="${esc(p.time||'')}"/></label>
+        <label class="fld" style="flex:0 1 110px"><span class="lbl">تا</span><input type="text" class="input" dir="ltr" inputmode="numeric" maxlength="5" data-ct-part="${i}" data-ct-part-field="to" placeholder="۱۲:۰۰" value="${esc(p.to||'')}"/></label>
+      </div>
+      <label class="fld"><span class="lbl">توضیح (اختیاری)</span><textarea class="input" rows="2" maxlength="1200" data-ct-part="${i}" data-ct-part-field="description">${esc(p.description||'')}</textarea></label></div>`}).join('');
+  return `<div class="card stack" data-ct-parts><div class="row" style="flex-wrap:wrap;gap:6px"><strong>جلسه‌ها (برنامهٔ صفحهٔ رویداد)</strong><span class="sp"></span>${btn('افزودن جلسه','data-ct-part-add','i-plus')}</div>
+    <small class="cap" data-ct-err="parts" ${err?'style="color:var(--stop)"':''}>${esc(err||'هر ردیف در صفحهٔ عمومی زیر «برنامهٔ جلسه‌ها» می‌آید؛ ردیف کاملاً خالی ذخیره نمی‌شود. «شمار جلسه‌ها» جدا و فقط عددی است.')}</small>
+    ${rows||`<small class="cap" data-ct-parts-empty>هنوز جلسه‌ای تعریف نشده.</small>`}</div>`;
+}
+function ctEditor(){
+  const e=CT.edit; if(!e) return '';
+  const f=e.form, err=e.errors||{}, kind=CT.kind, isNew=!e.id;
+  const title=isNew?(kind==='events'?'رویداد تازه':'مطلب تازه'):'ویرایش '+(kind==='events'?'رویداد':'مطلب');
+  const img=kind==='events'?f.poster:f.cov, imgField=kind==='events'?'poster':'cov';
+  const up=CM.up, upHere=up.field===imgField;
+  const upState=upHere&&up.busy?`<span class="cap" data-ct-image-state="busy">${ico('i-clock')} در حال بارگذاری «${esc(up.name)}» در سرور…</span>`
+    :upHere&&up.error?`<span class="cap" style="color:var(--stop)" role="alert" data-ct-image-state="error">${esc(up.error)}</span>${up.file?btn('تلاش دوباره',`data-ct-image-retry="${imgField}"`,'i-refresh'):''}`:'';
+  const imageBox=`<div class="fld"><span class="lbl">${kind==='events'?'پوستر':'تصویر جلد'}</span>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center">
+      ${kind==='events'?`<span class="ctposter" data-ct-poster-frame="${img?'image':'empty'}">${img?`<img src="${esc(img)}" alt="پیش‌نمایش پوستر"/>`:`${ico('i-image')}<small>پوستر عمودی A4</small>`}</span>`
+        :img?`<img src="${esc(img)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px"/>`:`<span class="cap">تصویری انتخاب نشده</span>`}
+      <label class="btn sm ${up.busy?'disabled':''}">${ico('i-upload')}انتخاب فایل<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="${imgField}" ${up.busy?'disabled':''} hidden/></label>
+      ${img&&!up.busy?btn('حذف تصویر',`data-ct-image-clear="${imgField}"`,'i-close'):''}
+    </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
+    ${img&&img.startsWith('/api/public/media/')?`<details class="cap" data-ct-image-stored><summary>تصویر در پایگاه رسانهٔ همین سایت ذخیره شده است (نشانی فایل)</summary><code dir="ltr">${esc(img)}</code></details>`:''}
+    ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:(kind==='events'?'پوستر عمودی A4 (نسبت ۲۱۰ به ۲۹۷) در کارت‌ها و صفحهٔ رویداد کامل و بدون برش نمایش داده می‌شود. ':'')+'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
+  const fields=kind==='events'?ctEventSections(e,imageBox)
+  :`
+    ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('دسته','cat',f.cat,{max:80,ph:'اخبار، آموزش…'})}${p2Inp('نویسندهٔ میهمان (نام آزاد، اختیاری)','who',f.who,{max:160,hint:'اگر نویسنده پروفایل سایت دارد، پایین از فهرست انتخاب کن.'})}${p2Inp('تاریخ انتشار','at',f.at,{max:30,ph:'2026-10-21',dir:'ltr',err:err.at})}</div>
+    <div class="card stack" data-ct-people>${ctPicker('tchr')}</div>
+    ${p2Inp('لید','lead',f.lead,{textarea:true,rows:3,err:err.lead})}
+    ${ctBlocksBox(f,err.blocks||err.body)}
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}${p2Inp('زمان مطالعه (دقیقه)','min',f.min,{type:'numeric',dir:'ltr',err:err.min})}</div>
+    <label class="chip ${f.pin?'on':''}"><input type="checkbox" data-ct-check="pin" ${f.pin?'checked':''} hidden/>سنجاق در صدر فهرست</label>
+    ${imageBox}`;
+  const status=e.status||'draft';
+  const saveLabel=isNew?'ذخیرهٔ پیش‌نویس':'ذخیرهٔ تغییرها';
+  const inTabs=!isNew&&chIs('content.'+kind,e.id);
+  /* رویداد: پیش‌نمایش زندهٔ کارت داخل بخش «مرور و ذخیره» است (#ctPreview همان‌جا)؛ مطلب: ستون کناری قدیمی */
+  const side=kind==='events'?'':`<div class="stack" style="flex:1 1 240px;min-width:0"><div class="head">پیش‌نمایش</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>`;
+  const publishBtn=ctCan('can_publish')&&(isNew||(status!=='published'&&status!=='archived'))?btn(isNew?'انتشار':'ذخیره و انتشار در سایت',`data-ct-save-publish ${CT.busy?'disabled':''}`,'i-globe'):'';
+  return `<section class="card stack" data-ct-editor>
+    <div class="row"><div class="head">${esc(title)}</div><span class="sp"></span>${!isNew?ctStatusLabel(status):tag('هنوز ذخیره نشده','')}${e.version!=null?tag('نسخهٔ '+fa(e.version),''):''}</div>
+    ${e.id?`<p class="cap" data-ct-id="${esc(e.id)}">${e.updated_at?'آخرین تغییر: '+esc(svcWhen(e.updated_at)):'ذخیره‌شده در سرور'}${status==='published'?' · این رکورد الان در سایت دیده می‌شود؛ ذخیره بلافاصله صفحهٔ عمومی را تغییر می‌دهد.':''}</p>`:''}
+    ${e.copyOf?`<p class="cap" data-ct-copy-of="${esc(e.copyOf.id)}">رونوشت از «${esc(e.copyOf.t)}»؛ هنوز ذخیره نشده و تا ذخیره، رکورد تازه‌ای در سرور نیست. تاریخ‌ها و فرم ثبت‌نام را برای رویداد تازه بازبینی کن.</p>`:''}
+    ${ctDraftBanner(e)}
+    ${e.restored?`<p class="cap" data-ct-restored role="status" style="border-inline-start:3px solid var(--warn);padding-inline-start:8px">${ico('i-refresh')} متن تایپ‌شدهٔ پیش از رفتن به فرم‌ساز بازیابی شد؛ هنوز در سرور ذخیره نشده است؛ با «ذخیرهٔ تغییرها» ثبت می‌شود یا با «انصراف» کنار می‌رود.</p>`:''}
+    ${e.formError?`<p class="cap" style="color:var(--stop)" role="alert" tabindex="-1" data-ct-form-error>${esc(e.formError)}</p>`:''}
+    ${isNew?'':chTabs('content.'+kind,e.id,'ویرایش')}
+    ${inTabs?chPanel():''}
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)${inTabs?';display:none':''}" data-ct-edit-pane>
+      <div class="stack" style="flex:2 1 320px;min-width:0">${fields}</div>${side}
+    </div>
+    <div class="row ctfoot" style="flex-wrap:wrap" data-ct-actions>
+      ${btn('انصراف','data-ct-cancel','i-close')}<span class="sp"></span>
+      ${btn(saveLabel,`data-ct-save ${CT.busy?'disabled':''}`,'i-check')}
+      ${kind==='events'?btn('پیش‌نمایش','data-ct-preview-toggle','i-eye'):''}
+      ${publishBtn}
+      ${kind==='events'&&!ctCan('can_publish')?`<small class="cap" data-ct-approval>انتشار با مالک یا مدیر دارای مجوز انتشار انجام می‌شود؛ ذخیره، پیش‌نویس را برای بازبینی نگه می‌دارد.</small>`:''}
+    </div>
+  </section>`;
+}
+/* ══ فرم فشردهٔ رویداد (مرحلهٔ نهایی ۱۴۰۵/۰۸/۰۱) ══
+   سه بخش روی یک صفحه: «اطلاعات اصلی»، «ثبت‌نام و امکانات»، «مرور و ذخیره»؛ جزئیات کم‌کاربرد زیر بلوک‌های
+   بازشوندهٔ <details> با عنوان صریح. همهٔ فیلدها همیشه در DOM‌اند (بسته یا باز) تا ذخیره، خطاهای ۴۲۲،
+   پیش‌نویس مرورگر و جابه‌جایی بین بخش‌ها هیچ متنی را گم نکند. یک فرم، یک حالت: CT.edit.form. */
+const CT_SECTIONS=[['main','اطلاعات اصلی','i-text'],['reg','ثبت‌نام و امکانات','i-users'],['review','مرور و ذخیره','i-eye']];
+const CT_MORE_LABEL={desc:'شرح، نوع، برچسب‌ها و برگزارکننده',sched:'زمان‌بندی دقیق، جلسه‌ها و وضعیت برگزاری',extra:'هزینه، گواهی، شرایط شرکت و پرسش‌وپاسخ'};
+const CT_FIELD_BLOCK={d:'desc',kind:'desc',tags:'desc',tchr:'desc',partnerId:'desc',when:'sched',startsAt:'sched',endsAt:'sched',sess:'sched',parts:'sched',lifecycle:'sched',past:'sched',regOpensAt:'extra',price:'extra',conditions:'extra',cert:'extra',certMin:'extra',certNote:'extra',qaClosed:'extra'};
+const CT_FIELD_SEC={cap:'reg',regClosesAt:'reg',regMode:'reg',regOpensAt:'reg',price:'reg',conditions:'reg',cert:'reg',certMin:'reg',certNote:'reg',qaClosed:'reg',reminders:'reg',remH24:'reg',remH1:'reg'};
+/* سازگاری با مسیرهای قدیمی (پروندهٔ رویداد با شمارهٔ گام ۰..۴) */
+const CT_STEP_TARGET=['main','sched','reg','reg','review'];
+function ctWizStep(){return 0}
+function ctWizGo(n){ctJump(CT_STEP_TARGET[Math.max(0,Math.min(4,Number(n)||0))])}
+function ctWizErrStep(e){const errs=Object.keys(e&&e.errors||{}); const k=errs.find(x=>CT_FIELD_BLOCK[x]||CT_FIELD_SEC[x]); return k?(CT_FIELD_BLOCK[k]||CT_FIELD_SEC[k]):(errs.length?'main':null)}
+function ctMoreOpen(e,key){const errs=e.errors||{}; if(e.more&&e.more[key]===true) return true; if(e.more&&e.more[key]===false) return false; return Object.keys(errs).some(k=>CT_FIELD_BLOCK[k]===key)}
+function ctJump(target){
+  const e=CT.edit; if(!e||!target) return;
+  if(CT_MORE_LABEL[target]){e.more=e.more||{}; e.more[target]=true}
+  if(target==='review') e.previewOpen=true;
+  renderBody();
+  const sel=CT_MORE_LABEL[target]?`[data-ct-more="${target}"]`:target==='when'?'[data-ct-when-row]':target==='notify'?'[data-ct-rem-step],[data-ct-sec="review"]':`[data-ct-sec="${target}"]`;
+  const box=document.querySelector(sel); if(box&&typeof box.scrollIntoView==='function'){try{box.scrollIntoView({block:'start',behavior:'smooth'})}catch(_){}}
+  const first=box&&box.querySelector('input:not([type=hidden]):not([type=file]),select,textarea'); if(first&&typeof first.focus==='function'){try{first.focus({preventScroll:true})}catch(_){}}
+}
+function ctMore(e,key,inner,summary){
+  const open=ctMoreOpen(e,key);
+  return `<details class="ctmore" data-ct-more="${key}" ${open?'open':''}><summary><span class="ctmore-t">${ico('i-chev-left')}<b>${esc(CT_MORE_LABEL[key]||key)}</b></span>${summary?`<small class="cap" data-ct-more-sum="${key}">${esc(summary)}</small>`:''}</summary><div class="stack ctmore-b">${inner}</div></details>`;
+}
+/* شیوهٔ برگزاری: سه گزینهٔ استاندارد؛ متن‌های قدیمی («حضوری و آنلاین»، «برخط»…) حفظ می‌شوند تا مالک خودش عوض کند */
+const CT_MODES=[['حضوری','حضوری'],['آنلاین','آنلاین'],['ترکیبی','ترکیبی (حضوری + آنلاین)']];
+function ctModeKind(mode){const t=String(mode||'').trim(); if(!t) return ''; if(t==='ترکیبی') return 'hybrid'; const on=/آنلاین|برخط|مجازی|online|وبینار/i.test(t), here=/حضوری|سالن|onsite/i.test(t); if(on&&here) return 'hybrid'; if(on) return 'online'; if(t==='حضوری'||here) return 'onsite'; return 'other'}
+function ctModeOptions(mode){const t=String(mode||'').trim(); const std=CT_MODES.some(([v])=>v===t); const opts=[]; if(!t) opts.push(['','انتخاب کن…']); if(t&&!std) opts.push([t,'فعلی: '+t]); return opts.concat(CT_MODES)}
+function ctModeLabel(mode){const k=ctModeKind(mode); return k==='hybrid'?'ترکیبی':k==='online'?'آنلاین':k==='onsite'?'حضوری':String(mode||'').trim()}
+/* نوار پنج گام (مسیر تعریف رویداد): فقط پرش و وضعیت؛ همهٔ فیلدها همیشه در همین صفحه‌اند تا هیچ متنی گم نشود */
+function ctStepRail(e){
+  const f=e.form||{}, err=e.errors||{}, past=!!f.past, mk=ctModeKind(f.mode), linked=ctLinkedForms(e), regs=linked.filter(x=>x.need==='reg'&&x.status!=='archived');
+  const has=v=>!!String(v==null?'':v).trim();
+  const steps=[
+    ['main','مشخصات و پوستر',has(f.t)&&has(f.poster)?'done':has(f.t)?'part':'',err.t||err.poster||err.d?'err':''],
+    ['when','زمان و مکان',has(f.on)&&(mk==='online'?has(f.joinUrl):has(f.place))?'done':has(f.on)||has(f.place)?'part':'',err.on||err.time||err.place||err.joinUrl||err.mode||err.startsAt||err.endsAt?'err':''],
+    ['reg','ثبت‌نام و فرم‌ها',past?'done':regs.length?'done':'',err.cap||err.regClosesAt||err.regMode?'err':''],
+    ['notify','صفحه و اطلاع‌رسانی',past?'done':(f.remH24||f.remH1)?'done':'',err.reminders?'err':''],
+    ['review','مرور و ذخیره','','']];
+  const sum={main:[has(f.t)?'عنوان دارد':'بدون عنوان',has(f.poster)?'پوستر دارد':'بدون پوستر'].join(' · '),
+    when:[has(f.on)?fa(f.on):'بدون تاریخ',mk?ctModeLabel(f.mode):'نوع برگزاری؟'].join(' · '),
+    reg:past?'برگزارشده؛ ثبت‌نام ندارد':regs.length?fa(regs.length)+' فرم ثبت‌نام':e.id?'بدون فرم ثبت‌نام':'پس از ذخیره',
+    notify:past?'بدون یادآور':[(f.remH24?'۲۴ ساعت':''),(f.remH1?'۱ ساعت':'')].filter(Boolean).join(' و ')||'یادآور خاموش',
+    review:e.id?(P2_STATUS[e.status]||[e.status||''])[0]:'هنوز ذخیره نشده'};
+  return `<ol class="ctsteps" data-ct-steps aria-label="گام‌های تعریف رویداد">${steps.map(([k,n,st,er],i)=>`<li><button type="button" class="ctstep ${er||st}" data-ct-step="${k}" aria-describedby="ctstep-${k}"><span class="num">${fa(i+1)}</span><span class="tt"><b>${esc(n)}</b><small id="ctstep-${k}" class="cap">${esc(er?'نیاز به اصلاح':sum[k])}</small></span></button></li>`).join('')}</ol>`;
+}
+function ctEventSections(e,imageBox){
+  const f=e.form, err=e.errors||{}, isNew=!e.id, mk=ctModeKind(f.mode), past=!!f.past;
+  const sec=(key,inner,hint)=>{const row=CT_SECTIONS.find(x=>x[0]===key); return `<section class="card stack ctsec" data-ct-sec="${key}"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="head">${ico(row[2])} ${esc(row[1])}</div><span class="sp"></span>${hint?`<small class="cap">${esc(hint)}</small>`:''}</div>${inner}</section>`};
+  const showPlace=mk!=='online', showJoin=mk==='online'||mk==='hybrid'||mk==='other';
+  if(f.endTime==null) f.endTime=ctEndTimeFrom(f);
+  /* ── ۱. اطلاعات اصلی ── */
+  const whereRow=`<div class="row tight" style="flex-wrap:wrap" data-ct-where="${mk||'none'}">
+    ${p2Sel('نوع برگزاری','mode',f.mode,ctModeOptions(f.mode),{err:err.mode,hint:mk==='online'?'فقط پیوند ورود لازم است':mk==='hybrid'?'مکان و پیوند ورود هر دو':mk==='onsite'?'مکان لازم است':''})}
+    ${showPlace?p2Inp('مکان','place',f.place,{max:240,err:err.place,ph:'سالن، شهر یا نشانی کوتاه'}):''}
+    ${showJoin?p2Inp(mk==='hybrid'?'پیوند ورود آنلاین':'پیوند یا اطلاعات ورود (https)','joinUrl',f.joinUrl,{max:1000,dir:'ltr',ph:'https://…',err:err.joinUrl,hint:'فقط در پنل نگه داشته می‌شود و در صفحهٔ عمومی نمایش داده نمی‌شود؛ ارسال خودکار آن به ثبت‌نام‌شدگان: تصمیم مالک'}):''}
+  </div>`;
+  const timeRow=`<div class="row tight" style="flex-wrap:wrap" data-ct-when-row>
+    ${ctDateInp(past?'تاریخ برگزاری':'تاریخ شروع','on',f.on,{max:12,ph:'۱۴۰۵/۰۸/۰۱',err:err.on,hint:'شمسی؛ با تایپ یا تقویم. ارقام فارسی و لاتین هر دو پذیرفته می‌شوند.',style:'flex:1 1 220px'})}
+    ${ctTimeInp('ساعت شروع','time',f.time,{err:err.time,hint:'۲۴ساعته، مثل ۱۸:۰۰؛ ۱۸۰۰ هم خودکار می‌شود',style:'flex:0 1 150px'})}
+    ${ctTimeInp('ساعت پایان (اختیاری)','endTime',f.endTime,{err:err.endsAt&&!String(f.endsAt||'').trim()?'':err.endsAt,hint:'خالی بماند اگر معلوم نیست',style:'flex:0 1 150px'})}
+  </div>`;
+  const descSum=[String(f.d||'').trim()?'شرح دارد':'بدون شرح',f.kind&&f.kind!=='رویداد'?f.kind:'',pkName('tchr',f.tchr)?'مدرس: '+pkName('tchr',f.tchr):''].filter(Boolean).join(' · ');
+  const descBlock=ctMore(e,'desc',`
+    ${p2Inp('شرح','d',f.d,{textarea:true,rows:5,err:err.d,hint:'برای انتشار لازم است؛ روی صفحهٔ عمومی دیده می‌شود.'})}
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('نوع','kind',f.kind,{max:80,ph:'کارگاه، نشست، اردو…'})}${p2Inp('برچسب‌ها','tags',f.tags,{max:600,hint:'با ویرگول جدا کنید'})}</div>
+    ${isNew?`<div class="stack" data-ct-templates style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>قالب شروع (اختیاری)</strong><span class="sp"></span><small class="cap">فقط فیلدهای خالی را پر می‌کند؛ ذخیره‌ای انجام نمی‌شود.</small></div><div class="admfilters">${CT_TEMPLATES.map(t=>`<button type="button" class="chip ${e.template===t[0]?'on':''}" data-ct-template="${t[0]}">${esc(t[1])}</button>`).join('')}</div></div>`:''}
+    <div class="stack" data-ct-people style="gap:6px"><strong>مدرس و نهاد همکار (پیوند شناسه‌ای)</strong><small class="cap">از ردیف‌های منتشرشدهٔ همین سایت انتخاب می‌شوند؛ تایپ آزاد نام این‌جا ذخیره نمی‌شود.</small>${ctPicker('tchr')}${ctPicker('partnerId')}</div>`,descSum);
+  const parts=Array.isArray(f.parts)?f.parts.filter(x=>x&&(x.title||x.date)):[];
+  const schedSum=[parts.length?fa(parts.length)+' جلسه':(Number(f.sess)?fa(f.sess)+' جلسه':''),String(f.endsAt||'').trim()&&!f.endTime?'پایان: '+fa(f.endsAt):'',f.lifecycle==='cancelled'?'لغوشده':f.lifecycle==='postponed'?'به تعویق افتاده':'',past?'برگزارشده (آرشیو)':''].filter(Boolean).join(' · ');
+  const schedBlock=ctMore(e,'sched',`
+    <small class="cap">ساعت‌ها به وقت تهران و به شکل ۱۴۰۵/۰۸/۱۲ ۱۰:۰۰؛ سرور آن‌ها را به زمان استاندارد تبدیل می‌کند و شمارشگرها و یادآورها از همین مقدار خوانده می‌شوند. «شروع» خودکار از تاریخ و ساعت بالا پر می‌شود.</small>
+    <div class="row tight" style="flex-wrap:wrap">${ctDateInp('شروع رویداد (تاریخ و ساعت)','startsAt',f.startsAt,{max:20,ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',err:err.startsAt})}${ctDateInp('پایان رویداد (تاریخ و ساعت)','endsAt',f.endsAt,{max:20,ph:'خالی = نامشخص',err:err.endsAt,hint:'برای رویداد چندروزه تاریخ دیگری بنویس؛ خالی هرگز خودکار پر نمی‌شود'})}</div>
+    <div class="row tight" style="flex-wrap:wrap">${p2Inp('زمان به نوشتار','when',f.when,{max:120,ph:'پنجشنبه ۱۲ آبان',err:err.when,hint:'اگر خالی باشد از تاریخ پر می‌شود'})}${p2Inp('شمار جلسه‌ها','sess',f.sess,{type:'numeric',dir:'ltr',err:err.sess})}${p2Sel('وضعیت برگزاری','lifecycle',f.lifecycle,[['scheduled','طبق برنامه'],['postponed','به تعویق افتاده'],['cancelled','لغوشده']],{err:err.lifecycle,hint:'لغوشده یا به‌تعویق‌افتاده هرگز ثبت‌نام باز نشان نمی‌دهد.'})}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><label class="chip ${f.past?'on':''}"><input type="checkbox" data-ct-check="past" ${f.past?'checked':''} hidden/>برگزارشده (آرشیو)</label><small class="cap">«پیش‌رو / برگزارشده» در فهرست از تاریخ و روز سرور می‌آید؛ این علامت ثبت‌نام را پایان‌یافته می‌کند و آلبوم و رسانه‌ها را عمومی.</small></div>
+    ${ctPartsBox(f,err.parts)}`,schedSum);
+  const main=sec('main',`
+    ${past?`<p class="cap" data-ct-past-hint>${ico('i-layers')} ثبت رویداد برگزارشده: تاریخ گذشته را وارد کن؛ ثبت‌نام و یادآور لازم نیست. آلبوم، گزارش و فایل‌ها پس از ذخیره در «پروندهٔ رویداد ← فایل‌ها و رسانه‌ها» افزوده می‌شوند.</p>`:''}
+    ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
+    ${whereRow}
+    ${timeRow}
+    ${imageBox}
+    ${descBlock}
+    ${schedBlock}`);
+  /* ── ۲. ثبت‌نام و امکانات ── */
+  const regState=e.registration&&e.registration.state?`<small class="cap" data-ct-reg-state>وضعیت فعلی ثبت‌نام طبق سرور: <b>${esc(CT_REG_STATE[e.registration.state]||e.registration.state)}</b>${e.registration.reason==='no_form'?' (فرم ثبت‌نامی به این رویداد وصل نیست)':''}</small>`:'';
+  const formCard=`<div class="card stack" data-ct-forms-step style="gap:8px">
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم ثبت‌نام</strong><span class="sp"></span><small class="cap">از انبار فرم‌ها؛ فرم‌ساز تنها ویرایشگر فرم است.</small></div>
+    ${ctEventForms(e)}
+    ${isNew&&canPerm('fm_create')?`<div class="row tight" style="flex-wrap:wrap">${btn('ذخیرهٔ پیش‌نویس و ادامه به فرم ثبت‌نام',`data-ct-save-stay ${CT.busy?'disabled':''}`,'i-check')}</div>`:''}
+    ${ctFormLinkPicker(e)}
+    ${regState}
+  </div>`;
+  const regForm=ctRegFormSettings(e);
+  const capField=regForm?`<label class="fld" data-ct-form-sourced="cap"><span class="lbl">ظرفیت</span><input class="input" value="${esc(regForm.cap>0?fa(regForm.cap)+' نفر'+(regForm.wait>0?' + '+fa(regForm.wait)+' انتظار':''):'بدون سقف')}" readonly aria-readonly="true"/><small class="cap">تنظیم‌شده در فرم ثبت‌نام «${esc(regForm.name)}» · <a class="btn sm quiet" style="margin-top:4px" href="${esc(regForm.href)}" data-ct-reg-settings>${ico('i-sliders')}ویرایش تنظیمات ثبت‌نام</a></small></label>`:p2Inp('ظرفیت','cap',f.cap,{type:'numeric',dir:'ltr',err:err.cap,hint:'خالی = بدون سقف در این‌جا'});
+  const capRow=`<div class="row tight" style="flex-wrap:wrap">${capField}${ctDateInp('مهلت ثبت‌نام','regClosesAt',f.regClosesAt,{max:20,ph:'۱۴۰۵/۰۸/۱۰ ۲۳:۵۹',err:err.regClosesAt,hint:'پس از این لحظه فرم در سرور بسته می‌شود؛ خالی = تا شروع'})}${p2Sel('حالت ثبت‌نام','regMode',f.regMode,[['auto','خودکار (زمان و ظرفیت)'],['closed','بسته (دستی)'],['full','ظرفیت تکمیل (دستی)']],{err:err.regMode})}</div>`;
+  const remCard=`<div class="card stack" data-ct-rem-step style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>یادآورهای خودکار</strong><span class="sp"></span><small class="cap">درون‌برنامه‌ای و بله از صف اعلان‌های سرور؛ پیامک ندارد.</small></div>
+    <div class="row tight" style="flex-wrap:wrap" data-ct-reminders>
+      <label class="chip ${f.remH24?'on':''}"><input type="checkbox" data-ct-check="remH24" ${f.remH24?'checked':''} hidden/>۲۴ ساعت قبل</label>
+      <label class="chip ${f.remH1?'on':''}"><input type="checkbox" data-ct-check="remH1" ${f.remH1?'checked':''} hidden/>۱ ساعت قبل</label>
+      ${err.reminders?`<small class="cap" data-ct-err="reminders" style="color:var(--danger)">${esc(err.reminders)}</small>`:''}
+    </div>${ctReminderBox(e)}</div>`;
+  const extraSum=[Number(f.price)?fa(f.price)+' ریال':'رایگان',f.cert?'گواهی دارد':'',String(f.conditions||'').trim()?'شرایط دارد':'',f.qaClosed?'پرسش‌وپاسخ بسته':'',String(f.regOpensAt||'').trim()?'آغاز ثبت‌نام: '+fa(f.regOpensAt):''].filter(Boolean).join(' · ');
+  const extraBlock=ctMore(e,'extra',`
+    <div class="row tight" style="flex-wrap:wrap">${regForm?`<label class="fld" data-ct-form-sourced="price"><span class="lbl">مبلغ</span><input class="input" value="${esc(regForm.priceText)}" readonly aria-readonly="true"/><small class="cap">تنظیم‌شده در فرم ثبت‌نام · <a class="btn sm quiet" style="margin-top:4px" href="${esc(regForm.href)}" data-ct-reg-settings>${ico('i-sliders')}ویرایش تنظیمات ثبت‌نام</a></small></label>`:p2Inp('هزینهٔ نمایشی کارت (ریال)','price',f.price,{type:'numeric',dir:'ltr',err:err.price,hint:'خالی یعنی رایگان؛ مبلغ واقعی پرداخت در فرم ثبت‌نام (فرم‌ساز) است'})}${ctDateInp('آغاز ثبت‌نام','regOpensAt',f.regOpensAt,{max:20,ph:'اختیاری',err:err.regOpensAt})}</div>
+    <div class="row tight" style="flex-wrap:wrap"><label class="chip ${f.cert?'on':''}"><input type="checkbox" data-ct-check="cert" ${f.cert?'checked':''} hidden/>گواهی دارد</label><label class="chip ${f.qaClosed?'on':''}"><input type="checkbox" data-ct-check="qaClosed" ${f.qaClosed?'checked':''} hidden/>پرسش‌وپاسخ بسته</label></div>
+    ${f.cert?`<div class="row tight" style="flex-wrap:wrap">${p2Inp('حداقل حضور برای گواهی (درصد)','certMin',f.certMin,{type:'numeric',dir:'ltr',err:err.certMin})}${p2Inp('توضیح گواهی','certNote',f.certNote,{max:1000})}</div>`:''}
+    ${p2Inp('شرایط شرکت','conditions',f.conditions,{textarea:true,rows:3,max:1000,err:err.conditions,hint:'پیش‌نیاز، گروه سنی، لوازم همراه…'})}
+    <small class="cap" data-ct-waitlist>فهرست انتظار: سرور فعلی آن را در سطح فرم (ظرفیت فرم) نگه می‌دارد نه رویداد. ${tag('تصمیم مالک / نیازمند بک‌اند','warn')}</small>`,extraSum);
+  const fileLinks=!isNew?`<div class="row tight" style="flex-wrap:wrap;align-items:center" data-ct-file-links><small class="cap">${past?'تاریخچه، فایل‌ها و رسانه‌ها، حضور و گواهی':'ثبت‌نام‌ها، یادآورها و فایل‌ها'} در پروندهٔ رویداد:</small>${btn('پروندهٔ رویداد',`data-ct-file="${esc(e.id)}"`,'i-doc')}${eiCanRes()?btn('فایل‌ها و رسانه‌ها',`data-ct-interaction="${esc(e.id)}"`,'i-upload'):''}</div>`:'';
+  const reg=sec('reg',past?`
+    <p class="cap" data-ct-past-reg>رویداد برگزارشده: ثبت‌نام و یادآور تازه‌ای فعال نمی‌شود؛ فرم‌های وصل‌شدهٔ قبلی برای گزارش و حضور می‌مانند.</p>
+    ${e.id?ctEventForms(e):''}${regState}
+    ${fileLinks}
+    ${extraBlock}`:`
+    ${formCard}
+    ${capRow}
+    ${remCard}
+    ${fileLinks}
+    ${extraBlock}`,past?'':'فرم، ظرفیت، مهلت و یادآورها');
+  /* ── ۳. مرور و ذخیره ── */
+  const review=sec('review',ctReviewBody(e),'همه‌چیز از همین فرم و پاسخ سرور');
+  return CT_TIME_LIST+ctStepRail(e)+main+reg+review;
+}
+/* مسیر بازگشت از فرم‌ساز به همین ویرایشگر و همین بخش (admin.html#edit=<id>&sec=reg&from=builder)؛ فقط نشانی محلی */
+function ctEditBack(id,sec){return 'admin.html#'+new URLSearchParams({edit:String(id),sec:sec||'reg',from:'builder'}).toString()}
+function ctEditHash(){const e=CT.edit; if(!e||!e.id) return ''; return '#'+new URLSearchParams({edit:String(e.id)}).toString()}
+function ctEditHashClear(){if(IS_TEST) return; try{if(/^#edit=/.test(location.hash)) history.replaceState(null,'','#'+(S.sec==='newev'?'events':S.sec||'events'))}catch(err){}}
+function ctParseEditHash(h){const s=String(h||'').replace(/^#/,''); if(!/^edit=/.test(s)) return null; const p=new URLSearchParams(s); const id=String(p.get('edit')||''); if(!/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null; const sec=String(p.get('sec')||''); return {id,sec:/^[a-z]{1,20}$/.test(sec)?sec:'',from:p.get('from')==='builder'}}
+function ctLinkedForms(e){if(!e||!e.id) return []; const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(e.id)&&f.purpose!=='recording_access')}
+/* یک منبع برای ظرفیت و مبلغ: تنظیمات فرم ثبت‌نام (همان چیزی که سرور اعمال می‌کند). ویرایشگر رویداد فقط نمایش می‌دهد؛ مقدار اعلامی قدیمی رویداد بازنویسی نمی‌شود. */
+function ctRegFormSettings(e){
+  const regs=ctLinkedForms(e).filter(f=>f.need==='reg'&&f.status!=='archived'); if(!regs.length) return null;
+  const f=regs.find(x=>x.status==='published')||regs[0], st=f.settings&&typeof f.settings==='object'?f.settings:{}, n=v=>Math.max(0,parseInt(String(v==null?'':v).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)),10)||0);
+  const fin=Array.isArray(st.fin)?st.fin.filter(x=>x&&typeof x==='object'):[], req=fin.filter(x=>x.req!==false&&x.req!==0), base=req.reduce((a,x)=>a+Math.floor((n(x.p)*(100-Math.min(100,n(x.off)))+50)/100),0);
+  const priceText=!fin.length?'رایگان':(fin.length>req.length?'از ':'')+fa(base.toLocaleString('en-US'))+' ریال';
+  const back=ctEditBack(e.id);
+  return {id:f.id,name:f.name||f.title||'فرم ثبت‌نام',status:f.status,cap:n(st.cap),wait:n(st.wait),priceText,href:'create.html?'+new URLSearchParams({fid:String(f.id),back}).toString()};
+}
+/* گام ۴: وصل‌کردن فرمِ موجودِ انبار به همین رویداد (فقط مرجع؛ تعریف فرم در فرم‌ساز می‌ماند). نامزدها از همان GET /api/forms */
+function ctFormLinkPicker(e){
+  if(!e||!e.id||!canPerm('fm_create')) return '';
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const cands=items.filter(f=>!String(f.ev||'')&&f.purpose!=='recording_access'&&f.status!=='archived'&&f.status!=='closed');
+  const busy=CT.busy==='link';
+  const opt=f=>{const st=FS_STATUS[f.status]||[f.status||'','']; const locked=f.status==='published'?'منتشرشده؛ اول متوقف کن':Number(f.response_count)>0?'پاسخ دارد؛ قفل':''; return `<option value="${esc(String(f.id))}" ${locked?'disabled':''}>${esc(f.name||f.title||'فرم')} · ${esc(FS_PURPOSE[f.purpose]||f.need||'')} · ${esc(st[0])}${locked?' · '+locked:''}</option>`};
+  const linked=ctLinkedForms(e);
+  const unlink=linked.filter(f=>f.status!=='published'&&!(Number(f.response_count)>0)).map(f=>`<button type="button" class="btn sm quiet" data-ct-form-unlink="${esc(String(f.id))}" ${busy?'disabled':''}>${ico('i-close')}جداکردن «${esc(f.name||f.title||'فرم')}»</button>`).join('');
+  return `<div class="stack" data-ct-form-link style="gap:6px">
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>وصل‌کردن فرم موجود از انبار</strong><span class="sp"></span><small class="cap">فقط فرم‌های پیش‌نویس/متوقف بدون پاسخ قابل جابه‌جایی‌اند؛ سرور همین را می‌سنجد.</small></div>
+    ${cands.length?`<div class="row tight" style="flex-wrap:wrap;align-items:center"><select class="inp eflinkpick" data-ct-form-link-pick aria-label="انتخاب فرم برای پیوند به این رویداد" ${busy?'disabled':''}><option value="">یک فرم بی‌رویداد را انتخاب کن…</option>${cands.map(opt).join('')}</select>${btn('وصل به این رویداد',`data-ct-form-link-do ${busy?'disabled':''}`,'i-link')}</div>`
+      :`<small class="cap" data-ct-form-link-empty>فرم بی‌رویدادی در انبار نیست؛ با «ساخت فرم ثبت‌نام» فرم تازه با شناسهٔ همین رویداد ساخته می‌شود.</small>`}
+    ${unlink?`<div class="row tight" style="flex-wrap:wrap">${unlink}</div>`:''}
+    ${CT.linkMsg?p2Msg(CT.linkMsg):''}
+  </div>`;
+}
+async function ctLinkForm(formId,eventId){
+  const api=window.NORA_SERVER_API, e=CT.edit; if(!e||CT.busy||!api||typeof api.linkFormEvent!=='function') return;
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; const form=items.find(f=>String(f.id)===String(formId));
+  if(!form){CT.linkMsg={kind:'stop',text:'فرم انتخاب‌شده در فهرست سرور نیست؛ فهرست را بازخوانی کن.'}; renderBody(); return}
+  CT.busy='link'; CT.linkMsg=null; renderBody();
+  try{const saved=await api.linkFormEvent(formId,eventId,form.version,staffCsrfCookie());
+    CT.linkMsg={kind:'ok',text:eventId?`«${saved.name||form.name||'فرم'}» به این رویداد وصل شد · نسخهٔ ${fa(saved.version)}`:`«${saved.name||form.name||'فرم'}» از این رویداد جدا شد`};
+    FORMS_SRV.loaded=false; await fsLoad();
+    if(e.id&&typeof api.getAdminContent==='function'){try{const r=await api.getAdminContent(CT.kind,e.id); if(r&&r.record&&CT.edit===e){e.registration=r.record.registration||null}}catch(_){/* وضعیت ثبت‌نام بعداً از سرور می‌آید */}}
+  }catch(error){const f=p2FieldErr(error); const code=error&&error.code||'';
+    const map={published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند؛ فرم تازه بساز.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست را بازخوانی کن.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
+    CT.linkMsg={kind:'stop',text:map[code]||(f&&f.text)||p2Err(error,'پیوند فرم انجام نشد؛ چیزی تغییر نکرد.')}; if(code==='version_conflict'){FORMS_SRV.loaded=false; fsLoad()}}
+  finally{CT.busy=''; renderBody()}
+}
+/* بخش ۳: مرور و ذخیره؛ همهٔ وضعیت‌ها از فرم فعلی یا پاسخ سرور (ثبت‌نام، فرم‌ها، یادآورها)، بدون عدد ساختگی */
+function ctReviewRows(e){
+  const f=e.form||{}, linked=ctLinkedForms(e), pub=linked.filter(x=>x.status==='published'), mk=ctModeKind(f.mode), past=!!f.past;
+  const t=jToday(), d=ctJDate(f.on), onPast=d&&(d.j.jy*10000+d.j.jm*100+d.j.jd)<(t.jy*10000+t.jm*100+t.jd);
+  const sd=ctJDate(f.startsAt), ed=ctJDate(f.endsAt), endBefore=sd&&ed&&(ed.j.jy*10000+ed.j.jm*100+ed.j.jd<sd.j.jy*10000+sd.j.jm*100+sd.j.jd||(ed.j.jy===sd.j.jy&&ed.j.jm===sd.j.jm&&ed.j.jd===sd.j.jd&&ed.rest&&sd.rest&&h24(ed.rest,true)<h24(sd.rest,true)));
+  const rows=[
+    {k:'t',l:'عنوان',v:String(f.t||'').trim(),ok:!!String(f.t||'').trim(),need:true,to:'main'},
+    {k:'mode',l:'نوع برگزاری',v:ctModeLabel(f.mode),ok:!!mk,need:true,to:'main'},
+    {k:'on',l:'تاریخ و ساعت',v:[f.on?fa(f.on):'',f.time?fa(f.time):'',f.endTime?'تا '+fa(f.endTime):''].filter(Boolean).join(' '),ok:!!(String(f.on||'').trim()||String(f.startsAt||'').trim()),need:true,to:'main'},
+    mk!=='online'?{k:'place',l:'مکان',v:String(f.place||'').trim(),ok:!!String(f.place||'').trim(),need:mk==='onsite'||mk==='hybrid',to:'main'}:null,
+    mk==='online'||mk==='hybrid'?{k:'joinUrl',l:'پیوند ورود',v:String(f.joinUrl||'').trim()?'ثبت شده (فقط پنل)':'',ok:!!String(f.joinUrl||'').trim(),need:false,to:'main'}:null,
+    {k:'d',l:'شرح',v:String(f.d||'').trim()?fa(String(f.d).trim().length)+' نویسه':'',ok:!!String(f.d||'').trim(),need:true,to:'desc',note:'برای انتشار لازم است'},
+    {k:'poster',l:'پوستر',v:String(f.poster||'').trim()?'دارد':'',ok:!!String(f.poster||'').trim(),need:false,to:'main'},
+    past?null:{k:'form',l:'فرم ثبت‌نام',v:e.id?(linked.length?fa(linked.length)+' فرم'+(pub.length?' · منتشرشده: '+fa(pub.length):' · هیچ‌کدام منتشر نشده'):''):'پس از ذخیرهٔ پیش‌نویس',ok:pub.length>0,need:false,to:'reg',note:e.id&&!pub.length?'تا فرم منتشرشده نباشد دکمهٔ ثبت‌نام باز نمی‌شود':''},
+    past?null:{k:'cap',l:'ظرفیت و مهلت',v:[String(f.cap||'').trim()?fa(f.cap)+' نفر':'',String(f.regClosesAt||'').trim()?'مهلت '+fa(f.regClosesAt):'',f.regMode!=='auto'?(f.regMode==='closed'?'بسته (دستی)':'ظرفیت تکمیل (دستی)'):''].filter(Boolean).join(' · '),ok:!!(String(f.cap||'').trim()||f.regMode!=='auto'||String(f.regClosesAt||'').trim()),need:false,to:'reg'},
+    past?null:{k:'rem',l:'یادآورها',v:[f.remH24?'۲۴ ساعت':'',f.remH1?'۱ ساعت':''].filter(Boolean).join(' و ')||'خاموش',ok:!!(f.remH24||f.remH1),need:false,to:'reg'}
+  ].filter(Boolean);
+  const warns=[];
+  if(onPast&&!past) warns.push({t:'تاریخ در گذشته است ولی علامت «برگزارشده (آرشیو)» ندارد؛ در فهرست «برگزارشده» می‌آید و ثبت‌نام از زمان سرور بسته می‌شود.',to:'sched'});
+  if(!onPast&&past&&d) warns.push({t:'علامت «برگزارشده» دارد ولی تاریخش نگذشته است.',to:'sched'});
+  if(endBefore) warns.push({t:'ساعت پایان پیش از شروع است؛ سرور آن را نمی‌پذیرد.',to:'main'});
+  if(!String(f.d||'').trim()) warns.push({t:'برای «انتشار» شرح رویداد لازم است (قاعدهٔ سرور)؛ پیش‌نویس بدون شرح ذخیره می‌شود.',to:'desc'});
+  if(f.lifecycle==='cancelled') warns.push({t:'وضعیت «لغوشده»: ثبت‌نام هرگز باز نشان داده نمی‌شود.',to:'sched'});
+  if(mk==='online'&&String(f.place||'').trim()) warns.push({t:'رویداد آنلاین است ولی مکان هم دارد؛ مکان در کارت نمایش داده می‌شود.',to:'main'});
+  return {rows:rows,warns:warns,linked:linked,pub:pub};
+}
+function ctReviewBody(e){
+  const f=e.form||{}, r=ctReviewRows(e), linked=r.linked, pub=r.pub;
+  const reg=e.registration&&e.registration.state?(CT_REG_STATE[e.registration.state]||e.registration.state):(e.id?'هنوز از سرور نیامده':'پس از ذخیره');
+  const live=e.id?`<a class="btn sm ${e.status==='published'?'':'quiet'}" href="event.html?id=${encodeURIComponent(String(e.id))}" target="_blank" rel="noopener" data-ct-public-link>${ico('i-globe')}صفحهٔ عمومی${e.status==='published'?'':' (تا انتشار خالی است)'}</a>`:'';
+  const jump=(to,label)=>`<button type="button" class="chip" data-ct-jump="${to}">${ico('i-pen')}${esc(label||'ویرایش')}</button>`;
+  return `<div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
+      <div class="stack" style="flex:1 1 280px;min-width:0" data-ct-review>
+        ${r.rows.map(x=>`<div class="row ctrev" data-ct-review-row="${x.k}" data-ct-review-ok="${x.ok?'1':'0'}" style="gap:6px;align-items:flex-start"><span aria-hidden="true">${x.ok?'✓':(x.need?'!':'·')}</span><span class="sp"><b>${esc(x.l)}</b>${x.v?`<small class="cap"> · ${esc(x.v)}</small>`:x.need?`<small class="cap" style="color:var(--stop)"> · وارد نشده</small>`:`<small class="cap"> · ندارد</small>`}${x.note&&!x.ok?`<br><small class="cap">${esc(x.note)}</small>`:''}</span>${x.ok?'':jump(x.to)}</div>`).join('')}
+        ${r.warns.length?`<div class="stack" data-ct-review-warns style="gap:4px">${r.warns.map(w=>`<div class="row" style="gap:6px;align-items:flex-start"><span aria-hidden="true">⚠</span><small class="cap sp">${esc(w.t)}</small>${jump(w.to,'بررسی')}</div>`).join('')}</div>`:''}
+        <div class="card stack" data-ct-review-server style="gap:6px">
+          <strong>وضعیت از سرور</strong>
+          <div class="row tight" style="flex-wrap:wrap">${tag('انتشار: '+((P2_STATUS[e.status]||[e.status||'ذخیره‌نشده'])[0]),e.status==='published'?'ok':'')}${tag('ثبت‌نام: '+reg,e.registration&&e.registration.state==='open'?'ok':'')}${e.id?tag('فرم‌های وصل‌شده: '+fa(linked.length)+(linked.length?' (منتشرشده: '+fa(pub.length)+')':''),pub.length?'ok':(f.past?'':'warn')):''}</div>
+          ${linked.length?`<div class="stack" style="gap:4px">${linked.map(x=>{const st=FS_STATUS[x.status]||[x.status||'','']; return `<small class="cap" data-ct-review-form="${esc(String(x.id))}">${esc(x.name||x.title||'فرم')} · ${esc(FS_PURPOSE[x.purpose]||x.need||'')} · ${esc(st[0])}${x.response_count!=null?' · '+fa(x.response_count)+' پاسخ ثبت‌شده':''}</small>`}).join('')}</div>`:''}
+          <div class="row tight" style="flex-wrap:wrap">${live}</div>
+        </div>
+      </div>
+      <div class="stack" style="flex:1 1 240px;min-width:0" data-ct-review-card ${e.previewOpen?'':'hidden'}><div class="head">پیش‌نمایش کارت</div><p class="cap">چیدمان تقریبی کارت در سایت؛ از همین فرم ساخته می‌شود و تا ذخیره و انتشار، در سایت نیست.</p><div id="ctPreview">${ctPreview(f)}</div></div>
+    </div>`;
+}
+/* ══ فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه‌ها و گزارش‌های هر رویداد ═════════════
+   ابزار داخلی داخل همان ماژول «رویدادها»؛ از ردیف رویداد باز می‌شود. مجوز
+   در سرور اعمال می‌شود (ev_create برای منابع، ev_publish برای پاسخ/تعدیل)؛
+   پنهان‌کردن دکمه این‌جا فقط برای خوانایی است. هیچ رکورد نمونه‌ای جایگزین
+   پاسخ خالی سرور نمی‌شود. */
+const EI={open:false,eventId:'',title:'',status:'',tab:'overview',all:false,loading:false,error:'',data:null,busy:'',msg:null,key:'',
+  res:{edit:null,includeRemoved:false,upFor:'',upError:'',upProgress:null,session:'',preview:''},q:{status:'',answered:'',offset:0,limit:20,draft:{}},rv:{status:'',offset:0,limit:20},rp:{status:'open',offset:0,limit:20},summary:null,summaryError:'',summaryLoading:false};
+const EI_ACCESS=[['public','عمومی'],['registered','ثبت‌نام‌شدگان تأییدشده'],['attended','حاضران تأییدشده'],['purchased','دارندگان دسترسی محتوای ضبط‌شده (خرید/رایگان/اعطا)'],['staff','فقط کادر']];
+const EI_ACCESS_LABEL=Object.fromEntries(EI_ACCESS);
+const EI_RES_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],removed:['حذف‌شده','stop']};
+const EI_DELIVERY_MODE={download:'قابل دانلود',view:'فقط مشاهدهٔ برخط'};
+const EI_Q_STATUS={pending:['در انتظار','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop']};
+const EI_RV_STATUS={pending:['در انتظار تأیید','warn'],published:['منتشرشده','ok'],hidden:['پنهان','stop'],withdrawn:['پس‌گرفته','']};
+const EI_DELIVERY={queued:['در صف ارسال','warn'],retrying:['در حال تلاش دوباره','warn'],delivered:['تحویل‌شده','ok'],failed:['ناموفق','stop']};
+const EI_ERR={external_exposure_acknowledgement_required:'این ویدیوی پولی روی سکوی بیرونی میزبانی می‌شود و نورا از آن محافظت نمی‌کند؛ انتشار فقط با تأیید صریح شما انجام می‌شود (کادر تأیید را علامت بزنید یا در پرسش انتشار تأیید کنید).',duplicate_question:'این پرسش تکراری است.',qa_closed:'پرسش‌وپاسخ این رویداد بسته است.',question_not_answered:'این پرسش هنوز پاسخی ندارد که اعلان آن فرستاده شود.',
+  resource_file_missing:'پیش از انتشار باید فایل منبع بارگذاری شود.',resource_kind_immutable:'نوع منبع (فایل/پیوند) پس از ساخت تغییر نمی‌کند.',resource_not_file:'این منبع فایل نیست یا حذف شده است.',
+  resource_removed:'این منبع حذف شده و دیگر ویرایش نمی‌شود.',review_exists:'برای این حساب پیش‌تر دیدگاهی ثبت شده است.',review_locked:'این دیدگاه قفل است.',review_withdrawn:'این دیدگاه پس گرفته شده است.',
+  file_empty:'فایل خالی است.',file_too_large:'حجم فایل بیش از سقف پذیرفته‌شدهٔ این سرور است.',resumable_requires_private_storage:'بارگذاری قطعه‌ای فقط با حافظهٔ خصوصی دیسک روی سرور ممکن است.',upload_session_open_by_other:'کاربر دیگری در حال بارگذاری برای همین منبع است؛ بعداً دوباره تلاش کنید.',offset_mismatch:'ترتیب قطعه‌ها با سرور نمی‌خواند؛ بارگذاری از آخرین قطعهٔ تأییدشده ادامه می‌یابد.',chunk_checksum_mismatch:'قطعهٔ ارسالی در مسیر خراب شد و سرور آن را نپذیرفت.',sha256_mismatch:'اثر انگشت فایل روی سرور با فایل شما نمی‌خواند؛ هیچ فایلی جایگزین نشد.',upload_session_expired:'نشست بارگذاری منقضی شد (۲۴ ساعت)؛ بارگذاری را از نو شروع کنید.',upload_session_lost:'بخش موقت بارگذاری روی سرور پیدا نشد؛ از نو شروع کنید.',upload_incomplete:'هنوز همهٔ قطعه‌ها به سرور نرسیده است.',upload_completing:'سرور در حال نهایی‌کردن همین بارگذاری است.',upload_cancelled:'بارگذاری لغو شد؛ چیزی جایگزین نشد.',chunk_too_large:'اندازهٔ قطعه از سقف سرور بیشتر است.',resource_file_unavailable:'فایل این منبع روی حافظهٔ سرور در دسترس نیست؛ وضعیت ذخیره‌سازی را ببینید.',file_type_not_allowed:'سرور نوع این فایل را مجاز نمی‌داند (PDF، تصویر، اسناد آفیس، ZIP، MP3 یا متن).',
+  text_required:'متن یا دلیل لازم است.',text_too_short:'متن خیلی کوتاه است.',text_too_long:'متن خیلی بلند است.',invalid_link:'پیوند باید با https:// آغاز شود.',video_source_required:'نشانی یا شناسهٔ ویدیو لازم است.',invalid_video_source:'نشانی یا شناسهٔ ویدیو معتبر نیست.',html_not_allowed:'کد HTML یا iframe پذیرفته نمی‌شود؛ فقط نشانی یا شناسهٔ ویدیو را وارد کنید.',unsupported_video_host:'فقط نشانی‌های youtube.com / youtu.be و aparat.com پذیرفته می‌شوند.',invalid_video_id:'شناسهٔ ویدیو در این نشانی پیدا نشد یا معتبر نیست.',unsupported_video_provider:'این منبع ویدیو پشتیبانی نمی‌شود.',invalid_datetime:'زمان انتشار معتبر نیست.',
+  invalid_choice:'گزینهٔ انتخاب‌شده معتبر نیست.',unexpected_fields:'فیلد ناشناخته‌ای فرستاده شد.',too_many_open_questions:'شمار پرسش‌های باز این رویداد از حد گذشته است.',upload_rate_limited:'شمار بارگذاری‌ها در این ساعت از حد گذشته؛ کمی بعد دوباره تلاش کنید.'};
+function eiErr(error,fallback){const code=error&&error.code||''; if(EI_ERR[code]) return EI_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&EI_ERR[f.code]) return EI_ERR[f.code]+(f.field?` (${f.field})`:''); return p2Err(error,fallback)}
+function eiStatusTag(map,status){const row=map[status]||[status||'نامشخص','']; return tag(row[0],row[1])}
+function eiCanRes(){return canPerm('ev_create')}
+function eiCanMod(){return canPerm('ev_publish')}
+function eiOpen(eventId,title,status,tab){
+  const sameEvent=EI.open&&!EI.all&&eventId&&EI.eventId===eventId;
+  EI.open=true; EI.all=!eventId; EI.eventId=eventId||''; EI.title=title||(sameEvent?EI.title:''); EI.status=status||(sameEvent?EI.status:''); EI.tab=eventId?(tab==='info'?'overview':tab||'overview'):'questions';
+  CH.open=false; EI.data=null; EI.error=''; EI.msg=null; EI.key=''; EI.res.edit=null; EI.res.upFor=''; EI.res.upError=''; EI.res.session=''; recReset(); EI.q.offset=0; EI.q.draft={}; EI.rv.offset=0; EI.rp.offset=0;
+  if(!sameEvent) efReset();
+  if(EI.all){EI.q.answered='false'} else {EI.q.answered=''}
+  efSyncHash();
+  eiLoad();
+}
+function eiClose(){EI.open=false; EI.data=null; EI.res.edit=null; if(!IS_TEST){try{if(/^#event=/.test(location.hash)) history.replaceState(null,'','#events')}catch(e){}} renderBody()}
+function eiKey(){return [EI.all?'*':EI.eventId,EI.tab,efKey(),EI.res.includeRemoved,EI.q.status,EI.q.answered,EI.q.offset,EI.rv.status,EI.rv.offset,EI.rp.status,EI.rp.offset,REC.orders.status,REC.orders.q,REC.orders.offset].join('|')}
+async function eiLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listEventResources!=='function'){EI.error='رابط سرور در دسترس نیست.'; renderBody(); return}
+  const key=eiKey(); EI.loading=true; EI.error=''; renderBody();
+  try{
+    let result;
+    if(!EI.all&&(EF_TAB_KEYS.has(EI.tab))) result=await efLoadTab(api);
+    else if(EI.tab==='notify') result=await api.getAdminContent('events',EI.eventId);
+    else if(EI.tab==='resources'){result=await api.listEventResources(EI.eventId,{include_removed:EI.res.includeRemoved?'true':''}); if(!REC.data&&typeof api.getEventRecording==='function'){try{REC.data=await api.getEventRecording(EI.eventId)}catch(_){/* بدون محصول هم فهرست منابع کار می‌کند */}}}
+    else if(EI.tab==='recording') result=await recLoad();
+    else if(EI.tab==='orders') result=await api.listRecordingOrders({status:REC.orders.status,event_id:EI.all?'':EI.eventId,q:REC.orders.q,limit:REC.orders.limit,offset:REC.orders.offset});
+    else if(EI.tab==='questions') result=EI.all?await api.listAllEventQuestions({status:EI.q.status,answered:EI.q.answered||'false',limit:EI.q.limit,offset:EI.q.offset})
+      :await api.listEventQuestions(EI.eventId,{status:EI.q.status,answered:EI.q.answered,limit:EI.q.limit,offset:EI.q.offset});
+    else if(EI.tab==='reviews') result=await api.listEventReviews(EI.eventId,{status:EI.rv.status,limit:EI.rv.limit,offset:EI.rv.offset});
+    else result=await api.listEventReports({status:EI.rp.status,event_id:EI.all?'':EI.eventId,limit:EI.rp.limit,offset:EI.rp.offset});
+    if(key===eiKey()){EI.data=result; EI.key=key}
+  }catch(error){if(key===eiKey()){EI.data=null; EI.error=EI.all?eiErr(error,'فهرست از سرور دریافت نشد.'):efErr(error,'پروندهٔ رویداد از سرور دریافت نشد.'); EI.key=key}}
+  finally{EI.loading=false; if(key!==eiKey()){eiLoad(); return} if(S.sec==='events'||S.sec==='newev') renderBody()}
+}
+async function eiLoadSummary(){
+  const api=window.NORA_SERVER_API; if(!api||typeof api.eventInteractionSummary!=='function'||!eiCanMod()) return;
+  try{EI.summary=await api.eventInteractionSummary(); EI.summaryError=''}
+  catch(error){EI.summary=null; EI.summaryError=eiErr(error,'خلاصهٔ پرسش‌ها و گزارش‌ها دریافت نشد.')}
+  finally{EI.summaryLoading=false}
+  if(S.sec==='dash'||S.sec==='events') renderBody();
+}
+function eiSummaryCard(){
+  if(!eiCanMod()) return '';
+  const s=EI.summary;
+  if(!s&&!EI.summaryError) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
+  if(!s) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('خطا','stop')}</div><p class="cap">${esc(EI.summaryError)}</p>${btn('تلاش دوباره','data-ei-summary-refresh','i-refresh')}</article>`;
+  const counts=[['پرسش بی‌پاسخ',s.unanswered_questions,'warn'],['دیدگاه در انتظار تأیید',s.pending_reviews,'warn'],['گزارش باز',s.open_reports,'stop'],['اعلان ناموفق',s.failed_notifications,'stop']];
+  return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور')}</div>
+    <div class="row tight" style="flex-wrap:wrap">${counts.map(([l,n,k])=>tag(`${l}: ${fa(Number(n)||0)}`,Number(n)>0?k:'')).join('')}</div>
+    <p class="cap">پاسخ، انتشار، پنهان‌کردن و رسیدگی به گزارش از صفحهٔ هر رویداد یا فهرست بی‌پاسخ‌ها انجام می‌شود؛ هر اقدام با نام اقدام‌کننده و دلیل ثبت می‌شود.</p>
+    <div class="row tight" style="flex-wrap:wrap">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-chev-left')}${Number(s.open_reports)>0?btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag'):''}</div></article>`;
+}
+/* شش بخش پروندهٔ رویداد (msg 97): هر بخش یک کاشی روی صفحهٔ اصلی پرونده و یک زیرصفحه با عنوان و «بازگشت».
+   زیرزبانه‌های قبلی حذف نشده‌اند؛ فقط زیر بخش خودشان گروه شده‌اند. شمارنده‌ها فقط از counts سرور؛ بخشی که عدد سروری ندارد عدد نشان نمی‌دهد. */
+const EF_GROUPS=[
+  {k:'overview',t:'نمای کلی',d:'مشخصات، زمان، ظرفیت و مبلغ',i:'i-info',tabs:['info']},
+  {k:'forms',t:'فرم‌ها و ثبت‌نام',d:'فرم ثبت‌نام، نظرسنجی و آزمون',i:'i-doc',tabs:['forms','survey']},
+  {k:'regs',t:'ثبت‌نام‌کنندگان',d:'فهرست، جست‌وجو و پروندهٔ هر نفر',i:'i-users',tabs:['regs']},
+  {k:'pay',t:'پرداخت و حضور',d:'پرداخت‌ها، بلیت و ثبت حضور',i:'i-ticket',tabs:['payments','tickets']},
+  {k:'comms',t:'محتوا و ارتباطات',d:'فایل‌ها، اطلاع‌رسانی، ضبط‌شده، پرسش و دیدگاه',i:'i-chat',tabs:['resources','notify','recording','orders','questions','reviews']},
+  {k:'reports',t:'گزارش و گواهی',d:'گواهی‌ها و گزارش‌های باز',i:'i-medal',tabs:['certs','reports']}];
+function efGroupOf(tab){return EF_GROUPS.find(g=>g.tabs.includes(tab))||null}
+function eiTabList(){
+  const tabs=[];
+  /* پروندهٔ رویداد (یکپارچه‌سازی): نمای کلی، فرم‌ها و فعالیت‌ها، ثبت‌نام‌کنندگان، پرداخت‌ها، بلیت و حضور، نظرسنجی و آزمون، گواهی‌ها، فایل‌ها و رسانه‌ها، اطلاع‌رسانی و تاریخچه؛ سپس ابزارهای تعامل */
+  const regPerm=canPerm('fm_responses')||canPerm('attendance');
+  if(!EI.all) tabs.push(['overview','نمای کلی'],['info','مشخصات رویداد']);
+  if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['forms','فرم‌ها و فعالیت‌ها']);
+  if(!EI.all&&regPerm) tabs.push(['regs','ثبت‌نام‌کنندگان']);
+  if(!EI.all&&canPerm('finance')) tabs.push(['payments','پرداخت‌ها']); /* سرور فهرست پرداخت‌ها را فقط با finance می‌دهد؛ تأیید رسید از پروندهٔ هر نفر انجام می‌شود */
+  if(!EI.all&&regPerm) tabs.push(['tickets','بلیت و حضور']);
+  if(!EI.all&&(canPerm('fm_create')||canPerm('fm_responses'))) tabs.push(['survey','نظرسنجی و آزمون']);
+  if(!EI.all&&canPerm('certificate')) tabs.push(['certs','گواهی‌ها']);
+  if(!EI.all&&eiCanRes()) tabs.push(['resources','فایل‌ها و رسانه‌ها']);
+  if(!EI.all&&canPerm('ev_create')) tabs.push(['notify','اطلاع‌رسانی و تاریخچه']);
+  if(!EI.all&&(eiCanRes()||eiCanMod())) tabs.push(['recording','ضبط‌شده و فروش']);
+  if(recCanOrders()) tabs.push(['orders',EI.all?'سفارش‌های محتوای ضبط‌شده (همهٔ رویدادها)':'سفارش‌های ضبط‌شده']);
+  tabs.push(['questions',EI.all?'پرسش‌های بی‌پاسخ (همهٔ رویدادها)':'پرسش‌وپاسخ']);
+  if(!EI.all) tabs.push(['reviews','دیدگاه‌ها']);
+  if(eiCanMod()) tabs.push(['reports',EI.all?'گزارش‌های باز (همهٔ رویدادها)':'گزارش‌ها']);
+  return tabs;
+}
+function eiHeader(){
+  const tabs=eiTabList();
+  const live=EI.all||EF.overview?'':(EI.status==='published'?`<a class="btn sm quiet" href="event.html?id=${encodeURIComponent(EI.eventId)}" target="_blank" rel="noopener">${ico('i-eye')}مشاهدهٔ صفحه</a>`:'');
+  if(EI.all) return `<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به رویدادها</button>
+      <b>کارتابل پرسش‌ها و گزارش‌ها</b><span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>
+    <div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های کارتابل">${tabs.map(([k,l])=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const label=Object.fromEntries(tabs), allowed=new Set(tabs.map(([k])=>k));
+  const top=`<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm quiet" data-ei-close>${ico('i-back')}بازگشت به رویدادها</button><span class="sp"></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}</div>`;
+  if(EI.tab==='overview') return top+(efHead()||`<b>${esc(EI.title||EI.eventId)}</b>`);
+  /* زیرصفحهٔ یک بخش: بازگشت به پرونده + عنوان بخش + زیرزبانه‌های همان بخش؛ بخش‌های دیگر فقط در یک منوی جمع‌شده (یک ردیف، بدون چند خط چیپ در موبایل) */
+  const g=efGroupOf(EI.tab)||EF_GROUPS[0], mine=g.tabs.filter(k=>allowed.has(k));
+  const others=EF_GROUPS.filter(x=>x.k!==g.k&&x.tabs.some(k=>allowed.has(k)));
+  return top+`<div class="row efgrp" data-ef-group="${g.k}" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <button class="btn sm quiet" data-ei-tab="overview" data-ef-hub-back>${ico('i-back')}پروندهٔ رویداد</button>
+      <span class="stack" style="gap:0;flex:1 1 160px"><strong>${esc(g.t)}</strong><small class="cap">${esc(EI.title||'')}${EI.status?' · '+esc((P2_STATUS[EI.status]||[EI.status])[0]):''}</small></span>
+      <details class="efmore"><summary class="btn sm quiet" aria-label="بخش‌های دیگر پرونده">${ico('i-more')}بخش‌های دیگر</summary><div class="efmore-menu" role="menu">${others.map(x=>`<div class="efmore-grp"><b>${esc(x.t)}</b>${x.tabs.filter(k=>allowed.has(k)).map(k=>`<button class="lnk" role="menuitem" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</div>`).join('')}</div></details></div>
+    ${mine.length>1?`<div class="admfilters hub-tabs" role="tablist" aria-label="زیربخش‌های ${esc(g.t)}">${mine.map(k=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</div>`:''}`;
+}
+/* صفحهٔ اصلی پرونده: سربرگ، شمارنده‌های سرور و شش کاشی هم‌اندازه؛ هر کاشی به اولین زیربخش مجاز می‌رود و زیربخش‌های دیگرش را به‌صورت پیوند کوتاه دارد */
+function efHub(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const e=ov.event||{}, c=ov.counts||{}, forms=ov.forms||[], fin=!!(ov.can&&ov.can.finance), rs=ov.registration_settings, declared=ov.declared||{};
+  const diff=rs&&((Number(declared.cap)||0)!==(Number(rs.cap)||0)||(Number(declared.price)||0)!==(Number(rs.price&&rs.price.base)||0));
+  const tabs=eiTabList(), label=Object.fromEntries(tabs), allowed=new Set(tabs.map(([k])=>k));
+  const kpis=[['ثبت‌نام',c.total],['پذیرفته‌شده',c.accepted],['فهرست انتظار',c.waitlisted],['پرداخت‌شده',c.paid],['در انتظار پرداخت',c.pending_payment],['ناموفق',c.failed_payment],['حاضر',c.checked_in]].filter(([,n])=>n!=null);
+  const num={overview:e.on||e.when?esc(e.on||e.when):'',forms:fa(forms.length)+' فرم',regs:c.total!=null?fa(c.total)+' نفر':'',
+    pay:[fin&&c.paid!=null?fa(c.paid)+' پرداخت‌شده':'',c.checked_in!=null?fa(c.checked_in)+' حاضر':''].filter(Boolean).join('؛ '),comms:'',reports:''};
+  const desc={pay:fin?'پرداخت‌ها، بلیت و ثبت حضور':'بلیت و ثبت حضور (مبالغ فقط با دسترسی مالی)'};
+  const tiles=EF_GROUPS.map(g=>{const mine=g.tabs.filter(k=>allowed.has(k)); if(!mine.length) return '';
+    const subs=mine.length>1?`<span class="eftile-sub">${mine.map(k=>`<button class="lnk" data-ei-tab="${k}">${esc(label[k])}</button>`).join('<span aria-hidden="true">·</span>')}</span>`:'';
+    return `<div class="eftile" data-ef-tile="${g.k}"><button class="eftile-main" data-ei-tab="${mine[0]}"><span class="ic">${ico(g.i)}</span><span class="stack" style="gap:2px;text-align:start"><b>${esc(g.t)}</b><small class="cap">${esc(desc[g.k]||g.d)}</small>${num[g.k]?`<small class="eftile-num">${num[g.k]}</small>`:''}</span></button>${subs}</div>`}).join('');
+  return `<div class="stack" data-ef-overview="${esc(String(e.id||EI.eventId))}" data-ef-hub>
+    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
+    <div class="eftiles">${tiles}</div></div>`;
+}
+function eiPanel(){
+  let body;
+  if(EI.loading&&!EI.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
+  else if(EI.error) body=`<div class="stack">${p2Msg({kind:'stop',text:EI.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  else if(EI.tab==='overview') body=efHub();
+  else if(EI.tab==='info') body=efOverview();
+  else if(EI.tab==='forms') body=efForms();
+  else if(EI.tab==='regs') body=efRegs();
+  else if(EI.tab==='payments') body=efPayments();
+  else if(EI.tab==='tickets') body=efTickets();
+  else if(EI.tab==='survey') body=efSurvey();
+  else if(EI.tab==='certs') body=efCerts();
+  else if(EI.tab==='notify') body=eiNotify();
+  else if(EI.tab==='resources') body=eiResources();
+  else if(EI.tab==='recording') body=recPanel();
+  else if(EI.tab==='orders') body=recOrdersPanel();
+  else if(EI.tab==='questions') body=eiQuestions();
+  else if(EI.tab==='reviews') body=eiReviews();
+  else body=eiReports();
+  return `<section class="card stack" data-ei-panel>${eiHeader()}${p2Msg(EI.msg)}${body}</section>`;
+}
+/* ── پروندهٔ رویداد (مرجع: زبانه‌های اطلاعات/ثبت‌نام‌ها/حضور/نظرسنجی/مالی/گواهینامه/اطلاع‌رسانی) ──
+   منبع هر زبانه: اطلاعات و اطلاع‌رسانی = GET /api/admin/content/events/{id} (رکورد + registration + reminders)؛
+   ثبت‌نام‌ها و نظرسنجی = GET /api/forms (فیلد ev + response_count)؛ حضور و گواهینامه = ماژول‌های واقعی بخش کاربران.
+   هیچ شمارندهٔ محلی ساخته نمی‌شود؛ «پاسخ ثبت‌شده» ≠ «ثبت‌نام تأییدشده» ≠ «حضور» ≠ «گواهی». */
+function eiEventForms(){const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(EI.eventId))}
+function eiFormRow(f){const st=FS_STATUS[f.status]||[f.status||'','']; const id=encodeURIComponent(String(f.id||''));
+  return `<div class="admlirow" data-ei-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ ثبت‌شده':''}</small></span>${tag(st[0],st[1])}
+    <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}
+function eiInfo(){
+  const r=EI.data&&EI.data.record; if(!r) return emptyBox('رکورد رویداد از سرور نیامد.');
+  const reg=r.registration||null;
+  const rows=[['نوع',r.kind],['تاریخ',r.on||r.when],['ساعت',r.time],['مکان',r.place],['شیوهٔ برگزاری',r.mode],['ظرفیت اعلامی',r.cap?fa(r.cap):''],['هزینهٔ نمایشی کارت',r.price?fa(r.price)+' ریال':'رایگان'],
+    ['مدرس',r.tchr?ctRefMeta('tchr',r.tchr).replace(/^مدرس: /,''):''],['نهاد همکار',r.partnerId?ctRefMeta('partnerId',r.partnerId).replace(/^نهاد: /,''):''],['جلسه‌ها',Array.isArray(r.parts)&&r.parts.length?fa(r.parts.length)+' جلسه':(r.sess?fa(r.sess)+' جلسه':'')],
+    ['وضعیت انتشار',(P2_STATUS[r.status]||[r.status||''])[0]],['وضعیت ثبت‌نام (سرور)',reg&&reg.state?(CT_REG_STATE[reg.state]||reg.state)+(reg.reason==='no_form'?' · فرم ثبت‌نام منتشرشده‌ای وصل نیست':''):'نامشخص'],
+    ['نسخهٔ محتوا',EI.data.version!=null?fa(EI.data.version):''],['آخرین تغییر',r.updated_at?svcWhen(r.updated_at)||r.updated_at:'']].filter(([,v])=>v);
+  return `<div class="stack" data-ei-info="${esc(String(r.id||''))}">
+    <div class="row" style="flex-wrap:wrap;gap:8px"><strong>${esc(r.t||'')}</strong><span class="sp"></span>${ctCan('can_edit')?btn('ویرایش در ویزارد',`data-ei-edit="${esc(String(r.id||''))}"`,'i-pen'):''}</div>
+    ${r.d?`<p class="cap" style="white-space:pre-wrap">${esc(String(r.d))}</p>`:''}
+    <div class="admlist">${rows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div>${esc(String(v))}</div></span></div>`).join('')}</div>
+    <small class="cap">همهٔ مقدارها از رکورد سروری همین رویداد؛ ویرایش فقط در ویزارد (همان ذخیرهٔ نسخه‌دار).</small></div>`;
+}
+function eiRegs(){
+  if(FORMS_SRV.error&&!FORMS_SRV.data) return `<div class="stack">${p2Msg({kind:'stop',text:FORMS_SRV.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  const regs=eiEventForms().filter(f=>f.purpose!=='recording_access'&&f.purpose!=='survey'&&f.purpose!=='exam');
+  const total=regs.reduce((n,f)=>n+(Number(f.response_count)||0),0);
+  const jumps=`<div class="row tight" style="flex-wrap:wrap">${canPerm('attendance')?btn('ثبت‌نام و حضور این رویداد (بخش کاربران)','data-ei-jump-attendance','i-check'):''}${canPerm('certificate')?btn('گواهی‌های این رویداد','data-ei-jump-cert','i-medal'):''}</div>`;
+  return `<div class="stack" data-ei-regs>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های ثبت‌نام این رویداد</strong><span class="sp"></span>${regs.length?tag(fa(regs.length)+' فرم · '+fa(total)+' پاسخ ثبت‌شده',''):''}</div>
+    <small class="cap">«پاسخ ثبت‌شده» شمار پاسخ‌های فرم از سرور است؛ وضعیت پذیرش/پرداخت/حضور هر نفر در «ثبت‌نام و حضور» بخش کاربران دیده و تصمیم‌گیری می‌شود.</small>
+    ${regs.length?`<div class="admlist">${regs.map(eiFormRow).join('')}</div>`:`<div data-ei-regs-empty>${emptyBox('فرم ثبت‌نامی به این رویداد وصل نیست؛ تا فرمِ منتشرشده نباشد ثبت‌نام باز نمی‌شود.')}</div>${ctCan('can_edit')?btn('وصل یا ساخت فرم در ویزارد (گام ۴)',`data-ei-edit="${esc(String(EI.eventId))}" data-ei-edit-step="3"`,'i-link'):''}`}
+    ${jumps}</div>`;
+}
+function eiSurvey(){
+  if(FORMS_SRV.error&&!FORMS_SRV.data) return `<div class="stack">${p2Msg({kind:'stop',text:FORMS_SRV.error})}${btn('تلاش دوباره','data-ei-refresh','i-refresh')}</div>`;
+  const list=eiEventForms().filter(f=>f.purpose==='survey'||f.purpose==='exam');
+  const q=new URLSearchParams({ev:String(EI.eventId),back:'admin.html'});
+  return `<div class="stack" data-ei-survey>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>نظرسنجی و آزمون این رویداد</strong><span class="sp"></span>${canPerm('fm_create')?`<a class="btn sm ${list.length?'quiet':'primary'}" href="create.html?${q.toString()}" data-ei-survey-create>${ico('i-plus')}ساخت در فرم‌ساز</a>`:''}</div>
+    <small class="cap">نظرسنجی و آزمون فرم‌های جدا با هدف خودشان هستند و با فرم ثبت‌نام قاطی نمی‌شوند؛ نتیجه‌ها در پاسخ‌های همان فرم.</small>
+    ${list.length?`<div class="admlist">${list.map(eiFormRow).join('')}</div>`:`<div data-ei-survey-empty>${emptyBox('نظرسنجی یا آزمونی به این رویداد وصل نیست.')}</div>`}</div>`;
+}
+function eiNotify(){
+  const d=EI.data||{}, r=d.record||{};
+  const fake={id:r.id,reminders:d.reminders||null,form:{remH24:!!(r.reminders&&r.reminders.h24),remH1:!!(r.reminders&&r.reminders.h1)}};
+  const hist=isOwner()?(chIs('content.events',EI.eventId)?chPanel():btn('تاریخچهٔ عملیات این رویداد (ردپای سرور)',`data-ch-pane="hist" data-ch-type="content.events" data-ch-id="${esc(String(EI.eventId))}"`,'i-clock')):`<small class="cap">تاریخچهٔ عملیات فقط با نشست مالک خوانده می‌شود.</small>`;
+  return `<div class="stack" data-ei-notify>
+    <strong>یادآورهای خودکار</strong>
+    <div class="row tight" style="flex-wrap:wrap">${tag('۲۴ ساعت قبل: '+(fake.form.remH24?'روشن':'خاموش'),fake.form.remH24?'ok':'')}${tag('۱ ساعت قبل: '+(fake.form.remH1?'روشن':'خاموش'),fake.form.remH1?'ok':'')}</div>
+    ${ctReminderBox(fake)}
+    <small class="cap">اعلان‌های انتشار و ثبت‌نام از همان صف اعلان‌های سرور فرستاده می‌شوند؛ وضعیت تحویل هر پیام در «گزارش‌ها › صندوق خروجی». نامهٔ دستی/همگانی عمداً دکمه ندارد (بدون نقطهٔ پایانی، سقف و ممیزی).</small>
+    ${hist}</div>`;
+}
+/* ══ پروندهٔ رویداد (یکپارچه‌سازی ۱۴۰۵/۰۸/۰۱) ═════════════════════════════════
+   همهٔ زبانه‌های رویداد از نماهای سروریِ همین رویداد خوانده می‌شوند:
+   GET /api/admin/events/{id}/overview | registrations | registrations/{rid} | payments | forms/{fid}/summary
+   ظرفیت و مبلغ تنها در تنظیمات فرم ثبت‌نام است («تنظیم‌شده در فرم ثبت‌نام»)؛ شمارنده‌ها از قاعدهٔ سرور می‌آیند؛
+   وضعیت ثبت‌نام ≠ وضعیت پرداخت ≠ رسید ارسال‌شده ≠ حضور. شناسهٔ رویداد و زبانه در نشانی (#event=…&tab=…) می‌ماند. */
+const EF_TABS=[['overview','نمای کلی'],['forms','فرم‌ها و فعالیت‌ها'],['regs','ثبت‌نام‌کنندگان'],['payments','پرداخت‌ها'],['tickets','بلیت و حضور'],['survey','نظرسنجی و آزمون'],['certs','گواهی‌ها'],['resources','فایل‌ها و رسانه‌ها'],['notify','اطلاع‌رسانی و تاریخچه']];
+const EF_TAB_KEYS=new Set(['overview','info','forms','regs','payments','tickets','survey','certs']);
+const EF_FORM_TYPE={registration:'فرم ثبت‌نام',survey:'نظرسنجی',exam:'آزمون',other:'فرم',purchase:'فرم خرید محتوای ضبط‌شده'};
+const EF_REG_STATUS={accepted:['پذیرفته‌شده','ok'],waitlisted:['فهرست انتظار','warn'],cancelled:['ثبت‌نام لغوشده','stop']};
+const EF_CANCEL_SOURCE={event_file:'رد رسید در پروندهٔ رویداد',inbox:'رد رسید در صندوق پیام‌ها',owner_delete:'حذف پاسخ توسط مالک'};
+const EF_PAY_STATE={free:['رایگان',''],paid:['پرداخت‌شده','ok'],pending:['در انتظار پرداخت','warn'],failed:['ناموفق','stop']};
+const EF_PAY_STATUS={pending:'در انتظار پرداخت',awaiting_receipt:'در انتظار رسید',receipt_submitted:'رسید فرستاده شده؛ تأیید نشده',paid:'پرداخت موفق (بله)',paid_manual:'تأیید دستی رسید',paid_review:'در حال بررسی',rejected:'رد شده',cancelled:'لغو شده',expired:'منقضی'};
+const EF_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
+/* برچسب فارسی رویدادهای تاریخچه؛ کُد خام فقط وقتی برچسبی نداریم */
+const EF_AUDIT_FA={'payment.manual_decision':'تصمیم دستی دربارهٔ پرداخت','registration.cancel':'لغو ثبت‌نام (عکس‌برداری نگه داشته شد)','registration.cancellations.view':'دیدن فهرست لغوشده‌ها','registration.cancellation.receipt_view':'دیدن رسید ثبت‌نام لغوشده','attendance.check_in':'ثبت حضور','attendance.undo_check_in':'برگرداندن حضور','form.response.delete':'حذف پاسخ','workflow.decide':'تصمیم از صندوق پیام‌ها','recording.access.grant':'دادن دسترسی ضبط‌شده','recording.access.revoke':'گرفتن دسترسی ضبط‌شده'};
+const EF_ROLE_FA={owner:'مالک',manager:'مدیر',club_supervisor:'سرپرست باشگاه',system:'سامانه',bot:'ربات'};
+const EF_ERR={receipt_missing:'تا رسیدی ثبت نشده، تأیید پرداخت ممکن نیست.',payment_not_reviewable:'این پرداخت در وضعیتی نیست که بشود درباره‌اش تصمیم گرفت.',payment_status_changed:'وضعیت پرداخت در این فاصله عوض شده؛ پرونده بازخوانی شد.',event_not_found:'این رویداد پیدا نشد یا حذف شده است.',registration_not_found:'این ثبت‌نام در پروندهٔ همین رویداد نیست.',form_not_found:'این فرم به همین رویداد وصل نیست.',receipt_not_found:'رسیدی ثبت نشده است.',reason_required:'نوشتن دلیل لازم است.',payment_state_changed:'وضعیت این پرداخت در این میان تغییر کرده؛ فهرست تازه شد.',payment_not_card_transfer:'این پرداخت از راه بله انجام شده و دستی تأیید نمی‌شود.',payment_not_decidable:'این پرداخت در وضعیت قابل‌تصمیم نیست.',receipt_task_locked:'رسید این پرداخت در صندوق پیام‌ها در حال بررسی است.',ticket_not_available:'برای این ثبت‌نام هنوز بلیتی صادر نشده است.',published_form_read_only:'این فرم منتشرشده است؛ اول در فرم‌ساز دریافت پاسخ را متوقف کن.',form_has_responses:'این فرم پاسخ دارد و پیوند رویدادش تغییر نمی‌کند.',purchase_form_event_fixed:'فرم خرید محتوای ضبط‌شده به محصول خودش وصل است.',version_conflict:'فرم هم‌زمان جای دیگری تغییر کرده؛ فهرست تازه شد.',unknown_reference:'شناسهٔ رویداد در محتوای سایت نیست.'};
+const EF={overview:null,ovError:'',
+  regs:{q:'',status:'',payment:'',attendance:'',form_id:'',offset:0,limit:50},
+  att:{q:'',attendance:'',offset:0,limit:50},
+  pay:{q:'',state:'',offset:0,limit:50,receipt:''},
+  certs:{offset:0,limit:20},
+  person:{id:'',data:null,loading:false,error:'',decision:'',reason:''},
+  sum:{formId:'',data:null,loading:false,error:''},
+  cancel:{open:false,data:null,loading:false,error:'',receipt:'',focus:''},
+  link:{pick:'',busy:'',msg:null},busy:'',msg:null};
+function efErr(error,fallback){const code=error&&error.code||''; if(EF_ERR[code]) return EF_ERR[code]; const f=p2FieldErr(error); if(f&&EF_ERR[f.code]) return EF_ERR[f.code]; if(error&&error.status===404) return EF_ERR.event_not_found; return p2Err(error,fallback)}
+function efReset(){EF.overview=null; EF.ovError=''; EF.regs={q:'',status:'',payment:'',attendance:'',form_id:'',sort:'newest',offset:0,limit:50}; EF.att={q:'',attendance:'',offset:0,limit:50}; EF.pay={q:'',state:'',offset:0,limit:50,receipt:''}; EF.certs={offset:0,limit:20}; EF.person={id:'',data:null,loading:false,error:'',decision:'',reason:''}; EF.sum={formId:'',data:null,loading:false,error:''}; EF.cancel={open:false,data:null,loading:false,error:'',receipt:'',focus:''}; EF.link={pick:'',busy:'',msg:null}; EF.busy=''; EF.msg=null}
+function efHash(){if(EI.all||!EI.eventId) return '#events'; const p=new URLSearchParams({event:String(EI.eventId),tab:String(EI.tab||'overview')}); if(EI.tab==='regs'&&EF.person.id) p.set('reg',EF.person.id); if(EI.tab==='survey'&&EF.sum.formId) p.set('form',EF.sum.formId); return '#'+p.toString()}
+function efSyncHash(){if(IS_TEST) return; try{const h=efHash(); if(location.hash!==h) history.replaceState(null,'',h)}catch(e){}}
+function efParseHash(h){const s=String(h||'').replace(/^#/,''); if(!/^event=/.test(s)) return null; const p=new URLSearchParams(s); const id=String(p.get('event')||''); if(!/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null; const tab=String(p.get('tab')||'overview'); const safe=v=>/^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):''; return {id,tab:EF_TAB_KEYS.has(tab)||['resources','notify','recording','orders','questions','reviews','reports'].includes(tab)?tab:'overview',reg:safe(p.get('reg')),form:safe(p.get('form'))}}
+function efMoney(n){return fa(Number(n||0).toLocaleString('en-US'))+' ریال'}
+function efKey(){return [EF.regs.q,EF.regs.status,EF.regs.payment,EF.regs.attendance,EF.regs.form_id,EF.regs.sort,EF.regs.offset,EF.att.q,EF.att.attendance,EF.att.offset,EF.pay.q,EF.pay.state,EF.pay.offset,EF.certs.offset,EF.sum.formId].join('|')}
+async function efLoadOverview(api){const r=await api.eventFileOverview(EI.eventId); EF.overview=r; EF.ovError=''; if(r&&r.event){EI.title=r.event.t||r.event.title||EI.title; EI.status=r.event.status||EI.status} return r}
+async function efLoadTab(api){
+  if(EI.tab==='overview'||EI.tab==='forms'||EI.tab==='survey'||EI.tab==='certs'){
+    const ov=await efLoadOverview(api);
+    if(EI.tab==='overview') efSyncHash();
+    if(EI.tab==='forms'&&canPerm('fm_create')&&(!FORMS_SRV.loaded||!FORMS_SRV.data)){try{await fsLoad()}catch(_){/* گزینه‌های اتصال بعداً */}}
+    if(EI.tab==='survey'&&EF.sum.formId){const ok=(ov.forms||[]).some(f=>String(f.id)===EF.sum.formId&&(f.type==='survey'||f.type==='exam')); if(!ok){EF.sum.formId=''; EF.sum.data=null} else efLoadSummary(api)}
+    if(EI.tab==='certs'&&canPerm('certificate')) return {overview:ov,certs:await api.listAdminCertificates({event_ref:EI.eventId,limit:EF.certs.limit,offset:EF.certs.offset})};
+    return ov;
+  }
+  if(!EF.overview){try{await efLoadOverview(api)}catch(error){if(error&&error.status===404) throw error}}
+  if(EI.tab==='regs'){const r=await api.eventFileRegistrations(EI.eventId,{q:EF.regs.q,status:EF.regs.status,payment:EF.regs.payment,attendance:EF.regs.attendance,form_id:EF.regs.form_id,sort:EF.regs.sort==='newest'?'':EF.regs.sort,limit:EF.regs.limit,offset:EF.regs.offset}); if(EF.person.id&&!EF.person.data&&!EF.person.loading) efLoadPerson(api,EF.person.id); return r}
+  if(EI.tab==='tickets') return api.eventFileRegistrations(EI.eventId,{q:EF.att.q,attendance:EF.att.attendance,status:'accepted',limit:EF.att.limit,offset:EF.att.offset});
+  if(EI.tab==='payments') return api.eventFilePayments(EI.eventId,{q:EF.pay.q,state:EF.pay.state,limit:EF.pay.limit,offset:EF.pay.offset});
+  return null;
+}
+async function efLoadPerson(api,id){
+  EF.person.id=id; EF.person.data=null; EF.person.error=''; EF.person.loading=true; EF.person.decision=''; EF.person.reason=''; efSyncHash(); renderBody();
+  try{const r=await api.eventFileRegistration(EI.eventId,id); if(EF.person.id===id) EF.person.data=r}
+  catch(error){if(EF.person.id===id) EF.person.error=efErr(error,'پروندهٔ ثبت‌نام دریافت نشد.')}
+  finally{EF.person.loading=false; if(EF.person.id===id&&EI.open) renderBody()}
+}
+async function efLoadSummary(api){
+  const id=EF.sum.formId; if(!id) return; EF.sum.data=null; EF.sum.error=''; EF.sum.loading=true; efSyncHash(); renderBody();
+  try{const r=await api.eventFileFormSummary(EI.eventId,id); if(EF.sum.formId===id) EF.sum.data=r}
+  catch(error){if(EF.sum.formId===id) EF.sum.error=efErr(error,'خلاصهٔ پاسخ‌ها دریافت نشد.')}
+  finally{EF.sum.loading=false; if(EF.sum.formId===id&&EI.open) renderBody()}
+}
+/* ── سربرگ پرونده ── */
+function efStatusTag(ov){
+  const e=ov&&ov.event||{}, reg=e.registration||{}, c=ov&&ov.counts||{};
+  if(e.status==='draft') return tag('پیش‌نویس','');
+  if(e.status==='archived') return tag('بایگانی','stop');
+  if(e.status==='paused') return tag('انتشار متوقف','warn');
+  if(reg.state==='ended'||e.past) return tag('برگزارشده','');
+  if(reg.state==='open') return tag('ثبت‌نام باز','ok');
+  if(reg.state==='full'||c.full) return tag('تکمیل ظرفیت','warn');
+  if(reg.state==='not_started') return tag('ثبت‌نام هنوز آغاز نشده','warn');
+  if(reg.state==='none'||reg.reason==='no_form') return tag('بدون فرم ثبت‌نام','warn');
+  return tag('ثبت‌نام بسته','stop');
+}
+function efPriceText(rs){
+  if(!rs) return '';
+  const p=rs.price||{}; if(p.valid===false) return 'تنظیمات مالی فرم ناقص است';
+  if(!p.paid) return 'رایگان';
+  return (p.has_optional?'از ':'')+efMoney(p.base)+(Array.isArray(rs.methods)&&rs.methods.length?' · '+rs.methods.map(m=>EF_METHOD[m]||m).join(' / '):'');
+}
+function efFormSettingsHref(formId){const q=new URLSearchParams({fid:String(formId),back:'admin.html'+efHashFor('overview')}); return 'create.html?'+q.toString()}
+function efHashFor(tab){const p=new URLSearchParams({event:String(EI.eventId),tab:String(tab||'overview')}); return '#'+p.toString()}
+function efHead(){
+  const ov=EF.overview; if(!ov) return '';
+  const e=ov.event||{}, c=ov.counts||{}, rs=ov.registration_settings, can=ov.can||{};
+  const when=[e.on||e.when,e.time,e.mode?ctModeLabel(e.mode)||e.mode:'',e.place].filter(Boolean).join(' · ');
+  const capText=rs?(c.cap>0?fa(c.total||0)+' از '+fa(c.cap)+' نفر'+(c.remaining!=null?' · باقی‌مانده '+fa(c.remaining):''):fa(c.total||0)+' نفر · بدون سقف'):'';
+  const poster=e.poster?`<span class="ctposter sm" data-ef-poster><img src="${esc(String(e.poster))}" alt=""/></span>`:`<span class="ic" style="width:56px;height:56px">${ico('i-calendar')}</span>`;
+  const actions=[e.public_path?`<a class="btn sm quiet" href="${esc(e.public_path)}" target="_blank" rel="noopener">${ico('i-eye')}مشاهدهٔ صفحه</a>`:'',
+    can.edit_event&&ctCan('can_edit')?btn('ویرایش رویداد',`data-ei-edit="${esc(String(e.id||EI.eventId))}"`,'i-pen'):'',
+    rs&&can.forms?`<a class="btn sm quiet" href="${esc(efFormSettingsHref(rs.form_id))}" data-ef-reg-settings>${ico('i-sliders')}ویرایش تنظیمات ثبت‌نام</a>`:'',
+    !rs&&can.forms&&!e.past?btn('ساخت فرم ثبت‌نام','data-ef-tab="forms"','i-plus'):''].filter(Boolean).join('');
+  return `<div class="row" data-ef-head style="flex-wrap:wrap;gap:12px;align-items:flex-start">${poster}
+    <div class="stack" style="flex:1 1 240px;gap:4px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong style="font-size:1.05em">${esc(e.t||e.title||'')}</strong>${efStatusTag(ov)}</div>
+      ${when?`<small class="cap">${esc(when)}</small>`:''}
+      <div class="row tight ef-meta">${capText?tag('ثبت‌نام: '+capText,c.full?'warn':''):tag('بدون فرم ثبت‌نام','warn')}${rs?tag((rs.form_status==='published'?'فرم ثبت‌نام: فعال':rs.form_status==='paused'?'فرم ثبت‌نام: متوقف':rs.form_status==='draft'?'فرم ثبت‌نام: پیش‌نویس':'فرم ثبت‌نام: بایگانی'),rs.form_status==='published'?'ok':'warn'):''}${rs?tag('مبلغ: '+efPriceText(rs),''):''}</div>
+      ${rs?`<small class="cap" data-ef-source>ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «${esc(rs.form_name||'')}»</small>`:''}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-self:center">${actions}</div></div>`;
+}
+/* ── نمای کلی ── */
+function efOverview(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const e=ov.event||{}, c=ov.counts||{}, rs=ov.registration_settings, forms=ov.forms||[], declared=ov.declared||{};
+  const kpis=[['ثبت‌نام',c.total],['پذیرفته‌شده',c.accepted],['فهرست انتظار',c.waitlisted],['پرداخت‌شده',c.paid],['در انتظار پرداخت',c.pending_payment],['ناموفق',c.failed_payment],['حاضر',c.checked_in]].filter(([,n])=>n!=null);
+  const diff=rs&&((Number(declared.cap)||0)!==(Number(rs.cap)||0)||(Number(declared.price)||0)!==(Number(rs.price&&rs.price.base)||0));
+  const rows=[['تاریخ',e.on||e.when],['ساعت',e.time],['شیوهٔ برگزاری',e.mode?ctModeLabel(e.mode)||e.mode:''],['مکان',e.place],['نوع',e.kind],
+    ['مدرس',e.tchr?ctRefMeta('tchr',e.tchr).replace(/^مدرس: /,''):''],['نهاد همکار',e.partnerId?ctRefMeta('partnerId',e.partnerId).replace(/^نهاد: /,''):''],
+    ['وضعیت انتشار',(P2_STATUS[e.status]||[e.status||''])[0]],['وضعیت ثبت‌نام',e.registration&&e.registration.state?CT_REG_STATE[e.registration.state]||e.registration.state:''],
+    ['ظرفیت',rs?(rs.cap>0?fa(rs.cap)+' نفر'+(rs.wait>0?' + '+fa(rs.wait)+' انتظار':''):'بدون سقف')+' · تنظیم‌شده در فرم ثبت‌نام':(declared.cap?fa(declared.cap)+' (اعلامی؛ تا فرم ثبت‌نام نباشد اعمال نمی‌شود)':'')],
+    ['مبلغ',rs?efPriceText(rs)+' · تنظیم‌شده در فرم ثبت‌نام':(declared.price?fa(declared.price)+' ریال (اعلامی؛ پرداختی گرفته نمی‌شود)':'رایگان')],
+    ['بررسی رسید',rs&&rs.receipt_review_required?'لازم است':''],['آخرین تغییر',e.updated_at?svcWhen(e.updated_at)||e.updated_at:'']].filter(([,v])=>v);
+  const formLine=forms.length?forms.map(f=>`${EF_FORM_TYPE[f.type]||'فرم'}: «${esc(f.name||'')}» (${esc((FS_STATUS[f.status]||[f.status])[0])}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''})`).join('؛ '):'';
+  return `<div class="stack" data-ef-info="${esc(String(e.id||EI.eventId))}">
+    <div class="row tight ef-meta">${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
+    ${e.d?`<p class="cap" style="white-space:pre-wrap">${esc(String(e.d))}</p>`:''}
+    <div class="admlist">${rows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div>${esc(String(v))}</div></span></div>`).join('')}</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های این رویداد</strong><span class="sp"></span>${btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left')}</div>
+    ${formLine?`<small class="cap">${formLine}</small>`:`<small class="cap">هنوز فرمی به این رویداد وصل نیست.</small>`}</div>`;
+}
+/* ── فرم‌ها و فعالیت‌ها ── */
+function efFormCard(f){
+  const st=FS_STATUS[f.status]||[f.status||'',''], id=encodeURIComponent(String(f.id||'')), can=EF.overview&&EF.overview.can||{};
+  const linkState=f.status==='published'?'پیوند فعال':f.status==='paused'?'پیوند هست؛ دریافت پاسخ متوقف':'پیوند هست؛ هنوز منتشر نشده';
+  const back=encodeURIComponent('admin.html'+efHashFor('forms'));
+  const canUnlink=can.forms&&f.type!=='purchase'&&f.status!=='published'&&!(Number(f.response_count)>0);
+  const why=f.type==='purchase'?'فرم خرید به محصول ضبط‌شده وصل است':f.status==='published'?'اول در فرم‌ساز دریافت پاسخ را متوقف کن':Number(f.response_count)>0?'فرم پاسخ دارد؛ پیوند ثابت می‌ماند':'';
+  return `<div class="admlirow" data-ef-form="${esc(String(f.id||''))}" data-ei-form-row="${esc(String(f.id||''))}"><span class="ic">${ico(f.type==='survey'?'i-chart':f.type==='exam'?'i-graduation':'i-doc')}</span>
+    <span class="sp"><b>${esc(f.name||'فرم')}</b><small class="cap">${esc(EF_FORM_TYPE[f.type]||'فرم')} · ${fa(f.response_count||0)} پاسخ · ${esc(linkState)}</small><small class="cap">آخرین تغییر: ${esc(svcWhen(f.updated_at)||'')}</small></span>${tag(st[0],st[1])}
+    <span class="row" style="gap:4px;flex-wrap:wrap;justify-content:flex-end">
+      ${can.responses?(f.type==='registration'?btn('ثبت‌نام‌کنندگان',`data-ef-tab="regs" data-ef-form-filter="${esc(String(f.id))}"`,'i-users'):f.type==='survey'||f.type==='exam'?btn('مشاهدهٔ پاسخ‌ها',`data-ef-tab="survey" data-ef-sum="${esc(String(f.id))}"`,'i-chart'):`<a class="btn sm quiet" href="builder.html?fid=${id}#responses">${ico('i-inbox')}مشاهدهٔ پاسخ‌ها</a>`):''}
+      ${can.forms?`<a class="btn sm quiet" href="create.html?fid=${id}&back=${back}">${ico('i-pen')}ویرایش فرم</a>`:''}
+      ${can.forms&&f.type!=='purchase'?(canUnlink?btn('قطع اتصال',`data-ef-unlink="${esc(String(f.id))}" data-ef-ver="${esc(String(f.version||0))}" ${EF.link.busy?'disabled':''}`,'i-close'):`<small class="cap" title="${esc(why)}">قطع اتصال ممکن نیست: ${esc(why)}</small>`):''}</span></div>`;
+}
+function efForms(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const forms=ov.forms||[], can=ov.can||{}, e=ov.event||{}, past=!!e.past||(e.registration&&e.registration.state==='ended');
+  const back='admin.html'+efHashFor('forms');
+  const mk=(need,label,primary)=>{const q=new URLSearchParams({ev:String(EI.eventId),need,name:String(e.t||''),back}); return `<a class="btn sm ${primary?'primary':'quiet'}" href="create.html?${q.toString()}" data-ef-create="${need}">${ico('i-plus')}${esc(label)}</a>`};
+  const hasReg=forms.some(f=>f.type==='registration');
+  const create=can.forms?`<div class="row tight" style="flex-wrap:wrap" data-ef-create-row>${past?'':mk('reg',hasReg?'فرم ثبت‌نام دیگر':'ساخت فرم ثبت‌نام',!hasReg)}${mk('survey','ساخت نظرسنجی',false)}${mk('exam','ساخت آزمون',false)}</div>`:'';
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const cands=items.filter(f=>!String(f.ev||'')&&f.purpose!=='recording_access'&&f.status!=='archived'&&f.status!=='closed');
+  const opt=f=>{const st=FS_STATUS[f.status]||[f.status||'','']; const locked=f.status==='published'?'منتشرشده؛ اول متوقف کن':Number(f.response_count)>0?'پاسخ دارد':''; return `<option value="${esc(String(f.id))}" ${locked?'disabled':''} ${EF.link.pick===String(f.id)?'selected':''}>${esc(f.name||f.title||'فرم')} · ${esc(FS_PURPOSE[f.purpose]||f.need||'')} · ${esc(st[0])}${locked?' · '+locked:''}</option>`};
+  const link=can.forms?`<div class="stack" data-ef-link style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>اتصال فرم موجود</strong><span class="sp"></span><small class="cap">فقط فرم‌های بدون رویداد، پیش‌نویس یا متوقف و بدون پاسخ؛ سرور همین را می‌سنجد.</small></div>
+      ${FORMS_SRV.loading&&!FORMS_SRV.loaded?`<small class="cap">در حال خواندن فهرست فرم‌ها…</small>`:FORMS_SRV.error&&!FORMS_SRV.data?`<small class="cap" style="color:var(--stop)">${esc(FORMS_SRV.error)}</small> ${btn('تلاش دوباره','data-fs-refresh','i-refresh')}`
+      :cands.length?`<div class="row tight" style="flex-wrap:wrap;align-items:center"><select class="inp eflinkpick" data-ef-link-pick aria-label="انتخاب فرم برای پیوند به این رویداد" ${EF.link.busy?'disabled':''}><option value="">انتخاب فرم…</option>${cands.map(opt).join('')}</select>${btn('اتصال فرم',`data-ef-link-do ${EF.link.busy||!EF.link.pick?'disabled':''}`,'i-link')}</div>`
+      :`<small class="cap" data-ef-link-empty>فرم بدون رویدادی در انبار نیست.</small>`}
+      ${EF.link.msg?p2Msg(EF.link.msg):''}</div>`:'';
+  return `<div class="stack" data-ef-forms>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>فرم‌های این رویداد</strong><span class="sp"></span>${tag(fa(forms.length)+' فرم','')}</div>
+    ${forms.length?`<div class="admlist">${forms.map(efFormCard).join('')}</div>`:`<div data-ef-forms-empty>${emptyBox(can.forms?'هنوز فرمی به این رویداد وصل نیست. فرم ثبت‌نام بساز یا فرم موجودی را وصل کن.':'هنوز فرمی به این رویداد وصل نیست.')}</div>`}
+    ${create}${link}
+    <small class="cap">قطع اتصال فقط پیوند فرم با رویداد را برمی‌دارد؛ فرم و پاسخ‌هایش حذف نمی‌شوند.</small></div>`;
+}
+async function efLinkForm(formId,version,detach){
+  const api=window.NORA_SERVER_API; if(EF.link.busy||!api) return;
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; const form=items.find(f=>String(f.id)===String(formId));
+  const ver=form?form.version:Number(version)||0;
+  if(!detach&&!form){EF.link.msg={kind:'stop',text:'فرم انتخاب‌شده در فهرست سرور نیست؛ فهرست را تازه کن.'}; renderBody(); return}
+  if(detach&&typeof window.confirm==='function'&&!window.confirm('پیوند این فرم با رویداد برداشته می‌شود؛ فرم و پاسخ‌هایش می‌مانند. ادامه می‌دهید؟')) return;
+  EF.link.busy=detach?'unlink':'link'; EF.link.msg=null; renderBody();
+  try{const saved=await api.linkFormEvent(formId,detach?'':EI.eventId,ver,staffCsrfCookie());
+    EF.link.msg={kind:'ok',text:detach?`«${saved.name||'فرم'}» از این رویداد جدا شد`:`«${saved.name||'فرم'}» به این رویداد وصل شد`}; EF.link.pick='';
+    FORMS_SRV.loaded=false; EI.key=''; await eiLoad();
+  }catch(error){EF.link.msg={kind:'stop',text:efErr(error,'اتصال فرم انجام نشد؛ چیزی تغییر نکرد.')}; if(error&&(error.code==='version_conflict'||error.status===409)){FORMS_SRV.loaded=false; EI.key=''; eiLoad()}}
+  finally{EF.link.busy=''; renderBody()}
+}
+/* ── ثبت‌نام‌کنندگان ── */
+function efSummaryChips(s,fin){
+  if(!s) return '';
+  const items=[['کل',s.total,''],['پذیرفته‌شده',s.accepted,'ok'],['فهرست انتظار',s.waitlisted,'warn'],['پرداخت‌شده',s.paid,'ok'],['در انتظار پرداخت',s.pending_payment,'warn'],['ناموفق',s.failed_payment,'stop'],['رایگان',s.free,''],['حاضر',s.checked_in,'ok']];
+  const cap=s.cap>0?tag('ظرفیت باقی‌مانده: '+fa(s.remaining==null?0:s.remaining)+' از '+fa(s.cap),s.full?'warn':''):tag('بدون سقف ظرفیت','');
+  return `<div class="row tight ef-meta" data-ef-summary>${items.map(([l,n,k])=>tag(l+': '+fa(Number(n)||0),Number(n)>0?k:'')).join('')}${cap}${s.bale_holds>0?tag('رزرو موقت بله: '+fa(s.bale_holds),'warn'):''}</div>`;
+}
+function efRegRow(r,fin){
+  const st=EF_REG_STATUS[r.status]||[r.status||'',''], ps=EF_PAY_STATE[r.payment_state]||[r.payment_state||'',''];
+  const pay=[ps[0],r.payment_status&&EF_PAY_STATUS[r.payment_status]&&r.payment_state!=='free'?EF_PAY_STATUS[r.payment_status]:'',fin&&r.amount!=null?efMoney(r.amount):'',r.receipt_uploaded&&r.payment_state!=='paid'?'رسید فرستاده شده':''].filter(Boolean).join(' · ');
+  return `<div class="admlirow" data-ef-reg="${esc(r.response_id)}"><span class="ic">${ico(r.companion?'i-users':'i-user')}</span>
+    <span class="sp"><b>${esc(r.name||'بدون نام')}</b>${r.companion?` <small class="cap">همراهِ ${esc(r.added_by_name||'')}</small>`:''}<small class="cap">${esc(r.display_id||'')}${r.mobile_hint?' · ···'+fa(r.mobile_hint):''} · ${esc(svcWhen(r.created_at)||'')}</small><small class="cap">${esc(pay)}${r.ticket_type?' · بلیت: '+esc(r.ticket_type):''}</small></span>
+    ${tag(st[0],st[1])}${tag(ps[0],ps[1])}${r.checked_in?tag('حاضر','ok'):''}
+    <span class="row" style="gap:4px">${btn('پروندهٔ ثبت‌نام',`data-ef-person="${esc(r.response_id)}"`,'i-idcard')}</span></div>`;
+}
+function efPager(box,d){const total=Number(d&&d.total)||0; if(total<=box.limit) return ''; const from=box.offset+1, to=Math.min(total,box.offset+box.limit);
+  return `<div class="row" style="flex-wrap:wrap;gap:6px"><small class="cap">${fa(from)} تا ${fa(to)} از ${fa(total)}</small><span class="sp"></span>${btn('قبلی',`data-ef-page="prev" ${box.offset<=0?'disabled':''}`,'i-chev-right')}${btn('بعدی',`data-ef-page="next" ${!d.has_more?'disabled':''}`,'i-chev-left')}</div>`}
+function efRegs(){
+  const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست ثبت‌نام‌کنندگان از سرور نیامد.');
+  if(EF.person.id) return efPerson();
+  const fin=!!d.finance_visible, b=EF.regs, forms=d.forms||[];
+  const chip=(k,v,l)=>`<button class="chip ${b[k]===v?'on':''}" type="button" data-ef-filter="${k}" data-ef-value="${esc(v)}">${esc(l)}</button>`;
+  const filters=`<div class="stack" style="gap:6px" data-ef-filters>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="جست‌وجوی نام، شماره یا کد پیگیری" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}${forms.length>1?`<select class="inp" data-ef-form-id><option value="">همهٔ فرم‌های ثبت‌نام</option>${forms.map(f=>`<option value="${esc(f.id)}" ${b.form_id===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`:''}</div>
+    <div class="admfilters" role="group" aria-label="وضعیت ثبت‌نام">${chip('status','','همه')}${chip('status','accepted','پذیرفته‌شده')}${chip('status','waitlisted','فهرست انتظار')}</div>
+    <details class="adv ef-more" ${b.payment||b.attendance?'open':''}><summary>${ico('i-sliders')}صافی‌های پرداخت و حضور${b.payment||b.attendance?tag('فعال','brand'):''}</summary><div class="adv-body">
+    <div class="admfilters" role="group" aria-label="وضعیت پرداخت">${chip('payment','','هر پرداختی')}${chip('payment','paid','پرداخت‌شده')}${chip('payment','pending','در انتظار پرداخت')}${chip('payment','failed','ناموفق')}${chip('payment','free','رایگان')}</div>
+    <div class="admfilters" role="group" aria-label="حضور">${chip('attendance','','با و بی‌حضور')}${chip('attendance','checked_in','حاضر')}${chip('attendance','pending','هنوز نیامده')}</div></div></details></div>`;
+  const anyFilter=b.q||b.status||b.payment||b.attendance||b.form_id;
+  const total=Number(d.total)||0;
+  const countLine=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><small class="cap" data-ef-count role="status">${total?fa(total)+' نتیجه'+(anyFilter?' با این صافی':''):''}</small><span class="sp"></span>
+    <label class="row tight" style="gap:4px;align-items:center"><small class="cap">مرتب‌سازی</small><select class="inp" data-ef-sort aria-label="مرتب‌سازی فهرست" style="min-height:32px;padding:2px 8px">${[['newest','تازه‌ترین ثبت‌نام'],['oldest','قدیمی‌ترین ثبت‌نام'],['name','نام']].map(([v,l])=>`<option value="${v}" ${b.sort===v?'selected':''}>${l}</option>`).join('')}</select></label></div>`;
+  const empty=forms.length?(anyFilter?'با این جست‌وجو یا صافی کسی پیدا نشد.':'هنوز کسی در این رویداد ثبت‌نام نکرده است.'):'فرم ثبت‌نامی به این رویداد وصل نیست؛ اول در «فرم‌ها و فعالیت‌ها» فرم ثبت‌نام بساز.';
+  return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}
+    <small class="cap">وضعیت ثبت‌نام (پذیرفته/انتظار) از وضعیت پرداخت جداست؛ «رسید فرستاده شده» یعنی هنوز تأیید نشده.${fin?'':' مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.'}</small>
+    ${d.items.length||anyFilter?countLine:''}
+    ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
+    ${efPager(b,d)}${forms.length?efCancelled(fin):''}</div>`;
+}
+/* ── ثبت‌نام‌های لغوشده: عکس‌برداری سرور؛ فقط خواندنی، با مجوز و ممیزی ── */
+function efCancelled(fin){
+  const c=EF.cancel, head=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><strong>ثبت‌نام‌های لغوشده</strong>${c.data?tag(fa(c.data.total||0)+' مورد',''):''}<span class="sp"></span>${btn(c.open?'بستن':'نمایش',`data-ef-cancel-toggle ${c.loading?'disabled':''}`,c.open?'i-close':'i-clock')}</div>`;
+  if(!c.open) return `<div class="card stack" data-ef-cancelled style="gap:6px">${head}<small class="cap">کسانی که رسیدشان رد شده یا پاسخشان حذف شده؛ نام، پاسخ‌ها و سابقهٔ پرداخت اینجا می‌ماند و هر بار دیدنش ثبت می‌شود.</small></div>`;
+  let body='';
+  if(c.loading&&!c.data) body=`<p class="cap" role="status" aria-busy="true">در حال خواندن لغوشده‌ها…</p>`;
+  else if(c.error) body=`${p2Msg({kind:'stop',text:c.error})}${btn('تلاش دوباره','data-ef-cancel-retry','i-refresh')}`;
+  else if(!c.data||!c.data.items.length) body=emptyBox('در این رویداد ثبت‌نامی لغو نشده است.');
+  else body=`<div class="admlist">${c.data.items.map(x=>efCancelRow(x,fin)).join('')}</div>`;
+  return `<div class="card stack" data-ef-cancelled style="gap:6px">${head}${body}</div>`;
+}
+function efCancelRow(x,fin){
+  const pay=x.payment||null, rec=x.receipt||{}, canRec=canPerm('receipt_approve')||canPerm('finance'), focus=EF.cancel.focus===x.id;
+  const meta=[svcWhen(x.created_at)||'',EF_CANCEL_SOURCE[x.source]||'',EF_ROLE_FA[x.actor&&x.actor.role]||'',x.status_before?'پیش از لغو: '+(EF_REG_STATUS[x.status_before]||[x.status_before])[0]:''].filter(Boolean).join(' · ');
+  const payLine=pay?[EF_METHOD[pay.method]||pay.method||'',pay.status_before?'وضعیت پرداخت هنگام لغو: '+(EF_PAY_STATUS[pay.status_before]||pay.status_before):'',fin&&pay.amount!=null?efMoney(pay.amount):''].filter(Boolean).join(' · '):'بدون رکورد پرداخت';
+  const receipt=!rec.stored?'رسیدی ثبت نشده بود':rec.web_file?(canRec?`<button class="btn sm quiet" type="button" data-ef-cancel-receipt="${esc(x.id)}">${ico('i-image')}رسید نگه‌داشته‌شده</button>`:'رسید نگه داشته شده؛ نمایش نیازمند مجوز رسید/مالی'):(canRec?`رسید از راه بله در <a href="admin.html#inbox">صندوق پیام‌ها</a> مانده`:'رسید از راه بله ثبت شده بود');
+  const open=EF.cancel.receipt===x.id&&rec.web_file&&canRec?`<div style="flex-basis:100%"><img src="${esc(window.NORA_SERVER_API.eventFileCancellationReceiptUrl(EI.eventId,x.id))}" alt="رسید ثبت‌نام لغوشده" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-cancel-receipt-img/></div>`:'';
+  const ansRow=a=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(a.label||a.field_id||'')}</small><div dir="auto">${a.masked?`<span class="cap">${a.masked==='mobile'?'شماره (پنهان)'+(a.hint?' ···'+fa(a.hint):''):'کد ملی (پنهان)'}</span>`:esc(Array.isArray(a.value)?a.value.join('، '):(a.value==null||a.value===''?'ـ':String(a.value)))}</div></span></div>`;
+  const answers=Array.isArray(x.answers)&&x.answers.length?`<details style="flex-basis:100%"><summary class="cap">پاسخ‌های فرم</summary><div class="admlist">${x.answers.map(ansRow).join('')}</div></details>`:'';
+  const comps=(x.companions||[]).length?`<small class="cap">همراهان لغوشده: ${x.companions.map(cm=>esc(cm.name||'همراه')).join('، ')}</small>`:'';
+  return `<div class="admlirow" data-ef-cancel="${esc(x.id)}" style="flex-wrap:wrap${focus?';outline:2px solid var(--brand);border-radius:12px':''}"><span class="ic">${ico('i-close')}</span>
+    <span class="sp"><b>${esc(x.name||'بدون نام')}</b><small class="cap">${esc(meta)}</small>${x.reason?`<small class="cap">دلیل: ${esc(x.reason)}</small>`:''}<small class="cap" dir="auto">${payLine}</small>${comps}<small class="cap">${receipt}</small></span>
+    ${tag('ثبت‌نام لغوشده','stop')}${answers}${open}</div>`;
+}
+async function efLoadCancellations(api){
+  const c=EF.cancel; c.loading=true; c.error=''; renderBody();
+  try{c.data=await api.eventFileCancellations(EI.eventId,{limit:200,offset:0})}
+  catch(error){c.error=efErr(error,'فهرست لغوشده‌ها دریافت نشد.')}
+  finally{c.loading=false; renderBody()}
+}
+/* ── پروندهٔ ثبت‌نام (یک نفر داخل رویداد) ── */
+function efPerson(){
+  const p=EF.person, back=btn('بازگشت به ثبت‌نام‌کنندگان','data-ef-person-close','i-back');
+  if(p.loading&&!p.data) return `<div class="stack">${back}<p class="cap" role="status" aria-busy="true">در حال خواندن پروندهٔ ثبت‌نام…</p></div>`;
+  if(p.error||!p.data) return `<div class="stack" data-ef-person-file="${esc(p.id)}">${back}${p2Msg({kind:'stop',text:p.error||'پروندهٔ ثبت‌نام دریافت نشد.'})}${btn('تلاش دوباره',`data-ef-person="${esc(p.id)}"`,'i-refresh')}</div>`;
+  const d=p.data, can=d.can||{}, pay=d.payment||null, rec=d.receipt||{}, att=d.attendance||{}, tk=d.ticket||{}, fin=!!d.finance_visible;
+  const ps=EF_PAY_STATE[d.payment_state]||[d.payment_state||'',''], st=EF_REG_STATUS[d.status]||[d.status||'',''];
+  const answers=(d.answers||[]).map(a=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(a.label||a.field_id||'')}</small><div>${a.masked?`<span class="cap">${a.masked==='mobile'?'شماره (پنهان)'+(a.hint?' ···'+fa(a.hint):''):'کد ملی (پنهان)'}</span>`:esc(Array.isArray(a.value)?a.value.join('، '):(a.value==null||a.value===''?'ـ':String(a.value)))}</div></span></div>`).join('');
+  const payRows=pay?[['روش',EF_METHOD[pay.method]||pay.method],['وضعیت پرداخت',EF_PAY_STATUS[pay.status]||pay.status],fin?['مبلغ',efMoney(pay.amount)]:null,fin&&pay.transaction_id?['شناسهٔ تراکنش',pay.transaction_id]:null].filter(Boolean):[['پرداخت',d.payment_state==='free'?'رایگان؛ پرداختی لازم نبوده':'رکورد پرداختی ثبت نشده']];
+  const receiptImg=rec.web_file&&can.receipt_file?`<img src="${esc(window.NORA_SERVER_API.eventFileReceiptUrl(EI.eventId,d.response_id))}" alt="رسید پرداخت" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-receipt-img/>`:'';
+  const receiptLine=!rec.uploaded?'رسیدی ثبت نشده':rec.web_file?(receiptImg?'':'رسید ثبت شده؛ نمایش فایل نیازمند مجوز رسید/مالی'):(rec.task_id&&(canPerm('receipt_approve')||canPerm('finance'))?`رسید از راه بله رسیده؛ فایل در <a href="admin.html#inbox">صندوق پیام‌ها</a>${rec.task_status?' · '+esc(rec.task_status==='pending'?'در انتظار بررسی':rec.task_status==='approved'?'تأییدشده':'ردشده'):''}`:'رسید از راه بله ثبت شده');
+  const decision=can.payment_decision?`<div class="stack" data-ef-decision style="gap:6px"><strong>تصمیم دربارهٔ این پرداخت</strong>
+      ${p.decision?`<label class="fld"><span class="lbl">دلیل (در تاریخچه ثبت می‌شود)</span><input class="inp" data-ef-reason value="${esc(p.reason)}" maxlength="300" placeholder="مثلاً: رسید با مبلغ و شمارهٔ کارت همخوانی دارد"/></label>
+        <div class="row tight" style="flex-wrap:wrap">${btn(p.decision==='approve'?'ثبت تأیید پرداخت':rec.uploaded?'ثبت رد و لغو ثبت‌نام':'ثبت لغو ثبت‌نام',`data-ef-decide-go ${EF.busy?'disabled':''}`,p.decision==='approve'?'i-check':'i-close')}${btn('انصراف','data-ef-decide-cancel','i-back')}</div>`
+      :rec.uploaded?`<div class="row tight" style="flex-wrap:wrap">${btn('تأیید پرداخت','data-ef-decide="approve"','i-check')}${btn('رد رسید و لغو ثبت‌نام','data-ef-decide="reject"','i-close')}</div><small class="cap">تأیید فقط پس از دیدن رسید؛ رد، ثبت‌نام را لغو و ظرفیت را آزاد می‌کند. هر دو با نام و دلیل ثبت می‌شوند.</small>`
+      :`<div class="row tight" style="flex-wrap:wrap">${btn('لغو ثبت‌نام پرداخت‌نشده','data-ef-decide="reject"','i-close')}</div><small class="cap">تا رسیدی ثبت نشده، تأیید پرداخت ممکن نیست (سرور هم نمی‌پذیرد). لغو، ثبت‌نام را حذف و ظرفیت را آزاد می‌کند و با نام و دلیل ثبت می‌شود.</small>`}</div>`:'';
+  const ticketState=!tk.eligible?'این ثبت‌نام بلیت ندارد':can.ticket_image?'':d.payment_approved?'بلیت هنوز صادر نشده':'بلیت پس از تأیید پرداخت صادر می‌شود';
+  const ticket=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${tk.serial&&tk.eligible?tag('سریال بلیت: '+tk.serial,''):''}${tk.type?tag('نوع: '+tk.type,''):''}${can.ticket_image?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.eventFileTicketImageUrl(EI.eventId,d.response_id))}" target="_blank" rel="noopener">${ico('i-ticket')}تصویر بلیت</a>`:''}${ticketState?`<small class="cap">${esc(ticketState)}</small>`:''}</div>`;
+  const attendance=`<div class="row tight" style="flex-wrap:wrap;align-items:center">${att.checked_in?tag('حاضر · '+(svcWhen(att.checked_in_at)||''),'ok'):tag('حضور ثبت نشده','')}${can.attendance&&d.status==='accepted'?(att.checked_in?btn('برگرداندن حضور',`data-ef-att="undo" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-refresh'):btn('ثبت حضور',`data-ef-att="in" data-ef-rid="${esc(d.response_id)}" ${EF.busy?'disabled':''}`,'i-check')):''}</div>`;
+  const companions=(d.companions||[]).length?`<div class="admlist">${d.companions.map(c=>`<div class="admlirow"><span class="ic">${ico('i-user')}</span><span class="sp"><b>${esc(c.name||'همراه')}</b></span>${tag((EF_REG_STATUS[c.status]||[c.status])[0],(EF_REG_STATUS[c.status]||['',''])[1])}${c.ticket_checked_in?tag('حاضر','ok'):''}</div>`).join('')}</div>`:'';
+  const audit=(d.audit||[]).length?`<div class="admlist">${d.audit.map(a=>`<div class="admlirow"><span class="sp"><b>${esc(EF_AUDIT_FA[a.action]||a.action)}</b><small class="cap">${esc(svcWhen(a.created_at)||'')} · ${esc(EF_ROLE_FA[a.actor_role]||a.actor_role||'')}${a.reason?' · '+esc(a.reason):''}</small></span>${tag(a.outcome==='ok'||a.outcome==='success'?'انجام شد':a.outcome==='denied'||a.outcome==='failed'?'انجام نشد':a.outcome||'','')}</div>`).join('')}</div>`:'<small class="cap">اقدامی روی این ثبت‌نام ثبت نشده است.</small>';
+  const sec=(t,b)=>`<div class="card stack" style="gap:6px" data-ef-sec><strong>${esc(t)}</strong>${b}</div>`;
+  return `<div class="stack" data-ef-person-file="${esc(d.response_id)}">
+    <div class="row" style="flex-wrap:wrap;gap:8px">${back}<b>${esc(d.registrant_name||'')}</b>${tag(st[0],st[1])}${tag(ps[0],ps[1])}<span class="sp"></span><small class="cap">${esc(d.display_id||'')}${d.form&&d.form.name?' · '+esc(d.form.name):''}</small></div>
+    ${p2Msg(EF.msg)}
+    ${sec('پاسخ‌های فرم',answers||'<small class="cap">پاسخی ثبت نشده است.</small>')}
+    ${sec('وضعیت ثبت‌نام',`<div class="admlist" data-ef-person-reg>${[['وضعیت ثبت‌نام',st[0]],['تاریخ ثبت‌نام',svcWhen(d.created_at)||''],['فرم',d.form&&d.form.name||''],['کد پیگیری',d.display_id||''],['نوع بلیت',d.ticket_type||'']].filter(([,v])=>v).map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div dir="auto">${esc(String(v))}</div></span></div>`).join('')}</div><small class="cap">وضعیت ثبت‌نام از وضعیت پرداخت و از حضور جداست.</small>`)}
+    ${sec('پرداخت و رسید',`<div class="admlist">${payRows.map(([l,v])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(l)}</small><div dir="auto">${esc(String(v))}</div></span></div>`).join('')}</div>${receiptLine?`<small class="cap">${receiptLine}</small>`:''}${receiptImg}${decision}`)}
+    ${sec('بلیت و حضور',ticket+attendance)}
+    ${companions?sec('همراهان',companions):''}
+    ${sec('تاریخچهٔ اقدام‌ها',audit)}</div>`;
+}
+async function efDecide(){
+  const api=window.NORA_SERVER_API, p=EF.person, d=p.data; if(!api||!d||EF.busy) return;
+  const reason=String(p.reason||'').trim(); if(reason.length<2){EF.msg={kind:'stop',text:'نوشتن دلیل لازم است.'}; renderBody(); return}
+  EF.busy='decide'; EF.msg=null; renderBody();
+  try{const r=await api.eventFilePaymentDecision(EI.eventId,d.response_id,p.decision==='approve'?'approved':'rejected',reason,d.payment&&d.payment.status||'',staffCsrfCookie());
+    EF.msg={kind:'ok',text:r&&r.changed===false?'این تصمیم پیش‌تر ثبت شده بود؛ چیزی دوباره تغییر نکرد.':p.decision==='approve'?'پرداخت تأیید شد و بلیت صادر می‌شود.':'رسید رد شد و ثبت‌نام لغو شد؛ ظرفیت آزاد شد.'};
+    p.decision=''; p.reason='';
+    if(r&&r.registration_cancelled){EF.person.id=''; EF.person.data=null; EF.cancel.data=null; EI.key=''; eiLoad(); return}
+    EI.key=''; eiLoad(); efLoadPerson(api,d.response_id);
+  }catch(error){EF.msg={kind:'stop',text:efErr(error,'ثبت تصمیم انجام نشد؛ چیزی تغییر نکرد.')}; if(error&&error.status===409){p.decision=''; efLoadPerson(api,d.response_id)} else renderBody()}
+  finally{EF.busy=''}
+}
+async function efAttendance(responseId,undo){
+  const api=window.NORA_SERVER_API; if(EF.busy||!api) return;
+  let reason='';
+  if(undo){if(typeof window.prompt!=='function') return; const typed=window.prompt('حضور برگردانده می‌شود و با دلیل در تاریخچه ثبت می‌شود. دلیل:',''); if(typed===null) return; reason=String(typed).trim(); if(reason.length<3){toast('برای برگرداندن حضور، دلیل لازم است'); return}}
+  else if(typeof window.confirm==='function'&&!window.confirm('حضور همین حالا با زمان سرور ثبت می‌شود. ادامه می‌دهید؟')) return;
+  EF.busy='att'; EF.msg=null; renderBody();
+  try{await (undo?api.attendanceUndoCheckIn(responseId,reason,staffCsrfCookie()):api.attendanceCheckIn(responseId,'',staffCsrfCookie()));
+    EF.msg={kind:'ok',text:undo?'حضور برگردانده شد.':'حضور ثبت شد.'}; EI.key=''; eiLoad(); if(EF.person.id===responseId) efLoadPerson(api,responseId)}
+  catch(error){EF.msg={kind:'stop',text:p2Err(error,undo?'برگرداندن حضور انجام نشد.':'ثبت حضور انجام نشد.')}; if(error&&error.status===409){EI.key=''; eiLoad()} else renderBody()}
+  finally{EF.busy=''}
+}
+/* ── پرداخت‌ها ── */
+function efPayRow(r){
+  const ps=EF_PAY_STATE[r.state]||[r.state||'',''], rec=r.receipt||{};
+  const receipt=!rec.uploaded?'رسیدی ثبت نشده':rec.web_file?(canPerm('receipt_approve')||canPerm('finance')?`<button class="btn sm quiet" type="button" data-ef-receipt="${esc(r.response_id||'')}">${ico('i-image')}رسید پرداخت</button>`:'رسید ثبت شده'):`رسید از راه بله${rec.task_status?' · '+esc(rec.task_status==='pending'?'در انتظار بررسی':rec.task_status==='approved'?'تأییدشده':'ردشده'):''}`;
+  const open=EF.pay.receipt&&EF.pay.receipt===r.response_id?`<div style="flex-basis:100%"><img src="${esc(window.NORA_SERVER_API.eventFileReceiptUrl(EI.eventId,r.response_id))}" alt="رسید پرداخت" style="max-width:100%;max-height:360px;border-radius:12px" data-ef-receipt-img/></div>`:'';
+  return `<div class="admlirow" data-ef-pay="${esc(r.payment_id)}" style="flex-wrap:wrap"><span class="ic">${ico('i-wallet')}</span>
+    <span class="sp"><b>${esc(r.name||(r.status==='rejected'?'ثبت‌نام لغوشده (پیش از نگه‌داری عکس‌برداری)':'بدون ثبت‌نام متصل'))}</b>${r.cancellation?`<small class="cap">لغو ${esc(svcWhen(r.cancellation.at)||'')} · ${esc(EF_CANCEL_SOURCE[r.cancellation.source]||'')}${r.cancellation.reason?' · دلیل: '+esc(r.cancellation.reason):''}</small>`:''}<small class="cap">${esc(r.display_id||('پرداخت '+String(r.payment_id||'').slice(0,8)))} · ${esc(EF_METHOD[r.method]||r.method||'')} · ${esc(EF_PAY_STATUS[r.status]||r.status||'')} · ${esc(svcWhen(r.created_at)||'')}</small><small class="cap" dir="auto">${efMoney(r.amount)}${r.party_count>1?' · '+fa(r.party_count)+' نفر':''}${r.transaction_id?' · تراکنش: '+esc(r.transaction_id):''}</small><small class="cap">${receipt}</small></span>
+    ${tag(ps[0],ps[1])}${r.registration_status?tag((EF_REG_STATUS[r.registration_status]||[r.registration_status])[0],''):tag('ثبت‌نام لغوشده','stop')}
+    <span class="row" style="gap:4px">${r.response_id?btn('پروندهٔ ثبت‌نام',`data-ef-person="${esc(r.response_id)}" data-ef-goto-regs`,'i-idcard'):r.cancellation?btn('پروندهٔ لغو',`data-ef-cancel-open="${esc(r.cancellation.id)}"`,'i-idcard'):''}</span>${open}</div>`;
+}
+function efPayments(){
+  const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست پرداخت‌ها از سرور نیامد.');
+  const t=d.totals||{}, b=EF.pay;
+  const chip=(v,l)=>`<button class="chip ${b.state===v?'on':''}" type="button" data-ef-filter="state" data-ef-value="${esc(v)}">${esc(l)}</button>`;
+  return `<div class="stack" data-ef-payments>
+    <div class="row tight" style="flex-wrap:wrap" data-ef-pay-totals>${tag('جمع پرداخت‌های موفق: '+efMoney(t.paid_amount),'ok')}${tag('موفق: '+fa(t.paid||0),'')}${tag('در انتظار: '+fa(t.pending||0),Number(t.pending)>0?'warn':'')}${tag('ناموفق: '+fa(t.failed||0),Number(t.failed)>0?'stop':'')}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="نام، کد پیگیری یا شناسهٔ تراکنش" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}<div class="admfilters" role="group" aria-label="وضعیت پرداخت">${chip('','همه')}${chip('paid','موفق')}${chip('pending','در انتظار')}${chip('failed','ناموفق')}</div></div>
+    <small class="cap">هر ردیف یک تراکنش واقعی است؛ «رسید فرستاده شده» تا تأیید نشود پرداخت موفق شمرده نمی‌شود. تأیید یا رد رسید از پروندهٔ ثبت‌نام همان نفر انجام می‌شود.</small>
+    ${d.items.length?`<div class="admlist">${d.items.map(efPayRow).join('')}</div>`:emptyBox(b.q||b.state?'با این جست‌وجو یا صافی پرداختی پیدا نشد.':'هنوز پرداختی برای این رویداد ثبت نشده است.')}
+    ${efPager(b,d)}</div>`;
+}
+/* ── بلیت و حضور ── */
+function efTickets(){
+  const d=EI.data; if(!d||!Array.isArray(d.items)) return emptyBox('فهرست از سرور نیامد.');
+  const s=d.summary||{}, b=EF.att, canAtt=canPerm('attendance');
+  const chip=(v,l)=>`<button class="chip ${b.attendance===v?'on':''}" type="button" data-ef-filter="attendance" data-ef-value="${esc(v)}">${esc(l)}</button>`;
+  const row=r=>`<div class="admlirow" data-ef-att-row="${esc(r.response_id)}"><span class="ic">${ico('i-ticket')}</span>
+      <span class="sp"><b>${esc(r.name||'بدون نام')}</b><small class="cap">${esc(r.display_id||'')}${r.ticket_serial?' · بلیت '+esc(r.ticket_serial):' · بلیت صادر نشده'}${r.ticket_type?' · '+esc(r.ticket_type):''}</small></span>
+      ${tag((EF_PAY_STATE[r.payment_state]||[''])[0],(EF_PAY_STATE[r.payment_state]||['',''])[1])}${r.checked_in?tag('حاضر · '+(svcWhen(r.checked_in_at)||''),'ok'):tag('نیامده','')}
+      <span class="row" style="gap:4px">${canAtt?(r.checked_in?btn('برگرداندن',`data-ef-att="undo" data-ef-rid="${esc(r.response_id)}" ${EF.busy?'disabled':''}`,'i-refresh'):btn('ثبت حضور',`data-ef-att="in" data-ef-rid="${esc(r.response_id)}" ${EF.busy?'disabled':''}`,'i-check')):''}${btn('پرونده',`data-ef-person="${esc(r.response_id)}" data-ef-goto-regs`,'i-idcard')}</span></div>`;
+  return `<div class="stack" data-ef-tickets>
+    <div class="row tight" style="flex-wrap:wrap">${tag('پذیرفته‌شده: '+fa(s.accepted||0),'')}${tag('حاضر: '+fa(s.checked_in||0),Number(s.checked_in)>0?'ok':'')}${s.accepted!=null?tag('نیامده: '+fa(Math.max(0,(Number(s.accepted)||0)-(Number(s.checked_in)||0))),''):''}</div>
+    <div class="row tight" style="flex-wrap:wrap;align-items:center"><input class="inp" type="search" data-ef-q value="${esc(b.q)}" placeholder="نام، شماره یا کد پیگیری" style="min-width:200px"/>${btn('جست‌وجو','data-ef-search','i-search')}<div class="admfilters" role="group" aria-label="حضور">${chip('','همه')}${chip('checked_in','حاضر')}${chip('pending','نیامده')}</div>${canAtt?btn('اسکن و فهرست حضور','data-ei-jump-attendance','i-qr'):''}</div>
+    <small class="cap">بلیت پس از پذیرش و تأیید پرداخت صادر می‌شود؛ حضور با زمان سرور ثبت می‌شود و همان رکوردی است که ربات می‌خواند.${canAtt?'':' ثبت حضور نیازمند مجوز حضور و غیاب است.'}</small>
+    ${p2Msg(EF.msg)}
+    ${d.items.length?`<div class="admlist">${d.items.map(row).join('')}</div>`:emptyBox(b.q||b.attendance?'کسی با این صافی پیدا نشد.':'هنوز ثبت‌نام پذیرفته‌شده‌ای نیست.')}
+    ${efPager(b,d)}</div>`;
+}
+/* ── نظرسنجی و آزمون ── */
+function efSurvey(){
+  const ov=EF.overview; if(!ov) return emptyBox('پروندهٔ رویداد از سرور نیامد.');
+  const list=(ov.forms||[]).filter(f=>f.type==='survey'||f.type==='exam'), can=ov.can||{}, back='admin.html'+efHashFor('survey');
+  const mk=(need,label)=>{const q=new URLSearchParams({ev:String(EI.eventId),need,name:String(ov.event&&ov.event.t||''),back}); return `<a class="btn sm quiet" href="create.html?${q.toString()}" data-ef-create="${need}">${ico('i-plus')}${esc(label)}</a>`};
+  const cards=list.map(f=>`<div class="admlirow" data-ef-form="${esc(f.id)}"><span class="ic">${ico(f.type==='exam'?'i-graduation':'i-chart')}</span><span class="sp"><b>${esc(f.name||'')}</b><small class="cap">${esc(EF_FORM_TYPE[f.type])} · ${fa(f.response_count||0)} پاسخ · ${esc((FS_STATUS[f.status]||[f.status])[0])}</small></span>
+      <span class="row" style="gap:4px;flex-wrap:wrap">${can.responses?btn(EF.sum.formId===f.id?'بستن نتیجه':'نتیجهٔ کلی',`data-ef-sum="${esc(f.id)}"`,'i-chart'):''}${can.responses?`<a class="btn sm quiet" href="builder.html?fid=${encodeURIComponent(f.id)}#responses">${ico('i-inbox')}پاسخ‌های تک‌تک</a>`:''}${can.forms?`<a class="btn sm quiet" href="create.html?fid=${encodeURIComponent(f.id)}&back=${encodeURIComponent(back)}">${ico('i-pen')}ویرایش فرم</a>`:''}</span></div>`).join('');
+  return `<div class="stack" data-ef-survey>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>نظرسنجی و آزمون این رویداد</strong><span class="sp"></span>${can.forms?mk('survey','ساخت نظرسنجی')+mk('exam','ساخت آزمون'):''}</div>
+    ${list.length?`<div class="admlist">${cards}</div>`:`<div data-ef-survey-empty>${emptyBox('نظرسنجی یا آزمونی به این رویداد وصل نیست.')}</div>`}
+    ${EF.sum.formId?efSummaryBox():''}
+    <small class="cap">نتیجهٔ کلی از پاسخ‌های همین فرم جمع می‌شود؛ پاسخ هر نفر جدا در فرم‌ساز دیده می‌شود. نمره‌دهی آزمون در این مرحله پیاده‌سازی نشده (کلید پاسخ و مدل نمره در سرور وجود ندارد)؛ هیچ نمره یا نتیجه‌ای نمایش داده نمی‌شود.</small></div>`;
+}
+function efSummaryBox(){
+  const s=EF.sum;
+  if(s.loading&&!s.data) return `<p class="cap" role="status" aria-busy="true">در حال جمع‌بندی پاسخ‌ها…</p>`;
+  if(s.error) return `<div class="stack">${p2Msg({kind:'stop',text:s.error})}${btn('تلاش دوباره',`data-ef-sum-retry`,'i-refresh')}</div>`;
+  const d=s.data; if(!d) return '';
+  const fields=(d.fields||[]).map(f=>{
+    let body='';
+    if(f.kind==='choice'&&Array.isArray(f.options)){const max=Math.max(1,...f.options.map(o=>Number(o.count)||0)); body=`<div class="stack" style="gap:4px">${f.options.map(o=>`<div class="row" style="gap:6px;align-items:center"><small class="cap" style="min-width:120px">${esc(o.label)}</small><div style="flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden"><div style="width:${Math.round((Number(o.count)||0)/max*100)}%;height:100%;background:var(--brand)"></div></div><small class="cap">${fa(o.count||0)}</small></div>`).join('')}</div>`}
+    if(f.mean!=null) body+=`<small class="cap" data-ef-mean>میانگین ${fa(f.mean)} · کمینه ${fa(f.min)} · بیشینه ${fa(f.max)}</small>`;
+    if(!body&&Array.isArray(f.samples)&&f.samples.length) body=`<small class="cap">${f.samples.map(x=>esc(x)).join(' · ')}</small>`;
+    return `<div class="admlirow" style="flex-wrap:wrap"><span class="sp"><b>${esc(f.label||f.field_id)}</b><small class="cap">${fa(f.answered||0)} پاسخ</small></span><div style="flex-basis:100%">${body}</div></div>`}).join('');
+  return `<div class="card stack" data-ef-summary-box="${esc(String(d.form&&d.form.id||''))}" style="gap:6px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong>نتیجهٔ کلی «${esc(d.form&&d.form.name||'')}»</strong>${tag(fa(d.responses||0)+' پاسخ','')}<span class="sp"></span>${btn('بستن','data-ef-sum-close','i-close')}</div>
+    ${d.responses?`<div class="admlist">${fields}</div>`:emptyBox('هنوز پاسخی برای این فرم ثبت نشده است.')}
+    ${d.form&&d.form.type==='exam'?`<small class="cap">نمره‌دهی: پیاده‌سازی‌نشده در این مرحله (کلید پاسخ در سرور تعریف نشده)؛ فقط جمع‌بندی پاسخ‌ها نمایش داده می‌شود، نه نمره.</small>`:''}</div>`;
+}
+/* ── گواهی‌ها ── */
+function efCerts(){
+  const d=EI.data, ov=EF.overview||(d&&d.overview), certs=d&&d.certs;
+  if(!canPerm('certificate')) return `<div class="stack">${emptyBox('دیدن گواهی‌ها نیازمند مجوز گواهینامه است.')}</div>`;
+  if(!certs) return emptyBox('فهرست گواهی‌ها از سرور نیامد.');
+  const items=certs.items||[], total=Number(certs.total)||0;
+  const rows=items.map(item=>{const holder=item.holder||{}; return `<div class="admlirow" data-ef-cert="${esc(item.id)}"><span class="ic">${ico('i-medal')}</span><span class="sp"><b>${esc(holder.display_name||'بدون نام ثبت‌شده')}</b><small class="cap" dir="ltr">${esc(item.serial||item.full_code||'')}</small><small class="cap">${esc([item.issued_on?'صدور '+item.issued_on:(item.issued_at?'صدور '+svcWhen(item.issued_at):''),CE_KIND[item.kind]||''].filter(Boolean).join(' · '))}</small></span>${item.has_file?tag('فایل','brand'):''}${ceStatusTag(item)}</div>`}).join('');
+  return `<div class="stack" data-ef-certs>
+    <div class="row" style="flex-wrap:wrap;gap:6px"><strong>گواهی‌های این رویداد</strong>${tag(fa(total)+' گواهی','')}<span class="sp"></span>${btn('پرونده و فایل هر گواهی','data-ei-jump-cert','i-chev-left')}</div>
+    ${ov&&ov.event&&ov.event.cert?`<small class="cap">این رویداد «گواهی دارد»${ov.event.certMin?' · حداقل حضور '+fa(ov.event.certMin)+'٪':''}؛ صدور فقط از مسیر ربات یا انتقال کنترل‌شده انجام می‌شود.</small>`:`<small class="cap">برای این رویداد گواهی تعریف نشده؛ صدور خودکار ندارد.</small>`}
+    ${items.length?`<div class="admlist">${rows}</div>`:emptyBox('هنوز گواهی‌ای برای این رویداد صادر نشده است.')}
+    ${efPager(EF.certs,{total,has_more:EF.certs.offset+EF.certs.limit<total})}</div>`;
+}
+/* ── رویدادها (کلیک/تغییر) ── */
+function efBox(){return EI.tab==='regs'?EF.regs:EI.tab==='tickets'?EF.att:EI.tab==='payments'?EF.pay:EI.tab==='certs'?EF.certs:null}
+function efClick(q){
+  if(!EI.open||EI.all) return false;
+  const api=window.NORA_SERVER_API;
+  const tabBtn=q('[data-ef-tab]'); if(tabBtn){const next=tabBtn.dataset.efTab; if(tabBtn.dataset.efFormFilter){EF.regs.form_id=tabBtn.dataset.efFormFilter; EF.regs.offset=0} if(tabBtn.dataset.efSum){EF.sum.formId=tabBtn.dataset.efSum; EF.sum.data=null} EF.person.id=''; EF.person.data=null; EI.tab=next; EI.msg=null; EI.key=''; efSyncHash(); eiLoad(); return true}
+  const person=q('[data-ef-person]'); if(person){if(person.hasAttribute('data-ef-goto-regs')){EI.tab='regs'; EI.key=''; eiLoad()} EF.msg=null; efLoadPerson(api,person.dataset.efPerson); return true}
+  if(q('[data-ef-cancel-toggle]')){EF.cancel.open=!EF.cancel.open; EF.cancel.focus=''; if(EF.cancel.open&&!EF.cancel.data) efLoadCancellations(api); else renderBody(); return true}
+  if(q('[data-ef-cancel-retry]')){efLoadCancellations(api); return true}
+  const cancelOpen=q('[data-ef-cancel-open]'); if(cancelOpen){EF.cancel.open=true; EF.cancel.focus=cancelOpen.dataset.efCancelOpen; EF.person.id=''; EF.person.data=null; EI.tab='regs'; EI.key=''; efSyncHash(); eiLoad(); efLoadCancellations(api); return true}
+  const cancelRec=q('[data-ef-cancel-receipt]'); if(cancelRec){EF.cancel.receipt=EF.cancel.receipt===cancelRec.dataset.efCancelReceipt?'':cancelRec.dataset.efCancelReceipt; renderBody(); return true}
+  if(q('[data-ef-person-close]')){EF.person.id=''; EF.person.data=null; EF.msg=null; efSyncHash(); renderBody(); return true}
+  const flt=q('[data-ef-filter]'); if(flt){const box=efBox(); if(box){box[flt.dataset.efFilter]=flt.dataset.efValue||''; box.offset=0; EI.key=''; eiLoad()} return true}
+  if(q('[data-ef-search]')){const box=efBox(), inp=document.querySelector('[data-ef-q]'); if(box&&inp){box.q=String(inp.value||'').trim().slice(0,80); box.offset=0; EI.key=''; eiLoad()} return true}
+  const page=q('[data-ef-page]'); if(page){const box=efBox(); if(box){box.offset=page.dataset.efPage==='next'?box.offset+box.limit:Math.max(0,box.offset-box.limit); EI.key=''; eiLoad()} return true}
+  const dec=q('[data-ef-decide]'); if(dec){EF.person.decision=dec.dataset.efDecide; EF.person.reason=''; EF.msg=null; renderBody(); return true}
+  if(q('[data-ef-decide-cancel]')){EF.person.decision=''; renderBody(); return true}
+  if(q('[data-ef-decide-go]')){const inp=document.querySelector('[data-ef-reason]'); if(inp) EF.person.reason=inp.value; efDecide(); return true}
+  const att=q('[data-ef-att]'); if(att){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return true} efAttendance(att.dataset.efRid,att.dataset.efAtt==='undo'); return true}
+  const rc=q('[data-ef-receipt]'); if(rc){EF.pay.receipt=EF.pay.receipt===rc.dataset.efReceipt?'':rc.dataset.efReceipt; renderBody(); return true}
+  const sum=q('[data-ef-sum]'); if(sum){const id=sum.dataset.efSum; if(EF.sum.formId===id){EF.sum.formId=''; EF.sum.data=null; efSyncHash(); renderBody()} else {EF.sum.formId=id; efLoadSummary(api)} return true}
+  if(q('[data-ef-sum-close]')){EF.sum.formId=''; EF.sum.data=null; efSyncHash(); renderBody(); return true}
+  if(q('[data-ef-sum-retry]')){efLoadSummary(api); return true}
+  if(q('[data-ef-link-do]')){if(EF.link.pick) efLinkForm(EF.link.pick,0,false); return true}
+  const un=q('[data-ef-unlink]'); if(un){efLinkForm(un.dataset.efUnlink,un.dataset.efVer,true); return true}
+  return false;
+}
+function efChange(t){
+  if(!EI.open||EI.all||!t||!t.dataset) return false;
+  if(t.matches('[data-ef-link-pick]')){EF.link.pick=String(t.value||''); renderBody(); return true}
+  if(t.matches('[data-ef-form-id]')){EF.regs.form_id=String(t.value||''); EF.regs.offset=0; EI.key=''; eiLoad(); return true}
+  if(t.matches('[data-ef-sort]')){const v=String(t.value||'newest'); EF.regs.sort=['newest','oldest','name'].includes(v)?v:'newest'; EF.regs.offset=0; EI.key=''; eiLoad(); return true}
+  if(t.matches('[data-ef-reason]')){EF.person.reason=t.value; return true}
+  if(t.matches('[data-ef-q]')){const box=efBox(); if(box){const v=String(t.value||'').trim().slice(0,80); if(v!==box.q){box.q=v; box.offset=0; EI.key=''; eiLoad()}} return true}
+  return false;
+}
+/* ── منابع ── */
+function eiResourceMeta(r){
+  const size=r.kind==='file'?(r.size>=1048576?fa((r.size/1048576).toFixed(1))+' مگابایت':r.size>=1024?fa(Math.round(r.size/1024))+' کیلوبایت':r.size?fa(r.size)+' بایت':'بدون فایل'):EI_RES_KIND[r.kind]||'پیوند';
+  return [size,r.kind==='file'&&r.file_name?r.file_name:'',EI_ACCESS_LABEL[r.access]||r.access,r.session_id?'جلسه: '+(recSessionLabel(r.session_id)||'ضبط‌شده'):'',r.session_id&&r.delivery==='view'?EI_DELIVERY_MODE.view:'',r.publish_at?'انتشار: '+(svcWhen(r.publish_at)||r.publish_at):'',r.publisher?'ناشر: '+r.publisher:'',r.live?'اکنون در صفحهٔ رویداد':r.status==='published'?'زمان‌بندی‌شده':''].filter(Boolean).join(' · ');
+}
+/* فاز ۹.۴ §۴: وضعیت واقعی ذخیره‌سازی هر فایل از سرور می‌آید (نه از وجود دکمه). فایل «گم‌شده» یا «ناهم‌خوان» منتشر نمی‌شود و به بیننده هم داده نمی‌شود. */
+const EI_STORAGE_STATE={ready:['فایل آماده','ok'],empty:['بدون فایل','warn'],missing:['فایل روی دیسک پیدا نشد','stop'],size_mismatch:['اندازهٔ فایل با رکورد نمی‌خواند','stop'],storage_not_configured:['حافظهٔ خصوصی روی این سرور پیکربندی نشده','stop']};
+const EI_STORAGE_BACKEND={database:'در پایگاه داده (تا ۸ مگابایت)',local_disk:'روی دیسک خصوصی سرور'};
+function eiStorageTag(r){
+  if(!r||r.kind!=='file'||!r.storage||typeof r.storage!=='object') return '';
+  const st=String(r.storage.state||''), be=String(r.storage.backend||''), m=EI_STORAGE_STATE[st];
+  if(!m) return '';
+  return `<small class="cap" data-ei-res-storage="${esc(st)}" data-ei-res-backend="${esc(be)}" ${m[1]==='stop'?'style="color:var(--stop)"':''}>ذخیره‌سازی: ${m[0]}${st==='ready'&&EI_STORAGE_BACKEND[be]?' · '+EI_STORAGE_BACKEND[be]:''}</small>`;
+}
+function eiUploadMax(){
+  const limits=EI.data&&EI.data.limits||{}; const n=Number(limits.max_bytes)||0;
+  return n>0?n:8*1024*1024;
+}
+function eiStorageSummary(){
+  const limits=EI.data&&EI.data.limits||{}, st=limits.storage&&typeof limits.storage==='object'?limits.storage:null;
+  if(!st) return '';
+  const cap=fa(Math.round(eiUploadMax()/1048576))+' مگابایت';
+  if(!st.configured) return `<p class="cap" data-ei-storage="database" style="margin:0">حافظهٔ خصوصی دیسک روی این سرور پیکربندی نشده؛ فایل‌ها در پایگاه داده و تا ${cap} ذخیره می‌شوند. برای ویدیوهای بزرگ‌تر باید <span dir="ltr">NORA_PRIVATE_STORAGE_DIR</span> روی سرور تنظیم شود.</p>`;
+  const free=typeof st.free_bytes==='number'?' · فضای آزاد دیسک: '+svcBytes(st.free_bytes):'';
+  const writable=st.writable===false?' · <b style="color:var(--stop)">پوشهٔ ذخیره‌سازی قابل نوشتن نیست؛ بارگذاری تازه شکست می‌خورد</b>':'';
+  return `<p class="cap" data-ei-storage="local_disk" style="margin:0">فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ${cap}${free}${writable}). فایل‌های بزرگ‌تر از ${fa(String(EI_RESUMABLE_MIN/1048576))} مگابایت قطعه‌ای و قابل ادامه پس از قطع شبکه بارگذاری می‌شوند (هر قطعه و کل فایل با sha256 روی سرور تأیید می‌شود). پخش با بررسی دسترسی در هر درخواست و پشتیبانی Range انجام می‌شود؛ پشتیبان‌گیری فایل‌ها جدا از پایگاه داده است.</p>`;
+}
+const EI_HEALTH={report:null,loading:false,error:'',request:0};
+function eiLoadStorageHealth(){
+  if(IS_TEST&&!window.NORA_SERVER_API) return;
+  const api=window.NORA_SERVER_API; if(!api||typeof api.getStorageHealth!=='function'||EI_HEALTH.loading) return;
+  const requestId=++EI_HEALTH.request; EI_HEALTH.loading=true; EI_HEALTH.error=''; renderBody();
+  Promise.resolve(api.getStorageHealth()).then(data=>{
+    if(requestId!==EI_HEALTH.request) return;
+    if(!data||data.read_only!==true||typeof data.configured!=='boolean'||!data.referenced||!data.missing||!data.orphans||!data.incomplete) throw new Error('invalid_storage_health');
+    EI_HEALTH.report=data;
+  }).catch(error=>{
+    if(requestId!==EI_HEALTH.request) return;
+    EI_HEALTH.error=error&&error.status===403?'مجوز مشاهدهٔ سلامت ذخیره‌سازی برای این نقش فعال نیست.':error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن سلامت ذخیره‌سازی انجام نشد؛ دوباره تلاش کنید.';
+  }).finally(()=>{if(requestId!==EI_HEALTH.request) return; EI_HEALTH.loading=false; renderBody()});
+}
+function eiStorageHealthCard(){
+  const h=EI_HEALTH, r=h.report;
+  const stateTag=r?(r.state==='ok'?tag('سالم','ok'):r.state==='error'?tag('خطا: فایل مفقود/ناهمخوان','stop'):r.state==='warning'?tag('هشدار','warn'):r.state==='inline_only'?tag('فقط پایگاه داده',''):tag('پیکربندی‌نشده','stop')):'';
+  const marker=(key,label)=>{const m=r&&r.markers&&r.markers[key]; return m&&m.at?`${label}: ${esc(m.at)}${m.ok===false?' (ناموفق)':''}`:`${label}: ثبت نشده`};
+  const body=h.loading?`<p class="cap">در حال خواندن سلامت ذخیره‌سازی از سرور…</p>`
+    :h.error?`<div class="empty"><p class="cap">${esc(h.error)}</p>${btn('تلاش دوباره','data-ei-health-run','i-refresh')}</div>`
+    :!r?`<p class="cap">برای دیدن وضعیت واقعی دیسک، فایل‌های مفقود/یتیم و بارگذاری‌های ناتمام، بررسی را اجرا کنید (فقط‌خواندنی).</p>`
+    :`<div class="admkpi">
+        <div class="k"><small>فایل‌های ارجاع‌شده</small>${bits(fa(String(r.referenced.rows))+' · '+svcBytes(r.referenced.bytes))}</div>
+        <div class="k"><small>فضای آزاد دیسک</small>${bits(typeof r.free_bytes==='number'?svcBytes(r.free_bytes):'نامشخص')}</div>
+        <div class="k"><small>ردیف بدون فایل</small>${bits(fa(String(r.missing.count)))}</div>
+        <div class="k"><small>اندازهٔ ناهمخوان</small>${bits(fa(String(r.size_mismatch?r.size_mismatch.count:0)))}</div>
+        <div class="k"><small>فایل یتیم (بدون ردیف)</small>${bits(fa(String(r.orphans.count))+' · '+svcBytes(r.orphans.bytes))}</div>
+        <div class="k"><small>بارگذاری ناتمام</small>${bits(fa(String(r.incomplete.parts))+' · '+svcBytes(r.incomplete.bytes)+(r.incomplete.stale_parts?' · '+fa(String(r.incomplete.stale_parts))+' کهنه':''))}</div>
+      </div>
+      <p class="cap" data-ei-health-markers>${marker('storage_verify','آخرین بررسی پشتیبان (verify)')} · ${marker('storage_snapshot','آخرین پشتیبان‌گیری')} · آخرین بررسی سلامت: ${esc(r.generated_at||'')}${r.writable===false?' · <b style="color:var(--stop)">پوشه قابل نوشتن نیست</b>':''}</p>
+      ${r.missing.count||(r.size_mismatch&&r.size_mismatch.count)?`<p class="cap" style="color:var(--stop)">شناسهٔ منابع آسیب‌دیده: <span dir="ltr">${esc([...(r.missing.resource_ids||[]),...((r.size_mismatch||{}).resource_ids||[])].join(', '))}</span>؛ این منابع تا بازیابی فایل سرو نمی‌شوند؛ هیچ ردیفی خودکار حذف یا تعمیر نمی‌شود.</p>`:''}`;
+  return `<section class="card stack" data-ei-storage-health ${r?`data-ei-storage-health-state="${esc(r.state||'')}"`:''}><div class="row"><div class="head">سلامت ذخیره‌سازی خصوصی</div><span class="sp"></span>${stateTag} ${btn(r?'بررسی دوباره':'بررسی سلامت','data-ei-health-run','i-refresh')}</div>${body}</section>`;
+}
+function eiResourceRow(r){
+  const id=esc(r.id), removed=r.status==='removed', busy=EI.busy===r.id;
+  const actions=removed||!eiCanRes()?'':[btn('ویرایش',`data-ei-res-edit="${id}"`,'i-pen'),
+    r.kind==='file'?`<label class="btn sm quiet">${ico('i-file-up')}${r.size?'جایگزینی فایل':'بارگذاری فایل'}<input type="file" data-ei-file="${id}" hidden/></label>`:'',
+    r.status==='draft'?btn('انتشار',`data-ei-res-status="published" data-ei-id="${id}"`,'i-globe'):btn('بازگشت به پیش‌نویس',`data-ei-res-status="draft" data-ei-id="${id}"`,'i-eye-off'),
+    btn('حذف',`data-ei-res-remove="${id}"`,'i-trash')].join('');
+  const video=eiVideoOf(r), previewOpen=EI.res.preview===r.id;
+  const videoLine=video?`<small class="cap" dir="ltr" style="text-align:right">${esc(video.watch_url)}</small>`:(r.kind==='youtube'||r.kind==='aparat')?`<small class="cap" style="color:var(--stop)">نشانی ذخیره‌شده معتبر نیست؛ منبع را ویرایش کنید.</small>`:'';
+  const previewBtn=video&&!removed?btn(previewOpen?'بستن پیش‌نمایش':'پیش‌نمایش واقعی',`data-ei-res-preview="${id}"`,'i-play'):'';
+  const preview=video&&previewOpen?eiVideoPreview(r,video):'';
+  return `<div class="admlirow" data-ei-res-row="${id}" ${busy?'aria-busy="true"':''}><span class="ic">${ico(r.kind==='link'?'i-link':video||r.kind==='youtube'||r.kind==='aparat'?'i-play':'i-doc')}</span>
+    <span class="sp"><b>${esc(r.title)}</b>${r.description?`<small class="cap">${esc(r.description)}</small>`:''}<small class="cap">${esc(eiResourceMeta(r))}</small>${eiStorageTag(r)}${videoLine}${removed&&r.removed_reason?`<small class="cap">دلیل حذف: ${esc(r.removed_reason)}</small>`:''}${preview}</span>
+    ${eiStatusTag(EI_RES_STATUS,r.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${previewBtn}${actions}</div></div>`;
+}
+/* فاز ۹.۱ §۳: منبع ویدیوی بیرونی فقط با شناسهٔ اعتبارسنجی‌شدهٔ سرور و نشانی رسمی پخش‌کنندهٔ همان سکو نمایش داده می‌شود؛ هیچ HTML/iframe ذخیره یا تزریق نمی‌شود. */
+const EI_RES_KIND={link:'پیوند',youtube:'ویدیوی یوتیوب',aparat:'ویدیوی آپارات'};
+const EI_VIDEO_ORIGINS=['https://www.youtube-nocookie.com/embed/','https://www.aparat.com/video/video/embed/videohash/'];
+function eiVideoOf(r){
+  const v=r&&r.video; if(!v||typeof v!=='object') return null;
+  const embed=String(v.embed_url||''), watch=String(v.watch_url||'');
+  if(!EI_VIDEO_ORIGINS.some(o=>embed.startsWith(o))||!/^https:\/\/www\.(youtube|aparat)\.com\//.test(watch)) return null;
+  return {provider:v.provider==='aparat'?'aparat':'youtube',video_id:String(v.video_id||''),embed_url:embed,watch_url:watch};
+}
+function eiVideoPreview(r,video){
+  const name=video.provider==='aparat'?'آپارات':'یوتیوب';
+  return `<div class="ei-embed" data-ei-video-preview="${esc(r.id)}" data-ei-video-provider="${esc(video.provider)}"><iframe src="${esc(video.embed_url)}" title="${esc(r.title)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <small class="cap">این همان پخش‌کنندهٔ رسمی ${name} است که کاربر می‌بیند؛ اگر ویدیو خصوصی، حذف‌شده یا «غیرقابل‌جاسازی» باشد همین‌جا خطای خود سکو نمایش داده می‌شود و سرور نورا آن را تأیید نمی‌کند. میزبانی بیرونی = بدون حفاظت نورا؛ شناسهٔ ویدیو برای دارندگان دسترسی قابل‌مشاهده است. <a href="${esc(video.watch_url)}" target="_blank" rel="noopener noreferrer">باز کردن در ${name}</a></small>`;
+}
+function eiResources(){
+  const items=EI.data&&Array.isArray(EI.data.items)?EI.data.items:[];
+  const guide=`<div class="admfilters" data-ei-res-guide aria-label="راهنمای فایل‌ها و رسانه‌ها">${[['پوستر','در ویرایش رویداد (بخش اطلاعات اصلی)'],['برنامه / راهنما','فایل PDF یا سند، دسترسی عمومی یا ثبت‌نام‌شدگان'],['پیوند ورود آنلاین','فیلد «پیوند ورود» در ویرایش رویداد (فقط پنل)'],['آلبوم و گزارش پس از رویداد','تصویر، PDF یا پیوند؛ پس از علامت «برگزارشده» عمومی می‌شود'],['ویدیو','پیوند آپارات/یوتیوب یا فایل نورا (ضبط‌شده‌ها در زبانهٔ محتوای ضبط‌شده)']].map(([a,b])=>`<span class="chip" title="${esc(b)}" style="cursor:help">${esc(a)}</span>`).join('')}</div>`;
+  const head=`${guide}<div class="row" style="flex-wrap:wrap;gap:8px"><p class="cap" style="margin:0">هر فایل یا پیوند به همین رکورد رویداد بسته است و با ذخیره و بازخوانی می‌ماند؛ دسترسی در سرور و بر پایهٔ ثبت‌نام تأییدشده یا حضور ثبت‌شدهٔ همین رویداد سنجیده می‌شود؛ فایل خصوصی با نشانی مستقیم هم باز نمی‌شود.</p><span class="sp"></span>
+      <label class="chip ${EI.res.includeRemoved?'on':''}"><input type="checkbox" data-ei-res-removed ${EI.res.includeRemoved?'checked':''} hidden/>نمایش حذف‌شده‌ها</label>
+      ${eiCanRes()?btn('افزودن فایل یا پیوند','data-ei-res-new','i-plus'):''}</div>`;
+  const editor=EI.res.edit?eiResourceEditor():'';
+  const upload=EI.res.upError?p2Msg({kind:'stop',text:EI.res.upError}):EI.res.upFor?`<div class="card stack" role="status" aria-live="polite" style="border-inline-start:3px solid var(--warn)"><p class="cap" style="margin:0" data-ei-upload-progress>${esc(eiUploadProgressText())}</p></div>`:'';
+  const sessions=REC.data&&REC.data.recording&&REC.data.recording.sessions||[];
+  const sessionFilter=sessions.length?`<label class="fld" style="max-width:320px"><span class="lbl">فیلتر جلسهٔ ضبط‌شده</span><select class="input" data-ei-res-session-filter><option value="" ${EI.res.session?'':'selected'}>همهٔ منابع</option>${sessions.map(x=>`<option value="${x.id}" ${EI.res.session===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label>`:'';
+  const visible=EI.res.session?items.filter(r=>r.session_id===EI.res.session):items;
+  const list=visible.length?`<div class="admlist">${visible.map(eiResourceRow).join('')}</div>`:emptyBox(EI.res.session?'این جلسه هنوز فایلی ندارد.':'برای این رویداد هنوز منبعی ثبت نشده است.');
+  return `<div class="stack">${head}${eiStorageSummary()}${eiCanRes()?eiStorageHealthCard():''}${sessionFilter}${upload}${editor}${list}</div>`;
+}
+function eiResourceEditor(){
+  const e=EI.res.edit, f=e.form, err=e.errors||{};
+  const field=(label,key,opts)=>{const o=opts||{}, id='eif_'+key, attrs=`id="${id}" class="input" data-ei-field="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.dir?`dir="${o.dir}"`:''}`;
+    return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="3">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
+  return `<section class="card stack" data-ei-res-editor><div class="head">${e.id?'ویرایش منبع':'منبع تازه'}</div>
+    ${e.id?'':`<label class="fld" for="eif_kind"><span class="lbl">نوع</span><select id="eif_kind" class="input" data-ei-field="kind"><option value="file" ${!['link','youtube','aparat'].includes(f.kind)?'selected':''}>فایل خصوصی نورا (پس از ساخت بارگذاری می‌شود)</option><option value="youtube" ${f.kind==='youtube'?'selected':''}>ویدیوی یوتیوب (پخش‌کنندهٔ رسمی)</option><option value="aparat" ${f.kind==='aparat'?'selected':''}>ویدیوی آپارات (پخش‌کنندهٔ رسمی)</option><option value="link" ${f.kind==='link'?'selected':''}>پیوند https</option></select><small class="cap">${f.kind==='youtube'||f.kind==='aparat'?'جاسازی بیرونی میزبانی خصوصی نیست و حفاظتی مثل DRM ندارد؛ ویدیوی عمومی یا فهرست‌نشده در یوتیوب/آپارات با پنهان‌شدن قاب پشت خرید محافظت نمی‌شود (هرکس شناسه را بداند در خود سکو می‌بیند). دسترسی به صفحه و پلیر نورا همچنان با مجوز سرور است؛ برای محتوای پولی حساس «فایل خصوصی نورا» (کنترل دسترسی سمت سرور) امن‌تر است.':''}</small></label>`}
+    ${field('عنوان','title',{max:160,err:err.title})}
+    ${field('توضیح کوتاه','description',{textarea:true,max:800})}
+    <div class="row tight" style="flex-wrap:wrap">
+      <label class="fld" for="eif_access"><span class="lbl">سطح دسترسی</span><select id="eif_access" class="input" data-ei-field="access">${EI_ACCESS.map(([v,l])=>`<option value="${v}" ${f.access===v?'selected':''}>${esc(l)}</option>`).join('')}</select><small class="cap">«ثبت‌نام‌شدگان» یعنی پاسخ پذیرفته‌شده با پرداخت تأییدشده؛ «حاضران» یعنی حضور ثبت‌شده در همین رویداد.</small></label>
+      ${field('زمان انتشار (اختیاری)','publish_at',{dir:'ltr',ph:'۱۴۰۵/۰۸/۱۲ ۱۰:۰۰',hint:'ساعت تهران؛ خالی یعنی با انتشار بلافاصله در دسترس است.'})}
+      ${field('نام ناشر (نمایشی)','publisher',{max:120})}
+    </div>
+    ${f.kind==='link'?field('پیوند','link_url',{dir:'ltr',ph:'https://…',max:2048,err:err.link_url}):f.kind==='youtube'?field('نشانی یا شناسهٔ ویدیوی یوتیوب','link_url',{dir:'ltr',ph:'https://www.youtube.com/watch?v=… یا youtu.be/…',max:2048,err:err.link_url,hint:'سرور فقط شناسهٔ ۱۱ حرفی را نگه می‌دارد و نشانی رسمی پخش‌کننده را خودش می‌سازد؛ کد HTML پذیرفته نمی‌شود.'}):f.kind==='aparat'?field('نشانی یا شناسهٔ ویدیوی آپارات','link_url',{dir:'ltr',ph:'https://www.aparat.com/v/…',max:2048,err:err.link_url,hint:'سرور فقط شناسهٔ ویدیو را نگه می‌دارد؛ تنظیمات انتشار/جاسازی در خود آپارات تعیین می‌شود.'}):''}
+    ${(f.kind==='youtube'||f.kind==='aparat')?`<p class="cap" data-ei-external-warning="${f.access==='purchased'?'paid':'free'}" style="margin:0;padding:8px 10px;border:1px dashed var(--line);border-radius:10px${f.access==='purchased'?';color:var(--stop)':''}">${f.access==='purchased'
+      ?'هشدار سطح حفاظت: این منبع پولی روی '+(f.kind==='youtube'?'یوتیوب':'آپارات')+' میزبانی می‌شود. اگر ویدیو «عمومی» یا «فهرست‌نشده (Unlisted)» باشد، هرکس پیوند یا شناسه را داشته باشد می‌تواند آن را بیرون از نورا تماشا کند؛ نورا فقط قاب را پشت مجوز سرور می‌گذارد و این محصول را نباید «ویدیوی محافظت‌شده» معرفی کرد. برای محدودسازی واقعی باید از کنترل دسترسی مستند خود سکو یا زیرساخت پخش خصوصی استفاده شود.'
+      :'برای پیش‌نمایش رایگان، ویدیوی عمومی بیرونی مناسب است؛ این منبع حفاظت یا DRM ندارد.'}</p>${f.access==='purchased'?`<label class="chk" style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" data-ei-ack-external ${e.ackExternal?'checked':''}> <span>می‌دانم این ویدیوی پولی روی ${f.kind==='youtube'?'یوتیوب':'آپارات'} محافظت نمی‌شود و با آگاهی آن را برای «دارندگان دسترسی» منتشر می‌کنم؛ این تأیید با نام و زمان در لاگ ممیزی ثبت می‌شود و فقط هنگام انتشار منبع پولی لازم است.</span></label>`:''}`:''}
+    ${(REC.data&&REC.data.recording&&(REC.data.recording.sessions||[]).length)?`<div class="row tight" style="flex-wrap:wrap"><label class="fld" for="eif_session_id"><span class="lbl">جلسهٔ ضبط‌شده (اختیاری)</span><select id="eif_session_id" class="input" data-ei-field="session_id"><option value="" ${f.session_id?'':'selected'}>منبع عمومی رویداد (بدون جلسه)</option>${REC.data.recording.sessions.map(x=>`<option value="${x.id}" ${f.session_id===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select><small class="cap">فایل جلسه با سطح «دارندگان دسترسی» فقط برای خریداران/دارندگان دسترسی باز می‌شود.</small></label>
+      <label class="fld" for="eif_delivery"><span class="lbl">نحوهٔ تحویل</span><select id="eif_delivery" class="input" data-ei-field="delivery" ${f.kind==='youtube'||f.kind==='aparat'?'disabled':''}><option value="download" ${f.delivery!=='view'&&f.kind!=='youtube'&&f.kind!=='aparat'?'selected':''}>قابل دانلود</option><option value="view" ${f.delivery==='view'||f.kind==='youtube'||f.kind==='aparat'?'selected':''}>فقط مشاهدهٔ برخط (بدون ادعای حفاظت از کپی)</option></select>${f.kind==='youtube'||f.kind==='aparat'?'<small class="cap">منبع بیرونی فقط مشاهدهٔ برخط است؛ دانلود را خود سکو تعیین می‌کند.</small>':''}</label></div>`:''}
+    ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
+    <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت منبع','data-ei-res-save','i-check')}<button class="btn sm quiet" data-ei-res-cancel>انصراف</button></div></section>`;
+}
+function eiResourceOpen(id){
+  const item=id?(EI.data&&EI.data.items||[]).find(r=>r.id===id):null;
+  EI.res.edit={id:item?item.id:'',errors:{},formError:'',form:item?{kind:item.kind,title:item.title||'',description:item.description||'',access:item.access||'public',publish_at:item.publish_at_local||'',publisher:item.publisher||'',link_url:item.link_url||'',session_id:item.session_id||'',delivery:item.delivery||'download'}
+    :{kind:'file',title:'',description:'',access:EI.res.session?'purchased':'public',publish_at:'',publisher:'',link_url:'',session_id:EI.res.session||'',delivery:'download'}};
+  if(item&&item.publish_at&&!item.publish_at_local) EI.res.edit.form.publish_at=item.publish_at;
+  EI.msg=null; renderBody();
+}
+async function eiResourceSave(){
+  const api=window.NORA_SERVER_API, e=EI.res.edit; if(!e||EI.busy) return;
+  const f=e.form, payload={title:String(f.title||'').trim(),description:String(f.description||'').trim(),access:f.access,publish_at:String(f.publish_at||'').trim(),publisher:String(f.publisher||'').trim()};
+  const external=f.kind==='youtube'||f.kind==='aparat';
+  if(REC.data&&REC.data.recording){payload.session_id=String(f.session_id||''); payload.delivery=external||f.delivery==='view'?'view':'download'}
+  if(!e.id) payload.kind=['link','youtube','aparat'].includes(f.kind)?f.kind:'file';
+  if(['link','youtube','aparat'].includes(e.id?f.kind:payload.kind)) payload.link_url=String(f.link_url||'').trim();
+  if(external&&f.access==='purchased'&&e.ackExternal===true) payload.acknowledge_external_exposure=true; /* فاز ۹.۵ §۶.۴: فقط با تیک صریح؛ سرور در ممیزی ثبت می‌کند */
+  EI.busy='save'; e.errors={}; e.formError=''; renderBody();
+  try{
+    const saved=e.id?await api.updateEventResource(EI.eventId,e.id,payload,staffCsrfCookie()):await api.createEventResource(EI.eventId,payload,staffCsrfCookie());
+    EI.msg={kind:'ok',text:e.id?'تغییرهای منبع ذخیره شد.':(saved.kind==='file'?'منبع ساخته شد؛ اکنون فایل آن را بارگذاری و سپس منتشر کنید.':'منبع ساخته شد (پیش‌نویس).')};
+    EI.res.edit=null; EI.key=''; eiLoad();
+  }catch(error){
+    const fe=p2FieldErr(error);
+    if(error&&error.status===422&&fe&&fe.field&&Object.prototype.hasOwnProperty.call(f,fe.field)) e.errors[fe.field]=EI_ERR[fe.code]||fe.text; else e.formError=eiErr(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
+    renderBody();
+  }finally{EI.busy=''}
+}
+async function eiResourceStatus(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const item=(EI.data&&EI.data.items||[]).find(r=>r.id===id); if(!item) return;
+  const exposed=status==='published'&&['youtube','aparat'].includes(item.kind)&&item.access==='purchased';
+  const prompt=exposed
+    ?`هشدار سطح حفاظت: «${item.title}» یک ویدیوی پولی روی ${item.kind==='youtube'?'یوتیوب':'آپارات'} است. نورا فقط قاب را پشت مجوز سرور می‌گذارد؛ اگر ویدیو عمومی یا فهرست‌نشده باشد هرکس شناسه را بداند بیرون از نورا می‌بیند و نباید «محافظت‌شده» معرفی شود. با آگاهی از این موضوع منتشر می‌کنید؟ (تأیید شما با نام و زمان در لاگ ممیزی ثبت می‌شود)`
+    :`«${item.title}» برای ${EI_ACCESS_LABEL[item.access]||item.access} منتشر می‌شود${item.publish_at?' (از زمان انتشار تعیین‌شده)':''}. ادامه می‌دهید؟`;
+  if(status==='published'&&typeof window.confirm==='function'&&!window.confirm(prompt)) return;
+  const body=exposed?{status,acknowledge_external_exposure:true}:{status};
+  EI.busy=id; renderBody();
+  try{await api.updateEventResource(EI.eventId,id,body,staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'منبع منتشر شد.':'منبع به پیش‌نویس برگشت و از صفحهٔ رویداد برداشته شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiResourceRemove(id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const item=(EI.data&&EI.data.items||[]).find(r=>r.id===id); if(!item) return;
+  const reason=typeof window.prompt==='function'?window.prompt(`دلیل حذف «${item.title}» (در ردپای عملیات ثبت می‌شود):`,''):'';
+  if(reason===null||!String(reason).trim()){toast('حذف بدون دلیل انجام نمی‌شود'); return}
+  EI.busy=id; renderBody();
+  try{await api.removeEventResource(EI.eventId,id,String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:'منبع حذف شد (نرم؛ با دلیل و نام اقدام‌کننده ثبت شد).'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'حذف انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+const EI_RESUMABLE_MIN=8*1024*1024; /* فاز ۹.۵: فایل‌های بزرگ‌تر از این (و فقط با حافظهٔ خصوصی دیسک) قطعه‌ای و قابل ادامه می‌روند */
+function eiResumableAvailable(){
+  const limits=EI.data&&EI.data.limits||{}, st=limits.storage&&typeof limits.storage==='object'?limits.storage:null;
+  const api=window.NORA_SERVER_API;
+  return !!(st&&st.configured&&api&&typeof api.uploadEventResourceFileResumable==='function');
+}
+function eiUploadProgressText(){
+  const p=EI.res.upProgress; if(!p) return 'در حال بارگذاری فایل در سرور…';
+  const pct=p.total?Math.floor(p.sent*100/p.total):0;
+  const phase=p.phase==='finalizing'?'بررسی نهایی روی سرور (اندازه و sha256)…':p.phase==='resumed'?'ادامه پس از قطع ارتباط از آخرین قطعهٔ تأییدشده…':'بارگذاری قطعه‌ای قابل ادامه…';
+  return `${phase} ${fa(String(pct))}٪ (${svcBytes(p.sent)} از ${svcBytes(p.total)})`;
+}
+async function eiResourceUpload(id,file){
+  const api=window.NORA_SERVER_API; if(!file||EI.res.upFor) return;
+  const max=eiUploadMax();
+  if(file.size>max){EI.res.upError=`حجم فایل بیش از سقف این سرور (${fa(Math.round(max/1048576))} مگابایت) است؛ فایل کوچک‌تری انتخاب کنید.`; renderBody(); return}
+  EI.res.upFor=id; EI.res.upError=''; EI.res.upProgress=null; renderBody();
+  const resumable=eiResumableAvailable()&&file.size>EI_RESUMABLE_MIN;
+  try{
+    const saved=resumable
+      ?await api.uploadEventResourceFileResumable(EI.eventId,id,file,file.name,staffCsrfCookie(),{onProgress:(sent,total,phase)=>{EI.res.upProgress={sent,total,phase}; const el=document.querySelector('[data-ei-upload-progress]'); if(el) el.textContent=eiUploadProgressText()}})
+      :await api.uploadEventResourceFile(EI.eventId,id,file,file.name,staffCsrfCookie());
+    EI.msg={kind:'ok',text:`فایل «${saved.file_name||file.name}» در سرور ذخیره شد${resumable?' (قطعه‌ای، با تأیید sha256 روی سرور)':''}${saved.status==='draft'?'؛ منبع هنوز پیش‌نویس است':''}.`}; EI.key=''; EI.res.upFor=''; EI.res.upProgress=null; eiLoad()}
+  catch(error){EI.res.upFor=''; EI.res.upProgress=null; EI.res.upError=eiErr(error,resumable?'بارگذاری قطعه‌ای کامل نشد؛ فایل قبلی منبع دست‌نخورده ماند.':'بارگذاری انجام نشد؛ چیزی ذخیره نشد.'); renderBody()}
+}
+/* ── پرسش‌وپاسخ ── */
+function eiNotification(n){
+  if(!n) return '';
+  const st=EI_DELIVERY[n.state]||[n.state,''];
+  const parts=[`تلاش: ${fa(n.attempts||0)}`,n.delivered_at?'تحویل: '+(svcWhen(n.delivered_at)||n.delivered_at):'',n.last_error?'آخرین خطا: '+n.last_error:'',n.has_bale_target?'':'بدون هویت بلهٔ پیوندشده'].filter(Boolean);
+  return `<small class="cap">اعلان پاسخ: ${tag(st[0],st[1])} ${esc(parts.join(' · '))}</small>`;
+}
+function eiQuestionRow(q){
+  const id=esc(q.id), ev=esc(q.event_id), busy=EI.busy===q.id, draft=EI.q.draft[q.id];
+  const answered=!!q.answered;
+  const sessionTitle=q.session_id?(((REC.data&&REC.data.recording&&REC.data.recording.sessions)||[]).find(x=>x.id===q.session_id)||{}).title||'':'';
+  const info=[q.author,svcWhen(q.created_at)||q.created_at,EI.all&&q.event_title?'رویداد: '+q.event_title:'',q.session_id?'جلسه: '+(sessionTitle||'یکی از جلسات محتوای ضبط‌شده'):'',q.open_reports?`${fa(q.open_reports)} گزارش باز`:'',q.moderation_reason?'دلیل: '+q.moderation_reason:''].filter(Boolean).join(' · ');
+  const form=draft!=null?`<div class="stack" data-ei-answer-form="${id}"><label class="fld" for="eiAns_${id}"><span class="lbl">پاسخ برگزارکننده</span><textarea id="eiAns_${id}" class="input" rows="4" maxlength="4000" data-ei-answer-text="${id}">${esc(draft.text||'')}</textarea><small class="cap">با ارسال، پرسش و پاسخ منتشر می‌شوند و اعلان برای پرسش‌گر در صف قرار می‌گیرد (ثبت پاسخ مستقل از ارسال اعلان است).</small></label>
+      <div class="row tight" style="flex-wrap:wrap"><label class="chip ${draft.official!==false?'on':''}"><input type="checkbox" data-ei-answer-official="${id}" ${draft.official!==false?'checked':''} hidden/>پاسخ رسمی</label>
+      ${btn('ارسال و انتشار',`data-ei-answer-send="${id}" data-ei-event="${ev}"`,'i-send')}${btn('ذخیره بدون انتشار',`data-ei-answer-send="${id}" data-ei-event="${ev}" data-ei-answer-publish="false"`,'i-eye-off')}<button class="btn sm quiet" data-ei-answer-cancel="${id}">انصراف</button></div></div>`:'';
+  const actions=eiCanMod()&&!form?[btn(answered?'ویرایش پاسخ':'پاسخ',`data-ei-answer-open="${id}"`,'i-pen'),
+    q.status!=='published'?btn('انتشار',`data-ei-q-status="published" data-ei-id="${id}" data-ei-event="${ev}"`,'i-globe'):'',
+    q.status!=='hidden'?btn('پنهان‌کردن',`data-ei-q-status="hidden" data-ei-id="${id}" data-ei-event="${ev}"`,'i-eye-off'):'',
+    answered&&q.notification&&q.notification.state!=='delivered'?btn('ارسال دوبارهٔ اعلان',`data-ei-q-resend="${id}" data-ei-event="${ev}"`,'i-refresh'):''].join(''):'';
+  return `<div class="admlirow" data-ei-q-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-text')}</span>
+    <span class="sp"><p style="margin:0;white-space:pre-wrap">${esc(q.body)}</p><small class="cap">${esc(info)}</small>
+      ${answered?`<p class="cap" style="margin:6px 0 0;white-space:pre-wrap;border-inline-start:3px solid var(--ok);padding-inline-start:8px"><b>${q.answer_official?'پاسخ رسمی':'پاسخ'}</b> · ${esc(q.answer_label||'')}${q.answered_at?' · '+esc(svcWhen(q.answered_at)||'') :''}<br/>${esc(q.answer)}</p>${eiNotification(q.notification)}`:`<small class="cap">${tag('بی‌پاسخ','warn')}</small>`}
+      ${form}</span>
+    ${eiStatusTag(EI_Q_STATUS,q.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiQuestions(){
+  const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
+  const filters=`<div class="admfilters" role="group" aria-label="فیلتر پرسش‌ها">
+      ${[['','همه'],['false','بی‌پاسخ'],['true','پاسخ‌داده‌شده']].map(([k,l])=>`<button class="chip ${(EI.q.answered||'')===k?'on':''}" type="button" data-ei-q-answered="${k}" ${EI.all&&k===''?'hidden':''}>${esc(l)}</button>`).join('')}
+      <span class="sp"></span>
+      ${[['','هر وضعیت'],['pending','در انتظار'],['published','منتشرشده'],['hidden','پنهان']].map(([k,l])=>`<button class="chip ${EI.q.status===k?'on':''}" type="button" data-ei-q-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(eiQuestionRow).join('')}</div>`:emptyBox(EI.q.answered==='false'?'پرسش بی‌پاسخی وجود ندارد.':'پرسشی با این فیلتر ثبت نشده است.');
+  return `<div class="stack"><p class="cap" style="margin:0">هر پرسش به شناسهٔ رویداد و نشست سروری پرسش‌گر گره خورده است. پنهان‌کردن نیازمند دلیل است و با نام اقدام‌کننده ثبت می‌شود. باز/بسته‌بودن پرسش‌وپاسخ از ویرایش خود رویداد (گزینهٔ «پرسش‌وپاسخ بسته») تنظیم می‌شود.</p>
+    ${filters}${list}${p2Pager(total,EI.q.offset,EI.q.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function eiAnswerSend(eventId,id,publish){
+  const api=window.NORA_SERVER_API, draft=EI.q.draft[id]; if(!draft||EI.busy) return;
+  const text=String(draft.text||'').trim();
+  if(text.length<2){EI.msg={kind:'stop',text:'متن پاسخ لازم است.'}; renderBody(); return}
+  EI.busy=id; renderBody();
+  try{
+    const saved=await api.answerEventQuestion(eventId,id,{answer:text,official:draft.official!==false,publish:publish!==false},staffCsrfCookie());
+    const n=saved&&saved.notification, st=n?(EI_DELIVERY[n.state]||[n.state])[0]:'';
+    EI.msg={kind:'ok',text:`پاسخ ثبت شد${publish===false?' (بدون انتشار)':' و منتشر شد'}${n?` · اعلان پرسش‌گر: ${st}${n.has_bale_target?'':' (بدون هویت بلهٔ پیوندشده؛ در حساب کاربر دیده می‌شود)'}`:''}.`};
+    delete EI.q.draft[id]; EI.key=''; eiLoad();
+  }catch(error){EI.msg={kind:'stop',text:eiErr(error,'ثبت پاسخ انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiQuestionStatus(eventId,id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  let reason='';
+  if(status==='hidden'){reason=typeof window.prompt==='function'?window.prompt('دلیل پنهان‌کردن این پرسش (در ردپای عملیات ثبت می‌شود):',''):''; if(reason===null||!String(reason).trim()){toast('پنهان‌کردن بدون دلیل انجام نمی‌شود'); return}}
+  EI.busy=id; renderBody();
+  try{await api.setEventQuestionStatus(eventId,id,status,String(reason||'').trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:status==='hidden'?'پرسش پنهان شد و از صفحهٔ رویداد برداشته شد.':'پرسش منتشر شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function eiQuestionResend(eventId,id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  EI.busy=id; renderBody();
+  try{const saved=await api.resendEventQuestionNotification(eventId,id,staffCsrfCookie()); const n=saved&&saved.notification; EI.msg={kind:'ok',text:`اعلان دوباره در صف قرار گرفت${n?' · وضعیت: '+(EI_DELIVERY[n.state]||[n.state])[0]:''}؛ تحویل فقط پس از ارسال واقعی ربات گزارش می‌شود.`}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'ارسال دوباره انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+/* ── دیدگاه‌ها ── */
+function eiReviewRow(r){
+  const id=esc(r.id), busy=EI.busy===r.id;
+  const badge=r.badge==='buyer'?'خریدار تأییدشده':(r.badge==='attendee'||r.verified_attendee)?'شرکت‌کنندهٔ تأییدشده':'بدون تأیید حضور یا خرید';
+  const info=[r.author,badge,svcWhen(r.created_at)||r.created_at,r.edit_count?`${fa(r.edit_count)} بار ویرایش`:'',r.open_reports?`${fa(r.open_reports)} گزارش باز`:'',r.moderation_reason?'دلیل: '+r.moderation_reason:''].filter(Boolean).join(' · ');
+  const actions=eiCanMod()&&r.status!=='withdrawn'?[r.status!=='published'?btn('تأیید و انتشار',`data-ei-rv-status="published" data-ei-id="${id}"`,'i-globe'):'',
+    r.status!=='hidden'?btn('پنهان‌کردن',`data-ei-rv-status="hidden" data-ei-id="${id}"`,'i-eye-off'):'',
+    r.status==='hidden'?btn('بازگشت به انتظار',`data-ei-rv-status="pending" data-ei-id="${id}"`,'i-refresh'):''].join(''):'';
+  return `<div class="admlirow" data-ei-rv-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-user')}</span>
+    <span class="sp"><p style="margin:0;white-space:pre-wrap">${esc(r.body)}</p><small class="cap">${esc(info)}</small></span>
+    ${eiStatusTag(EI_RV_STATUS,r.status)}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiReviews(){
+  const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
+  const filters=`<div class="admfilters" role="group" aria-label="فیلتر دیدگاه‌ها">${[['','همه'],['pending','در انتظار تأیید'],['published','منتشرشده'],['hidden','پنهان'],['withdrawn','پس‌گرفته']].map(([k,l])=>`<button class="chip ${EI.rv.status===k?'on':''}" type="button" data-ei-rv-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(eiReviewRow).join('')}</div>`:emptyBox('دیدگاهی با این فیلتر ثبت نشده است.');
+  return `<div class="stack"><p class="cap" style="margin:0">فقط حساب‌هایی که حضورشان در همین رویداد ثبت شده یا دسترسی فعال به محتوای ضبط‌شدهٔ آن دارند می‌توانند دیدگاه بنویسند؛ نشان «شرکت‌کنندهٔ تأییدشده» یا «خریدار تأییدشده» را سرور تعیین می‌کند. دیدگاه تا تأیید شما منتشر نمی‌شود. امتیاز ستاره‌ای وجود ندارد.</p>
+    ${filters}${list}${p2Pager(total,EI.rv.offset,EI.rv.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function eiReviewStatus(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  let reason='';
+  if(status==='hidden'){reason=typeof window.prompt==='function'?window.prompt('دلیل پنهان‌کردن این دیدگاه (در ردپای عملیات ثبت می‌شود):',''):''; if(reason===null||!String(reason).trim()){toast('پنهان‌کردن بدون دلیل انجام نمی‌شود'); return}}
+  EI.busy=id; renderBody();
+  try{await api.setEventReviewStatus(EI.eventId,id,status,String(reason||'').trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'دیدگاه منتشر شد.':status==='hidden'?'دیدگاه پنهان شد.':'دیدگاه به حالت انتظار برگشت.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+/* ── گزارش‌ها ── */
+function eiReportRow(r){
+  const id=esc(r.id), busy=EI.busy===r.id;
+  const info=[r.target_kind==='question'?'پرسش':'دیدگاه',EI.all&&r.event_title?'رویداد: '+r.event_title:'',svcWhen(r.created_at)||r.created_at,r.resolution_note?'یادداشت: '+r.resolution_note:''].filter(Boolean).join(' · ');
+  const actions=eiCanMod()&&r.status==='open'?btn('رسیدگی شد',`data-ei-rp-resolve="resolved" data-ei-id="${id}"`,'i-check')+btn('رد گزارش',`data-ei-rp-resolve="dismissed" data-ei-id="${id}"`,'i-close'):'';
+  const st={open:['باز','stop'],resolved:['رسیدگی‌شده','ok'],dismissed:['ردشده','']}[r.status]||[r.status,''];
+  return `<div class="admlirow" data-ei-rp-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-flag')}</span>
+    <span class="sp"><b>دلیل گزارش: ${esc(r.reason)}</b><small class="cap">متن: ${esc(r.excerpt||'')}</small><small class="cap">${esc(info)}</small></span>
+    ${tag(st[0],st[1])}<div class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${actions}</div></div>`;
+}
+function eiReports(){
+  const d=EI.data||{}, items=Array.isArray(d.items)?d.items:[], total=Number(d.total)||0;
+  const filters=`<div class="admfilters" role="group" aria-label="فیلتر گزارش‌ها">${[['open','باز'],['resolved','رسیدگی‌شده'],['dismissed','ردشده']].map(([k,l])=>`<button class="chip ${EI.rp.status===k?'on':''}" type="button" data-ei-rp-filter="${k}">${esc(l)}</button>`).join('')}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(eiReportRow).join('')}</div>`:emptyBox(EI.rp.status==='open'?'گزارش بازی وجود ندارد.':'گزارشی با این وضعیت نیست.');
+  return `<div class="stack"><p class="cap" style="margin:0">گزارش کاربران محتوا را خودکار پنهان نمی‌کند؛ پس از بررسی، پرسش/دیدگاه را در زبانهٔ خودش پنهان کنید و این‌جا نتیجه را ثبت کنید.</p>${filters}${list}${p2Pager(total,EI.rp.offset,EI.rp.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function eiReportResolve(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const note=typeof window.prompt==='function'?window.prompt(status==='resolved'?'یادداشت رسیدگی (اختیاری):':'دلیل رد گزارش (اختیاری):',''):'';
+  if(note===null) return;
+  EI.busy=id; renderBody();
+  try{await api.resolveEventReport(id,status,String(note||'').trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:status==='resolved'?'گزارش رسیدگی‌شده ثبت شد.':'گزارش رد شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:eiErr(error,'ثبت نتیجه انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+function eiClick(q){
+  if(recClick(q)) return true;
+  if(q('[data-ei-close]')){eiClose(); return true}
+  if(q('[data-ei-refresh]')){EI.key=''; eiLoad(); return true}
+  if(q('[data-ei-summary-refresh]')){EI.summary=null; EI.summaryError=''; renderBody(); eiLoadSummary(); return true}
+  const openAll=q('[data-ei-open-all]'); if(openAll){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); if(openAll.dataset.eiOpenAll==='reports') {EI.tab='reports'; EI.key=''; eiLoad()} return true}
+  const open=q('[data-ct-interaction]'); if(open){eiOpen(open.dataset.ctInteraction,open.dataset.ctTitle||'',open.dataset.ctEvStatus||'',eiCanRes()?'resources':'questions'); return true}
+  const file=q('[data-ct-file]'); if(file){eiOpen(file.dataset.ctFile,file.dataset.ctTitle||'',file.dataset.ctEvStatus||'','info'); return true}
+  const eiEdit=q('[data-ei-edit]'); if(eiEdit){if(!ctCan('can_edit')){toast('مجوز ویرایش محتوا برای این نقش فعال نیست'); return true} const id=eiEdit.dataset.eiEdit, step=eiEdit.dataset.eiEditStep; EI.open=false; EI.data=null; ctOpenEditor(id).then(()=>{if(CT.edit&&CT.edit.id===id&&step!=null) ctWizGo(step)}); return true}
+  if(!EI.open) return false;
+  if(efClick(q)) return true;
+  const tab=q('[data-ei-tab]'); if(tab){EI.tab=tab.dataset.eiTab; EI.msg=null; EF.msg=null; EI.res.edit=null; EI.res.session=''; REC.edit=null; REC.session=null; EI.key=''; efSyncHash(); eiLoad(); return true}
+  const page=q('[data-ei-page]'); if(page){const box=EI.tab==='questions'?EI.q:EI.tab==='reviews'?EI.rv:EI.tab==='orders'?REC.orders:EI.rp, total=EI.data?Number(EI.data.total)||0:0;
+    box.offset=page.dataset.eiPage==='next'?Math.min(box.offset+box.limit,Math.max(0,total-1)):Math.max(0,box.offset-box.limit); eiLoad(); return true}
+  if(q('[data-ei-res-new]')){eiResourceOpen(''); return true}
+  const resEdit=q('[data-ei-res-edit]'); if(resEdit){eiResourceOpen(resEdit.dataset.eiResEdit); return true}
+  const resPreview=q('[data-ei-res-preview]'); if(resPreview){EI.res.preview=EI.res.preview===resPreview.dataset.eiResPreview?'':resPreview.dataset.eiResPreview; renderBody(); return true}
+  if(q('[data-ei-res-cancel]')){EI.res.edit=null; renderBody(); return true}
+  if(q('[data-ei-res-save]')){eiResourceSave(); return true}
+  const resStatus=q('[data-ei-res-status]'); if(resStatus){eiResourceStatus(resStatus.dataset.eiId,resStatus.dataset.eiResStatus); return true}
+  const resRemove=q('[data-ei-res-remove]'); if(resRemove){eiResourceRemove(resRemove.dataset.eiResRemove); return true}
+  const qa=q('[data-ei-q-answered]'); if(qa){EI.q.answered=qa.dataset.eiQAnswered; EI.q.offset=0; eiLoad(); return true}
+  const qf=q('[data-ei-q-filter]'); if(qf){EI.q.status=qf.dataset.eiQFilter; EI.q.offset=0; eiLoad(); return true}
+  const ansOpen=q('[data-ei-answer-open]'); if(ansOpen){const id=ansOpen.dataset.eiAnswerOpen, item=(EI.data&&EI.data.items||[]).find(x=>x.id===id); EI.q.draft[id]={text:item&&item.answer||'',official:item&&item.answered?item.answer_official!==false:true}; renderBody(); return true}
+  const ansCancel=q('[data-ei-answer-cancel]'); if(ansCancel){delete EI.q.draft[ansCancel.dataset.eiAnswerCancel]; renderBody(); return true}
+  const ansSend=q('[data-ei-answer-send]'); if(ansSend){const id=ansSend.dataset.eiAnswerSend, ta=document.querySelector(`[data-ei-answer-text="${id}"]`); if(EI.q.draft[id]&&ta) EI.q.draft[id].text=ta.value; eiAnswerSend(ansSend.dataset.eiEvent,id,ansSend.dataset.eiAnswerPublish!=='false'); return true}
+  const qs=q('[data-ei-q-status]'); if(qs){eiQuestionStatus(qs.dataset.eiEvent,qs.dataset.eiId,qs.dataset.eiQStatus); return true}
+  const qr=q('[data-ei-q-resend]'); if(qr){eiQuestionResend(qr.dataset.eiEvent,qr.dataset.eiQResend); return true}
+  const rvf=q('[data-ei-rv-filter]'); if(rvf){EI.rv.status=rvf.dataset.eiRvFilter; EI.rv.offset=0; eiLoad(); return true}
+  const rvs=q('[data-ei-rv-status]'); if(rvs){eiReviewStatus(rvs.dataset.eiId,rvs.dataset.eiRvStatus); return true}
+  const rpf=q('[data-ei-rp-filter]'); if(rpf){EI.rp.status=rpf.dataset.eiRpFilter; EI.rp.offset=0; eiLoad(); return true}
+  const rpr=q('[data-ei-rp-resolve]'); if(rpr){eiReportResolve(rpr.dataset.eiId,rpr.dataset.eiRpResolve); return true}
+  return false;
+}
+function eiChange(t){
+  if(!EI.open||!t||!t.dataset) return false;
+  if(efChange(t)) return true;
+  if(recChange(t)) return true;
+  if(t.matches('[data-ei-res-session-filter]')){EI.res.session=t.value||''; renderBody(); return true}
+  if(t.matches('[data-ei-res-removed]')){EI.res.includeRemoved=!!t.checked; eiLoad(); return true}
+  if(t.dataset.eiFile){const file=t.files&&t.files[0]; if(file) eiResourceUpload(t.dataset.eiFile,file); t.value=''; return true}
+  if(t.hasAttribute&&t.hasAttribute('data-ei-ack-external')&&EI.res.edit){EI.res.edit.ackExternal=!!t.checked; return true}
+  if(t.dataset.eiField&&EI.res.edit){EI.res.edit.form[t.dataset.eiField]=t.value; if(t.dataset.eiField==='kind'||(t.dataset.eiField==='access'&&['youtube','aparat'].includes(String(EI.res.edit.form.kind||'')))) renderBody(); return true}
+  if(t.dataset.eiAnswerOfficial){const d=EI.q.draft[t.dataset.eiAnswerOfficial]; if(d) d.official=!!t.checked; return true}
+  if(t.dataset.eiAnswerText){const d=EI.q.draft[t.dataset.eiAnswerText]; if(d) d.text=t.value; return true}
+  return false;
+}
+/* ══ فاز ۹: محصول ضبط‌شدهٔ رویداد: جلسات، شرایط فروش، سفارش‌ها و دسترسی‌ها ═════
+   زبانهٔ «ضبط‌شده و فروش» داخل همان ابزار رویداد (EI) و کارتابل «سفارش‌ها» برای
+   همهٔ رویدادها. وضعیت محصول، مجوزها (ev_create/ev_publish/receipt_approve/finance)
+   و هر تصمیم مالی در سرور تعیین می‌شود؛ این‌جا فقط همان پاسخ بازتاب داده می‌شود.
+   هیچ شمارندهٔ ساختگی، تخفیف یا «پرداخت موفق» بدون تأیید سرور نمایش داده نمی‌شود. */
+const REC={data:null,edit:null,session:null,access:{items:null,error:'',grant:null},
+  orders:{status:'review',q:'',offset:0,limit:20,detail:null,detailError:'',detailLoading:false},summary:null,summaryError:'',summaryLoading:false};
+const REC_STATUS={draft:['پیش‌نویس',''],ready:['آمادهٔ انتشار','warn'],published:['در حال فروش','ok'],sales_paused:['فروش متوقف','warn'],archived:['بایگانی','stop']};
+const REC_STATUS_ACTION={ready:'آماده‌سازی برای انتشار',published:'انتشار و شروع فروش',sales_paused:'توقف فروش',archived:'بایگانی محصول',draft:'بازگشت به پیش‌نویس'};
+const REC_SESSION_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],hidden:['پنهان','stop']};
+const REC_ORDER_STATUS={pending:['در انتظار پرداخت','warn'],awaiting_receipt:['در انتظار رسید','warn'],receipt_submitted:['رسید ارسال‌شده؛ نیازمند بررسی','warn'],paid:['پرداخت تأییدشده (بله)','ok'],paid_manual:['پرداخت تأییدشده (بررسی دستی)','ok'],
+  needs_review:['نیازمند بررسی','warn'],rejected:['رد شده','stop'],cancelled:['لغو شده',''],expired:['منقضی',''],refunded:['بازپرداخت‌شده','stop']};
+const REC_ACCESS_STATE={active:['فعال','ok'],expired:['منقضی',''],revoked:['لغوشده','stop']};
+const REC_ACCESS_SOURCE={purchase:'خرید',free:'دسترسی رایگان',granted:'اعطای دستی'};
+const REC_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
+const REC_BLOCKER={event_not_held:'رویداد هنوز برگزار نشده است؛ فروش محتوای ضبط‌شده پس از برگزاری ممکن است.',no_published_session:'دست‌کم یک جلسهٔ منتشرشده لازم است.',no_live_resource:'دست‌کم یک فایل/پیوند منتشرشده در جلسات لازم است.',no_payment_method:'فرم خرید این محصول هیچ روش پرداخت معتبری ندارد؛ در فرم‌ساز کارت‌به‌کارت (با کارت مقصد و بررسی رسید) یا کیف پول بله (پیکربندی‌شده در سرور) را فعال کنید.',
+  purchase_form_required:'محصول پولی فقط از راه «فرم خرید» فرم‌ساز فروخته می‌شود؛ هنوز فرم خریدی برای این محصول ساخته نشده است.',purchase_form_invalid_price:'گزینهٔ مالی فرم خرید معتبر نیست؛ در فرم‌ساز یک گزینهٔ مالی اجباری با مبلغ مشخص تعریف کنید.',purchase_form_not_published:'فرم خرید این محصول هنوز منتشر نشده است؛ آن را در فرم‌ساز منتشر کنید.',no_title:'عنوان محصول لازم است.',event_cancelled:'رویداد لغو شده است.'};
+const REC_ERR={publish_blocked:'انتشار ممکن نیست؛ موارد زیر را برطرف کنید.',open_orders_block_price_change:'تا وقتی سفارش باز وجود دارد، قیمت تغییر نمی‌کند.',version_conflict:'نسخهٔ محصول در این میان تغییر کرده؛ بازخوانی کنید.',session_has_resources:'این جلسه فایل دارد؛ اول فایل‌ها را حذف یا جابه‌جا کنید.',
+  too_many_sessions:'شمار جلسات از حد مجاز گذشته است.',order_not_reviewable:'این سفارش در وضعیت قابل‌بررسی نیست.',access_already_active:'این حساب هم‌اکنون دسترسی فعال دارد.',invalid_payment_card:'شمارهٔ کارت معتبر نیست (۱۶ رقم).',invalid_number:'عدد واردشده معتبر نیست.',invalid_faq:'هر پرسش متداول باید پرسش (≥۳ نویسه) و پاسخ داشته باشد.',
+  invalid_transition:'این تغییر وضعیت مجاز نیست.',reason_required:'دلیل لازم است.',recording_not_found:'برای این رویداد هنوز محصول ضبط‌شده‌ای ساخته نشده است.',account_not_found:'حسابی با این شناسه پیدا نشد.',order_not_paid:'فقط سفارش پرداخت‌شده بازپرداخت می‌شود.',refund_reference_required:'شمارهٔ پیگیری بازپرداخت لازم است.',
+  event_not_published:'رویداد منتشر نشده است.',session_not_found:'جلسه پیدا نشد.',session_resource_access:'فایل جلسه باید سطح دسترسی «خریداران» یا «عمومی» داشته باشد.',
+  commercial_settings_in_form:'قیمت، کارت مقصد و روش پرداخت این محصول در فرم خرید تعریف شده‌اند؛ آن‌ها را در فرم‌ساز تغییر دهید.',decide_in_inbox:'این سفارش از فرم خرید ثبت شده و رسید آن در «صندوق پیام‌ها» بررسی می‌شود.',order_follows_form_payment:'این سفارش دنبال پرداخت فرم خرید است و از این‌جا تغییر نمی‌کند.'};
+/* فاز ۹.۱: فرم‌ساز منبع قیمت/روش/کارت مقصد است؛ پنل فقط پیوند می‌دهد و وضعیت واقعی را از سرور نشان می‌دهد. */
+const REC_FORM_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],archived:['بایگانی','stop']};
+function recFormSourced(rec){return !!(rec&&rec.commerce&&rec.commerce.source==='form'&&rec.commerce.form_id)}
+function recSafeId(v){return /^[A-Za-z0-9_-]{1,100}$/.test(String(v||''))?String(v):''}
+function recBuilderHref(rec){const fid=recSafeId(rec&&rec.commerce&&rec.commerce.form_id); return fid?'create.html?fid='+encodeURIComponent(fid)+'&back='+encodeURIComponent('admin.html#newev'):''}
+function recNewFormHref(rec){const rid=recSafeId(rec&&rec.id), ev=recSafeId(EI.eventId); return rid&&ev?'create.html?purpose=recording_access&recording='+encodeURIComponent(rid)+'&ev='+encodeURIComponent(ev)+'&back='+encodeURIComponent('admin.html#newev'):''}
+function recPublicFormHref(rec){const fid=recSafeId(rec&&rec.commerce&&rec.commerce.form_id); return fid&&rec.commerce.form_status==='published'?'form.html?fid='+encodeURIComponent(fid)+'&kind=reg':''}
+function recCommerceBox(rec){
+  const c=rec.commerce||{source:'product',price:rec.price,methods:[],form_id:null};
+  const methods=(c.methods||[]).map(m=>REC_METHOD[m]||m);
+  if(c.source==='form'){
+    const builder=recBuilderHref(rec), pub=recPublicFormHref(rec);
+    return `<section class="card stack" data-rec-commerce="form"><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">فروش و قیمت (از فرم خرید)</div>${recTag(REC_FORM_STATUS,c.form_status)}${c.valid?tag(recMoney(c.price),''):tag('قیمت نامعتبر','stop')}<span class="sp"></span></div>
+      <p class="cap">فرم خرید: <b>${esc(c.form_title||'بدون عنوان')}</b> · روش‌های فعال: ${methods.length?esc(methods.join('، ')):'هیچ'} · این محصول قیمت و کارت مقصد جداگانه ندارد؛ هر تغییر در فرم‌ساز انجام می‌شود و خریداران فقط از همین فرم می‌خرند.</p>
+      <div class="row tight" style="flex-wrap:wrap">${builder&&eiCanRes()?`<a class="btn sm" href="${esc(builder)}" target="_blank" rel="noopener" data-rec-form-edit>${ico('i-sliders')}ویرایش در فرم‌ساز</a>`:''}${pub?`<a class="btn sm quiet" href="${esc(pub)}" target="_blank" rel="noopener" data-rec-form-public>${ico('i-globe')}فرم خرید عمومی</a>`:''}</div></section>`;
+  }
+  const paid=Number(c.price||rec.price||0)>0, create=recNewFormHref(rec);
+  return `<section class="card stack" data-rec-commerce="product"><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">فروش و قیمت</div>${tag(recMoney(c.price!=null?c.price:rec.price),'')}<span class="sp"></span></div>
+    <p class="cap">${paid?'این محصول پولی است و هنوز فرم خرید ندارد. مبلغ، روش پرداخت و کارت مقصد در فرم خریدِ فرم‌ساز تعریف می‌شود و تا انتشار آن فرم، محصول منتشر نمی‌شود.':'این محصول رایگان است؛ دسترسی با یک کلیک در صفحهٔ رویداد (بدون تراکنش) داده می‌شود و فرم خرید لازم ندارد. برای پولی‌کردن، قیمت را تغییر دهید و فرم خرید بسازید.'}</p>
+    ${paid&&create&&eiCanRes()?`<div class="row tight" style="flex-wrap:wrap"><a class="btn sm" href="${esc(create)}" target="_blank" rel="noopener" data-rec-form-create>${ico('i-plus')}ساخت فرم خرید در فرم‌ساز</a></div>`:''}</section>`;
+}
+function recErr(error,fallback){const code=error&&error.code||''; if(REC_ERR[code]) return REC_ERR[code]; const f=p2FieldErr(error); if(error&&error.status===422&&f&&(REC_ERR[f.code]||EI_ERR[f.code])) return (REC_ERR[f.code]||EI_ERR[f.code])+(f.field?` (${f.field})`:''); return eiErr(error,fallback)}
+function recCanOrders(){return canPerm('receipt_approve')||canPerm('ev_publish')||canPerm('finance')}
+function recCanDecide(){return canPerm('receipt_approve')}
+function recCanFinance(){return canPerm('finance')}
+function recReset(){REC.data=null; REC.edit=null; REC.session=null; REC.access={items:null,error:'',grant:null}; REC.orders.offset=0; REC.orders.detail=null; REC.orders.detailError=''; REC.orders.status='review'; REC.orders.q=''}
+function recMoney(v){const n=Number(v)||0; return n===0?'رایگان':fa(n.toLocaleString('en-US'))+' ریال'}
+function recTag(map,k){const row=map[k]||[k||'نامشخص','']; return tag(row[0],row[1])}
+function recSessionLabel(id){const s=REC.data&&REC.data.recording&&(REC.data.recording.sessions||[]).find(x=>x.id===id); return s?s.title:''}
+/* ── خلاصهٔ داشبورد (فقط دادهٔ سرور) ── */
+async function recLoadSummary(){
+  const api=window.NORA_SERVER_API; if(!api||typeof api.recordingsSummary!=='function'||!recCanOrders()) return;
+  try{REC.summary=await api.recordingsSummary(); REC.summaryError=''}
+  catch(error){REC.summary=null; REC.summaryError=recErr(error,'خلاصهٔ فروش محتوای ضبط‌شده دریافت نشد.')}
+  finally{REC.summaryLoading=false}
+  if(S.sec==='dash'||S.sec==='events') renderBody();
+}
+function recSummaryCard(){
+  if(!recCanOrders()) return '';
+  const s=REC.summary, head=`<div class="row"><span class="ic">${ico('i-play')}</span><b>محتوای ضبط‌شده و فروش</b><span class="sp"></span>`;
+  if(!s&&!REC.summaryError) return `<article class="card stack" data-rec-summary>${head}${tag('API سرور')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
+  if(!s) return `<article class="card stack" data-rec-summary>${head}${tag('خطا','stop')}</div><p class="cap">${esc(REC.summaryError)}</p>${btn('تلاش دوباره','data-rec-summary-refresh','i-refresh')}</article>`;
+  const r=s.recordings||{}, o=s.orders||{};
+  const cells=[['در حال فروش',r.published],['آمادهٔ انتشار',r.ready],['پیش‌نویس',r.draft],['فروش متوقف',r.sales_paused],['سفارش نیازمند بررسی',Number(o.receipt_submitted||0)+Number(o.needs_review||0)],['پرداخت تأییدشده',Number(o.paid||0)+Number(o.paid_manual||0)],['بازپرداخت‌شده',s.orders_refunded],['دسترسی فعال',s.active_access]];
+  return `<article class="card stack" data-rec-summary>${head}${tag('API سرور')}</div>
+    <div class="kpis">${cells.map(([l,v])=>`<div class="kpi"><b>${fa(Number(v)||0)}</b><small>${esc(l)}</small></div>`).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap">${btn('سفارش‌های نیازمند بررسی','data-rec-open-orders','i-wallet')}</div></article>`;
+}
+/* فاز ۹.۱ §۲: گواهی پایان محتوای ضبط‌شده: سوییچ صریح به‌ازای هر محصول؛ هیچ حالت خودکاری وجود ندارد.
+   سرور نه نمره‌ای ثبت می‌کند نه «تماشا» را می‌شناسد؛ «manual» فقط یعنی برگزارکننده می‌تواند از مسیر موجود صدور
+   گواهی (ربات، با مجوز و لاگ) آن را صادر کند. خرید/دسترسی/تماشا به‌تنهایی هیچ گواهی‌ای نمی‌سازد و گواهی حضور رویداد جداست. */
+const REC_CERT_POLICY={none:'صادر نمی‌شود',manual:'فقط صدور دستی توسط برگزارکننده (خرید به‌تنهایی کافی نیست)'};
+const REC_CERT_HINT='این گواهی با «گواهی حضور» رویداد یکی نیست و هیچ‌وقت خودکار صادر نمی‌شود؛ سرور نمره یا تکمیل تماشا را ثبت نمی‌کند، پس صدور فقط از مسیر موجود گواهینامه (با مجوز و دلیل و لاگ) انجام می‌شود.';
+/* ── زبانهٔ محصول ── */
+function recForm(rec){
+  /* فاز ۹.۱: کارت مقصد و کلید کیف پول دیگر روی محصول ویرایش نمی‌شوند (منبع: فرم خرید). قیمت فقط تا پیش از اتصال فرم ویرایش‌پذیر است. */
+  return {title:rec?rec.title:EI.title||'',summary:rec?rec.summary:'',outcomes:rec?rec.outcomes:'',audience:rec?rec.audience:'',access_terms:rec?rec.access_terms:'',refund_policy:rec?rec.refund_policy:'',
+    faq:rec?(rec.faq||[]).map(x=>`${x.q} :: ${x.a}`).join('\n'):'',price:rec?String(recFormSourced(rec)?rec.commerce.price:rec.price):'0',access_days:rec&&rec.access_days?String(rec.access_days):'',attendee_access:rec?!!rec.attendee_access:false,
+    download_default:rec?rec.download_default!==false:true,cover_url:rec?rec.cover_url||'':'',certificate_policy:rec&&rec.certificate_policy==='manual'?'manual':'none',formSourced:recFormSourced(rec)};
+}
+function recPayload(f){
+  const faq=String(f.faq||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf('::'); return i<0?{q:l,a:''}:{q:l.slice(0,i).trim(),a:l.slice(i+2).trim()}});
+  const out={title:String(f.title||'').trim(),summary:String(f.summary||'').trim(),outcomes:String(f.outcomes||'').trim(),audience:String(f.audience||'').trim(),access_terms:String(f.access_terms||'').trim(),refund_policy:String(f.refund_policy||'').trim(),
+    faq,access_days:String(f.access_days||'').trim()?Number(String(f.access_days).trim()):null,
+    attendee_access:!!f.attendee_access,download_default:!!f.download_default,cover_url:String(f.cover_url||'').trim(),
+    certificate_policy:f.certificate_policy==='manual'?'manual':'none'};
+  /* قیمت فقط وقتی فرستاده می‌شود که منبع تجاری هنوز خود محصول باشد؛ با فرم خرید متصل، سرور تغییر آن را ۴۰۹ می‌کند. */
+  if(!f.formSourced) out.price=/^\d+$/.test(String(f.price).trim())?Number(String(f.price).trim()):String(f.price);
+  return out;
+}
+function recEditor(){
+  const e=REC.edit, f=e.form, err=e.errors||{};
+  const field=(label,key,o)=>{o=o||{}; const id='recf_'+key, attrs=`id="${id}" class="input" data-rec-field="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.ph?`placeholder="${esc(o.ph)}"`:''} ${o.dir?`dir="${o.dir}"`:''} ${o.im?`inputmode="${o.im}"`:''}`;
+    return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="${o.rows||3}">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
+  const flag=(label,key,hint)=>`<label class="chip ${f[key]?'on':''}"><input type="checkbox" data-rec-flag="${key}" ${f[key]?'checked':''} hidden/>${esc(label)}</label>${hint?`<small class="cap">${esc(hint)}</small>`:''}`;
+  const walletReady=REC.data&&REC.data.wallet_ready;
+  return `<section class="card stack" data-rec-editor><div class="head">${e.id?'ویرایش محصول ضبط‌شده':'ساخت محصول ضبط‌شده برای این رویداد'}</div>
+    <p class="cap">این محصول به همین رویداد بسته است و با ثبت‌نام/حضور یکی نیست؛ خرید دسترسی، حضور به شمار نمی‌آید. تا پیش از «انتشار» در سایت دیده نمی‌شود.</p>
+    ${field('عنوان محصول','title',{max:160})}
+    ${field('معرفی کوتاه','summary',{textarea:true,max:2000})}
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap;gap:var(--sp-3)">
+      <div class="stack" style="flex:1 1 260px;min-width:0">${field('دستاوردها (برای چه کسی مفید است؟)','outcomes',{textarea:true,max:2000})}${field('مخاطب','audience',{textarea:true,max:2000,rows:2})}</div>
+      <div class="stack" style="flex:1 1 260px;min-width:0">${field('شرایط دسترسی','access_terms',{textarea:true,max:2000,hint:'مثلاً مشاهدهٔ برخط، دانلود جزوه‌ها، مدت دسترسی.'})}${field('سیاست بازپرداخت','refund_policy',{textarea:true,max:4000,rows:2,hint:'بازپرداخت فقط با شمارهٔ پیگیری واقعی و مجوز مالی ثبت می‌شود.'})}</div>
+    </div>
+    ${field('پرسش‌های متداول (هر خط: پرسش :: پاسخ)','faq',{textarea:true,rows:3})}
+    <div class="row tight" style="flex-wrap:wrap;align-items:flex-start">
+      ${f.formSourced?`<div class="fld" data-rec-price-locked><span class="lbl">قیمت</span><b>${recMoney(f.price)}</b><small class="cap">قیمت، روش پرداخت و کارت مقصد در فرم خرید تعریف شده‌اند و از فرم‌ساز تغییر می‌کنند.</small></div>`
+        :field('قیمت (ریال؛ ۰ یعنی رایگان)','price',{dir:'ltr',im:'numeric',max:10,hint:'برای محصول پولی، مبلغ نهایی و روش پرداخت در فرم خریدِ فرم‌ساز تعریف می‌شود؛ این عدد فقط رایگان/پولی بودن و قیمت نمایشی تا پیش از اتصال فرم را مشخص می‌کند.'})}
+      ${field('مدت دسترسی (روز؛ خالی = دائمی)','access_days',{dir:'ltr',im:'numeric',max:4})}
+      ${field('نشانی جلد (از رسانه‌های پنل)','cover_url',{dir:'ltr',ph:'/api/public/media/…',max:300})}
+    </div>
+    <div class="row tight" style="flex-wrap:wrap">${flag('حاضران تأییدشده رایگان دسترسی دارند','attendee_access')}${flag('فایل‌ها به‌طور پیش‌فرض قابل دانلود باشند','download_default')}</div>
+    <label class="fld" for="recf_certificate_policy" data-rec-certificate><span class="lbl">گواهی «پایان محتوای آموزشی ضبط‌شده»</span>
+      <select id="recf_certificate_policy" class="input" data-rec-field="certificate_policy">
+        <option value="none" ${f.certificate_policy!=='manual'?'selected':''}>${esc(REC_CERT_POLICY.none)}</option>
+        <option value="manual" ${f.certificate_policy==='manual'?'selected':''}>${esc(REC_CERT_POLICY.manual)}</option>
+      </select>
+      <small class="cap" ${err.certificate_policy?'style="color:var(--stop)"':''}>${esc(err.certificate_policy||REC_CERT_HINT)}</small></label>
+    <p class="cap" data-rec-commerce-note>کارت مقصد کارت‌به‌کارت و کیف پول بله روی محصول تنظیم نمی‌شوند؛ این‌ها در «فرم خرید» همین محصول (فرم‌ساز) تعریف می‌شوند${walletReady?'.':' · کیف پول بله روی این سرور آمادهٔ دریافت پرداخت نیست؛ تا پیکربندی، فقط کارت‌به‌کارت با بررسی رسید کار می‌کند.'}</p>
+    ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
+    <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ تغییرها':'ساخت محصول (پیش‌نویس)',`data-rec-save ${EI.busy?'disabled':''}`,'i-check')}<button class="btn sm quiet" data-rec-cancel>انصراف</button></div></section>`;
+}
+function recStatusBox(rec){
+  const blockers=(rec.publish_blockers||[]).map(b=>`<li>${esc(REC_BLOCKER[b]||b)}</li>`).join('');
+  const transitions=eiCanMod()?(rec.transitions||[]).map(t=>{const disabled=t==='published'&&(rec.publish_blockers||[]).length; return btn(REC_STATUS_ACTION[t]||t,`data-rec-status="${t}" ${disabled?'disabled title="موانع انتشار را برطرف کنید"':''}`,t==='published'?'i-globe':t==='archived'?'i-trash':t==='sales_paused'?'i-lock':'i-refresh')}).join(''):'';
+  const c=rec.counts||{};
+  return `<section class="card stack" data-rec-status-box><div class="row" style="flex-wrap:wrap;gap:8px"><b>${esc(rec.title)}</b>${recTag(REC_STATUS,rec.status)}${tag(recMoney(rec.commerce?rec.commerce.price:rec.price),'')}${tag(rec.access_days?`دسترسی ${fa(rec.access_days)} روزه`:'دسترسی دائمی','')}${rec.attendee_access?tag('حاضران: رایگان',''):''}${tag(rec.certificate_policy==='manual'?'گواهی پایان محتوا: صدور دستی':'بدون گواهی پایان محتوا','')}<span class="sp"></span>${tag('نسخهٔ '+fa(rec.version),'')}</div>
+    ${rec.status_reason?`<p class="cap">دلیل آخرین تغییر وضعیت: ${esc(rec.status_reason)}</p>`:''}
+    <p class="cap" data-rec-counts>سفارش‌های باز: ${fa(c.orders_open||0)} · در انتظار بررسی: ${fa(c.orders_review||0)} · پرداخت‌شده: ${fa(c.orders_paid||0)} · دسترسی فعال: ${fa(c.access_active||0)} از ${fa(c.access_total||0)} · جلسات منتشرشده: ${fa((rec.sessions||[]).filter(x=>x.status==='published').length)}</p>
+    ${blockers?`<div class="stack" data-rec-blockers><small class="cap">موانع انتشار (از سرور):</small><ul class="cap" style="margin:0;padding-inline-start:18px">${blockers}</ul></div>`:(rec.status==='published'?`<p class="cap">این محصول در صفحهٔ رویداد قابل خرید است${recFormSourced(rec)?' (از راه فرم خرید)':''}.</p>`:'')}
+    <div class="row tight" style="flex-wrap:wrap">${eiCanRes()?btn('ویرایش محصول','data-rec-edit','i-pen'):''}${transitions}</div></section>`;
+}
+function recSessionRow(s){
+  const busy=EI.busy===s.id, dur=s.duration_minutes?` · ${fa(s.duration_minutes)} دقیقه`:'';
+  const actions=eiCanRes()?[btn('ویرایش',`data-rec-sess-edit="${s.id}"`,'i-pen'),btn(`فایل‌های جلسه (${fa(s.resource_count||0)})`,`data-rec-sess-files="${s.id}"`,'i-doc'),btn('افزودن فایل',`data-rec-sess-add="${s.id}"`,'i-file-up'),
+    s.status==='published'?btn('پنهان‌کردن',`data-rec-sess-status="hidden" data-rec-id="${s.id}"`,'i-eye-off'):btn('انتشار جلسه',`data-rec-sess-status="published" data-rec-id="${s.id}"`,'i-globe'),
+    btn('حذف',`data-rec-sess-del="${s.id}"`,'i-trash')].join(''):'';
+  return `<div class="admlirow" data-rec-sess-row="${s.id}" ${busy?'aria-busy="true"':''}><span class="ic">${ico('i-play')}</span>
+    <span class="sp"><b>${fa(s.sort_order)}. ${esc(s.title)}</b>${s.description?`<small class="cap">${esc(s.description)}</small>`:''}<small class="cap">${recTag(REC_SESSION_STATUS,s.status)}${s.preview?tag('پیش‌نمایش رایگان','ok'):''}${dur}${s.resource_count?'':' · هنوز فایلی ندارد'}</small></span>
+    <span class="row tight" style="flex-wrap:wrap">${actions}</span></div>`;
+}
+function recSessionEditor(){
+  const e=REC.session, f=e.form, err=e.errors||{};
+  const field=(label,key,o)=>{o=o||{}; const id='recs_'+key, attrs=`id="${id}" class="input" data-rec-sfield="${key}" ${o.max?`maxlength="${o.max}"`:''} ${o.dir?`dir="${o.dir}"`:''} ${o.im?`inputmode="${o.im}"`:''}`;
+    return `<label class="fld" for="${id}"><span class="lbl">${esc(label)}</span>${o.textarea?`<textarea ${attrs} rows="2">${esc(f[key]||'')}</textarea>`:`<input type="text" ${attrs} value="${esc(f[key]==null?'':String(f[key]))}"/>`}<small class="cap" ${err[key]?'style="color:var(--stop)"':''}>${esc(err[key]||o.hint||'')}</small></label>`};
+  return `<section class="card stack" data-rec-sess-editor><div class="head">${e.id?'ویرایش جلسه':'جلسهٔ تازه'}</div>
+    ${field('عنوان جلسه','title',{max:160})}${field('توضیح','description',{textarea:true,max:2000})}
+    <div class="row tight" style="flex-wrap:wrap">${field('ترتیب','sort_order',{dir:'ltr',im:'numeric',max:3})}${field('مدت (دقیقه؛ فقط اگر واقعی است)','duration_minutes',{dir:'ltr',im:'numeric',max:4,hint:'خالی بگذارید تا مدتی نمایش داده نشود.'})}</div>
+    <label class="chip ${f.preview?'on':''}"><input type="checkbox" data-rec-sflag="preview" ${f.preview?'checked':''} hidden/>پیش‌نمایش رایگان (فایل‌های این جلسه برای همه باز است)</label>
+    ${e.formError?p2Msg({kind:'stop',text:e.formError}):''}
+    <div class="row tight" style="flex-wrap:wrap">${btn(e.id?'ذخیرهٔ جلسه':'ساخت جلسه','data-rec-sess-save','i-check')}<button class="btn sm quiet" data-rec-sess-cancel>انصراف</button></div></section>`;
+}
+function recAccessBox(rec){
+  const a=REC.access, g=a.grant;
+  let list;
+  if(a.items===null&&!a.error) list=`<p class="cap" role="status">در حال خواندن دسترسی‌ها…</p>`;
+  else if(a.error) list=`${p2Msg({kind:'stop',text:a.error})}${btn('تلاش دوباره','data-rec-access-refresh','i-refresh')}`;
+  else if(!a.items.length) list=emptyBox('هنوز هیچ حسابی به این محتوا دسترسی ندارد.');
+  else list=`<div class="admlist">${a.items.map(x=>`<div class="admlirow" data-rec-access-row="${x.id}"><span class="ic">${ico('i-key')}</span>
+      <span class="sp"><b>${esc(x.account_label||x.account_id)}</b><small class="cap">${recTag(REC_ACCESS_STATE,x.state)} · ${esc(REC_ACCESS_SOURCE[x.source]||x.source)}${x.expires_at?' · تا '+esc(svcWhen(x.expires_at)):' · دائمی'}${x.reason?' · دلیل: '+esc(x.reason):''}${x.revoke_reason?' · دلیل لغو: '+esc(x.revoke_reason):''}</small></span>
+      ${eiCanMod()&&x.state==='active'?btn('لغو دسترسی',`data-rec-access-revoke="${x.id}"`,'i-lock'):''}</div>`).join('')}</div>`;
+  const grant=g?`<section class="card stack" data-rec-grant-form><div class="head">اعطای دستی دسترسی</div><p class="cap">فقط با شناسهٔ حساب موجود و دلیل؛ با نام اقدام‌کننده در ردپای عملیات ثبت می‌شود. اعطا، تراکنش یا حضور نمی‌سازد.</p>
+      <div class="row tight" style="flex-wrap:wrap"><label class="fld" for="recg_account"><span class="lbl">شناسهٔ حساب</span><input id="recg_account" class="input" dir="ltr" data-rec-gfield="account_id" value="${esc(g.account_id||'')}"/></label>
+      <label class="fld" for="recg_days"><span class="lbl">مدت (روز؛ خالی = طبق محصول)</span><input id="recg_days" class="input" dir="ltr" inputmode="numeric" data-rec-gfield="access_days" value="${esc(g.access_days||'')}"/></label></div>
+      <label class="fld" for="recg_reason"><span class="lbl">دلیل</span><input id="recg_reason" class="input" data-rec-gfield="reason" maxlength="400" value="${esc(g.reason||'')}"/></label>
+      ${g.error?p2Msg({kind:'stop',text:g.error}):''}
+      <div class="row tight"><button class="btn sm" data-rec-grant-save>${ico('i-check')}ثبت اعطا</button><button class="btn sm quiet" data-rec-grant-cancel>انصراف</button></div></section>`:'';
+  return `<section class="card stack" data-rec-access-box><div class="row"><div class="head">دسترسی‌ها (${a.items?fa(a.items.length):'…'})</div><span class="sp"></span>${btn('بازخوانی','data-rec-access-refresh','i-refresh')}${eiCanMod()&&!g?btn('اعطای دستی','data-rec-grant-open','i-plus'):''}</div>${grant}${list}</section>`;
+}
+function recPanelBody(){
+  const d=REC.data;
+  if(!d) return `<p class="cap" role="status" aria-busy="true">در حال خواندن از سرور…</p>`;
+  const rec=d.recording;
+  const limits=d.limits||{};
+  const infra=`<p class="cap" data-rec-limits>زیرساخت فعلی: فایل‌ها تا ${fa(Math.round((limits.max_bytes||0)/1048576))} مگابایت (ویدئوی MP4، صوت، PDF و اسناد) ${limits.storage&&limits.storage.configured?'روی دیسک خصوصی سرور بیرون ریشهٔ وب':'در پایگاه دادهٔ سرور (حافظهٔ دیسک خصوصی پیکربندی نشده)'} و تحویل تکه‌تکه با بررسی دسترسی در هر درخواست (Range پشتیبانی می‌شود)؛ پخش جریانی/CDN/حفاظت از کپی وجود ندارد؛ ویدیوی یوتیوب/آپارات روی سکوی بیرونی می‌ماند و فقط قاب آن پشت مجوز سرور است${d.event_held?'':' · این رویداد هنوز برگزار نشده و تا پایان آن منتشر نمی‌شود'}.</p>`;
+  if(!rec){
+    if(REC.edit) return infra+recEditor();
+    return `${infra}${emptyBox('برای این رویداد هنوز محصول ضبط‌شده‌ای ساخته نشده است.')}${eiCanRes()?`<div class="row">${btn('ساخت محصول ضبط‌شده','data-rec-create','i-plus')}</div>`:''}`;
+  }
+  if(REC.edit) return infra+recEditor();
+  const sessions=rec.sessions||[];
+  const sessionList=sessions.length?`<div class="admlist">${sessions.map(recSessionRow).join('')}</div>`:emptyBox('هنوز جلسه‌ای تعریف نشده است؛ برای انتشار دست‌کم یک جلسهٔ منتشرشده با فایل لازم است.');
+  return `${recStatusBox(rec)}${recCommerceBox(rec)}${infra}
+    <section class="card stack" data-rec-sessions><div class="row"><div class="head">جلسات (${fa(sessions.length)})</div><span class="sp"></span>${eiCanRes()&&!REC.session?btn('جلسهٔ تازه','data-rec-sess-new','i-plus'):''}</div>
+    <p class="cap">فایل هر جلسه از زبانهٔ «فایل‌ها و رسانه‌ها» با انتخاب همان جلسه و سطح «خریداران» بارگذاری می‌شود؛ هر درخواست دانلود/مشاهده در سرور با دسترسی واقعی حساب سنجیده می‌شود.</p>
+    ${REC.session?recSessionEditor():''}${sessionList}</section>
+    ${recAccessBox(rec)}`;
+}
+function recPanel(){return `<div class="stack" data-rec-panel>${recPanelBody()}</div>`}
+async function recLoad(){
+  const api=window.NORA_SERVER_API;
+  const result=await api.getEventRecording(EI.eventId);
+  REC.data=result;
+  if(result&&result.recording&&REC.access.items===null&&!REC.access.error) recLoadAccess();
+  return result;
+}
+async function recLoadAccess(){
+  const api=window.NORA_SERVER_API; if(!api) return;
+  try{const r=await api.listRecordingAccess(EI.eventId); REC.access.items=r.items||[]; REC.access.error=''}
+  catch(error){REC.access.items=null; REC.access.error=recErr(error,'فهرست دسترسی‌ها دریافت نشد.')}
+  if(EI.open&&EI.tab==='recording') renderBody();
+}
+async function recSave(){
+  const api=window.NORA_SERVER_API, e=REC.edit; if(!e||EI.busy) return;
+  const payload=recPayload(e.form); if(e.id&&REC.data&&REC.data.recording) payload.expected_version=REC.data.recording.version;
+  EI.busy='rec-save'; e.errors={}; e.formError=''; renderBody();
+  try{await api.saveEventRecording(EI.eventId,payload,staffCsrfCookie()); EI.msg={kind:'ok',text:e.id?'محصول ذخیره شد.':'محصول ضبط‌شده ساخته شد (پیش‌نویس؛ در سایت دیده نمی‌شود).'}; REC.edit=null; REC.access.items=null; EI.key=''; eiLoad()}
+  catch(error){const fe=p2FieldErr(error); if(error&&error.status===422&&fe&&fe.field&&(Object.prototype.hasOwnProperty.call(e.form,fe.field)||fe.field==='payment_card')) e.errors[fe.field]=REC_ERR[fe.code]||EI_ERR[fe.code]||fe.text; else e.formError=recErr(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.'); renderBody()}
+  finally{EI.busy=''}
+}
+async function recStatus(status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  let reason='';
+  if(status==='sales_paused'||status==='archived'){reason=typeof window.prompt==='function'?window.prompt(`دلیل «${REC_STATUS_ACTION[status]}» (در ردپای عملیات ثبت می‌شود):`,''):''; if(reason===null||!String(reason).trim()){toast('این تغییر بدون دلیل انجام نمی‌شود'); return} reason=String(reason).trim()}
+  if(status==='published'&&typeof window.confirm==='function'&&!window.confirm('محصول در صفحهٔ رویداد قابل خرید می‌شود. ادامه می‌دهید؟')) return;
+  EI.busy='rec-status'; renderBody();
+  try{await api.setEventRecordingStatus(EI.eventId,status,reason,staffCsrfCookie()); EI.msg={kind:'ok',text:`وضعیت محصول به «${REC_STATUS[status]?REC_STATUS[status][0]:status}» تغییر کرد.`}; EI.key=''; eiLoad()}
+  catch(error){const blockers=error&&error.payload&&error.payload.detail&&Array.isArray(error.payload.detail.blockers)?error.payload.detail.blockers:[]; EI.msg={kind:'stop',text:recErr(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')+(blockers.length?' '+blockers.map(b=>REC_BLOCKER[b]||b).join(' '):'')}; renderBody()}
+  finally{EI.busy=''}
+}
+function recSessionOpen(id){
+  const s=id?(REC.data.recording.sessions||[]).find(x=>x.id===id):null, n=(REC.data.recording.sessions||[]).length;
+  REC.session={id:s?s.id:'',errors:{},formError:'',form:s?{title:s.title,description:s.description||'',sort_order:String(s.sort_order),duration_minutes:s.duration_minutes?String(s.duration_minutes):'',preview:!!s.preview}:{title:'',description:'',sort_order:String(n+1),duration_minutes:'',preview:false}};
+  renderBody();
+}
+async function recSessionSave(){
+  const api=window.NORA_SERVER_API, e=REC.session; if(!e||EI.busy) return;
+  const f=e.form, payload={title:String(f.title||'').trim(),description:String(f.description||'').trim(),sort_order:Number(String(f.sort_order||'').trim())||0,duration_minutes:String(f.duration_minutes||'').trim()?Number(String(f.duration_minutes).trim()):null,preview:!!f.preview};
+  EI.busy='rec-sess'; e.errors={}; e.formError=''; renderBody();
+  try{e.id?await api.updateRecordingSession(EI.eventId,e.id,payload,staffCsrfCookie()):await api.createRecordingSession(EI.eventId,payload,staffCsrfCookie()); EI.msg={kind:'ok',text:e.id?'جلسه ذخیره شد.':'جلسه ساخته شد (پیش‌نویس). اکنون فایل آن را از زبانهٔ «منابع» اضافه کنید.'}; REC.session=null; EI.key=''; eiLoad()}
+  catch(error){const fe=p2FieldErr(error); if(error&&error.status===422&&fe&&fe.field&&Object.prototype.hasOwnProperty.call(f,fe.field)) e.errors[fe.field]=REC_ERR[fe.code]||EI_ERR[fe.code]||fe.text; else e.formError=recErr(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.'); renderBody()}
+  finally{EI.busy=''}
+}
+async function recSessionStatus(id,status){
+  const api=window.NORA_SERVER_API; if(EI.busy) return; EI.busy=id; renderBody();
+  try{await api.updateRecordingSession(EI.eventId,id,{status},staffCsrfCookie()); EI.msg={kind:'ok',text:status==='published'?'جلسه منتشر شد.':'جلسه پنهان شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'تغییر وضعیت جلسه انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recSessionDelete(id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const s=(REC.data.recording.sessions||[]).find(x=>x.id===id); if(!s) return;
+  if(typeof window.confirm==='function'&&!window.confirm(`جلسهٔ «${s.title}» حذف شود؟ (جلسه‌ای که فایل دارد حذف نمی‌شود)`)) return;
+  EI.busy=id; renderBody();
+  try{await api.deleteRecordingSession(EI.eventId,id,staffCsrfCookie()); EI.msg={kind:'ok',text:'جلسه حذف شد.'}; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'حذف جلسه انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recGrantSave(){
+  const api=window.NORA_SERVER_API, g=REC.access.grant; if(!g||EI.busy) return;
+  const payload={account_id:String(g.account_id||'').trim(),reason:String(g.reason||'').trim()}; if(String(g.access_days||'').trim()) payload.access_days=Number(String(g.access_days).trim());
+  EI.busy='rec-grant'; g.error=''; renderBody();
+  try{await api.grantRecordingAccess(EI.eventId,payload,staffCsrfCookie()); EI.msg={kind:'ok',text:'دسترسی اعطا شد و با دلیل و نام اقدام‌کننده ثبت شد.'}; REC.access.grant=null; REC.access.items=null; recLoadAccess(); EI.key=''; eiLoad()}
+  catch(error){g.error=recErr(error,'اعطا انجام نشد؛ چیزی تغییر نکرد.'); renderBody()}
+  finally{EI.busy=''}
+}
+async function recRevoke(accessId){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const reason=typeof window.prompt==='function'?window.prompt('دلیل لغو دسترسی (در ردپای عملیات ثبت می‌شود):',''):'';
+  if(reason===null||!String(reason).trim()){toast('لغو بدون دلیل انجام نمی‌شود'); return}
+  EI.busy=accessId; renderBody();
+  try{await api.revokeRecordingAccess(EI.eventId,accessId,String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:'دسترسی لغو شد.'}; REC.access.items=null; recLoadAccess(); EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'لغو دسترسی انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+/* ── سفارش‌ها ── */
+function recOrderRow(o){
+  const busy=EI.busy===o.id, id=o.id, d=REC.orders.detail&&REC.orders.detail.id===id?REC.orders.detail:null;
+  const receipt=o.has_receipt?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.recordingOrderReceiptUrl(id))}" target="_blank" rel="noopener">${ico('i-image')}رسید (${esc(o.receipt_file_name||'فایل')})</a>`:'';
+  const viaForm=!!(o.form_payment_id||o.form_response_id);
+  const actions=[recCanDecide()&&o.reviewable&&viaForm?`<a class="btn sm" href="admin.html#inbox" data-rec-order-inbox="${id}">${ico('i-inbox')}بررسی در صندوق پیام‌ها</a>`:'',
+    recCanDecide()&&o.reviewable&&!viaForm?btn('تأیید پرداخت',`data-rec-order-decide="approve" data-rec-id="${id}"`,'i-check')+btn('رد',`data-rec-order-decide="reject" data-rec-id="${id}"`,'i-close'):'',
+    recCanFinance()&&(o.status==='paid'||o.status==='paid_manual')?btn('ثبت بازپرداخت',`data-rec-order-refund="${id}"`,'i-wallet'):'',
+    btn(d?'بستن تاریخچه':'تاریخچه',`data-rec-order-detail="${id}"`,'i-list')].join('');
+  const history=d?`<div class="stack" data-rec-order-history>${REC.orders.detailLoading?'<p class="cap">در حال خواندن…</p>':REC.orders.detailError?p2Msg({kind:'stop',text:REC.orders.detailError}):(d.history&&d.history.length?`<ul class="cap" style="margin:0;padding-inline-start:18px">${d.history.map(h=>`<li>${esc(svcWhen(h.at))} · ${esc(h.action)} · ${esc(h.actor_role||h.actor_kind||'')}${h.details&&h.details.reason?' · '+esc(h.details.reason):''}</li>`).join('')}</ul>`:'<p class="cap">هنوز اقدام مدیریتی روی این سفارش ثبت نشده است.</p>')}</div>`:'';
+  return `<div class="admlirow" data-rec-order-row="${id}" ${busy?'aria-busy="true"':''} style="align-items:flex-start"><span class="ic">${ico('i-wallet')}</span>
+    <span class="sp"><b>${esc(o.product_title||o.event_title||o.recording_id)}</b>${o.event_title&&o.event_title!==o.product_title?`<small class="cap">رویداد: ${esc(o.event_title)}</small>`:''}
+      <small class="cap">${recTag(REC_ORDER_STATUS,o.status)} · ${esc(REC_METHOD[o.method]||o.method)} · ${recMoney(o.amount)} · خریدار: ${esc(o.account_label||o.account_id)}${o.duplicates?` · ${tag(`${fa(o.duplicates)} سفارش دیگر از همین حساب`,'warn')}`:''}</small>
+      <small class="cap">ثبت: ${esc(svcWhen(o.created_at))}${o.receipt_submitted_at?' · رسید: '+esc(svcWhen(o.receipt_submitted_at)):''}${o.paid_at?' · پرداخت: '+esc(svcWhen(o.paid_at)):''}${o.decided_at?' · تصمیم: '+esc(svcWhen(o.decided_at))+(o.decision_reason?' («'+esc(o.decision_reason)+'»)':''):''}${o.refunded_at?' · بازپرداخت: '+esc(svcWhen(o.refunded_at))+' · پیگیری '+esc(o.refund_reference||''):''}${o.transaction_id?' · تراکنش '+esc(o.transaction_id):''}</small>
+      ${o.receipt_note?`<small class="cap">یادداشت خریدار: ${esc(o.receipt_note)}</small>`:''}
+      <small class="cap">دسترسی: ${o.access?recTag(REC_ACCESS_STATE,o.access.state)+(o.access.expires_at?' تا '+esc(svcWhen(o.access.expires_at)):''):'ندارد'}${viaForm?' · ثبت‌شده از فرم خرید':' · سفارش قدیمی (پیش از اتصال فروش به فرم‌ساز)'}</small>${history}</span>
+    <span class="row tight" style="flex-wrap:wrap">${receipt}${actions}</span></div>`;
+}
+function recOrdersPanel(){
+  const o=REC.orders, data=EI.data, items=data&&data.items||[], total=data?Number(data.total)||0:0;
+  const filters=`<div class="admfilters" role="group" aria-label="وضعیت سفارش">${[['review','نیازمند بررسی'],['open','باز'],['paid','پرداخت‌شده'],['closed','بسته‌شده'],['','همه']].map(([k,l])=>`<button class="chip ${o.status===k?'on':''}" type="button" data-rec-order-filter="${k}">${esc(l)}</button>`).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap"><input class="input" type="search" data-rec-order-q placeholder="جست‌وجو: شناسهٔ سفارش/حساب/تراکنش یا عنوان محصول" value="${esc(o.q)}" style="flex:1 1 220px"/>${btn('جست‌وجو','data-rec-order-search','i-search')}
+    ${recCanFinance()?`<a class="btn sm quiet" href="${esc(window.NORA_SERVER_API.recordingOrdersExportUrl({status:o.status,event_id:EI.all?'':EI.eventId,q:o.q}))}" download data-rec-order-export>${ico('i-download')}خروجی CSV</a>`:''}</div>`;
+  const list=items.length?`<div class="admlist">${items.map(recOrderRow).join('')}</div>`:emptyBox(o.status==='review'?'سفارشی در انتظار بررسی نیست.':'سفارشی با این فیلتر پیدا نشد.');
+  return `<div class="stack" data-rec-orders><p class="cap">رسید به‌تنهایی پرداخت را قطعی نمی‌کند. سفارش‌های فرم خرید در «صندوق پیام‌ها» (همان مسیر بازبینی رسید فرم‌ها، با دلیل و ردپا) تأیید یا رد می‌شوند؛ تصمیم مستقیم این‌جا فقط برای سفارش‌های قدیمی است. بازپرداخت فقط با شمارهٔ پیگیری و مجوز مالی ثبت می‌شود.</p>${filters}${list}${p2Pager(total,o.offset,o.limit,'data-ei-page="prev"','data-ei-page="next"')}</div>`;
+}
+async function recOrderDecide(id,decision){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const reason=typeof window.prompt==='function'?window.prompt(decision==='approve'?'دلیل/مرجع تأیید پرداخت (مثلاً شمارهٔ پیگیری رسید):':'دلیل رد سفارش:',''):'';
+  if(reason===null||!String(reason).trim()){toast('تصمیم بدون دلیل ثبت نمی‌شود'); return}
+  EI.busy=id; renderBody();
+  try{await api.decideRecordingOrder(id,decision,String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:decision==='approve'?'پرداخت تأیید و دسترسی خریدار فعال شد.':'سفارش رد شد؛ خریدار می‌تواند دوباره تلاش کند.'}; REC.orders.detail=null; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'ثبت تصمیم انجام نشد؛ چیزی تغییر نکرد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recOrderRefund(id){
+  const api=window.NORA_SERVER_API; if(EI.busy) return;
+  const reference=typeof window.prompt==='function'?window.prompt('شمارهٔ پیگیری بازپرداخت واقعی (بدون آن ثبت نمی‌شود):',''):'';
+  if(reference===null||!String(reference).trim()){toast('بازپرداخت بدون شمارهٔ پیگیری ثبت نمی‌شود'); return}
+  const reason=window.prompt('دلیل بازپرداخت:',''); if(reason===null||!String(reason).trim()){toast('دلیل لازم است'); return}
+  EI.busy=id; renderBody();
+  try{await api.refundRecordingOrder(id,String(reference).trim(),String(reason).trim(),staffCsrfCookie()); EI.msg={kind:'ok',text:'بازپرداخت ثبت و دسترسی خریدار لغو شد.'}; REC.orders.detail=null; EI.key=''; eiLoad()}
+  catch(error){EI.msg={kind:'stop',text:recErr(error,'ثبت بازپرداخت انجام نشد.')}; renderBody()}
+  finally{EI.busy=''}
+}
+async function recOrderDetail(id){
+  const api=window.NORA_SERVER_API;
+  if(REC.orders.detail&&REC.orders.detail.id===id){REC.orders.detail=null; renderBody(); return}
+  REC.orders.detail={id,history:[]}; REC.orders.detailLoading=true; REC.orders.detailError=''; renderBody();
+  try{REC.orders.detail=await api.getRecordingOrder(id)}
+  catch(error){REC.orders.detailError=recErr(error,'تاریخچهٔ سفارش دریافت نشد.')}
+  finally{REC.orders.detailLoading=false; renderBody()}
+}
+function recClick(q){
+  if(q('[data-rec-summary-refresh]')){REC.summary=null; REC.summaryError=''; renderBody(); recLoadSummary(); return true}
+  if(q('[data-rec-open-orders]')){if(S.sec!=='events'){S.sec='events'; save()} eiOpen('','',''); EI.tab='orders'; REC.orders.status='review'; REC.orders.offset=0; EI.key=''; eiLoad(); return true}
+  if(!EI.open) return false;
+  if(q('[data-rec-create]')){REC.edit={id:'',errors:{},formError:'',form:recForm(null)}; EI.msg=null; renderBody(); return true}
+  if(q('[data-rec-edit]')){REC.edit={id:REC.data.recording.id,errors:{},formError:'',form:recForm(REC.data.recording)}; EI.msg=null; renderBody(); return true}
+  if(q('[data-rec-cancel]')){REC.edit=null; renderBody(); return true}
+  if(q('[data-rec-save]')){recSave(); return true}
+  const st=q('[data-rec-status]'); if(st){if(!st.hasAttribute('disabled')) recStatus(st.dataset.recStatus); return true}
+  if(q('[data-rec-sess-new]')){recSessionOpen(''); return true}
+  const se=q('[data-rec-sess-edit]'); if(se){recSessionOpen(se.dataset.recSessEdit); return true}
+  if(q('[data-rec-sess-cancel]')){REC.session=null; renderBody(); return true}
+  if(q('[data-rec-sess-save]')){recSessionSave(); return true}
+  const ss=q('[data-rec-sess-status]'); if(ss){recSessionStatus(ss.dataset.recId,ss.dataset.recSessStatus); return true}
+  const sd=q('[data-rec-sess-del]'); if(sd){recSessionDelete(sd.dataset.recSessDel); return true}
+  const sf=q('[data-rec-sess-files]'); if(sf){EI.res.session=sf.dataset.recSessFiles; EI.tab='resources'; EI.msg=null; EI.key=''; eiLoad(); return true}
+  const sa=q('[data-rec-sess-add]'); if(sa){EI.res.session=sa.dataset.recSessAdd; EI.tab='resources'; EI.msg=null; EI.key=''; eiResourceOpen(''); EI.res.edit.form.session_id=sa.dataset.recSessAdd; EI.res.edit.form.access='purchased'; eiLoad(); return true}
+  if(q('[data-rec-access-refresh]')){REC.access.items=null; REC.access.error=''; renderBody(); recLoadAccess(); return true}
+  if(q('[data-rec-grant-open]')){REC.access.grant={account_id:'',reason:'',access_days:'',error:''}; renderBody(); return true}
+  if(q('[data-rec-grant-cancel]')){REC.access.grant=null; renderBody(); return true}
+  if(q('[data-rec-grant-save]')){recGrantSave(); return true}
+  const rv=q('[data-rec-access-revoke]'); if(rv){recRevoke(rv.dataset.recAccessRevoke); return true}
+  const of=q('[data-rec-order-filter]'); if(of){REC.orders.status=of.dataset.recOrderFilter; REC.orders.offset=0; REC.orders.detail=null; eiLoad(); return true}
+  if(q('[data-rec-order-search]')){const inp=document.querySelector('[data-rec-order-q]'); REC.orders.q=inp?String(inp.value||'').trim().slice(0,120):''; REC.orders.offset=0; eiLoad(); return true}
+  const od=q('[data-rec-order-decide]'); if(od){recOrderDecide(od.dataset.recId,od.dataset.recOrderDecide); return true}
+  const orf=q('[data-rec-order-refund]'); if(orf){recOrderRefund(orf.dataset.recOrderRefund); return true}
+  const odt=q('[data-rec-order-detail]'); if(odt){recOrderDetail(odt.dataset.recOrderDetail); return true}
+  return false;
+}
+function recChange(t){
+  if(!EI.open||!t||!t.dataset) return false;
+  if(t.dataset.recField&&REC.edit){REC.edit.form[t.dataset.recField]=t.value; return true}
+  if(t.dataset.recFlag&&REC.edit){REC.edit.form[t.dataset.recFlag]=!!t.checked; return true}
+  if(t.dataset.recSfield&&REC.session){REC.session.form[t.dataset.recSfield]=t.value; return true}
+  if(t.dataset.recSflag&&REC.session){REC.session.form[t.dataset.recSflag]=!!t.checked; return true}
+  if(t.dataset.recGfield&&REC.access.grant){REC.access.grant[t.dataset.recGfield]=t.value; return true}
+  if(t.matches&&t.matches('[data-rec-order-q]')){REC.orders.q=String(t.value||'').trim().slice(0,120); return true}
+  return false;
+}
+/* «تعریف جدید» (طرح مرجع): همان ویرایشگر سروری با رکورد خالی؛ نوع تعریف (رویداد/مطلب) بالای صفحه.
+   هیچ پیش‌نویسی در data.js/localStorage نیست؛ ذخیره فقط با API محتوا و مجوز سرور. */
+function serverNewDefinitionView(){
+  if(!canSec('events')) return serverUnavailableModule('تعریف جدید','این حساب مجوز ساخت محتوا ندارد.');
+  /* پس از نخستین ذخیره، رکورد شناسه دارد و ادامهٔ کار زیر «رویدادها و مطالب» است (همان قاعدهٔ مرجع: مدیریت پس از ساخت) */
+  if(CT.edit&&CT.edit.id){S.sec='events'; save(); try{history.replaceState(null,'','#events')}catch(e){} setTimeout(()=>{renderNav(); renderBar()},0); return serverContentView()}
+  if(!CT.edit&&ctCan('can_edit')) ctStartNew();
+  /* نسخهٔ محتوای سایت (expected_version) از همان فهرست سروری می‌آید؛ بدون آن ساخت رکورد ۴۰۹ می‌گیرد */
+  if(!CT.data&&!CT.loading&&!CT.error) ctLoad();
+  const kinds=`<section class="card stack" data-newev-kinds><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">تعریف جدید</div><span class="sp"></span><small class="cap">${esc(isOwner()||ctCan('can_publish')?'مالک و مدیر مجاز مستقیم منتشر می‌کنند':'پیش‌نویس ذخیره می‌شود و انتشار با مالک است')}</small></div>
+    <div class="admfilters" role="tablist" aria-label="نوع تعریف">
+      <button class="chip ${CT.kind==='events'&&!(CT.edit&&CT.edit.form&&CT.edit.form.past)?'on':''}" role="tab" aria-selected="${CT.kind==='events'&&!(CT.edit&&CT.edit.form&&CT.edit.form.past)}" data-newev-kind="events">${ico('i-calendar')}<span>رویداد</span></button>
+      <button class="chip ${CT.kind==='events'&&CT.edit&&CT.edit.form&&CT.edit.form.past?'on':''}" role="tab" aria-selected="${CT.kind==='events'&&!!(CT.edit&&CT.edit.form&&CT.edit.form.past)}" data-newev-kind="events" data-newev-past="1" title="رویدادی که پیش‌تر برگزار شده؛ بدون ثبت‌نام و یادآور">${ico('i-layers')}<span>رویداد برگزارشده</span></button>
+      <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-newev-kind="articles">${ico('i-doc')}<span>مطلب</span></button>
+      <a class="chip" href="create.html?back=${encodeURIComponent('admin.html#newev')}">${ico('i-pen')}<span>فرم (در فرم‌ساز)</span></a></div></section>`;
+  return `<div class="stack" data-newev>${kinds}${p2Msg(CT.msg)}${CT.edit?ctEditor():(ctCan('can_edit')?'':serverUnavailableModule('تعریف جدید','مجوز ساخت محتوا برای این نقش فعال نیست.'))}</div>`;
+}
+function serverContentView(){
+  if(!canSec('events')) return serverUnavailableModule('رویدادها و مطالب','این حساب مجوز مدیریت محتوا ندارد.');
+  const tabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="نوع محتوا">
+    <button class="chip ${CT.kind==='events'?'on':''}" role="tab" aria-selected="${CT.kind==='events'}" data-ct-kind="events">رویدادها</button>
+    <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-ct-kind="articles">مطالب</button></div>`;
+  if(EI.open&&CT.kind==='events'&&!CT.edit) return `<div class="stack">${tabs}${eiPanel()}</div>`;
+  const inbox=CT.kind==='events'&&!CT.edit&&eiCanMod()?`<div class="row" style="flex-wrap:wrap;gap:8px">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-inbox')}${btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag')}</div>`:'';
+  return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():inbox+(CM.open?cmPanel():'')+ctList()}</div>`;
+}
+/* رکورد خالی برای ویرایشگر (بدون رندر)؛ هم از «رویداد تازه» در فهرست و هم از بخش «تعریف جدید» */
+function ctStartNew(){
+  CT.dp=null; CT.edit={id:'',form:ctBlank(CT.kind),errors:{},status:'draft',version:CT.data?CT.data.version:0}; CT.edit.draft=ctDraftPeek(); CT.msg=null;
+  /* پیش‌فرض یادآورها از تنظیمات سروری مالک (events.reminders_default)؛ فقط برای رویداد تازه و فقط اگر مقدار از سرور آمده باشد */
+  if(CT.kind==='events'&&typeof sysCan==='function'&&sysCan()){const apply=()=>{const d=sysValue('events.reminders_default'); if(CT.edit&&!CT.edit.id&&d&&typeof d==='object'){CT.edit.form.remH24=d.h24===true; CT.edit.form.remH1=d.h1===true; CT.edit.remDefault=true;}};
+    if(SYS.loaded) apply(); else if(!SYS.error) sysLoad(false).then(()=>{if(SYS.loaded){apply(); if(CT.edit&&!CT.edit.id) renderBody()}});}
+}
+/* «ثبت رویداد برگزارشده»: همان فرم و همان رکورد؛ فقط پیش‌فرض‌ها (past، ثبت‌نام بسته، یادآور خاموش). وضعیت از تاریخ + قواعد سرور می‌آید */
+function ctPastEntry(){const e=CT.edit; if(!e||e.id||CT.kind!=='events') return; e.form.past=true; e.form.regMode='closed'; e.form.remH24=false; e.form.remH1=false; e.remDefault=false; e.pastEntry=true}
+async function ctOpenEditor(id,opts){
+  const api=window.NORA_SERVER_API; opts=opts||{};
+  CT.dp=null;
+  if(!id){ctStartNew(); renderBody(); return}
+  CT.busy='load'; renderBody();
+  try{
+    const result=await api.getAdminContent(CT.kind,id);
+    const record=result.record||{};
+    CT.edit={id:record.id,form:ctEditable(CT.kind,record),errors:{},status:record.status,version:result.version,updated_at:record.updated_at,registration:record.registration||null,reminders:result.reminders||null};
+    CT.edit.draft=ctDraftPeek(); CT.msg=null;
+    /* بازگشت از فرم‌ساز: متن تایپ‌شدهٔ پیش از رفتن (همین زبانه، همین نسخهٔ سرور) بی‌کلیک برمی‌گردد؛ هنوز ذخیره نشده و با «ذخیره» به سرور می‌رود */
+    if(opts.restoreDraft&&CT.edit.draft&&CT.edit.draft.form&&CT.edit.draft.version===CT.edit.version){CT.edit.form=Object.assign(ctEditable(CT.kind,record),CT.edit.draft.form); CT.edit.draft=null; CT.edit.restored=true; CT.msg={kind:'ok',text:'متن تایپ‌شدهٔ پیش از رفتن به فرم‌ساز بازیابی شد؛ هنوز در سرور ذخیره نشده است.'}}
+    if(opts.refreshForms){FORMS_SRV.loaded=false}
+    if(!IS_TEST&&S.sec==='events'&&CT.kind==='events'){try{const h=ctEditHash(); if(h&&location.hash!==h) history.replaceState(null,'',h)}catch(err){}}
+  }catch(error){CT.msg={kind:'stop',text:p2Err(error,'رکورد برای ویرایش دریافت نشد.')}}
+  finally{CT.busy=''; renderBody()}
+}
+function ctCurrentVersion(){if(CT.edit&&!CT.edit.id&&CT.data&&CT.data.version!=null) return CT.data.version; return CT.edit&&CT.edit.version!=null?CT.edit.version:(CT.data?CT.data.version:0)}
+async function ctSave(publish,stay){
+  const api=window.NORA_SERVER_API, e=CT.edit; if(!e||CT.busy) return;
+  const record=ctPayload(CT.kind,e.form);
+  e.errors={}; e.formError='';
+  if(!e.id&&!CT.data){CT.busy='save'; renderBody(); await ctLoad(); CT.busy=''; if(!CT.data){e.formError=CT.error||'نسخهٔ محتوای سایت از سرور دریافت نشد؛ ذخیره انجام نشد.'; renderBody(); return}}
+  if(!pkPreflight(e)){e.formError='پیوند مدرس/نهاد/نویسنده به شناسه‌ای اشاره می‌کند که در سایت نیست؛ هیچ درخواستی فرستاده نشد.'; renderBody(); return}
+  CT.busy='save'; renderBody();
+  try{
+    const result=e.id?await api.updateAdminContent(CT.kind,e.id,record,ctCurrentVersion(),staffCsrfCookie())
+      :await api.createAdminContent(CT.kind,record,ctCurrentVersion(),publish?'published':'',staffCsrfCookie());
+    let saved=result.record||{}, version=result.version;
+    /* گام ۵ ویزارد: «ذخیره و انتشار» برای رکورد موجود = ذخیره، سپس همان مسیر تغییر وضعیت سرور (ev_publish، ممیزی) */
+    if(publish&&e.id&&saved.status!=='published'&&typeof api.setAdminContentStatus==='function'){
+      try{const st=await api.setAdminContentStatus(CT.kind,e.id,'published',version,staffCsrfCookie()); saved=st.record||saved; version=st.version}
+      catch(error){const fe=error&&error.status===422?p2FieldErr(error):null; CT.msg={kind:'stop',text:`تغییرها ذخیره شد (نسخهٔ ${fa(version)}) ولی انتشار انجام نشد: ${fe?fe.text:p2Err(error,'سرور انتشار را نپذیرفت.')}`}; ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctEditHashClear(); ctLoad(); return}
+    }
+    const label=(P2_STATUS[saved.status]||[saved.status])[0];
+    CT.msg={kind:'ok',text:`${e.id?'تغییرها ذخیره شد':'رکورد ساخته شد'} · نسخهٔ ${fa(version)} · وضعیت از سرور: ${label}${saved.status==='published'?' · در سایت دیده می‌شود':' · در سایت دیده نمی‌شود'}`};
+    ctDraftDrop(); CT.edit=null; CT.dp=null; ctReset(); ctEditHashClear();
+    if(stay&&saved.id){await ctLoad(); await ctOpenEditor(saved.id); if(CT.edit&&CT.edit.id===saved.id) ctJump('reg'); return}
+    /* ذخیرهٔ رکورد تازه از «تعریف جدید»: به فهرست همان نوع می‌رویم تا رکورد ذخیره‌شده و پیام موفقیت دیده شود (نه یک فرم خالی دیگر) */
+    if(S.sec==='newev'){S.sec='events'; save(); try{history.replaceState(null,'','#events')}catch(err){} setTimeout(()=>{renderNav(); renderBar()},0)}
+    ctLoad();
+  }catch(error){
+    const fieldErr=p2FieldErr(error);
+    if(error&&error.status===422&&fieldErr&&fieldErr.field&&(Object.prototype.hasOwnProperty.call(e.form,fieldErr.field)||fieldErr.field==='reminders')) e.errors[fieldErr.field]=fieldErr.text;
+    else if(error&&error.status===422&&fieldErr) e.formError=fieldErr.text;
+    else if(error&&error.code==='site_content_version_conflict'){e.formError=p2Err(error); const current=error.payload&&error.payload.detail&&error.payload.detail.current_version; if(Number.isInteger(current)) e.version=current}
+    else e.formError=p2Err(error,'ذخیره انجام نشد؛ چیزی تغییر نکرد.');
+    if(CT.kind==='events'){const st=ctWizErrStep(e); if(st&&CT_MORE_LABEL[st]){e.more=e.more||{}; e.more[st]=true}}
+    renderBody();
+  }finally{CT.busy=''; if(CT.edit){renderBody(); if(CT.edit.formError||Object.keys(CT.edit.errors||{}).length) ctFocusFirstError()}}
+}
+async function ctSetStatus(id,status){
+  const api=window.NORA_SERVER_API; if(CT.busy) return;
+  const item=(CT.data&&CT.data.items||[]).find(row=>row.id===id); const name=item?item.t:id;
+  const prompts={archived:`«${name}» بایگانی می‌شود: از سایت و فهرست‌های فعال خارج می‌شود ولی حذف نمی‌شود و قابل بازگردانی است. ادامه می‌دهید؟`,
+    paused:`انتشار «${name}» متوقف می‌شود و صفحهٔ عمومی آن تا انتشار دوباره در دسترس نخواهد بود. ادامه می‌دهید؟`,
+    published:`«${name}» همین حالا در سایت منتشر می‌شود. ادامه می‌دهید؟`};
+  if(prompts[status]&&typeof window.confirm==='function'&&!window.confirm(prompts[status])) return;
+  CT.busy='status'; renderBody();
+  try{
+    const result=await api.setAdminContentStatus(CT.kind,id,status,CT.data?CT.data.version:0,staffCsrfCookie());
+    const saved=result.record||{};
+    CT.msg={kind:'ok',text:`وضعیت «${saved.t||name}» از سرور: ${(P2_STATUS[saved.status]||[saved.status])[0]} · نسخهٔ ${fa(result.version)}`};
+    ctReset(); ctLoad();
+  }catch(error){
+    const fieldErr=error&&error.status===422?p2FieldErr(error):null;
+    CT.msg={kind:'stop',text:fieldErr?`تغییر وضعیت «${name}» انجام نشد: ${fieldErr.text}`:p2Err(error,'تغییر وضعیت انجام نشد؛ چیزی تغییر نکرد.')};
+    if(error&&error.code==='site_content_version_conflict'){ctReset(); ctLoad()} else renderBody()}
+  finally{CT.busy=''}
+}
+function ctUploadImage(file,field){
+  if(!file) return;
+  if(!/^image\/(png|jpeg|webp)$/.test(file.type)&&!/\.(png|jpe?g|webp)$/i.test(file.name||'')){CM.up={busy:false,error:'فقط PNG، JPEG یا WebP پذیرفته می‌شود.',file:null,field,name:file.name||''}; renderBody(); return}
+  if(file.size>3*1024*1024){CM.up={busy:false,error:'حجم فایل بیش از ۳ مگابایت است؛ تصویر کوچک‌تری انتخاب کنید.',file:null,field,name:file.name||''}; renderBody(); return}
+  CM.up={busy:false,error:'',file,field,name:file.name||'image'};
+  ctSendImage();
+}
+async function ctSendImage(){
+  const api=window.NORA_SERVER_API, up=CM.up;
+  if(!up.file||up.busy) return;
+  if(!api||typeof api.uploadAdminMedia!=='function'){up.error='رابط سرور در دسترس نیست.'; renderBody(); return}
+  up.busy=true; up.error=''; renderBody();
+  try{
+    const result=await api.uploadAdminMedia(up.file,up.name,staffCsrfCookie());
+    if(CT.edit){const bm=/^block:(\d+)$/.exec(up.field); if(bm){const b=(CT.edit.form.blocks||[])[+bm[1]]; if(b&&b.ty==='img'){b.up=result.url; b.src=''}} else CT.edit.form[up.field]=result.url; ctDraftSave()}
+    CM.data=null;
+    toast(result.created===false?'همین تصویر پیش‌تر در سرور بود؛ همان نشانی استفاده شد':`تصویر در سرور ذخیره شد (${fa(result.width)}×${fa(result.height)})`);
+    CM.up={busy:false,error:'',file:null,field:'',name:''};
+  }catch(error){
+    up.busy=false;
+    up.error=p2Err(error,'بارگذاری انجام نشد؛ چیزی ذخیره نشد.');
+    if(error&&(error.status===401||error.status===403)) up.file=null;
+  }
+  renderBody();
+}
+/* فهرست تصاویر بارگذاری‌شده با وضعیت استفاده در site_content؛ حذف فقط صریح و فقط برای بدون‌استفاده‌ها */
+async function cmLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminMedia!=='function'){CM.error='رابط سرور در دسترس نیست.'; renderBody(); return}
+  CM.loading=true; CM.error=''; renderBody();
+  try{CM.data=await api.listAdminMedia({limit:CM.limit,offset:CM.offset})}
+  catch(error){CM.error=p2Err(error,'فهرست تصاویر از سرور خوانده نشد.')}
+  finally{CM.loading=false; renderBody()}
+}
+async function cmDelete(id){
+  const api=window.NORA_SERVER_API, item=(CM.data&&CM.data.items||[]).find(x=>x.id===id);
+  if(!api||!item||CM.busy) return;
+  if(item.in_use){toast('این تصویر در حال استفاده است و حذف نمی‌شود'); return}
+  if(!confirm(`تصویر «${item.file_name}» از سرور حذف شود؟ این تصویر در هیچ رویداد یا مطلبی استفاده نشده است.`)) return;
+  CM.busy=id; renderBody();
+  try{await api.deleteAdminMedia(id,staffCsrfCookie()); toast('تصویر حذف شد'); CM.data=null; await cmLoad()}
+  catch(error){toast(p2Err(error,'حذف انجام نشد؛ چیزی تغییر نکرد.')); renderBody()}
+  finally{CM.busy=''}
+}
+const cmSize=n=>{n=Number(n)||0; return n>=1024*1024?fa((n/1024/1024).toFixed(1))+' مگابایت':fa(Math.max(1,Math.round(n/1024)))+' کیلوبایت'};
+function cmPanel(){
+  const d=CM.data;
+  const rows=d&&d.items.length?d.items.map(m=>`<div class="row tight" style="align-items:center;flex-wrap:wrap" data-ct-media-row="${esc(m.id)}">
+      <img src="${esc(m.url)}" alt="" loading="lazy" style="width:48px;height:48px;object-fit:cover;border-radius:8px;background:var(--surface-2)"/>
+      <div class="stack tight" style="flex:1;min-width:160px"><b dir="ltr" style="font-size:.9em">${esc(m.file_name)}</b><small class="cap">${fa(m.width)}×${fa(m.height)} · ${cmSize(m.size)} · ${esc(svcWhen(m.created_at))}</small></div>
+      ${m.in_use?tag('در حال استفاده · '+fa(m.used_in),'ok'):tag('بدون استفاده','warn')}
+      ${!m.in_use&&ctCan('can_edit')?btn(CM.busy===m.id?'در حال حذف…':'حذف',`data-ct-media-del="${esc(m.id)}" ${CM.busy?'disabled':''}`,'i-trash'):''}
+    </div>`).join(''):'';
+  const body=CM.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست تصاویر…</p></div>`
+    :CM.error?`<div class="empty"><p class="cap">${esc(CM.error)}</p>${btn('تلاش دوباره','data-ct-media-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز خوانده نشده است.</p></div>`
+    :rows||emptyBox('هنوز تصویری از پنل بارگذاری نشده است.');
+  return `<section class="card stack" data-ct-media-panel>
+    <div class="row" style="flex-wrap:wrap"><div class="head">تصاویر بارگذاری‌شده</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(d.total)+' تصویر',''):''}${btn('بازخوانی','data-ct-media-refresh','i-refresh')}${btn('بستن','data-ct-media-close','i-close')}</div>
+    <p class="cap">هر تصویر با نشانی پایدار خودش در پوستر رویداد یا جلد مطلب استفاده می‌شود. وضعیت «در حال استفاده» از همان سند محتوا شمرده می‌شود؛ هیچ تصویری خودکار حذف نمی‌شود و حذف فقط برای تصویرهای بدون استفاده و با تأیید انجام می‌شود.</p>
+    ${body}${d&&d.total>CM.limit?p2Pager(d.total,CM.offset,CM.limit,'data-ct-media-page="prev"','data-ct-media-page="next"'):''}
+  </section>`;
+}
+/* ── پروندهٔ کاربر: U4 ثبت‌نام‌ها (صفحه‌بندی + جزئیات از همان form_snapshot) و U5 اعلان‌های همین حساب ──
+   منبع: فقط GET /api/admin/users/{id}/registrations[/{response_id}] و …/notifications؛ فیلتر حساب در سرور است،
+   شماره/کد ملی را سرور ماسک می‌کند و مبلغ/شناسهٔ تراکنش فقط با finance_visible:true می‌آید. اینجا هیچ چیزی
+   «محاسبه» یا پر نمی‌شود؛ هر بخش حالت بارگذاری/خالی/خطا + تلاش دوباره دارد. */
+const UFL={acc:'',tab:'regs',regs:null,regsLoading:false,regsError:'',regsOffset:0,regsLimit:20,regsKey:'',
+  reg:null,regId:'',regLoading:false,regError:'',
+  notifs:null,notifsLoading:false,notifsError:'',notifsOffset:0,notifsLimit:20,notifsKey:'',
+  /* وضعیت حساب (مسدود/فعال؛ فقط مالک) و یادداشت داخلی (us_notes) */
+  blockOpen:false,blockReason:'',statusBusy:false,statusError:'',statusMsg:'',noteDraft:null,noteBusy:false,noteError:'',noteMsg:''};
+function ufReset(acc){UFL.acc=acc||''; UFL.tab='regs'; UFL.regs=null; UFL.regsLoading=false; UFL.regsError=''; UFL.regsOffset=0; UFL.regsKey=''; UFL.reg=null; UFL.regId=''; UFL.regLoading=false; UFL.regError=''; UFL.notifs=null; UFL.notifsLoading=false; UFL.notifsError=''; UFL.notifsOffset=0; UFL.notifsKey=''; UFL.hist=null; UFL.histLoading=false; UFL.histError=''; UFL.histOffset=0; UFL.histKey=''; UFL.blockOpen=false; UFL.blockReason=''; UFL.statusBusy=false; UFL.statusError=''; UFL.statusMsg=''; UFL.noteDraft=null; UFL.noteBusy=false; UFL.noteError=''; UFL.noteMsg=''}
+function ufHistKey(){return [UFL.acc,UFL.histOffset,UFL.histLimit||20].join('|')}
+/* ممیزی C5: تاریخچهٔ حساب از همان ممیزی سرور (فقط مالک) با فیلتر دقیق هدف=همین حساب؛ ردیف‌هایی که هدفشان چیز دیگری است (پاسخ فرم، درخواست کارتابل) این‌جا نمی‌آیند و همین صریح گفته می‌شود. */
+async function ufLoadHist(){
+  const fn=ufApi('listTargetAuditEvents'), acc=UFL.acc; if(!acc) return;
+  if(!isOwner()){UFL.histError='تاریخچهٔ حساب فقط با نشست مالک خوانده می‌شود.'; UFL.histKey=ufHistKey(); renderBody(); return}
+  if(!fn){UFL.histError='رابط سرور در دسترس نیست.'; UFL.histKey=ufHistKey(); renderBody(); return}
+  const key=ufHistKey(); UFL.histLoading=true; UFL.histError=''; renderBody();
+  try{const result=await fn('account',acc,{limit:UFL.histLimit||20,offset:UFL.histOffset}); if(key===ufHistKey()){UFL.hist=result; UFL.histKey=key}}
+  catch(error){if(key===ufHistKey()){UFL.histError=p2Err(error,'تاریخچهٔ این حساب دریافت نشد.'); UFL.histKey=key}}
+  finally{UFL.histLoading=false; if(key!==ufHistKey()&&UFL.acc){ufLoadHist(); return} if(S.sec==='users') renderBody()}
+}
+function ufHistRow(ev){
+  const actor=ev.actor_kind==='owner'?'مالک':ev.actor_kind==='account'?((typeof roleDef==='function'&&ev.actor_role?roleDef(ev.actor_role).n:'')||'حساب')+' '+String(ev.actor_id||'').slice(0,8):'سامانه';
+  const detail=auditDetailText(ev.details);
+  return `<div class="admlirow" data-uf-hist="${esc(ev.id)}"><span class="ic">${ico(ev.outcome==='ok'?'i-check':'i-info')}</span>
+    <span class="sp"><b>${esc(AUDIT_ACTION_LABELS[ev.action]||ev.action)}</b>${detail?`<small class="cap">${esc(detail)}</small>`:''}<small class="cap">${esc(actor)} · ${esc(svcWhen(ev.created_at)||'')}</small></span>
+    ${tag(ev.outcome==='ok'?'انجام شد':'ناموفق',ev.outcome==='ok'?'ok':'stop')}</div>`;
+}
+function ufApi(name){const api=window.NORA_SERVER_API; return api&&typeof api[name]==='function'?api[name]:null}
+/* ── تصمیم مالک ۱۴۰۵/۰۸/۰۱: زبانهٔ «تاریخچه» در ویرایشگر رویداد/مطلب/شخص ──
+   فقط از همان ردپای ممیزی سرور (GET /api/owner/audit با target_type=content.<kind> و target_id=همین رکورد)؛
+   بدون جدول نسخه، بدون snapshot، بدون بازگردانی. فقط مالک می‌خواند (سرور هم ۴۰۱ می‌دهد)؛
+   رکوردهای دیگر در فهرست نمی‌آیند چون فیلتر هدف دقیق است. */
+const CH={type:'',id:'',open:false,items:null,loading:false,error:'',offset:0,limit:20,hasMore:false,key:''};
+function chKey(){return [CH.type,CH.id,CH.offset].join('|')}
+function chIs(type,id){return CH.open&&CH.type===type&&String(CH.id)===String(id||'')}
+function chOpen(type,id){if(!id) return;
+  /* هر بار بازشدن زبانه = خواندن تازه (بازگشت به ویرایشگر همان رکورد نباید فهرست کهنه نشان دهد) */
+  if(!CH.open||CH.type!==type||String(CH.id)!==String(id)){CH.items=null; CH.error=''; CH.offset=0; CH.hasMore=false; CH.key=''}
+  CH.type=type; CH.id=String(id); CH.open=true; if(!CH.items&&!CH.loading) chLoad(); else renderBody()}
+function chClose(){CH.open=false; renderBody()}
+async function chLoad(){
+  const fn=ufApi('listTargetAuditEvents'); if(!CH.id) return;
+  if(!isOwner()){CH.error='تاریخچهٔ تغییرات فقط با نشست مالک خوانده می‌شود.'; CH.items=null; CH.key=chKey(); renderBody(); return}
+  if(!fn){CH.error='رابط سرور در دسترس نیست.'; CH.key=chKey(); renderBody(); return}
+  const key=chKey(); CH.loading=true; CH.error=''; renderBody();
+  try{const result=await fn(CH.type,CH.id,{limit:CH.limit,offset:CH.offset});
+    if(key===chKey()){CH.items=Array.isArray(result&&result.items)?result.items:[]; CH.hasMore=!!(result&&result.has_more); CH.key=key}}
+  catch(error){if(key===chKey()){CH.error=p2Err(error,'تاریخچهٔ این رکورد دریافت نشد.'); CH.key=key}}
+  finally{CH.loading=false; if(key!==chKey()&&CH.open){chLoad(); return} renderBody()}
+}
+function chTabs(type,id,active){
+  if(!isOwner()||!id) return '';
+  const hist=chIs(type,id);
+  return `<div class="admfilters hub-tabs" role="tablist" aria-label="بخش‌های ویرایشگر" data-ch-tabs="${esc(type)}">
+    <button type="button" class="chip ${hist?'':'on'}" role="tab" aria-selected="${!hist}" data-ch-pane="edit">${ico('i-pen')}${esc(active||'ویرایش')}</button>
+    <button type="button" class="chip ${hist?'on':''}" role="tab" aria-selected="${hist}" data-ch-pane="hist" data-ch-type="${esc(type)}" data-ch-id="${esc(String(id))}">${ico('i-clock')}تاریخچه</button></div>`;
+}
+function chPanel(){
+  const items=CH.items||[];
+  const body=CH.loading&&!CH.items?`<p class="cap" data-ch-state="loading">${ico('i-clock')} در حال دریافت تاریخچه از سرور…</p>`
+    :CH.error&&!CH.items?`<p class="cap" style="color:var(--stop)" role="alert" data-ch-state="error">${esc(CH.error)}</p>${btn('تلاش دوباره','data-ch-retry','i-refresh')}`
+    :!items.length?`<div data-ch-state="empty">${emptyBox('برای این رکورد هنوز تغییری در ردپای سرور ثبت نشده است (ردپا از زمان فعال‌شدن ممیزی رکوردی نگه داشته می‌شود).')}</div>`
+    :`<div class="admlist" data-ch-state="success">${items.map(ufHistRow).join('')}</div>`;
+  const pager=(CH.offset>0||CH.hasMore)&&!CH.loading?`<div class="row tight">${CH.offset>0?btn('جدیدترها','data-ch-page="prev"','i-back'):''}<span class="sp"></span>${CH.hasMore?btn('قدیمی‌ترها','data-ch-page="next"','i-chev-left'):''}</div>`:'';
+  return `<section class="stack" data-ch-panel="${esc(CH.type)}" data-ch-record="${esc(CH.id)}" style="gap:8px">
+    <p class="cap">چه کسی، کی و چه کاری روی همین رکورد انجام داده است؛ از ردپای ممیزی سرور. محتوای نسخه‌های قبلی نگه داشته نمی‌شود و بازگردانی وجود ندارد.${CH.loading&&CH.items?' · در حال به‌روزرسانی…':''}</p>
+    ${body}${pager}</section>`;
+}
+function chClick(q){
+  const pane=q('[data-ch-pane]'); if(pane){if(pane.dataset.chPane==='hist') chOpen(pane.dataset.chType,pane.dataset.chId); else chClose(); return true}
+  if(q('[data-ch-retry]')){chLoad(); return true}
+  const pg=q('[data-ch-page]'); if(pg){CH.offset=pg.dataset.chPage==='next'?CH.offset+CH.limit:Math.max(0,CH.offset-CH.limit); CH.items=null; chLoad(); return true}
+  return false;
+}
+function ufRegsKey(){return [UFL.acc,UFL.regsOffset,UFL.regsLimit].join('|')}
+function ufNotifsKey(){return [UFL.acc,UFL.notifsOffset,UFL.notifsLimit].join('|')}
+async function ufLoadRegs(){
+  const fn=ufApi('listAdminUserRegistrations'), acc=UFL.acc; if(!acc) return;
+  if(!fn){UFL.regsError='رابط سرور در دسترس نیست.'; UFL.regsKey=ufRegsKey(); renderBody(); return}
+  const key=ufRegsKey(); UFL.regsLoading=true; UFL.regsError=''; renderBody();
+  try{const result=await fn(acc,{limit:UFL.regsLimit,offset:UFL.regsOffset}); if(key===ufRegsKey()){UFL.regs=result; UFL.regsKey=key}}
+  catch(error){if(key===ufRegsKey()){UFL.regsError=p2Err(error,'فهرست ثبت‌نام‌های این حساب دریافت نشد.'); UFL.regsKey=key}}
+  finally{UFL.regsLoading=false; if(key!==ufRegsKey()&&UFL.acc){ufLoadRegs(); return} if(S.sec==='users') renderBody()}
+}
+async function ufLoadReg(id){
+  const fn=ufApi('getAdminUserRegistration'), acc=UFL.acc; if(!acc||!id) return;
+  UFL.regId=id; UFL.reg=null; UFL.regError=''; UFL.regLoading=true; renderBody();
+  if(!fn){UFL.regLoading=false; UFL.regError='رابط سرور در دسترس نیست.'; renderBody(); return}
+  try{const result=await fn(acc,id); if(UFL.regId===id&&UFL.acc===acc) UFL.reg=result}
+  catch(error){if(UFL.regId===id&&UFL.acc===acc) UFL.regError=p2Err(error,'جزئیات این ثبت‌نام دریافت نشد.')}
+  finally{if(UFL.regId===id){UFL.regLoading=false; if(S.sec==='users') renderBody()}}
+}
+async function ufLoadNotifs(){
+  const fn=ufApi('listAdminUserNotifications'), acc=UFL.acc; if(!acc) return;
+  if(!fn){UFL.notifsError='رابط سرور در دسترس نیست.'; UFL.notifsKey=ufNotifsKey(); renderBody(); return}
+  const key=ufNotifsKey(); UFL.notifsLoading=true; UFL.notifsError=''; renderBody();
+  try{const result=await fn(acc,{limit:UFL.notifsLimit,offset:UFL.notifsOffset}); if(key===ufNotifsKey()){UFL.notifs=result; UFL.notifsKey=key}}
+  catch(error){if(key===ufNotifsKey()){UFL.notifsError=p2Err(error,'اعلان‌های این حساب دریافت نشد.'); UFL.notifsKey=key}}
+  finally{UFL.notifsLoading=false; if(key!==ufNotifsKey()&&UFL.acc){ufLoadNotifs(); return} if(S.sec==='users') renderBody()}
+}
+const UF_PAY={paid:'پرداخت‌شده',paid_manual:'فیش تأییدشده',paid_review:'در بررسی',awaiting_receipt:'منتظر فیش',receipt_submitted:'فیش رسیده',pending:'در انتظار پرداخت',rejected:'رد شده',cancelled:'لغو',expired:'منقضی',refunded:'بازگشت وجه'};
+const UF_METHOD={card_transfer:'کارت‌به‌کارت',bale_wallet:'کیف پول بله'};
+const UF_TICKET={free:'رایگان',paid:'پولی',companion:'همراه',guest:'میهمان'};
+const UF_TASK={pending:'در انتظار بررسی',approved:'تأیید شد',rejected:'رد شد',cancelled:'لغو شد'};
+const UF_DELIVERY={queued:['در صف','warn'],retrying:['در حال تلاش دوباره','warn'],delivered:['تحویل‌شده','ok'],failed:['ناموفق','stop']};
+const UF_KIND={content_published:'انتشار محتوا',registration_accepted:'پذیرش ثبت‌نام',registration_waitlisted:'فهرست انتظار',receipt_approved:'تأیید فیش',receipt_rejected:'رد فیش',profile_approved:'تأیید پروفایل',profile_rejected:'رد پروفایل',attendance_checked_in:'ثبت حضور',certificate_issued:'صدور گواهی',recording_access_granted:'دسترسی ضبط',event_reminder:'یادآور رویداد',event_cancelled:'لغو رویداد',qa_answered:'پاسخ پرسش'};
+function ufPayTag(status){return status?tag(UF_PAY[status]||status,['paid','paid_manual'].includes(status)?'ok':['rejected','expired','cancelled'].includes(status)?'stop':'warn'):''}
+function ufRegStatus(status){return status==='waitlisted'?tag('فهرست انتظار','warn'):status==='cancelled'?tag('لغو شده','stop'):status==='pending'?tag('در انتظار','warn'):tag('پذیرفته','ok')}
+function ufRegRow(r){
+  return `<button class="admlirow" type="button" data-uf-reg="${esc(r.id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-ticket')}</span>
+    <span class="sp"><b>${esc(r.event_title||r.form_name)}</b><small class="cap">${esc([r.form_name!==r.event_title?r.form_name:'',r.event_date,svcWhen(r.created_at),UF_TICKET[r.ticket_type]||''].filter(Boolean).join(' · '))}</small></span>
+    ${ufRegStatus(r.status)}${ufPayTag(r.payment_status)}${r.receipt_uploaded?tag('فیش','brand'):''}${r.ticket_checked_in?tag('حاضر','ok'):''}${ico('i-chev-left')}</button>`;
+}
+function ufAnswer(a){
+  const label=`<small class="cap">${esc(a.label)}</small>`;
+  if(a.masked) return `<div class="admlirow" data-uf-masked="${esc(a.masked)}"><span class="sp">${label}<b dir="ltr" style="font-weight:600">${a.masked==='mobile'?(a.hint?'•••••••'+esc(a.hint):'••••••••••'):'••••••••••'}</b><small class="cap">${a.masked==='mobile'?'شمارهٔ همراه؛ سرور فقط چهار رقم پایانی را می‌فرستد.':'کد ملی؛ سرور آن را پنهان می‌کند.'}</small></span>${tag('ماسک‌شده','')}</div>`;
+  let v=a.value;
+  if(typeof v==='boolean') v=v?'بله':'خیر';
+  else if(Array.isArray(v)) v=v.join('، ');
+  else if(v&&typeof v==='object') v=Object.entries(v).map(([k,x])=>k+': '+x).join('، ');
+  return `<div class="admlirow"><span class="sp">${label}<b style="font-weight:600;white-space:pre-wrap">${esc(String(v==null?'':v))}</b></span></div>`;
+}
+function ufRegDetail(){
+  const back=`<div class="row tight">${btn('بازگشت به ثبت‌نام‌ها','data-uf-reg-back','i-back')}</div>`;
+  if(UFL.regLoading) return `<div data-uf-reg-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت جزئیات ثبت‌نام…</p></div></div>`;
+  const d=UFL.reg;
+  if(UFL.regError||!d) return `<div data-uf-reg-detail>${back}<div class="empty"><p class="cap">${esc(UFL.regError||'ثبت‌نامی انتخاب نشده است.')}</p>${UFL.regId?btn('تلاش دوباره',`data-uf-reg="${esc(UFL.regId)}"`,'i-refresh'):''}</div></div>`;
+  const ev=d.event||{}, form=d.form||{}, pay=d.payment, rc=d.receipt||{}, at=d.attendance||{};
+  const head=[['رویداد',ev.title||d.event_title||'',''],['تاریخ رویداد',ev.date||d.event_date||'',''],['فرم',form.name?form.name+(form.version?' · نسخهٔ '+fa(form.version):''):'',''],['نام ثبت‌نام‌کننده',d.registrant_name||'',''],
+    ['نوع بلیت',UF_TICKET[d.ticket_type]||d.ticket_type||'',''],['زمان ثبت',svcWhen(d.created_at),''],['آخرین تغییر',d.updated_at?svcWhen(d.updated_at):'',''],['شناسهٔ پاسخ',d.response_id||d.id,'ltr']].filter(([,v])=>v!=='');
+  const answers=(d.answers||[]).map(ufAnswer).join('');
+  const comps=(d.companions||[]).map(c=>`<div class="admlirow"><span class="ic">${ico('i-users')}</span><span class="sp"><b>${esc(c.name||'بدون نام')}</b><small class="cap" dir="ltr">${esc(String(c.id||'').slice(0,8))}…</small></span>${ufRegStatus(c.status)}${c.ticket_checked_in?tag('حاضر','ok'):tag('حضور ثبت نشده','')}</div>`).join('');
+  const payRows=pay?[['وضعیت پرداخت',UF_PAY[pay.status]||pay.status||'',''],['روش',UF_METHOD[pay.method]||pay.method||'','']].concat(d.finance_visible?[['مبلغ',pay.amount!=null?fa(Number(pay.amount).toLocaleString('en-US'))+' '+(pay.currency==='IRR'?'ریال':esc(pay.currency||'')):'',''],['شناسهٔ تراکنش',pay.transaction_id||'ثبت نشده','ltr']]:[]).filter(([,v])=>v!==''):[];
+  const kv=rows=>`<div class="admlist">${rows.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>`;
+  return `<div data-uf-reg-detail data-uf-finance="${d.finance_visible?'1':'0'}">${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-ticket')}</span><div class="head">${esc(ev.title||d.event_title||d.form_name||'ثبت‌نام')}</div><span class="sp"></span>${ufRegStatus(d.status)}${pay?ufPayTag(pay.status):''}${at.checked_in?tag('حاضر','ok'):''}</div>
+    <p class="cap">پاسخ‌ها از همان نسخهٔ منجمد فرم (form_snapshot) خوانده می‌شود؛ شمارهٔ همراه و کد ملی را سرور ماسک می‌کند. پرداخت ≠ ثبت‌نام ≠ حضور ≠ گواهی؛ هر کدام جداگانه نشان داده می‌شود.</p>
+    ${kv(head)}
+    <div class="head">پاسخ‌های فرم (${fa((d.answers||[]).length)})</div>
+    <div class="tlist" data-uf-answers>${answers||emptyBox('پاسخ قابل نمایشی در این ثبت‌نام نیست.')}</div>
+    <div class="head">همراهان (${fa((d.companions||[]).length)})</div>
+    <div class="tlist">${comps||emptyBox('همراهی برای این ثبت‌نام ثبت نشده است.')}</div>
+    <div class="head">پرداخت و فیش</div>
+    ${pay?kv(payRows):`<p class="cap">این ثبت‌نام رکورد پرداخت ندارد (فرم رایگان یا بدون پرداخت).</p>`}
+    ${pay&&!d.finance_visible?`<p class="cap" data-uf-finance-hidden>${ico('i-lock')} مبلغ و شناسهٔ تراکنش فقط با مجوز «مالی» نمایش داده می‌شود.</p>`:''}
+    <div class="admlist"><div class="admlirow"><span class="ic">${ico('i-doc')}</span><span class="sp"><small class="cap">فیش واریز</small><b style="font-weight:600">${rc.uploaded?'بارگذاری شده':'بارگذاری نشده'}${rc.task_status?' · بررسی: '+esc(UF_TASK[rc.task_status]||rc.task_status):''}</b>${rc.task_id?`<small class="cap" dir="ltr">${esc(String(rc.task_id).slice(0,8))}…</small>`:''}</span></div></div>
+    <div class="head">حضور</div>
+    <div class="admlist"><div class="admlirow"><span class="ic">${ico('i-check')}</span><span class="sp"><small class="cap">وضعیت حضور</small><b style="font-weight:600">${at.checked_in?'حاضر · '+esc(svcWhen(at.checked_in_at)):'حضور ثبت نشده'}</b>${at.checked_in_by?`<small class="cap">ثبت‌کننده: ${at.checked_in_by.kind==='bot'?'ربات':'پنل'} <span dir="ltr">${esc(String(at.checked_in_by.id||'').slice(0,8))}…</span></small>`:''}</span>${at.checked_in?tag('حاضر','ok'):''}</div></div>
+  </div>`;
+}
+function ufNotifRow(n){
+  const st=UF_DELIVERY[n.delivery_state]||[n.delivery_state||'نامشخص',''];
+  return `<div class="admlirow" data-uf-notif="${esc(n.id)}" data-uf-delivery="${esc(n.delivery_state||'')}"><span class="ic">${ico(n.delivery_state==='failed'?'i-bell-off':'i-bell')}</span>
+    <span class="sp"><b>${esc(n.title||UF_KIND[n.kind]||n.kind||'اعلان')}</b>${n.body?`<small class="cap" style="white-space:pre-wrap">${esc(String(n.body).slice(0,280))}${String(n.body).length>280?'…':''}</small>`:''}
+      <small class="cap">${esc([UF_KIND[n.kind]||n.kind,svcWhen(n.created_at),n.delivered_at?'تحویل: '+svcWhen(n.delivered_at):'',n.delivery_attempts?fa(n.delivery_attempts)+' تلاش':'',n.read?'خوانده‌شده':''].filter(Boolean).join(' · '))}</small>
+      ${n.last_delivery_error?`<small class="cap" style="color:var(--stop)">آخرین خطا: ${esc(String(n.last_delivery_error).slice(0,160))}</small>`:''}</span>
+    ${tag(n.scope==='audience'?'همگانی':'شخصی',n.scope==='audience'?'':'brand')}${tag(st[0],st[1])}${n.has_bale_identity===false?tag('بدون شناسهٔ بله','stop'):''}</div>`;
+}
+function ufPane(){
+  const tabs=[['regs','ثبت‌نام‌ها',UFL.regs?fa(UFL.regs.total):''],['notifs','اعلان‌های حساب',UFL.notifs?fa(UFL.notifs.total):''],['reviews','درخواست‌های کارتابل','']].concat(isOwner()?[['hist','تاریخچهٔ حساب','']]:[])
+    .map(([k,l,c])=>`<button class="chip ${UFL.tab===k?'on':''}" type="button" role="tab" aria-selected="${UFL.tab===k}" data-uf-tab="${k}">${esc(l)}${c!==''?` <small>${c}</small>`:''}</button>`).join('');
+  let body='';
+  if(UFL.tab==='regs'){
+    if(UFL.regId) body=ufRegDetail();
+    else{
+      const d=UFL.regs, total=d?Number(d.total)||0:0;
+      const list=UFL.regsLoading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت ثبت‌نام‌ها از سرور…</p></div>`
+        :UFL.regsError?`<div class="empty"><p class="cap">${esc(UFL.regsError)}</p>${btn('تلاش دوباره','data-uf-regs-refresh','i-refresh')}</div>`
+        :!d?`<div class="empty"><p class="cap">فهرست هنوز خوانده نشده است.</p>${btn('دریافت فهرست','data-uf-regs-refresh','i-refresh')}</div>`
+        :d.items.length?d.items.map(ufRegRow).join(''):emptyBox('ثبت‌نامی در پایگاه مشترک برای این حساب نیست.');
+      body=`<div class="row tight"><div class="head">ثبت‌نام‌های این حساب${d?' ('+fa(total)+')':''}</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-regs-refresh','i-refresh'):''}</div>
+        <p class="cap">فقط ثبت‌نام‌های اصلی همین حساب (همراهان زیر ثبت‌نام اصلی دیده می‌شوند)؛ برای جزئیات و پاسخ‌های فرم روی هر ردیف بزنید.</p>
+        <div class="tlist" data-uf-regs>${list}</div>${d?p2Pager(total,UFL.regsOffset,UFL.regsLimit,'data-uf-regs-page="prev"','data-uf-regs-page="next"'):''}`;
+    }
+  }else if(UFL.tab==='notifs'){
+    const d=UFL.notifs, total=d?Number(d.total)||0:0;
+    const list=UFL.notifsLoading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت اعلان‌های این حساب…</p></div>`
+      :UFL.notifsError?`<div class="empty"><p class="cap">${esc(UFL.notifsError)}</p>${btn('تلاش دوباره','data-uf-notifs-refresh','i-refresh')}</div>`
+      :!d?`<div class="empty"><p class="cap">فهرست هنوز خوانده نشده است.</p>${btn('دریافت فهرست','data-uf-notifs-refresh','i-refresh')}</div>`
+      :d.items.length?d.items.map(ufNotifRow).join(''):emptyBox('برای این حساب اعلانی در صف خروجی ثبت نشده است.');
+    body=`<div class="row tight"><div class="head">اعلان‌های این حساب${d?' ('+fa(total)+')':''}</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-notifs-refresh','i-refresh'):''}</div>
+      <p class="cap">فقط ردیف‌هایی که برای همین حساب نوشته شده‌اند (نه صف عمومی)؛ «در صف» و «در حال تلاش دوباره» یعنی هنوز تحویل نشده. این صفحه ارسال یا تلاش دوباره ندارد.</p>
+      <div class="tlist" data-uf-notifs>${list}</div>${d?p2Pager(total,UFL.notifsOffset,UFL.notifsLimit,'data-uf-notifs-page="prev"','data-uf-notifs-page="next"'):''}`;
+  }else if(UFL.tab==='hist'){
+    const d=UFL.hist, items=d&&Array.isArray(d.items)?d.items:[], lim=UFL.histLimit||20;
+    const list=UFL.histLoading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن تاریخچهٔ این حساب از ممیزی سرور…</p></div>`
+      :UFL.histError?`<div class="empty"><p class="cap">${esc(UFL.histError)}</p>${btn('تلاش دوباره','data-uf-hist-refresh','i-refresh')}</div>`
+      :!d?`<div class="empty"><p class="cap">تاریخچه هنوز خوانده نشده است.</p>${btn('دریافت تاریخچه','data-uf-hist-refresh','i-refresh')}</div>`
+      :items.length?items.map(ufHistRow).join(''):emptyBox('برای این حساب عملیات مدیریتی‌ای (نقش، ورود مدیر) ثبت نشده است.');
+    const pager=d?`<div class="row tight" data-uf-hist-pager>${UFL.histOffset>0?btn('جدیدترها','data-uf-hist-page="prev"','i-chev-right'):''}<span class="sp"></span>${d.has_more?btn('قدیمی‌ترها','data-uf-hist-page="next"','i-chev-left'):''}</div>`:'';
+    body=`<div class="row tight"><div class="head">تاریخچهٔ حساب (ممیزی سرور)</div><span class="sp"></span>${d?btn('بازخوانی','data-uf-hist-refresh','i-refresh'):''}</div>
+      <p class="cap">فقط ردیف‌های ممیزی که هدفشان دقیقاً همین حساب است (تعیین/برداشتن نقش، تعریف/حذف ورود مدیر). تصمیم‌های کارتابل و فیش در «درخواست‌های کارتابل» و فهرست کامل عملیات در «تنظیمات → امنیت → تاریخچهٔ عملیات» است.</p>
+      <div class="tlist" data-uf-hist-list>${list}</div>${pager}`;
+  }
+  return {tabs:`<div class="admfilters" role="tablist" data-uf-tabs>${tabs}</div>`,body};
+}
+/* ── فهرست کاربران (us_view): جدا از «حساب‌ها و نقش‌ها» ── */
+function usKey(){return [US.q,US.provider,US.role,US.status,US.offset,US.limit].join('|')}
+async function usLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminUsers!=='function'){US.error='رابط سرور در دسترس نیست.'; US.key=usKey(); renderBody(); return}
+  const key=usKey(); US.loading=true; US.error=''; renderBody();
+  try{const result=await api.listAdminUsers({limit:US.limit,offset:US.offset,q:US.q,provider:US.provider,role:US.role,status:US.status}); if(key===usKey()){US.data=result; US.key=key}}
+  catch(error){if(key===usKey()){US.error=p2Err(error,'فهرست کاربران از سرور دریافت نشد.'); US.key=key}}
+  finally{US.loading=false; if(key!==usKey()){usLoad(); return} if(S.sec==='users') renderBody()}
+}
+async function usLoadDetail(id){
+  const api=window.NORA_SERVER_API; US.detailId=id; US.detail=null; US.detailError=''; US.detailLoading=true; ufReset(id); renderBody();
+  try{const result=await api.getAdminUser(id); if(US.detailId===id) US.detail=result}
+  catch(error){if(US.detailId===id) US.detailError=p2Err(error,'پروندهٔ کاربر دریافت نشد.')}
+  finally{US.detailLoading=false; if(US.detailId===id){renderBody(); if(US.detail&&UFL.acc===id) ufLoadRegs()}}
+}
+function usProviders(item){return (item.providers||[]).map(p=>tag(p==='bale'?'ورود بله':'ورود با شماره','')).join('')+(item.linked?tag('پیوندشده','brand'):'')}
+function usRoleTag(role){return role?tag(role==='club-supervisor'?'سرپرست باشگاه':role==='manager'?'مدیر':role,'brand'):tag('بدون نقش','')}
+function usRow(item){
+  return `<button class="admlirow" type="button" data-user-open="${esc(item.account_id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-user')}</span>
+    <span class="sp"><b>${esc(item.display_name||'بدون نام پروفایل')}</b><small class="cap" dir="ltr">${esc(item.account_id.slice(0,8))}…${item.bale_user_id?' · bale '+esc(item.bale_user_id):''}</small>
+      <small class="cap">${fa(item.registrations)} ثبت‌نام · ${item.pending_reviews?fa(item.pending_reviews)+' بررسی در انتظار':'بدون بررسی باز'} · عضویت ${esc(svcWhen(item.created_at))}</small></span>
+    ${usProviders(item)}${usRoleTag(item.role)}${usStatusTag(item)}${ico('i-chev-left')}</button>`;
+}
+function usStatusTag(item){return item&&item.status==='blocked'?tag('مسدود','stop'):''}
+function serverUsersList(){
+  const d=US.data, total=d?Number(d.total)||0:0;
+  const body=US.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست کاربران از سرور…</p></div>`
+    :US.error?`<div class="empty"><p class="cap">${esc(US.error)}</p>${btn('تلاش دوباره','data-users-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-users-refresh','i-refresh')}</div>`
+    :d.items.length?d.items.map(usRow).join(''):emptyBox(US.status==='blocked'&&!US.q&&!US.provider&&!US.role?'هیچ حسابی مسدود نیست.':US.q||US.provider||US.role||US.status?'با این جست‌وجو یا فیلتر کاربری پیدا نشد.':'هنوز کاربری با ورود تأییدشده ثبت نشده است.');
+  const providers=[['','همه'],['bale','ورود بله'],['phone','ورود با شماره'],['linked','پیوندشده']].map(([k,l])=>`<button class="chip ${US.provider===k?'on':''}" type="button" data-users-provider="${k}">${esc(l)}</button>`).join('');
+  const roles=[['','هر نقشی'],['assigned','دارای نقش'],['none','بدون نقش']].map(([k,l])=>`<button class="chip ${US.role===k?'on':''}" type="button" data-users-role="${k}">${esc(l)}</button>`).join('');
+  const statuses=[['','هر وضعیتی'],['active','فعال'],['blocked','مسدود'+(d&&d.blocked_total!=null?' ('+fa(d.blocked_total)+')':'')]].map(([k,l])=>`<button class="chip ${US.status===k?'on':''}" type="button" data-users-status="${k}">${esc(l)}</button>`).join('');
+  return `<section class="card stack" data-users-panel>
+    <div class="row" style="flex-wrap:wrap"><div class="head">فهرست کاربران</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(total)+' کاربر',''):''}${btn('بازخوانی','data-users-refresh','i-refresh')}</div>
+    <p class="cap">حساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند. شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود؛ با نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب جست‌وجو کنید. واگذاری نقش از بخش جداگانهٔ «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.</p>
+    <form class="row tight server-role-search" data-users-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="usersQuery" type="search" class="input" value="${esc(US.q)}" maxlength="80" autocomplete="off" placeholder="نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب" aria-label="جست‌وجوی کاربر"/></label>
+      <button class="btn sm" type="submit" data-users-search>جست‌وجو</button></form>
+    <div class="admfilters">${providers}</div><div class="admfilters">${roles}</div><div class="admfilters" data-users-status-filter>${statuses}</div>
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,US.offset,US.limit,'data-users-page="prev"','data-users-page="next"'):''}
+  </section>`;
+}
+function serverUserDetail(){
+  const d=US.detail, back=`<div class="row" style="flex-wrap:wrap;gap:8px">${btn('بازگشت به فهرست','data-uback','i-back')}<span class="sp"></span>${d&&(isOwner()||canPerm('cl_member'))?`<button class="btn sm" data-user-club-points="${esc(d.account_id)}">${ico('i-star')}امتیاز باشگاه (فقط‌خواندنی)</button>`:''}${d&&isOwner()?btn('حساب‌ها و نقش‌ها','data-server-role-module','i-shield'):''}</div>`;
+  if(US.detailLoading) return `<section class="card stack" data-user-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت پرونده از سرور…</p></div></section>`;
+  if(US.detailError||!d) return `<section class="card stack" data-user-detail>${back}<div class="empty"><p class="cap">${esc(US.detailError||'پرونده‌ای انتخاب نشده است.')}</p>${US.detailId?btn('تلاش دوباره',`data-user-open="${esc(US.detailId)}"`,'i-refresh'):''}</div></section>`;
+  const regStatus=r=>r.status==='waitlisted'?tag('فهرست انتظار','warn'):tag('پذیرفته','ok');
+  const pay=r=>r.payment_status?tag({paid:'پرداخت‌شده',paid_manual:'فیش تأییدشده',paid_review:'در بررسی',awaiting_receipt:'منتظر فیش',receipt_submitted:'فیش رسیده',pending:'در انتظار پرداخت',rejected:'رد شده',cancelled:'لغو',expired:'منقضی'}[r.payment_status]||r.payment_status,['paid','paid_manual'].includes(r.payment_status)?'ok':['rejected','expired','cancelled'].includes(r.payment_status)?'stop':'warn'):r.receipt_uploaded?tag('فیش بارگذاری‌شده','warn'):'';
+  const pane=UFL.acc===d.account_id?ufPane():{tabs:'',body:''};
+  const reviews=(d.reviews||[]).map(r=>`<div class="admlirow"><span class="ic">${ico('i-inbox')}</span><span class="sp"><b>${r.kind==='receipt_review'?'بررسی فیش':r.kind==='profile_review'?'بررسی پروفایل':esc(r.kind)}</b><small class="cap">${esc(svcWhen(r.created_at))}${r.reviewed_at?' · تصمیم: '+esc(svcWhen(r.reviewed_at)):''}</small></span>${tag(r.status==='pending'?'در انتظار':r.status==='approved'?'تأیید':r.status==='rejected'?'رد':r.status,r.status==='pending'?'warn':r.status==='approved'?'ok':'stop')}</div>`).join('');
+  const info=[['شناسهٔ حساب',d.account_id,'ltr'],['شناسهٔ بله',d.bale_user_id||'',''],['نقش سروری',d.role?(d.role==='club-supervisor'?'سرپرست باشگاه':'مدیر'):'بدون نقش',''],['وضعیت حساب',d.status==='blocked'?'مسدود':'فعال',''],
+    ['استان / شهر',[d.province,d.city].filter(Boolean).join(' / '),''],['عضویت',svcWhen(d.created_at),''],['آخرین ورود',d.last_session_at?svcWhen(d.last_session_at):'ثبت نشده',''],['به‌روزرسانی پروفایل',d.profile_updated_at?svcWhen(d.profile_updated_at):'پروفایل ثبت نشده',''],
+    ['اعلان‌های حساب',fa(d.notifications||0),'']].concat(isOwner()?[['ایمیل',d.email||'',''],['نام کاربری مدیر',d.manager_username||'','ltr']]:[]).filter(([,v])=>v!=='');
+  return `<section class="card stack" data-user-detail>${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-user')}</span><div class="head">${esc(d.display_name||'بدون نام پروفایل')}</div><span class="sp"></span>${usProviders(d)}${usRoleTag(d.role)}</div>
+    <p class="cap">فقط دادهٔ غیرمحرمانهٔ پایگاه مشترک؛ شماره، کد ملی و اعتبارنامه‌ها نمایش داده نمی‌شوند. سوابق ربات (امتیاز، گواهی، حضور قدیمی) در این پایگاه نیستند.</p>
+    <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
+    ${ufStatusBlock(d)}
+    ${ufNoteBlock(d)}
+    ${pane.tabs}
+    ${UFL.tab==='reviews'?`<div class="head">درخواست‌های کارتابل</div><div class="tlist">${reviews||emptyBox('درخواست پروفایل یا فیشی برای این حساب ثبت نشده است.')}</div>`:pane.body}
+  </section>`;
+}
+/* ── وضعیت حساب: مسدود/فعال فقط با مالک؛ دلیل اجباری؛ سرور نشست‌ها را می‌بندد و در ممیزی ثبت می‌کند ── */
+function ufStatusBlock(d){
+  const blocked=d.status==='blocked', busy=UFL.statusBusy;
+  const meta=blocked?`<p class="cap" data-uf-block-meta>دلیل: ${esc(d.blocked_reason||'ثبت نشده')}${d.blocked_at?' · از '+esc(svcWhen(d.blocked_at)):''}${d.blocked_by?' · توسط '+esc(d.blocked_by==='owner'||/^owner/.test(String(d.blocked_by))?'مالک':String(d.blocked_by).slice(0,8)):''}</p>`
+    :`<p class="cap">حساب فعال است؛ ورود، ثبت‌نام و پرسش برایش باز است.</p>`;
+  const msg=UFL.statusError?`<p class="cap" role="alert" data-uf-status-err style="color:var(--stop)">${esc(UFL.statusError)}</p>`:UFL.statusMsg?`<p class="cap" role="status" data-uf-status-ok style="color:var(--ok)">${esc(UFL.statusMsg)}</p>`:'';
+  let actions='';
+  if(d.can_block&&isOwner()){
+    if(blocked) actions=`<button class="btn sm" type="button" data-uf-unblock ${busy?'disabled':''}>${ico('i-check')} ${busy?'در حال رفع مسدودی…':'رفع مسدودی'}</button>`;
+    else if(UFL.blockOpen) actions=`<form class="stack" data-uf-block-form onsubmit="return false">
+        <label class="lbl" for="ufBlockReason">دلیل مسدودسازی (اجباری؛ در تاریخچهٔ عملیات ثبت می‌شود و به خود کاربر نمایش داده نمی‌شود)</label>
+        <textarea id="ufBlockReason" class="input" rows="2" maxlength="500" ${busy?'disabled':''} placeholder="مثلاً: ثبت‌نام‌های تکراری با هویت جعلی">${esc(UFL.blockReason||'')}</textarea>
+        <div class="row tight"><button class="btn sm stop" type="button" data-uf-block-confirm ${busy?'disabled':''}>${ico('i-lock')} ${busy?'در حال مسدودسازی…':'تأیید مسدودسازی'}</button>
+        <button class="btn sm quiet" type="button" data-uf-block-cancel ${busy?'disabled':''}>انصراف</button></div>
+        <p class="cap">با تأیید، همهٔ نشست‌های فعال این حساب بسته می‌شود و ورود با بله یا رمز یک‌بارمصرف، ثبت‌نام و پرسش تازه برایش رد می‌شود. حساب مالک مسدودشدنی نیست.</p></form>`;
+    else actions=`<button class="btn sm quiet" type="button" data-uf-block>${ico('i-lock')} مسدودسازی حساب</button>`;
+  }else if(isOwner()&&!d.can_block) actions=`<p class="cap">حساب مالک مسدودشدنی نیست.</p>`;
+  else actions=`<p class="cap">مسدودسازی و رفع مسدودی فقط با مالک است.</p>`;
+  return `<div class="card stack" data-uf-status data-status="${blocked?'blocked':'active'}" style="padding:12px">
+    <div class="row" style="flex-wrap:wrap"><div class="head">وضعیت حساب</div><span class="sp"></span>${blocked?tag('مسدود','stop'):tag('فعال','ok')}</div>
+    ${meta}${msg}${actions}</div>`;
+}
+/* ── یادداشت داخلی: جدا از دلیل مسدودی؛ خواندن با us_view، نوشتن با us_notes؛ هرگز به کاربر نشان داده نمی‌شود ── */
+function ufNoteBlock(d){
+  const value=UFL.noteDraft!=null?UFL.noteDraft:(d.internal_note||''), busy=UFL.noteBusy;
+  const meta=d.note_updated_at?`<small class="cap">آخرین ویرایش ${esc(svcWhen(d.note_updated_at))}</small>`:'';
+  const msg=UFL.noteError?`<p class="cap" role="alert" data-uf-note-err style="color:var(--stop)">${esc(UFL.noteError)}</p>`:UFL.noteMsg?`<p class="cap" role="status" data-uf-note-ok style="color:var(--ok)">${esc(UFL.noteMsg)}</p>`:'';
+  const body=d.can_note?`<textarea id="ufNote" class="input" rows="3" maxlength="2000" ${busy?'disabled':''} placeholder="فقط برای تیم مدیریت؛ در پروفایل عمومی، API عضو یا پیام‌ها دیده نمی‌شود">${esc(value)}</textarea>
+      <div class="row tight">${meta}<span class="sp"></span><button class="btn sm" type="button" data-uf-note-save ${busy?'disabled':''}>${ico('i-pen')} ${busy?'در حال ذخیره…':'ذخیرهٔ یادداشت'}</button></div>`
+    :`<p data-uf-note-ro style="white-space:pre-wrap">${value?esc(value):'<span class="cap">یادداشتی ثبت نشده است.</span>'}</p>${meta}<p class="cap">ویرایش یادداشت نیازمند مجوز «یادداشت روی پرونده» است.</p>`;
+  return `<div class="card stack" data-uf-note style="padding:12px"><div class="row"><div class="head">یادداشت داخلی</div><span class="sp"></span>${tag('محرمانهٔ تیم','')}</div>${body}${msg}</div>`;
+}
+async function ufSetStatus(status){
+  const api=ufApi('setAccountStatus'), d=US.detail; if(!api||!d||UFL.statusBusy) return;
+  const id=d.account_id;
+  let reason='';
+  if(status==='blocked'){
+    const ta=$('#ufBlockReason'); reason=String(ta&&ta.value||UFL.blockReason||'').trim(); UFL.blockReason=reason;
+    if(reason.length<3){UFL.statusError='برای مسدودسازی نوشتن دلیل (دست‌کم ۳ نویسه) لازم است.'; renderBody(); return}
+    if(typeof window.confirm==='function'&&!window.confirm(`حساب «${d.display_name||id.slice(0,8)}» مسدود می‌شود، همهٔ نشست‌هایش بسته می‌شود و دلیل در تاریخچه ثبت می‌شود. ادامه می‌دهید؟`)) return;
+  }else if(typeof window.confirm==='function'&&!window.confirm(`مسدودی حساب «${d.display_name||id.slice(0,8)}» برداشته می‌شود و این کار در تاریخچه ثبت می‌شود. ادامه می‌دهید؟`)) return;
+  UFL.statusBusy=true; UFL.statusError=''; UFL.statusMsg=''; renderBody();
+  try{
+    const result=await api(id,status,status==='blocked'?reason:undefined);
+    if(US.detail&&US.detail.account_id===id){Object.assign(US.detail,{status:result.status,blocked_reason:result.blocked_reason,blocked_at:result.blocked_at,blocked_by:result.blocked_by})}
+    UFL.blockOpen=false; UFL.blockReason='';
+    UFL.statusMsg=status==='blocked'?`حساب مسدود شد${result.sessions_revoked?' · '+fa(result.sessions_revoked)+' نشست بسته شد':''}.`:(result.changed===false?'این حساب از قبل فعال بود.':'مسدودی برداشته شد؛ کاربر می‌تواند دوباره وارد شود.');
+    US.key=''; US.data=null; UFL.hist=null; UFL.histKey='';
+    toast(status==='blocked'?'حساب مسدود شد':'مسدودی برداشته شد');
+  }catch(error){UFL.statusError=p2Err(error,status==='blocked'?'مسدودسازی انجام نشد؛ چیزی تغییر نکرد.':'رفع مسدودی انجام نشد؛ چیزی تغییر نکرد.')}
+  finally{UFL.statusBusy=false; if(S.sec==='users') renderBody()}
+}
+async function ufSaveNote(){
+  const api=ufApi('setAdminUserNote'), d=US.detail; if(!api||!d||UFL.noteBusy) return;
+  const id=d.account_id, ta=$('#ufNote'), note=String(ta?ta.value:(UFL.noteDraft||'')).slice(0,2000);
+  UFL.noteDraft=note; UFL.noteBusy=true; UFL.noteError=''; UFL.noteMsg=''; renderBody();
+  try{
+    const result=await api(id,note,staffCsrfCookie());
+    if(US.detail&&US.detail.account_id===id){Object.assign(US.detail,{internal_note:result.internal_note,note_updated_at:result.note_updated_at,note_updated_by:result.note_updated_by})}
+    UFL.noteDraft=null; UFL.noteMsg=result.changed===false?'یادداشت تغییری نکرده بود.':(note?'یادداشت ذخیره شد (فقط برای تیم).':'یادداشت پاک شد.');
+    UFL.hist=null; UFL.histKey='';
+  }catch(error){UFL.noteError=p2Err(error,'یادداشت ذخیره نشد؛ متن شما همین‌جا مانده است.')}
+  finally{UFL.noteBusy=false; if(S.sec==='users') renderBody()}
+}
+/* ── حضور و غیاب: همان check-in بلیت که ربات ثبت می‌کند ── */
+function atKey(){return [AT.q,AT.offset,AT.limit].join('|')}
+function atPKey(){return [AT.formId,AT.pq,AT.state,AT.poffset,AT.plimit].join('|')}
+async function atLoadForms(){
+  const api=window.NORA_SERVER_API; if(!api||typeof api.listAttendanceForms!=='function'){AT.error='رابط سرور در دسترس نیست.'; AT.key=atKey(); renderBody(); return}
+  const key=atKey(); AT.loading=true; AT.error=''; renderBody();
+  try{const result=await api.listAttendanceForms({limit:AT.limit,offset:AT.offset,q:AT.q}); if(key===atKey()){AT.forms=result; AT.key=key}}
+  catch(error){if(key===atKey()){AT.error=p2Err(error,'فهرست فرم‌های ثبت‌نام دریافت نشد.'); AT.key=key}}
+  finally{AT.loading=false; if(key!==atKey()){atLoadForms(); return} if(S.uV==='att') renderBody()}
+}
+async function atLoadPeople(){
+  const api=window.NORA_SERVER_API; const key=atPKey(); if(!AT.formId) return;
+  AT.ploading=true; AT.perror=''; renderBody();
+  try{const result=await api.listAttendancePeople(AT.formId,{limit:AT.plimit,offset:AT.poffset,q:AT.pq,state:AT.state}); if(key===atPKey()){AT.people=result; AT.form=result.form; AT.pkey=key}}
+  catch(error){if(key===atPKey()){AT.perror=p2Err(error,'فهرست افراد دریافت نشد.'); AT.pkey=key}}
+  finally{AT.ploading=false; if(key!==atPKey()){atLoadPeople(); return} if(S.uV==='att') renderBody()}
+}
+async function atAct(responseId,undo){
+  const api=window.NORA_SERVER_API; if(AT.busy) return;
+  const person=(AT.people&&AT.people.items||[]).find(p=>p.response_id===responseId); const name=person?person.name||'این نفر':'این نفر';
+  let reason='';
+  if(undo){
+    if(typeof window.prompt!=='function') return;
+    const typed=window.prompt(`حضور «${name}» برگردانده می‌شود و در تاریخچهٔ عملیات ثبت می‌شود. دلیل اصلاح را بنویسید:`,'');
+    if(typed===null) return; reason=String(typed).trim();
+    if(reason.length<3){toast('برای برگرداندن حضور، نوشتن دلیل لازم است'); return}
+  }else if(typeof window.confirm==='function'&&!window.confirm(`حضور «${name}» همین حالا با زمان سرور ثبت می‌شود (همان رکوردی که ربات می‌خواند). ادامه می‌دهید؟`)) return;
+  AT.busy=responseId; AT.msg=null; renderBody();
+  try{
+    const result=undo?await api.attendanceUndoCheckIn(responseId,reason,staffCsrfCookie()):await api.attendanceCheckIn(responseId,'',staffCsrfCookie());
+    const saved=result.person||{};
+    AT.msg={kind:'ok',text:undo?`حضور «${saved.name||name}» برگردانده شد و با دلیل در تاریخچه ثبت شد.`:`حضور «${saved.name||name}» ثبت شد · زمان سرور: ${svcWhen(saved.checked_in_at)}`};
+    AT.pkey=''; AT.key=''; atLoadPeople();
+  }catch(error){AT.msg={kind:'stop',text:p2Err(error,undo?'برگرداندن حضور انجام نشد؛ چیزی تغییر نکرد.':'ثبت حضور انجام نشد؛ چیزی تغییر نکرد.')}; if(error&&error.status===409){AT.pkey=''; atLoadPeople()} else renderBody()}
+  finally{AT.busy=''}
+}
+function atFormRow(f){
+  const meta=[f.event_title&&f.event_title!==f.title?f.event_title:'',f.event_date,f.event_time,f.status==='published'?'منتشرشده':f.status==='paused'?'متوقف':f.status==='draft'?'پیش‌نویس':f.status].filter(Boolean).join(' · ');
+  return `<button class="admlirow" type="button" data-att-form="${esc(f.form_id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-ticket')}</span>
+    <span class="sp"><b>${esc(f.title)}</b><small class="cap">${esc(meta||'بدون جزئیات رویداد')}</small></span>
+    ${tag(fa(f.checked_in)+' حاضر از '+fa(f.people),f.checked_in?'ok':'')}${ico('i-chev-left')}</button>`;
+}
+function atPersonRow(p){
+  const by=p.checked_in_by?(p.checked_in_by.kind==='bot'?'از ربات':p.checked_in_by.kind==='web'?'از پنل':'نامشخص'):'';
+  const state=p.checked_in?tag('حاضر · '+svcWhen(p.checked_in_at)+(by?' · '+by:''),'ok'):p.status==='waitlisted'?tag('فهرست انتظار','warn'):!p.ticket_eligible?tag('بدون بلیت',''):!p.payment_approved?tag('پرداخت تأییدنشده','warn'):tag('ثبت‌نشده','');
+  const canMark=p.checked_in?false:(p.status==='accepted'&&p.ticket_eligible&&p.payment_approved);
+  const busy=AT.busy===p.response_id;
+  return `<div class="admlirow"><span class="ic">${ico(p.companion?'i-users':'i-user')}</span>
+    <span class="sp"><b>${esc(p.name||'بدون نام')}</b><small class="cap">${esc([p.companion?'همراهِ '+(p.added_by_name||''):'',p.ticket_type&&p.ticket_type.name||'',p.serial?'بلیت '+p.serial:'',p.mobile_hint?'شمارهٔ ختم به '+fa(p.mobile_hint):''].filter(Boolean).join(' · ')||'بدون جزئیات')}</small></span>
+    ${state}
+    ${canMark?btn(busy?'در حال ثبت…':'ثبت حضور',`data-att-checkin="${esc(p.response_id)}" ${busy||AT.busy?'disabled':''}`,'i-check'):''}
+    ${p.checked_in?btn('برگرداندن',`data-att-undo="${esc(p.response_id)}" ${busy||AT.busy?'disabled':''}`,'i-refresh'):''}</div>`;
+}
+function serverAttendanceView(){
+  if(!canPerm('attendance')) return `<section class="card stack">${uBack}${emptyBox('مجوز حضور و غیاب برای این نقش فعال نیست.')}</section>`;
+  if(!AT.formId&&S.attForm&&/^[A-Za-z0-9_-]{1,100}$/.test(String(S.attForm))) AT.formId=String(S.attForm);
+  const intro=`<p class="cap">منبع یکتا: همان ستون‌های check-in بلیت در پایگاه مشترک که ربات بله هنگام اسکن بلیت می‌نویسد. ثبت دستی فقط با مجوز «حضور و غیاب»، برای بلیت‌های پرداخت‌تأییدشده و با ثبت در تاریخچهٔ عملیات انجام می‌شود؛ برگرداندن حضور دلیل می‌خواهد. جلسه‌بندی و حضور رویدادهای قدیمی ربات (attendance_sessions) در این پایگاه نیست.</p>`;
+  if(AT.formId){
+    const d=AT.people, total=d?Number(d.total)||0:0, formTitle=AT.form?AT.form.title:AT.formId;
+    const chips=[['','همه'],['checked_in','حاضر'],['pending','ثبت‌نشده']].map(([k,l])=>`<button class="chip ${AT.state===k?'on':''}" type="button" data-att-state="${k}">${esc(l)}</button>`).join('');
+    const body=AT.ploading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست افراد…</p></div>`
+      :AT.perror?`<div class="empty"><p class="cap">${esc(AT.perror)}</p>${btn('تلاش دوباره','data-att-people-refresh','i-refresh')}</div>`
+      :!d?'':d.items.length?d.items.map(atPersonRow).join(''):emptyBox(AT.pq||AT.state?'با این فیلتر کسی پیدا نشد.':'هنوز کسی در این فرم ثبت‌نام نکرده است.');
+    return `<section class="card stack" data-att-panel data-att-people>
+      <div class="row">${btn('همهٔ فرم‌ها','data-att-back','i-back')}<span class="sp"></span>${btn('بازخوانی','data-att-people-refresh','i-refresh')}</div>
+      <div class="row" style="flex-wrap:wrap"><div class="head">${esc(formTitle)}</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(total)+' نفر',''):''}</div>
+      ${intro}${p2Msg(AT.msg)}
+      <form class="row tight server-role-search" data-att-people-search-form onsubmit="return false">
+        <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="attQuery" type="search" class="input" value="${esc(AT.pq)}" maxlength="80" autocomplete="off" placeholder="نام، شمارهٔ بلیت یا چهار رقم آخر شماره" aria-label="جست‌وجوی شرکت‌کننده"/></label>
+        <button class="btn sm" type="submit" data-att-people-search>جست‌وجو</button></form>
+      <div class="admfilters">${chips}</div>
+      <div class="tlist">${body}</div>
+      ${d?p2Pager(total,AT.poffset,AT.plimit,'data-att-ppage="prev"','data-att-ppage="next"'):''}
+    </section>`;
+  }
+  const d=AT.forms, total=d?Number(d.total)||0:0;
+  const body=AT.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فرم‌های ثبت‌نام…</p></div>`
+    :AT.error?`<div class="empty"><p class="cap">${esc(AT.error)}</p>${btn('تلاش دوباره','data-att-refresh','i-refresh')}</div>`
+    :!d?'':d.items.length?d.items.map(atFormRow).join(''):emptyBox(AT.q?'فرمی با این نام پیدا نشد.':'هنوز فرم ثبت‌نامی در سرور ساخته نشده است.');
+  return `<section class="card stack" data-att-panel>
+    <div class="row">${uBack.replace('<span class="sp"></span>','')}<span class="sp"></span>${btn('بازخوانی','data-att-refresh','i-refresh')}</div>
+    <div class="row" style="flex-wrap:wrap"><div class="head">حضور و غیاب</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(total)+' فرم',''):''}</div>
+    ${intro}${p2Msg(AT.msg)}
+    <form class="row tight server-role-search" data-att-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="attFormQuery" type="search" class="input" value="${esc(AT.q)}" maxlength="80" autocomplete="off" placeholder="نام فرم یا شناسهٔ رویداد" aria-label="جست‌وجوی فرم"/></label>
+      <button class="btn sm" type="submit" data-att-search>جست‌وجو</button></form>
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,AT.offset,AT.limit,'data-att-page="prev"','data-att-page="next"'):''}
+  </section>`;
+}
+/* ── گواهینامه‌ها (certificate): آینهٔ تأییدشدهٔ گواهی‌های ربات در پایگاه مشترک ── */
+function ceKey(){return [CERT_SRV.q,CERT_SRV.status,CERT_SRV.kind,CERT_SRV.event,CERT_SRV.offset,CERT_SRV.limit].join('|')}
+async function ceLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminCertificates!=='function'){CERT_SRV.error='رابط سرور در دسترس نیست.'; CERT_SRV.key=ceKey(); renderBody(); return}
+  const key=ceKey(); CERT_SRV.loading=true; CERT_SRV.error=''; renderBody();
+  try{const result=await api.listAdminCertificates({limit:CERT_SRV.limit,offset:CERT_SRV.offset,q:CERT_SRV.q,status:CERT_SRV.status,kind:CERT_SRV.kind,event_ref:CERT_SRV.event}); if(key===ceKey()){CERT_SRV.data=result; CERT_SRV.key=key}}
+  catch(error){if(key===ceKey()){CERT_SRV.error=p2Err(error,'فهرست گواهی‌ها از سرور دریافت نشد.'); CERT_SRV.key=key}}
+  finally{CERT_SRV.loading=false; if(key!==ceKey()){ceLoad(); return} if(S.uV==='cert'||S.sec==='cert') renderBody()}
+}
+async function ceLoadDetail(id){
+  const api=window.NORA_SERVER_API; CERT_SRV.detailId=id; CERT_SRV.detail=null; CERT_SRV.detailError=''; CERT_SRV.detailLoading=true; renderBody();
+  try{const result=await api.getAdminCertificate(id); if(CERT_SRV.detailId===id) CERT_SRV.detail=result&&result.certificate||null}
+  catch(error){if(CERT_SRV.detailId===id) CERT_SRV.detailError=p2Err(error,'پروندهٔ گواهی دریافت نشد.')}
+  finally{CERT_SRV.detailLoading=false; if(CERT_SRV.detailId===id) renderBody()}
+}
+const CE_KIND={event:'رویداد',batch:'فهرست اکسل',form:'فرم',manual:'دستی',center:'مرکز صدور',recording:'پایان محتوای ضبط‌شده'};
+function ceStatusTag(item){
+  const st=item.effective_status||item.status;
+  return st==='revoked'?tag('باطل‌شده','stop'):st==='expired'?tag('منقضی','warn'):tag('صادرشده','ok');
+}
+function ceRow(item){
+  const holder=item.holder||{}, name=holder.display_name||'بدون نام ثبت‌شده';
+  const meta=[item.event_title||item.title||'',item.issued_on?'صدور '+item.issued_on:(item.issued_at?'صدور '+svcWhen(item.issued_at):''),item.expires_on?'اعتبار تا '+item.expires_on:'',CE_KIND[item.kind]||''].filter(Boolean).join(' · ');
+  return `<button class="admlirow" type="button" data-cert-open="${esc(item.id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-medal')}</span>
+    <span class="sp"><b>${esc(name)}</b><small class="cap" dir="ltr">${esc(item.serial||item.full_code||('#'+(item.legacy_id||'')))}${item.full_code&&item.serial&&item.full_code!==item.serial?' · '+esc(item.full_code):''}</small><small class="cap">${esc(meta)}</small></span>
+    ${item.has_file?tag('فایل','brand'):''}${ceStatusTag(item)}${ico('i-chev-left')}</button>`;
+}
+function serverCertList(){
+  const d=CERT_SRV.data, total=d?Number(d.total)||0:0, counts=d&&d.counts||{};
+  const body=CERT_SRV.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت فهرست گواهی‌ها از سرور…</p></div>`
+    :CERT_SRV.error?`<div class="empty"><p class="cap">${esc(CERT_SRV.error)}</p>${btn('تلاش دوباره','data-cert-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-cert-refresh','i-refresh')}</div>`
+    :d.items.length?d.items.map(ceRow).join(''):emptyBox(CERT_SRV.q||CERT_SRV.status||CERT_SRV.kind||CERT_SRV.event?'با این جست‌وجو یا فیلتر گواهی‌ای پیدا نشد.':'هنوز گواهی‌ای از ربات به پایگاه مشترک رسیده است؟ خیر؛ فهرست خالی است. گواهی تنها از مسیر ربات صادر می‌شود و پس از صدور یا اجرای انتقال کنترل‌شده این‌جا دیده می‌شود.');
+  const statuses=[['','همه'],['issued','صادرشده'],['expired','منقضی'],['revoked','باطل‌شده']].map(([k,l])=>`<button class="chip ${CERT_SRV.status===k?'on':''}" type="button" data-cert-status="${k}">${esc(l)}</button>`).join('');
+  const kinds=[['','هر مسیری']].concat(Object.keys(CE_KIND).map(k=>[k,CE_KIND[k]])).map(([k,l])=>`<button class="chip ${CERT_SRV.kind===k?'on':''}" type="button" data-cert-kind="${k}">${esc(l)}</button>`).join('');
+  const events=(d&&d.events||[]);
+  const evSel=events.length?`<label class="fld"><span>رویداد</span><select class="input" data-cert-event><option value="">همهٔ رویدادها</option>${events.map(e=>`<option value="${esc(e.event_ref)}" ${CERT_SRV.event===e.event_ref?'selected':''}>${esc(e.event_title||('رویداد '+e.event_ref))} (${fa(e.count)})</option>`).join('')}</select></label>`:'';
+  return `<section class="card stack" data-cert-panel>
+    <div class="row" style="flex-wrap:wrap"><div class="head">گواهینامه‌ها</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(counts.issued||0)+' صادرشده · '+fa(counts.revoked||0)+' باطل',''):''}${btn('بازخوانی','data-cert-refresh','i-refresh')}</div>
+    <p class="cap">هر ردیف یک گواهی است که ربات بله صادر کرده و با شناسهٔ پایدار و مالکِ تأییدشده (هویت بلهٔ همان حساب) به پایگاه مشترک رسیده است. صدور و ابطال فقط از ربات انجام می‌شود؛ این صفحه فقط می‌خواند. گواهی‌های قدیمی‌ای که صاحبشان هنوز حساب سروری ندارد، تا زمان ورود آن فرد در ربات می‌مانند و این‌جا شمرده نمی‌شوند.</p>
+    <form class="row tight server-role-search" data-cert-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="certQuery" type="search" class="input" value="${esc(CERT_SRV.q)}" maxlength="80" autocomplete="off" placeholder="سریال، کد استعلام، نام دارنده، شناسهٔ بله یا رویداد" aria-label="جست‌وجوی گواهی"/></label>
+      <button class="btn sm" type="submit" data-cert-search>جست‌وجو</button></form>
+    <div class="admfilters">${statuses}</div><div class="admfilters">${kinds}</div>${evSel}
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,CERT_SRV.offset,CERT_SRV.limit,'data-cert-page="prev"','data-cert-page="next"'):''}
+  </section>`;
+}
+function serverCertDetail(){
+  const d=CERT_SRV.detail, back=`<div class="row">${btn('بازگشت به فهرست','data-cert-back','i-back')}<span class="sp"></span></div>`;
+  if(CERT_SRV.detailLoading) return `<section class="card stack" data-cert-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت پروندهٔ گواهی…</p></div></section>`;
+  if(CERT_SRV.detailError||!d) return `<section class="card stack" data-cert-detail>${back}<div class="empty"><p class="cap">${esc(CERT_SRV.detailError||'گواهی‌ای انتخاب نشده است.')}</p>${CERT_SRV.detailId?btn('تلاش دوباره',`data-cert-open="${esc(CERT_SRV.detailId)}"`,'i-refresh'):''}</div></section>`;
+  const api=window.NORA_SERVER_API, holder=d.holder||{};
+  const files=(d.files||[]).map(f=>`<a class="btn sm" href="${esc(api.adminCertificateFileUrl(d.id,f.slot))}" ${f.slot==='pdf'?'download':'target="_blank" rel="noopener"'} data-cert-file="${esc(f.slot)}">${ico(f.slot==='pdf'?'i-download':'i-image')}${f.slot==='pdf'?'دریافت PDF':'پیش‌نمایش تصویر'}</a>`).join('');
+  const info=[['وضعیت ثبت‌شده',d.status==='revoked'?'باطل‌شده':'صادرشده',''],['وضعیت مؤثر',d.effective_status==='revoked'?'باطل‌شده':d.effective_status==='expired'?'منقضی (تاریخ اعتبار گذشته)':'معتبر',''],
+    ['سریال',d.serial||'','ltr'],['کد استعلام',d.full_code||'','ltr'],['شمارهٔ نامه',d.doc_no||'','ltr'],['کد فردی',d.person_code||'','ltr'],
+    ['رویداد',d.event_title||(d.event_ref?'رویداد '+d.event_ref:''),''],['عنوان گواهی',d.title||'',''],['مسیر صدور',CE_KIND[d.kind]||d.kind,''],
+    ['تاریخ صدور',d.issued_on||(d.issued_at?svcWhen(d.issued_at):''),''],['تاریخ اعتبار',d.expires_on||'بدون تاریخ انقضا',''],['ابطال',d.revoked_at?svcWhen(d.revoked_at):'',''],
+    ['استعلام‌های ثبت‌شده در ربات',fa(d.verify_count||0),''],['دارنده',holder.display_name||'بدون نام ثبت‌شده',''],['منبع نام',holder.name_source==='profile'?'پروفایل حساب سرور':holder.name_source==='certificate'?'متن خود گواهی (ربات)':'ثبت نشده',''],
+    ['شناسهٔ حساب',holder.account_id||'','ltr'],['شناسهٔ بله',holder.bale_user_id||'','ltr'],['شناسهٔ ربات','#'+(d.legacy_id||''),'ltr'],['صادرکننده (شناسهٔ بله)',d.issued_by_bale_user_id||'','ltr'],
+    ['منبع',d.source==='bot_legacy'?'انتقال کنترل‌شده از پایگاه قدیمی ربات':'صدور زندهٔ ربات',''],['آخرین همگام‌سازی',svcWhen(d.synced_at),'']].filter(([,v])=>v!=='');
+  return `<section class="card stack" data-cert-detail>${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-medal')}</span><div class="head">${esc(d.serial||d.full_code||'گواهی')}</div><span class="sp"></span>${d.has_file?tag('فایل','brand'):''}${ceStatusTag(d)}</div>
+    <p class="cap">مالک این گواهی سمت سرور از شناسهٔ بلهٔ ثبت‌شده در ربات تعیین شده است، نه از نام یا شماره. ابطال یا ویرایش فقط از ربات ممکن است و این‌جا دکمه‌ای برای آن نیست.</p>
+    <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap">${files||`<span class="cap">فایلی برای این گواهی در پایگاه مشترک نیست؛ یا هنگام صدور ساخته نشده، یا هنوز از ربات بارگذاری نشده است.</span>`}</div>
+    ${holder.account_id&&canPerm('us_view')?`<div class="row tight">${btn('پروندهٔ کاربر','data-cert-user-open="'+esc(holder.account_id)+'"','i-user')}</div>`:''}
+  </section>`;
+}
+function serverCertView(){
+  if(!canPerm('certificate')) return `<section class="card stack">${uBack}${emptyBox('مجوز گواهینامه برای این نقش فعال نیست.')}</section>`;
+  if(S.certSel&&!CERT_SRV.detailId&&/^[0-9a-fA-F-]{36}$/.test(String(S.certSel))) CERT_SRV.detailId=String(S.certSel);
+  if(CERT_SRV.detailId) return `<div class="stack">${uBack}${serverCertDetail()}</div>`;
+  return `<div class="stack">${uBack}${serverCertList()}</div>`;
+}
+/* ── باشگاه: آینهٔ فقط‌خواندنی دفترکل امتیاز ربات ──
+   منبع حقیقت امتیاز، دفترکل points_ledger در پایگاه ربات است؛ سرور فقط ردیف‌های
+   کاربرانی را نگه می‌دارد که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده است. این صفحه
+   هیچ امتیازی نمی‌سازد، تغییر نمی‌دهد و تخمین نمی‌زند؛ موجودی نمایشی = balance_after
+   آخرین ردیف آینه‌شده و کامل‌بودن تاریخچه از زنجیرهٔ موجودی استخراج می‌شود. */
+const CLUB_SRV={mode:'members',data:null,loading:false,error:'',key:'',q:'',type:'',offset:0,limit:20,memberId:'',member:null,memberError:'',memberLoading:false,memberLoadedId:''};
+const CL_TYPE={opening_balance:'موجودی افتتاحیه',award:'امتیاز',spend:'کسر',refund:'برگشت',reversal:'برگشت ردیف',manual_adjust:'تعدیل دستی'};
+const CL_SOURCE={legacy_counter:'شمارندهٔ قدیمی',achievement:'نشان',point_rule:'قانون امتیاز',birthday:'تولد',occasion:'مناسبت',event_finished:'پایان رویداد',attendance_session:'حضور در جلسه',lottery_prize:'جایزهٔ قرعه‌کشی',reward_redeem:'خرید پاداش',reward_reject_refund:'رد درخواست پاداش',payment_spend:'پرداخت با امتیاز',survey:'نظرسنجی',admin_manual:'تعدیل دستی ادمین',reversal:'برگشت',rebaseline:'تطبیق دوباره'};
+function clKey(){return [CLUB_SRV.mode,CLUB_SRV.q,CLUB_SRV.type,CLUB_SRV.offset,CLUB_SRV.limit].join('|')}
+async function clLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listAdminClubMembers!=='function'){CLUB_SRV.error='رابط سرور در دسترس نیست.'; CLUB_SRV.key=clKey(); renderBody(); return}
+  const key=clKey(); CLUB_SRV.loading=true; CLUB_SRV.error=''; renderBody();
+  try{const params={limit:CLUB_SRV.limit,offset:CLUB_SRV.offset,q:CLUB_SRV.q}; if(CLUB_SRV.mode==='entries') params.entry_type=CLUB_SRV.type;
+    const result=CLUB_SRV.mode==='entries'?await api.listAdminClubPoints(params):await api.listAdminClubMembers(params);
+    if(key===clKey()){CLUB_SRV.data=result; CLUB_SRV.key=key}}
+  catch(error){if(key===clKey()){CLUB_SRV.error=p2Err(error,'دفترکل امتیاز از سرور دریافت نشد.'); CLUB_SRV.key=key}}
+  finally{CLUB_SRV.loading=false; if(key!==clKey()){clLoad(); return} if(S.uV==='club') renderBody()}
+}
+async function clLoadMember(id){
+  const api=window.NORA_SERVER_API; CLUB_SRV.memberId=id; CLUB_SRV.member=null; CLUB_SRV.memberError=''; CLUB_SRV.memberLoading=true; renderBody();
+  try{const result=await api.getAdminClubMember(id); if(CLUB_SRV.memberId===id) CLUB_SRV.member=result||null}
+  catch(error){if(CLUB_SRV.memberId===id) CLUB_SRV.memberError=p2Err(error,'تاریخچهٔ امتیاز این عضو دریافت نشد.')}
+  finally{CLUB_SRV.memberLoading=false; if(CLUB_SRV.memberId===id) renderBody()}
+}
+function clDelta(n){const v=Number(n)||0; return `<b dir="ltr" style="font-weight:700;color:${v<0?'var(--stop)':'var(--ok)'}">${v>0?'+':''}${esc(fa(v))}</b>`}
+function clCompleteTag(m){return m.history_complete?tag('تاریخچهٔ کامل','ok'):tag('تاریخچهٔ ناقص','warn')}
+function clEntryRow(item,withHolder){
+  const holder=item.holder||{}, name=holder.display_name||'بدون نام ثبت‌شده';
+  const meta=[CL_TYPE[item.entry_type]||item.entry_type,CL_SOURCE[item.source]||item.source,item.reason||'',item.bot_created_at?'ثبت در ربات '+(svcWhen(item.bot_created_at)||item.bot_created_at):''].filter(Boolean).join(' · ');
+  return `<div class="admlirow" data-club-entry="${esc(item.external_key)}"><span class="ic">${ico('i-star')}</span>
+    <span class="sp">${withHolder?`<b>${esc(name)}</b>`:''}<small class="cap">${esc(meta)}</small><small class="cap" dir="ltr">${esc(item.ref_key)}</small></span>
+    <span class="mini" style="text-align:end">${clDelta(item.delta)}<small class="cap" dir="ltr">موجودی ${esc(fa(item.balance_after))}</small></span></div>`;
+}
+function clMemberRow(m){
+  const name=m.display_name||'بدون نام ثبت‌شده';
+  return `<button class="admlirow" type="button" data-club-member="${esc(m.account_id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-user')}</span>
+    <span class="sp"><b>${esc(name)}</b><small class="cap">${esc(fa(m.entries))} ردیف · آخرین ثبت ${esc(svcWhen(m.latest_bot_created_at)||svcWhen(m.latest_synced_at)||'نامشخص')}</small></span>
+    <span class="mini" style="text-align:end"><b dir="ltr" style="font-weight:700">${esc(fa(m.latest_balance))}</b><small class="cap">امتیاز</small></span>${clCompleteTag(m)}${ico('i-chev-left')}</button>`;
+}
+function serverClubList(){
+  const d=CLUB_SRV.data, total=d?Number(d.total)||0:0, entries=CLUB_SRV.mode==='entries';
+  const emptyText=CLUB_SRV.q||CLUB_SRV.type?'با این جست‌وجو یا فیلتر ردیفی پیدا نشد.':'هنوز هیچ ردیفی از دفترکل امتیاز ربات به پایگاه مشترک نرسیده است. ردیف‌ها پس از راه‌اندازی دفترکل در ربات و فقط برای کاربرانی که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده، این‌جا دیده می‌شوند. این صفحه چیزی را تخمین نمی‌زند.';
+  const body=CLUB_SRV.loading&&!d?`<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت دفترکل امتیاز از سرور…</p></div>`
+    :CLUB_SRV.error?`<div class="empty"><p class="cap">${esc(CLUB_SRV.error)}</p>${btn('تلاش دوباره','data-club-refresh','i-refresh')}</div>`
+    :!d?`<div class="empty"><p class="cap">فهرست هنوز از سرور خوانده نشده است.</p>${btn('دریافت فهرست','data-club-refresh','i-refresh')}</div>`
+    :d.items.length?d.items.map(it=>entries?clEntryRow(it,true):clMemberRow(it)).join(''):emptyBox(emptyText);
+  const modes=[['members','اعضا'],['entries','همهٔ ردیف‌ها']].map(([k,l])=>`<button class="chip ${CLUB_SRV.mode===k?'on':''}" type="button" data-club-mode="${k}">${esc(l)}</button>`).join('');
+  const types=entries?`<div class="admfilters">${[['','همه']].concat(Object.keys(CL_TYPE).map(k=>[k,CL_TYPE[k]])).map(([k,l])=>`<button class="chip ${CLUB_SRV.type===k?'on':''}" type="button" data-club-type="${k}">${esc(l)}</button>`).join('')}</div>`:'';
+  const partial=d&&!entries&&Number(d.partial)>0?`<p class="cap">${esc(fa(d.partial))} عضو تاریخچهٔ ناقص دارند: بخشی از ردیف‌های آن‌ها پیش از پیوند حساب ثبت شده و هنوز به سرور نرسیده است؛ برای این افراد موجودی نمایشی فقط «آخرین ردیف رسیده» است، نه موجودی قطعی.</p>`:'';
+  return `<section class="card stack" data-club-panel>
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-star')}</span><div class="head">امتیاز باشگاه</div><span class="sp"></span>${tag('آینهٔ خواندنی دفترکل ربات','ok')}${d?tag(fa(total)+(entries?' ردیف':' عضو'),''):''}${btn('بازخوانی','data-club-refresh','i-refresh')}</div>
+    <p class="cap">هر تغییر امتیاز در ربات یک ردیف تغییرناپذیر در دفترکل می‌سازد و همان ردیف، با کلید پایدار و مالکِ تأییدشده (هویت بلهٔ همان حساب)، به پایگاه مشترک می‌رسد. امتیاز فقط در ربات داده، خرج یا تعدیل می‌شود؛ این صفحه فقط می‌خواند و هیچ دکمه‌ای برای تغییر امتیاز ندارد.</p>
+    <form class="row tight server-role-search" data-club-search-form onsubmit="return false">
+      <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="clubQuery" type="search" class="input" value="${esc(CLUB_SRV.q)}" maxlength="80" autocomplete="off" placeholder="${entries?'نام، شناسهٔ بله، کلید مرجع یا دلیل':'نام یا شناسهٔ بله'}" aria-label="جست‌وجوی دفترکل امتیاز"/></label>
+      <button class="btn sm" type="submit" data-club-search>جست‌وجو</button></form>
+    <div class="admfilters">${modes}</div>${types}${partial}
+    <div class="tlist">${body}</div>
+    ${d?p2Pager(total,CLUB_SRV.offset,CLUB_SRV.limit,'data-club-page="prev"','data-club-page="next"'):''}
+  </section>`;
+}
+function serverClubMember(){
+  const m=CLUB_SRV.member, back=`<div class="row">${btn('بازگشت به فهرست','data-club-back','i-back')}<span class="sp"></span></div>`;
+  if(CLUB_SRV.memberLoading) return `<section class="card stack" data-club-member-detail>${back}<div class="empty">${ico('i-clock')}<p class="cap">در حال دریافت تاریخچهٔ امتیاز…</p></div></section>`;
+  if(CLUB_SRV.memberError||!m) return `<section class="card stack" data-club-member-detail>${back}<div class="empty"><p class="cap">${esc(CLUB_SRV.memberError||'عضوی انتخاب نشده است.')}</p>${CLUB_SRV.memberId?btn('تلاش دوباره',`data-club-member="${esc(CLUB_SRV.memberId)}"`,'i-refresh'):''}</div></section>`;
+  const info=[['موجودی طبق آخرین ردیف رسیده',fa(m.latest_balance),'ltr'],['تعداد ردیف‌ها',fa(m.entries),''],['تاریخچه',m.history_complete?'کامل (زنجیرهٔ موجودی از صفر تا آخرین ردیف پیوسته است)':'ناقص ('+fa(m.chain_breaks)+' شکست در زنجیره؛ ردیف‌هایی پیش از پیوند حساب هنوز نرسیده‌اند)',''],
+    ['ردیف افتتاحیه',m.has_opening?'دارد':'ندارد',''],['آخرین ثبت در ربات',svcWhen(m.latest_bot_created_at)||m.latest_bot_created_at||'',''],['آخرین همگام‌سازی',svcWhen(m.latest_synced_at),''],
+    ['شناسهٔ حساب',m.account_id||'','ltr'],['شناسهٔ بله',m.bale_user_id||'','ltr']].filter(([,v])=>v!=='');
+  const history=(m.history||[]).map(it=>clEntryRow(it,false)).join('');
+  return `<section class="card stack" data-club-member-detail>${back}
+    <div class="row" style="flex-wrap:wrap"><span class="ic">${ico('i-user')}</span><div class="head">${esc(m.display_name||'بدون نام ثبت‌شده')}</div><span class="sp"></span>${clCompleteTag(m)}</div>
+    <p class="cap">${esc(m.history_complete?'این موجودی برابر آخرین ردیف دفترکل ربات برای این عضو است و همهٔ ردیف‌های او به سرور رسیده‌اند.':'بخشی از تاریخچهٔ این عضو هنوز به سرور نرسیده است؛ عدد زیر فقط «آخرین ردیف رسیده» است و تا کامل‌شدن همگام‌سازی، موجودی قطعی را از ربات بپرسید.')} تغییر امتیاز فقط در ربات انجام می‌شود.</p>
+    <div class="admlist">${info.map(([k,v,dir])=>`<div class="admlirow"><span class="sp"><small class="cap">${esc(k)}</small><b ${dir?`dir="${dir}"`:''} style="font-weight:600">${esc(String(v))}</b></span></div>`).join('')}</div>
+    <div class="head" style="font-size:1rem">تاریخچه (تازه‌ترین بالا)</div>
+    <div class="tlist">${history||emptyBox('ردیفی برای نمایش نیست.')}</div>
+    ${m.account_id&&canPerm('us_view')?`<div class="row tight">${btn('پروندهٔ کاربر','data-cert-user-open="'+esc(m.account_id)+'"','i-user')}</div>`:''}
+  </section>`;
+}
+function serverClubView(){
+  if(!(isOwner()||canPerm('cl_member'))) return `<section class="card stack">${uBack}${emptyBox('امتیاز باشگاه فقط برای مالک و سرپرست باشگاه باز است.')}</section>`;
+  if(CLUB_SRV.memberId) return `<div class="stack">${uBack}${serverClubMember()}</div>`;
+  return `<div class="stack">${uBack}${serverClubList()}</div>`;
+}
+function p2UserHubCards(){
+  const cards=[];
+  if(canPerm('attendance')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-check')}</span><b>حضور و غیاب</b><span class="sp"></span>${tag('API سرور')}</div>
+    <p class="cap">حضور بلیت‌های ثبت‌نام سرور؛ همان رکوردی که ربات هنگام اسکن می‌نویسد.</p>${btn('بازکردن حضور و غیاب','data-open-attendance','i-chev-left')}</article>`);
+  if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('API سرور')}</div>
+    <p class="cap">گواهی‌های صادرشدهٔ ربات که با مالک تأییدشده به پایگاه مشترک رسیده‌اند؛ جست‌وجو، وضعیت و فایل. صدور فقط از ربات.</p>${btn('بازکردن گواهینامه‌ها','data-open-cert','i-chev-left')}</article>`);
+  if(isOwner()||canPerm('cl_member')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-star')}</span><b>امتیاز باشگاه</b><span class="sp"></span>${tag('آینهٔ دفترکل ربات','ok')}</div>
+    <p class="cap">تاریخچهٔ امتیاز اعضایی که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده؛ فقط‌خواندنی. امتیاز فقط در ربات تغییر می‌کند.</p>${btn('بازکردن امتیاز باشگاه','data-open-club','i-chev-left')}</article>`);
+  return cards;
+}
+document.addEventListener('click',e=>{
+  const t=e.target; if(!t||!t.closest) return;
+  if(IS_TEST||!SERVER_AUTH) return;
+  const q=s=>t.closest(s);
+  /* مرحلهٔ A: پرش از داشبورد/نقشهٔ امکانات به بخش مقصد، سپس همان رفتار عادی دکمه */
+  const leaveMap=q('[data-dashx-leave-map]'); if(leaveMap){DASHX.view=''; if(!leaveMap.hasAttribute('data-sec')&&!q('[data-dashx-go],[data-open-workflow-inbox],[data-open-attendance],[data-open-cert],[data-open-club],[data-server-role-module],[data-user-hub],[data-dashx-outbox],[data-dashx-audit-all],[data-ei-open-all]')){renderBody(); return}}
+  const goTo=q('[data-dashx-go]'); if(goTo&&S.sec!==goTo.dataset.dashxGo&&ALLSECS.some(x=>x.k===goTo.dataset.dashxGo)){S.sec=goTo.dataset.dashxGo; save(); try{history.replaceState(null,'','#'+S.sec)}catch(e){}}
+  if(q('[data-dashx-refresh]')){dashxLoad(true); if(eiCanMod()){EI.summary=null; EI.summaryError=''; EI.summaryLoading=true; eiLoadSummary()} if(recCanOrders()){REC.summary=null; REC.summaryError=''; REC.summaryLoading=true; recLoadSummary()} renderBody(); return}
+  if(q('[data-dashx-map]')){DASHX.view='map'; renderBody(); return}
+  if(q('[data-dashx-outbox]')){if(!canPerm('rp_view')){toast('مجوز گزارش برای این نقش فعال نیست'); return} S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='inbox'; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  if(q('[data-dashx-sched]')){if(!canPerm('rp_view')){toast('مجوز گزارش برای این نقش فعال نیست'); return} go('reports'); return}
+  if(q('[data-dashx-audit-all]')){if(!isOwner()){toast('تاریخچهٔ عملیات فقط برای مالک باز است'); return} S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='log'; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  if(q('[data-fs-refresh]')){FORMS_SRV.loaded=false; fsLoad(); return}
+  if(q('[data-fs-search]')){const input=$('#fsQuery'); FORMS_SRV.q=String(input&&input.value||'').trim().slice(0,80); FORMS_SRV.offset=0; renderBody(); return}
+  const fsStatus=q('[data-fs-status]'); if(fsStatus){FORMS_SRV.status=fsStatus.dataset.fsStatus||''; FORMS_SRV.offset=0; renderBody(); return}
+  const fsPage=q('[data-fs-page]'); if(fsPage){const total=fsRows().length; FORMS_SRV.offset=fsPage.dataset.fsPage==='next'?Math.min(FORMS_SRV.offset+FORMS_SRV.limit,Math.max(0,total-1)):Math.max(0,FORMS_SRV.offset-FORMS_SRV.limit); renderBody(); return}
+  if(q('[data-ei-jump-attendance]')){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} const ev=EI.eventId; eiClose(); S.sec='users'; S.uHub='users'; S.uV='att'; AT.q=ev; AT.offset=0; AT.formId=''; AT.form=null; AT.people=null; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  if(q('[data-ei-jump-cert]')){if(!canPerm('certificate')){toast('مجوز گواهینامه برای این نقش فعال نیست'); return} const ev=EI.eventId; eiClose(); S.sec='users'; S.uHub='users'; S.uV='cert'; CERT_SRV.event=ev; CERT_SRV.offset=0; CERT_SRV.detailId=''; CERT_SRV.detail=null; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
+  const clubOpen=q('[data-user-club-points]'); if(clubOpen){if(!(isOwner()||canPerm('cl_member'))){toast('امتیاز باشگاه فقط برای مالک و سرپرست باشگاه باز است'); return} S.uV='club'; CLUB_SRV.mode='members'; save(); clLoadMember(clubOpen.dataset.userClubPoints); return}
+  const ctKind=q('[data-ct-kind]'); if(ctKind){const kind=ctKind.dataset.ctKind==='articles'?'articles':'events'; if(kind!==CT.kind){CT.kind=kind; CT.q=''; CT.status=''; CT.edit=null; CT.msg=null; ctReset(); renderBody(); ctLoad()} return}
+  if(q('[data-ct-refresh]')){ctReset(); ctLoad(); return}
+  if(q('[data-ct-search]')){const input=$('#ctQuery'); CT.q=String(input&&input.value||'').trim().slice(0,80); ctReset(); ctLoad(); return}
+  const ctStatus=q('[data-ct-status]'); if(ctStatus){CT.status=ctStatus.dataset.ctStatus||''; ctReset(); ctLoad(); return}
+  const ctWhen=q('[data-ct-when]'); if(ctWhen){CT.when=ctWhen.dataset.ctWhen||''; ctReset(); ctLoad(); return}
+  const ctQuick=q('[data-ct-quick]'); if(ctQuick){const hit=CT_QUICK.find(([k])=>k===ctQuick.dataset.ctQuick); if(hit){CT.status=hit[2].status; CT.when=hit[2].when; ctReset(); ctLoad()} return}
+  const ctPage=q('[data-ct-page]'); if(ctPage){const total=CT.data?Number(CT.data.total)||0:0; CT.offset=ctPage.dataset.ctPage==='next'?Math.min(CT.offset+CT.limit,Math.max(0,total-1)):Math.max(0,CT.offset-CT.limit); CT.data=CT.data; ctLoad(); return}
+  if(q('[data-ct-new]')){if(!ctCan('can_edit')){toast('مجوز ساخت محتوا برای این نقش فعال نیست'); return} ctOpenEditor(''); return}
+  if(q('[data-newev-kind]')){const b=q('[data-newev-kind]'), k=b.dataset.newevKind, wantPast=b.dataset.newevPast==='1';
+    const curPast=!!(CT.edit&&CT.edit.form&&CT.edit.form.past);
+    if(CT.kind!==k||!CT.edit||CT.edit.id||(k==='events'&&curPast!==wantPast)){ctDraftDrop(); CT.kind=k; CT.edit=null; CT.msg=null; save(); if(k==='events'&&wantPast&&ctCan('can_edit')){ctStartNew(); ctPastEntry()} renderBody()} return}
+  const pkSetEl=q('[data-ct-pick-set]'); if(pkSetEl){pkSet(pkSetEl.dataset.ctPickSet,pkSetEl.dataset.ctPickId); return}
+  const pkClr=q('[data-ct-pick-clear]'); if(pkClr){pkSet(pkClr.dataset.ctPickClear,''); return}
+  const pkRef=q('[data-ct-pick-refresh]'); if(pkRef){pkLoad(true); return}
+  if(q('[data-ct-pick-manage]')){if(!isOwner()){toast('مدیریت افراد فقط با مالک است'); return} S.sec='settings'; S.setG='people'; save(); try{history.replaceState(null,'','#settings')}catch(err){} renderBody(); return}
+  const ctEdit=q('[data-ct-edit]'); if(ctEdit){ctOpenEditor(ctEdit.dataset.ctEdit); return}
+  if(eiClick(q)) return;
+  const ctSet=q('[data-ct-set]'); if(ctSet){ctSetStatus(ctSet.dataset.ctId,ctSet.dataset.ctSet); return}
+  if(chClick(q)) return;
+  if(q('[data-ct-cancel]')){ctDraftDrop(); CT.edit=null; CT.dp=null; CH.open=false; ctEditHashClear(); if(S.sec==='newev'){go('events'); return} renderBody(); return}
+  const ctDup=q('[data-ct-dup]'); if(ctDup){ctDuplicate(ctDup.dataset.ctDup); return}
+  const ctTpl=q('[data-ct-template]'); if(ctTpl){ctApplyTemplate(ctTpl.dataset.ctTemplate); return}
+  if(q('[data-ct-draft-restore]')){if(CT.edit&&CT.edit.draft){CT.edit.form=Object.assign(ctBlank(CT.kind),CT.edit.draft.form); CT.edit.draft=null; CT.edit.errors={}; renderBody(); toast('متن تایپ‌شدهٔ قبلی برگشت؛ هنوز ذخیره نشده')} return}
+  if(q('[data-ct-draft-drop]')){if(CT.edit){CT.edit.draft=null; ctDraftDrop(); renderBody()} return}
+  if(q('[data-ct-part-add]')){if(CT.edit){const parts=CT.edit.form.parts=Array.isArray(CT.edit.form.parts)?CT.edit.form.parts:[]; if(parts.length>=80){toast('بیشینهٔ ۸۰ جلسه'); return}
+      const prev=parts[parts.length-1], d=ctJDate(prev?prev.date:CT.edit.form.on); parts.push({title:'',date:d?ctJForm(d.j.jy,d.j.jm,d.j.jd):'',time:prev?prev.time:'',to:prev?prev.to:'',description:''}); ctDraftSave(); renderBody();
+      const el=document.querySelector(`[data-ct-part="${parts.length-1}"][data-ct-part-field="title"]`); if(el) el.focus()} return}
+  const blkAdd=q('[data-ct-block-add]'); if(blkAdd){if(CT.edit){const blocks=CT.edit.form.blocks=Array.isArray(CT.edit.form.blocks)?CT.edit.form.blocks:[]; if(blocks.length>=100){toast('بیشینهٔ ۱۰۰ بلوک'); return}
+      const ty=blkAdd.dataset.ctBlockAdd; if(!CT_BLOCK_FIELDS[ty]) return; const row={ty}; CT_BLOCK_FIELDS[ty].forEach(k=>{row[k]=k==='lv'?'2':''}); blocks.push(row); ctDraftSave(); renderBody();
+      const el=document.querySelector(`[data-ct-block="${blocks.length-1}"]`); if(el) el.focus()} return}
+  const blkDel=q('[data-ct-block-del]'); if(blkDel){if(CT.edit&&Array.isArray(CT.edit.form.blocks)){const b=CT.edit.form.blocks[+blkDel.dataset.ctBlockDel]; if(b&&(b.x||b.up||b.src)&&!confirm('این بلوک برداشته شود؟ (تا «ذخیره» چیزی در سرور تغییر نمی‌کند)')) return; CT.edit.form.blocks.splice(+blkDel.dataset.ctBlockDel,1); ctDraftSave(); renderBody()} return}
+  const blkImgClear=q('[data-ct-block-img-clear]'); if(blkImgClear){if(CT.edit&&Array.isArray(CT.edit.form.blocks)){const b=CT.edit.form.blocks[+blkImgClear.dataset.ctBlockImgClear]; if(b){b.up=''; ctDraftSave(); renderBody()}} return}
+  const blkMv=q('[data-ct-block-move]'); if(blkMv){if(CT.edit&&Array.isArray(CT.edit.form.blocks)){const p=CT.edit.form.blocks, i=+blkMv.dataset.ctBlockMove, j=i+(+blkMv.dataset.ctBlockDir); if(p[i]&&p[j]){const t=p[i]; p[i]=p[j]; p[j]=t; ctDraftSave(); renderBody()}} return}
+  const partDel=q('[data-ct-part-del]'); if(partDel){if(CT.edit&&Array.isArray(CT.edit.form.parts)){CT.edit.form.parts.splice(+partDel.dataset.ctPartDel,1); CT.dp=null; ctDraftSave(); renderBody()} return}
+  const partMv=q('[data-ct-part-move]'); if(partMv){if(CT.edit&&Array.isArray(CT.edit.form.parts)){const p=CT.edit.form.parts, i=+partMv.dataset.ctPartMove, j=i+(+partMv.dataset.ctPartDir); if(p[i]&&p[j]){const t=p[i]; p[i]=p[j]; p[j]=t; CT.dp=null; ctDraftSave(); renderBody()}} return}
+  const dpBtn=q('[data-ctdp]'); if(dpBtn){if(!CT.edit) return; const f=dpBtn.dataset.ctdp, cur=ctJDate(ctDpValue(f))||ctJDate(CT.edit.form.startsAt)||ctJDate(CT.edit.form.on), t=jToday(); CT.dp=CT.dp&&CT.dp.f===f?null:{f:f,y:(cur?cur.j:t).jy,m:(cur?cur.j:t).jm}; renderBody(); return}
+  const dpMv=q('[data-ctdp-mv]'); if(dpMv){if(!CT.dp) return; let y=+CT.dp.y, m=+CT.dp.m+(+dpMv.dataset.ctdpMv); if(m<1){m=12; y--} if(m>12){m=1; y++} CT.dp={f:CT.dp.f,y:y,m:m}; renderBody(); return}
+  const dpDay=q('[data-ctdp-day]'); if(dpDay){if(!CT.dp||!CT.edit) return; const f=CT.dp.f; ctDpSet(f,ctDateWithDay(f,+CT.dp.y,+CT.dp.m,+dpDay.dataset.ctdpDay)); CT.dp=null; ctDraftSave(); renderBody(); const el=document.getElementById('ctf_'+f); if(el) el.focus(); return}
+  if(q('[data-ctdp-today]')){if(!CT.dp||!CT.edit) return; const f=CT.dp.f, t=jToday(); ctDpSet(f,ctDateWithDay(f,t.jy,t.jm,t.jd)); CT.dp=null; ctDraftSave(); renderBody(); return}
+  if(q('[data-ctdp-close]')){CT.dp=null; renderBody(); return}
+  if(q('[data-ctdp-clear]')){if(!CT.dp||!CT.edit) return; const f=CT.dp.f, form=CT.edit.form;
+    /* پاک‌کردن صریح تاریخ: شروع/پایانِ هم‌روزِ آن هم پاک می‌شوند (ساعت در «ساعت شروع/پایان» می‌ماند)؛ تایپ ناقص چنین کاری نمی‌کند */
+    if(f==='on'){const old=ctJDate(form.on); ['startsAt','endsAt'].forEach(k=>{const cur=ctJDate(form[k]); if(cur&&old&&cur.j.jy===old.j.jy&&cur.j.jm===old.j.jm&&cur.j.jd===old.j.jd) form[k]=''})}
+    ctDpSet(f,''); CT.dp=null; ctDraftSave(); renderBody(); return}
+  const ctJumpBtn=q('[data-ct-jump]'); if(ctJumpBtn&&CT.edit){ctJump(ctJumpBtn.dataset.ctJump); return}
+  if(q('[data-ct-preview-toggle]')&&CT.edit){CT.edit.previewOpen=!CT.edit.previewOpen; if(CT.edit.previewOpen) ctJump('review'); else renderBody(); return}
+  const stepBtn=q('[data-ct-step]'); if(stepBtn){ctJump(stepBtn.dataset.ctStep); return}
+  if(q('[data-ct-save]')){ctSave(false); return}
+  if(q('[data-ct-save-publish]')){ctSave(true); return}
+  if(q('[data-ct-save-stay]')){ctSave(false,true); return}
+  const ctStep=q('[data-ct-step]'); if(ctStep&&CT.edit){ctWizGo(ctStep.dataset.ctStep); return}
+  if(q('[data-ct-form-link-do]')){const sel=document.querySelector('[data-ct-form-link-pick]'); const fid=sel&&sel.value; if(!fid){CT.linkMsg={kind:'stop',text:'اول یک فرم را انتخاب کن.'}; renderBody(); return} if(CT.edit&&CT.edit.id) ctLinkForm(fid,CT.edit.id); return}
+  const ctUnlink=q('[data-ct-form-unlink]'); if(ctUnlink&&CT.edit&&CT.edit.id){if(typeof window.confirm==='function'&&!window.confirm('این فرم از رویداد جدا شود؟ خود فرم حذف نمی‌شود.')) return; ctLinkForm(ctUnlink.dataset.ctFormUnlink,''); return}
+  const imgClear=q('[data-ct-image-clear]'); if(imgClear){if(CT.edit){CT.edit.form[imgClear.dataset.ctImageClear]=''; renderBody()} return}
+  const imgRetry=q('[data-ct-image-retry]'); if(imgRetry){ctSendImage(); return}
+  if(q('[data-ct-media]')){CM.open=!CM.open; if(CM.open&&!CM.data) cmLoad(); else renderBody(); return}
+  if(q('[data-ct-media-close]')){CM.open=false; renderBody(); return}
+  if(q('[data-ct-media-refresh]')){CM.data=null; cmLoad(); return}
+  const cmPage=q('[data-ct-media-page]'); if(cmPage){const total=CM.data?Number(CM.data.total)||0:0; CM.offset=cmPage.dataset.ctMediaPage==='next'?Math.min(CM.offset+CM.limit,Math.max(0,total-1)):Math.max(0,CM.offset-CM.limit); cmLoad(); return}
+  const cmDel=q('[data-ct-media-del]'); if(cmDel){cmDelete(cmDel.dataset.ctMediaDel); return}
+  if(q('[data-users-refresh]')){US.data=null; US.key=''; usLoad(); return}
+  if(q('[data-users-search]')){const input=$('#usersQuery'); US.q=String(input&&input.value||'').trim().slice(0,80); US.offset=0; usLoad(); return}
+  const usProv=q('[data-users-provider]'); if(usProv){US.provider=usProv.dataset.usersProvider||''; US.offset=0; usLoad(); return}
+  const usRole=q('[data-users-role]'); if(usRole){US.role=usRole.dataset.usersRole||''; US.offset=0; usLoad(); return}
+  const usStatus=q('[data-users-status]'); if(usStatus){US.status=usStatus.dataset.usersStatus||''; US.offset=0; usLoad(); return}
+  if(q('[data-uf-block]')){UFL.blockOpen=true; UFL.statusError=''; UFL.statusMsg=''; renderBody(); const ta=$('#ufBlockReason'); if(ta) ta.focus(); return}
+  if(q('[data-uf-block-cancel]')){UFL.blockOpen=false; UFL.blockReason=''; UFL.statusError=''; renderBody(); return}
+  if(q('[data-uf-block-confirm]')){ufSetStatus('blocked'); return}
+  if(q('[data-uf-unblock]')){ufSetStatus('active'); return}
+  if(q('[data-uf-note-save]')){ufSaveNote(); return}
+  const usPage=q('[data-users-page]'); if(usPage){const total=US.data?Number(US.data.total)||0:0; US.offset=usPage.dataset.usersPage==='next'?Math.min(US.offset+US.limit,Math.max(0,total-1)):Math.max(0,US.offset-US.limit); usLoad(); return}
+  const ufTab=q('[data-uf-tab]'); if(ufTab){UFL.tab=ufTab.dataset.ufTab||'regs'; UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); if(UFL.tab==='regs'&&!UFL.regs&&!UFL.regsLoading) ufLoadRegs(); if(UFL.tab==='notifs'&&!UFL.notifs&&!UFL.notifsLoading) ufLoadNotifs(); if(UFL.tab==='hist'&&!UFL.hist&&!UFL.histLoading) ufLoadHist(); return}
+  if(q('[data-uf-hist-refresh]')){ufLoadHist(); return}
+  const ufHp=q('[data-uf-hist-page]'); if(ufHp){const lim=UFL.histLimit||20; UFL.histOffset=ufHp.dataset.ufHistPage==='next'?UFL.histOffset+lim:Math.max(0,UFL.histOffset-lim); ufLoadHist(); return}
+  if(q('[data-uf-reg-back]')){UFL.regId=''; UFL.reg=null; UFL.regError=''; renderBody(); return}
+  const ufReg=q('[data-uf-reg]'); if(ufReg){ufLoadReg(ufReg.dataset.ufReg); return}
+  if(q('[data-uf-regs-refresh]')){UFL.regs=null; UFL.regsKey=''; ufLoadRegs(); return}
+  const ufRegsPage=q('[data-uf-regs-page]'); if(ufRegsPage){const total=UFL.regs?Number(UFL.regs.total)||0:0; UFL.regsOffset=ufRegsPage.dataset.ufRegsPage==='next'?Math.min(UFL.regsOffset+UFL.regsLimit,Math.max(0,total-1)):Math.max(0,UFL.regsOffset-UFL.regsLimit); ufLoadRegs(); return}
+  if(q('[data-uf-notifs-refresh]')){UFL.notifs=null; UFL.notifsKey=''; ufLoadNotifs(); return}
+  const ufNotifsPage=q('[data-uf-notifs-page]'); if(ufNotifsPage){const total=UFL.notifs?Number(UFL.notifs.total)||0:0; UFL.notifsOffset=ufNotifsPage.dataset.ufNotifsPage==='next'?Math.min(UFL.notifsOffset+UFL.notifsLimit,Math.max(0,total-1)):Math.max(0,UFL.notifsOffset-UFL.notifsLimit); ufLoadNotifs(); return}
+  const usOpen=q('[data-user-open]'); if(usOpen){S.uV='user'; S.uSel=usOpen.dataset.userOpen; save(); usLoadDetail(usOpen.dataset.userOpen); return}
+  if(q('[data-open-attendance]')){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} S.uV='att'; save(); renderBody(); return}
+  if(q('[data-open-cert]')){if(!canPerm('certificate')){toast('مجوز گواهینامه برای این نقش فعال نیست'); return} S.uV='cert'; save(); renderBody(); return}
+  if(q('[data-open-club]')){S.uV='club'; save(); renderBody(); return}
+  if(q('[data-att-refresh]')){AT.forms=null; AT.key=''; atLoadForms(); return}
+  if(q('[data-att-search]')){const input=$('#attFormQuery'); AT.q=String(input&&input.value||'').trim().slice(0,80); AT.offset=0; atLoadForms(); return}
+  const atPage=q('[data-att-page]'); if(atPage){const total=AT.forms?Number(AT.forms.total)||0:0; AT.offset=atPage.dataset.attPage==='next'?Math.min(AT.offset+AT.limit,Math.max(0,total-1)):Math.max(0,AT.offset-AT.limit); atLoadForms(); return}
+  const atForm=q('[data-att-form]'); if(atForm){AT.formId=atForm.dataset.attForm; S.attForm=AT.formId; save(); AT.form=null; AT.people=null; AT.pq=''; AT.state=''; AT.poffset=0; AT.pkey=''; AT.msg=null; atLoadPeople(); return}
+  if(q('[data-att-back]')){AT.formId=''; S.attForm=''; save(); AT.people=null; AT.msg=null; AT.key=''; renderBody(); atLoadForms(); return}
+  if(q('[data-att-people-refresh]')){AT.pkey=''; atLoadPeople(); return}
+  if(q('[data-att-people-search]')){const input=$('#attQuery'); AT.pq=String(input&&input.value||'').trim().slice(0,80); AT.poffset=0; atLoadPeople(); return}
+  const atState=q('[data-att-state]'); if(atState){AT.state=atState.dataset.attState||''; AT.poffset=0; atLoadPeople(); return}
+  const atPPage=q('[data-att-ppage]'); if(atPPage){const total=AT.people?Number(AT.people.total)||0:0; AT.poffset=atPPage.dataset.attPpage==='next'?Math.min(AT.poffset+AT.plimit,Math.max(0,total-1)):Math.max(0,AT.poffset-AT.plimit); atLoadPeople(); return}
+  const atIn=q('[data-att-checkin]'); if(atIn){atAct(atIn.dataset.attCheckin,false); return}
+  const atUndo=q('[data-att-undo]'); if(atUndo){atAct(atUndo.dataset.attUndo,true); return}
+  if(q('[data-club-refresh]')){CLUB_SRV.data=null; CLUB_SRV.key=''; clLoad(); return}
+  const clMode=q('[data-club-mode]'); if(clMode){if(clMode.dataset.clubMode!==CLUB_SRV.mode){CLUB_SRV.mode=clMode.dataset.clubMode==='entries'?'entries':'members'; CLUB_SRV.offset=0; CLUB_SRV.type=''; CLUB_SRV.data=null; clLoad()} return}
+  const clType=q('[data-club-type]'); if(clType){CLUB_SRV.type=clType.dataset.clubType||''; CLUB_SRV.offset=0; clLoad(); return}
+  if(q('[data-club-search]')){const input=$('#clubQuery'); CLUB_SRV.q=String(input&&input.value||'').trim().slice(0,80); CLUB_SRV.offset=0; clLoad(); return}
+  const clPage=q('[data-club-page]'); if(clPage){const total=CLUB_SRV.data?Number(CLUB_SRV.data.total)||0:0; CLUB_SRV.offset=clPage.dataset.clubPage==='next'?Math.min(CLUB_SRV.offset+CLUB_SRV.limit,Math.max(0,total-1)):Math.max(0,CLUB_SRV.offset-CLUB_SRV.limit); clLoad(); return}
+  const clMember=q('[data-club-member]'); if(clMember){clLoadMember(clMember.dataset.clubMember); return}
+  if(q('[data-club-back]')){CLUB_SRV.memberId=''; CLUB_SRV.member=null; CLUB_SRV.memberError=''; renderBody(); return}
+  if(q('[data-cert-refresh]')){CERT_SRV.data=null; CERT_SRV.key=''; ceLoad(); return}
+  if(q('[data-cert-search]')){const input=$('#certQuery'); CERT_SRV.q=String(input&&input.value||'').trim().slice(0,80); CERT_SRV.offset=0; ceLoad(); return}
+  const ceStatus=q('[data-cert-status]'); if(ceStatus){CERT_SRV.status=ceStatus.dataset.certStatus||''; CERT_SRV.offset=0; ceLoad(); return}
+  const ceKind=q('[data-cert-kind]'); if(ceKind){CERT_SRV.kind=ceKind.dataset.certKind||''; CERT_SRV.offset=0; ceLoad(); return}
+  const cePage=q('[data-cert-page]'); if(cePage){const total=CERT_SRV.data?Number(CERT_SRV.data.total)||0:0; CERT_SRV.offset=cePage.dataset.certPage==='next'?Math.min(CERT_SRV.offset+CERT_SRV.limit,Math.max(0,total-1)):Math.max(0,CERT_SRV.offset-CERT_SRV.limit); ceLoad(); return}
+  const ceOpen=q('[data-cert-open]'); if(ceOpen){S.certSel=ceOpen.dataset.certOpen; save(); ceLoadDetail(ceOpen.dataset.certOpen); return}
+  if(q('[data-cert-back]')){CERT_SRV.detailId=''; CERT_SRV.detailLoadedId=''; CERT_SRV.detail=null; CERT_SRV.detailError=''; S.certSel=''; save(); renderBody(); return}
+  const ceUser=q('[data-cert-user-open]'); if(ceUser){if(!canPerm('us_view')){toast('مجوز فهرست کاربران برای این نقش فعال نیست'); return} S.sec='users'; S.uHub='users'; S.uV='user'; S.uSel=ceUser.dataset.certUserOpen; save(); usLoadDetail(S.uSel); return}
+  if(q('[data-cert-file]')) return; /* پیوند مستقیم؛ مرورگر خودش دانلود می‌کند */
+});
+document.addEventListener('change',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!t.matches||!t.matches('[data-cert-event]')) return;
+  CERT_SRV.event=String(t.value||'').slice(0,40); CERT_SRV.offset=0; ceLoad();
+});
+document.addEventListener('input',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit) return;
+  if(t.dataset&&t.dataset.ctPickQ){const field=t.dataset.ctPickQ; PK.q[field]=t.value; const box=document.getElementById('ctPick-'+field); if(box) box.innerHTML=pkInner(field);
+    const again=box&&box.querySelector('[data-ct-pick-q]'); if(again){again.focus(); try{again.setSelectionRange(again.value.length,again.value.length)}catch(err){}} return}
+  if(t.dataset&&t.dataset.ctPart!=null){const i=+t.dataset.ctPart, k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[i]; if(row&&CT_PART_FIELDS.includes(k)){
+      let v=t.value; if(k==='time'||k==='to'||k==='date'){const fixed=ctTimeFix(k,v,false); if(fixed!==v){v=fixed; t.value=v}} row[k]=v;
+      if(k==='date'){const wd=document.querySelector(`[data-ct-part-weekday="${i}"]`); if(wd) wd.textContent=ctWeekday(v)}
+      if(CT.edit.errors&&CT.edit.errors.parts){delete CT.edit.errors.parts; const err=document.querySelector('[data-ct-err="parts"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
+      ctDraftSave()} return}
+  if(t.dataset&&t.dataset.ctBlock!=null){const i=+t.dataset.ctBlock, k=t.dataset.ctBlockField, row=(CT.edit.form.blocks||[])[i]; if(row&&(CT_BLOCK_FIELDS[row.ty]||[]).includes(k)){row[k]=t.value;
+      if(CT.edit.errors&&(CT.edit.errors.blocks||CT.edit.errors.body)){delete CT.edit.errors.blocks; delete CT.edit.errors.body; const err=document.querySelector('[data-ct-err="blocks"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
+      ctDraftSave()} return}
+  const field=t.dataset&&t.dataset.ctField; if(!field) return;
+  const before=CT.edit.form[field]; let value=t.value;
+  const fixed=ctTimeFix(field,value,false); if(fixed!==value){value=fixed; t.value=value}
+  CT.edit.form[field]=value;
+  if(CT.kind==='events'){ if(field==='endTime') ctSyncEndTime(CT.edit.form,value); else ctSyncDates(field,before,value); ctRefreshEndTime(t)}
+  if(CT.edit.errors&&CT.edit.errors[field]){delete CT.edit.errors[field]; const err=document.querySelector(`[data-ct-err="${field}"]`); if(err){err.textContent=''; err.removeAttribute('style')}}
+  if(field==='endTime'&&CT.edit.errors&&CT.edit.errors.endsAt){delete CT.edit.errors.endsAt; const err=document.querySelector('[data-ct-err="endsAt"]'); if(err){err.textContent=''; err.removeAttribute('style')}}
+  /* فیلدهای همگام‌شده بدون رندر کامل به‌روز می‌شوند تا فوکوس و کِرسر نپرد */
+  ['on','startsAt','endsAt','regOpensAt','regClosesAt','when'].forEach(k=>{const el=document.getElementById('ctf_'+k); if(el&&el!==t&&el.value!==String(CT.edit.form[k]||'')) el.value=String(CT.edit.form[k]||''); const wd=document.querySelector(`[data-ct-weekday="${k}"]`); if(wd) wd.textContent=ctWeekday(CT.edit.form[k])});
+  ctDraftSave();
+  /* نوع برگزاری فیلدهای مکان/پیوند را عوض می‌کند؛ select فوکوس حساسی ندارد */
+  if(field==='mode'&&CT.kind==='events'){renderBody(); return}
+  const preview=$('#ctPreview'); if(preview) preview.innerHTML=ctPreview(CT.edit.form);
+  const rev=document.querySelector('[data-ct-review]'); if(rev&&CT.kind==='events'){const tmp=document.createElement('div'); tmp.innerHTML=ctReviewBody(CT.edit); const fresh=tmp.querySelector('[data-ct-review]'); if(fresh) rev.innerHTML=fresh.innerHTML}
+  ['desc','sched','extra'].forEach(k=>{const el=document.querySelector(`[data-ct-more-sum="${k}"]`); if(el){const tmp=document.createElement('div'); tmp.innerHTML=ctEventSections(CT.edit,''); const fresh=tmp.querySelector(`[data-ct-more-sum="${k}"]`); if(fresh) el.textContent=fresh.textContent}});
+});
+/* منوی جمع‌شدهٔ «بخش‌های دیگر» پروندهٔ رویداد با کلیک بیرون از آن بسته می‌شود */
+document.addEventListener('click',e=>{document.querySelectorAll('details.efmore[open]').forEach(d=>{if(!(e.target instanceof Node)||!d.contains(e.target)) d.removeAttribute('open')})},true);
+document.addEventListener('focusout',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||!t.dataset) return;
+  if(t.dataset.ctPart!=null){const k=t.dataset.ctPartField, row=(CT.edit.form.parts||[])[+t.dataset.ctPart]; if(row&&(k==='time'||k==='to')){const v=ctTimeFix('time',t.value,true); if(v!==t.value){t.value=v; row[k]=v; ctDraftSave()}} return}
+  const field=t.dataset.ctField; if(!field) return;
+  const v=ctTimeFix(field,t.value,true); if(v!==t.value){const before=CT.edit.form[field]; t.value=v; CT.edit.form[field]=v; if(CT.kind==='events'){if(field==='endTime') ctSyncEndTime(CT.edit.form,v); else ctSyncDates(field,before,v); ctRefreshEndTime(t)}
+    ['startsAt','endsAt'].forEach(k=>{const el=document.getElementById('ctf_'+k); if(el&&el!==t) el.value=String(CT.edit.form[k]||''); const wd=document.querySelector(`[data-ct-weekday="${k}"]`); if(wd) wd.textContent=ctWeekday(CT.edit.form[k])}); ctDraftSave()}
+});
+document.addEventListener('keydown',e=>{
+  if(!IS_TEST&&SERVER_AUTH&&CT.edit&&CT.dp&&e.key==='Escape'){const f=CT.dp.f; CT.dp=null; renderBody(); const el=document.getElementById('ctf_'+f); if(el) el.focus(); return}
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!CT.edit||e.key!=='Enter'||!(t.dataset&&t.dataset.ctPickQ)) return;
+  e.preventDefault(); const field=t.dataset.ctPickQ, first=pkFilter(field).filter(p=>String(p.id)!==String(CT.edit.form[field]||''))[0];
+  if(first) pkSet(field,first.id); else toast('نتیجه‌ای برای انتخاب نیست');
+});
+document.addEventListener('toggle',e=>{
+  const d=e.target; if(IS_TEST||!SERVER_AUTH||!d||!d.dataset) return;
+  if(d.hasAttribute&&d.hasAttribute('data-ct-more-filters')){CT.moreFilters=!!d.open; return}
+  if(!CT.edit||!d.dataset.ctMore) return;
+  CT.edit.more=CT.edit.more||{}; CT.edit.more[d.dataset.ctMore]=!!d.open;
+},true);
+document.addEventListener('change',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t) return;
+  if(t.matches&&t.matches('[data-ct-sort]')){CT.sort=P2_SORTS.some(([k])=>k===t.value)?t.value:'updated'; ctReset(); ctLoad(); return}
+  if(t.matches&&t.matches('[data-ct-order]')){CT.order=t.value==='asc'?'asc':'desc'; ctReset(); ctLoad(); return}
+  if(t.matches&&t.matches('[data-ct-mode]')){CT.mode=String(t.value||'').slice(0,80); ctReset(); ctLoad(); return}
+  if(eiChange(t)) return;
+  if(!CT.edit) return;
+  if(t.dataset&&t.dataset.ctdpSet&&CT.dp){const v=+t.value; if(t.dataset.ctdpSet==='m'&&v>=1&&v<=12) CT.dp={f:CT.dp.f,y:CT.dp.y,m:v}; if(t.dataset.ctdpSet==='y'&&v>1300&&v<1500) CT.dp={f:CT.dp.f,y:v,m:CT.dp.m}; renderBody(); return}
+  if(t.dataset&&t.dataset.ctCheck){CT.edit.form[t.dataset.ctCheck]=!!t.checked; renderBody(); return}
+  if(t.dataset&&t.dataset.ctImage){const file=t.files&&t.files[0]; if(file) ctUploadImage(file,t.dataset.ctImage); return}
+});
+/* ══ اتصال سرویس‌ها · داده‌ها و مهاجرت ═══════════════════════════════════════
+   همهٔ مقادیر از API هم‌مبدأ خوانده می‌شوند. مقدار محرمانه هرگز به مرورگر
+   برنمی‌گردد: فرم فقط «جایگزینی» می‌نویسد، حذف عملیات جداگانه با تأیید است،
+   و مقدار خالی هرگز ذخیره یا حذف نمی‌کند. اعمال مجوز سمت سرور است؛ پنهان‌کردن
+   دکمه در این صفحه فقط برای خوانایی است و به‌تنهایی مرز دسترسی نیست. */
+const SERVICE_API='/api/owner/service-settings';
+const DATA_API='/api/owner/data';
+let SERVICE_DATA=null,SERVICE_LOADING=false,SERVICE_ERROR='',SERVICE_BUSY='',SERVICE_MSG=null;
+let SERVICE_TAB='bale',SERVICE_CONFIRM='';
+/* پیش‌نویس همان ورودی، فقط در حافظهٔ همین صفحه؛ هرگز در localStorage یا DOM ذخیره نمی‌شود */
+const SERVICE_DRAFT={};
+let DATA_STATUS=null,DATA_UPLOADS=null,DATA_LOADING=false,DATA_ERROR='',DATA_BUSY='',DATA_MSG=null;
+let DATA_TAB='uploads',DATA_CONFIRM='';
+
+function ownerCsrf(){const m=document.cookie.match(/(?:^|;\s*)nora_csrf=([^;]+)/);return m?decodeURIComponent(m[1]):''}
+function svcWhen(iso){
+  if(!iso) return '';
+  try{const d=new Date(iso); if(isNaN(d.getTime())) return '';
+    return d.toLocaleString('fa-IR',{dateStyle:'short',timeStyle:'short'})}catch(e){return ''}
+}
+function svcBytes(n){
+  n=Number(n)||0;
+  if(n>=1073741824) return fa((n/1073741824).toFixed(1))+' گیگابایت';
+  if(n>=1048576) return fa((n/1048576).toFixed(1))+' مگابایت';
+  if(n>=1024) return fa(Math.round(n/1024))+' کیلوبایت';
+  return fa(n)+' بایت';
+}
+function svcErrCode(payload){
+  const detail=payload&&payload.detail;
+  if(!detail) return '';
+  return typeof detail==='string'?detail:(detail.code||'');
+}
+function svcCodeText(code){
+  const map={
+    permission_denied:'فقط مالک یا مدیری که مجوز «تنظیمات سامانه» دارد می‌تواند این کار را انجام دهد.',
+    csrf_check_failed:'نشست معتبر نیست؛ صفحه را تازه کنید و دوباره وارد شوید.',
+    restart_acknowledgement_required:'پیش از تعویض توکن، کادر تأیید راه‌اندازی دوبارهٔ ربات را علامت بزنید.',
+    otp_pepper_required:'کلید پیامک فقط وقتی ذخیره می‌شود که NORA_OTP_PEPPER روی سرور تنظیم شده باشد؛ هش هویت باید مستقل از کلید باشد.',
+    settings_encryption_not_configured:'کلید رمزنگاری تنظیمات (NORA_SETTINGS_ENCRYPTION_KEY) روی سرور تنظیم نشده؛ ذخیره انجام نشد.',
+    invalid_bale_bot_token:'قالب توکن ربات درست نیست؛ مقدار ذخیره نشد.',
+    invalid_payment_bot_token:'توکن ربات پرداخت باید توکن Bot API به شکل «شناسه:رمز» باشد؛ توکن کیف پول در این فیلد پذیرفته نمی‌شود و چیزی ذخیره نشد.',
+    invalid_form_payment_provider_token:'توکن پرداخت کیف پول بله (Provider Token) قالب درستی ندارد؛ ذخیره نشد.',
+    provider_token_must_not_be_bot_token:'این مقدار شکل توکن Bot API دارد و در فیلد Provider Token پذیرفته نمی‌شود؛ توکن ربات پرداخت را در فیلد خودش وارد کنید. چیزی ذخیره نشد.',
+    invalid_form_payment_webhook_secret:'راز وب‌هوک باید ۳۲ تا ۲۵۶ نویسهٔ چاپی باشد.',
+    empty_secret_value:'مقدار خالی ذخیره نمی‌شود؛ برای حذف از دکمهٔ «حذف مقدار ذخیره‌شده» استفاده کنید.',
+    invalid_service_secret_payload:'درخواست معتبر نبود؛ چیزی تغییر نکرد.',
+    secret_is_read_only:'این مقدار فقط نمایشی است و از پنل تغییر نمی‌کند.',
+    unknown_service_secret:'این کلید در فهرست سرویس‌ها وجود ندارد.',
+    connection_test_not_supported:'برای این مقدار آزمایش اتصال امن تعریف نشده است؛ «تنظیم‌شده» یعنی فقط مقدار ثبت شده و تأیید نشده.',
+    upload_not_found:'این نسخهٔ پشتیبان پیدا نشد؛ شاید منقضی یا حذف شده باشد.',
+    backup_not_sqlite:'فایل SQLite معتبر نیست؛ چیزی ذخیره نشد.',
+    backup_not_legacy_database:'این فایل SQLite جدول کاربران نورا را ندارد؛ نسخهٔ پشتیبان مرتبط نیست و پذیرفته نشد.',
+    backup_integrity_check_failed:'بررسی ساختاری SQLite ناموفق بود (quick_check)؛ فایل پذیرفته نشد.',
+    backup_too_large:'حجم فایل از سقف مجاز بیشتر است؛ ذخیره نشد.',
+    staging_quota_exceeded:'فضای staging پر است؛ ابتدا نسخه‌های قدیمی را حذف کنید.',
+    empty_backup_file:'فایل خالی است؛ ذخیره نشد.',
+    unsupported_backup_content_type:'نوع محتوای ارسالی پذیرفته نمی‌شود؛ فایل به‌صورت باینری بفرستید.',
+    upload_rate_limited:'تعداد بارگذاری در یک ساعت بیش از حد مجاز است؛ بعداً تلاش کنید.',
+    audit_tool_not_available:'ابزار ممیزی legacy روی سرور در دسترس نیست؛ ممیزی اجرا نشد.',
+    audit_run_failed:'اجرای ممیزی ناموفق بود؛ فایل دست‌نخورده باقی ماند.',
+    audit_tool_error:'ابزار ممیزی خطا داد؛ فایل دست‌نخورده باقی ماند.',
+    audit_report_unreadable:'گزارش ممیزی قابل خواندن نبود؛ فایل دست‌نخورده باقی ماند.',
+    audit_changed_the_file:'ممیزی checksum فایل را تغییر داد؛ نتیجه نامعتبر است و فایل باید حذف شود.',
+    upload_metadata_unreadable:'فرادادهٔ این نسخه خوانا نیست.',
+    invalid_backup_file:'فایل ارسالی معتبر نیست.'
+  };
+  return map[code]||'عملیات انجام نشد؛ چیزی تغییر نکرد.';
+}
+function svcService(key){return ((SERVICE_DATA&&SERVICE_DATA.services)||[]).find(item=>item.key===key)||null}
+function svcReadonly(env){
+  const bale=svcService('bale');
+  return bale?((bale.readonly||[]).find(item=>item.env_name===env)||null):null;
+}
+function svcRuntimeBlock(service){
+  const runtime=service&&service.runtime;
+  if(!runtime||typeof runtime.ready!=='boolean') return '';
+  const titles={bale:'ورود مینی‌اپ و پیوند حساب در وب',sms:'ارسال رمز یک‌بارمصرف در وب',payment:'پرداخت کیف پول بله در فرم‌های وب'};
+  const missing=Array.isArray(runtime.missing)?runtime.missing:[];
+  const text=runtime.ready
+    ?'با مقادیر مؤثر فعلی (پایگاه یا محیط) این مسیر در بک‌اند وب فعال است. این به معنی آزمایش موفق با سرویس بیرونی نیست.'
+    :'این مسیر در بک‌اند وب غیرفعال است و درخواست‌های مربوط رد می‌شوند'+(missing.length?'؛ مقادیر ناقص: ':'.');
+  return `<div class="admlirow" data-svc-runtime="${esc(service.key)}" data-ready="${runtime.ready?'1':'0'}"><span class="ic">${ico(runtime.ready?'i-check':'i-info')}</span>
+    <span class="sp"><b>${esc(titles[service.key]||'وضعیت عملیاتی در وب')}</b>
+      <small class="cap" style="display:block">${esc(text)}${missing.length&&!runtime.ready?`<span dir="ltr">${esc(missing.join(' · '))}</span>`:''}</small></span>
+    ${runtime.ready?tag('فعال در وب','ok'):tag('غیرفعال در وب','warn')}</div>`;
+}
+function svcStateTag(state){
+  const map={unconfigured:['تنظیم‌نشده','warn'],configured:['تنظیم‌شده · آزمایش‌نشده',''],verified:['آزمایش‌شده','ok'],failed:['آزمایش ناموفق','stop']};
+  const item=map[state]||['نامشخص',''];
+  return tag(item[0],item[1]);
+}
+async function serviceLoad(){
+  if(SERVICE_LOADING) return;
+  SERVICE_LOADING=true; SERVICE_ERROR='';
+  try{
+    const response=await fetch(SERVICE_API,{credentials:'same-origin',headers:{Accept:'application/json'}});
+    if(response.status===401||response.status===403){
+      SERVICE_ERROR='این بخش فقط با نشست مالک و مجوز «تنظیمات سامانه» در دسترس است.';
+    }else if(!response.ok){
+      SERVICE_ERROR='دریافت تنظیمات از سرور انجام نشد.';
+    }else{
+      SERVICE_DATA=await response.json();
+      if(!['bale','sms','payment'].includes(SERVICE_TAB)) SERVICE_TAB='bale';
+    }
+  }catch(e){SERVICE_ERROR='ارتباط با سرور برقرار نشد.'}
+  finally{SERVICE_LOADING=false; if(S.sec==='settings') renderBody()}
+}
+async function serviceSave(key){
+  const input=document.getElementById('svcInput_'+key);
+  const value=(input&&input.value||'').trim();
+  if(value) SERVICE_DRAFT[key]=value;
+  if(!value){
+    SERVICE_MSG={kind:'warn',text:'مقدار خالی ذخیره نمی‌شود. برای حذف مقدار ذخیره‌شده از دکمهٔ حذف استفاده کنید.'};
+    renderBody(); return;
+  }
+  const ack=document.getElementById('svcAck_'+key);
+  const payload={value};
+  if(ack){
+    if(!ack.checked){
+      SERVICE_MSG={kind:'warn',text:svcCodeText('restart_acknowledgement_required')};
+      renderBody(); return;
+    }
+    payload.acknowledge_restart=true;
+  }
+  SERVICE_BUSY=key; SERVICE_MSG=null; renderBody();
+  try{
+    const response=await fetch(SERVICE_API+'/'+encodeURIComponent(key),{
+      method:'PUT',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':ownerCsrf()},
+      body:JSON.stringify(payload)});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      SERVICE_DATA=data; delete SERVICE_DRAFT[key];
+      SERVICE_MSG={kind:'ok',text:'مقدار ذخیره شد و فقط بخش پایانی آن نمایش داده می‌شود. نتیجهٔ آزمایش قبلی باطل شد.'};
+    }else{
+      SERVICE_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){SERVICE_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی تغییر نکرد.'}}
+  finally{SERVICE_BUSY=''; if(input) input.value=''; renderBody()}
+}
+async function serviceTest(key){
+  SERVICE_BUSY=key; SERVICE_MSG=null; renderBody();
+  try{
+    const response=await fetch(SERVICE_API+'/'+encodeURIComponent(key)+'/test',{
+      method:'POST',credentials:'same-origin',
+      headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      if(data.check){
+        (SERVICE_DATA.services||[]).forEach(service=>{
+          (service.fields||[]).forEach(field=>{ if(field.key===key) field.check=data.check; });
+          service.state=(service.fields||[]).some(field=>field.check&&field.check.checked&&field.check.ok===false)?'failed':
+            ((service.fields||[]).length&&(service.fields||[]).filter(field=>field.configured).length&&
+             (service.fields||[]).filter(field=>field.configured).every(field=>field.check&&field.check.checked&&field.check.ok))?'verified':'configured';
+        });
+      }
+      SERVICE_MSG=data.ok
+        ?{kind:'ok',text:'آزمایش اتصال موفق بود: پاسخ فقط‌خواندنی getMe از بله دریافت شد؛ پیامی ارسال و پرداختی ایجاد نشد.'}
+        :{kind:'stop',text:'آزمایش اتصال ناموفق بود ('+(data.code||'unknown')+')؛ «تنظیم‌شده» به معنی «متصل» نیست.'};
+    }else{
+      SERVICE_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){SERVICE_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ نتیجه‌ای ثبت نشد.'}}
+  finally{SERVICE_BUSY=''; renderBody()}
+}
+async function serviceClear(key){
+  SERVICE_CONFIRM=''; SERVICE_BUSY=key; SERVICE_MSG=null; renderBody();
+  try{
+    const response=await fetch(SERVICE_API+'/'+encodeURIComponent(key),{
+      method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      SERVICE_DATA=data; delete SERVICE_DRAFT[key];
+      SERVICE_MSG={kind:'ok',text:'مقدار ذخیره‌شده حذف شد؛ اگر متغیر محیطی مقدار داشته باشد، دوباره اعمال می‌شود.'};
+    }else{
+      SERVICE_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){SERVICE_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی تغییر نکرد.'}}
+  finally{SERVICE_BUSY=''; renderBody()}
+}
+function serviceField(field){
+  const busy=SERVICE_BUSY===field.key;
+  const encryptionReady=!!(SERVICE_DATA&&SERVICE_DATA.encryption_ready);
+  const check=field.check||{checked:false,ok:null,code:'',checked_at:null};
+  const sourceText=field.source==='database'?'ذخیره‌شده در پایگاه، رمزنگاری‌شده':
+    field.source==='environment'?'فقط از متغیر محیطی سرور':'تنظیم‌نشده';
+  const blocked=Array.isArray(field.blocked_by)?field.blocked_by:[];
+  const checkText=!check.checked?'آزمایش نشده':(check.ok?'آزمایش موفق':'آزمایش ناموفق')+(check.checked_at?' · '+svcWhen(check.checked_at):'');
+  const consumers=Array.isArray(field.consumers)?field.consumers:['web'];
+  const scopeText=consumers.includes('bot')
+    ?'دامنهٔ اثر: فقط بک‌اند وب. ربات legacy همین مقدار را از '+(field.bot_env_name||'فایل محیطی خودش')+' می‌خواند؛ ذخیره در این‌جا آن را تغییر نمی‌دهد و ربات باید جداگانه به‌روز و راه‌اندازی شود.'
+    :'دامنهٔ اثر: فقط بک‌اند وب؛ ربات legacy این مقدار را مصرف نمی‌کند.';
+  const confirm=SERVICE_CONFIRM===field.key?`<div class="admset" style="border-inline-start:3px solid var(--stop);padding:8px">
+      <p class="cap" style="margin:0 0 8px">با حذف این مقدار، نسخهٔ رمزنگاری‌شده پاک می‌شود و اگر متغیر محیطی مقدار داشته باشد همان اعمال می‌شود. این کار بازگشت‌پذیر نیست.</p>
+      <div class="row tight">${btn('بله، حذف کن','data-svc-clear-yes="'+esc(field.key)+'"','i-close')}
+        ${btn('انصراف','data-svc-clear-no','i-chev-right')}</div></div>`:'';
+  if(!field.editable){
+    return `<div class="admlirow"><span class="ic">${ico('i-lock')}</span>
+      <span class="sp"><b>${esc(field.label)}</b>
+        <small class="cap" style="display:block">${esc(field.help)}</small>
+        <small class="cap" dir="ltr" style="display:block">${esc(field.env_name)}</small></span>
+      ${field.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>`;
+  }
+  return `<div class="admset" data-svc-field="${esc(field.key)}" style="margin-bottom:10px">
+    <div class="admlirow"><span class="ic">${ico(field.probe?'i-check':'i-lock')}</span>
+      <span class="sp"><b>${esc(field.label)}</b>
+        <small class="cap" style="display:block">${esc(field.help)}</small>
+        <small class="cap" dir="ltr" style="display:block">${esc(field.env_name)}</small></span>
+      ${field.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>
+    <p class="cap" style="margin:6px 4px">منبع: ${esc(sourceText)}${field.hint?' · مقدار ذخیره‌شده: '+esc(field.hint):''}${field.updated_at?' · آخرین تغییر: '+svcWhen(field.updated_at):''}
+      · ${esc(checkText)}</p>
+    <p class="cap" style="margin:6px 4px" data-svc-scope="${esc(consumers.join('+'))}">${esc(scopeText)}</p>
+    ${blocked.length?`<p class="cap" style="margin:6px 4px;color:var(--warn)">برای ذخیره، این متغیرهای مستقل باید روی سرور تنظیم شوند: <span dir="ltr">${esc(blocked.join(' · '))}</span></p>`:''}
+    <div style="padding:4px;display:flex;flex-direction:column;gap:8px">
+      <label class="cap" for="svcInput_${esc(field.key)}">${field.configured?'جایگزینی مقدار (مقدار فعلی نمایش داده نمی‌شود)':'مقدار جدید (پس از ذخیره هرگز برنمی‌گردد)'}</label>
+      <input id="svcInput_${esc(field.key)}" type="password" autocomplete="off" spellcheck="false" dir="ltr"
+        ${encryptionReady&&!busy?'':'disabled'} placeholder="مقدار جدید" style="font:inherit;padding:8px;border-radius:8px">
+      ${field.acknowledge_restart?`<label class="cap" style="display:flex;gap:6px;align-items:center">
+        <input id="svcAck_${esc(field.key)}" type="checkbox" ${busy?'disabled':''}>
+        تأیید می‌کنم ربات/سرویس با مقدار جدید راه‌اندازی دوباره می‌شود.</label>`:''}
+      <div class="row tight" style="flex-wrap:wrap">
+        <button class="btn sm" data-svc-save="${esc(field.key)}" ${encryptionReady&&!busy?'':'disabled'}>${ico('i-check')} ذخیره / جایگزینی</button>
+        ${field.probe?`<button class="btn sm quiet" data-svc-test="${esc(field.key)}" ${field.configured&&!busy?'':'disabled'}>${ico('i-refresh')} آزمایش اتصال</button>`:''}
+        ${field.source==='database'?`<button class="btn sm quiet" data-svc-clear="${esc(field.key)}" ${busy?'disabled':''}>${ico('i-close')} حذف مقدار ذخیره‌شده</button>`:''}
+      </div>
+      ${encryptionReady?'':'<p class="cap">کلید رمزنگاری (NORA_SETTINGS_ENCRYPTION_KEY) تنظیم نشده؛ ذخیره غیرفعال است و هیچ مقدار ساده‌ای ذخیره نمی‌شود.</p>'}
+      ${confirm}
+    </div></div>`;
+}
+function serviceTabs(){
+  const labels={bale:'بله و مینی‌اپ',sms:'پیامک و رمز یک‌بارمصرف',payment:'پرداخت و کیف پول'};
+  return ((SERVICE_DATA&&SERVICE_DATA.services)||[]).map(service=>
+    `<button class="chip ${SERVICE_TAB===service.key?'on':''}" data-svc-tab="${esc(service.key)}">
+      ${ico(service.icon||'i-send')}<span>${esc(service.title||labels[service.key]||service.key)}</span>
+      ${service.state==='verified'?'✓':''}</button>`).join('');
+}
+function servicesSettingsView(){
+  if(!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
+  if(!SERVICE_DATA&&!SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">اتصال سرویس‌ها</div>
+      <p class="cap">در حال دریافت وضعیت از سرور…</p></section>`;
+  }
+  if(SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">اتصال سرویس‌ها</div>
+      <p class="cap">${esc(SERVICE_ERROR)}</p>
+      <div class="row"><span class="sp"></span>${btn('تلاش دوباره','data-svc-reload','i-refresh')}</div></section>`;
+  }
+  const service=svcService(SERVICE_TAB)||(SERVICE_DATA.services||[])[0]||null;
+  if(!service) return `<section class="card stack" data-service-settings><div class="head">اتصال سرویس‌ها</div>
+    <p class="cap">سرویسی برای نمایش ثبت نشده است.</p></section>`;
+  const readonly=(service.readonly||[]).map(item=>`<div class="admlirow">
+      <span class="sp"><b>${esc(item.label)}</b>
+        <small class="cap" style="display:block">${esc(item.note||'')}</small>
+        <small class="cap" dir="ltr" style="display:block">${esc(item.env_name)}</small></span>
+      ${item.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}
+      <code dir="ltr" style="font-size:var(--fs-cap)">${esc(item.configured?(item.value||'-'):'-')}</code></div>`).join('');
+  return `<section class="card stack" data-service-settings>
+    <div class="row"><div class="head">اتصال سرویس‌ها</div><span class="sp"></span>
+      ${svcStateTag(service.state)}<button class="btn sm quiet" data-svc-reload>${ico('i-refresh')} بازخوانی</button></div>
+    <p class="cap">اعتبارنامه‌ها رمزنگاری‌شده در پایگاه ذخیره می‌شوند و هرگز از API برنمی‌گردند. مقدار خالی چیزی را حذف نمی‌کند؛ حذف فقط با تأیید و عملیات جداگانه انجام می‌شود. اعمال مجوز روی سرور است، نه در این صفحه.</p>
+    ${SERVICE_MSG?`<p class="cap" role="status" style="border-inline-start:3px solid var(--${SERVICE_MSG.kind==='ok'?'ok':SERVICE_MSG.kind==='stop'?'stop':'warn'});padding-inline-start:8px">${esc(SERVICE_MSG.text)}</p>`:''}
+    <div class="admfilters" role="tablist" aria-label="سرویس‌ها">${serviceTabs()}</div>
+    <div class="head">${esc(service.title)}</div>
+    <p class="cap">${esc(service.summary||'')}</p>
+    ${svcRuntimeBlock(service)}
+    ${(service.fields||[]).map(serviceField).join('')}
+    ${readonly?`<details><summary class="cap">مقادیر فقط‌خواندنی این سرویس (از متغیرهای محیطی سرور)</summary>${readonly}</details>`:''}
+  </section>`;
+}
+function deploymentSettingsView(){
+  if(!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
+  if(!SERVICE_DATA&&!SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">دامنه و راه‌اندازی</div>
+      <p class="cap">در حال دریافت وضعیت از سرور…</p></section>`;
+  }
+  if(SERVICE_ERROR){
+    return `<section class="card stack" data-service-settings><div class="head">دامنه و راه‌اندازی</div>
+      <p class="cap">${esc(SERVICE_ERROR)}</p>
+      <div class="row"><span class="sp"></span>${btn('تلاش دوباره','data-svc-reload','i-refresh')}</div></section>`;
+  }
+  const base=String(SERVICE_DATA.public_base_url||'').trim();
+  const https=/^https:\/\//i.test(base);
+  const baseState=!base?tag('تنظیم‌نشده','warn'):(https?tag('HTTPS','ok'):tag('بدون HTTPS','stop'));
+  const botToken=(svcService('bale')||{}).fields?(((svcService('bale')||{}).fields||[]).find(field=>field.key==='bale_bot')||{}):{};
+  const rows=[
+    ['نام کاربری عمومی ربات',svcReadonly('NORA_BALE_BOT_USERNAME')],
+    ['شناسه بله مالک',svcReadonly('NORA_OWNER_BALE_USER_ID')],
+    ['حداکثر عمر امضای مینی‌اپ',svcReadonly('NORA_BALE_INIT_DATA_MAX_AGE_SECONDS')],
+    ['توکن سرویس ربات ↔ سرور',svcReadonly('NORA_BOT_SERVICE_TOKEN')],
+    ['نشانی وب‌هوک پرداخت',svcReadonly('NORA_FORM_PAYMENT_WEBHOOK_URL')]
+  ].filter(item=>item[1]);
+  return `<section class="card stack" data-service-settings>
+    <div class="row"><div class="head">دامنه و راه‌اندازی</div><span class="sp"></span>${baseState}</div>
+    <div class="admlirow"><span class="ic">${ico('i-globe')}</span>
+      <span class="sp"><b>نشانی عمومی سامانه</b>
+        <small class="cap" dir="ltr" style="display:block">NORA_PUBLIC_BASE_URL</small></span>
+      <code dir="ltr">${esc(base||'-')}</code></div>
+    <p class="cap">${base?esc(https?'دامنه با HTTPS ثبت شده است؛ مینی‌اپ و بازگشت پرداخت به همین دامنه اشاره می‌کنند.':'نشانی ثبت‌شده HTTPS نیست؛ ورود مینی‌اپ و بازگشت پرداخت روی دامنهٔ ناامن رد می‌شود.'):'نشانی عمومی تنظیم نشده؛ لینک مینی‌اپ و بازگشت پرداخت ساخته نمی‌شود.'}</p>
+    <div class="head">وضعیت راه‌اندازی</div>
+    <div class="admlist">
+      <div class="admlirow"><span class="sp"><b>توکن ربات بله</b><small class="cap">برای اعتبارسنجی امضای مینی‌اپ</small></span>
+        ${botToken.configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>
+      <div class="admlirow"><span class="sp"><b>کلید رمزنگاری تنظیمات</b><small class="cap" dir="ltr">NORA_SETTINGS_ENCRYPTION_KEY</small></span>
+        ${SERVICE_DATA.encryption_ready?tag('آماده','ok'):tag('تنظیم‌نشده','stop')}</div>
+      ${rows.map(item=>`<div class="admlirow"><span class="sp"><b>${esc(item[0])}</b>
+        <small class="cap" dir="ltr" style="display:block">${esc(item[1].env_name)}</small></span>
+        ${item[1].configured?tag('تنظیم‌شده','ok'):tag('تنظیم‌نشده','warn')}</div>`).join('')}
+    </div>
+    <p class="cap">این مقادیر از متغیرهای محیطی سرور خوانده می‌شوند و از پنل تغییر نمی‌کنند؛ چون ربات و فرایندهای دیگر هم آن‌ها را می‌خوانند، تغییرشان فقط با ویرایش امن .env و راه‌اندازی دوباره انجام می‌شود. مقدار محرمانه هرگز نمایش داده نمی‌شود.</p>
+  </section>`;
+}
+function securitySettingsView(){
+  const auth=SERVER_AUTH||{};
+  const role=auth.role||'';
+  const roleName=typeof roleDef==='function'?(roleDef(role).n||role):(role||'نامشخص');
+  const permissions=Array.isArray(auth.permissions)?auth.permissions.slice(0,40):[];
+  const permText=typeof rolePermissionsCopy==='function'?rolePermissionsCopy(role):'';
+  return `<section class="card stack">
+    <div class="head">امنیت و دسترسی‌ها</div>
+    <div class="admlirow"><span class="ic">${ico('i-shield')}</span>
+      <span class="sp"><b>${esc(roleName)}</b>
+        <small class="cap">${esc(permText||'فهرست مجوزها از سرور خوانده می‌شود')}</small></span>
+      ${tag(fa(permissions.length)+' مجوز','')}</div>
+    ${permissions.length?`<div class="row tight" style="flex-wrap:wrap">${permissions.map(code=>
+      `<span class="tag" dir="ltr">${esc(code)}</span>`).join('')}</div>`:''}
+    <p class="cap">مجوزها و نقش از پاسخ سرور خوانده می‌شوند و هر درخواست دوباره روی سرور بررسی می‌شود؛ پنهان‌شدن یک دکمه در این صفحه مجوز نمی‌سازد.</p>
+    <p class="cap">ذخیره، جایگزینی و حذف اعتبارنامه‌ها فقط برای مالک یا مدیر دارای مجوز <span dir="ltr">sys_settings</span> مجاز است و در گزارش سرور تنها با شناسهٔ سرویس، نوع عملیات، زمان، نتیجه و شناسهٔ مدیر ثبت می‌شود؛ مقدار محرمانه در گزارش نوشته نمی‌شود.</p>
+    <div class="row tight" style="flex-wrap:wrap">
+      ${canSec('users')?btn('حساب‌ها و نقش‌های سرور','data-server-role-module','i-user'):''}
+      ${canSec('users')?btn('پرونده‌ها و دسترسی کاربران','data-user-hub="users"','i-idcard'):''}</div>
+  </section>${isOwner()?serverAuditView():''}`;
+}
+const AUDIT_ACTION_LABELS={'role.set':'تعیین نقش','role.clear':'برداشتن نقش','account.block':'مسدودسازی حساب','account.unblock':'رفع مسدودی حساب','account.note':'یادداشت داخلی حساب','manager_credentials.set':'تعریف ورود مدیر',
+  'manager_credentials.remove':'حذف ورود مدیر','workflow.decide':'تصمیم کارتابل','form.publish':'انتشار فرم','form.pause':'توقف فرم',
+  'form.response.delete':'حذف پاسخ فرم','cooperation_request.update':'به‌روزرسانی درخواست همکاری','site_content.update':'ویرایش محتوای عمومی',
+  'service_secret.store':'ذخیرهٔ اعتبارنامه','service_secret.clear':'حذف اعتبارنامه','service_secret.test':'آزمایش اتصال',
+  'backup.upload':'بارگذاری پشتیبان','backup.audit':'بررسی پشتیبان','backup.delete':'حذف پشتیبان',
+  'content.create':'ساخت رکورد','content.update':'ویرایش رکورد','content.status':'تغییر وضعیت','content.remove':'حذف رکورد',
+  'attendance.check_in':'ثبت حضور','attendance.undo_check_in':'لغو ثبت حضور'};
+const AUDIT_TARGET_LABELS={account:'حساب',admin_task:'درخواست کارتابل',form:'فرم',form_response:'پاسخ فرم',cooperation_request:'درخواست همکاری',
+  site_content:'محتوای عمومی',service_secret:'سرویس',backup_upload:'فایل پشتیبان'};
+function auditDetailText(details){
+  if(!details||typeof details!=='object') return '';
+  const roleName=value=>value?(typeof roleDef==='function'?(roleDef(value).n||value):value):'بدون نقش';
+  const parts=[];
+  if('previous_role' in details||'role' in details) parts.push(roleName(details.previous_role)+' ← '+roleName(details.role));
+  if(details.username) parts.push('نام کاربری '+details.username+(details.replaced?' (جایگزین)':''));
+  if(details.reason&&details.status==='blocked') parts.push('دلیل: '+String(details.reason));
+  if(details.previous_reason&&details.status==='active') parts.push('دلیل قبلی: '+String(details.previous_reason));
+  if(details.sessions_revoked!=null) parts.push(fa(details.sessions_revoked)+' نشست بسته شد');
+  if(details.cleared===true) parts.push('یادداشت پاک شد'); else if(details.length!=null&&details.cleared===false) parts.push('طول یادداشت '+fa(details.length));
+  if(details.decision) parts.push((details.kind==='receipt_review'?'فیش':'پروفایل')+' · '+(details.decision==='approved'?'تأیید':'رد')+(details.has_reason?' · با دلیل':''));
+  if(details.title) parts.push(String(details.title));
+  if(details.from_status&&details.status) parts.push(details.from_status+' ← '+details.status);
+  else if(details.from&&details.status&&typeof P2_STATUS==='object') parts.push((P2_STATUS[details.from]||[details.from])[0]+' ← '+(P2_STATUS[details.status]||[details.status])[0]);
+  if(details.version!=null&&!('previous_role' in details)) parts.push('نسخهٔ سند '+fa(details.version));
+  if(Array.isArray(details.keys)) parts.push(fa(details.keys.length)+' کلید');
+  if(details.code) parts.push('کد '+details.code);
+  if(Number.isFinite(details.size_bytes)) parts.push(perfBytes(details.size_bytes));
+  if('unchanged' in details) parts.push(details.unchanged?'بدون تغییر':'تغییر یافته');
+  return parts.join(' · ');
+}
+function serverAuditView(){
+  const actions=[['','همه'],['role.','نقش‌ها'],['manager_credentials.','ورود مدیر'],['workflow.','کارتابل'],['form.','فرم‌ها'],['service_secret.','سرویس‌ها'],['backup.','پشتیبان']];
+  const filters=actions.map(([key,label])=>`<button class="chip ${SERVER_AUDIT_ACTION===key?'on':''}" type="button" data-audit-action="${key}">${esc(label)}</button>`).join('');
+  const rows=SERVER_AUDIT_ITEMS.map(ev=>{
+    const actor=ev.actor_kind==='owner'?'مالک':ev.actor_kind==='account'?((typeof roleDef==='function'&&ev.actor_role?roleDef(ev.actor_role).n:'')||'حساب')+' '+String(ev.actor_id||'').slice(0,8):'سامانه';
+    const detail=auditDetailText(ev.details);
+    return `<div class="admlirow audit-row"><span class="ic">${ico(ev.outcome==='ok'?'i-check':'i-info')}</span>
+      <span class="sp"><b>${esc(AUDIT_ACTION_LABELS[ev.action]||ev.action)}</b>
+        <small class="cap">${esc(AUDIT_TARGET_LABELS[ev.target_type]||ev.target_type||'')}${ev.target_id?' <span dir="ltr">'+esc(String(ev.target_id).slice(0,12))+'</span>':''}${detail?' · '+esc(detail):''}</small>
+        <small class="cap">${esc(actor)} · ${esc(svcWhen(ev.created_at)||'')}</small></span>
+      ${tag(ev.outcome==='ok'?'انجام شد':'ناموفق',ev.outcome==='ok'?'ok':'stop')}</div>`;
+  }).join('');
+  const body=SERVER_AUDIT_LOADING&&!SERVER_AUDIT_ITEMS.length?'<p class="cap">در حال خواندن تاریخچه از سرور…</p>'
+    :SERVER_AUDIT_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_AUDIT_ERROR)}</p>${btn('تلاش دوباره','data-audit-refresh','i-refresh')}</div>`
+    :rows||(SERVER_AUDIT_LOADED?emptyBox('هنوز عملیاتی ثبت نشده است.'):'');
+  return `<section class="card stack" data-audit-panel>
+    <div class="row"><div class="head">تاریخچهٔ عملیات</div><span class="sp"></span>${SERVER_AUDIT_LOADED?tag(fa(SERVER_AUDIT_ITEMS.length)+' مورد',''):''}${btn('بازخوانی','data-audit-refresh','i-refresh')}</div>
+    <p class="cap">تغییر نقش، ورود مدیر، تصمیم کارتابل، انتشار و توقف فرم، اعتبارنامه‌ها و پشتیبان‌ها روی سرور ثبت می‌شوند؛ مقدار محرمانه در هیچ ردیفی نوشته نمی‌شود. درخواست‌های ناموفق (۴۰۱/۴۰۳/۴۲۲) ردیفی نمی‌سازند.</p>
+    <div class="admfilters">${filters}</div>
+    <div class="admlist">${body}</div>
+    ${SERVER_AUDIT_HAS_MORE?`<div class="row"><span class="sp"></span>${btn('موارد قدیمی‌تر','data-audit-more','i-more')}</div>`:''}
+  </section>`;
+}
+function loadServerAuditEvents(append=false){
+  const api=window.NORA_SERVER_API;
+  if(!isOwner()||!api||typeof api.listAuditEvents!=='function'){SERVER_AUDIT_ERROR='تاریخچهٔ عملیات فقط با نشست مالک در دسترس است.'; SERVER_AUDIT_LOADED=true; renderBody(); return}
+  if(SERVER_AUDIT_LOADING) return;
+  const offset=append?SERVER_AUDIT_ITEMS.length:0, requested=SERVER_AUDIT_ACTION;
+  SERVER_AUDIT_LOADING=true; SERVER_AUDIT_ERROR=''; renderBody();
+  Promise.resolve(api.listAuditEvents(30,offset,requested)).then(result=>{
+    if(requested!==SERVER_AUDIT_ACTION) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(ev=>!ev||typeof ev.action!=='string'||typeof ev.created_at!=='string')) throw new Error('invalid_audit');
+    SERVER_AUDIT_ITEMS=append?SERVER_AUDIT_ITEMS.concat(items):items;
+    SERVER_AUDIT_HAS_MORE=!!result.has_more; SERVER_AUDIT_LOADED=true;
+  }).catch(error=>{
+    SERVER_AUDIT_ERROR=error&&(error.status===401||error.status===403)?'این تاریخچه فقط برای مالک باز است.'
+      :error&&error.status===0?'سرور در دسترس نیست؛ اتصال را بررسی کنید.':'خواندن تاریخچه انجام نشد؛ دوباره تلاش کنید.';
+    if(!append) SERVER_AUDIT_ITEMS=[]; SERVER_AUDIT_LOADED=true;
+  }).finally(()=>{SERVER_AUDIT_LOADING=false; if((S.sec==='settings'&&S.setG==='security')||(S.sec==='users'&&S.uV==='tools'&&S.uTool==='log')) renderBody()});
+}
+async function dataLoad(){
+  if(DATA_LOADING) return;
+  DATA_LOADING=true; DATA_ERROR='';
+  try{
+    const [statusResponse,listResponse]=await Promise.all([
+      fetch(DATA_API+'/status',{credentials:'same-origin',headers:{Accept:'application/json'}}),
+      fetch(DATA_API+'/uploads',{credentials:'same-origin',headers:{Accept:'application/json'}})
+    ]);
+    if([401,403].includes(statusResponse.status)||[401,403].includes(listResponse.status)){
+      DATA_ERROR='این بخش فقط با نشست مالک و مجوز «پشتیبان‌گیری سامانه» در دسترس است.';
+    }else if(!statusResponse.ok||!listResponse.ok){
+      DATA_ERROR='دریافت وضعیت داده‌ها از سرور انجام نشد.';
+    }else{
+      DATA_STATUS=await statusResponse.json();
+      DATA_UPLOADS=(await listResponse.json()).uploads||[];
+    }
+  }catch(e){DATA_ERROR='ارتباط با سرور برقرار نشد.'}
+  finally{DATA_LOADING=false; if(S.sec==='settings') renderBody()}
+}
+async function dataUpload(){
+  const input=document.getElementById('dataFile');
+  const file=input&&input.files&&input.files[0];
+  if(!file){DATA_MSG={kind:'warn',text:'یک فایل SQLite انتخاب کنید.'}; renderBody(); return;}
+  const limit=DATA_STATUS&&DATA_STATUS.staging?Number(DATA_STATUS.staging.max_bytes)||0:0;
+  if(limit&&file.size>limit){
+    DATA_MSG={kind:'stop',text:'حجم فایل از سقف مجاز ('+svcBytes(limit)+') بیشتر است؛ ارسال نشد.'};
+    renderBody(); return;
+  }
+  DATA_BUSY='upload'; DATA_MSG=null; renderBody();
+  try{
+    const response=await fetch(DATA_API+'/uploads?name='+encodeURIComponent(file.name),{
+      method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/octet-stream','X-CSRF-Token':ownerCsrf()},
+      body:file});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      DATA_MSG={kind:'ok',text:'فایل در staging خصوصی ذخیره و فقط‌خواندنی بررسی شد؛ هیچ تغییری در پایگاه عملیاتی انجام نشد.'};
+    }else{
+      DATA_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){DATA_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی ذخیره نشد.'}}
+  finally{DATA_BUSY=''; await dataLoad(); renderBody()}
+}
+async function dataAudit(id){
+  DATA_BUSY='audit:'+id; DATA_MSG=null; renderBody();
+  try{
+    const response=await fetch(DATA_API+'/uploads/'+encodeURIComponent(id)+'/audit',{
+      method:'POST',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){
+      DATA_MSG=data.unchanged===true
+        ?{kind:'ok',text:'ممیزی فقط‌خواندنی تمام شد و checksum فایل قبل و بعد یکسان است؛ هیچ داده‌ای نوشته نشد.'}
+        :{kind:'stop',text:'نتیجهٔ ممیزی معتبر نیست: checksum فایل تغییر کرد. فایل را حذف کنید و نسخهٔ تازه بارگذاری کنید.'};
+    }else{
+      DATA_MSG={kind:'stop',text:svcCodeText(svcErrCode(data))};
+    }
+  }catch(e){DATA_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ ممیزی اجرا نشد.'}}
+  finally{DATA_BUSY=''; await dataLoad(); renderBody()}
+}
+async function dataDelete(id){
+  DATA_CONFIRM=''; DATA_BUSY='delete:'+id; DATA_MSG=null; renderBody();
+  try{
+    const response=await fetch(DATA_API+'/uploads/'+encodeURIComponent(id),{
+      method:'DELETE',credentials:'same-origin',headers:{'X-CSRF-Token':ownerCsrf()}});
+    const data=await response.json().catch(()=>({}));
+    DATA_MSG=response.ok?{kind:'ok',text:'نسخهٔ پشتیبان از staging حذف شد.'}:{kind:'stop',text:svcCodeText(svcErrCode(data))};
+  }catch(e){DATA_MSG={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی حذف نشد.'}}
+  finally{DATA_BUSY=''; await dataLoad(); renderBody()}
+}
+function dataStateTag(state){
+  const map={inspected:['بررسی‌شده','ok'],received:['دریافت‌شده',''],audited:['ممیزی‌شده','ok'],audit_failed:['خطا در ممیزی','stop'],invalid:['نامعتبر','stop']};
+  const item=map[state]||['نامشخص',''];
+  return tag(item[0],item[1]);
+}
+function dataReport(item){
+  const audit=item.audit||{};
+  const report=audit.report;
+  if(!report) return '';
+  const legacy=report.legacy||{}, users=legacy.users||{}, counts=legacy.counts||{}, orphans=legacy.orphans_by_bale_user_id||{};
+  const blockers=Array.isArray(report.blockers)?report.blockers:[];
+  const domainLines=Object.keys(counts).map(domain=>{
+    const tables=counts[domain]||{};
+    const total=Object.keys(tables).reduce((sum,key)=>sum+(Number(tables[key])||0),0);
+    return total?`<li>${esc(domain)}: ${fa(total)}</li>`:'';
+  }).join('');
+  const orphanLines=Object.keys(orphans).filter(key=>Number(orphans[key])>0)
+    .map(key=>`<li>${esc(key)}: ${fa(orphans[key])}</li>`).join('');
+  return `<details style="margin-top:8px"><summary class="cap">گزارش ممیزی (dry-run · فقط شمارش)</summary>
+    <div style="padding:6px 4px" class="cap">
+      <div>checksum قبل و بعد: ${audit.unchanged?'یکسان':'متفاوت'}</div>
+      <div>ابزار: ${esc((report.tool||'legacy_data_audit'))} · نسخه ${esc(String(report.version||''))} · حالت ${esc(report.mode||'')}</div>
+      <div>موانع ساختاری: ${blockers.length?fa(blockers.length)+' مورد':'هیچ'}</div>
+      <ul style="margin:6px 0;padding-inline-start:18px">
+        <li>کاربران legacy: ${fa(users.total||0)}</li>
+        <li>بدون موبایل: ${fa(users.without_mobile||0)}</li>
+        <li>موبایل غیرقابل‌نرمال‌سازی: ${fa(users.mobile_not_normalizable||0)}</li>
+        <li>موبایل تکراری: ${fa(users.duplicate_mobiles||0)}</li>
+        <li>شناسهٔ بله تکراری: ${fa(users.duplicate_bale_ids||0)}</li>
+        ${domainLines}${orphanLines}
+      </ul>
+      <p>این گزارش فقط شمارش، ساختار و checksum دارد؛ شمارهٔ تماس، نام و مقدار ردیف‌ها در آن نیست. ممیزی هیچ ردیفی را جابه‌جا، ادغام یا بازنویسی نکرد.</p>
+    </div></details>`;
+}
+function dataUploadRow(item){
+  const busy=DATA_BUSY.endsWith(item.id)||DATA_BUSY==='upload';
+  const confirm=DATA_CONFIRM===item.id?`<div class="admset" style="border-inline-start:3px solid var(--stop);padding:8px">
+      <p class="cap" style="margin:0 0 8px">این نسخهٔ پشتیبان از staging حذف می‌شود (نه از پایگاه عملیاتی). عملیات بازگشت‌پذیر نیست.</p>
+      <div class="row tight">${btn('بله، حذف کن','data-data-delete-yes="'+esc(item.id)+'"','i-close')}
+        ${btn('انصراف','data-data-delete-no','i-chev-right')}</div></div>`:'';
+  return `<div class="admset" style="margin-bottom:10px">
+    <div class="admlirow"><span class="ic">${ico('i-layers')}</span>
+      <span class="sp"><b>${esc(item.display_name||'backup.db')}</b>
+        <small class="cap" style="display:block">${svcBytes(item.size_bytes)} · دریافت ${svcWhen(item.created_at)} · انقضا ${svcWhen(item.expires_at)}</small>
+        <small class="cap" dir="ltr" style="display:block">SHA-256 ${esc(String(item.sha256||'').slice(0,16))}…</small></span>
+      ${dataStateTag(item.state)}</div>
+    <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+      <button class="btn sm quiet" data-data-audit="${esc(item.id)}" ${busy?'disabled':''}>${ico('i-search')} اجرای ممیزی</button>
+      <button class="btn sm quiet" data-data-delete="${esc(item.id)}" ${busy?'disabled':''}>${ico('i-close')} حذف از staging</button>
+    </div>
+    ${item.audit_error?`<p class="cap" style="color:var(--stop)">${esc(svcCodeText(item.audit_error))}</p>`:''}
+    ${dataReport(item)}${confirm}</div>`;
+}
+function dataSettingsView(){
+  if(!DATA_STATUS&&!DATA_LOADING&&!DATA_ERROR) dataLoad();
+  const tab=(key,label,icon)=>`<button class="chip ${DATA_TAB===key?'on':''}" data-data-tab="${key}">${ico(icon)}<span>${esc(label)}</span></button>`;
+  const tabs=`<div class="admfilters" role="tablist" aria-label="داده‌ها و مهاجرت">
+    ${tab('uploads','بارگذاری نسخهٔ پشتیبان','i-download')}${tab('database','پایگاه‌های داده','i-layers')}${tab('reports','گزارش‌های ممیزی','i-doc')}</div>`;
+  const message=DATA_MSG?`<p class="cap" role="status" style="border-inline-start:3px solid var(--${DATA_MSG.kind==='ok'?'ok':DATA_MSG.kind==='stop'?'stop':'warn'});padding-inline-start:8px">${esc(DATA_MSG.text)}</p>`:'';
+  if(DATA_ERROR){
+    return `<section class="card stack" data-data-panel><div class="head">داده‌ها و مهاجرت</div>
+      <p class="cap">${esc(DATA_ERROR)}</p>${tabs}${message}
+      <div class="row"><span class="sp"></span>${btn('تلاش دوباره','data-data-reload','i-refresh')}</div></section>`;
+  }
+  if(!DATA_STATUS){
+    return `<section class="card stack" data-data-panel><div class="head">داده‌ها و مهاجرت</div>
+      <p class="cap">در حال دریافت وضعیت از سرور…</p>${tabs}</section>`;
+  }
+  const staging=DATA_STATUS.staging||{}, database=DATA_STATUS.database||{};
+  let inner='';
+  if(DATA_TAB==='uploads'){
+    inner=`<p class="cap">فایل فقط در پوشهٔ خصوصی staging (بیرون ریشهٔ وب) نگه‌داری می‌شود، با <span dir="ltr">mode=ro</span> و <span dir="ltr">PRAGMA query_only=ON</span> خوانده می‌شود و به پایگاه عملیاتی، ربات یا وب منتقل نمی‌شود. سقف هر فایل ${svcBytes(staging.max_bytes)} · نگه‌داری ${fa(staging.retention_hours||0)} ساعت · مصرف فعلی ${svcBytes(staging.used_bytes)}.</p>
+      <label class="fileup">${ico('i-download')}<span class="sp"><b>انتخاب فایل SQLite</b>
+        <small>پسوند و نوع اعلامی ملاک نیست؛ سرصفحه، quick_check و ساختار بررسی می‌شود.</small></span>
+        <input id="dataFile" type="file" accept=".db,.sqlite,.sqlite3,.db3,.bak,application/octet-stream" ${DATA_BUSY?'disabled':''}></label>
+      <div class="row tight"><span class="sp"></span>
+        <button class="btn sm primary" data-data-upload ${DATA_BUSY?'disabled':''}>${ico('i-check')}${DATA_BUSY==='upload'?'در حال بارگذاری…':'بارگذاری و بررسی'}</button></div>`;
+    if(DATA_BUSY==='upload') inner+=`<p class="cap">در حال ارسال و بررسی فایل؛ صفحه را نبندید.</p>`;
+  }else if(DATA_TAB==='database'){
+    inner=`<div class="admlist">
+        <div class="admlirow"><span class="sp"><b>موتور پایگاه عملیاتی</b><small class="cap">فقط خوانده می‌شود؛ از این صفحه هیچ تغییری اعمال نمی‌شود.</small></span><code dir="ltr">${esc(database.engine||'نامشخص')}</code></div>
+        <div class="admlirow"><span class="sp"><b>نسخهٔ شِمای فعلی</b><small class="cap">آخرین مهاجرت اعمال‌شده</small></span><code dir="ltr">${esc(database.schema_version||'نامشخص')}</code></div>
+        <div class="admlirow"><span class="sp"><b>پوشهٔ staging</b><small class="cap">بیرون ریشهٔ وب و بدون دسترسی عمومی</small></span>${staging.outside_webroot?tag('خارج از وب‌روت','ok'):tag('نامشخص','warn')}</div>
+        <div class="admlirow"><span class="sp"><b>ابزار ممیزی legacy</b><small class="cap">همان ابزار ربات؛ نسخهٔ موازی ساخته نشده است.</small></span>${DATA_STATUS.audit_tool_available?tag('در دسترس','ok'):tag('در دسترس نیست','warn')}</div>
+        <div class="admlirow"><span class="sp"><b>نوشتن روی پایگاه عملیاتی</b><small class="cap">در همهٔ مسیرهای این بخش</small></span>${tag('صفر','ok')}</div>
+      </div>
+      <p class="cap">این بخش فقط «مشاهده» است: جایگزینی پایگاه، ALTER/DROP/DELETE/UPDATE/INSERT، مهاجرت خودکار و انتقال داده انجام نمی‌شود. مهاجرت واقعی فقط با نسخهٔ پشتیبانِ تأییدشده و خارج از این پنل برنامه‌ریزی می‌شود.</p>`;
+  }else{
+    const audited=(DATA_UPLOADS||[]).filter(item=>item.audit&&item.audit.report);
+    inner=audited.length?audited.map(dataUploadRow).join(''):
+      emptyBox('هنوز گزارشی ثبت نشده؛ ابتدا یک نسخهٔ پشتیبان بارگذاری و ممیزی کنید.');
+    inner+=`<p class="cap">گزارش‌ها فقط شمارش و ساختار دارند؛ هیچ شماره، نام یا مقدار ردیفی در آن‌ها نیست. راهنمای کامل در مخزن: <span dir="ltr">docs/04-ممیزی-داده-legacy-و-نقشه-مهاجرت.fa.md</span></p>`;
+  }
+  return `<section class="card stack" data-data-panel>
+    <div class="row"><div class="head">داده‌ها و مهاجرت</div><span class="sp"></span>
+      <button class="btn sm quiet" data-data-reload>${ico('i-refresh')} بازخوانی</button></div>
+    ${tabs}${message}${inner}</section>`;
+}
+document.addEventListener('click',e=>{
+  const hit=sel=>e.target.closest&&e.target.closest(sel);
+  if(hit('[data-svc-reload]')){e.preventDefault(); SERVICE_DATA=null; SERVICE_ERROR=''; SERVICE_MSG=null; serviceLoad(); return}
+  if(hit('[data-svc-tab]')){e.preventDefault(); SERVICE_TAB=hit('[data-svc-tab]').dataset.svcTab; SERVICE_MSG=null; SERVICE_CONFIRM='';
+    Object.keys(SERVICE_DRAFT).forEach(key=>delete SERVICE_DRAFT[key]); renderBody(); return}
+  if(hit('[data-svc-save]')){e.preventDefault(); serviceSave(hit('[data-svc-save]').dataset.svcSave); return}
+  if(hit('[data-svc-test]')){e.preventDefault(); serviceTest(hit('[data-svc-test]').dataset.svcTest); return}
+  if(hit('[data-svc-clear-yes]')){e.preventDefault(); serviceClear(hit('[data-svc-clear-yes]').dataset.svcClearYes); return}
+  if(hit('[data-svc-clear-no]')){e.preventDefault(); SERVICE_CONFIRM=''; renderBody(); return}
+  if(hit('[data-svc-clear]')){e.preventDefault(); SERVICE_CONFIRM=hit('[data-svc-clear]').dataset.svcClear; SERVICE_MSG=null; renderBody(); return}
+  if(hit('[data-data-reload]')){e.preventDefault(); DATA_STATUS=null; DATA_ERROR=''; DATA_MSG=null; dataLoad(); return}
+  if(hit('[data-data-tab]')){e.preventDefault(); DATA_TAB=hit('[data-data-tab]').dataset.dataTab; DATA_MSG=null; DATA_CONFIRM=''; renderBody(); return}
+  if(hit('[data-data-upload]')){e.preventDefault(); dataUpload(); return}
+  if(hit('[data-data-audit]')){e.preventDefault(); dataAudit(hit('[data-data-audit]').dataset.dataAudit); return}
+  if(hit('[data-data-delete-yes]')){e.preventDefault(); dataDelete(hit('[data-data-delete-yes]').dataset.dataDeleteYes); return}
+  if(hit('[data-data-delete-no]')){e.preventDefault(); DATA_CONFIRM=''; renderBody(); return}
+  if(hit('[data-data-delete]')){e.preventDefault(); DATA_CONFIRM=hit('[data-data-delete]').dataset.dataDelete; DATA_MSG=null; renderBody(); return}
+  /* تنظیمات (طرح نورا): کاشی‌ها، میان‌برهای واقعی و انبار تنظیمات سروری */
+  if(hit('[data-sset-go]')){e.preventDefault(); const g=hit('[data-sset-go]').dataset.ssetGo; if(!isOwner()&&!canPerm('sys_settings')){toast('این کاشی فقط با مجوز «تنظیمات سامانه» باز می‌شود'); return} S.sec='settings'; S.setG=g; SYS.msg=null; save(); renderBody(); return}
+  if(hit('[data-sset-act]')){e.preventDefault(); const a=hit('[data-sset-act]').dataset.ssetAct;
+    if(a==='users-staff'){if(!isOwner()){toast('مدیریت نقش حساب‌ها فقط برای مالک است');return} S.sec='users';S.uHub='users';S.uV='tools';S.uTool='staff';save();render(); if(!SERVER_ROLE_LOADED)loadServerRoleAccounts(false); return}
+    if(a==='club'){S.sec='users';S.uHub='users';S.uV='club';save();render();return}
+    if(a==='cert'){if(!canPerm('certificate')){toast('مجوز گواهینامه برای این نقش فعال نیست'); return} S.sec='users';S.uHub='users';S.uV='cert';save();render();return}
+    if(a==='att'){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} S.sec='users';S.uHub='users';S.uV='att';save();render();return}
+    if(a==='outbox'){if(!canPerm('rp_view')){toast('مجوز «دیدن گزارش‌ها» لازم است'); return} S.sec='users';S.uHub='users';S.uV='tools';S.uTool='inbox';save();render();return}
+    if(a==='events'){go('events'); return}
+    return}
+  if(hit('[data-sset-pay]')){e.preventDefault(); if(!isOwner()){toast('تنظیمات درگاه فقط با مالک است'); return} S.setG='money'; SERVICE_TAB='payment'; SERVICE_MSG=null; save(); renderBody(); return}
+  if(hit('[data-sys-reload]')){e.preventDefault(); SYS.msg=null; SYS.error=''; sysLoad(true); return}
+  if(hit('[data-sys-cancel]')){e.preventDefault(); SYS.draft={}; SYS.msg=null; renderBody(); return}
+  if(hit('[data-sys-save]')){e.preventDefault(); sysSave(); return}
+  if(hit('[data-sys-switch]')){e.preventDefault(); const sw=hit('[data-sys-switch]'); if(SYS.busy||!SYS.loaded) return;
+    const key=sw.dataset.sysSwitch, slot=sw.dataset.sysSlot, cur=Object.assign({},sysDraft(key)||{}); cur[slot]=!cur[slot]; SYS.draft[key]=cur; SYS.msg=null; renderBody(); return}
+  if(hit('[data-goto-service-payment]')){e.preventDefault(); S.sec='settings'; S.setG='services'; SERVICE_TAB='payment'; SERVICE_MSG=null; render(); return}
+  if(hit('[data-goto-service]')){e.preventDefault(); if(!isOwner()){toast('تنظیمات سرویس فقط با مالک است'); return} S.sec='settings'; S.setG='services'; SERVICE_TAB=hit('[data-goto-service]').dataset.gotoService||'bale'; SERVICE_MSG=null; render(); return}
+});
+document.addEventListener('input',e=>{
+  const inp=e.target&&e.target.closest&&e.target.closest('[data-sys-text]'); if(!inp) return;
+  const key=inp.dataset.sysText; SYS.draft[key]=inp.value; SYS.msg=null;
+  const bar=document.querySelector('[data-sys-bar]'); if(bar){const dirty=sysDirty(); const sv=bar.querySelector('[data-sys-save]'); if(sv) sv.toggleAttribute('disabled',!dirty||SYS.busy);}
+});
+
+/* ══ تنظیمات (بازگردانی طرح نورا ۱۴۰۵/۰۸/۰۱) ═══════════════════════════════
+   ساختار همان vSettings مرجع است: کاشی‌های حوزه در بالا (SKIN_TILES، همان نام و ترتیب)،
+   زیرش شش گروه (متن‌ها، مالی و کارمزد، گواهینامه، بلیت، اعلان‌ها، داده و پشتیبان) با بخش‌بند
+   کارتی. ولی هیچ کلیدی از data.js/localStorage خوانده یا در آن ذخیره نمی‌شود: هر گزینه یکی از
+   چهار وضعیت را دارد و فقط گزینه‌های «متصل» کنترل زنده دارند؛ بقیه فقط با توضیح دلیل می‌آیند.
+     live     → endpoint واقعی دارد (خواندن/ذخیره/بازخوانی سمت سرور)
+     builder  → به‌ازای هر فرم در فرم‌ساز تنظیم می‌شود (نه سراسری)
+     backend  → رفتار روشن است ولی سرویس/endpoint سمت سرور هنوز نیست
+     decision → تصمیم محصولی/زیرساختی مالک لازم است
+     scope    → خارج از دامنهٔ نسخهٔ فعلی
+   ماژول‌های قبلی (اتصال سرویس‌ها، دامنه، داده‌ها و مهاجرت، امنیت، محتوای عمومی، افراد، سلامت)
+   حذف نشده‌اند؛ هرکدام زیر گروه یا کاشیِ هم‌معنای خودش رندر می‌شود (کلید S.setG همان کلید قبلی می‌ماند). */
+const SSET_GROUPS=[
+  {k:'texts', n:'متن‌ها', i:'i-doc', s:'همهٔ پیام‌ها و برچسب‌ها'},
+  {k:'money', n:'مالی و کارمزد', i:'i-wallet', s:'درگاه، کارمزد و بازگشت', own:1},
+  {k:'cert',  n:'گواهینامه', i:'i-medal', s:'قالب، امضا، مهر و استعلام'},
+  {k:'ticket',n:'بلیت', i:'i-ticket', s:'چیدمان، لوگو و اندازه'},
+  {k:'notify',n:'اعلان‌ها', i:'i-bell', s:'یادآور، مناسبت و ساعت سکوت'},
+  {k:'data',  n:'داده و پشتیبان', i:'i-layers', s:'پشتیبان، بازگردانی و کلیدها'}];
+/* برگ انتخاب‌شده (S.setG) → گروه یا کاشی. کلیدهای قدیمی پنل سروری هم همین‌جا نگاشت می‌شوند تا
+   میان‌برها (#money، data-goto-service، data-ct-pick-manage) و آزمون‌ها بی‌تغییر کار کنند. */
+const SSET_LEAF={texts:{g:'texts'},money:{g:'money'},receipts:{g:'money'},cert:{g:'cert'},ticket:{g:'ticket'},notify:{g:'notify'},
+  data:{g:'data'},services:{g:'data'},bots:{g:'data'},
+  publishing:{t:'skin'},people:{t:'people'},deploy:{t:'ops'},security:{t:'ops'},performance:{t:'ops'},chat:{t:'chat'}};
+const SSET_STATUS={live:['متصل به سرور','ok'],builder:['به‌ازای هر فرم در فرم‌ساز',''],backend:['نیازمند بک‌اند','warn'],decision:['نیازمند تصمیم مالک','warn'],scope:['خارج از دامنهٔ این نسخه','']};
+/* یک ردیف گزینه: نام، شرح رفتار، وضعیت و (فقط برای live) کنترل واقعی */
+function ssetRow(label,status,why,control,attrs){
+  const st=SSET_STATUS[status]||SSET_STATUS.decision;
+  return `<div class="admsw" data-sset-row="${esc(status)}" ${attrs||''}><span class="sp"><b>${esc(label)}</b>${why?`<small>${esc(why)}</small>`:''}</span>
+    ${control||''}${tag(st[0],st[1])}</div>`;
+}
+/* ── انبار تنظیمات سروری: GET/PUT /api/owner/settings (کلیدهای allowlist با مصرف‌کنندهٔ واقعی) ── */
+const SYS={loading:false,loaded:false,error:'',items:[],draft:{},busy:false,msg:null,forbidden:false};
+function sysItem(key){return (SYS.items||[]).find(x=>x.key===key)||null}
+function sysValue(key){const it=sysItem(key); return it?it.value:undefined}
+function sysDraft(key){return Object.prototype.hasOwnProperty.call(SYS.draft,key)?SYS.draft[key]:sysValue(key)}
+function sysDirty(){return Object.keys(SYS.draft).some(k=>JSON.stringify(SYS.draft[k])!==JSON.stringify(sysValue(k)))}
+function sysCan(){return !!SERVER_AUTH&&(isOwner()||canPerm('sys_settings'))}
+async function sysLoad(force){
+  if(IS_TEST||!sysCan()||SYS.loading||(SYS.loaded&&!force)) return;
+  SYS.loading=true; SYS.error=''; if(S.sec==='settings') renderBody();
+  try{
+    const response=await fetch('/api/owner/settings',{credentials:'same-origin',headers:{'Accept':'application/json'}});
+    if(response.status===401||response.status===403){SYS.forbidden=true; SYS.error='این بخش فقط با مجوز «تنظیمات سامانه» در دسترس است.';}
+    else if(!response.ok) SYS.error='دریافت تنظیمات از سرور انجام نشد.';
+    else{const data=await response.json(); SYS.items=Array.isArray(data.items)?data.items:[]; SYS.loaded=true; SYS.forbidden=false; SYS.draft={};}
+  }catch(e){SYS.error='ارتباط با سرور برقرار نشد.'}
+  finally{SYS.loading=false; if(S.sec==='settings') renderBody()}
+}
+async function sysSave(){
+  if(SYS.busy||!sysDirty()) return;
+  const changes={}; Object.keys(SYS.draft).forEach(k=>{if(JSON.stringify(SYS.draft[k])!==JSON.stringify(sysValue(k))) changes[k]=SYS.draft[k]});
+  SYS.busy=true; SYS.msg=null; renderBody();
+  try{
+    const response=await fetch('/api/owner/settings',{method:'PUT',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':ownerCsrf()},body:JSON.stringify({changes})});
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){SYS.items=Array.isArray(data.items)?data.items:SYS.items; SYS.draft={}; SYS.msg={kind:'ok',text:'ذخیره شد و همین حالا روی سرور اعمال است.'}}
+    else{const d=data&&data.detail||{}; SYS.msg={kind:'stop',text:(typeof d==='string'?svcCodeText(d):(d.message||svcCodeText(d.code||'')))||'ذخیره انجام نشد؛ چیزی تغییر نکرد.'}}
+  }catch(e){SYS.msg={kind:'stop',text:'ارتباط با سرور برقرار نشد؛ چیزی تغییر نکرد.'}}
+  finally{SYS.busy=false; renderBody()}
+}
+function sysBar(){
+  if(!SYS.loaded&&SYS.loading) return `<p class="cap" data-sys-state="loading">${ico('i-clock')} در حال دریافت تنظیمات از سرور…</p>`;
+  if(!SYS.loaded&&SYS.error) return `<p class="cap" style="color:var(--stop)" role="alert" data-sys-state="error">${esc(SYS.error)} ${SYS.forbidden?'':btn('تلاش دوباره','data-sys-reload','i-refresh')}</p>`;
+  const dirty=sysDirty();
+  return `<div class="row tight" style="flex-wrap:wrap" data-sys-bar>
+    ${SYS.msg?`<span class="cap" role="status" data-sys-msg="${esc(SYS.msg.kind)}" style="border-inline-start:3px solid var(--${SYS.msg.kind==='ok'?'ok':'stop'});padding-inline-start:8px">${esc(SYS.msg.text)}</span>`:''}
+    ${dirty?tag('تغییر ذخیره‌نشده','warn'):''}<span class="sp"></span>
+    ${btn('بازخوانی از سرور',`data-sys-reload ${SYS.loading||SYS.busy?'disabled':''}`,'i-refresh')}
+    ${dirty?btn('انصراف',`data-sys-cancel ${SYS.busy?'disabled':''}`,'i-close'):''}
+    ${btn(SYS.busy?'در حال ذخیره…':'ذخیره در سرور',`data-sys-save ${dirty&&!SYS.busy?'':'disabled'}`,'i-check')}</div>`;
+}
+const sysSwitch=(key,slot,label)=>{const v=sysDraft(key)||{}, on=!!v[slot];
+  return `<span class="switch ${on?'on':''}" data-sys-switch="${esc(key)}" data-sys-slot="${esc(slot)}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}" ${SYS.busy||!SYS.loaded?'aria-disabled="true"':''}></span>`};
+/* ── کاشی‌های حوزه: همان SKIN_TILES مرجع؛ هر کاشی به مقصد واقعی خودش می‌رود ── */
+function ssetTiles(leaf){
+  const cur=(SSET_LEAF[leaf]||{}).t||'';
+  const dest={skin:{setg:'publishing'},forms:{href:'builder.html'},users:{act:'users-staff'},ops:{setg:'deploy'},book:{act:'club'},skdev:{act:'events'},people:{setg:'people'},chat:{setg:'chat'}};
+  const soon={chat:1};
+  return `<section class="card stack" data-sset-tiles>
+    <div class="row"><div class="head">تنظیمات سامانه</div><span class="sp"></span><span class="cap">${esc(fa(SKIN_TILES.length))} کاشی · هر کاشی یک حوزه</span></div>
+    <div class="sktgrid">${SKIN_TILES.map(x=>{const d=dest[x.k]||{}; const inner=`<span class="si">${ico(x.i)}</span><b>${esc(x.n)}</b><span class="cap">${esc(x.s)}</span>${soon[x.k]?tag('بخشی نیازمند سرویس','warn'):''}`;
+      if(d.href) return `<a class="sktile" href="${d.href}" data-sset-tile="${x.k}">${inner}</a>`;
+      return `<button type="button" class="sktile ${cur===x.k?'on':''}" data-sset-tile="${x.k}" ${d.setg?`data-sset-go="${d.setg}"`:''} ${d.act?`data-sset-act="${d.act}"`:''} aria-pressed="${cur===x.k?'true':'false'}">${inner}</button>`}).join('')}</div>
+  </section>`;
+}
+function ssetGroupTexts(){
+  const key='texts.reminder_head', it=sysItem(key), cur=String(sysDraft(key)==null?'':sysDraft(key));
+  const control=SYS.loaded?`<input class="input" data-sys-text="${key}" value="${esc(cur)}" maxlength="300" placeholder="یادآوری: «{رویداد}» {زمان} برگزار می‌شود." ${SYS.busy?'disabled':''}/>`:'';
+  return sdSect('نوشته‌های سامانه','۱ نوشتهٔ متصل · ۳ گزینهٔ بی‌مصرف‌کنندهٔ سروری')+`<p class="cap">فقط نوشته‌ای این‌جا ویرایش می‌شود که سرور واقعاً آن را می‌خواند. ${it&&it.consumer?'مصرف‌کننده: '+esc(it.consumer)+'.':''}</p>
+    <div class="admtext" data-sset-row="live"><span class="lbl">متن یادآور رویداد</span>${control||`<small class="cap">${SYS.loading?'در حال دریافت…':'مقدار از سرور دریافت نشد.'}</small>`}
+      <small class="cap" style="display:block;margin-top:4px">سطر نخست یادآور ۲۴ ساعت و ۱ ساعت قبل (B19) که زمان‌بند سرور در صف اعلان می‌گذارد؛ جای‌خالی‌ها: {رویداد} {زمان}. خالی = متن پیش‌فرض سرور.${it&&it.custom?' · سفارشی‌شده'+(it.updated_at?' در '+svcWhen(it.updated_at):''):''}</small></div>
+    ${sysBar()}`+sdEnd()
+    +sdSect('نوشته‌های بدون مصرف‌کنندهٔ سروری','۳ گزینه')
+    +ssetRow('متن پیام خوش‌آمد','backend','پیام خوش‌آمد را ربات بله هنگام /start می‌فرستد؛ وب‌اپ متن آن را نگه نمی‌دارد و endpoint مشترکی برای ویرایش نیست.')
+    +ssetRow('متن پیام گواهی','backend','اعلان «گواهی» با متن ثابت سرور صف می‌شود؛ قالب قابل‌ویرایش هنوز ساخته نشده.')
+    +ssetRow('متن پیام دعوت دوست','scope','کد دعوت و امتیاز معرفی در این نسخه وجود ندارد.')+sdEnd();
+}
+function ssetGroupMoney(){
+  const pay=svcService('payment'), st=pay?svcStateTag(pay.state):(SERVICE_LOADING?tag('در حال دریافت','' ):tag('وضعیت نامشخص','warn'));
+  const live=`<span class="row" style="gap:6px">${st}${btn('پیکربندی درگاه','data-sset-pay','i-wallet')}</span>`;
+  const payPanel=S.setG==='money'&&SERVICE_TAB==='payment'?servicesSettingsView():'';
+  return sdSect('درگاه و رسید','۲ گزینه')
+    +ssetRow('درگاه رسمی بله','live','توکن کیف پول و وب‌هوک رمزنگاری‌شده در سرور ذخیره می‌شوند و فقط آزمایش اتصال نتیجه را نشان می‌دهد؛ پرداخت هر فرم از همین پیکربندی می‌خواند.',live)
+    +ssetRow('کارت‌به‌کارت با تأیید رسید','builder','در فرم‌ساز برای هر فرم روشن می‌شود؛ بارگذاری رسید هرگز خرید را نهایی نمی‌کند و تأیید در کارتابل انجام می‌شود.',`<a class="btn sm quiet" href="builder.html">${ico('i-pen')}فرم‌ساز</a>`)
+    +(payPanel?`<div class="stack" data-sset-embed="payment">${payPanel}</div>`:'')+sdEnd()
+    +sdSect('اقساط و کارمزد','۲ گزینه')
+    +ssetRow('پرداخت اقساطی','decision','سرور فقط پرداخت یک‌مرحله‌ای ثبت می‌کند؛ قسط دوم، سررسید و بدهی به تعریف مالک و مدل داده نیاز دارد.')
+    +ssetRow('کارمزد روی کاربر','decision','مبلغ فرم همان مبلغ درگاه است؛ افزودن کارمزد به قیمت تصمیم مالی مالک است.')+sdEnd();
+}
+function ssetGroupCert(){
+  const open=canPerm('certificate')?btn('ثبت گواهی‌های صادرشده','data-sset-act="cert"','i-medal'):'';
+  return sdSect('قالب فایل ورد گواهینامه','صدور در ربات')+`<p class="cap">صدور و ابطال گواهی فقط در ربات بله انجام می‌شود و پنل ثبت مشترک سرور را می‌خواند؛ قالب ورد و پارامترهایش در همان مسیر ربات است و از این‌جا بارگذاری نمی‌شود تا دو مسیر صدور موازی ساخته نشود.</p>
+    ${ssetRow('بارگذاری قالب .docx','backend','endpoint بارگذاری و فهرست قالب‌ها سمت سرور نیست؛ تا تصمیم مالک، قالب همان قالب ربات است.',open)}`+sdEnd()
+    +sdSect('سیاست صدور گواهینامه','۴ کلید')
+    +ssetRow('صدور با تأیید سرپرست','decision','گواهی مشارکت و گواهی دورهٔ ضبط‌شده دو نوع جدا هستند؛ مرحلهٔ تأیید پیش از صدور تعریف نشده.')
+    +ssetRow('ساخت تنبل گواهی','backend','فایل گواهی همان لحظهٔ صدور در ربات ساخته می‌شود؛ ساخت هنگام اولین دیدن به سرویس فایل نیاز دارد.')
+    +ssetRow('گواهی چاپی','scope','چاپ و ارسال پستی در این نسخه نیست.')
+    +ssetRow('استعلام با کیوآرکد','live','هر گواهی شمارندهٔ استعلام (verify_count) دارد و صفحهٔ عمومی استعلام از ثبت مشترک می‌خواند؛ کلید خاموش/روشن ندارد.')+sdEnd();
+}
+function ssetGroupTicket(){
+  const att=canPerm('attendance')?btn('حضور و غیاب','data-sset-act="att"','i-check'):'';
+  return sdSect('نمای بلیت','۲ گزینه')
+    +ssetRow('بلیت تصویری','backend','ثبت‌نام تأییدشده در «حساب من» دیده می‌شود؛ تولید تصویر بلیت با هنر رویداد سرویس رندر سمت سرور می‌خواهد.')
+    +ssetRow('لوگو در بلیت','decision','وابسته به بلیت تصویری؛ تا ساخته‌نشدن آن تصمیمی لازم نیست.')+sdEnd()
+    +sdSect('ورود و مهمان','۲ گزینه')
+    +ssetRow('کارت ورود با کیوآرکد','live','حضور از ماژول «حضور و غیاب» روی همان ثبت‌نام‌های فرم ثبت می‌شود (حضور ≠ ثبت‌نام ≠ گواهی)؛ کلید سراسری ندارد.',att)
+    +ssetRow('بلیت مهمان','builder','«همراه» در تنظیمات هر فرم ثبت‌نام (guestsOn) روشن می‌شود و فرم‌های خرید همراه نمی‌پذیرند.',`<a class="btn sm quiet" href="builder.html">${ico('i-pen')}فرم‌ساز</a>`)+sdEnd();
+}
+function ssetGroupNotify(){
+  const key='events.reminders_default', it=sysItem(key);
+  const kinds=[['event_reminder','یادآوری رویداد','۲۴ ساعت و ۱ ساعت پیش از شروع، برای ثبت‌نام‌های پذیرفته‌شدهٔ فرم ثبت‌نام (B19)'],
+    ['registration_approved / rejected','تصمیم ثبت‌نام و رسید','پس از تصمیم کارتابل برای همان حساب'],
+    ['event_qa_answer','پاسخ پرسش رویداد','وقتی کادر به پرسش عمومی پاسخ می‌دهد'],
+    ['certificate','صدور گواهی','پس از ثبت گواهی در ثبت مشترک'],
+    ['recording_order / access / purchase / content','محتوای ضبط‌شده','سفارش، اعطای دسترسی، ثبت خرید و انتشار محتوا'],
+    ['content_published','انتشار زمان‌بندی‌شده','وقتی زمان‌بند سرور رکورد را منتشر می‌کند']];
+  const outbox=canPerm('rp_view')?btn('باز کردن دفتر نامه‌ها','data-sset-act="outbox"','i-inbox'):'';
+  return sdSect('نامه‌خانهٔ اعلان‌ها','یک صف، چند راه')+`<p class="cap">هر اعلان یک‌بار در صف سرور می‌نشیند (کلید یکتا؛ تکرار نمی‌شود)، در «حساب من» دیده می‌شود و اگر تحویل بله پیکربندی باشد از ربات هم می‌رود. «در صف» با «تحویل‌شده» یکی نیست و پیامک در این نسخه نیست.</p>
+    ${ssetRow('نام فرستندهٔ پیام‌ها','decision','فرستنده همیشه ربات نوراست؛ نام نمایشی جداگانه در مدل اعلان وجود ندارد.')}`+sdEnd()
+    +sdSect('اعلان‌ها',fa(kinds.length)+' نوع · همه از سرور')
+    +kinds.map(k=>`<div class="admsw" data-sset-kind="${esc(k[0])}"><span class="ic">${ico('i-bell')}</span><span class="sp"><b>${esc(k[1])}</b><small>${esc(k[2])}</small><small dir="ltr">${esc(k[0])}</small></span>${tag('همیشه روشن · سرور','ok')}</div>`).join('')
+    +`<p class="cap">کلید خاموش‌کردن هر نوع عمداً ساخته نشده: هر اعلان پیامد یک عمل ثبت‌شده است و خاموش‌کردنش تصمیم محصولی مالک می‌خواهد.</p>`+sdEnd()
+    +sdSect('ساعت‌ها و حالت‌های کلی','۲ کلید متصل · ۳ گزینه')+`<p class="cap">${it&&it.consumer?esc(it.consumer)+'.':''} زمان یادآورها ثابت است (۲۴ ساعت و ۱ ساعت قبل) و از زمان شروع رویداد در سرور حساب می‌شود.</p>`
+    +ssetRow('یادآور ۲۴ ساعت قبل؛ پیش‌فرض رویداد تازه','live','رویداد تازه در ویزارد با این کلید روشن ساخته می‌شود؛ در هر رویداد قابل تغییر است.',sysSwitch(key,'h24','یادآور ۲۴ ساعت قبل'))
+    +ssetRow('یادآور ۱ ساعت قبل؛ پیش‌فرض رویداد تازه','live','همان قاعده برای یادآور یک ساعت قبل.',sysSwitch(key,'h1','یادآور ۱ ساعت قبل'))
+    +sysBar()
+    +ssetRow('تبریک تولد','scope','تاریخ تولد در پروفایل سرور ذخیره نمی‌شود.')
+    +ssetRow('خبر رویداد تازه','backend','انتشار رویداد اعلان همگانی نمی‌سازد؛ ارسال به همهٔ اعضا endpoint، سقف و ممیزی جدا می‌خواهد.')
+    +ssetRow('ساعت سکوت ۲۳ تا ۸','decision','زمان‌بند سرور هر اعلان رسیده را همان لحظه صف می‌کند؛ نگه‌داشتن تا صبح تصمیم مالک و تغییر زمان‌بند است.')+sdEnd()
+    +sdSect('نامهٔ فوری به همهٔ اعضا','بدون دکمه')+`<p class="cap">ارسال همگانی عمداً دکمه ندارد: بدون endpoint اختصاصی با مجوز، سقف تعداد و ثبت ممیزی، هیچ پیام واقعی از پنل نمی‌رود. اطلاع‌رسانی رویداد از صفحهٔ همان رویداد و با گیرندگان واقعی انجام می‌شود.</p>`+sdEnd()
+    +sdSect('دفتر نامه‌ها','صف و تحویل از سرور')+`<p class="cap">همهٔ اعلان‌های صف‌شده با وضعیت «در صف / در حال تلاش / تحویل‌شده / ناموفق» در دفتر نامه‌ها (ابزارهای کاربران) دیده می‌شوند.</p><div class="row tight">${outbox||'<small class="cap">نیازمند مجوز «دیدن گزارش‌ها».</small>'}<span class="sp"></span></div>`+sdEnd();
+}
+function ssetGroupData(leaf){
+  const canSettings=isOwner()||canPerm('sys_settings'), canBackup=isOwner()||canPerm('sys_backup');
+  const sub=leaf==='services'||leaf==='bots'?'services':'data';
+  const chips=`<div class="admfilters" role="tablist" aria-label="زیربخش داده و پشتیبان">
+    <button class="chip ${sub==='data'?'on':''}" data-setg="data">${ico('i-layers')}<span>سیاست‌ها و مهاجرت</span></button>
+    <button class="chip ${sub==='services'?'on':''}" data-setg="services">${ico('i-key')}<span>اتصال‌ها و کلیدها</span></button></div>`;
+  if(sub==='services') return chips+sdSect('اتصال‌ها و کلیدها','کلید درگاه و ربات‌ها؛ مقدار پنهان می‌ماند')+`<p class="cap">اعتبارنامه‌ها رمزنگاری‌شده در سرور می‌مانند، هرگز برنمی‌گردند و فقط دنبالهٔ کوتاه و نتیجهٔ آزمایش اتصال نشان داده می‌شود.</p>`
+    +(canSettings?servicesSettingsView():serverUnavailableModule('اتصال سرویس‌ها','این بخش به مجوز «تنظیمات سامانه» نیاز دارد؛ بررسی مجوز و اعتبارسنجی مقدار سمت سرور انجام می‌شود.'))+sdEnd();
+  return chips+sdSect('سیاست‌ها','۴ گزینه')
+    +ssetRow('پشتیبان شبانه','backend','پشتیبان‌گیری زمان‌بندی‌شده کار cron سرور است؛ آخرین «راستی‌آزمایی پشتیبان» در «مدیریت پنل › سلامت و سرعت» از نشانگر سرور خوانده می‌شود.')
+    +ssetRow('نگه‌داری لاگ ۹۰ روز','decision','ممیزی سرور همهٔ رویدادها را نگه می‌دارد؛ هرس خودکار به تصمیم مالک و پشتیبان پیشین نیاز دارد.')
+    +ssetRow('ورود گروهی از اکسل','backend','فقط نسخهٔ پشتیبان SQLite نورا بارگذاری و ممیزی می‌شود (پایین)؛ ورود اکسل اعضا endpoint و قاعدهٔ یکتاسازی می‌خواهد.')
+    +ssetRow('حالت نگهداری','decision','بستن موقت سامانه با پیام، کلید سروری ندارد؛ تا تصمیم مالک از سطح وب‌سرور انجام می‌شود.')+sdEnd()
+    +sdSect('داده‌ها و مهاجرت','بارگذاری، ممیزی و حذف فقط سمت سرور')
+    +(canBackup?dataSettingsView():serverUnavailableModule('داده‌ها و مهاجرت','این بخش فقط با مجوز «پشتیبان‌گیری سامانه» در دسترس است؛ بارگذاری، ممیزی و حذف هم سمت سرور بررسی می‌شود.'))+sdEnd();
+}
+function ssetTileView(tile,leaf){
+  const canSettings=isOwner()||canPerm('sys_settings');
+  const back=`<div class="row"><button class="btn sm quiet" data-setg="texts">${ico('i-back')}بازگشت به گروه‌ها</button><span class="sp"></span></div>`;
+  if(tile==='skin') return back+(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
+    <p class="cap">بنرها، همگام‌سازی محتوای عمومی و صندوق همکاری از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
+    <div data-owner-publishing-tools></div></section>`;
+  if(tile==='people') return back+peView();
+  if(tile==='chat') return back+`<section class="card stack" data-sset-chat><div class="head">پشتیبانی و گفتگو</div>
+    ${ssetRow('صندوق درخواست همکاری','live','پیام‌های فرم عمومی همکاری در صندوق سرور می‌نشینند و از کاشی «ظاهری سامانه» پاسخ داده می‌شوند.',btn('باز کردن صندوق','data-setg="publishing"','i-inbox'))}
+    ${ssetRow('صندوق تیکت کاربران','backend','تیکت و گفتگوی دوطرفه در وب‌اپ نیست؛ پشتیبانی از ربات بله انجام می‌شود.')}
+    ${ssetRow('پاسخ‌های آماده','decision','وابسته به صندوق تیکت.')}
+    ${ssetRow('ساعات پاسخ‌گویی و گزارش','decision','بدون صندوق تیکت، گزارشی برای نمایش نیست؛ عدد نمونه نشان داده نمی‌شود.')}</section>`;
+  /* ops: دامنه، امنیت، سلامت؛ همان سه ماژول قبلی */
+  const cur=['deploy','security','performance'].includes(leaf)?leaf:'deploy';
+  const chips=`<div class="admfilters" role="tablist" aria-label="زیربخش مدیریت پنل">${[['deploy','دامنه و راه‌اندازی','i-globe'],['security','امنیت و دسترسی‌ها','i-shield'],['performance','سلامت و سرعت','i-trend']].map(x=>`<button class="chip ${cur===x[0]?'on':''}" data-setg="${x[0]}">${ico(x[2])}<span>${esc(x[1])}</span></button>`).join('')}</div>`;
+  const body=cur==='deploy'?(canSettings?deploymentSettingsView():serverUnavailableModule('دامنه و راه‌اندازی','این بخش به مجوز «تنظیمات سامانه» نیاز دارد.'))
+    :cur==='security'?securitySettingsView():performanceSettingsView();
+  return back+`<section class="card stack"><div class="head">مدیریت پنل</div><p class="cap">کارتابل و لاگ در «کاربران › ابزارها و گزارش» هستند؛ این‌جا دامنه، امنیت نشست و سلامت سرور.</p>${chips}</section>${body}`;
 }
 function serverSettingsView(){
-  const defs=[
-    ['publishing','محتوای عمومی و همکاری','i-globe',true],['bots','وضعیت بله و ایتا','i-send',true],
-    ['money','مالی و پرداخت','i-wallet',false],['cert','گواهینامه','i-medal',false],
-    ['ticket','بلیت','i-ticket',false],['notify','اعلان‌ها','i-bell',false],
-    ['texts','متن‌ها','i-doc',false],['data','داده و پشتیبان','i-layers',false],
-    ['performance','سلامت و سرعت','i-trend',false]
-  ];
-  const selected=S.setG==='texts'?'publishing':defs.some(x=>x[0]===S.setG)?S.setG:'publishing';
-  if(S.setG!==selected){S.setG=selected;save()}
-  const tabs=defs.map(([key,title,icon,connected])=>`<button class="chip ${selected===key?'on':''}" data-setg="${key}">
-    ${ico(icon)}<span>${esc(title)}</span>${tag(connected?'API':'بدون API',connected?'ok':'warn')}</button>`).join('');
-  let content='';
-  if(selected==='publishing') content=`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
-    <p class="cap">صندوق همکاری و پیوند فرمِ منتشرشده از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
-    <div data-owner-publishing-tools></div></section>`;
-  else if(selected==='bots') content=`<section class="card stack"><div class="row"><div class="head">وضعیت پیام‌رسان</div><span class="sp"></span>${tag('فقط وضعیت عمومی','warn')}</div>
-    <p class="cap">وضعیت بله و ایتا از API هم‌مبدأ خوانده می‌شود. این صفحه secret نمی‌پذیرد؛ مشاهدهٔ اتصال به‌تنهایی ارسال را فعال نمی‌کند.</p>
-    <div data-bot-status class="bot-status" role="status" aria-live="polite">وضعیت اتصال از سرور دریافت نشده است.</div>
-    <div class="row"><span class="sp"></span>${btn('بازخوانی وضعیت','data-bot-refresh','i-refresh')}</div></section>`;
-  else content=serverUnavailableModule(defs.find(x=>x[0]===selected)?.[1]||'تنظیمات',
-    'API و مجوز سروری این ماژول هنوز به پنل متصل نشده‌اند؛ کلید، عدد و دادهٔ نمونه در این صفحه نمایش داده یا ذخیره نمی‌شود.');
-  const routes=`<section class="card stack"><div class="head">میان‌برهای سروری</div><div class="row" style="flex-wrap:wrap">
-    <a class="btn sm" href="builder.html">فرم‌ساز و پاسخ‌های سروری</a>
-    ${canSec('users')?`<button class="btn sm quiet" data-server-role-module>حساب‌ها و نقش‌های سرور</button>`:''}
-    ${canPerm('rp_view')?`<button class="btn sm quiet" data-user-hub="reports">گزارش سرور</button>`:''}
-  </div></section>`;
-  return `<div class="stack"><section class="card stack"><div class="head">تنظیمات مالک</div>
-    <p class="cap">ماژول‌ها از هم جدا هستند؛ وضعیت هرکدام بر اساس endpoint سرور نشان داده می‌شود. APIِ متصل‌نشده با دادهٔ نمایشی پر نمی‌شود.</p>
-    <div class="admfilters" role="tablist" aria-label="ماژول‌های تنظیمات">${tabs}</div></section>
-    ${content}${routes}</div>`;
+  const own=isOwner(), canSettings=own||canPerm('sys_settings');
+  let leaf=SSET_LEAF[S.setG]?S.setG:'texts';
+  if(!canSettings){ if(!['cert','ticket','notify'].includes(leaf)) leaf='cert'; }
+  else if(!own&&(SSET_LEAF[leaf].g==='money')) leaf='texts';
+  if(S.setG!==leaf){S.setG=leaf; save()}
+  if(!IS_TEST&&canSettings&&!SYS.loaded&&!SYS.loading&&!SYS.error) sysLoad(false);
+  if(!IS_TEST&&own&&SSET_LEAF[leaf].g==='money'&&!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
+  const L2=SSET_LEAF[leaf], g=L2.g||'', tile=L2.t||'';
+  const groups=SSET_GROUPS.filter(x=>own||!x.own).filter(x=>canSettings||['cert','ticket','notify'].includes(x.k));
+  const chips=groups.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${x.k}">${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
+  const group=SSET_GROUPS.find(x=>x.k===g)||null;
+  const inner=tile?ssetTileView(tile,leaf)
+    :g==='texts'?ssetGroupTexts():g==='money'?ssetGroupMoney():g==='cert'?ssetGroupCert():g==='ticket'?ssetGroupTicket():g==='notify'?ssetGroupNotify():ssetGroupData(leaf);
+  const moved=!canSettings?`<div class="admlirow" data-sset-moved><span class="ic">${ico('i-info')}</span><span class="sp"><b>مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد</b><small class="cap">تنظیمات سامانه با حساب مالک است؛ این‌جا فقط وضعیت گروه‌های عمومی را می‌بینی.</small></span>${canSec('users')?btn('کاربران › ابزارها','data-sset-act="users-staff"','i-users'):''}</div>`:'';
+  const legend=`<details class="adv"><summary>${ico('i-info')}راهنمای وضعیت گزینه‌ها</summary><div class="adv-body"><p class="cap" data-sset-legend>هر گزینه یکی از این وضعیت‌ها را دارد: ${tag('متصل به سرور','ok')} کنترل زنده دارد و در سرور ذخیره می‌شود · ${tag('به‌ازای هر فرم در فرم‌ساز','')} · ${tag('نیازمند بک‌اند','warn')} · ${tag('نیازمند تصمیم مالک','warn')} · ${tag('خارج از دامنهٔ این نسخه','')}. هیچ کلیدی در مرورگر ذخیره نمی‌شود.</p></div></details>`;
+  return `<div class="stack" data-sset>${canSettings?ssetTiles(leaf):''}
+    <section class="card stack" data-sset-groups>
+      <div class="row"><div class="head">تنظیمات سروری</div><span class="sp"></span>
+        <span class="cap">${esc(fa(groups.length))} گروه${group?' · '+esc(group.n):tile?' · '+esc((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):''}</span></div>
+      ${moved}${legend}
+      <div class="admfilters" role="tablist" aria-label="گروه‌های تنظیمات">${chips}</div>
+      ${group?`<div class="admlirow" style="border:0;padding-bottom:0"><span class="ic">${ico(group.i)}</span><span class="sp"><b>${esc(group.n)}</b><small class="cap">${esc(group.s||'')}</small></span></div>`:''}
+      <div class="admset">${inner}</div>
+    </section></div>`;
+}
+/* ══ بازیابی پنل (مرحلهٔ A): زیرماژول‌های طراحی که فقط در حالت نمونه دیده می‌شدند،
+   این‌جا روی همان مسیر دادهٔ سرور (NORA_SERVER_API) و با همان مجوزهای backend/roles.py
+   داخل همان چهار بخش بالا رندر می‌شوند. هیچ دادهٔ data.js در این بخش خوانده نمی‌شود؛
+   ماژولی که API یا قاعدهٔ کسب‌وکار ندارد با دلیل دقیق «در دست ساخت / نیازمند سرویس» می‌ماند. */
+const JMONTHS_FA=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const DASHX={loading:false,loaded:false,error:'',inbox:null,upcoming:null,sched:null,audit:null,notif:null,at:0,view:''};
+const dashxCan=()=>({inbox:canUseSharedInbox(),events:canSec('events'),sched:canPerm('ev_publish')||isOwner(),audit:isOwner(),notif:canPerm('rp_view')});
+async function dashxLoad(manual){
+  if(IS_TEST||!SERVER_AUTH||DASHX.loading) return; if(DASHX.loaded&&!manual) return;
+  const api=window.NORA_SERVER_API;
+  if(!api){DASHX.error='رابط سرور در دسترس نیست.'; DASHX.loaded=true; if(S.sec==='dash') renderBody(); return}
+  DASHX.loading=true; DASHX.error=''; if(S.sec==='dash') renderBody();
+  const can=dashxCan(), failed=[];
+  const pull=async(ok,method,args,key,label)=>{
+    if(!ok||typeof api[method]!=='function'){DASHX[key]=null; return}
+    try{DASHX[key]=await api[method].apply(api,args)}catch(error){DASHX[key]=null; failed.push(label)}
+  };
+  await Promise.all([
+    pull(can.inbox,'listAdminInbox',[20,0,'pending'],'inbox','کارتابل'),
+    pull(can.events,'listAdminContent',['events',{status:'published',sort:'date',order:'asc',limit:20}],'upcoming','رویدادها'),
+    pull(can.sched,'getScheduledPublish',[],'sched','انتشار زمان‌بندی‌شده'),
+    pull(can.audit,'listAuditEvents',[7,0,''],'audit','تاریخچهٔ عملیات'),
+    pull(can.notif,'listAdminNotifications',[{limit:1}],'notif','اعلان‌ها')
+  ]);
+  DASHX.error=failed.length?'بخشی از داده‌های داشبورد از سرور دریافت نشد: '+failed.join('، ')+'.':'';
+  DASHX.loading=false; DASHX.loaded=true; DASHX.at=Date.now();
+  if(S.sec==='dash') renderBody();
+}
+/* تاریخ جلالی سمت مرورگر؛ ادعای همگام‌سازی با اینترنت نمی‌شود */
+function dashxDateBar(){
+  const n=jNow(), monthName=JMONTHS_FA[n.jm-1]||'';
+  let when=''; if(DASHX.at){try{when=new Date(DASHX.at).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit'})}catch(e){when=''}}
+  return `<section class="dash-bar" data-dashx-bar><div class="row" style="flex-wrap:wrap;gap:var(--sp-2)">
+    <span class="ic">${ico('i-calendar')}</span><div><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b>
+    <small class="cap dash-note">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 40px"></span>
+    ${when?`<small class="cap">آخرین بازخوانی ${esc(when)}</small>`:''}
+    <button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی داشبورد'}</button>
+    <button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></div></section>`;
+}
+/* کارهای در انتظار: فقط شمارش‌هایی که endpoint واقعی دارند؛ هر ردیف به همان ماژول می‌رود */
+function dashxQueueCard(){
+  const can=dashxCan(); const rows=[];
+  const n=v=>Number.isSafeInteger(Number(v))&&Number(v)>=0?Number(v):null;
+  const row=(label,count,hint,attrs,warn)=>rows.push(`<div class="admlirow"><span class="ic">${ico(warn&&count?'i-flag':'i-check')}</span>
+    <span class="sp" style="flex:1 1 180px"><b>${esc(label)}</b><small class="cap">${esc(hint)}</small></span>
+    <b dir="ltr" style="font-weight:700">${count===null?'؟':esc(fa(count))}</b>${attrs?`<button class="btn sm quiet" ${attrs} aria-label="${esc('باز کردن '+label)}" title="${esc('باز کردن '+label)}">${ico('i-chev-left')}</button>`:''}</div>`);
+  if(can.inbox){const d=DASHX.inbox; const c=d&&Array.isArray(d.items)?d.items.length:null;
+    row('درخواست‌های کارتابل (پروفایل و فیش)',c===null?null:(d.has_more?c+'+':c),'منتظر تصمیم در کارتابل مشترک','data-open-workflow-inbox data-dashx-go="users"',true)}
+  if(eiCanMod()){const s=EI.summary;
+    row('پرسش‌های بی‌پاسخ',s?n(s.unanswered_questions):null,'پرسش‌وپاسخ صفحهٔ رویدادها','data-ei-open-all="questions"',true);
+    row('دیدگاه‌های در انتظار',s?n(s.pending_reviews):null,'دیدگاه شرکت‌کنندگان تأییدشده','data-ei-open-all="questions"',false);
+    row('گزارش‌های باز',s?n(s.open_reports):null,'گزارش تخلف روی پرسش و دیدگاه','data-ei-open-all="reports"',true)}
+  if(recCanOrders()){const r=REC.summary; row('سفارش‌های ضبط‌شده در بررسی',r?n(r.orders_review):null,'رسید بانکی رسیده، منتظر تصمیم','data-ei-open-all="orders"',true)}
+  if(can.notif){const c=DASHX.notif&&DASHX.notif.counts; row('اعلان‌های ناموفق',c?n(c.failed):null,'صف تحویل ربات؛ تلاش دوباره از صندوق خروجی','data-dashx-outbox',true);
+    row('اعلان‌های در صف',c?n(c.queued):null,'هنوز تحویل نشده؛ صف ≠ تحویل','data-dashx-outbox',false)}
+  if(can.sched){const p=DASHX.sched&&DASHX.sched.pending; row('انتشار زمان‌بندی‌شدهٔ معوق',p?n(p.due_unannounced):null,'سررسیده اما اعلام‌نشده؛ اجرای زمان‌بند لازم است','data-dashx-sched',true)}
+  if(!rows.length) return '';
+  const state=DASHX.loading?'<p class="cap">در حال خواندن صف کارها از سرور…</p>':DASHX.error?`<div class="empty"><p class="cap">${esc(DASHX.error)}</p>${btn('تلاش دوباره','data-dashx-refresh','i-refresh')}</div>`:'';
+  return `<section class="card stack" data-dashx-queue><div class="row"><div class="head">کارهای در انتظار</div><span class="sp" style="flex:1 1 180px"></span>${tag('شمارش زندهٔ سرور')}</div>
+    <div class="admlist">${rows.join('')}</div>${state}
+    <p class="cap">«؟» یعنی این شمارش هنوز از سرور نرسیده یا مجوز آن برای حساب شما فعال نیست؛ عدد نمونه جایگزین نمی‌شود.</p></section>`;
+}
+/* رویدادهای پیش رو از /api/admin/content/events (status=published) با زمان سرور */
+/* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A6): ظرفیت/ثبت‌نام روی کارت رویداد از فرم ثبت‌نام منتشرشدهٔ متصل (پاسخ سرور item.registration؛ شمارش واقعی form_responses). بدون فرم = گفتن صریح، نه عدد. */
+function ctRegMeta(item,opts){
+  const r=item&&item.registration; const long=!!(opts&&opts.long);
+  if(r===undefined) return '';
+  if(!r) return long?'بدون فرم ثبت‌نام منتشرشده':'';
+  const parts=[(r.cap>0?'ظرفیت '+fa(r.cap):'ظرفیت آزاد'),'ثبت‌نام قطعی '+fa(r.accepted)].concat(r.waitlisted>0?['در انتظار '+fa(r.waitlisted)]:[]);
+  return parts.join(' · ')+(r.full?' · تکمیل':'');
+}
+function ctRegTag(item){const r=item&&item.registration; if(!r) return ''; return r.full?tag('ظرفیت تکمیل','warn'):(r.cap>0&&r.accepted>=Math.max(1,Math.floor(r.cap*0.8))?tag('نزدیک به تکمیل','warn'):'')}
+function dashxUpcomingCard(){
+  if(!canSec('events')) return '';
+  const d=DASHX.upcoming; const now=Date.parse(d&&d.server_now||'')||Date.now();
+  const items=d&&Array.isArray(d.items)?d.items.filter(e=>e&&!e.past&&(!e.startsAt||Date.parse(e.startsAt)>=now-3600e3)).slice(0,5):[];
+  const rows=items.map(e=>`<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
+    <span class="sp" style="flex:1 1 180px"><b>${esc(e.t||e.id)}</b><small class="cap">${esc([e.on||e.when,e.time,e.place,e.mode].filter(Boolean).join(' · '))}</small>${e.registration!==undefined?`<small class="cap" data-dashx-reg="${esc(e.id)}" title="${e.registration?'از پاسخ‌های فرم «'+esc(e.registration.form_name||'')+'» روی سرور':'فرم ثبت‌نام منتشرشده‌ای به این رویداد وصل نیست'}">${esc(ctRegMeta(e,{long:true}))}</small>`:''}</span>
+    ${ctRegTag(e)}${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
+    <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events" aria-label="${esc('ویرایش '+(e.t||e.id||'رویداد'))}" title="ویرایش رویداد">${ico('i-pen')}</button></div>`).join('');
+  const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
+  return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور')}
+      <button class="btn sm quiet" data-sec="events">همهٔ رویدادها</button></div>
+    ${rows?`<div class="admlist">${rows}</div>`:''}${state}</section>`;
+}
+function dashxSchedCard(){
+  if(!dashxCan().sched||!DASHX.sched) return '';
+  const s=DASHX.sched, last=s.last_run||null, p=s.pending||{};
+  return `<section class="card stack" data-dashx-sched-card><div class="row"><div class="head">انتشار زمان‌بندی‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag(last&&last.ok===false?'آخرین اجرا ناموفق':'از API سرور',last&&last.ok===false?'warn':'')}</div>
+    <div class="kpis dash-kpis">
+      <div class="kpi"><small class="cap">در صف آینده</small><b>${esc(fa(Number(p.future)||0))}</b></div>
+      <div class="kpi"><small class="cap">سررسیده، اعلام‌نشده</small><b>${esc(fa(Number(p.due_unannounced)||0))}</b></div>
+      <div class="kpi"><small class="cap">آخرین اجرا</small><b style="font-size:.9em">${esc(last&&last.at?svcWhen(last.at):'ثبت نشده')}</b></div></div>
+    <p class="cap">${esc(typeof s.runner==='string'?s.runner:s.runner&&typeof s.runner==='object'?[s.runner.interval_hint,s.runner.manual].filter(Boolean).join(' · '):'')}</p></section>`;
+}
+function dashxAuditCard(){
+  if(!isOwner()) return '';
+  const d=DASHX.audit, items=d&&Array.isArray(d.items)?d.items:[];
+  const rows=items.map(ev=>`<div class="admlirow"><span class="ic">${ico('i-shield')}</span><span class="sp" style="flex:1 1 180px"><b dir="ltr" style="font-weight:600">${esc(ev.action||'')}</b>
+    <small class="cap">${esc((ev.actor_kind==='owner'?'مالک':ev.actor_role==='manager'?'مدیر':ev.actor_role==='club-supervisor'?'سرپرست باشگاه':'حساب')+' · '+(svcWhen(ev.created_at)||''))}</small></span>
+    ${ev.target_type?`<small class="cap" dir="ltr">${esc(ev.target_type)}</small>`:''}</div>`).join('');
+  return `<section class="card stack" data-dashx-audit><div class="row"><div class="head">آخرین عملیات ثبت‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag('فقط مالک')}
+      <button class="btn sm quiet" data-dashx-audit-all>تاریخچهٔ کامل</button></div>
+    ${DASHX.loading&&!d?'<p class="cap">در حال خواندن تاریخچه…</p>':rows?`<div class="admlist">${rows}</div>`:emptyBox('هنوز عملیاتی در تاریخچهٔ سرور ثبت نشده است.')}</section>`;
+}
+/* ── نقشهٔ امکانات پنل: ثبت ایستا از ماتریس بازیابی؛ وضعیت هر ردیف از مجوز سروری حساب جاری ── */
+const PANEL_MODULES=[
+  ['dash','داشبورد','شمارش‌ها، کارهای در انتظار، رویدادهای پیش رو، سلامت سرور','server',()=>true,'data-sec="dash"'],
+  ['events','فهرست رویدادها و مطالب (جست‌وجو، فیلتر، صفحه‌بندی)','/api/admin/content/{kind}','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','ویرایشگر محتوا، پوستر، پیش‌نمایش و چرخهٔ انتشار (پیش‌نویس/انتشار/توقف/بایگانی)','/api/admin/content/{kind}/{id}, /status','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','پیوند فرم ثبت‌نام به رویداد و حالت ثبت‌نام','فرم‌ساز سروری (/api/forms) + فیلد ev','server',()=>canSec('events'),'data-sec="forms"'],
+  ['events','منابع، ضبط‌شده و فروش، پرسش‌وپاسخ، دیدگاه‌ها، گزارش‌ها، سفارش‌ها','/api/admin/events/{id}/…','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','زبانهٔ حضور و گواهی از کارت رویداد','/api/admin/attendance/forms, /api/admin/certificates','server',()=>canPerm('attendance')||canPerm('certificate'),'data-sec="events"'],
+  ['events','تاریخچهٔ ویرایش محتوا (چه کسی، کی، چه نسخه‌ای)','زبانهٔ «تاریخچه» در ویرایشگر؛ از audit سرور، فقط مالک؛ ذخیرهٔ متن نسخه‌های قبلی و بازگردانی ندارد','server',()=>isOwner(),'data-sec="events"'],
+  ['events','یادآور خودکار رویداد (۲۴ ساعت و ۱ ساعت قبل)','در ویرایشگر هر رویداد روشن می‌شود؛ گیرندگان ثبت‌نام‌های پذیرفته‌شدهٔ همان رویداد؛ صف در صندوق خروجی؛ پیامک ندارد','server',()=>canSec('events'),'data-sec="events"'],
+  ['events','نظرسنجی پس از رویداد','فرم نظرسنجی باید از فرم‌ساز ساخته و به رویداد پیوند شود؛ موتور جداگانه ندارد','external',()=>canSec('events'),'data-sec="forms"'],
+  ['events','یادآوری دستی/متن آزاد به ثبت‌نام‌کنندگان','فقط یادآور خودکار و اعلان‌های سیستمی صف می‌شوند؛ API ارسال دستی به گروه وجود ندارد','blocked',()=>canSec('events'),''],
+  ['users','فهرست کاربران، جست‌وجو، فیلتر نقش/ورود، پروندهٔ کاربر با ثبت‌نام‌ها و درخواست‌ها','/api/admin/users, /api/admin/users/{id}','server',()=>canPerm('us_view'),'data-sec="users"'],
+  ['users','کارتابل مشترک (پروفایل و فیش) و تاریخچهٔ تصمیم‌ها','/api/admin/inbox, /decision','server',()=>canUseSharedInbox(),'data-open-workflow-inbox'],
+  ['users','صندوق خروجی اعلان‌ها (صف/تحویل/ناموفق/تلاش دوباره)','/api/admin/notifications, /retry','server',()=>canPerm('rp_view'),'data-dashx-outbox'],
+  ['users','حضور و غیاب بلیت‌های سرور (ثبت و بازگشت با دلیل)','/api/admin/attendance/…','server',()=>canPerm('attendance'),'data-open-attendance'],
+  ['users','گواهی‌های صادرشدهٔ ربات (جست‌وجو، جزئیات، ابطال با مجوز)','/api/admin/certificates','server',()=>canPerm('certificate'),'data-open-cert'],
+  ['users','امتیاز باشگاه (آینهٔ خواندنی دفترکل ربات)','/api/admin/club/points, /members','server',()=>isOwner()||canPerm('cl_member'),'data-open-club'],
+  ['users','حساب‌ها و نقش‌ها، اعتبارنامهٔ مدیر','/api/owner/accounts (فقط مالک)','server',()=>isOwner(),'data-server-role-module'],
+  ['users','گزارش‌های دوره‌ای سرور','/api/admin/reports/summary','server',()=>canPerm('rp_view'),'data-user-hub="reports"'],
+  ['users','تاریخچهٔ عملیات (لاگ)','/api/owner/audit (فقط مالک)','server',()=>isOwner(),'data-dashx-audit-all'],
+  ['users','برچسب و یادداشت روی کاربر، فهرست مسدودها، افزودن دستی، ورودی اکسل','ستون/جدول و API ندارد؛ افزودن آن نیازمند تصمیم مدل داده است','blocked',()=>canPerm('us_view'),''],
+  ['users','مناسبت‌ها، دستاوردها، فروشگاه امتیاز، درخواست امتیاز، باشگاه کتاب','قاعدهٔ امتیاز و دفترکل فقط در ربات است؛ پنل مسیر نوشتن امتیاز ندارد','blocked',()=>isOwner()||canPerm('cl_member'),''],
+  ['forms','فهرست فرم‌های سرور با وضعیت و شمار پاسخ','/api/forms','server',()=>canSec('forms'),'data-sec="forms"'],
+  ['forms','ساخت و ویرایش فرم (create.html) و پاسخ‌ها/گزارش (builder.html)','فرم‌ساز سروری؛ منبع حقیقت ثبت‌نام و خرید','server',()=>canSec('forms'),'data-sec="forms"'],
+  ['forms','خروجی CSV پاسخ‌ها (سازگار با اکسل)','/api/forms/{id}/responses?format=csv','server',()=>canPerm('fm_export'),'data-sec="forms"'],
+  ['settings','اتصال سرویس‌ها و آزمایش اتصال، دامنه و راه‌اندازی، داده‌ها و مهاجرت، امنیت و دسترسی‌ها، محتوای عمومی و همکاری، سلامت','/api/owner/… (فقط مالک)','server',()=>isOwner(),'data-sec="settings"'],
+  ['settings','پوسته و ظاهر، تنظیمات فرم، گفت‌وگوی پشتیبانی داخل پنل','API و مدل داده ندارد؛ در حالت نمونه فقط در مرورگر ذخیره می‌شد','blocked',()=>isOwner(),''],
+  ['settings','قالب پیام‌ها و اعلان‌ها','متن اعلان‌ها در سرور ثابت است؛ ویرایش قالب نیازمند جدول و API است','blocked',()=>isOwner(),''],
+  ['settings','نورا پی / دفترکل مالی','فقط رسید فرم‌ساز و سفارش ضبط‌شده در سرور وجود دارد؛ درگاه و دفترکل جداگانه ندارد','blocked',()=>isOwner()||canPerm('finance'),'']
+];
+function panelModuleMapView(){
+  const groups=[['dash','داشبورد'],['events','رویدادها و مطالب'],['users','کاربران، کارتابل و گزارش'],['forms','فرم‌ها'],['settings','تنظیمات']];
+  const stateTag=(st,allowed)=>!allowed?tag('بدون مجوز این حساب','warn'):st==='server'?tag('متصل به سرور','ok'):st==='external'?tag('از مسیر موجود',''):tag('نیازمند سرویس','warn');
+  const sections=groups.map(([k,title])=>{
+    const rows=PANEL_MODULES.filter(m=>m[0]===k).map(([,name,source,st,can,attrs])=>{const allowed=!!can();
+      return `<div class="admlirow"><span class="ic">${ico(st==='server'?'i-check':'i-info')}</span>
+        <span class="sp" style="flex:1 1 180px"><b>${esc(name)}</b><small class="cap" ${/^\//.test(source)?'dir="ltr" style="text-align:start"':''}>${esc(source)}</small></span>${stateTag(st,allowed)}
+        ${allowed&&attrs&&st!=='blocked'?`<button class="btn sm quiet" ${attrs} data-dashx-leave-map aria-label="${esc('باز کردن '+name)}" title="${esc('باز کردن '+name)}">${ico('i-chev-left')}</button>`:''}</div>`}).join('');
+    return rows?`<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist">${rows}</div></section>`:''}).join('');
+  return `<div class="stack" data-panel-map>
+    <section class="card stack"><div class="row"><button class="btn sm quiet" data-dashx-leave-map>${ico('i-back')}بازگشت به داشبورد</button><div class="head">نقشهٔ امکانات پنل</div><span class="sp" style="flex:1 1 180px"></span>${tag('وضعیت از مجوز سروری','ok')}</div>
+      <p class="cap">هر ردیف می‌گوید آن امکان به کدام API وصل است یا چرا هنوز ساخته نشده. «متصل به سرور» یعنی داده و مجوز از backend می‌آید؛ «نیازمند سرویس» یعنی endpoint یا قاعدهٔ کسب‌وکار وجود ندارد و در این پنل با دادهٔ نمونه جایگزین نمی‌شود.</p></section>
+    ${sections}</div>`;
+}
+/* ── فرم‌ها: فهرست سروری داخل همان پنل؛ ویرایش/پاسخ‌ها به مرکز فرم‌ساز موجود می‌روند (ویرایشگر دوم ساخته نمی‌شود) ── */
+const FORMS_SRV={data:null,loading:false,loaded:false,error:'',q:'',status:'',offset:0,limit:20};
+async function fsLoad(){
+  const api=window.NORA_SERVER_API;
+  if(!api||typeof api.listForms!=='function'){FORMS_SRV.error='رابط فرم‌ساز سروری در دسترس نیست.'; FORMS_SRV.loaded=true; renderBody(); return}
+  FORMS_SRV.loading=true; FORMS_SRV.error=''; renderBody();
+  try{const result=await api.listForms(); FORMS_SRV.data=result&&Array.isArray(result.items)?result:{items:[]}}
+  catch(error){FORMS_SRV.data=null; FORMS_SRV.error=p2Err(error,'فهرست فرم‌ها از سرور دریافت نشد.')}
+  finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||((S.sec==='events'||S.sec==='newev')&&CT.edit)||(S.sec==='settings'&&S.setG==='people')) renderBody()}
+}
+const FS_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],closed:['بسته','stop'],archived:['بایگانی','stop']};
+const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};
+function fsRows(){
+  const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const q=FORMS_SRV.q.trim().toLowerCase();
+  return items.filter(f=>!FORMS_SRV.status||String(f.status||'draft')===FORMS_SRV.status)
+    .filter(f=>!q||String(f.name||'').toLowerCase().includes(q)||String(f.id||'').toLowerCase().includes(q)||String(f.ev||'').toLowerCase().includes(q));
+}
+function serverFormsView(){
+  if(!canSec('forms')) return serverUnavailableModule('فرم‌ها','مجوز ساخت فرم یا مشاهدهٔ پاسخ‌ها برای این حساب فعال نیست.');
+  const all=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
+  const counts=all.reduce((acc,f)=>{const k=String(f.status||'draft'); acc[k]=(acc[k]||0)+1; return acc},{});
+  const rows=fsRows(), total=rows.length, page=rows.slice(FORMS_SRV.offset,FORMS_SRV.offset+FORMS_SRV.limit);
+  const chips=[['','همه',all.length]].concat(Object.keys(FS_STATUS).filter(k=>counts[k]).map(k=>[k,FS_STATUS[k][0],counts[k]]))
+    .map(([k,l,c])=>`<button class="chip ${FORMS_SRV.status===k?'on':''}" data-fs-status="${k}">${esc(l)} <span class="bd">${esc(fa(c))}</span></button>`).join('');
+  const list=page.map(f=>{const st=FS_STATUS[String(f.status||'draft')]||[String(f.status||''),'']; const id=encodeURIComponent(String(f.id||''));
+    const meta=[FS_PURPOSE[f.purpose]||f.purpose||'',f.model?('مدل '+f.model):'',f.ev?('رویداد '+f.ev):'',f.recording_id?'محتوای ضبط‌شده':'',f.updated_at?('به‌روزرسانی '+svcWhen(f.updated_at)):''].filter(Boolean).join(' · ');
+    const published=String(f.status||'')==='published';
+    return `<div class="admlirow" data-fs-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span>
+      <span class="sp" style="flex:1 1 180px"><b>${esc(f.name||'بدون نام')}</b><small class="cap">${esc(meta)}</small></span>
+      ${tag(st[0],st[1])}<span class="mini" style="text-align:end"><b dir="ltr" style="font-weight:700">${esc(fa(Number(f.response_count)||0))}</b><small class="cap">پاسخ</small></span>
+      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}
+      ${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها و گزارش">${ico('i-inbox')}</a>`:''}
+      ${canPerm('fm_export')?`<a class="btn sm quiet" href="/api/forms/${id}/responses?format=csv" data-fs-export="${esc(String(f.id||''))}" title="خروجی CSV پاسخ‌ها از سرور (ثبت در تاریخچه)">${ico('i-download')}</a>`:''}
+      ${published?`<a class="btn sm quiet" href="form.html?fid=${id}&kind=${encodeURIComponent(String(f.need||'reg'))}" target="_blank" rel="noopener" title="صفحهٔ عمومی فرم">${ico('i-eye')}</a>`:''}</span></div>`}).join('');
+  const state=FORMS_SRV.loading?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن فرم‌ها از سرور…</p></div>`
+    :FORMS_SRV.error?`<div class="empty"><p class="cap">${esc(FORMS_SRV.error)}</p>${btn('تلاش دوباره','data-fs-refresh','i-refresh')}</div>`
+    :!FORMS_SRV.loaded?'':!all.length?emptyBox('هنوز فرمی در فرم‌ساز سروری ساخته نشده است.'):!rows.length?emptyBox('فرمی با این فیلتر پیدا نشد.'):'';
+  return `<div class="stack" data-forms-panel>
+    <section class="card stack"><div class="row" style="flex-wrap:wrap;gap:8px"><span class="ic">${ico('i-doc')}</span><div class="head">فرم‌های سرور</div>${tag('منبع حقیقت ثبت‌نام و خرید','ok')}<span class="sp" style="flex:1 1 180px"></span>
+      ${canPerm('fm_create')?`<a class="btn sm primary" href="create.html">${ico('i-plus')}فرم تازه</a>`:''}<a class="btn sm quiet" href="builder.html">${ico('i-chart')}مرکز فرم‌ساز و پاسخ‌ها</a>${btn('بازخوانی','data-fs-refresh','i-refresh')}</div>
+      <p class="cap">فهرست از <span dir="ltr">/api/forms</span> خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد. خروجی CSV مستقیماً از سرور ساخته می‌شود (مجوز fm_export؛ ستون مالی فقط با مجوز مالی) و در تاریخچهٔ عملیات ثبت می‌گردد.</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="fsQuery" placeholder="جست‌وجوی نام، شناسه یا رویداد" value="${esc(FORMS_SRV.q)}" style="max-width:320px">${btn('جست‌وجو','data-fs-search','i-search')}</div>
+      <div class="admfilters">${chips}</div>
+      ${list?`<div class="admlist">${list}</div>`:''}${state}
+      ${p2Pager(total,FORMS_SRV.offset,FORMS_SRV.limit,'data-fs-page="prev"','data-fs-page="next"')}
+    </section></div>`;
+}
+/* ── ابزارهای کاربران در حالت سرور: زبانه‌های طراحی روی ماژول‌های سروری موجود؛ زبانهٔ بدون API با دلیل دقیق ── */
+const SERVER_TOOL_TABS=[['report','گزارش کاربران',()=>canPerm('rp_view')],['staff','مدیریت نقش‌ها و حساب‌ها',()=>isOwner()],['inbox','صندوق خروجی اعلان‌ها',()=>canPerm('rp_view')],
+  ['log','تاریخچهٔ عملیات',()=>isOwner()],['perms','نقشهٔ مجوزهای این حساب',()=>true],['par','پارامتر پروفایل',()=>canPerm('us_view')],['add','افزودن دستی',()=>canPerm('us_view')],
+  ['imp','ورودی اکسل',()=>canPerm('us_view')],['tags','برچسب‌ها',()=>canPerm('us_view')],['blocked','مسدودها',()=>canPerm('us_view')]];
+const SERVER_TOOL_BLOCKED={
+  par:'فیلدهای پروفایل در سرور ثابت و در /api/admin/users خوانده می‌شوند؛ تعریف پارامتر دلخواه نیازمند جدول و API است.',
+  add:'حساب فقط با ورود واقعی (بله یا مدیر) ساخته می‌شود؛ ساخت دستی حساب بدون احراز هویت، قاعدهٔ پیوند هویت را می‌شکند.',
+  imp:'ورودی اکسل به پایگاه مشترک endpoint ندارد و با قاعدهٔ «بدون ادغام خودکار رکوردها» سازگار نیست.',
+  tags:'برچسب روی حساب در مدل داده نیست (یادداشت داخلی در پروندهٔ هر کاربر ثبت می‌شود)؛ افزودن برچسب نیازمند مهاجرت و API است.',
+  };
+function serverPermissionMapView(){
+  const perms=SERVER_AUTH&&Array.isArray(SERVER_AUTH.permissions)?SERVER_AUTH.permissions.slice().sort():[];
+  const rows=(typeof PROWS!=='undefined'?PROWS:[]).map(r=>({k:r[0],n:r[1]||r[0]})).concat((typeof OWNER_PERMS!=='undefined'?OWNER_PERMS:[]).map(r=>({k:r[0],n:(r[1]||r[0])+' (مالک)'})));
+  const known=new Set(rows.map(r=>r.k)); perms.forEach(p=>{if(!known.has(p)) rows.push({k:p,n:p})});
+  return `<section class="card stack" data-perm-map><div class="row"><div class="head">نقشهٔ مجوزهای این حساب</div><span class="sp" style="flex:1 1 180px"></span>${tag(isOwner()?'مالک':'از نشست سرور','ok')}</div>
+    <p class="cap">این فهرست همان مجوزهایی است که سرور برای نشست جاری برگردانده و در هر درخواست دوباره بررسی می‌شود؛ پنهان‌بودن دکمه به‌تنهایی کنترل دسترسی نیست.</p>
+    <div class="admlist">${rows.map(r=>`<div class="admlirow"><span class="ic">${ico(perms.includes(r.k)||isOwner()?'i-check':'i-lock')}</span><span class="sp" style="flex:1 1 180px"><b>${esc(r.n)}</b><small class="cap" dir="ltr" style="text-align:start">${esc(r.k)}</small></span>${perms.includes(r.k)||isOwner()?tag('فعال','ok'):tag('غیرفعال','')}</div>`).join('')}</div></section>`;
+}
+function serverToolsView(){
+  const tabs=SERVER_TOOL_TABS.filter(t=>t[2]());
+  if(!tabs.length) return serverUnavailableModule('ابزارهای کاربران','هیچ‌کدام از ابزارها برای مجوزهای این حساب باز نیست.');
+  const cur=S.uTool||'report', known=SERVER_TOOL_TABS.find(t=>t[0]===cur), allowed=tabs.some(t=>t[0]===cur);
+  const chips=tabs.map(t=>`<button class="chip ${cur===t[0]?'on':''}" data-utool="${t[0]}">${esc(t[1])}</button>`).join('');
+  /* زبانهٔ بدون مجوز پنهان یا جابه‌جا نمی‌شود؛ همان پاسخ صریح «فقط با مالک / بدون مجوز» می‌ماند تا با سرور یکی باشد */
+  const denied=cur==='staff'?cUServerStaff():`<section class="card stack">${emptyBox((known?known[1]:'این ابزار')+' برای مجوزهای این حساب باز نیست؛ دسترسی را سرور تعیین می‌کند.')}</section>`;
+  const body=!allowed?denied:cur==='report'?vServerReports():cur==='staff'?cUServerStaff():cur==='inbox'?vServerOutbox():cur==='log'?serverAuditView():cur==='perms'?serverPermissionMapView():cur==='blocked'?serverBlockedUsersView()
+    :serverUnavailableModule(known?known[1]:cur,SERVER_TOOL_BLOCKED[cur]||'API این زیربخش هنوز فعال نیست.');
+  return `<div class="stack" data-server-tools><section class="card stack"><div class="row">${uBack}<div class="head">ابزارها و گزارش</div></div><div class="admfilters">${chips}</div></section>${body}</div>`;
+}
+function serverBlockedUsersView(){
+  return `<div class="stack" data-server-blocked><section class="card stack"><div class="head">حساب‌های مسدود</div>
+    <p class="cap">همان فهرست کاربران با فیلتر «مسدود» از سرور. مسدودسازی و رفع مسدودی فقط با مالک و از داخل پروندهٔ هر کاربر انجام می‌شود (با دلیل و ثبت در تاریخچهٔ عملیات)؛ حساب مسدود نه وارد می‌شود، نه ثبت‌نام یا پرسش تازه می‌فرستد.</p></section>${serverUsersList()}</div>`;
 }
 function serverBody(){
-  if(S.sec==='dash') return serverDashboard();
-  if(S.sec==='events'||S.sec==='newev') return serverUnavailableModule('رویدادها و مطالب',
-    'API مدیریت سروریِ رویداد، آرشیو و ویرایش مطلب هنوز به این پنل متصل نیست.',
-    isOwner()?btn('وضعیت محتوای عمومی','data-sec="settings"','i-globe'):'');
+  if(S.sec==='dash') return DASHX.view==='map'?panelModuleMapView():serverDashboard();
+  if(S.sec==='newev') return serverNewDefinitionView();
+  if(S.sec==='events') return serverContentView();
   if(S.sec==='users') return serverUsersView();
-  if(S.sec==='forms') return `<section class="card stack"><div class="head">مرکز فرم‌ها</div>
-    <p class="cap">تعریف فرم، انتشار و پاسخ‌ها از فرم‌ساز سروری مدیریت می‌شوند.</p><a class="btn primary" href="builder.html">بازکردن فرم‌ساز</a></section>`;
+  if(S.sec==='forms') return serverFormsView();
   if(S.sec==='settings') return serverSettingsView();
-  if(S.sec==='cert') return serverUnavailableModule('گواهینامه‌ها','API صدور و استعلام گواهی به پنل متصل نیست؛ هیچ شماره یا گواهی نمونه‌ای نمایش داده نمی‌شود.');
+  if(S.sec==='cert') return `<div class="stack">${serverCertView()}</div>`;
   return serverUnavailableModule(secOf(S.sec).n,'API مدیریتی این بخش هنوز به پنل متصل نشده است.');
 }
 function demoNote(){
@@ -6303,10 +11031,10 @@ function demoNote(){
     :sharedInbox
       ?'این کارتابل از API و پایگاه مشترک ربات و وب‌اپ خوانده می‌شود. تصمیم در همان‌جا ثبت و اعلان کاربر برای تحویل ربات صف می‌شود؛ این صفحه وجهی جابه‌جا نمی‌کند.'
       :!IS_TEST&&SERVER_AUTH
-        ?'نقش و مجوز این حساب از سرور خوانده شده است. رویدادها، فهرست کاربران و بیشتر تغییرهای این صفحه هنوز نمونه‌اند و فقط در همین مرورگر می‌مانند؛ ارسال پیام، پرداخت و صدور واقعی فعال نیست.'
+        ?'نقش و مجوز این حساب از سرور خوانده شده است. گواهی‌های صادرشدهٔ ربات از ثبت مشترک سرور خوانده می‌شوند و صدور همچنان در ربات است؛ امتیاز باشگاه از آینهٔ خواندنی دفترکل ربات خوانده می‌شود و تغییر امتیاز فقط در ربات است. هیچ دادهٔ نمونه‌ای نشان داده نمی‌شود؛ ارسال پیام و پرداخت از این پنل انجام نمی‌شود.'
         :'داده‌ها و تغییرهای این پنل فقط در همین مرورگر می‌مانند؛ پیام، اعلان، پرداخت یا صدور واقعی انجام نمی‌شود. تأیید مالک فقط همین وضعیت محلی را عوض می‌کند. نقش‌های این نمای آزمایشی مجوز سروری نیستند.';
-  const title=sharedReports?'گزارش زندهٔ سرور':sharedInbox?'کارتابل مشترک':!IS_TEST&&SERVER_AUTH?'داده‌های کاری پیش‌نمایش‌اند':'پیش‌نمایش محلی';
-  const badge=sharedReports?'گزارش تجمیعی سرور':sharedInbox?'کارتابل و مجوز از سرور': 'ارسال و پرداخت واقعی وصل نیست';
+  const title=sharedReports?'گزارش زندهٔ سرور':sharedInbox?'کارتابل مشترک':!IS_TEST&&SERVER_AUTH?'منبع داده: API سرور':'پیش‌نمایش محلی';
+  const badge=sharedReports?'گزارش تجمیعی سرور':sharedInbox?'کارتابل و مجوز از سرور':!IS_TEST&&SERVER_AUTH?'بدون دادهٔ نمونه':'ارسال و پرداخت واقعی وصل نیست';
   return `<div class="card stack" data-demo-notice role="note" style="margin-bottom:var(--sp-2);border-inline-start:3px solid var(--warn)">
     <div class="row"><b>${esc(title)}</b><span class="sp"></span>${tag(badge,'warn')}</div>
     <p class="cap">${esc(note)}</p></div>`;
@@ -6339,6 +11067,7 @@ function loadServerHealth(manual=false){
     SERVER_HEALTH=null;SERVER_HEALTH_ERROR='وضعیت API سلامت دریافت نشد؛ برای جلوگیری از نمایش اطلاعات کهنه، داده‌ای جایگزین نشد.';
   }).finally(()=>{
     SERVER_HEALTH_LOADING=false;if(S.sec==='dash')renderBody();
+    try{renderBar()}catch(e){}
   });
 }
 function loadBotStatus(manual=false){
@@ -6366,11 +11095,21 @@ function renderBody(){
   if(publishing&&parking){publishing.hidden=true; if(publishing.parentElement!==parking) parking.appendChild(publishing)}
   bkLibSync(); if(AUD.on) AUD.tick++;
   const host=$('#admBody'); host.innerHTML=(IS_TEST?demoNote():'')+body();
-  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false);return}
-  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&S.uHub==='reports'&&canPerm('rp_view')
+  Object.keys(SERVICE_DRAFT).forEach(key=>{const input=host.querySelector('#svcInput_'+key); if(input&&!input.value) input.value=SERVICE_DRAFT[key]});
+  /* A2: چیپ سلامت نوار بالا در همهٔ بخش‌ها معنادار باشد؛ یک بار در هر نشست خوانده می‌شود */
+  if(!IS_TEST&&SERVER_AUTH&&!SERVER_HEALTH&&!SERVER_HEALTH_ERROR&&!SERVER_HEALTH_LOADING){loadServerHealth(false); if(S.sec==='dash') return}
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&eiCanMod()&&!EI.summary&&!EI.summaryError&&!EI.summaryLoading){EI.summaryLoading=true; eiLoadSummary()}
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&recCanOrders()&&!REC.summary&&!REC.summaryError&&!REC.summaryLoading){REC.summaryLoading=true; recLoadSummary()}
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='dash'&&!DASHX.loaded&&!DASHX.loading) dashxLoad(false);
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='forms'&&!FORMS_SRV.loaded&&!FORMS_SRV.loading) fsLoad();
+  if(!IS_TEST&&SERVER_AUTH&&((S.sec==='users'&&(S.uHub==='reports'||(S.uV==='tools'&&S.uTool==='report')))||S.sec==='dash')&&canPerm('rp_view')
     &&!SERVER_REPORT_LOADING&&!SERVER_REPORT_ERROR
     &&(!SERVER_REPORT_DATA||SERVER_REPORT_DATA.period!==SERVER_REPORT_PERIOD)){
     loadServerReports(false); return;
+  }
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&(S.uHub==='reports'||(S.uV==='tools'&&S.uTool==='report'))&&canPerm('rp_view')&&!SERVER_SCHED.loading&&!SERVER_SCHED.loaded) loadServerSched();
+  if(!IS_TEST&&SERVER_AUTH&&S.sec==='users'&&((S.uHub==='reports')||(S.uV==='tools'&&S.uTool==='inbox'))&&canPerm('rp_view')&&!SERVER_OUTBOX.loading&&!SERVER_OUTBOX.loaded){
+    loadServerOutbox(false); return;
   }
   if(S.uV==='shared-inbox'&&canUseSharedInbox()&&!SERVER_WORKFLOW_LOADING&&!SERVER_WORKFLOW_LOADED){
     loadSharedWorkflowInbox(false); return;
@@ -6379,7 +11118,20 @@ function renderBody(){
   if(publishing&&target&&isOwner()&&S.sec==='settings'&&S.setG==='publishing'){
     target.replaceWith(publishing); publishing.hidden=false;
   }
+  if(host.querySelector('[data-service-settings]')&&!SERVICE_LOADING&&!SERVICE_DATA&&!SERVICE_ERROR) serviceLoad();
+  if(host.querySelector('[data-data-panel]')&&!DATA_LOADING&&!DATA_STATUS&&!DATA_ERROR) dataLoad();
+  if(host.querySelector('[data-audit-panel]')&&!SERVER_AUDIT_LOADING&&!SERVER_AUDIT_LOADED) loadServerAuditEvents(false);
   if(host.querySelector('[data-bot-status]')) loadBotStatus();
+  if(!IS_TEST&&SERVER_AUTH){
+    if(host.querySelector('[data-ct-panel]')&&!CT.loading&&CT.key!==ctKey()) ctLoad();
+    if(host.querySelector('[data-users-panel]')&&!US.loading&&US.key!==usKey()) usLoad();
+    if(host.querySelector('[data-user-detail]')&&!US.detailLoading&&!US.detail&&!US.detailError&&S.uSel&&US.detailId!==S.uSel) usLoadDetail(S.uSel);
+    if(host.querySelector('[data-att-panel]')&&!host.querySelector('[data-att-people]')&&!AT.loading&&AT.key!==atKey()) atLoadForms();
+    if(host.querySelector('[data-att-people]')&&!AT.ploading&&AT.pkey!==atPKey()) atLoadPeople();
+    if(host.querySelector('[data-cert-panel]')&&!CERT_SRV.loading&&CERT_SRV.key!==ceKey()) ceLoad();
+    if(host.querySelector('[data-club-panel]')&&!CLUB_SRV.loading&&CLUB_SRV.key!==clKey()) clLoad();
+    if(host.querySelector('[data-cert-detail]')&&!CERT_SRV.detailLoading&&!CERT_SRV.detail&&!CERT_SRV.detailError&&CERT_SRV.detailId&&CERT_SRV.detailId!==CERT_SRV.detailLoadedId){CERT_SRV.detailLoadedId=CERT_SRV.detailId; ceLoadDetail(CERT_SRV.detailId)}
+  }
 }
 /* ── نگهبان حالت: حالت کهنه یا ناقص نباید داشبورد را خراب کند ─────────── */
 function sanitize(){
@@ -6397,11 +11149,12 @@ function sanitize(){
   if(S.sec==='reports'){S.sec='users';S.uHub='reports'}
   if(!['users','reports'].includes(S.uHub)) S.uHub='users';
   if(UCLUBTABS.every(t=>t[0]!==S.uClub)) S.uClub='rules';
-  if(UTOOLTABS.every(t=>t[0]!==S.uTool)) S.uTool='report';
+  if(UTOOLTABS.every(t=>t[0]!==S.uTool)&&S.uTool!=='perms') S.uTool='report';
   if(UPTABS.every(t=>t[0]!==S.uTab)) S.uTab='info';
-  if(S.uV==='user'&&!memOf(S.uSel)) S.uV='';
+  /* پروندهٔ سروری کاربر با شناسهٔ حساب (UUID) باز می‌ماند؛ نمونهٔ محلی با memOf سنجیده می‌شود */
+  if(S.uV==='user'&&!memOf(S.uSel)&&!(IS_TEST===false&&/^[0-9a-fA-F-]{36}$/.test(String(S.uSel||'')))) S.uV='';
   if(S.uV==='occ'){S.uV='club'; S.uClub='occ';}
-  if(S.uV&&['req','club','cert','tools','user','shared-inbox'].indexOf(S.uV)<0) S.uV='';
+  if(S.uV&&['req','club','cert','tools','user','shared-inbox','att'].indexOf(S.uV)<0) S.uV='';
   S.baleReg=S.baleReg?1:0;
   if(S.cert){ if(+(S.cert.step||0)>3) S.cert.step=0;
     if(S.cert.evs&&!Array.isArray(S.cert.evs)) S.cert.evs=[];
@@ -6439,6 +11192,8 @@ function render(){
 function go(k){
   if(k==='reports'){S.uHub='reports'; S.uV=''; k='users'}
   else if(k==='users') S.uHub='users';
+  if(k==='events'&&EI.open){EI.open=false; EI.data=null; EI.res.edit=null}
+  if(k==='newev'&&!IS_TEST&&SERVER_AUTH&&canSec('events')){S.sec='newev'; S.q=''; save(); try{history.replaceState(null,'','#newev')}catch(e){} window.scrollTo({top:0,behavior:'smooth'}); render(); return}
   if(!ALLSECS.some(section=>section.k===k)) k='dash';
   const changed=S.sec!==k; S.sec=k; S.q=''; save();
   const route=S.uHub==='reports'&&k==='users'?'reports':k;
@@ -6481,6 +11236,15 @@ document.addEventListener('click',e=>{
     S.uV='shared-inbox'; S.sharedWorkflowKind='all'; save(); renderBody(); loadSharedWorkflowInbox(false); return}
   const workflowKind=q('[data-workflow-kind]'); if(workflowKind){
     S.sharedWorkflowKind=workflowKind.dataset.workflowKind||'all'; save(); renderBody(); return}
+  const workflowStatus=q('[data-workflow-status]'); if(workflowStatus){
+    const next=workflowStatus.dataset.workflowStatus==='decided'?'decided':'pending';
+    if(next!==SERVER_WORKFLOW_STATUS){SERVER_WORKFLOW_STATUS=next; SERVER_WORKFLOW_ITEMS=[]; SERVER_WORKFLOW_LOADED=false; SERVER_WORKFLOW_HAS_MORE=false; renderBody(); loadSharedWorkflowInbox(false)}
+    return}
+  if(q('[data-role-search]')){const input=$('#serverRoleQuery'); SERVER_ROLE_QUERY=String(input&&input.value||'').trim().slice(0,80); loadServerRoleAccounts(false); return}
+  const roleFilter=q('[data-role-filter]'); if(roleFilter){SERVER_ROLE_FILTER=roleFilter.dataset.roleFilter||''; loadServerRoleAccounts(false); return}
+  if(q('[data-audit-refresh]')){loadServerAuditEvents(false); return}
+  if(q('[data-audit-more]')){loadServerAuditEvents(true); return}
+  const auditFilter=q('[data-audit-action]'); if(auditFilter){SERVER_AUDIT_ACTION=auditFilter.dataset.auditAction||''; loadServerAuditEvents(false); return}
   if(q('[data-workflow-refresh]')){loadSharedWorkflowInbox(false); return}
   if(q('[data-workflow-more]')){loadSharedWorkflowInbox(true); return}
   const workflowApprove=q('[data-workflow-approve]'); if(workflowApprove){decideSharedWorkflow(workflowApprove.dataset.workflowApprove,'approved'); return}
@@ -6619,7 +11383,9 @@ document.addEventListener('click',e=>{
   const us=q('[data-user]'); if(us){S.uV='user'; S.uSel=us.dataset.user; S.uTab='info'; S.uRej=''; save(); renderBody(); return}
   const utab=q('[data-utab]'); if(utab){S.uTab=utab.dataset.utab; save(); renderBody(); return}
   const ucl=q('[data-uclub]'); if(ucl){S.uClub=ucl.dataset.uclub; save(); renderBody(); return}
-  const utl=q('[data-utool]'); if(utl){S.uTool=utl.dataset.utool; save(); renderBody();
+  const utl=q('[data-utool]'); if(utl){S.uTool=utl.dataset.utool; save();
+    if(!IS_TEST&&S.uTool==='blocked'&&canPerm('us_view')){US.status='blocked'; US.offset=0; US.data=null; US.key=''; usLoad(); return}
+    renderBody();
     if(!IS_TEST&&S.uTool==='staff'&&isOwner()&&!SERVER_ROLE_LOADED) loadServerRoleAccounts(false); return}
   const uio=q('[data-uinboxopen]'); if(uio){S.uV='user'; S.uSel=uio.dataset.uinboxopen; S.uTab='msg'; S.uRej=''; save(); renderBody(); return}
   const ble=q('[data-bale]'); if(ble){baleIntro(ble.dataset.bale); return}
@@ -6635,6 +11401,25 @@ document.addEventListener('click',e=>{
     SERVER_REPORT_REQUEST++; SERVER_REPORT_LOADING=false;
     SERVER_REPORT_DATA=null; SERVER_REPORT_ERROR=''; renderBody(); return;
   }
+  const outboxState=q('[data-server-outbox-state]'); if(outboxState){
+    const state=outboxState.dataset.serverOutboxState||'';
+    if(!SERVER_OUTBOX_STATES.some(row=>row[0]===state)) return;
+    SERVER_OUTBOX.state=state; SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error='';
+    loadServerOutbox(); return;
+  }
+  const outboxKind=q('[data-server-outbox-kind]'); if(outboxKind){
+    const kind=outboxKind.dataset.serverOutboxKind||'';
+    if(!SERVER_OUTBOX_KINDS.some(row=>row[0]===kind)) return;
+    SERVER_OUTBOX.kind=kind; SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error='';
+    loadServerOutbox(); return;
+  }
+  if(q('[data-server-outbox-refresh]')){SERVER_OUTBOX.request++; SERVER_OUTBOX.loading=false; SERVER_OUTBOX.items=[]; SERVER_OUTBOX.loaded=false; SERVER_OUTBOX.error=''; loadServerOutbox(); return}
+  if(q('[data-server-outbox-more]')){loadServerOutbox(true); return}
+  const outboxRetry=q('[data-server-outbox-retry]'); if(outboxRetry){retryServerOutbox(outboxRetry.dataset.serverOutboxRetry); return}
+  if(q('[data-server-sched-refresh]')){SERVER_SCHED.loaded=false; loadServerSched(); return}
+  if(q('[data-server-sched-run-now]')){runServerSched(); return}
+  if(q('[data-server-integrity-run]')){loadServerIntegrity(); return}
+  if(q('[data-ei-health-run]')){eiLoadStorageHealth(); return}
   const rp=q('[data-rp]'); if(rp){S.rp=rp.dataset.rp; save(); renderBody(); toast('دوره: '+rp.dataset.rp); return}
   const rep=q('[data-rep]'); if(rep){sheetRep(rep.dataset.rep); return}
   const rc=q('[data-rcust]'); if(rc){const k2=rc.dataset.rcust, l=S.rpCust||[];
@@ -6686,7 +11471,8 @@ document.addEventListener('click',e=>{
   const cup=q('[data-cunpick]'); if(cup){S.cert.picked=(S.cert.picked||[]).filter(x=>x!==cup.dataset.cunpick); save(); renderBody(); return}
   const se=q('[data-setg]'); if(se){
     const g=se.dataset.setg;
-    if(!isOwner()&&(!isManager()||!['cert','receipts'].includes(g))){toast('این گروه تنظیمات فقط برای مالک در دسترس است');return}
+    if(!IS_TEST&&SERVER_AUTH){ if(!isOwner()&&!canPerm('sys_settings')&&!['cert','ticket','notify'].includes(g)){toast('این گروه تنظیمات فقط با مجوز «تنظیمات سامانه» باز می‌شود');return} SYS.msg=null; }
+    else if(!isOwner()&&(!isManager()||!['cert','receipts'].includes(g))){toast('این گروه تنظیمات فقط برای مالک در دسترس است');return}
     S.setG=g; S.finTab=(g==='money'||g==='receipts')?(isOwner()?'gates':'receipts'):S.finTab; save(); renderBody(); return}
   const perfCheck=q('[data-perf-check]'); if(perfCheck){
     if(!isOwner()||PERF_CHECKING)return;
@@ -7224,6 +12010,12 @@ document.addEventListener('click',e=>{
     const row={id,n:name,mon,type:String(D.type||'').trim(),collab:String(D.collab||'').trim(),
       g:ppPartnerGradient(D.g),logo,since:String(D.since||'').trim(),s:String(D.s||'').trim(),
       d:String(D.d||'').trim(),focus:Array.isArray(D.focus)?D.focus.slice():[],href:website,links:links};
+    if(ppPartnerServerMode()){
+      const list=ppPartnerAll().map(item=>ppPartnerClean(item,true)), at=list.findIndex(item=>String(item.id)===id), clean=ppPartnerClean(row,true);
+      if(key!=='new'&&at<0){toast('این نهاد دیگر روی سرور نیست؛ فهرست تازه‌سازی شد'); ppPartnerServerLoad(); return}
+      if(at<0) list.push(clean); else list[at]=clean;
+      ppPartnerCommit(list,key==='new'?'افزودن نهاد «'+name+'»':'ویرایش نهاد «'+name+'»',ok=>{if(ok){S.ppPartnerEd=''; S.ppPartnerD=null; save()}});
+      return}
     const base=PP_PARTNER_BASE().some(item=>String(item.id)===id), add=(b.partnerAdd||[]).slice();
     if(key==='new') add.push(row);
     else if(base){b.partnerO=b.partnerO||{}; b.partnerO[id]=row}
@@ -7236,6 +12028,8 @@ document.addEventListener('click',e=>{
     if(!isOwner()){toast('مدیریت نهادهای همکار فقط برای مالک است'); return}
     const D=ppPartnerD(); if(!D||!S.ppPartnerEd||S.ppPartnerEd==='new'){toast('اول نهادِ موجود را باز کن'); return}
     const copy=ppPartnerClean(D,false), b=ppSet(); copy.id='org'+Date.now(); copy.n=(copy.n||'نهاد')+' (رونوشت)';
+    if(ppPartnerServerMode()){delete copy.id; S.ppPartnerEd='new'; S.ppPartnerD=ppPartnerDraftOf(copy); save();
+      toast('رونوشت به‌صورت نهاد تازه باز شد؛ پس از بازبینی، روی سرور ذخیره کن'); renderBody(); return}
     b.partnerAdd=(b.partnerAdd||[]).concat([copy]); S.ppPartnerEd=''; S.ppPartnerD=null; save();
     toast('رونوشت نهاد ساخته شد؛ نام و اطلاعاتش را بازبینی کن'); renderBody(); return}
   const ppartnerReset=q('[data-ppartner-reset]'); if(ppartnerReset){
@@ -7250,8 +12044,15 @@ document.addEventListener('click',e=>{
   const ppartnerShow=q('[data-ppartner-show]'); if(ppartnerShow){
     if(!isOwner()) return; const b=ppSet(), id=String(ppartnerShow.dataset.ppartnerShow);
     b.partnerHide=(b.partnerHide||[]).filter(item=>String(item)!==id); save(); renderBody(); return}
+  const ppartnerReload=q('[data-ppartner-reload]'); if(ppartnerReload){ppPartnerServerLoad(); renderBody(); return}
   const ppartnerDelete=q('[data-ppartner-del]'); if(ppartnerDelete){
     if(!isOwner()) return; const b=ppSet(), id=String(ppartnerDelete.dataset.ppartnerDel);
+    if(ppPartnerServerMode()){
+      const row=ppPartnerAll().find(item=>String(item.id)===id); if(!row) return;
+      const name=row.n||'بی‌نام';
+      if(typeof window.confirm==='function'&&!window.confirm('نهاد «'+name+'» از فهرست عمومی سرور حذف می‌شود و صفحهٔ اختصاصی‌اش دیگر در دسترس نخواهد بود. رویدادها و دیگر محتواها تغییر نمی‌کنند. حذف شود؟')) return;
+      ppPartnerCommit(ppPartnerAll().filter(item=>String(item.id)!==id).map(item=>ppPartnerClean(item,true)),'حذف نهاد «'+name+'»');
+      return}
     b.partnerAdd=(b.partnerAdd||[]).filter(item=>String(item.id)!==id);
     b.partnerHide=(b.partnerHide||[]).filter(item=>String(item)!==id); b.partnerOrd=(b.partnerOrd||[]).filter(item=>String(item)!==id);
     save(); toast('نهاد تازه از فهرست برداشته شد'); renderBody(); return}
@@ -7259,10 +12060,27 @@ document.addEventListener('click',e=>{
   const ppartnerDown=q('[data-ppartner-down]'); if(ppartnerDown){ppPartnerMove(+ppartnerDown.dataset.ppartnerDown,1); renderBody(); return}
   const ppartnerPublish=q('[data-ppartner-pub]'); if(ppartnerPublish){
     if(!isOwner()){toast('انتشار نهادهای همکار فقط با مالک است'); return}
+    if(ppPartnerServerMode()){toast('در تولید، هر تغییر مستقیماً روی سرور ذخیره می‌شود'); return}
     const list=ppPartnerPublishList();
     if(!ppPub('nora-partners',list)) return;
     uLogAdd('فهرست نهادهای همکار در مرورگر منتشر شد ('+fa(list.length)+' نهاد)');
     toast('فهرست نهادها در همین مرورگر منتشر شد؛ برای نمایش روی سرور، آن را در همگام‌سازی محتوای عمومی بفرست'); renderBody(); return}
+  /* H1: ویرایشگر سروری افراد (people) */
+  if(q('[data-pe-refresh]')){PE_SRV.loaded=false; peLoad(); renderBody(); return}
+  if(q('[data-pe-new]')){if(!isOwner()){toast('افزودن شخص فقط با مالک است'); return} if(!PE_SRV.loaded){toast('اول فهرست از سرور بارگذاری شود'); return} peOpen('new'); renderBody(); return}
+  const peEd=q('[data-pe-edit]'); if(peEd){if(!isOwner()){toast('ویرایش افراد فقط با مالک است'); return} peOpen(peEd.dataset.peEdit); renderBody(); return}
+  if(q('[data-pe-cancel]')){peClose(); CH.open=false; renderBody(); return}
+  const peDup=q('[data-pe-dup]'); if(peDup){if(!isOwner()){toast('رونوشت فقط با مالک است'); return} if(peDuplicate(peDup.dataset.peDup)) renderBody(); return}
+  if(q('[data-pe-save]')){if(!isOwner()){toast('انتشار افراد فقط با مالک است'); return} peSave(); return}
+  const peDl=q('[data-pe-del]'); if(peDl){if(!isOwner()){toast('حذف افراد فقط با مالک است'); return} peDelete(peDl.dataset.peDel); return}
+  const peUp=q('[data-pe-up]'); if(peUp){peMove(peUp.dataset.peUp,-1); return}
+  const peDn=q('[data-pe-down]'); if(peDn){peMove(peDn.dataset.peDown,1); return}
+  const peKd=q('[data-pe-kind]'); if(peKd){PE_SRV.kind=peKd.dataset.peKind||''; renderBody(); return}
+  const peTk=q('[data-pe-take]'); if(peTk){const D=ppD(), srv=S.ppEd&&S.ppEd!=='new'?peRow(S.ppEd):null; if(D&&srv){const f=peTk.dataset.peTake, theirs=ppDraftOf(srv,'tch');
+      D[f]=f==='links'?theirs.links.map(l=>({k:l.k,v:l.v})):(f==='exp'?theirs.exp.slice():theirs[f]); save(); renderBody()} return}
+  if(q('[data-pe-reopen]')){const key=S.ppEd; if(key&&key!=='new'&&peRow(key)) peOpen(key); else peClose(); renderBody(); return}
+  const peGoEv=q('[data-pe-goev]'); if(peGoEv){S.sec='events'; CT.kind='events'; CT.edit=null; save(); renderBody(); ctOpenEditor(peGoEv.dataset.peGoev); return}
+  const peGoAr=q('[data-pe-goar]'); if(peGoAr){S.sec='events'; CT.kind='articles'; CT.edit=null; save(); renderBody(); ctOpenEditor(peGoAr.dataset.peGoar); return}
   const ppe=q('[data-pped]'); if(ppe){ppOpen(ppe.dataset.pped,S.ppTab||'tch'); renderBody(); return}
   const ppn=q('[data-ppnew]'); if(ppn){ppOpen('new',S.ppTab||'tch'); renderBody(); return}
   const ppx2=q('[data-ppx]'); if(ppx2){S.ppEd=''; S.ppD=null; save(); renderBody(); return}
@@ -7747,7 +12565,7 @@ document.addEventListener('click',e=>{
   };
   const cqq=q('[data-cqueue]'); if(cqq){cqueue(); return}
   const uv=q('[data-uv]'); if(uv){S.uV=uv.dataset.uv; S.uRej=''; if(S.uV==='tools') S.uTool='report'; if(S.uV==='club') S.uClub='rules'; save(); renderBody(); return}
-  const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; save(); renderBody(); return}
+  const uback=q('[data-uback]'); if(uback){S.uV=''; S.uSel=''; S.uRej=''; S.uimpPv=null; S.attForm=''; ufReset(''); save(); renderBody(); return}
   const utag=q('[data-uTag]'); if(utag){S.uTag=(S.uTag===utag.dataset.utag)?'':utag.dataset.utag; save(); renderBody(); return}
     const uok=q('[data-uok]'); if(uok){const id=uok.dataset.uok, person=memOf(id)||{};
     S.uov[id]=Object.assign({},S.uov[id],{st:['تأیید محلی · نمونه','ok']}); save();
@@ -8100,9 +12918,19 @@ document.addEventListener('change',e=>{
     return}
   if(el.dataset.ppfile){const D=ppD(); const f=(el.files||[])[0];
     if(!D||!f) return;
+    /* ممیزی ۱۴۰۵/۰۸/۰۱ (G1): در حالت سرور عکس شخص با همان POST /api/admin/media بارگذاری می‌شود و فقط نشانی عمومی در site_content می‌نشیند؛ base64 داخل سند نمی‌رود. */
+    const api=window.NORA_SERVER_API;
+    if(typeof peServerMode==='function'&&peServerMode()&&api&&typeof api.uploadAdminMedia==='function'){
+      if(!/^image\/(png|jpeg|webp)$/.test(f.type)){toast('فقط PNG، JPEG یا WebP پذیرفته می‌شود'); el.value=''; return}
+      if(PE_SRV.photoBusy) return; PE_SRV.photoBusy=true; toast('در حال بارگذاری عکس در سرور…');
+      api.uploadAdminMedia(f,f.name,staffCsrfCookie()).then(result=>{D.photo=result.url; save(); renderBody(); toast(result.created===false?'همین عکس پیش‌تر در سرور بود؛ همان نشانی استفاده شد':'عکس در سرور ذخیره شد؛ با «ذخیره و انتشار» روی پروفایل می‌نشیند')})
+        .catch(error=>{toast(p2Err(error,'بارگذاری عکس انجام نشد؛ عکس قبلی دست‌نخورده ماند'))})
+        .finally(()=>{PE_SRV.photoBusy=false; el.value=''});
+      return}
     ppShrink(f,(url,result,error)=>{ if(!url){toast(UI.imageErrorMessage?UI.imageErrorMessage(error):'این تصویر خوانده نشد'); return}
       D.photo=url; save(); renderBody(); toast('عکس ایشان به‌روزرسانی شد'); });
     return}
+  if(el.dataset.peQ!==undefined){PE_SRV.q=el.value; const list=$('#peList'); if(list) list.innerHTML=peListHtml(); return}
   if(el.dataset.ppartnerQ!==undefined){S.ppPartnerQ=el.value; save();
     const list=$('#ppPartnerList'); if(list) list.innerHTML=ppPartnerList(); return}
   if(el.dataset.ppartnerField){ppPartnerField(el.dataset.ppartnerField,el.value); ppPartnerPatch(); return}
@@ -8160,6 +12988,7 @@ document.addEventListener('input',e=>{
     if(box&&S.evId){const e=evOf(S.evId); if(e) box.innerHTML=evRegRows(e)} return}
   if(el.dataset.brtxt!==undefined){S.brTxt=el.value; save(); return}
   /* پروفایل: قلم در پیش‌نویس مینشیند و پیش‌نمایشِ کنار دستش همان لحظه تازه میشود */
+  if(el.dataset.peQ!==undefined){PE_SRV.q=el.value; const list=$('#peList'); if(list) list.innerHTML=peListHtml(); return}
   if(el.dataset.ppartnerQ!==undefined){S.ppPartnerQ=el.value; save();
     const list=$('#ppPartnerList'); if(list) list.innerHTML=ppPartnerList(); return}
   if(el.dataset.ppartnerField){ppPartnerField(el.dataset.ppartnerField,el.value); ppPartnerPatch(); return}
@@ -8202,10 +13031,15 @@ document.addEventListener('input',e=>{
 });
 addEventListener('hashchange',()=>{
   const k=(location.hash||'').replace('#','');
+  if(!IS_TEST&&serverHashRoute(k)){S.q=''; save(); render(); serverHashAfterRender(k); return}
   if(k==='money'||k==='finance'){
-    S.sec='settings'; S.setG='money'; S.finTab='gates'; S.q=''; save(); render();
+    S.sec='settings'; S.setG=IS_TEST?'money':'services'; S.finTab='gates'; S.q=''; save(); render();
   }else if(k==='reports') go('reports');
+  else if(k==='inbox'&&!IS_TEST){S.sec='users'; S.uHub='users'; S.uV='shared-inbox'; S.sharedWorkflowKind='all'; S.q=''; save(); render();}
   else if(k==='newev'&&k!==S.sec){S.sec='newev'; S.q=''; save(); render();}
+  else if(k==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null; S.q='';
+    if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';
+    save(); render();}
   else if(ALLSECS.some(section=>section.k===k)&&k!==S.sec){
     if(k==='users'){S.uHub='users';S.uV='';S.uSel=''}
     S.sec=k; S.q=''; save(); render();
@@ -8221,10 +13055,15 @@ window.addEventListener('keydown',e=>{
 /* ══ بوت ═══════════════════════════════════════════════════════════════ */
 function startAdminApplication(){
   const h=(location.hash||'').replace('#','');
-  if(h==='cert'){S.sec='users'; S.uHub='users'; S.uV='cert';}
-  else if(h==='money'||h==='finance'){S.sec='settings';S.setG='money';S.finTab='gates'}
+  const serverRouted=!IS_TEST&&serverHashRoute(h);
+  if(serverRouted){}
+  else if(h==='cert'){S.sec='users'; S.uHub='users'; S.uV='cert';}
+  else if(h==='money'||h==='finance'){S.sec='settings';S.setG=IS_TEST?'money':'services';S.finTab='gates'}
   else if(h==='reports'){S.sec='users';S.uHub='reports'}
+  else if(h==='inbox'&&!IS_TEST){S.sec='users';S.uHub='users';S.uV='shared-inbox';S.sharedWorkflowKind='all'}
   else if(h==='newev') S.sec='newev';
+  else if(h==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null;
+    if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';}
   else if(ALLSECS.some(section=>section.k===h)) S.sec=h;
   if(S.sec!=='newev'&&!ALLSECS.some(section=>section.k===S.sec)) S.sec='dash';
   const th=$('#admTheme'); if(th) th.onclick=()=>{if(typeof themeToggle==='function') themeToggle()};
@@ -8234,7 +13073,62 @@ function startAdminApplication(){
   netSync();
   if(typeof initUI==='function'){try{initUI()}catch(e){}}
   bind(); sanitize(); render();
+  if(serverRouted) serverHashAfterRender(h);
+  /* هش ناشناخته (مثل #posts قدیمی یا تایپ اشتباه) به آخرین بخش معتبر می‌افتد؛ نشانی هم باید همان بخش را بگوید نه هش مرده را */
+  else if(!IS_TEST&&h&&!['cert','money','finance','reports','inbox','newev','partners','club','att','attendance'].includes(h)&&!ALLSECS.some(section=>section.k===h))
+    try{history.replaceState(null,'','#'+(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec))}catch(e){}
   if(!IS_TEST&&isOwner()&&S.uV==='tools'&&S.uTool==='staff'&&!SERVER_ROLE_LOADED) loadServerRoleAccounts(false);
+}
+/* مسیرهای نام‌دار نسخهٔ مرجع (#money، #club، #att) در حالت سرور به مقصد واقعی و مجاز می‌روند؛ بی‌مجوز → داشبورد با پیام، نه صفحهٔ «متصل نشده». */
+function serverHashRoute(h){
+  if(IS_TEST||!SERVER_AUTH||!ROLE_KEYS.includes(SERVER_AUTH.role)) return false;
+  if(h==='money'||h==='finance'){
+    if(recCanOrders()&&canSec('events')){S.sec='events'; return true}
+    if(canPerm('rp_view')&&canSec('users')){S.sec='users'; S.uHub='reports'; S.uV=''; return true}
+    S.sec='dash'; return true;
+  }
+  if(h==='club'){
+    if(canManageClub()&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='club'; return true}
+    S.sec='dash'; return true;
+  }
+  if(h==='att'||h==='attendance'){
+    if(canPerm('attendance')&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='att'; return true}
+    S.sec='dash'; return true;
+  }
+  if(efParseHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
+  if(ctParseEditHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
+  return false;
+}
+function serverHashAfterRender(h){
+  if(h==='money'||h==='finance'){
+    if(S.sec==='events'&&recCanOrders()){eiOpen('','',''); EI.tab='orders'; REC.orders.status='review'; REC.orders.offset=0; EI.key=''; eiLoad(); renderBody()}
+    else if(S.sec==='dash') toast('بخش مالی برای مجوزهای این حساب باز نیست؛ دسترسی را سرور تعیین می‌کند');
+  }
+  else if(h==='club'&&S.sec==='dash') toast('مدیریت باشگاه فقط برای مالک و سرپرست باشگاه باز است');
+  else if((h==='att'||h==='attendance')&&S.sec==='dash') toast('حضور و غیاب برای مجوزهای این حساب باز نیست');
+  const ed=ctParseEditHash(h);
+  if(ed){
+    if(S.sec!=='events'){toast('این حساب مجوز دیدن رویدادها را ندارد')}
+    else{
+      if(CT.edit&&CT.edit.id===ed.id&&!ed.from) return;
+      CT.kind='events'; EI.open=false; EI.data=null; CH.open=false;
+      ctOpenEditor(ed.id,{restoreDraft:ed.from,refreshForms:ed.from}).then(()=>{if(CT.edit&&CT.edit.id===ed.id&&ed.sec) ctJump(ed.sec)});
+      return;
+    }
+  }
+  const ef=efParseHash(h);
+  if(ef){
+    if(S.sec!=='events'){toast('این حساب مجوز دیدن رویدادها را ندارد')}
+    else{
+      if(EI.open&&!EI.all&&EI.eventId===ef.id&&EI.tab===ef.tab&&(EF.person.id||'')===ef.reg&&(EF.sum.formId||'')===ef.form) return;
+      CT.kind='events'; CT.edit=null;
+      eiOpen(ef.id,'','',ef.tab);
+      if(ef.reg&&ef.tab==='regs'){EF.person.id=ef.reg; EF.person.data=null}
+      if(ef.form&&ef.tab==='survey'){EF.sum.formId=ef.form; EF.sum.data=null}
+      renderBody(); return;
+    }
+  }
+  try{history.replaceState(null,'','#'+(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec))}catch(e){}
 }
 function showServerAuthMessage(title,message,withLogin){
   const nav=$('#admNav'), tabs=$('#admTabs'), bar=$('#admBar'), body=$('#admBody');
@@ -8290,6 +13184,8 @@ async function authenticateServerSession(){
   }
 }
 (function boot(){
+  /* کلید شب/روز ستون کناری پیش از احراز هویت هم باید کار کند (در دروازهٔ ورود دیده می‌شود) */
+  const th=$('#admTheme'); if(th) th.onclick=()=>{if(typeof themeToggle==='function') themeToggle()};
   if(IS_TEST){
     const auth=readAdminSession();
     if(!validAdminSession(auth)){
