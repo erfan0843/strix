@@ -65,9 +65,9 @@ const imgInfo = (page, sel, pills) => page.evaluate(([sel, pills]) => {
     await page.screenshot({ path: path.join(out, `event-page-${vp[0]}.png`) });
     // 5) home cards
     await page.goto('about:blank'); await page.goto(O + '/home.html', { waitUntil: 'load' }); await sleep(4000);
-    const hsel = `.evc-cov.has-poster[data-ev="${ids.A}"] img, a.evc-cov.has-poster[href*="${ids.A}"] img`;
+    const hsel = `.evc-cov[data-ev="${ids.A}"] img, a.evc-cov[href*="${ids.A}"] img`;
     await page.evaluate(s => { const el = document.querySelector(s); if (el) el.scrollIntoView({ block: 'center' }); }, hsel); await sleep(300);
-    const hm = await imgInfo(page, hsel, ['.evc-cov.has-poster .evc-tag', '.evc-cov.has-poster .evc-day']); console.log('home ' + vp[0] + ':', JSON.stringify(hm));
+    const hm = await imgInfo(page, hsel, ['.evc-cov:has(>img) .evc-tag', '.evc-cov:has(>img) .evc-day']); console.log('home ' + vp[0] + ':', JSON.stringify(hm));
     check(`home @${vp[0]}: event card poster contained, tags not over the poster, no overflow`, !!hm && hm.complete && hm.fit === 'contain' && near(hm.drawn.w / hm.drawn.h, A4, 0.03) && hm.overlaps.length === 0 && hm.sw <= hm.cw + 2);
     await page.screenshot({ path: path.join(out, `home-${vp[0]}.png`) });
   }

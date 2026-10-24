@@ -7407,7 +7407,7 @@ function ctEditor(){
       <label class="btn sm ${up.busy?'disabled':''}">${ico('i-upload')}انتخاب فایل<input type="file" accept="image/png,image/jpeg,image/webp" data-ct-image="${imgField}" ${up.busy?'disabled':''} hidden/></label>
       ${img&&!up.busy?btn('حذف تصویر',`data-ct-image-clear="${imgField}"`,'i-close'):''}
     </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
-    ${img&&img.startsWith('/api/public/media/')?`<small class="cap" data-ct-image-stored>تصویر در پایگاه رسانهٔ همین سایت ذخیره شده است.</small>`:''}
+    ${img&&img.startsWith('/api/public/media/')?`<details class="cap" data-ct-image-stored><summary>تصویر در پایگاه رسانهٔ همین سایت ذخیره شده است (نشانی فایل)</summary><code dir="ltr">${esc(img)}</code></details>`:''}
     ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:(kind==='events'?'پوستر عمودی A4 (نسبت ۲۱۰ به ۲۹۷) در کارت‌ها و صفحهٔ رویداد کامل و بدون برش نمایش داده می‌شود. ':'')+'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
   const fields=kind==='events'?ctEventSections(e,imageBox)
   :`

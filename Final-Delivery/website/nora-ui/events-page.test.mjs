@@ -283,7 +283,7 @@ for (const file of ['events.html', 'event.html']) {
     const detail = fs.readFileSync(DIR + 'event.html', 'utf8');
     ok(/\.event-cover-image\{[^}]*object-fit:contain/.test(detail), 'صفحهٔ رویداد: پوستر سربرگ contain است، نه cover');
     const nora = fs.readFileSync(DIR + 'nora.css', 'utf8');
-    ok(/\.evc-cov\.has-poster img\{[^}]*object-fit:contain/.test(nora) && /\.evc-cov\.has-poster \.evc-tags\{position:static/.test(nora), 'کارت خانه: پوستر contain و برچسب‌ها زیر قاب');
+    ok(/\.evc-cov:has\(>img\) img\{[^}]*object-fit:contain/.test(nora) && /\.evc-cov:has\(>img\) \.evc-tags\{position:static/.test(nora), 'کارت خانه: پوستر contain و برچسب‌ها زیر قاب (بدون بایت اضافه در ui.js)');
   }
   ok(!!openCard.querySelector('.reg-state.live') && /ثبت‌نام باز است/.test(openCard.textContent), 'کارت باز: نشان «ثبت‌نام باز است» از وضعیت سرور');
   ok(/تا پایان ثبت‌نام/.test(openCard.textContent) && !!openCard.querySelector('[data-countdown]'), 'کارت باز: شمارشگر مشترک تا مهلت ثبت‌نام');

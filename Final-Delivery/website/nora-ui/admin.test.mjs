@@ -2424,10 +2424,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
      admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
      بی‌دلیل نشکند. */
-  ok(html.includes('admin.css?v=114')&&html.includes('admin.js?v=176')
+  ok(html.includes('admin.css?v=114')&&html.includes('admin.js?v=177')
       &&html.includes('owner-api.js?v=130')&&html.includes('data.js?v=100')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=4')
-      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=103'),
+      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=104'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'nora-v100'"),'کارگر سرویس نسخهٔ تازه است');
