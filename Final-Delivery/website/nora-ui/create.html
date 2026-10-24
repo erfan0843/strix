@@ -10,15 +10,15 @@
 <link rel="stylesheet" href="glass.css?v=100"/>
 <style>
   .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
-  .stepper4{display:flex;gap:4px;padding:5px}
-  .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:7px;
+  .stepper4{display:flex;gap:var(--sp-1);padding:5px}
+  .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:var(--sp-2);
     padding:9px 6px;border-radius:var(--r-pill);font-size:var(--fs-sub);color:var(--ink-3);cursor:pointer;white-space:nowrap}
-  .stepper4 button .n{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--surface-sunk)}
+  .stepper4 button .n{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:var(--fs-micro);background:var(--surface-sunk)}
   .stepper4 button.on{background:var(--brand-tint);color:var(--brand-ink);font-weight:600}
   .stepper4 button.on .n{background:var(--brand);color:#fff}
   .stepper4 button.done .n{background:var(--ok-tint);color:var(--ok)}
   .capability-box{margin:0 0 10px;padding:9px 11px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-2);font-size:var(--fs-sub);color:var(--ink-2)}
-  .cap-tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:2px 7px;margin-inline-start:4px;font-size:11px;background:var(--surface-sunk);color:var(--ink-2)}
+  .cap-tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:2px 7px;margin-inline-start:4px;font-size:var(--fs-micro);background:var(--surface-sunk);color:var(--ink-2)}
   .cap-tag.limited,.cap-tag.unavailable{background:var(--warn-tint);color:var(--warn)}
   .cap-tag.server{background:var(--ok-tint);color:var(--ok)}
   .tile:disabled{opacity:.62;cursor:not-allowed;filter:saturate(.55)}
@@ -27,15 +27,15 @@
   .block.drop-before{box-shadow:inset 0 3px 0 var(--brand)}
   .block.drop-after{box-shadow:inset 0 -3px 0 var(--brand)}
   button.handle{border:0;background:transparent;color:var(--ink-3);cursor:grab;touch-action:none}
-  button.handle:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  button.handle:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:var(--r-xs)}
   [aria-disabled="true"]{cursor:not-allowed}
   @media (max-width:560px){.stepper4 button span.t{display:none}}
   .prevbox{border:.5px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface-2);padding:12px}
-  .finrow{display:grid;grid-template-columns:1.4fr .8fr .6fr auto;gap:8px;align-items:center}
-  @media (max-width:560px){.finrow{grid-template-columns:1fr 1fr;gap:6px}}
-  .linkrow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:8px;align-items:center}
-  @media (max-width:560px){.linkrow{grid-template-columns:1fr;gap:6px}}
-  .nora-pay-form-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+  .finrow{display:grid;grid-template-columns:1.4fr .8fr .6fr auto;gap:var(--sp-2);align-items:center}
+  @media (max-width:560px){.finrow{grid-template-columns:1fr 1fr;gap:var(--sp-1h)}}
+  .linkrow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:var(--sp-2);align-items:center}
+  @media (max-width:560px){.linkrow{grid-template-columns:1fr;gap:var(--sp-1h)}}
+  .nora-pay-form-mark{width:34px;height:34px;border-radius:var(--r-sm);display:grid;place-items:center;flex:0 0 auto;
     background:linear-gradient(145deg,#15243B,#2A3F6B);border:1px solid rgba(201,169,106,.52);color:#EBD79F;
     font:700 10px/1 Arial,sans-serif;letter-spacing:.7px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
   #doneEndPreview[hidden]{display:none!important}
@@ -44,13 +44,13 @@
   .form-payment-method-config textarea.input{min-height:58px;resize:vertical}
   #formPaymentMethodList>.empty{padding:12px;border:1px dashed var(--hairline);border-radius:var(--r-lg)}
   #addFormPaymentMethod:disabled{opacity:.5;cursor:not-allowed}
-  @media(max-width:560px){.form-payment-method-config .g2{grid-template-columns:1fr;gap:8px}}
+  @media(max-width:560px){.form-payment-method-config .g2{grid-template-columns:1fr;gap:var(--sp-2)}}
   /* نوار پایین موبایل (.quicknav): جایگزین ریل کناری که زیر ۱۰۴۰px پنهان می‌شود؛ عمداً .tabbar نیست تا ناوبری اصلی سایت آن را بازنویسی نکند */
   .quicknav{position:fixed;inset-inline:var(--sp-3);bottom:calc(var(--sp-3) + var(--safe-b));z-index:50;display:none;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;
     background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:.5px solid var(--glass-line);border-radius:var(--r-xl);box-shadow:var(--sh-2),var(--sheen-top)}
   .quicknav a,.quicknav button{-webkit-appearance:none;appearance:none;border:0;background:none;font:inherit;cursor:pointer;
-    display:grid;justify-items:center;gap:3px;min-height:48px;padding:6px 2px;border-radius:var(--r-md);text-decoration:none;
-    color:var(--ink-3);font-size:11px;font-weight:600;line-height:1.3}
+    display:grid;justify-items:center;gap:var(--sp-1);min-height:48px;padding:6px 2px;border-radius:var(--r-md);text-decoration:none;
+    color:var(--ink-3);font-size:var(--fs-micro);font-weight:600;line-height:1.3}
   .quicknav .i{width:22px;height:22px}
   .quicknav .tint{color:var(--brand-ink);background:var(--brand-tint)}
   @media (max-width:1040px){.quicknav{display:grid}}

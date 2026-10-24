@@ -4,10 +4,10 @@
    بلوک‌های عددی aria-hidden هستند و متن کامل در .nora-countdown-value می‌ماند. */
 .nora-countdown{--cd-ink:var(--ink,#1e2b27);--cd-muted:var(--ink-3,#5f655f);--cd-accent:var(--brand-ink,#0a5abc);
   --cd-block:color-mix(in srgb,var(--brand,#0071e3) 7%,var(--surface,#fff));--cd-edge:color-mix(in srgb,var(--brand,#0071e3) 16%,transparent);
-  --cd-n:30px;--cd-u:11px;--cd-gap:8px;--cd-pad:8px 10px 7px;--cd-min:58px;--cd-radius:14px;
-  display:inline-flex;flex-direction:column;align-items:flex-start;gap:7px;max-width:100%;color:var(--cd-ink);
+  --cd-n:30px;--cd-u:11px;--cd-gap:var(--sp-2);--cd-pad:8px 10px 7px;--cd-min:58px;--cd-radius:14px;
+  display:inline-flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);max-width:100%;color:var(--cd-ink);
   font-variant-numeric:tabular-nums;direction:rtl;line-height:1.5}
-.nora-countdown-head{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--cd-muted)}
+.nora-countdown-head{display:inline-flex;align-items:center;gap:var(--sp-1h);font-size:var(--fs-cap);color:var(--cd-muted)}
 .nora-countdown-head .i{width:15px;height:15px;flex:none;color:var(--cd-accent)}
 .nora-countdown-label{white-space:nowrap}
 /* بلوک‌های زمان: عدد درشت، واحد زیر آن؛ جداکنندهٔ ظریف میان بلوک‌ها */
@@ -24,22 +24,22 @@
 .nora-countdown[data-cd-units="hms"] .cdb[data-unit="h"]::before{display:none}
 /* متن کامل برای صفحه‌خوان/آزمون؛ در حالت پایان‌یافته دیده می‌شود */
 .nora-countdown:not(.is-ended) .nora-countdown-value{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.nora-countdown.is-ended{flex-direction:row;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--surface-2,#f1f3f7);color:var(--cd-muted);font-size:12.5px;line-height:1.7}
+.nora-countdown.is-ended{flex-direction:row;align-items:center;gap:var(--sp-1h);padding:5px 10px;border-radius:var(--r-pill);background:var(--surface-2,#f1f3f7);color:var(--cd-muted);font-size:var(--fs-cap);line-height:1.7}
 .nora-countdown.is-ended .nora-countdown-blocks,.nora-countdown.is-ended .nora-countdown-label{display:none}
 .nora-countdown.is-ended>.i,.nora-countdown.is-ended .nora-countdown-head .i{width:15px;height:15px;color:var(--ink-4,#8a92a6)}
 .nora-countdown.is-ended .nora-countdown-value{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* کمتر از یک ساعت: لحن هشدار ملایم، بدون درخشش دائمی */
 .nora-countdown.is-soon{--cd-accent:#9a5b0a;--cd-block:color-mix(in srgb,#b7791f 10%,var(--surface,#fff));--cd-edge:color-mix(in srgb,#b7791f 28%,transparent)}
 /* کارت رویداد: فشرده، بدون سرآیند متنی (آیکون می‌ماند) */
-.nora-countdown.is-compact{--cd-n:17px;--cd-u:9.5px;--cd-gap:5px;--cd-pad:4px 6px 3px;--cd-min:40px;--cd-radius:9px;flex-direction:row;align-items:center;gap:6px}
+.nora-countdown.is-compact{--cd-n:17px;--cd-u:9.5px;--cd-gap:var(--sp-1h);--cd-pad:4px 6px 3px;--cd-min:40px;--cd-radius:9px;flex-direction:row;align-items:center;gap:var(--sp-1h)}
 .nora-countdown.is-compact .nora-countdown-label{display:none}
 .nora-countdown.is-compact .nora-countdown-head .i{width:14px;height:14px}
 .nora-countdown.is-compact .cdb-n{letter-spacing:0;min-width:1.3em}
 .nora-countdown.is-compact .cdb-u{margin-top:1px}
-.nora-countdown.is-compact.is-ended{padding:3px 8px;font-size:11.5px}
+.nora-countdown.is-compact.is-ended{padding:3px 8px;font-size:var(--fs-cap)}
 /* بنر/خانه: بزرگ‌ترین اندازه؛ روی زمینهٔ تیره بلوک‌های شیشه‌ای */
-.nora-countdown.is-hero{--cd-n:36px;--cd-u:11.5px;--cd-gap:10px;--cd-pad:10px 12px 8px;--cd-min:68px;--cd-radius:16px;gap:9px}
-.nora-countdown.is-hero .nora-countdown-head{font-size:13px}
+.nora-countdown.is-hero{--cd-n:36px;--cd-u:11.5px;--cd-gap:var(--sp-2h);--cd-pad:10px 12px 8px;--cd-min:68px;--cd-radius:16px;gap:var(--sp-2h)}
+.nora-countdown.is-hero .nora-countdown-head{font-size:var(--fs-sub)}
 .nora-countdown.on-dark{--cd-ink:#fff;--cd-muted:rgba(255,255,255,.78);--cd-accent:#fff;--cd-block:rgba(255,255,255,.14);--cd-edge:rgba(255,255,255,.32)}
 .nora-countdown.on-dark .cdb{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .nora-countdown.on-dark .cdb+.cdb::before{color:rgba(255,255,255,.55)}
@@ -54,10 +54,10 @@
 /* موبایل باریک: بلوک‌ها کمی کوچک‌تر تا سرریز افقی رخ ندهد */
 @media (max-width:420px){
   .nora-countdown{--cd-n:26px;--cd-min:52px}
-  .nora-countdown.is-hero{--cd-n:30px;--cd-min:58px;--cd-gap:8px}
+  .nora-countdown.is-hero{--cd-n:30px;--cd-min:58px;--cd-gap:var(--sp-2)}
   .nora-countdown.is-compact{--cd-n:16px;--cd-min:38px}
 }
-.reg-state{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;line-height:1.7;white-space:nowrap}
+.reg-state{display:inline-flex;align-items:center;gap:var(--sp-1h);padding:3px 9px;border-radius:var(--r-pill);font-size:var(--fs-cap);font-weight:700;line-height:1.7;white-space:nowrap}
 .reg-state::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
 .reg-state.live{background:color-mix(in srgb,#1d8a4b 14%,var(--surface,#fff));color:#1d8a4b}
 .reg-state.wait{background:color-mix(in srgb,#b7791f 14%,var(--surface,#fff));color:#8a5a12}

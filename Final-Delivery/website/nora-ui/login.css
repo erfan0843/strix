@@ -30,7 +30,7 @@
 /* ── چیدمان: موبایل از بالا می‌چیند (با باز شدن کیبورد نمی‌پرد)، نمایشگر پهن وسط می‌نشیند ── */
 .loginpage main.lwrap{box-sizing:border-box;width:100%;max-width:none;margin:0;
   padding:12px 14px calc(84px + var(--safe-b,0px));
-  display:grid;justify-items:center;align-content:start;row-gap:10px;animation:none}
+  display:grid;justify-items:center;align-content:start;row-gap:var(--sp-2h);animation:none}
 
 /* ── بلوک ورود: یک کادر با دو ناحیه (سرِ تیره + پنل فرم) ── */
 .lgcard{box-sizing:border-box;position:relative;isolation:isolate;width:100%;max-width:440px;margin:0;padding:0;overflow:hidden;
@@ -51,14 +51,14 @@
 .lghead::after{width:200px;height:200px;inset-inline-start:-90px;bottom:-150px;border:1px solid rgba(255,255,255,.12);
   box-shadow:0 0 0 19px rgba(255,255,255,.025)}
 .lgmark{display:none}
-.lgeyebrow{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid rgba(224,225,185,.23);border-radius:var(--r-pill);
-  background:rgba(255,255,255,.04);color:#E2E8D1;font-size:11px;font-weight:500;line-height:1.6}
+.lgeyebrow{display:inline-flex;align-items:center;gap:var(--sp-2);padding:5px 10px;border:1px solid rgba(224,225,185,.23);border-radius:var(--r-pill);
+  background:rgba(255,255,255,.04);color:#E2E8D1;font-size:var(--fs-micro);font-weight:500;line-height:1.6}
 .lgeyebrow .i{width:14px;height:14px;color:#D4C899;flex:0 0 auto}
 .lgcard h1{margin:14px 0 0;color:var(--lg-hero-ink);font-family:var(--f-h,'Estedad',var(--f));font-size:clamp(26px,6.4vw,30px);font-weight:720;letter-spacing:-.4px;line-height:1.45;
   text-wrap:balance}
-.lglead{margin:8px 0 0;max-width:34em;color:var(--lg-hero-ink-2);font-size:13px;font-weight:400;line-height:1.95;text-wrap:pretty}
+.lglead{margin:8px 0 0;max-width:34em;color:var(--lg-hero-ink-2);font-size:var(--fs-sub);font-weight:400;line-height:1.95;text-wrap:pretty}
 .lglead:empty{display:none}
-.lgsecure{display:none;align-items:center;gap:7px;margin:0;color:var(--lg-hero-ink-3);font-size:11.5px;line-height:1.7}
+.lgsecure{display:none;align-items:center;gap:var(--sp-2);margin:0;color:var(--lg-hero-ink-3);font-size:var(--fs-cap);line-height:1.7}
 .lgsecure .i{width:14px;height:14px;flex:0 0 auto;color:#C4DAD8}
 .lgsecure[hidden]{display:none!important}
 
@@ -69,12 +69,12 @@
 
 /* ── فرم ── */
 .lgbody{min-width:0}
-.lgstep{display:grid;gap:12px}
-.lgform{display:grid;gap:12px}
-.lgfield{display:grid;gap:6px;min-width:0}
-.lglbl{margin-inline:2px;color:var(--ink-2);font-size:12.5px;font-weight:600;letter-spacing:-.1px}
-.lgtext{box-sizing:border-box;width:100%;height:52px;padding:0 14px;border:1px solid var(--lg-field-line);border-radius:14px;outline:0;
-  background:var(--lg-field);color:var(--ink);font:inherit;font-size:16px;
+.lgstep{display:grid;gap:var(--sp-3)}
+.lgform{display:grid;gap:var(--sp-3)}
+.lgfield{display:grid;gap:var(--sp-1h);min-width:0}
+.lglbl{margin-inline:2px;color:var(--ink-2);font-size:var(--fs-cap);font-weight:600;letter-spacing:-.1px}
+.lgtext{box-sizing:border-box;width:100%;height:52px;padding:0 14px;border:1px solid var(--lg-field-line);border-radius:var(--r-md);outline:0;
+  background:var(--lg-field);color:var(--ink);font:inherit;font-size:var(--fs-head);
   transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease),background var(--t) var(--ease)}
 .lgtext[dir="ltr"]{text-align:left;font-variant-numeric:tabular-nums}
 .lgtext::placeholder{color:var(--ink-4)}
@@ -85,28 +85,28 @@
 .lgtext[aria-invalid="true"]:focus{box-shadow:0 0 0 3px var(--stop-tint)}
 
 /* کد امنیتی: تصویر، ورودی و تازه‌سازی در یک ردیف هم‌قد */
-.lg-captcha{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:8px;margin:0}
-.lg-cap-img{width:124px;height:52px;border:1px solid var(--lg-field-line);border-radius:14px;overflow:hidden;
+.lg-captcha{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:var(--sp-2);margin:0}
+.lg-cap-img{width:124px;height:52px;border:1px solid var(--lg-field-line);border-radius:var(--r-md);overflow:hidden;
   background:#fff;display:grid;place-items:center;line-height:0}
 .lg-cap-img img.lg-cap-pic{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .lg-cap-img .lg-spinner{width:18px;height:18px}
-.lg-cap-fail{padding:0 8px;font-size:11.5px;line-height:1.5;color:var(--ink-3);text-align:center}
+.lg-cap-fail{padding:0 8px;font-size:var(--fs-cap);line-height:1.5;color:var(--ink-3);text-align:center}
 .lg-captcha .lgtext{text-align:center;letter-spacing:.18em}
 .lg-captcha .lgtext::placeholder{letter-spacing:0}
-.lg-captcha .lgbtn.quiet{width:44px;min-height:44px;padding:0;border:1px solid var(--lg-field-line);border-radius:14px;color:var(--ink-3);background:transparent}
+.lg-captcha .lgbtn.quiet{width:44px;min-height:44px;padding:0;border:1px solid var(--lg-field-line);border-radius:var(--r-md);color:var(--ink-3);background:transparent}
 .lg-captcha .lgbtn.quiet svg{width:19px;height:19px}
 
 /* ── دکمه‌ها: یک کنش اصلی تمام‌عرض؛ کنش‌های کمکی متنی و آرام ── */
-.lgbtn{box-sizing:border-box;width:100%;min-height:52px;margin-top:4px;padding:0 18px;border:1px solid rgba(255,255,255,.14);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+.lgbtn{box-sizing:border-box;width:100%;min-height:52px;margin-top:4px;padding:0 18px;border:1px solid rgba(255,255,255,.14);border-radius:var(--r-md);display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
   background:linear-gradient(180deg,var(--lg-action),var(--lg-action-end));color:#fff;
-  font:inherit;font-size:15px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;
+  font:inherit;font-size:var(--fs-body);font-weight:700;text-align:center;text-decoration:none;cursor:pointer;
   box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 8px 20px -6px rgba(2,30,51,.35);
   transition:transform var(--t-fast) var(--spring),background var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease),opacity var(--t-fast) var(--ease)}
 .lgbtn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .lgbtn[aria-busy="true"]{cursor:progress;opacity:.85;box-shadow:none;transform:none}
 .lgbtn[aria-busy="true"]::before{content:'';flex:0 0 auto;width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-inline-end-color:transparent;animation:login-spin .8s linear infinite}
 .lgbtn:not(:disabled):active{transform:scale(.985)}
-.lgbtn.quiet{width:auto;min-height:40px;margin-top:0;padding:4px 10px;border:0;border-radius:10px;background:transparent;color:var(--brand-ink);font-size:13px;font-weight:600;box-shadow:none}
+.lgbtn.quiet{width:auto;min-height:40px;margin-top:0;padding:4px 10px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--brand-ink);font-size:var(--fs-sub);font-weight:600;box-shadow:none}
 .lgbtn.quiet:disabled{color:var(--ink-3);background:transparent;opacity:.75}
 @media (hover:hover) and (pointer:fine){
   .lgbtn:not(.quiet):not(:disabled):hover{filter:brightness(1.07);
@@ -118,30 +118,30 @@
 .lgbtn:focus-visible,.lg-admin-link:focus-visible,.lglinks a:focus-visible,.lglinks button:focus-visible{outline:3px solid color-mix(in oklab,var(--brand) 45%,transparent);outline-offset:2px}
 
 /* ── گام کد: شماره، شش خانه، مهلت، تأیید، کنش‌های کمکی ── */
-.lg-otp-sent{margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--ink-2);font-size:13px;line-height:1.85;text-align:center}
+.lg-otp-sent{margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--ink-2);font-size:var(--fs-sub);line-height:1.85;text-align:center}
 .lg-otp-sent b{display:inline-block;direction:ltr;unicode-bidi:isolate;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
-.lg-otp-field{gap:8px}
+.lg-otp-field{gap:var(--sp-2)}
 .lg-otp-field .lglbl{text-align:center;margin:0}
 .lg-otp-control{position:relative;width:100%;height:54px;direction:ltr;touch-action:manipulation}
-.lg-otp-slots{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-.lg-otp-slot{min-width:0;border:1px solid var(--lg-field-line);border-radius:14px;display:grid;place-items:center;
-  background:var(--lg-field);color:var(--ink);font-family:'Nora Latin',var(--f);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;cursor:text;
+.lg-otp-slots{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--sp-2)}
+.lg-otp-slot{min-width:0;border:1px solid var(--lg-field-line);border-radius:var(--r-md);display:grid;place-items:center;
+  background:var(--lg-field);color:var(--ink);font-family:'Nora Latin',var(--f);font-size:var(--fs-kpi);font-weight:700;font-variant-numeric:tabular-nums;cursor:text;
   transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease),background var(--t) var(--ease)}
 .lg-otp-slot.is-filled{border-color:color-mix(in oklab,var(--ink) 34%,transparent);background:var(--surface)}
 .lg-otp-slot.is-current{border-color:var(--brand);background:var(--surface);box-shadow:0 0 0 3px var(--brand-tint)}
-.lg-otp-control .lgcode{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:12px;background:transparent;
-  color:transparent;caret-color:transparent;-webkit-text-fill-color:transparent;font-size:22px;letter-spacing:0;text-align:left;pointer-events:none;z-index:1}
+.lg-otp-control .lgcode{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:var(--r-sm);background:transparent;
+  color:transparent;caret-color:transparent;-webkit-text-fill-color:transparent;font-size:var(--fs-kpi);letter-spacing:0;text-align:left;pointer-events:none;z-index:1}
 .lg-otp-control .lgcode:focus{border:0;box-shadow:none;background:transparent}
 .lg-otp-control .lgcode::selection{background:transparent;color:transparent}
-.lg-otp-meta{margin:-4px 0 0;color:var(--ink-3);font-size:12.5px;line-height:1.7;text-align:center;font-variant-numeric:tabular-nums}
+.lg-otp-meta{margin:-4px 0 0;color:var(--ink-3);font-size:var(--fs-cap);line-height:1.7;text-align:center;font-variant-numeric:tabular-nums}
 .lg-otp-meta.is-over{color:var(--stop)}
 .lg-phone-actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 6px;margin:-2px 0 0}
-.lg-phone-actions .lgbtn.quiet{min-height:38px;padding:4px 8px;font-size:12.5px}
-.lg-otp-help{margin:0;padding:0 4px;color:var(--ink-4);font-size:12px;line-height:1.75;text-align:center}
+.lg-phone-actions .lgbtn.quiet{min-height:38px;padding:4px 8px;font-size:var(--fs-cap)}
+.lg-otp-help{margin:0;padding:0 4px;color:var(--ink-4);font-size:var(--fs-cap);line-height:1.75;text-align:center}
 
 /* ── پیام وضعیت: زیر همان گام، با نشانهٔ نوع (نه فقط رنگ) ── */
-.lgstatus{position:relative;margin:12px 0 0;padding:10px 12px 10px 12px;padding-inline-start:36px;border:1px solid var(--hairline);border-radius:14px;background:var(--surface-2);
-  color:var(--ink-2);font-size:13px;line-height:1.75;text-align:start;animation:login-fade .18s var(--ease) both}
+.lgstatus{position:relative;margin:12px 0 0;padding:10px 12px 10px 12px;padding-inline-start:36px;border:1px solid var(--hairline);border-radius:var(--r-md);background:var(--surface-2);
+  color:var(--ink-2);font-size:var(--fs-sub);line-height:1.75;text-align:start;animation:login-fade .18s var(--ease) both}
 .lgstatus::before{content:'';position:absolute;inset-inline-start:12px;top:12px;width:16px;height:16px;border-radius:50%;
   background:currentColor;-webkit-mask:var(--lg-status-icon) center/16px no-repeat;mask:var(--lg-status-icon) center/16px no-repeat;
   --lg-status-icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'><circle cx='12' cy='12' r='9'/><path d='M12 8v4.5M12 16h.01'/></svg>")}
@@ -154,11 +154,11 @@
 /* ── حالت‌های دیگر کارت: در حال بررسی نشست، واردشده ── */
 .lg-loading{min-height:120px;place-items:center}
 .lg-spinner{width:22px;height:22px;border:2px solid var(--hairline);border-top-color:var(--brand);border-radius:50%;animation:login-spin .8s linear infinite}
-.lg-authenticated{justify-items:center;text-align:center;gap:10px}
-.lgcheck{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--ok-tint);color:var(--ok);margin-bottom:4px;box-shadow:0 0 0 6px color-mix(in oklab,var(--ok-tint) 55%,transparent)}
+.lg-authenticated{justify-items:center;text-align:center;gap:var(--sp-2h)}
+.lgcheck{width:56px;height:56px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--ok-tint);color:var(--ok);margin-bottom:4px;box-shadow:0 0 0 6px color-mix(in oklab,var(--ok-tint) 55%,transparent)}
 .lgcheck svg,.lgcheck .i{width:26px;height:26px}
-.lgdtitle{margin:0;color:var(--ink);font-family:var(--f-h,'Estedad',var(--f));font-size:19px;font-weight:700;letter-spacing:-.2px}
-.lgdle{margin:0;max-width:40ch;color:var(--ink-3);font-size:13px;line-height:1.85}
+.lgdtitle{margin:0;color:var(--ink);font-family:var(--f-h,'Estedad',var(--f));font-size:var(--fs-title);font-weight:700;letter-spacing:-.2px}
+.lgdle{margin:0;max-width:40ch;color:var(--ink-3);font-size:var(--fs-sub);line-height:1.85}
 .lg-authenticated .lgbtn{margin-top:6px}
 .lg-authenticated .lgbtn.quiet{margin-top:0}
 
@@ -166,26 +166,26 @@
 .lgadmin-entry{margin-top:12px}
 .lgadmin-entry[hidden]{display:none}
 .lg-divider{height:1px;display:block;margin-bottom:4px;background:linear-gradient(90deg,transparent,var(--hairline),transparent)}
-.lg-admin-links{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
-.lg-admin-link{min-height:38px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:9px;
-  color:var(--ink-3);font-size:12.5px;font-weight:600;text-decoration:none;transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+.lg-admin-links{display:flex;align-items:center;justify-content:center;gap:var(--sp-4);flex-wrap:wrap}
+.lg-admin-link{min-height:38px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-1h);border-radius:var(--r-xs);
+  color:var(--ink-3);font-size:var(--fs-cap);font-weight:600;text-decoration:none;transition:color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
 .lg-admin-link:hover{color:var(--brand-ink);background:var(--brand-tint)}
 .lg-admin-link svg{width:16px;height:16px;flex:0 0 auto}
 
 /* ── زیر کارت: راهنما/قوانین و نام رسمی مؤسسه (ظریف) ── */
-.lglinks{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px;margin:4px 0 0;font-size:12.5px;color:var(--ink-3)}
-.lglinks a,.lglinks button{min-height:34px;padding:0 6px;display:inline-flex;align-items:center;border:0;border-radius:8px;background:none;
-  color:var(--ink-3);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;
+.lglinks{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:var(--sp-2h);margin:4px 0 0;font-size:var(--fs-cap);color:var(--ink-3)}
+.lglinks a,.lglinks button{min-height:34px;padding:0 6px;display:inline-flex;align-items:center;border:0;border-radius:var(--r-xs);background:none;
+  color:var(--ink-3);font:inherit;font-size:var(--fs-cap);font-weight:600;cursor:pointer;text-decoration:none;
   transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease)}
 .lglinks a:hover,.lglinks button:hover{color:var(--brand-ink);background:var(--brand-tint)}
 .lglinks .dot{color:var(--ink-4)}
-.lg-organization{margin:0;padding:0;border:0;color:var(--ink-4);font-size:11px;line-height:1.6;text-align:center}
+.lg-organization{margin:0;padding:0;border:0;color:var(--ink-4);font-size:var(--fs-micro);line-height:1.6;text-align:center}
 .lgfoot{display:none}
 
 /* ── تب‌بار: الگوی ثابت موبایل نورا می‌ماند؛ روی نمایشگر پهن نوار اضافه نمی‌شود ── */
 @media (min-width:640px){
   .loginpage .tabbar{display:none!important}
-  .loginpage main.lwrap{min-height:calc(100svh - 55px);padding:28px 24px 28px;align-content:center;row-gap:12px}
+  .loginpage main.lwrap{min-height:calc(100svh - 55px);padding:28px 24px 28px;align-content:center;row-gap:var(--sp-3)}
   .lgcard{max-width:460px}
   .lghead{padding:26px 28px 44px}
   .lgpanel{padding:26px 28px 16px}
@@ -194,8 +194,8 @@
 @media (min-width:900px){
   .lgcard{max-width:860px;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);align-items:stretch}
   .lghead{padding:34px 34px 30px;align-content:start}
-  .lgcard h1{margin-top:18px;font-size:32px;line-height:1.4}
-  .lglead{margin-top:12px;font-size:13.5px}
+  .lgcard h1{margin-top:18px;font-size:var(--fs-hero-m);line-height:1.4}
+  .lglead{margin-top:12px;font-size:var(--fs-sub)}
   .lgsecure{display:inline-flex;margin-top:auto;padding-top:28px}
   .lgpanel{margin:0;padding:34px 36px 20px;border-radius:0;box-shadow:none;border-inline-start:1px solid var(--hairline-2);display:grid;align-content:center}
   .lghead::before{width:340px;height:340px;inset-inline-end:auto;inset-inline-start:-190px;top:auto;bottom:-210px}
@@ -203,13 +203,13 @@
 }
 @media (max-width:420px){
   .loginpage .topbar .wrap{padding-inline:14px}
-  .lgcard{border-radius:26px}
+  .lgcard{border-radius:var(--r-xl)}
   .lghead{padding:20px 20px 38px}
   .lgpanel{padding:20px 18px 12px}
 }
 @media (max-width:359px){
   .lgpanel{padding-inline:15px}
-  .lg-captcha{gap:6px}
+  .lg-captcha{gap:var(--sp-1h)}
   .lg-cap-img{width:104px}
 }
 @media (max-height:680px) and (max-width:899px){

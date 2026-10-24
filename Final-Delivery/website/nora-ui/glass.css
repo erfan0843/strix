@@ -58,9 +58,13 @@
   --blur-thin:    blur(16px) saturate(140%);
 
   /* ── هندسه: کارت ۲۸ · کنترل ۱۶ · چیپ ۱۴ ── */
-  --r-xl:28px; --r-lg:22px; --r-md:16px; --r-sm:12px; --r-pill:999px;
-  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+  --r-xl:28px; --r-lg:22px; --r-md:16px; --r-sm:12px; --r-xs:8px; --r-pill:999px;
+  --sp-1:4px; --sp-1h:6px; --sp-2:8px; --sp-2h:10px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px;
   --tap:44px;
+  /* ── ارتفاع کنترل‌ها: دو ارتفاع بیشتر نداریم؛ چیپ و برچسب ثابت‌اند ── */
+  --ctl-h:44px; --ctl-h-sm:34px; --chip-h:32px; --tag-h:24px;
+  /* ── عرض محتوا: فرم تک‌ستونه ۶۶۰ · صفحهٔ عمومی ۱۱۰۰ · پوستهٔ پنل ۱۳۲۰ ── */
+  --content-w-narrow:660px; --content-w:1100px; --shell-w:1320px; --page-pad:var(--sp-4);
 
   /* ── سایه: کم، دقیق ── */
   --sh-1:0 1px 2px rgba(20,40,35,.05), 0 4px 14px rgba(20,40,35,.05);
@@ -76,13 +80,15 @@
 
   /* ── حروف ── */
   --f:'Vazirmatn',system-ui,'Segoe UI',Tahoma,sans-serif;
-  --fs-display:27px; --fs-title:20px; --fs-head:16.5px;
-  --fs-body:15px;    --fs-sub:13.5px; --fs-cap:12px;
+  /* مقیاس بستهٔ تایپ: ۱۱ · ۱۲ · ۱۳.۵ · ۱۵ · ۱۶.۵ · ۱۸ · ۲۰ · ۲۴ · ۲۷ · ۳۲ · ۴۲ — هیچ عدد دیگری در CSS صفحه‌ها نوشته نمی‌شود */
+  --fs-hero:42px; --fs-hero-m:32px; --fs-display:27px; --fs-kpi:24px; --fs-title:20px; --fs-lead:18px; --fs-head:16.5px;
+  --fs-body:15px;    --fs-sub:13.5px; --fs-cap:12px; --fs-micro:11px;
   --lh-tight:1.35; --lh:1.75;
 
   --rail:252px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
+@media (max-width:600px){:root{--page-pad:var(--sp-3)}}
 
 /* ── شب ─────────────────────────────────────────────────────────────────── */
 :root[data-theme="dark"]{
@@ -201,7 +207,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ── دکمه‌ها ───────────────────────────────────────────────────────────── */
 .btn{
   display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-2);
-  min-height:var(--tap); padding:0 var(--sp-5);
+  min-height:var(--ctl-h); padding:0 var(--sp-5);
   border-radius:var(--r-md); border:.5px solid var(--hairline);
   background:var(--surface); color:var(--ink);
   font-size:var(--fs-body); font-weight:600; cursor:pointer;
@@ -232,7 +238,7 @@ html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
 /* کنش برگشت‌ناپذیر: همیشه با رنگ توقف، و با hover پررنگ‌تر می‌شود تا با کنش عادی اشتباه نشود */
 .btn.stop{background:var(--stop-tint); color:var(--stop); border-color:transparent; box-shadow:none}
 .btn.stop:hover{background:color-mix(in oklab,var(--stop) 20%,transparent)}
-.btn.sm{min-height:34px; padding:0 var(--sp-3); font-size:var(--fs-sub); border-radius:var(--r-sm); gap:6px}
+.btn.sm{min-height:var(--ctl-h-sm); padding:0 var(--sp-3); font-size:var(--fs-sub); border-radius:var(--r-sm); gap:var(--sp-1h)}
 .btn.sm .i{width:16px;height:16px}
 .btn.icon{min-width:var(--tap); padding:0 var(--sp-3)}
 .btn.block{width:100%}
@@ -250,7 +256,7 @@ html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
 
 /* ── چیپ و برچسب ────────────────────────────────────────────────────────── */
 .chip{
-  display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 var(--sp-3);
+  display:inline-flex; align-items:center; gap:var(--sp-1h); height:var(--chip-h); padding:0 var(--sp-3);
   border-radius:var(--r-pill); border:.5px solid var(--hairline);
   background:var(--surface); font-size:var(--fs-sub); font-weight:500; color:var(--ink-2);
   cursor:pointer;
@@ -259,7 +265,7 @@ html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
 .chip:hover{background:var(--surface-2)}
 .chip:active{transform:scale(.96)}
 .chip.on{background:var(--brand-tint); color:var(--brand-ink); border-color:transparent; font-weight:600}
-.tag{display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 10px; border-radius:var(--r-pill);
+.tag{display:inline-flex; align-items:center; gap:var(--sp-1h); height:var(--tag-h); padding:0 var(--sp-2h); border-radius:var(--r-pill);
   font-size:var(--fs-cap); font-weight:600; background:var(--surface-sunk); color:var(--ink-2)}
 .tag .i{width:14px;height:14px}
 .tag.ok{background:var(--ok-tint); color:var(--ok)}
@@ -286,7 +292,7 @@ html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
 /* ── فرم ───────────────────────────────────────────────────────────────── */
 .lbl{display:block;font-size:var(--fs-sub);font-weight:600;color:var(--ink-2);margin-bottom:6px}
 .input{
-  width:100%; min-height:var(--tap); padding:10px var(--sp-4);
+  width:100%; min-height:var(--ctl-h); padding:var(--sp-2h) var(--sp-4);
   border-radius:var(--r-md); border:.5px solid var(--hairline);
   background:var(--surface); box-shadow:var(--sh-1);
   transition:border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
@@ -416,6 +422,43 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 /* ── حالت‌ها ───────────────────────────────────────────────────────────── */
 .empty{text-align:center;padding:var(--sp-8) var(--sp-4);color:var(--ink-3)}
 .empty .i{width:34px;height:34px;opacity:.6}
+/* ── سربرگ صفحه (مشترک عمومی و پنل): بازگشت · عنوان · زیرعنوان · عمل‌ها · متا ── */
+.page-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--sp-2) var(--sp-3);padding:var(--sp-2) 0 var(--sp-3);min-width:0}
+.page-head .ph-tt{min-width:0;display:grid;gap:2px}
+.page-head .ph-kicker{font-size:var(--fs-cap);color:var(--ink-3);font-weight:600}
+.page-head .ph-title{font-family:var(--f-h);font-size:var(--fs-title);font-weight:700;letter-spacing:-.3px;line-height:var(--lh-tight);margin:0;overflow-wrap:anywhere}
+.page-head .ph-sub{font-size:var(--fs-sub);color:var(--ink-3);line-height:1.6;margin:0}
+.page-head .ph-actions{display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.page-head .ph-meta{grid-column:1/-1;display:flex;gap:var(--sp-1h);align-items:center;overflow-x:auto;scrollbar-width:none;white-space:nowrap;padding-bottom:2px;min-width:0}
+.page-head .ph-meta::-webkit-scrollbar{display:none}
+.page-head .ph-meta>*{flex:0 0 auto}
+.page-head.lg .ph-title{font-size:var(--fs-display)}
+@media (max-width:600px){.page-head .ph-title{font-size:var(--fs-lead)}.page-head.lg .ph-title{font-size:var(--fs-title)}}
+/* ── سرتیتر بخش: عنوان کارت/بخش همیشه یک اندازه (۱۶.۵) و یک پیوند ثانویه در سمت دیگر ── */
+.sec-head{display:flex;align-items:baseline;gap:var(--sp-2);margin:0 0 var(--sp-2h);min-width:0}
+.sec-head .sh-title,.sec-head h2,.sec-head h3{font-family:var(--f-h);font-size:var(--fs-head);font-weight:700;margin:0;letter-spacing:-.2px;min-width:0}
+.sec-head .sh-sub{font-size:var(--fs-cap);color:var(--ink-3)}
+.sec-head .sh-link{margin-inline-start:auto;font-size:var(--fs-sub);color:var(--brand-ink);text-decoration:none;font-weight:600;white-space:nowrap}
+/* ── حالت‌ها: یک مؤلفه برای بارگذاری/خالی/بی‌نتیجه/خطا/بی‌دسترسی/موفق؛ همیشه با یک عمل ── */
+.state{display:grid;justify-items:center;text-align:center;gap:var(--sp-1h);padding:var(--sp-6) var(--sp-4);color:var(--ink-3);border-radius:var(--r-md);background:var(--surface-sunk)}
+.state .i{width:28px;height:28px;opacity:.7}
+.state .st-title{font-size:var(--fs-body);font-weight:700;color:var(--ink-2)}
+.state .st-text{font-size:var(--fs-sub);max-width:46ch;line-height:1.8;margin:0}
+.state .st-actions{display:flex;gap:var(--sp-2);flex-wrap:wrap;justify-content:center;margin-top:var(--sp-1)}
+.state.compact{padding:var(--sp-3) var(--sp-4);grid-auto-flow:column;grid-template-columns:auto minmax(0,1fr) auto;justify-items:start;text-align:start;align-items:center;gap:var(--sp-3)}
+.state.compact .st-text{max-width:none}
+.state.error{background:var(--stop-tint)} .state.error .st-title{color:var(--stop)}
+.state.noaccess{background:var(--warn-tint)} .state.noaccess .st-title{color:var(--warn)}
+.state.ok{background:var(--ok-tint)} .state.ok .st-title{color:var(--ok)}
+.state.loading{background:transparent;padding:var(--sp-4)} .state.loading .skel{width:min(100%,320px)}
+/* ── بخش پیشرفته: امکانات کم‌کاربرد حذف نمی‌شوند؛ همین‌جا بسته می‌مانند ── */
+details.adv{border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
+details.adv>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:var(--sp-2);min-height:var(--ctl-h);padding:0 var(--sp-4);font-size:var(--fs-sub);font-weight:600;color:var(--ink-2)}
+details.adv>summary::-webkit-details-marker{display:none}
+details.adv>summary::after{content:'';width:8px;height:8px;border:solid currentColor;border-width:0 0 1.5px 1.5px;transform:rotate(-45deg);margin-inline-start:auto;transition:transform var(--t-fast) var(--ease);flex:0 0 auto}
+details.adv[open]>summary::after{transform:rotate(135deg)}
+details.adv>.adv-body{padding:0 var(--sp-4) var(--sp-4);display:grid;gap:var(--sp-3)}
+details.adv>summary .tag{margin-inline-start:var(--sp-1)}
 .skel{height:14px;border-radius:8px;background:linear-gradient(90deg,var(--surface-sunk),var(--surface),var(--surface-sunk));
   background-size:220% 100%;animation:sk 1.4s linear infinite}
 @keyframes sk{to{background-position:-120% 0}}
@@ -461,7 +504,7 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 html[data-motion="off"] *{animation:none!important;transition:none!important}
 
 /* ── چیدمان کلی ────────────────────────────────────────────────────────── */
-.shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); gap:var(--sp-3); max-width:1320px; margin:0 auto; padding:var(--sp-3)}
+.shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); gap:var(--sp-3); max-width:var(--shell-w); margin:0 auto; padding:var(--sp-3)}
 .main{min-width:0; padding-bottom:110px}
 .split{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr); gap:var(--sp-3); align-items:start}
 .g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3)}
@@ -534,7 +577,7 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 @media (max-width:420px){.tiles{grid-template-columns:1fr}}
 .tile{
   position:relative;text-align:start;cursor:pointer;border:.5px solid var(--hairline);background:var(--surface);
-  border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-1);display:flex;flex-direction:column;gap:10px;
+  border-radius:var(--r-lg);padding:var(--sp-4);box-shadow:var(--sh-1);display:flex;flex-direction:column;gap:var(--sp-2h);
   transition:transform var(--t) var(--spring),box-shadow var(--t) var(--ease),border-color var(--t) var(--ease)
 }
 .tile:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}

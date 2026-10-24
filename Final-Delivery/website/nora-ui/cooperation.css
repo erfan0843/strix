@@ -1,15 +1,15 @@
-.cooperation-copy{max-width:68ch;color:var(--ink-2);font-size:13px;line-height:1.9;margin:0 0 14px}
-.cooperation-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:15px;border:1px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface)}
+.cooperation-copy{max-width:68ch;color:var(--ink-2);font-size:var(--fs-sub);line-height:1.9;margin:0 0 14px}
+.cooperation-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);padding:15px;border:1px solid var(--hairline);border-radius:var(--r-lg);background:var(--surface)}
 .cooperation-form .form-wide{grid-column:1/-1}
-.cooperation-form label{display:grid;gap:6px;min-width:0}
-.cooperation-form label>span{font-size:12px;font-weight:600;color:var(--ink-2)}
+.cooperation-form label{display:grid;gap:var(--sp-1h);min-width:0}
+.cooperation-form label>span{font-size:var(--fs-cap);font-weight:600;color:var(--ink-2)}
 .cooperation-form input,.cooperation-form select,.cooperation-form textarea{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--surface-sunk);border:1px solid var(--hairline);border-radius:var(--r-md);padding:10px 12px;outline:none}
 .cooperation-form input:focus,.cooperation-form select:focus,.cooperation-form textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in oklab,var(--brand) 14%,transparent)}
 .cooperation-form textarea{resize:vertical;min-height:110px;line-height:1.8}
-.cooperation-form [data-cooperation-status]{grid-column:1/-1;margin:0;min-height:22px;color:var(--ink-3);font-size:12px;line-height:1.7}
+.cooperation-form [data-cooperation-status]{grid-column:1/-1;margin:0;min-height:22px;color:var(--ink-3);font-size:var(--fs-cap);line-height:1.7}
 .cooperation-form [data-cooperation-status][data-state="success"]{color:var(--ok)}
 .cooperation-form [data-cooperation-status][data-state="error"]{color:var(--stop)}
 .cooperation-form .hp-field{position:absolute!important;inset-inline-start:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
-.cooperation-privacy{color:var(--ink-3);font-size:11px;line-height:1.8;margin:8px 0 0}
+.cooperation-privacy{color:var(--ink-3);font-size:var(--fs-micro);line-height:1.8;margin:8px 0 0}
 .cooperation-form [type="submit"]{justify-self:start;min-width:150px}
 @media(max-width:560px){.cooperation-form{grid-template-columns:1fr;padding:12px}.cooperation-form .form-wide{grid-column:auto}.cooperation-form [type="submit"]{width:100%;justify-self:stretch}}
