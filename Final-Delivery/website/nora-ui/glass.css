@@ -433,7 +433,12 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
 .page-head .ph-meta::-webkit-scrollbar{display:none}
 .page-head .ph-meta>*{flex:0 0 auto}
 .page-head.lg .ph-title{font-size:var(--fs-display)}
-@media (max-width:600px){.page-head .ph-title{font-size:var(--fs-lead)}.page-head.lg .ph-title{font-size:var(--fs-title)}}
+@media (max-width:600px){.page-head .ph-title{font-size:var(--fs-lead)}.page-head.lg .ph-title{font-size:var(--fs-title)}
+  /* موبایل: اگر کنش‌ها جا نشوند زیر عنوان می‌روند (نه این‌که عنوان را له کنند)؛ عنوان دست‌کم ۱۸۰px دارد، یک دکمهٔ کوچک کنار آن می‌ماند */
+  .page-head:not(.admbar){display:flex;flex-wrap:wrap;align-items:center}
+  .page-head:not(.admbar) .ph-tt{flex:1 1 180px}
+  .page-head:not(.admbar) .ph-actions{flex:0 1 auto;margin-inline-start:auto}
+  .page-head:not(.admbar) .ph-meta{flex:1 1 100%}}
 /* ── سرتیتر بخش: عنوان کارت/بخش همیشه یک اندازه (۱۶.۵) و یک پیوند ثانویه در سمت دیگر ── */
 .sec-head{display:flex;align-items:baseline;gap:var(--sp-2);margin:0 0 var(--sp-2h);min-width:0}
 .sec-head .sh-title,.sec-head h2,.sec-head h3{font-family:var(--f-h);font-size:var(--fs-head);font-weight:700;margin:0;letter-spacing:-.2px;min-width:0}

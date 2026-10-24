@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=102"/>
+<link rel="stylesheet" href="glass.css?v=103"/>
 <style>
   .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
   .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
@@ -207,26 +207,27 @@
   </aside>
 
   <main class="main">
-    <div class="card demo-note" data-demo-notice role="note" style="margin:0 0 12px;padding:10px 12px">
-      <b>منبع دادهٔ فرم‌ها روشن است</b>
-      <div class="cap" style="margin-top:4px">فقط فرم‌ها و شمار پاسخ‌های دریافت‌شده از API همین سامانه نمایش داده می‌شوند. داده‌های محلی یا نمونه به فهرست و آمار راه نمی‌یابند. پاسخ‌ها با مجوز سروری خوانده می‌شوند؛ اطلاعات به سرویس بیرونی فرستاده نمی‌شود. آمار قیف، تحلیل هر پرسش، خروجی واقعی و گردش پرداخت در این پنل هنوز فعال نیست.</div>
-    </div>
-
     <!-- ══════════ فهرست فرم‌ها ══════════ -->
     <section id="fList" class="screen on">
-      <header class="topbar glass" style="border-radius:var(--r-lg);padding:10px 14px">
-        <div style="min-width:0">
-          <div class="head tight">فرم‌ها</div>
-          <div class="cap">روی هر فرم بزنید: اطلاعات، آمار، پاسخ‌دهنده‌ها و تغییرها.</div>
+      <header class="topbar glass page-head" style="border-radius:var(--r-lg);padding:10px 14px">
+        <div class="ph-tt">
+          <div class="head ph-title">فرم‌ها</div>
+          <div class="cap ph-sub">روی هر فرم بزنید: اطلاعات، آمار، پاسخ‌دهنده‌ها و تغییرها.</div>
         </div>
-        <span class="sp"></span>
-        <button class="btn quiet" id="syncServerForms" type="button">گرفتن فرم‌های سرور</button>
-        <a class="btn primary" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
+        <div class="ph-actions">
+          <button class="btn" id="syncServerForms" type="button">گرفتن فرم‌های سرور</button>
+          <a class="btn primary" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
+        </div>
       </header>
       <div class="card sunk" id="serverFormsMessage" role="status" aria-live="polite" style="margin-top:10px;padding:9px 12px">
         <span id="serverFormsMessageText">هنوز فهرست سروری دریافت نشده است؛ برای دریافت فرم‌ها و شمار پاسخ‌های واقعی، «گرفتن فرم‌های سرور» را بزنید.</span>
         <a id="serverFormsLogin" href="create.html?auth=1&amp;back=builder.html" style="display:none;margin-inline-start:8px">ورود مالک</a>
       </div>
+      <!-- توضیح منبع داده: اطلاعات فرعی است و نباید پیش از عنوان صفحه و کنش اصلی دیده شود؛ همان متن، در بخش بسته -->
+      <details class="adv demo-note" data-demo-notice style="margin-top:10px">
+        <summary>منبع دادهٔ فرم‌ها روشن است</summary>
+        <div class="adv-body cap">فقط فرم‌ها و شمار پاسخ‌های دریافت‌شده از API همین سامانه نمایش داده می‌شوند. داده‌های محلی یا نمونه به فهرست و آمار راه نمی‌یابند. پاسخ‌ها با مجوز سروری خوانده می‌شوند؛ اطلاعات به سرویس بیرونی فرستاده نمی‌شود. آمار قیف، تحلیل هر پرسش، خروجی واقعی و گردش پرداخت در این پنل هنوز فعال نیست.</div>
+      </details>
 
       <div class="row" style="margin:12px 0 10px">
         <label class="searchbox glass-thin"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>

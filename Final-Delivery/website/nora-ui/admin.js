@@ -6969,8 +6969,8 @@ function ctList(){
   return `<section class="card stack" data-ct-panel>
     <div class="row" style="flex-wrap:wrap"><div class="head">${CT.kind==='events'?'رویدادها':'مطالب'}</div><span class="sp"></span>
       ${tag('منبع: site_content سرور','ok')}${d?tag('نسخهٔ '+fa(d.version),''):''}
-      ${btn('بازخوانی','data-ct-refresh','i-refresh')}${ctCan('can_edit')?btn('تصاویر','data-ct-media','i-image')+btn(kindName+' تازه','data-ct-new','i-plus'):''}</div>
-    <p class="cap">همان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.</p>
+      ${btn('بازخوانی','data-ct-refresh','i-refresh')}${ctCan('can_edit')?btn('تصاویر','data-ct-media','i-image')+`<button class="btn sm primary" data-ct-new>${ico('i-plus')}${esc(kindName+' تازه')}</button>`:''}</div>
+    <details class="adv"><summary>منبع فهرست و مجوزهای ویرایش</summary><p class="cap adv-body">همان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.</p></details>
     <form class="row tight server-role-search" data-ct-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="ctQuery" type="search" class="input" value="${esc(CT.q)}" maxlength="80" autocomplete="off" placeholder="عنوان، دسته، مکان، برچسب یا شناسه" aria-label="جست‌وجوی محتوا"/></label>
       <button class="btn sm" type="submit" data-ct-search>جست‌وجو</button></form>
