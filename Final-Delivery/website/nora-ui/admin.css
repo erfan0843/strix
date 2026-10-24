@@ -17,11 +17,13 @@
 
 
 /* ── نوار بالا: عنوان، سه عدد، نقش و جست‌وجو ───────────────────────────── */
-.admbar{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;
-  border-radius:var(--r-lg);padding:10px 14px;border-bottom:0}
+.admbar.page-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:var(--sp-2) var(--sp-3);
+  border-radius:var(--r-lg);padding:var(--sp-2h) var(--sp-4);border-bottom:0;min-height:64px}
 .admbar .tt{min-width:0}
 .admbar .tt .head{margin:0}
-.admbar .sp{flex:1}
+.admbar .ph-meta{grid-column:auto;grid-row:1;gap:var(--sp-2)}
+.admbar .ph-actions{grid-column:4;grid-row:1}
+.admbar .ph-actions:empty{display:none}
 .admbar .searchbox{display:flex;align-items:center;gap:var(--sp-2);padding:0 12px;height:38px;min-width:210px;
   border-radius:var(--r-pill);background:var(--surface-sunk);border:.5px solid var(--hairline)}
 .admbar .searchbox .i{width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
@@ -375,14 +377,23 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 .admrole small{font-size:var(--fs-micro);color:var(--ink-3)}
 
 /* ── نوار پایین (موبایل): پنج بخش ─────────────────────────────────────── */
-#admTabs{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none}
+#admTabs{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none;min-height:64px}
 #admTabs a{display:grid;place-items:center;gap:var(--sp-1);padding:7px 2px;border-radius:var(--r-md);text-decoration:none;
-  color:var(--ink-3);font-size:var(--fs-micro)}
+  color:var(--ink-3);font-size:var(--fs-micro);min-width:0}
+#admTabs a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* ریل قبل از رسیدن نشست خالی است؛ ارتفاع رزرو می‌شود تا برند و دکمهٔ تم با رسیدن منو نپرند */
+#admNav:empty{min-height:400px}
 #admTabs a .i{width:21px;height:21px}
 #admTabs a.on{color:var(--brand-ink);background:var(--brand-tint);font-weight:700}
 /* نوار پایین فقط در عرض‌های بدون ریل؛ nora.css بعد از glass.css آن را روی دسکتاپ هم روشن می‌کرد */
 @media (min-width:1041px){#admTabs{display:none}}
 /* داشبورد سروری: شمارش‌ها، جست‌وجوی حساب و تاریخچهٔ عملیات */
+.dash-bar{display:block;padding:var(--sp-1) var(--sp-2)}
+@media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}}
+.dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);align-items:start}
+.dash-grid>section{min-width:0}
+@media (max-width:1040px){.dash-grid{grid-template-columns:1fr}}
+.dash details.adv>.adv-body{padding-top:var(--sp-1)}
 .dash-kpis{margin-bottom:var(--sp-2)}
 .dash-kpis .kpi b{font-size:var(--fs-title)}
 .server-role-search{align-items:stretch}
@@ -411,9 +422,12 @@ input.input[type=time]{padding-inline:10px;text-align:center}
   .admkinds{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admkpi{grid-template-columns:1fr}
   .admbar .searchbox{min-width:0;width:100%}
-  /* موبایل: عنوان بخش یک خط کامل می‌گیرد تا کلمه‌به‌کلمه نشکند؛ نشان‌ها زیرش می‌نشینند */
-  .admbar .tt{flex:1 1 100%;min-width:0}
-  .admbar .nmark+.tt{flex-basis:calc(100% - 56px)}
+  /* موبایل: ردیف ۱ = آیکون، عنوان، خروج؛ ردیف ۲ = متا (سلامت، ساعت، هویت) اسکرول‌شونده؛ حداکثر دو ردیف */
+  .admbar.page-head{grid-template-columns:auto minmax(0,1fr) auto;padding:var(--sp-2) var(--sp-3)}
+  .admbar .ph-actions{grid-column:3}
+  .admbar .ph-meta{grid-column:1/-1;grid-row:2}
+  .admbar .ph-meta .navclock{display:none}
+  .admbar .ph-title{font-size:var(--fs-head)}
 }
 @media print{
   .rail,.tabbar,.scrim,.sheet,.toast,#admTabs{display:none !important}

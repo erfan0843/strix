@@ -595,7 +595,7 @@ function miniSheet(title,html,label){
    همان ویرایشگر سروری رویداد/مطلب را با رکورد خالی باز می‌کند. مجوز هر مورد از canSec/canPerm سرور می‌آید. */
 const SERVER_MENU=[
   {k:'newev',  n:'تعریف جدید', i:'i-plus',    s:'رویداد یا مطلب تازه تا انتشار یا تأیید'},
-  {k:'events', n:'رویدادها و مطالب', i:'i-calendar',s:'رویداد و مطلب، از انتشار تا رسانه'},
+  {k:'events', n:'رویدادها و مطالب', t:'رویدادها', i:'i-calendar',s:'رویداد و مطلب، از انتشار تا رسانه'},
   {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهینامه و ابزارها'},
   {k:'forms',  n:'فرم‌ها',     i:'i-doc',     s:'ساخت فرم، پاسخ‌ها و گزارش'},
   {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش تجمیعی سرور، خروجی و دفتر نامه‌ها'},
@@ -623,8 +623,8 @@ function renderNav(){
   /* نوار پایین همان بخش‌های بازِ ریل است؛ مرکز فرم‌ها پیوند مستقیم دارد */
   $('#admTabs').innerHTML=all.filter(s=>secs.indexOf(s.k)>-1&&(!live||SERVER_TABBAR.includes(s.k))).map(s=>{
     const active=navActive(s.k)||(live&&s.k==='events'&&S.sec==='newev');
-    return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span></a>`
-      :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span></a>`}).join('');
+    return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.t||s.n)}</span></a>`
+      :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.t||s.n)}</span></a>`}).join('');
 }
 function renderBar(){
   const s=secOf(S.sec);
@@ -642,17 +642,18 @@ function renderBar(){
     ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span dir="auto">${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?esc(SERVER_AUTH.manager_username||'حساب مدیر'):SERVER_AUTH.provider==='phone'?'حساب تلفنی':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
     :`<button class="chip" data-who-sheet aria-label="پروفایل شخصی ${esc(meDisplay(me()))}">
       ${ico('i-user')}<span>${esc(meDisplay(me()))}</span><small class="cap">پروفایل من · ${esc(roleName(me()))}</small></button>`;
+  /* سربرگ صفحه = الگوی مشترک page-head: عنوان/زیرعنوان، عمل‌ها (جست‌وجو، خروج)، و ردیف متا (سلامت، ساعت، هویت) که در موبایل یک ردیف اسکرول‌شونده است */
   $('#admBar').innerHTML=`
     <span class="nmark" aria-hidden="true">${ico(s.i)}</span>
-    <div class="tt"><div class="head">${esc(s.n)}</div><div class="cap">${esc(s.s||A.lead||'')}</div></div>
-    <span class="sp"></span>
+    <div class="tt ph-tt"><div class="head ph-title">${esc(s.n)}</div><div class="cap ph-sub">${esc(s.s||A.lead||'')}</div></div>
+    <div class="ph-actions">${searchOn?`<label class="searchbox">${ico('i-search')}
+      <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
+    ${live?`<button class="btn sm quiet" type="button" data-server-logout>${ico('i-close')}${esc('خروج')}</button>`:''}</div>
+    <div class="ph-meta">
     <span class="tag ${previewClass}" data-preview-badge data-health-state="${hs?esc(hs.key):'unknown'}" title="${esc(previewTitle)}">${esc(previewLabel)}</span>
     <span class="navclock" title="${esc((NE().l||{}).local||'ساعت دستگاه')}" aria-label="${esc('تاریخ و ساعت دستگاه')}">${ico('i-clock')}
       <b data-clock>${esc(typeof clockFull==='function'?clockFull():'')}</b></span>
-    ${searchOn?`<label class="searchbox">${ico('i-search')}
-      <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
-    ${identity}
-    ${live?`<button class="btn sm quiet" type="button" data-server-logout>${ico('i-close')}${esc('خروج')}</button>`:''}`;
+    ${identity}</div>`;
 }
 
 /* ══ بخش‌ها ═════════════════════════════════════════════════════════════ */
@@ -1809,7 +1810,7 @@ function vServerOutbox(){
   const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن صندوق خروجی از سرور…</p>`
     :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-outbox-refresh','i-refresh')}</div>`
     :rows||`<p class="cap">در این وضعیت اعلانی ثبت نشده است.</p>`;
-  return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
+  return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
     <p class="cap">هر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست. ارسال واقعی بله فقط با ربات زنده انجام می‌شود.</p>
     <div class="admfilters" role="group" aria-label="وضعیت اعلان">${chips}</div>
     <div class="admfilters" role="group" aria-label="نوع اعلان">${SERVER_OUTBOX_KINDS.map(([key,label])=>`<button class="chip ${o.kind===key?'on':''}" data-server-outbox-kind="${key}" ${o.loading?'disabled':''}>${esc(label)}</button>`).join('')}</div>
@@ -1872,7 +1873,7 @@ function vServerSched(){
   const pend=d?`<div class="admkpi"><div class="k"><small>زمان‌بندی‌شده برای آینده</small>${bits(number(d.pending.future))}</div><div class="k"><small>در موعد ولی اعلان‌نشده</small>${bits(number(d.pending.due_unannounced))}</div></div>${d.pending.due_unannounced>0?p2Msg({kind:'warn',text:'ردیف‌هایی به موعد رسیده‌اند ولی اعلان نشده‌اند؛ یعنی تایمر اجرا نشده است. «اجرای دستی» همان کار تایمر را یک‌بار انجام می‌دهد (بدون تکرار اعلان).'}):''}`:'';
   const manual=o.lastManual?`<p class="cap" data-server-sched-manual>اجرای دستی: در موعد ${number(o.lastManual.due)} · اعلان‌شده ${number(o.lastManual.announced)} · اعلان‌های ساخته‌شده ${number(o.lastManual.notified)}${o.lastManual.reminders&&typeof o.lastManual.reminders==='object'?` · یادآور رویداد صف‌شده ${number(o.lastManual.reminders.queued)} · باطل‌شده ${number(o.lastManual.reminders.withdrawn)}`:''}</p>`:'';
   const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن وضعیت زمان‌بند از سرور…</p>`:o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-sched-refresh','i-refresh')}</div>`:d?`${pend}<p class="cap" data-server-sched-run>${runLine}</p>${manual}`:`<p class="cap">وضعیت هنوز خوانده نشده است.</p>`;
-  return `<section class="card stack" data-server-sched data-server-sched-state="${esc(o.loading?'loading':o.error?'error':d?(d.pending.due_unannounced>0?'stalled':'ok'):'idle')}"><div class="row"><div class="head">زمان‌بند انتشار و اعلان محتوا</div><span class="sp"></span>${tag('API سرور','ok')} ${btn('بازخوانی','data-server-sched-refresh','i-refresh')}${canPerm('ev_publish')?btn(o.running?'در حال اجرا…':'اجرای دستی یک نوبت',`data-server-sched-run-now ${o.running?'disabled':''}`,'i-globe'):''}</div>
+  return `<section class="card stack" data-server-sched data-server-sched-state="${esc(o.loading?'loading':o.error?'error':d?(d.pending.due_unannounced>0?'stalled':'ok'):'idle')}"><div class="row"><div class="head">زمان‌بند انتشار و اعلان محتوا</div><span class="sp"></span>${tag('API سرور')} ${btn('بازخوانی','data-server-sched-refresh','i-refresh')}${canPerm('ev_publish')?btn(o.running?'در حال اجرا…':'اجرای دستی یک نوبت',`data-server-sched-run-now ${o.running?'disabled':''}`,'i-globe'):''}</div>
     <p class="cap">منبعِ زمان‌بندی‌شده تا رسیدن زمانش در صفحهٔ رویداد دیده نمی‌شود (محاسبه با ساعت سرور در هر درخواست). اعلان به دارندگان دسترسی را تایمر سیستم (systemd) یا اجرای دستی از همین‌جا انجام می‌دهد؛ هر منبع دقیقاً یک‌بار اعلان می‌شود و اجرای تکراری اثری ندارد.</p>
     ${body}
   </section>`;
@@ -6760,7 +6761,7 @@ function serverDashboardKpis(){
   const state=SERVER_REPORT_LOADING?'<p class="cap">در حال خواندن شمارش‌ها از پایگاه سرور…</p>'
     :SERVER_REPORT_ERROR?`<div class="empty"><p class="cap">${esc(SERVER_REPORT_ERROR)}</p>${btn('تلاش دوباره','data-server-report-refresh','i-refresh')}</div>`
     :!data?'<p class="cap">شمارش‌ها هنوز از سرور خوانده نشده‌اند.</p>':'';
-  return `<section class="card stack"><div class="row"><div class="head">شمارش‌های پایگاه سرور</div><span class="sp"></span>${tag('از API گزارش','ok')}
+  return `<section class="card stack"><div class="row"><div class="head">شمارش‌های پایگاه سرور</div><span class="sp"></span>${tag('از API گزارش')}
       <button class="btn sm quiet" data-user-hub="reports">گزارش کامل</button></div>
     ${tiles?`<div class="kpis dash-kpis">${tiles}</div>`:''}${state}
     <p class="cap">این اعداد همان خروجی <span dir="ltr">/api/admin/reports/summary</span> هستند؛ مبلغ، حضور و باشگاه در پایگاه مشترک نیستند و شمرده نمی‌شوند.</p>
@@ -6772,32 +6773,33 @@ function serverDashboard(){
   if(canSec('users')) modules.push(`<button class="utile" data-sec="users"><span class="tt">${ico('i-users')}<b>کاربران، کارتابل و گزارش</b></span><small>فهرست کاربران، کارتابل، حضور و غیاب و گزارش از API</small></button>`);
   if(canSec('forms')) modules.push(`<button class="utile" data-sec="forms"><span class="tt">${ico('i-doc')}<b>فرم‌ها</b></span><small>فهرست فرم‌های سرور و مرکز فرم‌ساز</small></button>`);
   if(isOwner()) modules.push(`<button class="utile" data-sec="settings"><span class="tt">${ico('i-sliders')}<b>تنظیمات مالک</b></span><small>ماژول‌های متصل و وضعیت اتصال</small></button>`);
-  return `<div class="stack">
-    ${dashxDateBar()}
-    ${serverDashboardKpis()}
-    ${dashxQueueCard()}
-    ${dashxUpcomingCard()}
-    ${serverHealthView()}
-    ${eiSummaryCard()}
-    ${recSummaryCard()}
-    ${dashxSchedCard()}
-    ${dashxAuditCard()}
-    <section class="card stack"><div class="head">ماژول‌های این حساب</div>
+  /* سلسله‌مراتب داشبورد: اول کارِ امروز (کارهای در انتظار + رویدادهای پیش رو)، بعد شمارش‌ها و خلاصه‌ها؛
+     وضعیت فنی، زمان‌بند، تاریخچه و ماژول‌ها حذف نشده‌اند، در بخش «وضعیت فنی و تاریخچه» بسته می‌مانند */
+  const work=[dashxQueueCard(),dashxUpcomingCard()].filter(Boolean), summaries=[eiSummaryCard(),recSummaryCard()].filter(Boolean);
+  const technical=[serverHealthView(),dashxSchedCard(),dashxAuditCard(),
+    `<section class="card stack"><div class="head">ماژول‌های این حساب</div>
       <p class="cap">نقش و مجوز از سرور می‌آید. بخش فاقد API دادهٔ ساختگی نشان نمی‌دهد و وضعیت آن جداگانه اعلام می‌شود.</p>
       <div class="admtiles">${modules.join('')||emptyBox('برای این حساب ماژول فعالی ثبت نشده است.')}</div>
-    </section>
+    </section>`].filter(Boolean);
+  return `<div class="stack dash">
+    ${dashxDateBar()}
+    ${work.length?`<div class="dash-grid">${work.join('')}</div>`:''}
+    ${serverDashboardKpis()}
+    ${summaries.length?`<div class="dash-grid">${summaries.join('')}</div>`:''}
+    <details class="adv" data-dash-adv><summary>${ico('i-layers')}وضعیت فنی و تاریخچه<span class="tag">${esc(fa(technical.length))} بخش</span></summary>
+      <div class="adv-body">${technical.join('')}</div></details>
   </div>`;
 }
 function serverUsersIndex(){
   const cards=[];
-  if(canUseSharedInbox()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-inbox')}</span><b>کارتابل مشترک</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(canUseSharedInbox()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-inbox')}</span><b>کارتابل مشترک</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">درخواست‌های پروفایل و رسید از پایگاه مشترک دریافت می‌شوند.</p>${btn('بازکردن کارتابل','data-open-workflow-inbox','i-chev-left')}</article>`);
-  if(canPerm('rp_view')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-chart')}</span><b>گزارش‌های سرور</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(canPerm('rp_view')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-chart')}</span><b>گزارش‌های سرور</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">آمار تجمیعی فقط از پایگاه سرور خوانده می‌شود.</p><button class="btn sm" data-user-hub="reports">گزارش‌ها</button></article>`);
-  if(isOwner()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-shield')}</span><b>حساب‌ها و نقش‌ها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(isOwner()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-shield')}</span><b>حساب‌ها و نقش‌ها</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">فهرست حساب‌های احراز‌شده و واگذاری نقش فقط از سرویس مالک انجام می‌شود.</p>${btn('مدیریت حساب‌های سرور','data-server-role-module','i-chev-left')}</article>`);
   p2UserHubCards().forEach(card=>cards.push(card));
-  cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-sliders')}</span><b>ابزارها و گزارش</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-sliders')}</span><b>ابزارها و گزارش</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">گزارش کاربران، صندوق خروجی اعلان‌ها، تاریخچهٔ عملیات و نقشهٔ مجوزها؛ ابزار بدون API با دلیل مشخص می‌ماند.</p>${btn('بازکردن ابزارها','data-uv="tools"','i-chev-left')}</article>`);
   return `<div class="stack">${userHubTabs()}
     ${canPerm('us_view')?serverUsersList():''}
@@ -7728,10 +7730,10 @@ async function eiLoadSummary(){
 function eiSummaryCard(){
   if(!eiCanMod()) return '';
   const s=EI.summary;
-  if(!s&&!EI.summaryError) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور','ok')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
+  if(!s&&!EI.summaryError) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
   if(!s) return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('خطا','stop')}</div><p class="cap">${esc(EI.summaryError)}</p>${btn('تلاش دوباره','data-ei-summary-refresh','i-refresh')}</article>`;
   const counts=[['پرسش بی‌پاسخ',s.unanswered_questions,'warn'],['دیدگاه در انتظار تأیید',s.pending_reviews,'warn'],['گزارش باز',s.open_reports,'stop'],['اعلان ناموفق',s.failed_notifications,'stop']];
-  return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  return `<article class="card stack" data-ei-summary><div class="row"><span class="ic">${ico('i-inbox')}</span><b>پرسش‌ها و گزارش‌های رویدادها</b><span class="sp"></span>${tag('API سرور')}</div>
     <div class="row tight" style="flex-wrap:wrap">${counts.map(([l,n,k])=>tag(`${l}: ${fa(Number(n)||0)}`,Number(n)>0?k:'')).join('')}</div>
     <p class="cap">پاسخ، انتشار، پنهان‌کردن و رسیدگی به گزارش از صفحهٔ هر رویداد یا فهرست بی‌پاسخ‌ها انجام می‌شود؛ هر اقدام با نام اقدام‌کننده و دلیل ثبت می‌شود.</p>
     <div class="row tight" style="flex-wrap:wrap">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-chev-left')}${Number(s.open_reports)>0?btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag'):''}</div></article>`;
@@ -8706,11 +8708,11 @@ async function recLoadSummary(){
 function recSummaryCard(){
   if(!recCanOrders()) return '';
   const s=REC.summary, head=`<div class="row"><span class="ic">${ico('i-play')}</span><b>محتوای ضبط‌شده و فروش</b><span class="sp"></span>`;
-  if(!s&&!REC.summaryError) return `<article class="card stack" data-rec-summary>${head}${tag('API سرور','ok')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
+  if(!s&&!REC.summaryError) return `<article class="card stack" data-rec-summary>${head}${tag('API سرور')}</div><p class="cap">در حال خواندن از سرور…</p></article>`;
   if(!s) return `<article class="card stack" data-rec-summary>${head}${tag('خطا','stop')}</div><p class="cap">${esc(REC.summaryError)}</p>${btn('تلاش دوباره','data-rec-summary-refresh','i-refresh')}</article>`;
   const r=s.recordings||{}, o=s.orders||{};
   const cells=[['در حال فروش',r.published],['آمادهٔ انتشار',r.ready],['پیش‌نویس',r.draft],['فروش متوقف',r.sales_paused],['سفارش نیازمند بررسی',Number(o.receipt_submitted||0)+Number(o.needs_review||0)],['پرداخت تأییدشده',Number(o.paid||0)+Number(o.paid_manual||0)],['بازپرداخت‌شده',s.orders_refunded],['دسترسی فعال',s.active_access]];
-  return `<article class="card stack" data-rec-summary>${head}${tag('API سرور','ok')}</div>
+  return `<article class="card stack" data-rec-summary>${head}${tag('API سرور')}</div>
     <div class="kpis">${cells.map(([l,v])=>`<div class="kpi"><b>${fa(Number(v)||0)}</b><small>${esc(l)}</small></div>`).join('')}</div>
     <div class="row tight" style="flex-wrap:wrap">${btn('سفارش‌های نیازمند بررسی','data-rec-open-orders','i-wallet')}</div></article>`;
 }
@@ -9749,9 +9751,9 @@ function serverClubView(){
 }
 function p2UserHubCards(){
   const cards=[];
-  if(canPerm('attendance')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-check')}</span><b>حضور و غیاب</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(canPerm('attendance')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-check')}</span><b>حضور و غیاب</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">حضور بلیت‌های ثبت‌نام سرور؛ همان رکوردی که ربات هنگام اسکن می‌نویسد.</p>${btn('بازکردن حضور و غیاب','data-open-attendance','i-chev-left')}</article>`);
-  if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('API سرور','ok')}</div>
+  if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('API سرور')}</div>
     <p class="cap">گواهی‌های صادرشدهٔ ربات که با مالک تأییدشده به پایگاه مشترک رسیده‌اند؛ جست‌وجو، وضعیت و فایل. صدور فقط از ربات.</p>${btn('بازکردن گواهینامه‌ها','data-open-cert','i-chev-left')}</article>`);
   if(isOwner()||canPerm('cl_member')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-star')}</span><b>امتیاز باشگاه</b><span class="sp"></span>${tag('آینهٔ دفترکل ربات','ok')}</div>
     <p class="cap">تاریخچهٔ امتیاز اعضایی که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده؛ فقط‌خواندنی. امتیاز فقط در ربات تغییر می‌کند.</p>${btn('بازکردن امتیاز باشگاه','data-open-club','i-chev-left')}</article>`);
@@ -10811,9 +10813,9 @@ async function dashxLoad(manual){
 function dashxDateBar(){
   const n=jNow(), monthName=JMONTHS_FA[n.jm-1]||'';
   let when=''; if(DASHX.at){try{when=new Date(DASHX.at).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit'})}catch(e){when=''}}
-  return `<section class="card" data-dashx-bar><div class="row" style="flex-wrap:wrap;gap:8px">
+  return `<section class="dash-bar" data-dashx-bar><div class="row" style="flex-wrap:wrap;gap:var(--sp-2)">
     <span class="ic">${ico('i-calendar')}</span><div><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b>
-    <small class="cap" style="display:block">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 180px"></span>
+    <small class="cap dash-note" style="display:block">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 40px"></span>
     ${when?`<small class="cap">آخرین بازخوانی ${esc(when)}</small>`:''}
     <button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی داشبورد'}</button>
     <button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></div></section>`;
@@ -10837,7 +10839,7 @@ function dashxQueueCard(){
   if(can.sched){const p=DASHX.sched&&DASHX.sched.pending; row('انتشار زمان‌بندی‌شدهٔ معوق',p?n(p.due_unannounced):null,'سررسیده اما اعلام‌نشده؛ اجرای زمان‌بند لازم است','data-dashx-sched',true)}
   if(!rows.length) return '';
   const state=DASHX.loading?'<p class="cap">در حال خواندن صف کارها از سرور…</p>':DASHX.error?`<div class="empty"><p class="cap">${esc(DASHX.error)}</p>${btn('تلاش دوباره','data-dashx-refresh','i-refresh')}</div>`:'';
-  return `<section class="card stack" data-dashx-queue><div class="row"><div class="head">کارهای در انتظار</div><span class="sp" style="flex:1 1 180px"></span>${tag('شمارش زندهٔ سرور','ok')}</div>
+  return `<section class="card stack" data-dashx-queue><div class="row"><div class="head">کارهای در انتظار</div><span class="sp" style="flex:1 1 180px"></span>${tag('شمارش زندهٔ سرور')}</div>
     <div class="admlist">${rows.join('')}</div>${state}
     <p class="cap">«؟» یعنی این شمارش هنوز از سرور نرسیده یا مجوز آن برای حساب شما فعال نیست؛ عدد نمونه جایگزین نمی‌شود.</p></section>`;
 }
@@ -10860,14 +10862,14 @@ function dashxUpcomingCard(){
     ${ctRegTag(e)}${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
     <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events" aria-label="${esc('ویرایش '+(e.t||e.id||'رویداد'))}" title="ویرایش رویداد">${ico('i-pen')}</button></div>`).join('');
   const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
-  return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور','ok')}
+  return `<section class="card stack" data-dashx-upcoming><div class="row"><div class="head">رویدادهای پیش رو</div><span class="sp" style="flex:1 1 180px"></span>${tag('محتوای منتشرشدهٔ سرور')}
       <button class="btn sm quiet" data-sec="events">همهٔ رویدادها</button></div>
     ${rows?`<div class="admlist">${rows}</div>`:''}${state}</section>`;
 }
 function dashxSchedCard(){
   if(!dashxCan().sched||!DASHX.sched) return '';
   const s=DASHX.sched, last=s.last_run||null, p=s.pending||{};
-  return `<section class="card stack" data-dashx-sched-card><div class="row"><div class="head">انتشار زمان‌بندی‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag(last&&last.ok===false?'آخرین اجرا ناموفق':'از API سرور',last&&last.ok===false?'warn':'ok')}</div>
+  return `<section class="card stack" data-dashx-sched-card><div class="row"><div class="head">انتشار زمان‌بندی‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag(last&&last.ok===false?'آخرین اجرا ناموفق':'از API سرور',last&&last.ok===false?'warn':'')}</div>
     <div class="kpis dash-kpis">
       <div class="kpi"><small class="cap">در صف آینده</small><b>${esc(fa(Number(p.future)||0))}</b></div>
       <div class="kpi"><small class="cap">سررسیده، اعلام‌نشده</small><b>${esc(fa(Number(p.due_unannounced)||0))}</b></div>
@@ -10880,7 +10882,7 @@ function dashxAuditCard(){
   const rows=items.map(ev=>`<div class="admlirow"><span class="ic">${ico('i-shield')}</span><span class="sp" style="flex:1 1 180px"><b dir="ltr" style="font-weight:600">${esc(ev.action||'')}</b>
     <small class="cap">${esc((ev.actor_kind==='owner'?'مالک':ev.actor_role==='manager'?'مدیر':ev.actor_role==='club-supervisor'?'سرپرست باشگاه':'حساب')+' · '+(svcWhen(ev.created_at)||''))}</small></span>
     ${ev.target_type?`<small class="cap" dir="ltr">${esc(ev.target_type)}</small>`:''}</div>`).join('');
-  return `<section class="card stack" data-dashx-audit><div class="row"><div class="head">آخرین عملیات ثبت‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag('فقط مالک','ok')}
+  return `<section class="card stack" data-dashx-audit><div class="row"><div class="head">آخرین عملیات ثبت‌شده</div><span class="sp" style="flex:1 1 180px"></span>${tag('فقط مالک')}
       <button class="btn sm quiet" data-dashx-audit-all>تاریخچهٔ کامل</button></div>
     ${DASHX.loading&&!d?'<p class="cap">در حال خواندن تاریخچه…</p>':rows?`<div class="admlist">${rows}</div>`:emptyBox('هنوز عملیاتی در تاریخچهٔ سرور ثبت نشده است.')}</section>`;
 }

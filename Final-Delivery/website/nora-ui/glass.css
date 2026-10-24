@@ -80,7 +80,7 @@
 
   /* ── حروف ── */
   --f:'Vazirmatn',system-ui,'Segoe UI',Tahoma,sans-serif;
-  /* مقیاس بستهٔ تایپ: ۱۱ · ۱۲ · ۱۳.۵ · ۱۵ · ۱۶.۵ · ۱۸ · ۲۰ · ۲۴ · ۲۷ · ۳۲ · ۴۲ — هیچ عدد دیگری در CSS صفحه‌ها نوشته نمی‌شود */
+  /* مقیاس بستهٔ تایپ: ۱۱ · ۱۲ · ۱۳.۵ · ۱۵ · ۱۶.۵ · ۱۸ · ۲۰ · ۲۴ · ۲۷ · ۳۲ · ۴۲؛ هیچ عدد دیگری در CSS صفحه‌ها نوشته نمی‌شود */
   --fs-hero:42px; --fs-hero-m:32px; --fs-display:27px; --fs-kpi:24px; --fs-title:20px; --fs-lead:18px; --fs-head:16.5px;
   --fs-body:15px;    --fs-sub:13.5px; --fs-cap:12px; --fs-micro:11px;
   --lh-tight:1.35; --lh:1.75;
