@@ -885,12 +885,17 @@ a.sktile{text-decoration:none;color:inherit}
 .lnk{background:none;border:0;padding:4px 2px;min-height:28px;color:var(--brand);font:inherit;font-size:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .lnk:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
 /* منوی جمع‌شدهٔ «بخش‌های دیگر» در زیرصفحهٔ هر بخش */
+.efgrp,.efgrp>*{min-width:0;max-width:100%}
+.eflinkpick{flex:1 1 220px;width:220px;min-width:0;max-width:100%} /* گزینه‌های بلند فرم نباید عرض صفحه را در موبایل باز کنند */
+.efgrp .stack{overflow-wrap:anywhere}
 .efmore{position:relative}
 .efmore>summary{list-style:none;display:inline-flex}
 .efmore>summary::-webkit-details-marker{display:none}
-.efmore-menu{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:30;min-width:240px;max-width:min(92vw,360px);padding:10px 12px;border:.5px solid var(--hairline);border-radius:14px;background:var(--surface);box-shadow:0 12px 32px rgba(0,0,0,.14);display:grid;gap:8px}
+.efmore:not([open]) .efmore-menu{display:none} /* جعبهٔ بستهٔ details نباید عرض صفحه را در ۳۶۰px زیاد کند */
+.efmore-menu{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:30;min-width:min(240px,80vw);max-width:min(92vw,360px);padding:10px 12px;border:.5px solid var(--hairline);border-radius:14px;background:var(--surface);box-shadow:0 12px 32px rgba(0,0,0,.14);display:grid;gap:8px}
 .efmore-grp{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12.5px}
 .efmore-grp b{flex:0 0 100%;font-size:12px;color:var(--ink-2)}
 .efmore-grp .lnk{min-height:34px;padding:4px 6px}
+@media (max-width:700px){.efmore-menu{inset-inline-end:auto;inset-inline-start:0}} /* موبایل: منو به سمت آغاز باز می‌شود تا از لبهٔ صفحه بیرون نزند */
 @media (max-width:720px){.eftiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.eftile-main{min-height:84px;padding:10px;gap:8px}.eftile-main .ic{width:30px;height:30px}.eftile-sub{display:none}}
