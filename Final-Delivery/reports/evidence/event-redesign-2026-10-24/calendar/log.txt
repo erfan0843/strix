@@ -1,0 +1,19 @@
+PASS settings tile text no longer promises a separate «تقویم» page
+PASS settings tile «رویدادها و مطالب» lands on the events list (#events) without horizontal overflow
+PASS events list row: title column is wide (≥ 220px), not squeezed under the action buttons
+PASS editor (desktop) has no horizontal overflow
+PASS editor Jalali datepicker opens with a month grid (≥ 28 days) and stays inside the viewport
+PASS datepicker is compact on desktop (≤ 420px wide)
+PASS picking a day writes a Jalali YYYY/MM/DD into the start-date field and the weekday hint updates
+PASS datepicker closes after picking
+PASS month navigation changes the header month
+PASS «امروز» writes today’s Jalali date
+PASS time input is not rewritten mid-typing and normalises to HH:MM on blur
+PASS mobile events list: no horizontal overflow
+PASS editor (390px) has no horizontal overflow before opening the calendar
+PASS mobile datepicker stays inside the 390px viewport
+PASS mobile day cells are touch-sized (≥ 40px)
+PASS Escape closes the datepicker
+PASS dark theme: datepicker still inside the viewport
+PASS 360px: editor + datepicker without horizontal overflow
+PASS no page errors

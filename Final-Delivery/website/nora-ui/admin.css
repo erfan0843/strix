@@ -227,7 +227,7 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 .mrem span:last-child{font-size:var(--fs-sub);overflow-wrap:anywhere}
 
 /* تقویم شمسی */
-.dp{margin-top:6px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);
+.dp{margin-top:6px;padding:12px;border-radius:var(--r-md);background:var(--surface-2);max-width:420px;box-sizing:border-box;
   border:.5px solid var(--hairline);box-shadow:var(--sh-1)}
 .dphead{display:flex;align-items:center;gap:4px;margin-bottom:8px}
 .dphead b{font-size:var(--fs-sub);font-weight:700;min-width:104px;text-align:center}
@@ -843,7 +843,10 @@ a.sktile{text-decoration:none;color:inherit}
 .dp .dpnav:focus-visible,.dp .dd:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 @media (max-width:600px){.ctfoot{padding-bottom:calc(8px + env(safe-area-inset-bottom))}.dp{padding:8px}.dd{min-height:40px}}
 /* نوار پنج گام تعریف رویداد: فقط پرش و وضعیت؛ فشرده، بدون ردیف چندخطی در موبایل (اسکرول افقی نرم) */
-.ctsteps{display:flex;gap:6px;margin:0;padding:0 0 2px;list-style:none;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.ctsteps{display:flex;gap:6px;margin:0;padding:0 0 2px;list-style:none;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+/* ریل مراحل در شبکهٔ .stack: عرضش هرگز از ستون بیرون نمی‌زند (موبایل ۳۹۰) */
+[data-ct-editor] .stack{min-width:0}
+[data-ct-editor] .stack>*{min-width:0;max-width:100%}
 .ctsteps::-webkit-scrollbar{display:none}
 .ctsteps li{flex:1 1 150px;min-width:148px}
 .ctstep{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:6px 10px;border:.5px solid var(--hairline);border-radius:12px;background:var(--surface);color:inherit;text-align:start;cursor:pointer;font:inherit}
