@@ -594,11 +594,11 @@ function miniSheet(title,html,label){
    «گزارش‌ها» بخش جدا نیست؛ همان هاب گزارش سرور زیر «کاربران» است (S.uHub='reports') و «تعریف جدید»
    همان ویرایشگر سروری رویداد/مطلب را با رکورد خالی باز می‌کند. مجوز هر مورد از canSec/canPerm سرور می‌آید. */
 const SERVER_MENU=[
-  {k:'newev',  n:'تعریف جدید', i:'i-plus',    s:'رویداد یا مطلب تازه تا انتشار یا تأیید'},
+  {k:'newev',  n:'تعریف جدید', i:'i-plus',    s:'رویداد یا مطلب تازه تا انتشار'},
   {k:'events', n:'رویدادها و مطالب', t:'رویدادها', i:'i-calendar',s:'رویداد و مطلب، از انتشار تا رسانه'},
-  {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهینامه و ابزارها'},
+  {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهی و ابزارها'},
   {k:'forms',  n:'فرم‌ها',     i:'i-doc',     s:'ساخت فرم، پاسخ‌ها و گزارش'},
-  {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش تجمیعی سرور، خروجی و دفتر نامه‌ها'},
+  {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش سرور، خروجی و نامه‌ها'},
   {k:'settings',n:'تنظیمات',   i:'i-sliders', s:'متن، مالی و پشتیبان'}];
 const SERVER_TABBAR=['dash','events','users','reports','settings'];
 const navSecs=()=>(!IS_TEST&&SERVER_AUTH)?[HOME].concat(SERVER_MENU):ALLSECS;
@@ -606,7 +606,7 @@ const navCan=k=>k==='reports'?(canPerm('rp_view')&&canSec('users')):canSec(k);
 const navActive=k=>{const rep=S.sec==='users'&&S.uHub==='reports';
   if(k==='reports') return rep; if(k==='users') return S.sec==='users'&&!rep;
   if(k==='events') return S.sec==='events'||(S.sec==='newev'&&IS_TEST); return S.sec===k};
-const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:(!IS_TEST&&SERVER_AUTH)?'رویداد یا مطلب تازه تا انتشار یا تأیید':'ساخت مطلب تازه'}
+const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:(!IS_TEST&&SERVER_AUTH)?'رویداد یا مطلب تازه تا انتشار':'ساخت مطلب تازه'}
   :k==='reports'&&!IS_TEST&&SERVER_AUTH?SERVER_MENU.find(s=>s.k==='reports')
   :ALLSECS.find(s=>s.k===(k==='reports'?'users':k))||HOME;
 
@@ -10814,12 +10814,13 @@ async function dashxLoad(manual){
 function dashxDateBar(){
   const n=jNow(), monthName=JMONTHS_FA[n.jm-1]||'';
   let when=''; if(DASHX.at){try{when=new Date(DASHX.at).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit'})}catch(e){when=''}}
-  return `<section class="dash-bar" data-dashx-bar><div class="row" style="flex-wrap:wrap;gap:var(--sp-2)">
-    <span class="ic">${ico('i-calendar')}</span><div><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b>
-    <small class="cap dash-note">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 40px"></span>
-    ${when?`<small class="cap">آخرین بازخوانی ${esc(when)}</small>`:''}
-    <button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی داشبورد'}</button>
-    <button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></div></section>`;
+  /* چیدمان ثابت: ردیف تاریخ + زمان بازخوانی (همیشه یک جایگاه دارد) و گروه دکمه‌ها؛ در موبایل دکمه‌ها همیشه ردیف خودشان‌اند تا با رسیدن داده جابه‌جا نشوند */
+  return `<section class="dash-bar" data-dashx-bar><div class="row dash-row">
+    <span class="ic">${ico('i-calendar')}</span><div class="dash-date"><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b>
+    <small class="cap dash-note">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div>
+    <small class="cap dash-when" data-dashx-when>${when?`آخرین بازخوانی ${esc(when)}`:DASHX.loading?'در حال خواندن از سرور…':'هنوز بازخوانی نشده'}</small>
+    <span class="dash-acts"><button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی داشبورد'}</button>
+    <button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></span></div></section>`;
 }
 /* کارهای در انتظار: فقط شمارش‌هایی که endpoint واقعی دارند؛ هر ردیف به همان ماژول می‌رود */
 function dashxQueueCard(){
@@ -13133,7 +13134,9 @@ function serverHashAfterRender(h){
 function showServerAuthMessage(title,message,withLogin){
   const nav=$('#admNav'), tabs=$('#admTabs'), bar=$('#admBar'), body=$('#admBody');
   if(nav) nav.innerHTML=''; if(tabs) tabs.innerHTML='';
-  if(bar) bar.innerHTML=`<span class="nmark">${ico('i-shield')}</span><div class="tt"><div class="head">${esc(title)}</div></div>`;
+  /* همان ساختار page-head نوار نهایی (عنوان، زیرعنوان، ردیف متا) تا سربرگ هنگام بررسی نشست بالا و پایین نپرد */
+  if(bar) bar.innerHTML=`<span class="nmark" aria-hidden="true">${ico('i-shield')}</span><div class="tt ph-tt"><div class="head ph-title">${esc(title)}</div><div class="cap ph-sub">${esc(message)}</div></div>
+    <div class="ph-actions"></div><div class="ph-meta"><span class="chip" aria-hidden="true">${ico('i-user')}<span>&#8203;</span></span></div>`;
   if(body) body.innerHTML=`<section class="card stack" style="margin:24px auto;max-width:720px;text-align:center">
     <div class="head">${esc(message)}</div>${withLogin?`<div class="row" style="justify-content:center"><a class="btn primary" href="login.html?mode=staff&amp;next=admin.html%23dash">ورود مدیران و مالک</a></div>`:''}</section>`;
 }

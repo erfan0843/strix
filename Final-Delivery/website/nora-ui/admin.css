@@ -377,12 +377,13 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 .admrole small{font-size:var(--fs-micro);color:var(--ink-3)}
 
 /* ── نوار پایین (موبایل): پنج بخش ─────────────────────────────────────── */
-#admTabs{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none;min-height:64px}
+#admTabs{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none;min-height:76px}
 #admTabs a{display:grid;place-items:center;gap:var(--sp-1);padding:7px 2px;border-radius:var(--r-md);text-decoration:none;
   color:var(--ink-3);font-size:var(--fs-micro);min-width:0}
 #admTabs a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 /* ریل قبل از رسیدن نشست خالی است؛ ارتفاع رزرو می‌شود تا برند و دکمهٔ تم با رسیدن منو نپرند */
 #admNav:empty{min-height:400px}
+#admBody{display:flow-root}
 #admTabs a .i{width:21px;height:21px}
 #admTabs a.on{color:var(--brand-ink);background:var(--brand-tint);font-weight:700}
 /* نوار پایین فقط در عرض‌های بدون ریل؛ nora.css بعد از glass.css آن را روی دسکتاپ هم روشن می‌کرد */
@@ -394,7 +395,11 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 @media (max-width:600px){.ef-meta{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin-inline:-2px;padding-inline:2px}.ef-meta::-webkit-scrollbar{display:none}.ef-meta>*{flex:0 0 auto}}
 details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 .dash-bar .dash-note{display:block}
-@media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}}
+.dash-bar .dash-row{flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:center}
+.dash-bar .dash-date{min-width:0}
+.dash-bar .dash-when{margin-inline-start:auto;white-space:nowrap;min-height:var(--ctl-h-sm);display:inline-flex;align-items:center}
+.dash-bar .dash-acts{display:flex;gap:var(--sp-2);flex:0 0 auto;flex-wrap:wrap}
+@media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}.dash-bar .dash-acts{flex-basis:100%}}
 .dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);align-items:start}
 .dash-grid>section{min-width:0}
 @media (max-width:1040px){.dash-grid{grid-template-columns:1fr}}

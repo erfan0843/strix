@@ -11,9 +11,10 @@
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="fonts/Vazirmatn-UI-FD-Bold.woff2" as="font" type="font/woff2" crossorigin/><!-- برچسب‌های ضخیم داشبورد: بدون این، تعویض قلم ردیف‌ها را یک خط جابه‌جا می‌کرد -->
 <link rel="stylesheet" href="glass.css?v=102"/>
 <link rel="stylesheet" href="nora.css?v=105"/>
-<link rel="stylesheet" href="admin.css?v=117"/>
+<link rel="stylesheet" href="admin.css?v=118"/>
 <link rel="stylesheet" href="site-content-sync.css?v=100"/>
 <link rel="stylesheet" href="owner-banner-manager.css?v=5"/>
 <link rel="stylesheet" href="cooperation-inbox.css?v=99"/>
@@ -115,7 +116,11 @@
   </aside>
 
   <main class="main">
-    <header class="topbar glass admbar page-head" id="admBar"></header>
+    <header class="topbar glass admbar page-head" id="admBar"><!-- اسکلت هم‌ساختار با renderBar تا ارتفاع سربرگ پیش از رسیدن منو ثابت باشد -->
+      <span class="nmark" aria-hidden="true"></span>
+      <div class="tt ph-tt"><div class="head ph-title">&#8203;</div><div class="cap ph-sub">&#8203;</div></div>
+      <div class="ph-actions"></div>
+      <div class="ph-meta"><span class="tag" aria-hidden="true">&#8203;</span><span class="chip" aria-hidden="true">&#8203;</span></div></header>
     <div id="admBody"></div>
     <div id="ownerPublishingToolsParking" hidden>
       <div id="ownerPublishingTools" class="admin-publishing-stack" hidden>
@@ -252,13 +257,13 @@
 <div class="scrim" id="scrim"></div>
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg></div>
 
-<script src="data.js?v=100"></script>
+<script src="data.js?v=101"></script>
 <script src="ui.js?v=132"></script>
 <script src="owner-api.js?v=130"></script>
 <script src="site-content-sync.js?v=102"></script>
 <script src="countdown.js?v=3"></script>
 <script src="owner-banner-manager.js?v=5"></script>
 <script src="cooperation-inbox.js?v=98"></script>
-<script src="admin.js?v=180"></script>
+<script src="admin.js?v=181"></script>
 </body>
 </html>

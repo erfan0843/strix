@@ -63,7 +63,7 @@ test('Production account does not load the unrelated fixture dataset; explicit f
     vm.runInNewContext(gate.textContent,{window,document});
     assert.equal(writes.length,mode===true?1:0);
   }
-  assert.match(writes[0],/data\.js\?v=100/);
+  assert.match(writes[0],/data\.js\?v=101/);
   assert.match(read('account.js'),/TEST_FIXTURE_MODE\?\(A\.sections\|\|\[\]\):SERVER_SECTIONS/);
   assert.ok(fs.statSync(new URL('data.js',import.meta.url)).size>0);
 });
