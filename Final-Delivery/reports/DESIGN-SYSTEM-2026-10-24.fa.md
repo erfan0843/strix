@@ -119,7 +119,8 @@
 | D | `9e8b1089f29c` | پوستهٔ پنل (`page-head`، تب‌بار، ارتفاع رزرو) و داشبورد (ترتیب + بخش فنی بسته + تگ خنثی) |
 | E | `1a0e8e0c39d5` | فهرست رویدادها، ثبت‌نام‌کنندگان، تنظیمات، ردیف‌های متا |
 | پین | `35c8067ef8ee` | پین‌های نسخهٔ ۱۶ فایل CSS/JS در HTML و آزمون‌ها (`glass 101, nora 105, admin.css 116, admin.js 179, support.css 100, login.css 132, events-page.css 106, …`) |
-| F | (این کامیت) | اصلاح نوار تاریخ موبایل، شواهد بعد، این گزارش |
+| F | `2910aad71b6b` | اصلاح نوار تاریخ موبایل، شواهد بعد، این گزارش |
+| G | (این کامیت) | پین `admin.css 117` / `admin.js 180` پس از F + تصحیح شمارنده‌های گزارش |
 
 فایل‌های محصول: `glass.css`, `nora.css`, `admin.css`, `admin.js`, `admin.html`, `home.html`, `events.html`, `events-page.css`, `account.css`, `support.css`, `login.css`, `events.css`, `countdown.css`, `event-interaction.css`, `person-page.css`, `partner-page.css`, `owner-banner-manager.css`, `site-content-sync.css`, `cooperation-inbox.css`, `cooperation.css`, و `<style>` درون‌خطی `event.html`, `form.html`, `create.html`, `builder.html`, `post.html`؛ پین نسخه در ۱۶ فایل HTML و ۴ فایل آزمون (مجموع ۳۷ فایل محصول/آزمون). **هیچ فایل بک‌اند، مدل، API یا مهاجرتی تغییر نکرده؛ هیچ آزمونی حذف یا تضعیف نشده** (تنها تغییر آزمون‌ها = پین نسخه).
 
