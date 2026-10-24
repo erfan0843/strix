@@ -489,7 +489,8 @@ function accountScreensCard(){
   return `<section class="card acct account-screens-index" aria-label="همهٔ بخش‌های حساب">
     <div class="head">همهٔ بخش‌های حساب</div>
     <p class="cap">بخش‌های بدون endpoint وب داده‌ی نمونه نمی‌گیرند؛ آنچه فعلاً در ربات بله است با همان برچسب و آنچه خارج از نسخهٔ اول است جدا نشان داده می‌شود.</p>
-    <div class="stack" style="margin-top:8px">${rows}</div>
+    <details class="adv account-screens-list" style="margin-top:8px"><summary>فهرست کامل · ${faN(ACCOUNT_SCREENS.length)} بخش</summary>
+      <div class="adv-body stack">${rows}</div></details>
   </section>`;
 }
 /* ══ پیوند هویت: بله، شماره، آیندهٔ سکوهای دیگر ═════════════════════════

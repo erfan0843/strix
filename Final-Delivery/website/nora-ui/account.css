@@ -29,7 +29,8 @@ body.hasbotbar{padding-bottom:178px}
 .phead .cover .ctags .tag{background:rgba(255,255,255,.20);border:1px solid rgba(255,255,255,.34);color:#fff;
   height:23px;font-size:var(--fs-micro);backdrop-filter:blur(6px)}
 .phead .pbody{padding:0 15px 15px;margin-top:-26px;position:relative}
-.phead .ptop{display:flex;align-items:center;gap:var(--sp-3)}
+.phead .ptop{display:flex;align-items:flex-end;gap:var(--sp-3)}
+.phead .ptop .who{padding-bottom:2px}
 .phead .av{width:62px;height:62px;border-radius:var(--r-lg);flex:0 0 auto;display:grid;place-items:center;position:relative;
   font-size:var(--fs-kpi);font-weight:800;color:var(--brand-ink);background:linear-gradient(160deg,#FFFFFF,#E6F0FF);
   box-shadow:0 0 0 4px var(--surface),0 8px 20px rgba(10,79,180,.18);
@@ -37,7 +38,7 @@ body.hasbotbar{padding-bottom:178px}
 .phead .av .pdot{position:absolute;inset-inline-end:-2px;bottom:-2px;width:15px;height:15px;border-radius:50%;
   background:var(--ok);box-shadow:0 0 0 3px var(--surface)}
 .phead .who{min-width:0;display:grid;gap:var(--sp-1)}
-.phead .who b{font-size:var(--fs-head);font-weight:800;letter-spacing:-.3px}
+.phead .who b{font-size:var(--fs-title);font-weight:800;letter-spacing:-.3px;line-height:var(--lh-tight)}
 .phead .who small{font-size:var(--fs-cap);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .phead .edit{margin-inline-start:auto}
 .phead .pmeta{display:flex;align-items:center;gap:var(--sp-1h);flex-wrap:wrap;margin-top:2px}
@@ -60,7 +61,8 @@ body.hasbotbar{padding-bottom:178px}
 .meter i::after{content:'';position:absolute;inset:0;border-radius:var(--r-pill);
   background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,0))}
 .phead .pacts{display:flex;gap:var(--sp-2);margin-top:12px;flex-wrap:wrap}
-.phead .pacts .btn{flex:1;justify-content:center}
+.phead .pacts .btn{flex:1 1 auto;justify-content:center;white-space:nowrap}
+@media(max-width:480px){.phead .pacts{display:grid;grid-template-columns:1fr 1fr}.phead .pacts .sp{display:none}.phead .pacts .btn{min-width:0}}
 
 /* ردیف دستگاه‌های واردشده */
 .drow{display:flex;align-items:center;gap:var(--sp-2h);padding:11px 2px;border-bottom:.5px solid var(--hairline-2)}
@@ -141,16 +143,11 @@ body.hasbotbar{padding-bottom:178px}
 
 /* ══ نورا پی: کارت خودش، سرِ صفحه، جدا از ردیف‌ها ═════════════════════ */
 .paybar{margin-top:12px;border-radius:var(--r-lg);overflow:hidden;position:relative;
-  background:linear-gradient(158deg,rgba(0,113,227,.16) 0%,rgba(0,113,227,.07) 52%,rgba(0,113,227,.03) 100%);
-  border:.5px solid rgba(0,113,227,.16);
-  box-shadow:none;backdrop-filter:blur(12px)}
-.paybar::after{content:'';position:absolute;inset-inline-start:-46px;top:-84px;width:208px;height:208px;
-  border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.5),rgba(255,255,255,0) 70%);
-  pointer-events:none}
+  background:var(--surface);border:.5px solid var(--hairline);box-shadow:none}
 .pbmain{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:var(--sp-3);width:100%;
   border:0;background:none;font:inherit;color:var(--ink);text-align:start;padding:14px 15px 10px;
   cursor:pointer;position:relative;z-index:1;transition:background var(--t-fast) var(--ease)}
-.pbmain:hover{background:rgba(255,255,255,.34)}
+.pbmain:hover{background:var(--surface-2)}
 .pbmain:active{transform:scale(.995)}
 .pbmain .pwal{width:44px;height:44px;border-radius:var(--r-md);display:grid;place-items:center;
   background:linear-gradient(180deg,color-mix(in oklab,var(--brand) 86%,#fff),var(--brand-2));
@@ -158,17 +155,17 @@ body.hasbotbar{padding-bottom:178px}
 .pbmain .pwal .i{width:22px;height:22px;color:#fff}
 .pbmain .ptx{display:grid;gap:var(--sp-1);min-width:0}
 .pbmain .ptx small{font-size:var(--fs-cap);color:var(--brand-ink);font-weight:700;letter-spacing:.2px}
-.pbmain .ptx b{font-size:var(--fs-lead);font-weight:800;letter-spacing:-.3px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pbmain .ptx b{font-size:var(--fs-head);font-weight:700;letter-spacing:-.3px;color:var(--ink);font-variant-numeric:tabular-nums}
 .pbmain .pmeta{display:flex;gap:var(--sp-1h);flex-wrap:wrap;margin-top:3px}
 .pbmain .pmeta .tag{background:rgba(255,255,255,.62);border-color:rgba(0,113,227,.14);
   color:var(--brand-ink);height:21px;font-size:var(--fs-micro);font-weight:700}
 .pbmain .chev{width:17px;height:17px;color:var(--brand-ink);opacity:.75}
 .pbrow{display:flex;gap:var(--sp-1h);padding:0 11px 12px;position:relative;z-index:1}
 .pbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-1h);height:40px;
-  border:.5px solid rgba(0,113,227,.14);border-radius:var(--r-md);font:inherit;font-size:var(--fs-cap);font-weight:700;
-  cursor:pointer;color:var(--brand-ink);background:rgba(255,255,255,.66);box-shadow:none;
+  border:.5px solid var(--hairline);border-radius:var(--r-md);font:inherit;font-size:var(--fs-cap);font-weight:700;
+  cursor:pointer;color:var(--ink-2);background:var(--surface-2);box-shadow:none;
   transition:background var(--t-fast) var(--ease),transform var(--t-fast) var(--ease)}
-.pbtn:hover{background:rgba(255,255,255,.92)}
+.pbtn:hover{background:var(--surface-sunk)}
 .pbtn:active{transform:scale(.98)}
 .pbtn .i{width:16px;height:16px}
 
@@ -793,12 +790,10 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .phead .av img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 
 /* حالت شب: کارت نورا پی همان سبکی، با شیشهٔ تیره‌تر */
-:root[data-theme="dark"] .paybar{background:linear-gradient(158deg,rgba(78,161,255,.20) 0%,rgba(78,161,255,.10) 55%,rgba(78,161,255,.04) 100%);
-  border-color:rgba(78,161,255,.22)}
-:root[data-theme="dark"] .paybar::after{background:radial-gradient(circle,rgba(255,255,255,.10),rgba(255,255,255,0) 70%)}
+:root[data-theme="dark"] .paybar{background:var(--surface);border-color:var(--hairline)}
 :root[data-theme="dark"] .pbmain:hover{background:rgba(255,255,255,.06)}
 :root[data-theme="dark"] .pbmain .pmeta .tag{background:rgba(255,255,255,.10);border-color:rgba(78,161,255,.22);color:var(--brand-ink)}
-:root[data-theme="dark"] .pbtn{background:rgba(255,255,255,.08);border-color:rgba(78,161,255,.20);color:var(--brand-ink)}
+:root[data-theme="dark"] .pbtn{background:var(--surface-2);border-color:var(--hairline);color:var(--ink-2)}
 :root[data-theme="dark"] .pbtn:hover{background:rgba(255,255,255,.14)}
 
 /* ══ ردیف‌های بخش‌ها: سبک و بی‌سایه ══════════════════════════════════ */

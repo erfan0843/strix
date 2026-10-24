@@ -2,8 +2,8 @@
    یک نشانهٔ واحد از countdown.js با سه اندازه: پیش‌فرض (صفحهٔ رویداد)،
    .is-compact (کارت‌ها)، .is-hero (بنر/خانه). منطق زمان تغییری نکرده است؛
    بلوک‌های عددی aria-hidden هستند و متن کامل در .nora-countdown-value می‌ماند. */
-.nora-countdown{--cd-ink:var(--ink,#1e2b27);--cd-muted:var(--ink-3,#5f655f);--cd-accent:var(--brand-ink,#0a5abc);
-  --cd-block:color-mix(in srgb,var(--brand,#0071e3) 7%,var(--surface,#fff));--cd-edge:color-mix(in srgb,var(--brand,#0071e3) 16%,transparent);
+.nora-countdown{--cd-ink:var(--ink);--cd-muted:var(--ink-3);--cd-accent:var(--brand-ink);
+  --cd-block:color-mix(in srgb,var(--brand) 7%,var(--surface));--cd-edge:color-mix(in srgb,var(--brand) 16%,transparent);
   --cd-n:30px;--cd-u:11px;--cd-gap:var(--sp-2);--cd-pad:8px 10px 7px;--cd-min:58px;--cd-radius:14px;
   display:inline-flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);max-width:100%;color:var(--cd-ink);
   font-variant-numeric:tabular-nums;direction:rtl;line-height:1.5}
@@ -24,12 +24,12 @@
 .nora-countdown[data-cd-units="hms"] .cdb[data-unit="h"]::before{display:none}
 /* متن کامل برای صفحه‌خوان/آزمون؛ در حالت پایان‌یافته دیده می‌شود */
 .nora-countdown:not(.is-ended) .nora-countdown-value{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.nora-countdown.is-ended{flex-direction:row;align-items:center;gap:var(--sp-1h);padding:5px 10px;border-radius:var(--r-pill);background:var(--surface-2,#f1f3f7);color:var(--cd-muted);font-size:var(--fs-cap);line-height:1.7}
+.nora-countdown.is-ended{flex-direction:row;align-items:center;gap:var(--sp-1h);padding:5px 10px;border-radius:var(--r-pill);background:var(--surface-2);color:var(--cd-muted);font-size:var(--fs-cap);line-height:1.7}
 .nora-countdown.is-ended .nora-countdown-blocks,.nora-countdown.is-ended .nora-countdown-label{display:none}
-.nora-countdown.is-ended>.i,.nora-countdown.is-ended .nora-countdown-head .i{width:15px;height:15px;color:var(--ink-4,#8a92a6)}
+.nora-countdown.is-ended>.i,.nora-countdown.is-ended .nora-countdown-head .i{width:15px;height:15px;color:var(--ink-4)}
 .nora-countdown.is-ended .nora-countdown-value{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* کمتر از یک ساعت: لحن هشدار ملایم، بدون درخشش دائمی */
-.nora-countdown.is-soon{--cd-accent:#9a5b0a;--cd-block:color-mix(in srgb,#b7791f 10%,var(--surface,#fff));--cd-edge:color-mix(in srgb,#b7791f 28%,transparent)}
+.nora-countdown.is-soon{--cd-accent:var(--warn);--cd-block:color-mix(in srgb,var(--warn) 10%,var(--surface));--cd-edge:color-mix(in srgb,var(--warn) 28%,transparent)}
 /* کارت رویداد: فشرده، بدون سرآیند متنی (آیکون می‌ماند) */
 .nora-countdown.is-compact{--cd-n:17px;--cd-u:9.5px;--cd-gap:var(--sp-1h);--cd-pad:4px 6px 3px;--cd-min:40px;--cd-radius:9px;flex-direction:row;align-items:center;gap:var(--sp-1h)}
 .nora-countdown.is-compact .nora-countdown-label{display:none}
@@ -59,12 +59,11 @@
 }
 .reg-state{display:inline-flex;align-items:center;gap:var(--sp-1h);padding:3px 9px;border-radius:var(--r-pill);font-size:var(--fs-cap);font-weight:700;line-height:1.7;white-space:nowrap}
 .reg-state::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-.reg-state.live{background:color-mix(in srgb,#1d8a4b 14%,var(--surface,#fff));color:#1d8a4b}
-.reg-state.wait{background:color-mix(in srgb,#b7791f 14%,var(--surface,#fff));color:#8a5a12}
-.reg-state.stop{background:color-mix(in srgb,#c0392b 12%,var(--surface,#fff));color:#a93226}
-.reg-state.mute{background:var(--surface-2,#f1f3f7);color:var(--ink-3,#5b6478)}
+.reg-state.live{background:var(--ok-tint);color:var(--ok)}
+.reg-state.wait{background:var(--warn-tint);color:var(--warn)}
+.reg-state.stop{background:var(--stop-tint);color:var(--stop)}
+.reg-state.mute{background:var(--surface-2);color:var(--ink-3)}
 .reg-state.on-dark{background:rgba(255,255,255,.18);color:#fff}
-html[data-theme="dark"] .nora-countdown{--cd-block:rgba(255,255,255,.07);--cd-edge:rgba(255,255,255,.14);--cd-accent:#8ec1ff}
-html[data-theme="dark"] .nora-countdown.is-soon{--cd-accent:#f0c070;--cd-block:rgba(240,192,112,.1);--cd-edge:rgba(240,192,112,.3)}
+html[data-theme="dark"] .nora-countdown{--cd-block:color-mix(in srgb,var(--brand) 12%,var(--surface));--cd-edge:color-mix(in srgb,var(--brand) 24%,transparent)}
+html[data-theme="dark"] .nora-countdown.is-soon{--cd-block:color-mix(in srgb,var(--warn) 12%,var(--surface));--cd-edge:color-mix(in srgb,var(--warn) 30%,transparent)}
 html[data-theme="dark"] .nora-countdown.on-dark{--cd-accent:#fff}
-html[data-theme="dark"] .nora-countdown.is-ended,html[data-theme="dark"] .reg-state.mute{background:rgba(255,255,255,.06)}

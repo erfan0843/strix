@@ -27,12 +27,12 @@
   --accent:       #9C7C3C;      /* طلایی خاک‌گرفته — تزئینی */
   --accent-ink:   #86682B;      /* همان طلا، برای متن (تباین ۵٫۱) */
   --accent-tint:  rgba(156,124,60,.13);
-  --ok:           #0B7A57;
-  --ok-tint:      rgba(11,122,87,.10);
-  --warn:         #8A6A25;
-  --warn-tint:    rgba(138,106,37,.13);
-  --stop:         #B4453C;
-  --stop-tint:    rgba(180,69,60,.12);
+  --ok:           #0A6E4F;      /* متن وضعیت روی رنگ‌مایهٔ خودش ≥۴٫۵ حتی روی surface-sunk */
+  --ok-tint:      rgba(10,110,79,.10);
+  --warn:         #74561C;
+  --warn-tint:    rgba(116,86,28,.13);
+  --stop:         #9F3A31;
+  --stop-tint:    rgba(159,58,49,.12);
   --info:         #54719B;
   --info-tint:    rgba(84,113,155,.12);
 
