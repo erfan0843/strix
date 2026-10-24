@@ -646,7 +646,7 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 }
 .bankcard .row1{display:flex;align-items:center;gap:10px}
 .bankcard .chip{width:38px;height:28px;border-radius:7px;background:linear-gradient(140deg,#EFE1B4,#C9A85C);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);flex:0 0 auto;height:28px}
-.bankcard .num{font-variant-numeric:tabular-nums;letter-spacing:.6px;font-size:19px;font-weight:600;margin:16px 0 4px;direction:ltr;text-align:start}
+.bankcard .num{font-variant-numeric:tabular-nums;letter-spacing:.6px;font-size:var(--fs-title);font-weight:600;margin:16px 0 4px;direction:ltr;text-align:start}
 .bankcard .who{display:flex;justify-content:space-between;font-size:var(--fs-sub);opacity:.92;margin-top:12px}
 .bankcard .lbl2{position:relative;z-index:1}
 .copyrow{display:flex;align-items:center;gap:8px}
@@ -730,7 +730,7 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:900px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .metric{background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-lg);padding:14px;box-shadow:var(--sh-1)}
-.metric .n{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
+.metric .n{font-size:var(--fs-kpi);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
 .metric .l{font-size:var(--fs-cap);color:var(--ink-3)}
 .metric .d{font-size:var(--fs-cap);color:var(--ok)}
 .metric.acc .n{color:var(--accent-ink)}
@@ -791,7 +791,7 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 .nora-loader-warning-copy b{font-weight:600}
 .nora-loader-warning-copy span{font-weight:500;opacity:.9}
 .nora-loader-retry{-webkit-appearance:none;appearance:none;flex:0 0 auto;min-height:31px;padding:0 9px;border:0;border-radius:var(--r-sm);
-  background:var(--brand-tint);color:var(--brand-ink);font:inherit;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;
+  background:var(--brand-tint);color:var(--brand-ink);font:inherit;font-size:var(--fs-micro);font-weight:600;white-space:nowrap;cursor:pointer;
   transition:transform var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
 .nora-loader-retry:hover{background:color-mix(in srgb,var(--brand) 16%,var(--surface))}
 .nora-loader-retry:active{transform:scale(.96)}
@@ -833,7 +833,7 @@ h1,h2,h3,h4,h5,
 /* ارقام فارسی هم‌عرض و درشت‌ترها با استداد */
 .numbook, .ev .prc, .cel{font-variant-numeric:tabular-nums}
 /* ── خط اطمینان: یک جملهٔ کوتاه، ته هر بخش ────────────────────────── */
-.trustline{display:flex;align-items:center;gap:7px;margin:10px 2px 0;font-size:11.5px;
+.trustline{display:flex;align-items:center;gap:var(--sp-2);margin:var(--sp-2h) 2px 0;font-size:var(--fs-cap);
   line-height:1.75;color:var(--ink-3)}
 .trustline .i{width:15px;height:15px;color:var(--ok);flex:0 0 auto}
 .trustline span{min-width:0}
@@ -845,4 +845,4 @@ h1,h2,h3,h4,h5,
   background:var(--surface-2);border:.5px solid var(--hairline);color:var(--ink-2);white-space:nowrap}
 .navclock .i{width:16px;height:16px;color:var(--ink-3)}
 .navclock b{font-size:var(--fs-sub);font-weight:600;font-variant-numeric:tabular-nums}
-@media (max-width:560px){.navclock b{font-size:10.5px}.navclock{padding:5px 8px}}
+@media (max-width:560px){.navclock b{font-size:var(--fs-micro)}.navclock{padding:5px 8px}}
