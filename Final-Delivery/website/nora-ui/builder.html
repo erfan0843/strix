@@ -215,13 +215,15 @@
           <div class="cap ph-sub">روی هر فرم بزنید: اطلاعات، آمار، پاسخ‌دهنده‌ها و تغییرها.</div>
         </div>
         <div class="ph-actions">
-          <button class="btn" id="syncServerForms" type="button">گرفتن فرم‌های سرور</button>
+          <button class="btn" id="syncServerForms" type="button" title="دریافت دوبارهٔ فهرست و شمار پاسخ‌ها از سرور"><svg class="i"><use href="#i-refresh"/></svg> تازه‌سازی فهرست</button>
           <a class="btn primary" href="create.html"><svg class="i"><use href="#i-plus"/></svg> ساخت فرم</a>
         </div>
       </header>
-      <div class="card sunk" id="serverFormsMessage" role="status" aria-live="polite" style="margin-top:10px;padding:9px 12px">
-        <span id="serverFormsMessageText">هنوز فهرست سروری دریافت نشده است؛ برای دریافت فرم‌ها و شمار پاسخ‌های واقعی، «گرفتن فرم‌های سرور» را بزنید.</span>
-        <a id="serverFormsLogin" href="create.html?auth=1&amp;back=builder.html" style="display:none;margin-inline-start:8px">ورود مالک</a>
+      <!-- وضعیت فهرست سروری: فهرست با نشست معتبر خودکار گرفته می‌شود؛ این کارت فقط وضعیت و کنش بعدی را می‌گوید -->
+      <div class="card sunk" id="serverFormsMessage" role="status" aria-live="polite" data-state="idle" style="margin-top:10px;padding:9px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px">
+        <span id="serverFormsMessageText">فهرست فرم‌های سرور با نشست معتبر خودکار دریافت می‌شود.</span>
+        <a id="serverFormsLogin" href="create.html?auth=1&amp;back=builder.html" style="display:none">ورود مالک</a>
+        <button class="btn sm" id="serverFormsRetry" type="button" hidden><svg class="i"><use href="#i-refresh"/></svg> تلاش دوباره</button>
       </div>
       <!-- توضیح منبع داده: اطلاعات فرعی است و نباید پیش از عنوان صفحه و کنش اصلی دیده شود؛ همان متن، در بخش بسته -->
       <details class="adv demo-note" data-demo-notice style="margin-top:10px">
@@ -614,7 +616,9 @@ const ADMIN_PERSON=TEST_FIXTURE_MODE&&window.NORA_UI&&NORA_UI.adminActor?NORA_UI
 const FINANCE_OWNER=TEST_FIXTURE_MODE&&!!(window.NORA_UI&&NORA_UI.financeOwner&&NORA_UI.financeOwner());
 const RECEIPT_REVIEWER=TEST_FIXTURE_MODE&&!!(ADMIN_PERSON&&(FINANCE_OWNER||ADMIN_PERSON.lv==='سرپرست'));
 let SERVER_FORMS=[];
-let SERVER_FORMS_LOADED=false;
+/* وضعیت فهرست سروری: idle | loading | loaded | unauthenticated | forbidden | error — مرجعِ متنِ حالت خالی و کارت وضعیت */
+let SERVER_FORMS_STATE='idle', SERVER_FORMS_ERROR='';
+let SERVER_FORMS_SYNC=null;
 function ownerNoticeAdd(input){
   const U=window.NORA_UI||{}; if(!U.ownerApprovalAdd) return null;
   const item=Object.assign({type:'notification',status:'pending',source:'builder',
@@ -842,7 +846,18 @@ function renderList(){
   const q=(document.getElementById('q').value||'').trim();
   const list=FORMS.filter(f=>(FILTER==='all'||f.tone===FILTER||(FILTER==='exam'&&f.kind==='آزمون')||(FINANCE_OWNER&&FILTER==='money'&&f.fin.length))
       &&(!q||f.name.includes(q)||f.slug.includes(q)));
-  const emptyList=TEST_FIXTURE_MODE?'فرمی با این نشانه پیدا نشد':SERVER_FORMS_LOADED?'هنوز فرمی در فهرست سرور نیست.':'هنوز فهرست سروری دریافت نشده؛ «گرفتن فرم‌های سرور» را بزنید.';
+  const filtered=!!q||FILTER!=='all';
+  const emptyList=TEST_FIXTURE_MODE?'فرمی با این نشانه پیدا نشد'
+    :SERVER_FORMS_STATE==='loaded'?(filtered&&FORMS.length?'فرمی با این نشانه پیدا نشد':'هنوز فرمی در فهرست سرور نیست.')
+    :SERVER_FORMS_STATE==='unauthenticated'?'برای دیدن فرم‌های سرور وارد شوید.'
+    :SERVER_FORMS_STATE==='forbidden'?'این نقش به فهرست فرم‌ها دسترسی ندارد.'
+    :SERVER_FORMS_STATE==='error'?'دریافت فهرست از سرور انجام نشد؛ «تلاش دوباره» را بزنید.'
+    :'هنوز فهرست سروری دریافت نشده است؛ «تازه‌سازی فهرست» را بزنید.';
+  if(!TEST_FIXTURE_MODE&&SERVER_FORMS_STATE==='loading'&&!list.length){
+    /* حالت انتظار: اسکلت سه ردیف هم‌ساختار با کارت فرم؛ حالت خالی فقط پس از پاسخ موفق سرور نشان داده می‌شود */
+    document.getElementById('formCards').innerHTML=`<div class="state loading" data-forms-loading aria-busy="true"><span class="skel"></span><span class="skel"></span><span class="skel"></span><p class="st-text">در حال دریافت فهرست فرم‌ها از سرور…</p></div>`;
+    return;
+  }
   document.getElementById('formCards').innerHTML=list.map(f=>{
     const server=!!f.serverManaged,count=server?formResponseCount(f):null;
     return `<div class="card paper fcard sheen" data-form="${esc(f.id)}">
@@ -2305,41 +2320,66 @@ function localServerForm(record){
 const syncServerFormsButton=document.getElementById('syncServerForms');
 const syncReportFormsButton=document.getElementById('syncReportForms');
 if(syncReportFormsButton)syncReportFormsButton.addEventListener('click',()=>syncServerFormsButton&&syncServerFormsButton.click());
-if(syncServerFormsButton) syncServerFormsButton.addEventListener('click',async()=>{
+const serverFormsRetryButton=document.getElementById('serverFormsRetry');
+function setServerFormsState(state,text,{login=false,retry=false}={}){
+  SERVER_FORMS_STATE=state;
+  const box=document.getElementById('serverFormsMessage'), note=document.getElementById('serverFormsMessageText'), loginLink=document.getElementById('serverFormsLogin');
+  if(box)box.dataset.state=state;
+  if(note)note.textContent=text;
+  if(loginLink)loginLink.style.display=login?'inline':'none';
+  if(serverFormsRetryButton)serverFormsRetryButton.hidden=!retry;
+}
+/* دریافت فهرست فرم‌های سرور.
+   - خودکار (auto=true) یک‌بار پس از راه‌اندازی در حالت تولید؛ دستی با «تازه‌سازی فهرست» یا «تلاش دوباره».
+   - اگر درخواستی در جریان باشد همان Promise برمی‌گردد (بدون درخواست تکراری).
+   - ترتیب: health (عمومی) → بررسی نشست/مجوز (auth/me یا account/me) → فقط با نشست معتبر، /api/forms.
+     مهمان هرگز درخواست محافظت‌شدهٔ فهرست را نمی‌گیرد؛ مجوز و خطای سرور مرجع تصمیم‌اند. */
+function syncServerForms({auto=false}={}){
+  if(SERVER_FORMS_SYNC) return SERVER_FORMS_SYNC;
   const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
-  const note=document.getElementById('serverFormsMessageText'), loginLink=document.getElementById('serverFormsLogin');
-  if(!api){if(note)note.textContent='API سروری در این صفحه بارگذاری نشده است؛ دادهٔ محلی جایگزین فهرست نمی‌شود.';return}
-  syncServerFormsButton.disabled=true; syncServerFormsButton.setAttribute('aria-busy','true');
-  if(note)note.textContent='در حال بررسی دسترسی مالک…';
-  if(loginLink)loginLink.style.display='none';
-  try{
-    const health=await api.health();
-    if(!health||health.ok!==true||health.formsEnabled!==true) throw new api.Error(503,'database_not_ready',health);
-    const formSession=await formReaderSession(api);
-    const result=await api.listForms(), items=Array.isArray(result&&result.items)?result.items:[];
-    const U=window.NORA_UI||{};
-    SERVER_FORMS=items.map(localServerForm);
-    SERVER_FORMS_LOADED=true;
-    let saved=0;
-    for(const row of SERVER_FORMS){if(U.formPut&&U.formPut(row))saved++}
-    refreshSharedForms();
-    const published=items.filter(item=>item&&item.status==='published').length;
-    const paused=items.filter(item=>item&&item.status==='paused').length;
-    const drafts=items.length-published-paused;
-    const sessionRole=formSession.role==='owner'?'مالک':formSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
-    if(note)note.textContent='دسترسی سروریِ '+sessionRole+' تأیید شد. '+faN(items.length)+' فرم از API دریافت شد؛ '
-      +faN(published)+' منتشرشده، '+faN(paused)+' متوقف و '+faN(drafts)+' پیش‌نویس. '
-      +faN(saved)+' نسخهٔ محلی فقط برای سازگاری پنل آماده شد.';
-  }catch(err){
-    if(err&&err.status===401){if(note)note.textContent='برای دسترسی به فرم‌ها با حساب بله یا ورود مالک اقدام کنید؛ هیچ فهرست محلی جایگزین نمی‌شود.';
-      if(loginLink)loginLink.style.display='inline'}
-    else if(err&&err.status===403&&err.code==='permission_denied'){if(note)note.textContent='این نقش به فهرست فرم‌ها دسترسی ندارد؛ با مالک سامانه هماهنگ کنید.'}
-    else if(err&&err.status===503){if(note)note.textContent='پایگاه‌داده یا migration آماده نیست؛ هیچ داده‌ای از سرور دریافت نشد.'}
-    else if(err&&err.status===404){if(note)note.textContent='API فرم‌ساز روی این میزبان در دسترس نیست؛ هیچ فرم نمونه‌ای نشان داده نمی‌شود.'}
-    else if(note)note.textContent='همگام‌سازی سروری انجام نشد؛ فهرست محلی تغییری نکرد ('+(err&&err.code||'خطا')+').';
-  }finally{syncServerFormsButton.disabled=false;syncServerFormsButton.removeAttribute('aria-busy')}
-});
-addEventListener('nora-forms-changed',refreshSharedForms);
+  if(!api){setServerFormsState('error','API سروری در این صفحه بارگذاری نشده است؛ دادهٔ محلی جایگزین فهرست نمی‌شود.',{retry:true});renderList();return Promise.resolve(false)}
+  const buttons=[syncServerFormsButton,serverFormsRetryButton].filter(Boolean);
+  buttons.forEach(button=>{button.disabled=true;button.setAttribute('aria-busy','true')});
+  setServerFormsState('loading',auto?'در حال دریافت فهرست فرم‌ها از سرور…':'در حال تازه‌سازی فهرست از سرور…');
+  renderList();
+  SERVER_FORMS_SYNC=(async()=>{
+    try{
+      const health=await api.health();
+      if(!health||health.ok!==true||health.formsEnabled!==true) throw new api.Error(503,'database_not_ready',health);
+      const formSession=await formReaderSession(api);
+      const result=await api.listForms(), items=Array.isArray(result&&result.items)?result.items:[];
+      const U=window.NORA_UI||{};
+      SERVER_FORMS=items.map(localServerForm);
+      SERVER_FORMS_ERROR='';
+      let saved=0;
+      for(const row of SERVER_FORMS){if(U.formPut&&U.formPut(row))saved++}
+      const published=items.filter(item=>item&&item.status==='published').length;
+      const paused=items.filter(item=>item&&item.status==='paused').length;
+      const drafts=items.length-published-paused;
+      const sessionRole=formSession.role==='owner'?'مالک':formSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
+      setServerFormsState('loaded','دسترسی سروریِ '+sessionRole+' تأیید شد. '+faN(items.length)+' فرم از API دریافت شد؛ '
+        +faN(published)+' منتشرشده، '+faN(paused)+' متوقف و '+faN(drafts)+' پیش‌نویس. '
+        +faN(saved)+' نسخهٔ محلی فقط برای سازگاری پنل آماده شد.');
+      refreshSharedForms();
+      return true;
+    }catch(err){
+      SERVER_FORMS_ERROR=err&&err.code||'خطا';
+      if(err&&err.status===401) setServerFormsState('unauthenticated','برای دیدن فرم‌های سرور با حساب بله یا ورود مالک وارد شوید؛ هیچ فهرست محلی جایگزین نمی‌شود.',{login:true});
+      else if(err&&err.status===403&&err.code==='permission_denied') setServerFormsState('forbidden','این نقش به فهرست فرم‌ها دسترسی ندارد؛ با مالک سامانه هماهنگ کنید.');
+      else if(err&&err.status===503) setServerFormsState('error','پایگاه‌داده یا migration آماده نیست؛ هیچ داده‌ای از سرور دریافت نشد.',{retry:true});
+      else if(err&&err.status===404) setServerFormsState('error','API فرم‌ساز روی این میزبان در دسترس نیست؛ هیچ فرم نمونه‌ای نشان داده نمی‌شود.',{retry:true});
+      else setServerFormsState('error','دریافت فهرست از سرور انجام نشد ('+SERVER_FORMS_ERROR+')؛ فهرست محلی تغییری نکرد.',{retry:true});
+      renderList();
+      return false;
+    }finally{
+      SERVER_FORMS_SYNC=null;
+      buttons.forEach(button=>{button.disabled=false;button.removeAttribute('aria-busy')});
+    }
+  })();
+  return SERVER_FORMS_SYNC;
+}
+if(syncServerFormsButton) syncServerFormsButton.addEventListener('click',()=>syncServerForms({auto:false}));
+if(serverFormsRetryButton) serverFormsRetryButton.addEventListener('click',()=>syncServerForms({auto:false}));addEventListener('nora-forms-changed',refreshSharedForms);
 addEventListener('nora-regs-changed',refreshSharedForms);
 addEventListener('pageshow',refreshSharedForms);
 addEventListener('storage',e=>{if(e.key==='nora-finance'||e.key==='nora-forms'||e.key==='nora-regs') refreshSharedForms()});
@@ -2362,6 +2402,7 @@ document.getElementById('cols').innerHTML=TEST_FIXTURE_MODE
 document.getElementById('setStart').innerHTML=pickHTML('datetime',CUR&&CUR.start||'');
 document.getElementById('setEnd').innerHTML=pickHTML('datetime',CUR&&CUR.ends||'');
 renderList(); renderPanel(); renderKartabl(); renderMoney(); renderTeam(); renderFormReports(); renderFormSettings();
+if(!TEST_FIXTURE_MODE) syncServerForms({auto:true});
 </script>
 </body>
 </html>

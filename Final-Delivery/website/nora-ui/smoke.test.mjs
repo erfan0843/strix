@@ -1003,10 +1003,14 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'nora-regs':JSON.stringify([{form:'fake-local-form',code:'FAKE-1',demo:true,ans:[{l:'نام',v:'کاربر ساختگی'}]}])
   });
   const page=await load('builder.html',store,'',null,{fixtureMode:false});
+  await wait(60);
+  /* در تولید، فهرست خودکار از سرور خواسته می‌شود؛ وقتی شبکه در دسترس نیست حالت خطا با «تلاش دوباره» می‌آید، نه فهرست محلی */
   ok(page.errors.length===0&&!page.doc.querySelector('#formCards [data-form]')
     &&!page.txt('#formCards').includes('فرم محلی نباید بیاید')
-    &&page.txt('#serverFormsMessageText').includes('هنوز فهرست سروری دریافت نشده'),
-    'فهرست پیش‌فرض خالی است و فرم ذخیره‌شدهٔ محلی به‌جای سرور نشان داده نمی‌شود');
+    &&page.doc.querySelector('#serverFormsMessage').dataset.state==='error'
+    &&page.doc.querySelector('#serverFormsRetry').hidden===false
+    &&page.txt('#formCards').includes('تلاش دوباره'),
+    'فهرست پیش‌فرض خالی است، فرم ذخیره‌شدهٔ محلی به‌جای سرور نشان داده نمی‌شود و بدون شبکه حالت خطا با تلاش دوباره دیده می‌شود');
   page.click('[data-go="fReports"]');
   ok(page.txt('#formReportCount').includes('۰ سرور')&&!page.txt('#formReportList').includes('نمونهٔ مرورگر')
     &&!page.txt('#formReportList').includes('فرم محلی نباید بیاید'),
@@ -3619,6 +3623,63 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'خالی‌گذاشتن حداقل مجاز است و حداکثر مستقل به‌درستی ذخیره می‌شود');
 }
 
+/* ── ۶ت) مرکز فرم‌ها در تولید: دریافت خودکار فهرست با نشست معتبر؛ مهمان بدون درخواست محافظت‌شده ── */
+{
+  console.log('\n── مرکز فرم‌ها: بارگیری خودکار ──');
+  const formsCalls=api=>api.calls.filter(call=>call.path==='/api/forms'&&call.method==='GET').length;
+  /* الف) نشست معتبر مالک: دقیقاً یک بار health → auth/me → /api/forms؛ کارت‌ها بدون کلیک دیده می‌شوند */
+  const record={id:'auto-form-1',name:'فرم خودکار',model:'registration',need:'reg',slug:'auto/one',ev:'',fields:[{id:'q1',t:'text',l:'پرسش'}],
+    settings:{display:'one'},status:'published',version:2,response_count:3,created_at:'2026-01-01T00:00:00+00:00',updated_at:'2026-10-01T00:00:00+00:00'};
+  const api=makeFormsApiMock({id:'auto-form-1',initialRecord:record});
+  const page=await load('builder.html',makeStore(),'',api.fetch,{fixtureMode:false});
+  await wait(80);
+  ok(page.errors.length===0&&page.doc.querySelector('#formCards [data-form="auto-form-1"]')
+      &&page.doc.querySelector('#serverFormsMessage').dataset.state==='loaded'
+      &&page.txt('#serverFormsMessageText').includes('۱ فرم از API دریافت شد')
+      &&formsCalls(api)===1&&api.calls.filter(call=>call.path==='/api/auth/me').length===1
+      &&page.doc.querySelector('#serverFormsRetry').hidden===true&&page.doc.querySelector('#syncServerForms').disabled===false,
+    'با نشست معتبر، فهرست بدون کلیک و فقط با یک درخواست /api/forms از سرور آمد');
+  const requestsBefore=page.network.length;
+  page.window.dispatchEvent(new page.window.Event('pageshow'));await wait(40);
+  ok(page.network.length===requestsBefore&&formsCalls(api)===1,'رندر دوباره یا بازگشت به صفحه درخواست تکراری نمی‌فرستد');
+  /* ب) تازه‌سازی دستی: همان دکمه دوباره می‌گیرد؛ دو کلیک پشت‌سرهم فقط یک درخواست */
+  page.click('#syncServerForms');page.click('#syncServerForms');await wait(80);
+  ok(formsCalls(api)===2&&page.doc.querySelector('#serverFormsMessage').dataset.state==='loaded',
+    'تازه‌سازی دستی یک درخواست تازه می‌فرستد و کلیک تکراری در حین دریافت، درخواست دوم نمی‌سازد');
+  /* پ) بدون نشست: مهمان فقط بررسی نشست می‌بیند؛ /api/forms هرگز صدا زده نمی‌شود؛ پیوند ورود دیده می‌شود */
+  const guestApi=makeFormsApiMock({authenticated:false,id:'auto-form-1',initialRecord:record});
+  const guest=await load('builder.html',makeStore(),'',guestApi.fetch,{fixtureMode:false});
+  await wait(80);
+  ok(guest.errors.length===0&&formsCalls(guestApi)===0&&guest.doc.querySelector('#serverFormsMessage').dataset.state==='unauthenticated'
+      &&guest.doc.querySelector('#serverFormsLogin').style.display!=='none'&&!guest.doc.querySelector('#formCards [data-form]')
+      &&guest.txt('#formCards').includes('وارد شوید'),
+    'مهمان درخواست محافظت‌شدهٔ فهرست نمی‌گیرد و پیوند ورود می‌بیند');
+  /* ت) فهرست واقعاً خالی: حالت خالی فقط پس از پاسخ موفق */
+  const emptyApi=makeFormsApiMock({id:'none'});
+  const empty=await load('builder.html',makeStore(),'',emptyApi.fetch,{fixtureMode:false});
+  await wait(80);
+  ok(formsCalls(emptyApi)===1&&empty.doc.querySelector('#serverFormsMessage').dataset.state==='loaded'
+      &&empty.txt('#formCards').includes('هنوز فرمی در فهرست سرور نیست')&&!empty.doc.querySelector('[data-forms-loading]'),
+    'فهرست خالی سرور پس از پاسخ موفق، حالت خالی درست را نشان می‌دهد');
+  /* ث) شکست API و تلاش دوباره: اولین /api/forms خطای ۵۰۰ می‌دهد؛ «تلاش دوباره» فهرست را می‌آورد */
+  let failOnce=true;
+  const flakyApi=makeFormsApiMock({id:'auto-form-1',initialRecord:record});
+  const flakyFetch=async(path,init={})=>{
+    if(path==='/api/forms'&&String(init.method||'GET').toUpperCase()==='GET'&&failOnce){failOnce=false;flakyApi.calls.push({path,method:'GET'});
+      return {ok:false,status:500,json:async()=>({detail:'server_error'})}}
+    return flakyApi.fetch(path,init);
+  };
+  const flaky=await load('builder.html',makeStore(),'',flakyFetch,{fixtureMode:false});
+  await wait(80);
+  ok(flaky.doc.querySelector('#serverFormsMessage').dataset.state==='error'&&flaky.doc.querySelector('#serverFormsRetry').hidden===false
+      &&!flaky.doc.querySelector('#formCards [data-form]')&&flaky.txt('#formCards').includes('تلاش دوباره'),
+    'شکست API پیام روشن و دکمهٔ تلاش دوباره می‌دهد و حالت خالی را جعل نمی‌کند');
+  flaky.click('#serverFormsRetry');await wait(80);
+  ok(flaky.doc.querySelector('#serverFormsMessage').dataset.state==='loaded'&&flaky.doc.querySelector('#formCards [data-form="auto-form-1"]')
+      &&flaky.doc.querySelector('#serverFormsRetry').hidden===true&&formsCalls(flakyApi)===2,
+    'تلاش دوباره فهرست را از سرور می‌گیرد و دکمهٔ تلاش پنهان می‌شود');
+}
+
 /* ── ۷) پیش‌نویس‌های سرور در فهرست مرکزی فرم‌ها ── */
 {
   console.log('\n── همگام‌سازی پیش‌نویس‌های سروری ──');
@@ -3626,7 +3687,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   await api.fetch('/api/forms',{method:'POST',body:JSON.stringify({name:'فرم سروری آزمایشی',model:'registration',need:'reg',slug:'test/form',ev:'ev-server',fields:[{id:'q1',t:'text',l:'پرسش'}],settings:{kind:'ثبت‌نام',eventVisible:true}})});
   const store=makeStore(),page=await load('builder.html',store,'',api.fetch);
   ok(page.errors.length===0,'فهرست فرم‌ها بی‌خطا بار شد');
-  ok(page.network.length===0,'فهرست تا اقدام مالک هیچ API سروری را صدا نزد');
+  ok(page.network.length===0,'در حالت fixture آزمون، فهرست تا اقدام مالک هیچ API سروری را صدا نزد (در تولید خودکار است؛ بخش ۶ت)');
   page.click('#syncServerForms');await wait(100);
   const cached=JSON.parse(store.getItem('nora-forms')||'[]').find(row=>row.id==='server-builder-1');
   ok(cached&&cached.serverDraft===true&&cached.status==='draft'&&cached.on===0,
