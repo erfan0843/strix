@@ -1,0 +1,19 @@
+#!/bin/bash
+# Sequential verification run (no concurrency: 2 CPUs). Logs under <local>
+set +e
+export NORA_QA_BROWSER=sparticuz NORA_QA_DEPENDENCIES=<local> NORA_REPO_UI=<local> NORA_E2E_IDS=<local>
+OUT=<local> mkdir -p $OUT; cd <local>
+step(){ echo "=== $1 start $(date +%T)"; }
+killchrome(){ for p in $(ps -eo pid,comm | awk '$2 ~ /chrom/ {print $1}'); do kill -9 $p 2>/dev/null; done; sleep 1; }
+killchrome; step ds-audit-after; timeout 1200 node ds-audit.cjs <local> > $OUT/ds-audit-after.log 2>&1; echo "ds-audit-after EXIT $?"
+killchrome; step e2e-event-file; timeout 900 node e2e-event-file.cjs $OUT/e2e-event-file > $OUT/e2e-event-file.log 2>&1; echo "e2e-event-file EXIT $?"; tail -3 $OUT/e2e-event-file.log
+killchrome; step e2e-roles; timeout 600 node e2e-event-file-roles.cjs $OUT/e2e-roles > $OUT/e2e-roles.log 2>&1; echo "e2e-roles EXIT $?"; tail -2 $OUT/e2e-roles.log
+killchrome; step e2e-builder-return; timeout 900 node e2e-builder-return.cjs $OUT/e2e-builder > $OUT/e2e-builder.log 2>&1; echo "e2e-builder EXIT $?"; tail -2 $OUT/e2e-builder.log
+killchrome; step a11y; timeout 600 node a11y-after.cjs $OUT/a11y > $OUT/a11y.log 2>&1; echo "a11y EXIT $?"; tail -2 $OUT/a11y.log
+killchrome; step g-shots; timeout 900 node g-shots.cjs $OUT/g-shots > $OUT/g-shots.log 2>&1; echo "g-shots EXIT $?"; tail -2 $OUT/g-shots.log
+killchrome; step node-suite; cd <local> : > $OUT/node-suite.log
+for f in *.test.mjs; do NODE_OPTIONS=--max-old-space-size=3072 timeout 280 node $f > /tmp/nt.log 2>&1; rc=$?; echo "$f exit=$rc fail-marks=$(grep -c '✗' /tmp/nt.log)" >> $OUT/node-suite.log; if [ $rc -ne 0 ]; then echo "--- $f output tail" >> $OUT/node-suite.log; tail -15 /tmp/nt.log >> $OUT/node-suite.log; fi; done
+echo "node-suite done: $(grep -c 'exit=0' $OUT/node-suite.log)/$(grep -c 'exit=' $OUT/node-suite.log) exit 0"
+step pytest; cd <local> timeout 500 <local> -m pytest -p no:cacheprovider -q -rs > $OUT/pytest.log 2>&1; echo "pytest EXIT $?"; tail -2 $OUT/pytest.log
+step mypy; cd <local> timeout 120 <local> tools/run-python-tests.py types > $OUT/mypy.log 2>&1; echo "mypy EXIT $?"; tail -2 $OUT/mypy.log
+echo "=== ALL DONE $(date +%T)"

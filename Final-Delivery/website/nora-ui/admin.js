@@ -10816,7 +10816,7 @@ function dashxDateBar(){
   let when=''; if(DASHX.at){try{when=new Date(DASHX.at).toLocaleTimeString('fa-IR',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit'})}catch(e){when=''}}
   return `<section class="dash-bar" data-dashx-bar><div class="row" style="flex-wrap:wrap;gap:var(--sp-2)">
     <span class="ic">${ico('i-calendar')}</span><div><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b>
-    <small class="cap dash-note" style="display:block">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 40px"></span>
+    <small class="cap dash-note">تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند.</small></div><span class="sp" style="flex:1 1 40px"></span>
     ${when?`<small class="cap">آخرین بازخوانی ${esc(when)}</small>`:''}
     <button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی داشبورد'}</button>
     <button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></div></section>`;
