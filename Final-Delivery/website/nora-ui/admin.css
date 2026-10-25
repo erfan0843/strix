@@ -399,7 +399,12 @@ details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 .dash-bar .dash-date{min-width:0}
 .dash-bar .dash-when{margin-inline-start:auto;white-space:nowrap;min-height:var(--ctl-h-sm);display:inline-flex;align-items:center}
 .dash-bar .dash-acts{display:flex;gap:var(--sp-2);flex:0 0 auto;flex-wrap:wrap}
-@media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}.dash-bar .dash-acts{flex-basis:100%}}
+@media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}}
+/* بازآرایی ۱۴۰۵/۰۸/۰۳: ردیف‌های صفرِ «کارهای در انتظار» در یک خط؛ هر نام همچنان دکمهٔ رفتن به همان بخش است */
+.dash-idle{margin:0;line-height:1.9}
+.dash-idle-item{appearance:none;border:0;background:none;padding:0;font:inherit;font-size:inherit;color:var(--ink-3);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;border-radius:4px}
+.dash-idle-item:hover{color:var(--brand-ink)}
+.dash-idle-item:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);align-items:start}
 .dash-grid>section{min-width:0}
 @media (max-width:1040px){.dash-grid{grid-template-columns:1fr}}
