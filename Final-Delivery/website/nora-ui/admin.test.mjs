@@ -131,10 +131,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('.admbars i').length>=7,'نمودار میله‌ای هفته کشیده شد');
   ok(p.all('.card').length>=6,'داشبورد شش کارت دارد');
   ok(p.doc.title.includes('پنل مدیران'),'عنوان صفحه نام پنل را دارد');
-  ok(p.all('[data-clock]').length>=1,'ساعت و تاریخ روی ناوبری هست');
+  ok(p.all('#admBody [data-clock]').length>=1&&!p.doc.querySelector('#admBar [data-clock], #admBar .navclock, #admBar .nmark'),'ساعت و تاریخ در سطر تاریخ داشبورد است، نه در سربرگ (بازطراحی مرحلهٔ A)');
   const ck=p.txt('[data-clock]');
   ok(/[۰-۹]{2}:[۰-۹]{2}/.test(ck)&&/(شنبه|یکشنبه|دوشنبه|سه‌شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(ck),
-    'ساعت زنده و تاریخ شمسی روی ناوبری نوشته می‌شود: '+ck);
+    'ساعت زنده و تاریخ شمسی روی داشبورد نوشته می‌شود: '+ck);
   const CJK=p.window.NORA_UI;
   ok(!!CJK&&typeof CJK.clockParts==='function','ساعت مشترک سامانه در ui.js است، نه فقط پنل');
   const cp=CJK.clockParts();
@@ -2424,7 +2424,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
      admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
      بی‌دلیل نشکند. */
-  ok(html.includes('admin.css?v=122')&&html.includes('admin.js?v=188')
+  ok(html.includes('admin.css?v=123')&&html.includes('admin.js?v=189')
       &&html.includes('owner-api.js?v=130')&&html.includes('data.js?v=101')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=5')
       &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=107'),

@@ -260,7 +260,8 @@ console.log('— نقش حساب از نشست سرور —');
     assert.match(app.doc.querySelector('#admBar .server-identity').textContent, /qa\.manager/,
       'نشان هویت، نام کاربری واقعی مدیر را از /api/account/me نشان می‌دهد نه متن ثابت');
     assert.equal(app.doc.querySelector('#admBar .searchbox'), null, 'جعبهٔ جست‌وجوی بی‌اثر در حالت سروری نیست');
-    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /وضعیت از API سرور/);
+    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /^سرور: (سالم|خراب|در حال بررسی|بررسی‌نشده)$/, 'چیپ سلامت سرور در سربرگ مدیر هم هست');
+    assert.equal(app.doc.querySelector('#admBar .nmark, #admBar .navclock'), null, 'سربرگ پنل بی مربع آیکون و بی ساعت است (ساعت در سطر تاریخ داشبورد)');
     assert.ok(app.doc.querySelector('#admNav a[data-center-href]'));
     const settingsNav = [...app.doc.getElementById('admNav').getElementsByTagName('button')]
       .find((node) => node.dataset.sec === 'settings');

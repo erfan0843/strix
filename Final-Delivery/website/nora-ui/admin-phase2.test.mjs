@@ -395,7 +395,7 @@ console.log('— مالک: فهرست رویدادها از site_content، فی�
   const app = await loadPanel({ role: 'owner', sec: 'dash', world });
   try {
     await app.until(() => app.doc.querySelector('[data-preview-badge][data-health-state="ok"]'), 'چیپ سلامت = سالم با ok=true');
-    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /وضعیت از API سرور · سالم/);
+    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /^سرور: سالم$/, 'چیپ سلامت به زبان کاربر: «سرور: سالم» (بازطراحی مرحلهٔ A)');
     assert.match(app.doc.querySelector('[data-preview-badge]').getAttribute('title'), /پیکربندی‌نشده: تحویل بیرونی، پرداخت بله/);
     await app.until(() => app.doc.querySelector('[data-health-row="deliveryEnabled"]'), 'کارت وضعیت واقعی سرویس');
     assert.match(app.doc.querySelector('[data-health-row="deliveryEnabled"]').textContent, /پیکربندی‌نشده/);
@@ -412,7 +412,7 @@ console.log('— مالک: فهرست رویدادها از site_content، فی�
   const app = await loadPanel({ role: 'owner', sec: 'dash', world });
   try {
     await app.until(() => app.doc.querySelector('[data-preview-badge][data-health-state="down"]'), 'چیپ سلامت = خراب با ۵۰۳/ok=false');
-    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /وضعیت از API سرور · خراب/);
+    assert.match(app.doc.querySelector('[data-preview-badge]').textContent, /^سرور: خراب$/, 'چیپ سلامت: «سرور: خراب»');
     assert.ok(app.doc.querySelector('[data-preview-badge]').classList.contains('stop'));
     app.noLeak();
   } finally { app.close(); }

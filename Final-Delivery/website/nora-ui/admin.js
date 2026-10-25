@@ -632,28 +632,26 @@ function renderBar(){
   /* در حالت سروری فهرست رویداد/کاربر محلی وجود ندارد؛ جعبهٔ جست‌وجوی بی‌اثر نشان داده نمی‌شود */
   const searchOn=live?false:S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')
     :S.sec==='users'?(!S.uV&&S.uHub!=='reports'):false;
-  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A2): چیپ سلامت نوار بالا سه حالت صادقانه دارد: سالم (ok=true از /api/health)، خراب (ok=false یا پاسخ نگرفت)، بررسی‌نشده؛ سرویس اختیاریِ پیکربندی‌نشده «خراب» شمرده نمی‌شود */
+  /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (A2): چیپ سلامت نوار بالا سه حالت صادقانه دارد: سالم (ok=true از /api/health)، خراب (ok=false یا پاسخ نگرفت)، بررسی‌نشده؛ سرویس اختیاری پیکربندی‌نشده «خراب» شمرده نمی‌شود
+     بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ A): متن چیپ به زبان کاربر است («سرور: سالم»)، نام فنی API در جزئیات تنظیمات › سرویس‌ها می‌ماند؛ ساعت از سربرگ به سطر تاریخ داشبورد رفت و مربع آیکون حذف شد */
   const hs=live?serverHealthState():null;
-  const previewLabel=live?'وضعیت از API سرور · '+(hs?hs.label:'بررسی‌نشده'):'پیش‌نمایش محلی';
+  const previewLabel=live?'سرور: '+(hs?hs.label:'بررسی‌نشده'):'پیش‌نمایش محلی';
   const previewClass=live?(hs?hs.cls:'warn'):'warn';
   const previewTitle=live?(hs?hs.title:'داده و مجوز فقط از API مجاز سرور خوانده می‌شوند')
     :'این نمای آزمایشی محلی است و مجوز سروری ندارد';
   const identity=live
-    ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span dir="auto">${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?esc(SERVER_AUTH.manager_username||'حساب مدیر'):SERVER_AUTH.provider==='phone'?'حساب تلفنی':'حساب بله'}</span><small class="cap">${esc(roleName())}</small></span>`
+    ?`<span class="chip server-identity" aria-label="حساب متصل، نقش ${esc(roleName())}">${ico('i-user')}<span dir="auto">${SERVER_AUTH.role===ROLE_OWNER?'مالک سامانه':SERVER_AUTH.provider==='manager-password'?esc(SERVER_AUTH.manager_username||'حساب مدیر'):SERVER_AUTH.provider==='phone'?'حساب تلفنی':'حساب بله'}</span>${SERVER_AUTH.role===ROLE_OWNER?'':`<small class="cap">${esc(roleName())}</small>`}</span>`
     :`<button class="chip" data-who-sheet aria-label="پروفایل شخصی ${esc(meDisplay(me()))}">
       ${ico('i-user')}<span>${esc(meDisplay(me()))}</span><small class="cap">پروفایل من · ${esc(roleName(me()))}</small></button>`;
-  /* سربرگ صفحه = الگوی مشترک page-head: عنوان/زیرعنوان، عمل‌ها (جست‌وجو، خروج)، و ردیف متا (سلامت، ساعت، هویت) که در موبایل یک ردیف اسکرول‌شونده است */
+  /* سربرگ صفحه = الگوی مشترک page-head: عنوان/زیرعنوان، ردیف متا (وضعیت سرور، هویت) و عمل‌ها (جست‌وجو، خروج)؛ در موبایل متا یک ردیف اسکرول‌شونده زیر عنوان است */
   $('#admBar').innerHTML=`
-    <span class="nmark" aria-hidden="true">${ico(s.i)}</span>
     <div class="tt ph-tt"><div class="head ph-title">${esc(s.n)}</div><div class="cap ph-sub">${esc(s.s||A.lead||'')}</div></div>
-    <div class="ph-actions">${searchOn?`<label class="searchbox">${ico('i-search')}
-      <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
-    ${live?`<button class="btn sm quiet" type="button" data-server-logout>${ico('i-close')}${esc('خروج')}</button>`:''}</div>
     <div class="ph-meta">
     <span class="tag ${previewClass}" data-preview-badge data-health-state="${hs?esc(hs.key):'unknown'}" title="${esc(previewTitle)}">${esc(previewLabel)}</span>
-    <span class="navclock" title="${esc((NE().l||{}).local||'ساعت دستگاه')}" aria-label="${esc('تاریخ و ساعت دستگاه')}">${ico('i-clock')}
-      <b data-clock>${esc(typeof clockFull==='function'?clockFull():'')}</b></span>
-    ${identity}</div>`;
+    ${identity}</div>
+    <div class="ph-actions">${searchOn?`<label class="searchbox">${ico('i-search')}
+      <input id="admQ" type="search" autocomplete="off" placeholder="${esc(T.search||W.search||'جست‌وجو')}" value="${esc(S.q)}" aria-label="${esc(W.search||'جست‌وجو')}"/></label>`:''}
+    ${live?`<button class="btn sm quiet" type="button" data-server-logout>${ico('i-close')}${esc('خروج')}</button>`:''}</div>`;
 }
 
 /* ══ بخش‌ها ═════════════════════════════════════════════════════════════ */
@@ -691,7 +689,7 @@ function dashHead(){
   const open=qOpen(), urgent=open.filter(it=>it.pri==='بالا').length;
   return `<section class="dhead">
     <div class="dh">
-      <small class="cap">${esc((A.dash||{}).day||'')}</small>
+      <small class="cap" data-clock="full">${esc(typeof clockFull==='function'?clockFull():((A.dash||{}).day||''))}</small>
       <b>${esc(p.n)}</b>
       <span class="cap">${esc(sub)}</span>
     </div>
@@ -9799,7 +9797,7 @@ document.addEventListener('click',e=>{
   if(q('[data-dashx-sched]')){if(!canPerm('rp_view')){toast('مجوز گزارش برای این نقش فعال نیست'); return} go('reports'); return}
   if(q('[data-dashx-audit-all]')){if(!isOwner()){toast('تاریخچهٔ عملیات فقط برای مالک باز است'); return} S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='log'; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
   if(q('[data-fs-refresh]')){FORMS_SRV.loaded=false; fsLoad(); return}
-  if(q('[data-fs-search]')){const input=$('#fsQuery'); FORMS_SRV.q=String(input&&input.value||'').trim().slice(0,80); FORMS_SRV.offset=0; renderBody(); return}
+  if(q('[data-fs-search]')){const input=$('#fsQuery'); fsApplyQuery(input&&input.value); return}
   const fsStatus=q('[data-fs-status]'); if(fsStatus){FORMS_SRV.status=fsStatus.dataset.fsStatus||''; FORMS_SRV.offset=0; renderBody(); return}
   const fsPage=q('[data-fs-page]'); if(fsPage){const total=fsRows().length; FORMS_SRV.offset=fsPage.dataset.fsPage==='next'?Math.min(FORMS_SRV.offset+FORMS_SRV.limit,Math.max(0,total-1)):Math.max(0,FORMS_SRV.offset-FORMS_SRV.limit); renderBody(); return}
   if(q('[data-ei-jump-attendance]')){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} const ev=EI.eventId; eiClose(); S.sec='users'; S.uHub='users'; S.uV='att'; AT.q=ev; AT.offset=0; AT.formId=''; AT.form=null; AT.people=null; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
@@ -9958,6 +9956,16 @@ document.addEventListener('click',e=>{document.querySelectorAll('details.efmore[
 document.addEventListener('toggle',e=>{const d=e.target; if(!(d instanceof Element)||!d.matches('details.actmenu')) return;
   const sum=d.querySelector('summary'); if(sum) sum.setAttribute('aria-expanded',d.open?'true':'false');
   if(d.open){const first=d.querySelector('.actmenu-item'); if(first) first.focus()}},true);
+/* جست‌وجوی فرم‌ها: Enter یا پاک‌کردن ورودی همان صافی را اعمال می‌کند (دکمهٔ جداگانه ندارد) */
+function fsApplyQuery(v){FORMS_SRV.q=String(v||'').trim().slice(0,80); FORMS_SRV.offset=0; renderBody()}
+document.addEventListener('keydown',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!t.dataset||t.dataset.fsQuery==null||e.key!=='Enter') return;
+  e.preventDefault(); fsApplyQuery(t.value);
+});
+document.addEventListener('input',e=>{
+  const t=e.target; if(IS_TEST||!SERVER_AUTH||!t||!t.dataset||t.dataset.fsQuery==null) return;
+  if(!String(t.value||'').trim()&&FORMS_SRV.q) fsApplyQuery('');
+});
 document.addEventListener('keydown',e=>{
   const d=e.target instanceof Element?e.target.closest('details.actmenu'):null; if(!d) return;
   if(e.key==='Escape'&&d.open){e.preventDefault(); d.removeAttribute('open'); const sum=d.querySelector('summary'); if(sum) sum.focus(); return}
@@ -10859,7 +10867,7 @@ function dashxDateBar(){
   /* چیدمان ثابت: ردیف تاریخ + زمان بازخوانی (همیشه یک جایگاه دارد) و گروه دکمه‌ها؛ در موبایل دکمه‌ها همیشه ردیف خودشان‌اند تا با رسیدن داده جابه‌جا نشوند */
   /* بازآرایی ۱۴۰۵/۰۸/۰۳: سطر اول داشبورد فقط تاریخ و بازخوانی است؛ توضیح منبع ساعت در title می‌ماند و «نقشهٔ امکانات پنل» به بخش فنی رفته است */
   return `<section class="dash-bar" data-dashx-bar><div class="row dash-row">
-    <span class="ic">${ico('i-calendar')}</span><div class="dash-date" title="تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند."><b>${esc(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy))}</b></div>
+    <span class="ic">${ico('i-calendar')}</span><div class="dash-date" title="تاریخ از ساعت همین دستگاه؛ مهلت‌ها و زمان‌بندی‌ها از ساعت سرور محاسبه می‌شوند."><b data-clock="full">${esc(typeof clockFull==='function'?clockFull():(JN[jWeek(n.jy,n.jm,n.jd)]+' '+fa(n.jd)+' '+monthName+' '+fa(n.jy)))}</b></div>
     <small class="cap dash-when" data-dashx-when>${when?`آخرین بازخوانی ${esc(when)}`:DASHX.loading?'در حال خواندن از سرور…':''}</small>
     <span class="dash-acts"><button class="btn sm quiet" data-dashx-refresh ${DASHX.loading?'disabled':''}>${ico('i-refresh')}${DASHX.loading?'در حال بازخوانی…':'بازخوانی'}</button></span></div></section>`;
 }
@@ -10991,7 +10999,7 @@ async function fsLoad(){
   finally{FORMS_SRV.loading=false; FORMS_SRV.loaded=true; if(S.sec==='forms'||((S.sec==='events'||S.sec==='newev')&&CT.edit)||(S.sec==='settings'&&S.setG==='people')) renderBody()}
 }
 const FS_STATUS={draft:['پیش‌نویس',''],published:['منتشرشده','ok'],paused:['متوقف','warn'],closed:['بسته','stop'],archived:['بایگانی','stop']};
-const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};
+const FS_PURPOSE={registration:'ثبت‌نام',purchase:'خرید محتوای ضبط‌شده',recording_access:'دسترسی به محتوای ضبط‌شده',survey:'نظرسنجی',exam:'آزمون',cooperation:'همکاری'};
 function fsRows(){
   const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
   const q=FORMS_SRV.q.trim().toLowerCase();
@@ -11006,7 +11014,8 @@ function serverFormsView(){
   const chips=[['','همه',all.length]].concat(Object.keys(FS_STATUS).filter(k=>counts[k]).map(k=>[k,FS_STATUS[k][0],counts[k]]))
     .map(([k,l,c])=>`<button class="chip ${FORMS_SRV.status===k?'on':''}" data-fs-status="${k}">${esc(l)} <span class="bd">${esc(fa(c))}</span></button>`).join('');
   const list=page.map(f=>{const st=FS_STATUS[String(f.status||'draft')]||[String(f.status||''),'']; const id=encodeURIComponent(String(f.id||''));
-    const meta=[FS_PURPOSE[f.purpose]||f.purpose||'',f.model?('مدل '+f.model):'',f.ev?('رویداد '+f.ev):'',f.recording_id?'محتوای ضبط‌شده':'',f.updated_at?('به‌روزرسانی '+svcWhen(f.updated_at)):''].filter(Boolean).join(' · ');
+    /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ A): شناسهٔ خام رویداد و نام مدل در نمای کاربر نیست؛ پیوند رویداد در جزئیات ردیف است */
+    const meta=[FS_PURPOSE[f.purpose]||'فرم',f.ev?'متصل به رویداد':'',f.updated_at?('به‌روزرسانی '+svcWhen(f.updated_at)):''].filter(Boolean).join(' · ');
     const published=String(f.status||'')==='published';
     return `<div class="admlirow" data-fs-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span>
       <span class="sp" style="flex:1 1 180px"><b>${esc(f.name||'بدون نام')}</b><small class="cap">${esc(meta)}</small></span>
@@ -11018,14 +11027,15 @@ function serverFormsView(){
   const state=FORMS_SRV.loading?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن فرم‌ها از سرور…</p></div>`
     :FORMS_SRV.error?`<div class="empty"><p class="cap">${esc(FORMS_SRV.error)}</p>${btn('تلاش دوباره','data-fs-refresh','i-refresh')}</div>`
     :!FORMS_SRV.loaded?'':!all.length?emptyBox('هنوز فرمی در فرم‌ساز سروری ساخته نشده است.'):!rows.length?emptyBox('فرمی با این فیلتر پیدا نشد.'):'';
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ A): سرتیتر = عنوان + شمار + دو عمل؛ متن فنی (مسیر API، نام مجوزها) در «جزئیات فنی» تاشده؛ جست‌وجو یک ورودی سبک با Enter است */
   return `<div class="stack" data-forms-panel>
-    <section class="card stack"><div class="row" style="flex-wrap:wrap;gap:8px"><span class="ic">${ico('i-doc')}</span><div class="head">فرم‌های سرور</div>${tag('منبع حقیقت ثبت‌نام و خرید','ok')}<span class="sp" style="flex:1 1 180px"></span>
-      ${canPerm('fm_create')?`<a class="btn sm primary" href="create.html">${ico('i-plus')}فرم تازه</a>`:''}<a class="btn sm quiet" href="builder.html">${ico('i-chart')}مرکز فرم‌ساز و پاسخ‌ها</a>${btn('بازخوانی','data-fs-refresh','i-refresh')}</div>
-      <p class="cap">فهرست از <span dir="ltr">/api/forms</span> خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد. خروجی CSV مستقیماً از سرور ساخته می‌شود (مجوز fm_export؛ ستون مالی فقط با مجوز مالی) و در تاریخچهٔ عملیات ثبت می‌گردد.</p>
-      <div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="fsQuery" placeholder="جست‌وجوی نام، شناسه یا رویداد" value="${esc(FORMS_SRV.q)}" style="max-width:320px">${btn('جست‌وجو','data-fs-search','i-search')}</div>
-      <div class="admfilters">${chips}</div>
+    <section class="card stack"><div class="sec-head"><div class="head">فرم‌ها${all.length?` <span class="cap" style="white-space:nowrap">${esc(fa(all.length))} فرم</span>`:''}</div><span class="sp"></span>
+      <span class="row" style="gap:6px;flex-wrap:wrap">${canPerm('fm_create')?`<a class="btn sm primary" href="create.html">${ico('i-plus')}فرم تازه</a>`:''}<a class="btn sm quiet" href="builder.html">${ico('i-chart')}مرکز فرم‌ساز و پاسخ‌ها</a>${btn('بازخوانی','data-fs-refresh','i-refresh')}</span></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><label class="searchbox" style="flex:1 1 220px;max-width:360px">${ico('i-search')}<input id="fsQuery" type="search" autocomplete="off" placeholder="جست‌وجوی نام فرم" value="${esc(FORMS_SRV.q)}" aria-label="جست‌وجوی فرم" data-fs-query></label>
+      <span class="admfilters" style="margin:0">${chips}</span></div>
       ${list?`<div class="admlist">${list}</div>`:''}${state}
       ${p2Pager(total,FORMS_SRV.offset,FORMS_SRV.limit,'data-fs-page="prev"','data-fs-page="next"')}
+      <details class="adv"><summary>جزئیات فنی</summary><div class="adv-body"><p class="cap">فهرست از <span dir="ltr">/api/forms</span> خوانده می‌شود. ساخت، ویرایش، انتشار و بررسی پاسخ‌ها در همان فرم‌ساز سروری انجام می‌شود؛ این صفحه ویرایشگر دومی نمی‌سازد. خروجی CSV مستقیماً از سرور ساخته می‌شود (مجوز fm_export؛ ستون مالی فقط با مجوز مالی) و در تاریخچهٔ عملیات ثبت می‌گردد.</p></div></details>
     </section></div>`;
 }
 /* ── ابزارهای کاربران در حالت سرور: زبانه‌های طراحی روی ماژول‌های سروری موجود؛ زبانهٔ بدون API با دلیل دقیق ── */
@@ -13182,15 +13192,15 @@ function showServerAuthMessage(title,message,withLogin){
   const nav=$('#admNav'), tabs=$('#admTabs'), bar=$('#admBar'), body=$('#admBody');
   if(nav) nav.innerHTML=''; if(tabs) tabs.innerHTML='';
   /* همان ساختار page-head نوار نهایی (عنوان، زیرعنوان، ردیف متا) تا سربرگ هنگام بررسی نشست بالا و پایین نپرد */
-  if(bar) bar.innerHTML=`<span class="nmark" aria-hidden="true">${ico('i-shield')}</span><div class="tt ph-tt"><div class="head ph-title">${esc(title)}</div><div class="cap ph-sub">${esc(message)}</div></div>
-    <div class="ph-actions"></div><div class="ph-meta"><span class="chip" aria-hidden="true">${ico('i-user')}<span>&#8203;</span></span></div>`;
+  if(bar) bar.innerHTML=`<div class="tt ph-tt"><div class="head ph-title">${esc(title)}</div><div class="cap ph-sub">${esc(message)}</div></div>
+    <div class="ph-meta"><span class="chip" aria-hidden="true">${ico('i-user')}<span>&#8203;</span></span></div><div class="ph-actions"></div>`;
   if(body) body.innerHTML=`<section class="card stack" style="margin:24px auto;max-width:720px;text-align:center">
     <div class="head">${esc(message)}</div>${withLogin?`<div class="row" style="justify-content:center"><a class="btn primary" href="login.html?mode=staff&amp;next=admin.html%23dash">ورود مدیران و مالک</a></div>`:''}</section>`;
 }
 function showServerLoginGate(message){
   const nav=$('#admNav'), tabs=$('#admTabs'), bar=$('#admBar'), body=$('#admBody');
   if(nav) nav.innerHTML=''; if(tabs) tabs.innerHTML='';
-  if(bar) bar.innerHTML=`<span class="nmark">${ico('i-shield')}</span><div class="tt"><div class="head">ورود امن به پنل مدیران</div></div>`;
+  if(bar) bar.innerHTML=`<div class="tt ph-tt"><div class="head ph-title">ورود امن به پنل مدیران</div></div>`;
   if(!body) return;
   body.innerHTML=`<section class="card stack" style="margin:24px auto;max-width:520px;text-align:center">
     <div class="head">ورود مدیران و مالک سامانه</div>

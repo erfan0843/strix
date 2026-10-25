@@ -16,19 +16,20 @@
 #admNav .btn[disabled]{opacity:.42}
 
 
-/* ── نوار بالا: عنوان، سه عدد، نقش و جست‌وجو ───────────────────────────── */
-.admbar.page-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:var(--sp-2) var(--sp-3);
+/* ── نوار بالا: عنوان، سه عدد، نقش و جست‌وجو؛ .searchbox جعبهٔ جست‌وجوی مشترک پنل (سربرگ و فهرست‌ها) ─── */
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ A): سربرگ پنل = عنوان/زیرعنوان · متا (وضعیت سرور، هویت) · عمل‌ها (جست‌وجو، خروج)؛ بی مربع آیکون و بی ساعت (ساعت در سطر تاریخ داشبورد است) */
+.admbar.page-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--sp-2) var(--sp-3);
   border-radius:var(--r-lg);padding:var(--sp-2h) var(--sp-4);border-bottom:0;min-height:64px}
 .admbar .tt{min-width:0}
 .admbar .tt .head{margin:0}
-.admbar .ph-meta{grid-column:auto;grid-row:1;gap:var(--sp-2)}
-.admbar .ph-actions{grid-column:4;grid-row:1}
+.admbar .ph-meta{grid-column:2;grid-row:1;gap:var(--sp-2)}
+.admbar .ph-actions{grid-column:3;grid-row:1}
 .admbar .ph-actions:empty{display:none}
-.admbar .searchbox{display:flex;align-items:center;gap:var(--sp-2);padding:0 12px;height:38px;min-width:210px;
+.searchbox{display:flex;align-items:center;gap:var(--sp-2);padding:0 12px;height:38px;min-width:210px;
   border-radius:var(--r-pill);background:var(--surface-sunk);border:.5px solid var(--hairline)}
-.admbar .searchbox .i{width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
-.admbar .searchbox input{border:0;background:none;font:inherit;font-size:var(--fs-sub);color:var(--ink);outline:none;width:100%}
-.admbar .searchbox input::placeholder{color:var(--ink-4)}
+.searchbox .i{width:17px;height:17px;color:var(--ink-3);flex:0 0 auto}
+.searchbox input{border:0;background:none;font:inherit;font-size:var(--fs-sub);color:var(--ink);outline:none;width:100%}
+.searchbox input::placeholder{color:var(--ink-4)}
 /* کاشی‌های سرِ کاربران: چهار کاشی جمع‌وجور با یک خط جمع‌بندی */
 .admtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
 .utile{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-1);text-align:right;width:100%;
@@ -440,10 +441,9 @@ details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
   .admkpi.kpi-compact{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admbar .searchbox{min-width:0;width:100%}
   /* موبایل: ردیف ۱ = آیکون، عنوان، خروج؛ ردیف ۲ = متا (سلامت، ساعت، هویت) اسکرول‌شونده؛ حداکثر دو ردیف */
-  .admbar.page-head{grid-template-columns:auto minmax(0,1fr) auto;padding:var(--sp-2) var(--sp-3)}
-  .admbar .ph-actions{grid-column:3}
+  .admbar.page-head{grid-template-columns:minmax(0,1fr) auto;padding:var(--sp-2) var(--sp-3)}
+  .admbar .ph-actions{grid-column:2}
   .admbar .ph-meta{grid-column:1/-1;grid-row:2}
-  .admbar .ph-meta .navclock{display:none}
   .admbar .ph-title{font-size:var(--fs-head)}
 }
 @media print{
