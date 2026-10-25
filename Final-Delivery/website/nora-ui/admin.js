@@ -8068,7 +8068,9 @@ function efSummaryChips(s,fin){
   if(!s) return '';
   const items=[['کل',s.total,''],['پذیرفته‌شده',s.accepted,'ok'],['فهرست انتظار',s.waitlisted,'warn'],['پرداخت‌شده',s.paid,'ok'],['در انتظار پرداخت',s.pending_payment,'warn'],['ناموفق',s.failed_payment,'stop'],['رایگان',s.free,''],['حاضر',s.checked_in,'ok']];
   const cap=s.cap>0?tag('ظرفیت باقی‌مانده: '+fa(s.remaining==null?0:s.remaining)+' از '+fa(s.cap),s.full?'warn':''):tag('بدون سقف ظرفیت','');
-  return `<div class="row tight ef-meta" data-ef-summary>${items.map(([l,n,k])=>tag(l+': '+fa(Number(n)||0),Number(n)>0?k:'')).join('')}${cap}${s.bale_holds>0?tag('رزرو موقت بله: '+fa(s.bale_holds),'warn'):''}</div>`;
+  /* بازآرایی ۱۴۰۵/۰۸/۰۳: «کل» همیشه؛ بقیهٔ شمارش‌ها فقط وقتی غیرصفرند (همان قاعدهٔ KPI پرونده)؛ ظرفیت می‌ماند */
+  const shown=items.filter(([l,n],i)=>i===0||Number(n)>0);
+  return `<div class="row tight ef-meta" data-ef-summary title="وضعیت ثبت‌نام (پذیرفته/انتظار) از وضعیت پرداخت جداست؛ «رسید فرستاده شده» یعنی هنوز تأیید نشده.${fin?'':' مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.'}">${shown.map(([l,n,k])=>tag(l+': '+fa(Number(n)||0),Number(n)>0?k:'')).join('')}${cap}${s.bale_holds>0?tag('رزرو موقت بله: '+fa(s.bale_holds),'warn'):''}</div>`;
 }
 function efRegRow(r,fin){
   const st=EF_REG_STATUS[r.status]||[r.status||'',''], ps=EF_PAY_STATE[r.payment_state]||[r.payment_state||'',''];
@@ -8097,7 +8099,6 @@ function efRegs(){
     <label class="row tight" style="gap:4px;align-items:center"><small class="cap">مرتب‌سازی</small><select class="inp" data-ef-sort aria-label="مرتب‌سازی فهرست" style="min-height:32px;padding:2px 8px">${[['newest','تازه‌ترین ثبت‌نام'],['oldest','قدیمی‌ترین ثبت‌نام'],['name','نام']].map(([v,l])=>`<option value="${v}" ${b.sort===v?'selected':''}>${l}</option>`).join('')}</select></label></div>`;
   const empty=forms.length?(anyFilter?'با این جست‌وجو یا صافی کسی پیدا نشد.':'هنوز کسی در این رویداد ثبت‌نام نکرده است.'):'فرم ثبت‌نامی به این رویداد وصل نیست؛ اول در «فرم‌ها و فعالیت‌ها» فرم ثبت‌نام بساز.';
   return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}
-    <small class="cap">وضعیت ثبت‌نام (پذیرفته/انتظار) از وضعیت پرداخت جداست؛ «رسید فرستاده شده» یعنی هنوز تأیید نشده.${fin?'':' مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.'}</small>
     ${d.items.length||anyFilter?countLine:''}
     ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
     ${efPager(b,d)}${forms.length?efCancelled(fin):''}</div>`;
