@@ -375,16 +375,12 @@ function serverPayBar(){
       <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
       <span class="ptx"><small>نورا پی</small>
         <b>سفارش‌ها و پرداخت‌ها</b>
-        <span class="pmeta">${meta}${chip('نسخهٔ اول · بدون موجودی','')}</span></span>
+        <span class="pmeta">${meta}</span></span>
       <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
     </button>
     <div class="pbrow">
-      <a class="pbtn" href="account.html#payments">${ico('i-wallet')}پرداخت‌ها</a>
-      <a class="pbtn" href="account.html#payments">${ico('i-doc')}رسیدها</a>
-      <a class="pbtn" href="account.html#acc-20" title="خارج از نسخهٔ اول">${ico('i-split')}اقساط</a>
+      <a class="pbtn" href="account.html#payments">${ico('i-wallet')}پرداخت‌ها و رسیدها</a>
     </div>
-    <p class="trustline" data-trust="pay"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
-      <span>پرداخت هر ثبت‌نام از صفحهٔ همان فرم انجام می‌شود و وضعیت آن از سرور خوانده می‌شود؛ شمارهٔ کارت جایی ذخیره نمی‌شود.</span></p>
   </div>`;
 }
 /* «بخش‌های من» با همان ردیف‌های طراحی: رویدادهای من، فرم‌های من، پروفایل من، باشگاه کتاب‌خوانی. */
@@ -488,7 +484,7 @@ function accountScreensCard(){
   }).join('');
   return `<section class="card acct account-screens-index" aria-label="همهٔ بخش‌های حساب">
     <div class="head">همهٔ بخش‌های حساب</div>
-    <p class="cap">بخش‌های بدون endpoint وب داده‌ی نمونه نمی‌گیرند؛ آنچه فعلاً در ربات بله است با همان برچسب و آنچه خارج از نسخهٔ اول است جدا نشان داده می‌شود.</p>
+    <p class="cap">هر بخش با وضعیت واقعی‌اش: آنچه فعلاً در ربات بله است و آنچه خارج از نسخهٔ اول است، جدا برچسب خورده‌اند.</p>
     <details class="adv account-screens-list" style="margin-top:8px"><summary>فهرست کامل · ${faN(ACCOUNT_SCREENS.length)} بخش</summary>
       <div class="adv-body stack">${rows}</div></details>
   </section>`;
@@ -709,7 +705,8 @@ function serverAccountFeatureView(t,title,description){
 function profileHTML(){
   const state=SERVER_ACCOUNT_STATE;
   if(!TEST_FIXTURE_MODE) return state.account
-    ?serverAccountHead()+serverPayBar()+serverRowsBox()+serverAccountIdentitiesCard()+serverAccountModulesCard()
+    /* بازآرایی ۱۴۰۵/۰۸/۰۳: هویت → بخش‌های من (کار روزمره) → نورا پی (فشرده) → همهٔ بخش‌ها → راه‌های ورود (کم‌تکرار) */
+    ?serverAccountHead()+serverRowsBox()+serverPayBar()+serverAccountModulesCard()+serverAccountIdentitiesCard()
     :serverAccountGuestLanding();
   if(state.checking) return serverAccountAccessCard();
   const connected=!!state.account;
