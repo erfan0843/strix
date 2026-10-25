@@ -6951,11 +6951,15 @@ function ctQuickFilters(d){
   const counts=d&&d.counts||{}, wc=d&&d.when_counts||{}, mc=d&&d.mode_counts||{}, cur=ctQuickKey();
   const n=k=>k==='all'?(d?Object.values(counts).reduce((a,b)=>a+(Number(b)||0),0):null):k==='upcoming'?wc.upcoming:k==='past'?wc.past:counts[k];
   const modes=Object.keys(mc).sort((a,b)=>(mc[b]||0)-(mc[a]||0)); if(CT.mode&&!modes.includes(CT.mode)) modes.unshift(CT.mode);
+  /* بازآرایی ۱۴۰۵/۰۸/۰۳: صافی سریع یک ردیف چیپ است؛ «شیوهٔ برگزاری» با مرتب‌سازی زیر «صافی‌ها و ترتیب» می‌رود (ctModeSelect) */
   return `<div class="row tight" style="flex-wrap:wrap;align-items:center" data-ct-quick-filters>
     <div class="admfilters" role="group" aria-label="صافی رویدادها">${CT_QUICK.map(([k,l])=>{const c=n(k); return `<button class="chip ${cur===k?'on':''}" type="button" data-ct-quick="${k}">${esc(l)}${c!=null?' · '+fa(c):''}</button>`}).join('')}</div>
-    <span class="sp"></span>
-    <label class="fld" style="flex:0 1 190px;margin:0"><span class="lbl">شیوهٔ برگزاری</span><select class="input" data-ct-mode aria-label="شیوهٔ برگزاری"><option value="">همه</option>${modes.map(m=>`<option value="${esc(m)}" ${CT.mode===m?'selected':''}>${esc(ctModeLabel(m)||m)}${m!==ctModeLabel(m)&&ctModeLabel(m)?' ('+esc(m)+')':''}${mc[m]?' · '+fa(mc[m]):''}</option>`).join('')}</select></label>
   </div>`;
+}
+function ctModeSelect(d){
+  const mc=d&&d.mode_counts||{};
+  const modes=Object.keys(mc).sort((a,b)=>(mc[b]||0)-(mc[a]||0)); if(CT.mode&&!modes.includes(CT.mode)) modes.unshift(CT.mode);
+  return `<label class="fld" style="flex:1 1 150px;margin:0"><span class="lbl">شیوهٔ برگزاری</span><select class="input" data-ct-mode aria-label="شیوهٔ برگزاری"><option value="">همه</option>${modes.map(m=>`<option value="${esc(m)}" ${CT.mode===m?'selected':''}>${esc(ctModeLabel(m)||m)}${m!==ctModeLabel(m)&&ctModeLabel(m)?' ('+esc(m)+')':''}${mc[m]?' · '+fa(mc[m]):''}</option>`).join('')}</select></label>`;
 }
 function ctList(){
   const d=CT.data, counts=d&&d.counts||{}, total=d?Number(d.total)||0:0;
@@ -6970,21 +6974,28 @@ function ctList(){
     :d.items.length?d.items.map(ctRow).join('')
       :emptyBox(CT.q||CT.status||(CT.kind==='events'&&(CT.when||CT.mode))?'با این جست‌وجو یا فیلتر رکوردی پیدا نشد.':CT.kind==='events'?'هنوز رویدادی در سرور ثبت نشده است.':'هنوز مطلبی در سرور ثبت نشده است.');
   const kindName=CT.kind==='events'?'رویداد':'مطلب';
+  /* بازآرایی ۱۴۰۵/۰۸/۰۳: پیش از اولین ردیف فقط سرکارت، جست‌وجو و یک ردیف صافی سریع؛ مرتب‌سازی، شیوهٔ برگزاری و صافی‌های ریزتر
+     همه زیر یک details «صافی‌ها و ترتیب» (همان data-ct-more-filters)؛ برچسب منبع/نسخه و توضیح مجوزها به انتهای کارت رفته‌اند. هیچ کنترلی حذف نشده. */
+  const sortRow=`<div class="row tight" style="flex-wrap:wrap" data-ct-sort-row>
+      ${CT.kind==='events'?ctModeSelect(d):''}
+      <label class="fld" style="flex:1 1 140px;margin:0"><span class="lbl">ترتیب</span><select class="input" data-ct-sort>${P2_SORTS.map(([k,l])=>`<option value="${k}" ${CT.sort===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
+      <label class="fld" style="flex:1 1 120px;margin:0"><span class="lbl">جهت</span><select class="input" data-ct-order><option value="desc" ${CT.order==='desc'?'selected':''}>نزولی</option><option value="asc" ${CT.order==='asc'?'selected':''}>صعودی</option></select></label>
+    </div>`;
+  const activeAdv=[CT.mode&&'شیوه',CT.kind==='events'&&CT.status&&'وضعیت',CT.when==='today'&&'امروز',CT.sort!=='updated'&&'ترتیب'].filter(Boolean);
+  const advSummary=activeAdv.length?'فعال: '+activeAdv.join('، '):(CT.kind==='events'?'شیوهٔ برگزاری، وضعیت انتشار، امروز، مرتب‌سازی':'مرتب‌سازی');
+  const inbox=CT.kind==='events'&&eiCanMod()?`<div class="row tight ct-links" style="flex-wrap:wrap"><button class="sh-link sh-link--action" type="button" data-ei-open-all>پرسش‌های بی‌پاسخ همهٔ رویدادها</button><button class="sh-link sh-link--action" type="button" data-ei-open-all="reports">گزارش‌های باز</button></div>`:'';
   return `<section class="card stack" data-ct-panel>
     <div class="row" style="flex-wrap:wrap"><div class="head">${CT.kind==='events'?'رویدادها':'مطالب'}</div><span class="sp"></span>
-      ${tag('منبع: site_content سرور','ok')}${d?tag('نسخهٔ '+fa(d.version),''):''}
       ${btn('بازخوانی','data-ct-refresh','i-refresh')}${ctCan('can_edit')?btn('تصاویر','data-ct-media','i-image')+`<button class="btn sm primary" data-ct-new>${ico('i-plus')}${esc(kindName+' تازه')}</button>`:''}</div>
-    <details class="adv"><summary>منبع فهرست و مجوزهای ویرایش</summary><p class="cap adv-body">همان سندی که صفحه‌های عمومی می‌خوانند؛ فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.</p></details>
     <form class="row tight server-role-search" data-ct-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="ctQuery" type="search" class="input" value="${esc(CT.q)}" maxlength="80" autocomplete="off" placeholder="عنوان، دسته، مکان، برچسب یا شناسه" aria-label="جست‌وجوی محتوا"/></label>
       <button class="btn sm" type="submit" data-ct-search>جست‌وجو</button></form>
-    ${CT.kind==='events'?ctQuickFilters(d)+`<details class="ctmore" data-ct-more-filters ${CT.moreFilters?'open':''}><summary><span class="ctmore-t">${ico('i-chev-left')}<b>صافی‌های بیشتر</b></span><small class="cap">وضعیت انتشار (منتشرشده، متوقف) و «امروز»</small></summary><div class="stack ctmore-b"><div class="admfilters" data-ct-status-filters>${chips}</div>${whenChips}</div></details>`:`<div class="admfilters">${chips}</div>`}
-    <div class="row tight" style="flex-wrap:wrap">
-      <label class="fld" style="flex:1 1 140px"><span class="lbl">ترتیب</span><select class="input" data-ct-sort>${P2_SORTS.map(([k,l])=>`<option value="${k}" ${CT.sort===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
-      <label class="fld" style="flex:1 1 120px"><span class="lbl">جهت</span><select class="input" data-ct-order><option value="desc" ${CT.order==='desc'?'selected':''}>نزولی</option><option value="asc" ${CT.order==='asc'?'selected':''}>صعودی</option></select></label>
-    </div>
+    ${CT.kind==='events'?ctQuickFilters(d):`<div class="admfilters">${chips}</div>`}
+    <details class="ctmore" data-ct-more-filters ${CT.moreFilters||activeAdv.length?'open':''}><summary><span class="ctmore-t">${ico('i-chev-left')}<b>صافی‌ها و ترتیب</b></span><small class="cap">${esc(advSummary)}</small></summary><div class="stack ctmore-b">${CT.kind==='events'?`<div class="admfilters" data-ct-status-filters>${chips}</div>${whenChips}`:''}${sortRow}</div></details>
     <div class="tlist">${body}</div>
     ${d?p2Pager(total,CT.offset,CT.limit,'data-ct-page="prev"','data-ct-page="next"'):''}
+    ${inbox}
+    <details class="adv"><summary>منبع فهرست و مجوزهای ویرایش${d?` <span class="tag">نسخهٔ ${esc(fa(d.version))}</span>`:''}</summary><p class="cap adv-body">منبع: سند site_content سرور؛ همان سندی که صفحه‌های عمومی می‌خوانند و فقط رکوردهای «منتشرشده» در سایت دیده می‌شوند. ویرایش با مجوز «ساخت و ویرایش رویداد» و تغییر وضعیت با «انتشار و لغو رویداد» انجام می‌شود. بایگانی حذف نمی‌کند.</p></details>
   </section>`;
 }
 /* ══ مرحلهٔ ۲: انتخاب‌گر شناسه‌محور مدرس/نهاد (رویداد) و نویسندهٔ پروفایلی (مطلب) ══
@@ -7805,7 +7816,7 @@ function efHub(){
     const subs=mine.length>1?`<span class="eftile-sub">${mine.map(k=>`<button class="lnk" data-ei-tab="${k}">${esc(label[k])}</button>`).join('<span aria-hidden="true">·</span>')}</span>`:'';
     return `<div class="eftile" data-ef-tile="${g.k}"><button class="eftile-main" data-ei-tab="${mine[0]}"><span class="ic">${ico(g.i)}</span><span class="stack" style="gap:2px;text-align:start"><b>${esc(g.t)}</b><small class="cap">${esc(desc[g.k]||g.d)}</small>${num[g.k]?`<small class="eftile-num">${num[g.k]}</small>`:''}</span></button>${subs}</div>`}).join('');
   return `<div class="stack" data-ef-overview="${esc(String(e.id||EI.eventId))}" data-ef-hub>
-    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.filter(([l,n],i)=>i===0||Number(n)>0).map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
     ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
     <div class="eftiles">${tiles}</div></div>`;
 }
@@ -7977,8 +7988,8 @@ function efHead(){
   return `<div class="row" data-ef-head style="flex-wrap:wrap;gap:12px;align-items:flex-start">${poster}
     <div class="stack" style="flex:1 1 240px;gap:4px"><div class="row" style="flex-wrap:wrap;gap:6px"><strong style="font-size:1.05em">${esc(e.t||e.title||'')}</strong>${efStatusTag(ov)}</div>
       ${when?`<small class="cap">${esc(when)}</small>`:''}
-      <div class="row tight ef-meta">${capText?tag('ثبت‌نام: '+capText,c.full?'warn':''):tag('بدون فرم ثبت‌نام','warn')}${rs?tag((rs.form_status==='published'?'فرم ثبت‌نام: فعال':rs.form_status==='paused'?'فرم ثبت‌نام: متوقف':rs.form_status==='draft'?'فرم ثبت‌نام: پیش‌نویس':'فرم ثبت‌نام: بایگانی'),rs.form_status==='published'?'ok':'warn'):''}${rs?tag('مبلغ: '+efPriceText(rs),''):''}</div>
-      ${rs?`<small class="cap" data-ef-source>ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «${esc(rs.form_name||'')}»</small>`:''}</div>
+      <div class="row tight ef-meta" ${rs?`title="${esc('ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «'+(rs.form_name||'')+'»')}"`:''}>${capText?tag('ثبت‌نام: '+capText,c.full?'warn':''):tag('بدون فرم ثبت‌نام','warn')}${rs?tag((rs.form_status==='published'?'فرم ثبت‌نام: فعال':rs.form_status==='paused'?'فرم ثبت‌نام: متوقف':rs.form_status==='draft'?'فرم ثبت‌نام: پیش‌نویس':'فرم ثبت‌نام: بایگانی'),rs.form_status==='published'?'ok':'warn'):''}${rs?tag('مبلغ: '+efPriceText(rs),''):''}</div>
+      </div>
     <div class="row tight" style="flex-wrap:wrap;align-self:center">${actions}</div></div>`;
 }
 /* ── نمای کلی ── */
@@ -9035,9 +9046,9 @@ function serverContentView(){
   const tabs=`<div class="admfilters hub-tabs" role="tablist" aria-label="نوع محتوا">
     <button class="chip ${CT.kind==='events'?'on':''}" role="tab" aria-selected="${CT.kind==='events'}" data-ct-kind="events">رویدادها</button>
     <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-ct-kind="articles">مطالب</button></div>`;
-  if(EI.open&&CT.kind==='events'&&!CT.edit) return `<div class="stack">${tabs}${eiPanel()}</div>`;
-  const inbox=CT.kind==='events'&&!CT.edit&&eiCanMod()?`<div class="row" style="flex-wrap:wrap;gap:8px">${btn('پرسش‌های بی‌پاسخ همهٔ رویدادها','data-ei-open-all','i-inbox')}${btn('گزارش‌های باز','data-ei-open-all="reports"','i-flag')}</div>`:'';
-  return `<div class="stack">${tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():inbox+(CM.open?cmPanel():'')+ctList()}</div>`;
+  /* بازآرایی ۱۴۰۵/۰۸/۰۳: سگمنت «رویدادها | مطالب» فقط در نمای فهرست؛ داخل پرونده و ویرایشگر ناوبری رقیب نمی‌ماند (هر دو «بازگشت» خودشان را دارند) */
+  if(EI.open&&CT.kind==='events'&&!CT.edit) return `<div class="stack">${eiPanel()}</div>`;
+  return `<div class="stack">${CT.edit?'':tabs}${p2Msg(CT.msg)}${CT.edit?ctEditor():(CM.open?cmPanel():'')+ctList()}</div>`;
 }
 /* رکورد خالی برای ویرایشگر (بدون رندر)؛ هم از «رویداد تازه» در فهرست و هم از بخش «تعریف جدید» */
 function ctStartNew(){

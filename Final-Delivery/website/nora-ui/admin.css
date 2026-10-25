@@ -865,6 +865,8 @@ a.sktile{text-decoration:none;color:inherit}
 .ctmore[open]>summary .ctmore-t .i{transform:rotate(-90deg)}
 .ctmore>summary small{margin-inline-start:auto}
 .ctmore-b{padding:0 12px 12px;gap:var(--sp-3)}
+/* بازآرایی ۱۴۰۵/۰۸/۰۳: میان‌برهای بین‌رویدادی زیر فهرست به‌شکل پیوند اقدام ثانویه (نه دکمهٔ هم‌وزن) */
+.ct-links{gap:var(--sp-2) var(--sp-4);padding-top:var(--sp-1)}
 .ctrev{padding:6px 0;border-bottom:.5px dashed var(--hairline)}
 .ctrev:last-of-type{border-bottom:0}
 .ctrev[data-ct-review-ok="1"]>span:first-child{color:var(--ok);font-weight:700}
