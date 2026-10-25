@@ -1,0 +1,43 @@
+owner auth/me 200
+=== e2e-event-file start 18:35:04
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 77 / FAIL 6
+=== e2e-roles start 18:38:20
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 21 / FAIL 5
+=== e2e-builder-return start 18:38:54
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 18:41:23
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== g-shots start 18:43:20
+g-shots EXIT 0
+17-public-event-360.png	/event.html?id=ev-839370293e	overflow=0
+18-home-360.png	/home.html	overflow=0
+=== ds-audit start 18:47:24
+ds-audit EXIT 0
+builder@360: sw=360 main=0|360|0 fonts=13.5px×33 12px×32 16px×16 15px×15 9.16667px×5 30px×1 18px×1 | btnH=44px×15 32px×11 34px×4 50px×3 75px×1 74px×1 | radii=16px×32 999px×22 22px×17 14px×10 50%×10 99px×6 12px×6 18px×3 | cls=0.000
+manager-first@360: sw=360 main=0|360|0 fonts=12px×22 11px×20 15px×12 13.5px×9 16px×4 18.5px×4 30px×1 | btnH=34px×10 23px×5 36px×2 | radii=18px×10 12px×10 999px×9 22px×3 16px×2 | cls=0.000
+manager-event-hub@360: sw=360 main=0|360|0 fonts=13.5px×14 11px×14 12px×13 30px×1 16px×1 15.75px×1 | btnH=34px×6 123px×6 | radii=12px×12 999px×11 16px×7 22px×3 18px×2 | cls=0.000
+owner auth/me after 200
+=== node-suite start 18:54:07
+node-suite done: 40/40 exit 0
+=== pytest start 18:59:05
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+398 passed, 4 skipped, 3 warnings in 125.03s (0:02:05)
+=== mypy start 19:01:13
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 19:01:13
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 2.45s
+=== ALL DONE 19:01:17
