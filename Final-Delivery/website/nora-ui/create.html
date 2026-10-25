@@ -9,7 +9,40 @@
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=105"/>
 <style>
-  .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
+  .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
+  .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
+  .session-strip #ownerLoginForm{flex-basis:100%}
+  @media (max-width:560px){.session-strip{padding:var(--sp-1h) var(--sp-2h)}.session-strip #ownerApiMessage{flex-basis:100%;font-size:var(--fs-cap)}}
+  .lockbar{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap;padding:var(--sp-2h) var(--sp-3);margin:0 0 var(--sp-2h);border-radius:var(--r-md);background:var(--warn-tint);color:var(--ink-2);font-size:var(--fs-sub)}
+  .lockbar[hidden]{display:none}
+  .lockbar .lb-text{flex:1 1 260px;min-width:0}
+  .lockbar .lb-text b{display:block;color:var(--ink-1)}
+  .savestate{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-cap);color:var(--ink-3);white-space:nowrap}
+  .savestate::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--ink-4)}
+  .savestate[data-state="saving"]::before{background:var(--warn);animation:sk 1s linear infinite}
+  .savestate[data-state="saved"]::before{background:var(--ok)}
+  .savestate[data-state="dirty"]::before{background:var(--warn)}
+  .savestate[data-state="error"]::before,.savestate[data-state="conflict"]::before{background:var(--stop)}
+  .canvas.solo{max-width:820px;margin-inline:auto}
+  #s3 .stack>.card{padding:var(--sp-4)}
+  #s3 .sec-head h3{font-size:var(--fs-head)}
+  /* ردیف پرسش: فشرده، اقدام اصلی برچسب‌دار، بقیه در «بیشتر» */
+  .block{padding:var(--sp-2h) var(--sp-3);box-shadow:none;align-items:center;gap:var(--sp-2)}
+  .block:hover{box-shadow:none;border-color:var(--ink-4)}
+  .block .qline{font-size:var(--fs-body)}
+  .block .qmeta{display:flex;gap:var(--sp-1h);flex-wrap:wrap;align-items:center;margin-top:2px;font-size:var(--fs-cap);color:var(--ink-3)}
+  .block .qmeta .warn{color:var(--warn)} .block .qmeta .brand{color:var(--brand-ink)}
+  .block .qact{display:flex;gap:var(--sp-1);align-items:center;flex:0 0 auto}
+  details.rowmore{position:relative}
+  details.rowmore>summary{list-style:none;cursor:pointer;display:inline-flex}
+  details.rowmore>summary::-webkit-details-marker{display:none}
+  details.rowmore .menu{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:30;min-width:190px;display:grid;padding:var(--sp-1);background:var(--surface);border:.5px solid var(--hairline);border-radius:var(--r-md);box-shadow:var(--sh-2)}
+  details.rowmore:not([open]) .menu{display:none}
+  details.rowmore .menu button{display:flex;align-items:center;gap:var(--sp-2);width:100%;border:0;background:none;font:inherit;font-size:var(--fs-sub);padding:8px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--ink-1);text-align:start;min-height:40px}
+  details.rowmore .menu button:hover{background:var(--surface-sunk)}
+  details.rowmore .menu button:disabled{opacity:.45;cursor:not-allowed}
+  details.rowmore .menu button.stop{color:var(--stop)}
+  @media (max-width:560px){.block{flex-wrap:wrap}.block .qact{width:100%;justify-content:flex-end;border-top:.5px solid var(--hairline);padding-top:var(--sp-1h)}}
   .stepper4{display:flex;gap:var(--sp-1);padding:5px}
   .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:var(--sp-2);
     padding:9px 6px;border-radius:var(--r-pill);font-size:var(--fs-sub);color:var(--ink-3);cursor:pointer;white-space:nowrap}
@@ -208,36 +241,35 @@
   </aside>
 
   <main class="main">
-    <div class="card demo-note" data-demo-notice role="note" style="margin:0 0 10px;padding:10px 12px">
-      <b>فرم‌ساز نورا · پیش‌نویس، پیش‌نمایش و انتشار جدا هستند</b>
-      <div class="cap" style="margin-top:4px">پیش‌نویس و پاسخ فرم منتشرشده از FastAPI همین سامانه می‌آیند؛ انتشار و توقف فقط با مالک است. ظرفیت و صف انتظار سروری‌اند. پرداخت بله فقط با پیکربندی امن backend، کارت‌به‌کارت فقط با رسید و بازبینی دستی فعال می‌شود. فایل پرسش، احراز مالکیت شماره، محدودیت رویداد/دعوت و ارسال بیرونی عمومی فعال نیستند.</div>
-      <div class="cap" id="formCapabilityStatus" aria-live="polite" style="margin-top:6px">در حال بررسی قرارداد قابلیت‌های سرور…</div>
-    </div>
-    <section class="card" id="ownerApiPanel" aria-live="polite" style="margin:0 0 12px;padding:12px">
-      <div class="row"><svg class="i"><use href="#i-shield"/></svg><strong>ورود و دسترسی سروری</strong><span class="sp"></span><span class="tag warn" id="ownerApiState">هنوز بررسی نشده</span></div>
-      <div class="cap" id="ownerApiMessage" style="margin-top:6px">هنگام ذخیره، ورود و مجوز از سرور بررسی می‌شود؛ گذرواژه در این مرورگر نگه‌داری نمی‌شود.</div>
-      <div class="row tight" style="margin-top:8px">
-        <button class="btn quiet" id="ownerLoginToggle" type="button">ورود امن مالک</button>
-        <a class="btn quiet" href="login.html?mode=server">ورود امن عضو</a>
-      </div>
-      <form id="ownerLoginForm" style="display:none;margin-top:10px" autocomplete="on">
+    <div class="session-strip" id="ownerApiPanel" aria-live="polite">
+      <svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
+      <span class="tag warn" id="ownerApiState">در حال بررسی ورود…</span>
+      <span class="cap" id="ownerApiMessage">نشست شما از سرور بررسی می‌شود.</span>
+      <span class="savestate" id="saveState" data-state="idle" role="status">ذخیره‌نشده</span>
+      <button class="btn sm quiet" id="ownerLoginToggle" type="button" style="display:none">ورود مالک</button>
+      <a class="btn sm quiet" id="memberLoginLink" href="login.html?mode=server" style="display:none">ورود با حساب بله</a>
+      <button class="btn sm quiet" id="ownerLogoutButton" type="button" style="display:none">خروج</button>
+      <form id="ownerLoginForm" style="display:none;margin-top:4px" autocomplete="on">
         <div class="g2">
           <div><label class="lbl" for="ownerUsername">نام کاربری مالک</label><input id="ownerUsername" class="input" autocomplete="username" maxlength="160" required/></div>
           <div><label class="lbl" for="ownerPassword">گذرواژهٔ مالک</label><input id="ownerPassword" class="input" type="password" autocomplete="current-password" maxlength="1024" required/></div>
         </div>
         <div class="row tight" style="margin-top:8px">
-          <button class="btn primary" id="ownerLoginButton" type="submit">ورود امن و ادامهٔ ذخیره</button>
-          <span class="mini">ورود امن فقط در کوکی سرور نگه‌داری می‌شود؛ گذرواژه و توکن وارد localStorage نمی‌شوند.</span>
+          <button class="btn primary" id="ownerLoginButton" type="submit">ورود و ادامه</button>
+          <span class="mini">گذرواژه فقط برای ورود به سرور فرستاده می‌شود و در مرورگر ذخیره نمی‌شود.</span>
         </div>
       </form>
-      <button class="btn quiet" id="ownerLogoutButton" type="button" style="display:none;margin-top:8px">خروج از حساب</button>
-    </section>
+    </div>
+    <div class="lockbar" id="lockBar" hidden role="status">
+      <svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>
+      <span class="lb-text"><b id="lockTitle">این فرم منتشر شده است</b><span id="lockText">ساختار فرم منتشرشده قفل است تا پاسخ‌های دریافتی معتبر بمانند. برای تغییر، پاسخ‌گیری را متوقف کنید یا نسخهٔ تازه‌ای از روی همین فرم بسازید.</span></span>
+      <button class="btn sm" id="lockDuplicate" type="button">ساخت نسخهٔ تازه</button>
+      <a class="btn sm quiet" id="lockOpenCenter" href="builder.html">پاسخ‌ها و انتشار</a>
+    </div>
     <header class="topbar glass" style="border-radius:var(--r-lg);padding:8px 10px">
       <div class="stepper4" id="stepper"></div>
       <div class="row tight" style="padding:0 6px 6px">
         <span class="cap" id="stepHint"></span><span class="sp"></span>
-        <span class="navclock" aria-label="تاریخ و ساعت"><svg class="i"><use href="#i-clock"/></svg><b data-clock></b></span>
-
         <button class="btn sm quiet" id="btnBack"><svg class="i"><use href="#i-chev-right"/></svg> عقب</button>
         <button class="btn sm primary" id="btnNext">جلو <svg class="i"><use href="#i-chev-left"/></svg></button>
       </div>
@@ -289,10 +321,9 @@
       </div>
     </section>
 
-    <!-- ══ ۲: فیلدها + تنظیمات ══ -->
+    <!-- ══ ۲: پرسش‌ها ══ -->
     <section class="screen" id="s2">
-      <div class="split">
-        <div class="canvas">
+      <div class="canvas solo">
           <div class="fixedblock">
             <span class="ic"><svg class="i"><use href="#i-type"/></svg></span>
             <div style="flex:1;min-width:0"><div class="mini">سربرگ · ثابت</div><div class="hdline" id="hdTitle">—</div></div>
@@ -302,13 +333,13 @@
           <div class="fixedblock" style="margin-top:10px;display:block">
             <div class="row" style="margin-bottom:8px">
               <span class="ic" style="width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:var(--surface);box-shadow:var(--sh-1)"><svg class="i"><use href="#i-lines"/></svg></span>
-              <div><div class="hdline">توضیحات ابتدا</div><div class="mini">ثابت و غیراختیاری</div></div>
+              <div><div class="hdline">توضیحات ابتدا</div><div class="mini">بالای پرسش‌ها نمایش داده می‌شود</div></div>
               <span class="sp"></span>
               <button class="btn sm quiet" id="introMedia"><svg class="i"><use href="#i-image"/></svg> <span id="introMediaLbl">رسانه</span></button>
             </div>
             <textarea class="input" id="introText" maxlength="3000">سه جلسهٔ عملی فن بیان، پنجشنبه‌ها ۱۶ تا ۱۸، با کارنامهٔ حضور.</textarea>
             <div class="row tight" style="margin-top:8px"><span class="mini">توضیح رسانهٔ ابتدا · اختیاری</span><input class="input" id="introMediaNote" maxlength="160" placeholder="عنوان/توضیح رسانه؛ فایل واقعی پیوست نمی‌شود"/></div>
-            <div class="mnote">رسانهٔ انتخاب‌شده فقط به‌شکل یادداشت نمونه نمایش داده می‌شود؛ آپلود یا انتشار واقعی ندارد.</div>
+            <div class="mnote">بارگذاری تصویر یا ویدیو برای فرم هنوز در سرور فراهم نیست؛ انتخاب رسانه فقط در پیش‌نمایش محلی دیده می‌شود و مانع انتشار است. جایگزین: توضیح متنی بالا.</div>
           </div>
 
           <div class="plusline"><span class="line"></span><button id="addTop" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
@@ -319,46 +350,54 @@
           <div class="row tight" style="margin-bottom:8px"><span class="cap">بسته‌های پیش‌فرض همین فرم</span></div>
           <div class="row tight" id="quickPacks"></div>
           <div class="plusline" style="margin-top:10px"><span class="line"></span><button id="addBottom" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
-        </div>
+      </div>
+    </section>
 
-        <div class="stack" id="morePanel">
-          <div class="card" style="padding:12px">
-            <div class="row"><svg class="i lg" style="color:var(--ink-2)"><use href="#i-sliders"/></svg>
-              <div><div class="head tight">تنظیمات بیشتر</div><div class="cap">همراه همین فیلدها · باز و بسته کنید</div></div></div>
-          </div>
-
-          <details class="panel" open>
-            <summary><svg class="i"><use href="#i-align"/></svg> نمایش و جهت</summary>
-            <div class="pbody">
+    <!-- ══ ۳: تنظیمات و رفتار (نمایش، ظرفیت، همراهان، بلیت، پرداخت، متن پایان) ══ -->
+    <section class="screen" id="s3">
+      <div class="stack" id="morePanel">
+        <div class="card">
+          <div class="sec-head"><h3>نمایش و جهت</h3><span class="sh-sub">پاسخ‌دهنده فرم را چطور ببیند</span></div>
+          <div class="stack tight">
               <div class="seg" id="segDisplay"><button type="button" class="on" data-display="one">هر مرحله یک سوال</button><button type="button" data-display="all">همه در یک صفحه</button></div>
               <div class="row tight">
                 <button type="button" class="chip on" data-dir="rtl"><svg class="i"><use href="#i-align"/></svg> راست‌به‌چپ</button>
                 <button type="button" class="chip" data-dir="ltr"><svg class="i"><use href="#i-align"/></svg> چپ‌به‌راست</button>
               </div>
-              <div class="seg" id="segAfter"><button type="button" class="on" data-after="edit">بعد از ثبت نمونه: ویرایش</button><button type="button" data-after="view">فقط مشاهده</button><button type="button" data-after="cancel">پایان پیش‌نمایش</button></div>
+              <div class="seg" id="segAfter"><button type="button" class="on" data-after="edit">پس از ثبت: ویرایش پاسخ</button><button type="button" data-after="view">فقط مشاهده</button><button type="button" data-after="cancel">پایان پیش‌نمایش</button></div>
             </div>
-          </details>
+        </div>
 
-          <details class="panel">
-            <summary><svg class="i"><use href="#i-calendar"/></svg> بازه، ظرفیت و لیست انتظار</summary>
-            <div class="pbody">
-              <div>
-                <span class="pick-label">شروع ثبت‌نام · محلی و غیرقابل‌انتشار</span>
-                <div id="pkStart"></div>
-              </div>
-              <div>
-                <span class="pick-label">بسته‌شدن فرم · محلی و غیرقابل‌انتشار</span>
-                <div id="pkEnd"></div>
-              </div>
-              <div class="row tight"><button class="btn sm quiet" id="clearSchedule" type="button">پاک‌کردن بازهٔ محلی</button><span class="cap">برای انتشار سروری، هر دو تاریخ باید خالی باشند.</span></div>
+        <div class="card">
+          <div class="sec-head"><h3>ظرفیت و صف انتظار</h3><span class="sh-sub">در سرور اعمال می‌شود</span></div>
+          <div class="stack tight">
               <div class="g2">
-                <div><label class="lbl" for="cap">ظرفیت سروری</label><input id="cap" class="input num" inputmode="numeric" maxlength="16" min="0" step="1" value="۴۰"/></div>
-                <div><label class="lbl" for="wcount">ظرفیت صف انتظار سروری</label><input id="wcount" class="input num" inputmode="numeric" maxlength="16" min="0" step="1" value="۲۰"/></div>
+                <div><label class="lbl" for="cap">ظرفیت پذیرش</label><input id="cap" class="input num" inputmode="numeric" maxlength="16" min="0" step="1" value="۴۰"/></div>
+                <div><label class="lbl" for="wcount">ظرفیت صف انتظار</label><input id="wcount" class="input num" inputmode="numeric" maxlength="16" min="0" step="1" value="۲۰"/></div>
               </div>
-              <p class="mnote">ظرفیت و صف در پاسخ‌گیری سروری اعمال می‌شوند. شروع/پایان زمانی و همگام‌سازی خودکار رویداد هنوز فعال نیستند.</p>
-              <div class="row"><span class="sub">همگام‌سازی ظرفیت و تاریخ‌ها با رویداد</span><span class="sp"></span><span class="tag warn">غیرفعال · ظرفیت را اینجا تنظیم کنید</span></div>
+              <p class="mnote">ظرفیت و صف انتظار هنگام پاسخ‌گیری در سرور اعمال می‌شوند؛ صفر یعنی بدون محدودیت.</p>
+              <div class="row"><span class="sub">همگام‌سازی خودکار ظرفیت با رویداد</span><span class="sp"></span><span class="tag quiet">غیرفعال</span></div>
+              <p class="mnote">غیرفعال: سرور هنوز ظرفیت رویداد و فرم را به هم وصل نمی‌کند. جایگزین: ظرفیت را همین‌جا وارد کنید؛ شمارنده‌های رویداد از همین فرم خوانده می‌شوند.</p>
             </div>
-          </details>
+        </div>
+
+          <div class="card">
+            <div class="sec-head"><h3>همراهان</h3><span class="sh-sub">هر پاسخ می‌تواند چند نفر را ثبت کند</span></div>
+            <div class="row" style="margin-bottom:12px">
+              <span><b class="sub">ثبت‌نام همراه</b>
+                <div class="cap">روشن باشد، شرکت‌کننده می‌تواند همراهانش را در همین فرم ثبت کند. خاموش باشد، چیزی در فرم نشان داده نمی‌شود.</div></span>
+              <span class="sp"></span>
+              <span class="switch" id="guestsOn" role="switch" aria-checked="false" tabindex="0"></span>
+            </div>
+            <div class="g2">
+              <div><label class="lbl" for="maxPer">حداکثر تعداد افراد هر پاسخ</label><input id="maxPer" class="input num" inputmode="numeric" maxlength="2" min="1" max="9" step="1" value="۳"/></div>
+              <div><label class="lbl" for="compFields">اطلاعات همراهان</label>
+                <select id="compFields" class="input"><option value="name-mobile">نام و موبایل</option><option value="name-mobile-nid">نام، موبایل، کد ملی</option><option value="same-as-primary">نام و موبایل + پاسخ‌های نفر اصلی</option><option value="name-mobile-answers">نام و موبایل + پاسخ‌های جداگانه</option></select></div>
+            </div>
+            <div class="prevbox" style="margin-top:10px">
+              <span class="sub">اگر «پاسخ‌های جداگانه» را انتخاب کنید، همراه برای هر پرسش پاسخ خودش را می‌دهد.</span>
+            </div>
+          </div>
 
           <details class="panel" id="ticketingPanel" open>
             <summary><svg class="i"><use href="#i-ticket"/></svg> مدل بلیت ثبت‌نام</summary>
@@ -382,39 +421,9 @@
             </div>
           </details>
 
-          <details class="panel">
-            <summary><svg class="i"><use href="#i-users"/></svg> محدودیت افراد</summary>
-            <div class="pbody">
-              <select class="input" id="limitMode" aria-describedby="limitModeHelp">
-                <option value="none">بدون محدودیتِ هویتی · سروری</option>
-                <option value="event" disabled>ثبت‌نام‌کرده‌های رویداد · هنوز پشتیبانی نمی‌شود</option>
-                <option value="attended" disabled>حاضران جلسهٔ پیشین · هنوز پشتیبانی نمی‌شود</option>
-                <option value="invite" disabled>فهرست/کد دعوت · هنوز پشتیبانی نمی‌شود</option>
-              </select>
-              <div class="mnote" id="limitModeHelp">فقط «بدون محدودیت هویتی» قابل انتشار است؛ رویداد، حضور و کد دعوت هنوز در سرور احراز نمی‌شوند.</div>
-              <div class="row"><span class="sub">همگام‌سازی زندهٔ محدودیت با رویداد</span><span class="sp"></span><span class="tag warn">غیرفعال · احراز رویداد وصل نیست</span></div>
-              <div class="row"><span class="sub">یک پاسخ برای هر شخص</span><span class="sp"></span><span class="tag warn">غیرفعال · هویت پاسخ‌دهنده ناشناس است</span></div>
-              <div id="inviteConfig" style="display:none"><label class="lbl" for="inviteCodes">کدها یا شناسه‌های مجاز</label><textarea class="input" id="inviteCodes" rows="3" maxlength="5000" placeholder="هر کد را در یک خط بنویسید"></textarea><div class="mnote">فقط فهرست نمونه در همین مرورگر است؛ احراز هویت یا محدودیت امن ایجاد نمی‌کند.</div></div>
-            </div>
-          </details>
-
-          <details class="panel">
-            <summary><svg class="i"><use href="#i-send"/></svg> مسیر محلی بازبینی · بدون ارسال</summary>
-            <div class="pbody">
-              <div class="row"><span class="sub">ارسال بیرونی</span><span class="sp"></span><span class="tag warn">وصل‌نیست · خاموش</span></div>
-              <div><label class="lbl" for="notifyTo">کجا ارسال شود</label>
-                <select id="notifyTo" class="input"><option value="">مسیر پیام به API متصل نیست؛ ارسالی انجام نمی‌شود</option></select></div>
-              <div><label class="lbl" for="deptPick">بخش</label>
-                <select id="deptPick" class="input"></select></div>
-              <div><label class="lbl" for="expertPick">کارشناس مسئول</label>
-                <select id="expertPick" class="input"></select>
-                <div class="mini" id="deptHint" style="margin-top:6px">اطلاعات بخش و کارشناس از سرور دریافت نشده است.</div></div>
-            </div>
-          </details>
-
-          <details class="panel">
-            <summary><svg class="i"><use href="#i-lines"/></svg> متن پایانی و پیوندها</summary>
-            <div class="pbody">
+        <div class="card">
+          <div class="sec-head"><h3>متن پایانی و پیوندها</h3><span class="sh-sub">پس از ثبت پاسخ نمایش داده می‌شود</span></div>
+          <div class="stack tight">
               <label class="lbl" for="endText">متن پایانی</label>
               <textarea class="input" id="endText" maxlength="1000" placeholder="مثلاً: ثبت‌نامت انجام شد؛ بلیت را از دکمهٔ زیر دریافت کن.">از اینکه این فرم را تکمیل کردی، سپاسگزاریم.</textarea>
               <div class="mnote" style="margin-top:6px">این پیام در بالای صفحهٔ پایان نمایش داده می‌شود؛ حداکثر ۱۰۰۰ نویسه.</div>
@@ -434,15 +443,11 @@
               </div>
               <div class="mnote" style="margin-top:6px">تا ۱۰ مورد. برای شبکهٔ اجتماعی نشانی صفحهٔ عمومی را وارد کن؛ پیوند HTTPS، صفحهٔ داخلی، ایمیل و تلفن پشتیبانی می‌شود.</div>
             </div>
-          </details>
         </div>
-      </div>
-    </section>
 
-    <!-- ══ ۳: مالی و پرداخت ══ -->
-    <section class="screen" id="s3">
-      <div class="split">
-        <div class="stack">
+        <div class="sec-head" style="margin-top:var(--sp-2)"><h3>پرداخت و مالی</h3><span class="sh-sub">فقط برای فرم‌های پولی؛ تنظیم آن با مجوز مالی است</span></div>
+        <div class="split">
+          <div class="stack">
           <div class="card" id="finItemsCard">
             <div class="row">
               <div><div class="head">فیلدهای مالی</div>
@@ -451,24 +456,6 @@
               <button class="btn sm" id="addFin"><svg class="i"><use href="#i-plus"/></svg> افزودن مورد مالی</button>
             </div>
             <div class="stack tight" id="finList" style="margin-top:12px"></div>
-          </div>
-
-          <div class="card">
-            <div class="head" style="margin-bottom:10px">تعداد نفرات</div>
-            <div class="row" style="margin-bottom:12px">
-              <span><b class="sub">«دوستاتم با خودت بیار»</b>
-                <div class="cap">افزودن همراه را برای شرکت‌کننده باز می‌کند. بسته باشد، در فرم چیزی نشان داده نمی‌شود.</div></span>
-              <span class="sp"></span>
-              <span class="switch" id="guestsOn" role="switch" aria-checked="false" tabindex="0"></span>
-            </div>
-            <div class="g2">
-              <div><label class="lbl" for="maxPer">حداکثر تعداد افراد هر پاسخ</label><input id="maxPer" class="input num" inputmode="numeric" maxlength="2" min="1" max="9" step="1" value="۳"/></div>
-              <div><label class="lbl" for="compFields">اطلاعات همراهان</label>
-                <select id="compFields" class="input"><option value="name-mobile">نام و موبایل</option><option value="name-mobile-nid">نام، موبایل، کد ملی</option><option value="same-as-primary">نام و موبایل + پاسخ‌های نفر اصلی</option><option value="name-mobile-answers">نام و موبایل + پاسخ‌های جداگانه</option></select></div>
-            </div>
-            <div class="prevbox" style="margin-top:10px">
-              <span class="sub">اگر «پاسخ‌های جداگانه» را انتخاب کنید، همراه برای هر پرسش پاسخ خودش را می‌دهد.</span>
-            </div>
           </div>
 
           <div class="card" id="finCouponCard">
@@ -486,9 +473,9 @@
 
           <div class="card" id="formPaymentMethodsCard">
             <div class="head" style="margin-bottom:10px">روش‌های پرداخت این فرم</div>
-            <p class="cap">فقط روش‌هایی که این‌جا فعال می‌کنی در فرم عمومی نمایش داده می‌شوند. برای پرداخت زنده، backend باید به‌طور امن پیکربندی و مستقر شده باشد.</p>
+            <p class="cap">فقط روش‌هایی که این‌جا فعال می‌کنی در فرم عمومی نمایش داده می‌شوند. برای پرداخت زنده، درگاه باید در سرور به‌طور امن پیکربندی شده باشد.</p>
             <div class="row" style="margin-top:12px">
-              <span><b class="sub">کیف پول بله</b><span class="cap" style="display:block;margin-top:4px">ساخت صورتحساب در backend و تأیید نهایی از webhook و استعلام سروری.</span></span>
+              <span><b class="sub">کیف پول بله</b><span class="cap" style="display:block;margin-top:4px">ساخت صورتحساب در سرور و تأیید نهایی از webhook و استعلام سروری.</span></span>
               <span class="sp"></span><span class="switch" id="enableBaleWallet" role="switch" aria-label="فعال‌کردن کیف پول بله برای این فرم" aria-checked="false" tabindex="0"></span>
             </div>
             <div class="row" style="margin-top:12px">
@@ -496,22 +483,21 @@
               <span class="sp"></span><span class="switch" id="receiptReviewRequired" role="switch" aria-label="فعال‌کردن کارت‌به‌کارت با رسید و بازبینی دستی" aria-checked="false" tabindex="0"></span>
             </div>
             <div class="stack tight" id="createPaymentStatus" aria-live="polite" style="margin-top:12px"></div>
-            <div class="mnote" style="margin-top:10px">کیف پول بله تا آماده‌شدن تنظیم امن backend قابل فعال‌سازی نیست. شمارهٔ کارتِ مقصد از کارت فعالِ سامانه گرفته می‌شود؛ کلیدها و توکن‌ها هرگز در فرم یا مرورگر ذخیره نمی‌شوند.</div>
+            <div class="mnote" style="margin-top:10px">کیف پول بله تا آماده‌شدن پیکربندی امن سرور قابل فعال‌سازی نیست. شمارهٔ کارتِ مقصد از کارت فعالِ سامانه گرفته می‌شود؛ کلیدها و توکن‌ها هرگز در فرم یا مرورگر ذخیره نمی‌شوند.</div>
             <a class="btn sm quiet block" id="openFinanceSettings" style="margin-top:10px" href="admin.html#money">رفتن به تنظیمات مالی</a>
           </div>
 
           <div class="card" id="receiptReviewCard" hidden>
             <div class="head" style="margin-bottom:8px">رسید کارت‌به‌کارت و بازبینی دستی</div>
-            <p class="sub">شرکت‌کننده رسید را در همین فرم بارگذاری می‌کند؛ بلیت فقط پس از تأیید دستی از backend آماده می‌شود.</p>
+            <p class="sub">شرکت‌کننده رسید را در همین فرم بارگذاری می‌کند؛ بلیت فقط پس از تأیید دستی در سرور آماده می‌شود.</p>
             <div class="mnote" style="margin-top:10px">این روش فقط برای فرم ثبت‌نام است و به یک کارت مقصدِ معتبر و فعال نیاز دارد.</div>
             <label class="fld" id="receiptInstructionsWrap" style="margin-top:10px" hidden>
               <span class="lbl" for="receiptInstructions">نکات واریز</span>
               <textarea class="input" id="receiptInstructions" maxlength="500" rows="3"></textarea>
             </label>
           </div>
-        </div>
-
-        <div class="stack">
+          </div>
+          <div class="stack">
           <div class="card">
             <div class="head" style="margin-bottom:8px">کارت مقصد</div>
             <div class="prevbox" id="createCardSummary" role="status"></div>
@@ -522,7 +508,57 @@
             <div class="head" style="margin-bottom:10px">کاربر چه می‌بیند</div>
             <div class="sumbox" id="userPreview"></div>
           </div>
+          </div>
         </div>
+
+        <details class="adv" id="advSettings">
+          <summary>تنظیمات پیشرفته و قابلیت‌های غیرفعال <span class="tag quiet">۳ مورد در دست ساخت</span></summary>
+          <div class="adv-body">
+            <div>
+              <div class="sec-head"><h3>بازهٔ زمانی فرم</h3><span class="sh-sub">فقط پیش‌نمایش محلی</span></div>
+              <div class="stack tight">
+              <div>
+                <span class="pick-label">شروع ثبت‌نام (فقط پیش‌نمایش محلی)</span>
+                <div id="pkStart"></div>
+              </div>
+              <div>
+                <span class="pick-label">بسته‌شدن فرم (فقط پیش‌نمایش محلی)</span>
+                <div id="pkEnd"></div>
+              </div>
+              <div class="row tight"><button class="btn sm quiet" id="clearSchedule" type="button">پاک‌کردن بازهٔ محلی</button><span class="cap">سرور هنوز بازهٔ زمانی فرم را اجرا نمی‌کند؛ برای انتشار هر دو خالی باشند. جایگزین: مهلت ثبت‌نام را در پروندهٔ رویداد تنظیم کنید.</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="sec-head"><h3>محدودیت افراد</h3><span class="sh-sub">در دست ساخت</span></div>
+              <div class="stack tight">
+              <select class="input" id="limitMode" aria-describedby="limitModeHelp">
+                <option value="none">بدون محدودیتِ هویتی · سروری</option>
+                <option value="event" disabled>ثبت‌نام‌کرده‌های رویداد · هنوز پشتیبانی نمی‌شود</option>
+                <option value="attended" disabled>حاضران جلسهٔ پیشین · هنوز پشتیبانی نمی‌شود</option>
+                <option value="invite" disabled>فهرست/کد دعوت · هنوز پشتیبانی نمی‌شود</option>
+              </select>
+              <div class="mnote" id="limitModeHelp">فقط «بدون محدودیت هویتی» قابل انتشار است؛ رویداد، حضور و کد دعوت هنوز در سرور احراز نمی‌شوند.</div>
+              <div class="row"><span class="sub">همگام‌سازی زندهٔ محدودیت با رویداد</span><span class="sp"></span><span class="tag quiet">غیرفعال</span></div>
+              <div class="row"><span class="sub">یک پاسخ برای هر شخص</span><span class="sp"></span><span class="tag quiet">غیرفعال</span></div>
+              <p class="mnote">این دو گزینه غیرفعال‌اند: پاسخ‌دهندهٔ فرم عمومی در سرور احراز هویت نمی‌شود. جایگزین: ثبت‌نام را به رویداد وصل کنید تا تکراری‌بودن از روی موبایل/کد ملی در کارتابل دیده شود.</p>
+              <div id="inviteConfig" style="display:none"><label class="lbl" for="inviteCodes">کدها یا شناسه‌های مجاز</label><textarea class="input" id="inviteCodes" rows="3" maxlength="5000" placeholder="هر کد را در یک خط بنویسید"></textarea><div class="mnote">فقط فهرست نمونه در همین مرورگر است؛ احراز هویت یا محدودیت امن ایجاد نمی‌کند.</div></div>
+            </div>
+            </div>
+            <div>
+              <div class="sec-head"><h3>اطلاع‌رسانی به کارشناس</h3><span class="sh-sub">در دست ساخت</span></div>
+              <div class="stack tight">
+              <p class="mnote">ارسال خودکار پیام به کارشناس برای فرم‌ها هنوز در سرور ساخته نشده است. جایگزین: پاسخ‌ها را از «پاسخ‌ها» در مرکز فرم‌ها یا کارتابل مشترک در پنل پیگیری کنید.</p>
+              <div><label class="lbl" for="notifyTo">کجا ارسال شود</label>
+                <select id="notifyTo" class="input"><option value="">مسیر پیام به API متصل نیست؛ ارسالی انجام نمی‌شود</option></select></div>
+              <div><label class="lbl" for="deptPick">بخش</label>
+                <select id="deptPick" class="input"></select></div>
+              <div><label class="lbl" for="expertPick">کارشناس مسئول</label>
+                <select id="expertPick" class="input"></select>
+                <div class="mini" id="deptHint" style="margin-top:6px">اطلاعات بخش و کارشناس از سرور دریافت نشده است.</div></div>
+            </div>
+            </div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -530,26 +566,28 @@
     <section class="screen" id="s4">
       <div class="split">
         <div class="card paper">
-          <div class="title">مرور نهایی</div>
+          <div class="title">بازبینی و انتشار</div>
+          <p class="cap" style="margin-top:4px">خلاصهٔ آنچه ذخیره می‌شود. پس از ذخیره در سرور، آمادگی انتشار بررسی و دکمهٔ انتشار (فقط مالک) فعال می‌شود.</p>
           <div class="sumbox" style="margin-top:12px" id="review"></div>
           <hr class="hr"/>
           <div class="row tight">
             <button class="btn primary" id="publish" type="button"><svg class="i"><use href="#i-check"/></svg> ذخیرهٔ پیش‌نویس در سرور</button>
             <a class="btn" href="form.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-eye"/></svg> پیش‌نمایش کاربر</a>
-            <button class="btn quiet" id="copyEvent"><svg class="i"><use href="#i-copy"/></svg> شناسهٔ نمونهٔ رویداد</button>
+            <button class="btn quiet" id="copyEvent" hidden><svg class="i"><use href="#i-copy"/></svg> شناسهٔ نمونهٔ رویداد</button>
           </div>
         </div>
         <div class="stack">
           <div class="card">
-            <div class="head" style="margin-bottom:10px">نشانی و کیوآرکد</div>
+            <div class="head" style="margin-bottom:10px">پیوند عمومی و QR</div>
             <div class="row tight"><span class="num" style="direction:ltr" id="revLink">—</span><span class="sp"></span>
               <button class="btn sm quiet" data-copy="#revLink"><svg class="i"><use href="#i-copy"/></svg></button></div>
             <div style="display:grid;place-items:center;margin-top:12px" id="revQR"></div>
             <div class="mini" id="revQRNote" style="margin-top:8px">QR فقط متن نمونه دارد؛ نشانی عمومی یا مقصد استعلام نیست.</div>
           </div>
           <div class="card">
-            <div class="head" style="margin-bottom:10px">فهرست کارها</div>
-            <div class="stack tight" id="todos"></div>
+            <div class="sec-head"><h3>آمادگی انتشار</h3><button class="btn sm quiet sh-link" id="checkReady" type="button" hidden>بررسی از سرور</button></div>
+            <div class="stack tight" id="readyBox" aria-live="polite"></div>
+            <div class="stack tight" id="todos" style="margin-top:8px"></div>
           </div>
           <div class="card" id="doneCard" style="display:none;text-align:center">
             <div style="display:grid;place-items:center;margin-bottom:10px">
@@ -575,6 +613,13 @@
         </div>
       </div>
     </section>
+    <details class="adv" id="techDetails" style="margin:var(--sp-3) 0 0">
+      <summary>جزئیات فنی اتصال</summary>
+      <div class="adv-body">
+        <div class="cap" id="formCapabilityStatus" aria-live="polite">در حال بررسی قرارداد قابلیت‌های سرور…</div>
+        <div class="cap">پیش‌نویس، پاسخ‌ها، ظرفیت و صف انتظار در سرور همین سامانه نگه‌داری می‌شوند؛ انتشار و توقف فقط با حساب مالک انجام می‌شود. پرداخت فقط با پیکربندی امن سرور فعال می‌شود و رسید کارت‌به‌کارت به‌صورت دستی بازبینی می‌شود.</div>
+      </div>
+    </details>
     <p class="trustline center" data-trust="secure"></p>
   </main>
 </div>
@@ -593,6 +638,18 @@
   <input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="margin:12px 0" placeholder="جستجو؛ مثلاً کد ملی، امتیاز، استان"/>
   <div class="row tight" id="catChips" style="margin-bottom:6px"></div>
   <div id="catList"></div>
+</aside>
+
+<aside class="sheet" id="shPackConfirm" role="dialog" aria-label="اعمال بسته روی پرسش‌های فعلی">
+  <div class="grabber"></div>
+  <div class="row"><span class="head">این بسته با پرسش‌های فعلی چه کند؟</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <p class="sub" id="packConfirmNote" style="margin-top:10px"></p>
+  <p class="mnote">جایگزینی، پرسش‌ها و شرط‌های فعلی را از این پیش‌نویس برمی‌دارد (تا ذخیره در سرور، نسخهٔ سروری تغییر نمی‌کند).</p>
+  <div class="row" style="margin-top:14px;flex-wrap:wrap">
+    <button class="btn" id="packAppend" type="button">افزودن به انتهای پرسش‌ها</button>
+    <button class="btn stop" id="packReplace" type="button">جایگزینی پرسش‌ها</button>
+    <button class="btn quiet" type="button" data-close>انصراف</button>
+  </div>
 </aside>
 
 <aside class="sheet" id="shFinGroup" role="dialog" aria-label="گروه انتخاب">
@@ -679,7 +736,7 @@
     <div class="row"><span class="sub">اجباری <span class="required-dot"></span></span><span class="sp"></span><span class="switch" id="fdReq" role="switch" aria-label="اجباری بودن فیلد" aria-checked="false" tabindex="0"></span></div>
     <div class="row"><span class="sub">پیشنهاد از پروفایل در پیش‌نمایش محلی</span><span class="sp"></span><span class="switch" id="fdProf" role="switch" aria-label="پیشنهاد از پروفایل در پیش‌نمایش محلی" aria-checked="false" tabindex="0"></span></div>
     <div class="mnote">هیچ داده‌ای خودکار وارد نمی‌شود؛ در پیش‌نمایش محلی فقط با اقدام صریح کاربر پیشنهاد می‌شود. پیش‌پرکردن پروفایل در فرم عمومی سرور پشتیبانی نمی‌شود.</div>
-    <div class="row"><span class="sub">ستون خروجی اکسل</span><span class="sp"></span><span class="switch on" id="fdCol" role="switch" aria-label="ستون خروجی اکسل" aria-checked="true" tabindex="0"></span></div>
+    <div class="row"><span class="sub">ستون در خروجی CSV</span><span class="sp"></span><span class="switch on" id="fdCol" role="switch" aria-label="ستون خروجی اکسل" aria-checked="true" tabindex="0"></span></div>
     <hr class="hr"/>
     <div>
       <div class="lbl">شرط نمایش</div>
@@ -710,15 +767,15 @@
 /* ══ داده ══ */
 const TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
 const MODELS=[
-  {k:'registration',ic:'i-users',tn:'ثبت‌نام',d:'پاسخ سروری؛ ظرفیت و صف، همراهان و بلیت با شرط‌های مشخص؛ پرداخت فقط با مسیر امن backend'},
-  {k:'questionnaire',ic:'i-lines',tn:'پرسشنامه',d:'ثبت پاسخ عمومی سروری؛ تحلیل تخصصی هنوز فعال نیست'},
-  {k:'survey',ic:'i-check',tn:'نظرسنجی',d:'ثبت پاسخ سروری؛ ناشناس‌بودن یا آمار کامل تضمین نیست'},
-  {k:'contest',ic:'i-medal',tn:'مسابقه',d:'ثبت پاسخ عمومی سروری؛ رتبه‌بندی/قرعه‌کشی فعال نیست'},
-  {k:'exam',ic:'i-doc',tn:'آزمون',d:'ثبت پاسخ عمومی سروری؛ زمان‌سنجی و نمره‌دهی فعال نیست'},
-  {k:'attendance',ic:'i-flag',tn:'حضور و غیاب',d:'ثبت پاسخ عمومی؛ حضور واقعی تأیید نمی‌شود'},
-  {k:'datacollect',ic:'i-grid',tn:'ثبت اطلاعات',d:'ثبت پاسخ عمومی سروری'},
-  {k:'order',ic:'i-bag',tn:'سفارش',d:'تا پشتیبانی امن گردش سفارش/پرداخت قابل انتشار نیست'},
-  {k:'election',ic:'i-key',tn:'رأی‌گیری',d:'ثبت پاسخ عمومی؛ رأی یکتا/محرمانه تضمین نمی‌شود'}
+  {k:'registration',ic:'i-users',tn:'ثبت‌نام',d:'ثبت‌نام رویداد با ظرفیت، صف انتظار، همراهان و بلیت؛ پرداخت فقط از مسیر امن سرور'},
+  {k:'questionnaire',ic:'i-lines',tn:'پرسشنامه',d:'جمع‌آوری پاسخ؛ تحلیل تخصصی هنوز ساخته نشده است'},
+  {k:'survey',ic:'i-check',tn:'نظرسنجی',d:'جمع‌آوری نظر؛ ناشناس‌بودن و آمار کامل تضمین نمی‌شود'},
+  {k:'contest',ic:'i-medal',tn:'مسابقه',d:'دریافت پاسخ شرکت‌کننده‌ها؛ رتبه‌بندی و قرعه‌کشی هنوز ساخته نشده است'},
+  {k:'exam',ic:'i-doc',tn:'آزمون',d:'دریافت پاسخ؛ زمان‌سنجی و نمره‌دهی خودکار هنوز ساخته نشده است'},
+  {k:'attendance',ic:'i-flag',tn:'حضور و غیاب',d:'اعلام حضور با فرم؛ حضور واقعی را تأیید نمی‌کند'},
+  {k:'datacollect',ic:'i-grid',tn:'ثبت اطلاعات',d:'دریافت اطلاعات ساده از افراد'},
+  {k:'order',ic:'i-bag',tn:'سفارش',d:'گردش سفارش و پرداخت آن هنوز در سرور ساخته نشده است؛ قابل انتشار نیست'},
+  {k:'election',ic:'i-key',tn:'رأی‌گیری',d:'دریافت رأی با فرم؛ یکتا و محرمانه‌بودن رأی تضمین نمی‌شود'}
 ];
 let FORM_CAPABILITIES=null, FORM_CAPABILITY_STATE='checking', FORM_CAPABILITY_PROMISE=null;
 function modelCapability(model){
@@ -1105,6 +1162,8 @@ document.addEventListener('click',e=>{
   const pick=e.target.closest('[data-ev-pick]');if(pick){evPickSet(pick.dataset.evPick);return}
   if(e.target.closest('[data-ev-unlink]')){evPickSet('');return}
 });
+document.addEventListener('input',e=>{if(e.target&&e.target.closest&&e.target.closest('main.main')&&!e.target.closest('#ownerLoginForm'))markDirty()});
+document.addEventListener('change',e=>{if(e.target&&e.target.closest&&e.target.closest('main.main')&&!e.target.closest('#ownerLoginForm'))markDirty()});
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='evPickQ'){EVPICK.q=e.target.value;const box=$('#evPickBox');const list=box&&box.querySelector('[role="listbox"]');renderEvPick();const q=$('#evPickQ');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length)}catch(err){}}}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='evPickQ'){e.preventDefault();const first=evPickFilter()[0];if(first)evPickSet(first.id);else toast('نتیجه‌ای برای انتخاب نیست')}});
 function evHeadFill(){
@@ -1115,7 +1174,7 @@ function evHeadFill(){
   if(eh) eh.textContent=nm||S.title||'فرم تازه';
   const rh=$('#railHead'), rm=$('#railMeta');
   if(rh) rh.textContent=nm||S.title||'فرم تازه';
-  if(rm) rm.textContent=nm?('رویداد: '+nm):ACTIVE_SERVER_FORM?('نسخهٔ سروری '+faN(ACTIVE_SERVER_FORM.version||1)+' · '+(ACTIVE_SERVER_FORM.status||'draft')):'فرم‌ساز سروری';
+  if(rm) rm.textContent=nm?('رویداد: '+nm):ACTIVE_SERVER_FORM?('نسخهٔ '+faN(ACTIVE_SERVER_FORM.version||1)+' · '+formStatusLabel(ACTIVE_SERVER_FORM.status)):'فرم‌ساز سروری';
   if(em){
     if(nm) em.textContent=[QS.get('when'),QS.get('place'),S.cap?('ظرفیت '+faN(S.cap)):''].filter(Boolean).join(' · ');
     else if(!TEST_FIXTURE_MODE) em.textContent=S.evId?'فرم به رویداد «'+(evPickName(S.evId)||S.evId)+'» وصل می‌شود؛ پس از انتشار، ثبت‌نام در صفحهٔ همان رویداد باز می‌شود.':'رویدادی به این فرم متصل نیست.';
@@ -1131,10 +1190,15 @@ function evHeadFill(){
   }
   if(!TEST_FIXTURE_MODE) syncSaveButtonLabel();
 }
-const STEPS=[{k:'s1',n:'مدل و نام'},{k:'s2',n:'فیلدها و تنظیمات'},{k:'s3',n:'مالی و پرداخت'},{k:'s4',n:'مرور و ذخیرهٔ پیش‌نویس'}];
-const HINT={s1:'مدل را بزنید، بعد نام و نشانی را تأیید کنید',s2:'فیلدها را بچینید؛ تنظیمات همین‌جا کنارشان است',
-  s3:'مبالغ فقط نمونه‌اند؛ پرداخت واقعی فعال نیست',s4:'ذخیرهٔ پیش‌نویس با حساب مالک و اتصال پایگاه‌داده'};
+const STEPS=[{k:'s1',n:'شروع و نوع فرم'},{k:'s2',n:'پرسش‌ها'},{k:'s3',n:'تنظیمات و رفتار'},{k:'s4',n:'بازبینی و انتشار'}];
+const HINT={s1:'نوع فرم را انتخاب کنید، بعد عنوان و نشانی را تأیید کنید',s2:'پرسش‌ها را اضافه و مرتب کنید؛ تنظیم هر پرسش با «ویرایش»',
+  s3:'نمایش، ظرفیت، همراهان، پرداخت و متن پایان؛ همه با ذخیره در سرور ثبت می‌شوند',s4:'آمادگی را بررسی کنید، در سرور ذخیره کنید و سپس منتشر کنید'};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const FORM_STATUS_FA={draft:'پیش‌نویس',published:'منتشرشده',paused:'متوقف',archived:'بایگانی',closed:'بسته'};
+function formStatusLabel(status){return FORM_STATUS_FA[String(status||'draft')]||'پیش‌نویس'}
+/* نشانگر وضعیت ذخیره: idle/dirty/saving/saved/error/conflict — فقط از نتیجهٔ واقعی سرور تغییر می‌کند */
+function setSaveState(state,text){const el=$('#saveState');if(!el)return;el.dataset.state=state;el.textContent=text||{idle:'ذخیره‌نشده در سرور',dirty:'تغییرات ذخیره‌نشده',saving:'در حال ذخیره…',saved:'ذخیره شد',error:'ذخیره نشد',conflict:'نسخهٔ تازه‌تری روی سرور است'}[state]||''}
+function markDirty(){const el=$('#saveState');if(el&&(el.dataset.state==='saved'||el.dataset.state==='idle'))setSaveState(ACTIVE_SERVER_FORM?'dirty':'idle',ACTIVE_SERVER_FORM?'تغییرات ذخیره‌نشده':'ذخیره‌نشده در سرور')}
 const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
 const MAX_FIELDS=30;
 const MAX_TICKET_TYPES=20;
@@ -1399,33 +1463,39 @@ function renderTiles(){
   }
 }
 function fieldBlock(f,index){
-  const c=byT(f.t),cap=fieldCapability(f.t),supportTag=cap?capabilityTag(cap.status,cap.reason):'';
+  const c=byT(f.t),cap=fieldCapability(f.t),supportTag=cap&&cap.status!=='server'?capabilityTag(cap.status,cap.reason):'';
   const position=Math.max(0,+index||0)+1,total=(S.fields||[]).length;
+  const meta=[`<span><svg class="i" style="width:14px;height:14px"><use href="#${c.ic}"/></svg> ${esc(c.n)}</span>`,
+    f.req?'<span>اجباری</span>':'',
+    hasConditionRules(f)?'<span class="brand">شرطی · '+faN(conditionRulesForField(f).length)+' قاعده</span>':'',
+    f.help?'<span>راهنما دارد</span>':'',
+    f.media&&f.media!=='none'?'<span class="warn">رسانه فقط در پیش‌نمایش</span>':'',
+    f.verify?'<span class="warn">درخواست بررسی فقط در پیش‌نمایش</span>':'',
+    f.col===false?'<span>بدون ستون CSV</span>':'',
+    supportTag].filter(Boolean).join('<span aria-hidden="true">·</span>');
   return `<article class="block" data-block="${esc(f.id)}" role="listitem" aria-posinset="${position}" aria-setsize="${total}">
     ${f.req?'<span class="reqbar"></span>':''}
     <button type="button" class="handle" data-drag-handle="${esc(f.id)}" draggable="true" aria-label="دستهٔ جابه‌جایی پرسش «${esc(f.l)}»؛ با کلیدهای بالا و پایین مرتب کنید" aria-describedby="fieldReorderHelp" aria-keyshortcuts="ArrowUp ArrowDown"><svg class="i"><use href="#i-drag"/></svg></button>
     <div class="body">
-      <div class="qline">${esc(f.l)}${f.req?'<span class="required-dot"></span>':''}</div>
-      <div class="row tight" style="margin-top:6px">
-        <span class="tag"><svg class="i"><use href="#${c.ic}"/></svg> ${esc(c.n)}</span>
-        ${supportTag}
-        ${f.req?'<span class="tag req">اجباری</span>':''}
-        ${f.help?'<span class="tag"><svg class="i"><use href="#i-lines"/></svg> راهنما</span>':''}
-        ${f.media&&f.media!=='none'?'<span class="tag warn" title="رسانهٔ فیلد در پاسخ‌گیری سروری وصل نیست"><svg class="i"><use href="#i-image"/></svg> رسانه · فقط نمونه</span>':''}
-        ${f.verify?'<span class="tag warn" title="تأیید مالکیت/هویت به این فیلد وصل نیست"><svg class="i"><use href="#i-shield"/></svg> درخواست بررسی · فقط نمونه</span>':''}
-        ${hasConditionRules(f)?'<span class="tag brand"><svg class="i"><use href="#i-branch"/></svg> شرطی · '+faN(conditionRulesForField(f).length)+' قاعده</span>':''}
-        ${f.col===false?'<span class="tag quiet">خارج از خروجی اکسل</span>':''}
-      </div>
+      <div class="qline"><span class="cap" style="font-weight:400">${faN(position)}.</span> ${esc(f.l)}${f.req?'<span class="required-dot"></span>':''}</div>
+      <div class="qmeta">${meta}</div>
     </div>
-    <button class="icon-btn" data-edit="${esc(f.id)}" aria-label="تنظیم پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-sliders"/></svg></button>
-    <div class="ctxbar">
-      <button type="button" data-up="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به بالا" ${position<=1?'disabled':''}><svg class="i"><use href="#i-upload"/></svg></button>
-      <button type="button" data-down="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به پایین" ${position>=total?'disabled':''}><svg class="i"><use href="#i-download"/></svg></button>
-      <button data-edit="${esc(f.id)}" aria-label="تنظیم پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-sliders"/></svg></button>
-      <button data-copy="${esc(f.id)}" aria-label="کپی پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-copy"/></svg></button>
-      <button class="stop" data-del="${esc(f.id)}" aria-label="حذف پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-trash"/></svg></button>
+    <div class="qact">
+      <button type="button" class="btn sm quiet" data-edit="${esc(f.id)}" aria-label="ویرایش پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-sliders"/></svg> ویرایش</button>
+      <details class="rowmore">
+        <summary class="btn sm quiet" aria-label="گزینه‌های بیشتر برای پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-more"/></svg></summary>
+        <div class="menu" role="menu">
+          <button type="button" role="menuitem" data-up="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به بالا" ${position<=1?'disabled':''}><svg class="i"><use href="#i-upload"/></svg> انتقال به بالا</button>
+          <button type="button" role="menuitem" data-down="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به پایین" ${position>=total?'disabled':''}><svg class="i"><use href="#i-download"/></svg> انتقال به پایین</button>
+          <button type="button" role="menuitem" data-copy="${esc(f.id)}" aria-label="کپی پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-copy"/></svg> کپی پرسش</button>
+          <button type="button" role="menuitem" class="stop" data-del="${esc(f.id)}" aria-label="حذف پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-trash"/></svg> حذف پرسش</button>
+        </div>
+      </details>
     </div></article>`;
 }
+/* شرط‌های وابسته به یک پرسش (در پرسش‌های دیگر) — برای اعلام پیش از حذف/جابه‌جایی */
+function dependentRuleCount(id){return S.fields.reduce((n,x)=>n+conditionRulesForField(x).filter(r=>String(r.field)===String(id)).length,0)}
+function totalRuleCount(){return S.fields.reduce((n,x)=>n+conditionRulesForField(x).length,0)}
 function announceFieldMove(id){
   const index=S.fields.findIndex(field=>String(field.id)===String(id)),field=S.fields[index];
   const status=document.getElementById('fieldReorderStatus');
@@ -1435,7 +1505,8 @@ function moveFieldById(id,delta,{focus=true}={}){
   const from=S.fields.findIndex(field=>String(field.id)===String(id)),to=from+Number(delta||0);
   if(from<0||to<0||to>=S.fields.length||to===from)return false;
   [S.fields[from],S.fields[to]]=[S.fields[to],S.fields[from]];
-  normalizeFieldConditions();renderCanvas();announceFieldMove(id);
+  const before=totalRuleCount();normalizeFieldConditions();renderCanvas();announceFieldMove(id);
+  const dropped=before-totalRuleCount();if(dropped>0)toast(faN(dropped)+' شرط نمایش برداشته شد؛ شرط فقط می‌تواند به پرسش‌های قبل از خودش اشاره کند');
   if(focus){const handle=[...document.querySelectorAll('[data-drag-handle]')].find(item=>item.dataset.dragHandle===String(id));if(handle)handle.focus()}
   return true;
 }
@@ -1518,7 +1589,7 @@ function setBuiltInPaymentMethod(method,enabled){
   if(!CAN_MONEY){toast('تنظیم روش پرداخت فقط برای مالک است');return false}
   if(S.model!=='registration'){toast('روش‌های پرداخت فقط برای فرم ثبت‌نام فعال‌اند');return false}
   if(method==='bale_wallet'&&enabled&&!FORM_BALE_PAYMENTS_READY){
-    toast('پرداخت بله تا پیکربندی امن backend فعال نمی‌شود');return false;
+    toast('پرداخت بله تا پیکربندی امن سرور فعال نمی‌شود');return false;
   }
   if(method==='card_transfer'&&enabled&&!receiptCardReady()){
     toast('برای کارت‌به‌کارت، ابتدا کارت مقصد معتبر و فعال را در تنظیمات مالی آماده کن');return false;
@@ -1576,14 +1647,14 @@ function renderFinanceStatus(){
   const controlsEnabled=CAN_MONEY&&S.model==='registration';
   if(baleToggle){
     baleToggle.setAttribute('aria-disabled',String(!controlsEnabled||!FORM_BALE_PAYMENTS_READY));
-    baleToggle.title=!FORM_BALE_PAYMENTS_READY?'backend پرداخت بله به‌طور امن پیکربندی نشده است.':'';
+    baleToggle.title=!FORM_BALE_PAYMENTS_READY?'درگاه بله در سرور به‌طور امن پیکربندی نشده است.':'';
   }
   if(cardToggle){
     cardToggle.setAttribute('aria-disabled',String(!controlsEnabled||!cardReady));
     cardToggle.title=!cardReady?'کارت مقصد معتبر و فعال در تنظیمات مالی پیدا نشد.':'';
   }
   const item=(label,text,ok)=>`<div class="row"><span class="sub">${label}</span><span class="sp"></span><span class="tag ${ok?'ok':'warn'}">${text}</span></div>`;
-  const baleState=!controlsEnabled?'فقط برای فرم ثبت‌نام':!FORM_BALE_PAYMENTS_READY?'backend امن آماده نیست':baleSelected?'فعال برای این فرم':'انتخاب نشده';
+  const baleState=!controlsEnabled?'فقط برای فرم ثبت‌نام':!FORM_BALE_PAYMENTS_READY?'سرور امن آماده نیست':baleSelected?'فعال برای این فرم':'انتخاب نشده';
   const cardState=!controlsEnabled?'فقط برای فرم ثبت‌نام':!cardReady?'کارت مقصد معتبر نیست':cardSelected?'فعال · رسید و بازبینی دستی':'انتخاب نشده';
   const host=document.getElementById('createPaymentStatus');
   if(host)host.innerHTML=[item('کیف پول بله',baleState,baleSelected&&FORM_BALE_PAYMENTS_READY),
@@ -1708,14 +1779,13 @@ function renderReview(){
   const rows=[
     ['مدل',(MODELS.find(m=>m.k===S.model)||{tn:'—'}).tn],
     ['عنوان',S.title],
-    ['نشانی',safeSamplePath(S.slug)?'پیش‌نمایش محلی · '+safeSamplePath(S.slug):'نشانی عمومی غیرفعال · فقط نمونه'],
+    ['نشانی',ACTIVE_SERVER_FORM&&ACTIVE_SERVER_FORM.id?(ACTIVE_SERVER_FORM.status==='published'?'':'پس از انتشار: ')+publicFormHref(ACTIVE_SERVER_FORM):safeSamplePath(S.slug)?'پیش‌نمایش محلی · '+safeSamplePath(S.slug):'نشانی عمومی غیرفعال · فقط نمونه'],
     ['فیلدها',faN(S.fields.length)+' فیلد · '+faN(S.fields.filter(f=>f.req).length)+' اجباری'],
     ['نمایش',S.display==='one'?'هر مرحله یک سوال':'همه در یک صفحه'],
     ['جهت متن',S.dir==='ltr'?'چپ‌به‌راست':'راست‌به‌چپ'],
-    ['پس از ثبت نمونه',{edit:'ویرایش پاسخ',view:'فقط مشاهده',cancel:'پایان پیش‌نمایش'}[S.after]||'ویرایش پاسخ'],
+    ['پس از ثبت پاسخ',{edit:'ویرایش پاسخ',view:'فقط مشاهده',cancel:'پایان پیش‌نمایش'}[S.after]||'ویرایش پاسخ'],
     ['نمایش در صفحهٔ رویداد',S.eventVisible?'روشن':'خاموش'],
-    ['همگام‌سازی با رویداد','غیرفعال · backend هنوز آن را اجرا نمی‌کند'],
-    ['یک پاسخ برای هر شخص','غیرفعال · هویت پاسخ‌دهنده احراز نمی‌شود'],
+    ['قابلیت‌های غیرفعال','همگام‌سازی با رویداد و یک پاسخ برای هر شخص؛ غیرفعال، سرور هنوز آن‌ها را اجرا نمی‌کند'],
     ['بازه',S.start||S.end?S.start+' تا '+S.end+' · محلی؛ انتشار تا پشتیبانی سرور مسدود است':'تنظیم نشده · پاسخ‌گیری بدون زمان‌بندی'],
     ['ظرفیت',faN(S.cap)+' نفر + '+faN(S.wait)+' نفر صف انتظار · تنظیم سروری'],
     ['محدودیت',S.limit==='none'?'بدون محدودیت هویتی · سروری':'غیرفعال · محدودیت رویداد/دعوت در سرور احراز نمی‌شود'],
@@ -1739,17 +1809,61 @@ function renderReview(){
     ['رسانهٔ ابتدا',S.introMedia?({'image':'تصویر','file':'فایل','video':'ویدیو'}[S.introMedia]||'انتخاب‌شده')+' · نشان نمونه':'ندارد']
   ];
   $('#review').innerHTML=rows.map(([k,v])=>`<div class="r"><span class="mute">${esc(k)}</span><span style="text-align:end">${esc(v)}</span></div>`).join('');
-  const localPath=safeSamplePath(S.slug);
-  $('#revLink').textContent=localPath?'پیش‌نمایش محلی · '+localPath:'نشانی عمومی غیرفعال · فقط نمونه';
-  $('#revQR').innerHTML=qrSVG('SAMPLE-FORM:'+String(localPath||'LOCAL'),104,{label:'متن نمونه، بدون پیوند عمومی'});
-  const qrNote=$('#revQRNote'); if(qrNote) qrNote.textContent='این QR نشانی وب یا فرم عمومی ندارد؛ فقط برچسب متنیِ نمونه را نگه می‌دارد.';
-  const todos=[['عنوان و توضیحات',!!S.title&&S.intro.length>10],['حداقل سه فیلد',S.fields.length>=3],
+  const localPath=safeSamplePath(S.slug),srv=ACTIVE_SERVER_FORM&&ACTIVE_SERVER_FORM.id?ACTIVE_SERVER_FORM:null;
+  let publicUrl='';if(srv){try{publicUrl=new URL(publicFormHref(srv),location.href).href}catch(e){publicUrl=publicFormHref(srv)}}
+  if(srv&&srv.status==='published'){
+    /* فرم منتشرشدهٔ سروری: پیوند و QR واقعی با شناسهٔ سرور */
+    $('#revLink').textContent=publicUrl;
+    $('#revQR').innerHTML=qrSVG(publicUrl,104,{label:'پیوند عمومی فرم'});
+    const qrNote=$('#revQRNote'); if(qrNote) qrNote.textContent='این QR به فرم عمومی منتشرشده اشاره می‌کند؛ هرکس آن را بخواند می‌تواند پاسخ دهد.';
+  }else{
+    $('#revLink').textContent=srv?'پس از انتشار: '+publicUrl:(localPath?'پیش‌نمایش محلی · '+localPath:'نشانی عمومی غیرفعال · فقط نمونه');
+    $('#revQR').innerHTML=qrSVG('SAMPLE-FORM:'+String(localPath||'LOCAL'),104,{label:'متن نمونه، بدون پیوند عمومی'});
+    const qrNote=$('#revQRNote'); if(qrNote) qrNote.textContent=srv?'تا انتشار، این QR نشانی وب ندارد و فقط برچسب نمونه است؛ پس از انتشار به پیوند عمومی وصل می‌شود.':'این QR نشانی وب یا فرم عمومی ندارد؛ فقط برچسب متنیِ نمونه را نگه می‌دارد.';
+  }
+  renderReadinessShell();
+  const todos=[['عنوان و توضیحات',!!S.title&&S.intro.length>10],['دست‌کم یک پرسش',S.fields.length>=1],
     ['مورد مالی',!hasFin||!!(CAN_MONEY&&S.fin.length)],
-    ['روش پرداخت',S.receiptReviewRequired?(!hasFin&&receiptCardReady()):(!hasFin||cardPaymentReady())],
-    ['پیوند پایانی',S.links.length>0],['کارشناس مسئول',!!S.notify.expert]];
+    ['روش پرداخت',S.receiptReviewRequired?(!hasFin&&receiptCardReady()):(!hasFin||cardPaymentReady())]];
+  /* فهرست محلی فقط تا پیش از ذخیره در سرور؛ بعد از آن آمادگی واقعی از endpoint سرور می‌آید */
+  $('#todos').hidden=!!(ACTIVE_SERVER_FORM&&ACTIVE_SERVER_FORM.id);
   $('#todos').innerHTML=todos.map(([t,ok])=>
     `<div class="row"><svg class="i" style="color:${ok?'var(--ok)':'var(--warn)'}"><use href="#${ok?'i-check':'i-bell'}"/></svg><span class="sub">${t}</span></div>`).join('');
 }
+/* آمادگی انتشار از endpoint واقعی؛ هر مورد به قدم/تنظیم مربوط پیوند دارد */
+const READY_TARGET={empty_form:['s2','#addTop'],companion_answers_required:['s3','#compFields'],companion_identity_questions_required:['s3','#compFields'],invalid_companion_setting:['s3','#maxPer'],
+  payment_required:['s3','#addFin'],payment_card_required:['s3','#receiptReviewRequired'],invalid_receipt_review_setting:['s3','#receiptReviewRequired'],receipt_review_requires_registration:['s1','#tiles'],
+  nora_pay_not_connected:['s3','#enableBaleWallet'],invalid_nora_pay_setting:['s3','#enableBaleWallet'],schedule_not_connected:['s3','#clearSchedule'],external_limit_not_connected:['s3','#limitMode'],
+  media_not_connected:['s2','#introMedia'],recording_not_found:['s1','#purchaseFormBox'],purchase_form_already_published:['s1','#purchaseFormBox'],unknown_reference:['s1','#evPickBox']};
+let READY_STATE={state:'idle',issues:[],version:null};
+function renderReadinessShell(){
+  const box=$('#readyBox'),btn=$('#checkReady');if(!box)return;
+  const srv=ACTIVE_SERVER_FORM&&ACTIVE_SERVER_FORM.id?ACTIVE_SERVER_FORM:null;
+  if(btn)btn.hidden=!srv||TEST_FIXTURE_MODE;
+  if(!srv){box.innerHTML='<div class="cap">پس از ذخیره در سرور، آمادگی انتشار از همان سرور بررسی می‌شود.</div>';return}
+  if(READY_STATE.state==='loading'){box.innerHTML='<div class="state loading compact"><span class="skel"></span><span class="st-text">در حال بررسی آمادگی از سرور…</span></div>';return}
+  if(READY_STATE.state==='error'){box.innerHTML='<div class="state error compact"><span class="st-text">'+esc(READY_STATE.message||'بررسی آمادگی انجام نشد')+'</span><button type="button" class="btn sm quiet" data-ready-retry>تلاش دوباره</button></div>';return}
+  if(READY_STATE.state==='ready'){
+    if(!READY_STATE.issues.length){box.innerHTML='<div class="row"><svg class="i" style="color:var(--ok)"><use href="#i-check"/></svg><span class="sub">'+(srv.status==='published'?'فرم منتشر است و پاسخ می‌پذیرد.':'فرم آمادهٔ انتشار است'+(CURRENT_EDITOR_ROLE==='owner'?'؛ از کارت زیر منتشر کنید.':'؛ انتشار با حساب مالک انجام می‌شود.'))+'</span></div>';return}
+    box.innerHTML=READY_STATE.issues.map(issue=>{const t=READY_TARGET[issue.code];return '<div class="row" style="align-items:flex-start"><svg class="i" style="color:var(--warn);flex:0 0 auto"><use href="#i-bell"/></svg><span class="sub" style="flex:1">'+esc(issue.message||issue.code)+'</span>'+(t?'<button type="button" class="btn sm quiet" data-ready-go="'+esc(t[0])+'" data-ready-focus="'+esc(t[1])+'">رفتن به تنظیم</button>':'')+'</div>'}).join('');
+    return;
+  }
+  box.innerHTML='<div class="cap">برای دیدن موارد لازم پیش از انتشار، «بررسی از سرور» را بزنید.</div>';
+}
+async function checkServerReadiness(){
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI,srv=ACTIVE_SERVER_FORM;
+  if(!srv||!api||typeof api.getFormReadiness!=='function'||TEST_FIXTURE_MODE)return;
+  READY_STATE={state:'loading',issues:[],version:null};renderReadinessShell();
+  try{
+    const r=await api.getFormReadiness(srv.id);
+    READY_STATE={state:'ready',issues:Array.isArray(r&&r.issues)?r.issues:[],version:r&&r.version};
+  }catch(error){READY_STATE={state:'error',issues:[],message:ownerApiErrorText(error)}}
+  renderReadinessShell();
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('#checkReady')||e.target.closest('[data-ready-retry]')){checkServerReadiness();return}
+  const g=e.target.closest('[data-ready-go]');if(g){go(g.dataset.readyGo);const el=document.querySelector(g.dataset.readyFocus||'');if(el){const adv=el.closest('details');if(adv)adv.open=true;try{el.scrollIntoView({block:'center'})}catch(err){}if(el.focus)el.focus()}}
+});
 function renderCatalog(){
   const q=($('#catSearch').value||'').trim();
   const groups=['همه',...new Set(CATALOG.map(c=>c.g))];
@@ -1771,7 +1885,7 @@ function slugView(){
   const path=safeSamplePath(S.slug);
   $('#slugView').textContent=path?'پیش‌نمایش محلی · '+path:'نشانی عمومی غیرفعال · فقط نمونه';
   const btn=$('#copyEvent');
-  if(btn){btn.dataset.copy=path?'LOCAL SAMPLE ONLY · '+path:'LOCAL SAMPLE ONLY · NO PUBLIC LINK';
+  if(btn){btn.hidden=!TEST_FIXTURE_MODE;btn.dataset.copy=path?'LOCAL SAMPLE ONLY · '+path:'LOCAL SAMPLE ONLY · NO PUBLIC LINK';
     btn.dataset.copyMsg='شناسهٔ متنیِ نمونه کپی شد؛ نشانی عمومی یا مقصد واقعی نیست';
     btn.title='شناسهٔ محلی نمونه؛ لینک عمومی نیست'}
   $('#slugNote').textContent=S.slugAuto!==false?'نشانی از عنوان ساخته می‌شود؛ فقط مسیر نمونه است و فرم عمومی نمی‌سازد.':'نشانی دستی است؛ لینک عمومی یا انتشار ایجاد نمی‌شود.';
@@ -1782,9 +1896,9 @@ function go(k){
   S.step=k;
   $$('.screen').forEach(s=>s.classList.toggle('on',s.id===k));
   renderStepper();
-  if(k==='s2'){renderCanvas();initAll($('#morePanel'))}
+  if(k==='s2'){renderCanvas()}
   if(k==='s3'){renderFinanceStatus();renderFin();renderCoupon();renderPreview();initAll($('#s3'))}
-  if(k==='s4') renderReview();
+  if(k==='s4'){renderReview();if(ACTIVE_SERVER_FORM&&!TEST_FIXTURE_MODE&&READY_STATE.state==='idle')checkServerReadiness()}
   window.scrollTo({top:0,behavior:'instant'});
 }
 function addField(t){
@@ -1794,8 +1908,12 @@ function addField(t){
   S.fields.push(f); renderCanvas(); closeSheets(); editField(f.id);
   if($('#shField').classList.contains('on')) $('#shField').scrollTop=0;
 }
-function applyPack(id){
-  if(id==='empty'){S.fields=[];S.pack='empty';renderCanvas();openSheet('shAdd');return}
+let PENDING_PACK=null;
+function applyPack(id,mode){
+  /* با وجود پرسش‌های فعلی، جایگزینی بی‌تأیید انجام نمی‌شود: جایگزینی / افزودن به انتها / انصراف */
+  if(id!=='save'&&S.fields.length&&!mode){PENDING_PACK=id;const n=$('#packConfirmNote');if(n)n.textContent=faN(S.fields.length)+' پرسش فعلی'+(totalRuleCount()?' و '+faN(totalRuleCount())+' شرط نمایش':'')+' روی این فرم است.';
+    const app=$('#packAppend');if(app)app.hidden=id==='empty';openSheet('shPackConfirm');return}
+  if(id==='empty'){S.fields=[];S.pack='empty';renderCanvas();markDirty();openSheet('shAdd');return}
   if(id==='save'){if(!S.fields.length){toast('برای ذخیره، دست‌کم یک فیلد بچینید');return}
     $('#packName').value='';openSheet('shPackSave');return}
   const preset=PACKS.find(x=>x.id===id);
@@ -1814,7 +1932,12 @@ function applyPack(id){
       .map(r=>({field:idMap.get(String(r.field)),op:r.op,value:r.value}));
     writeConditionRules(f,rules,logic);
   });
-  S.pack=id; S.fields=rows; renderCanvas();
+  if(mode==='append'){
+    if(S.fields.length+rows.length>MAX_FIELDS){toast('با این بسته تعداد پرسش‌ها از '+faN(MAX_FIELDS)+' بیشتر می‌شود');return}
+    S.fields=S.fields.concat(rows);
+  }else{S.pack=id; S.fields=rows;}
+  renderCanvas();markDirty();closeSheets();
+  toast(mode==='append'?faN(rows.length)+' پرسش به انتهای فرم اضافه شد':'پرسش‌های فرم با بسته جایگزین شد');
 }
 let editing=null,catGroup='همه',conditionDraft=[],conditionLogicDraft='all';
 const MAX_CONDITION_RULES=10;
@@ -2160,7 +2283,7 @@ function validateBeforeSave(){
     go('s3'); toast('برای کارت‌به‌کارت، ابتدا یک کارت فعال و معتبر در روش‌های پرداخت سامانه داشته باشید'); return false;
   }
   if(S.enabledPaymentMethods.includes('bale_wallet')&&!FORM_BALE_PAYMENTS_READY){
-    go('s3');toast('پرداخت بله تا راه‌اندازی امن backend در این فرم فعال نمی‌شود');return false;
+    go('s3');toast('پرداخت بله تا راه‌اندازی امن سرور در این فرم فعال نمی‌شود');return false;
   }
   const blankPaymentMethodIndex=S.methods.findIndex(method=>!String(method.name||'').trim());
   if(blankPaymentMethodIndex>=0){
@@ -2213,14 +2336,38 @@ function validateBeforeSave(){
   return true;
 }
 
+const OWNER_OK_STATES=['آمادهٔ مالک','آمادهٔ ذخیره','ذخیره شد','منتشر شد','فرم سروری','مالک · متصل','مدیر · متصل','سرپرست باشگاه · متصل'];
 function setOwnerApiState(state,message){
   const tag=$('#ownerApiState'), note=$('#ownerApiMessage');
-  if(tag){tag.textContent=state;tag.className='tag '+(['آمادهٔ مالک','آمادهٔ ذخیره'].includes(state)?'brand':'warn')}
+  if(tag){tag.textContent=state;tag.className='tag '+(OWNER_OK_STATES.includes(state)?'ok':state==='در حال بررسی ورود…'?'quiet':'warn')}
   if(note&&message) note.textContent=message;
+  const toggle=$('#ownerLoginToggle'),member=$('#memberLoginLink'),logout=$('#ownerLogoutButton'),formOpen=$('#ownerLoginForm')&&$('#ownerLoginForm').style.display!=='none';
+  if(toggle)toggle.style.display=OWNER_AUTHENTICATED||formOpen||state==='در حال بررسی ورود…'?'none':'';
+  if(member)member.style.display=OWNER_AUTHENTICATED||formOpen||state==='در حال بررسی ورود…'?'none':'';
+  if(logout)logout.style.display=OWNER_AUTHENTICATED?'':'none';
+}
+/* بررسی خودکار نشست هنگام بارگذاری (فرم تازه): نقش از سرور، نه از مرورگر */
+async function resolveEditorSession(){
+  if(TEST_FIXTURE_MODE||ACTIVE_SERVER_FORM)return;
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.me!=='function')return;
+  try{
+    const session=await formEditorSession(api);
+    CURRENT_EDITOR_ROLE=session.role||null;OWNER_AUTHENTICATED=true;
+    setFinanceAccess(sessionHasFinance(session));
+    const role=CURRENT_EDITOR_ROLE==='owner'?'مالک':CURRENT_EDITOR_ROLE==='club-supervisor'?'سرپرست باشگاه':'مدیر';
+    setOwnerApiState(role+' · متصل',CURRENT_EDITOR_ROLE==='owner'?'می‌توانید پیش‌نویس را ذخیره و منتشر کنید.':'می‌توانید پیش‌نویس بسازید و ذخیره کنید؛ انتشار فقط با مالک است.');
+  }catch(error){
+    CURRENT_EDITOR_ROLE=null;OWNER_AUTHENTICATED=false;
+    if(error&&error.status===401)setOwnerApiState('ورود لازم است','برای ذخیره در سرور وارد شوید؛ تا آن زمان می‌توانید فرم را بچینید.');
+    else if(error&&error.status===403)setOwnerApiState('بدون مجوز ساخت فرم','این حساب مجوز «ساخت فرم» ندارد؛ از مالک بخواهید مجوز بدهد.');
+    else setOwnerApiState('اتصال بررسی نشد',ownerApiErrorText(error));
+  }
 }
 function ownerLoginPanel(show,message){
   const form=$('#ownerLoginForm'); if(form) form.style.display=show?'block':'none';
   const toggle=$('#ownerLoginToggle'); if(toggle) toggle.style.display=OWNER_AUTHENTICATED||show?'none':'';
+  const member=$('#memberLoginLink'); if(member) member.style.display=OWNER_AUTHENTICATED||show?'none':'';
   const logout=$('#ownerLogoutButton'); if(logout) logout.style.display=OWNER_AUTHENTICATED?'':'none';
   if(message) setOwnerApiState(show?'ورود مالک لازم است':'بررسی اتصال',message);
   if(show){const panel=$('#ownerApiPanel'); if(panel&&panel.scrollIntoView) panel.scrollIntoView({behavior:'smooth',block:'center'});
@@ -2253,8 +2400,25 @@ function formFromServer(record){
 function publicFormHref(form){
   return 'form.html?fid='+encodeURIComponent(String(form&&form.id||''))+'&kind='+encodeURIComponent(String(form&&form.need||'reg'));
 }
+/* نوار قفل: فرم منتشرشده (یا پاسخ‌دار) ساختارش در سرور قفل است؛ مسیر امن = توقف یا نسخهٔ تازه */
+function renderLockBar(){
+  const bar=$('#lockBar');if(!bar)return;
+  const f=ACTIVE_SERVER_FORM,responses=Number(f&&(f.response_count!=null?f.response_count:f.responses))||0;
+  const published=!!(f&&f.status==='published'),hasResponses=responses>0;
+  bar.hidden=!(published||hasResponses);
+  if(bar.hidden)return;
+  const t=$('#lockTitle'),x=$('#lockText');
+  if(t)t.textContent=published?'این فرم منتشر شده و پاسخ می‌پذیرد':'این فرم '+faN(responses)+' پاسخ دارد';
+  if(x)x.textContent=published
+    ?'ساختار فرم منتشرشده در سرور قفل است تا پاسخ‌های دریافتی معتبر بمانند؛ تغییرات این صفحه ذخیره نمی‌شوند. برای ویرایش، پاسخ‌گیری را از «پاسخ‌ها و انتشار» متوقف کنید یا نسخهٔ تازه‌ای از روی همین فرم بسازید.'
+    :'پرسش‌های فرمی که پاسخ دارد قابل تغییر نیستند تا پاسخ‌ها معنی‌دار بمانند. برای تغییر ساختار، نسخهٔ تازه‌ای از روی همین فرم بسازید.';
+  const dup=$('#lockDuplicate');if(dup){const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;dup.disabled=!(api&&typeof api.duplicateForm==='function');dup.title=dup.disabled?'ساخت نسخهٔ تازه در این نسخهٔ سرور فعال نیست':''}
+  const center=$('#lockOpenCenter');if(center&&f&&f.id)center.href='builder.html?fid='+encodeURIComponent(String(f.id));
+  const save=$('#publish');if(save){if(published){save.setAttribute('aria-disabled','true');save.classList.add('disabled');save.title='فرم منتشرشده در سرور قفل است؛ ذخیرهٔ ساختار پذیرفته نمی‌شود'}else{save.removeAttribute('aria-disabled');save.classList.remove('disabled');save.title=''}}
+}
 function updateDoneCard(saved,mirrored,verified=true){
   if(!saved)return;
+  renderLockBar();
   const published=saved.status==='published',paused=saved.status==='paused';
   const heading=$('#doneCard .head');if(heading)heading.textContent=published?(verified?'فرم منتشر شد':'آخرین وضعیت همگام‌شده: منتشرشده'):
     paused?(verified?'پاسخ‌گیری متوقف است':'آخرین وضعیت همگام‌شده: متوقف'):'پیش‌نویس در پایگاه‌داده ذخیره شد';
@@ -2320,10 +2484,10 @@ async function restoreFormEditorSession(){
     setFinanceAccess(sessionHasFinance(session));
     ownerLoginPanel(false);
     const role=CURRENT_EDITOR_ROLE==='owner'?'مالک':CURRENT_EDITOR_ROLE==='club-supervisor'?'سرپرست باشگاه':'مدیر';
-    setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+ACTIVE_SERVER_FORM.status+'. دسترسی سروریِ '+role+' تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است.');
+    setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+formStatusLabel(ACTIVE_SERVER_FORM.status)+'. دسترسی سروریِ '+role+' تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است.');
   }catch(error){
     CURRENT_EDITOR_ROLE=null;OWNER_AUTHENTICATED=false;
-    if(error&&error.status===401)setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+ACTIVE_SERVER_FORM.status+'. برای ویرایش یا تغییر وضعیت، ورود معتبر سرور لازم است.');
+    if(error&&error.status===401)setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+formStatusLabel(ACTIVE_SERVER_FORM.status)+'. برای ویرایش یا تغییر وضعیت، ورود معتبر سرور لازم است.');
   }
   updateDoneCard(ACTIVE_SERVER_FORM,true,false);
 }
@@ -2382,7 +2546,7 @@ async function saveServerDraft(row){
   const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
   if(!api){setOwnerApiState('API در دسترس نیست','اتصال سرور فرم‌ساز بارگذاری نشده است؛ هیچ نسخهٔ محلی به‌جای ذخیرهٔ سروری ساخته نمی‌شود.');
     toast('API فرم‌ساز در دسترس نیست؛ ذخیره انجام نشد');return}
-  OWNER_API_BUSY=true;
+  OWNER_API_BUSY=true;setSaveState('saving');
   const button=$('#publish'); if(button){button.disabled=true;button.setAttribute('aria-busy','true')}
   try{
     const health=await api.health();
@@ -2415,7 +2579,7 @@ async function saveServerDraft(row){
       record=await api.createForm(payload,CREATE_DRAFT_KEY);
     }
     const saved=formFromServer(record);
-    ACTIVE_SERVER_FORM=saved; S.fid=saved.id; S.confirmed=true;
+    ACTIVE_SERVER_FORM=saved; S.fid=saved.id; S.confirmed=true;setSaveState('saved','ذخیره شد · نسخهٔ '+faN(saved.version));renderLockBar();READY_STATE={state:'idle',issues:[],version:null};if(!TEST_FIXTURE_MODE)checkServerReadiness();
     let mirrored=false;
     try{mirrored=!!(window.NORA_UI&&typeof NORA_UI.formPut==='function'&&NORA_UI.formPut(saved))}catch(e){mirrored=false}
     $('#doneCard').style.display='block';
@@ -2431,12 +2595,13 @@ async function saveServerDraft(row){
       return;
     }
     const editorRole=editorSession.role==='owner'?'مالک':editorSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
-    setOwnerApiState('آمادهٔ ذخیره','دسترسی سروریِ '+editorRole+' تأیید شد. فرم با نسخهٔ '+faN(saved.version)+' در سرور ذخیره شد؛ وضعیت: '+saved.status+'.');
+    setOwnerApiState('آمادهٔ ذخیره','دسترسی سروریِ '+editorRole+' تأیید شد. فرم با نسخهٔ '+faN(saved.version)+' در سرور ذخیره شد؛ وضعیت: '+formStatusLabel(saved.status)+'.');
     ownerLoginPanel(false);
     toast(saved.status==='published'?'فرم عمومی به‌روزرسانی شد':'پیش‌نویس در پایگاه‌داده ذخیره شد');
     CREATE_DRAFT_KEY=newIdempotencyKey();
   }catch(err){
     const message=ownerApiErrorText(err);
+    setSaveState(err&&err.status===409?'conflict':'error',err&&err.status===409?(err.code==='version_conflict'?'نسخهٔ تازه‌تری روی سرور است':'فرم قفل است'):err&&err.status===401?'ورود لازم است':'ذخیره نشد');
     setOwnerApiState(err&&err.status===401?'ورود مالک لازم است':'ذخیره نشد',message);
     if(err&&err.status===401){OWNER_AUTHENTICATED=false;PENDING_DRAFT_ROW=row;ownerLoginPanel(true,message)}
     else {PENDING_DRAFT_ROW=null;toast(message)}
@@ -2593,6 +2758,9 @@ document.addEventListener('click',e=>{
   }
   const mo=e.target.closest('[data-model]'); if(mo){if(isPurchaseForm()&&mo.dataset.model!=='registration'){toast('فرم خرید فقط با مدل ثبت‌نام ساخته می‌شود');return}S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();renderReview();return}
   const qk=e.target.closest('[data-quick]'); if(qk){applyPack(qk.dataset.quick);return}
+  if(e.target.closest('#packReplace')){const id=PENDING_PACK;PENDING_PACK=null;if(id)applyPack(id,'replace');return}
+  if(e.target.closest('#packAppend')){const id=PENDING_PACK;PENDING_PACK=null;if(id)applyPack(id,'append');return}
+  if(!e.target.closest('details.rowmore'))$$('details.rowmore[open]').forEach(d=>{d.open=false});
   const ad=e.target.closest('[data-add]'); if(ad){addField(ad.dataset.add);return}
   const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();return}
   const ed=e.target.closest('[data-edit]'); if(ed){editField(ed.dataset.edit);return}
@@ -2600,8 +2768,9 @@ document.addEventListener('click',e=>{
     const src=S.fields.find(x=>String(x.id)===String(cp.dataset.copy));
     if(src) S.fields.splice(S.fields.indexOf(src)+1,0,Object.assign({},src,{id:S.uid++,opts:(src.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o)),
       conditions:conditionRulesForField(src).map(r=>Object.assign({},r))}));
-    renderCanvas();toast('کپی شد');return}
-  const dl=e.target.closest('[data-del]'); if(dl){const id=String(dl.dataset.del);S.fields=S.fields.filter(x=>String(x.id)!==id);normalizeFieldConditions();renderCanvas();toast('حذف شد');return}
+    renderCanvas();markDirty();toast('کپی شد؛ پرسش تازه زیر همان پرسش قرار گرفت');return}
+  const dl=e.target.closest('[data-del]'); if(dl){const id=String(dl.dataset.del);const dep=dependentRuleCount(id);S.fields=S.fields.filter(x=>String(x.id)!==id);normalizeFieldConditions();renderCanvas();markDirty();
+    toast(dep>0?'پرسش حذف شد؛ '+faN(dep)+' شرط نمایش که به آن وابسته بود هم برداشته شد':'پرسش حذف شد');return}
   const up=e.target.closest('[data-up]'); if(up){moveFieldById(up.dataset.up,-1);return}
   const dn=e.target.closest('[data-down]'); if(dn){moveFieldById(dn.dataset.down,1);return}
   const bl=e.target.closest('[data-block]'); if(bl){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return}
@@ -2645,7 +2814,7 @@ document.addEventListener('click',e=>{
   if(sw){
     e.stopImmediatePropagation();
     if(['syncLimitTop','syncLimitLive','syncCapDates','onePerPerson'].includes(sw.id)){
-      toast('این قابلیت به backend وصل نیست و فعال نمی‌شود');return;
+      toast('این قابلیت هنوز در سرور ساخته نشده و فعال نمی‌شود');return;
     }
     const on=!sw.classList.contains('on');
     if(sw.id==='ticketingEnabled'){
@@ -2869,6 +3038,7 @@ $('#btnBack').onclick=()=>{const i=STEPS.findIndex(s=>s.k===S.step); if(i>0) go(
 initUI();
 applyFinanceAccess();
 void resolveFinanceAccess();
+void resolveEditorSession();
 /* بخش و کارشناس مسئول: فهرست کارشناسان از بخش می‌آید */
 (()=>{const dp=$('#deptPick'), ep=$('#expertPick'); if(!dp||!ep) return;
   const notifyTo=$('#notifyTo');
@@ -2984,7 +3154,7 @@ try{
 if(ACTIVE_SERVER_FORM){
   $('#doneCard').style.display='block';
   updateDoneCard(ACTIVE_SERVER_FORM,true,false);
-  setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+ACTIVE_SERVER_FORM.status+'. پیش از تغییر وضعیت، تازه‌ترین نسخه از API خوانده می‌شود؛ تغییر وضعیت نیازمند ورود مالک است.');
+  setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+formStatusLabel(ACTIVE_SERVER_FORM.status)+'. پیش از تغییر وضعیت، تازه‌ترین نسخه از API خوانده می‌شود؛ تغییر وضعیت نیازمند ورود مالک است.');
   restoreFormEditorSession();
 }else if(SERVER_FORM_CACHE_MISSING){
   setOwnerApiState('فرم دریافت نشده','برای ویرایش، فهرست سروری را در فرم‌ساز تازه کنید؛ دادهٔ محلی جایگزین نمی‌شود.');

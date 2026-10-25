@@ -3008,7 +3008,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(saved&&saved.fields[0].col===false&&saved.fields[0].req===true&&saved.introMediaNote==='یادداشت پوستر'&&saved.notify.on===false,
     'ویژگی‌های فیلد و رسانه حفظ شدند و اعلان بیرونی همچنان خاموش ماند');
   const builderText=fs.readFileSync(DIR+'create.html','utf8');
-  ok(builderText.includes('رسید را در همین فرم بارگذاری می‌کند')&&builderText.includes('بلیت فقط پس از تأیید دستی از backend آماده می‌شود')
+  ok(builderText.includes('رسید را در همین فرم بارگذاری می‌کند')&&builderText.includes('بلیت فقط پس از تأیید دستی در سرور آماده می‌شود')
       &&!builderText.includes('فیش در ربات بله به کارتابل مدیر می‌رود'),
     'متن واقعی فرم‌ساز می‌گوید فیش داخل فرم است و بلیت پیش از بررسی مدیر به Bale می‌آید');
   const createCall=apiMock.calls.find(call=>call.path==='/api/forms'&&call.method==='POST');
@@ -3212,9 +3212,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'نمایش در کارت رویداد با کلید مستقل خاموش می‌شود');
   ok(!p.doc.querySelector('#syncCapDates')&&!p.doc.querySelector('#syncLimitTop')
       &&!p.doc.querySelector('#syncLimitLive')&&!p.doc.querySelector('#onePerPerson')
-      &&p.txt('#s2').includes('همگام‌سازی ظرفیت و تاریخ‌ها با رویداد')
-      &&p.txt('#s2').includes('غیرفعال · ظرفیت را اینجا تنظیم کنید')
-      &&p.txt('#s2').includes('هویت پاسخ‌دهنده ناشناس است'),
+      &&p.txt('#s3').includes('همگام‌سازی خودکار ظرفیت با رویداد')
+      &&p.txt('#s3').includes('سرور هنوز ظرفیت رویداد و فرم را به هم وصل نمی‌کند')
+      &&p.txt('#s3').includes('در سرور احراز هویت نمی‌شود'),
     'همگام‌سازی رویداد و تضمین یک پاسخ حذف شده‌اند و دلیل نبود احراز هویت کنارشان مانده است');
   ok(p.txt('#review').includes('همه در یک صفحه')&&p.txt('#review').includes('چپ‌به‌راست')
       &&p.txt('#review').includes('فقط مشاهده')&&p.txt('#review').includes('غیرفعال')
@@ -3279,7 +3279,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&p.txt('#limitModeHelp').includes('در سرور احراز نمی‌شوند'),
     'ثبت‌نام رویداد، حضور و کد دعوت از کاتالوگ انتخاب قابل‌انتشار نیستند و دلیل به‌روشنی نوشته شده');
   ok(!p.doc.querySelector('#syncLimitLive')&&!p.doc.querySelector('#onePerPerson')
-      &&p.txt('#s2').includes('یک پاسخ برای هر شخص')&&p.txt('#s2').includes('هویت پاسخ‌دهنده ناشناس است'),
+      &&p.txt('#s3').includes('یک پاسخ برای هر شخص')&&p.txt('#s3').includes('در سرور احراز هویت نمی‌شود'),
     'تضمین یک پاسخ و همگام‌سازی محدودیت به‌جای کلید ظاهری، غیرفعال با علت نشان داده می‌شوند');
   p.window.eval("S.limit='invite';S.inviteCodes=['SAMPLE-1','SAMPLE-2'].join(String.fromCharCode(10));renderReview()");
   ok(p.txt('#review').includes('محدودیت رویداد/دعوت در سرور احراز نمی‌شود')
@@ -3319,7 +3319,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.window.eval('firstInvalidFormDateRange()?.target==="#pkEnd"')
       &&p.window.eval('validateBeforeSave()===false')&&p.txt('#toast').includes('پایان را کامل'),
     'تاریخ غیرممکنِ سال غیرکبیسه با دست‌کاری گزینه هم به ذخیره راه پیدا نمی‌کند');
-  ok(p.txt('#s2').includes('محلی و غیرقابل‌انتشار')&&p.txt('#s2').includes('همگام‌سازی خودکار رویداد هنوز فعال نیست')&&p.network.length===0,
+  ok(p.txt('#s3').includes('فقط پیش‌نمایش محلی')&&p.txt('#s3').includes('سرور هنوز بازهٔ زمانی فرم را اجرا نمی‌کند')&&p.network.length===0,
     'تاریخ فقط محلی است، ظرفیت/صف سروری‌اند و همگام‌سازی رویداد ادعای اجرا ندارد');
   p.click('#clearSchedule');
   ok(p.window.eval("S.start===''&&S.end===''&&firstInvalidFormDateRange()===null")
@@ -3503,6 +3503,10 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'بستهٔ نام‌دار با گزینه‌ها و شرط وابسته فقط در localStorage ذخیره شد');
   p.window.eval("S.fields[0].l='موقت';renderCanvas()");
   p.click('[data-quick="saved:'+pack.id+'"]');
+  ok(p.doc.querySelector('#shPackConfirm').classList.contains('on')&&p.txt('#packConfirmNote').includes('۲ پرسش فعلی')
+      &&p.window.eval("S.fields[0].l==='موقت'"),
+    'با وجود پرسش‌های فعلی، اعمال بسته اول تأیید می‌گیرد و چیزی را بی‌صدا جایگزین نمی‌کند');
+  p.click('#packReplace');
   const fields=JSON.parse(p.window.eval('JSON.stringify(S.fields)'));
   packs=JSON.parse(store.getItem('nora-form-packs')||'[]');pack=packs[0];
   ok(fields.length===2&&fields[0].l==='حوزه'&&String(fields[0].id)!=='pack-source'
@@ -3530,11 +3534,11 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   }
   ok(allSelected&&p.window.eval('cardPaymentReady()===false&&centralFormMethods().length===0'),
     'انتخاب هر مدل نیاز فرم و کاشی فعال را هماهنگ می‌کند؛ هیچ‌کدام درگاه یا کارت فعال نمی‌کند');
-  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن یا آمار کامل تضمین نیست')
-      &&p.doc.querySelector('[data-model="contest"]').textContent.includes('رتبه‌بندی/قرعه‌کشی فعال نیست')
-      &&p.doc.querySelector('[data-model="exam"]').textContent.includes('زمان‌سنجی و نمره‌دهی فعال نیست')
-      &&p.doc.querySelector('[data-model="attendance"]').textContent.includes('حضور واقعی تأیید نمی‌شود')
-      &&p.doc.querySelector('[data-model="election"]').textContent.includes('رأی یکتا/محرمانه تضمین نمی‌شود'),
+  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن و آمار کامل تضمین نمی‌شود')
+      &&p.doc.querySelector('[data-model="contest"]').textContent.includes('رتبه‌بندی و قرعه‌کشی هنوز ساخته نشده است')
+      &&p.doc.querySelector('[data-model="exam"]').textContent.includes('زمان‌سنجی و نمره‌دهی خودکار هنوز ساخته نشده است')
+      &&p.doc.querySelector('[data-model="attendance"]').textContent.includes('حضور واقعی را تأیید نمی‌کند')
+      &&p.doc.querySelector('[data-model="election"]').textContent.includes('یکتا و محرمانه‌بودن رأی تضمین نمی‌شود'),
     'مدل‌های حساس، نبود تضمین ناشناس‌بودن، رتبه‌بندی، زمان‌سنجی، حضور و رأی یکتا را پنهان نمی‌کنند');
   ok(p.network.length===0,'جابه‌جایی مدل‌ها فقط در مرورگر انجام می‌شود');
 }
@@ -3799,9 +3803,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.window.eval('S.model')==='survey'&&p.window.eval('S.need')==='survey'&&p.all('.tile.on')[0]?.dataset.model==='survey'
       &&p.doc.querySelector('#ticketingPanel').hidden,
     'انتخاب مدل نظرسنجی، نوع فرم و کاشی را هماهنگ می‌کند و تنظیم بلیت را پنهان می‌سازد');
-  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن یا آمار کامل تضمین نیست')&&
-     p.doc.querySelector('[data-model="registration"]').textContent.includes('پرداخت فقط با مسیر امن backend'),
-    'توضیح مدل‌ها ناشناس‌بودن را تضمین نمی‌کند و پرداخت را به مسیر امن backend مشروط می‌کند');
+  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن و آمار کامل تضمین نمی‌شود')&&
+     p.doc.querySelector('[data-model="registration"]').textContent.includes('پرداخت فقط از مسیر امن سرور'),
+    'توضیح مدل‌ها ناشناس‌بودن را تضمین نمی‌کند و پرداخت را به مسیر امن سرور مشروط می‌کند');
   p.click('#publish'); await wait(80);
   let rows=JSON.parse(store.getItem('nora-forms')||'[]'), survey=rows.find(x=>x.model==='survey');
   ok(survey&&survey.need==='survey'&&survey.scoring.enabled===true&&!apiMock.record.settings.ticketing,
@@ -4218,7 +4222,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   builder.click('[data-go="s3"]');await wait(80);
   ok(builder.doc.querySelector('#formPaymentMethodsCard').hidden===false
       &&builder.doc.querySelector('#enableBaleWallet').getAttribute('aria-disabled')==='true'
-      &&builder.txt('#createPaymentStatus').includes('backend امن آماده نیست'),
+      &&builder.txt('#createPaymentStatus').includes('سرور امن آماده نیست'),
     'سازنده پیش از پیکربندی امن backend، کیف پول بله را غیرفعال نگه می‌دارد');
   builder.click('#enableBaleWallet');builder.click('#receiptReviewRequired');
   ok(builder.window.eval("S.enabledPaymentMethods.length===1&&S.enabledPaymentMethods[0]==='card_transfer'&&S.receiptReviewRequired===true")
