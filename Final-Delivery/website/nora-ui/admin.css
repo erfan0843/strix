@@ -393,7 +393,7 @@ input.input[type=time]{padding-inline:10px;text-align:center}
 .dash-bar{display:block;padding:var(--sp-1) var(--sp-2)}
 /* ردیف متا (برچسب‌های شمارش/وضعیت): دسکتاپ می‌شکند، موبایل یک ردیف اسکرول‌شونده */
 .ef-meta{flex-wrap:wrap}
-@media (max-width:600px){.ef-meta{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin-inline:-2px;padding-inline:2px}.ef-meta::-webkit-scrollbar{display:none}.ef-meta>*{flex:0 0 auto}}
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ B): چیپ‌های وضعیت/ظرفیت/مبلغ در موبایل هم می‌شکنند و بریده نمی‌شوند (اطلاع ضروری نباید پشت اسکرول افقی بی‌نشانه بماند) */
 details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 .dash-bar .dash-note{display:block}
 .dash-bar .dash-row{flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:center}
@@ -403,6 +403,11 @@ details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 @media (max-width:600px){.dash-bar .dash-note{display:none}.dash-bar .ic{display:none}}
 /* بازآرایی ۱۴۰۵/۰۸/۰۳: ردیف‌های صفرِ «کارهای در انتظار» در یک خط؛ هر نام همچنان دکمهٔ رفتن به همان بخش است */
 .dash-idle{margin:0;line-height:1.9}
+.dash-idle>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:32px}
+.dash-idle>summary::-webkit-details-marker{display:none}
+.dash-idle>summary::after{content:'';width:7px;height:7px;border:solid currentColor;border-width:0 0 1.5px 1.5px;transform:rotate(-45deg);opacity:.7}
+.dash-idle[open]>summary::after{transform:rotate(135deg)}
+.dash-idle>p{margin:0}
 .dash-idle-item{appearance:none;border:0;background:none;padding:0;font:inherit;font-size:inherit;color:var(--ink-3);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;border-radius:4px}
 .dash-idle-item:hover{color:var(--brand-ink)}
 .dash-idle-item:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
@@ -482,6 +487,14 @@ details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 .kpi b .ku{font-size:.62em;font-weight:700;color:var(--ink-3);margin-inline-start:4px;
   white-space:nowrap;letter-spacing:0}
 .kpi .cap{font-size:var(--fs-micro);color:var(--ink-4);overflow-wrap:anywhere}
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ B): درون کارت، شمارنده‌ها جعبه‌در‌جعبه نیستند؛ یک ردیف/شبکهٔ کم‌خط با خط مویی بالای هر عدد */
+.card .kpis,.card .admkpi{gap:0 var(--sp-4)}
+.card .kpi,.card .admkpi .k{background:none;border:0;box-shadow:none;border-radius:0;padding:var(--sp-2) 0;border-top:.5px solid var(--hairline)}
+.admkpi.kpi-compact{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card .sd-sect{border:0;border-radius:0;overflow:visible;margin:var(--sp-2) 0 0}
+.card .sd-sect-t{background:none;padding:0 0 var(--sp-2);border-bottom:.5px solid var(--hairline)}
+.card .sd-sect-t svg{display:none}
+.card .sd-sect-b{padding:var(--sp-2h) 0 0}
 .perf-kpis .kpi b{font-size:var(--fs-lead)}
 .perf-kpis .kpi .cap{min-height:2.2em}
 .perf-fields .input[type="range"]{width:100%;accent-color:var(--brand);padding-inline:0}
@@ -913,17 +926,18 @@ a.utool-row{text-decoration:none;color:inherit;display:flex}
 .admlirow .sp{flex:1 1 220px}
 .admlirow>.row.tight{flex:0 1 auto;max-width:100%;flex-wrap:wrap;justify-content:flex-end}
 /* پروندهٔ رویداد: شش کاشی هم‌اندازه (دسکتاپ ۳ ستون، موبایل ۲ ستون)؛ هر کاشی = عنوان، یک خط شرح، شمارندهٔ سرور، پیوند کوتاه زیربخش‌ها */
-.eftiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:var(--sp-2h);align-items:stretch}
+.eftiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2h);align-items:stretch}
 .eftile{display:flex;flex-direction:column;min-width:0;height:100%;border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface)}
-.eftile-main{display:flex;align-items:flex-start;gap:var(--sp-2h);width:100%;flex:1 1 auto;min-height:88px;padding:12px;border:0;border-radius:14px 14px 0 0;background:none;color:inherit;text-align:start;cursor:pointer;font:inherit}
+.eftile-main{display:flex;align-items:flex-start;gap:var(--sp-2h);width:100%;flex:1 1 auto;min-height:64px;padding:12px;border:0;border-radius:14px 14px 0 0;background:none;color:inherit;text-align:start;cursor:pointer;font:inherit}
 .eftile-main:hover{background:var(--surface-sunk)}
 .eftile-main:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
 .eftile-main .ic{flex:none;width:36px;height:36px;border-radius:var(--r-sm);display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2)}
 .eftile-main b{font-size:var(--fs-sub)}
 .eftile-main small.cap{font-size:var(--fs-cap);line-height:1.5}
 .eftile-num{font-size:var(--fs-cap);font-weight:700;color:var(--ink)}
-.eftile-sub{display:flex;flex-wrap:wrap;gap:0 6px;padding:0 12px 8px 12px;font-size:var(--fs-cap);color:var(--ink-3);border-top:.5px solid var(--hairline);margin-top:auto;padding-top:4px}
-.eftile-sub .lnk{min-height:32px;padding:4px 4px}
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ B): زیربخش‌های کاشی چیپ‌های کوچک‌اند (نه متن زیرخط‌دار) تا از کلیک‌پذیری خود کاشی جدا خوانده شوند */
+.eftile-sub{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 10px;border-top:.5px solid var(--hairline);margin-top:auto}
+.eftile-sub .chip{min-height:28px;padding:0 10px;font-size:var(--fs-cap)}
 .lnk{background:none;border:0;padding:4px 2px;min-height:28px;color:var(--brand);font:inherit;font-size:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .lnk:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:var(--r-xs)}
 /* منوی جمع‌شدهٔ «بخش‌های دیگر» در زیرصفحهٔ هر بخش */

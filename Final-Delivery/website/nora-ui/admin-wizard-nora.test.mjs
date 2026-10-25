@@ -302,7 +302,7 @@ console.log('── پروندهٔ رویداد: نمای کلی، فرم‌ها
   ok(JSON.stringify(tiles)===JSON.stringify(['overview','forms','regs','pay','comms','reports']),'شش کاشی پرونده: نمای کلی، فرم‌ها و ثبت‌نام، ثبت‌نام‌کنندگان، پرداخت و حضور، محتوا و ارتباطات، گزارش و گواهی');
   const tabs=[...doc.querySelectorAll('[data-ei-panel] [data-ei-tab]')].map(x=>x.dataset.eiTab);
   ok(['info','forms','survey','regs','payments','tickets','resources','notify','recording','questions','reviews','certs','reports'].every(k=>tabs.includes(k)),'همهٔ زیربخش‌های قبلی از روی کاشی‌ها در دسترس‌اند (هیچ قابلیتی حذف نشده)');
-  ok(/ثبت‌نام: ۰/.test(doc.querySelector('[data-ef-kpis]').textContent),'شمارنده‌ها از counts سرور (نه جمع مرورگر)');
+  ok(!/[۰-۹]/.test(doc.querySelector('[data-ef-tile="regs"] .eftile-num')?.textContent||'')&&!doc.querySelector('[data-ef-kpis]')&&/بدون فرم ثبت‌نام/.test(doc.querySelector('[data-ef-head]').textContent),'جمع ثبت‌نام از counts سرور فقط در سربرگ پرونده است؛ ردیف تفکیک با همه‌صفر رندر نمی‌شود (بازطراحی مرحلهٔ B)');
   const head=doc.querySelector('[data-ef-head]').textContent;
   ok(/کارگاه آزمون/.test(head)&&/پیش‌نویس/.test(head)&&/بدون فرم ثبت‌نام/.test(head),'سربرگ: عنوان، وضعیت مشتق‌شده و وضعیت فرم ثبت‌نام (بدون فرم)');
   ok(doc.querySelector('[data-ef-head] [data-ei-edit="ev-1"]')&&!doc.querySelector('[data-ef-head] [data-ef-reg-settings]'),'دکمهٔ «ویرایش رویداد» هست؛ «ویرایش تنظیمات ثبت‌نام» بدون فرم نیست');

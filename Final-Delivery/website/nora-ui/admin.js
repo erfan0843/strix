@@ -7812,15 +7812,16 @@ function efHub(){
   const e=ov.event||{}, c=ov.counts||{}, forms=ov.forms||[], fin=!!(ov.can&&ov.can.finance), rs=ov.registration_settings, declared=ov.declared||{};
   const diff=rs&&((Number(declared.cap)||0)!==(Number(rs.cap)||0)||(Number(declared.price)||0)!==(Number(rs.price&&rs.price.base)||0));
   const tabs=eiTabList(), label=Object.fromEntries(tabs), allowed=new Set(tabs.map(([k])=>k));
-  const kpis=[['ثبت‌نام',c.total],['پذیرفته‌شده',c.accepted],['فهرست انتظار',c.waitlisted],['پرداخت‌شده',c.paid],['در انتظار پرداخت',c.pending_payment],['ناموفق',c.failed_payment],['حاضر',c.checked_in]].filter(([,n])=>n!=null);
-  const num={overview:e.on||e.when?esc(e.on||e.when):'',forms:fa(forms.length)+' فرم',regs:c.total!=null?fa(c.total)+' نفر':'',
-    pay:[fin&&c.paid!=null?fa(c.paid)+' پرداخت‌شده':'',c.checked_in!=null?fa(c.checked_in)+' حاضر':''].filter(Boolean).join('؛ '),comms:'',reports:''};
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ B): جمع ثبت‌نام فقط در سربرگ پرونده است؛ این ردیف فقط تفکیک‌های غیرصفر را می‌گوید (پذیرفته، انتظار، پرداخت، حضور) */
+  const kpis=[['پذیرفته‌شده',c.accepted],['فهرست انتظار',c.waitlisted],['پرداخت‌شده',c.paid],['در انتظار پرداخت',c.pending_payment],['ناموفق',c.failed_payment],['حاضر',c.checked_in]].filter(([,n])=>Number(n)>0);
+  const num={overview:'',forms:forms.length?fa(forms.length)+' فرم':'',regs:Number(c.total)>0?fa(c.total)+' نفر':'',
+    pay:[fin&&Number(c.paid)>0?fa(c.paid)+' پرداخت‌شده':'',Number(c.checked_in)>0?fa(c.checked_in)+' حاضر':''].filter(Boolean).join('؛ '),comms:'',reports:''};
   const desc={pay:fin?'پرداخت‌ها، بلیت و ثبت حضور':'بلیت و ثبت حضور (مبالغ فقط با دسترسی مالی)'};
   const tiles=EF_GROUPS.map(g=>{const mine=g.tabs.filter(k=>allowed.has(k)); if(!mine.length) return '';
-    const subs=mine.length>1?`<span class="eftile-sub">${mine.map(k=>`<button class="lnk" data-ei-tab="${k}">${esc(label[k])}</button>`).join('<span aria-hidden="true">·</span>')}</span>`:'';
+    const subs=mine.length>1?`<span class="eftile-sub" aria-label="زیربخش‌های ${esc(g.t)}">${mine.map(k=>`<button class="chip" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</span>`:'';
     return `<div class="eftile" data-ef-tile="${g.k}"><button class="eftile-main" data-ei-tab="${mine[0]}"><span class="ic">${ico(g.i)}</span><span class="stack" style="gap:2px;text-align:start"><b>${esc(g.t)}</b><small class="cap">${esc(desc[g.k]||g.d)}</small>${num[g.k]?`<small class="eftile-num">${num[g.k]}</small>`:''}</span></button>${subs}</div>`}).join('');
   return `<div class="stack" data-ef-overview="${esc(String(e.id||EI.eventId))}" data-ef-hub>
-    <div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.filter(([l,n],i)=>i===0||Number(n)>0).map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>
+    ${kpis.length?`<div class="row tight" style="flex-wrap:wrap" data-ef-kpis>${kpis.map(([l,n])=>tag(l+': '+fa(Number(n)||0),'')).join('')}</div>`:''}
     ${diff?`<small class="cap" data-ef-declared-diff>مقدار اعلامی قدیمیِ رویداد (ظرفیت ${fa(declared.cap||0)}، مبلغ ${fa(declared.price||0)}) دیگر ملاک نیست؛ آنچه اعمال می‌شود از فرم ثبت‌نام می‌آید.</small>`:''}
     <div class="eftiles">${tiles}</div></div>`;
 }
@@ -10895,7 +10896,8 @@ function dashxQueueCard(){
   if(!rows.length&&!idle.length) return '';
   const state=DASHX.loading?'<p class="cap">در حال خواندن صف کارها از سرور…</p>':DASHX.error?`<div class="empty"><p class="cap">${esc(DASHX.error)}</p>${btn('تلاش دوباره','data-dashx-refresh','i-refresh')}</div>`:'';
   const unknown=rows.some(r=>r.includes('>؟<'));
-  const idleLine=idle.length?`<p class="cap dash-idle" data-dashx-idle>${rows.length?'بدون مورد: ':'همه‌چیز رسیدگی شده؛ بدون مورد: '}${idle.join('<span aria-hidden="true"> · </span>')}</p>`:'';
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ B): صف‌های خالی یک جملهٔ کم‌رنگ‌اند و پیوندشان تاشده می‌ماند (مقصدها حذف نشده‌اند) */
+  const idleLine=idle.length?`<details class="dash-idle" data-dashx-idle><summary class="cap">${rows.length?'':'همه‌چیز رسیدگی شده؛ '}${esc(fa(idle.length))} صف دیگر خالی است</summary><p class="cap">${idle.join('<span aria-hidden="true"> · </span>')}</p></details>`:'';
   return `<section class="card stack" data-dashx-queue><div class="row"><div class="head">کارهای در انتظار</div><span class="sp" style="flex:1 1 180px"></span>${rows.length?tag(fa(rows.length)+' مورد'):''}</div>
     ${rows.length?`<div class="admlist">${rows.join('')}</div>`:''}${state}${idleLine}
     ${unknown?'<p class="cap">«؟» یعنی این شمارش هنوز از سرور نرسیده یا مجوز آن برای حساب شما فعال نیست؛ عدد نمونه جایگزین نمی‌شود.</p>':''}</section>`;
