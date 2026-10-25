@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="glass.css?v=104"/>
 <style>
   .demo-note{position:sticky;top:6px;z-index:30;border-inline-start:3px solid var(--warn);background:var(--warn-tint)}
+  /* وضعیت فهرست سروری: در حالت موفق/انتظار یک خط آرام؛ فقط خطا، بدون نشست و بدون مجوز کادر برجسته دارند (بازآرایی ۱۴۰۵/۰۸/۰۳) */
+  #serverFormsMessage[data-state="loaded"],#serverFormsMessage[data-state="loading"],#serverFormsMessage[data-state="idle"]{background:none;border:0;box-shadow:none;padding:4px 2px !important;font-size:var(--fs-cap);color:var(--ink-3)}
   .fcard{cursor:pointer;transition:box-shadow var(--t) var(--ease),transform var(--t) var(--ease),border-color var(--t) var(--ease)}
   .fcard:hover{box-shadow:var(--sh-2);transform:translateY(-1px)}
   .fcard:active{transform:none}
@@ -225,11 +227,6 @@
         <a id="serverFormsLogin" href="create.html?auth=1&amp;back=builder.html" style="display:none">ورود مالک</a>
         <button class="btn sm" id="serverFormsRetry" type="button" hidden><svg class="i"><use href="#i-refresh"/></svg> تلاش دوباره</button>
       </div>
-      <!-- توضیح منبع داده: اطلاعات فرعی است و نباید پیش از عنوان صفحه و کنش اصلی دیده شود؛ همان متن، در بخش بسته -->
-      <details class="adv demo-note" data-demo-notice style="margin-top:10px">
-        <summary>منبع دادهٔ فرم‌ها روشن است</summary>
-        <div class="adv-body cap">فقط فرم‌ها و شمار پاسخ‌های دریافت‌شده از API همین سامانه نمایش داده می‌شوند. داده‌های محلی یا نمونه به فهرست و آمار راه نمی‌یابند. پاسخ‌ها با مجوز سروری خوانده می‌شوند؛ اطلاعات به سرویس بیرونی فرستاده نمی‌شود. آمار قیف، تحلیل هر پرسش، خروجی واقعی و گردش پرداخت در این پنل هنوز فعال نیست.</div>
-      </details>
 
       <div class="row" style="margin:12px 0 10px">
         <label class="searchbox glass-thin"><svg class="i" style="color:var(--ink-3)"><use href="#i-search"/></svg>
@@ -247,6 +244,11 @@
       </div>
 
       <div class="stack" id="formCards" style="margin-top:12px"></div>
+      <!-- توضیح منبع داده: اطلاعات فرعی است و پس از فهرست می‌آید (بازآرایی ۱۴۰۵/۰۸/۰۳) -->
+      <details class="adv" data-demo-notice style="margin-top:12px">
+        <summary>منبع دادهٔ فرم‌ها</summary>
+        <div class="adv-body cap">فقط فرم‌ها و شمار پاسخ‌های دریافت‌شده از API همین سامانه نمایش داده می‌شوند. داده‌های محلی یا نمونه به فهرست و آمار راه نمی‌یابند. پاسخ‌ها با مجوز سروری خوانده می‌شوند؛ اطلاعات به سرویس بیرونی فرستاده نمی‌شود.</div>
+      </details>
 
       <div class="card sunk" style="margin-top:16px">
         <div class="row"><svg class="i"><use href="#i-shield"/></svg>
@@ -866,19 +868,19 @@ function renderList(){
           <svg class="i lg"><use href="#i-${f.kind==='آزمون'?'medal':f.kind==='نظرسنجی'?'chart':'users'}"/></svg></span>
         <div style="min-width:0">
           <div class="head tight">${f.name}</div>
-          <div class="cap">${esc(f.kind)}${DEPT_OF(f).id?' · <b>بخش '+esc(DEPT_OF(f).n)+'</b>':''}${f.expert?' · کارشناس '+esc(f.expert):''} · ${server?esc(serverStatusLabel(f.status)):'نمونهٔ مرورگر · بدون انتشار سروری'}</div>
+          <div class="cap">${esc(f.kind)}${DEPT_OF(f).id?' · <b>بخش '+esc(DEPT_OF(f).n)+'</b>':''}${f.expert?' · کارشناس '+esc(f.expert):''}${server?' · '+faN(count||0)+' پاسخ سروری':' · نمونهٔ مرورگر · بدون انتشار سروری'}</div>
         </div>
-        <span class="tag ${server?'brand':'warn'}">${server?'API سرور':'نمونهٔ محلی'}</span>
+        ${server?'':'<span class="tag warn">نمونهٔ محلی</span>'}
         <span class="sp"></span>
         ${RECEIPT_REVIEWER&&pendings().filter(p=>p.form===f.id).length?`<span class="tag warn">${faN(pendings().filter(p=>p.form===f.id).length)} رسید در انتظار</span>`:''}
         ${RECEIPT_REVIEWER&&f.appr&&f.appr.on&&PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length?`<span class="tag stop">${faN(PEOPLE.filter(p=>p.form===f.id&&p.state==='pending').length)} منتظر تأیید</span>`:''}
         <span class="tag ${server?f.tone:'warn'}"><span class="dot"></span> ${server?esc(serverStatusLabel(f.status)):'نمونهٔ محلی'}</span>
       </div>
-      <div class="metrics" style="grid-template-columns:repeat(${FINANCE_OWNER?3:2},minmax(0,1fr));margin-top:12px">
-        <div class="metric"><div class="n">${server?faN(count||0):'—'}</div><div class="l">${server?'پاسخ سروری · API':'پاسخ نمونه · جدا از گزارش'}</div></div>
+      ${server?'':`<div class="metrics" style="grid-template-columns:repeat(${FINANCE_OWNER?3:2},minmax(0,1fr));margin-top:12px">
+        <div class="metric"><div class="n">—</div><div class="l">پاسخ نمونه · جدا از گزارش</div></div>
         ${FINANCE_OWNER?'<div class="metric"><div class="n">—</div><div class="l">درآمد واقعی وصل نیست</div><div class="mini">مرجع: تنظیمات مالی مرکزی</div></div>':''}
-        <div class="metric"><div class="n">—</div><div class="l">${server?'بازدید و قیف در API موجود نیست':'تحلیل نمونه نمایش داده نمی‌شود'}</div></div>
-      </div>
+        <div class="metric"><div class="n">—</div><div class="l">تحلیل نمونه نمایش داده نمی‌شود</div></div>
+      </div>`}
     </div>`}).join('')||`<div class="empty"><svg class="i xl"><use href="#i-search"/></svg><div class="body">${emptyList}</div></div>`;
 }
 const displayStatus=value=>String(value||'').replace(/\s*[·•]\s*نمونه\s*$/,'').trim();
@@ -2357,9 +2359,10 @@ function syncServerForms({auto=false}={}){
       const paused=items.filter(item=>item&&item.status==='paused').length;
       const drafts=items.length-published-paused;
       const sessionRole=formSession.role==='owner'?'مالک':formSession.role==='club-supervisor'?'سرپرست باشگاه':'مدیر';
-      setServerFormsState('loaded','دسترسی سروریِ '+sessionRole+' تأیید شد. '+faN(items.length)+' فرم از API دریافت شد؛ '
-        +faN(published)+' منتشرشده، '+faN(paused)+' متوقف و '+faN(drafts)+' پیش‌نویس. '
-        +faN(saved)+' نسخهٔ محلی فقط برای سازگاری پنل آماده شد.');
+      /* بازآرایی ۱۴۰۵/۰۸/۰۳: در حالت موفق فقط یک خط کوتاه (نقش تأییدشده + شمار فرم‌ها؛ فقط شمارش‌های غیرصفر). جزئیات فنی در title همان خط. */
+      const parts=[[published,'منتشرشده'],[paused,'متوقف'],[drafts,'پیش‌نویس']].filter(([n])=>n>0).map(([n,l])=>faN(n)+' '+l);
+      setServerFormsState('loaded',faN(items.length)+' فرم از API دریافت شد'+(parts.length?' ('+parts.join('، ')+')':'')+' · دسترسی '+sessionRole+' تأیید شد.');
+      const noteEl=document.getElementById('serverFormsMessageText'); if(noteEl) noteEl.title=faN(saved)+' نسخهٔ محلی فقط برای سازگاری پنل آماده شد.';
       refreshSharedForms();
       return true;
     }catch(err){

@@ -9411,7 +9411,7 @@ async function usLoadDetail(id){
 function usProviders(item){return (item.providers||[]).map(p=>tag(p==='bale'?'ورود بله':'ورود با شماره','')).join('')+(item.linked?tag('پیوندشده','brand'):'')}
 function usRoleTag(role){return role?tag(role==='club-supervisor'?'سرپرست باشگاه':role==='manager'?'مدیر':role,'brand'):tag('بدون نقش','')}
 function usRow(item){
-  return `<button class="admlirow" type="button" data-user-open="${esc(item.account_id)}" style="width:100%;text-align:start"><span class="ic">${ico('i-user')}</span>
+  return `<button class="admlirow utool-row" type="button" data-user-open="${esc(item.account_id)}"><span class="ic">${ico('i-user')}</span>
     <span class="sp"><b>${esc(item.display_name||'بدون نام پروفایل')}</b><small class="cap" dir="ltr">${esc(item.account_id.slice(0,8))}…${item.bale_user_id?' · bale '+esc(item.bale_user_id):''}</small>
       <small class="cap">${fa(item.registrations)} ثبت‌نام · ${item.pending_reviews?fa(item.pending_reviews)+' بررسی در انتظار':'بدون بررسی باز'} · عضویت ${esc(svcWhen(item.created_at))}</small></span>
     ${usProviders(item)}${usRoleTag(item.role)}${usStatusTag(item)}${ico('i-chev-left')}</button>`;
