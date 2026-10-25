@@ -419,7 +419,7 @@ async function load(store,hash,fixtureMode=true){
   /* نسخهٔ بستهٔ مشترک (ui.js) عمداً اینجا سنجیده نمی‌شود؛ یکنواختی و
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها یک‌جا بررسی
      می‌شود تا با هر به‌روزرسانیِ بسته، این فایل بی‌دلیل نشکند. */
-  ok(html.includes('support.css?v=100')&&html.includes('support.js?v=100')&&html.includes('nora.css?v=106')
+  ok(html.includes('support.css?v=100')&&html.includes('support.js?v=100')&&html.includes('nora.css?v=107')
       &&html.includes('public-data.js?v=115')&&html.includes('data.js?v=99'),
     'نسخهٔ دارایی‌های پشتیبانی و ناوبری به‌روز است');
   ok(html.includes('rel="canonical"')&&html.includes('og:title')&&html.includes('theme-color'),'سند و سرصفحهٔ اشتراک‌گذاری');

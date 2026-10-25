@@ -2427,7 +2427,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(html.includes('admin.css?v=121')&&html.includes('admin.js?v=186')
       &&html.includes('owner-api.js?v=130')&&html.includes('data.js?v=101')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=5')
-      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=106'),
+      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=107'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
   ok(sw.includes("'nora-v100'"),'کارگر سرویس نسخهٔ تازه است');

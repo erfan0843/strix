@@ -266,7 +266,14 @@ main.wrap{animation:pageIn .3s var(--ease) both}
   .evrail>*{flex:none;min-width:0}
   .evrail>.empty{grid-column:1/-1}
 }
-@media (min-width:900px){.evrail{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:900px){.evrail{grid-template-columns:repeat(3,minmax(0,1fr))}
+  /* ویترین با یک یا دو رویداد از پهنای دسکتاپ استفاده می‌کند: یک کارت افقی (پوستر کنار متن)، دو کارت دو ستونه (بازآرایی ۱۴۰۵/۰۸/۰۳) */
+  .evrail.evrail-duo{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .evrail.evrail-solo{grid-template-columns:minmax(0,1fr)}
+  .evrail.evrail-solo .evcard{grid-template-columns:minmax(260px,340px) minmax(0,1fr);align-items:stretch}
+  .evrail.evrail-solo .evc-cov{height:100%;aspect-ratio:auto;min-height:220px}
+  .evrail.evrail-solo .evc-cov:has(>img){align-content:start}
+  .evrail.evrail-solo .evc-body{padding:18px 20px;align-content:start}}
 @media (max-width:420px){.evcard .evc-body{padding:13px} .evrail>*{flex:0 0 264px}
   .evrail .evc-who small{display:none} .evrail .evc-price{font-size:var(--fs-sub)}}
 

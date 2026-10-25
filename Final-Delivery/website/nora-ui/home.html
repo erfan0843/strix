@@ -26,7 +26,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=104"/>
-<link rel="stylesheet" href="nora.css?v=106"/>
+<link rel="stylesheet" href="nora.css?v=107"/>
 <link rel="stylesheet" href="countdown.css?v=4"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
@@ -173,6 +173,9 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 
   /* ── باشگاه کتاب‌خوانی ── */
   .club{border-radius:var(--r-xl);overflow:hidden;border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1)}
+  .club.club-empty{box-shadow:none;padding:10px 14px}
+  .club.club-empty .memberline{align-items:center;gap:10px;flex-wrap:wrap}
+  .club.club-empty .memberline>.i{width:20px;height:20px;color:var(--ink-3);flex:0 0 auto}
   .club .cl-hero{position:relative;padding:16px;display:grid;gap:var(--sp-2h);color:#fff;background-image:var(--g);isolation:isolate}
   .club .cl-hero .bk{display:flex;gap:var(--sp-3);align-items:center}
   .club .cl-hero .bk .cv{width:58px;height:76px;border-radius:var(--r-xs);flex:0 0 auto;
@@ -583,6 +586,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
       <span class="fw">ویترین رویدادها</span>
       <span class="sp"></span>
       <span class="cap" id="evCount">—</span>
+      <a class="more" href="events.html#list">همهٔ رویدادها</a>
     </div>
     <div class="evrail" id="evTop"></div>
     <div class="ev-group" id="evOpenGroup" hidden>
@@ -592,9 +596,6 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
     <div class="ev-group" id="evSoonGroup" hidden>
       <div class="sec-hd"><span class="fw">پیش رو به ترتیب تاریخ</span><span class="sp"></span><a class="more" href="events.html#cal">تقویم رویدادها</a></div>
       <div class="evrail" id="evSoon"></div>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <a class="btn sm primary" href="events.html#list"><svg class="i"><use href="#i-calendar"/></svg> همهٔ رویدادها</a>
     </div>
   </section>
 
@@ -666,16 +667,14 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   </section>
 
   <!-- بخش‌های بدون محتوای منتشرشده: یک خط صادقانه به‌جای چند کارت خالی؛ خود بخش با لنگر مستقیم (#partners …) باز می‌شود -->
-  <section class="sec state compact" id="soonStrip" role="status" hidden>
-    <svg class="i" aria-hidden="true"><use href="#i-layers"/></svg>
-    <p class="st-text"><b class="st-title">هنوز منتشر نشده:</b> <span id="soonList"></span>؛ پس از انتشار از پنل، همین‌جا نمایش داده می‌شود.</p>
-  </section>
 
   <footer class="hfoot">
     <div class="fl"><b>نورا · گروه فرهنگی خط زندگی</b></div>
     <div class="fl"><a href="events.html#list">رویدادها</a> · <a href="support.html">پشتیبانی</a></div>
     <div class="lrow" id="footLogos"></div>
     <div id="footCopy">© گروه فرهنگی خط زندگی</div>
+    <!-- بخش‌های روشن ولی بدون محتوا: یک خط آرام در پابرگ، نه کارت وضعیت میان محتوا (بازآرایی ۱۴۰۵/۰۸/۰۳) -->
+    <p class="cap fl" id="soonStrip" role="status" hidden>هنوز منتشر نشده: <span id="soonList"></span></p>
   </footer>
 </main>
 
@@ -1266,6 +1265,7 @@ function renderEvents(){
   /* ویترین: سنجاق‌شده‌ها، سپس ثبت‌نام‌های باز به ترتیب مهلت، سپس بقیه به ترتیب تاریخ */
   const order=live.slice().sort((a,b)=>pinnedOf(b)-pinnedOf(a)||(isOpen(b)?1:0)-(isOpen(a)?1:0)||evRegKey(a)-evRegKey(b)||evTimeKey(a)-evTimeKey(b));
   const top=order.slice(0,3), shown=new Set(top.map(e=>e.id));
+  $('#evTop').classList.toggle('evrail-solo',top.length===1); $('#evTop').classList.toggle('evrail-duo',top.length===2);
   $('#evTop').innerHTML=top.map(evMini).join('')||'<div class="empty" role="status">در حال حاضر رویداد عمومی منتشرشده‌ای در دسترس نیست.</div>';
   const openRows=live.filter(e=>isOpen(e)&&!shown.has(e.id)).sort((a,b)=>evRegKey(a)-evRegKey(b));
   openRows.forEach(e=>shown.add(e.id));
@@ -1280,7 +1280,7 @@ function renderEvents(){
 }
 
 function renderPast(){
-  const cards=PAST.slice(0,3).map(h=>evPosterCard(h,{key:'ev',past:true,person:person(h.tchr),
+  const cards=PAST.slice(0,3).map(h=>evPosterCard(h,{key:'ev',past:true,person:h.tchr&&person(h.tchr).id?person(h.tchr):null,
     tags:(Array.isArray(h.tags)?h.tags:[]).slice(0,3),
     meta:[h.when||h.d?['i-calendar',h.when||h.d]:null,h.place?['i-pin',h.place]:null].filter(Boolean),
     note:h.d||'',price:'',cta:'جزئیات رویداد',ctaHref:'event.html?id='+encodeURIComponent(h.id),
@@ -1315,27 +1315,12 @@ function renderClub(){
   if(!CLUB){
     /* طرح تأییدشدهٔ باشگاه حفظ می‌شود؛ تا کتاب ماه از پنل منتشر نشده، حالت خالی روشن است و هیچ عدد نمونه‌ای ندارد. */
     const lib=clubLib();
-    $('#club').innerHTML=`<div class="club" role="status">
-    <div class="cl-hero" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)">
-      <div class="btop" style="position:static;display:flex;gap:6px"><span class="tagg tag-g">باشگاه کتاب‌خوانی خط زندگی</span></div>
-      <div class="bk">
-        <span class="cv"><svg class="i"><use href="#i-book"/></svg></span>
-        <span style="min-width:0">
-          <h3>کتاب ماه هنوز منتشر نشده است</h3>
-          <div class="hrow" style="color:rgba(255,255,255,.9)">کتاب ماه، سرپرست و زمان جلسه‌ها از پنل مدیریت منتشر می‌شوند و همین‌جا نمایش داده خواهند شد.</div>
-        </span>
-      </div>
-    </div>
-    <div class="cl-body">
-      <div class="stack tight">
-        <div class="memberline"><svg class="i"><use href="#i-clock"/></svg><span class="sp" style="flex:1">زمان جلسهٔ بعدی پس از انتشار اعلام می‌شود.</span></div>
-        <div class="memberline"><svg class="i"><use href="#i-users"/></svg><span style="flex:1">عضویت و «باشگاه من» فعلاً در ربات بله انجام می‌شود؛ تعداد اعضا و امتیاز نمونه نمایش داده نمی‌شود.</span></div>
-      </div>
-      ${lib||'<p class="cap">هنوز کتاب، صدا یا مسابقه‌ای برای باشگاه منتشر نشده است.</p>'}
-      <div class="row">
-        <button class="btn quiet" data-uihref="account.html#book">باشگاه در حساب من</button>
-      </div>
-    </div>
+    /* بازآرایی ۱۴۰۵/۰۸/۰۳: تا کتاب ماه منتشر نشده، یک ردیف کوتاه با همان مقصد؛ بنر خالی نمایش داده نمی‌شود */
+    $('#club').innerHTML=`<div class="club club-empty" role="status">
+    <div class="memberline"><svg class="i"><use href="#i-book"/></svg>
+      <span class="sp" style="flex:1"><b>باشگاه کتاب‌خوانی خط زندگی</b><br><small class="cap">کتاب ماه هنوز منتشر نشده است؛ عضویت و «باشگاه من» فعلاً در ربات بله انجام می‌شود.</small></span>
+      <button class="btn sm quiet" data-uihref="account.html#book">باشگاه در حساب من</button></div>
+    ${lib||''}
   </div>`; return }
   const sup=person(CLUB.sup), l=CLUB.cap-CLUB.members;
   $('#club').innerHTML=`<div class="club">
