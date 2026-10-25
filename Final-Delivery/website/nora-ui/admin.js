@@ -569,6 +569,8 @@ function table(rows,cols){
   return `<div class="admmatrix"><table>${head}<tbody>${body}</tbody></table></div>`;
 }
 function emptyBox(msg){return `<div class="empty">${ico('i-search')}<p class="cap" style="margin-top:8px">${esc(msg||T.empty)}</p></div>`}
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ C): حالت مشترک (خالی/خطا/بی‌مجوز) = یک جمله + حداکثر دو عمل؛ بن‌بست نیست. actions = HTML دکمه‌ها (اختیاری) */
+function stateBox(o){o=o||{}; return `<div class="state${o.kind?' '+esc(o.kind):''}" role="${o.kind==='error'?'alert':'status'}" ${o.attrs||''}>${ico(o.icon||'i-info')}${o.title?`<b class="st-title">${esc(o.title)}</b>`:''}${o.text?`<p class="st-text">${esc(o.text)}</p>`:''}${o.actions?`<div class="st-actions">${o.actions}</div>`:''}</div>`}
 function bars(arr,hi){
   const mx=Math.max.apply(null,arr.concat([1]));
   return `<div class="admbars">${arr.map((v,i)=>`<i class="${(hi&&i===arr.length-1)||v===mx?'hi':''}" style="height:${Math.round(v/mx*100)}%"></i>`).join('')}</div>`;
@@ -7169,7 +7171,7 @@ function ctEventForms(e){
   const makeBtn=canPerm('fm_create')?`<a class="btn sm ${linked.length?'quiet':'primary'}" href="create.html?${q.toString()}" data-ct-form-create="${esc(String(e.id))}">${ico('i-plus')}${linked.length?'فرم دیگری برای این رویداد':'ساخت فرم ثبت‌نام برای این رویداد'}</a>`:'';
   const rows=linked.map(f=>{const st=FS_STATUS[f.status]||[f.status||'',''], id=encodeURIComponent(String(f.id||''));
     return `<div class="admlirow" data-ct-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ':''}</small></span>${tag(st[0],st[1])}
-      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}&back=${encodeURIComponent(back)}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}).join('');
+      <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}&back=${encodeURIComponent(back)}">${ico('i-pen')}ویرایش</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses">${ico('i-inbox')}پاسخ‌ها</a>`:''}</span></div>`}).join('');
   const body=FORMS_SRV.loading&&!FORMS_SRV.loaded?`<small class="cap">در حال دریافت فرم‌های سرور…</small>`
     :FORMS_SRV.error&&!FORMS_SRV.data?`<small class="cap" style="color:var(--stop)">${esc(FORMS_SRV.error)}</small> ${btn('تلاش دوباره','data-fs-refresh','i-refresh')}`
     :rows||`<small class="cap">هنوز فرمی به این رویداد وصل نیست؛ تا فرم ثبت‌نامِ منتشرشده نباشد، دکمهٔ ثبت‌نام در صفحهٔ رویداد باز نمی‌شود.</small>`;
@@ -7800,9 +7802,10 @@ function eiHeader(){
   /* زیرصفحهٔ یک بخش: بازگشت به پرونده + عنوان بخش + زیرزبانه‌های همان بخش؛ بخش‌های دیگر فقط در یک منوی جمع‌شده (یک ردیف، بدون چند خط چیپ در موبایل) */
   const g=efGroupOf(EI.tab)||EF_GROUPS[0], mine=g.tabs.filter(k=>allowed.has(k));
   const others=EF_GROUPS.filter(x=>x.k!==g.k&&x.tabs.some(k=>allowed.has(k)));
-  return top+`<div class="row efgrp" data-ef-group="${g.k}" style="flex-wrap:wrap;gap:8px;align-items:center">
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ C): زیرصفحه فقط یک بازگشت دارد (به پروندهٔ رویداد)؛ بازگشت به فهرست از خود پرونده انجام می‌شود */
+  return `<div class="row efgrp" data-ef-group="${g.k}" style="flex-wrap:wrap;gap:8px;align-items:center">
       <button class="btn sm quiet" data-ei-tab="overview" data-ef-hub-back>${ico('i-back')}پروندهٔ رویداد</button>
-      <span class="stack" style="gap:0;flex:1 1 160px"><strong>${esc(g.t)}</strong><small class="cap">${esc(EI.title||'')}${EI.status?' · '+esc((P2_STATUS[EI.status]||[EI.status])[0]):''}</small></span>
+      <span class="stack" style="gap:0;flex:1 1 160px"><strong>${esc(g.t)}</strong><small class="cap">${esc(EI.title||'')}${EI.status?' · '+esc((P2_STATUS[EI.status]||[EI.status])[0]):''}</small></span>${live}${btn('بازخوانی','data-ei-refresh','i-refresh')}
       <details class="efmore"><summary class="btn sm quiet" aria-label="بخش‌های دیگر پرونده">${ico('i-more')}بخش‌های دیگر</summary><div class="efmore-menu" role="menu">${others.map(x=>`<div class="efmore-grp"><b>${esc(x.t)}</b>${x.tabs.filter(k=>allowed.has(k)).map(k=>`<button class="lnk" role="menuitem" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</div>`).join('')}</div></details></div>
     ${mine.length>1?`<div class="admfilters hub-tabs" role="tablist" aria-label="زیربخش‌های ${esc(g.t)}">${mine.map(k=>`<button class="chip ${EI.tab===k?'on':''}" role="tab" aria-selected="${EI.tab===k}" data-ei-tab="${k}">${esc(label[k])}</button>`).join('')}</div>`:''}`;
 }
@@ -7853,7 +7856,7 @@ function eiPanel(){
 function eiEventForms(){const items=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[]; return items.filter(f=>String(f.ev||'')===String(EI.eventId))}
 function eiFormRow(f){const st=FS_STATUS[f.status]||[f.status||'','']; const id=encodeURIComponent(String(f.id||''));
   return `<div class="admlirow" data-ei-form-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span><span class="sp"><b>${esc(f.name||f.title||'فرم')}</b><small class="cap">${esc(FS_PURPOSE[f.purpose]||f.need||'')}${f.response_count!=null?' · '+fa(f.response_count)+' پاسخ ثبت‌شده':''}</small></span>${tag(st[0],st[1])}
-    <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها">${ico('i-inbox')}</a>`:''}</span></div>`}
+    <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}">${ico('i-pen')}ویرایش</a>`:''}${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses">${ico('i-inbox')}پاسخ‌ها</a>`:''}</span></div>`}
 function eiInfo(){
   const r=EI.data&&EI.data.record; if(!r) return emptyBox('رکورد رویداد از سرور نیامد.');
   const reg=r.registration||null;
@@ -8100,13 +8103,18 @@ function efRegs(){
   const total=Number(d.total)||0;
   const countLine=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><small class="cap" data-ef-count role="status">${total?fa(total)+' نتیجه'+(anyFilter?' با این صافی':''):''}</small><span class="sp"></span>
     <label class="row tight" style="gap:4px;align-items:center"><small class="cap">مرتب‌سازی</small><select class="inp" data-ef-sort aria-label="مرتب‌سازی فهرست" style="min-height:32px;padding:2px 8px">${[['newest','تازه‌ترین ثبت‌نام'],['oldest','قدیمی‌ترین ثبت‌نام'],['name','نام']].map(([v,l])=>`<option value="${v}" ${b.sort===v?'selected':''}>${l}</option>`).join('')}</select></label></div>`;
-  const empty=forms.length?(anyFilter?'با این جست‌وجو یا صافی کسی پیدا نشد.':'هنوز کسی در این رویداد ثبت‌نام نکرده است.'):'فرم ثبت‌نامی به این رویداد وصل نیست؛ اول در «فرم‌ها و فعالیت‌ها» فرم ثبت‌نام بساز.';
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ C/D): حالت خالی بن‌بست نیست؛ بی‌فرم → ساخت فرم؛ بی‌ثبت‌نام → پیوند صفحهٔ ثبت‌نام؛ با صافی → پاک‌کردن صافی. صافی‌ها وقتی هنوز کسی ثبت‌نام نکرده نشان داده نمی‌شوند */
+  const ovEvent=(EF.overview&&EF.overview.event)||{}, pubHref=ovEvent.public_path?String(ovEvent.public_path):'';
+  const emptyState=!forms.length?stateBox({icon:'i-doc',title:'فرم ثبت‌نامی به این رویداد وصل نیست',text:'تا فرم ثبت‌نام نباشد کسی نمی‌تواند ثبت‌نام کند؛ اول در «فرم‌ها و ثبت‌نام» فرم ثبت‌نام بساز.',actions:canPerm('fm_create')?btn('ساخت فرم ثبت‌نام','data-ef-tab="forms"','i-plus'):btn('فرم‌ها و ثبت‌نام','data-ef-tab="forms"','i-chev-left')})
+    :anyFilter?stateBox({icon:'i-search',title:'با این جست‌وجو یا صافی کسی پیدا نشد',actions:btn('نمایش همه','data-ef-clear-filters','i-refresh')})
+    :stateBox({icon:'i-users',title:'هنوز کسی در این رویداد ثبت‌نام نکرده است',text:pubHref?'پیوند صفحهٔ رویداد را به مخاطبان بده؛ ثبت‌نام‌ها همین‌جا فهرست می‌شوند.':'رویداد هنوز منتشر نشده است؛ پس از انتشار، پیوند ثبت‌نام از همین‌جا در دسترس است.',actions:(pubHref?`<a class="btn sm" href="${esc(pubHref)}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ ثبت‌نام عمومی</a>`:'')+btn('فرم‌ها و ثبت‌نام','data-ef-tab="forms"','i-doc')});
   /* پذیرش ۱۴۰۵/۰۸/۰۳: پیام مجوز قابل‌مشاهده می‌ماند (نه فقط title) چون بر تصمیم مدیر محدود اثر دارد؛
      «رسید فرستاده شده؛ تأیید نشده» را خود برچسب ردیف می‌گوید و نیازی به جملهٔ جداگانه نیست */
   const noteLine=fin?'':`<small class="cap" data-ef-regs-note>مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.</small>`;
-  return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}${noteLine}
-    ${d.items.length||anyFilter?countLine:''}
-    ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
+  const showFilters=!!(d.items.length||anyFilter);
+  return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${showFilters?filters:''}${noteLine}
+    ${showFilters?countLine:''}
+    ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyState}</div>`}
     ${efPager(b,d)}${forms.length?efCancelled(fin):''}</div>`;
 }
 /* ── ثبت‌نام‌های لغوشده: عکس‌برداری سرور؛ فقط خواندنی، با مجوز و ممیزی ── */
@@ -8286,6 +8294,7 @@ function efClick(q){
   const cancelRec=q('[data-ef-cancel-receipt]'); if(cancelRec){EF.cancel.receipt=EF.cancel.receipt===cancelRec.dataset.efCancelReceipt?'':cancelRec.dataset.efCancelReceipt; renderBody(); return true}
   if(q('[data-ef-person-close]')){EF.person.id=''; EF.person.data=null; EF.msg=null; efSyncHash(); renderBody(); return true}
   const flt=q('[data-ef-filter]'); if(flt){const box=efBox(); if(box){box[flt.dataset.efFilter]=flt.dataset.efValue||''; box.offset=0; EI.key=''; eiLoad()} return true}
+  if(q('[data-ef-clear-filters]')){const box=efBox(); if(box){['q','status','payment','attendance','form_id','state'].forEach(k=>{if(k in box) box[k]=''}); box.offset=0; EI.key=''; eiLoad()} return true}
   if(q('[data-ef-search]')){const box=efBox(), inp=document.querySelector('[data-ef-q]'); if(box&&inp){box.q=String(inp.value||'').trim().slice(0,80); box.offset=0; EI.key=''; eiLoad()} return true}
   const page=q('[data-ef-page]'); if(page){const box=efBox(); if(box){box.offset=page.dataset.efPage==='next'?box.offset+box.limit:Math.max(0,box.offset-box.limit); EI.key=''; eiLoad()} return true}
   const dec=q('[data-ef-decide]'); if(dec){EF.person.decision=dec.dataset.efDecide; EF.person.reason=''; EF.msg=null; renderBody(); return true}
@@ -9799,6 +9808,7 @@ document.addEventListener('click',e=>{
   if(q('[data-dashx-audit-all]')){if(!isOwner()){toast('تاریخچهٔ عملیات فقط برای مالک باز است'); return} S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='log'; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
   if(q('[data-fs-refresh]')){FORMS_SRV.loaded=false; fsLoad(); return}
   if(q('[data-fs-search]')){const input=$('#fsQuery'); fsApplyQuery(input&&input.value); return}
+  if(q('[data-fs-clear]')){FORMS_SRV.status=''; fsApplyQuery(''); return}
   const fsStatus=q('[data-fs-status]'); if(fsStatus){FORMS_SRV.status=fsStatus.dataset.fsStatus||''; FORMS_SRV.offset=0; renderBody(); return}
   const fsPage=q('[data-fs-page]'); if(fsPage){const total=fsRows().length; FORMS_SRV.offset=fsPage.dataset.fsPage==='next'?Math.min(FORMS_SRV.offset+FORMS_SRV.limit,Math.max(0,total-1)):Math.max(0,FORMS_SRV.offset-FORMS_SRV.limit); renderBody(); return}
   if(q('[data-ei-jump-attendance]')){if(!canPerm('attendance')){toast('مجوز حضور و غیاب برای این نقش فعال نیست'); return} const ev=EI.eventId; eiClose(); S.sec='users'; S.uHub='users'; S.uV='att'; AT.q=ev; AT.offset=0; AT.formId=''; AT.form=null; AT.people=null; save(); try{history.replaceState(null,'','#users')}catch(e){} renderBody(); return}
@@ -10919,7 +10929,7 @@ function dashxUpcomingCard(){
   const rows=items.map(e=>`<div class="admlirow"><span class="ic">${ico('i-calendar')}</span>
     <span class="sp" style="flex:1 1 180px"><b>${esc(e.t||e.id)}</b><small class="cap">${esc([e.on||e.when,e.time,e.place,e.mode].filter(Boolean).join(' · '))}</small>${e.registration!==undefined?`<small class="cap" data-dashx-reg="${esc(e.id)}" title="${e.registration?'از پاسخ‌های فرم «'+esc(e.registration.form_name||'')+'» روی سرور':'فرم ثبت‌نام منتشرشده‌ای به این رویداد وصل نیست'}">${esc(ctRegMeta(e,{long:true}))}</small>`:''}</span>
     ${ctRegTag(e)}${e.lifecycle?tag({scheduled:'در پیش',live:'در حال برگزاری',ended:'پایان‌یافته',cancelled:'لغوشده',postponed:'به تعویق افتاده'}[e.lifecycle]||e.lifecycle,e.lifecycle==='cancelled'?'stop':e.lifecycle==='live'?'ok':''):''}
-    <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events" aria-label="${esc('ویرایش '+(e.t||e.id||'رویداد'))}" title="ویرایش رویداد">${ico('i-pen')}</button></div>`).join('');
+    <button class="btn sm quiet" data-ct-edit="${esc(e.id)}" data-dashx-go="events" aria-label="${esc('ویرایش '+(e.t||e.id||'رویداد'))}">${ico('i-pen')}ویرایش</button></div>`).join('');
   const state=DASHX.loading?'<p class="cap">در حال خواندن رویدادها از سرور…</p>':!d?'':!rows?emptyBox('رویداد منتشرشدهٔ پیش رو در محتوای سرور نیست.'):'';
   return `<section class="card stack" data-dashx-upcoming><div class="sec-head"><div class="head sh-title">رویدادهای پیش رو</div>
       <button class="sh-link sh-link--action" type="button" data-sec="events" aria-label="همهٔ رویدادها در بخش رویدادها">همهٔ رویدادها</button></div>
@@ -11008,6 +11018,17 @@ function fsRows(){
   return items.filter(f=>!FORMS_SRV.status||String(f.status||'draft')===FORMS_SRV.status)
     .filter(f=>!q||String(f.name||'').toLowerCase().includes(q)||String(f.id||'').toLowerCase().includes(q)||String(f.ev||'').toLowerCase().includes(q));
 }
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ C): هر ردیف فرم دو کنش برچسب‌دار («ویرایش»، «پاسخ‌ها») و منوی «بیشتر» (خروجی CSV، صفحهٔ عمومی، پروندهٔ رویداد) دارد؛ آیکون بی‌برچسب و وابسته به hover نیست؛ hrefها و data-* همان قبلی‌اند */
+function fsRowActions(f,id,published){
+  const primary=[], more=[];
+  if(canPerm('fm_create')) primary.push(`<a class="btn sm" href="create.html?fid=${id}">${ico('i-pen')}ویرایش</a>`);
+  if(canPerm('fm_responses')) primary.push(`<a class="btn sm quiet" href="builder.html?fid=${id}#responses">${ico('i-inbox')}پاسخ‌ها</a>`);
+  if(canPerm('fm_export')) more.push(`<a class="actmenu-item" role="menuitem" href="/api/forms/${id}/responses?format=csv" data-fs-export="${esc(String(f.id||''))}">${ico('i-download')}خروجی CSV پاسخ‌ها</a>`);
+  if(published) more.push(`<a class="actmenu-item" role="menuitem" href="form.html?fid=${id}&kind=${encodeURIComponent(String(f.need||'reg'))}" target="_blank" rel="noopener">${ico('i-eye')}صفحهٔ عمومی فرم</a>`);
+  if(f.ev&&canSec('events')) more.push(`<a class="actmenu-item" role="menuitem" href="admin.html#event=${encodeURIComponent(String(f.ev))}&tab=overview" data-fs-event="${esc(String(f.ev))}">${ico('i-calendar')}پروندهٔ رویداد</a>`);
+  const menu=more.length?`<details class="actmenu" data-fs-more="${esc(String(f.id||''))}"><summary class="btn sm quiet" aria-haspopup="menu" aria-label="کارهای بیشتر برای ${esc(f.name||'این فرم')}">${ico('i-more')}بیشتر</summary><div class="actmenu-menu" role="menu" aria-label="کارهای بیشتر">${more.join('')}</div></details>`:'';
+  return primary.join('')+menu;
+}
 function serverFormsView(){
   if(!canSec('forms')) return serverUnavailableModule('فرم‌ها','مجوز ساخت فرم یا مشاهدهٔ پاسخ‌ها برای این حساب فعال نیست.');
   const all=FORMS_SRV.data&&Array.isArray(FORMS_SRV.data.items)?FORMS_SRV.data.items:[];
@@ -11022,13 +11043,11 @@ function serverFormsView(){
     return `<div class="admlirow" data-fs-row="${esc(String(f.id||''))}"><span class="ic">${ico('i-doc')}</span>
       <span class="sp" style="flex:1 1 180px"><b>${esc(f.name||'بدون نام')}</b><small class="cap">${esc(meta)}</small></span>
       ${tag(st[0],st[1])}<span class="mini" style="text-align:end"><b dir="ltr" style="font-weight:700">${esc(fa(Number(f.response_count)||0))}</b><small class="cap">پاسخ</small></span>
-      <span class="row" style="gap:4px">${canPerm('fm_create')?`<a class="btn sm quiet" href="create.html?fid=${id}" title="ویرایش در فرم‌ساز">${ico('i-pen')}</a>`:''}
-      ${canPerm('fm_responses')?`<a class="btn sm quiet" href="builder.html?fid=${id}#responses" title="پاسخ‌ها و گزارش">${ico('i-inbox')}</a>`:''}
-      ${canPerm('fm_export')?`<a class="btn sm quiet" href="/api/forms/${id}/responses?format=csv" data-fs-export="${esc(String(f.id||''))}" title="خروجی CSV پاسخ‌ها از سرور (ثبت در تاریخچه)">${ico('i-download')}</a>`:''}
-      ${published?`<a class="btn sm quiet" href="form.html?fid=${id}&kind=${encodeURIComponent(String(f.need||'reg'))}" target="_blank" rel="noopener" title="صفحهٔ عمومی فرم">${ico('i-eye')}</a>`:''}</span></div>`}).join('');
+      <span class="row tight" style="flex-wrap:wrap;justify-content:flex-end">${fsRowActions(f,id,published)}</span></div>`}).join('');
   const state=FORMS_SRV.loading?`<div class="empty">${ico('i-clock')}<p class="cap">در حال خواندن فرم‌ها از سرور…</p></div>`
     :FORMS_SRV.error?`<div class="empty"><p class="cap">${esc(FORMS_SRV.error)}</p>${btn('تلاش دوباره','data-fs-refresh','i-refresh')}</div>`
-    :!FORMS_SRV.loaded?'':!all.length?emptyBox('هنوز فرمی در فرم‌ساز سروری ساخته نشده است.'):!rows.length?emptyBox('فرمی با این فیلتر پیدا نشد.'):'';
+    :!FORMS_SRV.loaded?'':!all.length?stateBox({icon:'i-doc',title:'هنوز فرمی ساخته نشده است',text:canPerm('fm_create')?'اولین فرم ثبت‌نام، نظرسنجی یا خرید را در فرم‌ساز بساز.':'ساخت فرم با مجوز «ساخت فرم» انجام می‌شود.',actions:canPerm('fm_create')?`<a class="btn sm primary" href="create.html">${ico('i-plus')}فرم تازه</a>`:'',attrs:'data-fs-empty'})
+    :!rows.length?stateBox({icon:'i-search',title:'فرمی با این جست‌وجو یا صافی پیدا نشد',actions:btn('نمایش همهٔ فرم‌ها','data-fs-clear','i-refresh'),attrs:'data-fs-empty="filter"'}):'';
   /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ A): سرتیتر = عنوان + شمار + دو عمل؛ متن فنی (مسیر API، نام مجوزها) در «جزئیات فنی» تاشده؛ جست‌وجو یک ورودی سبک با Enter است */
   return `<div class="stack" data-forms-panel>
     <section class="card stack"><div class="sec-head"><div class="head">فرم‌ها${all.length?` <span class="cap" style="white-space:nowrap">${esc(fa(all.length))} فرم</span>`:''}</div><span class="sp"></span>
