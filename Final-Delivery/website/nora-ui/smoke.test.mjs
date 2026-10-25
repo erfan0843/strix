@@ -1023,15 +1023,15 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(page.txt('#formSettingsCount').includes('۰ فرم')&&page.txt('#formSettingsList').includes('هنوز فرمی نیست'),
     'تنظیمات فرم بدون فرم سروری در وضعیت خالی می‌ماند');
   page.click('[data-go="fTeam"]');
-  ok(page.txt('#teamBox').includes('از API این صفحه پشتیبانی نمی‌شود')
+  ok(page.txt('#teamBox').includes('هیچ حساب یا نقش نمونه‌ای نشان نمی‌دهد')&&!!page.doc.querySelector('#teamBox a[href="admin.html#users"]')
     &&!page.txt('#teamBox').includes('خانم رستگار'),'فهرست کارشناسان ساختگی در تجربهٔ تولیدی نمایش داده نمی‌شود');
   page.click('[data-go="fKartabl"]');
   ok(page.txt('#kartabl').includes('کارتابل مشترک پنل مدیران')&&!!page.doc.querySelector('#kartabl a[href="admin.html#inbox"]')
     &&!page.txt('#kartabl').includes('سارا محمدی'),
     'کارتابل فاقد API به کارتابل مشترک پنل پیوند می‌دهد و رسید نمونه نشان نمی‌دهد');
   page.click('[data-go="fAttend"]');
-  ok(page.txt('#attBody').includes('هیچ داده یا صندلی نمونه‌ای نمایش داده نمی‌شود')
-    &&page.txt('#attBody').includes('تا اتصال API حضور'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');
+  ok(page.txt('#attBody').includes('هیچ دادهٔ نمونه‌ای نشان نمی‌دهد')
+    &&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');
   page.dom.window.close();
 }
 
@@ -1069,7 +1069,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&page.txt('#answersBox').includes('مریم همراه')
       &&page.txt('#answersBox').includes('افزوده‌شده توسط لیلا پاسخ‌دهنده')
       &&page.txt('#answersBox').includes('ثبت‌شده در سرور')
-      &&page.txt('#formCards').includes('پاسخ سروری'),
+      &&/[۰-۹]+ پاسخ/.test(page.txt('#formCards')),
     'گزارش پاسخ‌ها از endpoint مجاز سروری پر شد؛ همراه ردیف مستقل و یادداشت «افزوده‌شده توسط» دارد');
   page.click('#answersBox tr[data-person="server:response-companion-001"]');
   ok(page.txt('#usSub').includes('شناسهٔ پاسخ سروری')
@@ -3709,8 +3709,8 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&page.all('[data-copy="#pLink"][disabled]').length===2,
     'پیش‌نویس پیوند عمومی نشان نمی‌دهد و کنترل‌های کپی پیوند غیرفعال‌اند');
   ok(panelText.includes('پیش‌نویس سرور')&&!panelText.includes('منتشرشده')
-      &&panelText.includes('اعتبارسنجی نهایی با backend')
-      &&panelText.includes('شمارش endpoint'),
+      &&panelText.includes('اعتبار نهایی با سرور')
+      &&panelText.includes('شمارش سرور'),
     'پنل وضعیت واقعی پیش‌نویس و شمار API را نشان می‌دهد و قابلیت تخصصیِ اجرا‌نشده را ادعا نمی‌کند');
   ok(page.doc.querySelector('#editFormLink')?.getAttribute('href')==='create.html?fid=server-builder-1'
       &&page.doc.querySelector('#previewFormLink')?.getAttribute('href')==='form.html?fid=server-builder-1&kind=reg&preview=1'

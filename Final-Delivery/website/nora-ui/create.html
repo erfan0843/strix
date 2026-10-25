@@ -1196,7 +1196,7 @@ const HINT={s1:'نوع فرم را انتخاب کنید، بعد عنوان و 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const FORM_STATUS_FA={draft:'پیش‌نویس',published:'منتشرشده',paused:'متوقف',archived:'بایگانی',closed:'بسته'};
 function formStatusLabel(status){return FORM_STATUS_FA[String(status||'draft')]||'پیش‌نویس'}
-/* نشانگر وضعیت ذخیره: idle/dirty/saving/saved/error/conflict — فقط از نتیجهٔ واقعی سرور تغییر می‌کند */
+/* نشانگر وضعیت ذخیره: idle/dirty/saving/saved/error/conflict؛ فقط از نتیجهٔ واقعی سرور تغییر می‌کند */
 function setSaveState(state,text){const el=$('#saveState');if(!el)return;el.dataset.state=state;el.textContent=text||{idle:'ذخیره‌نشده در سرور',dirty:'تغییرات ذخیره‌نشده',saving:'در حال ذخیره…',saved:'ذخیره شد',error:'ذخیره نشد',conflict:'نسخهٔ تازه‌تری روی سرور است'}[state]||''}
 function markDirty(){const el=$('#saveState');if(el&&(el.dataset.state==='saved'||el.dataset.state==='idle'))setSaveState(ACTIVE_SERVER_FORM?'dirty':'idle',ACTIVE_SERVER_FORM?'تغییرات ذخیره‌نشده':'ذخیره‌نشده در سرور')}
 const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
@@ -1493,7 +1493,7 @@ function fieldBlock(f,index){
       </details>
     </div></article>`;
 }
-/* شرط‌های وابسته به یک پرسش (در پرسش‌های دیگر) — برای اعلام پیش از حذف/جابه‌جایی */
+/* شرط‌های وابسته به یک پرسش (در پرسش‌های دیگر)؛ برای اعلام پیش از حذف/جابه‌جایی */
 function dependentRuleCount(id){return S.fields.reduce((n,x)=>n+conditionRulesForField(x).filter(r=>String(r.field)===String(id)).length,0)}
 function totalRuleCount(){return S.fields.reduce((n,x)=>n+conditionRulesForField(x).length,0)}
 function announceFieldMove(id){
