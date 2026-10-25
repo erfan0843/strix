@@ -6789,20 +6789,21 @@ function serverDashboard(){
       <div class="adv-body"><div class="row"><p class="cap" style="margin:0">منبع شمارش‌ها: <span dir="ltr">/api/admin/reports/summary</span>؛ مبلغ، حضور و باشگاه در پایگاه مشترک نیستند و شمرده نمی‌شوند.</p><span class="sp"></span><button class="btn sm quiet" data-dashx-map>${ico('i-layers')}نقشهٔ امکانات پنل</button></div>${technical.join('')}</div></details>
   </div>`;
 }
+/* بازآرایی ۱۴۰۵/۰۸/۰۳: ابزارهای بخش کاربران به‌جای هفت کارت هم‌وزن (هرکدام با برچسب «API سرور»، پاراگراف و دکمهٔ تمام‌عرض)
+   یک فهرست پیوند فشرده‌اند: آیکن، عنوان، یک خط توضیح، شورون. همان data-*ها، همان مجوزها، هیچ مقصدی حذف نشده. */
+function userToolRow(icon,title,desc,attrs){
+  return `<button class="admlirow utool-row" type="button" ${attrs}><span class="ic">${ico(icon)}</span><span class="sp" style="flex:1 1 180px;text-align:start"><b>${esc(title)}</b><small class="cap">${esc(desc)}</small></span>${ico('i-chev-left')}</button>`;
+}
 function serverUsersIndex(){
-  const cards=[];
-  if(canUseSharedInbox()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-inbox')}</span><b>کارتابل مشترک</b><span class="sp"></span>${tag('API سرور')}</div>
-    <p class="cap">درخواست‌های پروفایل و رسید از پایگاه مشترک دریافت می‌شوند.</p>${btn('بازکردن کارتابل','data-open-workflow-inbox','i-chev-left')}</article>`);
-  if(canPerm('rp_view')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-chart')}</span><b>گزارش‌های سرور</b><span class="sp"></span>${tag('API سرور')}</div>
-    <p class="cap">آمار تجمیعی فقط از پایگاه سرور خوانده می‌شود.</p><button class="btn sm" data-user-hub="reports">گزارش‌ها</button></article>`);
-  if(isOwner()) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-shield')}</span><b>حساب‌ها و نقش‌ها</b><span class="sp"></span>${tag('API سرور')}</div>
-    <p class="cap">فهرست حساب‌های احراز‌شده و واگذاری نقش فقط از سرویس مالک انجام می‌شود.</p>${btn('مدیریت حساب‌های سرور','data-server-role-module','i-chev-left')}</article>`);
-  p2UserHubCards().forEach(card=>cards.push(card));
-  cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-sliders')}</span><b>ابزارها و گزارش</b><span class="sp"></span>${tag('API سرور')}</div>
-    <p class="cap">گزارش کاربران، صندوق خروجی اعلان‌ها، تاریخچهٔ عملیات و نقشهٔ مجوزها؛ ابزار بدون API با دلیل مشخص می‌ماند.</p>${btn('بازکردن ابزارها','data-uv="tools"','i-chev-left')}</article>`);
+  const rows=[];
+  if(canUseSharedInbox()) rows.push(userToolRow('i-inbox','کارتابل مشترک','درخواست‌های پروفایل و رسید، منتظر تصمیم','data-open-workflow-inbox'));
+  if(canPerm('rp_view')) rows.push(userToolRow('i-chart','گزارش‌های سرور','آمار تجمیعی دوره‌ای از پایگاه سرور','data-user-hub="reports"'));
+  if(isOwner()) rows.push(userToolRow('i-shield','حساب‌ها و نقش‌ها','حساب‌های احرازشده و واگذاری نقش (فقط مالک)','data-server-role-module'));
+  p2UserHubCards().forEach(card=>rows.push(card));
+  rows.push(userToolRow('i-sliders','ابزارها و گزارش','گزارش کاربران، صندوق خروجی اعلان‌ها، تاریخچهٔ عملیات و نقشهٔ مجوزها','data-uv="tools"'));
   return `<div class="stack">${userHubTabs()}
     ${canPerm('us_view')?serverUsersList():''}
-    ${cards.length?`<div class="admgrid">${cards.join('')}</div>`:''}
+    ${rows.length?`<section class="card stack" data-user-tools><div class="head">ابزارها</div><div class="admlist">${rows.join('')}</div></section>`:''}
   </div>`;
 }
 function serverUsersView(){
@@ -7425,7 +7426,8 @@ function ctEditor(){
       ${img&&!up.busy?btn('حذف تصویر',`data-ct-image-clear="${imgField}"`,'i-close'):''}
     </div>${upState?`<div class="row tight" style="flex-wrap:wrap;align-items:center">${upState}</div>`:''}
     ${img&&img.startsWith('/api/public/media/')?`<details class="cap" data-ct-image-stored><summary>تصویر در پایگاه رسانهٔ همین سایت ذخیره شده است (نشانی فایل)</summary><code dir="ltr">${esc(img)}</code></details>`:''}
-    ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:(kind==='events'?'پوستر عمودی A4 (نسبت ۲۱۰ به ۲۹۷) در کارت‌ها و صفحهٔ رویداد کامل و بدون برش نمایش داده می‌شود. ':'')+'فایل PNG، JPEG یا WebP تا ۳ مگابایت. سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.'})}</div>`;
+    ${p2Inp('یا آدرس تصویر',imgField,img&&img.startsWith('data:')?'':img,{ph:'https://… یا مسیر همین سایت',dir:'ltr',err:err[imgField],hint:(kind==='events'?'پوستر عمودی A4 کامل و بدون برش نمایش داده می‌شود؛ ':'')+'PNG، JPEG یا WebP تا ۳ مگابایت.'})}
+    <small class="cap" hidden data-ct-image-policy>سرور نوع واقعی فایل را از محتوای آن بررسی می‌کند، تصویر را در پایگاه مشترک نگه می‌دارد و فقط نشانی پایدار آن در سند محتوا ذخیره می‌شود.</small></div>`;
   const fields=kind==='events'?ctEventSections(e,imageBox)
   :`
     ${p2Inp('عنوان','t',f.t,{max:240,err:err.t})}
@@ -9033,8 +9035,9 @@ function serverNewDefinitionView(){
   if(!CT.edit&&ctCan('can_edit')) ctStartNew();
   /* نسخهٔ محتوای سایت (expected_version) از همان فهرست سروری می‌آید؛ بدون آن ساخت رکورد ۴۰۹ می‌گیرد */
   if(!CT.data&&!CT.loading&&!CT.error) ctLoad();
-  const kinds=`<section class="card stack" data-newev-kinds><div class="row" style="flex-wrap:wrap;gap:8px"><div class="head">تعریف جدید</div><span class="sp"></span><small class="cap">${esc(isOwner()||ctCan('can_publish')?'مالک و مدیر مجاز مستقیم منتشر می‌کنند':'پیش‌نویس ذخیره می‌شود و انتشار با مالک است')}</small></div>
-    <div class="admfilters" role="tablist" aria-label="نوع تعریف">
+  /* بازآرایی ۱۴۰۵/۰۸/۰۳: عنوان «تعریف جدید» فقط در سرصفحه است؛ این کارت فقط انتخاب نوع است */
+  const kinds=`<section class="card stack" data-newev-kinds><div class="row" style="flex-wrap:wrap;gap:8px"><small class="cap" id="newevKindLbl">چه چیزی تعریف می‌کنید؟</small><span class="sp"></span><small class="cap">${esc(isOwner()||ctCan('can_publish')?'مالک و مدیر مجاز مستقیم منتشر می‌کنند':'پیش‌نویس ذخیره می‌شود و انتشار با مالک است')}</small></div>
+    <div class="admfilters" role="tablist" aria-labelledby="newevKindLbl">
       <button class="chip ${CT.kind==='events'&&!(CT.edit&&CT.edit.form&&CT.edit.form.past)?'on':''}" role="tab" aria-selected="${CT.kind==='events'&&!(CT.edit&&CT.edit.form&&CT.edit.form.past)}" data-newev-kind="events">${ico('i-calendar')}<span>رویداد</span></button>
       <button class="chip ${CT.kind==='events'&&CT.edit&&CT.edit.form&&CT.edit.form.past?'on':''}" role="tab" aria-selected="${CT.kind==='events'&&!!(CT.edit&&CT.edit.form&&CT.edit.form.past)}" data-newev-kind="events" data-newev-past="1" title="رویدادی که پیش‌تر برگزار شده؛ بدون ثبت‌نام و یادآور">${ico('i-layers')}<span>رویداد برگزارشده</span></button>
       <button class="chip ${CT.kind==='articles'?'on':''}" role="tab" aria-selected="${CT.kind==='articles'}" data-newev-kind="articles">${ico('i-doc')}<span>مطلب</span></button>
@@ -9424,8 +9427,8 @@ function serverUsersList(){
   const roles=[['','هر نقشی'],['assigned','دارای نقش'],['none','بدون نقش']].map(([k,l])=>`<button class="chip ${US.role===k?'on':''}" type="button" data-users-role="${k}">${esc(l)}</button>`).join('');
   const statuses=[['','هر وضعیتی'],['active','فعال'],['blocked','مسدود'+(d&&d.blocked_total!=null?' ('+fa(d.blocked_total)+')':'')]].map(([k,l])=>`<button class="chip ${US.status===k?'on':''}" type="button" data-users-status="${k}">${esc(l)}</button>`).join('');
   return `<section class="card stack" data-users-panel>
-    <div class="row" style="flex-wrap:wrap"><div class="head">فهرست کاربران</div><span class="sp"></span>${tag('پایگاه مشترک سرور','ok')}${d?tag(fa(total)+' کاربر',''):''}${btn('بازخوانی','data-users-refresh','i-refresh')}</div>
-    <p class="cap">حساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند. شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود؛ با نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب جست‌وجو کنید. واگذاری نقش از بخش جداگانهٔ «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.</p>
+    <div class="row" style="flex-wrap:wrap"><div class="head">فهرست کاربران</div><span class="sp"></span>${d?tag(fa(total)+' کاربر',''):''}${btn('بازخوانی','data-users-refresh','i-refresh')}</div>
+    <p class="cap" title="شمارهٔ تلفن در سرور فقط به‌صورت هش است و اینجا نمایش داده نمی‌شود. واگذاری نقش از بخش «حساب‌ها و نقش‌ها» (فقط مالک) انجام می‌شود.">حساب‌هایی که دست‌کم یک‌بار با بله یا رمز یک‌بارمصرف وارد شده‌اند؛ شمارهٔ تلفن نمایش داده نمی‌شود.</p>
     <form class="row tight server-role-search" data-users-search-form onsubmit="return false">
       <label class="searchbox" style="flex:1;min-width:0">${ico('i-search')}<input id="usersQuery" type="search" class="input" value="${esc(US.q)}" maxlength="80" autocomplete="off" placeholder="نام پروفایل، شناسهٔ بله یا ابتدای شناسهٔ حساب" aria-label="جست‌وجوی کاربر"/></label>
       <button class="btn sm" type="submit" data-users-search>جست‌وجو</button></form>
@@ -9770,12 +9773,9 @@ function serverClubView(){
 }
 function p2UserHubCards(){
   const cards=[];
-  if(canPerm('attendance')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-check')}</span><b>حضور و غیاب</b><span class="sp"></span>${tag('API سرور')}</div>
-    <p class="cap">حضور بلیت‌های ثبت‌نام سرور؛ همان رکوردی که ربات هنگام اسکن می‌نویسد.</p>${btn('بازکردن حضور و غیاب','data-open-attendance','i-chev-left')}</article>`);
-  if(canPerm('certificate')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-medal')}</span><b>گواهینامه‌ها</b><span class="sp"></span>${tag('API سرور')}</div>
-    <p class="cap">گواهی‌های صادرشدهٔ ربات که با مالک تأییدشده به پایگاه مشترک رسیده‌اند؛ جست‌وجو، وضعیت و فایل. صدور فقط از ربات.</p>${btn('بازکردن گواهینامه‌ها','data-open-cert','i-chev-left')}</article>`);
-  if(isOwner()||canPerm('cl_member')) cards.push(`<article class="card stack"><div class="row"><span class="ic">${ico('i-star')}</span><b>امتیاز باشگاه</b><span class="sp"></span>${tag('آینهٔ دفترکل ربات','ok')}</div>
-    <p class="cap">تاریخچهٔ امتیاز اعضایی که هویت بلهٔ آن‌ها به حساب سرور پیوند خورده؛ فقط‌خواندنی. امتیاز فقط در ربات تغییر می‌کند.</p>${btn('بازکردن امتیاز باشگاه','data-open-club','i-chev-left')}</article>`);
+  if(canPerm('attendance')) cards.push(userToolRow('i-check','حضور و غیاب','حضور بلیت‌های ثبت‌نام؛ همان رکوردی که ربات هنگام اسکن می‌نویسد','data-open-attendance'));
+  if(canPerm('certificate')) cards.push(userToolRow('i-medal','گواهینامه‌ها','گواهی‌های صادرشدهٔ ربات؛ جست‌وجو، وضعیت و فایل (صدور فقط از ربات)','data-open-cert'));
+  if(isOwner()||canPerm('cl_member')) cards.push(userToolRow('i-star','امتیاز باشگاه','آینهٔ فقط‌خواندنی دفترکل ربات؛ امتیاز فقط در ربات تغییر می‌کند','data-open-club'));
   return cards;
 }
 document.addEventListener('click',e=>{
