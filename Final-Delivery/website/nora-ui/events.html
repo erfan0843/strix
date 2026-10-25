@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=104"/>
 <link rel="stylesheet" href="nora.css?v=107"/>
-<link rel="stylesheet" href="events-page.css?v=106"/>
+<link rel="stylesheet" href="events-page.css?v=107"/>
 <link rel="stylesheet" href="countdown.css?v=4"/>
 <style>.seo-breadcrumb{margin:8px 0;color:var(--ink-3);font-size:var(--fs-cap)}.seo-breadcrumb a{color:var(--brand-ink);text-decoration:underline;text-underline-offset:3px}</style>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
@@ -88,12 +88,13 @@
         <option value="title">نام برنامه</option>
       </select></label>
     <span class="sp"></span>
+    <!-- شمار نتیجه در همان نوار ابزار؛ یک ردیف کمتر پیش از فهرست (بازآرایی ۱۴۰۵/۰۸/۰۳) -->
+    <p id="eventsCount" class="events-result-line" aria-live="polite"></p>
     <div class="events-view-switch" role="tablist" aria-label="نمای رویدادها">
       <button type="button" class="chip on" data-event-view="list" role="tab" aria-selected="true"><svg class="i" aria-hidden="true"><use href="#i-archive"/></svg> فهرست</button>
       <button type="button" class="chip" data-event-view="cal" role="tab" aria-selected="false"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg> تقویم</button>
     </div>
   </div>
-  <div class="events-result-line"><p id="eventsCount" aria-live="polite"></p></div>
   <section id="eventsList" class="events-grid" aria-label="فهرست رویدادها"></section>
   <section id="eventCalendar" class="event-calendar card paper" hidden aria-label="تقویم ماهانهٔ رویدادها">
     <div class="event-months" id="eventMonths" role="tablist" aria-label="ماه‌ها"></div>
@@ -118,6 +119,6 @@
 <script src="ui.js?v=132"></script>
 <script src="public-data.js?v=115"></script>
 <script src="countdown.js?v=3"></script>
-<script src="events-page.js?v=105"></script>
+<script src="events-page.js?v=106"></script>
 </body>
 </html>

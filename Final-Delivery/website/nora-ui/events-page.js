@@ -177,8 +177,8 @@
     const cover = safeUrl(event.posterUp || event.poster);
     const when = [event.when, event.time].filter(Boolean).join(' · ');
     const mode = modeOf(event);
-    const tags = (Array.isArray(event.tags) ? event.tags : []).slice(0, 4);
-    if (event.kind && !tags.includes(event.kind)) tags.unshift(event.kind);
+    /* بازآرایی ۱۴۰۵/۰۸/۰۳: نوع برنامه فقط یک بار روی قاب پوستر (cover-kind) می‌آید و تاریخ فقط در ردیف مشخصات زیر عنوان؛ هیچ‌کدام تکرار نمی‌شوند */
+    const tags = (Array.isArray(event.tags) ? event.tags : []).filter(tag => tag && tag !== event.kind).slice(0, 4);
     const detailHref = `event.html?id=${encodeURIComponent(event.id)}`;
     const coverHtml = cover ? `<img src="${esc(cover)}" alt="" loading="lazy" decoding="async"/>` : '';
     /* وضعیت ثبت‌نام فقط از سرور؛ دکمهٔ ثبت‌نام تنها در حالت «باز» به فرم می‌رود و در بقیهٔ حالت‌ها وضعیت صادقانه نوشته می‌شود */
@@ -207,7 +207,6 @@
         ${coverHtml}<span class="cover-shade"></span>
         ${event.kind ? `<span class="cover-kind">${esc(event.kind)}</span>` : ''}
         ${coverState ? `<span class="cover-state">${esc(coverState)}${rec ? ' · ضبط‌شده' : ''}</span>` : rec ? '<span class="cover-state">ضبط‌شده</span>' : ''}
-        ${when ? `<span class="cover-date">${esc(when)}</span>` : ''}
       </a>
       <div class="event-list-body">
         ${tags.length ? `<div class="event-list-tags">${tags.slice(0, 4).map((tag, index) => `<span class="tag${index === 0 ? ' brand' : ''}">${esc(tag)}</span>`).join('')}</div>` : ''}
