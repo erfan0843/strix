@@ -341,15 +341,19 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&p.all('#shMenu .mrow').length===19,'منوی کامل پنج‌گروهی، بدون ردیف‌های اتصالِ حذف‌شده، حفظ شده است');
   ok(p.all('#shMenu .mrow').every(row=>!row.textContent.includes('نشست')),
     'برچسب‌های ناوبری عمومی برای برنامه‌های منتشرشده از اصطلاح مبهم «نشست» استفاده نمی‌کنند');
-  ok(p.all('#quick .tile').length===5&&!p.all('#quick a[href*="cooperation"]').length
+  /* پذیرش ۱۴۰۵/۰۸/۰۳: چهار میان‌بر؛ کاشی «رویدادها و آرشیو» برداشته شد چون همان مقصدِ بنر/«همهٔ رویدادها»/tabbar بود */
+  ok(p.all('#quick .tile').length===4&&!p.all('#quick a[href*="cooperation"]').length
+      &&!p.all('#quick a[href="events.html"]').length
       &&p.all('#quick a[href="support.html"]').length===1,
-    'پنج میان‌بر جامع‌اند و پیوند همکاری فقط در بخش پشتیبانی است، نه خانه');
-  const partialQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['events']})}));
-  ok(partialQuick.all('#quick .tile').some(tile=>tile.textContent.includes('رویدادها و آرشیو')),
+    'چهار میان‌بر جامع‌اند، هیچ‌کدام مسیر تکراری رویدادها نیست و پیوند همکاری فقط در بخش پشتیبانی است');
+  ok(p.doc.querySelector('#evSec a.more[href="events.html#list"]')&&p.doc.querySelector('.tabbar a[href="events.html#list"]'),
+    'مقصد رویدادها از پیوند ویترین و tabbar در دسترس می‌ماند');
+  const partialQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['club']})}));
+  ok(partialQuick.all('#quick .tile').some(tile=>tile.textContent.includes('مطالب و مطالعه')),
     'دستهٔ میان‌بر ترکیبی با پنهان‌کردن فقط یکی از دو کلیدش همچنان می‌ماند');
-  const hiddenQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['events','past']})}));
-  ok(!hiddenQuick.all('#quick .tile').some(tile=>tile.textContent.includes('رویدادها و آرشیو'))
-      &&hiddenQuick.all('#quick .tile').length===4,
+  const hiddenQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['club','articles']})}));
+  ok(!hiddenQuick.all('#quick .tile').some(tile=>tile.textContent.includes('مطالب و مطالعه'))
+      &&hiddenQuick.all('#quick .tile').length===3,
     'دستهٔ میان‌بر ترکیبی فقط وقتی هر دو کلید پنهان‌اند برداشته می‌شود');
   const homeNav=p.all('#tabs a').map(link=>link.getAttribute('href'));
   ok(homeNav.length===3&&homeNav[0]==='home.html'&&homeNav[1]==='events.html#list'

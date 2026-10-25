@@ -439,8 +439,9 @@
     N.DAYS = [];
     N.QTAGS = [];
     N.TRUST = { row: [], short: {} };
+    /* پذیرش ۱۴۰۵/۰۸/۰۳: کاشی «رویدادها و آرشیو» برداشته شد؛ همان مقصد (events.html) از دکمهٔ اصلی بنر، پیوند «همهٔ رویدادها»ی ویترین،
+       «آرشیو رویدادها» و tabbar در دسترس است و کاشیِ چهارم مسیر تکراری بود. کلیدهای تنظیمات events/past همچنان بخش‌های خانه را کنترل می‌کنند. */
     const quick = [
-      { k: 'events', settingsKeys: ['events', 'past'], i: 'i-calendar', n: 'رویدادها و آرشیو', s: 'برنامه‌های پیش‌رو، برگزارشده و ثبت‌نام', href: 'events.html' },
       { k: 'articles', settingsKeys: ['club', 'articles'], i: 'i-book', n: 'مطالب و مطالعه', s: 'مطالب، رسانه و باشگاه کتاب‌خوانی', j: 'articles' },
       { k: 'people', settingsKeys: ['people', 'partners'], i: 'i-users', n: 'افراد و نهادها', s: 'اساتید، دست‌اندرکاران و همکاران', href: 'home.html#teachers' },
       { k: 'verify', settingsKeys: ['verify'], i: 'i-qr', n: 'استعلام گواهی', s: 'بررسی گواهی در سامانه', f: 'shVerify' },
