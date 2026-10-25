@@ -27,7 +27,7 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="glass.css?v=105"/>
 <link rel="stylesheet" href="nora.css?v=107"/>
-<link rel="stylesheet" href="countdown.css?v=4"/>
+<link rel="stylesheet" href="countdown.css?v=5"/>
 <style>
   .tag-g{background:rgba(255,255,255,.92);color:#0E2A55;border-color:transparent}
 
@@ -91,13 +91,18 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   .bs.bs-intro{min-height:232px;padding-top:54px}
   .bs.bs-intro h2{font-size:clamp(20px,4.4vw,25px)}
   .bs.bs-intro .bnote{max-width:46ch;font-size:var(--fs-sub)}
-  @media (min-width:620px){.bs.bs-intro{min-height:256px;padding-inline:26px 24px}}
+  @media (min-width:620px){.bs.bs-intro{min-height:232px;padding-inline:26px 24px}}
 
   /* ── منوی سریع ── */
   /* کاشی‌ها به‌تعداد خودشان چیده می‌شوند (۵ کاشی در دسکتاپ یک ردیف، در موبایل ۳+۲) تا کاشی تک‌افتاده نماند */
   .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:var(--sp-2h)}
-  /* چیپ‌های صافی سریع در موبایل یک ردیف اسکرول‌شونده‌اند تا جست‌وجو دو ردیف جا نگیرد */
-  @media (max-width:600px){#hotRow{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px} #hotRow::-webkit-scrollbar{display:none} #hotRow>*{flex:0 0 auto}}
+  /* جست‌وجوی خانه: یک ردیف سبک (ورودی + چیپ‌ها) بی‌کارت؛ چیپ‌ها می‌شکنند و بریده نمی‌شوند (۳۹۰ و ۳۶۰) */
+  .homesearch{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3);margin-top:var(--sp-3)}
+  .homesearch .sfield{flex:1 1 280px;min-width:0}
+  .homesearch #hotRow{flex:0 1 auto;flex-wrap:wrap}
+  .homesearch #hotRow[hidden]{display:none}
+  .homesearch .sugbox{flex:1 1 100%;margin-top:0}
+  @media (max-width:600px){.homesearch #hotRow{flex:1 1 100%}}
   .tile{-webkit-appearance:none;appearance:none;position:relative;display:grid;justify-items:center;gap:var(--sp-2);text-decoration:none;
     padding:13px 7px 11px;border-radius:var(--r-lg);cursor:pointer;font:inherit;color:inherit;text-align:center;
     border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);overflow:hidden;
@@ -555,15 +560,16 @@ if(m) m.setAttribute('content',v==='dark'?'#1B211E':'#F5F3EE');}catch(e){}})();<
   <section class="sec" id="stories" aria-label="استوری‌های نورا" hidden></section>
 
   <!-- ── جست‌وجو و صافی سریع ── -->
-  <section class="card paper" style="margin-top:12px" id="searchSec" aria-label="جست‌وجو">
+  <!-- بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ D): جست‌وجو و صافی‌های سریع یک ردیف سبک بی‌کارت‌اند تا ویترین به بنر نزدیک بماند -->
+  <section class="homesearch" id="searchSec" aria-label="جست‌وجو">
     <div class="sfield">
       <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
       <input id="q" type="search" placeholder="رویداد، کارگاه، استاد، مطلب…" aria-label="جست‌وجو در خانه"
              autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugBox" aria-autocomplete="list"/>
       <button class="icon-btn" id="qClear" aria-label="پاک کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button>
     </div>
+    <div id="hotRow" class="row tight"></div>
     <div id="sugBox" class="sugbox" role="listbox" aria-label="پیشنهادهای جست‌وجو" hidden></div>
-    <div id="hotRow" class="row tight" style="margin-top:10px"></div>
   </section>
 
   <!-- ── نتیجهٔ جست‌وجو: رویداد، مطلب و استاد ── -->
@@ -1116,8 +1122,7 @@ function renderHot(){
   box.innerHTML=
     (S.searches.length?S.searches.map(t=>chip('i-clock',t,`data-sq="${esc(t)}"`)).join('')+
       chip('i-close','پاک کردن سابقه','data-clearhistory'):'')+
-    HOTTAGS.map(t=>chip('i-star',t,`data-sq="${esc(t)}"`)).join('')+
-    ARALL().slice(0,2).map(a=>chip('i-article',a.t,`data-sq="${esc(a.t)}"`)).join('');
+    HOTTAGS.map(t=>chip('i-star',t,`data-sq="${esc(t)}"`)).join('');
 }
 function renderSug(){
   const box=$('#sugBox'), q=S.q.trim();

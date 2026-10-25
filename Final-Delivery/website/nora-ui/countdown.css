@@ -2,8 +2,9 @@
    یک نشانهٔ واحد از countdown.js با سه اندازه: پیش‌فرض (صفحهٔ رویداد)،
    .is-compact (کارت‌ها)، .is-hero (بنر/خانه). منطق زمان تغییری نکرده است؛
    بلوک‌های عددی aria-hidden هستند و متن کامل در .nora-countdown-value می‌ماند. */
-.nora-countdown{--cd-ink:var(--ink);--cd-muted:var(--ink-3);--cd-accent:var(--brand-ink);
-  --cd-block:color-mix(in srgb,var(--brand) 7%,var(--surface));--cd-edge:color-mix(in srgb,var(--brand) 16%,transparent);
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ D): رقم‌های شمارشگر خنثی‌اند (رنگ برند فقط برای عمل اصلی/انتخاب/پیوند)؛ «به‌زودی» با رنگ هشدار می‌ماند چون وضعیت است */
+.nora-countdown{--cd-ink:var(--ink);--cd-muted:var(--ink-3);--cd-accent:var(--ink);
+  --cd-block:var(--surface-sunk);--cd-edge:var(--hairline);
   --cd-n:30px;--cd-u:11px;--cd-gap:var(--sp-2);--cd-pad:8px 10px 7px;--cd-min:58px;--cd-radius:14px;
   display:inline-flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);max-width:100%;color:var(--cd-ink);
   font-variant-numeric:tabular-nums;direction:rtl;line-height:1.5}

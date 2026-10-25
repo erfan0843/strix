@@ -2781,7 +2781,12 @@ function vServerReports(){
   ].filter(Boolean):[];
   /* پذیرش ۱۴۰۵/۰۸/۰۳: تفکیک‌ها در یک کارت «بر اساس وضعیت» (نه شش کارت هم‌وزن)؛ گروه‌های تک‌ردیفی خط کوتاه‌اند */
   const blocks=groups.filter(g=>g.startsWith('<div')), lines=groups.filter(g=>g.startsWith('<small'));
-  const breakdown=groups.length?`<section class="card stack" data-report-breakdown><div class="head">بر اساس وضعیت</div>${blocks.join('')}${lines.length?`<div class="stack tight">${lines.join('')}</div>`:''}</section>`:'';
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ D): دورهٔ بی‌داده بن‌بست نیست؛ یک جمله + تغییر دوره به بازهٔ بلندتر */
+  const periodKeys=SERVER_REPORT_PERIODS.map(([k])=>k), nextPeriod=periodKeys[periodKeys.indexOf(SERVER_REPORT_PERIOD)+1]||'';
+  const emptyLines=lines.filter(l=>l.includes('در این دوره موردی ثبت نشده است')), keptLines=lines.filter(l=>!emptyLines.includes(l));
+  const periodEmpty=emptyLines.length>=2?stateBox({icon:'i-chart',title:'در این دوره موردی ثبت نشده است',text:'پاسخ، بررسی، اعلان یا درخواستی در «'+(periodNames.get(data.period)||'')+'» نیست.',actions:nextPeriod?`<button class="btn sm" data-server-report-period="${nextPeriod}">${ico('i-calendar')}نمایش ${esc(periodNames.get(nextPeriod)||'')}</button>`:'',attrs:'data-report-empty',kind:'compact'}):'';
+  const shownLines=periodEmpty?keptLines:lines;
+  const breakdown=groups.length?`<section class="card stack" data-report-breakdown><div class="head">بر اساس وضعیت</div>${blocks.join('')}${shownLines.length?`<div class="stack tight">${shownLines.join('')}</div>`:''}${periodEmpty}</section>`:'';
   return `<div class="stack">
     <section class="card stack"><div class="row"><div class="head">گزارش‌های زندهٔ پایگاه مشترک</div><span class="sp"></span>
       <small class="cap">دوره برای پاسخ‌ها، بررسی‌ها، اعلان‌ها و همکاری</small>
