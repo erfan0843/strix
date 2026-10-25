@@ -262,6 +262,9 @@ html[dir="rtl"] .btn.primary::after{--shine-dir:-1}
   cursor:pointer;
 }
 .chip .i{width:16px;height:16px}
+/* شمارندهٔ داخل چیپ (مثل «همه ۴»): عدد جدا و کم‌رنگ، نه با نقطهٔ میانی که شبیه صفر خوانده می‌شود */
+.chip small{font-size:var(--fs-cap);font-weight:600;color:var(--ink-3);padding-inline-start:2px}
+.chip.on small{color:inherit}
 .chip:hover{background:var(--surface-2)}
 .chip:active{transform:scale(.96)}
 .chip.on{background:var(--brand-tint); color:var(--brand-ink); border-color:transparent; font-weight:600}

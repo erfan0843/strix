@@ -436,6 +436,8 @@ details.adv.ef-more>.adv-body{display:grid;gap:var(--sp-1h)}
 @media (max-width:620px){
   .admkinds{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admkpi{grid-template-columns:1fr}
+  /* گزارش‌ها: شمارنده‌های کوتاه (برچسب + عدد) در موبایل دو ستونه می‌مانند تا پنج جعبهٔ تمام‌عرض پشت هم نیایند */
+  .admkpi.kpi-compact{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admbar .searchbox{min-width:0;width:100%}
   /* موبایل: ردیف ۱ = آیکون، عنوان، خروج؛ ردیف ۲ = متا (سلامت، ساعت، هویت) اسکرول‌شونده؛ حداکثر دو ردیف */
   .admbar.page-head{grid-template-columns:auto minmax(0,1fr) auto;padding:var(--sp-2) var(--sp-3)}
@@ -718,6 +720,10 @@ a.sktile{text-decoration:none;color:inherit}
 .sktile b{font-size:var(--fs-sub);font-weight:600}
 .sktile .cap{font-size:var(--fs-cap)}
 .sktile .tag{position:absolute;top:10px;inset-inline-end:10px;font-size:var(--fs-micro)}
+/* پذیرش ۱۴۰۵/۰۸/۰۳: حوزه‌های تنظیمات سروری فهرست فشرده‌اند (utool-row)، نه کاشی */
+.utool-row.on{background:var(--brand-tint);box-shadow:inset 3px 0 0 var(--brand)}
+a.utool-row{text-decoration:none;color:inherit;display:flex}
+@media (min-width:900px){[data-sset-tiles] .admlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--sp-5)}}
 
 /* نامهخانه: کارت اعلان با مدل پیام بانکی: عنوان، جمله، خط وضعیت، مهر زمان */
 .ntfrow{padding:12px 0;border-top:.5px solid var(--hairline-2);display:grid;gap:var(--sp-2)}

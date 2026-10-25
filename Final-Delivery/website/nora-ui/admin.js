@@ -1804,14 +1804,14 @@ function vServerOutbox(){
   const chips=SERVER_OUTBOX_STATES.map(([key,label])=>`<button class="chip ${o.state===key?'on':''}" data-server-outbox-state="${key}" ${o.loading?'disabled':''}>${esc(label)}${o.counts&&key?` <small>${number(o.counts[key])}</small>`:''}</button>`).join('');
   const rows=o.items.map(item=>`<div class="admlirow" data-server-outbox-row="${esc(item.id)}" data-server-outbox-state-row="${esc(item.last_delivery_error==='no_bale_identity'?'no_bale_identity':item.delivery_state||'')}">
       <span class="sp"><b>${esc(item.title||'اعلان')}</b> <span class="mini">${esc(kinds[item.kind]||item.kind||'')}</span>
-        <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
+        <div class="cap">${esc(item.account_label||('حساب '+String(item.account_id||'').slice(0,8)))} · ${esc(svcWhen(item.created_at)||item.created_at||'')}${item.delivery_attempts?` · ${fa(String(item.delivery_attempts))} تلاش`:''}${item.last_delivery_error&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)?` · آخرین خطا: ${esc(item.last_delivery_error)}`:''}${item.delivered_at?` · تحویل: ${esc(item.delivered_at)}`:''}</div></span>
       ${stateTag(item)}${item.delivery_state==='failed'&&item.last_delivery_error!=='no_bale_identity'&&!superseded(item)&&canPerm('ev_publish')?btn(o.retrying===item.id?'در حال صف‌گذاری…':'تلاش دوبارهٔ ارسال',`data-server-outbox-retry="${esc(item.id)}" ${o.retrying?'disabled':''}`,'i-refresh'):''}</div>`).join('');
   const notice=o.notice?p2Msg(o.notice):'';
   const body=o.loading&&!o.loaded?`<p class="cap">در حال خواندن صندوق خروجی از سرور…</p>`
     :o.error?`<div class="empty"><p class="cap">${esc(o.error)}</p>${btn('تلاش دوباره','data-server-outbox-refresh','i-refresh')}</div>`
     :rows||`<p class="cap">در این وضعیت اعلانی ثبت نشده است.</p>`;
-  return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${tag('API سرور')} ${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
-    <p class="cap">هر ردیف همان چیزی است که سرور ثبت کرده: «در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست. ارسال واقعی بله فقط با ربات زنده انجام می‌شود.</p>
+  return `<section class="card stack" data-server-outbox><div class="row"><div class="head">صندوق خروجی اعلان‌ها</div><span class="sp"></span>${btn('بازخوانی','data-server-outbox-refresh','i-refresh')}</div>
+    <p class="cap" title="«در صف» یعنی هنوز به ربات داده نشده، «تلاش دوباره» یعنی ربات دست‌کم یک‌بار شکست خورده، «بدون هویت بله» یعنی حساب فقط وبی است و خطای شبکه نیست.">هر ردیف همان وضعیتی است که سرور ثبت کرده؛ ارسال واقعی فقط با ربات زنده انجام می‌شود.</p>
     <div class="admfilters" role="group" aria-label="وضعیت اعلان">${chips}</div>
     <div class="admfilters" role="group" aria-label="نوع اعلان">${SERVER_OUTBOX_KINDS.map(([key,label])=>`<button class="chip ${o.kind===key?'on':''}" data-server-outbox-kind="${key}" ${o.loading?'disabled':''}>${esc(label)}</button>`).join('')}</div>
     ${notice}<div class="admlist">${body}</div>
@@ -2752,15 +2752,17 @@ function vServerReports(){
   const labels={draft:'پیش‌نویس',published:'منتشرشده',paused:'متوقف',archived:'بایگانی',
     accepted:'ثبت‌شده',waitlisted:'صف انتظار',pending:'در انتظار',approved:'تأییدشده',rejected:'ردشده',
     superseded:'جایگزین‌شده',manager:'مدیر', 'club-supervisor':'سرپرست باشگاه',new:'جدید',
-    reviewing:'در بررسی',contacted:'تماس‌گرفته',closed:'بسته',delivered:'تحویل‌شده',failed:'ناموفق'};
+    reviewing:'در بررسی',contacted:'تماس‌گرفته',closed:'بسته',delivered:'تحویل‌شده',failed:'ناموفق',total:'همه',retrying:'تلاش دوباره',queued:'در صف'};
   const number=value=>Number.isSafeInteger(value)&&value>=0?fa(value.toLocaleString('en-US')):'نامشخص';
   /* ممیزی پنل ۱۴۰۵/۰۸/۰۱ (F1): نمودار میله‌ای سادهٔ CSS از همان شمارش‌های سرور (نسبت هر ردیف به بیشینهٔ همان گروه)؛ هیچ سری زمانی یا عدد جعلی ساخته نمی‌شود */
   const grouped=(title,counts)=>{
     const entries=counts&&typeof counts==='object'?Object.entries(counts):[];
     const max=entries.reduce((m,[,v])=>Number.isSafeInteger(v)&&v>m?v:m,0);
-    return `<section class="card stack"><div class="head">${esc(title)}</div><div class="admlist" data-report-group="${esc(title)}">${entries.map(([key,value])=>{
+    /* پذیرش ۱۴۰۵/۰۸/۰۳: گروهی که فقط یک ردیف دارد تفکیکی نشان نمی‌دهد (همان جمعِ بالا با نوار ۱۰۰٪)؛ یک خط کوتاه می‌شود، نه کارت */
+    if(entries.length<=1) return `<small class="cap" data-report-group="${esc(title)}">${esc(title)}: ${entries.length?esc(labels[entries[0][0]]||entries[0][0])+' '+number(entries[0][1]):'در این دوره موردی ثبت نشده است'}</small>`;
+    return `<div class="stack tight" data-report-block><div class="sec-head"><b>${esc(title)}</b></div><div class="admlist" data-report-group="${esc(title)}">${entries.map(([key,value])=>{
       const w=max>0&&Number.isSafeInteger(value)&&value>0?Math.max(2,Math.round(value/max*100)):0;
-      return `<div class="admlirow"><span class="sp" style="flex:0 1 140px">${esc(labels[key]||key)}</span><span class="rbar" role="img" aria-label="${esc((labels[key]||key)+' '+number(value)+' از بیشینهٔ '+number(max))}"><i style="width:${w}%" data-report-bar="${esc(key)}" data-value="${Number.isSafeInteger(value)?value:''}"></i></span><b>${number(value)}</b></div>`}).join('')||'<p class="cap">در این دوره موردی ثبت نشده است.</p>'}</div></section>`;
+      return `<div class="admlirow"><span class="sp" style="flex:0 1 140px">${esc(labels[key]||key)}</span><span class="rbar" role="img" aria-label="${esc((labels[key]||key)+' '+number(value)+' از بیشینهٔ '+number(max))}"><i style="width:${w}%" data-report-bar="${esc(key)}" data-value="${Number.isSafeInteger(value)?value:''}"></i></span><b>${number(value)}</b></div>`}).join('')||'<p class="cap">در این دوره موردی ثبت نشده است.</p>'}</div></div>`;
   };
   const periodNames=new Map(SERVER_REPORT_PERIODS);
   const filters=SERVER_REPORT_PERIODS.map(([key,label])=>
@@ -2776,25 +2778,27 @@ function vServerReports(){
     grouped('حساب‌های تأییدشده',Object.assign({total:data.accounts.total},data.accounts.by_role||{})),
     grouped('تحویل اعلان‌ها · '+periodNames.get(data.period),data.notifications.by_delivery_status),
     data.cooperation_requests?grouped('درخواست‌های همکاری · '+periodNames.get(data.period),data.cooperation_requests.by_status):''
-  ].filter(Boolean).join(''):'';
+  ].filter(Boolean):[];
+  /* پذیرش ۱۴۰۵/۰۸/۰۳: تفکیک‌ها در یک کارت «بر اساس وضعیت» (نه شش کارت هم‌وزن)؛ گروه‌های تک‌ردیفی خط کوتاه‌اند */
+  const blocks=groups.filter(g=>g.startsWith('<div')), lines=groups.filter(g=>g.startsWith('<small'));
+  const breakdown=groups.length?`<section class="card stack" data-report-breakdown><div class="head">بر اساس وضعیت</div>${blocks.join('')}${lines.length?`<div class="stack tight">${lines.join('')}</div>`:''}</section>`:'';
   return `<div class="stack">
     <section class="card stack"><div class="row"><div class="head">گزارش‌های زندهٔ پایگاه مشترک</div><span class="sp"></span>
+      <small class="cap">دوره برای پاسخ‌ها، بررسی‌ها، اعلان‌ها و همکاری</small>
       ${btn('بازخوانی','data-server-report-refresh','i-refresh')}</div>
-      <p class="cap">آمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. دوره برای پاسخ‌ها، درخواست‌های بررسی، اعلان‌ها و همکاری اعمال می‌شود.</p>
       <div class="admfilters" role="group" aria-label="بازهٔ گزارش">${filters}</div>
-      ${data?`<div class="admkpi">
+      ${data?`<div class="admkpi kpi-compact">
         <div class="k"><small>کل فرم‌های سرور</small>${bits(number(data.forms.total))}</div>
         <div class="k"><small>فرم‌های ساخته‌شده در دوره</small>${bits(number(data.forms.created_in_period))}</div>
         <div class="k"><small>پاسخ‌های دوره</small>${bits(number(data.responses.total))}</div>
         <div class="k"><small>درخواست‌های بررسی دوره</small>${bits(number(data.reviews.total))}</div>
         <div class="k"><small>حساب‌های تأییدشده</small>${bits(number(data.accounts.total))}</div>
-      </div><p class="cap">آخرین محاسبهٔ سرور: ${esc(data.generated_at||'نامشخص')}</p>`:''}
+      </div><p class="cap" title="آمار از API و پایگاه سرور خوانده می‌شود؛ هیچ عددی از دادهٔ مرورگر یا SQLite ربات وارد این گزارش نیست. گزارش مالی، رویداد، حضور و باشگاه از این API ساخته نمی‌شود تا زمانی که همان داده‌ها نیز به پایگاه مشترک وصل شوند.">آخرین محاسبهٔ سرور: ${esc(svcWhen(data.generated_at)||data.generated_at||'نامشخص')} · فقط از پایگاه سرور</p>`:''}
       ${error}${loading}</section>
-    ${groups?`<div class="admgrid">${groups}</div>`:''}
+    ${breakdown}
     ${vServerOutbox()}
-    ${vServerSched()}
-    ${vServerIntegrity()}
-    <p class="cap">گزارش مالی، رویداد، حضور و باشگاه از این API ساخته نمی‌شود تا زمانی که همان داده‌ها نیز به پایگاه مشترک وصل شوند؛ هیچ‌کدام با عدد محلی جایگزین نشده‌اند.</p>
+    <details class="adv" data-report-tech ${(SERVER_SCHED.data&&SERVER_SCHED.data.pending&&SERVER_SCHED.data.pending.due_unannounced>0)||SERVER_SCHED.error?'open':''}><summary>${ico('i-sliders')}وضعیت فنی: زمان‌بند انتشار و ممیزی یکپارچگی</summary>
+      <div class="adv-body stack">${vServerSched()}${vServerIntegrity()}</div></details>
   </div>`;
 }
 function vReports(){
@@ -6954,7 +6958,7 @@ function ctQuickFilters(d){
   const modes=Object.keys(mc).sort((a,b)=>(mc[b]||0)-(mc[a]||0)); if(CT.mode&&!modes.includes(CT.mode)) modes.unshift(CT.mode);
   /* بازآرایی ۱۴۰۵/۰۸/۰۳: صافی سریع یک ردیف چیپ است؛ «شیوهٔ برگزاری» با مرتب‌سازی زیر «صافی‌ها و ترتیب» می‌رود (ctModeSelect) */
   return `<div class="row tight" style="flex-wrap:wrap;align-items:center" data-ct-quick-filters>
-    <div class="admfilters" role="group" aria-label="صافی رویدادها">${CT_QUICK.map(([k,l])=>{const c=n(k); return `<button class="chip ${cur===k?'on':''}" type="button" data-ct-quick="${k}">${esc(l)}${c!=null?' · '+fa(c):''}</button>`}).join('')}</div>
+    <div class="admfilters" role="group" aria-label="صافی رویدادها">${CT_QUICK.map(([k,l])=>{const c=n(k); return `<button class="chip ${cur===k?'on':''}" type="button" data-ct-quick="${k}">${esc(l)}${c!=null?` <small>${fa(c)}</small>`:''}</button>`}).join('')}</div>
   </div>`;
 }
 function ctModeSelect(d){
@@ -8098,7 +8102,10 @@ function efRegs(){
   const countLine=`<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><small class="cap" data-ef-count role="status">${total?fa(total)+' نتیجه'+(anyFilter?' با این صافی':''):''}</small><span class="sp"></span>
     <label class="row tight" style="gap:4px;align-items:center"><small class="cap">مرتب‌سازی</small><select class="inp" data-ef-sort aria-label="مرتب‌سازی فهرست" style="min-height:32px;padding:2px 8px">${[['newest','تازه‌ترین ثبت‌نام'],['oldest','قدیمی‌ترین ثبت‌نام'],['name','نام']].map(([v,l])=>`<option value="${v}" ${b.sort===v?'selected':''}>${l}</option>`).join('')}</select></label></div>`;
   const empty=forms.length?(anyFilter?'با این جست‌وجو یا صافی کسی پیدا نشد.':'هنوز کسی در این رویداد ثبت‌نام نکرده است.'):'فرم ثبت‌نامی به این رویداد وصل نیست؛ اول در «فرم‌ها و فعالیت‌ها» فرم ثبت‌نام بساز.';
-  return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}
+  /* پذیرش ۱۴۰۵/۰۸/۰۳: پیام مجوز قابل‌مشاهده می‌ماند (نه فقط title) چون بر تصمیم مدیر محدود اثر دارد؛
+     «رسید فرستاده شده؛ تأیید نشده» را خود برچسب ردیف می‌گوید و نیازی به جملهٔ جداگانه نیست */
+  const noteLine=fin?'':`<small class="cap" data-ef-regs-note>مبلغ‌ها فقط با مجوز مالی نمایش داده می‌شود.</small>`;
+  return `<div class="stack" data-ef-regs>${efSummaryChips(d.summary,fin)}${filters}${noteLine}
     ${d.items.length||anyFilter?countLine:''}
     ${d.items.length?`<div class="admlist">${d.items.map(r=>efRegRow(r,fin)).join('')}</div>`:`<div data-ef-regs-empty>${emptyBox(empty)}${!forms.length&&canPerm('fm_create')?btn('فرم‌ها و فعالیت‌ها','data-ef-tab="forms"','i-chev-left'):''}</div>`}
     ${efPager(b,d)}${forms.length?efCancelled(fin):''}</div>`;
@@ -10575,7 +10582,9 @@ document.addEventListener('click',e=>{
   if(hit('[data-data-delete-no]')){e.preventDefault(); DATA_CONFIRM=''; renderBody(); return}
   if(hit('[data-data-delete]')){e.preventDefault(); DATA_CONFIRM=hit('[data-data-delete]').dataset.dataDelete; DATA_MSG=null; renderBody(); return}
   /* تنظیمات (طرح نورا): کاشی‌ها، میان‌برهای واقعی و انبار تنظیمات سروری */
-  if(hit('[data-sset-go]')){e.preventDefault(); const g=hit('[data-sset-go]').dataset.ssetGo; if(!isOwner()&&!canPerm('sys_settings')){toast('این کاشی فقط با مجوز «تنظیمات سامانه» باز می‌شود'); return} S.sec='settings'; S.setG=g; SYS.msg=null; save(); renderBody(); return}
+  if(hit('[data-sset-go]')){e.preventDefault(); const g=hit('[data-sset-go]').dataset.ssetGo; if(!isOwner()&&!canPerm('sys_settings')){toast('این کاشی فقط با مجوز «تنظیمات سامانه» باز می‌شود'); return} S.sec='settings'; S.setG=g; SYS.msg=null; save(); renderBody();
+    /* پذیرش ۱۴۰۵/۰۸/۰۳: در عرض کم، محتوای گروه زیر فهرست حوزه‌ها عوض می‌شود و دیده نمی‌شد؛ به کارت تنظیمات سروری می‌رویم */
+    const tgt=document.querySelector('[data-sset-groups]'); if(tgt&&window.innerWidth<900&&typeof tgt.scrollIntoView==='function') tgt.scrollIntoView({block:'start'}); return}
   if(hit('[data-sset-act]')){e.preventDefault(); const a=hit('[data-sset-act]').dataset.ssetAct;
     if(a==='users-staff'){if(!isOwner()){toast('مدیریت نقش حساب‌ها فقط برای مالک است');return} S.sec='users';S.uHub='users';S.uV='tools';S.uTool='staff';save();render(); if(!SERVER_ROLE_LOADED)loadServerRoleAccounts(false); return}
     if(a==='club'){S.sec='users';S.uHub='users';S.uV='club';save();render();return}
@@ -10679,11 +10688,12 @@ function ssetTiles(leaf){
   const cur=(SSET_LEAF[leaf]||{}).t||'';
   const dest={skin:{setg:'publishing'},forms:{href:'builder.html'},users:{act:'users-staff'},ops:{setg:'deploy'},book:{act:'club'},skdev:{act:'events'},people:{setg:'people'},chat:{setg:'chat'}};
   const soon={chat:1};
+  /* پذیرش ۱۴۰۵/۰۸/۰۳: حوزه‌ها یک فهرست فشرده‌اند (همان الگوی ابزارهای کاربران)، نه هشت کاشی هم‌وزن بالای تنظیمات سروری؛ data-* و مقصدها همان‌اند */
   return `<section class="card stack" data-sset-tiles>
-    <div class="row"><div class="head">تنظیمات سامانه</div><span class="sp"></span><span class="cap">${esc(fa(SKIN_TILES.length))} کاشی · هر کاشی یک حوزه</span></div>
-    <div class="sktgrid">${SKIN_TILES.map(x=>{const d=dest[x.k]||{}; const inner=`<span class="si">${ico(x.i)}</span><b>${esc(x.n)}</b><span class="cap">${esc(x.s)}</span>${soon[x.k]?tag('بخشی نیازمند سرویس','warn'):''}`;
-      if(d.href) return `<a class="sktile" href="${d.href}" data-sset-tile="${x.k}">${inner}</a>`;
-      return `<button type="button" class="sktile ${cur===x.k?'on':''}" data-sset-tile="${x.k}" ${d.setg?`data-sset-go="${d.setg}"`:''} ${d.act?`data-sset-act="${d.act}"`:''} aria-pressed="${cur===x.k?'true':'false'}">${inner}</button>`}).join('')}</div>
+    <div class="row"><div class="head">حوزه‌های تنظیمات</div><span class="sp"></span><span class="cap">${esc(fa(SKIN_TILES.length))} حوزه</span></div>
+    <div class="admlist">${SKIN_TILES.map(x=>{const d=dest[x.k]||{}; const inner=`<span class="ic">${ico(x.i)}</span><span class="sp" style="flex:1 1 180px;text-align:start"><b>${esc(x.n)}</b><small class="cap">${esc(x.s)}</small></span>${soon[x.k]?tag('بخشی نیازمند سرویس','warn'):''}${ico('i-chev-left')}`;
+      if(d.href) return `<a class="admlirow utool-row" href="${d.href}" data-sset-tile="${x.k}">${inner}</a>`;
+      return `<button type="button" class="admlirow utool-row ${cur===x.k?'on':''}" data-sset-tile="${x.k}" ${d.setg?`data-sset-go="${d.setg}"`:''} ${d.act?`data-sset-act="${d.act}"`:''} aria-pressed="${cur===x.k?'true':'false'}">${inner}</button>`}).join('')}</div>
   </section>`;
 }
 function ssetGroupTexts(){
@@ -10807,11 +10817,11 @@ function serverSettingsView(){
   return `<div class="stack" data-sset>${canSettings?ssetTiles(leaf):''}
     <section class="card stack" data-sset-groups>
       <div class="row"><div class="head">تنظیمات سروری</div><span class="sp"></span>
-        <span class="cap">${esc(fa(groups.length))} گروه${group?' · '+esc(group.n):tile?' · '+esc((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):''}</span></div>
-      ${moved}${legend}
+        <span class="cap">${esc(fa(groups.length))} گروه${group?' · '+esc(group.n)+(group.s?'؛ '+esc(group.s):''):tile?' · '+esc((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):''}</span></div>
+      ${moved}
       <div class="admfilters" role="tablist" aria-label="گروه‌های تنظیمات">${chips}</div>
-      ${group?`<div class="admlirow" style="border:0;padding-bottom:0"><span class="ic">${ico(group.i)}</span><span class="sp"><b>${esc(group.n)}</b><small class="cap">${esc(group.s||'')}</small></span></div>`:''}
       <div class="admset">${inner}</div>
+      ${legend}
     </section></div>`;
 }
 /* ══ بازیابی پنل (مرحلهٔ A): زیرماژول‌های طراحی که فقط در حالت نمونه دیده می‌شدند،
