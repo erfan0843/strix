@@ -29,6 +29,9 @@ body.hasbotbar{padding-bottom:calc(90px + var(--safe-b,0px))}
 .phead .cover .ctags .tag{background:rgba(255,255,255,.20);border:1px solid rgba(255,255,255,.34);color:#fff;
   height:23px;font-size:var(--fs-micro);backdrop-filter:blur(6px)}
 .phead .pbody{padding:0 15px 15px;margin-top:-26px;position:relative}
+.phead.is-flat .pbody{margin-top:0;padding:14px 15px 15px}
+.phead.is-flat .ptop{align-items:center}
+.phead.is-flat .pmeta a.chip{text-decoration:none}
 .phead .ptop{display:flex;align-items:flex-end;gap:var(--sp-3)}
 .phead .ptop .who{padding-bottom:2px}
 .phead .av{width:62px;height:62px;border-radius:var(--r-lg);flex:0 0 auto;display:grid;place-items:center;position:relative;

@@ -318,30 +318,27 @@ function serverAccountHead(){
   const regCount=state.registrationsLoaded&&!state.registrationsError?faN(state.registrationsTotal):'—';
   const name=serverAccountDisplayName(), initial=(name||'ن').slice(0,1);
   const role=state.account.role==='owner'?'مالک سامانه':state.account.role==='manager'?'مدیر':state.account.role==='club-supervisor'?'سرپرست باشگاه':'';
-  return `<section class="phead anim server-account-head" aria-label="حساب من">
-    <div class="cover"><span class="blob b1" aria-hidden="true"></span>
-      <span class="ctags">${chip(providerLabel+' وصل است','ok')}${chip('حساب امن')}${role?chip(role,'brand'):''}</span></div>
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ E): بدون نوار گرادیانی و چیپ تزئینی؛ هویت + وضعیت ورود در یک ردیف، سه شمارندهٔ قابل‌کلیک،
+     بدون دکمه‌های تکراری (ثبت‌نام‌ها/فرم‌ها/فایل‌ها از همین شمارنده‌ها و «بخش‌های من» باز می‌شوند). «خروج» پایین صفحه است. */
+  return `<section class="phead anim server-account-head is-flat" aria-label="حساب من">
     <div class="pbody">
       <div class="ptop">
         <span class="av">${esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
         <span class="who"><b>${esc(name||'حساب نورا')}</b>
-          <small>ورود و دسترسی از سرور تأیید شده‌اند.</small>
-          <span class="pmeta">${chip(name?'نام از پروفایل حساب':'نام هنوز در پروفایل ثبت نشده')}</span></span>
-        <button class="icon-btn edit" data-server-data-open="notifications" aria-label="اعلان‌های حساب">${ico('i-bell')}</button>
+          <span class="pmeta">${chip(providerLabel+' وصل است','ok')}${role?chip(role,'brand'):''}${name?'':`<a class="chip" href="account.html#profile">${ico('i-idcard')}تکمیل نام در پروفایل</a>`}</span></span>
+        <button class="icon-btn edit" data-server-data-open="notifications" aria-label="اعلان‌های حساب${unread?`؛ ${faN(unread)} تازه`:''}">${ico('i-bell')}</button>
       </div>
       <div class="pstats">
         <button class="pstat" data-server-data-open="registrations"><b>${regCount}</b><small>ثبت‌نام</small></button>
         <button class="pstat" data-server-data-open="notifications"><b>${noticeCount}</b><small>اعلان${unread?` · ${faN(unread)} تازه`:''}</small></button>
         <button class="pstat" data-server-data-open="files"><b>${fileCount}</b><small>فایل حساب</small></button>
       </div>
-      <div class="pacts">
-        <button class="btn sm primary" data-server-data-open="registrations">${ico('i-calendar')} ثبت‌نام‌های من</button>
-        <a class="btn sm quiet" href="account.html#forms">${ico('i-doc')} فرم‌های من</a>
-        <button class="btn sm quiet" data-server-data-open="files">${ico('i-archive')} فایل‌ها</button>
-        <span class="sp"></span><button class="btn sm quiet" data-server-account-logout>خروج</button>
-      </div>
     </div>
   </section>`;
+}
+function serverAccountFoot(){
+  if(!SERVER_ACCOUNT_STATE.account) return '';
+  return `<div class="row anim server-account-foot" style="--i:6;justify-content:flex-start;margin-top:var(--sp-2)"><button class="btn sm quiet" data-server-account-logout>خروج از حساب</button></div>`;
 }
 /* نوار فشردهٔ هویت برای زیرصفحه‌ها (فرم‌ها، پرداخت‌ها، بخش‌ها): سر صفحهٔ کامل فقط در «حساب من» تکرار می‌شود. */
 function serverAccountStrip(){
@@ -350,9 +347,8 @@ function serverAccountStrip(){
   const name=serverAccountDisplayName(), initial=(name||'ن').slice(0,1);
   return `<div class="card acct server-account-strip server-account-head-mini">
     <span class="av sm">${esc(initial)}</span>
-    <span class="who"><b>${esc(name||'حساب نورا')}</b><small>${esc(serverAccountProviderLabel(state.account))} وصل است · حساب امن</small></span>
+    <span class="who"><b>${esc(name||'حساب نورا')}</b><small>${esc(serverAccountProviderLabel(state.account))} وصل است</small></span>
     <a class="btn sm quiet" href="account.html">${ico('i-user')} حساب من</a>
-    <button class="btn sm quiet" data-server-account-logout>خروج</button>
   </div>`;
 }
 /* نورا پی در حساب تولیدی: همان کارت تأییدشده، فقط با چیزی که سرور واقعاً دارد (وضعیت پرداخت ثبت‌نام‌ها). */
@@ -395,8 +391,8 @@ function serverRowsBox(){
   const state=SERVER_ACCOUNT_STATE, loaded=state.account&&state.registrationsLoaded&&!state.registrationsError;
   const guest=!state.account;
   /* مهمان: بخش‌های خصوصی با نشانهٔ «بعد از ورود» می‌آیند تا پیش از کلیک معلوم باشد چه انتظاری داشته باشد؛ مقصد و رفتار ورود همان قبلی است. */
-  const mini=k=>k==='events'&&loaded?faN(state.registrationsTotal)+' ثبت‌نام':k==='forms'&&loaded?faN(state.registrationsTotal)+' پاسخ'
-    :k==='library'&&state.account&&state.libraryLoaded&&!state.libraryError?faN(state.library.filter(x=>x.access&&x.access.state==='active').length)+' دسترسی فعال'
+  /* شمارندهٔ ثبت‌نام در سرِ حساب هست؛ این‌جا تکرار نمی‌شود (بازطراحی مرحلهٔ E) */
+  const mini=k=>k==='library'&&state.account&&state.libraryLoaded&&!state.libraryError?faN(state.library.filter(x=>x.access&&x.access.state==='active').length)+' دسترسی فعال'
     :k==='book'?(guest?'':'تازه‌ها در خانه'):guest?'بعد از ورود':'';
   return `<div class="mrows anim server-rows${guest?' is-guest':''}" style="--i:3">
     <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
@@ -706,7 +702,7 @@ function profileHTML(){
   const state=SERVER_ACCOUNT_STATE;
   if(!TEST_FIXTURE_MODE) return state.account
     /* بازآرایی ۱۴۰۵/۰۸/۰۳: هویت → بخش‌های من (کار روزمره) → نورا پی (فشرده) → همهٔ بخش‌ها → راه‌های ورود (کم‌تکرار) */
-    ?serverAccountHead()+serverRowsBox()+serverPayBar()+serverAccountModulesCard()+serverAccountIdentitiesCard()
+    ?serverAccountHead()+serverRowsBox()+serverPayBar()+serverAccountModulesCard()+serverAccountIdentitiesCard()+serverAccountFoot()
     :serverAccountGuestLanding();
   if(state.checking) return serverAccountAccessCard();
   const connected=!!state.account;

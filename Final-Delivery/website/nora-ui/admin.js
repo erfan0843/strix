@@ -10708,17 +10708,21 @@ function sysBar(){
 const sysSwitch=(key,slot,label)=>{const v=sysDraft(key)||{}, on=!!v[slot];
   return `<span class="switch ${on?'on':''}" data-sys-switch="${esc(key)}" data-sys-slot="${esc(slot)}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}" ${SYS.busy||!SYS.loaded?'aria-disabled="true"':''}></span>`};
 /* ── کاشی‌های حوزه: همان SKIN_TILES مرجع؛ هر کاشی به مقصد واقعی خودش می‌رود ── */
-function ssetTiles(leaf){
+/* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ E): یک مدل ناوبری برای تنظیمات. چهار حوزهٔ داخل همین صفحه (ظاهری، مدیریت پنل، مدیران و اساتید، پشتیبانی)
+   چیپ‌هایی در همان ردیف گروه‌های سروری‌اند؛ چهار حوزه‌ای که به بخش دیگری از پنل می‌روند (فرم‌ساز، کاربران، باشگاه، رویدادها)
+   «میان‌بر» کوتاه‌اند. data-sset-tile / data-sset-go / data-sset-act و مقصدها همان قبلی‌اند؛ هیچ حوزه‌ای حذف نشده. */
+const SSET_DEST={skin:{setg:'publishing'},forms:{href:'builder.html'},users:{act:'users-staff'},ops:{setg:'deploy'},book:{act:'club'},skdev:{act:'events'},people:{setg:'people'},chat:{setg:'chat'}};
+function ssetAreaChips(leaf){
   const cur=(SSET_LEAF[leaf]||{}).t||'';
-  const dest={skin:{setg:'publishing'},forms:{href:'builder.html'},users:{act:'users-staff'},ops:{setg:'deploy'},book:{act:'club'},skdev:{act:'events'},people:{setg:'people'},chat:{setg:'chat'}};
-  const soon={chat:1};
-  /* پذیرش ۱۴۰۵/۰۸/۰۳: حوزه‌ها یک فهرست فشرده‌اند (همان الگوی ابزارهای کاربران)، نه هشت کاشی هم‌وزن بالای تنظیمات سروری؛ data-* و مقصدها همان‌اند */
-  return `<section class="card stack" data-sset-tiles>
-    <div class="row"><div class="head">حوزه‌های تنظیمات</div><span class="sp"></span><span class="cap">${esc(fa(SKIN_TILES.length))} حوزه</span></div>
-    <div class="admlist">${SKIN_TILES.map(x=>{const d=dest[x.k]||{}; const inner=`<span class="ic">${ico(x.i)}</span><span class="sp" style="flex:1 1 180px;text-align:start"><b>${esc(x.n)}</b><small class="cap">${esc(x.s)}</small></span>${soon[x.k]?tag('بخشی نیازمند سرویس','warn'):''}${ico('i-chev-left')}`;
-      if(d.href) return `<a class="admlirow utool-row" href="${d.href}" data-sset-tile="${x.k}">${inner}</a>`;
-      return `<button type="button" class="admlirow utool-row ${cur===x.k?'on':''}" data-sset-tile="${x.k}" ${d.setg?`data-sset-go="${d.setg}"`:''} ${d.act?`data-sset-act="${d.act}"`:''} aria-pressed="${cur===x.k?'true':'false'}">${inner}</button>`}).join('')}</div>
-  </section>`;
+  return SKIN_TILES.filter(x=>SSET_DEST[x.k]&&SSET_DEST[x.k].setg).map(x=>`<button type="button" class="chip ${cur===x.k?'on':''}" role="tab" aria-selected="${cur===x.k?'true':'false'}" data-sset-tile="${x.k}" data-sset-go="${SSET_DEST[x.k].setg}">${ico(x.i)}<b>${esc(x.n)}</b></button>`).join('');
+}
+function ssetTiles(leaf){
+  const links=SKIN_TILES.filter(x=>SSET_DEST[x.k]&&!SSET_DEST[x.k].setg).map(x=>{const d=SSET_DEST[x.k];
+    const inner=`${ico(x.i)}<b>${esc(x.n)}</b>`;
+    if(d.href) return `<a class="btn sm quiet" href="${d.href}" data-sset-tile="${x.k}">${inner}</a>`;
+    return `<button type="button" class="btn sm quiet" data-sset-tile="${x.k}" data-sset-act="${d.act}">${inner}</button>`}).join('');
+  return `<section class="card stack" data-sset-tiles><div class="sec-head"><div class="head sh-title">میان‌برها به بخش‌های دیگر</div><span class="cap">تنظیم این‌ها در بخش خودشان است</span></div>
+    <div class="row tight" style="flex-wrap:wrap">${links}</div></section>`;
 }
 function ssetGroupTexts(){
   const key='texts.reminder_head', it=sysItem(key), cur=String(sysDraft(key)==null?'':sysDraft(key));
@@ -10805,7 +10809,7 @@ function ssetGroupData(leaf){
 }
 function ssetTileView(tile,leaf){
   const canSettings=isOwner()||canPerm('sys_settings');
-  const back=`<div class="row"><button class="btn sm quiet" data-setg="texts">${ico('i-back')}بازگشت به گروه‌ها</button><span class="sp"></span></div>`;
+  const back='';
   if(tile==='skin') return back+(isOwner()?ppPartnerView():'')+`<section class="card stack"><div class="head">انتشار عمومی و صندوق همکاری</div>
     <p class="cap">بنرها، همگام‌سازی محتوای عمومی و صندوق همکاری از API سرور می‌آیند. دسته‌های فاقد ویرایشگر سروری غیرفعال‌اند؛ محتوای محلی یا نمونه روی سایت منتشر نمی‌شود.</p>
     <div data-owner-publishing-tools></div></section>`;
@@ -10832,21 +10836,22 @@ function serverSettingsView(){
   if(!IS_TEST&&own&&SSET_LEAF[leaf].g==='money'&&!SERVICE_DATA&&!SERVICE_LOADING&&!SERVICE_ERROR) serviceLoad();
   const L2=SSET_LEAF[leaf], g=L2.g||'', tile=L2.t||'';
   const groups=SSET_GROUPS.filter(x=>own||!x.own).filter(x=>canSettings||['cert','ticket','notify'].includes(x.k));
-  const chips=groups.map(x=>`<button class="chip ${g===x.k?'on':''}" data-setg="${x.k}">${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('');
+  const chips=groups.map(x=>`<button class="chip ${g===x.k?'on':''}" role="tab" aria-selected="${g===x.k?'true':'false'}" data-setg="${x.k}">${ico(x.i)}<span>${esc(x.n)}</span></button>`).join('')+(canSettings?ssetAreaChips(leaf):'');
   const group=SSET_GROUPS.find(x=>x.k===g)||null;
   const inner=tile?ssetTileView(tile,leaf)
     :g==='texts'?ssetGroupTexts():g==='money'?ssetGroupMoney():g==='cert'?ssetGroupCert():g==='ticket'?ssetGroupTicket():g==='notify'?ssetGroupNotify():ssetGroupData(leaf);
   const moved=!canSettings?`<div class="admlirow" data-sset-moved><span class="ic">${ico('i-info')}</span><span class="sp"><b>مدیریت مدیران و کارشناسان به بخش «کاربران» منتقل شد</b><small class="cap">تنظیمات سامانه با حساب مالک است؛ این‌جا فقط وضعیت گروه‌های عمومی را می‌بینی.</small></span>${canSec('users')?btn('کاربران › ابزارها','data-sset-act="users-staff"','i-users'):''}</div>`:'';
   const legend=`<details class="adv"><summary>${ico('i-info')}راهنمای وضعیت گزینه‌ها</summary><div class="adv-body"><p class="cap" data-sset-legend>هر گزینه یکی از این وضعیت‌ها را دارد: ${tag('متصل به سرور','ok')} کنترل زنده دارد و در سرور ذخیره می‌شود · ${tag('به‌ازای هر فرم در فرم‌ساز','')} · ${tag('نیازمند بک‌اند','warn')} · ${tag('نیازمند تصمیم مالک','warn')} · ${tag('خارج از دامنهٔ این نسخه','')}. هیچ کلیدی در مرورگر ذخیره نمی‌شود.</p></div></details>`;
-  return `<div class="stack" data-sset>${canSettings?ssetTiles(leaf):''}
+  const curName=group?group.n:tile?((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):'';
+  const curDesc=group?(group.s||''):tile?((SKIN_TILES.find(x=>x.k===tile)||{}).s||''):'';
+  return `<div class="stack" data-sset>
     <section class="card stack" data-sset-groups>
-      <div class="row"><div class="head">تنظیمات سروری</div><span class="sp"></span>
-        <span class="cap">${esc(fa(groups.length))} گروه${group?' · '+esc(group.n)+(group.s?'؛ '+esc(group.s):''):tile?' · '+esc((SKIN_TILES.find(x=>x.k===tile)||{}).n||''):''}</span></div>
-      ${moved}
       <div class="admfilters" role="tablist" aria-label="گروه‌های تنظیمات">${chips}</div>
+      ${moved}
+      ${curName?`<div class="sec-head"><div class="head sh-title">${esc(curName)}</div>${curDesc?`<span class="cap">${esc(curDesc)}</span>`:''}</div>`:''}
       <div class="admset">${inner}</div>
       ${legend}
-    </section></div>`;
+    </section>${canSettings?ssetTiles(leaf):''}</div>`;
 }
 /* ══ بازیابی پنل (مرحلهٔ A): زیرماژول‌های طراحی که فقط در حالت نمونه دیده می‌شدند،
    این‌جا روی همان مسیر دادهٔ سرور (NORA_SERVER_API) و با همان مجوزهای backend/roles.py
