@@ -2425,7 +2425,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
      admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
      بی‌دلیل نشکند. */
   ok(html.includes('admin.css?v=124')&&html.includes('admin.js?v=193')
-      &&html.includes('owner-api.js?v=130')&&html.includes('data.js?v=101')
+      &&html.includes('owner-api.js?v=131')&&html.includes('data.js?v=101')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=5')
       &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=107'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');

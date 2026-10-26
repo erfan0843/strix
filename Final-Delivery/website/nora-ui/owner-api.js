@@ -619,6 +619,11 @@
     pauseForm: (id, expectedVersion) => request('/api/forms/' + encodeURIComponent(String(id)) + '/pause', {
       method: 'POST', body: { expected_version: Number(expectedVersion) }, ownerWrite: true
     }),
+    /* «ساخت از روی این فرم»: پیش‌نویس تازه از ساختار یک فرم خود کاربر (بدون پاسخ، پرداخت و وضعیت انتشار)؛ idempotent مثل createForm */
+    duplicateForm: (id, idempotencyKey, name) => request('/api/forms/' + encodeURIComponent(String(id)) + '/duplicate', {
+      method: 'POST', body: name ? { name: String(name) } : {}, csrfWrite: true,
+      headers: { 'Idempotency-Key': String(idempotencyKey || '') }
+    }),
     /* گام ۴ ویزارد رویداد: فقط مرجع رویداد فرم جابه‌جا می‌شود (POST /api/forms/{id}/event)؛ تعریف فرم دست‌نخورده می‌ماند */
     linkFormEvent: (id, eventId, expectedVersion, csrfCookieName) => request('/api/forms/' + encodeURIComponent(String(id)) + '/event', {
       method: 'POST', body: { ev: eventId == null ? '' : String(eventId), expected_version: Number(expectedVersion) },

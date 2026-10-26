@@ -366,6 +366,7 @@
         <button class="btn primary" id="openSettings"><svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم</button>
         <a class="btn quiet" id="editFormLink" href="create.html"><svg class="i"><use href="#i-pen"/></svg> ویرایش ساختار</a>
         <a class="btn quiet" id="previewFormLink" href="form.html"><svg class="i"><use href="#i-mobile"/></svg> پیش‌نمایش محلی</a>
+        <button class="btn quiet" id="duplicateFormBtn" type="button" hidden><svg class="i"><use href="#i-copy"/></svg> ساخت نسخهٔ تازه</button>
         <button class="btn quiet" data-copy="#pLink"><svg class="i"><use href="#i-link"/></svg> کپی پیوند</button>
       </div>
     </section>
@@ -562,6 +563,18 @@
   </div>
 </aside>
 
+<aside class="sheet" id="shDuplicate" role="dialog" aria-label="ساخت نسخهٔ تازه از روی این فرم">
+  <div class="grabber"></div>
+  <div class="row"><span class="head">ساخت نسخهٔ تازه از روی این فرم</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <p class="sub" style="margin-top:10px">یک پیش‌نویس جدید با همهٔ پرسش‌ها، شرط‌ها و تنظیمات ساخته می‌شود. فرم فعلی، پیوند عمومی و پاسخ‌هایش دست نمی‌خورند.</p>
+  <div style="margin-top:10px"><label class="lbl" for="dupName">نام نسخهٔ تازه</label><input id="dupName" class="input" maxlength="160"/></div>
+  <p class="mnote">نسخهٔ تازه منتشر نیست و تا انتشار پاسخی نمی‌گیرد؛ پس از ساخت در فرم‌ساز باز می‌شود.</p>
+  <div class="row" style="margin-top:14px;flex-wrap:wrap">
+    <button class="btn primary" id="dupGo" type="button">ساخت پیش‌نویس تازه</button>
+    <button class="btn quiet" type="button" data-close>انصراف</button>
+  </div>
+</aside>
+
 <aside class="sheet" id="shExcel" role="dialog" aria-label="خروجی اکسل">
   <div class="grabber"></div>
   <div class="head">خروجی اکسل</div>
@@ -632,7 +645,7 @@
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=132"></script>
-<script src="owner-api.js?v=128"></script>
+<script src="owner-api.js?v=131"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    دادهٔ نمونه: فرم‌ها، پاسخ‌دهنده‌ها، کارتابل، مالی
@@ -914,6 +927,7 @@ function renderList(){
             <a role="menuitem" href="${server?'create.html?fid='+encodeURIComponent(f.id):'create.html'}"><svg class="i"><use href="#i-pen"/></svg> ${published?'مشاهدهٔ ساختار در فرم‌ساز':'ویرایش در فرم‌ساز'}</a>
             <a role="menuitem" href="${published?esc(publicFormHref(f)):'#'}" ${published?'target="_blank" rel="noopener"':'aria-disabled="true" tabindex="-1"'}><svg class="i"><use href="#i-globe"/></svg> فرم عمومی${published?'':' · پس از انتشار'}</a>
             <button type="button" role="menuitem" data-copy-public="${published?esc(publicFormHref(f)):''}" ${published?'':'aria-disabled="true" disabled'}><svg class="i"><use href="#i-link"/></svg> کپی پیوند عمومی</button>
+            ${server?`<button type="button" role="menuitem" data-duplicate-form="${esc(f.id)}" data-duplicate-name="${esc(f.name)}"><svg class="i"><use href="#i-copy"/></svg> ساخت نسخهٔ تازه از روی این فرم</button>`:''}
           </div>
         </details>
       </div>
@@ -971,6 +985,29 @@ function openFormSettings(id){
   if(form.serverManaged===true){location.href='create.html?fid='+encodeURIComponent(form.id);return}
   CUR=form; renderPanel(); go('fPanel'); fillSettings(); openSheet('shSettings');
 }
+/* «ساخت از روی این فرم»: پیش‌نویس تازه از سرور؛ مبدأ، پیوند عمومی و پاسخ‌ها دست نمی‌خورند (POST /api/forms/{id}/duplicate) */
+let DUP_TARGET=null,DUP_KEY=null;
+const newIdemKey=()=>{try{return crypto.randomUUID().replace(/-/g,'')}catch(e){return 'k'+Date.now().toString(36)+Math.random().toString(36).slice(2,14)}};
+function openDuplicateSheet(id,name){
+  if(!id)return;
+  DUP_TARGET=id;DUP_KEY=newIdemKey();
+  const input=document.getElementById('dupName');if(input)input.value=('نسخهٔ جدید از '+(name||'')).slice(0,160);
+  openSheet('shDuplicate');setTimeout(()=>{try{input&&input.focus()}catch(e){}},60);
+}
+async function duplicateServerForm(){
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
+  if(!api||typeof api.duplicateForm!=='function'||!DUP_TARGET)return;
+  const button=document.getElementById('dupGo'),name=((document.getElementById('dupName')||{}).value||'').trim();
+  if(button){button.disabled=true;button.setAttribute('aria-busy','true')}
+  try{
+    const copy=await api.duplicateForm(DUP_TARGET,DUP_KEY,name||undefined);
+    closeSheets();toast('نسخهٔ تازه ساخته شد؛ در حال باز کردن در فرم‌ساز…');
+    setTimeout(()=>{try{location.assign('create.html?fid='+encodeURIComponent(String(copy.id)))}catch(e){}},400);
+  }catch(err){
+    const st=err&&err.status,code=err&&err.code;
+    toast(st===401?'ورود لازم است؛ دوباره وارد شوید':st===403&&code==='finance_permission_required'?'تنظیمات مالی این فرم فقط با مجوز مالی کپی می‌شود':st===403?'این حساب مجوز ساخت فرم ندارد':st===404?'فرم مبدأ پیدا نشد؛ فهرست را تازه کنید':st===422?'ساختار فرم مبدأ با قواعد فعلی سرور سازگار نیست؛ ابتدا آن را در فرم‌ساز بررسی کنید':'نسخهٔ تازه ساخته نشد؛ دوباره بکوشید');
+  }finally{if(button){button.disabled=false;button.removeAttribute('aria-busy')}}
+}
 function openForm(id){CUR=FORMS.find(f=>f.id===id)||FORMS[0]||null; if(!CUR){go('fList');return} renderPanel(); go('fPanel');}
 function tab(name){
   document.querySelectorAll('#pSeg button').forEach(b=>b.classList.toggle('on',b.dataset.tab===name));
@@ -1018,6 +1055,8 @@ function renderPanel(){
   else if(settingsButton) settingsButton.innerHTML='<svg class="i"><use href="#i-sliders"/></svg> تنظیمات فرم';
   /* برای فرم سروری، پیوند «ویرایش ساختار» همان مقصد دکمهٔ اصلی است؛ تکرار نمی‌شود */
   if(editLink) editLink.hidden=CUR.serverManaged===true;
+  const dupBtn=document.getElementById('duplicateFormBtn');
+  if(dupBtn){dupBtn.hidden=CUR.serverManaged!==true;dupBtn.dataset.duplicateForm=CUR.id||'';dupBtn.dataset.duplicateName=CUR.name||''}
   renderStats(); renderInfo(); renderChanges(); renderAnswers();
 }
 /* ── آمار ─────────────────────────────────────────────────────── */
@@ -2080,8 +2119,10 @@ document.addEventListener('click',e=>{
     (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(abs):Promise.reject()).then(()=>toast('پیوند عمومی کپی شد'),()=>toast('کپی خودکار انجام نشد؛ پیوند: '+abs));
     cp.closest('details')&&(cp.closest('details').open=false);return}
   if(!e.target.closest('details.rowmore'))document.querySelectorAll('details.rowmore[open]').forEach(d=>{d.open=false});
+  const dq=e.target.closest('[data-duplicate-form]');if(dq){const d=dq.closest('details.rowmore');if(d)d.open=false;openDuplicateSheet(dq.dataset.duplicateForm,dq.dataset.duplicateName);return}
   if(e.target.closest('details.rowmore'))return;
   const ob=e.target.closest('[data-open-form]');if(ob){openForm(ob.dataset.openForm);return}
+  if(e.target.closest('#dupGo')){duplicateServerForm();return}
   const card=e.target.closest('[data-form]');
   if(card&&!e.target.closest('[data-copy]')){openForm(card.dataset.form);return}
   const responseRefresh=e.target.closest('[data-refresh-server-responses]');

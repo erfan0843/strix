@@ -207,6 +207,14 @@ function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=n
     if(path==='/api/forms/'+id+'/pause'&&method==='POST'){
       record={...record,status:'paused',version:(record.version||1)+1};return response(200,record);
     }
+    if(path==='/api/forms/'+id+'/duplicate'&&method==='POST'){
+      const key=(init.headers||{})['Idempotency-Key']||'';
+      if(!/^[A-Za-z0-9_-]{16,80}$/.test(key))return response(428,{detail:'idempotency_key_required'});
+      const body=JSON.parse(init.body||'{}');
+      const copy={...record,id:id+'-copy',name:body.name||('نسخهٔ جدید از '+record.name),status:'draft',version:1,response_count:0,
+        settings:{...(record.settings||{}),source_form_id:id,source_form_version:record.version||1}};
+      return response(201,copy);
+    }
     if(path==='/api/forms'&&method==='GET'){
       const item=record?{...record,response_count:Number(record.response_count??responses.length)}:null;
       return response(200,{items:item?[item]:[],total:item?1:0,limit:100,has_more:false});
@@ -3716,6 +3724,17 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&page.doc.querySelector('#previewFormLink')?.getAttribute('href')==='form.html?fid=server-builder-1&kind=reg&preview=1'
       &&page.txt('#openSettings').includes('ویرایش و ذخیرهٔ پیش‌نویس'),
     'ویرایش پیش‌نویس به فرم‌ساز برمی‌گردد و پیش‌نمایش به همان فرم محلی وصل است');
+  /* «ساخت از روی این فرم» از منوی «بیشتر» ردیف: برگهٔ تأیید، نام پیش‌فرض، فراخوانی سروری با کلید یکتا */
+  page.click('#formCards [data-duplicate-form="server-builder-1"]');
+  ok(page.doc.querySelector('#shDuplicate')?.classList.contains('on')&&page.doc.querySelector('#dupName')?.value.includes('فرم سروری آزمایشی'),
+    'گزینهٔ «ساخت نسخهٔ تازه» برگهٔ تأیید را با نام پیشنهادی باز می‌کند');
+  page.doc.querySelector('#dupName').value='ثبت‌نام دورهٔ بعد';
+  page.click('#dupGo');await wait(120);
+  const dupCall=api.calls.find(call=>call.path==='/api/forms/server-builder-1/duplicate'&&call.method==='POST');
+  ok(!!dupCall&&/^[A-Za-z0-9_-]{16,80}$/.test(dupCall.headers['Idempotency-Key']||'')&&JSON.parse(dupCall.body).name==='ثبت‌نام دورهٔ بعد'
+      &&!page.doc.querySelector('#shDuplicate').classList.contains('on')&&page.txt('#toast').includes('نسخهٔ تازه ساخته شد'),
+    'نسخهٔ تازه با POST /duplicate و Idempotency-Key ساخته می‌شود و برگه بسته می‌شود (مبدأ و پاسخ‌ها دست نمی‌خورند)');
+  page.dom.window.close();
   const legacy=await load('builder.html',makeStore({'nora-forms':JSON.stringify([
     {id:'legacy-draft',name:'پیش‌نویس قدیمی',status:'draft',slug:'/old/public/path',fields:[{id:'q',t:'text',l:'پرسش'}]}
   ])}));

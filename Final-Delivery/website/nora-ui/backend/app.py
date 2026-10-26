@@ -11009,6 +11009,112 @@ def create_app(
             "issues": issues,
         }
 
+    @app.post("/api/forms/{form_id}/duplicate", status_code=201)
+    async def duplicate_form(
+        form_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("fm_create")),
+        db: Session = Depends(get_db),
+    ):
+        """«ساخت از روی این فرم»: a NEW draft copied from one of the caller's own forms.
+
+        The copy carries the structure only (model, purpose, event link, settings, fields) and is
+        always ``draft`` / version 1 with a fresh id; responses, payments, publication state and the
+        public link of the source are never copied, so a published form with responses stays
+        immutable and the safe path to change it is this duplicate. Ownership is resolved server-side
+        (``get_owned_form``); the body may carry an optional ``name``. Idempotent per
+        ``Idempotency-Key`` like ``POST /api/forms``.
+        """
+        cfg: Settings = request.app.state.settings
+        payload = await _read_json_object(request, cfg.max_request_bytes)
+        if set(payload) - {"name"}:
+            raise HTTPException(422, detail={"code": "unexpected_fields", "message": "فقط «name» پذیرفته می‌شود."})
+        create_key = request.headers.get("idempotency-key", "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", create_key):
+            raise HTTPException(428, "idempotency_key_required")
+        source = get_owned_form(db, identity.owner_id, form_id)
+        requested_name = payload.get("name")
+        if requested_name is not None and not isinstance(requested_name, str):
+            raise HTTPException(422, detail={"code": "invalid_name", "message": "نام فرم باید متن باشد."})
+        name = " ".join((requested_name or "").split()) or f"نسخهٔ جدید از {source.title}"[:160]
+        settings_copy = dict(source.settings) if isinstance(source.settings, dict) else {}
+        for key in ("status", "owner_id", "published", "is_published"):
+            settings_copy.pop(key, None)
+        settings_copy["source_form_id"] = source.id
+        settings_copy["source_form_version"] = int(source.version or 1)
+        slug_copy: str | None = None
+        if source.slug:
+            suffix = "-" + secrets.token_hex(2)
+            slug_copy = (source.slug[: 180 - len(suffix)]).rstrip("/-") + suffix
+        body = {
+            "name": name,
+            "model": source.model,
+            "need": source.need,
+            "slug": slug_copy,
+            "ev": source.event_id or "",
+            "purpose": source.purpose or "registration",
+            "recording_id": source.recording_id if source.purpose == "recording_access" else None,
+            "settings": settings_copy,
+            "fields": [_field_dict(field) for field in source.fields],
+        }
+        try:
+            normalized = normalize_form_payload(body, max_fields=cfg.max_fields_per_form, updating=False)
+        except PayloadError as err:
+            raise HTTPException(
+                422,
+                detail={"code": "source_not_copyable", "source_code": err.code, "message": "ساختار فرم مبدأ با قواعد فعلی سرور سازگار نیست؛ ابتدا آن را در فرم‌ساز اصلاح کنید."},
+            ) from None
+        event_id = _resolve_purchase_link(db, normalized)
+        _require_known_form_event(db, normalized, event_id, previous=source.event_id)
+        # Money settings are copied unchanged from a form that already holds them; a non-finance
+        # editor still cannot alter them afterwards (PUT keeps the same guard) nor publish the copy.
+        _require_finance_for_commercial_change(identity, source.settings if isinstance(source.settings, dict) else {}, normalized.settings)
+        payload_hash = hashlib.sha256(
+            json.dumps({"duplicate_of": source.id, "name": name}, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        existing = db.scalar(
+            select(FormRecord)
+            .options(selectinload(FormRecord.fields))
+            .where(FormRecord.owner_id == identity.owner_id, FormRecord.create_key == create_key)
+        )
+        if existing is not None:
+            if not constant_time_equal(existing.create_hash or "", payload_hash):
+                raise HTTPException(409, detail={"code": "idempotency_conflict"})
+            return JSONResponse(_form_dict(existing), status_code=200)
+        record = FormRecord(
+            id=str(uuid.uuid4()),
+            owner_id=identity.owner_id,
+            title=normalized.title,
+            model=normalized.model,
+            need=normalized.need,
+            slug=normalized.slug,
+            event_id=event_id,
+            purpose=normalized.purpose,
+            recording_id=normalized.recording_id,
+            status="draft",
+            create_key=create_key,
+            create_hash=payload_hash,
+            version=1,
+            settings=normalized.settings,
+        )
+        db.add(record)
+        db.flush()
+        _replace_fields(db, record.id, normalized)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing = db.scalar(
+                select(FormRecord)
+                .options(selectinload(FormRecord.fields))
+                .where(FormRecord.owner_id == identity.owner_id, FormRecord.create_key == create_key)
+            )
+            if existing is not None and constant_time_equal(existing.create_hash or "", payload_hash):
+                return JSONResponse(_form_dict(existing), status_code=200)
+            raise HTTPException(409, "form_conflict") from None
+        db.expire_all()
+        return _form_dict(get_owned_form(db, identity.owner_id, record.id))
+
     @app.put("/api/forms/{form_id}")
     async def update_form(
         form_id: str,

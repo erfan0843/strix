@@ -97,8 +97,11 @@ def main() -> None:
                               "access": "purchased", "session_id": s2.json()["id"]},
                         headers=owner_write_headers(owner))
         assert yt.status_code == 201, yt.text
-        assert owner.put(f"/api/admin/events/{held_ev}/resources/{yt.json()['id']}", json={"status": "published"},
-                         headers=owner_write_headers(owner)).status_code == 200
+        # §6.4: a purchased YouTube/Aparat source needs an explicit external-exposure acknowledgement to be published.
+        published_yt = owner.put(f"/api/admin/events/{held_ev}/resources/{yt.json()['id']}",
+                                 json={"status": "published", "acknowledge_external_exposure": True},
+                                 headers=owner_write_headers(owner))
+        assert published_yt.status_code == 200, published_yt.text
         assert owner.put(f"/api/admin/events/{held_ev}/recording/sessions/{s2.json()['id']}", json={"status": "published"},
                          headers=owner_write_headers(owner)).status_code == 200
         # The test helper numbers its idempotency keys from 0; the phase-9 seed already used the first ones.

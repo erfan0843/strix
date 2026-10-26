@@ -652,6 +652,18 @@
   </div>
 </aside>
 
+<aside class="sheet" id="shDuplicate" role="dialog" aria-label="ساخت نسخهٔ تازه از روی این فرم">
+  <div class="grabber"></div>
+  <div class="row"><span class="head">ساخت نسخهٔ تازه از روی این فرم</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <p class="sub" style="margin-top:10px">یک پیش‌نویس جدید با همهٔ پرسش‌ها، شرط‌ها و تنظیمات این فرم ساخته می‌شود. فرم فعلی، پیوند عمومی و پاسخ‌هایش دست نمی‌خورند.</p>
+  <div style="margin-top:10px"><label class="lbl" for="dupName">نام نسخهٔ تازه</label><input id="dupName" class="input" maxlength="160" placeholder="مثلاً ثبت‌نام دورهٔ بعد"/></div>
+  <p class="mnote">نسخهٔ تازه منتشر نیست و تا زمان انتشار پاسخی نمی‌گیرد؛ پس از ساخت، همین صفحه روی آن باز می‌شود.</p>
+  <div class="row" style="margin-top:14px;flex-wrap:wrap">
+    <button class="btn primary" id="dupGo" type="button">ساخت پیش‌نویس تازه</button>
+    <button class="btn quiet" type="button" data-close>انصراف</button>
+  </div>
+</aside>
+
 <aside class="sheet" id="shFinGroup" role="dialog" aria-label="گروه انتخاب">
   <div class="grabber"></div>
   <div class="row"><span class="head">گروه انتخاب</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
@@ -762,7 +774,7 @@
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
 <script src="ui.js?v=132"></script>
-<script src="owner-api.js?v=128"></script>
+<script src="owner-api.js?v=131"></script>
 <script>
 /* ══ داده ══ */
 const TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
@@ -2412,7 +2424,7 @@ function renderLockBar(){
   if(x)x.textContent=published
     ?'ساختار فرم منتشرشده در سرور قفل است تا پاسخ‌های دریافتی معتبر بمانند؛ تغییرات این صفحه ذخیره نمی‌شوند. برای ویرایش، پاسخ‌گیری را از «پاسخ‌ها و انتشار» متوقف کنید یا نسخهٔ تازه‌ای از روی همین فرم بسازید.'
     :'پرسش‌های فرمی که پاسخ دارد قابل تغییر نیستند تا پاسخ‌ها معنی‌دار بمانند. برای تغییر ساختار، نسخهٔ تازه‌ای از روی همین فرم بسازید.';
-  const dup=$('#lockDuplicate');if(dup){const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;dup.disabled=!(api&&typeof api.duplicateForm==='function');dup.title=dup.disabled?'ساخت نسخهٔ تازه در این نسخهٔ سرور فعال نیست':''}
+  const dup=$('#lockDuplicate');if(dup){const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;dup.disabled=!(api&&typeof api.duplicateForm==='function')||!(f&&f.id);dup.onclick=()=>openDuplicateSheet();dup.title=dup.disabled?'ساخت نسخهٔ تازه در این نسخهٔ سرور فعال نیست':''}
   const center=$('#lockOpenCenter');if(center&&f&&f.id)center.href='builder.html?fid='+encodeURIComponent(String(f.id));
   const save=$('#publish');if(save){if(published){save.setAttribute('aria-disabled','true');save.classList.add('disabled');save.title='فرم منتشرشده در سرور قفل است؛ ذخیرهٔ ساختار پذیرفته نمی‌شود'}else{save.removeAttribute('aria-disabled');save.classList.remove('disabled');save.title=''}}
 }
@@ -2498,6 +2510,8 @@ function ownerApiErrorText(err){
   if(err.status===403&&err.code==='permission_denied') return 'این نقش اجازهٔ ساخت و ویرایش فرم را ندارد؛ برای دسترسی با مالک سامانه هماهنگ کنید.';
   if(err.status===403) return 'بررسی مبدأ یا CSRF ناموفق بود؛ صفحه را از همان نشانی سامانه باز کنید و دوباره بکوشید.';
   if(err.status===404) return 'API فرم‌ساز روی این میزبان در دسترس نیست؛ سرور FastAPI را از نشانی همین سامانه اجرا کنید.';
+  if(err.status===422&&err.code==='source_not_copyable') return 'ساختار این فرم با قواعد فعلی سرور سازگار نیست؛ نسخهٔ تازه ساخته نشد. ابتدا فرم را در فرم‌ساز بررسی کنید.';
+  if(err.status===428) return 'کلید یکتای درخواست ساخته نشد؛ صفحه را تازه کنید و دوباره بکوشید.';
   if(err.status===409){
     if(err.code==='purchase_form_already_published')return 'این محصول هم‌اکنون یک فرم خرید منتشرشده دارد؛ ابتدا آن را متوقف کنید یا همان را ویرایش کنید.';
     if(err.code==='version_conflict')return 'نسخهٔ دیگری از این فرم در سرور ذخیره شده است؛ فهرست را تازه کنید تا ویرایش هم‌زمان بازنویسی نشود.';
@@ -2612,6 +2626,32 @@ async function saveServerDraft(row){
     if(button){button.disabled=false;button.removeAttribute('aria-busy')}
   }
 }
+/* «ساخت از روی این فرم»: پیش‌نویس تازه از سرور (POST /api/forms/{id}/duplicate)؛ فرم مبدأ، پیوند عمومی و پاسخ‌هایش دست نمی‌خورند */
+let DUPLICATE_KEY=null;
+function openDuplicateSheet(){
+  const f=ACTIVE_SERVER_FORM;if(!f||!f.id)return;
+  const name=$('#dupName');if(name)name.value=('نسخهٔ جدید از '+(f.name||f.title||S.title||'')).slice(0,160);
+  DUPLICATE_KEY=newIdempotencyKey();
+  openSheet('shDuplicate');setTimeout(()=>{try{name&&name.focus()}catch(e){}},60);
+}
+async function duplicateServerForm(){
+  const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI,f=ACTIVE_SERVER_FORM;
+  if(!api||typeof api.duplicateForm!=='function'||!f||!f.id)return;
+  const button=$('#dupGo'),name=($('#dupName')||{}).value||'';
+  if(button){button.disabled=true;button.setAttribute('aria-busy','true')}
+  try{
+    const copy=await api.duplicateForm(f.id,DUPLICATE_KEY,name.trim()||undefined);
+    try{if(window.NORA_UI&&typeof NORA_UI.formPut==='function')NORA_UI.formPut(copy)}catch(e){}
+    closeSheets();
+    toast('نسخهٔ تازه ساخته شد؛ در حال باز کردن…');
+    setTimeout(()=>{try{location.assign('create.html?fid='+encodeURIComponent(String(copy.id)))}catch(e){}},400);
+  }catch(err){
+    const message=ownerApiErrorText(err);
+    toast(message);setOwnerApiState('نسخهٔ تازه ساخته نشد',message);
+    if(err&&err.status===401){closeSheets();OWNER_AUTHENTICATED=false;ownerLoginPanel(true,message)}
+  }finally{if(button){button.disabled=false;button.removeAttribute('aria-busy')}}
+}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#dupGo'))duplicateServerForm()});
 async function publishSavedForm(){
   if(OWNER_API_BUSY||!ACTIVE_SERVER_FORM)return;
   const api=window.NORA_SERVER_API||window.NORA_UI&&NORA_UI.serverAPI;
