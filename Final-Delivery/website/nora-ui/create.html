@@ -61,7 +61,8 @@
   .fd-issues{margin-top:10px;padding:8px 11px;border-radius:var(--r-md);background:var(--warn-tint);color:var(--warn);font-size:var(--fs-sub)}
   .fd-issues ul{margin:0;padding-inline-start:18px}
   .fd-discard{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding:8px 11px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
-  .fd-foot{position:sticky;bottom:0;padding-block:10px;background:var(--surface);border-top:.5px solid var(--hairline)}
+  /* نوار چسبان ذخیره/انصراف تمام پهنای ورقه را می‌پوشاند (بدون نشت محتوا از کناره‌ها و زیر آن) */
+  .fd-foot{position:sticky;bottom:calc(-1 * (var(--sp-5) + var(--safe-b)));margin:0 calc(-1 * var(--sp-4)) calc(-1 * (var(--sp-5) + var(--safe-b)));padding:10px var(--sp-4) calc(10px + var(--safe-b));background:var(--surface);border-top:.5px solid var(--hairline)}
   .fd-opt{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;border-radius:var(--r-md);background:var(--surface-sunk)}
   .fd-opt .icon-btn[disabled]{opacity:.35;cursor:not-allowed}
   .chip[disabled]{opacity:.5;cursor:not-allowed}
@@ -1866,6 +1867,8 @@ function applyFinanceAccess(){
 /* نتیجهٔ نشست سرور: اگر مالک/مجوز مالی تأیید شد، دادهٔ مالی ذخیره‌شدهٔ همین فرم برای ویرایش بار می‌شود؛ در غیر این صورت فقط نمایش «تنظیم‌شده» می‌ماند. */
 function setFinanceAccess(on){
   on=!!on; if(CAN_MONEY===on) return;
+  /* دسترسی مالی از نشست سرور می‌آید، نه از ویرایش کاربر؛ اگر فرم تا این لحظه دست‌نخورده بود، تغییر پرچم مالی نباید «تغییرات ذخیره‌نشده» بسازد */
+  const wasClean=typeof SAVED_FINGERPRINT!=='undefined'&&SAVED_FINGERPRINT!==null&&!hasUnsavedChanges();
   CAN_MONEY=on;
   if(on){
     const cur=ACTIVE_SERVER_FORM||STORED_FORM||null, copy=v=>v==null?v:JSON.parse(JSON.stringify(v));
@@ -1882,6 +1885,7 @@ function setFinanceAccess(on){
   try{renderFin()}catch(e){}
   try{renderPreview()}catch(e){}
   try{renderReview()}catch(e){}
+  if(wasClean)markSavedBaseline(SAVED_LABEL);
 }
 async function resolveFinanceAccess(){
   if(TEST_FIXTURE_MODE) return;
@@ -2873,11 +2877,30 @@ async function restoreFormEditorSession(){
     ownerLoginPanel(false);
     const role=CURRENT_EDITOR_ROLE==='owner'?'مالک':CURRENT_EDITOR_ROLE==='club-supervisor'?'سرپرست باشگاه':'مدیر';
     setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+formStatusLabel(ACTIVE_SERVER_FORM.status)+'. دسترسی سروریِ '+role+' تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است.');
+    if(await refreshStaleServerForm(api))return;
   }catch(error){
     CURRENT_EDITOR_ROLE=null;OWNER_AUTHENTICATED=false;
     if(error&&error.status===401)setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+formStatusLabel(ACTIVE_SERVER_FORM.status)+'. برای ویرایش یا تغییر وضعیت، ورود معتبر سرور لازم است.');
   }
   updateDoneCard(ACTIVE_SERVER_FORM,true,false);
+}
+/* بازگشایی فرم سروری: رونوشت محلی فقط برای نمایش سریع است؛ نسخهٔ سرور مبناست. اگر سرور نسخه/وضعیت تازه‌تری دارد (ویرایش از پنل، API یا مرورگر دیگر)
+   و هنوز تغییری این‌جا نشده، همان نسخه جایگزین و صفحه تازه می‌شود؛ اگر کاربر زودتر تغییری داده باشد، به‌جای بازنویسی خاموش وضعیت «تعارض» اعلام می‌شود. */
+async function refreshStaleServerForm(api){
+  if(TEST_FIXTURE_MODE||!ACTIVE_SERVER_FORM||!api||typeof api.getForm!=='function'||!window.NORA_UI||typeof NORA_UI.formPut!=='function')return false;
+  let fresh=null;
+  try{fresh=formFromServer(await api.getForm(ACTIVE_SERVER_FORM.id))}catch(error){return false}
+  if(!fresh||String(fresh.id)!==String(ACTIVE_SERVER_FORM.id))return false;
+  const same=Number(fresh.version||0)===Number(ACTIVE_SERVER_FORM.version||0)&&String(fresh.status||'draft')===String(ACTIVE_SERVER_FORM.status||'draft');
+  if(same)return false;
+  if(hasUnsavedChanges()){
+    setSaveState('conflict','نسخهٔ تازه‌تری روی سرور است');
+    setOwnerApiState('نسخهٔ تازه‌تر در سرور','نسخهٔ '+faN(fresh.version)+' روی سرور ذخیره شده و این صفحه نسخهٔ '+faN(ACTIVE_SERVER_FORM.version||1)+' را نشان می‌دهد؛ برای ادامه، صفحه را تازه کنید. چیزی بازنویسی نشد.');
+    return false;
+  }
+  if(!NORA_UI.formPut(fresh))return false;
+  const url=new URL(location.href);url.searchParams.set('hydrated','1');location.replace(url.toString());
+  return true;
 }
 function ownerApiErrorText(err){
   if(!err||err.code==='server_unreachable') return 'به سرور همین سامانه دسترسی نیست؛ اتصال شبکه و نشانی همین صفحه را بررسی کنید.';

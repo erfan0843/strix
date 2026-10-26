@@ -327,6 +327,17 @@ const html=readFileSync(DIR+'create.html','utf8');
   p.set('#fdMin','۵');p.set('#fdMax','۱۰');p.click('#fdSave');await wait(10);
   ok(p.ev("S.fields[0].min===5&&S.fields[0].max===10")&&p.doc.querySelector('#saveState').dataset.state==='dirty','اصلاح از همان کنترل انجام و به‌عنوان تغییر ذخیره‌نشده ثبت می‌شود');
   ok(p.errors.length===0,'فرم سروری بدون خطای کنسول');
+  /* رونوشت محلی کهنه (نسخهٔ ۳) در برابر سرور (نسخهٔ ۴): مبنا سرور است؛ رونوشت تازه می‌شود و صفحه بازخوانی می‌شود */
+  const staleStore=makeStore({'nora-forms':JSON.stringify([{...record,...record.settings,version:3,fields:[record.fields[0]],serverManaged:true}])});
+  const staleApi=makeApi({id:'srv-7',initialRecord:record});
+  const stale=await load({api:staleApi,store:staleStore,query:'?fid=srv-7',fixtureMode:false});await wait(150);
+  const mirrored=JSON.parse(staleStore.getItem('nora-forms')||'[]').find(f=>f.id==='srv-7');
+  ok(stale.ev("S.fields.length")===1&&mirrored&&Number(mirrored.version)===4&&mirrored.fields.length===2&&staleApi.calls.some(c=>c.method==='GET'&&c.path==='/api/forms/srv-7'),
+    'با رونوشت محلی کهنه، نسخهٔ سرور خوانده و جایگزین رونوشت می‌شود (بازخوانی صفحه با hydrated=1)؛ رونوشت محلی بی‌صدا جای سرور را نمی‌گیرد');
+  const freshStore=makeStore({'nora-forms':JSON.stringify([{...record,...record.settings,serverManaged:true}])});
+  const freshApi=makeApi({id:'srv-7',initialRecord:record});
+  await load({api:freshApi,store:freshStore,query:'?fid=srv-7',fixtureMode:false});await wait(150);
+  ok(JSON.parse(freshStore.getItem('nora-forms')).find(f=>f.id==='srv-7').version===4&&freshApi.calls.filter(c=>c.method==='GET'&&c.path==='/api/forms/srv-7').length===1,'با رونوشت هم‌نسخه، فقط یک بررسی نسخه انجام می‌شود و بازخوانی رخ نمی‌دهد');
 }
 
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
