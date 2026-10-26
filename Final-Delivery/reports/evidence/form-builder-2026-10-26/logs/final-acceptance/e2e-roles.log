@@ -1,0 +1,49 @@
+manager me {"role":"manager","finance":false,"receipt_approve":true}
+PASS manager session is a manager without finance
+PASS manager: event file opens by direct URL
+manager tabs ["info","forms","forms","survey","regs","tickets","resources","resources","notify","recording","orders","questions","reviews","certs","certs","reports"]
+PASS manager: no «پرداخت‌ها» tab (finance needed), but registrants/forms/tickets visible
+manager head رویداد الف (پرونده) 165759ثبت‌نام باز
+      1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش
+      ثبت‌نام: ۲ از ۴ نفر · باقی‌مانده ۲فرم ثبت‌نام: فعالمبلغ: ۶۰۰,۰۰۰ ریال · کارت‌به‌کارت
+      
+    مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+PASS manager: head shows capacity + public form price (source in title attr), no per-person money
+manager row p1 نفر اول پروندهNORA-ED8F1FB2DC4247CDA24A · ۱۴۰۵/۸/۴, ۱۶:۵۹پرداخت‌شده · تأیید دستی رسید
+    پذیرفته‌شدهپرداخت‌شدهحاضر
+    پروندهٔ ثبت‌نام
+PASS manager: registrant row keeps payment state but hides amount
+manager person p2 بازگشت به ثبت‌نام‌کنندگاننفر دوم بی‌رسیدپذیرفته‌شدهدر انتظار پرداختNORA-83110409FC424B8C8C7E · فرم ثبت‌نام الف 165759
+    
+    پاسخ‌های فرمنام کاملنفر دوم بی‌رسید
+    وضعیت ثبت‌ناموضعیت ثبت‌نامپذیرفته‌شدهتاریخ ثبت‌نام۱۴۰۵/۸/۴, ۱۶:۵۹فرمفرم ثبت‌نام الف 165759کد 
+PASS manager: person file shows «رسیدی ثبت نشده», no «تأیید پرداخت» without a receipt (only cancel), no amount
+approve without receipt 409 {"code":"receipt_missing"}
+PASS server refuses approving a payment that has no receipt (409 receipt_missing)
+manager GET payments 403
+PASS manager: direct payments API → 403
+PASS manager: registrations API answers without amounts (finance_visible=false)
+PASS manager: person detail has no payment amount, keeps status
+manager cross-event 404
+PASS manager: A’s registration under event B → 404
+manager receipt file {"status":200,"type":"image/png"}
+PASS manager (receipt_approve): receipt file readable
+manager cancellations {"status":200,"total":1}
+PASS manager: cancelled snapshots readable, name + labelled answers, no amount (finance_visible=false)
+PASS manager (receipt_approve): kept receipt of cancelled registration readable
+PASS manager: cancelled receipt under event B → 404
+manager direct backend {"login":200,"csrfNone":403,"csrfWrong":403,"csrfForeignOrigin":403,"list":200,"repeat":200,"repeatChanged":false}
+PASS manager direct: decision without CSRF token → 403
+PASS manager direct: decision with wrong CSRF token → 403
+PASS manager direct: decision from a foreign Origin → 403
+PASS manager direct: list readable, amounts absent
+PASS manager direct: repeating an already-approved decision is a no-op (changed:false)
+PASS manager (fm_responses): survey summary readable
+PASS manager mobile: tickets tab opens, one checked-in row
+anonymous {"overview":401,"receipt":401,"ticket":401,"payments":401,"decision":401}
+PASS unauthenticated: overview/receipt/ticket/payments/decision all 401
+PASS unauthenticated: cancellations list + kept receipt → 401
+ticket serial NORA-ED8F1FB2DC4247CDA24A
+PASS ticket serial is opaque (no name/mobile inside)
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 26 / FAIL 0

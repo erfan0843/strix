@@ -1,0 +1,54 @@
+owner auth/me 200
+=== e2e-event-file start 16:57:58
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 83 / FAIL 0
+=== e2e-duplicate start 17:01:39
+e2e-duplicate EXIT 1
+  ]
+}
+=== e2e-receipt-restore start 17:01:41
+e2e-receipt EXIT 0
+✓ ثبت‌نام در فهرست مدیران با وضعیت پرداخت «رسید فرستاده شده» دیده می‌شود (200)
+e2e-receipt-restore: 11 قبول، 0 خطا
+=== e2e-deeplinks start 17:02:16
+e2e-deeplinks EXIT 0
+e2e-deeplinks: 36 قبول، 0 خطا
+=== e2e-roles start 17:05:53
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 26 / FAIL 0
+=== e2e-builder-return start 17:06:28
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 17:09:08
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== g-shots start 17:11:10
+g-shots EXIT 0
+17-public-event-360.png	/event.html?id=ev-a06f8bb8a6	overflow=0
+18-home-360.png	/home.html	overflow=0
+=== ds-audit start 17:15:19
+ds-audit EXIT 0
+builder@360: sw=360 main=0|360|0 fonts=12px×79 13.5px×48 15px×28 16px×7 9.16667px×5 30px×1 18px×1 | btnH=34px×30 44px×16 32px×12 151px×6 177px×3 50px×3 310px×1 205px×1 | radii=12px×45 16px×35 999px×26 18px×15 50%×13 22px×8 99px×7 | cls=0.000
+manager-first@360: sw=360 main=0|360|0 fonts=11px×20 12px×13 13.5px×12 15px×12 16px×4 18.5px×4 30px×1 | btnH=34px×10 36px×2 | radii=12px×10 999px×9 18px×6 22px×3 16px×2 | cls=0.000
+manager-event-hub@360: sw=360 main=0|360|0 fonts=13.5px×14 11px×13 12px×12 30px×1 16px×1 15.75px×1 | btnH=34px×6 105px×2 123px×2 118px×2 | radii=12px×12 999px×10 16px×7 22px×3 18px×2 | cls=0.000
+owner auth/me after 200
+=== node-suite start 17:22:51
+node-suite done: 40/40 exit 0
+=== pytest start 17:28:09
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+400 passed, 4 skipped, 3 warnings in 143.62s (0:02:23)
+=== mypy start 17:30:36
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 17:30:46
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 2.88s
+=== ALL DONE 17:30:51
