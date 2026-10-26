@@ -158,7 +158,7 @@ function makePublicApiMock({id='server-public-smoke',draft={answers:{},companion
     if(!payment)return false;payment={...payment,status,invoice_url:status==='pending'?payment.invoice_url:''};draft={...draft,payment_intent:payment};return true;
   }};
 }
-function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=null,responses=[],readinessIssues=[]}={}){
+function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=null,responses=[],readinessIssues=[],role='owner',permissions=['fm_create']}={}){
   const calls=[]; let loggedIn=authenticated, record=initialRecord;
   const response=(status,payload)=>({ok:status>=200&&status<300,status,json:async()=>payload});
   const fetch=async(path,init={})=>{
@@ -172,11 +172,11 @@ function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=n
       field_types:{text:{status:'server',reason:''},fullname:{status:'server',reason:''},mobile:{status:'limited',reason:'بدون احراز شماره'},uni:{status:'limited',reason:'فهرست محلی'},image:{status:'unavailable',reason:'بارگذاری وصل نیست'},file:{status:'unavailable',reason:'بارگذاری وصل نیست'}},
       settings:{response_list:{status:'server',page_size_max:100},schedule:{status:'unavailable'},one_response_per_person:{status:'unavailable'}}
     });
-    if(path==='/api/auth/me') return loggedIn
+    if(path==='/api/auth/me') return loggedIn&&role==='owner'
       ?response(200,{authenticated:true,owner_id:'owner-smoke',role:'owner'})
       :response(401,{detail:'authentication_required'});
     if(path==='/api/account/me') return loggedIn
-      ?response(200,{authenticated:true,account_id:'owner-smoke',role:'owner',permissions:['fm_create']})
+      ?response(200,{authenticated:true,account_id:role==='owner'?'owner-smoke':'manager-smoke',role,permissions:role==='owner'?permissions:permissions.filter(p=>p!=='finance')})
       :response(401,{detail:'authentication_required'});
     if(path==='/api/auth/login'){
       const body=JSON.parse(init.body||'{}');
@@ -1041,6 +1041,60 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(page.txt('#attBody').includes('هیچ دادهٔ نمونه‌ای نشان نمی‌دهد')
     &&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');
   page.dom.window.close();
+}
+
+/* ── ۲پ) کارت‌های حالت واقعی (تیم/کارتابل/حضور): عبارت‌های ثابت، پیوند واقعی به پنل مدیران، بدون دکمهٔ بی‌پشتوانه ── */
+{
+  console.log('\n── کارت‌های حالت واقعی مرکز فرم‌ها ──');
+  const record={id:'cards-form-1',name:'فرم کارت‌ها',model:'registration',need:'reg',slug:'cards/one',ev:'',fields:[{id:'q1',t:'text',l:'پرسش'}],
+    settings:{},status:'published',version:1,response_count:0,created_at:'2026-01-01T00:00:00+00:00',updated_at:'2026-10-01T00:00:00+00:00'};
+  const PIN_TEAM='هیچ حساب یا نقش نمونه‌ای نشان نمی‌دهد', PIN_KARTABL='کارتابل مشترک پنل مدیران', PIN_ATT='هیچ دادهٔ نمونه‌ای نشان نمی‌دهد';
+  const liveControls=(page,sel)=>[...page.doc.querySelectorAll(sel+' button, '+sel+' input, '+sel+' select')].filter(el=>!el.hidden&&!el.disabled&&!el.closest('[hidden]')&&!el.closest('.topbar'));
+  /* الف) مالک: پیوند واقعی «حساب‌های ورود و نقش‌ها» (#staff) + «فهرست کاربران و پرونده‌ها» (#users)؛ برچسب گمراه‌کنندهٔ قدیمی نیست */
+  {
+    const api=makeFormsApiMock({id:'cards-form-1',initialRecord:record,role:'owner'});
+    const page=await load('builder.html',makeStore(),'',api.fetch,{fixtureMode:false});
+    await wait(80);
+    page.click('[data-go="fTeam"]');
+    const team=page.txt('#teamBox');
+    ok(page.errors.length===0&&team.includes(PIN_TEAM)&&team.includes('در فرم‌ساز فعال نیست')
+      &&!!page.doc.querySelector('#teamBox a[href="admin.html#users"]')&&page.doc.querySelector('#teamBox a[href="admin.html#users"]').textContent.includes('فهرست کاربران و پرونده‌ها')
+      &&!!page.doc.querySelector('#teamBox a[href="admin.html#staff"]')&&page.doc.querySelector('#teamBox a[href="admin.html#staff"]').textContent.includes('حساب‌های ورود و نقش‌ها')
+      &&!team.includes('مدیریت مدیران و مجوزها')&&!team.includes('خانم رستگار')
+      &&page.doc.getElementById('invite').hidden===true&&liveControls(page,'#teamBox').length===0
+      &&page.txt('#fTeam .head').includes('تیم و دسترسی‌ها')&&page.txt('[data-team-nav-label]').includes('تیم و دسترسی‌ها'),
+      'کارت تیم (مالک): عبارت ثابت حفظ شد، #users با برچسب دقیق «فهرست کاربران و پرونده‌ها» و #staff برای نقش‌ها؛ هیچ دکمهٔ عملیاتی بی‌پشتوانه نیست');
+    page.click('[data-go="fKartabl"]');
+    const kartabl=page.txt('#kartabl');
+    ok(kartabl.includes(PIN_KARTABL)&&kartabl.includes('در فرم‌ساز فعال نیست')&&!!page.doc.querySelector('#kartabl a[href="admin.html#inbox"]')
+      &&page.doc.getElementById('kFilters').hidden===true&&page.doc.getElementById('kTop').hidden===true
+      &&!kartabl.includes('سارا محمدی')&&liveControls(page,'#kartabl').length===0,
+      'کارت کارتابل: عبارت ثابت و پیوند #inbox حفظ شد؛ فیلتر بخش‌ها و شمارندهٔ نمونه پنهان‌اند');
+    page.click('[data-go="fAttend"]');
+    const att=page.txt('#attBody');
+    ok(att.includes(PIN_ATT)&&att.includes('در فرم‌ساز فعال نیست')&&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]')
+      &&!att.includes('مجوز «حضور و غیاب» ندارد')
+      &&page.txt('#attSub').includes('در فرم‌ساز انجام نمی‌شود')
+      &&[...page.doc.querySelectorAll('#fAttend #attCode,#fAttend #attGo,#fAttend [data-attmode],#fAttend #attQ')].every(el=>el.disabled),
+      'کارت حضور (مالک): عبارت ثابت و پیوند #attendance حفظ شد؛ کنترل‌های ثبت حضور نمونه غیرفعال‌اند');
+    page.dom.window.close();
+  }
+  /* ب) مدیر بدون مجوز حضور: پیوند #staff نشان داده نمی‌شود (سرور هم آن را رد می‌کند)، یادداشت «فقط با مالک»، یادداشت نبود مجوز حضور */
+  {
+    const api=makeFormsApiMock({id:'cards-form-1',initialRecord:record,role:'manager',permissions:['fm_create','fm_responses']});
+    const page=await load('builder.html',makeStore(),'',api.fetch,{fixtureMode:false});
+    await wait(80);
+    page.click('[data-go="fTeam"]');
+    const team=page.txt('#teamBox');
+    ok(page.errors.length===0&&team.includes(PIN_TEAM)&&!!page.doc.querySelector('#teamBox a[href="admin.html#users"]')
+      &&!page.doc.querySelector('#teamBox a[href="admin.html#staff"]')&&team.includes('فقط با مالک'),
+      'کارت تیم (مدیر): فقط پیوند فهرست کاربران؛ تعیین نقش «فقط با مالک» اعلام می‌شود');
+    page.click('[data-go="fAttend"]');
+    ok(page.txt('#attBody').includes(PIN_ATT)&&page.txt('#attBody').includes('مجوز «حضور و غیاب» ندارد')
+      &&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]'),
+      'کارت حضور (مدیر بدون مجوز): پیوند می‌ماند و نبود مجوز صادقانه گفته می‌شود');
+    page.dom.window.close();
+  }
 }
 
 /* ── ۲ت) پاسخ‌های سروری و جواب‌های همراه در گزارش مدیر ── */

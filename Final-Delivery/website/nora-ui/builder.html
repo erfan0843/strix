@@ -213,7 +213,7 @@
       <button class="btn quiet block" data-go="fAttend"><svg class="i"><use href="#i-check"/></svg> حضور</button>
       <button class="btn quiet block" data-go="fMine"><svg class="i"><use href="#i-star"/></svg> کارتابل من <span class="sp"></span><span class="tag brand" id="myBadge">—</span></button>
       <button class="btn quiet block" id="financeNav" data-go="fMoney" hidden><svg class="i"><use href="#i-wallet"/></svg> مالی و کارمزد</button>
-      <button class="btn quiet block" data-go="fTeam"><svg class="i"><use href="#i-users"/></svg> کارشناسان</button>
+      <button class="btn quiet block" data-go="fTeam"><svg class="i"><use href="#i-users"/></svg> <span data-team-nav-label>کارشناسان</span></button>
     </nav>
     <hr class="hr"/>
     <div class="cap" style="margin:0 8px 6px">پیوندها</div>
@@ -1588,13 +1588,14 @@ const attList=()=>PEOPLE.filter(p=>p.form===CUR.id&&p.state==='paid');
 const attIn=()=>attList().filter(p=>p.att).length;
 function renderAttend(q){
   if(!TEST_FIXTURE_MODE){
-    document.getElementById('attSub').textContent='ثبت حضور در پنل مدیران انجام می‌شود.';
+    document.getElementById('attSub').textContent='ثبت حضور در فرم‌ساز انجام نمی‌شود.';
     /* کنترل‌های ثبت حضور فقط روی دادهٔ نمونه کار می‌کنند؛ بدون API باید غیرفعال باشند تا پیام موفقیت ساختگی ندهند */
     document.querySelectorAll('#fAttend #attCode,#fAttend #attGo,#fAttend [data-attmode],#fAttend [data-abexport],#fAttend [data-absentmsg],#fAttend #attQ').forEach(el=>{el.disabled=true;el.setAttribute('aria-disabled','true');});
     ['attAll','attIn','attOut'].forEach(id=>document.getElementById(id).textContent='—');
     document.getElementById('attPct').textContent='—';
     document.getElementById('attCount').textContent='۰ ردیف';
-    document.getElementById('attBody').innerHTML='<tr><td colspan="5"><div class="state" style="padding:14px"><p>حضور و غیاب هر رویداد در پنل مدیران ثبت می‌شود؛ این صفحه هیچ دادهٔ نمونه‌ای نشان نمی‌دهد.</p><div class="row" style="justify-content:center;gap:8px"><a class="btn sm" href="admin.html#attendance">باز کردن حضور و غیاب</a></div></div></td></tr>';
+    const attendanceNote=(SESSION_IDENTITY&&!sessionCan('attendance'))?'<p class="cap" style="margin-top:8px">این حساب مجوز «حضور و غیاب» ندارد؛ مجوز را سرور تعیین می‌کند.</p>':'';
+    document.getElementById('attBody').innerHTML='<tr><td colspan="5"><div class="state" style="padding:14px"><p>اسکن بلیت و ثبت دستی حضور در فرم‌ساز فعال نیست و برای هر رویداد در پنل مدیران انجام می‌شود؛ این صفحه هیچ دادهٔ نمونه‌ای نشان نمی‌دهد.</p><div class="row" style="justify-content:center;gap:8px"><a class="btn sm" href="admin.html#attendance">باز کردن حضور و غیاب</a></div>'+attendanceNote+'</div></td></tr>';
     /* ابزارهای نمونه (شمارنده، ورود کد، جدول) بدون سرویس واقعی نمایش داده نمی‌شوند؛ فقط حالت و پیوند می‌ماند */
     const att=document.getElementById('fAttend');
     att.querySelectorAll(':scope > .metrics, :scope > .card.paper').forEach((el,i,arr)=>{if(i<arr.length-1)el.hidden=true});
@@ -1701,10 +1702,16 @@ function renderMine(){
 }
 function renderKartabl(){
   if(!RECEIPT_REVIEWER){
-    const message=TEST_FIXTURE_MODE?'دسترسی به بازبینی فیش ندارید.':'رسیدهای پرداخت و تأییدها در کارتابل مشترک پنل مدیران بررسی می‌شوند؛ این صفحه دادهٔ نمونه نشان نمی‌دهد.';
-    const link=TEST_FIXTURE_MODE?'':'<a class="btn sm" href="admin.html#inbox" style="margin-inline-start:10px">باز کردن کارتابل مشترک</a>';
+    const message=TEST_FIXTURE_MODE?'دسترسی به بازبینی فیش ندارید.':'تأیید یا رد رسیدهای کارت‌به‌کارت در فرم‌ساز فعال نیست و در کارتابل مشترک پنل مدیران انجام می‌شود؛ این صفحه دادهٔ نمونه نشان نمی‌دهد.';
+    const link=TEST_FIXTURE_MODE?'':'<div class="row" style="gap:8px"><a class="btn sm" href="admin.html#inbox">باز کردن کارتابل مشترک</a></div>';
     const box=document.getElementById('kartabl');
-    if(box) box.innerHTML='<div class="card sunk row"><span class="sub">'+message+'</span>'+link+'</div>';
+    if(box) box.innerHTML=TEST_FIXTURE_MODE?'<div class="card sunk row"><span class="sub">'+message+'</span></div>':'<div class="state"><p>'+message+'</p>'+link+'</div>';
+    if(!TEST_FIXTURE_MODE){
+      /* فیلتر بخش‌ها و شمارنده‌ها فقط روی دادهٔ نمونه معنا دارند */
+      const filters=document.getElementById('kFilters'); if(filters) filters.hidden=true;
+      const cap=document.querySelector('#fKartabl .topbar .cap'); if(cap) cap.textContent='بررسی رسیدها در فرم‌ساز انجام نمی‌شود.';
+      const topTag=document.getElementById('kTop'); if(topTag) topTag.hidden=true;
+    }
     const top=document.getElementById('kTop'); if(top) top.textContent='—';
     const badge=document.getElementById('kBadge'); if(badge) badge.textContent='—';
     return;
@@ -1797,9 +1804,16 @@ const TEAM=TEST_FIXTURE_MODE?[
 ]:[];
 function renderTeam(){
   if(!TEST_FIXTURE_MODE){
-    /* بدون API کارشناسان، دکمهٔ «افزودن کارشناس» نباید پیام موفقیت ساختگی بدهد */
+    /* حالت واقعی: فرم‌ساز حساب یا نقش نمی‌سازد؛ دکمهٔ «افزودن کارشناس» نباید پیام موفقیت ساختگی بدهد */
     const inviteButton=document.getElementById('invite'); if(inviteButton){inviteButton.hidden=true;inviteButton.disabled=true;}
-    document.getElementById('teamBox').innerHTML='<div class="state"><p>مدیران و مجوزهایشان در پنل مدیران تعریف می‌شوند؛ این صفحه هیچ حساب یا نقش نمونه‌ای نشان نمی‌دهد.</p><div class="row" style="gap:8px"><a class="btn sm" href="admin.html#users">مدیریت مدیران و مجوزها</a></div></div>';
+    const head=document.querySelector('#fTeam .head'); if(head) head.textContent='تیم و دسترسی‌ها';
+    document.querySelectorAll('[data-team-nav-label]').forEach(el=>{el.textContent='تیم و دسترسی‌ها'});
+    const cap=document.querySelector('#fTeam .topbar .cap'); if(cap) cap.textContent='ساخت حساب و تعیین نقش در فرم‌ساز انجام نمی‌شود.';
+    const isOwner=!!(SESSION_IDENTITY&&SESSION_IDENTITY.role==='owner');
+    const links=(isOwner?'<a class="btn sm" href="admin.html#staff">حساب‌های ورود و نقش‌ها</a>':'')
+      +'<a class="btn sm quiet" href="admin.html#users">فهرست کاربران و پرونده‌ها</a>';
+    const note=isOwner?'':'<p class="cap" style="margin-top:8px">ساخت حساب ورود و تعیین نقش فقط با مالک انجام می‌شود.</p>';
+    document.getElementById('teamBox').innerHTML='<div class="state"><p>افزودن همکار، تعیین نقش و دادن مجوز در فرم‌ساز فعال نیست و در پنل مدیران انجام می‌شود؛ این صفحه هیچ حساب یا نقش نمونه‌ای نشان نمی‌دهد.</p><div class="row" style="gap:8px;flex-wrap:wrap">'+links+'</div>'+note+'</div>';
     return;
   }
   const card=t=>`
@@ -2467,6 +2481,7 @@ function syncServerForms({auto=false}={}){
       if(!health||health.ok!==true||health.formsEnabled!==true) throw new api.Error(503,'database_not_ready',health);
       const formSession=await formReaderSession(api);
       SESSION_IDENTITY=formSession;
+      if(!TEST_FIXTURE_MODE){renderTeam();if(document.querySelector('#fAttend.on')) renderAttend();}
       if(!TEST_FIXTURE_MODE){FINANCE_OWNER=sessionCan('finance');const mf=document.getElementById('moneyFilter');if(mf)mf.hidden=!FINANCE_OWNER;const cf=document.getElementById('coreFinanceLink');if(cf)cf.hidden=!FINANCE_OWNER}
       const result=await api.listForms(), items=Array.isArray(result&&result.items)?result.items:[];
       LIST_REFRESHED_AT=Date.now();

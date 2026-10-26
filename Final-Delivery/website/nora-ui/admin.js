@@ -13164,7 +13164,7 @@ function startAdminApplication(){
   bind(); sanitize(); render();
   if(serverRouted) serverHashAfterRender(h);
   /* هش ناشناخته (مثل #posts قدیمی یا تایپ اشتباه) به آخرین بخش معتبر می‌افتد؛ نشانی هم باید همان بخش را بگوید نه هش مرده را */
-  else if(!IS_TEST&&h&&!['cert','money','finance','reports','inbox','newev','partners','club','att','attendance'].includes(h)&&!ALLSECS.some(section=>section.k===h))
+  else if(!IS_TEST&&h&&!['cert','money','finance','reports','inbox','newev','partners','club','att','attendance','staff'].includes(h)&&!ALLSECS.some(section=>section.k===h))
     try{history.replaceState(null,'','#'+(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec))}catch(e){}
   if(!IS_TEST&&isOwner()&&S.uV==='tools'&&S.uTool==='staff'&&!SERVER_ROLE_LOADED) loadServerRoleAccounts(false);
 }
@@ -13184,6 +13184,11 @@ function serverHashRoute(h){
     if(canPerm('attendance')&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='att'; return true}
     S.sec='dash'; return true;
   }
+  if(h==='staff'){
+    /* پیوند مستقیم فرم‌ساز به «حساب‌های ورود و نقش‌ها»؛ همان ابزار موجود کاربران › ابزارها › staff (فقط مالک) */
+    if(isOwner()&&canSec('users')){S.sec='users'; S.uHub='users'; S.uV='tools'; S.uTool='staff'; S.uSel=''; return true}
+    S.sec='dash'; return true;
+  }
   if(efParseHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
   if(ctParseEditHash(h)){S.sec=canSec('events')?'events':'dash'; return true}
   return false;
@@ -13195,6 +13200,10 @@ function serverHashAfterRender(h){
   }
   else if(h==='club'&&S.sec==='dash') toast('مدیریت باشگاه فقط برای مالک و سرپرست باشگاه باز است');
   else if((h==='att'||h==='attendance')&&S.sec==='dash') toast('حضور و غیاب برای مجوزهای این حساب باز نیست');
+  else if(h==='staff'){
+    if(S.sec==='dash') toast('مدیریت نقش حساب‌ها فقط برای مالک است');
+    else if(!SERVER_ROLE_LOADED) loadServerRoleAccounts(false);
+  }
   const ed=ctParseEditHash(h);
   if(ed){
     if(S.sec!=='events'){toast('این حساب مجوز دیدن رویدادها را ندارد')}
