@@ -1077,6 +1077,11 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&page.txt('#attSub').includes('در فرم‌ساز انجام نمی‌شود')
       &&[...page.doc.querySelectorAll('#fAttend #attCode,#fAttend #attGo,#fAttend [data-attmode],#fAttend #attQ')].every(el=>el.disabled),
       'کارت حضور (مالک): عبارت ثابت و پیوند #attendance حفظ شد؛ کنترل‌های ثبت حضور نمونه غیرفعال‌اند');
+    /* ظرف جدول نمونه در حالت واقعی لایهٔ تودرتو نمی‌سازد: سرستون‌ها و جست‌وجو پنهان، کارت میزبان بی‌چهارچوب؛ #attBody و کارت حالت می‌مانند */
+    const attHost=page.doc.getElementById('attBody').closest('.card.paper');
+    ok(!!attHost&&attHost.classList.contains('state-host')&&attHost.querySelector('thead').hidden===true&&attHost.querySelector(':scope > .row').hidden===true
+      &&!!page.doc.querySelector('#attBody .state p')&&!page.doc.querySelector('#attBody .state[style]'),
+      'کارت حضور (مالک): ظرف جدول نمونه به میزبان ساده تبدیل شده و کارت حالت بدون استایل درون‌خطی داخل #attBody است');
     page.dom.window.close();
   }
   /* ب) مدیر بدون مجوز حضور: پیوند #staff نشان داده نمی‌شود (سرور هم آن را رد می‌کند)، یادداشت «فقط با مالک»، یادداشت نبود مجوز حضور */

@@ -59,6 +59,11 @@
   .quicknav .tint{color:var(--brand-ink);background:var(--brand-tint)}
   @media (max-width:1040px){.quicknav{display:grid}}
   @media print{.quicknav{display:none!important}}
+  /* حالت واقعی بورد حضور: ظرف جدول نمونه به میزبان سادهٔ کارت حالت تبدیل می‌شود (بدون لایهٔ تودرتو)؛ #attBody به‌عنوان میزبان می‌ماند */
+  .card.paper.state-host{background:transparent;border:0;box-shadow:none;padding:0}
+  .card.paper.state-host .table-wrap{background:transparent;border:0;box-shadow:none;overflow:visible}
+  .card.paper.state-host table{min-width:0;width:100%;table-layout:fixed}
+  .card.paper.state-host table,.card.paper.state-host td{padding:0;border:0;background:transparent}
 </style>
 <meta name="description" content="مرکز مدیریت فرم‌ها در نورا؛ دسترسی و انتشار از سمت سرور کنترل می‌شود."/>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
@@ -1595,10 +1600,13 @@ function renderAttend(q){
     document.getElementById('attPct').textContent='—';
     document.getElementById('attCount').textContent='۰ ردیف';
     const attendanceNote=(SESSION_IDENTITY&&!sessionCan('attendance'))?'<p class="cap" style="margin-top:8px">این حساب مجوز «حضور و غیاب» ندارد؛ مجوز را سرور تعیین می‌کند.</p>':'';
-    document.getElementById('attBody').innerHTML='<tr><td colspan="5"><div class="state" style="padding:14px"><p>اسکن بلیت و ثبت دستی حضور در فرم‌ساز فعال نیست و برای هر رویداد در پنل مدیران انجام می‌شود؛ این صفحه هیچ دادهٔ نمونه‌ای نشان نمی‌دهد.</p><div class="row" style="justify-content:center;gap:8px"><a class="btn sm" href="admin.html#attendance">باز کردن حضور و غیاب</a></div>'+attendanceNote+'</div></td></tr>';
+    document.getElementById('attBody').innerHTML='<tr><td colspan="5"><div class="state"><p>اسکن بلیت و ثبت دستی حضور در فرم‌ساز فعال نیست و برای هر رویداد در پنل مدیران انجام می‌شود؛ این صفحه هیچ دادهٔ نمونه‌ای نشان نمی‌دهد.</p><div class="row" style="justify-content:center;gap:8px"><a class="btn sm" href="admin.html#attendance">باز کردن حضور و غیاب</a></div>'+attendanceNote+'</div></td></tr>';
     /* ابزارهای نمونه (شمارنده، ورود کد، جدول) بدون سرویس واقعی نمایش داده نمی‌شوند؛ فقط حالت و پیوند می‌ماند */
     const att=document.getElementById('fAttend');
     att.querySelectorAll(':scope > .metrics, :scope > .card.paper').forEach((el,i,arr)=>{if(i<arr.length-1)el.hidden=true});
+    /* ظرف جدول نمونه (جست‌وجو، سرستون‌ها، چهارچوب کارت) در حالت واقعی معنا ندارد؛ فقط کارت حالت داخل #attBody می‌ماند */
+    const tableCard=document.getElementById('attBody').closest('.card.paper');
+    if(tableCard){tableCard.classList.add('state-host');const searchRow=tableCard.querySelector(':scope > .row');if(searchRow)searchRow.hidden=true;const thead=tableCard.querySelector('thead');if(thead)thead.hidden=true;}
     const last=att.querySelector(':scope > .card.paper:last-of-type');
     if(last)last.querySelectorAll(':scope > .row, thead').forEach(el=>{el.hidden=true});
     return;
