@@ -54,6 +54,18 @@
   .cap-tag{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:2px 7px;margin-inline-start:4px;font-size:var(--fs-micro);background:var(--surface-sunk);color:var(--ink-2)}
   .cap-tag.limited,.cap-tag.unavailable{background:var(--warn-tint);color:var(--warn)}
   .cap-tag.server{background:var(--ok-tint);color:var(--ok)}
+  .cap-tag.local,.cap-tag.pending,.cap-tag.error,.cap-tag.conditional{background:var(--brand-tint);color:var(--brand-ink)}
+  .fd-sec{display:grid;gap:10px;padding-block:10px;border-top:.5px solid var(--hairline)}
+  .fd-sec:first-child{border-top:0;padding-top:0}
+  .fd-h{margin:0;font-size:var(--fs-cap);font-weight:600;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+  .fd-issues{margin-top:10px;padding:8px 11px;border-radius:var(--r-md);background:var(--warn-tint);color:var(--warn);font-size:var(--fs-sub)}
+  .fd-issues ul{margin:0;padding-inline-start:18px}
+  .fd-discard{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding:8px 11px;border-radius:var(--r-md);background:var(--surface-2);border:.5px solid var(--hairline)}
+  .fd-foot{position:sticky;bottom:0;padding-block:10px;background:var(--surface);border-top:.5px solid var(--hairline)}
+  .fd-opt{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;border-radius:var(--r-md);background:var(--surface-sunk)}
+  .fd-opt .icon-btn[disabled]{opacity:.35;cursor:not-allowed}
+  .chip[disabled]{opacity:.5;cursor:not-allowed}
+  .chip:focus-visible,.cat-item:focus-visible{outline:2.5px solid var(--brand);outline-offset:2px}
   .tile:disabled{opacity:.62;cursor:not-allowed;filter:saturate(.55)}
   .block[draggable="true"]{touch-action:pan-y}
   .block.dragging{opacity:.45}
@@ -381,8 +393,10 @@
             </div>
         </div>
 
-          <div class="card">
+          <div class="card" id="companionCard">
             <div class="sec-head"><h3>همراهان</h3><span class="sh-sub">هر پاسخ می‌تواند چند نفر را ثبت کند</span></div>
+            <p class="mnote" id="companionModelNote" hidden>ثبت همراه فقط در مدل «ثبت‌نام» در سرور اجرا می‌شود؛ برای این مدل خاموش است و در فرم عمومی نشان داده نمی‌شود.</p>
+            <div id="companionBody">
             <div class="row" style="margin-bottom:12px">
               <span><b class="sub">ثبت‌نام همراه</b>
                 <div class="cap">روشن باشد، شرکت‌کننده می‌تواند همراهانش را در همین فرم ثبت کند. خاموش باشد، چیزی در فرم نشان داده نمی‌شود.</div></span>
@@ -396,6 +410,7 @@
             </div>
             <div class="prevbox" style="margin-top:10px">
               <span class="sub">اگر «پاسخ‌های جداگانه» را انتخاب کنید، همراه برای هر پرسش پاسخ خودش را می‌دهد.</span>
+            </div>
             </div>
           </div>
 
@@ -687,86 +702,123 @@
   <div class="row" style="margin-top:14px"><button class="btn primary" id="packSave"><svg class="i"><use href="#i-check"/></svg> ذخیرهٔ محلی</button><button class="btn quiet" data-close>انصراف</button></div>
 </aside>
 
-<aside class="sheet" id="shField" role="dialog" aria-label="تنظیمات فیلد">
+<aside class="sheet" id="shField" role="dialog" aria-label="تنظیمات فیلد" aria-describedby="fdIssues">
   <div class="grabber"></div>
-  <div class="row"><span class="head">تنظیمات فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <div class="row"><span class="head">تنظیمات فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن بدون ذخیره"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <div class="fd-issues" id="fdIssues" role="alert" hidden></div>
+  <div class="fd-discard" id="fdDiscardBar" hidden>
+    <span class="sub">تغییرات این فیلد ذخیره نشده است.</span>
+    <span class="sp"></span>
+    <button type="button" class="btn sm quiet" id="fdDiscardYes">بستن بدون ذخیره</button>
+    <button type="button" class="btn sm primary" id="fdDiscardNo">ادامهٔ ویرایش</button>
+  </div>
   <div class="stack" style="margin-top:12px">
-    <div class="row tight"><span class="tag brand" id="fdType">—</span><span class="sp"></span><span class="tag" id="fdStruct">—</span></div>
-    <div><label class="lbl" for="fdTitle">عنوان</label><input id="fdTitle" class="input" maxlength="160"/></div>
-    <div>
-      <label class="lbl" for="fdHelp">راهنما</label>
-      <div class="row tight"><input id="fdHelp" class="input" maxlength="300" style="flex:1"/><button class="btn sm quiet" id="fdHelpDefault">پیش‌فرض</button></div>
-    </div>
-    <div>
-      <div class="lbl">رسانهٔ همراه · فقط نشان نمونه</div>
-      <div class="row tight">
-        <button type="button" class="chip on" data-media="none">بدون</button>
-        <button type="button" class="chip" data-media="image"><svg class="i"><use href="#i-image"/></svg> تصویر</button>
-        <button type="button" class="chip" data-media="file"><svg class="i"><use href="#i-file-up"/></svg> فایل</button>
-        <button type="button" class="chip" data-media="video"><svg class="i"><use href="#i-play"/></svg> ویدیو</button>
+    <section class="fd-sec" aria-labelledby="fdSecMain">
+      <div class="row tight" style="flex-wrap:wrap"><span class="tag brand" id="fdType">—</span><span class="tag" id="fdStruct">—</span><span class="sp"></span><span id="fdSupport"></span></div>
+      <div class="mnote" id="fdIssueNote" hidden></div>
+      <h3 class="fd-h" id="fdSecMain">اصلی</h3>
+      <div><label class="lbl" for="fdTitle">عنوان</label><input id="fdTitle" class="input" maxlength="160"/></div>
+      <div>
+        <label class="lbl" for="fdHelp">راهنما</label>
+        <div class="row tight"><input id="fdHelp" class="input" maxlength="300" style="flex:1"/><button type="button" class="btn sm quiet" id="fdHelpDefault">پیش‌فرض</button></div>
       </div>
-      <div id="fdMediaNoteBox" style="display:none;margin-top:8px"><label class="lbl" for="fdMediaNote">توضیح رسانه</label><input id="fdMediaNote" class="input" maxlength="160" placeholder="عنوان یا توضیح کوتاه؛ فایل واقعی پیوست نمی‌شود"/><div class="mnote">فایل، تصویر یا ویدیوی واقعی از این صفحه بارگذاری یا منتشر نمی‌شود.</div></div>
-    </div>
-    <div id="fdPlaceholderBox" style="display:none"><label class="lbl" for="fdPlaceholder">متن راهنمای داخل کادر</label><input id="fdPlaceholder" class="input" maxlength="120" placeholder="مثلاً پاسخ را این‌جا بنویسید"/></div>
-    <div id="fdBoundsBox" style="display:none"><div class="lbl">محدودهٔ عددی (اختیاری)</div><div class="g2"><div><label class="lbl" for="fdMin">حداقل</label><input id="fdMin" class="input num" inputmode="decimal" autocomplete="off"/></div><div><label class="lbl" for="fdMax">حداکثر</label><input id="fdMax" class="input num" inputmode="decimal" autocomplete="off"/></div></div><div class="mnote">این حدها در پیش‌نمایش پاسخ بررسی می‌شوند.</div></div>
-    <div id="fdVerifyBox" style="display:none">
-      <div class="row"><span class="sub">تأیید مالکیت شماره</span><span class="sp"></span><span class="tag warn" id="fdVerifyStatus">غیرفعال · سرویس پیامک/احراز وصل نیست</span></div>
-      <div class="mnote">درخواست تأیید در سرور اجرا نمی‌شود و انتشار را مسدود می‌کند. اگر این گزینه از پیش‌نویس قدیمی آمده، آن را پاک کنید.</div>
-      <button type="button" class="btn sm quiet" id="fdVerifyClear" style="display:none;margin-top:8px">پاک‌کردن درخواست تأییدِ قدیمی</button>
-    </div>
-    <div id="fdCountBox" style="display:none">
-      <div class="row"><label class="sub" for="fdCount">سقف تعداد فایل</label><span class="sp"></span><input class="input num" id="fdCount" inputmode="numeric" min="1" max="10" style="max-width:110px" value="۱"/></div>
-      <div class="row tight" style="margin-top:8px"><label class="sub" for="fdAccept">پسوند یا نوع مجاز</label><input class="input" id="fdAccept" style="max-width:220px;direction:ltr" placeholder=".pdf,.jpg,image/*"/></div>
-      <div class="row tight" style="margin-top:8px"><label class="sub" for="fdMaxSize">حداکثر اندازهٔ هر فایل (MB)</label><input class="input num" id="fdMaxSize" inputmode="decimal" min="1" max="100" style="max-width:110px" value="۱۰"/></div>
-      <div class="mnote">پیش‌نمایش فقط نام فایل را محلی نگه می‌دارد؛ فایل بارگذاری یا به سرور ارسال نمی‌شود.</div>
-    </div>
-    <div id="fdOptionsBox" style="display:none">
-      <div class="row tight"><div class="lbl">گزینه‌ها</div><span class="sp"></span><span class="cap" id="fdOptionCount" aria-live="polite">۰ از ۱۰۰ گزینه</span></div>
-      <div class="stack tight" id="fdOptions"></div>
+      <div class="row"><span class="sub">اجباری <span class="required-dot"></span></span><span class="sp"></span><span class="switch" id="fdReq" role="switch" aria-label="اجباری بودن فیلد" aria-checked="false" tabindex="0"></span></div>
+    </section>
+
+    <section class="fd-sec" id="fdOptionsBox" style="display:none" aria-labelledby="fdSecOptions">
+      <h3 class="fd-h" id="fdSecOptions">گزینه‌ها</h3>
+      <div class="row tight"><div class="lbl">فهرست گزینه‌ها</div><span class="sp"></span><span class="cap" id="fdOptionCount" aria-live="polite">۰ از ۱۰۰ گزینه</span></div>
+      <div class="stack tight" id="fdOptions" role="list" aria-label="گزینه‌های پرسش"></div>
       <button type="button" class="btn sm quiet" id="fdAddOption" style="margin-top:8px"><svg class="i"><use href="#i-plus"/></svg> افزودن گزینه</button>
-      <div class="mnote">عنوان هر گزینه ۱ تا ۱۲۰ نویسه و یکتا باشد؛ حداکثر ۱۰۰ گزینه. گزینهٔ خالی یا تکراری ذخیره نمی‌شود.</div>
-    </div>
-    <div id="fdMultiLimitsBox" style="display:none;margin-top:10px">
-      <div class="lbl">محدودیت انتخاب چندگانه</div>
-      <div class="g2">
-        <label class="fld"><span>حداقل انتخاب</span><input id="fdMinSelect" class="input num" type="text" inputmode="numeric" autocomplete="off"/></label>
-        <label class="fld"><span>حداکثر انتخاب</span><input id="fdMaxSelect" class="input num" type="text" inputmode="numeric" autocomplete="off"/></label>
+      <div class="mnote">عنوان هر گزینه ۱ تا ۱۲۰ نویسه و یکتا باشد؛ حداکثر ۱۰۰ گزینه. گزینهٔ خالی یا تکراری ذخیره نمی‌شود. ترتیب با دکمه‌های بالا/پایین تغییر می‌کند و همان ترتیب در فرم عمومی می‌آید.</div>
+      <div id="fdMultiLimitsBox" style="display:none;margin-top:10px">
+        <div class="lbl">محدودیت تعداد انتخاب</div>
+        <div class="g2">
+          <label class="fld"><span>حداقل انتخاب</span><input id="fdMinSelect" class="input num" type="text" inputmode="numeric" autocomplete="off"/></label>
+          <label class="fld"><span>حداکثر انتخاب</span><input id="fdMaxSelect" class="input num" type="text" inputmode="numeric" autocomplete="off"/></label>
+        </div>
+        <div class="mnote">خالی یعنی بدون محدودیت؛ عدد صحیح مثبت و حداکثر به‌اندازهٔ تعداد گزینه‌ها. سرور همین قاعده را هنگام ذخیره و پاسخ‌گیری بررسی می‌کند.</div>
       </div>
-      <div class="mnote">خالی یعنی بدون محدودیت؛ مقدار باید عدد صحیح مثبت و حداکثر به‌اندازهٔ تعداد گزینه‌ها باشد. حداقل از حداکثر بیشتر نمی‌شود.</div>
-    </div>
-    <div id="fdScoreBox" style="display:none">
-      <hr class="hr"/>
-      <div class="head">امتیازدهی نظرسنجی</div>
+    </section>
+
+    <section class="fd-sec" id="fdValidationBox" style="display:none" aria-labelledby="fdSecValidation">
+      <h3 class="fd-h" id="fdSecValidation">اعتبارسنجی و محدودیت</h3>
+      <div id="fdBoundsBox" style="display:none"><div class="lbl" id="fdBoundsLabel">محدودهٔ عددی (اختیاری)</div><div class="g2"><div><label class="lbl" for="fdMin">حداقل</label><input id="fdMin" class="input num" inputmode="decimal" autocomplete="off"/></div><div><label class="lbl" for="fdMax">حداکثر</label><input id="fdMax" class="input num" inputmode="decimal" autocomplete="off"/></div></div><div class="mnote" id="fdBoundsNote">پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود.</div></div>
+      <div id="fdVerifyBox" style="display:none">
+        <div class="row"><span class="sub">تأیید مالکیت شماره</span><span class="sp"></span><span class="tag warn" id="fdVerifyStatus">غیرفعال · سرویس پیامک/احراز وصل نیست</span></div>
+        <div class="mnote">درخواست تأیید در سرور اجرا نمی‌شود و انتشار را مسدود می‌کند. اگر این گزینه از پیش‌نویس قدیمی آمده، آن را پاک کنید.</div>
+        <button type="button" class="btn sm quiet" id="fdVerifyClear" style="display:none;margin-top:8px">پاک‌کردن درخواست تأییدِ قدیمی</button>
+      </div>
+      <div id="fdCountBox" style="display:none">
+        <div class="row"><label class="sub" for="fdCount">سقف تعداد فایل</label><span class="sp"></span><input class="input num" id="fdCount" inputmode="numeric" min="1" max="10" style="max-width:110px" value="۱"/></div>
+        <div class="row tight" style="margin-top:8px"><label class="sub" for="fdAccept">پسوند یا نوع مجاز</label><input class="input" id="fdAccept" style="max-width:220px;direction:ltr" placeholder=".pdf,.jpg,image/*"/></div>
+        <div class="row tight" style="margin-top:8px"><label class="sub" for="fdMaxSize">حداکثر اندازهٔ هر فایل (MB)</label><input class="input num" id="fdMaxSize" inputmode="decimal" min="1" max="100" style="max-width:110px" value="۱۰"/></div>
+        <div class="mnote">این فیلد از نسخهٔ قدیمی آمده است: فرم عمومی سرور بارگذاری فایل ندارد و تا تغییر نوع یا حذف، فرم منتشر نمی‌شود. تنظیم‌ها برای بازگشت احتمالی حفظ می‌شوند.</div>
+      </div>
+    </section>
+
+    <section class="fd-sec" aria-labelledby="fdSecDisplay">
+      <h3 class="fd-h" id="fdSecDisplay">نمایش و رفتار</h3>
+      <div id="fdPlaceholderBox" style="display:none"><label class="lbl" for="fdPlaceholder">متن راهنمای داخل کادر</label><input id="fdPlaceholder" class="input" maxlength="120" placeholder="مثلاً پاسخ را این‌جا بنویسید"/></div>
+      <div>
+        <div class="lbl">شرط نمایش</div>
+        <div class="cap">حداکثر ۱۰ قاعده برای هر پرسش، ارجاع فقط به پرسش قبلی و عملگر سازگار با نوع پاسخ. سرور مقدار، ترتیب و گزینه‌ها را دوباره اعتبارسنجی می‌کند؛ پنهان‌بودن پرسش مرجع، شرط را برقرار نمی‌کند.</div>
+        <div id="fdCondBox" style="margin-top:8px">
+          <div class="stack tight" id="fdCondRules"></div>
+          <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
+            <span class="cap" id="fdCondCount" aria-live="polite">۰ از ۱۰ قاعده</span>
+            <label class="fld" id="fdCondLogicBox" style="display:none;flex:1;min-width:180px"><span>ترکیب قواعد</span>
+              <select id="fdCondLogic" class="input"><option value="all">همهٔ قواعد برقرار باشند (AND)</option><option value="any">حداقل یک قاعده برقرار باشد (OR)</option></select>
+            </label>
+            <span class="sp"></span>
+            <button type="button" class="btn sm quiet" id="fdAddCondition"><svg class="i"><use href="#i-plus"/></svg> افزودن قاعده</button>
+          </div>
+          <div class="mnote" id="fdCondHint">بدون قاعده، فیلد همیشه نمایش داده می‌شود. اگر پرسش مرجع خودش پنهان باشد، قاعدهٔ وابسته برقرار محسوب نمی‌شود.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="fd-sec" id="fdScoreBox" style="display:none" aria-labelledby="fdSecScore">
+      <h3 class="fd-h" id="fdSecScore">امتیازدهی نظرسنجی <span class="cap-tag local">فقط پیش‌نمایش محلی</span></h3>
+      <div class="mnote" id="fdScoreServerNote">سرور امتیاز را محاسبه، ذخیره یا در گزارش پاسخ‌ها نشان نمی‌دهد؛ وزن و امتیاز گزینه‌ها فقط در پیش‌نمایش محلی همین صفحه به‌کار می‌رود.</div>
       <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
         <label class="fld"><span>وزن پرسش (۱ تا ۵)</span><input class="input num" id="fdWeight" type="number" min="1" max="5" value="۱"/></label>
         <span class="sp"></span><span class="sub">وزن بیشتر، اثر پاسخ را بیشتر می‌کند.</span>
       </div>
-      <div class="row"><span class="sub">در امتیاز کلی محاسبه شود</span><span class="sp"></span><span class="switch on" id="fdScoreOn" role="switch" aria-checked="true" tabindex="0"></span></div>
+      <div class="row"><span class="sub">در امتیاز کلی پیش‌نمایش محاسبه شود</span><span class="sp"></span><span class="switch on" id="fdScoreOn" role="switch" aria-label="در امتیاز کلی پیش‌نمایش محاسبه شود" aria-checked="true" tabindex="0"></span></div>
       <p class="mnote" id="fdScoreHint">برای پرسش انتخابی، امتیاز هر گزینه از صفر تا پنج است؛ برای چندانتخاب، امتیاز گزینه‌های انتخاب‌شده جمع می‌شود.</p>
-    </div>
-    <hr class="hr"/>
-    <div class="row"><span class="sub">اجباری <span class="required-dot"></span></span><span class="sp"></span><span class="switch" id="fdReq" role="switch" aria-label="اجباری بودن فیلد" aria-checked="false" tabindex="0"></span></div>
-    <div class="row"><span class="sub">پیشنهاد از پروفایل در پیش‌نمایش محلی</span><span class="sp"></span><span class="switch" id="fdProf" role="switch" aria-label="پیشنهاد از پروفایل در پیش‌نمایش محلی" aria-checked="false" tabindex="0"></span></div>
-    <div class="mnote">هیچ داده‌ای خودکار وارد نمی‌شود؛ در پیش‌نمایش محلی فقط با اقدام صریح کاربر پیشنهاد می‌شود. پیش‌پرکردن پروفایل در فرم عمومی سرور پشتیبانی نمی‌شود.</div>
-    <div class="row"><span class="sub">ستون در خروجی CSV</span><span class="sp"></span><span class="switch on" id="fdCol" role="switch" aria-label="ستون خروجی اکسل" aria-checked="true" tabindex="0"></span></div>
-    <hr class="hr"/>
-    <div>
-      <div class="lbl">شرط نمایش</div>
-      <div class="cap">شرط نمایش در پاسخ‌گیری سروری پشتیبانی می‌شود: حداکثر ۱۰ قاعده برای هر پرسش، ارجاع فقط به پرسش قبلی و عملگر سازگار با نوع پاسخ. سرور مقدار، ترتیب و گزینه‌ها را دوباره اعتبارسنجی می‌کند؛ پنهان‌بودن پرسش مرجع، شرط را برقرار نمی‌کند.</div>
-      <div id="fdCondBox" style="margin-top:8px">
-        <div class="stack tight" id="fdCondRules"></div>
-        <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
-          <span class="cap" id="fdCondCount" aria-live="polite">۰ از ۱۰ قاعده</span>
-          <label class="fld" id="fdCondLogicBox" style="display:none;flex:1;min-width:180px"><span>ترکیب قواعد</span>
-            <select id="fdCondLogic" class="input"><option value="all">همهٔ قواعد برقرار باشند (AND)</option><option value="any">حداقل یک قاعده برقرار باشد (OR)</option></select>
-          </label>
-          <span class="sp"></span>
-          <button type="button" class="btn sm quiet" id="fdAddCondition"><svg class="i"><use href="#i-plus"/></svg> افزودن قاعده</button>
+    </section>
+
+    <section class="fd-sec" aria-labelledby="fdSecAdvanced">
+      <h3 class="fd-h" id="fdSecAdvanced">پیشرفته</h3>
+      <div class="row"><span class="sub">پیشنهاد از پروفایل <span class="cap-tag local">فقط پیش‌نمایش محلی</span></span><span class="sp"></span><span class="switch" id="fdProf" role="switch" aria-label="پیشنهاد از پروفایل در پیش‌نمایش محلی" aria-checked="false" tabindex="0"></span></div>
+      <div class="mnote">هیچ داده‌ای خودکار وارد نمی‌شود؛ در پیش‌نمایش محلی فقط با اقدام صریح کاربر پیشنهاد می‌شود. فرم عمومی سرور پیش‌پرکردن ندارد.</div>
+      <div class="row"><span class="sub">ستون در خروجی پاسخ‌ها</span><span class="sp"></span><span class="switch on" id="fdCol" role="switch" aria-label="ستون خروجی اکسل" aria-checked="true" tabindex="0"></span></div>
+      <div class="mnote" id="fdColNote">در فهرست پاسخ‌های سرور همهٔ پرسش‌ها نمایش داده می‌شوند؛ این گزینه فقط روی خروجی محلی اثر دارد.</div>
+      <div>
+        <div class="lbl">رسانهٔ همراه پرسش <span class="cap-tag unavailable">در دست ساخت</span></div>
+        <div class="row tight">
+          <button type="button" class="chip on" data-media="none">بدون</button>
+          <button type="button" class="chip" data-media="image" disabled aria-disabled="true"><svg class="i"><use href="#i-image"/></svg> تصویر</button>
+          <button type="button" class="chip" data-media="file" disabled aria-disabled="true"><svg class="i"><use href="#i-file-up"/></svg> فایل</button>
+          <button type="button" class="chip" data-media="video" disabled aria-disabled="true"><svg class="i"><use href="#i-play"/></svg> ویدیو</button>
         </div>
-        <div class="mnote" id="fdCondHint">بدون قاعده، فیلد همیشه نمایش داده می‌شود. اگر پرسش مرجع خودش پنهان باشد، قاعدهٔ وابسته برقرار محسوب نمی‌شود.</div>
+        <div class="mnote">بارگذاری تصویر/فایل/ویدیو برای پرسش در سرور فراهم نیست؛ تا راه‌اندازی، غیرفعال است.</div>
+        <div id="fdMediaNoteBox" style="display:none;margin-top:8px"><label class="lbl" for="fdMediaNote">توضیح رسانهٔ قدیمی</label><input id="fdMediaNote" class="input" maxlength="160" placeholder="عنوان یا توضیح کوتاه؛ فایل واقعی پیوست نمی‌شود"/><div class="mnote">این پرسش از نسخهٔ قدیمی رسانه دارد؛ تا برداشتن آن («بدون») فرم منتشر نمی‌شود.</div></div>
       </div>
-    </div>
-    <div class="row"><button class="btn stop" id="fdDelete" aria-label="حذف فیلد"><svg class="i"><use href="#i-trash"/></svg></button><span class="sp"></span><button class="btn primary" data-close>ذخیره</button></div>
+      <div id="fdTypeBox">
+        <label class="lbl" for="fdTypeChange">تغییر نوع پرسش</label>
+        <div class="row tight" style="flex-wrap:wrap"><select id="fdTypeChange" class="input" style="flex:1;min-width:200px"></select><button type="button" class="btn sm" id="fdTypeApply">بررسی تغییر</button></div>
+        <div class="mnote" id="fdTypeNote">فقط به نوع‌های هم‌خانواده که تنظیم‌های مشترک را نگه می‌دارند. پیش از اعمال، پیامدها نشان داده می‌شود.</div>
+        <div class="fd-discard" id="fdTypeConfirm" hidden>
+          <div style="flex:1;min-width:0"><b class="sub" id="fdTypeConfirmTitle"></b><ul class="mnote" id="fdTypeConsequences" style="margin:6px 0 0;padding-inline-start:18px"></ul></div>
+          <button type="button" class="btn sm quiet" id="fdTypeCancel">انصراف</button>
+          <button type="button" class="btn sm primary" id="fdTypeConfirmGo">اعمال تغییر نوع</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="row fd-foot"><button type="button" class="btn stop" id="fdDelete" aria-label="حذف فیلد"><svg class="i"><use href="#i-trash"/></svg></button><span class="sp"></span><button type="button" class="btn quiet" id="fdCancel">انصراف</button><button type="button" class="btn primary" id="fdSave">ذخیره</button></div>
   </div>
 </aside>
 
@@ -799,7 +851,26 @@ function fieldCapability(type){
   return rows&&rows[String(type)]||null;
 }
 function capabilityLabel(status){
-  return ({server:'پشتیبانی سروری',limited:'سروری با محدودیت',conditional:'مشروط',owner_only:'فقط مالک',unavailable:'قابل‌انتشار نیست'})[status]||'وضعیت بررسی نشده';
+  return ({server:'پشتیبانی سروری',limited:'سروری با محدودیت',conditional:'مشروط',owner_only:'فقط مالک',unavailable:'قابل‌انتشار نیست',
+    local:'فقط پیش‌نمایش محلی',pending:'در انتظار تأیید سرور',error:'وضعیت سرور نامشخص'})[status]||'نامشخص';
+}
+/* نوع‌هایی که فرم عمومی همین نسخه (form.html) برایشان ارسال واقعی ندارد؛ هم‌خوان با UNSUPPORTED_PUBLIC_FIELD_TYPES سرور
+   (builder-fields.test.mjs این دو فهرست را با هم تطبیق می‌دهد). بدون قرارداد سرور هم هرگز قابل‌افزودن نیستند. */
+const LOCAL_ONLY_TYPES=new Set(['image','file','voice','sign','price','coupon']);
+/* وضعیت واقعی یک نوع برای افزودن/انتشار: نامشخص ≠ قابل‌استفاده.
+   ready → از قرارداد سرور؛ checking → pending (غیرقابل‌افزودن تا تأیید)؛ unavailable/خطا → error (افزودن فقط برای نوع‌های
+   شناخته‌شدهٔ غیرمحلی، با برچسب صریح؛ انتشار همیشه از سرور تأیید می‌گیرد). */
+function fieldSupport(type){
+  const t=String(type||''), known=!!FIELD_TYPES[t]&&!FIELD_TYPES[t].hidden;
+  if(FORM_CAPABILITY_STATE==='ready'){
+    const cap=fieldCapability(t);
+    if(!cap)return {status:'unavailable',reason:'این نوع در قرارداد قابلیت‌های سرور تعریف نشده است.',addable:false};
+    const status=String(cap.status||'unavailable');
+    return {status,reason:cap.reason||'',addable:status!=='unavailable'&&known};
+  }
+  if(LOCAL_ONLY_TYPES.has(t)||!known)return {status:'unavailable',reason:'این نوع در فرم عمومی سرور پشتیبانی نمی‌شود.',addable:false};
+  if(FORM_CAPABILITY_STATE==='checking')return {status:'pending',reason:'قرارداد قابلیت‌ها هنوز از سرور خوانده نشده است.',addable:false};
+  return {status:'error',reason:'وضعیت سرور خوانده نشد؛ فیلد فقط به‌صورت محلی ساخته می‌شود و انتشار آن تأیید نشده است.',addable:true};
 }
 function capabilityTag(status,reason){
   const text=capabilityLabel(status);
@@ -830,48 +901,79 @@ const HELP={text:'کوتاه بنویسید.',area:'توضیح کامل بدهی
   marital:'اگر پاسخ لازم نیست، این پرسش را اختیاری نگه دارید؛ «ترجیح می‌دهم نگویم» هم در فهرست هست.',
   coupon:'کد فقط به‌صورت پاسخ محلی ثبت می‌شود؛ اعتبارسنجی یا تخفیف واقعی ندارد.'};
 
-const CATALOG=[
-  {g:'نوشتاری',t:'text',n:'متن کوتاه',ic:'i-text'},
-  {g:'نوشتاری',t:'area',n:'متن بلند',ic:'i-lines'},
-  {g:'نوشتاری',t:'number',n:'عدد',ic:'i-number'},
-  {g:'نوشتاری',t:'amount',n:'مبلغ',ic:'i-wallet'},
-  {g:'انتخابی',t:'choice',n:'تک‌انتخاب',ic:'i-radio',opts:1},
-  {g:'انتخابی',t:'multi',n:'چندانتخاب',ic:'i-checkbox',opts:1},
-  {g:'انتخابی',t:'dropdown',n:'کشویی',ic:'i-chev-down',opts:1},
-  {g:'انتخابی',t:'yesno',n:'بله / خیر',ic:'i-check'},
-  {g:'انتخابی',t:'imgchoice',n:'انتخاب تصویری',ic:'i-image',opts:1},
-  {g:'پروفایل',t:'fullname',n:'نام و نام خانوادگی',ic:'i-users',prof:1},
-  {g:'پروفایل',t:'mobile',n:'موبایل',ic:'i-mobile',verify:1,prof:1},
-  {g:'پروفایل',t:'nid',n:'کد ملی',ic:'i-idcard',prof:1},
-  {g:'پروفایل',t:'date',n:'تاریخ تولد',ic:'i-calendar'},
-  {g:'پروفایل',t:'gender',n:'جنسیت',ic:'i-users',opts:1},
-  {g:'پروفایل',t:'marital',n:'وضعیت تأهل',ic:'i-users',opts:1},
-  {g:'تحصیلی و شغلی',t:'uni',n:'دانشگاه',ic:'i-medal'},
-  {g:'تحصیلی و شغلی',t:'edu',n:'مقطع تحصیلی',ic:'i-doc'},
-  {g:'تحصیلی و شغلی',t:'job',n:'شغل',ic:'i-bag'},
-  {g:'تماس',t:'email',n:'ایمیل',ic:'i-mail'},
-  {g:'تماس',t:'address',n:'نشانی',ic:'i-home'},
-  {g:'تماس',t:'province',n:'استان و شهر',ic:'i-pin'},
-  {g:'زمان',t:'date',n:'تاریخ شمسی',ic:'i-calendar'},
-  {g:'زمان',t:'time',n:'ساعت',ic:'i-clock'},
-  {g:'زمان',t:'datetime',n:'تاریخ و ساعت',ic:'i-clock'},
-  {g:'زمان',t:'slot',n:'ساعت',ic:'i-calendar'},
-  {g:'رسانه',t:'image',n:'تصویر',ic:'i-image',count:1},
-  {g:'رسانه',t:'file',n:'فایل و سند',ic:'i-file-up',count:1},
-  {g:'رسانه',t:'voice',n:'صدا',ic:'i-play'},
-  {g:'رسانه',t:'sign',n:'امضا',ic:'i-pen'},
-  {g:'سنجه',t:'rating',n:'ستاره',ic:'i-star'},
-  {g:'سنجه',t:'scale',n:'بازهٔ ۰ تا ۱۰',ic:'i-sliders'},
-  {g:'سنجه',t:'bars',n:'نوار لغزنده',ic:'i-chart'},
-  {g:'مقررات',t:'terms',n:'پذیرش قوانین',ic:'i-shield'},
-  {g:'ویژه',t:'location',n:'متن موقعیت',ic:'i-pin'}
+/* ══ موتور فیلد: منبع واحد نوع/الگو ══
+   t = نوع فنی (همان کلید field_types در قرارداد سرور /api/public/forms/capabilities)
+   k = شناسهٔ پایدار الگو؛ یک نوع می‌تواند چند الگو داشته باشد (مثلاً birth-date و jalali-date هر دو t:'date').
+   برچسب، پیش‌فرض‌ها و تنظیم‌های قابل‌نمایش از همین جدول خوانده می‌شوند؛ وضعیت پشتیبانی فقط از قرارداد سرور. */
+const FIELD_CATEGORIES=[
+  {id:'text',n:'متن'},{id:'number',n:'عدد و مبلغ'},{id:'choice',n:'انتخاب از گزینه‌ها'},{id:'person',n:'اطلاعات فردی'},
+  {id:'contact',n:'تماس و نشانی'},{id:'edu',n:'تحصیل و شغل'},{id:'time',n:'تاریخ و زمان'},{id:'scale',n:'سنجه و امتیاز'},
+  {id:'consent',n:'تأیید و رضایت'},{id:'future',n:'در دست ساخت'}];
+const categoryName=id=>(FIELD_CATEGORIES.find(c=>c.id===id)||{n:String(id||'')}).n;
+/* ctl: تنظیم‌های نوع‌محورِ ویرایشگر که فرم عمومی و سرور واقعاً به‌کار می‌برند:
+   placeholder (متن داخل کادر)، bounds (حداقل/حداکثر عددی؛ سرور در انتشار بررسی می‌کند)، options، multiLimits، upload، verify */
+const FIELD_TYPES={
+  text:{n:'متن کوتاه',ic:'i-text',g:'text',ans:'متن یک‌خطی',ctl:['placeholder'],tags:'نوشتاری,یک خطی,پاسخ کوتاه,اسم,عنوان,نام مستعار',ex:'نام مستعار شما؟'},
+  area:{n:'متن بلند',ic:'i-lines',g:'text',ans:'متن چندخطی',ctl:['placeholder'],tags:'نوشتاری,توضیح,چند خطی,پاراگراف,نظر,پیشنهاد,انتقاد,شرح',ex:'توضیح بدهید چرا…'},
+  number:{n:'عدد',ic:'i-number',g:'number',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش',ex:'چند نفر می‌آیید؟'},
+  amount:{n:'مبلغ',ic:'i-wallet',g:'number',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی',ex:'مبلغ پیشنهادی شما؟'},
+  choice:{n:'تک‌انتخاب',ic:'i-radio',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'رادیو,یکی از,انتخاب یک گزینه,چندگزینه ای,تست,گزینه',ex:'کدام روز مناسب‌تر است؟'},
+  multi:{n:'چندانتخاب',ic:'i-checkbox',g:'choice',ans:'چند گزینه',ctl:['options','multiLimits'],opts:1,tags:'چک باکس,تیک,چند گزینه,علاقه مندی,چندتایی',ex:'به کدام موضوع‌ها علاقه دارید؟'},
+  dropdown:{n:'فهرست کشویی',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,tags:'کشویی,لیست,منو,سلکت,انتخاب از فهرست',ex:'شهر محل سکونت؟'},
+  yesno:{n:'بله / خیر',ic:'i-check',g:'choice',ans:'بله یا خیر',ctl:['options'],fixedOpts:[{l:'بله',score:5},{l:'خیر',score:0}],tags:'دو گزینه,آری,نه,موافق,مخالف,درست,غلط',ex:'قبلاً شرکت کرده‌اید؟'},
+  imgchoice:{n:'انتخاب کارتی (بدون تصویر)',ic:'i-image',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'انتخاب تصویری,کارت,عکس,تصویر گزینه',ex:'کدام طرح را می‌پسندید؟'},
+  fullname:{n:'نام و نام خانوادگی',ic:'i-users',g:'person',ans:'متن',ctl:['placeholder'],prof:1,tags:'اسم,نام کامل,نام خانوادگی,فامیلی,هویت',ex:'نام و نام خانوادگی'},
+  nid:{n:'کد ملی',ic:'i-idcard',g:'person',ans:'۱۰ رقم',ctl:['placeholder'],prof:1,tags:'شماره ملی,کدملی,شناسه ملی,هویت,کارت ملی',ex:'کد ملی ۱۰ رقمی'},
+  gender:{n:'جنسیت',ic:'i-users',g:'person',ans:'یک گزینه',ctl:['options'],opts:1,defaultOpts:[{l:'زن'},{l:'مرد'},{l:'ترجیح می‌دهم نگویم'}],tags:'زن,مرد,جنس',ex:'جنسیت'},
+  marital:{n:'وضعیت تأهل',ic:'i-users',g:'person',ans:'یک گزینه',ctl:['options'],opts:1,defaultOpts:[{l:'مجرد'},{l:'متأهل'},{l:'ترجیح می‌دهم نگویم'}],tags:'مجرد,متاهل,متأهل,ازدواج',ex:'وضعیت تأهل'},
+  mobile:{n:'موبایل',ic:'i-mobile',g:'contact',ans:'شمارهٔ همراه ایران',ctl:['placeholder','verify'],prof:1,tags:'شماره همراه,شمارهٔ همراه,شماره موبایل,تلفن همراه,شماره تماس,تلفن,۰۹,09',ex:'شمارهٔ همراه برای هماهنگی'},
+  email:{n:'ایمیل',ic:'i-mail',g:'contact',ans:'نشانی ایمیل',ctl:['placeholder'],tags:'رایانامه,پست الکترونیک,آدرس ایمیل,email,mail',ex:'ایمیل برای ارسال گواهی'},
+  address:{n:'نشانی',ic:'i-home',g:'contact',ans:'متن چندخطی',ctl:['placeholder'],tags:'آدرس,نشانی پستی,محل سکونت,خانه,کدپستی',ex:'نشانی ارسال بسته'},
+  province:{n:'استان و شهر',ic:'i-pin',g:'contact',ans:'استان + شهر',ctl:[],tags:'شهر,استان,محل زندگی,شهرستان',ex:'ساکن کدام استان و شهر هستید؟'},
+  location:{n:'موقعیت (متنی)',ic:'i-pin',g:'contact',ans:'متن',ctl:['placeholder'],tags:'محله,مکان,لوکیشن,نقشه,موقعیت مکانی,نشانه',ex:'نزدیک‌ترین نشانهٔ محل؟'},
+  uni:{n:'دانشگاه',ic:'i-medal',g:'edu',ans:'نام دانشگاه',ctl:[],tags:'دانشجو,محل تحصیل,موسسه,مؤسسه,university',ex:'دانشگاه محل تحصیل'},
+  edu:{n:'مقطع تحصیلی',ic:'i-doc',g:'edu',ans:'یک گزینه از فهرست',ctl:[],tags:'تحصیلات,مدرک,کارشناسی,ارشد,دکتری,دیپلم,رشته',ex:'آخرین مقطع تحصیلی'},
+  job:{n:'شغل',ic:'i-bag',g:'edu',ans:'یک گزینه از فهرست',ctl:[],tags:'حرفه,کار,سمت,شغلی,کارمند,آزاد',ex:'شغل فعلی'},
+  date:{n:'تاریخ',ic:'i-calendar',g:'time',ans:'تاریخ شمسی',ctl:[],tags:'روز,ماه,سال,تقویم,شمسی,جلالی',ex:'تاریخ مورد نظر'},
+  time:{n:'ساعت (زمان روز)',ic:'i-clock',g:'time',ans:'ساعت و دقیقه',ctl:[],tags:'زمان,دقیقه,ساعت روز,وقت',ex:'چه ساعتی مناسب است؟'},
+  datetime:{n:'تاریخ و ساعت',ic:'i-clock',g:'time',ans:'تاریخ + ساعت',ctl:[],tags:'زمان دقیق,تقویم و ساعت,موعد',ex:'زمان ترجیحی جلسه'},
+  slot:{n:'ساعت دلخواه (بدون رزرو بازه)',ic:'i-calendar',g:'time',ans:'ساعت و دقیقه',ctl:[],tags:'نوبت,بازه,اسلات,رزرو,زمان بندی,وقت',ex:'ساعت ترجیحی شما (رزرو نمی‌شود)'},
+  rating:{n:'ستاره (۱ تا ۵)',ic:'i-star',g:'scale',ans:'عدد ۱ تا ۵',ctl:[],tags:'امتیاز,رضایت,ستاره ای,نمره,رای,کیفیت',ex:'از کیفیت برنامه چقدر راضی بودید؟'},
+  scale:{n:'بازهٔ ۰ تا ۱۰',ic:'i-sliders',g:'scale',ans:'عدد ۰ تا ۱۰',ctl:['bounds'],boundsRange:[0,10],tags:'طیف,مقیاس,لیکرت,درجه,میزان,nps,اسلایدر',ex:'چقدر احتمال دارد ما را معرفی کنید؟'},
+  bars:{n:'نوار لغزنده',ic:'i-chart',g:'scale',ans:'عدد ۰ تا ۱۰',ctl:['bounds'],boundsRange:[0,10],tags:'اسلایدر,نوار,میزان,درصد,شدت',ex:'میزان آشنایی شما با موضوع'},
+  terms:{n:'پذیرش قوانین',ic:'i-shield',g:'consent',ans:'تأیید (تیک)',ctl:[],tags:'شرایط,مقررات,قوانین,رضایت,تعهد,موافقت,پذیرش,تیک',ex:'قوانین برنامه را می‌پذیرم'},
+  image:{n:'بارگذاری تصویر',ic:'i-image',g:'future',ans:'فایل',ctl:['upload'],tags:'عکس,آپلود,تصویر,پیوست',ex:'—'},
+  file:{n:'بارگذاری فایل',ic:'i-file-up',g:'future',ans:'فایل',ctl:['upload'],tags:'سند,مدرک,آپلود,پیوست,pdf,رزومه',ex:'—'},
+  voice:{n:'ضبط صدا',ic:'i-play',g:'future',ans:'فایل صوتی',ctl:['upload'],tags:'صوت,ویس,میکروفون,ضبط',ex:'—'},
+  sign:{n:'امضا',ic:'i-pen',g:'future',ans:'تصویر امضا',ctl:['upload'],tags:'امضای دیجیتال,تأیید امضا',ex:'—'},
+  price:{n:'قیمت (مالی)',ic:'i-wallet',g:'future',ans:'عدد',ctl:['placeholder','bounds'],tags:'قیمت گذاری,هزینه',ex:'—'},
+  coupon:{n:'کد تخفیف',ic:'i-key',g:'future',ans:'کد',ctl:['placeholder'],tags:'تخفیف,کوپن,کد هدیه',ex:'—'},
+  select:{n:'فهرست کشویی (قدیمی)',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,hidden:1,tags:'',ex:'—'}
+};
+/* الگوها (ردیف‌های کاتالوگ): هر الگو شناسهٔ پایدار k دارد؛ اگر k با t یکی باشد، همان نوع پایه است. */
+const FIELD_PRESETS=[
+  {k:'text'},{k:'area'},{k:'number'},{k:'amount'},
+  {k:'choice'},{k:'multi'},{k:'dropdown'},{k:'yesno'},{k:'imgchoice'},
+  {k:'fullname'},{k:'nid'},{k:'birth-date',t:'date',g:'person',n:'تاریخ تولد',tags:'سن,متولد,زادروز,روز تولد',help:'تاریخ تولد را به شمسی وارد کنید.',ex:'تاریخ تولد'},
+  {k:'gender'},{k:'marital'},
+  {k:'mobile'},{k:'email'},{k:'address'},{k:'province'},{k:'location'},
+  {k:'uni'},{k:'edu'},{k:'job'},
+  {k:'jalali-date',t:'date',n:'تاریخ شمسی'},{k:'time'},{k:'datetime'},{k:'slot'},
+  {k:'rating'},{k:'scale'},{k:'bars'},
+  {k:'terms'},
+  {k:'image'},{k:'file'},{k:'voice'},{k:'sign'},{k:'price'},{k:'coupon'}
 ];
+const typeOf=t=>FIELD_TYPES[String(t||'')]||{n:String(t||'')||'نامشخص',ic:'i-doc',g:'future',ans:'نامشخص',ctl:[],tags:'',ex:'—',legacy:1};
+const CATALOG=FIELD_PRESETS.map(p=>{const d=typeOf(p.t||p.k);
+  return Object.assign({},d,{t:p.t||p.k,k:p.k,n:p.n||d.n,g:p.g||d.g,tags:[d.tags,p.tags].filter(Boolean).join(','),ex:p.ex||d.ex,help:p.help||''})});
+const presetOf=k=>CATALOG.find(c=>c.k===String(k))||CATALOG.find(c=>c.t===String(k))||Object.assign({},typeOf(k),{t:String(k||'text'),k:String(k||'text'),help:''});
+/* سازگاری: byT فقط برای نمایش نوع (برچسب و آیکون نوع فنی)، نه برچسب الگو */
+const byT=t=>Object.assign({t:String(t)},typeOf(t));
 const PACKS=[
   {id:'basic',n:'پایه',f:['fullname','mobile','nid']},
-  {id:'full',n:'کامل',f:['fullname','mobile','nid','email','date','gender','province'],best:true},
-  {id:'max',n:'کامل‌تر',f:['fullname','mobile','nid','email','date','gender','province','address','edu','uni','job','image','terms'],top:true}
+  {id:'full',n:'کامل',f:['fullname','mobile','nid','email','birth-date','gender','province'],best:true},
+  {id:'max',n:'کامل‌تر',f:['fullname','mobile','nid','email','birth-date','gender','province','address','edu','uni','job','terms'],top:true}
 ];
-const byT=t=>CATALOG.find(c=>c.t===t)||{t:t,n:t,ic:'i-doc',g:'ویژه'};
 const scoreable=t=>['rating','scale','bars','choice','multi','dropdown','imgchoice','yesno'].includes(t);
 const surveyMode=()=>S.need==='survey'||S.model==='survey';
 const PACKS_KEY='nora-form-packs';
@@ -880,15 +982,24 @@ function readSavedPacks(){
     return Array.isArray(rows)?rows.filter(x=>x&&x.id&&x.name&&Array.isArray(x.fields)).slice(0,30):[]}catch(e){return []}
 }
 let SAVED_PACKS=readSavedPacks();
-const freshField=(t,id)=>{
-  const c=byT(t), cat=CATALOG.find(x=>x.t===t)||{};
-  return {id,t,l:c.n,help:HELP[t]||'',req:false,media:'none',mediaNote:'',verify:false,
+/* فیلد تازه از الگو یا نوع؛ برچسب از الگو، تنظیم‌ها از نوع */
+const freshField=(kOrT,id)=>{
+  const c=presetOf(kOrT), t=c.t, d=typeOf(t);
+  return {id,t,preset:c.k,l:c.n,help:c.help||HELP[t]||'',req:false,media:'none',mediaNote:'',verify:false,
     count:UPLOAD_TYPES&&UPLOAD_TYPES.has(t)?1:5,accept:DEFAULT_ACCEPT&&DEFAULT_ACCEPT[t]||'',maxSize:10,
-    placeholder:'',min:'',max:'',prof:!!cat.prof,col:true,weight:1,scoreOn:scoreable(t),
-    opts:t==='gender'?[{l:'زن'},{l:'مرد'},{l:'ترجیح می‌دهم نگویم'}]:t==='marital'?[{l:'مجرد'},{l:'متأهل'},{l:'ترجیح می‌دهم نگویم'}]
-      :cat.opts?[{l:'گزینهٔ یک',score:1},{l:'گزینهٔ دو',score:2}]:[],
+    placeholder:'',min:'',max:'',prof:!!d.prof,col:true,weight:1,scoreOn:scoreable(t),
+    opts:d.fixedOpts?JSON.parse(JSON.stringify(d.fixedOpts)):d.defaultOpts?JSON.parse(JSON.stringify(d.defaultOpts))
+      :d.opts?[{l:'گزینهٔ یک',score:1},{l:'گزینهٔ دو',score:2}]:[],
     conditions:[],conditionLogic:'all',condField:'',condOp:'eq',condVal:''};
 };
+
+/* فیلد بارگذاری‌شده (سرور، بستهٔ ذخیره‌شده، کپی): نوع و تنظیم‌ها دست‌نخورده می‌مانند؛ فقط شناسهٔ الگو با نوع سازگار می‌شود */
+function restoreField(raw,id){
+  const base=typeof raw==='string'?Object.assign(freshField('text',id),{l:raw}):Object.assign(freshField(raw&&raw.t||'text',id),JSON.parse(JSON.stringify(raw||{})));
+  if(raw&&typeof raw==='object'&&raw.id!=null)base.id=raw.id; else base.id=id;
+  if(!CATALOG.some(c=>c.k===String(base.preset)&&c.t===String(base.t)))base.preset=presetOf(base.t).k;
+  return base;
+}
 
 /* ══ وضعیت ══ */
 /* بخش‌های سازمان: هر فرم از یک بخش می‌آید و کارشناس همان بخش پیگیرش است */
@@ -1174,8 +1285,13 @@ document.addEventListener('click',e=>{
   const pick=e.target.closest('[data-ev-pick]');if(pick){evPickSet(pick.dataset.evPick);return}
   if(e.target.closest('[data-ev-unlink]')){evPickSet('');return}
 });
-document.addEventListener('input',e=>{if(e.target&&e.target.closest&&e.target.closest('main.main')&&!e.target.closest('#ownerLoginForm'))markDirty()});
-document.addEventListener('change',e=>{if(e.target&&e.target.closest&&e.target.closest('main.main')&&!e.target.closest('#ownerLoginForm'))markDirty()});
+/* ردیابی تغییرات ذخیره‌نشده، یک مسیر واحد: وضعیت از مقایسهٔ اثرانگشت payloadِ فعلی با آخرین نسخهٔ تأییدشدهٔ سرور به‌دست می‌آید،
+   نه از این‌که کدام کنترل لمس شده. هر رویداد کاربر (در main یا ورقه‌ها) و هر تغییر برنامه‌ای (commitChange) همین مقایسه را زمان‌بندی می‌کند. */
+['input','change','click','keyup','drop'].forEach(type=>document.addEventListener(type,e=>{
+  const t=e.target; if(!t||!t.closest)return;
+  if(t.closest('#ownerLoginForm'))return;
+  if(t.closest('main.main')||t.closest('.sheet'))commitChange();
+},true));
 document.addEventListener('input',e=>{if(e.target&&e.target.id==='evPickQ'){EVPICK.q=e.target.value;const box=$('#evPickBox');const list=box&&box.querySelector('[role="listbox"]');renderEvPick();const q=$('#evPickQ');if(q){q.focus();try{q.setSelectionRange(q.value.length,q.value.length)}catch(err){}}}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='evPickQ'){e.preventDefault();const first=evPickFilter()[0];if(first)evPickSet(first.id);else toast('نتیجه‌ای برای انتخاب نیست')}});
 function evHeadFill(){
@@ -1210,7 +1326,28 @@ const FORM_STATUS_FA={draft:'پیش‌نویس',published:'منتشرشده',pau
 function formStatusLabel(status){return FORM_STATUS_FA[String(status||'draft')]||'پیش‌نویس'}
 /* نشانگر وضعیت ذخیره: idle/dirty/saving/saved/error/conflict؛ فقط از نتیجهٔ واقعی سرور تغییر می‌کند */
 function setSaveState(state,text){const el=$('#saveState');if(!el)return;el.dataset.state=state;el.textContent=text||{idle:'ذخیره‌نشده در سرور',dirty:'تغییرات ذخیره‌نشده',saving:'در حال ذخیره…',saved:'ذخیره شد',error:'ذخیره نشد',conflict:'نسخهٔ تازه‌تری روی سرور است'}[state]||''}
-function markDirty(){const el=$('#saveState');if(el&&(el.dataset.state==='saved'||el.dataset.state==='idle'))setSaveState(ACTIVE_SERVER_FORM?'dirty':'idle',ACTIVE_SERVER_FORM?'تغییرات ذخیره‌نشده':'ذخیره‌نشده در سرور')}
+let SAVED_FINGERPRINT=null, SAVED_LABEL='ذخیره شد', ERROR_FINGERPRINT=null, SAVE_STATE_TIMER=0;
+function formFingerprint(){
+  try{const payload=formPayloadForServer(buildDraftRow());return JSON.stringify(payload)}catch(e){return 'unavailable:'+String(e&&e.message||e)}
+}
+function markSavedBaseline(label){SAVED_FINGERPRINT=formFingerprint();ERROR_FINGERPRINT=null;if(label)SAVED_LABEL=label;setSaveState('saved',SAVED_LABEL)}
+function hasUnsavedChanges(){return SAVED_FINGERPRINT!==null?formFingerprint()!==SAVED_FINGERPRINT:!!(S.fields&&S.fields.length)||!!(S.title&&S.title.trim())}
+function syncSaveState(){
+  const el=$('#saveState'); if(!el)return;
+  const state=el.dataset.state; if(state==='saving'||state==='conflict')return;
+  const fp=formFingerprint();
+  if(state==='error'&&fp===ERROR_FINGERPRINT)return;
+  if(SAVED_FINGERPRINT===null){if(state!=='idle')setSaveState('idle');return}
+  if(fp===SAVED_FINGERPRINT){if(state!=='saved')setSaveState('saved',SAVED_LABEL)}
+  else if(state!=='dirty')setSaveState('dirty');
+}
+function commitChange(){clearTimeout(SAVE_STATE_TIMER);SAVE_STATE_TIMER=setTimeout(syncSaveState,0)}
+function markDirty(){commitChange()}
+window.addEventListener('beforeunload',e=>{
+  if(TEST_FIXTURE_MODE||!ACTIVE_SERVER_FORM)return;
+  const el=$('#saveState'); if(!el||!['dirty','error','conflict'].includes(el.dataset.state))return;
+  e.preventDefault(); e.returnValue='';
+});
 const net=o=>o.off?Math.round(o.p*(100-o.off)/100):o.p;
 const MAX_FIELDS=30;
 const MAX_TICKET_TYPES=20;
@@ -1246,7 +1383,13 @@ function ticketingPayload(){
     id:String(item.id),name:String(item.name||'').replace(/\s+/gu,' ').trim()
   }))};
 }
+/* ماتریس مدل×تنظیم (هم‌خوان با سرور): همراهان، بلیت و پرداخت فقط برای ثبت‌نام؛ بقیهٔ مدل‌ها پاسخ‌گیری عمومی */
+function syncModelSettingsUI(){
+  const supported=S.model==='registration'&&!isPurchaseForm(), note=$('#companionModelNote'), body=$('#companionBody');
+  if(note)note.hidden=supported; if(body)body.hidden=!supported;
+}
 function syncTicketingUI(){
+  syncModelSettingsUI();
   const panel=$('#ticketingPanel'),toggle=$('#ticketingEnabled'),config=$('#ticketingConfig');
   const supported=S.model==='registration';
   if(panel)panel.hidden=!supported;
@@ -1474,10 +1617,22 @@ function renderTiles(){
         :'در حال دریافت وضعیت از API؛ تا زمان پاسخ سرور، مدل را آمادهٔ انتشار فرض نکنید.';
   }
 }
+/* مشکل‌های یک فیلد که انتشار را می‌بندند یا نیاز به تصمیم کاربر دارند (فیلد قدیمی/ناسازگار حذف نمی‌شود؛ نشان‌دار می‌ماند) */
+function fieldIssues(f){
+  const issues=[], support=fieldSupport(f.t);
+  if(typeOf(f.t).legacy)issues.push('نوع «'+String(f.t)+'» در این نسخه تعریف نشده است؛ نوع را تغییر دهید یا فیلد را حذف کنید.');
+  else if(support.status==='unavailable')issues.push(support.reason||'این نوع در فرم عمومی سرور پشتیبانی نمی‌شود.');
+  if(f.verify)issues.push('درخواست تأیید شماره در سرور اجرا نمی‌شود.');
+  if(f.media&&f.media!=='none')issues.push('رسانهٔ همراه پرسش در سرور بارگذاری نمی‌شود.');
+  return issues;
+}
 function fieldBlock(f,index){
-  const c=byT(f.t),cap=fieldCapability(f.t),supportTag=cap&&cap.status!=='server'?capabilityTag(cap.status,cap.reason):'';
+  const c=byT(f.t),support=fieldSupport(f.t),issues=fieldIssues(f),
+    supportTag=support.status!=='server'?capabilityTag(support.status,support.reason):'',
+    preset=f.preset?CATALOG.find(x=>x.k===String(f.preset)):null;
   const position=Math.max(0,+index||0)+1,total=(S.fields||[]).length;
-  const meta=[`<span><svg class="i" style="width:14px;height:14px"><use href="#${c.ic}"/></svg> ${esc(c.n)}</span>`,
+  const meta=[`<span><svg class="i" style="width:14px;height:14px"><use href="#${c.ic}"/></svg> ${esc(c.n)}${preset&&preset.n!==c.n?' · الگوی «'+esc(preset.n)+'»':''}</span>`,
+    issues.length?'<span class="warn">نیاز به اصلاح پیش از انتشار</span>':'',
     f.req?'<span>اجباری</span>':'',
     hasConditionRules(f)?'<span class="brand">شرطی · '+faN(conditionRulesForField(f).length)+' قاعده</span>':'',
     f.help?'<span>راهنما دارد</span>':'',
@@ -1532,6 +1687,18 @@ function moveFieldToIndex(id,targetId,after){
   normalizeFieldConditions();renderCanvas();announceFieldMove(id);
   const handle=[...document.querySelectorAll('[data-drag-handle]')].find(item=>item.dataset.dragHandle===String(id));if(handle)handle.focus();
   return true;
+}
+/* پس از تغییر نوع یک پرسش، قاعده‌های پرسش‌های بعدی که به آن ارجاع می‌دهند با همان معیار انتشار (عملگر + مقدار) بازبینی و ناسازگارها حذف می‌شوند */
+function pruneDependentConditions(sourceId){
+  const source=S.fields.find(x=>String(x.id)===String(sourceId)); if(!source)return 0;
+  let removed=0;
+  S.fields.forEach(other=>{
+    if(String(other.id)===String(sourceId))return;
+    const raw=conditionRulesForField(other); if(!raw.length)return;
+    const kept=raw.filter(rule=>String(rule.field)!==String(sourceId)||(conditionOperatorsFor(source.t).includes(rule.op)&&validConditionValue(rule,source)));
+    if(kept.length!==raw.length){removed+=raw.length-kept.length;writeConditionRules(other,kept,other.conditionLogic||other.condLogic||'all')}
+  });
+  return removed;
 }
 function normalizeFieldConditions(){
   const earlier=new Set();
@@ -1844,7 +2011,7 @@ function renderReview(){
 }
 /* آمادگی انتشار از endpoint واقعی؛ هر مورد به قدم/تنظیم مربوط پیوند دارد */
 const READY_TARGET={empty_form:['s2','#addTop'],companion_answers_required:['s3','#compFields'],companion_identity_questions_required:['s3','#compFields'],invalid_companion_setting:['s3','#maxPer'],
-  payment_required:['s3','#addFin'],payment_card_required:['s3','#receiptReviewRequired'],invalid_receipt_review_setting:['s3','#receiptReviewRequired'],receipt_review_requires_registration:['s1','#tiles'],
+  payment_required:['s3','#addFin'],payment_card_required:['s3','#receiptReviewRequired'],invalid_receipt_review_setting:['s3','#receiptReviewRequired'],receipt_review_requires_registration:['s1','#tiles'],companions_require_registration:['s1','#tiles'],invalid_companion_limit:['s3','#maxPer'],
   nora_pay_not_connected:['s3','#enableBaleWallet'],invalid_nora_pay_setting:['s3','#enableBaleWallet'],schedule_not_connected:['s3','#clearSchedule'],external_limit_not_connected:['s3','#limitMode'],
   media_not_connected:['s2','#introMedia'],recording_not_found:['s1','#purchaseFormBox'],purchase_form_already_published:['s1','#purchaseFormBox'],unknown_reference:['s1','#evPickBox']};
 let READY_STATE={state:'idle',issues:[],version:null};
@@ -1857,7 +2024,12 @@ function renderReadinessShell(){
   if(READY_STATE.state==='error'){box.innerHTML='<div class="state error compact"><span class="st-text">'+esc(READY_STATE.message||'بررسی آمادگی انجام نشد')+'</span><button type="button" class="btn sm quiet" data-ready-retry>تلاش دوباره</button></div>';return}
   if(READY_STATE.state==='ready'){
     if(!READY_STATE.issues.length){box.innerHTML='<div class="row"><svg class="i" style="color:var(--ok)"><use href="#i-check"/></svg><span class="sub">'+(srv.status==='published'?'فرم منتشر است و پاسخ می‌پذیرد.':'فرم آمادهٔ انتشار است'+(CURRENT_EDITOR_ROLE==='owner'?'؛ از کارت زیر منتشر کنید.':'؛ انتشار با حساب مالک انجام می‌شود.'))+'</span></div>';return}
-    box.innerHTML=READY_STATE.issues.map(issue=>{const t=READY_TARGET[issue.code];return '<div class="row" style="align-items:flex-start"><svg class="i" style="color:var(--warn);flex:0 0 auto"><use href="#i-bell"/></svg><span class="sub" style="flex:1">'+esc(issue.message||issue.code)+'</span>'+(t?'<button type="button" class="btn sm quiet" data-ready-go="'+esc(t[0])+'" data-ready-focus="'+esc(t[1])+'">رفتن به تنظیم</button>':'')+'</div>'}).join('');
+    /* خطای سروریِ مربوط به یک پرسش (field_id) مستقیماً همان پرسش را در ویرایشگر باز می‌کند؛ بقیه به تنظیم مربوط می‌روند */
+    box.innerHTML=READY_STATE.issues.map(issue=>{const t=READY_TARGET[issue.code], fieldId=issue.field_id!=null&&S.fields.some(f=>String(f.id)===String(issue.field_id))?String(issue.field_id):'';
+      const control=({invalid_numeric_range:'#fdMin',verification_not_connected:'#fdVerifyClear',media_not_connected:'#shField [data-media="none"]',field_type_not_supported:'#fdTypeChange',file_or_financial_field_not_connected:'#fdTypeChange'})[issue.code]||'#fdTitle';
+      return '<div class="row" style="align-items:flex-start"><svg class="i" style="color:var(--warn);flex:0 0 auto"><use href="#i-bell"/></svg><span class="sub" style="flex:1">'+esc(issue.message||issue.code)+'</span>'+
+        (fieldId?'<button type="button" class="btn sm quiet" data-ready-field="'+esc(fieldId)+'" data-ready-focus="'+esc(control)+'">بازکردن پرسش</button>'
+        :t?'<button type="button" class="btn sm quiet" data-ready-go="'+esc(t[0])+'" data-ready-focus="'+esc(t[1])+'">رفتن به تنظیم</button>':'')+'</div>'}).join('');
     return;
   }
   box.innerHTML='<div class="cap">برای دیدن موارد لازم پیش از انتشار، «بررسی از سرور» را بزنید.</div>';
@@ -1874,24 +2046,74 @@ async function checkServerReadiness(){
 }
 document.addEventListener('click',e=>{
   if(e.target.closest('#checkReady')||e.target.closest('[data-ready-retry]')){checkServerReadiness();return}
+  const rf=e.target.closest('[data-ready-field]');if(rf){go('s2');editField(rf.dataset.readyField);const el=document.querySelector(rf.dataset.readyFocus||'');if(el&&el.focus)setTimeout(()=>el.focus(),0);return}
   const g=e.target.closest('[data-ready-go]');if(g){go(g.dataset.readyGo);const el=document.querySelector(g.dataset.readyFocus||'');if(el){const adv=el.closest('details');if(adv)adv.open=true;try{el.scrollIntoView({block:'center'})}catch(err){}if(el.focus)el.focus()}}
 });
-function renderCatalog(){
-  const q=($('#catSearch').value||'').trim();
-  const groups=['همه',...new Set(CATALOG.map(c=>c.g))];
-  $('#catChips').innerHTML=groups.map(g=>`<span class="chip ${catGroup===g?'on':''}" data-cat="${g}">${g}</span>`).join('');
-  const items=CATALOG.filter(c=>(catGroup==='همه'||c.g===catGroup)&&(!q||c.n.includes(q)||c.g.includes(q)));
-  let html='',last='';
-  items.forEach(c=>{
-    if(c.g!==last&&catGroup==='همه'){html+=`<div class="cat-group">${esc(c.g)}</div>`;last=c.g}
-    const support=fieldCapability(c.t),blocked=!!(support&&support.status==='unavailable');
-    const detail=support&&support.reason||STRUCT[c.t]||'';
-    html+=`<button class="cat-item" data-add="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} title="${esc(detail)}">
+/* جست‌وجوی فارسی: ی/ي، ک/ك، ۀ/ه، آ/ا، ارقام فارسی/عربی→لاتین، نیم‌فاصله و فاصله‌های تکراری، اعراب */
+function normFa(value){
+  return String(value==null?'':value).toLowerCase()
+    .replace(/[\u064a\u0649]/g,'ی').replace(/\u0643/g,'ک').replace(/\u06c0|\u0629/g,'ه').replace(/\u0622/g,'ا')
+    .replace(/[\u064b-\u065f\u0670]/g,'')
+    .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[\u200c\u200f\u200e_\-،,؛;:.\/()«»"']+/g,' ').replace(/\s+/g,' ').trim();
+}
+/* امتیاز ارتباط یک ردیف کاتالوگ با عبارت جست‌وجو؛ صفر یعنی نامرتبط */
+function catalogScore(c,q){
+  if(!q)return 1;
+  const name=normFa(c.n), tags=String(c.tags||'').split(',').map(normFa).filter(Boolean),
+    words=q.split(' ').filter(Boolean), hay=[name,normFa(c.ans),normFa(c.ex),normFa(categoryName(c.g)),c.t,c.k].concat(tags);
+  if(name===q)return 100;
+  let score=0;
+  if(name.startsWith(q))score=Math.max(score,80);else if(name.includes(q))score=Math.max(score,60);
+  if(tags.some(t=>t===q))score=Math.max(score,55);else if(tags.some(t=>t.includes(q)||q.includes(t)&&t.length>2))score=Math.max(score,40);
+  if(c.t===q||c.k===q)score=Math.max(score,35);
+  if(!score&&words.length>1&&words.every(w=>hay.some(h=>h.includes(w))))score=25;
+  if(!score&&hay.some(h=>h.includes(q)))score=15;
+  return score;
+}
+function catalogSearch(q,group){
+  const nq=normFa(q);
+  return CATALOG.filter(c=>!c.hidden&&(group==='all'||c.g===group))
+    .map((c,order)=>({c,order,score:catalogScore(c,nq)})).filter(r=>r.score>0)
+    .sort((a,b)=>nq?(b.score-a.score||a.order-b.order):a.order-b.order).map(r=>r.c);
+}
+function renderCatalogChips(){
+  const host=$('#catChips'); if(!host)return;
+  const groups=[{id:'all',n:'همه'}].concat(FIELD_CATEGORIES.filter(g=>CATALOG.some(c=>c.g===g.id&&!c.hidden)));
+  host.innerHTML=groups.map(g=>`<button type="button" class="chip ${catGroup===g.id?'on':''}" data-cat="${esc(g.id)}" aria-pressed="${catGroup===g.id?'true':'false'}">${esc(g.n)}</button>`).join('');
+}
+function catalogRow(c){
+  const support=fieldSupport(c.t), capReached=S.fields.length>=MAX_FIELDS, blocked=!support.addable||capReached;
+  const reason=capReached?'سقف '+faN(MAX_FIELDS)+' فیلد پر شده است؛ برای افزودن، یک فیلد را حذف کنید.':
+    !support.addable?(support.reason||capabilityLabel(support.status)):(support.status!=='server'?support.reason:'');
+  return `<button type="button" class="cat-item" data-add="${esc(c.k)}" data-type="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} aria-label="${esc((blocked?'غیرقابل‌افزودن: ':'افزودن ')+c.n)}">
       <span class="ic"><svg class="i"><use href="#${c.ic}"/></svg></span>
-      <span style="flex:1;text-align:start"><span class="nm">${esc(c.n)}</span><br><span class="hint">${esc(STRUCT[c.t]||'')}</span>${support?`<br>${capabilityTag(support.status,support.reason)}`:''}</span>
-      ${blocked?'<span class="tag warn">غیرفعال</span>':'<svg class="i" style="color:var(--ink-4)"><use href="#i-plus"/></svg>'}</button>`;
-  });
-  $('#catList').innerHTML=html||'<div class="empty"><div class="body">چیزی پیدا نشد</div></div>';
+      <span style="flex:1;min-width:0;text-align:start">
+        <span class="nm">${esc(c.n)}</span> <span class="cap">· پاسخ: ${esc(c.ans)}</span>${capabilityTag(support.status,support.reason)}
+        <br><span class="hint">${esc(STRUCT[c.t]||'')}${c.ex&&c.ex!=='—'?' · مثال: «'+esc(c.ex)+'»':''}</span>
+        ${reason?`<br><span class="hint ${blocked?'warn':''}" style="color:${blocked?'var(--warn)':'var(--ink-3)'}">${esc(reason)}</span>`:''}
+      </span>
+      ${blocked?'<span class="tag warn">غیرفعال</span>':'<span class="tag quiet">افزودن</span>'}</button>`;
+}
+function renderCatalog(){
+  const search=$('#catSearch'), list=$('#catList'); if(!list)return;
+  const q=(search&&search.value||'').trim();
+  renderCatalogChips();
+  const items=catalogSearch(q,catGroup);
+  let html='',last='';
+  if(items.length){
+    html+=`<div class="row tight" style="margin:4px 0 6px"><span class="cap" id="catCount" role="status" aria-live="polite">${faN(items.length)} ${q?'نتیجه برای «'+esc(q)+'»':'نوع فیلد'}</span>`+
+      (S.fields.length>=MAX_FIELDS?`<span class="sp"></span><span class="tag warn">سقف ${faN(MAX_FIELDS)} فیلد پر است</span>`:'')+`</div>`;
+    items.forEach(c=>{
+      const g=q?'':c.g;
+      if(g!==last&&catGroup==='all'&&!q){html+=`<div class="cat-group">${esc(categoryName(c.g))}${c.g==='future'?' <span class="cap">· در فرم عمومی سرور اجرا نمی‌شود</span>':''}</div>`;last=g}
+      html+=catalogRow(c);
+    });
+  }else{
+    html=`<div class="empty"><div class="body">چیزی با «${esc(q)}» پیدا نشد</div><div class="cap" style="margin-top:4px">با واژهٔ ساده‌تر بگردید (مثل «شماره»، «تاریخ»، «انتخاب») یا دستهٔ «همه» را ببینید.</div>
+      <div class="row tight" style="justify-content:center;margin-top:10px"><button type="button" class="btn sm quiet" data-cat-reset>نمایش همهٔ انواع</button></div></div>`;
+  }
+  list.innerHTML=html;
 }
 function slugView(){
   const path=safeSamplePath(S.slug);
@@ -1913,19 +2135,27 @@ function go(k){
   if(k==='s4'){renderReview();if(ACTIVE_SERVER_FORM&&!TEST_FIXTURE_MODE&&READY_STATE.state==='idle')checkServerReadiness()}
   window.scrollTo({top:0,behavior:'instant'});
 }
-function addField(t){
-  if(S.fields.length>=MAX_FIELDS){toast('حداکثر '+faN(MAX_FIELDS)+' فیلد در هر فرم پشتیبانی می‌شود');return}
-  const f=freshField(t,S.uid++);
-  if(t==='yesno') f.opts=[{l:'بله',score:5},{l:'خیر',score:0}];
-  S.fields.push(f); renderCanvas(); closeSheets(); editField(f.id);
+let ADD_FIELD_LOCK=0, ADD_FIELD_LAST='';
+/* افزودن از کاتالوگ/بسته/کپی/بازیابی همه از همین دروازه می‌گذرند: سقف تعداد + وضعیت واقعی نوع */
+function fieldAddBlocker(kOrT,extra=0){
+  if(S.fields.length+extra>=MAX_FIELDS)return 'حداکثر '+faN(MAX_FIELDS)+' فیلد در هر فرم پشتیبانی می‌شود';
+  const c=presetOf(kOrT), support=fieldSupport(c.t);
+  if(!support.addable)return (support.status==='pending'?'تا دریافت وضعیت از سرور، افزودن «'+c.n+'» ممکن نیست':'«'+c.n+'» قابل‌افزودن نیست: '+(support.reason||capabilityLabel(support.status)));
+  return '';
+}
+function addField(kOrT){
+  const blocker=fieldAddBlocker(kOrT); if(blocker){toast(blocker);return null}
+  const f=freshField(kOrT,S.uid++);
+  S.fields.push(f); commitChange(); renderCanvas(); closeSheets(); editField(f.id);
   if($('#shField').classList.contains('on')) $('#shField').scrollTop=0;
+  return f;
 }
 let PENDING_PACK=null;
 function applyPack(id,mode){
   /* با وجود پرسش‌های فعلی، جایگزینی بی‌تأیید انجام نمی‌شود: جایگزینی / افزودن به انتها / انصراف */
   if(id!=='save'&&S.fields.length&&!mode){PENDING_PACK=id;const n=$('#packConfirmNote');if(n)n.textContent=faN(S.fields.length)+' پرسش فعلی'+(totalRuleCount()?' و '+faN(totalRuleCount())+' شرط نمایش':'')+' روی این فرم است.';
     const app=$('#packAppend');if(app)app.hidden=id==='empty';openSheet('shPackConfirm');return}
-  if(id==='empty'){S.fields=[];S.pack='empty';renderCanvas();markDirty();openSheet('shAdd');return}
+  if(id==='empty'){S.fields=[];S.pack='empty';renderCanvas();commitChange();openSheet('shAdd');return}
   if(id==='save'){if(!S.fields.length){toast('برای ذخیره، دست‌کم یک فیلد بچینید');return}
     $('#packName').value='';openSheet('shPackSave');return}
   const preset=PACKS.find(x=>x.id===id);
@@ -1933,13 +2163,18 @@ function applyPack(id,mode){
     id.startsWith('saved:')?(SAVED_PACKS.find(x=>String(x.id)===id.slice(6))||{}).fields||[]:null;
   if(!source)return;
   if(source.length>MAX_FIELDS){toast('این بسته بیش از '+faN(MAX_FIELDS)+' فیلد دارد؛ آن را کوتاه کنید');return}
+  /* بسته‌ها (پیش‌فرض یا ذخیره‌شدهٔ مرورگر) از همان دروازهٔ افزودن می‌گذرند؛ نوع غیرقابل‌افزودن کنار گذاشته و گزارش می‌شود */
+  const skipped=source.filter(raw=>fieldSupport(typeof raw==='string'?presetOf(raw).t:String(raw&&raw.t||'text')).addable===false);
+  const skippedNames=[...new Set(skipped.map(raw=>presetOf(typeof raw==='string'?raw:(raw.preset||raw.t)).n))];
+  const usable=source.filter(raw=>!skipped.includes(raw));
+  if(!usable.length){toast('هیچ‌یک از فیلدهای این بسته قابل‌افزودن نیست: '+skippedNames.join('، '),'warn');return}
   const idMap=new Map();
-  const rows=source.map(raw=>{
-    const f=typeof raw==='string'?freshField(raw,'old-'+idMap.size):Object.assign(freshField(raw.t||'text',raw.id),JSON.parse(JSON.stringify(raw)));
+  const rows=usable.map(raw=>{
+    const f=typeof raw==='string'?freshField(raw,'old-'+idMap.size):restoreField(raw,raw.id);
     const old=String(f.id), next=S.uid++; idMap.set(old,next); f.id=next; return f;
   });
   rows.forEach((f,index)=>{
-    const logic=f.conditionLogic||f.condLogic||'all', prior=new Set(source.slice(0,index).map(row=>String(row&&row.id)));
+    const logic=f.conditionLogic||f.condLogic||'all', prior=new Set(usable.slice(0,index).map(row=>String(row&&row.id)));
     const rules=conditionRulesForField(f).filter(r=>prior.has(String(r.field))&&idMap.has(String(r.field)))
       .map(r=>({field:idMap.get(String(r.field)),op:r.op,value:r.value}));
     writeConditionRules(f,rules,logic);
@@ -1948,10 +2183,11 @@ function applyPack(id,mode){
     if(S.fields.length+rows.length>MAX_FIELDS){toast('با این بسته تعداد پرسش‌ها از '+faN(MAX_FIELDS)+' بیشتر می‌شود');return}
     S.fields=S.fields.concat(rows);
   }else{S.pack=id; S.fields=rows;}
-  renderCanvas();markDirty();closeSheets();
-  toast(mode==='append'?faN(rows.length)+' پرسش به انتهای فرم اضافه شد':'پرسش‌های فرم با بسته جایگزین شد');
+  renderCanvas();commitChange();closeSheets();
+  const skippedNote=skipped.length?'؛ '+faN(skipped.length)+' فیلد قابل‌افزودن نبود و کنار گذاشته شد: '+skippedNames.join('، '):'';
+  toast((mode==='append'?faN(rows.length)+' پرسش به انتهای فرم اضافه شد':'پرسش‌های فرم با بسته جایگزین شد')+skippedNote,skipped.length?'warn':undefined);
 }
-let editing=null,catGroup='همه',conditionDraft=[],conditionLogicDraft='all';
+let editing=null,catGroup='all',conditionDraft=[],conditionLogicDraft='all';
 const MAX_CONDITION_RULES=10;
 const MAX_FIELD_OPTIONS=100;
 const MAX_OPTION_LABEL=120;
@@ -2086,48 +2322,87 @@ function renderConditionEditor(){
   if(hint)hint.textContent=conditionDraft.length>1?'همه یا هرکدام را انتخاب کنید؛ مرجع پنهان، قاعدهٔ خودش را برقرار نمی‌کند.':
     'بدون قاعده، فیلد همیشه نمایش داده می‌شود. مرجع پنهان، قاعدهٔ وابسته را برقرار نمی‌کند.';
 }
+/* ══ ویرایشگر فیلد: روی نسخهٔ پیش‌نویس (FIELD_DRAFT) کار می‌کند؛ «ذخیره» به S.fields می‌نویسد، «انصراف»/Escape/بستن آن را دور می‌ریزد ══ */
+let FIELD_DRAFT=null, FIELD_ORIGINAL='', FIELD_FOCUS_AFTER=null;
+const fieldControls=t=>new Set(typeOf(t).ctl||[]);
+const draftField=()=>FIELD_DRAFT;
+function normalizeOptionRows(f){
+  let opts=optionRowsForField(f);
+  if(!Array.isArray(f.opts)&&Array.isArray(f.options))f.opts=opts.slice();
+  if(Array.isArray(f.opts)){f.opts=f.opts.map(raw=>typeof raw==='string'?{l:raw}:Object.assign({},raw||{}));opts=f.opts}
+  return opts;
+}
+function fieldDraftSnapshot(){return JSON.stringify(FIELD_DRAFT)}
 function editField(id){
   const f=S.fields.find(x=>String(x.id)===String(id)); if(!f)return; editing=f.id;
-  const c=byT(f.t), cat=CATALOG.find(x=>x.t===f.t)||{};
-  $('#fdType').textContent=c.n; $('#fdStruct').textContent=STRUCT[f.t]||'—';
+  /* پیش‌نویس = خود فیلد (گزینه‌ها زنده ویرایش می‌شوند)؛ نسخهٔ اولیه برای «انصراف» نگه داشته می‌شود */
+  FIELD_DRAFT=f; normalizeOptionRows(FIELD_DRAFT);
+  conditionDraft=conditionRulesForField(FIELD_DRAFT);
+  conditionLogicDraft=(FIELD_DRAFT.conditionLogic||FIELD_DRAFT.condLogic)==='any'?'any':'all';
+  renderFieldEditor();
+  FIELD_ORIGINAL=fieldDraftSnapshot();
+  const bar=$('#fdDiscardBar'); if(bar)bar.hidden=true; const tc=$('#fdTypeConfirm'); if(tc)tc.hidden=true;
+  setFieldIssues([]);
+  openSheet('shField');
+  const title=$('#fdTitle'); if(title&&!TEST_FIXTURE_MODE)setTimeout(()=>{try{title.focus({preventScroll:true})}catch(e){}},0);
+}
+function setFieldIssues(list){
+  const box=$('#fdIssues'); if(!box)return;
+  box.hidden=!list.length; box.innerHTML=list.length?'<ul>'+list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
+}
+function renderFieldOptions(){
+  const f=FIELD_DRAFT; if(!f)return;
+  const opts=normalizeOptionRows(f), useScores=surveyMode()&&scoreable(f.t), fixed=!!typeOf(f.t).fixedOpts;
+  $('#fdOptionCount').textContent=faN(opts.length)+' از '+faN(MAX_FIELD_OPTIONS)+' گزینه';
+  $('#fdAddOption').disabled=opts.length>=MAX_FIELD_OPTIONS||fixed;
+  $('#fdOptions').innerHTML=opts.map((raw,i)=>{const o=typeof raw==='string'?{l:raw}:raw||{};
+    const sc=o.score==null?Math.min(5,i+1):Math.max(0,Math.min(5,+o.score||0)), last=i===opts.length-1;
+    return `<div class="fd-opt" role="listitem" data-opt-row="${i}">
+      <span class="cap" style="min-width:18px">${faN(i+1)}</span>
+      <input class="input" style="flex:1;min-width:120px" value="${esc(o.l||'')}" data-optl="${i}" aria-label="عنوان گزینهٔ ${faN(i+1)}" ${fixed?'readonly':''}/>
+      ${useScores?`<label class="fld" style="max-width:110px"><span>امتیاز</span><input class="input num" type="number" min="0" max="5" value="${sc}" data-optscore="${i}"/></label>`:''}
+      <button type="button" class="icon-btn" data-optup="${i}" aria-label="بالا بردن گزینهٔ ${faN(i+1)}" ${i===0||fixed?'disabled aria-disabled="true"':''}><svg class="i"><use href="#i-upload"/></svg></button>
+      <button type="button" class="icon-btn" data-optdown="${i}" aria-label="پایین بردن گزینهٔ ${faN(i+1)}" ${last||fixed?'disabled aria-disabled="true"':''}><svg class="i"><use href="#i-download"/></svg></button>
+      <button type="button" class="icon-btn" data-optdel="${i}" aria-label="حذف گزینهٔ ${faN(i+1)}" ${fixed?'disabled aria-disabled="true"':''}><svg class="i"><use href="#i-trash"/></svg></button></div>`}).join('')
+    ||'<div class="cap">هنوز گزینه‌ای ندارد؛ برای این نوع پرسش دست‌کم یک گزینه لازم است.</div>';
+}
+function renderFieldEditor(){
+  const f=FIELD_DRAFT; if(!f)return;
+  const c=byT(f.t), d=typeOf(f.t), ctl=fieldControls(f.t), support=fieldSupport(f.t), issues=fieldIssues(f);
+  $('#fdType').textContent=c.n; $('#fdStruct').textContent=STRUCT[f.t]||(d.legacy?'نوع ناشناخته':'—');
+  const supportHost=$('#fdSupport'); if(supportHost)supportHost.innerHTML=capabilityTag(support.status,support.reason);
+  const issueNote=$('#fdIssueNote'); if(issueNote){issueNote.hidden=!issues.length;issueNote.textContent=issues.join(' ')}
   $('#fdTitle').value=f.l||''; $('#fdHelp').value=f.help||'';
   setSwitch('fdReq',!!f.req); setSwitch('fdProf',!!f.prof); setSwitch('fdCol',f.col!==false);
   const legacyVerify=!!f.verify, verifyBox=$('#fdVerifyBox'), verifyClear=$('#fdVerifyClear');
-  verifyBox.style.display=cat.verify||legacyVerify?'block':'none';
+  verifyBox.style.display=ctl.has('verify')||legacyVerify?'block':'none';
   $('#fdVerifyStatus').textContent=legacyVerify?'درخواست تأیید قدیمی ذخیره شده':'غیرفعال · سرویس پیامک/احراز وصل نیست';
   if(verifyClear)verifyClear.style.display=legacyVerify?'inline-flex':'none';
-  const isUpload=UPLOAD_TYPES.has(f.t);
+  const isUpload=ctl.has('upload');
   $('#fdCountBox').style.display=isUpload?'block':'none';
   $('#fdCount').value=Math.max(1,Math.min(10,NR(f.count)||1));
   $('#fdAccept').value=cleanAccept(f.accept,f.t);
   $('#fdMaxSize').value=Math.max(1,Math.min(100,NR(f.maxSize)||10));
-  const canPlaceholder=TEXT_TYPES.has(f.t)||NUMERIC_TYPES.has(f.t);
-  $('#fdPlaceholderBox').style.display=canPlaceholder?'block':'none'; $('#fdPlaceholder').value=f.placeholder||'';
-  $('#fdBoundsBox').style.display=NUMERIC_TYPES.has(f.t)?'block':'none';
+  $('#fdPlaceholderBox').style.display=ctl.has('placeholder')?'block':'none'; $('#fdPlaceholder').value=f.placeholder||'';
+  const bounds=ctl.has('bounds');
+  $('#fdBoundsBox').style.display=bounds?'block':'none';
+  $('#fdValidationBox').style.display=bounds||isUpload||verifyBox.style.display==='block'?'':'none';
+  const range=d.boundsRange;
+  $('#fdBoundsLabel').textContent=range?'بازهٔ نمایش (اختیاری؛ بین '+faN(range[0])+' تا '+faN(range[1])+')':'محدودهٔ عددی (اختیاری)';
+  $('#fdBoundsNote').textContent=range?'نوار از حداقل تا حداکثر نمایش داده می‌شود؛ سرور بازهٔ '+faN(range[0])+' تا '+faN(range[1])+' را هنگام انتشار بررسی می‌کند.':'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود.';
   $('#fdMin').value=f.min==null?'':f.min; $('#fdMax').value=f.max==null?'':f.max;
   $$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));
   $('#fdMediaNoteBox').style.display=f.media&&f.media!=='none'?'':'none';
   $('#fdMediaNote').value=f.mediaNote||'';
-  let opts=optionRowsForField(f);const useScores=surveyMode()&&scoreable(f.t);
-  if(!Array.isArray(f.opts)&&Array.isArray(f.options))f.opts=opts.slice();
-  if(Array.isArray(f.opts)){f.opts=f.opts.map(raw=>typeof raw==='string'?{l:raw}:Object.assign({},raw||{}));opts=f.opts;}
   $('#fdOptionsBox').style.display=OPTION_FIELD_TYPES.has(f.t)?'block':'none';
-  $('#fdOptionCount').textContent=faN(opts.length)+' از '+faN(MAX_FIELD_OPTIONS)+' گزینه';
-  $('#fdAddOption').disabled=opts.length>=MAX_FIELD_OPTIONS;
   $('#fdMultiLimitsBox').style.display=f.t==='multi'?'':'none';
   $('#fdMinSelect').value=f.minSelect==null?'':String(f.minSelect);
   $('#fdMaxSelect').value=f.maxSelect==null?'':String(f.maxSelect);
-  $('#fdOptions').innerHTML=opts.map((raw,i)=>{const o=typeof raw==='string'?{l:raw}:raw||{};
-    const sc=o.score==null?Math.min(5,i+1):Math.max(0,Math.min(5,+o.score||0));
-    return `<div class="card sunk row" style="padding:8px;flex-wrap:wrap">
-      <svg class="i" style="color:var(--ink-4)"><use href="#i-drag"/></svg>
-      <input class="input" style="flex:1;min-width:120px" value="${esc(o.l||'')}" data-optl="${i}"/>
-      ${useScores?`<label class="fld" style="max-width:110px"><span>امتیاز</span><input class="input num" type="number" min="0" max="5" value="${sc}" data-optscore="${i}"/></label>`:''}
-      <button type="button" class="icon-btn" data-optup="${i}" aria-label="بالا بردن گزینه"><svg class="i"><use href="#i-upload"/></svg></button>
-      <button type="button" class="icon-btn" data-optdown="${i}" aria-label="پایین بردن گزینه"><svg class="i"><use href="#i-download"/></svg></button>
-      <button type="button" class="icon-btn" data-optdel="${i}" aria-label="حذف"><svg class="i"><use href="#i-trash"/></svg></button></div>`}).join('');
+  renderFieldOptions();
   const scoreBox=$('#fdScoreBox'), weight=$('#fdWeight'), scoreOn=$('#fdScoreOn');
   if(scoreBox) scoreBox.style.display=surveyMode()?'block':'none';
+  const scoringCap=FORM_CAPABILITIES&&FORM_CAPABILITIES.settings&&FORM_CAPABILITIES.settings.survey_scoring, scoreServerNote=$('#fdScoreServerNote');
+  if(scoreServerNote&&scoringCap&&scoringCap.reason)scoreServerNote.textContent=scoringCap.reason;
   if(weight) weight.value=Math.max(1,Math.min(5,+f.weight||1));
   const canScore=scoreable(f.t), scoreDefault=canScore&&f.scoreOn!==false;
   if(scoreOn){setSwitch('fdScoreOn',scoreDefault);scoreOn.style.opacity=canScore?'1':'.45';scoreOn.style.pointerEvents=canScore?'':'none'}
@@ -2136,62 +2411,163 @@ function editField(id){
       :f.t==='scale'||f.t==='bars'?'بازهٔ ۰ تا ۱۰ در وزن پرسش ضرب می‌شود.'
       :'برای هر گزینه امتیاز صفر تا پنج بگذار؛ در چندانتخاب، امتیاز گزینه‌های انتخاب‌شده جمع می‌شود.')
     :'این نوع پاسخ عددی نیست و وارد امتیاز کلی نمی‌شود.';
-  conditionDraft=conditionRulesForField(f);
-  conditionLogicDraft=(f.conditionLogic||f.condLogic)==='any'?'any':'all';
+  renderTypeChangeBox();
   renderConditionEditor();
-  openSheet('shField');
 }
+/* تغییر نوع: فقط به هم‌خانواده‌ها که تنظیم‌های مشترک (عنوان، راهنما، اجباری، شرط‌ها و در صورت امکان گزینه‌ها/بازه) حفظ می‌شود */
+const TYPE_FAMILIES=[
+  ['text','area','fullname','email','mobile','nid','address','location'],
+  ['number','amount'],
+  ['choice','dropdown','multi','imgchoice','select'],
+  ['rating','scale','bars'],
+  ['date','datetime','time','slot']];
+const LEGACY_TARGETS={image:['text','area'],file:['text','area'],voice:['text','area'],sign:['text','area'],price:['amount','number'],coupon:['text']};
+function typeChangeTargets(t){
+  const fam=TYPE_FAMILIES.find(list=>list.includes(t));
+  const list=fam?fam.filter(x=>x!==t&&x!=='select'):(LEGACY_TARGETS[t]||['text','area','choice','number']);
+  return list.filter(x=>fieldSupport(x).addable);
+}
+function typeChangeConsequences(f,target){
+  const out=[], from=fieldControls(f.t), to=fieldControls(target), index=S.fields.findIndex(x=>String(x.id)===String(f.id));
+  if(from.has('options')&&!to.has('options')&&optionRowsForField(f).length)out.push('گزینه‌های فعلی حذف می‌شوند.');
+  if(!from.has('options')&&to.has('options'))out.push('دو گزینهٔ نمونه ساخته می‌شود؛ باید آن‌ها را ویرایش کنید.');
+  if(f.t==='multi'&&target!=='multi'&&(f.minSelect!=null||f.maxSelect!=null))out.push('حداقل/حداکثر انتخاب برداشته می‌شود.');
+  if(from.has('bounds')&&!to.has('bounds')&&(f.min!==''&&f.min!=null||f.max!==''&&f.max!=null))out.push('حداقل/حداکثر عددی برداشته می‌شود.');
+  if(from.has('bounds')&&to.has('bounds')&&typeOf(target).boundsRange&&(f.min!==''&&f.min!=null||f.max!==''&&f.max!=null))out.push('حداقل/حداکثر به بازهٔ '+faN(typeOf(target).boundsRange[0])+' تا '+faN(typeOf(target).boundsRange[1])+' محدود می‌شود.');
+  if(from.has('placeholder')&&!to.has('placeholder')&&f.placeholder)out.push('متن داخل کادر برداشته می‌شود.');
+  if(from.has('upload'))out.push('تنظیم‌های فایل (تعداد، نوع، اندازه) برداشته می‌شوند؛ پاسخ‌دهنده به‌جای فایل متن می‌نویسد.');
+  if(f.verify)out.push('درخواست تأیید قدیمی پاک می‌شود.');
+  let broken=0, kept=0;
+  S.fields.slice(index+1).forEach(other=>conditionRulesForField(other).forEach(rule=>{
+    if(String(rule.field)!==String(f.id))return;
+    const ops=conditionOperatorsFor(target), kind=conditionKind(target);
+    const valueOk=!CONDITION_VALUE_OPS.has(rule.op)||validConditionValue(rule,Object.assign({},f,{t:target,opts:to.has('options')&&from.has('options')?f.opts:[]}));
+    if(ops.includes(rule.op)&&valueOk)kept++; else broken++;
+  }));
+  if(broken)out.push(faN(broken)+' قاعدهٔ شرطی در پرسش‌های بعدی با نوع تازه سازگار نیست و حذف می‌شود'+(kept?'؛ '+faN(kept)+' قاعده می‌ماند.':'.'));
+  if(!out.length)out.push('تنظیم‌های مشترک (عنوان، راهنما، اجباری، شرط‌ها) حفظ می‌شود.');
+  return out;
+}
+function renderTypeChangeBox(){
+  const f=FIELD_DRAFT, sel=$('#fdTypeChange'), box=$('#fdTypeBox'), note=$('#fdTypeNote'); if(!f||!sel||!box)return;
+  const targets=typeChangeTargets(f.t);
+  box.style.display=targets.length?'':'none';
+  sel.innerHTML='<option value="">— نوع مقصد را انتخاب کنید —</option>'+targets.map(t=>`<option value="${esc(t)}">${esc(typeOf(t).n)} · پاسخ: ${esc(typeOf(t).ans)}</option>`).join('');
+  if(note)note.textContent=typeOf(f.t).legacy||fieldSupport(f.t).status==='unavailable'
+    ?'این نوع در فرم عمومی سرور اجرا نمی‌شود؛ برای انتشار، نوع را به یکی از نوع‌های پشتیبانی‌شده تغییر دهید یا پرسش را حذف کنید.'
+    :'فقط به نوع‌های هم‌خانواده که تنظیم‌های مشترک را نگه می‌دارند. پیش از اعمال، پیامدها نشان داده می‌شود.';
+  const confirm=$('#fdTypeConfirm'); if(confirm)confirm.hidden=true;
+}
+function applyTypeChange(target){
+  const f=FIELD_DRAFT; if(!f||!target||!typeChangeTargets(f.t).includes(target))return false;
+  const from=fieldControls(f.t), to=fieldControls(target), d=typeOf(target);
+  const next=Object.assign(JSON.parse(JSON.stringify(f)),{t:target,preset:presetOf(target).k});
+  if(!to.has('options'))next.opts=[]; else if(!from.has('options'))next.opts=d.fixedOpts?JSON.parse(JSON.stringify(d.fixedOpts)):d.defaultOpts?JSON.parse(JSON.stringify(d.defaultOpts)):[{l:'گزینهٔ یک',score:1},{l:'گزینهٔ دو',score:2}];
+  if(target!=='multi'){delete next.minSelect;delete next.maxSelect}
+  if(!to.has('bounds')){next.min=null;next.max=null}
+  else if(d.boundsRange){const [lo,hi]=d.boundsRange;const clamp=v=>v==null||v===''?v:Math.max(lo,Math.min(hi,+v));next.min=clamp(next.min);next.max=clamp(next.max)}
+  if(!to.has('placeholder'))next.placeholder='';
+  if(!to.has('upload')){next.count=5;next.accept='';next.maxSize=10}
+  next.verify=false; next.scoreOn=scoreable(target)&&next.scoreOn!==false; next.prof=!!d.prof&&next.prof!==false;
+  if(HELP[f.t]&&next.help===HELP[f.t])next.help=HELP[target]||'';
+  if(next.l===typeOf(f.t).n||next.l===presetOf(f.preset||f.t).n)next.l=presetOf(target).n;
+  Object.keys(f).forEach(key=>{if(!(key in next))delete f[key]}); Object.assign(f,next);
+  renderFieldEditor();
+  setFieldIssues([]); toast('نوع پرسش به «'+d.n+'» تغییر کرد؛ برای ثبت، «ذخیره» را بزنید');
+  return true;
+}
+/* ذخیرهٔ پیش‌نویس ویرایشگر در فیلد واقعی؛ نامعتبر → false و پنجره باز می‌ماند */
 function saveField(){
-  const f=S.fields.find(x=>String(x.id)===String(editing)); if(!f)return true;
+  const f=S.fields.find(x=>String(x.id)===String(editing)); if(!f||!FIELD_DRAFT)return true;
+  const issues=[]; let focusTarget=null;
   for(const [id,max,label] of [['fdTitle',160,'عنوان فیلد'],['fdHelp',300,'راهنمای پرسش'],
     ['fdPlaceholder',120,'متن راهنمای داخل کادر'],['fdMediaNote',160,'توضیح رسانه']]){
     const input=$('#'+id);if(input&&[...String(input.value||'').trim()].length>max){
-      toast('«'+label+'» حداکثر '+faN(max)+' نویسه است');input.focus();return false;
+      toast('«'+label+'» حداکثر '+faN(max)+' نویسه است');setFieldIssues(['«'+label+'» حداکثر '+faN(max)+' نویسه است.']);input.focus();return false;
     }
   }
+  const ctl=fieldControls(FIELD_DRAFT.t), t=FIELD_DRAFT.t;
   let bounds=null;
-  if(NUMERIC_TYPES.has(f.t)){
+  if(ctl.has('bounds')){
     const minRaw=$('#fdMin').value.trim(),maxRaw=$('#fdMax').value.trim(),
-      min=minRaw?conditionNumberValue(minRaw):null,max=maxRaw?conditionNumberValue(maxRaw):null;
-    if(minRaw&&min===null){toast('حداقل باید یک عدد معتبر باشد');$('#fdMin').focus();return false}
-    if(maxRaw&&max===null){toast('حداکثر باید یک عدد معتبر باشد');$('#fdMax').focus();return false}
-    if(min!==null&&max!==null&&min>max){toast('حداقل نمی‌تواند از حداکثر بیشتر باشد');$('#fdMin').focus();return false}
+      min=minRaw?conditionNumberValue(minRaw):null,max=maxRaw?conditionNumberValue(maxRaw):null, range=typeOf(t).boundsRange;
+    if(minRaw&&min===null){toast('حداقل باید یک عدد معتبر باشد');setFieldIssues(['حداقل باید یک عدد معتبر باشد.']);$('#fdMin').focus();return false}
+    if(maxRaw&&max===null){toast('حداکثر باید یک عدد معتبر باشد');setFieldIssues(['حداکثر باید یک عدد معتبر باشد.']);$('#fdMax').focus();return false}
+    if(min!==null&&max!==null&&min>max){toast('حداقل نمی‌تواند از حداکثر بیشتر باشد');setFieldIssues(['حداقل نمی‌تواند از حداکثر بیشتر باشد.']);$('#fdMin').focus();return false}
+    if(range&&[min,max].some(v=>v!==null&&(v<range[0]||v>range[1]))){const msg='بازهٔ این نوع باید بین '+faN(range[0])+' تا '+faN(range[1])+' باشد';toast(msg);setFieldIssues([msg+'.']);$('#fdMin').focus();return false}
     bounds={min,max};
   }
-  f.l=($('#fdTitle').value||'').trim().slice(0,160)||f.l; f.help=$('#fdHelp').value.trim().slice(0,300);
-  f.req=$('#fdReq').classList.contains('on'); f.prof=$('#fdProf').classList.contains('on');
-  f.col=$('#fdCol').classList.contains('on');
-  f.count=Math.max(1,Math.min(10,NR(unFa($('#fdCount').value))||1));
-  f.accept=cleanAccept($('#fdAccept').value,f.t);
-  f.maxSize=Math.max(1,Math.min(100,NR(unFa($('#fdMaxSize').value))||10));
-  f.placeholder=$('#fdPlaceholder').value.trim().slice(0,120);
-  if(bounds){f.min=bounds.min;f.max=bounds.max}
-  else{f.min=null;f.max=null}
-  f.mediaNote=$('#fdMediaNote').value.trim().slice(0,160);
-  f.weight=Math.max(1,Math.min(5,NR(unFa($('#fdWeight').value))||1));
-  f.scoreOn=scoreable(f.t)&&$('#fdScoreOn').classList.contains('on');
-  if(f.t==='multi'){
-    f.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);
-    f.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value);
-  }else{delete f.minSelect;delete f.maxSelect}
-  const m=$('#shField [data-media].on'); f.media=m?m.dataset.media:'none';
-  const validIds=new Set(S.fields.slice(0,S.fields.findIndex(x=>String(x.id)===String(editing))).map(x=>String(x.id)));
+  const draft=FIELD_DRAFT;
+  draft.l=($('#fdTitle').value||'').trim().slice(0,160)||draft.l; draft.help=$('#fdHelp').value.trim().slice(0,300);
+  draft.req=$('#fdReq').classList.contains('on'); draft.prof=$('#fdProf').classList.contains('on');
+  draft.col=$('#fdCol').classList.contains('on');
+  if(ctl.has('upload')){draft.count=Math.max(1,Math.min(10,NR(unFa($('#fdCount').value))||1));
+    draft.accept=cleanAccept($('#fdAccept').value,t);
+    draft.maxSize=Math.max(1,Math.min(100,NR(unFa($('#fdMaxSize').value))||10));}
+  draft.placeholder=ctl.has('placeholder')?$('#fdPlaceholder').value.trim().slice(0,120):'';
+  if(bounds){draft.min=bounds.min;draft.max=bounds.max}else if(ctl.has('bounds')){draft.min=null;draft.max=null}
+  draft.mediaNote=$('#fdMediaNote').value.trim().slice(0,160);
+  draft.weight=Math.max(1,Math.min(5,NR(unFa($('#fdWeight').value))||1));
+  draft.scoreOn=scoreable(t)&&$('#fdScoreOn').classList.contains('on');
+  if(t==='multi'){
+    draft.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);
+    draft.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value);
+  }else{delete draft.minSelect;delete draft.maxSelect}
+  const m=$('#shField [data-media].on'); draft.media=m?m.dataset.media:'none';
+  const index=S.fields.findIndex(x=>String(x.id)===String(editing));
+  const validIds=new Set(S.fields.slice(0,index).map(x=>String(x.id)));
   const rules=conditionDraft.filter(rule=>validIds.has(String(rule.field))).map(rule=>{
     const source=S.fields.find(field=>String(field.id)===String(rule.field)), ops=source?conditionOperatorsFor(source.t):[];
     const op=ops.includes(rule.op)?rule.op:ops[0]||'eq';
     return {field:String(rule.field),op,value:CONDITION_VALUE_OPS.has(op)?String(rule.value==null?'':rule.value).trim().slice(0,120):''};
   });
-  writeConditionRules(f,rules,conditionLogicDraft);
-  f.opts=optionRowsForField(f).map(raw=>{
+  writeConditionRules(draft,rules,conditionLogicDraft);
+  draft.opts=optionRowsForField(draft).map(raw=>{
     const o=typeof raw==='string'?{l:raw}:Object.assign({},raw||{});
     o.l=String(o.l==null?'':o.l).trim();
     if(o.score!=null)o.score=Math.max(0,Math.min(5,NR(unFa(o.score))||0));
     return o;
   });
-  renderCanvas(); renderFin(); renderPreview(); renderReview();
+  let typeChanged=false; try{typeChanged=JSON.parse(FIELD_ORIGINAL||'{}').t!==f.t}catch(e){}
+  if(typeChanged){normalizeFieldConditions();const removed=pruneDependentConditions(f.id);if(removed)toast(faN(removed)+' قاعدهٔ شرطی پرسش‌های بعدی با نوع تازه سازگار نبود و برداشته شد','warn')}
+  FIELD_ORIGINAL=fieldDraftSnapshot(); setFieldIssues([]);
+  renderCanvas(); renderFin(); renderPreview(); renderReview(); commitChange();
   return true;
 }
-
+function fieldEditorDirty(){return !!FIELD_DRAFT&&$('#shField').classList.contains('on')&&fieldDraftSnapshot()!==FIELD_ORIGINAL||!!FIELD_DRAFT&&editorControlsChanged()}
+/* کنترل‌های متنی/سوییچ که تا «ذخیره» در پیش‌نویس نوشته نمی‌شوند */
+function editorControlsChanged(){
+  const f=FIELD_DRAFT; if(!f)return false;
+  const sw=id=>$('#'+id).classList.contains('on');
+  if(($('#fdTitle').value||'').trim()!==String(f.l||'').trim())return true;
+  if(($('#fdHelp').value||'').trim()!==String(f.help||''))return true;
+  if(sw('fdReq')!==!!f.req||sw('fdProf')!==!!f.prof||sw('fdCol')!==(f.col!==false))return true;
+  if(fieldControls(f.t).has('placeholder')&&($('#fdPlaceholder').value||'').trim()!==String(f.placeholder||''))return true;
+  if(fieldControls(f.t).has('bounds')&&(String($('#fdMin').value||'').trim()!==String(f.min==null?'':f.min)||String($('#fdMax').value||'').trim()!==String(f.max==null?'':f.max)))return true;
+  if(f.t==='multi'&&(String($('#fdMinSelect').value||'')!==String(f.minSelect==null?'':f.minSelect)||String($('#fdMaxSelect').value||'')!==String(f.maxSelect==null?'':f.maxSelect)))return true;
+  if(JSON.stringify(conditionDraft)!==JSON.stringify(conditionRulesForField(f))||conditionLogicDraft!==((f.conditionLogic||f.condLogic)==='any'?'any':'all'))return true;
+  return false;
+}
+function cancelFieldEdit(){
+  /* بازگرداندن فیلد به نسخهٔ پیش از بازشدن ویرایشگر (گزینه‌ها، نوع، شرط‌ها) */
+  const f=FIELD_DRAFT;
+  if(f&&FIELD_ORIGINAL){try{const orig=JSON.parse(FIELD_ORIGINAL);Object.keys(f).forEach(key=>{if(!(key in orig))delete f[key]});Object.assign(f,orig)}catch(e){}
+    normalizeFieldConditions();renderCanvas();renderPreview();renderReview();commitChange()}
+  const id=editing; FIELD_DRAFT=null;FIELD_ORIGINAL='';closeSheets();FIELD_FOCUS_AFTER=null;
+  const back=$('[data-edit="'+String(id)+'"]'); if(back)try{back.focus()}catch(e){}
+}
+/* بستن ویرایشگر (X، Escape، کلیک بیرون): اگر تغییر ذخیره‌نشده دارد، تأیید می‌گیرد؛ وگرنه می‌بندد */
+function requestCloseFieldEditor(){
+  if(!$('#shField').classList.contains('on'))return true;
+  if(fieldEditorDirty()){const bar=$('#fdDiscardBar');if(bar){bar.hidden=false;const yes=$('#fdDiscardYes');if(yes)yes.focus()}return false}
+  cancelFieldEdit();return true;
+}
+function commitFieldEditor(){
+  if(!saveField())return false;
+  closeSheets(); FIELD_DRAFT=null;
+  const back=$('[data-edit="'+String(editing)+'"]'); if(back)try{back.focus()}catch(e){}
+  return true;
+}
 function conditionNumberValue(value){
   const shared=window.NORA_UI&&window.NORA_UI.parseLocalizedNumber;
   return typeof shared==='function'?shared(value):null;
@@ -2593,7 +2969,7 @@ async function saveServerDraft(row){
       record=await api.createForm(payload,CREATE_DRAFT_KEY);
     }
     const saved=formFromServer(record);
-    ACTIVE_SERVER_FORM=saved; S.fid=saved.id; S.confirmed=true;setSaveState('saved','ذخیره شد · نسخهٔ '+faN(saved.version));renderLockBar();READY_STATE={state:'idle',issues:[],version:null};if(!TEST_FIXTURE_MODE)checkServerReadiness();
+    ACTIVE_SERVER_FORM=saved; S.fid=saved.id; S.confirmed=true;markSavedBaseline('ذخیره شد · نسخهٔ '+faN(saved.version));renderLockBar();READY_STATE={state:'idle',issues:[],version:null};if(!TEST_FIXTURE_MODE)checkServerReadiness();
     let mirrored=false;
     try{mirrored=!!(window.NORA_UI&&typeof NORA_UI.formPut==='function'&&NORA_UI.formPut(saved))}catch(e){mirrored=false}
     $('#doneCard').style.display='block';
@@ -2615,6 +2991,7 @@ async function saveServerDraft(row){
     CREATE_DRAFT_KEY=newIdempotencyKey();
   }catch(err){
     const message=ownerApiErrorText(err);
+    ERROR_FINGERPRINT=formFingerprint();
     setSaveState(err&&err.status===409?'conflict':'error',err&&err.status===409?(err.code==='version_conflict'?'نسخهٔ تازه‌تری روی سرور است':'فرم قفل است'):err&&err.status===401?'ورود لازم است':'ذخیره نشد');
     setOwnerApiState(err&&err.status===401?'ورود مالک لازم است':'ذخیره نشد',message);
     if(err&&err.status===401){OWNER_AUTHENTICATED=false;PENDING_DRAFT_ROW=row;ownerLoginPanel(true,message)}
@@ -2627,6 +3004,48 @@ async function saveServerDraft(row){
   }
 }
 /* «ساخت از روی این فرم»: پیش‌نویس تازه از سرور (POST /api/forms/{id}/duplicate)؛ فرم مبدأ، پیوند عمومی و پاسخ‌هایش دست نمی‌خورند */
+/* ردیف پیش‌نویس برای سرور: تنها نقطهٔ ساخت payload (ذخیره، اثرانگشت تغییرات، پیش‌نمایش). بدون اثر جانبی. */
+function buildDraftRow(){
+    const id=S.fid||'draft';
+  const model=(MODELS.find(m=>m.k===S.model)||{}).tn||'فرم';
+  const saved=ACTIVE_SERVER_FORM||STORED_FORM||{}, copy=v=>v==null?v:JSON.parse(JSON.stringify(v));
+  const fin=CAN_MONEY?copy(S.fin||[]):copy(Array.isArray(saved.fin)?saved.fin:[]);
+  const groups=CAN_MONEY?copy(S.groups||[]):copy(Array.isArray(saved.groups)?saved.groups:[]);
+  const coupon=CAN_MONEY?Object.assign({code:'',off:0,all:false},copy(S.coupon||{})):
+    Object.assign({code:'',off:0,all:false},copy(saved.coupon||{}));
+  const methods=CAN_MONEY?normalizeFormPaymentMethods(S.methods):copy(saved.methods!=null?saved.methods:[]);
+  const enabledPaymentMethods=CAN_MONEY?normalizeEnabledPaymentMethods(S.enabledPaymentMethods):
+    normalizeEnabledPaymentMethods(saved.enabledPaymentMethods!=null?saved.enabledPaymentMethods:(saved.receiptReviewRequired===true?['card_transfer']:[]));
+  const sync=Object.assign({},copy(saved.sync||{}),{
+    cap:CAN_MONEY||!saved.sync?!!S.sync.cap:saved.sync.cap,
+    dates:CAN_MONEY||!saved.sync?!!S.sync.dates:saved.sync.dates,
+    limit:!!S.sync.limit, once:!!S.onePerPerson,
+    money:CAN_MONEY?1:(saved.sync&&saved.sync.money||0)});
+  const row={id:id, name:S.title, kind:model, need:needForModel(S.model), model:S.model,
+    slug:safeSamplePath(S.slug)||'', slugAuto:S.slugAuto!==false,
+    dept:S.dept, expert:S.notify.expert, notify:{on:false,to:S.notify.to||'',expert:S.notify.expert},
+    intro:S.intro, introMedia:S.introMedia||'', introMediaNote:S.introMediaNote||'',
+    cap:Math.max(0,NR(S.cap)||0), wait:Math.max(0,NR(S.wait)||0), start:S.start, ends:S.end,
+    fin:fin, groups:groups, methods:methods, coupon:coupon, maxPer:S.maxPer,
+    compFields:S.compFields||'name-mobile', endText:S.endText,
+    links:copy((S.links||[]).filter(link=>String(link&&link.t||'').trim()||String(link&&link.u||'').trim())),
+    fields:(S.fields||[]).map(f=>Object.assign({},copy(f),{opts:(f.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o))})),
+    scoring:{enabled:needForModel(S.model)==='survey',method:'weighted-mean',weightMax:5},
+    guestsOn:!isPurchaseForm()&&S.model==='registration'&&S.guestsOn===true, enabledPaymentMethods:enabledPaymentMethods,
+    receiptReviewRequired:enabledPaymentMethods.includes('card_transfer'),
+    noraPayEnabled:false,
+    paymentInstructions:String(S.paymentInstructions||'').replace(/\r\n?/g,'\n').trim().slice(0,500),
+    paymentCard:S.receiptReviewRequired===true?receiptPaymentCardSnapshot():null,
+    limit:S.limit, inviteCodes:S.limit==='invite'?S.inviteCodes:'',
+    display:S.display, dir:S.dir, after:S.after, eventVisible:S.eventVisible!==false,
+    onePerPerson:S.onePerPerson!==false, ev:S.evId||saved.ev||'', sync:sync, on:0,
+    ticketingEnabled:!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled===true,
+    ...(!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled?{ticketing:ticketingPayload()}:{}),
+    purpose:isPurchaseForm()?'recording_access':'registration',
+    ...(isPurchaseForm()?{recording_id:S.recordingId}:{})};
+  if(isPurchaseForm()){row.model='registration';row.need='reg';row.maxPer=1;delete row.ticketing}
+  return row;
+}
 let DUPLICATE_KEY=null;
 function openDuplicateSheet(){
   const f=ACTIVE_SERVER_FORM;if(!f||!f.id)return;
@@ -2757,11 +3176,24 @@ if(QS.get('auth')==='1') ownerLoginPanel(true,'برای ورود به API همی
 /* ══ رویدادها ══ */
 document.addEventListener('click',e=>{
   if(e.target.closest('#fdVerifyClear')){
-    if(!saveField())return;
+    /* پاک‌کردن پرچم قدیمی یک اقدام صریح است و بی‌درنگ در فیلد ثبت می‌شود (نه فقط در پیش‌نویس) */
     const f=S.fields.find(x=>String(x.id)===String(editing));
-    if(!f)return;
-    f.verify=false;editField(editing);toast('درخواست تأیید قدیمی پاک شد؛ احراز شماره همچنان غیرفعال است');return;
+    if(!f||!FIELD_DRAFT)return;
+    f.verify=false;FIELD_DRAFT.verify=false;FIELD_ORIGINAL=fieldDraftSnapshot();renderFieldEditor();renderCanvas();commitChange();
+    toast('درخواست تأیید قدیمی پاک شد؛ احراز شماره همچنان غیرفعال است');return;
   }
+  if(e.target.closest('.scrim')&&$('#shField').classList.contains('on')){e.stopImmediatePropagation();requestCloseFieldEditor();return}
+  if(e.target.closest('#fdSave')){commitFieldEditor();return}
+  if(e.target.closest('#fdCancel')){requestCloseFieldEditor();return}
+  if(e.target.closest('#fdDiscardYes')){cancelFieldEdit();return}
+  if(e.target.closest('#fdDiscardNo')){const bar=$('#fdDiscardBar');if(bar)bar.hidden=true;$('#fdTitle').focus();return}
+  if(e.target.closest('#fdTypeApply')){const sel=$('#fdTypeChange'),target=sel&&sel.value;if(!FIELD_DRAFT)return;
+    if(!target){toast('اول نوع مقصد را انتخاب کنید');sel.focus();return}
+    const box=$('#fdTypeConfirm');$('#fdTypeConfirmTitle').textContent='تغییر «'+typeOf(FIELD_DRAFT.t).n+'» به «'+typeOf(target).n+'»';
+    $('#fdTypeConsequences').innerHTML=typeChangeConsequences(FIELD_DRAFT,target).map(x=>'<li>'+esc(x)+'</li>').join('');
+    box.hidden=false;$('#fdTypeConfirmGo').focus();return}
+  if(e.target.closest('#fdTypeCancel')){$('#fdTypeConfirm').hidden=true;$('#fdTypeChange').focus();return}
+  if(e.target.closest('#fdTypeConfirmGo')){const target=$('#fdTypeChange').value;if(applyTypeChange(target))$('#fdTitle').focus();return}
   if(e.target.closest('#fdAddCondition')){
     const index=S.fields.findIndex(x=>String(x.id)===String(editing)), earlier=S.fields.slice(0,Math.max(0,index));
     if(!earlier.length){toast('برای شرط، ابتدا یک پرسش مرجع اضافه کنید');return}
@@ -2796,25 +3228,32 @@ document.addEventListener('click',e=>{
     if(types.length<=2){toast('حالت تصادفی دست‌کم دو مدل بلیت می‌خواهد');return}
     types.splice(index,1);syncTicketingUI();renderReview();return;
   }
-  const mo=e.target.closest('[data-model]'); if(mo){if(isPurchaseForm()&&mo.dataset.model!=='registration'){toast('فرم خرید فقط با مدل ثبت‌نام ساخته می‌شود');return}S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();renderReview();return}
+  const mo=e.target.closest('[data-model]'); if(mo){if(isPurchaseForm()&&mo.dataset.model!=='registration'){toast('فرم خرید فقط با مدل ثبت‌نام ساخته می‌شود');return}S.model=mo.dataset.model;S.need=needForModel(S.model);renderTiles();syncTicketingUI();syncModelSettingsUI();renderCanvas();renderReview();commitChange();return}
   const qk=e.target.closest('[data-quick]'); if(qk){applyPack(qk.dataset.quick);return}
   if(e.target.closest('#packReplace')){const id=PENDING_PACK;PENDING_PACK=null;if(id)applyPack(id,'replace');return}
   if(e.target.closest('#packAppend')){const id=PENDING_PACK;PENDING_PACK=null;if(id)applyPack(id,'append');return}
   if(!e.target.closest('details.rowmore'))$$('details.rowmore[open]').forEach(d=>{d.open=false});
-  const ad=e.target.closest('[data-add]'); if(ad){addField(ad.dataset.add);return}
-  const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();return}
-  const ed=e.target.closest('[data-edit]'); if(ed){editField(ed.dataset.edit);return}
-  const cp=e.target.closest('[data-copy]'); if(cp){if(S.fields.length>=MAX_FIELDS){toast('حداکثر '+faN(MAX_FIELDS)+' فیلد در هر فرم پشتیبانی می‌شود');return}
-    const src=S.fields.find(x=>String(x.id)===String(cp.dataset.copy));
-    if(src) S.fields.splice(S.fields.indexOf(src)+1,0,Object.assign({},src,{id:S.uid++,opts:(src.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o)),
+  const ad=e.target.closest('[data-add]'); if(ad){if(ad.disabled||ad.getAttribute('aria-disabled')==='true')return;
+    /* دوبار کلیک/ضربهٔ پیاپی روی یک ردیف، دو فیلد نمی‌سازد */
+    const now=Date.now(); if(now-ADD_FIELD_LOCK<400&&ad.dataset.add===ADD_FIELD_LAST){return} ADD_FIELD_LOCK=now;ADD_FIELD_LAST=ad.dataset.add;
+    ad.disabled=true;addField(ad.dataset.add);return}
+  const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();const again=$('#catChips [data-cat="'+catGroup+'"]');if(again)again.focus();return}
+  if(e.target.closest('[data-cat-reset]')){catGroup='all';const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
+  const ed=e.target.closest('[data-edit]'); if(ed){FIELD_FOCUS_AFTER=ed;editField(ed.dataset.edit);return}
+  const cp=e.target.closest('[data-copy]'); if(cp){
+    const src=S.fields.find(x=>String(x.id)===String(cp.dataset.copy)); if(!src)return;
+    e.stopImmediatePropagation(); /* کپی پرسش، نه رونوشت متن به کلیپ‌بورد (شنوندهٔ عمومی ui.js) */
+    const blocker=fieldAddBlocker(src.preset||src.t); if(blocker){toast(blocker,'warn');return}
+    S.fields.splice(S.fields.indexOf(src)+1,0,Object.assign(JSON.parse(JSON.stringify(src)),{id:S.uid++,opts:(src.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o)),
       conditions:conditionRulesForField(src).map(r=>Object.assign({},r))}));
-    renderCanvas();markDirty();toast('کپی شد؛ پرسش تازه زیر همان پرسش قرار گرفت');return}
+    renderCanvas();commitChange();toast('کپی شد؛ پرسش تازه زیر همان پرسش قرار گرفت');return}
   const dl=e.target.closest('[data-del]'); if(dl){const id=String(dl.dataset.del);const dep=dependentRuleCount(id);S.fields=S.fields.filter(x=>String(x.id)!==id);normalizeFieldConditions();renderCanvas();markDirty();
     toast(dep>0?'پرسش حذف شد؛ '+faN(dep)+' شرط نمایش که به آن وابسته بود هم برداشته شد':'پرسش حذف شد');return}
   const up=e.target.closest('[data-up]'); if(up){moveFieldById(up.dataset.up,-1);return}
   const dn=e.target.closest('[data-down]'); if(dn){moveFieldById(dn.dataset.down,1);return}
   const bl=e.target.closest('[data-block]'); if(bl){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return}
-  const md=e.target.closest('[data-media]'); if(md){$$('#shField [data-media]').forEach(c=>c.classList.remove('on'));md.classList.add('on');return}
+  const md=e.target.closest('[data-media]'); if(md){if(md.disabled||md.getAttribute('aria-disabled')==='true')return;$$('#shField [data-media]').forEach(c=>c.classList.remove('on'));md.classList.add('on');
+    if(FIELD_DRAFT){FIELD_DRAFT.media=md.dataset.media;$('#fdMediaNoteBox').style.display=FIELD_DRAFT.media!=='none'?'':'none'}return}
   const dr=e.target.closest('[data-dir]'); if(dr){S.dir=dr.dataset.dir==='ltr'?'ltr':'rtl';$$('[data-dir]').forEach(c=>c.classList.remove('on'));dr.classList.add('on');renderReview();return}
   const sgd=e.target.closest('#segDisplay button'); if(sgd){[...sgd.parentElement.children].forEach(x=>x.classList.remove('on'));sgd.classList.add('on');S.display=sgd.dataset.display==='all'?'all':'one';renderReview();return}
   const sga=e.target.closest('#segAfter button'); if(sga){[...sga.parentElement.children].forEach(x=>x.classList.remove('on'));sga.classList.add('on');S.after=sga.dataset.after||'edit';renderReview();return}
@@ -2849,7 +3288,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#addLink')){
     if(S.links.length>=10){toast('حداکثر ۱۰ پیوند پایانی مجاز است');return}
     const index=S.links.push({t:'',u:''})-1;renderLinks();renderReview();document.querySelector('[data-lt="'+index+'"]')?.focus();return}
-  if(e.target.closest('#addTop')||e.target.closest('#addBottom')){openSheet('shAdd');return}
+  if(e.target.closest('#addTop')||e.target.closest('#addBottom')){openSheet('shAdd');renderCatalog();return}
   const sw=e.target.closest('.switch');
   if(sw){
     e.stopImmediatePropagation();
@@ -2877,17 +3316,25 @@ document.addEventListener('click',e=>{
     if(['fdReq','fdProf','fdCol','fdScoreOn','fgReq'].includes(sw.id)){setSwitch(sw.id,on);return}
     setSwitch(sw.id,on); return;
   }
-  if(e.target.closest('#fdAddOption')){const f=S.fields.find(x=>String(x.id)===String(editing));if(f){
-    f.opts=optionRowsForField(f).slice();if(f.opts.length>=MAX_FIELD_OPTIONS){toast('حداکثر '+faN(MAX_FIELD_OPTIONS)+' گزینه برای هر پرسش مجاز است');return}
-    f.opts.push({l:'گزینهٔ تازه',score:0});editField(editing);document.querySelector('[data-optl="'+(f.opts.length-1)+'"]')?.focus()}return}
-  const od=e.target.closest('[data-optdel]'); if(od){const f=S.fields.find(x=>String(x.id)===String(editing));if(f&&Array.isArray(f.opts))f.opts.splice(Number(od.dataset.optdel),1);editField(editing);return}
-  const ou=e.target.closest('[data-optup],[data-optdown]'); if(ou){const f=S.fields.find(x=>String(x.id)===String(editing));
-    const i=Number(ou.dataset.optup??ou.dataset.optdown), j=ou.hasAttribute('data-optup')?i-1:i+1;
-    if(f&&Array.isArray(f.opts)&&j>=0&&j<f.opts.length)[f.opts[i],f.opts[j]]=[f.opts[j],f.opts[i]];
-    editField(editing);return}
-  if(e.target.closest('#fdHelpDefault')){const f=S.fields.find(x=>String(x.id)===String(editing));$('#fdHelp').value=HELP[f.t]||'';toast('راهنمای پیش‌فرض گذاشته شد');return}
-  if(e.target.closest('#fdDelete')){const id=String(editing);S.fields=S.fields.filter(x=>String(x.id)!==id);normalizeFieldConditions();closeSheets();renderCanvas();toast('حذف شد');return}
-  const close=e.target.closest('[data-close]'); if(close){if(close.closest('#shField')&&!saveField())return;closeSheets();return}
+  if(e.target.closest('#fdAddOption')){const f=FIELD_DRAFT;if(f){
+    f.opts=normalizeOptionRows(f).slice();if(f.opts.length>=MAX_FIELD_OPTIONS){toast('حداکثر '+faN(MAX_FIELD_OPTIONS)+' گزینه برای هر پرسش مجاز است');return}
+    f.opts.push({l:'گزینهٔ تازه',score:0});renderFieldOptions();const inp=document.querySelector('[data-optl="'+(f.opts.length-1)+'"]');if(inp){inp.focus();inp.select&&inp.select()}}return}
+  const od=e.target.closest('[data-optdel]'); if(od){const f=FIELD_DRAFT;if(f&&Array.isArray(normalizeOptionRows(f))){const i=Number(od.dataset.optdel);f.opts.splice(i,1);renderFieldOptions();
+      const next=document.querySelector('[data-optdel="'+Math.min(i,f.opts.length-1)+'"]')||$('#fdAddOption');if(next)next.focus()}return}
+  const ou=e.target.closest('[data-optup],[data-optdown]'); if(ou){const f=FIELD_DRAFT;
+    if(ou.disabled||ou.getAttribute('aria-disabled')==='true')return;
+    const up=ou.hasAttribute('data-optup'), i=Number(up?ou.dataset.optup:ou.dataset.optdown), j=up?i-1:i+1;
+    if(!f||!Array.isArray(normalizeOptionRows(f))||j<0||j>=f.opts.length)return;
+    /* جابه‌جایی واقعی: خود شیء گزینه (با امتیاز و سایر ویژگی‌ها) منتقل می‌شود؛ تمرکز روی همان دکمه در جای تازه می‌ماند */
+    const [row]=f.opts.splice(i,1);f.opts.splice(j,0,row);renderFieldOptions();
+    const again=document.querySelector('[data-'+(up?'optup':'optdown')+'="'+j+'"]'), fallback=document.querySelector('[data-'+(up?'optdown':'optup')+'="'+j+'"]');
+    const target=again&&!again.disabled?again:fallback; if(target)target.focus();
+    const live=$('#fdOptionCount'); if(live)live.textContent=faN(f.opts.length)+' از '+faN(MAX_FIELD_OPTIONS)+' گزینه · گزینهٔ '+faN(i+1)+' به جایگاه '+faN(j+1)+' رفت';
+    return}
+  if(e.target.closest('#fdHelpDefault')){const f=FIELD_DRAFT;if(!f)return;$('#fdHelp').value=presetOf(f.preset||f.t).help||HELP[f.t]||'';toast('راهنمای پیش‌فرض گذاشته شد');return}
+  if(e.target.closest('#fdDelete')){const id=String(editing);const dep=dependentRuleCount(id);S.fields=S.fields.filter(x=>String(x.id)!==id);normalizeFieldConditions();FIELD_DRAFT=null;closeSheets();renderCanvas();commitChange();
+    toast(dep>0?'پرسش حذف شد؛ '+faN(dep)+' شرط نمایش وابسته هم برداشته شد':'حذف شد');return}
+  const close=e.target.closest('[data-close]'); if(close){if(close.closest('#shField')){e.stopImmediatePropagation();requestCloseFieldEditor();return}closeSheets();return}
   if(e.target.closest('#packSave')){
     const name=($('#packName').value||'').trim().slice(0,60); if(!name){toast('نام بسته را بنویسید');$('#packName').focus();return}
     if(!S.fields.length){toast('بسته دست‌کم یک فیلد می‌خواهد');return}
@@ -2898,44 +3345,8 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#publish')){
     if(!saveField())return;
     if(!validateBeforeSave())return;
-    const id=S.fid||('f'+Date.now().toString(36));
-    const model=(MODELS.find(m=>m.k===S.model)||{}).tn||'فرم';
-    const saved=ACTIVE_SERVER_FORM||STORED_FORM||{}, copy=v=>v==null?v:JSON.parse(JSON.stringify(v));
-    const fin=CAN_MONEY?copy(S.fin||[]):copy(Array.isArray(saved.fin)?saved.fin:[]);
-    const groups=CAN_MONEY?copy(S.groups||[]):copy(Array.isArray(saved.groups)?saved.groups:[]);
-    const coupon=CAN_MONEY?Object.assign({code:'',off:0,all:false},copy(S.coupon||{})):
-      Object.assign({code:'',off:0,all:false},copy(saved.coupon||{}));
-    const methods=CAN_MONEY?normalizeFormPaymentMethods(S.methods):copy(saved.methods!=null?saved.methods:[]);
-    const enabledPaymentMethods=CAN_MONEY?normalizeEnabledPaymentMethods(S.enabledPaymentMethods):
-      normalizeEnabledPaymentMethods(saved.enabledPaymentMethods!=null?saved.enabledPaymentMethods:(saved.receiptReviewRequired===true?['card_transfer']:[]));
-    const sync=Object.assign({},copy(saved.sync||{}),{
-      cap:CAN_MONEY||!saved.sync?!!S.sync.cap:saved.sync.cap,
-      dates:CAN_MONEY||!saved.sync?!!S.sync.dates:saved.sync.dates,
-      limit:!!S.sync.limit, once:!!S.onePerPerson,
-      money:CAN_MONEY?1:(saved.sync&&saved.sync.money||0)});
-    const row={id:id, name:S.title, kind:model, need:needForModel(S.model), model:S.model,
-      slug:safeSamplePath(S.slug)||'', slugAuto:S.slugAuto!==false,
-      dept:S.dept, expert:S.notify.expert, notify:{on:false,to:S.notify.to||'',expert:S.notify.expert},
-      intro:S.intro, introMedia:S.introMedia||'', introMediaNote:S.introMediaNote||'',
-      cap:Math.max(0,NR(S.cap)||0), wait:Math.max(0,NR(S.wait)||0), start:S.start, ends:S.end,
-      fin:fin, groups:groups, methods:methods, coupon:coupon, maxPer:S.maxPer,
-      compFields:S.compFields||'name-mobile', endText:S.endText,
-      links:copy((S.links||[]).filter(link=>String(link&&link.t||'').trim()||String(link&&link.u||'').trim())),
-      fields:(S.fields||[]).map(f=>Object.assign({},copy(f),{opts:(f.opts||[]).map(o=>typeof o==='string'?{l:o}:Object.assign({},o))})),
-      scoring:{enabled:needForModel(S.model)==='survey',method:'weighted-mean',weightMax:5},
-      guestsOn:isPurchaseForm()?false:S.guestsOn, enabledPaymentMethods:enabledPaymentMethods,
-      receiptReviewRequired:enabledPaymentMethods.includes('card_transfer'),
-      noraPayEnabled:false,
-      paymentInstructions:String(S.paymentInstructions||'').replace(/\r\n?/g,'\n').trim().slice(0,500),
-      paymentCard:S.receiptReviewRequired===true?receiptPaymentCardSnapshot():null,
-      limit:S.limit, inviteCodes:S.limit==='invite'?S.inviteCodes:'',
-      display:S.display, dir:S.dir, after:S.after, eventVisible:S.eventVisible!==false,
-      onePerPerson:S.onePerPerson!==false, ev:S.evId||saved.ev||'', sync:sync, on:0,
-      ticketingEnabled:!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled===true,
-      ...(!isPurchaseForm()&&S.model==='registration'&&S.ticketingEnabled?{ticketing:ticketingPayload()}:{}),
-      purpose:isPurchaseForm()?'recording_access':'registration',
-      ...(isPurchaseForm()?{recording_id:S.recordingId}:{})};
-    if(isPurchaseForm()){enforcePurchaseFormRules();row.model='registration';row.need='reg';row.maxPer=1;delete row.ticketing}
+    if(isPurchaseForm())enforcePurchaseFormRules();
+    const row=buildDraftRow(); if(!S.fid)row.id='f'+Date.now().toString(36);
     PENDING_DRAFT_ROW=row;
     $('#doneCard').style.display='none';
     saveServerDraft(row);return}
@@ -2972,6 +3383,10 @@ document.addEventListener('drop',event=>{
 });
 document.addEventListener('dragend',()=>{draggedFieldId=null;clearFieldDropMarkers()});
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!e.defaultPrevented){
+    if($('#shField').classList.contains('on')){e.preventDefault();requestCloseFieldEditor();return}
+    if(document.querySelector('.sheet.on')){e.preventDefault();closeSheets();return}
+  }
   const handle=e.target.closest&&e.target.closest('[data-drag-handle]');
   if(handle&&(e.key==='ArrowUp'||e.key==='ArrowDown')){
     e.preventDefault();moveFieldById(handle.dataset.dragHandle,e.key==='ArrowUp'?-1:1);return;
@@ -3017,9 +3432,9 @@ document.addEventListener('input',e=>{
   if(i.id==='dp'&&CAN_MONEY){S.coupon.off=Math.max(0,Math.min(100,NR(unFa(i.value))||0));renderReview()}
   if(i.dataset.lt!==undefined&&S.links[NR(i.dataset.lt)]){S.links[NR(i.dataset.lt)].t=i.value;renderReview()}
   if(i.dataset.lu!==undefined&&S.links[NR(i.dataset.lu)]){S.links[NR(i.dataset.lu)].u=i.value;renderReview()}
-  if(i.dataset.optl!==undefined){const f=S.fields.find(x=>x.id===editing);if(f&&f.opts[NR(i.dataset.optl)]){
+  if(i.dataset.optl!==undefined){const f=FIELD_DRAFT;if(f&&f.opts&&f.opts[NR(i.dataset.optl)]){
     const o=f.opts[NR(i.dataset.optl)]; if(typeof o==='string') f.opts[NR(i.dataset.optl)]={l:i.value}; else o.l=i.value}}
-  if(i.dataset.optscore!==undefined){const f=S.fields.find(x=>x.id===editing), o=f&&f.opts[NR(i.dataset.optscore)];
+  if(i.dataset.optscore!==undefined){const f=FIELD_DRAFT, o=f&&f.opts&&f.opts[NR(i.dataset.optscore)];
     if(o&&typeof o==='object') o.score=Math.max(0,Math.min(5,NR(unFa(i.value))||0))}
 });
 document.addEventListener('change',e=>{
@@ -3103,11 +3518,12 @@ void resolveEditorSession();
 $('#pkStart').innerHTML=pickHTML('datetime',S.start);
 $('#pkEnd').innerHTML=pickHTML('datetime',S.end);
 initAll(document);
-renderStepper();renderTiles();syncSettingsUI();slugView();renderCatalog();if(!S.fid) applyPack('full');
+renderStepper();renderTiles();syncSettingsUI();slugView();renderCatalog();
 enforcePurchaseFormRules();
 renderLinks();renderFin();renderCoupon();renderPreview();renderReview();evHeadFill();go('s1');
 void loadPurchaseProduct();
-void refreshFormCapabilities();
+/* بستهٔ پیش‌فرض فرم تازه پس از روشن‌شدن وضعیت قابلیت‌ها چیده می‌شود تا از همان دروازهٔ افزودن بگذرد (نه پیش از آن) */
+void refreshFormCapabilities().then(()=>{if(!S.fid&&!S.fields.length){applyPack('full','replace');renderPreview();renderReview()}});
 void refreshFormPaymentReadiness();
 /* اگر شناسهٔ فرم در نشانی باشد، همان فرم بار می‌شود؛ غیرمالک به دادهٔ مالی دست نمی‌زند. */
 try{
@@ -3154,13 +3570,9 @@ try{
       S.links=legacy?[]:links;
     }
     if(cur.fields&&Array.isArray(cur.fields)){
-      S.fields=cur.fields.map((raw,i)=>typeof raw==='string'
-        ?Object.assign(freshField('text',i+1),{l:raw})
-        :Object.assign(freshField((raw&&raw.t)||'text',i+1),copy(raw)||{}, {id:(raw&&raw.id)!=null?raw.id:i+1}));
+      S.fields=cur.fields.map((raw,i)=>restoreField(raw,i+1));
     }else if(Array.isArray(cur.questions)){
-      S.fields=cur.questions.map((raw,i)=>typeof raw==='string'
-        ?Object.assign(freshField('text',i+1),{l:raw})
-        :Object.assign(freshField((raw&&raw.t)||'text',i+1),copy(raw)||{}, {id:(raw&&raw.id)!=null?raw.id:i+1}));
+      S.fields=cur.questions.map((raw,i)=>restoreField(raw,i+1));
     }
     S.uid=Math.max(0,...S.fields.map(f=>+f.id||0))+1;
     if(CAN_MONEY){
@@ -3194,6 +3606,8 @@ try{
 if(ACTIVE_SERVER_FORM){
   $('#doneCard').style.display='block';
   updateDoneCard(ACTIVE_SERVER_FORM,true,false);
+  /* نقطهٔ مبنا: آنچه الان روی صفحه است همان نسخهٔ سروری ذخیره‌شده است؛ هر تفاوت بعدی «تغییرات ذخیره‌نشده» می‌شود */
+  markSavedBaseline('ذخیره شد · نسخهٔ '+faN(ACTIVE_SERVER_FORM.version||1));
   setOwnerApiState('فرم سروری','آخرین وضعیت همگام‌شده: '+formStatusLabel(ACTIVE_SERVER_FORM.status)+'. پیش از تغییر وضعیت، تازه‌ترین نسخه از API خوانده می‌شود؛ تغییر وضعیت نیازمند ورود مالک است.');
   restoreFormEditorSession();
 }else if(SERVER_FORM_CACHE_MISSING){

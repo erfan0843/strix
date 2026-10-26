@@ -106,11 +106,18 @@ def public_form_capabilities(*, api_configured: bool, bale_wallet_ready: bool) -
             "waitlist": {"status": "server", "reason": "صف انتظار سروری است؛ ارتقای خودکار به پذیرش انجام نمی‌شود."},
             "companions": {
                 "status": "conditional",
+                "models": ["registration"],
                 "reason": "فقط برای ثبت‌نام، ۲ تا ۱۰ نفر، نام و موبایل، و پاسخ جداگانهٔ همراهان.",
             },
             "ticketing": {
                 "status": "conditional",
+                "models": ["registration"],
                 "reason": "مدل بلیت پس از پذیرش پاسخ ثبت‌نام در سرور تعیین می‌شود؛ صف انتظار بلیت نمی‌گیرد.",
+            },
+            "survey_scoring": {
+                "status": "unavailable",
+                "models": ["survey"],
+                "reason": "وزن پرسش و امتیاز گزینه‌ها در سرور محاسبه یا ذخیره نمی‌شود؛ امتیاز فقط در پیش‌نمایش محلی فرم‌ساز دیده می‌شود.",
             },
             "conditional_visibility": {
                 "status": "server",
@@ -120,6 +127,7 @@ def public_form_capabilities(*, api_configured: bool, bale_wallet_ready: bool) -
             },
             "card_transfer": {
                 "status": "conditional",
+                "models": ["registration"],
                 "reason": "فقط کارت معتبر، رسید و بازبینی دستی مالک/نقش مجاز.",
             },
             "bale_wallet": {

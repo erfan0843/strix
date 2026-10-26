@@ -176,3 +176,70 @@ def test_readiness_reports_blockers_without_publishing():
     finally:
         client.close()
         engine.dispose()
+
+
+def test_companions_are_a_registration_only_workflow_in_readiness_and_contract():
+    """همراهان فقط در مدل ثبت‌نام اجرا می‌شود؛ سایر مدل‌ها با guestsOn روشن در سرور هم قابل‌انتشار نیستند (نه فقط در UI)."""
+    engine, client = make_client()
+    try:
+        client.post(
+            "/api/auth/login",
+            json={"username": "owner", "password": "capability-test-password"},
+            headers={"Origin": "http://testserver"},
+        )
+        contract = client.get("/api/public/forms/capabilities").json()
+        assert contract["settings"]["companions"]["models"] == ["registration"]
+        assert contract["settings"]["survey_scoring"]["status"] == "unavailable"
+        assert contract["settings"]["survey_scoring"]["models"] == ["survey"]
+        assert contract["settings"]["survey_scoring"]["reason"]
+        headers = {
+            "Origin": "http://testserver",
+            "X-CSRF-Token": client.cookies.get("nora_csrf", ""),
+        }
+        companion_settings = {"guestsOn": True, "maxPer": 3, "compFields": "name-mobile-answers"}
+        survey = client.post(
+            "/api/forms",
+            json={
+                "name": "نظرسنجی با همراه",
+                "model": "survey",
+                "need": "survey",
+                "slug": "readiness/survey-companions",
+                "fields": [{"id": "q1", "t": "text", "l": "نظر"}],
+                "settings": companion_settings,
+            },
+            headers={**headers, "Idempotency-Key": "readiness-survey-companions-01"},
+        )
+        assert survey.status_code == 201, survey.text
+        survey_readiness = client.get(f"/api/forms/{survey.json()['id']}/readiness").json()
+        survey_codes = {issue["code"] for issue in survey_readiness["issues"]}
+        assert survey_readiness["publishable"] is False
+        assert "companions_require_registration" in survey_codes
+        assert "companion_answers_required" not in survey_codes
+        publish = client.post(
+            f"/api/forms/{survey.json()['id']}/publish",
+            json={"expected_version": survey.json()["version"]},
+            headers={**headers, "Idempotency-Key": "readiness-survey-companions-publish-01"},
+        )
+        assert publish.status_code == 422, publish.text
+        assert publish.json()["detail"]["code"] == "form_not_publishable"
+        assert "companions_require_registration" in {issue["code"] for issue in publish.json()["detail"]["issues"]}
+        assert client.get(f"/api/forms/{survey.json()['id']}").json()["status"] == "draft"
+
+        registration = client.post(
+            "/api/forms",
+            json={
+                "name": "ثبت‌نام با همراه",
+                "model": "registration",
+                "need": "reg",
+                "slug": "readiness/registration-companions",
+                "fields": [{"id": "q1", "t": "fullname", "l": "نام"}, {"id": "q2", "t": "mobile", "l": "موبایل"}],
+                "settings": companion_settings,
+            },
+            headers={**headers, "Idempotency-Key": "readiness-registration-companions-01"},
+        )
+        assert registration.status_code == 201, registration.text
+        registration_codes = {issue["code"] for issue in client.get(f"/api/forms/{registration.json()['id']}/readiness").json()["issues"]}
+        assert "companions_require_registration" not in registration_codes
+    finally:
+        client.close()
+        engine.dispose()

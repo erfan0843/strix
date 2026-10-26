@@ -303,6 +303,11 @@ def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[di
             "code": "invalid_companion_setting",
             "message": "تنظیم همراهان معتبر نیست؛ آن را در فرم‌ساز بازبینی کنید.",
         })
+    elif guests_on and form.model != "registration":
+        issues.append({
+            "code": "companions_require_registration",
+            "message": "ثبت همراه فقط برای فرم ثبت‌نام در سرور اجرا می‌شود؛ همراهان را خاموش کنید یا مدل را ثبت‌نام بگذارید.",
+        })
     elif guests_on:
         companion_mode = settings.get("compFields")
         max_per = _count_setting(settings.get("maxPer"), fallback=1, ceiling=MAX_PUBLIC_COMPANIONS + 1)

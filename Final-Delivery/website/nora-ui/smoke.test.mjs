@@ -169,7 +169,12 @@ function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=n
       version:1,source:'same_application_fastapi',api_configured:true,
       models:['registration','questionnaire','survey','contest','exam','attendance','datacollect','election'].map(id=>({id,status:id==='registration'?'server':'limited',publishable:true,reason:'پاسخ سروری آزمایشی'}))
         .concat([{id:'order',status:'unavailable',publishable:false,reason:'سفارش آماده نیست'}]),
-      field_types:{text:{status:'server',reason:''},fullname:{status:'server',reason:''},mobile:{status:'limited',reason:'بدون احراز شماره'},uni:{status:'limited',reason:'فهرست محلی'},image:{status:'unavailable',reason:'بارگذاری وصل نیست'},file:{status:'unavailable',reason:'بارگذاری وصل نیست'}},
+      /* آینهٔ قرارداد واقعی backend/form_capabilities.py (همهٔ ۳۶ نوع)؛ نوعِ بیرون از قرارداد در فرم‌ساز قابل‌افزودن نیست */
+      field_types:Object.assign(
+        Object.fromEntries(['text','area','number','choice','multi','dropdown','select','yesno','fullname','gender','marital','address','province','edu','date','rating','scale','bars'].map(t=>[t,{status:'server',reason:''}])),
+        Object.fromEntries(['amount','email','imgchoice','location','nid','slot','terms','time','datetime','job'].map(t=>[t,{status:'limited',reason:'پاسخ ثبت می‌شود؛ قابلیت کامل ندارد'}])),
+        {mobile:{status:'limited',reason:'بدون احراز شماره'},uni:{status:'limited',reason:'فهرست محلی'},image:{status:'unavailable',reason:'بارگذاری وصل نیست'},file:{status:'unavailable',reason:'بارگذاری وصل نیست'},
+         voice:{status:'unavailable',reason:'ضبط وصل نیست'},sign:{status:'unavailable',reason:'امضا وصل نیست'},price:{status:'unavailable',reason:'قیمت‌گذاری مستقل نیست'},coupon:{status:'unavailable',reason:'کد تخفیف پرسش نیست'}}),
       settings:{response_list:{status:'server',page_size_max:100},schedule:{status:'unavailable'},one_response_per_person:{status:'unavailable'}}
     });
     if(path==='/api/auth/me') return loggedIn&&role==='owner'
@@ -1819,8 +1824,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 /* ── ۴ب۰۷) فایل تصویر، محلی و با سقف روشن ── */
 {
   console.log('\n── فایل تصویر ──');
+  /* نوع‌های بارگذاری/مالی در کاتالوگ قابل‌افزودن نیستند (فرم عمومی سرور آن‌ها را ندارد)؛ این بلوک‌ها رفتار ویرایشگر و پیش‌نمایش را برای فیلدِ قدیمیِ بازیابی‌شده می‌سنجند. */
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('image');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'image'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='image'&&S.fields[0].count===1")
       &&builder.doc.querySelector('#fdCountBox').style.display==='block'
       &&builder.doc.querySelector('#fdAccept').value==='image/*',
@@ -1861,7 +1867,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── فایل PDF یا JPG ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('file');editField(S.fields[0].id);window.fileAcceptDefault=$('#fdAccept').value;$('#fdAccept').value='application/pdf,image/jpeg';$('#fdCount').value='2';$('#fdMaxSize').value='2';saveField()");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'file'},S.uid++));renderCanvas();editField(S.fields[0].id);window.fileAcceptDefault=$('#fdAccept').value;$('#fdAccept').value='application/pdf,image/jpeg';$('#fdCount').value='2';$('#fdMaxSize').value='2';saveField()");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='file'&&S.fields[0].accept==='application/pdf,image/jpeg'&&S.fields[0].count===2&&S.fields[0].maxSize===2")
       &&builder.window.fileAcceptDefault==='.pdf,.jpg,.jpeg,.png,.doc,.docx',
     'سازنده نوع، تعداد و حجم مجاز فایل را می‌پذیرد؛ پیش‌فرض عمومی سند هم روشن است');
@@ -1899,7 +1905,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── فایل صدا ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('voice');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'voice'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='voice'&&S.fields[0].accept==='audio/*'&&S.fields[0].count===1")
       &&builder.doc.querySelector('#fdStruct').textContent.includes('ضبط/ارسال ندارد')
       &&builder.doc.querySelector('#fdHelp').value.includes('میکروفون، ضبط و ارسال وصل نیست'),
@@ -1932,7 +1938,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── تصویر امضا ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('sign');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'sign'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='sign'&&S.fields[0].accept==='image/*'")
       &&builder.doc.querySelector('#fdStruct').textContent.includes('ابزار رسم/ارسال ندارد')
       &&builder.doc.querySelector('#fdHelp').value.includes('رسم، تأیید یا ارسال واقعی وصل نیست'),
@@ -2096,7 +2102,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── فیلد قیمتِ نمایشی ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('price');editField(S.fields[0].id);$('#fdMin').value='1000';$('#fdMax').value='2000';saveField()");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'price'},S.uid++));renderCanvas();editField(S.fields[0].id);$('#fdMin').value='1000';$('#fdMax').value='2000';saveField()");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='price'&&S.fields[0].min===1000&&S.fields[0].max===2000")
       &&builder.doc.querySelector('#fdBoundsBox').style.display==='block'
       &&builder.doc.querySelector('#fdStruct').textContent.includes('قیمت‌گذاری مالی نیست')
@@ -2129,7 +2135,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── کد تخفیفِ متنی ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('coupon');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'coupon'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='coupon'&&S.fields[0].help.includes('اعتبارسنجی یا تخفیف واقعی ندارد')")
       &&builder.doc.querySelector('#fdStruct').textContent.includes('اعتبارسنجی تخفیف ندارد'),
     'سازنده هشدار می‌دهد کد فقط ورودی متنی است و تخفیف واقعی اعمال نمی‌شود');
