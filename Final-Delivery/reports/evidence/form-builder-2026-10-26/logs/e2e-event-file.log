@@ -1,0 +1,111 @@
+events: {"A":"ev-3270a32524","B":"ev-5e981b5ac4"}
+PASS A: forms tab empty state with create action: 
+create reg form href: create.html?ev=ev-3270a32524&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D8%A7%D9%84%D9%81+%28%D9%BE%D8%B1%D9%88%D9%86%D8%AF%D9%87%29+082424&back=admin.html%23event%3Dev-3270a32524%26tab%3Dforms
+PASS create link carries ev + need=reg + back to this event/tab: 
+builder chip: {"hidden":false,"href":"admin.html#event=ev-3270a32524&tab=forms","text":"بازگشت به پروندهٔ رویداد"}
+PASS builder shows back link to event file A (same tab): 
+PASS back link returns to event A, forms tab: 
+forms: {"regA":"0db2533f-a46e-4e2c-856b-67223cfc695f","regB":"8bb8e358-93d9-4cd6-8e85-80e9267ffe58","pub":"6beb0d27-842a-4bfc-a1fe-bf2a74532ed4","survey":"a69ada8d-fec6-45aa-a954-186bc178333d","quiz":"ad7ad351-ac30-4d3a-9692-cd100af12b80"}
+PASS overview renders head: 
+head: رویداد الف (پرونده) 082424ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۳ نفر · باقی‌مانده ۳فرم ثبت‌نام: فعالمبلغ: ۵۰۰,۰۰۰ ریال · کارت‌به‌کارت مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+PASS head: title + ثبت‌نام باز + cap 3 + price 500,000 + source label (title attr): 
+PASS head buttons: مشاهدهٔ صفحه / ویرایش رویداد / ویرایش تنظیمات ثبت‌نام: 
+PASS overview says declared event values are not the source: 
+PASS overview KPI from server counts (head only; no duplicate breakdown row when all zero): 
+PASS hash kept after load: 
+PASS public projection cap=3 price=500000 from form: 
+PASS hub: six tiles rendered: 
+PASS hub: tiles are equal-height within each grid row (3 columns): 
+PASS forms tab lists reg A only: 
+PASS hash switched to tab=forms: 
+picker options: ["","6beb0d27-842a-4bfc-a1fe-bf2a74532ed4","a69ada8d-fec6-45aa-a954-186bc178333d","ad7ad351-ac30-4d3a-9692-cd100af12b80"]
+PASS link picker offers unlinked survey/quiz/public form, not B’s linked form: 
+PASS survey linked (card appears): 
+PASS quiz linked (card appears): 
+PASS reg form card has no unlink (published) with reason: 
+PASS cross-event link rejected by server (B form → A): 
+PASS builder opened for the survey with fid: 
+PASS after refresh in builder, back link still points to A/forms: 
+PASS browser back returns to A/forms: 
+regA version: 2
+form settings update: 200
+republish: 200
+head after form change: رویداد الف (پرونده) 082424ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۴ نفر · باقی‌مانده ۴فرم ثبت‌نام: فعالمبلغ: ۶۰۰,۰۰۰ ریال · کارت‌به‌کارت مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+PASS event file follows the form: cap 4, price 600,000: 
+PASS overview.registration_settings == form settings: 
+PASS editor shows capacity/price read-only «تنظیم‌شده در فرم ثبت‌نام»: 
+price field: {"value":"۶۰۰,۰۰۰ ریال","ro":true}
+PASS price field read-only too: 
+registrations: {"p1":"b1578e76-1eff-448a-ab2b-2a5f22e8aa8b","p2":"2cb5656d-6f19-4206-ad0d-272c374b8635","p3":"c04c2e92-1052-48d2-a788-e4c3a5fd2140","pB":"9c17f06e-7e9d-49c8-aaab-cee4610c3332"}
+PASS public submit returned tracking codes (no row ids): 
+PASS registrants tab renders rows: 
+summary: کل: ۳پذیرفته‌شده: ۳در انتظار پرداخت: ۳ظرفیت باقی‌مانده: ۱ از ۴
+PASS summary: total 3, pending 3, remaining 1 of 4: 
+PASS B’s registrant is not in A: 
+PASS row shows «رسید فرستاده شده» separate from payment state: 
+PASS filter paid → empty state with real counts: 
+PASS search narrows to one row: 
+PASS search result count line «۱ نتیجه با این صافی»: 
+PASS count line without filter «۳ نتیجه»: 
+sort newest/oldest: [["نفر سوم ردشدنی","نفر اول پرونده","نفر دوم بی‌رسید"],["نفر دوم بی‌رسید","نفر اول پرونده","نفر سوم ردشدنی"]]
+PASS sort «قدیمی‌ترین» reverses the server order (sort= sent to API): 
+PASS sort «نام» is alphabetical: 
+PASS person file opens, hash has reg=: 
+person file: بازگشت به ثبت‌نام‌کنندگاننفر اول پروندهپذیرفته‌شدهدر انتظار پرداختNORA-B1578E761EFF448AAB2B · فرم ثبت‌نام الف 082424 پاسخ‌های فرمنام کاملنفر اول پرونده وضعیت ثبت‌ناموضعیت ثبت‌نامپذیرفته‌شدهتاریخ ثبت‌نام۱۴۰۵/۸/۴, ۱۱:۵۵فرمفرم ثبت‌نام الف 082424کد پیگیریNORA-B1578E761EFF448AAB2Bوضعیت ثبت‌نام از وضعیت پ
+person sections: ["پاسخ‌های فرم","وضعیت ثبت‌نام","پرداخت و رسید","بلیت و حضور","تاریخچهٔ اقدام‌ها"]
+PASS person file order: answers → registration status → payment/receipt → ticket/attendance → audit: 
+PASS person file shows registration date separately from payment: 
+PASS person file: answer, payment method, receipt image, no ticket yet: 
+PASS receipt image actually loads from the access-controlled route: 
+PASS refresh keeps the person file open: 
+PASS empty reason blocked: 
+PASS approved → paid + ticket image link: 
+ticket image: {"status":200,"type":"image/jpeg"}
+PASS ticket image served by the existing renderer (image/*): 
+PASS repeat approve is idempotent (changed:false): 
+owner direct login: 200
+PASS owner direct backend session established: 
+p3 before invalid requests: {"status":"accepted","payment":"receipt_submitted","state":"pending","audit":0}
+owner direct CSRF checks: {"none":403,"wrong":403,"foreignOrigin":403,"noSessionCookie":401}
+PASS owner direct: valid JSON decision without X-CSRF-Token → exactly 403: 
+PASS owner direct: wrong X-CSRF-Token → exactly 403: 
+PASS owner direct: right token but foreign Origin → exactly 403: 
+PASS owner direct: token without the session cookie → rejected (401/403): 
+p3 after invalid requests: {"status":"accepted","payment":"receipt_submitted","state":"pending","audit":0}
+PASS invalid requests changed nothing (registration status, payment status, audit count): 
+PASS owner direct: right token + right Origin reaches validation (reason too short → 422), i.e. CSRF layer is what blocked the others: 
+PASS reject → back to list, 2 rows, remaining 2 of 4: 
+summary after decisions: کل: ۲پذیرفته‌شده: ۲پرداخت‌شده: ۱در انتظار پرداخت: ۱ظرفیت باقی‌مانده: ۲ از ۴
+PASS summary: paid 1, pending 1: 
+PASS cancelled section present, closed by default: 
+PASS cancelled list shows p3 with name, reason and payment status before: 
+PASS cancelled row: receipt kept + answers collapsible: 
+PASS kept receipt image loads (200): 
+cancellations api: {"total":1,"name":"نفر سوم ردشدنی","source":"event_file"}
+PASS cancellations API: 1 snapshot, source event_file, amount visible to owner, answers labelled: 
+PASS cancellations of B: none (no cross-event mixing): 
+PASS cancelled receipt via B’s event id → 404: 
+PASS live registration row for p3 gone (404): 
+PASS sub-page: collapsed «بخش‌های دیگر» menu opens and lists the payments item: 
+PASS payments tab: 3 transactions incl. the rejected one kept: 
+totals: جمع پرداخت‌های موفق: ۶۰۰,۰۰۰ ریالموفق: ۱در انتظار: ۱ناموفق: ۱
+PASS totals: paid 1 / pending 1 / failed 1 / sum 600,000: 
+PASS rejected payment row says registration cancelled: 
+PASS rejected payment row keeps the person’s name from the snapshot + «پروندهٔ لغو»: 
+PASS p2 row: «رسیدی ثبت نشده»: 
+PASS tickets tab: 2 accepted rows: 
+dialog: حضور همین حالا با زمان سرور ثبت می‌شود. ادامه می‌دهید؟
+PASS check-in recorded: 
+PASS summary shows حاضر: ۱: 
+PASS survey summary box from direct URL: 
+summary box: نتیجهٔ کلی «نظرسنجی الف 082424»۳ پاسخبستن رضایت کلی۳ پاسخ4۱3۱5۱میانگین ۴ · کمینه ۳ · بیشینه ۵بهترین بخش۳ پاسخمحتوا۱مدرس۲مکان۰پیشنهاد۲ پاسخ
+PASS aggregate: 3 responses, مدرس ۲ / محتوا ۱, mean 4: 
+PASS quiz card says scoring is not implemented at this stage (no fake score): 
+PASS B registrants: only B’s one row: 
+PASS A’s registration id under B → 404: 
+PASS A’s survey under B → 404: 
+PASS unknown event → Persian error + retry, no crash: 
+PASS mobile: no horizontal overflow on person file: 
+PASS no page errors: 
+
+TOTAL PASS 83 / FAIL 0
