@@ -1,0 +1,38 @@
+PASS events-list @1440: 40 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-main @1440: 50 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-when @1440: 50 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-reg @1440: 50 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-notify @1440: 50 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-review @1440: 50 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-hub @1440: 34 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-forms @1440: 38 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-regs @1440: 16 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-pay @1440: 24 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-comms @1440: 21 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-reports @1440: 16 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS builder-from-event @1440: 78 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 7
+    {"unnamed":[],"imgs":[],"inputs":[],"rawIds":[],"small":["44x31 باز","59x31 بسته","88x31 پیش‌نویس","110x31 مبلغ یکی نیست","120x31 رسید ناخوانا است","101x31 واریز پیدا نشد","138x31 فرستندهٔ دیگری است"]}
+PASS public-events @1440: 47 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 10
+    {"unnamed":[],"imgs":[],"inputs":[],"rawIds":[],"small":["21x18 خانه","466x31 کارگاه آینده: مقدمات اخترفیزیک","466x28 رویداد الف (پرونده) 205554","466x28 رویداد ب (پرونده) 205554","466x28 کارگاه نجوم رصدی (برگزارشده)","466x28 نشست ادبی پاییز (برگزارشده)","466x28 کارگاه عکاسی شب (برگزارشده، بدون ضبط)","21x21 خانه"]}
+PASS public-event @1440: 19 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 4
+    {"unnamed":[],"imgs":[],"inputs":[],"rawIds":[],"small":["21x21 خانه","39x21 رویدادها","107x26 همهٔ برنامه‌های پیش‌رو","282x29 بازگشت به فهرست رویدادها"]}
+PASS events-list @390: 35 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-main @390: 45 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-when @390: 45 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-reg @390: 45 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-notify @390: 45 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS editor-review @390: 45 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-hub @390: 17 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-forms @390: 33 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-regs @390: 11 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-pay @390: 19 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-comms @390: 16 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS event-reports @390: 11 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS builder-from-event @390: 73 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 0
+PASS public-events @390: 47 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 10
+    {"unnamed":[],"imgs":[],"inputs":[],"rawIds":[],"small":["21x18 خانه","302x27 کارگاه آینده: مقدمات اخترفیزیک","302x27 رویداد الف (پرونده) 205554","302x27 رویداد ب (پرونده) 205554","302x27 کارگاه نجوم رصدی (برگزارشده)","302x27 نشست ادبی پاییز (برگزارشده)","302x27 کارگاه عکاسی شب (برگزارشده، بدون ضبط)","21x21 خانه"]}
+PASS public-event @390: 18 controls — 0 unnamed, 0 img w/o alt, 0 unlabeled inputs, overflow 0px, raw ids 0, small targets 4
+    {"unnamed":[],"imgs":[],"inputs":[],"rawIds":[],"small":["19x19 خانه","36x19 رویدادها","107x26 همهٔ برنامه‌های پیش‌رو","328x29 بازگشت به فهرست رویدادها"]}
+PASS no page errors
+errors []
+TOTAL PASS 31 / FAIL 0

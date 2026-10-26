@@ -1,0 +1,47 @@
+owner auth/me 200
+=== e2e-field-engine start 20:52:19
+e2e-field-engine EXIT 0
+e2e-field-engine: 43 قبول، 0 خطا
+=== e2e-event-file start 20:55:54
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 83 / FAIL 0
+=== e2e-duplicate start 20:59:25
+e2e-duplicate EXIT 0
+✓ انتشار نسخهٔ مدیر از API با 401 رد شد
+e2e-duplicate: 25 قبول، 0 خطا
+=== e2e-receipt-restore start 21:00:47
+e2e-receipt EXIT 0
+✓ ثبت‌نام در فهرست مدیران با وضعیت پرداخت «رسید فرستاده شده» دیده می‌شود (200)
+e2e-receipt-restore: 11 قبول، 0 خطا
+=== e2e-deeplinks start 21:01:19
+e2e-deeplinks EXIT 0
+e2e-deeplinks: 36 قبول، 0 خطا
+=== e2e-roles start 21:04:45
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 26 / FAIL 0
+=== e2e-builder-return start 21:05:20
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 21:07:57
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== node-suite start 21:09:53
+node-suite done: 41/41 exit 0
+=== pytest start 21:15:16
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+401 passed, 4 skipped, 3 warnings in 141.94s (0:02:21)
+=== mypy start 21:17:43
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 21:17:52
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 2.66s
+=== ALL DONE 21:17:56
