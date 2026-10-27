@@ -159,7 +159,7 @@ PASS [terms] valid settings save and close the editor
 PASS [terms] canvas field has the right type and preset
 PASS all types added once (29 fields)
 PASS first save pinned the URL with fid= and state «ذخیره شد»
-form id: 4bea2a40-0bf6-4786-be93-a66895a98a4e
+form id: 38117742-60d3-4916-b13b-014e2b34a074
 PASS server stored every field in order
 PASS [text] server record has the settings
 PASS [area] server record has the settings
@@ -474,3 +474,4 @@ PASS [bars] CSV has the question column
 PASS [terms] CSV has the question column
 PASS CSV row contains the stored answers (sample: text, choice, mobile)
 PASS no page errors in the browser during the whole chain
+e2e-field-types: 474 قبول، 0 خطا

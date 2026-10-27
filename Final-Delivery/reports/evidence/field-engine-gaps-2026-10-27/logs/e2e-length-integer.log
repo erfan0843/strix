@@ -12,7 +12,7 @@ PASS number: toggling integer counts as an unsaved change
 PASS number: integer:true + min stored on the field
 PASS amount: integer key absent when the switch is off
 PASS first save pinned fid and «ذخیره شد»
-form id: e42e3aec-e78c-4bc1-9622-e6632a790429
+form id: 004414c0-50ca-4fd1-abe3-d0da8d64d3bf
 PASS server record: text minLen=3 maxLen=8, area maxLen=20, number integer=true, amount without integer
 PASS reopened as «ذخیره شد»
 PASS reopen text: controls show 3 / 8
@@ -43,3 +43,4 @@ PASS browser: valid answers submit without field errors
 PASS public submission completed
 PASS owner sees the stored answers (text «سارا», number 7)
 PASS no page errors in the browser during the whole chain
+e2e-length-integer: 44 قبول، 0 خطا
