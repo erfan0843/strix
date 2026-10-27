@@ -450,5 +450,20 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
 
+/* ── ۱۱) جست‌وجوی انتخاب‌گر: عبارت‌های نیازمحور، نام بر توضیح مقدم، بدون تطبیق زیررشته‌ای تصادفی؛ چیدمان دسکتاپ/موبایل ── */
+{
+  console.log('\n── عبارت‌های جست‌وجوی انتخاب‌گر ──');
+  const p=await load();
+  const first=q=>p.ev("catalogSearch("+JSON.stringify(q)+",'all').map(c=>c.k)");
+  const cases=[['شماره همراه','mobile'],['کد ملی','nid'],['توضیح طولانی','area'],['تاریخ تولد','birth-date'],['زمان جلسه','time'],['انتخاب چند مورد','multi'],['پذیرش قوانین','terms'],['ايميل','email'],['كد ملي','nid']];
+  const bad=cases.filter(([q,k])=>first(q)[0]!==k).map(([q,k])=>q+'→'+(first(q)[0]||'∅')+'≠'+k);
+  ok(bad.length===0,'هر عبارت نیازمحور، الگوی درست را اول می‌آورد (ی/ي و ک/ك هم)'+(bad.length?' — '+bad.join(' ، '):''));
+  ok(!first('تاریخ تولد').includes('yesno')&&first('تاریخ تولد').length===1,'مترادفِ کوتاه («آری») دیگر به‌صورت زیررشته در «تاریخ» تطبیق نمی‌خورد؛ نتیجهٔ «تاریخ تولد» فقط الگوی تاریخ تولد است');
+  ok(p.doc.querySelector('#shAdd').classList.contains('picker')&&p.doc.querySelector('#shAdd .picker-body #catChips')&&p.doc.querySelector('#shAdd .picker-body #catList'),'انتخاب‌گر ساختار دوبخشی (دسته‌ها + فهرست) دارد که روی دسکتاپ نوار کناری می‌شود');
+  const css=readFileSync(new URL('./glass.css',import.meta.url),'utf8');
+  ok(/@media \(min-width:900px\)[\s\S]*\.sheet\.picker\{width:min\(760px,64vw\)\}[\s\S]*\.sheet\.picker \.picker-body\{display:grid/.test(css)&&!/\.sheet\.picker\{[^}]*\}[\s\S]*?@media \(min-width:900px\)/.test(css.split('.sheet.picker')[0]),'پهنای بیشتر و چیدمان شبکه‌ای فقط در رسانهٔ دسکتاپ تعریف شده و فهرست موبایل تک‌ستونه می‌ماند');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
+
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
 process.exit(fails?1:0);

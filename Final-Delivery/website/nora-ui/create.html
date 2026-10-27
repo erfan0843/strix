@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=106"/>
+<link rel="stylesheet" href="glass.css?v=107"/>
 <style>
   .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
   .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
@@ -648,13 +648,15 @@
 </nav>
 <div class="scrim" id="scrim"></div>
 
-<aside class="sheet" id="shAdd" role="dialog" aria-label="افزودن فیلد">
+<aside class="sheet picker" id="shAdd" role="dialog" aria-label="افزودن فیلد">
   <div class="grabber"></div>
   <div class="row"><span class="head">افزودن فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="row tight" style="margin:12px 0"><input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="flex:1;min-width:0" placeholder="جستجو؛ مثلاً شماره همراه، کد ملی، تاریخ تولد"/><button type="button" class="icon-btn" id="catClear" aria-label="پاک‌کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="cap" style="margin-bottom:6px">اول نوع پاسخ را انتخاب کنید؛ تنظیم‌های همان نوع بعد از افزودن باز می‌شود.</div>
-  <div class="row tight" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px"></div>
-  <div id="catList"></div>
+  <div class="picker-body">
+    <div class="row tight picker-cats" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px"></div>
+    <div id="catList" class="picker-list"></div>
+  </div>
 </aside>
 
 <aside class="sheet" id="shPackConfirm" role="dialog" aria-label="اعمال بسته روی پرسش‌های فعلی">
@@ -922,7 +924,7 @@ const FIELD_TYPES={
   number:{n:'عدد',ic:'i-number',g:'number',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش',ex:'چند نفر می‌آیید؟'},
   amount:{n:'مبلغ',ic:'i-wallet',g:'number',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی',ex:'مبلغ پیشنهادی شما؟'},
   choice:{n:'تک‌انتخاب',ic:'i-radio',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'رادیو,یکی از,انتخاب یک گزینه,چندگزینه ای,تست,گزینه',ex:'کدام روز مناسب‌تر است؟'},
-  multi:{n:'چندانتخاب',ic:'i-checkbox',g:'choice',ans:'چند گزینه',ctl:['options','multiLimits'],opts:1,tags:'چک باکس,تیک,چند گزینه,علاقه مندی,چندتایی',ex:'به کدام موضوع‌ها علاقه دارید؟'},
+  multi:{n:'چندانتخاب',ic:'i-checkbox',g:'choice',ans:'چند گزینه',ctl:['options','multiLimits'],opts:1,tags:'چک باکس,تیک,چند گزینه,چند مورد,انتخاب چند مورد,علاقه مندی,چندتایی',ex:'به کدام موضوع‌ها علاقه دارید؟'},
   dropdown:{n:'فهرست کشویی',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,tags:'کشویی,لیست,منو,سلکت,انتخاب از فهرست',ex:'شهر محل سکونت؟'},
   yesno:{n:'بله / خیر',ic:'i-check',g:'choice',ans:'بله یا خیر',ctl:['options'],fixedOpts:[{l:'بله',score:5},{l:'خیر',score:0}],tags:'دو گزینه,آری,نه,موافق,مخالف,درست,غلط',ex:'قبلاً شرکت کرده‌اید؟'},
   imgchoice:{n:'انتخاب کارتی (بدون تصویر)',ic:'i-image',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'انتخاب تصویری,کارت,عکس,تصویر گزینه',ex:'کدام طرح را می‌پسندید؟'},
@@ -2109,7 +2111,8 @@ function catalogScore(c,q){
   if(name===q)return 100;
   let score=0;
   if(name.startsWith(q))score=Math.max(score,80);else if(name.includes(q))score=Math.max(score,60);
-  if(tags.some(t=>t===q))score=Math.max(score,55);else if(tags.some(t=>t.includes(q)||q.includes(t)&&t.length>2))score=Math.max(score,40);
+  /* مترادف: برابر با کل عبارت، دربرگیرندهٔ آن، یا برابر با یکی از واژه‌های عبارت (نه زیررشتهٔ تصادفی مثل «اری» در «تاریخ») */
+  if(tags.some(t=>t===q))score=Math.max(score,55);else if(tags.some(t=>t.includes(q)||words.includes(t)))score=Math.max(score,40);
   if(c.t===q||c.k===q)score=Math.max(score,35);
   if(!score&&words.length>1&&words.every(w=>hay.some(h=>h.includes(w))))score=25;
   if(!score&&hay.some(h=>h.includes(q)))score=15;

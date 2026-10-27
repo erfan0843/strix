@@ -337,6 +337,12 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   .sheet{inset:auto; inset-inline-end:var(--sp-4); bottom:var(--sp-4); width:min(440px,40vw); border-radius:var(--r-xl);
     border:.5px solid var(--glass-line); transform:translateY(16px) scale(.98); opacity:0; pointer-events:none}
   .sheet.on{transform:none;opacity:1;pointer-events:auto}
+  /* انتخاب‌گر فیلد روی دسکتاپ: ورقهٔ پهن‌تر، دسته‌ها به‌صورت نوار کناری ثابت و فهرست کنار آن (موبایل همان فهرست تک‌ستونه می‌ماند) */
+  .sheet.picker{width:min(760px,64vw)}
+  .sheet.picker .picker-body{display:grid;grid-template-columns:196px minmax(0,1fr);gap:var(--sp-4);align-items:start}
+  .sheet.picker .picker-cats{flex-direction:column;align-items:stretch;position:sticky;top:0;margin-bottom:0}
+  .sheet.picker .picker-cats .chip{width:100%;justify-content:space-between;border-radius:var(--r-md)}
+  .sheet.picker .picker-list{min-width:0}
 }
 .scrim{position:fixed;inset:0;background:rgba(10,16,22,.34);z-index:55;opacity:0;pointer-events:none;transition:opacity var(--t) var(--ease)}
 .scrim.on{opacity:1;pointer-events:auto}
