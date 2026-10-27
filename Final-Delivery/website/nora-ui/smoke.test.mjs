@@ -3684,21 +3684,23 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   page.set('#fdMinSelect','۲');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
   ok(page.window.eval("S.fields.find(f=>f.id==='multi-list').minSelect===2&&S.fields.find(f=>f.id==='multi-list').maxSelect===3&&firstInvalidOptionSettings()===null"),
     'محدودیت انتخاب، رقم فارسی را به عدد صحیح تبدیل و سازگاری آن با تعداد گزینه‌ها را تأیید می‌کند');
-  page.set('#fdMinSelect','۰');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'حداقل صفر به‌عنوان عدد صحیح مثبت نامعتبر شناخته می‌شود');
-  page.set('#fdMinSelect','۴');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'حداقل بزرگ‌تر از تعداد گزینه‌های موجود رد می‌شود');
-  page.set('#fdMinSelect','۳');page.set('#fdMaxSelect','۲');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'حداقل بیشتر از حداکثر رد می‌شود');
-  page.set('#fdMinSelect','۱٫۵');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'مقدار اعشاری حد انتخاب پذیرفته نمی‌شود');
-  page.set('#fdMinSelect','');page.set('#fdMaxSelect','۴');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMaxSelect'"),
-    'حداکثر بیشتر از تعداد گزینه‌ها رد می‌شود');
+  /* مقدار نامعتبر همان‌جا در ویرایشگر رد می‌شود (saveField=false، پیام در #fdIssues، فوکوس روی کنترل) و در فیلد ذخیره نمی‌شود؛
+     همان قاعده (optionSettingsIssue) برای دادهٔ ذخیره‌شده/واردشده هم از firstInvalidOptionSettings گزارش می‌شود */
+  const rejectedAt=(target)=>page.window.eval('saveField()')===false&&page.doc.querySelector('#fdIssues').hidden===false
+    &&page.doc.activeElement===page.doc.querySelector(target)
+    &&page.window.eval("S.fields.find(f=>f.id==='multi-list').minSelect===2&&S.fields.find(f=>f.id==='multi-list').maxSelect===3&&firstInvalidOptionSettings()===null");
+  page.set('#fdMinSelect','۰');
+  ok(rejectedAt('#fdMinSelect'),'حداقل صفر به‌عنوان عدد صحیح مثبت نامعتبر شناخته می‌شود (در ویرایشگر، بدون تغییر فیلد)');
+  page.set('#fdMinSelect','۴');page.set('#fdMaxSelect','۳');
+  ok(rejectedAt('#fdMinSelect'),'حداقل بزرگ‌تر از تعداد گزینه‌های موجود رد می‌شود');
+  page.set('#fdMinSelect','۳');page.set('#fdMaxSelect','۲');
+  ok(rejectedAt('#fdMinSelect')&&page.txt('#fdIssues').includes('حداقل انتخاب نمی‌تواند از حداکثر بیشتر باشد'),'حداقل بیشتر از حداکثر رد می‌شود');
+  page.set('#fdMinSelect','۱٫۵');page.set('#fdMaxSelect','۳');
+  ok(rejectedAt('#fdMinSelect'),'مقدار اعشاری حد انتخاب پذیرفته نمی‌شود');
+  page.set('#fdMinSelect','');page.set('#fdMaxSelect','۴');
+  ok(rejectedAt('#fdMaxSelect'),'حداکثر بیشتر از تعداد گزینه‌ها رد می‌شود');
+  ok(page.window.eval("(()=>{const f=S.fields.find(f=>f.id==='multi-list');const keep=[f.minSelect,f.maxSelect];f.minSelect=4;f.maxSelect=3;const r=firstInvalidOptionSettings();[f.minSelect,f.maxSelect]=keep;return r&&r.target==='#fdMinSelect'&&r.field===f})()"),
+    'دادهٔ نامعتبرِ ذخیره‌شده (بدون ویرایشگر) همچنان در بررسی کل فرم با همان هدف گزارش می‌شود');
   page.set('#fdMinSelect','');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
   ok(page.window.eval("S.fields.find(f=>f.id==='multi-list').minSelect===null&&S.fields.find(f=>f.id==='multi-list').maxSelect===3&&firstInvalidOptionSettings()===null"),
     'خالی‌گذاشتن حداقل مجاز است و حداکثر مستقل به‌درستی ذخیره می‌شود');

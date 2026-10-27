@@ -1677,8 +1677,17 @@ function registrationClosedText(error){
   if(state==='ended')return 'این رویداد برگزار شده است؛ ثبت‌نام بسته است.';
   return 'مهلت ثبت‌نام این رویداد طبق ساعت سرور به پایان رسیده است؛ پاسخ پذیرفته نشد.';
 }
+/* ۴۲۲ روی پیش‌نویس یعنی خودِ پاسخ نامعتبر است (نه خطای ذخیره)؛ همان خطا کنار پرسش نشان داده می‌شود و «دوباره تلاش کن» بی‌معناست. */
+function publicDraftAnswerIssue(error){
+  const detail=error&&error.status===422&&error.payload&&error.payload.detail,issues=detail&&Array.isArray(detail.errors)?detail.errors:[],first=issues[0];
+  if(!first||!first.field_id||!REG||!Array.isArray(REG.q))return null;
+  const index=REG.q.findIndex(q=>String(q.id)===String(first.field_id));
+  return index>=0?{index,message:String(first.message||'پاسخ را بازبینی کنید.')}:null;
+}
 function publicDraftErrorText(error){
   if(!error||error.code==='server_unreachable')return 'اتصال قطع است؛ پیش‌نویس روی سرور ذخیره نشد. این صفحه را نبندید و پس از اتصال دوباره تلاش کنید.';
+  const issue=publicDraftAnswerIssue(error);
+  if(issue)return 'پیش‌نویس با پاسخ فعلیِ «'+String(REG.q[issue.index].l||'')+'» ذخیره نمی‌شود؛ '+issue.message;
   if(error.status===401)return 'دسترسی امن این مرورگر در دسترس نیست؛ فرم را تازه کنید تا پیش‌نویس بازیابی شود.';
   if(error.status===409&&registrationClosedText(error))return registrationClosedText(error);
   if(error.status===409)return 'نسخهٔ فرم تغییر کرده یا پاسخ‌گیری متوقف شده است؛ فرم را تازه کنید.';
@@ -1700,7 +1709,7 @@ function schedulePublicDraftSave(){
     const answers=window.__NORA_PUBLIC_FORM_COLLECT();
     publicDraftChain=publicDraftChain.catch(()=>{}).then(()=>api.savePublicDraft(FORM_ROUTE.formId,answers))
       .then(()=>{if(revision===publicDraftRevision){setDraftStatus('');clearDraftSaveFailure()}})
-      .catch(error=>{if(revision===publicDraftRevision){setDraftStatus(publicDraftErrorText(error));notifyDraftSaveFailure()}});
+      .catch(error=>{if(revision===publicDraftRevision){setDraftStatus(publicDraftErrorText(error));notifyDraftSaveFailure(error)}});
   },650);
   return true;
 }
@@ -1714,7 +1723,7 @@ async function flushPublicDraftSave(){
   try{
     await api.savePublicDraft(FORM_ROUTE.formId,window.__NORA_PUBLIC_FORM_COLLECT());
     setDraftStatus('');clearDraftSaveFailure();return true;
-  }catch(error){setDraftStatus(publicDraftErrorText(error));notifyDraftSaveFailure();return false}
+  }catch(error){setDraftStatus(publicDraftErrorText(error));notifyDraftSaveFailure(error);return false}
 }
 function collectDraft(){
   const d={cur:cur,guests:S.guests,companionFields:S.companionFields instanceof Set?[...S.companionFields]:[],discount:S.discount,code:S.code,regCode:S.regCode,
@@ -1729,7 +1738,9 @@ function setDraftStatus(message){
   el.hidden=!text.trim();
 }
 let draftFailureToastShown=false;
-function notifyDraftSaveFailure(){
+function notifyDraftSaveFailure(error){
+  const issue=publicDraftAnswerIssue(error);
+  if(issue){if(REGGATE&&typeof REGGATE.paint==='function')REGGATE.paint(issue.index,issue.message);return}
   if(draftFailureToastShown)return;
   draftFailureToastShown=true;toast('ذخیره انجام نشد؛ دوباره تلاش کن.','error');
 }
@@ -2929,9 +2940,12 @@ if(REG&&Array.isArray(REG.q)){
         const ids=new Set(String(control.getAttribute('aria-describedby')||'').split(/\s+/).filter(Boolean));ids.add('qerr-'+i);
         control.setAttribute('aria-describedby',[...ids].join(' '));
       }else{
-        control.classList.remove('field-invalid');control.removeAttribute('aria-invalid');
-        const ids=String(control.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!=='qerr-'+i);
-        if(ids.length)control.setAttribute('aria-describedby',ids.join(' '));else control.removeAttribute('aria-describedby');
+        /* کنترل فعال می‌تواند عوض شده باشد (گزینهٔ انتخاب‌شده در گروه رادیویی)؛ نشانهٔ خطا از همهٔ کنترل‌های همین پرسش پاک می‌شود */
+        const scope=error&&error.parentElement?error.parentElement:control.parentElement,marked=scope?[...scope.querySelectorAll('.field-invalid,[aria-invalid="true"]')]:[];
+        if(!marked.includes(control))marked.push(control);
+        marked.forEach(el=>{el.classList.remove('field-invalid');el.removeAttribute('aria-invalid');
+          const ids=String(el.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!=='qerr-'+i);
+          if(ids.length)el.setAttribute('aria-describedby',ids.join(' '));else el.removeAttribute('aria-describedby');});
       }
     }
   }
@@ -2958,7 +2972,9 @@ if(REG&&Array.isArray(REG.q)){
   const qMissing=()=>{const issue=firstProblem();return issue?issue.message:null};
   const missCur=()=>{const issue=currentProblem();return issue?issue.message:null};
   const syncValidationFeedback=()=>validationAttempted.forEach(i=>paintQuestionError(i,visible(i)?problem(i):null));
-  REGGATE={miss:qMissing,missCur,firstProblem,currentProblem,report:reportQuestionProblem,sync:syncValidationFeedback};
+  /* paint: خطای سروری کنار پرسش بدون جابه‌جایی فوکوس (هنگام تایپ) */
+  const paintServerIssue=(i,message)=>{if(!Number.isInteger(i)||i<0||i>=N)return;validationAttempted.add(i);paintQuestionError(i,problem(i)||message)};
+  REGGATE={miss:qMissing,missCur,firstProblem,currentProblem,report:reportQuestionProblem,sync:syncValidationFeedback,paint:paintServerIssue};
   const host=document.getElementById('u8'), ids=REG.q.map((_,i)=>'qp'+i);
   const feeOptionsCard=document.getElementById('feeOptionsCard'),billCard=document.getElementById('billCard');
   if(feeOptionsCard)feeOptionsCard.style.display=hasFees?'':'none';

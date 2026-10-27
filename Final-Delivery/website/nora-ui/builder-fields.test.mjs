@@ -430,5 +430,25 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
 
+/* ── ۱۰) ویرایشگر: گزینهٔ تکراری/خالی و حداقل>حداکثر انتخاب همان‌جا رد می‌شوند (نه فقط هنگام ذخیرهٔ کل فرم) ── */
+{
+  console.log('\n── اعتبارسنجی گزینه‌ها در خود ویرایشگر ──');
+  const p=await load();
+  p.ev("go('s2');S.fields=[];addField('choice');editField(S.fields[0].id)");
+  const n=p.all('#fdOptions [data-optl]').length;
+  p.input('[data-optl="1"]',p.doc.querySelector('[data-optl="0"]').value);
+  ok(p.ev('saveField()')===false&&p.doc.querySelector('#shField').classList.contains('on')&&p.txt('#fdIssues').includes('یکتا')&&p.doc.activeElement===p.doc.querySelector('[data-optl="1"]'),'گزینهٔ تکراری: ذخیره رد می‌شود، پیام کنار کنترل و فوکوس روی همان گزینه');
+  p.input('[data-optl="1"]','');
+  ok(p.ev('saveField()')===false&&p.txt('#fdIssues').includes('نویسه'),'گزینهٔ خالی رد می‌شود');
+  p.input('[data-optl="1"]','گزینهٔ دوم');
+  ok(p.ev('saveField()')===true&&p.ev("S.fields[0].opts.length")===n,'گزینه‌های معتبر ذخیره می‌شوند');
+  p.ev("S.fields=[];addField('multi');editField(S.fields[0].id)");
+  p.set('#fdMinSelect','۳');p.set('#fdMaxSelect','۲');
+  ok(p.ev('saveField()')===false&&p.txt('#fdIssues').includes('حداقل انتخاب')&&p.doc.activeElement===p.doc.querySelector('#fdMinSelect'),'حداقل انتخاب بزرگ‌تر از حداکثر در ویرایشگر رد می‌شود و فوکوس روی حداقل است');
+  p.set('#fdMinSelect','۱');p.set('#fdMaxSelect','۲');
+  ok(p.ev('saveField()')===true&&p.ev("S.fields[0].minSelect===1&&S.fields[0].maxSelect===2"),'محدودیت معتبر ذخیره می‌شود');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
+
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
 process.exit(fails?1:0);

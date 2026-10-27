@@ -2580,6 +2580,15 @@ function saveField(){
     bounds={min,max};
   }
   const draft=FIELD_DRAFT;
+  /* گزینه‌ها و محدودیت انتخاب همین‌جا بررسی می‌شوند تا خطا کنار همان کنترل دیده شود، نه فقط هنگام ذخیرهٔ کل فرم */
+  if(OPTION_FIELD_TYPES.has(t)||t==='multi'){
+    const probe=Object.assign({},draft,{t,opts:optionRowsForField(draft).map(raw=>typeof raw==='string'?{l:raw.trim()}:Object.assign({},raw||{},{l:String(raw&&raw.l==null?'':raw.l).trim()}))});
+    if(t==='multi'){probe.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);probe.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value)}
+    const issue=optionSettingsIssue(probe);
+    if(issue){toast(issue.message);setFieldIssues([issue.message+'.']);
+      const target=issue.target?$(issue.target):issue.optionIndex==null?$('#fdAddOption'):$('#fdOptions [data-optl="'+issue.optionIndex+'"]');
+      if(target&&target.focus)target.focus();return false}
+  }
   draft.l=($('#fdTitle').value||'').trim().slice(0,160)||draft.l; draft.help=$('#fdHelp').value.trim().slice(0,300);
   draft.req=$('#fdReq').classList.contains('on');
   if(PROFILE_TYPES.has(t)&&$('#fdProf').getAttribute('aria-disabled')!=='true')draft.prof=$('#fdProf').classList.contains('on');
@@ -2692,8 +2701,8 @@ function firstInvalidNumericBounds(){
   }
   return null;
 }
-function firstInvalidOptionSettings(){
-  for(const field of S.fields){
+/* یک فیلد: نخستین اشکال گزینه‌ها/محدودیت انتخاب (همان قاعده‌ای که سرور و ذخیرهٔ فرم اعمال می‌کنند). */
+function optionSettingsIssue(field){
     const rows=optionRowsForField(field);
     if(OPTION_FIELD_TYPES.has(field.t)){
       if(rows.length>MAX_FIELD_OPTIONS)return {field,optionIndex:MAX_FIELD_OPTIONS,message:'هر پرسش حداکثر '+faN(MAX_FIELD_OPTIONS)+' گزینه دارد'};
@@ -2719,7 +2728,10 @@ function firstInvalidOptionSettings(){
     }else if([field.minSelect,field.maxSelect].some(value=>value!=null&&value!=='')){
       return {field,message:'محدودیت تعداد انتخاب فقط برای چندانتخابی است'};
     }
-  }
+    return null;
+}
+function firstInvalidOptionSettings(){
+  for(const field of S.fields){const issue=optionSettingsIssue(field);if(issue)return issue}
   return null;
 }
 function firstInvalidCondition(){
