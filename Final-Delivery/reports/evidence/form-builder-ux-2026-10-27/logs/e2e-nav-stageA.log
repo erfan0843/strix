@@ -1,0 +1,42 @@
+PASS owner: ترتیب ریل ["dash","newev","events","users","reports","forms","settings"]
+PASS owner: والد «کاربران و گزارش‌ها» با دو زیرمقصد {"head":"کاربران و گزارش‌ها","kids":["users:open","reports:open"]}
+PASS owner: «فرم‌ساز» در ریل → builder.html {"t":"فرم‌ساز","h":"builder.html"}
+PASS owner: کلیک «گزارش‌ها» → #reports، فعال، والد روشن، «کاربران» خاموش {"hash":"#reports","on":true,"grpOn":true,"usersOn":false,"tab":"گزارش‌ها"}
+PASS owner: کلیک «کاربران» → #users مستقل {"hash":"#users","on":true,"repOn":false}
+PASS owner: deep link #reports همچنان کار می‌کند
+PASS owner: deep link #users همچنان کار می‌کند
+PASS owner: نوار پایین موبایل = داشبورد، رویدادها، کاربران(و گزارش‌ها)، فرم‌ساز، تنظیمات ["dash:داشبورد:","events:رویدادها:","users:کاربران:کاربران و گزارش‌ها","forms:فرم‌ساز:","settings:تنظیمات:"]
+PASS owner: موبایل ۳۹۰ بدون سرریز افقی و نوار پایین دیده می‌شود {"sw":390,"cw":390,"vis":true,"h":76.25}
+PASS owner: زبانهٔ موبایل گروه → بخش کاربران با زیرزبانه‌های کاربران/گزارش‌ها
+PASS owner: زیرزبانهٔ «گزارش‌ها» در موبایل → #reports و زبانهٔ گروه فعال
+PASS owner: «فرم‌ساز» در منوی اصلی سایت (home.html) پس از تأیید سرور ["خانه","رویدادها","فرم‌ساز","ورود/ثبت‌نام"]
+PASS owner: منوی اصلی ۴زبانه‌ای بدون سرریز افقی {"sw":390,"cw":390}
+PASS owner: کلیک «فرم‌ساز» → builder.html (مرکز فرم‌ها)
+PASS owner: مرکز فرم‌ها برای نقش مجاز باز شد "http://127.0.0.1:8000/builder.html"
+PASS owner: راه بازگشت به پنل و راه «ساخت فرم» از مرکز فرم‌ها روشن است ["admin.html","create.html","create.html","admin.html"]
+PASS manager: ترتیب ریل ["dash","newev","events","users","reports","forms","settings"]
+PASS manager: والد «کاربران و گزارش‌ها» با دو زیرمقصد {"head":"کاربران و گزارش‌ها","kids":["users:open","reports:open"]}
+PASS manager: «فرم‌ساز» در ریل → builder.html {"t":"فرم‌ساز","h":"builder.html"}
+PASS manager: کلیک «گزارش‌ها» → #reports، فعال، والد روشن، «کاربران» خاموش {"hash":"#reports","on":true,"grpOn":true,"usersOn":false,"tab":"گزارش‌ها"}
+PASS manager: کلیک «کاربران» → #users مستقل {"hash":"#users","on":true,"repOn":false}
+PASS manager: deep link #reports همچنان کار می‌کند
+PASS manager: deep link #users همچنان کار می‌کند
+PASS manager: نوار پایین موبایل = داشبورد، رویدادها، کاربران(و گزارش‌ها)، فرم‌ساز (تنظیمات برای مدیر قفل است) ["dash:داشبورد:","events:رویدادها:","users:کاربران:کاربران و گزارش‌ها","forms:فرم‌ساز:"]
+PASS manager: موبایل ۳۹۰ بدون سرریز افقی و نوار پایین دیده می‌شود {"sw":390,"cw":390,"vis":true,"h":76.25}
+PASS manager: زبانهٔ موبایل گروه → بخش کاربران با زیرزبانه‌های کاربران/گزارش‌ها
+PASS manager: زیرزبانهٔ «گزارش‌ها» در موبایل → #reports و زبانهٔ گروه فعال
+PASS manager: «فرم‌ساز» در منوی اصلی سایت (home.html) پس از تأیید سرور ["خانه","رویدادها","فرم‌ساز","حساب من"]
+PASS manager: منوی اصلی ۴زبانه‌ای بدون سرریز افقی {"sw":1440,"cw":1440}
+PASS manager: کلیک «فرم‌ساز» → builder.html (مرکز فرم‌ها)
+PASS manager: مرکز فرم‌ها برای نقش مجاز باز شد "http://127.0.0.1:8080/builder.html"
+PASS manager: راه بازگشت به پنل و راه «ساخت فرم» از مرکز فرم‌ها روشن است ["admin.html","create.html","create.html","admin.html"]
+PASS عضو: «فرم‌ساز» در منوی اصلی نیست (۳ زبانه، حساب من) ["خانه","رویدادها","حساب من"]
+PASS عضو: GET /api/forms از سرور بسته است (401/403)
+PASS عضو: GET /api/admin/users از سرور بسته است (401/403)
+PASS عضو: نشانی مستقیم builder.html فهرست فرمی نشان نمی‌دهد و به ورود ارجاع می‌دهد {"login":true,"list":0}
+PASS میهمان: «فرم‌ساز» در منوی اصلی نیست ["خانه","رویدادها","ورود/ثبت‌نام"]
+PASS میهمان: GET /api/forms بسته است (401)
+PASS میهمان: admin.html#reports به ورود کارکنان می‌رسد، نه داده
+PASS صفحه‌کلید: Tab از رویدادها → کاربران → گزارش‌ها → فرم‌ساز (عنوان والد در ترتیب فوکوس نیست) ["users","reports","builder.html"]
+PASS صفحه‌کلید: Enter روی «فرم‌ساز» به مرکز فرم‌ها می‌رود
+TOTAL PASS 41 / FAIL 0

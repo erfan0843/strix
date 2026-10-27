@@ -1,0 +1,477 @@
+PASS capability contract resolved from the server (state ready)
+catalog (visible): text/text area/area number/number amount/amount choice/choice multi/multi dropdown/dropdown yesno/yesno imgchoice/imgchoice fullname/fullname nid/nid birth-date/date gender/gender marital/marital mobile/mobile email/email address/address province/province location/location uni/uni edu/edu job/job jalali-date/date time/time datetime/datetime slot/slot rating/rating scale/scale bars/bars terms/terms image/image file/file voice/voice sign/sign price/price coupon/coupon
+PASS every server-supported type has a spec and an addable catalog entry
+PASS [text] picker: search by name finds it first
+PASS [text] editor opens with the type tag
+PASS [text] visible setting boxes == FIELD_SETTINGS registry
+PASS [text] valid settings save and close the editor
+PASS [text] canvas field has the right type and preset
+PASS [area] picker: search by name finds it first
+PASS [area] editor opens with the type tag
+PASS [area] visible setting boxes == FIELD_SETTINGS registry
+PASS [area] valid settings save and close the editor
+PASS [area] canvas field has the right type and preset
+PASS [number] picker: search by name finds it first
+PASS [number] editor opens with the type tag
+PASS [number] visible setting boxes == FIELD_SETTINGS registry
+PASS [number] editor rejects min > max and keeps the sheet open
+PASS [number] valid settings save and close the editor
+PASS [number] canvas field has the right type and preset
+PASS [amount] picker: search by name finds it first
+PASS [amount] editor opens with the type tag
+PASS [amount] visible setting boxes == FIELD_SETTINGS registry
+PASS [amount] editor rejects min > max and keeps the sheet open
+PASS [amount] valid settings save and close the editor
+PASS [amount] canvas field has the right type and preset
+PASS [choice] picker: search by name finds it first
+PASS [choice] editor opens with the type tag
+PASS [choice] visible setting boxes == FIELD_SETTINGS registry
+PASS [choice] editor rejects duplicate options
+PASS [choice] valid settings save and close the editor
+PASS [choice] canvas field has the right type and preset
+PASS [dropdown] picker: search by name finds it first
+PASS [dropdown] editor opens with the type tag
+PASS [dropdown] visible setting boxes == FIELD_SETTINGS registry
+PASS [dropdown] editor rejects duplicate options
+PASS [dropdown] valid settings save and close the editor
+PASS [dropdown] canvas field has the right type and preset
+PASS [multi] picker: search by name finds it first
+PASS [multi] editor opens with the type tag
+PASS [multi] visible setting boxes == FIELD_SETTINGS registry
+PASS [multi] editor rejects duplicate options
+PASS [multi] editor rejects minSelect > maxSelect
+PASS [multi] valid settings save and close the editor
+PASS [multi] canvas field has the right type and preset
+PASS [imgchoice] picker: search by name finds it first
+PASS [imgchoice] editor opens with the type tag
+PASS [imgchoice] visible setting boxes == FIELD_SETTINGS registry
+PASS [imgchoice] editor rejects duplicate options
+PASS [imgchoice] valid settings save and close the editor
+PASS [imgchoice] canvas field has the right type and preset
+PASS [yesno] picker: search by name finds it first
+PASS [yesno] editor opens with the type tag
+PASS [yesno] visible setting boxes == FIELD_SETTINGS registry
+PASS [yesno] valid settings save and close the editor
+PASS [yesno] canvas field has the right type and preset
+PASS [gender] picker: search by name finds it first
+PASS [gender] editor opens with the type tag
+PASS [gender] visible setting boxes == FIELD_SETTINGS registry
+PASS [gender] controlled list keeps its defaults and accepts an extra option
+PASS [gender] valid settings save and close the editor
+PASS [gender] canvas field has the right type and preset
+PASS [marital] picker: search by name finds it first
+PASS [marital] editor opens with the type tag
+PASS [marital] visible setting boxes == FIELD_SETTINGS registry
+PASS [marital] valid settings save and close the editor
+PASS [marital] canvas field has the right type and preset
+PASS [fullname] picker: search by name finds it first
+PASS [fullname] editor opens with the type tag
+PASS [fullname] visible setting boxes == FIELD_SETTINGS registry
+PASS [fullname] valid settings save and close the editor
+PASS [fullname] canvas field has the right type and preset
+PASS [mobile] picker: search by name finds it first
+PASS [mobile] editor opens with the type tag
+PASS [mobile] visible setting boxes == FIELD_SETTINGS registry
+PASS [mobile] valid settings save and close the editor
+PASS [mobile] canvas field has the right type and preset
+PASS [nid] picker: search by name finds it first
+PASS [nid] editor opens with the type tag
+PASS [nid] visible setting boxes == FIELD_SETTINGS registry
+PASS [nid] valid settings save and close the editor
+PASS [nid] canvas field has the right type and preset
+PASS [email] picker: search by name finds it first
+PASS [email] editor opens with the type tag
+PASS [email] visible setting boxes == FIELD_SETTINGS registry
+PASS [email] valid settings save and close the editor
+PASS [email] canvas field has the right type and preset
+PASS [address] picker: search by name finds it first
+PASS [address] editor opens with the type tag
+PASS [address] visible setting boxes == FIELD_SETTINGS registry
+PASS [address] valid settings save and close the editor
+PASS [address] canvas field has the right type and preset
+PASS [location] picker: search by name finds it first
+PASS [location] editor opens with the type tag
+PASS [location] visible setting boxes == FIELD_SETTINGS registry
+PASS [location] valid settings save and close the editor
+PASS [location] canvas field has the right type and preset
+PASS [province] picker: search by name finds it first
+PASS [province] editor opens with the type tag
+PASS [province] visible setting boxes == FIELD_SETTINGS registry
+PASS [province] valid settings save and close the editor
+PASS [province] canvas field has the right type and preset
+PASS [uni] picker: search by name finds it first
+PASS [uni] editor opens with the type tag
+PASS [uni] visible setting boxes == FIELD_SETTINGS registry
+PASS [uni] valid settings save and close the editor
+PASS [uni] canvas field has the right type and preset
+PASS [edu] picker: search by name finds it first
+PASS [edu] editor opens with the type tag
+PASS [edu] visible setting boxes == FIELD_SETTINGS registry
+PASS [edu] valid settings save and close the editor
+PASS [edu] canvas field has the right type and preset
+PASS [job] picker: search by name finds it first
+PASS [job] editor opens with the type tag
+PASS [job] visible setting boxes == FIELD_SETTINGS registry
+PASS [job] valid settings save and close the editor
+PASS [job] canvas field has the right type and preset
+PASS [date] picker: search by name finds it first
+PASS [date] editor opens with the type tag
+PASS [date] visible setting boxes == FIELD_SETTINGS registry
+PASS [date] valid settings save and close the editor
+PASS [date] canvas field has the right type and preset
+PASS [time] picker: search by name finds it first
+PASS [time] editor opens with the type tag
+PASS [time] visible setting boxes == FIELD_SETTINGS registry
+PASS [time] valid settings save and close the editor
+PASS [time] canvas field has the right type and preset
+PASS [datetime] picker: search by name finds it first
+PASS [datetime] editor opens with the type tag
+PASS [datetime] visible setting boxes == FIELD_SETTINGS registry
+PASS [datetime] valid settings save and close the editor
+PASS [datetime] canvas field has the right type and preset
+PASS [slot] picker: search by name finds it first
+PASS [slot] editor opens with the type tag
+PASS [slot] visible setting boxes == FIELD_SETTINGS registry
+PASS [slot] valid settings save and close the editor
+PASS [slot] canvas field has the right type and preset
+PASS [rating] picker: search by name finds it first
+PASS [rating] editor opens with the type tag
+PASS [rating] visible setting boxes == FIELD_SETTINGS registry
+PASS [rating] editor rejects min > max and keeps the sheet open
+PASS [rating] valid settings save and close the editor
+PASS [rating] canvas field has the right type and preset
+PASS [scale] picker: search by name finds it first
+PASS [scale] editor opens with the type tag
+PASS [scale] visible setting boxes == FIELD_SETTINGS registry
+PASS [scale] editor rejects min > max and keeps the sheet open
+PASS [scale] valid settings save and close the editor
+PASS [scale] canvas field has the right type and preset
+PASS [bars] picker: search by name finds it first
+PASS [bars] editor opens with the type tag
+PASS [bars] visible setting boxes == FIELD_SETTINGS registry
+PASS [bars] editor rejects min > max and keeps the sheet open
+PASS [bars] valid settings save and close the editor
+PASS [bars] canvas field has the right type and preset
+PASS [terms] picker: search by name finds it first
+PASS [terms] editor opens with the type tag
+PASS [terms] visible setting boxes == FIELD_SETTINGS registry
+PASS [terms] valid settings save and close the editor
+PASS [terms] canvas field has the right type and preset
+PASS all types added once (29 fields)
+PASS first save pinned the URL with fid= and state «ذخیره شد»
+form id: b4eaa346-111a-49ac-90cd-71e19a708e73
+PASS server stored every field in order
+PASS [text] server record has the settings
+PASS [area] server record has the settings
+PASS [number] server record has the settings
+PASS [amount] server record has the settings
+PASS [choice] server record has the settings
+PASS [dropdown] server record has the settings
+PASS [multi] server record has the settings
+PASS [imgchoice] server record has the settings
+PASS [yesno] server record has the settings
+PASS [gender] server record has the settings
+PASS [marital] server record has the settings
+PASS [fullname] server record has the settings
+PASS [mobile] server record has the settings
+PASS [nid] server record has the settings
+PASS [email] server record has the settings
+PASS [address] server record has the settings
+PASS [location] server record has the settings
+PASS [province] server record has the settings
+PASS [uni] server record has the settings
+PASS [edu] server record has the settings
+PASS [job] server record has the settings
+PASS [date] server record has the settings
+PASS [time] server record has the settings
+PASS [datetime] server record has the settings
+PASS [slot] server record has the settings
+PASS [rating] server record has the settings
+PASS [scale] server record has the settings
+PASS [bars] server record has the settings
+PASS [terms] server record has the settings
+PASS reopened on the server version as «ذخیره شد»
+PASS [text] restored field equals the server record
+PASS [text] editor controls show the stored settings after reopen
+PASS [area] restored field equals the server record
+PASS [area] editor controls show the stored settings after reopen
+PASS [number] restored field equals the server record
+PASS [number] editor controls show the stored settings after reopen
+PASS [amount] restored field equals the server record
+PASS [amount] editor controls show the stored settings after reopen
+PASS [choice] restored field equals the server record
+PASS [choice] editor controls show the stored settings after reopen
+PASS [dropdown] restored field equals the server record
+PASS [dropdown] editor controls show the stored settings after reopen
+PASS [multi] restored field equals the server record
+PASS [multi] editor controls show the stored settings after reopen
+PASS [imgchoice] restored field equals the server record
+PASS [imgchoice] editor controls show the stored settings after reopen
+PASS [yesno] restored field equals the server record
+PASS [yesno] editor controls show the stored settings after reopen
+PASS [gender] restored field equals the server record
+PASS [gender] editor controls show the stored settings after reopen
+PASS [marital] restored field equals the server record
+PASS [marital] editor controls show the stored settings after reopen
+PASS [fullname] restored field equals the server record
+PASS [fullname] editor controls show the stored settings after reopen
+PASS [mobile] restored field equals the server record
+PASS [mobile] editor controls show the stored settings after reopen
+PASS [nid] restored field equals the server record
+PASS [nid] editor controls show the stored settings after reopen
+PASS [email] restored field equals the server record
+PASS [email] editor controls show the stored settings after reopen
+PASS [address] restored field equals the server record
+PASS [address] editor controls show the stored settings after reopen
+PASS [location] restored field equals the server record
+PASS [location] editor controls show the stored settings after reopen
+PASS [province] restored field equals the server record
+PASS [province] editor controls show the stored settings after reopen
+PASS [uni] restored field equals the server record
+PASS [uni] editor controls show the stored settings after reopen
+PASS [edu] restored field equals the server record
+PASS [edu] editor controls show the stored settings after reopen
+PASS [job] restored field equals the server record
+PASS [job] editor controls show the stored settings after reopen
+PASS [date] restored field equals the server record
+PASS [date] editor controls show the stored settings after reopen
+PASS [time] restored field equals the server record
+PASS [time] editor controls show the stored settings after reopen
+PASS [datetime] restored field equals the server record
+PASS [datetime] editor controls show the stored settings after reopen
+PASS [slot] restored field equals the server record
+PASS [slot] editor controls show the stored settings after reopen
+PASS [rating] restored field equals the server record
+PASS [rating] editor controls show the stored settings after reopen
+PASS [scale] restored field equals the server record
+PASS [scale] editor controls show the stored settings after reopen
+PASS [bars] restored field equals the server record
+PASS [bars] editor controls show the stored settings after reopen
+PASS [terms] restored field equals the server record
+PASS [terms] editor controls show the stored settings after reopen
+PASS readiness is clean for the all-types form
+PASS form is published on the server
+PASS public draft opened via API (cookie session)
+PASS [text] server rejects an invalid value (422 with field_id)
+PASS [text] server accepts the valid value
+PASS [area] server rejects an invalid value (422 with field_id)
+PASS [area] server accepts the valid value
+PASS [number] server rejects an invalid value (422 with field_id)
+PASS [number] server accepts the valid value
+PASS [amount] server rejects an invalid value (422 with field_id)
+PASS [amount] server accepts the valid value
+PASS [choice] server rejects an invalid value (422 with field_id)
+PASS [choice] server accepts the valid value
+PASS [dropdown] server rejects an invalid value (422 with field_id)
+PASS [dropdown] server accepts the valid value
+PASS [multi] server rejects an invalid value (422 with field_id)
+PASS [multi] server accepts the valid value
+PASS [imgchoice] server rejects an invalid value (422 with field_id)
+PASS [imgchoice] server accepts the valid value
+PASS [yesno] server rejects an invalid value (422 with field_id)
+PASS [yesno] server accepts the valid value
+PASS [gender] server rejects an invalid value (422 with field_id)
+PASS [gender] server accepts the valid value
+PASS [marital] server rejects an invalid value (422 with field_id)
+PASS [marital] server accepts the valid value
+PASS [fullname] server rejects an invalid value (422 with field_id)
+PASS [fullname] server accepts the valid value
+PASS [mobile] draft PATCH keeps an incomplete value while typing (partial, by design)
+PASS [mobile] server accepts the valid value
+PASS [nid] server rejects an invalid value (422 with field_id)
+PASS [nid] server accepts the valid value
+PASS [email] server rejects an invalid value (422 with field_id)
+PASS [email] server accepts the valid value
+PASS [address] server rejects an invalid value (422 with field_id)
+PASS [address] server accepts the valid value
+PASS [location] server rejects an invalid value (422 with field_id)
+PASS [location] server accepts the valid value
+PASS [province] server rejects an invalid value (422 with field_id)
+PASS [province] server accepts the valid value
+PASS [uni] server rejects an invalid value (422 with field_id)
+PASS [uni] server accepts the valid value
+PASS [edu] server rejects an invalid value (422 with field_id)
+PASS [edu] server accepts the valid value
+PASS [job] server rejects an invalid value (422 with field_id)
+PASS [job] server accepts the valid value
+PASS [date] server rejects an invalid value (422 with field_id)
+PASS [date] server accepts the valid value
+PASS [time] server rejects an invalid value (422 with field_id)
+PASS [time] server accepts the valid value
+PASS [datetime] server rejects an invalid value (422 with field_id)
+PASS [datetime] server accepts the valid value
+PASS [slot] server rejects an invalid value (422 with field_id)
+PASS [slot] server accepts the valid value
+PASS [rating] server rejects an invalid value (422 with field_id)
+PASS [rating] server accepts the valid value
+PASS [scale] server rejects an invalid value (422 with field_id)
+PASS [scale] server accepts the valid value
+PASS [bars] server rejects an invalid value (422 with field_id)
+PASS [bars] server accepts the valid value
+PASS [terms] server rejects an invalid value (422 with field_id)
+PASS [terms] server accepts the valid value
+PASS [text] final submit rejects the invalid value (422, field_id, message)
+PASS [area] final submit rejects the invalid value (422, field_id, message)
+PASS [number] final submit rejects the invalid value (422, field_id, message)
+PASS [amount] final submit rejects the invalid value (422, field_id, message)
+PASS [choice] final submit rejects the invalid value (422, field_id, message)
+PASS [dropdown] final submit rejects the invalid value (422, field_id, message)
+PASS [multi] final submit rejects the invalid value (422, field_id, message)
+PASS [imgchoice] final submit rejects the invalid value (422, field_id, message)
+PASS [yesno] final submit rejects the invalid value (422, field_id, message)
+PASS [gender] final submit rejects the invalid value (422, field_id, message)
+PASS [marital] final submit rejects the invalid value (422, field_id, message)
+PASS [fullname] final submit rejects the invalid value (422, field_id, message)
+PASS [mobile] final submit rejects the invalid value (422, field_id, message)
+PASS [nid] final submit rejects the invalid value (422, field_id, message)
+PASS [email] final submit rejects the invalid value (422, field_id, message)
+PASS [address] final submit rejects the invalid value (422, field_id, message)
+PASS [location] final submit rejects the invalid value (422, field_id, message)
+PASS [province] final submit rejects the invalid value (422, field_id, message)
+PASS [uni] final submit rejects the invalid value (422, field_id, message)
+PASS [edu] final submit rejects the invalid value (422, field_id, message)
+PASS [job] final submit rejects the invalid value (422, field_id, message)
+PASS [date] final submit rejects the invalid value (422, field_id, message)
+PASS [time] final submit rejects the invalid value (422, field_id, message)
+PASS [datetime] final submit rejects the invalid value (422, field_id, message)
+PASS [slot] final submit rejects the invalid value (422, field_id, message)
+PASS [rating] final submit rejects the invalid value (422, field_id, message)
+PASS [scale] final submit rejects the invalid value (422, field_id, message)
+PASS [bars] final submit rejects the invalid value (422, field_id, message)
+PASS [terms] final submit rejects the invalid value (422, field_id, message)
+PASS unknown field id is rejected by the server
+PASS public form renders all questions on one page (display=all)
+PASS [text] public control rendered with the configured settings
+PASS [area] public control rendered with the configured settings
+PASS [number] public control rendered with the configured settings
+PASS [amount] public control rendered with the configured settings
+PASS [choice] public control rendered with the configured settings
+PASS [dropdown] public control rendered with the configured settings
+PASS [multi] public control rendered with the configured settings
+PASS [imgchoice] public control rendered with the configured settings
+PASS [yesno] public control rendered with the configured settings
+PASS [gender] public control rendered with the configured settings
+PASS [marital] public control rendered with the configured settings
+PASS [fullname] public control rendered with the configured settings
+PASS [mobile] public control rendered with the configured settings
+PASS [nid] public control rendered with the configured settings
+PASS [email] public control rendered with the configured settings
+PASS [address] public control rendered with the configured settings
+PASS [location] public control rendered with the configured settings
+PASS [province] public control rendered with the configured settings
+PASS [uni] public control rendered with the configured settings
+PASS [edu] public control rendered with the configured settings
+PASS [job] public control rendered with the configured settings
+PASS [date] public control rendered with the configured settings
+PASS [time] public control rendered with the configured settings
+PASS [datetime] public control rendered with the configured settings
+PASS [slot] public control rendered with the configured settings
+PASS [rating] public control rendered with the configured settings
+PASS [scale] public control rendered with the configured settings
+PASS [bars] public control rendered with the configured settings
+PASS [terms] public control rendered with the configured settings
+PASS [text] required question blocks submission when empty
+PASS [choice] required question blocks submission when empty
+PASS [terms] required question blocks submission when empty
+PASS [text] public control accepts a valid answer
+PASS [area] public control accepts a valid answer
+PASS [number] public control accepts a valid answer
+PASS [amount] public control accepts a valid answer
+PASS [choice] public control accepts a valid answer
+PASS [dropdown] public control accepts a valid answer
+PASS [multi] public control accepts a valid answer
+PASS [imgchoice] public control accepts a valid answer
+PASS [yesno] public control accepts a valid answer
+PASS [gender] public control accepts a valid answer
+PASS [marital] public control accepts a valid answer
+PASS [fullname] public control accepts a valid answer
+PASS [mobile] public control accepts a valid answer
+PASS [nid] public control accepts a valid answer
+PASS [email] public control accepts a valid answer
+PASS [address] public control accepts a valid answer
+PASS [location] public control accepts a valid answer
+PASS [province] public control accepts a valid answer
+PASS [uni] public control accepts a valid answer
+PASS [edu] public control accepts a valid answer
+PASS [job] public control accepts a valid answer
+PASS [date] public control accepts a valid answer
+PASS [time] public control accepts a valid answer
+PASS [datetime] public control accepts a valid answer
+PASS [slot] public control accepts a valid answer
+PASS [rating] public control accepts a valid answer
+PASS [scale] public control accepts a valid answer
+PASS [bars] public control accepts a valid answer
+PASS [terms] public control accepts a valid answer
+PASS [number] public form flags an invalid browser answer with a how-to-fix message
+PASS [number] local how-to-fix message (with the bound) survives the draft 422 from the server
+PASS [amount] public form flags an invalid browser answer with a how-to-fix message
+PASS [mobile] public form flags an invalid browser answer with a how-to-fix message
+PASS [nid] public form flags an invalid browser answer with a how-to-fix message
+PASS [email] public form flags an invalid browser answer with a how-to-fix message
+PASS no stale invalid markers remain once every answer is valid (radio groups included)
+PASS draft status is not stuck on a failure once answers are valid
+PASS no field errors remain after valid answers
+PASS public submission completed (server draft submitted=true)
+PASS owner sees exactly one response
+PASS [text] stored answer matches what the visitor entered
+PASS [area] stored answer matches what the visitor entered
+PASS [number] stored answer matches what the visitor entered
+PASS [amount] stored answer matches what the visitor entered
+PASS [choice] stored answer matches what the visitor entered
+PASS [dropdown] stored answer matches what the visitor entered
+PASS [multi] stored answer matches what the visitor entered
+PASS [imgchoice] stored answer matches what the visitor entered
+PASS [yesno] stored answer matches what the visitor entered
+PASS [gender] stored answer matches what the visitor entered
+PASS [marital] stored answer matches what the visitor entered
+PASS [fullname] stored answer matches what the visitor entered
+PASS [mobile] stored answer matches what the visitor entered
+PASS [nid] stored answer matches what the visitor entered
+PASS [email] stored answer matches what the visitor entered
+PASS [address] stored answer matches what the visitor entered
+PASS [location] stored answer matches what the visitor entered
+PASS [province] stored answer matches what the visitor entered
+PASS [uni] stored answer matches what the visitor entered
+PASS [edu] stored answer matches what the visitor entered
+PASS [job] stored answer matches what the visitor entered
+PASS [date] stored answer matches what the visitor entered
+PASS [time] stored answer matches what the visitor entered
+PASS [datetime] stored answer matches what the visitor entered
+PASS [slot] stored answer matches what the visitor entered
+PASS [rating] stored answer matches what the visitor entered
+PASS [scale] stored answer matches what the visitor entered
+PASS [bars] stored answer matches what the visitor entered
+PASS [terms] stored answer matches what the visitor entered
+PASS CSV export served through the real endpoint
+PASS [text] CSV has the question column
+PASS [area] CSV has the question column
+PASS [number] CSV has the question column
+PASS [amount] CSV has the question column
+PASS [choice] CSV has the question column
+PASS [dropdown] CSV has the question column
+PASS [multi] CSV has the question column
+PASS [imgchoice] CSV has the question column
+PASS [yesno] CSV has the question column
+PASS [gender] CSV has the question column
+PASS [marital] CSV has the question column
+PASS [fullname] CSV has the question column
+PASS [mobile] CSV has the question column
+PASS [nid] CSV has the question column
+PASS [email] CSV has the question column
+PASS [address] CSV has the question column
+PASS [location] CSV omits the column when «ستون در خروجی» is off
+PASS [province] CSV has the question column
+PASS [uni] CSV has the question column
+PASS [edu] CSV has the question column
+PASS [job] CSV has the question column
+PASS [date] CSV has the question column
+PASS [time] CSV has the question column
+PASS [datetime] CSV has the question column
+PASS [slot] CSV has the question column
+PASS [rating] CSV has the question column
+PASS [scale] CSV has the question column
+PASS [bars] CSV has the question column
+PASS [terms] CSV has the question column
+PASS CSV row contains the stored answers (sample: text, choice, mobile)
+PASS no page errors in the browser during the whole chain
+e2e-field-types: 474 قبول، 0 خطا

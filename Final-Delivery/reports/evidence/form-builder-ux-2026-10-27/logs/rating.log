@@ -1,0 +1,48 @@
+PASS capability contract ready
+PASS [default] editor saved the star range
+PASS [default] canvas field stores min/max as configured
+PASS [custom] editor saved the star range
+PASS [custom] canvas field stores min/max as configured
+PASS [single] editor saved the star range
+PASS [single] canvas field stores min/max as configured
+PASS form saved on the server
+form id: 874afb93-7a32-4232-9bbf-dc1effa5868f
+PASS readiness clean (single-value star range accepted by the server contract)
+PASS published
+public questions: [{"i":0,"id":"8","t":"rating","min":null,"max":null},{"i":1,"id":"9","t":"rating","min":2,"max":4},{"i":2,"id":"10","t":"rating","min":3,"max":3}]
+PASS [default] public control renders exactly the configured stars 1..5
+PASS [default] initial: cleared (no value, nothing checked, nothing lit, clear button hidden)
+PASS [default] click: value 1 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [default] click: value 2 ⇒ one aria-checked star, 2 lit star(s) from the range start, clear visible
+PASS [default] click: value 3 ⇒ one aria-checked star, 3 lit star(s) from the range start, clear visible
+PASS [default] click: value 4 ⇒ one aria-checked star, 4 lit star(s) from the range start, clear visible
+PASS [default] click: value 5 ⇒ one aria-checked star, 5 lit star(s) from the range start, clear visible
+PASS [default] back to the first star: value 1 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [default] after clear: cleared (no value, nothing checked, nothing lit, clear button hidden)
+PASS [custom] public control renders exactly the configured stars 2..4
+PASS [custom] initial: cleared (no value, nothing checked, nothing lit, clear button hidden)
+PASS [custom] click: value 2 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [custom] click: value 3 ⇒ one aria-checked star, 2 lit star(s) from the range start, clear visible
+PASS [custom] click: value 4 ⇒ one aria-checked star, 3 lit star(s) from the range start, clear visible
+PASS [custom] back to the first star: value 2 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [custom] after clear: cleared (no value, nothing checked, nothing lit, clear button hidden)
+PASS [single] public control renders exactly the configured stars 3..3
+PASS [single] initial: cleared (no value, nothing checked, nothing lit, clear button hidden)
+PASS [single] click: value 3 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [single] back to the first star: value 3 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [single] after clear: cleared (no value, nothing checked, nothing lit, clear button hidden)
+PASS [custom] ArrowLeft from the first star wraps inside 2..4 (never a value outside the range)
+PASS [custom] ArrowRight wraps back to 2
+PASS server draft holds the picked stars (4 / 3 / 3)
+PASS [default] restored from the server draft: value 4 ⇒ one aria-checked star, 4 lit star(s) from the range start, clear visible
+PASS [custom] restored from the server draft: value 3 ⇒ one aria-checked star, 2 lit star(s) from the range start, clear visible
+PASS [single] restored from the server draft: value 3 ⇒ one aria-checked star, 1 lit star(s) from the range start, clear visible
+PASS [custom] restored value 5 (outside 2..4) is treated as empty: nothing checked, nothing lit, value empty
+PASS [custom] restored Persian «۳»: value 3 ⇒ one aria-checked star, 2 lit star(s) from the range start, clear visible
+PASS API rejects 5 for the 2..4 star (422)
+PASS API rejects 1 for the 2..4 star (422)
+PASS API rejects a fractional star 2.5 (422)
+PASS submitted
+PASS stored response equals the visible selection (4 / 3 / 3)
+PASS no page errors
+e2e-rating: 45 قبول، 0 خطا
