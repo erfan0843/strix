@@ -1652,6 +1652,31 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.network.length===0,'امتیاز ستاره‌ای هیچ پیام یا داده‌ای بیرون نمی‌فرستد');
 }
 
+/* ── ۴ب۰۱ب) ستاره با بازهٔ سفارشی ۲ تا ۴: یک الگوریتم برای کلیک، پاک‌کردن و بازیابی؛ مقدار خارج از بازه خالی می‌شود ── */
+{
+  console.log('\n── ستارهٔ ۲ تا ۴ ──');
+  const fields=[{id:'rating-custom',t:'rating',l:'ستارهٔ ۲ تا ۴',req:true,min:2,max:4},{id:'rating-single',t:'rating',l:'تک‌ستاره',req:false,min:3,max:3}],
+    store=makeStore({'nora-forms':JSON.stringify([{id:'f-rating-range',name:'ستارهٔ سفارشی',model:'survey',need:'survey',display:'all',fields,fin:[]}])}),
+    p=await load('form.html',store,'?fid=f-rating-range&kind=survey'),group=p.doc.querySelector('[data-qrate="0"]'),stars=[...group.querySelectorAll('[role="radio"]')],
+    lit=()=>stars.filter(s=>s.classList.contains('on')).map(s=>s.dataset.qv).join(','),checked=()=>stars.filter(s=>s.getAttribute('aria-checked')==='true').map(s=>s.dataset.qv).join(',');
+  ok(p.errors.length===0&&stars.map(s=>s.dataset.qv).join(',')==='2,3,4'&&group.dataset.min==='2'&&group.dataset.max==='4'&&stars[0].tabIndex===0,
+    'فقط ستاره‌های ۲ تا ۴ ساخته می‌شوند و فوکوس اولیه روی اولین ستارهٔ بازه است');
+  p.click('[data-qrate="0"] [data-qv="3"]');
+  ok(group.dataset.val==='3'&&checked()==='3'&&lit()==='2,3'&&p.doc.querySelector('#qa0').value==='۳'&&group.querySelector('[data-qrate-label]').textContent==='۳ ستاره',
+    'انتخاب ۳ در بازهٔ ۲ تا ۴: دو ستاره روشن (۲ و ۳)، فقط ۳ aria-checked، مقدار ۳ و برچسب «۳ ستاره»');
+  p.click('[data-qrate="0"] [data-qv="2"]');
+  ok(group.dataset.val==='2'&&checked()==='2'&&lit()==='2','برگشت به ۲: فقط یک ستاره روشن می‌ماند (نه بر اساس اندیس)');
+  p.window.restoreDraft({cur:'qall',inputs:{qa0:'۵'},picks:{},guests:[],fin:[],picked:[]});
+  ok(group.dataset.val===''&&checked()===''&&lit()===''&&p.doc.querySelector('#qa0').value===''&&group.querySelector('[data-qrate-clear]').hidden
+      &&p.window.__NORA_FORM_PREVIEW.validate().includes('اجباری'),
+    'مقدار بازیابی‌شدهٔ ۵ خارج از بازهٔ ۲ تا ۴ خالی می‌شود؛ ستاره‌ای که وجود ندارد روشن نمی‌ماند و اجباری‌بودن دور زده نمی‌شود');
+  p.window.restoreDraft({cur:'qall',inputs:{qa0:'۴'},picks:{},guests:[],fin:[],picked:[]});
+  ok(group.dataset.val==='4'&&checked()==='4'&&lit()==='2,3,4'&&p.window.__NORA_FORM_PREVIEW.validate()===null,'مقدار ۴ داخل بازه درست بازیابی می‌شود');
+  const single=p.doc.querySelector('[data-qrate="1"]');p.click('[data-qrate="1"] [data-qv="3"]');
+  ok(single.querySelectorAll('[role="radio"]').length===1&&single.dataset.val==='3'&&single.querySelector('[role="radio"]').getAttribute('aria-checked')==='true','بازهٔ تک‌مقداری یک ستاره دارد و انتخاب می‌شود');
+  ok(p.network.length===0,'بدون ارسال شبکه در پیش‌نمایش');
+}
+
 /* ── ۴ب۰۲) بازهٔ لغزندهٔ ۰ تا ۱۰ بدون ثبت پیش‌فرض ── */
 {
   console.log('\n── بازهٔ لغزندهٔ ۰ تا ۱۰ ──');
@@ -1732,9 +1757,13 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const builder=await load('create.html',makeStore());
   builder.window.eval("S.fields=[];addField('terms');editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='terms'&&S.fields[0].req===false")
-      &&builder.doc.querySelector('#fdStruct').textContent.includes('پاسخ فقط محلی')
-      &&builder.doc.querySelector('#fdHelp').value.includes('پذیرش این پیش‌نمایش فقط محلی است'),
-    'سازنده پذیرش را اختیاری می‌سازد و صریح می‌گوید پاسخ محلی است؛ متن قوانین را مالک فرم می‌نویسد');
+      &&builder.doc.querySelector('#fdStruct').textContent.includes('در سرور ذخیره')
+      &&builder.doc.querySelector('#fdStruct').textContent.includes('امضا، احراز هویت یا سند رضایت نیست')
+      &&!builder.doc.querySelector('#fdStruct').textContent.includes('فقط محلی')
+      &&builder.doc.querySelector('#fdHelp').value.includes('«پذیرفتم» برای این مورد ثبت می‌شود')
+      &&!builder.doc.querySelector('#fdHelp').value.includes('فقط محلی')
+      &&builder.doc.querySelector('#fdHelp').placeholder.includes('متن قوانین'),
+    'سازنده پذیرش را اختیاری می‌سازد و درست می‌گوید پاسخ «پذیرفتم» سروری ذخیره می‌شود و تیک به‌معنای امضا یا احراز هویت نیست؛ متن قوانین را مالک در راهنما می‌نویسد');
   const fields=[{id:'terms-required',t:'terms',l:'شرایط شرکت',req:true,help:'متن نمونهٔ شرایط'},
       {id:'terms-optional',t:'terms',l:'دریافت خبرنامه',req:false,help:'عضویت اختیاری است.'}],
     store=makeStore({'nora-forms':JSON.stringify([{id:'f-terms',name:'فرم پذیرش',model:'datacollect',need:'other',display:'all',fields,fin:[]}])}),

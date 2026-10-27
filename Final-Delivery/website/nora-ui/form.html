@@ -2341,6 +2341,23 @@ if(REG&&Array.isArray(REG.q)){
     const a=Number.isInteger(lo)&&lo>=1&&lo<=5?lo:1,b=Number.isInteger(hi)&&hi>=1&&hi<=5?hi:5;
     return a<=b?[a,b]:[1,5];
   }
+  /* تنها الگوریتم وضعیت ستاره‌ها: مقدار → عدد صحیح داخل بازهٔ همین کنترل، وگرنه خالی.
+     روشن = ستاره‌هایی که مقدارشان ≤ مقدار انتخاب‌شده است (از ابتدای بازه)؛ aria-checked فقط روی خود مقدار. */
+  function ratingValueOf(box,raw){
+    const n=Number(digits(String(raw==null?'':raw)).trim()),lo=+box.dataset.min||1,hi=+box.dataset.max||5;
+    return Number.isInteger(n)&&n>=lo&&n<=hi?n:0;
+  }
+  function setRatingState(box,raw){
+    if(!box)return 0;
+    const value=ratingValueOf(box,raw),lo=+box.dataset.min||1;
+    box.dataset.val=value?String(value):'';
+    box.querySelectorAll('[role="radio"]').forEach(o=>{const v=+o.dataset.qv,selected=value>0&&v===value;
+      o.classList.toggle('on',value>0&&v<=value);o.setAttribute('aria-checked',String(selected));o.tabIndex=selected||!value&&v===lo?0:-1});
+    const clear=box.querySelector('[data-qrate-clear]');if(clear)clear.hidden=!value;
+    const label=box.querySelector('[data-qrate-label]');if(label)label.textContent=value?faN(value)+' ستاره':'';
+    const h=document.getElementById(qId(box.dataset.qrate));if(h)h.value=value?faN(value):'';
+    return value;
+  }
   function qBody(q,i){
     const t=q.t, pref=profileValue(q), help=q.help?`<p class="cap" style="margin-top:8px">${E2(q.help)}</p>`:'', profileNote=q.prof&&REG.profilePrefill
       ?`<p class="cap" data-profile-note="${i}" style="margin-top:6px">تکمیل از اطلاعات ذخیره‌شده اختیاری است.</p>`:'';
@@ -2413,6 +2430,7 @@ if(REG&&Array.isArray(REG.q)){
     if(t==='rating'){const [lo,hi]=ratingRange(q),stars=[];for(let v=lo;v<=hi;v++)stars.push(v);
       return `<div class="row tight" data-qrate="${i}" data-val="" data-min="${lo}" data-max="${hi}" role="radiogroup" aria-label="${E2(q.l)}">
         ${stars.map((v,k)=>`<button type="button" class="opt sq star" data-qopt="1" data-qv="${v}" role="radio" aria-checked="false" tabindex="${k===0?'0':'-1'}" aria-label="${faN(v)} ستاره"><svg class="i"><use href="#i-star"/></svg></button>`).join('')}
+        <span class="cap" data-qrate-label aria-live="polite"></span>
         <button type="button" class="btn sm quiet" data-qrate-clear="${i}" aria-label="پاک کردن امتیاز" hidden>پاک کردن</button></div>
         <input type="hidden" id="${qId(i)}"/>${common}`}
     if(t==='scale'||t==='bars'){
@@ -3186,14 +3204,9 @@ if(REG&&Array.isArray(REG.q)){
     const rangeClear=e.target.closest('[data-qrange-clear]');
     if(rangeClear){const range=document.getElementById(qId(rangeClear.dataset.qrangeClear));setRangeResponse(range,null);refreshFlow();saveDraft();return}
     const rateClear=e.target.closest('[data-qrate-clear]');
-    if(rateClear){const box=rateClear.closest('[data-qrate]');box.dataset.val='';
-      box.querySelectorAll('[role="radio"]').forEach((o,k)=>{o.classList.remove('on');o.setAttribute('aria-checked','false');o.tabIndex=k===0?0:-1});
-      rateClear.hidden=true;const h=document.getElementById(qId(box.dataset.qrate));if(h)h.value='';refreshFlow();saveDraft();return}
+    if(rateClear){setRatingState(rateClear.closest('[data-qrate]'),'');refreshFlow();saveDraft();return}
     const rate=e.target.closest('[data-qrate] [role="radio"]');
-    if(rate){const box=rate.closest('[data-qrate]'),value=+rate.dataset.qv;box.dataset.val=String(value);
-      box.querySelectorAll('[role="radio"]').forEach((o,k)=>{const selected=+o.dataset.qv===value;o.classList.toggle('on',k<value);o.setAttribute('aria-checked',String(selected));o.tabIndex=selected?0:-1});
-      const clear=box.querySelector('[data-qrate-clear]');if(clear)clear.hidden=false;
-      const h=document.getElementById(qId(box.dataset.qrate));if(h)h.value=faN(value);refreshFlow();saveDraft();return}
+    if(rate){setRatingState(rate.closest('[data-qrate]'),rate.dataset.qv);refreshFlow();saveDraft();return}
     const term=e.target.closest('[data-qterm]');
     if(term){const on=term.classList.toggle('on');term.dataset.val=on?'1':'';term.setAttribute('aria-checked',String(on));
       const h=document.getElementById(qId(term.dataset.qterm));if(h)h.value=on?'پذیرفتم':'';refreshFlow();saveDraft()}
@@ -3271,10 +3284,8 @@ if(REG&&Array.isArray(REG.q)){
         if(el)el.value=qVal(i);
       }
     }else if(t==='rating'){
-      const box=document.querySelector('[data-qrate="'+i+'"]'),raw=+(digits(v).match(/[0-9]+/)||[])[0]||0,v0=raw>=1&&raw<=5?raw:0;
-      if(box){box.dataset.val=v0?String(v0):'';box.querySelectorAll('[role="radio"]').forEach((o,k)=>{
-        const selected=+o.dataset.qv===v0;o.classList.toggle('on',v0>0&&k<v0);o.setAttribute('aria-checked',String(selected));o.tabIndex=selected||!v0&&k===0?0:-1});
-        const clear=box.querySelector('[data-qrate-clear]');if(clear)clear.hidden=!v0}
+      /* مقدار بازیابی‌شدهٔ خارج از بازه (مثلاً پیش‌نویس قدیمی پس از تغییر بازه) خالی می‌شود تا ستاره‌ای که وجود ندارد روشن نماند */
+      const box=document.querySelector('[data-qrate="'+i+'"]');const v0=box?setRatingState(box,v):0;
       if(el)el.value=v0?faN(v0):'';
     }else if(t==='terms'){
       const box=document.querySelector('[data-qterm="'+i+'"]');if(box){const on=String(v||'')==='پذیرفتم';box.dataset.val=on?'1':'';box.classList.toggle('on',on);box.setAttribute('aria-checked',String(on))}

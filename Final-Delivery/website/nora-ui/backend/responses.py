@@ -625,6 +625,9 @@ def _field_value(value: Any, field: FormFieldRecord, *, partial: bool = False) -
             if str(error).startswith(("حداقل مقدار", "حداکثر مقدار")):
                 raise
             raise ValueError("بازهٔ عددی این پرسش معتبر نیست.") from None
+        if field_type in {"rating", "scale", "bars"} and decimal != decimal.to_integral_value():
+            # Stars and sliders are discrete controls: 2.5 stars cannot be shown or exported truthfully.
+            raise ValueError(f"برای «{field.label}» فقط عدد صحیح پذیرفته می‌شود.")
         answer = str(value).strip()
         _check_answer_quality(answer, field, partial=partial)
         return answer

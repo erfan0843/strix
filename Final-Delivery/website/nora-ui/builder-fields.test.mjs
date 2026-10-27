@@ -465,5 +465,20 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
 
+/* ── ۱۲) ستاره: راهنمای پیش‌فرض از بازهٔ واقعی ساخته می‌شود؛ راهنمای سفارشی دست نمی‌خورد؛ متن‌های نوع «فقط محلی» نمی‌گویند ── */
+{
+  console.log('\n── ستاره و پذیرش قوانین: متن‌های راست‌گو ──');
+  const p=await load();
+  p.ev("go('s2');S.fields=[];addField('rating');editField(S.fields[0].id)");
+  ok(p.doc.querySelector('#fdHelp').value==='۱ کم، ۵ زیاد.','راهنمای پیش‌فرض ستاره برای بازهٔ ۱ تا ۵');
+  p.set('#fdMin','۲');p.set('#fdMax','۴');
+  ok(p.ev('saveField()')===true&&p.ev('S.fields[0].help')==='۲ کم، ۴ زیاد.','با بازهٔ ۲ تا ۴ راهنمای پیش‌فرض هم ۲ تا ۴ می‌شود (نه «۱ کم، ۵ زیاد»)');
+  p.ev("editField(S.fields[0].id)");p.set('#fdMin','۳');p.set('#fdMax','۳');
+  ok(p.ev('saveField()')===true&&p.ev('S.fields[0].help')==='یک ستاره؛ زدن آن یعنی انتخاب.','بازهٔ تک‌مقداری راهنمای خودش را دارد');
+  p.ev("editField(S.fields[0].id)");p.set('#fdHelp','چقدر راضی بودی؟');p.set('#fdMin','');p.set('#fdMax','');
+  ok(p.ev('saveField()')===true&&p.ev('S.fields[0].help')==='چقدر راضی بودی؟','راهنمای سفارشی مالک با تغییر بازه بازنویسی نمی‌شود');
+  ok(!/فقط محلی/.test(p.ev("STRUCT.terms+' '+HELP.terms+' '+STRUCT.rating"))&&/در سرور ذخیره/.test(p.ev('STRUCT.terms'))&&/امضا/.test(p.ev('STRUCT.terms')),'متن نوع پذیرش قوانین و ستاره رفتار واقعی سرور را می‌گوید');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
 process.exit(fails?1:0);
