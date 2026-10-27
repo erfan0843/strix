@@ -1,0 +1,66 @@
+owner auth/me 200
+=== e2e-field-types start 22:30:04
+e2e-field-types EXIT 1
+}
+=== e2e-rating start 22:33:05
+e2e-rating EXIT 0
+e2e-rating: 45 قبول، 0 خطا
+=== e2e-length-integer start 22:34:12
+e2e-length-integer EXIT 0
+e2e-length-integer: 44 قبول، 0 خطا
+=== e2e-picker-ux start 22:36:41
+e2e-picker-ux EXIT 0
+e2e-picker-ux: 23 قبول، 0 خطا
+=== e2e-question-redesign start 22:38:00
+e2e-question-redesign EXIT 0
+e2e-question-redesign: 68 قبول، 0 خطا
+=== e2e-field-engine start 22:41:05
+e2e-field-engine EXIT 0
+e2e-field-engine: 43 قبول، 0 خطا
+=== e2e-event-file start 22:44:51
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 81 / FAIL 2
+=== e2e-duplicate start 22:48:46
+e2e-duplicate EXIT 0
+✓ انتشار نسخهٔ مدیر از API با 401 رد شد
+e2e-duplicate: 25 قبول، 0 خطا
+=== e2e-receipt-restore start 22:50:14
+e2e-receipt EXIT 0
+✓ ثبت‌نام در فهرست مدیران با وضعیت پرداخت «رسید فرستاده شده» دیده می‌شود (200)
+e2e-receipt-restore: 11 قبول، 0 خطا
+=== e2e-deeplinks start 22:50:50
+e2e-deeplinks EXIT 0
+e2e-deeplinks: 36 قبول، 0 خطا
+=== e2e-roles start 22:54:49
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 26 / FAIL 0
+=== e2e-builder-return start 22:55:29
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 22:58:42
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== e2e-nav start 23:00:46
+e2e-nav EXIT 0
+PASS صفحه‌کلید: Enter روی «فرم‌ساز» به مرکز فرم‌ها می‌رود
+TOTAL PASS 41 / FAIL 0
+=== node-suite start 23:02:42
+node-suite done: 41/41 exit 0
+=== pytest start 23:08:56
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+406 passed, 4 skipped, 3 warnings in 164.78s (0:02:44)
+=== mypy start 23:11:47
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 23:11:57
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 3.33s
+=== ALL DONE 23:12:02
