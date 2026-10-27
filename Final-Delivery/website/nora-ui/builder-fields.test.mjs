@@ -720,6 +720,14 @@ const html=readFileSync(DIR+'create.html','utf8');
   p.click('.block[data-block="q2"] [data-edit]');
   p.ev("S.fields=S.fields.filter(x=>x.id!=='q2');closeSheets();renderCanvas()"); await new Promise(r=>setTimeout(r,20));
   ok(!sh.classList.contains('docked')&&sh.parentElement===p.doc.body&&p.all('[data-block]').length===2,'با حذف پرسش باز، ورقه بی‌صاحب داخل DOM نمی‌ماند');
+  /* قاعدهٔ شرط با مقدار خالی: خطای ذخیره کنار همان قاعده، ویرایشگر باز می‌ماند (پیش‌تر فقط هنگام ذخیرهٔ کل فرم لو می‌رفت) */
+  p.ev("S.fields=[freshField('choice','c1'),freshField('text','c2')];S.fields[0].opts=[{l:'الف'},{l:'ب'}];renderCanvas()");
+  p.click('.block[data-block="c2"] [data-edit-cond]'); p.click('#fdAddCondition');
+  ok(p.doc.querySelector('#fdCondRules [data-condition-row="0"]')&&p.doc.querySelector('#fdCondVal').value==='','قاعده با پرسش مرجع «الف/ب» و مقدار خالی افزوده شد');
+  ok(p.ev('saveField()')===false&&sh.classList.contains('on')&&p.doc.querySelector('#fdInlineError')&&/مقدار شرط/.test(p.txt('#fdInlineError'))&&p.doc.querySelector('#fdCondRules [data-condition-row="0"]').contains(p.doc.querySelector('#fdInlineError'))&&p.ev("(S.fields[1].conditions||[]).length")===0,'ذخیره با مقدار خالی رد می‌شود: خطا کنار همان قاعده، ویرایشگر باز، فیلد دست‌نخورده');
+  p.set('#fdCondVal','ب');
+  ok(p.ev('saveField()')===true&&p.ev("S.fields[1].conditions[0].value")==='ب'&&!p.doc.querySelector('#fdInlineError'),'با انتخاب مقدار، همان ذخیره می‌گذرد');
+  p.ev('closeSheets()');
   p.ev('delete window.matchMedia');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }

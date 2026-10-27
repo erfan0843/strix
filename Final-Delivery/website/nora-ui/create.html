@@ -1117,6 +1117,13 @@ const FIELD_SETTINGS=[
     dirty:f=>($('#fdPlaceholder').value||'').trim()!==String(f.placeholder||'')},
   {id:'conditions',keys:['conditions','conditionLogic','condField','condOp','condVal'],box:'#fdCondBox',display:'',common:true,cap:'conditions',
     render:()=>renderConditionEditor(),
+    /* همان قاعده‌های firstInvalidCondition، اما هنگام ذخیرهٔ خود پرسش و کنار همان قاعده؛ قاعدهٔ ناقص تا ذخیرهٔ کل فرم پنهان نمی‌ماند */
+    validate:()=>{const index=S.fields.findIndex(x=>String(x.id)===String(editing)),earlier=S.fields.slice(0,Math.max(0,index));
+      for(let i=0;i<conditionDraft.length;i++){const rule=conditionDraft[i],source=earlier.find(x=>String(x.id)===String(rule.field)),row=sel=>$('#fdCondRules [data-condition-row="'+i+'"] '+sel);
+        if(!source)return {message:'قاعدهٔ '+faN(i+1)+': پرسش مرجع باید پیش از این پرسش باشد',target:row('[data-cond-field]')};
+        if(!conditionOperatorsFor(source.t).includes(rule.op))return {message:'قاعدهٔ '+faN(i+1)+': عملگر با نوع پرسش مرجع سازگار نیست',target:row('[data-cond-op]')};
+        if(!validConditionValue(rule,source))return {message:'قاعدهٔ '+faN(i+1)+': مقدار شرط را انتخاب یا وارد کنید',target:row('[data-cond-value]')||row('[data-cond-field]')}}
+      return null},
     apply:f=>{const index=S.fields.findIndex(x=>String(x.id)===String(editing)),validIds=new Set(S.fields.slice(0,index).map(x=>String(x.id)));
       const rules=conditionDraft.filter(rule=>validIds.has(String(rule.field))).map(rule=>{const source=S.fields.find(field=>String(field.id)===String(rule.field)),ops=source?conditionOperatorsFor(source.t):[];
         const op=ops.includes(rule.op)?rule.op:ops[0]||'eq';return {field:String(rule.field),op,value:CONDITION_VALUE_OPS.has(op)?String(rule.value==null?'':rule.value).trim().slice(0,120):''}});
@@ -2328,6 +2335,9 @@ function renderCatalogChips(){
     return `<button type="button" class="chip ${catGroup===g.id?'on':''}" data-cat="${esc(g.id)}" aria-pressed="${catGroup===g.id?'true':'false'}" ${q&&!n?'disabled aria-disabled="true"':''}>${esc(g.n)} <span class="cap" data-cat-count="${esc(g.id)}">${faN(n)}</span></button>`}).join('');
   const clear=$('#catClear'); if(clear)clear.hidden=!q;
 }
+/* راهنمای یک‌خطی کاشی وقتی ساختار فنی (STRUCT) فقط نام را تکرار می‌کند: می‌گوید «کِی به کار می‌آید»، نه دوباره «چیست» */
+const TILE_HINT={text:'پاسخ کوتاه یک‌خطی',area:'پاسخ بلند چندخطی',choice:'یک گزینه از چند گزینه؛ گزینه‌ها را خودتان می‌نویسید',multi:'چند گزینه هم‌زمان؛ با حداقل/حداکثر انتخاب',
+  dropdown:'یک گزینه از فهرست بلند، جمع‌وجور',yesno:'پاسخ بله یا خیر',time:'انتخاب ساعت، بدون تاریخ',address:'نشانی پستی چندخطی',date:'تاریخ شمسی با تقویم'};
 function catalogRow(c){
   const support=fieldSupport(c.t), capReached=S.fields.length>=MAX_FIELDS, blocked=!support.addable||capReached;
   const reason=capReached?'سقف '+faN(MAX_FIELDS)+' فیلد پر شده است؛ برای افزودن، یک فیلد را حذف کنید.':
@@ -2335,7 +2345,7 @@ function catalogRow(c){
   /* کاشی: آیکون + نام + (برچسب وضعیت فقط وقتی چیزی جز «پشتیبانی سروری» است) + یک خط راهنما. دلیل غیرقابل‌افزودن‌بودن همیشه روی خود کاشی است.
      نوع پاسخ، مثال و توضیح محدودیت در «جزئیات» (دکمهٔ جدا؛ بازکردنش چیزی اضافه نمی‌کند). */
   const tag=support.status==='server'?'':capabilityTag(support.status,support.reason);
-  const help=c.help||STRUCT[c.t]||'', did='catd-'+String(c.k).replace(/[^A-Za-z0-9_-]/g,'');
+  const help=c.help||TILE_HINT[c.t]||STRUCT[c.t]||'', did='catd-'+String(c.k).replace(/[^A-Za-z0-9_-]/g,'');
   const detail=['پاسخ: '+c.ans+(c.ex&&c.ex!=='—'?' · مثال: «'+c.ex+'»':''),!blocked&&reason?reason:''].filter(Boolean);
   return `<div class="cat-item${blocked?' is-blocked':''}" data-cat-item="${esc(c.k)}">
       <button type="button" class="cat-main${blocked?' is-blocked':''}" data-add="${esc(c.k)}" data-type="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} aria-label="${esc((blocked?'غیرقابل‌افزودن: ':'افزودن ')+c.n)}" aria-describedby="${did}">
