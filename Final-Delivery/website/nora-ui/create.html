@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=110"/>
+<link rel="stylesheet" href="glass.css?v=111"/>
 <style>
   .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
   .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
@@ -171,6 +171,7 @@
 
 <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9.6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2z"/><path d="M6.4 15.8a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2"/></g></symbol>
 
+<symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.2"/><path d="M12 10.8v5.1M12 7.9h.01"/></g></symbol>
 <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="6.2" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="17.8" r="1.5"/></g></symbol>
 
 <symbol id="i-arrow-left" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6 5 12l6 6"/></g></symbol>
@@ -650,13 +651,14 @@
 <div class="scrim" id="scrim"></div>
 
 <aside class="sheet picker" id="shAdd" role="dialog" aria-label="افزودن پرسش">
-  <div class="grabber"></div>
-  <div class="row"><span class="head">افزودن پرسش</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-  <div class="row tight" style="margin:12px 0"><input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="flex:1;min-width:0" placeholder="جستجو؛ مثلاً شماره همراه، کد ملی، تاریخ تولد"/><button type="button" class="icon-btn" id="catClear" aria-label="پاک‌کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button></div>
-  <div class="cap" style="margin-bottom:6px">نوع پاسخ را انتخاب کنید؛ تنظیم‌هایش بلافاصله باز می‌شود.</div>
-  <div class="cap brand" id="catPositionNote" style="margin-bottom:6px" hidden></div>
+  <div class="picker-top">
+    <div class="grabber"></div>
+    <div class="row"><span class="head">افزودن پرسش</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="row tight" style="margin:10px 0 8px"><input class="input" id="catSearch" aria-label="جست‌وجوی نوع پرسش" style="flex:1;min-width:0" placeholder="جست‌وجو؛ مثلاً شماره همراه، کد ملی، تاریخ تولد"/><button type="button" class="icon-btn" id="catClear" aria-label="پاک‌کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="cap brand" id="catPositionNote" style="margin-bottom:6px" hidden></div>
+    <div class="row tight picker-cats" id="catChips" role="group" aria-label="دسته‌های پرسش"></div>
+  </div>
   <div class="picker-body">
-    <div class="row tight picker-cats" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;row-gap:6px"></div>
     <div id="catList" class="picker-list"></div>
   </div>
 </aside>
@@ -936,21 +938,22 @@ const HELP={text:'کوتاه بنویسید.',area:'توضیح کامل بدهی
    t = نوع فنی (همان کلید field_types در قرارداد سرور /api/public/forms/capabilities)
    k = شناسهٔ پایدار الگو؛ یک نوع می‌تواند چند الگو داشته باشد (مثلاً birth-date و jalali-date هر دو t:'date').
    برچسب، پیش‌فرض‌ها و تنظیم‌های قابل‌نمایش از همین جدول خوانده می‌شوند؛ وضعیت پشتیبانی فقط از قرارداد سرور. */
+/* دسته‌های گزینش‌گر (۱۴۰۵/۰۸/۰۶): هشت گروه کاربرمحور به‌جای ده؛ «متن و عدد» = متن کوتاه/بلند + عدد/مبلغ، «مشخصات فردی» = هویت + تحصیل و شغل.
+   فقط برچسب گروه‌بندی تغییر کرده؛ نوع‌ها، کلیدها و رفتارشان همان است. */
 const FIELD_CATEGORIES=[
-  {id:'text',n:'متن'},{id:'number',n:'عدد و مبلغ'},{id:'choice',n:'انتخاب از گزینه‌ها'},{id:'person',n:'اطلاعات فردی'},
-  {id:'contact',n:'تماس و نشانی'},{id:'edu',n:'تحصیل و شغل'},{id:'time',n:'تاریخ و زمان'},{id:'scale',n:'سنجه و امتیاز'},
-  {id:'consent',n:'تأیید و رضایت'},{id:'future',n:'در دست ساخت'}];
+  {id:'basic',n:'متن و عدد'},{id:'choice',n:'انتخاب از گزینه‌ها'},{id:'person',n:'مشخصات فردی'},{id:'contact',n:'تماس و نشانی'},
+  {id:'time',n:'تاریخ و زمان'},{id:'scale',n:'سنجش و امتیاز'},{id:'consent',n:'تأیید و رضایت'},{id:'future',n:'در دست ساخت'}];
 const categoryName=id=>(FIELD_CATEGORIES.find(c=>c.id===id)||{n:String(id||'')}).n;
 /* ctl: تنظیم‌های نوع‌محورِ ویرایشگر که فرم عمومی و سرور واقعاً به‌کار می‌برند:
    placeholder (متن داخل کادر)، bounds (حداقل/حداکثر عددی؛ سرور در انتشار بررسی می‌کند)، options، multiLimits، upload، verify */
 const FIELD_TYPES={
-  text:{n:'متن کوتاه',ic:'i-text',g:'text',ans:'متن یک‌خطی',ctl:['placeholder'],tags:'نوشتاری,یک خطی,پاسخ کوتاه,اسم,عنوان,نام مستعار',ex:'نام مستعار شما؟'},
-  area:{n:'متن بلند',ic:'i-lines',g:'text',ans:'متن چندخطی',ctl:['placeholder'],tags:'نوشتاری,توضیح,چند خطی,پاراگراف,نظر,پیشنهاد,انتقاد,شرح',ex:'توضیح بدهید چرا…'},
-  number:{n:'عدد',ic:'i-number',g:'number',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش,عدد صحیح,اعشاری,کمیت',ex:'چند نفر می‌آیید؟'},
-  amount:{n:'مبلغ',ic:'i-wallet',g:'number',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی,عدد صحیح',ex:'مبلغ پیشنهادی شما؟'},
+  text:{n:'متن کوتاه',ic:'i-text',g:'basic',ans:'متن یک‌خطی',ctl:['placeholder'],tags:'نوشتاری,یک خطی,پاسخ کوتاه,اسم,عنوان,نام مستعار',ex:'نام مستعار شما؟'},
+  area:{n:'متن بلند',ic:'i-lines',g:'basic',ans:'متن چندخطی',ctl:['placeholder'],tags:'نوشتاری,توضیح,چند خطی,پاراگراف,نظر,پیشنهاد,انتقاد,شرح',ex:'توضیح بدهید چرا…'},
+  number:{n:'عدد',ic:'i-number',g:'basic',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش,عدد صحیح,اعشاری,کمیت',ex:'چند نفر می‌آیید؟'},
+  amount:{n:'مبلغ',ic:'i-wallet',g:'basic',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی,عدد صحیح',ex:'مبلغ پیشنهادی شما؟'},
   choice:{n:'تک‌انتخاب',ic:'i-radio',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'رادیو,یکی از,انتخاب یک گزینه,چندگزینه ای,تست,گزینه',ex:'کدام روز مناسب‌تر است؟'},
   multi:{n:'چندانتخاب',ic:'i-checkbox',g:'choice',ans:'چند گزینه',ctl:['options','multiLimits'],opts:1,tags:'چک باکس,تیک,چند گزینه,چند مورد,انتخاب چند مورد,علاقه مندی,چندتایی',ex:'به کدام موضوع‌ها علاقه دارید؟'},
-  dropdown:{n:'فهرست کشویی',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,tags:'کشویی,لیست,منو,سلکت,انتخاب از فهرست',ex:'شهر محل سکونت؟'},
+  dropdown:{n:'فهرست کشویی',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,tags:'کشویی,لیست,منو,سلکت,انتخاب از فهرست',ex:'سطح آشنایی با موضوع؟'},
   yesno:{n:'بله / خیر',ic:'i-check',g:'choice',ans:'بله یا خیر',ctl:['options'],fixedOpts:[{l:'بله',score:5},{l:'خیر',score:0}],tags:'دو گزینه,آری,نه,موافق,مخالف,درست,غلط',ex:'قبلاً شرکت کرده‌اید؟'},
   imgchoice:{n:'انتخاب کارتی (بدون تصویر)',ic:'i-image',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'انتخاب تصویری,کارت,عکس,تصویر گزینه',ex:'کدام طرح را می‌پسندید؟'},
   fullname:{n:'نام و نام خانوادگی',ic:'i-users',g:'person',ans:'متن',ctl:['placeholder'],prof:1,tags:'اسم,نام کامل,نام خانوادگی,فامیلی,هویت',ex:'نام و نام خانوادگی'},
@@ -962,9 +965,9 @@ const FIELD_TYPES={
   address:{n:'نشانی',ic:'i-home',g:'contact',ans:'متن چندخطی',ctl:['placeholder'],tags:'آدرس,نشانی پستی,محل سکونت,خانه,کدپستی',ex:'نشانی ارسال بسته'},
   province:{n:'استان و شهر',ic:'i-pin',g:'contact',ans:'استان + شهر',ctl:[],tags:'شهر,استان,محل زندگی,شهرستان',ex:'ساکن کدام استان و شهر هستید؟'},
   location:{n:'موقعیت (متنی)',ic:'i-pin',g:'contact',ans:'متن',ctl:['placeholder'],tags:'محله,مکان,لوکیشن,نقشه,موقعیت مکانی,نشانه',ex:'نزدیک‌ترین نشانهٔ محل؟'},
-  uni:{n:'دانشگاه',ic:'i-medal',g:'edu',ans:'نام دانشگاه',ctl:[],tags:'دانشجو,محل تحصیل,موسسه,مؤسسه,university',ex:'دانشگاه محل تحصیل'},
-  edu:{n:'مقطع تحصیلی',ic:'i-doc',g:'edu',ans:'یک گزینه از فهرست',ctl:[],tags:'تحصیلات,مدرک,کارشناسی,ارشد,دکتری,دیپلم,رشته',ex:'آخرین مقطع تحصیلی'},
-  job:{n:'شغل',ic:'i-bag',g:'edu',ans:'یک گزینه از فهرست',ctl:[],tags:'حرفه,کار,سمت,شغلی,کارمند,آزاد',ex:'شغل فعلی'},
+  uni:{n:'دانشگاه',ic:'i-medal',g:'person',ans:'نام دانشگاه',ctl:[],tags:'دانشجو,محل تحصیل,موسسه,مؤسسه,university',ex:'دانشگاه محل تحصیل'},
+  edu:{n:'مقطع تحصیلی',ic:'i-doc',g:'person',ans:'یک گزینه از فهرست',ctl:[],tags:'تحصیلات,مدرک,کارشناسی,ارشد,دکتری,دیپلم,رشته',ex:'آخرین مقطع تحصیلی'},
+  job:{n:'شغل',ic:'i-bag',g:'person',ans:'یک گزینه از فهرست',ctl:[],tags:'حرفه,کار,سمت,شغلی,کارمند,آزاد',ex:'شغل فعلی'},
   date:{n:'تاریخ',ic:'i-calendar',g:'time',ans:'تاریخ شمسی',ctl:[],tags:'روز,ماه,سال,تقویم,شمسی,جلالی',ex:'تاریخ مورد نظر'},
   time:{n:'ساعت (زمان روز)',ic:'i-clock',g:'time',ans:'ساعت و دقیقه',ctl:[],tags:'زمان,دقیقه,ساعت روز,وقت',ex:'چه ساعتی مناسب است؟'},
   datetime:{n:'تاریخ و ساعت',ic:'i-clock',g:'time',ans:'تاریخ + ساعت',ctl:[],tags:'زمان دقیق,تقویم و ساعت,موعد',ex:'زمان ترجیحی جلسه'},
@@ -2253,10 +2256,13 @@ function catalogScore(c,q){
   let score=0;
   if(name.startsWith(q))score=Math.max(score,80);else if(name.includes(q))score=Math.max(score,60);
   /* مترادف: برابر با کل عبارت، دربرگیرندهٔ آن، یا برابر با یکی از واژه‌های عبارت (نه زیررشتهٔ تصادفی مثل «اری» در «تاریخ») */
-  if(tags.some(t=>t===q))score=Math.max(score,55);else if(tags.some(t=>t.includes(q)||words.includes(t)))score=Math.max(score,40);
+  /* مترادف: برابر با کل عبارت (۵۵)؛ واژهٔ کامل در مترادف یا مترادف برابر یکی از واژه‌های عبارت (۴۰)؛ زیررشتهٔ آزاد فقط برای عبارت‌های ≥۳ نویسه */
+  const wordIn=(t,w)=>t===w||t.startsWith(w+' ')||t.endsWith(' '+w)||t.includes(' '+w+' ');
+  if(tags.some(t=>t===q))score=Math.max(score,55);
+  else if(tags.some(t=>wordIn(t,q)||words.includes(t)||(q.length>=3&&t.includes(q))))score=Math.max(score,40);
   if(c.t===q||c.k===q)score=Math.max(score,35);
   if(!score&&words.length>1&&words.every(w=>hay.some(h=>h.includes(w))))score=25;
-  if(!score&&hay.some(h=>h.includes(q)))score=15;
+  if(!score&&q.length>=3&&hay.some(h=>h.includes(q)))score=15;
   return score;
 }
 function catalogSearch(q,group){
@@ -2277,18 +2283,23 @@ function catalogRow(c){
   const support=fieldSupport(c.t), capReached=S.fields.length>=MAX_FIELDS, blocked=!support.addable||capReached;
   const reason=capReached?'سقف '+faN(MAX_FIELDS)+' فیلد پر شده است؛ برای افزودن، یک فیلد را حذف کنید.':
     !support.addable?(support.reason||capabilityLabel(support.status)):(support.status!=='server'?support.reason:'');
-  /* کارت: نام + (برچسب وضعیت فقط وقتی چیزی جز «پشتیبانی سروری» است) / یک خط راهنما / نوع پاسخ و مثال / دلیل محدودیت کنار همان گزینه */
+  /* کاشی: آیکون + نام + (برچسب وضعیت فقط وقتی چیزی جز «پشتیبانی سروری» است) + یک خط راهنما. دلیل غیرقابل‌افزودن‌بودن همیشه روی خود کاشی است.
+     نوع پاسخ، مثال و توضیح محدودیت در «جزئیات» (دکمهٔ جدا؛ بازکردنش چیزی اضافه نمی‌کند). */
   const tag=support.status==='server'?'':capabilityTag(support.status,support.reason);
-  const help=c.help||STRUCT[c.t]||'';
-  return `<button type="button" class="cat-item${blocked?' is-blocked':''}" data-add="${esc(c.k)}" data-type="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} aria-label="${esc((blocked?'غیرقابل‌افزودن: ':'افزودن ')+c.n)}">
-      <span class="ic"><svg class="i"><use href="#${c.ic}"/></svg></span>
-      <span class="cat-body">
-        <span class="row tight" style="flex-wrap:wrap;gap:4px 8px"><span class="nm">${esc(c.n)}</span>${tag}</span>
-        ${help?`<span class="hint">${esc(help)}</span>`:''}
-        <span class="hint meta">پاسخ: ${esc(c.ans)}${c.ex&&c.ex!=='—'?' · مثال: «'+esc(c.ex)+'»':''}</span>
-        ${reason?`<span class="hint ${blocked?'warn':''}">${esc(reason)}</span>`:''}
-      </span>
-      ${blocked?'<span class="tag warn">غیرفعال</span>':'<span class="tag quiet cat-add">افزودن</span>'}</button>`;
+  const help=c.help||STRUCT[c.t]||'', did='catd-'+String(c.k).replace(/[^A-Za-z0-9_-]/g,'');
+  const detail=['پاسخ: '+c.ans+(c.ex&&c.ex!=='—'?' · مثال: «'+c.ex+'»':''),!blocked&&reason?reason:''].filter(Boolean);
+  return `<div class="cat-item${blocked?' is-blocked':''}" data-cat-item="${esc(c.k)}">
+      <button type="button" class="cat-main${blocked?' is-blocked':''}" data-add="${esc(c.k)}" data-type="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} aria-label="${esc((blocked?'غیرقابل‌افزودن: ':'افزودن ')+c.n)}" aria-describedby="${did}">
+        <span class="ic"><svg class="i"><use href="#${c.ic}"/></svg></span>
+        <span class="cat-body">
+          <span class="row tight" style="flex-wrap:wrap;gap:4px 8px"><span class="nm">${esc(c.n)}</span>${tag}${blocked?'<span class="tag warn">غیرفعال</span>':''}</span>
+          ${help?`<span class="hint">${esc(help)}</span>`:''}
+          ${blocked&&reason?`<span class="hint warn">${esc(reason)}</span>`:''}
+        </span>
+      </button>
+      <button type="button" class="icon-btn cat-info" data-cat-info="${esc(c.k)}" aria-expanded="false" aria-controls="${did}" aria-label="جزئیات «${esc(c.n)}»"><svg class="i"><use href="#i-info"/></svg></button>
+      <div class="cat-detail" id="${did}" hidden>${detail.map((t,i)=>`<span class="hint${i===0?' meta':''}">${esc(t)}</span>`).join('')}</div>
+    </div>`;
 }
 /* عبارت‌هایی که «تنظیم» هستند نه «نوع فیلد»؛ جست‌وجو به‌جای نتیجهٔ خالی، مسیر درست را نشان می‌دهد */
 const SETTING_SEARCH_HINTS=[
@@ -2308,10 +2319,12 @@ function renderCatalog(){
   let items=catalogSearch(q,catGroup);
   /* اگر عبارت، نام یک تنظیم است و نتیجهٔ مستقیمی ندارد، نوع‌های میزبان همان تنظیم نشان داده می‌شوند */
   if(hint&&!items.length&&hint.types.length)items=CATALOG.filter(c=>!c.hidden&&hint.types.includes(c.k)&&(catGroup==='all'||c.g===catGroup));
+  /* بدون جست‌وجو: کاشی‌ها به ترتیب دسته‌ها (هر دسته یک‌بار، با عنوان خودش)؛ ترتیب درون دسته همان ترتیب کاتالوگ است */
+  if(!q){const ci=g=>{const i=FIELD_CATEGORIES.findIndex(x=>x.id===g);return i<0?99:i};items=items.slice().sort((a,b)=>ci(a.g)-ci(b.g))}
   let html='',last='';
   if(hint)html+=`<div class="mnote" id="catSettingHint" role="note" style="margin:0 0 8px">${esc(hint.n)}</div>`;
   if(items.length){
-    html+=`<div class="row tight" style="margin:4px 0 6px"><span class="cap" id="catCount" role="status" aria-live="polite">${faN(items.length)} ${q?'نتیجه برای «'+esc(q)+'»':'نوع فیلد'}</span>`+
+    html+=`<div class="row tight" style="margin:4px 0 6px"><span class="cap" id="catCount" role="status" aria-live="polite">${faN(items.length)} ${q?'نتیجه برای «'+esc(q)+'»':'نوع فیلد'}${catGroup!=='all'?' در «'+esc(categoryName(catGroup))+'»':''}</span>`+
       (S.fields.length>=MAX_FIELDS?`<span class="sp"></span><span class="tag warn">سقف ${faN(MAX_FIELDS)} فیلد پر است</span>`:'')+`</div>`;
     /* هر دسته: عنوان + فهرست کارت‌ها */
     let open=false;
@@ -3457,6 +3470,8 @@ document.addEventListener('click',e=>{
     const now=Date.now(); if(now-ADD_FIELD_LOCK<400&&ad.dataset.add===ADD_FIELD_LAST){return} ADD_FIELD_LOCK=now;ADD_FIELD_LAST=ad.dataset.add;
     ad.disabled=true;addField(ad.dataset.add);return}
   const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();const again=$('#catChips [data-cat="'+catGroup+'"]');if(again)again.focus();return}
+  const info=e.target.closest('[data-cat-info]'); if(info){const box=document.getElementById(info.getAttribute('aria-controls'));if(!box)return;
+    const open=box.hidden;box.hidden=!open;info.setAttribute('aria-expanded',open?'true':'false');info.closest('.cat-item')&&info.closest('.cat-item').classList.toggle('is-open',open);return}
   if(e.target.closest('[data-cat-reset]')){catGroup='all';const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
   if(e.target.closest('#catClear')){const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
   const ed=e.target.closest('[data-edit]'); if(ed){FIELD_FOCUS_AFTER=ed;editField(ed.dataset.edit);return}

@@ -333,21 +333,24 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   transform:translateY(102%); transition:transform var(--t-slow) var(--ease); max-height:88dvh; overflow:auto;
 }
 .sheet.on{transform:none}
-/* انتخاب‌گر فیلد روی موبایل: دسته‌ها یک نوار افقیِ لغزنده (نه بلوک بلند چندردیفی) تا فهرست بالاتر دیده شود */
-.sheet.picker .picker-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+/* گزینش‌گر پرسش: سرِ ورقه (عنوان، جست‌وجو، دسته‌ها) هنگام پیمایش فهرست چسبان می‌ماند؛ دسته‌ها یک نوار افقی کم‌ارتفاع (موبایل: لغزنده) */
+.sheet.picker{padding-top:0}
+.sheet.picker .picker-top{position:sticky;top:0;z-index:2;margin:0 calc(-1*var(--sp-4));padding:var(--sp-3) var(--sp-4) var(--sp-2);
+  background:var(--glass-2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-bottom:.5px solid var(--hairline)}
+.sheet.picker .picker-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;gap:6px}
 .sheet.picker .picker-cats::-webkit-scrollbar{display:none}
-.sheet.picker .picker-cats .chip{flex:0 0 auto;white-space:nowrap}
+.sheet.picker .picker-cats .chip{flex:0 0 auto;white-space:nowrap;min-height:34px}
+.sheet.picker .picker-body{padding-top:var(--sp-1)}
 @media (min-width:900px){
   .sheet{inset:auto; inset-inline-end:var(--sp-4); bottom:var(--sp-4); width:min(440px,40vw); border-radius:var(--r-xl);
     border:.5px solid var(--glass-line); transform:translateY(16px) scale(.98); opacity:0; pointer-events:none}
   .sheet.on{transform:none;opacity:1;pointer-events:auto}
-  /* انتخاب‌گر فیلد روی دسکتاپ: ورقهٔ پهن‌تر، دسته‌ها به‌صورت نوار کناری ثابت و فهرست کنار آن (موبایل همان فهرست تک‌ستونه می‌ماند) */
-  .sheet.picker{width:min(760px,64vw)}
+  /* گزینش‌گر پرسش روی دسکتاپ: ورقهٔ پهن، دسته‌ها نوار افقی چندردیفی زیر جست‌وجو، کاشی‌های هر دسته در شبکهٔ دوستونه (موبایل تک‌ستونه می‌ماند) */
+  .sheet.picker{width:min(760px,64vw);min-height:min(620px,80dvh)}
+  .sheet.picker .picker-cats{flex-wrap:wrap;overflow:visible}
+  .sheet.picker .cat-list-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   /* ویرایشگر فیلد روی دسکتاپ: پهن‌تر از ورقهٔ پیش‌فرض تا فهرست گزینه‌ها و جفت‌کنترل‌ها در یک ردیف جا بگیرند */
   .sheet.editor{width:min(560px,46vw)}
-  .sheet.picker .picker-body{display:grid;grid-template-columns:196px minmax(0,1fr);gap:var(--sp-4);align-items:start}
-  .sheet.picker .picker-cats{flex-direction:column;align-items:stretch;position:sticky;top:0;margin-bottom:0;flex-wrap:nowrap;overflow:visible}
-  .sheet.picker .picker-cats .chip{width:100%;justify-content:space-between;border-radius:var(--r-md)}
   .sheet.picker .picker-list{min-width:0}
 }
 .scrim{position:fixed;inset:0;background:rgba(10,16,22,.34);z-index:55;opacity:0;pointer-events:none;transition:opacity var(--t) var(--ease)}
@@ -645,25 +648,30 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 }
 .plusline button:hover{color:var(--brand);border-color:var(--brand);transform:scale(1.06)}
 
-/* ── فهرست کاتالوگ ─────────────────────────────────────────────────────── */
-.cat-item{
-  display:flex;align-items:center;gap:12px;width:100%;text-align:start;cursor:pointer;
-  padding:12px;border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface);
-  box-shadow:var(--sh-1);transition:background var(--t-fast) var(--ease),transform var(--t-fast) var(--spring)
-}
-.cat-item:hover{background:var(--surface-2)}
-.cat-item:active{transform:scale(.99)}
-.cat-item .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2);flex:0 0 auto}
+/* ── کاشی‌های گزینش‌گر پرسش ─────────────────────────────────────────────── */
+.cat-item{position:relative;display:flex;align-items:stretch;gap:0;width:100%;min-width:0;
+  border-radius:var(--r-md);border:.5px solid var(--hairline);background:var(--surface);box-shadow:var(--sh-1);flex-wrap:wrap}
+.cat-item .cat-main{flex:1 1 0%;min-width:0;display:flex;align-items:center;gap:10px;text-align:start;cursor:pointer;
+  padding:10px 12px;border:0;background:none;border-radius:var(--r-md);font:inherit;color:inherit;
+  transition:background var(--t-fast) var(--ease),transform var(--t-fast) var(--spring)}
+.cat-item .cat-main:hover{background:var(--surface-2)}
+.cat-item .cat-main:active{transform:scale(.995)}
+.cat-item .cat-main:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.cat-item .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2);flex:0 0 auto}
 .cat-item .nm{font-size:var(--fs-sub);font-weight:600}
 .cat-item .cat-body{flex:1;min-width:0;text-align:start;display:flex;flex-direction:column;gap:2px}
 .cat-item .hint{font-size:var(--fs-cap);color:var(--ink-3);line-height:1.5}
+.cat-item .cat-body>.hint:not(.warn){display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .cat-item .hint.warn{color:var(--warn)}
-.cat-item.is-blocked{opacity:.78;box-shadow:none;background:var(--surface-2)}
+.cat-item.is-blocked{box-shadow:none;background:var(--surface-2)}
+.cat-item.is-blocked .cat-main{cursor:not-allowed;opacity:.8}
 .cat-item.is-blocked .ic{color:var(--ink-4)}
-.cat-item .cat-add{opacity:0;transition:opacity var(--t-fast) var(--ease)}
-.cat-item:hover .cat-add,.cat-item:focus-visible .cat-add{opacity:1}
-@media (hover:none){.cat-item .cat-add{opacity:1}}
-.cat-group{margin:14px 0 6px;font-size:var(--fs-cap);color:var(--ink-3);font-weight:600}
+.cat-item .cat-info{align-self:center;flex:0 0 auto;width:36px;height:36px;margin-inline-end:4px;color:var(--ink-3)}
+.cat-item .cat-info[aria-expanded="true"]{background:var(--brand-tint);color:var(--brand-ink)}
+.cat-item .cat-detail{flex:1 0 100%;display:flex;flex-direction:column;gap:2px;padding:0 12px 10px;font-size:var(--fs-cap);color:var(--ink-3)}
+.cat-item .cat-detail[hidden]{display:none}
+.cat-group{margin:14px 0 6px;font-size:var(--fs-cap);color:var(--ink-3);font-weight:600;display:flex;align-items:center;gap:8px}
+.cat-group::after{content:'';flex:1;height:.5px;background:var(--hairline)}
 .cat-list-grid{display:flex;flex-direction:column;gap:8px}
 /* خطای کنار کنترل (ویرایشگر فیلد و فرم‌ها): همان الگوی form.html، به‌صورت مشترک */
 .field-error{margin:8px 0 0;padding:8px 11px;border-radius:var(--r-sm);color:var(--stop);background:var(--stop-tint);font-size:var(--fs-cap);line-height:1.6}

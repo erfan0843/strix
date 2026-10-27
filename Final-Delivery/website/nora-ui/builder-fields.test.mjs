@@ -145,7 +145,7 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(p.txt('#catCount').includes('نوع فیلد')&&!p.all('#catList [data-add]').some(b=>b.dataset.type==='select'),'شمار نتیجه‌ها نمایش داده می‌شود و نوع قدیمی select در کاتالوگ نیست');
   ok(p.doc.querySelector('#catList [data-add="image"]').disabled&&p.doc.querySelector('#catList [data-add="image"]').textContent.includes('غیرفعال')
       &&p.doc.querySelector('#catList [data-add="image"]').textContent.includes('وصل نیست'),'ردیف بارگذاری با وضعیت واقعی سرور غیرفعال است و دلیل را کنار خودش می‌گوید');
-  ok(!p.doc.querySelector('#catList [data-add="birth-date"]').disabled&&p.doc.querySelector('#catList [data-add="birth-date"]').textContent.includes('پاسخ:')
+  ok(!p.doc.querySelector('#catList [data-add="birth-date"]').disabled&&p.doc.querySelector('#catList [data-cat-item="birth-date"]').textContent.includes('پاسخ:')
       &&p.doc.querySelector('#catList [data-add="mobile"] .cap-tag.limited'),'ردیف فعال نوع پاسخ و برچسب قابلیت (سروری با محدودیت) را نشان می‌دهد');
   p.click('#catChips [data-cat="time"]');
   const timeRows=p.all('#catList [data-add]').map(b=>b.dataset.add);
@@ -462,9 +462,9 @@ const html=readFileSync(DIR+'create.html','utf8');
   const bad=cases.filter(([q,k])=>first(q)[0]!==k).map(([q,k])=>q+'→'+(first(q)[0]||'∅')+'≠'+k);
   ok(bad.length===0,'هر عبارت نیازمحور، الگوی درست را اول می‌آورد (ی/ي و ک/ك هم)'+(bad.length?' — '+bad.join(' ، '):''));
   ok(!first('تاریخ تولد').includes('yesno')&&first('تاریخ تولد').length===1,'مترادفِ کوتاه («آری») دیگر به‌صورت زیررشته در «تاریخ» تطبیق نمی‌خورد؛ نتیجهٔ «تاریخ تولد» فقط الگوی تاریخ تولد است');
-  ok(p.doc.querySelector('#shAdd').classList.contains('picker')&&p.doc.querySelector('#shAdd .picker-body #catChips')&&p.doc.querySelector('#shAdd .picker-body #catList'),'انتخاب‌گر ساختار دوبخشی (دسته‌ها + فهرست) دارد که روی دسکتاپ نوار کناری می‌شود');
+  ok(p.doc.querySelector('#shAdd').classList.contains('picker')&&p.doc.querySelector('#shAdd .picker-top #catSearch')&&p.doc.querySelector('#shAdd .picker-top #catChips')&&p.doc.querySelector('#shAdd .picker-body #catList'),'انتخاب‌گر ساختار دوبخشی دارد: سرِ چسبان (جست‌وجو + دسته‌ها) و فهرست');
   const css=readFileSync(new URL('./glass.css',import.meta.url),'utf8');
-  ok(/@media \(min-width:900px\)[\s\S]*\.sheet\.picker\{width:min\(760px,64vw\)\}[\s\S]*\.sheet\.picker \.picker-body\{display:grid/.test(css)&&!/\.sheet\.picker\{[^}]*\}[\s\S]*?@media \(min-width:900px\)/.test(css.split('.sheet.picker')[0]),'پهنای بیشتر و چیدمان شبکه‌ای فقط در رسانهٔ دسکتاپ تعریف شده و فهرست موبایل تک‌ستونه می‌ماند');
+  ok(/@media \(min-width:900px\)[\s\S]*\.sheet\.picker\{width:min\(760px,64vw\)[^}]*\}[\s\S]*\.sheet\.picker \.cat-list-grid\{display:grid;grid-template-columns:repeat\(2/.test(css)&&/\.sheet\.picker \.picker-top\{position:sticky;top:0/.test(css)&&!/\.cat-list-grid\{display:grid/.test(css.split('@media (min-width:900px)')[0]),'پهنای بیشتر و چیدمان شبکه‌ای فقط در رسانهٔ دسکتاپ تعریف شده و فهرست موبایل تک‌ستونه می‌ماند');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
 
@@ -616,9 +616,27 @@ const html=readFileSync(DIR+'create.html','utf8');
   /* کاتالوگ: برچسب وضعیت فقط برای غیر «پشتیبانی سروری»؛ راهنما و نوع پاسخ در دو خط جدا؛ دلیل محدودیت کنار همان کارت */
   p.ev("go('s2');openSheet('shAdd');renderCatalog()");
   ok(!p.doc.querySelector('#catList [data-add="text"] .cap-tag')&&p.doc.querySelector('#catList [data-add="mobile"] .cap-tag.limited'),'برچسب وضعیت فقط روی نوع‌های محدود/غیرفعال است (کارت سروری بی‌برچسب)');
-  ok(p.doc.querySelector('#catList [data-add="birth-date"] .hint').textContent.includes('تاریخ تولد را به شمسی')&&p.doc.querySelector('#catList [data-add="birth-date"] .hint.meta').textContent.includes('پاسخ: تاریخ شمسی'),'کارت الگو: راهنمای خودِ الگو، سپس نوع پاسخ و مثال');
+  ok(p.doc.querySelector('#catList [data-add="birth-date"] .hint').textContent.includes('تاریخ تولد را به شمسی')&&p.doc.querySelector('#catList [data-cat-item="birth-date"] .cat-detail .hint.meta').textContent.includes('پاسخ: تاریخ شمسی'),'کارت الگو: راهنمای خودِ الگو، سپس نوع پاسخ و مثال');
   ok(p.doc.querySelector('#catList [data-add="image"].is-blocked .hint.warn').textContent.includes('وصل نیست'),'دلیل غیرفعال‌بودن انسانی و کنار همان کارت است');
-  ok(p.all('#catList .cat-group').length>=8&&p.all('#catList .cat-list-grid').length===p.all('#catList .cat-group').length,'هر دسته عنوان و فهرست خودش را دارد');
+  ok(p.all('#catList .cat-group').length===p.ev('FIELD_CATEGORIES.length')&&p.all('#catList .cat-list-grid').length===p.all('#catList .cat-group').length
+      &&p.all('#catList .cat-group').map(x=>x.textContent.trim().split(' ·')[0])[0]==='متن و عدد','هر دسته یک‌بار، با عنوان و فهرست خودش و به ترتیب دسته‌ها می‌آید');
+  /* کاشی: یک اقدام اصلی + «جزئیات» جدا که چیزی اضافه نمی‌کند */
+  const nBefore=p.ev('S.fields.length'), info=p.doc.querySelector('#catList [data-cat-info="number"]'), det=p.doc.getElementById(info.getAttribute('aria-controls'));
+  ok(det.hidden&&info.getAttribute('aria-expanded')==='false'&&!info.closest('button[data-add]'),'جزئیات کاشی پیش‌فرض بسته است و دکمهٔ آن داخل دکمهٔ افزودن نیست');
+  info.click();
+  ok(!det.hidden&&info.getAttribute('aria-expanded')==='true'&&det.textContent.includes('پاسخ: عدد')&&det.textContent.includes('مثال')&&p.ev('S.fields.length')===nBefore&&!p.doc.querySelector('#shField').classList.contains('on'),'بازکردن جزئیات، نوع پاسخ و مثال را نشان می‌دهد و پرسشی اضافه نمی‌کند');
+  info.click(); ok(det.hidden&&info.getAttribute('aria-expanded')==='false','جزئیات دوباره بسته می‌شود');
+  ok(p.doc.querySelector('#catList [data-cat-item="image"] .cat-main.is-blocked').disabled&&p.doc.querySelector('#catList [data-cat-item="image"] .cat-main .hint.warn'),'کاشی غیرفعال: دلیل روی خود کاشی است، نه فقط در جزئیات');
+  ok(p.ev("FIELD_CATEGORIES.length===8&&CATALOG.filter(c=>!c.hidden&&c.g==='person').length===8&&CATALOG.filter(c=>!c.hidden&&c.g==='basic').length===4&&CATALOG.filter(c=>!c.hidden).length===36"),'دسته‌بندی تازه: ۸ گروه، مشخصات فردی ۸ نوع، متن و عدد ۴ نوع؛ هیچ نوعی حذف یا اضافه نشده');
+  p.click('#catChips [data-cat="choice"]');
+  ok(p.txt('#catCount').includes('در «انتخاب از گزینه‌ها»')&&p.all('#catList [data-add]').length===5&&!p.doc.querySelector('#catList .cat-group'),'فیلتر دسته: شمار نتیجه با نام دسته و بدون عنوان تکراری');
+  p.click('#catChips [data-cat="all"]');
+  /* نویز جست‌وجو: «سن» دیگر «سند» (فایل) را نمی‌آورد؛ «محل سکونت» اول نشانی است */
+  const first=q=>{p.input('#catSearch',q);return p.all('#catList [data-add]').map(b=>b.dataset.add)};
+  const sen=first('سن'), home=first('محل سکونت');
+  ok(sen.includes('number')&&sen.includes('birth-date')&&!sen.includes('file')&&!sen.includes('imgchoice'),'«سن» → عدد و تاریخ تولد؛ نه فایل/انتخاب کارتی (زیررشتهٔ تصادفی)');
+  ok(home[0]==='address'&&!home.includes('dropdown'),'«محل سکونت» → نشانی در صدر؛ فهرست کشویی نویز نیست');
+  p.input('#catSearch','');
   /* جست‌وجوی «تنظیم» به‌جای نوع: راهنما + نوع‌های میزبان */
   p.input('#catSearch','عدد صحیح');
   ok(p.doc.querySelector('#catSettingHint')&&p.txt('#catSettingHint').includes('یک تنظیم است، نه نوع فیلد')&&p.all('#catList [data-add]').map(b=>b.dataset.add).includes('number'),'«عدد صحیح»: راهنمای تنظیم‌بودن + نوع «عدد» پیشنهاد می‌شود');
