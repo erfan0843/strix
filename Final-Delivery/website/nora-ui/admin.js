@@ -598,11 +598,15 @@ function miniSheet(title,html,label){
 const SERVER_MENU=[
   {k:'newev',  n:'تعریف جدید', i:'i-plus',    s:'رویداد یا مطلب تازه تا انتشار'},
   {k:'events', n:'رویدادها و مطالب', t:'رویدادها', i:'i-calendar',s:'رویداد و مطلب، از انتشار تا رسانه'},
-  {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهی و ابزارها'},
-  {k:'forms',  n:'فرم‌ها',     i:'i-doc',     s:'ساخت فرم، پاسخ‌ها و گزارش'},
-  {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش سرور، خروجی و نامه‌ها'},
+  {k:'users',  n:'کاربران',    i:'i-users',   s:'پرونده، باشگاه، گواهی و ابزارها', grp:'people'},
+  {k:'reports',n:'گزارش‌ها',   i:'i-chart',   s:'گزارش سرور، خروجی و نامه‌ها', grp:'people'},
+  {k:'forms',  n:'فرم‌ساز',    i:'i-doc',     s:'ساخت فرم، پاسخ‌ها و گزارش'},
   {k:'settings',n:'تنظیمات',   i:'i-sliders', s:'متن، مالی و پشتیبان'}];
-const SERVER_TABBAR=['dash','events','users','reports','settings'];
+/* بازآرایی منو ۱۴۰۵/۰۸/۰۵: «کاربران» و «گزارش‌ها» زیر یک والد («کاربران و گزارش‌ها») در ریل می‌نشینند؛ هر دو مقصد
+   مستقل می‌مانند (#users / #reports، مجوز هرکدام جدا). نوار پایین موبایل یک زبانه برای همین گروه دارد (زیرزبانه‌ها در
+   خود صفحه) و «فرم‌ساز» که پیش‌تر فقط در ریل دسکتاپ بود، به نوار پایین هم آمد تا در موبایل بی‌دسترس نماند. */
+const NAV_GROUPS={people:{n:'کاربران و گزارش‌ها',i:'i-users',t:'کاربران'}};
+const SERVER_TABBAR=['dash','events','users','forms','settings'];
 const navSecs=()=>(!IS_TEST&&SERVER_AUTH)?[HOME].concat(SERVER_MENU):ALLSECS;
 const navCan=k=>k==='reports'?(canPerm('rp_view')&&canSec('users')):canSec(k);
 const navActive=k=>{const rep=S.sec==='users'&&S.uHub==='reports';
@@ -615,18 +619,29 @@ const secOf=k=>k==='newev'?{k:'newev',n:'تعریف جدید',i:'i-plus',s:(!IS_
 function renderNav(){
   const all=navSecs(), live=!IS_TEST&&SERVER_AUTH;
   const secs=all.filter(section=>navCan(section.k)).map(section=>section.k);
-  $('#admNav').innerHTML=all.map(s=>{
-    const open=secs.indexOf(s.k)>-1, active=navActive(s.k), lock=!open,
+  const item=s=>{
+    const open=secs.indexOf(s.k)>-1, active=navActive(s.k), lock=!open, sub=s.grp?' nav-sub':'',
       contents=`${ico(s.i,'nav-icon')}<span>${esc(s.n)}</span>${s.badge&&open?`<span class="tag warn bd">${esc(s.badge)}</span>`:(lock?`<span class="bd">${ico('i-lock')}</span>`:'')}`;
     if(s.k==='forms') return open
-      ?`<a class="btn quiet block ${S.sec===s.k?'on':''}" href="builder.html" data-center-href="builder.html">${contents}</a>`
-      :`<button class="btn quiet block" data-locked="1">${contents}</button>`;
-    return `<button class="btn quiet block ${active?'on':''}" data-sec="${s.k}" ${open?'':'data-locked="1"'}>${contents}</button>`;}).join('');
-  /* نوار پایین همان بخش‌های بازِ ریل است؛ مرکز فرم‌ها پیوند مستقیم دارد */
+      ?`<a class="btn quiet block${sub} ${S.sec===s.k?'on':''}" href="builder.html" data-center-href="builder.html">${contents}</a>`
+      :`<button class="btn quiet block${sub}" data-locked="1">${contents}</button>`;
+    return `<button class="btn quiet block${sub} ${active?'on':''}" data-sec="${s.k}" ${open?'':'data-locked="1"'} ${active?'aria-current="page"':''}>${contents}</button>`};
+  /* گروه ریل: والد فقط عنوان است (بدون مقصد جدا)؛ زیرمورد‌ها همان بخش‌های واقعی با مجوز خودشان‌اند */
+  const html=[]; let i=0;
+  while(i<all.length){const s=all[i]; const g=s.grp&&NAV_GROUPS[s.grp];
+    if(!g){html.push(item(s)); i++; continue}
+    const members=[]; while(i<all.length&&all[i].grp===s.grp){members.push(all[i]); i++}
+    const anyOpen=members.some(m=>secs.indexOf(m.k)>-1), anyActive=members.some(m=>navActive(m.k));
+    html.push(`<div class="nav-group${anyActive?' on':''}" data-nav-group="${esc(s.grp)}" role="group" aria-label="${esc(g.n)}">`+
+      `<div class="nav-group-head${anyOpen?'':' locked'}" aria-hidden="true">${ico(g.i,'nav-icon')}<span>${esc(g.n)}</span></div>${members.map(item).join('')}</div>`)}
+  $('#admNav').innerHTML=html.join('');
+  /* نوار پایین: زبانه‌های SERVER_TABBAR؛ زبانهٔ گروه «کاربران و گزارش‌ها» با اولین عضو مجاز گروه ساخته می‌شود */
   $('#admTabs').innerHTML=all.filter(s=>secs.indexOf(s.k)>-1&&(!live||SERVER_TABBAR.includes(s.k))).map(s=>{
-    const active=navActive(s.k)||(live&&s.k==='events'&&S.sec==='newev');
-    return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.t||s.n)}</span></a>`
-      :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}">${ico(s.i,'nav-icon')}<span>${esc(s.t||s.n)}</span></a>`}).join('');
+    const g=s.grp&&NAV_GROUPS[s.grp], siblings=g?all.filter(x=>x.grp===s.grp):[s];
+    const active=siblings.some(x=>navActive(x.k))||(live&&s.k==='events'&&S.sec==='newev');
+    const label=esc(g?(g.t||g.n):(s.t||s.n)), aria=g?` aria-label="${esc(g.n)}"`:'';
+    return s.k==='forms'?`<a href="builder.html" data-center-href="builder.html" class="${active?'on':''}"${active?' aria-current="page"':''}>${ico(s.i,'nav-icon')}<span>${label}</span></a>`
+      :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}"${aria}${active?' aria-current="page"':''}>${ico(g?g.i:s.i,'nav-icon')}<span>${label}</span></a>`}).join('');
 }
 function renderBar(){
   const s=secOf(S.sec);

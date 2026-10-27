@@ -2424,13 +2424,13 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
      رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
      admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
      بی‌دلیل نشکند. */
-  ok(html.includes('admin.css?v=124')&&html.includes('admin.js?v=194')
+  ok(html.includes('admin.css?v=125')&&html.includes('admin.js?v=195')
       &&html.includes('owner-api.js?v=131')&&html.includes('data.js?v=101')
       &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=5')
-      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=107'),
+      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=108'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v100'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v101'"),'کارگر سرویس نسخهٔ تازه است');
   /* پوستر رویداد: قاب A4 عمودی (۲۱۰:۲۹۷) با contain در ویرایشگر، پیش‌نمایش و سربرگ پروندهٔ رویداد؛ جانگهدار صریح برای حالت خالی */
   {
     const acss=fs.readFileSync(DIR+'admin.css','utf8'), ajs=fs.readFileSync(DIR+'admin.js','utf8');

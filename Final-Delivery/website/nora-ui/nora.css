@@ -58,6 +58,8 @@ html.atscroll .topbar{background:color-mix(in oklab,var(--surface) 60%,transpare
 .tabbar .on small{font-weight:700}
 .nav-icon{transform-origin:50% 62%;transition:transform var(--t-fast) var(--spring),filter var(--t-fast) var(--ease)}
 .tabbar [data-account-nav-label]{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* زبانهٔ چهارم «فرم‌ساز» فقط برای نشست‌های دارای مجوز فرم از سرور افزوده می‌شود */
+.tabbar[data-tabs="4"]{grid-template-columns:repeat(4,1fr)}
 .tabbar a:focus-visible .nav-icon,.tabbar button:focus-visible .nav-icon,
 .mrow:focus-visible .nav-icon,#admNav .btn:focus-visible .nav-icon{transform:translateY(-2px) scale(1.08)}
 @keyframes noraTabPop{0%{transform:scale(.9) translateY(2px)}55%{transform:scale(1.14) translateY(-2px)}100%{transform:scale(1) translateY(0)}}

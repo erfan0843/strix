@@ -1,10 +1,10 @@
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    نورا، موتور مشترک صفحه‌ها
    هر چیزی که در بیش از یک صفحه لازم است، همین‌جا نوشته می‌شود:
    اعداد و حروف، انتخاب‌گرها، داده‌های ایران، کیوآرکد، و ابزارهای رابط.
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 
-/* ── عدد و حروف ───────────────────────────────────────────────────────── */
+/* ── عدد و حروف ──────────────────── */
 const NORA_TEST_FIXTURE_MODE=window.__NORA_TEST_FIXTURE_MODE__===true;
 const NR=Number;
 const fa=n=>NR(n).toLocaleString('fa-IR');
@@ -46,7 +46,7 @@ const rialTxt=n=>fa(n)+' ریال';
 const tomanTxt=n=>words(n/10)+' تومان';
 const money=n=>rialTxt(n)+' · '+tomanTxt(n);
 
-/* ── داده‌های ایران ───────────────────────────────────────────────────── */
+/* ── داده‌های ایران ──────────────────── */
 const PROVINCES={
  'تهران':['تهران','اسلامشهر','شهریار','قرچک','ورامین','پاکدشت','رباط‌کریم','پردیس','دماوند','فیروزکوه','لواسان','چهاردانگه'],
  'البرز':['کرج','فردیس','نظرآباد','هشتگرد','اشتهارد','طالقان','محمدشهر','ماهدشت'],
@@ -368,7 +368,7 @@ function initListPicks(root){(root||document).querySelectorAll('.pick[data-list]
 })}
 function initAll(root){initPickers(root);initGeo(root);initListPicks(root)}
 
-/* ── تقویم: جلالی ↔ میلادی ─────────────────────────────────────────────── */
+/* ── تقویم: جلالی ↔ میلادی ──────────────────── */
 const JAL_BREAKS=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
 const jdiv=(a,b)=>~~(a/b);
 const jmod=(a,b)=>a-jdiv(a,b)*b;
@@ -432,7 +432,7 @@ const nowFa=()=>{const g=new Date(), j=jalaliOf(g.getFullYear(),g.getMonth()+1,g
 const maskPhone=s=>{const d=unFa(String(s||'')); return d.length===11?d.replace(/^(\d{4})\d{3}(\d{4})$/,(m,a,b)=>faDigits(a)+'***'+faDigits(b)):d;};
 
 
-/* ── کیوآرکد واقعی: حالت بایت، سطح M/L، نسخهٔ ۱ تا ۵ ───────────────────── */
+/* ── کیوآرکد واقعی: حالت بایت، سطح M/L، نسخهٔ ۱ تا ۵ ──────────────────── */
 const QRCODE=(function(){
   const EXP=new Array(512), LOG=new Array(256);
   (function(){let x=1;for(let i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&0x100)x^=0x11D;}
@@ -564,9 +564,9 @@ const TK_CSS=[['Vazirmatn UI FD',400,TK_FACE_R],['Vazirmatn UI FD',700,TK_FACE_B
 const TK_FONTS="'Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif";
 const TK_FONTS_LAT="'Nora Latin','Vazirmatn UI FD',Vazirmatn,system-ui,Tahoma,sans-serif";
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    برگ گواهینامه، یک SVG مستقل، شیشه‌ای و آمادهٔ چاپ
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 
 /* پوسته‌ها: گرادیان کارت از چپ (ته‌برگ) به راست (متن)، نمونه‌برداری‌شده از مرجع */
 
@@ -579,7 +579,7 @@ function tkFit(text, size, maxW, minSize) {
 }
 const tkEsc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&apos;');
 
-/* ── کیوآرکد واقعی روی کارت سفید ───────────────────────────────────────── */
+/* ── کیوآرکد واقعی روی کارت سفید ──────────────────── */
 
 function tkQR(host, text, x, y, size, dark, uid) {
   const made = QRCODE.make(text);
@@ -777,7 +777,7 @@ function initKeys(root){
     e.preventDefault(); el.click();
   });
 }
-/* ── ابزارهای رابط ─────────────────────────────────────────────────────── */
+/* ── ابزارهای رابط ──────────────────── */
 function toast(msg,kind){
   const t=document.getElementById('toast'); if(!t) return;
   /* برخی صفحه‌ها آیکون ✓ ثابت در توست دارند؛ برای پیام خطا/هشدار نباید نشانهٔ موفقیت دیده شود. */
@@ -957,14 +957,14 @@ if(typeof module!=='undefined'&&module.exports) module.exports={esc,escAttr,init
   certificateSVG,certificateFile,CERT_G,
   words,money,faN,fa,faDigits,tkQR,tkFit,ticketMeta};
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    تم روز و شب، یک منبع حقیقت برای همهٔ صفحه‌های نورا
-   ──────────────────────────────────────────────────────────────────────────
+   ────────────────────
    کلید حافظه: nora-theme · مقدارها: light | dark
    رنگ نوار وضعیت مرورگر (theme-color) هم با تم عوض می‌شود.
    هر عنصر [data-theme-toggle] یک کلید کشویی خورشید/ماه است که با وضعیت
    هم‌گام می‌ماند؛ خودِ نشانه‌گذاری‌اش را themeSwitchHTML می‌سازد.
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 const THEME_KEY='nora-theme';
 const THEME_BAR={light:'#F5F3EE', dark:'#1B211E'};
 function themeNow(){return document.documentElement.dataset.theme==='dark'?'dark':'light'}
@@ -1014,7 +1014,7 @@ function themeSwitchHTML(o){
     <span class="tsw-knob"></span></span>`;
 }
 
-/* ── پروفایل حساب ─────────────────────────────────────────────────────────
+/* ── پروفایل حساب ────────────────────
    یک منبع حقیقت برای خانه و صفحهٔ حساب من. رشته‌ها پاک‌سازی می‌شوند و وضعیت
    فقط از میان چهار حالت خودش می‌آید، وگرنه دادهٔ خراب صفحه را به‌هم می‌زند. */
 const P_STATUS=['draft','pending','approved','rejected'];
@@ -1059,15 +1059,18 @@ function accountEntryHref(next='account.html'){
 /* صفحه‌های عمومی (خانه، رویدادها، پشتیبانی…): وضعیت ورود فقط از سرور خوانده می‌شود (کوکی httpOnly)
    تا برچسب نوار پایین برای عضوِ واردشده «حساب من» باشد. صفحه‌های حساب و ورود خودشان این را مدیریت می‌کنند
    و این بررسی چیزی جز برچسب/aria نوار را تغییر نمی‌دهد (منبع دادهٔ صفحه را «سروری» نمی‌کند). */
-let serverNavSession=false;
+let serverNavSession=false, serverNavPerms=[];
+/* زبانهٔ «فرم‌ساز» فقط با مجوز fm_create از سرور؛ پیوند مجوز نمی‌سازد */
 function probeAccountNavigation(){
   if(NORA_TEST_FIXTURE_MODE||window.NORA_ACCOUNT_SOURCE==='server'||typeof fetch!=='function') return;
   if(!document.querySelector('.tabbar [data-account-nav-label]')) return;
   if(/(?:^|\/)(?:account|login)\.html$/.test(location.pathname)||location.protocol==='file:') return;
-  fetch('/api/account/me',{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
-    .then(r=>r&&r.ok?r.json().catch(()=>null):null)
-    .then(d=>{ if(d&&d.authenticated===true){ serverNavSession=true; updateAccountNavigation() } })
-    .catch(()=>{});
+  sessionJson('/api/account/me').then(d=>d&&d.authenticated===true?d:sessionJson('/api/auth/me').then(o=>o&&o.authenticated===true&&o.role==='owner'?Object.assign(o,{staffOnly:true}):null))
+    .then(d=>{ if(!d) return; if(!d.staffOnly) serverNavSession=true; serverNavPerms=Array.isArray(d.permissions)?d.permissions:[]; updateAccountNavigation() });
+}
+function sessionJson(path){
+  return fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
+    .then(r=>r&&r.ok?r.json().catch(()=>null):null).catch(()=>null);
 }
 function updateAccountNavigation(){
   const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server'||serverNavSession;
@@ -1076,6 +1079,12 @@ function updateAccountNavigation(){
   document.querySelectorAll('.tabbar [data-account-nav]').forEach(link=>{
     link.setAttribute('href',destination);
     link.setAttribute('aria-label',first?first+'، حساب کاربری':authenticated?'حساب من':'ورود/ثبت‌نام');
+  });
+  if(serverNavPerms.includes('fm_create')) document.querySelectorAll('.tabbar:not(#admTabs)').forEach(bar=>{
+    if(bar.querySelector('[data-forms-nav]')) return;
+    const a=document.createElement('a'), small=document.createElement('small'); a.href='builder.html'; a.setAttribute('data-forms-nav','');
+    small.textContent='فرم‌ساز'; a.append(tabIcon('article'),small);
+    bar.insertBefore(a,bar.querySelector('[data-account-nav]')); bar.setAttribute('data-tabs',String(bar.querySelectorAll('a').length));
   });
   return label;
 }
@@ -1087,6 +1096,11 @@ const TAB_ICON_PATHS=Object.freeze({
   book:'<path d="M4.4 5.2h5.2A2.4 2.4 0 0 1 12 7.6v11a2.1 2.1 0 0 0-2-1.6H4.4z"/><path d="M19.6 5.2h-5.2A2.4 2.4 0 0 0 12 7.6v11a2.1 2.1 0 0 1 2-1.6h5.6z"/>',
   partners:'<path d="M3.2 11.4 6.6 8a2 2 0 0 1 2.8 0l2.6 2.6"/><path d="M20.8 11.4 17.4 8a2 2 0 0 0-2.8 0l-2.6 2.6"/><path d="m8.4 12.6 3 3 3-3"/><path d="m10.2 15.2 1.8 1.8 1.8-1.8"/>'
 });
+function tabIcon(kind){
+  const t=document.createElement('template');
+  t.innerHTML=`<svg class="i nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TAB_ICON_PATHS[kind]||TAB_ICON_PATHS.home}</svg>`;
+  return t.content.firstChild;
+}
 function normalizePrimaryNavigation(){
   document.querySelectorAll('.tabbar:not(#admTabs)').forEach(bar=>{
     const links=Array.from(bar.children).filter(node=>node.tagName==='A');
@@ -1108,16 +1122,7 @@ function normalizePrimaryNavigation(){
         link.setAttribute('data-account-nav','');
         label='ورود/ثبت‌نام';
       }
-      const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');
-      icon.setAttribute('class','i nav-icon');
-      icon.setAttribute('viewBox','0 0 24 24');
-      icon.setAttribute('fill','none');
-      icon.setAttribute('stroke','currentColor');
-      icon.setAttribute('stroke-width','1.7');
-      icon.setAttribute('stroke-linecap','round');
-      icon.setAttribute('stroke-linejoin','round');
-      icon.setAttribute('aria-hidden','true');
-      icon.innerHTML=TAB_ICON_PATHS[kind]||TAB_ICON_PATHS.home;
+      const icon=tabIcon(kind);
       const caption=previous||document.createElement('small');
       caption.textContent=label;
       if(accountLink) caption.setAttribute('data-account-nav-label','');
@@ -1624,10 +1629,6 @@ function profileFilled(p,withPhone){
   return out;
 }
 const softField=f=>f.input==='image'||!f.req;   /* عکس و پارامترهای اختیاری، درصد را پایین نمی‌آورند */
-function hardMissing(p,withPhone){
-  const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
-  return (A.fields||[]).filter(x=>f[x.k]||softField(x));
-}
 function profilePercent(p,withPhone){
   const A=(window.NORA&&window.NORA.ACCOUNT)||{}, f=profileFilled(p,withPhone);
   /* همهٔ پارامترها جز عکس */
@@ -1647,15 +1648,15 @@ function levelOf(points){
   return {cur:cur, next:next};
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    کارت رویداد با پوستر، یک کارت، مشترک خانه و صفحهٔ رویدادها
-   ──────────────────────────────────────────────────────────────────────────
+   ────────────────────
    هر رویداد می‌تواند «پوستر» داشته باشد؛ اگر داشت همان نشان داده می‌شود وگرنه
    گرادیان و آیکون خودِ رویداد می‌آید. برگزارشده‌ها هم با همین کارت ساخته
    می‌شوند، فقط با نشان «برگزار شد» و دکمهٔ خرید بازپخش.
    ورودی دوم (o) ظاهر کارت را می‌سازد: attr، badge، meta، note، person،
    price، free، bar، cta، ctaKind، ctaIcon، past، cls.
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 const escH=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const playerIcon=name=>`<svg class="i" aria-hidden="true"><use href="#${escH(name)}"/></svg>`;
 function evPosterCard(e,o){
@@ -1698,13 +1699,13 @@ function evPosterCard(e,o){
   </article>`;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    اجزای مشترک آرشیو و منو (v8)
-   ──────────────────────────────────────────────────────────────────────────
+   ────────────────────
    این‌ها را هر صفحه‌ای می‌تواند صدا بزند: منو، اعلان‌ها، کلیات رویداد،
    رسانه و پخش، خرید، و ورود. هیچ‌کدام به صفحهٔ خاصی وابسته نیستند و اگر
    صفحه ورقه‌شان را نداشته باشد، خودشان می‌سازند.
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 const LIB_KEY='nora-home-library', PROG_KEY='nora-home-progress', READ_KEY='nora-home-read', SESS_KEY='nora-home-user';
 const PROF_KEY='nora-home-profile';   /* پروفایل حساب: هویت، نشانی، وضعیت تأیید */
 const PRE_KEY='nora-home-prereg';                 /* پیش‌ثبت‌نام محلی؛ پیامک و اعلان واقعی وصل نیست */
@@ -1890,9 +1891,9 @@ function fillSheet(id,html,full){
   return el;
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    آرشیو رسانه
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 function libState(item,past){
   if(!item.p) return {k:'open', t:item.preview?'نمونهٔ رایگان':'باز', i:'i-play'};
   if(hasLib(item.id)||hasLib(past&&past.id)) return {k:'mine', t:'تهیه شده', i:'i-check'};
@@ -1991,9 +1992,9 @@ function preview(id){
   if(!hasLib(free.id) && free.p) toast('نمونهٔ رایگان؛ بستهٔ کامل در «جزئیات و تهیه»');
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    کلیات رویداد: ورقهٔ تمام‌صفحه‌ای که پیش از صفحهٔ اختصاصی می‌آید
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 function eventSheet(id){
   const N=window.NORA||{};
   /* رویدادهای منتشرشدهٔ پنل هم برگه دارند؛ برگزارشده‌ها در بخش خودشان */
@@ -2067,9 +2068,9 @@ function eventSheet(id){
 }
 const priceTxt2=price;
 
-/* ══════════════════════════════════════════════════════════════════════════
+/* ════════════════════
    پخش‌کنندهٔ ویدیو، صدا و فایل، همه آنلاین
-   ══════════════════════════════════════════════════════════════════════════ */
+   ════════════════════ */
 let PLAY={id:null,past:null,item:null,sec:0,len:0,timer:null,rate:1,playing:false};
 function playState(){
   const box=document.getElementById('playIn');
@@ -2300,7 +2301,6 @@ function walletUser(){
   const u=jread(SESS_KEY,null);
   return (u&&typeof u==='object'&&u.name)?u:null;
 }
-function saveWalletUser(u){if(NORA_TEST_FIXTURE_MODE) jwrite(SESS_KEY,u)}
 function buySheet(pastId,mediaId){
   const N=window.NORA||{}, H=(N.PAST||[]).find(x=>x.id===pastId); if(!H) return;
   const m=mediaId?(H.media||[]).find(x=>x.id===mediaId):null;
@@ -2339,7 +2339,7 @@ async function serverAuthPost(path,body){
   if(!r.ok){const d=data&&data.detail; throw new Error((d&&d.code)||(typeof d==='string'&&d)||(data&&data.message)||('HTTP '+r.status))}
   return data;
 }
-/* ── «مسیر پیوند حساب» صریح است، نه حدسی ─────────────────────────────
+/* ── «مسیر پیوند حساب» صریح است، نه حدسی ────────────────────
    پارامتر `?link=bale` تنها نشانهٔ این مسیر است و ربات آن را در نشانی دکمهٔ
    مینی‌اپ می‌گذارد. چرا لازم است: امضای `initData` بله یک‌بارمصرف است. اگر
    همین صفحه در مسیر پیوند هم ورود خودکار بزند، امضا خرجِ ساختن یک حساب
@@ -2351,7 +2351,7 @@ function baleLinkMode(){
     return new URLSearchParams(location.search).get('link')==='bale';
   }catch(_){return false}
 }
-/* ── ورود مینی‌اپ بله ──────────────────────────────────────────────────
+/* ── ورود مینی‌اپ بله ────────────────────
    وقتی همین صفحه داخل شیشهٔ بله باز می‌شود، `Bale.WebApp.initData` یک دادهٔ
    امضاشده و یک‌بارمصرف است. دو نکته مهم:
    ۱) پیش از فرستادن امضا، وضعیت نشست پرسیده می‌شود (مالک، بعد حساب)؛ وگرنه
@@ -2369,13 +2369,8 @@ function baleMiniAppInitData(){
 }
 async function hasServerSession(){
   for(const path of ['/api/auth/me','/api/account/me']){
-    try{
-      const r=await fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
-      if(r.ok){
-        const d=await r.json().catch(()=>null);
-        if(d&&d.authenticated===true) return true;
-      }
-    }catch(_){/* شبکه/سرور نیست؛ مسیر معمولی ورود را نمی‌بندیم */}
+    const d=await sessionJson(path);
+    if(d&&d.authenticated===true) return true;
   }
   return false;
 }
@@ -2766,7 +2761,7 @@ function finAddReceipt(){return false}
 addEventListener('storage',e=>{if(e.key===FORMS_KEY) formsAnnounce()});
 addEventListener('nora-forms-changed',()=>{});
 
-/* ── مطلب‌ها: انبار مشترکِ سازنده و خواننده ────────────────────────────────
+/* ── مطلب‌ها: انبار مشترکِ سازنده و خواننده ────────────────────
    مطلب در پنل، بخش «مطلب‌ها» بلوکی ساخته می‌شود: پاراگراف، تیتر، عکس،
    ویدیو (آپارات، یوتیوب یا فایل)، صدا، نقل قول، فهرست، دکمهٔ لینک،
    جعبهٔ توجه، جمع‌شونده و جداکننده؛ هر کدام هر چند تا و به هر ترتیب.

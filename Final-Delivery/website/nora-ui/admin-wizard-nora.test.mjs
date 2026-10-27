@@ -94,10 +94,21 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   const {doc,click,errors,window}=await boot('owner');
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="settings"]')),'پنل با نشست مالک بالا آمد');
   const rail=[...doc.querySelectorAll('#admNav [data-sec],#admNav [data-center-href]')].map(x=>x.dataset.sec||'forms');
-  ok(JSON.stringify(rail)===JSON.stringify(['dash','newev','events','users','forms','reports','settings']),'ترتیب ریل: داشبورد، تعریف جدید، رویدادها، کاربران، فرم‌ها، گزارش‌ها، تنظیمات ('+rail.join(',')+')');
-  const bar=[...doc.querySelectorAll('#admTabs [data-sec]')].map(x=>x.dataset.sec);
-  ok(JSON.stringify(bar)===JSON.stringify(['dash','events','users','reports','settings']),'نوار پایین موبایل پنج‌تایی طبق مرجع ('+bar.join(',')+')');
-  ok(doc.querySelector('#admNav [data-center-href]').getAttribute('href')==='builder.html','«فرم‌ها» به فرم‌ساز واقعی می‌رود (تنها ویرایشگر فرم)');
+  /* بازآرایی منو ۱۴۰۵/۰۸/۰۵ (درخواست کاربر): «کاربران» و «گزارش‌ها» زیر والد «کاربران و گزارش‌ها»؛ «فرم‌ساز» در ریل و نوار پایین */
+  ok(JSON.stringify(rail)===JSON.stringify(['dash','newev','events','users','reports','forms','settings']),'ترتیب ریل: داشبورد، تعریف جدید، رویدادها، [کاربران، گزارش‌ها]، فرم‌ساز، تنظیمات ('+rail.join(',')+')');
+  const grp=doc.querySelector('#admNav [data-nav-group="people"]');
+  ok(grp&&/کاربران و گزارش‌ها/.test(grp.querySelector('.nav-group-head').textContent),'والد «کاربران و گزارش‌ها» در ریل');
+  ok(grp&&[...grp.querySelectorAll('[data-sec]')].map(x=>x.dataset.sec).join(',')==='users,reports','هر دو زیرمقصد مستقل زیر همان والد (#users و #reports)');
+  const bar=[...doc.querySelectorAll('#admTabs a')].map(x=>x.dataset.sec||'forms');
+  ok(JSON.stringify(bar)===JSON.stringify(['dash','events','users','forms','settings']),'نوار پایین موبایل پنج‌تایی: داشبورد، رویدادها، کاربران و گزارش‌ها، فرم‌ساز، تنظیمات ('+bar.join(',')+')');
+  ok(doc.querySelector('#admTabs [data-sec="users"]').getAttribute('aria-label')==='کاربران و گزارش‌ها','زبانهٔ موبایل گروه، نام کامل را در aria-label دارد');
+  ok(/فرم‌ساز/.test(doc.querySelector('#admNav [data-center-href]').textContent)&&/فرم‌ساز/.test(doc.querySelector('#admTabs [data-center-href]').textContent),'«فرم‌ساز» هم در ریل هم در نوار پایین موبایل دیده می‌شود');
+  ok(doc.querySelector('#admNav [data-center-href]').getAttribute('href')==='builder.html','«فرم‌ساز» به مرکز فرم‌های واقعی می‌رود (تنها ویرایشگر فرم)');
+  click('#admNav [data-sec="reports"]');
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="reports"].on')&&!doc.querySelector('#admNav [data-sec="users"].on')),'زیرمقصد «گزارش‌ها» مستقل باز می‌شود و فعال است');
+  ok(doc.querySelector('#admNav [data-nav-group="people"].on')&&doc.querySelector('#admTabs [data-sec="users"].on'),'والد و زبانهٔ موبایل گروه، فعال‌بودن زیرمقصد را نشان می‌دهند');
+  click('#admNav [data-sec="users"]');
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="users"].on')&&!doc.querySelector('#admNav [data-sec="reports"].on')),'زیرمقصد «کاربران» مستقل باز می‌شود');
 
   console.log('── تعریف جدید: فرم فشردهٔ سه‌بخشی روی همان ویرایشگر سروری ──');
   click('#admNav [data-sec="newev"]');
