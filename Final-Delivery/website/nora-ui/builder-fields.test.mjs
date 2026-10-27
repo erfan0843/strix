@@ -42,6 +42,9 @@ function serverContract(){
     models:['registration','questionnaire','survey','contest','exam','attendance','datacollect','election'].map(id=>({id,status:id==='registration'?'server':'limited',publishable:true,reason:''}))
       .concat([{id:'order',status:'unavailable',publishable:false,reason:'سفارش آماده نیست'}]),
     field_types,
+    field_settings:{length:{status:'server',types:['address','area','fullname','location','text'],keys:['minLen','maxLen'],max_by_type:{address:1000,area:3000,fullname:120,location:180,text:1000}},
+      integer:{status:'server',types:['amount','number'],keys:['integer'],reason:'با روشن‌بودن، عدد اعشاری در فرم عمومی و سرور رد می‌شود؛ گام تغییر یا تعداد رقم اعشار تنظیم‌پذیر نیست.'},
+      placeholder:{status:'client_display',keys:['placeholder'],max_length:120},temporal_bounds:{status:'unavailable',types:['date','time','datetime','slot'],keys:[]}},
     settings:{response_list:{status:'server',page_size_max:100},schedule:{status:'unavailable'},one_response_per_person:{status:'unavailable'},
       companions:{status:'conditional',models:['registration'],reason:'فقط ثبت‌نام'},
       survey_scoring:{status:'unavailable',models:['survey'],reason:'امتیاز فقط در پیش‌نمایش محلی فرم‌ساز است.'}}};
@@ -478,6 +481,71 @@ const html=readFileSync(DIR+'create.html','utf8');
   p.ev("editField(S.fields[0].id)");p.set('#fdHelp','چقدر راضی بودی؟');p.set('#fdMin','');p.set('#fdMax','');
   ok(p.ev('saveField()')===true&&p.ev('S.fields[0].help')==='چقدر راضی بودی؟','راهنمای سفارشی مالک با تغییر بازه بازنویسی نمی‌شود');
   ok(!/فقط محلی/.test(p.ev("STRUCT.terms+' '+HELP.terms+' '+STRUCT.rating"))&&/در سرور ذخیره/.test(p.ev('STRUCT.terms'))&&/امضا/.test(p.ev('STRUCT.terms')),'متن نوع پذیرش قوانین و ستاره رفتار واقعی سرور را می‌گوید');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
+/* ── ۱۳) منبع واحد تنظیمات: هر ظرف DOM ویرایشگر به یک تنظیم ثبت‌شده تعلق دارد؛ نمایش ظرف‌ها فقط از ثبت می‌آید؛
+       کلیدهای ذخیره‌شده ⊆ کلیدهای ثبت ∪ پایه؛ شناسهٔ قرارداد هر تنظیم در form_capabilities.py وجود دارد ── */
+{
+  console.log('\n── منبع واحد تنظیمات فیلد ──');
+  const p=await load();
+  const registry=p.ev("FIELD_SETTINGS.map(d=>({id:d.id,keys:d.keys,box:d.box||null,cap:d.cap||null,hasRender:!!d.render,hasApply:!!d.apply,hasValidate:!!d.validate,hasDirty:!!d.dirty}))");
+  const ids=registry.map(d=>d.id), keys=registry.flatMap(d=>d.keys);
+  ok(new Set(ids).size===ids.length&&new Set(keys).size===keys.length,'شناسه‌ها و کلیدهای داده در ثبت یکتا هستند');
+  const domBoxes=[...p.doc.querySelectorAll('#shField [id$="Box"]')].map(el=>'#'+el.id).filter(id=>!['#fdValidationBox','#fdMediaNoteBox','#fdCondLogicBox'].includes(id));
+  const registryBoxes=registry.map(d=>d.box).filter(Boolean);
+  const orphan=domBoxes.filter(id=>!registryBoxes.includes(id)), missing=registryBoxes.filter(id=>!p.doc.querySelector(id));
+  ok(orphan.length===0&&missing.length===0,'هر ظرف تنظیم در DOM ↔ یک تنظیم ثبت‌شده'+(orphan.length?' — بی‌صاحب: '+orphan.join(','):'')+(missing.length?' — گم‌شده: '+missing.join(','):''));
+  const pySource=readFileSync(new URL('./backend/form_capabilities.py',import.meta.url),'utf8');
+  const capMissing=registry.filter(d=>d.cap&&!pySource.includes('"'+d.cap+'": {')).map(d=>d.cap);
+  ok(capMissing.length===0,'شناسهٔ قرارداد هر تنظیم (cap) در field_settings سرور تعریف شده'+(capMissing.length?' — '+capMissing.join(','):''));
+  const mismatches=[];
+  for(const t of p.ev("Object.keys(FIELD_TYPES).filter(t=>fieldSupport(t).addable)")){
+    p.ev("S.fields=[];addField("+JSON.stringify(t)+");editField(S.fields[0].id)");
+    const expected=p.ev("FIELD_SETTINGS.filter(d=>d.box&&settingVisible(d,FIELD_DRAFT.t,FIELD_DRAFT)).map(d=>d.box)");
+    const shown=registryBoxes.filter(id=>{const el=p.doc.querySelector(id);return el&&el.style.display!=='none'});
+    if(JSON.stringify([...expected].sort())!==JSON.stringify([...shown].sort()))mismatches.push(t);
+    const base=new Set(['id','k','t','l','preset','opts','options','help','req','col','media','mediaNote','verify','count','accept','maxSize','min','max','weight','scoreOn','prof','placeholder']);
+    const saved=p.ev("(saveField(),Object.keys(S.fields[0]))").filter(key=>!base.has(key)&&!keys.includes(key));
+    if(saved.length)mismatches.push(t+':'+saved.join('/'));
+  }
+  ok(mismatches.length===0,'برای همهٔ نوع‌های قابل‌افزودن، ظرف‌های نمایان = ثبت، و کلیدهای ذخیره‌شده ⊆ ثبت'+(mismatches.length?' — '+mismatches.join(' ، '):''));
+  ok(registry.filter(d=>d.hasApply||d.hasRender).length===registry.length,'هر تنظیم دست‌کم render یا apply دارد (هیچ ثبتِ صرفاً تزئینی)');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
+
+/* ── ۱۴) طول متن و فقط‌صحیح: کنترل واقعی → ذخیره → بازگشایی → تغییر نوع → خطا کنار کنترل ── */
+{
+  console.log('\n── طول پاسخ و فقط عدد صحیح ──');
+  const p=await load();
+  p.ev("go('s2');S.fields=[];addField('text');editField(S.fields[0].id)");
+  ok(p.doc.querySelector('#fdLengthBox').style.display==='block'&&p.doc.querySelector('#fdIntegerBox').style.display==='none','متن: جعبهٔ طول دیده می‌شود و «فقط عدد صحیح» نه');
+  ok(/۱٬?۰۰۰/.test(p.txt('#fdLengthNote').replace(/\u066c/g,'٬'))||p.txt('#fdLengthNote').includes('۱۰۰۰'),'یادداشت طول سقف نوع (۱۰۰۰) را می‌گوید');
+  p.set('#fdMinLen','۱۰');p.set('#fdMaxLen','۵');
+  ok(p.ev('saveField()')===false&&p.txt('#fdIssues').includes('حداقل نویسه')&&p.doc.activeElement===p.doc.querySelector('#fdMinLen'),'حداقل > حداکثر رد می‌شود و تمرکز روی کنترل');
+  p.set('#fdMinLen','');p.set('#fdMaxLen','۲۰۰۰');
+  ok(p.ev('saveField()')===false&&p.txt('#fdIssues').includes('۱۰۰۰')&&p.doc.activeElement===p.doc.querySelector('#fdMaxLen'),'حداکثر بیش از سقف نوع رد می‌شود');
+  p.set('#fdMinLen','۳');p.set('#fdMaxLen','۸');
+  ok(p.ev('saveField()')===true&&p.ev('S.fields[0].minLen===3&&S.fields[0].maxLen===8'),'طول معتبر با رقم فارسی به عدد ذخیره می‌شود');
+  ok(p.ev('editorControlsChanged()')===false,'پس از ذخیره، کنترل‌ها «تغییر ذخیره‌نشده» ندارند');
+  p.ev("closeSheets();editField(S.fields[0].id)");
+  ok(p.doc.querySelector('#fdMinLen').value==='3'&&p.doc.querySelector('#fdMaxLen').value==='8','بازگشایی: مقدارها برمی‌گردند');
+  p.set('#fdMaxLen','9');ok(p.ev('editorControlsChanged()')===true,'تغییر حداکثر نویسه «تغییر ذخیره‌نشده» است');
+  ok(p.txt('#fieldList').includes('طول دست‌کم ۳ حداکثر ۸ نویسه'),'خلاصهٔ فیلد روی بوم طول را نشان می‌دهد');
+  ok(p.ev("typeChangeConsequences(FIELD_DRAFT,'fullname').join(' ')").includes('محدودیت طول')===false&&p.ev("typeChangeConsequences(FIELD_DRAFT,'email').join(' ')").includes('محدودیت طول پاسخ برداشته'),'پیامد تغییر نوع: به ایمیل → محدودیت طول برداشته می‌شود؛ به نام → می‌ماند');
+  p.ev("applyTypeChange('email');saveField()");
+  ok(p.ev("!('minLen' in S.fields[0])&&!('maxLen' in S.fields[0])&&S.fields[0].t==='email'"),'پس از تغییر به ایمیل کلیدهای طول پاک می‌شوند');
+  p.ev("S.fields=[];addField('number');editField(S.fields[0].id)");
+  ok(p.doc.querySelector('#fdIntegerBox').style.display!=='none'&&p.doc.querySelector('#fdLengthBox').style.display==='none','عدد: «فقط عدد صحیح» دیده می‌شود و جعبهٔ طول نه');
+  ok(p.doc.querySelector('#fdInteger').getAttribute('aria-checked')==='false'&&p.ev("saveField();S.fields[0].integer")===undefined,'پیش‌فرض خاموش و کلید ذخیره نمی‌شود');
+  p.ev("editField(S.fields[0].id)");p.click('#fdInteger');
+  ok(p.ev('editorControlsChanged()')===true&&p.ev('saveField()')===true&&p.ev('S.fields[0].integer===true'),'روشن‌کردن → ذخیره → integer:true');
+  ok(p.ev('S.fields[0].help')===p.ev('HELP_NUMBER_INTEGER')&&!/ممیز و/.test(p.ev('S.fields[0].help')),'راهنمای پیش‌فرض عدد با فقط‌صحیح دیگر «ممیز پذیرفته می‌شود» نمی‌گوید');
+  p.ev("closeSheets();editField(S.fields[0].id)");
+  ok(p.doc.querySelector('#fdInteger').getAttribute('aria-checked')==='true'&&p.txt('#fieldList').includes('فقط عدد صحیح'),'بازگشایی: سوییچ روشن و خلاصه روی بوم');
+  ok(p.ev("typeChangeConsequences(FIELD_DRAFT,'amount').join(' ')").includes('فقط عدد صحیح')===false,'عدد → مبلغ: «فقط عدد صحیح» حفظ می‌شود');
+  p.ev("applyTypeChange('amount');saveField()");ok(p.ev('S.fields[0].integer===true&&S.fields[0].t==="amount"'),'پس از تغییر به مبلغ، تنظیم می‌ماند');
+  const html=readFileSync(new URL('./create.html',import.meta.url),'utf8');
+  ok(html.includes("invalid_length_range:'#fdMinLen'")&&p.doc.querySelector('#fdMinLen'),'خطای انتشار invalid_length_range به کنترل حداقل نویسه می‌رسد');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);

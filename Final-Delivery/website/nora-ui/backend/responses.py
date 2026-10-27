@@ -41,6 +41,18 @@ SUPPORTED_PUBLIC_FIELD_TYPES = {
     "edu", "job", "uni", "marital", "terms", "location",
 }
 MAX_ANSWER_LENGTH = 4000
+# Per-type answer caps of the public path (also published through the capability contract).
+TEXT_ANSWER_LIMITS = {
+    "text": 1000, "area": 3000, "address": 1000, "location": 180,
+    "fullname": 120, "mobile": 20, "nid": 10, "email": 254,
+    "date": 32, "time": 16, "slot": 16, "datetime": 48,
+    "province": 160, "edu": 200, "job": 200, "uni": 200,
+}
+# Owner-configurable settings that the server really enforces (builder → readiness → answer validation).
+LENGTH_SETTING_TYPES = {"text", "area", "address", "location", "fullname"}
+INTEGER_SETTING_TYPES = {"number", "amount"}
+BOUNDS_SETTING_TYPES = {"number", "amount", "rating", "scale", "bars"}
+BOUNDS_RANGES = {"rating": (1, 5), "scale": (0, 10), "bars": (0, 10)}
 MAX_PUBLIC_OPTIONS = 100
 MAX_PUBLIC_CAPACITY = 100_000
 MAX_PUBLIC_COMPANIONS = 9
@@ -391,7 +403,7 @@ def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[di
                 "field_id": field.field_key,
                 "message": f"پیوست یا ورودی مالیِ «{field.label}» هنوز به سرور وصل نیست.",
             })
-        for flag in ("req", "required", "verify", "prof", "col", "scoreOn"):
+        for flag in ("req", "required", "verify", "prof", "col", "scoreOn", "integer"):
             if config.get(flag) is not None and not isinstance(config.get(flag), bool):
                 issues.append({
                     "code": "invalid_field_configuration",
@@ -423,6 +435,16 @@ def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[di
                     "code": "invalid_numeric_range",
                     "field_id": field.field_key,
                     "message": f"بازهٔ عددی پرسش «{field.label}» معتبر نیست.",
+                })
+        if field_type in LENGTH_SETTING_TYPES:
+            try:
+                _length_settings(config, field_type)
+            except ValueError:
+                cap = TEXT_ANSWER_LIMITS.get(field_type, MAX_ANSWER_LENGTH)
+                issues.append({
+                    "code": "invalid_length_range",
+                    "field_id": field.field_key,
+                    "message": f"محدودیت طول پاسخ پرسش «{field.label}» معتبر نیست (عدد صحیح، حداقل ≤ حداکثر، حداکثر {cap} نویسه).",
                 })
         if str(config.get("media", "none") or "none").lower() not in {"", "none"}:
             issues.append({
@@ -471,6 +493,27 @@ def _text_value(value: Any, field: FormFieldRecord, *, max_length: int) -> str:
     if any(ord(char) == 0 or 0xD800 <= ord(char) <= 0xDFFF for char in value):
         raise ValueError(f"پاسخ «{field.label}» نویسهٔ پشتیبانی‌نشده دارد.")
     return value
+
+
+def _length_settings(config: dict[str, Any], field_type: str) -> tuple[int | None, int | None]:
+    """Owner-configured minLen/maxLen of a text-family field; raises ValueError when the pair is not usable."""
+    cap = TEXT_ANSWER_LIMITS.get(field_type, MAX_ANSWER_LENGTH)
+    out: list[int | None] = []
+    for key in ("minLen", "maxLen"):
+        raw = config.get(key)
+        if raw in (None, ""):
+            out.append(None)
+            continue
+        number = _localized_decimal(raw)
+        if number != number.to_integral_value() or number < 0 or number > cap:
+            raise ValueError("length_setting_out_of_range")
+        out.append(int(number))
+    minimum, maximum = out
+    if minimum is not None and maximum is not None and minimum > maximum:
+        raise ValueError("minimum_exceeds_maximum")
+    if maximum == 0:
+        raise ValueError("maximum_zero")
+    return minimum, maximum
 
 
 def _localized_decimal(value: Any) -> Decimal:
@@ -628,6 +671,8 @@ def _field_value(value: Any, field: FormFieldRecord, *, partial: bool = False) -
         if field_type in {"rating", "scale", "bars"} and decimal != decimal.to_integral_value():
             # Stars and sliders are discrete controls: 2.5 stars cannot be shown or exported truthfully.
             raise ValueError(f"برای «{field.label}» فقط عدد صحیح پذیرفته می‌شود.")
+        if field_type in INTEGER_SETTING_TYPES and config.get("integer") is True and decimal != decimal.to_integral_value():
+            raise ValueError(f"برای «{field.label}» فقط عدد صحیح (بدون اعشار) پذیرفته می‌شود.")
         answer = str(value).strip()
         _check_answer_quality(answer, field, partial=partial)
         return answer
@@ -647,13 +692,17 @@ def _field_value(value: Any, field: FormFieldRecord, *, partial: bool = False) -
         _check_answer_quality(answer, field, partial=partial)
         return "پذیرفتم"
 
-    limits = {
-        "text": 1000, "area": 3000, "address": 1000, "location": 180,
-        "fullname": 120, "mobile": 20, "nid": 10, "email": 254,
-        "date": 32, "time": 16, "slot": 16, "datetime": 48,
-        "province": 160, "edu": 200, "job": 200, "uni": 200,
-    }
-    answer = _text_value(value, field, max_length=limits.get(field_type, MAX_ANSWER_LENGTH))
+    answer = _text_value(value, field, max_length=TEXT_ANSWER_LIMITS.get(field_type, MAX_ANSWER_LENGTH))
+    if field_type in LENGTH_SETTING_TYPES:
+        try:
+            minimum_length, maximum_length = _length_settings(config, field_type)
+        except ValueError:
+            minimum_length, maximum_length = None, None  # readiness blocks publishing such a form
+        length = len(answer)
+        if maximum_length is not None and length > maximum_length:
+            raise ValueError(f"پاسخ «{field.label}» حداکثر {maximum_length} نویسه است.")
+        if not partial and minimum_length is not None and length < minimum_length:
+            raise ValueError(f"پاسخ «{field.label}» باید دست‌کم {minimum_length} نویسه باشد.")
     if field_type in {"date", "time", "datetime", "slot"} and not _valid_condition_temporal(answer, field_type):
         raise ValueError("تاریخ یا زمان کامل و معتبر نیست.")
     if field_type == "mobile":
@@ -930,7 +979,7 @@ def public_form_data(
     public_field_keys = {
         "req", "required", "help", "placeholder", "opts", "options", "min", "max",
         "minSelect", "maxSelect", "conditions", "conditionLogic", "condField", "condOp",
-        "condVal", "weight", "scoreOn", "scoreType", "col", "prof",
+        "condVal", "weight", "scoreOn", "scoreType", "col", "prof", "minLen", "maxLen", "integer",
     }
     fields = []
     for field in form.fields:

@@ -747,7 +747,9 @@
 
     <section class="fd-sec" id="fdValidationBox" style="display:none" aria-labelledby="fdSecValidation">
       <h3 class="fd-h" id="fdSecValidation">اعتبارسنجی و محدودیت</h3>
-      <div id="fdBoundsBox" style="display:none"><div class="lbl" id="fdBoundsLabel">محدودهٔ عددی (اختیاری)</div><div class="g2"><div><label class="lbl" for="fdMin">حداقل</label><input id="fdMin" class="input num" inputmode="decimal" autocomplete="off"/></div><div><label class="lbl" for="fdMax">حداکثر</label><input id="fdMax" class="input num" inputmode="decimal" autocomplete="off"/></div></div><div class="mnote" id="fdBoundsNote">پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود.</div></div>
+      <div id="fdBoundsBox" style="display:none"><div class="lbl" id="fdBoundsLabel">محدودهٔ عددی (اختیاری)</div><div class="g2"><div><label class="lbl" for="fdMin">حداقل</label><input id="fdMin" class="input num" inputmode="decimal" autocomplete="off"/></div><div><label class="lbl" for="fdMax">حداکثر</label><input id="fdMax" class="input num" inputmode="decimal" autocomplete="off"/></div></div><div class="mnote" id="fdBoundsNote">پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود.</div>
+        <div id="fdIntegerBox" style="display:none;margin-top:8px"><div class="row"><span class="sub">فقط عدد صحیح</span><span class="sp"></span><span class="switch" id="fdInteger" role="switch" aria-label="فقط عدد صحیح" aria-checked="false" tabindex="0"></span></div><div class="mnote" id="fdIntegerNote">روشن: عدد اعشاری در فرم عمومی و سرور رد می‌شود. گام تغییر و تعداد رقم اعشار در سرور تنظیم‌پذیر نیست.</div></div></div>
+      <div id="fdLengthBox" style="display:none"><div class="lbl">طول پاسخ (اختیاری؛ شمار نویسه)</div><div class="g2"><div><label class="lbl" for="fdMinLen">حداقل نویسه</label><input id="fdMinLen" class="input num" inputmode="numeric" autocomplete="off"/></div><div><label class="lbl" for="fdMaxLen">حداکثر نویسه</label><input id="fdMaxLen" class="input num" inputmode="numeric" autocomplete="off"/></div></div><div class="mnote" id="fdLengthNote">خالی یعنی فقط سقف نوع. فرم عمومی و سرور هر دو همین محدودیت را بررسی می‌کنند.</div></div>
       <div id="fdVerifyBox" style="display:none">
         <div class="row"><span class="sub">تأیید مالکیت شماره</span><span class="sp"></span><span class="tag warn" id="fdVerifyStatus">غیرفعال · سرویس پیامک/احراز وصل نیست</span></div>
         <div class="mnote">درخواست تأیید در سرور اجرا نمی‌شود و انتشار را مسدود می‌کند. اگر این گزینه از پیش‌نویس قدیمی آمده، آن را پاک کنید.</div>
@@ -979,24 +981,133 @@ const presetOf=k=>CATALOG.find(c=>c.k===String(k))||genericPreset(k);
 const presetsOfType=t=>CATALOG.filter(c=>c.t===String(t)&&!c.hidden);
 /* نوع‌هایی که فرم عمومی (form.html → profileValue) برایشان مسیر پیشنهاد از پروفایل دارد؛ سرور این قابلیت را ندارد (profile_prefill) */
 const PROFILE_TYPES=new Set(['fullname','mobile','nid','email','address','province','uni','job','edu']);
-/* ثبت کنترل‌های ویرایشگر: هر کنترل یک شناسهٔ پایدار، کلیدهای ذخیره و شرط نمایش دارد (یک تعریف برای نمایش، ذخیره، تغییر نوع و آزمون) */
+/* ثبت تنظیم‌های فیلد: منبع واحد ویرایشگر.
+   هر تنظیم: id پایدار، keys (کلیدهای داده روی فیلد)، box (ظرف DOM)، when (شرط نمایش)، cap (شناسهٔ همین تنظیم در
+   قرارداد قابلیت‌های سرور: field_settings)، render (پر کردن کنترل‌ها از فیلد)، validate (نخستین اشکال → {message,target}),
+   apply (نوشتن کنترل‌ها در پیش‌نویس)، clear (وقتی برای نوع فعلی نمایش داده نمی‌شود)، dirty (تغییر ذخیره‌نشده)،
+   convert/consequence (تغییر نوع). renderFieldEditor/saveField/editorControlsChanged/applyTypeChange فقط روی این فهرست
+   حلقه می‌زنند؛ مرزهای مستند: ویرایشگر گزینه‌ها و شرط‌ها مستقیماً روی پیش‌نویس می‌نویسند (dirty از عکس پیش‌نویس می‌آید). */
+const HELP_NUMBER_INTEGER='عدد صحیح را با رقم فارسی، عربی یا لاتین بنویسید؛ جداکنندهٔ هزارگان پذیرفته می‌شود، ممیز نه.';
+const LENGTH_SETTING_TYPES=new Set(['text','area','address','location','fullname']);
+const LENGTH_TYPE_CAPS={text:1000,area:3000,address:1000,location:180,fullname:120};
+const INTEGER_SETTING_TYPES=new Set(['number','amount']);
+const settingContract=id=>FORM_CAPABILITY_STATE==='ready'&&FORM_CAPABILITIES&&FORM_CAPABILITIES.field_settings&&FORM_CAPABILITIES.field_settings[id]||null;
+const contractTypes=(id,fallback)=>{const c=settingContract(id);return c&&Array.isArray(c.types)?new Set(c.types):fallback};
+const lengthCapFor=t=>{const c=settingContract('length');return c&&c.max_by_type&&Number.isSafeInteger(c.max_by_type[t])?c.max_by_type[t]:LENGTH_TYPE_CAPS[t]||4000};
+const textLimitIssue=(id,max,label)=>{const input=$('#'+id);return input&&[...String(input.value||'').trim()].length>max?{message:'«'+label+'» حداکثر '+faN(max)+' نویسه است',target:input}:null};
+const switchOn=id=>!!$('#'+id)&&$('#'+id).classList.contains('on');
+const parseLengthInput=raw=>{const v=String(raw||'').trim();if(!v)return null;const n=Number(unFa(v));return Number.isSafeInteger(n)&&n>=0?n:NaN};
 const FIELD_SETTINGS=[
-  {id:'title',keys:['l'],box:null,common:true},
-  {id:'help',keys:['help'],box:null,common:true},
-  {id:'required',keys:['req'],box:null,common:true},
-  {id:'options',keys:['opts'],box:'#fdOptionsBox',when:t=>OPTION_FIELD_TYPES.has(t)},
-  {id:'multiLimits',keys:['minSelect','maxSelect'],box:'#fdMultiLimitsBox',when:t=>t==='multi'},
-  {id:'bounds',keys:['min','max'],box:'#fdBoundsBox',when:t=>fieldControls(t).has('bounds')},
-  {id:'verify',keys:['verify'],box:'#fdVerifyBox',when:(t,f)=>fieldControls(t).has('verify')||!!(f&&f.verify)},
-  {id:'upload',keys:['count','accept','maxSize'],box:'#fdCountBox',when:t=>fieldControls(t).has('upload')},
-  {id:'placeholder',keys:['placeholder'],box:'#fdPlaceholderBox',when:t=>fieldControls(t).has('placeholder')},
-  {id:'conditions',keys:['conditions','conditionLogic','condField','condOp','condVal'],box:'#fdCondBox',common:true},
-  {id:'score',keys:['weight','scoreOn'],box:'#fdScoreBox',when:()=>surveyMode()},
-  {id:'profile',keys:['prof'],box:'#fdProfBox',when:(t,f)=>PROFILE_TYPES.has(t)||!!(f&&f.prof)},
-  {id:'csvColumn',keys:['col'],box:null,common:true},
-  {id:'media',keys:['media','mediaNote'],box:null,common:true},
-  {id:'typeChange',keys:['t','preset'],box:'#fdTypeBox',when:(t,f)=>typeChangeChoices(t,f&&f.preset).length>0}
+  {id:'title',keys:['l'],box:null,common:true,cap:null,
+    render:f=>{$('#fdTitle').value=f.l||''},
+    validate:()=>textLimitIssue('fdTitle',160,'عنوان فیلد'),
+    apply:f=>{f.l=($('#fdTitle').value||'').trim().slice(0,160)||f.l},
+    dirty:f=>($('#fdTitle').value||'').trim()!==String(f.l||'').trim()},
+  {id:'help',keys:['help'],box:null,common:true,cap:null,
+    render:f=>{$('#fdHelp').value=f.help||'';$('#fdHelp').placeholder=f.t==='terms'?'متن قوانین یا رضایتی که پاسخ‌دهنده با تیک می‌پذیرد را اینجا بنویسید':'توضیح کوتاه زیر پرسش (اختیاری)'},
+    validate:()=>textLimitIssue('fdHelp',300,'راهنمای پرسش'),
+    apply:f=>{f.help=$('#fdHelp').value.trim().slice(0,300)},
+    dirty:f=>($('#fdHelp').value||'').trim()!==String(f.help||'')},
+  {id:'required',keys:['req'],box:null,common:true,cap:'required',
+    render:f=>setSwitch('fdReq',!!f.req),apply:f=>{f.req=switchOn('fdReq')},dirty:f=>switchOn('fdReq')!==!!f.req},
+  {id:'options',keys:['opts'],box:'#fdOptionsBox',cap:'options',when:t=>OPTION_FIELD_TYPES.has(t),
+    render:()=>renderFieldOptions(),
+    validate:f=>{const probe=Object.assign({},f,{opts:optionRowsForField(f).map(raw=>typeof raw==='string'?{l:raw.trim()}:Object.assign({},raw||{},{l:String(raw&&raw.l==null?'':raw.l).trim()}))});
+      if(f.t==='multi'){probe.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);probe.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value)}
+      const issue=optionSettingsIssue(probe);if(!issue)return null;
+      return {message:issue.message,target:issue.target?$(issue.target):issue.optionIndex==null?$('#fdAddOption'):$('#fdOptions [data-optl="'+issue.optionIndex+'"]')}},
+    apply:f=>{f.opts=optionRowsForField(f).map(raw=>{const o=typeof raw==='string'?{l:raw}:Object.assign({},raw||{});o.l=String(o.l==null?'':o.l).trim();if(o.score!=null)o.score=Math.max(0,Math.min(5,NR(unFa(o.score))||0));return o})}},
+  {id:'multiLimits',keys:['minSelect','maxSelect'],box:'#fdMultiLimitsBox',display:'',cap:'multi_limits',when:t=>t==='multi',
+    render:f=>{$('#fdMinSelect').value=f.minSelect==null?'':String(f.minSelect);$('#fdMaxSelect').value=f.maxSelect==null?'':String(f.maxSelect)},
+    apply:f=>{f.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);f.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value)},
+    clear:f=>{delete f.minSelect;delete f.maxSelect},
+    dirty:f=>String($('#fdMinSelect').value||'')!==String(f.minSelect==null?'':f.minSelect)||String($('#fdMaxSelect').value||'')!==String(f.maxSelect==null?'':f.maxSelect)},
+  {id:'bounds',keys:['min','max'],box:'#fdBoundsBox',cap:'bounds',when:t=>fieldControls(t).has('bounds'),
+    render:f=>{const range=typeOf(f.t).boundsRange;
+      $('#fdBoundsLabel').textContent=f.t==='rating'?'بازهٔ ستاره‌ها (اختیاری؛ ۱ تا ۵)':range?'بازهٔ نمایش (اختیاری؛ بین '+faN(range[0])+' تا '+faN(range[1])+')':'محدودهٔ عددی (اختیاری)';
+      $('#fdBoundsNote').textContent=f.t==='rating'?'فقط ستاره‌های داخل بازه نمایش داده می‌شوند (پیش‌فرض ۱ تا ۵)؛ سرور همین بازه را هنگام انتشار و پاسخ بررسی می‌کند. فقط عدد صحیح پذیرفته می‌شود.'
+        :range?'نوار از حداقل تا حداکثر نمایش داده می‌شود؛ سرور بازهٔ '+faN(range[0])+' تا '+faN(range[1])+' را هنگام انتشار بررسی می‌کند. فقط عدد صحیح پذیرفته می‌شود.'
+        :f.t==='amount'?'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود؛ مبلغ منفی هیچ‌وقت پذیرفته نمی‌شود.'
+        :'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود؛ عدد منفی پذیرفته می‌شود.';
+      $('#fdMin').value=f.min==null?'':f.min;$('#fdMax').value=f.max==null?'':f.max},
+    validate:f=>{const minRaw=$('#fdMin').value.trim(),maxRaw=$('#fdMax').value.trim(),min=minRaw?conditionNumberValue(minRaw):null,max=maxRaw?conditionNumberValue(maxRaw):null,range=typeOf(f.t).boundsRange;
+      if(minRaw&&min===null)return {message:'حداقل باید یک عدد معتبر باشد',target:'#fdMin'};
+      if(maxRaw&&max===null)return {message:'حداکثر باید یک عدد معتبر باشد',target:'#fdMax'};
+      if(min!==null&&max!==null&&min>max)return {message:'حداقل نمی‌تواند از حداکثر بیشتر باشد',target:'#fdMin'};
+      if(range&&[min,max].some(v=>v!==null&&(v<range[0]||v>range[1])))return {message:'بازهٔ این نوع باید بین '+faN(range[0])+' تا '+faN(range[1])+' باشد',target:'#fdMin'};
+      if(range&&[min,max].some(v=>v!==null&&!Number.isInteger(v)))return {message:'بازهٔ این نوع فقط عدد صحیح می‌پذیرد',target:'#fdMin'};
+      if(f.t==='amount'&&min!==null&&min<0)return {message:'حداقل مبلغ نمی‌تواند منفی باشد',target:'#fdMin'};
+      return null},
+    apply:f=>{const minRaw=$('#fdMin').value.trim(),maxRaw=$('#fdMax').value.trim();f.min=minRaw?conditionNumberValue(minRaw):null;f.max=maxRaw?conditionNumberValue(maxRaw):null;if(f.t==='rating')f.help=ratingDefaultHelp(f)},
+    dirty:f=>unFa(String($('#fdMin').value||'')).trim()!==String(f.min==null?'':f.min)||unFa(String($('#fdMax').value||'')).trim()!==String(f.max==null?'':f.max)},
+  {id:'integer',keys:['integer'],box:'#fdIntegerBox',display:'',cap:'integer',when:t=>contractTypes('integer',INTEGER_SETTING_TYPES).has(t),
+    render:f=>{setSwitch('fdInteger',f.integer===true);const c=settingContract('integer');if(c&&c.reason)$('#fdIntegerNote').textContent=c.reason},
+    apply:f=>{const on=switchOn('fdInteger');if(on)f.integer=true;else delete f.integer;
+      /* راهنمای پیش‌فرض عدد «ممیز پذیرفته می‌شود» می‌گوید؛ با فقط‌صحیح، همان راهنمای پیش‌فرض به نسخهٔ بدون ممیز عوض می‌شود (راهنمای سفارشی دست نمی‌خورد) */
+      if(on&&f.help===HELP.number)f.help=HELP_NUMBER_INTEGER;else if(!on&&f.help===HELP_NUMBER_INTEGER)f.help=HELP.number},
+    clear:f=>{delete f.integer},
+    dirty:f=>switchOn('fdInteger')!==(f.integer===true),
+    convert:(next,from,to)=>{if(!contractTypes('integer',INTEGER_SETTING_TYPES).has(to))delete next.integer},
+    consequence:(f,to)=>f.integer===true&&!contractTypes('integer',INTEGER_SETTING_TYPES).has(to)?'تنظیم «فقط عدد صحیح» برداشته می‌شود.':''},
+  {id:'length',keys:['minLen','maxLen'],box:'#fdLengthBox',cap:'length',when:t=>contractTypes('length',LENGTH_SETTING_TYPES).has(t),
+    render:f=>{$('#fdMinLen').value=f.minLen==null?'':String(f.minLen);$('#fdMaxLen').value=f.maxLen==null?'':String(f.maxLen);
+      $('#fdLengthNote').textContent='خالی یعنی فقط سقف نوع ('+faN(lengthCapFor(f.t))+' نویسه). فرم عمومی و سرور هر دو همین محدودیت را بررسی می‌کنند؛ حداقل فقط در ثبت نهایی.'},
+    validate:f=>{const cap=lengthCapFor(f.t),min=parseLengthInput($('#fdMinLen').value),max=parseLengthInput($('#fdMaxLen').value);
+      if(Number.isNaN(min))return {message:'حداقل نویسه باید عدد صحیح و نامنفی باشد',target:'#fdMinLen'};
+      if(Number.isNaN(max))return {message:'حداکثر نویسه باید عدد صحیح و مثبت باشد',target:'#fdMaxLen'};
+      if(max===0)return {message:'حداکثر نویسه باید دست‌کم ۱ باشد',target:'#fdMaxLen'};
+      if([min,max].some(v=>v!==null&&v>cap))return {message:'طول پاسخ این نوع حداکثر '+faN(cap)+' نویسه است',target:max!==null&&max>cap?'#fdMaxLen':'#fdMinLen'};
+      if(min!==null&&max!==null&&min>max)return {message:'حداقل نویسه نمی‌تواند از حداکثر بیشتر باشد',target:'#fdMinLen'};
+      return null},
+    apply:f=>{const min=parseLengthInput($('#fdMinLen').value),max=parseLengthInput($('#fdMaxLen').value);if(min)f.minLen=min;else delete f.minLen;if(max)f.maxLen=max;else delete f.maxLen},
+    clear:f=>{delete f.minLen;delete f.maxLen},
+    dirty:f=>unFa(String($('#fdMinLen').value||'')).trim()!==String(f.minLen==null?'':f.minLen)||unFa(String($('#fdMaxLen').value||'')).trim()!==String(f.maxLen==null?'':f.maxLen),
+    convert:(next,from,to)=>{if(!contractTypes('length',LENGTH_SETTING_TYPES).has(to)){delete next.minLen;delete next.maxLen;return}
+      const cap=lengthCapFor(to);if(next.maxLen>cap)next.maxLen=cap;if(next.minLen>cap)next.minLen=cap},
+    consequence:(f,to)=>{const has=f.minLen>0||f.maxLen>0;if(!has)return '';if(!contractTypes('length',LENGTH_SETTING_TYPES).has(to))return 'محدودیت طول پاسخ برداشته می‌شود.';
+      const cap=lengthCapFor(to);return (f.maxLen>cap||f.minLen>cap)?'محدودیت طول به سقف '+faN(cap)+' نویسهٔ نوع تازه محدود می‌شود.':''}},
+  {id:'verify',keys:['verify'],box:'#fdVerifyBox',cap:'verification',when:(t,f)=>fieldControls(t).has('verify')||!!(f&&f.verify),
+    render:f=>{const legacyVerify=!!f.verify,verifyClear=$('#fdVerifyClear');$('#fdVerifyStatus').textContent=legacyVerify?'درخواست تأیید قدیمی ذخیره شده':'غیرفعال · سرویس پیامک/احراز وصل نیست';if(verifyClear)verifyClear.style.display=legacyVerify?'inline-flex':'none'}},
+  {id:'upload',keys:['count','accept','maxSize'],box:'#fdCountBox',cap:'upload',when:t=>fieldControls(t).has('upload'),
+    render:f=>{$('#fdCount').value=Math.max(1,Math.min(10,NR(f.count)||1));$('#fdAccept').value=cleanAccept(f.accept,f.t);$('#fdMaxSize').value=Math.max(1,Math.min(100,NR(f.maxSize)||10))},
+    apply:f=>{f.count=Math.max(1,Math.min(10,NR(unFa($('#fdCount').value))||1));f.accept=cleanAccept($('#fdAccept').value,f.t);f.maxSize=Math.max(1,Math.min(100,NR(unFa($('#fdMaxSize').value))||10))}},
+  {id:'placeholder',keys:['placeholder'],box:'#fdPlaceholderBox',cap:'placeholder',when:t=>fieldControls(t).has('placeholder'),
+    render:f=>{$('#fdPlaceholder').value=f.placeholder||''},
+    validate:()=>textLimitIssue('fdPlaceholder',120,'متن راهنمای داخل کادر'),
+    apply:f=>{f.placeholder=$('#fdPlaceholder').value.trim().slice(0,120)},clear:f=>{f.placeholder=''},
+    dirty:f=>($('#fdPlaceholder').value||'').trim()!==String(f.placeholder||'')},
+  {id:'conditions',keys:['conditions','conditionLogic','condField','condOp','condVal'],box:'#fdCondBox',display:'',common:true,cap:'conditions',
+    render:()=>renderConditionEditor(),
+    apply:f=>{const index=S.fields.findIndex(x=>String(x.id)===String(editing)),validIds=new Set(S.fields.slice(0,index).map(x=>String(x.id)));
+      const rules=conditionDraft.filter(rule=>validIds.has(String(rule.field))).map(rule=>{const source=S.fields.find(field=>String(field.id)===String(rule.field)),ops=source?conditionOperatorsFor(source.t):[];
+        const op=ops.includes(rule.op)?rule.op:ops[0]||'eq';return {field:String(rule.field),op,value:CONDITION_VALUE_OPS.has(op)?String(rule.value==null?'':rule.value).trim().slice(0,120):''}});
+      writeConditionRules(f,rules,conditionLogicDraft)},
+    dirty:f=>JSON.stringify(conditionDraft)!==JSON.stringify(conditionRulesForField(f))||conditionLogicDraft!==((f.conditionLogic||f.condLogic)==='any'?'any':'all')},
+  {id:'score',keys:['weight','scoreOn'],box:'#fdScoreBox',cap:'score',when:()=>surveyMode(),
+    render:f=>{const weight=$('#fdWeight'),scoreOn=$('#fdScoreOn'),scoringCap=FORM_CAPABILITIES&&FORM_CAPABILITIES.settings&&FORM_CAPABILITIES.settings.survey_scoring,scoreServerNote=$('#fdScoreServerNote');
+      if(scoreServerNote&&scoringCap&&scoringCap.reason)scoreServerNote.textContent=scoringCap.reason;
+      if(weight)weight.value=Math.max(1,Math.min(5,+f.weight||1));
+      const canScore=scoreable(f.t),scoreDefault=canScore&&f.scoreOn!==false;
+      if(scoreOn){setSwitch('fdScoreOn',scoreDefault);scoreOn.style.opacity=canScore?'1':'.45';scoreOn.style.pointerEvents=canScore?'':'none'}
+      const scoreHint=$('#fdScoreHint');if(scoreHint)scoreHint.textContent=canScore?(f.t==='rating'?'ستاره‌ها از ۱ تا ۵ امتیاز می‌گیرند؛ امتیاز در وزن پرسش ضرب می‌شود.':f.t==='scale'||f.t==='bars'?'بازهٔ ۰ تا ۱۰ در وزن پرسش ضرب می‌شود.':'برای هر گزینه امتیاز صفر تا پنج بگذار؛ در چندانتخاب، امتیاز گزینه‌های انتخاب‌شده جمع می‌شود.'):'این نوع پاسخ عددی نیست و وارد امتیاز کلی نمی‌شود.'},
+    apply:f=>{f.weight=Math.max(1,Math.min(5,NR(unFa($('#fdWeight').value))||1));f.scoreOn=scoreable(f.t)&&switchOn('fdScoreOn')},
+    clear:f=>{f.weight=Math.max(1,Math.min(5,NR(unFa($('#fdWeight').value))||1));f.scoreOn=scoreable(f.t)&&switchOn('fdScoreOn')}},
+  {id:'profile',keys:['prof'],box:'#fdProfBox',display:'',cap:'profile_prefill',when:(t,f)=>PROFILE_TYPES.has(t)||!!(f&&f.prof),
+    render:f=>{setSwitch('fdProf',!!f.prof);renderProfileControl(f)},
+    apply:f=>{if(PROFILE_TYPES.has(f.t)&&$('#fdProf').getAttribute('aria-disabled')!=='true')f.prof=switchOn('fdProf')},
+    dirty:f=>PROFILE_TYPES.has(f.t)&&$('#fdProf').getAttribute('aria-disabled')!=='true'&&switchOn('fdProf')!==!!f.prof},
+  {id:'csvColumn',keys:['col'],box:null,common:true,cap:'csv_column',
+    render:f=>setSwitch('fdCol',f.col!==false),apply:f=>{f.col=switchOn('fdCol')},dirty:f=>switchOn('fdCol')!==(f.col!==false)},
+  {id:'media',keys:['media','mediaNote'],box:null,common:true,cap:'media',
+    render:f=>{$$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));$('#fdMediaNoteBox').style.display=f.media&&f.media!=='none'?'':'none';$('#fdMediaNote').value=f.mediaNote||''},
+    validate:()=>textLimitIssue('fdMediaNote',160,'توضیح رسانه'),
+    apply:f=>{f.mediaNote=$('#fdMediaNote').value.trim().slice(0,160);const m=$('#shField [data-media].on');f.media=m?m.dataset.media:'none'}},
+  {id:'typeChange',keys:['t','preset'],box:'#fdTypeBox',display:'',cap:null,when:(t,f)=>typeChangeChoices(t,f&&f.preset).length>0,
+    render:()=>renderTypeChangeBox()}
 ];
+const settingDef=id=>FIELD_SETTINGS.find(def=>def.id===id);
+/* بخش «اعتبارسنجی و محدودیت» فقط وقتی دیده می‌شود که دست‌کم یکی از تنظیم‌های داخلش برای این نوع فعال باشد */
+const VALIDATION_SECTION_SETTINGS=['bounds','length','upload','verify'];
 const settingVisible=(def,t,f)=>!!def.common||!def.when||!!def.when(t,f);
 const visibleSettings=(t,f)=>FIELD_SETTINGS.filter(def=>settingVisible(def,t,f)).map(def=>def.id);
 /* سازگاری: byT فقط برای نمایش نوع (برچسب و آیکون نوع فنی)، نه برچسب الگو */
@@ -1699,6 +1810,8 @@ function fieldSettingsSummary(f){
   if(OPTION_FIELD_TYPES.has(f.t)){const n=optionRowsForField(f).filter(o=>optionLabelForField(o).trim()).length;out.push(faN(n)+' گزینه')}
   if(f.t==='multi'&&(f.minSelect!=null||f.maxSelect!=null))out.push('انتخاب'+(f.minSelect!=null?' حداقل '+faN(f.minSelect):'')+(f.maxSelect!=null?' حداکثر '+faN(f.maxSelect):''));
   if(ctl.has('bounds')&&((f.min!==''&&f.min!=null)||(f.max!==''&&f.max!=null)))out.push('بازه'+(f.min!==''&&f.min!=null?' از '+faN(f.min):'')+(f.max!==''&&f.max!=null?' تا '+faN(f.max):''));
+  if(f.integer===true&&INTEGER_SETTING_TYPES.has(f.t))out.push('فقط عدد صحیح');
+  if(LENGTH_SETTING_TYPES.has(f.t)&&(f.minLen>0||f.maxLen>0))out.push('طول'+(f.minLen>0?' دست‌کم '+faN(f.minLen):'')+(f.maxLen>0?' حداکثر '+faN(f.maxLen):'')+' نویسه');
   if(ctl.has('placeholder')&&f.placeholder)out.push('متن داخل کادر');
   if(PROFILE_TYPES.has(f.t)&&f.prof&&profilePrefillSupport().enabled)out.push('پیشنهاد از پروفایل (محلی)');
   return out;
@@ -2072,7 +2185,7 @@ function renderReadinessShell(){
     if(!READY_STATE.issues.length){box.innerHTML='<div class="row"><svg class="i" style="color:var(--ok)"><use href="#i-check"/></svg><span class="sub">'+(srv.status==='published'?'فرم منتشر است و پاسخ می‌پذیرد.':'فرم آمادهٔ انتشار است'+(CURRENT_EDITOR_ROLE==='owner'?'؛ از کارت زیر منتشر کنید.':'؛ انتشار با حساب مالک انجام می‌شود.'))+'</span></div>';return}
     /* خطای سروریِ مربوط به یک پرسش (field_id) مستقیماً همان پرسش را در ویرایشگر باز می‌کند؛ بقیه به تنظیم مربوط می‌روند */
     box.innerHTML=READY_STATE.issues.map(issue=>{const t=READY_TARGET[issue.code], fieldId=issue.field_id!=null&&S.fields.some(f=>String(f.id)===String(issue.field_id))?String(issue.field_id):'';
-      const control=({invalid_numeric_range:'#fdMin',verification_not_connected:'#fdVerifyClear',media_not_connected:'#shField [data-media="none"]',field_type_not_supported:'#fdTypeChange',file_or_financial_field_not_connected:'#fdTypeChange'})[issue.code]||'#fdTitle';
+      const control=({invalid_numeric_range:'#fdMin',invalid_length_range:'#fdMinLen',verification_not_connected:'#fdVerifyClear',media_not_connected:'#shField [data-media="none"]',field_type_not_supported:'#fdTypeChange',file_or_financial_field_not_connected:'#fdTypeChange'})[issue.code]||'#fdTitle';
       return '<div class="row" style="align-items:flex-start"><svg class="i" style="color:var(--warn);flex:0 0 auto"><use href="#i-bell"/></svg><span class="sub" style="flex:1">'+esc(issue.message||issue.code)+'</span>'+
         (fieldId?'<button type="button" class="btn sm quiet" data-ready-field="'+esc(fieldId)+'" data-ready-focus="'+esc(control)+'">بازکردن پرسش</button>'
         :t?'<button type="button" class="btn sm quiet" data-ready-go="'+esc(t[0])+'" data-ready-focus="'+esc(t[1])+'">رفتن به تنظیم</button>':'')+'</div>'}).join('');
@@ -2436,56 +2549,17 @@ function renderProfileControl(f){
 }
 function renderFieldEditor(){
   const f=FIELD_DRAFT; if(!f)return;
-  const c=byT(f.t), d=typeOf(f.t), ctl=fieldControls(f.t), support=fieldSupport(f.t), issues=fieldIssues(f);
+  const c=byT(f.t), d=typeOf(f.t), support=fieldSupport(f.t), issues=fieldIssues(f);
   $('#fdType').textContent=c.n; $('#fdStruct').textContent=STRUCT[f.t]||(d.legacy?'نوع ناشناخته':'—');
   const supportHost=$('#fdSupport'); if(supportHost)supportHost.innerHTML=capabilityTag(support.status,support.reason);
   const issueNote=$('#fdIssueNote'); if(issueNote){issueNote.hidden=!issues.length;issueNote.textContent=issues.join(' ')}
-  $('#fdTitle').value=f.l||''; $('#fdHelp').value=f.help||'';
-  $('#fdHelp').placeholder=f.t==='terms'?'متن قوانین یا رضایتی که پاسخ‌دهنده با تیک می‌پذیرد را اینجا بنویسید':'توضیح کوتاه زیر پرسش (اختیاری)';
-  setSwitch('fdReq',!!f.req); setSwitch('fdProf',!!f.prof); setSwitch('fdCol',f.col!==false);
-  renderProfileControl(f);
-  const legacyVerify=!!f.verify, verifyBox=$('#fdVerifyBox'), verifyClear=$('#fdVerifyClear');
-  verifyBox.style.display=ctl.has('verify')||legacyVerify?'block':'none';
-  $('#fdVerifyStatus').textContent=legacyVerify?'درخواست تأیید قدیمی ذخیره شده':'غیرفعال · سرویس پیامک/احراز وصل نیست';
-  if(verifyClear)verifyClear.style.display=legacyVerify?'inline-flex':'none';
-  const isUpload=ctl.has('upload');
-  $('#fdCountBox').style.display=isUpload?'block':'none';
-  $('#fdCount').value=Math.max(1,Math.min(10,NR(f.count)||1));
-  $('#fdAccept').value=cleanAccept(f.accept,f.t);
-  $('#fdMaxSize').value=Math.max(1,Math.min(100,NR(f.maxSize)||10));
-  $('#fdPlaceholderBox').style.display=ctl.has('placeholder')?'block':'none'; $('#fdPlaceholder').value=f.placeholder||'';
-  const bounds=ctl.has('bounds');
-  $('#fdBoundsBox').style.display=bounds?'block':'none';
-  $('#fdValidationBox').style.display=bounds||isUpload||verifyBox.style.display==='block'?'':'none';
-  const range=d.boundsRange;
-  $('#fdBoundsLabel').textContent=f.t==='rating'?'بازهٔ ستاره‌ها (اختیاری؛ ۱ تا ۵)':range?'بازهٔ نمایش (اختیاری؛ بین '+faN(range[0])+' تا '+faN(range[1])+')':'محدودهٔ عددی (اختیاری)';
-  $('#fdBoundsNote').textContent=f.t==='rating'?'فقط ستاره‌های داخل بازه نمایش داده می‌شوند (پیش‌فرض ۱ تا ۵)؛ سرور همین بازه را هنگام انتشار و پاسخ بررسی می‌کند.'
-    :range?'نوار از حداقل تا حداکثر نمایش داده می‌شود؛ سرور بازهٔ '+faN(range[0])+' تا '+faN(range[1])+' را هنگام انتشار بررسی می‌کند.'
-    :f.t==='amount'?'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود؛ مبلغ منفی هیچ‌وقت پذیرفته نمی‌شود. اعشار پذیرفته می‌شود و گام تغییر ندارد.'
-    :'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود. اعشار و عدد منفی پذیرفته می‌شود؛ گام تغییر یا فقط‌صحیح در سرور تنظیم‌پذیر نیست.';
-  $('#fdMin').value=f.min==null?'':f.min; $('#fdMax').value=f.max==null?'':f.max;
-  $$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));
-  $('#fdMediaNoteBox').style.display=f.media&&f.media!=='none'?'':'none';
-  $('#fdMediaNote').value=f.mediaNote||'';
-  $('#fdOptionsBox').style.display=OPTION_FIELD_TYPES.has(f.t)?'block':'none';
-  $('#fdMultiLimitsBox').style.display=f.t==='multi'?'':'none';
-  $('#fdMinSelect').value=f.minSelect==null?'':String(f.minSelect);
-  $('#fdMaxSelect').value=f.maxSelect==null?'':String(f.maxSelect);
-  renderFieldOptions();
-  const scoreBox=$('#fdScoreBox'), weight=$('#fdWeight'), scoreOn=$('#fdScoreOn');
-  if(scoreBox) scoreBox.style.display=surveyMode()?'block':'none';
-  const scoringCap=FORM_CAPABILITIES&&FORM_CAPABILITIES.settings&&FORM_CAPABILITIES.settings.survey_scoring, scoreServerNote=$('#fdScoreServerNote');
-  if(scoreServerNote&&scoringCap&&scoringCap.reason)scoreServerNote.textContent=scoringCap.reason;
-  if(weight) weight.value=Math.max(1,Math.min(5,+f.weight||1));
-  const canScore=scoreable(f.t), scoreDefault=canScore&&f.scoreOn!==false;
-  if(scoreOn){setSwitch('fdScoreOn',scoreDefault);scoreOn.style.opacity=canScore?'1':'.45';scoreOn.style.pointerEvents=canScore?'':'none'}
-  const scoreHint=$('#fdScoreHint'); if(scoreHint) scoreHint.textContent=canScore
-    ?(f.t==='rating'?'ستاره‌ها از ۱ تا ۵ امتیاز می‌گیرند؛ امتیاز در وزن پرسش ضرب می‌شود.'
-      :f.t==='scale'||f.t==='bars'?'بازهٔ ۰ تا ۱۰ در وزن پرسش ضرب می‌شود.'
-      :'برای هر گزینه امتیاز صفر تا پنج بگذار؛ در چندانتخاب، امتیاز گزینه‌های انتخاب‌شده جمع می‌شود.')
-    :'این نوع پاسخ عددی نیست و وارد امتیاز کلی نمی‌شود.';
-  renderTypeChangeBox();
-  renderConditionEditor();
+  /* یک حلقه روی منبع واحد: نمایش ظرف هر تنظیم + پرکردن کنترل‌هایش */
+  FIELD_SETTINGS.forEach(def=>{
+    const on=settingVisible(def,f.t,f);
+    if(def.box){const box=$(def.box);if(box)box.style.display=on?(def.display==null?'block':def.display):'none'}
+    if(on&&def.render)def.render(f);
+  });
+  $('#fdValidationBox').style.display=VALIDATION_SECTION_SETTINGS.some(id=>settingVisible(settingDef(id),f.t,f))?'':'none';
 }
 /* تغییر نوع: فقط به هم‌خانواده‌ها که تنظیم‌های مشترک (عنوان، راهنما، اجباری، شرط‌ها و در صورت امکان گزینه‌ها/بازه) حفظ می‌شود */
 const TYPE_FAMILIES=[
@@ -2521,6 +2595,7 @@ function typeChangeConsequences(f,choice){
   if(from.has('placeholder')&&!to.has('placeholder')&&f.placeholder)out.push('متن داخل کادر برداشته می‌شود.');
   if(from.has('upload'))out.push('تنظیم‌های فایل (تعداد، نوع، اندازه) برداشته می‌شوند؛ پاسخ‌دهنده به‌جای فایل متن می‌نویسد.');
   if(f.verify)out.push('درخواست تأیید قدیمی پاک می‌شود.');
+  FIELD_SETTINGS.forEach(def=>{if(!def.consequence)return;const note=def.consequence(f,target);if(note)out.push(note)});
   let broken=0, kept=0;
   S.fields.slice(index+1).forEach(other=>conditionRulesForField(other).forEach(rule=>{
     if(String(rule.field)!==String(f.id))return;
@@ -2557,6 +2632,7 @@ function applyTypeChange(choice){
   next.verify=false; next.scoreOn=scoreable(target)&&next.scoreOn!==false; next.prof=PROFILE_TYPES.has(target)?!!next.prof:false;
   if((HELP[f.t]&&next.help===HELP[f.t])||(oldPreset.help&&next.help===oldPreset.help))next.help=c.help||HELP[target]||'';
   if(wasDefaultTitle)next.l=c.n;
+  FIELD_SETTINGS.forEach(def=>{if(def.convert)def.convert(next,f.t,target)});
   Object.keys(f).forEach(key=>{if(!(key in next))delete f[key]}); Object.assign(f,next);
   renderFieldEditor();
   setFieldIssues([]); toast('نوع پرسش به «'+d.n+'» تغییر کرد؛ برای ثبت، «ذخیره» را بزنید');
@@ -2573,66 +2649,17 @@ function ratingDefaultHelp(f){
 }
 function saveField(){
   const f=S.fields.find(x=>String(x.id)===String(editing)); if(!f||!FIELD_DRAFT)return true;
-  const issues=[]; let focusTarget=null;
-  for(const [id,max,label] of [['fdTitle',160,'عنوان فیلد'],['fdHelp',300,'راهنمای پرسش'],
-    ['fdPlaceholder',120,'متن راهنمای داخل کادر'],['fdMediaNote',160,'توضیح رسانه']]){
-    const input=$('#'+id);if(input&&[...String(input.value||'').trim()].length>max){
-      toast('«'+label+'» حداکثر '+faN(max)+' نویسه است');setFieldIssues(['«'+label+'» حداکثر '+faN(max)+' نویسه است.']);input.focus();return false;
-    }
+  const draft=FIELD_DRAFT, t=draft.t;
+  /* ۱) نخستین اشکال هر تنظیمِ فعال، کنار همان کنترل: پنجره باز می‌ماند و فیلد دست نمی‌خورد */
+  for(const def of FIELD_SETTINGS){
+    if(!def.validate||!settingVisible(def,t,draft))continue;
+    const issue=def.validate(draft); if(!issue)continue;
+    toast(issue.message); setFieldIssues([issue.message+'.']);
+    const target=typeof issue.target==='string'?$(issue.target):issue.target; if(target&&target.focus)target.focus();
+    return false;
   }
-  const ctl=fieldControls(FIELD_DRAFT.t), t=FIELD_DRAFT.t;
-  let bounds=null;
-  if(ctl.has('bounds')){
-    const minRaw=$('#fdMin').value.trim(),maxRaw=$('#fdMax').value.trim(),
-      min=minRaw?conditionNumberValue(minRaw):null,max=maxRaw?conditionNumberValue(maxRaw):null, range=typeOf(t).boundsRange;
-    if(minRaw&&min===null){toast('حداقل باید یک عدد معتبر باشد');setFieldIssues(['حداقل باید یک عدد معتبر باشد.']);$('#fdMin').focus();return false}
-    if(maxRaw&&max===null){toast('حداکثر باید یک عدد معتبر باشد');setFieldIssues(['حداکثر باید یک عدد معتبر باشد.']);$('#fdMax').focus();return false}
-    if(min!==null&&max!==null&&min>max){toast('حداقل نمی‌تواند از حداکثر بیشتر باشد');setFieldIssues(['حداقل نمی‌تواند از حداکثر بیشتر باشد.']);$('#fdMin').focus();return false}
-    if(range&&[min,max].some(v=>v!==null&&(v<range[0]||v>range[1]))){const msg='بازهٔ این نوع باید بین '+faN(range[0])+' تا '+faN(range[1])+' باشد';toast(msg);setFieldIssues([msg+'.']);$('#fdMin').focus();return false}
-    bounds={min,max};
-  }
-  const draft=FIELD_DRAFT;
-  /* گزینه‌ها و محدودیت انتخاب همین‌جا بررسی می‌شوند تا خطا کنار همان کنترل دیده شود، نه فقط هنگام ذخیرهٔ کل فرم */
-  if(OPTION_FIELD_TYPES.has(t)||t==='multi'){
-    const probe=Object.assign({},draft,{t,opts:optionRowsForField(draft).map(raw=>typeof raw==='string'?{l:raw.trim()}:Object.assign({},raw||{},{l:String(raw&&raw.l==null?'':raw.l).trim()}))});
-    if(t==='multi'){probe.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);probe.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value)}
-    const issue=optionSettingsIssue(probe);
-    if(issue){toast(issue.message);setFieldIssues([issue.message+'.']);
-      const target=issue.target?$(issue.target):issue.optionIndex==null?$('#fdAddOption'):$('#fdOptions [data-optl="'+issue.optionIndex+'"]');
-      if(target&&target.focus)target.focus();return false}
-  }
-  draft.l=($('#fdTitle').value||'').trim().slice(0,160)||draft.l; draft.help=$('#fdHelp').value.trim().slice(0,300);
-  draft.req=$('#fdReq').classList.contains('on');
-  if(PROFILE_TYPES.has(t)&&$('#fdProf').getAttribute('aria-disabled')!=='true')draft.prof=$('#fdProf').classList.contains('on');
-  draft.col=$('#fdCol').classList.contains('on');
-  if(ctl.has('upload')){draft.count=Math.max(1,Math.min(10,NR(unFa($('#fdCount').value))||1));
-    draft.accept=cleanAccept($('#fdAccept').value,t);
-    draft.maxSize=Math.max(1,Math.min(100,NR(unFa($('#fdMaxSize').value))||10));}
-  draft.placeholder=ctl.has('placeholder')?$('#fdPlaceholder').value.trim().slice(0,120):'';
-  if(bounds){draft.min=bounds.min;draft.max=bounds.max}else if(ctl.has('bounds')){draft.min=null;draft.max=null}
-  if(t==='rating')draft.help=ratingDefaultHelp(draft);
-  draft.mediaNote=$('#fdMediaNote').value.trim().slice(0,160);
-  draft.weight=Math.max(1,Math.min(5,NR(unFa($('#fdWeight').value))||1));
-  draft.scoreOn=scoreable(t)&&$('#fdScoreOn').classList.contains('on');
-  if(t==='multi'){
-    draft.minSelect=parseOptionalPositiveInteger($('#fdMinSelect').value);
-    draft.maxSelect=parseOptionalPositiveInteger($('#fdMaxSelect').value);
-  }else{delete draft.minSelect;delete draft.maxSelect}
-  const m=$('#shField [data-media].on'); draft.media=m?m.dataset.media:'none';
-  const index=S.fields.findIndex(x=>String(x.id)===String(editing));
-  const validIds=new Set(S.fields.slice(0,index).map(x=>String(x.id)));
-  const rules=conditionDraft.filter(rule=>validIds.has(String(rule.field))).map(rule=>{
-    const source=S.fields.find(field=>String(field.id)===String(rule.field)), ops=source?conditionOperatorsFor(source.t):[];
-    const op=ops.includes(rule.op)?rule.op:ops[0]||'eq';
-    return {field:String(rule.field),op,value:CONDITION_VALUE_OPS.has(op)?String(rule.value==null?'':rule.value).trim().slice(0,120):''};
-  });
-  writeConditionRules(draft,rules,conditionLogicDraft);
-  draft.opts=optionRowsForField(draft).map(raw=>{
-    const o=typeof raw==='string'?{l:raw}:Object.assign({},raw||{});
-    o.l=String(o.l==null?'':o.l).trim();
-    if(o.score!=null)o.score=Math.max(0,Math.min(5,NR(unFa(o.score))||0));
-    return o;
-  });
+  /* ۲) نوشتن کنترل‌ها در پیش‌نویس (تنظیم‌های پنهان برای این نوع پاک می‌شوند) */
+  FIELD_SETTINGS.forEach(def=>{if(settingVisible(def,t,draft)){if(def.apply)def.apply(draft)}else if(def.clear)def.clear(draft)});
   let typeChanged=false; try{typeChanged=JSON.parse(FIELD_ORIGINAL||'{}').t!==f.t}catch(e){}
   if(typeChanged){normalizeFieldConditions();const removed=pruneDependentConditions(f.id);if(removed)toast(faN(removed)+' قاعدهٔ شرطی پرسش‌های بعدی با نوع تازه سازگار نبود و برداشته شد','warn')}
   FIELD_ORIGINAL=fieldDraftSnapshot(); setFieldIssues([]);
@@ -2643,16 +2670,7 @@ function fieldEditorDirty(){return !!FIELD_DRAFT&&$('#shField').classList.contai
 /* کنترل‌های متنی/سوییچ که تا «ذخیره» در پیش‌نویس نوشته نمی‌شوند */
 function editorControlsChanged(){
   const f=FIELD_DRAFT; if(!f)return false;
-  const sw=id=>$('#'+id).classList.contains('on');
-  if(($('#fdTitle').value||'').trim()!==String(f.l||'').trim())return true;
-  if(($('#fdHelp').value||'').trim()!==String(f.help||''))return true;
-  if(sw('fdReq')!==!!f.req||sw('fdCol')!==(f.col!==false))return true;
-  if(PROFILE_TYPES.has(f.t)&&$('#fdProf').getAttribute('aria-disabled')!=='true'&&sw('fdProf')!==!!f.prof)return true;
-  if(fieldControls(f.t).has('placeholder')&&($('#fdPlaceholder').value||'').trim()!==String(f.placeholder||''))return true;
-  if(fieldControls(f.t).has('bounds')&&(String($('#fdMin').value||'').trim()!==String(f.min==null?'':f.min)||String($('#fdMax').value||'').trim()!==String(f.max==null?'':f.max)))return true;
-  if(f.t==='multi'&&(String($('#fdMinSelect').value||'')!==String(f.minSelect==null?'':f.minSelect)||String($('#fdMaxSelect').value||'')!==String(f.maxSelect==null?'':f.maxSelect)))return true;
-  if(JSON.stringify(conditionDraft)!==JSON.stringify(conditionRulesForField(f))||conditionLogicDraft!==((f.conditionLogic||f.condLogic)==='any'?'any':'all'))return true;
-  return false;
+  return FIELD_SETTINGS.some(def=>!!def.dirty&&settingVisible(def,f.t,f)&&def.dirty(f));
 }
 function cancelFieldEdit(){
   /* بازگرداندن فیلد به نسخهٔ پیش از بازشدن ویرایشگر (گزینه‌ها، نوع، شرط‌ها) */

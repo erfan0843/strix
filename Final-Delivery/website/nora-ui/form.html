@@ -1082,6 +1082,8 @@ function purchaseErrorText(error){
     const safeBoolean=(v,fallback=false)=>{if(v==null)return fallback;if(v===true||v===1||v==='1')return true;if(v===false||v===0||v==='0')return false;
       if(typeof v==='string')return ['true','yes','on','بله'].includes(v.trim().toLowerCase());return fallback};
     const safeSelectionLimit=v=>v==null||v===''?null:Number.isSafeInteger(Number(v))?Number(v):NaN;
+    /* محدودیت طول متن (تنظیم مالک): عدد صحیح ۰ تا ۱۰۰۰۰؛ سقف نوع در مرورگر و سرور جداگانه اعمال می‌شود */
+    const safeLength=v=>{if(v==null||v==='')return null;const n=Number(asciiDigits(String(v)));return Number.isSafeInteger(n)&&n>=0&&n<=10000?n:null};
     const CONDITION_OPS=new Set(['eq','ne','contains','ncontains','starts','nstarts','ends','nends','gt','gte','lt','lte','empty','nempty']);
     const qOf=(x,i)=>{
       const src=Array.isArray(x)?{l:String(x[0]||''),t:'text',req:true}:x&&typeof x==='object'?x:{l:String(x||''),t:'text',req:true};
@@ -1104,7 +1106,7 @@ function purchaseErrorText(error){
         help:String(src.help||'').slice(0,500),placeholder:String(src.placeholder||'').slice(0,160),opts:rawOptions.slice(0,100)
           .map(o=>typeof o==='string'?{l:o.slice(0,200)}:Object.assign({},o||{},{l:String((o&&o.l)||'').slice(0,200)})).filter(o=>o.l),
         weight:Math.max(1,Math.min(5,safeCount(src.weight,5)||1)),scoreOn:safeBoolean(src.scoreOn,false),scoreType:String(src.scoreType||'').slice(0,40),
-        min:safeNumber(src.min),max:safeNumber(src.max),minSelect:safeSelectionLimit(src.minSelect),
+        min:safeNumber(src.min),max:safeNumber(src.max),minLen:safeLength(src.minLen),maxLen:safeLength(src.maxLen),integer:safeBoolean(src.integer,false),minSelect:safeSelectionLimit(src.minSelect),
         maxSelect:safeSelectionLimit(src.maxSelect),prof:safeBoolean(src.prof,false),col:safeBoolean(src.col,true),
         media:['image','file','video'].includes(src.media)?src.media:'none',mediaNote:String(src.mediaNote||'').slice(0,300),
         verify:safeBoolean(src.verify,false),count:Math.max(1,safeCount(src.count,10)||1),
@@ -2372,19 +2374,24 @@ if(REG&&Array.isArray(REG.q)){
     const termsNote=t==='terms'?`<p class="cap" style="margin-top:6px">${FORM_ROUTE.serverBacked?'این تیک به‌تنهایی رضایت رسمی نیست.':'رضایت رسمی ثبت نمی‌شود.'}</p>`:'';
     const locationNote=t==='location'?'<p class="cap" style="margin-top:6px">نقشه و موقعیت‌یابی وصل نیست.</p>':'';
     const slotNote=t==='slot'?'<p class="cap" style="margin-top:6px">رزرو قطعی نیست.</p>':'';
-    const common=media+imageChoice+profileNote+verify+mobileNote+nidNote+emailNote+priceNote+couponNote+termsNote+locationNote+slotNote+help;
+    const lengthParts=[];if(q.minLen>0)lengthParts.push('دست‌کم '+faN(q.minLen)+' نویسه');if(q.maxLen>0)lengthParts.push('حداکثر '+faN(q.maxLen)+' نویسه');
+    const lengthNote=lengthParts.length&&['text','area','address','location','fullname'].includes(t)?'<p class="cap" style="margin-top:6px" data-qlen="'+i+'">'+lengthParts.join(' · ')+'</p>':'';
+    const integerNote=q.integer&&(t==='number'||t==='amount')?'<p class="cap" style="margin-top:6px">فقط عدد صحیح (بدون اعشار).</p>':'';
+    const common=media+imageChoice+profileNote+verify+mobileNote+nidNote+emailNote+priceNote+couponNote+termsNote+locationNote+slotNote+lengthNote+integerNote+help;
     if(['text','fullname','mobile','nid','email','location','number','amount','price','coupon'].includes(t)){
       const numeric=['number','amount','price'].includes(t), inputType=t==='email'?'email':'text';
-      const ph=q.placeholder||({mobile:'۰۹__________ یا +۹۸ / ۰۰۹۸',nid:'ده رقم',email:'name@mail.com',location:'مثلاً تهران، میدان آزادی',number:'مثلاً ۱۲٫۵',amount:'مثلاً ۲۵۰٬۰۰۰',price:'مثلاً ۲۵۰٬۰۰۰',coupon:'مثلاً NORA-10'}[t]||'');
+      const ph=q.placeholder||({mobile:'۰۹__________ یا +۹۸ / ۰۰۹۸',nid:'ده رقم',email:'name@mail.com',location:'مثلاً تهران، میدان آزادی',number:q.integer?'مثلاً ۱۲':'مثلاً ۱۲٫۵',amount:'مثلاً ۲۵۰٬۰۰۰',price:'مثلاً ۲۵۰٬۰۰۰',coupon:'مثلاً NORA-10'}[t]||'');
       const min=numeric&&q.min!=null?` data-min="${E2(q.min)}"`:'', max=numeric&&q.max!=null?` data-max="${E2(q.max)}"`:'';
-      const maxLength=t==='nid'?' maxlength="10"':t==='mobile'?' maxlength="20"':t==='email'?' maxlength="254"':t==='fullname'?' maxlength="120"':t==='location'?' maxlength="180"':t==='coupon'?' maxlength="64"':numeric?' maxlength="100"':t==='text'?' maxlength="1000"':'';
-      const keyboard=numeric?' inputmode="decimal" style="direction:ltr;text-align:start"':t==='mobile'?' inputmode="tel"':t==='nid'?' inputmode="numeric"':'';
+      const typeCap={nid:10,mobile:20,email:254,fullname:120,location:180,coupon:64,text:1000}[t]||(numeric?100:0);
+      const ownerCap=q.maxLen>0&&['text','fullname','location'].includes(t)?Math.min(typeCap,q.maxLen):typeCap;
+      const maxLength=ownerCap?' maxlength="'+ownerCap+'"':'';
+      const keyboard=numeric?' inputmode="'+(q.integer?'numeric':'decimal')+'" style="direction:ltr;text-align:start"':t==='mobile'?' inputmode="tel"':t==='nid'?' inputmode="numeric"':'';
       const autocomplete=t==='fullname'?'name':t==='mobile'?'tel':t==='email'?'email':'off',emailAttrs=t==='email'?' autocapitalize="none" spellcheck="false"':'';
       return `<div class="fld"><span class="reqbar"></span><input class="input${numeric?' num':''}" id="${qId(i)}" aria-label="${E2(q.l)}" type="${inputType}"
         ${keyboard}${min}${max}${maxLength}${emailAttrs} placeholder="${E2(ph)}" value="${E2(pref)}" autocomplete="${autocomplete}"/></div>${common}`;
     }
     if(t==='area'||t==='address'){
-      const placeholder=q.placeholder||(t==='address'?'محله، خیابان، کوچه و پلاک':'همین‌جا بنویس'),rows=t==='address'?3:4,maxLength=t==='address'?1000:3000;
+      const placeholder=q.placeholder||(t==='address'?'محله، خیابان، کوچه و پلاک':'همین‌جا بنویس'),rows=t==='address'?3:4,typeCap=t==='address'?1000:3000,maxLength=q.maxLen>0?Math.min(typeCap,q.maxLen):typeCap;
       return `<div class="fld"><span class="reqbar"></span><textarea class="input" id="${qId(i)}" aria-label="${E2(q.l)}" rows="${rows}" maxlength="${maxLength}" placeholder="${E2(placeholder)}">${E2(pref)}</textarea></div>${common}`;
     }
     if(t==='dropdown'){
@@ -2912,11 +2919,17 @@ if(REG&&Array.isArray(REG.q)){
     if(!v) return null;
     const charLimit={text:1000,area:3000,address:1000,location:180,coupon:64,mobile:20,number:100,amount:100,price:100}[t];
     if(charLimit&&[...String(v)].length>charLimit)return 'پاسخ «'+q.l+'» حداکثر '+faN(charLimit)+' نویسه است';
+    if(['text','area','address','location','fullname'].includes(t)){
+      const length=String(v).trim().length;
+      if(q.maxLen>0&&length>q.maxLen)return 'پاسخ «'+q.l+'» حداکثر '+faN(q.maxLen)+' نویسه است';
+      if(q.minLen>0&&length<q.minLen)return 'پاسخ «'+q.l+'» باید دست‌کم '+faN(q.minLen)+' نویسه باشد';
+    }
     if(['date','datetime','time','slot'].includes(t)&&!temporalParts(t,v)){
       return t==='date'?'«'+q.l+'» باید یک تاریخ شمسی کامل و معتبر باشد':(t==='time'||t==='slot'?'«'+q.l+'» را کامل و درست انتخاب کنید':'«'+q.l+'» باید تاریخ و ساعت کامل و معتبر داشته باشد');
     }
     const n=conditionNumber(v);
     if(['number','amount','price'].includes(t)&&n===null) return '«'+q.l+'» باید عدد باشد';
+    if((t==='number'||t==='amount')&&q.integer&&!Number.isInteger(n)) return '«'+q.l+'» باید عدد صحیح (بدون اعشار) باشد';
     if(['number','amount','price'].includes(t)&&q.min!=null&&n<q.min) return 'حداقل مقدار «'+q.l+'» '+faN(q.min)+' است';
     if(t==='amount'&&q.min==null&&n<0) return 'مبلغ «'+q.l+'» نمی‌تواند منفی باشد';
     if(['number','amount','price'].includes(t)&&q.max!=null&&n>q.max) return 'حداکثر مقدار «'+q.l+'» '+faN(q.max)+' است';

@@ -142,3 +142,48 @@ def test_rating_range_outside_one_to_five_blocks_publish(client):
     readiness = client.get(f"/api/forms/{form_id}/readiness").json()
     assert readiness["publishable"] is False
     assert any(issue["code"] == "invalid_numeric_range" and issue["field_id"] == "r" for issue in readiness["issues"])
+
+
+def test_text_length_and_integer_settings_are_enforced_and_published(client):
+    form_id = publish_form(client, [
+        {"id": "nick", "t": "text", "l": "نام مستعار", "minLen": "۳", "maxLen": 8},
+        {"id": "why", "t": "area", "l": "چرا؟", "maxLen": 20},
+        {"id": "count", "t": "number", "l": "تعداد", "integer": True, "min": 1},
+        {"id": "donation", "t": "amount", "l": "مبلغ", "integer": False},
+    ], "length")
+    # فرم عمومی همین کلیدها را می‌گیرد تا مرورگر هم همان قاعده را اعمال کند
+    public_form = TestClient(client.app).get(f"/api/public/forms/{form_id}").json()
+    by_id = {f["id"]: f for f in public_form["fields"]}
+    assert (by_id["nick"]["minLen"], by_id["nick"]["maxLen"], by_id["count"]["integer"]) == ("۳", 8, True)
+    public = visitor(client, form_id)
+    assert patch_draft(public, form_id, {"nick": "ab"}).status_code == 200, "پیش‌نویس ناقص حداقل طول را رد نمی‌کند"
+    assert patch_draft(public, form_id, {"nick": "123456789"}).status_code == 422, "حداکثر طول حتی در پیش‌نویس"
+    assert patch_draft(public, form_id, {"why": "ن" * 21}).status_code == 422
+    assert patch_draft(public, form_id, {"count": "2.5"}).status_code == 422
+    assert patch_draft(public, form_id, {"count": "۲"}).status_code == 200
+    assert patch_draft(public, form_id, {"donation": "2500.5"}).status_code == 200, "بدون فقط‌صحیح، اعشار مجاز است"
+    short = public.post(f"/api/public/forms/{form_id}/responses", json={"answers": {"nick": "ab", "count": "2"}}, headers=ORIGIN)
+    assert short.status_code == 422 and any(e["field_id"] == "nick" and "دست‌کم" in e["message"] for e in short.json()["detail"]["errors"])
+    good = public.post(f"/api/public/forms/{form_id}/responses", json={"answers": {"nick": "سارا", "why": "خوب بود", "count": "3"}}, headers=ORIGIN)
+    assert good.status_code in (200, 201), good.text
+    # قرارداد قابلیت‌ها همین تنظیم‌ها را با سقف نوع اعلام می‌کند
+    capabilities = client.get("/api/public/forms/capabilities").json()
+    settings = capabilities["field_settings"]
+    assert settings["length"]["status"] == "server" and settings["length"]["max_by_type"]["text"] == 1000
+    assert settings["integer"]["types"] == ["amount", "number"]
+    assert settings["placeholder"]["status"] == "client_display"
+    assert settings["temporal_bounds"]["status"] == "unavailable"
+
+
+def test_invalid_length_settings_block_publish_with_field_reference(client):
+    headers = owner_login(client)
+    created = client.post("/api/forms", json={
+        "name": "طول نامعتبر", "model": "registration", "need": "reg", "slug": "field-engine/bad-length", "ev": "",
+        "settings": {"description": "x"},
+        "fields": [{"id": "a", "t": "text", "l": "الف", "minLen": 10, "maxLen": 5}, {"id": "b", "t": "location", "l": "ب", "maxLen": 500}],
+    }, headers={**headers, "Idempotency-Key": "field-engine-bad-length"})
+    assert created.status_code == 201, created.text
+    readiness = client.get(f"/api/forms/{created.json()['id']}/readiness").json()
+    assert readiness["publishable"] is False
+    codes = {(i["code"], i["field_id"]) for i in readiness["issues"]}
+    assert ("invalid_length_range", "a") in codes and ("invalid_length_range", "b") in codes
